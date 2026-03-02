@@ -43294,7 +43294,26 @@
       "g_125": {
         "coph": "039198454"
       },
-      "__phonesVer": "v2"
+      "__phonesVer": "v2",
+      "__c": [
+        {
+          "id": 1772486468490,
+          "name": "דרך הספורט",
+          "phone": "052-8777920"
+        }
+      ],
+      "דרך הספורט": {
+        "ph1": "052-8777920",
+        "email": "da3535da@walla.co.il",
+        "g1": "021974019",
+        "entityType": "עוסק מורשה",
+        "isAct": true,
+        "isPurch": true
+      },
+      "פמיליסקול": {},
+      "__merged_away": [
+        "פמילי סקול"
+      ]
     },
     "clusters": {
       "פ\"ת - 6": {
@@ -43863,10 +43882,40 @@
     },
     "blockedDates": {},
     "gardenBlocks": {},
-    "invoices": [],
+    "invoices": [
+      {
+        "id": 1772486468490,
+        "supName": "דרך הספורט",
+        "vat": 18,
+        "orderNum": "חוגים",
+        "orderDate": "",
+        "orderDesc": "פעילות חוגים - פברואר 2026",
+        "orderAmt": 0,
+        "orderVat": 0,
+        "orderTotal": 0,
+        "orderNotes": "",
+        "txNum": "113",
+        "txDate": "2026-02-26",
+        "txAmt": 6567.8,
+        "txVat": 1182.2,
+        "txTotal": 7750,
+        "num": "",
+        "date": "",
+        "amt": 0,
+        "vatAmt": 0,
+        "total": 0,
+        "recv": "2026-03-02",
+        "status": "active",
+        "notes": "",
+        "file_order": null,
+        "file_tx": null,
+        "file_tax": null,
+        "ts": 1772486514187
+      }
+    ],
     "vatRate": 18,
     "activeGardens": null
   },
-  "ts": 1772486166319,
+  "ts": 1772486607760,
   "version": "10.x"
 }
