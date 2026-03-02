@@ -558,6 +558,14 @@ function ghSaveToken(){
   odMsg('✅ Token נשמר','#2e7d32');
 }
 
+function ghCollectAllData(){
+  const meta=JSON.parse(localStorage.getItem('ganv5_meta')||'null');
+  const out={meta,ganv5:localStorage.getItem('ganv5')||null};
+  if(meta&&Array.isArray(meta.years))
+    meta.years.forEach(yk=>{const v=localStorage.getItem('ganv5_y_'+yk);if(v)out['ganv5_y_'+yk]=v;});
+  if(meta&&meta.currentYear){const v=localStorage.getItem('ganv5_y_'+meta.currentYear);if(v)out['ganv5_y_'+meta.currentYear]=v;}
+  return JSON.stringify(out);
+}
 async function odSaveNow(silent){
   if(!ghToken()){if(!silent)odMsg('יש להזין GitHub Token');return false;}
   try{
@@ -566,7 +574,7 @@ async function odSaveNow(silent){
     let sha=null;
     const gr=await fetch(url,{headers:ghHeaders()});
     if(gr.ok) sha=(await gr.json()).sha;
-    const raw=localStorage.getItem('ganv5')||'{}';
+    const raw=ghCollectAllData();
     const body={message:'sync '+new Date().toISOString(),content:btoa(unescape(encodeURIComponent(raw)))};
     if(sha) body.sha=sha;
     const pr=await fetch(url,{method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)});
@@ -589,9 +597,19 @@ async function odLoadNow(silent){
     if(res.status===404){if(!silent)odMsg('אין קובץ — שמור תחילה','#e65100');return false;}
     if(!res.ok){if(!silent)odMsg('שגיאה: '+res.status);return false;}
     const decoded=decodeURIComponent(escape(atob((await res.json()).content.split('\n').join(''))));
-    const meta=JSON.parse(localStorage.getItem('ganv5_meta')||'null');
-    if(meta&&meta.currentYear) localStorage.setItem('ganv5_y_'+meta.currentYear, decoded);
-    localStorage.setItem('ganv5', decoded);
+    let obj;
+    try{ obj=JSON.parse(decoded); }catch(e){ obj=null; }
+    if(obj&&obj.meta){
+      // New format: full backup with all year keys
+      localStorage.setItem('ganv5_meta',JSON.stringify(obj.meta));
+      if(obj.ganv5) localStorage.setItem('ganv5',obj.ganv5);
+      Object.keys(obj).forEach(k=>{if(k.startsWith('ganv5_y_'))localStorage.setItem(k,obj[k]);});
+    } else {
+      // Legacy format: raw year data string
+      const meta=JSON.parse(localStorage.getItem('ganv5_meta')||'null');
+      if(meta&&meta.currentYear) localStorage.setItem('ganv5_y_'+meta.currentYear,decoded);
+      localStorage.setItem('ganv5',decoded);
+    }
     location.reload();
     return true;
   }catch(e){if(!silent)odMsg('שגיאה: '+e.message);return false;}
@@ -2545,7 +2563,13 @@ let _exGids=null;
 let newSchedForGarden=null; // pre-fill garden when opening new schedule
 
 function _applyYearData(o){
-  if(o.ch){const m={};o.ch.forEach(x=>m[x.id]=x);SCH=SRAWS.map(s=>{const x=m[s.id];return x?{...s,...x}:s;});}
+  if(o.ch){
+    const m={};o.ch.forEach(x=>m[x.id]=x);
+    SCH=SRAWS.map(s=>{const x=m[s.id];return x?{...s,...x}:s;});
+    // Include user-created schedules not in SRAWS
+    const srawsIds=new Set(SRAWS.map(s=>s.id));
+    SCH.push(...o.ch.filter(x=>!srawsIds.has(x.id)));
+  }
   else SCH=SRAWS.map(s=>({...s,st:'ok',cr:'',cn:'',nt:s.n||'',pd:'',pt:'',grp:1}));
   if(Array.isArray(o.pairs)&&o.pairs.length>0){
     pairs=o.pairs.map(p=>({...p,ids:p.ids.map(id=>parseInt(id)).filter(id=>G(id).id)}));
