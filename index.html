@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="קידס שיבוץ">
 <meta name="theme-color" content="#1a237e">
-<title>ניהול לוגיסטי טומשין קידס</title>
+<title>טומשין קידס</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#222;direction:rtl;font-size:14px}
@@ -1212,7 +1212,7 @@ function renderPurchSuppliers(){
 <div class="hdr">
   <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
     <span style="font-size:1.3rem">🌿</span>
-    <h1>ניהול לוגיסטי טומשין קידס</h1>
+    <h1>טומשין קידס</h1>
   </div>
   <div class="hs" id="hdr-stats">
     <span style="opacity:.5;font-size:.7rem;letter-spacing:.03em;text-transform:uppercase;background:none!important">🎨 חוגים</span>
@@ -1326,7 +1326,7 @@ function renderPurchSuppliers(){
       <div class="fg"><label>עיר</label><select id="dash-city" onchange="renderDash()"><option value="">כל הערים</option></select></div>
       <div class="fg"><label>ספק</label><select id="dash-sup" onchange="renderDash()"><option value="">כל הספקים</option></select></div>
       <div class="fg"><label>סטטוס</label><select id="dash-st" onchange="renderDash()"><option value="">הכל</option><option value="ok">מתקיים</option><option value="done">התקיים</option><option value="can">בוטל</option><option value="post">נדחה</option><option value="nohap">לא התקיים</option></select></div>
-      <div class="fg"><label>חיפוש חופשי</label><input type="text" id="dash-srch" placeholder="שם גן, ספק..." oninput="renderDash()" style="min-width:130px"></div>
+      <div class="fg"><label>חיפוש חופשי</label><input type="text" id="dash-srch" placeholder="שם גן, ספק..." autocomplete="off" oninput="renderDash()" style="min-width:130px"></div>
       <button class="btn bp bsm" onclick="openNewSched(null)">➕ שיבוץ חדש</button>
     </div>
     <!-- Classification tabs -->
@@ -2446,7 +2446,10 @@ const _srawsReady=(async function(){
     const data=await r.json();
     SRAWS.push(...data);
     console.log('SRAWS loaded:',SRAWS.length);
-  }catch(e){console.warn('SRAWS load failed:',e.message);}
+  }catch(e){
+    console.warn('SRAWS load failed:',e.message);
+    setTimeout(()=>{if(typeof showToast==='function') showToast('⚠️ sraws.json לא נטען — חלק מהפעילויות עשויות להיות חסרות');},2000);
+  }
 })();
 const SUPBASE=[{"id":1,"name":"חוגות - ניצני רפואה / ילדי הרכבת","phone":"054-4732253"},{"id":2,"name":"חוגות - ניצני רפואה","phone":"054-4732253"},{"id":3,"name":"תנועה בקצב","phone":"052-8575954"},{"id":4,"name":"קידו - התעמלות","phone":"050-7500258"},{"id":5,"name":"מדברים על 4 - אילוף כלבים","phone":"050-371-2281"},{"id":6,"name":"שחר חוויות - מופע חנוכה","phone":"054-6589303"},{"id":7,"name":"פמיליסקול - משחק/תאטרון/פלסטלינה","phone":"058-6311608"},{"id":8,"name":"שחר חוויות - מופע פסח","phone":"054-6589303"},{"id":9,"name":"מעשיותאטרון - דרמה/מוסיקה","phone":"054-6589303"},{"id":10,"name":"תלתן - כלבנות","phone":"054-6464387"},{"id":11,"name":"מוראל - מוסיקה ריקוד והתעמלות","phone":"054-5369986"},{"id":12,"name":"ריקי LIKE - ג'ליקו","phone":"055-2288008"},{"id":13,"name":"חיים בתנועה - התעמלות","phone":"052-2242552"},{"id":14,"name":"דרך הספורט - התעמלות","phone":"052-8777920"},{"id":15,"name":"מהנדסי הדור הבא","phone":"054-5252581"},{"id":16,"name":"תלתן - ספורט","phone":"054-6464387"},{"id":17,"name":"פמילי סקול - סיפור בתאטרון","phone":"058-6311608"},{"id":18,"name":"עליזה - סיפורים מוסיקליים","phone":"052-3215555"},{"id":19,"name":"תלתן - אנגלית לקטנטנים","phone":"054-6464387"},{"id":20,"name":"פמילי סקול - תנועה","phone":"052-2242552"},{"id":21,"name":"הקסם של אורנה - תאטרון","phone":"052-7211958"},{"id":22,"name":"חוגות - מנהיגות יצירתית","phone":"054-4732253"},{"id":23,"name":"חיים בתנועה - ריקוד","phone":"052-2242552"},{"id":24,"name":"פמילי סקול - יוגה","phone":"058-6311608"},{"id":25,"name":"חיים בתנועה - תאטרון","phone":"052-2242552"},{"id":26,"name":"פמילי סקול - פלסטלינה","phone":"058-6311608"},{"id":27,"name":"תלתן - ברייקדאנס","phone":"054-6464387"},{"id":28,"name":"טל טיפולים שיווק והדרכה - התעמלות","phone":"054-5252581"}];
 // ── Supplier name parsing ──────────────────────────────
@@ -2543,10 +2546,9 @@ function _applyYearData(o){
       const srawsIds=new Set(SRAWS.map(s=>s.id));
       SCH.push(...o.ch.filter(x=>!srawsIds.has(x.id)&&x.g&&x.d&&x.a));
     } else {
-      // SRAWS not loaded: use ch entries that have full fields (g,d,a)
-      SCH=o.ch.filter(x=>x.g&&x.d&&x.a).map(x=>({
-        st:'ok',cr:'',cn:'',nt:'',pd:'',pt:'',grp:1,...x
-      }));
+      // SRAWS not loaded: preserve ALL ch entries with defaults for missing fields
+      SCH=o.ch.map(x=>({g:0,d:'',a:'',t:'',p:'',n:'',st:'ok',cr:'',cn:'',nt:'',pd:'',pt:'',grp:1,...x}))
+             .filter(x=>x.g>0&&x.d);
     }
   }
   else SCH=SRAWS.map(s=>({...s,st:'ok',cr:'',cn:'',nt:s.n||'',pd:'',pt:'',grp:1}));
@@ -2673,10 +2675,6 @@ function initPairs(){
 // ══════════════════════════════════════════════════════════
 
 
-function refresh(){
-  renderDash(); renderCal(); renderClusters(); renderSup(); renderManagers();
-}
-
 function G(id){return GARDENS.find(g=>g.id===id)||{}}
 function gcls(g){return g.cls||'גנים'}
 function gByCF(city,cls){return GARDENS.filter(g=>(!city||g.city===city)&&(!cls||gcls(g)===cls));}
@@ -2719,6 +2717,8 @@ window.onload=async function(){
   refreshClusterDrops();
   refreshMgrDrops();
   document.getElementById('dash-date').value=td();
+  // Clear search fields on load (prevent browser autofill from filtering results)
+  ['dash-srch','s-srch','g-srch','su-srch'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const sfrom=document.getElementById('s-from');if(sfrom) sfrom.value=td();
   const sto=document.getElementById('s-to');if(sto) sto.value=td();
   const calClsEl=document.getElementById('cal-cls');
