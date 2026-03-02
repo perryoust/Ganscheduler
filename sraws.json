@@ -43625,7 +43625,18 @@
         ]
       }
     },
-    "holidays": [],
+    "holidays": [
+      {
+        "id": "h_1772486682148",
+        "name": "חופשת פורים",
+        "from": "2026-03-03",
+        "to": "2026-03-03",
+        "type": "vacation",
+        "city": "",
+        "scope": "all",
+        "note": ""
+      }
+    ],
     "pairBreaks": {},
     "managers": {
       "mgr_auto_1772387393114_pmixd": {
@@ -43916,6 +43927,6 @@
     "vatRate": 18,
     "activeGardens": null
   },
-  "ts": 1772486607760,
+  "ts": 1772486707968,
   "version": "10.x"
 }
