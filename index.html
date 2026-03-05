@@ -2047,23 +2047,14 @@ function renderPurchSuppliers(){
 </div>
 
 <div id="od-modal" class="modal">
-  <div class="mb" style="max-width:420px">
-    <h2 style="color:#24292e;margin-bottom:8px">☁️ סנכרון GitHub</h2>
-    ...
-  </div>
-</div>
-    <div class="fg" style="margin-bottom:12px">
-      <label style="font-size:.78rem;font-weight:700;color:#37474f">GitHub Token (ghp_...)</label>
-      <div style="display:flex;gap:6px;margin-top:4px">
-        <input type="password" id="gh-token-input" placeholder="ghp_xxxxxxxxxxxxxxxx" style="flex:1;font-family:monospace;font-size:.78rem;padding:6px 8px;border:1.5px solid #b0bec5;border-radius:6px">
-        <button class="btn bg bsm" onclick="ghSaveToken()">שמור</button>
-      </div>
-      <div style="font-size:.71rem;color:#78909c;margin-top:3px">Token נשמר בדפדפן — לא בקוד</div>
+  <div class="mb" style="max-width:420px; border-top: 5px solid #2e7d32;">
+    <h2 style="color:#1b5e20; margin-bottom:8px">☁️ סנכרון Firebase Realtime</h2>
+    <div style="background:#e8f5e9; border-radius:8px; padding:10px 13px; margin-bottom:12px; font-size:.79rem; color:#2e7d32; line-height:1.6">
+      המערכת מחוברת למסד הנתונים של <b>Firebase</b>.<br>
+      הסנכרון מתבצע באופן אוטומטי ושקוף.
     </div>
-    <div id="od-msg" style="display:none;border-radius:6px;padding:7px 10px;margin-bottom:10px;font-size:.8rem"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-      <button class="btn bg bsm" onclick="odSaveNow()">💾 שמור עכשיו</button>
-      <button class="btn bo bsm" onclick="odLoadNow()">📂 טען עכשיו</button>
+    <div style="display:flex; gap:8px; justify-content:flex-end;">
+      <button class="btn bg bsm" onclick="save()">💾 סנכרן עכשיו</button>
       <button class="btn bs bsm" onclick="CM('od-modal')">סגור</button>
     </div>
   </div>
