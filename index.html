@@ -551,10 +551,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 100);
 });
 
-// 2. אתחול חכם
+// 2. אתחול חכם (טעינה מהענן או מקובץ מקומי)
 async function initApp() {
     try {
-        console.log("Initializing...");
+        console.log("Initializing v10.1...");
         const fbRes = await fetch(FIREBASE_DB_URL);
         const cloudData = fbRes.ok ? await fbRes.json() : null;
 
@@ -568,17 +568,22 @@ async function initApp() {
                 const localData = await locRes.json();
                 if (Array.isArray(localData)) S.raws = localData;
                 else S = { ...S, ...localData };
-                save(true); 
+                save(true); // דחיפה ראשונית לענן אם הוא ריק
             }
         }
 
+        // עדכון תאריך ב-UI
         const dateInp = document.getElementById('dash-date') || document.getElementById('view-date-input');
         if (dateInp) dateInp.value = S.viewDate;
 
+        // ריענון תצוגה
         if (typeof render === 'function') render();
         odUpdateUI();
+        
+        console.log("System Ready");
     } catch (err) {
         console.error("Init Error:", err);
+        if (typeof render === 'function') render();
     }
 }
 
@@ -602,7 +607,7 @@ async function save(silent = false) {
     }
 }
 
-// 4. פונקציות ממשק
+// 4. פונקציות ממשק (UI)
 function odToggle() { 
     const modal = document.getElementById('od-modal');
     if(modal) modal.classList.add('open');
@@ -633,8 +638,8 @@ function showNotice(msg) {
     else console.log(msg);
 }
 // --- סוף אזור Firebase ---
-  
-  // PROCUREMENT MODULE - v9.0
+
+// ── PROCUREMENT MODULE - v9.0 ────────────────────────────────
 
 let _appMode = 'act'; // 'act' | 'purch'
 let _purchTab = 'pdash';
