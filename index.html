@@ -3,101 +3,114 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>טומשין קידס - מערכת שיבוץ</title>
+<title>טומשין קידס - מערכת ניהול</title>
 <style>
-    /* העיצוב המקורי שלך מגרסה 10.0 */
+    /* העיצוב המקורי שלך v10.0 */
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#222;direction:rtl;font-size:14px}
     .hdr{background:linear-gradient(135deg,#1a237e,#1565c0);color:#fff;padding:11px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.25)}
     .hdr h1{font-size:1.15rem;font-weight:800}
     .content{padding:12px;max-width:1600px;margin:0 auto}
     .card{background:#fff;border-radius:10px;padding:13px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:12px;border-right:5px solid #1a237e}
-    .controls{background:#fff;padding:10px;display:flex;gap:10px;align-items:center;border-bottom:1px solid #ddd;position:sticky;top:0;z-index:100}
-    input[type="date"]{padding:8px;border-radius:5px;border:1px solid #ccc}
+    
+    /* מסך כניסה */
+    #login-screen {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: #1a237e; display: flex; align-items: center; justify-content: center;
+        z-index: 10000; color: white;
+    }
+    .login-box { background: white; padding: 30px; border-radius: 15px; text-align: center; color: #333; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    #main-app { display: none; } /* מוסתר עד להקשת סיסמה */
+    
+    .controls{background:#fff;padding:10px;display:flex;gap:10px;justify-content:center;border-bottom:1px solid #ddd}
     .btn{padding:8px 15px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;background:#1565c0;color:#fff}
 </style>
 </head>
 <body>
 
-<div class="hdr">
-    <h1>טומשין קידס</h1>
-    <div style="margin-right:auto" id="hdr-date">טוען...</div>
+<div id="login-screen">
+    <div class="login-box">
+        <h2 style="color:#1a237e; margin-bottom:15px;">כניסה למערכת</h2>
+        <input type="password" id="pass-input" placeholder="הכנס סיסמה" style="width:100%; padding:10px; text-align:center; font-size:18px; border:1px solid #ddd; border-radius:8px; margin-bottom:15px;">
+        <button onclick="checkPass()" class="btn" style="width:100%">כניסה</button>
+        <p id="err-msg" style="color:red; display:none; margin-top:10px;">סיסמה שגויה!</p>
+    </div>
 </div>
 
-<div class="controls">
-    <button class="btn" onclick="changeDate(-1)">◄ יום קודם</button>
-    <input type="date" id="view-date-input" onchange="updateDate(this.value)">
-    <button class="btn" onclick="changeDate(1)">יום הבא ►</button>
-</div>
+<div id="main-app">
+    <div class="hdr">
+        <h1>טומשין קידס</h1>
+        <div style="margin-right:auto" id="hdr-date"></div>
+    </div>
 
-<div class="content" id="render-cont">
-    <div style="text-align:center;padding:50px;">מתחבר לנתונים...</div>
+    <div class="controls">
+        <button class="btn" onclick="changeDate(-1)">◄</button>
+        <input type="date" id="date-picker" onchange="setDate(this.value)">
+        <button class="btn" onclick="changeDate(1)">►</button>
+    </div>
+
+    <div class="content" id="render-cont">
+        <div style="text-align:center; padding:50px;">טוען נתונים...</div>
+    </div>
 </div>
 
 <script>
-    // לוגיקה פנימית - ללא צורך ב-TOKEN
     let S = { raws: [], viewDate: new Date().toISOString().split('T')[0] };
 
-    // טעינת הנתונים מהקובץ sraws.json שנמצא בגיטהאב שלך
+    // בדיקת סיסמה
+    function checkPass() {
+        const pass = document.getElementById('pass-input').value;
+        if(pass === "1234") { // כאן אתה יכול לשנות את הסיסמה
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
+            init();
+        } else {
+            document.getElementById('err-msg').style.display = 'block';
+        }
+    }
+
     async function init() {
         try {
             const response = await fetch('sraws.json');
-            if (!response.ok) throw new Error("קובץ הנתונים לא נמצא");
             S.raws = await response.json();
-            
-            // עדכון התאריך בתיבת הקלט
-            document.getElementById('view-date-input').value = S.viewDate;
+            document.getElementById('date-picker').value = S.viewDate;
             render();
         } catch (e) {
-            document.getElementById('render-cont').innerHTML = 
-                `<div style="color:red;text-align:center;padding:20px;">
-                    שגיאה: לא ניתן למצוא את הקובץ sraws.json בתיקייה בגיטהאב.
-                </div>`;
+            document.getElementById('render-cont').innerHTML = "שגיאה בטעינת sraws.json";
         }
     }
 
     function render() {
         const cont = document.getElementById('render-cont');
-        const hdrDate = document.getElementById('hdr-date');
-        
-        // סינון נתונים לפי תאריך
         const dayData = S.raws.filter(r => r.d === S.viewDate);
         
-        hdrDate.innerText = new Date(S.viewDate).toLocaleDateString('he-IL', {weekday:'long', day:'numeric', month:'numeric'});
+        document.getElementById('hdr-date').innerText = new Date(S.viewDate).toLocaleDateString('he-IL');
 
         if (dayData.length === 0) {
-            cont.innerHTML = '<div style="text-align:center;padding:50px;color:#999;">אין שיבוצים לתאריך זה.</div>';
+            cont.innerHTML = '<div style="text-align:center;padding:50px;color:#999;">אין פעילות לתאריך זה.</div>';
             return;
         }
 
         cont.innerHTML = dayData.map(r => `
             <div class="card">
-                <div style="display:flex;justify-content:space-between;">
-                    <span style="font-weight:800;font-size:1.1rem;color:#1a237e;">גן ${r.g}</span>
+                <div style="display:flex; justify-content:space-between;">
+                    <span style="font-weight:800; color:#1a237e;">גן ${r.g}</span>
                     <span style="font-weight:bold;">🕒 ${r.t}</span>
                 </div>
-                <div style="margin-top:8px;color:#333;font-size:1rem;">${r.a}</div>
-                <div style="margin-top:8px;font-size:0.85rem;color:#666;">📞 טלפון: ${r.p}</div>
+                <div style="margin-top:8px; font-weight:600;">${r.a}</div>
+                <div style="margin-top:5px; font-size:0.85rem; color:#666;">📞 ${r.p}</div>
             </div>
         `).join('');
     }
 
-    window.updateDate = function(val) {
-        S.viewDate = val;
-        render();
-    };
-
+    window.setDate = function(v) { S.viewDate = v; render(); };
     window.changeDate = function(n) {
         let d = new Date(S.viewDate);
         d.setDate(d.getDate() + n);
         S.viewDate = d.toISOString().split('T')[0];
-        document.getElementById('view-date-input').value = S.viewDate;
+        document.getElementById('date-picker').value = S.viewDate;
         render();
     };
-
-    // הפעלה בטעינה
-    window.onload = init;
 </script>
-
 </body>
 </html>
