@@ -1,40 +1,184 @@
 <!DOCTYPE html>
-<html dir="rtl">
+<html dir="rtl" lang="he">
 <head>
-    <meta charset="UTF-8">
-    <title>בדיקת כניסה</title>
-    <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #1a237e; color: white; margin: 0; }
-        .box { background: white; padding: 30px; border-radius: 12px; text-align: center; color: #333; }
-        input { width: 100%; padding: 10px; margin: 10px 0; font-size: 18px; text-align: center; }
-        button { width: 100%; padding: 10px; background: #ff9800; color: white; border: none; cursor: pointer; font-weight: bold; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>ניהול לוגיסטי טומשין קידס</title>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
+  const app = initializeApp({
+    apiKey: "AIzaSyCxNhFgvxbD_ZyI9e8rURb7LxNmHX1TrVo",
+    databaseURL: "https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "ganmanage"
+  });
+  window.fbDB = getDatabase(app);
+  window.fbRef = ref; window.fbSet = set; window.fbOnValue = onValue;
+</script>
+
+<style>
+/* כאן נכנס כל העיצוב המקורי שלך מהקובץ שהעלית */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#222;direction:rtl;font-size:14px}
+.hdr{background:linear-gradient(135deg,#1a237e,#1565c0);color:#fff;padding:11px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.25);flex-wrap:wrap}
+.hdr h1{font-size:1.15rem;font-weight:800;letter-spacing:-.01em}
+.hs{margin-right:auto;display:flex;gap:10px;font-size:.77rem;opacity:.92}
+.hs span{padding:3px 7px;border-radius:20px;background:rgba(255,255,255,.1)}
+.mode-bar{display:flex;background:#0d1b4e;padding:0 16px;gap:2px;border-bottom:3px solid #1565c0}
+.mode-btn{padding:9px 24px;cursor:pointer;font-size:.84rem;font-weight:700;color:rgba(255,255,255,.55);border:none;background:transparent}
+.mode-btn.active{color:#fff;border-bottom:3px solid #4fc3f7}
+.tabs{background:#fff;border-bottom:2px solid #e8eaf6;display:flex;padding:0 10px;overflow-x:auto}
+.tab{padding:9px 14px;cursor:pointer;border-bottom:3px solid transparent;font-size:.8rem;color:#666;white-space:nowrap}
+.tab.active{color:#1565c0;border-bottom-color:#1565c0;font-weight:700}
+.content{padding:12px;max-width:1600px;margin:0 auto}
+.panel{display:none}.panel.active{display:block}
+.card{background:#fff;border-radius:10px;padding:13px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:12px}
+
+/* מסך כניסה */
+#login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a237e; display: flex; align-items: center; justify-content: center; z-index: 10000; color: white; }
+.login-box { background: white; padding: 30px; border-radius: 12px; text-align: center; color: #333; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+#app-main-container { display: none; }
+</style>
 </head>
 <body>
 
-    <div id="login-screen">
-        <div class="box">
-            <h2>טומשין קידס</h2>
-            <input type="password" id="sys-pin" placeholder="****">
-            <button onclick="checkLogin()">כניסה</button>
+<div id="login-screen">
+    <div class="login-box">
+        <h2 style="color:#1a237e;">טומשין קידס</h2>
+        <p>הכנס קוד גישה</p>
+        <input type="password" id="sys-pin" placeholder="****" style="width:100%;padding:10px;margin:15px 0;text-align:center;font-size:20px;">
+        <button onclick="checkLogin()" style="width:100%;padding:10px;background:#ff9800;color:white;border:none;border-radius:5px;font-weight:bold;cursor:pointer;">כניסה</button>
+        <p id="login-error" style="color:red;display:none;margin-top:10px;">קוד שגוי!</p>
+    </div>
+</div>
+
+<div id="app-main-container">
+    <div class="hdr">
+        <h1>טומשין קידס <span id="sync-status" style="font-size:0.6em;opacity:0.8;"></span></h1>
+        <div class="hs"><span id="hdr-date"></span><span id="hdr-mode">מצב שיבוץ</span></div>
+        <button class="btn bo bsm" onclick="saveToFirebase()" style="color:#fff;border-color:#fff">💾 שמירה</button>
+    </div>
+
+    <div class="mode-bar">
+        <button class="mode-btn active" id="m-btn-sched" onclick="setMode('sched')">📅 שיבוץ</button>
+        <button class="mode-btn" id="m-btn-purch" onclick="setMode('purch')">🛒 רכש</button>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="showPanel('dash')">לוח בקרה</div>
+        <div class="tab" onclick="showPanel('placement')">שיבוץ יומי</div>
+        <div class="tab" onclick="showPanel('teachers')">גננות</div>
+        <div class="tab" onclick="showPanel('gardens')">גנים</div>
+    </div>
+
+    <div class="content">
+        <div id="p-dash" class="panel active">
+            <div id="dash-content"></div>
         </div>
+        <div id="p-placement" class="panel">
+            <input type="date" id="view-date" onchange="render()">
+            <div id="placement-content"></div>
+        </div>
+        <div id="p-teachers" class="panel"><div id="teachers-grid"></div></div>
+        <div id="p-gardens" class="panel"><div id="gardens-grid"></div></div>
     </div>
-
-    <div id="app-main-container" style="display:none; padding: 20px; font-size: 24px;">
-        ✅ הצלחת! האתר פתוח.
-    </div>
-
     <script>
-        function checkLogin() {
-            const pin = document.getElementById('sys-pin').value;
-            console.log("ניסיון כניסה עם:", pin);
-            if (pin === "1234") {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('app-main-container').style.display = 'block';
-            } else {
-                alert("קוד שגוי!");
-            }
+// --- אתחול והגדרות ---
+let S = { 
+    events: [], teachers: [], gardens: [], 
+    ts: Date.now() 
+};
+window.S = S;
+
+// --- פונקציית כניסה ובדיקת קוד ---
+function checkLogin() {
+    const pin = document.getElementById('sys-pin').value;
+    if (pin === "1234") {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-main-container').style.display = 'block';
+        initCloudSync();
+    } else {
+        document.getElementById('login-error').style.display = 'block';
+        document.getElementById('sys-pin').value = '';
+    }
+}
+
+// --- סנכרון ענן (Firebase) ---
+function initCloudSync() {
+    if (!window.fbDB) return;
+    const status = document.getElementById('sync-status');
+    status.innerText = "⏳ מסנכרן...";
+
+    const dataRef = window.fbRef(window.fbDB, 'appData');
+    window.fbOnValue(dataRef, (snapshot) => {
+        const cloudData = snapshot.val();
+        if (cloudData) {
+            window.S = cloudData;
+            S = cloudData;
+            status.innerText = "✅ מחובר";
+            status.style.background = "#2e7d32";
+            render();
+        } else {
+            status.innerText = "☁️ ענן חדש";
+            render();
         }
-    </script>
-</body>
-</html>
+    });
+}
+
+async function saveToFirebase() {
+    try {
+        S.ts = Date.now();
+        await window.fbSet(window.fbRef(window.fbDB, 'appData'), S);
+        const ind = document.getElementById('backup-ind');
+        if(ind) {
+            ind.classList.add('show');
+            setTimeout(() => ind.classList.remove('show'), 1500);
+        }
+    } catch (e) {
+        alert("שגיאה בשמירה: " + e.message);
+    }
+}
+
+// --- פונקציות תצוגה מהקוד המקורי ---
+function setMode(m) {
+    document.body.className = (m === 'purch') ? 'mode-purch' : 'mode-sched';
+    document.getElementById('m-btn-sched').classList.toggle('active', m === 'sched');
+    document.getElementById('m-btn-purch').classList.toggle('active', m === 'purch');
+    document.getElementById('hdr-mode').innerText = (m === 'purch') ? 'מצב רכש' : 'מצב שיבוץ';
+}
+
+function showPanel(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('p-' + id).classList.add('active');
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    render();
+}
+
+function render() {
+    const d = document.getElementById('view-date').value || new Date().toISOString().split('T')[0];
+    document.getElementById('hdr-date').innerText = new Date(d).toLocaleDateString('he-IL');
+    
+    // כאן ירוצו פונקציות הרינדור המקוריות שלך מהקובץ
+    renderPlacement(d);
+    updateStats();
+}
+
+function updateStats() {
+    const total = S.gardens ? S.gardens.length : 0;
+    const done = S.events ? S.events.filter(e => e.done).length : 0;
+    if(document.getElementById('st-total')) document.getElementById('st-total').innerText = total;
+    if(document.getElementById('st-done')) document.getElementById('st-done').innerText = done;
+}
+
+function renderPlacement(date) {
+    const cont = document.getElementById('placement-content');
+    if(!cont) return;
+    const dayEvents = S.events ? S.events.filter(e => e.date === date) : [];
+    
+    if (dayEvents.length === 0) {
+        cont.innerHTML = '<div style="text-align:center;padding:20px;color:#999;">אין שיבוצים ליום זה</div>';
+        return;
+    }
+
+    let html = '<div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
