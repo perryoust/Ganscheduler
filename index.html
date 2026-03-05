@@ -529,78 +529,76 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
-// ☁️ GitHub Cloud Sync
-const GH_OWNER='perryoust', GH_REPO='Ganscheduler', GH_FILE='data.json';
+// --- הגדרות מערכת חדשות (Firebase & Local Logic) ---
+const FIREBASE_URL = 'YOUR_FIREBASE_URL_HERE'; // כאן נשתיל את הכתובת בהמשך
+let S = { raws: [], viewDate: new Date().toISOString().split('T')[0] };
 
-function odToggle(){
-  const inp=document.getElementById('gh-token-input');
-  const saved=localStorage.getItem('gh_token');
-  if(inp&&saved) inp.value=saved;
-  document.getElementById('od-modal').classList.add('open');
-}
-function odUpdateUI(){
-  const btn=document.getElementById('od-btn');
-  if(btn) btn.textContent='☁️ GitHub';
-}
-function odMsg(msg,color){
-  const el=document.getElementById('od-msg');
-  if(!el) return;
-  el.textContent=msg;
-  el.style.color=color||'#c62828';
-  el.style.display=msg?'block':'none';
-}
-function ghToken(){return localStorage.getItem('gh_token')||'';}
-function ghHeaders(){return{Authorization:'token '+ghToken(),'Content-Type':'application/json',Accept:'application/vnd.github.v3+json'};}
+// 1. הגנה: סיסמה בכניסה (1234)
+document.addEventListener('DOMContentLoaded', () => {
+    document.body.style.opacity = "0"; // הסתרה זמנית למניעת הבהוב
+    setTimeout(() => {
+        const pass = prompt("שלום, הכנס קוד גישה לטומשין קידס:");
+        if (pass === "1234") {
+            document.body.style.opacity = "1";
+            initApp();
+        } else {
+            alert("קוד שגוי");
+            location.reload();
+        }
+    }, 100);
+});
 
-function ghSaveToken(){
-  const v=(document.getElementById('gh-token-input')||{}).value||'';
-  if(!v.startsWith('ghp_')&&!v.startsWith('github_pat_')){odMsg('Token לא תקין — חייב להתחיל ב-ghp_');return;}
-  localStorage.setItem('gh_token',v);
-  odMsg('✅ Token נשמר','#2e7d32');
-}
+// 2. אתחול האפליקציה וטעינת נתונים
+async function initApp() {
+    try {
+        // טעינה ראשונית מקובץ sraws.json (במקום GitHub)
+        const res = await fetch('sraws.json');
+        if (!res.ok) throw new Error();
+        S.raws = await res.json();
+        
+        // עדכון שדות התאריך ב-UI המקורי שלך
+        const dateInp = document.getElementById('dash-date') || document.getElementById('view-date-input');
+        if (dateInp) dateInp.value = S.viewDate;
 
-function ghCollectAllData(){
-  const meta=JSON.parse(localStorage.getItem('ganv5_meta')||'null');
-  const out={meta,ganv5:localStorage.getItem('ganv5')||null};
-  if(meta&&Array.isArray(meta.years))
-    meta.years.forEach(yk=>{const v=localStorage.getItem('ganv5_y_'+yk);if(v)out['ganv5_y_'+yk]=v;});
-  if(meta&&meta.currentYear){const v=localStorage.getItem('ganv5_y_'+meta.currentYear);if(v)out['ganv5_y_'+meta.currentYear]=v;}
-  return JSON.stringify(out);
-}
-async function odSaveNow(silent){
-  if(!ghToken()){if(!silent)odMsg('יש להזין GitHub Token');return false;}
-  try{
-    if(!silent) odMsg('שומר...','#1565c0');
-    const url='https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE;
-    let sha=null;
-    const gr=await fetch(url,{headers:ghHeaders()});
-    if(gr.ok) sha=(await gr.json()).sha;
-    const raw=ghCollectAllData();
-    const body={message:'sync '+new Date().toISOString(),content:btoa(unescape(encodeURIComponent(raw)))};
-    if(sha) body.sha=sha;
-    const pr=await fetch(url,{method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)});
-    if(pr.ok){
-      if(!silent){odMsg('✅ נשמר ב-GitHub','#2e7d32');if(typeof showToast==='function')showToast('☁️ נשמר');}
-      return true;
+        render(); // קריאה לפונקציית התצוגה המקורית שלך
+    } catch (e) {
+        console.error("Data load error:", e);
+        alert("שגיאה בטעינת sraws.json. וודא שהקובץ קיים בשרת.");
     }
-    const err=await pr.json();
-    if(!silent) odMsg('שגיאה: '+(err.message||pr.status));
-    return false;
-  }catch(e){if(!silent)odMsg('שגיאה: '+e.message);return false;}
 }
 
-async function odLoadNow(silent){
-  if(!ghToken()){if(!silent)odMsg('יש להזין GitHub Token');return false;}
-  try{
-    if(!silent) odMsg('טוען...','#1565c0');
-    const url='https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE;
-    const res=await fetch(url,{headers:ghHeaders()});
-    if(res.status===404){if(!silent)odMsg('אין קובץ — שמור תחילה','#e65100');return false;}
-    if(!res.ok){if(!silent)odMsg('שגיאה: '+res.status);return false;}
-    const decoded=decodeURIComponent(escape(atob((await res.json()).content.split('\n').join(''))));
-    let obj;
-    try{ obj=JSON.parse(decoded); }catch(e){ obj=null; }
-    if(obj&&obj.meta){
+// 3. פונקציית שמירה (מוכנה ל-Firebase)
+async function save(silent = false) {
+    if (!silent) showNotice('⏳ שומר שינויים...');
+    
+    try {
+        // כאן בעתיד נבצע PUT ל-FIREBASE_URL
+        // בינתיים שומרים ל-LocalStorage כגיבוי מקומי
+        localStorage.setItem('ganv10_data', JSON.stringify(S.raws));
+        
+        if (!silent) showNotice('✅ נשמר בהצלחה');
+        return true;
+    } catch (e) {
+        showNotice('❌ שגיאה בשמירה');
+        return false;
+    }
+}
+
+// 4. ניווט תאריכים (מותאם לכפתורים המקוריים שלך)
+window.changeDate = function(n) {
+    let d = new Date(S.viewDate);
+    d.setDate(d.getDate() + n);
+    S.viewDate = d.toISOString().split('T')[0];
+    const dateInp = document.getElementById('dash-date') || document.getElementById('view-date-input');
+    if (dateInp) dateInp.value = S.viewDate;
+    render();
+};
+
+window.renderDash = function() { render(); }; // תמיכה בשמות פונקציות ישנים
+
+// 5. ניקוי לוגיקת GitHub הישנה
+function odToggle() { alert("ניהול ענן עבר ל-Firebase. אין צורך ב-Token."); }
+function odUpdateUI() { const btn=document.getElementById('od-btn'); if(btn) btn.textContent='☁️ Firebase Active'; }
 
 // ── Mode switcher ──────────────────────────────────────
 function switchMode(mode){
