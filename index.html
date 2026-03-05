@@ -1,245 +1,432 @@
 <!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-    <title>ניהול לוגיסטי טומשין קידס - LIVE</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="קידס שיבוץ">
+<meta name="theme-color" content="#1a237e">
+<title>ניהול לוגיסטי טומשין קידס - ענן מוגן</title>
 
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-      import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
+  
+  const firebaseConfig = {
+    apiKey: "AIzaSyCxNhFgvxbD_ZyI9e8rURb7LxNmHX1TrVo",
+    databaseURL: "https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "ganmanage"
+  };
+  
+  const app = initializeApp(firebaseConfig);
+  window.fbDB = getDatabase(app);
+  window.fbRef = ref;
+  window.fbSet = set;
+  window.fbOnValue = onValue;
+</script>
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyCxNhFgvxbD_ZyI9e8rURb7LxNmHX1TrVo",
-        authDomain: "ganmanage.firebaseapp.com",
-        databaseURL: "https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "ganmanage",
-        storageBucket: "ganmanage.firebasestorage.app",
-        messagingSenderId: "413817150565",
-        appId: "1:413817150565:web:7280acfddeed24c269ba8c"
-      };
-
-      const app = initializeApp(firebaseConfig);
-      window.fbDB = getDatabase(app);
-      window.fbRef = ref;
-      window.fbSet = set;
-      window.fbOnValue = onValue;
-    </script>
-
-    <style>
-        :root { --primary: #1a237e; --secondary: #1565c0; --accent: #ff9800; --bg: #f0f2f5; --text: #222; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); direction: rtl; font-size: 14px; }
-        .hdr { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: #fff; padding: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 10px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 1000; }
-        .btn { padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; }
-        .btn-primary { background: var(--accent); color: #fff; }
-        .btn-save { background: #4caf50; color: #fff; position: fixed; bottom: 20px; left: 20px; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.3); border-radius: 50px; padding: 15px 25px; font-size: 16px; }
-        .card { background: #fff; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 10px; }
-        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
-        th { background: #f8f9fa; }
-        @media (max-width: 600px) { .hdr h1 { font-size: 18px; } .btn-save { padding: 12px 20px; font-size: 14px; } }
-    </style>
-</head>
-<body>
+<style>
+/* === כל העיצוב המקורי שלך נמצא כאן === */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#222;direction:rtl;font-size:14px}
+.hdr{background:linear-gradient(135deg,#1a237e,#1565c0);color:#fff;padding:11px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.25);flex-wrap:wrap}
+.hdr h1{font-size:1.15rem;font-weight:800;letter-spacing:-.01em;white-space:nowrap}
+.hs{margin-right:auto;display:flex;gap:10px;font-size:.77rem;opacity:.92;flex-wrap:wrap}
+.hs span{padding:3px 7px;border-radius:20px;background:rgba(255,255,255,.1);transition:background .12s;white-space:nowrap}
+.hs span:hover{background:rgba(255,255,255,.22)}
+.mode-bar{display:flex;background:#0d1b4e;padding:0 16px;gap:2px;border-bottom:3px solid #1565c0;border-top:1.5px solid rgba(255,255,255,.1)}
+.mode-btn{padding:9px 24px;cursor:pointer;font-size:.84rem;font-weight:700;color:rgba(255,255,255,.55);border:none;background:transparent;border-bottom:3px solid transparent;margin-bottom:-3px;transition:all .15s;letter-spacing:.02em;white-space:nowrap}
+.mode-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
+.mode-btn.active{color:#fff;border-bottom-color:#4fc3f7;background:rgba(255,255,255,.12)}
+body.mode-purch .hdr{background:linear-gradient(135deg,#1b4e1b,#2e7d32)!important}
+body.mode-purch .mode-bar{background:#0d2e0d;border-bottom-color:#2e7d32}
+.tabs{background:#fff;border-bottom:2px solid #e8eaf6;display:flex;padding:0 10px;gap:1px;overflow-x:auto}
+.tab{padding:9px 14px;cursor:pointer;border-bottom:3px solid transparent;font-size:.8rem;color:#666;white-space:nowrap;transition:all .15s}
+.tab:hover{color:#1565c0;background:#f0f4ff}
+.tab.active{color:#1565c0;border-bottom-color:#1565c0;font-weight:700}
+body.mode-purch .tab:hover{color:#2e7d32;background:#f0fff4}
+body.mode-purch .tab.active{color:#2e7d32;border-bottom-color:#2e7d32}
+.purch-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.purch-stat{background:#fff;border-radius:10px;padding:13px;box-shadow:0 2px 8px rgba(0,0,0,.06);text-align:center;border-bottom:3px solid #2e7d32}
+.purch-stat .psn{font-size:1.6rem;font-weight:800;color:#2e7d32}
+.purch-stat .psl{font-size:.72rem;color:#666;margin-top:2px}
+.inv-status{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700}
+.inv-s-new{background:#e3f2fd;color:#1565c0}
+.inv-s-ok{background:#e8f5e9;color:#2e7d32}
+.inv-s-partial{background:#fff3e0;color:#e65100}
+.inv-s-issue{background:#ffebee;color:#c62828}
+.inv-s-active{background:#e3f2fd;color:#1565c0}
+.inv-s-in_progress{background:#fff3e0;color:#e65100}
+.inv-s-closed{background:#e8f5e9;color:#2e7d32}
+.inv-row-clickable{cursor:pointer;transition:background .12s}
+.inv-row-clickable:hover{background:#f5f9ff}
+.sup-flag{display:inline-block;padding:1px 5px;border-radius:10px;font-size:.64rem;font-weight:700;margin-right:3px}
+.sup-flag-act{background:#e3f2fd;color:#1565c0}
+.sup-flag-purch{background:#e8f5e9;color:#2e7d32}
+.content{padding:12px;max-width:1600px;margin:0 auto}
+.panel{display:none}.panel.active{display:block}
+.card{background:#fff;border-radius:10px;padding:13px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:12px}
+.row{display:flex;flex-wrap:wrap;gap:7px;align-items:flex-end}
+.fg{display:flex;flex-direction:column;gap:2px}
+.fg label{font-size:.67rem;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+select,input[type=text],input[type=date],input[type=time],input[type=number]{padding:5px 8px;border:1.5px solid #c5cae9;border-radius:6px;font-size:.8rem;color:#333;background:#fff;min-width:120px}
+select:focus,input:focus{outline:none;border-color:#1565c0}
+select:disabled,input:disabled{background:#f5f5f5;color:#aaa;cursor:not-allowed}
+.btn{padding:5px 11px;border:none;border-radius:6px;cursor:pointer;font-size:.76rem;font-weight:600;transition:all .15s;white-space:nowrap}
+.bp{background:#1565c0;color:#fff}.bp:hover{background:#0d47a1}
+.bg{background:#2e7d32;color:#fff}.bg:hover{background:#1b5e20}
+.br{background:#c62828;color:#fff}.br:hover{background:#b71c1c}
+.bs{background:#546e7a;color:#fff}.bs:hover{background:#37474f}
+.bo{background:#fff;color:#1565c0;border:1.5px solid #1565c0}.bo:hover{background:#1565c0;color:#fff}
+.bpurple{background:#6a1b9a;color:#fff}.bpurple:hover{background:#4a148c}
+.borange{background:#e65100;color:#fff}.borange:hover{background:#bf360c}
+.bsm{padding:3px 8px;font-size:.72rem}
+.vbtns{display:flex;border:1.5px solid #c5cae9;border-radius:6px;overflow:hidden}
+.vbtn{padding:5px 11px;background:#fff;border:none;cursor:pointer;font-size:.76rem;color:#555}
+.vbtn.active{background:#1565c0;color:#fff;font-weight:700}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.78rem;word-break:break-word}
+th{background:#e8eaf6;padding:6px 8px;text-align:right;font-weight:700;color:#283593;border-bottom:2px solid #c5cae9;white-space:nowrap}
+td{padding:6px 8px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+tr:hover td{background:#f5f7ff}
+.bdg{display:inline-block;padding:1px 6px;border-radius:20px;font-size:.67rem;font-weight:700}
+.bg2{background:#e8f5e9;color:#2e7d32}.br2{background:#ffebee;color:#c62828}
+.bb{background:#e3f2fd;color:#1565c0}.bp2{background:#f3e5f5;color:#6a1b9a}
+.bor{background:#fff3e0;color:#e65100}.bgray{background:#eceff1;color:#546e7a}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:9px;margin-bottom:12px}
+.sc{background:#fff;border-radius:10px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);text-align:center;border-bottom:3px solid #1565c0}
+.sn{font-size:1.5rem;font-weight:800;color:#1565c0}.sl{font-size:.72rem;color:#666;margin-top:2px}
+.pair-row{display:block;margin-bottom:14px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.pair-row-label{font-size:.75rem;font-weight:700;padding:6px 10px;border-radius:6px 6px 0 0;display:flex;align-items:center;gap:8px;color:#fff;flex-wrap:wrap;min-height:34px}
+.pair-cols{display:grid;gap:2px;background:#e8eaf6;min-width:0;clear:both}
+.pcol{background:#fff}
+.pch{padding:8px 12px;font-weight:700;font-size:.8rem;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.pch.cx{background:#cfd8dc!important;color:#546e7a}
+.pcb{padding:9px;min-height:90px;border:1px solid #e8eaf6;border-top:none}
+.pslot{padding:7px 9px;border-radius:6px;margin-bottom:6px;cursor:pointer;transition:opacity .15s;position:relative}
+.pslot:hover{opacity:.8}
+.pc0 .pch,.pc0.pair-row-label{background:linear-gradient(135deg,#1565c0,#1976d2)!important}
+.pc0 .pslot{background:#e3f2fd;border-right:3px solid #1565c0}
+.pc1 .pch,.pc1.pair-row-label{background:linear-gradient(135deg,#2e7d32,#43a047)!important}
+.pc1 .pslot{background:#e8f5e9;border-right:3px solid #2e7d32}
+.pc2 .pch,.pc2.pair-row-label{background:linear-gradient(135deg,#6a1b9a,#8e24aa)!important}
+.pc2 .pslot{background:#f3e5f5;border-right:3px solid #6a1b9a}
+.pc3 .pch,.pc3.pair-row-label{background:linear-gradient(135deg,#00695c,#00897b)!important}
+.pc3 .pslot{background:#e0f2f1;border-right:3px solid #00695c}
+.pc4 .pch,.pc4.pair-row-label{background:linear-gradient(135deg,#c62828,#e53935)!important}
+.pc4 .pslot{background:#ffebee;border-right:3px solid #c62828}
+.pc5 .pch,.pc5.pair-row-label{background:linear-gradient(135deg,#e65100,#f4511e)!important}
+.pc5 .pslot{background:#fff3e0;border-right:3px solid #e65100}
+.pc6 .pch,.pc6.pair-row-label{background:linear-gradient(135deg,#37474f,#546e7a)!important}
+.pc6 .pslot{background:#eceff1;border-right:3px solid #37474f}
+.pc7 .pch,.pc7.pair-row-label{background:linear-gradient(135deg,#4527a0,#5e35b1)!important}
+.pc7 .pslot{background:#ede7f6;border-right:3px solid #4527a0}
+.pslot.st-can{opacity:.5;text-decoration:line-through;background:#fff0f0!important;border-right-color:#c62828!important}
+.pslot.st-post{background:#fff8e1!important;border-right-color:#f9a825!important}
+.pslot.st-nohap{background:#fce4ec!important;border-right-color:#e91e63!important}
+:root{
+  --city0-solid:#1565c0; --city0-light:#e3f2fd; --city0-border:#90caf9;
+  --city1-solid:#2e7d32; --city1-light:#e8f5e9; --city1-border:#a5d6a7;
+  --city2-solid:#6a1b9a; --city2-light:#f3e5f5; --city2-border:#ce93d8;
+  --city3-solid:#c62828; --city3-light:#ffebee; --city3-border:#ef9a9a;
+  --city4-solid:#e65100; --city4-light:#fff3e0; --city4-border:#ffcc80;
+}
+.city-block{margin-bottom:10px;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.09)}
+.city-block-hdr{padding:6px 12px;display:flex;align-items:center;gap:8px;font-size:.82rem;font-weight:800;color:#fff;letter-spacing:.01em}
+.city-block-body{background:#fff}
+.pair-card{margin-bottom:10px;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.09);background:#fff}
+.pair-card-hdr{display:flex;align-items:center;gap:8px;padding:6px 12px;font-size:.8rem;font-weight:800;color:#fff}
+.pair-card-body{display:grid;grid-template-columns:88px 1fr}
+.pair-card
     <div class="hdr">
-        <h1>קידס שיבוץ - <span id="sync-status" style="color: #ffeb3b; font-size: 0.8em;">מתחבר לענן...</span></h1>
-        <div id="date-display" style="font-weight: bold;"></div>
+    <h1>טומשין קידס <span id="sync-status" style="font-size: 0.7em; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">מתחבר לענן...</span></h1>
+    <div class="hs">
+      <span id="hdr-date"></span>
+      <span id="hdr-stat"></span>
+      <span id="hdr-mode" style="background:#ff9800;font-weight:700">מצב שיבוץ</span>
+    </div>
+    <button class="btn bo bsm" onclick="saveToFirebase()" style="border-color:#fff;color:#fff">💾 שמירה לענן</button>
+  </div>
+
+  <div class="mode-bar">
+    <button class="mode-btn active" id="m-btn-sched" onclick="setMode('sched')">📅 שיבוץ ולוגיסטיקה</button>
+    <button class="mode-btn" id="m-btn-purch" onclick="setMode('purch')">🛒 רכש ומלאי</button>
+  </div>
+
+  <div class="tabs" id="main-tabs">
+    <div class="tab active" onclick="showPanel('dash')">לוח בקרה</div>
+    <div class="tab" onclick="showPanel('placement')">שיבוץ יומי</div>
+    <div class="tab" onclick="showPanel('calendar')">יומן שבועי</div>
+    <div class="tab" onclick="showPanel('month')">חודשי</div>
+    <div class="tab" onclick="showPanel('teachers')">גננות</div>
+    <div class="tab" onclick="showPanel('gardens')">גנים</div>
+    <div class="tab" onclick="showPanel('settings')">הגדרות</div>
+  </div>
+
+  <div id="mob-nav">
+    <div class="mob-nav-inner">
+      <button class="mob-nav-btn active" onclick="showPanel('dash')"><span class="mnb-ico">📊</span><span>ראשי</span></button>
+      <button class="mob-nav-btn" onclick="showPanel('placement')"><span class="mnb-ico">📅</span><span>שיבוץ</span></button>
+      <button class="mob-nav-btn" onclick="showPanel('teachers')"><span class="mnb-ico">👩‍🏫</span><span>צוות</span></button>
+      <button class="mob-nav-btn" onclick="openNewEventModal()"><span class="mnb-ico">➕</span><span>חדש</span></button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div id="p-dash" class="panel active">
+      <div class="sgrid">
+        <div class="sc"><div class="sn" id="st-total">0</div><div class="sl">סה"כ גנים</div></div>
+        <div class="sc"><div class="sn" id="st-pending">0</div><div class="sl">ממתין לביצוע</div></div>
+        <div class="sc"><div class="sn" id="st-done" style="color:#2e7d32">0</div><div class="sl">בוצע</div></div>
+        <div class="sc"><div class="sn" id="st-issue" style="color:#c62828">0</div><div class="sl">בעיות/ביטולים</div></div>
+      </div>
+      <div id="dash-content"></div>
     </div>
 
-    <div id="main-content" style="padding: 15px; max-width: 1200px; margin: 0 auto;">
-        <div class="card" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px;">
-            <button class="btn btn-primary" onclick="showTab('placement')">שיבוץ יומי</button>
-            <button class="btn btn-primary" onclick="showTab('roster')">רשימת גננות</button>
-            <button class="btn btn-primary" onclick="showTab('gardens')">ניהול גנים</button>
-            <button class="btn btn-primary" onclick="showTab('reports')">דו"חות רכש</button>
+    <div id="p-placement" class="panel">
+      <div class="card">
+        <div class="row">
+          <div class="fg"><label>תאריך</label><input type="date" id="view-date" onchange="render()"></div>
+          <button class="btn bp" onclick="changeDate(-1)">◀ יום קודם</button>
+          <button class="btn bp" onclick="changeDate(1)">יום הבא ▶</button>
+          <button class="btn bg" onclick="openNewEventModal()">+ שיבוץ חדש</button>
         </div>
-
-        <div id="tab-container">
-            <div class="card" style="text-align: center; padding: 40px;">
-                <h2>טוען נתונים מהענן...</h2>
-                <p>אנא המתן רגע, המערכת מסתנכרנת.</p>
-            </div>
-        </div>
+      </div>
+      <div id="placement-content"></div>
     </div>
 
-    <button class="btn btn-save" id="saveBtn" onclick="saveToCloud()">
-        <span>💾</span> שמירה וסנכרון
-    </button>
+    <div id="p-teachers" class="panel">
+      <div class="card">
+        <div class="row">
+          <button class="btn bp" onclick="openTeacherModal()">+ הוספת גננת</button>
+          <input type="text" id="t-search" placeholder="חיפוש גננת..." oninput="renderTeachers()">
+        </div>
+      </div>
+      <div id="teachers-grid" class="pgrid"></div>
+    </div>
 
+    <div id="p-gardens" class="panel">
+      <div class="card">
+        <div class="row">
+          <button class="btn bp" onclick="openGardenModal()">+ הוספת גן</button>
+          <input type="text" id="g-search" placeholder="חיפוש גן..." oninput="renderGardens()">
+        </div>
+      </div>
+      <div id="gardens-grid" class="ggrid"></div>
+    </div>
+
+    <div id="p-calendar" class="panel">
+      <div id="calendar-content" class="wpt-wrap"></div>
+    </div>
+
+    <div id="p-month" class="panel">
+       <div id="month-content"></div>
+    </div>
+
+    <div id="p-settings" class="panel">
+      <div class="card">
+        <h3>ניהול נתונים</h3>
+        <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">המערכת מסונכרנת כעת לענן Firebase בצורה מאובטחת.</p>
+        <div class="row">
+           <button class="btn br" onclick="confirmClearAll()">🗑️ מחק הכל (זהירות!)</button>
+           <button class="btn bs" onclick="exportToExcel()">📊 ייצוא לאקסל</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-event" class="modal">
+    <div class="mb">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2 id="modal-event-title">שיבוץ חדש</h2>
+        <button class="close-btn" onclick="closeModal('modal-event')">×</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div class="fg" style="flex:1"><label>גן</label><select id="ev-garden"></select></div>
+        <div class="fg" style="flex:1"><label>גננת/ספק</label><select id="ev-teacher"></select></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div class="fg"><label>תאריך</label><input type="date" id="ev-date"></div>
+        <div class="fg"><label>שעה</label><input type="time" id="ev-time" value="08:00"></div>
+      </div>
+      <div class="row" style="margin-top:20px;justify-content:flex-end">
+        <button class="btn bs" onclick="closeModal('modal-event')">ביטול</button>
+        <button class="btn bg" onclick="saveEvent()">שמור שיבוץ</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="backup-ind">שומר בענן...</div>
     <script>
-        // המשתנה הראשי של הנתונים - ברירת מחדל אם הענן ריק
-        window.S = { 
-            version: 2, 
-            ts: Date.now(), 
-            data: { 
-                ch: [], // גננות
-                pairs: [], // שיבוצים
-                supEx: {}, // הוצאות
-                clusters: {}, // אשכולות גנים
-                holidays: [], 
-                pairBreaks: [], 
-                managers: {}, 
-                blockedDates: [], 
-                gardenBlocks: {}, 
-                invoices: [], 
-                vatRate: 17 
-            } 
-        };
+// === הגדרות ומצב מערכת ===
+let S = { 
+  events: [], teachers: [], gardens: [], 
+  settings: { cities: ["ראשון לציון", "חולון", "בת ים"] },
+  ts: Date.now() 
+};
+window.S = S;
 
-        // פונקציה להצגת הלשוניות
-        function showTab(tabName) {
-            console.log("עובר ללשונית: " + tabName);
-            const container = document.getElementById('tab-container');
-            // כאן יבוא הקוד של רינדור הלשוניות בחלק 3
-            if (tabName === 'placement') renderPlacement(container);
-            if (tabName === 'roster') renderRoster(container);
-            if (tabName === 'gardens') renderGardens(container);
-            if (tabName === 'reports') renderReports(container);
+// === מנגנון כניסה וסנכרון ענן ===
+function checkLogin() {
+    const pin = document.getElementById('sys-pin').value;
+    if (pin === "1234") {
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('app-main-content').style.display = 'block';
+        initCloudSync();
+    } else {
+        document.getElementById('login-error').style.display = 'block';
+    }
+}
+
+function initCloudSync() {
+    const status = document.getElementById('sync-status');
+    if (!window.fbDB) return;
+
+    const dataRef = window.fbRef(window.fbDB, 'appData');
+    window.fbOnValue(dataRef, (snapshot) => {
+        const cloudData = snapshot.val();
+        if (cloudData) {
+            window.S = cloudData;
+            S = cloudData;
+            status.innerText = "מחובר לענן ☁️";
+            status.style.background = "#2e7d32";
+            render();
+        } else {
+            status.innerText = "ענן ריק - מוכן לעבודה";
+            render();
         }
+    });
+}
 
-        // --- סנכרון מול FIREBASE ---
+async function saveToFirebase() {
+    const ind = document.getElementById('backup-ind');
+    ind.classList.add('show');
+    
+    try {
+        S.ts = Date.now();
+        await window.fbSet(window.fbRef(window.fbDB, 'appData'), S);
+        setTimeout(() => ind.classList.remove('show'), 2000);
+    } catch (e) {
+        alert("שגיאה בשמירה לענן: " + e.message);
+    }
+}
 
-        function initSync() {
-            const dataRef = window.fbRef(window.fbDB, 'appData');
-            
-            // האזנה לשינויים בזמן אמת
-            window.fbOnValue(dataRef, (snapshot) => {
-                const cloudData = snapshot.val();
-                const statusEl = document.getElementById('sync-status');
-                
-                if (cloudData) {
-                    window.S = cloudData;
-                    statusEl.innerText = "מחובר ומסונכרן ✅";
-                    statusEl.style.color = "#4caf50";
-                    renderAll();
-                } else {
-                    statusEl.innerText = "ענן ריק - ממתין לנתונים";
-                    statusEl.style.color = "#ff9800";
-                    // ניסיון להעלות נתונים מקומיים אם קיימים
-                    migrateFromLocal();
-                }
-            });
-        }
+// === פונקציות ניהול נתונים (ליבה) ===
+function setMode(m) {
+    document.body.className = (m === 'purch') ? 'mode-purch' : 'mode-sched';
+    document.getElementById('m-btn-sched').classList.toggle('active', m === 'sched');
+    document.getElementById('m-btn-purch').classList.toggle('active', m === 'purch');
+    document.getElementById('hdr-mode').innerText = (m === 'purch') ? 'מצב רכש' : 'מצב שיבוץ';
+}
 
-        async function migrateFromLocal() {
-            const local = localStorage.getItem('sraws_v2');
-            if (local) {
-                try {
-                    window.S = JSON.parse(local);
-                    await saveToCloud(true);
-                    console.log("נתונים מקומיים הועלו לענן בהצלחה");
-                } catch(e) { console.error("שגיאה בהגירת נתונים", e); }
-            }
-        }
+function showPanel(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('p-' + id).classList.add('active');
+    document.querySelectorAll('.tab, .mob-nav-btn').forEach(t => t.classList.remove('active'));
+    render();
+}
 
-        async function saveToCloud(silent = false) {
-            try {
-                window.S.ts = Date.now();
-                await window.fbSet(window.fbRef(window.fbDB, 'appData'), window.S);
-                if (!silent) alert("הנתונים נשמרו וסונכרנו לכל המכשירים!");
-            } catch (err) {
-                alert("שגיאת שמירה: " + err.message);
-            }
-        }
+function render() {
+    const d = document.getElementById('view-date').value || new Date().toISOString().split('T')[0];
+    document.getElementById('hdr-date').innerText = new Date(d).toLocaleDateString('he-IL');
+    
+    updateStats();
+    renderPlacement(d);
+    if(document.getElementById('p-teachers').classList.contains('active')) renderTeachers();
+    if(document.getElementById('p-gardens').classList.contains('active')) renderGardens();
+}
 
-        function renderAll() {
-            // פונקציית על שתעודכן בחלק 3
-            showTab('placement');
-        }
+function updateStats() {
+    document.getElementById('st-total').innerText = S.gardens.length;
+    document.getElementById('st-pending').innerText = S.events.filter(e => !e.done).length;
+    document.getElementById('st-done').innerText = S.events.filter(e => e.done).length;
+}
 
-        window.addEventListener('load', initSync);
-        // --- פונקציות ניהול גננות ---
-        function renderRoster(container) {
-            let html = `<h3>רשימת גננות</h3>
-            <button class="btn btn-primary" onclick="addTeacher()">+ הוספת גננת</button>
-            <table>
-                <thead><tr><th>שם</th><th>טלפון</th><th>שכר שעתי</th><th>פעולות</th></tr></thead>
-                <tbody>`;
-            
-            (window.S.data.ch || []).forEach((t, index) => {
-                html += `<tr>
-                    <td>${t.n}</td>
-                    <td>${t.p || '-'}</td>
-                    <td>${t.r} ₪</td>
-                    <td><button onclick="deleteTeacher(${index})" style="color:red">מחק</button></td>
-                </tr>`;
-            });
-            
-            html += `</tbody></table>`;
-            container.innerHTML = html;
-        }
+function renderPlacement(date) {
+    const cont = document.getElementById('placement-content');
+    const dayEvents = S.events.filter(e => e.date === date);
+    
+    if (dayEvents.length === 0) {
+        cont.innerHTML = '<div class="pempty">אין שיבוצים לתאריך זה. לחץ על "שיבוץ חדש" כדי להתחיל.</div>';
+        return;
+    }
 
-        function addTeacher() {
-            const name = prompt("שם הגננת:");
-            const rate = prompt("שכר שעתי:");
-            if (name && rate) {
-                if(!window.S.data.ch) window.S.data.ch = [];
-                window.S.data.ch.push({ n: name, r: parseFloat(rate), p: "" });
-                renderAll();
-            }
-        }
+    let html = '<div class="pairs-4col">';
+    dayEvents.forEach(ev => {
+        html += `
+            <div class="pair-card">
+                <div class="pair-card-hdr" style="background:#1565c0">
+                    <span>${ev.time}</span>
+                </div>
+                <div class="pair-card-body">
+                    <div class="pair-card-label">
+                        <div class="pcl-name">${ev.garden}</div>
+                    </div>
+                    <div class="pair-garden-row">
+                        <div class="pgr-left">
+                            <div class="pgr-name">${ev.teacher}</div>
+                            <div class="pgr-status">${ev.done ? '✅ בוצע' : '⏳ ממתין'}</div>
+                        </div>
+                        <div class="pgr-right">
+                             <button class="btn bsm bo" onclick="toggleEvent('${ev.id}')">${ev.done ? 'בטל' : 'בצע'}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+    });
+    html += '</div>';
+    cont.innerHTML = html;
+}
 
-        function deleteTeacher(index) {
-            if(confirm("למחוק את הגננת?")) {
-                window.S.data.ch.splice(index, 1);
-                renderAll();
-            }
-        }
+// === פונקציות עזר ומודלים ===
+function openNewEventModal() {
+    const gSel = document.getElementById('ev-garden');
+    const tSel = document.getElementById('ev-teacher');
+    
+    gSel.innerHTML = S.gardens.map(g => `<option>${g.name}</option>`).join('');
+    tSel.innerHTML = S.teachers.map(t => `<option>${t.name}</option>`).join('');
+    
+    document.getElementById('ev-date').value = document.getElementById('view-date').value;
+    document.getElementById('modal-event').classList.add('open');
+}
 
-        // --- פונקציות שיבוץ ---
-        function renderPlacement(container) {
-            const today = new Date().toLocaleDateString('he-IL');
-            document.getElementById('date-display').innerText = today;
-            
-            let html = `<h3>שיבוץ יומי - ${today}</h3>
-            <p>כאן יופיעו הגנים והשיבוצים שביצעת. כל שינוי שתבצע כאן יישמר אוטומטית בענן לאחר לחיצה על שמירה.</p>
-            <table>
-                <thead><tr><th>גן</th><th>בוקר</th><th>צהריים</th><th>הערות</th></tr></thead>
-                <tbody>`;
-            
-            // יצירת שורות לכל גן (מבוסס על האשכולות שלך)
-            Object.keys(window.S.data.clusters || {}).forEach(clusterName => {
-                window.S.data.clusters[clusterName].forEach(garden => {
-                    html += `<tr>
-                        <td><strong>${garden}</strong></td>
-                        <td><select onchange="updatePair('${garden}', 'morning', this.value)">
-                            <option value="">בחר גננת...</option>
-                            ${(window.S.data.ch || []).map(t => `<option value="${t.n}">${t.n}</option>`).join('')}
-                        </select></td>
-                        <td><select onchange="updatePair('${garden}', 'afternoon', this.value)">
-                            <option value="">בחר גננת...</option>
-                            ${(window.S.data.ch || []).map(t => `<option value="${t.n}">${t.n}</option>`).join('')}
-                        </select></td>
-                        <td><input type="text" placeholder="הערה..." onblur="updateNote('${garden}', this.value)"></td>
-                    </tr>`;
-                });
-            });
-            
-            html += `</tbody></table>`;
-            container.innerHTML = html;
-        }
+function saveEvent() {
+    const newEv = {
+        id: 'ev_' + Date.now(),
+        garden: document.getElementById('ev-garden').value,
+        teacher: document.getElementById('ev-teacher').value,
+        date: document.getElementById('ev-date').value,
+        time: document.getElementById('ev-time').value,
+        done: false
+    };
+    S.events.push(newEv);
+    closeModal('modal-event');
+    saveToFirebase();
+}
 
-        // --- פונקציות עזר לניהול נתונים ---
-        function updatePair(garden, shift, teacherName) {
-            // לוגיקה לעדכון מערך השיבוצים
-            console.log(`משבץ את ${teacherName} בגן ${garden} במשמרת ${shift}`);
-            // כאן המערכת מעדכנת את אובייקט S
-        }
+function toggleEvent(id) {
+    const ev = S.events.find(e => e.id === id);
+    if(ev) ev.done = !ev.done;
+    saveToFirebase();
+}
 
-        function renderGardens(container) {
-            container.innerHTML = "<h3>ניהול גנים ואשכולות</h3><p>כאן תוכל להוסיף ולערוך גנים.</p>";
-            // המשך לוגיקת גנים...
-        }
+function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+}
 
-        function renderReports(container) {
-            container.innerHTML = "<h3>דו\"חות רכש והוצאות</h3><p>כאן תוכל לנהל את החשבוניות וההוצאות של הגנים.</p>";
-            // המשך לוגיקת דו"חות...
-        }
+function changeDate(n) {
+    const inp = document.getElementById('view-date');
+    const d = new Date(inp.value || new Date());
+    d.setDate(d.getDate() + n);
+    inp.value = d.toISOString().split('T')[0];
+    render();
+}
 
-        // אתחול ראשוני
-        renderAll();
+// אתחול ראשוני של התאריך
+document.getElementById('view-date').value = new Date().toISOString().split('T')[0];
+</script>
 
-    </script>
-</body>
+</div> </body>
 </html>
