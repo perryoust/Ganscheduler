@@ -556,79 +556,63 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // 2. אתחול וטעינת נתונים (ענן -> קובץ מקומי)
+// 2. אתחול וטעינת נתונים (Firebase -> Local File -> UI)
 async function initApp() {
     try {
-        console.log("Starting data initialization...");
+        console.log("Starting secure initialization...");
         
-        // 1. ניסיון טעינה מ-Firebase
-        let response = await fetch(FIREBASE_DB_URL);
+        // 1. ניסיון משיכה מ-Firebase
         let cloudData = null;
-        
-        if (response.ok) {
-            const text = await response.text();
-            if (text && text !== "null") cloudData = JSON.parse(text);
-        }
-
-        // 2. טעינה מהקובץ המקומי sraws.json
-        const localRes = await fetch('sraws.json');
-        let localData = [];
-        if (localRes.ok) {
-            const localText = await localRes.text();
-            try {
-                localData = JSON.parse(localText);
-            } catch(e) {
-                console.error("JSON Parse error in sraws.json");
-                localData = [];
+        try {
+            const fbRes = await fetch(FIREBASE_DB_URL);
+            if (fbRes.ok) {
+                const fbText = await fbRes.text();
+                if (fbText && fbText !== "null") {
+                    cloudData = JSON.parse(fbText);
+                }
             }
+        } catch(e) { 
+            console.log("Firebase not reachable yet, checking local file."); 
         }
 
-        // 3. בחירת הנתונים - עדיפות לענן אם הוא ארוך יותר
-        if (cloudData && Array.isArray(cloudData) && cloudData.length >= localData.length) {
+        // 2. משיכה מהקובץ המקומי sraws.json (הגיבוי שלך)
+        let localData = [];
+        try {
+            const locRes = await fetch('sraws.json');
+            if (locRes.ok) {
+                const locText = await locRes.text();
+                localData = JSON.parse(locText);
+            }
+        } catch(e) { 
+            console.log("Local sraws.json error or missing."); 
+        }
+
+        // 3. בחירת הנתונים הפעילים (עדיפות לענן אם הוא מלא יותר)
+        if (cloudData && Array.isArray(cloudData) && cloudData.length > 0) {
             S.raws = cloudData;
-            console.log("Loaded from Cloud");
+            console.log("Loaded from Firebase");
+        } else if (localData && Array.isArray(localData) && localData.length > 0) {
+            S.raws = localData;
+            console.log("Loaded from sraws.json");
+            save(true); // מעדכן את הענן בנתונים מהקובץ כדי שיהיו זמינים להבא
         } else {
-            S.raws = Array.isArray(localData) ? localData : [];
-            console.log("Loaded from Local File");
-            if (S.raws.length > 0) save(true); // עדכון הענן בנתונים המקומיים
+            S.raws = [];
+            console.log("No data found in any source.");
         }
 
-        // 4. אתחול ה-UI
+        // 4. עדכון התאריך והצגת הנתונים ב-UI
         const dateInp = document.getElementById('dash-date') || document.getElementById('view-date-input');
         if (dateInp) dateInp.value = S.viewDate;
         
-        render(); 
+        if (typeof render === 'function') render(); 
         if (typeof odUpdateUI === 'function') odUpdateUI();
+        
+        console.log("System Ready");
 
-    } catch (e) {
-        console.error("Critical Init Error:", e);
-        // במקום alert מציק, נכתוב הודעה שקטה בלוח הבקרה
+    } catch (err) {
+        console.error("Critical Init Error:", err);
         const cont = document.getElementById('render-cont');
-        if (cont) cont.innerHTML = '<div style="text-align:center;padding:20px;color:red;">שגיאה בטעינת פורמט הנתונים. וודא שקובץ ה-JSON תקין.</div>';
-    }
-}
-        // 4. עדכון התצוגה
-        const dateInp = document.getElementById('dash-date') || document.getElementById('view-date-input');
-        if (dateInp) dateInp.value = S.viewDate;
-
-        render(); 
-        odUpdateUI(); 
-        showNotice('✅ הנתונים שוחזרו במלואם');
-    } catch (e) {
-        console.error("Init error:", e);
-        showNotice('⚠️ שגיאה בטעינה, מציג נתונים מקומיים');
-    }
-}
-
-        // עדכון UI
-        const dateInp = document.getElementById('dash-date') || document.getElementById('view-date-input');
-        if (dateInp) dateInp.value = S.viewDate;
-
-        if(typeof render === 'function') render();
-        odUpdateUI(); 
-        showNotice('✅ המערכת מוכנה');
-    } catch (e) {
-        console.error("Init error:", e);
-        alert("שגיאה בטעינת המידע. וודא שאתה מחובר לאינטרנט.");
+        if (cont) cont.innerHTML = '<div style="text-align:center;padding:20px;color:red;">שגיאה בטעינת הנתונים. וודא שקובץ ה-JSON תקין.</div>';
     }
 }
 
