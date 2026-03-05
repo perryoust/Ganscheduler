@@ -559,47 +559,32 @@ document.addEventListener('DOMContentLoaded', () => {
 // 2. אתחול וטעינת נתונים (Firebase -> Local File -> UI)
 async function initApp() {
     try {
-        console.log("Starting secure initialization...");
-        
-        // 1. ניסיון משיכה מ-Firebase
-        let cloudData = null;
-        try {
-            const fbRes = await fetch(FIREBASE_DB_URL);
-            if (fbRes.ok) {
-                const fbText = await fbRes.text();
-                if (fbText && fbText !== "null") {
-                    cloudData = JSON.parse(fbText);
-                }
-            }
-        } catch(e) { 
-            console.log("Firebase not reachable yet, checking local file."); 
-        }
+        console.log("Fetching full system state...");
+        const fbRes = await fetch(FIREBASE_DB_URL);
+        const cloudData = fbRes.ok ? await fbRes.json() : null;
 
-        // 2. משיכה מהקובץ המקומי sraws.json (הגיבוי שלך)
-        let localData = [];
-        try {
-            const locRes = await fetch('sraws.json');
-            if (locRes.ok) {
-                const locText = await locRes.text();
-                localData = JSON.parse(locText);
-            }
-        } catch(e) { 
-            console.log("Local sraws.json error or missing."); 
-        }
-
-        // 3. בחירת הנתונים הפעילים (עדיפות לענן אם הוא מלא יותר)
-        if (cloudData && Array.isArray(cloudData) && cloudData.length > 0) {
-            S.raws = cloudData;
-            console.log("Loaded from Firebase");
-        } else if (localData && Array.isArray(localData) && localData.length > 0) {
-            S.raws = localData;
-            console.log("Loaded from sraws.json");
-            save(true); // מעדכן את הענן בנתונים מהקובץ כדי שיהיו זמינים להבא
+        if (cloudData && typeof cloudData === 'object') {
+            // טעינת כל המידע: גנים, ספקים, פעילויות והגדרות
+            S = { ...S, ...cloudData };
+            console.log("Full data restored from Firebase");
         } else {
-            S.raws = [];
-            console.log("No data found in any source.");
+            // טעינה ראשונית מקובץ הגיבוי המלא
+            const locRes = await fetch('sraws.json');
+            const localData = await locRes.json();
+            S.raws = Array.isArray(localData) ? localData : [];
+            save(true); // דחיפה ראשונית לענן
         }
 
+        // ריענון כל רכיבי האתר
+        if (typeof render === 'function') render();
+        if (typeof renderGardens === 'function') renderGardens();
+        if (typeof renderSup === 'function') renderSup();
+        if (typeof odUpdateUI === 'function') odUpdateUI();
+
+    } catch (e) {
+        console.error("Critical restore error:", e);
+    }
+}
         // 4. עדכון התאריך והצגת הנתונים ב-UI
         const dateInp = document.getElementById('dash-date') || document.getElementById('view-date-input');
         if (dateInp) dateInp.value = S.viewDate;
