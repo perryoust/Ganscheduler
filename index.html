@@ -557,39 +557,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 2. אתחול וטעינת נתונים (ענן -> קובץ מקומי)
 // 2. אתחול וטעינת נתונים (Firebase -> Local File -> UI)
+// 2. אתחול וטעינת נתונים (Firebase -> Local File -> UI)
 async function initApp() {
     try {
         console.log("Fetching full system state...");
+        
+        // א. ניסיון משיכה מ-Firebase
         const fbRes = await fetch(FIREBASE_DB_URL);
         const cloudData = fbRes.ok ? await fbRes.json() : null;
 
         if (cloudData && typeof cloudData === 'object') {
-            // טעינת כל המידע: גנים, ספקים, פעילויות והגדרות
+            // טעינת כל האובייקט (כולל gardens, sups וכו')
             S = { ...S, ...cloudData };
             console.log("Full data restored from Firebase");
         } else {
-            // טעינה ראשונית מקובץ הגיבוי המלא
+            // ב. טעינה ראשונית מקובץ הגיבוי sraws.json (אם הענן ריק)
+            console.log("Firebase empty, loading from sraws.json");
             const locRes = await fetch('sraws.json');
-            const localData = await locRes.json();
-            S.raws = Array.isArray(localData) ? localData : [];
-            save(true); // דחיפה ראשונית לענן
+            if (locRes.ok) {
+                const localData = await locRes.json();
+                // אם הקובץ הוא רק רשימת חוגים, נכניס אותו ל-raws
+                if (Array.isArray(localData)) {
+                    S.raws = localData;
+                } else {
+                    S = { ...S, ...localData };
+                }
+                save(true); // דחיפה ראשונית לענן של הנתונים המקומיים
+            }
         }
 
-        // ריענון כל רכיבי האתר
-        if (typeof render === 'function') render();
-        if (typeof renderGardens === 'function') renderGardens();
-        if (typeof renderSup === 'function') renderSup();
-        if (typeof odUpdateUI === 'function') odUpdateUI();
-
-    } catch (e) {
-        console.error("Critical restore error:", e);
-    }
-}
-        // 4. עדכון התאריך והצגת הנתונים ב-UI
+        // ג. עדכון התאריך ב-UI
         const dateInp = document.getElementById('dash-date') || document.getElementById('view-date-input');
         if (dateInp) dateInp.value = S.viewDate;
         
-        if (typeof render === 'function') render(); 
+        // ד. ריענון כל רכיבי האתר (רק אם הפונקציות קיימות)
+        if (typeof render === 'function') render();
+        if (typeof renderGardens === 'function') renderGardens();
+        if (typeof renderSup === 'function') renderSup();
         if (typeof odUpdateUI === 'function') odUpdateUI();
         
         console.log("System Ready");
@@ -597,7 +601,7 @@ async function initApp() {
     } catch (err) {
         console.error("Critical Init Error:", err);
         const cont = document.getElementById('render-cont');
-        if (cont) cont.innerHTML = '<div style="text-align:center;padding:20px;color:red;">שגיאה בטעינת הנתונים. וודא שקובץ ה-JSON תקין.</div>';
+        if (cont) cont.innerHTML = '<div style="text-align:center;padding:20px;color:red;">שגיאה בטעינת הנתונים. וודא שחיבור האינטרנט תקין.</div>';
     }
 }
 
@@ -606,10 +610,11 @@ async function save(silent = false) {
     if (!silent) showNotice('⏳ מסנכרן מול Firebase...');
     
     try {
+        // אנחנו שומרים את כל האובייקט S כדי לא לאבד גנים וספקים
         const response = await fetch(FIREBASE_DB_URL, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(S.raws)
+            body: JSON.stringify(S) 
         });
 
         if (!response.ok) throw new Error('שגיאת שרת');
@@ -626,9 +631,8 @@ async function save(silent = false) {
     }
 }
 
-// 4. התאמת כפתורי ה-UI הישנים ל-Firebase
+// 4. התאמת כפתורי ה-UI והגדרות סנכרון
 function odToggle() { 
-    // במקום לפתוח הגדרות טוקן, פותח הודעת סטטוס
     if(typeof CM === 'function') {
         const modal = document.getElementById('od-modal');
         if(modal) modal.classList.add('open');
@@ -639,13 +643,13 @@ function odUpdateUI() {
     const btn = document.getElementById('od-btn');
     if (btn) {
         btn.textContent = '☁️ Firebase Active';
-        btn.style.background = '#2e7d32'; // צבע ירוק להצלחה
+        btn.style.background = '#2e7d32'; 
     }
 }
 
 function ghAutoSave() { save(true); }
 
-// 5. ניווט תאריכים
+// 5. פונקציות עזר וניווט
 window.changeDate = function(n) {
     let d = new Date(S.viewDate);
     d.setDate(d.getDate() + n);
@@ -657,12 +661,10 @@ window.changeDate = function(n) {
 
 function showNotice(msg) {
     if (typeof showToast === 'function') showToast(msg);
-    else {
-        // יצירת נוטיפיקציה זמנית אם אין פונקציית טוסט
-        console.log("Notice: " + msg);
-    }
+    else console.log("Notice: " + msg);
 }
 
+// ── PROCUREMENT MODULE ──────────────────────────────────────
 // PROCUREMENT MODULE - v9.0
 
 let _appMode = 'act'; // 'act' | 'purch'
