@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "ts": 0,
+  "data": {
+    "ch": [],
+    "pairs": [],
+    "supEx": {},
+    "clusters": {},
+    "holidays": [],
+    "pairBreaks": [],
+    "managers": {},
+    "blockedDates": [],
+    "gardenBlocks": {},
+    "invoices": [],
+    "vatRate": 17,
+    "activeGardens": null
+  }
+}
