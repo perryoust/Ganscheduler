@@ -528,20 +528,21 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
-// --- הגדרות ענן FIREBASE & LOCAL DATA v10.0 ---
-// כתובת ה-Database שלך ב-Firebase
+// --- הגדרות ענן FIREBASE & LOCAL DATA v10.1 ---
+// הכתובת המעודכנת לפי ה-Console שלך
 const FIREBASE_DB_URL = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data.json';
-  
+
 let S = { 
     raws: [], 
     gardens: [], 
     nohaps: {}, 
+    sups: [], // הוספנו תמיכה בספקים כדי למנוע שגיאות
     viewDate: new Date().toISOString().split('T')[0] 
 };
 
 // 1. שכבת הגנה: סיסמה בכניסה (1234)
 document.addEventListener('DOMContentLoaded', () => {
-    document.body.style.display = "none"; // הסתרה עד אימות
+    document.body.style.display = "none"; 
     
     setTimeout(() => {
         const pass = prompt("שלום, הכנס קוד גישה לטומשין קידס:");
@@ -555,10 +556,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 100);
 });
 
-// 2. אתחול וטעינת נתונים (ענן -> קובץ מקומי)
-// 2. אתחול וטעינת נתונים (Firebase -> Local File -> UI)
-// 2. אתחול וטעינת נתונים (Firebase -> Local File -> UI)
-// 2. אתחול חכם (מונע שגיאות פורמט)
+// 2. אתחול חכם (Firebase -> Local File -> UI)
 async function initApp() {
     try {
         console.log("Initializing v10.1...");
@@ -1222,7 +1220,7 @@ function renderPurchSuppliers(){
   <div style="display:flex;align-items:center;gap:5px;margin-right:4px">
     <button onclick="openBackup()" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:5px 9px;cursor:pointer;color:#fff;font-size:.82rem" title="גיבוי ושחזור">💾</button>
     <button onclick="openInfoModal()" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:5px 9px;cursor:pointer;color:#fff;font-size:.82rem" title="מידע">ℹ️</button>
-    <button id="od-btn" onclick="odToggle()" style="background:#0078d4;border:1.5px solid rgba(255,255,255,.35);border-radius:6px;padding:5px 11px;cursor:pointer;color:#fff;font-size:.76rem;font-weight:700;transition:background .2s" title="סנכרון GitHub">☁️ Firebase Active</button>
+    <button id="od-btn" onclick="odToggle()" style="background:#2e7d32; border:1.5px solid rgba(255,255,255,.35); border-radius:6px; padding:5px 11px; cursor:pointer; color:#fff; font-size:.76rem; font-weight:700; position:relative; z-index:1000;">☁️ Firebase Active</button>
   </div>
 </div>
 
