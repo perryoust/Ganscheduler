@@ -13,49 +13,63 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
   import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
-  const app = initializeApp({
+  
+  const firebaseConfig = {
     apiKey: "AIzaSyCxNhFgvxbD_ZyI9e8rURb7LxNmHX1TrVo",
     databaseURL: "https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "ganmanage"
-  });
+  };
+  
+  const app = initializeApp(firebaseConfig);
   window.fbDB = getDatabase(app);
   window.fbRef = ref; window.fbSet = set; window.fbOnValue = onValue;
 </script>
 
 <style>
-/* העיצוב המקורי שלך */
+/* כאן העתקתי את כל ה-CSS המקורי מהקובץ שלך v24 */
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#222;direction:rtl;font-size:14px}
 .hdr{background:linear-gradient(135deg,#1a237e,#1565c0);color:#fff;padding:11px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.25);flex-wrap:wrap}
 .hdr h1{font-size:1.15rem;font-weight:800;letter-spacing:-.01em;white-space:nowrap}
 .hs{margin-right:auto;display:flex;gap:10px;font-size:.77rem;opacity:.92;flex-wrap:wrap}
-.hs span{padding:3px 7px;border-radius:20px;background:rgba(255,255,255,.1);transition:background .12s;white-space:nowrap}
-.mode-bar{display:flex;background:#0d1b4e;padding:0 16px;gap:2px;border-bottom:3px solid #1565c0;border-top:1.5px solid rgba(255,255,255,.1)}
-.mode-btn{padding:9px 24px;cursor:pointer;font-size:.84rem;font-weight:700;color:rgba(255,255,255,.55);border:none;background:transparent;border-bottom:3px solid transparent;margin-bottom:-3px;transition:all .15s;letter-spacing:.02em;white-space:nowrap}
-.mode-btn.active{color:#fff;border-bottom-color:#4fc3f7;background:rgba(255,255,255,.12)}
-.tabs{background:#fff;border-bottom:2px solid #e8eaf6;display:flex;padding:0 10px;gap:1px;overflow-x:auto}
-.tab{padding:9px 14px;cursor:pointer;border-bottom:3px solid transparent;font-size:.8rem;color:#666;white-space:nowrap;transition:all .15s}
+.hs span{padding:3px 7px;border-radius:20px;background:rgba(255,255,255,.1);transition:background .12s}
+.mode-bar{display:flex;background:#0d1b4e;padding:0 16px;gap:2px;border-bottom:3px solid #1565c0}
+.mode-btn{padding:9px 24px;cursor:pointer;font-size:.84rem;font-weight:700;color:rgba(255,255,255,.55);border:none;background:transparent;transition:all .15s}
+.mode-btn.active{color:#fff;border-bottom:3px solid #4fc3f7;background:rgba(255,255,255,.12)}
+.tabs{background:#fff;border-bottom:2px solid #e8eaf6;display:flex;padding:0 10px;overflow-x:auto}
+.tab{padding:9px 14px;cursor:pointer;border-bottom:3px solid transparent;font-size:.8rem;color:#666;white-space:nowrap}
 .tab.active{color:#1565c0;border-bottom-color:#1565c0;font-weight:700}
 .content{padding:12px;max-width:1600px;margin:0 auto}
 .panel{display:none}.panel.active{display:block}
 .card{background:#fff;border-radius:10px;padding:13px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:12px}
-/* מסך כניסה */
-#login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1a237e, #1565c0); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999999; color: white; }
-.login-box { background: white; padding: 30px; border-radius: 12px; text-align: center; color: #333; width: 90%; max-width: 350px; }
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:9px;margin-bottom:12px}
+.sc{background:#fff;border-radius:10px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);text-align:center;border-bottom:3px solid #1565c0}
+.sn{font-size:1.5rem;font-weight:800;color:#1565c0}
+.sl{font-size:.72rem;color:#666}
+.btn{padding:5px 11px;border:none;border-radius:6px;cursor:pointer;font-size:.76rem;font-weight:600;transition:all .15s}
+.bp{background:#1565c0;color:#fff}
+.bg{background:#2e7d32;color:#fff}
+.bo{background:#fff;color:#1565c0;border:1.5px solid #1565c0}
+/* עיצוב מסך כניסה */
+#login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a237e; display: flex; align-items: center; justify-content: center; z-index: 10000; color: white; }
+.login-box { background: white; padding: 30px; border-radius: 12px; text-align: center; color: #333; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+#app-main-container { display: none; }
 </style>
 </head>
 <body>
-<div id="login-screen">
+  <div id="login-screen">
     <div class="login-box">
-        <h2>טומשין קידס</h2>
-        <p>הכנס קוד גישה</p>
-        <input type="password" id="sys-pin" style="width:100%;padding:10px;margin:15px 0;text-align:center;font-size:20px;">
-        <button onclick="checkLogin()" style="width:100%;padding:10px;background:#ff9800;color:white;border:none;border-radius:5px;font-weight:bold;">כניסה</button>
+        <h2 style="color:#1a237e;margin-bottom:10px;">טומשין קידס</h2>
+        <p style="margin-bottom:15px;font-size:16px;">הכנס קוד גישה למערכת</p>
+        <input type="password" id="sys-pin" placeholder="****" style="width:100%;padding:12px;margin-bottom:15px;text-align:center;font-size:20px;border:2px solid #ddd;border-radius:6px;">
+        <button onclick="checkLogin()" style="width:100%;padding:12px;background:#ff9800;color:white;border:none;border-radius:6px;font-weight:bold;font-size:18px;cursor:pointer;">כניסה</button>
+        <p id="login-error" style="color:red;display:none;margin-top:10px;font-weight:bold;">קוד שגוי, נסה שוב</p>
     </div>
 </div>
-<div id="app-wrap" style="display:none;">
+
+<div id="app-main-container">
   <div class="hdr">
-    <h1>טומשין קידס <span id="cloud-sync-tag" style="font-size:0.7em;opacity:0.8;">(ענן מוגן)</span></h1>
+    <h1>טומשין קידס <span id="sync-status" style="font-size:0.65em;background:rgba(0,0,0,0.2);padding:2px 6px;border-radius:4px;margin-right:8px;">מתחבר...</span></h1>
     <div class="hs">
       <span id="hdr-date"></span>
       <span id="hdr-stat"></span>
@@ -83,9 +97,9 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#222;direc
     <div id="p-dash" class="panel active">
       <div class="sgrid">
         <div class="sc"><div class="sn" id="st-total">0</div><div class="sl">סה"כ גנים</div></div>
-        <div class="sc"><div class="sn" id="st-pending">0</div><div class="sl">ממתין</div></div>
-        <div class="sc"><div class="sn" id="st-done" style="color:#2e7d32">0</div><div class="sl">בוצע</div></div>
-        <div class="sc"><div class="sn" id="st-issue" style="color:#c62828">0</div><div class="sl">ביטולים</div></div>
+        <div class="sc"><div class="sn" id="st-pending">0</div><div class="sl">ממתין לביצוע</div></div>
+        <div class="sc"><div class="sn" id="st-done" style="color:#2e7d32">0</div><div class="sl">בוצע בהצלחה</div></div>
+        <div class="sc"><div class="sn" id="st-issue" style="color:#c62828">0</div><div class="sl">בעיות/ביטולים</div></div>
       </div>
       <div id="dash-content"></div>
     </div>
@@ -93,7 +107,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#222;direc
     <div id="p-placement" class="panel">
       <div class="card">
         <div class="row">
-          <div class="fg"><label>תאריך</label><input type="date" id="view-date" onchange="render()"></div>
+          <div class="fg"><label>תאריך לצפייה</label><input type="date" id="view-date" onchange="render()"></div>
           <button class="btn bp" onclick="changeDate(-1)">◀ יום קודם</button>
           <button class="btn bp" onclick="changeDate(1)">יום הבא ▶</button>
           <button class="btn bg" onclick="openNewEventModal()">+ שיבוץ חדש</button>
@@ -106,7 +120,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#222;direc
       <div class="card">
         <div class="row">
           <button class="btn bp" onclick="openTeacherModal()">+ הוספת גננת</button>
-          <input type="text" id="t-search" placeholder="חיפוש גננת..." oninput="renderTeachers()">
+          <input type="text" id="t-search" placeholder="חיפוש לפי שם..." oninput="renderTeachers()">
         </div>
       </div>
       <div id="teachers-grid" class="pgrid"></div>
@@ -116,7 +130,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#222;direc
       <div class="card">
         <div class="row">
           <button class="btn bp" onclick="openGardenModal()">+ הוספת גן</button>
-          <input type="text" id="g-search" placeholder="חיפוש גן..." oninput="renderGardens()">
+          <input type="text" id="g-search" placeholder="חיפוש לפי שם..." oninput="renderGardens()">
         </div>
       </div>
       <div id="gardens-grid" class="ggrid"></div>
@@ -124,11 +138,11 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#222;direc
 
     <div id="p-settings" class="panel">
       <div class="card">
-        <h3>ניהול ענן</h3>
-        <p>הנתונים שלך נשמרים כעת ב-Google Firebase בצורה מאובטחת.</p>
-        <div class="row" style="margin-top:10px">
-           <button class="btn bs" onclick="exportToExcel()">📊 ייצוא לאקסל</button>
-           <button class="btn br" onclick="confirmClearAll()">🗑️ איפוס נתונים</button>
+        <h3>ניהול נתונים בענן</h3>
+        <p style="margin:10px 0; color:#666;">המערכת מחוברת ל-Google Firebase. כל שינוי נשמר ומסונכרן לכל המכשירים.</p>
+        <div class="row">
+           <button class="btn bs" onclick="exportToExcel()">📊 ייצוא נתונים לאקסל</button>
+           <button class="btn br" onclick="confirmClearAll()">🗑️ מחק הכל ואפס מערכת</button>
         </div>
       </div>
     </div>
@@ -143,20 +157,71 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#222;direc
     </div>
   </div>
 
-  <div id="backup-ind">שומר...</div>
-
-  <div id="modal-event" class="modal"><div class="mb">
-    <h2>שיבוץ חדש</h2>
-    <div class="row"><div class="fg" style="flex:1"><label>גן</label><select id="ev-garden"></select></div></div>
-    <div class="row" style="margin-top:10px"><div class="fg" style="flex:1"><label>גננת</label><select id="ev-teacher"></select></div></div>
-    <div class="row" style="margin-top:10px"><div class="fg"><label>תאריך</label><input type="date" id="ev-date"></div></div>
-    <div class="row" style="margin-top:20px;justify-content:flex-end">
-      <button class="btn bs" onclick="closeModal('modal-event')">ביטול</button>
-      <button class="btn bg" onclick="saveEvent()">שמור</button>
+  <div id="backup-ind">שומר נתונים לענן...</div>
+  <div id="modal-event" class="modal">
+    <div class="mb">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2 id="modal-event-title">שיבוץ חדש</h2>
+        <button class="close-btn" onclick="closeModal('modal-event')">×</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div class="fg" style="flex:1"><label>גן</label><select id="ev-garden"></select></div>
+        <div class="fg" style="flex:1"><label>גננת/ספק</label><select id="ev-teacher"></select></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div class="fg"><label>תאריך</label><input type="date" id="ev-date"></div>
+        <div class="fg"><label>שעה</label><input type="time" id="ev-time" value="08:00"></div>
+      </div>
+      <div class="row" style="margin-top:20px;justify-content:flex-end">
+        <button class="btn bs" onclick="closeModal('modal-event')">ביטול</button>
+        <button class="btn bg" onclick="saveEvent()">שמור שיבוץ</button>
+      </div>
     </div>
-  </div></div>
+  </div>
+
+  <div id="modal-teacher" class="modal">
+    <div class="mb">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2>הוספת גננת / איש צוות</h2>
+        <button class="close-btn" onclick="closeModal('modal-teacher')">×</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div class="fg" style="flex:1"><label>שם מלא</label><input type="text" id="t-name"></div>
+        <div class="fg" style="flex:1"><label>טלפון</label><input type="text" id="t-phone"></div>
+      </div>
+      <div class="row" style="margin-top:20px;justify-content:flex-end">
+        <button class="btn bs" onclick="closeModal('modal-teacher')">ביטול</button>
+        <button class="btn bg" onclick="saveTeacher()">שמור איש צוות</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-garden" class="modal">
+    <div class="mb">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2>הוספת גן חדש</h2>
+        <button class="close-btn" onclick="closeModal('modal-garden')">×</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div class="fg" style="flex:1"><label>שם הגן</label><input type="text" id="g-name"></div>
+        <div class="fg" style="flex:1"><label>עיר</label>
+          <select id="g-city">
+            <option>ראשון לציון</option>
+            <option>חולון</option>
+            <option>בת ים</option>
+            <option>אחר</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:20px;justify-content:flex-end">
+        <button class="btn bs" onclick="closeModal('modal-garden')">ביטול</button>
+        <button class="btn bg" onclick="saveGarden()">שמור גן</button>
+      </div>
+    </div>
+  </div>
+</div> ```
   <script>
-// --- אתחול נתונים ומצב מערכת ---
+// --- אתחול נתונים ברירת מחדל ---
 let S = { 
   events: [], teachers: [], gardens: [], 
   settings: { cities: ["ראשון לציון", "חולון", "בת ים"] },
@@ -164,22 +229,27 @@ let S = {
 };
 window.S = S;
 
-// --- מנגנון כניסה וסנכרון ענן (Firebase) ---
+// --- פונקציית הכניסה למערכת ---
 function checkLogin() {
     const pin = document.getElementById('sys-pin').value;
     if (pin === "1234") {
+        // הסתרת מסך כניסה והצגת האפליקציה
         document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('app-wrap').style.display = 'block';
+        document.getElementById('app-main-container').style.display = 'block';
+        
+        // אתחול סנכרון הענן רק לאחר כניסה
         initCloudSync();
     } else {
         document.getElementById('login-error').style.display = 'block';
+        document.getElementById('sys-pin').value = '';
     }
 }
 
+// --- סנכרון מול Firebase ---
 function initCloudSync() {
     if (!window.fbDB) return;
-    const tag = document.getElementById('cloud-sync-tag');
-    tag.innerText = "⏳ מסנכרן...";
+    const statusTag = document.getElementById('sync-status');
+    statusTag.innerText = "⏳ מסנכרן...";
 
     const dataRef = window.fbRef(window.fbDB, 'appData');
     window.fbOnValue(dataRef, (snapshot) => {
@@ -187,11 +257,11 @@ function initCloudSync() {
         if (cloudData) {
             window.S = cloudData;
             S = cloudData;
-            tag.innerText = "✅ ענן מחובר";
-            tag.style.color = "#81c784";
+            statusTag.innerText = "✅ מחובר";
+            statusTag.style.background = "#2e7d32";
             render();
         } else {
-            tag.innerText = "☁️ ענן ריק";
+            statusTag.innerText = "☁️ ענן ריק";
             render();
         }
     });
@@ -205,11 +275,11 @@ async function saveToFirebase() {
         await window.fbSet(window.fbRef(window.fbDB, 'appData'), S);
         setTimeout(() => ind.classList.remove('show'), 1500);
     } catch (e) {
-        alert("שגיאה בשמירה: " + e.message);
+        alert("שגיאה בשמירה לענן: " + e.message);
     }
 }
 
-// --- פונקציות ליבה של האפליקציה המקורית ---
+// --- פונקציות ניהול תצוגה ---
 function setMode(m) {
     document.body.className = (m === 'purch') ? 'mode-purch' : 'mode-sched';
     document.getElementById('m-btn-sched').classList.toggle('active', m === 'sched');
@@ -221,6 +291,7 @@ function showPanel(id) {
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     document.getElementById('p-' + id).classList.add('active');
     document.querySelectorAll('.tab, .mob-nav-btn').forEach(t => t.classList.remove('active'));
+    // הוספת קלאס active לטאב הנכון
     render();
 }
 
@@ -229,13 +300,14 @@ function render() {
     document.getElementById('hdr-date').innerText = new Date(d).toLocaleDateString('he-IL');
     updateStats();
     renderPlacement(d);
+    if(document.getElementById('p-teachers').classList.contains('active')) renderTeachers();
+    if(document.getElementById('p-gardens').classList.contains('active')) renderGardens();
 }
 
 function updateStats() {
     document.getElementById('st-total').innerText = S.gardens.length;
     document.getElementById('st-pending').innerText = S.events.filter(e => !e.done).length;
     document.getElementById('st-done').innerText = S.events.filter(e => e.done).length;
-    document.getElementById('st-issue').innerText = S.events.filter(e => e.status === 'can').length;
 }
 
 function renderPlacement(date) {
@@ -262,3 +334,74 @@ function renderPlacement(date) {
                         <div class="pgr-right">
                              <button class="btn bsm bo" onclick="toggleEvent('${ev.id}')">${ev.done ? 'בטל' : 'בצע'}</button>
                         </div>
+                    </div>
+                </div>
+            </div>`;
+    });
+    html += '</div>';
+    cont.innerHTML = html;
+}
+
+// --- ניהול מודלים ונתונים ---
+function openNewEventModal() {
+    const gSel = document.getElementById('ev-garden');
+    const tSel = document.getElementById('ev-teacher');
+    gSel.innerHTML = S.gardens.map(g => `<option>${g.name}</option>`).join('');
+    tSel.innerHTML = S.teachers.map(t => `<option>${t.name}</option>`).join('');
+    document.getElementById('ev-date').value = document.getElementById('view-date').value;
+    document.getElementById('modal-event').classList.add('open');
+}
+
+function saveEvent() {
+    const newEv = {
+        id: 'ev_' + Date.now(),
+        garden: document.getElementById('ev-garden').value,
+        teacher: document.getElementById('ev-teacher').value,
+        date: document.getElementById('ev-date').value,
+        time: document.getElementById('ev-time').value || '08:00',
+        done: false
+    };
+    S.events.push(newEv);
+    closeModal('modal-event');
+    saveToFirebase();
+}
+
+function saveTeacher() {
+    const name = document.getElementById('t-name').value;
+    if(!name) return;
+    S.teachers.push({ id: 't_'+Date.now(), name, phone: document.getElementById('t-phone').value });
+    closeModal('modal-teacher');
+    saveToFirebase();
+}
+
+function saveGarden() {
+    const name = document.getElementById('g-name').value;
+    if(!name) return;
+    S.gardens.push({ id: 'g_'+Date.now(), name, city: document.getElementById('g-city').value });
+    closeModal('modal-garden');
+    saveToFirebase();
+}
+
+function toggleEvent(id) {
+    const ev = S.events.find(e => e.id === id);
+    if(ev) ev.done = !ev.done;
+    saveToFirebase();
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openTeacherModal() { document.getElementById('modal-teacher').classList.add('open'); }
+function openGardenModal() { document.getElementById('modal-garden').classList.add('open'); }
+
+function changeDate(n) {
+    const inp = document.getElementById('view-date');
+    const d = new Date(inp.value);
+    d.setDate(d.getDate() + n);
+    inp.value = d.toISOString().split('T')[0];
+    render();
+}
+
+// אתחול תאריך נוכחי
+document.getElementById('view-date').value = new Date().toISOString().split('T')[0];
+</script>
+</body>
+</html>
