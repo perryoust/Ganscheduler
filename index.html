@@ -558,21 +558,40 @@ document.addEventListener('DOMContentLoaded', () => {
 // 2. אתחול וטעינת נתונים (ענן -> קובץ מקומי)
 async function initApp() {
     try {
-        showNotice('⏳ טוען נתונים מהענן...');
+        showNotice('⏳ בודק סנכרון מול Firebase...');
         
-        // ניסיון ראשון: טעינה מ-Firebase
+        // 1. ניסיון טעינה מהענן
         let response = await fetch(FIREBASE_DB_URL);
-        let data = await response.json();
+        let cloudData = await response.json();
         
-        if (data && Array.isArray(data) && data.length > 0) {
-            S.raws = data;
-            console.log("Data loaded from Firebase");
+        // 2. טעינה מהקובץ המקומי (sraws.json) כבסיס
+        const localRes = await fetch('sraws.json');
+        const localData = await localRes.json();
+
+        // 3. לוגיקת המיזוג: אם הענן ריק או קצר מדי, השתמש במקומי
+        if (!cloudData || !Array.isArray(cloudData) || cloudData.length < localData.length) {
+            console.log("Firebase data missing or incomplete. Using local sraws.json");
+            S.raws = localData;
+            
+            // דחיפה אוטומטית לענן כדי שמעכשיו הכל יהיה שם
+            save(true); 
         } else {
-            // ניסיון שני: אם Firebase ריק, טען מהקובץ sraws.json
-            console.log("Firebase empty, loading from sraws.json");
-            const localRes = await fetch('sraws.json');
-            S.raws = await localRes.json();
+            console.log("Using full data from Firebase");
+            S.raws = cloudData;
         }
+
+        // 4. עדכון התצוגה
+        const dateInp = document.getElementById('dash-date') || document.getElementById('view-date-input');
+        if (dateInp) dateInp.value = S.viewDate;
+
+        render(); 
+        odUpdateUI(); 
+        showNotice('✅ הנתונים שוחזרו במלואם');
+    } catch (e) {
+        console.error("Init error:", e);
+        showNotice('⚠️ שגיאה בטעינה, מציג נתונים מקומיים');
+    }
+}
 
         // עדכון UI
         const dateInp = document.getElementById('dash-date') || document.getElementById('view-date-input');
