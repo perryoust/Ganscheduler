@@ -3,7 +3,6 @@
 // 1. אתחול משתנים גלובליים
 let S = { 
     events: [], teachers: [], gardens: [], 
-    settings: { cities: ["ראשון לציון", "חולון", "בת ים"] },
     ts: Date.now() 
 };
 window.S = S;
@@ -21,11 +20,14 @@ window.checkLogin = function() {
     }
 };
 
-// 3. חיבור וסנכרון מול Firebase
+// 3. חיבור וסנכרון מול Firebase (עם המתנה לטעינה)
 function initCloudSync() {
-    if (!window.fbDB) return;
+    if (!window.fbDB) {
+        setTimeout(initCloudSync, 500);
+        return;
+    }
     const statusTag = document.getElementById('sync-status');
-    if(statusTag) statusTag.innerText = "⏳ מסנכרן...";
+    if(statusTag) statusTag.innerText = "⏳ מתחבר...";
 
     const dataRef = window.fbRef(window.fbDB, 'appData');
     window.fbOnValue(dataRef, (snapshot) => {
@@ -34,12 +36,12 @@ function initCloudSync() {
             window.S = cloudData;
             S = cloudData;
             if(statusTag) {
-                statusTag.innerText = "✅ מחובר לענן";
+                statusTag.innerText = "✅ מחובר";
                 statusTag.style.background = "#2e7d32";
             }
             render();
         } else {
-            if(statusTag) statusTag.innerText = "☁️ ענן חדש";
+            if(statusTag) statusTag.innerText = "☁️ ענן ריק";
             render();
         }
     });
@@ -48,17 +50,17 @@ function initCloudSync() {
 // 4. שמירה לענן
 window.saveToFirebase = async function() {
     const ind = document.getElementById('backup-ind');
-    if(ind) ind.classList.add('show');
+    if(ind) ind.style.display = 'block';
     try {
         S.ts = Date.now();
         await window.fbSet(window.fbRef(window.fbDB, 'appData'), S);
-        if(ind) setTimeout(() => ind.classList.remove('show'), 1500);
+        if(ind) setTimeout(() => ind.style.display = 'none', 1500);
     } catch (e) {
-        alert("שגיאה בשמירה לענן: " + e.message);
+        alert("שגיאה בשמירה: " + e.message);
     }
 };
 
-// 5. ניהול תצוגה ופאנלים
+// 5. ניהול תצוגה
 window.setMode = function(m) {
     document.body.className = (m === 'purch') ? 'mode-purch' : 'mode-sched';
     document.getElementById('m-btn-sched').classList.toggle('active', m === 'sched');
@@ -85,70 +87,12 @@ window.render = function() {
 };
 
 function updateStats() {
-    const total = document.getElementById('st-total');
-    const pending = document.getElementById('st-pending');
-    const done = document.getElementById('st-done');
-    
-    if(total) total.innerText = S.gardens ? S.gardens.length : 0;
-    if(pending) pending.innerText = S.events ? S.events.filter(e => !e.done).length : 0;
-    if(done) done.innerText = S.events ? S.events.filter(e => e.done).length : 0;
+    if(document.getElementById('st-total')) document.getElementById('st-total').innerText = S.gardens ? S.gardens.length : 0;
+    if(document.getElementById('st-pending')) document.getElementById('st-pending').innerText = S.events ? S.events.filter(e => !e.done).length : 0;
+    if(document.getElementById('st-done')) document.getElementById('st-done').innerText = S.events ? S.events.filter(e => e.done).length : 0;
 }
 
 function renderPlacement(date) {
     const cont = document.getElementById('placement-content');
     if(!cont) return;
-    const dayEvents = S.events ? S.events.filter(e => e.date === date) : [];
-    
-    if (dayEvents.length === 0) {
-        cont.innerHTML = '<div class="pempty">אין שיבוצים ליום זה.</div>';
-        return;
-    }
-
-    let html = '<div class="pairs-4col">';
-    dayEvents.forEach(ev => {
-        html += `
-            <div class="pair-card">
-                <div class="pair-card-hdr" style="background:#1565c0">
-                    <span>🕒 ${ev.time || '08:00'}</span>
-                </div>
-                <div class="pair-card-body">
-                    <div class="pair-card-label"><div class="pcl-name">${ev.garden}</div></div>
-                    <div class="pair-garden-row">
-                        <div class="pgr-left">
-                            <div class="pgr-name">${ev.teacher}</div>
-                            <div class="pgr-status">${ev.done ? '✅ בוצע' : '⏳ ממתין'}</div>
-                        </div>
-                        <div class="pgr-right">
-                             <button class="btn bsm bo" onclick="toggleEvent('${ev.id}')">${ev.done ? 'בטל' : 'בצע'}</button>
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-    });
-    html += '</div>';
-    cont.innerHTML = html;
-}
-
-window.toggleEvent = function(id) {
-    const ev = S.events.find(e => e.id === id);
-    if(ev) {
-        ev.done = !ev.done;
-        saveToFirebase();
-    }
-};
-
-window.closeModal = function(id) { document.getElementById(id).classList.remove('open'); };
-window.openNewEventModal = function() { 
-    // טעינת רשימות למודל
-    const gSel = document.getElementById('ev-garden');
-    const tSel = document.getElementById('ev-teacher');
-    if(gSel) gSel.innerHTML = S.gardens.map(g => `<option>${g.name}</option>`).join('');
-    if(tSel) tSel.innerHTML = S.teachers.map(t => `<option>${t.name}</option>`).join('');
-    document.getElementById('modal-event').classList.add('open'); 
-};
-
-// אתחול תאריך נוכחי בטעינה
-window.addEventListener('load', () => {
-    const dInp = document.getElementById('view-date');
-    if(dInp) dInp.value = new Date().toISOString().split('T')[0];
-});
+    const dayEvents = S.events ? S.
