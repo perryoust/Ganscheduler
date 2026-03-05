@@ -24,13 +24,37 @@
       window.fbRef = ref;
       window.fbSet = set;
       window.fbOnValue = onValue;
-      
-      // טעינת הקוד של האפליקציה
-      const script = document.createElement('script');
-      script.src = 'app.js';
-      document.body.appendChild(script);
+
+      // פונקציית שמירה חדשה לענן
+      window.saveToCloud = function(data) {
+        window.fbSet(window.fbRef(window.fbDB, 'appData'), data)
+          .then(() => console.log("נשמר בענן!"))
+          .catch(err => alert("שגיאת שמירה: " + err));
+      };
+
+      // 2. טעינת הקוד המקורי שלך והפיכתו ל-Live
+      fetch('app.js')
+        .then(response => response.text())
+        .then(code => {
+          // כאן אנחנו "מזריקים" את השינויים לקוד של קלוד בלי לגעת בקובץ המקורי
+          let updatedCode = code.replace(/saveData\(\)/g, "saveToCloud(S)");
+          
+          const script = document.createElement('script');
+          script.textContent = updatedCode;
+          document.body.appendChild(script);
+          
+          // הפעלת סנכרון Live
+          window.fbOnValue(window.fbRef(window.fbDB, 'appData'), (snapshot) => {
+            const val = snapshot.val();
+            if (val) {
+              window.S = val;
+              if (typeof renderAll === "function") renderAll();
+            }
+          });
+        });
     </script>
 </head>
 <body>
-    </body>
+    <div id="loading" style="text-align:center; padding:50px; font-family:sans-serif;">טוען מערכת מסונכרנת...</div>
+</body>
 </html>
