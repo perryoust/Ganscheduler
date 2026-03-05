@@ -1213,7 +1213,8 @@ function renderPurchSuppliers(){
     </div>`;
   }).join('');
 }
-</script> </head>
+</script> 
+</head>
 <body>
 
 <div id="mob-backup-row" style="display:none;width:100%;padding:4px 0;gap:6px" class="row">
@@ -1227,24 +1228,43 @@ function renderPurchSuppliers(){
     <h1>טומשין קידס</h1>
   </div>
   <div class="hs" id="hdr-stats">
-    <span style="opacity:.5;font-size:.7rem;letter-spacing:.03em;text-transform:uppercase;background:none!important">🎨 חוגים</span>
-    <span onclick="switchMode('act');ST('gardens')" style="cursor:pointer" title="צהרונים">🏫 <b id="h-gardens">125</b> צהרונים</span>
-    <span onclick="switchMode('act');ST('sched')" style="cursor:pointer" title="פעילויות">📅 <b id="h-sched">10,568</b> פעילויות</span>
-    <span onclick="switchMode('act');ST('pairs')" style="cursor:pointer" title="זוגות">🔗 <b id="h-pairs">0</b> זוגות</span>
-    <span onclick="switchMode('act');goToCancelled()" style="cursor:pointer" title="בוטלו">❌ <b id="h-can">0</b> בוטלו</span>
-    <span onclick="switchMode('act');goToPostponed()" style="cursor:pointer" title="נדחו">⏩ <b id="h-post">0</b> נדחו</span>
-    <span style="opacity:.3;font-size:.7rem;padding:0 2px;background:none!important">│</span>
-    <span style="opacity:.5;font-size:.7rem;letter-spacing:.03em;text-transform:uppercase;background:none!important">🛒 רכש</span>
-    <span onclick="switchMode('purch');SPT('pinvoices')" style="cursor:pointer" title="הזמנות">📄 <b id="h-inv">0</b> הזמנות</span>
-    <span onclick="switchMode('purch');SPT('pinvoices')" style="cursor:pointer" title="פעילות">🟢 <b id="h-inv-active">0</b> פעיל</span>
-    <span onclick="switchMode('purch');SPT('pinvoices')" style="cursor:pointer" title="בביצוע">🟡 <b id="h-inv-prog">0</b> בביצוע</span>
+    <span onclick="switchMode('act');ST('gardens')" style="cursor:pointer">🏫 <b id="h-gardens">125</b> צהרונים</span>
+    <span onclick="switchMode('act');ST('sched')" style="cursor:pointer">📅 <b id="h-sched">0</b> פעילויות</span>
+    <span onclick="switchMode('purch');SPT('pinvoices')" style="cursor:pointer">📄 <b id="h-inv">0</b> הזמנות</span>
   </div>
   <div style="display:flex;align-items:center;gap:5px;margin-right:4px">
     <button onclick="openBackup()" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:5px 9px;cursor:pointer;color:#fff;font-size:.82rem" title="גיבוי ושחזור">💾</button>
+    <button onclick="openInfoModal()" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:5px 9px;cursor:pointer;color:#fff;font-size:.82rem" title="מידע">ℹ️</button>
     <button id="od-btn" onclick="odToggle()" style="background:#2e7d32; border:1.5px solid rgba(255,255,255,.35); border-radius:6px; padding:5px 11px; cursor:pointer; color:#fff; font-size:.76rem; font-weight:700; position:relative; z-index:1000;">☁️ Firebase Active</button>
   </div>
 </div>
 
+<div id="infom" class="modal">
+  <div class="mb" style="max-width:620px;max-height:85vh;overflow-y:auto">
+    <h2>ℹ️ מידע על המערכת</h2>
+    <div style="font-size:.82rem;line-height:1.7">
+      <div style="background:#e8f5e9;border-radius:8px;padding:12px;margin-bottom:12px;border:1px solid #c8e6c9">
+        <b style="color:#2e7d32">☁️ סנכרון ענן פעיל</b><br>
+        הנתונים מסונכרנים כעת ל-Firebase בזמן אמת. הבת שלך יכולה לראות כל שינוי מיד בטלפון שלה.
+        <div id="sync-status" style="margin-top:8px; font-weight:700; color:#1b5e20;">
+          🕒 סנכרון אחרון: <span id="last-sync-time">טרם בוצע</span>
+        </div>
+      </div>
+      
+      <div style="background:#f3e5f5;border-radius:8px;padding:12px">
+        <b style="color:#6a1b9a">📊 פעולות מהירות</b><br>
+        <div style="display:flex;gap:7px;margin-top:8px">
+          <button class="btn bp bsm" onclick="exportFullBackup()">💾 הורד גיבוי JSON</button>
+          <button class="btn bo bsm" onclick="save(); document.getElementById('last-sync-time').textContent=new Date().toLocaleString('he-IL')">🔄 סנכרן עכשיו</button>
+          <button class="btn bs bsm" onclick="CM('infom');openBackup()">📂 ניהול גיבויים</button>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:left;margin-top:12px">
+      <button class="btn bs" onclick="CM('infom')">סגור</button>
+    </div>
+  </div>
+</div>
 <!-- ══ MODE TABS — ניהול חוגים / ניהול רכש ══ -->
 <div class="mode-bar" id="mode-bar">
   <button class="mode-btn active" id="modeBtn-act" onclick="switchMode('act')">🎨 ניהול חוגים</button>
@@ -1290,6 +1310,7 @@ function renderPurchSuppliers(){
 </div>
 
 <div class="content">
+  <script>
 
 <!-- ====== DASHBOARD ====== -->
 <div id="p-dash" class="panel active">
