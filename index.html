@@ -532,10 +532,7 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 const FIREBASE_DB_URL = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data.json';
 
 let S = { 
-    raws: [], 
-    gardens: [], 
-    nohaps: {}, 
-    sups: [], 
+    raws: [], gardens: [], nohaps: {}, sups: [], 
     viewDate: new Date().toISOString().split('T')[0] 
 };
 
@@ -554,7 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 100);
 });
 
-// 2. אתחול חכם - טעינה מהענן או מקובץ מקומי
+// 2. אתחול חכם
 async function initApp() {
     try {
         console.log("Initializing...");
@@ -605,14 +602,11 @@ async function save(silent = false) {
     }
 }
 
-// 4. פונקציות ממשק (UI)
+// 4. פונקציות ממשק
 function odToggle() { 
-    if(typeof CM === 'function') {
-        const modal = document.getElementById('od-modal');
-        if(modal) modal.classList.add('open');
-    } else {
-        save(); 
-    }
+    const modal = document.getElementById('od-modal');
+    if(modal) modal.classList.add('open');
+    else save(); 
 }
 
 function odUpdateUI() { 
@@ -638,9 +632,9 @@ function showNotice(msg) {
     if (typeof showToast === 'function') showToast(msg);
     else console.log(msg);
 }
-
-// --- סוף אזור GitHub/Firebase ---
-// PROCUREMENT MODULE - v9.0
+// --- סוף אזור Firebase ---
+  
+  // PROCUREMENT MODULE - v9.0
 
 let _appMode = 'act'; // 'act' | 'purch'
 let _purchTab = 'pdash';
