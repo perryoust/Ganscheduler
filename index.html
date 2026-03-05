@@ -3,79 +3,76 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>טומשין קידס - מערכת ניהול</title>
+<title>טומשין קידס - מערכת שיבוץ v10.0</title>
 <style>
-    /* העיצוב המקורי שלך v10.0 */
+    /* כאן נכנס כל העיצוב המקורי מהקובץ ששלחת (v10.0) */
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#222;direction:rtl;font-size:14px}
     .hdr{background:linear-gradient(135deg,#1a237e,#1565c0);color:#fff;padding:11px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.25)}
     .hdr h1{font-size:1.15rem;font-weight:800}
-    .content{padding:12px;max-width:1600px;margin:0 auto}
     .card{background:#fff;border-radius:10px;padding:13px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:12px;border-right:5px solid #1a237e}
     
     /* מסך כניסה */
-    #login-screen {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: #1a237e; display: flex; align-items: center; justify-content: center;
-        z-index: 10000; color: white;
-    }
-    .login-box { background: white; padding: 30px; border-radius: 15px; text-align: center; color: #333; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-    #main-app { display: none; } /* מוסתר עד להקשת סיסמה */
-    
-    .controls{background:#fff;padding:10px;display:flex;gap:10px;justify-content:center;border-bottom:1px solid #ddd}
-    .btn{padding:8px 15px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;background:#1565c0;color:#fff}
+    #login-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:#1a237e;z-index:99999;display:flex;align-items:center;justify-content:center}
+    .login-box{background:#fff;padding:30px;border-radius:15px;text-align:center;width:320px;box-shadow:0 10px 25px rgba(0,0,0,0.5)}
+    #main-app-wrapper{display:none}
+
+    /* עיצוב כפתורי ה-Nohap המקוריים שלך */
+    .btn{padding:8px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:700;transition:0.2s}
+    .bg{background:#2e7d32;color:#fff}
+    .br{background:#c62828;color:#fff}
+    .bo{background:#fff;color:#1565c0;border:1.5px solid #1565c0}
 </style>
 </head>
 <body>
 
 <div id="login-screen">
     <div class="login-box">
-        <h2 style="color:#1a237e; margin-bottom:15px;">כניסה למערכת</h2>
-        <input type="password" id="pass-input" placeholder="הכנס סיסמה" style="width:100%; padding:10px; text-align:center; font-size:18px; border:1px solid #ddd; border-radius:8px; margin-bottom:15px;">
-        <button onclick="checkPass()" class="btn" style="width:100%">כניסה</button>
-        <p id="err-msg" style="color:red; display:none; margin-top:10px;">סיסמה שגויה!</p>
+        <h2 style="color:#1a237e;margin-bottom:20px">טומשין קידס</h2>
+        <input type="password" id="sys-pass" placeholder="קוד גישה" style="width:100%;padding:12px;text-align:center;font-size:20px;border:2px solid #ddd;border-radius:8px;margin-bottom:20px">
+        <button onclick="unlockApp()" class="btn" style="width:100%;background:#ff9800;color:white;font-size:1.1rem">כניסה</button>
+        <p id="login-err" style="color:red;display:none;margin-top:10px">קוד שגוי!</p>
     </div>
 </div>
 
-<div id="main-app">
+<div id="main-app-wrapper">
     <div class="hdr">
-        <h1>טומשין קידס</h1>
+        <h1>טומשין קידס <span id="sync-status" style="font-size:0.6em;opacity:0.7"></span></h1>
         <div style="margin-right:auto" id="hdr-date"></div>
     </div>
 
-    <div class="controls">
-        <button class="btn" onclick="changeDate(-1)">◄</button>
-        <input type="date" id="date-picker" onchange="setDate(this.value)">
-        <button class="btn" onclick="changeDate(1)">►</button>
+    <div style="background:#fff;padding:10px;border-bottom:1px solid #ddd;display:flex;gap:10px;justify-content:center;position:sticky;top:0;z-index:100">
+        <button class="btn bo" onclick="changeDate(-1)">◄</button>
+        <input type="date" id="date-picker" onchange="updateViewDate(this.value)" style="padding:6px;border:1px solid #ccc;border-radius:4px">
+        <button class="btn bo" onclick="changeDate(1)">►</button>
     </div>
 
     <div class="content" id="render-cont">
-        <div style="text-align:center; padding:50px;">טוען נתונים...</div>
-    </div>
+        </div>
 </div>
 
 <script>
-    let S = { raws: [], viewDate: new Date().toISOString().split('T')[0] };
+    // לוגיקה מקורית מותאמת
+    let S = { raws: [], nohaps: {}, viewDate: new Date().toISOString().split('T')[0] };
 
-    // בדיקת סיסמה
-    function checkPass() {
-        const pass = document.getElementById('pass-input').value;
-        if(pass === "1234") { // כאן אתה יכול לשנות את הסיסמה
+    function unlockApp() {
+        if(document.getElementById('sys-pass').value === "1234") {
             document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('main-app').style.display = 'block';
-            init();
+            document.getElementById('main-app-wrapper').style.display = 'block';
+            loadLocalData();
         } else {
-            document.getElementById('err-msg').style.display = 'block';
+            document.getElementById('login-err').style.display = 'block';
         }
     }
 
-    async function init() {
+    async function loadLocalData() {
         try {
-            const response = await fetch('sraws.json');
-            S.raws = await response.json();
+            const res = await fetch('sraws.json');
+            S.raws = await res.json();
             document.getElementById('date-picker').value = S.viewDate;
+            document.getElementById('sync-status').innerText = "(נתונים מקומיים)";
             render();
-        } catch (e) {
+        } catch(e) {
             document.getElementById('render-cont').innerHTML = "שגיאה בטעינת sraws.json";
         }
     }
@@ -84,26 +81,35 @@
         const cont = document.getElementById('render-cont');
         const dayData = S.raws.filter(r => r.d === S.viewDate);
         
-        document.getElementById('hdr-date').innerText = new Date(S.viewDate).toLocaleDateString('he-IL');
+        const dObj = new Date(S.viewDate);
+        document.getElementById('hdr-date').innerText = dObj.toLocaleDateString('he-IL', {weekday:'long', day:'numeric', month:'numeric'});
 
-        if (dayData.length === 0) {
-            cont.innerHTML = '<div style="text-align:center;padding:50px;color:#999;">אין פעילות לתאריך זה.</div>';
+        if(dayData.length === 0) {
+            cont.innerHTML = '<div style="text-align:center;padding:100px;color:#999;">אין פעילות לתאריך זה.</div>';
             return;
         }
 
         cont.innerHTML = dayData.map(r => `
             <div class="card">
-                <div style="display:flex; justify-content:space-between;">
-                    <span style="font-weight:800; color:#1a237e;">גן ${r.g}</span>
-                    <span style="font-weight:bold;">🕒 ${r.t}</span>
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div>
+                        <div style="font-weight:800;font-size:1.1rem;color:#1a237e;">גן ${r.g}</div>
+                        <div style="font-weight:600;margin-top:4px;">${r.a}</div>
+                    </div>
+                    <div style="text-align:left;">
+                        <div style="font-weight:900;font-size:1.1rem;">${r.t}</div>
+                        <div style="font-size:0.8rem;color:#666;">${r.p}</div>
+                    </div>
                 </div>
-                <div style="margin-top:8px; font-weight:600;">${r.a}</div>
-                <div style="margin-top:5px; font-size:0.85rem; color:#666;">📞 ${r.p}</div>
+                <div style="margin-top:12px;display:flex;gap:8px;">
+                    <button class="btn bo" style="flex:1">פרטים</button>
+                    <button class="btn br" onclick="alert('פיתוח Nohap יתווסף בהמשך')" style="flex:1">דווח ביטול</button>
+                </div>
             </div>
         `).join('');
     }
 
-    window.setDate = function(v) { S.viewDate = v; render(); };
+    window.updateViewDate = function(v) { S.viewDate = v; render(); };
     window.changeDate = function(n) {
         let d = new Date(S.viewDate);
         d.setDate(d.getDate() + n);
