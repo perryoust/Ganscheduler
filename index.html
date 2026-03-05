@@ -529,150 +529,78 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
-// ☁️ GitHub API Sync
-const GH_REPO  = 'perryoust/Ganscheduler';
-const GH_FILE  = 'sraws.json';
-const GH_API   = `https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`;
-let _ghToken   = '';
-let _ghSha     = '';
-let _ghAutoSync = false;
+// ☁️ GitHub Cloud Sync
+const GH_OWNER='perryoust', GH_REPO='Ganscheduler', GH_FILE='data.json';
 
-function ghGetToken() {
-  return _ghToken || localStorage.getItem('gh_token') || '';
+function odToggle(){
+  const inp=document.getElementById('gh-token-input');
+  const saved=localStorage.getItem('gh_token');
+  if(inp&&saved) inp.value=saved;
+  document.getElementById('od-modal').classList.add('open');
+}
+function odUpdateUI(){
+  const btn=document.getElementById('od-btn');
+  if(btn) btn.textContent='☁️ GitHub';
+}
+function odMsg(msg,color){
+  const el=document.getElementById('od-msg');
+  if(!el) return;
+  el.textContent=msg;
+  el.style.color=color||'#c62828';
+  el.style.display=msg?'block':'none';
+}
+function ghToken(){return localStorage.getItem('gh_token')||'';}
+function ghHeaders(){return{Authorization:'token '+ghToken(),'Content-Type':'application/json',Accept:'application/vnd.github.v3+json'};}
+
+function ghSaveToken(){
+  const v=(document.getElementById('gh-token-input')||{}).value||'';
+  if(!v.startsWith('ghp_')&&!v.startsWith('github_pat_')){odMsg('Token לא תקין — חייב להתחיל ב-ghp_');return;}
+  localStorage.setItem('gh_token',v);
+  odMsg('✅ Token נשמר','#2e7d32');
 }
 
-async function ghLoadNow(silent) {
-  const token = ghGetToken();
-  if (!token) { if (!silent) ghMsg('יש להזין Personal Access Token'); return false; }
-  try {
-    if (!silent) ghMsg('טוען...', '#1565c0');
-    const r = await fetch(GH_API, {
-      headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github.v3+json' }
-    });
-    if (r.status === 404) { if (!silent) ghMsg('קובץ לא נמצא — שמור כדי ליצור', '#e65100'); return false; }
-    if (!r.ok) { if (!silent) ghMsg('שגיאה בטעינה: ' + r.status); return false; }
-    const meta = await r.json();
-    _ghSha = meta.sha;
-    const data = JSON.parse(atob(meta.content.replace(/\n/g, '')));
-    localStorage.setItem('ganv5', JSON.stringify(data));
-    if (!silent) {
-      ghMsg('\u2705 נטען מ-GitHub', '#2e7d32');
-      showToast('\u2601\ufe0f נתונים נטענו מ-GitHub');
-      setTimeout(() => location.reload(), 1200);
-    } else {
-      location.reload();
-    }
-    return true;
-  } catch(e) { if (!silent) ghMsg('שגיאה: ' + e.message); return false; }
+function ghCollectAllData(){
+  const meta=JSON.parse(localStorage.getItem('ganv5_meta')||'null');
+  const out={meta,ganv5:localStorage.getItem('ganv5')||null};
+  if(meta&&Array.isArray(meta.years))
+    meta.years.forEach(yk=>{const v=localStorage.getItem('ganv5_y_'+yk);if(v)out['ganv5_y_'+yk]=v;});
+  if(meta&&meta.currentYear){const v=localStorage.getItem('ganv5_y_'+meta.currentYear);if(v)out['ganv5_y_'+meta.currentYear]=v;}
+  return JSON.stringify(out);
 }
-
-async function ghSaveNow(silent) {
-  const token = ghGetToken();
-  if (!token) { if (!silent) ghMsg('אין Token — הגדר ב-הגדרות GitHub'); return false; }
-  try {
-    if (!silent) ghMsg('שומר...', '#1565c0');
-    const data = JSON.parse(localStorage.getItem('ganv5') || '{}');
-    const payload = { data, ts: Date.now(), version: '10.x' };
-    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
-    if (!_ghSha) {
-      try {
-        const rMeta = await fetch(GH_API, { headers: { Authorization: 'token ' + token } });
-        if (rMeta.ok) { const m = await rMeta.json(); _ghSha = m.sha; }
-      } catch(e2) {}
-    }
-    const body = { message: 'sync ' + new Date().toLocaleString('he-IL'), content: encoded };
-    if (_ghSha) body.sha = _ghSha;
-    const r = await fetch(GH_API, {
-      method: 'PUT',
-      headers: { Authorization: 'token ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if (r.ok) {
-      const resp = await r.json();
-      _ghSha = resp.content.sha;
-      if (!silent) { ghMsg('\u2705 נשמר ב-GitHub', '#2e7d32'); showToast('\u2601\ufe0f נשמר ב-GitHub'); }
+async function odSaveNow(silent){
+  if(!ghToken()){if(!silent)odMsg('יש להזין GitHub Token');return false;}
+  try{
+    if(!silent) odMsg('שומר...','#1565c0');
+    const url='https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE;
+    let sha=null;
+    const gr=await fetch(url,{headers:ghHeaders()});
+    if(gr.ok) sha=(await gr.json()).sha;
+    const raw=ghCollectAllData();
+    const body={message:'sync '+new Date().toISOString(),content:btoa(unescape(encodeURIComponent(raw)))};
+    if(sha) body.sha=sha;
+    const pr=await fetch(url,{method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)});
+    if(pr.ok){
+      if(!silent){odMsg('✅ נשמר ב-GitHub','#2e7d32');if(typeof showToast==='function')showToast('☁️ נשמר');}
       return true;
-    } else {
-      const errTxt = await r.text();
-      if (!silent) ghMsg('שגיאה בשמירה: ' + r.status + ' ' + errTxt.slice(0,80));
-      return false;
     }
-  } catch(e) { if (!silent) ghMsg('שגיאה: ' + e.message); return false; }
+    const err=await pr.json();
+    if(!silent) odMsg('שגיאה: '+(err.message||pr.status));
+    return false;
+  }catch(e){if(!silent)odMsg('שגיאה: '+e.message);return false;}
 }
 
-function ghUpdateUI(connected) {
-  const btn = document.getElementById('gh-btn');
-  if (!btn) return;
-  if (connected) { btn.style.background = '#2e7d32'; btn.textContent = '\ud83d\udc19 מחובר'; }
-  else { btn.style.background = '#24292e'; btn.textContent = '\ud83d\udc19 GitHub'; }
-}
-
-function ghMsg(msg, color) {
-  const el = document.getElementById('gh-msg');
-  if (!el) return;
-  el.style.display = 'block';
-  el.style.color = color || '#e65100';
-  el.style.background = color === '#2e7d32' ? '#e8f5e9' : color === '#1565c0' ? '#e3f2fd' : '#fff3e0';
-  el.textContent = msg;
-}
-
-function ghToggle() {
-  const tok = localStorage.getItem('gh_token') || '';
-  document.getElementById('gh-token-input').value = tok;
-  ghUpdateUI(!!tok);
-  document.getElementById('gh-modal').classList.add('open');
-}
-
-function ghSaveToken() {
-  const tok = document.getElementById('gh-token-input').value.trim();
-  if (!tok) { ghMsg('יש להזין Token'); return; }
-  localStorage.setItem('gh_token', tok);
-  _ghToken = tok;
-  _ghAutoSync = true;
-  ghUpdateUI(true);
-  ghMsg('\u2705 Token נשמר', '#2e7d32');
-  showToast('\ud83d\udc19 GitHub מוגדר');
-  setTimeout(() => CM('gh-modal'), 1000);
-}
-
-function ghClearToken() {
-  localStorage.removeItem('gh_token');
-  _ghToken = '';
-  _ghAutoSync = false;
-  ghUpdateUI(false);
-  showToast('Token נמחק');
-}
-
-// ── Auto-save to GitHub after every save() ──────────
-const _origSave = save;
-function save() {
-  _origSave.apply(this, arguments);
-  if (_ghAutoSync && _ghToken) {
-    clearTimeout(save._ghTimer);
-    save._ghTimer = setTimeout(() => ghSaveNow(true), 3000);
-  }
-}
-
-// ── Init GitHub on page load ─────────────────────────
-function initGitHub() {
-  const tok = localStorage.getItem('gh_token') || '';
-  if (tok) {
-    _ghToken = tok;
-    _ghAutoSync = true;
-    ghUpdateUI(true);
-  }
-}
-
-function showNotice(msg){
-  if(typeof showCopyToast==='function') showCopyToast(msg);
-  else if(typeof showToast==='function') showToast(msg);
-  else alert(msg);
-}
-// PROCUREMENT MODULE - v9.0
-
-let _appMode = 'act'; // 'act' | 'purch'
-let _purchTab = 'pdash';
-const PURCH_TABS = ['pdash','pinvoices','psup'];
+async function odLoadNow(silent){
+  if(!ghToken()){if(!silent)odMsg('יש להזין GitHub Token');return false;}
+  try{
+    if(!silent) odMsg('טוען...','#1565c0');
+    const url='https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE;
+    const res=await fetch(url,{headers:ghHeaders()});
+    if(res.status===404){if(!silent)odMsg('אין קובץ — שמור תחילה','#e65100');return false;}
+    if(!res.ok){if(!silent)odMsg('שגיאה: '+res.status);return false;}
+    const decoded=decodeURIComponent(escape(atob((await res.json()).content.split('\n').join(''))));
+    let obj;
+    try{ obj=JSON.parse(decoded); }catch(e){ obj=null; }
+    if(obj&&obj.meta){
 
 // ── Mode switcher ──────────────────────────────────────
 function switchMode(mode){
