@@ -1233,7 +1233,7 @@ function renderPurchSuppliers(){
   <div style="display:flex;align-items:center;gap:5px;margin-right:4px">
     <button onclick="openBackup()" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:5px 9px;cursor:pointer;color:#fff;font-size:.82rem" title="גיבוי ושחזור">💾</button>
     <button onclick="openInfoModal()" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:5px 9px;cursor:pointer;color:#fff;font-size:.82rem" title="מידע">ℹ️</button>
-    <button id="od-btn" onclick="odToggle()" style="background:#0078d4;border:1.5px solid rgba(255,255,255,.35);border-radius:6px;padding:5px 11px;cursor:pointer;color:#fff;font-size:.76rem;font-weight:700;transition:background .2s" title="סנכרון GitHub">☁️ GitHub</button>
+    <button id="od-btn" onclick="odToggle()" style="background:#0078d4;border:1.5px solid rgba(255,255,255,.35);border-radius:6px;padding:5px 11px;cursor:pointer;color:#fff;font-size:.76rem;font-weight:700;transition:background .2s" title="סנכרון GitHub">☁️ Firebase Active</button>
   </div>
 </div>
 
@@ -2046,14 +2046,12 @@ function renderPurchSuppliers(){
   </div>
 </div>
 
-<!-- GitHub Cloud Sync Modal -->
 <div id="od-modal" class="modal">
   <div class="mb" style="max-width:420px">
     <h2 style="color:#24292e;margin-bottom:8px">☁️ סנכרון GitHub</h2>
-    <div style="background:#f1f8ff;border-radius:8px;padding:10px 13px;margin-bottom:12px;font-size:.79rem;color:#1565c0;line-height:1.6">
-      נשמר ב-<b>perryoust/Ganscheduler/data.json</b><br>
-      אוטומטי 3 שניות אחרי כל שינוי.
-    </div>
+    ...
+  </div>
+</div>
     <div class="fg" style="margin-bottom:12px">
       <label style="font-size:.78rem;font-weight:700;color:#37474f">GitHub Token (ghp_...)</label>
       <div style="display:flex;gap:6px;margin-top:4px">
