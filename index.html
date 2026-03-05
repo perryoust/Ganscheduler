@@ -30,7 +30,7 @@
             <p>הכנס קוד גישה למערכת</p>
             <input type="password" id="sys-pin" placeholder="****">
             <button onclick="checkLogin()" class="btn bp" style="width:100%; font-size:1.1rem;">כניסה</button>
-            <p id="login-error" style="color:red; display:none; margin-top:10px; font-weight:bold;">קוד שגוי, נסה שוב</p>
+            <p id="login-error" style="color:red; display:none; margin-top:10px; font-weight:bold;">קוד שגוי!</p>
         </div>
     </div>
 
@@ -79,16 +79,27 @@
 
             <div id="p-teachers" class="panel">
                 <div class="card">
-                    <button class="btn bp" onclick="alert('פונקציית הוספה תעודכן ב-app.js')">+ הוספת גננת</button>
+                    <div class="row">
+                        <button class="btn bp" onclick="openTeacherModal()">+ הוספת גננת</button>
+                    </div>
                 </div>
-                <div id="teachers-grid"></div>
+                <div id="teachers-grid" class="pgrid"></div>
             </div>
 
             <div id="p-gardens" class="panel">
                 <div class="card">
-                    <button class="btn bp" onclick="alert('פונקציית הוספה תעודכן ב-app.js')">+ הוספת גן</button>
+                    <div class="row">
+                        <button class="btn bp" onclick="openGardenModal()">+ הוספת גן</button>
+                    </div>
                 </div>
-                <div id="gardens-grid"></div>
+                <div id="gardens-grid" class="ggrid"></div>
+            </div>
+
+            <div id="p-settings" class="panel">
+                <div class="card">
+                    <h3>ניהול מערכת</h3>
+                    <p>הנתונים שלך מסונכרנים כעת לענן גוגל (Firebase).</p>
+                </div>
             </div>
         </div>
 
@@ -103,18 +114,34 @@
 
     <div id="backup-ind">שומר נתונים...</div>
 
-    <div id="modal-event" class="modal">
-        <div class="mb">
-            <h2>שיבוץ חדש</h2>
-            <div class="fg" style="margin-top:10px"><label>גן</label><select id="ev-garden" style="width:100%"></select></div>
-            <div class="fg" style="margin-top:10px"><label>גננת</label><select id="ev-teacher" style="width:100%"></select></div>
-            <div class="row" style="margin-top:20px; justify-content:flex-end">
-                <button class="btn" onclick="closeModal('modal-event')">ביטול</button>
-                <button class="btn bg" onclick="saveEvent()">שמור</button>
-            </div>
+    <div id="modal-event" class="modal"><div class="mb">
+        <h2>שיבוץ חדש</h2>
+        <div class="fg" style="margin-top:10px"><label>גן</label><select id="ev-garden" style="width:100%"></select></div>
+        <div class="fg" style="margin-top:10px"><label>גננת</label><select id="ev-teacher" style="width:100%"></select></div>
+        <div class="row" style="margin-top:20px; justify-content:flex-end">
+            <button class="btn" onclick="closeModal('modal-event')">ביטול</button>
+            <button class="btn bg" onclick="saveEvent()">שמור</button>
         </div>
-    </div>
+    </div></div>
 
-    <script src="app.js?v=1.2"></script>
+    <div id="modal-teacher" class="modal"><div class="mb">
+        <h2>הוספת גננת</h2>
+        <div class="fg"><label>שם מלא</label><input type="text" id="t-name" style="width:100%"></div>
+        <div class="row" style="margin-top:20px; justify-content:flex-end">
+            <button class="btn" onclick="closeModal('modal-teacher')">ביטול</button>
+            <button class="btn bg" onclick="saveTeacher()">שמור</button>
+        </div>
+    </div></div>
+
+    <div id="modal-garden" class="modal"><div class="mb">
+        <h2>הוספת גן</h2>
+        <div class="fg"><label>שם הגן</label><input type="text" id="g-name" style="width:100%"></div>
+        <div class="row" style="margin-top:20px; justify-content:flex-end">
+            <button class="btn" onclick="closeModal('modal-garden')">ביטול</button>
+            <button class="btn bg" onclick="saveGarden()">שמור</button>
+        </div>
+    </div></div>
+
+    <script src="app.js?v=2.0"></script>
 </body>
 </html>
