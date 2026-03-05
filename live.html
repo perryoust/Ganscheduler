@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <title>ניהול קידס - כניסה</title>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+      import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCxNhFgvxbD_ZyI9e8rURb7LxNmHX1TrVo",
+        authDomain: "ganmanage.firebaseapp.com",
+        databaseURL: "https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "ganmanage",
+        storageBucket: "ganmanage.firebasestorage.app",
+        messagingSenderId: "413817150565",
+        appId: "1:413817150565:web:7280acfddeed24c269ba8c"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      window.fbDB = getDatabase(app);
+      window.fbRef = ref;
+      window.fbSet = set;
+      window.fbOnValue = onValue;
+    </script>
+
+    <style>
+        :root { --primary: #1a237e; --secondary: #1565c0; --accent: #ff9800; --bg: #f0f2f5; --text: #222; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); direction: rtl; font-size: 14px; }
+        
+        /* עיצוב מסך הכניסה */
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; color: white; }
+        .login-box { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; color: #333; width: 90%; max-width: 350px; }
+        .login-box input { width: 100%; padding: 12px; margin: 15px 0; border: 2px solid #ddd; border-radius: 6px; font-size: 18px; text-align: center; }
+        .login-box button { width: 100%; background: var(--accent); color: white; border: none; padding: 12px; border-radius: 6px; font-size: 18px; cursor: pointer; font-weight: bold; }
+        
+        /* עיצוב האפליקציה המרכזית (מוסתרת בהתחלה) */
+        #app-content { display: none; }
+        
+        .hdr { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: #fff; padding: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 10px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 1000; }
+        .btn { padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-save { background: #4caf50; color: #fff; position: fixed; bottom: 20px; left: 20px; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.3); border-radius: 50px; padding: 15px 25px; font-size: 16px; }
+        .card { background: #fff; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 10px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
+        th { background: #f8f9fa; }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>טומשין קידס</h2>
+            <p>הכנס קוד גישה למערכת</p>
+            <input type="password" id="pin-input" placeholder="****">
+            <button onclick="checkPin()">כניסה</button>
+            <p id="login-error" style="color: red; display: none; margin-top: 10px;">קוד שגוי, נסה שוב</p>
+        </div>
+    </div>
+
+    <div id="app-content">
+        <div class="hdr">
+            <h1>קידס שיבוץ - <span id="sync-status" style="color: #ffeb3b; font-size: 0.8em;">מתחבר לענן...</span></h1>
+            <div id="date-display" style="font-weight: bold;"></div>
+        </div>
+
+        <div style="padding: 15px; max-width: 1200px; margin: 0 auto;">
+            <div class="card" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px;">
+                <button class="btn btn-primary" onclick="showTab('placement')">שיבוץ יומי</button>
+                <button class="btn btn-primary" onclick="showTab('roster')">רשימת גננות</button>
+                <button class="btn btn-primary" onclick="showTab('gardens')">ניהול גנים</button>
+            </div>
+
+            <div id="tab-container"></div>
+        </div>
+
+        <button class="btn btn-save" id="saveBtn" onclick="saveToCloud()">
+            <span>💾</span> שמירה וסנכרון
+        </button>
+    </div>
+
+    <script>
+        // === הגדרת קוד הגישה שלך ===
+        const SECRET_PIN = "1234"; // שנה את המספר 1234 לכל סיסמה שתרצה
+
+        // המשתנה הראשי של הנתונים
+        window.S = { version: 2, ts: Date.now(), data: { ch: [], pairs: [], clusters: {} } };
+
+        function checkPin() {
+            const enteredPin = document.getElementById('pin-input').value;
+            if (enteredPin === SECRET_PIN) {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-content').style.display = 'block';
+                initSync(); // מתחבר לענן רק אחרי שהסיסמה נכונה
+            } else {
+                document.getElementById('login-error').style.display = 'block';
+            }
+        }
+
+        function showTab(tabName) {
+            const container = document.getElementById('tab-container');
+            if (tabName === 'roster') renderRoster(container);
+            else if (tabName === 'placement') renderPlacement(container);
+            else if (tabName === 'gardens') container.innerHTML = "<h3>ניהול גנים</h3><p>כאן תוכל להוסיף ולערוך גנים בהמשך.</p>";
+        }
+
+        // --- סנכרון מול FIREBASE ---
+        function initSync() {
+            const dataRef = window.fbRef(window.fbDB, 'appData');
+            window.fbOnValue(dataRef, (snapshot) => {
+                const cloudData = snapshot.val();
+                const statusEl = document.getElementById('sync-status');
+                
+                if (cloudData) {
+                    window.S = cloudData;
+                    statusEl.innerText = "מחובר ומסונכרן ✅";
+                    statusEl.style.color = "#4caf50";
+                    showTab('placement'); // פותח את המסך הראשי
+                } else {
+                    statusEl.innerText = "ענן ריק - הוסף נתונים";
+                    statusEl.style.color = "#ff9800";
+                    showTab('roster');
+                }
+            });
+        }
+
+        async function saveToCloud() {
+            try {
+                window.S.ts = Date.now();
+                await window.fbSet(window.fbRef(window.fbDB, 'appData'), window.S);
+                alert("הנתונים נשמרו בהצלחה לענן!");
+            } catch (err) {
+                alert("שגיאת שמירה: " + err.message);
+            }
+        }
+
+        // --- פונקציות תצוגה ---
+        function renderRoster(container) {
+            let html = `<h3>רשימת גננות</h3>
+            <button class="btn btn-primary" onclick="addTeacher()">+ הוספת גננת</button>
+            <table>
+                <thead><tr><th>שם</th><th>שכר שעתי</th></tr></thead>
+                <tbody>`;
+            (window.S.data.ch || []).forEach((t, i) => {
+                html += `<tr><td>${t.n}</td><td>${t.r} ₪</td></tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        function addTeacher() {
+            const name = prompt("שם הגננת:");
+            const rate = prompt("שכר שעתי:");
+            if (name && rate) {
+                if(!window.S.data.ch) window.S.data.ch = [];
+                window.S.data.ch.push({ n: name, r: parseFloat(rate) });
+                showTab('roster');
+            }
+        }
+
+        function renderPlacement(container) {
+            document.getElementById('date-display').innerText = new Date().toLocaleDateString('he-IL');
+            container.innerHTML = `<h3>שיבוץ יומי</h3><p>כאן יופיעו הגנים לאחר שנוסיף את רשימת הגנים.</p>`;
+        }
+    </script>
+</body>
+</html>
