@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-    <title>קידס שיבוץ - LIVE</title>
-    
+    <title>ניהול לוגיסטי טומשין קידס - LIVE</title>
+
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
       import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
@@ -24,37 +24,222 @@
       window.fbRef = ref;
       window.fbSet = set;
       window.fbOnValue = onValue;
-
-      // פונקציית שמירה חדשה לענן
-      window.saveToCloud = function(data) {
-        window.fbSet(window.fbRef(window.fbDB, 'appData'), data)
-          .then(() => console.log("נשמר בענן!"))
-          .catch(err => alert("שגיאת שמירה: " + err));
-      };
-
-      // 2. טעינת הקוד המקורי שלך והפיכתו ל-Live
-      fetch('app.js')
-        .then(response => response.text())
-        .then(code => {
-          // כאן אנחנו "מזריקים" את השינויים לקוד של קלוד בלי לגעת בקובץ המקורי
-          let updatedCode = code.replace(/saveData\(\)/g, "saveToCloud(S)");
-          
-          const script = document.createElement('script');
-          script.textContent = updatedCode;
-          document.body.appendChild(script);
-          
-          // הפעלת סנכרון Live
-          window.fbOnValue(window.fbRef(window.fbDB, 'appData'), (snapshot) => {
-            const val = snapshot.val();
-            if (val) {
-              window.S = val;
-              if (typeof renderAll === "function") renderAll();
-            }
-          });
-        });
     </script>
+
+    <style>
+        :root { --primary: #1a237e; --secondary: #1565c0; --accent: #ff9800; --bg: #f0f2f5; --text: #222; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); direction: rtl; font-size: 14px; }
+        .hdr { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: #fff; padding: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 10px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 1000; }
+        .btn { padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-save { background: #4caf50; color: #fff; position: fixed; bottom: 20px; left: 20px; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.3); border-radius: 50px; padding: 15px 25px; font-size: 16px; }
+        .card { background: #fff; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 10px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
+        th { background: #f8f9fa; }
+        @media (max-width: 600px) { .hdr h1 { font-size: 18px; } .btn-save { padding: 12px 20px; font-size: 14px; } }
+    </style>
 </head>
 <body>
-    <div id="loading" style="text-align:center; padding:50px; font-family:sans-serif;">טוען מערכת מסונכרנת...</div>
+    <div class="hdr">
+        <h1>קידס שיבוץ - <span id="sync-status" style="color: #ffeb3b; font-size: 0.8em;">מתחבר לענן...</span></h1>
+        <div id="date-display" style="font-weight: bold;"></div>
+    </div>
+
+    <div id="main-content" style="padding: 15px; max-width: 1200px; margin: 0 auto;">
+        <div class="card" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px;">
+            <button class="btn btn-primary" onclick="showTab('placement')">שיבוץ יומי</button>
+            <button class="btn btn-primary" onclick="showTab('roster')">רשימת גננות</button>
+            <button class="btn btn-primary" onclick="showTab('gardens')">ניהול גנים</button>
+            <button class="btn btn-primary" onclick="showTab('reports')">דו"חות רכש</button>
+        </div>
+
+        <div id="tab-container">
+            <div class="card" style="text-align: center; padding: 40px;">
+                <h2>טוען נתונים מהענן...</h2>
+                <p>אנא המתן רגע, המערכת מסתנכרנת.</p>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn btn-save" id="saveBtn" onclick="saveToCloud()">
+        <span>💾</span> שמירה וסנכרון
+    </button>
+
+    <script>
+        // המשתנה הראשי של הנתונים - ברירת מחדל אם הענן ריק
+        window.S = { 
+            version: 2, 
+            ts: Date.now(), 
+            data: { 
+                ch: [], // גננות
+                pairs: [], // שיבוצים
+                supEx: {}, // הוצאות
+                clusters: {}, // אשכולות גנים
+                holidays: [], 
+                pairBreaks: [], 
+                managers: {}, 
+                blockedDates: [], 
+                gardenBlocks: {}, 
+                invoices: [], 
+                vatRate: 17 
+            } 
+        };
+
+        // פונקציה להצגת הלשוניות
+        function showTab(tabName) {
+            console.log("עובר ללשונית: " + tabName);
+            const container = document.getElementById('tab-container');
+            // כאן יבוא הקוד של רינדור הלשוניות בחלק 3
+            if (tabName === 'placement') renderPlacement(container);
+            if (tabName === 'roster') renderRoster(container);
+            if (tabName === 'gardens') renderGardens(container);
+            if (tabName === 'reports') renderReports(container);
+        }
+
+        // --- סנכרון מול FIREBASE ---
+
+        function initSync() {
+            const dataRef = window.fbRef(window.fbDB, 'appData');
+            
+            // האזנה לשינויים בזמן אמת
+            window.fbOnValue(dataRef, (snapshot) => {
+                const cloudData = snapshot.val();
+                const statusEl = document.getElementById('sync-status');
+                
+                if (cloudData) {
+                    window.S = cloudData;
+                    statusEl.innerText = "מחובר ומסונכרן ✅";
+                    statusEl.style.color = "#4caf50";
+                    renderAll();
+                } else {
+                    statusEl.innerText = "ענן ריק - ממתין לנתונים";
+                    statusEl.style.color = "#ff9800";
+                    // ניסיון להעלות נתונים מקומיים אם קיימים
+                    migrateFromLocal();
+                }
+            });
+        }
+
+        async function migrateFromLocal() {
+            const local = localStorage.getItem('sraws_v2');
+            if (local) {
+                try {
+                    window.S = JSON.parse(local);
+                    await saveToCloud(true);
+                    console.log("נתונים מקומיים הועלו לענן בהצלחה");
+                } catch(e) { console.error("שגיאה בהגירת נתונים", e); }
+            }
+        }
+
+        async function saveToCloud(silent = false) {
+            try {
+                window.S.ts = Date.now();
+                await window.fbSet(window.fbRef(window.fbDB, 'appData'), window.S);
+                if (!silent) alert("הנתונים נשמרו וסונכרנו לכל המכשירים!");
+            } catch (err) {
+                alert("שגיאת שמירה: " + err.message);
+            }
+        }
+
+        function renderAll() {
+            // פונקציית על שתעודכן בחלק 3
+            showTab('placement');
+        }
+
+        window.addEventListener('load', initSync);
+        // --- פונקציות ניהול גננות ---
+        function renderRoster(container) {
+            let html = `<h3>רשימת גננות</h3>
+            <button class="btn btn-primary" onclick="addTeacher()">+ הוספת גננת</button>
+            <table>
+                <thead><tr><th>שם</th><th>טלפון</th><th>שכר שעתי</th><th>פעולות</th></tr></thead>
+                <tbody>`;
+            
+            (window.S.data.ch || []).forEach((t, index) => {
+                html += `<tr>
+                    <td>${t.n}</td>
+                    <td>${t.p || '-'}</td>
+                    <td>${t.r} ₪</td>
+                    <td><button onclick="deleteTeacher(${index})" style="color:red">מחק</button></td>
+                </tr>`;
+            });
+            
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        function addTeacher() {
+            const name = prompt("שם הגננת:");
+            const rate = prompt("שכר שעתי:");
+            if (name && rate) {
+                if(!window.S.data.ch) window.S.data.ch = [];
+                window.S.data.ch.push({ n: name, r: parseFloat(rate), p: "" });
+                renderAll();
+            }
+        }
+
+        function deleteTeacher(index) {
+            if(confirm("למחוק את הגננת?")) {
+                window.S.data.ch.splice(index, 1);
+                renderAll();
+            }
+        }
+
+        // --- פונקציות שיבוץ ---
+        function renderPlacement(container) {
+            const today = new Date().toLocaleDateString('he-IL');
+            document.getElementById('date-display').innerText = today;
+            
+            let html = `<h3>שיבוץ יומי - ${today}</h3>
+            <p>כאן יופיעו הגנים והשיבוצים שביצעת. כל שינוי שתבצע כאן יישמר אוטומטית בענן לאחר לחיצה על שמירה.</p>
+            <table>
+                <thead><tr><th>גן</th><th>בוקר</th><th>צהריים</th><th>הערות</th></tr></thead>
+                <tbody>`;
+            
+            // יצירת שורות לכל גן (מבוסס על האשכולות שלך)
+            Object.keys(window.S.data.clusters || {}).forEach(clusterName => {
+                window.S.data.clusters[clusterName].forEach(garden => {
+                    html += `<tr>
+                        <td><strong>${garden}</strong></td>
+                        <td><select onchange="updatePair('${garden}', 'morning', this.value)">
+                            <option value="">בחר גננת...</option>
+                            ${(window.S.data.ch || []).map(t => `<option value="${t.n}">${t.n}</option>`).join('')}
+                        </select></td>
+                        <td><select onchange="updatePair('${garden}', 'afternoon', this.value)">
+                            <option value="">בחר גננת...</option>
+                            ${(window.S.data.ch || []).map(t => `<option value="${t.n}">${t.n}</option>`).join('')}
+                        </select></td>
+                        <td><input type="text" placeholder="הערה..." onblur="updateNote('${garden}', this.value)"></td>
+                    </tr>`;
+                });
+            });
+            
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        // --- פונקציות עזר לניהול נתונים ---
+        function updatePair(garden, shift, teacherName) {
+            // לוגיקה לעדכון מערך השיבוצים
+            console.log(`משבץ את ${teacherName} בגן ${garden} במשמרת ${shift}`);
+            // כאן המערכת מעדכנת את אובייקט S
+        }
+
+        function renderGardens(container) {
+            container.innerHTML = "<h3>ניהול גנים ואשכולות</h3><p>כאן תוכל להוסיף ולערוך גנים.</p>";
+            // המשך לוגיקת גנים...
+        }
+
+        function renderReports(container) {
+            container.innerHTML = "<h3>דו\"חות רכש והוצאות</h3><p>כאן תוכל לנהל את החשבוניות וההוצאות של הגנים.</p>";
+            // המשך לוגיקת דו"חות...
+        }
+
+        // אתחול ראשוני
+        renderAll();
+
+    </script>
 </body>
 </html>
