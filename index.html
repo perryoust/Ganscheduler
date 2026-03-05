@@ -528,11 +528,9 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
-// --- הגדרות ענן חדשות: Firebase & Local Data ---
-// Placeholder לקישור Firebase ש-Claude ייצר עבורך
-const FIREBASE_CONFIG = {
-    databaseURL: "https://YOUR-PROJECT-ID.firebaseio.com" 
-};
+// --- הגדרות ענן FIREBASE & LOCAL DATA v10.0 ---
+// כתובת ה-Database שלך ב-Firebase
+const FIREBASE_DB_URL = 'https://ganscheduler-default-rtdb.europe-west1.firebasedatabase.app/data.json';
 
 let S = { 
     raws: [], 
@@ -543,8 +541,7 @@ let S = {
 
 // 1. שכבת הגנה: סיסמה בכניסה (1234)
 document.addEventListener('DOMContentLoaded', () => {
-    // מסתיר את האתר עד אימות
-    document.body.style.display = "none";
+    document.body.style.display = "none"; // הסתרה עד אימות
     
     setTimeout(() => {
         const pass = prompt("שלום, הכנס קוד גישה לטומשין קידס:");
@@ -558,60 +555,80 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 100);
 });
 
-// 2. אתחול האפליקציה וטעינת נתונים
+// 2. אתחול וטעינת נתונים (ענן -> קובץ מקומי)
 async function initApp() {
     try {
-        // שלב א': טעינה מקובץ sraws.json (ה-8000 שורות שהעלית)
-        const res = await fetch('sraws.json');
-        if (!res.ok) throw new Error("sraws.json not found");
-        S.raws = await res.json();
+        showNotice('⏳ טוען נתונים מהענן...');
         
-        // שלב ב': הכנה לסנכרון מול Firebase (בעתיד Claude יטמיע כאן את ה-Realtime Sync)
-        console.log("Data loaded from sraws.json. Ready for Firebase sync.");
+        // ניסיון ראשון: טעינה מ-Firebase
+        let response = await fetch(FIREBASE_DB_URL);
+        let data = await response.json();
+        
+        if (data && Array.isArray(data) && data.length > 0) {
+            S.raws = data;
+            console.log("Data loaded from Firebase");
+        } else {
+            // ניסיון שני: אם Firebase ריק, טען מהקובץ sraws.json
+            console.log("Firebase empty, loading from sraws.json");
+            const localRes = await fetch('sraws.json');
+            S.raws = await localRes.json();
+        }
 
-        // עדכון UI ראשוני
+        // עדכון UI
         const dateInp = document.getElementById('dash-date') || document.getElementById('view-date-input');
         if (dateInp) dateInp.value = S.viewDate;
 
         if(typeof render === 'function') render();
-        if(typeof initOneDrive === 'function') odUpdateUI(); 
+        odUpdateUI(); 
+        showNotice('✅ המערכת מוכנה');
     } catch (e) {
-        console.error("Initialization error:", e);
-        alert("שגיאה בטעינת הנתונים. וודא ש-sraws.json נמצא בשרת.");
+        console.error("Init error:", e);
+        alert("שגיאה בטעינת המידע. וודא שאתה מחובר לאינטרנט.");
     }
 }
 
-// 3. פונקציית שמירה חדשה (תואמת Firebase)
+// 3. פונקציית שמירה ל-Firebase
 async function save(silent = false) {
-    if (!silent) showNotice('⏳ שומר שינויים לענן...');
+    if (!silent) showNotice('⏳ מסנכרן מול Firebase...');
     
     try {
-        // כאן Claude יטמיע את פקודת ה-PUT/PATCH ל-Firebase
-        // לדוגמה: await fetch(FIREBASE_CONFIG.databaseURL + '/data.json', { method: 'PUT', body: JSON.stringify(S.raws) });
-        
-        localStorage.setItem('gan_local_backup', JSON.stringify(S.raws));
-        
+        const response = await fetch(FIREBASE_DB_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(S.raws)
+        });
+
+        if (!response.ok) throw new Error('שגיאת שרת');
+
         if (!silent) {
-            showNotice('✅ נשמר ב-Firebase');
-            if (typeof showToast === 'function') showToast('☁️ סונכרן');
+            showNotice('✅ נשמר בענן');
+            if (typeof showToast === 'function') showToast('☁️ Firebase Synced');
         }
         return true;
     } catch (e) {
         console.error("Save error:", e);
-        if (!silent) showNotice('❌ שגיאה בשמירה לענן');
+        if (!silent) alert("שגיאה בשמירה לענן: " + e.message);
         return false;
     }
 }
 
-// 4. פונקציות עזר של GitHub הישן (השארנו שמות פונקציות כדי לא לשבור כפתורים קיימים)
-function odToggle() { alert("המערכת עברה ל-Firebase. אין צורך ב-Token של GitHub."); }
+// 4. התאמת כפתורי ה-UI הישנים ל-Firebase
+function odToggle() { 
+    // במקום לפתוח הגדרות טוקן, פותח הודעת סטטוס
+    if(typeof CM === 'function') {
+        const modal = document.getElementById('od-modal');
+        if(modal) modal.classList.add('open');
+    }
+}
+
 function odUpdateUI() { 
     const btn = document.getElementById('od-btn');
     if (btn) {
         btn.textContent = '☁️ Firebase Active';
-        btn.style.background = '#2e7d32';
+        btn.style.background = '#2e7d32'; // צבע ירוק להצלחה
     }
 }
+
 function ghAutoSave() { save(true); }
 
 // 5. ניווט תאריכים
@@ -626,11 +643,13 @@ window.changeDate = function(n) {
 
 function showNotice(msg) {
     if (typeof showToast === 'function') showToast(msg);
-    else alert(msg);
+    else {
+        // יצירת נוטיפיקציה זמנית אם אין פונקציית טוסט
+        console.log("Notice: " + msg);
+    }
 }
 
-// הקוד הבא שייך למודול הרכש והניהול המקורי שלך...
-// PROCUREMENT MODULE - v9.0
+// PROCUREMENT MODULE - v9.0 (המשך הקובץ המקורי שלך מפה)
 // PROCUREMENT MODULE - v9.0
 
 let _appMode = 'act'; // 'act' | 'purch'
