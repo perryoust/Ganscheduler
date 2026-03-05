@@ -1,90 +1,37 @@
 <!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>ניהול לוגיסטי טומשין קידס - LIVE</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <title>קידס שיבוץ - LIVE</title>
+    
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+      import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-  import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
+      const firebaseConfig = {
+        apiKey: "AIzaSyCxNhFgvxbD_ZyI9e8rURb7LxNmHX1TrVo",
+        authDomain: "ganmanage.firebaseapp.com",
+        databaseURL: "https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "ganmanage",
+        storageBucket: "ganmanage.firebasestorage.app",
+        messagingSenderId: "413817150565",
+        appId: "1:413817150565:web:7280acfddeed24c269ba8c"
+      };
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyCxNhFgvxbD_ZyI9e8rURb7LxNmHX1TrVo",
-    authDomain: "ganmanage.firebaseapp.com",
-    databaseURL: "https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "ganmanage",
-    storageBucket: "ganmanage.firebasestorage.app",
-    messagingSenderId: "413817150565",
-    appId: "1:413817150565:web:7280acfddeed24c269ba8c"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  window.fbDB = db;
-  window.fbRef = ref;
-  window.fbSet = set;
-  window.fbOnValue = onValue;
-</script>
-
-<style>
-<style>
-/* כאן נכנס כל הסטייל המקורי שלך - צמצמתי כדי שיעבור בשיחה */
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#222;direction:rtl;font-size:14px}
-.hdr{background:linear-gradient(135deg,#1a237e,#1565c0);color:#fff;padding:11px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.25);flex-wrap:wrap}
-/* ... שאר הסטייל שלך ממשיך כאן ... */
-</style>
+      const app = initializeApp(firebaseConfig);
+      window.fbDB = getDatabase(app);
+      window.fbRef = ref;
+      window.fbSet = set;
+      window.fbOnValue = onValue;
+      
+      // טעינת ה"מוח" של האפליקציה מקובץ נפרד
+      const script = document.createElement('script');
+      script.src = 'app.js';
+      document.body.appendChild(script);
+    </script>
 </head>
 <body>
-<div class="hdr"><h1>קידס שיבוץ - LIVE</h1></div>
-
-<script>
-// המשתנה הראשי של הנתונים
-let S = { version: 2, ts: 0, data: { ch: [], pairs: [], supEx: {}, clusters: {}, holidays: [], pairBreaks: [], managers: {}, blockedDates: [], gardenBlocks: {}, invoices: [], vatRate: 17 } };
-
-// פונקציה להעברת נתונים ישנים לענן
-async function migrateIfNeeded() {
-    const local = localStorage.getItem('sraws_v2');
-    if (local) {
-        try {
-            const parsed = JSON.parse(local);
-            await window.fbSet(window.fbRef(window.fbDB, 'appData'), parsed);
-            console.log("נתונים הועברו בהצלחה לענן!");
-            localStorage.removeItem('sraws_v2'); // מנקה את הזיכרון המקומי
-        } catch(e) { console.error("שגיאת העברה:", e); }
-    }
-}
-
-// חיבור Live למסד הנתונים
-function startSync() {
-    const dataRef = window.fbRef(window.fbDB, 'appData');
-    window.fbOnValue(dataRef, (snapshot) => {
-        const cloudData = snapshot.val();
-        if (cloudData) {
-            S = cloudData;
-            if (typeof renderAll === "function") renderAll();
-            console.log("סונכרן מהענן");
-        } else {
-            migrateIfNeeded();
-        }
-    });
-}
-
-// פונקציית שמירה שקוראת לענן
-function saveToCloud() {
-    window.fbSet(window.fbRef(window.fbDB, 'appData'), S)
-        .then(() => {
-            alert("נשמר בהצלחה בכל המכשירים!");
-        })
-        .catch(err => alert("שגיאת שמירה: " + err));
-}
-
-// הפעלת הסנכרון בטעינה
-window.addEventListener('load', startSync);
-
-/* כאן מגיעות כל הפונקציות המקוריות של האפליקציה ש-Claude כתב */
-/* יש להחליף כל קריאה ל-saveData() ב-saveToCloud() */
-</script>
+    <div id="app-root">טוען נתונים מהענן...</div>
 </body>
 </html>
