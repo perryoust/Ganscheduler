@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════
 // Firebase Realtime Database Sync - v10.2
 // ══════════════════════════════════════════════
-const FIREBASE_DB_URL = 'https://tomshin-kids-default-rtdb.europe-west1.firebasedatabase.app/data.json';
+const FIREBASE_DB_URL = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data.json';
 const FIREBASE_PASS = '1234';
 const FIREBASE_POLL_INTERVAL = 60000; // בדיקה כל 60 שניות
 
