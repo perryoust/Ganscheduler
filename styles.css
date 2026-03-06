@@ -149,6 +149,10 @@ tr:hover td{background:#f5f7ff}
 .pgr-qacts button{background:none;border:1px solid #e0e0e0;border-radius:3px;padding:1px 4px;cursor:pointer;font-size:.7rem;line-height:1.2}
 .nohap-reason-btn{background:#fff;border:1.5px solid #e0e0e0;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:.75rem;text-align:center;transition:all .12s}
 .nohap-reason-btn.sel,.nohap-reason-btn:hover{background:#fce4ec;border-color:#e91e63;color:#880e4f;font-weight:700}
+.can-reason-btn{background:#fff;border:1.5px solid #e0e0e0;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:.75rem;text-align:center;transition:all .12s}
+.can-reason-btn.sel,.can-reason-btn:hover{background:#ffebee;border-color:#c62828;color:#b71c1c;font-weight:700}
+.cancelday-reason-btn{background:#fff;border:1.5px solid #e0e0e0;border-radius:6px;padding:6px 8px;cursor:pointer;font-size:.75rem;text-align:center;transition:all .12s}
+.cancelday-reason-btn.sel,.cancelday-reason-btn:hover{background:#ffebee;border-color:#c62828;color:#b71c1c;font-weight:700}
 .pair-row2{display:grid;border-bottom:1px solid rgba(0,0,0,.06)}
 .pair-row2:last-child{border-bottom:none}
 .pair-name-col{padding:8px 10px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:3px;border-left:1px solid rgba(0,0,0,.06);min-width:90px;max-width:110px}
