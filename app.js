@@ -5574,7 +5574,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
           else if (isCan)    fill = CLR.RED_LIGHT;
 
           const supName = ev ? ((typeof supBase==='function'?supBase(ev.a):ev.a)||ev.a||'') : '';
-          const evTpLabel = ev ? (isCan?'בוטל':(ev.tp||'חוג')) : '';
+          const evTpLabel = ev ? (ev.tp||'חוג') : '';
           const actName  = ev ? (ev.act||(typeof supAct==='function'?supAct(ev.a):'')||'') : '';
           const colF     = ev ? (isCan?supName:(actName?supName+' - '+actName:supName)) : '';
           const phone    = ev ? (ev.p||(typeof supEx!=='undefined'&&supEx[supName]?.ph1)||'') : '';
@@ -5802,7 +5802,7 @@ function buildStyledSheet(gardens, allEvs, year, month) {
         }
         if (ev) {
           const supName = supBase(ev.a) || ev.a || '';
-          const actType = isCan ? 'בוטל' : (ev.act || (typeof supAct==='function'?supAct(ev.a):'') || 'חוג');
+          const actType = ev.tp || 'חוג';
           const supData = SUPBASE ? SUPBASE.find(s=>(typeof supBase==='function'?supBase(s.name):s.name)===supName) : null;
           const phone   = ev.p || (supData&&supData.phone) || (supEx&&supEx[supName]&&supEx[supName].ph1) || '';
           sc(r+ei, 4, actType,         null);
