@@ -5138,7 +5138,7 @@ function doMonthlyExport(){
   const fromDate=`${fy}-${String(fm).padStart(2,'0')}-01`;
   const toDate=d2s(new Date(ty,tm,0));
 
-  let evs=SCH.filter(s=>s.d>=fromDate&&s.d<=toDate&&s.st!=='can');
+  let evs=SCH.filter(s=>s.d>=fromDate&&s.d<=toDate); // include cancelled for export
   let gList=GARDENS.concat(_GARDENS_EXTRA||[]);
 
   if(mode==='city'&&cityFilter)   gList=gList.filter(g=>g.city===cityFilter);
@@ -5156,14 +5156,14 @@ function doMonthlyExport(){
     gList.forEach(g=>{
       const gEvs=evs.filter(s=>s.g===g.id);
       if(!gEvs.length){ if(mode==='garden') alert(`אין פעילויות לגן "${g.name}" בתקופה שנבחרה`); return; }
-      downloadWB(buildGardenWB(g, gEvs, fromDate, toDate), `לוח_חוגים_${g.name}_${fromM}.xlsx`);
+      downloadWB(buildGardenWB(g, gEvs, fromDate, toDate), `לוח_חוגים_${g.name}_${fromM}.xlsx`, fromM);
       filesExported++;
     });
   } else {
     Object.entries(byCity).forEach(([city,gardens])=>{
       const cityGardens=gardens.filter(g=>evs.some(s=>s.g===g.id));
       if(!cityGardens.length) return;
-      downloadWB(buildCityWB(city, cityGardens, evs, fromDate, toDate), `לוח_חוגים_${city}_${fromM}.xlsx`);
+      downloadWB(buildCityWB(city, cityGardens, evs, fromDate, toDate), `לוח_חוגים_${city}_${fromM}.xlsx`, fromM);
       filesExported++;
     });
   }
@@ -5186,13 +5186,19 @@ function buildGardenWB(garden, evs, fromDate, toDate){
   return {sheets:[{garden, evs}], city:garden.city};
 }
 
-function downloadWB(wb, filename) {
+function downloadWB(wb, filename, fromM) {
   const safeFile = filename.replace(/[^\u0590-\u05FF\w\-_.]/gu, '_');
   const gardens = wb.sheets.map(s => s.garden);
   const allEvs  = wb.sheets.reduce((acc, s) => acc.concat(s.evs), []);
   if (!gardens.length) return;
-  const firstDs = allEvs.length ? [...allEvs].sort((a,b)=>a.d.localeCompare(b.d))[0].d : d2s(new Date());
-  const [fy, fm] = firstDs.split('-').map(Number);
+  // Prefer explicit fromM param; fallback to first event date
+  let fy, fm;
+  if (fromM) {
+    [fy, fm] = fromM.split('-').map(Number);
+  } else {
+    const firstDs = allEvs.length ? [...allEvs].sort((a,b)=>a.d.localeCompare(b.d))[0].d : d2s(new Date());
+    [fy, fm] = firstDs.split('-').map(Number);
+  }
 
   // Try ExcelJS first (supports images + RTL)
   if (typeof ExcelJS !== 'undefined') {
@@ -5217,7 +5223,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     const ws = workbook.addWorksheet('לוח חוגים');
 
     // RTL + A4 page layout
-    ws.views = [{ state:'pageLayout', rightToLeft:true }];
+    ws.views = [{ state:'normal', rightToLeft:true, showGridLines:true }];
     ws.pageSetup = {
       paperSize: 9,             // A4
       orientation: 'portrait',
