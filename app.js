@@ -3954,8 +3954,7 @@ function genExport(){
       if(fmt==='full') text+=`\n🏙️ ${c}\n`;
       byCity[c].forEach(s=>{
         if(fmt==='full'){
-          const waAddr=s.gd.st?'https://wa.me/?text='+encodeURIComponent(s.gd.st+' '+s.gd.city):'';
-          text+=`  🏫 ${s.gd.st||''} · ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${waAddr?'\n  🗺️ '+waAddr:''}\n  📚 ${s.a}${s.p?' · 📞 '+s.p:''}\n`;
+          text+=`  🏫 ${s.gd.st||''} · ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n  📚 ${s.a}${s.p?' · 📞 '+s.p:''}\n`;
         }
         else text+=`${s.gd.name}${s.t?' '+fT(s.t):''} - ${s.a}\n`;
       });
@@ -4022,7 +4021,6 @@ function doSupExport(){
     lines.push([q('ספק:'),q(_supExName),'','','','','','','','',''].join(','));
     lines.push([q('טלפון:'),q(supPhone),'','','','','','','','',''].join(','));
     lines.push([q('תקופה:'),q(fD(from)+' – '+fD(to)),'','','','','','','','',''].join(','));
-    lines.push([q('סה"כ פעילויות:'),q(totalEvs),q('התקיימו:'),q(doneEvs),q('בוטלו:'),q(cancelledEvs),q('לא התקיימו:'),q(nohapEvs),'','',''].join(','));
     lines.push('');
   }
 
@@ -4041,6 +4039,10 @@ function doSupExport(){
       q(stMap[s.st]||'מתקיים'),q(reason),q(note)
     ].join(','));
   });
+
+  // Summary row at bottom
+  lines.push('');
+  lines.push([q('סה"כ פעילויות:'),q(totalEvs),q('התקיימו:'),q(doneEvs),q('בוטלו:'),q(cancelledEvs),q('לא התקיימו:'),q(nohapEvs),'','',''].join(','));
 
   const csv=bom+lines.join('\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
@@ -5089,19 +5091,23 @@ function getBlockedInfo(ds){return blockedDates[ds]||null;}
 
 // ─── Monthly Excel Export ────────────────────────────────────
 function openMonthlyExport(){
-  // Set defaults: current month to next month
   const now=new Date();
   const y=now.getFullYear(), m=String(now.getMonth()+1).padStart(2,'0');
   document.getElementById('exp-from').value=`${y}-${m}`;
   document.getElementById('exp-to').value=`${y}-${m}`;
-  // Populate city dropdown
+  // Cities
   const citySel=document.getElementById('exp-city');
   citySel.innerHTML='<option value="">-- כל הערים --</option>';
   cities().forEach(c=>{ const o=document.createElement('option');o.value=c;o.textContent=c;citySel.appendChild(o); });
-  // Populate manager dropdown
+  // Managers
   const mgrSel=document.getElementById('exp-mgr');
   mgrSel.innerHTML='<option value="">-- כל הרכזים --</option>';
-  Object.values(managers).forEach(m=>{ const o=document.createElement('option');o.value=m.id;o.textContent=m.name;mgrSel.appendChild(o); });
+  Object.values(managers).forEach(mg=>{ const o=document.createElement('option');o.value=mg.id;o.textContent=mg.name;mgrSel.appendChild(o); });
+  // Gardens
+  const ganSel=document.getElementById('exp-garden');
+  ganSel.innerHTML='<option value="">-- בחר גן --</option>';
+  const allGans=GARDENS.concat(_GARDENS_EXTRA||[]).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
+  allGans.forEach(g=>{ const o=document.createElement('option');o.value=g.id;o.textContent=`${g.name} (${g.city})`;ganSel.appendChild(o); });
   document.getElementById('export-m').classList.add('open');
 }
 
@@ -5109,6 +5115,12 @@ function expModeChg(){
   const mode=document.querySelector('input[name="exp-mode"]:checked').value;
   document.getElementById('exp-city-wrap').style.display=mode==='city'?'block':'none';
   document.getElementById('exp-mgr-wrap').style.display=mode==='manager'?'block':'none';
+  document.getElementById('exp-garden-wrap').style.display=mode==='garden'?'block':'none';
+}
+
+// Helper: find manager assigned to a garden
+function gardenManager(gardenId){
+  return Object.values(managers).find(m=>(m.gardenIds||[]).includes(gardenId))||null;
 }
 
 function doMonthlyExport(){
@@ -5118,56 +5130,46 @@ function doMonthlyExport(){
   const mode=document.querySelector('input[name="exp-mode"]:checked').value;
   const cityFilter=document.getElementById('exp-city').value;
   const mgrFilter=document.getElementById('exp-mgr').value;
+  const gardenFilter=parseInt(document.getElementById('exp-garden').value)||0;
   const splitBy=document.getElementById('exp-split').value;
 
-  // Build date range
   const [fy,fm]=fromM.split('-').map(Number);
   const [ty,tm]=toM.split('-').map(Number);
   const fromDate=`${fy}-${String(fm).padStart(2,'0')}-01`;
-  const toDate=d2s(new Date(ty,tm,0)); // last day of toM
+  const toDate=d2s(new Date(ty,tm,0));
 
-  // Filter events
   let evs=SCH.filter(s=>s.d>=fromDate&&s.d<=toDate&&s.st!=='can');
-
-  // Filter gardens
   let gList=GARDENS.concat(_GARDENS_EXTRA||[]);
-  if(mode==='city'&&cityFilter) gList=gList.filter(g=>g.city===cityFilter);
-  if(mode==='manager'&&mgrFilter){
-    const mgrObj=managers[mgrFilter];
-    if(mgrObj&&mgrObj.gardenIds) gList=gList.filter(g=>mgrObj.gardenIds.includes(g.id));
-  }
 
-  // Build per-city groups
+  if(mode==='city'&&cityFilter)   gList=gList.filter(g=>g.city===cityFilter);
+  if(mode==='manager'&&mgrFilter){ const mgrObj=managers[mgrFilter]; if(mgrObj?.gardenIds) gList=gList.filter(g=>mgrObj.gardenIds.includes(g.id)); }
+  if(mode==='garden'&&gardenFilter){ gList=gList.filter(g=>g.id===gardenFilter); }
+
+  // For single-garden mode: always export as one file
+  const effectiveSplit = (mode==='garden') ? 'garden' : splitBy;
+
   const byCity={};
-  gList.forEach(g=>{
-    if(!byCity[g.city]) byCity[g.city]=[];
-    byCity[g.city].push(g);
-  });
+  gList.forEach(g=>{ if(!byCity[g.city]) byCity[g.city]=[]; byCity[g.city].push(g); });
 
   let filesExported=0;
-  if(splitBy==='garden'){
+  if(effectiveSplit==='garden'){
     gList.forEach(g=>{
       const gEvs=evs.filter(s=>s.g===g.id);
-      if(!gEvs.length) return;
-      const wb=buildGardenWB(g, gEvs, fromDate, toDate);
-      downloadWB(wb, `לוח_חוגים_${g.name}_${fromM}.xlsx`);
+      if(!gEvs.length){ if(mode==='garden') alert(`אין פעילויות לגן "${g.name}" בתקופה שנבחרה`); return; }
+      downloadWB(buildGardenWB(g, gEvs, fromDate, toDate), `לוח_חוגים_${g.name}_${fromM}.xlsx`);
       filesExported++;
     });
   } else {
     Object.entries(byCity).forEach(([city,gardens])=>{
       const cityGardens=gardens.filter(g=>evs.some(s=>s.g===g.id));
       if(!cityGardens.length) return;
-      const wb=buildCityWB(city, cityGardens, evs, fromDate, toDate);
-      downloadWB(wb, `לוח_חוגים_${city}_${fromM}.xlsx`);
+      downloadWB(buildCityWB(city, cityGardens, evs, fromDate, toDate), `לוח_חוגים_${city}_${fromM}.xlsx`);
       filesExported++;
     });
   }
   CM('export-m');
-  if(filesExported>0){
-    showToast(`📊 ${filesExported} קבצי Excel נוצרו בהצלחה!`);
-  } else {
-    alert('⚠️ לא נמצאו פעילויות בטווח התאריכים שנבחר. אנא בדוק את הפילטרים.');
-  }
+  if(filesExported>0) showToast(`📊 ${filesExported} קבצי Excel נוצרו בהצלחה!`);
+  else if(mode!=='garden') alert('⚠️ לא נמצאו פעילויות בטווח התאריכים שנבחר.');
 }
 
 function buildCityWB(city, gardens, allEvs, fromDate, toDate){
@@ -5214,29 +5216,30 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     const workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet('לוח חוגים');
 
-    // ── RTL + A4 page setup ──────────────────────────────────
-    ws.views = [{ state: 'normal', rightToLeft: true }];
+    // RTL + A4
+    ws.views = [{ state:'normal', rightToLeft:true }];
     ws.pageSetup = {
-      paperSize: 9,          // A4
-      orientation: 'portrait',
-      fitToPage: false,
-      margins: { left: 0.2, right: 0.08, top: 0.83, bottom: 0.2, header: 0, footer: 0 }
+      paperSize:9, orientation:'portrait', fitToPage:false,
+      margins:{ left:0.2, right:0.08, top:0.83, bottom:0.2, header:0, footer:0 }
     };
 
-    // In RTL: column A = visual RIGHT, column I = visual LEFT
-    // Template column order (right→left visually = A→I in data):
+    // Exact column widths from template (pt → chars approx)
     // A=שם הצהרון | B=גיל | C=תאריך | D=יום | E=חוג/הפעלה | F=שם החוג | G=טלפון | H=קב' | I=שעה
     ws.columns = [
-      {width:14.4}, // A  שם הצהרון (visual RIGHT)
-      {width:3.6},  // B  גיל
-      {width:8.75}, // C  תאריך
-      {width:9.25}, // D  יום
-      {width:8.9},  // E  חוג/הפעלה
-      {width:24.6}, // F  שם החוג
-      {width:12.4}, // G  טלפון
-      {width:4.25}, // H  קב'
-      {width:6.1},  // I  שעה (visual LEFT)
+      {width:14.4}, {width:3.6}, {width:8.75}, {width:9.25},
+      {width:8.9},  {width:24.6},{width:12.4}, {width:4.25}, {width:6.1}
     ];
+
+    // ── Exact colors from template CSS ──────────────────────
+    const CLR = {
+      BLUE:      'FFB8CCE4',  // regular day rows (#B8CCE4)
+      RED:       'FFFF0000',  // Friday + Saturday
+      RED_LIGHT: 'FFFF4D4D',  // cancelled / nohap (slightly lighter red)
+      YELLOW:    'FFFFFF00',  // holiday / blocked
+      PINK:      'FFE6B8B7',  // קייטנה / camp
+      WHITE:     'FFFFFFFF',  // no fill
+      NONE:      null
+    };
 
     const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
     const HEB_DAYS   = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
@@ -5245,139 +5248,162 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       const base = y + 3760 + (m >= 8 ? 1 : 0);
       let n = base % 1000, s = '';
       const L = {400:'ת',300:'ש',200:'ר',100:'ק',90:'צ',80:'פ',70:'ע',60:'ס',50:'נ',40:'מ',30:'ל',20:'כ',10:'י',9:'ט',8:'ח',7:'ז',6:'ו',5:'ה',4:'ד',3:'ג',2:'ב',1:'א'};
-      for (const v of Object.keys(L).map(Number).sort((a,b)=>b-a)) { while(n>=v){s+=L[v];n-=v;} }
+      for (const v of [400,300,200,100,90,80,70,60,50,40,30,20,10,9,8,7,6,5,4,3,2,1])
+        while(n>=v){s+=L[v];n-=v;}
       return s.length===1 ? s+"'" : s.slice(0,-1)+'"'+s.slice(-1);
     }
 
-    const monthTitle = `${HEB_MONTHS[month]} ${year} ${hebYear(year, month)}`;
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const monthTitle  = `${HEB_MONTHS[month]} ${year} ${hebYear(year, month)}`;
+    const daysInMonth = new Date(year, month+1, 0).getDate();
 
     // Logo
     let logoImgId = null;
-    if (typeof LOGO_B64 !== 'undefined' && LOGO_B64) {
-      logoImgId = workbook.addImage({ base64: LOGO_B64, extension: 'png' });
+    if (typeof LOGO_B64 !== 'undefined' && LOGO_B64)
+      logoImgId = workbook.addImage({ base64:LOGO_B64, extension:'png' });
+
+    // ── Style helper ─────────────────────────────────────────
+    function applyStyle(cell, {fill, sz, bold, align, bt, bb, bl, br}) {
+      if (fill) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:fill} };
+      cell.font      = { name:'Arial', size:sz||11, bold:bold!==false };
+      cell.alignment = { horizontal:align||'center', vertical:'middle', readingOrder:'rightToLeft', wrapText:false };
+      const brd = {};
+      if (bt) brd.top    = {style:bt};
+      if (bb) brd.bottom = {style:bb};
+      if (bl) brd.left   = {style:bl};
+      if (br) brd.right  = {style:br};
+      if (Object.keys(brd).length) cell.border = brd;
     }
 
-    function st(cell, fill, fontSize, bold, hAlign, borderStyle) {
-      if (fill) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb: fill} };
-      cell.font = { name:'Arial', size: fontSize||11, bold: bold!==false };
-      cell.alignment = { horizontal: hAlign||'center', vertical:'middle', readingOrder:'rightToLeft', wrapText: false };
-      if (borderStyle) {
-        const b = st => st ? {style:st} : undefined;
-        cell.border = {
-          top:    b(borderStyle.t), bottom: b(borderStyle.b),
-          left:   b(borderStyle.l), right:  b(borderStyle.r)
-        };
+    // Standard data row: all 9 cells with thin borders + outer medium
+    function styleDataRow(row, fill) {
+      for (let i=1; i<=9; i++) {
+        applyStyle(row.getCell(i), {
+          fill,
+          sz:   (i===6||i===7) ? 10 : 11,
+          align: i===1 ? 'right' : 'center',
+          bt:'thin', bb:'thin',
+          bl: i===1 ? 'medium' : 'thin',
+          br: i===9 ? 'medium' : 'thin'
+        });
       }
     }
 
-    // Full data-row border template (9 cols)
-    function dataBorder(i) {
-      return { t:'thin', b:'thin', l: i===0?'medium':'thin', r: i===8?'medium':'thin' };
-    }
-    function hdrBorder(i) {
-      return { t:'medium', b:'thin', l: i===0?'medium':'thin', r: i===8?'medium':'thin' };
-    }
-
-    let r = 0; // 0-based row counter for image anchoring
+    let r = 0;
 
     gardens.forEach((garden, gIdx) => {
+      // Filter this garden's events for the month
       const gardenEvs = allEvs.filter(s => {
         const [ey,em] = s.d.split('-').map(Number);
-        return s.g === garden.id && ey === year && em === month + 1;
+        return s.g===garden.id && ey===year && em===month+1;
       });
       const byDate = {};
-      gardenEvs.filter(s => s.st !== 'can').forEach(s => {
+      gardenEvs.forEach(s => {
         if (!byDate[s.d]) byDate[s.d] = [];
         byDate[s.d].push(s);
       });
 
-      // ── ROW 1: Title (RIGHT=col A) + Logo (LEFT=cols E-I) ──
-      // In RTL: A is visual right → title there; E-I is visual left → logo there
+      // ── ROW 1: Title right + Logo left ────────────────────
       {
         const row = ws.addRow([monthTitle,'','','','','','','','']);
         row.height = 50;
-        row.getCell(1).font = { name:'Arial', size:20, bold:true };
-        row.getCell(1).alignment = { horizontal:'right', vertical:'middle', readingOrder:'rightToLeft' };
-        ws.mergeCells(r+1, 1, r+1, 4);  // A-D = title (visual right)
-        ws.mergeCells(r+1, 5, r+1, 9);  // E-I = logo area (visual left)
-        if (logoImgId !== null) {
-          ws.addImage(logoImgId, {
-            tl: { col: 4, row: r },      // col E (0-based=4) = visual left
-            br: { col: 9, row: r + 1 },
-            editAs: 'oneCell'
-          });
-        }
+        applyStyle(row.getCell(1), {sz:20, bold:true, align:'right'});
+        ws.mergeCells(r+1, 1, r+1, 4);  // A-D = title (visual right in RTL)
+        ws.mergeCells(r+1, 5, r+1, 9);  // E-I = logo (visual left in RTL)
+        if (logoImgId !== null)
+          ws.addImage(logoImgId, { tl:{col:4,row:r}, br:{col:9,row:r+1}, editAs:'oneCell' });
         r++;
       }
 
-      // ── ROW 2-3: Garden name (RIGHT) + City (LEFT) ────────
+      // ── ROWS 2-3: Garden name + City ──────────────────────
       {
         const row = ws.addRow([`צהרון: ${garden.name}`,'','','','',`עיר: ${garden.city}`,'','','']);
         row.height = 16;
-        [1,2,3,4,5].forEach(c => st(row.getCell(c), null, 13, true, 'right'));
-        [6,7,8,9].forEach(c   => st(row.getCell(c), null, 13, true, 'center'));
+        [1,2,3,4,5].forEach(c => applyStyle(row.getCell(c), {sz:14, bold:true, align:'right'}));
+        [6,7,8,9].forEach(c   => applyStyle(row.getCell(c), {sz:14, bold:true, align:'center'}));
         ws.mergeCells(r+1, 1, r+2, 5);
         ws.mergeCells(r+1, 6, r+2, 9);
         r++;
-        ws.addRow([]); // row 3 (part of merge)
+        const row2 = ws.addRow([]);
+        row2.height = 14;
         r++;
       }
 
       // ── ROW 4: empty ──────────────────────────────────────
-      ws.addRow([]); r++;
+      { ws.addRow([]); r++; }
 
       // ── ROW 5: Column headers ─────────────────────────────
       {
         const hdrs = ['שם הצהרון','גיל','תאריך','יום','חוג/הפעלה','שם החוג','טלפון',"קב'",'שעה'];
-        const row = ws.addRow(hdrs);
+        const row  = ws.addRow(hdrs);
         row.height = 18.6;
+        // xl92-xl97: top=medium, rest=thin, outer=medium, align top
         hdrs.forEach((_, i) => {
-          st(row.getCell(i+1), null, i===5||i===6?10:11, true,
-             i===0?'right':'center', hdrBorder(i));
+          applyStyle(row.getCell(i+1), {
+            sz: (i===5||i===6) ? 10 : 11, bold:true,
+            align: i===0 ? 'right' : 'center',
+            bt:'medium', bb:'thin',
+            bl: i===0 ? 'medium' : 'thin',
+            br: i===8 ? 'medium' : 'thin'
+          });
+          row.getCell(i+1).alignment = {...row.getCell(i+1).alignment, vertical:'top'};
         });
         r++;
       }
 
-      // ── Data rows: one per calendar day ───────────────────
-      for (let day = 1; day <= daysInMonth; day++) {
-        const date    = new Date(year, month, day);
-        const dow     = date.getDay();
-        const ds      = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-        const isFri   = dow === 5;
-        const isSat   = dow === 6;
-        const blk     = typeof blockedDates !== 'undefined' ? blockedDates[ds] : null;
-        const hol     = typeof getHolidayInfo === 'function' ? getHolidayInfo(ds) : null;
-        const fillArgb = (isFri||isSat) ? 'FFFF0000' : (blk||hol) ? 'FFFFFF00' : null;
-        const dayName  = `יום\u00a0${HEB_DAYS[dow]}`;
-        const dayEvs   = (byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
-        const specialNote = hol ? hol.name : blk ? blk.reason : '';
-        const rowCount = dayEvs.length || 1;
+      // ── Data rows: one per day ────────────────────────────
+      for (let day=1; day<=daysInMonth; day++) {
+        const date   = new Date(year, month, day);
+        const dow    = date.getDay();
+        const ds     = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const isFri  = dow===5, isSat=dow===6;
+        const blk    = typeof blockedDates!=='undefined' ? blockedDates[ds] : null;
+        const hol    = typeof getHolidayInfo==='function' ? getHolidayInfo(ds) : null;
 
-        for (let ei = 0; ei < rowCount; ei++) {
-          const ev = dayEvs[ei] || null;
-          const isFirst = ei === 0;
-          // Cols: שם הצהרון | גיל | תאריך | יום | חוג/הפעלה | שם החוג | טלפון | קב' | שעה
+        // Color priority: Fri/Sat=red > holiday=yellow > cancelled=pink > regular=blue
+        const dayEvs = (byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
+        const hasActive = dayEvs.some(s=>s.st!=='can'&&s.st!=='nohap');
+        
+        const dayName = `יום\u00a0${HEB_DAYS[dow]}`;
+        const specialNote = hol ? hol.name : blk ? blk.reason : '';
+        const visibleEvs = dayEvs; // show all including cancelled
+        const rowCount   = visibleEvs.length || 1;
+
+        for (let ei=0; ei<rowCount; ei++) {
+          const ev      = visibleEvs[ei] || null;
+          const isFirst = ei===0;
+          const isCan   = ev && (ev.st==='can'||ev.st==='nohap');
+
+          // Row fill color
+          let fill = CLR.BLUE;
+          if (isFri||isSat)      fill = CLR.RED;
+          else if (hol||blk)     fill = CLR.YELLOW;
+          else if (isCan)        fill = CLR.RED_LIGHT;
+
+          const supName = ev ? ((typeof supBase==='function'?supBase(ev.a):ev.a)||ev.a||'') : '';
+          const actType = ev ? (ev.act||(typeof supAct==='function'?supAct(ev.a):'')||'חוג') : '';
+          const phone   = ev ? (ev.p||(supEx&&supEx[supName]?.ph1)||'') : '';
+
           const vals = [
-            isFirst && ev ? garden.name : '',                               // A שם הצהרון
-            '',                                                              // B גיל
-            isFirst ? ds : '',                                               // C תאריך
-            isFirst ? dayName : '',                                          // D יום
-            ev ? (ev.act||(typeof supAct==='function'?supAct(ev.a):'')||'חוג')
-               : (isFirst&&specialNote ? specialNote : ''),                 // E חוג/הפעלה
-            ev ? ((typeof supBase==='function'?supBase(ev.a):ev.a)||ev.a||'') : '', // F שם החוג
-            ev ? (ev.p||(supEx&&supEx[(typeof supBase==='function'?supBase(ev.a):ev.a)]?.ph1)||'') : '', // G טלפון
-            ev ? (ev.grp||1) : '',                                          // H קב'
-            ev ? (ev.t?ev.t.slice(0,5):'') : ''                            // I שעה
+            isFirst && ev && ev.st!=='can' ? garden.name : '',   // A שם הצהרון
+            '',                                                    // B גיל
+            isFirst ? ds : '',                                     // C תאריך
+            isFirst ? dayName : '',                                // D יום
+            ev ? actType : (isFirst&&specialNote?specialNote:''), // E חוג/הפעלה
+            ev ? supName : '',                                     // F שם החוג
+            ev ? phone   : '',                                     // G טלפון
+            ev ? (ev.grp||1) : '',                                 // H קב'
+            ev ? (ev.t?ev.t.slice(0,5):'') : ''                   // I שעה
           ];
+
           const row = ws.addRow(vals);
           row.height = 19.35;
-          vals.forEach((_, i) => {
-            st(row.getCell(i+1), fillArgb, i===5||i===6?10:11, true,
-               i===0?'right':'center', dataBorder(i));
-          });
-          // Format date cell as text
-          if (isFirst) row.getCell(3).numFmt = 'DD/MM/YYYY';
+          styleDataRow(row, fill);
+
+          // Date column: format as d/m/yy text
+          if (isFirst && vals[2]) {
+            const [dy,dm,dd] = ds.split('-').map(Number);
+            row.getCell(3).value = `${dd}/${dm}/${String(dy).slice(-2)}`;
+          }
           r++;
         }
       }
@@ -5386,41 +5412,41 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       ws.addRow([]); ws.addRow([]); ws.addRow([]);
       r += 3;
 
-      // "שם הרכז בגן" line
+      // "שם הרכז בגן" + bottom medium border
       {
         const row = ws.addRow(['שם הרכז בגן','','','','','','','','']);
         row.height = 18;
-        st(row.getCell(1), null, 11, true, 'right', {b:'medium'});
-        for (let c=2;c<=9;c++) { row.getCell(c).border = { bottom:{style:'medium'} }; }
+        applyStyle(row.getCell(1), {sz:11, bold:true, align:'right', bb:'medium'});
+        for (let c=2;c<=9;c++) row.getCell(c).border = { bottom:{style:'medium'} };
         ws.mergeCells(r+1, 1, r+1, 9);
         r++;
       }
 
-      // Note row (2-row merge)
+      // Disclaimer (2-row merge with top+bottom medium border)
       {
         const row = ws.addRow(['* שימו לב - ייתכנו שינויים בתוכנית החוגים','','','','','','','','']);
         row.height = 18;
-        st(row.getCell(1), null, 11, true, 'right', {t:'medium',b:'medium'});
-        for (let c=2;c<=9;c++) { row.getCell(c).border = { top:{style:'medium'} }; }
+        applyStyle(row.getCell(1), {sz:11, bold:true, align:'right', bt:'medium', bb:'medium'});
+        for (let c=2;c<=9;c++) row.getCell(c).border = { top:{style:'medium'} };
         ws.mergeCells(r+1, 1, r+2, 9);
         r++;
-        ws.addRow([]);
+        const row2 = ws.addRow([]);
+        for (let c=1;c<=9;c++) row2.getCell(c).border = { bottom:{style:'medium'} };
         r++;
       }
 
       // ── Page break after each garden except last ──────────
-      if (gIdx < gardens.length - 1) {
-        ws.addHorizontalPageBreak(r);  // break after current row
-        ws.addRow([]); r++;            // one blank spacer row
+      if (gIdx < gardens.length-1) {
+        ws.addHorizontalPageBreak(r);
+        ws.addRow([]); r++;
       }
     });
 
-    // Save & download
     const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
+    const blob   = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a      = document.createElement('a');
+    a.href       = URL.createObjectURL(blob);
+    a.download   = filename;
     a.style.display = 'none';
     document.body.appendChild(a); a.click();
     setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
