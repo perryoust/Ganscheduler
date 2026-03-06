@@ -1965,8 +1965,8 @@ function renderNormalWeek(evs,ws,f){
   });
 
   // Wrapper with position:relative so sticky thead works within scroll container
-  let html='<div style="overflow-x:auto"><table style="min-width:620px;border-collapse:collapse;width:100%"><thead style="position:sticky;top:0;z-index:10""><tr>';
-  html+='<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;border:1px solid #c5cae9;position:sticky;top:0">גן / זוג</th>';
+  let html='<div style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 260px)"><table style="min-width:620px;border-collapse:collapse;width:100%"><thead><tr>';
+  html+='<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;border:1px solid #c5cae9;position:sticky;top:0;z-index:2">גן / זוג</th>';
   days.forEach((d,i)=>{
     const ds=d2s(d);
     const hol=getHolidayInfo(ds);
@@ -1974,7 +1974,7 @@ function renderNormalWeek(evs,ws,f){
     const isToday=ds===tday;
     const bg=isToday?'#1565c0':blkWk?'#fce4ec':hol?hol.bg:'#e8eaf6';
     const col=isToday?'#fff':blkWk?'#c62828':hol?hol.color:'#283593';
-    html+=`<th style="background:${bg};color:${col};padding:5px 4px;text-align:center;font-size:.74rem;border:1px solid #c5cae9;${blkWk?'border-bottom:3px solid #e91e63;':''}position:sticky;top:0" onclick="jumpToDay('${ds}')">
+    html+=`<th style="background:${bg};color:${col};padding:5px 4px;text-align:center;font-size:.74rem;border:1px solid #c5cae9;${blkWk?'border-bottom:3px solid #e91e63;':''}position:sticky;top:0;z-index:2" onclick="jumpToDay('${ds}')">
       ${dn[i]}<br>
       <span style="font-size:.64rem;font-weight:400">${fD(ds)}</span><br>
       <span style="font-size:.58rem;font-weight:400;opacity:.75">${toHebDate(ds)}</span>
@@ -2405,7 +2405,15 @@ function openSP(id){
           ${spAllSups.map(s2=>`<option value="${s2.name}"${s2.name===s.a?' selected':''}>${s2.name}</option>`).join('')}
         </select>
       </div>
-      <div><label style="font-size:.72rem;color:#546e7a;font-weight:700">🎯 סוג פעילות</label>
+      <div><label style="font-size:.72rem;color:#546e7a;font-weight:700">📋 סוג הפעילות</label>
+        <select id="sp-edit-ev-type" style="width:100%;font-size:.8rem">
+          <option value="חוג"${(s.tp||'חוג')==='חוג'?' selected':''}>🎨 חוג</option>
+          <option value="הפעלה"${(s.tp||'')==='הפעלה'?' selected':''}>🎪 הפעלה</option>
+          <option value="מופע"${(s.tp||'')==='מופע'?' selected':''}>🎭 מופע</option>
+          <option value="אחר"${(s.tp||'')==='אחר'?' selected':''}>📌 אחר</option>
+        </select>
+      </div>
+      <div><label style="font-size:.72rem;color:#546e7a;font-weight:700">🎯 שם הפעילות</label>
         <select id="sp-edit-act" onchange="spEditActChg()" style="width:100%;font-size:.8rem">
           <option value="">— ללא שינוי —</option>
           ${spActs.map(a=>`<option value="${a}"${a===s.act?' selected':''}>${a}</option>`).join('')}
@@ -2543,11 +2551,13 @@ function spEditSave(){
     ?(document.getElementById('sp-edit-act-new')||{}).value||''
     :actVal;
   const newTime=document.getElementById('sp-edit-time').value;
+  const newTp=(document.getElementById('sp-edit-ev-type')||{}).value||'חוג';
   const forPair=(document.getElementById('sp-edit-pair-chk')||{}).checked;
   const updates={};
   if(newSup&&newSup!==s.a) updates.a=newSup;
   if(newAct&&newAct!=='__new__') updates.act=newAct;
   if(newTime&&newTime!==s.t) updates.t=newTime;
+  if(newTp) updates.tp=newTp;
   // Always include notes in update
   const newNt2=(document.getElementById('sp-nt')||{}).value;
   if(newNt2!==undefined) updates.nt=newNt2;
@@ -2700,6 +2710,8 @@ function openEditSched(id){
   setTimeout(()=>{
     const atSel=document.getElementById('es-act');
     if(atSel&&s.act) atSel.value=s.act;
+    const tpSel=document.getElementById('es-ev-type');
+    if(tpSel) tpSel.value=s.tp||'חוג';
   },80);
   document.getElementById('es-time').value=s.t||'';
   document.getElementById('es-for-pair').checked=false;
@@ -2724,11 +2736,13 @@ function saveEditSched(){
     ?document.getElementById('es-act-new').value.trim()
     :document.getElementById('es-act').value;
   const newTime=document.getElementById('es-time').value;
+  const newTp=(document.getElementById('es-ev-type')||{}).value;
   const forPair=document.getElementById('es-for-pair').checked;
   const updates={};
   if(newSup) updates.a=newSup;
   if(newAct&&newAct!=='__new__') updates.act=newAct;
   if(newTime) updates.t=newTime;
+  if(newTp) updates.tp=newTp;
   if(forPair){
     const pair=gardenPair(s.g);
     if(pair) SCH.filter(x=>pair.ids.includes(x.g)&&x.d===s.d&&x.id!==selEv)
@@ -3078,6 +3092,7 @@ function saveNewSched(){
   const grp=parseInt(document.getElementById('ns-grp').value)||1;
   let actType=document.getElementById('ns-act-type').value;
   if(actType==='__new__'){actType=document.getElementById('ns-act-type-new').value.trim();}
+  const evTp=(document.getElementById('ns-ev-type')||{}).value||'חוג';
   if(actType&&actType!=='__new__'){
     if(!supEx[sup]) supEx[sup]={};
     if(!Array.isArray(supEx[sup].acts)) supEx[sup].acts=getSupActs(sup);
@@ -3113,7 +3128,7 @@ function saveNewSched(){
         const _hol2=getHolidayInfo(ds,G(gid).city||null,gcls(G(gid))||null);
         if(!_hol2||_hol2.type==='info'){
           const eid=recurring_id+count;
-          const ev={id:eid,g:gid,d:ds,a:sup,act:actType,t:recurTime,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp,_recId:recurring_id};
+          const ev={id:eid,g:gid,d:ds,a:sup,act:actType,tp:evTp||'חוג',t:recurTime,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp,_recId:recurring_id};
           SCH.push(ev);
           if(g2id) SCH.push({...ev,id:eid+1000,g:g2id});
           count++;
@@ -3129,7 +3144,7 @@ function saveNewSched(){
   if(_nsmTab==='makeup'){
     // Makeup schedule
     const makeupOrig=document.getElementById('ns-makeup-orig').value;
-    const newSched={id:newId,g:gid,d:date,a:sup,act:actType,t:time,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes?notes:'השלמה'+(makeupOrig?' מ-'+fD(makeupOrig):''),pd:'',pt:'',grp,_makeupFrom:makeupOrig||''};
+    const newSched={id:newId,g:gid,d:date,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes?notes:'השלמה'+(makeupOrig?' מ-'+fD(makeupOrig):''),pd:'',pt:'',grp,_makeupFrom:makeupOrig||''};
     SCH.push(newSched);
     if(g2id) SCH.push({...newSched,id:newId+1,g:g2id});
     saveAndRefresh('nsm');
@@ -3138,7 +3153,7 @@ function saveNewSched(){
   }
 
   // One-time
-  const newSched={id:newId,g:gid,d:date,a:sup,act:actType,t:time,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp};
+  const newSched={id:newId,g:gid,d:date,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp};
   SCH.push(newSched);
   if(g2id){
     SCH.push({...newSched,id:newId+1,g:g2id,nt:notes});
@@ -5509,7 +5524,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
       // ── Column headers ────────────────────────────────────
       {
-        const hdrs = ['שם הצהרון','גיל','תאריך','יום','חוג/הפעלה','שם החוג','טלפון',"קב'",'שעה'];
+        const hdrs = ['שם הצהרון','גיל','תאריך','יום','סוג','שם החוג','טלפון',"קב'",'שעה'];
         const row  = ws.addRow(hdrs);
         row.height = 18.6;
         hdrs.forEach((_, i) => {
@@ -5548,18 +5563,20 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
           else if (isCan)    fill = CLR.RED_LIGHT;
 
           const supName = ev ? ((typeof supBase==='function'?supBase(ev.a):ev.a)||ev.a||'') : '';
-          const actType = ev ? (isCan?'בוטל':(ev.act||(typeof supAct==='function'?supAct(ev.a):'')||'חוג')) : '';
-          const phone   = ev ? (ev.p||(typeof supEx!=='undefined'&&supEx[supName]?.ph1)||'') : '';
-          const grp     = ev ? (isCan ? 0 : (ev.grp||1)) : '';
+          const evTpLabel = ev ? (isCan?'בוטל':(ev.tp||'חוג')) : '';
+          const actName  = ev ? (ev.act||(typeof supAct==='function'?supAct(ev.a):'')||'') : '';
+          const colF     = ev ? (isCan?supName:(actName?supName+' - '+actName:supName)) : '';
+          const phone    = ev ? (ev.p||(typeof supEx!=='undefined'&&supEx[supName]?.ph1)||'') : '';
+          const grp      = ev ? (isCan ? 0 : (ev.grp||1)) : '';
 
           const vals = [
             garden.name, '',
             isFirst ? dateStr : '',
             isFirst ? dayName : '',
-            ev ? actType : (isFirst&&specialNote?specialNote:''),
-            ev ? supName : '',
-            ev ? phone   : '',
-            ev ? grp     : '',
+            ev ? evTpLabel : (isFirst&&specialNote?specialNote:''),
+            ev ? colF : '',
+            ev ? phone    : '',
+            ev ? grp      : '',
             ev ? (ev.t?ev.t.slice(0,5):'') : ''
           ];
 

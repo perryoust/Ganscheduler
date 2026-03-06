@@ -859,10 +859,19 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <select id="ns-sup" style="width:100%" onchange="nsSupChg()"><option value="">בחר ספק</option></select>
       </div>
       <div class="fg" style="grid-column:1/-1">
-        <label>סוג פעילות</label>
+        <label>סוג הפעילות</label>
+        <select id="ns-ev-type" style="width:100%">
+          <option value="חוג" selected>🎨 חוג</option>
+          <option value="הפעלה">🎪 הפעלה</option>
+          <option value="מופע">🎭 מופע</option>
+          <option value="אחר">📌 אחר</option>
+        </select>
+      </div>
+      <div class="fg" style="grid-column:1/-1">
+        <label>שם הפעילות</label>
         <div style="display:flex;gap:5px;align-items:center">
-          <select id="ns-act-type" onchange="nsActTypeChg()" style="flex:1"><option value="">בחר סוג פעילות...</option></select>
-          <input type="text" id="ns-act-type-new" placeholder="שם פעילות חדשה" style="flex:1;display:none">
+          <select id="ns-act-type" onchange="nsActTypeChg()" style="flex:1"><option value="">בחר שם פעילות...</option></select>
+          <input type="text" id="ns-act-type-new" placeholder="שם פעילות חדש" style="flex:1;display:none">
         </div>
       </div>
       <div class="fg"><label>טלפון</label><input type="text" id="ns-ph" style="width:100%" placeholder="050-..."></div>
@@ -1718,7 +1727,16 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <option value="">-- ללא שינוי --</option>
         </select>
       </div>
-      <div class="fg"><label>סוג פעילות</label>
+      <div class="fg"><label>סוג הפעילות</label>
+        <select id="es-ev-type" style="width:100%">
+          <option value="">-- ללא שינוי --</option>
+          <option value="חוג">🎨 חוג</option>
+          <option value="הפעלה">🎪 הפעלה</option>
+          <option value="מופע">🎭 מופע</option>
+          <option value="אחר">📌 אחר</option>
+        </select>
+      </div>
+      <div class="fg"><label>שם הפעילות</label>
         <select id="es-act" style="width:100%" onchange="document.getElementById('es-act-new-wrap').style.display=this.value==='__new__'?'block':'none'">
           <option value="">-- ללא שינוי --</option>
         </select>
