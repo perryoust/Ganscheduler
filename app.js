@@ -4138,6 +4138,9 @@ function openSupModal(name){
   if(suEntityType) suEntityType.value = ex.entityType||'';
   renderSupActsList(name);
   document.getElementById('su-act-new').value='';
+  // Show delete button only when editing existing supplier
+  const delBtn = document.getElementById('sum-del-btn');
+  if (delBtn) delBtn.style.display = name ? 'inline-flex' : 'none';
   document.getElementById('sum').classList.add('open');
 }
 function renderSupActsList(name){
@@ -4170,6 +4173,35 @@ function removeSupAct(idx){
   supEx[name].acts=acts;
   renderSupActsList(name);
 }
+function deleteSup() {
+  const name = document.getElementById('su-name').dataset.orig;
+  if (!name) return;
+  const schedCount = SCH.filter(s => s.a === name && s.st !== 'can').length;
+  const msg = schedCount > 0
+    ? `לספק "${name}" יש ${schedCount} פעילויות פעילות.\nמחיקה תסיר את הספק מהמערכת אך לא תמחק את הפעילויות.\n\nלהמשיך?`
+    : `למחוק את הספק "${name}"?`;
+  if (!confirm(msg)) return;
+
+  // Remove from supEx
+  delete supEx[name];
+
+  // Remove from custom suppliers list
+  if (supEx['__c']) {
+    supEx['__c'] = supEx['__c'].filter(s => s.name !== name);
+  }
+
+  // Mark as deleted in merged-away (hides from SUPBASE-based suppliers)
+  if (!supEx['__merged_away']) supEx['__merged_away'] = [];
+  if (!supEx['__merged_away'].includes(name)) supEx['__merged_away'].push(name);
+
+  save();
+  CM('sum');
+  refresh();
+  if (typeof renderSup === 'function') renderSup();
+  if (typeof renderPurchSuppliers === 'function') try { renderPurchSuppliers(); } catch(e) {}
+  showToast('🗑️ ספק "' + name + '" נמחק');
+}
+
 function saveSup(){
   const nameEl=document.getElementById('su-name');
   const name=nameEl.value.trim();

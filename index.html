@@ -1090,9 +1090,12 @@
         <button class="btn bg bsm" onclick="addSupAct()">➕ הוסף</button>
       </div>
     </div>
-    <div style="display:flex;gap:7px;justify-content:flex-end">
-      <button class="btn bp" onclick="saveSup()">💾 שמור</button>
-      <button class="btn bs" onclick="CM('sum')">ביטול</button>
+    <div style="display:flex;gap:7px;justify-content:space-between;align-items:center">
+      <button class="btn br2 bsm" id="sum-del-btn" onclick="deleteSup()" style="display:none">🗑️ מחק ספק</button>
+      <div style="display:flex;gap:7px">
+        <button class="btn bp" onclick="saveSup()">💾 שמור</button>
+        <button class="btn bs" onclick="CM('sum')">ביטול</button>
+      </div>
     </div>
   </div>
 </div>
