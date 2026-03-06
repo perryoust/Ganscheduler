@@ -3979,7 +3979,7 @@ function doSupExport(){
 
   const evs=SCH.filter(s=>{
     if(s.d<from||s.d>to) return false;
-    if(s.st==='can') return false;
+    // כולל כל הסטטוסים — גם ביטולים ולא התקיים
     if(_supExName&&supBase(s.a)!==supBase(_supExName)) return false;
     return true;
   }).sort((a,b)=>{
@@ -3991,30 +3991,40 @@ function doSupExport(){
   });
   if(!evs.length){alert('אין פעילויות בטווח זה');return;}
 
-  const stMap={ok:'מתקיים',done:'התקיים',can:'בוטל',post:'נדחה',nohap:'לא התקיים'};
+  const stMap={ok:'מתקיים',done:'התקיים',can:'בוטל ❌',post:'נדחה',nohap:'לא התקיים ⚠️'};
   const bom='\uFEFF';
   const q=c=>`"${String(c==null?'':c).replace(/"/g,'""')}"`;
   const lines=[];
 
+  // סיכום
+  const totalEvs=evs.length;
+  const cancelledEvs=evs.filter(s=>s.st==='can').length;
+  const nohapEvs=evs.filter(s=>s.st==='nohap').length;
+  const doneEvs=evs.filter(s=>s.st==='done'||s.st==='ok').length;
+
   // Header block
   if(_supExName){
-    lines.push([q('ספק:'),q(_supExName),'','','','','','','',''].join(','));
-    lines.push([q('טלפון:'),q(supPhone),'','','','','','','',''].join(','));
-    lines.push([q('תקופה:'),q(fD(from)+' – '+fD(to)),'','','','','','','',''].join(','));
+    lines.push([q('ספק:'),q(_supExName),'','','','','','','','',''].join(','));
+    lines.push([q('טלפון:'),q(supPhone),'','','','','','','','',''].join(','));
+    lines.push([q('תקופה:'),q(fD(from)+' – '+fD(to)),'','','','','','','','',''].join(','));
+    lines.push([q('סה"כ פעילויות:'),q(totalEvs),q('התקיימו:'),q(doneEvs),q('בוטלו:'),q(cancelledEvs),q('לא התקיימו:'),q(nohapEvs),'','',''].join(','));
     lines.push('');
   }
 
-  // Column headers: city → garden → address → date → day → time → activity → groups → status → notes
-  lines.push(['עיר','תאריך','יום','כתובת','שם גן','שעה','פעילות','קבוצות','סטטוס','הערות'].map(q).join(','));
+  // Column headers
+  lines.push(['עיר','תאריך','יום','כתובת','שם גן','שעה','פעילות','קבוצות','סטטוס','סיבה','הערות'].map(q).join(','));
 
   evs.forEach(s=>{
     const g=G(s.g);
     const actName=supAct(s.a)||s.a;
+    // Build reason: cr = cancel reason, cn = cancel note
+    const reason = s.cr || '';
+    const note = s.nt || '';
     lines.push([
       q(g.city||''),q(fD(s.d)),q(dayN(s.d)),
       q(g.st||''),q(g.name||''),q(fT(s.t)),
       q(actName),q(s.grp>1?s.grp:''),
-      q(stMap[s.st]||'מתקיים'),q(s.nt||'')
+      q(stMap[s.st]||'מתקיים'),q(reason),q(note)
     ].join(','));
   });
 
