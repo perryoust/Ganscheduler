@@ -5216,29 +5216,29 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     const workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet('לוח חוגים');
 
-    // RTL + A4
-    ws.views = [{ state:'normal', rightToLeft:true }];
+    // RTL + A4 page layout
+    ws.views = [{ state:'pageLayout', rightToLeft:true }];
     ws.pageSetup = {
-      paperSize:9, orientation:'portrait', fitToPage:false,
-      margins:{ left:0.2, right:0.08, top:0.83, bottom:0.2, header:0, footer:0 }
+      paperSize: 9,             // A4
+      orientation: 'portrait',
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+      margins: { left:0.2, right:0.08, top:0.83, bottom:0.2, header:0, footer:0 }
     };
 
-    // Exact column widths from template (pt → chars approx)
-    // A=שם הצהרון | B=גיל | C=תאריך | D=יום | E=חוג/הפעלה | F=שם החוג | G=טלפון | H=קב' | I=שעה
+    // Col widths: A=שם הצהרון | B=גיל | C=תאריך | D=יום | E=חוג/הפעלה | F=שם החוג | G=טלפון | H=קב' | I=שעה
     ws.columns = [
-      {width:14.4}, {width:3.6}, {width:8.75}, {width:9.25},
-      {width:8.9},  {width:24.6},{width:12.4}, {width:4.25}, {width:6.1}
+      {width:14.4},{width:3.6},{width:8.75},{width:9.25},
+      {width:8.9}, {width:24.6},{width:12.4},{width:4.25},{width:6.1}
     ];
 
-    // ── Exact colors from template CSS ──────────────────────
     const CLR = {
-      BLUE:      'FFB8CCE4',  // regular day rows (#B8CCE4)
-      RED:       'FFFF0000',  // Friday + Saturday
-      RED_LIGHT: 'FFFF4D4D',  // cancelled / nohap (slightly lighter red)
-      YELLOW:    'FFFFFF00',  // holiday / blocked
-      PINK:      'FFE6B8B7',  // קייטנה / camp
-      WHITE:     'FFFFFFFF',  // no fill
-      NONE:      null
+      BLUE:      'FFB8CCE4',
+      RED:       'FFFF0000',
+      RED_LIGHT: 'FFFF4D4D',
+      YELLOW:    'FFFFFF00',
+      PINK:      'FFE6B8B7',
     };
 
     const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -5256,13 +5256,11 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     const monthTitle  = `${HEB_MONTHS[month]} ${year} ${hebYear(year, month)}`;
     const daysInMonth = new Date(year, month+1, 0).getDate();
 
-    // Logo
     let logoImgId = null;
     if (typeof LOGO_B64 !== 'undefined' && LOGO_B64)
       logoImgId = workbook.addImage({ base64:LOGO_B64, extension:'png' });
 
-    // ── Style helper ─────────────────────────────────────────
-    function applyStyle(cell, {fill, sz, bold, align, bt, bb, bl, br}) {
+    function applyStyle(cell, {fill, sz, bold, align, bt, bb, bl, br}={}) {
       if (fill) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:fill} };
       cell.font      = { name:'Arial', size:sz||11, bold:bold!==false };
       cell.alignment = { horizontal:align||'center', vertical:'middle', readingOrder:'rightToLeft', wrapText:false };
@@ -5274,16 +5272,13 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       if (Object.keys(brd).length) cell.border = brd;
     }
 
-    // Standard data row: all 9 cells with thin borders + outer medium
     function styleDataRow(row, fill) {
       for (let i=1; i<=9; i++) {
         applyStyle(row.getCell(i), {
-          fill,
-          sz:   (i===6||i===7) ? 10 : 11,
-          align: i===1 ? 'right' : 'center',
+          fill, sz:(i===6||i===7)?10:11,
+          align: i===1?'right':'center',
           bt:'thin', bb:'thin',
-          bl: i===1 ? 'medium' : 'thin',
-          br: i===9 ? 'medium' : 'thin'
+          bl:i===1?'medium':'thin', br:i===9?'medium':'thin'
         });
       }
     }
@@ -5291,7 +5286,14 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     let r = 0;
 
     gardens.forEach((garden, gIdx) => {
-      // Filter this garden's events for the month
+      // Find assigned manager for this garden
+      const mgr = typeof managers !== 'undefined'
+        ? Object.values(managers).find(m => (m.gardenIds||[]).includes(garden.id))
+        : null;
+      const mgrText = mgr
+        ? `שם הרכז: ${mgr.name}${mgr.phone ? ' · ' + mgr.phone : ''}`
+        : 'שם הרכז בגן: _______________';
+
       const gardenEvs = allEvs.filter(s => {
         const [ey,em] = s.d.split('-').map(Number);
         return s.g===garden.id && ey===year && em===month+1;
@@ -5302,13 +5304,13 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         byDate[s.d].push(s);
       });
 
-      // ── ROW 1: Title right + Logo left ────────────────────
+      // ── ROW 1: Title (right A-D) + Logo (left E-I) ────────
       {
         const row = ws.addRow([monthTitle,'','','','','','','','']);
         row.height = 50;
         applyStyle(row.getCell(1), {sz:20, bold:true, align:'right'});
-        ws.mergeCells(r+1, 1, r+1, 4);  // A-D = title (visual right in RTL)
-        ws.mergeCells(r+1, 5, r+1, 9);  // E-I = logo (visual left in RTL)
+        ws.mergeCells(r+1,1,r+1,4);
+        ws.mergeCells(r+1,5,r+1,9);
         if (logoImgId !== null)
           ws.addImage(logoImgId, { tl:{col:4,row:r}, br:{col:9,row:r+1}, editAs:'oneCell' });
         r++;
@@ -5318,75 +5320,72 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       {
         const row = ws.addRow([`צהרון: ${garden.name}`,'','','','',`עיר: ${garden.city}`,'','','']);
         row.height = 16;
-        [1,2,3,4,5].forEach(c => applyStyle(row.getCell(c), {sz:14, bold:true, align:'right'}));
-        [6,7,8,9].forEach(c   => applyStyle(row.getCell(c), {sz:14, bold:true, align:'center'}));
-        ws.mergeCells(r+1, 1, r+2, 5);
-        ws.mergeCells(r+1, 6, r+2, 9);
+        [1,2,3,4,5].forEach(c => applyStyle(row.getCell(c), {sz:14,bold:true,align:'right'}));
+        [6,7,8,9].forEach(c   => applyStyle(row.getCell(c), {sz:14,bold:true,align:'center'}));
+        ws.mergeCells(r+1,1,r+2,5);
+        ws.mergeCells(r+1,6,r+2,9);
         r++;
-        const row2 = ws.addRow([]);
-        row2.height = 14;
-        r++;
+        ws.addRow([]); r++;
       }
 
       // ── ROW 4: empty ──────────────────────────────────────
-      { ws.addRow([]); r++; }
+      ws.addRow([]); r++;
 
       // ── ROW 5: Column headers ─────────────────────────────
       {
         const hdrs = ['שם הצהרון','גיל','תאריך','יום','חוג/הפעלה','שם החוג','טלפון',"קב'",'שעה'];
         const row  = ws.addRow(hdrs);
         row.height = 18.6;
-        // xl92-xl97: top=medium, rest=thin, outer=medium, align top
         hdrs.forEach((_, i) => {
           applyStyle(row.getCell(i+1), {
-            sz: (i===5||i===6) ? 10 : 11, bold:true,
-            align: i===0 ? 'right' : 'center',
+            sz:(i===5||i===6)?10:11, bold:true,
+            align:i===0?'right':'center',
             bt:'medium', bb:'thin',
-            bl: i===0 ? 'medium' : 'thin',
-            br: i===8 ? 'medium' : 'thin'
+            bl:i===0?'medium':'thin', br:i===8?'medium':'thin'
           });
           row.getCell(i+1).alignment = {...row.getCell(i+1).alignment, vertical:'top'};
         });
         r++;
       }
 
-      // ── Data rows: one per day ────────────────────────────
+      // ── Data rows: every calendar day ─────────────────────
       for (let day=1; day<=daysInMonth; day++) {
-        const date   = new Date(year, month, day);
-        const dow    = date.getDay();
-        const ds     = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-        const isFri  = dow===5, isSat=dow===6;
-        const blk    = typeof blockedDates!=='undefined' ? blockedDates[ds] : null;
-        const hol    = typeof getHolidayInfo==='function' ? getHolidayInfo(ds) : null;
-
-        // Color priority: Fri/Sat=red > holiday=yellow > cancelled=pink > regular=blue
-        const dayEvs = (byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
-        const hasActive = dayEvs.some(s=>s.st!=='can'&&s.st!=='nohap');
-        
+        const date    = new Date(year, month, day);
+        const dow     = date.getDay();
+        const ds      = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const isFri   = dow===5, isSat=dow===6;
+        const blk     = typeof blockedDates!=='undefined' ? blockedDates[ds] : null;
+        const hol     = typeof getHolidayInfo==='function' ? getHolidayInfo(ds) : null;
         const dayName = `יום\u00a0${HEB_DAYS[dow]}`;
-        const specialNote = hol ? hol.name : blk ? blk.reason : '';
-        const visibleEvs = dayEvs; // show all including cancelled
-        const rowCount   = visibleEvs.length || 1;
+        const dateStr = `${day}/${month+1}/${String(year).slice(-2)}`;
+
+        const dayEvs  = (byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
+        // Only show special note if NO activities that day
+        const specialNote = (!dayEvs.length && hol) ? hol.name
+                          : (!dayEvs.length && blk) ? 'בוטל'
+                          : '';
+        const rowCount = dayEvs.length || 1;
 
         for (let ei=0; ei<rowCount; ei++) {
-          const ev      = visibleEvs[ei] || null;
+          const ev      = dayEvs[ei] || null;
           const isFirst = ei===0;
           const isCan   = ev && (ev.st==='can'||ev.st==='nohap');
 
-          // Row fill color
           let fill = CLR.BLUE;
-          if (isFri||isSat)      fill = CLR.RED;
-          else if (hol||blk)     fill = CLR.YELLOW;
-          else if (isCan)        fill = CLR.RED_LIGHT;
+          if (isFri||isSat)  fill = CLR.RED;
+          else if (hol||blk) fill = CLR.YELLOW;
+          else if (isCan)    fill = CLR.RED_LIGHT;
 
           const supName = ev ? ((typeof supBase==='function'?supBase(ev.a):ev.a)||ev.a||'') : '';
-          const actType = ev ? (ev.act||(typeof supAct==='function'?supAct(ev.a):'')||'חוג') : '';
-          const phone   = ev ? (ev.p||(supEx&&supEx[supName]?.ph1)||'') : '';
+          const actType = ev
+            ? (isCan ? 'בוטל' : (ev.act||(typeof supAct==='function'?supAct(ev.a):'')||'חוג'))
+            : '';
+          const phone = ev ? (ev.p||(typeof supEx!=='undefined'&&supEx[supName]?.ph1)||'') : '';
 
           const vals = [
-            isFirst && ev && ev.st!=='can' ? garden.name : '',   // A שם הצהרון
+            garden.name,                                           // A שם הצהרון — always
             '',                                                    // B גיל
-            isFirst ? ds : '',                                     // C תאריך
+            isFirst ? dateStr : '',                                // C תאריך
             isFirst ? dayName : '',                                // D יום
             ev ? actType : (isFirst&&specialNote?specialNote:''), // E חוג/הפעלה
             ev ? supName : '',                                     // F שם החוג
@@ -5398,39 +5397,34 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
           const row = ws.addRow(vals);
           row.height = 19.35;
           styleDataRow(row, fill);
-
-          // Date column: format as d/m/yy text
-          if (isFirst && vals[2]) {
-            const [dy,dm,dd] = ds.split('-').map(Number);
-            row.getCell(3).value = `${dd}/${dm}/${String(dy).slice(-2)}`;
-          }
           r++;
         }
       }
 
-      // ── Footer ────────────────────────────────────────────
-      ws.addRow([]); ws.addRow([]); ws.addRow([]);
-      r += 3;
+      // ── Footer: Manager row ───────────────────────────────
+      ws.addRow([]); r++;
 
-      // "שם הרכז בגן" + bottom medium border
       {
-        const row = ws.addRow(['שם הרכז בגן','','','','','','','','']);
-        row.height = 18;
+        const row = ws.addRow([mgrText,'','','','','','','','']);
+        row.height = 20;
         applyStyle(row.getCell(1), {sz:11, bold:true, align:'right', bb:'medium'});
         for (let c=2;c<=9;c++) row.getCell(c).border = { bottom:{style:'medium'} };
-        ws.mergeCells(r+1, 1, r+1, 9);
+        ws.mergeCells(r+1,1,r+1,9);
         r++;
       }
 
-      // Disclaimer (2-row merge with top+bottom medium border)
+      // ── Disclaimer (large text, 2-row merge) ──────────────
       {
-        const row = ws.addRow(['* שימו לב - ייתכנו שינויים בתוכנית החוגים','','','','','','','','']);
-        row.height = 18;
-        applyStyle(row.getCell(1), {sz:11, bold:true, align:'right', bt:'medium', bb:'medium'});
-        for (let c=2;c<=9;c++) row.getCell(c).border = { top:{style:'medium'} };
-        ws.mergeCells(r+1, 1, r+2, 9);
+        const row = ws.addRow(['* שימו לב -  ייתכנו שינויים בתוכנית החוגים','','','','','','','','']);
+        row.height = 36;
+        applyStyle(row.getCell(1), {sz:16, bold:true, align:'right', bt:'medium', bb:'medium'});
+        for (let c=2;c<=9;c++) {
+          row.getCell(c).border = { top:{style:'medium'}, bottom:{style:'medium'} };
+        }
+        ws.mergeCells(r+1,1,r+2,9);
         r++;
         const row2 = ws.addRow([]);
+        row2.height = 10;
         for (let c=1;c<=9;c++) row2.getCell(c).border = { bottom:{style:'medium'} };
         r++;
       }
