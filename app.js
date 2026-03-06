@@ -62,11 +62,16 @@ function _fbUpdateStatus() {
       btn.style.background = '#2e7d32';
     }
   }
-  // update modal too
+  // update Firebase modal
   const el = document.getElementById('fb-last-save');
   if (el) el.textContent = _fmtTs(_fbLastSaveTs);
   const el2 = document.getElementById('fb-last-load');
   if (el2) el2.textContent = _fmtTs(_fbLastLoadTs);
+  // update info modal
+  const el3 = document.getElementById('info-fb-save');
+  if (el3) el3.textContent = _fbLastSaveTs ? _fmtTs(_fbLastSaveTs) : '—';
+  const el4 = document.getElementById('info-fb-load');
+  if (el4) el4.textContent = _fbLastLoadTs ? _fmtTs(_fbLastLoadTs) : '—';
 }
 
 // ── Load from Firebase ────────────────────────
