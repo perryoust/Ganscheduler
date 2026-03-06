@@ -1964,9 +1964,14 @@ function renderNormalWeek(evs,ws,f){
     byCity[city].solos.sort((a,b)=>(G(a).name||'').localeCompare(G(b).name||'','he'));
   });
 
-  // Wrapper with position:relative so sticky thead works within scroll container
-  let html='<div style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 260px)"><table style="min-width:620px;border-collapse:collapse;width:100%"><thead><tr>';
-  html+='<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;border:1px solid #c5cae9;position:sticky;top:0;z-index:2">גן / זוג</th>';
+  // border-separate avoids border-collapse + sticky bug
+  let html='<div style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 260px);border-radius:8px;border:2px solid #9fa8da">'
+          +'<table style="min-width:620px;border-collapse:separate;border-spacing:0;width:100%"><thead><tr>';
+
+  html+=`<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;
+    border-bottom:2px solid #9fa8da;border-left:1px solid #c5cae9;
+    position:sticky;top:0;z-index:3;font-size:.76rem">גן / זוג</th>`;
+
   days.forEach((d,i)=>{
     const ds=d2s(d);
     const hol=getHolidayInfo(ds);
@@ -1974,11 +1979,16 @@ function renderNormalWeek(evs,ws,f){
     const isToday=ds===tday;
     const bg=isToday?'#1565c0':blkWk?'#fce4ec':hol?hol.bg:'#e8eaf6';
     const col=isToday?'#fff':blkWk?'#c62828':hol?hol.color:'#283593';
-    html+=`<th style="background:${bg};color:${col};padding:5px 4px;text-align:center;font-size:.74rem;border:1px solid #c5cae9;${blkWk?'border-bottom:3px solid #e91e63;':''}position:sticky;top:0;z-index:2" onclick="jumpToDay('${ds}')">
+    const bottomBorder=blkWk?'border-bottom:3px solid #e91e63':'border-bottom:2px solid #9fa8da';
+    html+=`<th style="background:${bg};color:${col};padding:5px 4px;text-align:center;font-size:.74rem;
+      ${bottomBorder};border-left:1px solid ${isToday?'rgba(255,255,255,.3)':'#c5cae9'};
+      position:sticky;top:0;z-index:3;white-space:nowrap" onclick="jumpToDay('${ds}')">
       ${dn[i]}<br>
       <span style="font-size:.64rem;font-weight:400">${fD(ds)}</span><br>
       <span style="font-size:.58rem;font-weight:400;opacity:.75">${toHebDate(ds)}</span>
-      ${blkWk?`<br><span style="font-size:.6rem;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blkWk.icon||'🚫'} ${blkWk.reason}</span>`:`<br><span style="font-size:.58rem;opacity:.35;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')" title="חסום תאריך">🚫</span>`}
+      ${blkWk
+        ?`<br><span style="font-size:.6rem;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blkWk.icon||'🚫'} ${blkWk.reason}</span>`
+        :`<br><span style="font-size:.58rem;opacity:.3;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')" title="חסום תאריך">🚫</span>`}
     </th>`;
   });
   html+='</tr></thead><tbody>';
@@ -1988,83 +1998,84 @@ function renderNormalWeek(evs,ws,f){
 
     // City header row
     html+=`<tr>
-      <td colspan="7" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;border-top:2px solid ${clr.border}">
+      <td colspan="7" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;
+        border-bottom:1px solid rgba(255,255,255,.2);position:sticky;left:0">
         🏙️ ${city}
         <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} זוגות · ${byCity[city].solos.length} גנים בודדים</span>
       </td>
     </tr>`;
 
-    // Pairs — use CITY color (not pair-specific color)
+    function makeCell(gid, ds, de, blk, hol, clrObj){
+      const isToday=ds===tday;
+      const cellBg=blk?'#fce4ec':isToday?'#eef2ff':hol?hol.bg+'33':'#fff';
+      const borderColor=isToday?'#7986cb':'#dde1f0';
+      let inner='';
+      if(de.length){
+        de.forEach(ev=>{
+          inner+=`<div style="border-radius:4px;padding:3px 5px;margin:1px 0;cursor:pointer;font-size:.71rem;
+            background:#fff;border-right:2px solid ${clrObj.solid};
+            ${ev.st==='can'?'opacity:.45;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':''}"
+            onclick="event.stopPropagation();openSP(${ev.id})">
+            <div style="font-weight:700;color:${clrObj.solid}">${ev.a}${ev.act?`<span style="color:#78909c;font-size:.63rem"> · ${ev.act}</span>`:''}</div>
+            ${ev.t?`<div style="font-size:.66rem;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
+            <div style="font-size:.63rem">${stLabel(ev)}</div>
+          </div>`;
+        });
+        if(blk) inner+=`<div style="font-size:.62rem;color:#c62828;padding:2px 4px">${blk.icon||'🚫'} ${blk.reason}</div>`;
+      } else if(blk){
+        inner=`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center">${blk.icon||'🚫'} ${blk.reason}</div>`;
+      } else if(hol){
+        inner=`<span style="font-size:.66rem;color:${hol.color}">${hol.emoji}</span>`;
+      } else {
+        inner=`<div style="color:#c8cdd5;font-size:1.4rem;font-weight:300;text-align:center;line-height:1;padding:4px 0;cursor:pointer;user-select:none">+</div>`;
+      }
+      return `<td style="background:${cellBg};
+        border-bottom:1px solid ${borderColor};border-left:1px solid ${borderColor};
+        ${blk?'border:1.5px solid #e91e63;':''}
+        padding:2px;vertical-align:top;min-width:95px"
+        onclick="openGcellPopup(${gid},'${ds}',event)">${inner}</td>`;
+    }
+
+    // Pairs
     byCity[city].pairs.forEach(({pair,gids:pGids})=>{
       html+=`<tr>
-        <td colspan="7" style="background:${clr.solid}cc;color:#fff;padding:3px 10px 3px 16px;font-size:.75rem;font-weight:700;border-top:1px solid rgba(255,255,255,.25)">
+        <td colspan="7" style="background:${clr.solid}cc;color:#fff;padding:3px 10px 3px 16px;
+          font-size:.75rem;font-weight:700;border-bottom:1px solid rgba(255,255,255,.2)">
           🔗 ${pair.name}
         </td>
       </tr>`;
       pGids.forEach(gid=>{
         const g=G(gid);
-        html+=`<tr><td style="background:#fff;font-size:.73rem;padding:4px 7px;color:#333;font-weight:600;border-right:3px solid ${clr.solid};border:1px solid #e8e8e8">
-          ${g.name}<br><span style="font-size:.63rem;color:#78909c">${g.city}</span>
+        html+=`<tr><td style="background:#fafbff;font-size:.73rem;padding:4px 7px;color:#333;font-weight:600;
+          border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
+          position:sticky;right:0;z-index:1;white-space:nowrap">
+          ${g.name}<br><span style="font-size:.63rem;color:#78909c;font-weight:400">${g.city}</span>
         </td>`;
         days.forEach(d=>{
-          const ds=d2s(d); const isToday=ds===tday;
+          const ds=d2s(d);
           const hol=getHolidayInfo(ds,g.city,gcls(g));
           const gBlk=getGardenBlock(gid,ds);
           const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
-          const cellBg=gBlk?'#fce4ec':isToday?'#f0f4ff':hol?hol.bg+'44':'#fff';
-          html+=`<td style="background:${cellBg};${gBlk?'border:1.5px solid #e91e63;':'border:1px solid #e8e8e8;'}padding:2px;vertical-align:top;min-width:90px" onclick="openGcellPopup(${gid},'${ds}',event)">`;
-          if(de.length){
-            de.forEach(ev=>{
-              html+=`<div style="border-radius:4px;padding:3px 5px;margin:1px;cursor:pointer;font-size:.71rem;background:#fff;border-right:2px solid ${clr.solid};${ev.st==='can'?'opacity:.45;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':''}" onclick="event.stopPropagation();openSP(${ev.id})">
-                <div style="font-weight:700;color:${clr.solid}">${ev.a}${ev.act?`<span style="color:#546e7a;font-size:.64rem"> · ${ev.act}</span>`:''}</div>
-                ${ev.t?`<div style="font-size:.67rem;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
-                <div style="font-size:.64rem">${stLabel(ev)}</div>
-              </div>`;
-            });
-            if(gBlk) html+=`<div style="font-size:.62rem;color:#c62828;padding:2px 4px">${gBlk.icon||'🚫'} ${gBlk.reason}</div>`;
-          } else if(gBlk){
-            html+=`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center">${gBlk.icon||'🚫'} ${gBlk.reason}</div>`;
-          } else if(hol){
-            html+=`<span style="font-size:.66rem;color:${hol.color}">${hol.emoji}</span>`;
-          } else {
-            html+=`<span style="color:#ccc;font-size:.8rem;cursor:pointer">+</span>`;
-          }
-          html+='</td>';
+          html+=makeCell(gid,ds,de,gBlk,hol,clr);
         });
         html+='</tr>';
       });
     });
 
-    // Solo gardens — same city color
+    // Solo gardens
     byCity[city].solos.forEach(gid=>{
       const g=G(gid);
-      html+=`<tr><td style="background:#fff;font-size:.73rem;padding:4px 7px;color:#333;font-weight:600;border-right:3px solid ${clr.solid};border:1px solid #e8e8e8">
-        ${g.name}<br><span style="font-size:.63rem;color:#78909c">${g.city}</span>
+      html+=`<tr><td style="background:#fafbff;font-size:.73rem;padding:4px 7px;color:#333;font-weight:600;
+        border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
+        position:sticky;right:0;z-index:1;white-space:nowrap">
+        ${g.name}<br><span style="font-size:.63rem;color:#78909c;font-weight:400">${g.city}</span>
       </td>`;
       days.forEach(d=>{
-        const ds=d2s(d); const isToday=ds===tday;
+        const ds=d2s(d);
         const hol=getHolidayInfo(ds,g.city,gcls(g));
         const soloBlk=getGardenBlock(gid,ds);
         const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
-        const cellBg=soloBlk?'#fce4ec':isToday?'#f0f4ff':hol?hol.bg+'44':'#fff';
-        html+=`<td style="background:${cellBg};${soloBlk?'border:1.5px solid #e91e63;':'border:1px solid #e8e8e8;'}padding:2px;vertical-align:top;min-width:90px" onclick="openGcellPopup(${gid},'${ds}',event)">`;
-        if(de.length){
-          de.forEach(ev=>{
-            html+=`<div style="border-radius:4px;padding:3px 5px;margin:1px;cursor:pointer;font-size:.71rem;background:#fff;border-right:2px solid ${clr.solid};${ev.st==='can'?'opacity:.45;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':''}" onclick="event.stopPropagation();openSP(${ev.id})">
-              <div style="font-weight:700;color:${clr.solid}">${ev.a}${ev.act?`<span style="color:#546e7a;font-size:.64rem"> · ${ev.act}</span>`:''}</div>
-              ${ev.t?`<div style="font-size:.67rem;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
-              <div style="font-size:.64rem">${stLabel(ev)}</div>
-            </div>`;
-          });
-          if(soloBlk) html+=`<div style="font-size:.62rem;color:#c62828;padding:2px 4px">${soloBlk.icon||'🚫'} ${soloBlk.reason}</div>`;
-        } else if(soloBlk){
-          html+=`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center">${soloBlk.icon||'🚫'} ${soloBlk.reason}</div>`;
-        } else if(hol){
-          html+=`<span style="font-size:.66rem;color:${hol.color}">${hol.emoji}</span>`;
-        } else {
-          html+=`<span style="color:#ccc;font-size:.8rem;cursor:pointer">+</span>`;
-        }
-        html+='</td>';
+        html+=makeCell(gid,ds,de,soloBlk,hol,clr);
       });
       html+='</tr>';
     });
