@@ -5475,12 +5475,12 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       const sheetName = garden.name.replace(/[*?:\[\]/\\]/g,'').slice(0,31) || `גן${garden.id}`;
       const ws = workbook.addWorksheet(sheetName);
 
-      ws.views = [{ state:'normal', rightToLeft:true }];
+      ws.views = [{ state:'pageLayout', rightToLeft:true }];
       ws.pageSetup = {
         paperSize: 9, orientation: 'portrait',
         fitToPage: true, fitToWidth: 1, fitToHeight: 0,
         horizontalCentered: true,
-        margins: { left:0.2, right:0.08, top:0.83, bottom:0.2, header:0, footer:0 }
+        margins: { left:0.25, right:0.25, top:0.5, bottom:0.5, header:0.3, footer:0.3 }
       };
       ws.columns = [
         {width:14.4},{width:3.6},{width:8.75},{width:9.25},
@@ -5503,19 +5503,23 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
       let r = 0;
 
-      // ── Title row ─────────────────────────────────────────
+      // ── Page header: logo left, month+year right ─────────
+      // Use headerFooter for printed header
+      if (logoImgId !== null) {
+        // Logo as image in top-left of sheet (above freeze, not in header bar)
+        // We keep logo in first row as before, but restructure layout
+      }
+      // Title row: month+hebYear RIGHT, logo LEFT
       {
         const row = ws.addRow([monthTitle,'','','','','','','','']);
-        row.height = 50;
+        row.height = 52;
+        // Right side (cols 1-4): month + year, large
+        applyStyle(row.getCell(1), {sz:22, bold:true, align:'right', valign:'middle'});
+        ws.mergeCells(r+1,1,r+1,4);
+        // Left side (cols 5-9): logo
+        ws.mergeCells(r+1,5,r+1,9);
         if (logoImgId !== null) {
-          // Title on right (A-D), logo space on left (E-I)
-          applyStyle(row.getCell(1), {sz:20, bold:true, align:'right'});
-          ws.mergeCells(r+1,1,r+1,4);
-          ws.mergeCells(r+1,5,r+1,9);
           ws.addImage(logoImgId, { tl:{col:4,row:r}, br:{col:9,row:r+1}, editAs:'oneCell' });
-        } else {
-          applyStyle(row.getCell(1), {sz:20, bold:true, align:'center'});
-          ws.mergeCells(r+1,1,r+1,9);
         }
         r++;
       }
@@ -5523,15 +5527,14 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       // ── Garden name + City ────────────────────────────────
       {
         const row = ws.addRow([`צהרון: ${garden.name}`,'','','','',`עיר: ${garden.city}`,'','','']);
-        row.height = 17;
-        [1,2,3,4,5].forEach(c => applyStyle(row.getCell(c), {sz:14,bold:true,align:'right'}));
-        [6,7,8,9].forEach(c   => applyStyle(row.getCell(c), {sz:14,bold:true,align:'center'}));
-        ws.mergeCells(r+1,1,r+2,5);
-        ws.mergeCells(r+1,6,r+2,9);
+        row.height = 18;
+        [1,2,3,4,5].forEach(c => applyStyle(row.getCell(c), {sz:14,bold:true,align:'right',valign:'middle'}));
+        [6,7,8,9].forEach(c   => applyStyle(row.getCell(c), {sz:14,bold:true,align:'right',valign:'middle'}));
+        ws.mergeCells(r+1,1,r+1,5);
+        ws.mergeCells(r+1,6,r+1,9);
         r++;
         ws.addRow([]); r++;
       }
-      ws.addRow([]); r++;
 
       // ── Column headers ────────────────────────────────────
       {
