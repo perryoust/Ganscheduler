@@ -5443,7 +5443,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
     const CLR = {
       BLUE:      'FFB8CCE4', RED: 'FFFF0000',
-      RED_LIGHT: 'FFFF4D4D', YELLOW: 'FFFFFF00', PINK: 'FFE6B8B7',
+      RED_LIGHT: 'FFFF4D4D', YELLOW: 'FFFFE699', PINK: 'FFE6B8B7',
     };
 
     let logoImgId = null;
@@ -5571,7 +5571,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
           let fill = CLR.BLUE;
           if (isFri||isSat)                  fill = CLR.RED;
           else if (ev && isCan)              fill = CLR.RED_LIGHT;
-          else if (ev && (hol||blk))         fill = CLR.YELLOW;
+          else if (hol||blk)                 fill = CLR.YELLOW;
 
           const supName = ev ? ((typeof supBase==='function'?supBase(ev.a):ev.a)||ev.a||'') : '';
           const evTpLabel = ev ? (ev.tp||'חוג') : '';
@@ -5584,7 +5584,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
             garden.name, '',
             isFirst ? dateStr : '',
             isFirst ? dayName : '',
-            ev ? evTpLabel : '',
+            ev ? (hol ? hol.name : evTpLabel) : (isFirst&&hol ? hol.name : ''),
             ev ? colF : '',
             ev ? phone    : '',
             ev ? grp      : '',
@@ -5600,24 +5600,25 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
       // ── Footer ────────────────────────────────────────────
       ws.addRow([]); r++;
+      // Manager row - small right-aligned
       {
         const row = ws.addRow([mgrText,'','','','','','','','']);
-        row.height = 20;
-        applyStyle(row.getCell(1), {sz:11, bold:true, align:'right', bb:'medium'});
-        for (let c=2;c<=9;c++) row.getCell(c).border = {bottom:{style:'medium'}};
+        row.height = 18;
+        applyStyle(row.getCell(1), {sz:11, bold:false, align:'right'});
         ws.mergeCells(r+1,1,r+1,9);
         r++;
       }
+      // Main notice row - large, centered, merged full width, border top+bottom
       {
-        const row = ws.addRow(['* שימו לב -  ייתכנו שינויים בתוכנית החוגים','','','','','','','','']);
-        row.height = 36;
-        applyStyle(row.getCell(1), {sz:16, bold:true, align:'right', bt:'medium', bb:'medium'});
-        for (let c=2;c<=9;c++) row.getCell(c).border = {top:{style:'medium'},bottom:{style:'medium'}};
-        ws.mergeCells(r+1,1,r+2,9);
-        r++;
-        const row2 = ws.addRow([]);
-        row2.height = 10;
-        for (let c=1;c<=9;c++) row2.getCell(c).border = {bottom:{style:'medium'}};
+        const row = ws.addRow(['ייתכנו שינויים בלוח החוגים','','','','','','','','']);
+        row.height = 42;
+        applyStyle(row.getCell(1), {sz:22, bold:true, align:'center', valign:'middle', bt:'medium', bb:'medium'});
+        for (let c=2;c<=9;c++) {
+          row.getCell(c).font = {name:'Arial',size:22,bold:true};
+          row.getCell(c).border = {top:{style:'medium'},bottom:{style:'medium'}};
+          row.getCell(c).alignment = {horizontal:'center',vertical:'middle',readingOrder:'rightToLeft'};
+        }
+        ws.mergeCells(r+1,1,r+1,9);
         r++;
       }
     }); // end gardens.forEach
@@ -5780,7 +5781,7 @@ function buildStyledSheet(gardens, allEvs, year, month) {
       const isSat  = dow === 6;
       const blk    = blockedDates ? blockedDates[ds] : null;
       const hol    = typeof getHolidayInfo === 'function' ? getHolidayInfo(ds) : null;
-      const fillRgb = (isFri||isSat) ? 'FFFF0000' : (blk||hol) ? 'FFFFFF00' : null;
+      const fillRgb = (isFri||isSat) ? 'FFFF0000' : (blk||hol) ? 'FFFFE699' : null;
       const dayName = `יום\u00a0${HEB_DAYS[dow]}`;
       const dayEvs  = (byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
       const specialNote = '';
@@ -5805,7 +5806,8 @@ function buildStyledSheet(gardens, allEvs, year, month) {
           const actType = ev.tp || 'חוג';
           const supData = SUPBASE ? SUPBASE.find(s=>(typeof supBase==='function'?supBase(s.name):s.name)===supName) : null;
           const phone   = ev.p || (supData&&supData.phone) || (supEx&&supEx[supName]&&supEx[supName].ph1) || '';
-          sc(r+ei, 4, actType,         null);
+          const holObj = hol || null;
+          sc(r+ei, 4, holObj ? (holObj.name||actType) : actType, null);
           sc(r+ei, 5, supName,         null);
           sc(r+ei, 6, phone,           null);
           sc(r+ei, 7, isCan ? 0 : (ev.grp||1), null);
