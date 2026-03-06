@@ -674,7 +674,7 @@ function renderPurchSuppliers(){
   }).join('');
 }
 
-</script>
+
 
 function _applyYearData(o){
   if(o.ch){
@@ -5576,4 +5576,3 @@ self.addEventListener('activate',e=>e.waitUntil(
   }catch(e){}
 }
 
-</script>
