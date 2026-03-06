@@ -5560,7 +5560,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         const dateStr = `${day}/${month+1}/${String(year).slice(-2)}`;
 
         const dayEvs  = (byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
-        const specialNote = (!dayEvs.length && hol) ? hol.name : (!dayEvs.length && blk) ? 'בוטל' : '';
+        const specialNote = '';
         const rowCount = dayEvs.length || 1;
 
         for (let ei=0; ei<rowCount; ei++) {
@@ -5569,14 +5569,14 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
           const isCan   = ev && (ev.st==='can'||ev.st==='nohap');
 
           let fill = CLR.BLUE;
-          if (isFri||isSat)  fill = CLR.RED;
-          else if (hol||blk) fill = CLR.YELLOW;
-          else if (isCan)    fill = CLR.RED_LIGHT;
+          if (isFri||isSat)                  fill = CLR.RED;
+          else if (ev && isCan)              fill = CLR.RED_LIGHT;
+          else if (ev && (hol||blk))         fill = CLR.YELLOW;
 
           const supName = ev ? ((typeof supBase==='function'?supBase(ev.a):ev.a)||ev.a||'') : '';
           const evTpLabel = ev ? (ev.tp||'חוג') : '';
           const actName  = ev ? (ev.act||(typeof supAct==='function'?supAct(ev.a):'')||'') : '';
-          const colF     = ev ? (isCan?supName:(actName?supName+' - '+actName:supName)) : '';
+          const colF     = ev ? (actName?supName+' - '+actName:supName) : '';
           const phone    = ev ? (ev.p||(typeof supEx!=='undefined'&&supEx[supName]?.ph1)||'') : '';
           const grp      = ev ? (isCan ? 0 : (ev.grp||1)) : '';
 
@@ -5584,7 +5584,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
             garden.name, '',
             isFirst ? dateStr : '',
             isFirst ? dayName : '',
-            ev ? evTpLabel : (isFirst&&specialNote?specialNote:''),
+            ev ? evTpLabel : '',
             ev ? colF : '',
             ev ? phone    : '',
             ev ? grp      : '',
@@ -5783,7 +5783,7 @@ function buildStyledSheet(gardens, allEvs, year, month) {
       const fillRgb = (isFri||isSat) ? 'FFFF0000' : (blk||hol) ? 'FFFFFF00' : null;
       const dayName = `יום\u00a0${HEB_DAYS[dow]}`;
       const dayEvs  = (byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
-      const specialNote = (!dayEvs.length && hol) ? hol.name : (!dayEvs.length && blk) ? 'בוטל' : '';
+      const specialNote = '';
       const rows = dayEvs.length || 1;
 
       for (let ei = 0; ei < rows; ei++) {
@@ -5791,7 +5791,7 @@ function buildStyledSheet(gardens, allEvs, year, month) {
         const isFirst = ei === 0;
         const isCan   = ev && (ev.st==='can'||ev.st==='nohap');
         // row fill: cancelled = light red, else as day color
-        const rowFill = isCan ? 'FFFF4D4D' : fillRgb;
+        const rowFill = (ev&&isCan&&!isFri&&!isSat) ? 'FFFF4D4D' : (ev&&(hol||blk)&&!isFri&&!isSat) ? 'FFFFFF00' : fillRgb;
         // Paint full row first
         dataRow(r + ei, rowFill);
         // Then fill values
@@ -5810,8 +5810,7 @@ function buildStyledSheet(gardens, allEvs, year, month) {
           sc(r+ei, 6, phone,           null);
           sc(r+ei, 7, isCan ? 0 : (ev.grp||1), null);
           sc(r+ei, 8, ev.t ? ev.t.slice(0,5) : '', null);
-        } else if (isFirst && specialNote) {
-          sc(r+ei, 4, specialNote, null);
+        } else if (false) {
         }
       }
       r += rows;
