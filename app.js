@@ -1000,6 +1000,24 @@ function stClass(s){
   return'';
 }
 
+
+// ── Dynamic scroll containers ──────────────────────────────────
+function _fitScrollAreas(){
+  const BOTTOM_PAD = 16; // px from bottom of viewport
+  document.querySelectorAll('.scroll-area').forEach(el=>{
+    // Only adjust visible elements
+    if(!el.offsetParent) return;
+    const top = el.getBoundingClientRect().top;
+    const available = window.innerHeight - top - BOTTOM_PAD;
+    if(available > 100){
+      el.style.maxHeight = available + 'px';
+    }
+  });
+}
+
+// Run on load, resize, and tab switch
+window.addEventListener('resize', _fitScrollAreas);
+
 window.onload = function(){
   // Auth is handled by onAuthStateChanged in index.html (Firebase module)
   // _onAuthReady is called once user is authenticated
@@ -1031,6 +1049,7 @@ window.onload = function(){
     updCounts();
     odUpdateUI();
     _fbStartPolling();
+    setTimeout(_fitScrollAreas, 100);
   }; // end _onAuthReady
 }; // end window.onload
 
@@ -1100,6 +1119,7 @@ function ST(t){
   if(t==='holidays'){initHolDrops();renderHolidays();}
   if(t==='clusters') renderClusters();
   if(t==='managers'){renderManagers();refreshMgrDrops();}
+  setTimeout(_fitScrollAreas, 120);
 }
 
 function calRefG(){
@@ -1916,18 +1936,13 @@ function renderNormalWeek(evs,ws,f){
   const days=[];
   for(let i=0;i<6;i++) days.push(addD(ws,i));
 
-  // ── Collect gardens with activity this week ──────────────────
   let gids=[...new Set(evs.map(s=>s.g))];
   if(f.gids&&f.gids.length) gids=f.gids;
   if(!gids.length) return'<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות</div>';
 
-  // ── Group into pairs & solo, then by city ────────────────────
   const usedGids=new Set();
-  const byCity={}; // city → {pairs:[{pair,gids}], solos:[gid]}
-
-  function ensureCity(city){
-    if(!byCity[city]) byCity[city]={pairs:[],solos:[]};
-  }
+  const byCity={};
+  function ensureCity(city){ if(!byCity[city]) byCity[city]={pairs:[],solos:[]}; }
 
   pairs.forEach(pair=>{
     const myGids=pair.ids.filter(gid=>gids.includes(gid));
@@ -1943,16 +1958,15 @@ function renderNormalWeek(evs,ws,f){
     byCity[city].solos.push(gid);
   });
 
-  // Sort cities, then pairs/solos within each city
   const sortedCities=Object.keys(byCity).sort((a,b)=>a.localeCompare(b,'he'));
   sortedCities.forEach(city=>{
     byCity[city].pairs.sort((a,b)=>a.pair.name.localeCompare(b.pair.name,'he'));
     byCity[city].solos.sort((a,b)=>(G(a).name||'').localeCompare(G(b).name||'','he'));
   });
 
-  // ── Build table ───────────────────────────────────────────────
-  let html='<div class="tw" style="overflow-x:auto"><table style="min-width:620px;border-collapse:collapse"><thead><tr>';
-  html+='<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;border:1px solid #c5cae9">גן / זוג</th>';
+  // Wrapper with position:relative so sticky thead works within scroll container
+  let html='<div style="overflow-x:auto"><table style="min-width:620px;border-collapse:collapse;width:100%"><thead style="position:sticky;top:0;z-index:10""><tr>';
+  html+='<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;border:1px solid #c5cae9;position:sticky;top:0">גן / זוג</th>';
   days.forEach((d,i)=>{
     const ds=d2s(d);
     const hol=getHolidayInfo(ds);
@@ -1960,7 +1974,7 @@ function renderNormalWeek(evs,ws,f){
     const isToday=ds===tday;
     const bg=isToday?'#1565c0':blkWk?'#fce4ec':hol?hol.bg:'#e8eaf6';
     const col=isToday?'#fff':blkWk?'#c62828':hol?hol.color:'#283593';
-    html+=`<th style="background:${bg};color:${col};padding:5px 4px;text-align:center;font-size:.74rem;border:1px solid #c5cae9;${blkWk?'border-bottom:3px solid #e91e63;':''}" onclick="jumpToDay('${ds}')">
+    html+=`<th style="background:${bg};color:${col};padding:5px 4px;text-align:center;font-size:.74rem;border:1px solid #c5cae9;${blkWk?'border-bottom:3px solid #e91e63;':''}position:sticky;top:0" onclick="jumpToDay('${ds}')">
       ${dn[i]}<br>
       <span style="font-size:.64rem;font-weight:400">${fD(ds)}</span><br>
       <span style="font-size:.58rem;font-weight:400;opacity:.75">${toHebDate(ds)}</span>
@@ -1971,28 +1985,25 @@ function renderNormalWeek(evs,ws,f){
 
   sortedCities.forEach(city=>{
     const clr=CITY_COLORS(city);
-    const cityData=byCity[city];
-    const totalGroups=cityData.pairs.length+cityData.solos.length;
 
-    // ── City header row ────────────────────────────────────────
+    // City header row
     html+=`<tr>
-      <td colspan="7" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;letter-spacing:.01em;border-top:2px solid ${clr.border}">
+      <td colspan="7" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;border-top:2px solid ${clr.border}">
         🏙️ ${city}
-        <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${cityData.pairs.length} זוגות · ${cityData.solos.length} גנים בודדים</span>
+        <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} זוגות · ${byCity[city].solos.length} גנים בודדים</span>
       </td>
     </tr>`;
 
-    // ── Pairs within city ──────────────────────────────────────
-    cityData.pairs.forEach(({pair,gids:pGids})=>{
-      const pClr=pairWeekColors?pairWeekColors(pair.id):{solid:clr.solid,light:clr.light};
+    // Pairs — use CITY color (not pair-specific color)
+    byCity[city].pairs.forEach(({pair,gids:pGids})=>{
       html+=`<tr>
-        <td colspan="7" style="background:${pClr.solid};color:#fff;padding:3px 10px 3px 16px;font-size:.75rem;font-weight:700;border-top:1px solid rgba(255,255,255,.3)">
+        <td colspan="7" style="background:${clr.solid}cc;color:#fff;padding:3px 10px 3px 16px;font-size:.75rem;font-weight:700;border-top:1px solid rgba(255,255,255,.25)">
           🔗 ${pair.name}
         </td>
       </tr>`;
       pGids.forEach(gid=>{
         const g=G(gid);
-        html+=`<tr><td style="background:${pClr.light};font-size:.73rem;padding:4px 7px;color:#333;font-weight:600;border-right:3px solid ${pClr.solid};border:1px solid #e0e0e0">
+        html+=`<tr><td style="background:#fff;font-size:.73rem;padding:4px 7px;color:#333;font-weight:600;border-right:3px solid ${clr.solid};border:1px solid #e8e8e8">
           ${g.name}<br><span style="font-size:.63rem;color:#78909c">${g.city}</span>
         </td>`;
         days.forEach(d=>{
@@ -2000,23 +2011,23 @@ function renderNormalWeek(evs,ws,f){
           const hol=getHolidayInfo(ds,g.city,gcls(g));
           const gBlk=getGardenBlock(gid,ds);
           const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
-          const cellBg=gBlk?'#fce4ec':isToday?'#e8f0fe':hol?hol.bg:pClr.light;
-          html+=`<td style="background:${cellBg};${gBlk?'border:1.5px solid #e91e63;':'border:1px solid #e0e0e0;'}padding:2px;vertical-align:top;min-width:90px" onclick="openGcellPopup(${gid},'${ds}',event)">`;
+          const cellBg=gBlk?'#fce4ec':isToday?'#f0f4ff':hol?hol.bg+'44':'#fff';
+          html+=`<td style="background:${cellBg};${gBlk?'border:1.5px solid #e91e63;':'border:1px solid #e8e8e8;'}padding:2px;vertical-align:top;min-width:90px" onclick="openGcellPopup(${gid},'${ds}',event)">`;
           if(de.length){
             de.forEach(ev=>{
-              html+=`<div style="border-radius:4px;padding:3px 5px;margin:1px;cursor:pointer;font-size:.71rem;background:${pClr.light};border-right:2px solid ${pClr.solid};${ev.st==='can'?'opacity:.45;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':''}" onclick="event.stopPropagation();openSP(${ev.id})">
-                <div style="font-weight:700;color:#1a237e">${ev.a}${ev.act?`<span style="color:#1565c0;font-size:.64rem"> · ${ev.act}</span>`:''}</div>
+              html+=`<div style="border-radius:4px;padding:3px 5px;margin:1px;cursor:pointer;font-size:.71rem;background:#fff;border-right:2px solid ${clr.solid};${ev.st==='can'?'opacity:.45;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':''}" onclick="event.stopPropagation();openSP(${ev.id})">
+                <div style="font-weight:700;color:${clr.solid}">${ev.a}${ev.act?`<span style="color:#546e7a;font-size:.64rem"> · ${ev.act}</span>`:''}</div>
                 ${ev.t?`<div style="font-size:.67rem;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
                 <div style="font-size:.64rem">${stLabel(ev)}</div>
               </div>`;
             });
             if(gBlk) html+=`<div style="font-size:.62rem;color:#c62828;padding:2px 4px">${gBlk.icon||'🚫'} ${gBlk.reason}</div>`;
           } else if(gBlk){
-            html+=`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center;cursor:pointer">${gBlk.icon||'🚫'} ${gBlk.reason}</div>`;
+            html+=`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center">${gBlk.icon||'🚫'} ${gBlk.reason}</div>`;
           } else if(hol){
             html+=`<span style="font-size:.66rem;color:${hol.color}">${hol.emoji}</span>`;
           } else {
-            html+=`<span style="color:#ccc;font-size:.8rem;cursor:pointer" title="הוסף שיבוץ">+</span>`;
+            html+=`<span style="color:#ccc;font-size:.8rem;cursor:pointer">+</span>`;
           }
           html+='</td>';
         });
@@ -2024,10 +2035,10 @@ function renderNormalWeek(evs,ws,f){
       });
     });
 
-    // ── Solo gardens within city ───────────────────────────────
-    cityData.solos.forEach(gid=>{
+    // Solo gardens — same city color
+    byCity[city].solos.forEach(gid=>{
       const g=G(gid);
-      html+=`<tr><td style="background:${clr.light};font-size:.73rem;padding:4px 7px;color:#333;font-weight:600;border-right:3px solid ${clr.solid};border:1px solid #e0e0e0">
+      html+=`<tr><td style="background:#fff;font-size:.73rem;padding:4px 7px;color:#333;font-weight:600;border-right:3px solid ${clr.solid};border:1px solid #e8e8e8">
         ${g.name}<br><span style="font-size:.63rem;color:#78909c">${g.city}</span>
       </td>`;
       days.forEach(d=>{
@@ -2035,23 +2046,23 @@ function renderNormalWeek(evs,ws,f){
         const hol=getHolidayInfo(ds,g.city,gcls(g));
         const soloBlk=getGardenBlock(gid,ds);
         const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
-        const cellBg=soloBlk?'#fce4ec':isToday?'#e8f0fe':hol?hol.bg:clr.light;
-        html+=`<td style="background:${cellBg};${soloBlk?'border:1.5px solid #e91e63;':'border:1px solid #e0e0e0;'}padding:2px;vertical-align:top;min-width:90px" onclick="openGcellPopup(${gid},'${ds}',event)">`;
+        const cellBg=soloBlk?'#fce4ec':isToday?'#f0f4ff':hol?hol.bg+'44':'#fff';
+        html+=`<td style="background:${cellBg};${soloBlk?'border:1.5px solid #e91e63;':'border:1px solid #e8e8e8;'}padding:2px;vertical-align:top;min-width:90px" onclick="openGcellPopup(${gid},'${ds}',event)">`;
         if(de.length){
           de.forEach(ev=>{
-            html+=`<div style="border-radius:4px;padding:3px 5px;margin:1px;cursor:pointer;font-size:.71rem;background:${clr.light};border-right:2px solid ${clr.solid};${ev.st==='can'?'opacity:.45;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':''}" onclick="event.stopPropagation();openSP(${ev.id})">
-              <div style="font-weight:700;color:#1a237e">${ev.a}${ev.act?`<span style="color:#1565c0;font-size:.64rem"> · ${ev.act}</span>`:''}</div>
+            html+=`<div style="border-radius:4px;padding:3px 5px;margin:1px;cursor:pointer;font-size:.71rem;background:#fff;border-right:2px solid ${clr.solid};${ev.st==='can'?'opacity:.45;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':''}" onclick="event.stopPropagation();openSP(${ev.id})">
+              <div style="font-weight:700;color:${clr.solid}">${ev.a}${ev.act?`<span style="color:#546e7a;font-size:.64rem"> · ${ev.act}</span>`:''}</div>
               ${ev.t?`<div style="font-size:.67rem;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
               <div style="font-size:.64rem">${stLabel(ev)}</div>
             </div>`;
           });
           if(soloBlk) html+=`<div style="font-size:.62rem;color:#c62828;padding:2px 4px">${soloBlk.icon||'🚫'} ${soloBlk.reason}</div>`;
         } else if(soloBlk){
-          html+=`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center;cursor:pointer">${soloBlk.icon||'🚫'} ${soloBlk.reason}</div>`;
+          html+=`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center">${soloBlk.icon||'🚫'} ${soloBlk.reason}</div>`;
         } else if(hol){
           html+=`<span style="font-size:.66rem;color:${hol.color}">${hol.emoji}</span>`;
         } else {
-          html+=`<span style="color:#ccc;font-size:.8rem;cursor:pointer" title="הוסף שיבוץ">+</span>`;
+          html+=`<span style="color:#ccc;font-size:.8rem;cursor:pointer">+</span>`;
         }
         html+='</td>';
       });
@@ -3234,6 +3245,7 @@ function renderSched(){
   });
   if(!h) h='<p style="color:#999;text-align:center;padding:20px">אין פעילויות</p>';
   document.getElementById('s-body').innerHTML=h;
+  setTimeout(_fitScrollAreas,50);
   let pg='';
   if(pages>1){
     const st=Math.max(1,sPage-3),en=Math.min(pages,sPage+3);
@@ -3313,6 +3325,7 @@ function renderGardens(){
     h+='</div>';
   });
   document.getElementById('g-body').innerHTML=h||'<p style="color:#999">לא נמצאו גנים</p>';
+  setTimeout(_fitScrollAreas,50);
 }
 
 function openGM(gid){
@@ -4294,6 +4307,7 @@ function renderSup(){
     </div>`;
   });
   document.getElementById('su-body').innerHTML=h||'<p style="color:#999">לא נמצאו</p>';
+  setTimeout(_fitScrollAreas,50);
 }
 function openSupModal(name){
   editingSup=name||null;

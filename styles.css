@@ -514,3 +514,7 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 .day-chk-lbl:has(input:checked){background:#e8f5e9;border-color:#4caf50;color:#2e7d32;font-weight:700;}
 #ns-tab-once.active,#ns-tab-recur.active,#ns-tab-makeup.active{background:#1a237e!important;color:#fff!important;border-radius:6px!important;}
 .block-reason-btn.sel{outline:3px solid #1a237e;box-shadow:0 0 0 3px rgba(26,35,126,.25);filter:brightness(.88);font-weight:700}
+
+/* ── Scrollable content containers ─────────────────────────── */
+.scroll-area{overflow-y:auto;overflow-x:hidden}
+.scroll-area-x{overflow-x:auto;overflow-y:hidden}

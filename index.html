@@ -227,7 +227,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <button id="dash-tab-s" class="vbtn" onclick="setDashTab('s')">🏛️ בתי ספר</button>
     </div>
   </div>
-  <div id="dash-body"></div>
+  <div id="dash-body" class="scroll-area"></div>
   <!-- Recent cancellations -->
   <div class="card" style="margin-top:12px">
     <b style="font-size:.8rem;color:#c62828">⚠️ ביטולים ודחיות אחרונים</b>
@@ -284,7 +284,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <button class="btn bp bsm" style="margin-right:auto" onclick="openExport()">📋 יצוא WhatsApp</button>
     </div>
   </div>
-  <div id="cal-body" style="overflow-x:auto"></div>
+  <div id="cal-body" class="scroll-area" style="overflow-x:auto"></div>
 </div>
 
 <!-- ====== SCHEDULES ====== -->
@@ -314,7 +314,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <button class="btn bg bsm" onclick="exportExcelSched()">📊 Excel חודשי</button>
     </div>
     <div id="s-info" style="font-size:.74rem;color:#666;margin-bottom:6px"></div>
-    <div id="s-body"></div>
+    <div id="s-body" class="scroll-area"></div>
     <div id="s-pag" class="pag"></div>
   </div>
 </div>
@@ -337,7 +337,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     </div>
     <div style="display:none"><select id="g-cls" onchange="renderGardens()"><option value="">הכל</option><option value="גנים">גנים</option><option value='ביה"ס'>בתי ספר</option></select></div>
     <div id="g-info" style="font-size:.74rem;color:#666;margin-bottom:9px"></div>
-    <div id="g-body" class="ggrid"></div>
+    <div id="g-body" class="ggrid scroll-area"></div>
   </div>
 </div>
 
@@ -715,7 +715,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <button class="btn bp bsm" onclick="openSupExport(null)">📊 יצוא לאקסל</button>
     </div>
   </div>
-  <div id="su-body" class="sugrid"></div>
+  <div id="su-body" class="sugrid scroll-area"></div>
 </div>
 
 <!-- ====== PROCUREMENT PANELS (hidden until mode-purch) ====== -->
