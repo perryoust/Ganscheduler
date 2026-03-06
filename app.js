@@ -1371,10 +1371,13 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
           html+=`</div>`;
         }
 
-        // --- גנים בודדים: לפי שעה ---
+        // --- גנים בודדים: לפי שם גן (אחר"כ שעה) ---
         const soloEvs=cityEvs
           .filter(s=>!pairedGids.has(s.g))
-          .sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+          .sort((a,b)=>{
+            const na=G(a.g).name||'', nb=G(b.g).name||'';
+            return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
+          });
         if(soloEvs.length){
           html+=`<div style="display:flex;flex-wrap:wrap;gap:6px">`;
           soloEvs.forEach(s=>{
@@ -4014,7 +4017,8 @@ function doSupExport(){
   const totalEvs=evs.length;
   const cancelledEvs=evs.filter(s=>s.st==='can').length;
   const nohapEvs=evs.filter(s=>s.st==='nohap').length;
-  const doneEvs=evs.filter(s=>s.st==='done'||s.st==='ok').length;
+  const doneEvs=evs.filter(s=>(s.st==='done'||s.st==='ok')&&!s._makeupFrom).length;
+  const makeupEvs=evs.filter(s=>s._makeupFrom).length;
 
   // Header block
   if(_supExName){
@@ -4042,7 +4046,7 @@ function doSupExport(){
 
   // Summary row at bottom
   lines.push('');
-  lines.push([q('סה"כ פעילויות:'),q(totalEvs),q('התקיימו:'),q(doneEvs),q('בוטלו:'),q(cancelledEvs),q('לא התקיימו:'),q(nohapEvs),'','',''].join(','));
+  lines.push([q('סה"כ פעילויות:'),q(totalEvs),q('התקיימו:'),q(doneEvs),q('השלמות:'),q(makeupEvs),q('בוטלו:'),q(cancelledEvs),q('לא התקיימו:'),q(nohapEvs),''].join(','));
 
   const csv=bom+lines.join('\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
@@ -5229,21 +5233,18 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     const workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet('לוח חוגים');
 
-    // RTL + A4 page layout
-    ws.views = [{ state:'normal', rightToLeft:true, showGridLines:true }];
+    ws.views = [{ state:'normal', rightToLeft:true }];
     ws.pageSetup = {
-      paperSize: 9,             // A4
-      orientation: 'portrait',
-      fitToPage: true,
-      fitToWidth: 1,
-      fitToHeight: 0,
+      paperSize: 9, orientation: 'portrait',
+      fitToPage: true, fitToWidth: 1, fitToHeight: 0,
+      horizontalCentered: true, verticalCentered: false,
       margins: { left:0.2, right:0.08, top:0.83, bottom:0.2, header:0, footer:0 }
     };
 
-    // Col widths: A=שם הצהרון | B=גיל | C=תאריך | D=יום | E=חוג/הפעלה | F=שם החוג | G=טלפון | H=קב' | I=שעה
+    // Col widths: A=שם הצהרון|B=גיל|C=תאריך|D=יום|E=חוג/הפעלה|F=שם החוג|G=טלפון|H=קב'|I=שעה
     ws.columns = [
       {width:14.4},{width:3.6},{width:8.75},{width:9.25},
-      {width:8.9}, {width:24.6},{width:12.4},{width:4.25},{width:6.1}
+      {width:8.9},{width:24.6},{width:12.4},{width:4.25},{width:6.1}
     ];
 
     const CLR = {
@@ -5269,14 +5270,30 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     const monthTitle  = `${HEB_MONTHS[month]} ${year} ${hebYear(year, month)}`;
     const daysInMonth = new Date(year, month+1, 0).getDate();
 
+    // Add logo to header (print header with image)
     let logoImgId = null;
-    if (typeof LOGO_B64 !== 'undefined' && LOGO_B64)
-      logoImgId = workbook.addImage({ base64:LOGO_B64, extension:'png' });
+    if (typeof LOGO_B64 !== 'undefined' && LOGO_B64) {
+      logoImgId = workbook.addImage({ base64: LOGO_B64, extension: 'png' });
+      // Add logo to the actual Excel print header (left side)
+      ws.headerFooter = {
+        oddHeader: `&L&G&R&"Arial,Bold"&18 ${monthTitle}`
+      };
+      ws.addImage(logoImgId, {
+        tl: { nativeCol: 0, nativeColOff: 0, nativeRow: 0, nativeRowOff: 0 },
+        br: { nativeCol: 0, nativeColOff: 0, nativeRow: 0, nativeRowOff: 0 },
+        editAs: 'oneCell',
+        hyperlinks: { type: 'headerImage' }
+      });
+      // Try setting as header image properly
+      try {
+        workbook.addImage({ base64: LOGO_B64, extension: 'png', type: 'image' });
+      } catch(e) {}
+    }
 
-    function applyStyle(cell, {fill, sz, bold, align, bt, bb, bl, br}={}) {
+    function applyStyle(cell, {fill, sz, bold, align, valign, bt, bb, bl, br}={}) {
       if (fill) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:fill} };
       cell.font      = { name:'Arial', size:sz||11, bold:bold!==false };
-      cell.alignment = { horizontal:align||'center', vertical:'middle', readingOrder:'rightToLeft', wrapText:false };
+      cell.alignment = { horizontal:align||'center', vertical:valign||'middle', readingOrder:'rightToLeft', wrapText:false };
       const brd = {};
       if (bt) brd.top    = {style:bt};
       if (bb) brd.bottom = {style:bb};
@@ -5289,7 +5306,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       for (let i=1; i<=9; i++) {
         applyStyle(row.getCell(i), {
           fill, sz:(i===6||i===7)?10:11,
-          align: i===1?'right':'center',
+          align:i===1?'right':'center',
           bt:'thin', bb:'thin',
           bl:i===1?'medium':'thin', br:i===9?'medium':'thin'
         });
@@ -5299,7 +5316,6 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     let r = 0;
 
     gardens.forEach((garden, gIdx) => {
-      // Find assigned manager for this garden
       const mgr = typeof managers !== 'undefined'
         ? Object.values(managers).find(m => (m.gardenIds||[]).includes(garden.id))
         : null;
@@ -5317,22 +5333,21 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         byDate[s.d].push(s);
       });
 
-      // ── ROW 1: Title (right A-D) + Logo (left E-I) ────────
-      {
+      // ── ROW 1: Title ──────────────────────────────────────
+      if (!logoImgId) {
+        // No logo: title spans full width
         const row = ws.addRow([monthTitle,'','','','','','','','']);
-        row.height = 50;
-        applyStyle(row.getCell(1), {sz:20, bold:true, align:'right'});
-        ws.mergeCells(r+1,1,r+1,4);
-        ws.mergeCells(r+1,5,r+1,9);
-        if (logoImgId !== null)
-          ws.addImage(logoImgId, { tl:{col:4,row:r}, br:{col:9,row:r+1}, editAs:'oneCell' });
+        row.height = 28;
+        applyStyle(row.getCell(1), {sz:18, bold:true, align:'center'});
+        ws.mergeCells(r+1,1,r+1,9);
         r++;
       }
+      // If we have a logo, title/logo are in print header — skip body row
 
       // ── ROWS 2-3: Garden name + City ──────────────────────
       {
         const row = ws.addRow([`צהרון: ${garden.name}`,'','','','',`עיר: ${garden.city}`,'','','']);
-        row.height = 16;
+        row.height = 17;
         [1,2,3,4,5].forEach(c => applyStyle(row.getCell(c), {sz:14,bold:true,align:'right'}));
         [6,7,8,9].forEach(c   => applyStyle(row.getCell(c), {sz:14,bold:true,align:'center'}));
         ws.mergeCells(r+1,1,r+2,5);
@@ -5341,10 +5356,10 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         ws.addRow([]); r++;
       }
 
-      // ── ROW 4: empty ──────────────────────────────────────
+      // ── ROW: empty ────────────────────────────────────────
       ws.addRow([]); r++;
 
-      // ── ROW 5: Column headers ─────────────────────────────
+      // ── ROW: Column headers ───────────────────────────────
       {
         const hdrs = ['שם הצהרון','גיל','תאריך','יום','חוג/הפעלה','שם החוג','טלפון',"קב'",'שעה'];
         const row  = ws.addRow(hdrs);
@@ -5352,16 +5367,15 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         hdrs.forEach((_, i) => {
           applyStyle(row.getCell(i+1), {
             sz:(i===5||i===6)?10:11, bold:true,
-            align:i===0?'right':'center',
+            align:i===0?'right':'center', valign:'top',
             bt:'medium', bb:'thin',
             bl:i===0?'medium':'thin', br:i===8?'medium':'thin'
           });
-          row.getCell(i+1).alignment = {...row.getCell(i+1).alignment, vertical:'top'};
         });
         r++;
       }
 
-      // ── Data rows: every calendar day ─────────────────────
+      // ── Data rows ─────────────────────────────────────────
       for (let day=1; day<=daysInMonth; day++) {
         const date    = new Date(year, month, day);
         const dow     = date.getDay();
@@ -5373,7 +5387,6 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         const dateStr = `${day}/${month+1}/${String(year).slice(-2)}`;
 
         const dayEvs  = (byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
-        // Only show special note if NO activities that day
         const specialNote = (!dayEvs.length && hol) ? hol.name
                           : (!dayEvs.length && blk) ? 'בוטל'
                           : '';
@@ -5390,21 +5403,20 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
           else if (isCan)    fill = CLR.RED_LIGHT;
 
           const supName = ev ? ((typeof supBase==='function'?supBase(ev.a):ev.a)||ev.a||'') : '';
-          const actType = ev
-            ? (isCan ? 'בוטל' : (ev.act||(typeof supAct==='function'?supAct(ev.a):'')||'חוג'))
-            : '';
-          const phone = ev ? (ev.p||(typeof supEx!=='undefined'&&supEx[supName]?.ph1)||'') : '';
+          const actType = ev ? (isCan ? 'בוטל' : (ev.act||(typeof supAct==='function'?supAct(ev.a):'')||'חוג')) : '';
+          const phone   = ev ? (ev.p||(typeof supEx!=='undefined'&&supEx[supName]?.ph1)||'') : '';
+          const grp     = ev ? (isCan ? 0 : (ev.grp||1)) : '';  // ← 0 for cancelled
 
           const vals = [
-            garden.name,                                           // A שם הצהרון — always
-            '',                                                    // B גיל
-            isFirst ? dateStr : '',                                // C תאריך
-            isFirst ? dayName : '',                                // D יום
-            ev ? actType : (isFirst&&specialNote?specialNote:''), // E חוג/הפעלה
-            ev ? supName : '',                                     // F שם החוג
-            ev ? phone   : '',                                     // G טלפון
-            ev ? (ev.grp||1) : '',                                 // H קב'
-            ev ? (ev.t?ev.t.slice(0,5):'') : ''                   // I שעה
+            garden.name,
+            '',
+            isFirst ? dateStr : '',
+            isFirst ? dayName : '',
+            ev ? actType : (isFirst&&specialNote?specialNote:''),
+            ev ? supName : '',
+            ev ? phone   : '',
+            ev ? grp     : '',
+            ev ? (ev.t?ev.t.slice(0,5):'') : ''
           ];
 
           const row = ws.addRow(vals);
@@ -5414,36 +5426,35 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         }
       }
 
-      // ── Footer: Manager row ───────────────────────────────
+      // ── Footer ────────────────────────────────────────────
       ws.addRow([]); r++;
 
+      // Manager row
       {
         const row = ws.addRow([mgrText,'','','','','','','','']);
         row.height = 20;
         applyStyle(row.getCell(1), {sz:11, bold:true, align:'right', bb:'medium'});
-        for (let c=2;c<=9;c++) row.getCell(c).border = { bottom:{style:'medium'} };
+        for (let c=2;c<=9;c++) row.getCell(c).border = {bottom:{style:'medium'}};
         ws.mergeCells(r+1,1,r+1,9);
         r++;
       }
 
-      // ── Disclaimer (large text, 2-row merge) ──────────────
+      // Disclaimer — big merged
       {
         const row = ws.addRow(['* שימו לב -  ייתכנו שינויים בתוכנית החוגים','','','','','','','','']);
         row.height = 36;
         applyStyle(row.getCell(1), {sz:16, bold:true, align:'right', bt:'medium', bb:'medium'});
-        for (let c=2;c<=9;c++) {
-          row.getCell(c).border = { top:{style:'medium'}, bottom:{style:'medium'} };
-        }
+        for (let c=2;c<=9;c++) row.getCell(c).border = {top:{style:'medium'}, bottom:{style:'medium'}};
         ws.mergeCells(r+1,1,r+2,9);
         r++;
         const row2 = ws.addRow([]);
         row2.height = 10;
-        for (let c=1;c<=9;c++) row2.getCell(c).border = { bottom:{style:'medium'} };
+        for (let c=1;c<=9;c++) row2.getCell(c).border = {bottom:{style:'medium'}};
         r++;
       }
 
-      // ── Page break after each garden except last ──────────
-      if (gIdx < gardens.length-1) {
+      // Page break between gardens
+      if (gIdx < gardens.length - 1) {
         ws.addHorizontalPageBreak(r);
         ws.addRow([]); r++;
       }
@@ -5456,7 +5467,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     a.download   = filename;
     a.style.display = 'none';
     document.body.appendChild(a); a.click();
-    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
+    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
     showToast('📊 קובץ Excel נוצר!');
   } catch(e) {
     console.error('ExcelJS error:', e);
