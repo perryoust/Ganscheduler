@@ -4458,9 +4458,9 @@ function sucRemoveAct(idx){
   supEx[_sucName].acts=acts; sucRefreshActsList(); save();
 }
 function deleteSupFromCard() {
-  const nameEl = document.getElementById('suc-edit-name');
-  const name = (nameEl && nameEl.dataset.orig) || (nameEl && nameEl.value.trim());
-  if (!name) return;
+  // Use _sucName (set by openSupCard) as the reliable source
+  const name = _sucName || (document.getElementById('suc-edit-name') && document.getElementById('suc-edit-name').dataset.orig);
+  if (!name) { alert('לא נמצא שם ספק'); return; }
 
   const activeCount = SCH.filter(s => s.a === name && s.st !== 'can').length;
   const totalCount  = SCH.filter(s => s.a === name).length;
