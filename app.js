@@ -936,6 +936,18 @@ function addD(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
 function addM(d,n){const x=new Date(d);x.setMonth(x.getMonth()+n);return x}
 function monStart(d){const x=new Date(d);x.setDate(x.getDate()-x.getDay());x.setHours(0,0,0,0);return x}
 function dayN(s){const[y,m,d]=s.split('-').map(Number);return['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(y,m-1,d).getDay()]}
+
+// ── Hebrew Date (via built-in Intl API) ─────────────────────
+const _hebFmt = new Intl.DateTimeFormat('he-IL-u-ca-hebrew', {
+  day: 'numeric', month: 'long', timeZone: 'UTC'
+});
+function toHebDate(ds) {
+  try {
+    const [y, m, d] = ds.split('-').map(Number);
+    return _hebFmt.format(new Date(Date.UTC(y, m-1, d)));
+  } catch(e) { return ''; }
+}
+
 function hebM(d){return['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'][d.getMonth()]+' '+d.getFullYear()}
 function td(){return d2s(new Date())}
 function cities(){return[...new Set(GARDENS.map(g=>g.city))].sort()}
@@ -1912,7 +1924,7 @@ function renderNormalWeek(evs,ws,f){
     const bg=ds===tday?'#1565c0':blkWk?'#fce4ec':hol?hol.bg:'#e8eaf6';
     const col=ds===tday?'#fff':blkWk?'#c62828':hol?hol.color:'#283593';
     const border=blkWk?'border-bottom:3px solid #e91e63;':'';
-    html+=`<th style="background:${bg};color:${col};padding:5px 4px;text-align:center;font-size:.74rem;${border}" onclick="jumpToDay('${ds}')">${dn[i]}<br><span style="font-size:.64rem;font-weight:400">${fD(ds)}</span>
+    html+=`<th style="background:${bg};color:${col};padding:5px 4px;text-align:center;font-size:.74rem;${border}" onclick="jumpToDay('${ds}')">${dn[i]}<br><span style="font-size:.64rem;font-weight:400">${fD(ds)}</span><br><span style="font-size:.58rem;font-weight:400;opacity:.75">${toHebDate(ds)}</span>
       ${blkWk?`<br><span style="font-size:.6rem;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blkWk.icon||'🚫'} ${blkWk.reason}</span>`:`<br><span style="font-size:.58rem;opacity:.4;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')" title="חסום תאריך">🚫</span>`}
     </th>`;
   });
@@ -1986,7 +1998,7 @@ function renderPairWeek(evs,ws,gids){
     const ds=d2s(d);
     const hol=getHolidayInfo(ds);
     const holStyle=hol?`background:${hol.bg};`:'';
-    html+=`<tr><td class="dth" style="${ds===tday?'background:#1565c0;color:#fff;':holStyle} text-align:center;white-space:nowrap;font-weight:700">${dn[i]}<br><span style="font-size:.66rem;font-weight:400">${fD(ds)}</span>${hol?`<br><span style="font-size:.64rem;color:${hol.color}">${hol.name}</span>`:''}</td>`;
+    html+=`<tr><td class="dth" style="${ds===tday?'background:#1565c0;color:#fff;':holStyle} text-align:center;white-space:nowrap;font-weight:700">${dn[i]}<br><span style="font-size:.66rem;font-weight:400">${fD(ds)}</span><br><span style="font-size:.58rem;font-weight:400;opacity:.8">${toHebDate(ds)}</span>${hol?`<br><span style="font-size:.64rem;color:${hol.color}">${hol.name}</span>`:''}</td>`;
     cols.forEach((gid,ci)=>{
       if(!gid){html+=`<td style="background:#f5f5f5"></td>`;return;}
       const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
@@ -2067,7 +2079,10 @@ function renderMonth(evs,mDate){
     const holStyle=hol?`background:${hol.bg};border-top:3px solid ${hol.border};`:(blkM?'background:#fce4ec;border-top:3px solid #e91e63;':'');
     html+=`<div class="md ${ds===tday?'tdy':''} ${c?'hev':''}" style="${holStyle}" onclick="jumpToDay('${ds}')">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="dnum" style="${blkM?'color:#c62828':''}">${d}</div>
+        <div>
+          <div class="dnum" style="${blkM?'color:#c62828':''}">${d}</div>
+          <div style="font-size:.58rem;color:#9e9e9e;line-height:1;margin-top:1px">${toHebDate(ds)}</div>
+        </div>
         <span style="font-size:.55rem;opacity:${blkM?1:.25};cursor:pointer;color:${blkM?'#c62828':'#999'}" onclick="event.stopPropagation();openBlockedDate('${ds}')" title="${blkM?'ערוך חסימה':'חסום תאריך'}">${blkM?blkM.icon||'🚫':'🚫'}</span>
       </div>
       ${hol?`<div style="font-size:.65rem;color:${hol.color};font-weight:700">${hol.emoji} ${hol.name}</div>`:''}
