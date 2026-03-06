@@ -5170,136 +5170,489 @@ function buildGardenWB(garden, evs, fromDate, toDate){
   return {sheets:[{garden, evs}], city:garden.city};
 }
 
-function downloadWB(wb, filename){
-  // Safe filename — strip chars that break downloads
+function downloadWB(wb, filename) {
   const safeFile = filename.replace(/[^\u0590-\u05FF\w\-_.]/gu, '_');
-  if(typeof XLSX!=='undefined'){
-    try{
-      const workbook=XLSX.utils.book_new();
-      wb.sheets.forEach(({garden,evs})=>{
-        const sheetData=buildSheetData(garden, evs);
-        const ws=XLSX.utils.aoa_to_sheet(sheetData.rows);
-        ws['!cols']=[{wch:14},{wch:6},{wch:12},{wch:10},{wch:12},{wch:28},{wch:14},{wch:5},{wch:8}];
-        XLSX.utils.book_append_sheet(workbook, ws, garden.name.slice(0,28));
-      });
-      XLSX.writeFile(workbook, safeFile);
-      return;
-    }catch(e){ console.warn('XLSX error, falling back to CSV:',e); }
+  const gardens = wb.sheets.map(s => s.garden);
+  const allEvs  = wb.sheets.reduce((acc, s) => acc.concat(s.evs), []);
+  if (!gardens.length) return;
+  const firstDs = allEvs.length ? [...allEvs].sort((a,b)=>a.d.localeCompare(b.d))[0].d : d2s(new Date());
+  const [fy, fm] = firstDs.split('-').map(Number);
+
+  // Try ExcelJS first (supports images + RTL)
+  if (typeof ExcelJS !== 'undefined') {
+    _downloadWBExcelJS(gardens, allEvs, fy, fm - 1, safeFile);
+    return;
   }
-  // Fallback: CSV — must append anchor to DOM for download to trigger
-  const csvParts=[];
-  wb.sheets.forEach(({garden,evs})=>{
-    csvParts.push(`=== ${garden.name} ===`);
-    const {rows}=buildSheetData(garden,evs);
-    rows.forEach(r=>csvParts.push(r.map(c=>c==null?'':String(c).replace(/,/g,'،')).join(',')));
-    csvParts.push('');
-  });
-  const blob=new Blob(['\uFEFF'+csvParts.join('\n')],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=safeFile.replace('.xlsx','.csv');
-  a.style.display='none';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
+  // Fallback: SheetJS (no images)
+  try {
+    const workbook = XLSX.utils.book_new();
+    const ws = buildStyledSheet(gardens, allEvs, fy, fm - 1);
+    XLSX.utils.book_append_sheet(workbook, ws, 'לוח חוגים');
+    XLSX.writeFile(workbook, safeFile);
+  } catch(e) {
+    console.error('XLSX error:', e);
+    _csvFallback(wb, safeFile);
+  }
 }
 
-function buildSheetData(garden, evs){
-  const gEx=supEx['g_'+garden.id]||{};
-  const gardenName=gEx.name||garden.name;
-  const gardenCity=garden.city||'';
-  const gardenAddr=gEx.st||garden.st||'';
-  const gardenPhone=gEx.coph||'';
+async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    workbook.views = [{ rightToLeft: true }];
+    const ws = workbook.addWorksheet('לוח חוגים', {
+      views: [{ rightToLeft: true }],
+      pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1 }
+    });
 
-  const rows=[];
-  // Row 1: Title
-  rows.push(['לוז חוגים',null,null,null,null,null,null,null,null]);
-  // Row 2: Garden name + city
-  rows.push([` צהרון: ${gardenName}`,null,null,null,null,` עיר : ${gardenCity}`,null,null,null]);
-  // Row 3: Headers
-  rows.push(['שם הצהרון','גיל','תאריך','יום',"חוג/הפעלה",'שם החוג','טלפון',"קב'",'שעה']);
+    const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+    const HEB_DAYS   = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 
-  // Build all dates in range covered by this garden's events
-  if(!evs.length){
-    rows.push([null,null,null,null,'אין פעילויות',null,null,null,null]);
-    return {rows};
-  }
+    // Hebrew year
+    function hebYear(y, m) {
+      const base = y + 3760 + (m >= 8 ? 1 : 0);
+      const n0 = base % 1000;
+      const L = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה',6:'ו',7:'ז',8:'ח',9:'ט',10:'י',20:'כ',30:'ל',40:'מ',50:'נ',60:'ס',70:'ע',80:'פ',90:'צ',100:'ק',200:'ר',300:'ש',400:'ת'};
+      let n = n0, s = '';
+      for (const v of [400,300,200,100,90,80,70,60,50,40,30,20,10,9,8,7,6,5,4,3,2,1]) {
+        while (n >= v) { s += L[v]; n -= v; }
+      }
+      return s.length === 1 ? s + "'" : s.slice(0,-1) + '"' + s.slice(-1);
+    }
 
-  // Group events by date
-  const byDate={};
-  evs.forEach(s=>{
-    if(!byDate[s.d]) byDate[s.d]=[];
-    byDate[s.d].push(s);
-  });
+    const monthTitle = `${HEB_MONTHS[month]} ${year} ${hebYear(year, month)}`;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  // Find date range from events
-  const dates=Object.keys(byDate).sort();
-  if(!dates.length) return {rows};
-  const firstD=dates[0], lastD=dates[dates.length-1];
-  // Generate all dates in range
-  const allDates=[];
-  let cur=new Date(firstD.replace(/-/g,'/'));
-  const end=new Date(lastD.replace(/-/g,'/'));
-  while(cur<=end){ allDates.push(d2s(cur)); cur.setDate(cur.getDate()+1); }
+    // Logo
+    let logoImgId = null;
+    if (typeof LOGO_B64 !== 'undefined' && LOGO_B64) {
+      logoImgId = workbook.addImage({ base64: LOGO_B64, extension: 'png' });
+    }
 
-  const dayNames=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+    // Column widths
+    ws.columns = [
+      {width:14.4},{width:3.6},{width:8.75},{width:9.25},
+      {width:8.9},{width:24.6},{width:12.4},{width:4.25},{width:6.1}
+    ];
 
-  // Group into months, each month a separate block
-  const months={};
-  allDates.forEach(ds=>{
-    const [y,m]=ds.split('-');
-    const mk=`${y}-${m}`;
-    if(!months[mk]) months[mk]=[];
-    months[mk].push(ds);
-  });
+    function cellSt(cell, opts) {
+      if (opts.fill) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb: opts.fill} };
+      if (opts.font) cell.font = { name:'Arial', size: opts.font.sz||11, bold: opts.font.bold!==false };
+      if (opts.align) cell.alignment = { horizontal: opts.align, vertical:'middle', readingOrder:'rightToLeft' };
+      if (opts.border) {
+        const b = {};
+        const s = st => st ? {style:st} : undefined;
+        if (s(opts.border.t)) b.top    = s(opts.border.t);
+        if (s(opts.border.b)) b.bottom = s(opts.border.b);
+        if (s(opts.border.l)) b.left   = s(opts.border.l);
+        if (s(opts.border.r)) b.right  = s(opts.border.r);
+        cell.border = b;
+      }
+    }
 
-  let firstMonth=true;
-  Object.entries(months).sort().forEach(([mk, mDates])=>{
-    // Month separator
-    if(!firstMonth) rows.push([null,null,null,null,null,null,null,null,null]);
-    firstMonth=false;
-    const [y,m]=mk.split('-').map(Number);
-    const monthNames=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
-    rows.push([null,null,null,`${monthNames[m-1]} ${y}`,null,null,null,null,null]);
+    function addRow(values, styles) {
+      const row = ws.addRow(values);
+      row.height = 19.35;
+      styles.forEach((st, i) => { if (st) cellSt(row.getCell(i+1), st); });
+      return row;
+    }
 
-    mDates.forEach(ds=>{
-      const dayEvs=(byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
-      const hol=getHolidayInfo(ds);
-      const blk=getBlockedInfo(ds);
-      const [dy,dm,dd]=ds.split('-').map(Number);
-      const dateObj=new Date(dy,dm-1,dd);
-      const dayName=`יום\u00a0${dayNames[dateObj.getDay()]}`;
-      const dateVal=ds; // store as string YYYY-MM-DD
+    const rowBorder = (left, right) => ({
+      t:'thin', b:'thin', l: left||'thin', r: right||'thin'
+    });
 
-      if(!dayEvs.length){
-        // Empty day or holiday/blocked
-        const note=hol?hol.name:blk?`🚫 ${blk.reason}`:'';
-        rows.push([null,null,dateVal,dayName,note||null,null,null,null,null]);
-      } else {
-        dayEvs.forEach((s,i)=>{
-          const sup=supBase(s.a);
-          const act=s.act||supAct(s.a)||'חוג';
-          const phone=s.p||'';
-          const grp=s.grp||1;
-          const timeStr=s.t?s.t.slice(0,5):'';
-          rows.push([
-            i===0?gardenName:null,  // שם הצהרון only on first row
-            null,                    // גיל
-            i===0?dateVal:null,      // תאריך
-            i===0?dayName:null,      // יום
-            act,                     // חוג/הפעלה
-            sup,                     // שם החוג
-            phone,                   // טלפון
-            grp,                     // קב'
-            timeStr                  // שעה
-          ]);
+    let currentRow = 1;
+
+    gardens.forEach((garden, gIdx) => {
+      const gardenEvs = allEvs.filter(s => {
+        const [ey,em] = s.d.split('-').map(Number);
+        return s.g === garden.id && ey === year && em === month + 1;
+      });
+      const byDate = {};
+      gardenEvs.filter(s=>s.st!=='can').forEach(s => {
+        if (!byDate[s.d]) byDate[s.d] = [];
+        byDate[s.d].push(s);
+      });
+
+      // ── ROW 1: Logo row (logo left, title right) ──────────
+      const logoRow = ws.addRow(['', '', '', '', '', '', '', '', monthTitle]);
+      logoRow.height = 45;
+      const titleCell = logoRow.getCell(9);
+      titleCell.font = { name:'Arial', size:20, bold:true };
+      titleCell.alignment = { horizontal:'right', vertical:'middle', readingOrder:'rightToLeft' };
+      ws.mergeCells(currentRow, 1, currentRow, 8);
+      // Add logo image over cols A-H, this row
+      if (logoImgId !== null) {
+        ws.addImage(logoImgId, {
+          tl: { col: 0, row: currentRow - 1 },
+          br: { col: 7.5, row: currentRow },
+          editAs: 'oneCell'
         });
       }
+      currentRow++;
+
+      // ── ROW 2-3: Garden name + City ───────────────────────
+      const nameRow = ws.addRow([` צהרון: ${garden.name}`, '', '', '', '', ` עיר: ${garden.city}`, '', '', '']);
+      nameRow.height = 18;
+      [1,2,3,4,5].forEach(c => cellSt(nameRow.getCell(c), {font:{sz:14,bold:true}, align:'center'}));
+      [6,7,8,9].forEach(c  => cellSt(nameRow.getCell(c), {font:{sz:14,bold:true}, align:'center'}));
+      ws.mergeCells(currentRow, 1, currentRow+1, 5);
+      ws.mergeCells(currentRow, 6, currentRow+1, 9);
+      currentRow++;
+
+      const emptyRow = ws.addRow(['','','','','','','','','']);
+      emptyRow.height = 14;
+      currentRow++;
+
+      // ── ROW 4: empty ──────────────────────────────────────
+      ws.addRow([]);
+      currentRow++;
+
+      // ── ROW 5: Headers ────────────────────────────────────
+      const hdrs = ['שם הצהרון','גיל','תאריך','יום','חוג/הפעלה','שם החוג','טלפון',"קב'",'שעה'];
+      const hRow = addRow(hdrs, hdrs.map((_, i) => ({
+        font: {sz: i===5||i===6 ? 10 : 11, bold:true},
+        align: i===0 ? 'right' : 'center',
+        border: {t:'medium', b:'thin', l: i===0?'medium':'thin', r: i===8?'medium':'thin'}
+      })));
+      hRow.height = 18.6;
+      currentRow++;
+
+      // ── Data rows ─────────────────────────────────────────
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date   = new Date(year, month, day);
+        const dow    = date.getDay();
+        const ds     = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const isFri  = dow === 5;
+        const isSat  = dow === 6;
+        const blk    = blockedDates ? blockedDates[ds] : null;
+        const hol    = typeof getHolidayInfo==='function' ? getHolidayInfo(ds) : null;
+        const fillArgb = (isFri||isSat) ? 'FFFF0000' : (blk||hol) ? 'FFFFFF00' : null;
+        const dayName  = `יום\u00a0${HEB_DAYS[dow]}`;
+        const dayEvs   = (byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
+        const specialNote = hol ? hol.name : blk ? blk.reason : '';
+        const rowCount = dayEvs.length || 1;
+
+        for (let ei = 0; ei < rowCount; ei++) {
+          const ev = dayEvs[ei] || null;
+          const isFirst = ei === 0;
+          const vals = ['','','','','','','','',''];
+          if (isFirst) {
+            if (ev) vals[0] = garden.name;
+            vals[2] = ds;
+            vals[3] = dayName;
+            if (!ev && specialNote) vals[4] = specialNote;
+          }
+          if (ev) {
+            const supName = (typeof supBase==='function' ? supBase(ev.a) : ev.a) || ev.a || '';
+            const actType = ev.act || (typeof supAct==='function' ? supAct(ev.a) : '') || 'חוג';
+            const supData = SUPBASE ? SUPBASE.find(s => (typeof supBase==='function'?supBase(s.name):s.name)===supName) : null;
+            const phone   = ev.p || (supData&&supData.phone) || (supEx&&supEx[supName]&&supEx[supName].ph1) || '';
+            vals[4] = actType;
+            vals[5] = supName;
+            vals[6] = phone;
+            vals[7] = ev.grp || 1;
+            vals[8] = ev.t ? ev.t.slice(0,5) : '';
+          }
+          const row = addRow(vals, vals.map((_, i) => ({
+            fill: fillArgb,
+            font: {sz: i===5||i===6 ? 10 : 11, bold:true},
+            align: i===0 ? 'right' : 'center',
+            border: {t:'thin', b:'thin', l: i===0?'medium':'thin', r: i===8?'medium':'thin'}
+          })));
+          currentRow++;
+        }
+      }
+
+      // ── Footer ────────────────────────────────────────────
+      ws.addRow([]); ws.addRow([]); ws.addRow([]);
+      currentRow += 3;
+
+      const mgrRow = ws.addRow(['שם הרכז בגן','','','','','','','','']);
+      cellSt(mgrRow.getCell(1), {font:{sz:11,bold:true}, align:'right', border:{b:'medium'}});
+      for (let c=2;c<=9;c++) cellSt(mgrRow.getCell(c), {border:{b:'medium'}});
+      mgrRow.height = 18;
+      currentRow++;
+
+      const noteRow = ws.addRow(['* שימו לב -  ייתכנו שינויים בתוכנית החוגים','','','','','','','','']);
+      cellSt(noteRow.getCell(1), {font:{sz:11,bold:true}, align:'right', border:{t:'medium',b:'medium'}});
+      for (let c=2;c<=9;c++) cellSt(noteRow.getCell(c), {border:{t:'medium'}});
+      ws.mergeCells(currentRow, 1, currentRow+1, 9);
+      noteRow.height = 18;
+      currentRow++;
+
+      const note2 = ws.addRow([]);
+      for (let c=1;c<=9;c++) cellSt(note2.getCell(c), {border:{b:'medium'}});
+      currentRow++;
+
+      // Page break after each garden except last
+      if (gIdx < gardens.length - 1) {
+        ws.addRow([]);
+        ws.getRow(currentRow).addPageBreak();
+        currentRow++;
+      }
     });
+
+    // Save
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
+    showToast('📊 קובץ Excel נוצר עם לוגו!');
+  } catch(e) {
+    console.error('ExcelJS error:', e);
+    showToast('⚠️ שגיאה ביצירת Excel: ' + e.message);
+    _csvFallback({sheets: gardens.map(g => ({garden:g, evs:allEvs.filter(s=>s.g===g.id)}))}, filename);
+  }
+}
+
+function _csvFallback(wb, filename) {
+  const csvParts = [];
+  wb.sheets.forEach(({garden, evs}) => {
+    csvParts.push(`=== ${garden.name} ===`);
+    const {rows} = buildSheetData(garden, evs);
+    rows.forEach(r => csvParts.push(r.map(c => c==null?'':String(c).replace(/,/g,'،')).join(',')));
+    csvParts.push('');
+  });
+  const blob = new Blob(['\uFEFF'+csvParts.join('\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename.replace('.xlsx','.csv');
+  a.style.display = 'none';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
+}
+
+
+function buildStyledSheet(gardens, allEvs, year, month) {
+  const ws = {};
+  const merges = [];
+  const rowBreaks = [];
+  let r = 0;
+
+  const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  const HEB_DAYS   = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+
+  // Hebrew year calculation
+  function _hebYear(y, m) {
+    // m is 0-indexed. Rosh Hashana shifts Sep onwards to new year.
+    const baseYear = y + 3760;
+    const adjusted = m >= 8 ? baseYear + 1 : baseYear; // Sep(8)+ = new year
+    // Convert to Hebrew letter notation תשפ"ו etc.
+    const HEB_LETTERS = {
+      1:'א',2:'ב',3:'ג',4:'ד',5:'ה',6:'ו',7:'ז',8:'ח',9:'ט',
+      10:'י',20:'כ',30:'ל',40:'מ',50:'נ',60:'ס',70:'ע',80:'פ',90:'צ',
+      100:'ק',200:'ר',300:'ש',400:'ת'
+    };
+    let n = adjusted % 1000; // e.g. 786 for תשפ"ו
+    let result = '';
+    const vals = [400,300,200,100,90,80,70,60,50,40,30,20,10,9,8,7,6,5,4,3,2,1];
+    for (const v of vals) {
+      while (n >= v) { result += HEB_LETTERS[v]; n -= v; }
+    }
+    // Insert geresh/gershayim
+    if (result.length === 1) return result + "'";
+    return result.slice(0,-1) + '"' + result.slice(-1);
+  }
+
+  const hebYearStr = _hebYear(year, month);
+  const monthStr = `${HEB_MONTHS[month]} ${year} ${hebYearStr}`;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  function fill(rgb) { return rgb ? {patternType:'solid',fgColor:{rgb}} : {patternType:'none'}; }
+  function font(sz, bold) { return {name:'Arial', sz, bold:!!bold}; }
+  function border(t, b, l, ri) {
+    const s = st => st ? {style:st,color:{rgb:'FF000000'}} : undefined;
+    const o = {};
+    if (s(t)) o.top = s(t);
+    if (s(b)) o.bottom = s(b);
+    if (s(l)) o.left = s(l);
+    if (s(ri)) o.right = s(ri);
+    return o;
+  }
+  function align(h) { return {horizontal:h, vertical:'center', readingOrder:2}; }
+
+  function sc(row, col, value, style) {
+    const addr = XLSX.utils.encode_cell({r: row, c: col});
+    const t = typeof value === 'number' ? 'n' : value instanceof Date ? 'd' : 's';
+    ws[addr] = {v: value != null ? value : '', t: value != null ? t : 's', s: style || {}};
+  }
+
+  function dataRow(row, fillRgb, isLeftBorder) {
+    // Apply full-row style with borders for all 9 columns
+    for (let c = 0; c < 9; c++) {
+      const addr = XLSX.utils.encode_cell({r: row, c});
+      if (!ws[addr]) ws[addr] = {v: '', t: 's', s: {}};
+      ws[addr].s = {
+        ...ws[addr].s,
+        fill: fill(fillRgb),
+        font: font(c === 5 || c === 6 ? 10 : 11, true),
+        border: border('thin','thin', c===0?'medium':'thin', c===8?'medium':'thin'),
+        alignment: align(c===0?'right':'center')
+      };
+    }
+  }
+
+  gardens.forEach((garden, gIdx) => {
+    // ── ROW 1: Title ──────────────────────────────────
+    sc(r, 0, 'לוז חוגים', {font:font(14,true), alignment:align('center')});
+    sc(r, 5, monthStr,     {font:font(14,true), alignment:align('center')});
+    for (let c=1;c<5;c++) sc(r,c,'',{font:font(14,true)});
+    for (let c=6;c<9;c++) sc(r,c,'',{font:font(14,true)});
+    merges.push({s:{r,c:0},e:{r,c:4}});
+    merges.push({s:{r,c:5},e:{r,c:8}});
+    r++;
+
+    // ── ROWS 2-3: Garden name + City ─────────────────
+    sc(r,   0, ` צהרון: ${garden.name}`, {font:font(14,true), alignment:align('center')});
+    sc(r,   5, ` עיר : ${garden.city}`,  {font:font(14,true), alignment:align('center')});
+    for (let c=1;c<5;c++) sc(r,  c,'',{font:font(14,true)});
+    for (let c=6;c<9;c++) sc(r,  c,'',{font:font(14,true)});
+    for (let c=0;c<9;c++) sc(r+1,c,'',{font:font(14,true)});
+    merges.push({s:{r,c:0},e:{r:r+1,c:4}});
+    merges.push({s:{r,c:5},e:{r:r+1,c:8}});
+    r += 2;
+
+    // ── ROW 4: empty ─────────────────────────────────
+    r++;
+
+    // ── ROW 5: Column headers ─────────────────────────
+    const hdrs  = ['שם הצהרון','גיל','תאריך','יום','חוג/הפעלה','שם החוג','טלפון',"קב'",'שעה'];
+    const hAlgn = ['right','center','center','center','center','center','center','center','center'];
+    const hSz   = [11,11,11,11,11,10,10,11,11];
+    hdrs.forEach((h, c) => {
+      sc(r, c, h, {
+        font: font(hSz[c], true),
+        alignment: {...align(hAlgn[c])},
+        fill: fill(null),
+        border: border('medium','thin', c===0?'medium':'thin', c===8?'medium':'thin')
+      });
+    });
+    r++;
+
+    // ── Data rows: one per day ────────────────────────
+    const byDate = {};
+    allEvs.filter(s => {
+      const [ey,em] = s.d.split('-').map(Number);
+      return s.g === garden.id && ey === year && em === month + 1;
+    }).forEach(s => {
+      if (!byDate[s.d]) byDate[s.d] = [];
+      byDate[s.d].push(s);
+    });
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date   = new Date(year, month, day);
+      const dow    = date.getDay();
+      const ds     = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      const isFri  = dow === 5;
+      const isSat  = dow === 6;
+      const blk    = blockedDates ? blockedDates[ds] : null;
+      const hol    = typeof getHolidayInfo === 'function' ? getHolidayInfo(ds) : null;
+      const fillRgb = (isFri||isSat) ? 'FFFF0000' : (blk||hol) ? 'FFFFFF00' : null;
+      const dayName = `יום\u00a0${HEB_DAYS[dow]}`;
+      const dayEvs  = (byDate[ds]||[]).filter(s=>s.st!=='can').sort((a,b)=>(a.t||'').localeCompare(b.t||''));
+      const specialNote = hol ? hol.name : blk ? blk.reason : '';
+      const rows = dayEvs.length || 1;
+
+      for (let ei = 0; ei < rows; ei++) {
+        const ev      = dayEvs[ei] || null;
+        const isFirst = ei === 0;
+        // Paint full row first
+        dataRow(r + ei, fillRgb);
+        // Then fill values
+        if (isFirst) {
+          if (ev) sc(r+ei, 0, garden.name, null); // garden name only when activity
+          sc(r+ei, 2, ds,      null);
+          sc(r+ei, 3, dayName, null);
+        }
+        if (ev) {
+          const supName = supBase(ev.a) || ev.a || '';
+          const actType = ev.act || (typeof supAct==='function'?supAct(ev.a):'') || 'חוג';
+          const supData = SUPBASE ? SUPBASE.find(s=>(typeof supBase==='function'?supBase(s.name):s.name)===supName) : null;
+          const phone   = ev.p || (supData&&supData.phone) || (supEx&&supEx[supName]&&supEx[supName].ph1) || '';
+          sc(r+ei, 4, actType,   null);
+          sc(r+ei, 5, supName,   null);
+          sc(r+ei, 6, phone,     null);
+          sc(r+ei, 7, ev.grp||1, null);
+          sc(r+ei, 8, ev.t ? ev.t.slice(0,5) : '', null);
+        } else if (isFirst && specialNote) {
+          sc(r+ei, 4, specialNote, null);
+        }
+      }
+      r += rows;
+    }
+
+    // ── Footer ────────────────────────────────────────
+    r += 3; // empty rows
+
+    // "שם הרכז בגן" line with medium bottom border
+    for (let c=0;c<9;c++) {
+      sc(r, c, c===0?'שם הרכז בגן':'', {
+        font: font(11,true),
+        border: border(null,'medium',null,null),
+        alignment: align(c===0?'right':'center')
+      });
+    }
+    r++;
+
+    // Footer note merged A:I over 2 rows
+    sc(r, 0, '* שימו לב -  ייתכנו שינויים בתוכנית החוגים', {
+      font: font(11,true),
+      border: border('medium','medium',null,null),
+      alignment: align('right')
+    });
+    for (let c=1;c<9;c++) sc(r,c,'',{border:border('medium',null,null,null)});
+    for (let c=0;c<9;c++) sc(r+1,c,'',{border:border(null,'medium',null,null)});
+    merges.push({s:{r,c:0},e:{r:r+1,c:8}});
+    r += 2;
+
+    // Page break after each garden except last
+    if (gIdx < gardens.length - 1) {
+      rowBreaks.push(r - 1);
+      r++; // spacing row between gardens
+    }
   });
 
+  ws['!ref']       = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:r-1,c:8}});
+  ws['!merges']    = merges;
+  ws['!rowbreaks'] = rowBreaks;
+  ws['!cols']      = [{wch:14.4},{wch:3.6},{wch:8.75},{wch:9.25},{wch:8.9},{wch:24.6},{wch:12.4},{wch:4.25},{wch:6.1}];
+  ws['!sheetView'] = [{rightToLeft: true}];
+  return ws;
+}
+
+function buildSheetData(garden, evs) {
+  // Legacy fallback — kept for CSV export
+  const rows = [];
+  const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  const HEB_DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  rows.push(['לוז חוגים',null,null,null,null,null,null,null,null]);
+  rows.push([` צהרון: ${garden.name}`,null,null,null,null,` עיר : ${garden.city}`,null,null,null]);
+  rows.push(['שם הצהרון','גיל','תאריך','יום','חוג/הפעלה','שם החוג','טלפון',"קב'",'שעה']);
+  if (!evs.length) { rows.push([null,null,null,null,'אין פעילויות',null,null,null,null]); return {rows}; }
+  const byDate = {};
+  evs.forEach(s => { if(!byDate[s.d]) byDate[s.d]=[]; byDate[s.d].push(s); });
+  const dates = Object.keys(byDate).sort();
+  dates.forEach(ds => {
+    const dayEvs = (byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
+    const date = new Date(ds.replace(/-/g,'/'));
+    const dayName = `יום\u00a0${HEB_DAYS[date.getDay()]}`;
+    if (!dayEvs.length) { rows.push([null,null,ds,dayName,null,null,null,null,null]); return; }
+    dayEvs.forEach((s,i) => {
+      const supName = supBase(s.a)||s.a;
+      rows.push([i===0?garden.name:null, null, i===0?ds:null, i===0?dayName:null,
+        s.act||(typeof supAct==='function'?supAct(s.a):'')||'חוג',
+        supName, s.p||'', s.grp||1, s.t?s.t.slice(0,5):''
+      ]);
+    });
+  });
   return {rows};
 }
+
+
 
 // ─── Garden Cell Popup ────────────────────────────────────────
 let _gcellGid=null, _gcellDs=null;
