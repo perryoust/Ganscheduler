@@ -947,6 +947,13 @@ function stLabel(s){
   if(s.st==='nohap') return'<span class="bdg br2">⚠️ לא התקיים</span>';
   return'<span class="bdg bg2">📅 מתקיים</span>';
 }
+
+// ── renderReadOnlyBanner (stub — no archive mode in this version) ──
+function renderReadOnlyBanner() {
+  const el = document.getElementById('readonly-banner');
+  if (el) el.style.display = 'none';
+}
+
 function stClass(s){
   if(s.st==='can') return'st-can-row';
   if(s.st==='post') return'st-post-row';
