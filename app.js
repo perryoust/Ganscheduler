@@ -1048,7 +1048,10 @@ function initDrops(){
   function fG(id,first,prefix){
     const el=document.getElementById(id);
     el.innerHTML=`<option value="">${first}</option>`;
-    GARDENS.forEach(g=>el.innerHTML+=`<option value='${g.id}'>${prefix?g.city+' · ':''} ${g.name}</option>`);
+    [...GARDENS].sort((a,b)=>{
+      const cc=(a.city||'').localeCompare(b.city||'','he');
+      return cc||((a.name||'').localeCompare(b.name||'','he'));
+    }).forEach(g=>el.innerHTML+=`<option value='${g.id}'>${prefix?g.city+' · ':''} ${g.name}</option>`);
   }
   fC('dash-city');fC('cal-city');fC('s-city');fC('g-city');fC('apm-city');fC('pairs-city');fC('cl-city');
   // Filter dropdowns (search/filter): show ALL suppliers
@@ -1091,7 +1094,10 @@ function calRefG(){
   if(clsSel&&_calTab) clsSel.value=_calTab==='g'?'גנים':'ביה"ס';
   const city=document.getElementById('cal-city').value;
   const cls=document.getElementById('cal-cls').value;
-  const gs=gByCF(city,cls).sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  const gs=gByCF(city,cls).sort((a,b)=>{
+    if(!city){const cc=(a.city||'').localeCompare(b.city||'','he');if(cc)return cc;}
+    return (a.name||'').localeCompare(b.name||'','he');
+  });
   ['cal-g1','cal-g2','cal-g3'].forEach((id,i)=>{
     const sel=document.getElementById(id);
     sel.innerHTML=i===0?'<option value="">כל הגנים</option>':'<option value="">—</option>';
