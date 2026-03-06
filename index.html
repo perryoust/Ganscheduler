@@ -1161,9 +1161,12 @@
           ⚠️ שים לב: ספק שאינו מסומן כ"ספק חוגים" לא יוצג ברשימת הספקים בשיבוץ חוגים.
         </div>
       </div>
-      <div style="display:flex;gap:7px;margin-top:10px">
-        <button class="btn bp" onclick="sucSaveEdit()">💾 שמור שינויים</button>
-        <button class="btn bs" onclick="sucToggleEdit()">ביטול</button>
+      <div style="display:flex;gap:7px;margin-top:10px;justify-content:space-between;align-items:center">
+        <button class="btn br2 bsm" onclick="deleteSupFromCard()" title="מחק ספק — הפעילויות ישמרו">🗑️ מחק ספק</button>
+        <div style="display:flex;gap:7px">
+          <button class="btn bp" onclick="sucSaveEdit()">💾 שמור שינויים</button>
+          <button class="btn bs" onclick="sucToggleEdit()">ביטול</button>
+        </div>
       </div>
       <div id="suc-edit-warn" style="display:none;background:#fff3cd;border-radius:5px;padding:5px 9px;font-size:.76rem;color:#856404;margin-top:6px">
         ⚠️ שינוי שם ישנה את שם הספק בכל השיבוצים

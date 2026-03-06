@@ -4457,6 +4457,38 @@ function sucRemoveAct(idx){
   if(!supEx[_sucName]) supEx[_sucName]={};
   supEx[_sucName].acts=acts; sucRefreshActsList(); save();
 }
+function deleteSupFromCard() {
+  const nameEl = document.getElementById('suc-edit-name');
+  const name = (nameEl && nameEl.dataset.orig) || (nameEl && nameEl.value.trim());
+  if (!name) return;
+
+  const activeCount = SCH.filter(s => s.a === name && s.st !== 'can').length;
+  const totalCount  = SCH.filter(s => s.a === name).length;
+
+  let msg = `למחוק את הספק "${name}"?\n`;
+  if (totalCount > 0) {
+    msg += `\nהספק קיים ב-${totalCount} פעילויות — הן יישמרו עם שמו.`;
+  }
+  msg += '\n\nהספק יוסר מרשימות הספקים אך לא מהפעילויות ההיסטוריות.';
+  if (!confirm(msg)) return;
+
+  // Remove from supEx
+  delete supEx[name];
+
+  // Remove from custom suppliers list
+  if (supEx['__c']) supEx['__c'] = supEx['__c'].filter(s => s.name !== name);
+
+  // Hide from SUPBASE-based suppliers
+  if (!supEx['__merged_away']) supEx['__merged_away'] = [];
+  if (!supEx['__merged_away'].includes(name)) supEx['__merged_away'].push(name);
+
+  save();
+  CM('sucard-m');
+  if (typeof renderSup === 'function') renderSup();
+  if (typeof renderPurchSuppliers === 'function') try { renderPurchSuppliers(); } catch(e) {}
+  showToast('🗑️ ספק "' + name + '" הוסר — הפעילויות נשמרו');
+}
+
 function sucSaveEdit(){
   const nameEl=document.getElementById('suc-edit-name');
   const newBase=nameEl.value.trim(); const origBase=nameEl.dataset.orig;
