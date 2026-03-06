@@ -149,10 +149,6 @@ tr:hover td{background:#f5f7ff}
 .pgr-qacts button{background:none;border:1px solid #e0e0e0;border-radius:3px;padding:1px 4px;cursor:pointer;font-size:.7rem;line-height:1.2}
 .nohap-reason-btn{background:#fff;border:1.5px solid #e0e0e0;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:.75rem;text-align:center;transition:all .12s}
 .nohap-reason-btn.sel,.nohap-reason-btn:hover{background:#fce4ec;border-color:#e91e63;color:#880e4f;font-weight:700}
-.can-reason-btn{background:#fff;border:1.5px solid #e0e0e0;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:.75rem;text-align:center;transition:all .12s}
-.can-reason-btn.sel,.can-reason-btn:hover{background:#ffebee;border-color:#c62828;color:#b71c1c;font-weight:700}
-.cancelday-reason-btn{background:#fff;border:1.5px solid #e0e0e0;border-radius:6px;padding:6px 8px;cursor:pointer;font-size:.75rem;text-align:center;transition:all .12s}
-.cancelday-reason-btn.sel,.cancelday-reason-btn:hover{background:#ffebee;border-color:#c62828;color:#b71c1c;font-weight:700}
 .pair-row2{display:grid;border-bottom:1px solid rgba(0,0,0,.06)}
 .pair-row2:last-child{border-bottom:none}
 .pair-name-col{padding:8px 10px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:3px;border-left:1px solid rgba(0,0,0,.06);min-width:90px;max-width:110px}
@@ -228,7 +224,8 @@ tr:hover td{background:#f5f7ff}
 textarea{width:100%;padding:5px;border:1.5px solid #c5cae9;border-radius:6px;font-size:.8rem;resize:vertical;font-family:inherit}
 .copts{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:6px 0}
 .copt{padding:6px;border:1.5px solid #c5cae9;border-radius:6px;cursor:pointer;font-size:.74rem;text-align:center}
-.copt:hover,.copt.sel{background:#ffebee;border-color:#c62828;color:#c62828}
+.copt:hover{background:#ffebee;border-color:#c62828;color:#c62828}
+.copt.sel{background:#c62828;border-color:#c62828;color:#fff;font-weight:700;box-shadow:0 2px 6px rgba(198,40,40,.35)}
 
 .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:2000;align-items:center;justify-content:center}
 .modal.open{display:flex}
@@ -516,3 +513,4 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 .day-chk-lbl{display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer;background:#fff;border:1.5px solid #c8e6c9;border-radius:6px;padding:3px 8px;}
 .day-chk-lbl:has(input:checked){background:#e8f5e9;border-color:#4caf50;color:#2e7d32;font-weight:700;}
 #ns-tab-once.active,#ns-tab-recur.active,#ns-tab-makeup.active{background:#1a237e!important;color:#fff!important;border-radius:6px!important;}
+.block-reason-btn.sel{outline:3px solid #1a237e;box-shadow:0 0 0 3px rgba(26,35,126,.25);filter:brightness(.88);font-weight:700}

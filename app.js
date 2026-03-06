@@ -2231,7 +2231,7 @@ function renderDash(){
   // Nohap list — all events that didn't happen, sorted by date desc
   const nohapEvs=SCH.filter(s=>s.st==='nohap').sort((a,b)=>b.d.localeCompare(a.d));
   // Can+post list — last 20
-  const canEvs=SCH.filter(s=>s.st==='can'||s.st==='post').sort((a,b)=>b.d.localeCompare(a.d)).slice(0,20);
+  const canEvs=SCH.filter(s=>s.st==='post').sort((a,b)=>b.d.localeCompare(a.d)).slice(0,20);
   const allEvs=[...nohapEvs,...canEvs].sort((a,b)=>b.d.localeCompare(a.d));
 
   let ch='';
@@ -2357,6 +2357,11 @@ function openSP(id){
     <button class="btn bpurple bsm" style="width:100%" onclick="markNoHap()">⚠️ סמן לא התקיים</button>
   </div>`;
 
+  // Recurring series management — shown only if event belongs to a series
+  if(s._recId){
+    const seriesCount=SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g).length;
+    h+=`<div style="border:1.5px solid #b0bec5;border-radius:7px;padding:8px;margin-bottom:8px;background:#f8f9fa"><div style="font-size:.8rem;font-weight:700;color:#37474f;margin-bottom:6px">🔁 שיבוץ קבוע — ${seriesCount} פעילויות מתאריך זה ואילך</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:5px"><button class="btn br bsm" onclick="deleteRecurSeries(${s.id})">🗑️ מחק מכאן ואילך</button><button class="btn borange bsm" onclick="openReplaceRecur(${s.id})">🔄 החלף שיבוץ קבוע</button></div></div>`;
+  }
   h+=`<button class="btn bp bsm" style="width:100%" onclick="saveNt()">💾 שמור הערה</button>`;
   document.getElementById('sp-body').innerHTML=h;
   document.getElementById('sp').classList.add('open');
@@ -2375,6 +2380,75 @@ function spEditActChg(){
   const v=document.getElementById('sp-edit-act').value;
   const wrap=document.getElementById('sp-edit-act-new-wrap');
   if(wrap) wrap.style.display=v==='__new__'?'block':'none';
+}
+function deleteRecurSeries(id){
+  const s=SCH.find(x=>x.id===id); if(!s) return;
+  const affected=SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
+  if(!confirm(`האם למחוק ${affected.length} פעילויות קבועות מ-${fD(s.d)} ואילך?\n(הפעילויות יימחקו לחלוטין, ללא ביטול)`)) return;
+  affected.forEach(x=>{ const i=SCH.indexOf(x); if(i>=0) SCH.splice(i,1); });
+  saveAndRefresh('sp');
+  showToast(`✅ נמחקו ${affected.length} פעילויות קבועות`);
+}
+
+function openReplaceRecur(id){
+  const s=SCH.find(x=>x.id===id); if(!s) return;
+  const affected=SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
+  const allSups=getAllSup().filter(s2=>isActSupplier(s2.name));
+  const g=G(s.g);
+  let h=`<div style="font-size:.85rem;font-weight:700;color:#1a237e;margin-bottom:10px">
+    🔄 החלפת שיבוץ קבוע — ${affected.length} פעילויות מ-${fD(s.d)} ואילך<br>
+    <span style="font-size:.75rem;font-weight:400;color:#546e7a">גן: ${g.name} | ספק נוכחי: ${supBase(s.a)}</span>
+  </div>
+  <div style="display:grid;gap:8px">
+    <div><label style="font-size:.75rem;font-weight:700;color:#546e7a">📚 ספק חדש</label>
+      <select id="rr-sup" onchange="rrSupChg()" style="width:100%;font-size:.82rem">
+        ${allSups.map(s2=>`<option value="${s2.name}"${s2.name===s.a?' selected':''}>${s2.name}</option>`).join('')}
+      </select>
+    </div>
+    <div id="rr-act-wrap"><label style="font-size:.75rem;font-weight:700;color:#546e7a">🎯 סוג פעילות</label>
+      <select id="rr-act" style="width:100%;font-size:.82rem">
+        <option value="">— ללא שינוי —</option>
+        ${getSupActs(s.a).map(a=>`<option value="${a}"${a===s.act?' selected':''}>${a}</option>`).join('')}
+      </select>
+    </div>
+    <div><label style="font-size:.75rem;font-weight:700;color:#546e7a">⏰ שעה (ריק = ללא שינוי)</label>
+      <input type="time" id="rr-time" value="${s.t||''}" style="width:100%;font-size:.82rem">
+    </div>
+    <div><label style="font-size:.75rem;font-weight:700;color:#546e7a">👥 מספר קבוצות (ריק = ללא שינוי)</label>
+      <input type="number" id="rr-grp" min="1" max="20" value="${s.grp||1}" style="width:100%;font-size:.82rem">
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+    <button class="btn br bsm" onclick="CM('rrm')">ביטול</button>
+    <button class="btn bg bsm" onclick="saveReplaceRecur(${id})">✅ החלף שיבוץ</button>
+  </div>`;
+  document.getElementById('rrm-body').innerHTML=h;
+  OM('rrm');
+}
+
+function rrSupChg(){
+  const sup=document.getElementById('rr-sup').value;
+  const actSel=document.getElementById('rr-act');
+  if(!actSel) return;
+  actSel.innerHTML='<option value="">— ללא שינוי —</option>'+
+    getSupActs(sup).map(a=>`<option value="${a}">${a}</option>`).join('');
+}
+
+function saveReplaceRecur(id){
+  const s=SCH.find(x=>x.id===id); if(!s) return;
+  const newSup=document.getElementById('rr-sup').value;
+  const newAct=document.getElementById('rr-act').value;
+  const newTime=document.getElementById('rr-time').value;
+  const newGrp=parseInt(document.getElementById('rr-grp').value)||0;
+  const affected=SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
+  affected.forEach(x=>{
+    if(newSup) x.a=newSup;
+    if(newAct) x.act=newAct;
+    if(newTime) x.t=newTime;
+    if(newGrp>0) x.grp=newGrp;
+  });
+  saveAndRefresh('rrm');
+  showToast(`✅ עודכנו ${affected.length} פעילויות קבועות`);
 }
 function spEditSave(){
   const s=SCH.find(x=>x.id===selEv); if(!s) return;
@@ -5237,33 +5311,9 @@ function downloadWB(wb, filename, fromM) {
 async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
   try {
     const workbook = new ExcelJS.Workbook();
-    const ws = workbook.addWorksheet('לוח חוגים');
-
-    ws.views = [{ state:'normal', rightToLeft:true }];
-    ws.pageSetup = {
-      paperSize: 9, orientation: 'portrait',
-      fitToPage: true, fitToWidth: 1, fitToHeight: 0,
-      horizontalCentered: true, verticalCentered: false,
-      margins: { left:0.2, right:0.08, top:0.83, bottom:0.2, header:0, footer:0 }
-    };
-
-    // Col widths: A=שם הצהרון|B=גיל|C=תאריך|D=יום|E=חוג/הפעלה|F=שם החוג|G=טלפון|H=קב'|I=שעה
-    ws.columns = [
-      {width:14.4},{width:3.6},{width:8.75},{width:9.25},
-      {width:8.9},{width:24.6},{width:12.4},{width:4.25},{width:6.1}
-    ];
-
-    const CLR = {
-      BLUE:      'FFB8CCE4',
-      RED:       'FFFF0000',
-      RED_LIGHT: 'FFFF4D4D',
-      YELLOW:    'FFFFFF00',
-      PINK:      'FFE6B8B7',
-    };
 
     const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
     const HEB_DAYS   = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
-
     function hebYear(y, m) {
       const base = y + 3760 + (m >= 8 ? 1 : 0);
       let n = base % 1000, s = '';
@@ -5272,29 +5322,17 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         while(n>=v){s+=L[v];n-=v;}
       return s.length===1 ? s+"'" : s.slice(0,-1)+'"'+s.slice(-1);
     }
-
     const monthTitle  = `${HEB_MONTHS[month]} ${year} ${hebYear(year, month)}`;
     const daysInMonth = new Date(year, month+1, 0).getDate();
 
-    // Add logo to header (print header with image)
+    const CLR = {
+      BLUE:      'FFB8CCE4', RED: 'FFFF0000',
+      RED_LIGHT: 'FFFF4D4D', YELLOW: 'FFFFFF00', PINK: 'FFE6B8B7',
+    };
+
     let logoImgId = null;
-    if (typeof LOGO_B64 !== 'undefined' && LOGO_B64) {
+    if (typeof LOGO_B64 !== 'undefined' && LOGO_B64)
       logoImgId = workbook.addImage({ base64: LOGO_B64, extension: 'png' });
-      // Add logo to the actual Excel print header (left side)
-      ws.headerFooter = {
-        oddHeader: `&L&G&R&"Arial,Bold"&18 ${monthTitle}`
-      };
-      ws.addImage(logoImgId, {
-        tl: { nativeCol: 0, nativeColOff: 0, nativeRow: 0, nativeRowOff: 0 },
-        br: { nativeCol: 0, nativeColOff: 0, nativeRow: 0, nativeRowOff: 0 },
-        editAs: 'oneCell',
-        hyperlinks: { type: 'headerImage' }
-      });
-      // Try setting as header image properly
-      try {
-        workbook.addImage({ base64: LOGO_B64, extension: 'png', type: 'image' });
-      } catch(e) {}
-    }
 
     function applyStyle(cell, {fill, sz, bold, align, valign, bt, bb, bl, br}={}) {
       if (fill) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:fill} };
@@ -5307,21 +5345,32 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       if (br) brd.right  = {style:br};
       if (Object.keys(brd).length) cell.border = brd;
     }
-
     function styleDataRow(row, fill) {
       for (let i=1; i<=9; i++) {
         applyStyle(row.getCell(i), {
-          fill, sz:(i===6||i===7)?10:11,
-          align:i===1?'right':'center',
-          bt:'thin', bb:'thin',
-          bl:i===1?'medium':'thin', br:i===9?'medium':'thin'
+          fill, sz:(i===6||i===7)?10:11, align:i===1?'right':'center',
+          bt:'thin', bb:'thin', bl:i===1?'medium':'thin', br:i===9?'medium':'thin'
         });
       }
     }
 
-    let r = 0;
+    // ── one worksheet per garden ─────────────────────────────
+    gardens.forEach((garden) => {
+      const sheetName = garden.name.replace(/[*?:\[\]/\\]/g,'').slice(0,31) || `גן${garden.id}`;
+      const ws = workbook.addWorksheet(sheetName);
 
-    gardens.forEach((garden, gIdx) => {
+      ws.views = [{ state:'normal', rightToLeft:true }];
+      ws.pageSetup = {
+        paperSize: 9, orientation: 'portrait',
+        fitToPage: true, fitToWidth: 1, fitToHeight: 0,
+        horizontalCentered: true,
+        margins: { left:0.2, right:0.08, top:0.83, bottom:0.2, header:0, footer:0 }
+      };
+      ws.columns = [
+        {width:14.4},{width:3.6},{width:8.75},{width:9.25},
+        {width:8.9},{width:24.6},{width:12.4},{width:4.25},{width:6.1}
+      ];
+
       const mgr = typeof managers !== 'undefined'
         ? Object.values(managers).find(m => (m.gardenIds||[]).includes(garden.id))
         : null;
@@ -5334,23 +5383,28 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         return s.g===garden.id && ey===year && em===month+1;
       });
       const byDate = {};
-      gardenEvs.forEach(s => {
-        if (!byDate[s.d]) byDate[s.d] = [];
-        byDate[s.d].push(s);
-      });
+      gardenEvs.forEach(s => { if(!byDate[s.d]) byDate[s.d]=[]; byDate[s.d].push(s); });
 
-      // ── ROW 1: Title ──────────────────────────────────────
-      if (!logoImgId) {
-        // No logo: title spans full width
+      let r = 0;
+
+      // ── Title row ─────────────────────────────────────────
+      {
         const row = ws.addRow([monthTitle,'','','','','','','','']);
-        row.height = 28;
-        applyStyle(row.getCell(1), {sz:18, bold:true, align:'center'});
-        ws.mergeCells(r+1,1,r+1,9);
+        row.height = 50;
+        if (logoImgId !== null) {
+          // Title on right (A-D), logo space on left (E-I)
+          applyStyle(row.getCell(1), {sz:20, bold:true, align:'right'});
+          ws.mergeCells(r+1,1,r+1,4);
+          ws.mergeCells(r+1,5,r+1,9);
+          ws.addImage(logoImgId, { tl:{col:4,row:r}, br:{col:9,row:r+1}, editAs:'oneCell' });
+        } else {
+          applyStyle(row.getCell(1), {sz:20, bold:true, align:'center'});
+          ws.mergeCells(r+1,1,r+1,9);
+        }
         r++;
       }
-      // If we have a logo, title/logo are in print header — skip body row
 
-      // ── ROWS 2-3: Garden name + City ──────────────────────
+      // ── Garden name + City ────────────────────────────────
       {
         const row = ws.addRow([`צהרון: ${garden.name}`,'','','','',`עיר: ${garden.city}`,'','','']);
         row.height = 17;
@@ -5361,11 +5415,9 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         r++;
         ws.addRow([]); r++;
       }
-
-      // ── ROW: empty ────────────────────────────────────────
       ws.addRow([]); r++;
 
-      // ── ROW: Column headers ───────────────────────────────
+      // ── Column headers ────────────────────────────────────
       {
         const hdrs = ['שם הצהרון','גיל','תאריך','יום','חוג/הפעלה','שם החוג','טלפון',"קב'",'שעה'];
         const row  = ws.addRow(hdrs);
@@ -5374,14 +5426,13 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
           applyStyle(row.getCell(i+1), {
             sz:(i===5||i===6)?10:11, bold:true,
             align:i===0?'right':'center', valign:'top',
-            bt:'medium', bb:'thin',
-            bl:i===0?'medium':'thin', br:i===8?'medium':'thin'
+            bt:'medium', bb:'thin', bl:i===0?'medium':'thin', br:i===8?'medium':'thin'
           });
         });
         r++;
       }
 
-      // ── Data rows ─────────────────────────────────────────
+      // ── Data rows — every calendar day ───────────────────
       for (let day=1; day<=daysInMonth; day++) {
         const date    = new Date(year, month, day);
         const dow     = date.getDay();
@@ -5393,9 +5444,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         const dateStr = `${day}/${month+1}/${String(year).slice(-2)}`;
 
         const dayEvs  = (byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
-        const specialNote = (!dayEvs.length && hol) ? hol.name
-                          : (!dayEvs.length && blk) ? 'בוטל'
-                          : '';
+        const specialNote = (!dayEvs.length && hol) ? hol.name : (!dayEvs.length && blk) ? 'בוטל' : '';
         const rowCount = dayEvs.length || 1;
 
         for (let ei=0; ei<rowCount; ei++) {
@@ -5409,13 +5458,12 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
           else if (isCan)    fill = CLR.RED_LIGHT;
 
           const supName = ev ? ((typeof supBase==='function'?supBase(ev.a):ev.a)||ev.a||'') : '';
-          const actType = ev ? (isCan ? 'בוטל' : (ev.act||(typeof supAct==='function'?supAct(ev.a):'')||'חוג')) : '';
+          const actType = ev ? (isCan?'בוטל':(ev.act||(typeof supAct==='function'?supAct(ev.a):'')||'חוג')) : '';
           const phone   = ev ? (ev.p||(typeof supEx!=='undefined'&&supEx[supName]?.ph1)||'') : '';
-          const grp     = ev ? (isCan ? 0 : (ev.grp||1)) : '';  // ← 0 for cancelled
+          const grp     = ev ? (isCan ? 0 : (ev.grp||1)) : '';
 
           const vals = [
-            garden.name,
-            '',
+            garden.name, '',
             isFirst ? dateStr : '',
             isFirst ? dayName : '',
             ev ? actType : (isFirst&&specialNote?specialNote:''),
@@ -5434,8 +5482,6 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
       // ── Footer ────────────────────────────────────────────
       ws.addRow([]); r++;
-
-      // Manager row
       {
         const row = ws.addRow([mgrText,'','','','','','','','']);
         row.height = 20;
@@ -5444,13 +5490,11 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         ws.mergeCells(r+1,1,r+1,9);
         r++;
       }
-
-      // Disclaimer — big merged
       {
         const row = ws.addRow(['* שימו לב -  ייתכנו שינויים בתוכנית החוגים','','','','','','','','']);
         row.height = 36;
         applyStyle(row.getCell(1), {sz:16, bold:true, align:'right', bt:'medium', bb:'medium'});
-        for (let c=2;c<=9;c++) row.getCell(c).border = {top:{style:'medium'}, bottom:{style:'medium'}};
+        for (let c=2;c<=9;c++) row.getCell(c).border = {top:{style:'medium'},bottom:{style:'medium'}};
         ws.mergeCells(r+1,1,r+2,9);
         r++;
         const row2 = ws.addRow([]);
@@ -5458,13 +5502,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         for (let c=1;c<=9;c++) row2.getCell(c).border = {bottom:{style:'medium'}};
         r++;
       }
-
-      // Page break between gardens
-      if (gIdx < gardens.length - 1) {
-        ws.addHorizontalPageBreak(r);
-        ws.addRow([]); r++;
-      }
-    });
+    }); // end gardens.forEach
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob   = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
@@ -5626,30 +5664,33 @@ function buildStyledSheet(gardens, allEvs, year, month) {
       const hol    = typeof getHolidayInfo === 'function' ? getHolidayInfo(ds) : null;
       const fillRgb = (isFri||isSat) ? 'FFFF0000' : (blk||hol) ? 'FFFFFF00' : null;
       const dayName = `יום\u00a0${HEB_DAYS[dow]}`;
-      const dayEvs  = (byDate[ds]||[]).filter(s=>s.st!=='can').sort((a,b)=>(a.t||'').localeCompare(b.t||''));
-      const specialNote = hol ? hol.name : blk ? blk.reason : '';
+      const dayEvs  = (byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
+      const specialNote = (!dayEvs.length && hol) ? hol.name : (!dayEvs.length && blk) ? 'בוטל' : '';
       const rows = dayEvs.length || 1;
 
       for (let ei = 0; ei < rows; ei++) {
         const ev      = dayEvs[ei] || null;
         const isFirst = ei === 0;
+        const isCan   = ev && (ev.st==='can'||ev.st==='nohap');
+        // row fill: cancelled = light red, else as day color
+        const rowFill = isCan ? 'FFFF4D4D' : fillRgb;
         // Paint full row first
-        dataRow(r + ei, fillRgb);
+        dataRow(r + ei, rowFill);
         // Then fill values
         if (isFirst) {
-          if (ev) sc(r+ei, 0, garden.name, null); // garden name only when activity
-          sc(r+ei, 2, ds,      null);
-          sc(r+ei, 3, dayName, null);
+          sc(r+ei, 0, garden.name, null); // always show garden name
+          sc(r+ei, 2, ds,          null);
+          sc(r+ei, 3, dayName,     null);
         }
         if (ev) {
           const supName = supBase(ev.a) || ev.a || '';
-          const actType = ev.act || (typeof supAct==='function'?supAct(ev.a):'') || 'חוג';
+          const actType = isCan ? 'בוטל' : (ev.act || (typeof supAct==='function'?supAct(ev.a):'') || 'חוג');
           const supData = SUPBASE ? SUPBASE.find(s=>(typeof supBase==='function'?supBase(s.name):s.name)===supName) : null;
           const phone   = ev.p || (supData&&supData.phone) || (supEx&&supEx[supName]&&supEx[supName].ph1) || '';
-          sc(r+ei, 4, actType,   null);
-          sc(r+ei, 5, supName,   null);
-          sc(r+ei, 6, phone,     null);
-          sc(r+ei, 7, ev.grp||1, null);
+          sc(r+ei, 4, actType,         null);
+          sc(r+ei, 5, supName,         null);
+          sc(r+ei, 6, phone,           null);
+          sc(r+ei, 7, isCan ? 0 : (ev.grp||1), null);
           sc(r+ei, 8, ev.t ? ev.t.slice(0,5) : '', null);
         } else if (isFirst && specialNote) {
           sc(r+ei, 4, specialNote, null);

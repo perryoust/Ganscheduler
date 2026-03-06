@@ -499,6 +499,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <button class="block-reason-btn btn bsm" style="background:#e8f5e9;border:1.5px solid #4caf50;color:#2e7d32" onclick="selBlockReason(this,'אירוע מיוחד')">⭐ אירוע מיוחד</button>
         <button class="block-reason-btn btn bsm" style="background:#e3f2fd;border:1.5px solid #2196f3;color:#1565c0" onclick="selBlockReason(this,'יום הורים')">👨‍👩‍👧 יום הורים</button>
         <button class="block-reason-btn btn bsm" style="background:#f3e5f5;border:1.5px solid #9c27b0;color:#6a1b9a" onclick="selBlockReason(this,'סגור')">🔒 סגור</button>
+        <button class="block-reason-btn btn bsm" style="background:#fff8e1;border:1.5px solid #f57f17;color:#e65100" onclick="selBlockReason(this,'בטחוני')">🛡️ בטחוני</button>
         <button class="block-reason-btn btn bsm" style="background:#f5f5f5;border:1.5px solid #999" onclick="selBlockReason(this,'אחר')">✏️ אחר</button>
       </div>
       <input type="text" id="block-m-reason" placeholder="פרט סיבה..." style="width:100%">
@@ -1744,6 +1745,17 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <button class="btn bpurple" onclick="saveNohapQ()">⚠️ שמור</button>
       <button class="btn bs" onclick="CM('nohapqm')">ביטול</button>
     </div>
+  </div>
+</div>
+
+<!-- Replace Recurring Schedule Modal -->
+<div id="rrm" class="modal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-hdr">
+      <span>🔄 החלפת שיבוץ קבוע</span>
+      <button class="modal-x" onclick="CM('rrm')">✕</button>
+    </div>
+    <div id="rrm-body" style="padding:12px"></div>
   </div>
 </div>
 
