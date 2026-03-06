@@ -855,14 +855,31 @@
 </div>
 
 <div id="od-modal" class="modal">
-  <div class="mb" style="max-width:420px; border-top: 5px solid #2e7d32;">
-    <h2 style="color:#1b5e20; margin-bottom:8px">☁️ סנכרון Firebase Realtime</h2>
-    <div style="background:#e8f5e9; border-radius:8px; padding:10px 13px; margin-bottom:12px; font-size:.79rem; color:#2e7d32; line-height:1.6">
-      המערכת מחוברת למסד הנתונים של <b>Firebase</b>.<br>
-      הסנכרון מתבצע באופן אוטומטי ושקוף.
+  <div class="mb" style="max-width:440px; border-top: 5px solid #2e7d32;">
+    <h2 style="color:#1b5e20; margin-bottom:12px">☁️ סנכרון Firebase</h2>
+    <div style="background:#e8f5e9; border-radius:8px; padding:12px 14px; margin-bottom:12px; font-size:.8rem; line-height:1.9">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #c8e6c9; padding-bottom:7px; margin-bottom:7px">
+        <span style="color:#555; font-weight:600">🟢 סטטוס</span>
+        <span style="color:#2e7d32; font-weight:700">מחובר</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
+        <span style="color:#555">📤 שמירה אחרונה לענן</span>
+        <span id="fb-last-save" style="color:#1b5e20; font-size:.75rem; font-family:monospace">—</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <span style="color:#555">📥 טעינה אחרונה מענן</span>
+        <span id="fb-last-load" style="color:#1b5e20; font-size:.75rem; font-family:monospace">—</span>
+      </div>
     </div>
-    <div style="display:flex; gap:8px; justify-content:flex-end;">
-      <button class="btn bg bsm" onclick="save()">💾 סנכרן עכשיו</button>
+    <div style="background:#f1f8e9; border-radius:7px; padding:8px 12px; margin-bottom:12px; font-size:.75rem; color:#558b2f">
+      🔄 הסנכרון אוטומטי — כל שינוי נשמר לענן תוך 3 שניות.<br>
+      🔍 בדיקת עדכונים ממכשירים אחרים כל 60 שניות.
+    </div>
+    <div style="display:flex; gap:8px; justify-content:space-between; align-items:center">
+      <div style="display:flex; gap:8px">
+        <button class="btn bg bsm" onclick="fbSyncNow()">📤 שמור עכשיו</button>
+        <button class="btn bo bsm" onclick="fbLoadNow()">📥 טען עכשיו</button>
+      </div>
       <button class="btn bs bsm" onclick="CM('od-modal')">סגור</button>
     </div>
   </div>

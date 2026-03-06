@@ -1,26 +1,29 @@
-// טומשין קידס - Application Logic v10.x
-
 // ══════════════════════════════════════════════
-// Firebase Realtime Database Sync - v10.x FIXED
-// URL: tomshin-kids-default-rtdb
+// Firebase Realtime Database Sync - v10.2
 // ══════════════════════════════════════════════
 const FIREBASE_DB_URL = 'https://tomshin-kids-default-rtdb.europe-west1.firebasedatabase.app/data.json';
 const FIREBASE_PASS = '1234';
+const FIREBASE_POLL_INTERVAL = 60000; // בדיקה כל 60 שניות
 
-// ── Password overlay ──────────────────────────
+let _fbLastSaveTs = 0;      // timestamp שנשמר בענן
+let _fbLastLoadTs = 0;      // מתי טענו לאחרון
+let _fbPollTimer = null;
+let _fbTimer = null;
+let _fbSyncing = false;
+
+// ── Password check ────────────────────────────
 function checkPassword() {
-  if (localStorage.getItem('kids_auth') === 'ok') return true;
-  return false;
+  return localStorage.getItem('kids_auth') === 'ok';
 }
 
 function showPasswordOverlay() {
-  const overlay = document.getElementById('auth-overlay');
-  if (overlay) overlay.style.display = 'flex';
+  const el = document.getElementById('auth-overlay');
+  if (el) el.style.display = 'flex';
 }
 
 function hidePasswordOverlay() {
-  const overlay = document.getElementById('auth-overlay');
-  if (overlay) overlay.style.display = 'none';
+  const el = document.getElementById('auth-overlay');
+  if (el) el.style.display = 'none';
 }
 
 function submitPassword() {
@@ -35,41 +38,89 @@ function submitPassword() {
   }
 }
 
-// ── Load from Firebase into localStorage ──────
-async function loadFromFirebase() {
+// ── Format timestamp ──────────────────────────
+function _fmtTs(ts) {
+  if (!ts) return 'אף פעם';
+  const d = new Date(ts);
+  const pad = n => String(n).padStart(2, '0');
+  return pad(d.getDate()) + '/' + pad(d.getMonth()+1) + '/' + d.getFullYear() +
+    ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+}
+
+// ── Update Firebase status UI ─────────────────
+function _fbUpdateStatus() {
+  const btn = document.getElementById('od-btn');
+  if (btn) {
+    if (_fbSyncing) {
+      btn.textContent = '🔄 מסנכרן...';
+      btn.style.background = '#e65100';
+    } else if (_fbLastSaveTs) {
+      btn.textContent = '☁️ ' + _fmtTs(_fbLastSaveTs);
+      btn.style.background = '#2e7d32';
+    } else {
+      btn.textContent = '☁️ Firebase';
+      btn.style.background = '#2e7d32';
+    }
+  }
+  // update modal too
+  const el = document.getElementById('fb-last-save');
+  if (el) el.textContent = _fmtTs(_fbLastSaveTs);
+  const el2 = document.getElementById('fb-last-load');
+  if (el2) el2.textContent = _fmtTs(_fbLastLoadTs);
+}
+
+// ── Load from Firebase ────────────────────────
+async function loadFromFirebase(silent) {
   try {
-    console.log('Firebase: loading...');
-    const r = await fetch(FIREBASE_DB_URL);
+    if (!silent) { _fbSyncing = true; _fbUpdateStatus(); }
+    const r = await fetch(FIREBASE_DB_URL + '?ts=' + Date.now()); // bust cache
     if (!r.ok) { console.warn('Firebase load failed: ' + r.status); return false; }
     const cloudData = await r.json();
-    if (!cloudData || typeof cloudData !== 'object') { console.log('Firebase: no data'); return false; }
-    // Cloud data is stored as {data: {...}, ts: ...}
+    if (!cloudData || typeof cloudData !== 'object') return false;
+
+    const cloudTs = cloudData.ts || 0;
     const appData = cloudData.data || cloudData;
+
     if (appData && Object.keys(appData).length > 0) {
-      localStorage.setItem('ganv5', JSON.stringify(appData));
-      console.log('Firebase: loaded to localStorage');
-      return true;
+      // Only overwrite if cloud is newer than what we loaded last time
+      if (cloudTs > _fbLastSaveTs || _fbLastSaveTs === 0) {
+        localStorage.setItem('ganv5', JSON.stringify(appData));
+        _fbLastLoadTs = Date.now();
+        _fbLastSaveTs = cloudTs;
+        console.log('Firebase: loaded, cloud ts=' + new Date(cloudTs).toLocaleTimeString());
+        if (!silent) _fbUpdateStatus();
+        return true;
+      } else {
+        console.log('Firebase: local is up to date');
+      }
     }
     return false;
   } catch(e) {
     console.warn('Firebase load error:', e.message);
     return false;
+  } finally {
+    _fbSyncing = false;
+    _fbUpdateStatus();
   }
 }
 
-// ── Save from localStorage to Firebase ────────
+// ── Save to Firebase ──────────────────────────
 async function saveToFirebase(silent) {
   try {
     const raw = localStorage.getItem('ganv5');
     if (!raw) return false;
-    const payload = { data: JSON.parse(raw), ts: Date.now(), version: '10.x' };
+    _fbSyncing = true;
+    _fbUpdateStatus();
+    const nowTs = Date.now();
+    const payload = { data: JSON.parse(raw), ts: nowTs, version: '10.2' };
     const r = await fetch(FIREBASE_DB_URL, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
     if (r.ok) {
-      if (!silent) showToast('✅ סונכרן ל-Firebase');
+      _fbLastSaveTs = nowTs;
+      if (!silent) showToast('✅ סונכרן ל-Firebase ' + _fmtTs(nowTs));
       return true;
     }
     if (!silent) showToast('❌ שגיאת סנכרון Firebase');
@@ -77,31 +128,85 @@ async function saveToFirebase(silent) {
   } catch(e) {
     if (!silent) showToast('❌ Firebase: ' + e.message);
     return false;
+  } finally {
+    _fbSyncing = false;
+    _fbUpdateStatus();
   }
 }
 
-// Auto-save debounce - called from within native save()
-let _fbTimer = null;
+// ── Auto-save debounce ────────────────────────
 function firebaseAutoSave() {
   clearTimeout(_fbTimer);
   _fbTimer = setTimeout(() => saveToFirebase(true), 3000);
 }
 
-// ── UI update ─────────────────────────────────
-function odUpdateUI() {
-  const btn = document.getElementById('od-btn');
-  if (btn) { btn.textContent = '☁️ Firebase'; btn.style.background = '#2e7d32'; }
+// ── Polling — detects changes from other devices ──
+function _fbStartPolling() {
+  clearInterval(_fbPollTimer);
+  _fbPollTimer = setInterval(async () => {
+    try {
+      // Check only the timestamp first (lightweight)
+      const r = await fetch(FIREBASE_DB_URL + '?ts=' + Date.now());
+      if (!r.ok) return;
+      const d = await r.json();
+      const cloudTs = d && d.ts ? d.ts : 0;
+      if (cloudTs > _fbLastSaveTs && cloudTs > 0) {
+        console.log('Firebase: remote change detected, reloading...');
+        // Apply new data without page reload
+        const appData = d.data || d;
+        if (appData && Object.keys(appData).length > 0) {
+          localStorage.setItem('ganv5', JSON.stringify(appData));
+          _fbLastSaveTs = cloudTs;
+          _fbLastLoadTs = Date.now();
+          // Re-apply data to live state
+          try {
+            const parsed = typeof appData === 'string' ? JSON.parse(appData) : appData;
+            if (typeof _applyYearData === 'function') _applyYearData(parsed);
+            if (typeof renderDash === 'function') renderDash();
+            if (typeof renderCal === 'function') renderCal();
+            if (typeof updCounts === 'function') updCounts();
+            showToast('🔄 נתונים עודכנו ממכשיר אחר');
+          } catch(e2) { console.warn('Apply remote data error:', e2); }
+          _fbUpdateStatus();
+        }
+      }
+    } catch(e) { /* ignore polling errors */ }
+  }, FIREBASE_POLL_INTERVAL);
 }
 
+// ── UI helpers ────────────────────────────────
+function odUpdateUI() { _fbUpdateStatus(); }
+
 function odToggle() {
+  _fbUpdateStatus();
   const modal = document.getElementById('od-modal');
   if (modal) modal.classList.toggle('open');
 }
 
+async function fbSyncNow() {
+  await saveToFirebase(false);
+}
+
+async function fbLoadNow() {
+  const ok = await loadFromFirebase(false);
+  if (ok) {
+    try {
+      const st = localStorage.getItem('ganv5');
+      if (st && typeof _applyYearData === 'function') {
+        _applyYearData(JSON.parse(st));
+        if (typeof renderDash === 'function') renderDash();
+        if (typeof renderCal === 'function') renderCal();
+        if (typeof updCounts === 'function') updCounts();
+        showToast('✅ נטען מ-Firebase');
+      }
+    } catch(e) { console.warn(e); }
+  } else {
+    showToast('⚠️ אין נתונים חדשים ב-Firebase');
+  }
+}
+
 function ghAutoSave() { firebaseAutoSave(); }
 // ══════════════════════════════════════════════
-
-
 
 
 // ── PROCUREMENT MODULE - v9.0 ────────────────────────────────
@@ -887,7 +992,8 @@ window.onload=async function(){
   renderSup();
   renderManagers();
   updCounts();
-  odUpdateUI(); // Firebase always active
+  odUpdateUI();
+  _fbStartPolling(); // poll for changes from other devices
 };
 
 function updCounts(){
