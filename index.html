@@ -11,6 +11,70 @@
 <meta name="theme-color" content="#1a237e">
 <title>טומשין קידס</title>
 <link rel="stylesheet" href="styles.css">
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+           setPersistence, browserLocalPersistence, browserSessionPersistence
+         } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCxNhFgvxbD_ZyI9e8rURb7LxNmHX1TrVo",
+    authDomain: "ganmanage.firebaseapp.com",
+    databaseURL: "https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "ganmanage",
+    storageBucket: "ganmanage.firebasestorage.app",
+    messagingSenderId: "413817150565",
+    appId: "1:413817150565:web:7280acfddeed24c269ba8c"
+  };
+
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  // Domain for fake emails: username → username@ganmanager.app
+  const DOMAIN = '@ganmanager.app';
+
+  window._fbAuth = auth;
+  window._fbSignIn = async function(username, password, remember) {
+    const persistence = remember ? browserLocalPersistence : browserSessionPersistence;
+    await setPersistence(auth, persistence);
+    return signInWithEmailAndPassword(auth, username + DOMAIN, password);
+  };
+  window._fbSignOut = () => signOut(auth);
+  window._fbGetToken = async () => {
+    // Use cached token first (always fresh), fall back to fetching
+    if (window._cachedToken) return window._cachedToken;
+    const user = auth.currentUser;
+    if (!user) return null;
+    try {
+      window._cachedToken = await user.getIdToken();
+      return window._cachedToken;
+    } catch(e) { return null; }
+  };
+
+  // Listen for auth state — kick off app once signed in
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      window._fbUser = user;
+      // Pre-fetch and cache the token so it's immediately available
+      try {
+        window._cachedToken = await user.getIdToken(true);
+        // Refresh token every 55 minutes (tokens expire after 60 min)
+        setInterval(async () => {
+          try { window._cachedToken = await user.getIdToken(true); } catch(e) {}
+        }, 55 * 60 * 1000);
+      } catch(e) { window._cachedToken = null; }
+      document.getElementById('auth-overlay').style.display = 'none';
+      const uname = document.getElementById('auth-user-name');
+      if (uname) uname.textContent = '👤 ' + user.email.replace('@ganmanager.app','');
+      if (typeof window._onAuthReady === 'function') window._onAuthReady();
+    } else {
+      window._fbUser = null;
+      window._cachedToken = null;
+      document.getElementById('auth-overlay').style.display = 'flex';
+    }
+  });
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // Load ExcelJS with fallback
@@ -67,6 +131,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 </div>
 
 <!-- ACTIVITY TABS -->
+<div id="auth-user-name" style="font-size:.72rem;color:#90caf9;font-weight:700;padding:0 10px;white-space:nowrap"></div>
 <div class="tabs" id="tabs-act">
   <div class="tab active" onclick="ST('dash')">📊 לוח בקרה</div>
   <div class="tab" onclick="ST('cal')">📅 לוח שנה</div>
@@ -717,6 +782,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 </div><!-- /content -->
 
 <!-- ===== SIDE PANEL ===== -->
+<div id="sp-backdrop" onclick="closeSP()" style="display:none;position:fixed;inset:0;z-index:999;background:transparent"></div>
 <div id="sp" class="sp">
   <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #e8eaf6;padding-bottom:9px;margin-bottom:12px">
     <span style="font-weight:700;color:#1a237e;font-size:.9rem">פרטי פעילות</span>
@@ -1286,22 +1352,39 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 
 
 <!-- ════ Password Overlay ════ -->
-<div id="auth-overlay" style="display:none;position:fixed;inset:0;background:rgba(26,35,126,.95);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:16px">
-  <div style="background:#fff;border-radius:16px;padding:32px 40px;text-align:center;max-width:340px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.4)">
-    <div style="font-size:2.5rem;margin-bottom:8px">🔐</div>
-    <h2 style="color:#1a237e;margin-bottom:4px;font-size:1.2rem">טומשין קידס</h2>
-    <p style="color:#666;font-size:.85rem;margin-bottom:20px">הכנס קוד גישה</p>
-    <input type="password" id="auth-pass-input" placeholder="קוד גישה"
-      style="width:100%;padding:10px 14px;border:2px solid #c5cae9;border-radius:8px;font-size:1.1rem;text-align:center;margin-bottom:12px;direction:ltr"
-      onkeydown="if(event.key==='Enter') submitPassword()">
-    <p id="auth-err" style="color:#c62828;font-size:.8rem;min-height:1.2em;margin-bottom:10px"></p>
-    <button onclick="submitPassword()"
-      style="width:100%;padding:10px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer">
+<div id="auth-overlay" style="display:flex;position:fixed;inset:0;background:linear-gradient(135deg,#1a237e 0%,#283593 60%,#1565c0 100%);z-index:99999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:20px;padding:36px 40px;text-align:center;max-width:360px;width:90%;box-shadow:0 12px 50px rgba(0,0,0,.45)">
+    <div style="font-size:2.8rem;margin-bottom:6px">🏫</div>
+    <h2 style="color:#1a237e;margin:0 0 4px;font-size:1.25rem">טומשין קידס</h2>
+    <p style="color:#78909c;font-size:.82rem;margin-bottom:24px">מנהל גנים</p>
+
+    <div style="margin-bottom:14px;text-align:right">
+      <label style="font-size:.78rem;font-weight:700;color:#546e7a;display:block;margin-bottom:4px">👤 שם משתמש</label>
+      <input type="text" id="auth-username" placeholder="שם משתמש"
+        style="width:100%;padding:11px 14px;border:2px solid #c5cae9;border-radius:9px;font-size:1rem;box-sizing:border-box;direction:ltr;text-align:right"
+        onkeydown="if(event.key==='Enter') document.getElementById('auth-password').focus()">
+    </div>
+
+    <div style="margin-bottom:14px;text-align:right">
+      <label style="font-size:.78rem;font-weight:700;color:#546e7a;display:block;margin-bottom:4px">🔒 סיסמה</label>
+      <input type="password" id="auth-password" placeholder="סיסמה"
+        style="width:100%;padding:11px 14px;border:2px solid #c5cae9;border-radius:9px;font-size:1rem;box-sizing:border-box;direction:ltr"
+        onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+
+    <label style="display:flex;align-items:center;justify-content:flex-end;gap:8px;font-size:.82rem;color:#546e7a;margin-bottom:20px;cursor:pointer">
+      <span>זכור אותי במחשב זה</span>
+      <input type="checkbox" id="auth-remember" checked style="width:16px;height:16px;accent-color:#1565c0">
+    </label>
+
+    <p id="auth-err" style="color:#c62828;font-size:.8rem;min-height:1.1em;margin-bottom:10px"></p>
+
+    <button id="auth-login-btn" onclick="doLogin()"
+      style="width:100%;padding:12px;background:#1565c0;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;transition:background .2s">
       כניסה
     </button>
   </div>
 </div>
-
 
 <!-- Info Modal -->
 <div id="infom" class="modal">

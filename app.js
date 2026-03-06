@@ -2,40 +2,46 @@
 // Firebase Realtime Database Sync - v10.2
 // ══════════════════════════════════════════════
 const FIREBASE_DB_URL = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data.json';
-const FIREBASE_PASS = '1234';
-const FIREBASE_POLL_INTERVAL = 60000; // בדיקה כל 60 שניות
+const FIREBASE_POLL_INTERVAL = 60000;
 
-let _fbLastSaveTs = 0;      // timestamp שנשמר בענן
-let _fbLastLoadTs = 0;      // מתי טענו לאחרון
+let _fbLastSaveTs = 0;
+let _fbLastLoadTs = 0;
 let _fbPollTimer = null;
 let _fbTimer = null;
 let _fbSyncing = false;
 
-// ── Password check ────────────────────────────
-function checkPassword() {
-  return localStorage.getItem('kids_auth') === 'ok';
-}
+// ── Login (called from HTML button) ──────────
+async function doLogin() {
+  const username = (document.getElementById('auth-username').value || '').trim().toLowerCase();
+  const password = (document.getElementById('auth-password').value || '');
+  const remember = document.getElementById('auth-remember').checked;
+  const err      = document.getElementById('auth-err');
+  const btn      = document.getElementById('auth-login-btn');
 
-function showPasswordOverlay() {
-  const el = document.getElementById('auth-overlay');
-  if (el) el.style.display = 'flex';
-}
+  if (!username || !password) { err.textContent = 'נא למלא שם משתמש וסיסמה'; return; }
+  err.textContent = '';
+  btn.textContent = 'מתחבר...';
+  btn.disabled = true;
 
-function hidePasswordOverlay() {
-  const el = document.getElementById('auth-overlay');
-  if (el) el.style.display = 'none';
-}
-
-function submitPassword() {
-  const inp = document.getElementById('auth-pass-input');
-  const err = document.getElementById('auth-err');
-  if (inp && inp.value === FIREBASE_PASS) {
-    localStorage.setItem('kids_auth', 'ok');
-    hidePasswordOverlay();
-  } else {
-    if (err) err.textContent = 'קוד שגוי, נסה שוב';
-    if (inp) inp.value = '';
+  try {
+    await window._fbSignIn(username, password, remember);
+    // onAuthStateChanged in index.html will fire _onAuthReady
+  } catch(e) {
+    const msg = e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found'
+      ? 'שם משתמש או סיסמה שגויים'
+      : e.code === 'auth/too-many-requests'
+      ? 'יותר מדי נסיונות — נסה שוב עוד כמה דקות'
+      : 'שגיאת התחברות: ' + e.code;
+    err.textContent = msg;
+    btn.textContent = 'כניסה';
+    btn.disabled = false;
   }
+}
+
+async function doLogout() {
+  if (!confirm('להתנתק?')) return;
+  await window._fbSignOut();
+  location.reload();
 }
 
 // ── Format timestamp ──────────────────────────
@@ -74,32 +80,48 @@ function _fbUpdateStatus() {
   if (el4) el4.textContent = _fbLastLoadTs ? _fmtTs(_fbLastLoadTs) : '—';
 }
 
+
+// Helper: process Firebase load response
+async function _processFirebaseLoad(r, silent) {
+  const cloudData = await r.json();
+  if (!cloudData || typeof cloudData !== 'object') return false;
+  const cloudTs = cloudData.ts || 0;
+  const appData = cloudData.data || cloudData;
+  if (appData && Object.keys(appData).length > 0) {
+    if (cloudTs > _fbLastSaveTs || _fbLastSaveTs === 0) {
+      localStorage.setItem('ganv5', JSON.stringify(appData));
+      _fbLastLoadTs = Date.now();
+      _fbLastSaveTs = cloudTs;
+      console.log('Firebase: loaded OK, ts=' + new Date(cloudTs).toLocaleTimeString());
+      if (!silent) _fbUpdateStatus();
+      return true;
+    }
+  }
+  return false;
+}
+
 // ── Load from Firebase ────────────────────────
 async function loadFromFirebase(silent) {
   try {
     if (!silent) { _fbSyncing = true; _fbUpdateStatus(); }
-    const r = await fetch(FIREBASE_DB_URL + '?ts=' + Date.now()); // bust cache
-    if (!r.ok) { console.warn('Firebase load failed: ' + r.status); return false; }
-    const cloudData = await r.json();
-    if (!cloudData || typeof cloudData !== 'object') return false;
-
-    const cloudTs = cloudData.ts || 0;
-    const appData = cloudData.data || cloudData;
-
-    if (appData && Object.keys(appData).length > 0) {
-      // Only overwrite if cloud is newer than what we loaded last time
-      if (cloudTs > _fbLastSaveTs || _fbLastSaveTs === 0) {
-        localStorage.setItem('ganv5', JSON.stringify(appData));
-        _fbLastLoadTs = Date.now();
-        _fbLastSaveTs = cloudTs;
-        console.log('Firebase: loaded, cloud ts=' + new Date(cloudTs).toLocaleTimeString());
-        if (!silent) _fbUpdateStatus();
-        return true;
-      } else {
-        console.log('Firebase: local is up to date');
+    const _tok = window._fbGetToken ? await window._fbGetToken() : null;
+    const _authQ = _tok ? '&auth=' + _tok : '';
+    const r = await fetch(FIREBASE_DB_URL + '?ts=' + Date.now() + _authQ);
+    if (!r.ok) {
+      if (r.status === 401 || r.status === 403) {
+        console.warn('Firebase: אין הרשאה — ייתכן שהטוקן פג תוקף, מתחדש...');
+        // Force token refresh and retry once
+        if (window._fbUser) {
+          try {
+            window._cachedToken = await window._fbUser.getIdToken(true);
+            const r2 = await fetch(FIREBASE_DB_URL + '?ts=' + Date.now() + '&auth=' + window._cachedToken);
+            if (r2.ok) { return await _processFirebaseLoad(r2, silent); }
+          } catch(e2) {}
+        }
       }
+      console.warn('Firebase load failed: ' + r.status); return false;
     }
-    return false;
+    return await _processFirebaseLoad(r, silent);
   } catch(e) {
     console.warn('Firebase load error:', e.message);
     return false;
@@ -118,7 +140,9 @@ async function saveToFirebase(silent) {
     _fbUpdateStatus();
     const nowTs = Date.now();
     const payload = { data: JSON.parse(raw), ts: nowTs, version: '10.2' };
-    const r = await fetch(FIREBASE_DB_URL, {
+    const _saveTok = window._fbGetToken ? await window._fbGetToken() : null;
+    const _saveQ   = _saveTok ? '?auth=' + _saveTok : '';
+    const r = await fetch(FIREBASE_DB_URL + _saveQ, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -151,7 +175,9 @@ function _fbStartPolling() {
   _fbPollTimer = setInterval(async () => {
     try {
       // Check only the timestamp first (lightweight)
-      const r = await fetch(FIREBASE_DB_URL + '?ts=' + Date.now());
+      const _pollTok = window._fbGetToken ? await window._fbGetToken() : null;
+      const _pollQ   = _pollTok ? '&auth=' + _pollTok : '';
+      const r = await fetch(FIREBASE_DB_URL + '?ts=' + Date.now() + _pollQ);
       if (!r.ok) return;
       const d = await r.json();
       const cloudTs = d && d.ts ? d.ts : 0;
@@ -974,51 +1000,39 @@ function stClass(s){
   return'';
 }
 
-window.onload=async function(){
-  // Password check
-  if (!checkPassword()) {
-    showPasswordOverlay();
-    // Wait until auth
-    await new Promise(resolve => {
-      const check = setInterval(() => {
-        if (localStorage.getItem('kids_auth') === 'ok') {
-          clearInterval(check);
-          resolve();
-        }
-      }, 300);
-    });
-  }
-  // Load from Firebase into localStorage, then native load() reads it
-  await Promise.all([_srawsReady, loadFromFirebase()]);
-  load();
-  migratePairsFromAuto();
-  migrateSupActSplit();
-  importContactsFromGardens();
-  migrateGardenPhones();
-  initDrops();
-  initHolDrops();
-  refreshClusterDrops();
-  refreshMgrDrops();
-  document.getElementById('dash-date').value=td();
-  // Clear search fields on load (prevent browser autofill from filtering results)
-  ['dash-srch','s-srch','g-srch','su-srch'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  const sfrom=document.getElementById('s-from');if(sfrom) sfrom.value=td();
-  const sto=document.getElementById('s-to');if(sto) sto.value=td();
-  const calClsEl=document.getElementById('cal-cls');
-  if(calClsEl) calClsEl.value='גנים';
-  const gClsEl=document.getElementById('g-cls');
-  if(gClsEl) gClsEl.value='גנים';
-  
-  renderReadOnlyBanner();
-  renderDash();
-  renderCal();
-  renderClusters();
-  renderSup();
-  renderManagers();
-  updCounts();
-  odUpdateUI();
-  _fbStartPolling(); // poll for changes from other devices
-};
+window.onload = function(){
+  // Auth is handled by onAuthStateChanged in index.html (Firebase module)
+  // _onAuthReady is called once user is authenticated
+  window._onAuthReady = async function(){
+    await Promise.all([_srawsReady, loadFromFirebase()]);
+    load();
+    migratePairsFromAuto();
+    migrateSupActSplit();
+    importContactsFromGardens();
+    migrateGardenPhones();
+    initDrops();
+    initHolDrops();
+    refreshClusterDrops();
+    refreshMgrDrops();
+    document.getElementById('dash-date').value=td();
+    ['dash-srch','s-srch','g-srch','su-srch'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    const sfrom=document.getElementById('s-from');if(sfrom) sfrom.value=td();
+    const sto=document.getElementById('s-to');if(sto) sto.value=td();
+    const calClsEl=document.getElementById('cal-cls');
+    if(calClsEl) calClsEl.value='גנים';
+    const gClsEl=document.getElementById('g-cls');
+    if(gClsEl) gClsEl.value='גנים';
+    renderReadOnlyBanner();
+    renderDash();
+    renderCal();
+    renderClusters();
+    renderSup();
+    renderManagers();
+    updCounts();
+    odUpdateUI();
+    _fbStartPolling();
+  }; // end _onAuthReady
+}; // end window.onload
 
 function updCounts(){
   const can=SCH.filter(s=>s.st==='can').length;
@@ -1898,95 +1912,153 @@ function renderPairDay(evs,gids){
 }
 
 function renderNormalWeek(evs,ws,f){
-  const days=[],dn=['ראשון','שני','שלישי','רביעי','חמישי','שישי'],tday=td();
+  const dn=['ראשון','שני','שלישי','רביעי','חמישי','שישי'], tday=td();
+  const days=[];
   for(let i=0;i<6;i++) days.push(addD(ws,i));
+
+  // ── Collect gardens with activity this week ──────────────────
   let gids=[...new Set(evs.map(s=>s.g))];
   if(f.gids&&f.gids.length) gids=f.gids;
   if(!gids.length) return'<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות</div>';
+
+  // ── Group into pairs & solo, then by city ────────────────────
   const usedGids=new Set();
-  const pairGroups=[]; // {type:'pair',pair,gids} | {type:'solo',gid,city,cls}
+  const byCity={}; // city → {pairs:[{pair,gids}], solos:[gid]}
+
+  function ensureCity(city){
+    if(!byCity[city]) byCity[city]={pairs:[],solos:[]};
+  }
+
   pairs.forEach(pair=>{
     const myGids=pair.ids.filter(gid=>gids.includes(gid));
     if(!myGids.length) return;
+    const city=G(myGids[0]).city||'אחר';
+    ensureCity(city);
     myGids.forEach(gid=>usedGids.add(gid));
-    pairGroups.push({type:'pair',pair,gids:myGids});
+    byCity[city].pairs.push({pair,gids:myGids});
   });
   gids.filter(gid=>!usedGids.has(gid)).forEach(gid=>{
-    const g=G(gid);
-    pairGroups.push({type:'solo',gid,city:g.city||'אחר',cls:gcls(g)});
+    const g=G(gid); const city=g.city||'אחר';
+    ensureCity(city);
+    byCity[city].solos.push(gid);
   });
-  const weekEvGids=new Set(evs.map(s=>s.g));
-  pairGroups.sort((a,b)=>{
-    const aAct=a.type==='pair'?a.gids.some(id=>weekEvGids.has(id)):weekEvGids.has(a.gid);
-    const bAct=b.type==='pair'?b.gids.some(id=>weekEvGids.has(id)):weekEvGids.has(b.gid);
-    if(aAct&&!bAct) return -1; if(!aAct&&bAct) return 1;
-    const aName=a.type==='pair'?a.pair.name:G(a.gid).name;
-    const bName=b.type==='pair'?b.pair.name:G(b.gid).name;
-    return aName.localeCompare(bName,'he');
+
+  // Sort cities, then pairs/solos within each city
+  const sortedCities=Object.keys(byCity).sort((a,b)=>a.localeCompare(b,'he'));
+  sortedCities.forEach(city=>{
+    byCity[city].pairs.sort((a,b)=>a.pair.name.localeCompare(b.pair.name,'he'));
+    byCity[city].solos.sort((a,b)=>(G(a).name||'').localeCompare(G(b).name||'','he'));
   });
-  let html='<div class="tw" style="overflow-x:auto"><table style="min-width:600px"><thead><tr>';
-  html+='<th style="min-width:130px;background:#e8eaf6;color:#283593">גן / זוג</th>';
+
+  // ── Build table ───────────────────────────────────────────────
+  let html='<div class="tw" style="overflow-x:auto"><table style="min-width:620px;border-collapse:collapse"><thead><tr>';
+  html+='<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;border:1px solid #c5cae9">גן / זוג</th>';
   days.forEach((d,i)=>{
     const ds=d2s(d);
     const hol=getHolidayInfo(ds);
     const blkWk=getBlockedInfo(ds);
-    const bg=ds===tday?'#1565c0':blkWk?'#fce4ec':hol?hol.bg:'#e8eaf6';
-    const col=ds===tday?'#fff':blkWk?'#c62828':hol?hol.color:'#283593';
-    const border=blkWk?'border-bottom:3px solid #e91e63;':'';
-    html+=`<th style="background:${bg};color:${col};padding:5px 4px;text-align:center;font-size:.74rem;${border}" onclick="jumpToDay('${ds}')">${dn[i]}<br><span style="font-size:.64rem;font-weight:400">${fD(ds)}</span><br><span style="font-size:.58rem;font-weight:400;opacity:.75">${toHebDate(ds)}</span>
-      ${blkWk?`<br><span style="font-size:.6rem;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blkWk.icon||'🚫'} ${blkWk.reason}</span>`:`<br><span style="font-size:.58rem;opacity:.4;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')" title="חסום תאריך">🚫</span>`}
+    const isToday=ds===tday;
+    const bg=isToday?'#1565c0':blkWk?'#fce4ec':hol?hol.bg:'#e8eaf6';
+    const col=isToday?'#fff':blkWk?'#c62828':hol?hol.color:'#283593';
+    html+=`<th style="background:${bg};color:${col};padding:5px 4px;text-align:center;font-size:.74rem;border:1px solid #c5cae9;${blkWk?'border-bottom:3px solid #e91e63;':''}" onclick="jumpToDay('${ds}')">
+      ${dn[i]}<br>
+      <span style="font-size:.64rem;font-weight:400">${fD(ds)}</span><br>
+      <span style="font-size:.58rem;font-weight:400;opacity:.75">${toHebDate(ds)}</span>
+      ${blkWk?`<br><span style="font-size:.6rem;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blkWk.icon||'🚫'} ${blkWk.reason}</span>`:`<br><span style="font-size:.58rem;opacity:.35;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')" title="חסום תאריך">🚫</span>`}
     </th>`;
   });
   html+='</tr></thead><tbody>';
-  pairGroups.forEach(grp=>{
-    if(grp.type==='pair'){
-      const clr=pairWeekColors?pairWeekColors(grp.pair.id):{solid:'#e65100',light:'#fff3e0'};
-      html+=`<tr><td colspan="7" style="background:${clr.solid};color:#fff;padding:4px 8px;font-size:.75rem;font-weight:700">
-        🔗 ${grp.pair.name}
-      </td></tr>`;
-      grp.gids.forEach(gid=>{
+
+  sortedCities.forEach(city=>{
+    const clr=CITY_COLORS(city);
+    const cityData=byCity[city];
+    const totalGroups=cityData.pairs.length+cityData.solos.length;
+
+    // ── City header row ────────────────────────────────────────
+    html+=`<tr>
+      <td colspan="7" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;letter-spacing:.01em;border-top:2px solid ${clr.border}">
+        🏙️ ${city}
+        <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${cityData.pairs.length} זוגות · ${cityData.solos.length} גנים בודדים</span>
+      </td>
+    </tr>`;
+
+    // ── Pairs within city ──────────────────────────────────────
+    cityData.pairs.forEach(({pair,gids:pGids})=>{
+      const pClr=pairWeekColors?pairWeekColors(pair.id):{solid:clr.solid,light:clr.light};
+      html+=`<tr>
+        <td colspan="7" style="background:${pClr.solid};color:#fff;padding:3px 10px 3px 16px;font-size:.75rem;font-weight:700;border-top:1px solid rgba(255,255,255,.3)">
+          🔗 ${pair.name}
+        </td>
+      </tr>`;
+      pGids.forEach(gid=>{
         const g=G(gid);
-        html+=`<tr><td style="background:${clr.light};font-size:.73rem;padding:4px 7px;color:#333;font-weight:600;border-right:3px solid ${clr.solid}">${g.name}<br><span style="font-size:.66rem;color:#78909c">${g.city}</span></td>`;
+        html+=`<tr><td style="background:${pClr.light};font-size:.73rem;padding:4px 7px;color:#333;font-weight:600;border-right:3px solid ${pClr.solid};border:1px solid #e0e0e0">
+          ${g.name}<br><span style="font-size:.63rem;color:#78909c">${g.city}</span>
+        </td>`;
         days.forEach(d=>{
-          const ds=d2s(d);
+          const ds=d2s(d); const isToday=ds===tday;
           const hol=getHolidayInfo(ds,g.city,gcls(g));
-          const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
-          const cellBg=hol?hol.bg:(clr.light);
           const gBlk=getGardenBlock(gid,ds);
-          html+=`<td style="background:${gBlk?'#fce4ec':cellBg};padding:2px;${gBlk?'border:1.5px solid #e91e63;':''}" onclick="openGcellPopup(${gid},'${ds}',event)">${de.length
-            ?de.map(ev=>`<div style="border-radius:4px;padding:3px 5px;margin:1px;cursor:pointer;font-size:.71rem;background:${clr.light};border-right:2px solid ${clr.solid};${ev.st==='can'?'opacity:.45;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':''}" onclick="event.stopPropagation();openSP(${ev.id})">
-              <div style="font-weight:700;color:#1a237e">${ev.a}${ev.act?'<span style="color:#1565c0;font-size:.64rem"> · '+ev.act+'</span>':''}</div>
-              ${ev.t?'<div style="font-size:.67rem;color:#546e7a">⏰ '+fT(ev.t)+'</div>':''}
-              <div style="font-size:.64rem">${stLabel(ev)}</div>
-            </div>`).join('')+(gBlk?`<div style="font-size:.62rem;color:#c62828;padding:2px 4px">${gBlk.icon||'🚫'} ${gBlk.reason}</div>`:'')
-            :gBlk?`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center;cursor:pointer">${gBlk.icon||'🚫'} ${gBlk.reason}</div>`
-            :hol?`<span style="font-size:.66rem;color:${hol.color}">${hol.emoji}</span>`
-            :'<span style="color:#ccc;font-size:.8rem;cursor:pointer">+</span>'
-          }</td>`;
+          const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
+          const cellBg=gBlk?'#fce4ec':isToday?'#e8f0fe':hol?hol.bg:pClr.light;
+          html+=`<td style="background:${cellBg};${gBlk?'border:1.5px solid #e91e63;':'border:1px solid #e0e0e0;'}padding:2px;vertical-align:top;min-width:90px" onclick="openGcellPopup(${gid},'${ds}',event)">`;
+          if(de.length){
+            de.forEach(ev=>{
+              html+=`<div style="border-radius:4px;padding:3px 5px;margin:1px;cursor:pointer;font-size:.71rem;background:${pClr.light};border-right:2px solid ${pClr.solid};${ev.st==='can'?'opacity:.45;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':''}" onclick="event.stopPropagation();openSP(${ev.id})">
+                <div style="font-weight:700;color:#1a237e">${ev.a}${ev.act?`<span style="color:#1565c0;font-size:.64rem"> · ${ev.act}</span>`:''}</div>
+                ${ev.t?`<div style="font-size:.67rem;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
+                <div style="font-size:.64rem">${stLabel(ev)}</div>
+              </div>`;
+            });
+            if(gBlk) html+=`<div style="font-size:.62rem;color:#c62828;padding:2px 4px">${gBlk.icon||'🚫'} ${gBlk.reason}</div>`;
+          } else if(gBlk){
+            html+=`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center;cursor:pointer">${gBlk.icon||'🚫'} ${gBlk.reason}</div>`;
+          } else if(hol){
+            html+=`<span style="font-size:.66rem;color:${hol.color}">${hol.emoji}</span>`;
+          } else {
+            html+=`<span style="color:#ccc;font-size:.8rem;cursor:pointer" title="הוסף שיבוץ">+</span>`;
+          }
+          html+='</td>';
         });
         html+='</tr>';
       });
-    } else {
-      const gid=grp.gid; const g=G(gid);
-      html+=`<tr><td style="background:#f5f7ff;font-size:.73rem;padding:4px 7px;color:#333;font-weight:600">${g.name}<br><span style="font-size:.66rem;color:#78909c">${g.city}</span></td>`;
+    });
+
+    // ── Solo gardens within city ───────────────────────────────
+    cityData.solos.forEach(gid=>{
+      const g=G(gid);
+      html+=`<tr><td style="background:${clr.light};font-size:.73rem;padding:4px 7px;color:#333;font-weight:600;border-right:3px solid ${clr.solid};border:1px solid #e0e0e0">
+        ${g.name}<br><span style="font-size:.63rem;color:#78909c">${g.city}</span>
+      </td>`;
       days.forEach(d=>{
-        const ds=d2s(d);
+        const ds=d2s(d); const isToday=ds===tday;
         const hol=getHolidayInfo(ds,g.city,gcls(g));
-        const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
         const soloBlk=getGardenBlock(gid,ds);
-        html+=`<td style="${soloBlk?'background:#fce4ec;border:1.5px solid #e91e63;':hol?'background:'+hol.bg+';':''}" onclick="openGcellPopup(${gid},'${ds}',event)">${de.length
-          ?de.map(ev=>`<div style="border-radius:4px;padding:3px 5px;margin:1px;cursor:pointer;font-size:.71rem;background:#e3f2fd;border-right:2px solid #1565c0;${ev.st==='can'?'opacity:.45;text-decoration:line-through;':''}" onclick="event.stopPropagation();openSP(${ev.id})">
-            <div style="font-weight:700;color:#1a237e">${ev.a}${ev.act?'<span style="color:#1565c0;font-size:.64rem"> · '+ev.act+'</span>':''}</div>
-            ${ev.t?'<div style="font-size:.67rem;color:#546e7a">⏰ '+fT(ev.t)+'</div>':''}
-          </div>`).join('')+(soloBlk?`<div style="font-size:.62rem;color:#c62828;padding:2px 4px">${soloBlk.icon||'🚫'} ${soloBlk.reason}</div>`:'')
-          :soloBlk?`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center;cursor:pointer">${soloBlk.icon||'🚫'} ${soloBlk.reason}</div>`
-          :hol?`<span style="font-size:.66rem;color:${hol.color}">${hol.emoji}</span>`
-          :'<span style="color:#ccc;font-size:.8rem;cursor:pointer">+</span>'
-        }</td>`;
+        const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
+        const cellBg=soloBlk?'#fce4ec':isToday?'#e8f0fe':hol?hol.bg:clr.light;
+        html+=`<td style="background:${cellBg};${soloBlk?'border:1.5px solid #e91e63;':'border:1px solid #e0e0e0;'}padding:2px;vertical-align:top;min-width:90px" onclick="openGcellPopup(${gid},'${ds}',event)">`;
+        if(de.length){
+          de.forEach(ev=>{
+            html+=`<div style="border-radius:4px;padding:3px 5px;margin:1px;cursor:pointer;font-size:.71rem;background:${clr.light};border-right:2px solid ${clr.solid};${ev.st==='can'?'opacity:.45;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':''}" onclick="event.stopPropagation();openSP(${ev.id})">
+              <div style="font-weight:700;color:#1a237e">${ev.a}${ev.act?`<span style="color:#1565c0;font-size:.64rem"> · ${ev.act}</span>`:''}</div>
+              ${ev.t?`<div style="font-size:.67rem;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
+              <div style="font-size:.64rem">${stLabel(ev)}</div>
+            </div>`;
+          });
+          if(soloBlk) html+=`<div style="font-size:.62rem;color:#c62828;padding:2px 4px">${soloBlk.icon||'🚫'} ${soloBlk.reason}</div>`;
+        } else if(soloBlk){
+          html+=`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center;cursor:pointer">${soloBlk.icon||'🚫'} ${soloBlk.reason}</div>`;
+        } else if(hol){
+          html+=`<span style="font-size:.66rem;color:${hol.color}">${hol.emoji}</span>`;
+        } else {
+          html+=`<span style="color:#ccc;font-size:.8rem;cursor:pointer" title="הוסף שיבוץ">+</span>`;
+        }
+        html+='</td>';
       });
       html+='</tr>';
-    }
+    });
   });
+
   return html+'</tbody></table></div>';
 }
 
@@ -2365,6 +2437,8 @@ function openSP(id){
   h+=`<button class="btn bp bsm" style="width:100%" onclick="saveNt()">💾 שמור הערה</button>`;
   document.getElementById('sp-body').innerHTML=h;
   document.getElementById('sp').classList.add('open');
+  const _bd=document.getElementById('sp-backdrop');
+  if(_bd) _bd.style.display='block';
 }
 
 function spEditSupChg(){
@@ -2554,6 +2628,8 @@ function updAndRefresh(id,fields){
 }
 function closeSP(){
   document.getElementById('sp').classList.remove('open');
+  const bd=document.getElementById('sp-backdrop');
+  if(bd) bd.style.display='none';
   selEv=null;
 }
 // Close SP when tapping overlay on mobile
