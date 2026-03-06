@@ -5201,20 +5201,27 @@ function downloadWB(wb, filename, fromM) {
   }
 
   // Try ExcelJS first (supports images + RTL)
-  if (typeof ExcelJS !== 'undefined') {
+  if (typeof ExcelJS !== 'undefined' && !window._excelJSFailed) {
+    console.log('📊 Using ExcelJS for export:', safeFile, 'year:', fy, 'month:', fm);
     _downloadWBExcelJS(gardens, allEvs, fy, fm - 1, safeFile);
     return;
   }
   // Fallback: SheetJS (no images)
-  try {
-    const workbook = XLSX.utils.book_new();
-    const ws = buildStyledSheet(gardens, allEvs, fy, fm - 1);
-    XLSX.utils.book_append_sheet(workbook, ws, 'לוח חוגים');
-    XLSX.writeFile(workbook, safeFile);
-  } catch(e) {
-    console.error('XLSX error:', e);
-    _csvFallback(wb, safeFile);
+  if (typeof XLSX !== 'undefined') {
+    try {
+      console.log('📊 Using SheetJS fallback for export');
+      const workbook = XLSX.utils.book_new();
+      const ws = buildStyledSheet(gardens, allEvs, fy, fm - 1);
+      XLSX.utils.book_append_sheet(workbook, ws, 'לוח חוגים');
+      XLSX.writeFile(workbook, safeFile);
+      return;
+    } catch(e) {
+      console.error('XLSX error:', e);
+    }
   }
+  // Last resort: CSV
+  console.warn('📊 No Excel library found, falling back to CSV');
+  _csvFallback(wb, safeFile);
 }
 
 async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
@@ -5453,7 +5460,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     showToast('📊 קובץ Excel נוצר!');
   } catch(e) {
     console.error('ExcelJS error:', e);
-    showToast('⚠️ שגיאה ביצירת Excel: ' + e.message);
+    alert('שגיאה ביצירת Excel: ' + e.message + '\n\nבדוק את ה-console לפרטים');
     _csvFallback({sheets: gardens.map(g => ({garden:g, evs:allEvs.filter(s=>s.g===g.id)}))}, filename);
   }
 }
