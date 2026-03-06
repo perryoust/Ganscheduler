@@ -139,6 +139,7 @@
       <div class="fg"><label>סטטוס</label><select id="dash-st" onchange="renderDash()"><option value="">הכל</option><option value="ok">מתקיים</option><option value="done">התקיים</option><option value="can">בוטל</option><option value="post">נדחה</option><option value="nohap">לא התקיים</option></select></div>
       <div class="fg"><label>חיפוש חופשי</label><input type="text" id="dash-srch" placeholder="שם גן, ספק..." autocomplete="off" oninput="renderDash()" style="min-width:130px"></div>
       <button class="btn bp bsm" onclick="openNewSched(null)">➕ שיבוץ חדש</button>
+      <button class="btn br2 bsm" onclick="openCancelDay(document.getElementById('dash-date').value||td())" title="ביטול כל פעילויות יום">🚨 ביטול יום</button>
     </div>
     <!-- Classification tabs -->
     <div style="display:flex;gap:6px;margin-top:9px">
@@ -1622,6 +1623,68 @@
     <div style="display:flex;gap:7px">
       <button class="btn bp" onclick="saveEditSched()">💾 שמור</button>
       <button class="btn bs" onclick="CM('esm')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Cancel Modal -->
+<div id="canqm" class="modal">
+  <div class="mb" style="max-width:440px">
+    <h2>❌ ביטול פעילות</h2>
+    <div id="canq-info" style="background:#ffebee;border-radius:7px;padding:8px 11px;font-size:.8rem;margin-bottom:12px;color:#b71c1c"></div>
+    <div class="fg" style="margin-bottom:10px">
+      <label style="font-weight:700">סיבת ביטול</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;margin-top:6px">
+        <button class="can-reason-btn btn" data-r="ספק לא הגיע" onclick="selCanReason(this,'ספק לא הגיע')">🚫 ספק לא הגיע</button>
+        <button class="can-reason-btn btn" data-r="ספק חולה" onclick="selCanReason(this,'ספק חולה')">🤒 ספק חולה</button>
+        <button class="can-reason-btn btn" data-r="גן סגור" onclick="selCanReason(this,'גן סגור')">🏫 גן סגור</button>
+        <button class="can-reason-btn btn" data-r="אין ילדים" onclick="selCanReason(this,'אין ילדים')">👤 אין ילדים</button>
+        <button class="can-reason-btn btn" data-r="מצב ביטחוני" onclick="selCanReason(this,'מצב ביטחוני')">🚨 מצב ביטחוני</button>
+        <button class="can-reason-btn btn" data-r="אחר" onclick="selCanReason(this,'אחר')">📝 אחר</button>
+      </div>
+      <input type="text" id="canq-note" placeholder="הערה נוספת (אופציונלי)..." style="width:100%;margin-bottom:10px">
+    </div>
+    <div id="canq-scope-wrap" style="display:none;margin-bottom:12px;background:#fff3e0;border-radius:7px;padding:9px 12px;border:1px solid #ffe082">
+      <div style="font-size:.78rem;font-weight:700;color:#e65100;margin-bottom:7px">🔗 בטל עבור:</div>
+      <div id="canq-scope-btns" style="display:flex;flex-direction:column;gap:5px"></div>
+    </div>
+    <div style="display:flex;gap:7px;justify-content:flex-end">
+      <button class="btn br2" onclick="saveCanQ()">❌ בטל פעילות</button>
+      <button class="btn bs" onclick="CM('canqm')">סגור</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cancel Entire Day Modal -->
+<div id="cancelday-m" class="modal">
+  <div class="mb" style="max-width:460px">
+    <h2>🚨 ביטול יום שלם</h2>
+    <div style="background:#ffebee;border-radius:7px;padding:8px 12px;font-size:.8rem;margin-bottom:12px;color:#b71c1c">
+      ביטול כל הפעילויות ביום — כל גן יקבל הערה עם הסיבה
+    </div>
+    <div class="fg" style="margin-bottom:12px">
+      <label style="font-weight:700">תאריך</label>
+      <input type="date" id="cancelday-date" onchange="cancelDayDateChg()" style="width:100%;margin-top:4px">
+      <div id="cancelday-cnt" style="font-size:.78rem;margin-top:6px;font-weight:600"></div>
+    </div>
+    <div class="fg" style="margin-bottom:10px">
+      <label style="font-weight:700">סיבת ביטול</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;margin-top:6px">
+        <button class="cancelday-reason-btn btn" data-r="שביתה" onclick="selCancelDayReason(this)">✊ שביתה</button>
+        <button class="cancelday-reason-btn btn" data-r="מלחמה / מצב ביטחוני" onclick="selCancelDayReason(this)">🚨 מצב ביטחוני</button>
+        <button class="cancelday-reason-btn btn" data-r="גשם / מזג אוויר" onclick="selCancelDayReason(this)">🌧️ מזג אוויר</button>
+        <button class="cancelday-reason-btn btn" data-r="חג / אירוע מיוחד" onclick="selCancelDayReason(this)">🕍 חג / אירוע</button>
+        <button class="cancelday-reason-btn btn" data-r="תקלה / כוח עליון" onclick="selCancelDayReason(this)">⚡ כוח עליון</button>
+        <button class="cancelday-reason-btn btn" data-r="אחר" onclick="selCancelDayReason(this)">📝 אחר</button>
+      </div>
+      <input type="text" id="cancelday-note" placeholder="פרט נוסף / הסבר..." style="width:100%">
+    </div>
+    <div style="display:flex;gap:7px;justify-content:space-between;align-items:center">
+      <span style="font-size:.75rem;color:#888">התאריך יסומן גם כחסום ביומן</span>
+      <div style="display:flex;gap:7px">
+        <button class="btn br2" onclick="saveCancelDay()">🚨 בטל יום</button>
+        <button class="btn bs" onclick="CM('cancelday-m')">סגור</button>
+      </div>
     </div>
   </div>
 </div>

@@ -1436,7 +1436,7 @@ function renderClusterDay(evs, ds, clusterName){
             <div style="font-size:.68rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
             <div class="qacts" onclick="event.stopPropagation()">
               ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
-              ${s.st==='can'?'':`<button title="בטל" onclick="qSetSt(${s.id},'can')">❌</button>`}
+              ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
               <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
             </div>
           </div>`;
@@ -1468,7 +1468,7 @@ function renderClusterDay(evs, ds, clusterName){
             ${s.nt?`<div style="font-size:.68rem;color:#78909c">📝 ${s.nt}</div>`:''}
             <div class="qacts" onclick="event.stopPropagation()">
               ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
-              ${s.st==='can'?'':`<button title="בטל" onclick="qSetSt(${s.id},'can')">❌</button>`}
+              ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
               ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
               <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
             </div>
@@ -1689,7 +1689,7 @@ function renderNormalDay(evs,ds){
               ${s.nt?`<div style="font-size:.68rem;color:#78909c">📝 ${s.nt}</div>`:''}
               <div class="qacts" onclick="event.stopPropagation()">
                 ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
-                ${s.st==='can'?'':`<button title="בטל" onclick="qSetSt(${s.id},'can')">❌</button>`}
+                ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
                 ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
                 <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
               </div>
@@ -1783,7 +1783,7 @@ function renderPairCard(pair, pairEvs, opts){
         <div class="pgr-right">
           <div class="pgr-qacts" onclick="event.stopPropagation()">
             ${ev.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${ev.id},'done')">✔️</button>`}
-            ${ev.st==='can'?'':`<button title="בטל" onclick="qSetSt(${ev.id},'can')">❌</button>`}
+            ${ev.st==='can'?'':`<button title="בטל" onclick="openCanQ(${ev.id})">❌</button>`}
             <button title="דחה שוב" onclick="openPostpone(${ev.id})">⏩</button>
             ${ev.st==='nohap'?'':`<button title="לא התקיים" onclick="openNohapQ(${ev.id})" style="color:#e91e63">⚠️</button>`}
           </div>
@@ -1819,7 +1819,7 @@ function renderGardenCols(evs,gids,clr){
           <div class="pst">${stLabel(s)}</div>
           <div class="qacts" onclick="event.stopPropagation()">
             ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
-            ${s.st==='can'?'':`<button title="בטל" onclick="qSetSt(${s.id},'can')">❌</button>`}
+            ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
             ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
             <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
           </div>
@@ -1861,7 +1861,7 @@ function renderPairColsHTML(evs,gids,pairId){
       <div class="pst">${stLabel(s)}</div>
       <div class="qacts" onclick="event.stopPropagation()">
         ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
-        ${s.st==='can'?'':`<button title="בטל" onclick="qSetSt(${s.id},'can')">❌</button>`}
+        ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
         ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
         <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
       </div>
@@ -4766,6 +4766,124 @@ function goToNoHap(){
 }
 function CM(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal').forEach(m=>{m.onclick=e=>{if(e.target===m) m.classList.remove('open');};});
+
+
+// ── Quick Cancel Popup ──────────────────────────────────
+let _canQId = null;
+
+function openCanQ(id) {
+  _canQId = id;
+  const s = SCH.find(x => x.id === id); if (!s) return;
+  const g = G(s.g);
+  document.getElementById('canq-info').innerHTML =
+    `<b>${g.name}</b> · ${g.city} · ${s.a}${s.act?' · '+s.act:''}<br>📅 ${fD(s.d)} ${s.t?'⏰ '+fT(s.t):''}`;
+  document.getElementById('canq-note').value = '';
+  document.querySelectorAll('.can-reason-btn').forEach(b => b.classList.remove('sel'));
+  const pair = gardenPair(s.g);
+  const wrap = document.getElementById('canq-scope-wrap');
+  const btns = document.getElementById('canq-scope-btns');
+  if (pair) {
+    const partners = pair.ids.filter(gid=>gid!==s.g).map(gid=>G(gid)).filter(x=>x.id);
+    const allNames = [g,...partners].map(x=>x.name).join(' + ');
+    btns.innerHTML =
+      `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;padding:4px 6px;border-radius:5px;border:1.5px solid #e0e0e0;background:#fff">
+        <input type="radio" name="canq-scope" value="solo" checked style="accent-color:#c62828">
+        <span>🏫 <b>${g.name}</b> בלבד</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;padding:4px 6px;border-radius:5px;border:1.5px solid #e0e0e0;background:#fff">
+        <input type="radio" name="canq-scope" value="pair" style="accent-color:#c62828">
+        <span>🔗 כל הזוג — <b>${allNames}</b></span>
+      </label>`;
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+  }
+  document.getElementById('canqm').classList.add('open');
+}
+
+function selCanReason(btn, reason) {
+  document.querySelectorAll('.can-reason-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  if (reason === 'אחר') document.getElementById('canq-note').focus();
+}
+
+function saveCanQ() {
+  const sel = document.querySelector('.can-reason-btn.sel');
+  const mainReason = sel ? sel.dataset.r : '';
+  const extra = document.getElementById('canq-note').value.trim();
+  const fullReason = [mainReason, extra].filter(Boolean).join(' — ');
+  if (!mainReason && !extra) { alert('יש לבחור סיבת ביטול'); return; }
+  const scopeEl = document.querySelector('input[name="canq-scope"]:checked');
+  const forPair = scopeEl && scopeEl.value === 'pair';
+  const s = SCH.find(x => x.id === _canQId); if (!s) return;
+  const doCancel = (evId) => {
+    const ev = SCH.find(x => x.id === evId); if (!ev) return;
+    ev.st = 'can'; ev.cr = mainReason || 'בוטל'; ev.cn = extra;
+    const noteAdd = '❌ בוטל: ' + fullReason;
+    ev.nt = ev.nt ? ev.nt + ' | ' + noteAdd : noteAdd;
+  };
+  doCancel(_canQId);
+  if (forPair) {
+    const pair = gardenPair(s.g);
+    if (pair) pair.ids.filter(gid=>gid!==s.g).forEach(gid=>{
+      const pEv = SCH.find(ps=>parseInt(ps.g)===parseInt(gid)&&ps.d===s.d&&ps.st!=='can');
+      if (pEv) doCancel(pEv.id);
+    });
+  }
+  saveAndRefresh('canqm');
+}
+
+// ── Cancel Entire Day ───────────────────────────────────
+let _cancelDayDs = null;
+
+function openCancelDay(ds) {
+  _cancelDayDs = ds || td();
+  document.getElementById('cancelday-date').value = _cancelDayDs;
+  document.getElementById('cancelday-note').value = '';
+  document.querySelectorAll('.cancelday-reason-btn').forEach(b => b.classList.remove('sel'));
+  _updateCancelDayCnt();
+  document.getElementById('cancelday-m').classList.add('open');
+}
+
+function _updateCancelDayCnt() {
+  const cnt = SCH.filter(s => s.d === _cancelDayDs && s.st !== 'can').length;
+  const el = document.getElementById('cancelday-cnt');
+  if (!el) return;
+  el.textContent = cnt > 0 ? `נמצאו ${cnt} פעילויות ביום זה שיבוטלו` : 'אין פעילויות פעילות ביום זה';
+  el.style.color = cnt > 0 ? '#c62828' : '#888';
+}
+
+function cancelDayDateChg() {
+  _cancelDayDs = document.getElementById('cancelday-date').value;
+  _updateCancelDayCnt();
+}
+
+function selCancelDayReason(btn) {
+  document.querySelectorAll('.cancelday-reason-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  if (btn.dataset.r === 'אחר') document.getElementById('cancelday-note').focus();
+}
+
+function saveCancelDay() {
+  const sel = document.querySelector('.cancelday-reason-btn.sel');
+  const mainReason = sel ? sel.dataset.r : '';
+  const extra = document.getElementById('cancelday-note').value.trim();
+  const fullReason = [mainReason, extra].filter(Boolean).join(' — ');
+  if (!fullReason) { alert('יש לבחור סיבה'); return; }
+  if (!_cancelDayDs) return;
+  const toCancel = SCH.filter(s => s.d === _cancelDayDs && s.st !== 'can');
+  if (toCancel.length === 0) { showToast('אין פעילויות לביטול ביום זה'); CM('cancelday-m'); return; }
+  if (!confirm(`לבטל ${toCancel.length} פעילויות בתאריך ${fD(_cancelDayDs)}?\nסיבה: ${fullReason}`)) return;
+  toCancel.forEach(s => {
+    s.st = 'can'; s.cr = mainReason || 'בוטל'; s.cn = extra;
+    const noteAdd = '❌ בוטל: ' + fullReason;
+    s.nt = s.nt ? s.nt + ' | ' + noteAdd : noteAdd;
+  });
+  const icon = mainReason.includes('שביתה')?'✊':mainReason.includes('מלחמה')||mainReason.includes('מצב')?'🚨':mainReason.includes('חג')?'🕍':'🚫';
+  blockedDates[_cancelDayDs] = { reason: fullReason, note: extra, icon };
+  saveAndRefresh('cancelday-m');
+  showToast(`❌ בוטלו ${toCancel.length} פעילויות — ${fD(_cancelDayDs)}`);
+}
 
 let _nohapQId=null;
 function openNohapQ(id){
