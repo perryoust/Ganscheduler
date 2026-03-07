@@ -4290,8 +4290,8 @@ function doSupExport(){
     const ga=G(a.g),gb=G(b.g);
     return (ga.city||'').localeCompare(gb.city||'','he')
       ||a.d.localeCompare(b.d)
-      ||(ga.name||'').localeCompare(gb.name||'','he')
-      ||(a.t||'').localeCompare(b.t||'');
+      ||(a.t||'99:99').localeCompare(b.t||'99:99')
+      ||(ga.name||'').localeCompare(gb.name||'','he');
   });
   if(!evs.length){alert('אין פעילויות בטווח זה');return;}
 
@@ -5763,6 +5763,8 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       }
 
       // ── Footer ────────────────────────────────────────────
+      // Store the row number where footer starts (for XML page-break injection)
+      ws._footerStartRow = r + 1; // 1-based
       // Manager row - right-aligned
       {
         const row = ws.addRow([mgrText,'','','','','','','','']);
@@ -5817,7 +5819,18 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
             : attrs + ' view="pageLayout"';
           return `<sheetView${a2}${close}`;
         });
-        // 2. Inject header directly into XML (ExcelJS browser headerFooter unreliable)
+        // 2. Inject rowBreaks to keep footer on last content page
+        // Find the worksheet object by sheet index
+        const sheetIdx = sheetKeys.indexOf(sk);
+        const wsObj = workbook.worksheets[sheetIdx];
+        if (wsObj && wsObj._footerStartRow) {
+          const breakRow = wsObj._footerStartRow - 1; // break BEFORE footer
+          const rowBreakXml = `<rowBreaks count="1" manualBreakCount="1"><brk id="${breakRow}" max="16383" man="1"/></rowBreaks>`;
+          if (!xml.includes('<rowBreaks')) {
+            xml = xml.replace(/<\/sheetData>/, `</sheetData>${rowBreakXml}`);
+          }
+        }
+        // 3. Inject header directly into XML (ExcelJS browser headerFooter unreliable)
         const hdrText = `&amp;R&amp;&quot;Arial,Bold&quot;&amp;18${monthTitle}`;
         if (!xml.includes('<headerFooter')) {
           xml = xml.replace(/<\/sheetData>/, `</sheetData><headerFooter scaleWithDoc="0"><oddHeader>${hdrText}</oddHeader><evenHeader>${hdrText}</evenHeader></headerFooter>`);
