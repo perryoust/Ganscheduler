@@ -136,7 +136,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="tab active" onclick="ST('dash')">📊 לוח בקרה</div>
   <div class="tab" onclick="ST('cal')">📅 לוח שנה</div>
   <div class="tab" onclick="ST('sched')">📋 לוח זמנים</div>
-  <div class="tab" onclick="ST('gardens')">🏫 גנים</div>
+  <div class="tab" onclick="ST('gardens')">🏫 צהרונים</div>
   <div class="tab" onclick="ST('holidays')">🗓️ חופשות</div>
   <div class="tab" onclick="ST('sup')">🏢 ספקים</div>
 </div>
@@ -330,7 +330,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       </div>
       <button class="btn bp bsm" onclick="openAddGardenModal()">➕ הוסף מקום חדש</button>
     </div>
-    <div class="row" style="margin-bottom:8px">
+    <div id="g-filters" class="row" style="margin-bottom:8px">
       <div class="fg"><label>עיר</label><select id="g-city" onchange="renderGardens()"><option value="">כל הערים</option></select></div>
       <div class="fg"><label>אשכול</label><select id="g-cl" onchange="renderGardens()"><option value="">הכל</option></select></div>
       <div class="fg"><label>מנהל/רכז</label><select id="g-mgr" onchange="renderGardens()"><option value="">הכל</option></select></div>

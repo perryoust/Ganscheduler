@@ -4393,13 +4393,14 @@ function renderSup(){
   if(sortMode==='cnt') all=[...all].sort((a,b)=>supBaseCnt(b.name)-supBaseCnt(a.name));
 
   if(_supViewMode==='list'){
-    let h='<table style="width:100%;border-collapse:collapse;font-size:.82rem">'
+    let h='<table style="width:100%;border-collapse:collapse;font-size:.83rem;table-layout:fixed">'
+      +'<colgroup><col style="width:28%"><col style="width:17%"><col style="width:8%"><col style="width:30%"><col style="width:17%"></colgroup>'
       +'<thead><tr style="background:#e8eaf6;position:sticky;top:0">'
-      +'<th style="padding:6px 10px;text-align:right;font-weight:700;border-bottom:2px solid #c5cae9">ספק</th>'
-      +'<th style="padding:6px 8px;text-align:center;font-weight:700;border-bottom:2px solid #c5cae9">טלפון</th>'
-      +'<th style="padding:6px 8px;text-align:center;font-weight:700;border-bottom:2px solid #c5cae9">פעילויות</th>'
-      +'<th style="padding:6px 8px;text-align:center;font-weight:700;border-bottom:2px solid #c5cae9">סוגים</th>'
-      +'<th style="padding:6px 8px;text-align:center;font-weight:700;border-bottom:2px solid #c5cae9;min-width:80px"></th>'
+      +'<th style="padding:7px 12px;text-align:right;font-weight:700;border-bottom:2px solid #c5cae9">ספק</th>'
+      +'<th style="padding:7px 8px;text-align:center;font-weight:700;border-bottom:2px solid #c5cae9;white-space:nowrap">טלפון</th>'
+      +'<th style="padding:7px 8px;text-align:center;font-weight:700;border-bottom:2px solid #c5cae9;white-space:nowrap">פעילויות</th>'
+      +'<th style="padding:7px 8px;text-align:right;font-weight:700;border-bottom:2px solid #c5cae9">סוגים</th>'
+      +'<th style="padding:7px 8px;border-bottom:2px solid #c5cae9"></th>'
       +'</tr></thead><tbody>';
     all.forEach((s,idx)=>{
       const base=s.name;
@@ -4410,16 +4411,16 @@ function renderSup(){
       const safeBase=base.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/'/g,"\\'");
       const bg=idx%2===0?'#fff':'#f8f9ff';
       h+=`<tr style="background:${bg};cursor:pointer" onclick="openSupCard('${safeBase}')">`
-        +`<td style="padding:5px 10px;font-weight:700;color:#1a237e;border-bottom:1px solid #e8eaf6">${base}`
-        +`${isActSupplier(base)?' <span style="font-size:.65rem;color:#1565c0">🎨</span>':''}`
-        +`${isPurchSupplier(base)?' <span style="font-size:.65rem;color:#2e7d32">🛒</span>':''}`
+        +`<td style="padding:6px 12px;font-weight:700;color:#1a237e;border-bottom:1px solid #e8eaf6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0">${base}`
+        +`${isActSupplier(base)?' <span style="font-size:.65rem;color:#1565c0">🎨</span>':''}` 
+        +`${isPurchSupplier(base)?' <span style="font-size:.65rem;color:#2e7d32">🛒</span>':''}` 
         +`</td>`
-        +`<td style="padding:5px 8px;text-align:center;color:#2e7d32;border-bottom:1px solid #e8eaf6">${phone||'—'}</td>`
-        +`<td style="padding:5px 8px;text-align:center;font-weight:700;color:#1565c0;border-bottom:1px solid #e8eaf6">${cnt}</td>`
-        +`<td style="padding:5px 8px;border-bottom:1px solid #e8eaf6;font-size:.71rem">${acts.slice(0,2).join(', ')}${acts.length>2?'…':''}</td>`
-        +`<td style="padding:5px 8px;text-align:center;border-bottom:1px solid #e8eaf6">`
-        +`<button class="btn bp bsm" style="font-size:.62rem" onclick="event.stopPropagation();openSupExport('${safeBase}')">📊</button> `
-        +`<button class="btn bo bsm" style="font-size:.62rem" onclick="event.stopPropagation();openSupCard('${safeBase}');setTimeout(sucToggleEdit,120)">✏️</button>`
+        +`<td style="padding:6px 8px;text-align:center;color:#2e7d32;border-bottom:1px solid #e8eaf6;white-space:nowrap">${phone||'—'}</td>`
+        +`<td style="padding:6px 8px;text-align:center;font-weight:700;color:#1565c0;border-bottom:1px solid #e8eaf6">${cnt}</td>`
+        +`<td style="padding:6px 8px;border-bottom:1px solid #e8eaf6;font-size:.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:0">${acts.join(', ')}</td>`
+        +`<td style="padding:6px 8px;text-align:center;border-bottom:1px solid #e8eaf6;white-space:nowrap">`
+        +`<button class="btn bp bsm" style="font-size:.65rem" onclick="event.stopPropagation();openSupExport('${safeBase}')">📊</button> `
+        +`<button class="btn bo bsm" style="font-size:.65rem" onclick="event.stopPropagation();openSupCard('${safeBase}');setTimeout(sucToggleEdit,120)">✏️</button>`
         +`</td></tr>`;
     });
     h+='</tbody></table>';
@@ -6539,28 +6540,45 @@ function setGardensTab(t){
     if(b) b.classList.toggle('active',id===t);
   });
 
-  // Standalone panels (pairs / clusters / managers): hide gardens card, show their panel
-  const standaloneMap={pairs:'p-pairs', clusters:'p-clusters', managers:'p-managers'};
-  const gardensCard=document.querySelector('#p-gardens .card');
-  if(standaloneMap[t]){
-    // Hide the gardens inner card filters/body, show the target panel
-    if(gardensCard) gardensCard.style.display='none';
-    Object.keys(standaloneMap).forEach(k=>{
-      const el=document.getElementById(standaloneMap[k]);
-      if(el) el.style.display=(k===t)?'block':'none';
-    });
+  // Always stay inside the gardens panel — render everything into g-body
+  const gBody=document.getElementById('g-body');
+  const gFilters=document.getElementById('g-filters');
+  const fixedCtrl=document.getElementById('g-fixed-controls');
+  const addBtn=document.querySelector('#p-gardens .btn.bp');
+
+  // Show/hide filter row — only for gan/sch
+  const showFilters=['gan','sch'].includes(t);
+  if(gFilters) gFilters.style.display=showFilters?'':'none';
+  if(fixedCtrl) fixedCtrl.style.display=t==='fixed'?'':'none';
+  if(addBtn) addBtn.style.display=['gan','sch'].includes(t)?'':'none';
+
+  if(t==='pairs'){
+    gBody.className='scroll-area';
+    gBody.innerHTML='';
+    // Clone pairs panel content into g-body
+    const src=document.querySelector('#p-pairs .card');
+    if(src){ gBody.innerHTML=src.innerHTML; }
+    renderPairs();
     return;
   }
-
-  // Restore gardens card if coming back from standalone
-  if(gardensCard) gardensCard.style.display='';
-  Object.values(standaloneMap).forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
-
-  // Fixed schedule tab
-  const fixedCtrl=document.getElementById('g-fixed-controls');
-  if(fixedCtrl) fixedCtrl.style.display=t==='fixed'?'':'none';
+  if(t==='clusters'){
+    gBody.className='scroll-area';
+    gBody.innerHTML='';
+    const src=document.querySelector('#p-clusters .card');
+    if(src){ gBody.innerHTML=src.innerHTML; }
+    renderClusters();
+    return;
+  }
+  if(t==='managers'){
+    gBody.className='scroll-area';
+    gBody.innerHTML='';
+    const src=document.querySelector('#p-managers .card');
+    if(src){ gBody.innerHTML=src.innerHTML; }
+    renderManagers(); refreshMgrDrops();
+    return;
+  }
   if(t==='fixed'){
-    document.getElementById('g-body').className='scroll-area';
+    gBody.className='scroll-area';
     const now=new Date();
     const mFrom=document.getElementById('g-fixed-from');
     const mTo=document.getElementById('g-fixed-to');
@@ -6574,7 +6592,8 @@ function setGardensTab(t){
     setTimeout(_fitScrollAreas,50);
     return;
   }
-  document.getElementById('g-body').className='ggrid scroll-area';
+  // gan / sch
+  gBody.className='ggrid scroll-area';
   document.getElementById('g-cls').value=t==='gan'?'גנים':'ביה"ס';
   renderGardens();
 }
