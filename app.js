@@ -5678,23 +5678,17 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       if (typeof JSZip !== 'undefined') {
         const zip = await JSZip.loadAsync(buffer);
         // Patch every worksheet to open in pageLayout view
-        const sheetFiles = Object.keys(zip.files).filter(n => n.match(/^xl\/worksheets\/sheet\d+\.xml$/));
+        const sheetFiles = Object.keys(zip.files).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
         for (const sheetPath of sheetFiles) {
           let xml = await zip.files[sheetPath].async('string');
-          // Replace or inject sheetView with view="pageLayout"
-          if (xml.includes('view="pageLayout"')) {
-            // already set, keep
-          } else if (xml.includes('<sheetView ')) {
-            // add view attribute
-            xml = xml.replace(/<sheetView ([^>]*?)(?:\s*\/)?>/, (m, attrs) => {
-              if (attrs.includes('view=')) return m.replace(/view="[^"]*"/, 'view="pageLayout"');
-              return `<sheetView ${attrs} view="pageLayout">`;
+          if (!xml.includes('view="pageLayout"')) {
+            // Simple safe replacement: add view= to first sheetView tag
+            xml = xml.replace(/(<sheetView\b)([^>]*?)(\/>|>)/, (m, open, attrs, close) => {
+              const newAttrs = attrs.includes('view=')
+                ? attrs.replace(/view="[^"]*"/, 'view="pageLayout"')
+                : attrs + ' view="pageLayout"';
+              return open + newAttrs + (close === '/>' ? '>' : close);
             });
-          } else if (xml.includes('<sheetViews>')) {
-            xml = xml.replace('<sheetViews>', '<sheetViews><sheetView workbookViewId="0" view="pageLayout"/>');
-            // remove any other sheetView that was just doubled
-          } else {
-            xml = xml.replace('<sheetData', '<sheetViews><sheetView workbookViewId="0" view="pageLayout"/></sheetViews><sheetData');
           }
           zip.file(sheetPath, xml);
         }
@@ -6446,8 +6440,16 @@ function setGardensTab(t){
   document.getElementById('g-tab-sch').classList.toggle('active',t==='sch');
   const fixedBtn=document.getElementById('g-tab-fixed');
   if(fixedBtn) fixedBtn.classList.toggle('active',t==='fixed');
+  const fixedCtrl=document.getElementById('g-fixed-controls');
+  if(fixedCtrl) fixedCtrl.style.display=t==='fixed'?'':'none';
   if(t==='fixed'){
     document.getElementById('g-body').className='scroll-area';
+    // Default to current month if not set
+    const mEl=document.getElementById('g-fixed-month');
+    if(mEl&&!mEl.value){
+      const now=new Date();
+      mEl.value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    }
     renderGardensFixed();
     setTimeout(_fitScrollAreas,50);
     return;
@@ -6460,8 +6462,14 @@ function setGardensTab(t){
 // ── Fixed-schedule view ──────────────────────────────────────────
 const HEB_DAYS_SHORT=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 
-function getGardenFixedSched(gardenId){
-  const gardenEvs = SCH.filter(s=>s.g===gardenId && (s.st==='ok'||!s.st));
+function getGardenFixedSched(gardenId, monthFilter){
+  // monthFilter: "YYYY-MM" string or '' for all
+  const gardenEvs = SCH.filter(s=>{
+    if(s.g!==gardenId) return false;
+    if(s.st&&s.st!=='ok') return false;
+    if(monthFilter && !s.d.startsWith(monthFilter)) return false;
+    return true;
+  });
   // Strategy 1: use _recId groups (take latest occurrence per series)
   const byRecId = {};
   gardenEvs.filter(s=>s._recId).forEach(s=>{
@@ -6492,6 +6500,8 @@ function getGardenFixedSched(gardenId){
 function renderGardensFixed(){
   const cityF=(document.getElementById('g-city')||{}).value||'';
   const srch=((document.getElementById('g-srch')||{}).value||'').toLowerCase();
+  const fixedMonthEl=document.getElementById('g-fixed-month');
+  const fixedMonthVal=fixedMonthEl?fixedMonthEl.value:''; // "YYYY-MM" or ''
   const allG=[...GARDENS,...(_GARDENS_EXTRA||[])].filter(g=>{
     if(gcls(g)!=='גנים') return false;
     if(cityF&&g.city!==cityF) return false;
@@ -6534,7 +6544,8 @@ function renderGardensFixed(){
 }
 
 function _renderGardenFixedRow(g){
-  const fixedEvs=getGardenFixedSched(g.id);
+  const fixedMonthV=(document.getElementById('g-fixed-month')||{}).value||'';
+  const fixedEvs=getGardenFixedSched(g.id, fixedMonthV);
   const gid=g.id;
   let rows='';
   if(fixedEvs.length){
