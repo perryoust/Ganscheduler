@@ -2479,7 +2479,7 @@ function openSP(id){
     <div class="copts">
       <div class="copt" onclick="selCO(this,'חג/חופשה')">🎉 חג/חופשה</div>
       <div class="copt" onclick="selCO(this,'מחלה')">🤒 מחלה</div>
-      <div class="copt" onclick="selCO(this,'מזג אוויר')">🌧️ מזג אוויר</div>
+      <div class="copt" onclick="selCO(this,'מצב בטחוני')">🛡️ מצב בטחוני</div>
       <div class="copt" onclick="selCO(this,'ביטול ספק')">🏢 ביטול ספק</div>
     </div>
     <input type="text" id="sp-cn" placeholder="הערה" style="width:100%;margin-bottom:5px">
@@ -5647,18 +5647,12 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
       let r = 0;
 
-      // ── Excel Page Header: Right=month+year, Left=logo ───
+      // ── Excel Page Header: month+year top-right ─────────
       {
         const headerRight = `&"Arial,Bold"&18${monthTitle}`;
+        ws.headerFooter.differentOddEven = false;
         ws.headerFooter.oddHeader  = `&R${headerRight}`;
         ws.headerFooter.evenHeader = `&R${headerRight}`;
-        // Embed logo into ExcelJS header image (slot 1)
-        if (logoImgId !== null && typeof LOGO_B64 !== 'undefined') {
-          try {
-            ws.headerFooter.differentOddEven = false;
-            ws.headerFooter.oddHeader = `&R${headerRight}`;
-          } catch(e){}
-        }
       }
 
       // ── Row 1: blank spacer ───────────────────────────────
@@ -5763,8 +5757,6 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       }
 
       // ── Footer ────────────────────────────────────────────
-      // Store the row number where footer starts (for XML page-break injection)
-      ws._footerStartRow = r + 1; // 1-based
       // Manager row - right-aligned
       {
         const row = ws.addRow([mgrText,'','','','','','','','']);
@@ -5795,37 +5787,8 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
     const buffer = await workbook.xlsx.writeBuffer();
 
-    // ── JSZip post-process: inject pageLayout + headerFooter into XML ────
-    let finalBlob;
-    try {
-      // Use the JSZip we saved before ExcelJS could overwrite window.JSZip
-      const _JSZip = window._SafeJSZip;
-      if (!_JSZip) throw new Error('_SafeJSZip not available');
-      const zip = await _JSZip.loadAsync(buffer);
-      const sheetKeys = Object.keys(zip.files).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
-      for (const sk of sheetKeys) {
-        let xml = await zip.files[sk].async('text');
-        // 1. Inject view="pageLayout"
-        xml = xml.replace(/<sheetView\b([^>]*?)(\/?>)/g, (m, attrs, close) => {
-          const a2 = attrs.includes('view=')
-            ? attrs.replace(/view="[^"]*"/, 'view="pageLayout"')
-            : attrs + ' view="pageLayout"';
-          return `<sheetView${a2}${close}`;
-        });
-        // 2. Inject headerFooter — remove existing then re-add after </sheetData>
-        const hdrText = `&amp;R&amp;"Arial,Bold"&amp;18${monthTitle}`;
-        const hdrXml = `<headerFooter scaleWithDoc="0"><oddHeader>${hdrText}</oddHeader><evenHeader>${hdrText}</evenHeader></headerFooter>`;
-        xml = xml.replace(/<headerFooter[^>]*>[\s\S]*?<\/headerFooter>/g, '');
-        xml = xml.replace(/<\/sheetData>/, `</sheetData>${hdrXml}`);
-        zip.file(sk, xml);
-      }
-      // Use STORE (no compression) — DEFLATE can corrupt binary parts
-      const patched = await zip.generateAsync({ type: 'arraybuffer', compression: 'STORE' });
-      finalBlob = new Blob([patched], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    } catch (pErr) {
-      console.warn('XML patch failed, using raw buffer:', pErr);
-      finalBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    }
+    // Direct output — no post-processing (clean file)
+    const finalBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
     const a = document.createElement('a');
     a.href  = URL.createObjectURL(finalBlob);
