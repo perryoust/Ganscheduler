@@ -4245,8 +4245,9 @@ function openExport(){
   if(gids&&gids.length) ctx+=` | גנים: ${gids.map(id=>G(id).name||'').join(' + ')}`;
   (document.getElementById('ex-ctx')||{}).textContent =ctx;
   document.getElementById('exm').classList.add('open');
-  // Auto-generate preview
-  setTimeout(genExport, 50);
+  // Auto-generate preview — pass gids snapshot so _exGids isn't cleared before use
+  const _snapGids = _exGids;
+  setTimeout(()=>{ _exGids=_snapGids; genExport(); }, 80);
 }
 function genExport(){
   const from=document.getElementById('ex-d1').value;
@@ -5703,8 +5704,16 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       {
         const row = ws.addRow([`צהרון: ${garden.name}`,'','','','',`עיר: ${garden.city}`,'','','']);
         row.height = 18;
-        [1,2,3,4,5].forEach(c => applyStyle(row.getCell(c), {sz:14,bold:true,align:'center',valign:'middle'}));
-        [6,7,8,9].forEach(c   => applyStyle(row.getCell(c), {sz:14,bold:true,align:'center',valign:'middle'}));
+        [1,2,3,4,5].forEach(c => {
+          const cell = row.getCell(c);
+          applyStyle(cell, {sz:14,bold:true,align:'center',valign:'middle'});
+          cell.alignment = {horizontal:'center',vertical:'middle',readingOrder:'rightToLeft'};
+        });
+        [6,7,8,9].forEach(c => {
+          const cell = row.getCell(c);
+          applyStyle(cell, {sz:14,bold:true,align:'center',valign:'middle'});
+          cell.alignment = {horizontal:'center',vertical:'middle',readingOrder:'rightToLeft'};
+        });
         ws.mergeCells(r+1,1,r+1,5);
         ws.mergeCells(r+1,6,r+1,9);
         r++;
