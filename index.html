@@ -112,7 +112,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
   <div class="hs" id="hdr-stats">
     <span style="opacity:.5;font-size:.7rem;letter-spacing:.03em;text-transform:uppercase;background:none!important">🎨 חוגים</span>
-    <span onclick="switchMode('act');ST('gardens')" style="cursor:pointer" title="גנים">🏫 <b id="h-gardens">125</b> גנים</span>
+    <span onclick="switchMode('act');ST('gardens')" style="cursor:pointer" title="גנים">🏫 <b id="h-gardens">125</b> צהרונים</span>
     <span onclick="switchMode('act');ST('sched')" style="cursor:pointer" title="פעילויות">📅 <b id="h-sched">10,568</b> פעילויות</span>
     <span onclick="switchMode('act');ST('gardens');setGardensTab('pairs')" style="cursor:pointer" title="זוגות">🔗 <b id="h-pairs">0</b> זוגות</span>
     <span onclick="switchMode('act');goToCancelled()" style="cursor:pointer" title="בוטלו">❌ <b id="h-can">0</b> בוטלו</span>
@@ -181,7 +181,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div onclick="ST('gardens')" style="background:#e8eaf6;border-radius:8px;padding:7px 14px;cursor:pointer;text-align:center;flex:1;min-width:90px">
       <div style="font-size:1.3rem">🏫</div>
       <div style="font-weight:800;color:#1a237e;font-size:1rem" id="d-gardens">125</div>
-      <div style="font-size:.7rem;color:#546e7a">גנים</div>
+      <div style="font-size:.7rem;color:#546e7a">צהרונים</div>
     </div>
     <div onclick="goToTodayActivities()" style="background:#e3f2fd;border-radius:8px;padding:7px 14px;cursor:pointer;text-align:center;flex:1;min-width:90px">
       <div style="font-size:1.3rem">📅</div>
@@ -220,7 +220,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div class="fg"><label>עיר</label><select id="dash-city" onchange="renderDash()"><option value="">כל הערים</option></select></div>
       <div class="fg"><label>ספק</label><select id="dash-sup" onchange="renderDash()"><option value="">כל הספקים</option></select></div>
       <div class="fg"><label>סטטוס</label><select id="dash-st" onchange="renderDash()"><option value="">הכל</option><option value="ok">מתקיים</option><option value="done">התקיים</option><option value="can">בוטל</option><option value="post">נדחה</option><option value="nohap">לא התקיים</option></select></div>
-      <div class="fg"><label>חיפוש חופשי</label><input type="text" id="dash-srch" placeholder="שם גן, ספק..." autocomplete="off" oninput="renderDash()" style="min-width:130px"></div>
+      <div class="fg"><label>חיפוש חופשי</label><input type="text" id="dash-srch" placeholder="שם צהרון, ספק..." autocomplete="off" oninput="renderDash()" style="min-width:130px"></div>
       <button class="btn bp bsm" onclick="openNewSched(null)">➕ שיבוץ חדש</button>
       <button class="btn br2 bsm" onclick="openCancelDay(document.getElementById('dash-date').value||td())" title="ביטול כל פעילויות יום">🚨 ביטול יום</button>
     </div>
@@ -299,9 +299,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div class="fg"><label>עיר</label><select id="s-city" onchange="sRefG()"><option value="">כל הערים</option></select></div>
       <div class="fg"><label>סיווג</label><select id="s-cls" onchange="sRefG()"><option value="">הכל</option><option value="גנים">גנים</option><option value='ביה"ס'>בתי ספר</option></select></div>
       <div class="fg"><label>מנהל/רכז</label><select id="s-mgr" onchange="renderSched()"><option value="">הכל</option></select></div>
-      <div class="fg"><label>גן 1</label><select id="s-g1" onchange="renderSched()"><option value="">כל הצהרונים</option></select></div>
-      <div class="fg"><label>גן 2</label><select id="s-g2" onchange="renderSched()"><option value="">—</option></select></div>
-      <div class="fg"><label>גן 3</label><select id="s-g3" onchange="renderSched()"><option value="">—</option></select></div>
+      <div class="fg"><label>צהרון 1</label><select id="s-g1" onchange="renderSched()"><option value="">כל הצהרונים</option></select></div>
+      <div class="fg"><label>צהרון 2</label><select id="s-g2" onchange="renderSched()"><option value="">—</option></select></div>
+      <div class="fg"><label>צהרון 3</label><select id="s-g3" onchange="renderSched()"><option value="">—</option></select></div>
       <div class="fg"><label>ספק</label><select id="s-sup" onchange="renderSched()"><option value="">כל הספקים</option></select></div>
       <div class="fg"><label>שעה מ</label><input type="time" id="s-th" onchange="renderSched()"></div>
       <div class="fg"><label>שעה עד</label><input type="time" id="s-tt" onchange="renderSched()"></div>
@@ -327,7 +327,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div style="display:flex;gap:6px">
-        <button id="g-tab-gan" class="vbtn active" onclick="setGardensTab('gan')">🏫 גנים</button>
+        <button id="g-tab-gan" class="vbtn active" onclick="setGardensTab('gan')">🏫 צהרונים</button>
         <button id="g-tab-sch" class="vbtn" onclick="setGardensTab('sch')">🏛️ בתי ספר</button>
         <button id="g-tab-pairs" class="vbtn" onclick="setGardensTab('pairs')">🔗 זוגות</button>
         <button id="g-tab-clusters" class="vbtn" onclick="setGardensTab('clusters')">🔢 אשכולות</button>
@@ -500,7 +500,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <input type="radio" name="exp-mode" value="manager" onchange="expModeChg()"> 👤 רכז/ת
         </label>
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem">
-          <input type="radio" name="exp-mode" value="garden" onchange="expModeChg()"> 🏫 גן ספציפי
+          <input type="radio" name="exp-mode" value="garden" onchange="expModeChg()"> 🏫 צהרון ספציפי
         </label>
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem">
           <input type="radio" name="exp-mode" value="all" onchange="expModeChg()"> 📋 הכל
@@ -525,14 +525,14 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div id="exp-garden-wrap" class="fg" style="margin-bottom:10px;display:none">
       <label>🏫 בחר גן</label>
       <select id="exp-garden" style="width:100%">
-        <option value="">-- בחר גן --</option>
+        <option value="">-- בחר צהרון --</option>
       </select>
     </div>
 
     <div class="fg" style="margin-bottom:14px">
       <label>📁 קובץ אחד לכל</label>
       <select id="exp-split" style="width:100%">
-        <option value="city">עיר (גן מתחת לגן, עיר = קובץ אחד)</option>
+        <option value="city">עיר (צהרון מתחת לצהרון, עיר = קובץ אחד)</option>
         <option value="garden">גן (קובץ נפרד לכל גן)</option>
       </select>
     </div>
@@ -552,8 +552,8 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <div id="gcell-popup" style="display:none;position:fixed;z-index:9999;background:#fff;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.22);padding:10px;min-width:210px;direction:rtl">
   <div id="gcell-popup-title" style="font-size:.78rem;font-weight:700;color:#1a237e;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #e0e0e0"></div>
   <div id="gcell-popup-block-lbl" style="font-size:.7rem;color:#c62828;background:#fce4ec;border-radius:6px;padding:4px 8px;margin-bottom:6px;display:none"></div>
-  <button class="btn bg bsm" style="width:100%;margin-bottom:5px;justify-content:flex-start" onclick="gcellNewSched()">➕ שיבוץ חדש לגן זה</button>
-  <button class="btn bsm" style="width:100%;margin-bottom:5px;background:#fce4ec;color:#c62828;border:1.5px solid #e91e63;justify-content:flex-start" id="gcell-block-btn" onclick="gcellBlock()">🚫 חסום תאריך לגן זה</button>
+  <button class="btn bg bsm" style="width:100%;margin-bottom:5px;justify-content:flex-start" onclick="gcellNewSched()">➕ שיבוץ חדש לצהרון זה</button>
+  <button class="btn bsm" style="width:100%;margin-bottom:5px;background:#fce4ec;color:#c62828;border:1.5px solid #e91e63;justify-content:flex-start" id="gcell-block-btn" onclick="gcellBlock()">🚫 חסום תאריך לצהרון זה</button>
   <button class="btn br bsm" style="width:100%;display:none" id="gcell-unblock-btn" onclick="gcellUnblock()">✅ הסר חסימה</button>
   <div style="margin-top:6px;border-top:1px solid #eee;padding-top:6px">
     <button style="background:none;border:none;font-size:.72rem;color:#999;cursor:pointer;width:100%;text-align:center" onclick="closeGcellPopup()">סגור</button>
@@ -622,7 +622,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       </div>
       <div class="fg"><label>📞 טלפון גן</label>
         <input type="tel" id="gedit-coph" placeholder="050-..." style="width:100%">
-        <div style="font-size:.68rem;color:#78909c;margin-top:2px">ישמש בייצוא פרטי הגן ופרטי הרכז</div>
+        <div style="font-size:.68rem;color:#78909c;margin-top:2px">ישמש בייצוא פרטי הצהרון ופרטי הרכז</div>
       </div>
       <div class="fg" style="grid-column:1/-1"><label>📝 הערות</label>
         <input type="text" id="gedit-notes" placeholder="הערות כלשהן..." style="width:100%">
@@ -655,7 +655,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       </div>
       <div class="fg"><label>עיר *</label><select id="ap-city" style="width:100%"><option value="">בחר עיר...</option></select></div>
     </div>
-    <div class="fg" style="margin-bottom:8px"><label>שם *</label><input type="text" id="ap-name" placeholder="שם הגן/בית הספר" style="width:100%"></div>
+    <div class="fg" style="margin-bottom:8px"><label>שם *</label><input type="text" id="ap-name" placeholder="שם הצהרון/בית הספר" style="width:100%"></div>
     <div class="fg" style="margin-bottom:8px"><label>כתובת</label><input type="text" id="ap-addr" placeholder="רח' ..." style="width:100%"></div>
     <div class="fg" style="margin-bottom:8px"><label>איש קשר / רכז</label><input type="text" id="ap-co" placeholder="שם איש קשר" style="width:100%"></div>
     <div class="fg" style="margin-bottom:8px"><label>טלפון איש קשר</label><input type="tel" id="ap-coph" placeholder="050-..." style="width:100%"></div>
@@ -671,7 +671,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <div id="p-pairs" class="panel">
   <div class="card">
     <div class="row" style="margin-bottom:10px;align-items:center">
-      <b style="font-size:.9rem;color:#1a237e;flex:1">🔗 זוגות ושלישיות גנים <span id="pairs-count" style="font-size:.78rem;color:#546e7a;font-weight:400"></span></b>
+      <b style="font-size:.9rem;color:#1a237e;flex:1">🔗 זוגות ושלישיות צהרונים <span id="pairs-count" style="font-size:.78rem;color:#546e7a;font-weight:400"></span></b>
       <div class="fg"><label>סנן עיר</label><select id="pairs-city" onchange="renderPairs()"><option value="">כל הערים</option></select></div>
       <div class="fg"><label>מיון</label><select id="pairs-sort" onchange="renderPairs()"><option value="name">לפי שם</option><option value="city">לפי עיר</option></select></div>
       <button class="btn bp bsm" onclick="openAddPair(null)">➕ הוסף זוג</button>
@@ -693,7 +693,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <button class="btn bp bsm" onclick="openAddHoliday(null)">➕ הוסף</button>
     </div>
     <p style="font-size:.79rem;color:#546e7a;margin-bottom:11px">
-      כאן מגדירים את חופשות השנה לפי עיר ולפי סוג (גנים/בי"ס). בלוח השנה ימים אלו יסומנו בצבע מיוחד.
+      כאן מגדירים את חופשות השנה לפי עיר ולפי סוג (צהרונים/בי"ס). בלוח השנה ימים אלו יסומנו בצבע מיוחד.
     </p>
     <div class="row" style="margin-bottom:10px">
       <div class="fg"><label>עיר</label><select id="hol-filt-city" onchange="renderHolidays()"><option value="">כל הערים</option></select></div>
@@ -707,14 +707,14 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <div id="p-clusters" class="panel">
   <div class="card">
     <div class="row" style="margin-bottom:8px;align-items:center">
-      <b style="font-size:.9rem;color:#1a237e;flex:1">🔢 אשכולות גנים</b>
+      <b style="font-size:.9rem;color:#1a237e;flex:1">🔢 אשכולות צהרונים</b>
       <div style="display:flex;gap:4px;margin-left:6px">
         <button id="cl-view-grid" class="btn bp bsm" onclick="setClustersView('grid')" title="תצוגת כרטיסים">⊞</button>
         <button id="cl-view-list" class="btn bo bsm" onclick="setClustersView('list')" title="תצוגת רשימה">☰</button>
       </div>
       <button class="btn bp bsm" onclick="openEditCluster(null)">➕ אשכול חדש</button>
     </div>
-    <p style="font-size:.79rem;color:#546e7a;margin-bottom:12px">אשכול = קבוצת גנים שמשבצים להם פעילות יחד (חגים, מועדים). בחר אשכול ← בחר תאריך וספק ← הזן שעה לכל גן.</p>
+    <p style="font-size:.79rem;color:#546e7a;margin-bottom:12px">אשכול = קבוצת צהרונים שמשבצים להם פעילות יחד (חגים, מועדים). בחר אשכול ← בחר תאריך וספק ← הזן שעה לכל גן.</p>
     <div id="clusters-body"></div>
   </div>
 </div>
@@ -824,7 +824,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <!-- Garden selection -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
       <div class="fg"><label>עיר</label><select id="ns-city" onchange="nsRefG()" style="width:100%"><option value="">בחר עיר</option></select></div>
-      <div class="fg"><label>גן *</label><select id="ns-g" onchange="nsGChg()" style="width:100%"><option value="">בחר גן</option></select></div>
+      <div class="fg"><label>גן *</label><select id="ns-g" onchange="nsGChg()" style="width:100%"><option value="">בחר צהרון</option></select></div>
       <div class="fg" id="ns-g2-wrap" style="display:none;grid-column:1/-1"><label id="ns-g2-lbl">גן בן זוג</label><select id="ns-g2" style="width:100%"><option value="">—</option></select></div>
     </div>
 
@@ -916,11 +916,11 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div id="gm-det" style="margin-bottom:9px;font-size:.8rem;color:#546e7a"></div>
     <!-- Set pair in garden modal -->
     <div id="gm-pair-area" style="background:#f5f7ff;border-radius:7px;padding:10px;margin-bottom:10px">
-      <div style="font-weight:700;font-size:.82rem;color:#1a237e;margin-bottom:7px">🔗 קיבוע זוג/שלישיה לגן זה</div>
+      <div style="font-weight:700;font-size:.82rem;color:#1a237e;margin-bottom:7px">🔗 קיבוע זוג/שלישיה לצהרון זה</div>
       <div id="gm-pair-current" style="margin-bottom:7px;font-size:.8rem"></div>
       <div class="row">
-        <div class="fg"><label>גן 2</label><select id="gm-pg2" style="min-width:160px"><option value="">—</option></select></div>
-        <div class="fg"><label>גן 3</label><select id="gm-pg3" style="min-width:160px"><option value="">—</option></select></div>
+        <div class="fg"><label>צהרון 2</label><select id="gm-pg2" style="min-width:160px"><option value="">—</option></select></div>
+        <div class="fg"><label>צהרון 3</label><select id="gm-pg3" style="min-width:160px"><option value="">—</option></select></div>
         <button class="btn bg bsm" onclick="savePairFromGarden()">💾 שמור כזוג</button>
         <button class="btn br bsm" id="gm-del-pair-btn" onclick="delPairFromGarden()" style="display:none">🗑️ הסר זוג</button>
       </div>
@@ -966,8 +966,8 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <h2 id="apm-title">זוג/שלישיה</h2>
     <div class="fg" style="margin-bottom:8px"><label>שם</label><input type="text" id="apm-name" placeholder="שם (אופציונלי)" style="width:100%"></div>
     <div class="fg" style="margin-bottom:8px"><label>עיר</label><select id="apm-city" onchange="apmCity()" style="width:100%"><option value="">כל הערים</option></select></div>
-    <div class="fg" style="margin-bottom:8px"><label>צהרון 1</label><select id="apm-g1" style="width:100%"><option value="">בחר גן</option></select></div>
-    <div class="fg" style="margin-bottom:8px"><label>גן 2 (אמצע — אופציונלי)</label><select id="apm-g2" style="width:100%"><option value="">בחר גן</option></select></div>
+    <div class="fg" style="margin-bottom:8px"><label>צהרון 1</label><select id="apm-g1" style="width:100%"><option value="">בחר צהרון</option></select></div>
+    <div class="fg" style="margin-bottom:8px"><label>צהרון 2 (אמצע — אופציונלי)</label><select id="apm-g2" style="width:100%"><option value="">בחר צהרון</option></select></div>
     <div class="fg" style="margin-bottom:13px"><label>צהרון 3</label><select id="apm-g3" style="width:100%"><option value="">—</option></select></div>
     <div id="apm-warn" style="display:none;background:#fff3e0;border-radius:6px;padding:7px;font-size:.78rem;color:#e65100;margin-bottom:9px"></div>
     <div style="display:flex;gap:7px;justify-content:flex-end">
@@ -1015,7 +1015,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div id="post-ev-info" style="background:#f5f7ff;border-radius:7px;padding:8px 11px;font-size:.8rem;margin-bottom:10px"></div>
     <!-- Free days suggestion -->
     <div id="post-free-wrap" style="display:none;margin-bottom:11px">
-      <div style="font-size:.78rem;font-weight:700;color:#2e7d32;margin-bottom:5px">📅 ימים פנויים בשבוע הבא לגן זה:</div>
+      <div style="font-size:.78rem;font-weight:700;color:#2e7d32;margin-bottom:5px">📅 ימים פנויים בשבוע הבא לצהרון זה:</div>
       <div id="post-free-days" style="display:flex;gap:5px;flex-wrap:wrap"></div>
     </div>
     <div class="fg" style="margin-bottom:9px"><label>תאריך חדש *</label>
@@ -1038,12 +1038,12 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <input type="text" id="post-reason" placeholder="מדוע נדחתה..." style="width:100%">
     </div>
     <div id="post-conflict-warn" style="display:none;background:#fff3cd;border-radius:6px;padding:6px 10px;font-size:.76rem;color:#856404;margin-bottom:9px">
-      ⚠️ לגן זה כבר קיימת פעילות בתאריך שנבחר!
+      ⚠️ לצהרון זה כבר קיימת פעילות בתאריך שנבחר!
     </div>
     <div id="post-pair-wrap" style="display:none;background:#fff3e0;border-radius:6px;padding:7px 10px;margin-bottom:9px;font-size:.78rem">
       <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-weight:700;color:#e65100">
         <input type="checkbox" id="post-pair-chk" style="accent-color:#e65100">
-        🔗 גם לדחות את הגן הבן זוג (<span id="post-pair-name"></span>)
+        🔗 גם לדחות את הצהרון בן הזוג (<span id="post-pair-name"></span>)
       </label>
     </div>
     <div style="display:flex;gap:7px;justify-content:flex-end">
@@ -1097,7 +1097,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <!-- Add New Garden Modal -->
 <div id="addgm" class="modal">
   <div class="mb" style="max-width:500px">
-    <h2>➕ הוסף גן / בית ספר חדש</h2>
+    <h2>➕ הוסף צהרון / בית ספר חדש</h2>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px">
       <div class="fg" style="grid-column:1/-1"><label>שם *</label><input type="text" id="addg-name" style="width:100%"></div>
       <div class="fg"><label>עיר *</label><select id="addg-city" style="width:100%"><option value="">בחר עיר...</option></select></div>
@@ -1114,7 +1114,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div class="fg" style="grid-column:1/-1"><label>בן זוג (אופציונלי)</label>
         <select id="addg-partner" style="width:100%"><option value="">ללא זוג</option></select>
       </div>
-      <div class="fg"><label>גן 3 (שלישיה — אופציונלי)</label>
+      <div class="fg"><label>צהרון 3 (שלישיה — אופציונלי)</label>
         <select id="addg-partner3" style="width:100%"><option value="">—</option></select>
       </div>
       <div class="fg"><label>אשכול</label>
@@ -1141,7 +1141,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         ✏️ <b>ערוך את הזוג</b> — שנה שם, הרכב, צבע (קבוע לכל הזמן)
       </button>
       <button class="btn borange" onclick="pqmBreakToday()" style="text-align:right;padding:10px 14px" id="pqm-break-btn">
-        ⚡ <b>פרק זוג להיום בלבד</b> — הגנים יוצגו בנפרד רק בתאריך זה
+        ⚡ <b>פרק זוג להיום בלבד</b> — הצהרונים יוצגו בנפרד רק בתאריך זה
       </button>
       <button class="btn bg bsm" onclick="pqmRestoreToday()" style="text-align:right;padding:10px 14px;display:none" id="pqm-restore-btn">
         🔄 <b>שחזר זוג להיום</b> — הזוג פורק להיום, לחץ לשחזור
@@ -1339,7 +1339,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div class="fg" style="margin-bottom:8px"><label>שם האשכול *</label><input type="text" id="cl-name" style="width:100%" placeholder="לדוג': חנוכה, פורים, ראש השנה..."></div>
     <div class="fg" style="margin-bottom:8px"><label>תיאור (אופציונלי)</label><input type="text" id="cl-desc" style="width:100%" placeholder="תיאור קצר..."></div>
     <div class="row" style="margin-bottom:6px;align-items:center">
-      <b style="font-size:.8rem;color:#1a237e;flex:1">גנים באשכול</b>
+      <b style="font-size:.8rem;color:#1a237e;flex:1">צהרונים באשכול</b>
       <div class="fg"><label>סנן עיר</label><select id="cl-city" onchange="clFilterCity()" style="min-width:110px"><option value="">כל הערים</option></select></div>
     </div>
     <div id="cl-gardens" style="border:1.5px solid #c5cae9;border-radius:6px;padding:6px;max-height:220px;overflow-y:auto;font-size:.79rem;margin-bottom:12px"></div>
@@ -1355,7 +1355,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="mb" style="max-width:600px">
     <h2 id="clsm-title">📅 שיבוץ פעילות לאשכול</h2>
     <div style="background:#e8f5e9;border-radius:7px;padding:8px 12px;margin-bottom:11px;font-size:.81rem;color:#1b5e20">
-      <b>שלב 1:</b> בחר תאריך וספק &nbsp;|&nbsp; <b>שלב 2:</b> הזן שעה לכל גן &nbsp;|&nbsp; <b>שלב 3:</b> שמור
+      <b>שלב 1:</b> בחר תאריך וספק &nbsp;|&nbsp; <b>שלב 2:</b> הזן שעה לכל צהרון &nbsp;|&nbsp; <b>שלב 3:</b> שמור
     </div>
     <div class="row" style="margin-bottom:11px">
       <div class="fg"><label>תאריך *</label><input type="date" id="cls-date" style="min-width:140px"></div>
@@ -1369,7 +1369,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <button class="btn bp bsm" onclick="applyUniTime()">✓ החל על כולם</button>
       </div>
     </div>
-    <div style="font-weight:700;font-size:.82rem;color:#1a237e;margin-bottom:6px">גנים באשכול - הזן שעה לכל גן:</div>
+    <div style="font-weight:700;font-size:.82rem;color:#1a237e;margin-bottom:6px">צהרונים באשכול - הזן שעה לכל צהרון:</div>
     <div id="cls-gardens-list" style="max-height:320px;overflow-y:auto;border:1.5px solid #c5cae9;border-radius:7px;padding:5px;margin-bottom:11px"></div>
     <div id="cls-warn" style="display:none;background:#fff3e0;border-radius:6px;padding:7px;font-size:.78rem;color:#e65100;margin-bottom:8px"></div>
     <div style="display:flex;gap:7px;justify-content:flex-end">
@@ -1679,7 +1679,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div style="background:#fff8e1;border-right:3px solid #ffc107;border-radius:5px;padding:8px 11px;font-size:.76rem;color:#795548;margin-bottom:12px">
       ℹ️ שיבוצים מהשנה הנוכחית יישמרו בארכיון. הגנים המסומנים ייכללו בשנה החדשה עם שיבוצים חדשים (ספטמבר–יוני). זוגות ואשכולות מועברים.
     </div>
-    <div style="font-size:.8rem;font-weight:700;color:#1a237e;margin-bottom:6px">בחר גנים ממשיכים:</div>
+    <div style="font-size:.8rem;font-weight:700;color:#1a237e;margin-bottom:6px">בחר צהרונים ממשיכים:</div>
     <div id="nyw-garden-list" style="border:1.5px solid #c5cae9;border-radius:8px;padding:10px;max-height:320px;overflow-y:auto;font-size:.79rem"></div>
     <input type="hidden" id="nyw-target-key">
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:10px;border-top:1px solid #eee">
@@ -1814,7 +1814,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="mb" style="max-width:460px">
     <h2>🚨 ביטול יום שלם</h2>
     <div style="background:#ffebee;border-radius:7px;padding:8px 12px;font-size:.8rem;margin-bottom:12px;color:#b71c1c">
-      ביטול כל הפעילויות ביום — כל גן יקבל הערה עם הסיבה
+      ביטול כל הפעילויות ביום — כל צהרון יקבל הערה עם הסיבה
     </div>
     <div class="fg" style="margin-bottom:12px">
       <label style="font-weight:700">תאריך</label>

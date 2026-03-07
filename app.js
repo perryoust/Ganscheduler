@@ -1097,7 +1097,7 @@ function initDrops(){
   });
   fG('cal-g1','כל הצהרונים',true);fG('cal-g2','—',true);fG('cal-g3','—',true);
   fG('s-g1','כל הצהרונים',true);fG('s-g2','—',true);fG('s-g3','—',true);
-  fG('apm-g1','בחר גן',true);fG('apm-g2','בחר גן',true);fG('apm-g3','—',true);
+  fG('apm-g1','בחר צהרון',true);fG('apm-g2','בחר צהרון',true);fG('apm-g3','—',true);
   document.getElementById('cal-dp').value=td();
   // Default calendar to גנים tab
   const calClsInit=document.getElementById('cal-cls');
@@ -1226,7 +1226,7 @@ function clearCalPair(){
 }
 // Unified pair save — called from calendar, schedule, and garden modal
 function addPair(gids){
-  if(!gids||gids.length<2){alert('יש לבחור לפחות 2 גנים');return;}
+  if(!gids||gids.length<2){alert('יש לבחור לפחות 2 צהרונים');return;}
   checkDupePairAndSave(gids);
 }
 function addPairFromCal(){
@@ -1241,7 +1241,7 @@ function addPairFromSched(){
 function savePairFromGarden(){
   const g2=parseInt(document.getElementById('gm-pg2').value)||null;
   const g3=parseInt(document.getElementById('gm-pg3').value)||null;
-  if(!g2){alert('יש לבחור לפחות גן שני');return;}
+  if(!g2){alert('יש לבחור לפחות צהרון שני');return;}
   addPair([gmGid,g2,g3].filter(Boolean));
   openGM(gmGid);
 }
@@ -1372,7 +1372,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
       html+=`<div style="background:#fff;padding:8px">${renderPairDay(dayEvs,displayGids)}</div>`;
 
     } else {
-      // ── תצוגה כללית: עיר → זוגות לפי שעה → גנים בודדים לפי שעה ──
+      // ── תצוגה כללית: עיר → זוגות לפי שעה → צהרונים בודדים לפי שעה ──
       const cityFilter=f&&f.city||'';
       const allCities=cityFilter
         ? [cityFilter]
@@ -1411,7 +1411,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
           html+=`</div>`;
         }
 
-        // --- גנים בודדים: לפי שם גן (אחר"כ שעה) ---
+        // --- גנים בודדים: לפי שם צהרון (אחר"כ שעה) ---
         const soloEvs=cityEvs
           .filter(s=>!pairedGids.has(s.g))
           .sort((a,b)=>{
@@ -1713,7 +1713,7 @@ function renderNormalDay(evs,ds){
       html+=`<div style="margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <div style="flex:1;height:2px;background:${clr.solid};opacity:.3"></div>
-          <span style="font-size:.75rem;font-weight:800;color:${clr.solid};white-space:nowrap">🏙️ ${city} — גנים ללא זוג</span>
+          <span style="font-size:.75rem;font-weight:800;color:${clr.solid};white-space:nowrap">🏙️ ${city} — צהרונים ללא זוג</span>
           <div style="flex:1;height:2px;background:${clr.solid};opacity:.3"></div>
         </div>
         <div class="pairs-4col">`;
@@ -1976,7 +1976,7 @@ function renderNormalWeek(evs,ws,f){
 
   html+=`<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;
     border-bottom:2px solid #9fa8da;border-left:1px solid #c5cae9;
-    position:sticky;top:0;z-index:3;font-size:.76rem">גן / זוג</th>`;
+    position:sticky;top:0;z-index:3;font-size:.76rem">צהרון / זוג</th>`;
 
   days.forEach((d,i)=>{
     const ds=d2s(d);
@@ -2007,7 +2007,7 @@ function renderNormalWeek(evs,ws,f){
       <td colspan="7" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;
         border-bottom:1px solid rgba(255,255,255,.2);position:sticky;left:0">
         🏙️ ${city}
-        <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} זוגות · ${byCity[city].solos.length} גנים בודדים</span>
+        <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} זוגות · ${byCity[city].solos.length} צהרונים בודדים</span>
       </td>
     </tr>`;
 
@@ -2970,7 +2970,7 @@ function postDateChg(){
   }
   const warnEl=document.getElementById('post-conflict-warn');
   warnEl.style.display=(conflict||partnerConflict)?'block':'none';
-  if(partnerConflict&&!conflict) warnEl.textContent='⚠️ לגן הבן זוג כבר קיימת פעילות בתאריך שנבחר!';
+  if(partnerConflict&&!conflict) warnEl.textContent='⚠️ לצהרון הבן זוג כבר קיימת פעילות בתאריך שנבחר!';
   else warnEl.textContent='⚠️ לגן זה כבר קיימת פעילות בתאריך שנבחר!';
 }
 function doPostpone(){
@@ -3157,7 +3157,7 @@ function nsCheckPair(gid){
     if(partnerId){
       const partG=G(partnerId);
       w2.style.display='block';
-      w2.querySelector('label').textContent=`גן בן זוג: ${partG.name}?`;
+      w2.querySelector('label').textContent=`צהרון בן זוג: ${partG.name}?`;
       document.getElementById('ns-g2').innerHTML=`<option value="">לא - רק ל${g.name}</option><option value="${partnerId}" selected>כן - גם ל${partG.name}</option>`;
     }
   } else w2.style.display='none';
@@ -3338,11 +3338,11 @@ function renderSched(){
       const cityData=byDate[dateKey][city];
       h+=`<div style="margin-bottom:8px">
         <div style="font-size:.75rem;font-weight:700;color:#546e7a;padding:3px 8px;background:#eceff1;border-radius:4px;margin-bottom:4px">🏙️ ${city}</div>`;
-      [{arr:cityData.gan,lbl:'🏫 גנים',cls:'gan'},{arr:cityData.sch,lbl:'🏛️ בתי ספר',cls:'sch'}].forEach(sec=>{
+      [{arr:cityData.gan,lbl:'🏫 צהרונים',cls:'gan'},{arr:cityData.sch,lbl:'🏛️ בתי ספר',cls:'sch'}].forEach(sec=>{
         if(!sec.arr.length) return;
         h+=`<div class="dsh ${sec.cls}" style="font-size:.7rem;margin-bottom:3px">${sec.lbl}</div>
           <div class="tw"><table style="margin-bottom:6px"><thead><tr>
-            <th>גן</th><th>ספק</th><th>שעה</th><th>קב'</th><th>סטטוס</th><th>הערות</th>
+            <th>צהרון</th><th>ספק</th><th>שעה</th><th>קב'</th><th>סטטוס</th><th>הערות</th>
           </tr></thead><tbody>`;
         sec.arr.sort((a,b)=>{
           // Sort by pair name first, then time — matches calendar order
@@ -3355,7 +3355,7 @@ function renderSched(){
             <td><div style="font-weight:700">${s.gd.name}</div>${s.gd.st?`<div style="font-size:.68rem;color:#78909c">${s.gd.st}</div>`:''}</td>
             <td><div style="font-weight:700">${supBase(s.a)}</div>${supAct(s.a)?`<div style="font-size:.7rem;color:#1565c0">🎯 ${supAct(s.a)}</div>`:''}<span style="font-size:.68rem;color:#78909c">${s.p||''}</span></td>
             <td>${fT(s.t)}</td>
-            <td>${s.grp>1?s.grp:''}</td>
+            <td>${s.grp||1}</td>
             <td>${stLabel(s)}</td>
             <td style="max-width:90px;font-size:.72rem">${s.nt||''}</td>
           </tr>`;
@@ -3403,7 +3403,7 @@ function renderGardens(){
     if(srch&&![(g.name||''),(g.city||''),(g.st||''),(g.co||'')].some(x=>x.toLowerCase().includes(srch))) return false;
     return true;
   }).sort((a,b)=>a.name.localeCompare(b.name,'he'));
-  (document.getElementById('g-info')||{}).textContent =`${f.length} ${cls==='ביה"ס'?'בתי ספר':'צהרונים/גנים'}`;
+  (document.getElementById('g-info')||{}).textContent =`${f.length} ${cls==='ביה"ס'?'בתי ספר':'צהרונים'}`;
   const byCity={};
   f.forEach(g=>{
     const c=g.city||'אחר';
@@ -3447,7 +3447,7 @@ function renderGardens(){
     });
     h+='</div>';
   });
-  document.getElementById('g-body').innerHTML=h||'<p style="color:#999">לא נמצאו גנים</p>';
+  document.getElementById('g-body').innerHTML=h||'<p style="color:#999">לא נמצאו צהרונים</p>';
   setTimeout(_fitScrollAreas,50);
 }
 
@@ -3557,7 +3557,7 @@ function pqmBreakToday(){
   const pair=pairs.find(p=>String(p.id)===String(_pqmId));
   if(!pair) return;
   if(!confirm(`לפרק את הזוג "${pair.name}" רק להיום (${fD(_pqmDs)})?
-הגנים יוצגו בנפרד ביום זה בלבד.`)) return;
+הצהרונים יוצגו בנפרד ביום זה בלבד.`)) return;
   setPairBreak(_pqmId,_pqmDs,true);
   CM('pqm');
 }
@@ -3573,7 +3573,7 @@ function pqmBreakPermanent(){
   const pair=pairs.find(p=>String(p.id)===String(_pqmId));
   if(!pair) return;
   if(!confirm(`למחוק לצמיתות את הזוג "${pair.name}"?
-הגנים יוצגו בנפרד בכל הלוח. פעולה זו אינה ניתנת לביטול.`)) return;
+הצהרונים יוצגו בנפרד בכל הלוח. פעולה זו אינה ניתנת לביטול.`)) return;
   const idx=pairs.findIndex(p=>String(p.id)===String(_pqmId));
   if(idx>=0) pairs.splice(idx,1);
   Object.keys(pairBreaks).forEach(k=>{if(k.startsWith(_pqmId+'_')) delete pairBreaks[k];});
@@ -3598,7 +3598,7 @@ function renderPairs(){
   let sideHtml='';
   if(soloGardens.length){
     sideHtml+=`<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px;margin-bottom:10px">
-      <div style="font-size:.76rem;font-weight:800;color:#f57f17;margin-bottom:8px">⚠️ גנים ללא זוג (${soloGardens.length})</div>`;
+      <div style="font-size:.76rem;font-weight:800;color:#f57f17;margin-bottom:8px">⚠️ צהרונים ללא זוג (${soloGardens.length})</div>`;
     Object.keys(bySoloCity).sort().forEach(city=>{
       sideHtml+=`<div style="margin-bottom:7px">
         <div style="font-size:.69rem;font-weight:700;color:#78909c;margin-bottom:4px">🏙️ ${city}</div>`;
@@ -3612,7 +3612,7 @@ function renderPairs(){
     });
     sideHtml+='</div>';
   } else {
-    sideHtml='<div style="font-size:.75rem;color:#2e7d32;background:#e8f5e9;border-radius:7px;padding:8px 10px">✅ כל הגנים משובצים בזוג</div>';
+    sideHtml='<div style="font-size:.75rem;color:#2e7d32;background:#e8f5e9;border-radius:7px;padding:8px 10px">✅ כל הצהרונים משובצים בזוג</div>';
   }
   document.getElementById('pairs-solo').innerHTML=sideHtml;
 
@@ -3683,7 +3683,7 @@ function exportPairNow(idx){_exGids=pairs[idx].ids;openExport();}
 function delPair(idx){
   const pair=pairs[idx];
   if(!pair) return;
-  if(!confirm('למחוק את הזוג "'+pair.name+'"?\nהפעילויות ישארו אך הגנים לא יהיו מקושרים יותר.')) return;
+  if(!confirm('למחוק את הזוג "'+pair.name+'"?\nהפעילויות ישארו אך הצהרונים לא יהיו מקושרים יותר.')) return;
   pairs.splice(idx,1);
   save();refresh();
   alert('✅ הזוג נמחק');
@@ -3718,7 +3718,7 @@ function savePairModal(){
   const g1=parseInt(document.getElementById('apm-g1').value)||null;
   const g2=parseInt(document.getElementById('apm-g2').value)||null;
   const g3=parseInt(document.getElementById('apm-g3').value)||null;
-  if(!g1){alert('יש לבחור לפחות גן אחד');return;}
+  if(!g1){alert('יש לבחור לפחות צהרון אחד');return;}
   const ids=[g1,g2,g3].filter(Boolean);
   const warnEl=document.getElementById('apm-warn');
   const dupe=ids.map(gid=>{
@@ -3729,7 +3729,7 @@ function savePairModal(){
   if(dupe.length){
     warnEl.style.display='block';
     warnEl.textContent='⚠️ '+dupe.join(' | ');
-    if(!confirm('גנים כבר בזוגות אחרים. בכל זאת להמשיך?')) return;
+    if(!confirm('צהרונים כבר בזוגות אחרים. בכל זאת להמשיך?')) return;
   }
   const nm=document.getElementById('apm-name').value||ids.map(id=>G(id).name||'').join(' + ');
   const isEdit=editPairIdx!==null&&editPairIdx!==undefined;
@@ -3894,7 +3894,7 @@ function refreshClusterDrops(){
     const sch=byCity[city].filter(({p})=>gcls(G(p.ids[0]))==='ביה"ס');
     if(gan.length){
       const og=document.createElement('optgroup');
-      og.label=`🏙️ ${city} — גנים`;
+      og.label=`🏙️ ${city} — צהרונים`;
       gan.forEach(({p})=>og.innerHTML+=`<option value='${p.id}'>${p.name}</option>`);
       pairEl.appendChild(og);
     }
@@ -3985,7 +3985,7 @@ function renderClusters(){
     // גנים ללא אשכול (רשימה מתקפלת)
     if(noCluster.length){
       h+=`<div style="margin-top:12px;border-top:2px dashed #ffe082;padding-top:8px">
-        <div style="font-weight:800;color:#f57f17;font-size:.82rem;margin-bottom:6px">⚠️ גנים ללא אשכול (${noCluster.length})</div>
+        <div style="font-weight:800;color:#f57f17;font-size:.82rem;margin-bottom:6px">⚠️ צהרונים ללא אשכול (${noCluster.length})</div>
         <div style="display:flex;flex-wrap:wrap;gap:5px">`;
       noCluster.forEach(g=>{
         h+=`<span style="background:#fffde7;border:1px dashed #ffe082;border-radius:5px;padding:3px 7px;font-size:.74rem;display:inline-flex;align-items:center;gap:4px">
@@ -4035,7 +4035,7 @@ function renderClusters(){
       const noByCityMap={};
       noCluster.forEach(g=>{const c=g.city||'אחר';if(!noByCityMap[c])noByCityMap[c]=[];noByCityMap[c].push(g);});
       h+=`<div style="margin-top:14px;border-top:2px dashed #ffe082;padding-top:10px">
-        <div style="font-weight:800;color:#f57f17;font-size:.83rem;margin-bottom:8px">⚠️ גנים ללא אשכול (${noCluster.length})</div>
+        <div style="font-weight:800;color:#f57f17;font-size:.83rem;margin-bottom:8px">⚠️ צהרונים ללא אשכול (${noCluster.length})</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:7px">`;
       Object.keys(noByCityMap).sort().forEach(city=>{
         h+=`<div style="background:#fffde7;border:1px dashed #ffe082;border-radius:7px;padding:8px">
@@ -4376,8 +4376,8 @@ function doSupExport(){
     lines.push('');
   }
 
-  // Column headers — עיר | כתובת | שם גן | תאריך | יום | פעילות | קבוצות | שעה | סטטוס | סיבה | הערות
-  lines.push(['עיר','כתובת','שם גן','תאריך','יום','פעילות','קבוצות','שעה','סטטוס','סיבה','הערות'].map(q).join(','));
+  // Column headers — עיר | כתובת | שם צהרון | תאריך | יום | פעילות | קבוצות | שעה | סטטוס | סיבה | הערות
+  lines.push(['עיר','כתובת','שם צהרון','תאריך','יום','פעילות','קבוצות','שעה','סטטוס','סיבה','הערות'].map(q).join(','));
 
   evs.forEach(s=>{
     const g=G(s.g);
@@ -4417,7 +4417,7 @@ function exportExcelSched(){
   downloadCSV(rel,'לוח_זמנים');
 }
 function downloadCSV(data,fname){
-  const headers=['תאריך','יום','עיר','שם הגן','כתובת','ספק','שעה','קבוצות','סטטוס','סיבה','הערות','תאריך דחייה'];
+  const headers=['תאריך','יום','עיר','שם הצהרון','כתובת','ספק','שעה','קבוצות','סטטוס','סיבה','הערות','תאריך דחייה'];
   const rows=data.map(s=>{
     const g=G(s.g);
     const stMap={ok:'מתקיים',done:'התקיים',can:'בוטל',post:'נדחה',nohap:'לא התקיים'};
@@ -5002,7 +5002,7 @@ function renderSupCard(){
   </div>`;
 
   h+=`<div class="tw"><table><thead><tr>
-    <th>תאריך</th><th>יום</th><th>עיר</th><th>גן</th><th>פעילות</th><th>שעה</th><th>קב'</th><th>סטטוס</th><th>הערות</th><th></th>
+    <th>תאריך</th><th>יום</th><th>עיר</th><th>צהרון</th><th>פעילות</th><th>שעה</th><th>קב'</th><th>סטטוס</th><th>הערות</th><th></th>
   </tr></thead><tbody>`;
   evs.forEach(s=>{
     const g=G(s.g);
@@ -5013,7 +5013,7 @@ function renderSupCard(){
       <td><div style="font-weight:700">${g.name}</div>${g.st?`<div style="font-size:.67rem;color:#78909c">${g.st}</div>`:''}</td>
       <td><span style="background:#e3f2fd;color:#1565c0;border-radius:10px;padding:1px 7px;font-size:.73rem;font-weight:600">${s.act||'—'}</span></td>
       <td>${fT(s.t)}</td>
-      <td style="text-align:center">${s.grp>1?s.grp:''}</td>
+      <td style="text-align:center">${s.grp||1}</td>
       <td>${stLabel(s)}</td>
       <td style="max-width:100px;font-size:.71rem">${s.nt||''}</td>
       <td><button class="btn bo bsm" style="font-size:.65rem" onclick="openSP(${s.id})">✏️</button></td>
@@ -5507,7 +5507,7 @@ function openMonthlyExport(){
   Object.values(managers).forEach(mg=>{ const o=document.createElement('option');o.value=mg.id;o.textContent=mg.name;mgrSel.appendChild(o); });
   // Gardens
   const ganSel=document.getElementById('exp-garden');
-  ganSel.innerHTML='<option value="">-- בחר גן --</option>';
+  ganSel.innerHTML='<option value="">-- בחר צהרון --</option>';
   const allGans=GARDENS.concat(_GARDENS_EXTRA||[]).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
   allGans.forEach(g=>{ const o=document.createElement('option');o.value=g.id;o.textContent=`${g.name} (${g.city})`;ganSel.appendChild(o); });
   document.getElementById('export-m').classList.add('open');
@@ -6181,7 +6181,7 @@ function openGcellPopup(gid, ds, e){
     unblockBtn.style.display='block';
   } else {
     blkLbl.style.display='none';
-    blockBtn.textContent='🚫 חסום תאריך לגן זה';
+    blockBtn.textContent='🚫 חסום תאריך לצהרון זה';
     unblockBtn.style.display='none';
   }
   // Position near click
@@ -6231,7 +6231,7 @@ function openBlockModal(mode, gid, ds){
     const g=G(_gcellGid);
     const key=`${_gcellGid}_${ds}`;
     const blk=gardenBlocks[key];
-    document.getElementById('block-m-title').textContent=`🚫 חסום גן לתאריך`;
+    document.getElementById('block-m-title').textContent=`🚫 חסום צהרון לתאריך`;
     document.getElementById('block-m-subtitle').textContent=`${g.name} · ${fD(ds)} יום ${dayN(ds)}`;
     document.getElementById('block-m-reason').value=blk?blk.reason:'';
     document.getElementById('block-m-note').value=blk?blk.note||'':'';
@@ -6267,7 +6267,7 @@ function saveBlock(){
   if(_blockMode==='garden'){
     const key=`${_gcellGid}_${_gcellDs}`;
     gardenBlocks[key]={reason,note,icon,gid:_gcellGid,d:_gcellDs};
-    saveAndRefresh('block-m'); showToast('🚫 גן נחסם לתאריך זה');
+    saveAndRefresh('block-m'); showToast('🚫 צהרון נחסם לתאריך זה');
   } else {
     blockedDates[_blockedEditDate]={reason,note,icon};
     saveAndRefresh('block-m'); showToast('🚫 תאריך סומן כחסום');
@@ -6392,7 +6392,7 @@ function saveGardenCard(){
   renderGardens();
   // Refresh other views that show garden data
   if(currentTab==='managers') renderManagers();
-  showToast('✅ כרטיס הגן עודכן');
+  showToast('✅ כרטיס הצהרון עודכן');
 }
 
 function renderManagers(){
@@ -6442,7 +6442,7 @@ function renderManagers(){
       </div>
       <!-- Gardens list -->
       <div style="padding:10px 14px">
-        <div style="font-size:.74rem;font-weight:700;color:#546e7a;margin-bottom:7px">אחראי על ${gs.length} גנים/צהרונים:</div>
+        <div style="font-size:.74rem;font-weight:700;color:#546e7a;margin-bottom:7px">אחראי על ${gs.length} צהרונים:</div>
         ${gs.length?`<div>
           ${Object.keys(gByCity).sort().map(city=>`
             <div style="margin-bottom:6px">
@@ -6575,7 +6575,7 @@ function exportMgrContact(id){
   if(m.email) txt+=`✉️ ${m.email}\n`;
   if(m.notes) txt+=`💬 ${m.notes}\n`;
   txt+='\n';
-  txt+=`🏫 גנים באחריותו (${gs.length}):\n`;
+  txt+=`🏫 צהרונים באחריותו (${gs.length}):\n`;
   txt+='━━━━━━━━━━━━━━━━━━━━━━\n';
   // group by city
   const byCity={};
