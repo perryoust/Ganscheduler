@@ -5798,17 +5798,9 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     // ── JSZip post-process: inject pageLayout + headerFooter into XML ────
     let finalBlob;
     try {
-      if (!window._JSZipLoaded) {
-        await new Promise((res, rej) => {
-          const sc = document.createElement('script');
-          sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-          sc.onload = () => { window._JSZipLoaded = true; res(); };
-          sc.onerror = rej;
-          document.head.appendChild(sc);
-        });
-      }
-      // Save original JSZip reference in case ExcelJS overwrote it
-      const _JSZip = window.JSZip;
+      // Use the JSZip we saved before ExcelJS could overwrite window.JSZip
+      const _JSZip = window._SafeJSZip;
+      if (!_JSZip) throw new Error('_SafeJSZip not available');
       const zip = await _JSZip.loadAsync(buffer);
       const sheetKeys = Object.keys(zip.files).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
       for (const sk of sheetKeys) {
