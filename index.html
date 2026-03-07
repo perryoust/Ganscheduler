@@ -112,11 +112,12 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
   <div class="hs" id="hdr-stats" style="overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch">
     <span style="opacity:.5;font-size:.7rem;letter-spacing:.03em;text-transform:uppercase;background:none!important">🎨 חוגים</span>
-    <span onclick="switchMode('act');ST('gardens')" style="cursor:pointer" title="גנים">🏫 <b id="h-gardens">125</b> צהרונים</span>
-    <span onclick="switchMode('act');ST('sched')" style="cursor:pointer" title="פעילויות">📅 <b id="h-sched">10,568</b> פעילויות</span>
+    <span onclick="switchMode('act');ST('gardens')" style="cursor:pointer" title="צהרונים">🏫 <b id="h-gardens">0</b> צהרונים</span>
     <span onclick="switchMode('act');ST('gardens');setGardensTab('pairs')" style="cursor:pointer" title="זוגות">🔗 <b id="h-pairs">0</b> זוגות</span>
-    <span onclick="switchMode('act');goToCancelled()" style="cursor:pointer" title="בוטלו">❌ <b id="h-can">0</b> בוטלו</span>
+    <span onclick="switchMode('act');goToNohap()" style="cursor:pointer" title="לא התקיים">⚠️ <b id="h-nohap">0</b> לא התקיים</span>
     <span onclick="switchMode('act');goToPostponed()" style="cursor:pointer" title="נדחו">⏩ <b id="h-post">0</b> נדחו</span>
+    <span onclick="switchMode('act');goToCancelled()" style="cursor:pointer" title="בוטלו (חודש נוכחי)">❌ <b id="h-can">0</b> בוטלו</span>
+    <span style="display:none"><b id="h-sched">0</b></span>
     <span style="opacity:.3;font-size:.7rem;padding:0 2px;background:none!important">│</span>
     <span style="opacity:.5;font-size:.7rem;letter-spacing:.03em;text-transform:uppercase;background:none!important">🛒 רכש</span>
     <span onclick="switchMode('purch');SPT('pinvoices')" style="cursor:pointer" title="הזמנות">📄 <b id="h-inv">0</b> הזמנות</span>

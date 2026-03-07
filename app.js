@@ -957,7 +957,7 @@ function gByCF(city,cls){return GARDENS.filter(g=>(!city||g.city===city)&&(!cls|
 function d2s(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${dd}`}
 function s2d(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
 
-// grpTag: show group count only when grp >= 2 (1 = default, no display)
+// grpTag: show from grp >= 2 (1 = default, not shown)
 function grpTag(s,g){
   const v=parseInt(s.grp)||1;
   if(v<2) return '';
@@ -1063,9 +1063,21 @@ window.onload = function(){
 }; // end window.onload
 
 function updCounts(){
-  const can=SCH.filter(s=>s.st==='can').length;
-  const post=SCH.filter(s=>s.st==='post').length;
-  const nohap=SCH.filter(s=>s.st==='nohap').length;
+  // Academic year: Sep 1 → Aug 21 of next year
+  const _now=new Date();
+  const _yr=_now.getMonth()>=8?_now.getFullYear():_now.getFullYear()-1;
+  const _ayFrom=`${_yr}-09-01`, _ayTo=`${_yr+1}-08-21`;
+  // Current calendar month (for "בוטלו")
+  const _cm=_now.getMonth(), _cy=_now.getFullYear();
+  const _mFrom=`${_cy}-${String(_cm+1).padStart(2,'0')}-01`;
+  const _mTo=`${_cy}-${String(_cm+1).padStart(2,'0')}-31`;
+
+  const _inAY=s=>s.d>=_ayFrom&&s.d<=_ayTo;
+  const _inMonth=s=>s.d>=_mFrom&&s.d<=_mTo;
+
+  const can=SCH.filter(s=>s.st==='can'&&_inMonth(s)).length; // בוטלו = current month
+  const post=SCH.filter(s=>s.st==='post'&&_inAY(s)).length;
+  const nohap=SCH.filter(s=>s.st==='nohap'&&_inAY(s)).length;
   const todayCnt=SCH.filter(s=>s.d===td()&&s.st!=='can').length;
   const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   // Activity stats
@@ -1184,6 +1196,9 @@ function filterE(f,from,to){
   }).map(s=>({...s,d:s.pd,_isPostponed:true}));
   return [...all,...posted];
 }
+// Global calendar state — initialized to today
+if(typeof calD==='undefined') window.calD=new Date();
+if(typeof calV==='undefined') window.calV='day';
 function setView(v){
   calV=v;
   ['day','week','month','list','range'].forEach(x=>{
@@ -2257,7 +2272,6 @@ function renderCalList(evs, mDate){
         h+=`</div>`;
       });
 
-      // Solos — grouped by garden with הודעה button
       const soloEvs=cityEvs
         .filter(s=>!pairedGids.has(s.g))
         .sort((a,b)=>{
@@ -2306,13 +2320,11 @@ function renderMonth(evs,mDate){
   const y=mDate.getFullYear(),m=mDate.getMonth(),tday=td();
   const fd=new Date(y,m,1),ld=new Date(y,m+1,0);
   const cnt={};evs.forEach(s=>{const dk=s._isPostponed?s.pd:s.d;if(!cnt[dk])cnt[dk]={t:0,c:0};cnt[dk].t++;if(s.st==='can')cnt[dk].c++;});
-  const _dayNamesM=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
-  // Sticky header outside overflow:hidden grid
+  const _dnM=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
   let html=`<div class="card" style="padding:0;overflow:hidden">
     <div class="mgrid" style="background:#1a237e;border-radius:10px 10px 0 0;gap:2px">
-      ${_dayNamesM.map(d=>`<div class="mdh">${d}</div>`).join('')}
+      ${_dnM.map(d=>`<div class="mdh">${d}</div>`).join('')}
     </div>
-    <div style="position:sticky;top:0;z-index:5;background:#1a237e;margin-top:-2px;height:2px"></div>
     <div class="mgrid" style="border-radius:0 0 10px 10px">`;
   for(let i=0;i<fd.getDay();i++) html+='<div class="md om"></div>';
   for(let d=1;d<=ld.getDate();d++){
@@ -2473,10 +2485,11 @@ function renderDash(){
   let ch='';
   if(!allEvs.length) ch='<p style="color:#999;font-size:.79rem">אין ביטולים/דחיות</p>';
   else{
-    ch='<div class="tw"><table><thead><tr><th>תאריך</th><th>עיר</th><th>גן</th><th>ספק</th><th>סטטוס</th><th>סיבה</th></tr></thead><tbody>';
+    ch='<div class="tw"><table><thead><tr><th>תאריך</th><th>עיר</th><th>גן</th><th>ספק</th><th>סטטוס</th><th>סיבה</th><th></th></tr></thead><tbody>';
     allEvs.forEach(s=>{
       const g=G(s.g);
-      ch+=`<tr onclick="openSP(${s.id})" class="${stClass(s)}"><td>${fD(s.d)}</td><td>${g.city||''}</td><td>${g.name||''}</td><td>${s.a}</td><td>${stLabel(s)}</td><td>${s.cr||''}${s.cn?' ('+s.cn+')':''}</td></tr>`;
+      const _canMakeup=s.st==='nohap'||s.st==='post'||s.st==='can';
+      ch+=`<tr onclick="openSP(${s.id})" class="${stClass(s)}"><td style="white-space:nowrap">${fD(s.d)}</td><td>${g.city||''}</td><td>${g.name||''}</td><td style="font-size:.78rem">${supBase(s.a)}</td><td>${stLabel(s)}</td><td style="font-size:.75rem">${s.cr||''}${s.cn?' ('+s.cn+')':''}</td><td>${_canMakeup?`<button class="btn bp bsm" style="font-size:.68rem;padding:2px 8px;white-space:nowrap" onclick="event.stopPropagation();openMakeupSched(${s.id})">📅 שבץ השלמה</button>`:''}</td></tr>`;
     });
     ch+='</tbody></table></div>';
   }
@@ -2580,14 +2593,14 @@ function openSP(id){
           <input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;font-size:.8rem">
         </div>
         <div><label style="font-size:.72rem;color:#546e7a;font-weight:700">👥 קב'</label>
-          <input type="number" id="sp-edit-grp" min="1" max="30" value="${s.grp||''}" placeholder="1" style="width:60px;font-size:.8rem;text-align:center">
+          <input type="number" id="sp-edit-grp" min="1" max="30" value="${s.grp||''}" placeholder="1" style="width:58px;font-size:.8rem;text-align:center">
         </div>
       </div>
       ${spPairForEdit?`<label style="font-size:.75rem;display:flex;align-items:center;gap:6px;cursor:pointer;color:#e65100">
         <input type="checkbox" id="sp-edit-pair-chk"> עדכן לכל הזוג (${spPairForEdit.name})
       </label>`:''}
-      <label style="font-size:.75rem;display:flex;align-items:center;gap:6px;cursor:pointer;color:#1a237e;background:#e8eaf6;padding:5px 8px;border-radius:5px;margin-top:3px">
-        <input type="checkbox" id="sp-edit-future-chk"> 🔁 עדכן כל פעילויות עתידיות זהות (ספק + גן + יום)
+      <label style="font-size:.73rem;display:flex;align-items:center;gap:5px;cursor:pointer;color:#1a237e;background:#e8eaf6;padding:4px 7px;border-radius:5px;margin-top:3px">
+        <input type="checkbox" id="sp-edit-future-chk"> 🔁 עדכן כל פעילויות עתידיות זהות (ספק+גן+יום, מעקף חופשות)
       </label>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px">
@@ -2596,6 +2609,12 @@ function openSP(id){
     </div>
   </div>`;
   if(s.st==='nohap')h+=`<button class="btn bp bsm" style="width:100%;margin-bottom:7px" onclick="openMakeupSched(${s.id})">📅 שיבוץ השלמה לתאריך חדש</button>`;
+  // Mark THIS event as makeup (it itself is the makeup activity)
+  if(!s._makeupFrom){
+    h+=`<button class="btn bo bsm" style="width:100%;margin-bottom:7px;font-size:.78rem" onclick="markAsMakeup(${s.id})">↩️ סמן פעילות זו כהשלמה</button>`;
+  } else {
+    h+=`<div style="background:#fff3e0;border-radius:6px;padding:5px 10px;margin-bottom:7px;font-size:.75rem;color:#e65100;font-weight:700">↩️ השלמה מ-${fD(s._makeupFrom)}</div>`;
+  }
   if(s.st!=='nohap')h+=`<div style="border:1.5px solid #f48fb1;border-radius:7px;padding:8px;margin-bottom:8px">
     <div style="font-size:.8rem;font-weight:700;color:#e91e63;margin-bottom:5px">⚠️ לא התקיים</div>
     <div class="copts">
@@ -2611,7 +2630,7 @@ function openSP(id){
   // Recurring series management — shown only if event belongs to a series
   if(s._recId){
     const seriesCount=SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g).length;
-    h+=`<div style="border:1.5px solid #b0bec5;border-radius:7px;padding:8px;margin-bottom:8px;background:#f8f9fa"><div style="font-size:.8rem;font-weight:700;color:#37474f;margin-bottom:6px">🔁 שיבוץ קבוע — ${seriesCount} פעילויות מתאריך זה ואילך</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:5px"><button class="btn br bsm" onclick="deleteRecurSeries(${s.id})">🗑️ מחק מכאן ואילך</button><button class="btn borange bsm" onclick="openReplaceRecur(${s.id})">🔄 החלף שיבוץ קבוע</button></div></div>`;
+    h+=`<div style="border:1.5px solid #b0bec5;border-radius:7px;padding:8px;margin-bottom:8px;background:#f8f9fa"><div style="font-size:.8rem;font-weight:700;color:#37474f;margin-bottom:6px">🔁 שיבוץ קבוע — ${seriesCount} פעילויות מתאריך זה ואילך</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:5px"><button class="btn br bsm" onclick="deleteRecurSeries(${s.id})">🗑️ מחק מכאן ואילך</button><button class="btn borange bsm" onclick="openReplaceRecur(${s.id})">🔄 החלף שיבוץ קבוע</button></div><button class="btn br bsm" style="width:100%;font-size:.75rem" onclick="permanentCancelRecur(${s.id})">🚫 ביטול קבוע מתאריך זה ואילך</button></div>`;
   }
   h+=`<button class="btn bp bsm" style="width:100%" onclick="saveNt()">💾 שמור הערה</button>`;
   document.getElementById('sp-body').innerHTML=h;
@@ -2634,6 +2653,27 @@ function spEditActChg(){
   const wrap=document.getElementById('sp-edit-act-new-wrap');
   if(wrap) wrap.style.display=v==='__new__'?'block':'none';
 }
+function permanentCancelRecur(id){
+  const s=SCH.find(x=>x.id===id); if(!s) return;
+  const g=G(s.g);
+  if(!confirm(`ביטול קבוע של ${supBase(s.a)} ב-${g.name}\nמ-${fD(s.d)} ואילך?\n\nכל השיבוצים הקבועים מתאריך זה יוסרו ותתווסף הערת ביטול.`)) return;
+  const cancelNote='בוטל קבוע מ-'+fD(s.d);
+  const today=td();
+  const affected=SCH.filter(x=>x._recId===s._recId&&x.g===s.g&&x.d>=s.d);
+  const toRemove=affected.filter(x=>x.d>today);
+  const toCancelToday=affected.filter(x=>x.d===today||x.d===s.d);
+  // Mark the current/today event as cancelled with note
+  toCancelToday.forEach(x=>{x.st='can';x.cr='ביטול קבוע';x.nt=cancelNote;});
+  // Remove all future events from the series
+  const removeIds=new Set(toRemove.map(x=>x.id));
+  const removed=toRemove.length;
+  for(let i=SCH.length-1;i>=0;i--){
+    if(removeIds.has(SCH[i].id)) SCH.splice(i,1);
+  }
+  save(); closeSP(); refresh();
+  showToast(`✅ ביטול קבוע בוצע — הוסרו ${removed} פעילויות עתידיות`);
+}
+
 function deleteRecurSeries(id){
   const s=SCH.find(x=>x.id===id); if(!s) return;
   const affected=SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
@@ -2715,12 +2755,13 @@ function spEditSave(){
   const _grpRaw=(document.getElementById('sp-edit-grp')||{}).value;
   const _newGrp=_grpRaw!==''?parseInt(_grpRaw):null;
   const forPair=(document.getElementById('sp-edit-pair-chk')||{}).checked;
+  const forFuture=(document.getElementById('sp-edit-future-chk')||{}).checked;
   const updates={};
   if(newSup&&newSup!==s.a) updates.a=newSup;
   if(newAct&&newAct!=='__new__') updates.act=newAct;
   if(newTime&&newTime!==s.t) updates.t=newTime;
   if(newTp) updates.tp=newTp;
-  if(_newGrp!==null&&_newGrp!==s.grp) updates.grp=_newGrp;
+  if(_newGrp!==null&&_newGrp!==(s.grp||1)) updates.grp=_newGrp;
   // Always include notes in update
   const newNt2=(document.getElementById('sp-nt')||{}).value;
   if(newNt2!==undefined) updates.nt=newNt2;
@@ -2730,7 +2771,7 @@ function spEditSave(){
     SCH.filter(x=>pair.ids.includes(x.g)&&x.d===s.d&&x.id!==selEv)
       .forEach(x=>Object.assign(x,updates));
   }
-  const forFuture=(document.getElementById('sp-edit-future-chk')||{}).checked;
+  // Future update — skips vacations and blocked dates
   if(forFuture){
     const _today=td();
     const _sDow=new Date(s.d.replace(/-/g,'/')).getDay();
@@ -2746,6 +2787,11 @@ function spEditSave(){
         if(supBase(x.a)!==supBase(s.a)) return false;
         if(x.d<=_today) return false;
         if(new Date(x.d.replace(/-/g,'/')).getDay()!==_sDow) return false;
+        // Skip vacation/holiday/camp/blocked dates — no changes on those days
+        const _hol=typeof getHolidayInfo==='function'?getHolidayInfo(x.d):null;
+        if(_hol&&(_hol.type==='vacation'||_hol.type==='camp'||_hol.type==='noact')) return false;
+        const _blk=typeof getBlockedInfo==='function'?getBlockedInfo(x.d):null;
+        if(_blk) return false;
         return true;
       }).forEach(x=>Object.assign(x,_futU));
     }
@@ -2897,7 +2943,7 @@ function openEditSched(id){
     if(tpSel) tpSel.value=s.tp||'חוג';
   },80);
   document.getElementById('es-time').value=s.t||'';
-  const _esGrpEl=document.getElementById('es-grp');if(_esGrpEl)_esGrpEl.value=s.grp||'';
+  const _esGrp=document.getElementById('es-grp');if(_esGrp)_esGrp.value=s.grp||'';
   document.getElementById('es-for-pair').checked=false;
   document.getElementById('es-pair-note').style.display='none';
   const pair=gardenPair(s.g);
@@ -2922,14 +2968,14 @@ function saveEditSched(){
   const newTime=document.getElementById('es-time').value;
   const newTp=(document.getElementById('es-ev-type')||{}).value;
   const _esGrpRaw=(document.getElementById('es-grp')||{}).value;
-  const _esGrp=_esGrpRaw!==''?parseInt(_esGrpRaw):null;
+  const _esGrpVal=_esGrpRaw!==''?parseInt(_esGrpRaw):null;
   const forPair=document.getElementById('es-for-pair').checked;
   const updates={};
   if(newSup) updates.a=newSup;
   if(newAct&&newAct!=='__new__') updates.act=newAct;
   if(newTime) updates.t=newTime;
   if(newTp) updates.tp=newTp;
-  if(_esGrp!==null) updates.grp=_esGrp;
+  if(_esGrpVal!==null) updates.grp=_esGrpVal;
   if(forPair){
     const pair=gardenPair(s.g);
     if(pair) SCH.filter(x=>pair.ids.includes(x.g)&&x.d===s.d&&x.id!==selEv)
@@ -2938,6 +2984,16 @@ function saveEditSched(){
   upd(selEv,updates);
   save(); CM('esm'); closeSP(); refresh();
 }
+function markAsMakeup(id){
+  const s=SCH.find(x=>x.id===id); if(!s) return;
+  const origDate=prompt('📅 מאיזה תאריך זאת השלמה? (YYYY-MM-DD)\nהשאר ריק אם לא ידוע','');
+  const note='השלמה'+(origDate?' מ-'+fD(origDate):'');
+  s._makeupFrom=origDate||'unknown';
+  if(!s.nt) s.nt=note;
+  save(); closeSP(); refresh();
+  showToast('✅ הפעילות סומנה כהשלמה');
+}
+
 function openMakeupSched(origId){
   const orig=SCH.find(x=>x.id===origId); if(!orig) return;
   _makeupOrigId=origId;
@@ -4376,13 +4432,12 @@ function genExport(){
             const sameAddr=addrs.length===1&&addrs[0];
             if(sameAddr){
               text+=`${supLine}\n  🏫 ${addrs[0]}\n`;
-              group.forEach(s=>{ const _isS=gcls(G(s.g))==='ביה"ס'; text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${_isS&&(s.grp||1)>=2?' · '+(s.grp||1)+' קב\'':''}\n`; });
+              group.forEach(s=>{ const _isSch=gcls(G(s.g))==='ביה"ס'; text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${_isSch&&(s.grp||1)>=2?' · '+(s.grp||1)+' קב\'':''}\n`; });
             } else {
               text+=`${supLine}\n`;
               group.forEach(s=>{
                 const addr=s.gd.st?`🏫 ${s.gd.st} · `:'  ';
-                const _isS2=gcls(G(s.g))==='ביה"ס';
-                text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${_isS2&&(s.grp||1)>=2?' · '+(s.grp||1)+' קב\'':''}\n`;
+                text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`;
               });
             }
             text+='\n';
@@ -4405,13 +4460,12 @@ function genExport(){
             const sameAddr=addrs.length===1&&addrs[0];
             if(sameAddr){
               text+=`${supLine}\n  🏫 ${addrs[0]}\n`;
-              group.forEach(s=>{ const _isS=gcls(G(s.g))==='ביה"ס'; text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${_isS&&(s.grp||1)>=2?' · '+(s.grp||1)+' קב\'':''}\n`; });
+              group.forEach(s=>{ const _isSch=gcls(G(s.g))==='ביה"ס'; text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${_isSch&&(s.grp||1)>=2?' · '+(s.grp||1)+' קב\'':''}\n`; });
             } else {
               text+=`${supLine}\n`;
               group.forEach(s=>{
                 const addr=s.gd.st?`🏫 ${s.gd.st} · `:'  ';
-                const _isS2=gcls(G(s.g))==='ביה"ס';
-                text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${_isS2&&(s.grp||1)>=2?' · '+(s.grp||1)+' קב\'':''}\n`;
+                text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`;
               });
             }
             text+='\n';
@@ -4490,57 +4544,25 @@ function doSupExport(){
     lines.push('');
   }
 
-  // Column headers
-  const cols=['עיר','כתובת','שם צהרון','תאריך','יום','פעילות','קבוצות','שעה','סטטוס','סיבה','הערות'];
-  lines.push(cols.map(q).join(','));
+  // Column headers — עיר | כתובת | שם צהרון | תאריך | יום | פעילות | קבוצות | שעה | סטטוס | סיבה | הערות
+  lines.push(['עיר','כתובת','שם צהרון','תאריך','יום','פעילות','קבוצות','שעה','סטטוס','סיבה','הערות'].map(q).join(','));
 
-  // Group by city
-  const _csvCities=[];
-  const _csvByCity={};
   evs.forEach(s=>{
-    const city=G(s.g).city||'—';
-    if(!_csvByCity[city]){_csvByCity[city]=[];_csvCities.push(city);}
-    _csvByCity[city].push(s);
+    const g=G(s.g);
+    const actName=supAct(s.a)||s.a;
+    const reason = s.cr || '';
+    const note = s.nt || '';
+    lines.push([
+      q(g.city||''),q(g.st||''),q(g.name||''),
+      q(fD(s.d)),q(dayN(s.d)),
+      q(actName),q((s.st==='can'||s.st==='nohap'||s.st==='post')?0:(s.grp||1)),q(fT(s.t)),
+      q(stMap[s.st]||'מתקיים'),q(reason),q(note)
+    ].join(','));
   });
 
-  const _multiCity=_csvCities.length>1;
-
-  _csvCities.forEach((city,ci)=>{
-    const cityEvs=_csvByCity[city];
-    // 2 blank rows between cities (except before first)
-    if(_multiCity){
-      if(ci>0){lines.push('');lines.push('');}
-      lines.push([q('📍 '+city),'','','','','','','','','',''].join(','));
-    }
-
-    cityEvs.forEach(s=>{
-      const g=G(s.g);
-      const actName=supAct(s.a)||s.a;
-      const grpVal=(s.st==='can'||s.st==='nohap'||s.st==='post')?0:(parseInt(s.grp)||1);
-      lines.push([
-        q(g.city||''),q(g.st||''),q(g.name||''),
-        q(fD(s.d)),q(dayN(s.d)),
-        q(actName),q(grpVal),q(fT(s.t)),
-        q(stMap[s.st]||'מתקיים'),q(s.cr||''),q(s.nt||'')
-      ].join(','));
-    });
-
-    // Per-city summary
-    if(_multiCity){
-      const _cd=cityEvs.filter(s=>s.st==='done').length;
-      const _cc=cityEvs.filter(s=>s.st==='can').length;
-      const _cn=cityEvs.filter(s=>s.st==='nohap').length;
-      const _cg=cityEvs.filter(s=>s.st!=='can'&&s.st!=='nohap').reduce((sum,s)=>sum+(parseInt(s.grp)||1),0);
-      const _cmk=cityEvs.filter(s=>s._makeupFrom).length;
-      lines.push([q('סיכום '+city+':'),q('פעילויות: '+cityEvs.length),q('התקיימו: '+_cd),q('השלמות: '+_cmk),q('בוטלו: '+_cc),q('לא התקיימו: '+_cn),q('קבוצות: '+_cg),'','','',''].join(','));
-    }
-  });
-
-  // Grand total
+  // Summary row at bottom
   lines.push('');
-  lines.push('');
-  const _totalGrp=evs.filter(s=>s.st!=='can'&&s.st!=='nohap').reduce((sum,s)=>sum+(parseInt(s.grp)||1),0);
-  lines.push([q('סה"כ פעילויות:'),q(totalEvs),q('התקיימו:'),q(doneEvs),q('השלמות:'),q(makeupEvs),q('בוטלו:'),q(cancelledEvs),q('לא התקיימו:'),q(nohapEvs),q('קבוצות: '+_totalGrp)].join(','));
+  lines.push([q('סה"כ פעילויות:'),q(totalEvs),q('התקיימו:'),q(doneEvs),q('השלמות:'),q(makeupEvs),q('בוטלו:'),q(cancelledEvs),q('לא התקיימו:'),q(nohapEvs),''].join(','));
 
   const csv=bom+lines.join('\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
@@ -5127,121 +5149,106 @@ function renderSupCard(){
   const el=document.getElementById('suc-body');
   if(!evs.length){el.innerHTML='<p style="color:#999;text-align:center;padding:20px">אין פעילויות בטווח ובסינון זה</p>';return;}
 
-  // ── Global totals ──
-  const cntDone=evs.filter(s=>s.st==='done').length;
+  // Global totals — התקיימו = sum of groups
+  const cntDone=evs.filter(s=>s.st==='done').reduce((sum,s)=>sum+(parseInt(s.grp)||1),0);
   const cntCan=evs.filter(s=>s.st==='can').length;
   const cntPost=evs.filter(s=>s.st==='post').length;
   const cntNohap=evs.filter(s=>s.st==='nohap').length;
   const cntActive=evs.filter(s=>s.st==='ok').length;
   const totalGrp=evs.filter(s=>s.st!=='can'&&s.st!=='nohap').reduce((sum,s)=>sum+(parseInt(s.grp)||1),0);
+  const makeupCnt=evs.filter(s=>s._makeupFrom).length;
 
-  let h=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-    <div style="background:#e8f5e9;border-radius:7px;padding:5px 12px;text-align:center;min-width:65px">
-      <div style="font-weight:800;color:#2e7d32">${cntDone}</div><div style="font-size:.65rem;color:#546e7a">התקיים</div>
+  let h=`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">
+    <div style="background:#e8f5e9;border-radius:7px;padding:5px 10px;text-align:center;min-width:60px">
+      <div style="font-weight:800;font-size:.95rem;color:#2e7d32">${cntDone}</div><div style="font-size:.62rem;color:#546e7a">קב' התקיים</div>
     </div>
-    <div style="background:#fff3e0;border-radius:7px;padding:5px 12px;text-align:center;min-width:65px">
-      <div style="font-weight:800;color:#e65100">${cntActive+cntPost}</div><div style="font-size:.65rem;color:#546e7a">מתקיים/נדחה</div>
+    <div style="background:#fff3e0;border-radius:7px;padding:5px 10px;text-align:center;min-width:60px">
+      <div style="font-weight:800;font-size:.95rem;color:#e65100">${cntActive+cntPost}</div><div style="font-size:.62rem;color:#546e7a">מתקיים/נדחה</div>
     </div>
-    <div style="background:#ffebee;border-radius:7px;padding:5px 12px;text-align:center;min-width:65px">
-      <div style="font-weight:800;color:#c62828">${cntCan}</div><div style="font-size:.65rem;color:#546e7a">בוטל</div>
+    <div style="background:#ffebee;border-radius:7px;padding:5px 10px;text-align:center;min-width:60px">
+      <div style="font-weight:800;font-size:.95rem;color:#c62828">${cntCan}</div><div style="font-size:.62rem;color:#546e7a">בוטל</div>
     </div>
-    <div style="background:#fce4ec;border-radius:7px;padding:5px 12px;text-align:center;min-width:65px">
-      <div style="font-weight:800;color:#e91e63">${cntNohap}</div><div style="font-size:.65rem;color:#546e7a">לא התקיים</div>
+    <div style="background:#fce4ec;border-radius:7px;padding:5px 10px;text-align:center;min-width:60px">
+      <div style="font-weight:800;font-size:.95rem;color:#e91e63">${cntNohap}</div><div style="font-size:.62rem;color:#546e7a">לא התקיים</div>
     </div>
-    <div style="background:#e3f2fd;border-radius:7px;padding:5px 12px;text-align:center;min-width:65px">
-      <div style="font-weight:800;color:#1565c0">${evs.length}</div><div style="font-size:.65rem;color:#546e7a">פעילויות</div>
+    ${makeupCnt?`<div style="background:#f3e5f5;border-radius:7px;padding:5px 10px;text-align:center;min-width:60px">
+      <div style="font-weight:800;font-size:.95rem;color:#7b1fa2">${makeupCnt}</div><div style="font-size:.62rem;color:#546e7a">השלמות</div>
+    </div>`:''}
+    <div style="background:#e3f2fd;border-radius:7px;padding:5px 10px;text-align:center;min-width:60px">
+      <div style="font-weight:800;font-size:.95rem;color:#1565c0">${evs.length}</div><div style="font-size:.62rem;color:#546e7a">פעילויות</div>
     </div>
-    <div style="background:#e8eaf6;border-radius:7px;padding:5px 12px;text-align:center;min-width:65px">
-      <div style="font-weight:800;color:#283593">${totalGrp}</div><div style="font-size:.65rem;color:#546e7a">קבוצות</div>
+    <div style="background:#e8eaf6;border-radius:7px;padding:5px 10px;text-align:center;min-width:60px">
+      <div style="font-weight:800;font-size:.95rem;color:#283593">${totalGrp}</div><div style="font-size:.62rem;color:#546e7a">קבוצות</div>
     </div>
   </div>`;
 
-  // ── Group events by city ──
-  const cityOrder=[];
-  const byCity2={};
-  evs.forEach(s=>{
-    const city=G(s.g).city||'—';
-    if(!byCity2[city]){byCity2[city]=[];cityOrder.push(city);}
-    byCity2[city].push(s);
-  });
-
-  const multiCity=cityOrder.length>1;
+  // Group by city
+  const _cities2=[];const _byCity2={};
+  evs.forEach(s=>{const c=G(s.g).city||'—';if(!_byCity2[c]){_byCity2[c]=[];_cities2.push(c);}_byCity2[c].push(s);});
+  const _multi=_cities2.length>1;
 
   h+=`<div class="tw"><table style="border-collapse:collapse;width:100%"><thead><tr>
-    <th>תאריך</th><th>יום</th>
-    <th style="text-align:center">סה"כ</th>
-    <th style="text-align:center;color:#2e7d32">התקיים</th>
+    <th style="white-space:nowrap">תאריך</th><th>יום</th>
+    <th style="text-align:center;color:#2e7d32;white-space:nowrap">קב' התקיים</th>
     <th style="text-align:center;color:#e65100">פעיל</th>
     <th style="text-align:center;color:#c62828">בוטל</th>
-    <th style="text-align:center;color:#e91e63">לא התקיים</th>
+    <th style="text-align:center;color:#e91e63">ל.ה</th>
     <th style="text-align:center;color:#1565c0">קב'</th>
     <th>צהרון / פעילות</th><th></th>
   </tr></thead><tbody>`;
 
-  cityOrder.forEach((city,ci)=>{
-    const cityEvs=byCity2[city];
-    // City separator (2 blank rows before, except first city)
-    if(multiCity){
-      if(ci>0){
-        h+=`<tr><td colspan="10" style="padding:8px;background:#fafbff;border:none"></td></tr>
-            <tr><td colspan="10" style="padding:2px;background:#fafbff;border:none"></td></tr>`;
-      }
-      // City header
-      const cityClr=CITY_COLORS?CITY_COLORS(city):{solid:'#1565c0',light:'#e3f2fd',border:'#bbdefb'};
-      h+=`<tr>
-        <td colspan="10" style="background:${cityClr.solid};color:#fff;font-weight:800;font-size:.88rem;padding:6px 12px;border-radius:4px 4px 0 0">
-          📍 ${city} <span style="font-weight:400;font-size:.75rem;opacity:.85">(${cityEvs.length} פעילויות)</span>
-        </td>
-      </tr>`;
+  _cities2.forEach((city,ci)=>{
+    const cityEvs=_byCity2[city];
+    if(_multi){
+      if(ci>0){h+=`<tr><td colspan="9" style="padding:6px;border:none;background:#fafbff"></td></tr><tr><td colspan="9" style="padding:2px;border:none;background:#fafbff"></td></tr>`;}
+      const _cc2=CITY_COLORS?CITY_COLORS(city):{solid:'#1565c0',light:'#e3f2fd'};
+      h+=`<tr><td colspan="9" style="background:${_cc2.solid};color:#fff;font-weight:800;font-size:.85rem;padding:5px 12px;border-radius:4px 4px 0 0">📍 ${city} <span style="font-weight:400;font-size:.73rem;opacity:.85">(${cityEvs.length} פעילויות)</span></td></tr>`;
     }
-
-    // Data rows for this city
     cityEvs.forEach(s=>{
       const g=G(s.g);
-      const grpVal=parseInt(s.grp)||1;
+      const grpV=parseInt(s.grp)||1;
+      const isMakeup=s._makeupFrom?'↩️ ':'';
       h+=`<tr class="${stClass(s)}">
-        <td style="white-space:nowrap">${fD(s.d)}</td>
-        <td style="white-space:nowrap;font-size:.75rem">יום ${dayN(s.d)}</td>
-        <td></td><td></td><td></td><td></td><td></td>
-        <td style="text-align:center;font-weight:700">${grpVal>=2?grpVal:''}</td>
+        <td style="white-space:nowrap;font-size:.78rem">${fD(s.d)}</td>
+        <td style="font-size:.72rem">${dayN(s.d)}</td>
+        <td style="text-align:center">${s.st==='done'?grpV:''}</td>
+        <td style="text-align:center">${s.st==='ok'||s.st==='post'?'✓':''}</td>
+        <td style="text-align:center">${s.st==='can'?'✗':''}</td>
+        <td style="text-align:center">${s.st==='nohap'?'✗':''}</td>
+        <td style="text-align:center;font-weight:700">${grpV>=2?grpV:''}</td>
         <td>
-          <div style="font-weight:700;font-size:.82rem">${g.name}</div>
-          ${g.st?`<div style="font-size:.65rem;color:#78909c">${g.st}</div>`:''}
-          <div style="display:flex;align-items:center;gap:4px;margin-top:2px">
-            <span style="background:#e3f2fd;color:#1565c0;border-radius:10px;padding:1px 6px;font-size:.7rem;font-weight:600">${s.act||'—'}</span>
-            ${s.t?`<span style="font-size:.7rem;color:#546e7a">⏰ ${fT(s.t)}</span>`:''}
+          <div style="font-weight:700;font-size:.8rem">${isMakeup}${g.name}</div>
+          ${g.st?`<div style="font-size:.63rem;color:#78909c">${g.st}</div>`:''}
+          <div style="display:flex;align-items:center;gap:4px;margin-top:1px">
+            <span style="background:#e3f2fd;color:#1565c0;border-radius:8px;padding:1px 5px;font-size:.68rem;font-weight:600">${s.act||'—'}</span>
+            ${s.t?`<span style="font-size:.68rem;color:#546e7a">⏰ ${fT(s.t)}</span>`:''}
           </div>
           ${stLabel(s)}
-          ${s.nt?`<div style="font-size:.67rem;color:#78909c;margin-top:1px">${s.nt}</div>`:''}
+          ${s.nt?`<div style="font-size:.65rem;color:#78909c">${s.nt}</div>`:''}
         </td>
-        <td><button class="btn bo bsm" style="font-size:.62rem;padding:3px 6px" onclick="openSP(${s.id})">✏️</button></td>
+        <td><button class="btn bo bsm" style="font-size:.6rem;padding:2px 5px" onclick="openSP(${s.id})">✏️</button></td>
       </tr>`;
     });
-
-    // Per-city summary row
-    if(multiCity){
-      const _cd=cityEvs.filter(s=>s.st==='done').length;
+    if(_multi){
+      const _cd=cityEvs.filter(s=>s.st==='done').reduce((sum,s)=>sum+(parseInt(s.grp)||1),0);
       const _cc=cityEvs.filter(s=>s.st==='can').length;
       const _cn=cityEvs.filter(s=>s.st==='nohap').length;
       const _co=cityEvs.filter(s=>s.st==='ok'||s.st==='post').length;
       const _cg=cityEvs.filter(s=>s.st!=='can'&&s.st!=='nohap').reduce((sum,s)=>sum+(parseInt(s.grp)||1),0);
-      h+=`<tr style="background:#e8eaf6;font-weight:700;font-size:.73rem;border-top:2px solid #9fa8da">
-        <td colspan="2" style="padding:5px 10px;color:#283593">סיכום ${city}</td>
-        <td style="text-align:center;color:#37474f">${cityEvs.length}</td>
+      h+=`<tr style="background:#e8eaf6;font-weight:700;font-size:.72rem;border-top:2px solid #9fa8da">
+        <td colspan="2" style="padding:4px 10px;color:#283593">סיכום ${city}</td>
         <td style="text-align:center;color:#2e7d32">${_cd}</td>
         <td style="text-align:center;color:#e65100">${_co}</td>
         <td style="text-align:center;color:#c62828">${_cc}</td>
         <td style="text-align:center;color:#e91e63">${_cn}</td>
-        <td style="text-align:center;color:#1565c0;font-weight:800">${_cg}</td>
+        <td style="text-align:center;color:#1565c0">${_cg}</td>
         <td colspan="2"></td>
       </tr>`;
     }
   });
-
-  // ── Grand total row (always shown) ──
-  h+=`<tr style="background:#1a237e;color:#fff;font-weight:800;font-size:.8rem;border-top:3px solid #283593">
-    <td colspan="2" style="padding:7px 12px">סה"כ כולל</td>
-    <td style="text-align:center">${evs.length}</td>
+  // Grand total
+  h+=`<tr style="background:#1a237e;color:#fff;font-weight:800;font-size:.78rem;border-top:3px solid #283593">
+    <td colspan="2" style="padding:6px 10px">סה"כ כולל</td>
     <td style="text-align:center;color:#a5d6a7">${cntDone}</td>
     <td style="text-align:center;color:#ffcc80">${cntActive+cntPost}</td>
     <td style="text-align:center;color:#ef9a9a">${cntCan}</td>
@@ -5249,7 +5256,6 @@ function renderSupCard(){
     <td style="text-align:center;color:#90caf9">${totalGrp}</td>
     <td colspan="2"></td>
   </tr>`;
-
   h+='</tbody></table></div>';
   el.innerHTML=h;
 }
@@ -5462,6 +5468,13 @@ function exportFullBackup(){
   const timeStr=now.getHours().toString().padStart(2,'0')+'-'+now.getMinutes().toString().padStart(2,'0');
   a.href=url;a.download='גיבוי_מנהל_גנים_'+td()+'_'+timeStr+'.json';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+function goToNohap(){
+  ST('dash');
+  setTimeout(()=>{
+    const el=document.getElementById('dash-can-body');
+    if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+  },100);
 }
 function goToCancelled(){
   ST('sched');
