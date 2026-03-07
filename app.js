@@ -4263,18 +4263,53 @@ function genExport(){
   if(!rel.length){(document.getElementById('ex-prev')||{}).textContent ='אין פעילויות';return;}
   const byDate={};rel.forEach(s=>{if(!byDate[s.d])byDate[s.d]=[];byDate[s.d].push(s);});
   let text='';
-  Object.keys(byDate).sort().forEach(date=>{
+  const dates=Object.keys(byDate).sort();
+  dates.forEach((date,di)=>{
     text+=`📅 ${fD(date)} - יום ${dayN(date)}\n━━━━━━━━━━━━━━━━\n`;
-    const byCity={};byDate[date].forEach(s=>{const g=G(s.g);const c=g.city||'';if(!byCity[c])byCity[c]=[];byCity[c].push({...s,gd:g});});
-    Object.keys(byCity).sort().forEach(c=>{
-      if(fmt==='full') text+=`\n🏙️ ${c}\n`;
-      byCity[c].forEach(s=>{
-        if(fmt==='full'){
-          text+=`  🏫 ${s.gd.st||''} · ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n  📚 ${s.a}${s.p?' · 📞 '+s.p:''}\n`;
-        }
-        else text+=`${s.gd.name}${s.t?' '+fT(s.t):''} - ${s.a}\n`;
-      });
+    const byCity={};
+    byDate[date].forEach(s=>{
+      const g=G(s.g);const c=g.city||'';
+      if(!byCity[c])byCity[c]=[];
+      byCity[c].push({...s,gd:g});
     });
+    Object.keys(byCity).sort().forEach(c=>{
+      if(fmt==='full') text+=`🏙️ ${c}\n`;
+      if(fmt==='full'){
+        // Group by supplier+activity — same sup+act: group gardens together
+        const bySup={};
+        byCity[c].forEach(s=>{
+          const key=`${s.a}||${s.act||supAct(s.a)||''}||${s.p||''}`;
+          if(!bySup[key])bySup[key]=[];
+          bySup[key].push(s);
+        });
+        Object.values(bySup).forEach(group=>{
+          const s0=group[0];
+          const actLabel=s0.act||supAct(s0.a)||'';
+          const supLine=`📚 ${supBase(s0.a)}${actLabel?' - '+actLabel:''}${s0.p?' · 📞 '+s0.p:''}`;
+          // Check if all in group share same address
+          const addrs=[...new Set(group.map(s=>s.gd.st||''))];
+          const sameAddr=addrs.length===1&&addrs[0];
+          if(sameAddr){
+            text+=`${supLine}\n  🏫 ${addrs[0]}\n`;
+            group.forEach(s=>{
+              text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`;
+            });
+          } else {
+            text+=`${supLine}\n`;
+            group.forEach(s=>{
+              const addr=s.gd.st?`🏫 ${s.gd.st} · `:'  ';
+              text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`;
+            });
+          }
+          text+='\n';
+        });
+      } else {
+        byCity[c].forEach(s=>{
+          text+=`${s.gd.name}${s.t?' '+fT(s.t):''} - ${s.a}\n`;
+        });
+      }
+    });
+    // Blank line between dates
     text+='\n';
   });
   (document.getElementById('ex-prev')||{}).textContent =text;
