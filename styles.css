@@ -207,7 +207,7 @@ tr:hover td{background:#f5f7ff}
 .we.wp{background:#fff8e1;border-right-color:#f9a825}
 .wn{font-weight:700;color:#1a237e}.wt{font-size:.68rem;color:#546e7a}
 
-.mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;background:#c5cae9;border-radius:10px;overflow:hidden}
+.mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;background:#c5cae9}
 .mdh{background:#1a237e;color:#fff;text-align:center;padding:6px;font-size:.72rem;font-weight:700}
 .md{background:#fff;min-height:60px;padding:4px;cursor:pointer}
 .md:hover{background:#f5f7ff}
@@ -549,4 +549,22 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 @media(max-width:768px){
   .g-top-bar { flex-wrap: nowrap !important; gap: 4px !important; }
   .g-top-bar > .btn { flex: 0 0 auto; font-size: .78rem; padding: 7px 10px; }
+}
+
+/* ── Mobile weekly view cells ── */
+@media(max-width:768px){
+  /* Weekly scroll container */
+  .wk-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px}
+  /* Smaller cells on mobile */
+  .wk-cell-inner{font-size:12px!important}
+  .wk-cell-inner .wk-detail{font-size:11px!important}
+  /* Weekly table min-width — allow smaller */
+  .wk-table{min-width:480px!important}
+  /* Supplier card table compact on mobile */
+  #suc-body .tw table{font-size:.75rem}
+  #suc-body .tw table th{font-size:.7rem;padding:5px 4px}
+  #suc-body .tw table td{padding:4px 5px;font-size:.74rem}
+  /* Sup card stat boxes — wrap nicely */
+  #suc-body>div:first-child{gap:4px}
+  #suc-body>div:first-child>div{min-width:54px!important;padding:4px 8px!important}
 }

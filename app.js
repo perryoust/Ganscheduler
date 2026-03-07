@@ -957,12 +957,11 @@ function gByCF(city,cls){return GARDENS.filter(g=>(!city||g.city===city)&&(!cls|
 function d2s(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${dd}`}
 function s2d(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
 
-// grpTag: גנים - תמיד מציג (ברירת מחדל 1); בתי ספר - רק אם grp>1
+// grpTag: show group count only when grp >= 2 (1 = default, no display)
 function grpTag(s,g){
-  const isS=gcls(g)==='ביה\"ס';
-  const v=s.grp||1;
-  if(isS&&v<=1) return '';
-  return `<span style="font-size:.68rem;color:#546e7a;font-weight:600">👥 ${v} קב'</span>`;
+  const v=parseInt(s.grp)||1;
+  if(v<2) return '';
+  return `<span style="font-size:.68rem;color:#546e7a;font-weight:600"> ${v} קב'</span>`;
 }
 function grpTagEv(ev){return grpTag(ev,G(ev.g));}
 
@@ -1217,10 +1216,10 @@ function navCal(d){
 function goToday(){calD=new Date();document.getElementById('cal-dp').value=td();renderCal();}
 function goDate(s){
   if(s){
-    const prevM=calD.getMonth(),prevY=calD.getFullYear();
+    const _pm=calD.getMonth(),_py=calD.getFullYear();
     calD=s2d(s);
     if(calV==='list'){
-      const nr=calD.getMonth()!==prevM||calD.getFullYear()!==prevY;
+      const nr=calD.getMonth()!==_pm||calD.getFullYear()!==_py;
       if(nr) renderCal();
       setTimeout(()=>{const el=document.getElementById('listday-'+s);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},nr?150:50);
     } else { renderCal(); }
@@ -1757,7 +1756,7 @@ function renderNormalDay(evs,ds){
           <div style="background:#fff;padding:7px">
             <div class="pslot ${stc}" style="border-right:3px solid ${clr.solid};background:${clr.light}" onclick="openSP(${s.id})">
               ${s._fromD?`<div style="font-size:.67rem;color:#e65100;font-weight:700;background:#fff3e0;padding:1px 5px;border-radius:3px;margin-bottom:2px">↩️ הועבר מ-${fD(s._fromD)}</div>`:''}
-              <div class="pt" style="display:flex;align-items:center;gap:8px">${s.t?`⏰ ${fT(s.t)}`:''} ${grpTagEv(s)}</div>
+              <div class="pt" style="display:flex;align-items:center;gap:6px">${s.t?`⏰ ${fT(s.t)}`:''} ${grpTagEv(s)}</div>
               <div class="pn">${supBase(s.a)}</div>
               ${(s.act||supAct(s.a))?`<div style="font-size:.69rem;color:${clr.solid};font-weight:600">🎯 ${s.act||supAct(s.a)}</div>`:''}
               ${s.p?`<div class="pp">📞 ${s.p}</div>`:''}
@@ -1851,7 +1850,7 @@ function renderPairCard(pair, pairEvs, opts){
         <div class="pgr-left">
           <div class="pgr-name">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
           ${g.st?`<div class="pgr-addr">📍 ${g.st}</div>`:''}
-          <div class="pgr-time" style="display:flex;align-items:center;gap:8px">${ev.t?`⏰ ${fT(ev.t)}`:''} ${grpTagEv(ev)}</div>
+          <div class="pgr-time" style="display:flex;align-items:center;gap:6px">${ev.t?`⏰ ${fT(ev.t)}`:''} ${grpTagEv(ev)}</div>
           ${gblkEv?`<div style="font-size:.67rem;color:#c62828">${gblkEv.icon||'🚫'} ${gblkEv.reason}</div>`:''}
           <div class="pgr-status" style="color:${stc?'#c62828':'#2e7d32'}">${stLabel(ev)}</div>
         </div>
@@ -1991,7 +1990,7 @@ function renderNormalWeek(evs,ws,f){
   });
 
   // border-separate avoids border-collapse + sticky bug
-  let html='<div style="overflow-x:auto;border-radius:8px;border:2px solid #9fa8da">'
+  let html='<div style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 180px);border-radius:8px;border:2px solid #9fa8da">'
           +'<table style="min-width:720px;border-collapse:separate;border-spacing:0;width:100%"><thead><tr>';
 
   html+=`<th style="min-width:130px;background:#e8eaf6;color:#283593;padding:6px 8px;
@@ -2038,7 +2037,7 @@ function renderNormalWeek(evs,ws,f){
       let inner='';
       if(de.length){
         de.forEach(ev=>{
-          inner+=`<div style="border-radius:5px;padding:5px 6px;margin:2px 0;font-size:14px;
+          inner+=`<div style="border-radius:5px;padding:5px 6px;margin:2px 0;font-size:13px;
             background:#fff;border-right:3px solid ${clrObj.solid};
             ${ev.st==='can'?'opacity:.5;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':ev.st==='done'?'background:#f1f8e9;':ev.st==='nohap'?'background:#fce4ec;':''}">
             <div style="display:flex;align-items:flex-start;gap:4px">
@@ -2205,7 +2204,7 @@ function renderCalList(evs, mDate){
     const blk=getBlockedInfo(ds);
 
     // Day header
-    h+=`<div id="listday-${ds}" style="border-bottom:2px solid #c5cae9">
+    h+=`<div id="listday-${ds}" style="border-bottom:2px solid #c5cae9;position:sticky;top:0;z-index:4;background:#f0f2f5">
       <div style="background:${isToday?'#1565c0':hol?hol.bg:blk?'#fce4ec':'#e8eaf6'};color:${isToday?'#fff':hol?hol.color:blk?'#c62828':'#283593'};padding:6px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="jumpToDay('${ds}')">
         <span style="font-weight:700;font-size:.82rem">📅 ${dayN(ds)} ${fD(ds)}</span>
         <span style="display:flex;gap:8px;align-items:center">
@@ -2258,7 +2257,7 @@ function renderCalList(evs, mDate){
         h+=`</div>`;
       });
 
-      // Solos — grouped by garden with הודעה, sorted by garden name
+      // Solos — grouped by garden with הודעה button
       const soloEvs=cityEvs
         .filter(s=>!pairedGids.has(s.g))
         .sort((a,b)=>{
@@ -2292,7 +2291,7 @@ function _listRow(s, clr){
   return `<div style="display:grid;grid-template-columns:120px 1fr auto auto auto;align-items:center;gap:5px;padding:3px 6px;border-radius:4px;margin-bottom:2px;background:${s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light};border-right:3px solid ${clr.solid};cursor:pointer" onclick="openSP(${s.id})">
     <div>
       <div style="font-weight:700;font-size:.75rem;color:#1a237e">${g.name}</div>
-      <div style="font-size:.65rem;color:#78909c;display:flex;align-items:center;gap:6px">${s.t?'⏰ '+fT(s.t):''} ${grpTag(s,g)}</div>
+      <div style="font-size:.65rem;color:#78909c;display:flex;align-items:center;gap:5px">${s.t?'⏰ '+fT(s.t):''} ${grpTagEv(s)}</div>
     </div>
     <div>
       <div style="font-size:.75rem;font-weight:600;color:#1565c0">${supBase(s.a)}${s.act?' — <span style="color:#546e7a">'+s.act+'</span>':''}</div>
@@ -2307,8 +2306,14 @@ function renderMonth(evs,mDate){
   const y=mDate.getFullYear(),m=mDate.getMonth(),tday=td();
   const fd=new Date(y,m,1),ld=new Date(y,m+1,0);
   const cnt={};evs.forEach(s=>{const dk=s._isPostponed?s.pd:s.d;if(!cnt[dk])cnt[dk]={t:0,c:0};cnt[dk].t++;if(s.st==='can')cnt[dk].c++;});
-  let html='<div class="card"><div class="mgrid">';
-  ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'].forEach(d=>html+=`<div class="mdh">${d}</div>`);
+  const _dayNamesM=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  // Sticky header outside overflow:hidden grid
+  let html=`<div class="card" style="padding:0;overflow:hidden">
+    <div class="mgrid" style="background:#1a237e;border-radius:10px 10px 0 0;gap:2px">
+      ${_dayNamesM.map(d=>`<div class="mdh">${d}</div>`).join('')}
+    </div>
+    <div style="position:sticky;top:0;z-index:5;background:#1a237e;margin-top:-2px;height:2px"></div>
+    <div class="mgrid" style="border-radius:0 0 10px 10px">`;
   for(let i=0;i<fd.getDay();i++) html+='<div class="md om"></div>';
   for(let d=1;d<=ld.getDate();d++){
     const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -2330,7 +2335,7 @@ function renderMonth(evs,mDate){
     </div>`;
   }
   const e=ld.getDay();for(let i=e+1;i<7;i++) html+='<div class="md om"></div>';
-  return html+'</div></div>';
+  return html+'</div></div></div>';
 }
 
 let _calTab='g'; // 'g'=גנים 's'=בתי ספר
@@ -2488,7 +2493,7 @@ function openSP(id){
     <div class="ir"><span class="il">🏫 גן:</span><span style="font-weight:700">${g.name}</span></div>
     <div class="ir"><span class="il">🏙️ עיר:</span><span>${g.city}</span></div>
     ${g.st?`<div class="ir"><span class="il">📍 כתובת:</span><span><a href="https://maps.google.com/?q=${encodeURIComponent(g.st+' '+g.city)}" target="_blank" style="color:#1565c0">${g.st}</a></span></div>`:''}
-    <div class="ir"><span class="il">⏰ שעה:</span><span style="display:flex;align-items:center;gap:10px"><span style="font-weight:700;font-size:.9rem">${s.t?fT(s.t):'—'}</span>${grpTag(s,g)}</span></div>
+    <div class="ir"><span class="il">⏰ שעה:</span><span style="display:flex;align-items:center;gap:8px"><span style="font-weight:700;font-size:.9rem">${s.t?fT(s.t):'—'}</span>${grpTagEv(s)}</span></div>
     <div class="ir"><span class="il">📚 ספק:</span><span style="font-weight:700">${supBase(s.a)}</span></div>
     ${supAct(s.a)?`<div class="ir"><span class="il">🎯 פעילות:</span><span style="color:#1565c0;font-weight:700">${supAct(s.a)}</span></div>`:''}
     ${s.p?`<div class="ir"><span class="il">📞 טלפון:</span><span>${s.p}</span></div>`:''}
@@ -2575,12 +2580,15 @@ function openSP(id){
           <input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;font-size:.8rem">
         </div>
         <div><label style="font-size:.72rem;color:#546e7a;font-weight:700">👥 קב'</label>
-          <input type="number" id="sp-edit-grp" min="1" max="30" value="${s.grp||''}" placeholder="${gcls(g)==='ביה\"ס'?'':'1'}" style="width:60px;font-size:.8rem;text-align:center">
+          <input type="number" id="sp-edit-grp" min="1" max="30" value="${s.grp||''}" placeholder="1" style="width:60px;font-size:.8rem;text-align:center">
         </div>
       </div>
       ${spPairForEdit?`<label style="font-size:.75rem;display:flex;align-items:center;gap:6px;cursor:pointer;color:#e65100">
         <input type="checkbox" id="sp-edit-pair-chk"> עדכן לכל הזוג (${spPairForEdit.name})
       </label>`:''}
+      <label style="font-size:.75rem;display:flex;align-items:center;gap:6px;cursor:pointer;color:#1a237e;background:#e8eaf6;padding:5px 8px;border-radius:5px;margin-top:3px">
+        <input type="checkbox" id="sp-edit-future-chk"> 🔁 עדכן כל פעילויות עתידיות זהות (ספק + גן + יום)
+      </label>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px">
       <button class="btn bp bsm" onclick="spEditSave()">💾 שמור שינויים</button>
@@ -2721,6 +2729,26 @@ function spEditSave(){
   if(forPair&&pair){
     SCH.filter(x=>pair.ids.includes(x.g)&&x.d===s.d&&x.id!==selEv)
       .forEach(x=>Object.assign(x,updates));
+  }
+  const forFuture=(document.getElementById('sp-edit-future-chk')||{}).checked;
+  if(forFuture){
+    const _today=td();
+    const _sDow=new Date(s.d.replace(/-/g,'/')).getDay();
+    const _futU={};
+    if(updates.a) _futU.a=updates.a;
+    if(updates.act) _futU.act=updates.act;
+    if(updates.t) _futU.t=updates.t;
+    if(updates.tp) _futU.tp=updates.tp;
+    if(updates.grp!==undefined) _futU.grp=updates.grp;
+    if(Object.keys(_futU).length){
+      SCH.filter(x=>{
+        if(x.id===selEv||x.g!==s.g) return false;
+        if(supBase(x.a)!==supBase(s.a)) return false;
+        if(x.d<=_today) return false;
+        if(new Date(x.d.replace(/-/g,'/')).getDay()!==_sDow) return false;
+        return true;
+      }).forEach(x=>Object.assign(x,_futU));
+    }
   }
   Object.assign(s,updates);
   save(); closeSP(); refresh();
@@ -2869,7 +2897,7 @@ function openEditSched(id){
     if(tpSel) tpSel.value=s.tp||'חוג';
   },80);
   document.getElementById('es-time').value=s.t||'';
-  const _esGrp=document.getElementById('es-grp');if(_esGrp)_esGrp.value=s.grp||'';
+  const _esGrpEl=document.getElementById('es-grp');if(_esGrpEl)_esGrpEl.value=s.grp||'';
   document.getElementById('es-for-pair').checked=false;
   document.getElementById('es-pair-note').style.display='none';
   const pair=gardenPair(s.g);
@@ -4348,13 +4376,13 @@ function genExport(){
             const sameAddr=addrs.length===1&&addrs[0];
             if(sameAddr){
               text+=`${supLine}\n  🏫 ${addrs[0]}\n`;
-              group.forEach(s=>{ const _isS=gcls(G(s.g))==='ביה"ס'; text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${_isS&&s.grp>1?' · '+s.grp+' קב\'':''}\n`; });
+              group.forEach(s=>{ const _isS=gcls(G(s.g))==='ביה"ס'; text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${_isS&&(s.grp||1)>=2?' · '+(s.grp||1)+' קב\'':''}\n`; });
             } else {
               text+=`${supLine}\n`;
               group.forEach(s=>{
                 const addr=s.gd.st?`🏫 ${s.gd.st} · `:'  ';
                 const _isS2=gcls(G(s.g))==='ביה"ס';
-                text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${_isS2&&s.grp>1?' · '+s.grp+' קב\'':''}\n`;
+                text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${_isS2&&(s.grp||1)>=2?' · '+(s.grp||1)+' קב\'':''}\n`;
               });
             }
             text+='\n';
@@ -4377,13 +4405,13 @@ function genExport(){
             const sameAddr=addrs.length===1&&addrs[0];
             if(sameAddr){
               text+=`${supLine}\n  🏫 ${addrs[0]}\n`;
-              group.forEach(s=>{ const _isS=gcls(G(s.g))==='ביה"ס'; text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${_isS&&s.grp>1?' · '+s.grp+' קב\'':''}\n`; });
+              group.forEach(s=>{ const _isS=gcls(G(s.g))==='ביה"ס'; text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${_isS&&(s.grp||1)>=2?' · '+(s.grp||1)+' קב\'':''}\n`; });
             } else {
               text+=`${supLine}\n`;
               group.forEach(s=>{
                 const addr=s.gd.st?`🏫 ${s.gd.st} · `:'  ';
                 const _isS2=gcls(G(s.g))==='ביה"ס';
-                text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${_isS2&&s.grp>1?' · '+s.grp+' קב\'':''}\n`;
+                text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${_isS2&&(s.grp||1)>=2?' · '+(s.grp||1)+' קב\'':''}\n`;
               });
             }
             text+='\n';
@@ -4462,25 +4490,57 @@ function doSupExport(){
     lines.push('');
   }
 
-  // Column headers — עיר | כתובת | שם צהרון | תאריך | יום | פעילות | קבוצות | שעה | סטטוס | סיבה | הערות
-  lines.push(['עיר','כתובת','שם צהרון','תאריך','יום','פעילות','קבוצות','שעה','סטטוס','סיבה','הערות'].map(q).join(','));
+  // Column headers
+  const cols=['עיר','כתובת','שם צהרון','תאריך','יום','פעילות','קבוצות','שעה','סטטוס','סיבה','הערות'];
+  lines.push(cols.map(q).join(','));
 
+  // Group by city
+  const _csvCities=[];
+  const _csvByCity={};
   evs.forEach(s=>{
-    const g=G(s.g);
-    const actName=supAct(s.a)||s.a;
-    const reason = s.cr || '';
-    const note = s.nt || '';
-    lines.push([
-      q(g.city||''),q(g.st||''),q(g.name||''),
-      q(fD(s.d)),q(dayN(s.d)),
-      q(actName),q((s.st==='can'||s.st==='nohap'||s.st==='post')?0:(s.grp||1)),q(fT(s.t)),
-      q(stMap[s.st]||'מתקיים'),q(reason),q(note)
-    ].join(','));
+    const city=G(s.g).city||'—';
+    if(!_csvByCity[city]){_csvByCity[city]=[];_csvCities.push(city);}
+    _csvByCity[city].push(s);
   });
 
-  // Summary row at bottom
+  const _multiCity=_csvCities.length>1;
+
+  _csvCities.forEach((city,ci)=>{
+    const cityEvs=_csvByCity[city];
+    // 2 blank rows between cities (except before first)
+    if(_multiCity){
+      if(ci>0){lines.push('');lines.push('');}
+      lines.push([q('📍 '+city),'','','','','','','','','',''].join(','));
+    }
+
+    cityEvs.forEach(s=>{
+      const g=G(s.g);
+      const actName=supAct(s.a)||s.a;
+      const grpVal=(s.st==='can'||s.st==='nohap'||s.st==='post')?0:(parseInt(s.grp)||1);
+      lines.push([
+        q(g.city||''),q(g.st||''),q(g.name||''),
+        q(fD(s.d)),q(dayN(s.d)),
+        q(actName),q(grpVal),q(fT(s.t)),
+        q(stMap[s.st]||'מתקיים'),q(s.cr||''),q(s.nt||'')
+      ].join(','));
+    });
+
+    // Per-city summary
+    if(_multiCity){
+      const _cd=cityEvs.filter(s=>s.st==='done').length;
+      const _cc=cityEvs.filter(s=>s.st==='can').length;
+      const _cn=cityEvs.filter(s=>s.st==='nohap').length;
+      const _cg=cityEvs.filter(s=>s.st!=='can'&&s.st!=='nohap').reduce((sum,s)=>sum+(parseInt(s.grp)||1),0);
+      const _cmk=cityEvs.filter(s=>s._makeupFrom).length;
+      lines.push([q('סיכום '+city+':'),q('פעילויות: '+cityEvs.length),q('התקיימו: '+_cd),q('השלמות: '+_cmk),q('בוטלו: '+_cc),q('לא התקיימו: '+_cn),q('קבוצות: '+_cg),'','','',''].join(','));
+    }
+  });
+
+  // Grand total
   lines.push('');
-  lines.push([q('סה"כ פעילויות:'),q(totalEvs),q('התקיימו:'),q(doneEvs),q('השלמות:'),q(makeupEvs),q('בוטלו:'),q(cancelledEvs),q('לא התקיימו:'),q(nohapEvs),''].join(','));
+  lines.push('');
+  const _totalGrp=evs.filter(s=>s.st!=='can'&&s.st!=='nohap').reduce((sum,s)=>sum+(parseInt(s.grp)||1),0);
+  lines.push([q('סה"כ פעילויות:'),q(totalEvs),q('התקיימו:'),q(doneEvs),q('השלמות:'),q(makeupEvs),q('בוטלו:'),q(cancelledEvs),q('לא התקיימו:'),q(nohapEvs),q('קבוצות: '+_totalGrp)].join(','));
 
   const csv=bom+lines.join('\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
@@ -5060,51 +5120,136 @@ function renderSupCard(){
     if(st&&s.st!==st) return false;
     if(actFilt&&supAct(s.a)!==actFilt&&s.act!==actFilt) return false;
     return true;
-  }).sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'').localeCompare(b.t||''));
+  }).sort((a,b)=>{
+    const ga=G(a.g),gb=G(b.g);
+    return (ga.city||'').localeCompare(gb.city||'','he')||a.d.localeCompare(b.d)||(a.t||'').localeCompare(b.t||'');
+  });
   const el=document.getElementById('suc-body');
   if(!evs.length){el.innerHTML='<p style="color:#999;text-align:center;padding:20px">אין פעילויות בטווח ובסינון זה</p>';return;}
+
+  // ── Global totals ──
   const cntDone=evs.filter(s=>s.st==='done').length;
   const cntCan=evs.filter(s=>s.st==='can').length;
   const cntPost=evs.filter(s=>s.st==='post').length;
   const cntNohap=evs.filter(s=>s.st==='nohap').length;
-  const cntActive=evs.length-cntDone-cntCan-cntPost-cntNohap;
+  const cntActive=evs.filter(s=>s.st==='ok').length;
+  const totalGrp=evs.filter(s=>s.st!=='can'&&s.st!=='nohap').reduce((sum,s)=>sum+(parseInt(s.grp)||1),0);
 
   let h=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-    <div style="background:#e8f5e9;border-radius:7px;padding:5px 12px;text-align:center;min-width:70px">
-      <div style="font-weight:800;color:#2e7d32">${cntDone}</div><div style="font-size:.68rem;color:#546e7a">התקיים</div>
+    <div style="background:#e8f5e9;border-radius:7px;padding:5px 12px;text-align:center;min-width:65px">
+      <div style="font-weight:800;color:#2e7d32">${cntDone}</div><div style="font-size:.65rem;color:#546e7a">התקיים</div>
     </div>
-    <div style="background:#fff3e0;border-radius:7px;padding:5px 12px;text-align:center;min-width:70px">
-      <div style="font-weight:800;color:#e65100">${cntActive+cntPost}</div><div style="font-size:.68rem;color:#546e7a">מתקיים/נדחה</div>
+    <div style="background:#fff3e0;border-radius:7px;padding:5px 12px;text-align:center;min-width:65px">
+      <div style="font-weight:800;color:#e65100">${cntActive+cntPost}</div><div style="font-size:.65rem;color:#546e7a">מתקיים/נדחה</div>
     </div>
-    <div style="background:#ffebee;border-radius:7px;padding:5px 12px;text-align:center;min-width:70px">
-      <div style="font-weight:800;color:#c62828">${cntCan}</div><div style="font-size:.68rem;color:#546e7a">בוטל</div>
+    <div style="background:#ffebee;border-radius:7px;padding:5px 12px;text-align:center;min-width:65px">
+      <div style="font-weight:800;color:#c62828">${cntCan}</div><div style="font-size:.65rem;color:#546e7a">בוטל</div>
     </div>
-    <div style="background:#fce4ec;border-radius:7px;padding:5px 12px;text-align:center;min-width:70px">
-      <div style="font-weight:800;color:#e91e63">${cntNohap}</div><div style="font-size:.68rem;color:#546e7a">לא התקיים</div>
+    <div style="background:#fce4ec;border-radius:7px;padding:5px 12px;text-align:center;min-width:65px">
+      <div style="font-weight:800;color:#e91e63">${cntNohap}</div><div style="font-size:.65rem;color:#546e7a">לא התקיים</div>
     </div>
-    <div style="background:#e3f2fd;border-radius:7px;padding:5px 12px;text-align:center;min-width:70px">
-      <div style="font-weight:800;color:#1565c0">${evs.length}</div><div style="font-size:.68rem;color:#546e7a">סה"כ</div>
+    <div style="background:#e3f2fd;border-radius:7px;padding:5px 12px;text-align:center;min-width:65px">
+      <div style="font-weight:800;color:#1565c0">${evs.length}</div><div style="font-size:.65rem;color:#546e7a">פעילויות</div>
+    </div>
+    <div style="background:#e8eaf6;border-radius:7px;padding:5px 12px;text-align:center;min-width:65px">
+      <div style="font-weight:800;color:#283593">${totalGrp}</div><div style="font-size:.65rem;color:#546e7a">קבוצות</div>
     </div>
   </div>`;
 
-  h+=`<div class="tw"><table><thead><tr>
-    <th>תאריך</th><th>יום</th><th>עיר</th><th>צהרון</th><th>פעילות</th><th>שעה</th><th>קב'</th><th>סטטוס</th><th>הערות</th><th></th>
-  </tr></thead><tbody>`;
+  // ── Group events by city ──
+  const cityOrder=[];
+  const byCity2={};
   evs.forEach(s=>{
-    const g=G(s.g);
-    h+=`<tr class="${stClass(s)}">
-      <td>${fD(s.d)}</td>
-      <td>יום ${dayN(s.d)}</td>
-      <td>${g.city||''}</td>
-      <td><div style="font-weight:700">${g.name}</div>${g.st?`<div style="font-size:.67rem;color:#78909c">${g.st}</div>`:''}</td>
-      <td><span style="background:#e3f2fd;color:#1565c0;border-radius:10px;padding:1px 7px;font-size:.73rem;font-weight:600">${s.act||'—'}</span></td>
-      <td>${fT(s.t)}</td>
-      <td style="text-align:center">${s.grp||1}</td>
-      <td>${stLabel(s)}</td>
-      <td style="max-width:100px;font-size:.71rem">${s.nt||''}</td>
-      <td><button class="btn bo bsm" style="font-size:.65rem" onclick="openSP(${s.id})">✏️</button></td>
-    </tr>`;
+    const city=G(s.g).city||'—';
+    if(!byCity2[city]){byCity2[city]=[];cityOrder.push(city);}
+    byCity2[city].push(s);
   });
+
+  const multiCity=cityOrder.length>1;
+
+  h+=`<div class="tw"><table style="border-collapse:collapse;width:100%"><thead><tr>
+    <th>תאריך</th><th>יום</th>
+    <th style="text-align:center">סה"כ</th>
+    <th style="text-align:center;color:#2e7d32">התקיים</th>
+    <th style="text-align:center;color:#e65100">פעיל</th>
+    <th style="text-align:center;color:#c62828">בוטל</th>
+    <th style="text-align:center;color:#e91e63">לא התקיים</th>
+    <th style="text-align:center;color:#1565c0">קב'</th>
+    <th>צהרון / פעילות</th><th></th>
+  </tr></thead><tbody>`;
+
+  cityOrder.forEach((city,ci)=>{
+    const cityEvs=byCity2[city];
+    // City separator (2 blank rows before, except first city)
+    if(multiCity){
+      if(ci>0){
+        h+=`<tr><td colspan="10" style="padding:8px;background:#fafbff;border:none"></td></tr>
+            <tr><td colspan="10" style="padding:2px;background:#fafbff;border:none"></td></tr>`;
+      }
+      // City header
+      const cityClr=CITY_COLORS?CITY_COLORS(city):{solid:'#1565c0',light:'#e3f2fd',border:'#bbdefb'};
+      h+=`<tr>
+        <td colspan="10" style="background:${cityClr.solid};color:#fff;font-weight:800;font-size:.88rem;padding:6px 12px;border-radius:4px 4px 0 0">
+          📍 ${city} <span style="font-weight:400;font-size:.75rem;opacity:.85">(${cityEvs.length} פעילויות)</span>
+        </td>
+      </tr>`;
+    }
+
+    // Data rows for this city
+    cityEvs.forEach(s=>{
+      const g=G(s.g);
+      const grpVal=parseInt(s.grp)||1;
+      h+=`<tr class="${stClass(s)}">
+        <td style="white-space:nowrap">${fD(s.d)}</td>
+        <td style="white-space:nowrap;font-size:.75rem">יום ${dayN(s.d)}</td>
+        <td></td><td></td><td></td><td></td><td></td>
+        <td style="text-align:center;font-weight:700">${grpVal>=2?grpVal:''}</td>
+        <td>
+          <div style="font-weight:700;font-size:.82rem">${g.name}</div>
+          ${g.st?`<div style="font-size:.65rem;color:#78909c">${g.st}</div>`:''}
+          <div style="display:flex;align-items:center;gap:4px;margin-top:2px">
+            <span style="background:#e3f2fd;color:#1565c0;border-radius:10px;padding:1px 6px;font-size:.7rem;font-weight:600">${s.act||'—'}</span>
+            ${s.t?`<span style="font-size:.7rem;color:#546e7a">⏰ ${fT(s.t)}</span>`:''}
+          </div>
+          ${stLabel(s)}
+          ${s.nt?`<div style="font-size:.67rem;color:#78909c;margin-top:1px">${s.nt}</div>`:''}
+        </td>
+        <td><button class="btn bo bsm" style="font-size:.62rem;padding:3px 6px" onclick="openSP(${s.id})">✏️</button></td>
+      </tr>`;
+    });
+
+    // Per-city summary row
+    if(multiCity){
+      const _cd=cityEvs.filter(s=>s.st==='done').length;
+      const _cc=cityEvs.filter(s=>s.st==='can').length;
+      const _cn=cityEvs.filter(s=>s.st==='nohap').length;
+      const _co=cityEvs.filter(s=>s.st==='ok'||s.st==='post').length;
+      const _cg=cityEvs.filter(s=>s.st!=='can'&&s.st!=='nohap').reduce((sum,s)=>sum+(parseInt(s.grp)||1),0);
+      h+=`<tr style="background:#e8eaf6;font-weight:700;font-size:.73rem;border-top:2px solid #9fa8da">
+        <td colspan="2" style="padding:5px 10px;color:#283593">סיכום ${city}</td>
+        <td style="text-align:center;color:#37474f">${cityEvs.length}</td>
+        <td style="text-align:center;color:#2e7d32">${_cd}</td>
+        <td style="text-align:center;color:#e65100">${_co}</td>
+        <td style="text-align:center;color:#c62828">${_cc}</td>
+        <td style="text-align:center;color:#e91e63">${_cn}</td>
+        <td style="text-align:center;color:#1565c0;font-weight:800">${_cg}</td>
+        <td colspan="2"></td>
+      </tr>`;
+    }
+  });
+
+  // ── Grand total row (always shown) ──
+  h+=`<tr style="background:#1a237e;color:#fff;font-weight:800;font-size:.8rem;border-top:3px solid #283593">
+    <td colspan="2" style="padding:7px 12px">סה"כ כולל</td>
+    <td style="text-align:center">${evs.length}</td>
+    <td style="text-align:center;color:#a5d6a7">${cntDone}</td>
+    <td style="text-align:center;color:#ffcc80">${cntActive+cntPost}</td>
+    <td style="text-align:center;color:#ef9a9a">${cntCan}</td>
+    <td style="text-align:center;color:#f48fb1">${cntNohap}</td>
+    <td style="text-align:center;color:#90caf9">${totalGrp}</td>
+    <td colspan="2"></td>
+  </tr>`;
+
   h+='</tbody></table></div>';
   el.innerHTML=h;
 }
