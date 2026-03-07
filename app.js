@@ -1034,8 +1034,8 @@ window.onload = function(){
     refreshMgrDrops();
     document.getElementById('dash-date').value=td();
     ['dash-srch','s-srch','g-srch','su-srch'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-    const sfrom=document.getElementById('s-from');if(sfrom) sfrom.value=td();
-    const sto=document.getElementById('s-to');if(sto) sto.value=td();
+    const sfrom=document.getElementById('s-from');if(sfrom&&!sfrom.value) sfrom.value=td();
+    const sto=document.getElementById('s-to');if(sto&&!sto.value) sto.value=td();
     const calClsEl=document.getElementById('cal-cls');
     if(calClsEl) calClsEl.value='גנים';
     const gClsEl=document.getElementById('g-cls');
@@ -3269,6 +3269,21 @@ function saveNewSched(){
   showToast('✅ שיבוץ נשמר');
 }
 
+function sSchedStChange(){
+  const st=document.getElementById('s-st').value;
+  const from=document.getElementById('s-from');
+  const to=document.getElementById('s-to');
+  if(!st){
+    // הכל → default to today
+    if(from&&!from.value) from.value=td();
+    if(to&&!to.value) to.value=td();
+  } else {
+    // ספציפי → clear date filter to show all
+    if(from) from.value='';
+    if(to) to.value='';
+  }
+  sPage=1; renderSched();
+}
 function sRefG(){
   const city=document.getElementById('s-city').value;
   const cls=document.getElementById('s-cls').value;

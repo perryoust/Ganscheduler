@@ -311,9 +311,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <!-- ====== SCHEDULES ====== -->
 <div id="p-sched" class="panel">
   <div class="card">
-    <div style="font-size:.9rem;font-weight:700;color:#1a237e;margin-bottom:8px">📋 לוח זמנים - כל הפעילויות</div>
     <div style="margin-bottom:9px">
-      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:4px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-size:.9rem;font-weight:700;color:#1a237e;flex:1">📋 לוח זמנים - כל הפעילויות</span>
         <button class="flt-toggle" id="sched-flt-btn" onclick="fltToggle('sched-flt','sched-flt-btn')">⚙️ פילטרים <span class="flt-arrow">▾</span></button>
       </div>
       <div id="sched-flt" class="flt-wrap">
@@ -328,7 +328,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <div class="fg"><label>שעה עד</label><input type="time" id="s-tt" onchange="renderSched()"></div>
         <div class="fg"><label>מתאריך</label><input type="date" id="s-from" onchange="renderSched()"></div>
         <div class="fg"><label>עד תאריך</label><input type="date" id="s-to" onchange="renderSched()"></div>
-        <div class="fg"><label>סטטוס</label><select id="s-st" onchange="renderSched()"><option value="">הכל</option><option value="ok">📅 מתקיים</option><option value="done">✔️ התקיים</option><option value="can">❌ בוטל</option><option value="post">⏩ נדחה</option><option value="nohap">⚠️ לא התקיים</option></select></div>
+        <div class="fg"><label>סטטוס</label><select id="s-st" onchange="sSchedStChange()"><option value="">הכל</option><option value="ok">📅 מתקיים</option><option value="done">✔️ התקיים</option><option value="can">❌ בוטל</option><option value="post">⏩ נדחה</option><option value="nohap">⚠️ לא התקיים</option></select></div>
         <div class="fg"><label>חיפוש</label><input type="text" id="s-srch" placeholder="חפש..." oninput="renderSched()" style="min-width:130px"></div>
       </div>
     </div>
@@ -359,9 +359,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <button id="g-tab-fixed" class="vbtn" onclick="setGardensTab('fixed')">📋 שיבוץ קבוע</button>
       </div>
       <button class="btn bp bsm" onclick="openAddGardenModal()">➕ הוסף מקום חדש</button>
+      <button class="flt-toggle" id="g-flt-btn" onclick="fltToggle('g-flt','g-flt-btn')">⚙️ פילטרים <span class="flt-arrow">▾</span></button>
     </div>
     <div id="g-filters" style="margin-bottom:8px">
-      <button class="flt-toggle" id="g-flt-btn" onclick="fltToggle('g-flt','g-flt-btn')">⚙️ פילטרים <span class="flt-arrow">▾</span></button>
       <div id="g-flt" class="flt-wrap">
         <div class="fg"><label>עיר</label><select id="g-city" onchange="renderGardens()"><option value="">כל הערים</option></select></div>
         <div class="fg"><label>אשכול</label><select id="g-cl" onchange="renderGardens()"><option value="">הכל</option></select></div>
@@ -720,12 +720,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div class="row" style="margin-bottom:8px;align-items:center">
       <b style="font-size:.9rem;color:#1a237e;flex:1">🗓️ לוח חופשות ואירועים מיוחדים</b>
       <button class="btn bp bsm" onclick="openAddHoliday(null)">➕ הוסף</button>
+      <button class="flt-toggle" id="hol-flt-btn" onclick="fltToggle('hol-flt','hol-flt-btn')">⚙️ פילטרים <span class="flt-arrow">▾</span></button>
     </div>
-    <p style="font-size:.79rem;color:#546e7a;margin-bottom:11px">
-      כאן מגדירים את חופשות השנה לפי עיר ולפי סוג (צהרונים/בי"ס). בלוח השנה ימים אלו יסומנו בצבע מיוחד.
-    </p>
     <div style="margin-bottom:10px">
-      <button class="flt-toggle" id="hol-flt-btn" onclick="fltToggle('hol-flt','hol-flt-btn')" style="margin-bottom:4px">⚙️ פילטרים <span class="flt-arrow">▾</span></button>
       <div id="hol-flt" class="flt-wrap">
         <div class="fg"><label>עיר</label><select id="hol-filt-city" onchange="renderHolidays()"><option value="">כל הערים</option></select></div>
         <div class="fg"><label>סוג</label><select id="hol-filt-type" onchange="renderHolidays()"><option value="">הכל</option><option value="vacation">🟡 חופשה</option><option value="camp">🟣 קייטנה</option><option value="event">🟢 אירוע</option><option value="noact">🔴 אין פעילות</option></select></div>

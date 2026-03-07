@@ -529,3 +529,24 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   .mob-flt-wrap { display: flex !important; flex-direction: column; gap: 8px; }
   .mob-flt-wrap.open { display: flex !important; }
 }
+
+/* ── Gardens top bar: tabs scroll, toggle + add-btn stay right ── */
+.g-top-bar { flex-wrap: nowrap !important; overflow: visible; }
+.g-tab-bar  { overflow-x: auto; flex: 1; flex-wrap: nowrap !important;
+              -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.g-tab-bar::-webkit-scrollbar { display: none; }
+.g-tab-bar .vbtn { flex: 0 0 auto; white-space: nowrap; }
+
+/* Flt-toggle inside top bar — keep compact */
+.g-top-bar > .flt-toggle {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  margin-bottom: 0;
+  font-size: .78rem;
+  padding: 6px 10px;
+}
+
+@media(max-width:768px){
+  .g-top-bar { flex-wrap: nowrap !important; gap: 4px !important; }
+  .g-top-bar > .btn { flex: 0 0 auto; font-size: .78rem; padding: 7px 10px; }
+}
