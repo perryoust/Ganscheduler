@@ -2060,13 +2060,13 @@ function renderNormalWeek(evs,ws,f){
       const pairGidList = pGids.join(',');
       const pclrWeek = pairClrClass(pair.id) || 'pc0';
       html+=`<tr>
-        <td colspan="7" class="${pclrWeek} pair-row-label" style="border-radius:0;padding:5px 10px 5px 14px">
-          <span style="display:flex;align-items:center;gap:6px">
-            🔗 ${pair.name}
-          </span>
-          <button onclick="event.stopPropagation();_exportPairWA([${pairGidList}])"
-            style="background:rgba(255,255,255,.22);border:none;border-radius:4px;color:#fff;
-              font-size:.68rem;padding:2px 9px;cursor:pointer;white-space:nowrap">📋 הודעה</button>
+        <td colspan="7" class="${pclrWeek} pair-row-label" style="border-radius:0;padding:4px 10px">
+          🔗 ${pair.name}
+          <div style="display:flex;gap:5px;margin-right:auto">
+            <button onclick="event.stopPropagation();_exportPairWA([${pairGidList}])"
+              style="background:rgba(255,255,255,.22);border:none;border-radius:4px;color:#fff;
+                font-size:.68rem;padding:2px 9px;cursor:pointer;white-space:nowrap">📋 הודעה</button>
+          </div>
         </td>
       </tr>`;
       pGids.forEach(gid=>{
@@ -4250,7 +4250,8 @@ function genExport(){
   const f=getCalF();
   const gids=_exGids||f.gids;
   _exGids=null;
-  const rel=SCH.filter(s=>s.st!=='can'&&s.d>=from&&s.d<=to&&(!gids||gids.includes(s.g)))
+  const gidsStr=gids?gids.map(String):null;
+  const rel=SCH.filter(s=>s.st!=='can'&&s.d>=from&&s.d<=to&&(!gidsStr||gidsStr.includes(String(s.g))))
     .sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'99').localeCompare(b.t||'99'));
   if(!rel.length){(document.getElementById('ex-prev')||{}).textContent ='אין פעילויות';return;}
   const byDate={};rel.forEach(s=>{if(!byDate[s.d])byDate[s.d]=[];byDate[s.d].push(s);});
@@ -5805,53 +5806,8 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
     const buffer = await workbook.xlsx.writeBuffer();
 
-    // ── Post-process: patch pageLayout via window._SafeJSZip ─────────────
-    let finalBlob;
-    const JZ = window._SafeJSZip;
-    console.log('[Excel] _SafeJSZip available:', !!JZ, '| type:', typeof JZ);
-    if (JZ) {
-      try {
-        const zip = await JZ.loadAsync(buffer);
-        const allKeys = Object.keys(zip.files);
-        console.log('[Excel] zip files:', allKeys.filter(k=>k.includes('worksheet')));
-
-        const sheetFiles = allKeys.filter(k => /xl\/worksheets\/sheet\d+\.xml$/.test(k));
-        console.log('[Excel] sheets to patch:', sheetFiles.length);
-
-        for (const key of sheetFiles) {
-          let xml = await zip.files[key].async('text');
-          const before = xml.indexOf('view=');
-
-          // Inject pageLayout into sheetView
-          xml = xml.replace(/<sheetView([^>]*)>/g, (m, attrs) => {
-            attrs = attrs.indexOf('view=') >= 0
-              ? attrs.replace(/view="[^"]*"/, 'view="pageLayout"')
-              : attrs + ' view="pageLayout"';
-            return '<sheetView' + attrs + '>';
-          });
-
-          // Inject header footer (remove old first)
-          const hdr = '&amp;R&amp;"Arial,Bold"&amp;18' + monthTitle;
-          const hdrTag = '<headerFooter scaleWithDoc="0"><oddHeader>' + hdr + '</oddHeader></headerFooter>';
-          xml = xml.replace(/<headerFooter[\s\S]*?<\/headerFooter>/g, '');
-          xml = xml.replace('</sheetData>', '</sheetData>' + hdrTag);
-
-          console.log('[Excel] patched', key, '| had view attr:', before>=0, '| has pageLayout:', xml.indexOf('pageLayout')>=0);
-          zip.file(key, xml);
-        }
-
-        const patched = await zip.generateAsync({ type: 'arraybuffer', compression: 'STORE' });
-        finalBlob = new Blob([patched], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        console.log('[Excel] patch SUCCESS, size:', patched.byteLength);
-      } catch(pErr) {
-        console.error('[Excel] patch FAILED:', pErr);
-        finalBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      }
-    } else {
-      console.warn('[Excel] no _SafeJSZip — raw output');
-      finalBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    }
-
+    // ExcelJS writes ws.views[{state:'pageLayout'}] natively — no patching needed
+    const finalBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         const a = document.createElement('a');
     a.href  = URL.createObjectURL(finalBlob);
     a.download = filename;
