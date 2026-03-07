@@ -5795,13 +5795,16 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
       const zip = await JZ.loadAsync(buffer);
 
+      // Find all worksheet XML files
       const sheetFiles = Object.keys(zip.files)
-        .filter(k => /^xl\/worksheets\/sheet[0-9]+\.xml$/.test(k));
+        .filter(k => k.match(/xl\/worksheets\/sheet\d+\.xml$/));
+
+      console.log('[Excel patch] sheets found:', sheetFiles.length);
 
       for (const key of sheetFiles) {
-        let xml = await zip.files[key].async('string');
+        let xml = await zip.files[key].async('text'); // 'text' not 'string' (JSZip 3.x)
 
-        // Inject pageLayout into sheetView
+        // Inject pageLayout into sheetView element
         xml = xml.replace(/<sheetView([^>]*)>/g, function(m, attrs) {
           if (attrs.indexOf('view=') >= 0) {
             attrs = attrs.replace(/view="[^"]*"/, 'view="pageLayout"');
@@ -5815,7 +5818,9 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         const hdr = '&amp;R&amp;"Arial,Bold"&amp;18' + monthTitle;
         const hdrTag = '<headerFooter scaleWithDoc="0"><oddHeader>' + hdr + '</oddHeader></headerFooter>';
         xml = xml.replace(/<headerFooter[\s\S]*?<\/headerFooter>/g, '');
-        xml = xml.replace('</sheetData>', '</sheetData>' + hdrTag);
+        if (xml.indexOf('</sheetData>') >= 0) {
+          xml = xml.replace('</sheetData>', '</sheetData>' + hdrTag);
+        }
 
         zip.file(key, xml);
       }
