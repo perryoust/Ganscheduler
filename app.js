@@ -5612,7 +5612,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         paperSize: 9, orientation: 'portrait',
         fitToPage: true, fitToWidth: 1, fitToHeight: 0,
         horizontalCentered: true,
-        margins: { left:0.08, right:0.20, top:0.83, bottom:0.20, header:0, footer:0 }
+        margins: { left:0.08, right:0.20, top:0.55, bottom:0.20, header:0.31, footer:0.20 }
       };
       ws.columns = [
         {width:14.4},{width:3.6},{width:8.75},{width:9.25},
@@ -5638,13 +5638,13 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       // ── Excel Page Header: Right=month+year, Left=logo ───
       {
         const headerRight = `&"Arial,Bold"&18${monthTitle}`;
-        ws.headerFooter.oddHeader  = `&R${headerRight}&C&L&G`;
-        ws.headerFooter.evenHeader = `&R${headerRight}&C&L&G`;
+        ws.headerFooter.oddHeader  = `&R${headerRight}`;
+        ws.headerFooter.evenHeader = `&R${headerRight}`;
         // Embed logo into ExcelJS header image (slot 1)
         if (logoImgId !== null && typeof LOGO_B64 !== 'undefined') {
           try {
             ws.headerFooter.differentOddEven = false;
-            ws.headerFooter.oddHeader = `&R${headerRight}&C&L&G`;
+            ws.headerFooter.oddHeader = `&R${headerRight}`;
           } catch(e){}
         }
       }
@@ -5770,8 +5770,40 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     }); // end gardens.forEach
 
     const buffer = await workbook.xlsx.writeBuffer();
-    // ExcelJS writes view="pageLayout" natively via ws.views — direct download, no post-processing
-    const finalBlob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+
+    // ── Post-process: inject pageLayout into sheetView XML ──────────────
+    let finalBlob;
+    try {
+      // Dynamically load JSZip only when needed, separate from ExcelJS internal
+      if (!window._JSZipLoaded) {
+        await new Promise((res, rej) => {
+          const sc = document.createElement('script');
+          sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+          sc.onload = () => { window._JSZipLoaded = true; res(); };
+          sc.onerror = rej;
+          document.head.appendChild(sc);
+        });
+      }
+      const zip = await JSZip.loadAsync(buffer);
+      const sheetKeys = Object.keys(zip.files).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
+      for (const sk of sheetKeys) {
+        let xml = await zip.files[sk].async('text');
+        // Inject view="pageLayout" into sheetView — handle both open and self-closing tags
+        xml = xml.replace(/<sheetView([^>]*?)(\/?>)/g, (m, attrs, close) => {
+          const newAttrs = attrs.includes('view=')
+            ? attrs.replace(/view="[^"]*"/, 'view="pageLayout"')
+            : attrs + ' view="pageLayout"';
+          return `<sheetView${newAttrs}${close}`;
+        });
+        zip.file(sk, xml);
+      }
+      const patched = await zip.generateAsync({ type:'arraybuffer', compression:'DEFLATE', compressionOptions:{level:9} });
+      finalBlob = new Blob([patched], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    } catch(pErr) {
+      console.warn('pageLayout patch failed, using raw buffer:', pErr);
+      finalBlob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    }
+
     const a = document.createElement('a');
     a.href  = URL.createObjectURL(finalBlob);
     a.download = filename;
@@ -5929,7 +5961,7 @@ function buildStyledSheet(gardens, allEvs, year, month) {
       const blk    = blockedDates ? blockedDates[ds] : null;
       const hol    = typeof getHolidayInfo === 'function' ? getHolidayInfo(ds) : null;
       const holType2 = hol ? (hol.type||'vacation') : null;
-      const fillRgb = (isFri||isSat) ? 'FFFF0000' : holType2==='camp' ? 'FFFFE699' : holType2 ? 'FFFFFF00' : null;
+      const fillRgb = (isFri||isSat) ? 'FFFF0000' : holType2==='camp' ? 'FFFF9999' : holType2 ? 'FFFFFF00' : null;
       const dayName = `יום\u00a0${HEB_DAYS[dow]}`;
       const dayEvs  = (byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
       const specialNote = '';
@@ -6502,24 +6534,39 @@ function getGardenMgr(gid){
 }
 function setGardensTab(t){
   _gardensTab=t;
-  document.getElementById('g-tab-gan').classList.toggle('active',t==='gan');
-  document.getElementById('g-tab-sch').classList.toggle('active',t==='sch');
-  const fixedBtn=document.getElementById('g-tab-fixed');
-  if(fixedBtn) fixedBtn.classList.toggle('active',t==='fixed');
+  ['gan','sch','pairs','clusters','managers','fixed'].forEach(id=>{
+    const b=document.getElementById('g-tab-'+id);
+    if(b) b.classList.toggle('active',id===t);
+  });
+
+  // Standalone panels (pairs / clusters / managers): hide gardens card, show their panel
+  const standaloneMap={pairs:'p-pairs', clusters:'p-clusters', managers:'p-managers'};
+  const gardensCard=document.querySelector('#p-gardens .card');
+  if(standaloneMap[t]){
+    // Hide the gardens inner card filters/body, show the target panel
+    if(gardensCard) gardensCard.style.display='none';
+    Object.keys(standaloneMap).forEach(k=>{
+      const el=document.getElementById(standaloneMap[k]);
+      if(el) el.style.display=(k===t)?'block':'none';
+    });
+    return;
+  }
+
+  // Restore gardens card if coming back from standalone
+  if(gardensCard) gardensCard.style.display='';
+  Object.values(standaloneMap).forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+
+  // Fixed schedule tab
   const fixedCtrl=document.getElementById('g-fixed-controls');
   if(fixedCtrl) fixedCtrl.style.display=t==='fixed'?'':'none';
   if(t==='fixed'){
     document.getElementById('g-body').className='scroll-area';
-    // Default to current month if not set
     const now=new Date();
     const mFrom=document.getElementById('g-fixed-from');
     const mTo=document.getElementById('g-fixed-to');
-    if(mFrom&&!mFrom.value){
-      // Default: first day of current month
+    if(mFrom&&!mFrom.value)
       mFrom.value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
-    }
     if(mTo&&!mTo.value){
-      // Default: last day of current month
       const lastDay=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
       mTo.value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
     }

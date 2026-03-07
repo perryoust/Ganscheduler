@@ -106,9 +106,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
   <div class="hs" id="hdr-stats">
     <span style="opacity:.5;font-size:.7rem;letter-spacing:.03em;text-transform:uppercase;background:none!important">🎨 חוגים</span>
-    <span onclick="switchMode('act');ST('gardens')" style="cursor:pointer" title="צהרונים">🏫 <b id="h-gardens">125</b> צהרונים</span>
+    <span onclick="switchMode('act');ST('gardens')" style="cursor:pointer" title="גנים">🏫 <b id="h-gardens">125</b> גנים</span>
     <span onclick="switchMode('act');ST('sched')" style="cursor:pointer" title="פעילויות">📅 <b id="h-sched">10,568</b> פעילויות</span>
-    <span onclick="switchMode('act');ST('pairs')" style="cursor:pointer" title="זוגות">🔗 <b id="h-pairs">0</b> זוגות</span>
+    <span onclick="switchMode('act');ST('gardens');setGardensTab('pairs')" style="cursor:pointer" title="זוגות">🔗 <b id="h-pairs">0</b> זוגות</span>
     <span onclick="switchMode('act');goToCancelled()" style="cursor:pointer" title="בוטלו">❌ <b id="h-can">0</b> בוטלו</span>
     <span onclick="switchMode('act');goToPostponed()" style="cursor:pointer" title="נדחו">⏩ <b id="h-post">0</b> נדחו</span>
     <span style="opacity:.3;font-size:.7rem;padding:0 2px;background:none!important">│</span>
@@ -136,12 +136,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="tab active" onclick="ST('dash')">📊 לוח בקרה</div>
   <div class="tab" onclick="ST('cal')">📅 לוח שנה</div>
   <div class="tab" onclick="ST('sched')">📋 לוח זמנים</div>
-  <div class="tab" onclick="ST('gardens')">🏫 צהרונים</div>
-  <div class="tab" onclick="ST('pairs')">🔗 זוגות</div>
+  <div class="tab" onclick="ST('gardens')">🏫 גנים</div>
   <div class="tab" onclick="ST('holidays')">🗓️ חופשות</div>
-  <div class="tab" onclick="ST('clusters')">🔢 אשכולות</div>
   <div class="tab" onclick="ST('sup')">🏢 ספקים</div>
-  <div class="tab" onclick="ST('managers')">👥 מנהלים</div>
 </div>
 <!-- PROCUREMENT TABS -->
 <div class="tabs" id="tabs-purch" style="display:none">
@@ -200,7 +197,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div style="font-weight:800;color:#e91e63;font-size:1rem" id="d-nohap">0</div>
       <div style="font-size:.7rem;color:#546e7a">לא התקיים</div>
     </div>
-    <div onclick="ST('pairs')" style="background:#e8f5e9;border-radius:8px;padding:7px 14px;cursor:pointer;text-align:center;flex:1;min-width:90px">
+    <div onclick="ST('gardens');setGardensTab('pairs')" style="background:#e8f5e9;border-radius:8px;padding:7px 14px;cursor:pointer;text-align:center;flex:1;min-width:90px">
       <div style="font-size:1.3rem">🔗</div>
       <div style="font-weight:800;color:#2e7d32;font-size:1rem" id="d-pairs">0</div>
       <div style="font-size:.7rem;color:#546e7a">זוגות</div>
@@ -324,8 +321,11 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div style="display:flex;gap:6px">
-        <button id="g-tab-gan" class="vbtn active" onclick="setGardensTab('gan')">🏫 צהרונים</button>
+        <button id="g-tab-gan" class="vbtn active" onclick="setGardensTab('gan')">🏫 גנים</button>
         <button id="g-tab-sch" class="vbtn" onclick="setGardensTab('sch')">🏛️ בתי ספר</button>
+        <button id="g-tab-pairs" class="vbtn" onclick="setGardensTab('pairs')">🔗 זוגות</button>
+        <button id="g-tab-clusters" class="vbtn" onclick="setGardensTab('clusters')">🔢 אשכולות</button>
+        <button id="g-tab-managers" class="vbtn" onclick="setGardensTab('managers')">👥 מנהלים</button>
         <button id="g-tab-fixed" class="vbtn" onclick="setGardensTab('fixed')">📋 שיבוץ קבוע</button>
       </div>
       <button class="btn bp bsm" onclick="openAddGardenModal()">➕ הוסף מקום חדש</button>
