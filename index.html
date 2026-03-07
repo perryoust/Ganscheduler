@@ -81,6 +81,11 @@
 (function() {
   var s = document.createElement('script');
   s.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js';
+  s.onload = () => {
+    const jz = document.createElement('script');
+    jz.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    document.head.appendChild(jz);
+  };
   s.onerror = function() {
     console.warn('ExcelJS CDN failed, Excel export will use CSV fallback');
     window._excelJSFailed = true;

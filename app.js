@@ -3290,6 +3290,7 @@ function clearSched(){
 }
 
 function renderGardens(){
+  if(_gardensTab==='fixed'){ renderGardensFixed(); return; }
   // Sync g-cls from active tab if not overridden
   const gClsEl=document.getElementById('g-cls');
   if(gClsEl&&!gClsEl.value) gClsEl.value=_gardensTab==='sch'?'ביה"ס':'גנים';
@@ -5489,7 +5490,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
     const CLR = {
       BLUE:   'FFB8CCE4', RED:  'FFFF0000',
-      YELLOW: 'FFFFFF00', GOLD: 'FFFFE699', PINK: 'FFE6B8B7',
+      YELLOW: 'FFFFFF00', GOLD: 'FFF4B183', PINK: 'FFE6B8B7',
     };
 
     let logoImgId = null;
@@ -5507,10 +5508,13 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       if (br) brd.right  = {style:br};
       if (Object.keys(brd).length) cell.border = brd;
     }
-    function styleDataRow(row, fill) {
+    function styleDataRow(row, fill, fillABC) {
+      // fillABC: override for cols A,B,C (name/age/date) — always BLUE unless Fri/Sat
+      const colABCfill = fillABC !== undefined ? fillABC : (fill===CLR.RED ? CLR.RED : CLR.BLUE);
       for (let i=1; i<=9; i++) {
+        const cellFill = i<=3 ? colABCfill : fill;
         applyStyle(row.getCell(i), {
-          fill, sz:(i===6||i===7)?10:11, align:i===1?'right':'center',
+          fill:cellFill, sz:(i===6||i===7)?10:11, align:i===1?'right':'center',
           bt:'thin', bb:'thin', bl:i===1?'medium':'thin', br:i===9?'medium':'thin'
         });
       }
@@ -5526,7 +5530,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         paperSize: 9, orientation: 'portrait',
         fitToPage: true, fitToWidth: 1, fitToHeight: 0,
         horizontalCentered: true,
-        margins: { left:0.25, right:0.25, top:0.5, bottom:0.5, header:0.3, footer:0.3 }
+        margins: { left:0.08, right:0.20, top:0.83, bottom:0.20, header:0, footer:0 }
       };
       ws.columns = [
         {width:14.4},{width:3.6},{width:8.75},{width:9.25},
@@ -5549,33 +5553,26 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
       let r = 0;
 
-      // ── Page header: logo left, month+year right ─────────
-      // Use headerFooter for printed header
-      if (logoImgId !== null) {
-        // Logo as image in top-left of sheet (above freeze, not in header bar)
-        // We keep logo in first row as before, but restructure layout
-      }
-      // Title row: month+hebYear RIGHT, logo LEFT
+      // ── Excel Page Header: Right=month+year, Left=logo ───
       {
-        const row = ws.addRow([monthTitle,'','','','','','','','']);
-        row.height = 52;
-        // Right side (cols 1-4): month + year, large
-        applyStyle(row.getCell(1), {sz:22, bold:true, align:'right', valign:'middle'});
-        ws.mergeCells(r+1,1,r+1,4);
-        // Left side (cols 5-9): logo
-        ws.mergeCells(r+1,5,r+1,9);
-        if (logoImgId !== null) {
-          ws.addImage(logoImgId, { tl:{col:4,row:r}, br:{col:9,row:r+1}, editAs:'oneCell' });
+        const headerRight = `&"Arial,Bold"&14${monthTitle}`;
+        ws.headerFooter.oddHeader  = `&R${headerRight}&C&L&G`;
+        ws.headerFooter.evenHeader = `&R${headerRight}&C&L&G`;
+        // Embed logo into ExcelJS header image (slot 1)
+        if (logoImgId !== null && typeof LOGO_B64 !== 'undefined') {
+          try {
+            ws.headerFooter.differentOddEven = false;
+            ws.headerFooter.oddHeader = `&R${headerRight}&C&L&G`;
+          } catch(e){}
         }
-        r++;
       }
 
-      // ── Garden name + City ────────────────────────────────
+      // ── Garden name + City row ────────────────────────────
       {
         const row = ws.addRow([`צהרון: ${garden.name}`,'','','','',`עיר: ${garden.city}`,'','','']);
         row.height = 18;
         [1,2,3,4,5].forEach(c => applyStyle(row.getCell(c), {sz:14,bold:true,align:'right',valign:'middle'}));
-        [6,7,8,9].forEach(c   => applyStyle(row.getCell(c), {sz:14,bold:true,align:'right',valign:'middle'}));
+        [6,7,8,9].forEach(c   => applyStyle(row.getCell(c), {sz:14,bold:true,align:'center',valign:'middle'}));
         ws.mergeCells(r+1,1,r+1,5);
         ws.mergeCells(r+1,6,r+1,9);
         r++;
@@ -5674,10 +5671,50 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     }); // end gardens.forEach
 
     const buffer = await workbook.xlsx.writeBuffer();
-    const blob   = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    const a      = document.createElement('a');
-    a.href       = URL.createObjectURL(blob);
-    a.download   = filename;
+
+    // ── Open XML post-processing: inject pageLayout view ─────
+    let finalBlob;
+    try {
+      if (typeof JSZip !== 'undefined') {
+        const zip = await JSZip.loadAsync(buffer);
+        // Patch every worksheet to open in pageLayout view
+        const sheetFiles = Object.keys(zip.files).filter(n => n.match(/^xl\/worksheets\/sheet\d+\.xml$/));
+        for (const sheetPath of sheetFiles) {
+          let xml = await zip.files[sheetPath].async('string');
+          // Replace or inject sheetView with view="pageLayout"
+          if (xml.includes('view="pageLayout"')) {
+            // already set, keep
+          } else if (xml.includes('<sheetView ')) {
+            // add view attribute
+            xml = xml.replace(/<sheetView ([^>]*?)(?:\s*\/)?>/, (m, attrs) => {
+              if (attrs.includes('view=')) return m.replace(/view="[^"]*"/, 'view="pageLayout"');
+              return `<sheetView ${attrs} view="pageLayout">`;
+            });
+          } else if (xml.includes('<sheetViews>')) {
+            xml = xml.replace('<sheetViews>', '<sheetViews><sheetView workbookViewId="0" view="pageLayout"/>');
+            // remove any other sheetView that was just doubled
+          } else {
+            xml = xml.replace('<sheetData', '<sheetViews><sheetView workbookViewId="0" view="pageLayout"/></sheetViews><sheetData');
+          }
+          zip.file(sheetPath, xml);
+        }
+        const patchedBuffer = await zip.generateAsync({
+          type: 'arraybuffer',
+          compression: 'DEFLATE',
+          compressionOptions: { level: 6 }
+        });
+        finalBlob = new Blob([patchedBuffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      } else {
+        finalBlob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      }
+    } catch(patchErr) {
+      console.warn('pageLayout patch failed:', patchErr);
+      finalBlob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    }
+
+    const a = document.createElement('a');
+    a.href  = URL.createObjectURL(finalBlob);
+    a.download = filename;
     a.style.display = 'none';
     document.body.appendChild(a); a.click();
     setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
@@ -6424,10 +6461,27 @@ function setGardensTab(t){
 const HEB_DAYS_SHORT=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 
 function getGardenFixedSched(gardenId){
-  const seen=new Set(), result=[];
-  SCH.filter(s=>s.g===gardenId&&s._recId).forEach(s=>{
-    if(!seen.has(s._recId)){ seen.add(s._recId); result.push(s); }
+  const gardenEvs = SCH.filter(s=>s.g===gardenId && (s.st==='ok'||!s.st));
+  // Strategy 1: use _recId groups (take latest occurrence per series)
+  const byRecId = {};
+  gardenEvs.filter(s=>s._recId).forEach(s=>{
+    if(!byRecId[s._recId] || s.d > byRecId[s._recId].d) byRecId[s._recId]=s;
   });
+  const fromRecurring = Object.values(byRecId);
+  // Strategy 2: if no _recId, find entries that repeat same dow+supplier+time
+  const fromRepeat = [];
+  if(fromRecurring.length===0){
+    const slotCount = {};
+    gardenEvs.forEach(s=>{
+      const dow = new Date(s.d).getDay();
+      const key = `${dow}|${supBase(s.a)||s.a}|${(s.t||'').slice(0,5)}`;
+      if(!slotCount[key]) slotCount[key]={count:0, latest:s};
+      slotCount[key].count++;
+      if(s.d > slotCount[key].latest.d) slotCount[key].latest=s;
+    });
+    Object.values(slotCount).filter(v=>v.count>=2).forEach(v=>fromRepeat.push(v.latest));
+  }
+  const result = fromRecurring.length>0 ? fromRecurring : fromRepeat;
   return result.sort((a,b)=>{
     const da=new Date(a.d).getDay(), db=new Date(b.d).getDay();
     if(da!==db) return da-db;
@@ -6524,9 +6578,9 @@ function _renderGardenFixedRow(g){
 function _goToGardenSched(gardenId){
   ST('sched');
   setTimeout(()=>{
-    const sel=document.getElementById('sch-g');
+    const sel=document.getElementById('s-g1');
     if(sel){ sel.value=gardenId; renderSched(); }
-  },200);
+  },250);
 }
 let _gardensTab='gan';
 // ─── ADD PLACE ────────────────────────────────────────
