@@ -344,8 +344,10 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div style="display:none"><select id="g-cls" onchange="renderGardens()"><option value="">הכל</option><option value="גנים">גנים</option><option value='ביה"ס'>בתי ספר</option></select></div>
     <div id="g-fixed-controls" style="display:none;margin-bottom:8px">
       <div class="row">
-        <div class="fg"><label>חודש</label><input type="month" id="g-fixed-month" onchange="renderGardensFixed()" style="min-width:140px"></div>
-        <button class="btn bo bsm" onclick="document.getElementById('g-fixed-month').value='';renderGardensFixed()">כל החודשים</button>
+        <div class="fg"><label>מתאריך</label><input type="date" id="g-fixed-from" onchange="renderGardensFixed()" style="min-width:130px"></div>
+        <div class="fg"><label>עד תאריך</label><input type="date" id="g-fixed-to" onchange="renderGardensFixed()" style="min-width:130px"></div>
+        <button class="btn bo bsm" onclick="(()=>{const n=new Date(),ld=new Date(n.getFullYear(),n.getMonth()+1,0);document.getElementById('g-fixed-from').value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-01';document.getElementById('g-fixed-to').value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(ld.getDate()).padStart(2,'0');renderGardensFixed();})()">החודש הנוכחי</button>
+        <button class="btn bo bsm" onclick="document.getElementById('g-fixed-from').value='';document.getElementById('g-fixed-to').value='';renderGardensFixed()">הכל</button>
       </div>
     </div>
     <div id="g-info" style="font-size:.74rem;color:#666;margin-bottom:9px"></div>

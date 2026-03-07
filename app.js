@@ -5682,20 +5682,21 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         for (const sheetPath of sheetFiles) {
           let xml = await zip.files[sheetPath].async('string');
           if (!xml.includes('view="pageLayout"')) {
-            // Simple safe replacement: add view= to first sheetView tag
+            // Inject view="pageLayout" safely — preserve self-closing tags
             xml = xml.replace(/(<sheetView\b)([^>]*?)(\/>|>)/, (m, open, attrs, close) => {
               const newAttrs = attrs.includes('view=')
                 ? attrs.replace(/view="[^"]*"/, 'view="pageLayout"')
                 : attrs + ' view="pageLayout"';
-              return open + newAttrs + (close === '/>' ? '>' : close);
+              // Keep self-closing if it was self-closing
+              return open + newAttrs + close;
             });
           }
           zip.file(sheetPath, xml);
         }
+        // Use STORE for non-text files to avoid binary corruption
         const patchedBuffer = await zip.generateAsync({
           type: 'arraybuffer',
-          compression: 'DEFLATE',
-          compressionOptions: { level: 6 }
+          compression: 'STORE'
         });
         finalBlob = new Blob([patchedBuffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
       } else {
@@ -6445,10 +6446,17 @@ function setGardensTab(t){
   if(t==='fixed'){
     document.getElementById('g-body').className='scroll-area';
     // Default to current month if not set
-    const mEl=document.getElementById('g-fixed-month');
-    if(mEl&&!mEl.value){
-      const now=new Date();
-      mEl.value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const now=new Date();
+    const mFrom=document.getElementById('g-fixed-from');
+    const mTo=document.getElementById('g-fixed-to');
+    if(mFrom&&!mFrom.value){
+      // Default: first day of current month
+      mFrom.value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+    }
+    if(mTo&&!mTo.value){
+      // Default: last day of current month
+      const lastDay=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+      mTo.value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
     }
     renderGardensFixed();
     setTimeout(_fitScrollAreas,50);
@@ -6462,12 +6470,12 @@ function setGardensTab(t){
 // ── Fixed-schedule view ──────────────────────────────────────────
 const HEB_DAYS_SHORT=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 
-function getGardenFixedSched(gardenId, monthFilter){
-  // monthFilter: "YYYY-MM" string or '' for all
+function getGardenFixedSched(gardenId, fromDate, toDate){
   const gardenEvs = SCH.filter(s=>{
     if(s.g!==gardenId) return false;
     if(s.st&&s.st!=='ok') return false;
-    if(monthFilter && !s.d.startsWith(monthFilter)) return false;
+    if(fromDate && s.d < fromDate) return false;
+    if(toDate   && s.d > toDate)   return false;
     return true;
   });
   // Strategy 1: use _recId groups (take latest occurrence per series)
@@ -6500,8 +6508,10 @@ function getGardenFixedSched(gardenId, monthFilter){
 function renderGardensFixed(){
   const cityF=(document.getElementById('g-city')||{}).value||'';
   const srch=((document.getElementById('g-srch')||{}).value||'').toLowerCase();
-  const fixedMonthEl=document.getElementById('g-fixed-month');
-  const fixedMonthVal=fixedMonthEl?fixedMonthEl.value:''; // "YYYY-MM" or ''
+  const fixedFromEl=document.getElementById('g-fixed-from');
+  const fixedToEl=document.getElementById('g-fixed-to');
+  const fixedFrom=fixedFromEl?fixedFromEl.value:'';
+  const fixedTo=fixedToEl?fixedToEl.value:'';
   const allG=[...GARDENS,...(_GARDENS_EXTRA||[])].filter(g=>{
     if(gcls(g)!=='גנים') return false;
     if(cityF&&g.city!==cityF) return false;
@@ -6544,8 +6554,9 @@ function renderGardensFixed(){
 }
 
 function _renderGardenFixedRow(g){
-  const fixedMonthV=(document.getElementById('g-fixed-month')||{}).value||'';
-  const fixedEvs=getGardenFixedSched(g.id, fixedMonthV);
+  const _fFrom=(document.getElementById('g-fixed-from')||{}).value||'';
+  const _fTo=(document.getElementById('g-fixed-to')||{}).value||'';
+  const fixedEvs=getGardenFixedSched(g.id, _fFrom, _fTo);
   const gid=g.id;
   let rows='';
   if(fixedEvs.length){
