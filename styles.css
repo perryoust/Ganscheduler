@@ -76,7 +76,7 @@ tr:hover td{background:#f5f7ff}
 .sn{font-size:1.5rem;font-weight:800;color:#1565c0}.sl{font-size:.72rem;color:#666;margin-top:2px}
 
 .pair-row{display:block;margin-bottom:14px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.1)}
-.pair-row-label{font-size:.75rem;font-weight:700;padding:6px 10px;border-radius:6px 6px 0 0;display:flex;align-items:center;gap:8px;color:#fff;flex-wrap:wrap;min-height:34px}
+.pair-row-label{font-size:.75rem;font-weight:700;padding:6px 10px;border-radius:6px 6px 0 0;display:flex;align-items:center;justify-content:space-between;gap:8px;color:#fff;flex-wrap:wrap;min-height:34px}
 .pair-cols{display:grid;gap:2px;background:#e8eaf6;min-width:0;clear:both}
 .pcol{background:#fff}
 .pch{padding:8px 12px;font-weight:700;font-size:.8rem;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}

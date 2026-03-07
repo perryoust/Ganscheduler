@@ -5799,10 +5799,49 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
     const buffer = await workbook.xlsx.writeBuffer();
 
-    // ── Post-process: inject pageLayout + header via ExcelJS workbook XML ──
-    // ExcelJS writes ws.views=[{state:'pageLayout'}] natively into xl/worksheets/sheetN.xml
-    // Just output the buffer directly — pageLayout is already written by ExcelJS
-    const finalBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    // ── Post-process with ExcelJS's own bundled JSZip ────────────────────
+    // ExcelJS bundles JSZip internally. Access it via ExcelJS.Workbook internals.
+    let finalBlob;
+    try {
+      // Re-parse the buffer with ExcelJS internal zip (not window.JSZip)
+      // We do text-replace on raw XML after extracting via ExcelJS's zip
+      const ExJS = window.ExcelJS;
+      if (!ExJS) throw new Error('no ExcelJS');
+
+      // Load the written buffer back as a new workbook to extract XML
+      const wb2 = new ExJS.Workbook();
+      await wb2.xlsx.load(buffer);
+
+      // Now use the _zip property ExcelJS keeps internally
+      const internalZip = wb2._zip;
+      if (!internalZip) throw new Error('no internal zip');
+
+      const sheetFiles = Object.keys(internalZip.files || {})
+        .filter(k => /xl\/worksheets\/sheet\d+\.xml/.test(k));
+
+      for (const key of sheetFiles) {
+        let xml = await internalZip.files[key].async('text');
+        // Inject pageLayout
+        xml = xml.replace(/<sheetView([^>]*)>/g, (m, attrs) => {
+          attrs = attrs.indexOf('view=') >= 0
+            ? attrs.replace(/view="[^"]*"/, 'view="pageLayout"')
+            : attrs + ' view="pageLayout"';
+          return '<sheetView' + attrs + '>';
+        });
+        // Inject headerFooter
+        const hdr = '&amp;R&amp;"Arial,Bold"&amp;18' + monthTitle;
+        const hdrTag = '<headerFooter scaleWithDoc="0"><oddHeader>' + hdr + '</oddHeader></headerFooter>';
+        xml = xml.replace(/<headerFooter[\s\S]*?<\/headerFooter>/g, '');
+        xml = xml.replace('</sheetData>', '</sheetData>' + hdrTag);
+        internalZip.file(key, xml);
+      }
+
+      const patched = await internalZip.generateAsync({ type: 'arraybuffer', compression: 'STORE' });
+      finalBlob = new Blob([patched], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    } catch (e) {
+      console.warn('patch failed, raw output:', e.message);
+      finalBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    }
 
         const a = document.createElement('a');
     a.href  = URL.createObjectURL(finalBlob);
