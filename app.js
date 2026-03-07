@@ -4235,11 +4235,13 @@ function _exportPairWA(gids){
 }
 
 function openExport(){
-  document.getElementById('ex-d1').value=d2s(calD);
-  document.getElementById('ex-d2').value='';
+  const ws=monStart(calD), we=addD(ws,5);
+  const isWeek=(calV==='week');
+  document.getElementById('ex-d1').value=isWeek?d2s(ws):d2s(calD);
+  document.getElementById('ex-d2').value=isWeek?d2s(we):'';
   const f=getCalF();
   const gids=_exGids||f.gids;
-  let ctx=`תאריך: ${fD(d2s(calD))}`;
+  let ctx=isWeek?`${fD(d2s(ws))} – ${fD(d2s(we))}`:`תאריך: ${fD(d2s(calD))}`;
   if(gids&&gids.length) ctx+=` | גנים: ${gids.map(id=>G(id).name||'').join(' + ')}`;
   (document.getElementById('ex-ctx')||{}).textContent =ctx;
   document.getElementById('exm').classList.add('open');
@@ -5768,16 +5770,22 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
           const row = ws.addRow(vals);
           row.height = 19.35;
           styleDataRow(row, fill);
-          // Shrink col E font if holiday name is long
-          if(ev && hol && hol.name && hol.name.length > 5) {
+          // Col E: uniform font size 9 for all holiday/camp names
+          if(hol && hol.name) {
             const ce = row.getCell(5);
-            if(ce.font) ce.font = {...ce.font, size: hol.name.length > 8 ? 8 : 9};
+            ce.font = {...(ce.font||{}), name:'Arial', size: 9};
           }
           r++;
         }
       }
 
       // ── Footer ────────────────────────────────────────────
+      // 5 blank spacer rows to push footer down
+      for(let sp=0;sp<5;sp++){
+        const blank=ws.addRow(['','','','','','','','','']);
+        blank.height=19.35;
+        r++;
+      }
       // Manager row - right-aligned
       {
         const row = ws.addRow([mgrText,'','','','','','','','']);
