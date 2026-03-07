@@ -5787,8 +5787,46 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
     const buffer = await workbook.xlsx.writeBuffer();
 
-    // Direct output — no post-processing (clean file)
-    const finalBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    // ── Post-process: inject pageLayout view into XML ──────────────────
+    let finalBlob;
+    try {
+      const JZ = window._SafeJSZip || window.JSZip;
+      if (!JZ) throw new Error('JSZip not available');
+
+      const zip = await JZ.loadAsync(buffer);
+
+      const sheetFiles = Object.keys(zip.files)
+        .filter(k => /^xl\/worksheets\/sheet[0-9]+\.xml$/.test(k));
+
+      for (const key of sheetFiles) {
+        let xml = await zip.files[key].async('string');
+
+        // Inject pageLayout into sheetView
+        xml = xml.replace(/<sheetView([^>]*)>/g, function(m, attrs) {
+          if (attrs.indexOf('view=') >= 0) {
+            attrs = attrs.replace(/view="[^"]*"/, 'view="pageLayout"');
+          } else {
+            attrs = attrs + ' view="pageLayout"';
+          }
+          return '<sheetView' + attrs + '>';
+        });
+
+        // Inject headerFooter after </sheetData>
+        const hdr = '&amp;R&amp;"Arial,Bold"&amp;18' + monthTitle;
+        const hdrTag = '<headerFooter scaleWithDoc="0"><oddHeader>' + hdr + '</oddHeader></headerFooter>';
+        xml = xml.replace(/<headerFooter[\s\S]*?<\/headerFooter>/g, '');
+        xml = xml.replace('</sheetData>', '</sheetData>' + hdrTag);
+
+        zip.file(key, xml);
+      }
+
+      // STORE not DEFLATE — DEFLATE corrupts binary parts of xlsx
+      const out = await zip.generateAsync({ type: 'arraybuffer', compression: 'STORE' });
+      finalBlob = new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    } catch(pErr) {
+      console.warn('pageLayout patch failed:', pErr);
+      finalBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    }
 
     const a = document.createElement('a');
     a.href  = URL.createObjectURL(finalBlob);
