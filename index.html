@@ -110,7 +110,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <span style="font-size:1.3rem">🌿</span>
     <h1>טומשין קידס</h1>
   </div>
-  <div class="hs" id="hdr-stats">
+  <div class="hs" id="hdr-stats" style="overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch">
     <span style="opacity:.5;font-size:.7rem;letter-spacing:.03em;text-transform:uppercase;background:none!important">🎨 חוגים</span>
     <span onclick="switchMode('act');ST('gardens')" style="cursor:pointer" title="גנים">🏫 <b id="h-gardens">125</b> צהרונים</span>
     <span onclick="switchMode('act');ST('sched')" style="cursor:pointer" title="פעילויות">📅 <b id="h-sched">10,568</b> פעילויות</span>
@@ -221,8 +221,10 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div class="fg"><label>ספק</label><select id="dash-sup" onchange="renderDash()"><option value="">כל הספקים</option></select></div>
       <div class="fg"><label>סטטוס</label><select id="dash-st" onchange="renderDash()"><option value="">הכל</option><option value="ok">מתקיים</option><option value="done">התקיים</option><option value="can">בוטל</option><option value="post">נדחה</option><option value="nohap">לא התקיים</option></select></div>
       <div class="fg"><label>חיפוש חופשי</label><input type="text" id="dash-srch" placeholder="שם צהרון, ספק..." autocomplete="off" oninput="renderDash()" style="min-width:130px"></div>
-      <button class="btn bp bsm" onclick="openNewSched(null)">➕ שיבוץ חדש</button>
-      <button class="btn br2 bsm" onclick="openCancelDay(document.getElementById('dash-date').value||td())" title="ביטול כל פעילויות יום">🚨 ביטול יום</button>
+      <div class="mob-btn-row" style="flex-wrap:nowrap">
+        <button class="btn bp bsm" onclick="openNewSched(null)">➕ שיבוץ חדש</button>
+        <button class="btn br2 bsm" onclick="openCancelDay(document.getElementById('dash-date').value||td())" title="ביטול כל פעילויות יום">🚨 ביטול יום</button>
+      </div>
     </div>
     <!-- Classification tabs -->
     <div style="display:flex;gap:6px;margin-top:9px">
@@ -250,9 +252,11 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div class="fg"><label>צהרון 3</label><select id="cal-g3" onchange="renderCal()"><option value="">—</option></select></div>
       <div class="fg"><label>ספק</label><select id="cal-sup" onchange="renderCal()"><option value="">כל הספקים</option></select></div>
       <div class="fg"><label>אשכול</label><select id="cal-cl" onchange="renderCal()"><option value="">הכל</option></select></div>
-      <button class="btn bo bsm" onclick="clearCal()">נקה</button>
-      <button class="btn bg bsm" onclick="addPairFromCal()">🔗 שמור כזוג</button>
-      <button class="btn bp bsm" onclick="openNewSched()">➕ שיבוץ חדש</button>
+      <div class="mob-btn-row">
+        <button class="btn bo bsm" onclick="clearCal()">נקה</button>
+        <button class="btn bg bsm" onclick="addPairFromCal()">🔗 שמור כזוג</button>
+        <button class="btn bp bsm" onclick="openNewSched()">➕ שיבוץ חדש</button>
+      </div>
     </div>
     <div id="cal-pair-bar" class="notice">
       <span style="color:#1b5e20;font-weight:700">🔗 זוג:</span>
@@ -277,14 +281,18 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <div class="fg"><label>מ</label><input type="date" id="cal-range-from" onchange="renderCal()" style="min-width:130px"></div>
         <div class="fg"><label>עד</label><input type="date" id="cal-range-to" onchange="renderCal()" style="min-width:130px"></div>
       </div>
-      <button class="btn bo bsm" onclick="navCal(-1)">◀ קודם</button>
-      <span id="cal-title" style="font-weight:700;color:#1a237e;min-width:175px;text-align:center;font-size:.88rem"></span>
-      <button class="btn bo bsm" onclick="navCal(1)">הבא ▶</button>
-      <button class="btn bs bsm" onclick="goToday()">📍 היום</button>
-      <button class="btn bsm" id="block-date-btn" style="background:#fce4ec;color:#c62828;border:1.5px solid #e91e63" onclick="openBlockedDate(d2s(calD))">🚫 חסום תאריך</button>
-      <button class="btn bg bsm" onclick="openMonthlyExport()">📊 ייצוא Excel</button>
-      <div class="fg"><label>עבור ל</label><input type="date" id="cal-dp" onchange="goDate(this.value)"></div>
-      <button class="btn bp bsm" style="margin-right:auto" onclick="openExport()">📋 יצוא WhatsApp</button>
+      <div class="mob-btn-row mob-nav-controls">
+        <button class="btn bo bsm" onclick="navCal(-1)">◀ קודם</button>
+        <span id="cal-title" style="font-weight:700;color:#1a237e;text-align:center;font-size:.88rem;flex:1;min-width:0"></span>
+        <button class="btn bo bsm" onclick="navCal(1)">הבא ▶</button>
+      </div>
+      <div class="mob-btn-row">
+        <button class="btn bs bsm" onclick="goToday()">📍 היום</button>
+        <button class="btn bsm" id="block-date-btn" style="background:#fce4ec;color:#c62828;border:1.5px solid #e91e63" onclick="openBlockedDate(d2s(calD))">🚫 חסום תאריך</button>
+        <button class="btn bg bsm" onclick="openMonthlyExport()">📊 ייצוא Excel</button>
+        <div class="fg" style="flex:0 0 auto"><label>עבור ל</label><input type="date" id="cal-dp" onchange="goDate(this.value)" style="width:130px"></div>
+        <button class="btn bp bsm" style="margin-right:auto" onclick="openExport()">📋 יצוא WhatsApp</button>
+      </div>
     </div>
   </div>
   <div id="cal-body" class="scroll-area" style="overflow-x:auto"></div>
@@ -311,10 +319,12 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div class="fg"><label>חיפוש</label><input type="text" id="s-srch" placeholder="חפש..." oninput="renderSched()" style="min-width:130px"></div>
     </div>
     <div class="row" style="margin-bottom:9px">
-      <button class="btn bs bsm" onclick="clearSched()">נקה</button>
-      <button class="btn bg bsm" onclick="addPairFromSched()">🔗 שמור כזוג</button>
-      <button class="btn bp bsm" onclick="openNewSched()">➕ שיבוץ חדש</button>
-      <button class="btn bg bsm" onclick="exportExcelSched()">📊 Excel חודשי</button>
+      <div class="mob-btn-row">
+        <button class="btn bs bsm" onclick="clearSched()">נקה</button>
+        <button class="btn bg bsm" onclick="addPairFromSched()">🔗 שמור כזוג</button>
+        <button class="btn bp bsm" onclick="openNewSched()">➕ שיבוץ חדש</button>
+        <button class="btn bg bsm" onclick="exportExcelSched()">📊 Excel חודשי</button>
+      </div>
     </div>
     <div id="s-info" style="font-size:.74rem;color:#666;margin-bottom:6px"></div>
     <div id="s-body" class="scroll-area"></div>
@@ -325,8 +335,8 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <!-- ====== GARDENS ====== -->
 <div id="p-gardens" class="panel">
   <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div style="display:flex;gap:6px">
+    <div class="g-top-bar" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+      <div class="g-tab-bar" style="display:flex;gap:6px">
         <button id="g-tab-gan" class="vbtn active" onclick="setGardensTab('gan')">🏫 צהרונים</button>
         <button id="g-tab-sch" class="vbtn" onclick="setGardensTab('sch')">🏛️ בתי ספר</button>
         <button id="g-tab-pairs" class="vbtn" onclick="setGardensTab('pairs')">🔗 זוגות</button>
@@ -674,11 +684,13 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <b style="font-size:.9rem;color:#1a237e;flex:1">🔗 זוגות ושלישיות צהרונים <span id="pairs-count" style="font-size:.78rem;color:#546e7a;font-weight:400"></span></b>
       <div class="fg"><label>סנן עיר</label><select id="pairs-city" onchange="renderPairs()"><option value="">כל הערים</option></select></div>
       <div class="fg"><label>מיון</label><select id="pairs-sort" onchange="renderPairs()"><option value="name">לפי שם</option><option value="city">לפי עיר</option></select></div>
-      <button class="btn bp bsm" onclick="openAddPair(null)">➕ הוסף זוג</button>
-      <button class="btn bo bsm" onclick="resetPairsFromAuto()" title="טען מחדש את כל הזוגות מהרשימה המובנית">🔄 רענן זוגות</button>
+      <div class="mob-btn-row" style="flex-wrap:nowrap">
+        <button class="btn bp bsm" onclick="openAddPair(null)">➕ הוסף זוג</button>
+        <button class="btn bo bsm" onclick="resetPairsFromAuto()" title="טען מחדש את כל הזוגות מהרשימה המובנית">🔄 רענן זוגות</button>
+      </div>
     </div>
     
-    <div style="display:grid;grid-template-columns:1fr 220px;gap:14px;align-items:start">
+    <div class="pairs-layout" style="display:grid;grid-template-columns:1fr 220px;gap:14px;align-items:start">
       <div id="pairs-main"></div>
       <div id="pairs-solo" style="position:sticky;top:10px"></div>
     </div>
@@ -708,11 +720,11 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="card">
     <div class="row" style="margin-bottom:8px;align-items:center">
       <b style="font-size:.9rem;color:#1a237e;flex:1">🔢 אשכולות צהרונים</b>
-      <div style="display:flex;gap:4px;margin-left:6px">
+      <div class="mob-btn-row" style="flex-wrap:nowrap">
         <button id="cl-view-grid" class="btn bp bsm" onclick="setClustersView('grid')" title="תצוגת כרטיסים">⊞</button>
         <button id="cl-view-list" class="btn bo bsm" onclick="setClustersView('list')" title="תצוגת רשימה">☰</button>
+        <button class="btn bp bsm" onclick="openEditCluster(null)">➕ אשכול חדש</button>
       </div>
-      <button class="btn bp bsm" onclick="openEditCluster(null)">➕ אשכול חדש</button>
     </div>
     <p style="font-size:.79rem;color:#546e7a;margin-bottom:12px">אשכול = קבוצת צהרונים שמשבצים להם פעילות יחד (חגים, מועדים). בחר אשכול ← בחר תאריך וספק ← הזן שעה לכל גן.</p>
     <div id="clusters-body"></div>
@@ -731,9 +743,11 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <button id="su-view-list"  class="vbtn"        onclick="setSupView('list')"  title="רשימה">☰</button>
         </div>
       </div>
-      <button class="btn bp bsm" onclick="openSupModal(null)">➕ הוסף ספק</button>
-      <button class="btn bo bsm" onclick="openMerge()">🔀 איחוד ספקים</button>
-      <button class="btn bp bsm" onclick="openSupExport(null)">📊 יצוא לאקסל</button>
+      <div class="mob-btn-row">
+        <button class="btn bp bsm" onclick="openSupModal(null)">➕ הוסף ספק</button>
+        <button class="btn bo bsm" onclick="openMerge()">🔀 איחוד ספקים</button>
+        <button class="btn bp bsm" onclick="openSupExport(null)">📊 יצוא לאקסל</button>
+      </div>
     </div>
   </div>
   <div id="su-body" class="sugrid scroll-area"></div>
@@ -750,8 +764,10 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <b style="color:#2e7d32;font-size:.9rem">📄 חשבוניות אחרונות</b>
-      <button class="btn bg bsm" onclick="openNewInvoice()">📄 מסמך חדש</button>
-      <button class="btn bp bsm" onclick="showToast('🔜 יצירת הזמנה — בקרוב')" title="בקרוב">📋 יצירת הזמנה</button>
+      <div class="mob-btn-row" style="flex-wrap:nowrap">
+        <button class="btn bg bsm" onclick="openNewInvoice()">📄 מסמך חדש</button>
+        <button class="btn bp bsm" onclick="showToast('🔜 יצירת הזמנה — בקרוב')" title="בקרוב">📋 יצירת הזמנה</button>
+      </div>
     </div>
     <div id="pdash-recent-invoices"><div style="color:#aaa;font-size:.8rem;text-align:center;padding:20px">אין חשבוניות עדיין</div></div>
   </div>
@@ -772,8 +788,10 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div class="fg"><label>ספק</label><select id="pi-sup" onchange="renderInvoices()"><option value="">כל הספקים</option></select></div>
       <div class="fg"><label>מתאריך</label><input type="date" id="pi-from" onchange="renderInvoices()"></div>
       <div class="fg"><label>עד תאריך</label><input type="date" id="pi-to" onchange="renderInvoices()"></div>
-      <button class="btn bg" onclick="openNewInvoice()">📄 מסמך חדש</button>
-      <button class="btn bp" onclick="showToast('🔜 יצירת הזמנה — בקרוב')" title="בקרוב">📋 יצירת הזמנה</button>
+      <div class="mob-btn-row">
+        <button class="btn bg" onclick="openNewInvoice()">📄 מסמך חדש</button>
+        <button class="btn bp" onclick="showToast('🔜 יצירת הזמנה — בקרוב')" title="בקרוב">📋 יצירת הזמנה</button>
+      </div>
     </div>
   </div>
   <div class="tw"><table id="pi-table">
