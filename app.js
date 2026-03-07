@@ -2018,40 +2018,40 @@ function renderNormalWeek(evs,ws,f){
       let inner='';
       if(de.length){
         de.forEach(ev=>{
-          inner+=`<div style="border-radius:4px;padding:3px 5px;margin:1px 0;font-size:.71rem;
-            background:#fff;border-right:2px solid ${clrObj.solid};
+          inner+=`<div style="border-radius:4px;padding:4px 5px;margin:2px 0;font-size:.78rem;
+            background:#fff;border-right:3px solid ${clrObj.solid};overflow:hidden;
             ${ev.st==='can'?'opacity:.45;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':ev.st==='done'?'background:#f1f8e9;':ev.st==='nohap'?'background:#fce4ec;':''}">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:2px">
-              <div style="cursor:pointer;flex:1" onclick="event.stopPropagation();openSP(${ev.id})">
-                <div style="font-weight:700;color:${clrObj.solid}">${supBase(ev.a)}${ev.act?` — <span style="color:#78909c;font-weight:400">${ev.act}</span>`:''}</div>
-                <div style="font-size:.63rem;color:#5c6bc0">${ev.tp||'חוג'}</div>
-                ${ev.t?`<div style="font-size:.63rem;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:3px">
+              <div style="cursor:pointer;flex:1;min-width:0;overflow:hidden" onclick="event.stopPropagation();openSP(${ev.id})">
+                <div style="font-weight:700;color:${clrObj.solid};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${supBase(ev.a)}${ev.act?` — <span style="color:#78909c;font-weight:400">${ev.act}</span>`:''}</div>
+                <div style="font-size:.71rem;color:#5c6bc0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ev.tp||'חוג'}</div>
+                ${ev.t?`<div style="font-size:.71rem;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
               </div>
-              <div style="display:flex;flex-direction:column;gap:1px;flex-shrink:0" onclick="event.stopPropagation()">
-                <button title="התקיים" style="background:${ev.st==='done'?'#2e7d32':'#e8f5e9'};color:${ev.st==='done'?'#fff':'#2e7d32'};border:none;border-radius:3px;padding:1px 3px;font-size:.65rem;cursor:pointer;line-height:1"
+              <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0" onclick="event.stopPropagation()">
+                <button title="התקיים" style="background:${ev.st==='done'?'#2e7d32':'#e8f5e9'};color:${ev.st==='done'?'#fff':'#2e7d32'};border:none;border-radius:3px;padding:2px 4px;font-size:.7rem;cursor:pointer;line-height:1"
                   onclick="openSP(${ev.id});setTimeout(()=>setStatus('done'),80)">✔️</button>
-                <button title="בטל" style="background:${ev.st==='can'?'#c62828':'#ffebee'};color:${ev.st==='can'?'#fff':'#c62828'};border:none;border-radius:3px;padding:1px 3px;font-size:.65rem;cursor:pointer;line-height:1"
+                <button title="בטל" style="background:${ev.st==='can'?'#c62828':'#ffebee'};color:${ev.st==='can'?'#fff':'#c62828'};border:none;border-radius:3px;padding:2px 4px;font-size:.7rem;cursor:pointer;line-height:1"
                   onclick="openSP(${ev.id})">❌</button>
-                <button title="לא התקיים" style="background:${ev.st==='nohap'?'#6a1b9a':'#f3e5f5'};color:${ev.st==='nohap'?'#fff':'#6a1b9a'};border:none;border-radius:3px;padding:1px 3px;font-size:.65rem;cursor:pointer;line-height:1"
+                <button title="לא התקיים" style="background:${ev.st==='nohap'?'#6a1b9a':'#f3e5f5'};color:${ev.st==='nohap'?'#fff':'#6a1b9a'};border:none;border-radius:3px;padding:2px 4px;font-size:.7rem;cursor:pointer;line-height:1"
                   onclick="openSP(${ev.id});setTimeout(()=>markNoHap(),80)">⚠️</button>
-                <button title="דחה" style="background:#fff3e0;color:#e65100;border:none;border-radius:3px;padding:1px 3px;font-size:.65rem;cursor:pointer;line-height:1"
+                <button title="דחה" style="background:#fff3e0;color:#e65100;border:none;border-radius:3px;padding:2px 4px;font-size:.7rem;cursor:pointer;line-height:1"
                   onclick="event.stopPropagation();openPostpone(${ev.id})">⏩</button>
               </div>
             </div>
           </div>`;
         });
-        if(blk) inner+=`<div style="font-size:.62rem;color:#c62828;padding:2px 4px">${blk.icon||'🚫'} ${blk.reason}</div>`;
+        if(blk) inner+=`<div style="font-size:.68rem;color:#c62828;padding:2px 4px">${blk.icon||'🚫'} ${blk.reason}</div>`;
       } else if(blk){
-        inner=`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center">${blk.icon||'🚫'} ${blk.reason}</div>`;
+        inner=`<div style="font-size:.72rem;color:#c62828;padding:4px;text-align:center">${blk.icon||'🚫'} ${blk.reason}</div>`;
       } else if(hol){
-        inner=`<span style="font-size:.66rem;color:${hol.color}">${hol.emoji}</span>`;
+        inner=`<span style="font-size:.7rem;color:${hol.color}">${hol.emoji}</span>`;
       } else {
         inner=`<div style="color:#c8cdd5;font-size:1.4rem;font-weight:300;text-align:center;line-height:1;padding:4px 0;cursor:pointer;user-select:none">+</div>`;
       }
       return `<td style="background:${cellBg};
         border-bottom:1px solid ${borderColor};border-left:1px solid ${borderColor};
         ${blk?'border:1.5px solid #e91e63;':''}
-        padding:2px;vertical-align:top;min-width:95px"
+        padding:3px;vertical-align:top;min-width:110px"
         onclick="openGcellPopup(${gid},'${ds}',event)">${inner}</td>`;
     }
 
@@ -2073,10 +2073,10 @@ function renderNormalWeek(evs,ws,f){
       </tr>`;
       pGids.forEach(gid=>{
         const g=G(gid);
-        html+=`<tr><td style="background:#fafbff;font-size:.73rem;padding:4px 7px;color:#333;font-weight:600;
+        html+=`<tr><td style="background:#fafbff;font-size:.8rem;padding:5px 8px;color:#333;font-weight:700;
           border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
-          position:sticky;right:0;z-index:1;white-space:nowrap">
-          ${g.name}<br><span style="font-size:.63rem;color:#78909c;font-weight:400">${g.city}</span>
+          position:sticky;right:0;z-index:1;white-space:nowrap;max-width:145px;overflow:hidden;text-overflow:ellipsis">
+          ${g.name}<br><span style="font-size:.7rem;color:#78909c;font-weight:400">${g.city}</span>
         </td>`;
         days.forEach(d=>{
           const ds=d2s(d);
@@ -2092,10 +2092,10 @@ function renderNormalWeek(evs,ws,f){
     // Solo gardens
     byCity[city].solos.forEach(gid=>{
       const g=G(gid);
-      html+=`<tr><td style="background:#fafbff;font-size:.73rem;padding:4px 7px;color:#333;font-weight:600;
+      html+=`<tr><td style="background:#fafbff;font-size:.8rem;padding:5px 8px;color:#333;font-weight:700;
         border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
-        position:sticky;right:0;z-index:1;white-space:nowrap">
-        ${g.name}<br><span style="font-size:.63rem;color:#78909c;font-weight:400">${g.city}</span>
+        position:sticky;right:0;z-index:1;white-space:nowrap;max-width:145px;overflow:hidden;text-overflow:ellipsis">
+        ${g.name}<br><span style="font-size:.7rem;color:#78909c;font-weight:400">${g.city}</span>
       </td>`;
       days.forEach(d=>{
         const ds=d2s(d);
