@@ -6941,11 +6941,13 @@ self.addEventListener('activate',e=>e.waitUntil(
 
 
 
-/* ══ Mobile filter toggle ══════════════════════════════════════════ */
-window.mobToggleFilters = function(id) {
-  const wrap = document.getElementById(id);
-  const arrow = document.getElementById(id + '-arrow');
+/* ══ Universal filter toggle (desktop + mobile) ══════════════════ */
+window.fltToggle = function(wrapId, btnId) {
+  const wrap = document.getElementById(wrapId);
+  const btn  = document.getElementById(btnId);
   if (!wrap) return;
   const open = wrap.classList.toggle('open');
-  if (arrow) arrow.textContent = open ? '▴' : '▾';
+  if (btn) btn.classList.toggle('open', open);
 };
+/* Legacy alias */
+window.mobToggleFilters = function(id) { window.fltToggle(id, id+'-btn'); };

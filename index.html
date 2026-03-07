@@ -177,38 +177,38 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <!-- ====== DASHBOARD ====== -->
 <div id="p-dash" class="panel active">
   <!-- Quick stats -->
-  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-    <div onclick="ST('gardens')" style="background:#e8eaf6;border-radius:8px;padding:7px 14px;cursor:pointer;text-align:center;flex:1;min-width:90px">
+  <div id="dash-stat-boxes" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">
+    <div onclick="ST('gardens')" style="background:#e8eaf6;border-radius:8px;padding:5px 10px;cursor:pointer;text-align:center;flex:1;min-width:80px">
       <div style="font-size:1.3rem">🏫</div>
       <div style="font-weight:800;color:#1a237e;font-size:1rem" id="d-gardens">125</div>
       <div style="font-size:.7rem;color:#546e7a">צהרונים</div>
     </div>
-    <div onclick="goToTodayActivities()" style="background:#e3f2fd;border-radius:8px;padding:7px 14px;cursor:pointer;text-align:center;flex:1;min-width:90px">
+    <div onclick="goToTodayActivities()" style="background:#e3f2fd;border-radius:8px;padding:5px 10px;cursor:pointer;text-align:center;flex:1;min-width:80px">
       <div style="font-size:1.3rem">📅</div>
       <div style="font-weight:800;color:#1565c0;font-size:1rem" id="d-total">0</div>
       <div style="font-size:.7rem;color:#546e7a">כל הפעילויות</div>
     </div>
-    <div onclick="goToCancelled()" style="background:#ffebee;border-radius:8px;padding:7px 14px;cursor:pointer;text-align:center;flex:1;min-width:90px">
+    <div onclick="goToCancelled()" style="background:#ffebee;border-radius:8px;padding:5px 10px;cursor:pointer;text-align:center;flex:1;min-width:80px">
       <div style="font-size:1.3rem">❌</div>
       <div style="font-weight:800;color:#c62828;font-size:1rem" id="d-can">0</div>
       <div style="font-size:.7rem;color:#546e7a">בוטלו</div>
     </div>
-    <div onclick="goToPostponed()" style="background:#fff8e1;border-radius:8px;padding:7px 14px;cursor:pointer;text-align:center;flex:1;min-width:90px">
+    <div onclick="goToPostponed()" style="background:#fff8e1;border-radius:8px;padding:5px 10px;cursor:pointer;text-align:center;flex:1;min-width:80px">
       <div style="font-size:1.3rem">⏩</div>
       <div style="font-weight:800;color:#e65100;font-size:1rem" id="d-post">0</div>
       <div style="font-size:.7rem;color:#546e7a">נדחו</div>
     </div>
-    <div onclick="goToNoHap()" style="background:#fce4ec;border-radius:8px;padding:7px 14px;cursor:pointer;text-align:center;flex:1;min-width:90px">
+    <div onclick="goToNoHap()" style="background:#fce4ec;border-radius:8px;padding:5px 10px;cursor:pointer;text-align:center;flex:1;min-width:80px">
       <div style="font-size:1.3rem">⚠️</div>
       <div style="font-weight:800;color:#e91e63;font-size:1rem" id="d-nohap">0</div>
       <div style="font-size:.7rem;color:#546e7a">לא התקיים</div>
     </div>
-    <div onclick="ST('gardens');setGardensTab('pairs')" style="background:#e8f5e9;border-radius:8px;padding:7px 14px;cursor:pointer;text-align:center;flex:1;min-width:90px">
+    <div onclick="ST('gardens');setGardensTab('pairs')" style="background:#e8f5e9;border-radius:8px;padding:5px 10px;cursor:pointer;text-align:center;flex:1;min-width:80px">
       <div style="font-size:1.3rem">🔗</div>
       <div style="font-weight:800;color:#2e7d32;font-size:1rem" id="d-pairs">0</div>
       <div style="font-size:.7rem;color:#546e7a">זוגות</div>
     </div>
-    <div onclick="goToTodayCal()" style="background:#fff3e0;border-radius:8px;padding:7px 14px;cursor:pointer;text-align:center;flex:1;min-width:90px">
+    <div onclick="goToTodayCal()" style="background:#fff3e0;border-radius:8px;padding:5px 10px;cursor:pointer;text-align:center;flex:1;min-width:80px">
       <div style="font-size:1.3rem">📆</div>
       <div style="font-weight:800;color:#e65100;font-size:1rem" id="d-today-cnt">—</div>
       <div style="font-size:.7rem;color:#546e7a">פעילויות היום</div>
@@ -216,15 +216,11 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
   <div class="card" style="margin-bottom:10px">
     <div>
-      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
         <div class="fg" style="flex:1;min-width:150px"><label>תאריך</label><input type="date" id="dash-date" onchange="renderDash()" style="width:100%"></div>
-        <div class="mob-btn-row" style="flex-wrap:nowrap;margin-bottom:0">
-          <button class="btn bp bsm" onclick="openNewSched(null)">➕ שיבוץ חדש</button>
-          <button class="btn br2 bsm" onclick="openCancelDay(document.getElementById('dash-date').value||td())" title="ביטול כל פעילויות יום">🚨 ביטול יום</button>
-        </div>
+        <button class="flt-toggle" id="dash-flt-btn" onclick="fltToggle('dash-flt','dash-flt-btn')">⚙️ פילטרים <span class="flt-arrow">▾</span></button>
       </div>
-      <button class="mob-filter-toggle" onclick="mobToggleFilters('dash-flt')">⚙️ פילטרים <span id="dash-flt-arrow">▾</span></button>
-      <div id="dash-flt" class="mob-flt-wrap">
+      <div id="dash-flt" class="flt-wrap">
         <div class="fg"><label>עיר</label><select id="dash-city" onchange="renderDash()"><option value="">כל הערים</option></select></div>
         <div class="fg"><label>ספק</label><select id="dash-sup" onchange="renderDash()"><option value="">כל הספקים</option></select></div>
         <div class="fg"><label>סטטוס</label><select id="dash-st" onchange="renderDash()"><option value="">הכל</option><option value="ok">מתקיים</option><option value="done">התקיים</option><option value="can">בוטל</option><option value="post">נדחה</option><option value="nohap">לא התקיים</option></select></div>
@@ -232,9 +228,12 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       </div>
     </div>
     <!-- Classification tabs -->
-    <div style="display:flex;gap:6px;margin-top:9px">
+    <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;align-items:center">
       <button id="dash-tab-g" class="vbtn active" onclick="setDashTab('g')">🏫 גני ילדים</button>
       <button id="dash-tab-s" class="vbtn" onclick="setDashTab('s')">🏛️ בתי ספר</button>
+      <div style="flex:1"></div>
+      <button class="btn bp bsm" onclick="openNewSched(null)">➕ שיבוץ חדש</button>
+      <button class="btn br2 bsm" onclick="openCancelDay(document.getElementById('dash-date').value||td())" title="ביטול כל פעילויות יום">🚨 ביטול יום</button>
     </div>
   </div>
   <div id="dash-body" class="scroll-area"></div>
@@ -248,9 +247,13 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <!-- ====== CALENDAR ====== -->
 <div id="p-cal" class="panel">
   <div class="card" style="padding:11px">
-    <div class="row" style="margin-bottom:7px">
-      <button class="mob-filter-toggle" onclick="mobToggleFilters('cal-flt')">⚙️ פילטרים <span id="cal-flt-arrow">▾</span></button>
-      <div id="cal-flt" class="mob-flt-wrap">
+    <div style="margin-bottom:7px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:4px">
+        <button class="flt-toggle" id="cal-flt-btn" onclick="fltToggle('cal-flt','cal-flt-btn')">⚙️ פילטרים <span class="flt-arrow">▾</span></button>
+        <button class="btn bo bsm" onclick="clearCal()">נקה</button>
+        <button class="btn bg bsm" onclick="addPairFromCal()">🔗 שמור כזוג</button>
+      </div>
+      <div id="cal-flt" class="flt-wrap">
         <div class="fg"><label>עיר</label><select id="cal-city" onchange="calRefG()"><option value="">כל הערים</option></select></div>
         <div style="display:none"><select id="cal-cls" onchange="calRefG()"><option value="">הכל</option><option value="גנים">גנים</option><option value='ביה"ס'>בתי ספר</option></select></div>
         <div class="fg"><label>זוג/שלישיה מוגדר</label><select id="cal-pair" onchange="calSelectPair()" style="min-width:155px"><option value="">בחר זוג...</option></select></div>
@@ -260,11 +263,6 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <div class="fg"><label>ספק</label><select id="cal-sup" onchange="renderCal()"><option value="">כל הספקים</option></select></div>
         <div class="fg"><label>אשכול</label><select id="cal-cl" onchange="renderCal()"><option value="">הכל</option></select></div>
       </div>
-      <div class="mob-btn-row">
-        <button class="btn bo bsm" onclick="clearCal()">נקה</button>
-        <button class="btn bg bsm" onclick="addPairFromCal()">🔗 שמור כזוג</button>
-        <button class="btn bp bsm" onclick="openNewSched()">➕ שיבוץ חדש</button>
-      </div>
     </div>
     <div id="cal-pair-bar" class="notice">
       <span style="color:#1b5e20;font-weight:700">🔗 זוג:</span>
@@ -272,9 +270,11 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <button class="btn br bsm" onclick="clearCalPair()">✕</button>
     </div>
     <!-- Classification tabs — גנים / בתי ספר -->
-    <div style="display:flex;gap:6px;margin-bottom:8px">
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
       <button id="cal-tab-g" class="vbtn active" onclick="setCalTab('g')">🏫 גני ילדים</button>
       <button id="cal-tab-s" class="vbtn" onclick="setCalTab('s')">🏛️ בתי ספר</button>
+      <div style="flex:1"></div>
+      <button class="btn bp bsm" onclick="openNewSched()">➕ שיבוץ חדש</button>
     </div>
     <div class="row">
       <div class="mob-flt-wrap-always">
@@ -312,10 +312,11 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <div id="p-sched" class="panel">
   <div class="card">
     <div style="font-size:.9rem;font-weight:700;color:#1a237e;margin-bottom:8px">📋 לוח זמנים - כל הפעילויות</div>
-    <p style="font-size:.79rem;color:#546e7a;margin-bottom:10px">כאן ניתן לחפש, לסנן ולראות את כל הפעילויות. לחץ על שורה לפרטים ועריכה.</p>
-    <div class="row" style="margin-bottom:9px">
-      <button class="mob-filter-toggle" onclick="mobToggleFilters('sched-flt')">⚙️ פילטרים <span id="sched-flt-arrow">▾</span></button>
-      <div id="sched-flt" class="mob-flt-wrap">
+    <div style="margin-bottom:9px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:4px">
+        <button class="flt-toggle" id="sched-flt-btn" onclick="fltToggle('sched-flt','sched-flt-btn')">⚙️ פילטרים <span class="flt-arrow">▾</span></button>
+      </div>
+      <div id="sched-flt" class="flt-wrap">
         <div class="fg"><label>עיר</label><select id="s-city" onchange="sRefG()"><option value="">כל הערים</option></select></div>
         <div class="fg"><label>סיווג</label><select id="s-cls" onchange="sRefG()"><option value="">הכל</option><option value="גנים">גנים</option><option value='ביה"ס'>בתי ספר</option></select></div>
         <div class="fg"><label>מנהל/רכז</label><select id="s-mgr" onchange="renderSched()"><option value="">הכל</option></select></div>
@@ -360,8 +361,8 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <button class="btn bp bsm" onclick="openAddGardenModal()">➕ הוסף מקום חדש</button>
     </div>
     <div id="g-filters" style="margin-bottom:8px">
-      <button class="mob-filter-toggle" onclick="mobToggleFilters('g-flt')">⚙️ פילטרים <span id="g-flt-arrow">▾</span></button>
-      <div id="g-flt" class="mob-flt-wrap row">
+      <button class="flt-toggle" id="g-flt-btn" onclick="fltToggle('g-flt','g-flt-btn')">⚙️ פילטרים <span class="flt-arrow">▾</span></button>
+      <div id="g-flt" class="flt-wrap">
         <div class="fg"><label>עיר</label><select id="g-city" onchange="renderGardens()"><option value="">כל הערים</option></select></div>
         <div class="fg"><label>אשכול</label><select id="g-cl" onchange="renderGardens()"><option value="">הכל</option></select></div>
         <div class="fg"><label>מנהל/רכז</label><select id="g-mgr" onchange="renderGardens()"><option value="">הכל</option></select></div>
@@ -723,9 +724,12 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <p style="font-size:.79rem;color:#546e7a;margin-bottom:11px">
       כאן מגדירים את חופשות השנה לפי עיר ולפי סוג (צהרונים/בי"ס). בלוח השנה ימים אלו יסומנו בצבע מיוחד.
     </p>
-    <div class="row" style="margin-bottom:10px">
-      <div class="fg"><label>עיר</label><select id="hol-filt-city" onchange="renderHolidays()"><option value="">כל הערים</option></select></div>
-      <div class="fg"><label>סוג</label><select id="hol-filt-type" onchange="renderHolidays()"><option value="">הכל</option><option value="vacation">🟡 חופשה</option><option value="camp">🟣 קייטנה</option><option value="event">🟢 אירוע</option><option value="noact">🔴 אין פעילות</option></select></div>
+    <div style="margin-bottom:10px">
+      <button class="flt-toggle" id="hol-flt-btn" onclick="fltToggle('hol-flt','hol-flt-btn')" style="margin-bottom:4px">⚙️ פילטרים <span class="flt-arrow">▾</span></button>
+      <div id="hol-flt" class="flt-wrap">
+        <div class="fg"><label>עיר</label><select id="hol-filt-city" onchange="renderHolidays()"><option value="">כל הערים</option></select></div>
+        <div class="fg"><label>סוג</label><select id="hol-filt-type" onchange="renderHolidays()"><option value="">הכל</option><option value="vacation">🟡 חופשה</option><option value="camp">🟣 קייטנה</option><option value="event">🟢 אירוע</option><option value="noact">🔴 אין פעילות</option></select></div>
+      </div>
     </div>
     <div id="holidays-body"></div>
   </div>
@@ -750,7 +754,13 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <!-- ====== SUPPLIERS ====== -->
 <div id="p-sup" class="panel">
   <div class="card" style="padding:11px;margin-bottom:11px">
-    <div class="row">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:4px">
+      <button class="flt-toggle" id="sup-flt-btn" onclick="fltToggle('sup-flt','sup-flt-btn')">⚙️ פילטרים <span class="flt-arrow">▾</span></button>
+      <button class="btn bp bsm" onclick="openSupModal(null)">➕ הוסף ספק</button>
+      <button class="btn bo bsm" onclick="openMerge()">🔀 איחוד</button>
+      <button class="btn bp bsm" onclick="openSupExport(null)">📊 Excel</button>
+    </div>
+    <div id="sup-flt" class="flt-wrap">
       <div class="fg"><label>חיפוש</label><input type="text" id="su-srch" placeholder="חפש ספק..." oninput="renderSup()" style="min-width:190px"></div>
       <div class="fg"><label>מיון</label><select id="su-sort" onchange="renderSup()"><option value="name">א-ב</option><option value="cnt">לפי כמות</option></select></div>
       <div class="fg"><label>תצוגה</label>
@@ -758,11 +768,6 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <button id="su-view-cards" class="vbtn active" onclick="setSupView('cards')" title="קלפים">⊞</button>
           <button id="su-view-list"  class="vbtn"        onclick="setSupView('list')"  title="רשימה">☰</button>
         </div>
-      </div>
-      <div class="mob-btn-row">
-        <button class="btn bp bsm" onclick="openSupModal(null)">➕ הוסף ספק</button>
-        <button class="btn bo bsm" onclick="openMerge()">🔀 איחוד ספקים</button>
-        <button class="btn bp bsm" onclick="openSupExport(null)">📊 יצוא לאקסל</button>
       </div>
     </div>
   </div>

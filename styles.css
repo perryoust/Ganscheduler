@@ -473,48 +473,59 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   .mode-btn{flex:1;font-size:.8rem;padding:8px 5px}
 }
 
-/* ══ Collapsible filter sections (mobile only) ══════════════════════
-   On desktop: mob-flt-wrap always visible, toggle button hidden
-   On mobile:  toggle button shown, wrap collapsed by default
-   ════════════════════════════════════════════════════════════════════ */
+/* ══ Stat boxes — compact permanently ════════════════════════════════ */
+#dash-stat-boxes > div > div:first-child { font-size: 1.1rem !important; }
+#dash-stat-boxes > div > div:nth-child(2) { font-size: .88rem !important; }
+#dash-stat-boxes > div > div:nth-child(3) { font-size: .65rem !important; }
 
-/* Desktop: always show filters, hide toggle */
-.mob-filter-toggle { display: none; }
-.mob-flt-wrap { display: flex; flex-direction: column; gap: 8px; }
-/* inline row-style wraps (gardens) */
-.mob-flt-wrap.row { flex-direction: row; flex-wrap: wrap; }
-/* sub-wrappers that should always show (vbtns) */
-.mob-flt-wrap-always { display: contents; }
+/* ══ Universal collapsible filter panel ═══════════════════════════════
+   Works on both desktop and mobile.
+   .flt-toggle  = the toggle button
+   .flt-wrap    = the collapsible content
+   ================================================================== */
+
+.flt-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #f0f2ff;
+  border: 1.5px solid #c5cae9;
+  border-radius: 7px;
+  font-size: .8rem;
+  font-weight: 700;
+  color: #1a237e;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s;
+  margin-bottom: 4px;
+}
+.flt-toggle:hover { background: #e3e6ff; }
+.flt-toggle:active { background: #c5cae9; }
+.flt-toggle .flt-arrow { font-size: .7rem; transition: transform .2s; }
+.flt-toggle.open .flt-arrow { transform: rotate(180deg); }
+
+/* Wrap: hidden by default */
+.flt-wrap {
+  display: none;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 0 4px;
+  animation: fltIn .18s ease;
+}
+.flt-wrap.open { display: flex; }
+@keyframes fltIn { from { opacity:0; transform: translateY(-4px); } to { opacity:1; transform:none; } }
+
+/* vbtns always-visible wrapper */
+.flt-wrap-always { display: contents; }
 
 @media(max-width:768px){
-  /* Toggle button */
-  .mob-filter-toggle {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    width: 100%;
-    padding: 9px 14px;
-    background: #e8eaf6;
-    border: 1.5px solid #c5cae9;
-    border-radius: 8px;
-    font-size: .83rem;
-    font-weight: 700;
-    color: #1a237e;
-    cursor: pointer;
-    margin-bottom: 2px;
-  }
-  .mob-filter-toggle:active { background: #c5cae9; }
-
-  /* Collapsed state — hidden by default on mobile */
-  .mob-flt-wrap {
-    display: none;
-    flex-direction: column;
-    gap: 8px;
-    padding: 6px 0 4px;
-  }
-  .mob-flt-wrap.open { display: flex; }
-  .mob-flt-wrap.row.open { flex-direction: row; flex-wrap: wrap; }
-
-  /* vbtns sub-wrapper — always show */
-  .mob-flt-wrap-always { display: block; width: 100%; }
+  .flt-toggle { width: 100%; justify-content: center; font-size: .83rem; padding: 9px 14px; }
+  .flt-wrap { flex-direction: column; }
+  .flt-wrap-always { display: block; width: 100%; }
+  /* Legacy mob-filter-toggle aliases */
+  .mob-filter-toggle { display: none !important; }
+  .mob-flt-wrap { display: flex !important; flex-direction: column; gap: 8px; }
+  .mob-flt-wrap.open { display: flex !important; }
 }
