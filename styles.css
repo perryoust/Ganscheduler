@@ -195,9 +195,9 @@ tr:hover td{background:#f5f7ff}
 .ev .et{font-size:.72rem;color:#78909c}
 .ev .est{font-size:.68rem;font-weight:700;position:absolute;top:5px;left:7px}
 
-.wpt{width:100%;border-collapse:collapse;font-size:.75rem}
+.wpt{width:100%;border-collapse:collapse;font-size:.88rem}
 .wpt th{padding:6px 7px;text-align:center;border:1px solid #c5cae9}
-.wpt td{padding:4px 5px;border:1px solid #e8eaf6;vertical-align:top;min-width:80px}
+.wpt td{padding:4px 5px;border:1px solid #e8eaf6;vertical-align:top;min-width:115px}
 .dth{background:#e8eaf6;color:#283593;font-weight:700}
 .thx{background:#cfd8dc;color:#546e7a}
 .we{border-radius:4px;padding:4px 6px;margin-bottom:3px;cursor:pointer;font-size:.72rem}

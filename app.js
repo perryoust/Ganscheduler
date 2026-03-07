@@ -2018,17 +2018,17 @@ function renderNormalWeek(evs,ws,f){
       let inner='';
       if(de.length){
         de.forEach(ev=>{
-          inner+=`<div style="border-radius:4px;padding:4px 5px;margin:2px 0;font-size:.78rem;
+          inner+=`<div style="border-radius:5px;padding:5px 6px;margin:2px 0;font-size:.85rem;
             background:#fff;border-right:3px solid ${clrObj.solid};overflow:hidden;
             ${ev.st==='can'?'opacity:.45;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':ev.st==='done'?'background:#f1f8e9;':ev.st==='nohap'?'background:#fce4ec;':''}">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:3px">
               <div style="cursor:pointer;flex:1;min-width:0;overflow:hidden" onclick="event.stopPropagation();openSP(${ev.id})">
                 <div style="font-weight:700;color:${clrObj.solid};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${supBase(ev.a)}${ev.act?` — <span style="color:#78909c;font-weight:400">${ev.act}</span>`:''}</div>
-                <div style="font-size:.71rem;color:#5c6bc0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ev.tp||'חוג'}</div>
-                ${ev.t?`<div style="font-size:.71rem;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
+                <div style="font-size:.78rem;color:#5c6bc0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ev.tp||'חוג'}</div>
+                ${ev.t?`<div style="font-size:.78rem;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
               </div>
               <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0" onclick="event.stopPropagation()">
-                <button title="התקיים" style="background:${ev.st==='done'?'#2e7d32':'#e8f5e9'};color:${ev.st==='done'?'#fff':'#2e7d32'};border:none;border-radius:3px;padding:2px 4px;font-size:.7rem;cursor:pointer;line-height:1"
+                <button title="התקיים" style="background:${ev.st==='done'?'#2e7d32':'#e8f5e9'};color:${ev.st==='done'?'#fff':'#2e7d32'};border:none;border-radius:3px;padding:2px 5px;font-size:.75rem;cursor:pointer;line-height:1"
                   onclick="openSP(${ev.id});setTimeout(()=>setStatus('done'),80)">✔️</button>
                 <button title="בטל" style="background:${ev.st==='can'?'#c62828':'#ffebee'};color:${ev.st==='can'?'#fff':'#c62828'};border:none;border-radius:3px;padding:2px 4px;font-size:.7rem;cursor:pointer;line-height:1"
                   onclick="openSP(${ev.id})">❌</button>
@@ -2073,10 +2073,10 @@ function renderNormalWeek(evs,ws,f){
       </tr>`;
       pGids.forEach(gid=>{
         const g=G(gid);
-        html+=`<tr><td style="background:#fafbff;font-size:.8rem;padding:5px 8px;color:#333;font-weight:700;
+        html+=`<tr><td style="background:#fafbff;font-size:.88rem;padding:6px 10px;color:#333;font-weight:700;
           border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
-          position:sticky;right:0;z-index:1;white-space:nowrap;max-width:145px;overflow:hidden;text-overflow:ellipsis">
-          ${g.name}<br><span style="font-size:.7rem;color:#78909c;font-weight:400">${g.city}</span>
+          position:sticky;right:0;z-index:1;white-space:nowrap;max-width:155px;overflow:hidden;text-overflow:ellipsis">
+          ${g.name}<br><span style="font-size:.78rem;color:#78909c;font-weight:400">${g.city}</span>
         </td>`;
         days.forEach(d=>{
           const ds=d2s(d);
@@ -2092,10 +2092,10 @@ function renderNormalWeek(evs,ws,f){
     // Solo gardens
     byCity[city].solos.forEach(gid=>{
       const g=G(gid);
-      html+=`<tr><td style="background:#fafbff;font-size:.8rem;padding:5px 8px;color:#333;font-weight:700;
+      html+=`<tr><td style="background:#fafbff;font-size:.88rem;padding:6px 10px;color:#333;font-weight:700;
         border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
-        position:sticky;right:0;z-index:1;white-space:nowrap;max-width:145px;overflow:hidden;text-overflow:ellipsis">
-        ${g.name}<br><span style="font-size:.7rem;color:#78909c;font-weight:400">${g.city}</span>
+        position:sticky;right:0;z-index:1;white-space:nowrap;max-width:155px;overflow:hidden;text-overflow:ellipsis">
+        ${g.name}<br><span style="font-size:.78rem;color:#78909c;font-weight:400">${g.city}</span>
       </td>`;
       days.forEach(d=>{
         const ds=d2s(d);
