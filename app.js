@@ -5795,8 +5795,45 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
     const buffer = await workbook.xlsx.writeBuffer();
 
-    // Direct download — ExcelJS writes pageLayout and headerFooter natively
-    const finalBlob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    // ── JSZip post-process: inject pageLayout + headerFooter into XML ────
+    let finalBlob;
+    try {
+      if (!window._JSZipLoaded) {
+        await new Promise((res, rej) => {
+          const sc = document.createElement('script');
+          sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+          sc.onload = () => { window._JSZipLoaded = true; res(); };
+          sc.onerror = rej;
+          document.head.appendChild(sc);
+        });
+      }
+      // Save original JSZip reference in case ExcelJS overwrote it
+      const _JSZip = window.JSZip;
+      const zip = await _JSZip.loadAsync(buffer);
+      const sheetKeys = Object.keys(zip.files).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
+      for (const sk of sheetKeys) {
+        let xml = await zip.files[sk].async('text');
+        // 1. Inject view="pageLayout"
+        xml = xml.replace(/<sheetView\b([^>]*?)(\/?>)/g, (m, attrs, close) => {
+          const a2 = attrs.includes('view=')
+            ? attrs.replace(/view="[^"]*"/, 'view="pageLayout"')
+            : attrs + ' view="pageLayout"';
+          return `<sheetView${a2}${close}`;
+        });
+        // 2. Inject headerFooter — remove existing then re-add after </sheetData>
+        const hdrText = `&amp;R&amp;"Arial,Bold"&amp;18${monthTitle}`;
+        const hdrXml = `<headerFooter scaleWithDoc="0"><oddHeader>${hdrText}</oddHeader><evenHeader>${hdrText}</evenHeader></headerFooter>`;
+        xml = xml.replace(/<headerFooter[^>]*>[\s\S]*?<\/headerFooter>/g, '');
+        xml = xml.replace(/<\/sheetData>/, `</sheetData>${hdrXml}`);
+        zip.file(sk, xml);
+      }
+      // Use STORE (no compression) — DEFLATE can corrupt binary parts
+      const patched = await zip.generateAsync({ type: 'arraybuffer', compression: 'STORE' });
+      finalBlob = new Blob([patched], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    } catch (pErr) {
+      console.warn('XML patch failed, using raw buffer:', pErr);
+      finalBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    }
 
     const a = document.createElement('a');
     a.href  = URL.createObjectURL(finalBlob);
