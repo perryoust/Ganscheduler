@@ -3631,7 +3631,7 @@ function renderPairs(){
           <span style="font-weight:800;font-size:.8rem">${p.name||gs.map(g=>g.name).join(' + ')}</span>
           <div style="display:flex;gap:4px">
             <button class="btn bsm" style="background:rgba(255,255,255,.22);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="openAddPair(${idx})">✏️ ערוך</button>
-            <button class="btn bsm" style="background:rgba(255,255,255,.28);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="ST('sched');setTimeout(()=>{const g0=pairs[${idx}]?.ids?.[0];if(g0){const el=document.getElementById('s-g1');if(el){el.value=g0;renderSched();}}},80)">📋 שיבוץ</button>
+            <button class="btn bsm" style="background:rgba(255,255,255,.28);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="_goToPairSched(${idx})">📋 שיבוץ</button>
             <button class="btn bsm" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="delPair(${idx})">🗑️</button>
             <button class="btn bsm" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="exportPairNow(${idx})">📤</button>
           </div>
@@ -3655,6 +3655,14 @@ function renderPairs(){
     h+='</div>';
   });
   document.getElementById('pairs-main').innerHTML=h;
+}
+
+
+function _goToPairSched(idx){
+  const p=pairs[idx];
+  if(!p||!p.ids||!p.ids[0]) return;
+  // Open new-schedule modal with first garden of pair pre-selected
+  openNewSched(p.ids[0]);
 }
 
 function exportPairNow(idx){_exGids=pairs[idx].ids;openExport();}
@@ -5576,7 +5584,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
     const CLR = {
       BLUE:   'FFB8CCE4', RED:  'FFFF0000',
-      YELLOW: 'FFFFFF00', GOLD: 'FFFF9999', PINK: 'FFE6B8B7',
+      YELLOW: 'FFFFC7CE', GOLD: 'FFFF9999', PINK: 'FFE6B8B7',
     };
 
     let logoImgId = null;
@@ -5653,20 +5661,26 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         }
       }
 
-      // ── "לוח חוגים" title row ─────────────────────────────
+      // ── Row 1: blank spacer ───────────────────────────────
+      { const row=ws.addRow([]); row.height=8; r++; }
+
+      // ── Row 2: לוח חוגים title (font 14) ──────────────────
       {
         const row = ws.addRow(['לוח חוגים','','','','','','','','']);
-        row.height = 16;
-        applyStyle(row.getCell(1), {sz:13, bold:true, align:'center', valign:'middle'});
+        row.height = 20;
+        applyStyle(row.getCell(1), {sz:14, bold:true, align:'center', valign:'middle'});
         for (let c=2;c<=9;c++) {
-          row.getCell(c).font={name:'Arial',size:13,bold:true};
+          row.getCell(c).font={name:'Arial',size:14,bold:true};
           row.getCell(c).alignment={horizontal:'center',vertical:'middle',readingOrder:'rightToLeft'};
         }
         ws.mergeCells(r+1,1,r+1,9);
         r++;
       }
 
-      // ── Garden name + City row ────────────────────────────
+      // ── Row 3: blank spacer ───────────────────────────────
+      { const row=ws.addRow([]); row.height=8; r++; }
+
+      // ── Row 4: Garden name + City ─────────────────────────
       {
         const row = ws.addRow([`צהרון: ${garden.name}`,'','','','',`עיר: ${garden.city}`,'','','']);
         row.height = 18;
@@ -5739,13 +5753,19 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
           const row = ws.addRow(vals);
           row.height = 19.35;
           styleDataRow(row, fill);
+          // Shrink col E font if holiday name is long
+          if(ev && hol && hol.name && hol.name.length > 5) {
+            const ce = row.getCell(5);
+            if(ce.font) ce.font = {...ce.font, size: hol.name.length > 8 ? 8 : 9};
+          }
           r++;
         }
       }
 
       // ── Footer ────────────────────────────────────────────
-      ws.addRow([]); r++;
-      // Manager row - small right-aligned
+      // Add page break before footer so mgr+notice are last 2 rows on final page
+      ws.getRow(r).addPageBreak();
+      // Manager row - right-aligned (row 36 of page)
       {
         const row = ws.addRow([mgrText,'','','','','','','','']);
         row.height = 18;
