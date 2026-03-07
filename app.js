@@ -4326,7 +4326,7 @@ function doSupExport(){
     lines.push([
       q(g.city||''),q(g.st||''),q(g.name||''),
       q(fD(s.d)),q(dayN(s.d)),
-      q(actName),q(s.grp>1?s.grp:''),q(fT(s.t)),
+      q(actName),q((s.st==='can'||s.st==='nohap'||s.st==='post')?0:(s.grp||1)),q(fT(s.t)),
       q(stMap[s.st]||'מתקיים'),q(reason),q(note)
     ].join(','));
   });
@@ -5819,30 +5819,23 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
             : attrs + ' view="pageLayout"';
           return `<sheetView${a2}${close}`;
         });
-        // 2. Inject rowBreaks to keep footer on last content page
-        // Find the worksheet object by sheet index
+        // 2+3. Inject rowBreaks + headerFooter in one pass (order matters in xlsx XML)
         const sheetIdx = sheetKeys.indexOf(sk);
         const wsObj = workbook.worksheets[sheetIdx];
-        if (wsObj && wsObj._footerStartRow) {
-          const breakRow = wsObj._footerStartRow - 1; // break BEFORE footer
-          const rowBreakXml = `<rowBreaks count="1" manualBreakCount="1"><brk id="${breakRow}" max="16383" man="1"/></rowBreaks>`;
-          if (!xml.includes('<rowBreaks')) {
-            xml = xml.replace(/<\/sheetData>/, `</sheetData>${rowBreakXml}`);
-          }
-        }
-        // 3. Inject header directly into XML (ExcelJS browser headerFooter unreliable)
         const hdrText = `&amp;R&amp;&quot;Arial,Bold&quot;&amp;18${monthTitle}`;
-        if (!xml.includes('<headerFooter')) {
-          xml = xml.replace(/<\/sheetData>/, `</sheetData><headerFooter scaleWithDoc="0"><oddHeader>${hdrText}</oddHeader><evenHeader>${hdrText}</evenHeader></headerFooter>`);
-        } else {
-          xml = xml.replace(/<headerFooter[^>]*>[\s\S]*?<\/headerFooter>/,
-            `<headerFooter scaleWithDoc="0"><oddHeader>${hdrText}</oddHeader><evenHeader>${hdrText}</evenHeader></headerFooter>`);
+        const hdrXml = `<headerFooter scaleWithDoc="0"><oddHeader>${hdrText}</oddHeader><evenHeader>${hdrText}</evenHeader></headerFooter>`;
+        let extraXml = '';
+        if (wsObj && wsObj._footerStartRow) {
+          const breakRow = wsObj._footerStartRow - 1;
+          extraXml += `<rowBreaks count="1" manualBreakCount="1"><brk id="${breakRow}" max="16383" man="1"/></rowBreaks>`;
         }
+        // Remove any existing headerFooter then append both after </sheetData>
+        xml = xml.replace(/<headerFooter[^>]*>[\s\S]*?<\/headerFooter>/g, '');
+        xml = xml.replace(/<\/sheetData>/, `</sheetData>${extraXml}${hdrXml}`);
         zip.file(sk, xml);
       }
       // STORE compression — DEFLATE corrupts binary parts of xlsx (shared strings, styles)
       const patched = await zip.generateAsync({ type:'arraybuffer', compression:'STORE' });
-      finalBlob = new Blob([patched], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
       finalBlob = new Blob([patched], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     } catch(pErr) {
       console.warn('pageLayout patch failed, using raw buffer:', pErr);
