@@ -5521,7 +5521,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
     const CLR = {
       BLUE:   'FFB8CCE4', RED:  'FFFF0000',
-      YELLOW: 'FFFFFF00', GOLD: 'FFF4B183', PINK: 'FFE6B8B7',
+      YELLOW: 'FFFFFF00', GOLD: 'FFFF9999', PINK: 'FFE6B8B7',
     };
 
     let logoImgId = null;
@@ -5586,7 +5586,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
       // ── Excel Page Header: Right=month+year, Left=logo ───
       {
-        const headerRight = `&"Arial,Bold"&14${monthTitle}`;
+        const headerRight = `&"Arial,Bold"&18${monthTitle}`;
         ws.headerFooter.oddHeader  = `&R${headerRight}&C&L&G`;
         ws.headerFooter.evenHeader = `&R${headerRight}&C&L&G`;
         // Embed logo into ExcelJS header image (slot 1)
@@ -5598,16 +5598,28 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         }
       }
 
+      // ── "לוח חוגים" title row ─────────────────────────────
+      {
+        const row = ws.addRow(['לוח חוגים','','','','','','','','']);
+        row.height = 16;
+        applyStyle(row.getCell(1), {sz:13, bold:true, align:'center', valign:'middle'});
+        for (let c=2;c<=9;c++) {
+          row.getCell(c).font={name:'Arial',size:13,bold:true};
+          row.getCell(c).alignment={horizontal:'center',vertical:'middle',readingOrder:'rightToLeft'};
+        }
+        ws.mergeCells(r+1,1,r+1,9);
+        r++;
+      }
+
       // ── Garden name + City row ────────────────────────────
       {
         const row = ws.addRow([`צהרון: ${garden.name}`,'','','','',`עיר: ${garden.city}`,'','','']);
         row.height = 18;
         [1,2,3,4,5].forEach(c => applyStyle(row.getCell(c), {sz:14,bold:true,align:'right',valign:'middle'}));
-        [6,7,8,9].forEach(c   => applyStyle(row.getCell(c), {sz:14,bold:true,align:'center',valign:'middle'}));
+        [6,7,8,9].forEach(c   => applyStyle(row.getCell(c), {sz:14,bold:true,align:'right',valign:'middle'}));
         ws.mergeCells(r+1,1,r+1,5);
         ws.mergeCells(r+1,6,r+1,9);
         r++;
-        ws.addRow([]); r++;
       }
 
       // ── Column headers ────────────────────────────────────
@@ -5686,16 +5698,21 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         ws.mergeCells(r+1,1,r+1,9);
         r++;
       }
-      // Main notice row - large, centered, merged full width, border top+bottom
+      // Main notice row — thick outer border box, 1.48cm height
       {
         const row = ws.addRow(['ייתכנו שינויים בלוח החוגים','','','','','','','','']);
-        row.height = 42;
-        applyStyle(row.getCell(1), {sz:22, bold:true, align:'center', valign:'middle', bt:'medium', bb:'medium'});
-        for (let c=2;c<=9;c++) {
-          row.getCell(c).font = {name:'Arial',size:22,bold:true};
-          row.getCell(c).border = {top:{style:'medium'},bottom:{style:'medium'}};
-          row.getCell(c).alignment = {horizontal:'center',vertical:'middle',readingOrder:'rightToLeft'};
+        row.height = 42; // 1.48cm ≈ 42pt
+        const thickBorder = {style:'thick'};
+        applyStyle(row.getCell(1), {sz:22, bold:true, align:'center', valign:'middle'});
+        row.getCell(1).border = {top:thickBorder, bottom:thickBorder, right:thickBorder};
+        for (let c=2;c<=8;c++) {
+          row.getCell(c).font={name:'Arial',size:22,bold:true};
+          row.getCell(c).alignment={horizontal:'center',vertical:'middle',readingOrder:'rightToLeft'};
+          row.getCell(c).border={top:thickBorder, bottom:thickBorder};
         }
+        row.getCell(9).font={name:'Arial',size:22,bold:true};
+        row.getCell(9).alignment={horizontal:'center',vertical:'middle',readingOrder:'rightToLeft'};
+        row.getCell(9).border={top:thickBorder, bottom:thickBorder, left:thickBorder};
         ws.mergeCells(r+1,1,r+1,9);
         r++;
       }
