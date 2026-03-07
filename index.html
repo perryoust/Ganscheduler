@@ -326,6 +326,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div style="display:flex;gap:6px">
         <button id="g-tab-gan" class="vbtn active" onclick="setGardensTab('gan')">🏫 צהרונים</button>
         <button id="g-tab-sch" class="vbtn" onclick="setGardensTab('sch')">🏛️ בתי ספר</button>
+        <button id="g-tab-fixed" class="vbtn" onclick="setGardensTab('fixed')">📋 שיבוץ קבוע</button>
       </div>
       <button class="btn bp bsm" onclick="openAddGardenModal()">➕ הוסף מקום חדש</button>
     </div>
@@ -710,6 +711,12 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div class="row">
       <div class="fg"><label>חיפוש</label><input type="text" id="su-srch" placeholder="חפש ספק..." oninput="renderSup()" style="min-width:190px"></div>
       <div class="fg"><label>מיון</label><select id="su-sort" onchange="renderSup()"><option value="name">א-ב</option><option value="cnt">לפי כמות</option></select></div>
+      <div class="fg"><label>תצוגה</label>
+        <div style="display:flex;gap:3px">
+          <button id="su-view-cards" class="vbtn active" onclick="setSupView('cards')" title="קלפים">⊞</button>
+          <button id="su-view-list"  class="vbtn"        onclick="setSupView('list')"  title="רשימה">☰</button>
+        </div>
+      </div>
       <button class="btn bp bsm" onclick="openSupModal(null)">➕ הוסף ספק</button>
       <button class="btn bo bsm" onclick="openMerge()">🔀 איחוד ספקים</button>
       <button class="btn bp bsm" onclick="openSupExport(null)">📊 יצוא לאקסל</button>

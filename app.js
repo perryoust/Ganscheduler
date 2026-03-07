@@ -4294,11 +4294,57 @@ function getSupActs(name){
   SUPBASE.forEach(s=>{ if(supBase(s.name)===base){const a=supAct(s.name);if(a)fromSch.add(a);} });
   return [...fromSch].sort((a,b)=>a.localeCompare(b,'he'));
 }
+let _supViewMode='cards';
+function setSupView(mode){
+  _supViewMode=mode;
+  document.getElementById('su-view-cards').classList.toggle('active',mode==='cards');
+  document.getElementById('su-view-list').classList.toggle('active',mode==='list');
+  renderSup();
+}
 function renderSup(){
   const srch=(document.getElementById('su-srch').value||'').toLowerCase();
   const sortMode=(document.getElementById('su-sort')||{value:'name'}).value;
   let all=getAllSup().filter(s=>!srch||(s.name||'').toLowerCase().includes(srch));
+  // Always sort alphabetically first, then by count if selected
+  all=[...all].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
   if(sortMode==='cnt') all=[...all].sort((a,b)=>supBaseCnt(b.name)-supBaseCnt(a.name));
+
+  if(_supViewMode==='list'){
+    let h='<table style="width:100%;border-collapse:collapse;font-size:.82rem">'
+      +'<thead><tr style="background:#e8eaf6;position:sticky;top:0">'
+      +'<th style="padding:6px 10px;text-align:right;font-weight:700;border-bottom:2px solid #c5cae9">ספק</th>'
+      +'<th style="padding:6px 8px;text-align:center;font-weight:700;border-bottom:2px solid #c5cae9">טלפון</th>'
+      +'<th style="padding:6px 8px;text-align:center;font-weight:700;border-bottom:2px solid #c5cae9">פעילויות</th>'
+      +'<th style="padding:6px 8px;text-align:center;font-weight:700;border-bottom:2px solid #c5cae9">סוגים</th>'
+      +'<th style="padding:6px 8px;text-align:center;font-weight:700;border-bottom:2px solid #c5cae9;min-width:80px"></th>'
+      +'</tr></thead><tbody>';
+    all.forEach((s,idx)=>{
+      const base=s.name;
+      const ex=supBaseEx(base);
+      const cnt=supBaseCnt(base);
+      const acts=getSupActs(base);
+      const phone=ex.ph1||s.phone||'';
+      const safeBase=base.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/'/g,"\\'");
+      const bg=idx%2===0?'#fff':'#f8f9ff';
+      h+=`<tr style="background:${bg};cursor:pointer" onclick="openSupCard('${safeBase}')">`
+        +`<td style="padding:5px 10px;font-weight:700;color:#1a237e;border-bottom:1px solid #e8eaf6">${base}`
+        +`${isActSupplier(base)?' <span style="font-size:.65rem;color:#1565c0">🎨</span>':''}`
+        +`${isPurchSupplier(base)?' <span style="font-size:.65rem;color:#2e7d32">🛒</span>':''}`
+        +`</td>`
+        +`<td style="padding:5px 8px;text-align:center;color:#2e7d32;border-bottom:1px solid #e8eaf6">${phone||'—'}</td>`
+        +`<td style="padding:5px 8px;text-align:center;font-weight:700;color:#1565c0;border-bottom:1px solid #e8eaf6">${cnt}</td>`
+        +`<td style="padding:5px 8px;border-bottom:1px solid #e8eaf6;font-size:.71rem">${acts.slice(0,2).join(', ')}${acts.length>2?'…':''}</td>`
+        +`<td style="padding:5px 8px;text-align:center;border-bottom:1px solid #e8eaf6">`
+        +`<button class="btn bp bsm" style="font-size:.62rem" onclick="event.stopPropagation();openSupExport('${safeBase}')">📊</button> `
+        +`<button class="btn bo bsm" style="font-size:.62rem" onclick="event.stopPropagation();openSupCard('${safeBase}');setTimeout(sucToggleEdit,120)">✏️</button>`
+        +`</td></tr>`;
+    });
+    h+='</tbody></table>';
+    document.getElementById('su-body').innerHTML=h||'<p style="color:#999">לא נמצאו</p>';
+    setTimeout(_fitScrollAreas,50);
+    return;
+  }
+
   let h='';
   all.forEach(s=>{
     const base=s.name; // already a base name from getAllBaseSups
@@ -5442,8 +5488,8 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     const daysInMonth = new Date(year, month+1, 0).getDate();
 
     const CLR = {
-      BLUE:      'FFB8CCE4', RED: 'FFFF0000',
-      RED_LIGHT: 'FFFF4D4D', YELLOW: 'FFFFE699', PINK: 'FFE6B8B7',
+      BLUE:   'FFB8CCE4', RED:  'FFFF0000',
+      YELLOW: 'FFFFFF00', GOLD: 'FFFFE699', PINK: 'FFE6B8B7',
     };
 
     let logoImgId = null;
@@ -5475,7 +5521,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       const sheetName = garden.name.replace(/[*?:\[\]/\\]/g,'').slice(0,31) || `גן${garden.id}`;
       const ws = workbook.addWorksheet(sheetName);
 
-      ws.views = [{ state:'pageLayout', rightToLeft:true }];
+      ws.views = [{ state:'pageLayout', rightToLeft:true, showGridLines:true }];
       ws.pageSetup = {
         paperSize: 9, orientation: 'portrait',
         fitToPage: true, fitToWidth: 1, fitToHeight: 0,
@@ -5571,10 +5617,11 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
           const isFirst = ei===0;
           const isCan   = ev && (ev.st==='can'||ev.st==='nohap');
 
+          const holType = hol ? (hol.type||'vacation') : null;
           let fill = CLR.BLUE;
-          if (isFri||isSat)                  fill = CLR.RED;
-          else if (ev && isCan)              fill = CLR.RED_LIGHT;
-          else if (hol||blk)                 fill = CLR.YELLOW;
+          if (isFri||isSat)               fill = CLR.RED;
+          else if (holType==='camp')       fill = CLR.GOLD;
+          else if (holType)               fill = CLR.YELLOW;
 
           const supName = ev ? ((typeof supBase==='function'?supBase(ev.a):ev.a)||ev.a||'') : '';
           const evTpLabel = ev ? (ev.tp||'חוג') : '';
@@ -5784,7 +5831,8 @@ function buildStyledSheet(gardens, allEvs, year, month) {
       const isSat  = dow === 6;
       const blk    = blockedDates ? blockedDates[ds] : null;
       const hol    = typeof getHolidayInfo === 'function' ? getHolidayInfo(ds) : null;
-      const fillRgb = (isFri||isSat) ? 'FFFF0000' : (blk||hol) ? 'FFFFE699' : null;
+      const holType2 = hol ? (hol.type||'vacation') : null;
+      const fillRgb = (isFri||isSat) ? 'FFFF0000' : holType2==='camp' ? 'FFFFE699' : holType2 ? 'FFFFFF00' : null;
       const dayName = `יום\u00a0${HEB_DAYS[dow]}`;
       const dayEvs  = (byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
       const specialNote = '';
@@ -5795,7 +5843,7 @@ function buildStyledSheet(gardens, allEvs, year, month) {
         const isFirst = ei === 0;
         const isCan   = ev && (ev.st==='can'||ev.st==='nohap');
         // row fill: cancelled = light red, else as day color
-        const rowFill = (ev&&isCan&&!isFri&&!isSat) ? 'FFFF4D4D' : (ev&&(hol||blk)&&!isFri&&!isSat) ? 'FFFFFF00' : fillRgb;
+        const rowFill = fillRgb;
         // Paint full row first
         dataRow(r + ei, rowFill);
         // Then fill values
@@ -6359,8 +6407,126 @@ function setGardensTab(t){
   _gardensTab=t;
   document.getElementById('g-tab-gan').classList.toggle('active',t==='gan');
   document.getElementById('g-tab-sch').classList.toggle('active',t==='sch');
+  const fixedBtn=document.getElementById('g-tab-fixed');
+  if(fixedBtn) fixedBtn.classList.toggle('active',t==='fixed');
+  if(t==='fixed'){
+    document.getElementById('g-body').className='scroll-area';
+    renderGardensFixed();
+    setTimeout(_fitScrollAreas,50);
+    return;
+  }
+  document.getElementById('g-body').className='ggrid scroll-area';
   document.getElementById('g-cls').value=t==='gan'?'גנים':'ביה"ס';
   renderGardens();
+}
+
+// ── Fixed-schedule view ──────────────────────────────────────────
+const HEB_DAYS_SHORT=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+
+function getGardenFixedSched(gardenId){
+  const seen=new Set(), result=[];
+  SCH.filter(s=>s.g===gardenId&&s._recId).forEach(s=>{
+    if(!seen.has(s._recId)){ seen.add(s._recId); result.push(s); }
+  });
+  return result.sort((a,b)=>{
+    const da=new Date(a.d).getDay(), db=new Date(b.d).getDay();
+    if(da!==db) return da-db;
+    return (a.t||'').localeCompare(b.t||'');
+  });
+}
+
+function renderGardensFixed(){
+  const cityF=(document.getElementById('g-city')||{}).value||'';
+  const srch=((document.getElementById('g-srch')||{}).value||'').toLowerCase();
+  const allG=[...GARDENS,...(_GARDENS_EXTRA||[])].filter(g=>{
+    if(gcls(g)!=='גנים') return false;
+    if(cityF&&g.city!==cityF) return false;
+    if(srch&&![(g.name||''),(g.city||'')].some(x=>x.toLowerCase().includes(srch))) return false;
+    return true;
+  });
+  const byCity={};
+  allG.forEach(g=>{ const c=g.city||'אחר'; if(!byCity[c]) byCity[c]=[]; byCity[c].push(g); });
+  const sortedCities=Object.keys(byCity).sort((a,b)=>a.localeCompare(b,'he'));
+
+  let h='';
+  sortedCities.forEach(city=>{
+    const gardens=byCity[city];
+    const paired=new Set(), groups=[];
+    [...gardens].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he')).forEach(g=>{
+      if(paired.has(g.id)) return;
+      const pid=gardenPair(g.id);
+      const partner=pid?allG.find(x=>x.id===pid):null;
+      if(partner){ paired.add(g.id); paired.add(partner.id); groups.push({type:'pair',gardens:[g,partner]}); }
+      else groups.push({type:'solo',gardens:[g]});
+    });
+
+    h+=`<div style="margin-bottom:20px">
+      <div style="font-weight:800;color:#1a237e;font-size:.88rem;padding:7px 12px;background:#e8eaf6;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+        🏙️ ${city}<span style="font-size:.72rem;color:#5c6bc0;font-weight:600">(${gardens.length})</span>
+      </div>`;
+
+    groups.forEach(group=>{
+      if(group.type==='pair'){
+        h+=`<div style="background:#f3e5f5;border-radius:6px;padding:3px 10px;margin-bottom:5px;font-size:.72rem;color:#6a1b9a;font-weight:700">🔗 ${group.gardens[0].name} + ${group.gardens[1].name}</div>`;
+        group.gardens.forEach(g=>{ h+=_renderGardenFixedRow(g); });
+      } else {
+        h+=_renderGardenFixedRow(group.gardens[0]);
+      }
+    });
+    h+='</div>';
+  });
+
+  document.getElementById('g-body').innerHTML=h||'<p style="color:#999;padding:20px">לא נמצאו צהרונים</p>';
+}
+
+function _renderGardenFixedRow(g){
+  const fixedEvs=getGardenFixedSched(g.id);
+  const gid=g.id;
+  let rows='';
+  if(fixedEvs.length){
+    fixedEvs.forEach(s=>{
+      const dow=new Date(s.d).getDay();
+      const supN=supBase(s.a)||s.a||'';
+      const actN=s.act||supAct(s.a)||'';
+      const time=s.t?s.t.slice(0,5):'—';
+      rows+=`<tr style="border-bottom:1px solid #eef0fb">
+        <td style="padding:3px 10px;font-weight:600;color:#1a237e;white-space:nowrap">יום ${HEB_DAYS_SHORT[dow]}</td>
+        <td style="padding:3px 10px;color:#222">${supN}${actN?' — '+actN:''}</td>
+        <td style="padding:3px 10px;color:#5c6bc0;font-size:.71rem">${s.tp||'חוג'}</td>
+        <td style="padding:3px 10px;color:#2e7d32;font-weight:600;white-space:nowrap">${time}</td>
+      </tr>`;
+    });
+  } else {
+    rows=`<tr><td colspan="4" style="padding:5px 10px;color:#bbb;font-size:.72rem;font-style:italic">אין שיבוץ קבוע</td></tr>`;
+  }
+  return `<div style="display:flex;margin-bottom:7px;border:1px solid #e3e7f5;border-radius:8px;overflow:hidden">
+    <div style="background:#f5f7ff;padding:8px 10px;min-width:120px;max-width:140px;display:flex;flex-direction:column;justify-content:space-between;border-left:1px solid #e3e7f5">
+      <div style="font-weight:800;color:#1a237e;font-size:.8rem;margin-bottom:6px">${g.name}</div>
+      <div style="display:flex;flex-direction:column;gap:3px;margin-top:4px">
+        <button class="btn bp bsm" style="font-size:.62rem;padding:2px 5px" onclick="openGM(${gid})">📂 כרטיס</button>
+        <button class="btn bo bsm" style="font-size:.62rem;padding:2px 5px" onclick="_goToGardenSched(${gid})">📅 שיבוצים</button>
+      </div>
+    </div>
+    <div style="flex:1;overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+        <thead><tr style="background:#eef2ff">
+          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">יום</th>
+          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">ספק / פעילות</th>
+          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">סוג</th>
+          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">שעה</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function _goToGardenSched(gardenId){
+  ST('sched');
+  setTimeout(()=>{
+    const sel=document.getElementById('sch-g');
+    if(sel){ sel.value=gardenId; renderSched(); }
+  },200);
 }
 let _gardensTab='gan';
 // ─── ADD PLACE ────────────────────────────────────────
