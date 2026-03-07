@@ -1511,7 +1511,8 @@ function renderClusterDay(evs, ds, clusterName){
         <div class="city-block-hdr" style="background:${clrCity.solid};font-size:.76rem">
           ${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}
           ${g.st?`<span style="font-size:.65rem;font-weight:400;opacity:.8">${g.st}</span>`:''}
-          <span style="font-size:.65rem;opacity:.75;font-weight:400;margin-right:auto">📍 ${g.city||''}</span>
+          <span style="font-size:.65rem;opacity:.75;font-weight:400">📍 ${g.city||''}</span>
+          <button onclick="event.stopPropagation();_exportGardenWA([${g.id}],'${ds}')" style="background:rgba(255,255,255,.28);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
         </div>
         <div style="background:#fff;padding:7px">
           <div class="pslot ${stc}" style="border-right:3px solid ${clrCity.solid};background:${clrCity.light}" onclick="openSP(${s.id})">
@@ -1729,7 +1730,8 @@ function renderNormalDay(evs,ds){
             ${gcls(s.gd)==='ביה"ס'?'🏛️':'🏫'} ${s.gd.name}
             ${s.gd.st?`<span style="font-size:.65rem;font-weight:400;opacity:.8">${s.gd.st}</span>`:''}
             ${brokenBadge}
-            <span style="font-size:.65rem;opacity:.75;font-weight:400;margin-right:auto">📍 ${city}</span>
+            <span style="font-size:.65rem;opacity:.75;font-weight:400">📍 ${city}</span>
+            <button onclick="event.stopPropagation();_exportGardenWA([${s.g}],'${ds}')" style="background:rgba(255,255,255,.28);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
             <button onclick="event.stopPropagation();quickAddPartner(${s.g})" style="background:rgba(255,255,255,.22);border:none;border-radius:3px;padding:1px 6px;cursor:pointer;font-size:.66rem;color:#fff">➕ בן זוג</button>
           </div>
           <div style="background:#fff;padding:7px">
@@ -1784,7 +1786,7 @@ function renderPairCard(pair, pairEvs, opts){
     ?`<button onclick="openPairQuickEdit('${pair.id}','${ds}')" style="background:rgba(255,255,255,.25);border:none;border-radius:3px;padding:2px 6px;cursor:pointer;font-size:.65rem;color:#fff" title="ערוך">✏️</button>`
     :'';
   const expBtn=showExport&&ds
-    ?`<button onclick="exportPairRow('${pair.id}','${ds}')" style="background:rgba(255,255,255,.25);border:none;border-radius:3px;padding:2px 6px;cursor:pointer;font-size:.65rem;color:#fff" title="יצוא">📋</button>`
+    ?`<button onclick="exportPairRow('${pair.id}','${ds}')" style="background:rgba(255,255,255,.3);border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.7rem;color:#fff;font-weight:700">📋 הודעה</button>`
     :'';
 
   let html=`<div class="pair-card">
@@ -1798,7 +1800,6 @@ function renderPairCard(pair, pairEvs, opts){
         <span class="pcl-name" style="color:${clr.text}">${pair.name}</span>
         ${showEdit&&ds?`<div class="pcl-btns">
           <button onclick="openPairQuickEdit('${pair.id}','${ds}')" style="background:${clr.solid};border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.62rem;color:#fff">✏️</button>
-          ${showExport?`<button onclick="exportPairRow('${pair.id}','${ds}')" style="background:${clr.solid};border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.62rem;color:#fff">📋</button>`:''}
         </div>`:''}
       </div>
       <div class="pair-card-content">
@@ -1971,8 +1972,8 @@ function renderNormalWeek(evs,ws,f){
   });
 
   // border-separate avoids border-collapse + sticky bug
-  let html='<div style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 260px);border-radius:8px;border:2px solid #9fa8da">'
-          +'<table style="min-width:620px;border-collapse:separate;border-spacing:0;width:100%"><thead><tr>';
+  let html='<div style="overflow-x:auto;border-radius:8px;border:2px solid #9fa8da">'
+          +'<table style="min-width:950px;border-collapse:separate;border-spacing:0;width:100%"><thead><tr>';
 
   html+=`<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;
     border-bottom:2px solid #9fa8da;border-left:1px solid #c5cae9;
@@ -1986,7 +1987,7 @@ function renderNormalWeek(evs,ws,f){
     const bg=isToday?'#1565c0':blkWk?'#fce4ec':hol?hol.bg:'#e8eaf6';
     const col=isToday?'#fff':blkWk?'#c62828':hol?hol.color:'#283593';
     const bottomBorder=blkWk?'border-bottom:3px solid #e91e63':'border-bottom:2px solid #9fa8da';
-    html+=`<th style="background:${bg};color:${col};padding:5px 4px;text-align:center;font-size:.74rem;
+    html+=`<th style="background:${bg};color:${col};padding:5px 4px;text-align:center;font-size:.76rem;min-width:132px;
       ${bottomBorder};border-left:1px solid ${isToday?'rgba(255,255,255,.3)':'#c5cae9'};
       position:sticky;top:0;z-index:3;white-space:nowrap" onclick="jumpToDay('${ds}')">
       ${dn[i]}<br>
@@ -2018,23 +2019,23 @@ function renderNormalWeek(evs,ws,f){
       let inner='';
       if(de.length){
         de.forEach(ev=>{
-          inner+=`<div style="border-radius:5px;padding:5px 6px;margin:2px 0;font-size:.85rem;
-            background:#fff;border-right:3px solid ${clrObj.solid};overflow:hidden;
-            ${ev.st==='can'?'opacity:.45;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':ev.st==='done'?'background:#f1f8e9;':ev.st==='nohap'?'background:#fce4ec;':''}">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:3px">
-              <div style="cursor:pointer;flex:1;min-width:0;overflow:hidden" onclick="event.stopPropagation();openSP(${ev.id})">
-                <div style="font-weight:700;color:${clrObj.solid};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${supBase(ev.a)}${ev.act?` — <span style="color:#78909c;font-weight:400">${ev.act}</span>`:''}</div>
-                <div style="font-size:.78rem;color:#5c6bc0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ev.tp||'חוג'}</div>
-                ${ev.t?`<div style="font-size:.78rem;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
+          inner+=`<div style="border-radius:5px;padding:5px 6px;margin:2px 0;font-size:13px;
+            background:#fff;border-right:3px solid ${clrObj.solid};
+            ${ev.st==='can'?'opacity:.5;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':ev.st==='done'?'background:#f1f8e9;':ev.st==='nohap'?'background:#fce4ec;':''}">
+            <div style="display:flex;align-items:flex-start;gap:4px">
+              <div style="cursor:pointer;flex:1;min-width:0" onclick="event.stopPropagation();openSP(${ev.id})">
+                <div style="font-weight:700;color:${clrObj.solid};word-break:break-word;line-height:1.3">${supBase(ev.a)}${ev.act?`<span style="color:#78909c;font-weight:400"> — ${ev.act}</span>`:''}</div>
+                <div style="font-size:12px;color:#5c6bc0;margin-top:1px">${ev.tp||'חוג'}</div>
+                ${ev.t?`<div style="font-size:12px;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
               </div>
               <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0" onclick="event.stopPropagation()">
-                <button title="התקיים" style="background:${ev.st==='done'?'#2e7d32':'#e8f5e9'};color:${ev.st==='done'?'#fff':'#2e7d32'};border:none;border-radius:3px;padding:2px 5px;font-size:.75rem;cursor:pointer;line-height:1"
+                <button title="התקיים" style="background:${ev.st==='done'?'#2e7d32':'#e8f5e9'};color:${ev.st==='done'?'#fff':'#2e7d32'};border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
                   onclick="openSP(${ev.id});setTimeout(()=>setStatus('done'),80)">✔️</button>
-                <button title="בטל" style="background:${ev.st==='can'?'#c62828':'#ffebee'};color:${ev.st==='can'?'#fff':'#c62828'};border:none;border-radius:3px;padding:2px 4px;font-size:.7rem;cursor:pointer;line-height:1"
+                <button title="בטל" style="background:${ev.st==='can'?'#c62828':'#ffebee'};color:${ev.st==='can'?'#fff':'#c62828'};border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
                   onclick="openSP(${ev.id})">❌</button>
-                <button title="לא התקיים" style="background:${ev.st==='nohap'?'#6a1b9a':'#f3e5f5'};color:${ev.st==='nohap'?'#fff':'#6a1b9a'};border:none;border-radius:3px;padding:2px 4px;font-size:.7rem;cursor:pointer;line-height:1"
+                <button title="לא התקיים" style="background:${ev.st==='nohap'?'#6a1b9a':'#f3e5f5'};color:${ev.st==='nohap'?'#fff':'#6a1b9a'};border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
                   onclick="openSP(${ev.id});setTimeout(()=>markNoHap(),80)">⚠️</button>
-                <button title="דחה" style="background:#fff3e0;color:#e65100;border:none;border-radius:3px;padding:2px 4px;font-size:.7rem;cursor:pointer;line-height:1"
+                <button title="דחה" style="background:#fff3e0;color:#e65100;border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
                   onclick="event.stopPropagation();openPostpone(${ev.id})">⏩</button>
               </div>
             </div>
@@ -2051,7 +2052,7 @@ function renderNormalWeek(evs,ws,f){
       return `<td style="background:${cellBg};
         border-bottom:1px solid ${borderColor};border-left:1px solid ${borderColor};
         ${blk?'border:1.5px solid #e91e63;':''}
-        padding:3px;vertical-align:top;min-width:110px"
+        padding:4px;vertical-align:top;min-width:130px"
         onclick="openGcellPopup(${gid},'${ds}',event)">${inner}</td>`;
     }
 
@@ -2060,23 +2061,21 @@ function renderNormalWeek(evs,ws,f){
       const pairGidList = pGids.join(',');
       html+=`<tr>
         <td colspan="7" style="background:${clr.solid};color:#fff;padding:5px 12px;
-          font-size:.78rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2)">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <span>🔗 ${pair.name}</span>
-            <div style="display:flex;gap:5px">
-              <button onclick="event.stopPropagation();_exportPairWA([${pairGidList}])"
-                style="background:rgba(255,255,255,.22);border:none;border-radius:4px;color:#fff;
-                  font-size:.68rem;padding:2px 8px;cursor:pointer;white-space:nowrap">📋 הודעה</button>
-            </div>
+          font-size:.82rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2)">
+          <div style="display:flex;align-items:center;gap:8px">
+            <button onclick="event.stopPropagation();_exportPairWA([${pairGidList}])"
+              style="background:rgba(255,255,255,.22);border:none;border-radius:5px;color:#fff;
+                font-size:.72rem;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">📋 הודעה</button>
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 ${pair.name}</span>
           </div>
         </td>
       </tr>`;
       pGids.forEach(gid=>{
         const g=G(gid);
-        html+=`<tr><td style="background:#fafbff;font-size:.88rem;padding:6px 10px;color:#333;font-weight:700;
+        html+=`<tr><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
           border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
-          position:sticky;right:0;z-index:1;white-space:nowrap;max-width:155px;overflow:hidden;text-overflow:ellipsis">
-          ${g.name}<br><span style="font-size:.78rem;color:#78909c;font-weight:400">${g.city}</span>
+          position:sticky;right:0;z-index:1;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">
+          ${g.name}<br><span style="font-size:12px;color:#78909c;font-weight:400">${g.city}</span>
         </td>`;
         days.forEach(d=>{
           const ds=d2s(d);
@@ -2092,10 +2091,10 @@ function renderNormalWeek(evs,ws,f){
     // Solo gardens
     byCity[city].solos.forEach(gid=>{
       const g=G(gid);
-      html+=`<tr><td style="background:#fafbff;font-size:.88rem;padding:6px 10px;color:#333;font-weight:700;
+      html+=`<tr><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
         border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
-        position:sticky;right:0;z-index:1;white-space:nowrap;max-width:155px;overflow:hidden;text-overflow:ellipsis">
-        ${g.name}<br><span style="font-size:.78rem;color:#78909c;font-weight:400">${g.city}</span>
+        position:sticky;right:0;z-index:1;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">
+        ${g.name}<br><span style="font-size:12px;color:#78909c;font-weight:400">${g.city}</span>
       </td>`;
       days.forEach(d=>{
         const ds=d2s(d);
@@ -2224,7 +2223,10 @@ function renderCalList(evs, mDate){
           return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
         });
         h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border};border-radius:6px;overflow:hidden">
-          <div style="background:${clr.solid}22;padding:2px 8px;font-size:.72rem;font-weight:700;color:${clr.solid}">🔗 ${pair.name}</div>`;
+          <div style="background:${clr.solid}22;padding:3px 8px;font-size:.72rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
+            <span>🔗 ${pair.name}</span>
+            <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
+          </div>`;
         sorted.forEach(s=>{ h+=_listRow(s,clr); });
         h+=`</div>`;
       });
@@ -2385,7 +2387,7 @@ function renderDash(){
         rows.forEach(row=>{
           if(row.type==='pair'){
             const _dashClr=CITY_COLORS(G(row.pair.ids[0]).city);
-            _pairCards+=renderPairCard(row.pair,row.evs,{ds:date,clr:_dashClr,showEdit:true,showExport:false});
+            _pairCards+=renderPairCard(row.pair,row.evs,{ds:date,clr:_dashClr,showEdit:true,showExport:true});
           } else {
             const s=row.ev;
             const stc=s.st!=='ok'?'st-'+s.st:'';
@@ -2393,7 +2395,8 @@ function renderDash(){
             h+=`<div class="city-block" style="margin-bottom:7px">
               <div class="city-block-hdr" style="background:${_sc.solid};font-size:.76rem">
                 🏫 ${s.gd.name}
-                <span style="font-size:.67rem;opacity:.8;font-weight:400;margin-right:auto">📍 ${G(s.g).city}</span>
+                <span style="font-size:.67rem;opacity:.8;font-weight:400">📍 ${G(s.g).city}</span>
+                <button onclick="event.stopPropagation();_exportGardenWA([${s.g}],'${date}')" style="background:rgba(255,255,255,.28);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
                 <button onclick="event.stopPropagation();quickAddPartner(${s.g})"
                   style="background:rgba(255,255,255,.22);border:none;border-radius:4px;padding:1px 7px;cursor:pointer;font-size:.67rem;color:#fff">➕ הוסף בן זוג</button>
               </div>
@@ -3659,10 +3662,10 @@ function renderPairs(){
         <div class="pair-row-label" style="background:${clr.solid};display:flex;justify-content:space-between;align-items:center">
           <span style="font-weight:800;font-size:.8rem">${p.name||gs.map(g=>g.name).join(' + ')}</span>
           <div style="display:flex;gap:4px">
+            <button class="btn bsm" style="background:rgba(255,255,255,.3);border:none;color:#fff;font-size:.7rem;padding:3px 9px;border-radius:4px;cursor:pointer;font-weight:700" onclick="_exportPairWA(${JSON.stringify(p.ids)})">📋 הודעה</button>
             <button class="btn bsm" style="background:rgba(255,255,255,.22);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="openAddPair(${idx})">✏️ ערוך</button>
             <button class="btn bsm" style="background:rgba(255,255,255,.28);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="_goToPairSched(${idx})">📋 שיבוץ</button>
             <button class="btn bsm" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="delPair(${idx})">🗑️</button>
-            <button class="btn bsm" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="exportPairNow(${idx})">📤</button>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:#e8eaf6">`;
@@ -4206,35 +4209,10 @@ function saveClusterSchedule(){
 function exportPairRow(pairId,ds){
   const pair=pairs.find(p=>String(p.id)===String(pairId));
   if(!pair) return;
-  const evs=SCH.filter(s=>pair.ids.includes(s.g)&&s.d===ds&&s.st!=='can')
-    .sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
-  if(!evs.length){showCopyToast('אין פעילויות לייצוא');return;}
-  let text=`📅 ${fD(ds)} יום ${dayN(ds)}\n`;
-  const firstEv=evs[0];
-  const anyPost=evs.some(s=>s.st==='post');
-  if(anyPost){
-    const origEv=evs.find(s=>s.st==='post');
-    if(origEv&&origEv.pd) text+=`📌 הפעילות עברה מ-${fD(ds)} ל-${fD(origEv.pd)}\n`;
-  }
-  text+=firstEv.a;
-  if(firstEv.act) text+=` (${firstEv.act})`;
-  if(firstEv.p) text+=` 📞 ${firstEv.p}`;
-  text+=`\n`;
-  const sortedEvs=[...evs].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
-  const seen=new Set();
-  sortedEvs.forEach(s=>{
-    if(seen.has(s.g)) return; seen.add(s.g);
-    const g=G(s.g);if(!g.id) return;
-    text+=(g.st?g.st+' ':'')+g.name;
-    if(s.t) text+=` ${fT(s.t)}`;
-    text+=`\n`;
-  });
-  const copy=t=>{
-    navigator.clipboard.writeText(t)
-      .then(()=>showCopyToast())
-      .catch(()=>{const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showCopyToast();});
-  };
-  copy(text);
+  // Set date to the specific day, then open export modal with pair gids
+  const prevD=calD;
+  calD=s2d(ds);
+  _exportPairWA(pair.ids);
 }
 function showCopyToast(msg){
   let t=document.getElementById('copy-toast');
@@ -4244,16 +4222,24 @@ function showCopyToast(msg){
 }
 
 
+
+function _exportGardenWA(gids, ds){
+  _exGids = Array.isArray(gids) ? gids : JSON.parse(gids);
+  if(ds) calD = s2d(ds);
+  openExport();
+}
+
 function _exportPairWA(gids){
-  _exGids = gids;
+  _exGids = Array.isArray(gids)?gids:JSON.parse(gids);
   openExport();
 }
 
 function openExport(){
   const ws=monStart(calD), we=addD(ws,5);
   const isWeek=(calV==='week');
-  document.getElementById('ex-d1').value=isWeek?d2s(ws):d2s(calD);
-  document.getElementById('ex-d2').value=isWeek?d2s(we):'';
+  const todayStr=d2s(calD);
+  document.getElementById('ex-d1').value=isWeek?d2s(ws):todayStr;
+  document.getElementById('ex-d2').value=isWeek?d2s(we):todayStr;
   const f=getCalF();
   const gids=_exGids||f.gids;
   let ctx=isWeek?`${fD(d2s(ws))} – ${fD(d2s(we))}`:`תאריך: ${fD(d2s(calD))}`;
@@ -4288,36 +4274,70 @@ function genExport(){
       byCity[c].push({...s,gd:g});
     });
     Object.keys(byCity).sort().forEach(c=>{
-      if(fmt==='full') text+=`🏙️ ${c}\n`;
       if(fmt==='full'){
-        // Group by supplier+activity — same sup+act: group gardens together
-        const bySup={};
-        byCity[c].forEach(s=>{
-          const key=`${s.a}||${s.act||supAct(s.a)||''}||${s.p||''}`;
-          if(!bySup[key])bySup[key]=[];
-          bySup[key].push(s);
+        text+=`🏙️ ${c}\n`;
+        // ── Group by pairs first, then solos ──────────────────────────
+        const cityEvs=byCity[c];
+        const usedIds=new Set();
+        // Pairs
+        pairs.forEach(pair=>{
+          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g));
+          if(!pairEvs.length) return;
+          pairEvs.forEach(s=>usedIds.add(s.id));
+          // Group same pair by supplier+activity key
+          const bySup={};
+          pairEvs.forEach(s=>{
+            const key=`${s.a}||${s.act||supAct(s.a)||''}||${s.p||''}`;
+            if(!bySup[key])bySup[key]=[];
+            bySup[key].push(s);
+          });
+          Object.values(bySup).forEach(group=>{
+            const s0=group[0];
+            const actLabel=s0.act||supAct(s0.a)||'';
+            const supLine=`📚 ${supBase(s0.a)}${actLabel?' - '+actLabel:''}${s0.p?' · 📞 '+s0.p:''}`;
+            const addrs=[...new Set(group.map(s=>s.gd.st||''))];
+            const sameAddr=addrs.length===1&&addrs[0];
+            if(sameAddr){
+              text+=`${supLine}\n  🏫 ${addrs[0]}\n`;
+              group.forEach(s=>{ text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`; });
+            } else {
+              text+=`${supLine}\n`;
+              group.forEach(s=>{
+                const addr=s.gd.st?`🏫 ${s.gd.st} · `:'  ';
+                text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`;
+              });
+            }
+            text+='\n';
+          });
         });
-        Object.values(bySup).forEach(group=>{
-          const s0=group[0];
-          const actLabel=s0.act||supAct(s0.a)||'';
-          const supLine=`📚 ${supBase(s0.a)}${actLabel?' - '+actLabel:''}${s0.p?' · 📞 '+s0.p:''}`;
-          // Check if all in group share same address
-          const addrs=[...new Set(group.map(s=>s.gd.st||''))];
-          const sameAddr=addrs.length===1&&addrs[0];
-          if(sameAddr){
-            text+=`${supLine}\n  🏫 ${addrs[0]}\n`;
-            group.forEach(s=>{
-              text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`;
-            });
-          } else {
-            text+=`${supLine}\n`;
-            group.forEach(s=>{
-              const addr=s.gd.st?`🏫 ${s.gd.st} · `:'  ';
-              text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`;
-            });
-          }
-          text+='\n';
-        });
+        // Solos (not in any pair)
+        const soloEvs=cityEvs.filter(s=>!usedIds.has(s.id));
+        if(soloEvs.length){
+          const bySup={};
+          soloEvs.forEach(s=>{
+            const key=`${s.a}||${s.act||supAct(s.a)||''}||${s.p||''}`;
+            if(!bySup[key])bySup[key]=[];
+            bySup[key].push(s);
+          });
+          Object.values(bySup).forEach(group=>{
+            const s0=group[0];
+            const actLabel=s0.act||supAct(s0.a)||'';
+            const supLine=`📚 ${supBase(s0.a)}${actLabel?' - '+actLabel:''}${s0.p?' · 📞 '+s0.p:''}`;
+            const addrs=[...new Set(group.map(s=>s.gd.st||''))];
+            const sameAddr=addrs.length===1&&addrs[0];
+            if(sameAddr){
+              text+=`${supLine}\n  🏫 ${addrs[0]}\n`;
+              group.forEach(s=>{ text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`; });
+            } else {
+              text+=`${supLine}\n`;
+              group.forEach(s=>{
+                const addr=s.gd.st?`🏫 ${s.gd.st} · `:'  ';
+                text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`;
+              });
+            }
+            text+='\n';
+          });
+        }
       } else {
         byCity[c].forEach(s=>{
           text+=`${s.gd.name}${s.t?' '+fT(s.t):''} - ${s.a}\n`;
