@@ -2148,7 +2148,6 @@ function _quickActionBtns(s){
 function renderCalList(evs, mDate){
   const y=mDate.getFullYear(),m=mDate.getMonth();
   const tday=td();
-  // Group by date
   const byDate={};
   evs.filter(s=>s.st!=='can').forEach(s=>{
     const dk=s._isPostponed?s.pd:s.d;
@@ -2164,7 +2163,9 @@ function renderCalList(evs, mDate){
     const isToday=ds===tday;
     const hol=getHolidayInfo(ds);
     const blk=getBlockedInfo(ds);
-    h+=`<div style="border-bottom:1px solid #e0e0e0">
+
+    // Day header
+    h+=`<div style="border-bottom:2px solid #c5cae9">
       <div style="background:${isToday?'#1565c0':hol?hol.bg:blk?'#fce4ec':'#e8eaf6'};color:${isToday?'#fff':hol?hol.color:blk?'#c62828':'#283593'};padding:6px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="jumpToDay('${ds}')">
         <span style="font-weight:700;font-size:.82rem">📅 ${dayN(ds)} ${fD(ds)}</span>
         <span style="display:flex;gap:8px;align-items:center">
@@ -2173,29 +2174,79 @@ function renderCalList(evs, mDate){
           <span style="font-size:.72rem;opacity:.8">${dayEvs.length} פעילויות</span>
         </span>
       </div>`;
-    h+='<div style="padding:4px 8px">';
-    dayEvs.forEach(s=>{
-      const g=G(s.g);
-      const clr=CITY_COLORS(g.city);
-      const stC=s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':'#333';
-      h+=`<div style="display:grid;grid-template-columns:130px 1fr auto auto auto;align-items:center;gap:6px;padding:4px 6px;border-radius:5px;margin-bottom:3px;background:${clr.light};border-right:3px solid ${clr.solid};cursor:pointer" onclick="openSP(${s.id})">
-        <div>
-          <div style="font-weight:700;font-size:.76rem;color:#1a237e">${g.name}</div>
-          <div style="font-size:.67rem;color:#78909c">${g.city}</div>
-        </div>
-        <div>
-          <div style="font-size:.76rem;font-weight:600;color:#1565c0">${supBase(s.a)}${s.act?' — <span style="color:#546e7a">'+s.act+'</span>':''}</div>
-          <div style="font-size:.67rem;color:#5c6bc0">${s.tp||'חוג'}</div>
-          ${s.nt?`<div style="font-size:.67rem;color:#78909c">📝 ${s.nt.slice(0,50)}${s.nt.length>50?'…':''}</div>`:''}
-        </div>
-        <div style="font-size:.72rem;color:#546e7a;text-align:center;white-space:nowrap">${s.t?'⏰ '+fT(s.t):''}</div>
-        <div style="font-size:.72rem;font-weight:700;color:${stC}">${stLabel(s).replace(/<[^>]+>/g,'')}</div>
-        ${_quickActionBtns(s)}
+
+    h+='<div style="padding:6px 8px">';
+
+    // Group by city → sort cities
+    const allCities=[...new Set(dayEvs.map(s=>G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
+
+    allCities.forEach(city=>{
+      const cityEvs=dayEvs.filter(s=>(G(s.g).city||'אחר')===city);
+      const clr=CITY_COLORS(city);
+
+      h+=`<div style="margin-bottom:8px">`;
+      // City header
+      h+=`<div style="display:flex;align-items:center;gap:6px;padding:3px 8px;margin-bottom:4px;background:${clr.light};border-right:3px solid ${clr.solid};border-radius:4px">
+        <span style="font-weight:800;color:${clr.solid};font-size:.78rem">🏙️ ${city}</span>
+        <span style="font-size:.68rem;color:#78909c">${cityEvs.length} פעילויות</span>
       </div>`;
+
+      // Pairs first — sorted by pair name
+      const pairedGids=new Set();
+      const pairGroups=[];
+      pairs.forEach(pair=>{
+        if(isPairBroken&&isPairBroken(pair.id,ds)) return;
+        const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g));
+        if(!pairEvs.length) return;
+        pair.ids.forEach(id=>pairedGids.add(id));
+        pairGroups.push({pair,pairEvs});
+      });
+      pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he'));
+
+      pairGroups.forEach(({pair,pairEvs})=>{
+        // Sort pair events by garden name then time
+        const sorted=pairEvs.sort((a,b)=>{
+          const na=G(a.g).name||'', nb=G(b.g).name||'';
+          return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
+        });
+        h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border};border-radius:6px;overflow:hidden">
+          <div style="background:${clr.solid}22;padding:2px 8px;font-size:.72rem;font-weight:700;color:${clr.solid}">🔗 ${pair.name}</div>`;
+        sorted.forEach(s=>{ h+=_listRow(s,clr); });
+        h+=`</div>`;
+      });
+
+      // Solos — sorted by garden name
+      const soloEvs=cityEvs
+        .filter(s=>!pairedGids.has(s.g))
+        .sort((a,b)=>{
+          const na=G(a.g).name||'', nb=G(b.g).name||'';
+          return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
+        });
+      soloEvs.forEach(s=>{ h+=_listRow(s,clr); });
+
+      h+=`</div>`; // end city
     });
+
     h+='</div></div>';
   });
   return h+'</div>';
+}
+
+function _listRow(s, clr){
+  const g=G(s.g);
+  const stC=s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':'#333';
+  return `<div style="display:grid;grid-template-columns:120px 1fr auto auto auto;align-items:center;gap:5px;padding:3px 6px;border-radius:4px;margin-bottom:2px;background:${s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light};border-right:3px solid ${clr.solid};cursor:pointer" onclick="openSP(${s.id})">
+    <div>
+      <div style="font-weight:700;font-size:.75rem;color:#1a237e">${g.name}</div>
+      <div style="font-size:.65rem;color:#78909c">${s.t?'⏰ '+fT(s.t):''}</div>
+    </div>
+    <div>
+      <div style="font-size:.75rem;font-weight:600;color:#1565c0">${supBase(s.a)}${s.act?' — <span style="color:#546e7a">'+s.act+'</span>':''}</div>
+      <div style="font-size:.65rem;color:#5c6bc0">${s.tp||'חוג'}</div>
+    </div>
+    <div style="font-size:.7rem;font-weight:700;color:${stC}">${stLabel(s).replace(/<[^>]+>/g,'')}</div>
+    ${_quickActionBtns(s)}
+  </div>`;
 }
 
 function renderMonth(evs,mDate){
