@@ -215,15 +215,20 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     </div>
   </div>
   <div class="card" style="margin-bottom:10px">
-    <div class="row" style="flex-wrap:wrap;gap:6px;align-items:flex-end">
-      <div class="fg"><label>תאריך</label><input type="date" id="dash-date" onchange="renderDash()"></div>
-      <div class="fg"><label>עיר</label><select id="dash-city" onchange="renderDash()"><option value="">כל הערים</option></select></div>
-      <div class="fg"><label>ספק</label><select id="dash-sup" onchange="renderDash()"><option value="">כל הספקים</option></select></div>
-      <div class="fg"><label>סטטוס</label><select id="dash-st" onchange="renderDash()"><option value="">הכל</option><option value="ok">מתקיים</option><option value="done">התקיים</option><option value="can">בוטל</option><option value="post">נדחה</option><option value="nohap">לא התקיים</option></select></div>
-      <div class="fg"><label>חיפוש חופשי</label><input type="text" id="dash-srch" placeholder="שם צהרון, ספק..." autocomplete="off" oninput="renderDash()" style="min-width:130px"></div>
-      <div class="mob-btn-row" style="flex-wrap:nowrap">
-        <button class="btn bp bsm" onclick="openNewSched(null)">➕ שיבוץ חדש</button>
-        <button class="btn br2 bsm" onclick="openCancelDay(document.getElementById('dash-date').value||td())" title="ביטול כל פעילויות יום">🚨 ביטול יום</button>
+    <div>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+        <div class="fg" style="flex:1;min-width:150px"><label>תאריך</label><input type="date" id="dash-date" onchange="renderDash()" style="width:100%"></div>
+        <div class="mob-btn-row" style="flex-wrap:nowrap;margin-bottom:0">
+          <button class="btn bp bsm" onclick="openNewSched(null)">➕ שיבוץ חדש</button>
+          <button class="btn br2 bsm" onclick="openCancelDay(document.getElementById('dash-date').value||td())" title="ביטול כל פעילויות יום">🚨 ביטול יום</button>
+        </div>
+      </div>
+      <button class="mob-filter-toggle" onclick="mobToggleFilters('dash-flt')">⚙️ פילטרים <span id="dash-flt-arrow">▾</span></button>
+      <div id="dash-flt" class="mob-flt-wrap">
+        <div class="fg"><label>עיר</label><select id="dash-city" onchange="renderDash()"><option value="">כל הערים</option></select></div>
+        <div class="fg"><label>ספק</label><select id="dash-sup" onchange="renderDash()"><option value="">כל הספקים</option></select></div>
+        <div class="fg"><label>סטטוס</label><select id="dash-st" onchange="renderDash()"><option value="">הכל</option><option value="ok">מתקיים</option><option value="done">התקיים</option><option value="can">בוטל</option><option value="post">נדחה</option><option value="nohap">לא התקיים</option></select></div>
+        <div class="fg"><label>חיפוש חופשי</label><input type="text" id="dash-srch" placeholder="שם צהרון, ספק..." autocomplete="off" oninput="renderDash()" style="min-width:130px"></div>
       </div>
     </div>
     <!-- Classification tabs -->
@@ -244,14 +249,17 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <div id="p-cal" class="panel">
   <div class="card" style="padding:11px">
     <div class="row" style="margin-bottom:7px">
-      <div class="fg"><label>עיר</label><select id="cal-city" onchange="calRefG()"><option value="">כל הערים</option></select></div>
-      <div style="display:none"><select id="cal-cls" onchange="calRefG()"><option value="">הכל</option><option value="גנים">גנים</option><option value='ביה"ס'>בתי ספר</option></select></div>
-      <div class="fg"><label>זוג/שלישיה מוגדר</label><select id="cal-pair" onchange="calSelectPair()" style="min-width:155px"><option value="">בחר זוג...</option></select></div>
-      <div class="fg"><label>צהרון 1</label><select id="cal-g1" onchange="renderCal()"><option value="">כל הצהרונים</option></select></div>
-      <div class="fg"><label>צהרון 2</label><select id="cal-g2" onchange="renderCal()"><option value="">—</option></select></div>
-      <div class="fg"><label>צהרון 3</label><select id="cal-g3" onchange="renderCal()"><option value="">—</option></select></div>
-      <div class="fg"><label>ספק</label><select id="cal-sup" onchange="renderCal()"><option value="">כל הספקים</option></select></div>
-      <div class="fg"><label>אשכול</label><select id="cal-cl" onchange="renderCal()"><option value="">הכל</option></select></div>
+      <button class="mob-filter-toggle" onclick="mobToggleFilters('cal-flt')">⚙️ פילטרים <span id="cal-flt-arrow">▾</span></button>
+      <div id="cal-flt" class="mob-flt-wrap">
+        <div class="fg"><label>עיר</label><select id="cal-city" onchange="calRefG()"><option value="">כל הערים</option></select></div>
+        <div style="display:none"><select id="cal-cls" onchange="calRefG()"><option value="">הכל</option><option value="גנים">גנים</option><option value='ביה"ס'>בתי ספר</option></select></div>
+        <div class="fg"><label>זוג/שלישיה מוגדר</label><select id="cal-pair" onchange="calSelectPair()" style="min-width:155px"><option value="">בחר זוג...</option></select></div>
+        <div class="fg"><label>צהרון 1</label><select id="cal-g1" onchange="renderCal()"><option value="">כל הצהרונים</option></select></div>
+        <div class="fg"><label>צהרון 2</label><select id="cal-g2" onchange="renderCal()"><option value="">—</option></select></div>
+        <div class="fg"><label>צהרון 3</label><select id="cal-g3" onchange="renderCal()"><option value="">—</option></select></div>
+        <div class="fg"><label>ספק</label><select id="cal-sup" onchange="renderCal()"><option value="">כל הספקים</option></select></div>
+        <div class="fg"><label>אשכול</label><select id="cal-cl" onchange="renderCal()"><option value="">הכל</option></select></div>
+      </div>
       <div class="mob-btn-row">
         <button class="btn bo bsm" onclick="clearCal()">נקה</button>
         <button class="btn bg bsm" onclick="addPairFromCal()">🔗 שמור כזוג</button>
@@ -269,17 +277,19 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <button id="cal-tab-s" class="vbtn" onclick="setCalTab('s')">🏛️ בתי ספר</button>
     </div>
     <div class="row">
-      <div class="vbtns">
-        <button class="vbtn active" id="vb-day" onclick="setView('day')">יומי</button>
-        <button class="vbtn" id="vb-list" onclick="setView('list')">📋 רשימה</button>
-        <button class="vbtn" id="vb-week" onclick="setView('week')">שבועי</button>
-        <button class="vbtn" id="vb-month" onclick="setView('month')">חודשי</button>
-        <button class="vbtn" id="vb-range" onclick="setView('range')">📅 טווח</button>
-      </div>
-      <!-- Range date pickers — shown only in range view -->
-      <div id="cal-range-row" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
-        <div class="fg"><label>מ</label><input type="date" id="cal-range-from" onchange="renderCal()" style="min-width:130px"></div>
-        <div class="fg"><label>עד</label><input type="date" id="cal-range-to" onchange="renderCal()" style="min-width:130px"></div>
+      <div class="mob-flt-wrap-always">
+        <div class="vbtns">
+          <button class="vbtn active" id="vb-day" onclick="setView('day')">יומי</button>
+          <button class="vbtn" id="vb-list" onclick="setView('list')">📋 רשימה</button>
+          <button class="vbtn" id="vb-week" onclick="setView('week')">שבועי</button>
+          <button class="vbtn" id="vb-month" onclick="setView('month')">חודשי</button>
+          <button class="vbtn" id="vb-range" onclick="setView('range')">📅 טווח</button>
+        </div>
+        <!-- Range date pickers — shown only in range view -->
+        <div id="cal-range-row" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
+          <div class="fg"><label>מ</label><input type="date" id="cal-range-from" onchange="renderCal()" style="min-width:130px"></div>
+          <div class="fg"><label>עד</label><input type="date" id="cal-range-to" onchange="renderCal()" style="min-width:130px"></div>
+        </div>
       </div>
       <div class="mob-btn-row mob-nav-controls">
         <button class="btn bo bsm" onclick="navCal(-1)">◀ קודם</button>
@@ -304,19 +314,22 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div style="font-size:.9rem;font-weight:700;color:#1a237e;margin-bottom:8px">📋 לוח זמנים - כל הפעילויות</div>
     <p style="font-size:.79rem;color:#546e7a;margin-bottom:10px">כאן ניתן לחפש, לסנן ולראות את כל הפעילויות. לחץ על שורה לפרטים ועריכה.</p>
     <div class="row" style="margin-bottom:9px">
-      <div class="fg"><label>עיר</label><select id="s-city" onchange="sRefG()"><option value="">כל הערים</option></select></div>
-      <div class="fg"><label>סיווג</label><select id="s-cls" onchange="sRefG()"><option value="">הכל</option><option value="גנים">גנים</option><option value='ביה"ס'>בתי ספר</option></select></div>
-      <div class="fg"><label>מנהל/רכז</label><select id="s-mgr" onchange="renderSched()"><option value="">הכל</option></select></div>
-      <div class="fg"><label>צהרון 1</label><select id="s-g1" onchange="renderSched()"><option value="">כל הצהרונים</option></select></div>
-      <div class="fg"><label>צהרון 2</label><select id="s-g2" onchange="renderSched()"><option value="">—</option></select></div>
-      <div class="fg"><label>צהרון 3</label><select id="s-g3" onchange="renderSched()"><option value="">—</option></select></div>
-      <div class="fg"><label>ספק</label><select id="s-sup" onchange="renderSched()"><option value="">כל הספקים</option></select></div>
-      <div class="fg"><label>שעה מ</label><input type="time" id="s-th" onchange="renderSched()"></div>
-      <div class="fg"><label>שעה עד</label><input type="time" id="s-tt" onchange="renderSched()"></div>
-      <div class="fg"><label>מתאריך</label><input type="date" id="s-from" onchange="renderSched()"></div>
-      <div class="fg"><label>עד תאריך</label><input type="date" id="s-to" onchange="renderSched()"></div>
-      <div class="fg"><label>סטטוס</label><select id="s-st" onchange="renderSched()"><option value="">הכל</option><option value="ok">📅 מתקיים</option><option value="done">✔️ התקיים</option><option value="can">❌ בוטל</option><option value="post">⏩ נדחה</option><option value="nohap">⚠️ לא התקיים</option></select></div>
-      <div class="fg"><label>חיפוש</label><input type="text" id="s-srch" placeholder="חפש..." oninput="renderSched()" style="min-width:130px"></div>
+      <button class="mob-filter-toggle" onclick="mobToggleFilters('sched-flt')">⚙️ פילטרים <span id="sched-flt-arrow">▾</span></button>
+      <div id="sched-flt" class="mob-flt-wrap">
+        <div class="fg"><label>עיר</label><select id="s-city" onchange="sRefG()"><option value="">כל הערים</option></select></div>
+        <div class="fg"><label>סיווג</label><select id="s-cls" onchange="sRefG()"><option value="">הכל</option><option value="גנים">גנים</option><option value='ביה"ס'>בתי ספר</option></select></div>
+        <div class="fg"><label>מנהל/רכז</label><select id="s-mgr" onchange="renderSched()"><option value="">הכל</option></select></div>
+        <div class="fg"><label>צהרון 1</label><select id="s-g1" onchange="renderSched()"><option value="">כל הצהרונים</option></select></div>
+        <div class="fg"><label>צהרון 2</label><select id="s-g2" onchange="renderSched()"><option value="">—</option></select></div>
+        <div class="fg"><label>צהרון 3</label><select id="s-g3" onchange="renderSched()"><option value="">—</option></select></div>
+        <div class="fg"><label>ספק</label><select id="s-sup" onchange="renderSched()"><option value="">כל הספקים</option></select></div>
+        <div class="fg"><label>שעה מ</label><input type="time" id="s-th" onchange="renderSched()"></div>
+        <div class="fg"><label>שעה עד</label><input type="time" id="s-tt" onchange="renderSched()"></div>
+        <div class="fg"><label>מתאריך</label><input type="date" id="s-from" onchange="renderSched()"></div>
+        <div class="fg"><label>עד תאריך</label><input type="date" id="s-to" onchange="renderSched()"></div>
+        <div class="fg"><label>סטטוס</label><select id="s-st" onchange="renderSched()"><option value="">הכל</option><option value="ok">📅 מתקיים</option><option value="done">✔️ התקיים</option><option value="can">❌ בוטל</option><option value="post">⏩ נדחה</option><option value="nohap">⚠️ לא התקיים</option></select></div>
+        <div class="fg"><label>חיפוש</label><input type="text" id="s-srch" placeholder="חפש..." oninput="renderSched()" style="min-width:130px"></div>
+      </div>
     </div>
     <div class="row" style="margin-bottom:9px">
       <div class="mob-btn-row">
@@ -346,11 +359,14 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       </div>
       <button class="btn bp bsm" onclick="openAddGardenModal()">➕ הוסף מקום חדש</button>
     </div>
-    <div id="g-filters" class="row" style="margin-bottom:8px">
-      <div class="fg"><label>עיר</label><select id="g-city" onchange="renderGardens()"><option value="">כל הערים</option></select></div>
-      <div class="fg"><label>אשכול</label><select id="g-cl" onchange="renderGardens()"><option value="">הכל</option></select></div>
-      <div class="fg"><label>מנהל/רכז</label><select id="g-mgr" onchange="renderGardens()"><option value="">הכל</option></select></div>
-      <div class="fg"><label>חיפוש</label><input type="text" id="g-srch" placeholder="חפש..." oninput="renderGardens()" style="min-width:130px"></div>
+    <div id="g-filters" style="margin-bottom:8px">
+      <button class="mob-filter-toggle" onclick="mobToggleFilters('g-flt')">⚙️ פילטרים <span id="g-flt-arrow">▾</span></button>
+      <div id="g-flt" class="mob-flt-wrap row">
+        <div class="fg"><label>עיר</label><select id="g-city" onchange="renderGardens()"><option value="">כל הערים</option></select></div>
+        <div class="fg"><label>אשכול</label><select id="g-cl" onchange="renderGardens()"><option value="">הכל</option></select></div>
+        <div class="fg"><label>מנהל/רכז</label><select id="g-mgr" onchange="renderGardens()"><option value="">הכל</option></select></div>
+        <div class="fg"><label>חיפוש</label><input type="text" id="g-srch" placeholder="חפש..." oninput="renderGardens()" style="min-width:130px"></div>
+      </div>
     </div>
     <div style="display:none"><select id="g-cls" onchange="renderGardens()"><option value="">הכל</option><option value="גנים">גנים</option><option value='ביה"ס'>בתי ספר</option></select></div>
     <div id="g-fixed-controls" style="display:none;margin-bottom:8px">

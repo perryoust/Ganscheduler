@@ -6939,3 +6939,13 @@ self.addEventListener('activate',e=>e.waitUntil(
   }catch(e){}
 }
 
+
+
+/* ══ Mobile filter toggle ══════════════════════════════════════════ */
+window.mobToggleFilters = function(id) {
+  const wrap = document.getElementById(id);
+  const arrow = document.getElementById(id + '-arrow');
+  if (!wrap) return;
+  const open = wrap.classList.toggle('open');
+  if (arrow) arrow.textContent = open ? '▴' : '▾';
+};
