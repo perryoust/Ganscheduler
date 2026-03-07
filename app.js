@@ -1205,7 +1205,23 @@ function navCal(d){
   renderCal();
 }
 function goToday(){calD=new Date();document.getElementById('cal-dp').value=td();renderCal();}
-function goDate(s){if(s){calD=s2d(s);renderCal();}}
+function goDate(s){
+  if(s){
+    const prevM=calD.getMonth(), prevY=calD.getFullYear();
+    calD=s2d(s);
+    if(calV==='list'){
+      // If same month, just scroll to that date (avoid full re-render if possible)
+      const needsReRender=calD.getMonth()!==prevM||calD.getFullYear()!==prevY;
+      if(needsReRender) renderCal();
+      setTimeout(()=>{
+        const el=document.getElementById('listday-'+s);
+        if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+      },needsReRender?150:50);
+    } else {
+      renderCal();
+    }
+  }
+}
 function jumpToDay(ds){calD=s2d(ds);setView('day');}
 function clearCal(){
   ['cal-city','cal-cls','cal-cl','cal-sup'].forEach(id=>document.getElementById(id).value='');
@@ -1939,9 +1955,9 @@ function renderPairDay(evs,gids){
 }
 
 function renderNormalWeek(evs,ws,f){
-  const dn=['ראשון','שני','שלישי','רביעי','חמישי','שישי'], tday=td();
+  const dn=['ראשון','שני','שלישי','רביעי','חמישי'], tday=td();
   const days=[];
-  for(let i=0;i<6;i++) days.push(addD(ws,i));
+  for(let i=0;i<5;i++) days.push(addD(ws,i));
 
   let gids=[...new Set(evs.map(s=>s.g))];
   if(f.gids&&f.gids.length) gids=f.gids;
@@ -1973,11 +1989,11 @@ function renderNormalWeek(evs,ws,f){
 
   // border-separate avoids border-collapse + sticky bug
   let html='<div style="overflow-x:auto;border-radius:8px;border:2px solid #9fa8da">'
-          +'<table style="min-width:950px;border-collapse:separate;border-spacing:0;width:100%"><thead><tr>';
+          +'<table style="min-width:800px;border-collapse:separate;border-spacing:0;width:100%"><thead><tr>';
 
-  html+=`<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;
+  html+=`<th style="min-width:130px;background:#e8eaf6;color:#283593;padding:6px 8px;
     border-bottom:2px solid #9fa8da;border-left:1px solid #c5cae9;
-    position:sticky;top:0;z-index:3;font-size:.76rem">צהרון / זוג</th>`;
+    position:sticky;top:0;z-index:3;font-size:.82rem">צהרון / זוג</th>`;
 
   days.forEach((d,i)=>{
     const ds=d2s(d);
@@ -1987,14 +2003,14 @@ function renderNormalWeek(evs,ws,f){
     const bg=isToday?'#1565c0':blkWk?'#fce4ec':hol?hol.bg:'#e8eaf6';
     const col=isToday?'#fff':blkWk?'#c62828':hol?hol.color:'#283593';
     const bottomBorder=blkWk?'border-bottom:3px solid #e91e63':'border-bottom:2px solid #9fa8da';
-    html+=`<th style="background:${bg};color:${col};padding:5px 4px;text-align:center;font-size:.76rem;min-width:132px;
+    html+=`<th style="background:${bg};color:${col};padding:7px 4px;text-align:center;font-size:.88rem;min-width:140px;
       ${bottomBorder};border-left:1px solid ${isToday?'rgba(255,255,255,.3)':'#c5cae9'};
       position:sticky;top:0;z-index:3;white-space:nowrap" onclick="jumpToDay('${ds}')">
       ${dn[i]}<br>
-      <span style="font-size:.64rem;font-weight:400">${fD(ds)}</span><br>
-      <span style="font-size:.58rem;font-weight:400;opacity:.75">${toHebDate(ds)}</span>
+      <span style="font-size:.76rem;font-weight:500">${fD(ds)}</span><br>
+      <span style="font-size:.68rem;font-weight:400;opacity:.75">${toHebDate(ds)}</span>
       ${blkWk
-        ?`<br><span style="font-size:.6rem;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blkWk.icon||'🚫'} ${blkWk.reason}</span>`
+        ?`<br><span style="font-size:.65rem;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blkWk.icon||'🚫'} ${blkWk.reason}</span>`
         :`<br><span style="font-size:.58rem;opacity:.3;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')" title="חסום תאריך">🚫</span>`}
     </th>`;
   });
@@ -2005,7 +2021,7 @@ function renderNormalWeek(evs,ws,f){
 
     // City header row
     html+=`<tr>
-      <td colspan="7" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;
+      <td colspan="6" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;
         border-bottom:1px solid rgba(255,255,255,.2);position:sticky;left:0">
         🏙️ ${city}
         <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} זוגות · ${byCity[city].solos.length} צהרונים בודדים</span>
@@ -2019,14 +2035,14 @@ function renderNormalWeek(evs,ws,f){
       let inner='';
       if(de.length){
         de.forEach(ev=>{
-          inner+=`<div style="border-radius:5px;padding:5px 6px;margin:2px 0;font-size:13px;
+          inner+=`<div style="border-radius:5px;padding:5px 6px;margin:2px 0;font-size:14px;
             background:#fff;border-right:3px solid ${clrObj.solid};
             ${ev.st==='can'?'opacity:.5;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':ev.st==='done'?'background:#f1f8e9;':ev.st==='nohap'?'background:#fce4ec;':''}">
             <div style="display:flex;align-items:flex-start;gap:4px">
               <div style="cursor:pointer;flex:1;min-width:0" onclick="event.stopPropagation();openSP(${ev.id})">
                 <div style="font-weight:700;color:${clrObj.solid};word-break:break-word;line-height:1.3">${supBase(ev.a)}${ev.act?`<span style="color:#78909c;font-weight:400"> — ${ev.act}</span>`:''}</div>
-                <div style="font-size:12px;color:#5c6bc0;margin-top:1px">${ev.tp||'חוג'}</div>
-                ${ev.t?`<div style="font-size:12px;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
+                <div style="font-size:13px;color:#5c6bc0;margin-top:1px">${ev.tp||'חוג'}</div>
+                ${ev.t?`<div style="font-size:13px;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
               </div>
               <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0" onclick="event.stopPropagation()">
                 <button title="התקיים" style="background:${ev.st==='done'?'#2e7d32':'#e8f5e9'};color:${ev.st==='done'?'#fff':'#2e7d32'};border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
@@ -2060,13 +2076,13 @@ function renderNormalWeek(evs,ws,f){
     byCity[city].pairs.forEach(({pair,gids:pGids})=>{
       const pairGidList = pGids.join(',');
       html+=`<tr>
-        <td colspan="7" style="background:${clr.solid};color:#fff;padding:5px 12px;
+        <td colspan="6" style="background:${clr.solid};color:#fff;padding:5px 12px;
           font-size:.82rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2)">
           <div style="display:flex;align-items:center;gap:8px">
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 ${pair.name}</span>
             <button onclick="event.stopPropagation();_exportPairWA([${pairGidList}])"
               style="background:rgba(255,255,255,.22);border:none;border-radius:5px;color:#fff;
                 font-size:.72rem;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">📋 הודעה</button>
-            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 ${pair.name}</span>
           </div>
         </td>
       </tr>`;
@@ -2178,7 +2194,7 @@ function renderCalList(evs, mDate){
     const blk=getBlockedInfo(ds);
 
     // Day header
-    h+=`<div style="border-bottom:2px solid #c5cae9">
+    h+=`<div id="listday-${ds}" style="border-bottom:2px solid #c5cae9">
       <div style="background:${isToday?'#1565c0':hol?hol.bg:blk?'#fce4ec':'#e8eaf6'};color:${isToday?'#fff':hol?hol.color:blk?'#c62828':'#283593'};padding:6px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="jumpToDay('${ds}')">
         <span style="font-weight:700;font-size:.82rem">📅 ${dayN(ds)} ${fD(ds)}</span>
         <span style="display:flex;gap:8px;align-items:center">
@@ -2225,7 +2241,7 @@ function renderCalList(evs, mDate){
         h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border};border-radius:6px;overflow:hidden">
           <div style="background:${clr.solid}22;padding:3px 8px;font-size:.72rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
             <span>🔗 ${pair.name}</span>
-            <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
+            <button onclick="event.stopPropagation();calD=s2d('${ds}');_exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
           </div>`;
         sorted.forEach(s=>{ h+=_listRow(s,clr); });
         h+=`</div>`;
@@ -3660,9 +3676,11 @@ function renderPairs(){
       // Always 3 columns — empty cell if only 2 gardens
       h+=`<div class="pair-row" style="border-right:3px solid ${clr.solid};margin-bottom:10px">
         <div class="pair-row-label" style="background:${clr.solid};display:flex;justify-content:space-between;align-items:center">
-          <span style="font-weight:800;font-size:.8rem">${p.name||gs.map(g=>g.name).join(' + ')}</span>
-          <div style="display:flex;gap:4px">
+          <div style="display:flex;gap:4px;align-items:center">
             <button class="btn bsm" style="background:rgba(255,255,255,.3);border:none;color:#fff;font-size:.7rem;padding:3px 9px;border-radius:4px;cursor:pointer;font-weight:700" onclick="_exportPairWA(${JSON.stringify(p.ids)})">📋 הודעה</button>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center">
+            <span style="font-weight:800;font-size:.8rem">${p.name||gs.map(g=>g.name).join(' + ')}</span>
             <button class="btn bsm" style="background:rgba(255,255,255,.22);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="openAddPair(${idx})">✏️ ערוך</button>
             <button class="btn bsm" style="background:rgba(255,255,255,.28);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="_goToPairSched(${idx})">📋 שיבוץ</button>
             <button class="btn bsm" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="delPair(${idx})">🗑️</button>
@@ -4299,12 +4317,18 @@ function genExport(){
             const sameAddr=addrs.length===1&&addrs[0];
             if(sameAddr){
               text+=`${supLine}\n  🏫 ${addrs[0]}\n`;
-              group.forEach(s=>{ text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`; });
+              group.forEach(s=>{
+                const isSchool=gcls(G(s.g))==='ביה"ס';
+                const grpLine=isSchool&&s.grp>0?`\n     ${s.grp} קב'`:'';
+                text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${grpLine}\n`;
+              });
             } else {
               text+=`${supLine}\n`;
               group.forEach(s=>{
+                const isSchool=gcls(G(s.g))==='ביה"ס';
+                const grpLine=isSchool&&s.grp>0?`\n     ${s.grp} קב'`:'';
                 const addr=s.gd.st?`🏫 ${s.gd.st} · `:'  ';
-                text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`;
+                text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${grpLine}\n`;
               });
             }
             text+='\n';
@@ -4327,12 +4351,18 @@ function genExport(){
             const sameAddr=addrs.length===1&&addrs[0];
             if(sameAddr){
               text+=`${supLine}\n  🏫 ${addrs[0]}\n`;
-              group.forEach(s=>{ text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`; });
+              group.forEach(s=>{
+                const isSchool=gcls(G(s.g))==='ביה"ס';
+                const grpLine=isSchool&&s.grp>0?`\n     ${s.grp} קב'`:'';
+                text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${grpLine}\n`;
+              });
             } else {
               text+=`${supLine}\n`;
               group.forEach(s=>{
+                const isSchool=gcls(G(s.g))==='ביה"ס';
+                const grpLine=isSchool&&s.grp>0?`\n     ${s.grp} קב'`:'';
                 const addr=s.gd.st?`🏫 ${s.gd.st} · `:'  ';
-                text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`;
+                text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${grpLine}\n`;
               });
             }
             text+='\n';
