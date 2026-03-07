@@ -1095,8 +1095,8 @@ function initDrops(){
   getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>{
     ['ns-sup','es-sup'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML+=`<option value='${s.name}'>${s.name}</option>`;});
   });
-  fG('cal-g1','כל הגנים',true);fG('cal-g2','—',true);fG('cal-g3','—',true);
-  fG('s-g1','כל הגנים',true);fG('s-g2','—',true);fG('s-g3','—',true);
+  fG('cal-g1','כל הצהרונים',true);fG('cal-g2','—',true);fG('cal-g3','—',true);
+  fG('s-g1','כל הצהרונים',true);fG('s-g2','—',true);fG('s-g3','—',true);
   fG('apm-g1','בחר גן',true);fG('apm-g2','בחר גן',true);fG('apm-g3','—',true);
   document.getElementById('cal-dp').value=td();
   // Default calendar to גנים tab
@@ -1134,7 +1134,7 @@ function calRefG(){
   });
   ['cal-g1','cal-g2','cal-g3'].forEach((id,i)=>{
     const sel=document.getElementById(id);
-    sel.innerHTML=i===0?'<option value="">כל הגנים</option>':'<option value="">—</option>';
+    sel.innerHTML=i===0?'<option value="">כל הצהרונים</option>':'<option value="">—</option>';
     gs.forEach(g=>sel.innerHTML+=`<option value="${g.id}">${city?g.name:g.city+' · '+g.name}</option>`);
   });
   renderCal();
@@ -1211,7 +1211,7 @@ function clearCal(){
   ['cal-city','cal-cls','cal-cl','cal-sup'].forEach(id=>document.getElementById(id).value='');
   ['cal-g1','cal-g2','cal-g3'].forEach((id,i)=>{
     const el=document.getElementById(id);
-    el.innerHTML=i===0?'<option value="">כל הגנים</option>':'<option value="">—</option>';
+    el.innerHTML=i===0?'<option value="">כל הצהרונים</option>':'<option value="">—</option>';
     GARDENS.forEach(g=>el.innerHTML+=`<option value="${g.id}">${g.city} · ${g.name}</option>`);
   });
   document.getElementById('cal-pair-bar').classList.remove('show');
@@ -3261,7 +3261,7 @@ function sRefG(){
   const gs=gByCF(city,cls).sort((a,b)=>a.name.localeCompare(b.name,'he'));
   ['s-g1','s-g2','s-g3'].forEach((id,i)=>{
     const sel=document.getElementById(id);
-    sel.innerHTML=i===0?'<option value="">כל הגנים</option>':'<option value="">—</option>';
+    sel.innerHTML=i===0?'<option value="">כל הצהרונים</option>':'<option value="">—</option>';
     gs.forEach(g=>sel.innerHTML+=`<option value="${g.id}">${city?g.name:g.city+' · '+g.name}</option>`);
   });
   sPage=1;renderSched();
@@ -5763,9 +5763,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       }
 
       // ── Footer ────────────────────────────────────────────
-      // Add page break before footer so mgr+notice are last 2 rows on final page
-      ws.getRow(r).addPageBreak();
-      // Manager row - right-aligned (row 36 of page)
+      // Manager row - right-aligned
       {
         const row = ws.addRow([mgrText,'','','','','','','','']);
         row.height = 18;

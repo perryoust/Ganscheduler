@@ -239,9 +239,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div class="fg"><label>עיר</label><select id="cal-city" onchange="calRefG()"><option value="">כל הערים</option></select></div>
       <div style="display:none"><select id="cal-cls" onchange="calRefG()"><option value="">הכל</option><option value="גנים">גנים</option><option value='ביה"ס'>בתי ספר</option></select></div>
       <div class="fg"><label>זוג/שלישיה מוגדר</label><select id="cal-pair" onchange="calSelectPair()" style="min-width:155px"><option value="">בחר זוג...</option></select></div>
-      <div class="fg"><label>גן 1 (ימין)</label><select id="cal-g1" onchange="renderCal()"><option value="">כל הגנים</option></select></div>
-      <div class="fg"><label>גן 2 (אמצע)</label><select id="cal-g2" onchange="renderCal()"><option value="">—</option></select></div>
-      <div class="fg"><label>גן 3 (שמאל)</label><select id="cal-g3" onchange="renderCal()"><option value="">—</option></select></div>
+      <div class="fg"><label>צהרון 1</label><select id="cal-g1" onchange="renderCal()"><option value="">כל הצהרונים</option></select></div>
+      <div class="fg"><label>צהרון 2</label><select id="cal-g2" onchange="renderCal()"><option value="">—</option></select></div>
+      <div class="fg"><label>צהרון 3</label><select id="cal-g3" onchange="renderCal()"><option value="">—</option></select></div>
       <div class="fg"><label>ספק</label><select id="cal-sup" onchange="renderCal()"><option value="">כל הספקים</option></select></div>
       <div class="fg"><label>אשכול</label><select id="cal-cl" onchange="renderCal()"><option value="">הכל</option></select></div>
       <button class="btn bo bsm" onclick="clearCal()">נקה</button>
@@ -293,7 +293,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div class="fg"><label>עיר</label><select id="s-city" onchange="sRefG()"><option value="">כל הערים</option></select></div>
       <div class="fg"><label>סיווג</label><select id="s-cls" onchange="sRefG()"><option value="">הכל</option><option value="גנים">גנים</option><option value='ביה"ס'>בתי ספר</option></select></div>
       <div class="fg"><label>מנהל/רכז</label><select id="s-mgr" onchange="renderSched()"><option value="">הכל</option></select></div>
-      <div class="fg"><label>גן 1</label><select id="s-g1" onchange="renderSched()"><option value="">כל הגנים</option></select></div>
+      <div class="fg"><label>גן 1</label><select id="s-g1" onchange="renderSched()"><option value="">כל הצהרונים</option></select></div>
       <div class="fg"><label>גן 2</label><select id="s-g2" onchange="renderSched()"><option value="">—</option></select></div>
       <div class="fg"><label>גן 3</label><select id="s-g3" onchange="renderSched()"><option value="">—</option></select></div>
       <div class="fg"><label>ספק</label><select id="s-sup" onchange="renderSched()"><option value="">כל הספקים</option></select></div>
@@ -960,9 +960,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <h2 id="apm-title">זוג/שלישיה</h2>
     <div class="fg" style="margin-bottom:8px"><label>שם</label><input type="text" id="apm-name" placeholder="שם (אופציונלי)" style="width:100%"></div>
     <div class="fg" style="margin-bottom:8px"><label>עיר</label><select id="apm-city" onchange="apmCity()" style="width:100%"><option value="">כל הערים</option></select></div>
-    <div class="fg" style="margin-bottom:8px"><label>גן 1 (ימין)</label><select id="apm-g1" style="width:100%"><option value="">בחר גן</option></select></div>
+    <div class="fg" style="margin-bottom:8px"><label>צהרון 1</label><select id="apm-g1" style="width:100%"><option value="">בחר גן</option></select></div>
     <div class="fg" style="margin-bottom:8px"><label>גן 2 (אמצע — אופציונלי)</label><select id="apm-g2" style="width:100%"><option value="">בחר גן</option></select></div>
-    <div class="fg" style="margin-bottom:13px"><label>גן 3 (שמאל)</label><select id="apm-g3" style="width:100%"><option value="">—</option></select></div>
+    <div class="fg" style="margin-bottom:13px"><label>צהרון 3</label><select id="apm-g3" style="width:100%"><option value="">—</option></select></div>
     <div id="apm-warn" style="display:none;background:#fff3e0;border-radius:6px;padding:7px;font-size:.78rem;color:#e65100;margin-bottom:9px"></div>
     <div style="display:flex;gap:7px;justify-content:flex-end">
       <button class="btn bp" onclick="savePairModal()">💾 שמור</button>
