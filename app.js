@@ -3631,6 +3631,7 @@ function renderPairs(){
           <span style="font-weight:800;font-size:.8rem">${p.name||gs.map(g=>g.name).join(' + ')}</span>
           <div style="display:flex;gap:4px">
             <button class="btn bsm" style="background:rgba(255,255,255,.22);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="openAddPair(${idx})">✏️ ערוך</button>
+            <button class="btn bsm" style="background:rgba(255,255,255,.28);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="ST('sched');setTimeout(()=>{const g0=pairs[${idx}]?.ids?.[0];if(g0){const el=document.getElementById('s-g1');if(el){el.value=g0;renderSched();}}},80)">📋 שיבוץ</button>
             <button class="btn bsm" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="delPair(${idx})">🗑️</button>
             <button class="btn bsm" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="exportPairNow(${idx})">📤</button>
           </div>
@@ -4393,6 +4394,7 @@ function renderSup(){
   if(sortMode==='cnt') all=[...all].sort((a,b)=>supBaseCnt(b.name)-supBaseCnt(a.name));
 
   if(_supViewMode==='list'){
+    document.getElementById('su-body').className='scroll-area';
     let h='<table style="width:100%;border-collapse:collapse;font-size:.83rem;table-layout:fixed">'
       +'<colgroup><col style="width:28%"><col style="width:17%"><col style="width:8%"><col style="width:30%"><col style="width:17%"></colgroup>'
       +'<thead><tr style="background:#e8eaf6;position:sticky;top:0">'
@@ -4429,6 +4431,7 @@ function renderSup(){
     return;
   }
 
+  document.getElementById('su-body').className='sugrid scroll-area';
   let h='';
   all.forEach(s=>{
     const base=s.name; // already a base name from getAllBaseSups
@@ -5789,16 +5792,26 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       const sheetKeys = Object.keys(zip.files).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
       for (const sk of sheetKeys) {
         let xml = await zip.files[sk].async('text');
-        // Inject view="pageLayout" into sheetView — handle both open and self-closing tags
-        xml = xml.replace(/<sheetView([^>]*?)(\/?>)/g, (m, attrs, close) => {
-          const newAttrs = attrs.includes('view=')
+        // 1. Inject view="pageLayout" into <sheetView>
+        xml = xml.replace(/<sheetView\b([^>]*?)(\/?>)/g, (m, attrs, close) => {
+          const a2 = attrs.includes('view=')
             ? attrs.replace(/view="[^"]*"/, 'view="pageLayout"')
             : attrs + ' view="pageLayout"';
-          return `<sheetView${newAttrs}${close}`;
+          return `<sheetView${a2}${close}`;
         });
+        // 2. Inject header directly into XML (ExcelJS browser headerFooter unreliable)
+        const hdrText = `&amp;R&amp;&quot;Arial,Bold&quot;&amp;18${monthTitle}`;
+        if (!xml.includes('<headerFooter')) {
+          xml = xml.replace(/<\/sheetData>/, `</sheetData><headerFooter scaleWithDoc="0"><oddHeader>${hdrText}</oddHeader><evenHeader>${hdrText}</evenHeader></headerFooter>`);
+        } else {
+          xml = xml.replace(/<headerFooter[^>]*>[\s\S]*?<\/headerFooter>/,
+            `<headerFooter scaleWithDoc="0"><oddHeader>${hdrText}</oddHeader><evenHeader>${hdrText}</evenHeader></headerFooter>`);
+        }
         zip.file(sk, xml);
       }
-      const patched = await zip.generateAsync({ type:'arraybuffer', compression:'DEFLATE', compressionOptions:{level:9} });
+      // STORE compression — DEFLATE corrupts binary parts of xlsx (shared strings, styles)
+      const patched = await zip.generateAsync({ type:'arraybuffer', compression:'STORE' });
+      finalBlob = new Blob([patched], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
       finalBlob = new Blob([patched], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     } catch(pErr) {
       console.warn('pageLayout patch failed, using raw buffer:', pErr);
