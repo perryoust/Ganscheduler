@@ -1928,7 +1928,13 @@ function renderPairColsHTML(evs,gids,pairId){
 
 function renderPairDay(evs,gids){
   const pclr=pairClrClass(gids[0]?gardenPair(gids[0])?.id:0)||'pc0';
-  return`<div class="pair-row ${pclr}"><div class="pair-row-label ${pclr}">🔗 ${gids.map(id=>G(id).name||'').join(' + ')}</div>${renderPairColsHTML(evs,gids)}</div>`;
+  const pairIds = gids.filter(Boolean);
+  return`<div class="pair-row ${pclr}">
+    <div class="pair-row-label ${pclr}" style="display:flex;justify-content:space-between;align-items:center">
+      <span>🔗 ${gids.map(id=>G(id).name||'').join(' + ')}</span>
+      <button onclick="event.stopPropagation();_exportPairWA([${pairIds.join(',')}])" style="background:rgba(255,255,255,.25);border:none;border-radius:4px;color:#fff;font-size:.65rem;padding:1px 6px;cursor:pointer">📋 הודעה</button>
+    </div>
+    ${renderPairColsHTML(evs,gids)}</div>`;
 }
 
 function renderNormalWeek(evs,ws,f){
@@ -4214,6 +4220,12 @@ function showCopyToast(msg){
   clearTimeout(t._to);t._to=setTimeout(()=>t.style.opacity='0',2200);
 }
 
+
+function _exportPairWA(gids){
+  _exGids = gids;
+  openExport();
+}
+
 function openExport(){
   document.getElementById('ex-d1').value=d2s(calD);
   document.getElementById('ex-d2').value='';
@@ -5787,53 +5799,12 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
     const buffer = await workbook.xlsx.writeBuffer();
 
-    // ── Post-process: inject pageLayout view into XML ──────────────────
-    let finalBlob;
-    try {
-      const JZ = window._SafeJSZip || window.JSZip;
-      if (!JZ) throw new Error('JSZip not available');
+    // ── Post-process: inject pageLayout + header via ExcelJS workbook XML ──
+    // ExcelJS writes ws.views=[{state:'pageLayout'}] natively into xl/worksheets/sheetN.xml
+    // Just output the buffer directly — pageLayout is already written by ExcelJS
+    const finalBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
-      const zip = await JZ.loadAsync(buffer);
-
-      // Find all worksheet XML files
-      const sheetFiles = Object.keys(zip.files)
-        .filter(k => k.match(/xl\/worksheets\/sheet\d+\.xml$/));
-
-      console.log('[Excel patch] sheets found:', sheetFiles.length);
-
-      for (const key of sheetFiles) {
-        let xml = await zip.files[key].async('text'); // 'text' not 'string' (JSZip 3.x)
-
-        // Inject pageLayout into sheetView element
-        xml = xml.replace(/<sheetView([^>]*)>/g, function(m, attrs) {
-          if (attrs.indexOf('view=') >= 0) {
-            attrs = attrs.replace(/view="[^"]*"/, 'view="pageLayout"');
-          } else {
-            attrs = attrs + ' view="pageLayout"';
-          }
-          return '<sheetView' + attrs + '>';
-        });
-
-        // Inject headerFooter after </sheetData>
-        const hdr = '&amp;R&amp;"Arial,Bold"&amp;18' + monthTitle;
-        const hdrTag = '<headerFooter scaleWithDoc="0"><oddHeader>' + hdr + '</oddHeader></headerFooter>';
-        xml = xml.replace(/<headerFooter[\s\S]*?<\/headerFooter>/g, '');
-        if (xml.indexOf('</sheetData>') >= 0) {
-          xml = xml.replace('</sheetData>', '</sheetData>' + hdrTag);
-        }
-
-        zip.file(key, xml);
-      }
-
-      // STORE not DEFLATE — DEFLATE corrupts binary parts of xlsx
-      const out = await zip.generateAsync({ type: 'arraybuffer', compression: 'STORE' });
-      finalBlob = new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    } catch(pErr) {
-      console.warn('pageLayout patch failed:', pErr);
-      finalBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    }
-
-    const a = document.createElement('a');
+        const a = document.createElement('a');
     a.href  = URL.createObjectURL(finalBlob);
     a.download = filename;
     a.style.display = 'none';
