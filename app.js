@@ -2058,13 +2058,17 @@ function renderNormalWeek(evs,ws,f){
     // Pairs
     byCity[city].pairs.forEach(({pair,gids:pGids})=>{
       const pairGidList = pGids.join(',');
-      const pclrWeek = pairClrClass(pair.id) || 'pc0';
       html+=`<tr>
-        <td colspan="7" class="${pclrWeek} pair-row-label" style="border-radius:0;padding:4px 10px;display:flex;justify-content:space-between;align-items:center">
-          <span>🔗 ${pair.name}</span>
-          <button onclick="event.stopPropagation();_exportPairWA([${pairGidList}])"
-            style="background:rgba(255,255,255,.22);border:none;border-radius:4px;color:#fff;
-              font-size:.68rem;padding:2px 9px;cursor:pointer;white-space:nowrap">📋 הודעה</button>
+        <td colspan="7" style="background:${clr.solid};color:#fff;padding:5px 12px;
+          font-size:.78rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span>🔗 ${pair.name}</span>
+            <div style="display:flex;gap:5px">
+              <button onclick="event.stopPropagation();_exportPairWA([${pairGidList}])"
+                style="background:rgba(255,255,255,.22);border:none;border-radius:4px;color:#fff;
+                  font-size:.68rem;padding:2px 8px;cursor:pointer;white-space:nowrap">📋 הודעה</button>
+            </div>
+          </div>
         </td>
       </tr>`;
       pGids.forEach(gid=>{
@@ -5807,17 +5811,10 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     // ── Post-process: inject pageLayout into sheetView XML ──────────────
     let finalBlob;
     try {
-      // Dynamically load JSZip only when needed, separate from ExcelJS internal
-      if (!window._JSZipLoaded) {
-        await new Promise((res, rej) => {
-          const sc = document.createElement('script');
-          sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-          sc.onload = () => { window._JSZipLoaded = true; res(); };
-          sc.onerror = rej;
-          document.head.appendChild(sc);
-        });
-      }
-      const zip = await JSZip.loadAsync(buffer);
+      // Use _SafeJSZip saved at page load (before ExcelJS could overwrite window.JSZip)
+      const JZ = window._SafeJSZip;
+      if (!JZ) throw new Error('_SafeJSZip not available');
+      const zip = await JZ.loadAsync(buffer);
       const sheetKeys = Object.keys(zip.files).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
       for (const sk of sheetKeys) {
         let xml = await zip.files[sk].async('text');
