@@ -5795,52 +5795,8 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
     const buffer = await workbook.xlsx.writeBuffer();
 
-    // ── Post-process: inject pageLayout into sheetView XML ──────────────
-    let finalBlob;
-    try {
-      // Dynamically load JSZip only when needed, separate from ExcelJS internal
-      if (!window._JSZipLoaded) {
-        await new Promise((res, rej) => {
-          const sc = document.createElement('script');
-          sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-          sc.onload = () => { window._JSZipLoaded = true; res(); };
-          sc.onerror = rej;
-          document.head.appendChild(sc);
-        });
-      }
-      const zip = await JSZip.loadAsync(buffer);
-      const sheetKeys = Object.keys(zip.files).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
-      for (const sk of sheetKeys) {
-        let xml = await zip.files[sk].async('text');
-        // 1. Inject view="pageLayout" into <sheetView>
-        xml = xml.replace(/<sheetView\b([^>]*?)(\/?>)/g, (m, attrs, close) => {
-          const a2 = attrs.includes('view=')
-            ? attrs.replace(/view="[^"]*"/, 'view="pageLayout"')
-            : attrs + ' view="pageLayout"';
-          return `<sheetView${a2}${close}`;
-        });
-        // 2+3. Inject rowBreaks + headerFooter in one pass (order matters in xlsx XML)
-        const sheetIdx = sheetKeys.indexOf(sk);
-        const wsObj = workbook.worksheets[sheetIdx];
-        const hdrText = `&amp;R&amp;&quot;Arial,Bold&quot;&amp;18${monthTitle}`;
-        const hdrXml = `<headerFooter scaleWithDoc="0"><oddHeader>${hdrText}</oddHeader><evenHeader>${hdrText}</evenHeader></headerFooter>`;
-        let extraXml = '';
-        if (wsObj && wsObj._footerStartRow) {
-          const breakRow = wsObj._footerStartRow - 1;
-          extraXml += `<rowBreaks count="1" manualBreakCount="1"><brk id="${breakRow}" max="16383" man="1"/></rowBreaks>`;
-        }
-        // Remove any existing headerFooter then append both after </sheetData>
-        xml = xml.replace(/<headerFooter[^>]*>[\s\S]*?<\/headerFooter>/g, '');
-        xml = xml.replace(/<\/sheetData>/, `</sheetData>${extraXml}${hdrXml}`);
-        zip.file(sk, xml);
-      }
-      // STORE compression — DEFLATE corrupts binary parts of xlsx (shared strings, styles)
-      const patched = await zip.generateAsync({ type:'arraybuffer', compression:'STORE' });
-      finalBlob = new Blob([patched], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    } catch(pErr) {
-      console.warn('pageLayout patch failed, using raw buffer:', pErr);
-      finalBlob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    }
+    // Direct download — ExcelJS writes pageLayout and headerFooter natively
+    const finalBlob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
 
     const a = document.createElement('a');
     a.href  = URL.createObjectURL(finalBlob);
