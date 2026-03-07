@@ -2012,13 +2012,26 @@ function renderNormalWeek(evs,ws,f){
       let inner='';
       if(de.length){
         de.forEach(ev=>{
-          inner+=`<div style="border-radius:4px;padding:3px 5px;margin:1px 0;cursor:pointer;font-size:.71rem;
+          inner+=`<div style="border-radius:4px;padding:3px 5px;margin:1px 0;font-size:.71rem;
             background:#fff;border-right:2px solid ${clrObj.solid};
-            ${ev.st==='can'?'opacity:.45;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':''}"
-            onclick="event.stopPropagation();openSP(${ev.id})">
-            <div style="font-weight:700;color:${clrObj.solid}">${ev.a}${ev.act?`<span style="color:#78909c;font-size:.63rem"> · ${ev.act}</span>`:''}</div>
-            ${ev.t?`<div style="font-size:.66rem;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
-            <div style="font-size:.63rem">${stLabel(ev)}</div>
+            ${ev.st==='can'?'opacity:.45;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':ev.st==='done'?'background:#f1f8e9;':ev.st==='nohap'?'background:#fce4ec;':''}">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:2px">
+              <div style="cursor:pointer;flex:1" onclick="event.stopPropagation();openSP(${ev.id})">
+                <div style="font-weight:700;color:${clrObj.solid}">${supBase(ev.a)}${ev.act?` — <span style="color:#78909c;font-weight:400">${ev.act}</span>`:''}</div>
+                <div style="font-size:.63rem;color:#5c6bc0">${ev.tp||'חוג'}</div>
+                ${ev.t?`<div style="font-size:.63rem;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
+              </div>
+              <div style="display:flex;flex-direction:column;gap:1px;flex-shrink:0" onclick="event.stopPropagation()">
+                <button title="התקיים" style="background:${ev.st==='done'?'#2e7d32':'#e8f5e9'};color:${ev.st==='done'?'#fff':'#2e7d32'};border:none;border-radius:3px;padding:1px 3px;font-size:.65rem;cursor:pointer;line-height:1"
+                  onclick="openSP(${ev.id});setTimeout(()=>setStatus('done'),80)">✔️</button>
+                <button title="בטל" style="background:${ev.st==='can'?'#c62828':'#ffebee'};color:${ev.st==='can'?'#fff':'#c62828'};border:none;border-radius:3px;padding:1px 3px;font-size:.65rem;cursor:pointer;line-height:1"
+                  onclick="openSP(${ev.id})">❌</button>
+                <button title="לא התקיים" style="background:${ev.st==='nohap'?'#6a1b9a':'#f3e5f5'};color:${ev.st==='nohap'?'#fff':'#6a1b9a'};border:none;border-radius:3px;padding:1px 3px;font-size:.65rem;cursor:pointer;line-height:1"
+                  onclick="openSP(${ev.id});setTimeout(()=>markNoHap(),80)">⚠️</button>
+                <button title="דחה" style="background:#fff3e0;color:#e65100;border:none;border-radius:3px;padding:1px 3px;font-size:.65rem;cursor:pointer;line-height:1"
+                  onclick="event.stopPropagation();openPostpone(${ev.id})">⏩</button>
+              </div>
+            </div>
           </div>`;
         });
         if(blk) inner+=`<div style="font-size:.62rem;color:#c62828;padding:2px 4px">${blk.icon||'🚫'} ${blk.reason}</div>`;
@@ -2116,6 +2129,22 @@ function renderPairWeek(evs,ws,gids){
   return html+'</tbody></table></div>';
 }
 
+// Quick action buttons for list/weekly views
+function _quickActionBtns(s){
+  const sid=s.id;
+  const isDone=s.st==='done', isCan=s.st==='can', isNohap=s.st==='nohap';
+  return `<div style="display:flex;gap:3px;flex-shrink:0" onclick="event.stopPropagation()">
+    <button title="התקיים" style="background:${isDone?'#2e7d32':'#e8f5e9'};color:${isDone?'#fff':'#2e7d32'};border:1px solid #a5d6a7;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
+      onclick="openSP(${sid});setTimeout(()=>setStatus('done'),80)">✔️</button>
+    <button title="בטל" style="background:${isCan?'#c62828':'#ffebee'};color:${isCan?'#fff':'#c62828'};border:1px solid #ef9a9a;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
+      onclick="openSP(${sid})">❌</button>
+    <button title="לא התקיים" style="background:${isNohap?'#6a1b9a':'#f3e5f5'};color:${isNohap?'#fff':'#6a1b9a'};border:1px solid #ce93d8;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
+      onclick="openSP(${sid});setTimeout(()=>markNoHap(),80)">⚠️</button>
+    <button title="דחה" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
+      onclick="openPostpone(${sid})">⏩</button>
+  </div>`;
+}
+
 function renderCalList(evs, mDate){
   const y=mDate.getFullYear(),m=mDate.getMonth();
   const tday=td();
@@ -2149,17 +2178,19 @@ function renderCalList(evs, mDate){
       const g=G(s.g);
       const clr=CITY_COLORS(g.city);
       const stC=s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':'#333';
-      h+=`<div style="display:grid;grid-template-columns:130px 1fr auto auto;align-items:center;gap:6px;padding:4px 6px;border-radius:5px;margin-bottom:3px;background:${clr.light};border-right:3px solid ${clr.solid};cursor:pointer" onclick="openSP(${s.id})">
+      h+=`<div style="display:grid;grid-template-columns:130px 1fr auto auto auto;align-items:center;gap:6px;padding:4px 6px;border-radius:5px;margin-bottom:3px;background:${clr.light};border-right:3px solid ${clr.solid};cursor:pointer" onclick="openSP(${s.id})">
         <div>
           <div style="font-weight:700;font-size:.76rem;color:#1a237e">${g.name}</div>
           <div style="font-size:.67rem;color:#78909c">${g.city}</div>
         </div>
         <div>
-          <div style="font-size:.76rem;font-weight:600;color:#1565c0">${supBase(s.a)}${s.act?' · <span style="color:#546e7a">'+s.act+'</span>':''}</div>
+          <div style="font-size:.76rem;font-weight:600;color:#1565c0">${supBase(s.a)}${s.act?' — <span style="color:#546e7a">'+s.act+'</span>':''}</div>
+          <div style="font-size:.67rem;color:#5c6bc0">${s.tp||'חוג'}</div>
           ${s.nt?`<div style="font-size:.67rem;color:#78909c">📝 ${s.nt.slice(0,50)}${s.nt.length>50?'…':''}</div>`:''}
         </div>
-        <div style="font-size:.72rem;color:#546e7a;text-align:center">${s.t?'⏰ '+fT(s.t):''}</div>
+        <div style="font-size:.72rem;color:#546e7a;text-align:center;white-space:nowrap">${s.t?'⏰ '+fT(s.t):''}</div>
         <div style="font-size:.72rem;font-weight:700;color:${stC}">${stLabel(s).replace(/<[^>]+>/g,'')}</div>
+        ${_quickActionBtns(s)}
       </div>`;
     });
     h+='</div></div>';
@@ -5671,42 +5702,8 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     }); // end gardens.forEach
 
     const buffer = await workbook.xlsx.writeBuffer();
-
-    // ── Open XML post-processing: inject pageLayout view ─────
-    let finalBlob;
-    try {
-      if (typeof JSZip !== 'undefined') {
-        const zip = await JSZip.loadAsync(buffer);
-        // Patch every worksheet to open in pageLayout view
-        const sheetFiles = Object.keys(zip.files).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
-        for (const sheetPath of sheetFiles) {
-          let xml = await zip.files[sheetPath].async('string');
-          if (!xml.includes('view="pageLayout"')) {
-            // Inject view="pageLayout" safely — preserve self-closing tags
-            xml = xml.replace(/(<sheetView\b)([^>]*?)(\/>|>)/, (m, open, attrs, close) => {
-              const newAttrs = attrs.includes('view=')
-                ? attrs.replace(/view="[^"]*"/, 'view="pageLayout"')
-                : attrs + ' view="pageLayout"';
-              // Keep self-closing if it was self-closing
-              return open + newAttrs + close;
-            });
-          }
-          zip.file(sheetPath, xml);
-        }
-        // Use STORE for non-text files to avoid binary corruption
-        const patchedBuffer = await zip.generateAsync({
-          type: 'arraybuffer',
-          compression: 'STORE'
-        });
-        finalBlob = new Blob([patchedBuffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-      } else {
-        finalBlob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-      }
-    } catch(patchErr) {
-      console.warn('pageLayout patch failed:', patchErr);
-      finalBlob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    }
-
+    // ExcelJS writes view="pageLayout" natively via ws.views — direct download, no post-processing
+    const finalBlob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const a = document.createElement('a');
     a.href  = URL.createObjectURL(finalBlob);
     a.download = filename;
