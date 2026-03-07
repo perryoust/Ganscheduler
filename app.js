@@ -2057,10 +2057,16 @@ function renderNormalWeek(evs,ws,f){
 
     // Pairs
     byCity[city].pairs.forEach(({pair,gids:pGids})=>{
+      const pairGidList = pGids.join(',');
+      const pclrWeek = pairClrClass(pair.id) || 'pc0';
       html+=`<tr>
-        <td colspan="7" style="background:${clr.solid}cc;color:#fff;padding:3px 10px 3px 16px;
-          font-size:.75rem;font-weight:700;border-bottom:1px solid rgba(255,255,255,.2)">
-          🔗 ${pair.name}
+        <td colspan="7" class="${pclrWeek} pair-row-label" style="border-radius:0;padding:5px 10px 5px 14px">
+          <span style="display:flex;align-items:center;gap:6px">
+            🔗 ${pair.name}
+          </span>
+          <button onclick="event.stopPropagation();_exportPairWA([${pairGidList}])"
+            style="background:rgba(255,255,255,.22);border:none;border-radius:4px;color:#fff;
+              font-size:.68rem;padding:2px 9px;cursor:pointer;white-space:nowrap">📋 הודעה</button>
         </td>
       </tr>`;
       pGids.forEach(gid=>{
@@ -5799,47 +5805,50 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
 
     const buffer = await workbook.xlsx.writeBuffer();
 
-    // ── Post-process with ExcelJS's own bundled JSZip ────────────────────
-    // ExcelJS bundles JSZip internally. Access it via ExcelJS.Workbook internals.
+    // ── Post-process: patch pageLayout via window._SafeJSZip ─────────────
     let finalBlob;
-    try {
-      // Re-parse the buffer with ExcelJS internal zip (not window.JSZip)
-      // We do text-replace on raw XML after extracting via ExcelJS's zip
-      const ExJS = window.ExcelJS;
-      if (!ExJS) throw new Error('no ExcelJS');
+    const JZ = window._SafeJSZip;
+    console.log('[Excel] _SafeJSZip available:', !!JZ, '| type:', typeof JZ);
+    if (JZ) {
+      try {
+        const zip = await JZ.loadAsync(buffer);
+        const allKeys = Object.keys(zip.files);
+        console.log('[Excel] zip files:', allKeys.filter(k=>k.includes('worksheet')));
 
-      // Load the written buffer back as a new workbook to extract XML
-      const wb2 = new ExJS.Workbook();
-      await wb2.xlsx.load(buffer);
+        const sheetFiles = allKeys.filter(k => /xl\/worksheets\/sheet\d+\.xml$/.test(k));
+        console.log('[Excel] sheets to patch:', sheetFiles.length);
 
-      // Now use the _zip property ExcelJS keeps internally
-      const internalZip = wb2._zip;
-      if (!internalZip) throw new Error('no internal zip');
+        for (const key of sheetFiles) {
+          let xml = await zip.files[key].async('text');
+          const before = xml.indexOf('view=');
 
-      const sheetFiles = Object.keys(internalZip.files || {})
-        .filter(k => /xl\/worksheets\/sheet\d+\.xml/.test(k));
+          // Inject pageLayout into sheetView
+          xml = xml.replace(/<sheetView([^>]*)>/g, (m, attrs) => {
+            attrs = attrs.indexOf('view=') >= 0
+              ? attrs.replace(/view="[^"]*"/, 'view="pageLayout"')
+              : attrs + ' view="pageLayout"';
+            return '<sheetView' + attrs + '>';
+          });
 
-      for (const key of sheetFiles) {
-        let xml = await internalZip.files[key].async('text');
-        // Inject pageLayout
-        xml = xml.replace(/<sheetView([^>]*)>/g, (m, attrs) => {
-          attrs = attrs.indexOf('view=') >= 0
-            ? attrs.replace(/view="[^"]*"/, 'view="pageLayout"')
-            : attrs + ' view="pageLayout"';
-          return '<sheetView' + attrs + '>';
-        });
-        // Inject headerFooter
-        const hdr = '&amp;R&amp;"Arial,Bold"&amp;18' + monthTitle;
-        const hdrTag = '<headerFooter scaleWithDoc="0"><oddHeader>' + hdr + '</oddHeader></headerFooter>';
-        xml = xml.replace(/<headerFooter[\s\S]*?<\/headerFooter>/g, '');
-        xml = xml.replace('</sheetData>', '</sheetData>' + hdrTag);
-        internalZip.file(key, xml);
+          // Inject header footer (remove old first)
+          const hdr = '&amp;R&amp;"Arial,Bold"&amp;18' + monthTitle;
+          const hdrTag = '<headerFooter scaleWithDoc="0"><oddHeader>' + hdr + '</oddHeader></headerFooter>';
+          xml = xml.replace(/<headerFooter[\s\S]*?<\/headerFooter>/g, '');
+          xml = xml.replace('</sheetData>', '</sheetData>' + hdrTag);
+
+          console.log('[Excel] patched', key, '| had view attr:', before>=0, '| has pageLayout:', xml.indexOf('pageLayout')>=0);
+          zip.file(key, xml);
+        }
+
+        const patched = await zip.generateAsync({ type: 'arraybuffer', compression: 'STORE' });
+        finalBlob = new Blob([patched], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        console.log('[Excel] patch SUCCESS, size:', patched.byteLength);
+      } catch(pErr) {
+        console.error('[Excel] patch FAILED:', pErr);
+        finalBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       }
-
-      const patched = await internalZip.generateAsync({ type: 'arraybuffer', compression: 'STORE' });
-      finalBlob = new Blob([patched], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    } catch (e) {
-      console.warn('patch failed, raw output:', e.message);
+    } else {
+      console.warn('[Excel] no _SafeJSZip — raw output');
       finalBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     }
 
