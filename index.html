@@ -125,6 +125,14 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <span onclick="switchMode('purch');SPT('pinvoices')" style="cursor:pointer" title="בביצוע">🟡 <b id="h-inv-prog">0</b> בביצוע</span>
   </div>
   <div style="display:flex;align-items:center;gap:5px;margin-right:4px">
+    <div style="position:relative;display:flex;align-items:center">
+      <input type="text" id="nav-search" placeholder="🔍 חפש... (גן, ספק, פעולה)" autocomplete="off"
+        oninput="navSearchInput(this.value)"
+        style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:20px;padding:4px 32px 4px 12px;color:#fff;font-size:.76rem;width:220px;outline:none"
+        onfocus="this.style.background='rgba(255,255,255,.28)'" 
+        onblur="setTimeout(()=>document.getElementById('nav-results').style.display='none',200);this.style.background='rgba(255,255,255,.18)'">
+      <div id="nav-results" style="display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:320px;background:#fff;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.25);z-index:9999;max-height:400px;overflow-y:auto;border:1.5px solid #c5cae9"></div>
+    </div>
     <button onclick="openBackup()" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:5px 9px;cursor:pointer;color:#fff;font-size:.82rem" title="גיבוי ושחזור">💾</button>
     <button onclick="openInfoModal()" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:5px 9px;cursor:pointer;color:#fff;font-size:.82rem" title="מידע">ℹ️</button>
     <button id="od-btn" onclick="odToggle()" style="background:#2e7d32; border:1.5px solid rgba(255,255,255,.35); border-radius:6px; padding:5px 11px; cursor:pointer; color:#fff; font-size:.76rem; font-weight:700; position:relative; z-index:1000;">☁️ Firebase Active</button>
@@ -337,7 +345,8 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div class="mob-btn-row">
         <button class="btn bs bsm" onclick="clearSched()">נקה</button>
         <button class="btn bg bsm" onclick="addPairFromSched()">🔗 שמור כזוג</button>
-        <button class="btn bp bsm" onclick="openNewSched()">➕ שיבוץ חדש</button>
+        <button class="btn bo bsm" onclick="openMonthlyPrint()">🖨️ לוח חוגים להדפסה</button>
+      <button class="btn bp bsm" onclick="openNewSched()">➕ שיבוץ חדש</button>
         <button class="btn bg bsm" onclick="exportExcelSched()">📊 Excel חודשי</button>
       </div>
     </div>
@@ -372,9 +381,18 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     </div>
     <div style="display:none"><select id="g-cls" onchange="renderGardens()"><option value="">הכל</option><option value="גנים">גנים</option><option value='ביה"ס'>בתי ספר</option></select></div>
     <div id="g-fixed-controls" style="display:none;margin-bottom:8px">
-      <div class="row">
+      <div class="row" style="flex-wrap:wrap;gap:7px">
         <div class="fg"><label>מתאריך</label><input type="date" id="g-fixed-from" onchange="renderGardensFixed()" style="min-width:130px"></div>
         <div class="fg"><label>עד תאריך</label><input type="date" id="g-fixed-to" onchange="renderGardensFixed()" style="min-width:130px"></div>
+        <div class="fg">
+          <label>סוג</label>
+          <select id="g-fixed-cls" onchange="renderGardensFixed()" style="min-width:110px">
+            <option value="">הכל</option>
+            <option value="גנים">🏫 צהרונים</option>
+            <option value='ביה"ס'>🏛️ בתי ספר</option>
+          </select>
+        </div>
+        <div class="fg"><label>חיפוש</label><input type="text" id="g-fixed-srch" placeholder="שם מוסד..." oninput="renderGardensFixed()" style="min-width:120px"></div>
         <button class="btn bo bsm" onclick="(()=>{const n=new Date(),ld=new Date(n.getFullYear(),n.getMonth()+1,0);document.getElementById('g-fixed-from').value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-01';document.getElementById('g-fixed-to').value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(ld.getDate()).padStart(2,'0');renderGardensFixed();})()">החודש הנוכחי</button>
         <button class="btn bo bsm" onclick="document.getElementById('g-fixed-from').value='';document.getElementById('g-fixed-to').value='';renderGardensFixed()">הכל</button>
       </div>
@@ -681,7 +699,12 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <option value='ביה"ס'>🏛️ בית ספר</option>
         </select>
       </div>
-      <div class="fg"><label>עיר *</label><select id="ap-city" style="width:100%"><option value="">בחר עיר...</option></select></div>
+      <div class="fg"><label>עיר *</label>
+        <div style="display:flex;gap:5px;align-items:center">
+          <select id="ap-city" onchange="apCityChg()" style="flex:1"><option value="">בחר עיר...</option></select>
+          <input type="text" id="ap-city-new" placeholder="עיר חדשה..." style="flex:1;display:none">
+        </div>
+      </div>
     </div>
     <div class="fg" style="margin-bottom:8px"><label>שם *</label><input type="text" id="ap-name" placeholder="שם הצהרון/בית הספר" style="width:100%"></div>
     <div class="fg" style="margin-bottom:8px"><label>כתובת</label><input type="text" id="ap-addr" placeholder="רח' ..." style="width:100%"></div>
@@ -1137,7 +1160,12 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <h2>➕ הוסף צהרון / בית ספר חדש</h2>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px">
       <div class="fg" style="grid-column:1/-1"><label>שם *</label><input type="text" id="addg-name" style="width:100%"></div>
-      <div class="fg"><label>עיר *</label><select id="addg-city" style="width:100%"><option value="">בחר עיר...</option></select></div>
+      <div class="fg"><label>עיר *</label>
+        <div style="display:flex;gap:5px;align-items:center">
+          <select id="addg-city" onchange="addgCityChg()" style="flex:1"><option value="">בחר עיר...</option></select>
+          <input type="text" id="addg-city-new" placeholder="עיר חדשה..." style="flex:1;display:none">
+        </div>
+      </div>
       <div class="fg"><label>סיווג *</label>
         <select id="addg-cls" style="width:100%">
           <option value="גנים">🏫 גן ילדים</option>
