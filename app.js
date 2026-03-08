@@ -382,9 +382,13 @@ function getPurchSuppliers(){
   });
 }
 function sucTypeChg(){
-  const isAct = document.getElementById('suc-edit-is-act')?.checked;
+  const isActEl = document.getElementById('suc-edit-is-act');
+  const isPurchEl = document.getElementById('suc-edit-is-purch');
+  const isAct = isActEl?.checked;
   const warnEl = document.getElementById('suc-type-warn');
   if(warnEl) warnEl.style.display = !isAct ? 'block' : 'none';
+  // Activity supplier must also be a purchase supplier
+  if(isAct && isPurchEl) isPurchEl.checked = true;
 }
 
 // ── Invoice modal ──────────────────────────────────────
@@ -956,15 +960,6 @@ function gcls(g){return g.cls||'גנים'}
 function gByCF(city,cls){return GARDENS.filter(g=>(!city||g.city===city)&&(!cls||gcls(g)===cls));}
 function d2s(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${dd}`}
 function s2d(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
-
-// grpTag: show from grp >= 2 (1 = default, not shown)
-function grpTag(s,g){
-  const v=parseInt(s.grp)||1;
-  if(v<2) return '';
-  return `<span style="font-size:.68rem;color:#546e7a;font-weight:600"> ${v} קב'</span>`;
-}
-function grpTagEv(ev){return grpTag(ev,G(ev.g));}
-
 function fD(s){if(!s)return'';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`}
 function fT(t){return t?t.slice(0,5):''}
 function addD(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
@@ -985,90 +980,7 @@ function toHebDate(ds) {
 
 function hebM(d){return['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'][d.getMonth()]+' '+d.getFullYear()}
 function td(){return d2s(new Date())}
-function cities(){
-  const cs=new Set([...GARDENS,...(_GARDENS_EXTRA||[])].map(g=>g.city).filter(Boolean));
-  return [...cs].sort((a,b)=>a.localeCompare(b,'he'));
-}
-
-// ─── NAVIGATION SEARCH ────────────────────────────────────────────────────
-function navSearchInput(val){
-  const box=document.getElementById('nav-results');
-  if(!box) return;
-  const q=(val||'').trim();
-  if(q.length<1){box.style.display='none';return;}
-  const qL=q.toLowerCase();
-  const results=[];
-
-  // Quick actions
-  const actions=[
-    {label:'➕ שיבוץ חדש', icon:'📅', action:"openNewSched(null)"},
-    {label:'📋 שיבוץ קבוע', icon:'📋', action:"ST('gardens');setTimeout(()=>setGardensTab('fixed'),100)"},
-    {label:'🔙 ספקים', icon:'🔙', action:"ST('suppliers')"},
-    {label:'📅 לוח שנה', icon:'📅', action:"ST('cal')"},
-    {label:'🏫 צהרונים', icon:'🏫', action:"ST('gardens');setTimeout(()=>setGardensTab('gan'),100)"},
-    {label:'🏛️ בתי ספר', icon:'🏛️', action:"ST('gardens');setTimeout(()=>setGardensTab('sch'),100)"},
-    {label:'📊 לוח בקרה', icon:'📊', action:"ST('dash')"},
-    {label:'⏱️ לוח זמנים', icon:'⏱️', action:"ST('sched')"},
-    {label:'🔗 זוגות', icon:'🔗', action:"ST('gardens');setTimeout(()=>setGardensTab('pairs'),100)"},
-    {label:'🔢 אשכולות', icon:'🔢', action:"ST('gardens');setTimeout(()=>setGardensTab('clusters'),100)"},
-    {label:'🌴 חופשות', icon:'🌴', action:"ST('holidays')"},
-    {label:'💾 גיבוי', icon:'💾', action:"openBackup()"},
-    {label:'➕ הוסף צהרון', icon:'➕', action:"ST('gardens');setTimeout(()=>openAddGardenModal(),150)"},
-  ];
-  actions.forEach(a=>{
-    if(a.label.toLowerCase().includes(qL)||a.icon.includes(q))
-      results.push({type:'action',label:a.label,action:a.action});
-  });
-
-  // Gardens
-  const allG=[...GARDENS,...(_GARDENS_EXTRA||[])];
-  allG.filter(g=>(g.name||'').toLowerCase().includes(qL)||(g.city||'').toLowerCase().includes(qL))
-    .slice(0,5).forEach(g=>{
-      results.push({type:'garden',label:`${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name} — ${g.city}`,
-        action:`openGM(${g.id})`});
-    });
-
-  // Suppliers
-  getAllSup().filter(s=>(s.name||'').toLowerCase().includes(qL))
-    .slice(0,4).forEach(s=>{
-      results.push({type:'sup',label:`📚 ספק: ${s.name}`,action:`openSupModal('${s.name.replace(/'/g,"\'")}');`});
-    });
-
-  if(!results.length){
-    box.innerHTML='<div style="padding:12px 16px;color:#666;font-size:.84rem;background:#fff">לא נמצאו תוצאות</div>';
-    box.style.display='block';return;
-  }
-  box.innerHTML=results.slice(0,10).map((r,i)=>`
-    <div onclick="${r.action};document.getElementById('nav-search').value='';document.getElementById('nav-results').style.display='none';"
-      style="padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:.84rem;border-bottom:1px solid #e8eaf6;color:#1a237e;background:#fff"
-      onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#fff'">
-      <span style="color:#1a237e;font-weight:500">${r.label}</span>
-    </div>`).join('');
-  box.style.display='block';
-}
-
-
-function apCityChg(){
-  const sel=document.getElementById('ap-city');
-  const inp=document.getElementById('ap-city-new');
-  if(!sel||!inp) return;
-  if(sel.value==='__new__'){inp.style.display='';inp.focus();}
-  else{inp.style.display='none';}
-}
-function addgCityChg(){
-  const sel=document.getElementById('addg-city');
-  const inp=document.getElementById('addg-city-new');
-  if(!sel||!inp) return;
-  if(sel.value==='__new__'){inp.style.display='';inp.focus();}
-  else{inp.style.display='none';}
-}
-function _getCityVal(selId,inpId){
-  const sel=document.getElementById(selId);
-  const inp=document.getElementById(inpId);
-  if(!sel) return '';
-  if(sel.value==='__new__') return (inp?inp.value:'').trim();
-  return sel.value;
-}
+function cities(){return[...new Set(GARDENS.map(g=>g.city))].sort()}
 function gardenPair(gid){const n=parseInt(gid);return pairs.find(p=>p.ids.map(x=>parseInt(x)).includes(n))||null}
 function stLabel(s){
   if(s.st==='can') return'<span class="bdg br2">❌ בוטל</span>';
@@ -1146,21 +1058,9 @@ window.onload = function(){
 }; // end window.onload
 
 function updCounts(){
-  // Academic year: Sep 1 → Aug 21 of next year
-  const _now=new Date();
-  const _yr=_now.getMonth()>=8?_now.getFullYear():_now.getFullYear()-1;
-  const _ayFrom=`${_yr}-09-01`, _ayTo=`${_yr+1}-08-21`;
-  // Current calendar month (for "בוטלו")
-  const _cm=_now.getMonth(), _cy=_now.getFullYear();
-  const _mFrom=`${_cy}-${String(_cm+1).padStart(2,'0')}-01`;
-  const _mTo=`${_cy}-${String(_cm+1).padStart(2,'0')}-31`;
-
-  const _inAY=s=>s.d>=_ayFrom&&s.d<=_ayTo;
-  const _inMonth=s=>s.d>=_mFrom&&s.d<=_mTo;
-
-  const can=SCH.filter(s=>s.st==='can'&&_inMonth(s)).length; // בוטלו = current month
-  const post=SCH.filter(s=>s.st==='post'&&_inAY(s)).length;
-  const nohap=SCH.filter(s=>s.st==='nohap'&&_inAY(s)).length;
+  const can=SCH.filter(s=>s.st==='can').length;
+  const post=SCH.filter(s=>s.st==='post').length;
+  const nohap=SCH.filter(s=>s.st==='nohap').length;
   const todayCnt=SCH.filter(s=>s.d===td()&&s.st!=='can').length;
   const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   // Activity stats
@@ -1210,6 +1110,82 @@ function initDrops(){
 
 const TABS=['dash','cal','sched','gardens','pairs','holidays','clusters','sup','managers'];
 let currentTab='dash';
+
+// ─── GLOBAL NAVIGATION SEARCH ────────────────────────────────────────────────
+function navSearchInput(val){
+  const res=document.getElementById('nav-search-results');
+  if(!res) return;
+  const q=(val||'').trim().toLowerCase();
+  if(!q){ res.style.display='none'; return; }
+
+  const results=[];
+
+  // Search gardens
+  const allG=[...GARDENS,...(_GARDENS_EXTRA||[])];
+  allG.forEach(g=>{
+    if(!(g.name||'').toLowerCase().includes(q)&&!(g.city||'').toLowerCase().includes(q)) return;
+    results.push({
+      icon: gcls(g)==='ביה"ס'?'🏛️':'🏫',
+      label: `${g.name}`,
+      sub: g.city||'',
+      action: `switchMode('act');ST('gardens');setTimeout(()=>openGM(${g.id}),200);navSearchClose();`
+    });
+  });
+
+  // Search suppliers
+  getAllSup().forEach(s=>{
+    const base=supBase(s.name);
+    if(!base.toLowerCase().includes(q)) return;
+    results.push({
+      icon:'🏢',
+      label: base,
+      sub: isActSupplier(base)?'ספק חוגים':'ספק',
+      action: `switchMode('act');ST('sup');setTimeout(()=>openSupCard('${base.replace(/'/g,"\\'")}'),200);navSearchClose();`
+    });
+  });
+
+  // Search events (by supplier name or garden)
+  if(q.length>=2){
+    const evMatches=SCH.filter(s=>{
+      if(s.st==='can') return false;
+      return (s.a||'').toLowerCase().includes(q)||(G(s.g)?.name||'').toLowerCase().includes(q);
+    }).slice(0,5);
+    evMatches.forEach(s=>{
+      const g=G(s.g);
+      results.push({
+        icon:'📅',
+        label:`${supBase(s.a)} — ${g?.name||''}`,
+        sub: `${fD(s.d)} ${s.t?fT(s.t):''}`,
+        action: `switchMode('act');ST('cal');setTimeout(()=>{goDate('${s.d}');setTimeout(()=>openSP(${s.id}),200);},150);navSearchClose();`
+      });
+    });
+  }
+
+  if(!results.length){
+    res.innerHTML='<div style="padding:10px 14px;color:#999;font-size:.82rem">לא נמצאו תוצאות</div>';
+    res.style.display='block'; return;
+  }
+
+  res.innerHTML=results.slice(0,12).map(r=>`
+    <div onclick="${r.action}" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px"
+      onmouseover="this.style.background='#f5f7ff'" onmouseout="this.style.background=''">
+      <span style="font-size:1.1rem;flex-shrink:0">${r.icon}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:.82rem;color:#1a237e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.label}</div>
+        ${r.sub?`<div style="font-size:.72rem;color:#78909c">${r.sub}</div>`:''}
+      </div>
+    </div>`).join('');
+  res.style.display='block';
+}
+
+function navSearchClose(){
+  const res=document.getElementById('nav-search-results');
+  if(res) res.style.display='none';
+  const inp=document.getElementById('nav-search-input');
+  if(inp) inp.value='';
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function ST(t){
   currentTab=t;
   TABS.forEach((x,i)=>{
@@ -1279,9 +1255,6 @@ function filterE(f,from,to){
   }).map(s=>({...s,d:s.pd,_isPostponed:true}));
   return [...all,...posted];
 }
-// Global calendar state — initialized to today
-if(typeof calD==='undefined') window.calD=new Date();
-if(typeof calV==='undefined') window.calV='day';
 function setView(v){
   calV=v;
   ['day','week','month','list','range'].forEach(x=>{
@@ -1312,17 +1285,7 @@ function navCal(d){
   renderCal();
 }
 function goToday(){calD=new Date();document.getElementById('cal-dp').value=td();renderCal();}
-function goDate(s){
-  if(s){
-    const _pm=calD.getMonth(),_py=calD.getFullYear();
-    calD=s2d(s);
-    if(calV==='list'){
-      const nr=calD.getMonth()!==_pm||calD.getFullYear()!==_py;
-      if(nr) renderCal();
-      setTimeout(()=>{const el=document.getElementById('listday-'+s);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},nr?150:50);
-    } else { renderCal(); }
-  }
-}
+function goDate(s){if(s){calD=s2d(s);renderCal();}}
 function jumpToDay(ds){calD=s2d(ds);setView('day');}
 function clearCal(){
   ['cal-city','cal-cls','cal-cl','cal-sup'].forEach(id=>document.getElementById(id).value='');
@@ -1502,7 +1465,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
         html+=`<div style="margin:0 0 10px 0">`;
         if(!cityFilter){
           html+=`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;background:${clr.light};border-right:3px solid ${clr.solid};border-radius:5px;margin-bottom:6px">
-            <span style="font-weight:800;color:${clr.solid};font-size:1.6rem">🏙️ ${city}</span>
+            <span style="font-weight:800;color:${clr.solid};font-size:.8rem">🏙️ ${city}</span>
             <span style="font-size:.7rem;color:#78909c">${cityEvs.length} פעילויות</span>
           </div>`;
         }
@@ -1585,7 +1548,7 @@ function renderClusterDay(evs, ds, clusterName){
       if(!cityEvs.length) return;
       const clrCity=CITY_COLORS(city);
       html+=`<div style="margin-bottom:14px">
-        <div style="padding:5px 10px;background:${clrCity.solid};color:#fff;border-radius:6px;font-size:1.64rem;font-weight:800;margin-bottom:8px">🏙️ ${city}</div>`;
+        <div style="padding:5px 10px;background:${clrCity.solid};color:#fff;border-radius:6px;font-size:.82rem;font-weight:800;margin-bottom:8px">🏙️ ${city}</div>`;
       // Group by cluster within city
       const clusterMap={};
       cityEvs.forEach(s=>{
@@ -1636,7 +1599,7 @@ function renderClusterDay(evs, ds, clusterName){
             ${s.t?`<div class="pt" style="font-size:.82rem;font-weight:800;color:${clrCity.solid}">⏰ ${fT(s.t)}</div>`:'<div class="pt" style="color:#aaa">ללא שעה</div>'}
             <div class="pn">${supBase(s.a)}</div>
             ${(s.act||supAct(s.a))?`<div style="font-size:.69rem;color:${clrCity.solid};font-weight:600">🎯 ${s.act||supAct(s.a)}</div>`:''}
-            ${grpTagEv(s)}
+            ${s.grp>1?`<div style="font-size:.68rem;color:#546e7a">👥 ${s.grp} קבוצות</div>`:''}
             <div class="pst">${stLabel(s)}</div>
             ${s.nt?`<div style="font-size:.68rem;color:#78909c">📝 ${s.nt}</div>`:''}
             <div class="qacts" onclick="event.stopPropagation()">
@@ -1677,7 +1640,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
         if(!cityEvs.length) return;
         const clrCity=CITY_COLORS(city);
         html+=`<div style="margin-bottom:8px">
-          <div style="padding:3px 8px;background:${clrCity.solid};color:#fff;border-radius:4px;font-size:1.46rem;font-weight:700;margin-bottom:4px">🏙️ ${city}</div>`;
+          <div style="padding:3px 8px;background:${clrCity.solid};color:#fff;border-radius:4px;font-size:.73rem;font-weight:700;margin-bottom:4px">🏙️ ${city}</div>`;
         const clusterMap={};
         cityEvs.forEach(s=>{
           const clKey=(gardenClusters(s.g)[0]||{}).name||'ללא אשכול';
@@ -1802,7 +1765,7 @@ function renderNormalDay(evs,ds){
       html+=`<div style="margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <div style="flex:1;height:2px;background:${CITY_COLORS(city).solid};opacity:.3"></div>
-          <span style="font-size:1.5rem;font-weight:800;color:${CITY_COLORS(city).solid};white-space:nowrap">🏙️ ${city} (${cards.length} זוגות)</span>
+          <span style="font-size:.75rem;font-weight:800;color:${CITY_COLORS(city).solid};white-space:nowrap">🏙️ ${city} (${cards.length} זוגות)</span>
           <div style="flex:1;height:2px;background:${CITY_COLORS(city).solid};opacity:.3"></div>
         </div>
         <div class="pairs-4col">${cards.join('')}</div>
@@ -1831,7 +1794,7 @@ function renderNormalDay(evs,ds){
       html+=`<div style="margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <div style="flex:1;height:2px;background:${clr.solid};opacity:.3"></div>
-          <span style="font-size:1.5rem;font-weight:800;color:${clr.solid};white-space:nowrap">🏙️ ${city} — צהרונים ללא זוג</span>
+          <span style="font-size:.75rem;font-weight:800;color:${clr.solid};white-space:nowrap">🏙️ ${city} — צהרונים ללא זוג</span>
           <div style="flex:1;height:2px;background:${clr.solid};opacity:.3"></div>
         </div>
         <div class="pairs-4col">`;
@@ -1854,10 +1817,11 @@ function renderNormalDay(evs,ds){
           <div style="background:#fff;padding:7px">
             <div class="pslot ${stc}" style="border-right:3px solid ${clr.solid};background:${clr.light}" onclick="openSP(${s.id})">
               ${s._fromD?`<div style="font-size:.67rem;color:#e65100;font-weight:700;background:#fff3e0;padding:1px 5px;border-radius:3px;margin-bottom:2px">↩️ הועבר מ-${fD(s._fromD)}</div>`:''}
-              <div class="pt" style="display:flex;align-items:center;gap:6px">${s.t?`⏰ ${fT(s.t)}`:''} ${grpTagEv(s)}</div>
+              ${s.t?`<div class="pt">⏰ ${fT(s.t)}</div>`:''}
               <div class="pn">${supBase(s.a)}</div>
               ${(s.act||supAct(s.a))?`<div style="font-size:.69rem;color:${clr.solid};font-weight:600">🎯 ${s.act||supAct(s.a)}</div>`:''}
               ${s.p?`<div class="pp">📞 ${s.p}</div>`:''}
+              ${s.grp>1?`<div style="font-size:.68rem;color:#546e7a">👥 ${s.grp} קבוצות</div>`:''}
               <div class="pst">${stLabel(s)}</div>
               ${s.nt?`<div style="font-size:.68rem;color:#78909c">📝 ${s.nt}</div>`:''}
               <div class="qacts" onclick="event.stopPropagation()">
@@ -1948,7 +1912,7 @@ function renderPairCard(pair, pairEvs, opts){
         <div class="pgr-left">
           <div class="pgr-name">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
           ${g.st?`<div class="pgr-addr">📍 ${g.st}</div>`:''}
-          <div class="pgr-time" style="display:flex;align-items:center;gap:6px">${ev.t?`⏰ ${fT(ev.t)}`:''} ${grpTagEv(ev)}</div>
+          ${ev.t?`<div class="pgr-time">⏰ ${fT(ev.t)}</div>`:''}
           ${gblkEv?`<div style="font-size:.67rem;color:#c62828">${gblkEv.icon||'🚫'} ${gblkEv.reason}</div>`:''}
           <div class="pgr-status" style="color:${stc?'#c62828':'#2e7d32'}">${stLabel(ev)}</div>
         </div>
@@ -2055,9 +2019,9 @@ function renderPairDay(evs,gids){
 }
 
 function renderNormalWeek(evs,ws,f){
-  const dn=['ראשון','שני','שלישי','רביעי','חמישי'], tday=td();
+  const dn=['ראשון','שני','שלישי','רביעי','חמישי','שישי'], tday=td();
   const days=[];
-  for(let i=0;i<5;i++) days.push(addD(ws,i));
+  for(let i=0;i<6;i++) days.push(addD(ws,i));
 
   let gids=[...new Set(evs.map(s=>s.g))];
   if(f.gids&&f.gids.length) gids=f.gids;
@@ -2088,12 +2052,12 @@ function renderNormalWeek(evs,ws,f){
   });
 
   // border-separate avoids border-collapse + sticky bug
-  let html='<div style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 180px);border-radius:8px;border:2px solid #9fa8da">'
-          +'<table style="min-width:720px;border-collapse:separate;border-spacing:0;width:100%"><thead><tr>';
+  let html='<div style="overflow-x:auto;border-radius:8px;border:2px solid #9fa8da">'
+          +'<table style="min-width:950px;border-collapse:separate;border-spacing:0;width:100%"><thead><tr>';
 
-  html+=`<th style="min-width:130px;background:#e8eaf6;color:#283593;padding:6px 8px;
+  html+=`<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;
     border-bottom:2px solid #9fa8da;border-left:1px solid #c5cae9;
-    position:sticky;top:0;z-index:3;font-size:.82rem">צהרון / זוג</th>`;
+    position:sticky;top:0;z-index:3;font-size:.76rem">צהרון / זוג</th>`;
 
   days.forEach((d,i)=>{
     const ds=d2s(d);
@@ -2103,13 +2067,12 @@ function renderNormalWeek(evs,ws,f){
     const bg=isToday?'#1565c0':blkWk?'#fce4ec':hol?hol.bg:'#e8eaf6';
     const col=isToday?'#fff':blkWk?'#c62828':hol?hol.color:'#283593';
     const bottomBorder=blkWk?'border-bottom:3px solid #e91e63':'border-bottom:2px solid #9fa8da';
-    html+=`<th style="background:${bg};color:${col};padding:3px 4px;text-align:center;font-size:.82rem;min-width:140px;
+    html+=`<th style="background:${bg};color:${col};padding:3px 4px;text-align:center;font-size:.76rem;min-width:132px;
       ${bottomBorder};border-left:1px solid ${isToday?'rgba(255,255,255,.3)':'#c5cae9'};
-      position:sticky;top:0;z-index:3;white-space:nowrap" onclick="jumpToDay('${ds}')">
-      <span style="font-weight:700">${dn[i]}</span>
-      <span style="font-size:.72rem;font-weight:500;margin-right:4px">${fD(ds)}</span>
-      <span style="font-size:.65rem;font-weight:400;opacity:.75">${toHebDate(ds)}</span>
-      ${blkWk?`<span style="font-size:.63rem;cursor:pointer;display:inline-block" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blkWk.icon||'🚫'} ${blkWk.reason}</span>`:``}
+      position:sticky;top:0;z-index:3;white-space:nowrap;line-height:1.3" onclick="jumpToDay('${ds}')">
+      <span style="font-weight:700">${dn[i]}</span> <span style="font-size:.64rem;font-weight:400">${fD(ds)}</span>
+      <br><span style="font-size:.56rem;font-weight:400;opacity:.7">${toHebDate(ds)}</span>
+      ${blkWk?`<span style="font-size:.58rem;cursor:pointer;display:block" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blkWk.icon||'🚫'} ${blkWk.reason}</span>`:''}
     </th>`;
   });
   html+='</tr></thead><tbody>';
@@ -2119,7 +2082,7 @@ function renderNormalWeek(evs,ws,f){
 
     // City header row
     html+=`<tr>
-      <td colspan="6" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;
+      <td colspan="7" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;
         border-bottom:1px solid rgba(255,255,255,.2);position:sticky;left:0">
         🏙️ ${city}
         <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} זוגות · ${byCity[city].solos.length} צהרונים בודדים</span>
@@ -2139,8 +2102,8 @@ function renderNormalWeek(evs,ws,f){
             <div style="display:flex;align-items:flex-start;gap:4px">
               <div style="cursor:pointer;flex:1;min-width:0" onclick="event.stopPropagation();openSP(${ev.id})">
                 <div style="font-weight:700;color:${clrObj.solid};word-break:break-word;line-height:1.3">${supBase(ev.a)}${ev.act?`<span style="color:#78909c;font-weight:400"> — ${ev.act}</span>`:''}</div>
-                <div style="font-size:12px;color:#5c6bc0;margin-top:1px">${ev.tp||'חוג'}</div>
-                ${ev.t?`<div style="font-size:12px;color:#546e7a">⏰ ${fT(ev.t)} ${grpTagEv(ev)}</div>`:`${grpTagEv(ev)?'<div style="font-size:12px;color:#546e7a">'+grpTagEv(ev)+'</div>':''}`}
+                <div style="font-size:12px;color:#5c6bc0;margin-top:1px">${ev.tp||'חוג'}${ev.grp>1?` · <span style="color:#546e7a">👥${ev.grp}</span>`:''}</div>
+                ${ev.t?`<div style="font-size:12px;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
               </div>
               <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0" onclick="event.stopPropagation()">
                 <button title="התקיים" style="background:${ev.st==='done'?'#2e7d32':'#e8f5e9'};color:${ev.st==='done'?'#fff':'#2e7d32'};border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
@@ -2174,13 +2137,13 @@ function renderNormalWeek(evs,ws,f){
     byCity[city].pairs.forEach(({pair,gids:pGids})=>{
       const pairGidList = pGids.join(',');
       html+=`<tr>
-        <td colspan="6" style="background:${clr.solid};color:#fff;padding:5px 12px;
+        <td colspan="7" style="background:${clr.solid};color:#fff;padding:5px 12px;
           font-size:.82rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2)">
           <div style="display:flex;align-items:center;gap:8px">
-            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 ${pair.name}</span>
             <button onclick="event.stopPropagation();_exportPairWA([${pairGidList}])"
               style="background:rgba(255,255,255,.22);border:none;border-radius:5px;color:#fff;
                 font-size:.72rem;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">📋 הודעה</button>
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 ${pair.name}</span>
           </div>
         </td>
       </tr>`;
@@ -2205,14 +2168,6 @@ function renderNormalWeek(evs,ws,f){
     // Solo gardens
     byCity[city].solos.forEach(gid=>{
       const g=G(gid);
-      html+=`<tr>
-        <td colspan="6" style="background:${clr.solid}dd;color:#fff;padding:4px 12px;font-size:.78rem;font-weight:700;border-bottom:1px solid rgba(255,255,255,.15)">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${gcls(g)==='ביה\"ס'?'🏛️':'🏫'} ${g.name}</span>
-            <button onclick="event.stopPropagation();_exportGardenWA([${gid}],d2s(calD))" style="background:rgba(255,255,255,.22);border:none;border-radius:5px;color:#fff;font-size:.68rem;padding:2px 8px;cursor:pointer;white-space:nowrap;flex-shrink:0">📋 הודעה</button>
-          </div>
-        </td>
-      </tr>`;
       html+=`<tr><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
         border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
         position:sticky;right:0;z-index:1;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">
@@ -2300,7 +2255,7 @@ function renderCalList(evs, mDate){
     const blk=getBlockedInfo(ds);
 
     // Day header
-    h+=`<div id="listday-${ds}" style="border-bottom:2px solid #c5cae9;position:sticky;top:0;z-index:4;background:#f0f2f5">
+    h+=`<div style="border-bottom:2px solid #c5cae9">
       <div style="background:${isToday?'#1565c0':hol?hol.bg:blk?'#fce4ec':'#e8eaf6'};color:${isToday?'#fff':hol?hol.color:blk?'#c62828':'#283593'};padding:6px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="jumpToDay('${ds}')">
         <span style="font-weight:700;font-size:.82rem">📅 ${dayN(ds)} ${fD(ds)}</span>
         <span style="display:flex;gap:8px;align-items:center">
@@ -2322,7 +2277,7 @@ function renderCalList(evs, mDate){
       h+=`<div style="margin-bottom:8px">`;
       // City header
       h+=`<div style="display:flex;align-items:center;gap:6px;padding:3px 8px;margin-bottom:4px;background:${clr.light};border-right:3px solid ${clr.solid};border-radius:4px">
-        <span style="font-weight:800;color:${clr.solid};font-size:1.56rem">🏙️ ${city}</span>
+        <span style="font-weight:800;color:${clr.solid};font-size:.78rem">🏙️ ${city}</span>
         <span style="font-size:.68rem;color:#78909c">${cityEvs.length} פעילויות</span>
       </div>`;
 
@@ -2347,30 +2302,20 @@ function renderCalList(evs, mDate){
         h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border};border-radius:6px;overflow:hidden">
           <div style="background:${clr.solid}22;padding:3px 8px;font-size:.72rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
             <span>🔗 ${pair.name}</span>
-            <button onclick="event.stopPropagation();calD=s2d('${ds}');_exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
+            <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
           </div>`;
         sorted.forEach(s=>{ h+=_listRow(s,clr); });
         h+=`</div>`;
       });
 
+      // Solos — sorted by garden name
       const soloEvs=cityEvs
         .filter(s=>!pairedGids.has(s.g))
         .sort((a,b)=>{
           const na=G(a.g).name||'', nb=G(b.g).name||'';
           return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
         });
-      const _sgMap={};
-      soloEvs.forEach(s=>{if(!_sgMap[s.g])_sgMap[s.g]=[];_sgMap[s.g].push(s);});
-      Object.keys(_sgMap).forEach(gid=>{
-        const _sg=G(Number(gid));
-        h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border};border-radius:6px;overflow:hidden">
-          <div style="background:${clr.solid}22;padding:3px 8px;font-size:.72rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
-            <span>${gcls(_sg)==='ביה"ס'?'🏛️':'🏫'} ${_sg.name}</span>
-            <button onclick="event.stopPropagation();calD=s2d('${ds}');_exportGardenWA([${gid}],'${ds}')" style="background:${clr.solid};border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
-          </div>`;
-        _sgMap[gid].forEach(s=>{ h+=_listRow(s,clr); });
-        h+=`</div>`;
-      });
+      soloEvs.forEach(s=>{ h+=_listRow(s,clr); });
 
       h+=`</div>`; // end city
     });
@@ -2386,7 +2331,7 @@ function _listRow(s, clr){
   return `<div style="display:grid;grid-template-columns:120px 1fr auto auto auto;align-items:center;gap:5px;padding:3px 6px;border-radius:4px;margin-bottom:2px;background:${s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light};border-right:3px solid ${clr.solid};cursor:pointer" onclick="openSP(${s.id})">
     <div>
       <div style="font-weight:700;font-size:.75rem;color:#1a237e">${g.name}</div>
-      <div style="font-size:.65rem;color:#78909c;display:flex;align-items:center;gap:5px">${s.t?'⏰ '+fT(s.t):''} ${grpTagEv(s)}</div>
+      <div style="font-size:.65rem;color:#78909c">${s.t?'⏰ '+fT(s.t):''}</div>
     </div>
     <div>
       <div style="font-size:.75rem;font-weight:600;color:#1565c0">${supBase(s.a)}${s.act?' — <span style="color:#546e7a">'+s.act+'</span>':''}</div>
@@ -2401,12 +2346,8 @@ function renderMonth(evs,mDate){
   const y=mDate.getFullYear(),m=mDate.getMonth(),tday=td();
   const fd=new Date(y,m,1),ld=new Date(y,m+1,0);
   const cnt={};evs.forEach(s=>{const dk=s._isPostponed?s.pd:s.d;if(!cnt[dk])cnt[dk]={t:0,c:0};cnt[dk].t++;if(s.st==='can')cnt[dk].c++;});
-  const _dnM=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
-  let html=`<div class="card" style="padding:0;overflow:hidden">
-    <div class="mgrid" style="background:#1a237e;border-radius:10px 10px 0 0;gap:2px">
-      ${_dnM.map(d=>`<div class="mdh">${d}</div>`).join('')}
-    </div>
-    <div class="mgrid" style="border-radius:0 0 10px 10px">`;
+  let html='<div class="card"><div class="mgrid">';
+  ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'].forEach(d=>html+=`<div class="mdh">${d}</div>`);
   for(let i=0;i<fd.getDay();i++) html+='<div class="md om"></div>';
   for(let d=1;d<=ld.getDate();d++){
     const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -2428,7 +2369,7 @@ function renderMonth(evs,mDate){
     </div>`;
   }
   const e=ld.getDay();for(let i=e+1;i<7;i++) html+='<div class="md om"></div>';
-  return html+'</div></div></div>';
+  return html+'</div></div>';
 }
 
 let _calTab='g'; // 'g'=גנים 's'=בתי ספר
@@ -2543,7 +2484,7 @@ function renderDash(){
                   ${s.gd.st?`<div style="font-size:.67rem;color:#78909c">📍 ${s.gd.st}</div>`:''}
                   ${s.act?`<div style="font-size:.67rem;font-weight:600;color:${_sc.solid}">🎯 ${s.act}</div>`:''}
                   ${s.t?`<div class="et">⏰ ${fT(s.t)}</div>`:''}
-                  ${grpTagEv(s)}
+                  ${s.grp>1?`<div style="font-size:.67rem;color:#546e7a">👥 ${s.grp}</div>`:''}
                 </div>
               </div>
             </div>`;
@@ -2566,11 +2507,10 @@ function renderDash(){
   let ch='';
   if(!allEvs.length) ch='<p style="color:#999;font-size:.79rem">אין ביטולים/דחיות</p>';
   else{
-    ch='<div class="tw"><table><thead><tr><th>תאריך</th><th>עיר</th><th>גן</th><th>ספק</th><th>סטטוס</th><th>סיבה</th><th></th></tr></thead><tbody>';
+    ch='<div class="tw"><table><thead><tr><th>תאריך</th><th>עיר</th><th>גן</th><th>ספק</th><th>סטטוס</th><th>סיבה</th></tr></thead><tbody>';
     allEvs.forEach(s=>{
       const g=G(s.g);
-      const _canMakeup=s.st==='nohap'||s.st==='post'||s.st==='can';
-      ch+=`<tr onclick="openSP(${s.id})" class="${stClass(s)}"><td style="white-space:nowrap">${fD(s.d)}</td><td>${g.city||''}</td><td>${g.name||''}</td><td style="font-size:.78rem">${supBase(s.a)}</td><td>${stLabel(s)}</td><td style="font-size:.75rem">${s.cr||''}${s.cn?' ('+s.cn+')':''}</td><td>${_canMakeup?`<button class="btn bp bsm" style="font-size:.68rem;padding:2px 8px;white-space:nowrap" onclick="event.stopPropagation();openMakeupSched(${s.id})">📅 שבץ השלמה</button>`:''}</td></tr>`;
+      ch+=`<tr onclick="openSP(${s.id})" class="${stClass(s)}"><td>${fD(s.d)}</td><td>${g.city||''}</td><td>${g.name||''}</td><td>${s.a}</td><td>${stLabel(s)}</td><td>${s.cr||''}${s.cn?' ('+s.cn+')':''}</td></tr>`;
     });
     ch+='</tbody></table></div>';
   }
@@ -2587,11 +2527,12 @@ function openSP(id){
     <div class="ir"><span class="il">🏫 גן:</span><span style="font-weight:700">${g.name}</span></div>
     <div class="ir"><span class="il">🏙️ עיר:</span><span>${g.city}</span></div>
     ${g.st?`<div class="ir"><span class="il">📍 כתובת:</span><span><a href="https://maps.google.com/?q=${encodeURIComponent(g.st+' '+g.city)}" target="_blank" style="color:#1565c0">${g.st}</a></span></div>`:''}
-    <div class="ir"><span class="il">⏰ שעה:</span><span style="display:flex;align-items:center;gap:8px"><span style="font-weight:700;font-size:.9rem">${s.t?fT(s.t):'—'}</span>${grpTagEv(s)}</span></div>
+    ${s.t?`<div class="ir"><span class="il">⏰ שעה:</span><span style="font-weight:700;font-size:.9rem">${fT(s.t)}</span></div>`:''}
     <div class="ir"><span class="il">📚 ספק:</span><span style="font-weight:700">${supBase(s.a)}</span></div>
     ${supAct(s.a)?`<div class="ir"><span class="il">🎯 פעילות:</span><span style="color:#1565c0;font-weight:700">${supAct(s.a)}</span></div>`:''}
     ${s.p?`<div class="ir"><span class="il">📞 טלפון:</span><span>${s.p}</span></div>`:''}
     ${(s.act&&s.act!==supAct(s.a))?`<div class="ir"><span class="il">🎯 סוג פעילות:</span><span style="font-weight:700;color:#1565c0">${s.act}</span></div>`:''}
+    ${isS&&s.grp>1?`<div class="ir"><span class="il">👥 קבוצות:</span><span>${s.grp}</span></div>`:''}
     ${s.st==='post'?`<div class="ir"><span class="il">⏩ נדחה ל:</span><span style="color:#e65100;font-weight:700">${fD(s.pd)} ${s.pt?fT(s.pt):''}</span></div>`:''}
     ${s._fromD?`<div class="ir"><span class="il">↩️ הועבר מ:</span><span style="color:#e65100;font-weight:700">${fD(s._fromD)}</span></div>`:''}
     <div class="ir"><span class="il">📌 סטטוס:</span><span>${stLabel(s)}</span></div>
@@ -2669,20 +2610,12 @@ function openSP(id){
       <div id="sp-edit-act-new-wrap" style="display:none">
         <input type="text" id="sp-edit-act-new" placeholder="שם פעילות חדשה" style="width:100%;font-size:.8rem">
       </div>
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end">
-        <div><label style="font-size:.72rem;color:#546e7a;font-weight:700">⏰ שעה</label>
-          <input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;font-size:.8rem">
-        </div>
-        <div><label style="font-size:.72rem;color:#546e7a;font-weight:700">👥 קב'</label>
-          <input type="number" id="sp-edit-grp" min="1" max="30" value="${s.grp||''}" placeholder="1" style="width:58px;font-size:.8rem;text-align:center">
-        </div>
+      <div><label style="font-size:.72rem;color:#546e7a;font-weight:700">⏰ שעה</label>
+        <input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;font-size:.8rem">
       </div>
       ${spPairForEdit?`<label style="font-size:.75rem;display:flex;align-items:center;gap:6px;cursor:pointer;color:#e65100">
         <input type="checkbox" id="sp-edit-pair-chk"> עדכן לכל הזוג (${spPairForEdit.name})
       </label>`:''}
-      <label style="font-size:.73rem;display:flex;align-items:center;gap:5px;cursor:pointer;color:#1a237e;background:#e8eaf6;padding:4px 7px;border-radius:5px;margin-top:3px">
-        <input type="checkbox" id="sp-edit-future-chk"> 🔁 עדכן כל פעילויות עתידיות זהות (ספק+גן+יום, מעקף חופשות)
-      </label>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px">
       <button class="btn bp bsm" onclick="spEditSave()">💾 שמור שינויים</button>
@@ -2690,12 +2623,6 @@ function openSP(id){
     </div>
   </div>`;
   if(s.st==='nohap')h+=`<button class="btn bp bsm" style="width:100%;margin-bottom:7px" onclick="openMakeupSched(${s.id})">📅 שיבוץ השלמה לתאריך חדש</button>`;
-  // Mark THIS event as makeup (it itself is the makeup activity)
-  if(!s._makeupFrom){
-    h+=`<button class="btn bo bsm" style="width:100%;margin-bottom:7px;font-size:.78rem" onclick="markAsMakeup(${s.id})">↩️ סמן פעילות זו כהשלמה</button>`;
-  } else {
-    h+=`<div style="background:#fff3e0;border-radius:6px;padding:5px 10px;margin-bottom:7px;font-size:.75rem;color:#e65100;font-weight:700">↩️ השלמה מ-${fD(s._makeupFrom)}</div>`;
-  }
   if(s.st!=='nohap')h+=`<div style="border:1.5px solid #f48fb1;border-radius:7px;padding:8px;margin-bottom:8px">
     <div style="font-size:.8rem;font-weight:700;color:#e91e63;margin-bottom:5px">⚠️ לא התקיים</div>
     <div class="copts">
@@ -2708,15 +2635,10 @@ function openSP(id){
     <button class="btn bpurple bsm" style="width:100%" onclick="markNoHap()">⚠️ סמן לא התקיים</button>
   </div>`;
 
-    // Recurring series management — shown for series events; also show cancel for all recurring-looking events
-  const _futureByRecId = s._recId ? SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g) : [];
-  const _futureByPattern = !s._recId ? SCH.filter(x=>x.g===s.g&&x.a===s.a&&new Date(x.d).getDay()===new Date(s.d).getDay()&&x.d>=s.d) : [];
-  const _hasRecurring = _futureByRecId.length > 1 || _futureByPattern.length > 1;
+  // Recurring series management — shown only if event belongs to a series
   if(s._recId){
-    const seriesCount=_futureByRecId.length;
-    h+=`<div style="border:1.5px solid #b0bec5;border-radius:7px;padding:8px;margin-bottom:8px;background:#f8f9fa"><div style="font-size:.8rem;font-weight:700;color:#37474f;margin-bottom:6px">🔁 שיבוץ קבוע — ${seriesCount} פעילויות מתאריך זה ואילך</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:5px"><button class="btn br bsm" onclick="deleteRecurSeries(${s.id})">🗑️ מחק מכאן ואילך</button><button class="btn borange bsm" onclick="openReplaceRecur(${s.id})">🔄 החלף שיבוץ קבוע</button></div><button class="btn br bsm" style="width:100%;font-size:.75rem" onclick="permanentCancelRecur(${s.id})">🚫 ביטול קבוע מתאריך זה ואילך</button></div>`;
-  } else if(_hasRecurring){
-    h+=`<div style="border:1.5px solid #b0bec5;border-radius:7px;padding:8px;margin-bottom:8px;background:#f8f9fa"><div style="font-size:.8rem;font-weight:700;color:#37474f;margin-bottom:6px">🔁 פעילות חוזרת — ${_futureByPattern.length} פעילויות מתאריך זה ואילך</div><button class="btn br bsm" style="width:100%;font-size:.75rem" onclick="permanentCancelRecurPattern(${s.id})">🚫 ביטול קבוע מתאריך זה ואילך</button></div>`;
+    const seriesCount=SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g).length;
+    h+=`<div style="border:1.5px solid #b0bec5;border-radius:7px;padding:8px;margin-bottom:8px;background:#f8f9fa"><div style="font-size:.8rem;font-weight:700;color:#37474f;margin-bottom:6px">🔁 שיבוץ קבוע — ${seriesCount} פעילויות מתאריך זה ואילך</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:5px"><button class="btn br bsm" onclick="deleteRecurSeries(${s.id})">🗑️ מחק מכאן ואילך</button><button class="btn borange bsm" onclick="openReplaceRecur(${s.id})">🔄 החלף שיבוץ קבוע</button></div></div>`;
   }
   h+=`<button class="btn bp bsm" style="width:100%" onclick="saveNt()">💾 שמור הערה</button>`;
   document.getElementById('sp-body').innerHTML=h;
@@ -2739,40 +2661,6 @@ function spEditActChg(){
   const wrap=document.getElementById('sp-edit-act-new-wrap');
   if(wrap) wrap.style.display=v==='__new__'?'block':'none';
 }
-function permanentCancelRecur(id){
-  const s=SCH.find(x=>x.id===id); if(!s) return;
-  const g=G(s.g);
-  if(!confirm(`ביטול קבוע של ${supBase(s.a)} ב-${g.name}\nמ-${fD(s.d)} ואילך?\n\nכל השיבוצים הקבועים מתאריך זה יוסרו ותתווסף הערת ביטול.`)) return;
-  const cancelNote='בוטל קבוע מ-'+fD(s.d);
-  const today=td();
-  const affected=SCH.filter(x=>x._recId===s._recId&&x.g===s.g&&x.d>=s.d);
-  const toRemove=affected.filter(x=>x.d>today);
-  const toCancelToday=affected.filter(x=>x.d===today||x.d===s.d);
-  // Mark the current/today event as cancelled with note
-  toCancelToday.forEach(x=>{x.st='can';x.cr='ביטול קבוע';x.nt=cancelNote;});
-  // Remove all future events from the series
-  const removeIds=new Set(toRemove.map(x=>x.id));
-  const removed=toRemove.length;
-  for(let i=SCH.length-1;i>=0;i--){
-    if(removeIds.has(SCH[i].id)) SCH.splice(i,1);
-  }
-  save(); closeSP(); refresh();
-  showToast(`✅ ביטול קבוע בוצע — הוסרו ${removed} פעילויות עתידיות`);
-}
-
-function permanentCancelRecurPattern(id){
-  const s=SCH.find(x=>x.id===id); if(!s) return;
-  const g=G(s.g);
-  const dow=new Date(s.d).getDay();
-  const future=SCH.filter(x=>x.g===s.g&&x.a===s.a&&new Date(x.d).getDay()===dow&&x.d>=s.d);
-  if(!confirm(`ביטול קבוע של ${supBase(s.a)} ב-${g.name}\nמ-${fD(s.d)} ואילך?\n\n${future.length} פעילויות יבוטלו.`)) return;
-  const cancelNote='בוטל קבוע מ-'+fD(s.d);
-  const today=td();
-  future.forEach(x=>{x.st='can';x.cr='ביטול קבוע';x.nt=cancelNote;});
-  save(); closeSP(); refresh();
-  showToast(`✅ ביטול קבוע בוצע — ${future.length} פעילויות בוטלו`);
-}
-
 function deleteRecurSeries(id){
   const s=SCH.find(x=>x.id===id); if(!s) return;
   const affected=SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
@@ -2851,16 +2739,12 @@ function spEditSave(){
     :actVal;
   const newTime=document.getElementById('sp-edit-time').value;
   const newTp=(document.getElementById('sp-edit-ev-type')||{}).value||'חוג';
-  const _grpRaw=(document.getElementById('sp-edit-grp')||{}).value;
-  const _newGrp=_grpRaw!==''?parseInt(_grpRaw):null;
   const forPair=(document.getElementById('sp-edit-pair-chk')||{}).checked;
-  const forFuture=(document.getElementById('sp-edit-future-chk')||{}).checked;
   const updates={};
   if(newSup&&newSup!==s.a) updates.a=newSup;
   if(newAct&&newAct!=='__new__') updates.act=newAct;
   if(newTime&&newTime!==s.t) updates.t=newTime;
   if(newTp) updates.tp=newTp;
-  if(_newGrp!==null&&_newGrp!==(s.grp||1)) updates.grp=_newGrp;
   // Always include notes in update
   const newNt2=(document.getElementById('sp-nt')||{}).value;
   if(newNt2!==undefined) updates.nt=newNt2;
@@ -2869,31 +2753,6 @@ function spEditSave(){
   if(forPair&&pair){
     SCH.filter(x=>pair.ids.includes(x.g)&&x.d===s.d&&x.id!==selEv)
       .forEach(x=>Object.assign(x,updates));
-  }
-  // Future update — skips vacations and blocked dates
-  if(forFuture){
-    const _today=td();
-    const _sDow=new Date(s.d.replace(/-/g,'/')).getDay();
-    const _futU={};
-    if(updates.a) _futU.a=updates.a;
-    if(updates.act) _futU.act=updates.act;
-    if(updates.t) _futU.t=updates.t;
-    if(updates.tp) _futU.tp=updates.tp;
-    if(updates.grp!==undefined) _futU.grp=updates.grp;
-    if(Object.keys(_futU).length){
-      SCH.filter(x=>{
-        if(x.id===selEv||x.g!==s.g) return false;
-        if(supBase(x.a)!==supBase(s.a)) return false;
-        if(x.d<=_today) return false;
-        if(new Date(x.d.replace(/-/g,'/')).getDay()!==_sDow) return false;
-        // Skip vacation/holiday/camp/blocked dates — no changes on those days
-        const _hol=typeof getHolidayInfo==='function'?getHolidayInfo(x.d):null;
-        if(_hol&&(_hol.type==='vacation'||_hol.type==='camp'||_hol.type==='noact')) return false;
-        const _blk=typeof getBlockedInfo==='function'?getBlockedInfo(x.d):null;
-        if(_blk) return false;
-        return true;
-      }).forEach(x=>Object.assign(x,_futU));
-    }
   }
   Object.assign(s,updates);
   save(); closeSP(); refresh();
@@ -3042,7 +2901,6 @@ function openEditSched(id){
     if(tpSel) tpSel.value=s.tp||'חוג';
   },80);
   document.getElementById('es-time').value=s.t||'';
-  const _esGrp=document.getElementById('es-grp');if(_esGrp)_esGrp.value=s.grp||'';
   document.getElementById('es-for-pair').checked=false;
   document.getElementById('es-pair-note').style.display='none';
   const pair=gardenPair(s.g);
@@ -3066,15 +2924,12 @@ function saveEditSched(){
     :document.getElementById('es-act').value;
   const newTime=document.getElementById('es-time').value;
   const newTp=(document.getElementById('es-ev-type')||{}).value;
-  const _esGrpRaw=(document.getElementById('es-grp')||{}).value;
-  const _esGrpVal=_esGrpRaw!==''?parseInt(_esGrpRaw):null;
   const forPair=document.getElementById('es-for-pair').checked;
   const updates={};
   if(newSup) updates.a=newSup;
   if(newAct&&newAct!=='__new__') updates.act=newAct;
   if(newTime) updates.t=newTime;
   if(newTp) updates.tp=newTp;
-  if(_esGrpVal!==null) updates.grp=_esGrpVal;
   if(forPair){
     const pair=gardenPair(s.g);
     if(pair) SCH.filter(x=>pair.ids.includes(x.g)&&x.d===s.d&&x.id!==selEv)
@@ -3083,16 +2938,6 @@ function saveEditSched(){
   upd(selEv,updates);
   save(); CM('esm'); closeSP(); refresh();
 }
-function markAsMakeup(id){
-  const s=SCH.find(x=>x.id===id); if(!s) return;
-  const origDate=prompt('📅 מאיזה תאריך זאת השלמה? (YYYY-MM-DD)\nהשאר ריק אם לא ידוע','');
-  const note='השלמה'+(origDate?' מ-'+fD(origDate):'');
-  s._makeupFrom=origDate||'unknown';
-  if(!s.nt) s.nt=note;
-  save(); closeSP(); refresh();
-  showToast('✅ הפעילות סומנה כהשלמה');
-}
-
 function openMakeupSched(origId){
   const orig=SCH.find(x=>x.id===origId); if(!orig) return;
   _makeupOrigId=origId;
@@ -3284,8 +3129,6 @@ function nsGChg(){
 
 function openNewSched(gid, opts={}){
   // opts: {date, tab, makeupFrom}
-  // Close any open modal first
-  ['gm','addplace-m','addgm'].forEach(id=>{const m=document.getElementById(id);if(m&&m.classList.contains('open'))m.classList.remove('open');});
   newSchedForGarden=gid||null;
   _nsmTab='once';
   (document.getElementById('nsm-title')||{}).textContent='➕ שיבוץ חדש';
@@ -3331,9 +3174,6 @@ function openNewSched(gid, opts={}){
   const cityEl=document.getElementById('ns-city');
   cityEl.innerHTML='<option value="">בחר עיר</option>';
   cities().forEach(c=>cityEl.innerHTML+=`<option value='${c}'>${c}</option>`);
-  cityEl.innerHTML+="<option value='__new__'>➕ עיר חדשה...</option>";
-  const cityInpEl=document.getElementById('addg-city-new');
-  if(cityInpEl){cityInpEl.value='';cityInpEl.style.display='none';}
 
   if(gid){
     const g=G(gid);
@@ -3592,7 +3432,7 @@ function renderSched(){
     Object.keys(byDate[dateKey]).sort().forEach(city=>{
       const cityData=byDate[dateKey][city];
       h+=`<div style="margin-bottom:8px">
-        <div style="font-size:1.5rem;font-weight:700;color:#546e7a;padding:3px 8px;background:#eceff1;border-radius:4px;margin-bottom:4px">🏙️ ${city}</div>`;
+        <div style="font-size:.75rem;font-weight:700;color:#546e7a;padding:3px 8px;background:#eceff1;border-radius:4px;margin-bottom:4px">🏙️ ${city}</div>`;
       [{arr:cityData.gan,lbl:'🏫 צהרונים',cls:'gan'},{arr:cityData.sch,lbl:'🏛️ בתי ספר',cls:'sch'}].forEach(sec=>{
         if(!sec.arr.length) return;
         h+=`<div class="dsh ${sec.cls}" style="font-size:.7rem;margin-bottom:3px">${sec.lbl}</div>
@@ -3659,7 +3499,6 @@ function renderGardens(){
     return true;
   }).sort((a,b)=>a.name.localeCompare(b.name,'he'));
   (document.getElementById('g-info')||{}).textContent =`${f.length} ${cls==='ביה"ס'?'בתי ספר':'צהרונים'}`;
-  if(_gardensTab==='fixed'&&document.getElementById('g-info')) document.getElementById('g-info').style.display='none';
   const byCity={};
   f.forEach(g=>{
     const c=g.city||'אחר';
@@ -3671,7 +3510,7 @@ function renderGardens(){
   let h='';
   Object.keys(byCity).sort().forEach(cityKey=>{
     h+=`<div style="margin-bottom:16px">
-      <div style="font-weight:800;color:#1a237e;font-size:1.7rem;padding:6px 10px;background:#e8eaf6;border-radius:6px;margin-bottom:8px">🏙️ ${cityKey}</div>`;
+      <div style="font-weight:800;color:#1a237e;font-size:.85rem;padding:6px 10px;background:#e8eaf6;border-radius:6px;margin-bottom:8px">🏙️ ${cityKey}</div>`;
     [{arr:byCity[cityKey].gan,lbl:'🏫 גני ילדים',cls:'gan'},{arr:byCity[cityKey].sch,lbl:'🏛️ בתי ספר',cls:'sch'}].forEach(sec=>{
       if(!sec.arr.length) return;
       h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;margin-top:${sec.cls==='sch'?'14px':'0'}"><div style="height:2px;flex:1;background:${sec.cls==='sch'?'#1565c0':'#2e7d32'};opacity:.25"></div><span class="dsh ${sec.cls}" style="font-size:.76rem;font-weight:800;padding:3px 12px;border-radius:10px">${sec.lbl} (${sec.arr.length})</span><div style="height:2px;flex:1;background:${sec.cls==='sch'?'#1565c0':'#2e7d32'};opacity:.25"></div></div>
@@ -3857,7 +3696,7 @@ function renderPairs(){
       <div style="font-size:.76rem;font-weight:800;color:#f57f17;margin-bottom:8px">⚠️ צהרונים ללא זוג (${soloGardens.length})</div>`;
     Object.keys(bySoloCity).sort().forEach(city=>{
       sideHtml+=`<div style="margin-bottom:7px">
-        <div style="font-size:1.38rem;font-weight:700;color:#78909c;margin-bottom:4px">🏙️ ${city}</div>`;
+        <div style="font-size:.69rem;font-weight:700;color:#78909c;margin-bottom:4px">🏙️ ${city}</div>`;
       bySoloCity[city].forEach(g=>{
         sideHtml+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #fff3cd;font-size:.74rem">
           <span>🏫 ${g.name}</span>
@@ -3889,7 +3728,7 @@ function renderPairs(){
     const clr=CITY_COLORS(city);
     h+=`<div style="margin-bottom:18px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:7px 11px;background:${clr.light};border-radius:8px;border-right:3px solid ${clr.solid}">
-        <span style="font-weight:800;color:${clr.solid};font-size:1.7rem">🏙️ ${city}</span>
+        <span style="font-weight:800;color:${clr.solid};font-size:.85rem">🏙️ ${city}</span>
         <span style="font-size:.72rem;color:${clr.solid};opacity:.75">${byCity[city].length} זוגות/שלישיות</span>
       </div>`;
     byCity[city].forEach(p=>{
@@ -4256,7 +4095,7 @@ function renderClusters(){
     // ═══ תצוגת כרטיסים (מקורית) ═══
     Object.keys(byCity).sort().forEach(city=>{
       h+=`<div style="margin-bottom:16px">
-        <div style="font-weight:800;color:#1a237e;font-size:1.7rem;padding:6px 10px;background:#e8eaf6;border-radius:6px;margin-bottom:8px">🏙️ ${city}</div>
+        <div style="font-weight:800;color:#1a237e;font-size:.85rem;padding:6px 10px;background:#e8eaf6;border-radius:6px;margin-bottom:8px">🏙️ ${city}</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px">`;
       [...(byCity[city].gan||[]),...(byCity[city].sch||[])].forEach(cl=>{
         const gs=(cl.gardenIds||[]).map(id=>G(id)).filter(x=>x.id).sort((a,b)=>a.name.localeCompare(b.name,'he'));
@@ -4295,7 +4134,7 @@ function renderClusters(){
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:7px">`;
       Object.keys(noByCityMap).sort().forEach(city=>{
         h+=`<div style="background:#fffde7;border:1px dashed #ffe082;border-radius:7px;padding:8px">
-          <div style="font-size:1.44rem;font-weight:700;color:#f57f17;margin-bottom:4px">🏙️ ${city}</div>`;
+          <div style="font-size:.72rem;font-weight:700;color:#f57f17;margin-bottom:4px">🏙️ ${city}</div>`;
         noByCityMap[city].forEach(g=>{
           h+=`<div style="font-size:.75rem;display:flex;justify-content:space-between;align-items:center;padding:2px 0">
             <span>${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</span>
@@ -4537,7 +4376,7 @@ function genExport(){
             const sameAddr=addrs.length===1&&addrs[0];
             if(sameAddr){
               text+=`${supLine}\n  🏫 ${addrs[0]}\n`;
-              group.forEach(s=>{ const _isSch=gcls(G(s.g))==='ביה"ס'; text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${_isSch&&(s.grp||1)>=2?' · '+(s.grp||1)+' קב\'':''}\n`; });
+              group.forEach(s=>{ text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`; });
             } else {
               text+=`${supLine}\n`;
               group.forEach(s=>{
@@ -4565,7 +4404,7 @@ function genExport(){
             const sameAddr=addrs.length===1&&addrs[0];
             if(sameAddr){
               text+=`${supLine}\n  🏫 ${addrs[0]}\n`;
-              group.forEach(s=>{ const _isSch=gcls(G(s.g))==='ביה"ס'; text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${_isSch&&(s.grp||1)>=2?' · '+(s.grp||1)+' קב\'':''}\n`; });
+              group.forEach(s=>{ text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`; });
             } else {
               text+=`${supLine}\n`;
               group.forEach(s=>{
@@ -5020,7 +4859,7 @@ function openAddGarden(){
 }
 function saveNewGarden(){
   const name=document.getElementById('addg-name').value.trim();
-  const city=_getCityVal('addg-city','addg-city-new');
+  const city=document.getElementById('addg-city').value;
   const cls=document.getElementById('addg-cls').value;
   if(!name||!city){alert('יש למלא שם ועיר');return;}
   const newId=Date.now();
@@ -5247,120 +5086,51 @@ function renderSupCard(){
     if(st&&s.st!==st) return false;
     if(actFilt&&supAct(s.a)!==actFilt&&s.act!==actFilt) return false;
     return true;
-  }).sort((a,b)=>{
-    const ga=G(a.g),gb=G(b.g);
-    return (ga.city||'').localeCompare(gb.city||'','he')||a.d.localeCompare(b.d)||(a.t||'').localeCompare(b.t||'');
-  });
+  }).sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'').localeCompare(b.t||''));
   const el=document.getElementById('suc-body');
   if(!evs.length){el.innerHTML='<p style="color:#999;text-align:center;padding:20px">אין פעילויות בטווח ובסינון זה</p>';return;}
-
-  // Global totals — התקיימו = sum of groups
-  const cntDone=evs.filter(s=>s.st==='done').reduce((sum,s)=>sum+(parseInt(s.grp)||1),0);
+  const cntDone=evs.filter(s=>s.st==='done').length;
   const cntCan=evs.filter(s=>s.st==='can').length;
   const cntPost=evs.filter(s=>s.st==='post').length;
   const cntNohap=evs.filter(s=>s.st==='nohap').length;
-  const cntActive=evs.filter(s=>s.st==='ok').length;
-  const totalGrp=evs.filter(s=>s.st!=='can'&&s.st!=='nohap').reduce((sum,s)=>sum+(parseInt(s.grp)||1),0);
-  const makeupCnt=evs.filter(s=>s._makeupFrom).length;
+  const cntActive=evs.length-cntDone-cntCan-cntPost-cntNohap;
 
-  let h=`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">
-    <div style="background:#e8f5e9;border-radius:7px;padding:5px 10px;text-align:center;min-width:60px">
-      <div style="font-weight:800;font-size:.95rem;color:#2e7d32">${cntDone}</div><div style="font-size:.62rem;color:#546e7a">קב' התקיים</div>
+  let h=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+    <div style="background:#e8f5e9;border-radius:7px;padding:5px 12px;text-align:center;min-width:70px">
+      <div style="font-weight:800;color:#2e7d32">${cntDone}</div><div style="font-size:.68rem;color:#546e7a">התקיים</div>
     </div>
-    <div style="background:#fff3e0;border-radius:7px;padding:5px 10px;text-align:center;min-width:60px">
-      <div style="font-weight:800;font-size:.95rem;color:#e65100">${cntActive+cntPost}</div><div style="font-size:.62rem;color:#546e7a">מתקיים/נדחה</div>
+    <div style="background:#fff3e0;border-radius:7px;padding:5px 12px;text-align:center;min-width:70px">
+      <div style="font-weight:800;color:#e65100">${cntActive+cntPost}</div><div style="font-size:.68rem;color:#546e7a">מתקיים/נדחה</div>
     </div>
-    <div style="background:#ffebee;border-radius:7px;padding:5px 10px;text-align:center;min-width:60px">
-      <div style="font-weight:800;font-size:.95rem;color:#c62828">${cntCan}</div><div style="font-size:.62rem;color:#546e7a">בוטל</div>
+    <div style="background:#ffebee;border-radius:7px;padding:5px 12px;text-align:center;min-width:70px">
+      <div style="font-weight:800;color:#c62828">${cntCan}</div><div style="font-size:.68rem;color:#546e7a">בוטל</div>
     </div>
-    <div style="background:#fce4ec;border-radius:7px;padding:5px 10px;text-align:center;min-width:60px">
-      <div style="font-weight:800;font-size:.95rem;color:#e91e63">${cntNohap}</div><div style="font-size:.62rem;color:#546e7a">לא התקיים</div>
+    <div style="background:#fce4ec;border-radius:7px;padding:5px 12px;text-align:center;min-width:70px">
+      <div style="font-weight:800;color:#e91e63">${cntNohap}</div><div style="font-size:.68rem;color:#546e7a">לא התקיים</div>
     </div>
-    ${makeupCnt?`<div style="background:#f3e5f5;border-radius:7px;padding:5px 10px;text-align:center;min-width:60px">
-      <div style="font-weight:800;font-size:.95rem;color:#7b1fa2">${makeupCnt}</div><div style="font-size:.62rem;color:#546e7a">השלמות</div>
-    </div>`:''}
-    <div style="background:#e3f2fd;border-radius:7px;padding:5px 10px;text-align:center;min-width:60px">
-      <div style="font-weight:800;font-size:.95rem;color:#1565c0">${evs.length}</div><div style="font-size:.62rem;color:#546e7a">פעילויות</div>
-    </div>
-    <div style="background:#e8eaf6;border-radius:7px;padding:5px 10px;text-align:center;min-width:60px">
-      <div style="font-weight:800;font-size:.95rem;color:#283593">${totalGrp}</div><div style="font-size:.62rem;color:#546e7a">קבוצות</div>
+    <div style="background:#e3f2fd;border-radius:7px;padding:5px 12px;text-align:center;min-width:70px">
+      <div style="font-weight:800;color:#1565c0">${evs.length}</div><div style="font-size:.68rem;color:#546e7a">סה"כ</div>
     </div>
   </div>`;
 
-  // Group by city
-  const _cities2=[];const _byCity2={};
-  evs.forEach(s=>{const c=G(s.g).city||'—';if(!_byCity2[c]){_byCity2[c]=[];_cities2.push(c);}_byCity2[c].push(s);});
-  const _multi=_cities2.length>1;
-
-  h+=`<div class="tw"><table style="border-collapse:collapse;width:100%"><thead><tr>
-    <th style="white-space:nowrap">תאריך</th><th>יום</th>
-    <th style="text-align:center;color:#2e7d32;white-space:nowrap">קב' התקיים</th>
-    <th style="text-align:center;color:#e65100">פעיל</th>
-    <th style="text-align:center;color:#c62828">בוטל</th>
-    <th style="text-align:center;color:#e91e63">ל.ה</th>
-    <th style="text-align:center;color:#1565c0">קב'</th>
-    <th>צהרון / פעילות</th><th></th>
+  h+=`<div class="tw"><table><thead><tr>
+    <th>תאריך</th><th>יום</th><th>עיר</th><th>צהרון</th><th>פעילות</th><th>שעה</th><th>קב'</th><th>סטטוס</th><th>הערות</th><th></th>
   </tr></thead><tbody>`;
-
-  _cities2.forEach((city,ci)=>{
-    const cityEvs=_byCity2[city];
-    if(_multi){
-      if(ci>0){h+=`<tr><td colspan="9" style="padding:6px;border:none;background:#fafbff"></td></tr><tr><td colspan="9" style="padding:2px;border:none;background:#fafbff"></td></tr>`;}
-      const _cc2=CITY_COLORS?CITY_COLORS(city):{solid:'#1565c0',light:'#e3f2fd'};
-      h+=`<tr><td colspan="9" style="background:${_cc2.solid};color:#fff;font-weight:800;font-size:.85rem;padding:5px 12px;border-radius:4px 4px 0 0">📍 ${city} <span style="font-weight:400;font-size:.73rem;opacity:.85">(${cityEvs.length} פעילויות)</span></td></tr>`;
-    }
-    cityEvs.forEach(s=>{
-      const g=G(s.g);
-      const grpV=parseInt(s.grp)||1;
-      const isMakeup=s._makeupFrom?'↩️ ':'';
-      h+=`<tr class="${stClass(s)}">
-        <td style="white-space:nowrap;font-size:.78rem">${fD(s.d)}</td>
-        <td style="font-size:.72rem">${dayN(s.d)}</td>
-        <td style="text-align:center">${s.st==='done'?grpV:''}</td>
-        <td style="text-align:center">${s.st==='ok'||s.st==='post'?'✓':''}</td>
-        <td style="text-align:center">${s.st==='can'?'✗':''}</td>
-        <td style="text-align:center">${s.st==='nohap'?'✗':''}</td>
-        <td style="text-align:center;font-weight:700">${grpV>=2?grpV:''}</td>
-        <td>
-          <div style="font-weight:700;font-size:.8rem">${isMakeup}${g.name}</div>
-          ${g.st?`<div style="font-size:.63rem;color:#78909c">${g.st}</div>`:''}
-          <div style="display:flex;align-items:center;gap:4px;margin-top:1px">
-            <span style="background:#e3f2fd;color:#1565c0;border-radius:8px;padding:1px 5px;font-size:.68rem;font-weight:600">${s.act||'—'}</span>
-            ${s.t?`<span style="font-size:.68rem;color:#546e7a">⏰ ${fT(s.t)}</span>`:''}
-          </div>
-          ${stLabel(s)}
-          ${s.nt?`<div style="font-size:.65rem;color:#78909c">${s.nt}</div>`:''}
-        </td>
-        <td><button class="btn bo bsm" style="font-size:.6rem;padding:2px 5px" onclick="openSP(${s.id})">✏️</button></td>
-      </tr>`;
-    });
-    if(_multi){
-      const _cd=cityEvs.filter(s=>s.st==='done').reduce((sum,s)=>sum+(parseInt(s.grp)||1),0);
-      const _cc=cityEvs.filter(s=>s.st==='can').length;
-      const _cn=cityEvs.filter(s=>s.st==='nohap').length;
-      const _co=cityEvs.filter(s=>s.st==='ok'||s.st==='post').length;
-      const _cg=cityEvs.filter(s=>s.st!=='can'&&s.st!=='nohap').reduce((sum,s)=>sum+(parseInt(s.grp)||1),0);
-      h+=`<tr style="background:#e8eaf6;font-weight:700;font-size:.72rem;border-top:2px solid #9fa8da">
-        <td colspan="2" style="padding:4px 10px;color:#283593">סיכום ${city}</td>
-        <td style="text-align:center;color:#2e7d32">${_cd}</td>
-        <td style="text-align:center;color:#e65100">${_co}</td>
-        <td style="text-align:center;color:#c62828">${_cc}</td>
-        <td style="text-align:center;color:#e91e63">${_cn}</td>
-        <td style="text-align:center;color:#1565c0">${_cg}</td>
-        <td colspan="2"></td>
-      </tr>`;
-    }
+  evs.forEach(s=>{
+    const g=G(s.g);
+    h+=`<tr class="${stClass(s)}">
+      <td>${fD(s.d)}</td>
+      <td>יום ${dayN(s.d)}</td>
+      <td>${g.city||''}</td>
+      <td><div style="font-weight:700">${g.name}</div>${g.st?`<div style="font-size:.67rem;color:#78909c">${g.st}</div>`:''}</td>
+      <td><span style="background:#e3f2fd;color:#1565c0;border-radius:10px;padding:1px 7px;font-size:.73rem;font-weight:600">${s.act||'—'}</span></td>
+      <td>${fT(s.t)}</td>
+      <td style="text-align:center">${s.grp||1}</td>
+      <td>${stLabel(s)}</td>
+      <td style="max-width:100px;font-size:.71rem">${s.nt||''}</td>
+      <td><button class="btn bo bsm" style="font-size:.65rem" onclick="openSP(${s.id})">✏️</button></td>
+    </tr>`;
   });
-  // Grand total
-  h+=`<tr style="background:#1a237e;color:#fff;font-weight:800;font-size:.78rem;border-top:3px solid #283593">
-    <td colspan="2" style="padding:6px 10px">סה"כ כולל</td>
-    <td style="text-align:center;color:#a5d6a7">${cntDone}</td>
-    <td style="text-align:center;color:#ffcc80">${cntActive+cntPost}</td>
-    <td style="text-align:center;color:#ef9a9a">${cntCan}</td>
-    <td style="text-align:center;color:#f48fb1">${cntNohap}</td>
-    <td style="text-align:center;color:#90caf9">${totalGrp}</td>
-    <td colspan="2"></td>
-  </tr>`;
   h+='</tbody></table></div>';
   el.innerHTML=h;
 }
@@ -5573,13 +5343,6 @@ function exportFullBackup(){
   const timeStr=now.getHours().toString().padStart(2,'0')+'-'+now.getMinutes().toString().padStart(2,'0');
   a.href=url;a.download='גיבוי_מנהל_גנים_'+td()+'_'+timeStr+'.json';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
-}
-function goToNohap(){
-  ST('dash');
-  setTimeout(()=>{
-    const el=document.getElementById('dash-can-body');
-    if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
-  },100);
 }
 function goToCancelled(){
   ST('sched');
@@ -6703,7 +6466,7 @@ function openGardenEdit(gid){
   const mgr=getGardenMgr(gid);
   const clr=CITY_COLORS(g.city);
   document.getElementById('gedit-badge').innerHTML=
-    `<span style="background:${clr.light};color:${clr.solid};border-radius:12px;padding:2px 10px;font-size:1.5rem;font-weight:700">🏙️ ${g.city}</span>`+
+    `<span style="background:${clr.light};color:${clr.solid};border-radius:12px;padding:2px 10px;font-size:.75rem;font-weight:700">🏙️ ${g.city}</span>`+
     `<span style="background:#e8f5e9;color:#2e7d32;border-radius:12px;padding:2px 10px;font-size:.75rem">${gcls(g)==='ביה"ס'?'🏛️ בית ספר':'🏫 גן/צהרון'}</span>`;
 
   // Fields — override from supEx if exists
@@ -6774,7 +6537,7 @@ function renderManagers(){
       <div style="background:${roleClr};padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
         <div>
           <span style="font-weight:800;color:#fff;font-size:.9rem">${roleLabel} ${m.name}</span>
-          ${m.city?`<span style="font-size:1.44rem;color:rgba(255,255,255,.8);margin-right:10px">🏙️ ${m.city}</span>`:''}
+          ${m.city?`<span style="font-size:.72rem;color:rgba(255,255,255,.8);margin-right:10px">🏙️ ${m.city}</span>`:''}
         </div>
         <div style="display:flex;gap:5px">
           <button onclick="openMgrModal('${m.id}')" style="background:rgba(255,255,255,.22);border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem">✏️ ערוך</button>
@@ -6846,7 +6609,7 @@ function mgrFillGardens(){
 
   let h='';
   Object.keys(byCity).sort().forEach(c=>{
-    h+=`<div style="padding:4px 6px 2px;font-size:1.36rem;font-weight:700;color:#78909c;background:#f5f5f5;border-radius:4px;margin-bottom:2px;margin-top:4px">🏙️ ${c}</div>`;
+    h+=`<div style="padding:4px 6px 2px;font-size:.68rem;font-weight:700;color:#78909c;background:#f5f5f5;border-radius:4px;margin-bottom:2px;margin-top:4px">🏙️ ${c}</div>`;
     byCity[c].forEach(g=>{
       h+=`<label style="display:flex;gap:7px;padding:4px 6px;cursor:pointer;align-items:center;border-radius:5px;transition:background .1s" onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background=''" >
         <input type="checkbox" value="${g.id}" ${checked.has(g.id)?'checked':''} style="min-width:15px;accent-color:#1565c0" onchange="mgrUpdateCount()">
@@ -6990,8 +6753,8 @@ function setGardensTab(t){
   const showFilters=['gan','sch'].includes(t);
   if(gFilters) gFilters.style.display=showFilters?'':'none';
   if(fixedCtrl) fixedCtrl.style.display=t==='fixed'?'':'none';
-  const _gInfo=document.getElementById('g-info');
-  if(_gInfo) _gInfo.style.display=['gan','sch'].includes(t)?'':'none';
+  const gInfo=document.getElementById('g-info');
+  if(gInfo) gInfo.style.display=t==='fixed'?'none':'';
   if(addBtn) addBtn.style.display=['gan','sch'].includes(t)?'':'none';
 
   if(t==='pairs'){
@@ -7080,14 +6843,13 @@ function getGardenFixedSched(gardenId, fromDate, toDate){
 
 function renderGardensFixed(){
   const cityF=(document.getElementById('g-city')||{}).value||'';
-  const srch=((document.getElementById('g-fixed-srch')||document.getElementById('g-srch')||{}).value||'').toLowerCase();
-  const clsFilter=(document.getElementById('g-fixed-cls')||{}).value||'';
+  const srch=((document.getElementById('g-srch')||{}).value||'').toLowerCase();
   const fixedFromEl=document.getElementById('g-fixed-from');
   const fixedToEl=document.getElementById('g-fixed-to');
   const fixedFrom=fixedFromEl?fixedFromEl.value:'';
   const fixedTo=fixedToEl?fixedToEl.value:'';
   const allG=[...GARDENS,...(_GARDENS_EXTRA||[])].filter(g=>{
-    if(clsFilter&&gcls(g)!==clsFilter) return false;
+    if(gcls(g)!=='גנים') return false;
     if(cityF&&g.city!==cityF) return false;
     if(srch&&![(g.name||''),(g.city||'')].some(x=>x.toLowerCase().includes(srch))) return false;
     return true;
@@ -7110,7 +6872,7 @@ function renderGardensFixed(){
 
     h+=`<div style="margin-bottom:20px">
       <div style="font-weight:800;color:#1a237e;font-size:.88rem;padding:7px 12px;background:#e8eaf6;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
-        🏙️ ${city}<span style="font-size:1.44rem;color:#5c6bc0;font-weight:600">(${gardens.length})</span>
+        🏙️ ${city}<span style="font-size:.72rem;color:#5c6bc0;font-weight:600">(${gardens.length})</span>
       </div>`;
 
     groups.forEach(group=>{
@@ -7139,22 +6901,21 @@ function _renderGardenFixedRow(g){
       const supN=supBase(s.a)||s.a||'';
       const actN=s.act||supAct(s.a)||'';
       const time=s.t?s.t.slice(0,5):'—';
-      const _canRow = s.st!=='can';
-      rows+=`<tr style="border-bottom:1px solid #eef0fb${s.st==='can'?';opacity:.45;background:#fafafa':''}">
-        <td style="padding:3px 8px;font-weight:600;color:#1a237e;white-space:nowrap">יום ${HEB_DAYS_SHORT[dow]}</td>
-        <td style="padding:3px 8px;color:#222">${supN}${actN?' — '+actN:''}</td>
-        <td style="padding:3px 8px;color:#5c6bc0;font-size:.71rem">${s.tp||'חוג'}</td>
-        <td style="padding:3px 8px;color:#2e7d32;font-weight:600;white-space:nowrap">${time}</td>
-        <td style="padding:2px 4px;text-align:center;white-space:nowrap">
-          <button onclick="openSP(${s.id})" title="עריכה" style="background:none;border:none;cursor:pointer;font-size:.85rem;padding:1px 3px" title="עריכה">✏️</button>
-          ${_canRow?`<button onclick="openSP(${s.id});setTimeout(()=>document.querySelector('.copts .copt')&&document.querySelector('.copts .copt').click(),120)" title="בטל" style="background:none;border:none;cursor:pointer;font-size:.85rem;padding:1px 3px">❌</button>`:'<span style="font-size:.7rem;color:#e53935">בוטל</span>'}
+      rows+=`<tr style="border-bottom:1px solid #eef0fb">
+        <td style="padding:3px 10px;font-weight:600;color:#1a237e;white-space:nowrap">יום ${HEB_DAYS_SHORT[dow]}</td>
+        <td style="padding:3px 10px;color:#222">${supN}${actN?' — '+actN:''}</td>
+        <td style="padding:3px 10px;color:#5c6bc0;font-size:.71rem">${s.tp||'חוג'}</td>
+        <td style="padding:3px 10px;color:#2e7d32;font-weight:600;white-space:nowrap">${time}</td>
+        <td style="padding:2px 6px;white-space:nowrap">
+          <button onclick="event.stopPropagation();openSP(${s.id})" style="background:#e8eaf6;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#3949ab" title="פתח / ערוך">✏️</button>
+          <button onclick="event.stopPropagation();openSP(${s.id})" style="background:#ffebee;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#c62828;margin-right:2px" title="ביטול">❌</button>
         </td>
       </tr>`;
     });
   } else {
     rows=`<tr><td colspan="4" style="padding:5px 10px;color:#bbb;font-size:.72rem;font-style:italic">אין שיבוץ קבוע</td></tr>`;
   }
-  return `<div data-gid="${gid}" style="display:flex;margin-bottom:7px;border:1px solid #e3e7f5;border-radius:8px;overflow:hidden">
+  return `<div style="display:flex;margin-bottom:7px;border:1px solid #e3e7f5;border-radius:8px;overflow:hidden">
     <div style="background:#f5f7ff;padding:8px 10px;min-width:120px;max-width:140px;display:flex;flex-direction:column;justify-content:space-between;border-left:1px solid #e3e7f5">
       <div style="font-weight:800;color:#1a237e;font-size:.8rem;margin-bottom:6px">${g.name}</div>
       <div style="display:flex;flex-direction:column;gap:3px;margin-top:4px">
@@ -7163,14 +6924,13 @@ function _renderGardenFixedRow(g){
       </div>
     </div>
     <div style="flex:1;overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:.78rem;table-layout:fixed">
-        <colgroup><col style="width:19%"><col style="width:42%"><col style="width:14%"><col style="width:13%"><col style="width:12%"></colgroup>
+      <table style="width:100%;border-collapse:collapse;font-size:.78rem">
         <thead><tr style="background:#eef2ff">
-          <th style="padding:3px 8px;text-align:right;color:#3949ab;font-weight:700">יום</th>
-          <th style="padding:3px 8px;text-align:right;color:#3949ab;font-weight:700">ספק / פעילות</th>
-          <th style="padding:3px 8px;text-align:right;color:#3949ab;font-weight:700">סוג</th>
-          <th style="padding:3px 8px;text-align:right;color:#3949ab;font-weight:700">שעה</th>
-          <th style="padding:3px 8px;text-align:center;color:#3949ab;font-weight:700">פעולה</th>
+          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">יום</th>
+          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">ספק / פעילות</th>
+          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">סוג</th>
+          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">שעה</th>
+          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700"></th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
@@ -7179,174 +6939,13 @@ function _renderGardenFixedRow(g){
 }
 
 function _goToGardenSched(gardenId){
-  // Navigate to the fixed schedule tab, then scroll to the garden
-  const g=G(gardenId);
-  ST('gardens');
+  ST('sched');
   setTimeout(()=>{
-    setGardensTab('fixed');
-    // Pre-filter search to just this garden
-    const srchEl=document.getElementById('g-fixed-srch');
-    if(srchEl&&g){srchEl.value=g.name;}
-    setTimeout(()=>{
-      renderGardensFixed();
-      setTimeout(()=>{
-        const el=document.querySelector('#g-body [data-gid="'+gardenId+'"]');
-        if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
-      },150);
-    },80);
-  },120);
+    const sel=document.getElementById('s-g1');
+    if(sel){ sel.value=gardenId; renderSched(); }
+  },250);
 }
 let _gardensTab='gan';
-
-// ─── MONTHLY PRINT SCHEDULE ────────────────────────────────────────────────
-function openMonthlyPrint(){
-  const allG=[...GARDENS,...(_GARDENS_EXTRA||[])];
-  const gardenOpts=allG.sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'))
-    .map(g=>`<option value="${g.id}">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.city} — ${g.name}</option>`).join('');
-  const now=new Date();
-  const curMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const monthOpts=[];
-  for(let i=-1;i<=12;i++){
-    const d=new Date(now.getFullYear(),now.getMonth()+i,1);
-    const val=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    const HMONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
-    monthOpts.push(`<option value="${val}"${val===curMonth?' selected':''}>${HMONTHS[d.getMonth()]} ${d.getFullYear()}</option>`);
-  }
-  const h=`<div class="mb open" id="mprint-m" style="max-width:420px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <h2 style="margin:0;font-size:1rem;color:#1a237e">🖨️ לוח חוגים חודשי להדפסה</h2>
-      <button onclick="document.getElementById('mprint-m').remove()" class="close-btn">✕</button>
-    </div>
-    <div class="fg" style="margin-bottom:8px"><label>חודש</label>
-      <select id="mprint-month" style="width:100%">${monthOpts.join('')}</select>
-    </div>
-    <div class="fg" style="margin-bottom:12px"><label>גן / בית ספר</label>
-      <select id="mprint-garden" style="width:100%"><option value="">כל הגנים</option>${gardenOpts}</select>
-    </div>
-    <div style="display:flex;gap:7px;justify-content:flex-end">
-      <button class="btn bp" onclick="genMonthlyPrint()">🖨️ צור לוח</button>
-      <button class="btn bs" onclick="document.getElementById('mprint-m').remove()">ביטול</button>
-    </div>
-  </div>`;
-  const d=document.createElement('div');d.innerHTML=h;document.body.appendChild(d.firstChild);
-}
-
-function genMonthlyPrint(){
-  const monthVal=document.getElementById('mprint-month').value;
-  const gardenId=parseInt(document.getElementById('mprint-garden').value)||null;
-  const [yr,mo]=monthVal.split('-').map(Number);
-  const HMONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
-  const HEB_DAYS=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
-
-  const allG=[...GARDENS,...(_GARDENS_EXTRA||[])];
-  const gardens=gardenId?allG.filter(g=>g.id===gardenId):allG;
-
-  // Collect events for the month
-  const fromDs=`${yr}-${String(mo).padStart(2,'0')}-01`;
-  const toDs=`${yr}-${String(mo).padStart(2,'0')}-${String(new Date(yr,mo,0).getDate()).padStart(2,'0')}`;
-
-  // Build per-garden HTML
-  let pages='';
-  gardens.forEach((g,gi)=>{
-    const evs=SCH.filter(s=>s.g===g.id&&s.d>=fromDs&&s.d<=toDs&&s.st!=='can')
-      .sort((a,b)=>a.d.localeCompare(b.d));
-    // Group by date
-    const byDate={};
-    evs.forEach(s=>{if(!byDate[s.d])byDate[s.d]=[];byDate[s.d].push(s);});
-    const dates=Object.keys(byDate).sort();
-
-    let rows='';
-    dates.forEach(ds=>{
-      byDate[ds].forEach((s,si)=>{
-        const d=new Date(ds+'T00:00:00');
-        const dow=HEB_DAYS[d.getDay()];
-        const dayNum=d.getDate();
-        const supN=supBase(s.a)||s.a||'';
-        const actN=s.act||supAct(s.a)||'';
-        const time=s.t?fT(s.t):'';
-        const grpStr=s.grp>=2?`${s.grp} קב'`:'';
-        const isFirst=si===0;
-        const stBg=s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':'';
-        rows+=`<tr style="${stBg?'background:'+stBg+';':''}">
-          ${isFirst?`<td rowspan="${byDate[ds].length}" style="padding:6px 8px;border:1px solid #dde3f5;font-weight:700;white-space:nowrap;text-align:center;color:#1a237e;background:#eef2ff">${dayNum}<br><span style="font-size:.7rem;font-weight:600;color:#5c6bc0">יום ${dow}</span></td>`:''}
-          <td style="padding:5px 8px;border:1px solid #dde3f5;font-weight:700">${supN}</td>
-          <td style="padding:5px 8px;border:1px solid #dde3f5">${actN}</td>
-          <td style="padding:5px 8px;border:1px solid #dde3f5;text-align:center;font-weight:700;color:#2e7d32">${time}</td>
-          <td style="padding:5px 8px;border:1px solid #dde3f5;text-align:center;color:#1565c0">${grpStr}</td>
-        </tr>`;
-      });
-    });
-
-    if(!rows){
-      rows=`<tr><td colspan="5" style="padding:12px;text-align:center;color:#bbb;font-style:italic">אין פעילויות מתוכננות לחודש זה</td></tr>`;
-    }
-
-    const clr=CITY_COLORS(g.city||'');
-    pages+=`
-    <div class="print-page" style="${gi>0?'page-break-before:always;':''}padding:20mm 15mm 15mm;font-family:'Rubik',Arial,sans-serif;direction:rtl;min-height:270mm">
-      <!-- Header -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:2.5px solid ${clr.solid}">
-        <div>
-          <div style="font-size:1.4rem;font-weight:900;color:#1a237e;margin-bottom:3px">לוח חוגים — ${HMONTHS[mo-1]} ${yr}</div>
-          <div style="font-size:1.05rem;font-weight:700;color:${clr.solid}">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-          <div style="font-size:1.7rem;color:#546e7a;margin-top:2px">🏙️ ${g.city||''}</div>
-        </div>
-        <img src="${LOGO_B64}" alt="Tomshine Kids" style="height:55px;object-fit:contain">
-      </div>
-
-      <!-- Table -->
-      <table style="width:100%;border-collapse:collapse;font-size:.9rem">
-        <thead>
-          <tr style="background:${clr.solid};color:#fff">
-            <th style="padding:7px 10px;border:1px solid ${clr.solid};text-align:center;width:70px">תאריך</th>
-            <th style="padding:7px 10px;border:1px solid ${clr.solid};text-align:right">ספק</th>
-            <th style="padding:7px 10px;border:1px solid ${clr.solid};text-align:right">פעילות</th>
-            <th style="padding:7px 10px;border:1px solid ${clr.solid};text-align:center;width:60px">שעה</th>
-            <th style="padding:7px 10px;border:1px solid ${clr.solid};text-align:center;width:60px">קב'</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-
-      <!-- Footer -->
-      <div style="margin-top:auto;padding-top:10px;border-top:1px solid #e0e0e0;font-size:.7rem;color:#aaa;text-align:center;margin-top:20px">
-        הופק ממערכת טומשין קידס | ${new Date().toLocaleDateString('he-IL')}
-      </div>
-    </div>`;
-  });
-
-  const win=window.open('','_blank','width=900,height=700');
-  win.document.write(`<!DOCTYPE html>
-<html dir="rtl" lang="he">
-<head>
-<meta charset="utf-8">
-<title>לוח חוגים — ${HMONTHS[mo-1]} ${yr}</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700;800;900&display=swap');
-  body{margin:0;background:#fff;font-family:'Rubik',Arial,sans-serif}
-  @media print{
-    @page{margin:0;size:A4 portrait}
-    body{print-color-adjust:exact;-webkit-print-color-adjust:exact}
-    .print-page{page-break-after:always;padding:10mm!important}
-    .no-print{display:none!important}
-  }
-  table tr:nth-child(even) td{background:#f7f9ff}
-  table tr:hover td{background:#eef2ff}
-</style>
-</head>
-<body>
-<div class="no-print" style="position:fixed;top:0;left:0;right:0;background:#1a237e;color:#fff;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;z-index:999">
-  <span>לוח חוגים — ${HMONTHS[mo-1]} ${yr}</span>
-  <button onclick="window.print()" style="background:#fff;color:#1a237e;border:none;border-radius:6px;padding:5px 14px;font-weight:700;cursor:pointer">🖨️ הדפס</button>
-</div>
-<div style="padding-top:42px">
-${pages}
-</div>
-</body></html>`);
-  win.document.close();
-  document.getElementById('mprint-m').remove();
-}
-
 // ─── ADD PLACE ────────────────────────────────────────
 function openAddGardenModal(){
   document.getElementById('ap-name').value='';
@@ -7358,15 +6957,12 @@ function openAddGardenModal(){
   const apCity=document.getElementById('ap-city');
   apCity.innerHTML='<option value="">בחר עיר...</option>';
   cities().forEach(c=>apCity.innerHTML+=`<option value='${c}'>${c}</option>`);
-  apCity.innerHTML+="<option value='__new__'>➕ עיר חדשה...</option>";
-  const apCityInp=document.getElementById('ap-city-new');
-  if(apCityInp){apCityInp.value='';apCityInp.style.display='none';}
   (document.getElementById('addplace-title')||{}).textContent ='➕ הוסף '+(_gardensTab==='sch'?'בית ספר':'צהרון / גן');
   document.getElementById('addplace-m').classList.add('open');
 }
 function saveNewPlace(){
   const name=document.getElementById('ap-name').value.trim();
-  const city=_getCityVal('ap-city','ap-city-new');
+  const city=document.getElementById('ap-city').value;
   if(!name||!city){alert('יש למלא שם ועיר');return;}
   const newId=Math.max(...GARDENS.map(g=>g.id),0)+Date.now()%100000;
   const newG={

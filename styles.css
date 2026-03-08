@@ -207,7 +207,7 @@ tr:hover td{background:#f5f7ff}
 .we.wp{background:#fff8e1;border-right-color:#f9a825}
 .wn{font-weight:700;color:#1a237e}.wt{font-size:.68rem;color:#546e7a}
 
-.mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;background:#c5cae9}
+.mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;background:#c5cae9;border-radius:10px;overflow:hidden}
 .mdh{background:#1a237e;color:#fff;text-align:center;padding:6px;font-size:.72rem;font-weight:700}
 .md{background:#fff;min-height:60px;padding:4px;cursor:pointer}
 .md:hover{background:#f5f7ff}
