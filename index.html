@@ -261,6 +261,10 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <button class="flt-toggle" id="cal-flt-btn" onclick="fltToggle('cal-flt','cal-flt-btn')">⚙️ פילטרים <span class="flt-arrow">▾</span></button>
         <button class="btn bo bsm" onclick="clearCal()">נקה</button>
         <button class="btn bg bsm" onclick="addPairFromCal()">🔗 שמור כזוג</button>
+        <div style="flex:1"></div>
+        <button id="cal-tab-g" class="vbtn active" onclick="setCalTab('g')">🏫 גני ילדים</button>
+        <button id="cal-tab-s" class="vbtn" onclick="setCalTab('s')">🏛️ בתי ספר</button>
+        <button class="btn bp bsm" onclick="openNewSched()">➕ שיבוץ חדש</button>
       </div>
       <div id="cal-flt" class="flt-wrap">
         <div class="fg"><label>עיר</label><select id="cal-city" onchange="calRefG()"><option value="">כל הערים</option></select></div>
@@ -278,13 +282,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <span id="cal-pair-lbl" style="color:#2e7d32;flex:1"></span>
       <button class="btn br bsm" onclick="clearCalPair()">✕</button>
     </div>
-    <!-- Classification tabs — גנים / בתי ספר -->
-    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
-      <button id="cal-tab-g" class="vbtn active" onclick="setCalTab('g')">🏫 גני ילדים</button>
-      <button id="cal-tab-s" class="vbtn" onclick="setCalTab('s')">🏛️ בתי ספר</button>
-      <div style="flex:1"></div>
-      <button class="btn bp bsm" onclick="openNewSched()">➕ שיבוץ חדש</button>
-    </div>
+
     <div class="row">
       <div class="mob-flt-wrap-always">
         <div class="vbtns">
