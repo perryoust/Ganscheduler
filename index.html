@@ -923,6 +923,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div class="fg" style="grid-column:1/-1">
         <label>ספק *</label>
         <select id="ns-sup" style="width:100%" onchange="nsSupChg()"><option value="">בחר ספק</option></select>
+        <div id="ns-alias-wrap" style="display:none;margin-top:3px">
+          <span id="ns-alias-hint" style="font-size:.73rem;color:#7b1fa2;font-style:italic"></span>
+        </div>
       </div>
       <div class="fg" style="grid-column:1/-1">
         <label>סוג הפעילות</label>
@@ -1000,6 +1003,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <button class="btn bp bsm" onclick="genExport()" style="margin-bottom:8px">🔄 צור תצוגה מקדימה</button>
     <div id="ex-prev" class="exprev" style="margin-bottom:9px">לחץ "צור תצוגה מקדימה"</div>
     <div style="display:flex;gap:7px;justify-content:flex-end">
+      <button class="btn" style="background:#546e7a;color:#fff" onclick="printExport()">🖨️ הדפסה</button>
       <button class="btn bg" onclick="copyExport()">📋 העתק</button>
       <button class="btn bs" onclick="CM('exm')">סגור</button>
     </div>
@@ -1132,6 +1136,13 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         </select>
       </div>
       <div class="fg" style="grid-column:1/-1"><label>הערה</label><input type="text" id="hol-note" style="width:100%" placeholder="הערה נוספת..."></div>
+      <div class="fg" style="grid-column:1/-1">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:#e8f5e9;border-radius:7px;padding:8px 12px;border:1.5px solid #a5d6a7">
+          <input type="checkbox" id="hol-can-sched" style="accent-color:#2e7d32;width:16px;height:16px">
+          <span style="font-size:.82rem;font-weight:700;color:#2e7d32">✅ ניתן לשבץ פעילות בתאריכים אלה</span>
+        </label>
+        <div style="font-size:.72rem;color:#546e7a;margin-top:3px;padding-right:4px">סמן אם ניתן לקיים שיבוץ קבוע בתאריכים אלה למרות שהם מסומנים כחופשה/אירוע</div>
+      </div>
     </div>
     <div style="display:flex;gap:7px;justify-content:flex-end">
       <button class="btn bp" onclick="saveHoliday()">💾 שמור</button>
@@ -1298,6 +1309,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div style="font-weight:700;color:#e65100;margin-bottom:9px">✏️ עריכת פרטי ספק</div>
       <div class="row" style="flex-wrap:wrap;gap:7px">
         <div class="fg"><label>שם ספק *</label><input type="text" id="suc-edit-name" style="width:100%"></div>
+        <div class="fg"><label>🏷️ כינוי (יוצג בשיבוץ)</label><input type="text" id="suc-edit-alias" style="width:100%" placeholder="אם ריק — ישמש שם הספק"></div>
         <div class="fg"><label>📞 טלפון 1</label><input type="text" id="suc-edit-ph1" style="width:100%"></div>
         <div class="fg"><label>📞 טלפון 2</label><input type="text" id="suc-edit-ph2" style="width:100%"></div>
         <div class="fg"><label>מס' ספק / ח.פ.</label><input type="text" id="suc-edit-g1" style="width:100%"></div>

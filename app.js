@@ -1555,8 +1555,11 @@ function renderClusterDay(evs, ds, clusterName){
     <button onclick="openBlockedDate('${ds}')" style="background:none;border:1.5px solid #e91e63;color:#c62828;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:.72rem">✏️ ערוך</button>
   </div>`;
   const isAll = clusterName==='__all__';
-  html+=`<div style="background:#e8eaf6;border-radius:7px;padding:6px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;font-size:.78rem;font-weight:700;color:#1a237e">
-    🔢 ${isAll?'כל האשכולות':('אשכול: '+clusterName)} <span style="font-weight:400;color:#546e7a">${evs.length} פעילויות</span>
+  const clObjD=!isAll&&getClusters().find(cl=>cl.name===clusterName);
+  const clGidsD=clObjD?(clObjD.gardenIds||[]):evs.map(s=>s.g).filter((v,i,a)=>a.indexOf(v)===i);
+  html+=`<div style="background:#e8eaf6;border-radius:7px;padding:6px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;font-size:.78rem;font-weight:700;color:#1a237e">
+    <span>🔢 ${isAll?'כל האשכולות':('אשכול: '+clusterName)} <span style="font-weight:400;color:#546e7a">${evs.length} פעילויות</span></span>
+    <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGidsD)})" style="background:#25d366;border:none;border-radius:4px;color:#fff;font-size:.65rem;padding:2px 8px;cursor:pointer">📋 הודעה</button>
   </div>`;
   if(!evs.length) return html+`<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות</div>`;
 
@@ -1639,7 +1642,13 @@ function renderClusterDay(evs, ds, clusterName){
 // ─── Cluster Week View — each day sorted by time ─────────────────
 function renderClusterWeek(evs, weekStart, clusterName){
   const isAll=clusterName==='__all__';
-  let html=`<div style="background:#e8eaf6;border-radius:7px;padding:5px 12px;margin-bottom:10px;font-size:.77rem;font-weight:700;color:#1a237e">🔢 ${isAll?'כל האשכולות':('אשכול: '+clusterName)} — תצוגה שבועית לפי שעה</div>`;
+  const clObj=!isAll&&getClusters().find(cl=>cl.name===clusterName);
+  const clGids=clObj?(clObj.gardenIds||[]):evs.map(s=>s.g).filter((v,i,a)=>a.indexOf(v)===i);
+  const waBtn=`<button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="background:#25d366;border:none;border-radius:4px;color:#fff;font-size:.65rem;padding:2px 8px;cursor:pointer;margin-right:8px">📋 הודעה</button>`;
+  let html=`<div style="background:#e8eaf6;border-radius:7px;padding:5px 12px;margin-bottom:10px;font-size:.77rem;font-weight:700;color:#1a237e;display:flex;align-items:center;justify-content:space-between">
+    <span>🔢 ${isAll?'כל האשכולות':('אשכול: '+clusterName)} — תצוגה שבועית לפי שעה</span>
+    ${waBtn}
+  </div>`;
   for(let i=0;i<6;i++){
     const d=addD(weekStart,i);
     const ds=d2s(d);
@@ -3269,6 +3278,13 @@ function nsSupChg(){
   const ex=supEx[base]||supEx[sup]||{};
   const ph=ex.ph1||(SUPBASE.find(s=>supBase(s.name)===base&&s.phone)||SUPBASE.find(s=>s.name===sup)||{}).phone||'';
   document.getElementById('ns-ph').value=ph;
+  // alias hint
+  const aliasWrap=document.getElementById('ns-alias-wrap');
+  const aliasHint=document.getElementById('ns-alias-hint');
+  if(aliasWrap&&aliasHint){
+    if(ex.alias){aliasHint.textContent=`🏷️ יוצג כ: "${ex.alias}"`;aliasWrap.style.display='block';}
+    else{aliasHint.textContent='';aliasWrap.style.display='none';}
+  }
   document.getElementById('ns-grp-wrap').style.display='block';
   const actSel=document.getElementById('ns-act-type');
   if(!actSel) return;
@@ -3291,7 +3307,7 @@ function saveNewSched(){
   if(date&&gid){
     const _g=G(gid);
     const _hol=getHolidayInfo(date,_g.city||null,gcls(_g)||null);
-    if(_hol&&(_hol.type==='noact'||_hol.type==='vacation'||_hol.type==='camp')){
+    if(_hol&&!_hol.canSched&&(_hol.type==='noact'||_hol.type==='vacation'||_hol.type==='camp')){
       if(!confirm('⚠️ יש '+_hol.emoji+' '+_hol.name+' ביום זה.\nבכל זאת לשבץ?')) return;
     }
   }
@@ -3334,7 +3350,7 @@ function saveNewSched(){
       if(selDays.includes(cur.getDay())){
         const ds=d2s(cur);
         const _hol2=getHolidayInfo(ds,G(gid).city||null,gcls(G(gid))||null);
-        if(!_hol2||_hol2.type==='info'){
+        if(!_hol2||_hol2.type==='info'||_hol2.canSched){
           const eid=recurring_id+count;
           const ev={id:eid,g:gid,d:ds,a:sup,act:actType,tp:evTp||'חוג',t:recurTime,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp,_recId:recurring_id};
           SCH.push(ev);
@@ -3904,7 +3920,7 @@ function getHolidayInfo(ds,city,scope){
   });
   if(!h) return null;
   const t=HOL_TYPES[h.type]||HOL_TYPES.vacation;
-  return{...t,name:h.name,note:h.note,id:h.id};
+  return{...t,name:h.name,note:h.note,id:h.id,canSched:h.canSched||false};
 }
 
 function initHolDrops(){
@@ -3950,6 +3966,7 @@ function renderHolidays(){
         🏙️ ${hol.city||'כל הערים'} &nbsp;|&nbsp; ${hol.scope==='all'||!hol.scope?'גנים ובתי ספר':hol.scope}
       </div>
       ${hol.note?`<div style="font-size:.74rem;color:#78909c;margin-top:3px">📝 ${hol.note}</div>`:''}
+      ${hol.canSched?`<div style="font-size:.73rem;color:#2e7d32;background:#e8f5e9;border-radius:5px;padding:2px 7px;margin-top:4px;display:inline-block">✅ ניתן לשבץ</div>`:''}
     </div>`;
   });
   document.getElementById('holidays-body').innerHTML=h+'</div>';
@@ -3975,6 +3992,8 @@ function openAddHoliday(id){
   }
   document.getElementById('hol-scope').value=hol?hol.scope||'all':'all';
   document.getElementById('hol-note').value=hol?hol.note||'':'';
+  const canSchedCb=document.getElementById('hol-can-sched');
+  if(canSchedCb) canSchedCb.checked=hol?hol.canSched||false:false;
   document.getElementById('holm').classList.add('open');
 }
 function saveHoliday(){
@@ -3987,17 +4006,38 @@ function saveHoliday(){
   const cityList=Array.isArray(selCities)&&selCities.length?selCities:[''];
   const baseId=_editHolId||('h_'+Date.now());
   if(_editHolId) holidays=holidays.filter(h=>h.id!==_editHolId&&!h.id.startsWith(_editHolId+'_'));
+  const canSched=document.getElementById('hol-can-sched')?.checked||false;
+  const holType=document.getElementById('hol-type').value;
   cityList.forEach((city,idx)=>{
     const hol={
       id:cityList.length>1?baseId+'_'+idx:baseId,
       name,from,to,
-      type:document.getElementById('hol-type').value,
+      type:holType,
       city:city,
       scope:document.getElementById('hol-scope').value,
-      note:document.getElementById('hol-note').value.trim()
+      note:document.getElementById('hol-note').value.trim(),
+      canSched:canSched
     };
     holidays.push(hol);
   });
+  // Retroactive: if holiday blocks scheduling, cancel matching fixed-schedule events
+  if(!canSched&&(holType==='vacation'||holType==='noact'||holType==='camp'||holType==='event')){
+    const scope=document.getElementById('hol-scope').value;
+    let removed=0;
+    SCH.forEach(ev=>{
+      if(ev.d<from||ev.d>to) return;
+      if(!ev._recId) return; // only fixed/recurring
+      if(ev.st==='can') return;
+      const g=G(ev.g);
+      if(!g||!g.id) return;
+      if(cityList.length&&cityList[0]!==''&&!cityList.includes(g.city)) return;
+      if(scope==='גנים'&&gcls(g)!=='גנים') return;
+      if(scope==='ביה"ס'&&gcls(g)!=='ביה"ס') return;
+      ev.st='can';ev.cr='חופשה: '+name;
+      removed++;
+    });
+    if(removed>0) showToast(`⚠️ בוטלו ${removed} פעילויות קבועות בגלל החופשה`);
+  }
   save();CM('holm');refresh();
 }
 function deleteHoliday(id){
@@ -4442,7 +4482,7 @@ function genExport(){
           Object.values(bySup).forEach(group=>{
             const s0=group[0];
             const actLabel=s0.act||supAct(s0.a)||'';
-            const supLine=`📚 ${supBase(s0.a)}${actLabel?' - '+actLabel:''}${s0.p?' · 📞 '+s0.p:''}`;
+            const supLine=`📚 ${supDisplayName(supBase(s0.a))}${actLabel?' - '+actLabel:''}${s0.p?' · 📞 '+s0.p:''}`;
             const addrs=[...new Set(group.map(s=>s.gd.st||''))];
             const sameAddr=addrs.length===1&&addrs[0];
             if(sameAddr){
@@ -4470,7 +4510,7 @@ function genExport(){
           Object.values(bySup).forEach(group=>{
             const s0=group[0];
             const actLabel=s0.act||supAct(s0.a)||'';
-            const supLine=`📚 ${supBase(s0.a)}${actLabel?' - '+actLabel:''}${s0.p?' · 📞 '+s0.p:''}`;
+            const supLine=`📚 ${supDisplayName(supBase(s0.a))}${actLabel?' - '+actLabel:''}${s0.p?' · 📞 '+s0.p:''}`;
             const addrs=[...new Set(group.map(s=>s.gd.st||''))];
             const sameAddr=addrs.length===1&&addrs[0];
             if(sameAddr){
@@ -4501,6 +4541,15 @@ function copyExport(){
   const t=document.getElementById('ex-prev').textContent;
   if(!t||t.startsWith('לחץ')) return;
   navigator.clipboard.writeText(t).then(()=>alert('✅ הועתק!')).catch(()=>{const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('✅ הועתק!');});
+}
+function printExport(){
+  const t=document.getElementById('ex-prev').textContent;
+  if(!t||t.startsWith('לחץ')){alert('יש ליצור תצוגה מקדימה תחילה');return;}
+  const w=window.open('','_blank','width=700,height=600');
+  w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>לוח זמנים</title>
+  <style>body{font-family:Arial,sans-serif;padding:20px;white-space:pre-wrap;font-size:14px;line-height:1.7}@media print{button{display:none}}</style></head>
+  <body><button onclick="window.print()" style="margin-bottom:15px;padding:6px 16px;cursor:pointer">🖨️ הדפס</button><pre>${t.replace(/</g,'&lt;')}</pre></body></html>`);
+  w.document.close();
 }
 
 // [backup system unified — see createSnapshot/openBackup above]
@@ -5060,6 +5109,8 @@ function sucToggleEdit(){
   document.getElementById('suc-edit-name').value=name;
   document.getElementById('suc-edit-name').dataset.orig=name;
   document.getElementById('suc-edit-ph1').value=ex.ph1||s.phone||'';
+  const aliasEl=document.getElementById('suc-edit-alias');
+  if(aliasEl) aliasEl.value=ex.alias||'';
   document.getElementById('suc-edit-ph2').value=ex.ph2||'';
   document.getElementById('suc-edit-g1').value=ex.g1||'';
   document.getElementById('suc-edit-notes').value=ex.notes||'';
@@ -5153,6 +5204,8 @@ function sucSaveEdit(){
   supEx[_sucName].ph2=document.getElementById('suc-edit-ph2').value.trim();
   supEx[_sucName].g1=document.getElementById('suc-edit-g1').value.trim();
   supEx[_sucName].notes=document.getElementById('suc-edit-notes').value.trim();
+  const aliasInp=document.getElementById('suc-edit-alias');
+  if(aliasInp) supEx[_sucName].alias=aliasInp.value.trim();
   supEx[_sucName].isAct = document.getElementById('suc-edit-is-act')?.checked !== false;
   supEx[_sucName].isPurch = !!document.getElementById('suc-edit-is-purch')?.checked;
   const actTags=document.querySelectorAll('#suc-acts-list .suc-act-tag');
