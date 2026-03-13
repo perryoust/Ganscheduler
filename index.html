@@ -148,7 +148,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <div class="tabs" id="tabs-purch" style="display:none">
   <div class="tab active" onclick="SPT('pdash')">📊 לוח בקרה רכש</div>
   <div class="tab" onclick="SPT('pinvoices')">📄 חשבוניות</div>
-  <div class="tab" onclick="SPT('psup')">🏢 ספקי רכש</div>
+  <div class="tab" onclick="SPT('psup')">🏢 ניהול ספקים</div>
 </div>
 <div id="mob-nav">
   <div class="mob-nav-inner">
@@ -181,7 +181,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <span class="mnb-ico">🛒</span><span>הזמנות</span>
     </button>
     <button class="mob-nav-btn" onclick="SPT('psup');mobNavPurch(this)">
-      <span class="mnb-ico">🏢</span><span>ספקי רכש</span>
+      <span class="mnb-ico">🏢</span><span>ספקים</span>
     </button>
     <button class="mob-nav-btn" onclick="switchMode('act');mobNav(null)">
       <span class="mnb-ico">🎨</span><span>חוגים</span>
@@ -771,29 +771,14 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<!-- ====== SUPPLIERS ====== -->
+<!-- ====== SUPPLIERS (ניהול חוגים — act suppliers only, view-mode) ====== -->
 <div id="p-sup" class="panel">
-  <div class="card" style="padding:11px;margin-bottom:11px">
-    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:4px">
-      <div class="vbtns" style="margin-left:5px">
-        <button class="vbtn active" id="sup-tab-all" onclick="setSupTab('all')">🗂️ הכל</button>
-        <button class="vbtn" id="sup-tab-act" onclick="setSupTab('act')">🎨 חוגים בלבד</button>
-        <button class="vbtn" id="sup-tab-purch" onclick="setSupTab('purch')">🛒 ספקי רכש</button>
-      </div>
-      <button class="flt-toggle" id="sup-flt-btn" onclick="fltToggle('sup-flt','sup-flt-btn')">⚙️ סינון <span class="flt-arrow">▾</span></button>
-      <button class="btn bp bsm" onclick="openSupModal(null)">➕ הוסף ספק</button>
-      <button class="btn bo bsm" onclick="openMerge()">🔀 איחוד</button>
-      <button class="btn bs bsm" title="תקן ספקים — הוסף חסרים, תקן אחרי איחוד" onclick="repairAllSuppliers()">🔧 תקן ספקים</button>
-      <button class="btn bp bsm" onclick="openSupExport(null)">📊 Excel</button>
-    </div>
-    <div id="sup-flt" class="flt-wrap">
-      <div class="fg"><label>חיפוש</label><input type="text" id="su-srch" placeholder="חפש ספק..." oninput="renderSup()" style="min-width:190px"></div>
-      <div class="fg"><label>מיון</label><select id="su-sort" onchange="renderSup()"><option value="name">א-ב</option><option value="cnt">לפי כמות</option></select></div>
-      <div class="fg"><label>תצוגה</label>
-        <div style="display:flex;gap:3px">
-          <button id="su-view-cards" class="vbtn active" onclick="setSupView('cards')" title="קלפים">⊞</button>
-          <button id="su-view-list"  class="vbtn"        onclick="setSupView('list')"  title="רשימה">☰</button>
-        </div>
+  <div class="card" style="padding:9px 11px;margin-bottom:8px;background:#e8f5e9;border:1.5px solid #a5d6a7">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+      <span style="font-size:.82rem;font-weight:700;color:#2e7d32">🎨 ספקי חוגים פעילים</span>
+      <div style="display:flex;gap:5px;align-items:center">
+        <input type="text" id="su-srch" placeholder="חפש ספק..." oninput="renderSup()" style="border-radius:5px;border:1px solid #a5d6a7;padding:4px 8px;font-size:.8rem;width:160px">
+        <button class="btn bg bsm" onclick="switchMode('purch');setTimeout(()=>SPT('psup'),150)" title="נהל את כל הספקים">🏢 ניהול ספקים</button>
       </div>
     </div>
   </div>
@@ -866,12 +851,27 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 </div>
 
 <div id="p-psup" class="panel" style="display:none">
-  <div class="card" style="margin-bottom:11px">
-    <div class="row">
-      <div class="fg"><label>חיפוש</label><input type="text" id="psu-srch" placeholder="חפש ספק..." oninput="renderPurchSuppliers()" style="min-width:190px"></div>
-      <div style="display:flex;gap:5px">
-        <button class="btn bg bsm" onclick="openNewPurchSupplier()">➕ ספק חדש</button>
-        <button class="btn bo bsm" onclick="switchMode('act');setTimeout(()=>{ST('sup');setSupTab('all');},150)">🗂️ ניהול ספקים</button>
+  <!-- Full supplier management panel — master of all suppliers -->
+  <div class="card" style="padding:11px;margin-bottom:11px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+      <div class="vbtns" style="margin-left:5px">
+        <button class="vbtn active" id="psup-tab-all" onclick="setPSupTab('all')">🗂️ הכל</button>
+        <button class="vbtn" id="psup-tab-act" onclick="setPSupTab('act')">🎨 חוגים</button>
+        <button class="vbtn" id="psup-tab-purch" onclick="setPSupTab('purch')">🛒 רכש בלבד</button>
+      </div>
+      <button class="btn bg bsm" onclick="openSupModal(null)">➕ ספק חדש</button>
+      <button class="btn bo bsm" onclick="openMerge()">🔀 איחוד</button>
+      <button class="btn bp bsm" onclick="openSupExport(null)">📊 Excel</button>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <input type="text" id="psu-srch" placeholder="חפש ספק..." oninput="renderPurchSuppliers()" style="border-radius:5px;border:1.5px solid #c5cae9;padding:5px 10px;font-size:.8rem;flex:1;min-width:180px">
+      <select id="psu-sort" onchange="renderPurchSuppliers()" style="border-radius:5px;border:1.5px solid #c5cae9;padding:5px;font-size:.8rem">
+        <option value="name">מיון: א-ב</option>
+        <option value="cnt">מיון: כמות</option>
+      </select>
+      <div style="display:flex;gap:3px">
+        <button id="psu-view-cards" class="vbtn active" onclick="setPSupView('cards')" title="קלפים">⊞</button>
+        <button id="psu-view-list" class="vbtn" onclick="setPSupView('list')" title="רשימה">☰</button>
       </div>
     </div>
   </div>
@@ -1626,9 +1626,15 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <div class="fg"><label>אימייל</label><input type="text" id="inv-ns-email" placeholder="אימייל" style="width:100%"></div>
           <div class="fg" style="grid-column:1/-1"><label>כתובת</label><input type="text" id="inv-ns-addr" placeholder="כתובת הספק" style="width:100%"></div>
         </div>
-        <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;cursor:pointer;margin-top:8px">
-          <input type="checkbox" id="inv-ns-acts" style="accent-color:#1565c0"> שייך גם לניהול חוגים
+        <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;cursor:pointer;margin-top:8px;background:#e8f5e9;padding:6px 10px;border-radius:6px">
+          <input type="checkbox" id="inv-ns-acts" style="accent-color:#2e7d32;width:15px;height:15px" onchange="invNsActsChg()"> 🎨 שייך גם לניהול חוגים
         </label>
+        <div id="inv-ns-acts-fields" style="display:none;margin-top:8px;background:#f1f8e9;border-radius:7px;padding:8px;border:1px solid #a5d6a7">
+          <div style="font-size:.72rem;font-weight:700;color:#2e7d32;margin-bottom:6px">🎯 פרטי ספק חוגים</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div class="fg"><label>כינוי (יוצג בשיבוץ)</label><input type="text" id="inv-ns-alias" placeholder="כינוי קצר..." style="width:100%"></div>
+          </div>
+        </div>
       </div>
     </div>
 

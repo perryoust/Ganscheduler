@@ -285,10 +285,6 @@ function SPT(t){
   if(t==='pinvoices'){ fillPiSupFilter(); renderInvoices(); }
   if(t==='psup') renderPurchSuppliers();
   if(t==='pdash') refreshPurchDash();
-  // When in purch mode and viewing sup tab, show all suppliers
-  if(t==='psup' && typeof _supTab!=='undefined' && _supTab==='act'){
-    setSupTab('purch'); // switch to purch tab in act supplier panel if needed
-  }
 }
 
 // INVOICES DATA
@@ -566,6 +562,11 @@ function openNewInvoice(id, presetSup){
   // Delete button - show only when editing
   const delBtn = document.getElementById('inv-del-btn');
   if(delBtn) delBtn.style.display = id ? 'inline' : 'none';
+  // Reset acts fields visibility
+  const nsActsChk = document.getElementById('inv-ns-acts');
+  if(nsActsChk) nsActsChk.checked=false;
+  const nsActsFields = document.getElementById('inv-ns-acts-fields');
+  if(nsActsFields) nsActsFields.style.display='none';
   // Reset file pickers & show existing file names + open buttons
   _pendingFiles = {order:null, tx:null, tax:null};
   ['order','tx','tax'].forEach(sec=>{
@@ -613,6 +614,12 @@ function invUpdateEntityType(entityType){
   if(numEl) numEl.placeholder = isExempt ? 'מס\' קבלה' : 'מס\' חשבונית מס';
 }
 
+
+function invNsActsChg(){
+  const checked = document.getElementById('inv-ns-acts')?.checked;
+  const wrap = document.getElementById('inv-ns-acts-fields');
+  if(wrap) wrap.style.display = checked ? 'block' : 'none';
+}
 function invSupTextChg(){
   const val = document.getElementById('inv-sup-text')?.value||'';
   const isNew = val==='__new__' || (!getPurchSuppliers().find(s=>s.name===val) && val.trim().length>0);
@@ -721,14 +728,16 @@ async function saveInvoice(){
       if(!supEx['__c']) supEx['__c']=[];
       if(!supEx['__c'].find(s=>s.name===nsName))
         supEx['__c'].push({id:Date.now(),name:nsName,phone:document.getElementById('inv-ns-phone')?.value.trim()});
-      supEx[nsName]={...(supEx[nsName]||{}),
+      const nsIsAct = document.getElementById('inv-ns-acts')?.checked||false;
+    supEx[nsName]={...(supEx[nsName]||{}),
         ph1:document.getElementById('inv-ns-phone')?.value.trim(),
         email:document.getElementById('inv-ns-email')?.value.trim(),
         contact:document.getElementById('inv-ns-contact')?.value.trim(),
         addr:document.getElementById('inv-ns-addr')?.value.trim(),
         g1:document.getElementById('inv-ns-tax')?.value.trim(),
+        alias:nsIsAct?(document.getElementById('inv-ns-alias')?.value.trim()||''):'',
         entityType,
-        isAct:document.getElementById('inv-ns-acts')?.checked||false, isPurch:true};
+        isAct:nsIsAct, isPurch:true};
     }
     supName = nsName;
   }
@@ -1033,40 +1042,110 @@ function refreshPurchDash(){
 }
 
 // ── Purch Suppliers panel ──────────────────────────────
+let _pSupTab='all', _pSupView='cards';
+function setPSupTab(t){
+  _pSupTab=t;
+  ['all','act','purch'].forEach(x=>{
+    const b=document.getElementById('psup-tab-'+x);
+    if(b) b.classList.toggle('active',x===t);
+  });
+  renderPurchSuppliers();
+}
+function setPSupView(v){
+  _pSupView=v;
+  document.getElementById('psu-view-cards')?.classList.toggle('active',v==='cards');
+  document.getElementById('psu-view-list')?.classList.toggle('active',v==='list');
+  renderPurchSuppliers();
+}
 function renderPurchSuppliers(){
   const el = document.getElementById('psu-body');
   if(!el) return;
   const srch = (document.getElementById('psu-srch')?.value||'').toLowerCase();
-  let list = getPurchSuppliers().filter(s=>!srch||s.name.toLowerCase().includes(srch));
-  if(!list.length){ el.innerHTML='<div style="color:#aaa;padding:20px;text-align:center">אין ספקי רכש.<br><span style="font-size:.8rem">סמן ספקים כ"ספק רכש" בטאב ספקים ← ניהול חוגים.</span></div>'; return; }
-  el.innerHTML = list.map(s=>{
-    const invCount = INVOICES.filter(i=>(i.supName||String(i.supId))===s.name).length;
-    const safeN = s.name.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/'/g,"\\'");
-    return `<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <div style="flex:1;min-width:150px;cursor:pointer" onclick="openSupCardFromPurch('${safeN}')">
-        <div style="font-weight:700;color:#1565c0;text-decoration:underline">${s.name}</div>
-        <div style="font-size:.72rem;color:#78909c">${s.tax?'ח.פ: '+s.tax:''} ${s.phone?'· '+s.phone:''}</div>
+  const sortMode = document.getElementById('psu-sort')?.value||'name';
+  let list = getAllSup().filter(s=>{
+    const base=s.name||'';
+    if(srch && !base.toLowerCase().includes(srch)) return false;
+    if(_pSupTab==='act') return isActSupplier(base);
+    if(_pSupTab==='purch') return !isActSupplier(base);
+    return true; // all
+  });
+  list = [...list].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
+  if(sortMode==='cnt') list=[...list].sort((a,b)=>supBaseCnt(b.name)-supBaseCnt(a.name));
+
+  if(!list.length){
+    el.innerHTML='<div style="color:#aaa;padding:30px;text-align:center">אין ספקים.<br><small>לחץ "ספק חדש" להוספה.</small></div>';
+    return;
+  }
+
+  if(_pSupView==='list'){
+    // List view
+    let h='<table style="width:100%;border-collapse:collapse;font-size:.83rem">'
+      +'<thead><tr style="background:#e8eaf6;position:sticky;top:0">'
+      +'<th style="padding:7px 10px;text-align:right">ספק</th>'
+      +'<th style="padding:7px 8px;text-align:center">פעילויות</th>'
+      +'<th style="padding:7px 8px;text-align:right">טלפון</th>'
+      +'<th style="padding:7px 8px;text-align:right">סוג</th>'
+      +'<th style="padding:7px 8px"></th>'
+      +'</tr></thead><tbody>';
+    list.forEach((s,idx)=>{
+      const base=s.name;
+      const ex=supBaseEx(base);
+      const cnt=supBaseCnt(base);
+      const phone=ex.ph1||s.phone||'';
+      const safeBase=base.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/'/g,"\\'");
+      const bg=idx%2===0?'#fff':'#f8f9ff';
+      h+=`<tr style="background:${bg};cursor:pointer" onclick="openSupCard('${safeBase}')">`
+        +`<td style="padding:6px 10px;font-weight:700;color:#1a237e">${base}`
+        +`${isActSupplier(base)?' <span style="font-size:.65rem;color:#2e7d32">🎨</span>':''}`
+        +`</td>`
+        +`<td style="padding:6px 8px;text-align:center;color:#1565c0;font-weight:700">${cnt}</td>`
+        +`<td style="padding:6px 8px;color:#2e7d32">${phone||'—'}</td>`
+        +`<td style="padding:6px 8px;font-size:.76rem;color:#546e7a">${ex.entityType||''}</td>`
+        +`<td style="padding:6px 8px;white-space:nowrap" onclick="event.stopPropagation()">`
+        +`<button class="btn bp bsm" style="font-size:.65rem" onclick="openNewInvoice(null,'${safeBase}')">📄 הזמנה</button> `
+        +`<button class="btn bo bsm" style="font-size:.65rem" onclick="openSupCard('${safeBase}');setTimeout(sucToggleEdit,120)">✏️</button>`
+        +`</td></tr>`;
+    });
+    h+='</tbody></table>';
+    el.innerHTML=h;
+    return;
+  }
+
+  // Cards view
+  el.innerHTML=list.map(s=>{
+    const base=s.name;
+    const ex=supBaseEx(base);
+    const cnt=supBaseCnt(base);
+    const acts=getSupActs(base);
+    const phone=ex.ph1||s.phone||'';
+    const safeBase=base.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/'/g,"\\'");
+    const cntDone=SCH.filter(sc=>supBase(sc.a)===base&&sc.st==='done').length;
+    return `<div class="sucard" style="cursor:pointer;display:flex;flex-direction:column;justify-content:space-between" onclick="openSupCard('${safeBase}')">
+      <div>
+        <div style="font-weight:800;color:#1a237e;font-size:.88rem;line-height:1.35;margin-bottom:6px;word-break:break-word">
+          📚 ${base}
+          ${isActSupplier(base)?'<span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:8px;padding:1px 5px;margin-right:4px">🎨</span>':''}
+        </div>
+        ${phone?`<div style="color:#2e7d32;font-size:.78rem;font-weight:600;margin-bottom:5px">📞 ${phone}</div>`:''}
+        ${acts.length&&isActSupplier(base)?`<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:3px">
+          ${acts.map(a=>`<span style="background:#e3f2fd;color:#1565c0;border-radius:10px;padding:2px 8px;font-size:.71rem;font-weight:600">🎯 ${a}</span>`).join('')}
+        </div>`:''}
+        ${ex.entityType?`<div style="font-size:.72rem;color:#6a1b9a;margin-bottom:4px">🏢 ${ex.entityType}</div>`:''}
+        ${ex.notes?`<div style="font-size:.68rem;color:#78909c;margin-bottom:4px">📝 ${ex.notes}</div>`:''}
       </div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
-        ${isActSupplier(s.name)?'<span class="sup-flag sup-flag-act">🎨 חוגים</span>':''}
-        <span class="sup-flag sup-flag-purch">🛒 רכש</span>
-      </div>
-      <div style="font-size:.78rem;color:#546e7a">${invCount} חשבוניות</div>
-      <div style="flex:1;display:flex;gap:5px">
-        <button class="btn bsm bp" title="פתח כרטיס ספק" onclick="switchMode('act');setTimeout(()=>{ST('sup');setTimeout(()=>openSupCard('${safeN}'),100);},120)">📋 כרטיס ספק</button>
-        <button class="btn bsm bo" onclick="openSupCardFromPurch('${safeN}')">✏️ ערוך</button>
-        <button class="btn bsm bg" onclick="openNewInvoiceForSupplier('${safeN}')">📄 הזמנה חדשה</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid #f0f0f0">
+        <span style="color:#1565c0;font-weight:700;font-size:.72rem">📅 ${cnt} פעילויות${cntDone?` · ✔️ ${cntDone}`:''}</span>
+        <div style="display:flex;gap:4px;flex-shrink:0" onclick="event.stopPropagation()">
+          <button class="btn bp bsm" style="font-size:.65rem" onclick="openNewInvoice(null,'${safeBase}')">📄 הזמנה</button>
+          <button class="btn bo bsm" style="font-size:.65rem" onclick="openSupCard('${safeBase}');setTimeout(sucToggleEdit,120)">✏️</button>
+        </div>
       </div>
     </div>`;
   }).join('');
 }
+
 function openNewPurchSupplier(){
-  // Open supplier card editor in act mode — switch to supplier tab
-  switchMode('act');
-  setTimeout(()=>{
-    ST('sup');
-    setTimeout(()=>{ openSupModal(null); }, 100);
-  }, 150);
+  openSupModal(null); // Open supplier creation modal directly
 }
 function openSupCardFromPurch(name){
   switchMode('act');
@@ -5040,19 +5119,18 @@ function repairAllSuppliers(){
   const msg = `✅ תוקנו ספקים: ${added} נוספו, ${clearedActs} פעילויות תוקנו`;
   showToast(msg);
   console.log(msg);
-  refresh();
+  try{ renderPurchSuppliers(); }catch(e){}
+  try{ renderSup(); }catch(e){}
 }
 
 function renderSup(){
   const srch=(document.getElementById('su-srch').value||'').toLowerCase();
   const sortMode=(document.getElementById('su-sort')||{value:'name'}).value;
+  // p-sup (חוגים mode) always shows only act suppliers
   let all=getAllSup().filter(s=>{
-    if(srch&&!(s.name||'').toLowerCase().includes(srch)) return false;
-    if(_supTab==='act') return isActSupplier(s.name);
-    if(_supTab==='purch') return isPurchSupplier(s.name);
-    // 'all' tab: in act mode show only act suppliers
-    if(typeof _appMode!=='undefined' && _appMode==='act') return isActSupplier(s.name);
-    return true;
+    const base = s.name||'';
+    if(srch && !base.toLowerCase().includes(srch)) return false;
+    return isActSupplier(base); // Only activity suppliers in חוגים panel
   });
   // Always sort alphabetically first, then by count if selected
   all=[...all].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
@@ -5259,7 +5337,9 @@ function saveSup(){
     if(!supEx['__c'].find(s=>s.name===name)) supEx['__c'].push({id:Date.now(),name,phone:supEx[name].ph1});
   }
   save();CM('sum');refresh();
-  if(_appMode==='purch') { try{ renderPurchSuppliers(); }catch(e){} }
+  // Refresh whichever supplier panel is visible
+  try{ renderPurchSuppliers(); }catch(e){}
+  try{ renderSup(); }catch(e){}
   ['dash-sup','cal-sup','s-sup','ns-sup'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     const cur=el.value;
