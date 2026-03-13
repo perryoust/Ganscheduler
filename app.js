@@ -1075,6 +1075,9 @@ window.onload = function(){
     _fbStartPolling();
     setTimeout(_fitScrollAreas, 100);
   }; // end _onAuthReady
+  // On mobile, Firebase may fire onAuthStateChanged BEFORE window.onload
+  // In that case _fbUser is already set — trigger immediately
+  if(window._fbUser) window._onAuthReady();
 }; // end window.onload
 
 function updCounts(){
@@ -4775,26 +4778,28 @@ function renderSup(){
     const safeBase=base.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/'/g,"\\'");
     const cntDone=SCH.filter(sc=>supBase(sc.a)===base&&sc.st==='done').length;
     const cntCan=SCH.filter(sc=>supBase(sc.a)===base&&sc.st==='can').length;
-    h+=`<div class="sucard" style="cursor:pointer" onclick="openSupCard('${safeBase}')">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <div style="font-weight:800;color:#1a237e;font-size:.9rem;flex:1">📚 ${base}</div>
-        <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center">
-          ${isActSupplier(base)?'<span class="sup-flag sup-flag-act" title="ספק חוגים פעיל">🎨</span>':'<span style="display:inline-block;padding:1px 5px;border-radius:10px;font-size:.64px;background:#fce4ec;color:#c62828;font-weight:700" title="לא מוצג בחוגים">🚫</span>'}
+    h+=`<div class="sucard" style="cursor:pointer;display:flex;flex-direction:column;justify-content:space-between" onclick="openSupCard('${safeBase}')">
+      <div>
+        <div style="font-weight:800;color:#1a237e;font-size:.88rem;line-height:1.35;margin-bottom:6px;word-break:break-word">📚 ${base}</div>
+        ${phone?`<div style="color:#2e7d32;font-size:.78rem;font-weight:600;margin-bottom:5px">📞 ${phone}</div>`:''}
+        ${acts.length?`<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:3px">
+          ${acts.map(a=>`<span style="background:#e3f2fd;color:#1565c0;border-radius:10px;padding:2px 8px;font-size:.71rem;font-weight:600">🎯 ${a}</span>`).join('')}
+        </div>`:''}
+        ${ex.notes?`<div style="font-size:.68rem;color:#78909c;margin-bottom:4px">📝 ${ex.notes}</div>`:''}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid #f0f0f0">
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+          ${isActSupplier(base)?'<span class="sup-flag sup-flag-act" title="ספק חוגים פעיל">🎨</span>':'<span style="display:inline-block;padding:1px 5px;border-radius:10px;font-size:.64rem;background:#fce4ec;color:#c62828;font-weight:700" title="לא מוצג בחוגים">🚫</span>'}
           ${isPurchSupplier(base)?'<span class="sup-flag sup-flag-purch" title="ספק רכש">🛒</span>':''}
-          ${ex.entityType?`<span style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:.66rem;background:#f3e5f5;color:#6a1b9a;font-weight:700" title="סוג ישות">🏢 ${ex.entityType}</span>`:''}
+          ${ex.entityType?`<span style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:.66rem;background:#f3e5f5;color:#6a1b9a;font-weight:700">🏢 ${ex.entityType}</span>`:''}
+          <span style="color:#1565c0;font-weight:700;font-size:.72rem">📅 ${cnt}</span>
+          ${cntDone?`<span style="color:#2e7d32;font-size:.72rem">✔️ ${cntDone}</span>`:''}
+          ${cntCan?`<span style="color:#c62828;font-size:.72rem">❌ ${cntCan}</span>`:''}
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
           <button class="btn bp bsm" style="font-size:.65rem" onclick="event.stopPropagation();openSupExport('${safeBase}')">📊</button>
           <button class="btn bo bsm" style="font-size:.65rem" onclick="event.stopPropagation();openSupCard('${safeBase}');setTimeout(sucToggleEdit,120)">✏️</button>
         </div>
-      </div>
-      ${phone?`<div style="color:#2e7d32;font-size:.78rem;font-weight:600;margin-bottom:5px">📞 ${phone}</div>`:''}
-      ${acts.length?`<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:3px">
-        ${acts.map(a=>`<span style="background:#e3f2fd;color:#1565c0;border-radius:10px;padding:2px 8px;font-size:.71rem;font-weight:600">🎯 ${a}</span>`).join('')}
-      </div>`:''}
-      ${ex.notes?`<div style="font-size:.68rem;color:#78909c;margin-bottom:4px">📝 ${ex.notes}</div>`:''}
-      <div style="display:flex;gap:6px;font-size:.72rem;margin-top:4px">
-        <span style="color:#1565c0;font-weight:700">📅 ${cnt} פעילויות</span>
-        ${cntDone?`<span style="color:#2e7d32">✔️ ${cntDone}</span>`:''}
-        ${cntCan?`<span style="color:#c62828">❌ ${cntCan}</span>`:''}
       </div>
     </div>`;
   });
