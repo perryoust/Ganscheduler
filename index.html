@@ -44,13 +44,8 @@
   window._fbGetToken = async () => {
     const user = auth.currentUser;
     if (!user) return null;
-    try {
-      const tok = await user.getIdToken(false);
-      window._cachedToken = tok;
-      return tok;
-    } catch(e) {
-      try { return await user.getIdToken(true); } catch(e2) { return null; }
-    }
+    try { const tok=await user.getIdToken(false); window._cachedToken=tok; return tok; }
+    catch(e){ try{return await user.getIdToken(true);}catch(e2){return null;} }
   };
 
   // Listen for auth state — kick off app once signed in
@@ -295,15 +290,19 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <span id="cal-title" style="font-weight:700;color:#1a237e;text-align:center;font-size:.88rem;flex:1;min-width:0"></span>
         <button class="btn bo bsm" onclick="navCal(1)">הבא ▶</button>
       </div>
-      <div id="cal-list-range-row" style="display:none;margin-bottom:4px"><div class="vbtns"><button class="vbtn active" id="lr-day" onclick="setListRange('day')">יומי</button><button class="vbtn" id="lr-week" onclick="setListRange('week')">שבועי</button><button class="vbtn" id="lr-month" onclick="setListRange('month')">חודשי</button></div></div>
-      <div id="cal-list-range-row" style="display:none;margin-bottom:4px"><div class="vbtns"><button class="vbtn active" id="lr-day" onclick="setListRange('day')">יומי</button><button class="vbtn" id="lr-week" onclick="setListRange('week')">שבועי</button><button class="vbtn" id="lr-month" onclick="setListRange('month')">חודשי</button></div></div>
       <div class="mob-btn-row">
         <button class="btn bp bsm" onclick="openNewSched()">➕ שיבוץ חדש</button>
         <button class="btn bs bsm" onclick="goToday()">📍 היום</button>
-        <button class="btn bsm" id="block-date-btn" style="background:#fce4ec;color:#c62828;border:1.5px solid #e91e63" onclick="openBlockedDate(d2s(calD))">🚫 חסום תאריך</button>
-        <button class="btn bg bsm" onclick="openMonthlyExport()">📊 ייצוא Excel</button>
         <div class="fg" style="flex:0 0 auto"><label>עבור ל</label><input type="date" id="cal-dp" onchange="goDate(this.value)" style="width:130px"></div>
-        <button class="btn bp bsm" style="margin-right:auto" onclick="openExport()">📋 יצוא WhatsApp</button>
+        <button class="btn bsm" id="block-date-btn" style="background:#fce4ec;color:#c62828;border:1.5px solid #e91e63" onclick="openBlockedDate(d2s(calD))">🚫 חסום</button>
+        <div style="position:relative;display:inline-block">
+          <button class="btn bg bsm" id="export-main-btn" onclick="toggleExportMenu()">📤 ייצוא ▾</button>
+          <div id="export-menu" style="display:none;position:absolute;left:0;top:110%;background:#fff;border:1.5px solid #c5cae9;border-radius:9px;box-shadow:0 4px 18px #0002;z-index:999;min-width:170px;padding:5px 0">
+            <div onclick="closeExportMenu();openExport()" style="padding:9px 16px;cursor:pointer;display:flex;gap:8px;align-items:center;font-size:.82rem;border-bottom:1px solid #eee">📋 ייצוא WhatsApp</div>
+            <div onclick="closeExportMenu();openMonthlyExport()" style="padding:9px 16px;cursor:pointer;display:flex;gap:8px;align-items:center;font-size:.82rem;border-bottom:1px solid #eee">📊 ייצוא Excel</div>
+            <div onclick="closeExportMenu();openCalPrint()" style="padding:9px 16px;cursor:pointer;display:flex;gap:8px;align-items:center;font-size:.82rem">🖨️ הדפסה</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -316,9 +315,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div style="margin-bottom:9px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
         <span style="font-size:.9rem;font-weight:700;color:#1a237e;flex:1">📋 לוח זמנים - כל הפעילויות</span>
-        <button class="btn bo bsm" onclick="navSched(-1)">◀</button>
-        <button class="btn bs bsm" onclick="navSchedToday()" style="font-size:.75rem">📍 היום</button>
-        <button class="btn bo bsm" onclick="navSched(1)">▶</button>
+        <button class="btn bo bsm" onclick="navSched(-1)" title="טווח קודם">◀</button>
+        <button class="btn bs bsm" onclick="navSchedToday()" style="font-size:.75rem" title="היום">📍 היום</button>
+        <button class="btn bo bsm" onclick="navSched(1)" title="טווח הבא">▶</button>
         <button class="flt-toggle" id="sched-flt-btn" onclick="fltToggle('sched-flt','sched-flt-btn')">⚙️ סינון <span class="flt-arrow">▾</span></button>
       </div>
       <div id="sched-flt" class="flt-wrap">
@@ -757,6 +756,11 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <div id="p-sup" class="panel">
   <div class="card" style="padding:11px;margin-bottom:11px">
     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:4px">
+      <div class="vbtns" style="margin-left:5px">
+        <button class="vbtn active" id="sup-tab-all" onclick="setSupTab('all')">הכל</button>
+        <button class="vbtn" id="sup-tab-act" onclick="setSupTab('act')">🎨 חוגים</button>
+        <button class="vbtn" id="sup-tab-purch" onclick="setSupTab('purch')">🛒 רכש</button>
+      </div>
       <button class="flt-toggle" id="sup-flt-btn" onclick="fltToggle('sup-flt','sup-flt-btn')">⚙️ סינון <span class="flt-arrow">▾</span></button>
       <button class="btn bp bsm" onclick="openSupModal(null)">➕ הוסף ספק</button>
       <button class="btn bo bsm" onclick="openMerge()">🔀 איחוד</button>
@@ -964,7 +968,6 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <div class="fg"><label>צהרון 3</label><select id="gm-pg3" style="min-width:160px"><option value="">—</option></select></div>
         <button class="btn bg bsm" onclick="savePairFromGarden()">💾 שמור כזוג</button>
         <button class="btn br bsm" id="gm-del-pair-btn" onclick="delPairFromGarden()" style="display:none">🗑️ הסר זוג</button>
-        <button class="btn bp bsm" onclick="openGmExport()">📤 ייצוא</button>
       </div>
     </div>
     <div class="row" style="margin-bottom:9px">
@@ -977,6 +980,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <span id="gm-per" style="font-size:.82rem;font-weight:700;color:#1a237e;min-width:135px;text-align:center"></span>
       <button class="btn bo bsm" onclick="gmNav(1)">▶</button>
       <button class="btn bp bsm" onclick="openNewSched(gmGid)">➕ שיבוץ חדש</button>
+      <button class="btn bg bsm" onclick="openGmExport()">📤 ייצוא</button>
     </div>
     <div id="gm-cal"></div>
     <div style="text-align:center;margin-top:11px"><button class="btn bs" onclick="CM('gm')">סגור</button></div>
@@ -1596,7 +1600,14 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <div class="fg"><label>מספר הזמנה</label><input type="text" id="inv-order-num" placeholder="מס' הזמנה" style="width:100%"></div>
         <div class="fg"><label>תאריך הזמנה</label><input type="date" id="inv-order-date" style="width:100%"></div>
         <div class="fg" style="grid-column:1/-1"><label>פירוט ההזמנה</label><input type="text" id="inv-order-desc" placeholder="תיאור ההזמנה..." style="width:100%"></div>
-        <div class="fg"><label>סכום הזמנה (לפני מע"מ)</label><input type="number" id="inv-order-amt" placeholder="0.00" oninput="calcOrderVat()" style="width:100%"></div>
+        <div class="fg">
+          <label>סכום הזמנה</label>
+          <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+            <div style="display:flex;gap:2px"><button class="vbtn active" id="vat-ord-ex" onclick="setOrderVatMode('ex')" style="font-size:.7rem;padding:2px 6px">לפני מע״מ</button><button class="vbtn" id="vat-ord-inc" onclick="setOrderVatMode('inc')" style="font-size:.7rem;padding:2px 6px">כולל מע״מ</button></div>
+            <input type="number" id="inv-order-amt" placeholder="0.00" oninput="calcOrderVat()" style="width:110px">
+            <span id="inv-order-vat-lbl" style="font-size:.74rem;color:#546e7a;white-space:nowrap"></span>
+          </div>
+        </div>
         <div class="fg"><label>הערות הזמנה</label><input type="text" id="inv-order-notes" placeholder="הערות..." style="width:100%"></div>
       </div>
       <div class="inv-amt-row">
@@ -1658,7 +1669,14 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div class="fg"><label>מספר חשבונית מס / קבלה</label><input type="text" id="inv-num" placeholder="מס' חשבונית מס" style="width:100%"></div>
         <div class="fg"><label>תאריך חשבונית מס / קבלה</label><input type="date" id="inv-date" style="width:100%"></div>
-        <div class="fg"><label>סכום (לפני מע"מ)</label><input type="number" id="inv-amt" placeholder="0.00" oninput="calcInvTotal()" style="width:100%"></div>
+        <div class="fg">
+          <label>סכום</label>
+          <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+            <div style="display:flex;gap:2px"><button class="vbtn active" id="vat-inv-ex" onclick="setInvVatMode('ex')" style="font-size:.7rem;padding:2px 6px">לפני מע״מ</button><button class="vbtn" id="vat-inv-inc" onclick="setInvVatMode('inc')" style="font-size:.7rem;padding:2px 6px">כולל מע״מ</button></div>
+            <input type="number" id="inv-amt" placeholder="0.00" oninput="calcInvTotal()" style="width:110px">
+            <span id="inv-amt-vat-lbl" style="font-size:.74rem;color:#546e7a;white-space:nowrap"></span>
+          </div>
+        </div>
       </div>
       <div class="inv-amt-row">
         <div><div class="inv-amt-lbl">לפני מע"מ</div><div class="inv-amt-val" id="inv-base-disp" style="color:#1565c0">—</div></div>

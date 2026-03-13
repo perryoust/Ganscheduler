@@ -499,8 +499,25 @@ function invEntityTypeChg(){
   invUpdateEntityType(et);
 }
 
+let _ordVatMode='ex',_invVatMode='ex';
+function setOrderVatMode(m){
+  _ordVatMode=m;
+  document.getElementById('vat-ord-ex')?.classList.toggle('active',m==='ex');
+  document.getElementById('vat-ord-inc')?.classList.toggle('active',m==='inc');
+  calcOrderVat();
+}
+function setInvVatMode(m){
+  _invVatMode=m;
+  document.getElementById('vat-inv-ex')?.classList.toggle('active',m==='ex');
+  document.getElementById('vat-inv-inc')?.classList.toggle('active',m==='inc');
+  calcInvTotal();
+}
 function calcOrderVat(){
-  const amt = parseFloat(document.getElementById('inv-order-amt').value)||0;
+  const raw = parseFloat(document.getElementById('inv-order-amt').value)||0;
+  const amt = _ordVatMode==='inc' ? +(raw/1.17).toFixed(2) : raw;
+  const lbl=document.getElementById('inv-order-vat-lbl');
+  if(lbl&&raw) lbl.textContent=_ordVatMode==='inc'?`→ לפני מע"מ: ₪${amt.toFixed(2)}`:`→ כולל מע"מ: ₪${(amt*1.17).toFixed(2)}`;
+  else if(lbl) lbl.textContent='';
   const vat = parseFloat(document.getElementById('inv-vat').value)||getVatRate();
   const el = id => document.getElementById(id);
   if(el('inv-order-base'))    el('inv-order-base').textContent    = amt ? '₪'+amt.toLocaleString() : '—';
@@ -518,7 +535,11 @@ function calcTxVat(){
 }
 
 function calcInvTotal(){
-  const amt = parseFloat(document.getElementById('inv-amt').value)||0;
+  const raw2 = parseFloat(document.getElementById('inv-amt').value)||0;
+  const amt = _invVatMode==='inc' ? +(raw2/1.17).toFixed(2) : raw2;
+  const lbl2=document.getElementById('inv-amt-vat-lbl');
+  if(lbl2&&raw2) lbl2.textContent=_invVatMode==='inc'?`→ לפני מע"מ: ₪${amt.toFixed(2)}`:`→ כולל מע"מ: ₪${(amt*1.17).toFixed(2)}`;
+  else if(lbl2) lbl2.textContent='';
   const vat = parseFloat(document.getElementById('inv-vat').value)||getVatRate();
   const el = id => document.getElementById(id);
   if(el('inv-base-disp')) el('inv-base-disp').textContent = amt ? '₪'+amt.toLocaleString() : '—';
@@ -1183,24 +1204,6 @@ function navSearchClose(){
   const inp=document.getElementById('nav-search-input');
   if(inp) inp.value='';
 }
-function gLink(g,xst){if(!g)return'?';return`<span onclick="event.stopPropagation();openGM(${g.id})" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;${xst||''}" title="פתח כרטיס גן">${g.name}</span>`;}
-function grpTag(s){if(!s||!s.grp)return'';return s.grp.split(',').filter(Boolean).map(g=>`<span style="background:#e8eaf6;border-radius:4px;padding:1px 5px;font-size:.7rem">${g.trim()}</span>`).join(' ');}
-function grpTagEv(ev){return ev&&ev.grp?ev.grp.split(',').filter(Boolean).map(g=>g.trim()).join(', '):'';}
-function toggleExportMenu(){
-  const m=document.getElementById('export-menu');if(!m)return;
-  if(m.style.display!=='none'){m.style.display='none';return;}
-  m.style.display='block';
-  setTimeout(()=>document.addEventListener('click',function _c(e){if(!m.contains(e.target)&&e.target.id!=='export-main-btn'){m.style.display='none';document.removeEventListener('click',_c);}}),10);
-}
-function closeExportMenu(){const m=document.getElementById('export-menu');if(m)m.style.display='none';}
-function openCalPrint(){
-  const ws=monStart(calD);
-  const fromDs=calV==='week'?d2s(ws):calV==='day'?d2s(calD):d2s(new Date(calD.getFullYear(),calD.getMonth(),1));
-  const toDs=calV==='week'?d2s(addD(ws,5)):calV==='day'?d2s(calD):d2s(new Date(calD.getFullYear(),calD.getMonth()+1,0));
-  document.getElementById('ex-d1').value=fromDs;document.getElementById('ex-d2').value=toDs;
-  document.getElementById('exm').classList.add('open');setTimeout(()=>genExport(),80);
-}
-function _exportDayWA(ds){_exGids=null;document.getElementById('ex-d1').value=ds;document.getElementById('ex-d2').value=ds;document.getElementById('exm').classList.add('open');setTimeout(()=>genExport(),80);}
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ST(t){
@@ -1272,8 +1275,6 @@ function filterE(f,from,to){
   }).map(s=>({...s,d:s.pd,_isPostponed:true}));
   return [...all,...posted];
 }
-let _listRange='week';
-function setListRange(r){_listRange=r;['day','week','month','range'].forEach(x=>{const b=document.getElementById('lr-'+x);if(b)b.classList.toggle('active',x===r);});renderCal();}
 function setView(v){
   calV=v;
   ['day','week','month','list','range'].forEach(x=>{
@@ -1295,14 +1296,11 @@ function setView(v){
     if(rangeRow) rangeRow.style.display='none';
     navBtns.forEach(b=>b.style.display='');
   }
-  const lr=document.getElementById('cal-list-range-row');if(lr)lr.style.display=v==='list'?'block':'none';
-  if(v==='list')['day','week','month','range'].forEach(x=>{const b=document.getElementById('lr-'+x);if(b)b.classList.toggle('active',x===_listRange);});
   renderCal();
 }
 function navCal(d){
   if(calV==='day') calD=addD(calD,d);
   else if(calV==='week') calD=addD(calD,d*7);
-  else if(calV==='list'){if(_listRange==='day')calD=addD(calD,d);else if(_listRange==='week')calD=addD(calD,d*7);else calD=addM(calD,d);}
   else calD=addM(calD,d);
   renderCal();
 }
@@ -1402,12 +1400,9 @@ function renderCal(){
     html=renderRangeView(evs,fromD,toD,f,displayGids);
   } else if(calV==='list'){
     const y=calD.getFullYear(),m=calD.getMonth();
-    let fDs,tDs,title;
-    if(_listRange==='day'){fDs=d2s(calD);tDs=fDs;title='📋 רשימה — '+fD(fDs);}
-    else if(_listRange==='week'){const ws=monStart(calD);fDs=d2s(ws);tDs=d2s(addD(ws,6));title='📋 רשימה — '+fD(fDs)+' – '+fD(tDs);}
-    else{fDs=d2s(new Date(y,m,1));tDs=d2s(new Date(y,m+1,0));title='📋 רשימה — '+hebM(calD);}
-    (document.getElementById('cal-title')||{}).textContent=title;
-    html=renderCalList(filterE(f,fDs,tDs),calD);
+    (document.getElementById('cal-title')||{}).textContent ='📋 רשימה — '+hebM(calD);
+    const evs=filterE(f,d2s(new Date(y,m,1)),d2s(new Date(y,m+1,0)));
+    html=renderCalList(evs,calD);
   } else {
     const y=calD.getFullYear(),m=calD.getMonth();
     (document.getElementById('cal-title')||{}).textContent =hebM(calD);
@@ -2264,13 +2259,13 @@ function renderCalList(evs, mDate){
   const y=mDate.getFullYear(),m=mDate.getMonth();
   const tday=td();
   const byDate={};
- evs.forEach(s=>{
+  evs.filter(s=>s.st!=='can').forEach(s=>{
     const dk=s._isPostponed?s.pd:s.d;
     if(!byDate[dk]) byDate[dk]=[];
     byDate[dk].push(s);
   });
   const dates=Object.keys(byDate).sort();
-  if(!dates.length) return '<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות בטווח זה</div>';
+  if(!dates.length) return '<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות בחודש זה</div>';
 
   let h='<div class="card" style="padding:0;overflow:hidden">';
   dates.forEach(ds=>{
@@ -2286,8 +2281,7 @@ function renderCalList(evs, mDate){
         <span style="display:flex;gap:8px;align-items:center">
           ${hol?`<span style="font-size:.7rem">${hol.emoji} ${hol.name}</span>`:''}
           ${blk?`<span style="font-size:.7rem;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blk.icon} ${blk.reason} ✏️</span>`:`<span style="font-size:.65rem;opacity:.4;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')" title="חסום תאריך">🚫</span>`}
-          <span style="font-size:.72rem;opacity:.8">${dayEvs.filter(s=>s.st!=='can').length} פעילויות${dayEvs.filter(s=>s.st==='can').length?` <span style="color:#ef9a9a">(${dayEvs.filter(s=>s.st==='can').length} בוטלו)</span>`:''}</span>
-          <span onclick="event.stopPropagation();_exportDayWA('${ds}')" style="cursor:pointer;font-size:.8rem;opacity:.7" title="שלח ב-WhatsApp">📋</span>
+          <span style="font-size:.72rem;opacity:.8">${dayEvs.length} פעילויות</span>
         </span>
       </div>`;
 
@@ -2353,10 +2347,8 @@ function renderCalList(evs, mDate){
 
 function _listRow(s, clr){
   const g=G(s.g);
-  const isCan=s.st==='can';
-  const stC=s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':isCan?'#9e9e9e':'#333';
-  const bg=s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':isCan?'#f5f5f5':clr.light;
-  return `<div style="display:grid;grid-template-columns:120px 1fr auto auto auto;align-items:center;gap:5px;padding:3px 6px;border-radius:4px;margin-bottom:2px;background:${bg};border-right:3px solid ${isCan?'#bdbdbd':clr.solid};cursor:pointer;${isCan?'opacity:.55;':''}" onclick="openSP(${s.id})">
+  const stC=s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':'#333';
+  return `<div style="display:grid;grid-template-columns:120px 1fr auto auto auto;align-items:center;gap:5px;padding:3px 6px;border-radius:4px;margin-bottom:2px;background:${s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light};border-right:3px solid ${clr.solid};cursor:pointer" onclick="openSP(${s.id})">
     <div>
       <div style="font-weight:700;font-size:.75rem;color:#1a237e">${g.name}</div>
       <div style="font-size:.65rem;color:#78909c">${s.t?'⏰ '+fT(s.t):''}</div>
@@ -2802,9 +2794,7 @@ function cancelEv(){
   }
   const main=SCH.find(x=>x.id===selEv);
   if(main) Object.assign(main,fields);
-  save(); closeSP();
-  if(st==='ok'&&main&&main.d) calD=s2d(main.d);
-  refresh();
+  save(); closeSP(); refresh();
 }
 function markNoHap(){
   const sel=document.querySelector('.copt.sel');
@@ -2914,9 +2904,7 @@ function saveAndRefresh(modalId){
 
 function qSetSt(id,st){
   const s=SCH.find(x=>x.id===id); if(!s) return;
-  s.st=st;
-  if(st==='ok'&&s.d) calD=s2d(s.d);
-  save(); refresh();
+  s.st=st; save(); refresh();
 }
 
 function openEditSched(id){
@@ -3277,8 +3265,9 @@ function nsCheckPair(gid){
 function nsSupChg(){
   const sup=document.getElementById('ns-sup').value;
   if(!sup) return;
-  const ex=supEx[sup]||{};
-  const ph=ex.ph1||(SUPBASE.find(s=>s.name===sup)||{}).phone||'';
+  const base=supBase(sup);
+  const ex=supEx[base]||supEx[sup]||{};
+  const ph=ex.ph1||(SUPBASE.find(s=>supBase(s.name)===base&&s.phone)||SUPBASE.find(s=>s.name===sup)||{}).phone||'';
   document.getElementById('ns-ph').value=ph;
   document.getElementById('ns-grp-wrap').style.display='block';
   const actSel=document.getElementById('ns-act-type');
@@ -3436,7 +3425,23 @@ function getFiltSched(){
     return true;
   }).sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'').localeCompare(b.t||''));
 }
-function navSchedToday(){const t=td();document.getElementById('s-from').value=t;document.getElementById('s-to').value=t;sPage=1;renderSched();}
+function navSched(dir){
+  const sf=document.getElementById('s-from'),st2=document.getElementById('s-to');
+  if(!sf||!st2) return;
+  const from=sf.value||td(),to=st2.value||td();
+  const d1=s2d(from),d2=s2d(to);
+  const span=Math.max(0,Math.round((d2-d1)/(1000*60*60*24)));
+  const nd1=addD(d1,dir*(span+1));
+  const nd2=addD(nd1,span);
+  sf.value=d2s(nd1); st2.value=d2s(nd2);
+  sPage=1; renderSched();
+}
+function navSchedToday(){
+  const t=td();
+  document.getElementById('s-from').value=t;
+  document.getElementById('s-to').value=t;
+  sPage=1; renderSched();
+}
 function renderSched(){
   const all=getFiltSched();
   const hasFilter=['s-city','s-cls','s-sup','s-th','s-tt','s-from','s-to','s-st','s-srch'].some(id=>{const el=document.getElementById(id);return el&&el.value;});
@@ -3586,9 +3591,11 @@ function openGmExport(){
   const ws=monStart(gmD);
   const fDs=gmV==='day'?d2s(gmD):gmV==='week'?d2s(ws):d2s(new Date(gmD.getFullYear(),gmD.getMonth(),1));
   const tDs=gmV==='day'?d2s(gmD):gmV==='week'?d2s(addD(ws,5)):d2s(new Date(gmD.getFullYear(),gmD.getMonth()+1,0));
-  document.getElementById('ex-d1').value=fDs;document.getElementById('ex-d2').value=tDs;
+  document.getElementById('ex-d1').value=fDs;
+  document.getElementById('ex-d2').value=tDs;
   (document.getElementById('ex-ctx')||{}).textContent=G(gmGid).name+' | '+fD(fDs)+(fDs!==tDs?' – '+fD(tDs):'');
-  document.getElementById('exm').classList.add('open');setTimeout(()=>genExport(),80);
+  document.getElementById('exm').classList.add('open');
+  setTimeout(()=>genExport(),80);
 }
 function openGM(gid){
   gmGid=gid;gmV='week';gmD=new Date();
@@ -4355,6 +4362,25 @@ function _exportPairWA(gids){
   openExport();
 }
 
+function toggleExportMenu(){
+  const m=document.getElementById('export-menu');
+  if(!m) return;
+  if(m.style.display!=='none'){m.style.display='none';return;}
+  m.style.display='block';
+  setTimeout(()=>document.addEventListener('click',function _c(e){
+    if(!m.contains(e.target)&&e.target.id!=='export-main-btn'){m.style.display='none';document.removeEventListener('click',_c);}
+  }),10);
+}
+function closeExportMenu(){const m=document.getElementById('export-menu');if(m)m.style.display='none';}
+function openCalPrint(){
+  const ws=monStart(calD);
+  const fromDs=calV==='week'?d2s(ws):calV==='day'?d2s(calD):d2s(new Date(calD.getFullYear(),calD.getMonth(),1));
+  const toDs=calV==='week'?d2s(addD(ws,5)):calV==='day'?d2s(calD):d2s(new Date(calD.getFullYear(),calD.getMonth()+1,0));
+  document.getElementById('ex-d1').value=fromDs;
+  document.getElementById('ex-d2').value=toDs;
+  document.getElementById('exm').classList.add('open');
+  setTimeout(()=>genExport(),80);
+}
 function openExport(){
   const ws=monStart(calD), we=addD(ws,5);
   const isWeek=(calV==='week');
@@ -4380,9 +4406,10 @@ function genExport(){
   const gids=_exGids||f.gids;
   _exGids=null;
   const gidsStr=gids?gids.map(String):null;
-  const rel=SCH.filter(s=>s.st!=='can'&&s.d>=from&&s.d<=to&&(!gidsStr||gidsStr.includes(String(s.g))))
+  const rel=SCH.filter(s=>s.d>=from&&s.d<=to&&(!gidsStr||gidsStr.includes(String(s.g))))
     .sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'99').localeCompare(b.t||'99'));
-  if(!rel.length){(document.getElementById('ex-prev')||{}).textContent ='אין פעילויות';return;}
+  const relActive=rel.filter(s=>s.st!=='can');
+  if(!rel.length){(document.getElementById('ex-prev')||{}).textContent='אין פעילויות';return;}
   const byDate={};rel.forEach(s=>{if(!byDate[s.d])byDate[s.d]=[];byDate[s.d].push(s);});
   let text='';
   const dates=Object.keys(byDate).sort();
@@ -4420,12 +4447,12 @@ function genExport(){
             const sameAddr=addrs.length===1&&addrs[0];
             if(sameAddr){
               text+=`${supLine}\n  🏫 ${addrs[0]}\n`;
-              group.forEach(s=>{ text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`; });
+              group.forEach(s=>{ text+=`     ${s.st==='can'?'❌ ':s.st==='nohap'?'⚠️ ':''}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`; });
             } else {
               text+=`${supLine}\n`;
               group.forEach(s=>{
                 const addr=s.gd.st?`🏫 ${s.gd.st} · `:'  ';
-                text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`;
+                text+=`  ${s.st==='can'?'❌ ':s.st==='nohap'?'⚠️ ':'  '}${addr}${s.gd.name}${s.st==='can'?' (בוטל)':s.st==='nohap'?' (לא התקיים)':''} ${s.t?' · ⏰ '+fT(s.t):''}\n`;
               });
             }
             text+='\n';
@@ -4448,7 +4475,7 @@ function genExport(){
             const sameAddr=addrs.length===1&&addrs[0];
             if(sameAddr){
               text+=`${supLine}\n  🏫 ${addrs[0]}\n`;
-              group.forEach(s=>{ text+=`     ${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`; });
+              group.forEach(s=>{ text+=`     ${s.st==='can'?'❌ ':s.st==='nohap'?'⚠️ ':''}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${s.st==='can'?' (בוטל)':s.st==='nohap'?' (לא התקיים)':''}\n`; });
             } else {
               text+=`${supLine}\n`;
               group.forEach(s=>{
@@ -4461,7 +4488,7 @@ function genExport(){
         }
       } else {
         byCity[c].forEach(s=>{
-          text+=`${s.gd.name}${s.t?' '+fT(s.t):''} - ${s.a}\n`;
+          text+=`${s.st==='can'?'❌ ':s.st==='nohap'?'⚠️ ':''}${s.gd.name}${s.t?' '+fT(s.t):''} - ${s.a}${s.st==='can'?' (בוטל)':s.st==='nohap'?' (לא התקיים)':''}\n`;
         });
       }
     });
@@ -4610,10 +4637,42 @@ function setSupView(mode){
   document.getElementById('su-view-list').classList.toggle('active',mode==='list');
   renderSup();
 }
+let _supTab='all';
+function setSupTab(t){
+  _supTab=t;
+  ['all','act','purch'].forEach(x=>{const b=document.getElementById('sup-tab-'+x);if(b)b.classList.toggle('active',x===t);});
+  renderSup();
+}
+let _vatMode='ex'; // 'ex'=excluding VAT, 'inc'=including VAT
+function setVatMode(m){
+  _vatMode=m;
+  document.getElementById('vat-btn-ex')?.classList.toggle('active',m==='ex');
+  document.getElementById('vat-btn-inc')?.classList.toggle('active',m==='inc');
+  calcVat();
+}
+function calcVat(){
+  const v=parseFloat(document.getElementById('sp-amount')?.value)||0;
+  const res=document.getElementById('vat-result');
+  if(!res||!v){if(res)res.textContent='';return;}
+  if(_vatMode==='ex'){
+    res.textContent=`→ כולל מע"מ: ₪${(v*1.17).toFixed(2)}`;
+  } else {
+    res.textContent=`→ לפני מע"מ: ₪${(v/1.17).toFixed(2)}`;
+  }
+}
+function getAmountExVat(){
+  const v=parseFloat(document.getElementById('sp-amount')?.value)||0;
+  return _vatMode==='inc'?+(v/1.17).toFixed(2):v;
+}
 function renderSup(){
   const srch=(document.getElementById('su-srch').value||'').toLowerCase();
   const sortMode=(document.getElementById('su-sort')||{value:'name'}).value;
-  let all=getAllSup().filter(s=>!srch||(s.name||'').toLowerCase().includes(srch));
+  let all=getAllSup().filter(s=>{
+    if(srch&&!(s.name||'').toLowerCase().includes(srch)) return false;
+    if(_supTab==='act') return isActSupplier(s.name);
+    if(_supTab==='purch') return isPurchSupplier(s.name);
+    return true;
+  });
   // Always sort alphabetically first, then by count if selected
   all=[...all].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
   if(sortMode==='cnt') all=[...all].sort((a,b)=>supBaseCnt(b.name)-supBaseCnt(a.name));
@@ -5099,7 +5158,7 @@ function sucSaveEdit(){
   const actTags=document.querySelectorAll('#suc-acts-list .suc-act-tag');
   const savedActs=[...actTags].map(el=>el.dataset.act).filter(Boolean);
   if(savedActs.length) supEx[_sucName].acts=savedActs;
-  save(); refresh();
+  save(); renderDash(); renderCal(); updCounts();
   if(_appMode==='purch') renderPurchSuppliers();
   ['dash-sup','cal-sup','s-sup','ns-sup','es-sup'].forEach(id=>{
     const el=document.getElementById(id); if(!el) return;
