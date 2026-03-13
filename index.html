@@ -869,7 +869,10 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="card" style="margin-bottom:11px">
     <div class="row">
       <div class="fg"><label>חיפוש</label><input type="text" id="psu-srch" placeholder="חפש ספק..." oninput="renderPurchSuppliers()" style="min-width:190px"></div>
-      <button class="btn bg bsm" onclick="openNewPurchSupplier()">➕ הוסף ספק רכש</button>
+      <div style="display:flex;gap:5px">
+        <button class="btn bg bsm" onclick="openNewPurchSupplier()">➕ ספק חדש</button>
+        <button class="btn bo bsm" onclick="switchMode('act');setTimeout(()=>{ST('sup');setSupTab('all');},150)">🗂️ ניהול ספקים</button>
+      </div>
     </div>
   </div>
   <div id="psu-body"></div>
@@ -1342,11 +1345,14 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <div class="fg"><label>🏷️ כינוי (יוצג בשיבוץ)</label><input type="text" id="suc-edit-alias" style="width:100%" placeholder="אם ריק — ישמש שם הספק"></div>
         <div class="fg"><label>📞 טלפון 1</label><input type="text" id="suc-edit-ph1" style="width:100%"></div>
         <div class="fg"><label>📞 טלפון 2</label><input type="text" id="suc-edit-ph2" style="width:100%"></div>
-        <div class="fg"><label>מס' ספק / ח.פ.</label><input type="text" id="suc-edit-g1" style="width:100%"></div>
+        <div class="fg"><label>🏛️ ח.פ. / מס' עוסק</label><input type="text" id="suc-edit-g1" style="width:100%"></div>
+        <div class="fg"><label>📚 מס' ספק משרד חינוך</label><input type="text" id="suc-edit-moe" style="width:100%" placeholder="נוסף לח.פ."></div>
+        <div class="fg"><label>👤 איש קשר</label><input type="text" id="suc-edit-contact" style="width:100%"></div>
+        <div class="fg"><label>📍 כתובת</label><input type="text" id="suc-edit-addr" style="width:100%"></div>
         <div class="fg" style="flex:2"><label>📝 הערות</label><input type="text" id="suc-edit-notes" style="width:100%"></div>
       </div>
-      <!-- Activity types -->
-      <div style="margin-top:10px">
+      <!-- Activity types — only shown if supplier is marked as חוגים -->
+      <div id="suc-acts-wrap" style="margin-top:10px">
         <label style="font-weight:700;color:#1a237e;font-size:.8rem">🎯 סוגי פעילויות</label>
         <div id="suc-acts-list" style="margin-top:5px;min-height:28px"></div>
         <div style="display:flex;gap:5px;margin-top:6px">
@@ -1577,8 +1583,11 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:flex-end;margin-bottom:6px">
         <div class="fg">
           <label>ספק *</label>
-          <input type="text" id="inv-sup-text" list="inv-sup-datalist" placeholder="הקלד שם ספק..." style="width:100%" oninput="invSupTextChg()" autocomplete="off">
-          <datalist id="inv-sup-datalist"></datalist>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="text" id="inv-sup-text" list="inv-sup-datalist" placeholder="הקלד שם ספק..." style="flex:1" oninput="invSupTextChg()" autocomplete="off">
+            <datalist id="inv-sup-datalist"></datalist>
+            <button type="button" class="btn bg bsm" onclick="document.getElementById('inv-new-sup-wrap').style.display='block';document.getElementById('inv-sup-text').value=''" title="ספק חדש">➕</button>
+          </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;min-width:140px">
           <div style="display:flex;align-items:center;gap:6px">

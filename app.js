@@ -265,8 +265,6 @@ function switchMode(mode){
   if(mode==='act'){
     // Hide all purch panels
     PURCH_TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el) el.style.display='none'; });
-    // Reset supplier tab to חוגים when going back to act mode
-    if(typeof _supTab!=='undefined' && (_supTab==='purch'||_supTab==='all')) setSupTab('act');
     ST(typeof currentTab!=='undefined' ? currentTab : 'dash');
   } else {
     // Hide all act panels (use both class removal and display:none to be safe)
@@ -428,6 +426,9 @@ function sucTypeChg(){
   if(warnEl) warnEl.style.display = !isAct ? 'block' : 'none';
   // Activity supplier must also be a purchase supplier
   if(isAct && isPurchEl) isPurchEl.checked = true;
+  // Show/hide acts section
+  const actsWrap = document.getElementById('suc-acts-wrap');
+  if(actsWrap) actsWrap.style.display = isAct ? 'block' : 'none';
 }
 
 // ── Invoice modal ──────────────────────────────────────
@@ -1305,7 +1306,12 @@ window.onload = function(){
     const gClsEl=document.getElementById('g-cls');
     if(gClsEl) gClsEl.value='גנים';
     renderReadOnlyBanner();
-    repairAllSuppliers();
+    // Run supplier repair only if not done before (flag in supEx)
+    if(!supEx['__repair_done_v2']){
+      repairAllSuppliers();
+      supEx['__repair_done_v2']=true;
+      save();
+    }
     renderDash();
     renderCal();
     renderClusters();
@@ -1467,12 +1473,7 @@ function ST(t){
   if(t==='holidays'){initHolDrops();renderHolidays();}
   if(t==='clusters') renderClusters();
   if(t==='managers'){renderManagers();refreshMgrDrops();}
-  if(t==='sup'){
-    // In act mode, default to showing חוגים suppliers only
-    if(typeof _appMode==='undefined'||_appMode==='act'){
-      if(_supTab==='all'||_supTab==='purch') setSupTab('act');
-    }
-  }
+  if(t==='sup') renderSup();
   setTimeout(_fitScrollAreas, 120);
 }
 
@@ -5048,8 +5049,10 @@ function renderSup(){
   let all=getAllSup().filter(s=>{
     if(srch&&!(s.name||'').toLowerCase().includes(srch)) return false;
     if(_supTab==='act') return isActSupplier(s.name);
-    if(_supTab==='purch') return isPurchSupplier(s.name); // all purchase suppliers (includes act)
-    return true; // 'all' = everyone
+    if(_supTab==='purch') return isPurchSupplier(s.name);
+    // 'all' tab: in act mode show only act suppliers
+    if(typeof _appMode!=='undefined' && _appMode==='act') return isActSupplier(s.name);
+    return true;
   });
   // Always sort alphabetically first, then by count if selected
   all=[...all].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
@@ -5270,7 +5273,7 @@ function openMerge(){
   const mm=document.getElementById('mrg-main');
   mm.innerHTML='<option value="">בחר ספק ראשי...</option>';
   all.forEach(s=>mm.innerHTML+=`<option value="${s.name}">${s.name}</option>`);
-  document.getElementById('mrg-list').innerHTML=all.map(s=>`<label style="display:flex;gap:6px;padding:4px;cursor:pointer;align-items:center"><input type="checkbox" value="${s.name}"><span>${s.name} <span style="color:#999;font-size:.7rem">(${SCH.filter(sc=>sc.a===s.name).length})</span></span></label>`).join('');
+  document.getElementById('mrg-list').innerHTML=all.map(s=>`<label style="display:flex;gap:6px;padding:4px;cursor:pointer;align-items:center"><input type="checkbox" value="${s.name}"><span>${s.name} <span style="color:#1565c0;font-size:.7rem;font-weight:700">(${SCH.filter(sc=>supBase(sc.a)===s.name||sc.a===s.name||sc.a.startsWith(s.name+' - ')).length} פעילויות)</span></span></label>`).join('');
   document.getElementById('mrgm').classList.add('open');
 }
 function doMerge(){
@@ -5423,8 +5426,11 @@ function sucRefreshInfo(){
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:.81rem">
       <div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">📞 טלפון ראשי</div><div style="font-weight:700">${ex.ph1||s.phone||'—'}</div></div>
       ${ex.ph2?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">📞 טלפון נוסף</div><div style="font-weight:700">${ex.ph2}</div></div>`:'<div></div>'}
-      ${ex.g1?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">🏛️ ח.פ. / מס' ספק</div><div style="font-weight:700">${ex.g1}</div></div>`:'<div></div>'}
-      <div style="grid-column:1/-1">
+      ${ex.g1?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">🏛️ ח.פ. / עוסק</div><div style="font-weight:700">${ex.g1}</div></div>`:'<div></div>'}
+      ${ex.moeTax?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">📚 מס' ספק חינוך</div><div style="font-weight:700">${ex.moeTax}</div></div>`:''}
+      ${ex.contact?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">👤 איש קשר</div><div style="font-weight:700">${ex.contact}</div></div>`:''}
+      ${ex.addr?`<div style="grid-column:1/-1"><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">📍 כתובת</div><div style="font-weight:700">${ex.addr}</div></div>`:''}
+      <div style="grid-column:1/-1;display:${isActSupplier(name)?'block':'none'}">
         <div style="color:#546e7a;font-size:.69rem;margin-bottom:4px">🎯 סוגי פעילויות</div>
         ${acts.length
           ?acts.map(a=>`<span style="background:#e3f2fd;color:#1565c0;border-radius:12px;padding:2px 9px;font-size:.76rem;font-weight:600;margin-left:4px;margin-bottom:3px;display:inline-block">${a}</span>`).join('')
@@ -5453,6 +5459,15 @@ function sucToggleEdit(){
   document.getElementById('suc-edit-ph1').value=ex.ph1||s.phone||'';
   const aliasEl=document.getElementById('suc-edit-alias');
   if(aliasEl) aliasEl.value=ex.alias||'';
+  const moeEl=document.getElementById('suc-edit-moe');
+  if(moeEl) moeEl.value=ex.moeTax||'';
+  const contactEl2=document.getElementById('suc-edit-contact');
+  if(contactEl2) contactEl2.value=ex.contact||'';
+  const addrEl2=document.getElementById('suc-edit-addr');
+  if(addrEl2) addrEl2.value=ex.addr||'';
+  // Show/hide acts section based on isAct flag
+  const actsWrap=document.getElementById('suc-acts-wrap');
+  if(actsWrap) actsWrap.style.display = (ex.isAct!==false)?'block':'none';
   document.getElementById('suc-edit-ph2').value=ex.ph2||'';
   document.getElementById('suc-edit-g1').value=ex.g1||'';
   document.getElementById('suc-edit-notes').value=ex.notes||'';
@@ -5548,6 +5563,12 @@ function sucSaveEdit(){
   supEx[_sucName].notes=document.getElementById('suc-edit-notes').value.trim();
   const aliasInp=document.getElementById('suc-edit-alias');
   if(aliasInp) supEx[_sucName].alias=aliasInp.value.trim();
+  const moeInp=document.getElementById('suc-edit-moe');
+  if(moeInp) supEx[_sucName].moeTax=moeInp.value.trim();
+  const contactInp2=document.getElementById('suc-edit-contact');
+  if(contactInp2) supEx[_sucName].contact=contactInp2.value.trim();
+  const addrInp2=document.getElementById('suc-edit-addr');
+  if(addrInp2) supEx[_sucName].addr=addrInp2.value.trim();
   supEx[_sucName].isAct = document.getElementById('suc-edit-is-act')?.checked !== false;
   supEx[_sucName].isPurch = !!document.getElementById('suc-edit-is-purch')?.checked;
   const actTags=document.querySelectorAll('#suc-acts-list .suc-act-tag');
