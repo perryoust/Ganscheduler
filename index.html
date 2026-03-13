@@ -783,7 +783,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <button class="flt-toggle" id="sup-flt-btn" onclick="fltToggle('sup-flt','sup-flt-btn')">⚙️ סינון <span class="flt-arrow">▾</span></button>
       <button class="btn bp bsm" onclick="openSupModal(null)">➕ הוסף ספק</button>
       <button class="btn bo bsm" onclick="openMerge()">🔀 איחוד</button>
-      <button class="btn bs bsm" title="תקן ספקים אחרי איחוד" onclick="rebuildMergedSupplierActs();renderSup();showToast('✅ תוקן')">🔧 תקן</button>
+      <button class="btn bs bsm" title="תקן ספקים — הוסף חסרים, תקן אחרי איחוד" onclick="repairAllSuppliers()">🔧 תקן ספקים</button>
       <button class="btn bp bsm" onclick="openSupExport(null)">📊 Excel</button>
     </div>
     <div id="sup-flt" class="flt-wrap">

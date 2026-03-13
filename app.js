@@ -265,6 +265,8 @@ function switchMode(mode){
   if(mode==='act'){
     // Hide all purch panels
     PURCH_TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el) el.style.display='none'; });
+    // Reset supplier tab to חוגים when going back to act mode
+    if(typeof _supTab!=='undefined' && (_supTab==='purch'||_supTab==='all')) setSupTab('act');
     ST(typeof currentTab!=='undefined' ? currentTab : 'dash');
   } else {
     // Hide all act panels (use both class removal and display:none to be safe)
@@ -285,6 +287,10 @@ function SPT(t){
   if(t==='pinvoices'){ fillPiSupFilter(); renderInvoices(); }
   if(t==='psup') renderPurchSuppliers();
   if(t==='pdash') refreshPurchDash();
+  // When in purch mode and viewing sup tab, show all suppliers
+  if(t==='psup' && typeof _supTab!=='undefined' && _supTab==='act'){
+    setSupTab('purch'); // switch to purch tab in act supplier panel if needed
+  }
 }
 
 // INVOICES DATA
@@ -798,10 +804,19 @@ async function saveInvoice(){
   } else {
     INVOICES.push(inv);
   }
-  // Auto-create supplier card if not exists
+  // Auto-create supplier card if not exists — must be in supEx['__c'] to appear in list
   if(supName && supName!=='__new__'){
+    const inSupbase = (typeof SUPBASE!=='undefined') && SUPBASE.some(s=>supBase(s.name)===supName);
     if(!supEx[supName]) supEx[supName]={};
-    if(!supEx[supName].isPurch) supEx[supName].isPurch=true;
+    if(supEx[supName].isPurch===undefined) supEx[supName].isPurch=true;
+    if(!inSupbase){
+      if(!supEx['__c']) supEx['__c']=[];
+      if(!supEx['__c'].find(s=>supBase(s.name)===supName)){
+        supEx['__c'].push({id:Date.now(),name:supName,phone:supEx[supName].ph1||''});
+      }
+      // Invoice-created suppliers are purch-only by default (not חוגים)
+      if(supEx[supName].isAct===undefined) supEx[supName].isAct=false;
+    }
   }
   save();
   try { await invSaveFiles(invId); } catch(e){ showToast('⚠️ שגיאה בשמירת קובץ: '+e.message); }
@@ -812,18 +827,39 @@ async function saveInvoice(){
 
 // ── Create supplier cards for all existing invoices (run once) ──
 function createMissingSupCards(){
+  // Ensure every supplier in invoices/SCH appears in the supplier list
+  const inSupbase = new Set(SUPBASE.map(s=>supBase(s.name)));
+  if(!supEx['__c']) supEx['__c']=[];
   let created=0;
+
+  // 1. From INVOICES
   INVOICES.forEach(inv=>{
     const name=inv.supName;
     if(!name) return;
-    if(!supEx[name]) supEx[name]={};
-    if(!supEx[name].isPurch) supEx[name].isPurch=true;
-    created++;
+    const base=supBase(name);
+    if(!supEx[base]) supEx[base]={};
+    if(supEx[base].isPurch===undefined) supEx[base].isPurch=true;
+    // Add to __c if not in SUPBASE and not already in __c
+    if(!inSupbase.has(base) && !supEx['__c'].find(s=>supBase(s.name)===base)){
+      supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base].ph1||''});
+      created++;
+    }
   });
-  if(created>0){ save(); showToast(`✅ נוצרו/עודכנו ${created} כרטיסי ספק`); refresh(); }
-  else showToast('כל ספקי החשבוניות כבר קיימים');
+
+  // 2. From SCH (any supplier in schedules should have a card)
+  if(typeof SCH!=='undefined') SCH.forEach(s=>{
+    if(!s.a) return;
+    const base=supBase(s.a);
+    if(!base) return;
+    if(!supEx[base]) supEx[base]={};
+    if(!inSupbase.has(base) && !supEx['__c'].find(c=>supBase(c.name)===base)){
+      supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:''});
+      created++;
+    }
+  });
+
+  if(created>0){ save(); console.log(`✅ נוצרו ${created} כרטיסי ספק חסרים`); }
 }
-    if(typeof supEx !== 'undefined'){
 function deleteInvoice(id){
   if(!confirm('למחוק חשבונית זו?')) return;
   INVOICES=INVOICES.filter(i=>i.id!==id);
@@ -1269,8 +1305,7 @@ window.onload = function(){
     const gClsEl=document.getElementById('g-cls');
     if(gClsEl) gClsEl.value='גנים';
     renderReadOnlyBanner();
-    createMissingSupCards();
-    rebuildMergedSupplierActs();
+    repairAllSuppliers();
     renderDash();
     renderCal();
     renderClusters();
@@ -1432,6 +1467,12 @@ function ST(t){
   if(t==='holidays'){initHolDrops();renderHolidays();}
   if(t==='clusters') renderClusters();
   if(t==='managers'){renderManagers();refreshMgrDrops();}
+  if(t==='sup'){
+    // In act mode, default to showing חוגים suppliers only
+    if(typeof _appMode==='undefined'||_appMode==='act'){
+      if(_supTab==='all'||_supTab==='purch') setSupTab('act');
+    }
+  }
   setTimeout(_fitScrollAreas, 120);
 }
 
@@ -4945,6 +4986,62 @@ function getAmountExVat(){
   const v=parseFloat(document.getElementById('sp-amount')?.value)||0;
   return _vatMode==='inc'?+(v/1.17).toFixed(2):v;
 }
+// ────────────────────────────────────────────────────────────────────────────
+// repairAllSuppliers — comprehensive supplier list repair
+// Run this to fix suppliers after merges, imports, or other data issues
+// ────────────────────────────────────────────────────────────────────────────
+function repairAllSuppliers(){
+  if(!supEx['__c']) supEx['__c']=[];
+  const mergedAway = new Set(supEx['__merged_away']||[]);
+  const inSupbase = new Set(SUPBASE.map(s=>supBase(s.name)));
+  const inC = new Set(supEx['__c'].map(s=>supBase(s.name)));
+  let added=0, fixed=0;
+
+  // 1. Scan all schedule entries — ensure their base supplier is registered
+  const schBases = new Set();
+  SCH.forEach(s=>{ if(s.a) schBases.add(supBase(s.a)); });
+  schBases.forEach(base=>{
+    if(!base) return;
+    if(mergedAway.has(base)) return; // skip merged-away
+    if(inSupbase.has(base)) return;  // already in SUPBASE
+    if(inC.has(base)) return;        // already in __c
+    // Missing — add it
+    supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base]?.ph1||''});
+    if(!supEx[base]) supEx[base]={};
+    if(supEx[base].isPurch===undefined) supEx[base].isPurch=true;
+    inC.add(base);
+    added++;
+  });
+
+  // 2. Scan INVOICES — ensure their suppliers are registered (purch-only by default)
+  INVOICES.forEach(inv=>{
+    const base=inv.supName?supBase(inv.supName):'';
+    if(!base || mergedAway.has(base) || inSupbase.has(base) || inC.has(base)) return;
+    supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base]?.ph1||''});
+    if(!supEx[base]) supEx[base]={};
+    if(supEx[base].isPurch===undefined) supEx[base].isPurch=true;
+    if(supEx[base].isAct===undefined) supEx[base].isAct=false; // invoice suppliers default to non-חוגים
+    inC.add(base);
+    added++;
+  });
+
+  // 3. Clear empty acts arrays (merge artifacts)
+  let clearedActs=0;
+  Object.keys(supEx).forEach(k=>{
+    if(k==='__c'||k==='__merged_away'||k==='__gardens_extra') return;
+    if(Array.isArray(supEx[k]?.acts)&&supEx[k].acts.length===0){
+      delete supEx[k].acts;
+      clearedActs++;
+    }
+  });
+
+  save();
+  const msg = `✅ תוקנו ספקים: ${added} נוספו, ${clearedActs} פעילויות תוקנו`;
+  showToast(msg);
+  console.log(msg);
+  refresh();
+}
+
 function renderSup(){
   const srch=(document.getElementById('su-srch').value||'').toLowerCase();
   const sortMode=(document.getElementById('su-sort')||{value:'name'}).value;
@@ -7483,5 +7580,3 @@ window.fltToggle = function(wrapId, btnId) {
 };
 /* Legacy alias */
 window.mobToggleFilters = function(id) { window.fltToggle(id, id+'-btn'); };
-
-}
