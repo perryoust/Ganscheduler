@@ -5348,19 +5348,33 @@ function saveSup(){
     el.value=cur;
   });
 }
+// Global supplier list used by merge dialog (avoids HTML attribute escaping issues)
+let _mergeSupList = [];
 function openMerge(){
-  const all=getAllSup();
+  _mergeSupList = getAllSup();
   const mm=document.getElementById('mrg-main');
+  // Use index as value to avoid HTML escaping issues with " ' characters in names
   mm.innerHTML='<option value="">בחר ספק ראשי...</option>';
-  all.forEach(s=>mm.innerHTML+=`<option value="${s.name}">${s.name}</option>`);
-  document.getElementById('mrg-list').innerHTML=all.map(s=>`<label style="display:flex;gap:6px;padding:4px;cursor:pointer;align-items:center"><input type="checkbox" value="${s.name}"><span>${s.name} <span style="color:#1565c0;font-size:.7rem;font-weight:700">(${SCH.filter(sc=>supBase(sc.a)===s.name||sc.a===s.name||sc.a.startsWith(s.name+' - ')).length} פעילויות)</span></span></label>`).join('');
+  _mergeSupList.forEach((s,i)=>mm.innerHTML+=`<option value="${i}">${s.name}</option>`);
+  document.getElementById('mrg-list').innerHTML=_mergeSupList.map((s,i)=>{
+    const cnt=SCH.filter(sc=>supBase(sc.a)===s.name||sc.a===s.name||sc.a.startsWith(s.name+' - ')).length;
+    const invCnt=(typeof INVOICES!=='undefined')?INVOICES.filter(inv=>inv.supName===s.name||supBase(inv.supName||'')===s.name).length:0;
+    return `<label style="display:flex;gap:6px;padding:4px 6px;cursor:pointer;align-items:center;border-radius:5px" onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background=''">`
+      +`<input type="checkbox" data-idx="${i}" style="width:15px;height:15px">`
+      +`<span style="flex:1">${s.name} `
+      +`<span style="color:#1565c0;font-size:.7rem;font-weight:700">(${cnt} שיבוצים${invCnt?`, ${invCnt} חשבוניות`:''})</span>`
+      +`</span></label>`;
+  }).join('');
   document.getElementById('mrgm').classList.add('open');
 }
 function doMerge(){
-  const main=document.getElementById('mrg-main').value;
-  if(!main){alert('בחר ספק ראשי');return;}
-  const toMrg=[...document.querySelectorAll('#mrg-list input[type=checkbox]:checked')].map(c=>c.value).filter(n=>n!==main);
-  if(!toMrg.length){alert('בחר ספקים למיזוג');return;}
+  const mainIdx=document.getElementById('mrg-main').value;
+  if(mainIdx===''){alert('בחר ספק ראשי');return;}
+  const main=_mergeSupList[parseInt(mainIdx)]?.name;
+  if(!main){alert('שגיאה: לא נמצא ספק ראשי');return;}
+  const checkedIdxs=[...document.querySelectorAll('#mrg-list input[type=checkbox]:checked')].map(c=>parseInt(c.dataset.idx));
+  const toMrg=checkedIdxs.map(i=>_mergeSupList[i]?.name).filter(n=>n && n!==main);
+  if(!toMrg.length){alert('בחר לפחות ספק אחד למיזוג');return;}
   if(!confirm(`לאחד ${toMrg.length} ספקים אל "${main}"?`)) return;
   let changedSch=0, changedInv=0;
   const mergedAway = new Set(supEx['__merged_away']||[]);
