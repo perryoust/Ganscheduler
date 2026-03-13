@@ -5362,44 +5362,67 @@ function doMerge(){
   const toMrg=[...document.querySelectorAll('#mrg-list input[type=checkbox]:checked')].map(c=>c.value).filter(n=>n!==main);
   if(!toMrg.length){alert('בחר ספקים למיזוג');return;}
   if(!confirm(`לאחד ${toMrg.length} ספקים אל "${main}"?`)) return;
-  let changed=0;
-  // Track merged-away base names so they're hidden from all lists (SUPBASE is hardcoded)
+  let changedSch=0, changedInv=0;
   const mergedAway = new Set(supEx['__merged_away']||[]);
+
   toMrg.forEach(old=>{
-    // Replace in schedules — match by base name OR exact name, preserve activity suffix
+    const oldBase = supBase(old);
+
+    // 1. Update SCH entries
     SCH.forEach(s=>{
-      const sBase = supBase(s.a);
-      const sName = s.a;
-      // Match if base matches, or full name matches, or s.a starts with old + " - "
-      if(sBase===old || sName===old || sName.startsWith(old+' - ')){
+      if(!s.a) return;
+      if(s.a===old || s.a===oldBase || supBase(s.a)===oldBase || s.a.startsWith(old+' - ') || s.a.startsWith(oldBase+' - ')){
         const act=supAct(s.a);
         s.a = act ? `${main} - ${act}` : main;
-        changed++;
+        changedSch++;
       }
     });
-    // Merge supEx data into main
-    const ex=supEx[old]||{};
-    const mex=supEx[main]||{};
+
+    // 2. Update INVOICES supplier name
+    if(typeof INVOICES!=='undefined') INVOICES.forEach(inv=>{
+      if(inv.supName===old || inv.supName===oldBase || supBase(inv.supName||'')===oldBase){
+        inv.supName=main;
+        changedInv++;
+      }
+    });
+
+    // 3. Merge supEx metadata into main
+    const ex=supEx[old]||supEx[oldBase]||{};
+    if(!supEx[main]) supEx[main]={};
+    const mex=supEx[main];
     if(!mex.ph1&&ex.ph1) mex.ph1=ex.ph1;
     if(!mex.ph2&&ex.ph2) mex.ph2=ex.ph2;
     if(!mex.notes&&ex.notes) mex.notes=ex.notes;
     if(!mex.email&&ex.email) mex.email=ex.email;
-    if(Array.isArray(ex.acts)){
+    if(!mex.contact&&ex.contact) mex.contact=ex.contact;
+    if(!mex.addr&&ex.addr) mex.addr=ex.addr;
+    if(!mex.g1&&ex.g1) mex.g1=ex.g1;
+    if(!mex.moeTax&&ex.moeTax) mex.moeTax=ex.moeTax;
+    if(!mex.entityType&&ex.entityType) mex.entityType=ex.entityType;
+    if(Array.isArray(ex.acts)&&ex.acts.length){
       mex.acts=[...new Set([...(mex.acts||[]),...ex.acts])];
     }
-    supEx[main]={...mex};
-    // Remove old from supEx (all variants)
+    if(ex.isAct) mex.isAct=true; // if either was an act supplier, main becomes one too
+    if(ex.isPurch!==false) mex.isPurch=true;
+
+    // 4. Remove old from supEx and __c
     delete supEx[old];
-    Object.keys(supEx).forEach(k=>{if(k!=='__merged_away'&&supBase(k)===old) delete supEx[k];});
-    // Remove from custom list
-    if(supEx['__c']) supEx['__c']=supEx['__c'].filter(s=>s.name!==old&&supBase(s.name)!==old);
-    // Mark as merged-away so it's hidden even from hardcoded SUPBASE
+    delete supEx[oldBase];
+    Object.keys(supEx).forEach(k=>{
+      if(k.startsWith('__')) return;
+      if(supBase(k)===oldBase && k!==main) delete supEx[k];
+    });
+    if(supEx['__c']) supEx['__c']=supEx['__c'].filter(s=>s.name!==old&&s.name!==oldBase&&supBase(s.name)!==oldBase);
+
+    // 5. Mark as merged-away
     mergedAway.add(old);
-    if(supBase(old)!==old) mergedAway.add(supBase(old));
+    mergedAway.add(oldBase);
   });
+
   supEx['__merged_away']=[...mergedAway];
-  save();CM('mrgm');refresh();
-  showNotice(`✅ אוחדו ${toMrg.length} ספקים → "${main}" — עודכנו ${changed} שיבוצים`);
+  save(); CM('mrgm'); refresh();
+  try{ renderPurchSuppliers(); }catch(e){}
+  showNotice(`✅ אוחדו ${toMrg.length} ספקים → "${main}"${changedSch?` · ${changedSch} שיבוצים`:''}${changedInv?` · ${changedInv} חשבוניות`:''}`);
 }
 
 let _GARDENS_EXTRA=[]; // user-added gardens stored in localStorage
