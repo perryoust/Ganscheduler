@@ -115,7 +115,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <span onclick="switchMode('act');ST('gardens')" style="cursor:pointer" title="גנים">🏫 <b id="h-gardens">125</b> צהרונים</span>
     <span onclick="switchMode('act');ST('sched')" style="cursor:pointer" title="פעילויות">📅 <b id="h-sched">10,568</b> פעילויות</span>
     <span onclick="switchMode('act');ST('gardens');setGardensTab('pairs')" style="cursor:pointer" title="זוגות">🔗 <b id="h-pairs">0</b> זוגות</span>
-    <span onclick="switchMode('act');goToCancelled()" style="cursor:pointer" title="בוטלו">❌ <b id="h-can">0</b> בוטלו</span>
+    <span onclick="switchMode('act');goToCancelled()" style="cursor:pointer" title="לא התקיים">❌ <b id="h-can">0</b> לא התקיים</span>
     <span onclick="switchMode('act');goToPostponed()" style="cursor:pointer" title="נדחו">⏩ <b id="h-post">0</b> נדחו</span>
     <span style="opacity:.3;font-size:.7rem;padding:0 2px;background:none!important">│</span>
     <span style="opacity:.5;font-size:.7rem;letter-spacing:.03em;text-transform:uppercase;background:none!important">🛒 רכש</span>
@@ -199,7 +199,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div onclick="goToCancelled()" style="background:#ffebee;border-radius:8px;padding:5px 10px;cursor:pointer;text-align:center;flex:1;min-width:80px">
       <div style="font-size:1.3rem">❌</div>
       <div style="font-weight:800;color:#c62828;font-size:1rem" id="d-can">0</div>
-      <div style="font-size:.7rem;color:#546e7a">בוטלו</div>
+      <div style="font-size:.7rem;color:#546e7a">לא התקיים</div>
     </div>
     <div onclick="goToPostponed()" style="background:#fff8e1;border-radius:8px;padding:5px 10px;cursor:pointer;text-align:center;flex:1;min-width:80px">
       <div style="font-size:1.3rem">⏩</div>
@@ -303,10 +303,16 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div class="mob-btn-row">
         <button class="btn bp bsm" onclick="openNewSched()">➕ שיבוץ חדש</button>
         <button class="btn bs bsm" onclick="goToday()">📍 היום</button>
-        <button class="btn bsm" id="block-date-btn" style="background:#fce4ec;color:#c62828;border:1.5px solid #e91e63" onclick="openBlockedDate(d2s(calD))">🚫 חסום תאריך</button>
-        <button class="btn bg bsm" onclick="openMonthlyExport()">📊 ייצוא Excel</button>
         <div class="fg" style="flex:0 0 auto"><label>עבור ל</label><input type="date" id="cal-dp" onchange="goDate(this.value)" style="width:130px"></div>
-        <button class="btn bp bsm" style="margin-right:auto" onclick="openExport()">📋 יצוא WhatsApp</button>
+        <button class="btn bsm" id="block-date-btn" style="background:#fce4ec;color:#c62828;border:1.5px solid #e91e63" onclick="openBlockedDate(d2s(calD))">🚫 חסום</button>
+        <div style="position:relative;display:inline-block">
+          <button class="btn bp bsm" onclick="toggleExportMenu()" id="export-main-btn" style="padding-left:22px">📤 ייצוא ▾</button>
+          <div id="export-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,.18);z-index:9999;min-width:180px;overflow:hidden">
+            <button onclick="closeExportMenu();openExport()" style="display:block;width:100%;text-align:right;padding:9px 14px;border:none;background:none;cursor:pointer;font-size:.82rem;border-bottom:1px solid #f0f0f0" onmouseover="this.style.background='#f5f7ff'" onmouseout="this.style.background=''">📋 שליחה ב-WhatsApp</button>
+            <button onclick="closeExportMenu();openMonthlyExport()" style="display:block;width:100%;text-align:right;padding:9px 14px;border:none;background:none;cursor:pointer;font-size:.82rem;border-bottom:1px solid #f0f0f0" onmouseover="this.style.background='#f5f7ff'" onmouseout="this.style.background=''">📊 ייצוא Excel</button>
+            <button onclick="closeExportMenu();openCalPrint()" style="display:block;width:100%;text-align:right;padding:9px 14px;border:none;background:none;cursor:pointer;font-size:.82rem" onmouseover="this.style.background='#f5f7ff'" onmouseout="this.style.background=''">🖨️ הדפסה</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -612,6 +618,8 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <button class="block-reason-btn btn bsm" style="background:#e3f2fd;border:1.5px solid #2196f3;color:#1565c0" onclick="selBlockReason(this,'יום הורים')">👨‍👩‍👧 יום הורים</button>
         <button class="block-reason-btn btn bsm" style="background:#f3e5f5;border:1.5px solid #9c27b0;color:#6a1b9a" onclick="selBlockReason(this,'סגור')">🔒 סגור</button>
         <button class="block-reason-btn btn bsm" style="background:#fff8e1;border:1.5px solid #f57f17;color:#e65100" onclick="selBlockReason(this,'בטחוני')">🛡️ בטחוני</button>
+        <button class="block-reason-btn btn bsm" style="background:#fce4ec;border:1.5px solid #c62828;color:#c62828" onclick="selBlockReason(this,'ביטול יום')">❌ ביטול יום</button>
+        <button class="block-reason-btn btn bsm" style="background:#ffebee;border:1.5px solid #e91e63;color:#c62828" onclick="selBlockReason(this,'ביטול יום')">❌ ביטול יום</button>
         <button class="block-reason-btn btn bsm" style="background:#f5f5f5;border:1.5px solid #999" onclick="selBlockReason(this,'אחר')">✏️ אחר</button>
       </div>
       <input type="text" id="block-m-reason" placeholder="פרט סיבה..." style="width:100%">
