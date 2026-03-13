@@ -372,7 +372,7 @@ function isActSupplier(name){
 }
 function isPurchSupplier(name){ 
   const ex = (typeof supEx!=='undefined'?supEx:{})[name]||{};
-  return !!ex.isPurch;
+  return ex.isPurch !== false; // default true — all suppliers are purchase suppliers
 }
 function getAllSupNames(){
   if(typeof getAllSup==='function') return getAllSup().map(s=>s.name);
@@ -4727,7 +4727,7 @@ function renderSup(){
   let all=getAllSup().filter(s=>{
     if(srch&&!(s.name||'').toLowerCase().includes(srch)) return false;
     if(_supTab==='act') return isActSupplier(s.name);
-    if(_supTab==='purch') return isPurchSupplier(s.name);
+    if(_supTab==='purch') return isPurchSupplier(s.name) && !isActSupplier(s.name);
     return true;
   });
   // Always sort alphabetically first, then by count if selected
@@ -4794,8 +4794,8 @@ function renderSup(){
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid #f0f0f0">
         <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
-          ${isActSupplier(base)?'<span class="sup-flag sup-flag-act" title="ספק חוגים פעיל">🎨</span>':'<span style="display:inline-block;padding:1px 5px;border-radius:10px;font-size:.64rem;background:#fce4ec;color:#c62828;font-weight:700" title="לא מוצג בחוגים">🚫</span>'}
-          ${isPurchSupplier(base)?'<span class="sup-flag sup-flag-purch" title="ספק רכש">🛒</span>':''}
+          ${isActSupplier(base)?'<span class="sup-flag sup-flag-act" title="ספק חוגים פעיל">🎨</span>':'<span style="display:inline-block;padding:1px 5px;border-radius:10px;font-size:.64rem;background:#fce4ec;color:#c62828;font-weight:700" title="לא מוצג בחוגים">🚫 לא חוג</span>'}
+          ${isPurchSupplier(base)?'':'<span style="display:inline-block;padding:1px 5px;border-radius:10px;font-size:.64rem;background:#fff3e0;color:#e65100;font-weight:700" title="לא ספק רכש">🚫 לא רכש</span>'}
           ${ex.entityType?`<span style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:.66rem;background:#f3e5f5;color:#6a1b9a;font-weight:700">🏢 ${ex.entityType}</span>`:''}
           <span style="color:#1565c0;font-weight:700;font-size:.72rem">📅 ${cnt}</span>
           ${cntDone?`<span style="color:#2e7d32;font-size:.72rem">✔️ ${cntDone}</span>`:''}
@@ -4835,7 +4835,7 @@ function openSupModal(name){
   const suIsAct = document.getElementById('su-is-act');
   const suIsPurch = document.getElementById('su-is-purch');
   if(suIsAct) suIsAct.checked = ex.isAct !== false; // default true for backward compat
-  if(suIsPurch) suIsPurch.checked = !!ex.isPurch;
+  if(suIsPurch) suIsPurch.checked = ex.isPurch !== false; // default true
   const suEntityType = document.getElementById('su-entity-type');
   if(suEntityType) suEntityType.value = ex.entityType||'';
   renderSupActsList(name);
@@ -5128,7 +5128,7 @@ function sucToggleEdit(){
   const editIsAct=document.getElementById('suc-edit-is-act');
   const editIsPurch=document.getElementById('suc-edit-is-purch');
   if(editIsAct) editIsAct.checked = ex.isAct !== false;
-  if(editIsPurch) editIsPurch.checked = !!ex.isPurch;
+  if(editIsPurch) editIsPurch.checked = ex.isPurch !== false;
   document.getElementById('suc-edit-warn').style.display='none';
   document.getElementById('suc-edit-name').oninput=function(){
     document.getElementById('suc-edit-warn').style.display=this.value!==this.dataset.orig?'block':'none';
