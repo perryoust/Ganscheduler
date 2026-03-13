@@ -1,11 +1,10 @@
-/
 function navSchedToday(){
   const today=td();
   document.getElementById('s-from').value=today;
   document.getElementById('s-to').value=today;
   sPage=1; renderSched();
 }
-/ ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // Firebase Realtime Database Sync - v10.2
 // ══════════════════════════════════════════════
 const FIREBASE_DB_URL = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data.json';
