@@ -821,22 +821,33 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 
 <div id="p-pinvoices" class="panel" style="display:none">
   <div class="card" style="margin-bottom:11px">
-    <div class="row">
-      <div class="fg"><label>חיפוש</label><input type="text" id="pi-srch" placeholder="ספק / מס' חשבונית..." oninput="renderInvoices()" style="min-width:200px"></div>
+    <div class="row" style="flex-wrap:wrap;gap:6px">
+      <div class="fg"><label>ספק</label>
+        <input type="text" id="pi-sup-search" list="pi-sup-list" placeholder="חפש ספק..." oninput="renderInvoices()" style="min-width:160px">
+        <datalist id="pi-sup-list"></datalist>
+      </div>
+      <div class="fg"><label>חיפוש חופשי</label><input type="text" id="pi-srch" placeholder="מס' מסמך / פירוט..." oninput="renderInvoices()" style="min-width:160px"></div>
       <div class="fg"><label>סטטוס</label>
         <select id="pi-status" onchange="renderInvoices()">
           <option value="">הכל</option>
-          <option value="active">🟢 פעיל</option>
-          <option value="in_progress">🟡 בביצוע</option>
-          <option value="closed">✅ סגור</option>
+          <option value="order">📋 הזמנה</option>
+          <option value="tx_invoice">🧾 חשבונית עסקה</option>
+          <option value="tax_invoice">📑 חשבונית מס</option>
+          <option value="receipt">📄 קבלה</option>
+          <option value="cancelled">❌ מבוטל</option>
         </select>
       </div>
-      <div class="fg"><label>ספק</label><select id="pi-sup" onchange="renderInvoices()"><option value="">כל הספקים</option></select></div>
       <div class="fg"><label>מתאריך</label><input type="date" id="pi-from" onchange="renderInvoices()"></div>
       <div class="fg"><label>עד תאריך</label><input type="date" id="pi-to" onchange="renderInvoices()"></div>
-      <div class="mob-btn-row">
+      <div class="fg"><label>מיון</label>
+        <select id="pi-sort" onchange="renderInvoices()">
+          <option value="desc">חדש → ישן</option>
+          <option value="asc">ישן → חדש</option>
+        </select>
+      </div>
+      <div class="mob-btn-row" style="align-items:flex-end;gap:5px">
+        <button class="btn bs bsm" onclick="resetInvFilter()" title="נקה סינון">🔄 נקה</button>
         <button class="btn bg" onclick="openNewInvoice()">📄 מסמך חדש</button>
-        <button class="btn bp" onclick="showToast('🔜 יצירת הזמנה — בקרוב')" title="בקרוב">📋 יצירת הזמנה</button>
       </div>
     </div>
   </div>
@@ -845,7 +856,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <th>ספק</th>
       <th>מספרי מסמכים</th>
       <th>פירוט הזמנה</th>
-      <th>סכומים (לפני/מע"מ/כולל)</th>
+      <th>סכומים</th>
       <th>סטטוס</th>
       <th>הערות</th>
       <th>פעולות</th>
@@ -858,7 +869,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="card" style="margin-bottom:11px">
     <div class="row">
       <div class="fg"><label>חיפוש</label><input type="text" id="psu-srch" placeholder="חפש ספק..." oninput="renderPurchSuppliers()" style="min-width:190px"></div>
-      <button class="btn bg bsm" onclick="openSupModal(null,true)">➕ הוסף ספק רכש</button>
+      <button class="btn bg bsm" onclick="openNewPurchSupplier()">➕ הוסף ספק רכש</button>
     </div>
   </div>
   <div id="psu-body"></div>
@@ -1566,10 +1577,8 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:flex-end;margin-bottom:6px">
         <div class="fg">
           <label>ספק *</label>
-          <select id="inv-sup" style="width:100%" onchange="invSupChg()">
-            <option value="">-- בחר ספק --</option>
-            <option value="__new__">➕ ספק חדש...</option>
-          </select>
+          <input type="text" id="inv-sup-text" list="inv-sup-datalist" placeholder="הקלד שם ספק..." style="width:100%" oninput="invSupTextChg()" autocomplete="off">
+          <datalist id="inv-sup-datalist"></datalist>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;min-width:140px">
           <div style="display:flex;align-items:center;gap:6px">
@@ -1604,7 +1613,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           </div>
           <div class="fg"><label>ח.פ / מספר עוסק</label><input type="text" id="inv-ns-tax" placeholder="מספר עוסק" style="width:100%"></div>
           <div class="fg"><label>טלפון</label><input type="text" id="inv-ns-phone" placeholder="טלפון" style="width:100%"></div>
+          <div class="fg"><label>שם איש קשר</label><input type="text" id="inv-ns-contact" placeholder="איש קשר" style="width:100%"></div>
           <div class="fg"><label>אימייל</label><input type="text" id="inv-ns-email" placeholder="אימייל" style="width:100%"></div>
+          <div class="fg" style="grid-column:1/-1"><label>כתובת</label><input type="text" id="inv-ns-addr" placeholder="כתובת הספק" style="width:100%"></div>
         </div>
         <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;cursor:pointer;margin-top:8px">
           <input type="checkbox" id="inv-ns-acts" style="accent-color:#1565c0"> שייך גם לניהול חוגים
@@ -1628,9 +1639,17 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div class="inv-section">
       <div class="inv-section-title">📋 פרטי הזמנה</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="fg"><label>מספר הזמנה</label><input type="text" id="inv-order-num" placeholder="מס' הזמנה" style="width:100%"></div>
+        <div class="fg"><label>מספר הזמנה</label><input type="text" id="inv-order-num" placeholder="מס' הזמנה" style="width:100%" oninput="autoUpdateInvStatus()"></div>
         <div class="fg"><label>תאריך הזמנה</label><input type="date" id="inv-order-date" style="width:100%"></div>
-        <div class="fg" style="grid-column:1/-1"><label>פירוט ההזמנה</label><input type="text" id="inv-order-desc" placeholder="תיאור ההזמנה..." style="width:100%"></div>
+        <div class="fg"><label>סוג</label>
+          <select id="inv-order-type" style="width:100%">
+            <option value="">-- בחר --</option>
+            <option value="enrichment">🎨 העשרה</option>
+            <option value="operations">🔧 תפעול</option>
+            <option value="other">📦 אחר</option>
+          </select>
+        </div>
+        <div class="fg"><label>פירוט ההזמנה</label><input type="text" id="inv-order-desc" placeholder="תיאור ההזמנה..." style="width:100%"></div>
         <div class="fg">
           <label>סכום הזמנה</label>
           <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
@@ -1646,18 +1665,36 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <div><div class="inv-amt-lbl">מע"מ</div><div class="inv-amt-val" id="inv-order-vat-amt" style="color:#e65100">—</div></div>
         <div><div class="inv-amt-lbl">סה"כ כולל מע"מ</div><div class="inv-amt-val" id="inv-order-total" style="color:#2e7d32">—</div></div>
       </div>
+      <!-- Location info (בקשה 25) -->
+      <div style="margin-top:8px;border-top:1px dashed #e0e0e0;padding-top:8px">
+        <div style="font-size:.72rem;font-weight:700;color:#546e7a;margin-bottom:5px">📍 מיקום (אופציונלי)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+          <div class="fg"><label>עיר</label><input type="text" id="inv-loc-city" placeholder="עיר" style="width:100%"></div>
+          <div class="fg"><label>סוג מוסד</label>
+            <select id="inv-loc-type" style="width:100%">
+              <option value="">-- בחר --</option>
+              <option value="garden">גן ילדים</option>
+              <option value="school">בית ספר</option>
+              <option value="joint">משותף</option>
+              <option value="office">משרדים</option>
+            </select>
+          </div>
+          <div class="fg"><label>שם גן / ביה"ס</label><input type="text" id="inv-loc-name" placeholder="שם המוסד" style="width:100%"></div>
+        </div>
+      </div>
+      <!-- File section -->
       <div style="margin-top:9px;border-top:1px dashed #e0e0e0;padding-top:8px">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
           <label class="inv-file-btn" for="inv-file-order">📎 <span id="inv-file-lbl-order" style="color:#999">צרף קובץ הזמנה...</span></label>
           <input type="file" id="inv-file-order" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" onchange="invFilePickerChange('order')">
           <button type="button" class="inv-file-open-btn" id="inv-file-open-order" style="display:none" onclick="invOpenFileFromModal('order')">🔗 פתח קובץ</button>
+          <button type="button" class="inv-file-open-btn" id="inv-file-del-order" style="display:none;color:#e53935" onclick="invClearFile('order')">🗑️ הסר</button>
         </div>
         <div id="inv-path-row-order" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
-          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">📁 נתיב שמירה:</span>
-          <input type="text" id="inv-path-order" placeholder="הדבק כאן את הנתיב שבחרת (לדוגמה: C:\\מסמכים\\קובץ.pdf)"
+          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">📁 נתיב:</span>
+          <input type="text" id="inv-path-order" placeholder="הדבק נתיב קובץ..."
             style="flex:1;min-width:200px;font-size:.72rem;border-radius:5px;border:1px solid #b0bec5;padding:3px 7px"
             oninput="invPathChange('order')">
-          <span style="font-size:.66rem;color:#aaa">שמור את הקובץ במחשב, אח"כ הדבק את הנתיב</span>
         </div>
       </div>
     </div>
@@ -1666,9 +1703,15 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div class="inv-section">
       <div class="inv-section-title">🧾 חשבונית עסקה</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="fg"><label>מספר חשבונית עסקה</label><input type="text" id="inv-tx-num" placeholder="מס' חשבונית עסקה" style="width:100%"></div>
+        <div class="fg"><label>מספר חשבונית עסקה</label><input type="text" id="inv-tx-num" placeholder="מס' חשבונית עסקה" style="width:100%" oninput="autoUpdateInvStatus()"></div>
         <div class="fg"><label>תאריך חשבונית עסקה</label><input type="date" id="inv-tx-date" style="width:100%"></div>
-        <div class="fg"><label>סכום חשבונית עסקה (לפני מע"מ)</label><input type="number" id="inv-tx-amt" placeholder="0.00" oninput="calcTxVat()" style="width:100%"></div>
+        <div class="fg">
+          <label>סכום חשבונית עסקה</label>
+          <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+            <div style="display:flex;gap:2px"><button class="vbtn active" id="vat-tx-ex" onclick="setTxVatMode('ex')" style="font-size:.7rem;padding:2px 6px">לפני מע״מ</button><button class="vbtn" id="vat-tx-inc" onclick="setTxVatMode('inc')" style="font-size:.7rem;padding:2px 6px">כולל מע״מ</button></div>
+            <input type="number" id="inv-tx-amt" placeholder="0.00" oninput="calcTxVat()" style="width:110px">
+          </div>
+        </div>
       </div>
       <div class="inv-amt-row">
         <div><div class="inv-amt-lbl">לפני מע"מ</div><div class="inv-amt-val" id="inv-tx-base" style="color:#1565c0">—</div></div>
@@ -1680,13 +1723,13 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <label class="inv-file-btn" for="inv-file-tx">📎 <span id="inv-file-lbl-tx" style="color:#999">צרף קובץ חשבונית עסקה...</span></label>
           <input type="file" id="inv-file-tx" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" onchange="invFilePickerChange('tx')">
           <button type="button" class="inv-file-open-btn" id="inv-file-open-tx" style="display:none" onclick="invOpenFileFromModal('tx')">🔗 פתח קובץ</button>
+          <button type="button" class="inv-file-open-btn" id="inv-file-del-tx" style="display:none;color:#e53935" onclick="invClearFile('tx')">🗑️ הסר</button>
         </div>
         <div id="inv-path-row-tx" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
-          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">📁 נתיב שמירה:</span>
-          <input type="text" id="inv-path-tx" placeholder="הדבק כאן את הנתיב שבחרת (לדוגמה: C:\\מסמכים\\קובץ.pdf)"
+          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">📁 נתיב:</span>
+          <input type="text" id="inv-path-tx" placeholder="הדבק נתיב קובץ..."
             style="flex:1;min-width:200px;font-size:.72rem;border-radius:5px;border:1px solid #b0bec5;padding:3px 7px"
             oninput="invPathChange('tx')">
-          <span style="font-size:.66rem;color:#aaa">שמור את הקובץ במחשב, אח"כ הדבק את הנתיב</span>
         </div>
       </div>
     </div>
@@ -1698,7 +1741,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         ℹ️ עוסק פטור / עמותה — אין חשבונית מס, יש להזין קבלה בלבד
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="fg"><label>מספר חשבונית מס / קבלה</label><input type="text" id="inv-num" placeholder="מס' חשבונית מס" style="width:100%"></div>
+        <div class="fg"><label>מספר חשבונית מס / קבלה</label><input type="text" id="inv-num" placeholder="מס' חשבונית מס" style="width:100%" oninput="autoUpdateInvStatus()"></div>
         <div class="fg"><label>תאריך חשבונית מס / קבלה</label><input type="date" id="inv-date" style="width:100%"></div>
         <div class="fg">
           <label>סכום</label>
@@ -1719,35 +1762,45 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <label class="inv-file-btn" for="inv-file-tax">📎 <span id="inv-file-lbl-tax" style="color:#999">צרף קובץ חשבונית מס / קבלה...</span></label>
           <input type="file" id="inv-file-tax" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" onchange="invFilePickerChange('tax')">
           <button type="button" class="inv-file-open-btn" id="inv-file-open-tax" style="display:none" onclick="invOpenFileFromModal('tax')">🔗 פתח קובץ</button>
+          <button type="button" class="inv-file-open-btn" id="inv-file-del-tax" style="display:none;color:#e53935" onclick="invClearFile('tax')">🗑️ הסר</button>
         </div>
         <div id="inv-path-row-tax" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
-          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">📁 נתיב שמירה:</span>
-          <input type="text" id="inv-path-tax" placeholder="הדבק כאן את הנתיב שבחרת (לדוגמה: C:\\מסמכים\\קובץ.pdf)"
+          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">📁 נתיב:</span>
+          <input type="text" id="inv-path-tax" placeholder="הדבק נתיב קובץ..."
             style="flex:1;min-width:200px;font-size:.72rem;border-radius:5px;border:1px solid #b0bec5;padding:3px 7px"
             oninput="invPathChange('tax')">
-          <span style="font-size:.66rem;color:#aaa">שמור את הקובץ במחשב, אח"כ הדבק את הנתיב</span>
         </div>
       </div>
     </div>
 
     <!-- Status + dates + notes -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-      <div class="fg"><label>תאריך קבלה</label><input type="date" id="inv-recv" style="width:100%"></div>
-      <div class="fg"><label>סטטוס הזמנה</label>
-        <select id="inv-status" style="width:100%">
-          <option value="active">🟢 פעיל</option>
-          <option value="in_progress">🟡 בביצוע</option>
-          <option value="closed">✅ סגור</option>
+      <div class="fg"><label>תאריך טיפול</label><input type="date" id="inv-recv" style="width:100%"></div>
+      <div class="fg"><label>סטטוס</label>
+        <select id="inv-status" style="width:100%" onchange="invStatusChg()">
+          <option value="order">📋 הזמנה</option>
+          <option value="tx_invoice">🧾 חשבונית עסקה</option>
+          <option value="tax_invoice">📑 חשבונית מס</option>
+          <option value="receipt">📄 קבלה</option>
+          <option value="cancelled">❌ מבוטל</option>
         </select>
       </div>
+    </div>
+    <div id="inv-cancel-reason-wrap" style="display:none;margin-bottom:10px">
+      <div class="fg"><label>סיבת ביטול</label><input type="text" id="inv-cancel-reason" placeholder="סיבת ביטול..." style="width:100%"></div>
     </div>
     <div class="fg" style="margin-bottom:13px">
       <label>הערות</label>
       <textarea id="inv-notes" rows="2" placeholder="הערות לחשבונית..." style="width:100%"></textarea>
     </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn bg" onclick="saveInvoice()">💾 שמור חשבונית</button>
-      <button class="btn bs" onclick="CM('invoice-m')">ביטול</button>
+    <div style="display:flex;gap:8px;justify-content:space-between;align-items:center">
+      <div>
+        <button id="inv-del-btn" class="btn br bsm" style="display:none" onclick="deleteInvoiceFromModal()">🗑️ מחק</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn bg" onclick="saveInvoice()">💾 שמור</button>
+        <button class="btn bs" onclick="CM('invoice-m')">ביטול</button>
+      </div>
     </div>
   </div>
 </div>

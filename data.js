@@ -20,15 +20,22 @@ const _srawsReady=(async function(){
 const SUPBASE=[{"id":1,"name":"חוגות - ניצני רפואה / ילדי הרכבת","phone":"054-4732253"},{"id":2,"name":"חוגות - ניצני רפואה","phone":"054-4732253"},{"id":3,"name":"תנועה בקצב","phone":"052-8575954"},{"id":4,"name":"קידו - התעמלות","phone":"050-7500258"},{"id":5,"name":"מדברים על 4 - אילוף כלבים","phone":"050-371-2281"},{"id":6,"name":"שחר חוויות - מופע חנוכה","phone":"054-6589303"},{"id":7,"name":"פמיליסקול - משחק/תאטרון/פלסטלינה","phone":"058-6311608"},{"id":8,"name":"שחר חוויות - מופע פסח","phone":"054-6589303"},{"id":9,"name":"מעשיותאטרון - דרמה/מוסיקה","phone":"054-6589303"},{"id":10,"name":"תלתן - כלבנות","phone":"054-6464387"},{"id":11,"name":"מוראל - מוסיקה ריקוד והתעמלות","phone":"054-5369986"},{"id":12,"name":"ריקי LIKE - ג'ליקו","phone":"055-2288008"},{"id":13,"name":"חיים בתנועה - התעמלות","phone":"052-2242552"},{"id":14,"name":"דרך הספורט - התעמלות","phone":"052-8777920"},{"id":15,"name":"מהנדסי הדור הבא","phone":"054-5252581"},{"id":16,"name":"תלתן - ספורט","phone":"054-6464387"},{"id":17,"name":"פמילי סקול - סיפור בתאטרון","phone":"058-6311608"},{"id":18,"name":"עליזה - סיפורים מוסיקליים","phone":"052-3215555"},{"id":19,"name":"תלתן - אנגלית לקטנטנים","phone":"054-6464387"},{"id":20,"name":"פמילי סקול - תנועה","phone":"052-2242552"},{"id":21,"name":"הקסם של אורנה - תאטרון","phone":"052-7211958"},{"id":22,"name":"חוגות - מנהיגות יצירתית","phone":"054-4732253"},{"id":23,"name":"חיים בתנועה - ריקוד","phone":"052-2242552"},{"id":24,"name":"פמילי סקול - יוגה","phone":"058-6311608"},{"id":25,"name":"חיים בתנועה - תאטרון","phone":"052-2242552"},{"id":26,"name":"פמילי סקול - פלסטלינה","phone":"058-6311608"},{"id":27,"name":"תלתן - ברייקדאנס","phone":"054-6464387"},{"id":28,"name":"טל טיפולים שיווק והדרכה - התעמלות","phone":"054-5252581"}];
 // ── Supplier name parsing ──────────────────────────────
 // "חוגות - ניצני רפואה" → base="חוגות", act="ניצני רפואה"
+// Known name aliases: if a schedule uses the full-form name, normalize it
+const _SUP_ALIASES = {
+  'מוראל אייזנברג':'מוראל',
+  'מוראל אייזנברג - מוסיקה ריקוד והתעמלות':'מוראל - מוסיקה ריקוד והתעמלות',
+};
 function supBase(fullName){
   if(!fullName) return '';
-  const i=fullName.indexOf(' - ');
-  return i>0?fullName.substring(0,i).trim():fullName.trim();
+  const norm = _SUP_ALIASES[fullName]||fullName;
+  const i=norm.indexOf(' - ');
+  return i>0?norm.substring(0,i).trim():norm.trim();
 }
 function supAct(fullName){
   if(!fullName) return '';
-  const i=fullName.indexOf(' - ');
-  return i>0?fullName.substring(i+3).trim():'';
+  const norm = _SUP_ALIASES[fullName]||fullName;
+  const i=norm.indexOf(' - ');
+  return i>0?norm.substring(i+3).trim():'';
 }
 // Get all unique base supplier names from schedules + SUPBASE
 function getAllBaseSups(){

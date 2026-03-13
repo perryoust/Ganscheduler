@@ -325,9 +325,12 @@ function invPathChange(section){
   const lbl = document.getElementById('inv-file-lbl-'+section);
   if(lbl && _pendingFiles[section].name)
     lbl.textContent = '📎 '+_pendingFiles[section].name;
-  // Show open-button only when a path exists
+  // Show open-button and delete-button only when a path exists
   const btn = document.getElementById('inv-file-open-'+section);
-  if(btn) btn.style.display = pi.value.trim() ? 'inline' : 'none';
+  const delBtn = document.getElementById('inv-file-del-'+section);
+  const hasPath = !!pi.value.trim();
+  if(btn) btn.style.display = hasPath ? 'inline' : 'none';
+  if(delBtn) delBtn.style.display = (_pendingFiles[section]||hasPath) ? 'inline' : 'none';
 }
 
 // Open file: try window.open with file:// path
@@ -335,18 +338,32 @@ function invOpenFile(invId, section){
   const inv = INVOICES.find(i=>i.id===invId);
   if(!inv) return;
   const meta = inv['file_'+section];
-  if(!meta || (!meta.path && !meta.name)){
-    showToast('❌ אין קובץ שמור עבור מסמך זה'); return;
-  }
+  if(!meta){ showToast('❌ לא צורף קובץ לסעיף זה'); return; }
   if(!meta.path){
-    showToast('⚠️ נתיב קובץ לא נשמר — רק שם: '+meta.name); return;
+    const newPath = prompt(`הזן/הדבק את הנתיב לקובץ "${meta.name||''}":`, '');
+    if(newPath && newPath.trim()){
+      inv['file_'+section] = {...meta, path:newPath.trim()};
+      save();
+      _invTryOpen(newPath.trim());
+    }
+    return;
   }
-  // Attempt to open local file path
-  try {
-    const url = meta.path.startsWith('file://') ? meta.path : 'file:///'+meta.path.replace(/\\/g,'/');
-    window.open(url, '_blank');
-  } catch(e) {
-    showToast('⚠️ לא ניתן לפתוח אוטומטית — נתיב: '+meta.path);
+  _invTryOpen(meta.path, invId, section, meta);
+}
+function _invTryOpen(p, invId, section, meta){
+  let url = p.trim();
+  if(!url.startsWith('http')&&!url.startsWith('file:')){
+    url = 'file:///'+url.replace(/\\/g,'/').replace(/^\/+/,'');
+  }
+  try{
+    const w = window.open(url,'_blank');
+    if(!w&&invId){
+      const np = prompt('לא ניתן לפתוח אוטומטית. ערוך את הנתיב:',p);
+      if(np&&np.trim()&&meta){ const inv2=INVOICES.find(i=>i.id===invId); if(inv2){inv2['file_'+section]={...meta,path:np.trim()};save();} }
+    }
+  }catch(e){
+    const np = prompt('שגיאה. ערוך את הנתיב:',p);
+    if(np&&np.trim()&&meta&&invId){const inv2=INVOICES.find(i=>i.id===invId);if(inv2){inv2['file_'+section]={...meta,path:np.trim()};save();}}
   }
 }
 
@@ -403,22 +420,87 @@ function getVatRate(){ return VAT_RATE||18; }
 function vatAmt(base, rate){ return +(base * rate / 100).toFixed(2); }
 function withVat(base, rate){ return +(base * (1 + rate/100)).toFixed(2); }
 
-function openNewInvoice(id){
+function openNewInvoiceForSupplier(supName){
+  switchMode('purch');
+  SPT('pinvoices');
+  setTimeout(()=>{ openNewInvoice(null, supName); }, 100);
+}
+function autoUpdateInvStatus(){
+  const hasOrder = !!(document.getElementById('inv-order-num')?.value?.trim());
+  const hasTx    = !!(document.getElementById('inv-tx-num')?.value?.trim());
+  const hasInv   = !!(document.getElementById('inv-num')?.value?.trim());
+  const stEl = document.getElementById('inv-status');
+  if(!stEl || stEl.value === 'cancelled') return;
+  const isExempt = (document.getElementById('inv-tax-section-note')?.style.display !== 'none');
+  if(hasInv) stEl.value = isExempt ? 'receipt' : 'tax_invoice';
+  else if(hasTx) stEl.value = 'tx_invoice';
+  else if(hasOrder) stEl.value = 'order';
+}
+function invStatusChg(){
+  const st = document.getElementById('inv-status')?.value;
+  const wrap = document.getElementById('inv-cancel-reason-wrap');
+  if(wrap) wrap.style.display = st==='cancelled' ? 'block' : 'none';
+}
+function setTxVatMode(m){
+  document.getElementById('vat-tx-ex')?.classList.toggle('active',m==='ex');
+  document.getElementById('vat-tx-inc')?.classList.toggle('active',m==='inc');
+  window._txVatMode = m;
+  calcTxVat();
+}
+function invClearFile(sec){
+  const lbl = document.getElementById('inv-file-lbl-'+sec);
+  const openBtn = document.getElementById('inv-file-open-'+sec);
+  const delBtn = document.getElementById('inv-file-del-'+sec);
+  const pathRow = document.getElementById('inv-path-row-'+sec);
+  const pathInp = document.getElementById('inv-path-'+sec);
+  if(lbl){ lbl.textContent='צרף קובץ...'; lbl.style.color='#999'; }
+  if(openBtn) openBtn.style.display='none';
+  if(delBtn) delBtn.style.display='none';
+  if(pathRow) pathRow.style.display='none';
+  if(pathInp) pathInp.value='';
+  _pendingFiles[sec]=null;
+}
+function deleteInvoiceFromModal(){
+  if(!_editInvId) return;
+  if(!confirm('למחוק מסמך זה לגמרי?')) return;
+  INVOICES = INVOICES.filter(i=>i.id!==_editInvId);
+  save(); CM('invoice-m'); renderInvoices(); refreshPurchDash();
+  showToast('🗑️ המסמך נמחק');
+}
+function resetInvFilter(){
+  const ids = ['pi-sup-search','pi-srch','pi-from','pi-to'];
+  ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const stEl=document.getElementById('pi-status'); if(stEl) stEl.value='';
+  const sortEl=document.getElementById('pi-sort'); if(sortEl) sortEl.value='desc';
+  renderInvoices();
+}
+function openNewInvoice(id, presetSup){
   _editInvId = id || null;
   const inv = id ? INVOICES.find(i=>i.id===id) : null;
   document.getElementById('inv-m-title').textContent = id ? '✏️ עריכת מסמך' : '📄 מסמך חדש';
-  // Supplier dropdown
-  const sel = document.getElementById('inv-sup');
-  sel.innerHTML = '<option value="">-- בחר ספק --</option>';
-  getPurchSuppliers().forEach(s=>{
-    const ex = supEx[s.name]||{};
-    const tag = ex.entityType ? ` [${ex.entityType}]` : '';
-    sel.innerHTML += `<option value="${s.name}"${inv&&inv.supName===s.name?' selected':''}>${s.name}${tag}</option>`;
-  });
-  sel.innerHTML += '<option value="__new__">➕ ספק חדש...</option>';
+  // Supplier autocomplete datalist
+  const dl = document.getElementById('inv-sup-datalist');
+  if(dl){
+    dl.innerHTML = getPurchSuppliers().map(s=>{
+      const ex=supEx[s.name]||{};
+      return `<option value="${s.name}">${s.name}${ex.entityType?' ['+ex.entityType+']':''}`;
+    }).join('');
+  }
+  // Fill supplier text input
+  const supTxt = document.getElementById('inv-sup-text');
+  if(supTxt){
+    supTxt.value = inv ? (inv.supName||'') : (presetSup||'');
+    // If preset or existing, trigger entity type update
+    const supName = supTxt.value;
+    if(supName) invUpdateEntityType((supEx[supName]||{}).entityType||'');
+  }
   document.getElementById('inv-new-sup-wrap').style.display='none';
-  // Supplier entity type — update tax-invoice section visibility
-  invUpdateEntityType(inv ? (supEx[inv.supName]||{}).entityType||'' : '');
+  // Clear new supplier fields (fix 18 - don't keep old supplier data)
+  ['inv-ns-name','inv-ns-tax','inv-ns-phone','inv-ns-contact','inv-ns-email','inv-ns-addr'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  const nsEntity=document.getElementById('inv-ns-entity'); if(nsEntity) nsEntity.value='';
+  const nsActs=document.getElementById('inv-ns-acts'); if(nsActs) nsActs.checked=false;
   // VAT rate
   document.getElementById('inv-vat').value = inv ? (inv.vat||getVatRate()) : getVatRate();
   onVatChange();
@@ -428,30 +510,50 @@ function openNewInvoice(id){
   document.getElementById('inv-order-desc').value  = inv ? (inv.orderDesc||'')  : '';
   document.getElementById('inv-order-amt').value   = inv ? (inv.orderAmt||'')   : '';
   document.getElementById('inv-order-notes').value = inv ? (inv.orderNotes||'') : '';
+  const ordType = document.getElementById('inv-order-type'); if(ordType) ordType.value=inv?(inv.orderType||''):'';
+  // Location fields (25)
+  const locCity=document.getElementById('inv-loc-city'); if(locCity) locCity.value=inv?(inv.locCity||''):'';
+  const locType=document.getElementById('inv-loc-type'); if(locType) locType.value=inv?(inv.locType||''):'';
+  const locName=document.getElementById('inv-loc-name'); if(locName) locName.value=inv?(inv.locName||''):'';
   calcOrderVat();
-  // Transaction invoice section
+  // TX section
   document.getElementById('inv-tx-num').value  = inv ? (inv.txNum||'')  : '';
   document.getElementById('inv-tx-date').value = inv ? (inv.txDate||'') : '';
   document.getElementById('inv-tx-amt').value  = inv ? (inv.txAmt||'')  : '';
+  // TX VAT mode
+  const txMode = inv ? (inv.txVatMode||'ex') : 'ex';
+  window._txVatMode = txMode;
+  document.getElementById('vat-tx-ex')?.classList.toggle('active', txMode==='ex');
+  document.getElementById('vat-tx-inc')?.classList.toggle('active', txMode==='inc');
   calcTxVat();
-  // Tax invoice / receipt section
+  // Tax invoice section
   document.getElementById('inv-num').value  = inv ? (inv.num||'')  : '';
   document.getElementById('inv-date').value = inv ? (inv.date||'') : '';
   document.getElementById('inv-amt').value  = inv ? (inv.amt||'')  : '';
   calcInvTotal();
-  // Other fields
-  document.getElementById('inv-recv').value   = inv ? (inv.recv||'')   : new Date().toISOString().slice(0,10);
-  document.getElementById('inv-status').value = inv ? (inv.status||'active') : 'active';
-  document.getElementById('inv-notes').value  = inv ? (inv.notes||'')  : '';
+  // Status - use new values, migrate old
+  const st = inv ? _migrateInvStatus(inv.status) : 'order';
+  const stEl = document.getElementById('inv-status');
+  if(stEl) stEl.value = st;
+  invStatusChg();
+  // Cancel reason
+  const crEl = document.getElementById('inv-cancel-reason'); if(crEl) crEl.value=inv?(inv.cancelReason||''):'';
+  // Recv date (relabeled to "תאריך טיפול")
+  document.getElementById('inv-recv').value = inv ? (inv.recv||'') : new Date().toISOString().slice(0,10);
+  document.getElementById('inv-notes').value = inv ? (inv.notes||'')  : '';
   // VAT settings row hidden by default
   const vsRow = document.getElementById('vat-settings-row');
   if(vsRow) vsRow.style.display='none';
+  // Delete button - show only when editing
+  const delBtn = document.getElementById('inv-del-btn');
+  if(delBtn) delBtn.style.display = id ? 'inline' : 'none';
   // Reset file pickers & show existing file names + open buttons
   _pendingFiles = {order:null, tx:null, tax:null};
   ['order','tx','tax'].forEach(sec=>{
     const fi   = document.getElementById('inv-file-'+sec);
     const lbl  = document.getElementById('inv-file-lbl-'+sec);
     const btn  = document.getElementById('inv-file-open-'+sec);
+    const delF = document.getElementById('inv-file-del-'+sec);
     const row  = document.getElementById('inv-path-row-'+sec);
     const pi   = document.getElementById('inv-path-'+sec);
     if(fi) fi.value='';
@@ -460,16 +562,18 @@ function openNewInvoice(id){
       lbl.textContent = meta ? '📎 '+meta.name : 'צרף קובץ...';
       lbl.style.color = meta ? '#2e7d32' : '#999';
     }
-    // Show path row + existing path if editing
     if(row) row.style.display = meta ? 'flex' : 'none';
     if(pi)  pi.value = meta ? (meta.path||'') : '';
-    // Show open button only if there's a path
     if(btn) btn.style.display = (meta && meta.path) ? 'inline' : 'none';
+    if(delF) delF.style.display = meta ? 'inline' : 'none';
   });
-  // Open modal
   document.getElementById('invoice-m').classList.add('open');
 }
-
+function _migrateInvStatus(st){
+  if(!st) return 'order';
+  const map = {active:'order',new:'order',in_progress:'tx_invoice',partial:'tx_invoice',closed:'tax_invoice',ok:'tax_invoice'};
+  return map[st]||st;
+}
 // Update tax-invoice section title and note based on supplier entity type
 function invUpdateEntityType(entityType){
   const taxSection = document.getElementById('inv-tax-section');
@@ -490,9 +594,10 @@ function invUpdateEntityType(entityType){
   if(numEl) numEl.placeholder = isExempt ? 'מס\' קבלה' : 'מס\' חשבונית מס';
 }
 
-function invSupChg(){
-  const val = document.getElementById('inv-sup').value;
-  document.getElementById('inv-new-sup-wrap').style.display = val==='__new__' ? 'block' : 'none';
+function invSupTextChg(){
+  const val = document.getElementById('inv-sup-text')?.value||'';
+  const isNew = val==='__new__' || (!getPurchSuppliers().find(s=>s.name===val) && val.trim().length>0);
+  document.getElementById('inv-new-sup-wrap').style.display = (val==='__new__') ? 'block' : 'none';
   if(val && val!=='__new__'){
     const ex = supEx[val]||{};
     invUpdateEntityType(ex.entityType||'');
@@ -519,9 +624,10 @@ function setInvVatMode(m){
 }
 function calcOrderVat(){
   const raw = parseFloat(document.getElementById('inv-order-amt').value)||0;
-  const amt = _ordVatMode==='inc' ? +(raw/1.17).toFixed(2) : raw;
+  const vr = (parseFloat(document.getElementById('inv-vat')?.value)||getVatRate())/100;
+  const amt = _ordVatMode==='inc' ? +(raw/(1+vr)).toFixed(2) : raw;
   const lbl=document.getElementById('inv-order-vat-lbl');
-  if(lbl&&raw) lbl.textContent=_ordVatMode==='inc'?`→ לפני מע"מ: ₪${amt.toFixed(2)}`:`→ כולל מע"מ: ₪${(amt*1.17).toFixed(2)}`;
+  if(lbl&&raw) lbl.textContent=_ordVatMode==='inc'?`→ לפני מע"מ: ₪${amt.toFixed(2)}`:`→ כולל מע"מ: ₪${(amt*(1+vr)).toFixed(2)}`;
   else if(lbl) lbl.textContent='';
   const vat = parseFloat(document.getElementById('inv-vat').value)||getVatRate();
   const el = id => document.getElementById(id);
@@ -531,8 +637,11 @@ function calcOrderVat(){
 }
 
 function calcTxVat(){
-  const amt = parseFloat(document.getElementById('inv-tx-amt').value)||0;
+  const raw = parseFloat(document.getElementById('inv-tx-amt').value)||0;
+  const txMode = window._txVatMode||'ex';
   const vat = parseFloat(document.getElementById('inv-vat').value)||getVatRate();
+  const amt = txMode==='inc' ? +(raw/(1+vat/100)).toFixed(2) : raw;
+  const lbl = document.getElementById('vat-tx-ex')?.closest?.('.fg')?.querySelector?.('[id^="inv-tx-amt-lbl"]');
   const el = id => document.getElementById(id);
   if(el('inv-tx-base'))    el('inv-tx-base').textContent    = amt ? '₪'+amt.toLocaleString() : '—';
   if(el('inv-tx-vat-amt')) el('inv-tx-vat-amt').textContent = amt ? '₪'+vatAmt(amt,vat).toLocaleString() : '—';
@@ -541,9 +650,10 @@ function calcTxVat(){
 
 function calcInvTotal(){
   const raw2 = parseFloat(document.getElementById('inv-amt').value)||0;
-  const amt = _invVatMode==='inc' ? +(raw2/1.17).toFixed(2) : raw2;
+  const vr2 = (parseFloat(document.getElementById('inv-vat')?.value)||getVatRate())/100;
+  const amt = _invVatMode==='inc' ? +(raw2/(1+vr2)).toFixed(2) : raw2;
   const lbl2=document.getElementById('inv-amt-vat-lbl');
-  if(lbl2&&raw2) lbl2.textContent=_invVatMode==='inc'?`→ לפני מע"מ: ₪${amt.toFixed(2)}`:`→ כולל מע"מ: ₪${(amt*1.17).toFixed(2)}`;
+  if(lbl2&&raw2) lbl2.textContent=_invVatMode==='inc'?`→ לפני מע"מ: ₪${amt.toFixed(2)}`:`→ כולל מע"מ: ₪${(amt*(1+vr2)).toFixed(2)}`;
   else if(lbl2) lbl2.textContent='';
   const vat = parseFloat(document.getElementById('inv-vat').value)||getVatRate();
   const el = id => document.getElementById(id);
@@ -579,21 +689,27 @@ function saveVatRate(){
 }
 
 async function saveInvoice(){
-  let supName = document.getElementById('inv-sup').value;
-  if(supName==='__new__'){
+  // Get supplier — from text input (autocomplete) or new supplier form
+  let supName = (document.getElementById('inv-sup-text')?.value||'').trim();
+  const isNewSup = supName==='__new__' || (supName && !getPurchSuppliers().find(s=>s.name===supName));
+  const nsWrap = document.getElementById('inv-new-sup-wrap');
+  if(nsWrap && nsWrap.style.display!=='none'){
+    // New supplier form is open
     const nsName = document.getElementById('inv-ns-name').value.trim();
     if(!nsName){ alert('יש להזין שם ספק'); return; }
     const entityType = document.getElementById('inv-ns-entity')?.value||'';
     if(typeof supEx !== 'undefined'){
       if(!supEx['__c']) supEx['__c']=[];
       if(!supEx['__c'].find(s=>s.name===nsName))
-        supEx['__c'].push({id:Date.now(),name:nsName,phone:document.getElementById('inv-ns-phone').value.trim()});
+        supEx['__c'].push({id:Date.now(),name:nsName,phone:document.getElementById('inv-ns-phone')?.value.trim()});
       supEx[nsName]={...(supEx[nsName]||{}),
-        ph1:document.getElementById('inv-ns-phone').value.trim(),
-        email:document.getElementById('inv-ns-email').value.trim(),
-        g1:document.getElementById('inv-ns-tax').value.trim(),
+        ph1:document.getElementById('inv-ns-phone')?.value.trim(),
+        email:document.getElementById('inv-ns-email')?.value.trim(),
+        contact:document.getElementById('inv-ns-contact')?.value.trim(),
+        addr:document.getElementById('inv-ns-addr')?.value.trim(),
+        g1:document.getElementById('inv-ns-tax')?.value.trim(),
         entityType,
-        isAct:document.getElementById('inv-ns-acts').checked, isPurch:true};
+        isAct:document.getElementById('inv-ns-acts')?.checked||false, isPurch:true};
     }
     supName = nsName;
   }
@@ -604,43 +720,65 @@ async function saveInvoice(){
   if(!orderNum && !txNum && !num){
     alert('יש להזין לפחות מספר הזמנה, מספר חשבונית עסקה, או מספר חשבונית מס'); return;
   }
+  // Check duplicate order number (30)
+  if(orderNum){
+    const dup = INVOICES.find(i=>i.orderNum===orderNum && i.id!==_editInvId);
+    if(dup && !confirm(`⚠️ מספר הזמנה ${orderNum} כבר קיים אצל "${dup.supName}". לשמור בכל זאת?`)) return;
+  }
   const vat      = parseFloat(document.getElementById('inv-vat').value)||getVatRate();
-  const orderAmt = parseFloat(document.getElementById('inv-order-amt').value)||0;
-  const txAmt    = parseFloat(document.getElementById('inv-tx-amt').value)||0;
-  const amt      = parseFloat(document.getElementById('inv-amt').value)||0;
+  const ordMode  = window._ordVatMode||'ex';
+  const txMode   = window._txVatMode||'ex';
+  const invMode  = window._invVatMode||'ex';
+  const rawOrder = parseFloat(document.getElementById('inv-order-amt').value)||0;
+  const rawTx    = parseFloat(document.getElementById('inv-tx-amt').value)||0;
+  const rawAmt   = parseFloat(document.getElementById('inv-amt').value)||0;
+  const orderAmt = ordMode==='inc' ? +(rawOrder/(1+vat/100)).toFixed(2) : rawOrder;
+  const txAmt    = txMode==='inc'  ? +(rawTx/(1+vat/100)).toFixed(2)   : rawTx;
+  const amt      = invMode==='inc' ? +(rawAmt/(1+vat/100)).toFixed(2)  : rawAmt;
   const invId    = _editInvId || Date.now();
 
-  // Preserve existing file meta if editing and no new file chosen
   const existingInv = _editInvId ? INVOICES.find(i=>i.id===_editInvId) : null;
   const fileMeta = {};
   for(const sec of ['order','tx','tax']){
     if(_pendingFiles[sec]){
-      // Read path from path input field
       const pathEl = document.getElementById('inv-path-'+sec);
-      fileMeta['file_'+sec] = {
-        name: _pendingFiles[sec].name,
-        path: pathEl ? pathEl.value.trim() : ''
-      };
+      fileMeta['file_'+sec] = {name:_pendingFiles[sec].name, path:pathEl?pathEl.value.trim():''};
     } else {
-      fileMeta['file_'+sec] = (existingInv && existingInv['file_'+sec]) || null;
+      // Preserve current path input value (in case user edited it)
+      const pathEl = document.getElementById('inv-path-'+sec);
+      const existing = existingInv && existingInv['file_'+sec];
+      if(existing){
+        fileMeta['file_'+sec] = {...existing, path:pathEl?pathEl.value.trim():existing.path||''};
+      } else {
+        fileMeta['file_'+sec] = null;
+      }
     }
   }
+  // Warn if order number filled but no file attached (30)
+  if(orderNum && !fileMeta.file_order && !confirm('⚠️ לא צורף קובץ הזמנה. לשמור בכל זאת?')) return;
 
+  const status = document.getElementById('inv-status')?.value||'order';
   const inv = {
     id:invId, supName, vat,
     orderNum, orderDate:document.getElementById('inv-order-date').value,
     orderDesc:document.getElementById('inv-order-desc').value.trim(),
+    orderType:document.getElementById('inv-order-type')?.value||'',
     orderAmt, orderVat:vatAmt(orderAmt,vat), orderTotal:withVat(orderAmt,vat),
     orderNotes:document.getElementById('inv-order-notes').value.trim(),
+    locCity:document.getElementById('inv-loc-city')?.value.trim()||'',
+    locType:document.getElementById('inv-loc-type')?.value||'',
+    locName:document.getElementById('inv-loc-name')?.value.trim()||'',
     txNum, txDate:document.getElementById('inv-tx-date').value,
     txAmt, txVat:vatAmt(txAmt,vat), txTotal:withVat(txAmt,vat),
+    txVatMode: txMode,
     num, date:document.getElementById('inv-date').value,
     amt, vatAmt:vatAmt(amt,vat), total:withVat(amt,vat),
     recv:document.getElementById('inv-recv').value,
-    status:document.getElementById('inv-status').value,
+    status,
+    cancelReason: status==='cancelled' ? (document.getElementById('inv-cancel-reason')?.value.trim()||'') : '',
     notes:document.getElementById('inv-notes').value.trim(),
     ...fileMeta,
-    ts:Date.now()
+    ts: existingInv?.ts || Date.now()
   };
   if(_editInvId){
     const idx=INVOICES.findIndex(i=>i.id===_editInvId);
@@ -649,16 +787,12 @@ async function saveInvoice(){
     INVOICES.push(inv);
   }
   save();
-  // Save pending file paths (path is already in fileMeta, nothing async needed)
   try { await invSaveFiles(invId); } catch(e){ showToast('⚠️ שגיאה בשמירת קובץ: '+e.message); }
   CM('invoice-m');
-  if(typeof _purchTab!=='undefined'){
-    if(_purchTab==='pinvoices') renderInvoices();
-    if(_purchTab==='pdash') refreshPurchDash();
-  }
-  showNotice('✅ חשבונית נשמרה בהצלחה');
+  renderInvoices(); refreshPurchDash();
+  showNotice('✅ מסמך נשמר בהצלחה');
 }
-
+    if(typeof supEx !== 'undefined'){
 function deleteInvoice(id){
   if(!confirm('למחוק חשבונית זו?')) return;
   INVOICES=INVOICES.filter(i=>i.id!==id);
@@ -669,29 +803,20 @@ function deleteInvoice(id){
 
 // ── Render invoices table ──────────────────────────────
 const INV_STATUS_LABELS = {
-  // new statuses
-  active:'🟢 פעיל', in_progress:'🟡 בביצוע', closed:'✅ סגור',
-  // legacy backward compat
-  new:'ממתינה', ok:'אושרה', partial:'חלקית', issue:'הערות'
-};
-const INV_STATUS_CLS = {
-  active:'inv-s-active', in_progress:'inv-s-in_progress', closed:'inv-s-closed',
-  new:'inv-s-new', ok:'inv-s-ok', partial:'inv-s-partial', issue:'inv-s-issue'
+  order:'📋 הזמנה', tx_invoice:'🧾 חשבונית עסקה', tax_invoice:'📑 חשבונית מס',
+  receipt:'📄 קבלה', cancelled:'❌ מבוטל',
+  // legacy compat
+  active:'📋 הזמנה', in_progress:'🧾 חשבונית עסקה', closed:'📑 חשבונית מס',
+  new:'📋 הזמנה', ok:'📑 חשבונית מס', partial:'🧾 חשבונית עסקה'
 };
 
 function fillPiSupFilter(){
-  const sel = document.getElementById('pi-sup');
-  if(!sel) return;
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">כל הספקים</option>';
-  getPurchSuppliers().forEach(s=>{
-    sel.innerHTML += `<option value="${s.name}">${s.name}</option>`;
-  });
-  sel.value = cur;
+  const dl = document.getElementById('pi-sup-list');
+  if(!dl) return;
+  dl.innerHTML = getPurchSuppliers().map(s=>`<option value="${s.name}">`).join('');
 }
 
 function getSupName(supRef){
-  // supRef can be a name string directly
   if(typeof supRef === 'string') return supRef;
   if(typeof SUPBASE==='undefined') return String(supRef);
   const s = SUPBASE.find(x=>x.id===parseInt(supRef));
@@ -703,36 +828,57 @@ function renderInvoices(){
   if(!tbody) return;
   const srch = (document.getElementById('pi-srch')?.value||'').toLowerCase();
   const stf  = document.getElementById('pi-status')?.value||'';
-  const supf = document.getElementById('pi-sup')?.value||'';
+  const supf = (document.getElementById('pi-sup-search')?.value||'').toLowerCase();
   const from = document.getElementById('pi-from')?.value||'';
   const to   = document.getElementById('pi-to')?.value||'';
+  const sortDir = document.getElementById('pi-sort')?.value||'desc';
   let list = [...INVOICES];
+  if(supf) list = list.filter(i=>(i.supName||'').toLowerCase().includes(supf));
   if(srch) list = list.filter(i=>
     (i.supName||'').toLowerCase().includes(srch)||
     (i.num||'').toLowerCase().includes(srch)||
     (i.orderNum||'').toLowerCase().includes(srch)||
     (i.txNum||'').toLowerCase().includes(srch)||
-    (i.orderDesc||'').toLowerCase().includes(srch)
+    (i.orderDesc||'').toLowerCase().includes(srch)||
+    (i.cancelReason||'').toLowerCase().includes(srch)
   );
-  if(stf)  list = list.filter(i=>i.status===stf);
-  if(supf) list = list.filter(i=>i.supName===supf);
+  if(stf){
+    // Map new status values to filter — also handle migrated old values
+    list = list.filter(i=>_migrateInvStatus(i.status)===stf);
+  }
   if(from) list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')>=from);
   if(to)   list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')<=to);
-  list.sort((a,b)=>(b.orderDate||b.txDate||b.date||'').localeCompare(a.orderDate||a.txDate||a.date||''));
+  list.sort((a,b)=>{
+    const da = a.orderDate||a.txDate||a.date||'', db = b.orderDate||b.txDate||b.date||'';
+    return sortDir==='asc' ? da.localeCompare(db) : db.localeCompare(da);
+  });
+  if(from) list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')>=from);
+  if(to)   list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')<=to);
+  list.sort((a,b)=>{
+    const da=a.orderDate||a.txDate||a.date||'', db=b.orderDate||b.txDate||b.date||'';
+    return sortDir==='asc'?da.localeCompare(db):db.localeCompare(da);
+  });
   const fmtAmt = (n, vat, exempt)=>{
     if(!n) return '<span style="color:#ccc">—</span>';
     if(exempt) return `<b style="color:#2e7d32">₪${n.toLocaleString()}</b>`;
     return `<span style="color:#546e7a">₪${n.toLocaleString()}</span> <span style="font-size:.67rem;color:#e65100">+מע"מ</span> <b style="color:#2e7d32">₪${withVat(n,vat).toLocaleString()}</b>`;
   };
-  const statusStepper = (st)=>{
-    const stages = [{k:'active',l:'פעיל'},{k:'in_progress',l:'בביצוע'},{k:'closed',l:'סגור'}];
+  const statusStepper = (stRaw)=>{
+    const st = _migrateInvStatus(stRaw);
+    const stages = [
+      {k:'order',l:'הזמנה',c:'#1565c0'},
+      {k:'tx_invoice',l:'עסקה',c:'#6a1b9a'},
+      {k:'tax_invoice',l:'חשבונית מס',c:'#2e7d32'},
+      {k:'receipt',l:'קבלה',c:'#2e7d32'}
+    ];
+    if(st==='cancelled') return `<span style="background:#ffcdd2;color:#c62828;border-radius:10px;padding:2px 8px;font-size:.65rem;font-weight:700">❌ מבוטל</span>`;
     const cur = stages.findIndex(s=>s.k===st);
-    return `<div style="display:flex;gap:3px;align-items:center">` +
-      stages.map((s,i)=>{
-        const done = cur>i, active = cur===i;
-        const bg = done?'#2e7d32':active?'#1565c0':'#e0e0e0';
-        const col = (done||active)?'#fff':'#aaa';
-        return `<div style="background:${bg};color:${col};border-radius:10px;padding:2px 7px;font-size:.65rem;font-weight:700;white-space:nowrap">${s.l}</div>${i<2?`<div style="width:10px;height:1.5px;background:${done?'#2e7d32':'#e0e0e0'}"></div>`:''}`;
+    return `<div style="display:flex;gap:2px;align-items:center;flex-wrap:wrap">` +
+      stages.slice(0,cur+1).map((s,i)=>{
+        const isLast = i===cur;
+        const bg = isLast?s.c:'#e0e0e0';
+        const col = isLast?'#fff':'#999';
+        return `<div style="background:${bg};color:${col};border-radius:10px;padding:2px 7px;font-size:.63rem;font-weight:700;white-space:nowrap">${s.l}</div>`;
       }).join('') + `</div>`;
   };
   if(!list.length){
@@ -753,11 +899,16 @@ function renderInvoices(){
         <div style="font-size:.67rem;color:#999;margin-top:2px">${(supEx[inv.supName]||{}).entityType||''}</div>
       </td>
       <td style="font-size:.75rem;line-height:1.8;padding:8px">
-        ${hasOrder?`<div><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">הזמנה</span> <b>${inv.orderNum}</b>${inv.orderDate?' · '+fD(inv.orderDate):''} ${mkFileBtn('order',inv.file_order)}</div>`:''}
-        ${hasTx?`<div><span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">עסקה</span> <b>${inv.txNum}</b>${inv.txDate?' · '+fD(inv.txDate):''} ${mkFileBtn('tx',inv.file_tx)}</div>`:''}
-        ${hasTax?`<div><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">${inv.docType==='receipt'?'קבלה':inv.docType==='tax_receipt'?'מס/קבלה':'חשבונית מס'}</span> <b>${inv.num}</b>${inv.date?' · '+fD(inv.date):''} ${mkFileBtn('tax',inv.file_tax)}</div>`:''}
+        ${hasOrder?`<div><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();invOpenFile(${inv.id},'order')" title="פתח קובץ הזמנה">${inv.orderNum}</b>${inv.orderDate?' · '+fD(inv.orderDate):''} ${mkFileBtn('order',inv.file_order)}</div>`:''}
+        ${hasTx?`<div><span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();invOpenFile(${inv.id},'tx')" title="פתח קובץ חשבונית עסקה">${inv.txNum}</b>${inv.txDate?' · '+fD(inv.txDate):''} ${mkFileBtn('tx',inv.file_tx)}</div>`:''}
+        ${hasTax?`<div><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">📑</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();invOpenFile(${inv.id},'tax')" title="פתח קובץ חשבונית מס">${inv.num}</b>${inv.date?' · '+fD(inv.date):''} ${mkFileBtn('tax',inv.file_tax)}</div>`:''}
       </td>
-      <td style="font-size:.75rem;max-width:130px;color:#37474f;padding:8px">${inv.orderDesc||''}</td>
+      <td style="font-size:.75rem;max-width:150px;color:#37474f;padding:8px">
+        ${inv.orderDesc||''}
+        ${inv.orderType?`<div style="font-size:.65rem;color:#1565c0">${{enrichment:'🎨 העשרה',operations:'🔧 תפעול',other:'📦 אחר'}[inv.orderType]||''}</div>`:''}
+        ${inv.locCity||inv.locName?`<div style="font-size:.65rem;color:#546e7a">📍 ${[inv.locCity,inv.locName].filter(Boolean).join(' · ')}</div>`:''}
+        ${inv.cancelReason?`<div style="font-size:.64rem;color:#c62828">❌ ${inv.cancelReason}</div>`:''}
+      </td>
       <td style="font-size:.75rem;padding:8px;white-space:nowrap">
         ${hasOrder?`<div style="margin-bottom:3px"><span style="font-size:.63rem;color:#546e7a">הזמנה: </span>${fmtAmt(inv.orderAmt,vat,isExempt)}</div>`:''}
         ${hasTx?`<div style="margin-bottom:3px"><span style="font-size:.63rem;color:#546e7a">עסקה: </span>${fmtAmt(inv.txAmt,vat,isExempt)}</div>`:''}
@@ -776,21 +927,24 @@ function renderInvoices(){
 // ── Procurement Dashboard ──────────────────────────────
 function refreshPurchDash(){
   const invs = INVOICES;
-  const active     = invs.filter(i=>i.status==='active'||i.status==='new').length;
-  const inProgress = invs.filter(i=>i.status==='in_progress'||i.status==='partial').length;
-  const closed     = invs.filter(i=>i.status==='closed'||i.status==='ok').length;
+  const byStatus = st => invs.filter(i=>_migrateInvStatus(i.status)===st).length;
+  const totalOrders = byStatus('order');
+  const totalTx = byStatus('tx_invoice');
+  const totalTax = byStatus('tax_invoice') + byStatus('receipt');
+  const totalCancelled = byStatus('cancelled');
   document.getElementById('ps-invoices').textContent = invs.length;
   document.getElementById('ps-suppliers').textContent = getPurchSuppliers().length;
-  document.getElementById('ps-open').textContent = active;
-  document.getElementById('ps-issues').textContent = inProgress;
+  document.getElementById('ps-open').textContent = totalOrders + totalTx;
+  document.getElementById('ps-issues').textContent = totalTax;
   // Recent 5 — sorted by creation timestamp
-  const rec = [...invs].sort((a,b)=>b.ts-a.ts).slice(0,5);
+  const rec = [...invs].filter(i=>_migrateInvStatus(i.status)!=='cancelled').sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,5);
   const el = document.getElementById('pdash-recent-invoices');
   if(!el) return;
   if(!rec.length){ el.innerHTML='<div style="color:#aaa;font-size:.8rem;text-align:center;padding:20px">אין חשבוניות עדיין</div>'; return; }
-  const stageDot = st=>{
-    const m={active:'🟢',in_progress:'🟡',closed:'✅',new:'🟢',ok:'✅',partial:'🟡',issue:'🔴'};
-    const l={active:'פעיל',in_progress:'בביצוע',closed:'סגור',new:'פעיל',ok:'סגור',partial:'בביצוע',issue:'עם הערות'};
+  const stageDot = stRaw=>{
+    const st = (typeof _migrateInvStatus==='function') ? _migrateInvStatus(stRaw) : stRaw;
+    const m={order:'📋',tx_invoice:'🧾',tax_invoice:'📑',receipt:'📄',cancelled:'❌'};
+    const l={order:'הזמנה',tx_invoice:'חשבונית עסקה',tax_invoice:'חשבונית מס',receipt:'קבלה',cancelled:'מבוטל'};
     return `<span style="font-size:.72rem">${m[st]||'⚪'} ${l[st]||st}</span>`;
   };
   el.innerHTML = `<table style="width:100%;font-size:.8rem;border-collapse:collapse">
@@ -806,7 +960,7 @@ function refreshPurchDash(){
       <td style="padding:5px 8px">${i.supName||''}</td>
       <td style="padding:5px 8px">${i.orderDate||i.date||''}</td>
       <td style="padding:5px 8px;font-weight:700;color:#2e7d32">${(i.orderTotal||i.total)?'₪'+(i.orderTotal||i.total).toFixed(2):''}</td>
-      <td style="padding:5px 8px">${stageDot(i.status||'active')}</td>
+      <td style="padding:5px 8px">${stageDot(i.status||'order')}</td>
     </tr>`).join('')}</tbody>
   </table>`;
 }
@@ -831,13 +985,30 @@ function renderPurchSuppliers(){
         <span class="sup-flag sup-flag-purch">🛒 רכש</span>
       </div>
       <div style="font-size:.78rem;color:#546e7a">${invCount} חשבוניות</div>
-      <div style="display:flex;gap:5px">
+      <div style="flex:1;display:flex;gap:5px">
         <button class="btn bsm bp" title="פתח כרטיס ספק" onclick="switchMode('act');setTimeout(()=>{ST('sup');setTimeout(()=>openSupCard('${safeN}'),100);},120)">📋 כרטיס ספק</button>
-        <button class="btn bsm bo" onclick="switchMode('act');setTimeout(()=>{ST('sup');setTimeout(()=>{openSupCard('${safeN}');setTimeout(sucToggleEdit,150);},100);},120)">✏️ ערוך</button>
+        <button class="btn bsm bo" onclick="openSupCardFromPurch('${safeN}')">✏️ ערוך</button>
+        <button class="btn bsm bg" onclick="openNewInvoiceForSupplier('${safeN}')">📄 הזמנה חדשה</button>
       </div>
     </div>`;
   }).join('');
 }
+function openNewPurchSupplier(){
+  // Open the invoice modal with new supplier form visible (16)
+  openNewInvoice(null, '__new__');
+  setTimeout(()=>{
+    const wrap = document.getElementById('inv-new-sup-wrap');
+    if(wrap) wrap.style.display='block';
+    const txt = document.getElementById('inv-sup-text');
+    if(txt){ txt.value='__new__'; }
+  }, 100);
+}
+function openSupCardFromPurch(name){
+  switchMode('act');
+  setTimeout(()=>{ST('sup');setTimeout(()=>{openSupCard(name);setTimeout(sucToggleEdit,150);},100);},120);
+}
+
+
 
 
 
@@ -4962,9 +5133,12 @@ function doMerge(){
   // Track merged-away base names so they're hidden from all lists (SUPBASE is hardcoded)
   const mergedAway = new Set(supEx['__merged_away']||[]);
   toMrg.forEach(old=>{
-    // Replace in schedules — match by base name, preserve activity suffix
+    // Replace in schedules — match by base name OR exact name, preserve activity suffix
     SCH.forEach(s=>{
-      if(supBase(s.a)===old){
+      const sBase = supBase(s.a);
+      const sName = s.a;
+      // Match if base matches, or full name matches, or s.a starts with old + " - "
+      if(sBase===old || sName===old || sName.startsWith(old+' - ')){
         const act=supAct(s.a);
         s.a = act ? `${main} - ${act}` : main;
         changed++;
@@ -7248,3 +7422,5 @@ window.fltToggle = function(wrapId, btnId) {
 };
 /* Legacy alias */
 window.mobToggleFilters = function(id) { window.fltToggle(id, id+'-btn'); };
+
+}
