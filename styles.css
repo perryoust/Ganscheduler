@@ -374,9 +374,12 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   .mb{max-height:95vh}
 }
 /* ─── Mobile bottom nav ───────────────── */
-#mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;
+#mob-nav,#mob-nav-purch{display:none;position:fixed;bottom:0;left:0;right:0;
   background:#fff;border-top:1px solid #e0e0e0;z-index:500;
   box-shadow:0 -2px 10px rgba(0,0,0,.1)}
+#mob-nav-purch{background:#1a237e}
+#mob-nav-purch .mob-nav-btn{color:rgba(255,255,255,.7)}
+#mob-nav-purch .mob-nav-btn.active{color:#fff}
 .mob-nav-inner{display:flex;justify-content:space-around;padding:4px 0}
 .mob-nav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;
   padding:6px 10px;cursor:pointer;border:none;background:none;
@@ -385,6 +388,8 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 .mob-nav-btn .mnb-ico{font-size:1.3rem;line-height:1}
 @media(max-width:768px){
   #mob-nav{display:block}
+  #mob-nav.mob-nav-hidden{display:none!important}
+  #mob-nav-purch.mob-nav-shown{display:block}
   .tabs{display:none}
 }
 #backup-ind{position:fixed;bottom:12px;left:12px;background:rgba(46,125,50,.9);color:#fff;border-radius:20px;padding:4px 12px;font-size:.71rem;opacity:0;transition:opacity .4s;z-index:9999;pointer-events:none}

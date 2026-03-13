@@ -256,6 +256,11 @@ function switchMode(mode){
   // Toggle mode buttons
   document.getElementById('modeBtn-act').classList.toggle('active', mode==='act');
   document.getElementById('modeBtn-purch').classList.toggle('active', mode==='purch');
+  // Mobile nav: show correct bar
+  const mnAct = document.getElementById('mob-nav');
+  const mnPurch = document.getElementById('mob-nav-purch');
+  if(mnAct) mnAct.classList.toggle('mob-nav-hidden', mode!=='act');
+  if(mnPurch) mnPurch.classList.toggle('mob-nav-shown', mode==='purch');
   // Show panels
   if(mode==='act'){
     // Hide all purch panels
@@ -7153,7 +7158,11 @@ function saveNewPlace(){
 
 // ─── Mobile nav ───────────────────────────────────────
 function mobNav(btn){
-  document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#mob-nav .mob-nav-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+}
+function mobNavPurch(btn){
+  document.querySelectorAll('#mob-nav-purch .mob-nav-btn').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
 }
 
