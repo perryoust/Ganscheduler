@@ -42,11 +42,10 @@
   };
   window._fbSignOut = () => signOut(auth);
   window._fbGetToken = async () => {
-    // Always use Firebase SDK's internal token management (handles expiry automatically)
     const user = auth.currentUser;
     if (!user) return null;
     try {
-      const tok = await user.getIdToken(false); // false = use cache if valid, SDK auto-refreshes
+      const tok = await user.getIdToken(false); // SDK auto-refreshes before expiry
       window._cachedToken = tok;
       return tok;
     } catch(e) {
@@ -58,7 +57,6 @@
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       window._fbUser = user;
-      // Firebase SDK manages token refresh automatically
       try { window._cachedToken = await user.getIdToken(false); } catch(e) { window._cachedToken = null; }
       document.getElementById('auth-overlay').style.display = 'none';
       const uname = document.getElementById('auth-user-name');
@@ -112,6 +110,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <span onclick="switchMode('act');ST('sched')" style="cursor:pointer" title="פעילויות">📅 <b id="h-sched">10,568</b> פעילויות</span>
     <span onclick="switchMode('act');ST('gardens');setGardensTab('pairs')" style="cursor:pointer" title="זוגות">🔗 <b id="h-pairs">0</b> זוגות</span>
     <span onclick="switchMode('act');goToCancelled()" style="cursor:pointer" title="בוטלו">❌ <b id="h-can">0</b> בוטלו</span>
+    <span onclick="switchMode('act');goToNohap()" style="cursor:pointer" title="לא התקיים">⚠️ <b id="h-nohap">0</b> לא התקיים</span>
     <span onclick="switchMode('act');goToPostponed()" style="cursor:pointer" title="נדחו">⏩ <b id="h-post">0</b> נדחו</span>
     <span style="opacity:.3;font-size:.7rem;padding:0 2px;background:none!important">│</span>
     <span style="opacity:.5;font-size:.7rem;letter-spacing:.03em;text-transform:uppercase;background:none!important">🛒 רכש</span>
@@ -307,16 +306,10 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div class="mob-btn-row">
         <button class="btn bp bsm" onclick="openNewSched()">➕ שיבוץ חדש</button>
         <button class="btn bs bsm" onclick="goToday()">📍 היום</button>
-        <div class="fg" style="flex:0 0 auto"><label style="font-size:.72rem;color:#546e7a">עבור ל</label><input type="date" id="cal-dp" onchange="goDate(this.value)" style="width:130px"></div>
         <button class="btn bsm" id="block-date-btn" style="background:#fce4ec;color:#c62828;border:1.5px solid #e91e63" onclick="openBlockedDate(d2s(calD))">🚫 חסום תאריך</button>
-        <div style="position:relative;display:inline-block">
-          <button class="btn bp bsm" onclick="toggleExportMenu()" id="export-main-btn">📤 ייצוא ▾</button>
-          <div id="export-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,.18);z-index:9999;min-width:180px;overflow:hidden">
-            <button onclick="closeExportMenu();openExport()" style="display:block;width:100%;text-align:right;padding:9px 14px;border:none;background:none;cursor:pointer;font-size:.82rem;border-bottom:1px solid #f0f0f0" onmouseover="this.style.background='#f5f7ff'" onmouseout="this.style.background=''">📋 שליחה ב-WhatsApp</button>
-            <button onclick="closeExportMenu();openMonthlyExport()" style="display:block;width:100%;text-align:right;padding:9px 14px;border:none;background:none;cursor:pointer;font-size:.82rem;border-bottom:1px solid #f0f0f0" onmouseover="this.style.background='#f5f7ff'" onmouseout="this.style.background=''">📊 ייצוא Excel</button>
-            <button onclick="closeExportMenu();openCalPrint()" style="display:block;width:100%;text-align:right;padding:9px 14px;border:none;background:none;cursor:pointer;font-size:.82rem" onmouseover="this.style.background='#f5f7ff'" onmouseout="this.style.background=''">🖨️ הדפסה</button>
-          </div>
-        </div>
+        <button class="btn bg bsm" onclick="openMonthlyExport()">📊 ייצוא Excel</button>
+        <div class="fg" style="flex:0 0 auto"><label>עבור ל</label><input type="date" id="cal-dp" onchange="goDate(this.value)" style="width:130px"></div>
+        <button class="btn bp bsm" style="margin-right:auto" onclick="openExport()">📋 יצוא WhatsApp</button>
       </div>
     </div>
   </div>
@@ -352,8 +345,6 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     </div>
     <div class="row" style="margin-bottom:9px">
       <div class="mob-btn-row">
-        <button class="btn bo bsm" onclick="navSched(-1)" title="יום קודם">◀ קודם</button>
-        <button class="btn bo bsm" onclick="navSched(1)" title="יום הבא">הבא ▶</button>
         <button class="btn bs bsm" onclick="clearSched()">נקה</button>
         <button class="btn bg bsm" onclick="addPairFromSched()">🔗 שמור כזוג</button>
         <button class="btn bp bsm" onclick="openNewSched()">➕ שיבוץ חדש</button>

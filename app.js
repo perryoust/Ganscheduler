@@ -1,4 +1,11 @@
-// ══════════════════════════════════════════════
+/
+function navSchedToday(){
+  const today=td();
+  document.getElementById('s-from').value=today;
+  document.getElementById('s-to').value=today;
+  sPage=1; renderSched();
+}
+/ ══════════════════════════════════════════════
 // Firebase Realtime Database Sync - v10.2
 // ══════════════════════════════════════════════
 const FIREBASE_DB_URL = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data.json';
@@ -82,17 +89,17 @@ function _fbUpdateStatus() {
 
 
 // Helper: process Firebase load response
-async function _processFirebaseLoad(r, silent) {
+async function _processFirebaseLoad(r, silent, force) {
   const cloudData = await r.json();
   if (!cloudData || typeof cloudData !== 'object') return false;
   const cloudTs = cloudData.ts || 0;
   const appData = cloudData.data || cloudData;
   if (appData && Object.keys(appData).length > 0) {
-    if (cloudTs > _fbLastSaveTs || _fbLastSaveTs === 0) {
+    if (force || cloudTs > _fbLastSaveTs || _fbLastSaveTs === 0) {
       localStorage.setItem('ganv5', JSON.stringify(appData));
       _fbLastLoadTs = Date.now();
       _fbLastSaveTs = cloudTs;
-      console.log('Firebase: loaded OK, ts=' + new Date(cloudTs).toLocaleTimeString());
+      console.log('Firebase: loaded OK, ts=' + new Date(cloudTs).toLocaleTimeString()+(force?' (forced)':''));
       if (!silent) _fbUpdateStatus();
       return true;
     }
@@ -101,27 +108,26 @@ async function _processFirebaseLoad(r, silent) {
 }
 
 // ── Load from Firebase ────────────────────────
-async function loadFromFirebase(silent) {
+async function loadFromFirebase(silent, force) {
   try {
     if (!silent) { _fbSyncing = true; _fbUpdateStatus(); }
     const _tok = window._fbGetToken ? await window._fbGetToken() : null;
     const _authQ = _tok ? '&auth=' + _tok : '';
-    const r = await fetch(FIREBASE_DB_URL + '?ts=' + Date.now() + _authQ);
+    const r = await fetch(FIREBASE_DB_URL + '?cb=' + Date.now() + _authQ);
     if (!r.ok) {
       if (r.status === 401 || r.status === 403) {
-        console.warn('Firebase: אין הרשאה — ייתכן שהטוקן פג תוקף, מתחדש...');
-        // Force token refresh and retry once
+        console.warn('Firebase: מתחדש טוקן...');
         if (window._fbUser) {
           try {
             window._cachedToken = await window._fbUser.getIdToken(true);
-            const r2 = await fetch(FIREBASE_DB_URL + '?ts=' + Date.now() + '&auth=' + window._cachedToken);
-            if (r2.ok) { return await _processFirebaseLoad(r2, silent); }
+            const r2 = await fetch(FIREBASE_DB_URL + '?cb=' + Date.now() + '&auth=' + window._cachedToken);
+            if (r2.ok) { return await _processFirebaseLoad(r2, silent, force); }
           } catch(e2) {}
         }
       }
       console.warn('Firebase load failed: ' + r.status); return false;
     }
-    return await _processFirebaseLoad(r, silent);
+    return await _processFirebaseLoad(r, silent, force);
   } catch(e) {
     console.warn('Firebase load error:', e.message);
     return false;
@@ -150,15 +156,12 @@ async function saveToFirebase(silent) {
     if (r.ok) {
       _fbLastSaveTs = nowTs;
       if (!silent) showToast('✅ סונכרן ל-Firebase ' + _fmtTs(nowTs));
-      _fbUpdateStatus();
       return true;
     }
-    const errMsg = r.status === 401 ? '⚠️ פג תוקף ההתחברות — התחבר מחדש' : '❌ שגיאת שמירה Firebase ('+r.status+')';
-    showToast(errMsg, 6000); // always show save errors
-    _fbUpdateStatus();
+    if (!silent) showToast('❌ שגיאת סנכרון Firebase');
     return false;
   } catch(e) {
-    showToast('⚠️ לא ניתן לשמור — בדוק חיבור ('+e.message+')', 5000);
+    if (!silent) showToast('❌ Firebase: ' + e.message);
     return false;
   } finally {
     _fbSyncing = false;
@@ -172,8 +175,7 @@ function firebaseAutoSave() {
   _fbTimer = setTimeout(() => saveToFirebase(true), 3000);
 }
 
-// ── Polling — detects changes from other devices ──
-// Step 1: lightweight ts check; Step 2: full reload only if changed
+// ── Polling — detects changes from other devices (2-step: ts check → full fetch) ──
 const FIREBASE_TS_URL = FIREBASE_DB_URL.replace('/data.json', '/ts.json');
 
 function _fbStartPolling() {
@@ -181,45 +183,42 @@ function _fbStartPolling() {
   _fbPollTimer = setInterval(async () => {
     try {
       const _pollTok = window._fbGetToken ? await window._fbGetToken() : null;
-      if (!_pollTok) return; // not authenticated — skip silently
+      if (!_pollTok) return;
       const q = '?auth=' + _pollTok + '&cb=' + Date.now();
-      // Lightweight: fetch only the ts field
       const rTs = await fetch(FIREBASE_TS_URL + q);
       if (!rTs.ok) return;
       const cloudTs = await rTs.json();
       if (!cloudTs || cloudTs <= _fbLastSaveTs) return;
-      // ts changed — fetch full data
-      console.log('Firebase: remote change detected (ts=' + cloudTs + ')');
+      console.log('Firebase: remote change ts=' + cloudTs);
       const rFull = await fetch(FIREBASE_DB_URL + q);
       if (!rFull.ok) return;
       const d = await rFull.json();
       const appData = d && d.data ? d.data : d;
       if (appData && typeof appData === 'object' && Object.keys(appData).length > 0) {
         localStorage.setItem('ganv5', JSON.stringify(appData));
-        _fbLastSaveTs = cloudTs;
-        _fbLastLoadTs = Date.now();
+        _fbLastSaveTs = cloudTs; _fbLastLoadTs = Date.now();
         try {
-          const parsed = typeof appData === 'string' ? JSON.parse(appData) : appData;
-          if (typeof _applyYearData === 'function') _applyYearData(parsed);
+          if (typeof _applyYearData === 'function') _applyYearData(appData);
           if (typeof renderDash === 'function') renderDash();
           if (typeof renderCal === 'function') renderCal();
           if (typeof updCounts === 'function') updCounts();
           showToast('🔄 נתונים עודכנו ממכשיר אחר');
-        } catch(e2) { console.warn('Apply remote data error:', e2); }
+        } catch(e2) { console.warn(e2); }
         _fbUpdateStatus();
       }
-    } catch(e) { /* ignore polling errors */ }
+    } catch(e) { /* ignore */ }
   }, FIREBASE_POLL_INTERVAL);
 }
 
-// Re-sync when tab becomes visible after being away 2+ minutes
+// Sync when tab regains focus after 2+ min away
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'visible' && _fbLastLoadTs > 0) {
     if (Date.now() - _fbLastLoadTs > 2 * 60 * 1000) {
       try {
-        const ok = await loadFromFirebase(true);
+        const ok = await loadFromFirebase(true, false);
         if (ok) {
-          load();
+          const st = localStorage.getItem('ganv5');
+          if (st && typeof _applyYearData === 'function') { _applyYearData(JSON.parse(st)); }
           if (typeof renderDash === 'function') renderDash();
           if (typeof renderCal === 'function') renderCal();
           if (typeof updCounts === 'function') updCounts();
@@ -244,7 +243,7 @@ async function fbSyncNow() {
 }
 
 async function fbLoadNow() {
-  const ok = await loadFromFirebase(false);
+  const ok = await loadFromFirebase(false, true); // force=true — always apply cloud data
   if (ok) {
     try {
       const st = localStorage.getItem('ganv5');
@@ -253,11 +252,11 @@ async function fbLoadNow() {
         if (typeof renderDash === 'function') renderDash();
         if (typeof renderCal === 'function') renderCal();
         if (typeof updCounts === 'function') updCounts();
-        showToast('✅ נטען מ-Firebase');
+        showToast('✅ נטענו נתונים מ-Firebase');
       }
     } catch(e) { console.warn(e); }
   } else {
-    showToast('⚠️ אין נתונים חדשים ב-Firebase');
+    showToast('ℹ️ Firebase — הנתונים כבר מעודכנים');
   }
 }
 
@@ -1007,19 +1006,6 @@ function hebM(d){return['ינואר','פברואר','מרץ','אפריל','מא�
 function td(){return d2s(new Date())}
 function cities(){return[...new Set(GARDENS.map(g=>g.city))].sort()}
 function gardenPair(gid){const n=parseInt(gid);return pairs.find(p=>p.ids.map(x=>parseInt(x)).includes(n))||null}
-function grpTag(s, g){
-  // Returns a display string for groups (s.grp)
-  if(!s||!s.grp) return '';
-  return s.grp.split(',').filter(Boolean).map(gr=>gr.trim())
-    .map(gr=>`<span style="background:#e8eaf6;border-radius:4px;padding:1px 5px;font-size:.7rem;white-space:nowrap">${gr}</span>`)
-    .join(' ');
-}
-function grpTagEv(ev){
-  // Like grpTag but returns plain text (no HTML spans)
-  if(!ev||!ev.grp) return '';
-  return ev.grp.split(',').filter(Boolean).map(g=>g.trim()).join(', ');
-}
-
 function stLabel(s){
   if(s.st==='can') return'<span class="bdg br2">❌ בוטל</span>';
   if(s.st==='done') return'<span class="bdg bg2">✔️ התקיים</span>';
@@ -1222,28 +1208,41 @@ function navSearchClose(){
   const inp=document.getElementById('nav-search-input');
   if(inp) inp.value='';
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
-// ─── GARDEN LINK HELPER ──────────────────────────────────────────────────────
+// ─── GARDEN LINK HELPER ───────────────────────────────────────────────────────
 function gLink(g, extraStyle){
   if(!g) return '?';
-  const name=g.name||'?';
-  const gid=g.id||0;
   const style=extraStyle||'';
-  return `<span onclick="event.stopPropagation();openGM(${gid})" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;${style}" title="פתח כרטיס גן">${name}</span>`;
+  return `<span onclick="event.stopPropagation();openGM(${g.id})" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;${style}" title="פתח כרטיס גן">${g.name}</span>`;
 }
+function grpTag(s){
+  if(!s||!s.grp) return '';
+  return s.grp.split(',').filter(Boolean).map(g=>g.trim())
+    .map(g=>`<span style="background:#e8eaf6;border-radius:4px;padding:1px 5px;font-size:.7rem">${g}</span>`).join(' ');
+}
+function grpTagEv(ev){ return ev&&ev.grp?ev.grp.split(',').filter(Boolean).map(g=>g.trim()).join(', '):''; }
 
-// ─── EXPORT MENU ─────────────────────────────────────────────────────────────
+// ─── EXPORT MENU ──────────────────────────────────────────────────────────────
+function toggleExportMenu(){
+  const m=document.getElementById('export-menu');
+  if(!m) return;
+  if(m.style.display!=='none'){ m.style.display='none'; return; }
+  m.style.display='block';
+  setTimeout(()=>document.addEventListener('click',function _c(e){
+    if(!m.contains(e.target)&&e.target.id!=='export-main-btn'){m.style.display='none';document.removeEventListener('click',_c);}
+  }),10);
+}
+function closeExportMenu(){ const m=document.getElementById('export-menu'); if(m) m.style.display='none'; }
 function openCalPrint(){
-  // Print using the existing WA export modal
   const ws=monStart(calD);
   const fromDs=calV==='week'?d2s(ws):calV==='day'?d2s(calD):d2s(new Date(calD.getFullYear(),calD.getMonth(),1));
   const toDs=calV==='week'?d2s(addD(ws,5)):calV==='day'?d2s(calD):d2s(new Date(calD.getFullYear(),calD.getMonth()+1,0));
   document.getElementById('ex-d1').value=fromDs;
   document.getElementById('ex-d2').value=toDs;
   document.getElementById('exm').classList.add('open');
-  setTimeout(()=>genExport(), 80);
+  setTimeout(()=>genExport(),80);
 }
+// ──────────────────────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ST(t){
@@ -1315,14 +1314,12 @@ function filterE(f,from,to){
   }).map(s=>({...s,d:s.pd,_isPostponed:true}));
   return [...all,...posted];
 }
-let _listRange='week'; // 'day'|'week'|'month'|'range'
+let _listRange='week';
 
 function setListRange(r){
   _listRange=r;
-  // Update UI buttons
   ['day','week','month','range'].forEach(x=>{
-    const btn=document.getElementById('lr-'+x);
-    if(btn) btn.classList.toggle('active', x===r);
+    const b=document.getElementById('lr-'+x); if(b) b.classList.toggle('active',x===r);
   });
   renderCal();
 }
@@ -1348,16 +1345,11 @@ function setView(v){
     if(rangeRow) rangeRow.style.display='none';
     navBtns.forEach(b=>b.style.display='');
   }
-  // Show list range buttons only in list view
   const lrRow=document.getElementById('cal-list-range-row');
   if(lrRow) lrRow.style.display=v==='list'?'block':'none';
-  // Update _listRange button active state
-  if(v==='list'){
-    ['day','week','month','range'].forEach(x=>{
-      const b=document.getElementById('lr-'+x);
-      if(b) b.classList.toggle('active',x===_listRange);
-    });
-  }
+  if(v==='list') ['day','week','month','range'].forEach(x=>{
+    const b=document.getElementById('lr-'+x); if(b) b.classList.toggle('active',x===_listRange);
+  });
   renderCal();
 }
 function navCal(d){
@@ -1465,18 +1457,13 @@ function renderCal(){
     const evs=filterE(f,fromD,toD);
     html=renderRangeView(evs,fromD,toD,f,displayGids);
   } else if(calV==='list'){
-    let fromDs, toDs, title;
-    const y=calD.getFullYear(), m=calD.getMonth();
+    const y=calD.getFullYear(),m=calD.getMonth();
+    let fromDs,toDs,title;
     if(_listRange==='day'){
-      fromDs=d2s(calD); toDs=fromDs;
-      title='📋 רשימה — '+fD(fromDs);
+      fromDs=d2s(calD); toDs=fromDs; title='📋 רשימה — '+fD(fromDs);
     } else if(_listRange==='week'){
-      const ws=monStart(calD);
-      fromDs=d2s(ws); toDs=d2s(addD(ws,6));
-      title='📋 רשימה — שבוע '+fD(fromDs)+' – '+fD(toDs);
-    } else if(_listRange==='month'||_listRange==='range'){
-      fromDs=d2s(new Date(y,m,1)); toDs=d2s(new Date(y,m+1,0));
-      title='📋 רשימה — '+hebM(calD);
+      const ws=monStart(calD); fromDs=d2s(ws); toDs=d2s(addD(ws,6));
+      title='📋 רשימה — '+fD(fromDs)+' – '+fD(toDs);
     } else {
       fromDs=d2s(new Date(y,m,1)); toDs=d2s(new Date(y,m+1,0));
       title='📋 רשימה — '+hebM(calD);
@@ -2362,8 +2349,8 @@ function renderCalList(evs, mDate){
         <span style="display:flex;gap:8px;align-items:center">
           ${hol?`<span style="font-size:.7rem">${hol.emoji} ${hol.name}</span>`:''}
           ${blk?`<span style="font-size:.7rem;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blk.icon} ${blk.reason} ✏️</span>`:`<span style="font-size:.65rem;opacity:.4;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')" title="חסום תאריך">🚫</span>`}
-          <span style="font-size:.72rem;opacity:.8">${dayEvs.filter(s=>s.st!=='can').length} פעילויות${dayEvs.filter(s=>s.st==='can').length?` <span style="color:#e57373">(${dayEvs.filter(s=>s.st==='can').length} בוטלו)</span>`:''}</span>
-          <span onclick="event.stopPropagation();_exportGardenWA(null,'${ds}')" style="cursor:pointer;font-size:.78rem;opacity:.7" title="שלח יום ב-WhatsApp">📋</span>
+          <span style="font-size:.72rem;opacity:.8">${dayEvs.filter(s=>s.st!=='can').length} פעילויות${dayEvs.filter(s=>s.st==='can').length?` <span style="color:#ef9a9a">(${dayEvs.filter(s=>s.st==='can').length} בוטלו)</span>`:''}</span>
+          <span onclick="event.stopPropagation();_exportDayWA('${ds}')" style="cursor:pointer;font-size:.78rem;opacity:.7" title="שלח יום ב-WhatsApp">📋</span>
         </span>
       </div>`;
 
@@ -2430,11 +2417,10 @@ function renderCalList(evs, mDate){
 function _listRow(s, clr){
   const g=G(s.g);
   const isCan=s.st==='can';
-  const stC=s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':isCan?'#999':'#333';
-  const bgColor=s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':isCan?'#f5f5f5':clr.light;
-  const borderColor=isCan?'#bdbdbd':clr.solid;
-  const opacityStyle=isCan?'opacity:.55;':'';
-  return `<div style="display:grid;grid-template-columns:120px 1fr auto auto auto;align-items:center;gap:5px;padding:3px 6px;border-radius:4px;margin-bottom:2px;background:${bgColor};border-right:3px solid ${borderColor};cursor:pointer;${opacityStyle}" onclick="openSP(${s.id})">
+  const stC=s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':isCan?'#9e9e9e':'#333';
+  const bg=s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':isCan?'#f5f5f5':clr.light;
+  const border=isCan?'#bdbdbd':clr.solid;
+  return `<div style="display:grid;grid-template-columns:120px 1fr auto auto auto;align-items:center;gap:5px;padding:3px 6px;border-radius:4px;margin-bottom:2px;background:${bg};border-right:3px solid ${border};cursor:pointer;${isCan?'opacity:.6;':''}" onclick="openSP(${s.id})">
     <div>
       <div style="font-weight:700;font-size:.75rem;color:#1a237e">${g.name}</div>
       <div style="font-size:.65rem;color:#78909c">${s.t?'⏰ '+fT(s.t):''}</div>
@@ -2912,7 +2898,14 @@ function setStatus(st){
   }
   const main=SCH.find(x=>x.id===selEv);
   if(main) Object.assign(main,fields);
-  save(); closeSP(); refresh();
+  save(); closeSP();
+  // After reverting to ok, navigate to the event's date so it's visible in current view
+  if(st==='ok' && main && main.d) {
+    calD = s2d(main.d);
+    // In list-month view, ensure we're on the right month
+    if(calV==='list') document.getElementById('cal-dp') && (document.getElementById('cal-dp').value = main.d);
+  }
+  refresh();
 }
 function saveNt(){
   const s=SCH.find(x=>x.id===selEv); if(!s) return;
@@ -2990,7 +2983,9 @@ function saveAndRefresh(modalId){
 
 function qSetSt(id,st){
   const s=SCH.find(x=>x.id===id); if(!s) return;
-  s.st=st; save(); refresh();
+  s.st=st;
+  if(st==='ok' && s.d){ calD=s2d(s.d); }
+  save(); refresh();
 }
 
 function openEditSched(id){
@@ -3585,34 +3580,6 @@ function clearSched(){
   ['s-city','s-cls','s-sup','s-th','s-tt','s-from','s-to','s-st','s-srch'].forEach(id=>document.getElementById(id).value='');
   sRefG();
 }
-function navSched(dir){
-  // Advance/retreat the s-from date by 1 day; set s-to to same day if it equals prev s-from
-  const fromEl=document.getElementById('s-from');
-  const toEl=document.getElementById('s-to');
-  if(!fromEl.value){
-    // Set today as start
-    fromEl.value=d2s(new Date());
-    toEl.value=d2s(new Date());
-    renderSched(); return;
-  }
-  const prev=fromEl.value;
-  const newFrom=d2s(addD(s2d(fromEl.value),dir));
-  if(!toEl.value||toEl.value===prev){
-    toEl.value=newFrom;
-  } else {
-    const span=Math.round((s2d(toEl.value)-s2d(fromEl.value))/(86400000));
-    toEl.value=d2s(addD(s2d(newFrom),span));
-  }
-  fromEl.value=newFrom;
-  sPage=1; renderSched();
-}
-function navSchedToday(){
-  const today=td();
-  const fromEl=document.getElementById('s-from');
-  const toEl=document.getElementById('s-to');
-  fromEl.value=today; toEl.value=today;
-  sPage=1; renderSched();
-}
 
 function renderGardens(){
   if(_gardensTab==='fixed'){ renderGardensFixed(); return; }
@@ -3680,6 +3647,14 @@ function renderGardens(){
   setTimeout(_fitScrollAreas,50);
 }
 
+function _exportDayWA(ds){
+  _exGids=null;
+  document.getElementById('ex-d1').value=ds;
+  document.getElementById('ex-d2').value=ds;
+  document.getElementById('exm').classList.add('open');
+  setTimeout(()=>genExport(),80);
+}
+
 function openGmExport(){
   if(!gmGid) return;
   const gids=gardenPair(gmGid)?gardenPair(gmGid).ids:[gmGid];
@@ -3692,7 +3667,7 @@ function openGmExport(){
   const ctx=`${G(gmGid).name} | ${fD(fromDs)}${fromDs!==toDs?' – '+fD(toDs):''}`;
   (document.getElementById('ex-ctx')||{}).textContent=ctx;
   document.getElementById('exm').classList.add('open');
-  setTimeout(()=>genExport(), 80);
+  setTimeout(()=>genExport(),80);
 }
 
 function openGM(gid){
@@ -4460,20 +4435,6 @@ function _exportPairWA(gids){
   openExport();
 }
 
-function toggleExportMenu(){
-  const m=document.getElementById('export-menu');
-  if(!m) return;
-  const open=m.style.display!=='none';
-  m.style.display=open?'none':'block';
-  if(!open){
-    const close=e=>{if(!document.getElementById('export-main-btn')?.contains(e.target)&&!m.contains(e.target)){m.style.display='none';document.removeEventListener('click',close);}};
-    setTimeout(()=>document.addEventListener('click',close),10);
-  }
-}
-function closeExportMenu(){
-  const m=document.getElementById('export-menu');
-  if(m) m.style.display='none';
-}
 function openExport(){
   const ws=monStart(calD), we=addD(ws,5);
   const isWeek=(calV==='week');
@@ -5520,6 +5481,14 @@ function goToPostponed(){
   setTimeout(()=>{
     ['s-city','s-cls','s-sup','s-th','s-tt','s-from','s-to','s-srch'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('s-st').value='post';
+    sPage=1;renderSched();
+  },50);
+}
+function goToNohap(){
+  ST('sched');
+  setTimeout(()=>{
+    ['s-city','s-cls','s-sup','s-th','s-tt','s-from','s-to','s-srch'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    document.getElementById('s-st').value='nohap';
     sPage=1;renderSched();
   },50);
 }
