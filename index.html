@@ -776,13 +776,14 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="card" style="padding:11px;margin-bottom:11px">
     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:4px">
       <div class="vbtns" style="margin-left:5px">
-        <button class="vbtn active" id="sup-tab-all" onclick="setSupTab('all')">הכל</button>
-        <button class="vbtn" id="sup-tab-act" onclick="setSupTab('act')">🎨 חוגים</button>
-        <button class="vbtn" id="sup-tab-purch" onclick="setSupTab('purch')">🛒 רכש בלבד</button>
+        <button class="vbtn active" id="sup-tab-all" onclick="setSupTab('all')">🗂️ הכל</button>
+        <button class="vbtn" id="sup-tab-act" onclick="setSupTab('act')">🎨 חוגים בלבד</button>
+        <button class="vbtn" id="sup-tab-purch" onclick="setSupTab('purch')">🛒 ספקי רכש</button>
       </div>
       <button class="flt-toggle" id="sup-flt-btn" onclick="fltToggle('sup-flt','sup-flt-btn')">⚙️ סינון <span class="flt-arrow">▾</span></button>
       <button class="btn bp bsm" onclick="openSupModal(null)">➕ הוסף ספק</button>
       <button class="btn bo bsm" onclick="openMerge()">🔀 איחוד</button>
+      <button class="btn bs bsm" title="תקן ספקים אחרי איחוד" onclick="rebuildMergedSupplierActs();renderSup();showToast('✅ תוקן')">🔧 תקן</button>
       <button class="btn bp bsm" onclick="openSupExport(null)">📊 Excel</button>
     </div>
     <div id="sup-flt" class="flt-wrap">
@@ -822,11 +823,10 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <div id="p-pinvoices" class="panel" style="display:none">
   <div class="card" style="margin-bottom:11px">
     <div class="row" style="flex-wrap:wrap;gap:6px">
-      <div class="fg"><label>ספק</label>
-        <input type="text" id="pi-sup-search" list="pi-sup-list" placeholder="חפש ספק..." oninput="renderInvoices()" style="min-width:160px">
+      <div class="fg"><label>חיפוש</label>
+        <input type="text" id="pi-srch" placeholder="ספק / מס' מסמך / פירוט..." oninput="renderInvoices()" style="min-width:220px">
         <datalist id="pi-sup-list"></datalist>
       </div>
-      <div class="fg"><label>חיפוש חופשי</label><input type="text" id="pi-srch" placeholder="מס' מסמך / פירוט..." oninput="renderInvoices()" style="min-width:160px"></div>
       <div class="fg"><label>סטטוס</label>
         <select id="pi-status" onchange="renderInvoices()">
           <option value="">הכל</option>
@@ -1665,7 +1665,22 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <div><div class="inv-amt-lbl">מע"מ</div><div class="inv-amt-val" id="inv-order-vat-amt" style="color:#e65100">—</div></div>
         <div><div class="inv-amt-lbl">סה"כ כולל מע"מ</div><div class="inv-amt-val" id="inv-order-total" style="color:#2e7d32">—</div></div>
       </div>
-      <!-- Location info (בקשה 25) -->
+      <!-- File section -->
+      <div style="margin-top:9px;border-top:1px dashed #e0e0e0;padding-top:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+          <label class="inv-file-btn" for="inv-file-order">📎 <span id="inv-file-lbl-order" style="color:#999">צרף קובץ הזמנה...</span></label>
+          <input type="file" id="inv-file-order" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" onchange="invFilePickerChange('order')">
+          <button type="button" class="inv-file-open-btn" id="inv-file-open-order" style="display:none" onclick="invOpenFileFromModal('order')">🔗 פתח קובץ</button>
+          <button type="button" class="inv-file-open-btn" id="inv-file-del-order" style="display:none;color:#e53935" onclick="invClearFile('order')">🗑️ הסר</button>
+        </div>
+        <div id="inv-path-row-order" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">📁 נתיב:</span>
+          <input type="text" id="inv-path-order" placeholder="הדבק נתיב קובץ..."
+            style="flex:1;min-width:200px;font-size:.72rem;border-radius:5px;border:1px solid #b0bec5;padding:3px 7px"
+            oninput="invPathChange('order')">
+        </div>
+      </div>
+      <!-- Location info -->
       <div style="margin-top:8px;border-top:1px dashed #e0e0e0;padding-top:8px">
         <div style="font-size:.72rem;font-weight:700;color:#546e7a;margin-bottom:5px">📍 מיקום (אופציונלי)</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
@@ -1680,21 +1695,6 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
             </select>
           </div>
           <div class="fg"><label>שם גן / ביה"ס</label><input type="text" id="inv-loc-name" placeholder="שם המוסד" style="width:100%"></div>
-        </div>
-      </div>
-      <!-- File section -->
-      <div style="margin-top:9px;border-top:1px dashed #e0e0e0;padding-top:8px">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-          <label class="inv-file-btn" for="inv-file-order">📎 <span id="inv-file-lbl-order" style="color:#999">צרף קובץ הזמנה...</span></label>
-          <input type="file" id="inv-file-order" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" onchange="invFilePickerChange('order')">
-          <button type="button" class="inv-file-open-btn" id="inv-file-open-order" style="display:none" onclick="invOpenFileFromModal('order')">🔗 פתח קובץ</button>
-          <button type="button" class="inv-file-open-btn" id="inv-file-del-order" style="display:none;color:#e53935" onclick="invClearFile('order')">🗑️ הסר</button>
-        </div>
-        <div id="inv-path-row-order" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
-          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">📁 נתיב:</span>
-          <input type="text" id="inv-path-order" placeholder="הדבק נתיב קובץ..."
-            style="flex:1;min-width:200px;font-size:.72rem;border-radius:5px;border:1px solid #b0bec5;padding:3px 7px"
-            oninput="invPathChange('order')">
         </div>
       </div>
     </div>

@@ -267,8 +267,8 @@ function switchMode(mode){
     PURCH_TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el) el.style.display='none'; });
     ST(typeof currentTab!=='undefined' ? currentTab : 'dash');
   } else {
-    // Hide all act panels
-    TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el) el.classList.remove('active'); });
+    // Hide all act panels (use both class removal and display:none to be safe)
+    TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el){ el.classList.remove('active'); el.style.display='none'; } });
     SPT(_purchTab);
     refreshPurchDash();
   }
@@ -395,6 +395,18 @@ function getAllSupNames(){
   if(typeof getAllSup==='function') return getAllSup().map(s=>s.name);
   return [];
 }
+function rebuildMergedSupplierActs(){
+  // After merges, some supEx entries may have stale empty acts arrays
+  // Clear them so auto-derive from SCH kicks in
+  Object.keys(supEx).forEach(name=>{
+    const ex = supEx[name];
+    if(Array.isArray(ex.acts) && ex.acts.length===0){
+      delete ex.acts; // Let getSupActs auto-derive from SCH
+    }
+  });
+  save();
+}
+
 function getPurchSuppliers(){ 
   return getAllSupNames().filter(name=>isPurchSupplier(name)).map(name=>{
     const ex=(typeof supEx!=='undefined'?supEx:{})[name]||{};
@@ -468,7 +480,7 @@ function deleteInvoiceFromModal(){
   showToast('🗑️ המסמך נמחק');
 }
 function resetInvFilter(){
-  const ids = ['pi-sup-search','pi-srch','pi-from','pi-to'];
+  const ids = ['pi-srch','pi-from','pi-to'];
   ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   const stEl=document.getElementById('pi-status'); if(stEl) stEl.value='';
   const sortEl=document.getElementById('pi-sort'); if(sortEl) sortEl.value='desc';
@@ -786,11 +798,30 @@ async function saveInvoice(){
   } else {
     INVOICES.push(inv);
   }
+  // Auto-create supplier card if not exists
+  if(supName && supName!=='__new__'){
+    if(!supEx[supName]) supEx[supName]={};
+    if(!supEx[supName].isPurch) supEx[supName].isPurch=true;
+  }
   save();
   try { await invSaveFiles(invId); } catch(e){ showToast('⚠️ שגיאה בשמירת קובץ: '+e.message); }
   CM('invoice-m');
   renderInvoices(); refreshPurchDash();
   showNotice('✅ מסמך נשמר בהצלחה');
+}
+
+// ── Create supplier cards for all existing invoices (run once) ──
+function createMissingSupCards(){
+  let created=0;
+  INVOICES.forEach(inv=>{
+    const name=inv.supName;
+    if(!name) return;
+    if(!supEx[name]) supEx[name]={};
+    if(!supEx[name].isPurch) supEx[name].isPurch=true;
+    created++;
+  });
+  if(created>0){ save(); showToast(`✅ נוצרו/עודכנו ${created} כרטיסי ספק`); refresh(); }
+  else showToast('כל ספקי החשבוניות כבר קיימים');
 }
     if(typeof supEx !== 'undefined'){
 function deleteInvoice(id){
@@ -828,12 +859,11 @@ function renderInvoices(){
   if(!tbody) return;
   const srch = (document.getElementById('pi-srch')?.value||'').toLowerCase();
   const stf  = document.getElementById('pi-status')?.value||'';
-  const supf = (document.getElementById('pi-sup-search')?.value||'').toLowerCase();
+  const supf = ''; // merged into srch
   const from = document.getElementById('pi-from')?.value||'';
   const to   = document.getElementById('pi-to')?.value||'';
   const sortDir = document.getElementById('pi-sort')?.value||'desc';
   let list = [...INVOICES];
-  if(supf) list = list.filter(i=>(i.supName||'').toLowerCase().includes(supf));
   if(srch) list = list.filter(i=>
     (i.supName||'').toLowerCase().includes(srch)||
     (i.num||'').toLowerCase().includes(srch)||
@@ -976,8 +1006,8 @@ function renderPurchSuppliers(){
     const invCount = INVOICES.filter(i=>(i.supName||String(i.supId))===s.name).length;
     const safeN = s.name.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/'/g,"\\'");
     return `<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <div style="flex:1;min-width:150px">
-        <div style="font-weight:700;color:#1a237e">${s.name}</div>
+      <div style="flex:1;min-width:150px;cursor:pointer" onclick="openSupCardFromPurch('${safeN}')">
+        <div style="font-weight:700;color:#1565c0;text-decoration:underline">${s.name}</div>
         <div style="font-size:.72rem;color:#78909c">${s.tax?'ח.פ: '+s.tax:''} ${s.phone?'· '+s.phone:''}</div>
       </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
@@ -994,14 +1024,12 @@ function renderPurchSuppliers(){
   }).join('');
 }
 function openNewPurchSupplier(){
-  // Open the invoice modal with new supplier form visible (16)
-  openNewInvoice(null, '__new__');
+  // Open supplier card editor in act mode — switch to supplier tab
+  switchMode('act');
   setTimeout(()=>{
-    const wrap = document.getElementById('inv-new-sup-wrap');
-    if(wrap) wrap.style.display='block';
-    const txt = document.getElementById('inv-sup-text');
-    if(txt){ txt.value='__new__'; }
-  }, 100);
+    ST('sup');
+    setTimeout(()=>{ openSupModal(null); }, 100);
+  }, 150);
 }
 function openSupCardFromPurch(name){
   switchMode('act');
@@ -1241,6 +1269,8 @@ window.onload = function(){
     const gClsEl=document.getElementById('g-cls');
     if(gClsEl) gClsEl.value='גנים';
     renderReadOnlyBanner();
+    createMissingSupCards();
+    rebuildMergedSupplierActs();
     renderDash();
     renderCal();
     renderClusters();
@@ -1389,7 +1419,11 @@ function ST(t){
   currentTab=t;
   TABS.forEach((x,i)=>{
     document.querySelectorAll('.tab')[i].classList.toggle('active',x===t);
-    document.getElementById('p-'+x).classList.toggle('active',x===t);
+    const panelEl=document.getElementById('p-'+x);
+    if(panelEl){
+      panelEl.classList.toggle('active',x===t);
+      panelEl.style.display=''; // Clear any display:none set by switchMode
+    }
   });
   if(t==='sched') renderSched();
   if(t==='gardens'){renderGardens();refreshMgrDrops();}
@@ -4592,13 +4626,30 @@ function toggleExportMenu(){
 }
 function closeExportMenu(){const m=document.getElementById('export-menu');if(m)m.style.display='none';}
 function openCalPrint(){
+  // Generate export text and open print window directly
   const ws=monStart(calD);
   const fromDs=calV==='week'?d2s(ws):calV==='day'?d2s(calD):d2s(new Date(calD.getFullYear(),calD.getMonth(),1));
   const toDs=calV==='week'?d2s(addD(ws,5)):calV==='day'?d2s(calD):d2s(new Date(calD.getFullYear(),calD.getMonth()+1,0));
+  // Set export fields and generate
   document.getElementById('ex-d1').value=fromDs;
   document.getElementById('ex-d2').value=toDs;
-  document.getElementById('exm').classList.add('open');
-  setTimeout(()=>genExport(),80);
+  genExport();
+  // Open print window after generation
+  setTimeout(()=>{
+    const t=document.getElementById('ex-prev')?.textContent||'';
+    if(!t||t.startsWith('לחץ')){ 
+      // Fall back to modal if no content
+      document.getElementById('exm').classList.add('open');
+      return;
+    }
+    const w=window.open('','_blank','width=800,height=700');
+    if(!w){ document.getElementById('exm').classList.add('open'); return; }
+    w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>לוח זמנים</title>
+    <style>body{font-family:Arial,sans-serif;padding:20px;white-space:pre-wrap;font-size:13px;line-height:1.7}@media print{button{display:none}}</style></head>
+    <body><button onclick="window.print()" style="margin-bottom:15px;padding:6px 16px;cursor:pointer;font-size:14px">🖨️ הדפס</button><pre>${t.replace(/</g,'&lt;')}</pre></body></html>`);
+    w.document.close();
+    // DON'T auto-print - let user review first
+  }, 150);
 }
 function openExport(){
   const ws=monStart(calD), we=addD(ws,5);
@@ -4849,9 +4900,11 @@ function getAllSup(){
 function getSupActs(name){
   if(!name) return[];
   const base=supBase(name);
-  // 1. Saved explicitly in supEx
+  // 1. Saved explicitly in supEx (only if non-empty)
   const ex=supEx[base]||{};
-  if(Array.isArray(ex.acts)&&ex.acts.length) return ex.acts;
+  if(Array.isArray(ex.acts)&&ex.acts.length>0) return ex.acts;
+  // If acts is explicitly set to empty array, still auto-derive from SCH
+  // (empty acts array may be a merge artifact)
   // 2. Auto-derive from schedule data ("חוגות - ניצני רפואה" → "ניצני רפואה")
   const fromSch=new Set();
   SCH.forEach(s=>{ if(supBase(s.a)===base){const a=supAct(s.a);if(a)fromSch.add(a);} });
@@ -4898,8 +4951,8 @@ function renderSup(){
   let all=getAllSup().filter(s=>{
     if(srch&&!(s.name||'').toLowerCase().includes(srch)) return false;
     if(_supTab==='act') return isActSupplier(s.name);
-    if(_supTab==='purch') return isPurchSupplier(s.name) && !isActSupplier(s.name);
-    return true;
+    if(_supTab==='purch') return isPurchSupplier(s.name); // all purchase suppliers (includes act)
+    return true; // 'all' = everyone
   });
   // Always sort alphabetically first, then by count if selected
   all=[...all].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
@@ -5162,6 +5215,7 @@ function doMerge(){
     if(supEx['__c']) supEx['__c']=supEx['__c'].filter(s=>s.name!==old&&supBase(s.name)!==old);
     // Mark as merged-away so it's hidden even from hardcoded SUPBASE
     mergedAway.add(old);
+    if(supBase(old)!==old) mergedAway.add(supBase(old));
   });
   supEx['__merged_away']=[...mergedAway];
   save();CM('mrgm');refresh();
@@ -5232,6 +5286,13 @@ function saveNewGarden(){
 let _sucName=null;
 function openSupCard(name){
   _sucName=supBase(name); // normalize to base name
+  // If in purch mode, switch to act→sup to show card
+  if(typeof _appMode!=='undefined' && _appMode==='purch'){
+    switchMode('act');
+    setTimeout(()=>{ ST('sup'); setTimeout(()=>openSupCard(name),100); },150);
+    return;
+  }
+  if(typeof currentTab!=='undefined' && currentTab!=='sup') ST('sup');
   document.getElementById('suc-edit-panel').style.display='none';
   document.getElementById('suc-view').style.display='block';
   sucRefreshInfo();

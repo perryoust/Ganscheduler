@@ -40,7 +40,11 @@ function supAct(fullName){
 // Get all unique base supplier names from schedules + SUPBASE
 function getAllBaseSups(){
   // Names that were merged into another supplier — hidden from all lists
-  const mergedAway = new Set(supEx['__merged_away']||[]);
+  const mergedAwayRaw = supEx['__merged_away']||[];
+  const mergedAway = new Set([
+    ...mergedAwayRaw,
+    ...mergedAwayRaw.map(n=>supBase(n))
+  ]);
   const map={};
   SUPBASE.forEach(s=>{
     const base=supBase(s.name);
