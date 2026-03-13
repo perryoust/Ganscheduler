@@ -2,7 +2,7 @@
 // Firebase Realtime Database Sync - v10.2
 // ══════════════════════════════════════════════
 const FIREBASE_DB_URL = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data.json';
-const FIREBASE_POLL_INTERVAL = 30000; // 30 seconds
+const FIREBASE_POLL_INTERVAL = 30000; // poll every 30s
 
 let _fbLastSaveTs = 0;
 let _fbLastLoadTs = 0;
@@ -150,12 +150,15 @@ async function saveToFirebase(silent) {
     if (r.ok) {
       _fbLastSaveTs = nowTs;
       if (!silent) showToast('✅ סונכרן ל-Firebase ' + _fmtTs(nowTs));
+      _fbUpdateStatus();
       return true;
     }
-    if (!silent) showToast('❌ שגיאת סנכרון Firebase');
+    const errMsg = r.status === 401 ? '⚠️ פג תוקף ההתחברות — התחבר מחדש' : '❌ שגיאת שמירה Firebase ('+r.status+')';
+    showToast(errMsg, 6000); // always show save errors
+    _fbUpdateStatus();
     return false;
   } catch(e) {
-    if (!silent) showToast('❌ Firebase: ' + e.message);
+    showToast('⚠️ לא ניתן לשמור — בדוק חיבור ('+e.message+')', 5000);
     return false;
   } finally {
     _fbSyncing = false;
@@ -170,7 +173,7 @@ function firebaseAutoSave() {
 }
 
 // ── Polling — detects changes from other devices ──
-// Uses a lightweight ts-only check first, full download only if changed
+// Step 1: lightweight ts check; Step 2: full reload only if changed
 const FIREBASE_TS_URL = FIREBASE_DB_URL.replace('/data.json', '/ts.json');
 
 function _fbStartPolling() {
@@ -178,26 +181,16 @@ function _fbStartPolling() {
   _fbPollTimer = setInterval(async () => {
     try {
       const _pollTok = window._fbGetToken ? await window._fbGetToken() : null;
-      if (!_pollTok) {
-        // Not authenticated — show subtle indicator but don't spam
-        if (!window._fbAuthWarnShown) {
-          window._fbAuthWarnShown = true;
-          console.warn('Firebase: no auth token — polling skipped');
-        }
-        return;
-      }
-      window._fbAuthWarnShown = false;
-      const _pollQ = '?auth=' + _pollTok;
-
-      // Step 1: lightweight ts-only check
-      const rTs = await fetch(FIREBASE_TS_URL + _pollQ + '&cb=' + Date.now());
+      if (!_pollTok) return; // not authenticated — skip silently
+      const q = '?auth=' + _pollTok + '&cb=' + Date.now();
+      // Lightweight: fetch only the ts field
+      const rTs = await fetch(FIREBASE_TS_URL + q);
       if (!rTs.ok) return;
       const cloudTs = await rTs.json();
       if (!cloudTs || cloudTs <= _fbLastSaveTs) return;
-
-      // Step 2: ts changed — download full data
-      console.log('Firebase: remote change detected (ts=' + cloudTs + '), reloading...');
-      const rFull = await fetch(FIREBASE_DB_URL + _pollQ + '&cb=' + Date.now());
+      // ts changed — fetch full data
+      console.log('Firebase: remote change detected (ts=' + cloudTs + ')');
+      const rFull = await fetch(FIREBASE_DB_URL + q);
       if (!rFull.ok) return;
       const d = await rFull.json();
       const appData = d && d.data ? d.data : d;
@@ -219,10 +212,9 @@ function _fbStartPolling() {
   }, FIREBASE_POLL_INTERVAL);
 }
 
-// ── Re-sync when user returns to tab after being away ──
+// Re-sync when tab becomes visible after being away 2+ minutes
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'visible' && _fbLastLoadTs > 0) {
-    // If away for more than 2 minutes, force-reload from Firebase
     if (Date.now() - _fbLastLoadTs > 2 * 60 * 1000) {
       try {
         const ok = await loadFromFirebase(true);
@@ -232,7 +224,6 @@ document.addEventListener('visibilitychange', async () => {
           if (typeof renderCal === 'function') renderCal();
           if (typeof updCounts === 'function') updCounts();
           _fbUpdateStatus();
-          console.log('Firebase: resynced on tab focus');
         }
       } catch(e) {}
     }
@@ -1016,6 +1007,19 @@ function hebM(d){return['ינואר','פברואר','מרץ','אפריל','מא�
 function td(){return d2s(new Date())}
 function cities(){return[...new Set(GARDENS.map(g=>g.city))].sort()}
 function gardenPair(gid){const n=parseInt(gid);return pairs.find(p=>p.ids.map(x=>parseInt(x)).includes(n))||null}
+function grpTag(s, g){
+  // Returns a display string for groups (s.grp)
+  if(!s||!s.grp) return '';
+  return s.grp.split(',').filter(Boolean).map(gr=>gr.trim())
+    .map(gr=>`<span style="background:#e8eaf6;border-radius:4px;padding:1px 5px;font-size:.7rem;white-space:nowrap">${gr}</span>`)
+    .join(' ');
+}
+function grpTagEv(ev){
+  // Like grpTag but returns plain text (no HTML spans)
+  if(!ev||!ev.grp) return '';
+  return ev.grp.split(',').filter(Boolean).map(g=>g.trim()).join(', ');
+}
+
 function stLabel(s){
   if(s.st==='can') return'<span class="bdg br2">❌ בוטל</span>';
   if(s.st==='done') return'<span class="bdg bg2">✔️ התקיים</span>';
@@ -1145,48 +1149,6 @@ function initDrops(){
 const TABS=['dash','cal','sched','gardens','pairs','holidays','clusters','sup','managers'];
 let currentTab='dash';
 
-
-// ─── GARDEN LINK HELPER ─────────────────────────────────────────────────────
-// Returns a clickable span that opens the garden card modal
-function gLink(g, extraStyle){
-  const name=g?g.name:'?';
-  const gid=g?g.id:0;
-  const style=extraStyle||'';
-  return `<span onclick="event.stopPropagation();openGM(${gid})" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;${style}" title="פתח כרטיס גן">${name}</span>`;
-}
-// ─────────────────────────────────────────────────────────────────────────────
-
-
-// ─── EXPORT MENU ─────────────────────────────────────────────────────────────
-function toggleExportMenu(){
-  const menu=document.getElementById('export-menu');
-  if(!menu) return;
-  const open=menu.style.display!=='none';
-  if(open){ menu.style.display='none'; return; }
-  menu.style.display='block';
-  // Close on outside click
-  setTimeout(()=>{
-    document.addEventListener('click', function _close(e){
-      if(!menu.contains(e.target)&&e.target.id!=='export-main-btn'){
-        menu.style.display='none';
-        document.removeEventListener('click',_close);
-      }
-    });
-  }, 10);
-}
-function closeExportMenu(){
-  const menu=document.getElementById('export-menu');
-  if(menu) menu.style.display='none';
-}
-function openCalPrint(){
-  // Use existing monthly print / cal export print
-  const ws=monStart(calD);
-  const fromDs=calV==='week'?d2s(ws):calV==='day'?d2s(calD):d2s(new Date(calD.getFullYear(),calD.getMonth(),1));
-  const toDs=calV==='week'?d2s(addD(ws,5)):calV==='day'?d2s(calD):d2s(new Date(calD.getFullYear(),calD.getMonth()+1,0));
-  openCalExpPrint(fromDs, toDs, null);
-}
-// ─────────────────────────────────────────────────────────────────────────────
-
 // ─── GLOBAL NAVIGATION SEARCH ────────────────────────────────────────────────
 function navSearchInput(val){
   const res=document.getElementById('nav-search-results');
@@ -1262,6 +1224,28 @@ function navSearchClose(){
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─── GARDEN LINK HELPER ──────────────────────────────────────────────────────
+function gLink(g, extraStyle){
+  if(!g) return '?';
+  const name=g.name||'?';
+  const gid=g.id||0;
+  const style=extraStyle||'';
+  return `<span onclick="event.stopPropagation();openGM(${gid})" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;${style}" title="פתח כרטיס גן">${name}</span>`;
+}
+
+// ─── EXPORT MENU ─────────────────────────────────────────────────────────────
+function openCalPrint(){
+  // Print using the existing WA export modal
+  const ws=monStart(calD);
+  const fromDs=calV==='week'?d2s(ws):calV==='day'?d2s(calD):d2s(new Date(calD.getFullYear(),calD.getMonth(),1));
+  const toDs=calV==='week'?d2s(addD(ws,5)):calV==='day'?d2s(calD):d2s(new Date(calD.getFullYear(),calD.getMonth()+1,0));
+  document.getElementById('ex-d1').value=fromDs;
+  document.getElementById('ex-d2').value=toDs;
+  document.getElementById('exm').classList.add('open');
+  setTimeout(()=>genExport(), 80);
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function ST(t){
   currentTab=t;
   TABS.forEach((x,i)=>{
@@ -1331,6 +1315,18 @@ function filterE(f,from,to){
   }).map(s=>({...s,d:s.pd,_isPostponed:true}));
   return [...all,...posted];
 }
+let _listRange='week'; // 'day'|'week'|'month'|'range'
+
+function setListRange(r){
+  _listRange=r;
+  // Update UI buttons
+  ['day','week','month','range'].forEach(x=>{
+    const btn=document.getElementById('lr-'+x);
+    if(btn) btn.classList.toggle('active', x===r);
+  });
+  renderCal();
+}
+
 function setView(v){
   calV=v;
   ['day','week','month','list','range'].forEach(x=>{
@@ -1352,10 +1348,18 @@ function setView(v){
     if(rangeRow) rangeRow.style.display='none';
     navBtns.forEach(b=>b.style.display='');
   }
+  // Show list range buttons only in list view
+  const lrRow=document.getElementById('cal-list-range-row');
+  if(lrRow) lrRow.style.display=v==='list'?'block':'none';
+  // Update _listRange button active state
+  if(v==='list'){
+    ['day','week','month','range'].forEach(x=>{
+      const b=document.getElementById('lr-'+x);
+      if(b) b.classList.toggle('active',x===_listRange);
+    });
+  }
   renderCal();
 }
-let _listRange='week'; // 'day'|'week'|'month'|'range'
-
 function navCal(d){
   if(calV==='day') calD=addD(calD,d);
   else if(calV==='week') calD=addD(calD,d*7);
@@ -1363,13 +1367,7 @@ function navCal(d){
     if(_listRange==='day') calD=addD(calD,d);
     else if(_listRange==='week') calD=addD(calD,d*7);
     else calD=addM(calD,d);
-  }
-  else calD=addM(calD,d);
-  renderCal();
-}
-function setListRange(r){
-  _listRange=r;
-  document.querySelectorAll('.list-range-btn').forEach(b=>b.classList.toggle('active',b.dataset.r===r));
+  } else calD=addM(calD,d);
   renderCal();
 }
 function goToday(){calD=new Date();document.getElementById('cal-dp').value=td();renderCal();}
@@ -1467,26 +1465,24 @@ function renderCal(){
     const evs=filterE(f,fromD,toD);
     html=renderRangeView(evs,fromD,toD,f,displayGids);
   } else if(calV==='list'){
-    let lstFrom, lstTo, lstTitle;
+    let fromDs, toDs, title;
+    const y=calD.getFullYear(), m=calD.getMonth();
     if(_listRange==='day'){
-      lstFrom=lstTo=d2s(calD);
-      lstTitle='📋 רשימה — '+fD(lstFrom)+' יום '+dayN(lstFrom);
+      fromDs=d2s(calD); toDs=fromDs;
+      title='📋 רשימה — '+fD(fromDs);
     } else if(_listRange==='week'){
       const ws=monStart(calD);
-      lstFrom=d2s(ws); lstTo=d2s(addD(ws,5));
-      lstTitle='📋 רשימה — '+fD(lstFrom)+' – '+fD(lstTo);
-    } else if(_listRange==='range'){
-      lstFrom=document.getElementById('cal-range-from')?.value||d2s(calD);
-      lstTo=document.getElementById('cal-range-to')?.value||lstFrom;
-      if(lstFrom>lstTo){const tmp=lstFrom;lstFrom=lstTo;lstTo=tmp;}
-      lstTitle='📋 רשימה — '+fD(lstFrom)+' – '+fD(lstTo);
-    } else { // month (default)
-      const y=calD.getFullYear(),m=calD.getMonth();
-      lstFrom=d2s(new Date(y,m,1)); lstTo=d2s(new Date(y,m+1,0));
-      lstTitle='📋 רשימה — '+hebM(calD);
+      fromDs=d2s(ws); toDs=d2s(addD(ws,6));
+      title='📋 רשימה — שבוע '+fD(fromDs)+' – '+fD(toDs);
+    } else if(_listRange==='month'||_listRange==='range'){
+      fromDs=d2s(new Date(y,m,1)); toDs=d2s(new Date(y,m+1,0));
+      title='📋 רשימה — '+hebM(calD);
+    } else {
+      fromDs=d2s(new Date(y,m,1)); toDs=d2s(new Date(y,m+1,0));
+      title='📋 רשימה — '+hebM(calD);
     }
-    (document.getElementById('cal-title')||{}).textContent=lstTitle;
-    const evs=filterE(f,lstFrom,lstTo);
+    (document.getElementById('cal-title')||{}).textContent=title;
+    const evs=filterE(f,fromDs,toDs);
     html=renderCalList(evs,calD);
   } else {
     const y=calD.getFullYear(),m=calD.getMonth();
@@ -1610,7 +1606,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
             const stc=s.st!=='ok'?'st-'+s.st:'';
             html+=`<div style="min-width:160px;flex:1;max-width:260px;border:1.5px solid ${clr.border};border-radius:7px;padding:7px;cursor:pointer;background:${clr.light};border-right:3px solid ${clr.solid}" onclick="openSP(${s.id})" class="${stc}">
               ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clr.solid};margin-bottom:2px">⏰ ${fT(s.t)}</div>`:''}
-              <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${gLink(g,'color:#1a237e;font-weight:700')}</div>
+              <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
               <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
               <div style="font-size:.68rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
             </div>`;
@@ -1671,7 +1667,7 @@ function renderClusterDay(evs, ds, clusterName){
           const stc=s.st!=='ok'?'st-'+s.st:'';
           html+=`<div style="min-width:160px;flex:1;max-width:260px;border:1.5px solid ${clrCity.border};border-radius:7px;padding:7px;cursor:pointer;background:#fff;border-right:3px solid ${clrCity.solid}" onclick="openSP(${s.id})" class="${stc}">
             ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clrCity.solid};margin-bottom:2px">⏰ ${fT(s.t)}</div>`:'<div style="font-size:.7rem;color:#aaa">ללא שעה</div>'}
-            <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${gLink(g,'color:#1a237e;font-weight:700')}</div>
+            <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
             <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
             <div style="font-size:.68rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
             <div class="qacts" onclick="event.stopPropagation()">
@@ -1759,7 +1755,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
             const stc=s.st!=='ok'?'st-'+s.st:'';
             html+=`<div style="min-width:150px;flex:1;max-width:240px;border:1.5px solid ${clrCity.border};border-right:3px solid ${clrCity.solid};border-radius:6px;padding:6px;cursor:pointer;background:#fff" onclick="openSP(${s.id})" class="${stc}">
               ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clrCity.solid}">⏰ ${fT(s.t)}</div>`:''}
-              <div style="font-weight:700;font-size:.76rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${gLink(g,'color:#1a237e;font-weight:700')}</div>
+              <div style="font-weight:700;font-size:.76rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
               <div style="font-size:.7rem;color:#546e7a">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
               <div style="font-size:.67rem;margin-top:2px">${stLabel(s)}</div>
             </div>`;
@@ -1778,7 +1774,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
         const clBadge=isAll?(gardenClusters(g.id)[0]||{}).name||'':'';
         html+=`<div style="min-width:180px;flex:1;border:1.5px solid ${clrCity.border};border-radius:7px;padding:7px;cursor:pointer;background:${clrCity.light}" onclick="openSP(${s.id})" class="${stc}">
           ${s.t?`<div style="font-size:.82rem;font-weight:800;color:${clrCity.solid};margin-bottom:2px">⏰ ${fT(s.t)}</div>`:''}
-          <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${gLink(g,'color:#1a237e;font-weight:700')}</div>
+          <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
           ${clBadge?`<div style="font-size:.66rem;color:#546e7a">🔢 ${clBadge}</div>`:''}
           <div style="font-size:.73rem;color:#546e7a">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
           <div style="font-size:.68rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
@@ -1912,7 +1908,7 @@ function renderNormalDay(evs,ds){
         const brokenBadge=s._broken?`<span style="font-size:.62rem;background:#fff3e0;color:#e65100;padding:1px 5px;border-radius:3px;font-weight:700">⚡ זוג פורק</span>`:'';
         html+=`<div class="city-block" style="margin-bottom:0">
           <div class="city-block-hdr" style="background:${clr.solid};font-size:.76rem">
-            ${gcls(s.gd)==='ביה"ס'?'🏛️':'🏫'} ${gLink(s.gd,'color:#fff;font-weight:700')}
+            ${gcls(s.gd)==='ביה"ס'?'🏛️':'🏫'} ${s.gd.name}
             ${s.gd.st?`<span style="font-size:.65rem;font-weight:400;opacity:.8">${s.gd.st}</span>`:''}
             ${brokenBadge}
             <span style="font-size:.65rem;opacity:.75;font-weight:400">📍 ${city}</span>
@@ -2004,7 +2000,7 @@ function renderPairCard(pair, pairEvs, opts){
       const gblkNone=ds?getGardenBlock(gid,ds):null;
       html+=`<div class="pair-garden-row" style="opacity:${gblkNone?1:.5};${gblkNone?'background:#fce4ec;border-right:3px solid #e91e63;':''}" onclick="${ds?`openGcellPopup(${gid},'${ds}',event)`:''}" style="cursor:${ds?'pointer':'default'}">
         <div class="pgr-left">
-          <div class="pgr-name">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${gLink(g)}</div>
+          <div class="pgr-name">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
           ${g.st?`<div class="pgr-addr">📍 ${g.st}</div>`:''}
           ${gblkNone
             ?`<div class="pgr-status" style="color:#c62828">${gblkNone.icon||'🚫'} ${gblkNone.reason}</div>`
@@ -2015,7 +2011,7 @@ function renderPairCard(pair, pairEvs, opts){
       const gblkEv=ds?getGardenBlock(gid,ds):null;
       html+=`<div class="pair-garden-row ${stc}" style="${gblkEv?'border-right:3px solid #e91e63;':''}" onclick="openSP(${ev.id})">
         <div class="pgr-left">
-          <div class="pgr-name">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${gLink(g)}</div>
+          <div class="pgr-name">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
           ${g.st?`<div class="pgr-addr">📍 ${g.st}</div>`:''}
           ${ev.t?`<div class="pgr-time">⏰ ${fT(ev.t)}</div>`:''}
           ${gblkEv?`<div style="font-size:.67rem;color:#c62828">${gblkEv.icon||'🚫'} ${gblkEv.reason}</div>`:''}
@@ -2091,7 +2087,7 @@ function renderPairColsHTML(evs,gids,pairId){
     const ge=evs.filter(s=>s.g===gid).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
     html+=`<div class="pcol">
       <div style="font-size:.66rem;font-weight:700;text-align:center;padding:2px 6px;background:rgba(0,0,0,.12);color:#fff">${g.city}</div>
-      <div class="pch"><span>${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${gLink(g,'color:inherit')}</span></div>
+      <div class="pch"><span>${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</span></div>
       <div class="pcb">`;
     if(!ge.length) html+='<div class="pempty">אין פעילויות</div>';
     else ge.forEach(s=>html+=`<div class="pslot ${s.st!=='ok'?'st-'+s.st:''}" onclick="openSP(${s.id})">
@@ -2257,7 +2253,7 @@ function renderNormalWeek(evs,ws,f){
         html+=`<tr><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
           border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
           position:sticky;right:0;z-index:1;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">
-          ${gLink(g,'color:#1a237e;font-weight:700;font-size:14px')}<br><span style="font-size:12px;color:#78909c;font-weight:400">${g.city}</span>
+          ${g.name}<br><span style="font-size:12px;color:#78909c;font-weight:400">${g.city}</span>
         </td>`;
         days.forEach(d=>{
           const ds=d2s(d);
@@ -2276,7 +2272,7 @@ function renderNormalWeek(evs,ws,f){
       html+=`<tr><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
         border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
         position:sticky;right:0;z-index:1;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">
-        ${gLink(g,'color:#1a237e;font-weight:700;font-size:14px')}<br><span style="font-size:12px;color:#78909c;font-weight:400">${g.city}</span>
+        ${g.name}<br><span style="font-size:12px;color:#78909c;font-weight:400">${g.city}</span>
       </td>`;
       days.forEach(d=>{
         const ds=d2s(d);
@@ -2344,29 +2340,15 @@ function renderCalList(evs, mDate){
   const y=mDate.getFullYear(),m=mDate.getMonth();
   const tday=td();
   const byDate={};
-  evs.filter(s=>s.st!=='can').forEach(s=>{
+  evs.forEach(s=>{
     const dk=s._isPostponed?s.pd:s.d;
     if(!byDate[dk]) byDate[dk]=[];
     byDate[dk].push(s);
   });
   const dates=Object.keys(byDate).sort();
-  const emptyMsg=`<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות בתקופה זו</div>`;
+  if(!dates.length) return '<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות בטווח זה</div>';
 
-  const rangeBar=`<div style="display:flex;gap:4px;padding:6px 8px;background:#f5f7ff;border-bottom:1px solid #e3e7f5;flex-wrap:wrap;align-items:center">
-    <span style="font-size:.72rem;color:#78909c;margin-left:4px">טווח:</span>
-    <button class="list-range-btn vbtn${_listRange==='day'?' active':''}" data-r="day" onclick="setListRange('day')">יומי</button>
-    <button class="list-range-btn vbtn${_listRange==='week'?' active':''}" data-r="week" onclick="setListRange('week')">שבועי</button>
-    <button class="list-range-btn vbtn${_listRange==='month'?' active':''}" data-r="month" onclick="setListRange('month')">חודשי</button>
-    <button class="list-range-btn vbtn${_listRange==='range'?' active':''}" data-r="range" onclick="setListRange('range')">טווח חופשי</button>
-    ${_listRange==='range'?`<div style="display:flex;gap:6px;align-items:center;margin-right:6px">
-      <label style="font-size:.72rem;color:#546e7a">מ:</label><input type="date" id="cal-range-from" onchange="renderCal()" style="font-size:.75rem;padding:2px 4px;border:1px solid #c5cae9;border-radius:4px">
-      <label style="font-size:.72rem;color:#546e7a">עד:</label><input type="date" id="cal-range-to" onchange="renderCal()" style="font-size:.75rem;padding:2px 4px;border:1px solid #c5cae9;border-radius:4px">
-    </div>`:''}
-  </div>`;
-
-  if(!dates.length) return '<div class="card" style="padding:0;overflow:hidden">'+rangeBar+emptyMsg.replace('<div class="card"','<div')+'</div>';
-
-  let h='<div class="card" style="padding:0;overflow:hidden">'+rangeBar;
+  let h='<div class="card" style="padding:0;overflow:hidden">';
   dates.forEach(ds=>{
     const dayEvs=byDate[ds].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
     const isToday=ds===tday;
@@ -2380,7 +2362,8 @@ function renderCalList(evs, mDate){
         <span style="display:flex;gap:8px;align-items:center">
           ${hol?`<span style="font-size:.7rem">${hol.emoji} ${hol.name}</span>`:''}
           ${blk?`<span style="font-size:.7rem;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blk.icon} ${blk.reason} ✏️</span>`:`<span style="font-size:.65rem;opacity:.4;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')" title="חסום תאריך">🚫</span>`}
-          <span style="font-size:.72rem;opacity:.8">${dayEvs.length} פעילויות</span>
+          <span style="font-size:.72rem;opacity:.8">${dayEvs.filter(s=>s.st!=='can').length} פעילויות${dayEvs.filter(s=>s.st==='can').length?` <span style="color:#e57373">(${dayEvs.filter(s=>s.st==='can').length} בוטלו)</span>`:''}</span>
+          <span onclick="event.stopPropagation();_exportGardenWA(null,'${ds}')" style="cursor:pointer;font-size:.78rem;opacity:.7" title="שלח יום ב-WhatsApp">📋</span>
         </span>
       </div>`;
 
@@ -2446,10 +2429,14 @@ function renderCalList(evs, mDate){
 
 function _listRow(s, clr){
   const g=G(s.g);
-  const stC=s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':'#333';
-  return `<div style="display:grid;grid-template-columns:120px 1fr auto auto auto;align-items:center;gap:5px;padding:3px 6px;border-radius:4px;margin-bottom:2px;background:${s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light};border-right:3px solid ${clr.solid};cursor:pointer" onclick="openSP(${s.id})">
+  const isCan=s.st==='can';
+  const stC=s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':isCan?'#999':'#333';
+  const bgColor=s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':isCan?'#f5f5f5':clr.light;
+  const borderColor=isCan?'#bdbdbd':clr.solid;
+  const opacityStyle=isCan?'opacity:.55;':'';
+  return `<div style="display:grid;grid-template-columns:120px 1fr auto auto auto;align-items:center;gap:5px;padding:3px 6px;border-radius:4px;margin-bottom:2px;background:${bgColor};border-right:3px solid ${borderColor};cursor:pointer;${opacityStyle}" onclick="openSP(${s.id})">
     <div>
-      <div style="font-weight:700;font-size:.75rem;color:#1a237e">${gLink(g,'color:#1a237e;font-weight:700;font-size:.75rem')}</div>
+      <div style="font-weight:700;font-size:.75rem;color:#1a237e">${g.name}</div>
       <div style="font-size:.65rem;color:#78909c">${s.t?'⏰ '+fT(s.t):''}</div>
     </div>
     <div>
@@ -3598,6 +3585,34 @@ function clearSched(){
   ['s-city','s-cls','s-sup','s-th','s-tt','s-from','s-to','s-st','s-srch'].forEach(id=>document.getElementById(id).value='');
   sRefG();
 }
+function navSched(dir){
+  // Advance/retreat the s-from date by 1 day; set s-to to same day if it equals prev s-from
+  const fromEl=document.getElementById('s-from');
+  const toEl=document.getElementById('s-to');
+  if(!fromEl.value){
+    // Set today as start
+    fromEl.value=d2s(new Date());
+    toEl.value=d2s(new Date());
+    renderSched(); return;
+  }
+  const prev=fromEl.value;
+  const newFrom=d2s(addD(s2d(fromEl.value),dir));
+  if(!toEl.value||toEl.value===prev){
+    toEl.value=newFrom;
+  } else {
+    const span=Math.round((s2d(toEl.value)-s2d(fromEl.value))/(86400000));
+    toEl.value=d2s(addD(s2d(newFrom),span));
+  }
+  fromEl.value=newFrom;
+  sPage=1; renderSched();
+}
+function navSchedToday(){
+  const today=td();
+  const fromEl=document.getElementById('s-from');
+  const toEl=document.getElementById('s-to');
+  fromEl.value=today; toEl.value=today;
+  sPage=1; renderSched();
+}
 
 function renderGardens(){
   if(_gardensTab==='fixed'){ renderGardensFixed(); return; }
@@ -3663,6 +3678,21 @@ function renderGardens(){
   });
   document.getElementById('g-body').innerHTML=h||'<p style="color:#999">לא נמצאו צהרונים</p>';
   setTimeout(_fitScrollAreas,50);
+}
+
+function openGmExport(){
+  if(!gmGid) return;
+  const gids=gardenPair(gmGid)?gardenPair(gmGid).ids:[gmGid];
+  _exGids=gids;
+  const ws=monStart(gmD);
+  const fromDs=gmV==='day'?d2s(gmD):gmV==='week'?d2s(ws):d2s(new Date(gmD.getFullYear(),gmD.getMonth(),1));
+  const toDs=gmV==='day'?d2s(gmD):gmV==='week'?d2s(addD(ws,5)):d2s(new Date(gmD.getFullYear(),gmD.getMonth()+1,0));
+  document.getElementById('ex-d1').value=fromDs;
+  document.getElementById('ex-d2').value=toDs;
+  const ctx=`${G(gmGid).name} | ${fD(fromDs)}${fromDs!==toDs?' – '+fD(toDs):''}`;
+  (document.getElementById('ex-ctx')||{}).textContent=ctx;
+  document.getElementById('exm').classList.add('open');
+  setTimeout(()=>genExport(), 80);
 }
 
 function openGM(gid){
@@ -4430,6 +4460,20 @@ function _exportPairWA(gids){
   openExport();
 }
 
+function toggleExportMenu(){
+  const m=document.getElementById('export-menu');
+  if(!m) return;
+  const open=m.style.display!=='none';
+  m.style.display=open?'none':'block';
+  if(!open){
+    const close=e=>{if(!document.getElementById('export-main-btn')?.contains(e.target)&&!m.contains(e.target)){m.style.display='none';document.removeEventListener('click',close);}};
+    setTimeout(()=>document.addEventListener('click',close),10);
+  }
+}
+function closeExportMenu(){
+  const m=document.getElementById('export-menu');
+  if(m) m.style.display='none';
+}
 function openExport(){
   const ws=monStart(calD), we=addD(ws,5);
   const isWeek=(calV==='week');
@@ -5174,7 +5218,7 @@ function sucSaveEdit(){
   const actTags=document.querySelectorAll('#suc-acts-list .suc-act-tag');
   const savedActs=[...actTags].map(el=>el.dataset.act).filter(Boolean);
   if(savedActs.length) supEx[_sucName].acts=savedActs;
-  save(); refresh(); renderCal(); renderSched();
+  save(); refresh();
   if(_appMode==='purch') renderPurchSuppliers();
   ['dash-sup','cal-sup','s-sup','ns-sup','es-sup'].forEach(id=>{
     const el=document.getElementById(id); if(!el) return;
