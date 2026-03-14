@@ -6,10 +6,16 @@ const FIREBASE_POLL_INTERVAL = 30000;
 
 // Safe localStorage wrapper (handles Tracking Prevention blocking)
 const _safeLS = {
-  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
-  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){ window['_mem_'+k]=v; } },
-  getItem(k){ return this.get(k) || window['_mem_'+k] || null; },
-  setItem(k,v){ this.set(k,v); window['_mem_'+k]=String(v); }
+  get(k){ 
+    try{ const v=localStorage.getItem(k); if(v) return v; }catch(e){}
+    return window['_mem_'+k]||null; // fallback to in-memory
+  },
+  set(k,v){ 
+    window['_mem_'+k]=String(v); // always set in-memory first
+    try{ localStorage.setItem(k,v); }catch(e){}
+  },
+  getItem(k){ return this.get(k); },
+  setItem(k,v){ this.set(k,v); }
 };
 let _fbLastSaveTs = parseInt(_safeLS.get('_fbLastSaveTs')||'0');
 let _fbLastLoadTs = parseInt(_safeLS.get('_fbLastLoadTs')||'0');
@@ -266,7 +272,14 @@ async function fbLoadNow() {
   }
 }
 
-function ghAutoSave() { firebaseAutoSave(); }
+function ghAutoSave(immediate) { 
+  if(immediate){ 
+    clearTimeout(window._fbTimer);
+    saveToFirebase(true).catch(()=>{}); 
+  } else { 
+    firebaseAutoSave(); 
+  } 
+}
 // ══════════════════════════════════════════════
 
 
@@ -526,7 +539,7 @@ function deleteInvoiceFromModal(){
   if(!_editInvId) return;
   if(!confirm('למחוק מסמך זה לגמרי?')) return;
   INVOICES = INVOICES.filter(i=>i.id!==_editInvId);
-  save(); CM('invoice-m'); renderInvoices(); refreshPurchDash();
+  save(true); CM('invoice-m'); renderInvoices(); refreshPurchDash();
   showToast('🗑️ המסמך נמחק');
 }
 function resetInvFilter(){
@@ -945,9 +958,8 @@ function createMissingSupCards(){
 function deleteInvoice(id){
   if(!confirm('למחוק חשבונית זו?')) return;
   INVOICES=INVOICES.filter(i=>i.id!==id);
-  // Remove file meta from invoice data
   ['order','tx','tax'].forEach(sec => fileDelete(fileKey(id,sec)).catch(()=>{}));
-  save(); renderInvoices(); refreshPurchDash();
+  save(true); renderInvoices(); refreshPurchDash(); // immediate=true → saves to Firebase now
 }
 
 // ── Render invoices table ──────────────────────────────
@@ -1361,7 +1373,7 @@ function migrateSupActSplit(){
   });
   if(changed>0){ save(); console.log('migrateSupAct: fixed '+changed); }
 }
-function save(){
+function save(immediate){
   if(false){ showToast('⚠️ מצב ארכיון — לא ניתן לשמור שינויים'); return; }
   try{
     // Save ALL entries with ALL fields — works with or without SRAWS
@@ -1375,7 +1387,7 @@ function save(){
     _safeLS.setItem('ganv5',_json);
     // Also update year key if meta exists
     try{const _m=JSON.parse(localStorage.getItem('ganv5_meta')||'null');if(_m&&_m.currentYear)localStorage.setItem('ganv5_y_'+_m.currentYear,_json);}catch(_){}
-    try{ghAutoSave();}catch(_){}
+    try{ghAutoSave(immediate===true);}catch(_){}
     save._cnt=(save._cnt||0)+1;
     if(save._cnt%30===0){
       try{
@@ -1549,6 +1561,8 @@ window.onload = function(){
     renderManagers();
     updCounts();
     odUpdateUI();
+    refreshPurchDash(); // ensure purch dashboard is populated
+    renderPurchSuppliers(); // ensure supplier list is populated
     _fbStartPolling();
     setTimeout(_fitScrollAreas, 100);
 
