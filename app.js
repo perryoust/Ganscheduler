@@ -5242,31 +5242,37 @@ function downloadCSV(data,fname){
 }
 
 function getAllSup(){
-  // Build supplier list directly — bypasses any mergedAway issues in getAllBaseSups
-  if(typeof SUPBASE==='undefined'||typeof supEx==='undefined'){
-    console.warn('getAllSup: SUPBASE or supEx undefined');
-    return [];
-  }
+  if(typeof SUPBASE==='undefined'||typeof supEx==='undefined') return [];
+  
+  // Merged-away: exact full names that were merged into another supplier
+  const mergedAway = new Set(supEx['__merged_away']||[]);
+  // Build a set of all merged-away BASE names (to hide entire supplier groups)
+  const mergedBases = new Set([...mergedAway].map(n=>supBase(n)));
+  
   const map={};
-  // 1. Always include all SUPBASE suppliers
+
+  // 1. Add SUPBASE suppliers — skip if exact name OR base is merged away
   SUPBASE.forEach(s=>{
+    if(mergedAway.has(s.name)) return;      // this exact entry merged away
     const base=supBase(s.name);
+    if(mergedBases.has(base)&&!map[base]) return; // entire base group merged, and no main yet
     const act=supAct(s.name);
     if(!map[base]) map[base]={name:base,phone:s.phone,acts:new Set(),fullNames:new Set()};
     if(act) map[base].acts.add(act);
     map[base].fullNames.add(s.name);
     if(!map[base].phone&&s.phone) map[base].phone=s.phone;
   });
-  // 2. Include custom suppliers (__c) — only skip if explicitly merged INTO one already in map
-  const mergedAway=new Set(supEx['__merged_away']||[]);
+
+  // 2. Add custom suppliers (__c) — skip if merged away
   (supEx['__c']||[]).forEach(s=>{
+    if(mergedAway.has(s.name)) return;
     const base=supBase(s.name);
-    // Skip only if this exact name is merged away AND it's not already a SUPBASE supplier
-    if(mergedAway.has(s.name)&&!map[base]) return;
+    if(mergedBases.has(base)&&!map[base]) return;
     if(!map[base]) map[base]={name:base,phone:s.phone||'',acts:new Set(),fullNames:new Set()};
     map[base].fullNames.add(s.name);
     if(!map[base].phone&&s.phone) map[base].phone=s.phone;
   });
+
   return Object.values(map).map(m=>({
     ...m,
     acts:[...m.acts].sort((a,b)=>a.localeCompare(b,'he')),
@@ -5344,10 +5350,10 @@ function repairAllSuppliers(){
   // 1. Scan all schedule entries — ensure their base supplier is registered
   const schBases = new Set();
   SCH.forEach(s=>{ if(s.a) schBases.add(supBase(s.a)); });
+  const mergedBases = new Set([...mergedAway].map(n=>supBase(n)));
   schBases.forEach(base=>{
     if(!base) return;
-    // Skip if this base matches any exact merged name
-    if([...mergedAway].some(m=>supBase(m)===base)) return;
+    if(mergedBases.has(base)) return; // this base was merged away
     if(inSupbase.has(base)) return;
     if(inC.has(base)) return;
     supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base]?.ph1||''});
@@ -5360,8 +5366,7 @@ function repairAllSuppliers(){
   // 2. Scan INVOICES
   INVOICES.forEach(inv=>{
     const base=inv.supName?supBase(inv.supName):'';
-    if(!base||inSupbase.has(base)||inC.has(base)) return;
-    if([...mergedAway].some(m=>supBase(m)===base)) return; // merged away
+    if(!base||mergedBases.has(base)||inSupbase.has(base)||inC.has(base)) return;
     supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base]?.ph1||''});
     if(!supEx[base]) supEx[base]={};
     if(supEx[base].isPurch===undefined) supEx[base].isPurch=true;
@@ -5742,8 +5747,10 @@ function doMerge(){
     if(supEx['__c']) supEx['__c']=supEx['__c'].filter(s=>s.name!==old&&s.name!==oldBase&&supBase(s.name)!==oldBase);
 
     // 5. Mark as merged-away
-    // Store exact full names only (not base names, to avoid hiding main supplier)
+    // Store exact name AND all SUPBASE variants of this base
     mergedAway.add(old);
+    // Also add all SUPBASE entries that share this base (e.g. "חיים בתנועה - ריקוד", etc.)
+    SUPBASE.forEach(s=>{ if(supBase(s.name)===oldBase && s.name!==main) mergedAway.add(s.name); });
   });
 
   supEx['__merged_away']=[...mergedAway];
