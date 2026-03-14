@@ -536,8 +536,8 @@ function openNewInvoice(id, presetSup){
   }
   document.getElementById('inv-new-sup-wrap').style.display='none';
   // Clear new supplier fields (fix 18 - don't keep old supplier data)
-  ['inv-ns-name','inv-ns-tax','inv-ns-phone','inv-ns-contact','inv-ns-email','inv-ns-addr'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.value='';
+  ['inv-ns-name','inv-ns-tax','inv-ns-phone','inv-ns-contact','inv-ns-email','inv-ns-addr'].forEach(fid=>{
+    const el=document.getElementById(fid); if(el) el.value='';
   });
   const nsEntity=document.getElementById('inv-ns-entity'); if(nsEntity) nsEntity.value='';
   const nsActs=document.getElementById('inv-ns-acts'); if(nsActs) nsActs.checked=false;
@@ -587,7 +587,15 @@ function openNewInvoice(id, presetSup){
   // Delete button - show only when editing
   const delBtn = document.getElementById('inv-del-btn');
   if(delBtn) delBtn.style.display = id ? 'inline' : 'none';
-  // Reset acts fields visibility
+  // Reset new supplier form
+  const nsWrap=document.getElementById('inv-new-sup-wrap');
+  if(nsWrap) nsWrap.style.display='none';
+  const supTxtEl=document.getElementById('inv-sup-text');
+  // Don't reset if presetSup is being used (already set above)
+  ['inv-ns-name','inv-ns-tax','inv-ns-phone','inv-ns-contact','inv-ns-email','inv-ns-addr'].forEach(fid=>{
+    const el=document.getElementById(fid); if(el) el.value='';
+  });
+  const nsEntity2=document.getElementById('inv-ns-entity'); if(nsEntity2) nsEntity2.value='';
   const nsActsChk = document.getElementById('inv-ns-acts');
   if(nsActsChk) nsActsChk.checked=false;
   const nsActsFields = document.getElementById('inv-ns-acts-fields');
@@ -647,9 +655,17 @@ function invNsActsChg(){
 }
 function invSupTextChg(){
   const val = document.getElementById('inv-sup-text')?.value||'';
-  const isNew = val==='__new__' || (!getPurchSuppliers().find(s=>s.name===val) && val.trim().length>0);
-  document.getElementById('inv-new-sup-wrap').style.display = (val==='__new__') ? 'block' : 'none';
-  if(val && val!=='__new__'){
+  const showNew = val==='__new__';
+  document.getElementById('inv-new-sup-wrap').style.display = showNew ? 'block' : 'none';
+  if(showNew){
+    // Clear new supplier form
+    ['inv-ns-name','inv-ns-tax','inv-ns-phone','inv-ns-contact','inv-ns-email','inv-ns-addr'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value='';
+    });
+    const nsE=document.getElementById('inv-ns-entity'); if(nsE) nsE.value='';
+    const nsA=document.getElementById('inv-ns-acts'); if(nsA){ nsA.checked=false; invNsActsChg(); }
+    setTimeout(()=>document.getElementById('inv-ns-name')?.focus(),50);
+  } else if(val && val!=='__new__'){
     const ex = supEx[val]||{};
     invUpdateEntityType(ex.entityType||'');
   }
@@ -742,9 +758,11 @@ function saveVatRate(){
 async function saveInvoice(){
   // Get supplier — from text input (autocomplete) or new supplier form
   let supName = (document.getElementById('inv-sup-text')?.value||'').trim();
-  const isNewSup = supName==='__new__' || (supName && !getPurchSuppliers().find(s=>s.name===supName));
+  if(supName==='__new__') supName=''; // will be set from ns-name below
+  const isNewSup = !supName || (!getPurchSuppliers().find(s=>s.name===supName) && !getAllSup().find(s=>s.name===supName));
   const nsWrap = document.getElementById('inv-new-sup-wrap');
-  if(nsWrap && nsWrap.style.display!=='none'){
+  const nsName = document.getElementById('inv-ns-name')?.value.trim();
+  if(nsWrap && nsWrap.style.display!=='none' && nsName){
     // New supplier form is open
     const nsName = document.getElementById('inv-ns-name').value.trim();
     if(!nsName){ alert('יש להזין שם ספק'); return; }
@@ -1201,12 +1219,9 @@ function renderPurchSuppliers(){
 }
 
 function openNewPurchSupplier(){
-  // Save invoice state, close invoice modal, open supplier modal
-  // After saving supplier, reopen invoice with supplier pre-filled
-  window._invPendingNewSup = true;
-  // Close invoice modal temporarily
-  document.getElementById('invoice-m')?.classList.remove('open');
-  openSupModal(null);
+  // Set text to __new__ to show inline form within invoice modal
+  const txt = document.getElementById('inv-sup-text');
+  if(txt){ txt.value='__new__'; invSupTextChg(); }
 }
 function openSupCardFromPurch(name){
   switchMode('act');
@@ -5874,7 +5889,7 @@ function sucRefreshInfo(){
       </div>
       ${ex.notes?`<div style="grid-column:1/-1"><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">📝 הערות</div><div>${ex.notes}</div></div>`:''}
     </div>
-    ${isPurchSupplier(name)&&invCnt>0?renderSupPurchDocsSection(name):''}`;
+    `;  // docs shown in suc-docs-section tab
 }
 function sucRefreshActFilt(){
   const acts=getSupActs(_sucName);
@@ -6115,6 +6130,8 @@ function exportSupPurchDocs(name){
 
 function renderSupCard(){
   if(!_sucName) return;
+  // Only render activities if on acts tab
+  if(_sucTab!=='acts'&&document.getElementById('suc-acts-section')?.style.display==='none') return;
   const from=document.getElementById('suc-from').value;
   const to=document.getElementById('suc-to').value;
   const st=document.getElementById('suc-st').value;

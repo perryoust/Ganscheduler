@@ -1662,11 +1662,34 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         </div>
       </div>
       <!-- New supplier inline -->
-      <div id="inv-new-sup-wrap" style="display:none;margin-top:9px;background:#e8f5e9;border-radius:7px;padding:10px;border:1.5px solid #a5d6a7;text-align:center">
-        <div style="font-size:.78rem;color:#2e7d32;font-weight:700;margin-bottom:8px">➕ הוספת ספק חדש</div>
-        <div style="font-size:.74rem;color:#546e7a;margin-bottom:10px">לחץ להוסיף ספק — לאחר השמירה תחזור לטופס המסמך עם הספק ממולא</div>
-        <button type="button" class="btn bg" onclick="openNewPurchSupplier()">🏢 פתח טופס ספק חדש</button>
-        <button type="button" class="btn bs" style="margin-right:8px" onclick="document.getElementById('inv-new-sup-wrap').style.display='none';document.getElementById('inv-sup-text').value=''">ביטול</button>
+      <div id="inv-new-sup-wrap" style="display:none;margin-top:9px;background:#fff;border-radius:7px;padding:10px;border:1.5px solid #a5d6a7">
+        <div style="font-size:.76rem;font-weight:700;color:#2e7d32;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+          <span>➕ ספק חדש</span>
+          <button type="button" style="background:none;border:none;cursor:pointer;color:#999;font-size:.9rem" onclick="document.getElementById('inv-new-sup-wrap').style.display='none';document.getElementById('inv-sup-text').value=''">✕</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+          <div class="fg"><label>שם ספק *</label><input type="text" id="inv-ns-name" placeholder="שם הספק" style="width:100%"></div>
+          <div class="fg"><label>סוג ישות *</label>
+            <select id="inv-ns-entity" style="width:100%" onchange="invEntityTypeChg()">
+              <option value="">-- בחר סוג --</option>
+              <option value="עוסק מורשה">עוסק מורשה</option>
+              <option value="חברה בעמ">חברה בע"מ</option>
+              <option value="עוסק פטור">עוסק פטור</option>
+              <option value="עמותה">עמותה</option>
+            </select>
+          </div>
+          <div class="fg"><label>📞 טלפון</label><input type="text" id="inv-ns-phone" placeholder="טלפון" style="width:100%"></div>
+          <div class="fg"><label>👤 איש קשר</label><input type="text" id="inv-ns-contact" placeholder="איש קשר" style="width:100%"></div>
+          <div class="fg"><label>🏛️ ח.פ / מספר עוסק</label><input type="text" id="inv-ns-tax" placeholder="מספר עוסק" style="width:100%"></div>
+          <div class="fg"><label>📧 אימייל</label><input type="text" id="inv-ns-email" placeholder="אימייל" style="width:100%"></div>
+          <div class="fg" style="grid-column:1/-1"><label>📍 כתובת</label><input type="text" id="inv-ns-addr" placeholder="כתובת הספק" style="width:100%"></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:.78rem;cursor:pointer;margin-top:8px;background:#e8f5e9;padding:6px 10px;border-radius:6px">
+          <input type="checkbox" id="inv-ns-acts" style="accent-color:#2e7d32;width:15px;height:15px" onchange="invNsActsChg()"> 🎨 שייך גם לניהול חוגים
+        </label>
+        <div id="inv-ns-acts-fields" style="display:none;margin-top:6px;background:#f1f8e9;border-radius:6px;padding:7px;border:1px solid #a5d6a7">
+          <div class="fg"><label>🏷️ כינוי (יוצג בשיבוץ)</label><input type="text" id="inv-ns-alias" placeholder="כינוי קצר..." style="width:100%"></div>
+        </div>
       </div>
     </div>
 
