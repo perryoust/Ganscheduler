@@ -145,7 +145,7 @@ tr:hover td{background:#f5f7ff}
 .pairs-4col .pair-card{margin-bottom:0}
 
 /* mob-btn-row on desktop — normal inline flow */
-@media(min-width:769px){.mob-btn-row{display:contents}}
+@media(min-width:769px){.mob-btn-row{display:contents}#mob-nav-purch{display:none!important}}
 @media(max-width:900px){.pairs-4col{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.pairs-4col{grid-template-columns:1fr}}
 .pgr-qacts{display:flex;gap:2px}

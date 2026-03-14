@@ -1170,7 +1170,7 @@ function renderPurchSuppliers(){
   }
 
   // Cards view
-  el.innerHTML=list.map(s=>{
+  el.innerHTML=list.map((s,idx)=>{
     const base=s.name;
     const ex=supBaseEx(base);
     const cnt=supBaseCnt(base);
@@ -1178,8 +1178,7 @@ function renderPurchSuppliers(){
     const phone=ex.ph1||s.phone||'';
     const cntDone=SCH.filter(sc=>supBase(sc.a)===base&&sc.st==='done').length;
     const isAct = isActSupplier(base);
-    const cidx=idx; // use index for safe onclick
-    return `<div class="sucard" style="cursor:pointer;display:flex;flex-direction:column;justify-content:space-between" onclick="psupOpen(${cidx})">
+    return `<div class="sucard" style="cursor:pointer;display:flex;flex-direction:column;justify-content:space-between" onclick="psupOpen(${idx})">
       <div>
         <div style="font-weight:800;color:#1a237e;font-size:.88rem;line-height:1.35;margin-bottom:6px;word-break:break-word">
           📚 ${base}
@@ -5347,7 +5346,7 @@ function renderSup(){
         +`<td style="padding:6px 8px;text-align:center;font-weight:700;color:#1565c0;border-bottom:1px solid #e8eaf6">${cnt}</td>`
         +`<td style="padding:6px 8px;border-bottom:1px solid #e8eaf6;font-size:.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:0">${acts.join(', ')}</td>`
         +`<td style="padding:6px 8px;text-align:center;border-bottom:1px solid #e8eaf6;white-space:nowrap">`
-        +`<button class="btn bp bsm" style="font-size:.65rem" onclick="event.stopPropagation();openSupExport('${safeBase}')">📊</button> `
+        +`<button class="btn bp bsm" style="font-size:.65rem" onclick="event.stopPropagation();supOpen(${idx});setTimeout(()=>openSupExportFromCard(),200)">📊</button> `
         +`<button class="btn bo bsm" style="font-size:.65rem" onclick="event.stopPropagation();supEdit(${idx})">✏️</button>`
         +`</td></tr>`;
     });
@@ -5358,14 +5357,14 @@ function renderSup(){
   }
 
   document.getElementById('su-body').className='sugrid scroll-area';
+  _supCurrentList = all;
   let h='';
-  all.forEach(s=>{
+  all.forEach((s,idx)=>{
     const base=s.name; // already a base name from getAllBaseSups
     const ex=supBaseEx(base);
     const cnt=supBaseCnt(base);
     const acts=getSupActs(base);
     const phone=ex.ph1||s.phone||'';
-    const safeBase=JSON.stringify(base); // safe JSON string including quotes
     const cntDone=SCH.filter(sc=>supBase(sc.a)===base&&sc.st==='done').length;
     const cntCan=SCH.filter(sc=>supBase(sc.a)===base&&sc.st==='can').length;
     h+=`<div class="sucard" style="cursor:pointer;display:flex;flex-direction:column;justify-content:space-between" onclick="supOpen(${idx})">
@@ -5387,7 +5386,7 @@ function renderSup(){
           ${cntCan?`<span style="color:#c62828;font-size:.72rem">❌ ${cntCan}</span>`:''}
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0">
-          <button class="btn bp bsm" style="font-size:.65rem" onclick="event.stopPropagation();openSupExport('${safeBase}')">📊</button>
+          <button class="btn bp bsm" style="font-size:.65rem" onclick="event.stopPropagation();supOpen(${idx});setTimeout(()=>openSupExportFromCard(),200)">📊</button>
           <button class="btn bo bsm" style="font-size:.65rem" onclick="event.stopPropagation();supEdit(${idx})">✏️</button>
         </div>
       </div>
