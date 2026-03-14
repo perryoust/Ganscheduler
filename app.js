@@ -265,10 +265,12 @@ function switchMode(mode){
   document.getElementById('modeBtn-act').classList.toggle('active', mode==='act');
   document.getElementById('modeBtn-purch').classList.toggle('active', mode==='purch');
   // Mobile nav: show correct bar
-  const mnAct = document.getElementById('mob-nav');
+  // Mobile nav — only manipulate on mobile screens (CSS handles desktop hide)
   const mnPurch = document.getElementById('mob-nav-purch');
-  if(mnAct) mnAct.style.display = mode==='act' ? '' : 'none';
   if(mnPurch) mnPurch.style.display = mode==='purch' ? 'block' : 'none';
+  // For act nav: remove any inline style so CSS @media rule controls it
+  const mnAct = document.getElementById('mob-nav');
+  if(mnAct) mnAct.style.display = '';  // let CSS decide: hidden on desktop, block on mobile
   // Show panels
   if(mode==='act'){
     // Hide all purch panels
@@ -293,7 +295,10 @@ function SPT(t){
     if(panelEl) panelEl.style.display = x===t ? 'block' : 'none';
   });
   if(t==='pinvoices'){ fillPiSupFilter(); renderInvoices(); }
-  if(t==='psup') renderPurchSuppliers();
+  if(t==='psup'){
+    // Small delay to ensure data is loaded
+    setTimeout(renderPurchSuppliers, 50);
+  }
   if(t==='pdash') refreshPurchDash();
 }
 
@@ -1104,10 +1109,15 @@ function emergencyFixSuppliers(){
 function renderPurchSuppliers(){
   const el = document.getElementById('psu-body');
   if(!el) return;
+  if(typeof SUPBASE==='undefined'||!Array.isArray(SUPBASE)||SUPBASE.length===0){
+    el.innerHTML='<div style="color:#aaa;padding:20px;text-align:center">טוען נתונים...</div>';
+    setTimeout(renderPurchSuppliers, 500);
+    return;
+  }
   const srch = (document.getElementById('psu-srch')?.value||'').toLowerCase();
   const sortMode = document.getElementById('psu-sort')?.value||'name';
   const allSups = getAllSup();
-  console.log('renderPurchSuppliers: getAllSup returned', allSups.length, 'suppliers, __c:', (supEx['__c']||[]).length, '__merged_away:', (supEx['__merged_away']||[]).length);
+  console.log('renderPurchSuppliers: getAllSup returned', allSups.length, ', SUPBASE:', SUPBASE.length);
   let list = allSups.filter(s=>{
     const base=s.name||'';
     if(srch && !base.toLowerCase().includes(srch)) return false;
@@ -5120,7 +5130,10 @@ function downloadCSV(data,fname){
 
 function getAllSup(){
   // Build supplier list directly — bypasses any mergedAway issues in getAllBaseSups
-  if(typeof SUPBASE==='undefined'||typeof supEx==='undefined') return [];
+  if(typeof SUPBASE==='undefined'||typeof supEx==='undefined'){
+    console.warn('getAllSup: SUPBASE or supEx undefined');
+    return [];
+  }
   const map={};
   // 1. Always include all SUPBASE suppliers
   SUPBASE.forEach(s=>{
