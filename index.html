@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="קידס שיבוץ">
 <meta name="theme-color" content="#1a237e">
 <title>טומשין קידס</title>
-<link rel="stylesheet" href="styles.css?v=13">
+<link rel="stylesheet" href="styles.css?v=14">
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -1641,7 +1641,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <div style="display:flex;gap:6px;align-items:center">
             <input type="text" id="inv-sup-text" list="inv-sup-datalist" placeholder="הקלד שם ספק..." style="flex:1" oninput="invSupTextChg()" autocomplete="off">
             <datalist id="inv-sup-datalist"></datalist>
-            <button type="button" class="btn bg bsm" onclick="openSupModal(null);_invPendingNewSup=true;" title="ספק חדש">➕</button>
+            <button type="button" class="btn bg bsm" onclick="document.getElementById('inv-new-sup-wrap').style.display='block';document.getElementById('inv-ns-name').focus()" title="ספק חדש">➕</button>
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;min-width:140px">
@@ -2095,7 +2095,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<script src="data.js?v=13"></script>
-<script src="app.js?v=13"></script>
+<script src="data.js?v=14"></script>
+<script src="app.js?v=14"></script>
 </body>
 </html>

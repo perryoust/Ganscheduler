@@ -5860,7 +5860,9 @@ function openSupCard(name){
   sto.value=d2s(new Date(now.getFullYear(),now.getMonth()+1,0));
   document.getElementById('suc-st').value='';
   sucRefreshActFilt();
-  if(isActSupplier(_sucName)) renderSupCard();
+  // Only render activities if supplier has actual schedule entries
+  const _hasSchEntries = SCH.some(s=>supBase(s.a)===_sucName);
+  if(_hasSchEntries) renderSupCard();
   document.getElementById('sucard-m').classList.add('open');
 }
 function sucRefreshInfo(){
@@ -6143,8 +6145,9 @@ function exportSupPurchDocs(name){
 
 function renderSupCard(){
   if(!_sucName) return;
-  // Only render activities for חוגים suppliers
-  if(!isActSupplier(_sucName)) { 
+  // Only render activities if supplier has schedule entries
+  const hasSchData = SCH.some(s=>supBase(s.a)===_sucName);
+  if(!hasSchData) { 
     const el=document.getElementById('suc-body'); 
     if(el) el.innerHTML=''; 
     return; 
