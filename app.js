@@ -4,11 +4,18 @@
 const FIREBASE_DB_URL = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data.json';
 const FIREBASE_POLL_INTERVAL = 30000;
 
-let _fbLastSaveTs = parseInt(localStorage.getItem('_fbLastSaveTs')||'0');
-let _fbLastLoadTs = parseInt(localStorage.getItem('_fbLastLoadTs')||'0');
+// Safe localStorage wrapper (handles Tracking Prevention blocking)
+const _safeLS = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){ window['_mem_'+k]=v; } },
+  getItem(k){ return this.get(k) || window['_mem_'+k] || null; },
+  setItem(k,v){ this.set(k,v); window['_mem_'+k]=String(v); }
+};
+let _fbLastSaveTs = parseInt(_safeLS.get('_fbLastSaveTs')||'0');
+let _fbLastLoadTs = parseInt(_safeLS.get('_fbLastLoadTs')||'0');
 
-function _setFbSaveTs(ts){ _fbLastSaveTs=ts; try{localStorage.setItem('_fbLastSaveTs',ts);}catch(e){} _fbUpdateStatus(); }
-function _setFbLoadTs(ts){ _fbLastLoadTs=ts; try{localStorage.setItem('_fbLastLoadTs',ts);}catch(e){} _fbUpdateStatus(); }
+function _setFbSaveTs(ts){ _fbLastSaveTs=ts; _safeLS.setItem('_fbLastSaveTs',String(ts)); _fbUpdateStatus(); }
+function _setFbLoadTs(ts){ _fbLastLoadTs=ts; _safeLS.setItem('_fbLastLoadTs',String(ts)); _fbUpdateStatus(); }
 let _fbPollTimer = null;
 let _fbTimer = null;
 let _fbSyncing = false;
@@ -93,8 +100,8 @@ async function _processFirebaseLoad(r, silent, force) {
   if (appData && Object.keys(appData).length > 0) {
     // Always load from Firebase if: forced, or cloud is newer, or no local timestamp
     // Always load from Firebase — the cloud is source of truth
-    localStorage.setItem('ganv5', JSON.stringify(appData));
-    localStorage.setItem('ganv5_local_ts', String(cloudTs));
+    _safeLS.setItem('ganv5', JSON.stringify(appData));
+    _safeLS.setItem('ganv5_local_ts', String(cloudTs));
     _setFbLoadTs(Date.now());
     _setFbSaveTs(cloudTs);
     if (!silent) _fbUpdateStatus();
@@ -140,7 +147,7 @@ async function loadFromFirebase(silent, force) {
 // ── Save to Firebase ──────────────────────────
 async function saveToFirebase(silent) {
   try {
-    const raw = localStorage.getItem('ganv5');
+    const raw = _safeLS.get('ganv5') || localStorage.getItem('ganv5');
     if (!raw) return false;
     _fbSyncing = true;
     _fbUpdateStatus();
@@ -158,7 +165,7 @@ async function saveToFirebase(silent) {
     });
     if (r.ok) {
       _setFbSaveTs(nowTs);
-      localStorage.setItem('ganv5_local_ts', String(nowTs));
+      _safeLS.setItem('ganv5_local_ts', String(nowTs));
       if (!silent) showToast('✅ סונכרן ל-Firebase ' + _fmtTs(nowTs));
       return true;
     }
@@ -208,7 +215,7 @@ function _fbStartPolling() {
         // Apply new data without page reload
         const appData = d.data || d;
         if (appData && Object.keys(appData).length > 0) {
-          localStorage.setItem('ganv5', JSON.stringify(appData));
+          _safeLS.setItem('ganv5', JSON.stringify(appData));
           _setFbSaveTs(cloudTs);
           _setFbLoadTs(Date.now());
           // Re-apply data to live state
@@ -1293,7 +1300,7 @@ function load(){
     const meta=JSON.parse(localStorage.getItem('ganv5_meta')||'null');
     let st=null;
     if(meta&&meta.currentYear) st=localStorage.getItem('ganv5_y_'+meta.currentYear);
-    if(!st) st=localStorage.getItem('ganv5');
+    if(!st) st=_safeLS.get('ganv5') || localStorage.getItem('ganv5');
     if(st){ _applyYearData(JSON.parse(st)); }
     else { initPairs();clusters=JSON.parse(JSON.stringify(INIT_CLUSTERS));activeGardens=null; }
   }catch(e){initPairs();clusters=JSON.parse(JSON.stringify(INIT_CLUSTERS));activeGardens=null;}
@@ -1365,7 +1372,7 @@ function save(){
       activeGardens:activeGardens?[...activeGardens]:null
     };
     const _json=JSON.stringify(data);
-    localStorage.setItem('ganv5',_json);
+    _safeLS.setItem('ganv5',_json);
     // Also update year key if meta exists
     try{const _m=JSON.parse(localStorage.getItem('ganv5_meta')||'null');if(_m&&_m.currentYear)localStorage.setItem('ganv5_y_'+_m.currentYear,_json);}catch(_){}
     try{ghAutoSave();}catch(_){}
