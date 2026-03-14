@@ -1255,7 +1255,7 @@ function renderPurchSuppliers(){
         +`<td style="padding:6px 10px;font-weight:700;color:#1a237e">${base}`
         +`${isActSupplier(base)?' <span style="font-size:.65rem;color:#2e7d32">🎨</span>':''}`
         +`</td>`
-        +`<td style="padding:6px 8px;text-align:center;color:#1565c0;font-weight:700">${isAct?cnt:'—'}</td>`
+        +`<td style="padding:6px 8px;text-align:center;color:#1565c0;font-weight:700">${isActSupplier(base)?cnt:'—'}</td>`
         +`<td style="padding:6px 8px;color:#2e7d32">${phone||'—'}</td>`
         +`<td style="padding:6px 8px;font-size:.76rem;color:#546e7a">${ex.entityType||''}</td>`
         +`<td style="padding:6px 8px;white-space:nowrap" onclick="event.stopPropagation()">`
@@ -5424,7 +5424,7 @@ function repairAllSuppliers(){
   // 2. Scan INVOICES
   INVOICES.forEach(inv=>{
     const base=inv.supName?supBase(inv.supName):'';
-    if(!base||mergedBases.has(base)||inSupbase.has(base)||inC.has(base)) return;
+    if(!base||mergedAway.has(base)||inSupbase.has(base)||inC.has(base)) return;
     supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base]?.ph1||''});
     if(!supEx[base]) supEx[base]={};
     if(supEx[base].isPurch===undefined) supEx[base].isPurch=true;
@@ -5743,6 +5743,64 @@ function openMerge(){
   }).join('');
   document.getElementById('mrgm').classList.add('open');
 }
+// ────────────────────────────────────────────────────────────────────────────
+// auditMergedSuppliers — הרץ מה-console לדוח מלא על כל ספק ממוזג
+// Usage: auditMergedSuppliers()
+// ────────────────────────────────────────────────────────────────────────────
+function auditMergedSuppliers(){
+  const mergedAway = supEx['__merged_away']||[];
+  const allSups = getAllSup();
+  const lines = [];
+
+  lines.push('=== AUDIT: ספקים ממוזגים ===');
+  lines.push(`mergedAway רשימה (${mergedAway.length}): ${mergedAway.join(', ')||'ריק'}`);
+  lines.push('');
+
+  // For every supplier, show if they have _mergedFrom
+  const suppliersWithMerge = allSups.filter(s=>{
+    const ex = supEx[s.name]||supEx[supBase(s.name)]||{};
+    return (ex._mergedFrom||[]).length>0;
+  });
+
+  lines.push(`=== ספקים עם _mergedFrom (${suppliersWithMerge.length}) ===`);
+  suppliersWithMerge.forEach(s=>{
+    const base = s.name;
+    const ex = supEx[base]||{};
+    const acts = getSupActs(base);
+    const schCnt = SCH.filter(sc=>supBase(sc.a)===base).length;
+    const invCnt = (typeof INVOICES!=='undefined'?INVOICES:[]).filter(i=>supBase(i.supName||'')===base).length;
+    lines.push(`\n► ${base}`);
+    lines.push(`  _mergedFrom: [${(ex._mergedFrom||[]).join(', ')}]`);
+    lines.push(`  isAct: ${ex.isAct} | isPurch: ${ex.isPurch}`);
+    lines.push(`  acts (${acts.length}): [${acts.join(', ')}]`);
+    lines.push(`  SCH שיבוצים: ${schCnt} | חשבוניות: ${invCnt}`);
+    lines.push(`  בלוח חוגים: ${isActSupplier(base)?'✅ כן':'❌ לא'} | בלוח רכש: ${isPurchSupplier(base)?'✅ כן':'❌ לא'}`);
+  });
+
+  lines.push('\n=== mergedAway — פירוט כל ספק שמוסתר ===');
+  mergedAway.forEach(name=>{
+    const base = supBase(name);
+    const schOrphans = SCH.filter(s=>supBase(s.a)===base).length;
+    const invOrphans = (typeof INVOICES!=='undefined'?INVOICES:[]).filter(i=>supBase(i.supName||'')===base).length;
+    const status = (schOrphans||invOrphans)?'⚠️ יש רשומות יתומות!':'✅ נקי';
+    lines.push(`  ${name} (base: ${base}) → ${status}${schOrphans?` SCH:${schOrphans}`:''}${invOrphans?` INV:${invOrphans}`:''}`);
+  });
+
+  lines.push('\n=== כל הספקים — סיכום ===');
+  allSups.forEach(s=>{
+    const base=s.name;
+    const acts=getSupActs(base);
+    const cnt=SCH.filter(sc=>supBase(sc.a)===base).length;
+    lines.push(`${base}: isAct=${isActSupplier(base)} isPurch=${isPurchSupplier(base)} acts=[${acts.join(',')}] SCH=${cnt}`);
+  });
+
+  const report = lines.join('\n');
+  console.log(report);
+  // Also show a toast summary
+  showToast(`🔍 Audit: ${suppliersWithMerge.length} ספקים ממוזגים, ${mergedAway.length} מוסתרים — ראה console`);
+  return report;
+}
+
 function doMerge(){
   const mainIdx=document.getElementById('mrg-main').value;
   if(mainIdx===''){alert('בחר ספק ראשי');return;}

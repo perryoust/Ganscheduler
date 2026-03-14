@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="קידס שיבוץ">
 <meta name="theme-color" content="#1a237e">
 <title>טומשין קידס</title>
-<link rel="stylesheet" href="styles.css?v=32">
+<link rel="stylesheet" href="styles.css?v=33">
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -861,8 +861,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       </div>
       <button class="btn bg bsm" onclick="openSupModal(null)">➕ ספק חדש</button>
       <button class="btn bo bsm" onclick="openMerge()">🔀 איחוד</button>
-
       <button class="btn bp bsm" onclick="openSupExport(null)">📊 Excel</button>
+      <button class="btn bs bsm" onclick="auditMergedSuppliers()" title="דוח מצב ספקים ממוזגים — ראה console">🔍 Audit</button>
+      <button class="btn bs bsm" onclick="repairAllSuppliers()" title="תיקון ספקים חסרים">🔧 תיקון</button>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
       <input type="text" id="psu-srch" placeholder="חפש ספק..." oninput="renderPurchSuppliers()" style="border-radius:5px;border:1.5px solid #c5cae9;padding:5px 10px;font-size:.8rem;flex:1;min-width:180px">
@@ -1490,6 +1491,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div style="display:flex;gap:7px;justify-content:flex-end">
       <button class="btn br" onclick="doMerge()">🔀 בצע איחוד</button>
       <button class="btn bs" onclick="CM('mrgm')">ביטול</button>
+      <button class="btn bg" style="font-size:.73rem" onclick="auditMergedSuppliers()" title="הרץ דוח דיאגנוזה על כל הספקים הממוזגים — ראה console">🔍 Audit</button>
     </div>
   </div>
 </div>
@@ -2108,7 +2110,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<script src="data.js?v=32"></script>
-<script src="app.js?v=32"></script>
+<script src="data.js?v=33"></script>
+<script src="app.js?v=33"></script>
 </body>
 </html>
