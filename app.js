@@ -153,12 +153,30 @@ async function loadFromFirebase(silent, force) {
 // ── Save to Firebase ──────────────────────────
 async function saveToFirebase(silent) {
   try {
-    const raw = _safeLS.get('ganv5') || localStorage.getItem('ganv5');
-    if (!raw) return false;
+    // Prefer in-memory data (most up-to-date) over stored
+    const liveData = {
+      ch: typeof SCH!=='undefined'?SCH:[],
+      pairs: typeof pairs!=='undefined'?pairs:[],
+      supEx: typeof supEx!=='undefined'?supEx:{},
+      clusters: typeof clusters!=='undefined'?clusters:{},
+      holidays: typeof holidays!=='undefined'?holidays:[],
+      pairBreaks: typeof pairBreaks!=='undefined'?pairBreaks:{},
+      managers: typeof managers!=='undefined'?managers:{},
+      blockedDates: typeof blockedDates!=='undefined'?blockedDates:{},
+      gardenBlocks: typeof gardenBlocks!=='undefined'?gardenBlocks:{},
+      invoices: typeof INVOICES!=='undefined'?INVOICES:[],
+      vatRate: typeof VAT_RATE!=='undefined'?VAT_RATE:18,
+      activeGardens: typeof activeGardens!=='undefined'&&activeGardens?[...activeGardens]:null
+    };
+    // Validate: don't save if data appears empty/corrupt
+    const raw_check = JSON.stringify(liveData);
+    if(!raw_check || raw_check.length < 100) { console.warn('Save aborted: data too small'); return false; }
+    const raw = raw_check;
     _fbSyncing = true;
     _fbUpdateStatus();
     const nowTs = Date.now();
     const payload = { data: JSON.parse(raw), ts: nowTs, version: '10.2' };
+    console.log('Saving to Firebase: invoices=', JSON.parse(raw).invoices?.length, 'SCH=', JSON.parse(raw).ch?.length);
     // Always refresh token before saving (prevents 401 on mobile)
     let _saveTok = null;
     if(window._fbUser){ try{ _saveTok = await window._fbUser.getIdToken(false); }catch(te){ try{ _saveTok = await window._fbUser.getIdToken(true); }catch(te2){} } }
@@ -1385,6 +1403,7 @@ function save(immediate){
     };
     const _json=JSON.stringify(data);
     _safeLS.setItem('ganv5',_json);
+    window._mem_ganv5=_json; // ensure in-memory is also up to date
     // Also update year key if meta exists
     try{const _m=JSON.parse(localStorage.getItem('ganv5_meta')||'null');if(_m&&_m.currentYear)localStorage.setItem('ganv5_y_'+_m.currentYear,_json);}catch(_){}
     try{ghAutoSave(immediate===true);}catch(_){}
@@ -1563,6 +1582,8 @@ window.onload = function(){
     odUpdateUI();
     refreshPurchDash(); // ensure purch dashboard is populated
     renderPurchSuppliers(); // ensure supplier list is populated
+    // Show brief data status on load (helps debug mobile issues)
+    if(typeof INVOICES!=='undefined') console.log('App ready: SCH=',SCH?.length,'INVOICES=',INVOICES?.length,'supEx keys=',Object.keys(supEx||{}).length);
     _fbStartPolling();
     setTimeout(_fitScrollAreas, 100);
 

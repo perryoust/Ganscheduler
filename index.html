@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="קידס שיבוץ">
 <meta name="theme-color" content="#1a237e">
 <title>טומשין קידס</title>
-<link rel="stylesheet" href="styles.css?v=17">
+<link rel="stylesheet" href="styles.css?v=18">
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -1079,8 +1079,12 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       </div>
     </div>
     <div style="background:#f1f8e9; border-radius:7px; padding:8px 12px; margin-bottom:12px; font-size:.75rem; color:#558b2f">
-      🔄 הסנכרון אוטומטי — כל שינוי נשמר לענן תוך 3 שניות.<br>
-      🔍 בדיקת עדכונים ממכשירים אחרים כל 60 שניות.
+      🔄 הסנכרון אוטומטי — כל שינוי נשמר לענן תוך שנייה.<br>
+      🔍 בדיקת עדכונים ממכשירים אחרים כל 60 שניות.</div>
+    <button onclick="showToast('📊 SCH:'+(typeof SCH!=='undefined'?SCH.length:'?')+' | חשבוניות:'+(typeof INVOICES!=='undefined'?INVOICES.length:'?')+' | ספקים:'+(typeof supEx!=='undefined'?Object.keys(supEx).filter(k=>!k.startsWith('__')).length:'?'))" style="width:100%;background:#e3f2fd;border:1px solid #90caf9;border-radius:6px;padding:8px;font-size:.8rem;cursor:pointer;margin-bottom:8px;font-weight:600">
+        📊 בדוק נתונים
+    </button>
+    <div style="display:none">
     </div>
     <div style="display:flex; gap:8px; justify-content:space-between; align-items:center">
       <div style="display:flex; gap:8px">
@@ -2104,7 +2108,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<script src="data.js?v=17"></script>
-<script src="app.js?v=17"></script>
+<script src="data.js?v=18"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>
