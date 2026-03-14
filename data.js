@@ -39,26 +39,29 @@ function supAct(fullName){
 }
 // Get all unique base supplier names from schedules + SUPBASE
 function getAllBaseSups(){
-  // Names that were merged into another supplier — hidden from all lists
-  const mergedAwayRaw = supEx['__merged_away']||[];
-  // Only use exact names — don't add base names to avoid accidentally hiding main suppliers
-  const mergedAway = new Set(mergedAwayRaw);
+  // mergedAway: custom suppliers that were merged into another — NEVER apply to SUPBASE
+  const mergedAway = new Set(supEx['__merged_away']||[]);
   const map={};
+
+  // SUPBASE suppliers are ALWAYS shown — they are hardcoded and cannot be "merged away"
   SUPBASE.forEach(s=>{
     const base=supBase(s.name);
-    if(mergedAway.has(base)) return; // skip merged-away
     const act=supAct(s.name);
     if(!map[base]) map[base]={name:base,phone:s.phone,acts:new Set(),fullNames:new Set()};
     if(act) map[base].acts.add(act);
     map[base].fullNames.add(s.name);
     if(!map[base].phone&&s.phone) map[base].phone=s.phone;
   });
+
+  // Custom suppliers (__c) — only hide if explicitly merged away
   (supEx['__c']||[]).forEach(s=>{
     const base=supBase(s.name);
-    if(mergedAway.has(base)) return;
+    if(mergedAway.has(s.name)||mergedAway.has(base)) return; // skip only custom merged-away
     if(!map[base]) map[base]={name:base,phone:s.phone||'',acts:new Set(),fullNames:new Set()};
     map[base].fullNames.add(s.name);
+    if(!map[base].phone&&(s.phone||'')) map[base].phone=s.phone;
   });
+
   return Object.values(map).map(m=>({
     ...m,
     acts:[...m.acts].sort((a,b)=>a.localeCompare(b,'he')),

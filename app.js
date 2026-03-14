@@ -199,6 +199,7 @@ function _fbStartPolling() {
           try {
             const parsed = typeof appData === 'string' ? JSON.parse(appData) : appData;
             if (typeof _applyYearData === 'function') _applyYearData(parsed);
+            if (typeof syncSupplierList === 'function') syncSupplierList();
             if (typeof renderDash === 'function') renderDash();
             if (typeof renderCal === 'function') renderCal();
             if (typeof updCounts === 'function') updCounts();
@@ -266,8 +267,8 @@ function switchMode(mode){
   // Mobile nav: show correct bar
   const mnAct = document.getElementById('mob-nav');
   const mnPurch = document.getElementById('mob-nav-purch');
-  if(mnAct) mnAct.classList.toggle('mob-nav-hidden', mode!=='act');
-  if(mnPurch) mnPurch.classList.toggle('mob-nav-shown', mode==='purch');
+  if(mnAct) mnAct.style.display = mode==='act' ? '' : 'none';
+  if(mnPurch) mnPurch.style.display = mode==='purch' ? 'block' : 'none';
   // Show panels
   if(mode==='act'){
     // Hide all purch panels
@@ -1409,12 +1410,60 @@ function _fitScrollAreas(){
 // Run on load, resize, and tab switch
 window.addEventListener('resize', _fitScrollAreas);
 
+// ── Sync supplier __c list from all data sources ──────────────────
+// Runs after every Firebase load to ensure supplier list is complete
+function syncSupplierList(){
+  if(!supEx) supEx={};
+  if(!supEx['__c']) supEx['__c']=[];
+  const existing = new Set(supEx['__c'].map(s=>supBase(s.name)));
+  const inSupbase = new Set(SUPBASE.map(s=>supBase(s.name)));
+  let added=0;
+
+  // Add suppliers from SCH
+  SCH.forEach(s=>{
+    const base=supBase(s.a||'');
+    if(!base||inSupbase.has(base)||existing.has(base)) return;
+    supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base]?.ph1||''});
+    if(!supEx[base]) supEx[base]={isPurch:true,isAct:true};
+    existing.add(base); added++;
+  });
+
+  // Add suppliers from INVOICES (purch-only by default)
+  INVOICES.forEach(inv=>{
+    const base=supBase(inv.supName||'');
+    if(!base||inSupbase.has(base)||existing.has(base)) return;
+    supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base]?.ph1||''});
+    if(!supEx[base]) supEx[base]={isPurch:true,isAct:false};
+    existing.add(base); added++;
+  });
+
+  // Remove duplicate __c entries
+  const seen=new Set();
+  supEx['__c']=supEx['__c'].filter(s=>{
+    const b=supBase(s.name);
+    if(seen.has(b)) return false;
+    seen.add(b); return true;
+  });
+
+  if(added>0){ console.log(`syncSupplierList: added ${added} suppliers`); }
+  return added;
+}
+
 window.onload = function(){
   // Auth is handled by onAuthStateChanged in index.html (Firebase module)
   // _onAuthReady is called once user is authenticated
   window._onAuthReady = async function(){
-    await Promise.all([_srawsReady, loadFromFirebase()]);
+    // Load from Firebase — retry once if fails (mobile may need token refresh)
+    let fbLoaded = await Promise.all([_srawsReady, loadFromFirebase()]);
+    if(!fbLoaded[1]){
+      // Retry with fresh token
+      try{
+        if(window._fbUser) window._cachedToken=await window._fbUser.getIdToken(true);
+        await loadFromFirebase(true, true);
+      }catch(e){ console.warn('Firebase retry failed:', e); }
+    }
     load();
+    syncSupplierList(); // ensure supplier list is complete
     migratePairsFromAuto();
     migrateSupActSplit();
     importContactsFromGardens();
