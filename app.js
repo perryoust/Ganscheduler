@@ -5346,7 +5346,8 @@ function repairAllSuppliers(){
   SCH.forEach(s=>{ if(s.a) schBases.add(supBase(s.a)); });
   schBases.forEach(base=>{
     if(!base) return;
-    if(mergedAway.has(base)) return;
+    // Skip if this base matches any exact merged name
+    if([...mergedAway].some(m=>supBase(m)===base)) return;
     if(inSupbase.has(base)) return;
     if(inC.has(base)) return;
     supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base]?.ph1||''});
@@ -5359,7 +5360,8 @@ function repairAllSuppliers(){
   // 2. Scan INVOICES
   INVOICES.forEach(inv=>{
     const base=inv.supName?supBase(inv.supName):'';
-    if(!base||mergedAway.has(base)||inSupbase.has(base)||inC.has(base)) return;
+    if(!base||inSupbase.has(base)||inC.has(base)) return;
+    if([...mergedAway].some(m=>supBase(m)===base)) return; // merged away
     supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base]?.ph1||''});
     if(!supEx[base]) supEx[base]={};
     if(supEx[base].isPurch===undefined) supEx[base].isPurch=true;
@@ -5740,8 +5742,8 @@ function doMerge(){
     if(supEx['__c']) supEx['__c']=supEx['__c'].filter(s=>s.name!==old&&s.name!==oldBase&&supBase(s.name)!==oldBase);
 
     // 5. Mark as merged-away
+    // Store exact full names only (not base names, to avoid hiding main supplier)
     mergedAway.add(old);
-    mergedAway.add(oldBase);
   });
 
   supEx['__merged_away']=[...mergedAway];
