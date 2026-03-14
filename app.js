@@ -152,6 +152,11 @@ async function loadFromFirebase(silent, force) {
 
 // ── Save to Firebase ──────────────────────────
 async function saveToFirebase(silent) {
+  // Don't save during initialization (prevents overwriting Firebase with partial data)
+  if(!window._appInitComplete){ 
+    console.warn('saveToFirebase: skipped (app not fully initialized)');
+    return false; 
+  }
   try {
     // Prefer in-memory data (most up-to-date) over stored
     const liveData = {
@@ -168,10 +173,14 @@ async function saveToFirebase(silent) {
       vatRate: typeof VAT_RATE!=='undefined'?VAT_RATE:18,
       activeGardens: typeof activeGardens!=='undefined'&&activeGardens?[...activeGardens]:null
     };
-    // Validate: don't save if data appears empty/corrupt
-    const raw_check = JSON.stringify(liveData);
-    if(!raw_check || raw_check.length < 100) { console.warn('Save aborted: data too small'); return false; }
-    const raw = raw_check;
+    // Validate: don't overwrite with significantly less data
+    const raw = JSON.stringify(liveData);
+    if(!raw || raw.length < 100) { console.warn('Save aborted: data too small'); return false; }
+    // Extra safety: if Firebase had invoices but we have none, skip
+    if((liveData.invoices||[]).length === 0 && window._fbLastKnownInvoiceCount > 0){
+      console.warn('Save aborted: would overwrite', window._fbLastKnownInvoiceCount, 'invoices with 0');
+      return false;
+    }
     _fbSyncing = true;
     _fbUpdateStatus();
     const nowTs = Date.now();
