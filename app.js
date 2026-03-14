@@ -1091,12 +1091,13 @@ function psupNewInvoice(idx){ openNewInvoice(null, _psupCurrentList[idx]?.name||
 
 // Emergency: clear corrupt mergedAway and rebuild supplier list
 function emergencyFixSuppliers(){
-  if(!confirm('זה ינקה את רשימת הספקים הממוזגים ויבנה מחדש. להמשיך?')) return;
+  if(!confirm('זה יאפס את רשימת הספקים הממוזגים ויבנה מחדש את כל הספקים. להמשיך?')) return;
   supEx['__merged_away']=[];
-  delete supEx['__repair_done_v2'];
+  // Also clear __c to rebuild from scratch
+  supEx['__c']=[];
   repairAllSuppliers();
-  renderPurchSuppliers();
-  showToast('✅ רשימת ספקים אופסה ותוקנה');
+  save();
+  setTimeout(()=>{ renderPurchSuppliers(); renderSup(); showToast('✅ ספקים אופסו ונבנו מחדש'); }, 200);
 }
 
 function renderPurchSuppliers(){
@@ -5120,7 +5121,35 @@ function getAmountExVat(){
 function repairAllSuppliers(){
   if(!supEx) supEx={};
   if(!supEx['__c']) supEx['__c']=[];
-  const mergedAway = new Set(supEx['__merged_away']||[]);
+
+  // ── STEP 0: Clean corrupt mergedAway ──────────────────────────────
+  // Remove any entry from mergedAway that still has active data
+  // (This happens when a supplier was accidentally added to mergedAway)
+  const rawMerged = supEx['__merged_away']||[];
+  const inSupbaseBases = new Set(SUPBASE.map(s=>supBase(s.name)));
+  const schBases0 = new Set(SCH.filter(s=>s.a).map(s=>supBase(s.a)));
+  const invBases0 = new Set(INVOICES.filter(i=>i.supName).map(i=>supBase(i.supName)));
+  const cBases0 = new Set((supEx['__c']||[]).map(s=>supBase(s.name)));
+
+  const cleanedMerged = rawMerged.filter(name=>{
+    const base = supBase(name);
+    // Keep in mergedAway only if this base has NO active presence anywhere
+    const hasActiveData =
+      inSupbaseBases.has(base) ||  // in hardcoded SUPBASE
+      schBases0.has(base) ||        // has schedule entries (with activities)
+      invBases0.has(base) ||        // has invoices
+      cBases0.has(base);            // already in __c list
+    if(hasActiveData){
+      console.log(`repairAllSuppliers: removing ${name} from mergedAway (has active data)`);
+      return false; // remove from mergedAway
+    }
+    return true; // keep in mergedAway
+  });
+  const mergedFixed = rawMerged.length - cleanedMerged.length;
+  supEx['__merged_away'] = cleanedMerged;
+  // ──────────────────────────────────────────────────────────────────
+
+  const mergedAway = new Set(cleanedMerged);
   const inSupbase = new Set(SUPBASE.map(s=>supBase(s.name)));
   const inC = new Set(supEx['__c'].map(s=>supBase(s.name)));
   let added=0, fixed=0;
@@ -5130,10 +5159,9 @@ function repairAllSuppliers(){
   SCH.forEach(s=>{ if(s.a) schBases.add(supBase(s.a)); });
   schBases.forEach(base=>{
     if(!base) return;
-    if(mergedAway.has(base)) return; // skip merged-away
-    if(inSupbase.has(base)) return;  // already in SUPBASE
-    if(inC.has(base)) return;        // already in __c
-    // Missing — add it
+    if(mergedAway.has(base)) return;
+    if(inSupbase.has(base)) return;
+    if(inC.has(base)) return;
     supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base]?.ph1||''});
     if(!supEx[base]) supEx[base]={};
     if(supEx[base].isPurch===undefined) supEx[base].isPurch=true;
@@ -5141,32 +5169,40 @@ function repairAllSuppliers(){
     added++;
   });
 
-  // 2. Scan INVOICES — ensure their suppliers are registered (purch-only by default)
+  // 2. Scan INVOICES
   INVOICES.forEach(inv=>{
     const base=inv.supName?supBase(inv.supName):'';
-    if(!base || mergedAway.has(base) || inSupbase.has(base) || inC.has(base)) return;
+    if(!base||mergedAway.has(base)||inSupbase.has(base)||inC.has(base)) return;
     supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base]?.ph1||''});
     if(!supEx[base]) supEx[base]={};
     if(supEx[base].isPurch===undefined) supEx[base].isPurch=true;
-    if(supEx[base].isAct===undefined) supEx[base].isAct=false; // invoice suppliers default to non-חוגים
+    if(supEx[base].isAct===undefined) supEx[base].isAct=false;
     inC.add(base);
     added++;
   });
 
-  // 3. Clear empty acts arrays (merge artifacts)
+  // 3. Remove duplicate __c entries (same base name)
+  const seenBases = new Set();
+  supEx['__c'] = supEx['__c'].filter(s=>{
+    const base=supBase(s.name);
+    if(seenBases.has(base)) return false;
+    seenBases.add(base);
+    return true;
+  });
+
+  // 4. Clear empty acts arrays (merge artifacts)
   let clearedActs=0;
   Object.keys(supEx).forEach(k=>{
     if(k==='__c'||k==='__merged_away'||k==='__gardens_extra') return;
     if(Array.isArray(supEx[k]?.acts)&&supEx[k].acts.length===0){
-      delete supEx[k].acts;
-      clearedActs++;
+      delete supEx[k].acts; clearedActs++;
     }
   });
 
-  if(added>0||clearedActs>0) save();
-  const msg = `🔧 ספקים: ${added} נוספו, ${clearedActs} תוקנו`;
+  if(added>0||clearedActs>0||mergedFixed>0) save();
+  const msg=`🔧 ספקים: ${added} נוספו${mergedFixed?`, ${mergedFixed} mergedAway תוקנו`:''}${clearedActs?`, ${clearedActs} acts תוקנו`:''}`;
   console.log(msg);
-  if(added>0) showToast(`✅ ${msg}`);
+  if(added>0||mergedFixed>0) showToast(`✅ ${msg}`);
   try{ renderPurchSuppliers(); }catch(e){}
   try{ renderSup(); }catch(e){}
 }
