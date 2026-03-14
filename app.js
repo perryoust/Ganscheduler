@@ -5321,34 +5321,33 @@ function getSupActs(name){
   if(!name) return[];
   const base=supBase(name);
   const ex=supEx[base]||supEx[name]||{};
-  // 1. Explicitly saved acts (non-empty)
-  if(Array.isArray(ex.acts)&&ex.acts.length>0) return ex.acts;
-  // 2. From SCH entries
   const fromSch=new Set();
+
+  // 1. From SCH entries (always scan — never skip)
   SCH.forEach(s=>{ if(supBase(s.a)===base){const a=supAct(s.a);if(a)fromSch.add(a);} });
-  // 3. From SUPBASE (current base)
+  // 2. From SUPBASE (current base)
   SUPBASE.forEach(s=>{ if(supBase(s.name)===base){const a=supAct(s.name);if(a)fromSch.add(a);} });
-  // 4. From merged-from history (_mergedFrom stores old bases that were merged into this one)
+  // 3. From merged-from history (_mergedFrom stores old bases that were merged into this one)
   const mergedFromBases = ex._mergedFrom||[];
   mergedFromBases.forEach(oldBase=>{
     SCH.forEach(s=>{ if(supBase(s.a)===oldBase){const a=supAct(s.a);if(a)fromSch.add(a);} });
     SUPBASE.forEach(s=>{ if(supBase(s.name)===oldBase){const a=supAct(s.name);if(a)fromSch.add(a);} });
   });
-  // 5. Fallback: check mergedAway — find SUPBASE entries whose base was merged into this supplier
-  // by scanning if any mergedAway item's base has SUPBASE acts
+  // 4. Fallback: check mergedAway — find SUPBASE entries whose base was merged into this supplier
   const mergedAway = supEx['__merged_away']||[];
   mergedAway.forEach(mName=>{
     const mBase=supBase(mName);
-    // Only include if SCH currently has entries under this supplier's base
     if(SCH.some(s=>supBase(s.a)===base)){
       SUPBASE.forEach(s=>{ if(supBase(s.name)===mBase && mBase!==base){
-        // Check if this old base was related to current supplier via any SCH link
         if(SCH.some(s2=>supBase(s2.a)===mBase)){
           const a=supAct(s.name); if(a) fromSch.add(a);
         }
       }});
     }
   });
+  // 5. Merge with explicitly saved acts (manual additions not in SCH)
+  if(Array.isArray(ex.acts)) ex.acts.forEach(a=>{ if(a) fromSch.add(a); });
+
   return [...fromSch].sort((a,b)=>a.localeCompare(b,'he'));
 }
 // Supplier list index helpers — avoid HTML attribute escaping issues
@@ -5442,11 +5441,21 @@ function repairAllSuppliers(){
     return true;
   });
 
-  // 4. Clear empty acts arrays (merge artifacts)
+  // 4. Clear stale/incomplete acts arrays — force re-derive from SCH on next getSupActs call
+  // Only clear if SCH has MORE activities than what's saved (i.e. acts array is outdated)
   let clearedActs=0;
   Object.keys(supEx).forEach(k=>{
     if(k==='__c'||k==='__merged_away'||k==='__gardens_extra') return;
-    if(Array.isArray(supEx[k]?.acts)&&supEx[k].acts.length===0){
+    if(!Array.isArray(supEx[k]?.acts)) return;
+    const base = supBase(k)||k;
+    // Derive what SCH actually has for this supplier
+    const schActs = new Set();
+    SCH.forEach(s=>{ if(supBase(s.a)===base){const a=supAct(s.a);if(a)schActs.add(a);} });
+    SUPBASE.forEach(s=>{ if(supBase(s.name)===base){const a=supAct(s.name);if(a)schActs.add(a);} });
+    const savedActs = new Set(supEx[k].acts);
+    // If SCH has acts that the saved array is missing → clear saved array so it auto-derives fully
+    const missingFromSaved = [...schActs].filter(a=>!savedActs.has(a));
+    if(missingFromSaved.length > 0 || supEx[k].acts.length === 0){
       delete supEx[k].acts; clearedActs++;
     }
   });
