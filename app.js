@@ -5688,83 +5688,91 @@ function doMerge(){
   const toMrg=checkedIdxs.map(i=>_mergeSupList[i]?.name).filter(n=>n && n!==main);
   if(!toMrg.length){alert('בחר לפחות ספק אחד למיזוג');return;}
   if(!confirm(`לאחד ${toMrg.length} ספקים אל "${main}"?`)) return;
+
+  const mainBase = supBase(main);
   let changedSch=0, changedInv=0;
   const mergedAway = new Set(supEx['__merged_away']||[]);
+
+  // Collect all acts from main AND all merged suppliers BEFORE changing anything
+  const allActs = new Set(getSupActs(main));
+  let mergedIsAct = isActSupplier(main);
+  let mergedIsPurch = isPurchSupplier(main);
 
   toMrg.forEach(old=>{
     const oldBase = supBase(old);
 
-    // 1. Update SCH entries
+    // Collect acts from this merged supplier
+    getSupActs(old).forEach(a=>allActs.add(a));
+    if(isActSupplier(old)) mergedIsAct = true;
+    if(isPurchSupplier(old)) mergedIsPurch = true;
+
+    // 1. Update SCH: preserve activity type in new name
     SCH.forEach(s=>{
       if(!s.a) return;
-      if(s.a===old || s.a===oldBase || supBase(s.a)===oldBase){
-        const act=supAct(s.a); // get the activity type (e.g. "ריקוד")
-        const mainBase=supBase(main);
-        const mainAct=supAct(main);
-        if(act && act!==mainAct){
-          // Main already has an activity suffix - just use main name, act is preserved via supEx
-          s.a = main;
-        } else if(act){
-          s.a = `${mainBase} - ${act}`;
-        } else {
-          s.a = main;
-        }
+      const sBase = supBase(s.a);
+      const sAct = supAct(s.a);
+      if(sBase === oldBase){
+        // Keep activity type: if main="חיים בתנועה" and sAct="ריקוד" → "חיים בתנועה - ריקוד"
+        // If main has its own act suffix: just use mainBase
+        s.a = sAct ? (mainBase + ' - ' + sAct) : mainBase;
         changedSch++;
       }
     });
 
-    // 2. Update INVOICES supplier name
+    // 2. Update INVOICES
     if(typeof INVOICES!=='undefined') INVOICES.forEach(inv=>{
-      if(inv.supName===old || inv.supName===oldBase || supBase(inv.supName||'')===oldBase){
-        inv.supName=main;
+      if(supBase(inv.supName||'')===oldBase){
+        inv.supName = main;
         changedInv++;
       }
     });
 
-    // 3. Merge supEx metadata into main
-    const ex=supEx[old]||supEx[oldBase]||{};
-    if(!supEx[main]) supEx[main]={};
-    const mex=supEx[main];
-    if(!mex.ph1&&ex.ph1) mex.ph1=ex.ph1;
-    if(!mex.ph2&&ex.ph2) mex.ph2=ex.ph2;
-    if(!mex.notes&&ex.notes) mex.notes=ex.notes;
-    if(!mex.email&&ex.email) mex.email=ex.email;
-    if(!mex.contact&&ex.contact) mex.contact=ex.contact;
-    if(!mex.addr&&ex.addr) mex.addr=ex.addr;
-    if(!mex.g1&&ex.g1) mex.g1=ex.g1;
-    if(!mex.moeTax&&ex.moeTax) mex.moeTax=ex.moeTax;
-    if(!mex.entityType&&ex.entityType) mex.entityType=ex.entityType;
-    // Merge acts: from supEx AND from SCH-derived acts
-    const oldActs = getSupActs(old); // derives from SCH + SUPBASE
-    if(oldActs.length){
-      mex.acts=[...new Set([...(mex.acts||getSupActs(main)),...oldActs])];
-    }
-    // Mark as act supplier if any merged supplier was
-    if(ex.isAct || oldActs.length>0) mex.isAct=true;
-    if(ex.isPurch!==false) mex.isPurch=true;
+    // 3. Merge supEx metadata
+    const ex = supEx[old] || supEx[oldBase] || {};
+    if(!supEx[mainBase]) supEx[mainBase]={};
+    const mex = supEx[mainBase];
+    if(!mex.ph1 && ex.ph1) mex.ph1=ex.ph1;
+    if(!mex.ph2 && ex.ph2) mex.ph2=ex.ph2;
+    if(!mex.email && ex.email) mex.email=ex.email;
+    if(!mex.contact && ex.contact) mex.contact=ex.contact;
+    if(!mex.addr && ex.addr) mex.addr=ex.addr;
+    if(!mex.g1 && ex.g1) mex.g1=ex.g1;
+    if(!mex.moeTax && ex.moeTax) mex.moeTax=ex.moeTax;
+    if(!mex.entityType && ex.entityType) mex.entityType=ex.entityType;
+    if(!mex.notes && ex.notes) mex.notes=ex.notes;
 
-    // 4. Remove old from supEx and __c
+    // 4. Remove old from __c and supEx
     delete supEx[old];
-    delete supEx[oldBase];
-    Object.keys(supEx).forEach(k=>{
-      if(k.startsWith('__')) return;
-      if(supBase(k)===oldBase && k!==main) delete supEx[k];
-    });
-    if(supEx['__c']) supEx['__c']=supEx['__c'].filter(s=>s.name!==old&&s.name!==oldBase&&supBase(s.name)!==oldBase);
+    if(old !== oldBase) delete supEx[oldBase];
+    if(supEx['__c']) supEx['__c'] = supEx['__c'].filter(s=>supBase(s.name)!==oldBase);
 
-    // 5. Mark as merged-away
-    // Mark this exact supplier name as merged away
+    // 5. Mark as merged-away (exact names only)
     mergedAway.add(old);
+    // Also add all SUPBASE entries for oldBase (except main itself)
+    SUPBASE.forEach(s=>{
+      if(supBase(s.name)===oldBase && s.name!==main) mergedAway.add(s.name);
+    });
   });
 
-  supEx['__merged_away']=[...mergedAway];
-  // Ensure main supplier has all accumulated acts saved
-  if(!supEx[main]) supEx[main]={};
-  if(!supEx[main].acts || supEx[main].acts.length===0){
-    const derivedActs = getSupActs(main);
-    if(derivedActs.length) supEx[main].acts = derivedActs;
+  // Save merged flags and acts on main
+  if(!supEx[mainBase]) supEx[mainBase]={};
+  supEx[mainBase].isAct = mergedIsAct;
+  supEx[mainBase].isPurch = mergedIsPurch;
+  supEx[mainBase].acts = [...allActs].sort((a,b)=>a.localeCompare(b,'he'));
+
+  // Ensure main is in __c if not in SUPBASE
+  const inSupbase = SUPBASE.some(s=>supBase(s.name)===mainBase);
+  if(!inSupbase){
+    if(!supEx['__c']) supEx['__c']=[];
+    if(!supEx['__c'].find(s=>supBase(s.name)===mainBase)){
+      supEx['__c'].push({id:Date.now(),name:mainBase,phone:supEx[mainBase]?.ph1||''});
+    }
   }
-  save(true); CM('mrgm'); refresh();
+
+  supEx['__merged_away'] = [...mergedAway];
+  save(true);
+  CM('mrgm');
+  refresh();
   try{ renderPurchSuppliers(); }catch(e){}
   showToast(`✅ אוחדו ${toMrg.length} ספקים → "${main}"${changedSch?` · ${changedSch} שיבוצים`:''}${changedInv?` · ${changedInv} חשבוניות`:''}`);
 }
