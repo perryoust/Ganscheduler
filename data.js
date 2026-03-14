@@ -41,10 +41,8 @@ function supAct(fullName){
 function getAllBaseSups(){
   // Names that were merged into another supplier — hidden from all lists
   const mergedAwayRaw = supEx['__merged_away']||[];
-  const mergedAway = new Set([
-    ...mergedAwayRaw,
-    ...mergedAwayRaw.map(n=>supBase(n))
-  ]);
+  // Only use exact names — don't add base names to avoid accidentally hiding main suppliers
+  const mergedAway = new Set(mergedAwayRaw);
   const map={};
   SUPBASE.forEach(s=>{
     const base=supBase(s.name);

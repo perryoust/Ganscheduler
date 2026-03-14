@@ -417,6 +417,15 @@ function getPurchSuppliers(){
     return {id: base.id||name, name, phone: ex.ph1||base.phone||'', tax:ex.g1||'', email:ex.email||''};
   });
 }
+function suTypeChg(){
+  const isAct = document.getElementById('su-is-act')?.checked;
+  const isPurch = document.getElementById('su-is-purch');
+  // Acts visible only if חוגים
+  const actsWrap = document.getElementById('su-acts-wrap');
+  if(actsWrap) actsWrap.style.display = isAct ? 'block' : 'none';
+  // If acts supplier, must also be purch
+  if(isAct && isPurch && !isPurch.checked) isPurch.checked = true;
+}
 function sucTypeChg(){
   const isActEl = document.getElementById('suc-edit-is-act');
   const isPurchEl = document.getElementById('suc-edit-is-purch');
@@ -1399,12 +1408,8 @@ window.onload = function(){
     const gClsEl=document.getElementById('g-cls');
     if(gClsEl) gClsEl.value='גנים';
     renderReadOnlyBanner();
-    // Run supplier repair only if not done before (flag in supEx)
-    if(!supEx['__repair_done_v2']){
-      repairAllSuppliers();
-      supEx['__repair_done_v2']=true;
-      save();
-    }
+    // Always run supplier repair on load to ensure cards exist
+    repairAllSuppliers();
     renderDash();
     renderCal();
     renderClusters();
@@ -5247,13 +5252,25 @@ function openSupModal(name){
   document.getElementById('su-gov1').value=ex.g1||'';
   document.getElementById('su-gov2').value=ex.g2||'';
   document.getElementById('su-notes').value=ex.notes||'';
-  // supplier type flags
+  // New fields
+  const suContact=document.getElementById('su-contact'); if(suContact) suContact.value=ex.contact||'';
+  const suEmail=document.getElementById('su-email'); if(suEmail) suEmail.value=ex.email||'';
+  const suAddr=document.getElementById('su-addr'); if(suAddr) suAddr.value=ex.addr||'';
+  const suMoe=document.getElementById('su-moe-tax'); if(suMoe) suMoe.value=ex.moeTax||'';
+  const suAlias=document.getElementById('su-alias'); if(suAlias) suAlias.value=ex.alias||'';
+  const suSchedPh=document.getElementById('su-sched-phone'); if(suSchedPh) suSchedPh.value=ex.schedPhone||'ph1';
+  // Supplier type — default: isPurch=true, isAct=false for new suppliers
   const suIsAct = document.getElementById('su-is-act');
   const suIsPurch = document.getElementById('su-is-purch');
-  if(suIsAct) suIsAct.checked = ex.isAct !== false; // default true for backward compat
-  if(suIsPurch) suIsPurch.checked = ex.isPurch !== false; // default true
+  const defaultIsAct = name ? (ex.isAct !== false) : false; // new suppliers default to purch-only
+  const defaultIsPurch = name ? (ex.isPurch !== false) : true;
+  if(suIsAct) suIsAct.checked = defaultIsAct;
+  if(suIsPurch) suIsPurch.checked = defaultIsPurch;
   const suEntityType = document.getElementById('su-entity-type');
   if(suEntityType) suEntityType.value = ex.entityType||'';
+  // Show/hide acts section
+  const suActsWrap = document.getElementById('su-acts-wrap');
+  if(suActsWrap) suActsWrap.style.display = defaultIsAct ? 'block' : 'none';
   renderSupActsList(name);
   document.getElementById('su-act-new').value='';
   // Show delete button only when editing existing supplier
@@ -5341,8 +5358,14 @@ function saveSup(){
     g1:document.getElementById('su-gov1').value.trim(),
     g2:document.getElementById('su-gov2').value.trim(),
     notes:document.getElementById('su-notes').value.trim(),
+    contact:document.getElementById('su-contact')?.value.trim()||'',
+    email:document.getElementById('su-email')?.value.trim()||'',
+    addr:document.getElementById('su-addr')?.value.trim()||'',
+    moeTax:document.getElementById('su-moe-tax')?.value.trim()||'',
+    alias:document.getElementById('su-alias')?.value.trim()||'',
+    schedPhone:document.getElementById('su-sched-phone')?.value||'ph1',
     acts:existActs,
-    isAct: document.getElementById('su-is-act')?.checked !== false,
+    isAct: !!document.getElementById('su-is-act')?.checked,
     isPurch: !!document.getElementById('su-is-purch')?.checked,
     entityType: document.getElementById('su-entity-type')?.value||''
   };
@@ -5351,9 +5374,20 @@ function saveSup(){
     if(!supEx['__c'].find(s=>s.name===name)) supEx['__c'].push({id:Date.now(),name,phone:supEx[name].ph1});
   }
   save();CM('sum');refresh();
-  // Refresh whichever supplier panel is visible
   try{ renderPurchSuppliers(); }catch(e){}
   try{ renderSup(); }catch(e){}
+  // If opened from invoice modal, pre-fill the supplier field
+  if(window._invPendingNewSup && name){
+    window._invPendingNewSup=false;
+    const supTxt=document.getElementById('inv-sup-text');
+    if(supTxt){ supTxt.value=name; invUpdateEntityType((supEx[name]||{}).entityType||''); }
+    // Re-fill datalist
+    const dl=document.getElementById('inv-sup-datalist');
+    if(dl) dl.innerHTML=getAllSup().map(s=>{
+      const safeVal=s.name.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      return `<option value="${safeVal}">${s.name}`;
+    }).join('');
+  }
   ['dash-sup','cal-sup','s-sup','ns-sup'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     const cur=el.value;

@@ -1261,7 +1261,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 </div>
 <!-- Supplier -->
 <div id="sum" class="modal">
-  <div class="mb" style="max-width:560px">
+  <div class="mb" style="max-width:600px">
     <h2 id="sum-title">ספק</h2>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
       <div class="fg" style="grid-column:1/-1">
@@ -1269,18 +1269,33 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <input type="text" id="su-name" style="width:100%" placeholder="שם הספק">
         <div id="su-name-warn" style="font-size:.72rem;color:#e65100;margin-top:2px;display:none">⚠️ שינוי שם יעדכן את כל השיבוצים</div>
       </div>
-      <div class="fg"><label>טלפון 1</label><input type="text" id="su-ph1" placeholder="050-0000000"></div>
-      <div class="fg"><label>טלפון 2</label><input type="text" id="su-ph2" placeholder="טלפון נוסף"></div>
-      <div class="fg"><label>מס' ספק (משרד חינוך)</label><input type="text" id="su-gov1"></div>
+      <div class="fg"><label>📞 טלפון 1</label><input type="text" id="su-ph1" placeholder="050-0000000"></div>
+      <div class="fg"><label>📞 טלפון 2</label><input type="text" id="su-ph2" placeholder="טלפון נוסף"></div>
+      <div class="fg"><label>📱 טלפון לתצוגה בשיבוץ</label>
+        <select id="su-sched-phone" style="width:100%">
+          <option value="ph1">טלפון ראשי (1)</option>
+          <option value="ph2">טלפון שני (2)</option>
+        </select>
+      </div>
+      <div class="fg"><label>👤 איש קשר</label><input type="text" id="su-contact" placeholder="שם איש קשר"></div>
+      <div class="fg"><label>📧 אימייל</label><input type="text" id="su-email" placeholder="אימייל"></div>
+      <div class="fg" style="grid-column:1/-1"><label>📍 כתובת</label><input type="text" id="su-addr" placeholder="כתובת הספק"></div>
+      <div class="fg"><label>🏛️ ח.פ. / מספר עוסק</label><input type="text" id="su-gov1" placeholder="מספר עוסק/ח.פ."></div>
+      <div class="fg"><label>📚 מס' ספק משרד חינוך</label><input type="text" id="su-moe-tax" placeholder="נוסף לח.פ."></div>
+      <div class="fg"><label>🏷️ כינוי (יוצג בשיבוץ במקום השם)</label><input type="text" id="su-alias" placeholder="אם ריק — ישמש שם הספק"></div>
       <div class="fg"><label>מס' ספק נוסף</label><input type="text" id="su-gov2"></div>
-      <div class="fg" style="grid-column:1/-1"><label>הערות</label><textarea id="su-notes" rows="2" style="width:100%"></textarea></div>
-      <div style="grid-column:1/-1;display:flex;gap:16px;padding:8px 0;border-top:1px solid #e8eaf6;margin-top:2px">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.8rem;font-weight:600">
-          <input type="checkbox" id="su-is-act" style="accent-color:#1565c0" checked> 🎨 ספק חוגים (מוצג בטאב חוגים)
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.8rem;font-weight:600">
-          <input type="checkbox" id="su-is-purch" style="accent-color:#2e7d32"> 🛒 ספק רכש (מוצג בטאב רכש)
-        </label>
+      <div class="fg" style="grid-column:1/-1"><label>📝 הערות</label><textarea id="su-notes" rows="2" style="width:100%"></textarea></div>
+      <!-- Supplier type -->
+      <div style="grid-column:1/-1;background:#f0f4ff;border-radius:7px;padding:9px 12px;border:1px solid #c5cae9">
+        <div style="font-weight:700;color:#1a237e;font-size:.8rem;margin-bottom:8px">🏷️ סוג ספק</div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.8rem;font-weight:600">
+            <input type="checkbox" id="su-is-purch" style="accent-color:#2e7d32;width:15px;height:15px" checked onchange="suTypeChg()"> 🛒 ספק רכש
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.8rem;font-weight:600">
+            <input type="checkbox" id="su-is-act" style="accent-color:#1565c0;width:15px;height:15px" onchange="suTypeChg()"> 🎨 ספק חוגים
+          </label>
+        </div>
       </div>
       <div class="fg" style="grid-column:1/-1">
         <label>סוג ישות</label>
@@ -1293,8 +1308,8 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         </select>
       </div>
     </div>
-    <!-- Activity types -->
-    <div style="border:1.5px solid #c5cae9;border-radius:8px;padding:10px;margin-bottom:10px">
+    <!-- Activity types — shown only if supplier is חוגים -->
+    <div id="su-acts-wrap" style="border:1.5px solid #c5cae9;border-radius:8px;padding:10px;margin-bottom:10px;display:none">
       <div style="font-weight:700;color:#1a237e;font-size:.8rem;margin-bottom:7px">🎯 סוגי פעילויות</div>
       <div id="su-acts-list" style="margin-bottom:7px"></div>
       <div style="display:flex;gap:6px">
@@ -1592,7 +1607,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <div style="display:flex;gap:6px;align-items:center">
             <input type="text" id="inv-sup-text" list="inv-sup-datalist" placeholder="הקלד שם ספק..." style="flex:1" oninput="invSupTextChg()" autocomplete="off">
             <datalist id="inv-sup-datalist"></datalist>
-            <button type="button" class="btn bg bsm" onclick="document.getElementById('inv-new-sup-wrap').style.display='block';document.getElementById('inv-sup-text').value=''" title="ספק חדש">➕</button>
+            <button type="button" class="btn bg bsm" onclick="openSupModal(null);_invPendingNewSup=true;" title="ספק חדש">➕</button>
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;min-width:140px">
