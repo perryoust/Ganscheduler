@@ -5246,8 +5246,25 @@ function getAllSup(){
   
   // Merged-away: exact full names that were merged into another supplier
   const mergedAway = new Set(supEx['__merged_away']||[]);
-  // Build a set of all merged-away BASE names (to hide entire supplier groups)
+  // Build merged bases set - but NOT if that base is also the main supplier's base
+  // e.g.: merging "חיים בתנועה - ריקוד" into "חיים בתנועה" 
+  // base "חיים בתנועה" is in mergedBases but also IS the main → don't block main
   const mergedBases = new Set([...mergedAway].map(n=>supBase(n)));
+  // Remove from mergedBases any base that belongs to a non-merged supplier
+  // (i.e., if the main supplier uses that base, keep showing it)
+  const allBasesInMergedAway = new Set([...mergedAway].map(n=>supBase(n)));
+  // A base is "fully merged" only if ALL SUPBASE entries for it are in mergedAway
+  // AND it's not in __c as a non-merged entry
+  const safeBasesToShow = new Set();
+  SUPBASE.forEach(s=>{
+    const b=supBase(s.name);
+    if(!mergedAway.has(s.name)) safeBasesToShow.add(b); // at least one non-merged entry
+  });
+  (supEx['__c']||[]).forEach(s=>{
+    if(!mergedAway.has(s.name)) safeBasesToShow.add(supBase(s.name));
+  });
+  // Keep mergedBases only for bases that have NO non-merged representatives
+  safeBasesToShow.forEach(b=>mergedBases.delete(b));
   
   const map={};
 
@@ -5350,10 +5367,11 @@ function repairAllSuppliers(){
   // 1. Scan all schedule entries — ensure their base supplier is registered
   const schBases = new Set();
   SCH.forEach(s=>{ if(s.a) schBases.add(supBase(s.a)); });
-  const mergedBases = new Set([...mergedAway].map(n=>supBase(n)));
   schBases.forEach(base=>{
     if(!base) return;
-    if(mergedBases.has(base)) return; // this base was merged away
+    // Only skip if ALL entries with this base are merged away
+    const allMerged = SUPBASE.filter(s=>supBase(s.name)===base).every(s=>mergedAway.has(s.name));
+    if(allMerged && !(supEx['__c']||[]).find(s=>supBase(s.name)===base&&!mergedAway.has(s.name))) return;
     if(inSupbase.has(base)) return;
     if(inC.has(base)) return;
     supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base]?.ph1||''});
