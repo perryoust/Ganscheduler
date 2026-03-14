@@ -1120,7 +1120,18 @@ function renderPurchSuppliers(){
   _psupCurrentList = list; // save for index-based onclick helpers
 
   if(!list.length){
-    el.innerHTML='<div style="color:#aaa;padding:30px;text-align:center">אין ספקים.<br><small>לחץ "ספק חדש" להוספה.</small></div>';
+    // Show debug info to help diagnose the empty list
+    const allRaw = getAllSup();
+    const cLen = (supEx['__c']||[]).length;
+    const mLen = (supEx['__merged_away']||[]).length;
+    const sbLen = (typeof SUPBASE!=='undefined') ? SUPBASE.length : 0;
+    el.innerHTML=`<div style="padding:20px;text-align:center">
+      <div style="color:#e53935;font-weight:700;font-size:.9rem;margin-bottom:8px">⚠️ אין ספקים להצגה</div>
+      <div style="font-size:.76rem;color:#546e7a;margin-bottom:10px">
+        SUPBASE: ${sbLen} · __c: ${cLen} · mergedAway: ${mLen} · getAllSup: ${allRaw.length} · tab: ${_pSupTab}
+      </div>
+      <button class="btn bg" onclick="emergencyFixSuppliers()">🔧 אפס ובנה מחדש את רשימת הספקים</button>
+    </div>`;
     return;
   }
 
