@@ -1080,8 +1080,13 @@ function setPSupView(v){
 }
 // ── Purch supplier panel helpers (use index to avoid HTML escaping) ──
 let _psupCurrentList = []; // set by renderPurchSuppliers
-function psupOpen(idx){ openSupCard(_psupCurrentList[idx]?.name||''); }
-function psupEdit(idx){ openSupCard(_psupCurrentList[idx]?.name||''); setTimeout(sucToggleEdit,200); }
+function psupOpen(idx){ const n=_psupCurrentList[idx]?.name||''; if(n) openSupCard(n); }
+function psupEdit(idx){ 
+  const n=_psupCurrentList[idx]?.name||''; 
+  if(!n) return;
+  openSupCard(n); 
+  setTimeout(sucToggleEdit,250); 
+}
 function psupNewInvoice(idx){ openNewInvoice(null, _psupCurrentList[idx]?.name||''); }
 
 // Emergency: clear corrupt mergedAway and rebuild supplier list
@@ -5069,6 +5074,11 @@ function getSupActs(name){
   SUPBASE.forEach(s=>{ if(supBase(s.name)===base){const a=supAct(s.name);if(a)fromSch.add(a);} });
   return [...fromSch].sort((a,b)=>a.localeCompare(b,'he'));
 }
+// Supplier list index helpers — avoid HTML attribute escaping issues
+let _supCurrentList = [];
+function supOpen(idx){ const n=_supCurrentList[idx]?.name||''; if(n) openSupCard(n); }
+function supEdit(idx){ const n=_supCurrentList[idx]?.name||''; if(n){ openSupCard(n); setTimeout(sucToggleEdit,250); } }
+
 let _supViewMode='cards';
 function setSupView(mode){
   _supViewMode=mode;
@@ -5185,15 +5195,15 @@ function renderSup(){
       +'<th style="padding:7px 8px;text-align:right;font-weight:700;border-bottom:2px solid #c5cae9">סוגים</th>'
       +'<th style="padding:7px 8px;border-bottom:2px solid #c5cae9"></th>'
       +'</tr></thead><tbody>';
+    _supCurrentList = all; // save for index-based helpers
     all.forEach((s,idx)=>{
       const base=s.name;
       const ex=supBaseEx(base);
       const cnt=supBaseCnt(base);
       const acts=getSupActs(base);
       const phone=ex.ph1||s.phone||'';
-      const safeBase=JSON.stringify(base); // safe JSON string including quotes
       const bg=idx%2===0?'#fff':'#f8f9ff';
-      h+=`<tr style="background:${bg};cursor:pointer" onclick="openSupCard('${safeBase}')">`
+      h+=`<tr style="background:${bg};cursor:pointer" onclick="supOpen(${idx})">`
         +`<td style="padding:6px 12px;font-weight:700;color:#1a237e;border-bottom:1px solid #e8eaf6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0">${base}`
         +`${isActSupplier(base)?' <span style="font-size:.65rem;color:#1565c0">🎨</span>':''}` 
         +`${isPurchSupplier(base)?' <span style="font-size:.65rem;color:#2e7d32">🛒</span>':''}` 
@@ -5203,7 +5213,7 @@ function renderSup(){
         +`<td style="padding:6px 8px;border-bottom:1px solid #e8eaf6;font-size:.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:0">${acts.join(', ')}</td>`
         +`<td style="padding:6px 8px;text-align:center;border-bottom:1px solid #e8eaf6;white-space:nowrap">`
         +`<button class="btn bp bsm" style="font-size:.65rem" onclick="event.stopPropagation();openSupExport('${safeBase}')">📊</button> `
-        +`<button class="btn bo bsm" style="font-size:.65rem" onclick="event.stopPropagation();openSupCard('${safeBase}');setTimeout(sucToggleEdit,120)">✏️</button>`
+        +`<button class="btn bo bsm" style="font-size:.65rem" onclick="event.stopPropagation();supEdit(${idx})">✏️</button>`
         +`</td></tr>`;
     });
     h+='</tbody></table>';
@@ -5223,7 +5233,7 @@ function renderSup(){
     const safeBase=JSON.stringify(base); // safe JSON string including quotes
     const cntDone=SCH.filter(sc=>supBase(sc.a)===base&&sc.st==='done').length;
     const cntCan=SCH.filter(sc=>supBase(sc.a)===base&&sc.st==='can').length;
-    h+=`<div class="sucard" style="cursor:pointer;display:flex;flex-direction:column;justify-content:space-between" onclick="openSupCard('${safeBase}')">
+    h+=`<div class="sucard" style="cursor:pointer;display:flex;flex-direction:column;justify-content:space-between" onclick="supOpen(${idx})">
       <div>
         <div style="font-weight:800;color:#1a237e;font-size:.88rem;line-height:1.35;margin-bottom:6px;word-break:break-word">📚 ${base}</div>
         ${phone?`<div style="color:#2e7d32;font-size:.78rem;font-weight:600;margin-bottom:5px">📞 ${phone}</div>`:''}
@@ -5243,7 +5253,7 @@ function renderSup(){
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0">
           <button class="btn bp bsm" style="font-size:.65rem" onclick="event.stopPropagation();openSupExport('${safeBase}')">📊</button>
-          <button class="btn bo bsm" style="font-size:.65rem" onclick="event.stopPropagation();openSupCard('${safeBase}');setTimeout(sucToggleEdit,120)">✏️</button>
+          <button class="btn bo bsm" style="font-size:.65rem" onclick="event.stopPropagation();supEdit(${idx})">✏️</button>
         </div>
       </div>
     </div>`;
@@ -5570,13 +5580,7 @@ function saveNewGarden(){
 let _sucName=null;
 function openSupCard(name){
   _sucName=supBase(name); // normalize to base name
-  // If in purch mode, switch to act→sup to show card
-  if(typeof _appMode!=='undefined' && _appMode==='purch'){
-    switchMode('act');
-    setTimeout(()=>{ ST('sup'); setTimeout(()=>openSupCard(name),100); },150);
-    return;
-  }
-  if(typeof currentTab!=='undefined' && currentTab!=='sup') ST('sup');
+  // Open the card modal DIRECTLY — no mode switching needed
   document.getElementById('suc-edit-panel').style.display='none';
   document.getElementById('suc-view').style.display='block';
   sucRefreshInfo();
@@ -5598,7 +5602,13 @@ function sucRefreshInfo(){
   const cnt=SCH.filter(sc=>supBase(sc.a)===name).length;
   const acts2=getSupActs(name);
   (document.getElementById('suc-title')||{}).textContent =name;
-  (document.getElementById('suc-sub')||{}).textContent =`${cnt} פעילויות · ${acts2.length} סוגים`;
+  const invCnt = (typeof INVOICES!=='undefined') ? INVOICES.filter(i=>supBase(i.supName||'')===name).length : 0;
+  const isPurch = isPurchSupplier(name);
+  const isAct = isActSupplier(name);
+  let sub = '';
+  if(isAct) sub += `${cnt} פעילויות · ${acts2.length} סוגים`;
+  if(isPurch && invCnt>0) sub += (sub?' · ':'')+`${invCnt} מסמכי רכש`;
+  (document.getElementById('suc-sub')||{}).textContent = sub||name;
   const typeFlags = [
     isActSupplier(name)?'<span class="sup-flag sup-flag-act">🎨 ספק חוגים</span>':'<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#fce4ec;color:#c62828">🚫 לא מופיע בחוגים</span>',
     isPurchSupplier(name)?'<span class="sup-flag sup-flag-purch">🛒 ספק רכש</span>':'',
@@ -5622,7 +5632,8 @@ function sucRefreshInfo(){
         }
       </div>
       ${ex.notes?`<div style="grid-column:1/-1"><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">📝 הערות</div><div>${ex.notes}</div></div>`:''}
-    </div>`;
+    </div>
+    ${isPurchSupplier(name)&&invCnt>0?renderSupPurchDocsSection(name):''}`;
 }
 function sucRefreshActFilt(){
   const acts=getSupActs(_sucName);
@@ -5780,6 +5791,87 @@ function clearSupCardFilter(){
   document.getElementById('suc-st').value='';
   renderSupCard();
 }
+function renderSupPurchDocsSection(name){
+  const invs = INVOICES.filter(i=>supBase(i.supName||'')===name);
+  if(!invs.length) return '';
+  const fmtStatus = (s)=>{
+    const m={order:'📋 הזמנה',tx_invoice:'🧾 חשבונית עסקה',tax_invoice:'📑 חשבונית מס',receipt:'📄 קבלה',cancelled:'❌ מבוטל'};
+    return m[_migrateInvStatus(s)]||s||'—';
+  };
+  const rows = [...invs].sort((a,b)=>(b.orderDate||b.txDate||b.date||'').localeCompare(a.orderDate||a.txDate||a.date||'')).map(inv=>{
+    const dateStr = inv.orderDate||inv.txDate||inv.date||'';
+    const amtStr = inv.orderAmt ? `₪${withVat(inv.orderAmt,inv.vat||18).toLocaleString()}` : (inv.txAmt?`₪${withVat(inv.txAmt,inv.vat||18).toLocaleString()}`:(inv.amt?`₪${withVat(inv.amt,inv.vat||18).toLocaleString()}`:'—'));
+    const docNums = [inv.orderNum&&`📋 ${inv.orderNum}`, inv.txNum&&`🧾 ${inv.txNum}`, inv.num&&`📑 ${inv.num}`].filter(Boolean).join(' · ');
+    return `<tr style="border-bottom:1px solid #f0f0f0;cursor:pointer" onclick="CM('sucard-m');openNewInvoice(${inv.id})">
+      <td style="padding:5px 8px;font-size:.76rem">${dateStr?fD(dateStr):'—'}</td>
+      <td style="padding:5px 8px;font-size:.72rem;color:#546e7a">${docNums||'—'}</td>
+      <td style="padding:5px 8px;font-size:.75rem;color:#37474f">${inv.orderDesc||''}</td>
+      <td style="padding:5px 8px;font-size:.75rem;font-weight:700;color:#2e7d32;white-space:nowrap">${amtStr}</td>
+      <td style="padding:5px 8px;font-size:.72rem">${fmtStatus(inv.status)}</td>
+    </tr>`;
+  }).join('');
+  const total = invs.reduce((s,i)=>s+(i.orderAmt||i.txAmt||i.amt||0),0);
+  return `<div style="margin-top:12px;border-top:1.5px solid #e8eaf6;padding-top:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-weight:700;color:#1565c0;font-size:.82rem">📄 מסמכי רכש (${invs.length})</div>
+      <div style="display:flex;gap:5px">
+        <button class="btn bp bsm" style="font-size:.7rem" onclick="openNewInvoice(null,'${name.replace(/'/g,'\'').replace(/"/g,'&quot;')}')">📄 מסמך חדש</button>
+        <button class="btn bg bsm" style="font-size:.7rem" onclick="exportSupPurchDocs('${name.replace(/'/g,'\'').replace(/"/g,'&quot;')}')">📊 יצוא</button>
+      </div>
+    </div>
+    <!-- Search filter -->
+    <div style="margin-bottom:6px">
+      <input type="text" id="suc-inv-srch" placeholder="חפש במסמכים..." oninput="filterSupCardInvs()" style="width:100%;font-size:.78rem;padding:5px 9px;border-radius:5px;border:1.5px solid #c5cae9">
+    </div>
+    <div style="overflow-x:auto;max-height:280px;overflow-y:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <thead style="position:sticky;top:0;background:#e8eaf6">
+          <tr>
+            <th style="padding:5px 8px;text-align:right">תאריך</th>
+            <th style="padding:5px 8px;text-align:right">מסמכים</th>
+            <th style="padding:5px 8px;text-align:right">פירוט</th>
+            <th style="padding:5px 8px;text-align:right">סכום</th>
+            <th style="padding:5px 8px;text-align:right">סטטוס</th>
+          </tr>
+        </thead>
+        <tbody id="suc-inv-tbody">${rows}</tbody>
+      </table>
+    </div>
+    <div style="margin-top:6px;font-size:.72rem;color:#546e7a;text-align:left">
+      סה"כ (לפני מע"מ): <b style="color:#1565c0">₪${total.toLocaleString()}</b>
+    </div>
+  </div>`;
+}
+
+function filterSupCardInvs(){
+  const srch = (document.getElementById('suc-inv-srch')?.value||'').toLowerCase();
+  const rows = document.querySelectorAll('#suc-inv-tbody tr');
+  rows.forEach(r=>{ r.style.display=!srch||r.textContent.toLowerCase().includes(srch)?'':'none'; });
+}
+
+function exportSupPurchDocs(name){
+  const invs = INVOICES.filter(i=>supBase(i.supName||'')===name);
+  if(!invs.length){ showToast('אין מסמכים לייצוא'); return; }
+  const fmtStatus = (s)=>{const m={order:'הזמנה',tx_invoice:'חשבונית עסקה',tax_invoice:'חשבונית מס',receipt:'קבלה',cancelled:'מבוטל'};return m[_migrateInvStatus(s)]||s||'';};
+  const wb = XLSX.utils.book_new();
+  const rows = invs.map(inv=>({
+    'ספק': inv.supName||'',
+    'תאריך': inv.orderDate||inv.txDate||inv.date||'',
+    'מספר הזמנה': inv.orderNum||'',
+    'מספר חשבונית עסקה': inv.txNum||'',
+    'מספר חשבונית מס': inv.num||'',
+    'פירוט': inv.orderDesc||'',
+    'סכום לפני מעמ': inv.orderAmt||inv.txAmt||inv.amt||0,
+    'מעמ': inv.vat||18,
+    'סכום כולל מעמ': inv.orderAmt?withVat(inv.orderAmt,inv.vat||18):(inv.txAmt?withVat(inv.txAmt,inv.vat||18):(inv.amt?withVat(inv.amt,inv.vat||18):0)),
+    'סטטוס': fmtStatus(inv.status),
+    'הערות': inv.notes||''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, 'מסמכי רכש');
+  XLSX.writeFile(wb, `${name}_מסמכי_רכש.xlsx`);
+}
+
 function renderSupCard(){
   if(!_sucName) return;
   const from=document.getElementById('suc-from').value;
