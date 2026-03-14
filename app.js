@@ -1362,7 +1362,7 @@ function migrateGardenPhones(){
     if(ph.ph2) ex.coph2=ph.ph2;
   });
   supEx.__phonesVer=VER;
-  save();
+  if(window._appInitComplete) save();
   console.log('migrateGardenPhones: imported '+count+' phones ('+VER+')');
 }
 
@@ -1377,7 +1377,7 @@ function migratePairsFromAuto(){
   }
   // No saved pairs — seed from AUTOPAIRS
   initPairs();
-  save();
+  if(window._appInitComplete) save();
   console.log('Seeded pairs from AUTOPAIRS: '+pairs.length);
 }
 function resetPairsFromAuto(){
@@ -1398,7 +1398,7 @@ function migrateSupActSplit(){
       changed++;
     }
   });
-  if(changed>0){ save(); console.log('migrateSupAct: fixed '+changed); }
+  if(changed>0){ if(window._appInitComplete) save(); console.log('migrateSupAct: fixed '+changed); }
 }
 function save(immediate){
   if(false){ showToast('⚠️ מצב ארכיון — לא ניתן לשמור שינויים'); return; }
@@ -1591,8 +1591,9 @@ window.onload = function(){
     odUpdateUI();
     refreshPurchDash(); // ensure purch dashboard is populated
     renderPurchSuppliers(); // ensure supplier list is populated
-    // Show brief data status on load (helps debug mobile issues)
-    if(typeof INVOICES!=='undefined') console.log('App ready: SCH=',SCH?.length,'INVOICES=',INVOICES?.length,'supEx keys=',Object.keys(supEx||{}).length);
+    renderInvoices(); // populate invoices list
+    window._appInitComplete = true; // NOW allow Firebase saves
+    console.log('App ready: SCH=',SCH?.length,'INVOICES=',INVOICES?.length);
     _fbStartPolling();
     setTimeout(_fitScrollAreas, 100);
 
@@ -5380,7 +5381,7 @@ function repairAllSuppliers(){
     }
   });
 
-  if(added>0||clearedActs>0||mergedFixed>0) save();
+  if((added>0||clearedActs>0||mergedFixed>0) && window._appInitComplete) save();
   const msg=`🔧 ספקים: ${added} נוספו${mergedFixed?`, ${mergedFixed} mergedAway תוקנו`:''}${clearedActs?`, ${clearedActs} acts תוקנו`:''}`;
   console.log(msg);
   if(added>0||mergedFixed>0) showToast(`✅ ${msg}`);
