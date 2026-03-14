@@ -763,8 +763,7 @@ async function saveInvoice(){
   const nsWrap = document.getElementById('inv-new-sup-wrap');
   const nsName = document.getElementById('inv-ns-name')?.value.trim();
   if(nsWrap && nsWrap.style.display!=='none' && nsName){
-    // New supplier form is open
-    const nsName = document.getElementById('inv-ns-name').value.trim();
+    // New supplier form is open — nsName already read above
     if(!nsName){ alert('יש להזין שם ספק'); return; }
     const entityType = document.getElementById('inv-ns-entity')?.value||'';
     if(typeof supEx !== 'undefined'){
@@ -783,6 +782,11 @@ async function saveInvoice(){
         isAct:nsIsAct, isPurch:true};
     }
     supName = nsName;
+    // Update the text input to show the new supplier name
+    const stEl=document.getElementById('inv-sup-text');
+    if(stEl) stEl.value=nsName;
+    // Hide new supplier form
+    if(nsWrap) nsWrap.style.display='none';
   }
   if(!supName){ alert('יש לבחור ספק'); return; }
   const num      = document.getElementById('inv-num').value.trim();
@@ -5835,7 +5839,9 @@ function sucExportDocs(){
 
 function openSupCard(name){
   _sucName=supBase(name); // normalize to base name
-  // Open the card modal DIRECTLY — no mode switching needed
+  // Clear previous content first
+  const body=document.getElementById('suc-body');
+  if(body) body.innerHTML='';
   document.getElementById('suc-edit-panel').style.display='none';
   document.getElementById('suc-view').style.display='block';
   sucRefreshInfo();
@@ -5843,11 +5849,11 @@ function openSupCard(name){
   const now=new Date();
   const sfrom=document.getElementById('suc-from');
   const sto=document.getElementById('suc-to');
-  if(!sfrom.value) sfrom.value=d2s(new Date(now.getFullYear(),now.getMonth(),1));
-  if(!sto.value) sto.value=d2s(new Date(now.getFullYear(),now.getMonth()+1,0));
+  sfrom.value=d2s(new Date(now.getFullYear(),now.getMonth(),1));
+  sto.value=d2s(new Date(now.getFullYear(),now.getMonth()+1,0));
   document.getElementById('suc-st').value='';
   sucRefreshActFilt();
-  if(_sucTab==='acts') renderSupCard();
+  if(isActSupplier(_sucName)) renderSupCard();
   document.getElementById('sucard-m').classList.add('open');
 }
 function sucRefreshInfo(){
@@ -6130,8 +6136,12 @@ function exportSupPurchDocs(name){
 
 function renderSupCard(){
   if(!_sucName) return;
-  // Only render activities if on acts tab
-  if(_sucTab!=='acts'&&document.getElementById('suc-acts-section')?.style.display==='none') return;
+  // Only render activities for חוגים suppliers
+  if(!isActSupplier(_sucName)) { 
+    const el=document.getElementById('suc-body'); 
+    if(el) el.innerHTML=''; 
+    return; 
+  }
   const from=document.getElementById('suc-from').value;
   const to=document.getElementById('suc-to').value;
   const st=document.getElementById('suc-st').value;
