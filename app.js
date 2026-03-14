@@ -4,8 +4,11 @@
 const FIREBASE_DB_URL = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data.json';
 const FIREBASE_POLL_INTERVAL = 30000;
 
-let _fbLastSaveTs = 0;
-let _fbLastLoadTs = 0;
+let _fbLastSaveTs = parseInt(localStorage.getItem('_fbLastSaveTs')||'0');
+let _fbLastLoadTs = parseInt(localStorage.getItem('_fbLastLoadTs')||'0');
+
+function _setFbSaveTs(ts){ _fbLastSaveTs=ts; try{localStorage.setItem('_fbLastSaveTs',ts);}catch(e){} _fbUpdateStatus(); }
+function _setFbLoadTs(ts){ _fbLastLoadTs=ts; try{localStorage.setItem('_fbLastLoadTs',ts);}catch(e){} _fbUpdateStatus(); }
 let _fbPollTimer = null;
 let _fbTimer = null;
 let _fbSyncing = false;
@@ -90,8 +93,8 @@ async function _processFirebaseLoad(r, silent, force) {
   if (appData && Object.keys(appData).length > 0) {
     if (force || cloudTs > _fbLastSaveTs || _fbLastSaveTs === 0) {
       localStorage.setItem('ganv5', JSON.stringify(appData));
-      _fbLastLoadTs = Date.now();
-      _fbLastSaveTs = cloudTs;
+      _setFbLoadTs(Date.now());
+      _setFbSaveTs(cloudTs);
       if (!silent) _fbUpdateStatus();
       return true;
     }
@@ -147,7 +150,7 @@ async function saveToFirebase(silent) {
       body: JSON.stringify(payload)
     });
     if (r.ok) {
-      _fbLastSaveTs = nowTs;
+      _setFbSaveTs(nowTs);
       if (!silent) showToast('✅ סונכרן ל-Firebase ' + _fmtTs(nowTs));
       return true;
     }
@@ -186,8 +189,8 @@ function _fbStartPolling() {
         const appData = d.data || d;
         if (appData && Object.keys(appData).length > 0) {
           localStorage.setItem('ganv5', JSON.stringify(appData));
-          _fbLastSaveTs = cloudTs;
-          _fbLastLoadTs = Date.now();
+          _setFbSaveTs(cloudTs);
+          _setFbLoadTs(Date.now());
           // Re-apply data to live state
           try {
             const parsed = typeof appData === 'string' ? JSON.parse(appData) : appData;
@@ -496,9 +499,12 @@ function openNewInvoice(id, presetSup){
   // Supplier autocomplete datalist
   const dl = document.getElementById('inv-sup-datalist');
   if(dl){
-    dl.innerHTML = getPurchSuppliers().map(s=>{
+    // Use getAllSup so merged supplier names are up-to-date
+    dl.innerHTML = getAllSup().map(s=>{
       const ex=supEx[s.name]||{};
-      return `<option value="${s.name}">${s.name}${ex.entityType?' ['+ex.entityType+']':''}`;
+      // Escape quotes in name for HTML attribute
+      const safeVal = s.name.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      return `<option value="${safeVal}">${s.name}${ex.entityType?' ['+ex.entityType+']':''}`;
     }).join('');
   }
   // Fill supplier text input
@@ -1057,6 +1063,12 @@ function setPSupView(v){
   document.getElementById('psu-view-list')?.classList.toggle('active',v==='list');
   renderPurchSuppliers();
 }
+// ── Purch supplier panel helpers (use index to avoid HTML escaping) ──
+let _psupCurrentList = []; // set by renderPurchSuppliers
+function psupOpen(idx){ openSupCard(_psupCurrentList[idx]?.name||''); }
+function psupEdit(idx){ openSupCard(_psupCurrentList[idx]?.name||''); setTimeout(sucToggleEdit,200); }
+function psupNewInvoice(idx){ openNewInvoice(null, _psupCurrentList[idx]?.name||''); }
+
 function renderPurchSuppliers(){
   const el = document.getElementById('psu-body');
   if(!el) return;
@@ -1071,6 +1083,7 @@ function renderPurchSuppliers(){
   });
   list = [...list].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
   if(sortMode==='cnt') list=[...list].sort((a,b)=>supBaseCnt(b.name)-supBaseCnt(a.name));
+  _psupCurrentList = list; // save for index-based onclick helpers
 
   if(!list.length){
     el.innerHTML='<div style="color:#aaa;padding:30px;text-align:center">אין ספקים.<br><small>לחץ "ספק חדש" להוספה.</small></div>';
@@ -1092,18 +1105,18 @@ function renderPurchSuppliers(){
       const ex=supBaseEx(base);
       const cnt=supBaseCnt(base);
       const phone=ex.ph1||s.phone||'';
-      const safeBase=base.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/'/g,"\\'");
+      // Use data-idx to avoid HTML attribute escaping issues with special chars
       const bg=idx%2===0?'#fff':'#f8f9ff';
-      h+=`<tr style="background:${bg};cursor:pointer" onclick="openSupCard('${safeBase}')">`
+      h+=`<tr style="background:${bg};cursor:pointer" onclick="psupOpen(${idx})">`
         +`<td style="padding:6px 10px;font-weight:700;color:#1a237e">${base}`
         +`${isActSupplier(base)?' <span style="font-size:.65rem;color:#2e7d32">🎨</span>':''}`
         +`</td>`
-        +`<td style="padding:6px 8px;text-align:center;color:#1565c0;font-weight:700">${cnt}</td>`
+        +`<td style="padding:6px 8px;text-align:center;color:#1565c0;font-weight:700">${isAct?cnt:'—'}</td>`
         +`<td style="padding:6px 8px;color:#2e7d32">${phone||'—'}</td>`
         +`<td style="padding:6px 8px;font-size:.76rem;color:#546e7a">${ex.entityType||''}</td>`
         +`<td style="padding:6px 8px;white-space:nowrap" onclick="event.stopPropagation()">`
-        +`<button class="btn bp bsm" style="font-size:.65rem" onclick="openNewInvoice(null,'${safeBase}')">📄 הזמנה</button> `
-        +`<button class="btn bo bsm" style="font-size:.65rem" onclick="openSupCard('${safeBase}');setTimeout(sucToggleEdit,120)">✏️</button>`
+        +`<button class="btn bp bsm" style="font-size:.65rem" onclick="psupNewInvoice(${idx})">📄 הזמנה</button> `
+        +`<button class="btn bo bsm" style="font-size:.65rem" onclick="psupEdit(${idx})">✏️</button>`
         +`</td></tr>`;
     });
     h+='</tbody></table>';
@@ -1118,26 +1131,27 @@ function renderPurchSuppliers(){
     const cnt=supBaseCnt(base);
     const acts=getSupActs(base);
     const phone=ex.ph1||s.phone||'';
-    const safeBase=base.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/'/g,"\\'");
     const cntDone=SCH.filter(sc=>supBase(sc.a)===base&&sc.st==='done').length;
-    return `<div class="sucard" style="cursor:pointer;display:flex;flex-direction:column;justify-content:space-between" onclick="openSupCard('${safeBase}')">
+    const isAct = isActSupplier(base);
+    const cidx=idx; // use index for safe onclick
+    return `<div class="sucard" style="cursor:pointer;display:flex;flex-direction:column;justify-content:space-between" onclick="psupOpen(${cidx})">
       <div>
         <div style="font-weight:800;color:#1a237e;font-size:.88rem;line-height:1.35;margin-bottom:6px;word-break:break-word">
           📚 ${base}
-          ${isActSupplier(base)?'<span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:8px;padding:1px 5px;margin-right:4px">🎨</span>':''}
+          ${isAct?'<span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:8px;padding:1px 5px;margin-right:4px">🎨</span>':''}
         </div>
         ${phone?`<div style="color:#2e7d32;font-size:.78rem;font-weight:600;margin-bottom:5px">📞 ${phone}</div>`:''}
-        ${acts.length&&isActSupplier(base)?`<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:3px">
+        ${acts.length&&isAct?`<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:3px">
           ${acts.map(a=>`<span style="background:#e3f2fd;color:#1565c0;border-radius:10px;padding:2px 8px;font-size:.71rem;font-weight:600">🎯 ${a}</span>`).join('')}
         </div>`:''}
         ${ex.entityType?`<div style="font-size:.72rem;color:#6a1b9a;margin-bottom:4px">🏢 ${ex.entityType}</div>`:''}
         ${ex.notes?`<div style="font-size:.68rem;color:#78909c;margin-bottom:4px">📝 ${ex.notes}</div>`:''}
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid #f0f0f0">
-        <span style="color:#1565c0;font-weight:700;font-size:.72rem">📅 ${cnt} פעילויות${cntDone?` · ✔️ ${cntDone}`:''}</span>
+        <span style="color:#1565c0;font-weight:700;font-size:.72rem">${isAct?`📅 ${cnt} פעילויות${cntDone?` · ✔️ ${cntDone}`:''}`:''}</span>
         <div style="display:flex;gap:4px;flex-shrink:0" onclick="event.stopPropagation()">
-          <button class="btn bp bsm" style="font-size:.65rem" onclick="openNewInvoice(null,'${safeBase}')">📄 הזמנה</button>
-          <button class="btn bo bsm" style="font-size:.65rem" onclick="openSupCard('${safeBase}');setTimeout(sucToggleEdit,120)">✏️</button>
+          <button class="btn bp bsm" style="font-size:.65rem" onclick="psupNewInvoice(${cidx})">📄 הזמנה</button>
+          <button class="btn bo bsm" style="font-size:.65rem" onclick="psupEdit(${cidx})">✏️</button>
         </div>
       </div>
     </div>`;
@@ -5153,7 +5167,7 @@ function renderSup(){
       const cnt=supBaseCnt(base);
       const acts=getSupActs(base);
       const phone=ex.ph1||s.phone||'';
-      const safeBase=base.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/'/g,"\\'");
+      const safeBase=JSON.stringify(base); // safe JSON string including quotes
       const bg=idx%2===0?'#fff':'#f8f9ff';
       h+=`<tr style="background:${bg};cursor:pointer" onclick="openSupCard('${safeBase}')">`
         +`<td style="padding:6px 12px;font-weight:700;color:#1a237e;border-bottom:1px solid #e8eaf6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0">${base}`
@@ -5182,7 +5196,7 @@ function renderSup(){
     const cnt=supBaseCnt(base);
     const acts=getSupActs(base);
     const phone=ex.ph1||s.phone||'';
-    const safeBase=base.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/'/g,"\\'");
+    const safeBase=JSON.stringify(base); // safe JSON string including quotes
     const cntDone=SCH.filter(sc=>supBase(sc.a)===base&&sc.st==='done').length;
     const cntCan=SCH.filter(sc=>supBase(sc.a)===base&&sc.st==='can').length;
     h+=`<div class="sucard" style="cursor:pointer;display:flex;flex-direction:column;justify-content:space-between" onclick="openSupCard('${safeBase}')">
@@ -5576,6 +5590,8 @@ function sucToggleEdit(){
   document.getElementById('suc-edit-ph1').value=ex.ph1||s.phone||'';
   const aliasEl=document.getElementById('suc-edit-alias');
   if(aliasEl) aliasEl.value=ex.alias||'';
+  const schedPhEl=document.getElementById('suc-edit-sched-phone');
+  if(schedPhEl) schedPhEl.value=ex.schedPhone||'ph1';
   const moeEl=document.getElementById('suc-edit-moe');
   if(moeEl) moeEl.value=ex.moeTax||'';
   const contactEl2=document.getElementById('suc-edit-contact');
@@ -5680,6 +5696,8 @@ function sucSaveEdit(){
   supEx[_sucName].notes=document.getElementById('suc-edit-notes').value.trim();
   const aliasInp=document.getElementById('suc-edit-alias');
   if(aliasInp) supEx[_sucName].alias=aliasInp.value.trim();
+  const schedPhInp=document.getElementById('suc-edit-sched-phone');
+  if(schedPhInp) supEx[_sucName].schedPhone=schedPhInp.value;
   const moeInp=document.getElementById('suc-edit-moe');
   if(moeInp) supEx[_sucName].moeTax=moeInp.value.trim();
   const contactInp2=document.getElementById('suc-edit-contact');
@@ -7718,3 +7736,13 @@ window.fltToggle = function(wrapId, btnId) {
 };
 /* Legacy alias */
 window.mobToggleFilters = function(id) { window.fltToggle(id, id+'-btn'); };
+// Get the phone number to display in schedule for a supplier
+function getSupPhone(name){
+  const base=supBase(name);
+  const ex=supBaseEx(base);
+  const schedPhone=ex.schedPhone||'ph1';
+  if(schedPhone==='ph2'&&ex.ph2) return ex.ph2;
+  const s=SUPBASE.find(x=>supBase(x.name)===base)||{};
+  return ex.ph1||s.phone||'';
+}
+
