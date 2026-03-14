@@ -1121,17 +1121,7 @@ function renderPurchSuppliers(){
 
   if(!list.length){
     // Show debug info to help diagnose the empty list
-    const allRaw = getAllSup();
-    const cLen = (supEx['__c']||[]).length;
-    const mLen = (supEx['__merged_away']||[]).length;
-    const sbLen = (typeof SUPBASE!=='undefined') ? SUPBASE.length : 0;
-    el.innerHTML=`<div style="padding:20px;text-align:center">
-      <div style="color:#e53935;font-weight:700;font-size:.9rem;margin-bottom:8px">⚠️ אין ספקים להצגה</div>
-      <div style="font-size:.76rem;color:#546e7a;margin-bottom:10px">
-        SUPBASE: ${sbLen} · __c: ${cLen} · mergedAway: ${mLen} · getAllSup: ${allRaw.length} · tab: ${_pSupTab}
-      </div>
-      <button class="btn bg" onclick="emergencyFixSuppliers()">🔧 אפס ובנה מחדש את רשימת הספקים</button>
-    </div>`;
+    el.innerHTML='<div style="color:#aaa;padding:30px;text-align:center">אין ספקים להצגה.<br><button class="btn bg" style="margin-top:10px" onclick="emergencyFixSuppliers()">🔧 בנה מחדש</button></div>';
     return;
   }
 
@@ -1503,6 +1493,17 @@ window.onload = function(){
     odUpdateUI();
     _fbStartPolling();
     setTimeout(_fitScrollAreas, 100);
+    // Mobile safety: if header shows 0 activities but Firebase is connected, force reload
+    setTimeout(async()=>{
+      if(SCH.length===0 && window._fbUser){
+        console.log('Mobile safety: SCH empty, forcing Firebase reload');
+        try{
+          if(window._fbUser) window._cachedToken=await window._fbUser.getIdToken(true);
+          const ok=await loadFromFirebase(true,true);
+          if(ok){ load(); syncSupplierList(); renderDash(); renderCal(); updCounts(); }
+        }catch(e){ console.warn('Force reload failed:',e); }
+      }
+    }, 3000);
   }; // end _onAuthReady
   // On mobile, Firebase may fire onAuthStateChanged BEFORE window.onload
   // In that case _fbUser is already set — trigger immediately
@@ -5118,8 +5119,33 @@ function downloadCSV(data,fname){
 }
 
 function getAllSup(){
-  // Returns base supplier objects (deduped by base name)
-  return getAllBaseSups();
+  // Build supplier list directly — bypasses any mergedAway issues in getAllBaseSups
+  if(typeof SUPBASE==='undefined'||typeof supEx==='undefined') return [];
+  const map={};
+  // 1. Always include all SUPBASE suppliers
+  SUPBASE.forEach(s=>{
+    const base=supBase(s.name);
+    const act=supAct(s.name);
+    if(!map[base]) map[base]={name:base,phone:s.phone,acts:new Set(),fullNames:new Set()};
+    if(act) map[base].acts.add(act);
+    map[base].fullNames.add(s.name);
+    if(!map[base].phone&&s.phone) map[base].phone=s.phone;
+  });
+  // 2. Include custom suppliers (__c) — only skip if explicitly merged INTO one already in map
+  const mergedAway=new Set(supEx['__merged_away']||[]);
+  (supEx['__c']||[]).forEach(s=>{
+    const base=supBase(s.name);
+    // Skip only if this exact name is merged away AND it's not already a SUPBASE supplier
+    if(mergedAway.has(s.name)&&!map[base]) return;
+    if(!map[base]) map[base]={name:base,phone:s.phone||'',acts:new Set(),fullNames:new Set()};
+    map[base].fullNames.add(s.name);
+    if(!map[base].phone&&s.phone) map[base].phone=s.phone;
+  });
+  return Object.values(map).map(m=>({
+    ...m,
+    acts:[...m.acts].sort((a,b)=>a.localeCompare(b,'he')),
+    fullNames:[...m.fullNames]
+  })).sort((a,b)=>a.name.localeCompare(b.name,'he'));
 }
 function getSupActs(name){
   if(!name) return[];
