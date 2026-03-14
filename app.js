@@ -92,15 +92,13 @@ async function _processFirebaseLoad(r, silent, force) {
   const appData = cloudData.data || cloudData;
   if (appData && Object.keys(appData).length > 0) {
     // Always load from Firebase if: forced, or cloud is newer, or no local timestamp
-    const localTs = parseInt(localStorage.getItem('ganv5_local_ts')||'0');
-    if (force || cloudTs > localTs || localTs === 0) {
-      localStorage.setItem('ganv5', JSON.stringify(appData));
-      localStorage.setItem('ganv5_local_ts', String(cloudTs));
-      _setFbLoadTs(Date.now());
-      _setFbSaveTs(cloudTs);
-      if (!silent) _fbUpdateStatus();
-      return true;
-    }
+    // Always load from Firebase — the cloud is source of truth
+    localStorage.setItem('ganv5', JSON.stringify(appData));
+    localStorage.setItem('ganv5_local_ts', String(cloudTs));
+    _setFbLoadTs(Date.now());
+    _setFbSaveTs(cloudTs);
+    if (!silent) _fbUpdateStatus();
+    return true;
   }
   return false;
 }
@@ -1194,8 +1192,8 @@ function renderPurchSuppliers(){
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid #f0f0f0">
         <span style="color:#1565c0;font-weight:700;font-size:.72rem">${isAct?`📅 ${cnt} פעילויות${cntDone?` · ✔️ ${cntDone}`:''}`:''}</span>
         <div style="display:flex;gap:4px;flex-shrink:0" onclick="event.stopPropagation()">
-          <button class="btn bp bsm" style="font-size:.65rem" onclick="psupNewInvoice(${cidx})">📄 הזמנה</button>
-          <button class="btn bo bsm" style="font-size:.65rem" onclick="psupEdit(${cidx})">✏️</button>
+          <button class="btn bp bsm" style="font-size:.65rem" onclick="psupNewInvoice(${idx})">📄 הזמנה</button>
+          <button class="btn bo bsm" style="font-size:.65rem" onclick="psupEdit(${idx})">✏️</button>
         </div>
       </div>
     </div>`;
@@ -1463,15 +1461,17 @@ window.onload = function(){
   // Auth is handled by onAuthStateChanged in index.html (Firebase module)
   // _onAuthReady is called once user is authenticated
   window._onAuthReady = async function(){
-    // Load from Firebase — retry once if fails (mobile may need token refresh)
-    let fbLoaded = await Promise.all([_srawsReady, loadFromFirebase()]);
-    if(!fbLoaded[1]){
-      // Retry with fresh token
-      try{
-        if(window._fbUser) window._cachedToken=await window._fbUser.getIdToken(true);
-        await loadFromFirebase(true, true);
-      }catch(e){ console.warn('Firebase retry failed:', e); }
-    }
+    try{
+      // Step 1: Always get a fresh token before loading
+      if(window._fbUser){
+        try{ window._cachedToken = await window._fbUser.getIdToken(true); }
+        catch(te){ console.warn('Token refresh failed:', te); }
+      }
+      // Step 2: Wait for static data (SRAWS) and Firebase data in parallel
+      await _srawsReady;
+      const fbOk = await loadFromFirebase(false, true); // force=true to always load
+      if(!fbOk) console.warn('Firebase load returned false, using local data');
+    }catch(initErr){ console.warn('Init error:', initErr); }
     load();
     syncSupplierList(); // ensure supplier list is complete
     migratePairsFromAuto();
@@ -1502,17 +1502,7 @@ window.onload = function(){
     odUpdateUI();
     _fbStartPolling();
     setTimeout(_fitScrollAreas, 100);
-    // Mobile safety: if header shows 0 activities but Firebase is connected, force reload
-    setTimeout(async()=>{
-      if(SCH.length===0 && window._fbUser){
-        console.log('Mobile safety: SCH empty, forcing Firebase reload');
-        try{
-          if(window._fbUser) window._cachedToken=await window._fbUser.getIdToken(true);
-          const ok=await loadFromFirebase(true,true);
-          if(ok){ load(); syncSupplierList(); renderDash(); renderCal(); updCounts(); }
-        }catch(e){ console.warn('Force reload failed:',e); }
-      }
-    }, 3000);
+
   }; // end _onAuthReady
   // On mobile, Firebase may fire onAuthStateChanged BEFORE window.onload
   // In that case _fbUser is already set — trigger immediately
