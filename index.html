@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="קידס שיבוץ">
 <meta name="theme-color" content="#1a237e">
 <title>טומשין קידס</title>
-<link rel="stylesheet" href="styles.css?v=12">
+<link rel="stylesheet" href="styles.css?v=13">
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -1668,10 +1668,10 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <button type="button" style="background:none;border:none;cursor:pointer;color:#999;font-size:.9rem" onclick="document.getElementById('inv-new-sup-wrap').style.display='none';document.getElementById('inv-sup-text').value=''">✕</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
-          <div class="fg"><label>שם ספק *</label><input type="text" id="inv-ns-name" placeholder="שם הספק" style="width:100%"></div>
-          <div class="fg"><label>סוג ישות *</label>
+          <div class="fg" style="grid-column:1/-1"><label>שם ספק *</label><input type="text" id="inv-ns-name" placeholder="שם הספק" style="width:100%"></div>
+          <div class="fg" style="grid-column:1/-1"><label>סוג ישות</label>
             <select id="inv-ns-entity" style="width:100%" onchange="invEntityTypeChg()">
-              <option value="">-- בחר סוג --</option>
+              <option value="">-- לא הוגדר --</option>
               <option value="עוסק מורשה">עוסק מורשה</option>
               <option value="חברה בעמ">חברה בע"מ</option>
               <option value="עוסק פטור">עוסק פטור</option>
@@ -2095,7 +2095,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<script src="data.js?v=12"></script>
-<script src="app.js?v=12"></script>
+<script src="data.js?v=13"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>

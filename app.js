@@ -5749,8 +5749,15 @@ function setSucTab(tab){
 
 function initSucTabs(){
   const name = _sucName;
-  const isAct = isActSupplier(name);
-  const isPurch = isPurchSupplier(name);
+  // Determine supplier type based on explicit flags AND actual data
+  const exIsAct = supEx[name]?.isAct;
+  const exIsPurch = supEx[name]?.isPurch;
+  const hasSchEntries = SCH.some(s=>supBase(s.a)===name);
+  const hasInvoices = INVOICES.some(i=>supBase(i.supName||'')===name);
+  // isAct = explicitly marked OR (not explicitly marked purch-only AND has schedule entries)
+  const isAct = exIsAct===true || (exIsAct===undefined && hasSchEntries && !hasInvoices);
+  // isPurch = explicitly marked OR has invoices OR default (but SUPBASE-only suppliers treated as act)
+  const isPurch = exIsPurch===true || hasInvoices || (exIsPurch===undefined && !hasSchEntries);
   const tabsDiv = document.getElementById('suc-section-tabs');
   const actsDiv = document.getElementById('suc-acts-section');
   const docsDiv = document.getElementById('suc-docs-section');
