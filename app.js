@@ -7,8 +7,10 @@ const FIREBASE_POLL_INTERVAL = 30000;
 // Safe localStorage wrapper (handles Tracking Prevention blocking)
 const _safeLS = {
   get(k){ 
+    // Prefer in-memory (always fresh) over localStorage (may be stale from old version)
+    if(window['_mem_'+k]) return window['_mem_'+k];
     try{ const v=localStorage.getItem(k); if(v) return v; }catch(e){}
-    return window['_mem_'+k]||null; // fallback to in-memory
+    return null;
   },
   set(k,v){ 
     window['_mem_'+k]=String(v); // always set in-memory first
@@ -99,21 +101,34 @@ function _fbUpdateStatus() {
 
 // Helper: process Firebase load response
 async function _processFirebaseLoad(r, silent, force) {
-  const cloudData = await r.json();
+  let cloudData;
+  try { cloudData = await r.json(); } catch(e){ console.error('Firebase JSON error',e); return false; }
   if (!cloudData || typeof cloudData !== 'object') return false;
   const cloudTs = cloudData.ts || 0;
   const appData = cloudData.data || cloudData;
-  if (appData && Object.keys(appData).length > 0) {
-    // Always load from Firebase if: forced, or cloud is newer, or no local timestamp
-    // Always load from Firebase — the cloud is source of truth
-    _safeLS.setItem('ganv5', JSON.stringify(appData));
-    _safeLS.setItem('ganv5_local_ts', String(cloudTs));
-    _setFbLoadTs(Date.now());
-    _setFbSaveTs(cloudTs);
-    if (!silent) _fbUpdateStatus();
-    return true;
+  if (!appData || Object.keys(appData).length === 0) return false;
+
+  // Store to both localStorage (if available) and in-memory
+  const jsonStr = JSON.stringify(appData);
+  _safeLS.setItem('ganv5', jsonStr);
+  _safeLS.setItem('ganv5_local_ts', String(cloudTs));
+  window._fbAppData = appData; // in-memory reference, no JSON needed
+
+  // Apply data DIRECTLY to memory — does NOT rely on localStorage
+  if (typeof _applyYearData === 'function') {
+    try {
+      _applyYearData(appData);
+      window._fbLastKnownInvoiceCount = Math.max(
+        window._fbLastKnownInvoiceCount||0,
+        appData.invoices?.length||0
+      );
+    } catch(e) { console.error('_applyYearData failed', e); }
   }
-  return false;
+
+  _setFbLoadTs(Date.now());
+  _setFbSaveTs(cloudTs);
+  if (!silent) _fbUpdateStatus();
+  return true;
 }
 
 // ── Load from Firebase ────────────────────────
@@ -1335,14 +1350,23 @@ function _applyYearData(o){
 
 function load(){
   try{
+    // If Firebase already applied data directly, skip re-loading
+    if(window._fbAppData && typeof INVOICES!=='undefined' && INVOICES.length>0) {
+      return; // data already in memory from _processFirebaseLoad
+    }
     // Support migration from old Y1 system (ganv5_y_ keys)
-    const meta=JSON.parse(localStorage.getItem('ganv5_meta')||'null');
-    let st=null;
-    if(meta&&meta.currentYear) st=localStorage.getItem('ganv5_y_'+meta.currentYear);
-    if(!st) st=_safeLS.get('ganv5') || localStorage.getItem('ganv5');
+    let st = null;
+    try{ const meta=JSON.parse(localStorage.getItem('ganv5_meta')||'null');
+         if(meta&&meta.currentYear) st=localStorage.getItem('ganv5_y_'+meta.currentYear); }catch(_){}
+    if(!st) st = _safeLS.get('ganv5');
+    if(!st && window._fbAppData) { _applyYearData(window._fbAppData); return; }
     if(st){ _applyYearData(JSON.parse(st)); }
     else { initPairs();clusters=JSON.parse(JSON.stringify(INIT_CLUSTERS));activeGardens=null; }
-  }catch(e){initPairs();clusters=JSON.parse(JSON.stringify(INIT_CLUSTERS));activeGardens=null;}
+  }catch(e){
+    console.warn('load() error:', e);
+    if(window._fbAppData){ try{ _applyYearData(window._fbAppData); }catch(e2){} }
+    else { initPairs();clusters=JSON.parse(JSON.stringify(INIT_CLUSTERS));activeGardens=null; }
+  }
 }
 // ── migratePairsFromAuto — seeds AUTOPAIRS only on first-ever load ──
 
@@ -1593,7 +1617,13 @@ window.onload = function(){
     renderPurchSuppliers(); // ensure supplier list is populated
     renderInvoices(); // populate invoices list
     window._appInitComplete = true; // NOW allow Firebase saves
-    console.log('App ready: SCH=',SCH?.length,'INVOICES=',INVOICES?.length);
+    const _inv = typeof INVOICES!=='undefined'?INVOICES.length:0;
+    const _sch = typeof SCH!=='undefined'?SCH.length:0;
+    console.log('App fully ready: SCH=',_sch,'INVOICES=',_inv);
+    // Show status if invoices didn't load (mobile debugging)
+    if(_inv === 0 && window._fbLastKnownInvoiceCount > 0){
+      showToast('⚠️ חשבוניות לא נטענו! לחץ Firebase → טען עכשיו');
+    }
     _fbStartPolling();
     setTimeout(_fitScrollAreas, 100);
 
