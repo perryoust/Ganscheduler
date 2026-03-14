@@ -169,21 +169,21 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     </button>
   </div>
 </div>
-<div id="mob-nav-purch" style="display:none">
-  <div class="mob-nav-inner">
-    <button class="mob-nav-btn active" onclick="SPT('pdash');mobNavPurch(this)">
+<div id="mob-nav-purch" style="display:none;background:#1a237e">
+  <div class="mob-nav-inner" style="background:#1a237e">
+    <button class="mob-nav-btn active" style="color:#fff" onclick="SPT('pdash');mobNavPurch(this)">
       <span class="mnb-ico">📊</span><span>בקרה</span>
     </button>
-    <button class="mob-nav-btn" onclick="SPT('pinvoices');mobNavPurch(this)">
+    <button class="mob-nav-btn" style="color:#b0bec5" onclick="SPT('pinvoices');mobNavPurch(this)">
       <span class="mnb-ico">📄</span><span>חשבוניות</span>
     </button>
-    <button class="mob-nav-btn" onclick="SPT('porders');mobNavPurch(this)">
-      <span class="mnb-ico">🛒</span><span>הזמנות</span>
-    </button>
-    <button class="mob-nav-btn" onclick="SPT('psup');mobNavPurch(this)">
+    <button class="mob-nav-btn" style="color:#b0bec5" onclick="SPT('psup');mobNavPurch(this)">
       <span class="mnb-ico">🏢</span><span>ספקים</span>
     </button>
-    <button class="mob-nav-btn" onclick="switchMode('act');mobNav(null)">
+    <button class="mob-nav-btn" style="color:#b0bec5" onclick="openNewInvoice()">
+      <span class="mnb-ico">➕</span><span>מסמך חדש</span>
+    </button>
+    <button class="mob-nav-btn" style="color:#a5d6a7;border-right:1px solid #283593" onclick="switchMode('act');mobNav(null)">
       <span class="mnb-ico">🎨</span><span>חוגים</span>
     </button>
   </div>
@@ -861,6 +861,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       </div>
       <button class="btn bg bsm" onclick="openSupModal(null)">➕ ספק חדש</button>
       <button class="btn bo bsm" onclick="openMerge()">🔀 איחוד</button>
+      <button class="btn bs bsm" onclick="repairAllSuppliers()" ondblclick="emergencyFixSuppliers()" title="לחץ: תקן ספקים | לחץ פעמיים: אפס ועצב מחדש">🔧 תקן</button>
       <button class="btn bp bsm" onclick="openSupExport(null)">📊 Excel</button>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">

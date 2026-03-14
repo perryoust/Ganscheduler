@@ -91,8 +91,11 @@ async function _processFirebaseLoad(r, silent, force) {
   const cloudTs = cloudData.ts || 0;
   const appData = cloudData.data || cloudData;
   if (appData && Object.keys(appData).length > 0) {
-    if (force || cloudTs > _fbLastSaveTs || _fbLastSaveTs === 0) {
+    // Always load from Firebase if: forced, or cloud is newer, or no local timestamp
+    const localTs = parseInt(localStorage.getItem('ganv5_local_ts')||'0');
+    if (force || cloudTs > localTs || localTs === 0) {
       localStorage.setItem('ganv5', JSON.stringify(appData));
+      localStorage.setItem('ganv5_local_ts', String(cloudTs));
       _setFbLoadTs(Date.now());
       _setFbSaveTs(cloudTs);
       if (!silent) _fbUpdateStatus();
@@ -151,6 +154,7 @@ async function saveToFirebase(silent) {
     });
     if (r.ok) {
       _setFbSaveTs(nowTs);
+      localStorage.setItem('ganv5_local_ts', String(nowTs));
       if (!silent) showToast('✅ סונכרן ל-Firebase ' + _fmtTs(nowTs));
       return true;
     }
@@ -274,6 +278,8 @@ function switchMode(mode){
     TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el){ el.classList.remove('active'); el.style.display='none'; } });
     SPT(_purchTab);
     refreshPurchDash();
+    // Ensure supplier list is fresh
+    try{ if(_purchTab==='psup') renderPurchSuppliers(); }catch(e){}
   }
 }
 
@@ -1078,12 +1084,24 @@ function psupOpen(idx){ openSupCard(_psupCurrentList[idx]?.name||''); }
 function psupEdit(idx){ openSupCard(_psupCurrentList[idx]?.name||''); setTimeout(sucToggleEdit,200); }
 function psupNewInvoice(idx){ openNewInvoice(null, _psupCurrentList[idx]?.name||''); }
 
+// Emergency: clear corrupt mergedAway and rebuild supplier list
+function emergencyFixSuppliers(){
+  if(!confirm('זה ינקה את רשימת הספקים הממוזגים ויבנה מחדש. להמשיך?')) return;
+  supEx['__merged_away']=[];
+  delete supEx['__repair_done_v2'];
+  repairAllSuppliers();
+  renderPurchSuppliers();
+  showToast('✅ רשימת ספקים אופסה ותוקנה');
+}
+
 function renderPurchSuppliers(){
   const el = document.getElementById('psu-body');
   if(!el) return;
   const srch = (document.getElementById('psu-srch')?.value||'').toLowerCase();
   const sortMode = document.getElementById('psu-sort')?.value||'name';
-  let list = getAllSup().filter(s=>{
+  const allSups = getAllSup();
+  console.log('renderPurchSuppliers: getAllSup returned', allSups.length, 'suppliers, __c:', (supEx['__c']||[]).length, '__merged_away:', (supEx['__merged_away']||[]).length);
+  let list = allSups.filter(s=>{
     const base=s.name||'';
     if(srch && !base.toLowerCase().includes(srch)) return false;
     if(_pSupTab==='act') return isActSupplier(base);
@@ -5090,6 +5108,7 @@ function getAmountExVat(){
 // Run this to fix suppliers after merges, imports, or other data issues
 // ────────────────────────────────────────────────────────────────────────────
 function repairAllSuppliers(){
+  if(!supEx) supEx={};
   if(!supEx['__c']) supEx['__c']=[];
   const mergedAway = new Set(supEx['__merged_away']||[]);
   const inSupbase = new Set(SUPBASE.map(s=>supBase(s.name)));
@@ -5134,10 +5153,10 @@ function repairAllSuppliers(){
     }
   });
 
-  save();
-  const msg = `✅ תוקנו ספקים: ${added} נוספו, ${clearedActs} פעילויות תוקנו`;
-  showToast(msg);
+  if(added>0||clearedActs>0) save();
+  const msg = `🔧 ספקים: ${added} נוספו, ${clearedActs} תוקנו`;
   console.log(msg);
+  if(added>0) showToast(`✅ ${msg}`);
   try{ renderPurchSuppliers(); }catch(e){}
   try{ renderSup(); }catch(e){}
 }
