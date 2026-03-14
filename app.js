@@ -5243,36 +5243,14 @@ function downloadCSV(data,fname){
 
 function getAllSup(){
   if(typeof SUPBASE==='undefined'||typeof supEx==='undefined') return [];
-  
-  // Merged-away: exact full names that were merged into another supplier
+  // mergedAway: exact supplier names that were merged INTO another (the sources)
   const mergedAway = new Set(supEx['__merged_away']||[]);
-  // Build merged bases set - but NOT if that base is also the main supplier's base
-  // e.g.: merging "חיים בתנועה - ריקוד" into "חיים בתנועה" 
-  // base "חיים בתנועה" is in mergedBases but also IS the main → don't block main
-  const mergedBases = new Set([...mergedAway].map(n=>supBase(n)));
-  // Remove from mergedBases any base that belongs to a non-merged supplier
-  // (i.e., if the main supplier uses that base, keep showing it)
-  const allBasesInMergedAway = new Set([...mergedAway].map(n=>supBase(n)));
-  // A base is "fully merged" only if ALL SUPBASE entries for it are in mergedAway
-  // AND it's not in __c as a non-merged entry
-  const safeBasesToShow = new Set();
-  SUPBASE.forEach(s=>{
-    const b=supBase(s.name);
-    if(!mergedAway.has(s.name)) safeBasesToShow.add(b); // at least one non-merged entry
-  });
-  (supEx['__c']||[]).forEach(s=>{
-    if(!mergedAway.has(s.name)) safeBasesToShow.add(supBase(s.name));
-  });
-  // Keep mergedBases only for bases that have NO non-merged representatives
-  safeBasesToShow.forEach(b=>mergedBases.delete(b));
-  
   const map={};
 
-  // 1. Add SUPBASE suppliers — skip if exact name OR base is merged away
+  // Add SUPBASE entries — skip only exact merged-away names
   SUPBASE.forEach(s=>{
-    if(mergedAway.has(s.name)) return;      // this exact entry merged away
+    if(mergedAway.has(s.name)) return; // this entry was explicitly merged away
     const base=supBase(s.name);
-    if(mergedBases.has(base)&&!map[base]) return; // entire base group merged, and no main yet
     const act=supAct(s.name);
     if(!map[base]) map[base]={name:base,phone:s.phone,acts:new Set(),fullNames:new Set()};
     if(act) map[base].acts.add(act);
@@ -5280,11 +5258,10 @@ function getAllSup(){
     if(!map[base].phone&&s.phone) map[base].phone=s.phone;
   });
 
-  // 2. Add custom suppliers (__c) — skip if merged away
+  // Add custom suppliers (__c) — skip exact merged-away names
   (supEx['__c']||[]).forEach(s=>{
     if(mergedAway.has(s.name)) return;
     const base=supBase(s.name);
-    if(mergedBases.has(base)&&!map[base]) return;
     if(!map[base]) map[base]={name:base,phone:s.phone||'',acts:new Set(),fullNames:new Set()};
     map[base].fullNames.add(s.name);
     if(!map[base].phone&&s.phone) map[base].phone=s.phone;
@@ -5369,9 +5346,8 @@ function repairAllSuppliers(){
   SCH.forEach(s=>{ if(s.a) schBases.add(supBase(s.a)); });
   schBases.forEach(base=>{
     if(!base) return;
-    // Only skip if ALL entries with this base are merged away
-    const allMerged = SUPBASE.filter(s=>supBase(s.name)===base).every(s=>mergedAway.has(s.name));
-    if(allMerged && !(supEx['__c']||[]).find(s=>supBase(s.name)===base&&!mergedAway.has(s.name))) return;
+    // Skip if this base name itself is in mergedAway (it was a custom supplier that got merged)
+    if(mergedAway.has(base)) return;
     if(inSupbase.has(base)) return;
     if(inC.has(base)) return;
     supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base]?.ph1||''});
@@ -5721,9 +5697,18 @@ function doMerge(){
     // 1. Update SCH entries
     SCH.forEach(s=>{
       if(!s.a) return;
-      if(s.a===old || s.a===oldBase || supBase(s.a)===oldBase || s.a.startsWith(old+' - ') || s.a.startsWith(oldBase+' - ')){
-        const act=supAct(s.a);
-        s.a = act ? `${main} - ${act}` : main;
+      if(s.a===old || s.a===oldBase || supBase(s.a)===oldBase){
+        const act=supAct(s.a); // get the activity type (e.g. "ריקוד")
+        const mainBase=supBase(main);
+        const mainAct=supAct(main);
+        if(act && act!==mainAct){
+          // Main already has an activity suffix - just use main name, act is preserved via supEx
+          s.a = main;
+        } else if(act){
+          s.a = `${mainBase} - ${act}`;
+        } else {
+          s.a = main;
+        }
         changedSch++;
       }
     });
@@ -5749,10 +5734,13 @@ function doMerge(){
     if(!mex.g1&&ex.g1) mex.g1=ex.g1;
     if(!mex.moeTax&&ex.moeTax) mex.moeTax=ex.moeTax;
     if(!mex.entityType&&ex.entityType) mex.entityType=ex.entityType;
-    if(Array.isArray(ex.acts)&&ex.acts.length){
-      mex.acts=[...new Set([...(mex.acts||[]),...ex.acts])];
+    // Merge acts: from supEx AND from SCH-derived acts
+    const oldActs = getSupActs(old); // derives from SCH + SUPBASE
+    if(oldActs.length){
+      mex.acts=[...new Set([...(mex.acts||getSupActs(main)),...oldActs])];
     }
-    if(ex.isAct) mex.isAct=true; // if either was an act supplier, main becomes one too
+    // Mark as act supplier if any merged supplier was
+    if(ex.isAct || oldActs.length>0) mex.isAct=true;
     if(ex.isPurch!==false) mex.isPurch=true;
 
     // 4. Remove old from supEx and __c
@@ -5765,14 +5753,18 @@ function doMerge(){
     if(supEx['__c']) supEx['__c']=supEx['__c'].filter(s=>s.name!==old&&s.name!==oldBase&&supBase(s.name)!==oldBase);
 
     // 5. Mark as merged-away
-    // Store exact name AND all SUPBASE variants of this base
+    // Mark this exact supplier name as merged away
     mergedAway.add(old);
-    // Also add all SUPBASE entries that share this base (e.g. "חיים בתנועה - ריקוד", etc.)
-    SUPBASE.forEach(s=>{ if(supBase(s.name)===oldBase && s.name!==main) mergedAway.add(s.name); });
   });
 
   supEx['__merged_away']=[...mergedAway];
-  save(); CM('mrgm'); refresh();
+  // Ensure main supplier has all accumulated acts saved
+  if(!supEx[main]) supEx[main]={};
+  if(!supEx[main].acts || supEx[main].acts.length===0){
+    const derivedActs = getSupActs(main);
+    if(derivedActs.length) supEx[main].acts = derivedActs;
+  }
+  save(true); CM('mrgm'); refresh();
   try{ renderPurchSuppliers(); }catch(e){}
   showToast(`✅ אוחדו ${toMrg.length} ספקים → "${main}"${changedSch?` · ${changedSch} שיבוצים`:''}${changedInv?` · ${changedInv} חשבוניות`:''}`);
 }
