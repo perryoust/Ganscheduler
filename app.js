@@ -1570,6 +1570,55 @@ function syncSupplierList(){
   return added;
 }
 
+// ── One-time migration: restore acts and isAct for suppliers that lost them ────
+function restoreSupplierActs(){
+  if(supEx.__actsRestored_v1) return; // already ran
+  let fixed=0;
+  // For every supplier in supEx, if they have SCH entries with activities,
+  // restore those activities and mark as act supplier
+  const baseActMap = {}; // base → Set of acts
+  SCH.forEach(s=>{
+    if(!s.a) return;
+    const base=supBase(s.a);
+    const act=supAct(s.a);
+    if(act){
+      if(!baseActMap[base]) baseActMap[base]=new Set();
+      baseActMap[base].add(act);
+    }
+  });
+  SUPBASE.forEach(s=>{
+    const base=supBase(s.name);
+    const act=supAct(s.name);
+    if(act){
+      if(!baseActMap[base]) baseActMap[base]=new Set();
+      baseActMap[base].add(act);
+    }
+  });
+  // For each base with SCH acts, ensure supEx has them
+  Object.entries(baseActMap).forEach(([base,acts])=>{
+    if(!acts.size) return;
+    if(!supEx[base]) supEx[base]={};
+    const currentActs = supEx[base].acts;
+    // If acts are missing or empty, restore them
+    if(!Array.isArray(currentActs) || currentActs.length===0){
+      supEx[base].acts = [...acts].sort((a,b)=>a.localeCompare(b,'he'));
+      supEx[base].isAct = true; // has schedule entries → is act supplier
+      fixed++;
+    }
+    // If isAct is explicitly false but has SCH entries, fix it
+    if(supEx[base].isAct === false){
+      supEx[base].isAct = true;
+      fixed++;
+    }
+  });
+  supEx.__actsRestored_v1 = true;
+  if(fixed>0){ 
+    save(true);
+    console.log('restoreSupplierActs: fixed', fixed, 'suppliers');
+    showToast('✅ שוחזרו פעילויות ל-'+fixed+' ספקים');
+  }
+}
+
 window.onload = function(){
   window._appStartTime = Date.now(); // startup window for save protection
   // Auth is handled by onAuthStateChanged in index.html (Firebase module)
@@ -5759,6 +5808,13 @@ function doMerge(){
   supEx[mainBase].isAct = mergedIsAct;
   supEx[mainBase].isPurch = mergedIsPurch;
   supEx[mainBase].acts = [...allActs].sort((a,b)=>a.localeCompare(b,'he'));
+  // Also store on exact main name if different from base
+  if(main !== mainBase){
+    if(!supEx[main]) supEx[main]={};
+    supEx[main].isAct = mergedIsAct;
+    supEx[main].isPurch = mergedIsPurch;
+    supEx[main].acts = supEx[mainBase].acts;
+  }
 
   // Ensure main is in __c if not in SUPBASE
   const inSupbase = SUPBASE.some(s=>supBase(s.name)===mainBase);
