@@ -5334,34 +5334,9 @@ function repairAllSuppliers(){
   if(!supEx) supEx={};
   if(!supEx['__c']) supEx['__c']=[];
 
-  // ── STEP 0: Clean corrupt mergedAway ──────────────────────────────
-  // Remove any entry from mergedAway that still has active data
-  // (This happens when a supplier was accidentally added to mergedAway)
-  const rawMerged = supEx['__merged_away']||[];
-  const inSupbaseBases = new Set(SUPBASE.map(s=>supBase(s.name)));
-  const schBases0 = new Set(SCH.filter(s=>s.a).map(s=>supBase(s.a)));
-  const invBases0 = new Set(INVOICES.filter(i=>i.supName).map(i=>supBase(i.supName)));
-  const cBases0 = new Set((supEx['__c']||[]).map(s=>supBase(s.name)));
-
-  const cleanedMerged = rawMerged.filter(name=>{
-    const base = supBase(name);
-    // Keep in mergedAway only if this base has NO active presence anywhere
-    const hasActiveData =
-      inSupbaseBases.has(base) ||  // in hardcoded SUPBASE
-      schBases0.has(base) ||        // has schedule entries (with activities)
-      invBases0.has(base) ||        // has invoices
-      cBases0.has(base);            // already in __c list
-    if(hasActiveData){
-      console.log(`repairAllSuppliers: removing ${name} from mergedAway (has active data)`);
-      return false; // remove from mergedAway
-    }
-    return true; // keep in mergedAway
-  });
-  const mergedFixed = rawMerged.length - cleanedMerged.length;
-  supEx['__merged_away'] = cleanedMerged;
-  // ──────────────────────────────────────────────────────────────────
-
-  const mergedAway = new Set(cleanedMerged);
+  // mergedAway: suppliers intentionally hidden after merge — NEVER modify this list
+  const mergedAway = new Set(supEx['__merged_away']||[]);
+  const mergedFixed = 0;
   const inSupbase = new Set(SUPBASE.map(s=>supBase(s.name)));
   const inC = new Set(supEx['__c'].map(s=>supBase(s.name)));
   let added=0, fixed=0;
