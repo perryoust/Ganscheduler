@@ -1270,6 +1270,15 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <input type="text" id="su-name" style="width:100%" placeholder="שם הספק">
         <div id="su-name-warn" style="font-size:.72rem;color:#e65100;margin-top:2px;display:none">⚠️ שינוי שם יעדכן את כל השיבוצים</div>
       </div>
+      <div class="fg" style="grid-column:1/-1"><label>סוג ישות</label>
+        <select id="su-entity-type-top" style="width:100%" onchange="document.getElementById('su-entity-type')&&(document.getElementById('su-entity-type').value=this.value)">
+          <option value="">-- לא הוגדר --</option>
+          <option value="עוסק מורשה">עוסק מורשה</option>
+          <option value="חברה בעמ">חברה בע"מ</option>
+          <option value="עוסק פטור">עוסק פטור</option>
+          <option value="עמותה">עמותה</option>
+        </select>
+      </div>
       <div class="fg"><label>📞 טלפון 1</label><input type="text" id="su-ph1" placeholder="050-0000000"></div>
       <div class="fg"><label>📞 טלפון 2</label><input type="text" id="su-ph2" placeholder="טלפון נוסף"></div>
       <div class="fg"><label>📱 טלפון לתצוגה בשיבוץ</label>

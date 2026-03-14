@@ -107,7 +107,10 @@ async function _processFirebaseLoad(r, silent, force) {
 async function loadFromFirebase(silent, force) {
   try {
     if (!silent) { _fbSyncing = true; _fbUpdateStatus(); }
-    const _tok = window._fbGetToken ? await window._fbGetToken() : null;
+    // Fresh token for load
+    let _tok = null;
+    if(window._fbUser){ try{ _tok = await window._fbUser.getIdToken(false); }catch(te){ try{ _tok = await window._fbUser.getIdToken(true); }catch(te2){} } }
+    if(!_tok && window._fbGetToken) _tok = await window._fbGetToken();
     const _authQ = _tok ? '&auth=' + _tok : '';
     const r = await fetch(FIREBASE_DB_URL + '?cb=' + Date.now() + _authQ);
     if (!r.ok) {
@@ -143,7 +146,10 @@ async function saveToFirebase(silent) {
     _fbUpdateStatus();
     const nowTs = Date.now();
     const payload = { data: JSON.parse(raw), ts: nowTs, version: '10.2' };
-    const _saveTok = window._fbGetToken ? await window._fbGetToken() : null;
+    // Always refresh token before saving (prevents 401 on mobile)
+    let _saveTok = null;
+    if(window._fbUser){ try{ _saveTok = await window._fbUser.getIdToken(false); }catch(te){ try{ _saveTok = await window._fbUser.getIdToken(true); }catch(te2){} } }
+    if(!_saveTok && window._fbGetToken) _saveTok = await window._fbGetToken();
     const _saveQ   = _saveTok ? '?auth=' + _saveTok : '';
     const r = await fetch(FIREBASE_DB_URL + _saveQ, {
       method: 'PUT',
@@ -156,7 +162,19 @@ async function saveToFirebase(silent) {
       if (!silent) showToast('✅ סונכרן ל-Firebase ' + _fmtTs(nowTs));
       return true;
     }
-    if (!silent) showToast('❌ שגיאת סנכרון Firebase');
+    if (r.status === 401 || r.status === 403) {
+      // Token expired — refresh and retry once
+      try {
+        if(window._fbUser) window._cachedToken = await window._fbUser.getIdToken(true);
+        const newQ = window._cachedToken ? '?auth=' + window._cachedToken : '';
+        const r2 = await fetch(FIREBASE_DB_URL + newQ, {
+          method: 'PUT', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        if(r2.ok){ _setFbSaveTs(nowTs); localStorage.setItem('ganv5_local_ts',String(nowTs)); return true; }
+      } catch(re){}
+    }
+    if (!silent) showToast('❌ שגיאת סנכרון Firebase (' + r.status + ')');
     return false;
   } catch(e) {
     if (!silent) showToast('❌ Firebase: ' + e.message);
@@ -170,7 +188,7 @@ async function saveToFirebase(silent) {
 // ── Auto-save debounce ────────────────────────
 function firebaseAutoSave() {
   clearTimeout(_fbTimer);
-  _fbTimer = setTimeout(() => saveToFirebase(true), 3000);
+  _fbTimer = setTimeout(() => saveToFirebase(true), 1000);
 }
 
 // ── Polling — detects changes from other devices ──
@@ -5445,6 +5463,8 @@ function openSupModal(name){
   if(suIsPurch) suIsPurch.checked = defaultIsPurch;
   const suEntityType = document.getElementById('su-entity-type');
   if(suEntityType) suEntityType.value = ex.entityType||'';
+  const suEntityTop = document.getElementById('su-entity-type-top');
+  if(suEntityTop) suEntityTop.value = ex.entityType||'';
   // Show/hide acts section
   const suActsWrap = document.getElementById('su-acts-wrap');
   if(suActsWrap) suActsWrap.style.display = defaultIsAct ? 'block' : 'none';
@@ -6344,7 +6364,17 @@ function importBackup(input){
   r.readAsText(file);
 }
 setInterval(()=>createSnapshot('שעתי'),60*60*1000);
-window.addEventListener('beforeunload',()=>createSnapshot('סגירה'));
+window.addEventListener('beforeunload',()=>{
+  createSnapshot('סגירה');
+  // Try to sync to Firebase before closing
+  const raw = localStorage.getItem('ganv5');
+  if(raw && window._fbUser && window._cachedToken){
+    const url = FIREBASE_DB_URL + '?auth=' + window._cachedToken;
+    try{
+      navigator.sendBeacon(url, new Blob([JSON.stringify({data:JSON.parse(raw),ts:Date.now(),version:'10.2'})],{type:'application/json'}));
+    }catch(e){}
+  }
+});
 
 // ── Auto-backup scheduler ──────────────────────────────
 let _autoBackupTimer=null;
