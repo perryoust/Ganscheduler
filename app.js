@@ -167,10 +167,10 @@ async function loadFromFirebase(silent, force) {
 
 // ── Save to Firebase ──────────────────────────
 async function saveToFirebase(silent) {
-  // Don't save during initialization (prevents overwriting Firebase with partial data)
-  if(!window._appInitComplete){ 
-    console.warn('saveToFirebase: skipped (app not fully initialized)');
-    return false; 
+  // Safety: don't save in first 2 seconds after page load (initialization window)
+  if(Date.now() - (window._appStartTime||0) < 2000){
+    console.warn('saveToFirebase: skipped (within startup window)');
+    return false;
   }
   try {
     // Prefer in-memory data (most up-to-date) over stored
@@ -1386,7 +1386,7 @@ function migrateGardenPhones(){
     if(ph.ph2) ex.coph2=ph.ph2;
   });
   supEx.__phonesVer=VER;
-  if(window._appInitComplete) save();
+  save();
   console.log('migrateGardenPhones: imported '+count+' phones ('+VER+')');
 }
 
@@ -1401,7 +1401,7 @@ function migratePairsFromAuto(){
   }
   // No saved pairs — seed from AUTOPAIRS
   initPairs();
-  if(window._appInitComplete) save();
+  save();
   console.log('Seeded pairs from AUTOPAIRS: '+pairs.length);
 }
 function resetPairsFromAuto(){
@@ -1422,7 +1422,7 @@ function migrateSupActSplit(){
       changed++;
     }
   });
-  if(changed>0){ if(window._appInitComplete) save(); console.log('migrateSupAct: fixed '+changed); }
+  if(changed>0){ save(); console.log('migrateSupAct: fixed '+changed); }
 }
 function save(immediate){
   if(false){ showToast('⚠️ מצב ארכיון — לא ניתן לשמור שינויים'); return; }
@@ -1571,6 +1571,7 @@ function syncSupplierList(){
 }
 
 window.onload = function(){
+  window._appStartTime = Date.now(); // startup window for save protection
   // Auth is handled by onAuthStateChanged in index.html (Firebase module)
   // _onAuthReady is called once user is authenticated
   window._onAuthReady = async function(){
@@ -1606,17 +1607,16 @@ window.onload = function(){
     renderReadOnlyBanner();
     // Always run supplier repair on load to ensure cards exist
     repairAllSuppliers();
-    renderDash();
-    renderCal();
-    renderClusters();
-    renderSup();
-    renderManagers();
-    updCounts();
-    odUpdateUI();
-    refreshPurchDash(); // ensure purch dashboard is populated
-    renderPurchSuppliers(); // ensure supplier list is populated
-    renderInvoices(); // populate invoices list
-    window._appInitComplete = true; // NOW allow Firebase saves
+    try{ renderDash(); }catch(e){}
+    try{ renderCal(); }catch(e){}
+    try{ renderClusters(); }catch(e){}
+    try{ renderSup(); }catch(e){}
+    try{ renderManagers(); }catch(e){}
+    try{ updCounts(); }catch(e){}
+    try{ odUpdateUI(); }catch(e){}
+    try{ refreshPurchDash(); }catch(e){}
+    try{ renderPurchSuppliers(); }catch(e){}
+    try{ renderInvoices(); }catch(e){}
     const _inv = typeof INVOICES!=='undefined'?INVOICES.length:0;
     const _sch = typeof SCH!=='undefined'?SCH.length:0;
     console.log('App fully ready: SCH=',_sch,'INVOICES=',_inv);
@@ -5411,7 +5411,7 @@ function repairAllSuppliers(){
     }
   });
 
-  if((added>0||clearedActs>0||mergedFixed>0) && window._appInitComplete) save();
+  if(added>0||clearedActs>0||mergedFixed>0) save();
   const msg=`🔧 ספקים: ${added} נוספו${mergedFixed?`, ${mergedFixed} mergedAway תוקנו`:''}${clearedActs?`, ${clearedActs} acts תוקנו`:''}`;
   console.log(msg);
   if(added>0||mergedFixed>0) showToast(`✅ ${msg}`);
