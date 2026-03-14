@@ -1570,53 +1570,48 @@ function syncSupplierList(){
   return added;
 }
 
-// ── One-time migration: restore acts and isAct for suppliers that lost them ────
+// ── One-time migration v2: restore acts for merged suppliers ────
 function restoreSupplierActs(){
-  if(supEx.__actsRestored_v1) return; // already ran
+  if(supEx.__actsRestored_v2) return;
   let fixed=0;
-  // For every supplier in supEx, if they have SCH entries with activities,
-  // restore those activities and mark as act supplier
-  const baseActMap = {}; // base → Set of acts
-  SCH.forEach(s=>{
-    if(!s.a) return;
-    const base=supBase(s.a);
-    const act=supAct(s.a);
-    if(act){
-      if(!baseActMap[base]) baseActMap[base]=new Set();
-      baseActMap[base].add(act);
-    }
-  });
-  SUPBASE.forEach(s=>{
-    const base=supBase(s.name);
-    const act=supAct(s.name);
-    if(act){
-      if(!baseActMap[base]) baseActMap[base]=new Set();
-      baseActMap[base].add(act);
-    }
-  });
-  // For each base with SCH acts, ensure supEx has them
-  Object.entries(baseActMap).forEach(([base,acts])=>{
-    if(!acts.size) return;
-    if(!supEx[base]) supEx[base]={};
-    const currentActs = supEx[base].acts;
-    // If acts are missing or empty, restore them
-    if(!Array.isArray(currentActs) || currentActs.length===0){
-      supEx[base].acts = [...acts].sort((a,b)=>a.localeCompare(b,'he'));
-      supEx[base].isAct = true; // has schedule entries → is act supplier
-      fixed++;
-    }
-    // If isAct is explicitly false but has SCH entries, fix it
-    if(supEx[base].isAct === false){
-      supEx[base].isAct = true;
+  
+  // Build act map from SCH and SUPBASE (by base name)
+  const baseActMap = {};
+  const addAct = (base,act) => { if(!baseActMap[base]) baseActMap[base]=new Set(); if(act) baseActMap[base].add(act); };
+  SCH.forEach(s=>{ if(s.a){ addAct(supBase(s.a),supAct(s.a)); }});
+  SUPBASE.forEach(s=>{ addAct(supBase(s.name),supAct(s.name)); });
+
+  // Also get acts from mergedAway items' original bases
+  // Map: each supEx entry that has no acts but HAS SCH entries (without act suffix)
+  Object.keys(supEx).forEach(key=>{
+    if(key.startsWith('__')) return;
+    const ex = supEx[key];
+    if(Array.isArray(ex.acts) && ex.acts.length>0) return; // already has acts
+    // Check SCH for this key
+    const hasSCH = SCH.some(s=>supBase(s.a)===key || s.a===key);
+    if(!hasSCH) return;
+    // Look for acts in mergedAway that share partial name or _mergedFrom
+    const mergedFrom = ex._mergedFrom||[];
+    const actsForKey = new Set(baseActMap[key]||[]);
+    mergedFrom.forEach(oldBase=>{ (baseActMap[oldBase]||new Set()).forEach(a=>actsForKey.add(a)); });
+    // Heuristic: SUPBASE entries where base is substring of key or key is substring of base
+    SUPBASE.forEach(s=>{
+      const sb=supBase(s.name); const sa=supAct(s.name);
+      if(!sa) return;
+      if(sb===key||key.includes(sb)||sb.includes(key)||(key.split(' ')[0]===sb.split(' ')[0]&&key.split(' ').length>=2)){
+        actsForKey.add(sa);
+      }
+    });
+    if(actsForKey.size>0){
+      supEx[key].acts = [...actsForKey].sort((a,b)=>a.localeCompare(b,'he'));
+      supEx[key].isAct = true;
       fixed++;
     }
   });
-  supEx.__actsRestored_v1 = true;
-  if(fixed>0){ 
-    save(true);
-    console.log('restoreSupplierActs: fixed', fixed, 'suppliers');
-    showToast('✅ שוחזרו פעילויות ל-'+fixed+' ספקים');
-  }
+
+  supEx.__actsRestored_v2 = true;
+  if(fixed>0){ save(true); showToast('✅ שוחזרו פעילויות ל-'+fixed+' ספקים'); }
+  console.log('restoreSupplierActs v2: fixed',fixed,'suppliers');
 }
 
 window.onload = function(){
@@ -5325,15 +5320,35 @@ function getAllSup(){
 function getSupActs(name){
   if(!name) return[];
   const base=supBase(name);
-  // 1. Saved explicitly in supEx (only if non-empty)
-  const ex=supEx[base]||{};
+  const ex=supEx[base]||supEx[name]||{};
+  // 1. Explicitly saved acts (non-empty)
   if(Array.isArray(ex.acts)&&ex.acts.length>0) return ex.acts;
-  // If acts is explicitly set to empty array, still auto-derive from SCH
-  // (empty acts array may be a merge artifact)
-  // 2. Auto-derive from schedule data ("חוגות - ניצני רפואה" → "ניצני רפואה")
+  // 2. From SCH entries
   const fromSch=new Set();
   SCH.forEach(s=>{ if(supBase(s.a)===base){const a=supAct(s.a);if(a)fromSch.add(a);} });
+  // 3. From SUPBASE (current base)
   SUPBASE.forEach(s=>{ if(supBase(s.name)===base){const a=supAct(s.name);if(a)fromSch.add(a);} });
+  // 4. From merged-from history (_mergedFrom stores old bases that were merged into this one)
+  const mergedFromBases = ex._mergedFrom||[];
+  mergedFromBases.forEach(oldBase=>{
+    SCH.forEach(s=>{ if(supBase(s.a)===oldBase){const a=supAct(s.a);if(a)fromSch.add(a);} });
+    SUPBASE.forEach(s=>{ if(supBase(s.name)===oldBase){const a=supAct(s.name);if(a)fromSch.add(a);} });
+  });
+  // 5. Fallback: check mergedAway — find SUPBASE entries whose base was merged into this supplier
+  // by scanning if any mergedAway item's base has SUPBASE acts
+  const mergedAway = supEx['__merged_away']||[];
+  mergedAway.forEach(mName=>{
+    const mBase=supBase(mName);
+    // Only include if SCH currently has entries under this supplier's base
+    if(SCH.some(s=>supBase(s.a)===base)){
+      SUPBASE.forEach(s=>{ if(supBase(s.name)===mBase && mBase!==base){
+        // Check if this old base was related to current supplier via any SCH link
+        if(SCH.some(s2=>supBase(s2.a)===mBase)){
+          const a=supAct(s.name); if(a) fromSch.add(a);
+        }
+      }});
+    }
+  });
   return [...fromSch].sort((a,b)=>a.localeCompare(b,'he'));
 }
 // Supplier list index helpers — avoid HTML attribute escaping issues
@@ -5805,6 +5820,10 @@ function doMerge(){
 
   // Save merged flags and acts on main
   if(!supEx[mainBase]) supEx[mainBase]={};
+  // Store which bases were merged in (for act lookups later)
+  const prevMergedFrom = supEx[mainBase]._mergedFrom||[];
+  const newMergedBases = toMrg.map(o=>supBase(o)).filter(b=>b!==mainBase);
+  supEx[mainBase]._mergedFrom = [...new Set([...prevMergedFrom,...newMergedBases])];
   supEx[mainBase].isAct = mergedIsAct;
   supEx[mainBase].isPurch = mergedIsPurch;
   supEx[mainBase].acts = [...allActs].sort((a,b)=>a.localeCompare(b,'he'));
