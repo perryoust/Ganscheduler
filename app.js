@@ -1201,7 +1201,12 @@ function renderPurchSuppliers(){
 }
 
 function openNewPurchSupplier(){
-  openSupModal(null); // Open supplier creation modal directly
+  // Save invoice state, close invoice modal, open supplier modal
+  // After saving supplier, reopen invoice with supplier pre-filled
+  window._invPendingNewSup = true;
+  // Close invoice modal temporarily
+  document.getElementById('invoice-m')?.classList.remove('open');
+  openSupModal(null);
 }
 function openSupCardFromPurch(name){
   switchMode('act');
@@ -5532,14 +5537,23 @@ function saveSup(){
   // If opened from invoice modal, pre-fill the supplier field
   if(window._invPendingNewSup && name){
     window._invPendingNewSup=false;
-    const supTxt=document.getElementById('inv-sup-text');
-    if(supTxt){ supTxt.value=name; invUpdateEntityType((supEx[name]||{}).entityType||''); }
-    // Re-fill datalist
-    const dl=document.getElementById('inv-sup-datalist');
-    if(dl) dl.innerHTML=getAllSup().map(s=>{
-      const safeVal=s.name.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-      return `<option value="${safeVal}">${s.name}`;
-    }).join('');
+    // Reopen invoice modal with new supplier pre-filled
+    setTimeout(()=>{
+      const invModal = document.getElementById('invoice-m');
+      if(invModal){
+        // Fill supplier field
+        const supTxt=document.getElementById('inv-sup-text');
+        if(supTxt){ supTxt.value=name; invUpdateEntityType((supEx[name]||{}).entityType||''); }
+        // Re-fill datalist
+        const dl=document.getElementById('inv-sup-datalist');
+        if(dl) dl.innerHTML=getAllSup().map(s=>{
+          const safeVal=s.name.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+          return `<option value="${safeVal}">${s.name}`;
+        }).join('');
+        // Reopen invoice modal
+        invModal.classList.add('open');
+      }
+    }, 100);
   }
   ['dash-sup','cal-sup','s-sup','ns-sup'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
@@ -5637,7 +5651,7 @@ function doMerge(){
   supEx['__merged_away']=[...mergedAway];
   save(); CM('mrgm'); refresh();
   try{ renderPurchSuppliers(); }catch(e){}
-  showNotice(`✅ אוחדו ${toMrg.length} ספקים → "${main}"${changedSch?` · ${changedSch} שיבוצים`:''}${changedInv?` · ${changedInv} חשבוניות`:''}`);
+  showToast(`✅ אוחדו ${toMrg.length} ספקים → "${main}"${changedSch?` · ${changedSch} שיבוצים`:''}${changedInv?` · ${changedInv} חשבוניות`:''}`);
 }
 
 let _GARDENS_EXTRA=[]; // user-added gardens stored in localStorage
@@ -5702,12 +5716,115 @@ function saveNewGarden(){
   alert('✅ '+name+' נוסף בהצלחה!');
 }
 let _sucName=null;
+// ── Supplier card: tab between activities and documents ─────────────
+let _sucTab = 'acts'; // 'acts' | 'docs'
+
+function setSucTab(tab){
+  _sucTab = tab;
+  document.getElementById('suc-tab-acts')?.classList.toggle('active', tab==='acts');
+  document.getElementById('suc-tab-docs')?.classList.toggle('active', tab==='docs');
+  document.getElementById('suc-acts-section').style.display = tab==='acts' ? '' : 'none';
+  document.getElementById('suc-docs-section').style.display = tab==='docs' ? '' : 'none';
+  if(tab==='docs') renderSupDocs();
+}
+
+function initSucTabs(){
+  const name = _sucName;
+  const isAct = isActSupplier(name);
+  const isPurch = isPurchSupplier(name);
+  const tabsDiv = document.getElementById('suc-section-tabs');
+  const actsDiv = document.getElementById('suc-acts-section');
+  const docsDiv = document.getElementById('suc-docs-section');
+  if(!tabsDiv||!actsDiv||!docsDiv) return;
+
+  if(isAct && isPurch){
+    // Show tabs, default to acts
+    tabsDiv.style.display = 'block';
+    setSucTab('acts');
+  } else if(isPurch && !isAct){
+    // Pure purch: show only docs
+    tabsDiv.style.display = 'none';
+    actsDiv.style.display = 'none';
+    docsDiv.style.display = '';
+    _sucTab='docs';
+    renderSupDocs();
+  } else {
+    // Pure חוגים: show only acts
+    tabsDiv.style.display = 'none';
+    actsDiv.style.display = '';
+    docsDiv.style.display = 'none';
+    _sucTab='acts';
+  }
+}
+
+function renderSupDocs(){
+  const el = document.getElementById('suc-docs-body');
+  const totalEl = document.getElementById('suc-docs-total');
+  if(!el) return;
+  const srch = (document.getElementById('suc-doc-srch')?.value||'').toLowerCase();
+  const stf = document.getElementById('suc-doc-status')?.value||'';
+  let invs = INVOICES.filter(i=>supBase(i.supName||'')===_sucName);
+  if(srch) invs = invs.filter(i=>
+    (i.orderNum||'').toLowerCase().includes(srch)||
+    (i.txNum||'').toLowerCase().includes(srch)||
+    (i.num||'').toLowerCase().includes(srch)||
+    (i.orderDesc||'').toLowerCase().includes(srch)
+  );
+  if(stf) invs = invs.filter(i=>_migrateInvStatus(i.status)===stf);
+  invs = [...invs].sort((a,b)=>(b.orderDate||b.txDate||b.date||'').localeCompare(a.orderDate||a.txDate||a.date||''));
+
+  if(!invs.length){
+    el.innerHTML='<div style="color:#aaa;text-align:center;padding:16px;font-size:.8rem">אין מסמכים</div>';
+    if(totalEl) totalEl.textContent='';
+    return;
+  }
+  const fmtSt = s=>{const m={order:'📋',tx_invoice:'🧾',tax_invoice:'📑',receipt:'📄',cancelled:'❌'};return m[_migrateInvStatus(s)]||'📄';};
+  const total = invs.reduce((s,i)=>s+(i.orderAmt||i.txAmt||i.amt||0),0);
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.78rem">
+    <thead><tr style="background:#e8eaf6;position:sticky;top:0">
+      <th style="padding:5px 8px;text-align:right">תאריך</th>
+      <th style="padding:5px 8px;text-align:right">מסמך</th>
+      <th style="padding:5px 8px;text-align:right">פירוט</th>
+      <th style="padding:5px 8px;text-align:right;white-space:nowrap">סכום</th>
+      <th style="padding:5px 8px;text-align:center">סטטוס</th>
+      <th style="padding:5px 8px"></th>
+    </tr></thead>
+    <tbody>
+    ${invs.map(inv=>{
+      const d = inv.orderDate||inv.txDate||inv.date||'';
+      const docNum = inv.orderNum||inv.txNum||inv.num||'—';
+      const amt = inv.orderAmt||inv.txAmt||inv.amt||0;
+      const amtStr = amt ? `₪${withVat(amt,inv.vat||18).toLocaleString()}` : '—';
+      return `<tr style="border-bottom:1px solid #f0f0f0;cursor:pointer" onclick="CM('sucard-m');openNewInvoice(${inv.id})">
+        <td style="padding:5px 8px;white-space:nowrap">${d?fD(d):'—'}</td>
+        <td style="padding:5px 8px;font-weight:700;color:#1565c0">${docNum}</td>
+        <td style="padding:5px 8px;color:#546e7a;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${inv.orderDesc||''}</td>
+        <td style="padding:5px 8px;font-weight:700;color:#2e7d32;white-space:nowrap">${amtStr}</td>
+        <td style="padding:5px 8px;text-align:center">${fmtSt(inv.status)}</td>
+        <td style="padding:5px 8px" onclick="event.stopPropagation()"><button class="btn bo bsm" style="font-size:.65rem" onclick="CM('sucard-m');openNewInvoice(${inv.id})">✏️</button></td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>`;
+  if(totalEl) totalEl.textContent = `${invs.length} מסמכים · סה"כ: ₪${total.toLocaleString()} לפני מע"מ`;
+}
+
+function sucOpenNewDoc(){
+  CM('sucard-m');
+  openNewInvoice(null, _sucName);
+}
+
+function sucExportDocs(){
+  if(typeof exportSupPurchDocs==='function') exportSupPurchDocs(_sucName);
+  else showToast('❌ יצוא לא זמין');
+}
+
 function openSupCard(name){
   _sucName=supBase(name); // normalize to base name
   // Open the card modal DIRECTLY — no mode switching needed
   document.getElementById('suc-edit-panel').style.display='none';
   document.getElementById('suc-view').style.display='block';
   sucRefreshInfo();
+  initSucTabs(); // set correct tab (acts vs docs) based on supplier type
   const now=new Date();
   const sfrom=document.getElementById('suc-from');
   const sto=document.getElementById('suc-to');
@@ -5715,7 +5832,7 @@ function openSupCard(name){
   if(!sto.value) sto.value=d2s(new Date(now.getFullYear(),now.getMonth()+1,0));
   document.getElementById('suc-st').value='';
   sucRefreshActFilt();
-  renderSupCard();
+  if(_sucTab==='acts') renderSupCard();
   document.getElementById('sucard-m').classList.add('open');
 }
 function sucRefreshInfo(){
