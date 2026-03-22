@@ -795,7 +795,7 @@ function openNewInvoice(id, presetSup){
   document.getElementById('inv-order-amt').value   = inv ? (inv.orderAmt||'')   : '';
   // Restore order VAT mode (so editing doesn't recalculate wrong)
   const ordVatModeR = inv ? (inv.ordVatMode||'ex') : 'ex';
-  _ordVatMode = ordVatModeR;
+  window._ordVatMode = ordVatModeR;
   document.getElementById('vat-ord-ex')?.classList.toggle('active', ordVatModeR==='ex');
   document.getElementById('vat-ord-inc')?.classList.toggle('active', ordVatModeR==='inc');
   document.getElementById('inv-order-notes').value = inv ? (inv.orderNotes||'') : '';
@@ -821,7 +821,7 @@ function openNewInvoice(id, presetSup){
   document.getElementById('inv-amt').value  = inv ? (inv.amt||'')  : '';
   // Restore inv VAT mode
   const invVatModeR = inv ? (inv.invVatMode||'ex') : 'ex';
-  _invVatMode = invVatModeR;
+  window._invVatMode = invVatModeR;
   document.getElementById('vat-inv-ex')?.classList.toggle('active', invVatModeR==='ex');
   document.getElementById('vat-inv-inc')?.classList.toggle('active', invVatModeR==='inc');
   calcInvTotal();
@@ -988,15 +988,15 @@ function invEntityTypeChg(){
   invUpdateEntityType(et);
 }
 
-let _ordVatMode='ex',_invVatMode='ex';
+window._ordVatMode='ex'; window._invVatMode='ex';
 function setOrderVatMode(m){
-  _ordVatMode=m;
+  window._ordVatMode=m;
   document.getElementById('vat-ord-ex')?.classList.toggle('active',m==='ex');
   document.getElementById('vat-ord-inc')?.classList.toggle('active',m==='inc');
   calcOrderVat();
 }
 function setInvVatMode(m){
-  _invVatMode=m;
+  window._invVatMode=m;
   document.getElementById('vat-inv-ex')?.classList.toggle('active',m==='ex');
   document.getElementById('vat-inv-inc')?.classList.toggle('active',m==='inc');
   calcInvTotal();
@@ -1013,13 +1013,13 @@ function calcOrderVat(){
   const raw = parseFloat(document.getElementById('inv-order-amt').value)||0;
   const vat = _getEffectiveVat();
   const vr = vat/100;
-  const amt = _ordVatMode==='inc' ? +(raw/(1+vr)).toFixed(2) : raw;
+  const amt = window._ordVatMode==='inc' ? +(raw/(1+vr)).toFixed(2) : raw;
   const lbl=document.getElementById('inv-order-vat-lbl');
   if(vat===0){
     if(lbl&&raw) lbl.textContent='פטור ממע"מ';
     else if(lbl) lbl.textContent='';
   } else {
-    if(lbl&&raw) lbl.textContent=_ordVatMode==='inc'?`→ לפני מע"מ: ₪${amt.toFixed(2)}`:`→ כולל מע"מ: ₪${(amt*(1+vr)).toFixed(2)}`;
+    if(lbl&&raw) lbl.textContent=window._ordVatMode==='inc'?`→ לפני מע"מ: ₪${amt.toFixed(2)}`:`→ כולל מע"מ: ₪${(amt*(1+vr)).toFixed(2)}`;
     else if(lbl) lbl.textContent='';
   }
   const el = id => document.getElementById(id);
@@ -1043,13 +1043,13 @@ function calcInvTotal(){
   const raw2 = parseFloat(document.getElementById('inv-amt').value)||0;
   const vat = _getEffectiveVat();
   const vr2 = vat/100;
-  const amt = _invVatMode==='inc' ? +(raw2/(1+vr2)).toFixed(2) : raw2;
+  const amt = window._invVatMode==='inc' ? +(raw2/(1+vr2)).toFixed(2) : raw2;
   const lbl2=document.getElementById('inv-amt-vat-lbl');
   if(vat===0){
     if(lbl2&&raw2) lbl2.textContent='פטור ממע"מ';
     else if(lbl2) lbl2.textContent='';
   } else {
-    if(lbl2&&raw2) lbl2.textContent=_invVatMode==='inc'?`→ לפני מע"מ: ₪${amt.toFixed(2)}`:`→ כולל מע"מ: ₪${(amt*(1+vr2)).toFixed(2)}`;
+    if(lbl2&&raw2) lbl2.textContent=window._invVatMode==='inc'?`→ לפני מע"מ: ₪${amt.toFixed(2)}`:`→ כולל מע"מ: ₪${(amt*(1+vr2)).toFixed(2)}`;
     else if(lbl2) lbl2.textContent='';
   }
   const el = id => document.getElementById(id);
