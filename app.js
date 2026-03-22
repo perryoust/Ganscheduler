@@ -6746,26 +6746,69 @@ function filterSupCardInvs(){
 }
 
 function exportSupPurchDocs(name){
-  const invs = INVOICES.filter(i=>supBase(i.supName||'')===name);
+  const invs = INVOICES.filter(i=>supBase(i.supName||'')===name && _migrateInvStatus(i.status)!=='cancelled');
   if(!invs.length){ showToast('אין מסמכים לייצוא'); return; }
   const fmtStatus = (s)=>{const m={order:'הזמנה',tx_invoice:'חשבונית עסקה',tax_invoice:'חשבונית מס',tax_receipt:'חשבונית מס קבלה',receipt:'קבלה',cancelled:'מבוטל'};return m[s]||m[_migrateInvStatus(s)]||s||''};
   const wb = XLSX.utils.book_new();
+
+  // ── Sheet 1: All documents ──
   const rows = invs.map(inv=>({
     'ספק': inv.supName||'',
+    'עיר': inv.locCity||'',
     'תאריך': inv.orderDate||inv.txDate||inv.date||'',
     'מספר הזמנה': inv.orderNum||'',
     'מספר חשבונית עסקה': inv.txNum||'',
     'מספר חשבונית מס': inv.num||'',
     'פירוט': inv.orderDesc||'',
     'סכום לפני מעמ': inv.orderAmt||inv.txAmt||inv.amt||0,
-    'מעמ': inv.vat||18,
-    'סכום כולל מעמ': inv.orderAmt?withVat(inv.orderAmt,inv.vat||18):(inv.txAmt?withVat(inv.txAmt,inv.vat||18):(inv.amt?withVat(inv.amt,inv.vat||18):0)),
+    'מעמ %': inv.vat||0,
+    'סכום מעמ': inv.orderVat||inv.txVat||inv.vatAmt||0,
+    'סכום כולל מעמ': inv.orderTotal||inv.txTotal||inv.total||0,
     'סטטוס': fmtStatus(inv.status),
     'הערות': inv.notes||''
   }));
   const ws = XLSX.utils.json_to_sheet(rows);
+  // Auto column widths
+  const cols = [{wch:20},{wch:12},{wch:12},{wch:14},{wch:16},{wch:14},{wch:25},{wch:14},{wch:8},{wch:12},{wch:14},{wch:16},{wch:20}];
+  ws['!cols'] = cols;
   XLSX.utils.book_append_sheet(wb, ws, 'מסמכי רכש');
+
+  // ── Sheet 2: Summary by city ──
+  const cityMap = {};
+  invs.forEach(inv=>{
+    const city = inv.locCity || 'לא צוין';
+    if(!cityMap[city]) cityMap[city]={count:0, base:0, vatAmt:0, total:0};
+    cityMap[city].count++;
+    cityMap[city].base  += inv.orderAmt||inv.txAmt||inv.amt||0;
+    cityMap[city].vatAmt+= inv.orderVat||inv.txVat||inv.vatAmt||0;
+    cityMap[city].total += inv.orderTotal||inv.txTotal||inv.total||0;
+  });
+  const summaryRows = Object.entries(cityMap)
+    .sort((a,b)=>a[0].localeCompare(b[0],'he'))
+    .map(([city,d])=>({
+      'עיר': city,
+      'מספר מסמכים': d.count,
+      'סה"כ לפני מעמ': +d.base.toFixed(2),
+      'סה"כ מעמ': +d.vatAmt.toFixed(2),
+      'סה"כ כולל מעמ': +d.total.toFixed(2)
+    }));
+  // Grand total row
+  const grandBase  = invs.reduce((s,i)=>s+(i.orderAmt||i.txAmt||i.amt||0),0);
+  const grandVat   = invs.reduce((s,i)=>s+(i.orderVat||i.txVat||i.vatAmt||0),0);
+  const grandTotal = invs.reduce((s,i)=>s+(i.orderTotal||i.txTotal||i.total||0),0);
+  summaryRows.push({
+    'עיר': '✅ סה"כ כללי',
+    'מספר מסמכים': invs.length,
+    'סה"כ לפני מעמ': +grandBase.toFixed(2),
+    'סה"כ מעמ': +grandVat.toFixed(2),
+    'סה"כ כולל מעמ': +grandTotal.toFixed(2)
+  });
+  const wsSummary = XLSX.utils.json_to_sheet(summaryRows);
+  wsSummary['!cols'] = [{wch:16},{wch:14},{wch:16},{wch:14},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'סיכום לפי עיר');
+
   XLSX.writeFile(wb, `${name}_מסמכי_רכש.xlsx`);
+  showToast(`📊 יוצא: ${invs.length} מסמכים`);
 }
 
 function renderSupCard(){
