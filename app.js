@@ -5844,16 +5844,6 @@ function doSupExport(){
   URL.revokeObjectURL(url);
   CM('supexm');
 }
-  const from=document.getElementById('supex-from').value;
-  const to=document.getElementById('supex-to').value;
-  if(!from||!to){alert('בחר תאריכים');return;}
-
-  // Get supplier phone for header
-  const _supBase=_supExName?supBase(_supExName):'';
-  const _supExData=_supBase?supEx[_supBase]||{}:{};
-  const _supObj=_supExName?Object.values(SUPBASE||{}).find(s=>supBase(s.name)===_supBase)||null:null;
-  const supPhone=_supExData.phone||(_supObj&&_supObj.phone)||(_supExName?SCH.find(s=>supBase(s.a)===_supBase&&s.p)?.p||'':'');
-
 function exportExcel(){
   const f=getCalF();
   const y=calD.getFullYear(),m=calD.getMonth();
