@@ -370,6 +370,12 @@ const PURCH_TABS = ['pdash','pinvoices','psup'];
 // ── Mode switcher ──────────────────────────────────────
 function switchMode(mode){
   _appMode = mode;
+  // Always close side panel + backdrop when switching modes (critical for mobile)
+  const _spEl=document.getElementById('sp');
+  const _bdEl=document.getElementById('sp-backdrop');
+  if(_spEl) _spEl.classList.remove('open');
+  if(_bdEl) _bdEl.style.display='none';
+  selEv=null;
   // Toggle body class for CSS theming
   document.body.classList.toggle('mode-purch', mode==='purch');
   // Show/hide tab bars
@@ -402,6 +408,12 @@ function switchMode(mode){
 
 function SPT(t){
   _purchTab = t;
+  // Always close side panel + backdrop when switching tabs (critical for mobile)
+  const _spEl=document.getElementById('sp');
+  const _bdEl=document.getElementById('sp-backdrop');
+  if(_spEl) _spEl.classList.remove('open');
+  if(_bdEl) _bdEl.style.display='none';
+  selEv=null;
   PURCH_TABS.forEach((x,i)=>{
     const tabEl = document.querySelectorAll('#tabs-purch .tab')[i];
     if(tabEl) tabEl.classList.toggle('active', x===t);
@@ -410,7 +422,6 @@ function SPT(t){
   });
   if(t==='pinvoices'){ fillPiSupFilter(); renderInvoices(); }
   if(t==='psup'){
-    // Small delay to ensure data is loaded
     setTimeout(renderPurchSuppliers, 50);
   }
   if(t==='pdash') refreshPurchDash();
@@ -2156,6 +2167,12 @@ function navSearchClose(){
 
 function ST(t){
   currentTab=t;
+  // Always close side panel + backdrop when switching tabs (critical for mobile)
+  const _spEl=document.getElementById('sp');
+  const _bdEl=document.getElementById('sp-backdrop');
+  if(_spEl) _spEl.classList.remove('open');
+  if(_bdEl) _bdEl.style.display='none';
+  selEv=null;
   // Find the correct tab button by matching onclick attribute — not by index
   // (TABS array has hidden tabs like 'pairs','clusters','managers' that have no button)
   document.querySelectorAll('#tabs-act .tab').forEach(btn=>{
@@ -3950,6 +3967,26 @@ document.addEventListener('DOMContentLoaded',()=>{
   window.addEventListener('resize',()=>{
     closeBtn.style.display=window.innerWidth<=768?'block':'none';
   });
+
+  // Escape key: close any open side panel or modal
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){
+      closeSP();
+      document.querySelectorAll('.modal.open').forEach(m=>m.classList.remove('open'));
+    }
+  });
+
+  // Safety: if backdrop gets stuck, clicking anywhere on content area closes it
+  document.getElementById('sp-backdrop')?.addEventListener('click', closeSP);
+
+  // Periodic backdrop safety check — if SP is closed but backdrop is visible, hide it
+  setInterval(()=>{
+    const bd=document.getElementById('sp-backdrop');
+    const spEl=document.getElementById('sp');
+    if(bd && spEl && !spEl.classList.contains('open') && bd.style.display==='block'){
+      bd.style.display='none';
+    }
+  }, 2000);
 });
 function refresh(){
   // Single source of truth for all post-save re-rendering
