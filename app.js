@@ -6543,7 +6543,11 @@ function setSucTab(tab){
   document.getElementById('suc-tab-docs')?.classList.toggle('active', tab==='docs');
   document.getElementById('suc-acts-section').style.display = tab==='acts' ? '' : 'none';
   document.getElementById('suc-docs-section').style.display = tab==='docs' ? '' : 'none';
+  // suc-body holds the schedule table — hide it when viewing docs
+  const sucBody = document.getElementById('suc-body');
+  if(sucBody) sucBody.style.display = tab==='acts' ? '' : 'none';
   if(tab==='docs') renderSupDocs();
+  else renderSupCard();
 }
 
 function initSucTabs(){
