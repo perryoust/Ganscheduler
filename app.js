@@ -3372,8 +3372,12 @@ function renderRangeListView(evs, fromDs, toDs){
             .sort((a,b)=>(G(a.g).name||'').localeCompare(G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
           if(!clEvs.length) return;
           clEvs.forEach(s=>clusteredGids.add(s.g));
+          const clGids=clEvs.map(s=>s.g);
           h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
-            <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid}">🏘️ ${cl.name}</div>`;
+            <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
+              <span>🏘️ ${cl.name}</span>
+              <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
+            </div>`;
           clEvs.forEach(s=>{ h+=_listRow(s,clr); });
           h+=`</div>`;
         });
@@ -3462,12 +3466,31 @@ function renderCalList(evs, mDate){
         <span style="font-size:.68rem;color:#78909c">${cityEvs.length} פעילויות</span>
       </div>`;
 
-      // Pairs first — sorted by pair name
-      const pairedGids=new Set();
+      // ── Clusters first ──
+      const clAll=(typeof getClusters==='function'?getClusters():[]).filter(cl=>
+        (cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===gid)));
+      const clusteredGidsC=new Set();
+      clAll.forEach(cl=>{
+        const clEvs=cityEvs.filter(s=>(cl.gardenIds||[]).includes(s.g))
+          .sort((a,b)=>(G(a.g).name||'').localeCompare(G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
+        if(!clEvs.length) return;
+        clEvs.forEach(s=>clusteredGidsC.add(s.g));
+        const clGids2=clEvs.map(s=>s.g);
+        h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border};border-radius:6px;overflow:hidden">
+          <div style="background:${clr.solid}22;padding:3px 8px;font-size:.72rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
+            <span>🏘️ ${cl.name}</span>
+            <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids2)})" style="background:${clr.solid};border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
+          </div>`;
+        clEvs.forEach(s=>{ h+=_listRow(s,clr); });
+        h+=`</div>`;
+      });
+
+      // ── Pairs — sorted by pair name ──
+      const pairedGids=new Set([...clusteredGidsC]);
       const pairGroups=[];
       pairs.forEach(pair=>{
         if(isPairBroken&&isPairBroken(pair.id,ds)) return;
-        const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g));
+        const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!clusteredGidsC.has(s.g));
         if(!pairEvs.length) return;
         pair.ids.forEach(id=>pairedGids.add(id));
         pairGroups.push({pair,pairEvs});
