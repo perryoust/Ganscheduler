@@ -386,7 +386,11 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 .mob-nav-btn .mnb-ico{font-size:1.3rem;line-height:1}
 @media(max-width:768px){
   #mob-nav{display:block}
-  .tabs{display:none}
+  .tabs{display:none!important}
+  #tabs-act{display:none!important}
+  #tabs-purch{display:none!important}
+  #auth-user-name{display:none!important}
+  .mode-bar{display:none!important}
 }
 #backup-ind{position:fixed;bottom:12px;left:12px;background:rgba(46,125,50,.9);color:#fff;border-radius:20px;padding:4px 12px;font-size:.71rem;opacity:0;transition:opacity .4s;z-index:9999;pointer-events:none}
 #backup-ind.show{opacity:1}
