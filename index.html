@@ -1285,9 +1285,19 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <div id="supexm" class="modal">
   <div class="mb" style="max-width:500px">
     <h2 id="supexm-title">📊 יצוא דוח ספק</h2>
-    <div class="row" style="margin-bottom:11px">
-      <div class="fg"><label>מ-תאריך *</label><input type="date" id="supex-from" style="min-width:140px"></div>
-      <div class="fg"><label>עד-תאריך *</label><input type="date" id="supex-to" style="min-width:140px"></div>
+    <!-- Export type selector -->
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button id="supex-type-act" class="vbtn active" onclick="setSupExType('act')" style="flex:1;font-size:.8rem">🏃 פעילויות</button>
+      <button id="supex-type-inv" class="vbtn" onclick="setSupExType('inv')" style="flex:1;font-size:.8rem">📋 חשבוניות / הזמנות</button>
+    </div>
+    <div id="supex-act-opts">
+      <div class="row" style="margin-bottom:11px">
+        <div class="fg"><label>מ-תאריך *</label><input type="date" id="supex-from" style="min-width:140px"></div>
+        <div class="fg"><label>עד-תאריך *</label><input type="date" id="supex-to" style="min-width:140px"></div>
+      </div>
+    </div>
+    <div id="supex-inv-opts" style="display:none;background:#f5f7ff;border-radius:7px;padding:8px;font-size:.8rem;margin-bottom:10px;color:#546e7a">
+      📄 ייצא את כל מסמכי הרכש של הספק (הזמנות, חשבוניות עסקה, חשבוניות מס, קבלות) כולל סיכום לפי עיר.
     </div>
     <div id="supex-prev" style="background:#f5f7ff;border-radius:7px;padding:9px;font-size:.78rem;max-height:200px;overflow-y:auto;margin-bottom:10px;display:none"></div>
     <div style="display:flex;gap:7px;justify-content:flex-end">

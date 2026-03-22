@@ -5691,9 +5691,21 @@ function printExport(){
 
 // [backup system unified — see createSnapshot/openBackup above]
 let _supExName=null;
+let _supExType = 'act'; // 'act' | 'inv'
+function setSupExType(t){
+  _supExType=t;
+  document.getElementById('supex-type-act')?.classList.toggle('active',t==='act');
+  document.getElementById('supex-type-inv')?.classList.toggle('active',t==='inv');
+  const actOpts=document.getElementById('supex-act-opts');
+  const invOpts=document.getElementById('supex-inv-opts');
+  if(actOpts) actOpts.style.display=t==='act'?'':'none';
+  if(invOpts) invOpts.style.display=t==='inv'?'block':'none';
+}
 function openSupExport(supName){
   _supExName=supName;
-  (document.getElementById('supexm-title')||{}).textContent =supName?`📊 יצוא: ${supName}`:'📊 יצוא דוח ספקים';
+  _supExType='act';
+  setSupExType('act');
+  (document.getElementById('supexm-title')||{}).textContent=supName?`📊 יצוא: ${supName}`:'📊 יצוא דוח ספקים';
   const now=new Date();
   document.getElementById('supex-from').value=d2s(new Date(now.getFullYear(),now.getMonth(),1));
   document.getElementById('supex-to').value=d2s(new Date(now.getFullYear(),now.getMonth()+1,0));
@@ -5701,11 +5713,22 @@ function openSupExport(supName){
   document.getElementById('supexm').classList.add('open');
 }
 function doSupExport(){
+  if(_supExType==='inv'){
+    // ── יצוא חשבוניות/הזמנות ──
+    if(typeof exportSupPurchDocs==='function' && _supExName){
+      exportSupPurchDocs(supBase(_supExName));
+    } else {
+      showToast('אין מסמכי רכש לספק זה');
+    }
+    CM('supexm');
+    return;
+  }
+
+  // ── יצוא פעילויות ──
   const from=document.getElementById('supex-from').value;
   const to=document.getElementById('supex-to').value;
   if(!from||!to){alert('בחר תאריכים');return;}
 
-  // Get supplier phone for header
   const _supBase=_supExName?supBase(_supExName):'';
   const _supExData=_supBase?supEx[_supBase]||{}:{};
   const _supObj=_supExName?Object.values(SUPBASE||{}).find(s=>supBase(s.name)===_supBase)||null:null;
@@ -5713,7 +5736,6 @@ function doSupExport(){
 
   const evs=SCH.filter(s=>{
     if(s.d<from||s.d>to) return false;
-    // כולל כל הסטטוסים — גם ביטולים ולא התקיים
     if(_supExName&&supBase(s.a)!==supBase(_supExName)) return false;
     return true;
   }).sort((a,b)=>{
@@ -5730,14 +5752,16 @@ function doSupExport(){
   const q=c=>`"${String(c==null?'':c).replace(/"/g,'""')}"`;
   const lines=[];
 
-  // סיכום
-  const totalEvs=evs.length;
-  const cancelledEvs=evs.filter(s=>s.st==='can').length;
-  const nohapEvs=evs.filter(s=>s.st==='nohap').length;
-  const doneEvs=evs.filter(s=>(s.st==='done'||s.st==='ok')&&!s._makeupFrom).length;
-  const makeupEvs=evs.filter(s=>s._makeupFrom).length;
+  const sumRow=(label,evArr)=>{
+    const tot=evArr.length;
+    const can=evArr.filter(s=>s.st==='can').length;
+    const nohap=evArr.filter(s=>s.st==='nohap').length;
+    const done=evArr.filter(s=>(s.st==='done'||s.st==='ok')&&!s._makeupFrom).length;
+    const makeup=evArr.filter(s=>s._makeupFrom).length;
+    return [q(label),q(tot),q('התקיימו:'),q(done),q('השלמות:'),q(makeup),q('בוטלו:'),q(can),q('לא התקיימו:'),q(nohap),''].join(',');
+  };
 
-  // Header block
+  // Header
   if(_supExName){
     lines.push([q('ספק:'),q(_supExName),'','','','','','','','',''].join(','));
     lines.push([q('טלפון:'),q(supPhone),'','','','','','','','',''].join(','));
@@ -5745,35 +5769,49 @@ function doSupExport(){
     lines.push('');
   }
 
-  // Column headers — עיר | כתובת | שם צהרון | תאריך | יום | פעילות | קבוצות | שעה | סטטוס | סיבה | הערות
   lines.push(['עיר','כתובת','שם צהרון','תאריך','יום','פעילות','קבוצות','שעה','סטטוס','סיבה','הערות'].map(q).join(','));
 
-  evs.forEach(s=>{
-    const g=G(s.g);
-    const actName=supAct(s.a)||s.a;
-    const reason = s.cr || '';
-    const note = s.nt || '';
-    lines.push([
-      q(g.city||''),q(g.st||''),q(g.name||''),
-      q(fD(s.d)),q(dayN(s.d)),
-      q(actName),q((s.st==='can'||s.st==='nohap'||s.st==='post')?0:(s.grp||1)),q(fT(s.t)),
-      q(stMap[s.st]||'מתקיים'),q(reason),q(note)
-    ].join(','));
+  // Group by city, add per-city summary row
+  const cities=[...new Set(evs.map(s=>G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
+  cities.forEach(city=>{
+    const cityEvs=evs.filter(s=>(G(s.g).city||'אחר')===city);
+    cityEvs.forEach(s=>{
+      const g=G(s.g);
+      const actName=supAct(s.a)||s.a;
+      lines.push([
+        q(g.city||''),q(g.st||''),q(g.name||''),
+        q(fD(s.d)),q(dayN(s.d)),
+        q(actName),q((s.st==='can'||s.st==='nohap'||s.st==='post')?0:(s.grp||1)),q(fT(s.t)),
+        q(stMap[s.st]||'מתקיים'),q(s.cr||''),q(s.nt||'')
+      ].join(','));
+    });
+    // City summary row
+    lines.push(sumRow(`סה"כ ${city}:`, cityEvs));
+    lines.push('');
   });
 
-  // Summary row at bottom
-  lines.push('');
-  lines.push([q('סה"כ פעילויות:'),q(totalEvs),q('התקיימו:'),q(doneEvs),q('השלמות:'),q(makeupEvs),q('בוטלו:'),q(cancelledEvs),q('לא התקיימו:'),q(nohapEvs),''].join(','));
+  // Grand total row
+  lines.push(sumRow('סה"כ פעילויות:', evs));
 
   const csv=bom+lines.join('\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;a.download=`דוח_ספק_${_supExName||'כל_הספקים'}_${from}_${to}.csv`;
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  a.href=url; a.download=`דוח_פעילויות_${_supExName||'כל_הספקים'}_${from}_${to}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
   CM('supexm');
 }
+  const from=document.getElementById('supex-from').value;
+  const to=document.getElementById('supex-to').value;
+  if(!from||!to){alert('בחר תאריכים');return;}
+
+  // Get supplier phone for header
+  const _supBase=_supExName?supBase(_supExName):'';
+  const _supExData=_supBase?supEx[_supBase]||{}:{};
+  const _supObj=_supExName?Object.values(SUPBASE||{}).find(s=>supBase(s.name)===_supBase)||null:null;
+  const supPhone=_supExData.phone||(_supObj&&_supObj.phone)||(_supExName?SCH.find(s=>supBase(s.a)===_supBase&&s.p)?.p||'':'');
+
 function exportExcel(){
   const f=getCalF();
   const y=calD.getFullYear(),m=calD.getMonth();
