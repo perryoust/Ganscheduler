@@ -5789,13 +5789,18 @@ function doSupExport(){
   const q=c=>`"${String(c==null?'':c).replace(/"/g,'""')}"`;
   const lines=[];
 
+  // grp=קבוצות: 1=התקיים בפועל, 0=לא התקיים (כולל ביטול/לא התקיים/נדחה)
+  const isHappened = s => (s.grp||1) >= 1 && s.st!=='can' && s.st!=='nohap' && s.st!=='post';
+  const isNotHappened = s => (s.grp||1) === 0 || s.st==='can' || s.st==='nohap';
+  const isMakeup = s => !!s._makeupFrom;
+
   const sumRow=(label,evArr)=>{
-    const tot=evArr.length;
-    const can=evArr.filter(s=>s.st==='can').length;
-    const nohap=evArr.filter(s=>s.st==='nohap').length;
-    const done=evArr.filter(s=>(s.st==='done'||s.st==='ok')&&!s._makeupFrom).length;
-    const makeup=evArr.filter(s=>s._makeupFrom).length;
-    return [q(label),q(tot),q('התקיימו:'),q(done),q('השלמות:'),q(makeup),q('בוטלו:'),q(can),q('לא התקיימו:'),q(nohap),''].join(',');
+    const tot    = evArr.length;
+    const done   = evArr.filter(s=>isHappened(s)).length; // כולל השלמות שהתקיימו
+    const makeup = evArr.filter(s=>isMakeup(s)&&isHappened(s)).length; // השלמות שהתקיימו בפועל
+    const notHap = evArr.filter(s=>isNotHappened(s)).length;
+    const can    = evArr.filter(s=>s.st==='can').length;
+    return [q(label),q(tot),q('התקיימו:'),q(done),q('השלמות:'),q(makeup),q('בוטלו:'),q(can),q('לא התקיימו:'),q(notHap),''].join(',');
   };
 
   // Header
@@ -5818,7 +5823,7 @@ function doSupExport(){
       lines.push([
         q(g.city||''),q(g.st||''),q(g.name||''),
         q(fD(s.d)),q(dayN(s.d)),
-        q(actName),q((s.st==='can'||s.st==='nohap'||s.st==='post')?0:(s.grp||1)),q(fT(s.t)),
+        q(actName),q(isHappened(s)?(s.grp||1):0),q(fT(s.t)),
         q(stMap[s.st]||'מתקיים'),q(s.cr||''),q(s.nt||'')
       ].join(','));
     });
