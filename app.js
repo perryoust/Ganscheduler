@@ -1003,8 +1003,9 @@ function setInvVatMode(m){
 }
 function _getEffectiveVat(){
   // Returns 0 for exempt suppliers, otherwise the configured VAT rate
-  const supName = document.getElementById('inv-sup')?.value||'';
-  const entityType = (supEx[supName]||{}).entityType||
+  const supName = document.getElementById('inv-sup-text')?.value?.trim()||'';
+  const base = supBase(supName);
+  const entityType = (supEx[supName]||supEx[base]||{}).entityType||
     document.getElementById('inv-ns-entity')?.value||'';
   if(entityType==='עוסק פטור'||entityType==='עמותה') return 0;
   return parseFloat(document.getElementById('inv-vat')?.value)||getVatRate();
@@ -1137,7 +1138,7 @@ async function saveInvoice(){
   const rawTx    = parseFloat(document.getElementById('inv-tx-amt').value)||0;
   const rawAmt   = parseFloat(document.getElementById('inv-amt').value)||0;
   // Exempt suppliers (עוסק פטור / עמותה) — no VAT
-  const _supEntityType = (supEx[supName]||{}).entityType||'';
+  const _supEntityType = (supEx[supName]||supEx[supBase(supName)]||{}).entityType||'';
   const isExemptSave = _supEntityType==='עוסק פטור' || _supEntityType==='עמותה';
   const effectiveVat = isExemptSave ? 0 : vat;
   const orderAmt = ordMode==='inc' ? +(rawOrder/(1+effectiveVat/100)).toFixed(2) : rawOrder;
@@ -2155,7 +2156,13 @@ function ST(t){
   });
   if(t==='sched') renderSched();
   if(t==='gardens'){renderGardens();refreshMgrDrops();}
-  if(t==='cal') renderCal();
+  if(t==='cal'){
+    // Restore nav buttons in case they were hidden by range view
+    if(calV!=='range'){
+      document.querySelectorAll('[onclick="navCal(-1)"],[onclick="navCal(1)"]').forEach(b=>b.style.display='');
+    }
+    renderCal();
+  }
   if(t==='pairs') renderPairs();
   if(t==='holidays'){initHolDrops();renderHolidays();}
   if(t==='clusters') renderClusters();
@@ -4479,6 +4486,23 @@ function getFiltSched(){
     return true;
   }).sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'').localeCompare(b.t||''));
 }
+function setSchedView(v){
+  const sf=document.getElementById('s-from'), st2=document.getElementById('s-to');
+  if(!sf||!st2) return;
+  const base=sf.value||td();
+  const d=s2d(base);
+  if(v==='day'){
+    sf.value=td(); st2.value=td();
+  } else if(v==='week'){
+    const mon=monStart(new Date(d)); sf.value=d2s(mon); st2.value=d2s(addD(mon,6));
+  } else if(v==='month'){
+    const y=d.getFullYear(), m=d.getMonth();
+    sf.value=d2s(new Date(y,m,1)); st2.value=d2s(new Date(y,m+1,0));
+  }
+  ['day','week','month'].forEach(x=>document.getElementById('svb-'+x)?.classList.toggle('active',x===v));
+  sPage=1; renderSched();
+}
+
 function navSched(dir){
   const sf=document.getElementById('s-from'),st2=document.getElementById('s-to');
   if(!sf||!st2) return;

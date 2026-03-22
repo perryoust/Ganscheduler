@@ -338,6 +338,11 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div style="margin-bottom:9px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
         <span style="font-size:.9rem;font-weight:700;color:#1a237e;flex:1">📋 לוח זמנים - כל הפעילויות</span>
+        <div class="vbtns" style="margin-left:4px">
+          <button class="vbtn" id="svb-day" onclick="setSchedView('day')" title="תצוגה יומית">יומי</button>
+          <button class="vbtn" id="svb-week" onclick="setSchedView('week')" title="תצוגה שבועית">שבועי</button>
+          <button class="vbtn" id="svb-month" onclick="setSchedView('month')" title="תצוגה חודשית">חודשי</button>
+        </div>
         <button class="btn bo bsm" onclick="navSched(-1)" title="טווח קודם">◀</button>
         <button class="btn bs bsm" onclick="navSchedToday()" style="font-size:.75rem" title="היום">📍 היום</button>
         <button class="btn bo bsm" onclick="navSched(1)" title="טווח הבא">▶</button>
