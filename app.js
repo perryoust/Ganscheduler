@@ -79,8 +79,15 @@ function _fbUpdateStatus() {
       btn.textContent = '🔄 מסנכרן...';
       btn.style.background = '#e65100';
     } else if (_fbLastSaveTs) {
-      btn.textContent = '☁️ ' + _fmtTs(_fbLastSaveTs);
-      btn.style.background = '#2e7d32';
+      const ageMs = Date.now() - _fbLastSaveTs;
+      const ageMins = Math.floor(ageMs / 60000);
+      let label;
+      if(ageMs < 60000)       label = '☁️ Active ✓';
+      else if(ageMins < 5)    label = `☁️ לפני ${ageMins}ד'`;
+      else if(ageMins < 60)   label = `☁️ ${ageMins}ד' לא סונכרן`;
+      else                    label = '⚠️ לא סונכרן';
+      btn.textContent = label;
+      btn.style.background = ageMins >= 10 ? '#c62828' : ageMins >= 5 ? '#e65100' : '#2e7d32';
     } else {
       btn.textContent = '☁️ Firebase';
       btn.style.background = '#2e7d32';
@@ -98,6 +105,8 @@ function _fbUpdateStatus() {
   if (el4) el4.textContent = _fbLastLoadTs ? _fmtTs(_fbLastLoadTs) : '—';
 }
 
+// Refresh status display every 30s so age label updates live
+setInterval(_fbUpdateStatus, 30000);
 
 // Helper: process Firebase load response
 async function _processFirebaseLoad(r, silent, force) {
