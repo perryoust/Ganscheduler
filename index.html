@@ -356,6 +356,10 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   /* Modal full width */
   .modal .mb{width:100%;max-width:100%;border-radius:16px 16px 0 0;
              position:fixed;bottom:0;left:0;right:0;max-height:92vh}
+  /* Prevent iOS zoom on input focus — font-size must be >=16px */
+  .modal input, .modal select, .modal textarea {font-size:16px!important}
+  /* Backup modal — don't shrink the page */
+  #backupm .mb{overflow-y:auto}
 
   /* Vbtns */
   .vbtns{flex-wrap:wrap;gap:3px}
@@ -725,6 +729,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     </button>
     <button class="mob-nav-btn" onclick="ST('sup');mobNav(this)" data-tab="sup">
       <span class="mnb-ico">🏢</span><span>ספקים</span>
+    </button>
+    <button class="mob-nav-btn" onclick="switchMode('purch');mobNavPurch(null)" style="color:#2e7d32;border-right:1px solid #e0e0e0">
+      <span class="mnb-ico">🛒</span><span>רכש</span>
     </button>
   </div>
 </div>
@@ -2720,7 +2727,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<script src="data.js?v=37"></script>
-<script src="app.js?v=37"></script>
+<script src="data.js?v=38"></script>
+<script src="app.js?v=38"></script>
 </body>
 </html>
