@@ -268,52 +268,52 @@ function _applyRemoteData(appData, cloudTs) {
 
 // ── Visibility change: sync when returning to app from background ──
 let _lastVisibilitySync = 0;
+let _lastHiddenAt = 0;
+
 document.addEventListener('visibilitychange', async ()=>{
-  if(document.visibilityState !== 'visible') return;
+  if(document.visibilityState === 'hidden'){
+    _lastHiddenAt = Date.now();
+    return;
+  }
   const now = Date.now();
-  if(now - _lastVisibilitySync < 5000) return; // throttle 5s
+  if(now - _lastVisibilitySync < 3000) return; // throttle 3s
   _lastVisibilitySync = now;
   if(!window._fbUser) return;
+  // Restart polling — mobile browsers kill setInterval in background
+  _fbStartPolling();
+  const awayMs = _lastHiddenAt > 0 ? now - _lastHiddenAt : 99999;
   try{
-    const tok = window._fbGetToken ? await window._fbGetToken() : null;
+    // Force token refresh if away > 5 min (Android/iOS token expiry)
+    const forceRefresh = awayMs > 300000;
+    let tok = null;
+    if(window._fbUser){
+      try{ tok = await window._fbUser.getIdToken(forceRefresh); }
+      catch(te){ try{ tok = await window._fbUser.getIdToken(true); }catch(_){} }
+    }
     const q = tok ? '&auth='+tok : '';
     const r = await fetch(FIREBASE_DB_URL+'?cb='+now+q);
     if(!r.ok) return;
     const d = await r.json();
     const cloudTs = d && d.ts ? d.ts : 0;
-    // Always apply if cloud data exists and is newer OR if we've been away > 30s
-    const awayTime = now - _lastVisibilitySync;
-    if(cloudTs > 0 && (cloudTs > _fbLastSaveTs || awayTime > 30000)){
+    if(cloudTs > 0 && (cloudTs > _fbLastSaveTs || awayMs > 10000)){
       _applyRemoteData(d.data||d, cloudTs);
       _setFbLoadTs(now);
-      showToast('🔄 נתונים עודכנו');
+      if(awayMs > 10000) showToast('🔄 נתונים עודכנו');
     } else {
-      _fbUpdateStatus(); // just refresh the timestamp display
+      _fbUpdateStatus();
     }
-  } catch(e){ console.warn('Visibility sync error:', e.message); }
+  } catch(e){ console.warn('Visibility sync:', e.message); }
 });
 
-// iOS Safari: pageshow fires when returning from bfcache (back/forward)
+// All mobile: pageshow for bfcache restore (back/forward button)
 window.addEventListener('pageshow', async (e)=>{
-  if(!e.persisted) return; // only for bfcache restore
+  if(!e.persisted) return;
   if(!window._fbUser) return;
-  _lastVisibilitySync = 0; // force sync
-  try{
-    await loadFromFirebase(true, true);
-    showToast('🔄 נתונים עודכנו');
-  } catch(ex){}
+  _lastVisibilitySync = 0;
+  _fbStartPolling();
+  try{ await loadFromFirebase(true, true); showToast('🔄 נתונים עודכנו'); }catch(ex){}
 });
 
-// ── Online: sync when network reconnects ──
-window.addEventListener('online', async ()=>{
-  if(!window._fbUser) return;
-  showToast('🌐 חיבור חזר — מסנכרן...');
-  try{
-    const ok = await loadFromFirebase(true, true);
-    if(ok) _fbUpdateStatus();
-    setTimeout(()=>saveToFirebase(true), 2000);
-  } catch(e){ console.warn('Online sync error:', e.message); }
-});
 window.addEventListener('offline', ()=>{ showToast('📵 אין חיבור — שינויים יסונכרנו בהתחברות'); });
 
 
