@@ -2328,7 +2328,7 @@ function setView(v){
 }
 function navCal(d){
   if(calV==='day') calD=addD(calD,d);
-  else if(calV==='week') calD=addD(calD,d*7);
+  else if(calV==='week') calD=addD(calD,d*5); // 5-day work week (Sun–Thu)
   else if(calV==='list'){
     const lsv=_listSubView||'week';
     if(lsv==='day') calD=addD(calD,d);
@@ -3332,11 +3332,13 @@ function renderRangeListView(evs, fromDs, toDs){
     📊 ${dates.length} ימים · ${totalEvs} פעילויות | ${fD(fromDs)} – ${fD(toDs)}
   </div><div class="card" style="padding:0;overflow:hidden">`;
   if(!dates.length) return h+'<div style="padding:20px;text-align:center;color:#999">אין פעילויות בטווח זה</div></div>';
+
   dates.forEach(ds=>{
     const dayEvs=byDate[ds].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
     const isToday=ds===tday;
     const hol=getHolidayInfo(ds);
     const blk=getBlockedInfo(ds);
+
     h+=`<div style="border-bottom:2px solid #c5cae9">
       <div style="background:${isToday?'#1565c0':hol?hol.bg:blk?'#fce4ec':'#e8eaf6'};color:${isToday?'#fff':hol?hol.color:blk?'#c62828':'#283593'};padding:6px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="jumpToDay('${ds}')">
         <span style="font-weight:700;font-size:.82rem">📅 ${dayN(ds)} ${fD(ds)}</span>
@@ -3346,26 +3348,69 @@ function renderRangeListView(evs, fromDs, toDs){
           <span style="font-size:.72rem">${dayEvs.length} פעילויות</span>
         </span>
       </div>
-      <div style="padding:5px 8px">`;
-    const cities=[...new Set(dayEvs.map(s=>G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
-    cities.forEach(city=>{
-      const ce=dayEvs.filter(s=>(G(s.g).city||'אחר')===city);
+      <div style="padding:6px 8px">`;
+
+    const allCities=[...new Set(dayEvs.map(s=>G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
+
+    allCities.forEach(city=>{
+      const cityEvs=dayEvs.filter(s=>(G(s.g).city||'אחר')===city);
       const clr=CITY_COLORS(city);
-      h+=`<div style="margin-bottom:5px">
-        <div style="background:${clr.light};border-right:3px solid ${clr.solid};border-radius:4px;padding:2px 8px;margin-bottom:3px;font-weight:800;color:${clr.solid};font-size:.76rem">🏙️ ${city} · ${ce.length}</div>`;
-      ce.forEach(s=>{
-        const stc=s.st==='done'?'st-done':s.st==='nohap'?'st-nohap':s.st==='post'?'st-post':'';
-        h+=`<div class="pslot ${stc}" style="border-right:3px solid ${clr.solid};background:${clr.light};margin-bottom:2px;cursor:pointer" onclick="openSP(${s.id})">
-          <div style="display:flex;justify-content:space-between">
-            <span style="font-size:.75rem;font-weight:700">${G(s.g).name}</span>
-            ${s.t?`<span style="font-size:.68rem;color:#546e7a">⏰ ${fT(s.t)}</span>`:''}
-          </div>
-          <div style="font-size:.72rem;color:#1565c0">${s.a}${s.act?' · '+s.act:''}</div>
-          ${s._fromD?`<div style="font-size:.63rem;color:#e65100">↩ מ-${fD(s._fromD)}</div>`:''}
+
+      h+=`<div style="margin-bottom:8px">
+        <div style="background:${clr.light};border-right:3px solid ${clr.solid};border-radius:4px;padding:3px 8px;margin-bottom:4px;font-weight:800;color:${clr.solid};font-size:.76rem">
+          🏙️ ${city} · ${cityEvs.length}
         </div>`;
+
+      // ── Clusters for this date/city ──
+      const dayClusters=(typeof getClusters==='function'?getClusters():[]).filter(cl=>{
+        return (cl.city===city||!cl.city) && (cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===gid));
       });
-      h+='</div>';
+      const clusteredGids=new Set();
+      if(dayClusters.length){
+        dayClusters.forEach(cl=>{
+          const clEvs=cityEvs.filter(s=>(cl.gardenIds||[]).includes(s.g))
+            .sort((a,b)=>(G(a.g).name||'').localeCompare(G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
+          if(!clEvs.length) return;
+          clEvs.forEach(s=>clusteredGids.add(s.g));
+          h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
+            <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid}">🏘️ ${cl.name}</div>`;
+          clEvs.forEach(s=>{ h+=_listRow(s,clr); });
+          h+=`</div>`;
+        });
+      }
+
+      // ── Pairs ──
+      const pairedGids=new Set([...clusteredGids]);
+      const pairGroups=[];
+      pairs.forEach(pair=>{
+        if(typeof isPairBroken==='function'&&isPairBroken(pair.id,ds)) return;
+        const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!clusteredGids.has(s.g));
+        if(!pairEvs.length) return;
+        pairEvs.forEach(s=>pairedGids.add(s.g));
+        pairGroups.push({pair,pairEvs});
+      });
+      pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he'));
+
+      pairGroups.forEach(({pair,pairEvs})=>{
+        const sorted=pairEvs.sort((a,b)=>
+          (G(a.g).name||'').localeCompare(G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
+        h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
+          <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
+            <span>🔗 ${pair.name}</span>
+            <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
+          </div>`;
+        sorted.forEach(s=>{ h+=_listRow(s,clr); });
+        h+=`</div>`;
+      });
+
+      // ── Solos sorted by time ──
+      cityEvs.filter(s=>!pairedGids.has(s.g))
+        .sort((a,b)=>(G(a.g).name||'').localeCompare(G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'))
+        .forEach(s=>{ h+=_listRow(s,clr); });
+
+      h+=`</div>`;
     });
+
     h+='</div></div>';
   });
   return h+'</div>';
