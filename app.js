@@ -9087,3 +9087,34 @@ function getSupPhone(name){
   return ex.ph1||s.phone||'';
 }
 
+
+function togglePiFlt(){
+  const body=document.getElementById('pi-flt-body');
+  const arrow=document.getElementById('pi-flt-arrow');
+  if(!body) return;
+  const isOpen=body.classList.toggle('open');
+  if(arrow) arrow.classList.toggle('open',isOpen);
+}
+// On desktop: always show filter, on mobile default collapsed
+(function(){
+  function initPiFlt(){
+    const body=document.getElementById('pi-flt-body');
+    const header=document.getElementById('pi-flt-header');
+    if(!body) return;
+    if(window.innerWidth>768){
+      body.style.display='flex';
+      if(header) header.style.cursor='default';
+      const arrow=document.getElementById('pi-flt-arrow');
+      if(arrow) arrow.style.display='none';
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initPiFlt);
+  else initPiFlt();
+  window.addEventListener('resize',()=>{
+    const body=document.getElementById('pi-flt-body');
+    const arrow=document.getElementById('pi-flt-arrow');
+    if(!body) return;
+    if(window.innerWidth>768){ body.style.display='flex'; if(arrow) arrow.style.display='none'; }
+    else { if(!body.classList.contains('open')) body.style.display=''; if(arrow) arrow.style.display=''; }
+  });
+})();

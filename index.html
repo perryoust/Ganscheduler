@@ -364,71 +364,73 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 
   /* ── Invoice table — mobile card view ── */
   #pi-table { display: block; }
-  #pi-table thead { display: none; } /* hide headers on mobile */
+  #pi-table thead { display: none; }
   #pi-table tbody { display: block; }
   #pi-table .inv-row-clickable {
     display: grid;
     grid-template-columns: 1fr auto;
-    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "supplier actions"
+      "docs     amounts"
+      "desc     amounts"
+      "status   status";
     gap: 2px 8px;
     padding: 10px 12px;
     border-bottom: 1.5px solid #e8eaf6;
     background: #fff;
-    margin-bottom: 2px;
-    border-radius: 6px;
+    margin-bottom: 3px;
+    border-radius: 8px;
     cursor: pointer;
   }
   #pi-table .inv-row-clickable td { display: block; padding: 0; border: none; }
-  /* Supplier name — full width, top */
+  /* td1: Supplier — TOP LEFT, full width */
   #pi-table .inv-row-clickable td:nth-child(1) {
-    grid-column: 1 / -1;
-    font-size: .85rem;
+    grid-area: supplier;
+    font-size: .86rem;
     font-weight: 700;
     color: #1a237e;
-    margin-bottom: 2px;
+    align-self: center;
   }
-  /* Doc numbers — left col */
+  /* td2: Doc numbers */
   #pi-table .inv-row-clickable td:nth-child(2) {
-    grid-column: 1;
-    grid-row: 2;
-    font-size: .75rem;
-    color: #1565c0;
-  }
-  /* Description — left col row 3 */
-  #pi-table .inv-row-clickable td:nth-child(3) {
-    grid-column: 1;
-    grid-row: 3;
+    grid-area: docs;
     font-size: .72rem;
-    color: #546e7a;
+    color: #1565c0;
+    line-height: 1.5;
+  }
+  /* td3: Description — truncated */
+  #pi-table .inv-row-clickable td:nth-child(3) {
+    grid-area: desc;
+    font-size: .69rem;
+    color: #78909c;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 200px;
   }
-  /* Amounts — right col rows 2-3 */
+  /* td4: Amounts — right side spanning rows 2-3 */
   #pi-table .inv-row-clickable td:nth-child(4) {
-    grid-column: 2;
-    grid-row: 2 / 4;
+    grid-area: amounts;
     text-align: left;
     font-size: .78rem;
     white-space: nowrap;
+    align-self: center;
   }
-  /* Status — inline after amount */
+  /* td5: Status */
   #pi-table .inv-row-clickable td:nth-child(5) {
-    grid-column: 1 / -1;
-    grid-row: 4;
-    font-size: .7rem;
-    margin-top: 3px;
+    grid-area: status;
+    font-size: .68rem;
+    margin-top: 2px;
   }
-  /* Notes — hide on mobile (shown on expand) */
+  /* td6: Notes — hidden */
   #pi-table .inv-row-clickable td:nth-child(6) { display: none; }
-  /* Actions — compact */
+  /* td7: Actions — top right */
   #pi-table .inv-row-clickable td:nth-child(7) {
-    grid-column: 2;
-    grid-row: 1;
+    grid-area: actions;
     display: flex;
     gap: 4px;
     justify-content: flex-end;
+    align-self: center;
   }
   #pi-table .inv-row-clickable td:nth-child(7) .btn { padding: 4px 8px; font-size: .7rem; min-height: 28px; }
 
@@ -451,6 +453,13 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   #pdash-recent-invoices td:nth-child(4) { grid-column: 2; grid-row: 1 / 3; font-size:.8rem; font-weight:700; text-align:left; white-space:nowrap; }
   #pdash-recent-invoices td:nth-child(5) { grid-column: 1; font-size:.68rem; color:#546e7a; }
   #pdash-recent-invoices td:nth-child(6) { display: none; }
+
+
+  /* ── Filter accordion on mobile ── */
+  #pi-flt-header { padding: 4px 0 6px; }
+  #pi-flt-body { display: none; } /* collapsed by default on mobile */
+  #pi-flt-body.open { display: flex; }
+  #pi-flt-arrow.open { transform: rotate(180deg); }
 
   /* Vbtns */
   .vbtns{flex-wrap:wrap;gap:3px}
@@ -1490,7 +1499,12 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 
 <div id="p-pinvoices" class="panel" style="display:none">
   <div class="card" style="margin-bottom:11px">
-    <div class="row" style="flex-wrap:wrap;gap:6px">
+    <!-- Mobile accordion toggle -->
+    <div id="pi-flt-header" onclick="togglePiFlt()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:2px 0 8px">
+      <span style="font-weight:700;font-size:.85rem;color:#1a237e">🔍 חיפוש וסינון</span>
+      <span id="pi-flt-arrow" style="font-size:.9rem;color:#546e7a;transition:transform .2s">▾</span>
+    </div>
+    <div id="pi-flt-body" class="row" style="flex-wrap:wrap;gap:6px">
       <div class="fg"><label>חיפוש</label>
         <input type="text" id="pi-srch" list="pi-sup-list" placeholder="ספק / מס' מסמך / פירוט..." oninput="renderInvoices()" style="min-width:220px">
         <datalist id="pi-sup-list"></datalist>
@@ -2818,7 +2832,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<script src="data.js?v=39"></script>
-<script src="app.js?v=39"></script>
+<script src="data.js?v=40"></script>
+<script src="app.js?v=40"></script>
 </body>
 </html>
