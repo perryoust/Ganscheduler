@@ -246,12 +246,65 @@ function firebaseAutoSave() {
   _fbTimer = setTimeout(() => saveToFirebase(true), 1000);
 }
 
-// ── Polling — detects changes from other devices ──
+// ── Apply remote data helper (shared by poll + visibility) ──
+function _applyRemoteData(appData, cloudTs) {
+  if(!appData || Object.keys(appData).length===0) return;
+  _safeLS.setItem('ganv5', JSON.stringify(appData));
+  _setFbSaveTs(cloudTs);
+  _setFbLoadTs(Date.now());
+  try {
+    const d = typeof appData==='string' ? JSON.parse(appData) : appData;
+    if(typeof _applyYearData==='function') _applyYearData(d);
+    window._fbLastKnownInvoiceCount = Math.max(window._fbLastKnownInvoiceCount||0, d.invoices?.length||0);
+    if(typeof syncSupplierList==='function') syncSupplierList();
+    try{ if(typeof renderDash==='function') renderDash(); }catch(e){}
+    try{ if(typeof renderCal==='function') renderCal(); }catch(e){}
+    try{ if(typeof renderInvoices==='function') renderInvoices(); }catch(e){}
+    try{ if(typeof refreshPurchDash==='function') refreshPurchDash(); }catch(e){}
+    try{ if(typeof updCounts==='function') updCounts(); }catch(e){}
+  } catch(e2){ console.warn('Apply remote data error:', e2); }
+  _fbUpdateStatus();
+}
+
+// ── Visibility change: sync when returning to app from background ──
+let _lastVisibilitySync = 0;
+document.addEventListener('visibilitychange', async ()=>{
+  if(document.visibilityState !== 'visible') return;
+  const now = Date.now();
+  if(now - _lastVisibilitySync < 10000) return; // throttle: min 10s
+  _lastVisibilitySync = now;
+  if(!window._fbUser) return;
+  try{
+    const tok = window._fbGetToken ? await window._fbGetToken() : null;
+    const q = tok ? '&auth='+tok : '';
+    const r = await fetch(FIREBASE_DB_URL+'?cb='+now+q);
+    if(!r.ok) return;
+    const d = await r.json();
+    const cloudTs = d && d.ts ? d.ts : 0;
+    if(cloudTs > _fbLastSaveTs && cloudTs > 0){
+      _applyRemoteData(d.data||d, cloudTs);
+      showToast('🔄 נתונים עודכנו');
+    }
+  } catch(e){ console.warn('Visibility sync error:', e.message); }
+});
+
+// ── Online: sync when network reconnects ──
+window.addEventListener('online', async ()=>{
+  if(!window._fbUser) return;
+  showToast('🌐 חיבור חזר — מסנכרן...');
+  try{
+    const ok = await loadFromFirebase(true, true);
+    if(ok) _fbUpdateStatus();
+    setTimeout(()=>saveToFirebase(true), 2000);
+  } catch(e){ console.warn('Online sync error:', e.message); }
+});
+window.addEventListener('offline', ()=>{ showToast('📵 אין חיבור — שינויים יסונכרנו בהתחברות'); });
+
+
 function _fbStartPolling() {
   clearInterval(_fbPollTimer);
   _fbPollTimer = setInterval(async () => {
     try {
-      // Check only the timestamp first (lightweight)
       const _pollTok = window._fbGetToken ? await window._fbGetToken() : null;
       const _pollQ   = _pollTok ? '&auth=' + _pollTok : '';
       const r = await fetch(FIREBASE_DB_URL + '?ts=' + Date.now() + _pollQ);
@@ -260,24 +313,8 @@ function _fbStartPolling() {
       const cloudTs = d && d.ts ? d.ts : 0;
       if (cloudTs > _fbLastSaveTs && cloudTs > 0) {
         console.log('Firebase: remote change detected, reloading...');
-        // Apply new data without page reload
-        const appData = d.data || d;
-        if (appData && Object.keys(appData).length > 0) {
-          _safeLS.setItem('ganv5', JSON.stringify(appData));
-          _setFbSaveTs(cloudTs);
-          _setFbLoadTs(Date.now());
-          // Re-apply data to live state
-          try {
-            const parsed = typeof appData === 'string' ? JSON.parse(appData) : appData;
-            if (typeof _applyYearData === 'function') _applyYearData(parsed);
-            if (typeof syncSupplierList === 'function') syncSupplierList();
-            if (typeof renderDash === 'function') renderDash();
-            if (typeof renderCal === 'function') renderCal();
-            if (typeof updCounts === 'function') updCounts();
-            showToast('🔄 נתונים עודכנו ממכשיר אחר');
-          } catch(e2) { console.warn('Apply remote data error:', e2); }
-          _fbUpdateStatus();
-        }
+        _applyRemoteData(d.data || d, cloudTs);
+        showToast('🔄 נתונים עודכנו ממכשיר אחר');
       }
     } catch(e) { /* ignore polling errors */ }
   }, FIREBASE_POLL_INTERVAL);
@@ -299,15 +336,14 @@ async function fbSyncNow() {
 async function fbLoadNow() {
   const ok = await loadFromFirebase(false, true);
   if (ok) {
+    // _processFirebaseLoad already applied data — just refresh UI
     try {
-      const st = localStorage.getItem('ganv5');
-      if (st && typeof _applyYearData === 'function') {
-        _applyYearData(JSON.parse(st));
-        if (typeof renderDash === 'function') renderDash();
-        if (typeof renderCal === 'function') renderCal();
-        if (typeof updCounts === 'function') updCounts();
-        showToast('✅ נטענו נתונים מ-Firebase');
-      }
+      if(typeof renderDash==='function') try{renderDash();}catch(e){}
+      if(typeof renderCal==='function') try{renderCal();}catch(e){}
+      if(typeof renderInvoices==='function') try{renderInvoices();}catch(e){}
+      if(typeof refreshPurchDash==='function') try{refreshPurchDash();}catch(e){}
+      if(typeof updCounts==='function') try{updCounts();}catch(e){}
+      showToast('✅ נטענו נתונים מ-Firebase');
     } catch(e) { console.warn(e); }
   } else {
     showToast('ℹ️ הנתונים כבר מעודכנים');
@@ -674,9 +710,10 @@ function autoUpdateInvStatus(){
   if(!stEl || stEl.value === 'cancelled') return;
   const isExempt = (document.getElementById('inv-tax-section-note')?.style.display !== 'none');
   if(hasInv){
-    // Exempt suppliers get 'receipt'; regular suppliers get 'tax_invoice' (or 'tax_receipt' if also has tx)
-    if(isExempt) stEl.value = 'receipt';
-    else stEl.value = hasTx ? 'tax_receipt' : 'tax_invoice';
+    const newSt = isExempt ? 'receipt' : (hasTx ? 'tax_receipt' : 'tax_invoice');
+    stEl.value = newSt;
+    // Sync doc-type buttons
+    if(['tax_invoice','tax_receipt','receipt'].includes(newSt)) setInvDocType(newSt);
   } else if(hasTx) stEl.value = 'tx_invoice';
   else if(hasOrder) stEl.value = 'order';
 }
@@ -793,6 +830,12 @@ function openNewInvoice(id, presetSup){
   const stEl = document.getElementById('inv-status');
   if(stEl) stEl.value = st;
   invStatusChg();
+  // Sync doc-type buttons to match saved status
+  if(['tax_invoice','tax_receipt','receipt'].includes(st)){
+    setInvDocType(st);
+  } else {
+    setInvDocType('tax_invoice'); // default
+  }
   // Cancel reason
   const crEl = document.getElementById('inv-cancel-reason'); if(crEl) crEl.value=inv?(inv.cancelReason||''):'';
   // Recv date (relabeled to "תאריך טיפול")
@@ -866,6 +909,19 @@ function _statusLabel(st){
   return m[_migrateInvStatus(st)]||{l:st,e:'⚪'};
 }
 // Update tax-invoice section title and note based on supplier entity type
+function setInvDocType(type){
+  // Update the 3-button toggle inside the tax section
+  const map = {tax_invoice:'inv-doc-tax', tax_receipt:'inv-doc-taxrec', receipt:'inv-doc-rec'};
+  ['tax_invoice','tax_receipt','receipt'].forEach(t=>{
+    document.getElementById(map[t])?.classList.toggle('active', t===type);
+  });
+  // Sync the status select — only change if already a final-doc status
+  const stEl = document.getElementById('inv-status');
+  if(stEl && ['tax_invoice','tax_receipt','receipt'].includes(stEl.value)){
+    stEl.value = type;
+  }
+}
+
 function invUpdateEntityType(entityType){
   const taxSection = document.getElementById('inv-tax-section');
   const taxTitle   = document.getElementById('inv-tax-section-title');
@@ -874,15 +930,33 @@ function invUpdateEntityType(entityType){
   const isExempt = entityType==='עוסק פטור'||entityType==='עמותה';
   if(taxTitle){
     taxTitle.textContent = isExempt
-      ? '📑 קבלה (עוסק פטור / עמותה — אין חשבונית מס)'
+      ? '📑 קבלה (עוסק פטור / עמותה)'
       : '📑 חשבונית מס / קבלה';
   }
-  if(taxNote){
-    taxNote.style.display = isExempt ? 'block' : 'none';
+  if(taxNote) taxNote.style.display = isExempt ? 'block' : 'none';
+  // Show/hide doc-type buttons based on exempt status
+  const docTax    = document.getElementById('inv-doc-tax');
+  const docTaxRec = document.getElementById('inv-doc-taxrec');
+  const docRec    = document.getElementById('inv-doc-rec');
+  if(isExempt){
+    if(docTax)    { docTax.style.display='none';    docTax.classList.remove('active'); }
+    if(docTaxRec) { docTaxRec.style.display='none'; docTaxRec.classList.remove('active'); }
+    if(docRec)    { docRec.style.display='';        docRec.classList.add('active'); }
+    // Force status to receipt for exempt
+    const stEl=document.getElementById('inv-status');
+    if(stEl && ['tax_invoice','tax_receipt'].includes(stEl.value)) stEl.value='receipt';
+  } else {
+    if(docTax)    docTax.style.display='';
+    if(docTaxRec) docTaxRec.style.display='';
+    if(docRec)    docRec.style.display='';
+    // Default to חשבונית מס for regular suppliers if coming from exempt
+    if(docRec && !docTax?.classList.contains('active') && !docTaxRec?.classList.contains('active')){
+      docTax?.classList.add('active');
+      docRec?.classList.remove('active');
+    }
   }
-  // Update placeholder on invoice number field
   const numEl = document.getElementById('inv-num');
-  if(numEl) numEl.placeholder = isExempt ? 'מס\' קבלה' : 'מס\' חשבונית מס';
+  if(numEl) numEl.placeholder = isExempt ? "מס' קבלה" : "מס' חשבונית מס";
 }
 
 
@@ -1050,8 +1124,8 @@ async function saveInvoice(){
   if(!orderNum && !txNum && !num){
     alert('יש להזין לפחות מספר הזמנה, מספר חשבונית עסקה, או מספר חשבונית מס'); return;
   }
-  // Check duplicate order number (30)
-  if(orderNum){
+  // Check duplicate order number — only for purely numeric numbers (letters/mixed = internal codes, skip)
+  if(orderNum && /^\d+$/.test(orderNum)){
     const dup = INVOICES.find(i=>i.orderNum===orderNum && i.id!==_editInvId);
     if(dup && !confirm(`⚠️ מספר הזמנה ${orderNum} כבר קיים אצל "${dup.supName}". לשמור בכל זאת?`)) return;
   }
@@ -1244,8 +1318,12 @@ function renderInvoices(){
   });
   const fmtAmt = (n, vat, exempt)=>{
     if(!n) return '<span style="color:#ccc">—</span>';
-    if(exempt) return `<b style="color:#2e7d32">₪${n.toLocaleString()}</b>`;
-    return `<span style="color:#546e7a">₪${n.toLocaleString()}</span> <span style="font-size:.67rem;color:#e65100">+מע"מ</span> <b style="color:#2e7d32">₪${withVat(n,vat).toLocaleString()}</b>`;
+    if(exempt||vat===0) return `<b style="color:#2e7d32" title="פטור ממע&quot;מ">₪${n.toLocaleString()} <span style="font-size:.63rem;color:#2e7d32">(פטור)</span></b>`;
+    const vatA = +(n*vat/100).toFixed(2);
+    const tot  = +(n*(1+vat/100)).toFixed(2);
+    return `<span style="color:#546e7a;font-size:.75rem">₪${n.toLocaleString()}</span>`+
+           `<span style="font-size:.65rem;color:#e65100;margin:0 2px">+מע"מ ₪${vatA.toLocaleString()}</span>`+
+           `<b style="color:#2e7d32"> = ₪${tot.toLocaleString()}</b>`;
   };
   const statusStepper = (stRaw)=>{
     const st = _migrateInvStatus(stRaw);
@@ -1323,7 +1401,17 @@ function refreshPurchDash(){
   document.getElementById('ps-suppliers').textContent = getPurchSuppliers().length;
   document.getElementById('ps-open').textContent = totalOrders + totalTx;
   document.getElementById('ps-issues').textContent = totalTax;
-  // Recent 5 — sorted by creation timestamp
+  // Financial summary
+  const activeInvs = invs.filter(i=>_migrateInvStatus(i.status)!=='cancelled');
+  const sumBase  = activeInvs.reduce((s,i)=>s+(i.orderAmt||i.txAmt||i.amt||0),0);
+  const sumTotal = activeInvs.reduce((s,i)=>s+(i.orderTotal||i.txTotal||i.total||0),0);
+  const vatSumEl = document.getElementById('ps-vat-summary');
+  if(vatSumEl && activeInvs.length){
+    vatSumEl.innerHTML =
+      `<span style="color:#546e7a">לפני מע"מ: <b>₪${sumBase.toLocaleString('he-IL',{maximumFractionDigits:0})}</b></span>`+
+      `<span style="margin:0 10px;color:#c5cae9">|</span>`+
+      `<span style="color:#2e7d32">כולל מע"מ: <b style="font-size:.9rem">₪${sumTotal.toLocaleString('he-IL',{maximumFractionDigits:0})}</b></span>`;
+  } else if(vatSumEl){ vatSumEl.innerHTML=''; }
   const rec = [...invs].filter(i=>_migrateInvStatus(i.status)!=='cancelled').sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,5);
   const el = document.getElementById('pdash-recent-invoices');
   if(!el) return;
@@ -2000,8 +2088,9 @@ function navSearchClose(){
 
 function ST(t){
   currentTab=t;
+  const actTabs=document.querySelectorAll('#tabs-act .tab');
   TABS.forEach((x,i)=>{
-    document.querySelectorAll('.tab')[i].classList.toggle('active',x===t);
+    if(actTabs[i]) actTabs[i].classList.toggle('active',x===t);
     const panelEl=document.getElementById('p-'+x);
     if(panelEl){
       panelEl.classList.toggle('active',x===t);
@@ -2072,8 +2161,17 @@ function filterE(f,from,to){
   }).map(s=>({...s,d:s.pd,_isPostponed:true}));
   return [...all,...posted];
 }
+let _rangeSubView = 'cal'; // 'cal' | 'list'
+function setRangeSubView(v){
+  _rangeSubView = v;
+  document.getElementById('vb-range-cal')?.classList.toggle('active', v==='cal');
+  document.getElementById('vb-range-list')?.classList.toggle('active', v==='list');
+  renderCal();
+}
+
 function setView(v){
   calV=v;
+  _rangeSubView='cal'; // reset sub-view when switching to range
   ['day','week','month','list','range'].forEach(x=>{
     const el=document.getElementById('vb-'+x);
     if(el) el.classList.toggle('active',x===v);
@@ -2191,10 +2289,11 @@ function renderCal(){
   } else if(calV==='range'){
     const from=document.getElementById('cal-range-from')?.value||d2s(calD);
     const to=document.getElementById('cal-range-to')?.value||from;
-    const fromD=from<=to?from:to, toD=from<=to?to:from; // safety: swap if reversed
-    (document.getElementById('cal-title')||{}).textContent=`${fD(fromD)} – ${fD(toD)}`;
+    const fromD=from<=to?from:to, toD=from<=to?to:from;
+    const viewLbl=(_rangeSubView==='list')?'📋 רשימה — ':'';
+    (document.getElementById('cal-title')||{}).textContent=`${viewLbl}${fD(fromD)} – ${fD(toD)}`;
     const evs=filterE(f,fromD,toD);
-    html=renderRangeView(evs,fromD,toD,f,displayGids);
+    html=(_rangeSubView==='list') ? renderRangeListView(evs,fromD,toD) : renderRangeView(evs,fromD,toD,f,displayGids);
   } else if(calV==='list'){
     const y=calD.getFullYear(),m=calD.getMonth();
     (document.getElementById('cal-title')||{}).textContent ='📋 רשימה — '+hebM(calD);
@@ -3061,6 +3160,59 @@ function _quickActionBtns(s){
   </div>`;
 }
 
+// List view for a date range (used when range sub-view = list)
+function renderRangeListView(evs, fromDs, toDs){
+  const tday=td();
+  const byDate={};
+  evs.filter(s=>s.st!=='can').forEach(s=>{
+    const dk=s._isPostponed?s.pd:s.d;
+    if(dk>=fromDs&&dk<=toDs){ if(!byDate[dk]) byDate[dk]=[]; byDate[dk].push(s); }
+  });
+  const dates=Object.keys(byDate).sort();
+  const totalEvs=dates.reduce((n,d)=>n+byDate[d].length,0);
+  let h=`<div style="font-size:.78rem;color:#546e7a;padding:6px 10px;background:#e8eaf6;border-radius:7px;margin-bottom:8px">
+    📊 ${dates.length} ימים · ${totalEvs} פעילויות | ${fD(fromDs)} – ${fD(toDs)}
+  </div><div class="card" style="padding:0;overflow:hidden">`;
+  if(!dates.length) return h+'<div style="padding:20px;text-align:center;color:#999">אין פעילויות בטווח זה</div></div>';
+  dates.forEach(ds=>{
+    const dayEvs=byDate[ds].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+    const isToday=ds===tday;
+    const hol=getHolidayInfo(ds);
+    const blk=getBlockedInfo(ds);
+    h+=`<div style="border-bottom:2px solid #c5cae9">
+      <div style="background:${isToday?'#1565c0':hol?hol.bg:blk?'#fce4ec':'#e8eaf6'};color:${isToday?'#fff':hol?hol.color:blk?'#c62828':'#283593'};padding:6px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="jumpToDay('${ds}')">
+        <span style="font-weight:700;font-size:.82rem">📅 ${dayN(ds)} ${fD(ds)}</span>
+        <span style="display:flex;gap:8px;align-items:center">
+          ${hol?`<span style="font-size:.7rem">${hol.emoji} ${hol.name}</span>`:''}
+          ${blk?`<span style="font-size:.7rem;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blk.icon} ${blk.reason} ✏️</span>`:`<span style="font-size:.65rem;opacity:.4;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')" title="חסום">🚫</span>`}
+          <span style="font-size:.72rem">${dayEvs.length} פעילויות</span>
+        </span>
+      </div>
+      <div style="padding:5px 8px">`;
+    const cities=[...new Set(dayEvs.map(s=>G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
+    cities.forEach(city=>{
+      const ce=dayEvs.filter(s=>(G(s.g).city||'אחר')===city);
+      const clr=CITY_COLORS(city);
+      h+=`<div style="margin-bottom:5px">
+        <div style="background:${clr.light};border-right:3px solid ${clr.solid};border-radius:4px;padding:2px 8px;margin-bottom:3px;font-weight:800;color:${clr.solid};font-size:.76rem">🏙️ ${city} · ${ce.length}</div>`;
+      ce.forEach(s=>{
+        const stc=s.st==='done'?'st-done':s.st==='nohap'?'st-nohap':s.st==='post'?'st-post':'';
+        h+=`<div class="pslot ${stc}" style="border-right:3px solid ${clr.solid};background:${clr.light};margin-bottom:2px;cursor:pointer" onclick="openSP(${s.id})">
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:.75rem;font-weight:700">${G(s.g).name}</span>
+            ${s.t?`<span style="font-size:.68rem;color:#546e7a">⏰ ${fT(s.t)}</span>`:''}
+          </div>
+          <div style="font-size:.72rem;color:#1565c0">${s.a}${s.act?' · '+s.act:''}</div>
+          ${s._fromD?`<div style="font-size:.63rem;color:#e65100">↩ מ-${fD(s._fromD)}</div>`:''}
+        </div>`;
+      });
+      h+='</div>';
+    });
+    h+='</div></div>';
+  });
+  return h+'</div>';
+}
+
 function renderCalList(evs, mDate){
   const y=mDate.getFullYear(),m=mDate.getMonth();
   const tday=td();
@@ -3777,6 +3929,28 @@ function openMakeupSched(origId){
   },120);
 }
 let _makeupOrigId=null;
+let _postMode = 'move'; // 'move' | 'defer'
+function setPostMode(m){
+  _postMode = m;
+  document.getElementById('postm-mode-move')?.classList.toggle('active', m==='move');
+  document.getElementById('postm-mode-defer')?.classList.toggle('active', m==='defer');
+  const title = document.getElementById('postm-title');
+  const btn   = document.getElementById('postm-save-btn');
+  const lbl   = document.getElementById('post-reason-lbl');
+  const pairLbl = document.getElementById('post-pair-action-lbl');
+  if(m==='move'){
+    if(title) title.textContent='🔀 הזזה לתאריך אחר';
+    if(btn){ btn.textContent='🔀 הזז'; }
+    if(lbl) lbl.textContent='סיבת ההזזה (אופציונלי)';
+    if(pairLbl) pairLbl.textContent='גם להזיז';
+  } else {
+    if(title) title.textContent='⏩ דחיית פעילות';
+    if(btn){ btn.textContent='⏩ דחה'; }
+    if(lbl) lbl.textContent='סיבת הדחייה';
+    if(pairLbl) pairLbl.textContent='גם לדחות';
+  }
+}
+
 function openPostpone(id){
   selEvPost=id;
   const s=SCH.find(x=>x.id===id); if(!s) return;
@@ -3788,6 +3962,7 @@ function openPostpone(id){
   document.getElementById('post-time').value=s.t?fT(s.t):'';
   document.getElementById('post-reason').value='';
   document.getElementById('post-conflict-warn').style.display='none';
+  setPostMode('move'); // default to move
   // Populate supplier dropdown
   const postSupEl=document.getElementById('post-sup');
   if(postSupEl){
@@ -3796,18 +3971,15 @@ function openPostpone(id){
     postSupChg();
   }
   postShowFreeDays(s);
-  // Show partner checkbox if garden is in a pair
   const postPair=gardenPair(s.g);
   const pairWrap=document.getElementById('post-pair-wrap');
   if(postPair&&pairWrap){
     const partnerIds=postPair.ids.filter(id=>id!==s.g);
     const partnerNames=partnerIds.map(id=>G(id).name).filter(Boolean).join(', ');
-    (document.getElementById('post-pair-name')||{}).textContent =partnerNames;
+    (document.getElementById('post-pair-name')||{}).textContent=partnerNames;
     pairWrap.style.display='block';
-    document.getElementById('post-pair-chk').checked=true; // default: postpone partner too
-  } else if(pairWrap){
-    pairWrap.style.display='none';
-  }
+    document.getElementById('post-pair-chk').checked=true;
+  } else if(pairWrap){ pairWrap.style.display='none'; }
   document.getElementById('postm').classList.add('open');
 }
 
@@ -3890,40 +4062,53 @@ function doPostpone(){
   const postActEl=document.getElementById('post-act');
   const newSup=postSupEl&&postSupEl.value?postSupEl.value:null;
   const newAct=postActEl&&postActEl.value?postActEl.value:null;
-  const postponeOne=(srcId,isPartner)=>{
+  const isMove=(_postMode||'move')==='move';
+
+  const doOne=(srcId,isPartner)=>{
     const idx=SCH.findIndex(s=>s.id===srcId);
     if(idx<0) return;
     const orig=SCH[idx];
     const origDate=orig.d;
-    // Mark original as postponed
-    Object.assign(SCH[idx],{st:'post',cr:nr||'נדחה',pd:nd,pt:nt||orig.t});
-    // New entry on new date — note says "from [orig date]"
-    const newEntry={...orig,id:Date.now()+(isPartner?1:0),d:nd,
-      t:nt||orig.t,st:'ok',cr:'',pd:'',pt:'',
-      _fromD:origDate,
-      nt:'(הועבר מ-'+fD(origDate)+')'};
-    if(!isPartner&&newSup) newEntry.a=newSup;
-    if(!isPartner&&newAct) newEntry.act=newAct;
-    SCH.push(newEntry);
+    if(isMove){
+      // הזזה: מעדכן את הרשומה המקורית ישירות, שומר הערה מאיפה הוזז
+      const moveNote=nr?`(הוזז מ-${fD(origDate)} — ${nr})`:`(הוזז מ-${fD(origDate)})`;
+      Object.assign(SCH[idx],{
+        d:nd, t:nt||orig.t,
+        st:'ok', cr:'', pd:'', pt:'',
+        _fromD:origDate,
+        nt:orig.nt?orig.nt+' | '+moveNote:moveNote
+      });
+      if(!isPartner&&newSup) SCH[idx].a=newSup;
+      if(!isPartner&&newAct) SCH[idx].act=newAct;
+    } else {
+      // דחייה: מסמן מקור כנדחה, יוצר רשומה חדשה
+      Object.assign(SCH[idx],{st:'post',cr:nr||'נדחה',pd:nd,pt:nt||orig.t});
+      const newEntry={...orig,id:Date.now()+(isPartner?1:0),d:nd,
+        t:nt||orig.t,st:'ok',cr:'',pd:'',pt:'',
+        _fromD:origDate,
+        nt:'(הועבר מ-'+fD(origDate)+')'+(nr?' — '+nr:'')};
+      if(!isPartner&&newSup) newEntry.a=newSup;
+      if(!isPartner&&newAct) newEntry.act=newAct;
+      SCH.push(newEntry);
+    }
   };
   const orig=SCH.find(s=>s.id===selEvPost);
   if(orig){
-    postponeOne(selEvPost,false);
-    // Also postpone partner if checkbox checked
+    doOne(selEvPost,false);
     const pairChk=document.getElementById('post-pair-chk');
     if(pairChk&&pairChk.checked){
       const pair=gardenPair(orig.g);
       if(pair){
-        const partnerIds=pair.ids.filter(id=>id!==orig.g);
-        partnerIds.forEach(pid=>{
-          // Find partner's event on the same date
+        pair.ids.filter(id=>id!==orig.g).forEach(pid=>{
           const partnerEv=SCH.find(s=>s.g===pid&&s.d===orig.d&&s.st!=='can');
-          if(partnerEv) postponeOne(partnerEv.id,true);
+          if(partnerEv) doOne(partnerEv.id,true);
         });
       }
     }
   }
+  const toast=isMove?`🔀 הוזז ל-${fD(nd)}`:`⏩ נדחה ל-${fD(nd)}`;
   save();CM('postm');closeSP();refresh();
+  showToast(toast);
 }
 
 let _nsmTab='once'; // 'once'|'recur'|'makeup'
@@ -7873,6 +8058,9 @@ function selBlockReason(btn, reason){
 
 function openBlockModal(mode, gid, ds){
   _blockMode=mode;
+  const cancelWrap = document.getElementById('block-m-cancel-wrap');
+  const cancelChk  = document.getElementById('block-m-cancel-chk');
+  const cancelCnt  = document.getElementById('block-m-cancel-cnt');
   if(mode==='garden'){
     _gcellGid=parseInt(gid); _gcellDs=ds;
     const g=G(_gcellGid);
@@ -7886,11 +8074,11 @@ function openBlockModal(mode, gid, ds){
     document.querySelectorAll('.block-reason-btn').forEach(b=>{
       b.classList.toggle('sel', blk&&b.textContent.trim().includes(blk.reason));
     });
+    if(cancelWrap) cancelWrap.style.display='none';
   } else {
-    // mode === 'date'
     _blockedEditDate=ds;
     const blk=blockedDates[ds];
-    document.getElementById('block-m-title').textContent=`🚫 חסום תאריך`;
+    document.getElementById('block-m-title').textContent=`🚫 חסום / ביטול תאריך`;
     document.getElementById('block-m-subtitle').textContent=`📅 ${fD(ds)} — יום ${dayN(ds)}`;
     document.getElementById('block-m-reason').value=blk?blk.reason:'';
     document.getElementById('block-m-note').value=blk?blk.note||'':'';
@@ -7898,6 +8086,16 @@ function openBlockModal(mode, gid, ds){
     document.querySelectorAll('.block-reason-btn').forEach(b=>{
       b.classList.toggle('sel', blk&&b.textContent.trim().includes(blk.reason));
     });
+    // Show cancel-activities option with count
+    if(cancelWrap){
+      cancelWrap.style.display='block';
+      if(cancelChk) cancelChk.checked=false;
+      const cnt=SCH.filter(s=>s.d===ds&&s.st!=='can').length;
+      if(cancelCnt){
+        cancelCnt.textContent=cnt>0?`${cnt} פעילויות פעילות ביום זה`:'אין פעילויות פעילות ביום זה';
+        cancelCnt.style.color=cnt>0?'#c62828':'#888';
+      }
+    }
   }
   document.getElementById('block-m').classList.add('open');
 }
@@ -7917,6 +8115,21 @@ function saveBlock(){
     saveAndRefresh('block-m'); showToast('🚫 צהרון נחסם לתאריך זה');
   } else {
     blockedDates[_blockedEditDate]={reason,note,icon};
+    // Optionally cancel all activities
+    const cancelChk=document.getElementById('block-m-cancel-chk');
+    if(cancelChk&&cancelChk.checked){
+      const toCancel=SCH.filter(s=>s.d===_blockedEditDate&&s.st!=='can');
+      if(toCancel.length>0){
+        toCancel.forEach(s=>{
+          s.st='can'; s.cr=reason; s.cn=note;
+          const n='❌ בוטל: '+reason+(note?' — '+note:'');
+          s.nt=s.nt?s.nt+' | '+n:n;
+        });
+        saveAndRefresh('block-m');
+        showToast(`🚫 תאריך נחסם + בוטלו ${toCancel.length} פעילויות`);
+        return;
+      }
+    }
     saveAndRefresh('block-m'); showToast('🚫 תאריך סומן כחסום');
   }
 }
