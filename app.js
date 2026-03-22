@@ -673,8 +673,11 @@ function autoUpdateInvStatus(){
   const stEl = document.getElementById('inv-status');
   if(!stEl || stEl.value === 'cancelled') return;
   const isExempt = (document.getElementById('inv-tax-section-note')?.style.display !== 'none');
-  if(hasInv) stEl.value = isExempt ? 'receipt' : 'tax_invoice';
-  else if(hasTx) stEl.value = 'tx_invoice';
+  if(hasInv){
+    // Exempt suppliers get 'receipt'; regular suppliers get 'tax_invoice' (or 'tax_receipt' if also has tx)
+    if(isExempt) stEl.value = 'receipt';
+    else stEl.value = hasTx ? 'tax_receipt' : 'tax_invoice';
+  } else if(hasTx) stEl.value = 'tx_invoice';
   else if(hasOrder) stEl.value = 'order';
 }
 function invStatusChg(){
@@ -753,6 +756,11 @@ function openNewInvoice(id, presetSup){
   document.getElementById('inv-order-date').value  = inv ? (inv.orderDate||'')  : '';
   document.getElementById('inv-order-desc').value  = inv ? (inv.orderDesc||'')  : '';
   document.getElementById('inv-order-amt').value   = inv ? (inv.orderAmt||'')   : '';
+  // Restore order VAT mode (so editing doesn't recalculate wrong)
+  const ordVatModeR = inv ? (inv.ordVatMode||'ex') : 'ex';
+  _ordVatMode = ordVatModeR;
+  document.getElementById('vat-ord-ex')?.classList.toggle('active', ordVatModeR==='ex');
+  document.getElementById('vat-ord-inc')?.classList.toggle('active', ordVatModeR==='inc');
   document.getElementById('inv-order-notes').value = inv ? (inv.orderNotes||'') : '';
   const ordType = document.getElementById('inv-order-type'); if(ordType) ordType.value=inv?(inv.orderType||''):'';
   // Location fields (25)
@@ -774,6 +782,11 @@ function openNewInvoice(id, presetSup){
   document.getElementById('inv-num').value  = inv ? (inv.num||'')  : '';
   document.getElementById('inv-date').value = inv ? (inv.date||'') : '';
   document.getElementById('inv-amt').value  = inv ? (inv.amt||'')  : '';
+  // Restore inv VAT mode
+  const invVatModeR = inv ? (inv.invVatMode||'ex') : 'ex';
+  _invVatMode = invVatModeR;
+  document.getElementById('vat-inv-ex')?.classList.toggle('active', invVatModeR==='ex');
+  document.getElementById('vat-inv-inc')?.classList.toggle('active', invVatModeR==='inc');
   calcInvTotal();
   // Status - use new values, migrate old
   const st = inv ? _migrateInvStatus(inv.status) : 'order';
@@ -840,6 +853,18 @@ function _migrateInvStatus(st){
   const map = {active:'order',new:'order',in_progress:'tx_invoice',partial:'tx_invoice',closed:'tax_invoice',ok:'tax_invoice'};
   return map[st]||st;
 }
+// Label/emoji for each status
+function _statusLabel(st){
+  const m = {
+    order:{l:'הזמנה',e:'📋'},
+    tx_invoice:{l:'חשבונית עסקה',e:'🧾'},
+    tax_invoice:{l:'חשבונית מס',e:'📑'},
+    tax_receipt:{l:'חשבונית מס קבלה',e:'📑🧾'},
+    receipt:{l:'קבלה',e:'📄'},
+    cancelled:{l:'מבוטל',e:'❌'}
+  };
+  return m[_migrateInvStatus(st)]||{l:st,e:'⚪'};
+}
 // Update tax-invoice section title and note based on supplier entity type
 function invUpdateEntityType(entityType){
   const taxSection = document.getElementById('inv-tax-section');
@@ -902,44 +927,61 @@ function setInvVatMode(m){
   document.getElementById('vat-inv-inc')?.classList.toggle('active',m==='inc');
   calcInvTotal();
 }
+function _getEffectiveVat(){
+  // Returns 0 for exempt suppliers, otherwise the configured VAT rate
+  const supName = document.getElementById('inv-sup')?.value||'';
+  const entityType = (supEx[supName]||{}).entityType||
+    document.getElementById('inv-ns-entity')?.value||'';
+  if(entityType==='עוסק פטור'||entityType==='עמותה') return 0;
+  return parseFloat(document.getElementById('inv-vat')?.value)||getVatRate();
+}
 function calcOrderVat(){
   const raw = parseFloat(document.getElementById('inv-order-amt').value)||0;
-  const vr = (parseFloat(document.getElementById('inv-vat')?.value)||getVatRate())/100;
+  const vat = _getEffectiveVat();
+  const vr = vat/100;
   const amt = _ordVatMode==='inc' ? +(raw/(1+vr)).toFixed(2) : raw;
   const lbl=document.getElementById('inv-order-vat-lbl');
-  if(lbl&&raw) lbl.textContent=_ordVatMode==='inc'?`→ לפני מע"מ: ₪${amt.toFixed(2)}`:`→ כולל מע"מ: ₪${(amt*(1+vr)).toFixed(2)}`;
-  else if(lbl) lbl.textContent='';
-  const vat = parseFloat(document.getElementById('inv-vat').value)||getVatRate();
+  if(vat===0){
+    if(lbl&&raw) lbl.textContent='פטור ממע"מ';
+    else if(lbl) lbl.textContent='';
+  } else {
+    if(lbl&&raw) lbl.textContent=_ordVatMode==='inc'?`→ לפני מע"מ: ₪${amt.toFixed(2)}`:`→ כולל מע"מ: ₪${(amt*(1+vr)).toFixed(2)}`;
+    else if(lbl) lbl.textContent='';
+  }
   const el = id => document.getElementById(id);
   if(el('inv-order-base'))    el('inv-order-base').textContent    = amt ? '₪'+amt.toLocaleString() : '—';
-  if(el('inv-order-vat-amt')) el('inv-order-vat-amt').textContent = amt ? '₪'+vatAmt(amt,vat).toLocaleString() : '—';
-  if(el('inv-order-total'))   el('inv-order-total').textContent   = amt ? '₪'+withVat(amt,vat).toLocaleString() : '—';
+  if(el('inv-order-vat-amt')) el('inv-order-vat-amt').textContent = amt ? (vat===0?'₪0 (פטור)':'₪'+vatAmt(amt,vat).toLocaleString()) : '—';
+  if(el('inv-order-total'))   el('inv-order-total').textContent   = amt ? '₪'+(vat===0?amt:withVat(amt,vat)).toLocaleString() : '—';
 }
 
 function calcTxVat(){
   const raw = parseFloat(document.getElementById('inv-tx-amt').value)||0;
   const txMode = window._txVatMode||'ex';
-  const vat = parseFloat(document.getElementById('inv-vat').value)||getVatRate();
+  const vat = _getEffectiveVat();
   const amt = txMode==='inc' ? +(raw/(1+vat/100)).toFixed(2) : raw;
-  const lbl = document.getElementById('vat-tx-ex')?.closest?.('.fg')?.querySelector?.('[id^="inv-tx-amt-lbl"]');
   const el = id => document.getElementById(id);
   if(el('inv-tx-base'))    el('inv-tx-base').textContent    = amt ? '₪'+amt.toLocaleString() : '—';
-  if(el('inv-tx-vat-amt')) el('inv-tx-vat-amt').textContent = amt ? '₪'+vatAmt(amt,vat).toLocaleString() : '—';
-  if(el('inv-tx-total'))   el('inv-tx-total').textContent   = amt ? '₪'+withVat(amt,vat).toLocaleString() : '—';
+  if(el('inv-tx-vat-amt')) el('inv-tx-vat-amt').textContent = amt ? (vat===0?'₪0 (פטור)':'₪'+vatAmt(amt,vat).toLocaleString()) : '—';
+  if(el('inv-tx-total'))   el('inv-tx-total').textContent   = amt ? '₪'+(vat===0?amt:withVat(amt,vat)).toLocaleString() : '—';
 }
 
 function calcInvTotal(){
   const raw2 = parseFloat(document.getElementById('inv-amt').value)||0;
-  const vr2 = (parseFloat(document.getElementById('inv-vat')?.value)||getVatRate())/100;
+  const vat = _getEffectiveVat();
+  const vr2 = vat/100;
   const amt = _invVatMode==='inc' ? +(raw2/(1+vr2)).toFixed(2) : raw2;
   const lbl2=document.getElementById('inv-amt-vat-lbl');
-  if(lbl2&&raw2) lbl2.textContent=_invVatMode==='inc'?`→ לפני מע"מ: ₪${amt.toFixed(2)}`:`→ כולל מע"מ: ₪${(amt*(1+vr2)).toFixed(2)}`;
-  else if(lbl2) lbl2.textContent='';
-  const vat = parseFloat(document.getElementById('inv-vat').value)||getVatRate();
+  if(vat===0){
+    if(lbl2&&raw2) lbl2.textContent='פטור ממע"מ';
+    else if(lbl2) lbl2.textContent='';
+  } else {
+    if(lbl2&&raw2) lbl2.textContent=_invVatMode==='inc'?`→ לפני מע"מ: ₪${amt.toFixed(2)}`:`→ כולל מע"מ: ₪${(amt*(1+vr2)).toFixed(2)}`;
+    else if(lbl2) lbl2.textContent='';
+  }
   const el = id => document.getElementById(id);
   if(el('inv-base-disp')) el('inv-base-disp').textContent = amt ? '₪'+amt.toLocaleString() : '—';
-  if(el('inv-vat-amt'))   el('inv-vat-amt').textContent   = amt ? '₪'+vatAmt(amt,vat).toLocaleString() : '—';
-  if(el('inv-total'))     el('inv-total').textContent     = amt ? '₪'+withVat(amt,vat).toLocaleString() : '—';
+  if(el('inv-vat-amt'))   el('inv-vat-amt').textContent   = amt ? (vat===0?'₪0 (פטור)':'₪'+vatAmt(amt,vat).toLocaleString()) : '—';
+  if(el('inv-total'))     el('inv-total').textContent     = amt ? '₪'+(vat===0?amt:withVat(amt,vat)).toLocaleString() : '—';
 }
 
 function onVatChange(){
@@ -1020,9 +1062,13 @@ async function saveInvoice(){
   const rawOrder = parseFloat(document.getElementById('inv-order-amt').value)||0;
   const rawTx    = parseFloat(document.getElementById('inv-tx-amt').value)||0;
   const rawAmt   = parseFloat(document.getElementById('inv-amt').value)||0;
-  const orderAmt = ordMode==='inc' ? +(rawOrder/(1+vat/100)).toFixed(2) : rawOrder;
-  const txAmt    = txMode==='inc'  ? +(rawTx/(1+vat/100)).toFixed(2)   : rawTx;
-  const amt      = invMode==='inc' ? +(rawAmt/(1+vat/100)).toFixed(2)  : rawAmt;
+  // Exempt suppliers (עוסק פטור / עמותה) — no VAT
+  const _supEntityType = (supEx[supName]||{}).entityType||'';
+  const isExemptSave = _supEntityType==='עוסק פטור' || _supEntityType==='עמותה';
+  const effectiveVat = isExemptSave ? 0 : vat;
+  const orderAmt = ordMode==='inc' ? +(rawOrder/(1+effectiveVat/100)).toFixed(2) : rawOrder;
+  const txAmt    = txMode==='inc'  ? +(rawTx/(1+effectiveVat/100)).toFixed(2)   : rawTx;
+  const amt      = invMode==='inc' ? +(rawAmt/(1+effectiveVat/100)).toFixed(2)  : rawAmt;
   const invId    = _editInvId || Date.now();
 
   const existingInv = _editInvId ? INVOICES.find(i=>i.id===_editInvId) : null;
@@ -1047,20 +1093,22 @@ async function saveInvoice(){
 
   const status = document.getElementById('inv-status')?.value||'order';
   const inv = {
-    id:invId, supName, vat,
+    id:invId, supName, vat: effectiveVat,
     orderNum, orderDate:document.getElementById('inv-order-date').value,
     orderDesc:document.getElementById('inv-order-desc').value.trim(),
     orderType:document.getElementById('inv-order-type')?.value||'',
-    orderAmt, orderVat:vatAmt(orderAmt,vat), orderTotal:withVat(orderAmt,vat),
+    orderAmt, orderVat:vatAmt(orderAmt,effectiveVat), orderTotal:withVat(orderAmt,effectiveVat),
+    ordVatMode: ordMode,
     orderNotes:document.getElementById('inv-order-notes').value.trim(),
     locCity:document.getElementById('inv-loc-city')?.value.trim()||'',
     locType:document.getElementById('inv-loc-type')?.value||'',
     locName:document.getElementById('inv-loc-name')?.value.trim()||'',
     txNum, txDate:document.getElementById('inv-tx-date').value,
-    txAmt, txVat:vatAmt(txAmt,vat), txTotal:withVat(txAmt,vat),
+    txAmt, txVat:vatAmt(txAmt,effectiveVat), txTotal:withVat(txAmt,effectiveVat),
     txVatMode: txMode,
     num, date:document.getElementById('inv-date').value,
-    amt, vatAmt:vatAmt(amt,vat), total:withVat(amt,vat),
+    amt, vatAmt:vatAmt(amt,effectiveVat), total:withVat(amt,effectiveVat),
+    invVatMode: invMode,
     recv:document.getElementById('inv-recv').value,
     status,
     cancelReason: status==='cancelled' ? (document.getElementById('inv-cancel-reason')?.value.trim()||'') : '',
@@ -1140,6 +1188,7 @@ function deleteInvoice(id){
 // ── Render invoices table ──────────────────────────────
 const INV_STATUS_LABELS = {
   order:'📋 הזמנה', tx_invoice:'🧾 חשבונית עסקה', tax_invoice:'📑 חשבונית מס',
+  tax_receipt:'📑🧾 חשבונית מס קבלה',
   receipt:'📄 קבלה', cancelled:'❌ מבוטל',
   // legacy compat
   active:'📋 הזמנה', in_progress:'🧾 חשבונית עסקה', closed:'📑 חשבונית מס',
@@ -1178,8 +1227,8 @@ function renderInvoices(){
     (i.cancelReason||'').toLowerCase().includes(srch)
   );
   if(stf){
-    // Map new status values to filter — also handle migrated old values
-    list = list.filter(i=>_migrateInvStatus(i.status)===stf);
+    // tax_receipt is its own status; others use _migrateInvStatus
+    list = list.filter(i=> stf==='tax_receipt' ? i.status==='tax_receipt' : _migrateInvStatus(i.status)===stf);
   }
   if(from) list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')>=from);
   if(to)   list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')<=to);
@@ -1200,6 +1249,8 @@ function renderInvoices(){
   };
   const statusStepper = (stRaw)=>{
     const st = _migrateInvStatus(stRaw);
+    // tax_receipt = combined tax_invoice + receipt in one step
+    if(st==='tax_receipt') return `<span style="background:#1b5e20;color:#fff;border-radius:10px;padding:2px 8px;font-size:.63rem;font-weight:700">📑🧾 חשבונית מס קבלה</span>`;
     const stages = [
       {k:'order',l:'הזמנה',c:'#1565c0'},
       {k:'tx_invoice',l:'עסקה',c:'#6a1b9a'},
@@ -1208,6 +1259,7 @@ function renderInvoices(){
     ];
     if(st==='cancelled') return `<span style="background:#ffcdd2;color:#c62828;border-radius:10px;padding:2px 8px;font-size:.65rem;font-weight:700">❌ מבוטל</span>`;
     const cur = stages.findIndex(s=>s.k===st);
+    if(cur<0) return `<span style="color:#888;font-size:.65rem">${st}</span>`;
     return `<div style="display:flex;gap:2px;align-items:center;flex-wrap:wrap">` +
       stages.slice(0,cur+1).map((s,i)=>{
         const isLast = i===cur;
@@ -1221,7 +1273,7 @@ function renderInvoices(){
   }
   tbody.innerHTML = list.map(inv=>{
     const vat = inv.vat||getVatRate();
-    const isExempt = (supEx[inv.supName]||{}).entityType==='עוסק פטור'||(supEx[inv.supName]||{}).entityType==='עמותה' || inv.docType==='receipt';
+    const isExempt = vat===0 || (supEx[inv.supName]||{}).entityType==='עוסק פטור'||(supEx[inv.supName]||{}).entityType==='עמותה';
     const hasOrder = inv.orderNum;
     const hasTx    = inv.txNum;
     const hasTax   = inv.num;
@@ -1265,7 +1317,7 @@ function refreshPurchDash(){
   const byStatus = st => invs.filter(i=>_migrateInvStatus(i.status)===st).length;
   const totalOrders = byStatus('order');
   const totalTx = byStatus('tx_invoice');
-  const totalTax = byStatus('tax_invoice') + byStatus('receipt');
+  const totalTax = byStatus('tax_invoice') + byStatus('receipt') + invs.filter(i=>i.status==='tax_receipt').length;
   const totalCancelled = byStatus('cancelled');
   document.getElementById('ps-invoices').textContent = invs.length;
   document.getElementById('ps-suppliers').textContent = getPurchSuppliers().length;
@@ -1278,8 +1330,8 @@ function refreshPurchDash(){
   if(!rec.length){ el.innerHTML='<div style="color:#aaa;font-size:.8rem;text-align:center;padding:20px">אין חשבוניות עדיין</div>'; return; }
   const stageDot = stRaw=>{
     const st = (typeof _migrateInvStatus==='function') ? _migrateInvStatus(stRaw) : stRaw;
-    const m={order:'📋',tx_invoice:'🧾',tax_invoice:'📑',receipt:'📄',cancelled:'❌'};
-    const l={order:'הזמנה',tx_invoice:'חשבונית עסקה',tax_invoice:'חשבונית מס',receipt:'קבלה',cancelled:'מבוטל'};
+    const m={order:'📋',tx_invoice:'🧾',tax_invoice:'📑',tax_receipt:'📑🧾',receipt:'📄',cancelled:'❌'};
+    const l={order:'הזמנה',tx_invoice:'חשבונית עסקה',tax_invoice:'חשבונית מס',tax_receipt:'חשבונית מס קבלה',receipt:'קבלה',cancelled:'מבוטל'};
     return `<span style="font-size:.72rem">${m[st]||'⚪'} ${l[st]||st}</span>`;
   };
   el.innerHTML = `<table style="width:100%;font-size:.8rem;border-collapse:collapse">
@@ -1294,7 +1346,14 @@ function refreshPurchDash(){
       <td style="padding:5px 8px"><b>${i.orderNum||i.num||'—'}</b></td>
       <td style="padding:5px 8px">${i.supName||''}</td>
       <td style="padding:5px 8px">${i.orderDate||i.date||''}</td>
-      <td style="padding:5px 8px;font-weight:700;color:#2e7d32">${(i.orderTotal||i.total)?'₪'+(i.orderTotal||i.total).toFixed(2):''}</td>
+      <td style="padding:5px 8px;font-weight:700;color:#2e7d32">${(()=>{
+        const total = i.orderTotal||i.total||0;
+        const base  = i.orderAmt||i.amt||0;
+        const invVat = i.vat||0;
+        if(!total && !base) return '';
+        if(invVat===0) return `₪${base.toLocaleString('he-IL',{minimumFractionDigits:2,maximumFractionDigits:2})} <span style="font-size:.65rem;color:#2e7d32">(פטור)</span>`;
+        return `₪${total.toLocaleString('he-IL',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+      })()}</td>
       <td style="padding:5px 8px">${stageDot(i.status||'order')}</td>
     </tr>`).join('')}</tbody>
   </table>`;
@@ -6183,7 +6242,7 @@ function renderSupDocs(){
     if(totalEl) totalEl.textContent='';
     return;
   }
-  const fmtSt = s=>{const m={order:'📋',tx_invoice:'🧾',tax_invoice:'📑',receipt:'📄',cancelled:'❌'};return m[_migrateInvStatus(s)]||'📄';};
+  const fmtSt = s=>{const m={order:'📋',tx_invoice:'🧾',tax_invoice:'📑',tax_receipt:'📑🧾',receipt:'📄',cancelled:'❌'};return m[s]||m[_migrateInvStatus(s)]||'📄';};
   const total = invs.reduce((s,i)=>s+(i.orderAmt||i.txAmt||i.amt||0),0);
   el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.78rem">
     <thead><tr style="background:#e8eaf6;position:sticky;top:0">
@@ -6445,12 +6504,14 @@ function renderSupPurchDocsSection(name){
   const invs = INVOICES.filter(i=>supBase(i.supName||'')===name);
   if(!invs.length) return '';
   const fmtStatus = (s)=>{
-    const m={order:'📋 הזמנה',tx_invoice:'🧾 חשבונית עסקה',tax_invoice:'📑 חשבונית מס',receipt:'📄 קבלה',cancelled:'❌ מבוטל'};
-    return m[_migrateInvStatus(s)]||s||'—';
+    const m={order:'📋 הזמנה',tx_invoice:'🧾 חשבונית עסקה',tax_invoice:'📑 חשבונית מס',tax_receipt:'📑🧾 חשבונית מס קבלה',receipt:'📄 קבלה',cancelled:'❌ מבוטל'};
+    return m[s]||m[_migrateInvStatus(s)]||s||'—';
   };
   const rows = [...invs].sort((a,b)=>(b.orderDate||b.txDate||b.date||'').localeCompare(a.orderDate||a.txDate||a.date||'')).map(inv=>{
     const dateStr = inv.orderDate||inv.txDate||inv.date||'';
-    const amtStr = inv.orderAmt ? `₪${withVat(inv.orderAmt,inv.vat||18).toLocaleString()}` : (inv.txAmt?`₪${withVat(inv.txAmt,inv.vat||18).toLocaleString()}`:(inv.amt?`₪${withVat(inv.amt,inv.vat||18).toLocaleString()}`:'—'));
+    const baseAmt = inv.orderAmt||inv.txAmt||inv.amt||0;
+    const invVat = inv.vat||0;
+    const amtStr = baseAmt ? `₪${(invVat>0?withVat(baseAmt,invVat):baseAmt).toLocaleString()}` : '—';
     const docNums = [inv.orderNum&&`📋 ${inv.orderNum}`, inv.txNum&&`🧾 ${inv.txNum}`, inv.num&&`📑 ${inv.num}`].filter(Boolean).join(' · ');
     return `<tr style="border-bottom:1px solid #f0f0f0;cursor:pointer" onclick="CM('sucard-m');openNewInvoice(${inv.id})">
       <td style="padding:5px 8px;font-size:.76rem">${dateStr?fD(dateStr):'—'}</td>
@@ -6502,7 +6563,7 @@ function filterSupCardInvs(){
 function exportSupPurchDocs(name){
   const invs = INVOICES.filter(i=>supBase(i.supName||'')===name);
   if(!invs.length){ showToast('אין מסמכים לייצוא'); return; }
-  const fmtStatus = (s)=>{const m={order:'הזמנה',tx_invoice:'חשבונית עסקה',tax_invoice:'חשבונית מס',receipt:'קבלה',cancelled:'מבוטל'};return m[_migrateInvStatus(s)]||s||'';};
+  const fmtStatus = (s)=>{const m={order:'הזמנה',tx_invoice:'חשבונית עסקה',tax_invoice:'חשבונית מס',tax_receipt:'חשבונית מס קבלה',receipt:'קבלה',cancelled:'מבוטל'};return m[s]||m[_migrateInvStatus(s)]||s||''};
   const wb = XLSX.utils.book_new();
   const rows = invs.map(inv=>({
     'ספק': inv.supName||'',
