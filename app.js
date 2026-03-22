@@ -2376,13 +2376,19 @@ function renderCal(){
     else if(f.cluster) html=renderClusterDay(evs,ds,f.cluster);
     else html=renderNormalDay(evs,ds);
   } else if(calV==='week'){
-    const ws=monStart(calD),we=addD(ws,5);
+    // Show 5 days (Sun-Thu) from calD, not from Monday
+    const ws=new Date(calD); ws.setHours(0,0,0,0);
+    // If on Fri(5) or Sat(6), start from next Sunday
+    const dow0=ws.getDay();
+    if(dow0===5) ws.setDate(ws.getDate()+2);
+    else if(dow0===6) ws.setDate(ws.getDate()+1);
+    const we=addD(ws,4); // 5 days: ws+0,1,2,3,4
     const wsS=d2s(ws),weS=d2s(we);
-    (document.getElementById('cal-title')||{}).textContent =`${fD(wsS)} – ${fD(weS)}`;
+    (document.getElementById('cal-title')||{}).textContent=`${fD(wsS)} – ${fD(weS)}`;
     const evs=filterE(f,wsS,weS);
-    if(displayGids) html=renderPairWeek(evs,monStart(calD),displayGids);
-    else if(f.cluster) html=renderClusterWeek(evs,monStart(calD),f.cluster);
-    else html=renderNormalWeek(evs,monStart(calD),f);
+    if(displayGids) html=renderPairWeek(evs,ws,displayGids);
+    else if(f.cluster) html=renderClusterWeek(evs,ws,f.cluster);
+    else html=renderNormalWeek(evs,ws,f);
   } else if(calV==='range'){
     const from=document.getElementById('cal-range-from')?.value||d2s(calD);
     const to=document.getElementById('cal-range-to')?.value||from;
@@ -4165,7 +4171,7 @@ function doPostpone(){
   const nd=document.getElementById('post-date').value;
   if(!nd){alert('יש לבחור תאריך חדש');return;}
   const dow=s2d(nd).getDay();
-  if(dow===6||dow===0){alert('לא ניתן לשבץ בשישי או שבת');return;}
+  if(dow===5||dow===6){alert('לא ניתן לשבץ בשישי או שבת');return;}
   const nt=document.getElementById('post-time').value;
   const nr=document.getElementById('post-reason').value;
   const postSupEl=document.getElementById('post-sup');
@@ -4204,14 +4210,18 @@ function doPostpone(){
   };
   const orig=SCH.find(s=>s.id===selEvPost);
   if(orig){
+    const origGid = orig.g;
+    const origDate = orig.d; // save BEFORE doOne mutates orig (Object.assign changes by reference)
     doOne(selEvPost,false);
     const pairChk=document.getElementById('post-pair-chk');
     if(pairChk&&pairChk.checked){
-      const pair=gardenPair(orig.g);
+      const pair=gardenPair(origGid);
       if(pair){
-        pair.ids.filter(id=>id!==orig.g).forEach(pid=>{
-          const partnerEv=SCH.find(s=>s.g===pid&&s.d===orig.d&&s.st!=='can');
+        pair.ids.filter(id=>id!==origGid).forEach(pid=>{
+          // Use origDate (saved before mutation) not orig.d (already changed)
+          const partnerEv=SCH.find(s=>s.g===pid&&s.d===origDate&&s.st!=='can');
           if(partnerEv) doOne(partnerEv.id,true);
+          else console.log('Partner not found for gid',pid,'on',origDate);
         });
       }
     }
