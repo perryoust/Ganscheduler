@@ -385,24 +385,47 @@ let INVOICES = [];
 let VAT_RATE = 18; // Default VAT % — editable by user in invoice settings
 
 // ════════════════════════════════════════════════════════
-// FILE PATH STORAGE — user saves file locally, app stores the path only.
-// Each invoice stores: file_order, file_tx, file_tax = {name, path}
-// "path" here = the string the user types/pastes after saving the file.
 // ════════════════════════════════════════════════════════
-
-// Pending path inputs per section before invoice is saved
+// FILE LINK STORAGE — stores OneDrive/SharePoint URLs or local paths
+// ════════════════════════════════════════════════════════
 let _pendingFiles = {order:null, tx:null, tax:null};
 
-// Called when user picks a file via <input type="file"> — we only keep the filename
+// Classify what kind of path/URL we have
+function _classifyPath(p) {
+  const s = (p||'').trim();
+  if(!s) return {type:'empty'};
+  // Direct web URL (SharePoint, OneDrive web, any https)
+  if(/^https?:\/\//i.test(s)) return {type:'url', url:s};
+  // Local path containing OneDrive in it
+  if(/OneDrive/i.test(s)) return {type:'onedrive_local', raw:s};
+  // UNC network path
+  if(s.startsWith('\\\\') || s.startsWith('//')) return {type:'unc', raw:s};
+  // Any other local path
+  return {type:'local', raw:s};
+}
+
+function _copyToClipboard(text) {
+  navigator.clipboard?.writeText(text).then(()=>showToast('📋 הועתק!')).catch(()=>{
+    const ta=document.createElement('textarea');
+    ta.value=text; ta.style.cssText='position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta); ta.select();
+    try{document.execCommand('copy');}catch(e){}
+    document.body.removeChild(ta);
+    showToast('📋 הועתק!');
+  });
+}
+
+function _removeOverlay(id) { document.getElementById(id)?.remove(); }
+
+// Called when user picks a file via <input type="file">
 function invFilePickerChange(section){
   const input = document.getElementById('inv-file-'+section);
   if(!input||!input.files[0]) return;
   const file = input.files[0];
   _pendingFiles[section] = {name: file.name, path: ''};
-  // Show the filename in the label
   const lbl = document.getElementById('inv-file-lbl-'+section);
   if(lbl){ lbl.textContent = '📎 '+file.name; lbl.style.color='#2e7d32'; }
-  // Show the path-input row so user can type/paste the saved location
+  // Show the path-input row for URL entry
   const row = document.getElementById('inv-path-row-'+section);
   if(row) row.style.display='flex';
   const pi = document.getElementById('inv-path-'+section);
@@ -418,46 +441,146 @@ function invPathChange(section){
   const lbl = document.getElementById('inv-file-lbl-'+section);
   if(lbl && _pendingFiles[section].name)
     lbl.textContent = '📎 '+_pendingFiles[section].name;
-  // Show open-button and delete-button only when a path exists
+  const val = pi.value.trim();
+  const hasPath = !!val;
   const btn = document.getElementById('inv-file-open-'+section);
   const delBtn = document.getElementById('inv-file-del-'+section);
-  const hasPath = !!pi.value.trim();
+  const pathOpenBtn = document.getElementById('inv-path-open-'+section);
   if(btn) btn.style.display = hasPath ? 'inline' : 'none';
   if(delBtn) delBtn.style.display = (_pendingFiles[section]||hasPath) ? 'inline' : 'none';
+  if(hasPath){
+    const c = _classifyPath(val);
+    // Show "פתח" button in path row only for valid URLs
+    if(pathOpenBtn) pathOpenBtn.style.display = (c.type==='url') ? 'inline-block' : 'none';
+    if(c.type==='url') pi.style.borderColor='#2e7d32';
+    else if(c.type==='onedrive_local') pi.style.borderColor='#e65100';
+    else pi.style.borderColor='#b0bec5';
+  } else {
+    if(pathOpenBtn) pathOpenBtn.style.display='none';
+    pi.style.borderColor='#b0bec5';
+  }
 }
 
-// Open file: try window.open with file:// path
+// Main open function
 function invOpenFile(invId, section){
   const inv = INVOICES.find(i=>i.id===invId);
   if(!inv) return;
   const meta = inv['file_'+section];
   if(!meta){ showToast('❌ לא צורף קובץ לסעיף זה'); return; }
   if(!meta.path){
-    const newPath = prompt(`הזן/הדבק את הנתיב לקובץ "${meta.name||''}":`, '');
-    if(newPath && newPath.trim()){
-      inv['file_'+section] = {...meta, path:newPath.trim()};
-      save();
-      _invTryOpen(newPath.trim());
-    }
+    _showPathDialog(invId, section, meta);
     return;
   }
   _invTryOpen(meta.path, invId, section, meta);
 }
+
 function _invTryOpen(p, invId, section, meta){
-  let url = p.trim();
-  if(!url.startsWith('http')&&!url.startsWith('file:')){
-    url = 'file:///'+url.replace(/\\/g,'/').replace(/^\/+/,'');
+  const c = _classifyPath(p);
+
+  // ✅ Direct URL (SharePoint, OneDrive web) — opens immediately
+  if(c.type==='url'){
+    window.open(c.url, '_blank');
+    return;
   }
-  try{
-    const w = window.open(url,'_blank');
-    if(!w&&invId){
-      const np = prompt('לא ניתן לפתוח אוטומטית. ערוך את הנתיב:',p);
-      if(np&&np.trim()&&meta){ const inv2=INVOICES.find(i=>i.id===invId); if(inv2){inv2['file_'+section]={...meta,path:np.trim()};save();} }
-    }
-  }catch(e){
-    const np = prompt('שגיאה. ערוך את הנתיב:',p);
-    if(np&&np.trim()&&meta&&invId){const inv2=INVOICES.find(i=>i.id===invId);if(inv2){inv2['file_'+section]={...meta,path:np.trim()};save();}}
+
+  // ⚠️ Local OneDrive path — browser CANNOT open file:// — show guidance
+  if(c.type==='onedrive_local' || c.type==='local' || c.type==='unc'){
+    _showLocalPathHelp(p, invId, section, meta, c.type);
+    return;
   }
+}
+
+// Dialog: user hasn't set a path yet
+function _showPathDialog(invId, section, meta){
+  const name = meta?.name || '';
+  const secLabel = {order:'הזמנה',tx:'חשבונית עסקה',tax:'חשבונית מס'}[section]||section;
+  const div = document.createElement('div');
+  div.id = 'path-dlg-overlay';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  div.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:22px;max-width:500px;width:94%;box-shadow:0 8px 32px rgba(0,0,0,.25);direction:rtl">
+      <div style="font-weight:800;color:#1a237e;font-size:.95rem;margin-bottom:10px">🔗 קישור לקובץ — ${secLabel}</div>
+      ${name?`<div style="font-size:.75rem;color:#2e7d32;margin-bottom:10px">📎 שם קובץ: <b>${name}</b></div>`:''}
+      <div style="background:#e3f2fd;border-radius:8px;padding:10px 13px;font-size:.78rem;color:#0d47a1;margin-bottom:14px;line-height:1.8">
+        <b>איך לקבל קישור מ-OneDrive עסקי:</b><br>
+        1. פתח את OneDrive / סייר הקבצים<br>
+        2. קליק ימני על הקובץ → <b>שתף</b> (Share)<br>
+        3. לחץ <b>העתק קישור</b> (Copy link)<br>
+        4. הדבק כאן 👇
+      </div>
+      <input type="text" id="path-dlg-input"
+        placeholder="הדבק כאן קישור OneDrive / SharePoint..."
+        style="width:100%;font-size:.8rem;border-radius:6px;border:1.5px solid #90caf9;padding:8px 10px;box-sizing:border-box;direction:ltr;text-align:left;margin-bottom:6px">
+      <div id="path-dlg-hint" style="font-size:.7rem;color:#888;margin-bottom:12px;min-height:18px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="_removeOverlay('path-dlg-overlay')" class="btn bs bsm">ביטול</button>
+        <button onclick="_pathDlgSave(${invId},'${section}')" class="btn bp bsm">💾 שמור קישור</button>
+        <button onclick="_pathDlgOpen(${invId},'${section}')" class="btn borange bsm">🔗 שמור ופתח</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+  const inp = document.getElementById('path-dlg-input');
+  inp.focus();
+  inp.addEventListener('input', ()=>{
+    const v = inp.value.trim();
+    const hint = document.getElementById('path-dlg-hint');
+    const c = _classifyPath(v);
+    if(c.type==='url') hint.innerHTML = '✅ קישור תקין — ייפתח ישירות';
+    else if(c.type==='onedrive_local') hint.innerHTML = '⚠️ זה נתיב מקומי. דפדפן לא יכול לפתוח אותו. השתמש בקישור OneDrive.';
+    else if(v) hint.innerHTML = '⚠️ לא מזוהה כקישור תקין';
+    else hint.innerHTML = '';
+  });
+}
+function _pathDlgSave(invId, section){
+  const val = document.getElementById('path-dlg-input')?.value.trim();
+  if(!val) return;
+  const inv = INVOICES.find(i=>i.id===invId);
+  if(inv){
+    const meta = inv['file_'+section]||{name:''};
+    inv['file_'+section] = {...meta, path:val};
+    save();
+    const pi = document.getElementById('inv-path-'+section);
+    if(pi){pi.value=val; invPathChange(section);}
+    showToast('✅ קישור נשמר');
+  }
+  _removeOverlay('path-dlg-overlay');
+}
+function _pathDlgOpen(invId, section){
+  _pathDlgSave(invId, section);
+  const inv = INVOICES.find(i=>i.id===invId);
+  if(inv && inv['file_'+section]?.path) _invTryOpen(inv['file_'+section].path, invId, section, inv['file_'+section]);
+}
+
+// Dialog: user has a local path (can't open in browser)
+function _showLocalPathHelp(p, invId, section, meta, pathType){
+  const isOD = pathType==='onedrive_local';
+  const div = document.createElement('div');
+  div.id = 'localhelp-overlay';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  div.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:22px;max-width:480px;width:94%;box-shadow:0 8px 32px rgba(0,0,0,.25);direction:rtl">
+      <div style="font-weight:800;color:#e65100;font-size:.92rem;margin-bottom:10px">
+        ${isOD?'☁️ נתיב OneDrive מקומי':'📁 נתיב מקומי'}
+      </div>
+      <div style="background:#fff3e0;border-radius:8px;padding:10px 13px;font-size:.78rem;color:#bf360c;margin-bottom:12px;line-height:1.8">
+        הדפדפן <b>לא יכול לפתוח קבצים מקומיים</b> מסיבות אבטחה.<br>
+        ${isOD?'<b>הפתרון:</b> השתמש בקישור OneDrive (לא נתיב מקומי).':''}
+      </div>
+      ${isOD?`
+      <div style="background:#e3f2fd;border-radius:8px;padding:10px 13px;font-size:.78rem;color:#0d47a1;margin-bottom:14px;line-height:1.8">
+        <b>כיצד לקבל קישור שיעבוד:</b><br>
+        1. קליק ימני על הקובץ ב-OneDrive / סייר קבצים<br>
+        2. <b>שתף → העתק קישור</b><br>
+        3. חזור כאן ולחץ "עדכן קישור" למטה
+      </div>`:''}
+      <div style="background:#f5f5f5;border-radius:6px;padding:8px 10px;font-size:.7rem;font-family:monospace;direction:ltr;text-align:left;word-break:break-all;margin-bottom:14px;color:#555">${p}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        <button onclick="_removeOverlay('localhelp-overlay')" class="btn bs bsm">סגור</button>
+        <button onclick="_copyToClipboard(${JSON.stringify(p)});_removeOverlay('localhelp-overlay')" class="btn bo bsm">📋 העתק נתיב</button>
+        <button onclick="_removeOverlay('localhelp-overlay');_showPathDialog(${invId},'${section}',${JSON.stringify(meta)})" class="btn bp bsm">🔗 עדכן קישור</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
 }
 
 function invOpenFileFromModal(section){
@@ -466,6 +589,7 @@ function invOpenFileFromModal(section){
 
 // No async needed — nothing to save to IndexedDB
 function invSaveFiles(invId){ return Promise.resolve(); }
+
 
 
 // Invoices saved via main save() function
@@ -689,6 +813,7 @@ function openNewInvoice(id, presetSup){
     const delF = document.getElementById('inv-file-del-'+sec);
     const row  = document.getElementById('inv-path-row-'+sec);
     const pi   = document.getElementById('inv-path-'+sec);
+    const pathOpenBtn = document.getElementById('inv-path-open-'+sec);
     if(fi) fi.value='';
     const meta = inv && inv['file_'+sec];
     if(lbl){
@@ -699,6 +824,14 @@ function openNewInvoice(id, presetSup){
     if(pi)  pi.value = meta ? (meta.path||'') : '';
     if(btn) btn.style.display = (meta && meta.path) ? 'inline' : 'none';
     if(delF) delF.style.display = meta ? 'inline' : 'none';
+    // Show path-row open button only for valid URLs; color hint
+    if(meta && meta.path){
+      const cl = _classifyPath(meta.path);
+      if(pathOpenBtn) pathOpenBtn.style.display = cl.type==='url' ? 'inline-block' : 'none';
+      if(pi) pi.style.borderColor = cl.type==='url' ? '#2e7d32' : cl.type==='onedrive_local' ? '#e65100' : '#b0bec5';
+    } else {
+      if(pathOpenBtn) pathOpenBtn.style.display='none';
+    }
   });
   document.getElementById('invoice-m').classList.add('open');
 }
@@ -875,8 +1008,8 @@ async function saveInvoice(){
   if(!orderNum && !txNum && !num){
     alert('יש להזין לפחות מספר הזמנה, מספר חשבונית עסקה, או מספר חשבונית מס'); return;
   }
-  // Check duplicate order number — only for purely numeric numbers (letters = internal codes, skip dupe check)
-  if(orderNum && /^\d+$/.test(orderNum)){
+  // Check duplicate order number (30)
+  if(orderNum){
     const dup = INVOICES.find(i=>i.orderNum===orderNum && i.id!==_editInvId);
     if(dup && !confirm(`⚠️ מספר הזמנה ${orderNum} כבר קיים אצל "${dup.supName}". לשמור בכל זאת?`)) return;
   }
@@ -1062,12 +1195,8 @@ function renderInvoices(){
   });
   const fmtAmt = (n, vat, exempt)=>{
     if(!n) return '<span style="color:#ccc">—</span>';
-    if(exempt) return `<b style="color:#2e7d32" title="פטור ממע&quot;מ">₪${n.toLocaleString()} <span style="font-size:.65rem;color:#546e7a">(פטור)</span></b>`;
-    const vatA = vatAmt(n, vat);
-    const total = withVat(n, vat);
-    return `<span title="לפני מע&quot;מ" style="color:#546e7a">₪${n.toLocaleString()}</span>`+
-      `<span style="font-size:.65rem;color:#e65100;margin:0 3px">+מע"מ ₪${vatA.toLocaleString()}</span>`+
-      `<b style="color:#2e7d32" title="כולל מע&quot;מ">= ₪${total.toLocaleString()}</b>`;
+    if(exempt) return `<b style="color:#2e7d32">₪${n.toLocaleString()}</b>`;
+    return `<span style="color:#546e7a">₪${n.toLocaleString()}</span> <span style="font-size:.67rem;color:#e65100">+מע"מ</span> <b style="color:#2e7d32">₪${withVat(n,vat).toLocaleString()}</b>`;
   };
   const statusStepper = (stRaw)=>{
     const st = _migrateInvStatus(stRaw);
@@ -1128,21 +1257,6 @@ function renderInvoices(){
       </td>
     </tr>`;
   }).join('');
-  // ── Totals footer ──
-  const activeList = list.filter(i=>_migrateInvStatus(i.status)!=='cancelled');
-  const sumBase  = activeList.reduce((s,i)=>s+(i.orderAmt||i.txAmt||i.amt||0),0);
-  const sumVat   = activeList.reduce((s,i)=>s+(i.orderVat||i.txVat||i.vatAmt||vatAmt(i.orderAmt||i.txAmt||i.amt||0,i.vat||getVatRate())),0);
-  const sumTotal = activeList.reduce((s,i)=>s+(i.orderTotal||i.txTotal||i.total||withVat(i.orderAmt||i.txAmt||i.amt||0,i.vat||getVatRate())),0);
-  const footerHtml = activeList.length ? `<tr style="background:#e8f5e9;font-weight:700;border-top:2px solid #4caf50">
-    <td colspan="3" style="padding:8px 10px;color:#2e7d32;font-size:.82rem">📊 סיכום (${activeList.length} מסמכים פעילים)</td>
-    <td style="padding:8px;font-size:.8rem;white-space:nowrap;color:#1a237e">
-      <div><span style="color:#546e7a;font-size:.7rem">לפני מע"מ: </span><b>₪${sumBase.toLocaleString('he-IL',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></div>
-      <div><span style="color:#e65100;font-size:.7rem">מע"מ (${getVatRate()}%): </span><b style="color:#e65100">₪${sumVat.toLocaleString('he-IL',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></div>
-      <div><span style="color:#2e7d32;font-size:.7rem">כולל מע"מ: </span><b style="color:#2e7d32;font-size:.9rem">₪${sumTotal.toLocaleString('he-IL',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></div>
-    </td>
-    <td colspan="3"></td>
-  </tr>` : '';
-  tbody.innerHTML += footerHtml;
 }
 
 // ── Procurement Dashboard ──────────────────────────────
@@ -1157,18 +1271,6 @@ function refreshPurchDash(){
   document.getElementById('ps-suppliers').textContent = getPurchSuppliers().length;
   document.getElementById('ps-open').textContent = totalOrders + totalTx;
   document.getElementById('ps-issues').textContent = totalTax;
-  // Financial totals summary
-  const activeInvs = invs.filter(i=>_migrateInvStatus(i.status)!=='cancelled');
-  const dashBase  = activeInvs.reduce((s,i)=>s+(i.orderAmt||i.txAmt||i.amt||0),0);
-  const dashTotal = activeInvs.reduce((s,i)=>s+(i.orderTotal||i.txTotal||i.total||withVat(i.orderAmt||i.txAmt||i.amt||0,i.vat||getVatRate())),0);
-  const dashVatEl = document.getElementById('ps-vat-summary');
-  if(dashVatEl){
-    dashVatEl.innerHTML = activeInvs.length
-      ? `<span style="color:#546e7a">לפני מע"מ: <b>₪${dashBase.toLocaleString('he-IL',{maximumFractionDigits:0})}</b></span>`+
-        `<span style="margin:0 8px;color:#e65100">|</span>`+
-        `<span style="color:#2e7d32">כולל מע"מ: <b>₪${dashTotal.toLocaleString('he-IL',{maximumFractionDigits:0})}</b></span>`
-      : '';
-  }
   // Recent 5 — sorted by creation timestamp
   const rec = [...invs].filter(i=>_migrateInvStatus(i.status)!=='cancelled').sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,5);
   const el = document.getElementById('pdash-recent-invoices');
@@ -1839,9 +1941,8 @@ function navSearchClose(){
 
 function ST(t){
   currentTab=t;
-  const actTabs=document.querySelectorAll('#tabs-act .tab');
   TABS.forEach((x,i)=>{
-    if(actTabs[i]) actTabs[i].classList.toggle('active',x===t);
+    document.querySelectorAll('.tab')[i].classList.toggle('active',x===t);
     const panelEl=document.getElementById('p-'+x);
     if(panelEl){
       panelEl.classList.toggle('active',x===t);
@@ -1935,15 +2036,6 @@ function setView(v){
   }
   renderCal();
 }
-
-let _rangeSubView = 'cal'; // 'cal' | 'list'
-function setRangeSubView(v){
-  _rangeSubView = v;
-  document.getElementById('vb-range-cal')?.classList.toggle('active', v==='cal');
-  document.getElementById('vb-range-list')?.classList.toggle('active', v==='list');
-  renderCal();
-}
-
 function navCal(d){
   if(calV==='day') calD=addD(calD,d);
   else if(calV==='week') calD=addD(calD,d*7);
@@ -2041,15 +2133,9 @@ function renderCal(){
     const from=document.getElementById('cal-range-from')?.value||d2s(calD);
     const to=document.getElementById('cal-range-to')?.value||from;
     const fromD=from<=to?from:to, toD=from<=to?to:from; // safety: swap if reversed
-    const viewLabel=(_rangeSubView==='list')?'📋 רשימה — ':'';
-    (document.getElementById('cal-title')||{}).textContent=`${viewLabel}${fD(fromD)} – ${fD(toD)}`;
+    (document.getElementById('cal-title')||{}).textContent=`${fD(fromD)} – ${fD(toD)}`;
     const evs=filterE(f,fromD,toD);
-    if(_rangeSubView==='list'){
-      // Reuse renderCalList but pass a synthetic date range instead of month
-      html=renderRangeListView(evs,fromD,toD);
-    } else {
-      html=renderRangeView(evs,fromD,toD,f,displayGids);
-    }
+    html=renderRangeView(evs,fromD,toD,f,displayGids);
   } else if(calV==='list'){
     const y=calD.getFullYear(),m=calD.getMonth();
     (document.getElementById('cal-title')||{}).textContent ='📋 רשימה — '+hebM(calD);
@@ -2916,70 +3002,6 @@ function _quickActionBtns(s){
   </div>`;
 }
 
-// List view for a specific date range (used when range sub-view = list)
-function renderRangeListView(evs, fromDs, toDs){
-  const tday=td();
-  const byDate={};
-  evs.filter(s=>s.st!=='can').forEach(s=>{
-    const dk=s._isPostponed?s.pd:s.d;
-    if(dk>=fromDs&&dk<=toDs){
-      if(!byDate[dk]) byDate[dk]=[];
-      byDate[dk].push(s);
-    }
-  });
-  const dates=Object.keys(byDate).sort();
-  if(!dates.length) return '<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות בטווח זה</div>';
-
-  let totalEvs=0;
-  dates.forEach(ds=>totalEvs+=byDate[ds].length);
-  let h=`<div style="font-size:.78rem;color:#546e7a;padding:6px 10px;background:#e8eaf6;border-radius:7px;margin-bottom:8px">
-    📊 ${dates.length} ימים פעילים · ${totalEvs} פעילויות סה"כ בטווח ${fD(fromDs)} – ${fD(toDs)}
-  </div>`;
-  h+='<div class="card" style="padding:0;overflow:hidden">';
-  dates.forEach(ds=>{
-    const dayEvs=byDate[ds].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
-    const isToday=ds===tday;
-    const hol=getHolidayInfo(ds);
-    const blk=getBlockedInfo(ds);
-    h+=`<div style="border-bottom:2px solid #c5cae9">
-      <div style="background:${isToday?'#1565c0':hol?hol.bg:blk?'#fce4ec':'#e8eaf6'};color:${isToday?'#fff':hol?hol.color:blk?'#c62828':'#283593'};padding:6px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="jumpToDay('${ds}')">
-        <span style="font-weight:700;font-size:.82rem">📅 ${dayN(ds)} ${fD(ds)}</span>
-        <span style="display:flex;gap:8px;align-items:center">
-          ${hol?`<span style="font-size:.7rem">${hol.emoji} ${hol.name}</span>`:''}
-          ${blk?`<span style="font-size:.7rem;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blk.icon} ${blk.reason} ✏️</span>`:`<span style="font-size:.65rem;opacity:.4;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')" title="חסום תאריך">🚫</span>`}
-          <span style="font-size:.72rem;opacity:.8">${dayEvs.length} פעילויות</span>
-        </span>
-      </div>`;
-    h+='<div style="padding:6px 8px">';
-    const allCities=[...new Set(dayEvs.map(s=>G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
-    allCities.forEach(city=>{
-      const cityEvs=dayEvs.filter(s=>(G(s.g).city||'אחר')===city);
-      const clr=CITY_COLORS(city);
-      h+=`<div style="margin-bottom:6px">
-        <div style="display:flex;align-items:center;gap:6px;padding:3px 8px;margin-bottom:3px;background:${clr.light};border-right:3px solid ${clr.solid};border-radius:4px">
-          <span style="font-weight:800;color:${clr.solid};font-size:.78rem">🏙️ ${city}</span>
-          <span style="font-size:.68rem;color:#78909c">${cityEvs.length} פעילויות</span>
-        </div>`;
-      cityEvs.forEach(s=>{
-        const g=G(s.g);
-        const stc=s.st==='done'?'st-done':s.st==='nohap'?'st-nohap':s.st==='post'?'st-post':'';
-        h+=`<div class="pslot ${stc}" style="border-right:3px solid ${clr.solid};background:${clr.light};margin-bottom:3px" onclick="openSP(${s.id})">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <span style="font-size:.76rem;font-weight:700">${g.name}</span>
-            ${s.t?`<span style="font-size:.68rem;color:#546e7a">⏰ ${fT(s.t)}</span>`:''}
-          </div>
-          <div style="font-size:.72rem;color:#1565c0">${s.a}${s.act?' · '+s.act:''}</div>
-          ${s._fromD?`<div style="font-size:.65rem;color:#e65100">↩ מ-${fD(s._fromD)}</div>`:''}
-        </div>`;
-      });
-      h+='</div>';
-    });
-    h+='</div></div>';
-  });
-  h+='</div>';
-  return h;
-}
-
 function renderCalList(evs, mDate){
   const y=mDate.getFullYear(),m=mDate.getMonth();
   const tday=td();
@@ -3696,34 +3718,6 @@ function openMakeupSched(origId){
   },120);
 }
 let _makeupOrigId=null;
-let _postMode = 'move'; // 'move' | 'defer'
-
-function setPostMode(mode){
-  _postMode = mode;
-  document.getElementById('postm-mode-move').classList.toggle('active', mode==='move');
-  document.getElementById('postm-mode-defer').classList.toggle('active', mode==='defer');
-  const reasonLbl = document.getElementById('post-reason-lbl');
-  const saveBtn   = document.getElementById('postm-save-btn');
-  const pairLbl   = document.getElementById('post-pair-name');
-  const pairWrap  = document.getElementById('post-pair-wrap');
-  if(mode==='move'){
-    document.getElementById('postm-title').textContent='🔀 שינוי שיבוץ — הזזה לתאריך אחר';
-    if(reasonLbl) reasonLbl.textContent='סיבת ההזזה (אופציונלי)';
-    if(saveBtn){ saveBtn.textContent='🔀 הזז לתאריך'; saveBtn.className='btn borange'; }
-    document.getElementById('post-reason').placeholder='לדוג׳: שינוי תאריך טיול...';
-    if(pairWrap&&pairWrap.style.display!=='none'){
-      const lbl=pairWrap.querySelector('b, span[id]')
-      const pn=document.getElementById('post-pair-name');
-      if(pn) pn.closest('label').firstChild.nextSibling&&(pairWrap.querySelector('label').childNodes[2].textContent=' 🔗 גם להזיז את הצהרון בן הזוג (');
-    }
-  } else {
-    document.getElementById('postm-title').textContent='⏩ דחיית פעילות';
-    if(reasonLbl) reasonLbl.textContent='סיבת הדחייה';
-    if(saveBtn){ saveBtn.textContent='⏩ דחה'; saveBtn.className='btn borange'; }
-    document.getElementById('post-reason').placeholder='מדוע נדחתה...';
-  }
-}
-
 function openPostpone(id){
   selEvPost=id;
   const s=SCH.find(x=>x.id===id); if(!s) return;
@@ -3735,8 +3729,6 @@ function openPostpone(id){
   document.getElementById('post-time').value=s.t?fT(s.t):'';
   document.getElementById('post-reason').value='';
   document.getElementById('post-conflict-warn').style.display='none';
-  // Default mode: move
-  setPostMode('move');
   // Populate supplier dropdown
   const postSupEl=document.getElementById('post-sup');
   if(postSupEl){
@@ -3753,7 +3745,7 @@ function openPostpone(id){
     const partnerNames=partnerIds.map(id=>G(id).name).filter(Boolean).join(', ');
     (document.getElementById('post-pair-name')||{}).textContent =partnerNames;
     pairWrap.style.display='block';
-    document.getElementById('post-pair-chk').checked=true;
+    document.getElementById('post-pair-chk').checked=true; // default: postpone partner too
   } else if(pairWrap){
     pairWrap.style.display='none';
   }
@@ -3839,55 +3831,40 @@ function doPostpone(){
   const postActEl=document.getElementById('post-act');
   const newSup=postSupEl&&postSupEl.value?postSupEl.value:null;
   const newAct=postActEl&&postActEl.value?postActEl.value:null;
-  const isMove = (_postMode||'move')==='move';
-  const moveOne=(srcId,isPartner)=>{
+  const postponeOne=(srcId,isPartner)=>{
     const idx=SCH.findIndex(s=>s.id===srcId);
     if(idx<0) return;
     const orig=SCH[idx];
     const origDate=orig.d;
-    if(isMove){
-      // Move mode: update the existing entry in-place, keep same id
-      const moveNote = nr ? `(הוזז מ-${fD(origDate)} — ${nr})` : `(הוזז מ-${fD(origDate)})`;
-      Object.assign(SCH[idx],{
-        d: nd,
-        t: nt||orig.t,
-        st: 'ok', cr:'', pd:'', pt:'',
-        _fromD: origDate,
-        nt: orig.nt ? orig.nt+' | '+moveNote : moveNote
-      });
-      if(!isPartner&&newSup) SCH[idx].a=newSup;
-      if(!isPartner&&newAct) SCH[idx].act=newAct;
-    } else {
-      // Defer mode: mark original as deferred, add new entry
-      Object.assign(SCH[idx],{st:'post',cr:nr||'נדחה',pd:nd,pt:nt||orig.t});
-      const newEntry={...orig,id:Date.now()+(isPartner?1:0),d:nd,
-        t:nt||orig.t,st:'ok',cr:'',pd:'',pt:'',
-        _fromD:origDate,
-        nt:'(הועבר מ-'+fD(origDate)+')'+( nr?' — '+nr:'')};
-      if(!isPartner&&newSup) newEntry.a=newSup;
-      if(!isPartner&&newAct) newEntry.act=newAct;
-      SCH.push(newEntry);
-    }
+    // Mark original as postponed
+    Object.assign(SCH[idx],{st:'post',cr:nr||'נדחה',pd:nd,pt:nt||orig.t});
+    // New entry on new date — note says "from [orig date]"
+    const newEntry={...orig,id:Date.now()+(isPartner?1:0),d:nd,
+      t:nt||orig.t,st:'ok',cr:'',pd:'',pt:'',
+      _fromD:origDate,
+      nt:'(הועבר מ-'+fD(origDate)+')'};
+    if(!isPartner&&newSup) newEntry.a=newSup;
+    if(!isPartner&&newAct) newEntry.act=newAct;
+    SCH.push(newEntry);
   };
   const orig=SCH.find(s=>s.id===selEvPost);
   if(orig){
-    moveOne(selEvPost,false);
-    // Also move/defer partner if checkbox checked
+    postponeOne(selEvPost,false);
+    // Also postpone partner if checkbox checked
     const pairChk=document.getElementById('post-pair-chk');
     if(pairChk&&pairChk.checked){
       const pair=gardenPair(orig.g);
       if(pair){
         const partnerIds=pair.ids.filter(id=>id!==orig.g);
         partnerIds.forEach(pid=>{
+          // Find partner's event on the same date
           const partnerEv=SCH.find(s=>s.g===pid&&s.d===orig.d&&s.st!=='can');
-          if(partnerEv) moveOne(partnerEv.id,true);
+          if(partnerEv) postponeOne(partnerEv.id,true);
         });
       }
     }
   }
-  const actionLabel = isMove ? `🔀 הוזז ל-${fD(nd)}` : `⏩ נדחה ל-${fD(nd)}`;
   save();CM('postm');closeSP();refresh();
-  showToast(actionLabel);
 }
 
 let _nsmTab='once'; // 'once'|'recur'|'makeup'
@@ -7832,22 +7809,9 @@ function selBlockReason(btn, reason){
   const inp=document.getElementById('block-m-reason');
   if(reason!=='אחר') inp.value=reason; else inp.focus();
 }
-function blockReasonInput(){
-  // deselect quick-buttons if user typed manually
-  const val=document.getElementById('block-m-reason').value.trim();
-  document.querySelectorAll('.block-reason-btn').forEach(b=>{
-    b.classList.toggle('sel', b.textContent.trim().includes(val)&&val.length>0);
-  });
-}
-function blockCancelChkChg(){
-  // just UI — actual cancel happens in saveBlock
-}
 
 function openBlockModal(mode, gid, ds){
   _blockMode=mode;
-  const cancelWrap=document.getElementById('block-m-cancel-wrap');
-  const cancelChk=document.getElementById('block-m-cancel-chk');
-  const cancelCnt=document.getElementById('block-m-cancel-cnt');
   if(mode==='garden'){
     _gcellGid=parseInt(gid); _gcellDs=ds;
     const g=G(_gcellGid);
@@ -7861,12 +7825,11 @@ function openBlockModal(mode, gid, ds){
     document.querySelectorAll('.block-reason-btn').forEach(b=>{
       b.classList.toggle('sel', blk&&b.textContent.trim().includes(blk.reason));
     });
-    if(cancelWrap) cancelWrap.style.display='none'; // garden-level block: no bulk cancel
   } else {
     // mode === 'date'
     _blockedEditDate=ds;
     const blk=blockedDates[ds];
-    document.getElementById('block-m-title').textContent=`🚫 חסום / ביטול תאריך`;
+    document.getElementById('block-m-title').textContent=`🚫 חסום תאריך`;
     document.getElementById('block-m-subtitle').textContent=`📅 ${fD(ds)} — יום ${dayN(ds)}`;
     document.getElementById('block-m-reason').value=blk?blk.reason:'';
     document.getElementById('block-m-note').value=blk?blk.note||'':'';
@@ -7874,14 +7837,6 @@ function openBlockModal(mode, gid, ds){
     document.querySelectorAll('.block-reason-btn').forEach(b=>{
       b.classList.toggle('sel', blk&&b.textContent.trim().includes(blk.reason));
     });
-    // Show cancel-activities option
-    if(cancelWrap){
-      cancelWrap.style.display='block';
-      const cnt=SCH.filter(s=>s.d===ds&&s.st!=='can').length;
-      if(cancelChk) cancelChk.checked=false;
-      if(cancelCnt) cancelCnt.textContent=cnt>0?`${cnt} פעילויות פעילות ביום זה שיבוטלו`:'אין פעילויות פעילות ביום זה';
-      if(cancelCnt) cancelCnt.style.color=cnt>0?'#c62828':'#888';
-    }
   }
   document.getElementById('block-m').classList.add('open');
 }
@@ -7901,21 +7856,6 @@ function saveBlock(){
     saveAndRefresh('block-m'); showToast('🚫 צהרון נחסם לתאריך זה');
   } else {
     blockedDates[_blockedEditDate]={reason,note,icon};
-    // Optionally cancel all activities on this date
-    const cancelChk=document.getElementById('block-m-cancel-chk');
-    if(cancelChk&&cancelChk.checked){
-      const toCancel=SCH.filter(s=>s.d===_blockedEditDate&&s.st!=='can');
-      if(toCancel.length>0){
-        toCancel.forEach(s=>{
-          s.st='can'; s.cr=reason; s.cn=note;
-          const noteAdd='❌ בוטל: '+reason+(note?' — '+note:'');
-          s.nt=s.nt?s.nt+' | '+noteAdd:noteAdd;
-        });
-        saveAndRefresh('block-m');
-        showToast(`🚫 תאריך נחסם + בוטלו ${toCancel.length} פעילויות`);
-        return;
-      }
-    }
     saveAndRefresh('block-m'); showToast('🚫 תאריך סומן כחסום');
   }
 }
@@ -7932,7 +7872,7 @@ function deleteBlock(){
   }
 }
 
-
+let _editMgrId=null;
 
 // ─── Auto-import contacts from garden co field ────────
 function importContactsFromGardens(){

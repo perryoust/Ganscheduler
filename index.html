@@ -302,10 +302,6 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <div id="cal-range-row" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
           <div class="fg"><label>מ</label><input type="date" id="cal-range-from" onchange="renderCal()" style="min-width:130px"></div>
           <div class="fg"><label>עד</label><input type="date" id="cal-range-to" onchange="renderCal()" style="min-width:130px"></div>
-          <div style="display:flex;gap:4px;align-items:flex-end;padding-bottom:2px">
-            <button id="vb-range-cal" class="vbtn active" onclick="setRangeSubView('cal')" title="תצוגה יומית">📅 יומי</button>
-            <button id="vb-range-list" class="vbtn" onclick="setRangeSubView('list')" title="תצוגת רשימה">📋 רשימה</button>
-          </div>
         </div>
       </div>
       <div class="mob-btn-row mob-nav-controls">
@@ -619,7 +615,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 
 <!-- Unified Block Modal (replaces blocked-m and gblk-m) -->
 <div id="block-m" class="modal">
-  <div class="mb" style="max-width:440px">
+  <div class="mb" style="max-width:420px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <h3 id="block-m-title" style="margin:0;color:#c62828">🚫 חסימה</h3>
       <button onclick="CM('block-m')" class="close-btn">✕</button>
@@ -636,24 +632,16 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <button class="block-reason-btn btn bsm" style="background:#fff8e1;border:1.5px solid #f57f17;color:#e65100" onclick="selBlockReason(this,'בטחוני')">🛡️ בטחוני</button>
         <button class="block-reason-btn btn bsm" style="background:#f5f5f5;border:1.5px solid #999" onclick="selBlockReason(this,'אחר')">✏️ אחר</button>
       </div>
-      <input type="text" id="block-m-reason" placeholder="פרט סיבה..." style="width:100%" oninput="blockReasonInput()">
+      <input type="text" id="block-m-reason" placeholder="פרט סיבה..." style="width:100%">
     </div>
-    <div class="fg" style="margin-bottom:10px">
+    <div class="fg" style="margin-bottom:14px">
       <label>📝 הערה (אופציונלי)</label>
       <input type="text" id="block-m-note" placeholder="הערה נוספת..." style="width:100%">
-    </div>
-    <!-- Cancel activities option — shown only for full-date blocks -->
-    <div id="block-m-cancel-wrap" style="display:none;background:#fff3e0;border-radius:7px;padding:8px 12px;margin-bottom:12px">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;font-weight:700;color:#e65100">
-        <input type="checkbox" id="block-m-cancel-chk" style="accent-color:#e65100" onchange="blockCancelChkChg()">
-        🚨 בטל גם את כל הפעילויות ביום זה
-      </label>
-      <div id="block-m-cancel-cnt" style="font-size:.75rem;color:#c62828;margin-top:4px;padding-right:22px"></div>
     </div>
     <div style="display:flex;gap:7px;justify-content:space-between;align-items:center">
       <button id="block-m-del" class="btn br bsm" onclick="deleteBlock()" style="display:none">🗑️ הסר חסימה</button>
       <div style="display:flex;gap:7px;margin-right:auto">
-        <button class="btn bp" onclick="saveBlock()">💾 שמור</button>
+        <button class="btn bp" onclick="saveBlock()">💾 שמור חסימה</button>
         <button class="btn bs" onclick="CM('block-m')">ביטול</button>
       </div>
     </div>
@@ -805,7 +793,6 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div class="purch-stat" style="border-bottom-color:#1565c0"><div class="psn" style="color:#1565c0" id="ps-open">0</div><div class="psl">🟢 פעיל</div></div>
     <div class="purch-stat" style="border-bottom-color:#e65100"><div class="psn" style="color:#e65100" id="ps-issues">0</div><div class="psl">🟡 בביצוע</div></div>
   </div>
-  <div id="ps-vat-summary" style="font-size:.82rem;padding:7px 14px;background:#f1f8e9;border-radius:8px;margin:0 0 10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center"></div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <b style="color:#2e7d32;font-size:.9rem">📄 חשבוניות אחרונות</b>
@@ -1111,16 +1098,11 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <!-- Postpone -->
 <div id="postm" class="modal">
   <div class="mb" style="max-width:480px">
-    <h2 id="postm-title">🔀 שינוי שיבוץ / דחייה</h2>
+    <h2>⏩ דחיית פעילות</h2>
     <div id="post-ev-info" style="background:#f5f7ff;border-radius:7px;padding:8px 11px;font-size:.8rem;margin-bottom:10px"></div>
-    <!-- Mode toggle -->
-    <div style="display:flex;gap:6px;margin-bottom:12px">
-      <button id="postm-mode-move" class="vbtn active" onclick="setPostMode('move')" style="flex:1">🔀 הזזה לתאריך אחר</button>
-      <button id="postm-mode-defer" class="vbtn" onclick="setPostMode('defer')" style="flex:1">⏩ דחייה</button>
-    </div>
     <!-- Free days suggestion -->
     <div id="post-free-wrap" style="display:none;margin-bottom:11px">
-      <div style="font-size:.78rem;font-weight:700;color:#2e7d32;margin-bottom:5px">📅 ימים פנויים לצהרון זה:</div>
+      <div style="font-size:.78rem;font-weight:700;color:#2e7d32;margin-bottom:5px">📅 ימים פנויים בשבוע הבא לצהרון זה:</div>
       <div id="post-free-days" style="display:flex;gap:5px;flex-wrap:wrap"></div>
     </div>
     <div class="fg" style="margin-bottom:9px"><label>תאריך חדש *</label>
@@ -1139,9 +1121,8 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         </select>
       </div>
     </div>
-    <div class="fg" style="margin-bottom:9px">
-      <label id="post-reason-lbl">סיבת ההזזה (אופציונלי)</label>
-      <input type="text" id="post-reason" placeholder="לדוג': שינוי תאריך טיול..." style="width:100%">
+    <div class="fg" style="margin-bottom:9px"><label>סיבת הדחייה</label>
+      <input type="text" id="post-reason" placeholder="מדוע נדחתה..." style="width:100%">
     </div>
     <div id="post-conflict-warn" style="display:none;background:#fff3cd;border-radius:6px;padding:6px 10px;font-size:.76rem;color:#856404;margin-bottom:9px">
       ⚠️ לצהרון זה כבר קיימת פעילות בתאריך שנבחר!
@@ -1149,11 +1130,11 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div id="post-pair-wrap" style="display:none;background:#fff3e0;border-radius:6px;padding:7px 10px;margin-bottom:9px;font-size:.78rem">
       <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-weight:700;color:#e65100">
         <input type="checkbox" id="post-pair-chk" style="accent-color:#e65100">
-        🔗 גם להזיז את הצהרון בן הזוג (<span id="post-pair-name"></span>)
+        🔗 גם לדחות את הצהרון בן הזוג (<span id="post-pair-name"></span>)
       </label>
     </div>
     <div style="display:flex;gap:7px;justify-content:flex-end">
-      <button class="btn borange" id="postm-save-btn" onclick="doPostpone()">🔀 הזז</button>
+      <button class="btn borange" onclick="doPostpone()">⏩ דחה</button>
       <button class="btn bs" onclick="CM('postm')">ביטול</button>
     </div>
   </div>
@@ -1774,11 +1755,12 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <button type="button" class="inv-file-open-btn" id="inv-file-open-order" style="display:none" onclick="invOpenFileFromModal('order')">🔗 פתח קובץ</button>
           <button type="button" class="inv-file-open-btn" id="inv-file-del-order" style="display:none;color:#e53935" onclick="invClearFile('order')">🗑️ הסר</button>
         </div>
-        <div id="inv-path-row-order" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
-          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">📁 נתיב:</span>
-          <input type="text" id="inv-path-order" placeholder="הדבק נתיב קובץ..."
-            style="flex:1;min-width:200px;font-size:.72rem;border-radius:5px;border:1px solid #b0bec5;padding:3px 7px"
+        <div id="inv-path-row-order" style="display:none;gap:5px;flex-wrap:wrap;align-items:center;background:#f9fbe7;border-radius:6px;padding:6px 9px;margin-top:4px">
+          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">🔗 קישור:</span>
+          <input type="text" id="inv-path-order" placeholder="הדבק קישור OneDrive / SharePoint (שתף → העתק קישור)..."
+            style="flex:1;min-width:180px;font-size:.72rem;border-radius:5px;border:1.5px solid #c5cae9;padding:4px 8px;direction:ltr;text-align:left"
             oninput="invPathChange('order')">
+          <button type="button" id="inv-path-open-order" style="display:none;background:#0078d4;color:#fff;border:none;border-radius:5px;padding:4px 10px;font-size:.7rem;cursor:pointer;white-space:nowrap" onclick="invOpenFileFromModal('order')">🔗 פתח</button>
         </div>
       </div>
       <!-- Location info -->
@@ -1826,11 +1808,12 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <button type="button" class="inv-file-open-btn" id="inv-file-open-tx" style="display:none" onclick="invOpenFileFromModal('tx')">🔗 פתח קובץ</button>
           <button type="button" class="inv-file-open-btn" id="inv-file-del-tx" style="display:none;color:#e53935" onclick="invClearFile('tx')">🗑️ הסר</button>
         </div>
-        <div id="inv-path-row-tx" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
-          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">📁 נתיב:</span>
-          <input type="text" id="inv-path-tx" placeholder="הדבק נתיב קובץ..."
-            style="flex:1;min-width:200px;font-size:.72rem;border-radius:5px;border:1px solid #b0bec5;padding:3px 7px"
+        <div id="inv-path-row-tx" style="display:none;gap:5px;flex-wrap:wrap;align-items:center;background:#f9fbe7;border-radius:6px;padding:6px 9px;margin-top:4px">
+          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">🔗 קישור:</span>
+          <input type="text" id="inv-path-tx" placeholder="הדבק קישור OneDrive / SharePoint (שתף → העתק קישור)..."
+            style="flex:1;min-width:180px;font-size:.72rem;border-radius:5px;border:1.5px solid #c5cae9;padding:4px 8px;direction:ltr;text-align:left"
             oninput="invPathChange('tx')">
+          <button type="button" id="inv-path-open-tx" style="display:none;background:#0078d4;color:#fff;border:none;border-radius:5px;padding:4px 10px;font-size:.7rem;cursor:pointer;white-space:nowrap" onclick="invOpenFileFromModal('tx')">🔗 פתח</button>
         </div>
       </div>
     </div>
@@ -1865,11 +1848,12 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <button type="button" class="inv-file-open-btn" id="inv-file-open-tax" style="display:none" onclick="invOpenFileFromModal('tax')">🔗 פתח קובץ</button>
           <button type="button" class="inv-file-open-btn" id="inv-file-del-tax" style="display:none;color:#e53935" onclick="invClearFile('tax')">🗑️ הסר</button>
         </div>
-        <div id="inv-path-row-tax" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
-          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">📁 נתיב:</span>
-          <input type="text" id="inv-path-tax" placeholder="הדבק נתיב קובץ..."
-            style="flex:1;min-width:200px;font-size:.72rem;border-radius:5px;border:1px solid #b0bec5;padding:3px 7px"
+        <div id="inv-path-row-tax" style="display:none;gap:5px;flex-wrap:wrap;align-items:center;background:#f9fbe7;border-radius:6px;padding:6px 9px;margin-top:4px">
+          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">🔗 קישור:</span>
+          <input type="text" id="inv-path-tax" placeholder="הדבק קישור OneDrive / SharePoint (שתף → העתק קישור)..."
+            style="flex:1;min-width:180px;font-size:.72rem;border-radius:5px;border:1.5px solid #c5cae9;padding:4px 8px;direction:ltr;text-align:left"
             oninput="invPathChange('tax')">
+          <button type="button" id="inv-path-open-tax" style="display:none;background:#0078d4;color:#fff;border:none;border-radius:5px;padding:4px 10px;font-size:.7rem;cursor:pointer;white-space:nowrap" onclick="invOpenFileFromModal('tax')">🔗 פתח</button>
         </div>
       </div>
     </div>
