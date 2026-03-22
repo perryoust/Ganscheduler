@@ -299,6 +299,14 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <button id="cal-tab-s" class="vbtn" onclick="setCalTab('s')">🏛️ בתי ספר</button>
         </div>
         <!-- Range date pickers — shown only in range view -->
+        <!-- List sub-view controls — shown only in list mode -->
+        <div id="cal-list-row" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
+          <div style="display:flex;gap:3px;align-items:center">
+            <button id="vlb-day" class="vbtn active" onclick="setListSubView('day')">📅 יומי</button>
+            <button id="vlb-week" class="vbtn" onclick="setListSubView('week')">שבועי</button>
+            <button id="vlb-month" class="vbtn" onclick="setListSubView('month')">חודשי</button>
+          </div>
+        </div>
         <div id="cal-range-row" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
           <div class="fg"><label>מ</label><input type="date" id="cal-range-from" onchange="renderCal()" style="min-width:130px"></div>
           <div class="fg"><label>עד</label><input type="date" id="cal-range-to" onchange="renderCal()" style="min-width:130px"></div>
@@ -827,7 +835,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="card" style="margin-bottom:11px">
     <div class="row" style="flex-wrap:wrap;gap:6px">
       <div class="fg"><label>חיפוש</label>
-        <input type="text" id="pi-srch" placeholder="ספק / מס' מסמך / פירוט..." oninput="renderInvoices()" style="min-width:220px">
+        <input type="text" id="pi-srch" list="pi-sup-list" placeholder="ספק / מס' מסמך / פירוט..." oninput="renderInvoices()" style="min-width:220px">
         <datalist id="pi-sup-list"></datalist>
       </div>
       <div class="fg"><label>סטטוס</label>

@@ -1164,7 +1164,8 @@ async function saveInvoice(){
     }
   }
   // Warn if order number filled but no file attached (30)
-  if(orderNum && !fileMeta.file_order && !confirm('⚠️ לא צורף קובץ הזמנה. לשמור בכל זאת?')) return;
+  // Warn about missing file only for numeric order numbers (letters = internal codes, no file needed)
+  if(orderNum && /^\d+$/.test(orderNum) && !fileMeta.file_order && !confirm('⚠️ לא צורף קובץ הזמנה. לשמור בכל זאת?')) return;
 
   const status = document.getElementById('inv-status')?.value||'order';
   const inv = {
@@ -1286,6 +1287,12 @@ function getSupName(supRef){
 function renderInvoices(){
   const tbody = document.getElementById('pi-tbody');
   if(!tbody) return;
+  // Populate supplier autocomplete datalist
+  const dl = document.getElementById('pi-sup-list');
+  if(dl){
+    const supNames=[...new Set(INVOICES.map(i=>i.supName||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+    dl.innerHTML=supNames.map(n=>`<option value="${n}">`).join('');
+  }
   const srch = (document.getElementById('pi-srch')?.value||'').toLowerCase();
   const stf  = document.getElementById('pi-status')?.value||'';
   const supf = ''; // merged into srch
@@ -1413,38 +1420,46 @@ function refreshPurchDash(){
       `<span style="margin:0 10px;color:#c5cae9">|</span>`+
       `<span style="color:#2e7d32">כולל מע"מ: <b style="font-size:.9rem">₪${sumTotal.toLocaleString('he-IL',{maximumFractionDigits:0})}</b></span>`;
   } else if(vatSumEl){ vatSumEl.innerHTML=''; }
-  const rec = [...invs].filter(i=>_migrateInvStatus(i.status)!=='cancelled').sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,5);
+  // Dashboard: show only active statuses (הזמנה + חשבונית עסקה) by default, up to 10
+  const ACTIVE_ST = new Set(['order','tx_invoice']);
+  const rec = [...invs]
+    .filter(i=>ACTIVE_ST.has(_migrateInvStatus(i.status)))
+    .sort((a,b)=>(b.ts||0)-(a.ts||0))
+    .slice(0,10);
   const el = document.getElementById('pdash-recent-invoices');
   if(!el) return;
-  if(!rec.length){ el.innerHTML='<div style="color:#aaa;font-size:.8rem;text-align:center;padding:20px">אין חשבוניות עדיין</div>'; return; }
-  const stageDot = stRaw=>{
-    const st = (typeof _migrateInvStatus==='function') ? _migrateInvStatus(stRaw) : stRaw;
-    const m={order:'📋',tx_invoice:'🧾',tax_invoice:'📑',tax_receipt:'📑🧾',receipt:'📄',cancelled:'❌'};
-    const l={order:'הזמנה',tx_invoice:'חשבונית עסקה',tax_invoice:'חשבונית מס',tax_receipt:'חשבונית מס קבלה',receipt:'קבלה',cancelled:'מבוטל'};
-    return `<span style="font-size:.72rem">${m[st]||'⚪'} ${l[st]||st}</span>`;
+  if(!rec.length){ el.innerHTML='<div style="color:#aaa;font-size:.8rem;text-align:center;padding:20px">אין הזמנות או חשבוניות עסקה פתוחות</div>'; return; }
+  const fmtAmt2=(base,total,vat)=>{
+    if(!base&&!total) return '—';
+    if(vat===0) return `<span style="color:#2e7d32">₪${base.toLocaleString()}</span> <span style="font-size:.62rem;color:#888">(פטור)</span>`;
+    const t=total||base;
+    return `<span style="color:#546e7a;font-size:.73rem">₪${base.toLocaleString()}</span><b style="color:#2e7d32"> = ₪${t.toLocaleString()}</b>`;
   };
-  el.innerHTML = `<table style="width:100%;font-size:.8rem;border-collapse:collapse">
-    <thead><tr style="background:#e8f5e9">
-      <th style="padding:5px 8px;text-align:right">מס' הזמנה</th>
+  const stLabel={order:'📋 הזמנה',tx_invoice:'🧾 חשבונית עסקה'};
+  el.innerHTML=`<table style="width:100%;font-size:.78rem;border-collapse:collapse">
+    <thead><tr style="background:#e8f5e9;position:sticky;top:0">
       <th style="padding:5px 8px;text-align:right">ספק</th>
-      <th style="padding:5px 8px;text-align:right">תאריך הזמנה</th>
-      <th style="padding:5px 8px;text-align:left">סה"כ</th>
+      <th style="padding:5px 8px;text-align:right">מסמכים</th>
+      <th style="padding:5px 8px;text-align:right">פירוט</th>
+      <th style="padding:5px 8px;text-align:left">סכומים</th>
       <th style="padding:5px 8px">סטטוס</th>
+      <th style="padding:5px 8px;text-align:right">הערות</th>
     </tr></thead>
-    <tbody>${rec.map(i=>`<tr onclick="openNewInvoice(${i.id})" class="inv-row-clickable">
-      <td style="padding:5px 8px"><b>${i.orderNum||i.num||'—'}</b></td>
-      <td style="padding:5px 8px">${i.supName||''}</td>
-      <td style="padding:5px 8px">${i.orderDate||i.date||''}</td>
-      <td style="padding:5px 8px;font-weight:700;color:#2e7d32">${(()=>{
-        const total = i.orderTotal||i.total||0;
-        const base  = i.orderAmt||i.amt||0;
-        const invVat = i.vat||0;
-        if(!total && !base) return '';
-        if(invVat===0) return `₪${base.toLocaleString('he-IL',{minimumFractionDigits:2,maximumFractionDigits:2})} <span style="font-size:.65rem;color:#2e7d32">(פטור)</span>`;
-        return `₪${total.toLocaleString('he-IL',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-      })()}</td>
-      <td style="padding:5px 8px">${stageDot(i.status||'order')}</td>
-    </tr>`).join('')}</tbody>
+    <tbody>${rec.map(i=>{
+      const st=_migrateInvStatus(i.status);
+      const docs=[i.orderNum?'📋 '+i.orderNum:'',i.txNum?'🧾 '+i.txNum:'',i.num?'📑 '+i.num:''].filter(Boolean).join('<br>');
+      const base=i.orderAmt||i.txAmt||i.amt||0;
+      const total=i.orderTotal||i.txTotal||i.total||0;
+      const dateStr=i.orderDate||i.txDate||i.date||'';
+      return '<tr onclick="openNewInvoice('+i.id+')" class="inv-row-clickable" style="border-bottom:1px solid #f0f4f8">'+
+        '<td style="padding:5px 8px;font-weight:700;color:#1a237e">'+i.supName+'<br><span style="font-weight:400;color:#888;font-size:.7rem">'+dateStr+'</span></td>'+
+        '<td style="padding:5px 8px;font-size:.72rem">'+( docs||'—')+'</td>'+
+        '<td style="padding:5px 8px;max-width:130px;font-size:.72rem;color:#444">'+(i.orderDesc||'').slice(0,35)+'</td>'+
+        '<td style="padding:5px 8px;white-space:nowrap">'+fmtAmt2(base,total,i.vat||0)+'</td>'+
+        '<td style="padding:5px 8px"><span style="font-size:.72rem">'+(stLabel[st]||st)+'</span></td>'+
+        '<td style="padding:5px 8px;font-size:.7rem;color:#666;max-width:110px">'+(i.notes||'').slice(0,25)+'</td>'+
+        '</tr>';
+    }).join('')}</tbody>
   </table>`;
 }
 
@@ -2225,6 +2240,14 @@ function filterE(f,from,to){
   return [...all,...posted];
 }
 let _rangeSubView = 'cal'; // 'cal' | 'list'
+let _listSubView='week'; // 'day'|'week'|'month' — sub-view when calV==='list'
+
+function setListSubView(v){
+  _listSubView=v;
+  ['day','week','month'].forEach(x=>document.getElementById('vlb-'+x)?.classList.toggle('active',x===v));
+  renderCal();
+}
+
 function setRangeSubView(v){
   _rangeSubView = v;
   document.getElementById('vb-range-cal')?.classList.toggle('active', v==='cal');
@@ -2234,24 +2257,29 @@ function setRangeSubView(v){
 
 function setView(v){
   calV=v;
-  _rangeSubView='cal'; // reset sub-view when switching to range
+  _rangeSubView='cal';
   ['day','week','month','list','range'].forEach(x=>{
     const el=document.getElementById('vb-'+x);
     if(el) el.classList.toggle('active',x===v);
   });
-  // Show/hide nav buttons and range pickers
-  const rangeRow=document.getElementById('cal-range-row');
-  const navBtns=document.querySelectorAll('[onclick="navCal(-1)"],[onclick="navCal(1)"]');
+  const rangeRow = document.getElementById('cal-range-row');
+  const listRow  = document.getElementById('cal-list-row');
+  const navBtns  = document.querySelectorAll('[onclick="navCal(-1)"],[onclick="navCal(1)"]');
   if(v==='range'){
     if(rangeRow) rangeRow.style.display='flex';
+    if(listRow)  listRow.style.display='none';
     navBtns.forEach(b=>b.style.display='none');
-    // Init range to current week if empty
     const f=document.getElementById('cal-range-from');
     const t=document.getElementById('cal-range-to');
     if(f&&!f.value) f.value=d2s(monStart(calD));
     if(t&&!t.value) t.value=d2s(addD(monStart(calD),6));
+  } else if(v==='list'){
+    if(rangeRow) rangeRow.style.display='none';
+    if(listRow)  listRow.style.display='flex';
+    navBtns.forEach(b=>b.style.display='');
   } else {
     if(rangeRow) rangeRow.style.display='none';
+    if(listRow)  listRow.style.display='none';
     navBtns.forEach(b=>b.style.display='');
   }
   renderCal();
@@ -2259,6 +2287,12 @@ function setView(v){
 function navCal(d){
   if(calV==='day') calD=addD(calD,d);
   else if(calV==='week') calD=addD(calD,d*7);
+  else if(calV==='list'){
+    const lsv=_listSubView||'week';
+    if(lsv==='day') calD=addD(calD,d);
+    else if(lsv==='week') calD=addD(calD,d*7);
+    else calD=addM(calD,d);
+  }
   else calD=addM(calD,d);
   renderCal();
 }
@@ -2358,10 +2392,23 @@ function renderCal(){
     const evs=filterE(f,fromD,toD);
     html=(_rangeSubView==='list') ? renderRangeListView(evs,fromD,toD) : renderRangeView(evs,fromD,toD,f,displayGids);
   } else if(calV==='list'){
-    const y=calD.getFullYear(),m=calD.getMonth();
-    (document.getElementById('cal-title')||{}).textContent ='📋 רשימה — '+hebM(calD);
-    const evs=filterE(f,d2s(new Date(y,m,1)),d2s(new Date(y,m+1,0)));
-    html=renderCalList(evs,calD);
+    let fromDs, toDs, titleStr;
+    const lsv = _listSubView||'week';
+    if(lsv==='day'){
+      fromDs=toDs=d2s(calD);
+      titleStr='📋 רשימה — '+fD(fromDs)+' '+dayN(fromDs);
+    } else if(lsv==='week'){
+      const mon=monStart(calD);
+      fromDs=d2s(mon); toDs=d2s(addD(mon,6));
+      titleStr='📋 רשימה — שבוע '+fD(fromDs)+' – '+fD(toDs);
+    } else { // month
+      const y2=calD.getFullYear(),m2=calD.getMonth();
+      fromDs=d2s(new Date(y2,m2,1)); toDs=d2s(new Date(y2,m2+1,0));
+      titleStr='📋 רשימה — '+hebM(calD);
+    }
+    (document.getElementById('cal-title')||{}).textContent=titleStr;
+    const evs=filterE(f,fromDs,toDs);
+    html=renderRangeListView(evs,fromDs,toDs);
   } else {
     const y=calD.getFullYear(),m=calD.getMonth();
     (document.getElementById('cal-title')||{}).textContent =hebM(calD);
@@ -5101,6 +5148,7 @@ function saveHoliday(){
     if(removed>0) showToast(`⚠️ בוטלו ${removed} פעילויות קבועות בגלל החופשה`);
   }
   save();CM('holm');refresh();
+  showToast(`✅ חופשה "${name}" נשמרה (${fD(from)} – ${fD(to)})`);
 }
 function deleteHoliday(id){
   if(!confirm('למחוק?')) return;
