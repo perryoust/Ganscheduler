@@ -1616,7 +1616,59 @@ function _applyYearData(o){
     pairs=pairs.filter(p=>p.ids.length>=2);
   } else { initPairs(); }
   supEx = o.supEx||{};
-  if(Array.isArray(o.invoices)) INVOICES=o.invoices;
+  if(Array.isArray(o.invoices)){
+    INVOICES=o.invoices;
+    // ── Migrate invoices with double-VAT bug ──
+    // Symptom: ordVatMode missing AND orderTotal ≈ orderAmt * (1 + vat/100)
+    // This means the user entered the VAT-inclusive amount in 'ex' mode,
+    // so orderTotal = entered_amount * 1.18 (double VAT).
+    // Fix: set ordVatMode='inc', recalculate orderAmt (base) and orderTotal (= entered).
+    INVOICES.forEach(inv=>{
+      if(inv.ordVatMode) return; // already has mode — skip
+      const vat = inv.vat||18;
+      if(vat===0) return; // exempt — skip
+      // Check order section
+      if(inv.orderAmt && inv.orderTotal){
+        const expectedTotal = +(inv.orderAmt*(1+vat/100)).toFixed(2);
+        if(Math.abs(inv.orderTotal - expectedTotal) < 0.05){
+          // orderAmt was entered as inclusive amount, orderTotal is wrong
+          const rawInc = inv.orderAmt; // what user entered (includes VAT)
+          inv.orderAmt   = +(rawInc/(1+vat/100)).toFixed(2);
+          inv.orderVat   = +(inv.orderAmt*vat/100).toFixed(2);
+          inv.orderTotal = rawInc; // the correct total IS what user entered
+          inv.ordVatMode = 'inc';
+        } else {
+          inv.ordVatMode = 'ex'; // amounts look correct, just stamp the mode
+        }
+      }
+      // Same for tx section
+      if(inv.txAmt && inv.txTotal && !inv.txVatMode){
+        const expTx = +(inv.txAmt*(1+vat/100)).toFixed(2);
+        if(Math.abs(inv.txTotal - expTx) < 0.05){
+          const rawTx = inv.txAmt;
+          inv.txAmt   = +(rawTx/(1+vat/100)).toFixed(2);
+          inv.txVat   = +(inv.txAmt*vat/100).toFixed(2);
+          inv.txTotal = rawTx;
+          inv.txVatMode = 'inc';
+        } else {
+          inv.txVatMode = 'ex';
+        }
+      }
+      // Same for tax/receipt section
+      if(inv.amt && inv.total && !inv.invVatMode){
+        const expAmt = +(inv.amt*(1+vat/100)).toFixed(2);
+        if(Math.abs(inv.total - expAmt) < 0.05){
+          const rawAmt = inv.amt;
+          inv.amt      = +(rawAmt/(1+vat/100)).toFixed(2);
+          inv.vatAmt   = +(inv.amt*vat/100).toFixed(2);
+          inv.total    = rawAmt;
+          inv.invVatMode = 'inc';
+        } else {
+          inv.invVatMode = 'ex';
+        }
+      }
+    });
+  }
   if(typeof o.vatRate==='number') VAT_RATE=o.vatRate;
   clusters=o.clusters&&Object.keys(o.clusters).length?o.clusters:JSON.parse(JSON.stringify(INIT_CLUSTERS));
   holidays=o.holidays||[];
@@ -2088,9 +2140,13 @@ function navSearchClose(){
 
 function ST(t){
   currentTab=t;
-  const actTabs=document.querySelectorAll('#tabs-act .tab');
-  TABS.forEach((x,i)=>{
-    if(actTabs[i]) actTabs[i].classList.toggle('active',x===t);
+  // Find the correct tab button by matching onclick attribute — not by index
+  // (TABS array has hidden tabs like 'pairs','clusters','managers' that have no button)
+  document.querySelectorAll('#tabs-act .tab').forEach(btn=>{
+    const fn = btn.getAttribute('onclick')||'';
+    btn.classList.toggle('active', fn.includes(`'${t}'`) || fn.includes(`"${t}"`));
+  });
+  TABS.forEach(x=>{
     const panelEl=document.getElementById('p-'+x);
     if(panelEl){
       panelEl.classList.toggle('active',x===t);
