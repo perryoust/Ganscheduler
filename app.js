@@ -1080,7 +1080,7 @@ function saveVatRate(){
   document.getElementById('inv-vat').value = v;
   onVatChange();
   save();
-  showNotice('✅ שיעור מע"מ עודכן ל-'+v+'%');
+  showToast('✅ שיעור מע"מ עודכן ל-'+v+'%');
   document.getElementById('vat-settings-row').style.display='none';
 }
 
@@ -1214,7 +1214,7 @@ async function saveInvoice(){
   try { await invSaveFiles(invId); } catch(e){ showToast('⚠️ שגיאה בשמירת קובץ: '+e.message); }
   CM('invoice-m');
   renderInvoices(); refreshPurchDash();
-  showNotice('✅ מסמך נשמר בהצלחה');
+  showToast('✅ מסמך נשמר בהצלחה');
 }
 
 // ── Create supplier cards for all existing invoices (run once) ──
