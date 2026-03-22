@@ -271,7 +271,7 @@ let _lastVisibilitySync = 0;
 document.addEventListener('visibilitychange', async ()=>{
   if(document.visibilityState !== 'visible') return;
   const now = Date.now();
-  if(now - _lastVisibilitySync < 10000) return; // throttle: min 10s
+  if(now - _lastVisibilitySync < 5000) return; // throttle 5s
   _lastVisibilitySync = now;
   if(!window._fbUser) return;
   try{
@@ -281,11 +281,27 @@ document.addEventListener('visibilitychange', async ()=>{
     if(!r.ok) return;
     const d = await r.json();
     const cloudTs = d && d.ts ? d.ts : 0;
-    if(cloudTs > _fbLastSaveTs && cloudTs > 0){
+    // Always apply if cloud data exists and is newer OR if we've been away > 30s
+    const awayTime = now - _lastVisibilitySync;
+    if(cloudTs > 0 && (cloudTs > _fbLastSaveTs || awayTime > 30000)){
       _applyRemoteData(d.data||d, cloudTs);
+      _setFbLoadTs(now);
       showToast('🔄 נתונים עודכנו');
+    } else {
+      _fbUpdateStatus(); // just refresh the timestamp display
     }
   } catch(e){ console.warn('Visibility sync error:', e.message); }
+});
+
+// iOS Safari: pageshow fires when returning from bfcache (back/forward)
+window.addEventListener('pageshow', async (e)=>{
+  if(!e.persisted) return; // only for bfcache restore
+  if(!window._fbUser) return;
+  _lastVisibilitySync = 0; // force sync
+  try{
+    await loadFromFirebase(true, true);
+    showToast('🔄 נתונים עודכנו');
+  } catch(ex){}
 });
 
 // ── Online: sync when network reconnects ──
@@ -9118,3 +9134,22 @@ function togglePiFlt(){
     else { if(!body.classList.contains('open')) body.style.display=''; if(arrow) arrow.style.display=''; }
   });
 })();
+
+// Mobile: tap Firebase button = immediate sync + show modal
+async function mobileQuickSync(){
+  if(window.innerWidth <= 768){
+    // Mobile: sync immediately on tap
+    const btn = document.getElementById('od-btn');
+    if(btn){ btn.textContent='🔄 מסנכרן...'; btn.style.background='#e65100'; }
+    try{
+      await loadFromFirebase(true, true);
+      await saveToFirebase(true);
+      showToast('✅ סונכרן עם Firebase');
+    } catch(e){
+      showToast('⚠️ שגיאת סנכרון: '+e.message);
+    }
+    _fbUpdateStatus();
+  } else {
+    odToggle();
+  }
+}
