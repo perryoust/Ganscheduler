@@ -224,6 +224,8 @@ async function saveToFirebase(silent) {
       _setFbSaveTs(nowTs);
       _safeLS.setItem('ganv5_local_ts', String(nowTs));
       if (!silent) showToast('✅ סונכרן ל-Firebase ' + _fmtTs(nowTs));
+      // Trigger daily backup (async, non-blocking)
+      _runDailyBackupIfNeeded(JSON.parse(raw), _saveTok).catch(()=>{});
       return true;
     }
     if (r.status === 401 || r.status === 403) {
@@ -648,7 +650,8 @@ function _showLocalPathHelp(p, invId, section, meta, pathType){
       <div style="background:#f5f5f5;border-radius:6px;padding:8px 10px;font-size:.7rem;font-family:monospace;direction:ltr;text-align:left;word-break:break-all;margin-bottom:14px;color:#555">${p}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
         <button onclick="_removeOverlay('localhelp-overlay')" class="btn bs bsm">סגור</button>
-        <button onclick="_copyToClipboard(${JSON.stringify(p)});_removeOverlay('localhelp-overlay')" class="btn bo bsm">📋 העתק נתיב</button>
+        <button onclick="_copyToClipboard(${JSON.stringify(p)});showToast('✅ נתיב הועתק');_removeOverlay('localhelp-overlay')" class="btn bo bsm">📋 העתק נתיב</button>
+        <button onclick="_tryOpenLocalFile(${JSON.stringify(p)})" class="btn bg bsm">📂 נסה לפתוח</button>
         <button onclick="_removeOverlay('localhelp-overlay');_showPathDialog(${invId},'${section}',${JSON.stringify(meta)})" class="btn bp bsm">🔗 עדכן קישור</button>
       </div>
     </div>`;
@@ -9338,4 +9341,118 @@ function setListGroupMode(v){
   document.getElementById('vlb-group-pairs')?.classList.toggle('active', v==='pairs');
   document.getElementById('vlb-group-clusters')?.classList.toggle('active', v==='clusters');
   renderCal();
+}
+
+function _tryOpenLocalFile(p){
+  // Try multiple methods to open a local path
+  // Method 1: file:// URL (works in some browsers with local file access)
+  const fileUrl = p.startsWith('\\\\') 
+    ? 'file:' + p.replace(/\\/g,'/') 
+    : p.replace(/\\/g,'/').replace(/^([A-Za-z]):/, 'file:///$1:');
+  
+  // Method 2: Try window.open with file://
+  const w = window.open(fileUrl, '_blank');
+  if(w){
+    setTimeout(()=>{
+      // If nothing happened (blocked), show instructions
+      showToast('📂 נסה לפתוח — אם לא נפתח, העתק את הנתיב ופתח ידנית');
+    }, 800);
+  } else {
+    // Popup blocked — copy path and instruct
+    _copyToClipboard(p);
+    showToast('📋 הנתיב הועתק — פתח סייר קבצים והדבק');
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// Daily Firebase Backup — saves to backups/YYYY-MM-DD
+// Max 30 days kept. Runs once per day after successful save.
+// ══════════════════════════════════════════════════════
+const BACKUP_DB_BASE = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/backups';
+const BACKUP_LAST_KEY = '_fbDailyBackupDate';
+
+async function _runDailyBackupIfNeeded(liveData, tok){
+  try{
+    const today = d2s(new Date());
+    const lastBackup = _safeLS.get(BACKUP_LAST_KEY)||'';
+    if(lastBackup === today) return; // already backed up today
+
+    const authQ = tok ? '?auth='+tok : '';
+
+    // 1. Write today's backup
+    const backupUrl = `${BACKUP_DB_BASE}/${today}.json${authQ}`;
+    const payload = { data: liveData, ts: Date.now(), version: '10.2' };
+    const r = await fetch(backupUrl, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if(!r.ok){ console.warn('Backup failed:', r.status); return; }
+
+    // 2. Mark done
+    _safeLS.setItem(BACKUP_LAST_KEY, today);
+    console.log('✅ Daily backup saved:', today);
+
+    // 3. Prune backups older than 30 days
+    const listR = await fetch(`${BACKUP_DB_BASE}.json?shallow=true${tok?'&auth='+tok:''}`);
+    if(listR.ok){
+      const keys = Object.keys(await listR.json()||{});
+      const cutoff = d2s(addD(new Date(), -30));
+      const toDelete = keys.filter(k=>k<cutoff);
+      for(const k of toDelete){
+        await fetch(`${BACKUP_DB_BASE}/${k}.json${authQ}`, {method:'DELETE'});
+        console.log('🗑️ Deleted old backup:', k);
+      }
+    }
+  } catch(e){ console.warn('Daily backup error:', e.message); }
+}
+
+async function loadCloudBackups(){
+  const el=document.getElementById('cloud-backup-list');
+  const btn=document.getElementById('cloud-backup-btn');
+  if(!el) return;
+  el.innerHTML='<span style="color:#999">טוען...</span>';
+  if(btn) btn.disabled=true;
+  try{
+    let tok=null;
+    if(window._fbUser) try{ tok=await window._fbUser.getIdToken(false); }catch(e){}
+    const authQ=tok?'?auth='+tok:'';
+    const r=await fetch(`${BACKUP_DB_BASE}.json?shallow=true${tok?'&auth='+tok:''}`);
+    if(!r.ok){ el.innerHTML='<span style="color:#c62828">שגיאה: '+r.status+'</span>'; return; }
+    const keys=Object.keys((await r.json())||{}).sort().reverse().slice(0,30);
+    if(!keys.length){ el.innerHTML='<span style="color:#999">אין גיבויים עדיין. גיבוי ראשון יישמר אוטומטית היום.</span>'; return; }
+    const today=d2s(new Date());
+    el.innerHTML='<div style="display:flex;flex-direction:column;gap:5px">'+
+      keys.map(k=>`<div style="background:${k===today?'#e8f5e9':'#f5f7ff'};border-radius:7px;padding:7px 11px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <span style="font-weight:700;font-size:.82rem">${fD(k)}</span>
+          ${k===today?'<span style="font-size:.68rem;background:#2e7d32;color:#fff;border-radius:8px;padding:1px 6px;margin-right:5px">היום</span>':''}
+        </div>
+        <button class="btn bp bsm" onclick="restoreCloudBackup('${k}')">🔄 שחזר</button>
+      </div>`).join('')+'</div>';
+  } catch(e){ el.innerHTML='<span style="color:#c62828">שגיאה: '+e.message+'</span>'; }
+  if(btn) btn.disabled=false;
+}
+
+async function restoreCloudBackup(dateKey){
+  if(!confirm(`לשחזר גיבוי מ-${fD(dateKey)}?\nהנתונים הנוכחיים יישמרו תחילה כ-snapshot מקומי.`)) return;
+  const el=document.getElementById('cloud-backup-list');
+  if(el) el.innerHTML='<span style="color:#e65100">משחזר...</span>';
+  try{
+    let tok=null;
+    if(window._fbUser) try{ tok=await window._fbUser.getIdToken(false); }catch(e){}
+    const authQ=tok?'?auth='+tok:'';
+    const r=await fetch(`${BACKUP_DB_BASE}/${dateKey}.json${authQ}`);
+    if(!r.ok){ showToast('❌ שגיאה בטעינת גיבוי: '+r.status); return; }
+    const backup=await r.json();
+    const appData=backup.data||backup;
+    if(!appData||!appData.ch){ showToast('❌ גיבוי פגום'); return; }
+    // Save current as local snapshot first
+    createSnapshot('לפני שחזור מענן');
+    // Apply the backup data
+    _applyYearData(appData);
+    save(true);
+    showToast('✅ שוחזר מגיבוי '+fD(dateKey)+' — שומר...');
+    setTimeout(()=>{ refresh(); CM('backupm'); }, 1500);
+  } catch(e){ showToast('❌ שגיאת שחזור: '+e.message); }
 }
