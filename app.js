@@ -22,6 +22,7 @@ const _safeLS = {
 let _fbLastSaveTs = parseInt(_safeLS.get('_fbLastSaveTs')||'0');
 let _fbLastLoadTs = parseInt(_safeLS.get('_fbLastLoadTs')||'0');
 
+let _fbLastOwnSaveTs = 0; // timestamp of OUR last successful save (not from load)
 function _setFbSaveTs(ts){ _fbLastSaveTs=ts; _safeLS.setItem('_fbLastSaveTs',String(ts)); _fbUpdateStatus(); }
 function _setFbLoadTs(ts){ _fbLastLoadTs=ts; _safeLS.setItem('_fbLastLoadTs',String(ts)); _fbUpdateStatus(); }
 let _fbPollTimer = null;
@@ -241,6 +242,7 @@ async function saveToFirebase(silent) {
       _setFbSaveTs(nowTs);
       _safeLS.setItem('ganv5_local_ts', String(nowTs));
       _fbLastError = null;
+      _fbLastOwnSaveTs = nowTs; // track our own saves
       // Show save indicator (small flash)
       const _bi=document.getElementById('backup-ind');
       if(_bi){_bi.textContent='☁️ נשמר';_bi.classList.add('show');clearTimeout(_bi._to);_bi._to=setTimeout(()=>_bi.classList.remove('show'),1500);}
@@ -378,7 +380,7 @@ const FB_HEARTBEAT_MS = 120000; // 2 minutes
 setInterval(async ()=>{
   if(!window._fbUser) return; // not logged in
   if(_fbSyncing) return; // already saving
-  const age = Date.now() - (_fbLastSaveTs||0);
+  const age = Date.now() - (_fbLastOwnSaveTs||_fbLastSaveTs||0);
   if(age > FB_HEARTBEAT_MS){
     console.log('Heartbeat: saving (age='+Math.round(age/1000)+'s)');
     try{
@@ -2163,7 +2165,7 @@ function initDrops(){
   if(calClsInit) calClsInit.value='גנים';
 }
 
-const TABS=['dash','cal','sched','gardens','pairs','holidays','clusters','sup','managers'];
+const TABS=['dash','cal','sched','gardens','pairs','holidays','clusters','sup','managers','admin'];
 let currentTab='dash';
 
 // ─── GLOBAL NAVIGATION SEARCH ────────────────────────────────────────────────
@@ -9601,7 +9603,14 @@ function _isAdmin(){ return window._fbUser?.uid === ADMIN_UID; }
 // Show users button only for admin
 function _initUsersUI(){
   const btn = document.getElementById('users-mgmt-btn');
-  if(btn) btn.style.display = _isAdmin() ? '' : 'none';
+  if(btn) btn.style.display = _isAdmin() ? 'inline-flex' : 'none';
+  const hBtn = document.getElementById('users-hdr-btn');
+  if(hBtn) hBtn.style.display = _isAdmin() ? '' : 'none';
+  // Show admin tab only for admin
+  const adminTab = document.getElementById('tab-admin');
+  if(adminTab) adminTab.style.display = _isAdmin() ? '' : 'none';
+  // Load users list when admin panel is active
+  if(_isAdmin() && typeof loadUsersList==='function') setTimeout(loadUsersList, 500);
 }
 
 async function openUsersModal(){
@@ -9720,7 +9729,8 @@ async function deleteUser(uid, name){
 
 // Also save admin profile on first load if not exists
 async function _ensureAdminProfile(){
-  if(!_isAdmin()) return;
+  if(!_isAdmin()){ _initUsersUI(); return; }
+  _initUsersUI(); // show button immediately
   try{
     const q=await _authQ();
     const r=await fetch(`${USERS_DB}/${ADMIN_UID}.json${q}`);
