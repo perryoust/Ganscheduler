@@ -3398,17 +3398,82 @@ function renderRangeListView(evs, fromDs, toDs){
           🏙️ ${city} · ${cityEvs.length}
         </div>`;
 
-      // ── Clusters for this date/city ──
-      const dayClusters=(typeof getClusters==='function'?getClusters():[]).filter(cl=>{
-        return (cl.city===city||!cl.city) && (cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===parseInt(gid)));
-      });
-      const clusteredGids=new Set();
-      if(dayClusters.length){
+      // ── Group mode: pairs first OR clusters first based on _listGroupMode ──
+      const _gmode = typeof _listGroupMode!=='undefined' ? _listGroupMode : 'pairs';
+
+      // Step 1: determine first-priority group
+      const firstUsedGids=new Set();
+
+      if(_gmode==='clusters'){
+        // Clusters first
+        const dayClusters=(typeof getClusters==='function'?getClusters():[]).filter(cl=>
+          (cl.city===city||!cl.city)&&(cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===parseInt(gid))));
+        const clusteredGids=new Set();
         dayClusters.forEach(cl=>{
           const clEvs=cityEvs.filter(s=>(cl.gardenIds||[]).map(x=>parseInt(x)).includes(s.g))
             .sort((a,b)=>(G(a.g).name||'').localeCompare(G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
           if(!clEvs.length) return;
-          clEvs.forEach(s=>clusteredGids.add(s.g));
+          clEvs.forEach(s=>{clusteredGids.add(s.g);firstUsedGids.add(s.g);});
+          const clGids=clEvs.map(s=>s.g);
+          h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
+            <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
+              <span>🏘️ ${cl.name}</span>
+              <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
+            </div>`;
+          clEvs.forEach(s=>{ h+=_listRow(s,clr); });
+          h+=`</div>`;
+        });
+        // Pairs second (only non-clustered)
+        const pairedGids=new Set();
+        const pairGroups=[];
+        pairs.forEach(pair=>{
+          if(typeof isPairBroken==='function'&&isPairBroken(pair.id,ds)) return;
+          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!firstUsedGids.has(s.g));
+          if(!pairEvs.length) return;
+          pairEvs.forEach(s=>{pairedGids.add(s.g);firstUsedGids.add(s.g);});
+          pairGroups.push({pair,pairEvs});
+        });
+        pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he'));
+        pairGroups.forEach(({pair,pairEvs})=>{
+          const sorted=pairEvs.sort((a,b)=>(G(a.g).name||'').localeCompare(G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
+          h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
+            <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
+              <span>🔗 ${pair.name}</span>
+              <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
+            </div>`;
+          sorted.forEach(s=>{ h+=_listRow(s,clr); });
+          h+=`</div>`;
+        });
+      } else {
+        // Pairs first (default)
+        const pairedGids=new Set();
+        const pairGroups=[];
+        pairs.forEach(pair=>{
+          if(typeof isPairBroken==='function'&&isPairBroken(pair.id,ds)) return;
+          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g));
+          if(!pairEvs.length) return;
+          pairEvs.forEach(s=>{pairedGids.add(s.g);firstUsedGids.add(s.g);});
+          pairGroups.push({pair,pairEvs});
+        });
+        pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he'));
+        pairGroups.forEach(({pair,pairEvs})=>{
+          const sorted=pairEvs.sort((a,b)=>(G(a.g).name||'').localeCompare(G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
+          h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
+            <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
+              <span>🔗 ${pair.name}</span>
+              <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
+            </div>`;
+          sorted.forEach(s=>{ h+=_listRow(s,clr); });
+          h+=`</div>`;
+        });
+        // Clusters second (non-paired only)
+        const dayClusters=(typeof getClusters==='function'?getClusters():[]).filter(cl=>
+          (cl.city===city||!cl.city)&&(cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===parseInt(gid)&&!firstUsedGids.has(s.g))));
+        dayClusters.forEach(cl=>{
+          const clEvs=cityEvs.filter(s=>(cl.gardenIds||[]).map(x=>parseInt(x)).includes(s.g)&&!firstUsedGids.has(s.g))
+            .sort((a,b)=>(G(a.g).name||'').localeCompare(G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
+          if(!clEvs.length) return;
+          clEvs.forEach(s=>firstUsedGids.add(s.g));
           const clGids=clEvs.map(s=>s.g);
           h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
             <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
@@ -3420,16 +3485,7 @@ function renderRangeListView(evs, fromDs, toDs){
         });
       }
 
-      // ── Pairs ──
-      const pairedGids=new Set([...clusteredGids]);
-      const pairGroups=[];
-      pairs.forEach(pair=>{
-        if(typeof isPairBroken==='function'&&isPairBroken(pair.id,ds)) return;
-        const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!clusteredGids.has(s.g));
-        if(!pairEvs.length) return;
-        pairEvs.forEach(s=>pairedGids.add(s.g));
-        pairGroups.push({pair,pairEvs});
-      });
+      const _allUsedGids=new Set([...firstUsedGids]);
       pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he'));
 
       pairGroups.forEach(({pair,pairEvs})=>{
@@ -3445,7 +3501,7 @@ function renderRangeListView(evs, fromDs, toDs){
       });
 
       // ── Solos sorted by time ──
-      cityEvs.filter(s=>!pairedGids.has(s.g))
+      cityEvs.filter(s=>!(typeof _allUsedGids!=='undefined'?_allUsedGids:pairedGids).has(s.g))
         .sort((a,b)=>(G(a.g).name||'').localeCompare(G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'))
         .forEach(s=>{ h+=_listRow(s,clr); });
 
@@ -3503,12 +3559,13 @@ function renderCalList(evs, mDate){
         <span style="font-size:.72rem;color:#78909c">${cityEvs.length} פעילויות</span>
       </div>`;
 
-      // ── Clusters first ──
-      const clAll=(typeof getClusters==='function'?getClusters():[]).filter(cl=>
-        (cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===gid)));
+      // ── Group mode: _listGroupMode controls pairs vs clusters priority ──
+      const _gmode2 = typeof _listGroupMode!=='undefined' ? _listGroupMode : 'pairs';
+      const pairedGids=new Set();
       const clusteredGidsC=new Set();
-      clAll.forEach(cl=>{
-        const clEvs=cityEvs.filter(s=>(cl.gardenIds||[]).map(x=>parseInt(x)).includes(s.g))
+
+      const _renderCluster2=(cl)=>{
+        const clEvs=cityEvs.filter(s=>(cl.gardenIds||[]).map(x=>parseInt(x)).includes(s.g)&&!pairedGids.has(s.g)&&!clusteredGidsC.has(s.g))
           .sort((a,b)=>(G(a.g).name||'').localeCompare(G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
         if(!clEvs.length) return;
         clEvs.forEach(s=>clusteredGidsC.add(s.g));
@@ -3520,18 +3577,32 @@ function renderCalList(evs, mDate){
           </div>`;
         clEvs.forEach(s=>{ h+=_listRow(s,clr); });
         h+=`</div>`;
-      });
+      };
+      const clAll=(typeof getClusters==='function'?getClusters():[]).filter(cl=>
+        (cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===parseInt(gid))));
 
-      // ── Pairs — sorted by pair name ──
-      const pairedGids=new Set([...clusteredGidsC]);
+      if(_gmode2==='clusters'){
+        // Clusters first
+        clAll.forEach(cl=>_renderCluster2(cl));
+      }
+
+      // Pairs (skip already-clustered if clusters-first mode)
       const pairGroups=[];
       pairs.forEach(pair=>{
         if(isPairBroken&&isPairBroken(pair.id,ds)) return;
         const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!clusteredGidsC.has(s.g));
         if(!pairEvs.length) return;
-        pair.ids.forEach(id=>pairedGids.add(id));
+        pairEvs.forEach(s=>pairedGids.add(s.g));
         pairGroups.push({pair,pairEvs});
       });
+      pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he'));
+
+      if(_gmode2==='pairs'){
+        // Clusters second (skip paired)
+        clAll.forEach(cl=>_renderCluster2(cl));
+      }
+
+      // ── Render pairs ──
       pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he'));
 
       pairGroups.forEach(({pair,pairEvs})=>{
@@ -3549,9 +3620,9 @@ function renderCalList(evs, mDate){
         h+=`</div>`;
       });
 
-      // Solos — sorted by garden name
+      // Solos — sorted by garden name (not in pair or cluster)
       const soloEvs=cityEvs
-        .filter(s=>!pairedGids.has(s.g))
+        .filter(s=>!pairedGids.has(s.g)&&!clusteredGidsC.has(s.g))
         .sort((a,b)=>{
           const na=G(a.g).name||'', nb=G(b.g).name||'';
           return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
@@ -6072,7 +6143,7 @@ let _supCurrentList = [];
 function supOpen(idx){ const n=_supCurrentList[idx]?.name||''; if(n) openSupCard(n); }
 function supEdit(idx){ const n=_supCurrentList[idx]?.name||''; if(n){ openSupCard(n); setTimeout(sucToggleEdit,250); } }
 
-let _supViewMode='cards';
+let _supViewMode='list';
 function setSupView(mode){
   _supViewMode=mode;
   document.getElementById('su-view-cards').classList.toggle('active',mode==='cards');

@@ -893,11 +893,16 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="card" style="margin-bottom:10px">
     <div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
-        <div style="display:flex;align-items:center;gap:4px;flex:1;min-width:150px">
-          <button class="btn bs bsm" onclick="dashNavDate(-1)" title="יום קודם" style="padding:4px 8px">◀</button>
-          <div style="flex:1"><label style="font-size:.72rem;color:#546e7a;display:block;margin-bottom:2px">תאריך</label><input type="date" id="dash-date" onchange="renderDash()" style="width:100%"></div>
-          <button class="btn bs bsm" onclick="dashNavDate(0)" title="היום" style="padding:4px 8px;font-size:.72rem">היום</button>
-          <button class="btn bs bsm" onclick="dashNavDate(1)" title="יום הבא" style="padding:4px 8px">▶</button>
+        <div style="display:flex;align-items:center;gap:3px;flex:1;min-width:200px">
+          <div style="flex:1">
+            <label style="font-size:.72rem;color:#546e7a;display:block;margin-bottom:2px">תאריך</label>
+            <input type="date" id="dash-date" onchange="renderDash()" style="width:100%">
+          </div>
+          <div style="display:flex;gap:2px;align-self:flex-end;padding-bottom:1px">
+            <button class="btn bg bsm" onclick="dashNavDate(-1)" title="יום קודם" style="padding:5px 9px;min-height:34px">◀</button>
+            <button class="btn bg bsm" onclick="dashNavDate(0)" title="היום" style="padding:5px 9px;min-height:34px;font-size:.76rem">היום</button>
+            <button class="btn bg bsm" onclick="dashNavDate(1)" title="יום הבא" style="padding:5px 9px;min-height:34px">▶</button>
+          </div>
         </div>
         <button class="flt-toggle" id="dash-flt-btn" onclick="fltToggle('dash-flt','dash-flt-btn')">⚙️ סינון <span class="flt-arrow">▾</span></button>
       </div>
@@ -1470,8 +1475,16 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="card" style="padding:9px 11px;margin-bottom:8px;background:#e8f5e9;border:1.5px solid #a5d6a7">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
       <span style="font-size:.82rem;font-weight:700;color:#2e7d32">🎨 ספקי חוגים פעילים</span>
-      <div style="display:flex;gap:5px;align-items:center">
-        <input type="text" id="su-srch" placeholder="חפש ספק..." oninput="renderSup()" style="border-radius:5px;border:1px solid #a5d6a7;padding:4px 8px;font-size:.8rem;width:160px">
+      <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+        <input type="text" id="su-srch" placeholder="חפש ספק..." oninput="renderSup()" style="border-radius:5px;border:1px solid #a5d6a7;padding:4px 8px;font-size:.8rem;width:140px">
+        <select id="su-sort" onchange="renderSup()" style="font-size:.78rem;border-radius:5px;border:1px solid #a5d6a7;padding:4px 6px">
+          <option value="name">א-ב</option>
+          <option value="cnt">לפי פעילויות</option>
+        </select>
+        <div class="vbtns">
+          <button id="su-view-cards" class="vbtn" onclick="setSupView('cards')" title="כרטיסים">⊞</button>
+          <button id="su-view-list" class="vbtn active" onclick="setSupView('list')" title="רשימה">☰</button>
+        </div>
         <button class="btn bg bsm" onclick="switchMode('purch');setTimeout(()=>SPT('psup'),150)" title="נהל את כל הספקים">🏢 ניהול ספקים</button>
       </div>
     </div>
@@ -1591,8 +1604,8 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <option value="cnt">מיון: כמות</option>
       </select>
       <div style="display:flex;gap:3px">
-        <button id="psu-view-cards" class="vbtn active" onclick="setPSupView('cards')" title="קלפים">⊞</button>
-        <button id="psu-view-list" class="vbtn" onclick="setPSupView('list')" title="רשימה">☰</button>
+        <button id="psu-view-cards" class="vbtn" onclick="setPSupView('cards')" title="קלפים">⊞</button>
+        <button id="psu-view-list" class="vbtn active" onclick="setPSupView('list')" title="רשימה">☰</button>
       </div>
     </div>
   </div>
@@ -2861,7 +2874,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<script src="data.js?v=61"></script>
-<script src="app.js?v=61"></script>
+<script src="data.js?v=65"></script>
+<script src="app.js?v=65"></script>
 </body>
 </html>
