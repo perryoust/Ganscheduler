@@ -150,7 +150,9 @@ async function _processFirebaseLoad(r, silent, force) {
   }
 
   _setFbLoadTs(Date.now());
-  _setFbSaveTs(cloudTs);
+  window._fbLastCloudTs = cloudTs; // track remote ts separately
+  // Only update _fbLastSaveTs if we haven't saved more recently
+  if(!_fbLastSaveTs || cloudTs > _fbLastSaveTs) _setFbSaveTs(cloudTs);
   if (!silent) _fbUpdateStatus();
   return true;
 }
@@ -370,6 +372,22 @@ function _fbStartPolling() {
 
 // ── UI helpers ────────────────────────────────
 function odUpdateUI() { _fbUpdateStatus(); }
+
+// ── Heartbeat: ensure save every 2 minutes ───
+const FB_HEARTBEAT_MS = 120000; // 2 minutes
+setInterval(async ()=>{
+  if(!window._fbUser) return; // not logged in
+  if(_fbSyncing) return; // already saving
+  const age = Date.now() - (_fbLastSaveTs||0);
+  if(age > FB_HEARTBEAT_MS){
+    console.log('Heartbeat: saving (age='+Math.round(age/1000)+'s)');
+    try{
+      // Refresh token silently first
+      if(window._fbUser) try{ window._cachedToken=await window._fbUser.getIdToken(false); }catch(e){}
+      await saveToFirebase(true);
+    } catch(e){ console.warn('Heartbeat save failed:', e.message); }
+  }
+}, 60000); // check every 60s
 
 function odToggle() {
   _fbUpdateStatus();
