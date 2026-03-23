@@ -9232,21 +9232,22 @@ function togglePiFlt(){
 
 // Mobile: tap Firebase button = immediate sync + show modal
 async function mobileQuickSync(){
-  if(window.innerWidth <= 768){
-    // Mobile: sync immediately on tap
-    const btn = document.getElementById('od-btn');
-    if(btn){ btn.textContent='🔄 מסנכרן...'; btn.style.background='#e65100'; }
-    try{
-      await loadFromFirebase(true, true);
-      await saveToFirebase(true);
-      showToast('✅ סונכרן עם Firebase');
-    } catch(e){
-      showToast('⚠️ שגיאת סנכרון: '+e.message);
+  const btn = document.getElementById('od-btn');
+  if(btn){ btn.textContent='🔄 מסנכרן...'; btn.style.background='#e65100'; }
+  try{
+    // Force token refresh — critical after Rules change
+    if(window._fbUser){
+      try{ window._cachedToken = await window._fbUser.getIdToken(true); }
+      catch(te){ console.warn('Token refresh failed:', te.message); }
     }
-    _fbUpdateStatus();
-  } else {
-    odToggle();
+    const ok = await loadFromFirebase(false, true);
+    await saveToFirebase(false);
+    showToast(ok ? '✅ סונכרן עם Firebase' : '⚠️ טעינה נכשלה — בדוק חיבור');
+  } catch(e){
+    showToast('❌ שגיאת סנכרון: ' + e.message);
+    console.error('Sync error:', e);
   }
+  _fbUpdateStatus();
 }
 
 // ── Invoice status multi-select filter ────────────────────────
