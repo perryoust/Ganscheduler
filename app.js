@@ -3328,7 +3328,7 @@ function _quickActionBtns(s){
 function renderRangeListView(evs, fromDs, toDs){
   const tday=td();
   const byDate={};
-  evs.filter(s=>s.st!=='can').forEach(s=>{
+  evs.forEach(s=>{
     const dk=s._isPostponed?s.pd:s.d;
     if(dk>=fromDs&&dk<=toDs){ if(!byDate[dk]) byDate[dk]=[]; byDate[dk].push(s); }
   });
@@ -3430,7 +3430,7 @@ function renderCalList(evs, mDate){
   const y=mDate.getFullYear(),m=mDate.getMonth();
   const tday=td();
   const byDate={};
-  evs.filter(s=>s.st!=='can').forEach(s=>{
+  evs.forEach(s=>{
     const dk=s._isPostponed?s.pd:s.d;
     if(!byDate[dk]) byDate[dk]=[];
     byDate[dk].push(s);
