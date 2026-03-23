@@ -9782,11 +9782,21 @@ async function changeUserRole(uid, newRole){
 
 async function deleteUser(uid, name){
   if(!_isAdmin()) return;
-  if(!confirm(`למחוק את המשתמש "${name}"? הם לא יוכלו להתחבר יותר.`)) return;
+  if(!confirm(`למחוק את המשתמש "${name}"?\nהם לא יוכלו להתחבר יותר לאפליקציה.`)) return;
   try{
+    showToast('⏳ מוחק משתמש...');
+    // 1. Delete from Firebase Auth via Cloud Function
+    let tok=null;
+    if(window._fbUser) try{ tok=await window._fbUser.getIdToken(false); }catch(e){}
+    const fnRes = await fetch(
+      `https://us-central1-ganmanage.cloudfunctions.net/deleteUser`,
+      { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+        body:JSON.stringify({data:{uid}}) }
+    );
+    // 2. Delete from RTDB regardless
     const q=await _authQ();
     await fetch(`${USERS_DB}/${uid}.json${q}`,{method:'DELETE'});
-    showToast(`✅ משתמש "${name}" הוסר`);
+    showToast(`✅ משתמש "${name}" נמחק לחלוטין`);
     await loadUsersList();
   } catch(e){ showToast('❌ שגיאה: '+e.message); }
 }
@@ -9922,24 +9932,18 @@ async function changeUserPassword(uid, username){
   // For admin resetting: store plaintext temporarily in RTDB (admin-only node)
   // User will be required to change on next login
   try{
-    const q = await _authQ();
-    // Save new password to user record (admin will see it, user should change it)
-    await fetch(`${USERS_DB}/${uid}/tempPassword.json${q}`,{
-      method:'PUT', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(newPass)
-    });
-    
-    // Also try to update via secondary auth app
-    try{
-      const cred = await window._fbCreateUser ? null : null; // can't directly update another user's password from client
-      // Best we can do: show admin the new password to tell the user
-    } catch(e2){}
-    
-    showToast(`✅ סיסמה חדשה נשמרה עבור "${username}": ${newPass}`);
-    // Show confirmation with the password for admin to share
-    setTimeout(()=>{
-      alert(`✅ סיסמה חדשה עבור "${username}":\n\nסיסמה: ${newPass}\n\nשתף עם המשתמש — הם ישתמשו בה בכניסה הבאה.`);
-    }, 100);
-    await loadUsersList();
+    showToast('⏳ משנה סיסמה...');
+    let tok=null;
+    if(window._fbUser) try{ tok=await window._fbUser.getIdToken(false); }catch(e){}
+    // Use Cloud Function to change password
+    const fnRes = await fetch(
+      `https://us-central1-ganmanage.cloudfunctions.net/changePassword`,
+      { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+        body:JSON.stringify({data:{uid,newPassword:newPass}}) }
+    );
+    const fnData = await fnRes.json();
+    if(!fnRes.ok) throw new Error(fnData?.error?.message||'שגיאה בשינוי סיסמה');
+    showToast(`✅ סיסמה שונתה עבור "${username}"`);
+    alert(`✅ הסיסמה של "${username}" שונתה בהצלחה.\n\nסיסמה חדשה: ${newPass}`);
   } catch(e){ showToast('❌ שגיאה: '+e.message); }
 }
