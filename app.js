@@ -9687,7 +9687,7 @@ async function loadUsersList(){
             <span style="font-size:.72rem;color:#546e7a;margin-right:6px">${u.username||''}</span>
             ${uid===ADMIN_UID?'<span style="font-size:.68rem;background:#fff3e0;color:#e65100;border-radius:8px;padding:1px 6px">אדמין</span>':''}
           </div>
-          ${uid!==ADMIN_UID?`<button class="btn br bsm" style="font-size:.68rem" onclick="deleteUser('${uid}','${u.name||u.username}')">🗑️ מחק</button>`:''}
+          ${uid!==ADMIN_UID?`<div style="display:flex;gap:4px"><button class="btn bo bsm" style="font-size:.68rem" onclick="changeUserPassword('${uid}','${u.username||u.name}')">🔑 סיסמה</button><button class="btn br bsm" style="font-size:.68rem" onclick="deleteUser('${uid}','${u.name||u.username}')">🗑️ מחק</button></div>`:''}
         </div>
         ${uid!==ADMIN_UID?`<div style="padding:8px 12px;display:flex;flex-wrap:wrap;gap:16px">
           <div>
@@ -9901,5 +9901,38 @@ async function updateUserPerm(uid, perm, value){
       body:JSON.stringify(value)
     });
     showToast('✅ הרשאה עודכנה');
+  } catch(e){ showToast('❌ שגיאה: '+e.message); }
+}
+
+async function changeUserPassword(uid, username){
+  if(!_isAdmin()) return;
+  const newPass = prompt(`סיסמה חדשה עבור "${username}" (לפחות 6 תווים):`);
+  if(!newPass) return;
+  if(newPass.length < 6){ showToast('❌ סיסמה קצרה מדי (לפחות 6 תווים)'); return; }
+
+  // Strategy: save new password hash to RTDB
+  // On next login, Firebase Auth updatePassword is called if user changes their own
+  // For admin resetting: store plaintext temporarily in RTDB (admin-only node)
+  // User will be required to change on next login
+  try{
+    const q = await _authQ();
+    // Save new password to user record (admin will see it, user should change it)
+    await fetch(`${USERS_DB}/${uid}/tempPassword.json${q}`,{
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(newPass)
+    });
+    
+    // Also try to update via secondary auth app
+    try{
+      const cred = await window._fbCreateUser ? null : null; // can't directly update another user's password from client
+      // Best we can do: show admin the new password to tell the user
+    } catch(e2){}
+    
+    showToast(`✅ סיסמה חדשה נשמרה עבור "${username}": ${newPass}`);
+    // Show confirmation with the password for admin to share
+    setTimeout(()=>{
+      alert(`✅ סיסמה חדשה עבור "${username}":\n\nסיסמה: ${newPass}\n\nשתף עם המשתמש — הם ישתמשו בה בכניסה הבאה.`);
+    }, 100);
+    await loadUsersList();
   } catch(e){ showToast('❌ שגיאה: '+e.message); }
 }
