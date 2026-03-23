@@ -9618,10 +9618,10 @@ function _isAdmin(){ return window._fbUser?.uid === ADMIN_UID; }
 // Show users button only for admin
 window._initUsersUI = function _initUsersUI(){
   const isAdm = _isAdmin();
-  // Admin bar (shows above both tab bars)
-  const adminBar = document.getElementById('admin-bar');
-  if(adminBar) adminBar.style.display = isAdm ? '' : 'none';
-  // Legacy buttons (if exist)
+  // Admin button in mode bar
+  const adminModeBtn = document.getElementById('modeBtn-admin');
+  if(adminModeBtn) adminModeBtn.style.display = isAdm ? '' : 'none';
+  // Legacy buttons
   const btn = document.getElementById('users-mgmt-btn');
   if(btn) btn.style.display = isAdm ? 'inline-flex' : 'none';
   const hBtn = document.getElementById('users-hdr-btn');
@@ -9669,20 +9669,34 @@ async function loadUsersList(){
     const entries=Object.entries(users).sort((a,b)=>(a[1].name||'').localeCompare(b[1].name||'','he'));
     if(!entries.length){ el.innerHTML='<span style="color:#999;font-size:.78rem">אין משתמשים עדיין</span>'; return; }
     el.innerHTML=entries.map(([uid,u])=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#fff;border-radius:7px;margin-bottom:5px;border:1px solid #e8eaf6">
-        <div>
-          <span style="font-weight:700;font-size:.83rem">${u.name||u.username||'—'}</span>
-          <span style="font-size:.72rem;color:#546e7a;margin-right:6px">${u.username||''}</span>
-          <span style="font-size:.7rem;background:${roleBg[u.role]||'#f5f5f5'};border-radius:8px;padding:1px 7px">${roleLabel[u.role]||u.role}</span> <span style="font-size:.68rem;color:#546e7a">${u.permAct!==false?'🎨':''}${u.permPurch?'🛒':''}</span>
-          ${uid===ADMIN_UID?'<span style="font-size:.68rem;color:#e65100;margin-right:4px">אתה</span>':''}
+      <div style="background:#fff;border-radius:8px;margin-bottom:8px;border:1px solid #e8eaf6;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f8f9ff">
+          <div>
+            <span style="font-weight:700;font-size:.85rem">${u.name||u.username||'—'}</span>
+            <span style="font-size:.72rem;color:#546e7a;margin-right:6px">${u.username||''}</span>
+            ${uid===ADMIN_UID?'<span style="font-size:.68rem;background:#fff3e0;color:#e65100;border-radius:8px;padding:1px 6px">אדמין</span>':''}
+          </div>
+          ${uid!==ADMIN_UID?`<button class="btn br bsm" style="font-size:.68rem" onclick="deleteUser('${uid}','${u.name||u.username}')">🗑️ מחק</button>`:''}
         </div>
-        ${uid!==ADMIN_UID?`<div style="display:flex;gap:4px">
-          <select onchange="changeUserRole('${uid}',this.value)" style="font-size:.72rem;border-radius:5px;border:1px solid #c5cae9;padding:3px 6px">
-            <option value="view" ${u.role==='view'?'selected':''}>👁️ צפייה</option>
-            <option value="edit" ${u.role==='edit'?'selected':''}>✏️ עריכה</option>
-            <option value="admin" ${u.role==='admin'?'selected':''}>👑 מנהל</option>
-          </select>
-          <button class="btn br bsm" style="font-size:.68rem" onclick="deleteUser('${uid}','${u.name||u.username}')">🗑️</button>
+        ${uid!==ADMIN_UID?`<div style="padding:8px 12px;display:flex;flex-wrap:wrap;gap:16px">
+          <div>
+            <div style="font-size:.68rem;color:#546e7a;margin-bottom:4px;font-weight:700">גישה ל:</div>
+            <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;margin-bottom:3px">
+              <input type="checkbox" ${u.permAct!==false?'checked':''} onchange="updateUserPerm('${uid}','permAct',this.checked)"> 🎨 חוגים
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer">
+              <input type="checkbox" ${u.permPurch?'checked':''} onchange="updateUserPerm('${uid}','permPurch',this.checked)"> 🛒 רכש
+            </label>
+          </div>
+          <div>
+            <div style="font-size:.68rem;color:#546e7a;margin-bottom:4px;font-weight:700">רמת גישה:</div>
+            <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;margin-bottom:3px">
+              <input type="radio" name="role_${uid}" value="view" ${u.role!=='edit'?'checked':''} onchange="changeUserRole('${uid}','view')"> 👁️ צפייה בלבד
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer">
+              <input type="radio" name="role_${uid}" value="edit" ${u.role==='edit'?'checked':''} onchange="changeUserRole('${uid}','edit')"> ✏️ עריכה
+            </label>
+          </div>
         </div>`:''}
       </div>`).join('');
   } catch(e){ el.innerHTML='<span style="color:#c62828">שגיאה: '+e.message+'</span>'; }
@@ -9865,4 +9879,16 @@ async function _pruneOldLogs(raw, tok){
 function doLogout(){
   if(!confirm('להתנתק?')) return;
   if(typeof window._fbSignOut==='function') window._fbSignOut();
+}
+
+async function updateUserPerm(uid, perm, value){
+  if(!_isAdmin()) return;
+  try{
+    const q=await _authQ();
+    await fetch(`${USERS_DB}/${uid}/${perm}.json${q}`,{
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(value)
+    });
+    showToast('✅ הרשאה עודכנה');
+  } catch(e){ showToast('❌ שגיאה: '+e.message); }
 }
