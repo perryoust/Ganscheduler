@@ -27,6 +27,7 @@ function _setFbLoadTs(ts){ _fbLastLoadTs=ts; _safeLS.setItem('_fbLastLoadTs',Str
 let _fbPollTimer = null;
 let _fbTimer = null;
 let _fbSyncing = false;
+let _fbLastError = null; // last sync error message
 
 // ── Login (called from HTML button) ──────────
 async function doLogin() {
@@ -82,12 +83,26 @@ function _fbUpdateStatus() {
       const ageMs = Date.now() - _fbLastSaveTs;
       const ageMins = Math.floor(ageMs / 60000);
       let label;
-      if(ageMs < 60000)       label = '☁️ Active ✓';
-      else if(ageMins < 5)    label = `☁️ לפני ${ageMins}ד'`;
-      else if(ageMins < 60)   label = `☁️ ${ageMins}ד' לא סונכרן`;
-      else                    label = '⚠️ לא סונכרן';
-      btn.textContent = label;
-      btn.style.background = ageMins >= 10 ? '#c62828' : ageMins >= 5 ? '#e65100' : '#2e7d32';
+      const timeStr = _fbLastSaveTs ? _fmtTs(_fbLastSaveTs).replace(/\d{4}-/,'').replace(/-/,'/') : '';
+      // Format: HH:MM DD/MM on 2 lines
+      const tsShort = _fbLastSaveTs ? (()=>{const d=new Date(_fbLastSaveTs);const pad=n=>String(n).padStart(2,'0');return pad(d.getHours())+':'+pad(d.getMinutes())+' '+pad(d.getDate())+'/'+pad(d.getMonth()+1);})() : '';
+      if(_fbLastError){
+        btn.innerHTML = '❌ ' + _fbLastError + (tsShort?`<br><span style="font-size:.58rem;opacity:.8;font-weight:400;letter-spacing:0">${tsShort}</span>`:'');
+        btn.style.background = '#c62828';
+      } else if(ageMs < 60000){
+        btn.innerHTML = '☁️ Active ✓' + (tsShort?`<br><span style="font-size:.58rem;opacity:.8;font-weight:400;letter-spacing:0">${tsShort}</span>`:'');
+        btn.style.background='#2e7d32';
+      } else if(ageMins < 5){
+        btn.innerHTML = `☁️ לפני ${ageMins}ד'` + (tsShort?`<br><span style="font-size:.58rem;opacity:.8;font-weight:400;letter-spacing:0">${tsShort}</span>`:'');
+        btn.style.background='#2e7d32';
+      } else if(ageMins < 60){
+        btn.innerHTML = `☁️ ${ageMins}ד' לא סונכרן` + (tsShort?`<br><span style="font-size:.58rem;opacity:.8;font-weight:400;letter-spacing:0">${tsShort}</span>`:'');
+        btn.style.background=ageMins>=10?'#c62828':'#e65100';
+      } else {
+        btn.innerHTML = '⚠️ לא סונכרן' + (tsShort?`<br><span style="font-size:.58rem;opacity:.8;font-weight:400;letter-spacing:0">${tsShort}</span>`:'');
+        btn.style.background='#c62828';
+      }
+      label = ''; // handled via innerHTML above
     } else {
       btn.textContent = '☁️ Firebase';
       btn.style.background = '#2e7d32';
@@ -223,6 +238,10 @@ async function saveToFirebase(silent) {
     if (r.ok) {
       _setFbSaveTs(nowTs);
       _safeLS.setItem('ganv5_local_ts', String(nowTs));
+      _fbLastError = null;
+      // Show save indicator (small flash)
+      const _bi=document.getElementById('backup-ind');
+      if(_bi){_bi.textContent='☁️ נשמר';_bi.classList.add('show');clearTimeout(_bi._to);_bi._to=setTimeout(()=>_bi.classList.remove('show'),1500);}
       if (!silent) showToast('✅ סונכרן ל-Firebase ' + _fmtTs(nowTs));
       // Trigger daily backup (async, non-blocking)
       _runDailyBackupIfNeeded(JSON.parse(raw), _saveTok).catch(()=>{});
@@ -240,6 +259,8 @@ async function saveToFirebase(silent) {
         if(r2.ok){ _setFbSaveTs(nowTs); localStorage.setItem('ganv5_local_ts',String(nowTs)); return true; }
       } catch(re){}
     }
+    _fbLastError = 'שגיאה ' + r.status + (r.status===401||r.status===403?' (הרשאות)':'');
+    _fbUpdateStatus();
     if (!silent) showToast('❌ שגיאת סנכרון Firebase (' + r.status + ')');
     return false;
   } catch(e) {
