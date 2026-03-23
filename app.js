@@ -2269,6 +2269,15 @@ function ST(t){
   });
   // purch panels are managed by switchMode, not ST
   if(t==='admin'){
+    // Hide purch panels (user may be coming from purch mode)
+    PURCH_TABS.forEach(x=>{
+      const panelEl=document.getElementById('p-'+x);
+      if(panelEl){ panelEl.style.display='none'; panelEl.classList.remove('active'); }
+    });
+    // Switch mode visuals to 'act' mode styling (admin sits in act mode)
+    document.body.classList.remove('mode-purch');
+    document.getElementById('tabs-act')?.style && (document.getElementById('tabs-act').style.display='');
+    document.getElementById('tabs-purch') && (document.getElementById('tabs-purch').style.display='none');
     // Load admin data
     if(typeof loadUsersList==='function') setTimeout(loadUsersList,300);
     if(typeof loadActivityLog==='function') setTimeout(()=>loadActivityLog(document.getElementById('log-filter')?.value||'week'),500);
