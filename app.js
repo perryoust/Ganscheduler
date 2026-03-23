@@ -9441,7 +9441,8 @@ async function loadCloudBackups(){
     const authQ=tok?'?auth='+tok:'';
     const r=await fetch(`${BACKUP_DB_BASE}.json?shallow=true${tok?'&auth='+tok:''}`);
     if(!r.ok){ el.innerHTML='<span style="color:#c62828">שגיאה: '+r.status+'</span>'; return; }
-    const keys=Object.keys((await r.json())||{}).sort().reverse().slice(0,30);
+    const _rawJson = await r.json();
+    const keys = _rawJson ? Object.keys(_rawJson).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse().slice(0,30) : [];
     if(!keys.length){ el.innerHTML='<span style="color:#999">אין גיבויים עדיין. גיבוי ראשון יישמר אוטומטית היום.</span>'; return; }
     const today=d2s(new Date());
     el.innerHTML='<div style="display:flex;flex-direction:column;gap:5px">'+
@@ -9477,4 +9478,23 @@ async function restoreCloudBackup(dateKey){
     showToast('✅ שוחזר מגיבוי '+fD(dateKey)+' — שומר...');
     setTimeout(()=>{ refresh(); CM('backupm'); }, 1500);
   } catch(e){ showToast('❌ שגיאת שחזור: '+e.message); }
+}
+
+async function forceDailyBackup(){
+  const btn = document.getElementById('cloud-backup-btn');
+  showToast('☁️ שומר גיבוי...');
+  try{
+    let tok=null;
+    if(window._fbUser){ try{ tok=await window._fbUser.getIdToken(true); }catch(e){} }
+    const liveData={
+      ch:SCH, pairs, supEx, clusters, holidays, pairBreaks,
+      managers, blockedDates, gardenBlocks, invoices:INVOICES,
+      vatRate:VAT_RATE, activeGardens:activeGardens?[...activeGardens]:null
+    };
+    // Force backup even if already done today
+    _safeLS.setItem(BACKUP_LAST_KEY,''); 
+    await _runDailyBackupIfNeeded(liveData, tok);
+    showToast('✅ גיבוי נשמר לענן');
+    setTimeout(loadCloudBackups, 500);
+  } catch(e){ showToast('❌ שגיאת גיבוי: '+e.message); }
 }
