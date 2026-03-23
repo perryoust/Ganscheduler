@@ -9786,7 +9786,13 @@ async function deleteUser(uid, name){
   try{
     showToast('⏳ מוחק משתמש...');
     // 1. Delete from Firebase Auth via Cloud Function
-    await window._fbCallFunction('deleteUser', {uid});
+    let tok=null;
+    if(window._fbUser) try{ tok=await window._fbUser.getIdToken(false); }catch(e){}
+    const delRes = await fetch('https://us-central1-ganmanage.cloudfunctions.net/deleteUser',{
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+      body:JSON.stringify({uid})
+    });
+    if(!delRes.ok){ const e=await delRes.json(); throw new Error(e.error||'שגיאה'); }
     // 2. Delete from RTDB regardless
     const q=await _authQ();
     await fetch(`${USERS_DB}/${uid}.json${q}`,{method:'DELETE'});
@@ -9927,7 +9933,13 @@ async function changeUserPassword(uid, username){
   // User will be required to change on next login
   try{
     showToast('⏳ משנה סיסמה...');
-    await window._fbCallFunction('changePassword', {uid, newPassword:newPass});
+    let tok2=null;
+    if(window._fbUser) try{ tok2=await window._fbUser.getIdToken(false); }catch(e){}
+    const passRes = await fetch('https://us-central1-ganmanage.cloudfunctions.net/changePassword',{
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok2},
+      body:JSON.stringify({uid, newPassword:newPass})
+    });
+    if(!passRes.ok){ const e=await passRes.json(); throw new Error(e.error||'שגיאה'); }
     showToast(`✅ סיסמה שונתה עבור "${username}"`);
     alert(`✅ הסיסמה של "${username}" שונתה בהצלחה.\n\nסיסמה חדשה: ${newPass}`);
   } catch(e){ showToast('❌ שגיאה: '+e.message); }
