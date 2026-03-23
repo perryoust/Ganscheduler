@@ -2103,6 +2103,8 @@ window.onload = function(){
     }
     _fbStartPolling();
     setTimeout(_fitScrollAreas, 100);
+    // Init user management UI (admin only)
+    try{ _ensureAdminProfile(); }catch(e){}
 
   }; // end _onAuthReady
   // On mobile, Firebase may fire onAuthStateChanged BEFORE window.onload
@@ -9586,4 +9588,151 @@ async function forceDailyBackup(){
     showToast('✅ גיבוי נשמר לענן');
     setTimeout(loadCloudBackups, 500);
   } catch(e){ showToast('❌ שגיאת גיבוי: '+e.message); }
+}
+
+// ══════════════════════════════════════════════════════
+// User Management — admin only
+// ══════════════════════════════════════════════════════
+const ADMIN_UID = 'NflZLysieCdmx21KJEfDYx014Op2';
+const USERS_DB  = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/users';
+
+function _isAdmin(){ return window._fbUser?.uid === ADMIN_UID; }
+
+// Show users button only for admin
+function _initUsersUI(){
+  const btn = document.getElementById('users-mgmt-btn');
+  if(btn) btn.style.display = _isAdmin() ? '' : 'none';
+}
+
+async function openUsersModal(){
+  if(!_isAdmin()){ showToast('❌ אין הרשאה'); return; }
+  document.getElementById('usersm').classList.add('open');
+  await loadUsersList();
+}
+
+async function _authQ(){
+  let tok=null;
+  if(window._fbUser) try{ tok=await window._fbUser.getIdToken(false); }catch(e){}
+  return tok ? '?auth='+tok : '';
+}
+
+async function loadUsersList(){
+  const el=document.getElementById('users-list');
+  if(!el) return;
+  el.innerHTML='<span style="color:#999;font-size:.78rem">טוען...</span>';
+  try{
+    const q=await _authQ();
+    const r=await fetch(USERS_DB+'.json'+q);
+    if(!r.ok){ el.innerHTML='<span style="color:#c62828">שגיאה '+r.status+'</span>'; return; }
+    const users=await r.json()||{};
+    const roleLabel={admin:'👑 מנהל',edit:'✏️ עריכה',view:'👁️ צפייה'};
+    const roleBg={admin:'#fce4ec',edit:'#e8f5e9',view:'#e3f2fd'};
+    const entries=Object.entries(users).sort((a,b)=>(a[1].name||'').localeCompare(b[1].name||'','he'));
+    if(!entries.length){ el.innerHTML='<span style="color:#999;font-size:.78rem">אין משתמשים עדיין</span>'; return; }
+    el.innerHTML=entries.map(([uid,u])=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#fff;border-radius:7px;margin-bottom:5px;border:1px solid #e8eaf6">
+        <div>
+          <span style="font-weight:700;font-size:.83rem">${u.name||u.username||'—'}</span>
+          <span style="font-size:.72rem;color:#546e7a;margin-right:6px">${u.username||''}</span>
+          <span style="font-size:.7rem;background:${roleBg[u.role]||'#f5f5f5'};border-radius:8px;padding:1px 7px">${roleLabel[u.role]||u.role}</span>
+          ${uid===ADMIN_UID?'<span style="font-size:.68rem;color:#e65100;margin-right:4px">אתה</span>':''}
+        </div>
+        ${uid!==ADMIN_UID?`<div style="display:flex;gap:4px">
+          <select onchange="changeUserRole('${uid}',this.value)" style="font-size:.72rem;border-radius:5px;border:1px solid #c5cae9;padding:3px 6px">
+            <option value="view" ${u.role==='view'?'selected':''}>👁️ צפייה</option>
+            <option value="edit" ${u.role==='edit'?'selected':''}>✏️ עריכה</option>
+            <option value="admin" ${u.role==='admin'?'selected':''}>👑 מנהל</option>
+          </select>
+          <button class="btn br bsm" style="font-size:.68rem" onclick="deleteUser('${uid}','${u.name||u.username}')">🗑️</button>
+        </div>`:''}
+      </div>`).join('');
+  } catch(e){ el.innerHTML='<span style="color:#c62828">שגיאה: '+e.message+'</span>'; }
+}
+
+async function createNewUser(){
+  if(!_isAdmin()) return;
+  const username=(document.getElementById('nu-username')?.value||'').trim().toLowerCase();
+  const displayName=(document.getElementById('nu-displayname')?.value||'').trim();
+  const password=document.getElementById('nu-password')?.value||'';
+  const role=document.getElementById('nu-role')?.value||'view';
+  const statusEl=document.getElementById('nu-status');
+  const btn=document.getElementById('nu-create-btn');
+
+  if(!username||!password||!displayName){
+    statusEl.innerHTML='<span style="color:#c62828">יש למלא שם משתמש, שם לתצוגה וסיסמה</span>'; return;
+  }
+  if(password.length<6){
+    statusEl.innerHTML='<span style="color:#c62828">הסיסמה חייבת להכיל לפחות 6 תווים</span>'; return;
+  }
+  if(!/^[a-z0-9_.-]+$/.test(username)){
+    statusEl.innerHTML='<span style="color:#c62828">שם משתמש: אותיות לטיניות קטנות, ספרות, קו תחתון בלבד</span>'; return;
+  }
+
+  btn.disabled=true;
+  statusEl.innerHTML='<span style="color:#1565c0">⏳ יוצר משתמש...</span>';
+
+  try{
+    // Create Firebase Auth user (secondary app - admin stays logged in)
+    const {uid,email}=await window._fbCreateUser(username, password);
+
+    // Save user profile to RTDB
+    const q=await _authQ();
+    const r=await fetch(`${USERS_DB}/${uid}.json${q}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({uid,username,name:displayName,role,email,createdAt:Date.now()})
+    });
+    if(!r.ok) throw new Error('שמירה נכשלה: '+r.status);
+
+    statusEl.innerHTML=`<span style="color:#2e7d32">✅ משתמש נוצר! שם: <b>${username}</b> | סיסמה: <b>${password}</b></span>`;
+    document.getElementById('nu-username').value='';
+    document.getElementById('nu-displayname').value='';
+    document.getElementById('nu-password').value='';
+    await loadUsersList();
+  } catch(e){
+    statusEl.innerHTML=`<span style="color:#c62828">❌ שגיאה: ${e.message}</span>`;
+  }
+  btn.disabled=false;
+}
+
+async function changeUserRole(uid, newRole){
+  if(!_isAdmin()) return;
+  try{
+    const q=await _authQ();
+    await fetch(`${USERS_DB}/${uid}/role.json${q}`,{
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(newRole)
+    });
+    showToast('✅ תפקיד עודכן');
+  } catch(e){ showToast('❌ שגיאה: '+e.message); }
+}
+
+async function deleteUser(uid, name){
+  if(!_isAdmin()) return;
+  if(!confirm(`למחוק את המשתמש "${name}"? הם לא יוכלו להתחבר יותר.`)) return;
+  try{
+    const q=await _authQ();
+    await fetch(`${USERS_DB}/${uid}.json${q}`,{method:'DELETE'});
+    showToast(`✅ משתמש "${name}" הוסר`);
+    await loadUsersList();
+  } catch(e){ showToast('❌ שגיאה: '+e.message); }
+}
+
+// Also save admin profile on first load if not exists
+async function _ensureAdminProfile(){
+  if(!_isAdmin()) return;
+  try{
+    const q=await _authQ();
+    const r=await fetch(`${USERS_DB}/${ADMIN_UID}.json${q}`);
+    if(r.ok){
+      const d=await r.json();
+      if(!d){
+        await fetch(`${USERS_DB}/${ADMIN_UID}.json${q}`,{
+          method:'PUT', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({uid:ADMIN_UID,username:'perry',name:'Perry',role:'admin',email:'perry@ganmanager.app'})
+        });
+      }
+    }
+  } catch(e){}
+  _initUsersUI();
 }

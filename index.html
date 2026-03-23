@@ -678,6 +678,7 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+           createUserWithEmailAndPassword,
            setPersistence, browserLocalPersistence, browserSessionPersistence
          } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
@@ -694,6 +695,10 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   const app  = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
+  // Secondary app instance — used to create new users WITHOUT signing out admin
+  const app2 = initializeApp(firebaseConfig, 'secondary');
+  const auth2 = getAuth(app2);
+
   // Domain for fake emails: username → username@ganmanager.app
   const DOMAIN = '@ganmanager.app';
 
@@ -709,6 +714,16 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
     if (!user) return null;
     try { const tok=await user.getIdToken(false); window._cachedToken=tok; return tok; }
     catch(e){ try{return await user.getIdToken(true);}catch(e2){return null;} }
+  };
+
+  // Create new user using secondary app (admin stays logged in)
+  window._fbCreateUser = async function(username, password) {
+    const email = username + DOMAIN;
+    const cred = await createUserWithEmailAndPassword(auth2, email, password);
+    const newUid = cred.user.uid;
+    // Sign out from secondary app immediately
+    await signOut(auth2);
+    return { uid: newUid, email };
   };
 
   // Listen for auth state — kick off app once signed in
@@ -2377,6 +2392,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <button class="btn bp bsm" onclick="exportFullBackup()">💾 הורד גיבוי JSON</button>
           <button class="btn bo bsm" onclick="CM('infom');openBackup()">🔄 גיבויים ושחזור</button>
           <button class="btn bg bsm" onclick="CM('infom');odToggle()">☁️ סטטוס Firebase</button>
+          <button class="btn bg bsm" id="users-mgmt-btn" onclick="CM('infom');openUsersModal()" style="display:none">👥 ניהול משתמשים</button>
         </div>
       </div>
 
@@ -2677,6 +2693,54 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 </div>
 
 <!-- Backup/Restore Modal -->
+<!-- User Management Modal -->
+<div id="usersm" class="modal">
+  <div class="mb" style="max-width:560px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h2 style="margin:0">👥 ניהול משתמשים</h2>
+      <button onclick="CM('usersm')" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#999">✕</button>
+    </div>
+    <div style="background:#e3f2fd;border-radius:8px;padding:10px 13px;font-size:.78rem;color:#0d47a1;margin-bottom:14px">
+      <b>ℹ️</b> רק אתה (admin) יכול ליצור ולנהל משתמשים. כל משתמש נכנס עם שם משתמש וסיסמה לאתר.
+    </div>
+
+    <!-- Create new user -->
+    <div style="background:#f5f7ff;border-radius:8px;padding:12px;margin-bottom:14px">
+      <div style="font-weight:700;font-size:.85rem;color:#1a237e;margin-bottom:10px">➕ יצירת משתמש חדש</div>
+      <div class="row" style="gap:8px;margin-bottom:8px">
+        <div class="fg"><label>שם משתמש</label>
+          <input type="text" id="nu-username" placeholder="לדוגמא: teacher1" style="width:100%" dir="ltr">
+        </div>
+        <div class="fg"><label>שם לתצוגה</label>
+          <input type="text" id="nu-displayname" placeholder="שם מלא" style="width:100%">
+        </div>
+      </div>
+      <div class="row" style="gap:8px;margin-bottom:8px">
+        <div class="fg"><label>סיסמה</label>
+          <input type="password" id="nu-password" placeholder="לפחות 6 תווים" style="width:100%" dir="ltr">
+        </div>
+        <div class="fg"><label>תפקיד</label>
+          <select id="nu-role" style="width:100%">
+            <option value="view">👁️ צפייה בלבד</option>
+            <option value="edit">✏️ עריכה</option>
+            <option value="admin">👑 מנהל (כמוני)</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn bg" onclick="createNewUser()" id="nu-create-btn">➕ צור משתמש</button>
+      <div id="nu-status" style="font-size:.78rem;margin-top:8px"></div>
+    </div>
+
+    <!-- Users list -->
+    <div style="font-weight:700;font-size:.85rem;color:#1a237e;margin-bottom:8px">📋 משתמשים קיימים</div>
+    <div id="users-list" style="min-height:60px"><span style="color:#999;font-size:.8rem">טוען...</span></div>
+
+    <div style="text-align:center;margin-top:14px">
+      <button class="btn bs" onclick="CM('usersm')">סגור</button>
+    </div>
+  </div>
+</div>
+
 <div id="backupm" class="modal">
   <div class="mb" style="max-width:600px;max-height:85vh;overflow-y:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -2874,7 +2938,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<script src="data.js?v=66"></script>
-<script src="app.js?v=66"></script>
+<script src="data.js?v=67"></script>
+<script src="app.js?v=67"></script>
 </body>
 </html>
