@@ -2257,13 +2257,22 @@ function ST(t){
     const fn = btn.getAttribute('onclick')||'';
     btn.classList.toggle('active', fn.includes(`'${t}'`) || fn.includes(`"${t}"`));
   });
-  TABS.forEach(x=>{
+  // Hide all act panels + admin panel, show only active
+  [...TABS, 'admin'].forEach(x=>{
     const panelEl=document.getElementById('p-'+x);
     if(panelEl){
-      panelEl.classList.toggle('active',x===t);
-      panelEl.style.display=''; // Clear any display:none set by switchMode
+      const isActive = x===t;
+      panelEl.classList.toggle('active', isActive);
+      // Remove inline display style — let CSS handle it via .panel/.panel.active
+      panelEl.style.display='';
     }
   });
+  // purch panels are managed by switchMode, not ST
+  if(t==='admin'){
+    // Load admin data
+    if(typeof loadUsersList==='function') setTimeout(loadUsersList,300);
+    if(typeof loadActivityLog==='function') setTimeout(()=>loadActivityLog(document.getElementById('log-filter')?.value||'week'),500);
+  }
   if(t==='sched') renderSched();
   if(t==='gardens'){renderGardens();refreshMgrDrops();}
   if(t==='cal'){
@@ -9269,11 +9278,7 @@ function importData(){
   inp.click();
 }
 
-// Show mobile backup row on small screens
-window.addEventListener('resize',()=>{
-  const r=document.getElementById('mob-backup-row');
-  if(r) r.style.display=window.innerWidth<=768?'flex':'none';
-});
+
 function showToast(msg,ms=2500){
   let t=document.getElementById('toast-msg');
   if(!t){t=document.createElement('div');t.id='toast-msg';
@@ -9632,9 +9637,15 @@ window._initUsersUI = function _initUsersUI(){
     const unameEl = document.getElementById('auth-user-name');
     if(unameEl) unameEl.textContent = '👤 ' + uname;
   }
-  // Show logout button
+  // Show logout button (desktop)
   const logoutBtn = document.getElementById('logout-btn');
   if(logoutBtn) logoutBtn.style.display = '';
+  // Mobile: show user bar + username
+  const mobUserBar = document.getElementById('mob-user-bar');
+  if(mobUserBar) mobUserBar.style.display = 'block';
+  const mobUsername = document.getElementById('mob-username-display');
+  const uname2 = window._fbUser?.email?.replace('@ganmanager.app','')||'';
+  if(mobUsername) mobUsername.textContent = '👤 ' + uname2;
   // Show admin button in mobile nav
   const mobAdminBtn = document.getElementById('mob-admin-btn');
   if(mobAdminBtn) mobAdminBtn.style.display = isAdm ? 'flex' : 'none';

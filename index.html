@@ -466,7 +466,7 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   .vbtn{padding:8px 12px;font-size:.78rem;min-height:36px}
 
   /* Bottom nav hint */
-  .content{padding-bottom:70px}
+  .content{padding-bottom:90px}
 }
 
 /* Phones 480px and below — single column */
@@ -501,8 +501,10 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   font-size:.6rem;color:#666;min-width:52px;min-height:52px;justify-content:center}
 .mob-nav-btn.active{color:#1565c0}
 .mob-nav-btn .mnb-ico{font-size:1.3rem;line-height:1}
+.mob-hide{display:none}
 @media(max-width:768px){
   #mob-nav{display:block}
+  #mob-user-bar{display:block!important}
   .tabs{display:none!important}
   #tabs-act{display:none!important}
   #tabs-purch{display:none!important}
@@ -768,9 +770,6 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 </script>
 </head>
 <body>
-<div id="mob-backup-row" style="display:none;width:100%;padding:4px 0;gap:6px" class="row">
-  <button class="btn bs bsm" onclick="openBackup()">💾 גיבוי ושחזור</button>
-</div>
 <div id="backup-ind">💾 נשמר</div>
 
 <!-- ══ MAIN HEADER — dashboard ══ -->
@@ -819,7 +818,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <!-- ACTIVITY TABS -->
 <div style="display:flex;align-items:center;gap:4px">
   <div id="auth-user-name" style="font-size:.72rem;color:#90caf9;font-weight:700;padding:0 6px;white-space:nowrap;cursor:pointer" onclick="ST('admin')" title="ניהול מערכת"></div>
-  <button id="logout-btn" onclick="doLogout()" style="display:none;background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:4px 8px;cursor:pointer;color:#fff;font-size:.72rem" title="התנתק">🚪</button>
+  <button id="logout-btn" onclick="doLogout()" style="display:none;background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:4px 9px;cursor:pointer;color:#fff;font-size:.72rem;display:flex;align-items:center;gap:4px" title="התנתק">🚪 <span class="mob-hide">התנתק</span></button>
 </div>
 <div class="tabs" id="tabs-act">
   <div class="tab active" onclick="ST('dash')">📊 לוח בקרה</div>
@@ -834,6 +833,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="tab active" onclick="SPT('pdash')">📊 לוח בקרה רכש</div>
   <div class="tab" onclick="SPT('pinvoices')">📄 חשבוניות</div>
   <div class="tab" onclick="SPT('psup')">🏢 ניהול ספקים</div>
+</div>
+<div id="mob-user-bar" style="display:none;background:#1a237e;padding:4px 12px;font-size:.72rem;color:#90caf9;text-align:left;border-top:1px solid rgba(255,255,255,.1)">
+  <span id="mob-username-display"></span>
 </div>
 <div id="mob-nav">
   <div class="mob-nav-inner">
@@ -857,6 +859,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     </button>
     <button id="mob-admin-btn" class="mob-nav-btn" onclick="ST('admin');mobNav(this)" style="display:none;color:#6a1b9a;border-right:1px solid #e0e0e0" data-tab="admin">
       <span class="mnb-ico">⚙️</span><span>ניהול</span>
+    </button>
+    <button id="mob-logout-btn" class="mob-nav-btn" onclick="doLogout()" style="color:#ef5350;border-right:1px solid #e0e0e0" title="התנתק">
+      <span class="mnb-ico">🚪</span><span>התנתק</span>
     </button>
   </div>
 </div>
@@ -2966,7 +2971,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<script src="data.js?v=73"></script>
-<script src="app.js?v=73"></script>
+<script src="data.js?v=75"></script>
+<script src="app.js?v=75"></script>
 </body>
 </html>
