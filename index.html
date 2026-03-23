@@ -677,6 +677,7 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
            createUserWithEmailAndPassword,
            setPersistence, browserLocalPersistence, browserSessionPersistence
@@ -714,6 +715,14 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
     if (!user) return null;
     try { const tok=await user.getIdToken(false); window._cachedToken=tok; return tok; }
     catch(e){ try{return await user.getIdToken(true);}catch(e2){return null;} }
+  };
+
+  // Initialize Firebase Functions
+  const functions = getFunctions(app, 'us-central1');
+  window._fbCallFunction = async function(name, data) {
+    const fn = httpsCallable(functions, name);
+    const result = await fn(data);
+    return result.data;
   };
 
   // Create new user using secondary app (admin stays logged in)
@@ -2964,7 +2973,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<script src="data.js?v=81"></script>
-<script src="app.js?v=81"></script>
+<script src="data.js?v=82"></script>
+<script src="app.js?v=82"></script>
 </body>
 </html>
