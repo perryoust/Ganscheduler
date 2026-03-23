@@ -4109,7 +4109,11 @@ function cancelEv(){
       .forEach(x=>Object.assign(x,fields));
   }
   const main=SCH.find(x=>x.id===selEv);
-  if(main) Object.assign(main,fields);
+  if(main){
+    Object.assign(main,fields);
+    const g=G(main.g);
+    _writeLog('cancel', `${g.name} — ${main.a}`, `בוטל: ${cr}`, {gName:g.name,date:main.d}).catch(()=>{});
+  }
   save(); closeSP(); refresh();
 }
 function markNoHap(){
@@ -4125,7 +4129,11 @@ function markNoHap(){
       .forEach(x=>Object.assign(x,fields));
   }
   const main=SCH.find(x=>x.id===selEv);
-  if(main) Object.assign(main,fields);
+  if(main){
+    Object.assign(main,fields);
+    const g=G(main.g);
+    _writeLog('status', `${g.name} — ${main.a}`, 'לא התקיים', {gName:g.name,date:main.d}).catch(()=>{});
+  }
   save(); closeSP(); refresh();
 }
 function setStatus(st){
@@ -4141,7 +4149,12 @@ function setStatus(st){
     }
   }
   const main=SCH.find(x=>x.id===selEv);
-  if(main) Object.assign(main,fields);
+  if(main){
+    Object.assign(main,fields);
+    const stLabels={'done':'התקיים','ok':'מתקיים','nohap':'לא התקיים','can':'בוטל','post':'נדחה'};
+    const g=G(main.g);
+    _writeLog('status', `${g.name} — ${main.a}`, stLabels[st]||st, {gName:g.name,date:main.d}).catch(()=>{});
+  }
   save(); closeSP(); refresh();
 }
 function saveNt(){
@@ -4471,6 +4484,7 @@ function doPostpone(){
     }
   };
   const orig=SCH.find(s=>s.id===selEvPost);
+  const orig2=orig?{...orig}:null; // copy before mutation for logging
   if(orig){
     const origGid = orig.g;
     const origDate = orig.d; // save BEFORE doOne mutates orig (Object.assign changes by reference)
@@ -4489,6 +4503,7 @@ function doPostpone(){
     }
   }
   const toast=isMove?`🔀 הוזז ל-${fD(nd)}`:`⏩ נדחה ל-${fD(nd)}`;
+  if(orig2){ const g2=G(orig2.g); _writeLog('move',`${g2.name} — ${orig2.a}`,toast,{gName:g2.name,date:nd}).catch(()=>{}); }
   save();CM('postm');closeSP();refresh();
   showToast(toast);
 }
@@ -9601,22 +9616,37 @@ const USERS_DB  = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.
 function _isAdmin(){ return window._fbUser?.uid === ADMIN_UID; }
 
 // Show users button only for admin
-function _initUsersUI(){
+window._initUsersUI = function _initUsersUI(){
+  const isAdm = _isAdmin();
+  // Admin bar (shows above both tab bars)
+  const adminBar = document.getElementById('admin-bar');
+  if(adminBar) adminBar.style.display = isAdm ? '' : 'none';
+  // Legacy buttons (if exist)
   const btn = document.getElementById('users-mgmt-btn');
-  if(btn) btn.style.display = _isAdmin() ? 'inline-flex' : 'none';
+  if(btn) btn.style.display = isAdm ? 'inline-flex' : 'none';
   const hBtn = document.getElementById('users-hdr-btn');
-  if(hBtn) hBtn.style.display = _isAdmin() ? '' : 'none';
-  // Show admin tab only for admin
-  const adminTab = document.getElementById('tab-admin');
-  if(adminTab) adminTab.style.display = _isAdmin() ? '' : 'none';
-  // Load users list when admin panel is active
-  if(_isAdmin() && typeof loadUsersList==='function') setTimeout(loadUsersList, 500);
+  if(hBtn) hBtn.style.display = isAdm ? '' : 'none';
+  // Show logged-in username in header
+  if(window._fbUser){
+    const uname = window._fbUser.email?.replace('@ganmanager.app','')||'';
+    const unameEl = document.getElementById('auth-user-name');
+    if(unameEl) unameEl.textContent = '👤 ' + uname;
+  }
+  // Show logout button
+  const logoutBtn = document.getElementById('logout-btn');
+  if(logoutBtn) logoutBtn.style.display = '';
+  // Show admin button in mobile nav
+  const mobAdminBtn = document.getElementById('mob-admin-btn');
+  if(mobAdminBtn) mobAdminBtn.style.display = isAdm ? 'flex' : 'none';
+  // Load data if admin
+  if(isAdm && typeof loadUsersList==='function') setTimeout(loadUsersList, 500);
+  if(isAdm && typeof loadActivityLog==='function') setTimeout(()=>loadActivityLog('week'), 800);
 }
 
 async function openUsersModal(){
   if(!_isAdmin()){ showToast('❌ אין הרשאה'); return; }
-  document.getElementById('usersm').classList.add('open');
-  await loadUsersList();
+  ST('admin'); // navigate to admin tab
+  setTimeout(loadUsersList, 300);
 }
 
 async function _authQ(){
@@ -9643,7 +9673,7 @@ async function loadUsersList(){
         <div>
           <span style="font-weight:700;font-size:.83rem">${u.name||u.username||'—'}</span>
           <span style="font-size:.72rem;color:#546e7a;margin-right:6px">${u.username||''}</span>
-          <span style="font-size:.7rem;background:${roleBg[u.role]||'#f5f5f5'};border-radius:8px;padding:1px 7px">${roleLabel[u.role]||u.role}</span>
+          <span style="font-size:.7rem;background:${roleBg[u.role]||'#f5f5f5'};border-radius:8px;padding:1px 7px">${roleLabel[u.role]||u.role}</span> <span style="font-size:.68rem;color:#546e7a">${u.permAct!==false?'🎨':''}${u.permPurch?'🛒':''}</span>
           ${uid===ADMIN_UID?'<span style="font-size:.68rem;color:#e65100;margin-right:4px">אתה</span>':''}
         </div>
         ${uid!==ADMIN_UID?`<div style="display:flex;gap:4px">
@@ -9663,7 +9693,9 @@ async function createNewUser(){
   const username=(document.getElementById('nu-username')?.value||'').trim().toLowerCase();
   const displayName=(document.getElementById('nu-displayname')?.value||'').trim();
   const password=document.getElementById('nu-password')?.value||'';
-  const role=document.getElementById('nu-role')?.value||'view';
+  const permAct=document.getElementById('nu-perm-act')?.checked!==false;
+  const permPurch=document.getElementById('nu-perm-purch')?.checked||false;
+  const role=document.querySelector('input[name="nu-access"]:checked')?.value||'view';
   const statusEl=document.getElementById('nu-status');
   const btn=document.getElementById('nu-create-btn');
 
@@ -9689,7 +9721,7 @@ async function createNewUser(){
     const r=await fetch(`${USERS_DB}/${uid}.json${q}`,{
       method:'PUT',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({uid,username,name:displayName,role,email,createdAt:Date.now()})
+      body:JSON.stringify({uid,username,name:displayName,role,email,permAct,permPurch,createdAt:Date.now()})
     });
     if(!r.ok) throw new Error('שמירה נכשלה: '+r.status);
 
@@ -9745,4 +9777,92 @@ async function _ensureAdminProfile(){
     }
   } catch(e){}
   _initUsersUI();
+}
+
+// ══════════════════════════════════════════════════════
+// Activity Log — track changes by all users, 30 days
+// ══════════════════════════════════════════════════════
+const LOG_DB = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/activityLog';
+
+async function _writeLog(action, target, detail, extra={}){
+  try{
+    if(!window._fbUser) return;
+    const userName = window._fbUser.email?.replace('@ganmanager.app','')||'unknown';
+    const entry = {
+      ts: Date.now(),
+      user: userName,
+      action,   // 'status'|'move'|'new'|'delete'|'edit'|'invoice'
+      target,   // e.g. "גן חיה - ריקוד"
+      detail,   // e.g. "לא התקיים"
+      ...extra
+    };
+    let tok=null;
+    if(window._fbUser) try{ tok=await window._fbUser.getIdToken(false); }catch(e){}
+    const q = tok?'?auth='+tok:'';
+    const key = Date.now()+'_'+Math.random().toString(36).slice(2,7);
+    await fetch(`${LOG_DB}/${key}.json${q}`,{
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(entry)
+    });
+  } catch(e){ /* non-critical, ignore */ }
+}
+
+async function loadActivityLog(filter='week'){
+  const el=document.getElementById('admin-log-body');
+  if(!el) return;
+  el.innerHTML='<span style="color:#999;font-size:.78rem">טוען...</span>';
+  try{
+    let tok=null;
+    if(window._fbUser) try{ tok=await window._fbUser.getIdToken(false); }catch(e){}
+    const q=tok?'?auth='+tok:'';
+    const r=await fetch(`${LOG_DB}.json${q}`);
+    if(!r.ok){ el.innerHTML='<span style="color:#c62828">שגיאה: '+r.status+'</span>'; return; }
+    const raw=await r.json()||{};
+    const cutoff = filter==='day'?Date.now()-86400000:filter==='week'?Date.now()-604800000:Date.now()-2592000000;
+    let entries=Object.entries(raw)
+      .map(([k,v])=>v)
+      .filter(v=>v&&v.ts>=cutoff)
+      .sort((a,b)=>b.ts-a.ts)
+      .slice(0,200);
+    if(!entries.length){ el.innerHTML='<span style="color:#999;font-size:.78rem">אין שינויים בתקופה זו</span>'; return; }
+    const actionIcon={status:'📋',move:'📅',new:'➕',delete:'🗑️',edit:'✏️',invoice:'💰',cancel:'❌'};
+    el.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:.8rem">
+      <thead><tr style="background:#f0f0ff;position:sticky;top:0">
+        <th style="padding:6px 10px;text-align:right">זמן</th>
+        <th style="padding:6px 10px;text-align:right">משתמש</th>
+        <th style="padding:6px 10px;text-align:right">פעולה</th>
+        <th style="padding:6px 10px;text-align:right">נושא</th>
+        <th style="padding:6px 10px;text-align:right">פרט</th>
+      </tr></thead>
+      <tbody>`+entries.map((e,i)=>{
+        const d=new Date(e.ts);
+        const tStr=d.getDate()+'/'+(d.getMonth()+1)+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+        const bg=i%2===0?'#fff':'#f8f8ff';
+        return `<tr style="background:${bg};border-bottom:1px solid #eee">
+          <td style="padding:5px 10px;color:#546e7a;white-space:nowrap">${tStr}</td>
+          <td style="padding:5px 10px;font-weight:700;color:#1a237e">${e.user||'—'}</td>
+          <td style="padding:5px 10px">${actionIcon[e.action]||'•'} ${e.action||''}</td>
+          <td style="padding:5px 10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.target||''}</td>
+          <td style="padding:5px 10px;color:#2e7d32;font-weight:600">${e.detail||''}</td>
+        </tr>`;
+      }).join('')+'</tbody></table>';
+
+    // Auto-prune entries older than 30 days
+    _pruneOldLogs(raw, tok).catch(()=>{});
+  } catch(e){ el.innerHTML='<span style="color:#c62828">שגיאה: '+e.message+'</span>'; }
+}
+
+async function _pruneOldLogs(raw, tok){
+  const cutoff30 = Date.now()-2592000000;
+  const q=tok?'?auth='+tok:'';
+  for(const [k,v] of Object.entries(raw)){
+    if(v&&v.ts<cutoff30){
+      await fetch(`${LOG_DB}/${k}.json${q}`,{method:'DELETE'});
+    }
+  }
+}
+
+function doLogout(){
+  if(!confirm('להתנתק?')) return;
+  if(typeof window._fbSignOut==='function') window._fbSignOut();
 }
