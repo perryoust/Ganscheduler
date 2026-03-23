@@ -9649,12 +9649,10 @@ window._initUsersUI = function _initUsersUI(){
   // Show logout button (desktop)
   const logoutBtn = document.getElementById('logout-btn');
   if(logoutBtn) logoutBtn.style.display = '';
-  // Mobile: show user bar + username
-  const mobUserBar = document.getElementById('mob-user-bar');
-  if(mobUserBar) mobUserBar.style.display = 'block';
-  const mobUsername = document.getElementById('mob-username-display');
+  // Update username display in header
   const uname2 = window._fbUser?.email?.replace('@ganmanager.app','')||'';
-  if(mobUsername) mobUsername.textContent = '👤 ' + uname2;
+  const unameEl2 = document.getElementById('auth-user-name');
+  if(unameEl2 && uname2) unameEl2.textContent = '👤 ' + uname2;
   // Show admin button in mobile nav
   const mobAdminBtn = document.getElementById('mob-admin-btn');
   if(mobAdminBtn) mobAdminBtn.style.display = isAdm ? 'flex' : 'none';

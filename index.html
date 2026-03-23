@@ -504,7 +504,6 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 .mob-hide{display:none}
 @media(max-width:768px){
   #mob-nav{display:block}
-  #mob-user-bar{display:block!important}
   .tabs{display:none!important}
   #tabs-act{display:none!important}
   #tabs-purch{display:none!important}
@@ -816,9 +815,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 </div>
 
 <!-- ACTIVITY TABS -->
-<div style="display:flex;align-items:center;gap:4px">
-  <div id="auth-user-name" style="font-size:.72rem;color:#90caf9;font-weight:700;padding:0 6px;white-space:nowrap;cursor:pointer" onclick="ST('admin')" title="ניהול מערכת"></div>
-  <button id="logout-btn" onclick="doLogout()" style="display:none;background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:4px 9px;cursor:pointer;color:#fff;font-size:.72rem;display:flex;align-items:center;gap:4px" title="התנתק">🚪 <span class="mob-hide">התנתק</span></button>
+<div style="display:flex;align-items:center;gap:2px">
+  <div id="auth-user-name" style="font-size:.76rem;color:#90caf9;font-weight:700;white-space:nowrap;cursor:pointer;background:rgba(255,255,255,.1);border-radius:6px 0 0 6px;padding:5px 9px" onclick="ST('admin')" title="ניהול מערכת"></div>
+  <button id="logout-btn" onclick="doLogout()" style="display:none;background:rgba(255,0,0,.25);border:none;border-radius:0 6px 6px 0;padding:5px 9px;cursor:pointer;color:#ffcdd2;font-size:.74rem;font-weight:700;white-space:nowrap;border-right:1px solid rgba(255,255,255,.15)" title="התנתק">🚪 התנתק</button>
 </div>
 <div class="tabs" id="tabs-act">
   <div class="tab active" onclick="ST('dash')">📊 לוח בקרה</div>
@@ -833,9 +832,6 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="tab active" onclick="SPT('pdash')">📊 לוח בקרה רכש</div>
   <div class="tab" onclick="SPT('pinvoices')">📄 חשבוניות</div>
   <div class="tab" onclick="SPT('psup')">🏢 ניהול ספקים</div>
-</div>
-<div id="mob-user-bar" style="display:none;background:#0d1b4e;padding:5px 14px;font-size:.76rem;color:#90caf9;font-weight:700;text-align:right;border-bottom:1px solid rgba(255,255,255,.1)">
-  <span id="mob-username-display">👤</span>
 </div>
 <div id="mob-nav">
   <div class="mob-nav-inner">
@@ -860,8 +856,8 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <button id="mob-admin-btn" class="mob-nav-btn" onclick="ST('admin');mobNav(this)" style="display:none;color:#6a1b9a;border-right:1px solid #e0e0e0" data-tab="admin">
       <span class="mnb-ico">⚙️</span><span>ניהול</span>
     </button>
-    <button id="mob-logout-btn" class="mob-nav-btn" onclick="doLogout()" style="color:#ef5350" title="התנתק">
-      <span class="mnb-ico" style="font-size:1.4rem">🚪</span><span style="font-weight:700">התנתק</span>
+    <button id="mob-logout-btn" class="mob-nav-btn" onclick="doLogout()" style="color:#ef5350;min-width:72px" title="התנתק">
+      <span class="mnb-ico" style="font-size:1.2rem">🚪</span><span style="font-weight:700;font-size:.62rem">התנתק</span>
     </button>
   </div>
 </div>
@@ -2971,7 +2967,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<script src="data.js?v=77"></script>
-<script src="app.js?v=77"></script>
+<script src="data.js?v=79"></script>
+<script src="app.js?v=79"></script>
 </body>
 </html>
