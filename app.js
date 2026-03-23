@@ -1589,7 +1589,7 @@ function renderPurchSuppliers(){
       const phone=ex.ph1||s.phone||'';
       // Use data-idx to avoid HTML attribute escaping issues with special chars
       const bg=idx%2===0?'#fff':'#f8f9ff';
-      h+=`<tr style="background:${bg};cursor:pointer" onclick="psupOpen(${idx})">`
+      h+=`<tr style="background:${bg};cursor:pointer;border-bottom:2px solid #e8eaf6" onclick="psupOpen(${idx})">`
         +`<td style="padding:6px 10px;font-weight:700;color:#1a237e">${base}`
         +`${isActSupplier(base)?' <span style="font-size:.65rem;color:#2e7d32">🎨</span>':''}`
         +`</td>`
@@ -1607,7 +1607,7 @@ function renderPurchSuppliers(){
   }
 
   // Cards view
-  el.innerHTML=list.map((s,idx)=>{
+  const _cardsHtml=list.map((s,idx)=>{
     const base=s.name;
     const ex=supBaseEx(base);
     const cnt=supBaseCnt(base);
@@ -1637,6 +1637,7 @@ function renderPurchSuppliers(){
       </div>
     </div>`;
   }).join('');
+  el.innerHTML=`<div class="sugrid">${_cardsHtml}</div>`;
 }
 
 function openNewPurchSupplier(){
@@ -2338,7 +2339,7 @@ function navCal(d){
   else if(calV==='list'){
     const lsv=_listSubView||'week';
     if(lsv==='day') calD=addD(calD,d);
-    else if(lsv==='week') calD=addD(calD,d*7);
+    else if(lsv==='week') calD=addD(calD,d*5); // 5 work days
     else calD=addM(calD,d);
   }
   else calD=addM(calD,d);
@@ -2452,8 +2453,14 @@ function renderCal(){
       fromDs=toDs=d2s(calD);
       titleStr='📋 רשימה — '+fD(fromDs)+' '+dayN(fromDs);
     } else if(lsv==='week'){
-      const mon=monStart(calD);
-      fromDs=d2s(mon); toDs=d2s(addD(mon,6));
+      // 5 work days from calD — skip Fri(5)/Sat(6)
+      let _ws=new Date(calD); _ws.setHours(0,0,0,0);
+      if(_ws.getDay()===5) _ws.setDate(_ws.getDate()+2); // Fri → Sun
+      else if(_ws.getDay()===6) _ws.setDate(_ws.getDate()+1); // Sat → Sun
+      // Collect 5 work days
+      let _wd=new Date(_ws), _days=[]; 
+      while(_days.length<5){ if(_wd.getDay()!==5&&_wd.getDay()!==6) _days.push(new Date(_wd)); _wd.setDate(_wd.getDate()+1); }
+      fromDs=d2s(_days[0]); toDs=d2s(_days[4]);
       titleStr='📋 רשימה — שבוע '+fD(fromDs)+' – '+fD(toDs);
     } else { // month
       const y2=calD.getFullYear(),m2=calD.getMonth();
@@ -3363,7 +3370,7 @@ function renderRangeListView(evs, fromDs, toDs){
       const clr=CITY_COLORS(city);
 
       h+=`<div style="margin-bottom:8px">
-        <div style="background:${clr.light};border-right:3px solid ${clr.solid};border-radius:4px;padding:3px 8px;margin-bottom:4px;font-weight:800;color:${clr.solid};font-size:.76rem">
+        <div style="background:${clr.light};border-right:4px solid ${clr.solid};border-radius:6px;padding:5px 10px;margin-bottom:5px;font-weight:800;color:${clr.solid};font-size:.88rem">
           🏙️ ${city} · ${cityEvs.length}
         </div>`;
 
@@ -3467,9 +3474,9 @@ function renderCalList(evs, mDate){
 
       h+=`<div style="margin-bottom:8px">`;
       // City header
-      h+=`<div style="display:flex;align-items:center;gap:6px;padding:3px 8px;margin-bottom:4px;background:${clr.light};border-right:3px solid ${clr.solid};border-radius:4px">
-        <span style="font-weight:800;color:${clr.solid};font-size:.78rem">🏙️ ${city}</span>
-        <span style="font-size:.68rem;color:#78909c">${cityEvs.length} פעילויות</span>
+      h+=`<div style="display:flex;align-items:center;gap:6px;padding:5px 10px;margin-bottom:5px;background:${clr.light};border-right:4px solid ${clr.solid};border-radius:6px">
+        <span style="font-weight:800;color:${clr.solid};font-size:.88rem">🏙️ ${city}</span>
+        <span style="font-size:.72rem;color:#78909c">${cityEvs.length} פעילויות</span>
       </div>`;
 
       // ── Clusters first ──
@@ -9323,4 +9330,12 @@ function dashNavDate(d){
     el.value=d2s(addD(cur,d));
   }
   renderDash();
+}
+
+let _listGroupMode = 'pairs'; // 'pairs' | 'clusters'
+function setListGroupMode(v){
+  _listGroupMode = v;
+  document.getElementById('vlb-group-pairs')?.classList.toggle('active', v==='pairs');
+  document.getElementById('vlb-group-clusters')?.classList.toggle('active', v==='clusters');
+  renderCal();
 }

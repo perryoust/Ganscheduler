@@ -258,8 +258,8 @@ textarea{width:100%;padding:5px;border:1.5px solid #c5cae9;border-radius:6px;fon
 .gc.school{border-right-color:#6a1b9a}
 .gc:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.12)}
 
-.sugrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
-.sucard{background:#fff;border-radius:10px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.sugrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.sucard{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 3px 12px rgba(0,0,0,.09);border:1px solid #e8eaf6;transition:box-shadow .15s}.sucard:hover{box-shadow:0 6px 20px rgba(0,0,0,.13);border-color:#c5cae9}
 
 .pag{display:flex;gap:4px;align-items:center;justify-content:center;margin-top:11px;flex-wrap:wrap}
 .pgbtn{padding:3px 8px;border:1.5px solid #c5cae9;background:#fff;border-radius:5px;cursor:pointer;font-size:.74rem}
@@ -893,12 +893,12 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div class="card" style="margin-bottom:10px">
     <div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
-        <div class="fg" style="flex:1;min-width:150px;display:flex;align-items:flex-end;gap:4px">
-        <div style="flex:1"><label>תאריך</label><input type="date" id="dash-date" onchange="renderDash()" style="width:100%"></div>
-        <button class="btn bs bsm" onclick="dashNavDate(-1)" title="יום קודם" style="min-height:36px;padding:0 10px">◀</button>
-        <button class="btn bs bsm" onclick="dashNavDate(0)" title="היום" style="min-height:36px;padding:0 8px;font-size:.75rem">היום</button>
-        <button class="btn bs bsm" onclick="dashNavDate(1)" title="יום הבא" style="min-height:36px;padding:0 10px">▶</button>
-      </div>
+        <div style="display:flex;align-items:center;gap:4px;flex:1;min-width:150px">
+          <button class="btn bs bsm" onclick="dashNavDate(-1)" title="יום קודם" style="padding:4px 8px">◀</button>
+          <div style="flex:1"><label style="font-size:.72rem;color:#546e7a;display:block;margin-bottom:2px">תאריך</label><input type="date" id="dash-date" onchange="renderDash()" style="width:100%"></div>
+          <button class="btn bs bsm" onclick="dashNavDate(0)" title="היום" style="padding:4px 8px;font-size:.72rem">היום</button>
+          <button class="btn bs bsm" onclick="dashNavDate(1)" title="יום הבא" style="padding:4px 8px">▶</button>
+        </div>
         <button class="flt-toggle" id="dash-flt-btn" onclick="fltToggle('dash-flt','dash-flt-btn')">⚙️ סינון <span class="flt-arrow">▾</span></button>
       </div>
       <div id="dash-flt" class="flt-wrap">
@@ -969,6 +969,11 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
             <button id="vlb-day" class="vbtn active" onclick="setListSubView('day')">📅 יומי</button>
             <button id="vlb-week" class="vbtn" onclick="setListSubView('week')">שבועי</button>
             <button id="vlb-month" class="vbtn" onclick="setListSubView('month')">חודשי</button>
+          </div>
+          <div style="width:1px;height:20px;background:#c5cae9;margin:0 2px"></div>
+          <div style="display:flex;gap:3px;align-items:center">
+            <button id="vlb-group-pairs" class="vbtn active" onclick="setListGroupMode('pairs')" title="קבץ לפי זוגות">🔗 זוגות</button>
+            <button id="vlb-group-clusters" class="vbtn" onclick="setListGroupMode('clusters')" title="קבץ לפי אשכולות">🏘️ אשכולות</button>
           </div>
         </div>
         <div id="cal-range-row" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
@@ -2850,7 +2855,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<script src="data.js?v=51"></script>
-<script src="app.js?v=51"></script>
+<script src="data.js?v=54"></script>
+<script src="app.js?v=54"></script>
 </body>
 </html>
