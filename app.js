@@ -787,7 +787,10 @@ function deleteInvoiceFromModal(){
 function resetInvFilter(){
   const ids = ['pi-srch','pi-from','pi-to'];
   ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  const stEl=document.getElementById('pi-status'); if(stEl) stEl.value='';
+  document.querySelectorAll('.pi-st-cb').forEach(cb=>cb.checked=false);
+  const allCb=document.getElementById('pi-st-all'); if(allCb) allCb.checked=false;
+  _setPiStLabel();
+  try{ localStorage.removeItem(PI_ST_KEY); }catch(e){}
   const sortEl=document.getElementById('pi-sort'); if(sortEl) sortEl.value='desc';
   renderInvoices();
 }
@@ -1330,7 +1333,8 @@ function renderInvoices(){
     dl.innerHTML=supNames.map(n=>`<option value="${n}">`).join('');
   }
   const srch = (document.getElementById('pi-srch')?.value||'').toLowerCase();
-  const stf  = document.getElementById('pi-status')?.value||'';
+  // Multi-select status filter
+  const stfArr = _getPiStSelected ? _getPiStSelected() : [];
   const supf = ''; // merged into srch
   const from = document.getElementById('pi-from')?.value||'';
   const to   = document.getElementById('pi-to')?.value||'';
@@ -1344,9 +1348,11 @@ function renderInvoices(){
     (i.orderDesc||'').toLowerCase().includes(srch)||
     (i.cancelReason||'').toLowerCase().includes(srch)
   );
-  if(stf){
-    // tax_receipt is its own status; others use _migrateInvStatus
-    list = list.filter(i=> stf==='tax_receipt' ? i.status==='tax_receipt' : _migrateInvStatus(i.status)===stf);
+  if(stfArr.length){
+    list = list.filter(i=>{
+      const st = _migrateInvStatus(i.status);
+      return stfArr.some(f=> f==='tax_receipt' ? i.status==='tax_receipt' : st===f);
+    });
   }
   if(from) list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')>=from);
   if(to)   list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')<=to);
@@ -3363,12 +3369,12 @@ function renderRangeListView(evs, fromDs, toDs){
 
       // ── Clusters for this date/city ──
       const dayClusters=(typeof getClusters==='function'?getClusters():[]).filter(cl=>{
-        return (cl.city===city||!cl.city) && (cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===gid));
+        return (cl.city===city||!cl.city) && (cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===parseInt(gid)));
       });
       const clusteredGids=new Set();
       if(dayClusters.length){
         dayClusters.forEach(cl=>{
-          const clEvs=cityEvs.filter(s=>(cl.gardenIds||[]).includes(s.g))
+          const clEvs=cityEvs.filter(s=>(cl.gardenIds||[]).map(x=>parseInt(x)).includes(s.g))
             .sort((a,b)=>(G(a.g).name||'').localeCompare(G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
           if(!clEvs.length) return;
           clEvs.forEach(s=>clusteredGids.add(s.g));
@@ -3471,7 +3477,7 @@ function renderCalList(evs, mDate){
         (cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===gid)));
       const clusteredGidsC=new Set();
       clAll.forEach(cl=>{
-        const clEvs=cityEvs.filter(s=>(cl.gardenIds||[]).includes(s.g))
+        const clEvs=cityEvs.filter(s=>(cl.gardenIds||[]).map(x=>parseInt(x)).includes(s.g))
           .sort((a,b)=>(G(a.g).name||'').localeCompare(G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
         if(!clEvs.length) return;
         clEvs.forEach(s=>clusteredGidsC.add(s.g));
@@ -3532,10 +3538,12 @@ function renderCalList(evs, mDate){
 function _listRow(s, clr){
   const g=G(s.g);
   const stC=s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':'#333';
+  const addrLink=g.st?`<a href="https://maps.google.com/?q=${encodeURIComponent(g.st+' '+g.city)}" target="_blank" onclick="event.stopPropagation()" style="font-size:.63rem;color:#1565c0;text-decoration:none">📍 ${g.st}</a>`:'';
   return `<div style="display:grid;grid-template-columns:120px 1fr auto auto auto;align-items:center;gap:5px;padding:3px 6px;border-radius:4px;margin-bottom:2px;background:${s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light};border-right:3px solid ${clr.solid};cursor:pointer" onclick="openSP(${s.id})">
     <div>
       <div style="font-weight:700;font-size:.75rem;color:#1a237e">${g.name}</div>
       <div style="font-size:.65rem;color:#78909c">${s.t?'⏰ '+fT(s.t):''}</div>
+      ${addrLink}
     </div>
     <div>
       <div style="font-size:.75rem;font-weight:600;color:#1565c0">${supBase(s.a)}${s.act?' — <span style="color:#546e7a">'+s.act+'</span>':''}</div>
@@ -9230,3 +9238,78 @@ async function mobileQuickSync(){
     odToggle();
   }
 }
+
+// ── Invoice status multi-select filter ────────────────────────
+const PI_ST_KEY = 'pi_status_filter';
+
+function _getPiStSelected(){
+  return [...document.querySelectorAll('.pi-st-cb:checked')].map(c=>c.value);
+}
+
+function _setPiStLabel(){
+  const sel = _getPiStSelected();
+  const lbl = document.getElementById('pi-status-label');
+  if(!lbl) return;
+  const names = {'order':'הזמנה','tx_invoice':'חשבונית עסקה','tax_invoice':'חשבונית מס','tax_receipt':'חשבונית מס קבלה','receipt':'קבלה','cancelled':'מבוטל'};
+  if(!sel.length) lbl.textContent='הכל';
+  else if(sel.length===1) lbl.textContent=names[sel[0]]||sel[0];
+  else lbl.textContent=`${sel.length} סטטוסים`;
+}
+
+function piStChange(){
+  // If all 6 checked → show "הכל"
+  const all = document.querySelectorAll('.pi-st-cb');
+  const checked = document.querySelectorAll('.pi-st-cb:checked');
+  const allCb = document.getElementById('pi-st-all');
+  if(allCb) allCb.checked = checked.length === all.length;
+  _setPiStLabel();
+  // Save to localStorage
+  try{ localStorage.setItem(PI_ST_KEY, JSON.stringify(_getPiStSelected())); }catch(e){}
+  renderInvoices();
+}
+
+function piStAll(cb){
+  document.querySelectorAll('.pi-st-cb').forEach(c=>c.checked=cb.checked);
+  _setPiStLabel();
+  try{ localStorage.setItem(PI_ST_KEY, JSON.stringify(cb.checked?[]:[])); }catch(e){}
+  renderInvoices();
+}
+
+function togglePiStatusMenu(){
+  const menu = document.getElementById('pi-status-menu');
+  if(!menu) return;
+  const isOpen = menu.style.display !== 'none';
+  if(isOpen){ menu.style.display='none'; return; }
+  menu.style.display='block';
+  // Close on outside click
+  setTimeout(()=>{
+    function close(e){
+      const btn=document.getElementById('pi-status-btn');
+      if(!menu.contains(e.target)&&!btn?.contains(e.target)){
+        menu.style.display='none';
+        document.removeEventListener('click',close);
+      }
+    }
+    document.addEventListener('click',close);
+  },10);
+}
+
+function initPiStatusFilter(){
+  // Load saved selection
+  try{
+    const saved = JSON.parse(localStorage.getItem(PI_ST_KEY)||'null');
+    if(saved && Array.isArray(saved) && saved.length>0){
+      document.querySelectorAll('.pi-st-cb').forEach(cb=>{
+        cb.checked = saved.includes(cb.value);
+      });
+    } else {
+      // Default: all unchecked = show all
+    }
+  }catch(e){}
+  _setPiStLabel();
+}
+
+// Call after DOM ready
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', initPiStatusFilter);
+} else { initPiStatusFilter(); }

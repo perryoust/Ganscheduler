@@ -1509,16 +1509,36 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <input type="text" id="pi-srch" list="pi-sup-list" placeholder="ספק / מס' מסמך / פירוט..." oninput="renderInvoices()" style="min-width:220px">
         <datalist id="pi-sup-list"></datalist>
       </div>
-      <div class="fg"><label>סטטוס</label>
-        <select id="pi-status" onchange="renderInvoices()">
-          <option value="">הכל</option>
-          <option value="order">📋 הזמנה</option>
-          <option value="tx_invoice">🧾 חשבונית עסקה</option>
-          <option value="tax_invoice">📑 חשבונית מס</option>
-          <option value="tax_receipt">📑🧾 חשבונית מס קבלה</option>
-          <option value="receipt">📄 קבלה</option>
-          <option value="cancelled">❌ מבוטל</option>
-        </select>
+      <div class="fg" style="position:relative">
+        <label>סטטוס</label>
+        <div id="pi-status-btn" onclick="togglePiStatusMenu()" style="border:1.5px solid #c5cae9;border-radius:6px;padding:7px 10px;cursor:pointer;background:#fff;font-size:.82rem;display:flex;justify-content:space-between;align-items:center;min-width:160px;user-select:none">
+          <span id="pi-status-label">הכל</span>
+          <span style="font-size:.7rem;color:#999">▾</span>
+        </div>
+        <div id="pi-status-menu" style="display:none;position:absolute;top:calc(100% + 2px);right:0;z-index:999;background:#fff;border:1.5px solid #c5cae9;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.13);padding:6px 4px;min-width:190px;direction:rtl">
+          <label style="display:flex;align-items:center;gap:7px;padding:5px 10px;cursor:pointer;border-radius:5px;font-size:.82rem" onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background=''">
+            <input type="checkbox" value="" id="pi-st-all" onchange="piStAll(this)"> הכל
+          </label>
+          <hr style="margin:3px 8px;border:none;border-top:1px solid #e8eaf6">
+          <label style="display:flex;align-items:center;gap:7px;padding:5px 10px;cursor:pointer;border-radius:5px;font-size:.82rem" onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background=''">
+            <input type="checkbox" value="order" class="pi-st-cb" onchange="piStChange()"> 📋 הזמנה
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;padding:5px 10px;cursor:pointer;border-radius:5px;font-size:.82rem" onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background=''">
+            <input type="checkbox" value="tx_invoice" class="pi-st-cb" onchange="piStChange()"> 🧾 חשבונית עסקה
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;padding:5px 10px;cursor:pointer;border-radius:5px;font-size:.82rem" onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background=''">
+            <input type="checkbox" value="tax_invoice" class="pi-st-cb" onchange="piStChange()"> 📑 חשבונית מס
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;padding:5px 10px;cursor:pointer;border-radius:5px;font-size:.82rem" onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background=''">
+            <input type="checkbox" value="tax_receipt" class="pi-st-cb" onchange="piStChange()"> 📑🧾 חשבונית מס קבלה
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;padding:5px 10px;cursor:pointer;border-radius:5px;font-size:.82rem" onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background=''">
+            <input type="checkbox" value="receipt" class="pi-st-cb" onchange="piStChange()"> 📄 קבלה
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;padding:5px 10px;cursor:pointer;border-radius:5px;font-size:.82rem" onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background=''">
+            <input type="checkbox" value="cancelled" class="pi-st-cb" onchange="piStChange()"> ❌ מבוטל
+          </label>
+        </div>
       </div>
       <div class="fg"><label>מתאריך</label><input type="date" id="pi-from" onchange="renderInvoices()"></div>
       <div class="fg"><label>עד תאריך</label><input type="date" id="pi-to" onchange="renderInvoices()"></div>
@@ -2832,7 +2852,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<script src="data.js?v=45"></script>
-<script src="app.js?v=45"></script>
+<script src="data.js?v=49"></script>
+<script src="app.js?v=49"></script>
 </body>
 </html>
