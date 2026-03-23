@@ -9313,3 +9313,14 @@ function initPiStatusFilter(){
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded', initPiStatusFilter);
 } else { initPiStatusFilter(); }
+
+function dashNavDate(d){
+  const el=document.getElementById('dash-date');
+  if(!el) return;
+  if(d===0){ el.value=td(); }
+  else {
+    const cur=el.value?s2d(el.value):new Date();
+    el.value=d2s(addD(cur,d));
+  }
+  renderDash();
+}

@@ -860,47 +860,45 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <!-- ====== DASHBOARD ====== -->
 <div id="p-dash" class="panel active">
   <!-- Quick stats -->
-  <div id="dash-stat-boxes" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">
-    <div onclick="ST('gardens')" style="background:#e8eaf6;border-radius:8px;padding:5px 10px;cursor:pointer;text-align:center;flex:1;min-width:80px">
-      <div style="font-size:1.3rem">🏫</div>
-      <div style="font-weight:800;color:#1a237e;font-size:1rem" id="d-gardens">125</div>
-      <div style="font-size:.7rem;color:#546e7a">צהרונים</div>
+  <div id="dash-stat-boxes" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
+    <div onclick="ST('gardens')" style="background:#e8eaf6;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
+      <span style="font-size:1.5rem">🏫</span>
+      <div><div style="font-weight:800;color:#1a237e;font-size:1.1rem;line-height:1" id="d-gardens">125</div><div style="font-size:.65rem;color:#546e7a">צהרונים</div></div>
     </div>
-    <div onclick="goToTodayActivities()" style="background:#e3f2fd;border-radius:8px;padding:5px 10px;cursor:pointer;text-align:center;flex:1;min-width:80px">
-      <div style="font-size:1.3rem">📅</div>
-      <div style="font-weight:800;color:#1565c0;font-size:1rem" id="d-total">0</div>
-      <div style="font-size:.7rem;color:#546e7a">כל הפעילויות</div>
+    <div onclick="goToTodayActivities()" style="background:#e3f2fd;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
+      <span style="font-size:1.5rem">📅</span>
+      <div><div style="font-weight:800;color:#1565c0;font-size:1.1rem;line-height:1" id="d-total">0</div><div style="font-size:.65rem;color:#546e7a">כל הפעילויות</div></div>
     </div>
-    <div onclick="goToCancelled()" style="background:#ffebee;border-radius:8px;padding:5px 10px;cursor:pointer;text-align:center;flex:1;min-width:80px">
-      <div style="font-size:1.3rem">❌</div>
-      <div style="font-weight:800;color:#c62828;font-size:1rem" id="d-can">0</div>
-      <div style="font-size:.7rem;color:#546e7a">בוטלו</div>
+    <div onclick="goToCancelled()" style="background:#ffebee;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
+      <span style="font-size:1.5rem">❌</span>
+      <div><div style="font-weight:800;color:#c62828;font-size:1.1rem;line-height:1" id="d-can">0</div><div style="font-size:.65rem;color:#546e7a">בוטלו</div></div>
     </div>
-    <div onclick="goToPostponed()" style="background:#fff8e1;border-radius:8px;padding:5px 10px;cursor:pointer;text-align:center;flex:1;min-width:80px">
-      <div style="font-size:1.3rem">⏩</div>
-      <div style="font-weight:800;color:#e65100;font-size:1rem" id="d-post">0</div>
-      <div style="font-size:.7rem;color:#546e7a">נדחו</div>
+    <div onclick="goToPostponed()" style="background:#fff8e1;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
+      <span style="font-size:1.5rem">⏩</span>
+      <div><div style="font-weight:800;color:#e65100;font-size:1.1rem;line-height:1" id="d-post">0</div><div style="font-size:.65rem;color:#546e7a">נדחו</div></div>
     </div>
-    <div onclick="goToNoHap()" style="background:#fce4ec;border-radius:8px;padding:5px 10px;cursor:pointer;text-align:center;flex:1;min-width:80px">
-      <div style="font-size:1.3rem">⚠️</div>
-      <div style="font-weight:800;color:#e91e63;font-size:1rem" id="d-nohap">0</div>
-      <div style="font-size:.7rem;color:#546e7a">לא התקיים</div>
+    <div onclick="goToNoHap()" style="background:#fce4ec;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
+      <span style="font-size:1.5rem">⚠️</span>
+      <div><div style="font-weight:800;color:#e91e63;font-size:1.1rem;line-height:1" id="d-nohap">0</div><div style="font-size:.65rem;color:#546e7a">לא התקיים</div></div>
     </div>
-    <div onclick="ST('gardens');setGardensTab('pairs')" style="background:#e8f5e9;border-radius:8px;padding:5px 10px;cursor:pointer;text-align:center;flex:1;min-width:80px">
-      <div style="font-size:1.3rem">🔗</div>
-      <div style="font-weight:800;color:#2e7d32;font-size:1rem" id="d-pairs">0</div>
-      <div style="font-size:.7rem;color:#546e7a">זוגות</div>
+    <div onclick="ST('gardens');setGardensTab('pairs')" style="background:#e8f5e9;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
+      <span style="font-size:1.5rem">🔗</span>
+      <div><div style="font-weight:800;color:#2e7d32;font-size:1.1rem;line-height:1" id="d-pairs">0</div><div style="font-size:.65rem;color:#546e7a">זוגות</div></div>
     </div>
-    <div onclick="goToTodayCal()" style="background:#fff3e0;border-radius:8px;padding:5px 10px;cursor:pointer;text-align:center;flex:1;min-width:80px">
-      <div style="font-size:1.3rem">📆</div>
-      <div style="font-weight:800;color:#e65100;font-size:1rem" id="d-today-cnt">—</div>
-      <div style="font-size:.7rem;color:#546e7a">פעילויות היום</div>
+    <div onclick="goToTodayCal()" style="background:#fff3e0;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
+      <span style="font-size:1.5rem">📆</span>
+      <div><div style="font-weight:800;color:#e65100;font-size:1.1rem;line-height:1" id="d-today-cnt">—</div><div style="font-size:.65rem;color:#546e7a">פעילויות היום</div></div>
     </div>
   </div>
   <div class="card" style="margin-bottom:10px">
     <div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
-        <div class="fg" style="flex:1;min-width:150px"><label>תאריך</label><input type="date" id="dash-date" onchange="renderDash()" style="width:100%"></div>
+        <div class="fg" style="flex:1;min-width:150px;display:flex;align-items:flex-end;gap:4px">
+        <div style="flex:1"><label>תאריך</label><input type="date" id="dash-date" onchange="renderDash()" style="width:100%"></div>
+        <button class="btn bs bsm" onclick="dashNavDate(-1)" title="יום קודם" style="min-height:36px;padding:0 10px">◀</button>
+        <button class="btn bs bsm" onclick="dashNavDate(0)" title="היום" style="min-height:36px;padding:0 8px;font-size:.75rem">היום</button>
+        <button class="btn bs bsm" onclick="dashNavDate(1)" title="יום הבא" style="min-height:36px;padding:0 10px">▶</button>
+      </div>
         <button class="flt-toggle" id="dash-flt-btn" onclick="fltToggle('dash-flt','dash-flt-btn')">⚙️ סינון <span class="flt-arrow">▾</span></button>
       </div>
       <div id="dash-flt" class="flt-wrap">
@@ -2852,7 +2850,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<script src="data.js?v=49"></script>
-<script src="app.js?v=49"></script>
+<script src="data.js?v=50"></script>
+<script src="app.js?v=50"></script>
 </body>
 </html>
