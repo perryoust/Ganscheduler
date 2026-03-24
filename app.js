@@ -1529,13 +1529,15 @@ function renderInvoices(){
     const hasOrder = inv.orderNum;
     const hasTx    = inv.txNum;
     const hasTax   = inv.num;
-    const mkFileBtn = (sec, hasDoc) => {
+    // docNum: the actual number string for this section
+    const mkFileBtn = (sec, docNum) => {
       const meta = inv['file_'+sec];
       if(meta && meta.path){
         const name = _extractNameFromUrl(meta.path)||meta.name||'פתח';
         return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${inv.id},'${sec}')" title="${name}">📎 ${name} ↗</span>`;
       }
-      if(hasDoc){
+      // Only show "עדכן קישור" if the doc number contains at least one digit
+      if(docNum && /\d/.test(docNum)){
         return `<span style="display:inline-flex;align-items:center;gap:2px;background:#fff8e1;border:1px solid #ffe082;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice(${inv.id})" title="עדכן קישור לקובץ">📎 עדכן קישור</span>`;
       }
       return '';
@@ -1545,10 +1547,10 @@ function renderInvoices(){
         <div style="font-weight:700;color:#1a237e;font-size:.83rem">${inv.supName||''}</div>
         <div style="font-size:.67rem;color:#999;margin-top:2px">${(supEx[inv.supName]||{}).entityType||''}</div>
       </td>
-      <td style="font-size:.75rem;line-height:1.8;padding:8px">
-        ${hasOrder?`<div><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.orderNum}</b>${inv.orderDate?' · '+fD(inv.orderDate):''}</div>${mkFileBtn('order',true)?`<div style="margin-bottom:4px">${mkFileBtn('order',true)}</div>`:''}`:''}
-        ${hasTx?`<div><span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.txNum}</b>${inv.txDate?' · '+fD(inv.txDate):''}</div>${mkFileBtn('tx',true)?`<div style="margin-bottom:4px">${mkFileBtn('tx',true)}</div>`:''}`:''}
-        ${hasTax?`<div><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">📑</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.num}</b>${inv.date?' · '+fD(inv.date):''}</div>${mkFileBtn('tax',true)?`<div style="margin-bottom:4px">${mkFileBtn('tax',true)}</div>`:''}`:''}
+      <td style="font-size:.75rem;line-height:2;padding:8px">
+        ${hasOrder?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.orderNum}</b>${inv.orderDate?'<span style="color:#999"> · '+fD(inv.orderDate)+'</span>':''} ${mkFileBtn('order',inv.orderNum)}</div>`:''}
+        ${hasTx?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.txNum}</b>${inv.txDate?'<span style="color:#999"> · '+fD(inv.txDate)+'</span>':''} ${mkFileBtn('tx',inv.txNum)}</div>`:''}
+        ${hasTax?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">📑</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.num}</b>${inv.date?'<span style="color:#999"> · '+fD(inv.date)+'</span>':''} ${mkFileBtn('tax',inv.num)}</div>`:''}
       </td>
       <td style="font-size:.75rem;color:#37474f;padding:8px">
         ${inv.orderDesc||''}
