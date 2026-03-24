@@ -139,29 +139,6 @@ async function _processFirebaseLoad(r, silent, force) {
   _safeLS.setItem('ganv5_local_ts', String(cloudTs));
   window._fbAppData = appData; // in-memory reference, no JSON needed
 
-  // Load invoices from separate /data/invoices path (used during import)
-  // If main data has few invoices but separate path has more, use that
-  try {
-    const _iTok = window._cachedToken;
-    if(_iTok){
-      const _iR = await fetch(
-        'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+_iTok
-      );
-      if(_iR.ok){
-        const _iD = await _iR.json();
-        if(_iD && typeof _iD==='object'){
-          const _iCount = Array.isArray(_iD) ? _iD.length : Object.keys(_iD).length;
-          const _mainCount = Array.isArray(appData.invoices) ? appData.invoices.length
-            : Object.keys(appData.invoices||{}).length;
-          if(_iCount > _mainCount){
-            console.log('Loading invoices from separate path:', _iCount);
-            appData.invoices = Array.isArray(_iD) ? _iD : Object.values(_iD);
-          }
-        }
-      }
-    }
-  } catch(e){ console.warn('Separate invoices load failed:', e); }
-
   // Apply data DIRECTLY to memory — does NOT rely on localStorage
   if (typeof _applyYearData === 'function') {
     try {
@@ -2715,6 +2692,30 @@ window.onload = function(){
     if(_inv === 0 && window._fbLastKnownInvoiceCount > 0){
       showToast('⚠️ חשבוניות לא נטענו! לחץ Firebase → טען עכשיו');
     }
+    // Load separate invoices if main data has fewer (one-time migration)
+    try{
+      const _iTok = window._cachedToken;
+      if(_iTok){
+        const _iR = await fetch(
+          'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+_iTok
+        );
+        if(_iR.ok){
+          const _iD = await _iR.json();
+          if(_iD && typeof _iD==='object'){
+            const _iArr = Array.isArray(_iD) ? _iD : Object.values(_iD);
+            if(_iArr.length > INVOICES.length){
+              console.log('Merging separate invoices:', _iArr.length, '>', INVOICES.length);
+              INVOICES = _iArr;
+              window._fbLastKnownInvoiceCount = _iArr.length;
+              renderInvoices(); refreshPurchDash();
+              // Now save merged data back to main path so next load works
+              setTimeout(()=>save(true), 2000);
+            }
+          }
+        }
+      }
+    } catch(e){ console.warn('Separate invoices merge failed:', e); }
+
     _fbStartPolling();
     setTimeout(_fitScrollAreas, 100);
     // Init user management UI (admin only)
