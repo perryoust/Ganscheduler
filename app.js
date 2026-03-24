@@ -1011,7 +1011,12 @@ function openNewInvoice(id, presetSup){
   // Cancel reason
   const crEl = document.getElementById('inv-cancel-reason'); if(crEl) crEl.value=inv?(inv.cancelReason||''):'';
   // Recv date (relabeled to "תאריך טיפול")
-  document.getElementById('inv-recv').value = inv ? (inv.recv||'') : new Date().toISOString().slice(0,10);
+  // תאריך טיפול: תמיד עדכן להיום, אלא אם המשתמש הכניס תאריך שונה ידנית
+  const _today = new Date().toISOString().slice(0,10);
+  const _savedRecv = inv ? (inv.recv||'') : '';
+  const _savedTs   = inv ? (inv.ts   ? new Date(inv.ts).toISOString().slice(0,10) : '') : '';
+  // If saved date equals last-save date (i.e. was auto-set), replace with today
+  document.getElementById('inv-recv').value = (_savedRecv && _savedRecv !== _savedTs) ? _savedRecv : _today;
   document.getElementById('inv-notes').value = inv ? (inv.notes||'')  : '';
   // VAT settings row hidden by default
   const vsRow = document.getElementById('vat-settings-row');
