@@ -1558,7 +1558,7 @@ function openInvExportModal(){
   _ov.querySelector('#iex-export').addEventListener('click', ()=>{ _doExportInvXlsx(); _removeOverlay('inv-export-overlay'); });
 }
 
-function _doExportInvXlsx(){
+async function _doExportInvXlsx(){
   const from   = document.getElementById('iex-from')?.value||'';
   const to     = document.getElementById('iex-to')?.value||'';
   const supF   = (document.getElementById('iex-sup')?.value||'').toLowerCase();
@@ -1611,72 +1611,91 @@ function _doExportInvXlsx(){
 
   if(!rows.length){ showToast('⚠️ אין נתונים לייצוא'); return; }
 
-  const headers = Object.keys(rows[0]);
-  const ws = XLSX.utils.json_to_sheet(rows, {header: headers});
+  if(typeof ExcelJS === 'undefined'){ showToast('⚠️ ExcelJS לא טעון, נסה שוב'); return; }
 
-  // ── Column widths ──
+  const headers = ['#', ...Object.keys(rows[0])];
   const colWidths = {
-    'מספר הזמנה':14, 'תאריך הזמנה':13, 'שם הספק':20, 'פירוט':28,
-    'סיווג הרכישה':14, 'שיוך הרכישה':16, 'חודש פעילות':13, 'עיר':12,
-    'סוג מוסד':12, 'שם גן-ביהס':20, 'סהכ הזמנה כולל מעמ':16,
-    'הערות הזמנה':20, 'מס חשבון עסקה':14, 'תאריך חשבון עסקה':13,
-    'סכום עסקה לפני מעמ':16, 'סכום עסקה כולל מעמ':16,
-    'מס חשבונית / קבלה':14, 'תאריך חשבונית':13,
-    'סכום חשבונית לפני מעמ':17, 'סכום חשבונית כולל מעמ':17, 'הערות':20
+    '#':5,
+    'מספר הזמנה':16, 'תאריך הזמנה':14, 'שם הספק':22, 'פירוט':30,
+    'סיווג הרכישה':15, 'שיוך הרכישה':17, 'חודש פעילות':14, 'עיר':13,
+    'סוג מוסד':13, 'שם גן-ביהס':22, 'סהכ הזמנה כולל מעמ':17,
+    'הערות הזמנה':22, 'מס חשבון עסקה':16, 'תאריך חשבון עסקה':14,
+    'סכום עסקה לפני מעמ':17, 'סכום עסקה כולל מעמ':17,
+    'מס חשבונית / קבלה':16, 'תאריך חשבונית':14,
+    'סכום חשבונית לפני מעמ':18, 'סכום חשבונית כולל מעמ':18, 'הערות':22
   };
-  ws['!cols'] = headers.map(h=>({wch: colWidths[h]||14}));
 
-  // ── RTL sheet view ──
-  ws['!views'] = [{rightToLeft: true}];
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'GanManager';
+  const ws = wb.addWorksheet('חשבוניות', {
+    views: [{rightToLeft: true, state: 'frozen', ySplit: 1}]
+  });
 
-  // ── Style header row — bold + fill ──
-  const numRows = rows.length;
-  const numCols = headers.length;
-  // Apply bold to header row (row 0)
-  for(let c=0; c<numCols; c++){
-    const addr = XLSX.utils.encode_cell({r:0, c});
-    if(!ws[addr]) continue;
-    ws[addr].s = {
-      font: {bold:true, color:{rgb:'FFFFFF'}, sz:10},
-      fill: {fgColor:{rgb:'1A237E'}, patternType:'solid'},
-      alignment: {horizontal:'right', vertical:'center', wrapText:true},
-      border: {
-        top:{style:'thin',color:{rgb:'BBBBBB'}},
-        bottom:{style:'thin',color:{rgb:'BBBBBB'}},
-        left:{style:'thin',color:{rgb:'BBBBBB'}},
-        right:{style:'thin',color:{rgb:'BBBBBB'}}
-      }
+  // Columns
+  ws.columns = headers.map(h => ({
+    header: h,
+    key: h,
+    width: colWidths[h] || 14
+  }));
+
+  // Header row style
+  const headerRow = ws.getRow(1);
+  headerRow.height = 22;
+  headerRow.eachCell(cell => {
+    cell.font   = {bold: true, color: {argb: 'FFFFFFFF'}, size: 10, name: 'Arial'};
+    cell.fill   = {type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF1A237E'}};
+    cell.alignment = {horizontal: 'right', vertical: 'middle', readingOrder: 'rightToLeft'};
+    cell.border = {
+      top:{style:'thin',color:{argb:'FF9E9E9E'}},
+      bottom:{style:'medium',color:{argb:'FF9E9E9E'}},
+      left:{style:'thin',color:{argb:'FF9E9E9E'}},
+      right:{style:'thin',color:{argb:'FF9E9E9E'}}
     };
-  }
-  // Style data rows — alternating fill + borders + right-align
-  for(let r=1; r<=numRows; r++){
-    const fill = r%2===0 ? {fgColor:{rgb:'EEF2FF'}, patternType:'solid'} : {fgColor:{rgb:'FFFFFF'}, patternType:'solid'};
-    for(let c=0; c<numCols; c++){
-      const addr = XLSX.utils.encode_cell({r, c});
-      if(!ws[addr]) ws[addr] = {t:'z', v:''};
-      ws[addr].s = {
-        fill,
-        alignment: {horizontal:'right', vertical:'center', wrapText:false},
-        border: {
-          top:{style:'thin',color:{rgb:'DDDDDD'}},
-          bottom:{style:'thin',color:{rgb:'DDDDDD'}},
-          left:{style:'thin',color:{rgb:'DDDDDD'}},
-          right:{style:'thin',color:{rgb:'DDDDDD'}}
-        }
+  });
+
+  // Data rows
+  rows.forEach((r, idx) => {
+    const rowData = {'#': idx+1, ...r};
+    const dataRow = ws.addRow(headers.map(h => rowData[h] ?? ''));
+    dataRow.height = 18;
+    const isEven = (idx % 2 === 1);
+    dataRow.eachCell({includeEmpty: true}, cell => {
+      cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb: isEven ? 'FFEEF2FF' : 'FFFFFFFF'}};
+      cell.alignment = {horizontal:'right', vertical:'middle', readingOrder:'rightToLeft'};
+      cell.font = {size: 9.5, name: 'Arial'};
+      cell.border = {
+        top:   {style:'hair', color:{argb:'FFDDDDDD'}},
+        bottom:{style:'hair', color:{argb:'FFDDDDDD'}},
+        left:  {style:'hair', color:{argb:'FFDDDDDD'}},
+        right: {style:'hair', color:{argb:'FFDDDDDD'}}
       };
-    }
-  }
+    });
+  });
 
-  // ── Table / AutoFilter ──
-  ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:0,c:0},e:{r:numRows,c:numCols-1}})};
+  // AutoFilter
+  ws.autoFilter = {
+    from: {row:1, column:1},
+    to:   {row:1, column:headers.length}
+  };
 
-  // ── Freeze header row ──
-  ws['!freeze'] = {xSplit:0, ySplit:1, topLeftCell:'A2', activePane:'bottomLeft'};
+  // Table
+  ws.addTable({
+    name: 'InvoicesTable',
+    ref: 'A1',
+    headerRow: true,
+    totalsRow: false,
+    style: {theme:'TableStyleMedium2', showRowStripes:true},
+    columns: headers.map(h=>({name:h, filterButton:true})),
+    rows: rows.map((r,idx)=>headers.map(h=>h==='#'?idx+1:(r[h]??'')))
+  });
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'חשבוניות');
   const dateStr = new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb, 'חשבוניות_'+dateStr+'.xlsx', {cellStyles:true});
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'חשבוניות_'+dateStr+'.xlsx';
+  a.click();
   showToast('✅ קובץ אקסל הורד בהצלחה');
 }
 function renderInvoices(){
