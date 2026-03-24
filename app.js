@@ -1531,13 +1531,14 @@ function renderInvoices(){
     const hasTax   = inv.num;
     // docNum: the actual number string for this section
     const mkFileBtn = (sec, docNum) => {
+      // If order number contains no digits (e.g. "חוגים") — no badge at all for order
+      if(!docNum || (sec==='order' && !/\d/.test(docNum))) return '';
       const meta = inv['file_'+sec];
       if(meta && meta.path){
         const name = _extractNameFromUrl(meta.path)||meta.name||'פתח';
         return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${inv.id},'${sec}')" title="${name}">📎 ${name} ↗</span>`;
       }
-      // Only show "עדכן קישור" if the doc number contains at least one digit
-      if(docNum && /\d/.test(docNum)){
+      if(/\d/.test(docNum)){
         return `<span style="display:inline-flex;align-items:center;gap:2px;background:#fff8e1;border:1px solid #ffe082;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice(${inv.id})" title="עדכן קישור לקובץ">📎 עדכן קישור</span>`;
       }
       return '';
@@ -1628,15 +1629,19 @@ function refreshPurchDash(){
       const dateStr=i.orderDate||i.txDate||i.date||'';
       const mkDashDoc = (icon, docNum, sec) => {
         if(!docNum) return '';
+        // If order number contains no digits (e.g. "חוגים") — show label only, no badge
+        const showBadge = !(sec==='order' && !/\d/.test(docNum));
         const meta = i['file_'+sec];
         let badge = '';
-        if(meta && meta.path){
-          const name = _extractNameFromUrl(meta.path)||meta.name||'פתח';
-          badge = `<span style="display:inline-flex;align-items:center;gap:2px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${i.id},'${sec}')" title="${name}">📎 ${name} ↗</span>`;
-        } else if(/\d/.test(docNum)){
-          badge = `<span style="display:inline-flex;align-items:center;background:#fff8e1;border:1px solid #ffe082;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice(${i.id})">📎 עדכן קישור</span>`;
+        if(showBadge){
+          if(meta && meta.path){
+            const name = _extractNameFromUrl(meta.path)||meta.name||'פתח';
+            badge = `<span style="display:inline-flex;align-items:center;gap:2px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${i.id},'${sec}')" title="${name}">📎 ${name} ↗</span>`;
+          } else if(/\d/.test(docNum)){
+            badge = `<span style="display:inline-flex;align-items:center;background:#fff8e1;border:1px solid #ffe082;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice(${i.id})">📎 עדכן קישור</span>`;
+          }
         }
-        return `<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">${icon} ${docNum} ${badge}</div>`;
+        return `<div style="display:flex;align-items:center;gap:4px;white-space:nowrap">${icon} ${docNum} ${badge}</div>`;
       };
       const docs = [
         mkDashDoc('📋',i.orderNum,'order'),
