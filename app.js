@@ -194,6 +194,7 @@ async function loadFromFirebase(silent, force) {
 
 // ── Save to Firebase ──────────────────────────
 async function saveToFirebase(silent) {
+  if(window._importInProgress) return; // blocked during import
   // Safety: don't save in first 2 seconds after page load (initialization window)
   if(Date.now() - (window._appStartTime||0) < 2000){
     console.warn('saveToFirebase: skipped (within startup window)');
@@ -1599,6 +1600,7 @@ async function _runOneTimeImport(){
   if(!confirm('ייבא 1783 מסמכים חד-פעמי?')) return;
   const btn = document.getElementById('one-time-import-btn');
   if(btn){ btn.disabled=true; btn.textContent='⏳ מייבא...'; }
+  window._importInProgress = true;
 
   const dupKeys = new Set();
   INVOICES.forEach(i=>{
@@ -1683,6 +1685,7 @@ async function _runOneTimeImport(){
     });
   }
 
+  window._importInProgress = false;
   if(ok){
     INVOICES.push(...localInvoices);
     localSups.forEach(s=>{ SUPBASE.push(s); supEx[s.name]=s; });
@@ -1691,6 +1694,7 @@ async function _runOneTimeImport(){
     renderInvoices(); refreshPurchDash();
     showToast('✅ יובאו ' + added + ' | דולגו ' + skipped + ' | ספקים חדשים ' + suppAdded);
   } else {
+    window._importInProgress = false;
     if(btn){ btn.disabled=false; btn.textContent='⚡ ייבוא חד-פעמי'; }
   }
 }
