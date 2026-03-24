@@ -872,6 +872,20 @@ function _fillInvCityDropdown(currentCity){
     if(otherInp) otherInp.style.display='none';
   }
 }
+
+function invAssignChange(sel){
+  const other = document.getElementById('inv-assignment-other');
+  if(!other) return;
+  if(sel.value==='__other__'){ other.style.display='block'; other.focus(); }
+  else { other.style.display='none'; other.value=''; }
+}
+function _getInvAssignment(){
+  const sel = document.getElementById('inv-assignment');
+  if(!sel) return '';
+  if(sel.value==='__other__') return document.getElementById('inv-assignment-other')?.value.trim()||'';
+  return sel.value;
+}
+
 function invLocCityChange(sel){
   const otherInp = document.getElementById('inv-loc-city-other');
   if(!otherInp) return;
@@ -972,6 +986,21 @@ function openNewInvoice(id, presetSup){
   document.getElementById('vat-ord-inc')?.classList.toggle('active', ordVatModeR==='inc');
   document.getElementById('inv-order-notes').value = inv ? (inv.orderNotes||'') : '';
   const ordType = document.getElementById('inv-order-type'); if(ordType) ordType.value=inv?(inv.orderType||''):'';
+  // Load assignment — handle free text case
+  const assignEl = document.getElementById('inv-assignment');
+  const assignOther = document.getElementById('inv-assignment-other');
+  if(assignEl){
+    const knownAssign = ['shared','daycare','chanuka','pesach','longday','summer','general',''];
+    const savedAssign = inv?(inv.assignment||''):'';
+    if(knownAssign.includes(savedAssign)){
+      assignEl.value = savedAssign;
+      if(assignOther){ assignOther.style.display='none'; assignOther.value=''; }
+    } else {
+      assignEl.value = '__other__';
+      if(assignOther){ assignOther.style.display='block'; assignOther.value=savedAssign; }
+    }
+  }
+  const actMonthEl = document.getElementById('inv-act-month'); if(actMonthEl) actMonthEl.value=inv?(inv.actMonth||''):'';
   // Location fields (25)
   _fillInvCityDropdown(inv ? (inv.locCity||'') : '');
   const locType=document.getElementById('inv-loc-type'); if(locType) locType.value=inv?(inv.locType||''):'';
@@ -1341,6 +1370,8 @@ async function saveInvoice(){
     orderNum, orderDate:document.getElementById('inv-order-date').value,
     orderDesc:document.getElementById('inv-order-desc').value.trim(),
     orderType:document.getElementById('inv-order-type')?.value||'',
+    assignment:_getInvAssignment(),
+    actMonth:document.getElementById('inv-act-month')?.value||'',
     orderAmt, orderVat:vatAmt(orderAmt,effectiveVat), orderTotal:withVat(orderAmt,effectiveVat),
     ordVatMode: ordMode,
     orderNotes:document.getElementById('inv-order-notes').value.trim(),
@@ -1452,6 +1483,144 @@ function getSupName(supRef){
   return s ? s.name : String(supRef);
 }
 
+
+// ── Invoice Excel Export ─────────────────────────────────────────────────────
+const _INV_ASSIGN_LABELS = {
+  shared:'משותף', daycare:'צהרונים', chanuka:'חנוכה', pesach:'פסח',
+  longday:'יום ארוך', summer:'קייטנת קיץ', general:'כללי'
+};
+const _INV_TYPE_LABELS = {
+  enrichment:'העשרה', operations:'תפעול', breakfast:'ארוחות בוקר',
+  transport:'נסיעות', other:'אחר'
+};
+const _INV_LOC_LABELS = {
+  garden:'גנים', school:'בתי ספר', joint:'משותף', office:'משרדים'
+};
+const _MONTH_LABELS = {
+  '01':'ינואר','02':'פברואר','03':'מרץ','04':'אפריל','05':'מאי','06':'יוני',
+  '07':'יולי','08':'אוגוסט','09':'ספטמבר','10':'אוקטובר','11':'נובמבר','12':'דצמבר'
+};
+
+function openInvExportModal(){
+  const _ov = document.createElement('div');
+  _ov.id = 'inv-export-overlay';
+  _ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  _ov.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:22px;max-width:520px;width:96%;box-shadow:0 8px 32px rgba(0,0,0,.25);direction:rtl;max-height:90vh;overflow-y:auto">
+      <div style="font-weight:800;color:#1a237e;font-size:.95rem;margin-bottom:14px">📊 יצוא חשבוניות לאקסל</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <div><label style="font-size:.75rem;color:#546e7a;display:block;margin-bottom:3px">מתאריך</label>
+          <input type="date" id="iex-from" style="width:100%;font-size:.8rem;border:1.5px solid #c5cae9;border-radius:5px;padding:5px 8px"></div>
+        <div><label style="font-size:.75rem;color:#546e7a;display:block;margin-bottom:3px">עד תאריך</label>
+          <input type="date" id="iex-to" style="width:100%;font-size:.8rem;border:1.5px solid #c5cae9;border-radius:5px;padding:5px 8px"></div>
+        <div><label style="font-size:.75rem;color:#546e7a;display:block;margin-bottom:3px">ספק</label>
+          <input type="text" id="iex-sup" placeholder="כל הספקים" list="iex-sup-list" style="width:100%;font-size:.8rem;border:1.5px solid #c5cae9;border-radius:5px;padding:5px 8px">
+          <datalist id="iex-sup-list"></datalist></div>
+        <div><label style="font-size:.75rem;color:#546e7a;display:block;margin-bottom:3px">סיווג</label>
+          <select id="iex-type" style="width:100%;font-size:.8rem;border:1.5px solid #c5cae9;border-radius:5px;padding:5px 8px">
+            <option value="">הכל</option>
+            <option value="enrichment">העשרה</option>
+            <option value="operations">תפעול</option>
+            <option value="breakfast">ארוחות בוקר</option>
+            <option value="transport">נסיעות</option>
+            <option value="other">אחר</option>
+          </select></div>
+        <div><label style="font-size:.75rem;color:#546e7a;display:block;margin-bottom:3px">שיוך</label>
+          <select id="iex-assign" style="width:100%;font-size:.8rem;border:1.5px solid #c5cae9;border-radius:5px;padding:5px 8px">
+            <option value="">הכל</option>
+            <option value="shared">משותף</option>
+            <option value="daycare">צהרונים</option>
+            <option value="chanuka">חנוכה</option>
+            <option value="pesach">פסח</option>
+            <option value="longday">יום ארוך</option>
+            <option value="summer">קייטנת קיץ</option>
+            <option value="general">כללי</option>
+          </select></div>
+        <div><label style="font-size:.75rem;color:#546e7a;display:block;margin-bottom:3px">עיר</label>
+          <input type="text" id="iex-city" placeholder="כל הערים" style="width:100%;font-size:.8rem;border:1.5px solid #c5cae9;border-radius:5px;padding:5px 8px"></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="iex-cancel" class="btn bs bsm">ביטול</button>
+        <button id="iex-export" class="btn bg">📥 יצוא לאקסל</button>
+      </div>
+    </div>`;
+  document.body.appendChild(_ov);
+  // Populate supplier datalist
+  const dl = _ov.querySelector('#iex-sup-list');
+  [...new Set(INVOICES.map(i=>i.supName||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'))
+    .forEach(n=>{ const o=document.createElement('option'); o.value=n; dl.appendChild(o); });
+  // Pre-fill from current filter
+  const curFrom = document.getElementById('pi-from')?.value||'';
+  const curTo   = document.getElementById('pi-to')?.value||'';
+  if(curFrom) _ov.querySelector('#iex-from').value = curFrom;
+  if(curTo)   _ov.querySelector('#iex-to').value   = curTo;
+  _ov.querySelector('#iex-cancel').addEventListener('click', ()=>_removeOverlay('inv-export-overlay'));
+  _ov.querySelector('#iex-export').addEventListener('click', ()=>{ _doExportInvXlsx(); _removeOverlay('inv-export-overlay'); });
+}
+
+function _doExportInvXlsx(){
+  const from   = document.getElementById('iex-from')?.value||'';
+  const to     = document.getElementById('iex-to')?.value||'';
+  const supF   = (document.getElementById('iex-sup')?.value||'').toLowerCase();
+  const typeF  = document.getElementById('iex-type')?.value||'';
+  const assignF= document.getElementById('iex-assign')?.value||'';
+  const cityF  = (document.getElementById('iex-city')?.value||'').toLowerCase();
+
+  let list = [...INVOICES];
+  if(from)   list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')>=from);
+  if(to)     list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')<=to);
+  if(supF)   list = list.filter(i=>(i.supName||'').toLowerCase().includes(supF));
+  if(typeF)  list = list.filter(i=>i.orderType===typeF);
+  if(assignF)list = list.filter(i=>i.assignment===assignF);
+  if(cityF)  list = list.filter(i=>(i.locCity||'').toLowerCase().includes(cityF));
+
+  const vat = getVatRate();
+  const rows = list.map(i=>{
+    const v = i.vat||vat;
+    const isExempt = v===0 || (supEx[i.supName]||{}).entityType==='עוסק פטור'||(supEx[i.supName]||{}).entityType==='עמותה';
+    const calcTot = (base)=> base ? (isExempt ? base : +(base*(1+v/100)).toFixed(2)) : '';
+    const orderTot = i.orderTotal || calcTot(i.orderAmt) || '';
+    const txBase   = i.txAmt  || '';
+    const txTot    = i.txTotal  || calcTot(i.txAmt)  || '';
+    const taxBase  = i.amt    || '';
+    const taxTot   = i.total   || calcTot(i.amt)   || '';
+    return {
+      'מספר הזמנה':          i.orderNum||'',
+      'תאריך הזמנה':         i.orderDate||'',
+      'שם הספק':             i.supName||'',
+      'פירוט':               i.orderDesc||'',
+      'סיווג הרכישה':        _INV_TYPE_LABELS[i.orderType]||'',
+      'שיוך הרכישה':         _INV_ASSIGN_LABELS[i.assignment]||i.assignment||'',
+      'חודש פעילות':         _MONTH_LABELS[i.actMonth]||'',
+      'עיר':                 i.locCity||'',
+      'סוג מוסד':            _INV_LOC_LABELS[i.locType]||'',
+      'שם גן-ביהס':          i.locName||'',
+      'סהכ הזמנה כולל מעמ':  orderTot,
+      'הערות הזמנה':         i.orderNotes||'',
+      'מס חשבון עסקה':        i.txNum||'',
+      'תאריך חשבון עסקה':    i.txDate||'',
+      'סכום עסקה לפני מעמ':  txBase,
+      'סכום עסקה כולל מעמ':  txTot,
+      'מס חשבונית / קבלה':   i.num||'',
+      'תאריך חשבונית':       i.date||'',
+      'סכום חשבונית לפני מעמ':  taxBase,
+      'סכום חשבונית כולל מעמ':  taxTot,
+      'הערות':               i.notes||''
+    };
+  });
+
+  if(!rows.length){ showToast('⚠️ אין נתונים לייצוא'); return; }
+
+  const ws = XLSX.utils.json_to_sheet(rows, {header: Object.keys(rows[0])});
+  // RTL column widths
+  const cols = Object.keys(rows[0]).map(k=>({wch: Math.max(k.length+2, 14)}));
+  ws['!cols'] = cols;
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'חשבוניות');
+  const dateStr = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, 'חשבוניות_'+dateStr+'.xlsx');
+  showToast('✅ קובץ אקסל הורד בהצלחה');
+}
 function renderInvoices(){
   const tbody = document.getElementById('pi-tbody');
   if(!tbody) return;
@@ -1560,7 +1729,7 @@ function renderInvoices(){
       </td>
       <td style="font-size:.75rem;color:#37474f;padding:8px">
         ${inv.orderDesc||''}
-        ${inv.orderType?`<div style="font-size:.65rem;color:#1565c0">${{enrichment:'🎨 העשרה',operations:'🔧 תפעול',other:'📦 אחר'}[inv.orderType]||''}</div>`:''}
+        ${inv.orderType?`<div style="font-size:.65rem;color:#1565c0">${{enrichment:'🎨 העשרה',operations:'🔧 תפעול',breakfast:'🍞 ארוחות בוקר',transport:'🚌 נסיעות',other:'📦 אחר'}[inv.orderType]||''}</div>`:''}
         ${inv.locCity||inv.locName?`<div style="font-size:.65rem;color:#546e7a">📍 ${[inv.locCity,inv.locName].filter(Boolean).join(' · ')}</div>`:''}
         ${inv.cancelReason?`<div style="font-size:.64rem;color:#c62828">❌ ${inv.cancelReason}</div>`:''}
       </td>
