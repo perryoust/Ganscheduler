@@ -1492,8 +1492,8 @@ function renderInvoices(){
     const mkFileBtn = (sec, hasDoc) => {
       const meta = inv['file_'+sec];
       if(meta && meta.path){
-        const name = (meta.name||_extractNameFromUrl(meta.path)||'פתח').slice(0,22);
-        return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${inv.id},'${sec}')" title="פתח קובץ">📎 ${name} ↗</span>`;
+        const name = meta.name||_extractNameFromUrl(meta.path)||'פתח';
+        return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600;max-width:280px" onclick="event.stopPropagation();invOpenFile(${inv.id},'${sec}')" title="${name}">📎 <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px">${name}</span> ↗</span>`;
       }
       if(hasDoc){
         return `<span style="display:inline-flex;align-items:center;gap:2px;background:#fff8e1;border:1px solid #ffe082;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice(${inv.id})" title="עדכן קישור לקובץ">📎 עדכן קישור</span>`;
@@ -1590,8 +1590,8 @@ function refreshPurchDash(){
         const hasDoc = sec==='order'?!!i.orderNum : sec==='tx'?!!i.txNum : !!i.num;
         if(!hasDoc) return '';
         if(meta && meta.path){
-          const name = (meta.name||_extractNameFromUrl(meta.path)||'פתח').slice(0,18);
-          return `<span style="display:inline-flex;align-items:center;gap:2px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#2e7d32;cursor:pointer;font-weight:600;margin-top:1px" onclick="event.stopPropagation();invOpenFile(${i.id},'${sec}')">📎 ${name} ↗</span>`;
+          const name = meta.name||_extractNameFromUrl(meta.path)||'פתח';
+          return `<span style="display:inline-flex;align-items:center;gap:2px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:3px;padding:2px 6px;font-size:.68rem;color:#2e7d32;cursor:pointer;font-weight:600;margin-top:2px;max-width:260px" onclick="event.stopPropagation();invOpenFile(${i.id},'${sec}')" title="${name}">📎 <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px">${name}</span> ↗</span>`;
         }
         return `<span style="display:inline-flex;align-items:center;background:#fff8e1;border:1px solid #ffe082;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#e65100;cursor:pointer;margin-top:1px" onclick="event.stopPropagation();openNewInvoice(${i.id})">📎 עדכן קישור</span>`;
       };
