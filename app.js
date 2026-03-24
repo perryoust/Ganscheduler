@@ -1484,6 +1484,109 @@ function getSupName(supRef){
 }
 
 
+
+// ── Excel Import ─────────────────────────────────────────────────────────────
+function openImportInvoicesModal(){
+  const ov = document.createElement('div');
+  ov.id = 'import-inv-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  ov.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:22px;max-width:480px;width:96%;box-shadow:0 8px 32px rgba(0,0,0,.25);direction:rtl">
+      <div style="font-weight:800;color:#1a237e;font-size:.95rem;margin-bottom:10px">📥 ייבוא חשבוניות מקובץ JSON</div>
+      <div style="background:#e3f2fd;border-radius:8px;padding:10px 13px;font-size:.78rem;color:#0d47a1;margin-bottom:14px;line-height:1.8">
+        <b>הוראות:</b><br>
+        1. בחר את קובץ ה-JSON שהורדת<br>
+        2. מסמכים עם מספר הזמנה זהה לא יוחלפו<br>
+        3. ספקים חדשים יתווספו אוטומטית כספקי רכש
+      </div>
+      <input type="file" id="import-inv-file" accept=".json" style="width:100%;margin-bottom:10px;font-size:.82rem">
+      <div id="import-inv-status" style="font-size:.78rem;color:#546e7a;min-height:20px;margin-bottom:10px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="import-inv-cancel" class="btn bs bsm">ביטול</button>
+        <button id="import-inv-go" class="btn bg">📥 ייבא</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#import-inv-cancel').addEventListener('click',()=>_removeOverlay('import-inv-overlay'));
+  ov.querySelector('#import-inv-go').addEventListener('click', ()=>_doImportInvoices(ov));
+}
+
+async function _doImportInvoices(ov){
+  const fileEl = ov.querySelector('#import-inv-file');
+  const status = ov.querySelector('#import-inv-status');
+  if(!fileEl.files[0]){ status.textContent='⚠️ בחר קובץ JSON'; return; }
+  status.textContent='⏳ קורא קובץ...';
+  const text = await fileEl.files[0].text();
+  let imported;
+  try { imported = JSON.parse(text); } catch(e){ status.textContent='❌ קובץ לא תקין'; return; }
+  if(!Array.isArray(imported)){ status.textContent='❌ הקובץ לא מכיל רשימת מסמכים'; return; }
+
+  // Build duplicate keys: supName+txNum or supName+taxNum
+  const dupKeys = new Set();
+  INVOICES.forEach(i=>{
+    const sup = (i.supName||'').trim().toLowerCase();
+    if(sup && i.txNum) dupKeys.add(sup+'|tx|'+(i.txNum||'').trim().toLowerCase());
+    if(sup && i.num)   dupKeys.add(sup+'|tax|'+(i.num||'').trim().toLowerCase());
+  });
+  const existingSupNames = new Set(getAllSup().map(s=>s.name.toLowerCase().trim()));
+
+  let added=0, skipped=0, suppAdded=0;
+  const newInvoices = [];
+  const newSuppliers = [];
+
+  for(const inv of imported){
+    // Duplicate check: supName + txNum OR supName + taxNum
+    const sup = (inv.supName||'').trim().toLowerCase();
+    const txKey  = sup && inv.txNum ? sup+'|tx|' +(inv.txNum||'').trim().toLowerCase()  : null;
+    const taxKey = sup && inv.num   ? sup+'|tax|'+(inv.num||'').trim().toLowerCase()    : null;
+    if((txKey && dupKeys.has(txKey)) || (taxKey && dupKeys.has(taxKey))){
+      skipped++; continue;
+    }
+    // Register new keys to avoid intra-batch duplicates
+    if(txKey)  dupKeys.add(txKey);
+    if(taxKey) dupKeys.add(taxKey);
+    // Assign fresh ID
+    inv.id = Date.now() + added + Math.floor(Math.random()*1000);
+    inv.recv = inv.recv || new Date().toISOString().slice(0,10);
+    newInvoices.push(inv);
+    existingOrderNums.add(inv.orderNum||'');
+    added++;
+
+    // Check if supplier exists — if not, add as purch supplier
+    const supKey = (inv.supName||'').toLowerCase().trim();
+    if(supKey && !existingSupNames.has(supKey)){
+      existingSupNames.add(supKey);
+      const newSup = {
+        id: Date.now() + suppAdded + 90000,
+        name: inv.supName,
+        isPurch: true,
+        isAct: false,
+        phone1:'', phone2:'', email:'', entityType:'',
+        notes:''
+      };
+      newSuppliers.push(newSup);
+      suppAdded++;
+    }
+  }
+
+  // Merge into app data
+  INVOICES.push(...newInvoices);
+  if(newSuppliers.length){
+    // Add to SUPBASE
+    if(typeof SUPBASE !== 'undefined') SUPBASE.push(...newSuppliers);
+    // Also add to supEx for quick lookup
+    newSuppliers.forEach(s=>{ supEx[s.name] = s; });
+  }
+
+  save(true);
+  renderInvoices();
+  refreshPurchDash();
+
+  status.innerHTML = `✅ <b>${added}</b> מסמכים יובאו, <b>${skipped}</b> דולגו (כפילויות), <b>${suppAdded}</b> ספקים חדשים נוספו`;
+  ov.querySelector('#import-inv-go').style.display='none';
+  ov.querySelector('#import-inv-cancel').textContent='סגור';
+}
+
 // ── Invoice Excel Export ─────────────────────────────────────────────────────
 const _INV_ASSIGN_LABELS = {
   shared:'משותף', daycare:'צהרונים', chanuka:'חנוכה', pesach:'פסח',
