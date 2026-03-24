@@ -533,46 +533,74 @@ function _copyToClipboard(text) {
 function _removeOverlay(id) { document.getElementById(id)?.remove(); }
 
 // Called when user picks a file via <input type="file">
-function invFilePickerChange(section){
-  const input = document.getElementById('inv-file-'+section);
-  if(!input||!input.files[0]) return;
-  const file = input.files[0];
-  _pendingFiles[section] = {name: file.name, path: ''};
-  const lbl = document.getElementById('inv-file-lbl-'+section);
-  if(lbl){ lbl.textContent = '📎 '+file.name; lbl.style.color='#2e7d32'; }
-  // Show the path-input row for URL entry
-  const row = document.getElementById('inv-path-row-'+section);
-  if(row) row.style.display='flex';
-  const pi = document.getElementById('inv-path-'+section);
-  if(pi){ pi.value=''; pi.focus(); }
+// Extract a readable filename from a URL
+function _extractNameFromUrl(url){
+  if(!url) return '';
+  try {
+    const u = new URL(url);
+    // OneDrive/SharePoint: look for "sourcedoc" or last path segment
+    const src = u.searchParams.get('file') || u.searchParams.get('sourcedoc') || '';
+    if(src) return decodeURIComponent(src.replace(/.*[/\\]/,''));
+    const parts = u.pathname.split('/').filter(Boolean);
+    const last = decodeURIComponent(parts[parts.length-1]||'');
+    // Strip query-like suffixes and known share tokens
+    if(last && !/^[A-Za-z0-9_-]{20,}$/.test(last)) return last;
+  } catch(e){}
+  return 'קובץ מצורף';
+}
+// Show the link pill (hides the input row)
+function _invShowPill(section){
+  const pi       = document.getElementById('inv-path-'+section);
+  const inputRow = document.getElementById('inv-path-input-row-'+section);
+  const pill     = document.getElementById('inv-path-pill-'+section);
+  const pillName = document.getElementById('inv-path-pill-name-'+section);
+  const hint     = document.getElementById('inv-path-hint-'+section);
+  const delBtn   = document.getElementById('inv-file-del-'+section);
+  const val      = pi ? pi.value.trim() : '';
+  const displayName = _extractNameFromUrl(val);
+  if(pillName) pillName.textContent = displayName;
+  if(inputRow) inputRow.style.display = 'none';
+  if(pill)     pill.style.display = 'flex';
+  if(hint)     hint.textContent = '';
+  if(delBtn)   delBtn.style.display = 'inline';
 }
 
-// Called when user types/pastes path
+// "ערוך" — switch back to input row
+function invEditLink(section){
+  const inputRow = document.getElementById('inv-path-input-row-'+section);
+  const pill     = document.getElementById('inv-path-pill-'+section);
+  const pi       = document.getElementById('inv-path-'+section);
+  if(inputRow) inputRow.style.display = 'flex';
+  if(pill)     pill.style.display = 'none';
+  if(pi)       { pi.focus(); pi.select(); }
+}
+
+// Called when user types/pastes a link
 function invPathChange(section){
   const pi = document.getElementById('inv-path-'+section);
   if(!pi) return;
   if(!_pendingFiles[section]) _pendingFiles[section]={name:'',path:''};
   _pendingFiles[section].path = pi.value.trim();
-  const lbl = document.getElementById('inv-file-lbl-'+section);
-  if(lbl && _pendingFiles[section].name)
-    lbl.textContent = '📎 '+_pendingFiles[section].name;
   const val = pi.value.trim();
-  const hasPath = !!val;
-  const btn = document.getElementById('inv-file-open-'+section);
-  const delBtn = document.getElementById('inv-file-del-'+section);
-  const pathOpenBtn = document.getElementById('inv-path-open-'+section);
-  if(btn) btn.style.display = hasPath ? 'inline' : 'none';
-  if(delBtn) delBtn.style.display = (_pendingFiles[section]||hasPath) ? 'inline' : 'none';
-  if(hasPath){
-    const c = _classifyPath(val);
-    // Show "פתח" button in path row only for valid URLs
-    if(pathOpenBtn) pathOpenBtn.style.display = (c.type==='url') ? 'inline-block' : 'none';
-    if(c.type==='url') pi.style.borderColor='#2e7d32';
-    else if(c.type==='onedrive_local') pi.style.borderColor='#e65100';
-    else pi.style.borderColor='#b0bec5';
+  const hint = document.getElementById('inv-path-hint-'+section);
+  if(!val){
+    pi.style.borderColor='#c5cae9';
+    if(hint) hint.textContent='';
+    return;
+  }
+  const c = _classifyPath(val);
+  if(c.type==='url'){
+    pi.style.borderColor='#2e7d32';
+    if(hint){ hint.textContent='✅ קישור תקין'; hint.style.color='#2e7d32'; }
+    // After short delay, collapse into pill
+    clearTimeout(pi._pillTimer);
+    pi._pillTimer = setTimeout(()=>_invShowPill(section), 800);
+  } else if(c.type==='onedrive_local' || c.type==='unc'){
+    pi.style.borderColor='#e65100';
+    if(hint){ hint.textContent='⚠️ נתיב מקומי — השתמש בקישור OneDrive (שתף → העתק קישור)'; hint.style.color='#e65100'; }
   } else {
-    if(pathOpenBtn) pathOpenBtn.style.display='none';
     pi.style.borderColor='#b0bec5';
+    if(hint){ hint.textContent='❓ לא מזוהה כקישור תקין'; hint.style.color='#9e9e9e'; }
   }
 }
 
@@ -823,16 +851,23 @@ function setTxVatMode(m){
   calcTxVat();
 }
 function invClearFile(sec){
-  const lbl = document.getElementById('inv-file-lbl-'+sec);
-  const openBtn = document.getElementById('inv-file-open-'+sec);
-  const delBtn = document.getElementById('inv-file-del-'+sec);
-  const pathRow = document.getElementById('inv-path-row-'+sec);
-  const pathInp = document.getElementById('inv-path-'+sec);
-  if(lbl){ lbl.textContent='צרף קובץ...'; lbl.style.color='#999'; }
-  if(openBtn) openBtn.style.display='none';
-  if(delBtn) delBtn.style.display='none';
-  if(pathRow) pathRow.style.display='none';
-  if(pathInp) pathInp.value='';
+  const openBtn  = document.getElementById('inv-file-open-'+sec);
+  const delBtn   = document.getElementById('inv-file-del-'+sec);
+  const pathInp  = document.getElementById('inv-path-'+sec);
+  const hint     = document.getElementById('inv-path-hint-'+sec);
+  const inputRow = document.getElementById('inv-path-input-row-'+sec);
+  const pill     = document.getElementById('inv-path-pill-'+sec);
+  if(openBtn)  openBtn.style.display='none';
+  if(delBtn)   delBtn.style.display='none';
+  if(pathInp){ pathInp.value=''; pathInp.style.borderColor='#c5cae9'; }
+  if(hint)     hint.textContent='';
+  if(inputRow) inputRow.style.display='flex';
+  if(pill)     pill.style.display='none';
+  // Clear saved data too if editing existing invoice
+  if(_editInvId){
+    const inv = INVOICES.find(i=>i.id===_editInvId);
+    if(inv){ inv['file_'+sec]=null; save(); }
+  }
   _pendingFiles[sec]=null;
 }
 function deleteInvoiceFromModal(){
@@ -957,33 +992,33 @@ function openNewInvoice(id, presetSup){
   if(nsActsChk) nsActsChk.checked=false;
   const nsActsFields = document.getElementById('inv-ns-acts-fields');
   if(nsActsFields) nsActsFields.style.display='none';
-  // Reset file pickers & show existing file names + open buttons
+  // Reset file fields & populate from existing invoice data
   _pendingFiles = {order:null, tx:null, tax:null};
   ['order','tx','tax'].forEach(sec=>{
-    const fi   = document.getElementById('inv-file-'+sec);
-    const lbl  = document.getElementById('inv-file-lbl-'+sec);
-    const btn  = document.getElementById('inv-file-open-'+sec);
-    const delF = document.getElementById('inv-file-del-'+sec);
-    const row  = document.getElementById('inv-path-row-'+sec);
-    const pi   = document.getElementById('inv-path-'+sec);
+    const pi          = document.getElementById('inv-path-'+sec);
+    const openBtn     = document.getElementById('inv-file-open-'+sec);
+    const delBtn      = document.getElementById('inv-file-del-'+sec);
     const pathOpenBtn = document.getElementById('inv-path-open-'+sec);
-    if(fi) fi.value='';
+    const hint        = document.getElementById('inv-path-hint-'+sec);
     const meta = inv && inv['file_'+sec];
-    if(lbl){
-      lbl.textContent = meta ? '📎 '+meta.name : 'צרף קובץ...';
-      lbl.style.color = meta ? '#2e7d32' : '#999';
-    }
-    if(row) row.style.display = meta ? 'flex' : 'none';
-    if(pi)  pi.value = meta ? (meta.path||'') : '';
-    if(btn) btn.style.display = (meta && meta.path) ? 'inline' : 'none';
-    if(delF) delF.style.display = meta ? 'inline' : 'none';
-    // Show path-row open button only for valid URLs; color hint
-    if(meta && meta.path){
-      const cl = _classifyPath(meta.path);
-      if(pathOpenBtn) pathOpenBtn.style.display = cl.type==='url' ? 'inline-block' : 'none';
-      if(pi) pi.style.borderColor = cl.type==='url' ? '#2e7d32' : cl.type==='onedrive_local' ? '#e65100' : '#b0bec5';
+    // Populate path field
+    if(pi)     pi.value = (meta && meta.path) ? meta.path : '';
+    // Show/hide open+delete buttons
+    const hasPath = !!(meta && meta.path);
+    if(openBtn) openBtn.style.display = hasPath ? 'inline' : 'none';
+    if(delBtn)  delBtn.style.display  = hasPath ? 'inline' : 'none';
+    // Validate path color + hint
+    if(hasPath){
+      // Show as pill immediately when loading existing data
+      setTimeout(()=>_invShowPill(sec), 0);
     } else {
+      const inputRow = document.getElementById('inv-path-input-row-'+sec);
+      const pill     = document.getElementById('inv-path-pill-'+sec);
+      if(inputRow) inputRow.style.display = 'flex';
+      if(pill)     pill.style.display = 'none';
       if(pathOpenBtn) pathOpenBtn.style.display='none';
+      if(pi) pi.style.borderColor='#c5cae9';
+      if(hint) hint.textContent='';
     }
   });
   document.getElementById('invoice-m').classList.add('open');
@@ -1246,19 +1281,10 @@ async function saveInvoice(){
   const existingInv = _editInvId ? INVOICES.find(i=>i.id===_editInvId) : null;
   const fileMeta = {};
   for(const sec of ['order','tx','tax']){
-    if(_pendingFiles[sec]){
-      const pathEl = document.getElementById('inv-path-'+sec);
-      fileMeta['file_'+sec] = {name:_pendingFiles[sec].name, path:pathEl?pathEl.value.trim():''};
-    } else {
-      // Preserve current path input value (in case user edited it)
-      const pathEl = document.getElementById('inv-path-'+sec);
-      const existing = existingInv && existingInv['file_'+sec];
-      if(existing){
-        fileMeta['file_'+sec] = {...existing, path:pathEl?pathEl.value.trim():existing.path||''};
-      } else {
-        fileMeta['file_'+sec] = null;
-      }
-    }
+    const pathEl = document.getElementById('inv-path-'+sec);
+    const path = pathEl ? pathEl.value.trim() : '';
+    const name = path ? _extractNameFromUrl(path) : '';
+    fileMeta['file_'+sec] = path ? {name, path} : null;
   }
   // Warn if order number filled but no file attached (30)
   // Warn about missing file only for numeric order numbers (letters = internal codes, no file needed)
@@ -1463,18 +1489,26 @@ function renderInvoices(){
     const hasOrder = inv.orderNum;
     const hasTx    = inv.txNum;
     const hasTax   = inv.num;
-    const mkFileBtn = (sec, meta) => meta&&meta.path
-      ? `<button onclick="event.stopPropagation();invOpenFile(${inv.id},'${sec}')" style="background:none;border:1px solid #90caf9;border-radius:4px;cursor:pointer;font-size:.68rem;color:#1565c0;padding:1px 5px" title="${meta.name||'פתח קובץ'}">📎 פתח</button>`
-      : (meta&&meta.name ? `<span style="font-size:.67rem;color:#aaa" title="${meta.name}">📎 ${meta.name.slice(0,12)}...</span>` : '');
+    const mkFileBtn = (sec, hasDoc) => {
+      const meta = inv['file_'+sec];
+      if(meta && meta.path){
+        const name = (meta.name||_extractNameFromUrl(meta.path)||'פתח').slice(0,22);
+        return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${inv.id},'${sec}')" title="פתח קובץ">📎 ${name} ↗</span>`;
+      }
+      if(hasDoc){
+        return `<span style="display:inline-flex;align-items:center;gap:2px;background:#fff8e1;border:1px solid #ffe082;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice(${inv.id})" title="עדכן קישור לקובץ">📎 עדכן קישור</span>`;
+      }
+      return '';
+    };
     return `<tr class="inv-row-clickable" onclick="openNewInvoice(${inv.id})">
       <td style="min-width:120px;padding:8px">
         <div style="font-weight:700;color:#1a237e;font-size:.83rem">${inv.supName||''}</div>
         <div style="font-size:.67rem;color:#999;margin-top:2px">${(supEx[inv.supName]||{}).entityType||''}</div>
       </td>
       <td style="font-size:.75rem;line-height:1.8;padding:8px">
-        ${hasOrder?`<div><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();invOpenFile(${inv.id},'order')" title="פתח קובץ הזמנה">${inv.orderNum}</b>${inv.orderDate?' · '+fD(inv.orderDate):''} ${mkFileBtn('order',inv.file_order)}</div>`:''}
-        ${hasTx?`<div><span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();invOpenFile(${inv.id},'tx')" title="פתח קובץ חשבונית עסקה">${inv.txNum}</b>${inv.txDate?' · '+fD(inv.txDate):''} ${mkFileBtn('tx',inv.file_tx)}</div>`:''}
-        ${hasTax?`<div><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">📑</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();invOpenFile(${inv.id},'tax')" title="פתח קובץ חשבונית מס">${inv.num}</b>${inv.date?' · '+fD(inv.date):''} ${mkFileBtn('tax',inv.file_tax)}</div>`:''}
+        ${hasOrder?`<div><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.orderNum}</b>${inv.orderDate?' · '+fD(inv.orderDate):''} ${mkFileBtn('order',true)}</div>`:''}
+        ${hasTx?`<div><span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.txNum}</b>${inv.txDate?' · '+fD(inv.txDate):''} ${mkFileBtn('tx',true)}</div>`:''}
+        ${hasTax?`<div><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">📑</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.num}</b>${inv.date?' · '+fD(inv.date):''} ${mkFileBtn('tax',true)}</div>`:''}
       </td>
       <td style="font-size:.75rem;max-width:150px;color:#37474f;padding:8px">
         ${inv.orderDesc||''}
@@ -1551,9 +1585,20 @@ function refreshPurchDash(){
       const base=i.orderAmt||i.txAmt||i.amt||0;
       const total=i.orderTotal||i.txTotal||i.total||0;
       const dateStr=i.orderDate||i.txDate||i.date||'';
+      const mkDashFile = (sec) => {
+        const meta = i['file_'+sec];
+        const hasDoc = sec==='order'?!!i.orderNum : sec==='tx'?!!i.txNum : !!i.num;
+        if(!hasDoc) return '';
+        if(meta && meta.path){
+          const name = (meta.name||_extractNameFromUrl(meta.path)||'פתח').slice(0,18);
+          return `<span style="display:inline-flex;align-items:center;gap:2px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#2e7d32;cursor:pointer;font-weight:600;margin-top:1px" onclick="event.stopPropagation();invOpenFile(${i.id},'${sec}')">📎 ${name} ↗</span>`;
+        }
+        return `<span style="display:inline-flex;align-items:center;background:#fff8e1;border:1px solid #ffe082;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#e65100;cursor:pointer;margin-top:1px" onclick="event.stopPropagation();openNewInvoice(${i.id})">📎 עדכן קישור</span>`;
+      };
+      const fileBadges = ['order','tx','tax'].map(mkDashFile).filter(Boolean).join(' ');
       return '<tr onclick="openNewInvoice('+i.id+')" class="inv-row-clickable" style="border-bottom:1px solid #f0f4f8">'+
         '<td style="padding:5px 8px;font-weight:700;color:#1a237e">'+i.supName+'<br><span style="font-weight:400;color:#888;font-size:.7rem">'+dateStr+'</span></td>'+
-        '<td style="padding:5px 8px;font-size:.72rem">'+( docs||'—')+'</td>'+
+        '<td style="padding:5px 8px;font-size:.72rem">'+( docs||'—')+'<br>'+fileBadges+'</td>'+
         '<td style="padding:5px 8px;max-width:130px;font-size:.72rem;color:#444">'+(i.orderDesc||'').slice(0,35)+'</td>'+
         '<td style="padding:5px 8px;white-space:nowrap">'+fmtAmt2(base,total,i.vat||0)+'</td>'+
         '<td style="padding:5px 8px"><span style="font-size:.72rem">'+(stLabel[st]||st)+'</span></td>'+

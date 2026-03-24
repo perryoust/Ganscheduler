@@ -2600,18 +2600,21 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       </div>
       <!-- File section -->
       <div style="margin-top:9px;border-top:1px dashed #e0e0e0;padding-top:8px">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-          <label class="inv-file-btn" for="inv-file-order">📎 <span id="inv-file-lbl-order" style="color:#999">צרף קובץ הזמנה...</span></label>
-          <input type="file" id="inv-file-order" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" onchange="invFilePickerChange('order')">
-          <button type="button" class="inv-file-open-btn" id="inv-file-open-order" style="display:none" onclick="invOpenFileFromModal('order')">🔗 פתח קובץ</button>
-          <button type="button" class="inv-file-open-btn" id="inv-file-del-order" style="display:none;color:#e53935" onclick="invClearFile('order')">🗑️ הסר</button>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+          <span style="font-size:.72rem;color:#546e7a;font-weight:700;white-space:nowrap">📎 קובץ הזמנה</span>
+          <button type="button" id="inv-file-del-order" style="display:none;background:none;border:none;cursor:pointer;font-size:.7rem;color:#e53935;padding:0 4px" onclick="invClearFile('order')">🗑️ הסר</button>
         </div>
-        <div id="inv-path-row-order" style="display:none;gap:5px;flex-wrap:wrap;align-items:center;background:#f9fbe7;border-radius:6px;padding:6px 9px;margin-top:4px">
-          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">🔗 קישור:</span>
-          <input type="text" id="inv-path-order" placeholder="הדבק קישור OneDrive / SharePoint (שתף → העתק קישור)..."
-            style="flex:1;min-width:180px;font-size:.72rem;border-radius:5px;border:1.5px solid #c5cae9;padding:4px 8px;direction:ltr;text-align:left"
+        <div id="inv-path-input-row-order" style="display:flex;gap:5px;align-items:center">
+          <input type="text" id="inv-path-order" placeholder="הדבק קישור OneDrive / SharePoint..."
+            style="flex:1;font-size:.72rem;border-radius:5px;border:1.5px solid #c5cae9;padding:5px 9px;direction:ltr;text-align:left"
             oninput="invPathChange('order')">
-          <button type="button" id="inv-path-open-order" style="display:none;background:#0078d4;color:#fff;border:none;border-radius:5px;padding:4px 10px;font-size:.7rem;cursor:pointer;white-space:nowrap" onclick="invOpenFileFromModal('order')">🔗 פתח</button>
+        </div>
+        <div id="inv-path-hint-order" style="font-size:.69rem;min-height:16px;padding:0 2px;margin-top:2px"></div>
+        <div id="inv-path-pill-order" style="display:none;align-items:center;gap:6px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:6px;padding:5px 10px;margin-top:4px">
+          <span style="font-size:.85rem">📎</span>
+          <span id="inv-path-pill-name-order" style="font-size:.75rem;color:#1b5e20;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+          <button type="button" onclick="invOpenFileFromModal('order')" style="background:#2e7d32;color:#fff;border:none;border-radius:4px;padding:3px 9px;font-size:.7rem;cursor:pointer;white-space:nowrap">↗ פתח</button>
+          <button type="button" onclick="invEditLink('order')" style="background:none;border:1px solid #a5d6a7;border-radius:4px;padding:3px 7px;font-size:.68rem;cursor:pointer;color:#388e3c;white-space:nowrap">✏️ ערוך</button>
         </div>
       </div>
       <!-- Location info -->
@@ -2653,18 +2656,21 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <div><div class="inv-amt-lbl">סה"כ כולל מע"מ</div><div class="inv-amt-val" id="inv-tx-total" style="color:#2e7d32">—</div></div>
       </div>
       <div style="margin-top:9px;border-top:1px dashed #e0e0e0;padding-top:8px">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-          <label class="inv-file-btn" for="inv-file-tx">📎 <span id="inv-file-lbl-tx" style="color:#999">צרף קובץ חשבונית עסקה...</span></label>
-          <input type="file" id="inv-file-tx" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" onchange="invFilePickerChange('tx')">
-          <button type="button" class="inv-file-open-btn" id="inv-file-open-tx" style="display:none" onclick="invOpenFileFromModal('tx')">🔗 פתח קובץ</button>
-          <button type="button" class="inv-file-open-btn" id="inv-file-del-tx" style="display:none;color:#e53935" onclick="invClearFile('tx')">🗑️ הסר</button>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+          <span style="font-size:.72rem;color:#546e7a;font-weight:700;white-space:nowrap">📎 קובץ חשבונית עסקה</span>
+          <button type="button" id="inv-file-del-tx" style="display:none;background:none;border:none;cursor:pointer;font-size:.7rem;color:#e53935;padding:0 4px" onclick="invClearFile('tx')">🗑️ הסר</button>
         </div>
-        <div id="inv-path-row-tx" style="display:none;gap:5px;flex-wrap:wrap;align-items:center;background:#f9fbe7;border-radius:6px;padding:6px 9px;margin-top:4px">
-          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">🔗 קישור:</span>
-          <input type="text" id="inv-path-tx" placeholder="הדבק קישור OneDrive / SharePoint (שתף → העתק קישור)..."
-            style="flex:1;min-width:180px;font-size:.72rem;border-radius:5px;border:1.5px solid #c5cae9;padding:4px 8px;direction:ltr;text-align:left"
+        <div id="inv-path-input-row-tx" style="display:flex;gap:5px;align-items:center">
+          <input type="text" id="inv-path-tx" placeholder="הדבק קישור OneDrive / SharePoint..."
+            style="flex:1;font-size:.72rem;border-radius:5px;border:1.5px solid #c5cae9;padding:5px 9px;direction:ltr;text-align:left"
             oninput="invPathChange('tx')">
-          <button type="button" id="inv-path-open-tx" style="display:none;background:#0078d4;color:#fff;border:none;border-radius:5px;padding:4px 10px;font-size:.7rem;cursor:pointer;white-space:nowrap" onclick="invOpenFileFromModal('tx')">🔗 פתח</button>
+        </div>
+        <div id="inv-path-hint-tx" style="font-size:.69rem;min-height:16px;padding:0 2px;margin-top:2px"></div>
+        <div id="inv-path-pill-tx" style="display:none;align-items:center;gap:6px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:6px;padding:5px 10px;margin-top:4px">
+          <span style="font-size:.85rem">📎</span>
+          <span id="inv-path-pill-name-tx" style="font-size:.75rem;color:#1b5e20;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+          <button type="button" onclick="invOpenFileFromModal('tx')" style="background:#2e7d32;color:#fff;border:none;border-radius:4px;padding:3px 9px;font-size:.7rem;cursor:pointer;white-space:nowrap">↗ פתח</button>
+          <button type="button" onclick="invEditLink('tx')" style="background:none;border:1px solid #a5d6a7;border-radius:4px;padding:3px 7px;font-size:.68rem;cursor:pointer;color:#388e3c;white-space:nowrap">✏️ ערוך</button>
         </div>
       </div>
     </div>
@@ -2699,18 +2705,21 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <div><div class="inv-amt-lbl">סה"כ כולל מע"מ</div><div class="inv-amt-val" id="inv-total" style="color:#2e7d32">—</div></div>
       </div>
       <div style="margin-top:9px;border-top:1px dashed #e0e0e0;padding-top:8px">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-          <label class="inv-file-btn" for="inv-file-tax">📎 <span id="inv-file-lbl-tax" style="color:#999">צרף קובץ חשבונית מס / קבלה...</span></label>
-          <input type="file" id="inv-file-tax" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" onchange="invFilePickerChange('tax')">
-          <button type="button" class="inv-file-open-btn" id="inv-file-open-tax" style="display:none" onclick="invOpenFileFromModal('tax')">🔗 פתח קובץ</button>
-          <button type="button" class="inv-file-open-btn" id="inv-file-del-tax" style="display:none;color:#e53935" onclick="invClearFile('tax')">🗑️ הסר</button>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+          <span style="font-size:.72rem;color:#546e7a;font-weight:700;white-space:nowrap">📎 קובץ חשבונית מס / קבלה</span>
+          <button type="button" id="inv-file-del-tax" style="display:none;background:none;border:none;cursor:pointer;font-size:.7rem;color:#e53935;padding:0 4px" onclick="invClearFile('tax')">🗑️ הסר</button>
         </div>
-        <div id="inv-path-row-tax" style="display:none;gap:5px;flex-wrap:wrap;align-items:center;background:#f9fbe7;border-radius:6px;padding:6px 9px;margin-top:4px">
-          <span style="font-size:.7rem;color:#546e7a;white-space:nowrap">🔗 קישור:</span>
-          <input type="text" id="inv-path-tax" placeholder="הדבק קישור OneDrive / SharePoint (שתף → העתק קישור)..."
-            style="flex:1;min-width:180px;font-size:.72rem;border-radius:5px;border:1.5px solid #c5cae9;padding:4px 8px;direction:ltr;text-align:left"
+        <div id="inv-path-input-row-tax" style="display:flex;gap:5px;align-items:center">
+          <input type="text" id="inv-path-tax" placeholder="הדבק קישור OneDrive / SharePoint..."
+            style="flex:1;font-size:.72rem;border-radius:5px;border:1.5px solid #c5cae9;padding:5px 9px;direction:ltr;text-align:left"
             oninput="invPathChange('tax')">
-          <button type="button" id="inv-path-open-tax" style="display:none;background:#0078d4;color:#fff;border:none;border-radius:5px;padding:4px 10px;font-size:.7rem;cursor:pointer;white-space:nowrap" onclick="invOpenFileFromModal('tax')">🔗 פתח</button>
+        </div>
+        <div id="inv-path-hint-tax" style="font-size:.69rem;min-height:16px;padding:0 2px;margin-top:2px"></div>
+        <div id="inv-path-pill-tax" style="display:none;align-items:center;gap:6px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:6px;padding:5px 10px;margin-top:4px">
+          <span style="font-size:.85rem">📎</span>
+          <span id="inv-path-pill-name-tax" style="font-size:.75rem;color:#1b5e20;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+          <button type="button" onclick="invOpenFileFromModal('tax')" style="background:#2e7d32;color:#fff;border:none;border-radius:4px;padding:3px 9px;font-size:.7rem;cursor:pointer;white-space:nowrap">↗ פתח</button>
+          <button type="button" onclick="invEditLink('tax')" style="background:none;border:1px solid #a5d6a7;border-radius:4px;padding:3px 7px;font-size:.68rem;cursor:pointer;color:#388e3c;white-space:nowrap">✏️ ערוך</button>
         </div>
       </div>
     </div>
