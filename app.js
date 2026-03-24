@@ -9788,7 +9788,7 @@ async function deleteUser(uid, name){
     // 1. Delete from Firebase Auth via Cloud Function
     let tok=null;
     if(window._fbUser) try{ tok=await window._fbUser.getIdToken(false); }catch(e){}
-    const delRes = await fetch('https://us-central1-ganmanage.cloudfunctions.net/deleteUser',{
+    const delRes = await fetch('https://deleteuser-graclk45jq-uc.a.run.app',{
       method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
       body:JSON.stringify({uid})
     });
@@ -9935,7 +9935,7 @@ async function changeUserPassword(uid, username){
     showToast('⏳ משנה סיסמה...');
     let tok2=null;
     if(window._fbUser) try{ tok2=await window._fbUser.getIdToken(false); }catch(e){}
-    const passRes = await fetch('https://us-central1-ganmanage.cloudfunctions.net/changePassword',{
+    const passRes = await fetch('https://changepassword-graclk45jq-uc.a.run.app',{
       method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok2},
       body:JSON.stringify({uid, newPassword:newPass})
     });
