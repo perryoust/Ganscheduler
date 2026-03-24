@@ -850,6 +850,46 @@ function setTxVatMode(m){
   window._txVatMode = m;
   calcTxVat();
 }
+// Populate city dropdown from GARDENS data
+function _fillInvCityDropdown(currentCity){
+  const sel = document.getElementById('inv-loc-city');
+  const otherInp = document.getElementById('inv-loc-city-other');
+  if(!sel) return;
+  const cities = [...new Set(GARDENS.map(g=>g.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+  sel.innerHTML = '<option value="">-- בחר עיר --</option>' +
+    cities.map(c=>`<option value="${c}">${c}</option>`).join('') +
+    '<option value="__other__">אחר (הכנס ידנית)</option>';
+  if(currentCity){
+    if(cities.includes(currentCity)){
+      sel.value = currentCity;
+      if(otherInp) otherInp.style.display='none';
+    } else {
+      sel.value = '__other__';
+      if(otherInp){ otherInp.style.display='block'; otherInp.value=currentCity; }
+    }
+  } else {
+    sel.value = '';
+    if(otherInp) otherInp.style.display='none';
+  }
+}
+function invLocCityChange(sel){
+  const otherInp = document.getElementById('inv-loc-city-other');
+  if(!otherInp) return;
+  if(sel.value==='__other__'){
+    otherInp.style.display='block'; otherInp.focus();
+  } else {
+    otherInp.style.display='none'; otherInp.value='';
+  }
+}
+function _getInvLocCity(){
+  const sel = document.getElementById('inv-loc-city');
+  if(!sel) return '';
+  if(sel.value==='__other__'){
+    return document.getElementById('inv-loc-city-other')?.value.trim()||'';
+  }
+  return sel.value;
+}
+
 function invClearFile(sec){
   const openBtn  = document.getElementById('inv-file-open-'+sec);
   const delBtn   = document.getElementById('inv-file-del-'+sec);
@@ -933,7 +973,7 @@ function openNewInvoice(id, presetSup){
   document.getElementById('inv-order-notes').value = inv ? (inv.orderNotes||'') : '';
   const ordType = document.getElementById('inv-order-type'); if(ordType) ordType.value=inv?(inv.orderType||''):'';
   // Location fields (25)
-  const locCity=document.getElementById('inv-loc-city'); if(locCity) locCity.value=inv?(inv.locCity||''):'';
+  _fillInvCityDropdown(inv ? (inv.locCity||'') : '');
   const locType=document.getElementById('inv-loc-type'); if(locType) locType.value=inv?(inv.locType||''):'';
   const locName=document.getElementById('inv-loc-name'); if(locName) locName.value=inv?(inv.locName||''):'';
   calcOrderVat();
@@ -1299,7 +1339,7 @@ async function saveInvoice(){
     orderAmt, orderVat:vatAmt(orderAmt,effectiveVat), orderTotal:withVat(orderAmt,effectiveVat),
     ordVatMode: ordMode,
     orderNotes:document.getElementById('inv-order-notes').value.trim(),
-    locCity:document.getElementById('inv-loc-city')?.value.trim()||'',
+    locCity:_getInvLocCity(),
     locType:document.getElementById('inv-loc-type')?.value||'',
     locName:document.getElementById('inv-loc-name')?.value.trim()||'',
     txNum, txDate:document.getElementById('inv-tx-date').value,
