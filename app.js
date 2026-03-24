@@ -1682,7 +1682,10 @@ async function _doExportInvXlsx(){
   const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'חשבוניות_'+dateStr+'.xlsx';
+  const fromVal = document.getElementById('iex-from')?.value||'';
+  const toVal   = document.getElementById('iex-to')?.value||'';
+  const rangeStr = fromVal && toVal ? fromVal+'_עד_'+toVal : fromVal||toVal||dateStr;
+  a.download = 'דוח_רכש_'+rangeStr+'.xlsx';
   a.click();
   showToast('✅ קובץ אקסל הורד בהצלחה');
 }
