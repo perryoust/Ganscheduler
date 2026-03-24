@@ -628,12 +628,15 @@ function _showPathDialog(invId, section, meta){
         style="width:100%;font-size:.8rem;border-radius:6px;border:1.5px solid #90caf9;padding:8px 10px;box-sizing:border-box;direction:ltr;text-align:left;margin-bottom:6px">
       <div id="path-dlg-hint" style="font-size:.7rem;color:#888;margin-bottom:12px;min-height:18px"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button onclick="_removeOverlay('path-dlg-overlay')" class="btn bs bsm">ביטול</button>
-        <button onclick="_pathDlgSave(${invId},'${section}')" class="btn bp bsm">💾 שמור קישור</button>
-        <button onclick="_pathDlgOpen(${invId},'${section}')" class="btn borange bsm">🔗 שמור ופתח</button>
+        <button id="_pd-cancel" class="btn bs bsm">ביטול</button>
+        <button id="_pd-save"   class="btn bp bsm">💾 שמור קישור</button>
+        <button id="_pd-open"   class="btn borange bsm">🔗 שמור ופתח</button>
       </div>
     </div>`;
   document.body.appendChild(div);
+  div.querySelector('#_pd-cancel').addEventListener('click', ()=>_removeOverlay('path-dlg-overlay'));
+  div.querySelector('#_pd-save').addEventListener('click',   ()=>_pathDlgSave(invId, section));
+  div.querySelector('#_pd-open').addEventListener('click',   ()=>_pathDlgOpen(invId, section));
   const inp = document.getElementById('path-dlg-input');
   inp.focus();
   inp.addEventListener('input', ()=>{
@@ -2234,15 +2237,21 @@ function navSearchInput(val){
     res.style.display='block'; return;
   }
 
-  res.innerHTML=results.slice(0,12).map(r=>`
-    <div onclick="${r.action}" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px"
-      onmouseover="this.style.background='#f5f7ff'" onmouseout="this.style.background=''">
+  res.innerHTML='';
+  results.slice(0,12).forEach(r=>{
+    const el=document.createElement('div');
+    el.style.cssText='padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px';
+    el.innerHTML=`
       <span style="font-size:1.1rem;flex-shrink:0">${r.icon}</span>
       <div style="flex:1;min-width:0">
         <div style="font-weight:700;font-size:.82rem;color:#1a237e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.label}</div>
         ${r.sub?`<div style="font-size:.72rem;color:#78909c">${r.sub}</div>`:''}
-      </div>
-    </div>`).join('');
+      </div>`;
+    el.addEventListener('mouseover',()=>el.style.background='#f5f7ff');
+    el.addEventListener('mouseout', ()=>el.style.background='');
+    el.addEventListener('click', new Function(r.action));
+    res.appendChild(el);
+  });
   res.style.display='block';
 }
 
