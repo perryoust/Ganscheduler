@@ -159,12 +159,19 @@ async function _processFirebaseLoad(r, silent, force) {
   if (typeof _applyYearData === 'function') {
     try {
       _applyYearData(appData);
-      window._fbLastKnownInvoiceCount = Math.max(
-        window._fbLastKnownInvoiceCount||0,
-        appData.invoices?.length||Object.keys(appData.invoices||{}).length||0
-      );
     } catch(e) { console.error('_applyYearData failed', e); }
   }
+  // If INVOICES still empty after apply, force-assign from appData
+  if((!INVOICES||INVOICES.length===0) && appData.invoices){
+    INVOICES = Array.isArray(appData.invoices)
+      ? appData.invoices
+      : Object.values(appData.invoices);
+    console.log('Force-assigned INVOICES:', INVOICES.length);
+  }
+  window._fbLastKnownInvoiceCount = Math.max(
+    window._fbLastKnownInvoiceCount||0,
+    INVOICES.length||0
+  );
 
   _setFbLoadTs(Date.now());
   window._fbLastCloudTs = cloudTs; // track remote ts separately
