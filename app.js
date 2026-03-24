@@ -2287,8 +2287,8 @@ function _applyYearData(o){
     pairs=pairs.filter(p=>p.ids.length>=2);
   } else { initPairs(); }
   supEx = o.supEx||{};
-  if(Array.isArray(o.invoices)){
-    INVOICES=o.invoices;
+  if(o.invoices){
+    INVOICES = Array.isArray(o.invoices) ? o.invoices : Object.values(o.invoices);
     // ── Migrate invoices with double-VAT bug ──
     // Symptom: ordVatMode missing AND orderTotal ≈ orderAmt * (1 + vat/100)
     // This means the user entered the VAT-inclusive amount in 'ex' mode,
