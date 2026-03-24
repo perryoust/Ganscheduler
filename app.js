@@ -139,34 +139,11 @@ async function _processFirebaseLoad(r, silent, force) {
   _safeLS.setItem('ganv5_local_ts', String(cloudTs));
   window._fbAppData = appData; // in-memory reference, no JSON needed
 
-  // Load invoices from separate path if main data has few/none
-  const _mainInvCount = Array.isArray(appData.invoices) ? appData.invoices.length
-    : (appData.invoices ? Object.keys(appData.invoices).length : 0);
-  if(_mainInvCount <= 40){
-    try{
-      const _iTok = window._cachedToken;
-      const _iR = await fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json'
-        + (_iTok ? '?auth='+_iTok : ''));
-      if(_iR.ok){
-        const _iD = await _iR.json();
-        if(_iD && typeof _iD==='object' && Object.keys(_iD).length > _mainInvCount)
-          appData.invoices = _iD;
-      }
-    } catch(e){}
-  }
-
   // Apply data DIRECTLY to memory — does NOT rely on localStorage
   if (typeof _applyYearData === 'function') {
     try {
       _applyYearData(appData);
     } catch(e) { console.error('_applyYearData failed', e); }
-  }
-  // If INVOICES still empty after apply, force-assign from appData
-  if((!INVOICES||INVOICES.length===0) && appData.invoices){
-    INVOICES = Array.isArray(appData.invoices)
-      ? appData.invoices
-      : Object.values(appData.invoices);
-    console.log('Force-assigned INVOICES:', INVOICES.length);
   }
   window._fbLastKnownInvoiceCount = Math.max(
     window._fbLastKnownInvoiceCount||0,
@@ -235,14 +212,14 @@ async function saveToFirebase(silent) {
       managers: typeof managers!=='undefined'?managers:{},
       blockedDates: typeof blockedDates!=='undefined'?blockedDates:{},
       gardenBlocks: typeof gardenBlocks!=='undefined'?gardenBlocks:{},
-      // invoices saved separately via /data/invoices PATCH — not included in main payload
+      invoices: typeof INVOICES!=='undefined'?INVOICES:[],
       vatRate: typeof VAT_RATE!=='undefined'?VAT_RATE:18,
       activeGardens: typeof activeGardens!=='undefined'&&activeGardens?[...activeGardens]:null
     };
     // Validate: don't overwrite with significantly less data
     const raw = JSON.stringify(liveData);
     if(!raw || raw.length < 100) { console.warn('Save aborted: data too small'); return false; }
-    // invoices saved separately — skip this check
+
     _fbSyncing = true;
     _fbUpdateStatus();
     const nowTs = Date.now();
