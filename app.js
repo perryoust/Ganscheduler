@@ -139,13 +139,29 @@ async function _processFirebaseLoad(r, silent, force) {
   _safeLS.setItem('ganv5_local_ts', String(cloudTs));
   window._fbAppData = appData; // in-memory reference, no JSON needed
 
+  // Load invoices from separate path if main data has few/none
+  const _mainInvCount = Array.isArray(appData.invoices) ? appData.invoices.length
+    : (appData.invoices ? Object.keys(appData.invoices).length : 0);
+  if(_mainInvCount <= 40){
+    try{
+      const _iTok = window._cachedToken;
+      const _iR = await fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json'
+        + (_iTok ? '?auth='+_iTok : ''));
+      if(_iR.ok){
+        const _iD = await _iR.json();
+        if(_iD && typeof _iD==='object' && Object.keys(_iD).length > _mainInvCount)
+          appData.invoices = _iD;
+      }
+    } catch(e){}
+  }
+
   // Apply data DIRECTLY to memory — does NOT rely on localStorage
   if (typeof _applyYearData === 'function') {
     try {
       _applyYearData(appData);
       window._fbLastKnownInvoiceCount = Math.max(
         window._fbLastKnownInvoiceCount||0,
-        appData.invoices?.length||0
+        appData.invoices?.length||Object.keys(appData.invoices||{}).length||0
       );
     } catch(e) { console.error('_applyYearData failed', e); }
   }
