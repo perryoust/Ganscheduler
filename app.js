@@ -212,7 +212,7 @@ async function saveToFirebase(silent) {
       managers: typeof managers!=='undefined'?managers:{},
       blockedDates: typeof blockedDates!=='undefined'?blockedDates:{},
       gardenBlocks: typeof gardenBlocks!=='undefined'?gardenBlocks:{},
-      invoices: typeof INVOICES!=='undefined'?INVOICES:[],
+      // invoices saved separately via /data/invoices PATCH — not included in main payload
       vatRate: typeof VAT_RATE!=='undefined'?VAT_RATE:18,
       activeGardens: typeof activeGardens!=='undefined'&&activeGardens?[...activeGardens]:null
     };
@@ -248,6 +248,15 @@ async function saveToFirebase(silent) {
       const _bi=document.getElementById('backup-ind');
       if(_bi){_bi.textContent='☁️ נשמר';_bi.classList.add('show');clearTimeout(_bi._to);_bi._to=setTimeout(()=>_bi.classList.remove('show'),1500);}
       if (!silent) showToast('✅ סונכרן ל-Firebase ' + _fmtTs(nowTs));
+      // Save invoices separately (too large for main payload)
+      if(typeof INVOICES!=='undefined' && INVOICES.length>0){
+        const invObj={};
+        INVOICES.forEach(i=>{if(i&&i.id) invObj[i.id]=i;});
+        fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+(_saveTok||''),{
+          method:'PUT', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(invObj)
+        }).catch(e=>console.warn('Invoice save:',e));
+      }
       // Trigger daily backup (async, non-blocking)
       _runDailyBackupIfNeeded(JSON.parse(raw), _saveTok).catch(()=>{});
       return true;
@@ -492,7 +501,20 @@ function SPT(t){
   if(t==='pinvoices'){
     fillPiSupFilter(); renderInvoices();
     const ib = document.getElementById('one-time-import-btn');
-    if(ib) ib.style.display = localStorage.getItem('_oneTimeImportDone') ? 'none' : 'inline-block';
+    if(ib){
+      if(localStorage.getItem('_oneTimeImportDone')){ ib.style.display='none'; }
+      else{
+        // Also check Firebase flag
+        const _tk = window._cachedToken;
+        if(_tk){
+          fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/importDone.json?auth='+_tk)
+            .then(r=>r.json()).then(d=>{
+              if(d && d.done){ ib.style.display='none'; localStorage.setItem('_oneTimeImportDone','1'); }
+              else { ib.style.display='inline-block'; }
+            }).catch(()=>{ ib.style.display='inline-block'; });
+        } else { ib.style.display='inline-block'; }
+      }
+    }
   }
   if(t==='psup'){
     setTimeout(renderPurchSuppliers, 50);
@@ -1691,6 +1713,11 @@ async function _runOneTimeImport(){
     localSups.forEach(s=>{ SUPBASE.push(s); supEx[s.name]=s; });
     if(btn) btn.remove();
     localStorage.setItem('_oneTimeImportDone','1');
+    // Save flag to Firebase so it persists across devices/browsers
+    fetch(`${DB_BASE}/data/importDone.json?auth=${token}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({done:true, ts: new Date().toISOString()})
+    });
     renderInvoices(); refreshPurchDash();
     showToast('✅ יובאו ' + added + ' | דולגו ' + skipped + ' | ספקים חדשים ' + suppAdded);
   } else {
