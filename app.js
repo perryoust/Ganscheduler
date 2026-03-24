@@ -1611,14 +1611,72 @@ function _doExportInvXlsx(){
 
   if(!rows.length){ showToast('⚠️ אין נתונים לייצוא'); return; }
 
-  const ws = XLSX.utils.json_to_sheet(rows, {header: Object.keys(rows[0])});
-  // RTL column widths
-  const cols = Object.keys(rows[0]).map(k=>({wch: Math.max(k.length+2, 14)}));
-  ws['!cols'] = cols;
+  const headers = Object.keys(rows[0]);
+  const ws = XLSX.utils.json_to_sheet(rows, {header: headers});
+
+  // ── Column widths ──
+  const colWidths = {
+    'מספר הזמנה':14, 'תאריך הזמנה':13, 'שם הספק':20, 'פירוט':28,
+    'סיווג הרכישה':14, 'שיוך הרכישה':16, 'חודש פעילות':13, 'עיר':12,
+    'סוג מוסד':12, 'שם גן-ביהס':20, 'סהכ הזמנה כולל מעמ':16,
+    'הערות הזמנה':20, 'מס חשבון עסקה':14, 'תאריך חשבון עסקה':13,
+    'סכום עסקה לפני מעמ':16, 'סכום עסקה כולל מעמ':16,
+    'מס חשבונית / קבלה':14, 'תאריך חשבונית':13,
+    'סכום חשבונית לפני מעמ':17, 'סכום חשבונית כולל מעמ':17, 'הערות':20
+  };
+  ws['!cols'] = headers.map(h=>({wch: colWidths[h]||14}));
+
+  // ── RTL sheet view ──
+  ws['!views'] = [{rightToLeft: true}];
+
+  // ── Style header row — bold + fill ──
+  const numRows = rows.length;
+  const numCols = headers.length;
+  // Apply bold to header row (row 0)
+  for(let c=0; c<numCols; c++){
+    const addr = XLSX.utils.encode_cell({r:0, c});
+    if(!ws[addr]) continue;
+    ws[addr].s = {
+      font: {bold:true, color:{rgb:'FFFFFF'}, sz:10},
+      fill: {fgColor:{rgb:'1A237E'}, patternType:'solid'},
+      alignment: {horizontal:'right', vertical:'center', wrapText:true},
+      border: {
+        top:{style:'thin',color:{rgb:'BBBBBB'}},
+        bottom:{style:'thin',color:{rgb:'BBBBBB'}},
+        left:{style:'thin',color:{rgb:'BBBBBB'}},
+        right:{style:'thin',color:{rgb:'BBBBBB'}}
+      }
+    };
+  }
+  // Style data rows — alternating fill + borders + right-align
+  for(let r=1; r<=numRows; r++){
+    const fill = r%2===0 ? {fgColor:{rgb:'EEF2FF'}, patternType:'solid'} : {fgColor:{rgb:'FFFFFF'}, patternType:'solid'};
+    for(let c=0; c<numCols; c++){
+      const addr = XLSX.utils.encode_cell({r, c});
+      if(!ws[addr]) ws[addr] = {t:'z', v:''};
+      ws[addr].s = {
+        fill,
+        alignment: {horizontal:'right', vertical:'center', wrapText:false},
+        border: {
+          top:{style:'thin',color:{rgb:'DDDDDD'}},
+          bottom:{style:'thin',color:{rgb:'DDDDDD'}},
+          left:{style:'thin',color:{rgb:'DDDDDD'}},
+          right:{style:'thin',color:{rgb:'DDDDDD'}}
+        }
+      };
+    }
+  }
+
+  // ── Table / AutoFilter ──
+  ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:0,c:0},e:{r:numRows,c:numCols-1}})};
+
+  // ── Freeze header row ──
+  ws['!freeze'] = {xSplit:0, ySplit:1, topLeftCell:'A2', activePane:'bottomLeft'};
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'חשבוניות');
   const dateStr = new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb, 'חשבוניות_'+dateStr+'.xlsx');
+  XLSX.writeFile(wb, 'חשבוניות_'+dateStr+'.xlsx', {cellStyles:true});
   showToast('✅ קובץ אקסל הורד בהצלחה');
 }
 function renderInvoices(){
