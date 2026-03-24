@@ -1611,41 +1611,56 @@ async function _doExportInvXlsx(){
 
   if(!rows.length){ showToast('⚠️ אין נתונים לייצוא'); return; }
 
-  if(typeof ExcelJS === 'undefined'){ showToast('⚠️ ExcelJS לא טעון, נסה שוב'); return; }
+  // Wait for ExcelJS to load if needed
+  if(typeof ExcelJS === 'undefined'){
+    showToast('⏳ טוען ExcelJS...');
+    await new Promise(r=>setTimeout(r,1500));
+    if(typeof ExcelJS === 'undefined'){ showToast('⚠️ ExcelJS לא נטען, נסה שוב'); return; }
+  }
 
-  const headers = ['#', ...Object.keys(rows[0])];
+  const dataKeys = Object.keys(rows[0]);
+  const headers  = ['#', ...dataKeys];
   const colWidths = {
     '#':5,
-    'מספר הזמנה':16, 'תאריך הזמנה':14, 'שם הספק':22, 'פירוט':30,
-    'סיווג הרכישה':15, 'שיוך הרכישה':17, 'חודש פעילות':14, 'עיר':13,
-    'סוג מוסד':13, 'שם גן-ביהס':22, 'סהכ הזמנה כולל מעמ':17,
-    'הערות הזמנה':22, 'מס חשבון עסקה':16, 'תאריך חשבון עסקה':14,
-    'סכום עסקה לפני מעמ':17, 'סכום עסקה כולל מעמ':17,
-    'מס חשבונית / קבלה':16, 'תאריך חשבונית':14,
-    'סכום חשבונית לפני מעמ':18, 'סכום חשבונית כולל מעמ':18, 'הערות':22
+    'מספר הזמנה':16,'תאריך הזמנה':14,'שם הספק':22,'פירוט':30,
+    'סיווג הרכישה':15,'שיוך הרכישה':17,'חודש פעילות':14,'עיר':13,
+    'סוג מוסד':13,'שם גן-ביהס':22,'סהכ הזמנה כולל מעמ':17,
+    'הערות הזמנה':22,'מס חשבון עסקה':16,'תאריך חשבון עסקה':14,
+    'סכום עסקה לפני מעמ':17,'סכום עסקה כולל מעמ':17,
+    'מס חשבונית / קבלה':16,'תאריך חשבונית':14,
+    'סכום חשבונית לפני מעמ':18,'סכום חשבונית כולל מעמ':18,'הערות':22
   };
 
   const wb = new ExcelJS.Workbook();
   wb.creator = 'GanManager';
+  // Use addTable only — it handles rows internally, no addRow needed
   const ws = wb.addWorksheet('חשבוניות', {
-    views: [{rightToLeft: true, state: 'frozen', ySplit: 1}]
+    views:[{rightToLeft:true, state:'frozen', ySplit:1, activeCell:'A2'}],
+    properties:{defaultRowHeight:18}
   });
 
-  // Columns
-  ws.columns = headers.map(h => ({
-    header: h,
-    key: h,
-    width: colWidths[h] || 14
-  }));
+  // Set column widths (must be done before addTable)
+  ws.columns = headers.map(h=>({key:h, width:colWidths[h]||14}));
 
-  // Header row style
-  const headerRow = ws.getRow(1);
-  headerRow.height = 22;
-  headerRow.eachCell(cell => {
-    cell.font   = {bold: true, color: {argb: 'FFFFFFFF'}, size: 10, name: 'Arial'};
-    cell.fill   = {type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF1A237E'}};
-    cell.alignment = {horizontal: 'right', vertical: 'middle', readingOrder: 'rightToLeft'};
-    cell.border = {
+  // Build table with all data — addTable handles header + rows as one unit
+  ws.addTable({
+    name: 'InvoicesTable',
+    ref:  'A1',
+    headerRow: true,
+    totalsRow: false,
+    style: {theme:'TableStyleMedium2', showRowStripes:true},
+    columns: headers.map(h=>({name:h, filterButton:true})),
+    rows: rows.map((r,idx)=>[idx+1, ...dataKeys.map(k=>r[k]??'')])
+  });
+
+  // Style header row (row 1)
+  const hRow = ws.getRow(1);
+  hRow.height = 22;
+  hRow.eachCell({includeEmpty:true}, cell=>{
+    cell.font      = {bold:true, color:{argb:'FFFFFFFF'}, size:10, name:'Arial'};
+    cell.fill      = {type:'pattern', pattern:'solid', fgColor:{argb:'FF1A237E'}};
+    cell.alignment = {horizontal:'right', vertical:'middle', readingOrder:'rightToLeft'};
+    cell.border    = {
       top:{style:'thin',color:{argb:'FF9E9E9E'}},
       bottom:{style:'medium',color:{argb:'FF9E9E9E'}},
       left:{style:'thin',color:{argb:'FF9E9E9E'}},
@@ -1653,45 +1668,18 @@ async function _doExportInvXlsx(){
     };
   });
 
-  // Data rows
-  rows.forEach((r, idx) => {
-    const rowData = {'#': idx+1, ...r};
-    const dataRow = ws.addRow(headers.map(h => rowData[h] ?? ''));
-    dataRow.height = 18;
-    const isEven = (idx % 2 === 1);
-    dataRow.eachCell({includeEmpty: true}, cell => {
-      cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb: isEven ? 'FFEEF2FF' : 'FFFFFFFF'}};
+  // Style data rows
+  for(let i=0; i<rows.length; i++){
+    const dRow = ws.getRow(i+2);
+    dRow.eachCell({includeEmpty:true}, cell=>{
       cell.alignment = {horizontal:'right', vertical:'middle', readingOrder:'rightToLeft'};
-      cell.font = {size: 9.5, name: 'Arial'};
-      cell.border = {
-        top:   {style:'hair', color:{argb:'FFDDDDDD'}},
-        bottom:{style:'hair', color:{argb:'FFDDDDDD'}},
-        left:  {style:'hair', color:{argb:'FFDDDDDD'}},
-        right: {style:'hair', color:{argb:'FFDDDDDD'}}
-      };
+      cell.font = {size:9.5, name:'Arial'};
     });
-  });
-
-  // AutoFilter
-  ws.autoFilter = {
-    from: {row:1, column:1},
-    to:   {row:1, column:headers.length}
-  };
-
-  // Table
-  ws.addTable({
-    name: 'InvoicesTable',
-    ref: 'A1',
-    headerRow: true,
-    totalsRow: false,
-    style: {theme:'TableStyleMedium2', showRowStripes:true},
-    columns: headers.map(h=>({name:h, filterButton:true})),
-    rows: rows.map((r,idx)=>headers.map(h=>h==='#'?idx+1:(r[h]??'')))
-  });
+  }
 
   const dateStr = new Date().toISOString().slice(0,10);
-  const buf = await wb.xlsx.writeBuffer();
-  const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const buf  = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'חשבוניות_'+dateStr+'.xlsx';
