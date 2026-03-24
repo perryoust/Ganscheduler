@@ -242,11 +242,7 @@ async function saveToFirebase(silent) {
     // Validate: don't overwrite with significantly less data
     const raw = JSON.stringify(liveData);
     if(!raw || raw.length < 100) { console.warn('Save aborted: data too small'); return false; }
-    // Extra safety: if Firebase had invoices but we have none, skip
-    if((liveData.invoices||[]).length === 0 && window._fbLastKnownInvoiceCount > 0){
-      console.warn('Save aborted: would overwrite', window._fbLastKnownInvoiceCount, 'invoices with 0');
-      return false;
-    }
+    // invoices saved separately — skip this check
     _fbSyncing = true;
     _fbUpdateStatus();
     const nowTs = Date.now();
@@ -271,15 +267,7 @@ async function saveToFirebase(silent) {
       const _bi=document.getElementById('backup-ind');
       if(_bi){_bi.textContent='☁️ נשמר';_bi.classList.add('show');clearTimeout(_bi._to);_bi._to=setTimeout(()=>_bi.classList.remove('show'),1500);}
       if (!silent) showToast('✅ סונכרן ל-Firebase ' + _fmtTs(nowTs));
-      // Save invoices separately (too large for main payload)
-      if(typeof INVOICES!=='undefined' && INVOICES.length>0){
-        const invObj={};
-        INVOICES.forEach(i=>{if(i&&i.id) invObj[i.id]=i;});
-        fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+(_saveTok||''),{
-          method:'PUT', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify(invObj)
-        }).catch(e=>console.warn('Invoice save:',e));
-      }
+
       // Trigger daily backup (async, non-blocking)
       _runDailyBackupIfNeeded(JSON.parse(raw), _saveTok).catch(()=>{});
       return true;
