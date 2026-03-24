@@ -1506,11 +1506,11 @@ function renderInvoices(){
         <div style="font-size:.67rem;color:#999;margin-top:2px">${(supEx[inv.supName]||{}).entityType||''}</div>
       </td>
       <td style="font-size:.75rem;line-height:1.8;padding:8px">
-        ${hasOrder?`<div><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.orderNum}</b>${inv.orderDate?' · '+fD(inv.orderDate):''} ${mkFileBtn('order',true)}</div>`:''}
-        ${hasTx?`<div><span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.txNum}</b>${inv.txDate?' · '+fD(inv.txDate):''} ${mkFileBtn('tx',true)}</div>`:''}
-        ${hasTax?`<div><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">📑</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.num}</b>${inv.date?' · '+fD(inv.date):''} ${mkFileBtn('tax',true)}</div>`:''}
+        ${hasOrder?`<div><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.orderNum}</b>${inv.orderDate?' · '+fD(inv.orderDate):''}</div>${mkFileBtn('order',true)?`<div style="margin-bottom:4px">${mkFileBtn('order',true)}</div>`:''}`:''}
+        ${hasTx?`<div><span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.txNum}</b>${inv.txDate?' · '+fD(inv.txDate):''}</div>${mkFileBtn('tx',true)?`<div style="margin-bottom:4px">${mkFileBtn('tx',true)}</div>`:''}`:''}
+        ${hasTax?`<div><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">📑</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.num}</b>${inv.date?' · '+fD(inv.date):''}</div>${mkFileBtn('tax',true)?`<div style="margin-bottom:4px">${mkFileBtn('tax',true)}</div>`:''}`:''}
       </td>
-      <td style="font-size:.75rem;max-width:150px;color:#37474f;padding:8px">
+      <td style="font-size:.75rem;color:#37474f;padding:8px">
         ${inv.orderDesc||''}
         ${inv.orderType?`<div style="font-size:.65rem;color:#1565c0">${{enrichment:'🎨 העשרה',operations:'🔧 תפעול',other:'📦 אחר'}[inv.orderType]||''}</div>`:''}
         ${inv.locCity||inv.locName?`<div style="font-size:.65rem;color:#546e7a">📍 ${[inv.locCity,inv.locName].filter(Boolean).join(' · ')}</div>`:''}
