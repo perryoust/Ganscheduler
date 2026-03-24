@@ -139,6 +139,23 @@ async function _processFirebaseLoad(r, silent, force) {
   _safeLS.setItem('ganv5_local_ts', String(cloudTs));
   window._fbAppData = appData; // in-memory reference, no JSON needed
 
+  // Load invoices from separate /data/invoices path
+  try {
+    const _iTok = window._cachedToken || (window._fbUser ? await window._fbUser.getIdToken(false) : null);
+    if(_iTok){
+      const _iR = await fetch(
+        'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+_iTok
+      );
+      if(_iR.ok){
+        const _iD = await _iR.json();
+        if(_iD && typeof _iD==='object'){
+          appData.invoices = Array.isArray(_iD) ? _iD : Object.values(_iD);
+          console.log('Invoices loaded from separate path:', appData.invoices.length);
+        }
+      }
+    }
+  } catch(e){ console.warn('Separate invoices load:', e); }
+
   // Apply data DIRECTLY to memory — does NOT rely on localStorage
   if (typeof _applyYearData === 'function') {
     try {
@@ -147,7 +164,7 @@ async function _processFirebaseLoad(r, silent, force) {
   }
   window._fbLastKnownInvoiceCount = Math.max(
     window._fbLastKnownInvoiceCount||0,
-    INVOICES.length||0
+    (typeof INVOICES!=='undefined'?INVOICES.length:0)
   );
 
   _setFbLoadTs(Date.now());
@@ -212,7 +229,7 @@ async function saveToFirebase(silent) {
       managers: typeof managers!=='undefined'?managers:{},
       blockedDates: typeof blockedDates!=='undefined'?blockedDates:{},
       gardenBlocks: typeof gardenBlocks!=='undefined'?gardenBlocks:{},
-      invoices: typeof INVOICES!=='undefined'?INVOICES:[],
+      // invoices saved separately to /data/invoices (too large for main payload)
       vatRate: typeof VAT_RATE!=='undefined'?VAT_RATE:18,
       activeGardens: typeof activeGardens!=='undefined'&&activeGardens?[...activeGardens]:null
     };
@@ -245,6 +262,16 @@ async function saveToFirebase(silent) {
       if(_bi){_bi.textContent='☁️ נשמר';_bi.classList.add('show');clearTimeout(_bi._to);_bi._to=setTimeout(()=>_bi.classList.remove('show'),1500);}
       if (!silent) showToast('✅ סונכרן ל-Firebase ' + _fmtTs(nowTs));
 
+      // Save invoices separately to /data/invoices (different path = no overwrite conflict)
+      if(typeof INVOICES!=='undefined' && INVOICES.length > 0 && _saveTok){
+        const _invObj = {};
+        INVOICES.forEach(i=>{ if(i&&i.id) _invObj[i.id]=i; });
+        fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+_saveTok, {
+          method: 'PUT',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(_invObj)
+        }).catch(e=>console.warn('Invoice separate save failed:',e));
+      }
       // Trigger daily backup (async, non-blocking)
       _runDailyBackupIfNeeded(JSON.parse(raw), _saveTok).catch(()=>{});
       return true;
@@ -2692,30 +2719,6 @@ window.onload = function(){
     if(_inv === 0 && window._fbLastKnownInvoiceCount > 0){
       showToast('⚠️ חשבוניות לא נטענו! לחץ Firebase → טען עכשיו');
     }
-    // Load separate invoices if main data has fewer (one-time migration)
-    try{
-      const _iTok = window._cachedToken;
-      if(_iTok){
-        const _iR = await fetch(
-          'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+_iTok
-        );
-        if(_iR.ok){
-          const _iD = await _iR.json();
-          if(_iD && typeof _iD==='object'){
-            const _iArr = Array.isArray(_iD) ? _iD : Object.values(_iD);
-            if(_iArr.length > INVOICES.length){
-              console.log('Merging separate invoices:', _iArr.length, '>', INVOICES.length);
-              INVOICES = _iArr;
-              window._fbLastKnownInvoiceCount = _iArr.length;
-              renderInvoices(); refreshPurchDash();
-              // Now save merged data back to main path so next load works
-              setTimeout(()=>save(true), 2000);
-            }
-          }
-        }
-      }
-    } catch(e){ console.warn('Separate invoices merge failed:', e); }
-
     _fbStartPolling();
     setTimeout(_fitScrollAreas, 100);
     // Init user management UI (admin only)
