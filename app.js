@@ -1556,22 +1556,22 @@ function openInvExportModal(){
   if(curTo)   _ov.querySelector('#iex-to').value   = curTo;
   _ov.querySelector('#iex-cancel').addEventListener('click', ()=>_removeOverlay('inv-export-overlay'));
   _ov.querySelector('#iex-export').addEventListener('click', ()=>{
-    const from = _ov.querySelector('#iex-from').value||'';
-    const to   = _ov.querySelector('#iex-to').value||'';
+    const from   = _ov.querySelector('#iex-from').value||'';
+    const to     = _ov.querySelector('#iex-to').value||'';
+    const supF   = _ov.querySelector('#iex-sup').value||'';
+    const typeF  = _ov.querySelector('#iex-type').value||'';
+    const assignF= _ov.querySelector('#iex-assign').value||'';
+    const cityF  = _ov.querySelector('#iex-city').value||'';
     _removeOverlay('inv-export-overlay');
-    _doExportInvXlsx(from, to);
+    _doExportInvXlsx(from, to, supF, typeF, assignF, cityF);
   });
 }
 
-async function _doExportInvXlsx(from='', to=''){
-  from = from || document.getElementById('iex-from')?.value||'';
-  to   = to   || document.getElementById('iex-to')?.value||'';
-  const supF   = (document.getElementById('iex-sup')?.value||'').toLowerCase();
-  const typeF  = document.getElementById('iex-type')?.value||'';
-  const assignF= document.getElementById('iex-assign')?.value||'';
-  const cityF  = (document.getElementById('iex-city')?.value||'').toLowerCase();
+async function _doExportInvXlsx(from='', to='', supF='', typeF='', assignF='', cityF=''){
 
   let list = [...INVOICES];
+  supF   = supF.toLowerCase();
+  cityF  = cityF.toLowerCase();
   if(from)   list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')>=from);
   if(to)     list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')<=to);
   if(supF)   list = list.filter(i=>(i.supName||'').toLowerCase().includes(supF));
@@ -1683,7 +1683,7 @@ async function _doExportInvXlsx(from='', to=''){
   }
 
   const dateStr  = new Date().toISOString().slice(0,10);
-  const rangeStr = from && to ? from+'_עד_'+to : from||to||dateStr;
+  const rangeStr = from && to ? from+'_עד_'+to : from ? 'מ_'+from : to ? 'עד_'+to : 'כל_התאריכים';
   const buf  = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const a = document.createElement('a');
