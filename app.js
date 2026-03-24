@@ -1555,12 +1555,17 @@ function openInvExportModal(){
   if(curFrom) _ov.querySelector('#iex-from').value = curFrom;
   if(curTo)   _ov.querySelector('#iex-to').value   = curTo;
   _ov.querySelector('#iex-cancel').addEventListener('click', ()=>_removeOverlay('inv-export-overlay'));
-  _ov.querySelector('#iex-export').addEventListener('click', ()=>{ _doExportInvXlsx(); _removeOverlay('inv-export-overlay'); });
+  _ov.querySelector('#iex-export').addEventListener('click', ()=>{
+    const from = _ov.querySelector('#iex-from').value||'';
+    const to   = _ov.querySelector('#iex-to').value||'';
+    _removeOverlay('inv-export-overlay');
+    _doExportInvXlsx(from, to);
+  });
 }
 
-async function _doExportInvXlsx(){
-  const from   = document.getElementById('iex-from')?.value||'';
-  const to     = document.getElementById('iex-to')?.value||'';
+async function _doExportInvXlsx(from='', to=''){
+  from = from || document.getElementById('iex-from')?.value||'';
+  to   = to   || document.getElementById('iex-to')?.value||'';
   const supF   = (document.getElementById('iex-sup')?.value||'').toLowerCase();
   const typeF  = document.getElementById('iex-type')?.value||'';
   const assignF= document.getElementById('iex-assign')?.value||'';
@@ -1677,14 +1682,12 @@ async function _doExportInvXlsx(){
     });
   }
 
-  const dateStr = new Date().toISOString().slice(0,10);
+  const dateStr  = new Date().toISOString().slice(0,10);
+  const rangeStr = from && to ? from+'_עד_'+to : from||to||dateStr;
   const buf  = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  const fromVal = document.getElementById('iex-from')?.value||'';
-  const toVal   = document.getElementById('iex-to')?.value||'';
-  const rangeStr = fromVal && toVal ? fromVal+'_עד_'+toVal : fromVal||toVal||dateStr;
   a.download = 'דוח_רכש_'+rangeStr+'.xlsx';
   a.click();
   showToast('✅ קובץ אקסל הורד בהצלחה');
