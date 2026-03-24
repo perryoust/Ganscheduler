@@ -688,15 +688,26 @@ function _showLocalPathHelp(p, invId, section, meta, pathType){
         2. <b>שתף → העתק קישור</b><br>
         3. חזור כאן ולחץ "עדכן קישור" למטה
       </div>`:''}
-      <div style="background:#f5f5f5;border-radius:6px;padding:8px 10px;font-size:.7rem;font-family:monospace;direction:ltr;text-align:left;word-break:break-all;margin-bottom:14px;color:#555">${p}</div>
+      <div style="background:#f5f5f5;border-radius:6px;padding:8px 10px;font-size:.7rem;font-family:monospace;direction:ltr;text-align:left;word-break:break-all;margin-bottom:14px;color:#555"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-        <button onclick="_removeOverlay('localhelp-overlay')" class="btn bs bsm">סגור</button>
-        <button onclick="_copyToClipboard(${JSON.stringify(p)});showToast('✅ נתיב הועתק');_removeOverlay('localhelp-overlay')" class="btn bo bsm">📋 העתק נתיב</button>
-        <button onclick="_tryOpenLocalFile(${JSON.stringify(p)})" class="btn bg bsm">📂 נסה לפתוח</button>
-        <button onclick="_removeOverlay('localhelp-overlay');_showPathDialog(${invId},'${section}',${JSON.stringify(meta)})" class="btn bp bsm">🔗 עדכן קישור</button>
+        <button id="_lh-close" class="btn bs bsm">סגור</button>
+        <button id="_lh-copy"  class="btn bo bsm">📋 העתק נתיב</button>
+        <button id="_lh-open"  class="btn bg bsm">📂 נסה לפתוח</button>
+        <button id="_lh-edit"  class="btn bp bsm">🔗 עדכן קישור</button>
       </div>
     </div>`;
+  // Set path text safely (no innerHTML injection)
+  div.querySelector('div[style*="monospace"]').textContent = p;
   document.body.appendChild(div);
+  // Wire buttons via addEventListener — avoids quote/backslash issues in onclick attrs
+  div.querySelector('#_lh-close').addEventListener('click', () => _removeOverlay('localhelp-overlay'));
+  div.querySelector('#_lh-copy').addEventListener('click', () => {
+    _copyToClipboard(p); showToast('✅ נתיב הועתק'); _removeOverlay('localhelp-overlay');
+  });
+  div.querySelector('#_lh-open').addEventListener('click', () => _tryOpenLocalFile(p));
+  div.querySelector('#_lh-edit').addEventListener('click', () => {
+    _removeOverlay('localhelp-overlay'); _showPathDialog(invId, section, meta);
+  });
 }
 
 function invOpenFileFromModal(section){
