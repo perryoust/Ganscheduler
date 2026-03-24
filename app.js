@@ -1623,28 +1623,29 @@ function refreshPurchDash(){
     </tr></thead>
     <tbody>${rec.map(i=>{
       const st=_migrateInvStatus(i.status);
-      const docs=[i.orderNum?'📋 '+i.orderNum:'',i.txNum?'🧾 '+i.txNum:'',i.num?'📑 '+i.num:''].filter(Boolean).join('<br>');
       const base=i.orderAmt||i.txAmt||i.amt||0;
       const total=i.orderTotal||i.txTotal||i.total||0;
       const dateStr=i.orderDate||i.txDate||i.date||'';
-      const mkDashFile = (sec) => {
-        const meta = i['file_'+sec];
-        const docNum = sec==='order'?i.orderNum : sec==='tx'?i.txNum : i.num;
+      const mkDashDoc = (icon, docNum, sec) => {
         if(!docNum) return '';
+        const meta = i['file_'+sec];
+        let badge = '';
         if(meta && meta.path){
           const name = _extractNameFromUrl(meta.path)||meta.name||'פתח';
-          return `<span style="display:inline-flex;align-items:center;gap:2px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:3px;padding:2px 6px;font-size:.68rem;color:#2e7d32;cursor:pointer;font-weight:600;margin-top:2px" onclick="event.stopPropagation();invOpenFile(${i.id},'${sec}')" title="${name}">📎 ${name} ↗</span>`;
+          badge = `<span style="display:inline-flex;align-items:center;gap:2px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${i.id},'${sec}')" title="${name}">📎 ${name} ↗</span>`;
+        } else if(/\d/.test(docNum)){
+          badge = `<span style="display:inline-flex;align-items:center;background:#fff8e1;border:1px solid #ffe082;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice(${i.id})">📎 עדכן קישור</span>`;
         }
-        // Only show "עדכן קישור" if docNum contains digits
-        if(/\d/.test(docNum)){
-          return `<span style="display:inline-flex;align-items:center;background:#fff8e1;border:1px solid #ffe082;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#e65100;cursor:pointer;margin-top:1px" onclick="event.stopPropagation();openNewInvoice(${i.id})">📎 עדכן קישור</span>`;
-        }
-        return '';
+        return `<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">${icon} ${docNum} ${badge}</div>`;
       };
-      const fileBadges = ['order','tx','tax'].map(mkDashFile).filter(Boolean).join(' ');
+      const docs = [
+        mkDashDoc('📋',i.orderNum,'order'),
+        mkDashDoc('🧾',i.txNum,'tx'),
+        mkDashDoc('📑',i.num,'tax')
+      ].filter(Boolean).join('');
       return '<tr onclick="openNewInvoice('+i.id+')" class="inv-row-clickable" style="border-bottom:1px solid #f0f4f8">'+
         '<td style="padding:5px 8px;font-weight:700;color:#1a237e">'+i.supName+'<br><span style="font-weight:400;color:#888;font-size:.7rem">'+dateStr+'</span></td>'+
-        '<td style="padding:5px 8px;font-size:.72rem">'+( docs||'—')+'<br>'+fileBadges+'</td>'+
+        '<td style="padding:5px 8px;font-size:.72rem">'+(docs||'—')+'</td>'+
         '<td style="padding:5px 8px;max-width:130px;font-size:.72rem;color:#444">'+(i.orderDesc||'').slice(0,35)+'</td>'+
         '<td style="padding:5px 8px;white-space:nowrap">'+fmtAmt2(base,total,i.vat||0)+'</td>'+
         '<td style="padding:5px 8px"><span style="font-size:.72rem">'+(stLabel[st]||st)+'</span></td>'+
