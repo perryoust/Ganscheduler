@@ -1762,6 +1762,160 @@ async function _runOneTimeImport(){
 
 
 
+
+// ── Duplicates modal ──────────────────────────────────────────────────────
+let _dupFilterActive = false;
+
+function toggleDupFilter(){
+  _dupFilterActive = !_dupFilterActive;
+  const btn = document.getElementById('pi-dup-btn');
+  if(btn){
+    btn.style.background = _dupFilterActive ? '#4a148c' : '#7b1fa2';
+    btn.textContent = _dupFilterActive ? '🔍 כפילויות ✓' : '🔍 כפילויות';
+  }
+  renderInvoices();
+}
+
+function openDupModal(){
+  const ov = document.createElement('div');
+  ov.id = 'dup-modal-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  ov.innerHTML=`
+    <div style="background:#fff;border-radius:12px;padding:22px;max-width:560px;width:96%;box-shadow:0 8px 32px rgba(0,0,0,.25);direction:rtl;max-height:90vh;overflow-y:auto">
+      <div style="font-weight:800;color:#6a1b9a;font-size:.95rem;margin-bottom:14px">🔍 איתור כפילויות</div>
+      <div style="font-size:.8rem;color:#546e7a;margin-bottom:10px">בחר פרמטרים לזיהוי כפילויות:</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:.83rem;cursor:pointer">
+          <input type="checkbox" id="dup-by-order" checked> שם ספק + מספר הזמנה
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.83rem;cursor:pointer">
+          <input type="checkbox" id="dup-by-tx" checked> שם ספק + מספר חשבון עסקה
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.83rem;cursor:pointer">
+          <input type="checkbox" id="dup-by-tax" checked> שם ספק + מספר חשבונית מס / קבלה
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.83rem;cursor:pointer">
+          <input type="checkbox" id="dup-fuzzy"> שם ספק דומה (הבדל של תו אחד — רווח/שגיאת כתיב)
+        </label>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="dup-cancel" class="btn bs bsm">ביטול</button>
+        <button id="dup-go" class="btn" style="background:#6a1b9a;color:#fff">🔍 הצג כפילויות</button>
+      </div>
+      <div id="dup-results" style="margin-top:16px"></div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#dup-cancel').addEventListener('click',()=>_removeOverlay('dup-modal-ov'));
+  ov.querySelector('#dup-go').addEventListener('click',()=>_runDupSearch(ov));
+}
+
+function _strSimilar(a,b){
+  // Levenshtein distance <= 2 (catches extra space, single char typo)
+  if(a===b) return true;
+  if(Math.abs(a.length-b.length)>3) return false;
+  let dp=Array.from({length:b.length+1},(_,i)=>i);
+  for(let i=0;i<a.length;i++){
+    let prev=i+1;
+    for(let j=0;j<b.length;j++){
+      const val=a[i]===b[j]?dp[j]:1+Math.min(dp[j],dp[j+1],prev);
+      dp[j]=prev; prev=val;
+    }
+    dp[b.length]=prev;
+  }
+  return dp[b.length]<=2;
+}
+
+function _runDupSearch(ov){
+  const byOrder = ov.querySelector('#dup-by-order').checked;
+  const byTx    = ov.querySelector('#dup-by-tx').checked;
+  const byTax   = ov.querySelector('#dup-by-tax').checked;
+  const fuzzy   = ov.querySelector('#dup-fuzzy').checked;
+
+  // Build groups
+  const groups = {}; // groupKey → [inv]
+
+  INVOICES.forEach(inv=>{
+    const sup = (inv.supName||'').trim().toLowerCase();
+    if(!sup) return;
+    const keys=[];
+    if(byOrder && inv.orderNum && /\d/.test(inv.orderNum))
+      keys.push('📋 '+sup+'|'+(inv.orderNum||'').trim().toLowerCase());
+    if(byTx && inv.txNum)
+      keys.push('🧾 '+sup+'|'+(inv.txNum||'').trim().toLowerCase());
+    if(byTax && inv.num)
+      keys.push('📑 '+sup+'|'+(inv.num||'').trim().toLowerCase());
+    keys.forEach(k=>{
+      if(!groups[k]) groups[k]=[];
+      groups[k].push(inv);
+    });
+  });
+
+  // Fuzzy: group supplier names that are similar
+  const fuzzyGroups = {};
+  if(fuzzy){
+    const supNames = [...new Set(INVOICES.map(i=>(i.supName||'').trim()).filter(Boolean))];
+    const matched = new Set();
+    for(let i=0;i<supNames.length;i++){
+      for(let j=i+1;j<supNames.length;j++){
+        const a=supNames[i].toLowerCase(), b=supNames[j].toLowerCase();
+        if(!matched.has(a+'/'+b) && _strSimilar(a,b)){
+          const k='🏢 דומים: '+supNames[i]+' / '+supNames[j];
+          fuzzyGroups[k]=[
+            ...INVOICES.filter(inv=>(inv.supName||'').trim()===supNames[i]),
+            ...INVOICES.filter(inv=>(inv.supName||'').trim()===supNames[j])
+          ];
+          matched.add(a+'/'+b);
+        }
+      }
+    }
+  }
+
+  const allGroups = {...groups, ...fuzzyGroups};
+  const dupGroups = Object.entries(allGroups).filter(([,v])=>v.length>1);
+
+  const res = ov.querySelector('#dup-results');
+  if(!dupGroups.length){
+    res.innerHTML='<div style="text-align:center;color:#2e7d32;padding:16px;font-size:.85rem">✅ לא נמצאו כפילויות לפי הפרמטרים שנבחרו</div>';
+    return;
+  }
+
+  res.innerHTML=`<div style="font-weight:700;color:#c62828;margin-bottom:10px;font-size:.85rem">נמצאו ${dupGroups.length} קבוצות כפילויות (${dupGroups.reduce((s,[,v])=>s+v.length,0)} מסמכים)</div>`+
+    dupGroups.map(([key,invs])=>`
+      <div style="background:#fff3e0;border:1px solid #ffb74d;border-radius:8px;padding:10px;margin-bottom:8px">
+        <div style="font-weight:700;font-size:.78rem;color:#e65100;margin-bottom:6px">${key.split('|')[0]}</div>
+        ${invs.map(inv=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #ffe0b2;font-size:.75rem;cursor:pointer"
+            onclick="_removeOverlay('dup-modal-ov');openNewInvoice(${inv.id})">
+            <span style="color:#1a237e;font-weight:600">${inv.supName||''}</span>
+            <span style="color:#546e7a">${inv.orderNum?'📋 '+inv.orderNum:''} ${inv.txNum?'🧾 '+inv.txNum:''} ${inv.num?'📑 '+inv.num:''}</span>
+            <span style="color:#999">${inv.orderDate||inv.txDate||inv.date||''}</span>
+            <span style="color:#1565c0;text-decoration:underline;font-size:.7rem">פתח ✏️</span>
+          </div>`).join('')}
+      </div>`).join('');
+}
+
+function _getDupIds(){
+  const seen = {};
+  INVOICES.forEach(inv=>{
+    const sup = (inv.supName||'').trim().toLowerCase();
+    if(!sup) return;
+    const keys = [];
+    if(inv.orderNum && /\d/.test(inv.orderNum))
+      keys.push('order|'+sup+'|'+(inv.orderNum||'').trim().toLowerCase());
+    if(inv.txNum)
+      keys.push('tx|'+sup+'|'+(inv.txNum||'').trim().toLowerCase());
+    if(inv.num)
+      keys.push('tax|'+sup+'|'+(inv.num||'').trim().toLowerCase());
+    keys.forEach(k=>{
+      if(!seen[k]) seen[k]=[];
+      seen[k].push(inv.id);
+    });
+  });
+  const dupIds = new Set();
+  Object.values(seen).forEach(ids=>{ if(ids.length>1) ids.forEach(id=>dupIds.add(id)); });
+  return dupIds;
+}
+
 // ── Invoice Excel Export ─────────────────────────────────────────────────────
 const _INV_ASSIGN_LABELS = {
   shared:'משותף', daycare:'צהרונים', chanuka:'חנוכה', pesach:'פסח',
@@ -1987,6 +2141,7 @@ function renderInvoices(){
   const to   = document.getElementById('pi-to')?.value||'';
   const sortDir = document.getElementById('pi-sort')?.value||'desc';
   let list = [...INVOICES];
+  if(_dupFilterActive){ const _dids=_getDupIds(); list=list.filter(i=>_dids.has(i.id)); }
   if(srch) list = list.filter(i=>
     (i.supName||'').toLowerCase().includes(srch)||
     (i.num||'').toLowerCase().includes(srch)||
@@ -2066,7 +2221,8 @@ function renderInvoices(){
       }
       return '';
     };
-    return `<tr class="inv-row-clickable" onclick="openNewInvoice(${inv.id})">
+    const _isDup = _dupFilterActive;
+    return `<tr class="inv-row-clickable" style="${_isDup?'background:#fce4ec;border-right:3px solid #c62828;':''}" onclick="openNewInvoice(${inv.id})">
       <td style="min-width:120px;padding:8px">
         <div style="font-weight:700;color:#1a237e;font-size:.83rem">${inv.supName||''}</div>
         <div style="font-size:.67rem;color:#999;margin-top:2px">${(supEx[inv.supName]||{}).entityType||''}</div>
