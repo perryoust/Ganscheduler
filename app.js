@@ -248,6 +248,8 @@ async function saveToFirebase(silent) {
       blockedDates: typeof blockedDates!=='undefined'?blockedDates:{},
       gardenBlocks: typeof gardenBlocks!=='undefined'?gardenBlocks:{},
       // invoices saved separately to /data/invoices (too large for main payload)
+      autoBackupCfg: loadAutoBackupSettings()||undefined,
+      piStatusFilter: (()=>{ try{ const s=localStorage.getItem(PI_ST_KEY); return s?JSON.parse(s):undefined; }catch(e){ return undefined; } })(),
       vatRate: typeof VAT_RATE!=='undefined'?VAT_RATE:18,
       activeGardens: typeof activeGardens!=='undefined'&&activeGardens?[...activeGardens]:null
     };
@@ -259,7 +261,7 @@ async function saveToFirebase(silent) {
     _fbUpdateStatus();
     const nowTs = Date.now();
     const payload = { data: JSON.parse(raw), ts: nowTs, version: '10.2' };
-    console.log('Saving to Firebase: invoices=', JSON.parse(raw).invoices?.length, 'SCH=', JSON.parse(raw).ch?.length);
+    console.log('Saving to Firebase: SCH=', JSON.parse(raw).ch?.length, '| invoices saved separately');
     // Always refresh token before saving (prevents 401 on mobile)
     let _saveTok = null;
     if(window._fbUser){ try{ _saveTok = await window._fbUser.getIdToken(false); }catch(te){ try{ _saveTok = await window._fbUser.getIdToken(true); }catch(te2){} } }
@@ -2713,6 +2715,9 @@ function _applyYearData(o){
     });
   }
   if(typeof o.vatRate==='number') VAT_RATE=o.vatRate;
+  // Sync settings from Firebase to localStorage
+  if(o.autoBackupCfg){ localStorage.setItem('autoBackupCfg',JSON.stringify(o.autoBackupCfg)); if(window._fbAppData) window._fbAppData.autoBackupCfg=o.autoBackupCfg; }
+  if(o.piStatusFilter){ try{ localStorage.setItem(PI_ST_KEY,JSON.stringify(o.piStatusFilter)); }catch(e){} }
   clusters=o.clusters&&Object.keys(o.clusters).length?o.clusters:JSON.parse(JSON.stringify(INIT_CLUSTERS));
   holidays=o.holidays||[];
   if(supEx['__gardens_extra']) _GARDENS_EXTRA=supEx['__gardens_extra'];
@@ -8443,10 +8448,19 @@ window.addEventListener('beforeunload',()=>{
 // ── Auto-backup scheduler ──────────────────────────────
 let _autoBackupTimer=null;
 function loadAutoBackupSettings(){
+  // Prefer Firebase data (already loaded into window._fbAppData)
+  if(window._fbAppData && window._fbAppData.autoBackupCfg)
+    return window._fbAppData.autoBackupCfg;
   return JSON.parse(localStorage.getItem('autoBackupCfg')||'null');
 }
 function saveAutoBackupSettings(cfg){
   localStorage.setItem('autoBackupCfg',JSON.stringify(cfg));
+  // Also save to Firebase
+  const tok = window._cachedToken;
+  if(tok) fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/autoBackupCfg.json?auth='+tok,{
+    method:'PUT', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(cfg)
+  }).catch(()=>{});
 }
 function startAutoBackup(){
   if(_autoBackupTimer) clearInterval(_autoBackupTimer);
@@ -10367,14 +10381,28 @@ function piStChange(){
   if(allCb) allCb.checked = checked.length === all.length;
   _setPiStLabel();
   // Save to localStorage
-  try{ localStorage.setItem(PI_ST_KEY, JSON.stringify(_getPiStSelected())); }catch(e){}
+  try{
+    const _piSt = JSON.stringify(_getPiStSelected());
+    localStorage.setItem(PI_ST_KEY, _piSt);
+    const _tok = window._cachedToken;
+    if(_tok) fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/piStatusFilter.json?auth='+_tok,{
+      method:'PUT', headers:{'Content-Type':'application/json'}, body:_piSt
+    }).catch(()=>{});
+  }catch(e){}
   renderInvoices();
 }
 
 function piStAll(cb){
   document.querySelectorAll('.pi-st-cb').forEach(c=>c.checked=cb.checked);
   _setPiStLabel();
-  try{ localStorage.setItem(PI_ST_KEY, JSON.stringify(cb.checked?[]:[])); }catch(e){}
+  try{
+    const _piStC = JSON.stringify(cb.checked?[]:[]);
+    localStorage.setItem(PI_ST_KEY, _piStC);
+    const _tok2 = window._cachedToken;
+    if(_tok2) fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/piStatusFilter.json?auth='+_tok2,{
+      method:'PUT', headers:{'Content-Type':'application/json'}, body:_piStC
+    }).catch(()=>{});
+  }catch(e){}
   renderInvoices();
 }
 
@@ -10400,7 +10428,10 @@ function togglePiStatusMenu(){
 function initPiStatusFilter(){
   // Load saved selection
   try{
-    const saved = JSON.parse(localStorage.getItem(PI_ST_KEY)||'null');
+    // Load from Firebase first, fallback to localStorage
+    const _fbPiSt = window._fbAppData && window._fbAppData.piStatusFilter;
+    const saved = _fbPiSt || JSON.parse(localStorage.getItem(PI_ST_KEY)||'null');
+    if(_fbPiSt) localStorage.setItem(PI_ST_KEY, JSON.stringify(_fbPiSt)); // sync to local
     if(saved && Array.isArray(saved) && saved.length>0){
       document.querySelectorAll('.pi-st-cb').forEach(cb=>{
         cb.checked = saved.includes(cb.value);
