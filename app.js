@@ -1911,7 +1911,10 @@ function _runDupSearch(ov){
       <div style="background:#fff3e0;border:1px solid #ffb74d;border-radius:8px;padding:10px;margin-bottom:8px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
           <span style="font-weight:700;font-size:.78rem;color:#e65100">${key.split('|')[0]} (${invs.length} מסמכים)</span>
-          <button data-merge-gi="${gi}" class="dup-merge-btn" style="background:#1565c0;color:#fff;border:none;border-radius:5px;padding:3px 10px;font-size:.72rem;cursor:pointer">⚡ מזג קבוצה</button>
+          <div style="display:flex;gap:5px">
+            <button data-merge-gi="${gi}" class="dup-merge-btn" style="background:#1565c0;color:#fff;border:none;border-radius:5px;padding:3px 10px;font-size:.72rem;cursor:pointer">⚡ מזג קבוצה</button>
+            <button data-notdup-gi="${gi}" class="dup-notdup-btn" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:5px;padding:3px 10px;font-size:.72rem;cursor:pointer">✅ לא כפילות</button>
+          </div>
         </div>
         ${invs.map(inv=>`
           <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px dashed #ffe0b2;font-size:.75rem">
@@ -1943,6 +1946,17 @@ function _runDupSearch(ov){
     } else if(mergeBtn){
       const gi = parseInt(mergeBtn.dataset.mergeGi);
       _openMergeModal(_groupIds[gi]);
+    } else if(e.target.closest('.dup-notdup-btn')){
+      const gi = parseInt(e.target.closest('.dup-notdup-btn').dataset.notdupGi);
+      const ids = _groupIds[gi];
+      if(!confirm('לסמן ' + ids.length + ' מסמכים כ"לא כפילות"?')) return;
+      ids.forEach(id=>{
+        const inv = INVOICES.find(i=>i.id===id);
+        if(inv) inv.notDup = true;
+      });
+      save(true);
+      // Remove group from view
+      e.target.closest('div[style*="background:#fff3e0"]').remove();
     }
   });
 
