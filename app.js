@@ -10508,7 +10508,9 @@ async function _runDailyBackupIfNeeded(liveData, tok){
     // Exclude invoices from backup (too large — saved separately in /data/invoices)
     const _backupData = {...liveData};
     delete _backupData.invoices;
-    const payload = { data: _backupData, ts: Date.now(), version: '10.2' };
+    const _now = new Date();
+    const _timeStr = _now.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+    const payload = { data: _backupData, ts: Date.now(), time: _timeStr, version: '10.2' };
     const r = await fetch(backupUrl, {
       method: 'PUT',
       headers: {'Content-Type':'application/json'},
@@ -10550,10 +10552,20 @@ async function loadCloudBackups(){
     const keys = _rawJson ? Object.keys(_rawJson).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse().slice(0,30) : [];
     if(!keys.length){ el.innerHTML='<span style="color:#999">אין גיבויים עדיין. גיבוי ראשון יישמר אוטומטית היום.</span>'; return; }
     const today=d2s(new Date());
+    // Fetch time from each backup (shallow=true returns keys only, need full for time)
+    // Instead fetch timestamps in parallel
+    const backupMeta = await Promise.all(keys.map(async k=>{
+      try{
+        const _tr = await fetch(`${BACKUP_DB_BASE}/${k}/time.json${tok?'?auth='+tok:''}`);
+        const _time = _tr.ok ? await _tr.json() : null;
+        return {k, time: _time||''};
+      } catch(e){ return {k, time:''}; }
+    }));
     el.innerHTML='<div style="display:flex;flex-direction:column;gap:5px">'+
-      keys.map(k=>`<div style="background:${k===today?'#e8f5e9':'#f5f7ff'};border-radius:7px;padding:7px 11px;display:flex;justify-content:space-between;align-items:center">
+      backupMeta.map(({k,time})=>`<div style="background:${k===today?'#e8f5e9':'#f5f7ff'};border-radius:7px;padding:7px 11px;display:flex;justify-content:space-between;align-items:center">
         <div>
           <span style="font-weight:700;font-size:.82rem">${fD(k)}</span>
+          ${time?`<span style="font-size:.7rem;color:#546e7a;margin-right:6px">🕐 ${time}</span>`:''}
           ${k===today?'<span style="font-size:.68rem;background:#2e7d32;color:#fff;border-radius:8px;padding:1px 6px;margin-right:5px">היום</span>':''}
         </div>
         <button class="btn bp bsm" onclick="restoreCloudBackup('${k}')">🔄 שחזר</button>
