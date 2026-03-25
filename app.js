@@ -1800,7 +1800,7 @@ function openDupModal(){
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
   ov.innerHTML=`
     <div style="background:#fff;border-radius:12px;padding:22px;max-width:560px;width:96%;box-shadow:0 8px 32px rgba(0,0,0,.25);direction:rtl;max-height:90vh;overflow-y:auto">
-      <div style="font-weight:800;color:#6a1b9a;font-size:.95rem;margin-bottom:14px">🔍 איתור כפילויות</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><div style="font-weight:800;color:#6a1b9a;font-size:.95rem">🔍 איתור כפילויות</div><button id="dup-close-x" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#999">✕</button></div>
       <div style="font-size:.8rem;color:#546e7a;margin-bottom:10px">בחר פרמטרים לזיהוי כפילויות:</div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
         <label style="display:flex;align-items:center;gap:8px;font-size:.83rem;cursor:pointer">
@@ -1824,6 +1824,7 @@ function openDupModal(){
     </div>`;
   document.body.appendChild(ov);
   ov.querySelector('#dup-cancel').addEventListener('click',()=>_removeOverlay('dup-modal-ov'));
+  ov.querySelector('#dup-close-x').addEventListener('click',()=>_removeOverlay('dup-modal-ov'));
   ov.querySelector('#dup-go').addEventListener('click',()=>_runDupSearch(ov));
 }
 
@@ -1921,7 +1922,7 @@ function _runDupSearch(ov){
     const delBtn   = e.target.closest('.dup-del-btn');
     const mergeBtn = e.target.closest('.dup-merge-btn');
     if(editBtn){
-      _removeOverlay('dup-modal-ov');
+      // Open edit modal on top - keep dup modal open in background
       openNewInvoice(parseInt(editBtn.dataset.invId));
     } else if(delBtn){
       const id = parseInt(delBtn.dataset.invId);
@@ -2001,8 +2002,10 @@ function _openMergeModal(ids){
     INVOICES = INVOICES.filter(i=>!delIds.has(i.id));
     save(true); renderInvoices(); refreshPurchDash();
     _removeOverlay('dup-merge-ov');
-    _removeOverlay('dup-modal-ov');
     showToast('✅ מוזגו '+invs.length+' מסמכים לאחד');
+    // Re-run search to refresh results
+    const _dupOv = document.getElementById('dup-modal-ov');
+    if(_dupOv) _runDupSearch(_dupOv);
   });
 }
 
