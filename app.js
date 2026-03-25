@@ -10591,8 +10591,9 @@ async function forceDailyBackup(){
   try{
     let tok=null;
     if(window._fbUser){ try{ tok=await window._fbUser.getIdToken(true); }catch(e){} }
+    const _bkpSupEx=(()=>{const _s={...supEx};delete _s['__c'];return _sanitizeSupEx(_s);})();
     const liveData={
-      ch:SCH, pairs, supEx, clusters, holidays, pairBreaks,
+      ch:SCH, pairs, supEx:_bkpSupEx, clusters, holidays, pairBreaks,
       managers, blockedDates, gardenBlocks,
       // invoices excluded (too large — stored separately in /data/invoices),
       vatRate:VAT_RATE, activeGardens:activeGardens?[...activeGardens]:null
