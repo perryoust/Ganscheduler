@@ -1879,27 +1879,113 @@ function _runDupSearch(ov){
     return;
   }
 
+  const _groupIds = dupGroups.map(([,invs])=>invs.map(i=>i.id));
   res.innerHTML=`<div style="font-weight:700;color:#c62828;margin-bottom:10px;font-size:.85rem">נמצאו ${dupGroups.length} קבוצות כפילויות (${dupGroups.reduce((s,[,v])=>s+v.length,0)} מסמכים)</div>`+
-    dupGroups.map(([key,invs])=>`
+    dupGroups.map(([key,invs],gi)=>`
       <div style="background:#fff3e0;border:1px solid #ffb74d;border-radius:8px;padding:10px;margin-bottom:8px">
-        <div style="font-weight:700;font-size:.78rem;color:#e65100;margin-bottom:6px">${key.split('|')[0]}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-weight:700;font-size:.78rem;color:#e65100">${key.split('|')[0]} (${invs.length} מסמכים)</span>
+          <button data-merge-gi="${gi}" class="dup-merge-btn" style="background:#1565c0;color:#fff;border:none;border-radius:5px;padding:3px 10px;font-size:.72rem;cursor:pointer">⚡ מזג קבוצה</button>
+        </div>
         ${invs.map(inv=>`
-          <div data-inv-id="${inv.id}" class="dup-inv-row" style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #ffe0b2;font-size:.75rem;cursor:pointer">
-            <span style="color:#1a237e;font-weight:600">${inv.supName||''}</span>
-            <span style="color:#546e7a">${inv.orderNum?'📋 '+inv.orderNum:''} ${inv.txNum?'🧾 '+inv.txNum:''} ${inv.num?'📑 '+inv.num:''}</span>
-            <span style="color:#999">${inv.orderDate||inv.txDate||inv.date||''}</span>
-            <span style="color:#1565c0;text-decoration:underline;font-size:.7rem">פתח ✏️</span>
+          <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px dashed #ffe0b2;font-size:.75rem">
+            <span style="flex:1;color:#1a237e;font-weight:600">${inv.supName||''}</span>
+            <span style="color:#546e7a;font-size:.7rem">${inv.orderNum?'📋 '+inv.orderNum:''} ${inv.txNum?'🧾 '+inv.txNum:''} ${inv.num?'📑 '+inv.num:''}</span>
+            <span style="color:#999;font-size:.7rem">${inv.orderDate||inv.txDate||inv.date||''}</span>
+            <button data-inv-id="${inv.id}" class="dup-edit-btn" style="background:none;border:1px solid #1565c0;color:#1565c0;border-radius:4px;padding:1px 6px;font-size:.68rem;cursor:pointer">✏️ ערוך</button>
+            <button data-inv-id="${inv.id}" class="dup-del-btn" style="background:none;border:1px solid #c62828;color:#c62828;border-radius:4px;padding:1px 6px;font-size:.68rem;cursor:pointer">🗑️ מחק</button>
           </div>`).join('')}
       </div>`).join('');
-  // Wire row clicks via event delegation
+
+  // Event delegation for edit / delete / merge
   res.addEventListener('click', e=>{
-    const row = e.target.closest('.dup-inv-row');
-    if(row && row.dataset.invId){
+    const editBtn  = e.target.closest('.dup-edit-btn');
+    const delBtn   = e.target.closest('.dup-del-btn');
+    const mergeBtn = e.target.closest('.dup-merge-btn');
+    if(editBtn){
       _removeOverlay('dup-modal-ov');
-      openNewInvoice(parseInt(row.dataset.invId));
+      openNewInvoice(parseInt(editBtn.dataset.invId));
+    } else if(delBtn){
+      const id = parseInt(delBtn.dataset.invId);
+      if(!confirm('למחוק מסמך זה?')) return;
+      INVOICES = INVOICES.filter(i=>i.id!==id);
+      save(true); renderInvoices(); refreshPurchDash();
+      delBtn.closest('div[style*="border-bottom"]').remove();
+    } else if(mergeBtn){
+      const gi = parseInt(mergeBtn.dataset.mergeGi);
+      _openMergeModal(_groupIds[gi]);
     }
   });
 
+}
+
+
+function _openMergeModal(ids){
+  const invs = ids.map(id=>INVOICES.find(i=>i.id===id)).filter(Boolean);
+  if(invs.length<2) return;
+  const ov2 = document.createElement('div');
+  ov2.id='dup-merge-ov';
+  ov2.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10000;display:flex;align-items:center;justify-content:center';
+
+  const fmtInv = inv=>`
+    <div style="background:#f5f5f5;border-radius:8px;padding:10px;font-size:.78rem;line-height:1.8">
+      <div style="font-weight:700;color:#1a237e">${inv.supName||''}</div>
+      ${inv.orderNum?`<div>📋 הזמנה: <b>${inv.orderNum}</b>${inv.orderDate?' · '+inv.orderDate:''}</div>`:''}
+      ${inv.txNum?`<div>🧾 עסקה: <b>${inv.txNum}</b>${inv.txDate?' · '+inv.txDate:''}</div>`:''}
+      ${inv.num?`<div>📑 חשבונית: <b>${inv.num}</b>${inv.date?' · '+inv.date:''}</div>`:''}
+      ${inv.orderDesc?`<div>📝 ${inv.orderDesc}</div>`:''}
+      ${inv.orderTotal?`<div>💰 סהכ: ₪${inv.orderTotal.toLocaleString()}</div>`:''}
+      ${inv.notes?`<div>📌 ${inv.notes}</div>`:''}
+    </div>`;
+
+  ov2.innerHTML=`
+    <div style="background:#fff;border-radius:12px;padding:22px;max-width:700px;width:97%;box-shadow:0 8px 32px rgba(0,0,0,.3);direction:rtl;max-height:90vh;overflow-y:auto">
+      <div style="font-weight:800;color:#1565c0;font-size:.95rem;margin-bottom:14px">⚡ מיזוג כפילויות</div>
+      <div style="font-size:.8rem;color:#546e7a;margin-bottom:12px">בחר את המסמך <b>הבסיס</b> שיישמר — שאר הנתונים ייאספו לתוכו:</div>
+      <div id="merge-invs" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px">
+        ${invs.map((inv,i)=>`
+          <div style="border:2px solid #e0e0e0;border-radius:8px;padding:8px;cursor:pointer;transition:.15s" data-merge-base="${inv.id}"
+            onclick="this.parentNode.querySelectorAll('[data-merge-base]').forEach(x=>x.style.borderColor='#e0e0e0');this.style.borderColor='#1565c0'">
+            <div style="font-size:.7rem;color:#888;margin-bottom:4px">מסמך ${i+1}</div>
+            ${fmtInv(inv)}
+          </div>`).join('')}
+      </div>
+      <div style="background:#e3f2fd;border-radius:8px;padding:10px;font-size:.78rem;color:#0d47a1;margin-bottom:14px">
+        ℹ️ המיזוג ימלא שדות חסרים במסמך הבסיס מהמסמכים האחרים, ואז ימחק את הכפילויות.
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="merge-cancel" class="btn bs bsm">ביטול</button>
+        <button id="merge-go" class="btn" style="background:#1565c0;color:#fff">⚡ בצע מיזוג</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov2);
+
+  ov2.querySelector('#merge-cancel').addEventListener('click',()=>_removeOverlay('dup-merge-ov'));
+  ov2.querySelector('#merge-go').addEventListener('click',()=>{
+    const baseEl = ov2.querySelector('[data-merge-base][style*="#1565c0"]');
+    if(!baseEl){ showToast('⚠️ בחר מסמך בסיס'); return; }
+    const baseId = parseInt(baseEl.dataset.mergeBase);
+    const base = INVOICES.find(i=>i.id===baseId);
+    if(!base){ showToast('❌ מסמך לא נמצא'); return; }
+    // Merge: fill missing fields from other invoices
+    invs.filter(i=>i.id!==baseId).forEach(src=>{
+      const fields=['orderNum','orderDate','orderAmt','orderTotal','orderDesc','orderType',
+        'orderNotes','txNum','txDate','txAmt','txTotal','num','date','amt','total',
+        'notes','locCity','locType','locName','assignment','actMonth','file_order','file_tx','file_tax'];
+      fields.forEach(f=>{ if(!base[f] && src[f]) base[f]=src[f]; });
+      // Auto-detect status
+      if(base.num) base.status='tax_invoice';
+      else if(base.txNum) base.status='tx_invoice';
+      else base.status='order';
+    });
+    // Delete duplicates
+    const delIds = new Set(invs.filter(i=>i.id!==baseId).map(i=>i.id));
+    INVOICES = INVOICES.filter(i=>!delIds.has(i.id));
+    save(true); renderInvoices(); refreshPurchDash();
+    _removeOverlay('dup-merge-ov');
+    _removeOverlay('dup-modal-ov');
+    showToast('✅ מוזגו '+invs.length+' מסמכים לאחד');
+  });
 }
 
 function _getDupIds(){
