@@ -1884,14 +1884,22 @@ function _runDupSearch(ov){
       <div style="background:#fff3e0;border:1px solid #ffb74d;border-radius:8px;padding:10px;margin-bottom:8px">
         <div style="font-weight:700;font-size:.78rem;color:#e65100;margin-bottom:6px">${key.split('|')[0]}</div>
         ${invs.map(inv=>`
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #ffe0b2;font-size:.75rem;cursor:pointer"
-            onclick="_removeOverlay('dup-modal-ov');openNewInvoice(${inv.id})">
+          <div data-inv-id="${inv.id}" class="dup-inv-row" style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #ffe0b2;font-size:.75rem;cursor:pointer">
             <span style="color:#1a237e;font-weight:600">${inv.supName||''}</span>
             <span style="color:#546e7a">${inv.orderNum?'📋 '+inv.orderNum:''} ${inv.txNum?'🧾 '+inv.txNum:''} ${inv.num?'📑 '+inv.num:''}</span>
             <span style="color:#999">${inv.orderDate||inv.txDate||inv.date||''}</span>
             <span style="color:#1565c0;text-decoration:underline;font-size:.7rem">פתח ✏️</span>
           </div>`).join('')}
       </div>`).join('');
+  // Wire row clicks via event delegation
+  res.addEventListener('click', e=>{
+    const row = e.target.closest('.dup-inv-row');
+    if(row && row.dataset.invId){
+      _removeOverlay('dup-modal-ov');
+      openNewInvoice(parseInt(row.dataset.invId));
+    }
+  });
+
 }
 
 function _getDupIds(){
