@@ -210,6 +210,23 @@ async function loadFromFirebase(silent, force) {
 }
 
 // ── Save to Firebase ──────────────────────────
+
+// Sanitize Firebase keys (forbidden: . $ # [ ] /)
+function _fbSanitizeKey(k){ return k.replace(/\./g,'｡').replace(/\$/g,'＄').replace(/#/g,'＃').replace(/\[/g,'［').replace(/\]/g,'］').replace(/\//g,'∕'); }
+function _fbRestoreKey(k){ return k.replace(/｡/g,'.').replace(/＄/g,'$').replace(/＃/g,'#').replace(/［/g,'[').replace(/］/g,']').replace(/∕/g,'/'); }
+function _sanitizeSupEx(obj){
+  if(!obj) return {};
+  const out={};
+  Object.entries(obj).forEach(([k,v])=>{ out[_fbSanitizeKey(k)]=v; });
+  return out;
+}
+function _restoreSupEx(obj){
+  if(!obj) return {};
+  const out={};
+  Object.entries(obj).forEach(([k,v])=>{ out[_fbRestoreKey(k)]=v; });
+  return out;
+}
+
 async function saveToFirebase(silent) {
   if(window._importInProgress) return; // blocked during import
   // Safety: don't save in first 2 seconds after page load (initialization window)
@@ -223,7 +240,7 @@ async function saveToFirebase(silent) {
       ch: typeof SCH!=='undefined'?SCH:[],
       pairs: typeof pairs!=='undefined'?pairs:[],
       supEx: (()=>{ if(typeof supEx==='undefined') return {};
-        const _s={...supEx}; delete _s['__c']; return _s; })(),
+        const _s={...supEx}; delete _s['__c']; return _sanitizeSupEx(_s); })(),
       clusters: typeof clusters!=='undefined'?clusters:{},
       holidays: typeof holidays!=='undefined'?holidays:[],
       pairBreaks: typeof pairBreaks!=='undefined'?pairBreaks:{},
@@ -2335,7 +2352,7 @@ function _applyYearData(o){
     pairs=o.pairs.map(p=>({...p,ids:p.ids.map(id=>parseInt(id)).filter(id=>G(id).id)}));
     pairs=pairs.filter(p=>p.ids.length>=2);
   } else { initPairs(); }
-  supEx = o.supEx||{};
+  supEx = _restoreSupEx(o.supEx||{});
   if(o.invoices){
     INVOICES = Array.isArray(o.invoices) ? o.invoices : Object.values(o.invoices);
     // ── Migrate invoices with double-VAT bug ──
