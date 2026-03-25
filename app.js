@@ -10505,7 +10505,10 @@ async function _runDailyBackupIfNeeded(liveData, tok){
 
     // 1. Write today's backup
     const backupUrl = `${BACKUP_DB_BASE}/${today}.json${authQ}`;
-    const payload = { data: liveData, ts: Date.now(), version: '10.2' };
+    // Exclude invoices from backup (too large — saved separately in /data/invoices)
+    const _backupData = {...liveData};
+    delete _backupData.invoices;
+    const payload = { data: _backupData, ts: Date.now(), version: '10.2' };
     const r = await fetch(backupUrl, {
       method: 'PUT',
       headers: {'Content-Type':'application/json'},
@@ -10590,7 +10593,8 @@ async function forceDailyBackup(){
     if(window._fbUser){ try{ tok=await window._fbUser.getIdToken(true); }catch(e){} }
     const liveData={
       ch:SCH, pairs, supEx, clusters, holidays, pairBreaks,
-      managers, blockedDates, gardenBlocks, invoices:INVOICES,
+      managers, blockedDates, gardenBlocks,
+      // invoices excluded (too large — stored separately in /data/invoices),
       vatRate:VAT_RATE, activeGardens:activeGardens?[...activeGardens]:null
     };
     // Force backup even if already done today
