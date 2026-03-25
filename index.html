@@ -1671,6 +1671,67 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <button class="btn bg" onclick="openNewInvoice()">📄 מסמך חדש</button>
       </div>
     </div>
+    <!-- Advanced filters (collapsed) -->
+    <div id="pi-adv-flt" style="display:none;border-top:1px dashed #e8eaf6;padding-top:8px;margin-top:4px">
+      <div class="row" style="flex-wrap:wrap;gap:6px">
+        <div class="fg"><label>סיווג רכישה</label>
+          <select id="pi-type" onchange="renderInvoices()" style="min-width:120px">
+            <option value="">הכל</option>
+            <option value="enrichment">🎨 העשרה</option>
+            <option value="operations">🔧 תפעול</option>
+            <option value="breakfast">🍞 ארוחות בוקר</option>
+            <option value="transport">🚌 נסיעות</option>
+            <option value="other">📦 אחר</option>
+          </select>
+        </div>
+        <div class="fg"><label>שיוך רכישה</label>
+          <select id="pi-assign" onchange="renderInvoices()" style="min-width:120px">
+            <option value="">הכל</option>
+            <option value="shared">משותף</option>
+            <option value="daycare">צהרונים</option>
+            <option value="chanuka">חנוכה</option>
+            <option value="pesach">פסח</option>
+            <option value="longday">יום ארוך</option>
+            <option value="summer">קייטנת קיץ</option>
+            <option value="general">כללי</option>
+          </select>
+        </div>
+        <div class="fg"><label>חודש פעילות</label>
+          <select id="pi-month" onchange="renderInvoices()" style="min-width:110px">
+            <option value="">הכל</option>
+            <option value="09">ספטמבר</option>
+            <option value="10">אוקטובר</option>
+            <option value="11">נובמבר</option>
+            <option value="12">דצמבר</option>
+            <option value="01">ינואר</option>
+            <option value="02">פברואר</option>
+            <option value="03">מרץ</option>
+            <option value="04">אפריל</option>
+            <option value="05">מאי</option>
+            <option value="06">יוני</option>
+            <option value="07">יולי</option>
+            <option value="08">אוגוסט</option>
+          </select>
+        </div>
+        <div class="fg"><label>עיר</label>
+          <select id="pi-city" onchange="renderInvoices()" style="min-width:110px">
+            <option value="">הכל</option>
+          </select>
+        </div>
+        <div class="fg"><label>סוג מוסד</label>
+          <select id="pi-loctype" onchange="renderInvoices()" style="min-width:100px">
+            <option value="">הכל</option>
+            <option value="garden">גנים</option>
+            <option value="school">בתי ספר</option>
+            <option value="joint">משותף</option>
+            <option value="office">משרדים</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:left;margin-top:2px">
+      <button onclick="toggleAdvFilter()" id="pi-adv-btn" style="background:none;border:none;color:#7986cb;font-size:.75rem;cursor:pointer;padding:2px 0">▾ סינון מתקדם</button>
+    </div>
   </div>
   <div class="tw"><table id="pi-table">
     <thead><tr>
@@ -3025,6 +3086,6 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 </div>
 
 <script src="data.js?v=84"></script>
-<script src="app.js?v=100"></script>
+<script src="app.js?v=102"></script>
 </body>
 </html>

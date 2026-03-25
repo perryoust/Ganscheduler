@@ -532,7 +532,7 @@ function SPT(t){
     if(panelEl) panelEl.style.display = x===t ? 'block' : 'none';
   });
   if(t==='pinvoices'){
-    fillPiSupFilter(); renderInvoices();
+    fillPiSupFilter(); _fillPiCityFilter(); renderInvoices();
     const ib = document.getElementById('one-time-import-btn');
     if(ib){
       if(localStorage.getItem('_oneTimeImportDone')){ ib.style.display='none'; }
@@ -992,7 +992,7 @@ function deleteInvoiceFromModal(){
   showToast('🗑️ המסמך נמחק');
 }
 function resetInvFilter(){
-  const ids = ['pi-srch','pi-from','pi-to'];
+  const ids = ['pi-srch','pi-from','pi-to','pi-type','pi-assign','pi-month','pi-city','pi-loctype'];
   ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.querySelectorAll('.pi-st-cb').forEach(cb=>cb.checked=false);
   const allCb=document.getElementById('pi-st-all'); if(allCb) allCb.checked=false;
@@ -1530,6 +1530,24 @@ const INV_STATUS_LABELS = {
   new:'📋 הזמנה', ok:'📑 חשבונית מס', partial:'🧾 חשבונית עסקה'
 };
 
+
+function toggleAdvFilter(){
+  const div = document.getElementById('pi-adv-flt');
+  const btn = document.getElementById('pi-adv-btn');
+  const open = div.style.display==='none';
+  div.style.display = open ? 'block' : 'none';
+  if(btn) btn.textContent = (open?'▴':'▾') + ' סינון מתקדם';
+}
+
+function _fillPiCityFilter(){
+  const sel = document.getElementById('pi-city');
+  if(!sel) return;
+  const cities = [...new Set(INVOICES.map(i=>i.locCity||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">הכל</option>' + cities.map(c=>`<option value="${c}">${c}</option>`).join('');
+  if(cur) sel.value = cur;
+}
+
 function fillPiSupFilter(){
   const dl = document.getElementById('pi-sup-list');
   if(!dl) return;
@@ -1945,7 +1963,7 @@ function _openMergeModal(ids){
       <div id="merge-invs" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px">
         ${invs.map((inv,i)=>`
           <div style="border:2px solid #e0e0e0;border-radius:8px;padding:8px;cursor:pointer;transition:.15s" data-merge-base="${inv.id}"
-            onclick="this.parentNode.querySelectorAll('[data-merge-base]').forEach(x=>x.style.borderColor='#e0e0e0');this.style.borderColor='#1565c0'">
+            onclick="this.closest('#merge-invs').querySelectorAll('[data-merge-base]').forEach(x=>{x.style.borderColor='#e0e0e0';x.classList.remove('merge-selected')});this.style.borderColor='#1565c0';this.classList.add('merge-selected')">
             <div style="font-size:.7rem;color:#888;margin-bottom:4px">מסמך ${i+1}</div>
             ${fmtInv(inv)}
           </div>`).join('')}
@@ -1962,7 +1980,7 @@ function _openMergeModal(ids){
 
   ov2.querySelector('#merge-cancel').addEventListener('click',()=>_removeOverlay('dup-merge-ov'));
   ov2.querySelector('#merge-go').addEventListener('click',()=>{
-    const baseEl = ov2.querySelector('[data-merge-base][style*="#1565c0"]');
+    const baseEl = ov2.querySelector('.merge-selected');
     if(!baseEl){ showToast('⚠️ בחר מסמך בסיס'); return; }
     const baseId = parseInt(baseEl.dataset.mergeBase);
     const base = INVOICES.find(i=>i.id===baseId);
@@ -2244,6 +2262,16 @@ function renderInvoices(){
     (i.orderDesc||'').toLowerCase().includes(srch)||
     (i.cancelReason||'').toLowerCase().includes(srch)
   );
+  const advType   = document.getElementById('pi-type')?.value||'';
+  const advAssign = document.getElementById('pi-assign')?.value||'';
+  const advMonth  = document.getElementById('pi-month')?.value||'';
+  const advCity   = document.getElementById('pi-city')?.value||'';
+  const advLocType= document.getElementById('pi-loctype')?.value||'';
+  if(advType)    list = list.filter(i=>i.orderType===advType);
+  if(advAssign)  list = list.filter(i=>i.assignment===advAssign);
+  if(advMonth)   list = list.filter(i=>i.actMonth===advMonth);
+  if(advCity)    list = list.filter(i=>(i.locCity||'').toLowerCase()===advCity.toLowerCase());
+  if(advLocType) list = list.filter(i=>i.locType===advLocType);
   if(stfArr.length){
     list = list.filter(i=>{
       const st = _migrateInvStatus(i.status);
