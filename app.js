@@ -1924,6 +1924,9 @@ function _runDupSearch(ov){
     if(editBtn){
       // Open edit modal on top - keep dup modal open in background
       openNewInvoice(parseInt(editBtn.dataset.invId));
+      // Raise invoice modal above dup modal
+      const _im = document.getElementById('invoice-m');
+      if(_im){ _im.style.zIndex='10001'; _im._fromDup=true; }
     } else if(delBtn){
       const id = parseInt(delBtn.dataset.invId);
       if(!confirm('למחוק מסמך זה?')) return;
@@ -8522,7 +8525,10 @@ function goToNoHap(){
     sPage=1;renderSched();
   },50);
 }
-function CM(id){document.getElementById(id).classList.remove('open');}
+function CM(id){
+  // Restore z-index if opened from dup modal
+  const _el = document.getElementById(id);
+  if(_el && _el._fromDup){ _el.style.zIndex=''; _el._fromDup=false; }document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal').forEach(m=>{m.onclick=e=>{if(e.target===m) m.classList.remove('open');};});
 
 
