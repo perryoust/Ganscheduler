@@ -3077,8 +3077,8 @@ function updCounts(){
   setEl('d-today-cnt',todayCnt||0);
   // Procurement stats in header
   setEl('h-inv', INVOICES.length);
-  setEl('h-inv-active', INVOICES.filter(i=>i.status==='active'||i.status==='new').length);
-  setEl('h-inv-prog', INVOICES.filter(i=>i.status==='in_progress'||i.status==='partial').length);
+  setEl('h-inv-active', INVOICES.filter(i=>_migrateInvStatus(i.status)==='order').length);
+  setEl('h-inv-prog', INVOICES.filter(i=>_migrateInvStatus(i.status)==='tx_invoice').length);
 }
 
 function initDrops(){
