@@ -222,7 +222,8 @@ async function saveToFirebase(silent) {
     const liveData = {
       ch: typeof SCH!=='undefined'?SCH:[],
       pairs: typeof pairs!=='undefined'?pairs:[],
-      supEx: typeof supEx!=='undefined'?supEx:{},
+      supEx: (()=>{ if(typeof supEx==='undefined') return {};
+        const _s={...supEx}; delete _s['__c']; return _s; })(),
       clusters: typeof clusters!=='undefined'?clusters:{},
       holidays: typeof holidays!=='undefined'?holidays:[],
       pairBreaks: typeof pairBreaks!=='undefined'?pairBreaks:{},
