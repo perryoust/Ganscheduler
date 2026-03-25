@@ -1107,6 +1107,10 @@ function openNewInvoice(id, presetSup){
   // If saved date equals last-save date (i.e. was auto-set), replace with today
   document.getElementById('inv-recv').value = (_savedRecv && _savedRecv !== _savedTs) ? _savedRecv : _today;
   document.getElementById('inv-notes').value = inv ? (inv.notes||'')  : '';
+  const _txNotesEl = document.getElementById('inv-tx-notes');
+  if(_txNotesEl) _txNotesEl.value = inv ? (inv.txNotes||'') : '';
+  const _notDupEl = document.getElementById('inv-not-dup');
+  if(_notDupEl) _notDupEl.checked = inv ? (inv.notDup||false) : false;
   // VAT settings row hidden by default
   const vsRow = document.getElementById('vat-settings-row');
   if(vsRow) vsRow.style.display='none';
@@ -1448,6 +1452,8 @@ async function saveInvoice(){
     status,
     cancelReason: status==='cancelled' ? (document.getElementById('inv-cancel-reason')?.value.trim()||'') : '',
     notes:document.getElementById('inv-notes').value.trim(),
+    txNotes:document.getElementById('inv-tx-notes')?.value.trim()||'',
+    notDup: document.getElementById('inv-not-dup')?.checked||false,
     ...fileMeta,
     ts: existingInv?.ts || Date.now()
   };
@@ -1854,6 +1860,7 @@ function _runDupSearch(ov){
   const groups = {}; // groupKey → [inv]
 
   INVOICES.forEach(inv=>{
+    if(inv.notDup) return; // marked as not-duplicate
     const sup = (inv.supName||'').trim().toLowerCase();
     if(!sup) return;
     const keys=[];
@@ -2015,6 +2022,7 @@ function _openMergeModal(ids){
 function _getDupIds(){
   const seen = {};
   INVOICES.forEach(inv=>{
+    if(inv.notDup) return;
     const sup = (inv.supName||'').trim().toLowerCase();
     if(!sup) return;
     const keys = [];

@@ -2775,6 +2775,10 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <button type="button" onclick="invEditLink('tx')" style="background:none;border:1px solid #a5d6a7;border-radius:4px;padding:3px 7px;font-size:.68rem;cursor:pointer;color:#388e3c;white-space:nowrap">✏️ ערוך</button>
         </div>
       </div>
+      <div class="fg" style="margin-top:8px">
+        <label>📝 הערות חשבונית עסקה</label>
+        <textarea id="inv-tx-notes" rows="2" placeholder="הערות לחשבונית עסקה..." style="width:100%"></textarea>
+      </div>
     </div>
 
     <!-- 3. חשבונית מס / קבלה -->
@@ -2824,6 +2828,10 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           <button type="button" onclick="invEditLink('tax')" style="background:none;border:1px solid #a5d6a7;border-radius:4px;padding:3px 7px;font-size:.68rem;cursor:pointer;color:#388e3c;white-space:nowrap">✏️ ערוך</button>
         </div>
       </div>
+      <div class="fg" style="margin-top:8px">
+        <label>📝 הערות חשבונית מס / קבלה</label>
+        <textarea id="inv-notes" rows="2" placeholder="הערות לחשבונית מס..." style="width:100%"></textarea>
+      </div>
     </div>
 
     <!-- Status + dates + notes -->
@@ -2843,9 +2851,11 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div id="inv-cancel-reason-wrap" style="display:none;margin-bottom:10px">
       <div class="fg"><label>סיבת ביטול</label><input type="text" id="inv-cancel-reason" placeholder="סיבת ביטול..." style="width:100%"></div>
     </div>
-    <div class="fg" style="margin-bottom:13px">
-      <label>הערות</label>
-      <textarea id="inv-notes" rows="2" placeholder="הערות לחשבונית..." style="width:100%"></textarea>
+
+    <div style="margin-bottom:10px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:.8rem;cursor:pointer;color:#546e7a">
+        <input type="checkbox" id="inv-not-dup"> סמן כ"לא כפילות" — הסרה קבועה ממצב כפילויות
+      </label>
     </div>
     <div style="display:flex;gap:8px;justify-content:space-between;align-items:center">
       <div>
@@ -3086,6 +3096,6 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 </div>
 
 <script src="data.js?v=84"></script>
-<script src="app.js?v=104"></script>
+<script src="app.js?v=106"></script>
 </body>
 </html>
