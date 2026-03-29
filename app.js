@@ -4,16 +4,18 @@
 const FIREBASE_DB_URL = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data.json';
 const FIREBASE_POLL_INTERVAL = 10000;
 
-// Safe localStorage wrapper (handles Tracking Prevention blocking)
+// Safe localStorage wrapper (handles Tracking Prevention blocking on any device/browser)
+// Fallback chain: in-memory → sessionStorage → localStorage
 const _safeLS = {
-  get(k){ 
-    // Prefer in-memory (always fresh) over localStorage (may be stale from old version)
+  get(k){
     if(window['_mem_'+k]) return window['_mem_'+k];
-    try{ const v=localStorage.getItem(k); if(v) return v; }catch(e){}
+    try{ const v=sessionStorage.getItem(k); if(v){ window['_mem_'+k]=v; return v; } }catch(e){}
+    try{ const v=localStorage.getItem(k); if(v){ window['_mem_'+k]=v; return v; } }catch(e){}
     return null;
   },
-  set(k,v){ 
-    window['_mem_'+k]=String(v); // always set in-memory first
+  set(k,v){
+    window['_mem_'+k]=String(v);
+    try{ sessionStorage.setItem(k,v); }catch(e){}
     try{ localStorage.setItem(k,v); }catch(e){}
   },
   getItem(k){ return this.get(k); },
