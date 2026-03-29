@@ -2,7 +2,7 @@
 // Firebase Realtime Database Sync - v10.2
 // ══════════════════════════════════════════════
 const FIREBASE_DB_URL = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data.json';
-const FIREBASE_POLL_INTERVAL = 30000;
+const FIREBASE_POLL_INTERVAL = 10000;
 
 // Safe localStorage wrapper (handles Tracking Prevention blocking)
 const _safeLS = {
@@ -267,6 +267,27 @@ async function saveToFirebase(silent) {
     if(window._fbUser){ try{ _saveTok = await window._fbUser.getIdToken(false); }catch(te){ try{ _saveTok = await window._fbUser.getIdToken(true); }catch(te2){} } }
     if(!_saveTok && window._fbGetToken) _saveTok = await window._fbGetToken();
     const _saveQ   = _saveTok ? '?auth=' + _saveTok : '';
+    // ── Conflict guard: detect if another device saved since our last load ──
+    try {
+      const _tsUrl = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/ts.json';
+      const _cR = await fetch(_tsUrl + (_saveTok ? '?auth='+_saveTok : ''));
+      if (_cR.ok) {
+        const _remoteTs = await _cR.json();
+        const _myLastTs = _fbLastOwnSaveTs || _fbLastSaveTs || 0;
+        if (_remoteTs && typeof _remoteTs === 'number' && _remoteTs > _myLastTs) {
+          if (!silent) {
+            const _proceed = confirm('⚠️ מכשיר אחר שמר נתונים ב-' + _fmtTs(_remoteTs) + '\nהמשך ידרוס את השינויים שלו.\nלחץ אישור להמשך, ביטול לטעינת הגרסה החדשה.');
+            if (!_proceed) {
+              _fbSyncing = false;
+              _fbUpdateStatus();
+              await loadFromFirebase(false, true);
+              return false;
+            }
+          }
+        }
+      }
+    } catch(_ce) { /* if conflict check fails, proceed with save */ }
+    // ── End conflict guard ──
     const r = await fetch(FIREBASE_DB_URL + _saveQ, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
