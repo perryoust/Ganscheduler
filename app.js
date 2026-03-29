@@ -531,7 +531,9 @@ function switchMode(mode){
   if(mode==='act'){
     // Hide all purch panels
     PURCH_TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el) el.style.display='none'; });
-    ST(typeof currentTab!=='undefined' ? currentTab : 'dash');
+    // If currentTab is 'admin' (ניהול משתמשים), always go to 'dash' — otherwise restore last tab
+    const _targetTab = (typeof currentTab!=='undefined' && currentTab!=='admin') ? currentTab : 'dash';
+    ST(_targetTab);
   } else {
     // Hide all act panels (use both class removal and display:none to be safe)
     TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el){ el.classList.remove('active'); el.style.display='none'; } });
