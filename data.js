@@ -130,14 +130,14 @@ function isFixedSchMonth(ds){
   return m>=9||m<=6; // true for Sep,Oct,Nov,Dec,Jan,Feb,Mar,Apr,May,Jun
 }
 
-let SCH=SRAWS.map(s=>({...s,st:'ok',cr:'',cn:'',nt:s.n||'',pd:'',pt:'',grp:1}));
-let pairs=[];
-let supEx={};
-let holidays=[]; // [{id,name,from,to,type,city,scope,note}]
-let clusters={}; // {clusterName: {name, city, gardens:[gid...]}}
-let pairBreaks={}; // {pairId+'_'+date: true}  — one-time breaks
-let blockedDates={}; // {'2025-11-15':{reason:'טיול',icon:'🚌',note:''}, ...}
-let gardenBlocks={}; // {'gid_date':{reason,icon,note}} — per-garden date blocks
+var SCH=SRAWS.map(s=>({...s,st:'ok',cr:'',cn:'',nt:s.n||'',pd:'',pt:'',grp:1}));
+var pairs=[];
+var supEx={};
+var holidays=[]; // [{id,name,from,to,type,city,scope,note}]
+var clusters={}; // {clusterName: {name, city, gardens:[gid...]}}
+var pairBreaks={}; // {pairId+'_'+date: true}  — one-time breaks
+var blockedDates={}; // {'2025-11-15':{reason:'טיול',icon:'🚌',note:''}, ...}
+var gardenBlocks={}; // {'gid_date':{reason,icon,note}} — per-garden date blocks
 var calV='list',calD=new Date();
 let gmV='week',gmD=new Date(),gmGid=null;
 let selEv=null,selEvPost=null;

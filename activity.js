@@ -153,11 +153,11 @@ function _dashListRow(s){
   const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
   return `<div style="display:grid;grid-template-columns:110px 140px 1fr 100px;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #eee;cursor:pointer;background:#fff" onclick="openSP(${s.id})">
     <div style="font-weight:700;color:#1a237e;font-size:.82rem">${g.name}</div>
-    <div style="font-size:.78rem;color:#546e7a">${g.city} | ${window.gcls ? window.window.gcls(g) : ''}</div>
+    <div style="font-size:.78rem;color:#546e7a">${g.city} | ${window.gcls ? window.gcls(g) : ''}</div>
     <div style="font-size:.82rem;color:#1565c0;font-weight:600">🎯 ${s.act||'—'} ${isM?'<span style="color:#0288d1;font-size:.7rem">(השלמה)</span>':''}</div>
     <div style="display:flex;flex-direction:column;align-items:flex-end">
-       <div style="font-size:.75rem;font-weight:700;color:#333">${s.t? (window.fT?window.window.fT(s.t):s.t) : '--:--'}</div>
-       <div style="transform:scale(0.85);transform-origin:left">${window.stLabel ? window.window.stLabel(s) : ''}</div>
+       <div style="font-size:.75rem;font-weight:700;color:#333">${s.t? (window.fT?window.fT(s.t):s.t) : '--:--'}</div>
+       <div style="transform:scale(0.85);transform-origin:left">${window.stLabel ? window.stLabel(s) : ''}</div>
     </div>
   </div>`;
 }

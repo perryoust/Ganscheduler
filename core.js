@@ -18,18 +18,18 @@ window.pairBreaks = window.pairBreaks || {};
 window.VAT_RATE = window.VAT_RATE || 18;
 
 // Local aliases for module scope
-let SCH = window.SCH;
-let GARDENS = window.GARDENS;
-let INVOICES = window.INVOICES;
-let supEx = window.supEx;
-let pairs = window.pairs;
-let clusters = window.clusters;
-let activeGardens = window.activeGardens;
-let blockedDates = window.blockedDates;
-let gardenBlocks = window.gardenBlocks;
-let managers = window.managers;
-let pairBreaks = window.pairBreaks;
-let VAT_RATE = window.VAT_RATE;
+var SCH = window.SCH;
+var GARDENS = window.GARDENS;
+var INVOICES = window.INVOICES;
+var supEx = window.supEx;
+var pairs = window.pairs;
+var clusters = window.clusters;
+var activeGardens = window.activeGardens;
+var blockedDates = window.blockedDates;
+var gardenBlocks = window.gardenBlocks;
+var managers = window.managers;
+var pairBreaks = window.pairBreaks;
+var VAT_RATE = window.VAT_RATE;
 
 function renderInvoices(){
   const tbody = document.getElementById('pi-tbody');
@@ -2950,18 +2950,18 @@ window.supBase = supBase;
 window.supAct = supAct;
 window.supDisplayName = supDisplayName;
 window.supBaseEx = supBaseEx;
-window.getwindow.clusters = getClusters;
-window.gardenwindow.clusters = gardenClusters;
+window.getClusters = getClusters;
+window.gardenClusters = gardenClusters;
 window.getGardenBlock = getGardenBlock;
 
 // --- TOTAL GLOBAL BRIDGE ---
-window.window.SCH = SCH;
-window.window.GARDENS = GARDENS;
-window.window.INVOICES = INVOICES;
-window.window.supEx = supEx;
-window.window.pairs = pairs;
-window.window.clusters = clusters;
-window.activewindow.GARDENS = activeGardens;
+window.SCH = SCH;
+window.GARDENS = GARDENS;
+window.INVOICES = INVOICES;
+window.supEx = supEx;
+window.pairs = pairs;
+window.clusters = clusters;
+window.activeGardens = activeGardens;
 window.blockedDates = blockedDates;
 window.gardenBlocks = gardenBlocks;
 window.managers = managers;
@@ -2982,7 +2982,7 @@ window.showToast = showToast;
 window.save = save;
 window.load = load;
 window.refresh = refresh;
-window.initwindow.pairs = initPairs;
+window.initPairs = initPairs;
 window.supBase = supBase;
 window.supAct = supAct;
 window.supDisplayName = supDisplayName;

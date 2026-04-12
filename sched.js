@@ -510,8 +510,8 @@ function renderSched(){
     const g=G(s.g);
     const c=g.city||'אחר';
     const cl=gcls(g);
-    if(!byDate[dk][c]) byDate[dk][c]={gan:[],window.SCH:[]};
-    if(cl==='ביה"ס') byDate[dk][c].window.SCH.push({...s,gd:g});
+    if(!byDate[dk][c]) byDate[dk][c]={gan:[],sch:[]};
+    if(cl==='ביה"ס') byDate[dk][c].sch.push({...s,gd:g});
     else byDate[dk][c].gan.push({...s,gd:g});
   });
 
@@ -524,7 +524,7 @@ function renderSched(){
       const cityData=byDate[dateKey][city];
       h+=`<div style="margin-bottom:8px">
         <div style="font-size:.75rem;font-weight:700;color:#546e7a;padding:3px 8px;background:#eceff1;border-radius:4px;margin-bottom:4px">🏙️ ${city}</div>`;
-      [{arr:cityData.gan,lbl:'🏫 צהרונים',cls:'gan'},{arr:cityData.window.SCH,lbl:'🏛️ בתי ספר',cls:'window.SCH'}].forEach(sec=>{
+      [{arr:cityData.gan,lbl:'🏫 צהרונים',cls:'gan'},{arr:cityData.sch,lbl:'🏛️ בתי ספר',cls:'sch'}].forEach(sec=>{
         if(!sec.arr.length) return;
         h+=`<div class="dsh ${sec.cls}" style="font-size:.7rem;margin-bottom:3px">${sec.lbl}</div>
           <div class="tw"><table style="margin-bottom:6px"><thead><tr>
