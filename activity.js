@@ -11,23 +11,26 @@ function renderDash(){
   const st=document.getElementById('dash-st').value;
   const clsFilter=_dashTab==='g'?'גנים':'ביה"ס';
   const srch=(document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
+  
   const evs=SCH.filter(s=>{
     if(s.d!==date) return false;
     const g=G(s.g);
-    if(gcls(g)!==clsFilter) return false;
-    if(city&&g.city!==city) return false;
-    if(sup&&supBase(s.a)!==sup&&s.a!==sup) return false;
     
     // Status Logic: 
-    // "todo" -> nohap, post, or makeup (makeupFrom or nt contains "השלמה")
-    // "" -> all except cancelled
-    // specific -> exact match
     if(st==='todo'){
       const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
-      if(!(s.st==='nohap' || s.st==='post' || isM)) return false;
-    } else if(!st) {
-      if(s.st==='can') return false; 
-    } else if(s.st!==st) return false;
+      const isTodo = (s.st==='nohap' || s.st==='post' || isM);
+      if(!isTodo) return false;
+      // In TODO mode, we show both Gardens and Schools together
+    } else {
+      if(gcls(g)!==clsFilter) return false;
+      if(!st) {
+        if(s.st==='can') return false; 
+      } else if(s.st!==st) return false;
+    }
+    
+    if(city&&g.city!==city) return false;
+    if(sup&&supBase(s.a)!==sup&&s.a!==sup) return false;
 
     if(srch&&![g.name,g.city,s.a,g.st,s.act].some(v=>(v||'')
       .toLowerCase().includes(srch))) return false;
@@ -83,41 +86,63 @@ function renderDash(){
 
         let _pairCards='',_soloCards='';
         rows.forEach(row=>{
-          if(row.type==='pair'){
-            const _dashClr=CITY_COLORS(G(row.pair.ids[0]).city);
-            _pairCards+=renderPairCard(row.pair,row.evs,{ds:date,clr:_dashClr,showEdit:true,showExport:true});
+          if(st==='todo'){
+            // Unified List Mode
+            if(row.type==='pair') row.evs.forEach(s=>h+=_dashListRow(s));
+            else h+=_dashListRow(row.ev);
           } else {
-            const s=row.ev;
-            const stc=s.st!=='ok'?'st-'+s.st:'';
-            const _sc=CITY_COLORS(G(s.g).city);
-            h+=`<div class="city-block" style="margin-bottom:7px">
-              <div class="city-block-hdr" style="background:${_sc.solid};font-size:.76rem">
-                🏫 ${s.gd.name}
-                <span style="font-size:.67rem;opacity:.8;font-weight:400">📍 ${G(s.g).city}</span>
-                <button onclick="event.stopPropagation();_exportGardenWA([${s.g}],'${date}')" style="background:rgba(255,255,255,.28);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
-                <button onclick="event.stopPropagation();quickAddPartner(${s.g})"
-                  style="background:rgba(255,255,255,.22);border:none;border-radius:4px;padding:1px 7px;cursor:pointer;font-size:.67rem;color:#fff">➕ הוסף בן זוג</button>
-              </div>
-              <div style="background:#fff;padding:7px">
-                <div class="ev ${stc}" onclick="openSP(${s.id})" style="border-radius:5px;border:none;border-right:3px solid ${_sc.solid};background:${_sc.light};margin:0">
-                  <span class="est">${stLabel(s)}</span>
-                  <div class="eg">${s.gd.name}</div>
-                  ${s.gd.st?`<div style="font-size:.67rem;color:#78909c">📍 ${s.gd.st}</div>`:''}
-                  ${s.act?`<div style="font-size:.67rem;font-weight:600;color:${_sc.solid}">🎯 ${s.act}</div>`:''}
-                  ${s.t?`<div class="et">⏰ ${fT(s.t)}</div>`:''}
-                  ${s.grp>1?`<div style="font-size:.67rem;color:#546e7a">👥 ${s.grp}</div>`:''}
-                </div>
-              </div>
-            </div>`;
+             // Normal Card Mode
+             if(row.type==='pair'){
+               const _dashClr=CITY_COLORS(G(row.pair.ids[0]).city);
+               h+=renderPairCard(row.pair,row.evs,{ds:date,clr:_dashClr,showEdit:true,showExport:true});
+             } else {
+               const s=row.ev;
+               const stc=s.st!=='ok'?'st-'+s.st:'';
+               const _sc=CITY_COLORS(G(s.g).city);
+               h+=`<div class="city-block" style="margin-bottom:7px">
+                 <div class="city-block-hdr" style="background:${_sc.solid};font-size:.76rem">
+                   🏫 ${s.gd.name}
+                   <span style="font-size:.67rem;opacity:.8;font-weight:400">📍 ${G(s.g).city}</span>
+                   <button onclick="event.stopPropagation();_exportGardenWA([${s.g}],'${date}')" style="background:rgba(255,255,255,.28);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
+                   <button onclick="event.stopPropagation();quickAddPartner(${s.g})"
+                     style="background:rgba(255,255,255,.22);border:none;border-radius:4px;padding:1px 7px;cursor:pointer;font-size:.67rem;color:#fff">➕ הוסף בן זוג</button>
+                 </div>
+                 <div style="background:#fff;padding:7px">
+                   <div class="ev ${stc}" onclick="openSP(${s.id})" style="border-radius:5px;border:none;border-right:3px solid ${_sc.solid};background:${_sc.light};margin:0">
+                     <span class="est">${stLabel(s)}</span>
+                     <div class="eg">${s.gd.name}</div>
+                     ${s.gd.st?`<div style="font-size:.67rem;color:#78909c">📍 ${s.gd.st}</div>`:''}
+                     ${s.act?`<div style="font-size:.67rem;font-weight:600;color:${_sc.solid}">🎯 ${s.act}</div>`:''}
+                     ${s.t?`<div class="et">⏰ ${fT(s.t)}</div>`:''}
+                     ${s.grp>1?`<div style="font-size:.67rem;color:#546e7a">👥 ${s.grp}</div>`:''}
+                   </div>
+                 </div>
+               </div>`;
+             }
           }
         });
-        if(_pairCards) h+='<div class="pairs-4col">'+_pairCards+'</div>';
         h+='</div>';
       });
-      h+='</div>';
+      h+=`</div>`;
     });
     document.getElementById('dash-body').innerHTML=h;
   }
+}
+
+function _dashListRow(s){
+  const g=G(s.g);
+  const _sc=CITY_COLORS(g.city);
+  const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+  return `<div style="display:grid;grid-template-columns:110px 140px 1fr 100px;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #eee;cursor:pointer;background:#fff" onclick="openSP(${s.id})">
+    <div style="font-weight:700;color:#1a237e;font-size:.82rem">${g.name}</div>
+    <div style="font-size:.78rem;color:#546e7a">${g.city} | ${gcls(g)}</div>
+    <div style="font-size:.82rem;color:#1565c0;font-weight:600">🎯 ${s.act||'—'} ${isM?'<span style="color:#0288d1;font-size:.7rem">(השלמה)</span>':''}</div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end">
+       <div style="font-size:.75rem;font-weight:700;color:#333">${s.t?fT(s.t):'--:--'}</div>
+       <div style="transform:scale(0.85);transform-origin:left">${stLabel(s)}</div>
+    </div>
+  </div>`;
+}
 
   // Nohap list — all events that didn't happen, sorted by date desc
   const nohapEvs=SCH.filter(s=>s.st==='nohap' && !s._compByMakeup).sort((a,b)=>b.d.localeCompare(a.d));

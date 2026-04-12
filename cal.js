@@ -623,10 +623,7 @@ function renderNormalDay(evs,ds){
     <button onclick="openBlockedDate('${ds}')" style="background:none;border:1.5px solid #e91e63;color:#c62828;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:.72rem">✏️ ערוך</button>
   </div>`;
   
-  // Universal Makeup Section at Top
-  const calClsN=document.getElementById('cal-cls').value;
-  const calCityN=document.getElementById('cal-city').value;
-  topHtml += renderMakeupsTop(ds, calCityN, calClsN);
+  // Makeups are now handled within the regular group logic below
 
   const activeGids=new Set(evs.map(s=>s.g));
   const pairedGids=new Set();
@@ -634,10 +631,8 @@ function renderNormalDay(evs,ds){
   // Group pairs by city for unified color display
   const pairsByCity={};
   const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-  const makeups=evs.filter(isM);
-  const others=evs.filter(s=>!isM(s) && !s._compByMakeup);
-
-  topHtml += `<!-- Ganscheduler Makeup Ver 2.0.1 - SoloCount:${makeups.length} -->`;
+  // Filter out items already marked 'completed by makeup'
+  const others=evs.filter(s=> !s._compByMakeup);
 
   pairs.forEach(pair=>{
     if(isPairBroken(pair.id,ds)) return;
@@ -656,9 +651,7 @@ function renderNormalDay(evs,ds){
     });
   });
 
-  const unpairedOthers=others.filter(s=>!pairedGids.has(s.g));
-  const allSoloEvs=[...makeups];
-  unpairedOthers.forEach(s=>allSoloEvs.push(s));
+  const allSoloEvs = others.filter(s=>!pairedGids.has(s.g));
 
   pairs.forEach(pair=>{
     if(!isPairBroken(pair.id,ds)) return;
