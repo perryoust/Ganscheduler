@@ -766,7 +766,7 @@ window.onload = function(){
 
     }catch(initErr){ console.warn('Init error:', initErr); }
     load();
-    syncSupplierList(); // ensure supplier list is complete
+    syncSupplierList(); // supEx is now populated from load()
     migratePairsFromAuto();
     migrateSupActSplit();
     importContactsFromGardens();
@@ -1622,7 +1622,7 @@ function goToTodayActivities(){
 }
 
 const MAX_SNAPSHOTS=20;
-
+  if(_el && _el._fromDup){ _el.style.zIndex=''; _el._fromDup=false; }document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal').forEach(m=>{m.onclick=e=>{if(e.target===m) m.classList.remove('open');};});
 
 
