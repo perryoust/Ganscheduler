@@ -4,23 +4,7 @@
 const FIREBASE_DB_URL = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data.json';
 const FIREBASE_POLL_INTERVAL = 10000;
 
-// Safe localStorage wrapper (handles Tracking Prevention blocking on any device/browser)
-// Fallback chain: in-memory → sessionStorage → localStorage
-const _safeLS = {
-  get(k){
-    if(window['_mem_'+k]) return window['_mem_'+k];
-    try{ const v=sessionStorage.getItem(k); if(v){ window['_mem_'+k]=v; return v; } }catch(e){}
-    try{ const v=localStorage.getItem(k); if(v){ window['_mem_'+k]=v; return v; } }catch(e){}
-    return null;
-  },
-  set(k,v){
-    window['_mem_'+k]=String(v);
-    try{ sessionStorage.setItem(k,v); }catch(e){}
-    try{ localStorage.setItem(k,v); }catch(e){}
-  },
-  getItem(k){ return this.get(k); },
-  setItem(k,v){ this.set(k,v); }
-};
+// (Global _safeLS is now defined in data.js)
 let _fbLastSaveTs = parseInt(_safeLS.get('_fbLastSaveTs')||'0');
 let _fbLastLoadTs = parseInt(_safeLS.get('_fbLastLoadTs')||'0');
 
@@ -251,7 +235,7 @@ async function saveToFirebase(silent) {
       gardenBlocks: typeof gardenBlocks!=='undefined'?gardenBlocks:{},
       // invoices saved separately to /data/invoices (too large for main payload)
       autoBackupCfg: loadAutoBackupSettings()||undefined,
-      piStatusFilter: (()=>{ try{ const s=localStorage.getItem(PI_ST_KEY); return s?JSON.parse(s):undefined; }catch(e){ return undefined; } })(),
+      piStatusFilter: (()=>{ try{ const s=_safeLS.getItem(PI_ST_KEY); return s?JSON.parse(s):undefined; }catch(e){ return undefined; } })(),
       vatRate: typeof VAT_RATE!=='undefined'?VAT_RATE:18,
       activeGardens: typeof activeGardens!=='undefined'&&activeGardens?[...activeGardens]:null
     };
@@ -328,7 +312,7 @@ async function saveToFirebase(silent) {
           method: 'PUT', headers: {'Content-Type':'application/json'},
           body: JSON.stringify(payload)
         });
-        if(r2.ok){ _setFbSaveTs(nowTs); localStorage.setItem('ganv5_local_ts',String(nowTs)); return true; }
+        if(r2.ok){ _setFbSaveTs(nowTs); _safeLS.setItem('ganv5_local_ts',String(nowTs)); return true; }
       } catch(re){}
     }
     _fbLastError = 'שגיאה ' + r.status + (r.status===401||r.status===403?' (הרשאות)':'');

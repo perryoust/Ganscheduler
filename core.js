@@ -481,8 +481,8 @@ function _applyYearData(o){
   }
   if(typeof o.vatRate==='number') VAT_RATE=o.vatRate;
   // Sync settings from Firebase to localStorage
-  if(o.autoBackupCfg){ localStorage.setItem('autoBackupCfg',JSON.stringify(o.autoBackupCfg)); if(window._fbAppData) window._fbAppData.autoBackupCfg=o.autoBackupCfg; }
-  if(o.piStatusFilter){ try{ localStorage.setItem(PI_ST_KEY,JSON.stringify(o.piStatusFilter)); }catch(e){} }
+  if(o.autoBackupCfg){ _safeLS.setItem('autoBackupCfg',JSON.stringify(o.autoBackupCfg)); if(window._fbAppData) window._fbAppData.autoBackupCfg=o.autoBackupCfg; }
+  if(o.piStatusFilter){ try{ _safeLS.setItem(PI_ST_KEY,JSON.stringify(o.piStatusFilter)); }catch(e){} }
   window.clusters = o.clusters&&Object.keys(o.clusters).length?o.clusters:JSON.parse(JSON.stringify(INIT_CLUSTERS));
   holidays=o.holidays||[];
   if(supEx['__gardens_extra']) _GARDENS_EXTRA=supEx['__gardens_extra'];
@@ -501,8 +501,8 @@ function load(){
     }
     // Support migration from old Y1 system (ganv5_y_ keys)
     let st = null;
-    try{ const meta=JSON.parse(localStorage.getItem('ganv5_meta')||'null');
-         if(meta&&meta.currentYear) st=localStorage.getItem('ganv5_y_'+meta.currentYear); }catch(_){}
+    try{ const meta=JSON.parse(_safeLS.getItem('ganv5_meta')||'null');
+         if(meta&&meta.currentYear) st=_safeLS.getItem('ganv5_y_'+meta.currentYear); }catch(_){}
     if(!st) st = _safeLS.get('ganv5');
     if(!st && window._fbAppData) { _applyYearData(window._fbAppData); return; }
     if(st){ _applyYearData(JSON.parse(st)); }
@@ -537,7 +537,7 @@ function migrateGardenPhones(){
 
 function migratePairsFromAuto(){
   // Only run if localStorage has NO saved pairs yet (brand new user)
-  const st=localStorage.getItem('ganv5');
+  const st=_safeLS.getItem('ganv5');
   if(st){
     try{
       const o=JSON.parse(st);
@@ -583,16 +583,16 @@ function save(immediate){
     _safeLS.setItem('ganv5',_json);
     window._mem_ganv5=_json; // ensure in-memory is also up to date
     // Also update year key if meta exists
-    try{const _m=JSON.parse(localStorage.getItem('ganv5_meta')||'null');if(_m&&_m.currentYear)localStorage.setItem('ganv5_y_'+_m.currentYear,_json);}catch(_){}
+    try{const _m=JSON.parse(_safeLS.getItem('ganv5_meta')||'null');if(_m&&_m.currentYear)_safeLS.setItem('ganv5_y_'+_m.currentYear,_json);}catch(_){}
     try{ghAutoSave(immediate===true);}catch(_){}
     save._cnt=(save._cnt||0)+1;
     if(save._cnt%30===0){
       try{
-        const snaps=JSON.parse(localStorage.getItem('ganv5_snaps')||'[]');
+        const snaps=JSON.parse(_safeLS.getItem('ganv5_snaps')||'[]');
         const d=_json;
         snaps.unshift({ts:Date.now(),label:'אוטומטי',size:d.length,data:d});
         if(snaps.length>20) snaps.length=20;
-        localStorage.setItem('ganv5_snaps',JSON.stringify(snaps));
+        _safeLS.setItem('ganv5_snaps',JSON.stringify(snaps));
       }catch(e2){}
     }
   }catch(e){}
@@ -733,7 +733,7 @@ function restoreSupplierActs(){
     const ex = supEx[key];
     if(Array.isArray(ex.acts) && ex.acts.length>0) return; // already has acts
     // Check SCH for this key
-    const haswindow.SCH = SCH.some(s=>supBase(s.a)===key || s.a===key);
+    const hasSCH = SCH.some(s=>supBase(s.a)===key || s.a===key);
     if(!hasSCH) return;
     // Look for acts in mergedAway that share partial name or _mergedFrom
     const mergedFrom = ex._mergedFrom||[];
@@ -826,8 +826,8 @@ window.onload = function(){
     try{ renderPurchSuppliers(); }catch(e){}
     try{ renderInvoices(); }catch(e){}
     const _inv = typeof INVOICES!=='undefined'?INVOICES.length:0;
-    const _window.SCH = typeof SCH!=='undefined'?SCH.length:0;
-    console.log('App fully ready: window.SCH = ',_sch,'window.INVOICES = ',_inv);
+    const _sch = typeof SCH!=='undefined'?SCH.length:0;
+    console.log('App fully ready: SCH = ',_sch,'INVOICES = ',_inv);
     // Show status if invoices didn't load (mobile debugging)
     if(_inv === 0 && window._fbLastKnownInvoiceCount > 0){
       showToast('⚠️ חשבוניות לא נטענו! לחץ Firebase → טען עכשיו');
@@ -1132,7 +1132,7 @@ function initSucTabs(){
   const exIsAct = supEx[name]?.isAct;
   const exIsPurch = supEx[name]?.isPurch;
   const hasSchEntries = SCH.some(s=>supBase(s.a)===name);
-  const haswindow.INVOICES = INVOICES.some(i=>supBase(i.supName||'')===name);
+  const hasInvoices = INVOICES.some(i=>supBase(i.supName||'')===name);
   // isAct = explicitly marked OR (not explicitly marked purch-only AND has schedule entries)
   const isAct = exIsAct===true || (exIsAct===undefined && hasSchEntries && !hasInvoices);
   // isPurch = explicitly marked OR has invoices OR default (but SUPBASE-only suppliers treated as act)
@@ -2307,7 +2307,7 @@ function saveMgr(){
   renderManagers();
   refreshMgrDrops();
   renderGardens();
-  if(typeof renderwindow.pairs = =='function') renderPairs();
+  if(typeof renderPairs === 'function') renderPairs();
   updCounts();
   showToast('✅ '+name+' נשמר — הנתונים עודכנו בכל האפליקציה');
 }
@@ -2322,7 +2322,7 @@ function deleteMgr(){
   renderManagers();
   refreshMgrDrops();
   renderGardens();
-  if(typeof renderwindow.pairs = =='function') renderPairs();
+  if(typeof renderPairs === 'function') renderPairs();
   updCounts();
   showToast('✅ '+name+' נשמר — הנתונים עודכנו בכל האפליקציה');
 }
@@ -2514,7 +2514,7 @@ function renderGardensFixed(){
 
   let h='';
   sortedCities.forEach(city=>{
-    const window.GARDENS = byCity[city];
+    const gardens = byCity[city];
     const paired=new Set(), groups=[];
     [...gardens].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he')).forEach(g=>{
       if(paired.has(g.id)) return;
@@ -2648,8 +2648,8 @@ function mobNavPurch(btn){
 
 // ─── Data backup / restore ────────────────────────────
 function exportData(){
-  const data=localStorage.getItem('ganv5')||'{}';
-  const snaps=localStorage.getItem('ganv5_snaps')||'[]';
+  const data=_safeLS.getItem('ganv5')||'{}';
+  const snaps=_safeLS.getItem('ganv5_snaps')||'[]';
   const blob=new Blob([JSON.stringify({data:JSON.parse(data),snaps:JSON.parse(snaps),ts:Date.now()},null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -2669,8 +2669,8 @@ function importData(){
         const parsed=JSON.parse(ev.target.result);
         const data=parsed.data||parsed; // support both formats
         if(!confirm('⚠️ ייבוא יחליף את כל הנתונים הנוכחיים.\nהמשך?')) return;
-        localStorage.setItem('ganv5',JSON.stringify(data));
-        if(parsed.snaps) localStorage.setItem('ganv5_snaps',JSON.stringify(parsed.snaps));
+        _safeLS.setItem('ganv5',JSON.stringify(data));
+        if(parsed.snaps) _safeLS.setItem('ganv5_snaps',JSON.stringify(parsed.snaps));
         showToast('✅ הנתונים יובאו. טוען מחדש...');
         setTimeout(()=>location.reload(),1200);
       }catch(err){alert('שגיאה בקובץ הגיבוי: '+err.message);}
@@ -2813,7 +2813,7 @@ function piStChange(){
   // Save to localStorage
   try{
     const _piSt = JSON.stringify(_getPiStSelected());
-    localStorage.setItem(PI_ST_KEY, _piSt);
+    _safeLS.setItem(PI_ST_KEY, _piSt);
     const _tok = window._cachedToken;
     if(_tok) fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/piStatusFilter.json?auth='+_tok,{
       method:'PUT', headers:{'Content-Type':'application/json'}, body:_piSt
@@ -2827,7 +2827,7 @@ function piStAll(cb){
   _setPiStLabel();
   try{
     const _piStC = JSON.stringify(cb.checked?[]:[]);
-    localStorage.setItem(PI_ST_KEY, _piStC);
+    _safeLS.setItem(PI_ST_KEY, _piStC);
     const _tok2 = window._cachedToken;
     if(_tok2) fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/piStatusFilter.json?auth='+_tok2,{
       method:'PUT', headers:{'Content-Type':'application/json'}, body:_piStC
@@ -2860,8 +2860,8 @@ function initPiStatusFilter(){
   try{
     // Load from Firebase first, fallback to localStorage
     const _fbPiSt = window._fbAppData && window._fbAppData.piStatusFilter;
-    const saved = _fbPiSt || JSON.parse(localStorage.getItem(PI_ST_KEY)||'null');
-    if(_fbPiSt) localStorage.setItem(PI_ST_KEY, JSON.stringify(_fbPiSt)); // sync to local
+    const saved = _fbPiSt || JSON.parse(_safeLS.getItem(PI_ST_KEY)||'null');
+    if(_fbPiSt) _safeLS.setItem(PI_ST_KEY, JSON.stringify(_fbPiSt)); // sync to local
     if(saved && Array.isArray(saved) && saved.length>0){
       document.querySelectorAll('.pi-st-cb').forEach(cb=>{
         cb.checked = saved.includes(cb.value);

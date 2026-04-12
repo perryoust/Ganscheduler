@@ -1,8 +1,8 @@
-function getSnapshots(){try{return JSON.parse(localStorage.getItem('ganv5_snaps')||'[]');}catch{return [];}}
-function saveSnapshots(snaps){try{localStorage.setItem('ganv5_snaps',JSON.stringify(snaps));}catch(e){}}
+function getSnapshots(){try{return JSON.parse(_safeLS.getItem('ganv5_snaps')||'[]');}catch{return [];}}
+function saveSnapshots(snaps){try{_safeLS.setItem('ganv5_snaps',JSON.stringify(snaps));}catch(e){}}
 function createSnapshot(label){
   const snaps=getSnapshots();
-  const data=localStorage.getItem('ganv5')||'{}';
+  const data=_safeLS.getItem('ganv5')||'{}';
   snaps.unshift({ts:Date.now(),label:label||'ידני',size:data.length,data});
   if(snaps.length>MAX_SNAPSHOTS) snaps.length=MAX_SNAPSHOTS;
   saveSnapshots(snaps);
@@ -14,7 +14,7 @@ function openBackup(){renderBackupList();document.getElementById('backupm').clas
 function renderBackupList(){
   const snaps=getSnapshots();
   const el=document.getElementById('backup-list');if(!el)return;
-  const stored=localStorage.getItem('ganv5')||'';
+  const stored=_safeLS.getItem('ganv5')||'';
   (document.getElementById('backup-storage-info')||{}).textContent =
     'נתונים: '+(stored.length/1024).toFixed(1)+'KB | גרסאות: '+snaps.length+'/'+MAX_SNAPSHOTS;
   if(!snaps.length){el.innerHTML='<p style="color:#999">אין גרסאות שמורות עדיין</p>';return;}
@@ -31,7 +31,7 @@ function restoreSnapshot(i){
   const snaps=getSnapshots();const snap=snaps[i];if(!snap)return;
   if(!confirm('לשחזר לגרסה מ-'+new Date(snap.ts).toLocaleString('he-IL')+'?\nהנתונים הנוכחיים יישמרו אוטומטית לפני שחזור.')) return;
   createSnapshot('לפני שחזור');
-  localStorage.setItem('ganv5',snap.data);
+  _safeLS.setItem('ganv5',snap.data);
   showCopyToast('✅ שוחזר! טוען מחדש...');
   setTimeout(()=>location.reload(),1200);
 }
@@ -40,8 +40,8 @@ function updateAppFromHTML(input){
   const file=input.files[0]; if(!file) return;
   if(!confirm('האפליקציה תתעדכן לגרסה החדשה. הנתונים הקיימים יישמרו. להמשיך?')) return;
   // Save current data first
-  const currentData=localStorage.getItem('ganv5');
-  const currentCfg=localStorage.getItem('autoBackupCfg');
+  const currentData=_safeLS.getItem('ganv5');
+  const currentCfg=_safeLS.getItem('autoBackupCfg');
   const r=new FileReader();
   r.onload=e=>{
     try{
@@ -51,9 +51,9 @@ function updateAppFromHTML(input){
       const blob=new Blob([newHTML],{type:'text/html'});
       const url=URL.createObjectURL(blob);
       // Store data to restore after load
-      sessionStorage.setItem('_restore_data',currentData||'');
-      sessionStorage.setItem('_restore_cfg',currentCfg||'');
-      sessionStorage.setItem('_pending_restore','1');
+      _safeLS.setItem('_restore_data',currentData||'');
+      _safeLS.setItem('_restore_cfg',currentCfg||'');
+      _safeLS.setItem('_pending_restore','1');
       window.location.href=url;
     }catch(err){alert('שגיאה: '+err.message);}
   };
@@ -61,14 +61,14 @@ function updateAppFromHTML(input){
 }
 // On load: restore data if flagged
 (function(){
-  if(sessionStorage.getItem('_pending_restore')==='1'){
-    sessionStorage.removeItem('_pending_restore');
-    const d=sessionStorage.getItem('_restore_data');
-    const c=sessionStorage.getItem('_restore_cfg');
-    sessionStorage.removeItem('_restore_data');
-    sessionStorage.removeItem('_restore_cfg');
-    if(d) localStorage.setItem('ganv5',d);
-    if(c) localStorage.setItem('autoBackupCfg',c);
+  if(_safeLS.getItem('_pending_restore')==='1'){
+    _safeLS.removeItem('_pending_restore');
+    const d=_safeLS.getItem('_restore_data');
+    const c=_safeLS.getItem('_restore_cfg');
+    _safeLS.removeItem('_restore_data');
+    _safeLS.removeItem('_restore_cfg');
+    if(d) _safeLS.setItem('ganv5',d);
+    if(c) _safeLS.setItem('autoBackupCfg',c);
     setTimeout(()=>showToast('✅ האפליקציה עודכנה! הנתונים שוחזרו.'),1500);
   }
 })();
@@ -86,15 +86,15 @@ function importBackup(input){
         managers:data.managers||{},blockedDates:data.blockedDates||{},
         gardenBlocks:data.gardenBlocks||{},invoices:data.invoices||[]};
       const json=JSON.stringify(sd);
-      localStorage.setItem('ganv5',json);
+      _safeLS.setItem('ganv5',json);
       // Init meta if missing, write to year key
-      let meta=JSON.parse(localStorage.getItem('ganv5_meta')||'null');
+      let meta=JSON.parse(_safeLS.getItem('ganv5_meta')||'null');
       if(!meta){
         const yr={key:'תשפו'};
         meta={currentYear:yr.key,years:[yr.key]};
-        localStorage.setItem('ganv5_meta',JSON.stringify(meta));
+        _safeLS.setItem('ganv5_meta',JSON.stringify(meta));
       }
-      localStorage.setItem('ganv5_y_'+meta.currentYear,json);
+      _safeLS.setItem('ganv5_y_'+meta.currentYear,json);
       showCopyToast('✅ ייבוא הצליח! טוען מחדש...');
       setTimeout(()=>location.reload(),1400);
     }catch(err){alert('שגיאה בקובץ: '+err.message);}
@@ -105,7 +105,7 @@ setInterval(()=>createSnapshot('שעתי'),60*60*1000);
 window.addEventListener('beforeunload',()=>{
   createSnapshot('סגירה');
   // Try to sync to Firebase before closing
-  const raw = localStorage.getItem('ganv5');
+  const raw = _safeLS.getItem('ganv5');
   if(raw && window._fbUser && window._cachedToken){
     const url = FIREBASE_DB_URL + '?auth=' + window._cachedToken;
     try{
@@ -120,10 +120,10 @@ function loadAutoBackupSettings(){
   // Prefer Firebase data (already loaded into window._fbAppData)
   if(window._fbAppData && window._fbAppData.autoBackupCfg)
     return window._fbAppData.autoBackupCfg;
-  return JSON.parse(localStorage.getItem('autoBackupCfg')||'null');
+  return JSON.parse(_safeLS.getItem('autoBackupCfg')||'null');
 }
 function saveAutoBackupSettings(cfg){
-  localStorage.setItem('autoBackupCfg',JSON.stringify(cfg));
+  _safeLS.setItem('autoBackupCfg',JSON.stringify(cfg));
   // Also save to Firebase
   const tok = window._cachedToken;
   if(tok) fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/autoBackupCfg.json?auth='+tok,{
@@ -174,7 +174,7 @@ function saveAutoBackupCfg(){
 setTimeout(startAutoBackup,3000);
 
 function openInfoModal(){
-  const used=JSON.stringify(localStorage.getItem('ganv5')||'').length;
+  const used=JSON.stringify(_safeLS.getItem('ganv5')||'').length;
   const kb=(used/1024).toFixed(1);
   document.getElementById('info-storage-stats').innerHTML=
     `<div>נתונים שמורים: <b>${kb} KB</b> / ~5,000 KB אחסון מקסימלי</div>

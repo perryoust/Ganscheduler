@@ -66,14 +66,14 @@ function SPT(t){
     fillPiSupFilter(); _fillPiCityFilter(); renderInvoices();
     const ib = document.getElementById('one-time-import-btn');
     if(ib){
-      if(localStorage.getItem('_oneTimeImportDone')){ ib.style.display='none'; }
+      if(_safeLS.getItem('_oneTimeImportDone')){ ib.style.display='none'; }
       else{
         // Also check Firebase flag
         const _tk = window._cachedToken;
         if(_tk){
           fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/importDone.json?auth='+_tk)
             .then(r=>r.json()).then(d=>{
-              if(d && d.done){ ib.style.display='none'; localStorage.setItem('_oneTimeImportDone','1'); }
+              if(d && d.done){ ib.style.display='none'; _safeLS.setItem('_oneTimeImportDone','1'); }
               else { ib.style.display='inline-block'; }
             }).catch(()=>{ ib.style.display='inline-block'; });
         } else { ib.style.display='inline-block'; }
@@ -528,7 +528,7 @@ function resetInvFilter(){
   document.querySelectorAll('.pi-st-cb').forEach(cb=>cb.checked=false);
   const allCb=document.getElementById('pi-st-all'); if(allCb) allCb.checked=false;
   _setPiStLabel();
-  try{ localStorage.removeItem(PI_ST_KEY); }catch(e){}
+  try{ _safeLS.removeItem(PI_ST_KEY); }catch(e){}
   const sortEl=document.getElementById('pi-sort'); if(sortEl) sortEl.value='desc';
   renderInvoices();
 }
@@ -1300,7 +1300,7 @@ async function _runOneTimeImport(){
     INVOICES.push(...localInvoices);
     localSups.forEach(s=>{ SUPBASE.push(s); supEx[s.name]=s; });
     if(btn) btn.remove();
-    localStorage.setItem('_oneTimeImportDone','1');
+    _safeLS.setItem('_oneTimeImportDone','1');
     // Save flag to Firebase so it persists across devices/browsers
     fetch(`${DB_BASE}/data/importDone.json?auth=${token}`, {
       method:'PUT', headers:{'Content-Type':'application/json'},
