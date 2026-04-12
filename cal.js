@@ -34,7 +34,7 @@ function filterE(f,from,to){
         if(!allClusterGids.has(s.g)) return false;
       } else {
         const cl=getClusters().find(c=>c.name===f.cluster);
-        if(!cl||(!(cl.gardenIds||[]).includes(s.g))) return false;
+        if(!cl||(!(cl.gardenIds||[]).map(Number).includes(Number(s.g)))) return false;
       }
     }
     if(f.cls&&gcls(g)!==f.cls) return false;
@@ -425,10 +425,11 @@ function renderClusterDay(evs, ds, clusterName){
             <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
             <div style="font-size:.68rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
             <div class="qacts" onclick="event.stopPropagation()">
-              <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
               ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
               ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
+              ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
               <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
+              <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
             </div>
           </div>`;
         });
@@ -460,11 +461,11 @@ function renderClusterDay(evs, ds, clusterName){
             <div class="pst">${stLabel(s)}</div>
             ${s.nt?`<div style="font-size:.68rem;color:#78909c">📝 ${s.nt}</div>`:''}
             <div class="qacts" onclick="event.stopPropagation()">
-              <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
               ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
               ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
               ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
               <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
+              <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
             </div>
           </div>
         </div>
@@ -694,6 +695,7 @@ function renderNormalDay(evs,ds){
                 ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
                 ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
                 <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
+                <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
               </div>
             </div>
           </div>
@@ -789,11 +791,11 @@ function renderPairCard(pair, pairEvs, opts){
           </div>
           <div class="pgr-right">
             <div class="pgr-qacts" onclick="event.stopPropagation()">
-              <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${ev.id})">📅</button>
               ${ev.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${ev.id},'done')">✔️</button>`}
               ${ev.st==='can'?'':`<button title="בטל" onclick="openCanQ(${ev.id})">❌</button>`}
               <button title="דחה שוב" onclick="openPostpone(${ev.id})">⏩</button>
               ${ev.st==='nohap'?'':`<button title="לא התקיים" onclick="openNohapQ(${ev.id})" style="color:#e91e63">⚠️</button>`}
+              <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${ev.id})">📅</button>
             </div>
           </div>
         </div>`;
@@ -828,11 +830,11 @@ function renderGardenCols(evs,gids,clr){
           ${s.p?`<div class="pp">📞 ${s.p}</div>`:''}
           <div class="pst">${stLabel(s)}</div>
           <div class="qacts" onclick="event.stopPropagation()">
-            <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
             ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
             ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
             ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
             <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
+            <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
           </div>
         </div>`;
       });
@@ -871,11 +873,11 @@ function renderPairColsHTML(evs,gids,pairId){
       ${s.p?`<div class="pp">📞 ${s.p}</div>`:''}
       <div class="pst">${stLabel(s)}</div>
       <div class="qacts" onclick="event.stopPropagation()">
-        <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
         ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
         ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
         ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
         <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
+        <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
       </div>
     </div>`);
     html+='</div></div>';
@@ -983,8 +985,6 @@ function renderNormalWeek(evs,ws,f){
                 ${ev.t?`<div style="font-size:12px;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
               </div>
               <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0" onclick="event.stopPropagation()">
-                <button title="שיבוץ השלמה" class="btn-makeup" style="background:#e3f2fd;color:#1565c0;border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
-                  onclick="event.stopPropagation();openMakeupSched(${ev.id})">📅</button>
                 <button title="התקיים" style="background:${ev.st==='done'?'#2e7d32':'#e8f5e9'};color:${ev.st==='done'?'#fff':'#2e7d32'};border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
                   onclick="openSP(${ev.id});setTimeout(()=>setStatus('done'),80)">✔️</button>
                 <button title="בטל" style="background:${ev.st==='can'?'#c62828':'#ffebee'};color:${ev.st==='can'?'#fff':'#c62828'};border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
@@ -993,6 +993,8 @@ function renderNormalWeek(evs,ws,f){
                   onclick="openSP(${ev.id});setTimeout(()=>markNoHap(),80)">⚠️</button>
                 <button title="דחה" style="background:#fff3e0;color:#e65100;border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
                   onclick="event.stopPropagation();openPostpone(${ev.id})">⏩</button>
+                <button title="שיבוץ השלמה" class="btn-makeup" style="background:#e3f2fd;color:#1565c0;border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
+                  onclick="event.stopPropagation();openMakeupSched(${ev.id})">📅</button>
               </div>
             </div>
           </div>`;
@@ -1103,8 +1105,6 @@ function _quickActionBtns(s){
   const sid=s.id;
   const isDone=s.st==='done', isCan=s.st==='can', isNohap=s.st==='nohap';
   return `<div class="qacts" style="opacity:1;display:flex;gap:3px;flex-shrink:0" onclick="event.stopPropagation()">
-    <button title="שיבוץ השלמה" class="btn-makeup" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
-      onclick="openMakeupSched(${sid})">📅</button>
     ${isDone?'':`<button title="התקיים" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
       onclick="qSetSt(${sid},'done')">✔️</button>`}
     ${isCan?'':`<button title="בטל" style="background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
@@ -1113,6 +1113,8 @@ function _quickActionBtns(s){
       onclick="qSetSt(${sid},'nohap')">⚠️</button>`}
     <button title="דחה" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
       onclick="openPostpone(${sid})">⏩</button>
+    <button title="שיבוץ השלמה" class="btn-makeup" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
+      onclick="openMakeupSched(${sid})">📅</button>
   </div>`;
 }
 
