@@ -1530,29 +1530,128 @@ function renderMonth(evs,mDate){
   return html+'</div></div>';
 }
 
-let _calTab='g'; // 'g'=גנים 's'=בתי ספר
-function setCalTab(t){
-  _calTab=t;
-  document.getElementById('cal-tab-g').classList.toggle('active',t==='g');
-  document.getElementById('cal-tab-s').classList.toggle('active',t==='s');
-  // Sync the hidden cal-cls select so existing filter logic still works
-  const clsSel=document.getElementById('cal-cls');
-  if(clsSel) clsSel.value=t==='g'?'גנים':'ביה"ס';
-  // Reset garden selectors when switching
-  ['cal-g1','cal-g2','cal-g3'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.value='';
-  });
-  calRefG();
+let _listGroupMode = 'window.pairs';
+function setListGroupMode(m){
+  _listGroupMode = m;
+  const elP = document.getElementById('vlb-group-pairs');
+  const elC = document.getElementById('vlb-group-clusters');
+  if(elP) elP.classList.toggle('active', m === 'window.pairs' || m === 'pairs');
+  if(elC) elC.classList.toggle('active', m === 'window.clusters' || m === 'clusters');
+  renderCal();
 }
-var _dashTab='g'; // 'g'=גנים 's'=בתי ספר
 
-// Global Bridge
+function renderRangeListView(evs, fromDs, toDs){
+  const tday = td();
+  const byDate = {};
+  evs.forEach(s => {
+    const dk = s._isPostponed ? s.pd : s.d;
+    if(!byDate[dk]) byDate[dk] = [];
+    byDate[dk].push(s);
+  });
+  const dates = Object.keys(byDate).sort();
+  if(!dates.length) return '<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות בטווח זה</div>';
+
+  let h = '<div class="card" style="padding:0;overflow:hidden">';
+  const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+  
+  dates.forEach(ds => {
+    const dayEvs = byDate[ds].sort((a,b) => (a.t||'99:99').localeCompare(b.t||'99:99'));
+    const isToday = ds === tday;
+    const hol = getHolidayInfo(ds);
+    const blk = getBlockedInfo(ds);
+
+    h += `<div style="border-bottom:2px solid #c5cae9">
+      <div style="background:${isToday?'#1565c0':hol?hol.bg:blk?'#fce4ec':'#e8eaf6'};color:${isToday?'#fff':hol?hol.color:blk?'#c62828':'#283593'};padding:6px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="jumpToDay('${ds}')">
+        <span style="font-weight:700;font-size:.82rem">📅 ${window.dayN(ds)} ${window.fD(ds)}</span>
+        <span style="display:flex;gap:8px;align-items:center">
+          ${hol ? `<span style="font-size:.7rem">${hol.emoji} ${hol.name}</span>` : ''}
+          ${blk ? `<span style="font-size:.7rem;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blk.icon} ${blk.reason} ✏️</span>` : `<span style="font-size:.65rem;opacity:.4;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')" title="חסום תאריך">🚫</span>`}
+          <span style="font-size: .72rem; opacity: .8">${dayEvs.length} פעילויות</span>
+        </span>
+      </div>`;
+
+    h += '<div style="padding:6px 8px">';
+    h += renderMakeupsTop(ds);
+
+    const allCities = [...new Set(dayEvs.map(s => window.G(s.g).city || 'אחר'))].sort((a,b) => a.localeCompare(b, 'he'));
+
+    allCities.forEach(city => {
+      const cityEvs = dayEvs.filter(s => (window.G(s.g).city || 'אחר') === city && !isM(s));
+      if(!cityEvs.length) return;
+      const clr = window.CITY_COLORS(city);
+
+      h += `<div style="margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:6px;padding:5px 10px;margin-bottom:5px;background:${clr.light};border-right:4px solid ${clr.solid};border-radius:6px">
+          <span style="font-weight:800;color:${clr.solid};font-size:.88rem">🏙️ ${city}</span>
+          <span style="font-size:.72rem;color:#78909c">${cityEvs.length} פעילויות</span>
+        </div>`;
+
+      const _gmode = _listGroupMode === 'clusters' ? 'window.clusters' : 'window.pairs';
+      const firstUsedGids = new Set();
+      
+      const _renderCl = (cl) => {
+        const clEvs = cityEvs.filter(s => (cl.gardenIds || []).map(x => parseInt(x)).includes(s.g) && !firstUsedGids.has(s.g))
+          .sort((a,b) => (window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
+        if(!clEvs.length) return;
+        clEvs.forEach(s => firstUsedGids.add(s.g));
+        const clGids = clEvs.map(s => s.g);
+        h += `<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
+          <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
+            <span>🏘️ ${cl.name}</span>
+            <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
+          </div>`;
+        clEvs.forEach(s => { h += _listRow(s, clr); });
+        h += `</div>`;
+      };
+
+      if(_gmode === 'window.clusters'){
+        (typeof getClusters === 'function' ? getClusters() : []).forEach(cl => _renderCl(cl));
+      }
+
+      const pairGroups = [];
+      window.pairs.forEach(pair => {
+        if(isPairBroken && isPairBroken(pair.id, ds)) return;
+        const pairEvs = cityEvs.filter(s => pair.ids.includes(s.g) && !firstUsedGids.has(s.g));
+        if(!pairEvs.length) return;
+        pairEvs.forEach(s => firstUsedGids.add(s.g));
+        pairGroups.push({pair, pairEvs});
+      });
+      pairGroups.sort((a,b) => (a.pair.name||'').localeCompare(b.pair.name||'', 'he'));
+      pairGroups.forEach(({pair, pairEvs}) => {
+        const sorted = pairEvs.sort((a,b) => (window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
+        h += `<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
+          <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
+            <span>🔗 ${pair.name}</span>
+            <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
+          </div>`;
+        sorted.forEach(s => { h += _listRow(s, clr); });
+        h += `</div>`;
+      });
+
+      if(_gmode === 'window.pairs'){
+        const dayClusters = (typeof getClusters === 'function' ? getClusters() : []).filter(cl =>
+          (cl.city === city || !cl.city) && (cl.gardenIds || []).some(gid => cityEvs.some(s => s.g === parseInt(gid) && !firstUsedGids.has(s.g))));
+        dayClusters.forEach(cl => _renderCl(cl));
+      }
+
+      cityEvs.filter(s => !firstUsedGids.has(s.g))
+        .sort((a,b) => (window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'))
+        .forEach(s => { h += _listRow(s, clr); });
+
+      h += `</div>`;
+    });
+    h += '</div></div>';
+  });
+  return h + '</div>';
+}
+
+// --- GLOBAL BRIDGE ---
 window.renderCal = renderCal;
 window.setCalTab = setCalTab;
 window.setView = setView;
 window.setListSubView = setListSubView;
 window.setRangeSubView = setRangeSubView;
+window.setListGroupMode = setListGroupMode;
 window.navCal = navCal;
 window.goDate = goDate;
 window.goToday = goToday;
@@ -1562,16 +1661,13 @@ window.renderMakeupsTop = renderMakeupsTop;
 window.jumpToDay = jumpToDay;
 window.toggleExportMenu = toggleExportMenu;
 window.closeExportMenu = closeExportMenu;
-
-// --- GLOBAL BRIDGE ---
-window.renderCal = renderCal;
-window.navCal = navCal;
-window.setView = setView;
-window.setCalTab = setCalTab;
-window.goDate = goDate;
-window.jumpToDay = jumpToDay;
-window.renderMakeupsTop = renderMakeupsTop;
-window.setListSubView = setListSubView;
-window.toggleExportMenu = toggleExportMenu;
-window.closeExportMenu = closeExportMenu;
-window.openExport = openExport;
+window.calRefG = calRefG;
+window.calSelectPair = calSelectPair;
+window.clearCal = clearCal;
+window.clearCalPair = clearCalPair;
+window.addPairFromCal = addPairFromCal;
+window._exportPairWA = (gids) => {
+   const text = window.G(gids[0]).name + '...'; // fallback
+   console.log('WA Export', gids);
+   // Implement actual WA export if needed
+};
