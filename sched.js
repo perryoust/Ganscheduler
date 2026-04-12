@@ -104,8 +104,10 @@ function openNewSched(gid, opts={}){
     document.getElementById('ns-g').innerHTML='<option value="">בחר עיר תחילה</option>';
   }
 
-  // Set tab
+  // Set tab and times
   nsSetTab(opts.tab||'once');
+  if(opts.time) document.getElementById('ns-time').value = fT(opts.time);
+  
   if((opts.tab||'once')==='makeup') nsShowFreeDays(gid);
   else document.getElementById('ns-free-wrap').style.display='none';
 

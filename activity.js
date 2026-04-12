@@ -201,10 +201,10 @@ function openSP(id){
     <button class="btn bo bsm" onclick="setStatus('ok')" ${s.st==='ok'?'disabled style="opacity:.6"':''}>🔄 שחזר למתקיים</button>
   </div>`;
 
-  if(!isDone){
-    h+=`<div style="border:1.5px solid #d1d1d1;border-radius:10px;margin-bottom:15px;overflow:hidden;background:#fff">
-      <div style="display:flex;background:#f5f5f5;gap:1px" id="sp-action-tabs">
+    <div style="border:1.5px solid #d1d1d1;border-radius:10px;margin-bottom:15px;overflow:hidden;background:#fff">
+      <div style="display:flex;background:#f5f5f5;gap:1px;border-bottom:1px solid #ddd" id="sp-action-tabs">
         <button id="sp-tab-nohap" class="sp-act-tab" onclick="setSpActionTab('nohap')" style="flex:1;padding:10px;border:none;cursor:pointer;font-size:.8rem;font-weight:700">⚠️ לא התקיים</button>
+        <button id="sp-tab-comp" class="sp-act-tab" onclick="setSpActionTab('comp')" style="flex:1;padding:10px;border:none;cursor:pointer;font-size:.8rem;font-weight:700;border-left:1px solid #ddd;border-right:1px solid #ddd">✅ סיום/טיפול</button>
         <button id="sp-tab-can" class="sp-act-tab" onclick="setSpActionTab('can')" style="flex:1;padding:10px;border:none;cursor:pointer;font-size:.8rem;font-weight:700">❌ ביטול</button>
       </div>
       <div id="sp-panel-nohap" style="padding:12px;display:none">
@@ -217,6 +217,11 @@ function openSP(id){
         <input type="text" id="sp-nn" placeholder="הסבר נוסף..." style="width:100%;margin-bottom:8px;padding:8px;border-radius:6px;border:1px solid #ddd">
         <button class="btn bpurple bsm" style="width:100%" onclick="markNoHap()">⚠️ סמן לא התקיים</button>
       </div>
+      <div id="sp-panel-comp" style="padding:15px;display:none;background:#e8f5e9;text-align:center">
+          <div style="font-size:.82rem;color:#2e7d32;font-weight:700;margin-bottom:12px">✅ הפעילות הושלמה או טופלה?</div>
+          <button class="btn bg bsm" style="width:100%" onclick="markCompManual(${s.id})">סמן כהושלם (הסר מהרשימות)</button>
+          <div style="font-size:.68rem;color:#666;margin-top:8px">הפעילות תוסר מרשימות ה"לא התקיים" בדף הבית, אך תישאר בדוחות הספקים.</div>
+      </div>
       <div id="sp-panel-can" style="padding:12px;display:none">
         <div class="copts">
           <div class="copt" onclick="selCO(this,'חג/חופשה')">🎉 חג/חופשה</div>
@@ -228,14 +233,6 @@ function openSP(id){
         <button class="btn br bsm" style="width:100%" onclick="cancelEv()">❌ בטל פעילות</button>
       </div>
     </div>`;
-  }
-  
-  // Requirement: Button to manually mark as completed (remove from lists)
-  if(s.st==='nohap'||s.st==='can' || s.st==='post'){
-      h+=`<div style="margin-bottom:15px; background:#e8f5e9; border:1px solid #c8e6c9; padding:10px; border-radius:10px; display:flex; align-items:center; justify-content:space-between">
-          <span style="font-size:.8rem; color:#2e7d32; font-weight:700">✅ הפעילות הושלמה/טופלה?</span>
-          <button class="btn bg bsm" onclick="markCompManual(${s.id})">סמן כהושלם (הסר מהרשימות)</button>
-      </div>`;
   }
 
   h+=`</div>`;
@@ -479,25 +476,11 @@ function spEditSave(){
 }
 
 function setSpActionTab(tab){
-  const tabs = ['nohap', 'can'];
-  tabs.forEach(t => {
-    const btn = document.getElementById('sp-tab-' + t);
-    const pnl = document.getElementById('sp-panel-' + t);
-    if(!btn || !pnl) return;
-    const isActive = t === tab;
-    btn.classList.toggle('active', isActive);
-    pnl.style.display = isActive ? 'block' : 'none';
-    
-    // Style active tab
-    if(isActive){
-      btn.style.background = t === 'nohap' ? '#fce4ec' : '#ffebee';
-      btn.style.color = t === 'nohap' ? '#e91e63' : '#c62828';
-      btn.style.borderBottom = t === 'nohap' ? '2px solid #e91e63' : '2px solid #c62828';
-    } else {
-      btn.style.background = '#fff';
-      btn.style.color = '#999';
-      btn.style.borderBottom = '2px solid transparent';
-    }
+  ['nohap','can','comp'].forEach(t=>{
+    const p=document.getElementById('sp-panel-'+t);
+    const b=document.getElementById('sp-tab-'+t);
+    if(p) p.style.display=(t===tab?'block':'none');
+    if(b) b.style.background=(t===tab?'#fff':'#f5f5f5');
   });
 }
 
@@ -701,10 +684,9 @@ function qSetSt(id,st){
 
 
 function openMakeupSched(origId){
-  const orig=SCH.find(x=>x.id===origId); if(!orig) return;
-  _makeupOrigId=origId;
-  const d=new Date(s2d(orig.d));
-  openNewSched(orig.g, {date:d2s(d), tab:'makeup', makeupFrom:orig.d});
+  const orig=SCH.find(s=>s.id===origId); if(!orig) return;
+  const d=new Date(); // Today
+  openNewSched(orig.g, {date:d2s(d), tab:'makeup', makeupFrom:orig.d, time:orig.t});
   setTimeout(()=>{
     document.getElementById('ns-sup').value=orig.a||'';
     nsSupChg();

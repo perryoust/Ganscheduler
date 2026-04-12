@@ -398,6 +398,28 @@ function renderClusterDay(evs, ds, clusterName){
   const makeups=evs.filter(s => isM(s) && !s._compByMakeup);
   const others=evs.filter(s => !isM(s) && !s._compByMakeup);
 
+  // ── Solo Makeups section AT TOP ──
+  if(makeups.length){
+    html+=`<div style="margin-bottom:18px">
+      <div style="padding:5px 10px;background:#0d47a1;color:#fff;border-radius:6px;font-size:.82rem;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+        📅 השלמות לביצוע (${makeups.length})
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">`;
+    makeups.forEach(s=>{
+      const g=G(s.g);
+      const stc=s.st!=='ok'?'st-'+s.st:'';
+      const clr=CITY_COLORS(g.city||'');
+      html+=`<div style="min-width:165px;flex:1;max-width:260px;border:1.5px solid ${clr.border};border-radius:7px;padding:7px;cursor:pointer;background:#fff;border-right:4px solid #0d47a1;box-shadow:0 2px 4px rgba(0,0,0,0.05)" onclick="openSP(${s.id})" class="${stc}">
+        ${s.t?`<div style="font-size:.82rem;font-weight:900;color:#0d47a1;margin-bottom:2px">⏰ ${fT(s.t)}</div>`:'<div style="font-size:.7rem;color:#aaa">ללא שעה</div>'}
+        <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
+        <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
+        <div style="font-size:.68rem;font-weight:700;margin-top:2px;color:#0d47a1">📅 השלמה</div>
+        <div style="font-size:.65rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  }
+
   if(isAll){
     // ── כל האשכולות: עיר → אשכול → שעה ──
     const allCities=[...new Set(others.map(s=>G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
@@ -475,25 +497,6 @@ function renderClusterDay(evs, ds, clusterName){
     });
   }
 
-  // ── Solo Makeups section at bottom (always visible in Cluster View) ──
-  if(makeups.length){
-    html+=`<div style="margin-top:20px;border-top:1.5px dashed #ccc;padding-top:10px">
-      <div style="font-size:.8rem;font-weight:800;color:#0288d1;margin-bottom:8px">📅 השלמות עצמאיות</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">`;
-    makeups.forEach(s=>{
-      const g=G(s.g);
-      const stc=s.st!=='ok'?'st-'+s.st:'';
-      const clr=CITY_COLORS(g.city||'');
-      html+=`<div style="min-width:160px;flex:1;max-width:260px;border:1.5px solid ${clr.border};border-radius:7px;padding:7px;cursor:pointer;background:${clr.light};border-right:3px solid ${clr.solid}" onclick="openSP(${s.id})" class="${stc}">
-        ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clr.solid};margin-bottom:2px">⏰ ${fT(s.t)}</div>`:''}
-        <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-        <div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>
-        <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
-        <div style="font-size:.68rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
-      </div>`;
-    });
-    html+=`</div></div>`;
-  }
 
   return html;
 }
