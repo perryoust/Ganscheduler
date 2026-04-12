@@ -829,9 +829,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <button class="mode-btn" id="modeBtn-admin" onclick="ST('admin')" style="display:none;color:#ce93d8">⚙️ ניהול משתמשים</button>
 </div>
 <div class="tabs" id="tabs-act">
-  <div class="tab active" onclick="ST('dash')">📊 לוח בקרה</div>
+  <div class="tab" onclick="ST('dash')">📊 לוח בקרה</div>
   <div class="tab" onclick="ST('cal')">📅 לוח שנה</div>
-  <div class="tab" onclick="ST('sched')">📋 לוח זמנים</div>
+  <div class="tab active" onclick="ST('sched')">📋 לוח זמנים</div>
   <div class="tab" onclick="ST('gardens')">🏫 צהרונים</div>
   <div class="tab" onclick="ST('holidays')">🗓️ חופשות</div>
   <div class="tab" onclick="ST('sup')">🏢 ספקים</div>
@@ -844,10 +844,12 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 </div>
 <div id="mob-nav">
   <div class="mob-nav-inner">
-    <button class="mob-nav-btn active" onclick="ST('dash');mobNav(this)" data-tab="dash">
+    <button class="mob-nav-btn" onclick="ST('dash');mobNav(this)" data-tab="dash">
       <span class="mnb-ico">📊</span><span>בקרה</span>
     </button>
-    <button class="mob-nav-btn" onclick="ST('cal');mobNav(this)" data-tab="cal">
+    <button class="mob-nav-btn active" onclick="ST('sched');mobNav(this)" data-tab="sched">
+      <span class="mnb-ico">📋</span><span>זמנים</span>
+    </button>
       <span class="mnb-ico">📅</span><span>לוח שנה</span>
     </button>
     <button class="mob-nav-btn" onclick="ST('sched');mobNav(this)" data-tab="sched">
@@ -957,7 +959,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<div id="p-dash" class="panel active">
+<div id="p-dash" class="panel">
   <!-- Quick stats -->
   <div id="dash-stat-boxes" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
     <div onclick="ST('gardens')" style="background:#e8eaf6;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
@@ -1115,7 +1117,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 </div>
 
 <!-- ====== SCHEDULES ====== -->
-<div id="p-sched" class="panel">
+<div id="p-sched" class="panel active">
   <div class="card">
     <div style="margin-bottom:9px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">

@@ -1442,10 +1442,10 @@ function renderCalList(evs, mDate){
           const na=G(a.g).name||'', nb=G(b.g).name||'';
           return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
         });
-        h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border};border-radius:6px;overflow:hidden">
-          <div style="background:${clr.solid}22;padding:3px 8px;font-size:.72rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
+        h+=`<div style="margin-bottom:3px;border:1px solid ${clr.border};border-radius:5px;overflow:hidden">
+          <div style="background:${clr.solid}18;padding:2px 8px;font-size:.68rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
             <span>🔗 ${pair.name}</span>
-            <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
+            <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:3px;padding:1px 6px;cursor:pointer;font-size:.64rem;color:#fff;font-weight:700">📋 הודעה</button>
           </div>`;
         sorted.forEach(s=>{ h+=_listRow(s,clr); });
         h+=`</div>`;
@@ -1472,10 +1472,10 @@ function _listRow(s, clr){
   const g=G(s.g);
   const stC=s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':'#333';
   const addrLink=g.st?`<a href="https://maps.google.com/?q=${encodeURIComponent(g.st+' '+g.city)}" target="_blank" onclick="event.stopPropagation()" style="font-size:.63rem;color:#1565c0;text-decoration:none">📍 ${g.st}</a>`:'';
-  return `<div style="display:grid;grid-template-columns:120px 1fr auto auto auto;align-items:center;gap:5px;padding:3px 6px;border-radius:4px;margin-bottom:2px;background:${s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light};border-right:3px solid ${clr.solid};cursor:pointer" onclick="openSP(${s.id})">
+  return `<div style="display:grid;grid-template-columns:110px 1fr auto auto auto;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;margin-bottom:1px;background:${s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light};border-right:3px solid ${clr.solid};cursor:pointer;min-height:36px" onclick="openSP(${s.id})">
     <div>
-      <div style="font-weight:700;font-size:.75rem;color:#1a237e">${g.name}</div>
-      <div style="font-size:.65rem;color:#78909c">${s.t?'⏰ '+fT(s.t):''}</div>
+      <div style="font-weight:700;font-size:.72rem;color:#1a237e;line-height:1.2">${g.name}</div>
+      <div style="font-size:.62rem;color:#78909c">${s.t?'⏰ '+fT(s.t):''}</div>
       ${addrLink}
     </div>
     <div>

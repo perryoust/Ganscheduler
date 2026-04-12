@@ -1622,8 +1622,8 @@ function goToTodayCal(){
     document.getElementById('cal-g3').value='';
     document.getElementById('cal-city').value='';
     document.getElementById('cal-cls').value='';
-    calD=new Date();calV='day';
-    setView('day');renderCal();
+    calD=new Date();calV='list';
+    setListSubView('day');setView('list');renderCal();
   },50);
 }
 function goToTodayActivities(){
