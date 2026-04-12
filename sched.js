@@ -424,10 +424,14 @@ function getFiltSched(){
   const from=document.getElementById('s-from').value;
   const to=document.getElementById('s-to').value;
   const st=document.getElementById('s-st').value;
+  const type=document.getElementById('s-type').value;
   const srch=document.getElementById('s-srch').value.toLowerCase();
   const gids=[g1,g2,g3].filter(Boolean);
+  const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
   return SCH.filter(s=>{
     const g=G(s.g);
+    if(type==='makeup' && !isM(s)) return false;
+    if(type==='reg' && isM(s)) return false;
     if(city&&g.city!==city) return false;
     if(cls&&gcls(g)!==cls) return false;
     if(gids.length&&!gids.includes(s.g)) return false;
@@ -517,7 +521,7 @@ function renderSched(){
           const pnB=pB?pB.name:G(b.g).name;
           return pnA.localeCompare(pnB,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
         }).forEach(s=>{
-          h+=`<tr onclick="openSP(${s.id})" class="${stClass(s)}">
+          h+=`<tr onclick="openSP(${s.id})" class="${stClass(s)}" style="cursor:pointer">
             <td><div style="font-weight:700">${s.gd.name}</div>${s.gd.st?`<div style="font-size:.68rem;color:#78909c">${s.gd.st}</div>`:''}</td>
             <td><div style="font-weight:700">${supBase(s.a)}</div>${supAct(s.a)?`<div style="font-size:.7rem;color:#1565c0">🎯 ${supAct(s.a)}</div>`:''}<span style="font-size:.68rem;color:#78909c">${s.p||''}</span></td>
             <td>${fT(s.t)}</td>
