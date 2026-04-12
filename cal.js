@@ -1543,7 +1543,7 @@ function setCalTab(t){
     const el=document.getElementById(id);
     if(el) el.value='';
   });
-  calRefwindow.G();
+  calRefG();
 }
 var _dashTab='g'; // 'g'=גנים 's'=בתי ספר
 
@@ -1552,7 +1552,6 @@ window.renderCal = renderCal;
 window.setCalTab = setCalTab;
 window.setView = setView;
 window.setListSubView = setListSubView;
-window.setListGroupMode = setListGroupMode;
 window.setRangeSubView = setRangeSubView;
 window.navCal = navCal;
 window.goDate = goDate;
@@ -1572,7 +1571,6 @@ window.setCalTab = setCalTab;
 window.goDate = goDate;
 window.jumpToDay = jumpToDay;
 window.renderMakeupsTop = renderMakeupsTop;
-window.setListGroupMode = setListGroupMode;
 window.setListSubView = setListSubView;
 window.toggleExportMenu = toggleExportMenu;
 window.closeExportMenu = closeExportMenu;

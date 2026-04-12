@@ -146,6 +146,7 @@ function renderDash(){
     document.getElementById('dash-body').innerHTML=h;
   }
 }
+}
 
 function _dashListRow(s){
   const g=window.G(s.g);
@@ -1139,28 +1140,41 @@ function doCopy(){
   showToast(`📋 הועתק ל-${fD(nd)}`);
 }
 
-// Global Bridge
+function openSupExport(supName){
+  const date=document.getElementById('dash-date').value||td();
+  const evs=window.SCH.filter(s=>s.a===supName&&s.d===date&&s.st!=='can');
+  if(!evs.length){alert('אין פעילויות לייצוא עבור ספק זה בתאריך הנבחר');return;}
+  const rows=evs.map(s=>{
+    const g=G(s.g);
+    return {
+      'עיר': g.city,
+      'מסגרת': g.name,
+      'ספק': s.a,
+      'פעילות': s.act||'',
+      'שעה': s.t?fT(s.t):'',
+      'טלפון': s.p||'',
+      'סטטוס': stLabel(s)
+    };
+  });
+  window.exportToExcel(rows, `פעילויות_${supBase(supName)}_${date}`);
+}
+
+// --- GLOBAL BRIDGE ---
 window.setDashTab = setDashTab;
 window.renderDash = renderDash;
+window.renderCanList = renderCanList;
 window.openSP = openSP;
-window.openSP = openSP;
-window.qSetSt = qSetSt;
-window.openMakeupSched = openMakeupSched;
-window.setStatus = setStatus;
-window.copyShowFreeDays = copyShowFreeDays;
+window.openPostpone = openPostpone;
 window.openCopy = openCopy;
 window.doCopy = doCopy;
 window.copyDateChg = copyDateChg;
 window.openSupExport = openSupExport;
-
-
-// --- GLOBAL BRIDGE ---
-window.renderDash = renderDash;
-window.openSP = openSP;
-window.setDashTab = setDashTab;
-window.qSetSt = qSetSt;
 window.setStatus = setStatus;
-window.openCopy = openCopy;
-window.doCopy = doCopy;
+window.saveAndRefresh = saveAndRefresh;
+window.refresh = refresh;
+window.qSetSt = qSetSt;
 window.openMakeupSched = openMakeupSched;
-window.openSupExport = openSupExport;
+window.markCompManual = markCompManual;
+window.saveNt = saveNt;
+window.cancelEv = cancelEv;
+window.markNoHap = markNoHap;

@@ -139,11 +139,11 @@ var pairBreaks={}; // {pairId+'_'+date: true}  — one-time breaks
 var blockedDates={}; // {'2025-11-15':{reason:'טיול',icon:'🚌',note:''}, ...}
 var gardenBlocks={}; // {'gid_date':{reason,icon,note}} — per-garden date blocks
 var calV='list',calD=new Date();
-let gmV='week',gmD=new Date(),gmGid=null;
-let selEv=null,selEvPost=null;
-let sPage=1;
+var gmV='week',gmD=new Date(),gmGid=null;
+var selEv=null,selEvPost=null;
+var sPage=1;
 var PG=50;
-let editingSup=null,editPairIdx=null;
-let managers={}; // {id: {id,name,role,phone,city,gardenIds:[]}}
-let _exGids=null;
-let newSchedForGarden=null; // pre-fill garden when opening new schedule
+var editingSup=null,editPairIdx=null;
+var managers={}; // {id: {id,name,role,phone,city,gardenIds:[]}}
+var _exGids=null;
+var newSchedForGarden=null; // pre-fill garden when opening new schedule
