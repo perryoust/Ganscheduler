@@ -583,7 +583,7 @@ function saveSup(){
     const el=document.getElementById(id);if(!el)return;
     const cur=el.value;
     el.innerHTML='<option value="">כל הספקים</option>';
-    getAllSup().forEach(s=>el.innerHTML+=`<option value='${s.name}'>${s.name}</option>`);
+    getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>el.innerHTML+=`<option value='${s.name}'>${s.name}</option>`);
     el.value=cur;
   });
 }

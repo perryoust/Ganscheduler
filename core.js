@@ -849,8 +849,8 @@ function initDrops(){
     }).forEach(g=>el.innerHTML+=`<option value='${g.id}'>${prefix?g.city+' · ':''} ${g.name}</option>`);
   }
   fC('dash-city');fC('cal-city');fC('s-city');fC('g-city');fC('apm-city');fC('pairs-city');fC('cl-city');
-  // Filter dropdowns (search/filter): show ALL suppliers
-  getAllSup().forEach(s=>{
+  // Filter dropdowns (search/filter): show ONLY act suppliers in חוגים views
+  getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>{
     ['dash-sup','cal-sup','s-sup'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML+=`<option value='${s.name}'>${s.name}</option>`;});
   });
   // Scheduling dropdowns: show ONLY act suppliers (isAct=true)
@@ -1386,7 +1386,7 @@ function sucSaveEdit(){
     const el=document.getElementById(id); if(!el) return;
     const cur=el.value;
     el.innerHTML=id==='es-sup'?'<option value="">-- ללא שינוי --</option>':'<option value="">כל הספקים</option>';
-    getAllSup().forEach(s=>el.innerHTML+=`<option value='${s.name}'>${s.name}</option>`);
+    getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>el.innerHTML+=`<option value='${s.name}'>${s.name}</option>`);
     el.value=cur;
   });
   sucToggleEdit(); sucRefreshInfo(); sucRefreshActFilt();
