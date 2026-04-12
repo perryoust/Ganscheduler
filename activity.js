@@ -5,7 +5,6 @@ function setDashTab(t){
   renderDash();
 }
 function renderDash(){
-function renderDash(){
   const date=document.getElementById('dash-date').value||td();
   const city=document.getElementById('dash-city').value;
   const sup=document.getElementById('dash-sup').value;
@@ -939,5 +938,3 @@ function doCopy(){
 
 var _nsmTab='once'; // 'once'|'recur'|'makeup'
 
-
-}
