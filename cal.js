@@ -325,7 +325,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
         const pairBlocks=[];
         pairs.forEach(pair=>{
           if(isPairBroken(pair.id,ds)) return;
-          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g));
+          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g) && !s._makeupFrom);
           if(!pairEvs.length) return;
           pair.ids.forEach(id=>pairedGids.add(id));
           const earliest=pairEvs.map(s=>s.t||'99:99').sort()[0];
@@ -356,6 +356,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
             html+=`<div style="min-width:160px;flex:1;max-width:260px;border:1.5px solid ${clr.border};border-radius:7px;padding:7px;cursor:pointer;background:${clr.light};border-right:3px solid ${clr.solid}" onclick="openSP(${s.id})" class="${stc}">
               ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clr.solid};margin-bottom:2px">⏰ ${fT(s.t)}</div>`:''}
               <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
+              ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
               <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
               <div style="font-size:.68rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
             </div>`;
@@ -420,6 +421,7 @@ function renderClusterDay(evs, ds, clusterName){
           html+=`<div style="min-width:160px;flex:1;max-width:260px;border:1.5px solid ${clrCity.border};border-radius:7px;padding:7px;cursor:pointer;background:#fff;border-right:3px solid ${clrCity.solid}" onclick="openSP(${s.id})" class="${stc}">
             ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clrCity.solid};margin-bottom:2px">⏰ ${fT(s.t)}</div>`:'<div style="font-size:.7rem;color:#aaa">ללא שעה</div>'}
             <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
+            ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
             <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
             <div style="font-size:.68rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
             <div class="qacts" onclick="event.stopPropagation()">
@@ -452,6 +454,7 @@ function renderClusterDay(evs, ds, clusterName){
           <div class="pslot ${stc}" style="border-right:3px solid ${clrCity.solid};background:${clrCity.light}" onclick="openSP(${s.id})">
             ${s.t?`<div class="pt" style="font-size:.82rem;font-weight:800;color:${clrCity.solid}">⏰ ${fT(s.t)}</div>`:'<div class="pt" style="color:#aaa">ללא שעה</div>'}
             <div class="pn">${supBase(s.a)}</div>
+            ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
             ${(s.act||supAct(s.a))?`<div style="font-size:.69rem;color:${clrCity.solid};font-weight:600">🎯 ${s.act||supAct(s.a)}</div>`:''}
             ${s.grp>1?`<div style="font-size:.68rem;color:#546e7a">👥 ${s.grp} קבוצות</div>`:''}
             <div class="pst">${stLabel(s)}</div>
@@ -680,6 +683,7 @@ function renderNormalDay(evs,ds){
               ${s._fromD?`<div style="font-size:.67rem;color:#e65100;font-weight:700;background:#fff3e0;padding:1px 5px;border-radius:3px;margin-bottom:2px">↩️ הועבר מ-${fD(s._fromD)}</div>`:''}
               ${s.t?`<div class="pt">⏰ ${fT(s.t)}</div>`:''}
               <div class="pn">${supBase(s.a)}</div>
+              ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
               ${(s.act||supAct(s.a))?`<div style="font-size:.69rem;color:${clr.solid};font-weight:600">🎯 ${s.act||supAct(s.a)}</div>`:''}
               ${s.p?`<div class="pp">📞 ${s.p}</div>`:''}
               ${s.grp>1?`<div style="font-size:.68rem;color:#546e7a">👥 ${s.grp} קבוצות</div>`:''}
@@ -819,6 +823,7 @@ function renderGardenCols(evs,gids,clr){
           ${s._fromD?`<div style="font-size:.67rem;color:#e65100;font-weight:700;background:#fff3e0;padding:1px 5px;border-radius:3px;margin-bottom:2px">↩️ הועבר מ-${fD(s._fromD)}</div>`:''}
           ${s.t?`<div class="pt">⏰ ${fT(s.t)}</div>`:''}
           <div class="pn">${supBase(s.a)}</div>
+          ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
           ${(s.act||supAct(s.a))?`<div style="font-size:.69rem;color:${clr.solid};font-weight:600;margin-top:1px">🎯 ${s.act||supAct(s.a)}</div>`:''}
           ${s.p?`<div class="pp">📞 ${s.p}</div>`:''}
           <div class="pst">${stLabel(s)}</div>
@@ -973,6 +978,7 @@ function renderNormalWeek(evs,ws,f){
             <div style="display:flex;align-items:flex-start;gap:4px">
               <div style="cursor:pointer;flex:1;min-width:0" onclick="event.stopPropagation();openSP(${ev.id})">
                 <div style="font-weight:700;color:${clrObj.solid};word-break:break-word;line-height:1.3">${supBase(ev.a)}${ev.act?`<span style="color:#78909c;font-weight:400"> — ${ev.act}</span>`:''}</div>
+                ${ev._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 5px;font-size:11px;font-weight:800;border:1px solid #b3e5fc;margin-top:2px">📅 השלמה</div>`:''}
                 <div style="font-size:12px;color:#5c6bc0;margin-top:1px">${ev.tp||'חוג'}${ev.grp>1?` · <span style="color:#546e7a">👥${ev.grp}</span>`:''}</div>
                 ${ev.t?`<div style="font-size:12px;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
               </div>
@@ -1183,7 +1189,7 @@ function renderRangeListView(evs, fromDs, toDs){
         const pairGroups=[];
         pairs.forEach(pair=>{
           if(typeof isPairBroken==='function'&&isPairBroken(pair.id,ds)) return;
-          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!firstUsedGids.has(s.g));
+          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!firstUsedGids.has(s.g) && !s._makeupFrom);
           if(!pairEvs.length) return;
           pairEvs.forEach(s=>{pairedGids.add(s.g);firstUsedGids.add(s.g);});
           pairGroups.push({pair,pairEvs});
@@ -1205,7 +1211,7 @@ function renderRangeListView(evs, fromDs, toDs){
         const pairGroups=[];
         pairs.forEach(pair=>{
           if(typeof isPairBroken==='function'&&isPairBroken(pair.id,ds)) return;
-          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g));
+          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g) && !s._makeupFrom);
           if(!pairEvs.length) return;
           pairEvs.forEach(s=>{pairedGids.add(s.g);firstUsedGids.add(s.g);});
           pairGroups.push({pair,pairEvs});
@@ -1333,7 +1339,7 @@ function renderCalList(evs, mDate){
       const pairGroups=[];
       pairs.forEach(pair=>{
         if(isPairBroken&&isPairBroken(pair.id,ds)) return;
-        const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!clusteredGidsC.has(s.g));
+        const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!clusteredGidsC.has(s.g) && !s._makeupFrom);
         if(!pairEvs.length) return;
         pairEvs.forEach(s=>pairedGids.add(s.g));
         pairGroups.push({pair,pairEvs});
@@ -1392,6 +1398,7 @@ function _listRow(s, clr){
     </div>
     <div>
       <div style="font-size:.75rem;font-weight:600;color:#1565c0">${supBase(s.a)}${s.act?' — <span style="color:#546e7a">'+s.act+'</span>':''}</div>
+      ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #b3e5fc;margin-top:2px">📅 השלמה</div>`:''}
       <div style="font-size:.65rem;color:#5c6bc0">${s.tp||'חוג'}</div>
     </div>
     <div style="font-size:.7rem;font-weight:700;color:${stC}">${stLabel(s).replace(/<[^>]+>/g,'')}</div>
