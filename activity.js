@@ -132,6 +132,9 @@ function openSP(id){
   const s=SCH.find(x=>x.id===id);if(!s)return;
   const g=G(s.g);
   const isS=gcls(g)==='ביה"ס';
+  const spPair=gardenPair(s.g);
+
+  // ── Header: Activity details ──
   let h=`<div style="background:#f5f7ff;border-radius:7px;padding:9px;margin-bottom:10px">
     <div class="ir"><span class="il">📅 תאריך:</span><span style="font-weight:700">${fD(s.d)} יום ${dayN(s.d)}</span></div>
     <div class="ir"><span class="il">🏫 גן:</span><span style="font-weight:700">${g.name}</span></div>
@@ -147,7 +150,9 @@ function openSP(id){
     ${s._fromD?`<div class="ir"><span class="il">↩️ הועבר מ:</span><span style="color:#e65100;font-weight:700">${fD(s._fromD)}</span></div>`:''}
     <div class="ir"><span class="il">📌 סטטוס:</span><span>${stLabel(s)}</span></div>
   </div>`;
-  const spPairForNt=gardenPair(s.g);
+
+  // ── Notes ──
+  const spPairForNt=spPair;
   h+=`<div style="margin-bottom:9px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
       <label style="font-size:.74rem;font-weight:700;color:#546e7a">📝 הערות לפעילות זו</label>
@@ -164,37 +169,102 @@ function openSP(id){
     ${s.ntPerm?'<div style="font-size:.67rem;color:#1565c0;margin-top:2px">📌 הערה קבועה — מוצגת בכל הפעילויות של גן זה</div>':''}
     <button class="btn bp bsm" style="width:100%;margin-top:5px" onclick="saveNt()">💾 שמור הערה</button>
   </div>`;
-  const spPair=gardenPair(s.g);
+
+  // ── Status update + pair details ──
   h+=`<div style="margin-bottom:10px">
-    <div style="font-size:.8rem;font-weight:700;color:#1a237e;margin-bottom:6px">עדכון סטטוס:</div>
-    ${spPair?`<div style="background:#fff3e0;border-radius:6px;padding:5px 9px;margin-bottom:7px;font-size:.75rem;display:flex;align-items:center;gap:8px">
-      <span>🔗 ${spPair.name}</span>
-      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;margin-right:auto">
-        <input type="checkbox" id="sp-pair-chk" style="accent-color:#e65100"> עדכן לכל הזוג
-      </label>
-    </div>`:''}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+    <div style="font-size:.8rem;font-weight:700;color:#1a237e;margin-bottom:6px">עדכון סטטוס:</div>`;
+
+  // Pair info with expandable details
+  if(spPair){
+    const partnerIds=spPair.ids.filter(pid=>pid!==s.g);
+    const partnerEvs=partnerIds.map(pid=>{
+      const pEv=SCH.find(x=>x.g===pid&&x.d===s.d&&x.st!=='can');
+      const pG=G(pid);
+      return {gid:pid, g:pG, ev:pEv};
+    });
+    h+=`<div style="background:#fff3e0;border-radius:6px;padding:5px 9px;margin-bottom:7px;font-size:.75rem">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span>🔗 ${spPair.name}</span>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;margin-right:auto">
+          <input type="checkbox" id="sp-pair-chk" style="accent-color:#e65100" onchange="spTogglePairDetails()"> עדכן לכל הזוג
+        </label>
+      </div>
+      <div id="sp-pair-details" style="display:none;margin-top:6px;border-top:1px solid #ffcc80;padding-top:6px">`;
+    partnerEvs.forEach(p=>{
+      if(p.ev){
+        h+=`<div style="background:#fff;border-radius:5px;padding:6px 8px;margin-bottom:4px;border-right:3px solid #e65100">
+          <div style="font-weight:700;font-size:.78rem;color:#1a237e">🏫 ${p.g.name}</div>
+          ${p.ev.t?`<div style="font-size:.75rem;color:#37474f">⏰ שעה: <b>${fT(p.ev.t)}</b></div>`:''}
+          <div style="font-size:.73rem;color:#546e7a">📌 סטטוס: ${stLabel(p.ev)}</div>
+          ${p.ev.a?`<div style="font-size:.73rem;color:#1565c0">📚 ספק: ${supBase(p.ev.a)}</div>`:''}
+        </div>`;
+      } else {
+        h+=`<div style="background:#f5f5f5;border-radius:5px;padding:6px 8px;margin-bottom:4px;opacity:.7">
+          <div style="font-weight:700;font-size:.78rem;color:#999">🏫 ${p.g.name} — אין פעילות ביום זה</div>
+        </div>`;
+      }
+    });
+    h+=`</div></div>`;
+  }
+
+  h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
       <button class="btn bg bsm" onclick="setStatus('done')" ${s.st==='done'?'style="opacity:.5"':''}>✔️ התקיים</button>
       <button class="btn bo bsm" onclick="setStatus('ok')" ${s.st==='ok'?'style="opacity:.5"':''}>🔄 שחזר למתקיים</button>
     </div>
   </div>`;
-  if(s.st!=='can')h+=`<div style="border:1.5px solid #ffcdd2;border-radius:7px;padding:8px;margin-bottom:8px">
-    <div style="font-size:.8rem;font-weight:700;color:#c62828;margin-bottom:5px">❌ ביטול</div>
-    <div class="copts">
-      <div class="copt" onclick="selCO(this,'חג/חופשה')">🎉 חג/חופשה</div>
-      <div class="copt" onclick="selCO(this,'מחלה')">🤒 מחלה</div>
-      <div class="copt" onclick="selCO(this,'מצב בטחוני')">🛡️ מצב בטחוני</div>
-      <div class="copt" onclick="selCO(this,'ביטול ספק')">🏢 ביטול ספק</div>
-    </div>
-    <input type="text" id="sp-cn" placeholder="הערה" style="width:100%;margin-bottom:5px">
-    <button class="btn br bsm" style="width:100%" onclick="cancelEv()">❌ בטל</button>
-  </div>`;
+
+  // ── Tabbed: לא התקיים / ביטול ──
+  const showNohap = s.st!=='nohap';
+  const showCan = s.st!=='can';
+  if(showNohap || showCan){
+    h+=`<div style="border:1.5px solid #e0e0e0;border-radius:7px;margin-bottom:8px;overflow:hidden">
+      <div style="display:flex;border-bottom:1.5px solid #e0e0e0" id="sp-action-tabs">
+        ${showNohap?`<button id="sp-tab-nohap" class="sp-act-tab active" onclick="setSpActionTab('nohap')" style="flex:1;padding:7px;border:none;cursor:pointer;font-size:.78rem;font-weight:700;background:#fce4ec;color:#e91e63;border-bottom:2px solid #e91e63">⚠️ לא התקיים</button>`:''}
+        ${showCan?`<button id="sp-tab-can" class="sp-act-tab${!showNohap?' active':''}" onclick="setSpActionTab('can')" style="flex:1;padding:7px;border:none;cursor:pointer;font-size:.78rem;font-weight:700;background:${showNohap?'#fff':'#ffebee'};color:${showNohap?'#999':'#c62828'};border-bottom:${showNohap?'2px solid transparent':'2px solid #c62828'}">❌ ביטול</button>`:''}
+      </div>`;
+
+    // NoHap panel (default visible)
+    if(showNohap){
+      h+=`<div id="sp-panel-nohap" style="padding:8px">
+        <div class="copts">
+          <div class="copt" onclick="selNO(this,'ספק לא הגיע')">🚫 מדריך לא הגיע</div>
+          <div class="copt" onclick="selNO(this,'גן סגור')">🤒 מדריך חולה</div>
+          <div class="copt" onclick="selNO(this,'אין ילדים')">👤 חסר מדריך</div>
+          <div class="copt" onclick="selNO(this,'אחר')">📝 אחר</div>
+        </div>
+        <input type="text" id="sp-nn" placeholder="הסבר" style="width:100%;margin-bottom:5px">
+        <button class="btn bpurple bsm" style="width:100%" onclick="markNoHap()">⚠️ סמן לא התקיים</button>
+      </div>`;
+    }
+
+    // Cancel panel (hidden by default if nohap exists)
+    if(showCan){
+      h+=`<div id="sp-panel-can" style="padding:8px;display:${showNohap?'none':'block'}">
+        <div class="copts">
+          <div class="copt" onclick="selCO(this,'חג/חופשה')">🎉 חג/חופשה</div>
+          <div class="copt" onclick="selCO(this,'מחלה')">🤒 מחלה</div>
+          <div class="copt" onclick="selCO(this,'מצב בטחוני')">🛡️ מצב בטחוני</div>
+          <div class="copt" onclick="selCO(this,'ביטול ספק')">🏢 ביטול ספק</div>
+        </div>
+        <input type="text" id="sp-cn" placeholder="הערה" style="width:100%;margin-bottom:5px">
+        <button class="btn br bsm" style="width:100%" onclick="cancelEv()">❌ בטל</button>
+      </div>`;
+    }
+    h+=`</div>`;
+  }
+
+  // ── Postpone + Copy ──
   h+=`<button class="btn borange bsm" style="width:100%;margin-bottom:7px" onclick="openPostpone(${s.id})">${s.st==='post'?'⏩ דחה שוב':'⏩ דחה לתאריך אחר'}</button>`;
   h+=`<button class="btn bp bsm" style="width:100%;margin-bottom:7px;background:#1565c0" onclick="openCopy(${s.id})">📋 העתק לתאריך אחר</button>`;
-  // Inline edit section — supplier, activity, time
+
+  // ── Inline edit — supplier, activity, time ──
   const spActs=getSupActs(s.a);
-  const spAllSups=getAllSup();
-  const spPairForEdit=gardenPair(s.g);
+  const spAllSups=getAllSup().filter(s2=>isActSupplier(s2.name));
+  const spPairForEdit=spPair;
+
+  // Count future events for permanent change info
+  const futureCount=SCH.filter(x=>x.g===s.g&&x.d>=s.d&&x.id!==s.id&&supBase(x.a)===supBase(s.a)&&x.st!=='can').length;
+
   h+=`<div style="border:1.5px solid #b3c6e7;border-radius:7px;padding:9px;margin-bottom:8px;background:#f8fbff">
     <div style="font-size:.8rem;font-weight:700;color:#1a237e;margin-bottom:7px">✏️ עריכת שיבוץ</div>
     <div style="display:grid;gap:6px">
@@ -227,35 +297,37 @@ function openSP(id){
       ${spPairForEdit?`<label style="font-size:.75rem;display:flex;align-items:center;gap:6px;cursor:pointer;color:#e65100">
         <input type="checkbox" id="sp-edit-pair-chk"> עדכן לכל הזוג (${spPairForEdit.name})
       </label>`:''}
+      <div style="border-top:1px solid #e0e0e0;padding-top:6px;margin-top:2px">
+        <label style="font-size:.75rem;display:flex;align-items:center;gap:6px;cursor:pointer;color:#6a1b9a" title="ישנה את כל הפעילויות העתידיות של גן זה עם אותו ספק">
+          <input type="checkbox" id="sp-edit-perm"> 🔁 שינוי קבוע — מתאריך זה והלאה
+        </label>
+        ${futureCount>0?`<div id="sp-edit-perm-info" style="font-size:.67rem;color:#6a1b9a;margin-top:2px;display:none">📊 ישתנו ${futureCount} פעילויות עתידיות נוספות</div>`:''}
+      </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px">
-      <button class="btn bp bsm" onclick="spEditSave()">💾 שמור שינויים</button>
-      <button class="btn bo bsm" onclick="openEditSched(${s.id})">🖊 עריכה מלאה</button>
+    <div style="margin-top:8px">
+      <button class="btn bp bsm" style="width:100%" onclick="spEditSave()">💾 שמור שינויים</button>
     </div>
-  </div>`;
-  if(s.st==='nohap')h+=`<button class="btn bp bsm" style="width:100%;margin-bottom:7px" onclick="openMakeupSched(${s.id})">📅 שיבוץ השלמה לתאריך חדש</button>`;
-  if(s.st!=='nohap')h+=`<div style="border:1.5px solid #f48fb1;border-radius:7px;padding:8px;margin-bottom:8px">
-    <div style="font-size:.8rem;font-weight:700;color:#e91e63;margin-bottom:5px">⚠️ לא התקיים</div>
-    <div class="copts">
-      <div class="copt" onclick="selNO(this,'ספק לא הגיע')">🚫 מדריך לא הגיע</div>
-      <div class="copt" onclick="selNO(this,'גן סגור')">🤒 מדריך חולה</div>
-      <div class="copt" onclick="selNO(this,'אין ילדים')">👤 חסר מדריך</div>
-      <div class="copt" onclick="selNO(this,'אחר')">📝 אחר</div>
-    </div>
-    <input type="text" id="sp-nn" placeholder="הסבר" style="width:100%;margin-bottom:5px">
-    <button class="btn bpurple bsm" style="width:100%" onclick="markNoHap()">⚠️ סמן לא התקיים</button>
   </div>`;
 
-  // Recurring series management — shown only if event belongs to a series
+  // ── Makeup scheduling (only for nohap) ──
+  if(s.st==='nohap')h+=`<button class="btn bp bsm" style="width:100%;margin-bottom:7px" onclick="openMakeupSched(${s.id})">📅 שיבוץ השלמה לתאריך חדש</button>`;
+
+  // ── Recurring series management ──
   if(s._recId){
     const seriesCount=SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g).length;
     h+=`<div style="border:1.5px solid #b0bec5;border-radius:7px;padding:8px;margin-bottom:8px;background:#f8f9fa"><div style="font-size:.8rem;font-weight:700;color:#37474f;margin-bottom:6px">🔁 שיבוץ קבוע — ${seriesCount} פעילויות מתאריך זה ואילך</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:5px"><button class="btn br bsm" onclick="deleteRecurSeries(${s.id})">🗑️ מחק מכאן ואילך</button><button class="btn borange bsm" onclick="openReplaceRecur(${s.id})">🔄 החלף שיבוץ קבוע</button></div></div>`;
   }
+
   h+=`<button class="btn bp bsm" style="width:100%" onclick="saveNt()">💾 שמור הערה</button>`;
   document.getElementById('sp-body').innerHTML=h;
   document.getElementById('sp').classList.add('open');
   const _bd=document.getElementById('sp-backdrop');
   if(_bd) _bd.style.display='block';
+
+  // Attach permanent change toggle
+  const permChk=document.getElementById('sp-edit-perm');
+  const permInfo=document.getElementById('sp-edit-perm-info');
+  if(permChk&&permInfo) permChk.onchange=()=>{permInfo.style.display=permChk.checked?'block':'none';};
 }
 
 function spEditSupChg(){
@@ -351,24 +423,78 @@ function spEditSave(){
   const newTime=document.getElementById('sp-edit-time').value;
   const newTp=(document.getElementById('sp-edit-ev-type')||{}).value||'חוג';
   const forPair=(document.getElementById('sp-edit-pair-chk')||{}).checked;
+  const forPerm=(document.getElementById('sp-edit-perm')||{}).checked;
+
   const updates={};
   if(newSup&&newSup!==s.a) updates.a=newSup;
   if(newAct&&newAct!=='__new__') updates.act=newAct;
   if(newTime&&newTime!==s.t) updates.t=newTime;
   if(newTp) updates.tp=newTp;
+
   // Always include notes in update
   const newNt2=(document.getElementById('sp-nt')||{}).value;
   if(newNt2!==undefined) updates.nt=newNt2;
+
   if(!Object.keys(updates).filter(k=>k!=='nt').length&&updates.nt===s.nt){alert('לא בוצע שינוי');return;}
+
   const pair=gardenPair(s.g);
-  if(forPair&&pair){
-    SCH.filter(x=>pair.ids.includes(x.g)&&x.d===s.d&&x.id!==selEv)
-      .forEach(x=>Object.assign(x,updates));
+
+  // Function to apply update to an event item (safely)
+  const applyUpd = (ev, upds) => {
+    Object.assign(ev, upds);
+  };
+
+  if(forPerm){
+    const baseSup = supBase(s.a);
+    const affected = SCH.filter(x => x.g === s.g && x.d >= s.d && supBase(x.a) === baseSup && x.st !== 'can');
+    if(!confirm(`האם להחיל שינוי קבוע על ${affected.length} פעילויות מתאריך זה והלאה?`)) return;
+    affected.forEach(x => applyUpd(x, updates));
+    
+    if(forPair && pair){
+      const pairAffected = SCH.filter(x => pair.ids.includes(x.g) && x.d >= s.d && x.g !== s.g && x.st !== 'can');
+      pairAffected.forEach(x => applyUpd(x, updates));
+    }
+  } else {
+    if(forPair && pair){
+      SCH.filter(x => pair.ids.includes(x.g) && x.d === s.d && x.id !== selEv)
+        .forEach(x => applyUpd(x, updates));
+    }
+    applyUpd(s, updates);
   }
-  Object.assign(s,updates);
+
   save(); closeSP(); refresh();
-  alert('✅ שינויים נשמרו!');
+  showToast('✅ שינויים נשמרו!');
 }
+
+function setSpActionTab(tab){
+  const tabs = ['nohap', 'can'];
+  tabs.forEach(t => {
+    const btn = document.getElementById('sp-tab-' + t);
+    const pnl = document.getElementById('sp-panel-' + t);
+    if(!btn || !pnl) return;
+    const isActive = t === tab;
+    btn.classList.toggle('active', isActive);
+    pnl.style.display = isActive ? 'block' : 'none';
+    
+    // Style active tab
+    if(isActive){
+      btn.style.background = t === 'nohap' ? '#fce4ec' : '#ffebee';
+      btn.style.color = t === 'nohap' ? '#e91e63' : '#c62828';
+      btn.style.borderBottom = t === 'nohap' ? '2px solid #e91e63' : '2px solid #c62828';
+    } else {
+      btn.style.background = '#fff';
+      btn.style.color = '#999';
+      btn.style.borderBottom = '2px solid transparent';
+    }
+  });
+}
+
+function spTogglePairDetails(){
+  const chk = document.getElementById('sp-pair-chk');
+  const details = document.getElementById('sp-pair-details');
+  if(chk && details) details.style.display = chk.checked ? 'block' : 'none';
+}
+
 function selCO(el,r){document.querySelectorAll('.copt:not([onclick*=selNO])').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');el.dataset.r=r;}
 function selNO(el,r){document.querySelectorAll('.copt[onclick*=selNO]').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');el.dataset.r=r;}
 function cancelEv(){
@@ -531,57 +657,7 @@ function qSetSt(id,st){
   s.st=st; save(); refresh();
 }
 
-function openEditSched(id){
-  const s=SCH.find(x=>x.id===id); if(!s) return;
-  const g=G(s.g);
-  selEv=id;
-  (document.getElementById('es-info')||{}).textContent =g.name+' · '+fD(s.d);
-  document.getElementById('es-sup').value=s.a||'';
-  esSupChg();
-  setTimeout(()=>{
-    const atSel=document.getElementById('es-act');
-    if(atSel&&s.act) atSel.value=s.act;
-    const tpSel=document.getElementById('es-ev-type');
-    if(tpSel) tpSel.value=s.tp||'חוג';
-  },80);
-  document.getElementById('es-time').value=s.t||'';
-  document.getElementById('es-for-pair').checked=false;
-  document.getElementById('es-pair-note').style.display='none';
-  const pair=gardenPair(s.g);
-  document.getElementById('es-pair-row').style.display=pair?'flex':'none';
-  if(pair) (document.getElementById('es-pair-lbl')||{}).textContent =pair.name;
-  document.getElementById('esm').classList.add('open');
-}
-function esSupChg(){
-  const sup=document.getElementById('es-sup').value;
-  const acts=getSupActs(sup);
-  const atSel=document.getElementById('es-act');
-  atSel.innerHTML='<option value="">-- אותו סוג פעילות --</option>'+
-    acts.map(a=>`<option value='${a}'>${a}</option>`).join('')+
-    '<option value="__new__">➕ חדש...</option>';
-}
-function saveEditSched(){
-  const s=SCH.find(x=>x.id===selEv); if(!s) return;
-  const newSup=document.getElementById('es-sup').value;
-  const newAct=document.getElementById('es-act').value==='__new__'
-    ?document.getElementById('es-act-new').value.trim()
-    :document.getElementById('es-act').value;
-  const newTime=document.getElementById('es-time').value;
-  const newTp=(document.getElementById('es-ev-type')||{}).value;
-  const forPair=document.getElementById('es-for-pair').checked;
-  const updates={};
-  if(newSup) updates.a=newSup;
-  if(newAct&&newAct!=='__new__') updates.act=newAct;
-  if(newTime) updates.t=newTime;
-  if(newTp) updates.tp=newTp;
-  if(forPair){
-    const pair=gardenPair(s.g);
-    if(pair) SCH.filter(x=>pair.ids.includes(x.g)&&x.d===s.d&&x.id!==selEv)
-      .forEach(x=>upd(x.id,{...updates}));
-  }
-  upd(selEv,updates);
-  save(); CM('esm'); closeSP(); refresh();
-}
+
 function openMakeupSched(origId){
   const orig=SCH.find(x=>x.id===origId); if(!orig) return;
   _makeupOrigId=origId;

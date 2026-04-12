@@ -2951,49 +2951,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<!-- Edit Schedule Modal (item 43) -->
-<div id="esm" class="modal">
-  <div class="mb" style="max-width:480px">
-    <h2>✏️ עריכת שיבוץ</h2>
-    <div id="es-info" style="font-weight:700;color:#1a237e;margin-bottom:12px;font-size:.85rem"></div>
-    <div class="row" style="flex-wrap:wrap;gap:7px;margin-bottom:9px">
-      <div class="fg"><label>ספק</label>
-        <select id="es-sup" onchange="esSupChg()" style="width:100%">
-          <option value="">-- ללא שינוי --</option>
-        </select>
-      </div>
-      <div class="fg"><label>סוג הפעילות</label>
-        <select id="es-ev-type" style="width:100%">
-          <option value="">-- ללא שינוי --</option>
-          <option value="חוג">🎨 חוג</option>
-          <option value="הפעלה">🎪 הפעלה</option>
-          <option value="מופע">🎭 מופע</option>
-          <option value="אחר">📌 אחר</option>
-        </select>
-      </div>
-      <div class="fg"><label>שם הפעילות</label>
-        <select id="es-act" style="width:100%" onchange="document.getElementById('es-act-new-wrap').style.display=this.value==='__new__'?'block':'none'">
-          <option value="">-- ללא שינוי --</option>
-        </select>
-        <div id="es-act-new-wrap" style="display:none;margin-top:4px">
-          <input id="es-act-new" type="text" placeholder="שם פעילות חדשה" style="width:100%">
-        </div>
-      </div>
-      <div class="fg"><label>שעה</label><input type="time" id="es-time" style="width:100%"></div>
-    </div>
-    <div id="es-pair-row" style="display:none;align-items:center;gap:8px;background:#fff3e0;border-radius:6px;padding:7px 10px;margin-bottom:10px;font-size:.78rem">
-      <span>🔗 <span id="es-pair-lbl"></span></span>
-      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;margin-right:auto">
-        <input type="checkbox" id="es-for-pair" style="accent-color:#e65100"> עדכן לכל הזוג
-      </label>
-    </div>
-    <div id="es-pair-note" style="font-size:.73rem;color:#e65100;margin-bottom:8px"></div>
-    <div style="display:flex;gap:7px">
-      <button class="btn bp" onclick="saveEditSched()">💾 שמור</button>
-      <button class="btn bs" onclick="CM('esm')">ביטול</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- Quick Cancel Modal -->
 <div id="canqm" class="modal">
