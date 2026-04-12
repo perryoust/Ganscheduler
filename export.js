@@ -666,5 +666,5 @@ function buildSheetData(garden, evs) {
 
 
 // ─── Garden Cell Popup ────────────────────────────────────────
-let _gcellGid=null, _gcellDs=null;
+var _gcellGid=null, _gcellDs=null;
 

@@ -1440,4 +1440,4 @@ function setCalTab(t){
   });
   calRefG();
 }
-let _dashTab='g'; // 'g'=גנים 's'=בתי ספר
+var _dashTab='g'; // 'g'=גנים 's'=בתי ספר

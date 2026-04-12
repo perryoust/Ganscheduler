@@ -773,4 +773,4 @@ function doMerge(){
   showToast(`✅ אוחדו ${toMrg.length} ספקים → "${main}"${changedSch?` · ${changedSch} שיבוצים`:''}${changedInv?` · ${changedInv} חשבוניות`:''}`);
 }
 
-let _GARDENS_EXTRA=[]; // user-added gardens stored in localStorage
+var _GARDENS_EXTRA=[]; // user-added gardens stored in localStorage

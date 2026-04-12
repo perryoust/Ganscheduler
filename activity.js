@@ -5,8 +5,8 @@ function setDashTab(t){
   renderDash();
 }
 function renderDash(){
+function renderDash(){
   const date=document.getElementById('dash-date').value||td();
-
   const city=document.getElementById('dash-city').value;
   const sup=document.getElementById('dash-sup').value;
   const st=document.getElementById('dash-st').value;
@@ -937,5 +937,5 @@ function doCopy(){
   showToast(`📋 הועתק ל-${fD(nd)}`);
 }
 
-let _nsmTab='once'; // 'once'|'recur'|'makeup'
+var _nsmTab='once'; // 'once'|'recur'|'makeup'
 

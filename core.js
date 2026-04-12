@@ -867,7 +867,7 @@ function initDrops(){
 }
 
 const TABS=['dash','cal','sched','gardens','pairs','holidays','clusters','sup','managers','admin'];
-let currentTab='dash';
+var currentTab='dash';
 
 // ─── GLOBAL NAVIGATION SEARCH ────────────────────────────────────────────────
 function navSearchInput(val){
@@ -2557,7 +2557,7 @@ function _goToGardenSched(gardenId){
     if(sel){ sel.value=gardenId; renderSched(); }
   },250);
 }
-let _gardensTab='gan';
+var _gardensTab='gan';
 // ─── ADD PLACE ────────────────────────────────────────
 function openAddGardenModal(){
   document.getElementById('ap-name').value='';
@@ -2847,7 +2847,7 @@ function dashNavDate(d){
   renderDash();
 }
 
-let _listGroupMode = 'pairs'; // 'pairs' | 'clusters'
+var _listGroupMode = 'pairs'; // 'pairs' | 'clusters'
 function setListGroupMode(v){
   _listGroupMode = v;
   document.getElementById('vlb-group-pairs')?.classList.toggle('active', v==='pairs');

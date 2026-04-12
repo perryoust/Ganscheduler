@@ -87,8 +87,8 @@ function SPT(t){
 }
 
 // INVOICES DATA
-let INVOICES = [];
-let VAT_RATE = 18; // Default VAT % — editable by user in invoice settings
+var INVOICES = [];
+var VAT_RATE = 18; // Default VAT % — editable by user in invoice settings
 
 // ════════════════════════════════════════════════════════
 // ════════════════════════════════════════════════════════

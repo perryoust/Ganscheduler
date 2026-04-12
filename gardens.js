@@ -1035,5 +1035,5 @@ function printExport(){
 }
 
 // [backup system unified — see createSnapshot/openBackup above]
-let _supExName=null;
-let _supExType = 'act'; // 'act' | 'inv'
+var _supExName=null;
+var _supExType = 'act'; // 'act' | 'inv'
