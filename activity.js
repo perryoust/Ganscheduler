@@ -201,7 +201,8 @@ function openSP(id){
     <button class="btn bo bsm" onclick="setStatus('ok')" ${s.st==='ok'?'disabled style="opacity:.6"':''}>🔄 שחזר למתקיים</button>
   </div>`;
 
-    <div style="border:1.5px solid #d1d1d1;border-radius:10px;margin-bottom:15px;overflow:hidden;background:#fff">
+  if(!isDone){
+    h+=`<div style="border:1.5px solid #d1d1d1;border-radius:10px;margin-bottom:15px;overflow:hidden;background:#fff">
       <div style="display:flex;background:#f5f5f5;gap:1px;border-bottom:1px solid #ddd" id="sp-action-tabs">
         <button id="sp-tab-nohap" class="sp-act-tab" onclick="setSpActionTab('nohap')" style="flex:1;padding:10px;border:none;cursor:pointer;font-size:.8rem;font-weight:700">⚠️ לא התקיים</button>
         <button id="sp-tab-comp" class="sp-act-tab" onclick="setSpActionTab('comp')" style="flex:1;padding:10px;border:none;cursor:pointer;font-size:.8rem;font-weight:700;border-left:1px solid #ddd;border-right:1px solid #ddd">✅ סיום/טיפול</button>

@@ -51,8 +51,9 @@ function filterE(f,from,to){
   }).map(s=>({...s,d:s.pd,_isPostponed:true}));
   return [...all,...posted];
 }
+var calV = 'list';
 let _rangeSubView = 'cal'; // 'cal' | 'list'
-let _listSubView='week'; // 'day'|'week'|'month' — sub-view when calV==='list'
+let _listSubView='day'; // 'day'|'week'|'month' — sub-view when calV==='list'
 
 function setListSubView(v){
   _listSubView=v;
