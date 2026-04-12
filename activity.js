@@ -233,7 +233,7 @@ function openSP(id){
 
   // 4. Action Buttons
   h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:15px">
-    <button class="btn borange bsm" onclick="openPostpone(${s.id})">${s.st==='post'?'⏩ דחה שוב':'⏩ דחה לתאריך אחר'}</button>
+    <button class="btn borange bsm" onclick="openPostpone(${s.id})">${s.st==='post'?'⏩ דחה פעילות':'⏩ דחה לתאריך אחר'}</button>
     <button class="btn bp bsm" style="background:#1565c0" onclick="openCopy(${s.id})">📋 העתק לתאריך אחר</button>
     ${(s.st==='nohap'||s.st==='can')?`<button class="btn bp bsm" style="grid-column:1/-1;background:#0d47a1;margin-top:2px" onclick="openMakeupSched(${s.id})">📅 שיבוץ השלמה</button>`:''}
   </div>`;

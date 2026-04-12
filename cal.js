@@ -782,7 +782,7 @@ function renderPairCard(pair, pairEvs, opts){
             <div class="pgr-qacts" onclick="event.stopPropagation()">
               ${ev.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${ev.id},'done')">✔️</button>`}
               ${ev.st==='can'?'':`<button title="בטל" onclick="openCanQ(${ev.id})">❌</button>`}
-              <button title="דחה שוב" onclick="openPostpone(${ev.id})">⏩</button>
+              <button title="דחה פעילות" onclick="openPostpone(${ev.id})">⏩</button>
               ${ev.st==='nohap'?'':`<button title="לא התקיים" onclick="openNohapQ(${ev.id})" style="color:#e91e63">⚠️</button>`}
               <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${ev.id})">📅</button>
             </div>

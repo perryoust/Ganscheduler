@@ -14,6 +14,18 @@ function nsSetTab(tab){
   // Date/Time fields are shared between once and makeup
   const onceWrap=document.getElementById('ns-once-wrap');
   if(onceWrap) onceWrap.style.display=(tab==='once'||tab==='makeup')?'block':'none';
+
+  // Free days wrap logic
+  const freeWrap = document.getElementById('ns-free-wrap');
+  if(freeWrap){
+    if(tab==='makeup'){
+      const gid=parseInt(document.getElementById('ns-g').value)||null;
+      nsShowFreeDays(gid);
+    } else {
+      freeWrap.style.display='none';
+    }
+  }
+
   // Update header title
   const titles={once:'📅 שיבוץ חדש',recur:'🔁 שיבוץ קבוע',makeup:'↩️ שיבוץ השלמה'};
   (document.getElementById('nsm-title')||{}).textContent=titles[tab]||'➕ שיבוץ חדש';
@@ -90,6 +102,8 @@ function openNewSched(gid, opts={}){
 
   // Set tab
   nsSetTab(opts.tab||'once');
+  if((opts.tab||'once')==='makeup') nsShowFreeDays(gid);
+  else document.getElementById('ns-free-wrap').style.display='none';
 
   // ns-sup is populated globally on load
 
@@ -134,13 +148,63 @@ function nsCheckPair(gid){
     const partnerId=pair.ids.find(id=>id!==gid);
     if(partnerId){
       const partG=G(partnerId);
-      w2.style.display='block';
-      const lbl = w2.querySelector('label');
+      if(w2) w2.style.display='block';
+      const lbl = document.getElementById('ns-g2-lbl');
       if(lbl) lbl.textContent=`צהרון בן זוג: ${partG.name}?`;
-      document.getElementById('ns-g2').innerHTML=`<option value="">לא - רק ל${g.name}</option><option value="${partnerId}" selected>כן - גם ל${partG.name}</option>`;
+      const g2sel = document.getElementById('ns-g2');
+      if(g2sel) g2sel.innerHTML=`<option value="">לא - רק ל${g.name}</option><option value="${partnerId}" selected>כן - גם ל${partG.name}</option>`;
+      
+      // Secondary time for partner
+      const t2inp = document.getElementById('ns-time-g2');
+      if(t2inp){
+        // Pre-fill from hint if available
+        const date=document.getElementById('ns-date').value;
+        const partnerEv=SCH.find(x=>x.g===partnerId && x.d===date && x.st!=='can');
+        if(partnerEv&&partnerEv.t) t2inp.value=fT(partnerEv.t);
+        else t2inp.value='';
+      }
     }
-  } else w2.style.display='none';
+  } else if(w2) w2.style.display='none';
   nsDateChg();
+}
+
+function nsShowFreeDays(gid){
+  if(!gid){ document.getElementById('ns-free-wrap').style.display='none'; return; }
+  const g=G(gid);
+  const fromD=new Date(); // from today
+  const DAY_HEB=['ראשון','שני','שלישי','רביעי','חמישי'];
+  const busyDates=new Set(SCH.filter(x=>x.g===gid&&x.st!=='can').map(x=>x.d));
+  const free=[]; let d=new Date(fromD);
+  for(let i=0;i<21;i++){
+    const dow=d.getDay();
+    if(dow>=0&&dow<=4){
+      const ds=d2s(d);
+      const hol=getHolidayInfo(ds,g.city,gcls(g));
+      if(!busyDates.has(ds)&&!hol) free.push({ds,lbl:DAY_HEB[dow]+' '+fD(ds)});
+    }
+    d.setDate(d.getDate()+1);
+  }
+  const wrap=document.getElementById('ns-free-wrap');
+  const fd=document.getElementById('ns-free-days');
+  if(!wrap||!fd) return;
+  if(free.length){
+    fd.innerHTML='<div style="font-size:.74rem;font-weight:700;color:#2e7d32;margin-bottom:5px;width:100%">ימים פנויים לשיבוץ — לחץ לבחירה:</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:4px">'+
+      free.map(f=>`<button class="btn bg bsm" style="font-size:.72rem;padding:3px 9px" onclick="nsPickFree('${f.ds}')">${f.lbl}</button>`).join('')+
+      '</div>';
+    wrap.style.display='block';
+  } else {
+    fd.innerHTML='<div style="color:#e65100;font-size:.75rem">אין ימים פנויים ב-21 יום הקרובים</div>';
+    wrap.style.display='block';
+  }
+}
+
+function nsPickFree(ds){
+  const dateInp = document.getElementById('ns-date');
+  if(dateInp){
+    dateInp.value=ds;
+    nsDateChg();
+  }
 }
 
 function nsDateChg(){
@@ -275,7 +339,10 @@ function saveNewSched(){
     }
 
     SCH.push(newSched);
-    if(g2id) SCH.push({...newSched,id:newId+1,g:g2id});
+    if(g2id) {
+      const g2time = document.getElementById('ns-time-g2').value || time;
+      SCH.push({...newSched,id:newId+1,g:g2id,t:g2time});
+    }
     saveAndRefresh('nsm');
     showToast('✅ שיבוץ השלמה נשמר');
     return;
@@ -285,7 +352,8 @@ function saveNewSched(){
   const newSched={id:newId,g:gid,d:date,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp};
   SCH.push(newSched);
   if(g2id){
-    SCH.push({...newSched,id:newId+1,g:g2id,nt:notes});
+    const g2time = document.getElementById('ns-time-g2').value || time;
+    SCH.push({...newSched,id:newId+1,g:g2id,t:g2time,nt:notes});
   }
   saveAndRefresh('nsm');
   showToast('✅ שיבוץ נשמר');

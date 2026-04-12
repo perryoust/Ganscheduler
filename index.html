@@ -1800,7 +1800,12 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
       <div class="fg"><label>עיר</label><select id="ns-city" onchange="nsRefG()" style="width:100%"><option value="">בחר עיר</option></select></div>
       <div class="fg"><label>גן *</label><select id="ns-g" onchange="nsGChg()" style="width:100%"><option value="">בחר צהרון</option></select></div>
-      <div class="fg" id="ns-g2-wrap" style="display:none;grid-column:1/-1"><label id="ns-g2-lbl">גן בן זוג</label><select id="ns-g2" style="width:100%"><option value="">—</option></select></div>
+      <div class="fg" id="ns-g2-wrap" style="display:none;grid-column:1/-1">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+          <div class="fg"><label id="ns-g2-lbl">גן בן זוג</label><select id="ns-g2" style="width:100%"><option value="">—</option></select></div>
+          <div class="fg"><label>שעה לגן בן זוג</label><input type="time" id="ns-time-g2" style="width:100%"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Schedule type tabs -->
@@ -1808,6 +1813,11 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <button id="ns-tab-once" class="btn bsm" style="flex:1;background:#fff;color:#1a237e;border:none;font-weight:700" onclick="nsSetTab('once')">📅 חד-פעמי</button>
       <button id="ns-tab-recur" class="btn bsm" style="flex:1;background:transparent;color:#1a237e;border:none;font-weight:700" onclick="nsSetTab('recur')">🔄 קבוע (חוזר)</button>
       <button id="ns-tab-makeup" class="btn bsm" style="flex:1;background:transparent;color:#1a237e;border:none;font-weight:700" onclick="nsSetTab('makeup')">↩️ השלמה</button>
+    </div>
+
+    <!-- Free days suggestion for Makeup -->
+    <div id="ns-free-wrap" style="display:none;margin-bottom:11px">
+      <div id="ns-free-days" style="display:flex;gap:5px;flex-wrap:wrap"></div>
     </div>
 
     <!-- ONE-TIME fields -->
