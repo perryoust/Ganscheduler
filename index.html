@@ -1796,15 +1796,26 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <button onclick="CM('nsm')" class="close-btn">✕</button>
     </div>
 
-    <!-- Garden selection -->
+    <!-- Garden and Partner Row 1: City & Inclusion Choice -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
       <div class="fg"><label>עיר</label><select id="ns-city" onchange="nsRefG()" style="width:100%"><option value="">בחר עיר</option></select></div>
+      <div class="fg" id="ns-g2-choice-wrap"><label id="ns-g2-lbl">צהרון בן זוג? (חמד/בוקר)</label><select id="ns-g2" style="width:100%"><option value="">—</option></select></div>
+    </div>
+
+    <!-- Row 2: Primary Garden & Primary Time -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
       <div class="fg"><label>גן *</label><select id="ns-g" onchange="nsGChg()" style="width:100%"><option value="">בחר צהרון</option></select></div>
-      <div class="fg" id="ns-g2-wrap" style="display:none;grid-column:1/-1">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
-          <div class="fg"><label id="ns-g2-lbl">גן בן זוג</label><select id="ns-g2" style="width:100%"><option value="">—</option></select></div>
-          <div class="fg"><label>שעה לגן בן זוג</label><input type="time" id="ns-time-g2" style="width:100%"></div>
-        </div>
+      <div class="fg"><label>שעה</label>
+        <input type="time" id="ns-time" style="width:100%">
+        <div id="ns-partner-time-hint" style="font-size:.67rem;color:#e65100;margin-top:2px;display:none;font-weight:700"></div>
+      </div>
+    </div>
+
+    <!-- Row 3: Partner Specific Info (Hidden until chosen) -->
+    <div id="ns-g2-partner-wrap" style="display:none;margin-bottom:10px;background:#f0f4f8;padding:8px;border-radius:6px;border:1px solid #d1d9e6">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+        <div class="fg"><label>גן בן זוג (תצוגה)</label><div id="ns-g2-name-display" style="font-weight:700;padding:6px;background:#fff;border-radius:4px;border:1px solid #ccc;font-size:.85rem;min-height:30px"></div></div>
+        <div class="fg"><label>שעה לגן בן זוג</label><input type="time" id="ns-time-g2" style="width:100%"></div>
       </div>
     </div>
 
@@ -1820,15 +1831,9 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div id="ns-free-days" style="display:flex;gap:5px;flex-wrap:wrap"></div>
     </div>
 
-    <!-- ONE-TIME fields -->
+    <!-- ONE-TIME fields (Date only, time is in Row 2) -->
     <div id="ns-once-wrap">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
-        <div class="fg"><label>תאריך *</label><input type="date" id="ns-date" style="width:100%" onchange="nsDateChg()"></div>
-        <div class="fg"><label>שעה</label>
-          <input type="time" id="ns-time" style="width:100%">
-          <div id="ns-partner-time-hint" style="font-size:.67rem;color:#e65100;margin-top:2px;display:none;font-weight:700"></div>
-        </div>
-      </div>
+      <div class="fg"><label>תאריך *</label><input type="date" id="ns-date" style="width:100%" onchange="nsDateChg()"></div>
     </div>
 
     <!-- RECURRING fields -->
@@ -1848,7 +1853,6 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
             <label class="day-chk-lbl"><input type="checkbox" class="ns-day-chk" value="4" onchange="nsPreviewRecur()"> חמישי</label>
           </div>
         </div>
-        <div class="fg"><label>שעה</label><input type="time" id="ns-recur-time" style="width:100%"></div>
         <div id="ns-recur-preview" style="font-size:.72rem;color:#546e7a;margin-top:6px"></div>
       </div>
     </div>

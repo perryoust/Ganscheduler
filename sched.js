@@ -48,9 +48,15 @@ function openNewSched(gid, opts={}){
   const ns_date=document.getElementById('ns-date');
   if(ns_date) ns_date.value=opts.date||d2s(calD);
   document.getElementById('ns-time').value='';
+  document.getElementById('ns-time-g2').value='';
   document.getElementById('ns-ph').value='';
   document.getElementById('ns-notes').value='';
   document.getElementById('ns-grp').value='1';
+  const choiceWrap = document.getElementById('ns-g2-choice-wrap');
+  const partnerWrap = document.getElementById('ns-g2-partner-wrap');
+  if(choiceWrap) choiceWrap.style.display='none';
+  if(partnerWrap) partnerWrap.style.display='none';
+  
   const atSel=document.getElementById('ns-act-type');
   if(atSel){atSel.innerHTML='<option value="">בחר סוג פעילות...</option>';atSel.value='';}
   const atNew=document.getElementById('ns-act-type-new');
@@ -96,16 +102,12 @@ function openNewSched(gid, opts={}){
     },50);
   } else {
     document.getElementById('ns-g').innerHTML='<option value="">בחר עיר תחילה</option>';
-    document.getElementById('ns-g2-wrap').style.display='none';
-    document.getElementById('ns-grp-wrap').style.display='none';
   }
 
   // Set tab
   nsSetTab(opts.tab||'once');
   if((opts.tab||'once')==='makeup') nsShowFreeDays(gid);
   else document.getElementById('ns-free-wrap').style.display='none';
-
-  // ns-sup is populated globally on load
 
   document.getElementById('nsm').classList.add('open');
 }
@@ -143,28 +145,42 @@ function nsCheckPair(gid){
   const g=G(gid);
   document.getElementById('ns-grp-wrap').style.display='block';
   const pair=gardenPair(gid);
-  const w2=document.getElementById('ns-g2-wrap');
-  if(pair&&pair.ids.length>=2){
-    const partnerId=pair.ids.find(id=>id!==gid);
+  const choiceWrap = document.getElementById('ns-g2-choice-wrap');
+  const partnerWrap = document.getElementById('ns-g2-partner-wrap');
+  
+  if(pair && pair.ids.length>=2){
+    const partnerId = pair.ids.find(id=>id!==gid);
     if(partnerId){
-      const partG=G(partnerId);
-      if(w2) w2.style.display='block';
+      const partG = G(partnerId);
+      if(choiceWrap) choiceWrap.style.display='block';
       const lbl = document.getElementById('ns-g2-lbl');
-      if(lbl) lbl.textContent=`צהרון בן זוג: ${partG.name}?`;
+      if(lbl) lbl.textContent=`צהרון בן זוג? (${partG.name})`;
       const g2sel = document.getElementById('ns-g2');
-      if(g2sel) g2sel.innerHTML=`<option value="">לא - רק ל${g.name}</option><option value="${partnerId}" selected>כן - גם ל${partG.name}</option>`;
+      if(g2sel){
+        g2sel.innerHTML=`<option value="">לא - רק ל${g.name}</option><option value="${partnerId}" selected>כן - גם ל${partG.name}</option>`;
+        g2sel.onchange = () => {
+          if(partnerWrap) partnerWrap.style.display = g2sel.value ? 'block' : 'none';
+        };
+      }
+      
+      const nameDisp = document.getElementById('ns-g2-name-display');
+      if(nameDisp) nameDisp.textContent = partG.name;
       
       // Secondary time for partner
       const t2inp = document.getElementById('ns-time-g2');
       if(t2inp){
-        // Pre-fill from hint if available
         const date=document.getElementById('ns-date').value;
         const partnerEv=SCH.find(x=>x.g===partnerId && x.d===date && x.st!=='can');
         if(partnerEv&&partnerEv.t) t2inp.value=fT(partnerEv.t);
         else t2inp.value='';
       }
+      // Trigger display if selected
+      if(partnerWrap) partnerWrap.style.display = (g2sel && g2sel.value) ? 'block' : 'none';
     }
-  } else if(w2) w2.style.display='none';
+  } else {
+    if(choiceWrap) choiceWrap.style.display='none';
+    if(partnerWrap) partnerWrap.style.display='none';
+  }
   nsDateChg();
 }
 
@@ -301,7 +317,7 @@ function saveNewSched(){
     const recurFrom=document.getElementById('ns-recur-from').value;
     const recurTo=document.getElementById('ns-recur-to').value;
     const selDays=[...document.querySelectorAll('.ns-day-chk:checked')].map(c=>parseInt(c.value));
-    const recurTime=document.getElementById('ns-recur-time').value||time;
+    const recurTime=time; // now using shared time field
     if(!recurFrom||!recurTo||!selDays.length){alert('שיבוץ קבוע: יש לבחור תאריך התחלה, סיום, וימים');return;}
     let count=0, cur=new Date(recurFrom.replace(/-/g,'/'));
     const endD=new Date(recurTo.replace(/-/g,'/'));

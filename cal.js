@@ -394,11 +394,15 @@ function renderClusterDay(evs, ds, clusterName){
   </div>`;
   if(!evs.length) return html+`<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות</div>`;
 
+  const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+  const makeups=evs.filter(s => isM(s) && !s._compByMakeup);
+  const others=evs.filter(s => !isM(s) && !s._compByMakeup);
+
   if(isAll){
     // ── כל האשכולות: עיר → אשכול → שעה ──
-    const allCities=[...new Set(evs.map(s=>G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
+    const allCities=[...new Set(others.map(s=>G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
     allCities.forEach(city=>{
-      const cityEvs=evs.filter(s=>(G(s.g).city||'אחר')===city);
+      const cityEvs=others.filter(s=>(G(s.g).city||'אחר')===city);
       if(!cityEvs.length) return;
       const clrCity=CITY_COLORS(city);
       html+=`<div style="margin-bottom:14px">
@@ -417,15 +421,11 @@ function renderClusterDay(evs, ds, clusterName){
           <div style="display:flex;flex-wrap:wrap;gap:6px">`;
           
           sorted.forEach(s => {
-            if(s._compByMakeup) return; // Hide completed nohaps
             const g=G(s.g);
             const stc=s.st!=='ok'?'st-'+s.st:'';
-            const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-
             html+=`<div style="min-width:160px;flex:1;max-width:260px;border:1.5px solid ${clrCity.border};border-radius:7px;padding:7px;cursor:pointer;background:#fff;border-right:3px solid ${clrCity.solid}" onclick="openSP(${s.id})" class="${stc}">
               ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clrCity.solid};margin-bottom:2px">⏰ ${fT(s.t)}</div>`:'<div style="font-size:.7rem;color:#aaa">ללא שעה</div>'}
               <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-              ${isM(s)?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
               <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
               <div style="font-size:.68rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
               <div class="qacts" onclick="event.stopPropagation()">
@@ -443,11 +443,10 @@ function renderClusterDay(evs, ds, clusterName){
     });
   } else {
     // ── אשכול בודד: לפי שעה ──
-    evs.filter(s => !s._compByMakeup).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s=>{
+    others.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s=>{
       const g=G(s.g);
       const stc=s.st!=='ok'?'st-'+s.st:'';
       const clrCity=CITY_COLORS(g.city||'');
-      const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
       html+=`<div class="city-block" style="margin-bottom:8px">
         <div class="city-block-hdr" style="background:${clrCity.solid};font-size:.76rem">
           ${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}
@@ -459,7 +458,6 @@ function renderClusterDay(evs, ds, clusterName){
           <div class="pslot ${stc}" style="border-right:3px solid ${clrCity.solid};background:${clrCity.light}" onclick="openSP(${s.id})">
             ${s.t?`<div class="pt" style="font-size:.82rem;font-weight:800;color:${clrCity.solid}">⏰ ${fT(s.t)}</div>`:'<div class="pt" style="color:#aaa">ללא שעה</div>'}
             <div class="pn">${supBase(s.a)}</div>
-            ${isM(s)?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
             ${(s.act||supAct(s.a))?`<div style="font-size:.69rem;color:${clrCity.solid};font-weight:600">🎯 ${s.act||supAct(s.a)}</div>`:''}
             ${s.grp>1?`<div style="font-size:.68rem;color:#546e7a">👥 ${s.grp} קבוצות</div>`:''}
             <div class="pst">${stLabel(s)}</div>
@@ -476,6 +474,27 @@ function renderClusterDay(evs, ds, clusterName){
       </div>`;
     });
   }
+
+  // ── Solo Makeups section at bottom (always visible in Cluster View) ──
+  if(makeups.length){
+    html+=`<div style="margin-top:20px;border-top:1.5px dashed #ccc;padding-top:10px">
+      <div style="font-size:.8rem;font-weight:800;color:#0288d1;margin-bottom:8px">📅 השלמות עצמאיות</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">`;
+    makeups.forEach(s=>{
+      const g=G(s.g);
+      const stc=s.st!=='ok'?'st-'+s.st:'';
+      const clr=CITY_COLORS(g.city||'');
+      html+=`<div style="min-width:160px;flex:1;max-width:260px;border:1.5px solid ${clr.border};border-radius:7px;padding:7px;cursor:pointer;background:${clr.light};border-right:3px solid ${clr.solid}" onclick="openSP(${s.id})" class="${stc}">
+        ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clr.solid};margin-bottom:2px">⏰ ${fT(s.t)}</div>`:''}
+        <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
+        <div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>
+        <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
+        <div style="font-size:.68rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  }
+
   return html;
 }
 
@@ -492,7 +511,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
   for(let i=0;i<6;i++){
     const d=addD(weekStart,i);
     const ds=d2s(d);
-    const dayEvs=evs.filter(s=>s.d===ds).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+    const dayEvs=evs.filter(s=>s.d===ds && !s._compByMakeup).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
     const hol=getHolidayInfo(ds,null,null);
     const blk=getBlockedInfo(ds);
     html+=`<div class="dsec" style="margin-bottom:10px">
