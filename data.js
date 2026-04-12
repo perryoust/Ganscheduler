@@ -2,26 +2,45 @@
 // Safe localStorage wrapper (handles Tracking Prevention blocking on any device/browser)
 // Fallback chain: in-memory → sessionStorage → localStorage
 window._safeLS = {
+  _works: null,
+  check(){
+    if(this._works!==null) return this._works;
+    try {
+      const k='__test__';
+      localStorage.setItem(k,k); localStorage.removeItem(k);
+      sessionStorage.setItem(k,k); sessionStorage.removeItem(k);
+      this._works=true;
+    } catch(e) { this._works=false; }
+    return this._works;
+  },
   get(k){
     if(window['_mem_'+k]) return window['_mem_'+k];
-    try{ const v=sessionStorage.getItem(k); if(v){ window['_mem_'+k]=v; return v; } }catch(e){}
-    try{ const v=localStorage.getItem(k); if(v){ window['_mem_'+k]=v; return v; } }catch(e){}
+    if(this.check()){
+      try{ const v=sessionStorage.getItem(k); if(v){ window['_mem_'+k]=v; return v; } }catch(e){}
+      try{ const v=localStorage.getItem(k); if(v){ window['_mem_'+k]=v; return v; } }catch(e){}
+    }
     return null;
   },
   set(k,v){
     window['_mem_'+k]=String(v);
-    try{ sessionStorage.setItem(k,v); }catch(e){}
-    try{ localStorage.setItem(k,v); }catch(e){}
+    if(this.check()){
+      try{ sessionStorage.setItem(k,v); }catch(e){}
+      try{ localStorage.setItem(k,v); }catch(e){}
+    }
   },
   removeItem(k){
     delete window['_mem_'+k];
-    try{ sessionStorage.removeItem(k); }catch(e){}
-    try{ localStorage.removeItem(k); }catch(e){}
+    if(this.check()){
+      try{ sessionStorage.removeItem(k); }catch(e){}
+      try{ localStorage.removeItem(k); }catch(e){}
+    }
   },
   clear(){
-    Object.keys(window).forEach(k => { if(k.startsWith('_mem_')) delete window[k]; });
-    try{ sessionStorage.clear(); }catch(e){}
-    try{ localStorage.clear(); }catch(e){}
+    Object.keys(window).forEach(key => { if(key.startsWith('_mem_')) delete window[key]; });
+    if(this.check()){
+      try{ sessionStorage.clear(); }catch(e){}
+      try{ localStorage.clear(); }catch(e){}
+    }
   },
   getItem(k){ return this.get(k); },
   setItem(k,v){ this.set(k,v); }
