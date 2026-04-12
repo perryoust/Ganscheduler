@@ -46,7 +46,7 @@ function filterE(f,from,to){
        const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
        if(!(s.st==='nohap' || s.st==='post' || isM)) return false;
     } else if(!f.st){
-       if(s.st==='can') return false;
+       // No status filter: show everything in calendar as requested
     } else if(f.st && s.st!==f.st) return false;
 
     return true;
@@ -278,40 +278,55 @@ const CITY_COLORS=(()=>{
 })();
 
 // ─── Shared Helper: Render global makeups for a day (ignores filters) ───
+// ─── Shared Helper: Makeups are now handled within regular grouping logic ───
 function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
-  const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-  // Filter only by date + the provided city/cls filters
-  const makeups = SCH.filter(s => {
-    if(s.d !== ds || !isM(s) || s._compByMakeup) return false;
-    const g=G(s.g);
-    if(cityFilter && g.city !== cityFilter) return false;
-    if(clsFilter && gcls(g) !== clsFilter) return false;
-    return true;
+  const f={city:cityFilter, cls:clsFilter, st:'todo'};
+  const evs = filterE(f, ds, ds).filter(s => {
+    // Only include those that are actually makeups
+    return !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
   });
-  if(!makeups.length) return '';
+  if(!evs.length) return '';
 
-  let h = `<div style="margin-bottom:18px">
-      <div style="padding:5px 10px;background:#0d47a1;color:#fff;border-radius:6px;font-size:.82rem;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:8px">
-         השלמה (${makeups.length})
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">`;
-  makeups.forEach(s=>{
-    const g=G(s.g);
-    const stc=s.st!=='ok'?'st-'+s.st:'';
-    const clr=CITY_COLORS(g.city||'');
-    h+=`<div style="min-width:165px;flex:1;max-width:260px;border:1.5px solid ${clr.border};border-radius:7px;padding:7px;cursor:pointer;background:#fff;border-right:4px solid #0d47a1;box-shadow:0 2px 4px rgba(0,0,0,0.05)" onclick="openSP(${s.id})" class="${stc}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        ${s.t?`<div style="font-size:.82rem;font-weight:900;color:#0d47a1;margin-bottom:2px">⏰ ${fT(s.t)}</div>`:'<div style="font-size:.7rem;color:#aaa">ללא שעה</div>'}
-        <button onclick="event.stopPropagation();_exportGardenWA([${s.g}],'${ds}')" style="background:#0d47a1;border:none;border-radius:4px;color:#fff;font-size:.65rem;padding:2px 6px;cursor:pointer;font-weight:700">📋 הודעה</button>
-      </div>
-      <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-      <div style="font-size:.67rem;color:#455a64;font-weight:700">📍 ${g.city||'אחר'}</div>
-      <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
-      <div style="font-size:.68rem;font-weight:700;margin-top:2px;color:#0d47a1">📅 השלמה</div>
-      <div style="font-size:.65rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
-    </div>`;
+  const pairedGids=new Set();
+  const pairsByCity={};
+  const others=evs.filter(s=> !s._compByMakeup);
+
+  pairs.forEach(pair=>{
+    if(isPairBroken(pair.id,ds)) return;
+    const pairEvs=others.filter(s=>pair.ids.includes(s.g));
+    if(!pairEvs.length) return;
+    const city=G(pair.ids[0]).city||'אחר';
+    if(!pairsByCity[city]) pairsByCity[city]=[];
+    pairsByCity[city].push({pair,pairEvs});
+    pair.ids.forEach(id=>pairedGids.add(id));
   });
-  h += `</div></div>`;
+
+  const allSoloEvs = others.filter(s=>!pairedGids.has(s.g));
+  
+  let h = `<div style="background:#e1f5fe;border:2px solid #03a9f4;border-radius:12px;padding:12px;margin-bottom:15px">
+    <div style="font-weight:800;color:#01579b;margin-bottom:10px;display:flex;align-items:center;gap:8px;font-size:.95rem">
+      📅 השלמות להיום
+    </div>`;
+
+  Object.keys(pairsByCity).sort().forEach(city=>{
+    const clr=CITY_COLORS(city);
+    h += `<div class="pairs-4col">`;
+    pairsByCity[city].forEach(({pair,pairEvs})=>{
+      h += renderPairCard(pair, pairEvs, {ds, clr, showEdit:true, showExport:true, isMakeup:true});
+    });
+    h += `</div>`;
+  });
+
+  if(allSoloEvs.length){
+    h += `<div class="pairs-4col">`;
+    allSoloEvs.forEach(s=>{
+      const clr=CITY_COLORS(G(s.g).city||'אחר');
+      h += renderPairCard({id:'solo_'+s.id, name:G(s.g).name, ids:[s.g]}, [s], {ds, clr, showEdit:true, showExport:true, isMakeup:true});
+    });
+    h += `</div>`;
+  }
+
+  h += `</div>`;
   return h;
 }
 // ─── Range View — day-by-day between two dates ───────────────────
@@ -631,8 +646,8 @@ function renderNormalDay(evs,ds){
   // Group pairs by city for unified color display
   const pairsByCity={};
   const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-  // Filter out items already marked 'completed by makeup'
-  const others=evs.filter(s=> !s._compByMakeup);
+  // Regular section shows everything that is NOT a makeup
+  const others=evs.filter(s=> !s._compByMakeup && !isM(s));
 
   pairs.forEach(pair=>{
     if(isPairBroken(pair.id,ds)) return;
@@ -782,7 +797,7 @@ function renderPairCard(pair, pairEvs, opts){
     ?`<button onclick="openPairQuickEdit('${pair.id}','${ds}')" style="background:rgba(255,255,255,.25);border:none;border-radius:3px;padding:2px 6px;cursor:pointer;font-size:.65rem;color:#fff" title="ערוך">✏️</button>`
     :'';
   const expBtn=showExport&&ds
-    ?`<button onclick="exportPairRow('${pair.id}','${ds}')" style="background:rgba(255,255,255,.3);border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.7rem;color:#fff;font-weight:700">📋 הודעה</button>`
+    ?`<button onclick="exportPairRow('${pair.id}','${ds}',${!!opts.isMakeup})" style="background:rgba(255,255,255,.3);border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.7rem;color:#fff;font-weight:700">📋 הודעה</button>`
     :'';
 
   let html=`<div class="pair-card">
@@ -838,11 +853,6 @@ function renderPairCard(pair, pairEvs, opts){
             ${gblkEv?`<div style="font-size:.67rem;color:#c62828">${gblkEv.icon||'🚫'} ${gblkEv.reason}</div>`:''}
             <div class="pgr-status" style="color:${stc?'#c62828':'#2e7d32'}">${stLabel(ev)}</div>
           </div>
-          <div class="pgr-right">
-            <div class="pgr-qacts" onclick="event.stopPropagation()">
-              ${ev.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${ev.id},'done')">✔️</button>`}
-              ${ev.st==='can'?'':`<button title="בטל" onclick="openCanQ(${ev.id})">❌</button>`}
-              <button title="דחה פעילות" onclick="openPostpone(${ev.id})">⏩</button>
               ${ev.st==='nohap'?'':`<button title="לא התקיים" onclick="openNohapQ(${ev.id})" style="color:#e91e63">⚠️</button>`}
               <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${ev.id})">📅</button>
             </div>
@@ -1345,6 +1355,7 @@ function renderCalList(evs, mDate){
   if(!dates.length) return '<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות בחודש זה</div>';
 
   let h='<div class="card" style="padding:0;overflow:hidden">';
+  const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
   dates.forEach(ds=>{
     const dayEvs=byDate[ds].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
     const isToday=ds===tday;
@@ -1372,7 +1383,9 @@ function renderCalList(evs, mDate){
     const allCities=[...new Set(dayEvs.map(s=>G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
 
     allCities.forEach(city=>{
-      const cityEvs=dayEvs.filter(s=>(G(s.g).city||'אחר')===city);
+      // Filter out makeups from the regular city block because they are in MakeupsTop now
+      const cityEvs=dayEvs.filter(s=>(G(s.g).city||'אחר')===city && !isM(s));
+      if(!cityEvs.length) return;
       const clr=CITY_COLORS(city);
 
       h+=`<div style="margin-bottom:8px">`;
@@ -1477,7 +1490,10 @@ function _listRow(s, clr){
       <div style="font-size:.65rem;color:#5c6bc0">${s.tp||'חוג'}</div>
     </div>
     <div style="font-size:.7rem;font-weight:700;color:${stC}">${stLabel(s).replace(/<[^>]+>/g,'')}</div>
-    ${_quickActionBtns(s)}
+    <div style="display:flex;gap:4px">
+      <button onclick="event.stopPropagation();_exportGardenWA([${s.g}],'${ds}')" style="background:${clr.solid};border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.72rem;color:#fff;font-weight:700" title="שלח הודעה">📋</button>
+      ${_quickActionBtns(s)}
+    </div>
   </div>`;
 }
 

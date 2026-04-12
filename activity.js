@@ -16,14 +16,14 @@ function renderDash(){
     if(s.d!==date) return false;
     const g=G(s.g);
     
+    if(gcls(g)!==clsFilter) return false;
+    
     // Status Logic: 
     if(st==='todo'){
       const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
       const isTodo = (s.st==='nohap' || s.st==='post' || isM);
       if(!isTodo) return false;
-      // In TODO mode, we show both Gardens and Schools together
     } else {
-      if(gcls(g)!==clsFilter) return false;
       if(!st) {
         if(s.st==='can') return false; 
       } else if(s.st!==st) return false;
@@ -48,23 +48,41 @@ function renderDash(){
     document.getElementById('dash-body').innerHTML='<p style="color:#999;font-size:.81rem">אין פעילויות ביום זה</p>';
   } else {
     let h='';
-    Object.values(bySup).sort((a,b)=>a.name.localeCompare(b.name,'he')).forEach(supData=>{
+    if(st==='todo'){
+      h+=`<div class="card" style="margin-bottom:10px;padding:10px">
+        <div style="font-weight:800;color:#1a237e;font-size:.9rem;margin-bottom:10px">📋 רשימת טיפולים מאוחדת (${evs.length})</div>`;
+      // Group by city then row
       const byCity={};
-      supData.evs.forEach(s=>{
+      evs.forEach(s=>{
         const c=s.gd.city||'אחר';
         if(!byCity[c]) byCity[c]=[];
         byCity[c].push(s);
       });
-      h+=`<div class="card" style="margin-bottom:10px;padding:10px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-weight:800;color:#1a237e;font-size:.9rem">📚 ${supBase(supData.name)}</div>
-          ${supAct(supData.name)?`<div style="font-size:.75rem;color:#1565c0;font-weight:600">🎯 ${supAct(supData.name)}</div>`:''}
-          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-            ${supData.ph?`<span style="font-size:.75rem;color:#546e7a">📞 ${supData.ph}</span>`:''}
-            <span class="bdg bb" style="font-size:.7rem">${supData.evs.length} גנים</span>
-            <button class="btn bp bsm" style="font-size:.68rem;padding:2px 7px" onclick="openSupExport('${supData.name}')">📊 יצוא לאקסל</button>
-          </div>
-        </div>`;
+      Object.keys(byCity).sort().forEach(c=>{
+        h+=`<div class="dcity" style="margin-bottom:5px;background:#f5f5f5;padding:4px 10px;border-radius:4px">🏙️ ${c}</div>`;
+        byCity[c].forEach(s=>{
+           h+=_dashListRow(s);
+        });
+      });
+      h+=`</div>`;
+    } else {
+      Object.values(bySup).sort((a,b)=>a.name.localeCompare(b.name,'he')).forEach(supData=>{
+        const byCity={};
+        supData.evs.forEach(s=>{
+          const c=s.gd.city||'אחר';
+          if(!byCity[c]) byCity[c]=[];
+          byCity[c].push(s);
+        });
+        h+=`<div class="card" style="margin-bottom:10px;padding:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-weight:800;color:#1a237e;font-size:.9rem">📚 ${supBase(supData.name)}</div>
+            ${supAct(supData.name)?`<div style="font-size:.75rem;color:#1565c0;font-weight:600">🎯 ${supAct(supData.name)}</div>`:''}
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              ${supData.ph?`<span style="font-size:.75rem;color:#546e7a">📞 ${supData.ph}</span>`:''}
+              <span class="bdg bb" style="font-size:.7rem">${supData.evs.length} גנים</span>
+              <button class="btn bp bsm" style="font-size:.68rem;padding:2px 7px" onclick="openSupExport('${supData.name}')">📊 יצוא לאקסל</button>
+            </div>
+          </div>`;
       Object.keys(byCity).sort().forEach(c=>{
         const ce=byCity[c];
         h+=`<div style="margin-bottom:8px">
@@ -214,10 +232,10 @@ function openSP(id){
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-weight:700;color:#e65100">🔗 צהרון בן-זוג (${spPair.name})</span>
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer;margin-right:auto;font-size:.78rem">
-          <input type="checkbox" id="sp-pair-chk" style="accent-color:#e65100" onchange="spTogglePairDetails()"> עדכן לכל הזוג
+          <input type="checkbox" id="sp-pair-chk" style="accent-color:#e65100" onchange="spTogglePairDetails()" checked> עדכן לכל הזוג
         </label>
       </div>
-      <div id="sp-pair-details" style="display:none;margin-top:8px;border-top:1px solid #ffe0b2;padding-top:8px;font-size:.8rem">`;
+      <div id="sp-pair-details" style="display:block;margin-top:8px;border-top:1px solid #ffe0b2;padding-top:8px;font-size:.8rem">`;
     partners.forEach(pid=>{
       const pEv=SCH.find(x=>x.g===pid&&x.d===s.d&&x.st!=='can');
       const pG=G(pid);
@@ -727,9 +745,26 @@ function openMakeupSched(origId){
   setTimeout(()=>{
     document.getElementById('ns-sup').value=orig.a||'';
     nsSupChg();
-    if(orig.act){const atSel=document.getElementById('ns-act-type');if(atSel)atSel.value=orig.act;}
-    document.getElementById('ns-notes').value='השלמה מ-'+fD(orig.d);
-  },120);
+    // After nsSupChg, the activities dropdown is populated
+    setTimeout(()=>{
+      const atSel=document.getElementById('ns-act-type');
+      if(atSel && orig.act){
+        // Try exact match in dropdown
+        let found=false;
+        for(let i=0;i<atSel.options.length;i++){
+           if(atSel.options[i].value===orig.act){ atSel.value=orig.act; found=true; break; }
+        }
+        if(!found){
+          // If not found, use the "New Activity" field
+          atSel.value='NEW';
+          nsActTypeChg();
+          const atNew=document.getElementById('ns-act-type-new');
+          if(atNew) atNew.value=orig.act;
+        }
+      }
+      document.getElementById('ns-notes').value='השלמה מ-'+fD(orig.d);
+    }, 100);
+  }, 120);
 }
 let _makeupOrigId=null;
 let _postMode = 'move'; // 'move' | 'defer'

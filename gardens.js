@@ -839,13 +839,13 @@ function saveClusterSchedule(){
   }
 }
 
-function exportPairRow(pairId,ds){
+function exportPairRow(pairId,ds,isM){
   const pair=pairs.find(p=>String(p.id)===String(pairId));
   if(!pair) return;
   // Set date to the specific day, then open export modal with pair gids
   const prevD=calD;
   calD=s2d(ds);
-  _exportPairWA(pair.ids);
+  _exportPairWA(pair.ids, isM);
 }
 function showCopyToast(msg){
   let t=document.getElementById('copy-toast');
@@ -856,14 +856,16 @@ function showCopyToast(msg){
 
 
 
-function _exportGardenWA(gids, ds){
+function _exportGardenWA(gids, ds, isM){
   _exGids = Array.isArray(gids) ? gids : JSON.parse(gids);
+  _exIsM = isM;
   if(ds) calD = s2d(ds);
   openExport();
 }
 
-function _exportPairWA(gids){
+function _exportPairWA(gids, isM){
   _exGids = Array.isArray(gids)?gids:JSON.parse(gids);
+  _exIsM = isM;
   openExport();
 }
 
@@ -927,7 +929,8 @@ function genExport(){
   const f=getCalF();
   const gids=_exGids||f.gids;
   _exGids=null;
-  const gidsStr=gids?gids.map(String):null;
+  const isM_flag = _exIsM;
+  _exIsM = false;
   const rel=SCH.filter(s=>s.d>=from&&s.d<=to&&(!gidsStr||gidsStr.includes(String(s.g))))
     .sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'99').localeCompare(b.t||'99'));
   const relActive=rel.filter(s=>s.st!=='can');
@@ -936,7 +939,7 @@ function genExport(){
   let text='';
   const dates=Object.keys(byDate).sort();
   dates.forEach((date,di)=>{
-    text+=`📅 ${fD(date)} - יום ${dayN(date)}\n━━━━━━━━━━━━━━━━\n`;
+    text+=`📅 ${fD(date)} - יום ${dayN(date)}${isM_flag ? ' (השלמה)' : ''}\n━━━━━━━━━━━━━━━━\n`;
     const byCity={};
     byDate[date].forEach(s=>{
       const g=G(s.g);const c=g.city||'';

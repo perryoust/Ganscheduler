@@ -47,7 +47,8 @@ function openNewSched(gid, opts={}){
   // Reset all fields
   const ns_date=document.getElementById('ns-date');
   if(ns_date) ns_date.value=opts.date||d2s(calD);
-  document.getElementById('ns-time').value='';
+  const ns_time=document.getElementById('ns-time');
+  if(ns_time) ns_time.value=opts.time||'';
   document.getElementById('ns-time-g2').value='';
   document.getElementById('ns-ph').value='';
   document.getElementById('ns-notes').value='';
