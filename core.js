@@ -581,7 +581,7 @@ function initPairs(){
 // ══════════════════════════════════════════════════════════
 
 
-function G(id){return GARDENS.find(g=>g.id===id)||{}}
+function G(id){return GARDENS.find(g=>Number(g.id)===Number(id))||{}}
 function gcls(g){return g.cls||'גנים'}
 function gByCF(city,cls){return GARDENS.filter(g=>(!city||g.city===city)&&(!cls||gcls(g)===cls));}
 function d2s(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${dd}`}

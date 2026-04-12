@@ -418,10 +418,11 @@ function renderClusterDay(evs, ds, clusterName){
         sorted.forEach(s=>{
           const g=G(s.g);
           const stc=s.st!=='ok'?'st-'+s.st:'';
+          const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
           html+=`<div style="min-width:160px;flex:1;max-width:260px;border:1.5px solid ${clrCity.border};border-radius:7px;padding:7px;cursor:pointer;background:#fff;border-right:3px solid ${clrCity.solid}" onclick="openSP(${s.id})" class="${stc}">
             ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clrCity.solid};margin-bottom:2px">⏰ ${fT(s.t)}</div>`:'<div style="font-size:.7rem;color:#aaa">ללא שעה</div>'}
             <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-            ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
+            ${isM(s)?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
             <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
             <div style="font-size:.68rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
             <div class="qacts" onclick="event.stopPropagation()">
@@ -444,7 +445,8 @@ function renderClusterDay(evs, ds, clusterName){
       const g=G(s.g);
       const stc=s.st!=='ok'?'st-'+s.st:'';
       const clrCity=CITY_COLORS(g.city||'');
-      html+=`<div class="city-block" style="margin-bottom:8px">
+          const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+          html+=`<div class="city-block" style="margin-bottom:8px">
         <div class="city-block-hdr" style="background:${clrCity.solid};font-size:.76rem">
           ${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}
           ${g.st?`<span style="font-size:.65rem;font-weight:400;opacity:.8">${g.st}</span>`:''}
@@ -455,7 +457,7 @@ function renderClusterDay(evs, ds, clusterName){
           <div class="pslot ${stc}" style="border-right:3px solid ${clrCity.solid};background:${clrCity.light}" onclick="openSP(${s.id})">
             ${s.t?`<div class="pt" style="font-size:.82rem;font-weight:800;color:${clrCity.solid}">⏰ ${fT(s.t)}</div>`:'<div class="pt" style="color:#aaa">ללא שעה</div>'}
             <div class="pn">${supBase(s.a)}</div>
-            ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
+            ${isM(s)?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
             ${(s.act||supAct(s.a))?`<div style="font-size:.69rem;color:${clrCity.solid};font-weight:600">🎯 ${s.act||supAct(s.a)}</div>`:''}
             ${s.grp>1?`<div style="font-size:.68rem;color:#546e7a">👥 ${s.grp} קבוצות</div>`:''}
             <div class="pst">${stLabel(s)}</div>
@@ -567,9 +569,13 @@ function renderNormalDay(evs,ds){
   const pairRowsHtml=[]; // rendered pair rows
   // Group pairs by city for unified color display
   const pairsByCity={};
+  const isM = s => !!(s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+  const makeups=evs.filter(isM);
+  const others=evs.filter(s=>!isM(s));
+
   pairs.forEach(pair=>{
     if(isPairBroken(pair.id,ds)) return;
-    const pairEvs=evs.filter(s=>pair.ids.includes(s.g) && !s._makeupFrom);
+    const pairEvs=others.filter(s=>pair.ids.includes(s.g));
     if(!pairEvs.length) return;
     const city=G(pair.ids[0]).city||'אחר';
     if(!pairsByCity[city]) pairsByCity[city]=[];
@@ -583,28 +589,19 @@ function renderNormalDay(evs,ds){
       pairRowsHtml.push(renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true}));
     });
   });
-  const unpairedEvs=evs.filter(s=>!pairedGids.has(s.g) || s._makeupFrom);
-  const cityMap={};
-  unpairedEvs.forEach(s=>{
-    const g=G(s.g);
-    const c=g.city||'אחר';
-    const cl=gcls(g);
-    if(!cityMap[c]) cityMap[c]={};
-    if(!cityMap[c][cl]) cityMap[c][cl]=[];
-    cityMap[c][cl].push({...s,gd:g});
-  });
+
+  const unpairedOthers=others.filter(s=>!pairedGids.has(s.g));
+  const allSoloEvs=[...makeups];
+  unpairedOthers.forEach(s=>allSoloEvs.push(s));
+
   pairs.forEach(pair=>{
     if(!isPairBroken(pair.id,ds)) return;
-    const pairEvs=evs.filter(s=>pair.ids.includes(s.g) && !s._makeupFrom);
+    const pairEvs=others.filter(s=>pair.ids.includes(s.g));
     if(!pairEvs.length) return;
     pairEvs.forEach(s=>{
-      if(pairedGids.has(s.g)) return; // already handled
-      const g=G(s.g);
-      const c=g.city||'אחר';
-      const cl=gcls(g);
-      if(!cityMap[c]) cityMap[c]={};
-      if(!cityMap[c][cl]) cityMap[c][cl]=[];
-      if(!cityMap[c][cl].find(x=>x.id===s.id)) cityMap[c][cl].push({...s,gd:g});
+      if(pairedGids.has(s.g)) return;
+      if(!allSoloEvs.find(x=>x.id===s.id))
+        allSoloEvs.push({...s,_broken:pair});
     });
   });
 
@@ -637,19 +634,11 @@ function renderNormalDay(evs,ds){
       </div>`;
     });
   }
-  const allSoloEvs=[];
-  unpairedEvs.forEach(s=>allSoloEvs.push({...s,gd:G(s.g)}));
-  pairs.forEach(pair=>{
-    if(!isPairBroken(pair.id,ds)) return;
-    evs.filter(s=>pair.ids.includes(s.g)).forEach(s=>{
-      if(!allSoloEvs.find(x=>x.id===s.id))
-        allSoloEvs.push({...s,gd:G(s.g),_broken:pair});
-    });
-  });
 
   if(allSoloEvs.length){
     const byCitySolo={};
     allSoloEvs.forEach(s=>{
+      s.gd=G(s.g);
       const c=s.gd.city||'אחר';
       if(!byCitySolo[c]) byCitySolo[c]=[];
       byCitySolo[c].push(s);
@@ -670,7 +659,8 @@ function renderNormalDay(evs,ds){
       }).forEach(s=>{
         const stc=s.st!=='ok'?'st-'+s.st:'';
         const brokenBadge=s._broken?`<span style="font-size:.62rem;background:#fff3e0;color:#e65100;padding:1px 5px;border-radius:3px;font-weight:700">⚡ זוג פורק</span>`:'';
-        html+=`<div class="city-block" style="margin-bottom:0">
+                const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+                html+=`<div class="city-block" style="margin-bottom:0">
           <div class="city-block-hdr" style="background:${clr.solid};font-size:.76rem">
             ${gcls(s.gd)==='ביה"ס'?'🏛️':'🏫'} ${s.gd.name}
             ${s.gd.st?`<span style="font-size:.65rem;font-weight:400;opacity:.8">${s.gd.st}</span>`:''}
@@ -684,7 +674,7 @@ function renderNormalDay(evs,ds){
               ${s._fromD?`<div style="font-size:.67rem;color:#e65100;font-weight:700;background:#fff3e0;padding:1px 5px;border-radius:3px;margin-bottom:2px">↩️ הועבר מ-${fD(s._fromD)}</div>`:''}
               ${s.t?`<div class="pt">⏰ ${fT(s.t)}</div>`:''}
               <div class="pn">${supBase(s.a)}</div>
-              ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
+              ${isM(s)?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
               ${(s.act||supAct(s.a))?`<div style="font-size:.69rem;color:${clr.solid};font-weight:600">🎯 ${s.act||supAct(s.a)}</div>`:''}
               ${s.p?`<div class="pp">📞 ${s.p}</div>`:''}
               ${s.grp>1?`<div style="font-size:.68rem;color:#546e7a">👥 ${s.grp} קבוצות</div>`:''}
@@ -1191,7 +1181,8 @@ function renderRangeListView(evs, fromDs, toDs){
         const pairGroups=[];
         pairs.forEach(pair=>{
           if(typeof isPairBroken==='function'&&isPairBroken(pair.id,ds)) return;
-          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!firstUsedGids.has(s.g) && !s._makeupFrom);
+          const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!firstUsedGids.has(s.g) && !isM(s));
           if(!pairEvs.length) return;
           pairEvs.forEach(s=>{pairedGids.add(s.g);firstUsedGids.add(s.g);});
           pairGroups.push({pair,pairEvs});
@@ -1213,7 +1204,8 @@ function renderRangeListView(evs, fromDs, toDs){
         const pairGroups=[];
         pairs.forEach(pair=>{
           if(typeof isPairBroken==='function'&&isPairBroken(pair.id,ds)) return;
-          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g) && !s._makeupFrom);
+          const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g) && !isM(s));
           if(!pairEvs.length) return;
           pairEvs.forEach(s=>{pairedGids.add(s.g);firstUsedGids.add(s.g);});
           pairGroups.push({pair,pairEvs});
@@ -1252,7 +1244,7 @@ function renderRangeListView(evs, fromDs, toDs){
 
 
       // ── Solos sorted by time ──
-      cityEvs.filter(s=>!_allUsedGids.has(s.g) || s._makeupFrom)
+      cityEvs.filter(s=>!_allUsedGids.has(s.g) || (s._makeupFrom || (s.nt && s.nt.includes('השלמה'))))
         .sort((a,b)=>(G(a.g).name||'').localeCompare(G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'))
         .forEach(s=>{ h+=_listRow(s,clr); });
 
@@ -1341,7 +1333,8 @@ function renderCalList(evs, mDate){
       const pairGroups=[];
       pairs.forEach(pair=>{
         if(isPairBroken&&isPairBroken(pair.id,ds)) return;
-        const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!clusteredGidsC.has(s.g) && !s._makeupFrom);
+        const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+        const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!clusteredGidsC.has(s.g) && !isM(s));
         if(!pairEvs.length) return;
         pairEvs.forEach(s=>pairedGids.add(s.g));
         pairGroups.push({pair,pairEvs});

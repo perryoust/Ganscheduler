@@ -680,7 +680,7 @@ function qSetSt(id,st){
 function openMakeupSched(origId){
   const orig=SCH.find(x=>x.id===origId); if(!orig) return;
   _makeupOrigId=origId;
-  const d=new Date(s2d(orig.d)); d.setDate(d.getDate()+1);
+  const d=new Date(s2d(orig.d));
   openNewSched(orig.g, {date:d2s(d), tab:'makeup', makeupFrom:orig.d});
   setTimeout(()=>{
     document.getElementById('ns-sup').value=orig.a||'';
