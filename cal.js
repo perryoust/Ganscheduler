@@ -1656,27 +1656,28 @@ function renderRangeListView(evs, fromDs, toDs){
 }
 
 // --- GLOBAL BRIDGE ---
-window.renderCal = renderCal;
-window.setCalTab = setCalTab;
-window.setView = setView;
-window.setListSubView = setListSubView;
-window.setRangeSubView = setRangeSubView;
-window.setListGroupMode = setListGroupMode;
-window.navCal = navCal;
-window.goDate = goDate;
-window.goToday = goToday;
-window._quickActionBtns = _quickActionBtns;
-window.renderMakeupsTop = renderMakeupsTop;
-window.jumpToDay = jumpToDay;
-window.toggleExportMenu = toggleExportMenu;
-window.closeExportMenu = closeExportMenu;
-window.calRefG = calRefG;
-window.calSelectPair = calSelectPair;
-window.clearCal = clearCal;
-window.clearCalPair = clearCalPair;
-window.addPairFromCal = addPairFromCal;
-window._exportPairWA = (gids) => {
-   const text = window.G(gids[0]).name + '...'; // fallback
-   console.log('WA Export', gids);
-   // Implement actual WA export if needed
-};
+// Defensive Global Bridge
+(function(w){
+  w.renderCal = renderCal;
+  w.setCalTab = setCalTab;
+  w.setView = setView;
+  w.setListSubView = setListSubView;
+  w.setRangeSubView = setRangeSubView;
+  w.setListGroupMode = setListGroupMode;
+  w.navCal = navCal;
+  w.goDate = goDate;
+  w.goToday = goToday;
+  w._quickActionBtns = _quickActionBtns;
+  w.renderMakeupsTop = renderMakeupsTop;
+  w.jumpToDay = jumpToDay;
+  w.toggleExportMenu = toggleExportMenu;
+  w.closeExportMenu = closeExportMenu;
+  w.calRefG = calRefG;
+  w.calSelectPair = calSelectPair;
+  w.clearCal = clearCal;
+  w.clearCalPair = clearCalPair;
+  w.addPairFromCal = addPairFromCal;
+  w._exportPairWA = (gids) => {
+     console.log('WA Export', gids);
+  };
+})(window);
