@@ -490,7 +490,7 @@ function _applyYearData(o){
   blockedDates=o.blockedDates||{};
   gardenBlocks=o.gardenBlocks||{};
   managers=o.managers||{};
-  activewindow.GARDENS = Array.isArray(o.activeGardens)?new Set(o.activeGardens):null;
+  activeGardens = Array.isArray(o.activeGardens)?new Set(o.activeGardens):null;
 }
 
 function load(){
@@ -506,11 +506,11 @@ function load(){
     if(!st) st = _safeLS.get('ganv5');
     if(!st && window._fbAppData) { _applyYearData(window._fbAppData); return; }
     if(st){ _applyYearData(JSON.parse(st)); }
-    else { initPairs();window.clusters = JSON.parse(JSON.stringify(INIT_CLUSTERS));activewindow.GARDENS = null; }
+    else { initPairs();window.clusters = JSON.parse(JSON.stringify(INIT_CLUSTERS));activeGardens = null; }
   }catch(e){
     console.warn('load() error:', e);
     if(window._fbAppData){ try{ _applyYearData(window._fbAppData); }catch(e2){} }
-    else { initPairs();window.clusters = JSON.parse(JSON.stringify(INIT_CLUSTERS));activewindow.GARDENS = null; }
+    else { initPairs();window.clusters = JSON.parse(JSON.stringify(INIT_CLUSTERS));activeGardens = null; }
   }
 }
 // ── migratePairsFromAuto — seeds AUTOPAIRS only on first-ever load ──

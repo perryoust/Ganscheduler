@@ -1,4 +1,4 @@
-function calRefwindow.G(){
+function calRefG(){
   // Ensure cal-cls matches the active tab
   const clsSel=document.getElementById('cal-cls');
   if(clsSel&&_calTab) clsSel.value=_calTab==='g'?'גנים':'ביה"ס';
@@ -29,7 +29,7 @@ function filterE(f,from,to){
     if(f.city&&g.city!==f.city) return false;
     if(f.cluster){
       if(f.cluster==='__all__'){
-        // only show window.GARDENS that belong to at least one cluster
+        // only show GARDENS that belong to at least one cluster
         const allClusterGids=new Set(getClusters().flatMap(c=>c.gardenIds||[]));
         if(!allClusterGids.has(s.g)) return false;
       } else {
@@ -125,7 +125,7 @@ function clearCal(){
   ['cal-g1','cal-g2','cal-g3'].forEach((id,i)=>{
     const el=document.getElementById(id);
     el.innerHTML=i===0?'<option value="">כל הצהרונים</option>':'<option value="">—</option>';
-    window.GARDENS.forEach(g=>el.innerHTML+=`<option value="${g.id}">${g.city} · ${g.name}</option>`);
+    GARDENS.forEach(g=>el.innerHTML+=`<option value="${g.id}">${g.city} · ${g.name}</option>`);
   });
   document.getElementById('cal-pair-bar').classList.remove('show');
   renderCal();
@@ -258,7 +258,7 @@ function setPairBreak(pairId,ds,broken){
 }
 
 // City-based color map for calendar
-const window.CITY_COLORS=(()=>{
+window.CITY_COLORS=(()=>{
   // Neutral palette — one color per city, readable and clean
   const palette=[
     {solid:'#37474f',light:'#eceff1',border:'#b0bec5',text:'#37474f'},
@@ -276,6 +276,7 @@ const window.CITY_COLORS=(()=>{
     return map[city];
   };
 })();
+var CITY_COLORS=window.CITY_COLORS;
 
 // ─── Shared Helper: Render global makeups for a day (ignores filters) ───
 // ─── Shared Helper: Makeups are now handled within regular grouping logic ───
@@ -310,7 +311,7 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
 
   Object.keys(pairsByCity).sort().forEach(city=>{
     const clr=window.CITY_COLORS(city);
-    h += `<div class="window.pairs-4col">`;
+    h += `<div class="pairs-4col">`;
     pairsByCity[city].forEach(({pair,pairEvs})=>{
       h += renderPairCard(pair, pairEvs, {ds, clr, showEdit:true, showExport:true, isMakeup:true});
     });
@@ -318,7 +319,7 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
   });
 
   if(allSoloEvs.length){
-    h += `<div class="window.pairs-4col">`;
+    h += `<div class="pairs-4col">`;
     allSoloEvs.forEach(s=>{
       const clr=window.CITY_COLORS(window.G(s.g).city||'אחר');
       h += renderPairCard({id:'solo_'+s.id, name:window.G(s.g).name, ids:[s.g]}, [s], {ds, clr, showEdit:true, showExport:true, isMakeup:true});
@@ -465,6 +466,7 @@ function renderClusterDay(evs, ds, clusterName){
 
   if(isAll){
     // ── כל האשכולות: עיר → אשכול → שעה ──
+    const others=evs.filter(s=>!s._compByMakeup);
     const allCities=[...new Set(others.map(s=>window.G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
     allCities.forEach(city=>{
       const cityEvs=others.filter(s=>(window.G(s.g).city||'אחר')===city);
@@ -508,6 +510,7 @@ function renderClusterDay(evs, ds, clusterName){
     });
   } else {
     // ── אשכול בודד: לפי שעה ──
+    const others=evs.filter(s=>!s._compByMakeup);
     others.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s=>{
       const g=window.G(s.g);
       const stc=s.st!=='ok'?'st-'+s.st:'';
@@ -725,7 +728,7 @@ function renderNormalDay(evs,ds){
           <span style="font-size:.75rem;font-weight:800;color:${clr.solid};white-space:nowrap">🏙️ ${city} — צהרונים ללא זוג</span>
           <div style="flex:1;height:2px;background:${clr.solid};opacity:.3"></div>
         </div>
-        <div class="window.pairs-4col">`;
+        <div class="pairs-4col">`;
       byCitySolo[city].sort((a,b)=>{
         const clA=(window.gardenClusters(a.g)[0]||{}).name||'ת';
         const clB=(window.gardenClusters(b.g)[0]||{}).name||'ת';
@@ -819,7 +822,7 @@ function renderPairCard(pair, pairEvs, opts){
           ${supPhone?`<span class="pcs-item">📞 ${supPhone}</span>`:''}
           ${actName?`<span class="pcs-item">🎯 ${actName}</span>`:''}
         </div>
-        <div class="pair-window.GARDENS">`;
+        <div class="pair-gardens">`;
 
   // One row per garden
   pair.ids.filter(Boolean).forEach(gid=>{
@@ -900,7 +903,7 @@ function renderGardenCols(evs,gids,clr){
     }
     html+='</div>';
   });
-  // Pad with empty col if only 2 window.GARDENS (for 3-col alignment)
+  // Pad with empty col if only 2 GARDENS (for 3-col alignment)
   if(cols.length===2){
     html+=`<div class="garden-col" style="border-right:none;background:#fafafa">
       <div style="text-align:center;color:#ddd;padding:20px 0;font-size:.8rem">—</div>
@@ -1122,7 +1125,7 @@ function renderNormalWeek(evs,ws,f){
       });
     });
 
-    // Solo window.GARDENS
+    // Solo GARDENS
     byCity[city].solos.forEach(gid=>{
       const g=window.G(gid);
       html+=`<tr><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;

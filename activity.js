@@ -162,6 +162,7 @@ function _dashListRow(s){
   </div>`;
 }
 
+function renderCanList(){
   // Nohap list — all events that didn't happen, sorted by date desc
   const nohapEvs=window.SCH.filter(s=>s.st==='nohap' && !s._compByMakeup).sort((a,b)=>b.d.localeCompare(a.d));
   // Can+post list — last 20
@@ -178,8 +179,10 @@ function _dashListRow(s){
     });
     ch+='</tbody></table></div>';
   }
-  document.getElementById('dash-can-body').innerHTML=ch;
+  const el=document.getElementById('dash-can-body');
+  if(el) el.innerHTML=ch;
 }
+
 
 function openSP(id){
   selEv=id;
@@ -711,14 +714,15 @@ function refresh(){
   // Single source of truth for all post-save re-rendering
   updCounts();
   renderDash();
+  renderCanList();
   renderCal();
   const t=currentTab||'';
   if(t==='sched') renderSched();
   if(t==='sup') renderSup();
   if(t==='managers') renderManagers();
-  if(t==='window.GARDENS') renderGardens();
-  if(t==='window.pairs') renderPairs();
-  if(t==='window.clusters') renderClusters();
+  if(t==='gardens') renderGardens();
+  if(t==='pairs') renderPairs();
+  if(t==='clusters') renderClusters();
   if(t==='holidays') renderHolidays();
   // Sync garden modal if open
   if(document.getElementById('gm')&&document.getElementById('gm').classList.contains('open')) renderGmCal();
@@ -1138,7 +1142,7 @@ function doCopy(){
 // Global Bridge
 window.setDashTab = setDashTab;
 window.renderDash = renderDash;
-window.renderDashList = renderDashList;
+window.openSP = openSP;
 window.openSP = openSP;
 window.qSetSt = qSetSt;
 window.openMakeupSched = openMakeupSched;
@@ -1151,7 +1155,6 @@ window.openSupExport = openSupExport;
 
 
 // --- GLOBAL BRIDGE ---
-window.renderDashList = renderDashList;
 window.renderDash = renderDash;
 window.openSP = openSP;
 window.setDashTab = setDashTab;
