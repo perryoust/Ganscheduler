@@ -2889,3 +2889,39 @@ function _tryOpenLocalFile(p){
     showToast('📋 הנתיב הועתק — פתח סייר קבצים והדבק');
   }
 }
+
+// Global Bridge for core helpers
+window.G = G;
+window.gcls = gcls;
+window.d2s = d2s;
+window.s2d = s2d;
+window.fD = fD;
+window.fT = fT;
+window.addD = addD;
+window.monStart = monStart;
+window.dayN = dayN;
+window.td = td;
+window.stLabel = stLabel;
+window.stClass = stClass;
+window.gardenPair = gardenPair;
+window.showToast = showToast;
+window.ST = ST;
+window.getBlockedInfo = getBlockedInfo;
+window.getHolidayInfo = getHolidayInfo;
+window.cities = cities;
+window.openSP = window.openSP || (()=>{});
+window.qSetSt = window.qSetSt || (()=>{});
+window.openCanQ = window.openCanQ || (()=>{});
+window.openPostpone = window.openPostpone || (()=>{});
+window.openNohapQ = window.openNohapQ || (()=>{});
+window.openMakeupSched = window.openMakeupSched || (()=>{});
+window.openBlockedDate = window.openBlockedDate || (()=>{});
+window.jumpToDay = window.jumpToDay || (()=>{});
+window.calRefG = window.calRefG || (()=>{});
+window.supBase = supBase;
+window.supAct = supAct;
+window.supDisplayName = supDisplayName;
+window.supBaseEx = supBaseEx;
+window.getClusters = getClusters;
+window.gardenClusters = gardenClusters;
+window.getGardenBlock = getGardenBlock;

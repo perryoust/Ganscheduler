@@ -14,9 +14,9 @@ function renderDash(){
   
   const evs=SCH.filter(s=>{
     if(s.d!==date) return false;
-    const g=G(s.g);
+    const g=window.G(s.g);
     
-    if(gcls(g)!==clsFilter) return false;
+    if(window.gcls(g)!==clsFilter) return false;
     
     // Status Logic: 
     if(st==='todo'){
@@ -38,7 +38,7 @@ function renderDash(){
   }).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
   const bySup={};
   evs.forEach(s=>{
-    const g=G(s.g);
+    const g=window.G(s.g);
     if(!bySup[s.a]) bySup[s.a]={name:s.a,ph:s.p||'',evs:[]};
     bySup[s.a].evs.push({...s,gd:g});
     if(s.p&&!bySup[s.a].ph) bySup[s.a].ph=s.p;
@@ -116,22 +116,22 @@ function renderDash(){
              } else {
                const s=row.ev;
                const stc=s.st!=='ok'?'st-'+s.st:'';
-               const _sc=CITY_COLORS(G(s.g).city);
+               const _sc=CITY_COLORS(window.G(s.g).city);
                h+=`<div class="city-block" style="margin-bottom:7px">
                  <div class="city-block-hdr" style="background:${_sc.solid};font-size:.76rem">
                    🏫 ${s.gd.name}
-                   <span style="font-size:.67rem;opacity:.8;font-weight:400">📍 ${G(s.g).city}</span>
+                   <span style="font-size:.67rem;opacity:.8;font-weight:400">📍 ${window.G(s.g).city}</span>
                    <button onclick="event.stopPropagation();_exportGardenWA([${s.g}],'${date}')" style="background:rgba(255,255,255,.28);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
                    <button onclick="event.stopPropagation();quickAddPartner(${s.g})"
                      style="background:rgba(255,255,255,.22);border:none;border-radius:4px;padding:1px 7px;cursor:pointer;font-size:.67rem;color:#fff">➕ הוסף בן זוג</button>
                  </div>
                  <div style="background:#fff;padding:7px">
                    <div class="ev ${stc}" onclick="openSP(${s.id})" style="border-radius:5px;border:none;border-right:3px solid ${_sc.solid};background:${_sc.light};margin:0">
-                     <span class="est">${stLabel(s)}</span>
+                     <span class="est">${window.stLabel(s)}</span>
                      <div class="eg">${s.gd.name}</div>
                      ${s.gd.st?`<div style="font-size:.67rem;color:#78909c">📍 ${s.gd.st}</div>`:''}
                      ${s.act?`<div style="font-size:.67rem;font-weight:600;color:${_sc.solid}">🎯 ${s.act}</div>`:''}
-                     ${s.t?`<div class="et">⏰ ${fT(s.t)}</div>`:''}
+                     ${s.t?`<div class="et">⏰ ${window.fT(s.t)}</div>`:''}
                      ${s.grp>1?`<div style="font-size:.67rem;color:#546e7a">👥 ${s.grp}</div>`:''}
                    </div>
                  </div>
@@ -148,16 +148,16 @@ function renderDash(){
 }
 
 function _dashListRow(s){
-  const g=G(s.g);
+  const g=window.G(s.g);
   const _sc=CITY_COLORS(g.city);
   const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
   return `<div style="display:grid;grid-template-columns:110px 140px 1fr 100px;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #eee;cursor:pointer;background:#fff" onclick="openSP(${s.id})">
     <div style="font-weight:700;color:#1a237e;font-size:.82rem">${g.name}</div>
-    <div style="font-size:.78rem;color:#546e7a">${g.city} | ${gcls(g)}</div>
+    <div style="font-size:.78rem;color:#546e7a">${g.city} | ${window.gcls ? window.window.gcls(g) : ''}</div>
     <div style="font-size:.82rem;color:#1565c0;font-weight:600">🎯 ${s.act||'—'} ${isM?'<span style="color:#0288d1;font-size:.7rem">(השלמה)</span>':''}</div>
     <div style="display:flex;flex-direction:column;align-items:flex-end">
-       <div style="font-size:.75rem;font-weight:700;color:#333">${s.t?fT(s.t):'--:--'}</div>
-       <div style="transform:scale(0.85);transform-origin:left">${stLabel(s)}</div>
+       <div style="font-size:.75rem;font-weight:700;color:#333">${s.t? (window.fT?window.window.fT(s.t):s.t) : '--:--'}</div>
+       <div style="transform:scale(0.85);transform-origin:left">${window.stLabel ? window.window.stLabel(s) : ''}</div>
     </div>
   </div>`;
 }
@@ -173,8 +173,8 @@ function _dashListRow(s){
   else{
     ch='<div class="tw"><table><thead><tr><th>תאריך</th><th>עיר</th><th>גן</th><th>ספק</th><th>סטטוס</th><th>סיבה</th></tr></thead><tbody>';
     allEvs.forEach(s=>{
-      const g=G(s.g);
-      ch+=`<tr onclick="openSP(${s.id})" class="${stClass(s)}"><td>${fD(s.d)}</td><td>${g.city||''}</td><td>${g.name||''}</td><td>${s.a}</td><td>${stLabel(s)}</td><td>${s.cr||''}${s.cn?' ('+s.cn+')':''}</td></tr>`;
+      const g=window.G(s.g);
+      ch+=`<tr onclick="openSP(${s.id})" class="${stClass(s)}"><td>${fD(s.d)}</td><td>${g.city||''}</td><td>${g.name||''}</td><td>${s.a}</td><td>${window.stLabel(s)}</td><td>${s.cr||''}${s.cn?' ('+s.cn+')':''}</td></tr>`;
     });
     ch+='</tbody></table></div>';
   }
@@ -184,8 +184,8 @@ function _dashListRow(s){
 function openSP(id){
   selEv=id;
   const s=SCH.find(x=>x.id===id);if(!s)return;
-  const g=G(s.g);
-  const isS=gcls(g)==='ביה"ס';
+  const g=window.G(s.g);
+  const isS=window.gcls(g)==='ביה"ס';
   const spPair=gardenPair(s.g);
 
   // 1. Header: Fixed Details
@@ -203,8 +203,8 @@ function openSP(id){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid #dbe3ff;padding-top:10px">
       <div><span style="font-size:.75rem;color:#78909c;display:block">📚 ספק</span><span style="font-weight:700;color:#1a237e">${supBase(s.a)}</span></div>
       <div><span style="font-size:.75rem;color:#78909c;display:block">🎯 פעילות</span><span style="font-weight:700;color:#1565c0">${supAct(s.a)||(s.act||'—')}</span></div>
-      ${s.t?`<div><span style="font-size:.75rem;color:#78909c;display:block">⏰ שעה</span><span style="font-weight:700;color:#1a237e">${fT(s.t)}</span></div>`:''}
-      <div><span style="font-size:.75rem;color:#78909c;display:block">📌 סטטוס</span><span style="transform:scale(0.9);transform-origin:right;display:inline-block">${stLabel(s)}</span></div>
+      ${s.t?`<div><span style="font-size:.75rem;color:#78909c;display:block">⏰ שעה</span><span style="font-weight:700;color:#1a237e">${window.fT(s.t)}</span></div>`:''}
+      <div><span style="font-size:.75rem;color:#78909c;display:block">📌 סטטוס</span><span style="transform:scale(0.9);transform-origin:right;display:inline-block">${window.stLabel(s)}</span></div>
     </div>
   </div>`;
 
@@ -408,7 +408,7 @@ function openReplaceRecur(id){
   const s=SCH.find(x=>x.id===id); if(!s) return;
   const affected=SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
   const allSups=getAllSup().filter(s2=>isActSupplier(s2.name));
-  const g=G(s.g);
+  const g=window.G(s.g);
   let h=`<div style="font-size:.85rem;font-weight:700;color:#1a237e;margin-bottom:10px">
     🔄 החלפת שיבוץ קבוע — ${affected.length} פעילויות מ-${fD(s.d)} ואילך<br>
     <span style="font-size:.75rem;font-weight:400;color:#546e7a">גן: ${g.name} | ספק נוכחי: ${supBase(s.a)}</span>
@@ -798,14 +798,14 @@ function postTogglePWrap(){
 function openPostpone(id){
   selEvPost=id;
   const s=SCH.find(x=>x.id===id); if(!s) return;
-  const g=G(s.g);
+  const g=window.G(s.g);
   document.getElementById('post-ev-info').innerHTML=
     `<b>${g.name}</b> · ${g.city} · <span style="color:#1565c0">${s.a}</span>${s.act?' · '+s.act:''}<br>
-     תאריך מקורי: <b>${fD(s.d)} יום ${dayN(s.d)}</b> ${s.t?'⏰ '+fT(s.t):''}`;
+     תאריך מקורי: <b>${fD(s.d)} יום ${dayN(s.d)}</b> ${s.t?'⏰ '+window.fT(s.t):''}`;
   
   document.getElementById('post-date').value='';
-  document.getElementById('post-time').value=s.t?fT(s.t):'';
-  document.getElementById('post-time-g2').value=s.t?fT(s.t):'';
+  document.getElementById('post-time').value=s.t?window.fT(s.t):'';
+  document.getElementById('post-time-g2').value=s.t?window.fT(s.t):'';
   document.getElementById('post-reason').value='';
   document.getElementById('post-conflict-warn').style.display='none';
   setPostMode('move');
@@ -858,7 +858,7 @@ function postShowFreeDays(s){
     const dow=d.getDay();
     if(dow>=0&&dow<=4){ // sun-thu (0=sun,4=thu) skip fri(5)+sat(6)
       const ds=d2s(d);
-      const hol=getHolidayInfo(ds,g.city,gcls(g));
+      const hol=getHolidayInfo(ds,g.city,window.gcls(g));
       if(!busyDates.has(ds)&&!hol){
         free.push({ds,lbl:DAY_HEB[dow]+' '+fD(ds)});
       }
@@ -1037,7 +1037,7 @@ function copyShowFreeDays(s){
     const dow=d.getDay();
     if(dow>=0&&dow<=4){
       const ds=d2s(d);
-      const hol=getHolidayInfo(ds,g.city,gcls(g));
+      const hol=getHolidayInfo(ds,g.city,window.gcls(g));
       if(!busyDates.has(ds)&&!hol) free.push({ds,lbl:DAY_HEB[dow]+' '+fD(ds)});
     }
     d.setDate(d.getDate()+1);
@@ -1065,12 +1065,12 @@ function openCopy(id){
   _ensureCopyModal();
   _copySrcId=id;
   const s=SCH.find(x=>x.id===id); if(!s) return;
-  const g=G(s.g);
+  const g=window.G(s.g);
   document.getElementById('copy-ev-info').innerHTML=
     `<b>${g.name}</b> · ${g.city} · <span style="color:#1565c0">${s.a}</span>${s.act?' · '+s.act:''}<br>
-     תאריך מקורי: <b>${fD(s.d)} יום ${dayN(s.d)}</b> ${s.t?'⏰ '+fT(s.t):''}`;
+     תאריך מקורי: <b>${fD(s.d)} יום ${dayN(s.d)}</b> ${s.t?'⏰ '+window.fT(s.t):''}`;
   document.getElementById('copy-date').value='';
-  document.getElementById('copy-time').value=s.t?fT(s.t):'';
+  document.getElementById('copy-time').value=s.t?window.fT(s.t):'';
   document.getElementById('copy-note').value='';
   document.getElementById('copy-conflict-warn').style.display='none';
   const copyPair=gardenPair(s.g);

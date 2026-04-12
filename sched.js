@@ -540,10 +540,10 @@ function renderSched(){
           h+=`<tr onclick="openSP(${s.id})" class="${stClass(s)}" style="cursor:pointer">
             <td><div style="font-weight:700">${s.gd.name}</div>${s.gd.st?`<div style="font-size:.68rem;color:#78909c">${s.gd.st}</div>`:''}</td>
             <td><div style="font-weight:700">${supBase(s.a)}</div>${supAct(s.a)?`<div style="font-size:.7rem;color:#1565c0">🎯 ${supAct(s.a)}</div>`:''}<span style="font-size:.68rem;color:#78909c">${s.p||''}</span></td>
-            <td>${fT(s.t)}</td>
-            <td>${stLabel(s)}</td>
+            <td>${window.fT ? window.fT(s.t) : s.t}</td>
+            <td>${window.stLabel ? window.stLabel(s) : ''}</td>
             <td style="max-width:90px;font-size:.72rem">${s.nt||''}</td>
-            <td onclick="event.stopPropagation()">${_quickActionBtns(s)}</td>
+            <td onclick="event.stopPropagation()">${window._quickActionBtns ? window._quickActionBtns(s) : ''}</td>
           </tr>`;
         });
         h+='</tbody></table></div>';
