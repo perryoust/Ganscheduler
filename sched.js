@@ -1,0 +1,420 @@
+function nsSetTab(tab){
+  _nsmTab=tab;
+  ['once','recur','makeup'].forEach(t=>{
+    const btn=document.getElementById('ns-tab-'+t);
+    const wrap=document.getElementById('ns-'+t+'-wrap');
+    if(btn){
+      btn.style.background=t===tab?'#1a237e':'transparent';
+      btn.style.color=t===tab?'#fff':'#1a237e';
+      btn.style.borderRadius='6px';
+    }
+    if(wrap) wrap.style.display=t===tab?'block':'none';
+  });
+  // Once-wrap contains shared ns-date/ns-time — show for both once and makeup
+  const onceWrap=document.getElementById('ns-once-wrap');
+  if(onceWrap) onceWrap.style.display=(tab==='once'||tab==='makeup')?'block':'none';
+  // Update title
+  const titles={once:'📅 שיבוץ חדש',recur:'🔁 שיבוץ קבוע',makeup:'↩️ שיבוץ השלמה'};
+  (document.getElementById('nsm-title')||{}).textContent=titles[tab]||'➕ שיבוץ חדש';
+}
+
+function nsGChg(){
+  const gid=parseInt(document.getElementById('ns-g').value)||null;
+  nsCheckPair(gid);
+}
+
+function openNewSched(gid, opts={}){
+  // opts: {date, tab, makeupFrom}
+  newSchedForGarden=gid||null;
+  _nsmTab='once';
+  (document.getElementById('nsm-title')||{}).textContent='➕ שיבוץ חדש';
+
+  // Reset all fields
+  const ns_date=document.getElementById('ns-date');
+  if(ns_date) ns_date.value=opts.date||d2s(calD);
+  document.getElementById('ns-time').value='';
+  document.getElementById('ns-ph').value='';
+  document.getElementById('ns-notes').value='';
+  document.getElementById('ns-grp').value='1';
+  const atSel=document.getElementById('ns-act-type');
+  if(atSel){atSel.innerHTML='<option value="">בחר סוג פעילות...</option>';atSel.value='';}
+  const atNew=document.getElementById('ns-act-type-new');
+  if(atNew){atNew.style.display='none';atNew.value='';}
+  document.getElementById('ns-warn').style.display='none';
+
+  // Recur fields
+  const today=td();
+  const recurFrom=document.getElementById('ns-recur-from');
+  const recurTo=document.getElementById('ns-recur-to');
+  if(recurFrom) recurFrom.value=opts.date||today;
+  if(recurTo){
+    // Default end: end of current school year
+    const y=new Date().getFullYear();
+    const m=new Date().getMonth();
+    recurTo.value=`${m>=8?y+1:y}-06-30`;
+  }
+  document.querySelectorAll('.ns-day-chk').forEach(c=>c.checked=false);
+  // Pre-check day of selected date
+  if(opts.date){
+    const dObj=new Date(opts.date.replace(/-/g,'/'));
+    const dayChk=document.querySelector(`.ns-day-chk[value="${dObj.getDay()}"]`);
+    if(dayChk) dayChk.checked=true;
+  }
+  document.getElementById('ns-recur-preview').textContent='';
+
+  // Makeup
+  const makeupOrig=document.getElementById('ns-makeup-orig');
+  if(makeupOrig) makeupOrig.value=opts.makeupFrom||'';
+
+  // City/garden dropdowns
+  const cityEl=document.getElementById('ns-city');
+  cityEl.innerHTML='<option value="">בחר עיר</option>';
+  cities().forEach(c=>cityEl.innerHTML+=`<option value='${c}'>${c}</option>`);
+
+  if(gid){
+    const g=G(gid);
+    cityEl.value=g.city||'';
+    nsRefG();
+    setTimeout(()=>{
+      document.getElementById('ns-g').value=gid;
+      nsCheckPair(gid);
+    },50);
+  } else {
+    document.getElementById('ns-g').innerHTML='<option value="">בחר עיר תחילה</option>';
+    document.getElementById('ns-g2-wrap').style.display='none';
+    document.getElementById('ns-grp-wrap').style.display='none';
+  }
+
+  // Set tab
+  nsSetTab(opts.tab||'once');
+
+  // ns-sup is populated globally on load
+
+  document.getElementById('nsm').classList.add('open');
+}
+
+function nsPreviewRecur(){
+  const from=document.getElementById('ns-recur-from').value;
+  const to=document.getElementById('ns-recur-to').value;
+  const days=[...document.querySelectorAll('.ns-day-chk:checked')].map(c=>parseInt(c.value));
+  if(!from||!to||!days.length){
+    document.getElementById('ns-recur-preview').textContent='';
+    return;
+  }
+  let count=0, cur=new Date(from.replace(/-/g,'/'));
+  const end=new Date(to.replace(/-/g,'/'));
+  while(cur<=end&&count<200){
+    if(days.includes(cur.getDay())) count++;
+    cur.setDate(cur.getDate()+1);
+  }
+  const dn=['ראשון','שני','שלישי','רביעי','חמישי'];
+  const dayNames=days.map(d=>dn[d]).join(', ');
+  document.getElementById('ns-recur-preview').textContent=`📅 יימצאו ${count} פעילויות (ימים: ${dayNames}, ${fD(from)}–${fD(to)})`;
+}
+function nsRefG(){
+  const city=document.getElementById('ns-city').value;
+  const gs=gByCF(city,'').sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  const sel=document.getElementById('ns-g');
+  sel.innerHTML='<option value="">בחר גן</option>';
+  gs.forEach(g=>sel.innerHTML+=`<option value="${g.id}">${g.name}</option>`);
+  document.getElementById('ns-g2-wrap').style.display='none';
+  document.getElementById('ns-grp-wrap').style.display='none';
+  sel.onchange=function(){nsCheckPair(parseInt(this.value)||null);};
+}
+function nsCheckPair(gid){
+  if(!gid) return;
+  const g=G(gid);
+  const isS=gcls(g)==='ביה"ס';
+  document.getElementById('ns-grp-wrap').style.display='block';
+  const pair=gardenPair(gid);
+  const w2=document.getElementById('ns-g2-wrap');
+  if(pair&&pair.ids.length>=2){
+    const partnerId=pair.ids.find(id=>id!==gid);
+    if(partnerId){
+      const partG=G(partnerId);
+      w2.style.display='block';
+      w2.querySelector('label').textContent=`צהרון בן זוג: ${partG.name}?`;
+      document.getElementById('ns-g2').innerHTML=`<option value="">לא - רק ל${g.name}</option><option value="${partnerId}" selected>כן - גם ל${partG.name}</option>`;
+    }
+  } else w2.style.display='none';
+}
+function nsSupChg(){
+  const sup=document.getElementById('ns-sup').value;
+  if(!sup) return;
+  const base=supBase(sup);
+  const ex=supEx[base]||supEx[sup]||{};
+  const ph=ex.ph1||(SUPBASE.find(s=>supBase(s.name)===base&&s.phone)||SUPBASE.find(s=>s.name===sup)||{}).phone||'';
+  document.getElementById('ns-ph').value=ph;
+  // alias hint
+  const aliasWrap=document.getElementById('ns-alias-wrap');
+  const aliasHint=document.getElementById('ns-alias-hint');
+  if(aliasWrap&&aliasHint){
+    if(ex.alias){aliasHint.textContent=`🏷️ יוצג כ: "${ex.alias}"`;aliasWrap.style.display='block';}
+    else{aliasHint.textContent='';aliasWrap.style.display='none';}
+  }
+  document.getElementById('ns-grp-wrap').style.display='block';
+  const actSel=document.getElementById('ns-act-type');
+  if(!actSel) return;
+  const acts=getSupActs(sup);
+  actSel.innerHTML='<option value="">בחר סוג פעילות...</option>'+
+    acts.map(a=>`<option value='${a}'>${a}</option>`).join('')+
+    '<option value="__new__">➕ הוסף פעילות חדשה...</option>';
+}
+function nsActTypeChg(){
+  const v=document.getElementById('ns-act-type').value;
+  const newInp=document.getElementById('ns-act-type-new');
+  if(newInp) newInp.style.display=v==='__new__'?'inline-block':'none';
+}
+function saveNewSched(){
+  const gid=parseInt(document.getElementById('ns-g').value)||null;
+  const g2id=parseInt(document.getElementById('ns-g2').value)||null;
+  const date=document.getElementById('ns-date').value;
+  const time=document.getElementById('ns-time').value;
+  const sup=document.getElementById('ns-sup').value;
+  if(date&&gid){
+    const _g=G(gid);
+    const _hol=getHolidayInfo(date,_g.city||null,gcls(_g)||null);
+    if(_hol&&!_hol.canSched&&(_hol.type==='noact'||_hol.type==='vacation'||_hol.type==='camp')){
+      if(!confirm('⚠️ יש '+_hol.emoji+' '+_hol.name+' ביום זה.\nבכל זאת לשבץ?')) return;
+    }
+  }
+  const ph=document.getElementById('ns-ph').value;
+  const notes=document.getElementById('ns-notes').value;
+  const grp=parseInt(document.getElementById('ns-grp').value)||1;
+  let actType=document.getElementById('ns-act-type').value;
+  if(actType==='__new__'){actType=document.getElementById('ns-act-type-new').value.trim();}
+  const evTp=(document.getElementById('ns-ev-type')||{}).value||'חוג';
+  if(actType&&actType!=='__new__'){
+    if(!supEx[sup]) supEx[sup]={};
+    if(!Array.isArray(supEx[sup].acts)) supEx[sup].acts=getSupActs(sup);
+    if(!supEx[sup].acts.includes(actType)) supEx[sup].acts.push(actType);
+  }
+  if(!gid||!date||!sup){alert('יש למלא: גן, תאריך, ספק');return;}
+  const g=G(gid);
+  if(gcls(g)==='גנים'&&time){
+    const h=parseInt(time.split(':')[0]);
+    const period=h<13?'morning':'afternoon';
+    const conflict=SCH.find(s=>s.g===gid&&s.d===date&&s.st!=='can'&&s.t&&(parseInt(s.t.split(':')[0])<13?'morning':'afternoon')===period&&s.id!==undefined);
+    if(conflict){
+      document.getElementById('ns-warn').style.display='block';
+      (document.getElementById('ns-warn')||{}).textContent =`⚠️ כבר קיימת פעילות ב${period==='morning'?'בוקר':'אחה"צ'}: ${conflict.a} ב-${fT(conflict.t)}`;
+      return;
+    }
+  }
+  const newId=Date.now();
+
+  if(_nsmTab==='recur'){
+    // Recurring schedule — generate all matching dates
+    const recurFrom=document.getElementById('ns-recur-from').value;
+    const recurTo=document.getElementById('ns-recur-to').value;
+    const selDays=[...document.querySelectorAll('.ns-day-chk:checked')].map(c=>parseInt(c.value));
+    const recurTime=document.getElementById('ns-recur-time').value||time;
+    if(!recurFrom||!recurTo||!selDays.length){alert('שיבוץ קבוע: יש לבחור תאריך התחלה, סיום, וימים');return;}
+    let count=0, cur=new Date(recurFrom.replace(/-/g,'/'));
+    const endD=new Date(recurTo.replace(/-/g,'/'));
+    const recurring_id=Date.now();
+    while(cur<=endD&&count<365){
+      if(selDays.includes(cur.getDay())){
+        const ds=d2s(cur);
+        const _hol2=getHolidayInfo(ds,G(gid).city||null,gcls(G(gid))||null);
+        if(!_hol2||_hol2.type==='info'||_hol2.canSched){
+          const eid=recurring_id+count;
+          const ev={id:eid,g:gid,d:ds,a:sup,act:actType,tp:evTp||'חוג',t:recurTime,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp,_recId:recurring_id};
+          SCH.push(ev);
+          if(g2id) SCH.push({...ev,id:eid+1000,g:g2id});
+          count++;
+        }
+      }
+      cur.setDate(cur.getDate()+1);
+    }
+    saveAndRefresh('nsm');
+    showToast(`✅ נוצרו ${count} פעילויות קבועות`);
+    return;
+  }
+
+  if(_nsmTab==='makeup'){
+    // Makeup schedule
+    const makeupOrig=document.getElementById('ns-makeup-orig').value;
+    const newSched={id:newId,g:gid,d:date,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes?notes:'השלמה'+(makeupOrig?' מ-'+fD(makeupOrig):''),pd:'',pt:'',grp,_makeupFrom:makeupOrig||''};
+    SCH.push(newSched);
+    if(g2id) SCH.push({...newSched,id:newId+1,g:g2id});
+    saveAndRefresh('nsm');
+    showToast('✅ שיבוץ השלמה נשמר');
+    return;
+  }
+
+  // One-time
+  const newSched={id:newId,g:gid,d:date,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp};
+  SCH.push(newSched);
+  if(g2id){
+    SCH.push({...newSched,id:newId+1,g:g2id,nt:notes});
+  }
+  saveAndRefresh('nsm');
+  showToast('✅ שיבוץ נשמר');
+}
+
+function sSchedStChange(){
+  const st=document.getElementById('s-st').value;
+  const from=document.getElementById('s-from');
+  const to=document.getElementById('s-to');
+  if(!st){
+    // הכל → default to today
+    if(from&&!from.value) from.value=td();
+    if(to&&!to.value) to.value=td();
+  } else {
+    // ספציפי → clear date filter to show all
+    if(from) from.value='';
+    if(to) to.value='';
+  }
+  sPage=1; renderSched();
+}
+function sRefG(){
+  const city=document.getElementById('s-city').value;
+  const cls=document.getElementById('s-cls').value;
+  const gs=gByCF(city,cls).sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  ['s-g1','s-g2','s-g3'].forEach((id,i)=>{
+    const sel=document.getElementById(id);
+    sel.innerHTML=i===0?'<option value="">כל הצהרונים</option>':'<option value="">—</option>';
+    gs.forEach(g=>sel.innerHTML+=`<option value="${g.id}">${city?g.name:g.city+' · '+g.name}</option>`);
+  });
+  sPage=1;renderSched();
+}
+function getFiltSched(){
+  const city=document.getElementById('s-city').value;
+  const cls=document.getElementById('s-cls').value;
+  const g1=parseInt(document.getElementById('s-g1').value)||null;
+  const g2=parseInt(document.getElementById('s-g2').value)||null;
+  const g3=parseInt(document.getElementById('s-g3').value)||null;
+  const sup=document.getElementById('s-sup').value;
+  const th=document.getElementById('s-th').value;
+  const tt=document.getElementById('s-tt').value;
+  const from=document.getElementById('s-from').value;
+  const to=document.getElementById('s-to').value;
+  const st=document.getElementById('s-st').value;
+  const srch=document.getElementById('s-srch').value.toLowerCase();
+  const gids=[g1,g2,g3].filter(Boolean);
+  return SCH.filter(s=>{
+    const g=G(s.g);
+    if(city&&g.city!==city) return false;
+    if(cls&&gcls(g)!==cls) return false;
+    if(gids.length&&!gids.includes(s.g)) return false;
+    if(sup&&supBase(s.a)!==sup&&s.a!==sup) return false;
+    if(th&&s.t&&s.t<th) return false;
+    if(tt&&s.t&&s.t>tt) return false;
+    if(from&&s.d<from) return false;
+    if(to&&s.d>to) return false;
+    if(st&&s.st!==st) return false;
+    if(srch&&![(g.name||''),(g.city||''),(s.a||''),(s.nt||'')].some(x=>x.toLowerCase().includes(srch))) return false;
+    return true;
+  }).sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'').localeCompare(b.t||''));
+}
+function setSchedView(v){
+  const sf=document.getElementById('s-from'), st2=document.getElementById('s-to');
+  if(!sf||!st2) return;
+  const base=sf.value||td();
+  const d=s2d(base);
+  if(v==='day'){
+    sf.value=td(); st2.value=td();
+  } else if(v==='week'){
+    const mon=monStart(new Date(d)); sf.value=d2s(mon); st2.value=d2s(addD(mon,6));
+  } else if(v==='month'){
+    const y=d.getFullYear(), m=d.getMonth();
+    sf.value=d2s(new Date(y,m,1)); st2.value=d2s(new Date(y,m+1,0));
+  }
+  ['day','week','month'].forEach(x=>document.getElementById('svb-'+x)?.classList.toggle('active',x===v));
+  sPage=1; renderSched();
+}
+
+function navSched(dir){
+  const sf=document.getElementById('s-from'),st2=document.getElementById('s-to');
+  if(!sf||!st2) return;
+  const from=sf.value||td(),to=st2.value||td();
+  const d1=s2d(from),d2=s2d(to);
+  const span=Math.max(0,Math.round((d2-d1)/(1000*60*60*24)));
+  const nd1=addD(d1,dir*(span+1));
+  const nd2=addD(nd1,span);
+  sf.value=d2s(nd1); st2.value=d2s(nd2);
+  sPage=1; renderSched();
+}
+function navSchedToday(){
+  const t=td();
+  document.getElementById('s-from').value=t;
+  document.getElementById('s-to').value=t;
+  sPage=1; renderSched();
+}
+function renderSched(){
+  const all=getFiltSched();
+  const hasFilter=['s-city','s-cls','s-sup','s-th','s-tt','s-from','s-to','s-st','s-srch'].some(id=>{const el=document.getElementById(id);return el&&el.value;});
+  const todayDate=document.getElementById('s-from').value||document.getElementById('s-to').value;
+  const pages=Math.ceil(all.length/PG);
+  if(sPage>pages&&pages>0) sPage=1;
+  const data=all.slice((sPage-1)*PG,sPage*PG);
+  (document.getElementById('s-info')||{}).textContent =`מציג ${data.length} מתוך ${all.length.toLocaleString()} פעילויות`;
+  const byDate={};
+  data.forEach(s=>{
+    const dk=s._isPostponed?s.pd:s.d;
+    if(!byDate[dk]) byDate[dk]={};
+    const g=G(s.g);
+    const c=g.city||'אחר';
+    const cl=gcls(g);
+    if(!byDate[dk][c]) byDate[dk][c]={gan:[],sch:[]};
+    if(cl==='ביה"ס') byDate[dk][c].sch.push({...s,gd:g});
+    else byDate[dk][c].gan.push({...s,gd:g});
+  });
+
+  let h='';
+  Object.keys(byDate).sort().forEach(dateKey=>{
+    h+=`<div style="font-weight:800;color:#1a237e;font-size:.83rem;padding:6px 10px;background:#e8eaf6;border-radius:6px;margin-bottom:6px;margin-top:10px">
+      📅 ${fD(dateKey)} יום ${dayN(dateKey)}
+    </div>`;
+    Object.keys(byDate[dateKey]).sort().forEach(city=>{
+      const cityData=byDate[dateKey][city];
+      h+=`<div style="margin-bottom:8px">
+        <div style="font-size:.75rem;font-weight:700;color:#546e7a;padding:3px 8px;background:#eceff1;border-radius:4px;margin-bottom:4px">🏙️ ${city}</div>`;
+      [{arr:cityData.gan,lbl:'🏫 צהרונים',cls:'gan'},{arr:cityData.sch,lbl:'🏛️ בתי ספר',cls:'sch'}].forEach(sec=>{
+        if(!sec.arr.length) return;
+        h+=`<div class="dsh ${sec.cls}" style="font-size:.7rem;margin-bottom:3px">${sec.lbl}</div>
+          <div class="tw"><table style="margin-bottom:6px"><thead><tr>
+            <th>צהרון</th><th>ספק</th><th>שעה</th><th>קב'</th><th>סטטוס</th><th>הערות</th>
+          </tr></thead><tbody>`;
+        sec.arr.sort((a,b)=>{
+          // Sort by pair name first, then time — matches calendar order
+          const pA=gardenPair(a.g),pB=gardenPair(b.g);
+          const pnA=pA?pA.name:G(a.g).name;
+          const pnB=pB?pB.name:G(b.g).name;
+          return pnA.localeCompare(pnB,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
+        }).forEach(s=>{
+          h+=`<tr onclick="openSP(${s.id})" class="${stClass(s)}">
+            <td><div style="font-weight:700">${s.gd.name}</div>${s.gd.st?`<div style="font-size:.68rem;color:#78909c">${s.gd.st}</div>`:''}</td>
+            <td><div style="font-weight:700">${supBase(s.a)}</div>${supAct(s.a)?`<div style="font-size:.7rem;color:#1565c0">🎯 ${supAct(s.a)}</div>`:''}<span style="font-size:.68rem;color:#78909c">${s.p||''}</span></td>
+            <td>${fT(s.t)}</td>
+            <td>${s.grp||1}</td>
+            <td>${stLabel(s)}</td>
+            <td style="max-width:90px;font-size:.72rem">${s.nt||''}</td>
+          </tr>`;
+        });
+        h+='</tbody></table></div>';
+      });
+      h+='</div>';
+    });
+  });
+  if(!h) h='<p style="color:#999;text-align:center;padding:20px">אין פעילויות</p>';
+  document.getElementById('s-body').innerHTML=h;
+  setTimeout(_fitScrollAreas,50);
+  let pg='';
+  if(pages>1){
+    const st=Math.max(1,sPage-3),en=Math.min(pages,sPage+3);
+    if(st>1) pg+=`<button class="pgbtn" onclick="goPg(1)">1</button>`;
+    if(st>2) pg+='<span>…</span>';
+    for(let p=st;p<=en;p++) pg+=`<button class="pgbtn ${p===sPage?'active':''}" onclick="goPg(${p})">${p}</button>`;
+    if(en<pages-1) pg+='<span>…</span>';
+    if(en<pages) pg+=`<button class="pgbtn" onclick="goPg(${pages})">${pages}</button>`;
+  }
+  document.getElementById('s-pag').innerHTML=pg;
+}
+function goPg(p){sPage=p;renderSched();}
+function clearSched(){
+  ['s-city','s-cls','s-sup','s-th','s-tt','s-from','s-to','s-st','s-srch'].forEach(id=>document.getElementById(id).value='');
+  sRefG();
+}
+
