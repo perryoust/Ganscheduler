@@ -111,7 +111,7 @@ let clusters={}; // {clusterName: {name, city, gardens:[gid...]}}
 let pairBreaks={}; // {pairId+'_'+date: true}  — one-time breaks
 let blockedDates={}; // {'2025-11-15':{reason:'טיול',icon:'🚌',note:''}, ...}
 let gardenBlocks={}; // {'gid_date':{reason,icon,note}} — per-garden date blocks
-let calV='list',calD=new Date();
+var calV='list',calD=new Date();
 let gmV='week',gmD=new Date(),gmGid=null;
 let selEv=null,selEvPost=null;
 let sPage=1;

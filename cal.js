@@ -20,7 +20,7 @@ function getCalGids(){
 }
 function getCalF(){
   const gids=getCalGids();
-  return{gids:gids.length?gids:null,city:document.getElementById('cal-city').value,cls:document.getElementById('cal-cls').value,cluster:document.getElementById('cal-cl').value,sup:document.getElementById('cal-sup').value};
+  return{gids:gids.length?gids:null,city:document.getElementById('cal-city').value,cls:document.getElementById('cal-cls').value,cluster:document.getElementById('cal-cl').value,sup:document.getElementById('cal-sup').value,st:document.getElementById('cal-st').value};
 }
 function filterE(f,from,to){
   const all=SCH.filter(s=>{
@@ -40,6 +40,15 @@ function filterE(f,from,to){
     if(f.cls&&gcls(g)!==f.cls) return false;
     if(f.gids&&!f.gids.includes(s.g)) return false;
     if(f.sup && supBase(s.a) !== f.sup && s.a !== f.sup) return false;
+
+    // Status Filter 
+    if(f.st==='todo'){
+       const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+       if(!(s.st==='nohap' || s.st==='post' || isM)) return false;
+    } else if(!f.st){
+       if(s.st==='can') return false;
+    } else if(f.st && s.st!==f.st) return false;
+
     return true;
   });
   const posted=SCH.filter(s=>{
@@ -1525,3 +1534,20 @@ function setCalTab(t){
   calRefG();
 }
 var _dashTab='g'; // 'g'=גנים 's'=בתי ספר
+
+// Global Bridge
+window.renderCal = renderCal;
+window.setCalTab = setCalTab;
+window.setView = setView;
+window.setListSubView = setListSubView;
+window.setListGroupMode = setListGroupMode;
+window.setRangeSubView = setRangeSubView;
+window.navCal = navCal;
+window.goDate = goDate;
+window.goToday = goToday;
+window.openExport = openExport;
+window._quickActionBtns = _quickActionBtns;
+window.renderMakeupsTop = renderMakeupsTop;
+window.jumpToDay = jumpToDay;
+window.toggleExportMenu = toggleExportMenu;
+window.closeExportMenu = closeExportMenu;

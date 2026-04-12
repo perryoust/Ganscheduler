@@ -1008,7 +1008,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div id="dash-flt" class="flt-wrap">
         <div class="fg"><label>עיר</label><select id="dash-city" onchange="renderDash()"><option value="">כל הערים</option></select></div>
         <div class="fg"><label>ספק</label><select id="dash-sup" onchange="renderDash()"><option value="">כל הספקים</option></select></div>
-        <div class="fg"><label>סטטוס</label><select id="dash-st" onchange="renderDash()"><option value="">הכל</option><option value="ok">מתקיים</option><option value="done">התקיים</option><option value="can">בוטל</option><option value="post">נדחה</option><option value="nohap">לא התקיים</option></select></div>
+        <div class="fg"><label>סטטוס</label><select id="dash-st" onchange="renderDash()"><option value="todo" selected>לטיפול (חריגים+השלמות)</option><option value="">הכל (לא כולל בוטלו)</option><option value="ok">מתקיים</option><option value="done">התקיים</option><option value="can">בוטל</option><option value="post">נדחה</option><option value="nohap">לא התקיים</option></select></div>
         <div class="fg"><label>חיפוש חופשי</label><input type="text" id="dash-srch" placeholder="שם צהרון, ספק..." autocomplete="off" oninput="renderDash()" style="min-width:130px"></div>
       </div>
     </div>
@@ -1046,7 +1046,8 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <div class="fg"><label>צהרון 2</label><select id="cal-g2" onchange="renderCal()"><option value="">—</option></select></div>
         <div class="fg"><label>צהרון 3</label><select id="cal-g3" onchange="renderCal()"><option value="">—</option></select></div>
         <div class="fg"><label>ספק</label><select id="cal-sup" onchange="renderCal()"><option value="">כל הספקים</option></select></div>
-        <div class="fg"><label>אשכול</label><select id="cal-cl" onchange="renderCal()"><option value="">הכל</option></select></div>
+        <div class="fg"><label>אשכול</label><select id="cal-cl" onchange="renderCal()"><option value="">הכל</option><option value="__all__">💡 כל הצהרונים המשובצים באשכולות</option></select></div>
+        <div class="fg"><label>סטטוס</label><select id="cal-st" onchange="renderCal()"><option value="todo" selected>לטיפול (חריגים+השלמות)</option><option value="">הכל (לא כולל בוטלו)</option><option value="ok">מתקיים</option><option value="done">התקיים</option><option value="can">בוטל</option><option value="post">נדחה</option><option value="nohap">לא התקיים</option></select></div>
       </div>
     </div>
     <div id="cal-pair-bar" class="notice">
@@ -1141,7 +1142,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <div class="fg"><label>שעה עד</label><input type="time" id="s-tt" onchange="renderSched()"></div>
         <div class="fg"><label>מתאריך</label><input type="date" id="s-from" onchange="renderSched()"></div>
         <div class="fg"><label>עד תאריך</label><input type="date" id="s-to" onchange="renderSched()"></div>
-        <div class="fg"><label>סטטוס</label><select id="s-st" onchange="sSchedStChange()"><option value="">הכל</option><option value="ok">📅 מתקיים</option><option value="done">✔️ התקיים</option><option value="can">❌ בוטל</option><option value="post">⏩ נדחה</option><option value="nohap">⚠️ לא התקיים</option></select></div>
+        <div class="fg"><label>סטטוס</label><select id="s-st" onchange="sSchedStChange()"><option value="todo" selected>לטיפול (חריגים+השלמות)</option><option value="">הכל (לא כולל בוטלו)</option><option value="ok">📅 מתקיים</option><option value="done">✔️ התקיים</option><option value="can">❌ בוטל</option><option value="post">⏩ נדחה</option><option value="nohap">⚠️ לא התקיים</option></select></div>
         <div class="fg"><label>סוג</label><select id="s-type" onchange="renderSched()"><option value="">הכל</option><option value="reg">📅 רגיל</option><option value="makeup">↩️ השלמה</option></select></div>
         <div class="fg"><label>חיפוש</label><input type="text" id="s-srch" placeholder="חפש..." oninput="renderSched()" style="min-width:130px"></div>
       </div>

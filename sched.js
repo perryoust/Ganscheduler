@@ -440,11 +440,26 @@ function getFiltSched(){
     if(tt&&s.t&&s.t>tt) return false;
     if(from&&s.d<from) return false;
     if(to&&s.d>to) return false;
-    if(st&&s.st!==st) return false;
+
+    // Status Logic
+    if(st==='todo'){
+      if(!(s.st==='nohap' || s.st==='post' || isM(s))) return false;
+    } else if(!st) {
+       if(s.st==='can') return false;
+    } else if(s.st!==st) return false;
+
     if(srch&&![(g.name||''),(g.city||''),(s.a||''),(s.nt||'')].some(x=>x.toLowerCase().includes(srch))) return false;
     return true;
   }).sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'').localeCompare(b.t||''));
 }
+
+// Global Bridge
+window.renderSched = renderSched;
+window.setSchedView = setSchedView;
+window.navSched = navSched;
+window.navSchedToday = navSchedToday;
+window.sSchedStChange = sSchedStChange;
+window.sRefG = sRefG;
 function setSchedView(v){
   const sf=document.getElementById('s-from'), st2=document.getElementById('s-to');
   if(!sf||!st2) return;

@@ -17,7 +17,18 @@ function renderDash(){
     if(gcls(g)!==clsFilter) return false;
     if(city&&g.city!==city) return false;
     if(sup&&supBase(s.a)!==sup&&s.a!==sup) return false;
-    if(st&&s.st!==st) return false;
+    
+    // Status Logic: 
+    // "todo" -> nohap, post, or makeup (makeupFrom or nt contains "השלמה")
+    // "" -> all except cancelled
+    // specific -> exact match
+    if(st==='todo'){
+      const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+      if(!(s.st==='nohap' || s.st==='post' || isM)) return false;
+    } else if(!st) {
+      if(s.st==='can') return false; 
+    } else if(s.st!==st) return false;
+
     if(srch&&![g.name,g.city,s.a,g.st,s.act].some(v=>(v||'')
       .toLowerCase().includes(srch))) return false;
     return true;
@@ -1064,5 +1075,17 @@ function doCopy(){
   showToast(`📋 הועתק ל-${fD(nd)}`);
 }
 
-var _nsmTab='once'; // 'once'|'recur'|'makeup'
+// Global Bridge
+window.setDashTab = setDashTab;
+window.renderDash = renderDash;
+window.renderDashList = renderDashList;
+window.openSP = openSP;
+window.qSetSt = qSetSt;
+window.openMakeupSched = openMakeupSched;
+window.setStatus = setStatus;
+window.copyShowFreeDays = copyShowFreeDays;
+window.openCopy = openCopy;
+window.doCopy = doCopy;
+window.copyDateChg = copyDateChg;
+window.openSupExport = openSupExport;
 
