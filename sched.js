@@ -406,7 +406,7 @@ function renderSched(){
         if(!sec.arr.length) return;
         h+=`<div class="dsh ${sec.cls}" style="font-size:.7rem;margin-bottom:3px">${sec.lbl}</div>
           <div class="tw"><table style="margin-bottom:6px"><thead><tr>
-            <th>צהרון</th><th>ספק</th><th>שעה</th><th>קב'</th><th>סטטוס</th><th>הערות</th>
+            <th>צהרון</th><th>ספק</th><th>שעה</th><th>סטטוס</th><th>הערות</th><th style="width:130px">פעולות</th>
           </tr></thead><tbody>`;
         sec.arr.sort((a,b)=>{
           // Sort by pair name first, then time — matches calendar order
@@ -419,9 +419,9 @@ function renderSched(){
             <td><div style="font-weight:700">${s.gd.name}</div>${s.gd.st?`<div style="font-size:.68rem;color:#78909c">${s.gd.st}</div>`:''}</td>
             <td><div style="font-weight:700">${supBase(s.a)}</div>${supAct(s.a)?`<div style="font-size:.7rem;color:#1565c0">🎯 ${supAct(s.a)}</div>`:''}<span style="font-size:.68rem;color:#78909c">${s.p||''}</span></td>
             <td>${fT(s.t)}</td>
-            <td>${s.grp||1}</td>
             <td>${stLabel(s)}</td>
             <td style="max-width:90px;font-size:.72rem">${s.nt||''}</td>
+            <td onclick="event.stopPropagation()">${_quickActionBtns(s)}</td>
           </tr>`;
         });
         h+='</tbody></table></div>';
