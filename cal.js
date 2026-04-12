@@ -412,6 +412,7 @@ function renderClusterDay(evs, ds, clusterName){
       html+=`<div style="min-width:165px;flex:1;max-width:260px;border:1.5px solid ${clr.border};border-radius:7px;padding:7px;cursor:pointer;background:#fff;border-right:4px solid #0d47a1;box-shadow:0 2px 4px rgba(0,0,0,0.05)" onclick="openSP(${s.id})" class="${stc}">
         ${s.t?`<div style="font-size:.82rem;font-weight:900;color:#0d47a1;margin-bottom:2px">⏰ ${fT(s.t)}</div>`:'<div style="font-size:.7rem;color:#aaa">ללא שעה</div>'}
         <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
+        <div style="font-size:.67rem;color:#455a64;font-weight:700">📍 ${g.city||'אחר'}</div>
         <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
         <div style="font-size:.68rem;font-weight:700;margin-top:2px;color:#0d47a1">📅 השלמה</div>
         <div style="font-size:.65rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
