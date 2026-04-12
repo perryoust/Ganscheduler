@@ -134,200 +134,160 @@ function openSP(id){
   const isS=gcls(g)==='ביה"ס';
   const spPair=gardenPair(s.g);
 
-  // ── Header: Activity details ──
-  let h=`<div style="background:#f5f7ff;border-radius:7px;padding:9px;margin-bottom:10px">
-    <div class="ir"><span class="il">📅 תאריך:</span><span style="font-weight:700">${fD(s.d)} יום ${dayN(s.d)}</span></div>
-    <div class="ir"><span class="il">🏫 גן:</span><span style="font-weight:700">${g.name}</span></div>
-    <div class="ir"><span class="il">🏙️ עיר:</span><span>${g.city}</span></div>
-    ${g.st?`<div class="ir"><span class="il">📍 כתובת:</span><span><a href="https://maps.google.com/?q=${encodeURIComponent(g.st+' '+g.city)}" target="_blank" style="color:#1565c0">${g.st}</a></span></div>`:''}
-    ${s.t?`<div class="ir"><span class="il">⏰ שעה:</span><span style="font-weight:700;font-size:.9rem">${fT(s.t)}</span></div>`:''}
-    <div class="ir"><span class="il">📚 ספק:</span><span style="font-weight:700">${supBase(s.a)}</span></div>
-    ${supAct(s.a)?`<div class="ir"><span class="il">🎯 פעילות:</span><span style="color:#1565c0;font-weight:700">${supAct(s.a)}</span></div>`:''}
-    ${s.p?`<div class="ir"><span class="il">📞 טלפון:</span><span>${s.p}</span></div>`:''}
-    ${(s.act&&s.act!==supAct(s.a))?`<div class="ir"><span class="il">🎯 סוג פעילות:</span><span style="font-weight:700;color:#1565c0">${s.act}</span></div>`:''}
-    ${isS&&s.grp>1?`<div class="ir"><span class="il">👥 קבוצות:</span><span>${s.grp}</span></div>`:''}
-    ${s.st==='post'?`<div class="ir"><span class="il">⏩ נדחה ל:</span><span style="color:#e65100;font-weight:700">${fD(s.pd)} ${s.pt?fT(s.pt):''}</span></div>`:''}
-    ${s._fromD?`<div class="ir"><span class="il">↩️ הועבר מ:</span><span style="color:#e65100;font-weight:700">${fD(s._fromD)}</span></div>`:''}
-    <div class="ir"><span class="il">📌 סטטוס:</span><span>${stLabel(s)}</span></div>
-  </div>`;
-
-  // ── Notes ──
-  const spPairForNt=spPair;
-  h+=`<div style="margin-bottom:9px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <label style="font-size:.74rem;font-weight:700;color:#546e7a">📝 הערות לפעילות זו</label>
-      <div style="display:flex;gap:8px;align-items:center">
-        ${spPairForNt?`<label style="font-size:.7rem;display:flex;align-items:center;gap:3px;cursor:pointer;color:#e65100">
-          <input type="checkbox" id="sp-nt-pair"> לכל הזוג
-        </label>`:''}
-        <label style="font-size:.7rem;display:flex;align-items:center;gap:3px;cursor:pointer;color:#1565c0" title="הערה שתישמר לכל הפעילויות הבאות של גן זה">
-          <input type="checkbox" id="sp-nt-perm" ${s.ntPerm?'checked':''}> הערה קבועה
-        </label>
+  // 1. Header: Fixed Details
+  let h=`<div style="background:#f5f7ff;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #dbe3ff">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+      <div>
+        <div style="font-size:1.1rem;font-weight:800;color:#1a237e">${g.name}</div>
+        <div style="font-size:.85rem;color:#546e7a">${g.city}${g.st?' | '+g.st:''}</div>
+      </div>
+      <div style="text-align:left">
+        <div style="font-size:.9rem;font-weight:700;color:#1a237e">${fD(s.d)}</div>
+        <div style="font-size:.8rem;color:#546e7a">יום ${dayN(s.d)}</div>
       </div>
     </div>
-    <textarea id="sp-nt" rows="2" style="width:100%;font-size:.8rem;border-radius:6px;border:1.5px solid ${s.ntPerm?'#1565c0':'#e0e0e0'};padding:5px">${s.nt||''}</textarea>
-    ${s.ntPerm?'<div style="font-size:.67rem;color:#1565c0;margin-top:2px">📌 הערה קבועה — מוצגת בכל הפעילויות של גן זה</div>':''}
-    <button class="btn bp bsm" style="width:100%;margin-top:5px" onclick="saveNt()">💾 שמור הערה</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid #dbe3ff;padding-top:10px">
+      <div><span style="font-size:.75rem;color:#78909c;display:block">📚 ספק</span><span style="font-weight:700;color:#1a237e">${supBase(s.a)}</span></div>
+      <div><span style="font-size:.75rem;color:#78909c;display:block">🎯 פעילות</span><span style="font-weight:700;color:#1565c0">${supAct(s.a)||(s.act||'—')}</span></div>
+      ${s.t?`<div><span style="font-size:.75rem;color:#78909c;display:block">⏰ שעה</span><span style="font-weight:700;color:#1a237e">${fT(s.t)}</span></div>`:''}
+      <div><span style="font-size:.75rem;color:#78909c;display:block">📌 סטטוס</span><span style="transform:scale(0.9);transform-origin:right;display:inline-block">${stLabel(s)}</span></div>
+    </div>
   </div>`;
 
-  // ── Status update + pair details ──
-  h+=`<div style="margin-bottom:10px">
-    <div style="font-size:.8rem;font-weight:700;color:#1a237e;margin-bottom:6px">עדכון סטטוס:</div>`;
+  // 2. Notes Section
+  h+=`<div style="margin-bottom:15px;background:#fff;border-radius:8px;padding:10px;border:1px solid #eee">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <label style="font-size:.8rem;font-weight:700;color:#37474f">📝 הערות לפעילות זו</label>
+      <div style="display:flex;gap:10px">
+        ${spPair?`<label style="font-size:.72rem;display:flex;align-items:center;gap:4px;cursor:pointer;color:#e65100"><input type="checkbox" id="sp-nt-pair"> לכל הזוג</label>`:''}
+        <label style="font-size:.72rem;display:flex;align-items:center;gap:4px;cursor:pointer;color:#1565c0"><input type="checkbox" id="sp-nt-perm" ${s.ntPerm?'checked':''}> הערה קבועה</label>
+      </div>
+    </div>
+    <textarea id="sp-nt" rows="2" style="width:100%;font-size:.85rem;border-radius:6px;border:1.5px solid ${s.ntPerm?'#1565c0':'#e0e0e0'};padding:8px;margin-bottom:8px" placeholder="הוסף הערה...">${s.nt||''}</textarea>
+    <button class="btn bp bsm" style="width:100%" onclick="saveNt()">💾 שמור הערה</button>
+  </div>`;
 
-  // Pair info with expandable details
+  // 3. Status Update
+  const isDone = s.st === 'done';
+  h+=`<div style="margin-bottom:15px">
+    <div style="font-size:.85rem;font-weight:700;color:#1a237e;margin-bottom:8px">🔄 עדכון סטטוס:</div>`;
+
   if(spPair){
-    const partnerIds=spPair.ids.filter(pid=>pid!==s.g);
-    const partnerEvs=partnerIds.map(pid=>{
-      const pEv=SCH.find(x=>x.g===pid&&x.d===s.d&&x.st!=='can');
-      const pG=G(pid);
-      return {gid:pid, g:pG, ev:pEv};
-    });
-    h+=`<div style="background:#fff3e0;border-radius:6px;padding:5px 9px;margin-bottom:7px;font-size:.75rem">
+    const partners=spPair.ids.filter(pid=>pid!==s.g);
+    h+=`<div style="background:#fff3e0;border-radius:8px;padding:8px 12px;margin-bottom:10px;border:1px solid #ffe0b2">
       <div style="display:flex;align-items:center;gap:8px">
-        <span>🔗 ${spPair.name}</span>
-        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;margin-right:auto">
+        <span style="font-weight:700;color:#e65100">🔗 צהרון בן-זוג (${spPair.name})</span>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;margin-right:auto;font-size:.78rem">
           <input type="checkbox" id="sp-pair-chk" style="accent-color:#e65100" onchange="spTogglePairDetails()"> עדכן לכל הזוג
         </label>
       </div>
-      <div id="sp-pair-details" style="display:none;margin-top:6px;border-top:1px solid #ffcc80;padding-top:6px">`;
-    partnerEvs.forEach(p=>{
-      if(p.ev){
-        h+=`<div style="background:#fff;border-radius:5px;padding:6px 8px;margin-bottom:4px;border-right:3px solid #e65100">
-          <div style="font-weight:700;font-size:.78rem;color:#1a237e">🏫 ${p.g.name}</div>
-          ${p.ev.t?`<div style="font-size:.75rem;color:#37474f">⏰ שעה: <b>${fT(p.ev.t)}</b></div>`:''}
-          <div style="font-size:.73rem;color:#546e7a">📌 סטטוס: ${stLabel(p.ev)}</div>
-          ${p.ev.a?`<div style="font-size:.73rem;color:#1565c0">📚 ספק: ${supBase(p.ev.a)}</div>`:''}
+      <div id="sp-pair-details" style="display:none;margin-top:8px;border-top:1px solid #ffe0b2;padding-top:8px;font-size:.8rem">`;
+    partners.forEach(pid=>{
+      const pEv=SCH.find(x=>x.g===pid&&x.d===s.d&&x.st!=='can');
+      const pG=G(pid);
+      if(pEv){
+        h+=`<div style="background:#fff;border-radius:6px;padding:6px;margin-bottom:5px;border-right:4px solid #e65100;box-shadow:0 1px 2px rgba(0,0,0,0.05)">
+          <b>${pG.name}</b> | ${pEv.t?fT(pEv.t):'ללא שעה'} | ${stLabel(pEv)}
         </div>`;
       } else {
-        h+=`<div style="background:#f5f5f5;border-radius:5px;padding:6px 8px;margin-bottom:4px;opacity:.7">
-          <div style="font-weight:700;font-size:.78rem;color:#999">🏫 ${p.g.name} — אין פעילות ביום זה</div>
-        </div>`;
+        h+=`<div style="color:#9e9e9e;font-style:italic;padding:2px 0">אין פעילות ל${pG.name}</div>`;
       }
     });
     h+=`</div></div>`;
   }
 
-  h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
-      <button class="btn bg bsm" onclick="setStatus('done')" ${s.st==='done'?'style="opacity:.5"':''}>✔️ התקיים</button>
-      <button class="btn bo bsm" onclick="setStatus('ok')" ${s.st==='ok'?'style="opacity:.5"':''}>🔄 שחזר למתקיים</button>
-    </div>
+  h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+    <button class="btn bg bsm" onclick="setStatus('done')" ${isDone?'disabled style="opacity:.6"':''}>✔️ התקיים</button>
+    <button class="btn bo bsm" onclick="setStatus('ok')" ${s.st==='ok'?'disabled style="opacity:.6"':''}>🔄 שחזר למתקיים</button>
   </div>`;
 
-  // ── Tabbed: לא התקיים / ביטול ──
-  const showNohap = s.st!=='nohap';
-  const showCan = s.st!=='can';
-  if(showNohap || showCan){
-    h+=`<div style="border:1.5px solid #e0e0e0;border-radius:7px;margin-bottom:8px;overflow:hidden">
-      <div style="display:flex;border-bottom:1.5px solid #e0e0e0" id="sp-action-tabs">
-        ${showNohap?`<button id="sp-tab-nohap" class="sp-act-tab active" onclick="setSpActionTab('nohap')" style="flex:1;padding:7px;border:none;cursor:pointer;font-size:.78rem;font-weight:700;background:#fce4ec;color:#e91e63;border-bottom:2px solid #e91e63">⚠️ לא התקיים</button>`:''}
-        ${showCan?`<button id="sp-tab-can" class="sp-act-tab${!showNohap?' active':''}" onclick="setSpActionTab('can')" style="flex:1;padding:7px;border:none;cursor:pointer;font-size:.78rem;font-weight:700;background:${showNohap?'#fff':'#ffebee'};color:${showNohap?'#999':'#c62828'};border-bottom:${showNohap?'2px solid transparent':'2px solid #c62828'}">❌ ביטול</button>`:''}
-      </div>`;
-
-    // NoHap panel (default visible)
-    if(showNohap){
-      h+=`<div id="sp-panel-nohap" style="padding:8px">
+  if(!isDone){
+    h+=`<div style="border:1.5px solid #d1d1d1;border-radius:10px;margin-bottom:15px;overflow:hidden;background:#fff">
+      <div style="display:flex;background:#f5f5f5;gap:1px" id="sp-action-tabs">
+        <button id="sp-tab-nohap" class="sp-act-tab" onclick="setSpActionTab('nohap')" style="flex:1;padding:10px;border:none;cursor:pointer;font-size:.8rem;font-weight:700">⚠️ לא התקיים</button>
+        <button id="sp-tab-can" class="sp-act-tab" onclick="setSpActionTab('can')" style="flex:1;padding:10px;border:none;cursor:pointer;font-size:.8rem;font-weight:700">❌ ביטול</button>
+      </div>
+      <div id="sp-panel-nohap" style="padding:12px;display:none">
         <div class="copts">
           <div class="copt" onclick="selNO(this,'ספק לא הגיע')">🚫 מדריך לא הגיע</div>
           <div class="copt" onclick="selNO(this,'גן סגור')">🤒 מדריך חולה</div>
           <div class="copt" onclick="selNO(this,'אין ילדים')">👤 חסר מדריך</div>
           <div class="copt" onclick="selNO(this,'אחר')">📝 אחר</div>
         </div>
-        <input type="text" id="sp-nn" placeholder="הסבר" style="width:100%;margin-bottom:5px">
+        <input type="text" id="sp-nn" placeholder="הסבר נוסף..." style="width:100%;margin-bottom:8px;padding:8px;border-radius:6px;border:1px solid #ddd">
         <button class="btn bpurple bsm" style="width:100%" onclick="markNoHap()">⚠️ סמן לא התקיים</button>
-      </div>`;
-    }
-
-    // Cancel panel (hidden by default if nohap exists)
-    if(showCan){
-      h+=`<div id="sp-panel-can" style="padding:8px;display:${showNohap?'none':'block'}">
+      </div>
+      <div id="sp-panel-can" style="padding:12px;display:none">
         <div class="copts">
           <div class="copt" onclick="selCO(this,'חג/חופשה')">🎉 חג/חופשה</div>
           <div class="copt" onclick="selCO(this,'מחלה')">🤒 מחלה</div>
           <div class="copt" onclick="selCO(this,'מצב בטחוני')">🛡️ מצב בטחוני</div>
           <div class="copt" onclick="selCO(this,'ביטול ספק')">🏢 ביטול ספק</div>
         </div>
-        <input type="text" id="sp-cn" placeholder="הערה" style="width:100%;margin-bottom:5px">
-        <button class="btn br bsm" style="width:100%" onclick="cancelEv()">❌ בטל</button>
-      </div>`;
-    }
-    h+=`</div>`;
+        <input type="text" id="sp-cn" placeholder="הסבר לביטול..." style="width:100%;margin-bottom:8px;padding:8px;border-radius:6px;border:1px solid #ddd">
+        <button class="btn br bsm" style="width:100%" onclick="cancelEv()">❌ בטל פעילות</button>
+      </div>
+    </div>`;
   }
+  h+=`</div>`;
 
-  // ── Postpone + Copy ──
-  h+=`<button class="btn borange bsm" style="width:100%;margin-bottom:7px" onclick="openPostpone(${s.id})">${s.st==='post'?'⏩ דחה שוב':'⏩ דחה לתאריך אחר'}</button>`;
-  h+=`<button class="btn bp bsm" style="width:100%;margin-bottom:7px;background:#1565c0" onclick="openCopy(${s.id})">📋 העתק לתאריך אחר</button>`;
-  if(s.st==='nohap'||s.st==='can') h+=`<button class="btn bp bsm" style="width:100%;margin-bottom:7px;background:#0d47a1" onclick="openMakeupSched(${s.id})">📅 שיבוץ השלמה</button>`;
+  // 4. Action Buttons
+  h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:15px">
+    <button class="btn borange bsm" onclick="openPostpone(${s.id})">${s.st==='post'?'⏩ דחה שוב':'⏩ דחה לתאריך אחר'}</button>
+    <button class="btn bp bsm" style="background:#1565c0" onclick="openCopy(${s.id})">📋 העתק לתאריך אחר</button>
+    ${(s.st==='nohap'||s.st==='can')?`<button class="btn bp bsm" style="grid-column:1/-1;background:#0d47a1;margin-top:2px" onclick="openMakeupSched(${s.id})">📅 שיבוץ השלמה</button>`:''}
+  </div>`;
 
-  // ── Inline edit — supplier, activity, time ──
-  const spActs=getSupActs(s.a);
-  const spAllSups=getAllSup().filter(s2=>isActSupplier(s2.name));
-  const spPairForEdit=spPair;
-
-  // Count future events for permanent change info
+  // 5. Full Edit Section
   const futureCount=SCH.filter(x=>x.g===s.g&&x.d>=s.d&&x.id!==s.id&&supBase(x.a)===supBase(s.a)&&x.st!=='can').length;
-
-  h+=`<div style="border:1.5px solid #b3c6e7;border-radius:7px;padding:9px;margin-bottom:8px;background:#f8fbff">
-    <div style="font-size:.8rem;font-weight:700;color:#1a237e;margin-bottom:7px">✏️ עריכת שיבוץ</div>
-    <div style="display:grid;gap:6px">
-      <div><label style="font-size:.72rem;color:#546e7a;font-weight:700">📚 ספק</label>
-        <select id="sp-edit-sup" onchange="spEditSupChg()" style="width:100%;font-size:.8rem">
-          ${spAllSups.map(s2=>`<option value="${s2.name}"${s2.name===s.a?' selected':''}>${s2.name}</option>`).join('')}
-        </select>
+  h+=`<div style="border:1.5px solid #b3c6e7;border-radius:10px;padding:15px;margin-bottom:15px;background:#f8fbff;border-right:5px solid #1a237e">
+    <div style="font-size:.9rem;font-weight:800;color:#1a237e;margin-bottom:12px">✏️ עריכת שיבוץ מלאה</div>
+    <div style="display:grid;gap:10px">
+      <div class="fg"><label>📚 ספק</label><select id="sp-edit-sup" onchange="spEditSupChg()" style="width:100%">${getAllSup().filter(s2=>isActSupplier(s2.name)).map(s2=>`<option value="${s2.name}"${s2.name===s.a?' selected':''}>${s2.name}</option>`).join('')}</select></div>
+      <div class="fg"><label>📋 סוג</label><select id="sp-edit-ev-type" style="width:100%"><option value="חוג"${(s.tp||'חוג')==='חוג'?' selected':''}>🎨 חוג</option><option value="הפעלה"${(s.tp||'')==='הפעלה'?' selected':''}>🎪 הפעלה</option><option value="מופע"${(s.tp||'')==='מופע'?' selected':''}>🎭 מופע</option><option value="אחר"${(s.tp||'')==='אחר'?' selected':''}>📌 אחר</option></select></div>
+      <div class="fg"><label>🎯 שם פעילות</label><select id="sp-edit-act" onchange="spEditActChg()" style="width:100%"><option value="">— ללא שינוי —</option>${getSupActs(s.a).map(a=>`<option value="${a}"${a===s.act?' selected':''}>${a}</option>`).join('')}<option value="__new__">➕ חדש...</option></select></div>
+      <div id="sp-edit-act-new-wrap" style="display:none"><input type="text" id="sp-edit-act-new" placeholder="שם חדש..."></div>
+      <div class="fg"><label>⏰ שעה</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%"></div>
+      
+      ${spPair?`<label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:#fff3e0;padding:8px;border-radius:8px;border:1px solid #ffcc80"><input type="checkbox" id="sp-edit-pair-chk"> <span style="font-size:.8rem;color:#e65100;font-weight:700">עדכן לכל הזוג (${spPair.name})</span></label>`:''}
+      
+      <div style="border-top:1px solid #dbe3ff;padding-top:10px;margin-top:5px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="sp-edit-perm" style="accent-color:#6a1b9a"><span style="font-size:.8rem;color:#6a1b9a;font-weight:700">🔁 שינוי קבוע — מתאריך זה והלאה</span></label>
+        ${futureCount>0?`<div id="sp-edit-perm-info" style="font-size:.7rem;color:#6a1b9a;margin-top:5px;display:none;background:#f3e5f5;padding:5px 10px;border-radius:6px;border:1px solid #e1bee7">📊 ישתנו עוד ${futureCount} פעילויות עתידיות</div>`:''}
       </div>
-      <div><label style="font-size:.72rem;color:#546e7a;font-weight:700">📋 סוג הפעילות</label>
-        <select id="sp-edit-ev-type" style="width:100%;font-size:.8rem">
-          <option value="חוג"${(s.tp||'חוג')==='חוג'?' selected':''}>🎨 חוג</option>
-          <option value="הפעלה"${(s.tp||'')==='הפעלה'?' selected':''}>🎪 הפעלה</option>
-          <option value="מופע"${(s.tp||'')==='מופע'?' selected':''}>🎭 מופע</option>
-          <option value="אחר"${(s.tp||'')==='אחר'?' selected':''}>📌 אחר</option>
-        </select>
-      </div>
-      <div><label style="font-size:.72rem;color:#546e7a;font-weight:700">🎯 שם הפעילות</label>
-        <select id="sp-edit-act" onchange="spEditActChg()" style="width:100%;font-size:.8rem">
-          <option value="">— ללא שינוי —</option>
-          ${spActs.map(a=>`<option value="${a}"${a===s.act?' selected':''}>${a}</option>`).join('')}
-          <option value="__new__">➕ פעילות חדשה...</option>
-        </select>
-      </div>
-      <div id="sp-edit-act-new-wrap" style="display:none">
-        <input type="text" id="sp-edit-act-new" placeholder="שם פעילות חדשה" style="width:100%;font-size:.8rem">
-      </div>
-      <div><label style="font-size:.72rem;color:#546e7a;font-weight:700">⏰ שעה</label>
-        <input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;font-size:.8rem">
-      </div>
-      ${spPairForEdit?`<label style="font-size:.75rem;display:flex;align-items:center;gap:6px;cursor:pointer;color:#e65100">
-        <input type="checkbox" id="sp-edit-pair-chk"> עדכן לכל הזוג (${spPairForEdit.name})
-      </label>`:''}
-      <div style="border-top:1px solid #e0e0e0;padding-top:6px;margin-top:2px">
-        <label style="font-size:.75rem;display:flex;align-items:center;gap:6px;cursor:pointer;color:#6a1b9a" title="ישנה את כל הפעילויות העתידיות של גן זה עם אותו ספק">
-          <input type="checkbox" id="sp-edit-perm"> 🔁 שינוי קבוע — מתאריך זה והלאה
-        </label>
-        ${futureCount>0?`<div id="sp-edit-perm-info" style="font-size:.67rem;color:#6a1b9a;margin-top:2px;display:none">📊 ישתנו ${futureCount} פעילויות עתידיות נוספות</div>`:''}
-      </div>
-    </div>
-    <div style="margin-top:8px">
-      <button class="btn bp bsm" style="width:100%" onclick="spEditSave()">💾 שמור שינויים</button>
+      <button class="btn bp bsm" style="width:100%;font-size:.9rem;padding:8px" onclick="spEditSave()">💾 שמור שינויים</button>
     </div>
   </div>`;
 
-
-  // ── Recurring series management ──
+  // 6. Recurring Series Management
   if(s._recId){
     const seriesCount=SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g).length;
-    h+=`<div style="border:1.5px solid #b0bec5;border-radius:7px;padding:8px;margin-bottom:8px;background:#f8f9fa"><div style="font-size:.8rem;font-weight:700;color:#37474f;margin-bottom:6px">🔁 שיבוץ קבוע — ${seriesCount} פעילויות מתאריך זה ואילך</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:5px"><button class="btn br bsm" onclick="deleteRecurSeries(${s.id})">🗑️ מחק מכאן ואילך</button><button class="btn borange bsm" onclick="openReplaceRecur(${s.id})">🔄 החלף שיבוץ קבוע</button></div></div>`;
+    h+=`<div style="border:1.5px solid #b0bec5;border-radius:10px;padding:12px;margin-bottom:15px;background:#f8f9fa">
+      <div style="font-size:.85rem;font-weight:700;color:#37474f;margin-bottom:10px">🔁 סדרה קבועה (${seriesCount} פעילויות)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="btn br bsm" onclick="deleteRecurSeries(${s.id})">🗑️ מחק סדרה</button>
+        <button class="btn borange bsm" onclick="openReplaceRecur(${s.id})">🔄 החלף סדרה</button>
+      </div>
+    </div>`;
   }
 
-  h+=`<button class="btn bp bsm" style="width:100%" onclick="saveNt()">💾 שמור הערה</button>`;
   document.getElementById('sp-body').innerHTML=h;
   document.getElementById('sp').classList.add('open');
   const _bd=document.getElementById('sp-backdrop');
   if(_bd) _bd.style.display='block';
 
-  // Attach permanent change toggle
+  // State listeners
   const permChk=document.getElementById('sp-edit-perm');
   const permInfo=document.getElementById('sp-edit-perm-info');
   if(permChk&&permInfo) permChk.onchange=()=>{permInfo.style.display=permChk.checked?'block':'none';};
+
+  // Initial tab state
+  if(!isDone){
+    const defTab = s.st === 'can' ? 'can' : 'nohap';
+    setSpActionTab(defTab);
+  }
 }
+
 
 function spEditSupChg(){
   const sup=document.getElementById('sp-edit-sup').value;
