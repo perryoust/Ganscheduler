@@ -415,35 +415,40 @@ function renderClusterDay(evs, ds, clusterName){
         html+=`<div style="margin-bottom:10px">
           <div style="padding:3px 10px;background:${clrCity.light};border-right:3px solid ${clrCity.solid};border-radius:4px;font-size:.74rem;font-weight:700;color:${clrCity.solid};margin-bottom:5px">🔢 ${clName} — ${sorted.length} פעילויות</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px">`;
-          const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-          if(s._compByMakeup) return; // Hide completed nohaps
-          html+=`<div style="min-width:160px;flex:1;max-width:260px;border:1.5px solid ${clrCity.border};border-radius:7px;padding:7px;cursor:pointer;background:#fff;border-right:3px solid ${clrCity.solid}" onclick="openSP(${s.id})" class="${stc}">
-            ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clrCity.solid};margin-bottom:2px">⏰ ${fT(s.t)}</div>`:'<div style="font-size:.7rem;color:#aaa">ללא שעה</div>'}
-            <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-            ${isM(s)?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
-            <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
-            <div style="font-size:.68rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
-            <div class="qacts" onclick="event.stopPropagation()">
-              ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
-              ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
-              ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
-              <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
-              <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
-            </div>
-          </div>`;
-        });
+          
+          sorted.forEach(s => {
+            if(s._compByMakeup) return; // Hide completed nohaps
+            const g=G(s.g);
+            const stc=s.st!=='ok'?'st-'+s.st:'';
+            const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+
+            html+=`<div style="min-width:160px;flex:1;max-width:260px;border:1.5px solid ${clrCity.border};border-radius:7px;padding:7px;cursor:pointer;background:#fff;border-right:3px solid ${clrCity.solid}" onclick="openSP(${s.id})" class="${stc}">
+              ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clrCity.solid};margin-bottom:2px">⏰ ${fT(s.t)}</div>`:'<div style="font-size:.7rem;color:#aaa">ללא שעה</div>'}
+              <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
+              ${isM(s)?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
+              <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
+              <div style="font-size:.68rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
+              <div class="qacts" onclick="event.stopPropagation()">
+                ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
+                ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
+                ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
+                <button title="דחה פעילות" onclick="openPostpone(${s.id})">⏩</button>
+                <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
+              </div>
+            </div>`;
+          });
         html+=`</div></div>`;
       });
       html+=`</div>`;
     });
   } else {
     // ── אשכול בודד: לפי שעה ──
-    sorted.filter(s => !s._compByMakeup).forEach(s=>{
+    evs.filter(s => !s._compByMakeup).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s=>{
       const g=G(s.g);
       const stc=s.st!=='ok'?'st-'+s.st:'';
       const clrCity=CITY_COLORS(g.city||'');
-          const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-          html+=`<div class="city-block" style="margin-bottom:8px">
+      const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+      html+=`<div class="city-block" style="margin-bottom:8px">
         <div class="city-block-hdr" style="background:${clrCity.solid};font-size:.76rem">
           ${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}
           ${g.st?`<span style="font-size:.65rem;font-weight:400;opacity:.8">${g.st}</span>`:''}
@@ -463,7 +468,7 @@ function renderClusterDay(evs, ds, clusterName){
               ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
               ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
               ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
-              <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
+              <button title="דחה פעילות" onclick="openPostpone(${s.id})">⏩</button>
               <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
             </div>
           </div>
@@ -683,7 +688,7 @@ function renderNormalDay(evs,ds){
                 ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
                 ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
                 ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
-                <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
+                <button title="דחה פעילות" onclick="openPostpone(${s.id})">⏩</button>
                 <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
               </div>
             </div>
