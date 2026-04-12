@@ -343,7 +343,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
 
         // --- גנים בודדים: לפי שם צהרון (אחר"כ שעה) ---
         const soloEvs=cityEvs
-          .filter(s=>!pairedGids.has(s.g))
+          .filter(s=>!pairedGids.has(s.g) || s._makeupFrom)
           .sort((a,b)=>{
             const na=G(a.g).name||'', nb=G(b.g).name||'';
             return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
@@ -425,10 +425,10 @@ function renderClusterDay(evs, ds, clusterName){
             <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>
             <div style="font-size:.68rem;font-weight:700;margin-top:2px">${stLabel(s)}</div>
             <div class="qacts" onclick="event.stopPropagation()">
+              <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
               ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
               ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
               <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
-              <button title="שיבוץ השלמה" onclick="openMakeupSched(${s.id})">📅</button>
             </div>
           </div>`;
         });
@@ -460,11 +460,11 @@ function renderClusterDay(evs, ds, clusterName){
             <div class="pst">${stLabel(s)}</div>
             ${s.nt?`<div style="font-size:.68rem;color:#78909c">📝 ${s.nt}</div>`:''}
             <div class="qacts" onclick="event.stopPropagation()">
+              <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
               ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
               ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
               ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
               <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
-              <button title="שיבוץ השלמה" onclick="openMakeupSched(${s.id})">📅</button>
             </div>
           </div>
         </div>
@@ -568,7 +568,7 @@ function renderNormalDay(evs,ds){
   const pairsByCity={};
   pairs.forEach(pair=>{
     if(isPairBroken(pair.id,ds)) return;
-    const pairEvs=evs.filter(s=>pair.ids.includes(s.g));
+    const pairEvs=evs.filter(s=>pair.ids.includes(s.g) && !s._makeupFrom);
     if(!pairEvs.length) return;
     const city=G(pair.ids[0]).city||'אחר';
     if(!pairsByCity[city]) pairsByCity[city]=[];
@@ -582,7 +582,7 @@ function renderNormalDay(evs,ds){
       pairRowsHtml.push(renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true}));
     });
   });
-  const unpairedEvs=evs.filter(s=>!pairedGids.has(s.g));
+  const unpairedEvs=evs.filter(s=>!pairedGids.has(s.g) || s._makeupFrom);
   const cityMap={};
   unpairedEvs.forEach(s=>{
     const g=G(s.g);
@@ -594,7 +594,7 @@ function renderNormalDay(evs,ds){
   });
   pairs.forEach(pair=>{
     if(!isPairBroken(pair.id,ds)) return;
-    const pairEvs=evs.filter(s=>pair.ids.includes(s.g));
+    const pairEvs=evs.filter(s=>pair.ids.includes(s.g) && !s._makeupFrom);
     if(!pairEvs.length) return;
     pairEvs.forEach(s=>{
       if(pairedGids.has(s.g)) return; // already handled
@@ -789,11 +789,11 @@ function renderPairCard(pair, pairEvs, opts){
           </div>
           <div class="pgr-right">
             <div class="pgr-qacts" onclick="event.stopPropagation()">
+              <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${ev.id})">📅</button>
               ${ev.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${ev.id},'done')">✔️</button>`}
               ${ev.st==='can'?'':`<button title="בטל" onclick="openCanQ(${ev.id})">❌</button>`}
               <button title="דחה שוב" onclick="openPostpone(${ev.id})">⏩</button>
               ${ev.st==='nohap'?'':`<button title="לא התקיים" onclick="openNohapQ(${ev.id})" style="color:#e91e63">⚠️</button>`}
-              <button title="שיבוץ השלמה" onclick="openMakeupSched(${ev.id})">📅</button>
             </div>
           </div>
         </div>`;
@@ -828,11 +828,11 @@ function renderGardenCols(evs,gids,clr){
           ${s.p?`<div class="pp">📞 ${s.p}</div>`:''}
           <div class="pst">${stLabel(s)}</div>
           <div class="qacts" onclick="event.stopPropagation()">
+            <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
             ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
             ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
             ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
             <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
-            <button title="שיבוץ השלמה" onclick="openMakeupSched(${s.id})">📅</button>
           </div>
         </div>`;
       });
@@ -871,11 +871,11 @@ function renderPairColsHTML(evs,gids,pairId){
       ${s.p?`<div class="pp">📞 ${s.p}</div>`:''}
       <div class="pst">${stLabel(s)}</div>
       <div class="qacts" onclick="event.stopPropagation()">
+        <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
         ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
         ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
         ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
         <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
-        <button title="שיבוץ השלמה" onclick="openMakeupSched(${s.id})">📅</button>
       </div>
     </div>`);
     html+='</div></div>';
@@ -983,6 +983,8 @@ function renderNormalWeek(evs,ws,f){
                 ${ev.t?`<div style="font-size:12px;color:#546e7a">⏰ ${fT(ev.t)}</div>`:''}
               </div>
               <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0" onclick="event.stopPropagation()">
+                <button title="שיבוץ השלמה" class="btn-makeup" style="background:#e3f2fd;color:#1565c0;border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
+                  onclick="event.stopPropagation();openMakeupSched(${ev.id})">📅</button>
                 <button title="התקיים" style="background:${ev.st==='done'?'#2e7d32':'#e8f5e9'};color:${ev.st==='done'?'#fff':'#2e7d32'};border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
                   onclick="openSP(${ev.id});setTimeout(()=>setStatus('done'),80)">✔️</button>
                 <button title="בטל" style="background:${ev.st==='can'?'#c62828':'#ffebee'};color:${ev.st==='can'?'#fff':'#c62828'};border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
@@ -991,8 +993,6 @@ function renderNormalWeek(evs,ws,f){
                   onclick="openSP(${ev.id});setTimeout(()=>markNoHap(),80)">⚠️</button>
                 <button title="דחה" style="background:#fff3e0;color:#e65100;border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
                   onclick="event.stopPropagation();openPostpone(${ev.id})">⏩</button>
-                <button title="שיבוץ השלמה" style="background:#e3f2fd;color:#1565c0;border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
-                  onclick="event.stopPropagation();openMakeupSched(${ev.id})">📅</button>
               </div>
             </div>
           </div>`;
@@ -1102,17 +1102,17 @@ function renderPairWeek(evs,ws,gids){
 function _quickActionBtns(s){
   const sid=s.id;
   const isDone=s.st==='done', isCan=s.st==='can', isNohap=s.st==='nohap';
-  return `<div style="display:flex;gap:3px;flex-shrink:0" onclick="event.stopPropagation()">
-    <button title="התקיים" style="background:${isDone?'#2e7d32':'#e8f5e9'};color:${isDone?'#fff':'#2e7d32'};border:1px solid #a5d6a7;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
-      onclick="openSP(${sid});setTimeout(()=>setStatus('done'),80)">✔️</button>
-    <button title="בטל" style="background:${isCan?'#c62828':'#ffebee'};color:${isCan?'#fff':'#c62828'};border:1px solid #ef9a9a;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
-      onclick="openSP(${sid})">❌</button>
-    <button title="לא התקיים" style="background:${isNohap?'#6a1b9a':'#f3e5f5'};color:${isNohap?'#fff':'#6a1b9a'};border:1px solid #ce93d8;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
-      onclick="openSP(${sid});setTimeout(()=>markNoHap(),80)">⚠️</button>
+  return `<div class="qacts" style="opacity:1;display:flex;gap:3px;flex-shrink:0" onclick="event.stopPropagation()">
+    <button title="שיבוץ השלמה" class="btn-makeup" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
+      onclick="openMakeupSched(${sid})">📅</button>
+    ${isDone?'':`<button title="התקיים" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
+      onclick="qSetSt(${sid},'done')">✔️</button>`}
+    ${isCan?'':`<button title="בטל" style="background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
+      onclick="openCanQ(${sid})">❌</button>`}
+    ${isNohap?'':`<button title="לא התקיים" style="background:#f3e5f5;color:#6a1b9a;border:1px solid #ce93d8;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
+      onclick="qSetSt(${sid},'nohap')">⚠️</button>`}
     <button title="דחה" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
       onclick="openPostpone(${sid})">⏩</button>
-    <button title="שיבוץ השלמה" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
-      onclick="openMakeupSched(${sid})">📅</button>
   </div>`;
 }
 
@@ -1250,7 +1250,7 @@ function renderRangeListView(evs, fromDs, toDs){
 
 
       // ── Solos sorted by time ──
-      cityEvs.filter(s=>!_allUsedGids.has(s.g))
+      cityEvs.filter(s=>!_allUsedGids.has(s.g) || s._makeupFrom)
         .sort((a,b)=>(G(a.g).name||'').localeCompare(G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'))
         .forEach(s=>{ h+=_listRow(s,clr); });
 
