@@ -256,6 +256,7 @@ function openSP(id){
   // ── Postpone + Copy ──
   h+=`<button class="btn borange bsm" style="width:100%;margin-bottom:7px" onclick="openPostpone(${s.id})">${s.st==='post'?'⏩ דחה שוב':'⏩ דחה לתאריך אחר'}</button>`;
   h+=`<button class="btn bp bsm" style="width:100%;margin-bottom:7px;background:#1565c0" onclick="openCopy(${s.id})">📋 העתק לתאריך אחר</button>`;
+  if(s.st==='nohap'||s.st==='can') h+=`<button class="btn bp bsm" style="width:100%;margin-bottom:7px;background:#0d47a1" onclick="openMakeupSched(${s.id})">📅 שיבוץ השלמה</button>`;
 
   // ── Inline edit — supplier, activity, time ──
   const spActs=getSupActs(s.a);
@@ -309,8 +310,6 @@ function openSP(id){
     </div>
   </div>`;
 
-  // ── Makeup scheduling (only for nohap) ──
-  if(s.st==='nohap')h+=`<button class="btn bp bsm" style="width:100%;margin-bottom:7px" onclick="openMakeupSched(${s.id})">📅 שיבוץ השלמה לתאריך חדש</button>`;
 
   // ── Recurring series management ──
   if(s._recId){

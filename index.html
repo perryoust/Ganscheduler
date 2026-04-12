@@ -1804,23 +1804,26 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     </div>
 
     <!-- Schedule type tabs -->
-    <div style="display:flex;gap:6px;margin-bottom:10px;background:#f5f7ff;border-radius:8px;padding:4px">
-      <button id="ns-tab-once" class="btn bsm active" style="flex:1;background:#1a237e;color:#fff" onclick="nsSetTab('once')">📅 חד-פעמי</button>
-      <button id="ns-tab-recur" class="btn bsm" style="flex:1;background:transparent;color:#1a237e;border:none" onclick="nsSetTab('recur')">🔁 קבוע (חוזר)</button>
-      <button id="ns-tab-makeup" class="btn bsm" style="flex:1;background:transparent;color:#1a237e;border:none" onclick="nsSetTab('makeup')">↩️ השלמה</button>
+    <div style="display:flex;gap:7px;margin-bottom:12px;background:#e8eaf6;border-radius:9px;padding:6px" id="ns-tabs-wrap">
+      <button id="ns-tab-once" class="btn bsm" style="flex:1;background:#fff;color:#1a237e;border:none;font-weight:700" onclick="nsSetTab('once')">📅 חד-פעמי</button>
+      <button id="ns-tab-recur" class="btn bsm" style="flex:1;background:transparent;color:#1a237e;border:none;font-weight:700" onclick="nsSetTab('recur')">🔄 קבוע (חוזר)</button>
+      <button id="ns-tab-makeup" class="btn bsm" style="flex:1;background:transparent;color:#1a237e;border:none;font-weight:700" onclick="nsSetTab('makeup')">↩️ השלמה</button>
     </div>
 
     <!-- ONE-TIME fields -->
     <div id="ns-once-wrap">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
-        <div class="fg"><label>תאריך *</label><input type="date" id="ns-date" style="width:100%"></div>
-        <div class="fg"><label>שעה</label><input type="time" id="ns-time" style="width:100%"></div>
+        <div class="fg"><label>תאריך *</label><input type="date" id="ns-date" style="width:100%" onchange="nsDateChg()"></div>
+        <div class="fg"><label>שעה</label>
+          <input type="time" id="ns-time" style="width:100%">
+          <div id="ns-partner-time-hint" style="font-size:.67rem;color:#e65100;margin-top:2px;display:none;font-weight:700"></div>
+        </div>
       </div>
     </div>
 
     <!-- RECURRING fields -->
     <div id="ns-recur-wrap" style="display:none">
-      <div style="background:#e8f5e9;border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="background:#e8f5e9;border-radius:8px;padding:10px;margin-bottom:8px;border:1px solid #c8e6c9">
         <div style="font-size:.78rem;font-weight:700;color:#2e7d32;margin-bottom:8px">🔁 הגדרת שיבוץ חוזר</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
           <div class="fg"><label>מתאריך *</label><input type="date" id="ns-recur-from" onchange="nsPreviewRecur()" style="width:100%"></div>
@@ -1835,16 +1838,20 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
             <label class="day-chk-lbl"><input type="checkbox" class="ns-day-chk" value="4" onchange="nsPreviewRecur()"> חמישי</label>
           </div>
         </div>
-        <div class="fg"><label>שעה</label><input type="time" id="ns-recur-time" style="width:200px"></div>
+        <div class="fg"><label>שעה</label><input type="time" id="ns-recur-time" style="width:100%"></div>
         <div id="ns-recur-preview" style="font-size:.72rem;color:#546e7a;margin-top:6px"></div>
       </div>
     </div>
 
     <!-- MAKEUP fields -->
     <div id="ns-makeup-wrap" style="display:none">
-      <div style="background:#fff8e1;border-radius:8px;padding:10px;margin-bottom:8px">
-        <div style="font-size:.78rem;font-weight:700;color:#e65100;margin-bottom:8px">↩️ שיבוץ השלמה</div>
-        <div class="fg" style="margin-bottom:6px"><label>מפצה על תאריך</label><input type="date" id="ns-makeup-orig" style="width:100%"></div>
+      <div style="background:#fff8e1;border-radius:9px;padding:12px;margin-bottom:10px;border:1.5px solid #ffe0b2">
+        <div style="font-size:.82rem;font-weight:700;color:#e65100;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+          <span>️↩️ שיבוץ השלמה</span>
+        </div>
+        <div class="fg"><label>מפצה על תאריך</label>
+          <input type="date" id="ns-makeup-orig" style="width:100%;border-color:#ffcc80">
+        </div>
       </div>
     </div>
 

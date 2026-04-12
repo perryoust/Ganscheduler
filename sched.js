@@ -4,19 +4,22 @@ function nsSetTab(tab){
     const btn=document.getElementById('ns-tab-'+t);
     const wrap=document.getElementById('ns-'+t+'-wrap');
     if(btn){
-      btn.style.background=t===tab?'#1a237e':'transparent';
-      btn.style.color=t===tab?'#fff':'#1a237e';
-      btn.style.borderRadius='6px';
+      const isActive = t===tab;
+      btn.style.background=isActive?'#1a237e':'transparent';
+      btn.style.color=isActive?'#fff':'#1a237e';
+      btn.style.borderRadius='7px';
     }
     if(wrap) wrap.style.display=t===tab?'block':'none';
   });
-  // Once-wrap contains shared ns-date/ns-time — show for both once and makeup
+  // Date/Time fields are shared between once and makeup
   const onceWrap=document.getElementById('ns-once-wrap');
   if(onceWrap) onceWrap.style.display=(tab==='once'||tab==='makeup')?'block':'none';
-  // Update title
+  // Update header title
   const titles={once:'📅 שיבוץ חדש',recur:'🔁 שיבוץ קבוע',makeup:'↩️ שיבוץ השלמה'};
   (document.getElementById('nsm-title')||{}).textContent=titles[tab]||'➕ שיבוץ חדש';
+  nsDateChg();
 }
+
 
 function nsGChg(){
   const gid=parseInt(document.getElementById('ns-g').value)||null;
@@ -124,7 +127,6 @@ function nsRefG(){
 function nsCheckPair(gid){
   if(!gid) return;
   const g=G(gid);
-  const isS=gcls(g)==='ביה"ס';
   document.getElementById('ns-grp-wrap').style.display='block';
   const pair=gardenPair(gid);
   const w2=document.getElementById('ns-g2-wrap');
@@ -133,11 +135,38 @@ function nsCheckPair(gid){
     if(partnerId){
       const partG=G(partnerId);
       w2.style.display='block';
-      w2.querySelector('label').textContent=`צהרון בן זוג: ${partG.name}?`;
+      const lbl = w2.querySelector('label');
+      if(lbl) lbl.textContent=`צהרון בן זוג: ${partG.name}?`;
       document.getElementById('ns-g2').innerHTML=`<option value="">לא - רק ל${g.name}</option><option value="${partnerId}" selected>כן - גם ל${partG.name}</option>`;
     }
   } else w2.style.display='none';
+  nsDateChg();
 }
+
+function nsDateChg(){
+  const gid=parseInt(document.getElementById('ns-g').value);
+  const date=document.getElementById('ns-date').value;
+  const hintEl=document.getElementById('ns-partner-time-hint');
+  if(!hintEl) return;
+  if(!gid||!date){ hintEl.style.display='none'; return; }
+  
+  const pair=gardenPair(gid);
+  if(!pair){ hintEl.style.display='none'; return; }
+  
+  const pId=pair.ids.find(id=>id!==gid);
+  if(!pId){ hintEl.style.display='none'; return; }
+  
+  const partnerG=G(pId);
+  const partnerEv=SCH.find(x=>x.g===pId && x.d===date && x.st!=='can');
+  
+  if(partnerEv && partnerEv.t){
+    hintEl.textContent=`⏰ שעת גן ${partnerG.name}: ${fT(partnerEv.t)}`;
+    hintEl.style.display='block';
+  } else {
+    hintEl.style.display='none';
+  }
+}
+
 function nsSupChg(){
   const sup=document.getElementById('ns-sup').value;
   if(!sup) return;
@@ -235,7 +264,9 @@ function saveNewSched(){
   if(_nsmTab==='makeup'){
     // Makeup schedule
     const makeupOrig=document.getElementById('ns-makeup-orig').value;
-    const newSched={id:newId,g:gid,d:date,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes?notes:'השלמה'+(makeupOrig?' מ-'+fD(makeupOrig):''),pd:'',pt:'',grp,_makeupFrom:makeupOrig||''};
+    const makeupNote = `השלמה מ-${fD(makeupOrig)}`;
+    const fullNote = notes ? notes + ' | ' + makeupNote : makeupNote;
+    const newSched={id:newId,g:gid,d:date,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:fullNote,st:'ok',cr:'',cn:'',nt:fullNote,pd:'',pt:'',grp,_makeupFrom:makeupOrig||''};
     SCH.push(newSched);
     if(g2id) SCH.push({...newSched,id:newId+1,g:g2id});
     saveAndRefresh('nsm');
