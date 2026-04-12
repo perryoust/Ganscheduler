@@ -83,7 +83,8 @@ function importBackup(input){
       createSnapshot('לפני ייבוא');
       const sd={ch:data.ch||[],pairs:data.pairs||[],supEx:data.supEx||{},
         clusters:data.clusters||{},holidays:data.holidays||[],pairBreaks:data.pairBreaks||{},
-        invoices:data.invoices||[]};
+        managers:data.managers||{},blockedDates:data.blockedDates||{},
+        gardenBlocks:data.gardenBlocks||{},invoices:data.invoices||[]};
       const json=JSON.stringify(sd);
       localStorage.setItem('ganv5',json);
       // Init meta if missing, write to year key
@@ -187,7 +188,11 @@ function exportFullBackup(){
     version:2,
     exported:new Date().toISOString(),
     ch:SCH.map(s=>({id:s.id,g:s.g,d:s.d,a:s.a,t:s.t,p:s.p,n:s.n,st:s.st,cr:s.cr,cn:s.cn,nt:s.nt,pd:s.pd,pt:s.pt,grp:s.grp,act:s.act||''})),
-    pairs,supEx,clusters,holidays,pairBreaks,invoices:INVOICES
+    pairs,supEx,clusters,holidays,pairBreaks,
+    managers:typeof managers!=='undefined'?managers:{},
+    blockedDates:typeof blockedDates!=='undefined'?blockedDates:{},
+    gardenBlocks:typeof gardenBlocks!=='undefined'?gardenBlocks:{},
+    invoices:typeof INVOICES!=='undefined'?INVOICES:[]
   };
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
