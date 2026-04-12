@@ -39,7 +39,7 @@ function filterE(f,from,to){
     }
     if(f.cls&&gcls(g)!==f.cls) return false;
     if(f.gids&&!f.gids.includes(s.g)) return false;
-    if(f.sup&&s.a!==f.sup) return false;
+    if(f.sup && supBase(s.a) !== f.sup && s.a !== f.sup) return false;
     return true;
   });
   const posted=SCH.filter(s=>{
@@ -752,9 +752,9 @@ function renderPairCard(pair, pairEvs, opts){
   // One row per garden
   pair.ids.filter(Boolean).forEach(gid=>{
     const g=G(gid);
-    const ev=pairEvs.find(s=>s.g===gid);
-    const stc=ev&&ev.st!=='ok'?'st-'+ev.st:'';
-    if(!ev){
+    const gEvs=pairEvs.filter(s=>s.g===gid).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+    
+    if(!gEvs.length){
       const gblkNone=ds?getGardenBlock(gid,ds):null;
       html+=`<div class="pair-garden-row" style="opacity:${gblkNone?1:.5};${gblkNone?'background:#fce4ec;border-right:3px solid #e91e63;':''}" onclick="${ds?`openGcellPopup(${gid},'${ds}',event)`:''}" style="cursor:${ds?'pointer':'default'}">
         <div class="pgr-left">
@@ -766,24 +766,31 @@ function renderPairCard(pair, pairEvs, opts){
         </div>
       </div>`;
     } else {
-      const gblkEv=ds?getGardenBlock(gid,ds):null;
-      html+=`<div class="pair-garden-row ${stc}" style="${gblkEv?'border-right:3px solid #e91e63;':''}" onclick="openSP(${ev.id})">
-        <div class="pgr-left">
-          <div class="pgr-name">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-          ${g.st?`<div class="pgr-addr">📍 ${g.st}</div>`:''}
-          ${ev.t?`<div class="pgr-time">⏰ ${fT(ev.t)}</div>`:''}
-          ${gblkEv?`<div style="font-size:.67rem;color:#c62828">${gblkEv.icon||'🚫'} ${gblkEv.reason}</div>`:''}
-          <div class="pgr-status" style="color:${stc?'#c62828':'#2e7d32'}">${stLabel(ev)}</div>
-        </div>
-        <div class="pgr-right">
-          <div class="pgr-qacts" onclick="event.stopPropagation()">
-            ${ev.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${ev.id},'done')">✔️</button>`}
-            ${ev.st==='can'?'':`<button title="בטל" onclick="openCanQ(${ev.id})">❌</button>`}
-            <button title="דחה שוב" onclick="openPostpone(${ev.id})">⏩</button>
-            ${ev.st==='nohap'?'':`<button title="לא התקיים" onclick="openNohapQ(${ev.id})" style="color:#e91e63">⚠️</button>`}
+      gEvs.forEach(ev => {
+        const stc=ev&&ev.st!=='ok'?'st-'+ev.st:'';
+        const gblkEv=ds?getGardenBlock(gid,ds):null;
+        const isMakeup = ev._makeupFrom || (ev.nt && ev.nt.includes('השלמה'));
+        const makeupBadge = isMakeup ? `<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>` : '';
+        
+        html+=`<div class="pair-garden-row ${stc}" style="${gblkEv?'border-right:3px solid #e91e63;':''}" onclick="openSP(${ev.id})">
+          <div class="pgr-left">
+            <div class="pgr-name">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
+            ${g.st?`<div class="pgr-addr">📍 ${g.st}</div>`:''}
+            ${makeupBadge}
+            ${ev.t?`<div class="pgr-time">⏰ ${fT(ev.t)}</div>`:''}
+            ${gblkEv?`<div style="font-size:.67rem;color:#c62828">${gblkEv.icon||'🚫'} ${gblkEv.reason}</div>`:''}
+            <div class="pgr-status" style="color:${stc?'#c62828':'#2e7d32'}">${stLabel(ev)}</div>
           </div>
-        </div>
-      </div>`;
+          <div class="pgr-right">
+            <div class="pgr-qacts" onclick="event.stopPropagation()">
+              ${ev.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${ev.id},'done')">✔️</button>`}
+              ${ev.st==='can'?'':`<button title="בטל" onclick="openCanQ(${ev.id})">❌</button>`}
+              <button title="דחה שוב" onclick="openPostpone(${ev.id})">⏩</button>
+              ${ev.st==='nohap'?'':`<button title="לא התקיים" onclick="openNohapQ(${ev.id})" style="color:#e91e63">⚠️</button>`}
+            </div>
+          </div>
+        </div>`;
+      });
     }
   });
 

@@ -240,14 +240,21 @@ function openSP(id){
 
   // 5. Full Edit Section
   const futureCount=SCH.filter(x=>x.g===s.g&&x.d>=s.d&&x.id!==s.id&&supBase(x.a)===supBase(s.a)&&x.st!=='can').length;
-  h+=`<div style="border:1.5px solid #b3c6e7;border-radius:10px;padding:15px;margin-bottom:15px;background:#f8fbff;border-right:5px solid #1a237e">
-    <div style="font-size:.9rem;font-weight:800;color:#1a237e;margin-bottom:12px">✏️ עריכת שיבוץ מלאה</div>
-    <div style="display:grid;gap:10px">
+  h+=`<div id="sp-edit-acc" style="border:1.5px solid #b3c6e7;border-radius:10px;margin-bottom:15px;background:#f8fbff;border-right:5px solid #1a237e;overflow:hidden">
+    <div onclick="toggleSpEdit()" style="padding:12px 15px;background:#eef4ff;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #c5d4f1">
+      <span style="font-size:.9rem;font-weight:800;color:#1a237e">✏️ עריכת שיבוץ מלאה</span>
+      <span id="sp-edit-arrow" style="transition:transform .3s">▼</span>
+    </div>
+    <div id="sp-edit-body" style="display:none;padding:15px;grid-gap:10px;display:none;flex-direction:column">
       <div class="fg"><label>📚 ספק</label><select id="sp-edit-sup" onchange="spEditSupChg()" style="width:100%">${getAllSup().filter(s2=>isActSupplier(s2.name)).map(s2=>`<option value="${s2.name}"${s2.name===s.a?' selected':''}>${s2.name}</option>`).join('')}</select></div>
       <div class="fg"><label>📋 סוג</label><select id="sp-edit-ev-type" style="width:100%"><option value="חוג"${(s.tp||'חוג')==='חוג'?' selected':''}>🎨 חוג</option><option value="הפעלה"${(s.tp||'')==='הפעלה'?' selected':''}>🎪 הפעלה</option><option value="מופע"${(s.tp||'')==='מופע'?' selected':''}>🎭 מופע</option><option value="אחר"${(s.tp||'')==='אחר'?' selected':''}>📌 אחר</option></select></div>
       <div class="fg"><label>🎯 שם פעילות</label><select id="sp-edit-act" onchange="spEditActChg()" style="width:100%"><option value="">— ללא שינוי —</option>${getSupActs(s.a).map(a=>`<option value="${a}"${a===s.act?' selected':''}>${a}</option>`).join('')}<option value="__new__">➕ חדש...</option></select></div>
       <div id="sp-edit-act-new-wrap" style="display:none"><input type="text" id="sp-edit-act-new" placeholder="שם חדש..."></div>
-      <div class="fg"><label>⏰ שעה</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%"></div>
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label>⏰ שעה</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%"></div>
+        <div id="sp-edit-time-p-wrap" class="fg" style="display:none"><label>⏰ שעת בן זוג</label><input type="time" id="sp-edit-time-p" value="${s.t||''}" style="width:100%"></div>
+      </div>
       
       ${spPair?`<label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:#fff3e0;padding:8px;border-radius:8px;border:1px solid #ffcc80"><input type="checkbox" id="sp-edit-pair-chk"> <span style="font-size:.8rem;color:#e65100;font-weight:700">עדכן לכל הזוג (${spPair.name})</span></label>`:''}
       
@@ -258,6 +265,10 @@ function openSP(id){
       <button class="btn bp bsm" style="width:100%;font-size:.9rem;padding:8px" onclick="spEditSave()">💾 שמור שינויים</button>
     </div>
   </div>`;
+  
+  // Feedback indicator (hidden by default)
+  h+=`<div id="sp-saved-msg" style="display:none;position:fixed;top:80px;right:20px;background:#2e7d32;color:#fff;padding:10px 20px;border-radius:50px;font-weight:700;box-shadow:0 4px 15px rgba(0,0,0,.15);z-index:9999;animation:sp-fade-in .3s">✅ השינויים נשמרו בהצלחה!</div>
+  <style>@keyframes sp-fade-in { from {opacity:0;transform:translateY(-10px)} to {opacity:1;transform:translateY(0)} }</style>`;
 
   // 6. Recurring Series Management
   if(s._recId){
@@ -281,11 +292,31 @@ function openSP(id){
   const permInfo=document.getElementById('sp-edit-perm-info');
   if(permChk&&permInfo) permChk.onchange=()=>{permInfo.style.display=permChk.checked?'block':'none';};
 
+  const pairChk=document.getElementById('sp-edit-pair-chk');
+  const pTimeWrap=document.getElementById('sp-edit-time-p-wrap');
+  if(pairChk&&pTimeWrap) pairChk.onchange=()=>{pTimeWrap.style.display=pairChk.checked?'block':'none';};
+
   // Initial tab state
   if(!isDone){
     const defTab = s.st === 'can' ? 'can' : 'nohap';
     setSpActionTab(defTab);
   }
+}
+
+function showSpSaved(){
+  const msg=document.getElementById('sp-saved-msg');
+  if(!msg) return;
+  msg.style.display='block';
+  setTimeout(()=>{ msg.style.display='none'; }, 2500);
+}
+
+function toggleSpEdit(){
+  const body=document.getElementById('sp-edit-body');
+  const arrow=document.getElementById('sp-edit-arrow');
+  if(!body||!arrow) return;
+  const isOpening = body.style.display==='none';
+  body.style.display = isOpening ? 'flex' : 'none';
+  arrow.style.transform = isOpening ? 'rotate(180deg)' : 'rotate(0deg)';
 }
 
 
@@ -380,6 +411,7 @@ function spEditSave(){
     ?(document.getElementById('sp-edit-act-new')||{}).value||''
     :actVal;
   const newTime=document.getElementById('sp-edit-time').value;
+  const newTimeP=document.getElementById('sp-edit-time-p') ? document.getElementById('sp-edit-time-p').value : newTime;
   const newTp=(document.getElementById('sp-edit-ev-type')||{}).value||'חוג';
   const forPair=(document.getElementById('sp-edit-pair-chk')||{}).checked;
   const forPerm=(document.getElementById('sp-edit-perm')||{}).checked;
@@ -394,7 +426,7 @@ function spEditSave(){
   const newNt2=(document.getElementById('sp-nt')||{}).value;
   if(newNt2!==undefined) updates.nt=newNt2;
 
-  if(!Object.keys(updates).filter(k=>k!=='nt').length&&updates.nt===s.nt){alert('לא בוצע שינוי');return;}
+  if(!Object.keys(updates).filter(k=>k!=='nt').length&&updates.nt===s.nt&&(!forPair || newTimeP===newTime)){alert('לא בוצע שינוי');return;}
 
   const pair=gardenPair(s.g);
 
@@ -411,18 +443,30 @@ function spEditSave(){
     
     if(forPair && pair){
       const pairAffected = SCH.filter(x => pair.ids.includes(x.g) && x.d >= s.d && x.g !== s.g && x.st !== 'can');
-      pairAffected.forEach(x => applyUpd(x, updates));
+      pairAffected.forEach(x => {
+        const pUpds = {...updates};
+        if(newTimeP) pUpds.t = newTimeP;
+        applyUpd(x, pUpds);
+      });
     }
   } else {
     if(forPair && pair){
       SCH.filter(x => pair.ids.includes(x.g) && x.d === s.d && x.id !== selEv)
-        .forEach(x => applyUpd(x, updates));
+        .forEach(x => {
+            const pUpds = {...updates};
+            if(newTimeP) pUpds.t = newTimeP;
+            applyUpd(x, pUpds);
+        });
     }
     applyUpd(s, updates);
   }
 
-  save(); closeSP(); refresh();
-  showToast('✅ שינויים נשמרו!');
+  save(); 
+  showSpSaved();
+  setTimeout(() => {
+    closeSP(); refresh();
+    showToast('✅ שינויים נשמרו!');
+  }, 1000);
 }
 
 function setSpActionTab(tab){
@@ -474,7 +518,11 @@ function cancelEv(){
     const g=G(main.g);
     _writeLog('cancel', `${g.name} — ${main.a}`, `בוטל: ${cr}`, {gName:g.name,date:main.d}).catch(()=>{});
   }
-  save(); closeSP(); refresh();
+  save(); 
+  showSpSaved();
+  setTimeout(() => {
+    closeSP(); refresh();
+  }, 1000);
 }
 function markNoHap(){
   const sel=document.querySelector('.copt.sel');
@@ -494,7 +542,11 @@ function markNoHap(){
     const g=G(main.g);
     _writeLog('status', `${g.name} — ${main.a}`, 'לא התקיים', {gName:g.name,date:main.d}).catch(()=>{});
   }
-  save(); closeSP(); refresh();
+  save(); 
+  showSpSaved();
+  setTimeout(() => {
+    closeSP(); refresh();
+  }, 1000);
 }
 function setStatus(st){
   const pairChk=document.getElementById('sp-pair-chk');
@@ -515,7 +567,11 @@ function setStatus(st){
     const g=G(main.g);
     _writeLog('status', `${g.name} — ${main.a}`, stLabels[st]||st, {gName:g.name,date:main.d}).catch(()=>{});
   }
-  save(); closeSP(); refresh();
+  save(); 
+  showSpSaved();
+  setTimeout(() => {
+    closeSP(); refresh();
+  }, 1000);
 }
 function saveNt(){
   const s=SCH.find(x=>x.id===selEv); if(!s) return;
@@ -534,7 +590,11 @@ function saveNt(){
         .forEach(x=>{ x.nt=newNt; if(isPermanent) x.ntPerm=true; else delete x.ntPerm; });
     }
   }
-  save(); closeSP(); refresh();
+  save(); 
+  showSpSaved();
+  setTimeout(() => {
+    closeSP(); refresh();
+  }, 1000);
 }
 function upd(id,fields){
   const i=SCH.findIndex(s=>s.id===id);
