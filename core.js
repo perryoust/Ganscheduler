@@ -17,23 +17,6 @@ window.managers = window.managers || {};
 window.pairBreaks = window.pairBreaks || {};
 window.VAT_RATE = window.VAT_RATE || 18;
 
-const CITY_ORDER = ['גבעתיים','פ"ת','פתח תקווה','ראש העין','נס ציונה','באר יעקב','גני תקווה','ירושלים'];
-const CITY_COLORS = (city) => {
-  const map = {
-    'גבעתיים': { solid: '#1565c0', light: '#e3f2fd' },
-    'פ"ת': { solid: '#2e7d32', light: '#e8f5e9' },
-    'פתח תקווה': { solid: '#2e7d32', light: '#e8f5e9' },
-    'ראש העין': { solid: '#e65100', light: '#fff3e0' },
-    'נס ציונה': { solid: '#6a1b9a', light: '#f3e5f5' },
-    'באר יעקב': { solid: '#c62828', light: '#fce4ec' },
-    'גני תקווה': { solid: '#00838f', light: '#e0f7fa' }
-  };
-  return map[city] || { solid: '#546e7a', light: '#f5f7f9' };
-};
-const CITY_CONFIG = {
-  'גבעתיים': { whatsapp: '05...'}, // Placeholder if needed
-};
-
 // Local aliases for module scope
 var SCH = window.SCH;
 var GARDENS = window.GARDENS;
@@ -2984,9 +2967,9 @@ window.gardenBlocks = gardenBlocks;
 window.managers = managers;
 window.pairBreaks = pairBreaks;
 window.VAT_RATE = VAT_RATE;
-window.CITY_COLORS = CITY_COLORS;
-window.CITY_ORDER = CITY_ORDER;
-window.CITY_CONFIG = CITY_CONFIG;
+window.CITY_COLORS = window.CITY_COLORS || (() => ({solid:'#546e7a',light:'#f5f7f9'}));
+window.CITY_ORDER = window.CITY_ORDER || ['גבעתיים','פ"ת','פתח תקווה','ראש העין','נס ציונה','באר יעקב','גני תקווה','ירושלים'];
+window.CITY_CONFIG = window.CITY_CONFIG || {};
 window.G = G;
 window.gcls = gcls;
 window.d2s = d2s;

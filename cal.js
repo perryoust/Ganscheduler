@@ -62,6 +62,16 @@ function filterE(f,from,to){
 }
 let _rangeSubView = 'cal'; // 'cal' | 'list'
 let _listSubView='day'; // 'day'|'week'|'month' — sub-view when calV==='list'
+let _calTab = 'g'; // 'g'|'s' (gardens vs schools)
+
+function setCalTab(t){
+  _calTab = t;
+  const elG = document.getElementById('cal-tab-g');
+  const elS = document.getElementById('cal-tab-s');
+  if(elG) elG.classList.toggle('active', t === 'g');
+  if(elS) elS.classList.toggle('active', t === 's');
+  calRefG();
+}
 
 function setListSubView(v){
   _listSubView=v;
