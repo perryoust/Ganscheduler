@@ -1,6 +1,7 @@
 // טומשין קידס - Static Data v10.x
 // Safe localStorage wrapper (handles Tracking Prevention blocking on any device/browser)
 // Fallback chain: in-memory → sessionStorage → localStorage
+window._listGroupMode = 'pairs';
 window._safeLS = {
   _works: null,
   check(){

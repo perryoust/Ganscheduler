@@ -2889,13 +2889,7 @@ function dashNavDate(d){
   renderDash();
 }
 
-var _listGroupMode = 'pairs'; // 'pairs' | 'clusters'
-function setListGroupMode(v){
-  _listGroupMode = v;
-  document.getElementById('vlb-group-pairs')?.classList.toggle('active', v==='pairs');
-  document.getElementById('vlb-group-clusters')?.classList.toggle('active', v==='clusters');
-  renderCal();
-}
+// _listGroupMode handled globally in data.js / cal.js
 
 function _tryOpenLocalFile(p){
   // Try multiple methods to open a local path
@@ -2957,32 +2951,4 @@ window.getGardenBlock = getGardenBlock;
 // --- TOTAL GLOBAL BRIDGE ---
 window.SCH = SCH;
 window.GARDENS = GARDENS;
-// Defensive Global Bridge
-(function(w){
-  w.SCH = SCH;
-  w.GARDENS = GARDENS;
-  w.INVOICES = INVOICES;
-  w.supEx = supEx;
-  w.pairs = pairs;
-  w.clusters = clusters;
-  w.activeGardens = activeGardens;
-  w.blockedDates = blockedDates;
-  w.gardenBlocks = gardenBlocks;
-  w.managers = managers;
-  w.pairBreaks = pairBreaks;
-  w.VAT_RATE = VAT_RATE;
-  w.CITY_COLORS = w.CITY_COLORS || (() => ({solid:'#546e7a',light:'#fad8d8'}));
-  w.CITY_ORDER = w.CITY_ORDER || ['גבעתיים','פ"ת','פתח תקווה','ראש העין','נס ציונה','באר יעקב','גני תקווה','ירושלים'];
-  w.CITY_CONFIG = w.CITY_CONFIG || {};
-  w.G = G; w.gcls = gcls;
-  w.d2s = d2s; w.s2d = s2d;
-  w.fD = fD; w.fT = fT;
-  w.stLabel = stLabel; w.stClass = stClass;
-  w.showToast = showToast;
-  w.save = save; w.load = load; w.refresh = refresh;
-  w.initPairs = initPairs;
-  w.supBase = supBase; w.supAct = supAct; w.supDisplayName = supDisplayName;
-  w.toHebDate = toHebDate; w.hebM = hebM; w.td = td;
-  w.cities = cities; w.gardenPair = gardenPair;
-  w.ST = ST;
-})(window);
+// [Global Bridge moved to index.html final script tag]

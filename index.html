@@ -3101,6 +3101,80 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <script src="backup.js?v=91"></script>
 <script src="admin.js?v=91"></script>
 <script src="core.js?v=91"></script>
+<script>
+  // --- FINAL GLOBAL BRIDGE WIRING ---
+  // This block runs after all scripts are loaded, ensuring no ReferenceErrors.
+  (function(w){
+    // From core.js
+    w.ST = typeof ST !== 'undefined' ? ST : w.ST;
+    w.G = typeof G !== 'undefined' ? G : w.G;
+    w.gcls = typeof gcls !== 'undefined' ? gcls : w.gcls;
+    w.d2s = typeof d2s !== 'undefined' ? d2s : w.d2s;
+    w.s2d = typeof s2d !== 'undefined' ? s2d : w.s2d;
+    w.fD = typeof fD !== 'undefined' ? fD : w.fD;
+    w.fT = typeof fT !== 'undefined' ? fT : w.fT;
+    w.stLabel = typeof stLabel !== 'undefined' ? stLabel : w.stLabel;
+    w.stClass = typeof stClass !== 'undefined' ? stClass : w.stClass;
+    w.showToast = typeof showToast !== 'undefined' ? showToast : w.showToast;
+    w.save = typeof save !== 'undefined' ? save : w.save;
+    w.load = typeof load !== 'undefined' ? load : w.load;
+    w.refresh = typeof refresh !== 'undefined' ? refresh : w.refresh;
+    w.initPairs = typeof initPairs !== 'undefined' ? initPairs : w.initPairs;
+    w.supBase = typeof supBase !== 'undefined' ? supBase : w.supBase;
+    w.supAct = typeof supAct !== 'undefined' ? supAct : w.supAct;
+    w.supDisplayName = typeof supDisplayName !== 'undefined' ? supDisplayName : w.supDisplayName;
+    w.toHebDate = typeof toHebDate !== 'undefined' ? toHebDate : w.toHebDate;
+    w.hebM = typeof hebM !== 'undefined' ? hebM : w.hebM;
+    w.td = typeof td !== 'undefined' ? td : w.td;
+    w.cities = typeof cities !== 'undefined' ? cities : w.cities;
+    w.gardenPair = typeof gardenPair !== 'undefined' ? gardenPair : w.gardenPair;
+    w.VAT_RATE = typeof VAT_RATE !== 'undefined' ? VAT_RATE : w.VAT_RATE;
+    w.CITY_COLORS = w.CITY_COLORS || (() => ({solid:'#546e7a',light:'#fad8d8'}));
+    w.CITY_ORDER = w.CITY_ORDER || ['גבעתיים','פ"ת','פתח תקווה','ראש העין','נס ציונה','באר יעקב','גני תקווה','ירושלים'];
+    w.CITY_CONFIG = w.CITY_CONFIG || {};
+
+    // From cal.js
+    w.renderCal = typeof renderCal !== 'undefined' ? renderCal : w.renderCal;
+    w.setCalTab = typeof setCalTab !== 'undefined' ? setCalTab : w.setCalTab;
+    w.setView = typeof setView !== 'undefined' ? setView : w.setView;
+    w.setListSubView = typeof setListSubView !== 'undefined' ? setListSubView : w.setListSubView;
+    w.setRangeSubView = typeof setRangeSubView !== 'undefined' ? setRangeSubView : w.setRangeSubView;
+    w.setListGroupMode = typeof setListGroupMode !== 'undefined' ? setListGroupMode : w.setListGroupMode;
+    w.navCal = typeof navCal !== 'undefined' ? navCal : w.navCal;
+    w.goDate = typeof goDate !== 'undefined' ? goDate : w.goDate;
+    w.goToday = typeof goToday !== 'undefined' ? goToday : w.goToday;
+    w.jumpToDay = typeof jumpToDay !== 'undefined' ? jumpToDay : w.jumpToDay;
+    w.calRefG = typeof calRefG !== 'undefined' ? calRefG : w.calRefG;
+    w.calSelectPair = typeof calSelectPair !== 'undefined' ? calSelectPair : w.calSelectPair;
+    w.clearCal = typeof clearCal !== 'undefined' ? clearCal : w.clearCal;
+    w.clearCalPair = typeof clearCalPair !== 'undefined' ? clearCalPair : w.clearCalPair;
+    w.addPairFromCal = typeof addPairFromCal !== 'undefined' ? addPairFromCal : w.addPairFromCal;
+    w.renderMakeupsTop = typeof renderMakeupsTop !== 'undefined' ? renderMakeupsTop : w.renderMakeupsTop;
+    w._quickActionBtns = typeof _quickActionBtns !== 'undefined' ? _quickActionBtns : w._quickActionBtns;
+
+    // From gardens.js / export logic
+    w.toggleExportMenu = typeof toggleExportMenu !== 'undefined' ? toggleExportMenu : w.toggleExportMenu;
+    w.closeExportMenu = typeof closeExportMenu !== 'undefined' ? closeExportMenu : w.closeExportMenu;
+    w.copyExport = typeof copyExport !== 'undefined' ? copyExport : w.copyExport;
+    w.printExport = typeof printExport !== 'undefined' ? printExport : w.printExport;
+    
+    // From backup.js
+    w.createSnapshot = typeof createSnapshot !== 'undefined' ? createSnapshot : w.createSnapshot;
+    w.exportFullBackup = typeof exportFullBackup !== 'undefined' ? exportFullBackup : w.exportFullBackup;
+    w.importBackup = typeof importBackup !== 'undefined' ? importBackup : w.importBackup;
+    w.openBackup = typeof openBackup !== 'undefined' ? openBackup : w.openBackup;
+    w.renderBackupList = typeof renderBackupList !== 'undefined' ? renderBackupList : w.renderBackupList;
+    w.startAutoBackup = typeof startAutoBackup !== 'undefined' ? startAutoBackup : w.startAutoBackup;
+    w.triggerAutoBackup = typeof triggerAutoBackup !== 'undefined' ? triggerAutoBackup : w.triggerAutoBackup;
+    w.CM = typeof CM !== 'undefined' ? CM : w.CM;
+    
+    // UI Helpers
+    w.showToast = typeof showToast !== 'undefined' ? showToast : w.showToast;
+    w.showCopyToast = typeof showCopyToast !== 'undefined' ? showCopyToast : w.showCopyToast;
+
+    console.log('Final Global Bridge Wired.');
+  })(window);
+</script>
 
 </body>
 </html>

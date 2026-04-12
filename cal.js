@@ -1540,9 +1540,8 @@ function renderMonth(evs,mDate){
   return html+'</div></div>';
 }
 
-let _listGroupMode = 'window.pairs';
 function setListGroupMode(m){
-  _listGroupMode = m;
+  window._listGroupMode = m;
   const elP = document.getElementById('vlb-group-pairs');
   const elC = document.getElementById('vlb-group-clusters');
   if(elP) elP.classList.toggle('active', m === 'window.pairs' || m === 'pairs');
@@ -1655,29 +1654,4 @@ function renderRangeListView(evs, fromDs, toDs){
   return h + '</div>';
 }
 
-// --- GLOBAL BRIDGE ---
-// Defensive Global Bridge
-(function(w){
-  w.renderCal = renderCal;
-  w.setCalTab = setCalTab;
-  w.setView = setView;
-  w.setListSubView = setListSubView;
-  w.setRangeSubView = setRangeSubView;
-  w.setListGroupMode = setListGroupMode;
-  w.navCal = navCal;
-  w.goDate = goDate;
-  w.goToday = goToday;
-  w._quickActionBtns = _quickActionBtns;
-  w.renderMakeupsTop = renderMakeupsTop;
-  w.jumpToDay = jumpToDay;
-  w.toggleExportMenu = toggleExportMenu;
-  w.closeExportMenu = closeExportMenu;
-  w.calRefG = calRefG;
-  w.calSelectPair = calSelectPair;
-  w.clearCal = clearCal;
-  w.clearCalPair = clearCalPair;
-  w.addPairFromCal = addPairFromCal;
-  w._exportPairWA = (gids) => {
-     console.log('WA Export', gids);
-  };
-})(window);
+// [Global Bridge moved to index.html final script tag]
