@@ -131,13 +131,22 @@ function nsPreviewRecur(){
   document.getElementById('ns-recur-preview').textContent=`📅 יימצאו ${count} פעילויות (ימים: ${dayNames}, ${fD(from)}–${fD(to)})`;
 }
 function nsRefG(){
-  const city=document.getElementById('ns-city').value;
+  const cityEl = document.getElementById('ns-city');
+  const city = cityEl ? cityEl.value : '';
   const gs=gByCF(city,'').sort((a,b)=>a.name.localeCompare(b.name,'he'));
   const sel=document.getElementById('ns-g');
+  if(!sel) return;
   sel.innerHTML='<option value="">בחר גן</option>';
   gs.forEach(g=>sel.innerHTML+=`<option value="${g.id}">${g.name}</option>`);
-  document.getElementById('ns-g2-wrap').style.display='none';
-  document.getElementById('ns-grp-wrap').style.display='none';
+  
+  const choiceWrap = document.getElementById('ns-g2-choice-wrap');
+  const partnerWrap = document.getElementById('ns-g2-partner-wrap');
+  if(choiceWrap) choiceWrap.style.display='none';
+  if(partnerWrap) partnerWrap.style.display='none';
+  
+  const grpWrap = document.getElementById('ns-grp-wrap');
+  if(grpWrap) grpWrap.style.display='none';
+  
   sel.onchange=function(){nsCheckPair(parseInt(this.value)||null);};
 }
 function nsCheckPair(gid){

@@ -2028,10 +2028,26 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div style="font-size:.78rem;font-weight:700;color:#2e7d32;margin-bottom:5px">📅 ימים פנויים לצהרון זה:</div>
       <div id="post-free-days" style="display:flex;gap:5px;flex-wrap:wrap"></div>
     </div>
-    <div class="fg" style="margin-bottom:9px"><label>תאריך חדש *</label>
-      <input type="date" id="post-date" style="width:100%" onchange="postDateChg()">
+    <!-- Row 1: Target Date & Partner Choice -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
+      <div class="fg"><label>תאריך חדש *</label><input type="date" id="post-date" style="width:100%" onchange="postDateChg()"></div>
+      <div class="fg" id="post-pchoice-wrap" style="display:none">
+        <label>שנה גם לבן זוג?</label>
+        <select id="post-pair-chk-sel" style="width:100%" onchange="postTogglePWrap()">
+          <option value="no">לא - רק לכאן</option>
+          <option value="yes" selected>כן - גם לבן זוג</option>
+        </select>
+        <!-- Hidden legacy checkbox for logic compatibility if needed -->
+        <input type="checkbox" id="post-pair-chk" style="display:none">
+      </div>
     </div>
-    <div class="fg" style="margin-bottom:9px"><label>שעה חדשה</label><input type="time" id="post-time" style="width:100%"></div>
+
+    <!-- Row 2: Times -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
+      <div class="fg"><label>שעה חדשה</label><input type="time" id="post-time" style="width:100%"></div>
+      <div class="fg" id="post-ptime-wrap" style="display:none"><label id="post-ptime-lbl">שעה לבן זוג</label><input type="time" id="post-time-g2" style="width:100%"></div>
+    </div>
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px">
       <div class="fg"><label>ספק (שינוי אופציונלי)</label>
         <select id="post-sup" onchange="postSupChg()" style="width:100%">
@@ -2050,12 +2066,6 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     </div>
     <div id="post-conflict-warn" style="display:none;background:#fff3cd;border-radius:6px;padding:6px 10px;font-size:.76rem;color:#856404;margin-bottom:9px">
       ⚠️ לצהרון זה כבר קיימת פעילות בתאריך שנבחר!
-    </div>
-    <div id="post-pair-wrap" style="display:none;background:#fff3e0;border-radius:6px;padding:7px 10px;margin-bottom:9px;font-size:.78rem">
-      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-weight:700;color:#e65100">
-        <input type="checkbox" id="post-pair-chk" style="accent-color:#e65100">
-        🔗 <span id="post-pair-action-lbl">גם להזיז</span> את הצהרון בן הזוג (<span id="post-pair-name"></span>)
-      </label>
     </div>
     <div style="display:flex;gap:7px;justify-content:flex-end">
       <button class="btn borange" id="postm-save-btn" onclick="doPostpone()">🔀 הזז</button>

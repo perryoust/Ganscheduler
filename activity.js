@@ -109,9 +109,9 @@ function renderDash(){
   }
 
   // Nohap list — all events that didn't happen, sorted by date desc
-  const nohapEvs=SCH.filter(s=>s.st==='nohap').sort((a,b)=>b.d.localeCompare(a.d));
+  const nohapEvs=SCH.filter(s=>s.st==='nohap' && !s._compByMakeup).sort((a,b)=>b.d.localeCompare(a.d));
   // Can+post list — last 20
-  const canEvs=SCH.filter(s=>s.st==='post').sort((a,b)=>b.d.localeCompare(a.d)).slice(0,20);
+  const canEvs=SCH.filter(s=>s.st==='post' && !s._compByMakeup).sort((a,b)=>b.d.localeCompare(a.d)).slice(0,20);
   const allEvs=[...nohapEvs,...canEvs].sort((a,b)=>b.d.localeCompare(a.d));
 
   let ch='';
@@ -229,6 +229,15 @@ function openSP(id){
       </div>
     </div>`;
   }
+  
+  // Requirement: Button to manually mark as completed (remove from lists)
+  if(s.st==='nohap'||s.st==='can' || s.st==='post'){
+      h+=`<div style="margin-bottom:15px; background:#e8f5e9; border:1px solid #c8e6c9; padding:10px; border-radius:10px; display:flex; align-items:center; justify-content:space-between">
+          <span style="font-size:.8rem; color:#2e7d32; font-weight:700">✅ הפעילות הושלמה/טופלה?</span>
+          <button class="btn bg bsm" onclick="markCompManual(${s.id})">סמן כהושלם (הסר מהרשימות)</button>
+      </div>`;
+  }
+
   h+=`</div>`;
 
   // 4. Action Buttons
@@ -596,6 +605,20 @@ function saveNt(){
     closeSP(); refresh();
   }, 1000);
 }
+function markCompManual(id){
+  const s=SCH.find(x=>x.id===id); if(!s) return;
+  if(!confirm('האם לסמן פעילות זו כ"הושלמה"? היא תוסר מרשימות ה"לא התקיים" בדף הבית אך תישאר בדוחות הספקים.')) return;
+  s._compByMakeup = 'manual_' + Date.now();
+  // If user requested for pair
+  const pairChk=document.getElementById('sp-pair-chk');
+  if(pairChk && pairChk.checked){
+    const pair=gardenPair(s.g);
+    if(pair) SCH.filter(x=>pair.ids.includes(x.g)&&x.d===s.d&&x.id!==id)
+      .forEach(x=>x._compByMakeup = s._compByMakeup);
+  }
+  saveAndRefresh('sp');
+  showToast('✅ הפעילות סומנה כהושלמה והוסרה מהרשימות');
+}
 function upd(id,fields){
   const i=SCH.findIndex(s=>s.id===id);
   if(i>=0) Object.assign(SCH[i],fields);
@@ -703,13 +726,19 @@ function setPostMode(m){
     if(title) title.textContent='🔀 הזזה לתאריך אחר';
     if(btn){ btn.textContent='🔀 הזז'; }
     if(lbl) lbl.textContent='סיבת ההזזה (אופציונלי)';
-    if(pairLbl) pairLbl.textContent='גם להזיז';
-  } else {
-    if(title) title.textContent='⏩ דחיית פעילות';
-    if(btn){ btn.textContent='⏩ דחה'; }
-    if(lbl) lbl.textContent='סיבת הדחייה';
-    if(pairLbl) pairLbl.textContent='גם לדחות';
+      if(pairLbl) pairLbl.textContent='גם לדחות';
   }
+}
+
+function postTogglePWrap(){
+  const s=SCH.find(x=>x.id===selEvPost); if(!s) return;
+  const sel = document.getElementById('post-pair-chk-sel');
+  const forPair = sel && sel.value==='yes';
+  const pTimeWrap = document.getElementById('post-ptime-wrap');
+  if(pTimeWrap) pTimeWrap.style.display = forPair ? 'block' : 'none';
+  // keep legacy checkbox synced for logic if needed
+  const legacyChk = document.getElementById('post-pair-chk');
+  if(legacyChk) legacyChk.checked = forPair;
 }
 
 function openPostpone(id){
@@ -719,28 +748,37 @@ function openPostpone(id){
   document.getElementById('post-ev-info').innerHTML=
     `<b>${g.name}</b> · ${g.city} · <span style="color:#1565c0">${s.a}</span>${s.act?' · '+s.act:''}<br>
      תאריך מקורי: <b>${fD(s.d)} יום ${dayN(s.d)}</b> ${s.t?'⏰ '+fT(s.t):''}`;
+  
   document.getElementById('post-date').value='';
   document.getElementById('post-time').value=s.t?fT(s.t):'';
+  document.getElementById('post-time-g2').value=s.t?fT(s.t):'';
   document.getElementById('post-reason').value='';
   document.getElementById('post-conflict-warn').style.display='none';
-  setPostMode('move'); // default to move
-  // Populate supplier dropdown
+  setPostMode('move');
+  
   const postSupEl=document.getElementById('post-sup');
   if(postSupEl){
     postSupEl.innerHTML='<option value="">— אותו ספק —</option>';
     getAllSup().forEach(sup=>postSupEl.innerHTML+=`<option value="${sup.name}"${sup.name===s.a?' selected':''}>${sup.name}</option>`);
     postSupChg();
   }
+  
   postShowFreeDays(s);
+  
   const postPair=gardenPair(s.g);
-  const pairWrap=document.getElementById('post-pair-wrap');
-  if(postPair&&pairWrap){
-    const partnerIds=postPair.ids.filter(id=>id!==s.g);
-    const partnerNames=partnerIds.map(id=>G(id).name).filter(Boolean).join(', ');
-    (document.getElementById('post-pair-name')||{}).textContent=partnerNames;
-    pairWrap.style.display='block';
-    document.getElementById('post-pair-chk').checked=true;
-  } else if(pairWrap){ pairWrap.style.display='none'; }
+  const pChoiceWrap = document.getElementById('post-pchoice-wrap');
+  if(postPair && pChoiceWrap){
+    pChoiceWrap.style.display='block';
+    const partnerId = postPair.ids.find(pid=>pid!==s.g);
+    const partG = G(partnerId);
+    document.getElementById('post-ptime-lbl').textContent = `שעה ל${partG.name}`;
+    document.getElementById('post-pair-chk-sel').value='yes';
+    postTogglePWrap();
+  } else if(pChoiceWrap){
+    pChoiceWrap.style.display='none';
+    postTogglePWrap();
+  }
+
   document.getElementById('postm').classList.add('open');
 }
 
@@ -796,21 +834,31 @@ function postDateChg(){
   if(!nd){document.getElementById('post-conflict-warn').style.display='none';return;}
   const s=SCH.find(x=>x.id===selEvPost);
   if(!s) return;
+  const pair=gardenPair(s.g);
+  const pSel = document.getElementById('post-pair-chk-sel');
+  const forPair = pSel && pSel.value==='yes' && pair;
+
+  // Conflict Check
   const conflict=SCH.some(x=>x.g===s.g&&x.d===nd&&x.id!==s.id&&x.st!=='can');
-  // Also check partner conflict
-  const pairChk=document.getElementById('post-pair-chk');
   let partnerConflict=false;
-  if(pairChk&&pairChk.checked){
-    const pair=gardenPair(s.g);
-    if(pair){
-      const partnerIds=pair.ids.filter(id=>id!==s.g);
-      partnerConflict=partnerIds.some(pid=>SCH.some(x=>x.g===pid&&x.d===nd&&x.st!=='can'));
-    }
+  if(forPair){
+    const partnerIds=pair.ids.filter(id=>id!==s.g);
+    partnerConflict=partnerIds.some(pid=>SCH.some(x=>x.g===pid&&x.d===nd&&x.st!=='can'));
   }
   const warnEl=document.getElementById('post-conflict-warn');
   warnEl.style.display=(conflict||partnerConflict)?'block':'none';
   if(partnerConflict&&!conflict) warnEl.textContent='⚠️ לצהרון הבן זוג כבר קיימת פעילות בתאריך שנבחר!';
   else warnEl.textContent='⚠️ לגן זה כבר קיימת פעילות בתאריך שנבחר!';
+
+  // Pre-fill Times from Target Date
+  const exMain = SCH.find(x=>x.g===s.g && x.d===nd && x.st!=='can');
+  if(exMain && exMain.t) document.getElementById('post-time').value = fT(exMain.t);
+  
+  if(forPair){
+    const pid = pair.ids.find(id=>id!==s.g);
+    const exPart = SCH.find(x=>x.g===pid && x.d===nd && x.st!=='can');
+    if(exPart && exPart.t) document.getElementById('post-time-g2').value = fT(exPart.t);
+  }
 }
 function doPostpone(){
   const nd=document.getElementById('post-date').value;
@@ -818,6 +866,7 @@ function doPostpone(){
   const dow=s2d(nd).getDay();
   if(dow===5||dow===6){alert('לא ניתן לשבץ בשישי או שבת');return;}
   const nt=document.getElementById('post-time').value;
+  const nt_g2=document.getElementById('post-time-g2').value;
   const nr=document.getElementById('post-reason').value;
   const postSupEl=document.getElementById('post-sup');
   const postActEl=document.getElementById('post-act');
@@ -830,11 +879,13 @@ function doPostpone(){
     if(idx<0) return;
     const orig=SCH[idx];
     const origDate=orig.d;
+    const targetTime = (isPartner && nt_g2) ? nt_g2 : (nt || orig.t);
+
     if(isMove){
       // הזזה: מעדכן את הרשומה המקורית ישירות, שומר הערה מאיפה הוזז
       const moveNote=nr?`(הוזז מ-${fD(origDate)} — ${nr})`:`(הוזז מ-${fD(origDate)})`;
       Object.assign(SCH[idx],{
-        d:nd, t:nt||orig.t,
+        d:nd, t:targetTime,
         st:'ok', cr:'', pd:'', pt:'',
         _fromD:origDate,
         nt:orig.nt?orig.nt+' | '+moveNote:moveNote
@@ -843,9 +894,9 @@ function doPostpone(){
       if(!isPartner&&newAct) SCH[idx].act=newAct;
     } else {
       // דחייה: מסמן מקור כנדחה, יוצר רשומה חדשה
-      Object.assign(SCH[idx],{st:'post',cr:nr||'נדחה',pd:nd,pt:nt||orig.t});
-      const newEntry={...orig,id:Date.now()+(isPartner?1:0),d:nd,
-        t:nt||orig.t,st:'ok',cr:'',pd:'',pt:'',
+      Object.assign(SCH[idx],{st:'post',cr:nr||'נדחה',pd:nd,pt:targetTime});
+      const newEntry={...orig,id:Date.now()+(isPartner?1:0)+Math.floor(Math.random()*100),d:nd,
+        t:targetTime,st:'ok',cr:'',pd:'',pt:'',
         _fromD:origDate,
         nt:'(הועבר מ-'+fD(origDate)+')'+(nr?' — '+nr:'')};
       if(!isPartner&&newSup) newEntry.a=newSup;
@@ -853,28 +904,27 @@ function doPostpone(){
       SCH.push(newEntry);
     }
   };
-  const orig=SCH.find(s=>s.id===selEvPost);
-  const orig2=orig?{...orig}:null; // copy before mutation for logging
-  if(orig){
-    const origGid = orig.g;
-    const origDate = orig.d; // save BEFORE doOne mutates orig (Object.assign changes by reference)
-    doOne(selEvPost,false);
-    const pairChk=document.getElementById('post-pair-chk');
-    if(pairChk&&pairChk.checked){
-      const pair=gardenPair(origGid);
-      if(pair){
-        pair.ids.filter(id=>id!==origGid).forEach(pid=>{
-          // Use origDate (saved before mutation) not orig.d (already changed)
-          const partnerEv=SCH.find(s=>s.g===pid&&s.d===origDate&&s.st!=='can');
-          if(partnerEv) doOne(partnerEv.id,true);
-          else console.log('Partner not found for gid',pid,'on',origDate);
-        });
-      }
+
+  const main=SCH.find(x=>x.id===selEvPost);
+  if(!main) return;
+  const pSel = document.getElementById('post-pair-chk-sel');
+  const forPartner = pSel && pSel.value==='yes';
+
+  const origDate = main.d;
+  if(forPartner){
+    const pair=gardenPair(main.g);
+    if(pair){
+      pair.ids.forEach(pid=>{
+        const pEv=SCH.find(x=>x.g===pid && x.d===origDate && x.st!=='can');
+        if(pEv) doOne(pEv.id, pid!==main.g);
+      });
     }
+  } else {
+    doOne(main.id, false);
   }
-  const toast=isMove?`🔀 הוזז ל-${fD(nd)}`:`⏩ נדחה ל-${fD(nd)}`;
-  if(orig2){ const g2=G(orig2.g); _writeLog('move',`${g2.name} — ${orig2.a}`,toast,{gName:g2.name,date:nd}).catch(()=>{}); }
-  save();CM('postm');closeSP();refresh();
+
+  const toast=isMove?`🔀 הוזזה לתאריך אחר` : `⏩ נדחתה לתאריך אחר`;
+  saveAndRefresh('postm');
   showToast(toast);
 }
 
