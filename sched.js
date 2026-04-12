@@ -266,7 +266,14 @@ function saveNewSched(){
     const makeupOrig=document.getElementById('ns-makeup-orig').value;
     const makeupNote = `השלמה מ-${fD(makeupOrig)}`;
     const fullNote = notes ? notes + ' | ' + makeupNote : makeupNote;
-    const newSched={id:newId,g:gid,d:date,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:fullNote,st:'ok',cr:'',cn:'',nt:fullNote,pd:'',pt:'',grp,_makeupFrom:makeupOrig||''};
+    const newSched={id:newId,g:gid,d:date,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:fullNote,st:'ok',cr:'',cn:'',nt:fullNote,pd:'',pt:'',grp,_makeupFrom:makeupOrig||'',_isMakeup:true};
+    
+    // Requirement: Link back to original activity and mark it as completed
+    if(typeof _makeupOrigId !== 'undefined' && _makeupOrigId){
+      const origExt = SCH.find(x => x.id === _makeupOrigId);
+      if(origExt) origExt._compByMakeup = newId;
+    }
+
     SCH.push(newSched);
     if(g2id) SCH.push({...newSched,id:newId+1,g:g2id});
     saveAndRefresh('nsm');

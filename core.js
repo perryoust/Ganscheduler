@@ -816,9 +816,9 @@ window.onload = function(){
 }; // end window.onload
 
 function updCounts(){
-  const can=SCH.filter(s=>s.st==='can').length;
-  const post=SCH.filter(s=>s.st==='post').length;
-  const nohap=SCH.filter(s=>s.st==='nohap').length;
+  const can=SCH.filter(s=>s.st==='can' && !s._compByMakeup).length;
+  const post=SCH.filter(s=>s.st==='post' && !s._compByMakeup).length;
+  const nohap=SCH.filter(s=>s.st==='nohap' && !s._compByMakeup).length;
   const todayCnt=SCH.filter(s=>s.d===td()&&s.st!=='can').length;
   const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   // Activity stats
@@ -1548,9 +1548,9 @@ function renderSupCard(){
   const el=document.getElementById('suc-body');
   if(!evs.length){el.innerHTML='<p style="color:#999;text-align:center;padding:20px">אין פעילויות בטווח ובסינון זה</p>';return;}
   const cntDone=evs.filter(s=>s.st==='done').length;
-  const cntCan=evs.filter(s=>s.st==='can').length;
-  const cntPost=evs.filter(s=>s.st==='post').length;
-  const cntNohap=evs.filter(s=>s.st==='nohap').length;
+  const cntCan=evs.filter(s=>s.st==='can' && !s._compByMakeup).length;
+  const cntPost=evs.filter(s=>s.st==='post' && !s._compByMakeup).length;
+  const cntNohap=evs.filter(s=>s.st==='nohap' && !s._compByMakeup).length;
   const cntActive=evs.length-cntDone-cntCan-cntPost-cntNohap;
 
   let h=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
@@ -1574,7 +1574,7 @@ function renderSupCard(){
   h+=`<div class="tw"><table><thead><tr>
     <th>תאריך</th><th>יום</th><th>עיר</th><th>צהרון</th><th>פעילות</th><th>שעה</th><th>קב'</th><th>סטטוס</th><th>הערות</th><th></th>
   </tr></thead><tbody>`;
-  evs.forEach(s=>{
+  evs.filter(s => !s._compByMakeup).forEach(s=>{
     const g=G(s.g);
     h+=`<tr class="${stClass(s)}">
       <td>${fD(s.d)}</td>

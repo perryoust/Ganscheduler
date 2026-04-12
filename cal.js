@@ -415,10 +415,8 @@ function renderClusterDay(evs, ds, clusterName){
         html+=`<div style="margin-bottom:10px">
           <div style="padding:3px 10px;background:${clrCity.light};border-right:3px solid ${clrCity.solid};border-radius:4px;font-size:.74rem;font-weight:700;color:${clrCity.solid};margin-bottom:5px">🔢 ${clName} — ${sorted.length} פעילויות</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px">`;
-        sorted.forEach(s=>{
-          const g=G(s.g);
-          const stc=s.st!=='ok'?'st-'+s.st:'';
-          const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+          const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+          if(s._compByMakeup) return; // Hide completed nohaps
           html+=`<div style="min-width:160px;flex:1;max-width:260px;border:1.5px solid ${clrCity.border};border-radius:7px;padding:7px;cursor:pointer;background:#fff;border-right:3px solid ${clrCity.solid}" onclick="openSP(${s.id})" class="${stc}">
             ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clrCity.solid};margin-bottom:2px">⏰ ${fT(s.t)}</div>`:'<div style="font-size:.7rem;color:#aaa">ללא שעה</div>'}
             <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
@@ -440,12 +438,11 @@ function renderClusterDay(evs, ds, clusterName){
     });
   } else {
     // ── אשכול בודד: לפי שעה ──
-    const sorted=[...evs].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
-    sorted.forEach(s=>{
+    sorted.filter(s => !s._compByMakeup).forEach(s=>{
       const g=G(s.g);
       const stc=s.st!=='ok'?'st-'+s.st:'';
       const clrCity=CITY_COLORS(g.city||'');
-          const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+          const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
           html+=`<div class="city-block" style="margin-bottom:8px">
         <div class="city-block-hdr" style="background:${clrCity.solid};font-size:.76rem">
           ${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}
@@ -569,9 +566,11 @@ function renderNormalDay(evs,ds){
   const pairRowsHtml=[]; // rendered pair rows
   // Group pairs by city for unified color display
   const pairsByCity={};
-  const isM = s => !!(s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+  const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
   const makeups=evs.filter(isM);
-  const others=evs.filter(s=>!isM(s));
+  const others=evs.filter(s=>!isM(s) && !s._compByMakeup);
+
+  topHtml += `<!-- Ganscheduler Makeup Ver 2.0.1 - SoloCount:${makeups.length} -->`;
 
   pairs.forEach(pair=>{
     if(isPairBroken(pair.id,ds)) return;
