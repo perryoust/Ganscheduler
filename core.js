@@ -2875,9 +2875,3 @@ function _tryOpenLocalFile(p){
     showToast('📋 הנתיב הועתק — פתח סייר קבצים והדבק');
   }
 }
-
-
-}
-}
-}
-}
