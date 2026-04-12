@@ -284,7 +284,7 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
 
   let h = `<div style="margin-bottom:18px">
       <div style="padding:5px 10px;background:#0d47a1;color:#fff;border-radius:6px;font-size:.82rem;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:8px">
-        📅 השלמות לביצוע (${makeups.length})
+         השלמה (${makeups.length})
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">`;
   makeups.forEach(s=>{
@@ -292,7 +292,10 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
     const stc=s.st!=='ok'?'st-'+s.st:'';
     const clr=CITY_COLORS(g.city||'');
     h+=`<div style="min-width:165px;flex:1;max-width:260px;border:1.5px solid ${clr.border};border-radius:7px;padding:7px;cursor:pointer;background:#fff;border-right:4px solid #0d47a1;box-shadow:0 2px 4px rgba(0,0,0,0.05)" onclick="openSP(${s.id})" class="${stc}">
-      ${s.t?`<div style="font-size:.82rem;font-weight:900;color:#0d47a1;margin-bottom:2px">⏰ ${fT(s.t)}</div>`:'<div style="font-size:.7rem;color:#aaa">ללא שעה</div>'}
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        ${s.t?`<div style="font-size:.82rem;font-weight:900;color:#0d47a1;margin-bottom:2px">⏰ ${fT(s.t)}</div>`:'<div style="font-size:.7rem;color:#aaa">ללא שעה</div>'}
+        <button onclick="event.stopPropagation();_exportGardenWA([${s.g}],'${ds}')" style="background:#0d47a1;border:none;border-radius:4px;color:#fff;font-size:.65rem;padding:2px 6px;cursor:pointer;font-weight:700">📋 הודעה</button>
+      </div>
       <div style="font-weight:700;font-size:.78rem;color:#1a237e">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
       <div style="font-size:.67rem;color:#455a64;font-weight:700">📍 ${g.city||'אחר'}</div>
       <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${supBase(s.a)}${(s.act||supAct(s.a))?` · ${s.act||supAct(s.a)}`:''}</div>

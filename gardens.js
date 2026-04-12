@@ -969,12 +969,16 @@ function genExport(){
             const sameAddr=addrs.length===1&&addrs[0];
             if(sameAddr){
               text+=`${supLine}\n  🏫 ${addrs[0]}\n`;
-              group.forEach(s=>{ text+=`     ${s.st==='can'?'❌ ':s.st==='nohap'?'⚠️ ':''}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`; });
+              group.forEach(s=>{ 
+                const mTag = (s._makeupFrom || (s.nt && s.nt.includes('השלמה'))) ? '*השלמה* ' : '';
+                text+=`     ${s.st==='can'?'❌ ':s.st==='nohap'?'⚠️ ':''}${mTag}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`; 
+              });
             } else {
               text+=`${supLine}\n`;
               group.forEach(s=>{
+                const mTag = (s._makeupFrom || (s.nt && s.nt.includes('השלמה'))) ? '*השלמה* ' : '';
                 const addr=s.gd.st?`🏫 ${s.gd.st} · `:'  ';
-                text+=`  ${s.st==='can'?'❌ ':s.st==='nohap'?'⚠️ ':'  '}${addr}${s.gd.name}${s.st==='can'?' (בוטל)':s.st==='nohap'?' (לא התקיים)':''} ${s.t?' · ⏰ '+fT(s.t):''}\n`;
+                text+=`  ${s.st==='can'?'❌ ':s.st==='nohap'?'⚠️ ':'  '}${mTag}${addr}${s.gd.name}${s.st==='can'?' (בוטל)':s.st==='nohap'?' (לא התקיים)':''} ${s.t?' · ⏰ '+fT(s.t):''}\n`;
               });
             }
             text+='\n';
@@ -997,12 +1001,16 @@ function genExport(){
             const sameAddr=addrs.length===1&&addrs[0];
             if(sameAddr){
               text+=`${supLine}\n  🏫 ${addrs[0]}\n`;
-              group.forEach(s=>{ text+=`     ${s.st==='can'?'❌ ':s.st==='nohap'?'⚠️ ':''}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${s.st==='can'?' (בוטל)':s.st==='nohap'?' (לא התקיים)':''}\n`; });
+              group.forEach(s=>{ 
+                const mTag = (s._makeupFrom || (s.nt && s.nt.includes('השלמה'))) ? '*השלמה* ' : '';
+                text+=`     ${s.st==='can'?'❌ ':s.st==='nohap'?'⚠️ ':''}${mTag}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}${s.st==='can'?' (בוטל)':s.st==='nohap'?' (לא התקיים)':''}\n`; 
+              });
             } else {
               text+=`${supLine}\n`;
               group.forEach(s=>{
+                const mTag = (s._makeupFrom || (s.nt && s.nt.includes('השלמה'))) ? '*השלמה* ' : '';
                 const addr=s.gd.st?`🏫 ${s.gd.st} · `:'  ';
-                text+=`  ${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`;
+                text+=`  ${mTag}${addr}${s.gd.name}${s.t?' · ⏰ '+fT(s.t):''}\n`;
               });
             }
             text+='\n';
@@ -1010,7 +1018,8 @@ function genExport(){
         }
       } else {
         byCity[c].forEach(s=>{
-          text+=`${s.st==='can'?'❌ ':s.st==='nohap'?'⚠️ ':''}${s.gd.name}${s.t?' '+fT(s.t):''} - ${s.a}${s.st==='can'?' (בוטל)':s.st==='nohap'?' (לא התקיים)':''}\n`;
+          const mTag = (s._makeupFrom || (s.nt && s.nt.includes('השלמה'))) ? '*השלמה* ' : '';
+          text+=`${s.st==='can'?'❌ ':s.st==='nohap'?'⚠️ ':''}${mTag}${s.gd.name}${s.t?' '+fT(s.t):''} - ${s.a}${s.st==='can'?' (בוטל)':s.st==='nohap'?' (לא התקיים)':''}\n`;
         });
       }
     });
