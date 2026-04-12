@@ -1477,7 +1477,7 @@ function renderCalList(evs, mDate){
   return h+'</div>';
 }
 
-function _listRow(s, clr){
+function _listRow(s, clr, ds){
   const g=window.G(s.g);
   const stC=s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':'#333';
   const addrLink=g.st?`<a href="https://maps.google.com/?q=${encodeURIComponent(g.st+' '+g.city)}" target="_blank" onclick="event.stopPropagation()" style="font-size:.63rem;color:#1565c0;text-decoration:none">📍 ${g.st}</a>`:'';
@@ -1600,7 +1600,7 @@ function renderRangeListView(evs, fromDs, toDs){
             <span>🏘️ ${cl.name}</span>
             <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
           </div>`;
-        clEvs.forEach(s => { h += _listRow(s, clr); });
+        clEvs.forEach(s => { h += _listRow(s, clr, ds); });
         h += `</div>`;
       };
 
@@ -1636,7 +1636,7 @@ function renderRangeListView(evs, fromDs, toDs){
 
       cityEvs.filter(s => !firstUsedGids.has(s.g))
         .sort((a,b) => (window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'))
-        .forEach(s => { h += _listRow(s, clr); });
+        .forEach(s => { h += _listRow(s, clr, ds); });
 
       h += `</div>`;
     });
@@ -1655,7 +1655,6 @@ window.setListGroupMode = setListGroupMode;
 window.navCal = navCal;
 window.goDate = goDate;
 window.goToday = goToday;
-window.openExport = openExport;
 window._quickActionBtns = _quickActionBtns;
 window.renderMakeupsTop = renderMakeupsTop;
 window.jumpToDay = jumpToDay;
