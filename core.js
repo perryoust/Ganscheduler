@@ -3,6 +3,34 @@
 //              → activity.js → sched.js → gardens.js → export.js
 //              → backup.js → admin.js → core.js (last)
 
+// --- Global State Declarations ---
+window.SCH = window.SCH || [];
+window.GARDENS = window.GARDENS || [];
+window.INVOICES = window.INVOICES || [];
+window.supEx = window.supEx || {};
+window.pairs = window.pairs || [];
+window.clusters = window.clusters || {};
+window.activeGardens = window.activeGardens || null;
+window.blockedDates = window.blockedDates || {};
+window.gardenBlocks = window.gardenBlocks || {};
+window.managers = window.managers || {};
+window.pairBreaks = window.pairBreaks || {};
+window.VAT_RATE = window.VAT_RATE || 18;
+
+// Local aliases for module scope
+let SCH = window.SCH;
+let GARDENS = window.GARDENS;
+let INVOICES = window.INVOICES;
+let supEx = window.supEx;
+let pairs = window.pairs;
+let clusters = window.clusters;
+let activeGardens = window.activeGardens;
+let blockedDates = window.blockedDates;
+let gardenBlocks = window.gardenBlocks;
+let managers = window.managers;
+let pairBreaks = window.pairBreaks;
+let VAT_RATE = window.VAT_RATE;
+
 function renderInvoices(){
   const tbody = document.getElementById('pi-tbody');
   if(!tbody) return;
@@ -382,24 +410,24 @@ function _applyYearData(o){
     if(SRAWS.length>0){
       // SRAWS loaded: merge SRAWS base data with saved changes
       const m={};o.ch.forEach(x=>m[x.id]=x);
-      SCH=SRAWS.map(s=>{const x=m[s.id];return x?{...s,...x}:s;});
+      window.SCH = SRAWS.map(s=>{const x=m[s.id];return x?{...s,...x}:s;});
       // Include user-created schedules (not in SRAWS) that have full data
       const srawsIds=new Set(SRAWS.map(s=>s.id));
       SCH.push(...o.ch.filter(x=>!srawsIds.has(x.id)&&x.g&&x.d&&x.a));
     } else {
       // SRAWS not loaded: preserve ALL ch entries with defaults for missing fields
-      SCH=o.ch.map(x=>({g:0,d:'',a:'',t:'',p:'',n:'',st:'ok',cr:'',cn:'',nt:'',pd:'',pt:'',grp:1,...x}))
+      window.SCH = o.ch.map(x=>({g:0,d:'',a:'',t:'',p:'',n:'',st:'ok',cr:'',cn:'',nt:'',pd:'',pt:'',grp:1,...x}))
              .filter(x=>x.g>0&&x.d);
     }
   }
-  else SCH=SRAWS.map(s=>({...s,st:'ok',cr:'',cn:'',nt:s.n||'',pd:'',pt:'',grp:1}));
+  else window.SCH = SRAWS.map(s=>({...s,st:'ok',cr:'',cn:'',nt:s.n||'',pd:'',pt:'',grp:1}));
   if(Array.isArray(o.pairs)&&o.pairs.length>0){
-    pairs=o.pairs.map(p=>({...p,ids:p.ids.map(id=>parseInt(id)).filter(id=>G(id).id)}));
-    pairs=pairs.filter(p=>p.ids.length>=2);
+    window.pairs = o.pairs.map(p=>({...p,ids:p.ids.map(id=>parseInt(id)).filter(id=>G(id).id)}));
+    window.pairs = pairs.filter(p=>p.ids.length>=2);
   } else { initPairs(); }
-  supEx = _restoreSupEx(o.supEx||{});
+  window.supEx = _restoreSupEx(o.supEx||{});
   if(o.invoices){
-    INVOICES = Array.isArray(o.invoices) ? o.invoices : Object.values(o.invoices);
+    window.INVOICES = Array.isArray(o.invoices) ? o.invoices : Object.values(o.invoices);
     // ── Migrate invoices with double-VAT bug ──
     // Symptom: ordVatMode missing AND orderTotal ≈ orderAmt * (1 + vat/100)
     // This means the user entered the VAT-inclusive amount in 'ex' mode,
@@ -455,14 +483,14 @@ function _applyYearData(o){
   // Sync settings from Firebase to localStorage
   if(o.autoBackupCfg){ localStorage.setItem('autoBackupCfg',JSON.stringify(o.autoBackupCfg)); if(window._fbAppData) window._fbAppData.autoBackupCfg=o.autoBackupCfg; }
   if(o.piStatusFilter){ try{ localStorage.setItem(PI_ST_KEY,JSON.stringify(o.piStatusFilter)); }catch(e){} }
-  clusters=o.clusters&&Object.keys(o.clusters).length?o.clusters:JSON.parse(JSON.stringify(INIT_CLUSTERS));
+  window.clusters = o.clusters&&Object.keys(o.clusters).length?o.clusters:JSON.parse(JSON.stringify(INIT_CLUSTERS));
   holidays=o.holidays||[];
   if(supEx['__gardens_extra']) _GARDENS_EXTRA=supEx['__gardens_extra'];
   pairBreaks=o.pairBreaks||{};
   blockedDates=o.blockedDates||{};
   gardenBlocks=o.gardenBlocks||{};
   managers=o.managers||{};
-  activeGardens=Array.isArray(o.activeGardens)?new Set(o.activeGardens):null;
+  activewindow.GARDENS = Array.isArray(o.activeGardens)?new Set(o.activeGardens):null;
 }
 
 function load(){
@@ -478,11 +506,11 @@ function load(){
     if(!st) st = _safeLS.get('ganv5');
     if(!st && window._fbAppData) { _applyYearData(window._fbAppData); return; }
     if(st){ _applyYearData(JSON.parse(st)); }
-    else { initPairs();clusters=JSON.parse(JSON.stringify(INIT_CLUSTERS));activeGardens=null; }
+    else { initPairs();window.clusters = JSON.parse(JSON.stringify(INIT_CLUSTERS));activewindow.GARDENS = null; }
   }catch(e){
     console.warn('load() error:', e);
     if(window._fbAppData){ try{ _applyYearData(window._fbAppData); }catch(e2){} }
-    else { initPairs();clusters=JSON.parse(JSON.stringify(INIT_CLUSTERS));activeGardens=null; }
+    else { initPairs();window.clusters = JSON.parse(JSON.stringify(INIT_CLUSTERS));activewindow.GARDENS = null; }
   }
 }
 // ── migratePairsFromAuto — seeds AUTOPAIRS only on first-ever load ──
@@ -570,7 +598,7 @@ function save(immediate){
   }catch(e){}
 }
 function initPairs(){
-  pairs=AUTOPAIRS.map((arr,i)=>{
+  window.pairs = AUTOPAIRS.map((arr,i)=>{
     const gs=arr.map(id=>G(id)).filter(x=>x.id);
     return{id:i+1,ids:arr,name:gs.map(g=>g.name).join(' + ')};
   });
@@ -651,7 +679,7 @@ window.addEventListener('resize', _fitScrollAreas);
 // ── Sync supplier __c list from all data sources ──────────────────
 // Runs after every Firebase load to ensure supplier list is complete
 function syncSupplierList(){
-  if(!supEx) supEx={};
+  if(!supEx) window.supEx = {};
   if(!supEx['__c']) supEx['__c']=[];
   const existing = new Set(supEx['__c'].map(s=>supBase(s.name)));
   const inSupbase = new Set(SUPBASE.map(s=>supBase(s.name)));
@@ -705,7 +733,7 @@ function restoreSupplierActs(){
     const ex = supEx[key];
     if(Array.isArray(ex.acts) && ex.acts.length>0) return; // already has acts
     // Check SCH for this key
-    const hasSCH = SCH.some(s=>supBase(s.a)===key || s.a===key);
+    const haswindow.SCH = SCH.some(s=>supBase(s.a)===key || s.a===key);
     if(!hasSCH) return;
     // Look for acts in mergedAway that share partial name or _mergedFrom
     const mergedFrom = ex._mergedFrom||[];
@@ -757,7 +785,7 @@ window.onload = function(){
           if(_iR.ok){
             const _iD = await _iR.json();
             if(_iD && typeof _iD==='object'){
-              INVOICES = Array.isArray(_iD) ? _iD : Object.values(_iD);
+              window.INVOICES = Array.isArray(_iD) ? _iD : Object.values(_iD);
               console.log('Invoices loaded explicitly:', INVOICES.length);
             }
           }
@@ -798,8 +826,8 @@ window.onload = function(){
     try{ renderPurchSuppliers(); }catch(e){}
     try{ renderInvoices(); }catch(e){}
     const _inv = typeof INVOICES!=='undefined'?INVOICES.length:0;
-    const _sch = typeof SCH!=='undefined'?SCH.length:0;
-    console.log('App fully ready: SCH=',_sch,'INVOICES=',_inv);
+    const _window.SCH = typeof SCH!=='undefined'?SCH.length:0;
+    console.log('App fully ready: window.SCH = ',_sch,'window.INVOICES = ',_inv);
     // Show status if invoices didn't load (mobile debugging)
     if(_inv === 0 && window._fbLastKnownInvoiceCount > 0){
       showToast('⚠️ חשבוניות לא נטענו! לחץ Firebase → טען עכשיו');
@@ -1104,7 +1132,7 @@ function initSucTabs(){
   const exIsAct = supEx[name]?.isAct;
   const exIsPurch = supEx[name]?.isPurch;
   const hasSchEntries = SCH.some(s=>supBase(s.a)===name);
-  const hasInvoices = INVOICES.some(i=>supBase(i.supName||'')===name);
+  const haswindow.INVOICES = INVOICES.some(i=>supBase(i.supName||'')===name);
   // isAct = explicitly marked OR (not explicitly marked purch-only AND has schedule entries)
   const isAct = exIsAct===true || (exIsAct===undefined && hasSchEntries && !hasInvoices);
   // isPurch = explicitly marked OR has invoices OR default (but SUPBASE-only suppliers treated as act)
@@ -2279,7 +2307,7 @@ function saveMgr(){
   renderManagers();
   refreshMgrDrops();
   renderGardens();
-  if(typeof renderPairs==='function') renderPairs();
+  if(typeof renderwindow.pairs = =='function') renderPairs();
   updCounts();
   showToast('✅ '+name+' נשמר — הנתונים עודכנו בכל האפליקציה');
 }
@@ -2294,7 +2322,7 @@ function deleteMgr(){
   renderManagers();
   refreshMgrDrops();
   renderGardens();
-  if(typeof renderPairs==='function') renderPairs();
+  if(typeof renderwindow.pairs = =='function') renderPairs();
   updCounts();
   showToast('✅ '+name+' נשמר — הנתונים עודכנו בכל האפליקציה');
 }
@@ -2486,7 +2514,7 @@ function renderGardensFixed(){
 
   let h='';
   sortedCities.forEach(city=>{
-    const gardens=byCity[city];
+    const window.GARDENS = byCity[city];
     const paired=new Set(), groups=[];
     [...gardens].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he')).forEach(g=>{
       if(paired.has(g.id)) return;
@@ -2922,6 +2950,45 @@ window.supBase = supBase;
 window.supAct = supAct;
 window.supDisplayName = supDisplayName;
 window.supBaseEx = supBaseEx;
-window.getClusters = getClusters;
-window.gardenClusters = gardenClusters;
+window.getwindow.clusters = getClusters;
+window.gardenwindow.clusters = gardenClusters;
 window.getGardenBlock = getGardenBlock;
+
+// --- TOTAL GLOBAL BRIDGE ---
+window.window.SCH = SCH;
+window.window.GARDENS = GARDENS;
+window.window.INVOICES = INVOICES;
+window.window.supEx = supEx;
+window.window.pairs = pairs;
+window.window.clusters = clusters;
+window.activewindow.GARDENS = activeGardens;
+window.blockedDates = blockedDates;
+window.gardenBlocks = gardenBlocks;
+window.managers = managers;
+window.pairBreaks = pairBreaks;
+window.VAT_RATE = VAT_RATE;
+window.CITY_COLORS = CITY_COLORS;
+window.CITY_ORDER = CITY_ORDER;
+window.CITY_CONFIG = CITY_CONFIG;
+window.G = G;
+window.gcls = gcls;
+window.d2s = d2s;
+window.s2d = s2d;
+window.fD = fD;
+window.fT = fT;
+window.stLabel = stLabel;
+window.stClass = stClass;
+window.showToast = showToast;
+window.save = save;
+window.load = load;
+window.refresh = refresh;
+window.initwindow.pairs = initPairs;
+window.supBase = supBase;
+window.supAct = supAct;
+window.supDisplayName = supDisplayName;
+window.toHebDate = toHebDate;
+window.hebM = hebM;
+window.td = td;
+window.cities = cities;
+window.gardenPair = gardenPair;
+window.ST = ST;

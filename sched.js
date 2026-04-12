@@ -182,7 +182,7 @@ function nsCheckPair(gid){
       const t2inp = document.getElementById('ns-time-g2');
       if(t2inp){
         const date=document.getElementById('ns-date').value;
-        const partnerEv=SCH.find(x=>x.g===partnerId && x.d===date && x.st!=='can');
+        const partnerEv=window.SCH.find(x=>x.g===partnerId && x.d===date && x.st!=='can');
         if(partnerEv&&partnerEv.t) t2inp.value=fT(partnerEv.t);
         else t2inp.value='';
       }
@@ -201,7 +201,7 @@ function nsShowFreeDays(gid){
   const g=G(gid);
   const fromD=new Date(); // from today
   const DAY_HEB=['ראשון','שני','שלישי','רביעי','חמישי'];
-  const busyDates=new Set(SCH.filter(x=>x.g===gid&&x.st!=='can').map(x=>x.d));
+  const busyDates=new Set(window.SCH.filter(x=>x.g===gid&&x.st!=='can').map(x=>x.d));
   const free=[]; let d=new Date(fromD);
   for(let i=0;i<21;i++){
     const dow=d.getDay();
@@ -249,7 +249,7 @@ function nsDateChg(){
   if(!pId){ hintEl.style.display='none'; return; }
   
   const partnerG=G(pId);
-  const partnerEv=SCH.find(x=>x.g===pId && x.d===date && x.st!=='can');
+  const partnerEv=window.SCH.find(x=>x.g===pId && x.d===date && x.st!=='can');
   
   if(partnerEv && partnerEv.t){
     hintEl.textContent=`⏰ שעת גן ${partnerG.name}: ${fT(partnerEv.t)}`;
@@ -263,7 +263,7 @@ function nsSupChg(){
   const sup=document.getElementById('ns-sup').value;
   if(!sup) return;
   const base=supBase(sup);
-  const ex=supEx[base]||supEx[sup]||{};
+  const ex=window.supEx[base]||window.supEx[sup]||{};
   const ph=ex.ph1||(SUPBASE.find(s=>supBase(s.name)===base&&s.phone)||SUPBASE.find(s=>s.name===sup)||{}).phone||'';
   document.getElementById('ns-ph').value=ph;
   // alias hint
@@ -306,16 +306,16 @@ function saveNewSched(){
   if(actType==='__new__'){actType=document.getElementById('ns-act-type-new').value.trim();}
   const evTp=(document.getElementById('ns-ev-type')||{}).value||'חוג';
   if(actType&&actType!=='__new__'){
-    if(!supEx[sup]) supEx[sup]={};
-    if(!Array.isArray(supEx[sup].acts)) supEx[sup].acts=getSupActs(sup);
-    if(!supEx[sup].acts.includes(actType)) supEx[sup].acts.push(actType);
+    if(!window.supEx[sup]) window.supEx[sup]={};
+    if(!Array.isArray(window.supEx[sup].acts)) window.supEx[sup].acts=getSupActs(sup);
+    if(!window.supEx[sup].acts.includes(actType)) window.supEx[sup].acts.push(actType);
   }
   if(!gid||!date||!sup){alert('יש למלא: גן, תאריך, ספק');return;}
   const g=G(gid);
   if(gcls(g)==='גנים'&&time){
     const h=parseInt(time.split(':')[0]);
     const period=h<13?'morning':'afternoon';
-    const conflict=SCH.find(s=>s.g===gid&&s.d===date&&s.st!=='can'&&s.t&&(parseInt(s.t.split(':')[0])<13?'morning':'afternoon')===period&&s.id!==undefined);
+    const conflict=window.SCH.find(s=>s.g===gid&&s.d===date&&s.st!=='can'&&s.t&&(parseInt(s.t.split(':')[0])<13?'morning':'afternoon')===period&&s.id!==undefined);
     if(conflict){
       document.getElementById('ns-warn').style.display='block';
       (document.getElementById('ns-warn')||{}).textContent =`⚠️ כבר קיימת פעילות ב${period==='morning'?'בוקר':'אחה"צ'}: ${conflict.a} ב-${fT(conflict.t)}`;
@@ -341,8 +341,8 @@ function saveNewSched(){
         if(!_hol2||_hol2.type==='info'||_hol2.canSched){
           const eid=recurring_id+count;
           const ev={id:eid,g:gid,d:ds,a:sup,act:actType,tp:evTp||'חוג',t:recurTime,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp,_recId:recurring_id};
-          SCH.push(ev);
-          if(g2id) SCH.push({...ev,id:eid+1000,g:g2id});
+          window.SCH.push(ev);
+          if(g2id) window.SCH.push({...ev,id:eid+1000,g:g2id});
           count++;
         }
       }
@@ -362,14 +362,14 @@ function saveNewSched(){
     
     // Requirement: Link back to original activity and mark it as completed
     if(typeof _makeupOrigId !== 'undefined' && _makeupOrigId){
-      const origExt = SCH.find(x => x.id === _makeupOrigId);
+      const origExt = window.SCH.find(x => x.id === _makeupOrigId);
       if(origExt) origExt._compByMakeup = newId;
     }
 
-    SCH.push(newSched);
+    window.SCH.push(newSched);
     if(g2id) {
       const g2time = document.getElementById('ns-time-g2').value || time;
-      SCH.push({...newSched,id:newId+1,g:g2id,t:g2time});
+      window.SCH.push({...newSched,id:newId+1,g:g2id,t:g2time});
     }
     saveAndRefresh('nsm');
     showToast('✅ שיבוץ השלמה נשמר');
@@ -378,10 +378,10 @@ function saveNewSched(){
 
   // One-time
   const newSched={id:newId,g:gid,d:date,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp};
-  SCH.push(newSched);
+  window.SCH.push(newSched);
   if(g2id){
     const g2time = document.getElementById('ns-time-g2').value || time;
-    SCH.push({...newSched,id:newId+1,g:g2id,t:g2time,nt:notes});
+    window.SCH.push({...newSched,id:newId+1,g:g2id,t:g2time,nt:notes});
   }
   saveAndRefresh('nsm');
   showToast('✅ שיבוץ נשמר');
@@ -429,7 +429,7 @@ function getFiltSched(){
   const srch=document.getElementById('s-srch').value.toLowerCase();
   const gids=[g1,g2,g3].filter(Boolean);
   const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-  return SCH.filter(s=>{
+  return window.SCH.filter(s=>{
     const g=G(s.g);
     if(type==='makeup' && !isM(s)) return false;
     if(type==='reg' && isM(s)) return false;
@@ -510,8 +510,8 @@ function renderSched(){
     const g=G(s.g);
     const c=g.city||'אחר';
     const cl=gcls(g);
-    if(!byDate[dk][c]) byDate[dk][c]={gan:[],sch:[]};
-    if(cl==='ביה"ס') byDate[dk][c].sch.push({...s,gd:g});
+    if(!byDate[dk][c]) byDate[dk][c]={gan:[],window.SCH:[]};
+    if(cl==='ביה"ס') byDate[dk][c].window.SCH.push({...s,gd:g});
     else byDate[dk][c].gan.push({...s,gd:g});
   });
 
@@ -524,7 +524,7 @@ function renderSched(){
       const cityData=byDate[dateKey][city];
       h+=`<div style="margin-bottom:8px">
         <div style="font-size:.75rem;font-weight:700;color:#546e7a;padding:3px 8px;background:#eceff1;border-radius:4px;margin-bottom:4px">🏙️ ${city}</div>`;
-      [{arr:cityData.gan,lbl:'🏫 צהרונים',cls:'gan'},{arr:cityData.sch,lbl:'🏛️ בתי ספר',cls:'sch'}].forEach(sec=>{
+      [{arr:cityData.gan,lbl:'🏫 צהרונים',cls:'gan'},{arr:cityData.window.SCH,lbl:'🏛️ בתי ספר',cls:'window.SCH'}].forEach(sec=>{
         if(!sec.arr.length) return;
         h+=`<div class="dsh ${sec.cls}" style="font-size:.7rem;margin-bottom:3px">${sec.lbl}</div>
           <div class="tw"><table style="margin-bottom:6px"><thead><tr>

@@ -23,13 +23,13 @@ function getCalF(){
   return{gids:gids.length?gids:null,city:document.getElementById('cal-city').value,cls:document.getElementById('cal-cls').value,cluster:document.getElementById('cal-cl').value,sup:document.getElementById('cal-sup').value,st:document.getElementById('cal-st').value};
 }
 function filterE(f,from,to){
-  const all=SCH.filter(s=>{
+  const all=window.SCH.filter(s=>{
     if(s.d<from||s.d>to) return false;
     const g=window.G(s.g);
     if(f.city&&g.city!==f.city) return false;
     if(f.cluster){
       if(f.cluster==='__all__'){
-        // only show gardens that belong to at least one cluster
+        // only show window.GARDENS that belong to at least one cluster
         const allClusterGids=new Set(getClusters().flatMap(c=>c.gardenIds||[]));
         if(!allClusterGids.has(s.g)) return false;
       } else {
@@ -51,7 +51,7 @@ function filterE(f,from,to){
 
     return true;
   });
-  const posted=SCH.filter(s=>{
+  const posted=window.SCH.filter(s=>{
     if(s.st!=='post'||!s.pd||s.pd<from||s.pd>to) return false;
     const g=window.G(s.g);
     if(f.city&&g.city!==f.city) return false;
@@ -125,7 +125,7 @@ function clearCal(){
   ['cal-g1','cal-g2','cal-g3'].forEach((id,i)=>{
     const el=document.getElementById(id);
     el.innerHTML=i===0?'<option value="">כל הצהרונים</option>':'<option value="">—</option>';
-    GARDENS.forEach(g=>el.innerHTML+=`<option value="${g.id}">${g.city} · ${g.name}</option>`);
+    window.GARDENS.forEach(g=>el.innerHTML+=`<option value="${g.id}">${g.city} · ${g.name}</option>`);
   });
   document.getElementById('cal-pair-bar').classList.remove('show');
   renderCal();
@@ -164,7 +164,7 @@ function checkDupePairAndSave(gids){
   const name=gids.map(id=>window.G(id).name||'').join(' + ');
   const nm=prompt('שם לזוג:',name);
   if(nm===null) return;
-  pairs.push({id:Date.now(),ids:gids,name:nm||name});
+  window.pairs.push({id:Date.now(),ids:gids,name:nm||name});
   save(); refresh();
   alert(`✅ הזוג "${nm||name}" נשמר!`);
 }
@@ -258,7 +258,7 @@ function setPairBreak(pairId,ds,broken){
 }
 
 // City-based color map for calendar
-const CITY_COLORS=(()=>{
+const window.CITY_COLORS=(()=>{
   // Neutral palette — one color per city, readable and clean
   const palette=[
     {solid:'#37474f',light:'#eceff1',border:'#b0bec5',text:'#37474f'},
@@ -291,7 +291,7 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
   const pairsByCity={};
   const others=evs.filter(s=> !s._compByMakeup);
 
-  pairs.forEach(pair=>{
+  window.pairs.forEach(pair=>{
     if(isPairBroken(pair.id,ds)) return;
     const pairEvs=others.filter(s=>pair.ids.includes(s.g));
     if(!pairEvs.length) return;
@@ -309,8 +309,8 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
     </div>`;
 
   Object.keys(pairsByCity).sort().forEach(city=>{
-    const clr=CITY_COLORS(city);
-    h += `<div class="pairs-4col">`;
+    const clr=window.CITY_COLORS(city);
+    h += `<div class="window.pairs-4col">`;
     pairsByCity[city].forEach(({pair,pairEvs})=>{
       h += renderPairCard(pair, pairEvs, {ds, clr, showEdit:true, showExport:true, isMakeup:true});
     });
@@ -318,9 +318,9 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
   });
 
   if(allSoloEvs.length){
-    h += `<div class="pairs-4col">`;
+    h += `<div class="window.pairs-4col">`;
     allSoloEvs.forEach(s=>{
-      const clr=CITY_COLORS(window.G(s.g).city||'אחר');
+      const clr=window.CITY_COLORS(window.G(s.g).city||'אחר');
       h += renderPairCard({id:'solo_'+s.id, name:window.G(s.g).name, ids:[s.g]}, [s], {ds, clr, showEdit:true, showExport:true, isMakeup:true});
     });
     h += `</div>`;
@@ -376,7 +376,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
       allCities.forEach(city=>{
         const cityEvs=dayEvs.filter(s=>(window.G(s.g).city||'אחר')===city);
         if(!cityEvs.length) return;
-        const clr=CITY_COLORS(city);
+        const clr=window.CITY_COLORS(city);
         html+=`<div style="margin:0 0 10px 0">`;
         if(!cityFilter){
           html+=`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;background:${clr.light};border-right:3px solid ${clr.solid};border-radius:5px;margin-bottom:6px">
@@ -388,7 +388,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
         // --- זוגות: מיון לפי שעה הכי מוקדמת בזוג ---
         const pairedGids=new Set();
         const pairBlocks=[];
-        pairs.forEach(pair=>{
+        window.pairs.forEach(pair=>{
           if(isPairBroken(pair.id,ds)) return;
           const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g) && !s._makeupFrom);
           if(!pairEvs.length) return;
@@ -399,7 +399,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
         // sort pair blocks by earliest event time
         pairBlocks.sort((a,b)=>a.earliest.localeCompare(b.earliest));
         if(pairBlocks.length){
-          html+=`<div class="pairs-4col" style="margin-bottom:8px">`;
+          html+=`<div class="window.pairs-4col" style="margin-bottom:8px">`;
           pairBlocks.forEach(({pair,pairEvs})=>{
             html+=renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true});
           });
@@ -469,13 +469,13 @@ function renderClusterDay(evs, ds, clusterName){
     allCities.forEach(city=>{
       const cityEvs=others.filter(s=>(window.G(s.g).city||'אחר')===city);
       if(!cityEvs.length) return;
-      const clrCity=CITY_COLORS(city);
+      const clrCity=window.CITY_COLORS(city);
       html+=`<div style="margin-bottom:14px">
         <div style="padding:5px 10px;background:${clrCity.solid};color:#fff;border-radius:6px;font-size:.82rem;font-weight:800;margin-bottom:8px">🏙️ ${city}</div>`;
       // Group by cluster within city
       const clusterMap={};
       cityEvs.forEach(s=>{
-        const gClusters=gardenClusters(s.g);
+        const gClusters=window.gardenClusters(s.g);
         const clKey=gClusters.length?gClusters[0].name:'ללא אשכול';
         (clusterMap[clKey]=clusterMap[clKey]||[]).push(s);
       });
@@ -511,7 +511,7 @@ function renderClusterDay(evs, ds, clusterName){
     others.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s=>{
       const g=window.G(s.g);
       const stc=s.st!=='ok'?'st-'+s.st:'';
-      const clrCity=CITY_COLORS(g.city||'');
+      const clrCity=window.CITY_COLORS(g.city||'');
       html+=`<div class="city-block" style="margin-bottom:8px">
         <div class="city-block-hdr" style="background:${clrCity.solid};font-size:.76rem">
           ${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}
@@ -578,12 +578,12 @@ function renderClusterWeek(evs, weekStart, clusterName){
       allCities.forEach(city=>{
         const cityEvs=dayEvs.filter(s=>(window.G(s.g).city||'אחר')===city);
         if(!cityEvs.length) return;
-        const clrCity=CITY_COLORS(city);
+        const clrCity=window.CITY_COLORS(city);
         html+=`<div style="margin-bottom:8px">
           <div style="padding:3px 8px;background:${clrCity.solid};color:#fff;border-radius:4px;font-size:.73rem;font-weight:700;margin-bottom:4px">🏙️ ${city}</div>`;
         const clusterMap={};
         cityEvs.forEach(s=>{
-          const clKey=(gardenClusters(s.g)[0]||{}).name||'ללא אשכול';
+          const clKey=(window.gardenClusters(s.g)[0]||{}).name||'ללא אשכול';
           (clusterMap[clKey]=clusterMap[clKey]||[]).push(s);
         });
         Object.entries(clusterMap).sort((a,b)=>a[0].localeCompare(b[0],'he')).forEach(([clName,clEvs])=>{
@@ -609,8 +609,8 @@ function renderClusterWeek(evs, weekStart, clusterName){
       dayEvs.forEach(s=>{
         const g=window.G(s.g);
         const stc=s.st!=='ok'?'st-'+s.st:'';
-        const clrCity=CITY_COLORS(g.city||'');
-        const clBadge=isAll?(gardenClusters(g.id)[0]||{}).name||'':'';
+        const clrCity=window.CITY_COLORS(g.city||'');
+        const clBadge=isAll?(window.gardenClusters(g.id)[0]||{}).name||'':'';
         html+=`<div style="min-width:180px;flex:1;border:1.5px solid ${clrCity.border};border-radius:7px;padding:7px;cursor:pointer;background:${clrCity.light}" onclick="openSP(${s.id})" class="${stc}">
           ${s.t?`<div style="font-size:.82rem;font-weight:800;color:${clrCity.solid};margin-bottom:2px">⏰ ${window.fT(s.t)}</div>`:''}
           <div style="font-weight:700;font-size:.78rem;color:#1a237e">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
@@ -643,13 +643,13 @@ function renderNormalDay(evs,ds){
   const activeGids=new Set(evs.map(s=>s.g));
   const pairedGids=new Set();
   const pairRowsHtml=[]; // rendered pair rows
-  // Group pairs by city for unified color display
+  // Group window.pairs by city for unified color display
   const pairsByCity={};
   const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
   // Regular section shows everything that is NOT a makeup
   const others=evs.filter(s=> !s._compByMakeup && !isM(s));
 
-  pairs.forEach(pair=>{
+  window.pairs.forEach(pair=>{
     if(isPairBroken(pair.id,ds)) return;
     const pairEvs=others.filter(s=>pair.ids.includes(s.g));
     if(!pairEvs.length) return;
@@ -659,7 +659,7 @@ function renderNormalDay(evs,ds){
     pair.ids.forEach(id=>pairedGids.add(id));
   });
   Object.keys(pairsByCity).sort().forEach(city=>{
-    const clr=CITY_COLORS(city);
+    const clr=window.CITY_COLORS(city);
     const cityPairs=pairsByCity[city];
     cityPairs.forEach(({pair,pairEvs})=>{
       pairRowsHtml.push(renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true}));
@@ -668,7 +668,7 @@ function renderNormalDay(evs,ds){
 
   const allSoloEvs = others.filter(s=>!pairedGids.has(s.g));
 
-  pairs.forEach(pair=>{
+  window.pairs.forEach(pair=>{
     if(!isPairBroken(pair.id,ds)) return;
     const pairEvs=others.filter(s=>pair.ids.includes(s.g));
     if(!pairEvs.length) return;
@@ -689,7 +689,7 @@ function renderNormalDay(evs,ds){
     // Re-assign cards to cities (in order)
     let cardIdx=0;
     Object.keys(pairsByCity).sort().forEach(city=>{
-      const clr=CITY_COLORS(city);
+      const clr=window.CITY_COLORS(city);
       pairsByCity[city].forEach(({pair,pairEvs})=>{
         if(!pairCardsByCity[city]) pairCardsByCity[city]=[];
         pairCardsByCity[city].push(renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true}));
@@ -700,11 +700,11 @@ function renderNormalDay(evs,ds){
       if(!cards||!cards.length) return;
       html+=`<div style="margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <div style="flex:1;height:2px;background:${CITY_COLORS(city).solid};opacity:.3"></div>
-          <span style="font-size:.75rem;font-weight:800;color:${CITY_COLORS(city).solid};white-space:nowrap">🏙️ ${city} (${cards.length} זוגות)</span>
-          <div style="flex:1;height:2px;background:${CITY_COLORS(city).solid};opacity:.3"></div>
+          <div style="flex:1;height:2px;background:${window.CITY_COLORS(city).solid};opacity:.3"></div>
+          <span style="font-size:.75rem;font-weight:800;color:${window.CITY_COLORS(city).solid};white-space:nowrap">🏙️ ${city} (${cards.length} זוגות)</span>
+          <div style="flex:1;height:2px;background:${window.CITY_COLORS(city).solid};opacity:.3"></div>
         </div>
-        <div class="pairs-4col">${cards.join('')}</div>
+        <div class="window.pairs-4col">${cards.join('')}</div>
       </div>`;
     });
   }
@@ -718,17 +718,17 @@ function renderNormalDay(evs,ds){
       byCitySolo[c].push(s);
     });
     Object.keys(byCitySolo).sort().forEach(city=>{
-      const clr=CITY_COLORS(city);
+      const clr=window.CITY_COLORS(city);
       html+=`<div style="margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <div style="flex:1;height:2px;background:${clr.solid};opacity:.3"></div>
           <span style="font-size:.75rem;font-weight:800;color:${clr.solid};white-space:nowrap">🏙️ ${city} — צהרונים ללא זוג</span>
           <div style="flex:1;height:2px;background:${clr.solid};opacity:.3"></div>
         </div>
-        <div class="pairs-4col">`;
+        <div class="window.pairs-4col">`;
       byCitySolo[city].sort((a,b)=>{
-        const clA=(gardenClusters(a.g)[0]||{}).name||'ת';
-        const clB=(gardenClusters(b.g)[0]||{}).name||'ת';
+        const clA=(window.gardenClusters(a.g)[0]||{}).name||'ת';
+        const clB=(window.gardenClusters(b.g)[0]||{}).name||'ת';
         return clA.localeCompare(clB,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
       }).forEach(s=>{
         const stc=s.st!=='ok'?'st-'+s.st:'';
@@ -819,7 +819,7 @@ function renderPairCard(pair, pairEvs, opts){
           ${supPhone?`<span class="pcs-item">📞 ${supPhone}</span>`:''}
           ${actName?`<span class="pcs-item">🎯 ${actName}</span>`:''}
         </div>
-        <div class="pair-gardens">`;
+        <div class="pair-window.GARDENS">`;
 
   // One row per garden
   pair.ids.filter(Boolean).forEach(gid=>{
@@ -827,7 +827,7 @@ function renderPairCard(pair, pairEvs, opts){
     const gEvs=pairEvs.filter(s=>s.g===gid).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
     
     if(!gEvs.length){
-      const gblkNone=ds?getGardenBlock(gid,ds):null;
+      const gblkNone=ds?window.getGardenBlock(gid,ds):null;
       html+=`<div class="pair-garden-row" style="opacity:${gblkNone?1:.5};${gblkNone?'background:#fce4ec;border-right:3px solid #e91e63;':''}" onclick="${ds?`openGcellPopup(${gid},'${ds}',event)`:''}" style="cursor:${ds?'pointer':'default'}">
         <div class="pgr-left">
           <div class="pgr-name">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
@@ -840,7 +840,7 @@ function renderPairCard(pair, pairEvs, opts){
     } else {
       gEvs.forEach(ev => {
         const stc=ev&&ev.st!=='ok'?'st-'+ev.st:'';
-        const gblkEv=ds?getGardenBlock(gid,ds):null;
+        const gblkEv=ds?window.getGardenBlock(gid,ds):null;
         const isMakeup = ev._makeupFrom || (ev.nt && ev.nt.includes('השלמה'));
         const makeupBadge = isMakeup ? `<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>` : '';
         
@@ -900,7 +900,7 @@ function renderGardenCols(evs,gids,clr){
     }
     html+='</div>';
   });
-  // Pad with empty col if only 2 gardens (for 3-col alignment)
+  // Pad with empty col if only 2 window.GARDENS (for 3-col alignment)
   if(cols.length===2){
     html+=`<div class="garden-col" style="border-right:none;background:#fafafa">
       <div style="text-align:center;color:#ddd;padding:20px 0;font-size:.8rem">—</div>
@@ -966,15 +966,15 @@ function renderNormalWeek(evs,ws,f){
 
   const usedGids=new Set();
   const byCity={};
-  function ensureCity(city){ if(!byCity[city]) byCity[city]={pairs:[],solos:[]}; }
+  function ensureCity(city){ if(!byCity[city]) byCity[city]={window.pairs:[],solos:[]}; }
 
-  pairs.forEach(pair=>{
+  window.pairs.forEach(pair=>{
     const myGids=pair.ids.filter(gid=>gids.includes(gid));
     if(!myGids.length) return;
     const city=window.G(myGids[0]).city||'אחר';
     ensureCity(city);
     myGids.forEach(gid=>usedGids.add(gid));
-    byCity[city].pairs.push({pair,gids:myGids});
+    byCity[city].window.pairs.push({pair,gids:myGids});
   });
   gids.filter(gid=>!usedGids.has(gid)).forEach(gid=>{
     const g=window.G(gid); const city=g.city||'אחר';
@@ -984,7 +984,7 @@ function renderNormalWeek(evs,ws,f){
 
   const sortedCities=Object.keys(byCity).sort((a,b)=>a.localeCompare(b,'he'));
   sortedCities.forEach(city=>{
-    byCity[city].pairs.sort((a,b)=>a.pair.name.localeCompare(b.pair.name,'he'));
+    byCity[city].window.pairs.sort((a,b)=>a.pair.name.localeCompare(b.pair.name,'he'));
     byCity[city].solos.sort((a,b)=>(window.G(a).name||'').localeCompare(window.G(b).name||'','he'));
   });
 
@@ -1032,14 +1032,14 @@ function renderNormalWeek(evs,ws,f){
   html+='</tr></thead><tbody>';
 
   sortedCities.forEach(city=>{
-    const clr=CITY_COLORS(city);
+    const clr=window.CITY_COLORS(city);
 
     // City header row
     html+=`<tr>
       <td colspan="7" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;
         border-bottom:1px solid rgba(255,255,255,.2);position:sticky;left:0">
         🏙️ ${city}
-        <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} זוגות · ${byCity[city].solos.length} צהרונים בודדים</span>
+        <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].window.pairs.length} זוגות · ${byCity[city].solos.length} צהרונים בודדים</span>
       </td>
     </tr>`;
 
@@ -1090,8 +1090,8 @@ function renderNormalWeek(evs,ws,f){
         onclick="openGcellPopup(${gid},'${ds}',event)">${inner}</td>`;
     }
 
-    // Pairs
-    byCity[city].pairs.forEach(({pair,gids:pGids})=>{
+    // window.pairs
+    byCity[city].window.pairs.forEach(({pair,gids:pGids})=>{
       const pairGidList = pGids.join(',');
       html+=`<tr>
         <td colspan="7" style="background:${clr.solid};color:#fff;padding:5px 12px;
@@ -1114,7 +1114,7 @@ function renderNormalWeek(evs,ws,f){
         days.forEach(d=>{
           const ds=d2s(d);
           const hol=getHolidayInfo(ds,g.city,window.gcls(g));
-          const gBlk=getGardenBlock(gid,ds);
+          const gBlk=window.getGardenBlock(gid,ds);
           const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
           html+=makeCell(gid,ds,de,gBlk,hol,clr);
         });
@@ -1122,7 +1122,7 @@ function renderNormalWeek(evs,ws,f){
       });
     });
 
-    // Solo gardens
+    // Solo window.GARDENS
     byCity[city].solos.forEach(gid=>{
       const g=window.G(gid);
       html+=`<tr><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
@@ -1133,7 +1133,7 @@ function renderNormalWeek(evs,ws,f){
       days.forEach(d=>{
         const ds=d2s(d);
         const hol=getHolidayInfo(ds,g.city,window.gcls(g));
-        const soloBlk=getGardenBlock(gid,ds);
+        const soloBlk=window.getGardenBlock(gid,ds);
         const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
         html+=makeCell(gid,ds,de,soloBlk,hol,clr);
       });
@@ -1166,7 +1166,7 @@ function renderPairWeek(evs,ws,gids){
       if(!gid){html+=`<td style="background:#f5f5f5"></td>`;return;}
       const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
       const cellBg=hol?hol.bg:'#fff';
-      const pwBlk=getGardenBlock(gid,ds);
+      const pwBlk=window.getGardenBlock(gid,ds);
       html+=`<td style="background:${pwBlk?'#fce4ec':cellBg};${pwBlk?'border:1.5px solid #e91e63;':''}" onclick="openGcellPopup(${gid},'${ds}',event)">${de.length?de.map(ev=>`<div style="border-radius:4px;padding:4px 6px;margin-bottom:3px;cursor:pointer;font-size:.72rem;background:${clr.light};border-right:2px solid ${clr.solid};" onclick="event.stopPropagation();openSP(${ev.id})"><div style="font-weight:700;color:#1a237e">${ev.a}</div>${ev.t?`<div style="font-size:.68rem;color:#546e7a">⏰ ${window.fT(ev.t)}</div>`:''}</div>`).join('')+(pwBlk?`<div style="font-size:.62rem;color:#c62828">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`:'')
         :pwBlk?`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`
         :'<span style="color:#ccc;font-size:.8rem;cursor:pointer">+</span>'}</td>`;
@@ -1230,21 +1230,21 @@ function renderRangeListView(evs, fromDs, toDs){
 
     allCities.forEach(city=>{
       const cityEvs=dayEvs.filter(s=>(window.G(s.g).city||'אחר')===city);
-      const clr=CITY_COLORS(city);
+      const clr=window.CITY_COLORS(city);
 
       h+=`<div style="margin-bottom:8px">
         <div style="background:${clr.light};border-right:4px solid ${clr.solid};border-radius:6px;padding:5px 10px;margin-bottom:5px;font-weight:800;color:${clr.solid};font-size:.88rem">
           🏙️ ${city} · ${cityEvs.length}
         </div>`;
 
-      // ── Group mode: pairs first OR clusters first based on _listGroupMode ──
-      const _gmode = typeof _listGroupMode!=='undefined' ? _listGroupMode : 'pairs';
+      // ── Group mode: window.pairs first OR window.clusters first based on _listGroupMode ──
+      const _gmode = typeof _listGroupMode!=='undefined' ? _listGroupMode : 'window.pairs';
 
       // Step 1: determine first-priority group
       const firstUsedGids=new Set();
 
-      if(_gmode==='clusters'){
-        // Clusters first
+      if(_gmode==='window.clusters'){
+        // window.clusters first
         const dayClusters=(typeof getClusters==='function'?getClusters():[]).filter(cl=>
           (cl.city===city||!cl.city)&&(cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===parseInt(gid))));
         const clusteredGids=new Set();
@@ -1262,10 +1262,10 @@ function renderRangeListView(evs, fromDs, toDs){
           clEvs.forEach(s=>{ h+=_listRow(s,clr); });
           h+=`</div>`;
         });
-        // Pairs second (only non-clustered)
+        // window.pairs second (only non-clustered)
         const pairedGids=new Set();
         const pairGroups=[];
-        pairs.forEach(pair=>{
+        window.pairs.forEach(pair=>{
           if(typeof isPairBroken==='function'&&isPairBroken(pair.id,ds)) return;
           const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
           const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!firstUsedGids.has(s.g) && !isM(s));
@@ -1285,10 +1285,10 @@ function renderRangeListView(evs, fromDs, toDs){
           h+=`</div>`;
         });
       } else {
-        // Pairs first (default)
+        // window.pairs first (default)
         const pairedGids=new Set();
         const pairGroups=[];
-        pairs.forEach(pair=>{
+        window.pairs.forEach(pair=>{
           if(typeof isPairBroken==='function'&&isPairBroken(pair.id,ds)) return;
           const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
           const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g) && !isM(s));
@@ -1307,7 +1307,7 @@ function renderRangeListView(evs, fromDs, toDs){
           sorted.forEach(s=>{ h+=_listRow(s,clr); });
           h+=`</div>`;
         });
-        // Clusters second (non-paired only)
+        // window.clusters second (non-paired only)
         const dayClusters=(typeof getClusters==='function'?getClusters():[]).filter(cl=>
           (cl.city===city||!cl.city)&&(cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===parseInt(gid)&&!firstUsedGids.has(s.g))));
         dayClusters.forEach(cl=>{
@@ -1386,7 +1386,7 @@ function renderCalList(evs, mDate){
       // Filter out makeups from the regular city block because they are in MakeupsTop now
       const cityEvs=dayEvs.filter(s=>(window.G(s.g).city||'אחר')===city && !isM(s));
       if(!cityEvs.length) return;
-      const clr=CITY_COLORS(city);
+      const clr=window.CITY_COLORS(city);
 
       h+=`<div style="margin-bottom:8px">`;
       // City header
@@ -1395,8 +1395,8 @@ function renderCalList(evs, mDate){
         <span style="font-size:.72rem;color:#78909c">${cityEvs.length} פעילויות</span>
       </div>`;
 
-      // ── Group mode: _listGroupMode controls pairs vs clusters priority ──
-      const _gmode2 = typeof _listGroupMode!=='undefined' ? _listGroupMode : 'pairs';
+      // ── Group mode: _listGroupMode controls window.pairs vs window.clusters priority ──
+      const _gmode2 = typeof _listGroupMode!=='undefined' ? _listGroupMode : 'window.pairs';
       const pairedGids=new Set();
       const clusteredGidsC=new Set();
 
@@ -1417,14 +1417,14 @@ function renderCalList(evs, mDate){
       const clAll=(typeof getClusters==='function'?getClusters():[]).filter(cl=>
         (cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===parseInt(gid))));
 
-      if(_gmode2==='clusters'){
-        // Clusters first
+      if(_gmode2==='window.clusters'){
+        // window.clusters first
         clAll.forEach(cl=>_renderCluster2(cl));
       }
 
-      // Pairs (skip already-clustered if clusters-first mode)
+      // window.pairs (skip already-clustered if window.clusters-first mode)
       const pairGroups=[];
-      pairs.forEach(pair=>{
+      window.pairs.forEach(pair=>{
         if(isPairBroken&&isPairBroken(pair.id,ds)) return;
         const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
         const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!clusteredGidsC.has(s.g) && !isM(s));
@@ -1434,12 +1434,12 @@ function renderCalList(evs, mDate){
       });
       pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he'));
 
-      if(_gmode2==='pairs'){
-        // Clusters second (skip paired)
+      if(_gmode2==='window.pairs'){
+        // window.clusters second (skip paired)
         clAll.forEach(cl=>_renderCluster2(cl));
       }
 
-      // ── Render pairs ──
+      // ── Render window.pairs ──
       pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he'));
 
       pairGroups.forEach(({pair,pairEvs})=>{
@@ -1560,3 +1560,17 @@ window.renderMakeupsTop = renderMakeupsTop;
 window.jumpToDay = jumpToDay;
 window.toggleExportMenu = toggleExportMenu;
 window.closeExportMenu = closeExportMenu;
+
+// --- GLOBAL BRIDGE ---
+window.renderCal = renderCal;
+window.navCal = navCal;
+window.setView = setView;
+window.setCalTab = setCalTab;
+window.goDate = goDate;
+window.jumpToDay = jumpToDay;
+window.renderMakeupsTop = renderMakeupsTop;
+window.setListGroupMode = setListGroupMode;
+window.setListSubView = setListSubView;
+window.toggleExportMenu = toggleExportMenu;
+window.closeExportMenu = closeExportMenu;
+window.openExport = openExport;
