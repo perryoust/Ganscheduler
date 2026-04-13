@@ -701,7 +701,7 @@ function renderNormalDay(evs,ds){
       const clr=window.CITY_COLORS(city);
       if(!cardsByCity[city]) cardsByCity[city]=[];
       pairsByCity[city].forEach(({pair,pairEvs})=>{
-        cardsByCity[city].push(window.renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true}));
+        cardsByCity[city].push(window.renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true,isCompact:true}));
       });
     });
     // 2. Add Solo Cards (unified style)
@@ -710,7 +710,7 @@ function renderNormalDay(evs,ds){
       const city=g.city||'אחר';
       const clr=window.CITY_COLORS(city);
       if(!cardsByCity[city]) cardsByCity[city]=[];
-      cardsByCity[city].push(window.renderPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds,clr,showEdit:true,showExport:true}));
+      cardsByCity[city].push(window.renderPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds,clr,showEdit:true,showExport:true,isCompact:true}));
     });
 
     Object.keys(cardsByCity).sort().forEach(city=>{
@@ -723,7 +723,7 @@ function renderNormalDay(evs,ds){
           <span style="font-size:.75rem;font-weight:800;color:${clr.solid};white-space:nowrap">🏙️ ${city}</span>
           <div style="flex:1;height:2px;background:${clr.solid};opacity:.3"></div>
         </div>
-        <div class="pairs-4col">${cards.join('')}</div>
+        <div class="pairs-5col">${cards.join('')}</div>
       </div>`;
     });
   }
@@ -760,19 +760,20 @@ function renderPairCard(pair, pairEvs, opts){
     ?`<button onclick="exportPairRow('${pair.id}','${ds}',${!!opts.isMakeup})" style="background:rgba(255,255,255,.3);border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.7rem;color:#fff;font-weight:700">📋 הודעה</button>`
     :'';
 
-  let html=`<div class="pair-card ${opts&&opts.isList?'list-mode':''}">
+  const isCompact=!!opts.isCompact;
+  let html=`<div class="pair-card ${opts&&opts.isList?'list-mode':''} ${isCompact?'compact':''}">
     <div class="pair-card-hdr" style="background:${clr.solid}">
       🔗 ${pair.name}
       <span style="font-size:.68rem;font-weight:400;opacity:.8;margin-right:auto">${window.G(pair.ids[0]).city||''}</span>
       ${expBtn}${editBtn}
     </div>
     <div class="pair-card-body">
-      <div class="pair-card-label" style="background:${clr.light}">
+      ${!isCompact?`<div class="pair-card-label" style="background:${clr.light}">
         <span class="pcl-name" style="color:${clr.text}">${pair.name}</span>
         ${showEdit&&ds?`<div class="pcl-btns">
           <button onclick="openPairQuickEdit('${pair.id}','${ds}')" style="background:${clr.solid};border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.62rem;color:#fff">✏️</button>
         </div>`:''}
-      </div>
+      </div>`:''}
       <div class="pair-card-content">
         <div class="pair-card-shared">
           ${supName?`<span class="pcs-item">📚 <b>${window.supBase(supName)}</b></span>`:''}

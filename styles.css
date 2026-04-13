@@ -129,8 +129,8 @@ tr:hover td{background:#f5f7ff}
 .pair-card{margin-bottom:10px;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.09);background:#fff}
 .pair-card-hdr{display:flex;align-items:center;gap:8px;padding:6px 12px;font-size:.8rem;font-weight:800;color:#fff}
 .pair-card-body{display:grid;grid-template-columns:minmax(100px, auto) 1fr}
-.pair-card-label{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 8px;gap:4px;text-align:center;border-left:1px solid rgba(0,0,0,.08);min-width:100px}
-.pair-card-label .pcl-name{font-size:.75rem;font-weight:800;line-height:1.2;word-break:break-word;overflow-wrap:anywhere}
+.pair-card-label{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 8px;gap:4px;text-align:center;border-left:1px solid rgba(0,0,0,.08);min-width:90px}
+.pair-card-label .pcl-name{font-size:.72rem;font-weight:800;line-height:1.1;word-break:break-word;overflow-wrap:anywhere}
 .pair-card-label .pcl-btns{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;justify-content:center}
 .pair-card-content{min-width:0}
 .pair-card-shared{padding:6px 10px;border-bottom:1px solid rgba(0,0,0,.06);display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#fafbff}
@@ -161,6 +161,16 @@ tr:hover td{background:#f5f7ff}
 .pair-card.list-mode .pair-card-body { display: block; }
 .pair-card.list-mode .pair-card-label { display: none; }
 .pair-card.list-mode .pair-card-shared { background: #fafbff; padding: 8px 12px; }
+
+/* COMPACT MODE for 5-column layout */
+.pairs-5col { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-bottom: 14px; align-items: start; }
+.pair-card.compact .pair-card-body { display: block; }
+.pair-card.compact .pair-card-label { display: none; }
+.pair-card.compact .pgr-name { font-size: 0.72rem; }
+.pair-card.compact .pgr-addr { font-size: 0.62rem; }
+.pair-card.compact .pcs-item { font-size: 0.7rem; }
+.pair-card.compact .qacts button { width: 22px; height: 22px; padding: 0; font-size: 0.65rem; }
+
 
 @media(min-width:769px){.mob-btn-row{display:contents}#mob-nav-purch{display:none!important}}
 @media(max-width:900px){.pairs-4col{grid-template-columns:repeat(2,1fr)}}
