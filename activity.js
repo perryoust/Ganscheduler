@@ -22,8 +22,16 @@ function renderDash(){
     // Status Logic:
     if(st==='todo' || !st){
       const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
-      const isTodo = (s.st==='nohap' || s.st==='post' || isM) && !s._compByMakeup;
-      if(!isTodo) return false;
+      const isHandled = !!s._compByMakeup;
+      if(st==='todo'){
+        if(!(s.st==='nohap' || s.st==='post' || isM) || isHandled) return false;
+      } else {
+        // Default View (All Dates): Show everything for the selected date, 
+        // but if viewing active issues, we might want to prioritize unhandled ones.
+        // The user wants a "Handled" list eventually.
+      }
+    } else if(st==='handled'){
+      if(!s._compByMakeup) return false;
     } else {
       if(s.st!==st) return false;
     }
@@ -168,36 +176,57 @@ function _dashListRow(s){
 function renderCanList(){
   const safeSort = (a, b) => (b.d || '').localeCompare(a.d || '');
   
-  // Nohap list — all events that didn't happen, sorted by date desc
-  const nohapEvs = window.SCH.filter(s => s.st === 'nohap' && !s._compByMakeup).sort(safeSort);
-  // Can+post list — last 20
-  const canEvs = window.SCH.filter(s => s.st === 'post' && !s._compByMakeup).sort(safeSort).slice(0, 20);
-  const allEvs = [...nohapEvs, ...canEvs].sort(safeSort);
+  // 1. Todo - Nohap/Post that are NOT handled yet
+  const todoEvs = window.SCH.filter(s => (s.st === 'nohap' || s.st === 'post') && !s._compByMakeup).sort(safeSort);
+  
+  // 2. Handled - Items that reached status nohap/post but were marked as compByMakeup (manual or via makeup)
+  const handledEvs = window.SCH.filter(s => (s.st === 'nohap' || s.st === 'post') && s._compByMakeup).sort(safeSort).slice(0, 20);
 
   let ch = '';
-  if (!allEvs.length) {
-    ch = '<p style="color:#999;font-size:.79rem;padding:10px">אין ביטולים/דחיות</p>';
+  
+  // Render Todo Section
+  ch += `<div style="margin-bottom:20px">
+    <div style="font-weight:800;color:#c62828;margin-bottom:8px;font-size:.9rem">🔴 דורש טיפול (השלמה / ביטול סופי) (${todoEvs.length})</div>`;
+  if (!todoEvs.length) {
+    ch += '<p style="color:#999;font-size:79rem;padding:10px;background:#f9f9f9;border-radius:6px">אין חריגים הממתינים לטיפול</p>';
   } else {
-    ch = '<div class="tw"><table><thead><tr><th>תאריך</th><th>עיר</th><th>גן</th><th>ספק</th><th>סטטוס</th><th>סיבה</th></tr></thead><tbody>';
-    allEvs.forEach(s => {
-      const g = window.G(s.g);
-      const rowClass = window.stClass ? window.stClass(s) : '';
-      const dateStr = (window.fD && s.d) ? window.fD(s.d) : (s.d || '');
-      const stLbl = window.stLabel ? window.stLabel(s) : (s.st || '');
-      
-      ch += `<tr onclick="window.openSP(${s.id})" class="${rowClass}">
-        <td>${dateStr}</td>
-        <td>${(g && g.city) || ''}</td>
-        <td>${(g && g.name) || ''}</td>
-        <td>${s.a || ''}</td>
-        <td>${stLbl}</td>
-        <td>${s.cr || ''}${s.cn ? ' (' + s.cn + ')' : ''}</td>
-      </tr>`;
-    });
-    ch += '</tbody></table></div>';
+    ch += _renderMiniTable(todoEvs);
   }
+  ch += `</div>`;
+
+  // Render Handled Section
+  ch += `<div>
+    <div style="font-weight:800;color:#2e7d32;margin-bottom:8px;font-size:.9rem">🟢 טופלו לאחרונה (${handledEvs.length})</div>`;
+  if (!handledEvs.length) {
+    ch += '<p style="color:#999;font-size:.79rem;padding:10px">אין פריטים שטופלו לאחרונה</p>';
+  } else {
+    ch += _renderMiniTable(handledEvs);
+  }
+  ch += `</div>`;
+
   const el = document.getElementById('dash-can-body');
   if (el) el.innerHTML = ch;
+}
+
+function _renderMiniTable(evs){
+  let h = '<div class="tw"><table><thead><tr><th>תאריך</th><th>עיר</th><th>גן</th><th>ספק</th><th>סטטוס</th><th>סיבה</th></tr></thead><tbody>';
+  evs.forEach(s => {
+    const g = window.G(s.g);
+    const rowClass = window.stClass ? window.stClass(s) : '';
+    const dateStr = (window.fD && s.d) ? window.fD(s.d) : (s.d || '');
+    const stLbl = window.stLabel ? window.stLabel(s) : (s.st || '');
+    
+    h += `<tr onclick="window.openSP(${s.id})" class="${rowClass}" style="cursor:pointer">
+      <td>${dateStr}</td>
+      <td>${(g && g.city) || ''}</td>
+      <td>${(g && g.name) || ''}</td>
+      <td>${s.a || ''}</td>
+      <td>${stLbl}</td>
+      <td>${s.cr || ''}${s.cn ? ' (' + s.cn + ')' : ''}</td>
+    </tr>`;
+  });
+  h += '</tbody></table></div>';
+  return h;
 }
 
 
@@ -833,6 +862,7 @@ function qSetSt(id,st){
 
 function openMakeupSched(origId){
   const orig=window.SCH.find(s=>s.id===origId); if(!orig) return;
+  window._makeupOrigId = origId; // Set the global ID to link back on save
   const d=new Date(); // Today
   openNewSched(orig.g, {date:window.d2s(d), tab:'makeup', makeupFrom:orig.d, time:orig.t});
   setTimeout(()=>{

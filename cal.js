@@ -291,7 +291,7 @@ var CITY_COLORS=window.CITY_COLORS;
 // ─── Shared Helper: Render global makeups for a day (ignores filters) ───
 // ─── Shared Helper: Makeups are now handled within regular grouping logic ───
 function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
-  const f={city:cityFilter, cls:clsFilter, st:'todo'};
+  const f={city:cityFilter, cls:clsFilter}; // Removed st: 'todo' to show all makeups regardless of status
   const evs = (typeof filterE === 'function' ? filterE(f, ds, ds) : []).filter(s => {
     // Only include those that are actually makeups
     return !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
@@ -664,7 +664,7 @@ function renderNormalDay(evs,ds){
   </div>`;
   
   const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-  const others=evs.filter(s=> !s._compByMakeup && !isM(s));
+  const others=evs.filter(s=> !isM(s)); // KEEP _compByMakeup activities visible on calendar
   const pairedGids=new Set();
   const pairsByCity={};
 
