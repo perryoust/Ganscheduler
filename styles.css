@@ -157,6 +157,11 @@ tr:hover td{background:#f5f7ff}
 .pairs-list-layout{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .pairs-list-layout .pair-card{margin-bottom:0;width:100%}
 
+/* List mode for pair cards: horizontal layout */
+.pair-card.list-mode .pair-card-body { display: block; }
+.pair-card.list-mode .pair-card-label { display: none; }
+.pair-card.list-mode .pair-card-shared { background: #fafbff; padding: 8px 12px; }
+
 @media(min-width:769px){.mob-btn-row{display:contents}#mob-nav-purch{display:none!important}}
 @media(max-width:900px){.pairs-4col{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.pairs-4col{grid-template-columns:1fr}}

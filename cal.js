@@ -324,16 +324,17 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
   const isList = (cv === 'week' || cv === 'list' || cv === 'month' || (cv === 'range' && rsv === 'list'));
   const layoutClass = isList ? 'pairs-list-layout' : 'pairs-4col';
 
-  let h = `<div style="background:#e1f5fe;border:2px solid #03a9f4;border-radius:12px;padding:12px;margin-bottom:15px">
-    <div style="font-weight:800;color:#01579b;margin-bottom:10px;display:flex;align-items:center;gap:8px;font-size:.95rem">
-      📅 השלמות להיום
+  let h = `<div style="background:linear-gradient(135deg,#e1f5fe,#fff);border:2px solid #03a9f4;border-radius:12px;padding:12px;margin-bottom:15px;box-shadow:0 4px 15px rgba(3,169,244,.1)">
+    <div style="font-weight:800;color:#01579b;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.95rem">
+      <span>🚀 השלמות להיום</span>
+      <span style="font-size:.7rem;opacity:.7">${window.fD(ds)}</span>
     </div>`;
 
   Object.keys(pairsByCity).sort().forEach(city=>{
     const clr=window.CITY_COLORS(city);
     h += `<div class="${layoutClass}">`;
     pairsByCity[city].forEach(({pair,pairEvs})=>{
-      h += renderPairCard(pair, pairEvs, {ds, clr, showEdit:true, showExport:true, isMakeup:true});
+      h += renderPairCard(pair, pairEvs, {ds, clr, showEdit:true, showExport:true, isMakeup:true, isList:isList});
     });
     h += `</div>`;
   });
@@ -344,7 +345,7 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
       const g = window.G(s.g);
       if(!g) return;
       const clr=window.CITY_COLORS(g.city||'אחר');
-      h += renderPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds, clr, showEdit:true, showExport:true, isMakeup:true});
+      h += renderPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds, clr, showEdit:true, showExport:true, isMakeup:true, isList:isList});
     });
     h += `</div>`;
   }
@@ -825,7 +826,7 @@ function renderPairCard(pair, pairEvs, opts){
     ?`<button onclick="exportPairRow('${pair.id}','${ds}',${!!opts.isMakeup})" style="background:rgba(255,255,255,.3);border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.7rem;color:#fff;font-weight:700">📋 הודעה</button>`
     :'';
 
-  let html=`<div class="pair-card">
+  let html=`<div class="pair-card ${opts&&opts.isList?'list-mode':''}">
     <div class="pair-card-hdr" style="background:${clr.solid}">
       🔗 ${pair.name}
       <span style="font-size:.68rem;font-weight:400;opacity:.8;margin-right:auto">${window.G(pair.ids[0]).city||''}</span>
