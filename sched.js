@@ -566,8 +566,23 @@ function renderSched(){
   document.getElementById('s-pag').innerHTML=pg;
 }
 function goPg(p){sPage=p;renderSched();}
+function searchAct(){
+  sPage=1;
+  renderSched();
+}
 function clearSched(){
   ['s-city','s-cls','s-sup','s-th','s-tt','s-from','s-to','s-st','s-srch'].forEach(id=>document.getElementById(id).value='');
   sRefG();
 }
+
+// Global Bridge
+window.renderSched = renderSched;
+window.setSchedView = setSchedView;
+window.navSched = navSched;
+window.navSchedToday = navSchedToday;
+window.sSchedStChange = sSchedStChange;
+window.sRefG = sRefG;
+window.openNewSched = openNewSched;
+window.searchAct = searchAct;
+window.clearSched = clearSched;
 

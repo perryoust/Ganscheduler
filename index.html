@@ -8,13 +8,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="קידס שיבוץ">
-<meta name="theme-color" content="#  <title>Ganscheduler v10.x</title>
-  <link rel="stylesheet" href="styles.css?v=91.1">
-ay: flex !important; flex-direction: column; gap: 8px; }
-  .mob-flt-wrap.open { display: flex !important; }
-}
-
-/* ── Gardens top bar: tabs scroll, toggle + add-btn stay right ── */
+<meta name="theme-color" content="#1a237e">
+<title>Ganscheduler v10.x</title>
+<link rel="stylesheet" href="styles.css?v=91.2">
+<style>
+/* App-specific overrides — moved to styles.css but keeping small critical blocks if needed */
 .g-top-bar { flex-wrap: nowrap !important; overflow: visible; }
 .g-tab-bar  { overflow-x: auto; flex: 1; flex-wrap: nowrap !important;
               -webkit-overflow-scrolling: touch; scrollbar-width: none; }
@@ -2446,18 +2444,18 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
-<script src="data.js?v=91"></script>
-<script src="firebase.js?v=91"></script>
-<script src="invoices.js?v=91"></script>
-<script src="suppliers.js?v=91"></script>
-<script src="cal.js?v=91"></script>
-<script src="activity.js?v=91"></script>
-<script src="sched.js?v=91"></script>
-<script src="gardens.js?v=91"></script>
-<script src="export.js?v=91"></script>
-<script src="backup.js?v=91"></script>
-<script src="admin.js?v=91"></script>
-<script src="core.js?v=91"></script>
+<script src="data.js?v=91.2"></script>
+<script src="firebase.js?v=91.2"></script>
+<script src="invoices.js?v=91.2"></script>
+<script src="suppliers.js?v=91.2"></script>
+<script src="cal.js?v=91.2"></script>
+<script src="activity.js?v=91.2"></script>
+<script src="sched.js?v=91.2"></script>
+<script src="gardens.js?v=91.2"></script>
+<script src="export.js?v=91.2"></script>
+<script src="backup.js?v=91.2"></script>
+<script src="admin.js?v=91.2"></script>
+<script src="core.js?v=91.2"></script>
 <script>
   // --- FINAL GLOBAL BRIDGE WIRING ---
   // This block runs after all scripts are loaded, ensuring no ReferenceErrors.
@@ -2499,6 +2497,34 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     w.setListGroupMode = typeof setListGroupMode !== 'undefined' ? setListGroupMode : w.setListGroupMode;
     w.navCal = typeof navCal !== 'undefined' ? navCal : w.navCal;
     w.goDate = typeof goDate !== 'undefined' ? goDate : w.goDate;
+    // From activity.js
+    w.setDashTab = typeof setDashTab !== 'undefined' ? setDashTab : w.setDashTab;
+    w.openSP = typeof openSP !== 'undefined' ? openSP : w.openSP;
+    w.closeSP = typeof closeSP !== 'undefined' ? closeSP : w.closeSP;
+    w.setStatus = typeof setStatus !== 'undefined' ? setStatus : w.setStatus;
+    w.saveNt = typeof saveNt !== 'undefined' ? saveNt : w.saveNt;
+    w.markNoHap = typeof markNoHap !== 'undefined' ? markNoHap : w.markNoHap;
+    w.cancelEv = typeof cancelEv !== 'undefined' ? cancelEv : w.cancelEv;
+    w.openMakeupSched = typeof openMakeupSched !== 'undefined' ? openMakeupSched : w.openMakeupSched;
+    w.openPostpone = typeof openPostpone !== 'undefined' ? openPostpone : w.openPostpone;
+    w.openCopy = typeof openCopy !== 'undefined' ? openCopy : w.openCopy;
+    w.refreshMode = typeof refreshMode !== 'undefined' ? refreshMode : w.refreshMode;
+
+    // From gardens.js
+    w.setGardensTab = typeof setGardensTab !== 'undefined' ? setGardensTab : w.setGardensTab;
+    w.openPairQuickEdit = typeof openPairQuickEdit !== 'undefined' ? openPairQuickEdit : w.openPairQuickEdit;
+    w.renderGardens = typeof renderGardens !== 'undefined' ? renderGardens : w.renderGardens;
+    w.quickAddPartner = typeof quickAddPartner !== 'undefined' ? quickAddPartner : w.quickAddPartner;
+
+    // From sched.js
+    w.openNewSched = typeof openNewSched !== 'undefined' ? openNewSched : w.openNewSched;
+    w.renderSched = typeof renderSched !== 'undefined' ? renderSched : w.renderSched;
+    w.searchAct = typeof searchAct !== 'undefined' ? searchAct : w.searchAct;
+    w.clearSched = typeof clearSched !== 'undefined' ? clearSched : w.clearSched;
+    w.navSched = typeof navSched !== 'undefined' ? navSched : w.navSched;
+    w.navSchedToday = typeof navSchedToday !== 'undefined' ? navSchedToday : w.navSchedToday;
+
+    // From cal.js / global state
     w.goToday = typeof goToday !== 'undefined' ? goToday : w.goToday;
     w.jumpToDay = typeof jumpToDay !== 'undefined' ? jumpToDay : w.jumpToDay;
     w.calRefG = typeof calRefG !== 'undefined' ? calRefG : w.calRefG;
@@ -2509,11 +2535,20 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     w.renderMakeupsTop = typeof renderMakeupsTop !== 'undefined' ? renderMakeupsTop : w.renderMakeupsTop;
     w._quickActionBtns = typeof _quickActionBtns !== 'undefined' ? _quickActionBtns : w._quickActionBtns;
 
+    // From invoices.js (Procurement)
+    w.switchMode = typeof switchMode !== 'undefined' ? switchMode : w.switchMode;
+    w.SPT = typeof SPT !== 'undefined' ? SPT : w.SPT;
+    w.renderInvoices = typeof renderInvoices !== 'undefined' ? renderInvoices : w.renderInvoices;
+    w.openNewInvoice = typeof openNewInvoice !== 'undefined' ? openNewInvoice : w.openNewInvoice;
+    w.openNewInvoiceForSupplier = typeof openNewInvoiceForSupplier !== 'undefined' ? openNewInvoiceForSupplier : w.openNewInvoiceForSupplier;
+
     // From gardens.js / export logic
     w.toggleExportMenu = typeof toggleExportMenu !== 'undefined' ? toggleExportMenu : w.toggleExportMenu;
     w.closeExportMenu = typeof closeExportMenu !== 'undefined' ? closeExportMenu : w.closeExportMenu;
     w.copyExport = typeof copyExport !== 'undefined' ? copyExport : w.copyExport;
     w.printExport = typeof printExport !== 'undefined' ? printExport : w.printExport;
+    w.openGmExport = typeof openGmExport !== 'undefined' ? openGmExport : w.openGmExport;
+    w.openMonthlyExport = typeof openMonthlyExport !== 'undefined' ? openMonthlyExport : w.openMonthlyExport;
     
     // From backup.js
     w.createSnapshot = typeof createSnapshot !== 'undefined' ? createSnapshot : w.createSnapshot;
@@ -2523,11 +2558,21 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     w.renderBackupList = typeof renderBackupList !== 'undefined' ? renderBackupList : w.renderBackupList;
     w.startAutoBackup = typeof startAutoBackup !== 'undefined' ? startAutoBackup : w.startAutoBackup;
     w.triggerAutoBackup = typeof triggerAutoBackup !== 'undefined' ? triggerAutoBackup : w.triggerAutoBackup;
+    w.goToCancelled = typeof goToCancelled !== 'undefined' ? goToCancelled : w.goToCancelled;
+    w.goToPostponed = typeof goToPostponed !== 'undefined' ? goToPostponed : w.goToPostponed;
+    w.goToNohap = typeof goToNohap !== 'undefined' ? goToNohap : w.goToNohap;
+    w.goToNoHap = typeof goToNoHap !== 'undefined' ? goToNoHap : w.goToNoHap;
     w.CM = typeof CM !== 'undefined' ? CM : w.CM;
+
+    // From admin.js
+    w.openUsersModal = typeof openUsersModal !== 'undefined' ? openUsersModal : w.openUsersModal;
+    w.doLogout = typeof doLogout !== 'undefined' ? doLogout : w.doLogout;
     
     // UI Helpers
     w.showToast = typeof showToast !== 'undefined' ? showToast : w.showToast;
     w.showCopyToast = typeof showCopyToast !== 'undefined' ? showCopyToast : w.showCopyToast;
+    w.mobNav = typeof mobNav !== 'undefined' ? mobNav : w.mobNav;
+    w.mobNavPurch = typeof mobNavPurch !== 'undefined' ? mobNavPurch : w.mobNavPurch;
 
     console.log('Final Global Bridge Wired.');
   })(window);
