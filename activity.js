@@ -188,7 +188,7 @@ function renderCanList(){
   ch += `<div style="margin-bottom:20px">
     <div style="font-weight:800;color:#c62828;margin-bottom:8px;font-size:.9rem">🔴 דורש טיפול (השלמה / ביטול סופי) (${todoEvs.length})</div>`;
   if (!todoEvs.length) {
-    ch += '<p style="color:#999;font-size:79rem;padding:10px;background:#f9f9f9;border-radius:6px">אין חריגים הממתינים לטיפול</p>';
+    ch += '<p style="color:#999;font-size:.79rem;padding:10px;background:#f9f9f9;border-radius:6px">אין חריגים הממתינים לטיפול</p>';
   } else {
     ch += _renderMiniTable(todoEvs);
   }

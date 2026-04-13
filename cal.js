@@ -664,6 +664,7 @@ function renderNormalDay(evs,ds){
   </div>`;
   
   const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+  // Regular section shows everything that is NOT a makeup
   const others=evs.filter(s=> !isM(s)); // KEEP _compByMakeup activities visible on calendar
   const pairedGids=new Set();
   const pairsByCity={};
