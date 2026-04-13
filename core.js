@@ -625,7 +625,7 @@ function initPairs(){
 
 
 function G(id){return GARDENS.find(g=>Number(g.id)===Number(id))||{}}
-function gcls(g){return g.cls||'גנים'}
+function gcls(g){return (g && g.cls) ? g.cls : 'גנים'}
 function gByCF(city,cls){return GARDENS.filter(g=>(!city||g.city===city)&&(!cls||gcls(g)===cls));}
 function d2s(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${dd}`}
 function s2d(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}

@@ -27,10 +27,10 @@ function renderDash(){
       if(s.st!==st) return false;
     }
     
-    if(city&&g.city!==city) return false;
-    if(sup&&window.supBase(s.a)!==sup&&s.a!==sup) return false;
+    if(city && g && g.city && g.city!==city) return false;
+    if(sup && window.supBase(s.a)!==sup && s.a!==sup) return false;
 
-    if(srch&&![g.name,g.city,s.a,g.st,s.act].some(v=>(v||'')
+    if(srch && ![(g ? g.name : ''), (g ? g.city : ''), s.a, (g ? g.st : ''), s.act].some(v=>(v||'')
       .toLowerCase().includes(srch))) return false;
     return true;
   }).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
@@ -43,7 +43,8 @@ function renderDash(){
   });
 
   if(!Object.keys(bySup).length){
-    document.getElementById('dash-body').innerHTML='<p style="color:#999;font-size:.81rem">אין פעילויות ביום זה</p>';
+    const msg = (st==='todo' || !st) ? 'אין חריגים/השלמות לטיפול ביום זה' : 'אין פעילויות ביום זה';
+    document.getElementById('dash-body').innerHTML = `<p style="color:#999;font-size:.81rem;text-align:center;padding:20px">${msg}</p>`;
   } else {
     let h='';
     if(st==='todo'){
@@ -52,7 +53,7 @@ function renderDash(){
       // Group by city then row
       const byCity={};
       evs.forEach(s=>{
-        const c=s.gd.city||'אחר';
+        const c=(s.gd && s.gd.city) ? s.gd.city : 'אחר';
         if(!byCity[c]) byCity[c]=[];
         byCity[c].push(s);
       });
@@ -161,24 +162,38 @@ function _dashListRow(s){
 }
 
 function renderCanList(){
+  const safeSort = (a, b) => (b.d || '').localeCompare(a.d || '');
+  
   // Nohap list — all events that didn't happen, sorted by date desc
-  const nohapEvs=window.SCH.filter(s=>s.st==='nohap' && !s._compByMakeup).sort((a,b)=>b.d.localeCompare(a.d));
+  const nohapEvs = window.SCH.filter(s => s.st === 'nohap' && !s._compByMakeup).sort(safeSort);
   // Can+post list — last 20
-  const canEvs=window.SCH.filter(s=>s.st==='post' && !s._compByMakeup).sort((a,b)=>b.d.localeCompare(a.d)).slice(0,20);
-  const allEvs=[...nohapEvs,...canEvs].sort((a,b)=>b.d.localeCompare(a.d));
+  const canEvs = window.SCH.filter(s => s.st === 'post' && !s._compByMakeup).sort(safeSort).slice(0, 20);
+  const allEvs = [...nohapEvs, ...canEvs].sort(safeSort);
 
-  let ch='';
-  if(!allEvs.length) ch='<p style="color:#999;font-size:.79rem">אין ביטולים/דחיות</p>';
-  else{
-    ch='<div class="tw"><table><thead><tr><th>תאריך</th><th>עיר</th><th>גן</th><th>ספק</th><th>סטטוס</th><th>סיבה</th></tr></thead><tbody>';
-    allEvs.forEach(s=>{
-      const g=window.G(s.g);
-      ch+=`<tr onclick="window.openSP(${s.id})" class="${window.stClass(s)}"><td>${window.fD(s.d)}</td><td>${g.city||''}</td><td>${g.name||''}</td><td>${s.a}</td><td>${window.stLabel(s)}</td><td>${s.cr||''}${s.cn?' ('+s.cn+')':''}</td></tr>`;
+  let ch = '';
+  if (!allEvs.length) {
+    ch = '<p style="color:#999;font-size:.79rem;padding:10px">אין ביטולים/דחיות</p>';
+  } else {
+    ch = '<div class="tw"><table><thead><tr><th>תאריך</th><th>עיר</th><th>גן</th><th>ספק</th><th>סטטוס</th><th>סיבה</th></tr></thead><tbody>';
+    allEvs.forEach(s => {
+      const g = window.G(s.g);
+      const rowClass = window.stClass ? window.stClass(s) : '';
+      const dateStr = (window.fD && s.d) ? window.fD(s.d) : (s.d || '');
+      const stLbl = window.stLabel ? window.stLabel(s) : (s.st || '');
+      
+      ch += `<tr onclick="window.openSP(${s.id})" class="${rowClass}">
+        <td>${dateStr}</td>
+        <td>${(g && g.city) || ''}</td>
+        <td>${(g && g.name) || ''}</td>
+        <td>${s.a || ''}</td>
+        <td>${stLbl}</td>
+        <td>${s.cr || ''}${s.cn ? ' (' + s.cn + ')' : ''}</td>
+      </tr>`;
     });
-    ch+='</tbody></table></div>';
+    ch += '</tbody></table></div>';
   }
-  const el=document.getElementById('dash-can-body');
-  if(el) el.innerHTML=ch;
+  const el = document.getElementById('dash-can-body');
+  if (el) el.innerHTML = ch;
 }
 
 
