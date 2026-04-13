@@ -148,6 +148,7 @@ function renderDash(){
     document.getElementById('dash-body').innerHTML=h;
   }
 }
+}
 
 function _dashListRow(s){
   const g=window.G(s.g);
