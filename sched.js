@@ -448,12 +448,12 @@ function getFiltSched(){
 
     // Status Logic
     if(st==='todo'){
-      if(!(s.st==='nohap' || s.st==='post' || isM(s))) return false;
+      if(!(s.st==='nohap' || s.st==='post' || isM(s)) || s._compByMakeup) return false;
     } else if(!st) {
-       if(s.st==='can') return false;
+       if(s.st==='can' || s._compByMakeup) return false;
     } else if(s.st!==st) return false;
 
-    if(srch&&![(g.name||''),(g.city||''),(s.a||''),(s.nt||'')].some(x=>x.toLowerCase().includes(srch))) return false;
+    if(srch&&![(g && g.name||''),(g && g.city||''),(s.a||''),(s.nt||'')].some(x=>x.toLowerCase().includes(srch))) return false;
     return true;
   }).sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'').localeCompare(b.t||''));
 }

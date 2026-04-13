@@ -663,16 +663,10 @@ function renderNormalDay(evs,ds){
     <button onclick="openBlockedDate('${ds}')" style="background:none;border:1.5px solid #e91e63;color:#c62828;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:.72rem">✏️ ערוך</button>
   </div>`;
   
-  // Makeups are now handled within the regular group logic below
-
-  const activeGids=new Set(evs.map(s=>s.g));
-  const pairedGids=new Set();
-  const pairRowsHtml=[]; // rendered pair rows
-  // Group window.pairs by city for unified color display
-  const pairsByCity={};
   const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-  // Regular section shows everything that is NOT a makeup
   const others=evs.filter(s=> !s._compByMakeup && !isM(s));
+  const pairedGids=new Set();
+  const pairsByCity={};
 
   window.pairs.forEach(pair=>{
     if(window.isPairBroken(pair.id,ds)) return;
@@ -682,13 +676,6 @@ function renderNormalDay(evs,ds){
     if(!pairsByCity[city]) pairsByCity[city]=[];
     pairsByCity[city].push({pair,pairEvs});
     pair.ids.forEach(id=>pairedGids.add(id));
-  });
-  Object.keys(pairsByCity).sort().forEach(city=>{
-    const clr=window.CITY_COLORS(city);
-    const cityPairs=pairsByCity[city];
-    cityPairs.forEach(({pair,pairEvs})=>{
-      pairRowsHtml.push(renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true}));
-    });
   });
 
   const allSoloEvs = others.filter(s=>!pairedGids.has(s.g));
@@ -705,81 +692,42 @@ function renderNormalDay(evs,ds){
   });
 
   let html=topHtml;
-  if(pairRowsHtml.length){
-    // Group pair cards by city with headers
-    const pairCardsByCity={};
-    Object.keys(pairsByCity).sort().forEach(city=>{
-      pairCardsByCity[city]=[];
-    });
-    // Re-assign cards to cities (in order)
-    let cardIdx=0;
+
+  if(allSoloEvs.length || Object.keys(pairsByCity).length > 0){
+    // Group everything by city
+    const cardsByCity={};
+    // 1. Add Pair Cards
     Object.keys(pairsByCity).sort().forEach(city=>{
       const clr=window.CITY_COLORS(city);
+      if(!cardsByCity[city]) cardsByCity[city]=[];
       pairsByCity[city].forEach(({pair,pairEvs})=>{
-        if(!pairCardsByCity[city]) pairCardsByCity[city]=[];
-        pairCardsByCity[city].push(window.renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true}));
+        cardsByCity[city].push(window.renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true}));
       });
     });
-    Object.keys(pairCardsByCity).sort().forEach(city=>{
-      const cards=pairCardsByCity[city];
+    // 2. Add Solo Cards (unified style)
+    allSoloEvs.forEach(s=>{
+      const g=window.G(s.g);
+      const city=g.city||'אחר';
+      const clr=window.CITY_COLORS(city);
+      if(!cardsByCity[city]) cardsByCity[city]=[];
+      cardsByCity[city].push(window.renderPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds,clr,showEdit:true,showExport:true}));
+    });
+
+    Object.keys(cardsByCity).sort().forEach(city=>{
+      const cards=cardsByCity[city];
       if(!cards||!cards.length) return;
+      const clr=window.CITY_COLORS(city);
       html+=`<div style="margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <div style="flex:1;height:2px;background:${window.CITY_COLORS(city).solid};opacity:.3"></div>
-          <span style="font-size:.75rem;font-weight:800;color:${window.CITY_COLORS(city).solid};white-space:nowrap">🏙️ ${city} (${cards.length} זוגות)</span>
-          <div style="flex:1;height:2px;background:${window.CITY_COLORS(city).solid};opacity:.3"></div>
+          <div style="flex:1;height:2px;background:${clr.solid};opacity:.3"></div>
+          <span style="font-size:.75rem;font-weight:800;color:${clr.solid};white-space:nowrap">🏙️ ${city}</span>
+          <div style="flex:1;height:2px;background:${clr.solid};opacity:.3"></div>
         </div>
         <div class="pairs-4col">${cards.join('')}</div>
       </div>`;
     });
   }
 
-  if(allSoloEvs.length){
-    const byCitySolo={};
-    allSoloEvs.forEach(s=>{
-      s.gd=window.G(s.g);
-      const c=s.gd.city||'אחר';
-      if(!byCitySolo[c]) byCitySolo[c]=[];
-      byCitySolo[c].push(s);
-    });
-    Object.keys(byCitySolo).sort().forEach(city=>{
-      const clr=window.CITY_COLORS(city);
-      html+=`<div style="margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <div style="flex:1;height:2px;background:${clr.solid};opacity:.3"></div>
-          <span style="font-size:.75rem;font-weight:800;color:${clr.solid};white-space:nowrap">🏙️ ${city} — צהרונים ללא זוג</span>
-          <div style="flex:1;height:2px;background:${clr.solid};opacity:.3"></div>
-        </div>
-        <div class="pairs-4col">`;
-      byCitySolo[city].sort((a,b)=>{
-        const clA=(window.gardenClusters(a.g)[0]||{}).name||'ת';
-        const clB=(window.gardenClusters(b.g)[0]||{}).name||'ת';
-        return clA.localeCompare(clB,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
-      }).forEach(s=>{
-        const stc=s.st!=='ok'?'st-'+s.st:'';
-        const brokenBadge=s._broken?`<span style="font-size:.62rem;background:#fff3e0;color:#e65100;padding:1px 5px;border-radius:3px;font-weight:700">⚡ זוג פורק</span>`:'';
-                const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
-                html+=`<div class="city-block" style="margin-bottom:0">
-          <div class="city-block-hdr" style="background:${clr.solid};font-size:.76rem">
-            ${window.gcls(s.gd)==='ביה"ס'?'🏛️':'🏫'} ${s.gd.name}
-            ${s.gd.st?`<span style="font-size:.65rem;font-weight:400;opacity:.8">${s.gd.st}</span>`:''}
-            ${brokenBadge}
-            <span style="font-size:.65rem;opacity:.75;font-weight:400">📍 ${city}</span>
-            <button onclick="event.stopPropagation();_exportGardenWA([${s.g}],'${ds}')" style="background:rgba(255,255,255,.28);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
-            <button onclick="event.stopPropagation();quickAddPartner(${s.g})" style="background:rgba(255,255,255,.22);border:none;border-radius:3px;padding:1px 6px;cursor:pointer;font-size:.66rem;color:#fff">➕ בן זוג</button>
-          </div>
-          <div style="background:#fff;padding:7px">
-            <div class="pslot ${stc}" style="border-right:3px solid ${clr.solid};background:${clr.light}" onclick="openSP(${s.id})">
-              ${s._fromD?`<div style="font-size:.67rem;color:#e65100;font-weight:700;background:#fff3e0;padding:1px 5px;border-radius:3px;margin-bottom:2px">↩️ הועבר מ-${window.fD(s._fromD)}</div>`:''}
-              ${s.t?`<div class="pt">⏰ ${window.fT(s.t)}</div>`:''}
-              <div class="pn">${window.supBase(s.a)}</div>
-              ${isM(s)?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
-              ${(s.act||window.supAct(s.a))?`<div style="font-size:.69rem;color:${clr.solid};font-weight:600">🎯 ${s.act||window.supAct(s.a)}</div>`:''}
-              ${s.p?`<div class="pp">📞 ${s.p}</div>`:''}
-              ${s.grp>1?`<div style="font-size:.68rem;color:#546e7a">👥 ${s.grp} קבוצות</div>`:''}
-              <div class="pst">${window.stLabel(s)}</div>
-              ${s.nt?`<div style="font-size:.68rem;color:#78909c">📝 ${s.nt}</div>`:''}
-              <div class="qacts" onclick="event.stopPropagation()">
                 ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
                 ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
                 ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
@@ -878,8 +826,12 @@ function renderPairCard(pair, pairEvs, opts){
             ${gblkEv?`<div style="font-size:.67rem;color:#c62828">${gblkEv.icon||'🚫'} ${gblkEv.reason}</div>`:''}
             <div class="pgr-status" style="color:${stc?'#c62828':'#2e7d32'}">${window.stLabel(ev)}</div>
           </div>
-              ${ev.st==='nohap'?'':`<button title="לא התקיים" onclick="openNohapQ(${ev.id})" style="color:#e91e63">⚠️</button>`}
-              <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${ev.id})">📅</button>
+          <div class="pgr-right" onclick="event.stopPropagation()">
+            <div class="qacts">
+              ${ev.st==='done'?'':`<button title="התקיים" onclick="window.qSetSt(${ev.id},'done')">✔️</button>`}
+              ${ev.st==='can'?'':`<button title="בטל" onclick="window.openCanQ(${ev.id})">❌</button>`}
+              ${ev.st==='nohap'?'':`<button title="לא התקיים" onclick="window.openNohapQ(${ev.id})">⚠️</button>`}
+              <button title="שיבוץ השלמה" class="btn-makeup" onclick="window.openMakeupSched(${ev.id})">📅</button>
             </div>
           </div>
         </div>`;
@@ -1467,20 +1419,20 @@ function renderCalList(evs, mDate){
       // ── Render window.pairs ──
       pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he'));
 
-      pairGroups.forEach(({pair,pairEvs})=>{
-        // Sort pair events by garden name then time
-        const sorted=pairEvs.sort((a,b)=>{
-          const na=window.G(a.g).name||'', nb=window.G(b.g).name||'';
-          return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
+        pairGroups.forEach(({pair,pairEvs})=>{
+          // Sort pair events by garden name then time
+          const sorted=pairEvs.sort((a,b)=>{
+            const na=window.G(a.g).name||'', nb=window.G(b.g).name||'';
+            return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
+          });
+          h+=`<div style="margin-bottom:3px;border:1px solid ${clr.border};border-radius:5px;overflow:hidden">
+            <div style="background:${clr.solid}18;padding:2px 8px;font-size:.68rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
+              <span>🔗 ${pair.name}</span>
+              <button onclick="event.stopPropagation();window._exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:3px;padding:1px 6px;cursor:pointer;font-size:.64rem;color:#fff;font-weight:700">📋 הודעה</button>
+            </div>`;
+          sorted.forEach(s=>{ h+=_listRow(s,clr,ds); });
+          h+=`</div>`;
         });
-        h+=`<div style="margin-bottom:3px;border:1px solid ${clr.border};border-radius:5px;overflow:hidden">
-          <div style="background:${clr.solid}18;padding:2px 8px;font-size:.68rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
-            <span>🔗 ${pair.name}</span>
-            <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:3px;padding:1px 6px;cursor:pointer;font-size:.64rem;color:#fff;font-weight:700">📋 הודעה</button>
-          </div>`;
-        sorted.forEach(s=>{ h+=_listRow(s,clr); });
-        h+=`</div>`;
-      });
 
       // Solos — sorted by garden name (not in pair or cluster)
       const soloEvs=cityEvs
@@ -1489,7 +1441,7 @@ function renderCalList(evs, mDate){
           const na=window.G(a.g).name||'', nb=window.G(b.g).name||'';
           return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
         });
-      soloEvs.forEach(s=>{ h+=_listRow(s,clr); });
+      soloEvs.forEach(s=>{ h+=_listRow(s,clr,ds); });
 
       h+=`</div>`; // end city
     });
@@ -1503,6 +1455,14 @@ function _listRow(s, clr, ds){
   const g=window.G(s.g);
   const stC=s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':'#333';
   const addrLink=g.st?`<a href="https://maps.google.com/?q=${encodeURIComponent(g.st+' '+g.city)}" target="_blank" onclick="event.stopPropagation()" style="font-size:.63rem;color:#1565c0;text-decoration:none">📍 ${g.st}</a>`:'';
+  
+  // Only show the garden-level WhatsApp button for Solo items. 
+  // For pairs, the button is already in the group header.
+  const isPaired = !!window.gardenPair(s.g);
+  const waBtn = (!isPaired && window._exportGardenWA) 
+    ? `<button onclick="event.stopPropagation();window._exportGardenWA([${s.g}],'${ds||''}')" style="background:${clr.solid};border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.72rem;color:#fff;font-weight:700" title="שלח הודעה">📋</button>`
+    : '';
+
   return `<div style="display:grid;grid-template-columns:110px 1fr auto auto auto;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;margin-bottom:1px;background:${s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light};border-right:3px solid ${clr.solid};cursor:pointer;min-height:36px" onclick="openSP(${s.id})">
     <div>
       <div style="font-weight:700;font-size:.72rem;color:#1a237e;line-height:1.2">${g.name}</div>
@@ -1516,7 +1476,7 @@ function _listRow(s, clr, ds){
     </div>
     <div style="font-size:.7rem;font-weight:700;color:${stC}">${window.stLabel(s).replace(/<[^>]+>/g,'')}</div>
     <div style="display:flex;gap:4px">
-      ${!window.gardenPair(s.g)?`<button onclick="event.stopPropagation();_exportGardenWA([${s.g}],'${ds}')" style="background:${clr.solid};border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.72rem;color:#fff;font-weight:700" title="שלח הודעה">📋</button>`:''}
+      ${waBtn}
       ${_quickActionBtns(s)}
     </div>
   </div>`;
@@ -1530,7 +1490,7 @@ function renderMonth(evs,mDate){
   ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'].forEach(d=>html+=`<div class="mdh">${d}</div>`);
   for(let i=0;i<fd.getDay();i++) html+='<div class="md om"></div>';
   for(let d=1;d<=ld.getDate();d++){
-    const ds=`${y}-${Strinwindow.G(m+1).padStart(2,'0')}-${Strinwindow.G(d).padStart(2,'0')}`;
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const c=cnt[ds];
     const hol=getHolidayInfo(ds);
     const blkM=getBlockedInfo(ds);
