@@ -7,8 +7,8 @@ const BACKUP_LAST_KEY = '_fbDailyBackupDate';
 
 async function _runDailyBackupIfNeeded(liveData, tok){
   try{
-    const today = d2s(new Date());
-    const lastBackup = _safeLS.get(BACKUP_LAST_KEY)||'';
+    const today = window.d2s(new Date());
+    const lastBackup = window._safeLS.get(BACKUP_LAST_KEY)||'';
     if(lastBackup === today) return; // already backed up today
 
     const authQ = tok ? '?auth='+tok : '';
@@ -29,14 +29,14 @@ async function _runDailyBackupIfNeeded(liveData, tok){
     if(!r.ok){ console.warn('Backup failed:', r.status); return; }
 
     // 2. Mark done
-    _safeLS.setItem(BACKUP_LAST_KEY, today);
+    window._safeLS.setItem(BACKUP_LAST_KEY, today);
     console.log('✅ Daily backup saved:', today);
 
     // 3. Prune backups older than 30 days
     const listR = await fetch(`${BACKUP_DB_BASE}.json?shallow=true${tok?'&auth='+tok:''}`);
     if(listR.ok){
       const keys = Object.keys(await listR.json()||{});
-      const cutoff = d2s(addD(new Date(), -30));
+      const cutoff = window.d2s(window.addD(new Date(), -30));
       const toDelete = keys.filter(k=>k<cutoff);
       for(const k of toDelete){
         await fetch(`${BACKUP_DB_BASE}/${k}.json${authQ}`, {method:'DELETE'});
@@ -61,7 +61,7 @@ async function loadCloudBackups(){
     const _rawJson = await r.json();
     const keys = _rawJson ? Object.keys(_rawJson).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse().slice(0,30) : [];
     if(!keys.length){ el.innerHTML='<span style="color:#999">אין גיבויים עדיין. גיבוי ראשון יישמר אוטומטית היום.</span>'; return; }
-    const today=d2s(new Date());
+    const today=window.d2s(new Date());
     // Fetch time from each backup (shallow=true returns keys only, need full for time)
     // Instead fetch timestamps in parallel
     const backupMeta = await Promise.all(keys.map(async k=>{
@@ -74,7 +74,7 @@ async function loadCloudBackups(){
     el.innerHTML='<div style="display:flex;flex-direction:column;gap:5px">'+
       backupMeta.map(({k,time})=>`<div style="background:${k===today?'#e8f5e9':'#f5f7ff'};border-radius:7px;padding:7px 11px;display:flex;justify-content:space-between;align-items:center">
         <div>
-          <span style="font-weight:700;font-size:.82rem">${fD(k)}</span>
+          <span style="font-weight:700;font-size:.82rem">${window.fD(k)}</span>
           ${time?`<span style="font-size:.7rem;color:#546e7a;margin-right:6px">🕐 ${time}</span>`:''}
           ${k===today?'<span style="font-size:.68rem;background:#2e7d32;color:#fff;border-radius:8px;padding:1px 6px;margin-right:5px">היום</span>':''}
         </div>
@@ -85,7 +85,7 @@ async function loadCloudBackups(){
 }
 
 async function restoreCloudBackup(dateKey){
-  if(!confirm(`לשחזר גיבוי מ-${fD(dateKey)}?\nהנתונים הנוכחיים יישמרו תחילה כ-snapshot מקומי.`)) return;
+  if(!confirm(`לשחזר גיבוי מ-${window.fD(dateKey)}?\nהנתונים הנוכחיים יישמרו תחילה כ-snapshot מקומי.`)) return;
   const el=document.getElementById('cloud-backup-list');
   if(el) el.innerHTML='<span style="color:#e65100">משחזר...</span>';
   try{
@@ -93,10 +93,10 @@ async function restoreCloudBackup(dateKey){
     if(window._fbUser) try{ tok=await window._fbUser.getIdToken(false); }catch(e){}
     const authQ=tok?'?auth='+tok:'';
     const r=await fetch(`${BACKUP_DB_BASE}/${dateKey}.json${authQ}`);
-    if(!r.ok){ showToast('❌ שגיאה בטעינת גיבוי: '+r.status); return; }
+    if(!r.ok){ window.showToast('❌ שגיאה בטעינת גיבוי: '+r.status); return; }
     const backup=await r.json();
     const appData=backup.data||backup;
-    if(!appData||!appData.ch){ showToast('❌ גיבוי פגום'); return; }
+    if(!appData||!appData.ch){ window.showToast('❌ גיבוי פגום'); return; }
     // Save current as local snapshot first
     createSnapshot('לפני שחזור מענן');
     // Apply the backup data

@@ -1,10 +1,10 @@
 function calRefG(){
   // Ensure cal-cls matches the active tab
   const clsSel=document.getElementById('cal-cls');
-  if(clsSel&&_calTab) clsSel.value=_calTab==='g'?'גנים':'ביה"ס';
+  if(clsSel&&window._calTab) clsSel.value=window._calTab==='g'?'גנים':'ביה"ס';
   const city=document.getElementById('cal-city').value;
   const cls=document.getElementById('cal-cls').value;
-  const gs=gByCF(city,cls).sort((a,b)=>{
+  const gs=window.gByCF(city,cls).sort((a,b)=>{
     if(!city){const cc=(a.city||'').localeCompare(b.city||'','he');if(cc)return cc;}
     return (a.name||'').localeCompare(b.name||'','he');
   });
@@ -30,10 +30,10 @@ function filterE(f,from,to){
     if(f.cluster){
       if(f.cluster==='__all__'){
         // only show GARDENS that belong to at least one cluster
-        const allClusterGids=new Set(getClusters().flatMap(c=>c.gardenIds||[]));
+        const allClusterGids=new Set(window.getClusters().flatMap(c=>c.gardenIds||[]));
         if(!allClusterGids.has(s.g)) return false;
       } else {
-        const cl=getClusters().find(c=>c.name===f.cluster);
+        const cl=window.getClusters().find(c=>c.name===f.cluster);
         if(!cl||(!(cl.gardenIds||[]).map(Number).includes(Number(s.g)))) return false;
       }
     }
@@ -102,8 +102,8 @@ function setView(v){
     navBtns.forEach(b=>b.style.display='none');
     const f=document.getElementById('cal-range-from');
     const t=document.getElementById('cal-range-to');
-    if(f&&!f.value) f.value=d2s(monStart(calD));
-    if(t&&!t.value) t.value=d2s(addD(monStart(calD),6));
+    if(f&&!f.value) f.value=window.d2s(window.monStart(window.calD));
+    if(t&&!t.value) t.value=window.d2s(window.addD(window.monStart(window.calD),6));
   } else if(v==='list'){
     if(rangeRow) rangeRow.style.display='none';
     if(listRow)  listRow.style.display='flex';
@@ -135,7 +135,7 @@ function clearCal(){
   ['cal-g1','cal-g2','cal-g3'].forEach((id,i)=>{
     const el=document.getElementById(id);
     el.innerHTML=i===0?'<option value="">כל הצהרונים</option>':'<option value="">—</option>';
-    GARDENS.forEach(g=>el.innerHTML+=`<option value="${g.id}">${g.city} · ${g.name}</option>`);
+    window.GARDENS.forEach(g=>el.innerHTML+=`<option value="${g.id}">${g.city} · ${g.name}</option>`);
   });
   document.getElementById('cal-pair-bar').classList.remove('show');
   renderCal();
@@ -165,17 +165,17 @@ function savePairFromGarden(){
   const g2=parseInt(document.getElementById('gm-pg2').value)||null;
   const g3=parseInt(document.getElementById('gm-pg3').value)||null;
   if(!g2){alert('יש לבחור לפחות צהרון שני');return;}
-  addPair([gmGid,g2,g3].filter(Boolean));
-  openGM(gmGid);
+  addPair([window.gmGid,g2,g3].filter(Boolean));
+  window.openGM(window.gmGid);
 }
 function checkDupePairAndSave(gids){
-  const dupe=gids.map(gid=>{const p=gardenPair(gid);return p?`${window.G(gid).name} כבר בזוג "${p.name}"`:null}).filter(Boolean);
+  const dupe=gids.map(gid=>{const p=window.gardenPair(gid);return p?`${window.G(gid).name} כבר בזוג "${p.name}"`:null}).filter(Boolean);
   if(dupe.length){if(!confirm(`⚠️ שים לב:\n${dupe.join('\n')}\n\nבכל זאת להמשיך?`)) return;}
   const name=gids.map(id=>window.G(id).name||'').join(' + ');
   const nm=prompt('שם לזוג:',name);
   if(nm===null) return;
   window.pairs.push({id:Date.now(),ids:gids,name:nm||name});
-  save(); refresh();
+  window.save(); window.refresh();
   alert(`✅ הזוג "${nm||name}" נשמר!`);
 }
 
@@ -194,7 +194,7 @@ function renderCal(){
   if(f.gids&&f.gids.length>=2){
     displayGids=f.gids;
   } else if(f.gids&&f.gids.length===1){
-    const p=gardenPair(f.gids[0]);
+    const p=window.gardenPair(f.gids[0]);
     if(p) displayGids=p.ids;
   }
 
@@ -213,8 +213,8 @@ function renderCal(){
     const dow0=ws.getDay();
     if(dow0===5) ws.setDate(ws.getDate()+2);
     else if(dow0===6) ws.setDate(ws.getDate()+1);
-    const we=addD(ws,4); // 5 days: ws+0,1,2,3,4
-    const wsS=d2s(ws),weS=d2s(we);
+    const we=window.addD(ws,4); // 5 days: ws+0,1,2,3,4
+    const wsS=window.d2s(ws),weS=window.d2s(we);
     (document.getElementById('cal-title')||{}).textContent=`${window.fD(wsS)} – ${window.fD(weS)}`;
     const evs=filterE(f,wsS,weS);
     if(displayGids) html=renderPairWeek(evs,ws,displayGids);
@@ -245,9 +245,9 @@ function renderCal(){
       fromDs=d2s(_days[0]); toDs=d2s(_days[4]);
       titleStr='📋 רשימה — שבוע '+window.fD(fromDs)+' – '+window.fD(toDs);
     } else { // month
-      const y2=calD.getFullYear(),m2=calD.getMonth();
-      fromDs=d2s(new Date(y2,m2,1)); toDs=d2s(new Date(y2,m2+1,0));
-      titleStr='📋 רשימה — '+hebM(calD);
+      const y2=window.calD.getFullYear(),m2=window.calD.getMonth();
+      fromDs=window.d2s(new Date(y2,m2,1)); toDs=window.d2s(new Date(y2,m2+1,0));
+      titleStr='📋 רשימה — '+window.hebM(window.calD);
     }
     (document.getElementById('cal-title')||{}).textContent=titleStr;
     const evs=filterE(f,fromDs,toDs);
@@ -263,8 +263,8 @@ function renderCal(){
 function isPairBroken(pairId,ds){return !!pairBreaks[pairId+'_'+ds];}
 function setPairBreak(pairId,ds,broken){
   const k=pairId+'_'+ds;
-  if(broken) pairBreaks[k]=true; else delete pairBreaks[k];
-  save(); refresh();
+  if(broken) window.pairBreaks[k]=true; else delete window.pairBreaks[k];
+  window.save(); window.refresh();
 }
 
 // City-based color map for calendar
@@ -303,7 +303,6 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
   const others=evs.filter(s=> !s._compByMakeup);
 
   window.pairs.forEach(pair=>{
-    if(typeof isPairBroken === 'function' && isPairBroken(pair.id,ds)) return;
     const pairEvs=others.filter(s=>pair.ids.includes(s.g));
     if(!pairEvs.length) return;
     const g0 = window.G(pair.ids[0]);
@@ -319,8 +318,8 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
   // Dynamic layout logic:
   // Cubes (Grid) for Day view or Calendar range mode.
   // List for Week, Month, List mode or List range mode.
-  const cv = typeof calV !== 'undefined' ? calV : 'day';
-  const rsv = typeof _rangeSubView !== 'undefined' ? _rangeSubView : 'cal';
+  const cv = typeof window.calV !== 'undefined' ? window.calV : 'day';
+  const rsv = typeof window._rangeSubView !== 'undefined' ? window._rangeSubView : 'cal';
   const isList = (cv === 'week' || cv === 'list' || cv === 'month' || (cv === 'range' && rsv === 'list'));
   const layoutClass = isList ? 'pairs-list-layout' : 'pairs-4col';
 
@@ -360,10 +359,10 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
   const end=s2d(toDs);
   let dayCount=0;
   while(cur<=end && dayCount<62){
-    const ds=d2s(cur);
+    const ds=window.d2s(cur);
     const dayEvs=evs.filter(s=>s.d===ds);
-    const hol=getHolidayInfo(ds,f&&f.city||null,f&&f.cls||null);
-    const blk=getBlockedInfo(ds);
+    const hol=window.getHolidayInfo(ds,f&&f.city||null,f&&f.cls||null);
+    const blk=window.getBlockedInfo(ds);
     const isFri=cur.getDay()===5, isSat=cur.getDay()===6;
     const hdrStyle=isSat?'background:linear-gradient(135deg,#546e7a,#78909c)':isFri?'background:linear-gradient(135deg,#e65100,#f4511e)':'';
     html+=`<div class="dsec" style="margin-bottom:10px">
@@ -413,7 +412,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
         const pairedGids=new Set();
         const pairBlocks=[];
         window.pairs.forEach(pair=>{
-          if(isPairBroken(pair.id,ds)) return;
+          if(window.isPairBroken(pair.id,ds)) return;
           const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g) && !s._makeupFrom);
           if(!pairEvs.length) return;
           pair.ids.forEach(id=>pairedGids.add(id));
@@ -423,9 +422,9 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
         // sort pair blocks by earliest event time
         pairBlocks.sort((a,b)=>a.earliest.localeCompare(b.earliest));
         if(pairBlocks.length){
-          html+=`<div class="window.pairs-4col" style="margin-bottom:8px">`;
+          html+=`<div class="pairs-4col" style="margin-bottom:8px">`;
           pairBlocks.forEach(({pair,pairEvs})=>{
-            html+=renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true});
+            html+=window.renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true});
           });
           html+=`</div>`;
         }
@@ -467,19 +466,19 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
 // ─── Cluster Day View — sorted by time ─────────────────────────
 function renderClusterDay(evs, ds, clusterName){
   let html='';
-  const hol=getHolidayInfo(ds,null,null);
+  const hol=window.getHolidayInfo(ds,null,null);
   if(hol) html+=`<div class="hol-banner ${hol.type||'vacation'}" style="margin-bottom:8px;font-size:.82rem">${hol.emoji} <b>${hol.name}</b>${hol.note?' — '+hol.note:''}</div>`;
-  const blk=getBlockedInfo(ds);
+  const blk=window.getBlockedInfo(ds);
   if(blk) html+=`<div style="background:#fce4ec;border:2px solid #e91e63;border-radius:9px;padding:9px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
     <span style="font-size:.85rem;font-weight:700;color:#c62828">${blk.icon||'🚫'} <b>${blk.reason}</b>${blk.note?' — '+blk.note:''}</span>
     <button onclick="openBlockedDate('${ds}')" style="background:none;border:1.5px solid #e91e63;color:#c62828;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:.72rem">✏️ ערוך</button>
   </div>`;
   const isAll = clusterName==='__all__';
-  const clObjD=!isAll&&getClusters().find(cl=>cl.name===clusterName);
+  const clObjD=!isAll&&window.getClusters().find(cl=>cl.name===clusterName);
   const clGidsD=clObjD?(clObjD.gardenIds||[]):evs.map(s=>s.g).filter((v,i,a)=>a.indexOf(v)===i);
   html+=`<div style="background:#e8eaf6;border-radius:7px;padding:6px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;font-size:.78rem;font-weight:700;color:#1a237e">
     <span>🔢 ${isAll?'כל האשכולות':('אשכול: '+clusterName)} <span style="font-weight:400;color:#546e7a">${evs.length} פעילויות</span></span>
-    <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGidsD)})" style="background:#25d366;border:none;border-radius:4px;color:#fff;font-size:.65rem;padding:2px 8px;cursor:pointer">📋 הודעה</button>
+    <button onclick="event.stopPropagation();window._exportPairWA(${JSON.stringify(clGidsD)})" style="background:#25d366;border:none;border-radius:4px;color:#fff;font-size:.65rem;padding:2px 8px;cursor:pointer">📋 הודעה</button>
   </div>`;
   // respects view's class filter
   const calCls=document.getElementById('cal-cls').value;
@@ -582,10 +581,10 @@ function renderClusterWeek(evs, weekStart, clusterName){
   </div>`;
   for(let i=0;i<6;i++){
     const d=addD(weekStart,i);
-    const ds=d2s(d);
+    const ds=window.d2s(d);
     const dayEvs=evs.filter(s=>s.d===ds && !s._compByMakeup).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
-    const hol=getHolidayInfo(ds,null,null);
-    const blk=getBlockedInfo(ds);
+    const hol=window.getHolidayInfo(ds,null,null);
+    const blk=window.getBlockedInfo(ds);
     html+=`<div class="dsec" style="margin-bottom:10px">
       <div class="dsh gan">${window.fD(ds)} — יום ${window.dayN(ds)}${hol?` 🎉 ${hol.name}`:''}</div>`;
     if(blk) html+=`<div style="padding:5px 12px;background:#ffebee;font-size:.75rem;color:#c62828;font-weight:700">${blk.icon||'🚫'} ${blk.reason}</div>`;
@@ -676,7 +675,7 @@ function renderNormalDay(evs,ds){
   const others=evs.filter(s=> !s._compByMakeup && !isM(s));
 
   window.pairs.forEach(pair=>{
-    if(isPairBroken(pair.id,ds)) return;
+    if(window.isPairBroken(pair.id,ds)) return;
     const pairEvs=others.filter(s=>pair.ids.includes(s.g));
     if(!pairEvs.length) return;
     const city=window.G(pair.ids[0]).city||'אחר';
@@ -718,7 +717,7 @@ function renderNormalDay(evs,ds){
       const clr=window.CITY_COLORS(city);
       pairsByCity[city].forEach(({pair,pairEvs})=>{
         if(!pairCardsByCity[city]) pairCardsByCity[city]=[];
-        pairCardsByCity[city].push(renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true}));
+        pairCardsByCity[city].push(window.renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true}));
       });
     });
     Object.keys(pairCardsByCity).sort().forEach(city=>{

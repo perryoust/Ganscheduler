@@ -1,20 +1,20 @@
-function getSnapshots(){try{return JSON.parse(_safeLS.getItem('ganv5_snaps')||'[]');}catch{return [];}}
-function saveSnapshots(snaps){try{_safeLS.setItem('ganv5_snaps',JSON.stringify(snaps));}catch(e){}}
+function getSnapshots(){try{return JSON.parse(window._safeLS.getItem('ganv5_snaps')||'[]');}catch{return [];}}
+function saveSnapshots(snaps){try{window._safeLS.setItem('ganv5_snaps',JSON.stringify(snaps));}catch(e){}}
 function createSnapshot(label){
   const snaps=getSnapshots();
-  const data=_safeLS.getItem('ganv5')||'{}';
+  const data=window._safeLS.getItem('ganv5')||'{}';
   snaps.unshift({ts:Date.now(),label:label||'ידני',size:data.length,data});
   if(snaps.length>MAX_SNAPSHOTS) snaps.length=MAX_SNAPSHOTS;
   saveSnapshots(snaps);
   const quiet=label==='שעתי'||label==='סגירה';
-  if(!quiet) showCopyToast('✅ גרסה נשמרה: '+new Date().toLocaleTimeString('he-IL'));
+  if(!quiet) window.showCopyToast('✅ גרסה נשמרה: '+new Date().toLocaleTimeString('he-IL'));
   if(document.getElementById('backup-list')&&document.getElementById('backup-list').innerHTML) renderBackupList();
 }
 function openBackup(){renderBackupList();document.getElementById('backupm').classList.add('open');}
 function renderBackupList(){
   const snaps=getSnapshots();
   const el=document.getElementById('backup-list');if(!el)return;
-  const stored=_safeLS.getItem('ganv5')||'';
+  const stored=window._safeLS.getItem('ganv5')||'';
   (document.getElementById('backup-storage-info')||{}).textContent =
     'נתונים: '+(stored.length/1024).toFixed(1)+'KB | גרסאות: '+snaps.length+'/'+MAX_SNAPSHOTS;
   if(!snaps.length){el.innerHTML='<p style="color:#999">אין גרסאות שמורות עדיין</p>';return;}
@@ -31,8 +31,8 @@ function restoreSnapshot(i){
   const snaps=getSnapshots();const snap=snaps[i];if(!snap)return;
   if(!confirm('לשחזר לגרסה מ-'+new Date(snap.ts).toLocaleString('he-IL')+'?\nהנתונים הנוכחיים יישמרו אוטומטית לפני שחזור.')) return;
   createSnapshot('לפני שחזור');
-  _safeLS.setItem('ganv5',snap.data);
-  showCopyToast('✅ שוחזר! טוען מחדש...');
+  window._safeLS.setItem('ganv5',snap.data);
+  window.showCopyToast('✅ שוחזר! טוען מחדש...');
   setTimeout(()=>location.reload(),1200);
 }
 function deleteSnapshot(i){const snaps=getSnapshots();snaps.splice(i,1);saveSnapshots(snaps);renderBackupList();}
@@ -40,8 +40,8 @@ function updateAppFromHTML(input){
   const file=input.files[0]; if(!file) return;
   if(!confirm('האפליקציה תתעדכן לגרסה החדשה. הנתונים הקיימים יישמרו. להמשיך?')) return;
   // Save current data first
-  const currentData=_safeLS.getItem('ganv5');
-  const currentCfg=_safeLS.getItem('autoBackupCfg');
+  const currentData=window._safeLS.getItem('ganv5');
+  const currentCfg=window._safeLS.getItem('autoBackupCfg');
   const r=new FileReader();
   r.onload=e=>{
     try{
@@ -51,9 +51,9 @@ function updateAppFromHTML(input){
       const blob=new Blob([newHTML],{type:'text/html'});
       const url=URL.createObjectURL(blob);
       // Store data to restore after load
-      _safeLS.setItem('_restore_data',currentData||'');
-      _safeLS.setItem('_restore_cfg',currentCfg||'');
-      _safeLS.setItem('_pending_restore','1');
+      window._safeLS.setItem('_restore_data',currentData||'');
+      window._safeLS.setItem('_restore_cfg',currentCfg||'');
+      window._safeLS.setItem('_pending_restore','1');
       window.location.href=url;
     }catch(err){alert('שגיאה: '+err.message);}
   };
@@ -61,15 +61,15 @@ function updateAppFromHTML(input){
 }
 // On load: restore data if flagged
 (function(){
-  if(_safeLS.getItem('_pending_restore')==='1'){
-    _safeLS.removeItem('_pending_restore');
-    const d=_safeLS.getItem('_restore_data');
-    const c=_safeLS.getItem('_restore_cfg');
-    _safeLS.removeItem('_restore_data');
-    _safeLS.removeItem('_restore_cfg');
-    if(d) _safeLS.setItem('ganv5',d);
-    if(c) _safeLS.setItem('autoBackupCfg',c);
-    setTimeout(()=>showToast('✅ האפליקציה עודכנה! הנתונים שוחזרו.'),1500);
+  if(window._safeLS.getItem('_pending_restore')==='1'){
+    window._safeLS.removeItem('_pending_restore');
+    const d=window._safeLS.getItem('_restore_data');
+    const c=window._safeLS.getItem('_restore_cfg');
+    window._safeLS.removeItem('_restore_data');
+    window._safeLS.removeItem('_restore_cfg');
+    if(d) window._safeLS.setItem('ganv5',d);
+    if(c) window._safeLS.setItem('autoBackupCfg',c);
+    setTimeout(()=>window.showToast('✅ האפליקציה עודכנה! הנתונים שוחזרו.'),1500);
   }
 })();
 
@@ -86,16 +86,16 @@ function importBackup(input){
         managers:data.managers||{},blockedDates:data.blockedDates||{},
         gardenBlocks:data.gardenBlocks||{},invoices:data.invoices||[]};
       const json=JSON.stringify(sd);
-      _safeLS.setItem('ganv5',json);
+      window._safeLS.setItem('ganv5',json);
       // Init meta if missing, write to year key
-      let meta=JSON.parse(_safeLS.getItem('ganv5_meta')||'null');
+      let meta=JSON.parse(window._safeLS.getItem('ganv5_meta')||'null');
       if(!meta){
         const yr={key:'תשפו'};
         meta={currentYear:yr.key,years:[yr.key]};
-        _safeLS.setItem('ganv5_meta',JSON.stringify(meta));
+        window._safeLS.setItem('ganv5_meta',JSON.stringify(meta));
       }
-      _safeLS.setItem('ganv5_y_'+meta.currentYear,json);
-      showCopyToast('✅ ייבוא הצליח! טוען מחדש...');
+      window._safeLS.setItem('ganv5_y_'+meta.currentYear,json);
+      window.showCopyToast('✅ ייבוא הצליח! טוען מחדש...');
       setTimeout(()=>location.reload(),1400);
     }catch(err){alert('שגיאה בקובץ: '+err.message);}
   };

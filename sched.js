@@ -46,7 +46,7 @@ function openNewSched(gid, opts={}){
 
   // Reset all fields
   const ns_date=document.getElementById('ns-date');
-  if(ns_date) ns_date.value=opts.date||d2s(calD);
+  if(ns_date) ns_date.value=opts.date||window.d2s(window.calD);
   const ns_time=document.getElementById('ns-time');
   if(ns_time) ns_time.value=opts.time||'';
   document.getElementById('ns-time-g2').value='';
@@ -65,7 +65,7 @@ function openNewSched(gid, opts={}){
   document.getElementById('ns-warn').style.display='none';
 
   // Recur fields
-  const today=td();
+  const today=window.td();
   const recurFrom=document.getElementById('ns-recur-from');
   const recurTo=document.getElementById('ns-recur-to');
   if(recurFrom) recurFrom.value=opts.date||today;
@@ -91,10 +91,10 @@ function openNewSched(gid, opts={}){
   // City/garden dropdowns
   const cityEl=document.getElementById('ns-city');
   cityEl.innerHTML='<option value="">בחר עיר</option>';
-  cities().forEach(c=>cityEl.innerHTML+=`<option value='${c}'>${c}</option>`);
+  window.cities().forEach(c=>cityEl.innerHTML+=`<option value='${c}'>${c}</option>`);
 
   if(gid){
-    const g=G(gid);
+    const g=window.G(gid);
     cityEl.value=g.city||'';
     nsRefG();
     setTimeout(()=>{
@@ -107,7 +107,7 @@ function openNewSched(gid, opts={}){
 
   // Set tab and times
   nsSetTab(opts.tab||'once');
-  if(opts.time) document.getElementById('ns-time').value = fT(opts.time);
+  if(opts.time) document.getElementById('ns-time').value = window.fT(opts.time);
   
   if((opts.tab||'once')==='makeup') nsShowFreeDays(gid);
   else document.getElementById('ns-free-wrap').style.display='none';
@@ -131,12 +131,12 @@ function nsPreviewRecur(){
   }
   const dn=['ראשון','שני','שלישי','רביעי','חמישי'];
   const dayNames=days.map(d=>dn[d]).join(', ');
-  document.getElementById('ns-recur-preview').textContent=`📅 יימצאו ${count} פעילויות (ימים: ${dayNames}, ${fD(from)}–${fD(to)})`;
+  document.getElementById('ns-recur-preview').textContent=`📅 יימצאו ${count} פעילויות (ימים: ${dayNames}, ${window.fD(from)}–${window.fD(to)})`;
 }
 function nsRefG(){
   const cityEl = document.getElementById('ns-city');
   const city = cityEl ? cityEl.value : '';
-  const gs=gByCF(city,'').sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  const gs=window.gByCF(city,'').sort((a,b)=>a.name.localeCompare(b.name,'he'));
   const sel=document.getElementById('ns-g');
   if(!sel) return;
   sel.innerHTML='<option value="">בחר גן</option>';
@@ -154,16 +154,16 @@ function nsRefG(){
 }
 function nsCheckPair(gid){
   if(!gid) return;
-  const g=G(gid);
+  const g=window.G(gid);
   document.getElementById('ns-grp-wrap').style.display='block';
-  const pair=gardenPair(gid);
+  const pair=window.gardenPair(gid);
   const choiceWrap = document.getElementById('ns-g2-choice-wrap');
   const partnerWrap = document.getElementById('ns-g2-partner-wrap');
   
   if(pair && pair.ids.length>=2){
     const partnerId = pair.ids.find(id=>id!==gid);
     if(partnerId){
-      const partG = G(partnerId);
+      const partG = window.G(partnerId);
       if(choiceWrap) choiceWrap.style.display='block';
       const lbl = document.getElementById('ns-g2-lbl');
       if(lbl) lbl.textContent=`צהרון בן זוג? (${partG.name})`;
@@ -183,7 +183,7 @@ function nsCheckPair(gid){
       if(t2inp){
         const date=document.getElementById('ns-date').value;
         const partnerEv=window.SCH.find(x=>x.g===partnerId && x.d===date && x.st!=='can');
-        if(partnerEv&&partnerEv.t) t2inp.value=fT(partnerEv.t);
+        if(partnerEv&&partnerEv.t) t2inp.value=window.fT(partnerEv.t);
         else t2inp.value='';
       }
       // Trigger display if selected
@@ -198,7 +198,7 @@ function nsCheckPair(gid){
 
 function nsShowFreeDays(gid){
   if(!gid){ document.getElementById('ns-free-wrap').style.display='none'; return; }
-  const g=G(gid);
+  const g=window.G(gid);
   const fromD=new Date(); // from today
   const DAY_HEB=['ראשון','שני','שלישי','רביעי','חמישי'];
   const busyDates=new Set(window.SCH.filter(x=>x.g===gid&&x.st!=='can').map(x=>x.d));
@@ -206,9 +206,9 @@ function nsShowFreeDays(gid){
   for(let i=0;i<21;i++){
     const dow=d.getDay();
     if(dow>=0&&dow<=4){
-      const ds=d2s(d);
-      const hol=getHolidayInfo(ds,g.city,gcls(g));
-      if(!busyDates.has(ds)&&!hol) free.push({ds,lbl:DAY_HEB[dow]+' '+fD(ds)});
+      const ds=window.d2s(d);
+      const hol=window.getHolidayInfo(ds,g.city,window.gcls(g));
+      if(!busyDates.has(ds)&&!hol) free.push({ds,lbl:DAY_HEB[dow]+' '+window.fD(ds)});
     }
     d.setDate(d.getDate()+1);
   }
@@ -248,11 +248,11 @@ function nsDateChg(){
   const pId=pair.ids.find(id=>id!==gid);
   if(!pId){ hintEl.style.display='none'; return; }
   
-  const partnerG=G(pId);
+  const partnerG=window.G(pId);
   const partnerEv=window.SCH.find(x=>x.g===pId && x.d===date && x.st!=='can');
   
   if(partnerEv && partnerEv.t){
-    hintEl.textContent=`⏰ שעת גן ${partnerG.name}: ${fT(partnerEv.t)}`;
+    hintEl.textContent=`⏰ שעת גן ${partnerG.name}: ${window.fT(partnerEv.t)}`;
     hintEl.style.display='block';
   } else {
     hintEl.style.display='none';
@@ -262,7 +262,7 @@ function nsDateChg(){
 function nsSupChg(){
   const sup=document.getElementById('ns-sup').value;
   if(!sup) return;
-  const base=supBase(sup);
+  const base=window.supBase(sup);
   const ex=window.supEx[base]||window.supEx[sup]||{};
   const ph=ex.ph1||(SUPBASE.find(s=>supBase(s.name)===base&&s.phone)||SUPBASE.find(s=>s.name===sup)||{}).phone||'';
   document.getElementById('ns-ph').value=ph;
@@ -273,10 +273,11 @@ function nsSupChg(){
     if(ex.alias){aliasHint.textContent=`🏷️ יוצג כ: "${ex.alias}"`;aliasWrap.style.display='block';}
     else{aliasHint.textContent='';aliasWrap.style.display='none';}
   }
-  document.getElementById('ns-grp-wrap').style.display='block';
+  const grpWrap = document.getElementById('ns-grp-wrap');
+  if(grpWrap) grpWrap.style.display='block';
   const actSel=document.getElementById('ns-act-type');
   if(!actSel) return;
-  const acts=getSupActs(sup);
+  const acts=window.getSupActs(sup);
   actSel.innerHTML='<option value="">בחר סוג פעילות...</option>'+
     acts.map(a=>`<option value='${a}'>${a}</option>`).join('')+
     '<option value="__new__">➕ הוסף פעילות חדשה...</option>';
@@ -307,18 +308,18 @@ function saveNewSched(){
   const evTp=(document.getElementById('ns-ev-type')||{}).value||'חוג';
   if(actType&&actType!=='__new__'){
     if(!window.supEx[sup]) window.supEx[sup]={};
-    if(!Array.isArray(window.supEx[sup].acts)) window.supEx[sup].acts=getSupActs(sup);
+    if(!Array.isArray(window.supEx[sup].acts)) window.supEx[sup].acts=window.getSupActs(sup);
     if(!window.supEx[sup].acts.includes(actType)) window.supEx[sup].acts.push(actType);
   }
   if(!gid||!date||!sup){alert('יש למלא: גן, תאריך, ספק');return;}
-  const g=G(gid);
-  if(gcls(g)==='גנים'&&time){
+  const g=window.G(gid);
+  if(window.gcls(g)==='גנים'&&time){
     const h=parseInt(time.split(':')[0]);
     const period=h<13?'morning':'afternoon';
     const conflict=window.SCH.find(s=>s.g===gid&&s.d===date&&s.st!=='can'&&s.t&&(parseInt(s.t.split(':')[0])<13?'morning':'afternoon')===period&&s.id!==undefined);
     if(conflict){
       document.getElementById('ns-warn').style.display='block';
-      (document.getElementById('ns-warn')||{}).textContent =`⚠️ כבר קיימת פעילות ב${period==='morning'?'בוקר':'אחה"צ'}: ${conflict.a} ב-${fT(conflict.t)}`;
+      (document.getElementById('ns-warn')||{}).textContent =`⚠️ כבר קיימת פעילות ב${period==='morning'?'בוקר':'אחה"צ'}: ${conflict.a} ב-${window.fT(conflict.t)}`;
       return;
     }
   }
@@ -336,8 +337,8 @@ function saveNewSched(){
     const recurring_id=Date.now();
     while(cur<=endD&&count<365){
       if(selDays.includes(cur.getDay())){
-        const ds=d2s(cur);
-        const _hol2=getHolidayInfo(ds,G(gid).city||null,gcls(G(gid))||null);
+        const ds=window.d2s(cur);
+        const _hol2=window.getHolidayInfo(ds,window.G(gid).city||null,window.gcls(window.G(gid))||null);
         if(!_hol2||_hol2.type==='info'||_hol2.canSched){
           const eid=recurring_id+count;
           const ev={id:eid,g:gid,d:ds,a:sup,act:actType,tp:evTp||'חוג',t:recurTime,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp,_recId:recurring_id};
@@ -356,7 +357,7 @@ function saveNewSched(){
   if(_nsmTab==='makeup'){
     // Makeup schedule
     const makeupOrig=document.getElementById('ns-makeup-orig').value;
-    const makeupNote = `השלמה מ-${fD(makeupOrig)}`;
+    const makeupNote = `השלמה מ-${window.fD(makeupOrig)}`;
     const fullNote = notes ? notes + ' | ' + makeupNote : makeupNote;
     const newSched={id:newId,g:gid,d:date,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:fullNote,st:'ok',cr:'',cn:'',nt:fullNote,pd:'',pt:'',grp,_makeupFrom:makeupOrig||'',_isMakeup:true};
     
@@ -393,8 +394,8 @@ function sSchedStChange(){
   const to=document.getElementById('s-to');
   if(!st){
     // הכל → default to today
-    if(from&&!from.value) from.value=td();
-    if(to&&!to.value) to.value=td();
+    if(from&&!from.value) from.value=window.td();
+    if(to&&!to.value) to.value=window.td();
   } else {
     // ספציפי → clear date filter to show all
     if(from) from.value='';
@@ -405,7 +406,7 @@ function sSchedStChange(){
 function sRefG(){
   const city=document.getElementById('s-city').value;
   const cls=document.getElementById('s-cls').value;
-  const gs=gByCF(city,cls).sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  const gs=window.gByCF(city,cls).sort((a,b)=>a.name.localeCompare(b.name,'he'));
   ['s-g1','s-g2','s-g3'].forEach((id,i)=>{
     const sel=document.getElementById(id);
     sel.innerHTML=i===0?'<option value="">כל הצהרונים</option>':'<option value="">—</option>';
@@ -430,13 +431,13 @@ function getFiltSched(){
   const gids=[g1,g2,g3].filter(Boolean);
   const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
   return window.SCH.filter(s=>{
-    const g=G(s.g);
+    const g=window.G(s.g);
     if(type==='makeup' && !isM(s)) return false;
     if(type==='reg' && isM(s)) return false;
     if(city&&g.city!==city) return false;
-    if(cls&&gcls(g)!==cls) return false;
+    if(cls&&window.gcls(g)!==cls) return false;
     if(gids.length&&!gids.includes(s.g)) return false;
-    if(sup&&supBase(s.a)!==sup&&s.a!==sup) return false;
+    if(sup&&window.supBase(s.a)!==sup&&s.a!==sup) return false;
     if(th&&s.t&&s.t<th) return false;
     if(tt&&s.t&&s.t>tt) return false;
     if(from&&s.d<from) return false;
@@ -464,12 +465,12 @@ window.sRefG = sRefG;
 function setSchedView(v){
   const sf=document.getElementById('s-from'), st2=document.getElementById('s-to');
   if(!sf||!st2) return;
-  const base=sf.value||td();
-  const d=s2d(base);
+  const base=sf.value||window.td();
+  const d=window.s2d(base);
   if(v==='day'){
-    sf.value=td(); st2.value=td();
+    sf.value=window.td(); st2.value=window.td();
   } else if(v==='week'){
-    const mon=monStart(new Date(d)); sf.value=d2s(mon); st2.value=d2s(addD(mon,6));
+    const mon=window.monStart(new Date(d)); sf.value=window.d2s(mon); st2.value=window.d2s(window.addD(mon,6));
   } else if(v==='month'){
     const y=d.getFullYear(), m=d.getMonth();
     sf.value=d2s(new Date(y,m,1)); st2.value=d2s(new Date(y,m+1,0));
@@ -481,16 +482,16 @@ function setSchedView(v){
 function navSched(dir){
   const sf=document.getElementById('s-from'),st2=document.getElementById('s-to');
   if(!sf||!st2) return;
-  const from=sf.value||td(),to=st2.value||td();
-  const d1=s2d(from),d2=s2d(to);
+  const from=sf.value||window.td(),to=st2.value||window.td();
+  const d1=window.s2d(from),d2=window.s2d(to);
   const span=Math.max(0,Math.round((d2-d1)/(1000*60*60*24)));
-  const nd1=addD(d1,dir*(span+1));
-  const nd2=addD(nd1,span);
-  sf.value=d2s(nd1); st2.value=d2s(nd2);
+  const nd1=window.addD(d1,dir*(span+1));
+  const nd2=window.addD(nd1,span);
+  sf.value=window.d2s(nd1); st2.value=window.d2s(nd2);
   sPage=1; renderSched();
 }
 function navSchedToday(){
-  const t=td();
+  const t=window.td();
   document.getElementById('s-from').value=t;
   document.getElementById('s-to').value=t;
   sPage=1; renderSched();
@@ -507,9 +508,9 @@ function renderSched(){
   data.forEach(s=>{
     const dk=s._isPostponed?s.pd:s.d;
     if(!byDate[dk]) byDate[dk]={};
-    const g=G(s.g);
+    const g=window.G(s.g);
     const c=g.city||'אחר';
-    const cl=gcls(g);
+    const cl=window.gcls(g);
     if(!byDate[dk][c]) byDate[dk][c]={gan:[],sch:[]};
     if(cl==='ביה"ס') byDate[dk][c].sch.push({...s,gd:g});
     else byDate[dk][c].gan.push({...s,gd:g});
@@ -518,7 +519,7 @@ function renderSched(){
   let h='';
   Object.keys(byDate).sort().forEach(dateKey=>{
     h+=`<div style="font-weight:800;color:#1a237e;font-size:.83rem;padding:6px 10px;background:#e8eaf6;border-radius:6px;margin-bottom:6px;margin-top:10px">
-      📅 ${fD(dateKey)} יום ${dayN(dateKey)}
+      📅 ${window.fD(dateKey)} יום ${window.dayN(dateKey)}
     </div>`;
     Object.keys(byDate[dateKey]).sort().forEach(city=>{
       const cityData=byDate[dateKey][city];
@@ -532,14 +533,14 @@ function renderSched(){
           </tr></thead><tbody>`;
         sec.arr.sort((a,b)=>{
           // Sort by pair name first, then time — matches calendar order
-          const pA=gardenPair(a.g),pB=gardenPair(b.g);
-          const pnA=pA?pA.name:G(a.g).name;
-          const pnB=pB?pB.name:G(b.g).name;
+          const pA=window.gardenPair(a.g),pB=window.gardenPair(b.g);
+          const pnA=pA?pA.name:window.G(a.g).name;
+          const pnB=pB?pB.name:window.G(b.g).name;
           return pnA.localeCompare(pnB,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
         }).forEach(s=>{
-          h+=`<tr onclick="openSP(${s.id})" class="${stClass(s)}" style="cursor:pointer">
+          h+=`<tr onclick="window.openSP(${s.id})" class="${window.stClass(s)}" style="cursor:pointer">
             <td><div style="font-weight:700">${s.gd.name}</div>${s.gd.st?`<div style="font-size:.68rem;color:#78909c">${s.gd.st}</div>`:''}</td>
-            <td><div style="font-weight:700">${supBase(s.a)}</div>${supAct(s.a)?`<div style="font-size:.7rem;color:#1565c0">🎯 ${supAct(s.a)}</div>`:''}<span style="font-size:.68rem;color:#78909c">${s.p||''}</span></td>
+            <td><div style="font-weight:700">${window.supBase(s.a)}</div>${window.supAct(s.a)?`<div style="font-size:.7rem;color:#1565c0">🎯 ${window.supAct(s.a)}</div>`:''}<span style="font-size:.68rem;color:#78909c">${s.p||''}</span></td>
             <td>${window.fT ? window.fT(s.t) : s.t}</td>
             <td>${window.stLabel ? window.stLabel(s) : ''}</td>
             <td style="max-width:90px;font-size:.72rem">${s.nt||''}</td>
@@ -553,7 +554,7 @@ function renderSched(){
   });
   if(!h) h='<p style="color:#999;text-align:center;padding:20px">אין פעילויות</p>';
   document.getElementById('s-body').innerHTML=h;
-  setTimeout(_fitScrollAreas,50);
+  setTimeout(window._fitScrollAreas,50);
   let pg='';
   if(pages>1){
     const st=Math.max(1,sPage-3),en=Math.min(pages,sPage+3);

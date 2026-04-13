@@ -5,7 +5,7 @@ function setDashTab(t){
   renderDash();
 }
 function renderDash(){
-  const date=document.getElementById('dash-date').value||td();
+  const date=document.getElementById('dash-date').value||window.td();
   const city=document.getElementById('dash-city').value;
   const sup=document.getElementById('dash-sup').value;
   const st=document.getElementById('dash-st').value;
@@ -30,7 +30,7 @@ function renderDash(){
     }
     
     if(city&&g.city!==city) return false;
-    if(sup&&supBase(s.a)!==sup&&s.a!==sup) return false;
+    if(sup&&window.supBase(s.a)!==sup&&s.a!==sup) return false;
 
     if(srch&&![g.name,g.city,s.a,g.st,s.act].some(v=>(v||'')
       .toLowerCase().includes(srch))) return false;
@@ -75,8 +75,8 @@ function renderDash(){
         });
         h+=`<div class="card" style="margin-bottom:10px;padding:10px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <div style="font-weight:800;color:#1a237e;font-size:.9rem">📚 ${supBase(supData.name)}</div>
-            ${supAct(supData.name)?`<div style="font-size:.75rem;color:#1565c0;font-weight:600">🎯 ${supAct(supData.name)}</div>`:''}
+            <div style="font-weight:800;color:#1a237e;font-size:.9rem">📚 ${window.supBase(supData.name)}</div>
+            ${window.supAct(supData.name)?`<div style="font-size:.75rem;color:#1565c0;font-weight:600">🎯 ${window.supAct(supData.name)}</div>`:''}
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
               ${supData.ph?`<span style="font-size:.75rem;color:#546e7a">📞 ${supData.ph}</span>`:''}
               <span class="bdg bb" style="font-size:.7rem">${supData.evs.length} גנים</span>
@@ -97,8 +97,8 @@ function renderDash(){
         });
         ce.filter(s=>!usedIds.has(s.id)).forEach(s=>rows.push({type:'solo',ev:s}));
         rows.sort((a,b)=>{
-          const nameA=a.type==='pair'?a.pair.name:G(a.ev.g).name;
-          const nameB=b.type==='pair'?b.pair.name:G(b.ev.g).name;
+          const nameA=a.type==='pair'?a.pair.name:window.G(a.ev.g).name;
+          const nameB=b.type==='pair'?b.pair.name:window.G(b.ev.g).name;
           return nameA.localeCompare(nameB,'he');
         });
 
@@ -111,22 +111,22 @@ function renderDash(){
           } else {
              // Normal Card Mode
              if(row.type==='pair'){
-               const _dashClr=CITY_COLORS(G(row.pair.ids[0]).city);
-               h+=renderPairCard(row.pair,row.evs,{ds:date,clr:_dashClr,showEdit:true,showExport:true});
+               const _dashClr=window.CITY_COLORS(window.G(row.pair.ids[0]).city);
+               h+=window.renderPairCard(row.pair,row.evs,{ds:date,clr:_dashClr,showEdit:true,showExport:true});
              } else {
                const s=row.ev;
                const stc=s.st!=='ok'?'st-'+s.st:'';
-               const _sc=CITY_COLORS(window.G(s.g).city);
+               const _sc=window.CITY_COLORS(window.G(s.g).city);
                h+=`<div class="city-block" style="margin-bottom:7px">
                  <div class="city-block-hdr" style="background:${_sc.solid};font-size:.76rem">
                    🏫 ${s.gd.name}
                    <span style="font-size:.67rem;opacity:.8;font-weight:400">📍 ${window.G(s.g).city}</span>
-                   <button onclick="event.stopPropagation();_exportGardenWA([${s.g}],'${date}')" style="background:rgba(255,255,255,.28);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
-                   <button onclick="event.stopPropagation();quickAddPartner(${s.g})"
+                   <button onclick="event.stopPropagation();window._exportGardenWA([${s.g}],'${date}')" style="background:rgba(255,255,255,.28);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
+                   <button onclick="event.stopPropagation();window.quickAddPartner(${s.g})"
                      style="background:rgba(255,255,255,.22);border:none;border-radius:4px;padding:1px 7px;cursor:pointer;font-size:.67rem;color:#fff">➕ הוסף בן זוג</button>
                  </div>
                  <div style="background:#fff;padding:7px">
-                   <div class="ev ${stc}" onclick="openSP(${s.id})" style="border-radius:5px;border:none;border-right:3px solid ${_sc.solid};background:${_sc.light};margin:0">
+                   <div class="ev ${stc}" onclick="window.openSP(${s.id})" style="border-radius:5px;border:none;border-right:3px solid ${_sc.solid};background:${_sc.light};margin:0">
                      <span class="est">${window.stLabel(s)}</span>
                      <div class="eg">${s.gd.name}</div>
                      ${s.gd.st?`<div style="font-size:.67rem;color:#78909c">📍 ${s.gd.st}</div>`:''}
@@ -146,13 +146,12 @@ function renderDash(){
     document.getElementById('dash-body').innerHTML=h;
   }
 }
-}
 
 function _dashListRow(s){
   const g=window.G(s.g);
-  const _sc=CITY_COLORS(g.city);
+  const _sc=window.CITY_COLORS(g.city);
   const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
-  return `<div style="display:grid;grid-template-columns:110px 140px 1fr 100px;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #eee;cursor:pointer;background:#fff" onclick="openSP(${s.id})">
+  return `<div style="display:grid;grid-template-columns:110px 140px 1fr 100px;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #eee;cursor:pointer;background:#fff" onclick="window.openSP(${s.id})">
     <div style="font-weight:700;color:#1a237e;font-size:.82rem">${g.name}</div>
     <div style="font-size:.78rem;color:#546e7a">${g.city} | ${window.gcls ? window.gcls(g) : ''}</div>
     <div style="font-size:.82rem;color:#1565c0;font-weight:600">🎯 ${s.act||'—'} ${isM?'<span style="color:#0288d1;font-size:.7rem">(השלמה)</span>':''}</div>
@@ -176,7 +175,7 @@ function renderCanList(){
     ch='<div class="tw"><table><thead><tr><th>תאריך</th><th>עיר</th><th>גן</th><th>ספק</th><th>סטטוס</th><th>סיבה</th></tr></thead><tbody>';
     allEvs.forEach(s=>{
       const g=window.G(s.g);
-      ch+=`<tr onclick="openSP(${s.id})" class="${stClass(s)}"><td>${fD(s.d)}</td><td>${g.city||''}</td><td>${g.name||''}</td><td>${s.a}</td><td>${window.stLabel(s)}</td><td>${s.cr||''}${s.cn?' ('+s.cn+')':''}</td></tr>`;
+      ch+=`<tr onclick="window.openSP(${s.id})" class="${window.stClass(s)}"><td>${window.fD(s.d)}</td><td>${g.city||''}</td><td>${g.name||''}</td><td>${s.a}</td><td>${window.stLabel(s)}</td><td>${s.cr||''}${s.cn?' ('+s.cn+')':''}</td></tr>`;
     });
     ch+='</tbody></table></div>';
   }
@@ -190,7 +189,7 @@ function openSP(id){
   const s=window.SCH.find(x=>x.id===id);if(!s)return;
   const g=window.G(s.g);
   const isS=window.gcls(g)==='ביה"ס';
-  const spPair=gardenPair(s.g);
+  const spPair=window.gardenPair(s.g);
 
   // 1. Header: Fixed Details
   let h=`<div style="background:#f5f7ff;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #dbe3ff">

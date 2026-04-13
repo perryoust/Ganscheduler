@@ -6,15 +6,15 @@ function openMonthlyExport(){
   // Cities
   const citySel=document.getElementById('exp-city');
   citySel.innerHTML='<option value="">-- כל הערים --</option>';
-  cities().forEach(c=>{ const o=document.createElement('option');o.value=c;o.textContent=c;citySel.appendChild(o); });
+  window.cities().forEach(c=>{ const o=document.createElement('option');o.value=c;o.textContent=c;citySel.appendChild(o); });
   // Managers
   const mgrSel=document.getElementById('exp-mgr');
   mgrSel.innerHTML='<option value="">-- כל הרכזים --</option>';
-  Object.values(managers).forEach(mg=>{ const o=document.createElement('option');o.value=mg.id;o.textContent=mg.name;mgrSel.appendChild(o); });
+  Object.values(window.managers).forEach(mg=>{ const o=document.createElement('option');o.value=mg.id;o.textContent=mg.name;mgrSel.appendChild(o); });
   // Gardens
   const ganSel=document.getElementById('exp-garden');
   ganSel.innerHTML='<option value="">-- בחר צהרון --</option>';
-  const allGans=GARDENS.concat(_GARDENS_EXTRA||[]).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
+  const allGans=window.GARDENS.concat(window._GARDENS_EXTRA||[]).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
   allGans.forEach(g=>{ const o=document.createElement('option');o.value=g.id;o.textContent=`${g.name} (${g.city})`;ganSel.appendChild(o); });
   document.getElementById('export-m').classList.add('open');
 }
@@ -28,7 +28,7 @@ function expModeChg(){
 
 // Helper: find manager assigned to a garden
 function gardenManager(gardenId){
-  return Object.values(managers).find(m=>(m.gardenIds||[]).includes(gardenId))||null;
+  return Object.values(window.managers).find(m=>(m.gardenIds||[]).includes(gardenId))||null;
 }
 
 function doMonthlyExport(){
@@ -44,13 +44,11 @@ function doMonthlyExport(){
   const [fy,fm]=fromM.split('-').map(Number);
   const [ty,tm]=toM.split('-').map(Number);
   const fromDate=`${fy}-${String(fm).padStart(2,'0')}-01`;
-  const toDate=d2s(new Date(ty,tm,0));
-
-  let evs=SCH.filter(s=>s.d>=fromDate&&s.d<=toDate); // include cancelled for export
-  let gList=GARDENS.concat(_GARDENS_EXTRA||[]);
-
+  const toDate=window.d2s(new Date(ty,tm,0));
+  let evs=window.SCH.filter(s=>s.d>=fromDate&&s.d<=toDate); // include cancelled for export
+  let gList=window.GARDENS.concat(window._GARDENS_EXTRA||[]);
   if(mode==='city'&&cityFilter)   gList=gList.filter(g=>g.city===cityFilter);
-  if(mode==='manager'&&mgrFilter){ const mgrObj=managers[mgrFilter]; if(mgrObj?.gardenIds) gList=gList.filter(g=>mgrObj.gardenIds.includes(g.id)); }
+  if(mode==='manager'&&mgrFilter){ const mgrObj=window.managers[mgrFilter]; if(mgrObj?.gardenIds) gList=gList.filter(g=>mgrObj.gardenIds.includes(g.id)); }
   if(mode==='garden'&&gardenFilter){ gList=gList.filter(g=>g.id===gardenFilter); }
 
   // For single-garden mode: always export as one file
@@ -75,8 +73,8 @@ function doMonthlyExport(){
       filesExported++;
     });
   }
-  CM('export-m');
-  if(filesExported>0) showToast(`📊 ${filesExported} קבצי Excel נוצרו בהצלחה!`);
+  window.CM('export-m');
+  if(filesExported>0) window.showToast(`📊 ${filesExported} קבצי Excel נוצרו בהצלחה!`);
   else if(mode!=='garden') alert('⚠️ לא נמצאו פעילויות בטווח התאריכים שנבחר.');
 }
 
@@ -104,24 +102,24 @@ function downloadWB(wb, filename, fromM) {
   if (fromM) {
     [fy, fm] = fromM.split('-').map(Number);
   } else {
-    const firstDs = allEvs.length ? [...allEvs].sort((a,b)=>a.d.localeCompare(b.d))[0].d : d2s(new Date());
+    const firstDs = allEvs.length ? [...allEvs].sort((a,b)=>a.d.localeCompare(b.d))[0].d : window.d2s(new Date());
     [fy, fm] = firstDs.split('-').map(Number);
   }
 
   // Try ExcelJS first (supports images + RTL)
-  if (typeof ExcelJS !== 'undefined' && !window._excelJSFailed) {
+  if (typeof window.ExcelJS !== 'undefined' && !window._excelJSFailed) {
     console.log('📊 Using ExcelJS for export:', safeFile, 'year:', fy, 'month:', fm);
     _downloadWBExcelJS(gardens, allEvs, fy, fm - 1, safeFile);
     return;
   }
   // Fallback: SheetJS (no images)
-  if (typeof XLSX !== 'undefined') {
+  if (typeof window.XLSX !== 'undefined') {
     try {
       console.log('📊 Using SheetJS fallback for export');
-      const workbook = XLSX.utils.book_new();
+      const workbook = window.XLSX.utils.book_new();
       const ws = buildStyledSheet(gardens, allEvs, fy, fm - 1);
-      XLSX.utils.book_append_sheet(workbook, ws, 'לוח חוגים');
-      XLSX.writeFile(workbook, safeFile);
+      window.XLSX.utils.book_append_sheet(workbook, ws, 'לוח חוגים');
+      window.XLSX.writeFile(workbook, safeFile);
       return;
     } catch(e) {
       console.error('XLSX error:', e);
@@ -134,7 +132,7 @@ function downloadWB(wb, filename, fromM) {
 
 async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
   try {
-    const workbook = new ExcelJS.Workbook();
+    const workbook = new window.ExcelJS.Workbook();
 
     const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
     const HEB_DAYS   = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
@@ -155,8 +153,8 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     };
 
     let logoImgId = null;
-    if (typeof LOGO_B64 !== 'undefined' && LOGO_B64)
-      logoImgId = workbook.addImage({ base64: LOGO_B64, extension: 'png' });
+    if (typeof window.LOGO_B64 !== 'undefined' && window.LOGO_B64)
+      logoImgId = workbook.addImage({ base64: window.LOGO_B64, extension: 'png' });
 
     function applyStyle(cell, {fill, sz, bold, align, valign, bt, bb, bl, br}={}) {
       if (fill) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:fill} };
@@ -197,9 +195,8 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         {width:14.4},{width:3.6},{width:8.75},{width:9.25},
         {width:8.9},{width:24.6},{width:12.4},{width:4.25},{width:6.1}
       ];
-
-      const mgr = typeof managers !== 'undefined'
-        ? Object.values(managers).find(m => (m.gardenIds||[]).includes(garden.id))
+      const mgr = typeof window.managers !== 'undefined'
+        ? Object.values(window.managers).find(m => (m.gardenIds||[]).includes(garden.id))
         : null;
       const mgrText = mgr
         ? `שם הרכז: ${mgr.name}${mgr.phone ? ' · ' + mgr.phone : ''}`
@@ -281,8 +278,8 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         const dow     = date.getDay();
         const ds      = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
         const isFri   = dow===5, isSat=dow===6;
-        const blk     = typeof blockedDates!=='undefined' ? blockedDates[ds] : null;
-        const hol     = typeof getHolidayInfo==='function' ? getHolidayInfo(ds) : null;
+        const blk     = typeof window.blockedDates!=='undefined' ? window.blockedDates[ds] : null;
+        const hol     = typeof window.getHolidayInfo==='function' ? window.getHolidayInfo(ds) : null;
         const dayName = `יום\u00a0${HEB_DAYS[dow]}`;
         const dateStr = `${day}/${month+1}/${String(year).slice(-2)}`;
 
@@ -301,11 +298,11 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
           else if (holType==='camp')       fill = CLR.GOLD;
           else if (holType)               fill = CLR.YELLOW;
 
-          const supName = ev ? ((typeof supBase==='function'?supBase(ev.a):ev.a)||ev.a||'') : '';
+          const supName = ev ? ((typeof window.supBase==='function'?window.supBase(ev.a):ev.a)||ev.a||'') : '';
           const evTpLabel = ev ? (ev.tp||'חוג') : '';
-          const actName  = ev ? (ev.act||(typeof supAct==='function'?supAct(ev.a):'')||'') : '';
+          const actName  = ev ? (ev.act||(typeof window.supAct==='function'?window.supAct(ev.a):'')||'') : '';
           const colF     = ev ? (actName?supName+' - '+actName:supName) : '';
-          const phone    = ev ? (ev.p||(typeof supEx!=='undefined'&&supEx[supName]?.ph1)||'') : '';
+          const phone    = ev ? (ev.p||(typeof window.supEx!=='undefined'&&window.supEx[supName]?.ph1)||'') : '';
           const grp      = ev ? (isCan ? 0 : (ev.grp||1)) : '';
 
           const vals = [
@@ -408,7 +405,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     a.style.display = 'none';
     document.body.appendChild(a); a.click();
     setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
-    showToast('📊 קובץ Excel נוצר!');
+    window.showToast('📊 קובץ Excel נוצר!');
   } catch(e) {
     console.error('ExcelJS error:', e);
     alert('שגיאה ביצירת Excel: ' + e.message + '\n\nבדוק את ה-console לפרטים');
@@ -421,7 +418,7 @@ function _csvFallback(wb, filename) {
   wb.sheets.forEach(({garden, evs}) => {
     csvParts.push(`=== ${garden.name} ===`);
     const {rows} = buildSheetData(garden, evs);
-    rows.forEach(r => csvParts.push(r.map(c => c==null?'':String(c).replace(/,/g,'،')).join(',')));
+    rows.forEach(r => csvParts.push(r.map(c => c==null?'':String(c).replace(/,/g,'，')).join(',')));
     csvParts.push('');
   });
   const blob = new Blob(['\uFEFF'+csvParts.join('\n')], {type:'text/csv;charset=utf-8'});
@@ -483,7 +480,7 @@ function buildStyledSheet(gardens, allEvs, year, month) {
   function align(h) { return {horizontal:h, vertical:'center', readingOrder:2}; }
 
   function sc(row, col, value, style) {
-    const addr = XLSX.utils.encode_cell({r: row, c: col});
+    const addr = window.XLSX.utils.encode_cell({r: row, c: col});
     const t = typeof value === 'number' ? 'n' : value instanceof Date ? 'd' : 's';
     ws[addr] = {v: value != null ? value : '', t: value != null ? t : 's', s: style || {}};
   }
@@ -491,7 +488,7 @@ function buildStyledSheet(gardens, allEvs, year, month) {
   function dataRow(row, fillRgb, isLeftBorder) {
     // Apply full-row style with borders for all 9 columns
     for (let c = 0; c < 9; c++) {
-      const addr = XLSX.utils.encode_cell({r: row, c});
+      const addr = window.XLSX.utils.encode_cell({r: row, c});
       if (!ws[addr]) ws[addr] = {v: '', t: 's', s: {}};
       ws[addr].s = {
         ...ws[addr].s,
@@ -556,8 +553,8 @@ function buildStyledSheet(gardens, allEvs, year, month) {
       const ds     = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
       const isFri  = dow === 5;
       const isSat  = dow === 6;
-      const blk    = blockedDates ? blockedDates[ds] : null;
-      const hol    = typeof getHolidayInfo === 'function' ? getHolidayInfo(ds) : null;
+      const blk    = window.blockedDates ? window.blockedDates[ds] : null;
+      const hol    = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(ds) : null;
       const holType2 = hol ? (hol.type||'vacation') : null;
       const fillRgb = (isFri||isSat) ? 'FFFF0000' : holType2==='camp' ? 'FFFF9999' : holType2 ? 'FFFFFF00' : null;
       const dayName = `יום\u00a0${HEB_DAYS[dow]}`;
@@ -580,10 +577,10 @@ function buildStyledSheet(gardens, allEvs, year, month) {
           sc(r+ei, 3, dayName,     null);
         }
         if (ev) {
-          const supName = supBase(ev.a) || ev.a || '';
+          const supName = window.supBase(ev.a) || ev.a || '';
           const actType = ev.tp || 'חוג';
-          const supData = SUPBASE ? SUPBASE.find(s=>(typeof supBase==='function'?supBase(s.name):s.name)===supName) : null;
-          const phone   = ev.p || (supData&&supData.phone) || (supEx&&supEx[supName]&&supEx[supName].ph1) || '';
+          const supData = window.SUPBASE ? window.SUPBASE.find(s=>(typeof window.supBase==='function'?window.supBase(s.name):s.name)===supName) : null;
+          const phone   = ev.p || (supData&&supData.phone) || (window.supEx&&window.supEx[supName]&&window.supEx[supName].ph1) || '';
           const holObj = hol || null;
           sc(r+ei, 4, holObj ? (holObj.name||actType) : actType, null);
           sc(r+ei, 5, supName,         null);
@@ -627,7 +624,7 @@ function buildStyledSheet(gardens, allEvs, year, month) {
     }
   });
 
-  ws['!ref']       = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:r-1,c:8}});
+  ws['!ref']       = window.XLSX.utils.encode_range({s:{r:0,c:0},e:{r:r-1,c:8}});
   ws['!merges']    = merges;
   ws['!rowbreaks'] = rowBreaks;
   ws['!cols']      = [{wch:14.4},{wch:3.6},{wch:8.75},{wch:9.25},{wch:8.9},{wch:24.6},{wch:12.4},{wch:4.25},{wch:6.1}];
@@ -653,9 +650,9 @@ function buildSheetData(garden, evs) {
     const dayName = `יום\u00a0${HEB_DAYS[date.getDay()]}`;
     if (!dayEvs.length) { rows.push([null,null,ds,dayName,null,null,null,null,null]); return; }
     dayEvs.forEach((s,i) => {
-      const supName = supBase(s.a)||s.a;
+      const supName = window.supBase(s.a)||s.a;
       rows.push([i===0?garden.name:null, null, i===0?ds:null, i===0?dayName:null,
-        s.act||(typeof supAct==='function'?supAct(s.a):'')||'חוג',
+        s.act||(typeof window.supAct==='function'?window.supAct(s.a):'')||'חוג',
         supName, s.p||'', s.grp||1, s.t?s.t.slice(0,5):''
       ]);
     });

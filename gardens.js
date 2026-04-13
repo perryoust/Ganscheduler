@@ -8,11 +8,11 @@ function renderGardens(){
   const cl=document.getElementById('g-cl').value;
   const srch=document.getElementById('g-srch').value.toLowerCase();
   const mgrF=(document.getElementById('g-mgr')||{}).value||'';
-  const f=[...GARDENS,..._GARDENS_EXTRA].filter(g=>{
+  const f=[...window.GARDENS,...(window._GARDENS_EXTRA||[])].filter(g=>{
     if(city&&g.city!==city) return false;
-    if(cls&&gcls(g)!==cls) return false;
-    if(cl){const clObj=getClusters().find(c=>c.name===cl);if(!clObj||(!(clObj.gardenIds||[]).includes(g.id))) return false;}
-    if(mgrF){const m=managers[mgrF];if(!m||(!(m.gardenIds||[]).includes(g.id))) return false;}
+    if(cls&&window.gcls(g)!==cls) return false;
+    if(cl){const clObj=window.getClusters().find(c=>c.name===cl);if(!clObj||(!(clObj.gardenIds||[]).includes(g.id))) return false;}
+    if(mgrF){const m=window.managers[mgrF];if(!m||(!(m.gardenIds||[]).includes(g.id))) return false;}
     if(srch&&![(g.name||''),(g.city||''),(g.st||''),(g.co||'')].some(x=>x.toLowerCase().includes(srch))) return false;
     return true;
   }).sort((a,b)=>a.name.localeCompare(b.name,'he'));
@@ -21,7 +21,7 @@ function renderGardens(){
   f.forEach(g=>{
     const c=g.city||'אחר';
     if(!byCity[c]) byCity[c]={gan:[],sch:[]};
-    if(gcls(g)==='ביה"ס') byCity[c].sch.push(g);
+    if(window.gcls(g)==='ביה"ס') byCity[c].sch.push(g);
     else byCity[c].gan.push(g);
   });
 
@@ -34,19 +34,19 @@ function renderGardens(){
       h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;margin-top:${sec.cls==='sch'?'14px':'0'}"><div style="height:2px;flex:1;background:${sec.cls==='sch'?'#1565c0':'#2e7d32'};opacity:.25"></div><span class="dsh ${sec.cls}" style="font-size:.76rem;font-weight:800;padding:3px 12px;border-radius:10px">${sec.lbl} (${sec.arr.length})</span><div style="height:2px;flex:1;background:${sec.cls==='sch'?'#1565c0':'#2e7d32'};opacity:.25"></div></div>
         <div class="evgrid" style="margin-bottom:8px">`;
       sec.arr.forEach(g=>{
-        const cnt=SCH.filter(s=>s.g===g.id).length;
-        const pair=gardenPair(g.id);
-        const mgr=getGardenMgr(g.id);
-        const gd=getGardenData(g.id);
-        h+=`<div class="gc" onclick="openGM(${g.id})">
+        const cnt=window.SCH.filter(s=>s.g===g.id).length;
+        const pair=window.gardenPair(g.id);
+        const mgr=window.getGardenMgr(g.id);
+        const gd=window.getGardenData(g.id);
+        h+=`<div class="gc" onclick="window.openGM(${g.id})">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
             <div style="font-weight:700;color:#1a237e;margin-bottom:3px;flex:1">${gd.name||g.name}</div>
             <button onclick="event.stopPropagation();openGardenEdit(${g.id})" style="background:none;border:none;cursor:pointer;font-size:.7rem;color:#90a4ae;padding:0 2px" title="ערוך כרטיס גן">✏️</button>
           </div>
           ${(gd.st||g.st)?`<div style="font-size:.73rem;color:#666" onclick="event.stopPropagation()">📍 <a href="https://maps.google.com/?q=${encodeURIComponent((gd.st||g.st)+' '+g.city)}" target="_blank" style="color:#1565c0;text-decoration:underline">${gd.st||g.st}</a></div>`:''}
-          ${gd.phone?`<div style="font-size:.72rem;color:#2e7d32;font-weight:600">📞 ${gd.phone}</div>`:''}
+          ${ gd.phone?`<div style="font-size:.72rem;color:#2e7d32;font-weight:600">📞 ${gd.phone}</div>`:''}
           ${mgr?`<div style="font-size:.7rem;color:#1565c0;border-top:1px solid #e8eaf6;margin-top:4px;padding-top:3px">${mgr.role==='manager'?'🏛️':'👤'} ${mgr.name}${mgr.phone?' · 📞 '+mgr.phone:''}</div>`:''}
-          ${gardenClusters(g.id).length?`<div style="font-size:.71rem;color:#6a1b9a">🔢 ${gardenClusters(g.id).map(c=>c.name).join(', ')}</div>`:''}
+          ${window.gardenClusters(g.id).length?`<div style="font-size:.71rem;color:#6a1b9a">🔢 ${window.gardenClusters(g.id).map(c=>c.name).join(', ')}</div>`:''}
           <div style="display:flex;align-items:center;justify-content:space-between;margin-top:5px">
             ${pair
               ?`<span style="font-size:.7rem;color:#2e7d32;font-weight:700">🔗 ${pair.name}</span>`
@@ -61,16 +61,16 @@ function renderGardens(){
     h+='</div>';
   });
   document.getElementById('g-body').innerHTML=h||'<p style="color:#999">לא נמצאו צהרונים</p>';
-  setTimeout(_fitScrollAreas,50);
+  setTimeout(window._fitScrollAreas,50);
 }
 
 function openGmExport(){
-  if(!gmGid)return;
-  const gids=gardenPair(gmGid)?gardenPair(gmGid).ids:[gmGid];
-  _exGids=gids;
-  const ws=monStart(gmD);
-  const fDs=gmV==='day'?d2s(gmD):gmV==='week'?d2s(ws):d2s(new Date(gmD.getFullYear(),gmD.getMonth(),1));
-  const tDs=gmV==='day'?d2s(gmD):gmV==='week'?d2s(addD(ws,5)):d2s(new Date(gmD.getFullYear(),gmD.getMonth()+1,0));
+  if(!window.gmGid)return;
+  const gids=window.gardenPair(window.gmGid)?window.gardenPair(window.gmGid).ids:[window.gmGid];
+  window._exGids=gids;
+  const ws=window.monStart(window.gmD);
+  const fDs=window.gmV==='day'?window.d2s(window.gmD):window.gmV==='week'?window.d2s(ws):window.d2s(new Date(window.gmD.getFullYear(),window.gmD.getMonth(),1));
+  const tDs=window.gmV==='day'?window.d2s(window.gmD):window.gmV==='week'?window.d2s(window.addD(ws,5)):window.d2s(new Date(window.gmD.getFullYear(),window.gmD.getMonth()+1,0));
   document.getElementById('ex-d1').value=fDs;
   document.getElementById('ex-d2').value=tDs;
   (document.getElementById('ex-ctx')||{}).textContent=G(gmGid).name+' | '+fD(fDs)+(fDs!==tDs?' – '+fD(tDs):'');
@@ -78,14 +78,14 @@ function openGmExport(){
   setTimeout(()=>genExport(),80);
 }
 function openGM(gid){
-  gmGid=gid;gmV='week';gmD=new Date();
-  const g=GARDENS.find(x=>x.id===gid)||{};
+  window.gmGid=gid;window.gmV='week';window.gmD=new Date();
+  const g=window.GARDENS.find(x=>x.id===gid)||{};
   (document.getElementById('gm-title')||{}).textContent =`${g.city} · ${g.name}`;
-  document.getElementById('gm-det').innerHTML=[g.st?`🏠 ${g.st}`:'',g.co?`👤 ${g.co}`:'',gardenClusters(gid).length?`🔢 ${gardenClusters(gid).map(c=>c.name).join(', ')}`:''].filter(Boolean).join(' | ');
-  const pair=gardenPair(gid);
+  document.getElementById('gm-det').innerHTML=[g.st?`🏠 ${g.st}`:'',g.co?`👤 ${g.co}`:'',window.gardenClusters(gid).length?`🔢 ${window.gardenClusters(gid).map(c=>c.name).join(', ')}`:''].filter(Boolean).join(' | ');
+  const pair=window.gardenPair(gid);
   document.getElementById('gm-pair-current').innerHTML=pair?`<span class="bdg bg2">🔗 כרגע: ${pair.name}</span>`:'<span style="color:#999">לא משויך לזוג</span>';
   document.getElementById('gm-del-pair-btn').style.display=pair?'inline-block':'none';
-  const allOther=GARDENS.filter(x=>x.id!==gid).sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  const allOther=window.GARDENS.filter(x=>x.id!==gid).sort((a,b)=>a.name.localeCompare(b.name,'he'));
   ['gm-pg2','gm-pg3'].forEach((id,i)=>{
     const sel=document.getElementById(id);
     sel.innerHTML='<option value="">—</option>';
@@ -96,49 +96,49 @@ function openGM(gid){
   document.getElementById('gm').classList.add('open');
 }
 function delPairFromGarden(){
-  const pair=gardenPair(gmGid);
+  const pair=window.gardenPair(window.gmGid);
   if(!pair) return;
   if(!confirm(`למחוק את הזוג "${pair.name}"?`)) return;
-  const idx=pairs.findIndex(p=>p.id===pair.id);
-  if(idx>=0) pairs.splice(idx,1);
-  save(); refresh();
-  openGM(gmGid);
+  const idx=window.pairs.findIndex(p=>p.id===pair.id);
+  if(idx>=0) window.pairs.splice(idx,1);
+  window.save(); window.refresh();
+  openGM(window.gmGid);
 }
 function setGmView(v){
-  gmV=v;
+  window.gmV=v;
   ['day','week','month'].forEach(x=>document.getElementById('gvb-'+x).classList.toggle('active',x===v));
   renderGM();
 }
 function gmNav(d){
-  if(gmV==='day') gmD=addD(gmD,d);
-  else if(gmV==='week') gmD=addD(gmD,d*7);
-  else gmD=addM(gmD,d);
+  if(window.gmV==='day') window.gmD=window.addD(window.gmD,d);
+  else if(window.gmV==='week') window.gmD=window.addD(window.gmD,d*7);
+  else window.gmD=window.addM(window.gmD,d);
   renderGM();
 }
 function renderGmCal(){ renderGM(); }
 
 function renderGM(){
-  const gid=gmGid;let from,to,title;
-  if(gmV==='day'){from=to=d2s(gmD);title=`${fD(from)} - יום ${dayN(from)}`;}
-  else if(gmV==='week'){const ws=monStart(gmD);from=d2s(ws);to=d2s(addD(ws,5));title=`${fD(from)} – ${fD(to)}`;}
-  else{const y=gmD.getFullYear(),m=gmD.getMonth();from=d2s(new Date(y,m,1));to=d2s(new Date(y,m+1,0));title=hebM(gmD);}
+  const gid=window.gmGid;let from,to,title;
+  if(window.gmV==='day'){from=to=window.d2s(window.gmD);title=`${window.fD(from)} - יום ${window.dayN(from)}`;}
+  else if(window.gmV==='week'){const ws=window.monStart(window.gmD);from=window.d2s(ws);to=window.d2s(window.addD(ws,5));title=`${window.fD(from)} – ${window.fD(to)}`;}
+  else{const y=window.gmD.getFullYear(),m=window.gmD.getMonth();from=window.d2s(new Date(y,m,1));to=window.d2s(new Date(y,m+1,0));title=window.hebM(window.gmD);}
   (document.getElementById('gm-per')||{}).textContent =title;
-  const evs=SCH.filter(s=>s.g===gid&&s.d>=from&&s.d<=to).sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'').localeCompare(b.t||''));
+  const evs=window.SCH.filter(s=>s.g===gid&&s.d>=from&&s.d<=to).sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'').localeCompare(b.t||''));
   if(!evs.length){document.getElementById('gm-cal').innerHTML='<p style="color:#999;text-align:center;padding:18px">אין פעילויות</p>';return;}
-  if(gmV==='month'){document.getElementById('gm-cal').innerHTML=renderMonth(evs,gmD);return;}
+  if(window.gmV==='month'){document.getElementById('gm-cal').innerHTML=window.renderMonth(evs,window.gmD);return;}
   let h='<div class="tw"><table><thead><tr><th>תאריך</th><th>יום</th><th>ספק</th><th>שעה</th><th>הערות</th><th>סטטוס</th></tr></thead><tbody>';
   evs.forEach(s=>{
-    const g=G(s.g);
-    const gblk=getGardenBlock(s.g,s.d);
-    h+=`<tr onclick="openSP(${s.id})" class="${stClass(s)}"><td>${fD(s.d)}</td><td>יום ${dayN(s.d)}</td><td>${s.a}</td><td>${fT(s.t)}</td><td>${gblk?`<span style="color:#c62828;font-size:.72rem">${gblk.icon||'🚫'} ${gblk.reason}</span>${s.nt?' | '+s.nt:''}`:s.nt||''}</td><td>${stLabel(s)}</td></tr>`;
+    const g=window.G(s.g);
+    const gblk=window.getGardenBlock(s.g,s.d);
+    h+=`<tr onclick="window.openSP(${s.id})" class="${window.stClass(s)}"><td>${window.fD(s.d)}</td><td>יום ${window.dayN(s.d)}</td><td>${s.a}</td><td>${window.fT(s.t)}</td><td>${gblk?`<span style="color:#c62828;font-size:.72rem">${gblk.icon||'🚫'} ${gblk.reason}</span>${s.nt?' | '+s.nt:''}`:s.nt||''}</td><td>${window.stLabel(s)}</td></tr>`;
   });
   document.getElementById('gm-cal').innerHTML=h+'</tbody></table></div>';
 }
 function quickAddPartner(gid){
-  const idx=pairs.findIndex(p=>p.ids.includes(gid));
-  if(idx>=0){ openAddPair(idx); return; }
-  editPairIdx=null;
-  const g=G(gid);
+  const idx=window.pairs.findIndex(p=>p.ids.includes(gid));
+  if(idx>=0){ window.openAddPair(idx); return; }
+  window.editPairIdx=null;
+  const g=window.G(gid);
   (document.getElementById('apm-title')||{}).textContent ='➕ הוסף זוג — '+g.name;
   document.getElementById('apm-name').value='';
   document.getElementById('apm-city').value=g.city||'';
@@ -157,10 +157,10 @@ let _pqmId=null,_pqmDs=null;
 function openPairQuickEdit(pairId,ds){
   _pqmId=pairId;
   _pqmDs=ds;
-  const pair=pairs.find(p=>String(p.id)===String(pairId));
+  const pair=window.pairs.find(p=>String(p.id)===String(pairId));
   if(!pair) return;
-  const gs=pair.ids.map(id=>G(id)).filter(x=>x.id);
-  const broken=isPairBroken(pairId,ds);
+  const gs=pair.ids.map(id=>window.G(id)).filter(x=>x.id);
+  const broken=window.isPairBroken(pairId,ds);
   (document.getElementById('pqm-title')||{}).textContent =`🔗 ${pair.name}`;
   document.getElementById('pqm-info').innerHTML=`
     <div style="font-weight:700;color:#1a237e;margin-bottom:5px">${pair.name}</div>
@@ -174,50 +174,50 @@ function openPairQuickEdit(pairId,ds){
 }
 
 function pqmEdit(){
-  CM('pqm');
-  const idx=pairs.findIndex(p=>String(p.id)===String(_pqmId));
-  if(idx>=0) openAddPair(idx);
+  window.CM('pqm');
+  const idx=window.pairs.findIndex(p=>String(p.id)===String(_pqmId));
+  if(idx>=0) window.openAddPair(idx);
 }
 
 function pqmBreakToday(){
-  const pair=pairs.find(p=>String(p.id)===String(_pqmId));
+  const pair=window.pairs.find(p=>String(p.id)===String(_pqmId));
   if(!pair) return;
-  if(!confirm(`לפרק את הזוג "${pair.name}" רק להיום (${fD(_pqmDs)})?
+  if(!confirm(`לפרק את הזוג "${pair.name}" רק להיום (${window.fD(_pqmDs)})?
 הצהרונים יוצגו בנפרד ביום זה בלבד.`)) return;
-  setPairBreak(_pqmId,_pqmDs,true);
-  CM('pqm');
+  window.setPairBreak(_pqmId,_pqmDs,true);
+  window.CM('pqm');
 }
 
 function pqmRestoreToday(){
-  const pair=pairs.find(p=>String(p.id)===String(_pqmId));
+  const pair=window.pairs.find(p=>String(p.id)===String(_pqmId));
   if(!pair) return;
-  setPairBreak(_pqmId,_pqmDs,false);
-  CM('pqm');
+  window.setPairBreak(_pqmId,_pqmDs,false);
+  window.CM('pqm');
 }
 
 function pqmBreakPermanent(){
-  const pair=pairs.find(p=>String(p.id)===String(_pqmId));
+  const pair=window.pairs.find(p=>String(p.id)===String(_pqmId));
   if(!pair) return;
   if(!confirm(`למחוק לצמיתות את הזוג "${pair.name}"?
 הצהרונים יוצגו בנפרד בכל הלוח. פעולה זו אינה ניתנת לביטול.`)) return;
-  const idx=pairs.findIndex(p=>String(p.id)===String(_pqmId));
-  if(idx>=0) pairs.splice(idx,1);
-  Object.keys(pairBreaks).forEach(k=>{if(k.startsWith(_pqmId+'_')) delete pairBreaks[k];});
-  save(); CM('pqm'); refresh();
+  const idx=window.pairs.findIndex(p=>String(p.id)===String(_pqmId));
+  if(idx>=0) window.pairs.splice(idx,1);
+  Object.keys(window.pairBreaks).forEach(k=>{if(k.startsWith(_pqmId+'_')) delete window.pairBreaks[k];});
+  window.save(); window.CM('pqm'); window.refresh();
 }
 
 function renderPairs(){
   const cityFilt=(document.getElementById('pairs-city')||{}).value||'';
-  const f=pairs.filter(p=>{
+  const f=window.pairs.filter(p=>{
     if(!cityFilt) return true;
-    return p.ids.some(id=>G(id).city===cityFilt);
+    return p.ids.some(id=>window.G(id).city===cityFilt);
   });
   const el=document.getElementById('pairs-count');
   if(el) el.textContent='('+f.length+')';
 
   // ── Sidebar: gardens with no pair ───────────────────────
-  const pairedGids=new Set(pairs.flatMap(p=>p.ids));
-  const soloGardens=GARDENS.filter(g=>!pairedGids.has(g.id)&&gcls(g)==='גנים')
+  const pairedGids=new Set(window.pairs.flatMap(p=>p.ids));
+  const soloGardens=window.GARDENS.filter(g=>!pairedGids.has(g.id)&&window.gcls(g)==='גנים')
     .sort((a,b)=>a.city.localeCompare(b.city,'he')||a.name.localeCompare(b.name,'he'));
   const bySoloCity={};
   soloGardens.forEach(g=>{if(!bySoloCity[g.city])bySoloCity[g.city]=[];bySoloCity[g.city].push(g);});
@@ -249,22 +249,22 @@ function renderPairs(){
   }
   const byCity={};
   f.forEach(p=>{
-    const city=G(p.ids[0]).city||'אחר';
+    const city=window.G(p.ids[0]).city||'אחר';
     if(!byCity[city]) byCity[city]=[];
     byCity[city].push(p);
   });
 
   let h='';
   Object.keys(byCity).sort().forEach(city=>{
-    const clr=CITY_COLORS(city);
+    const clr=window.CITY_COLORS(city);
     h+=`<div style="margin-bottom:18px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:7px 11px;background:${clr.light};border-radius:8px;border-right:3px solid ${clr.solid}">
         <span style="font-weight:800;color:${clr.solid};font-size:.85rem">🏙️ ${city}</span>
         <span style="font-size:.72rem;color:${clr.solid};opacity:.75">${byCity[city].length} זוגות/שלישיות</span>
       </div>`;
     byCity[city].forEach(p=>{
-      const idx=pairs.indexOf(p);
-      const gs=p.ids.map(id=>G(id)).filter(x=>x.id);
+      const idx=window.pairs.indexOf(p);
+      const gs=p.ids.map(id=>window.G(id)).filter(x=>x.id);
       // Always 3 columns — empty cell if only 2 gardens
       h+=`<div class="pair-row" style="border-right:3px solid ${clr.solid};margin-bottom:10px">
         <div class="pair-row-label" style="background:${clr.solid};display:flex;justify-content:space-between;align-items:center">
@@ -278,14 +278,14 @@ function renderPairs(){
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:#e8eaf6">`;
       gs.forEach(g=>{
-        const cnt=SCH.filter(s=>s.g===g.id&&s.st!=='can').length;
-        const last=SCH.filter(s=>s.g===g.id&&s.st!=='can').sort((a,b)=>b.d.localeCompare(a.d))[0];
-        const mgr=getGardenMgr(g.id);
+        const cnt=window.SCH.filter(s=>s.g===g.id&&s.st!=='can').length;
+        const last=window.SCH.filter(s=>s.g===g.id&&s.st!=='can').sort((a,b)=>b.d.localeCompare(a.d))[0];
+        const mgr=window.getGardenMgr(g.id);
         h+=`<div style="background:#fff;padding:9px 11px">
-          <div style="font-weight:800;color:#1a237e;font-size:.82rem;margin-bottom:3px">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
+          <div style="font-weight:800;color:#1a237e;font-size:.82rem;margin-bottom:3px">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
           ${g.st?`<div style="font-size:.69rem;color:#78909c;margin-bottom:2px">📍 ${g.st}</div>`:''}
           ${mgr?`<div style="font-size:.68rem;color:#1565c0">${mgr.role==='manager'?'🏛️':'👤'} ${mgr.name}</div>`:''}
-          <div style="font-size:.68rem;color:#78909c;margin-top:3px">📅 ${cnt} פעילויות${last?' | '+fD(last.d):''}</div>
+          <div style="font-size:.68rem;color:#78909c;margin-top:3px">📅 ${cnt} פעילויות${last?' | '+window.fD(last.d):''}</div>
         </div>`;
       });
       // Always 3 cols — add empty left cell for pairs (not triples)
@@ -299,24 +299,24 @@ function renderPairs(){
 
 
 function _goToPairSched(idx){
-  const p=pairs[idx];
+  const p=window.pairs[idx];
   if(!p||!p.ids||!p.ids[0]) return;
   // Open new-schedule modal with first garden of pair pre-selected
-  openNewSched(p.ids[0]);
+  window.openNewSched(p.ids[0]);
 }
 
 function exportPairNow(idx){_exGids=pairs[idx].ids;openExport();}
 function delPair(idx){
-  const pair=pairs[idx];
+  const pair=window.pairs[idx];
   if(!pair) return;
   if(!confirm('למחוק את הזוג "'+pair.name+'"?\nהפעילויות ישארו אך הצהרונים לא יהיו מקושרים יותר.')) return;
-  pairs.splice(idx,1);
-  save();refresh();
+  window.pairs.splice(idx,1);
+  window.save();window.refresh();
   alert('✅ הזוג נמחק');
 }
 function openAddPair(idx){
-  editPairIdx=idx;
-  const pair=idx!==null&&idx!==undefined?pairs[idx]:null;
+  window.editPairIdx=idx;
+  const pair=idx!==null&&idx!==undefined?window.pairs[idx]:null;
   (document.getElementById('apm-title')||{}).textContent =pair?'✏️ עריכת זוג':'➕ הוסף זוג/שלישיה';
   document.getElementById('apm-name').value=pair?pair.name:'';
   document.getElementById('apm-city').value='';
@@ -324,14 +324,14 @@ function openAddPair(idx){
   ['apm-g1','apm-g2','apm-g3'].forEach((id,i)=>{
     const sel=document.getElementById(id);
     sel.innerHTML=i===2?'<option value="">—</option>':'<option value="">בחר גן</option>';
-    GARDENS.sort((a,b)=>a.name.localeCompare(b.name,'he')).forEach(g=>sel.innerHTML+=`<option value="${g.id}">${g.city} · ${g.name}</option>`);
+    window.GARDENS.sort((a,b)=>a.name.localeCompare(b.name,'he')).forEach(g=>sel.innerHTML+=`<option value="${g.id}">${g.city} · ${g.name}</option>`);
     if(pair&&pair.ids[i]) sel.value=pair.ids[i];
   });
   document.getElementById('apm').classList.add('open');
 }
 function apmCity(){
   const city=document.getElementById('apm-city').value;
-  const gs=gByCF(city,'').sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  const gs=window.gByCF(city,'').sort((a,b)=>a.name.localeCompare(b.name,'he'));
   ['apm-g1','apm-g2','apm-g3'].forEach((id,i)=>{
     const sel=document.getElementById(id);
     const cur=sel.value;
@@ -348,24 +348,24 @@ function savePairModal(){
   const ids=[g1,g2,g3].filter(Boolean);
   const warnEl=document.getElementById('apm-warn');
   const dupe=ids.map(gid=>{
-    const p=gardenPair(gid);
-    const isCurrentPair=editPairIdx!==null&&p&&p.id===pairs[editPairIdx]?.id;
-    return p&&!isCurrentPair?`${G(gid).name} כבר בזוג "${p.name}"`:null;
+    const p=window.gardenPair(gid);
+    const isCurrentPair=window.editPairIdx!==null&&p&&p.id===window.pairs[window.editPairIdx]?.id;
+    return p&&!isCurrentPair?`${window.G(gid).name} כבר בזוג "${p.name}"`:null;
   }).filter(Boolean);
   if(dupe.length){
     warnEl.style.display='block';
     warnEl.textContent='⚠️ '+dupe.join(' | ');
     if(!confirm('צהרונים כבר בזוגות אחרים. בכל זאת להמשיך?')) return;
   }
-  const nm=document.getElementById('apm-name').value||ids.map(id=>G(id).name||'').join(' + ');
-  const isEdit=editPairIdx!==null&&editPairIdx!==undefined;
+  const nm=document.getElementById('apm-name').value||ids.map(id=>window.G(id).name||'').join(' + ');
+  const isEdit=window.editPairIdx!==null&&window.editPairIdx!==undefined;
   if(isEdit){
-    pairs[editPairIdx]={...pairs[editPairIdx],ids,name:nm};
+    window.pairs[window.editPairIdx]={...window.pairs[window.editPairIdx],ids,name:nm};
   } else {
-    pairs.push({id:Date.now(),ids,name:nm});
+    window.pairs.push({id:Date.now(),ids,name:nm});
   }
-  save();CM('apm');refresh();
-  if(currentTab==='managers') renderManagers();
+  window.save();window.CM('apm');window.refresh();
+  if(window.currentTab==='managers') window.renderManagers();
   alert('✅ '+(isEdit?'הזוג עודכן':'הזוג נשמר')+': '+nm);
 }
 

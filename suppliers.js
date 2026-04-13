@@ -13,20 +13,20 @@ function openSupExport(supName){
   setSupExType('act');
   (document.getElementById('supexm-title')||{}).textContent=supName?`📊 יצוא: ${supName}`:'📊 יצוא דוח ספקים';
   const now=new Date();
-  document.getElementById('supex-from').value=d2s(new Date(now.getFullYear(),now.getMonth(),1));
-  document.getElementById('supex-to').value=d2s(new Date(now.getFullYear(),now.getMonth()+1,0));
+  document.getElementById('supex-from').value=window.d2s(new Date(now.getFullYear(),now.getMonth(),1));
+  document.getElementById('supex-to').value=window.d2s(new Date(now.getFullYear(),now.getMonth()+1,0));
   document.getElementById('supex-prev').style.display='none';
   document.getElementById('supexm').classList.add('open');
 }
 function doSupExport(){
   if(_supExType==='inv'){
     // ── יצוא חשבוניות/הזמנות ──
-    if(typeof exportSupPurchDocs==='function' && _supExName){
-      exportSupPurchDocs(supBase(_supExName));
+    if(typeof window.exportSupPurchDocs==='function' && window._supExName){
+      window.exportSupPurchDocs(window.supBase(window._supExName));
     } else {
-      showToast('אין מסמכי רכש לספק זה');
+      window.showToast('אין מסמכי רכש לספק זה');
     }
-    CM('supexm');
+    window.CM('supexm');
     return;
   }
 
@@ -35,17 +35,17 @@ function doSupExport(){
   const to=document.getElementById('supex-to').value;
   if(!from||!to){alert('בחר תאריכים');return;}
 
-  const _supBase=_supExName?supBase(_supExName):'';
-  const _supExData=_supBase?supEx[_supBase]||{}:{};
-  const _supObj=_supExName?Object.values(SUPBASE||{}).find(s=>supBase(s.name)===_supBase)||null:null;
-  const supPhone=_supExData.phone||(_supObj&&_supObj.phone)||(_supExName?SCH.find(s=>supBase(s.a)===_supBase&&s.p)?.p||'':'');
+  const _supBase=window._supExName?window.supBase(window._supExName):'';
+  const _supExData=_supBase?window.supEx[_supBase]||{}:{};
+  const _supObj=window._supExName?Object.values(window.SUPBASE||{}).find(s=>window.supBase(s.name)===_supBase)||null:null;
+  const supPhone=_supExData.phone||(_supObj&&_supObj.phone)||(window._supExName?window.SCH.find(s=>window.supBase(s.a)===_supBase&&s.p)?.p||'':'');
 
-  const evs=SCH.filter(s=>{
+  const evs=window.SCH.filter(s=>{
     if(s.d<from||s.d>to) return false;
-    if(_supExName&&supBase(s.a)!==supBase(_supExName)) return false;
+    if(window._supExName&&window.supBase(s.a)!==window.supBase(window._supExName)) return false;
     return true;
   }).sort((a,b)=>{
-    const ga=G(a.g),gb=G(b.g);
+    const ga=window.G(a.g),gb=window.G(b.g);
     return (ga.city||'').localeCompare(gb.city||'','he')
       ||a.d.localeCompare(b.d)
       ||(a.t||'99:99').localeCompare(b.t||'99:99')
@@ -73,27 +73,27 @@ function doSupExport(){
   };
 
   // Header
-  if(_supExName){
-    lines.push([q('ספק:'),q(_supExName),'','','','','','','','',''].join(','));
-    lines.push([q('טלפון:'),q(supPhone),'','','','','','','','',''].join(','));
-    lines.push([q('תקופה:'),q(fD(from)+' – '+fD(to)),'','','','','','','','',''].join(','));
+  if(window._supExName){
+    lines.push([window.q('ספק:'),window.q(window._supExName),'','','','','','','','',''].join(','));
+    lines.push([window.q('טלפון:'),window.q(supPhone),'','','','','','','','',''].join(','));
+    lines.push([window.q('תקופה:'),window.q(window.fD(from)+' – '+window.fD(to)),'','','','','','','','',''].join(','));
     lines.push('');
   }
 
   lines.push(['עיר','כתובת','שם צהרון','תאריך','יום','פעילות','קבוצות','שעה','סטטוס','סיבה','הערות'].map(q).join(','));
 
   // Group by city, add per-city summary row
-  const cities=[...new Set(evs.map(s=>G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
+  const cities=[...new Set(evs.map(s=>window.G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
   cities.forEach(city=>{
-    const cityEvs=evs.filter(s=>(G(s.g).city||'אחר')===city);
+    const cityEvs=evs.filter(s=>(window.G(s.g).city||'אחר')===city);
     cityEvs.forEach(s=>{
-      const g=G(s.g);
-      const actName=supAct(s.a)||s.a;
+      const g=window.G(s.g);
+      const actName=window.supAct(s.a)||s.a;
       lines.push([
-        q(g.city||''),q(g.st||''),q(g.name||''),
-        q(fD(s.d)),q(dayN(s.d)),
-        q(actName),q(isHappened(s)?(s.grp||1):0),q(fT(s.t)),
-        q(stMap[s.st]||'מתקיים'),q(s.cr||''),q(s.nt||'')
+        window.q(g.city||''),window.q(g.st||''),window.q(g.name||''),
+        window.q(window.fD(s.d)),window.q(window.dayN(s.d)),
+        window.q(actName),window.q(isHappened(s)?(s.grp||1):0),window.q(window.fT(s.t)),
+        window.q(stMap[s.st]||'מתקיים'),window.q(s.cr||''),window.q(s.nt||'')
       ].join(','));
     });
     // City summary row
@@ -114,22 +114,22 @@ function doSupExport(){
   CM('supexm');
 }
 function exportExcel(){
-  const f=getCalF();
-  const y=calD.getFullYear(),m=calD.getMonth();
-  const from=d2s(new Date(y,m,1)),to=d2s(new Date(y,m+1,0));
-  const rel=SCH.filter(s=>s.d>=from&&s.d<=to&&(!f.gids||f.gids.includes(s.g))).sort((a,b)=>a.d.localeCompare(b.d));
-  downloadCSV(rel,`פעילויות_${hebM(calD)}`);
+  const f=window.getCalF();
+  const y=window.calD.getFullYear(),m=window.calD.getMonth();
+  const from=window.d2s(new Date(y,m,1)),to=window.d2s(new Date(y,m+1,0));
+  const rel=window.SCH.filter(s=>s.d>=from&&s.d<=to&&(!f.gids||f.gids.includes(s.g))).sort((a,b)=>a.d.localeCompare(b.d));
+  downloadCSV(rel,`פעילויות_${window.hebM(window.calD)}`);
 }
 function exportExcelSched(){
-  const rel=getFiltSched();
+  const rel=window.getFiltSched();
   downloadCSV(rel,'לוח_זמנים');
 }
 function downloadCSV(data,fname){
   const headers=['תאריך','יום','עיר','שם הצהרון','כתובת','ספק','שעה','קבוצות','סטטוס','סיבה','הערות','תאריך דחייה'];
   const rows=data.map(s=>{
-    const g=G(s.g);
+    const g=window.G(s.g);
     const stMap={ok:'מתקיים',done:'התקיים',can:'בוטל',post:'נדחה',nohap:'לא התקיים'};
-    return[fD(s.d),`יום ${dayN(s.d)}`,g.city||'',g.name||'',g.st||'',s.a,fT(s.t),s.grp>1?s.grp:'',stMap[s.st]||s.st,s.cr||'',s.nt||'',s.pd?fD(s.pd):''];
+    return[window.fD(s.d),`יום ${window.dayN(s.d)}`,g.city||'',g.name||'',g.st||'',s.a,window.fT(s.t),s.grp>1?s.grp:'',stMap[s.st]||s.st,s.cr||'',s.nt||'',s.pd?window.fD(s.pd):''];
   });
   const bom='\uFEFF';
   const csv=bom+[headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
@@ -140,16 +140,16 @@ function downloadCSV(data,fname){
 }
 
 function getAllSup(){
-  if(typeof SUPBASE==='undefined'||typeof supEx==='undefined') return [];
+  if(typeof window.SUPBASE==='undefined'||typeof window.supEx==='undefined') return [];
   // mergedAway: exact supplier names that were merged INTO another (the sources)
-  const mergedAway = new Set(supEx['__merged_away']||[]);
+  const mergedAway = new Set(window.supEx['__merged_away']||[]);
   const map={};
 
   // Add SUPBASE entries — skip only exact merged-away names
-  SUPBASE.forEach(s=>{
+  window.SUPBASE.forEach(s=>{
     if(mergedAway.has(s.name)) return; // this entry was explicitly merged away
-    const base=supBase(s.name);
-    const act=supAct(s.name);
+    const base=window.supBase(s.name);
+    const act=window.supAct(s.name);
     if(!map[base]) map[base]={name:base,phone:s.phone,acts:new Set(),fullNames:new Set()};
     if(act) map[base].acts.add(act);
     map[base].fullNames.add(s.name);
@@ -157,9 +157,9 @@ function getAllSup(){
   });
 
   // Add custom suppliers (__c) — skip exact merged-away names
-  (supEx['__c']||[]).forEach(s=>{
+  (window.supEx['__c']||[]).forEach(s=>{
     if(mergedAway.has(s.name)) return;
-    const base=supBase(s.name);
+    const base=window.supBase(s.name);
     if(!map[base]) map[base]={name:base,phone:s.phone||'',acts:new Set(),fullNames:new Set()};
     map[base].fullNames.add(s.name);
     if(!map[base].phone&&s.phone) map[base].phone=s.phone;
@@ -178,9 +178,9 @@ function getSupActs(name){
   const fromSch=new Set();
 
   // 1. From SCH entries (always scan — never skip)
-  SCH.forEach(s=>{ if(supBase(s.a)===base){const a=supAct(s.a);if(a)fromSch.add(a);} });
+  window.SCH.forEach(s=>{ if(window.supBase(s.a)===base){const a=window.supAct(s.a);if(a)fromSch.add(a);} });
   // 2. From SUPBASE (current base)
-  SUPBASE.forEach(s=>{ if(supBase(s.name)===base){const a=supAct(s.name);if(a)fromSch.add(a);} });
+  window.SUPBASE.forEach(s=>{ if(window.supBase(s.name)===base){const a=window.supAct(s.name);if(a)fromSch.add(a);} });
   // 3. From merged-from history (_mergedFrom stores old bases that were merged into this one)
   const mergedFromBases = ex._mergedFrom||[];
   mergedFromBases.forEach(oldBase=>{
@@ -188,13 +188,13 @@ function getSupActs(name){
     SUPBASE.forEach(s=>{ if(supBase(s.name)===oldBase){const a=supAct(s.name);if(a)fromSch.add(a);} });
   });
   // 4. Fallback: check mergedAway — find SUPBASE entries whose base was merged into this supplier
-  const mergedAway = supEx['__merged_away']||[];
+  const mergedAway = window.supEx['__merged_away']||[];
   mergedAway.forEach(mName=>{
-    const mBase=supBase(mName);
-    if(SCH.some(s=>supBase(s.a)===base)){
-      SUPBASE.forEach(s=>{ if(supBase(s.name)===mBase && mBase!==base){
-        if(SCH.some(s2=>supBase(s2.a)===mBase)){
-          const a=supAct(s.name); if(a) fromSch.add(a);
+    const mBase=window.supBase(mName);
+    if(window.SCH.some(s=>window.supBase(s.a)===base)){
+      window.SUPBASE.forEach(s=>{ if(window.supBase(s.name)===mBase && mBase!==base){
+        if(window.SCH.some(s2=>window.supBase(s2.a)===mBase)){
+          const a=window.supAct(s.name); if(a) fromSch.add(a);
         }
       }});
     }
@@ -248,40 +248,40 @@ function getAmountExVat(){
 // Run this to fix suppliers after merges, imports, or other data issues
 // ────────────────────────────────────────────────────────────────────────────
 function repairAllSuppliers(){
-  if(!supEx) supEx={};
-  if(!supEx['__c']) supEx['__c']=[];
+  if(!window.supEx) window.supEx={};
+  if(!window.supEx['__c']) window.supEx['__c']=[];
 
   // mergedAway: suppliers intentionally hidden after merge — NEVER modify this list
-  const mergedAway = new Set(supEx['__merged_away']||[]);
+  const mergedAway = new Set(window.supEx['__merged_away']||[]);
   const mergedFixed = 0;
-  const inSupbase = new Set(SUPBASE.map(s=>supBase(s.name)));
-  const inC = new Set(supEx['__c'].map(s=>supBase(s.name)));
+  const inSupbase = new Set(window.SUPBASE.map(s=>window.supBase(s.name)));
+  const inC = new Set(window.supEx['__c'].map(s=>window.supBase(s.name)));
   let added=0, fixed=0;
 
   // 1. Scan all schedule entries — ensure their base supplier is registered
   const schBases = new Set();
-  SCH.forEach(s=>{ if(s.a) schBases.add(supBase(s.a)); });
+  window.SCH.forEach(s=>{ if(s.a) schBases.add(window.supBase(s.a)); });
   schBases.forEach(base=>{
     if(!base) return;
     // Skip if this base name itself is in mergedAway (it was a custom supplier that got merged)
     if(mergedAway.has(base)) return;
     if(inSupbase.has(base)) return;
     if(inC.has(base)) return;
-    supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base]?.ph1||''});
-    if(!supEx[base]) supEx[base]={};
-    if(supEx[base].isPurch===undefined) supEx[base].isPurch=true;
+    window.supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:window.supEx[base]?.ph1||''});
+    if(!window.supEx[base]) window.supEx[base]={};
+    if(window.supEx[base].isPurch===undefined) window.supEx[base].isPurch=true;
     inC.add(base);
     added++;
   });
 
   // 2. Scan INVOICES
-  INVOICES.forEach(inv=>{
-    const base=inv.supName?supBase(inv.supName):'';
+  window.INVOICES.forEach(inv=>{
+    const base=inv.supName?window.supBase(inv.supName):'';
     if(!base||mergedAway.has(base)||inSupbase.has(base)||inC.has(base)) return;
-    supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base]?.ph1||''});
-    if(!supEx[base]) supEx[base]={};
-    if(supEx[base].isPurch===undefined) supEx[base].isPurch=true;
-    if(supEx[base].isAct===undefined) supEx[base].isAct=false;
+    window.supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:window.supEx[base]?.ph1||''});
+    if(!window.supEx[base]) window.supEx[base]={};
+    if(window.supEx[base].isPurch===undefined) window.supEx[base].isPurch=true;
+    if(window.supEx[base].isAct===undefined) window.supEx[base].isAct=false;
     inC.add(base);
     added++;
   });
@@ -298,27 +298,27 @@ function repairAllSuppliers(){
   // 4. Clear stale/incomplete acts arrays — force re-derive from SCH on next getSupActs call
   // Only clear if SCH has MORE activities than what's saved (i.e. acts array is outdated)
   let clearedActs=0;
-  Object.keys(supEx).forEach(k=>{
+  Object.keys(window.supEx).forEach(k=>{
     if(k==='__c'||k==='__merged_away'||k==='__gardens_extra') return;
-    if(!Array.isArray(supEx[k]?.acts)) return;
-    const base = supBase(k)||k;
+    if(!Array.isArray(window.supEx[k]?.acts)) return;
+    const base = window.supBase(k)||k;
     // Derive what SCH actually has for this supplier
     const schActs = new Set();
-    SCH.forEach(s=>{ if(supBase(s.a)===base){const a=supAct(s.a);if(a)schActs.add(a);} });
-    SUPBASE.forEach(s=>{ if(supBase(s.name)===base){const a=supAct(s.name);if(a)schActs.add(a);} });
-    const savedActs = new Set(supEx[k].acts);
+    window.SCH.forEach(s=>{ if(window.supBase(s.a)===base){const a=window.supAct(s.a);if(a)schActs.add(a);} });
+    window.SUPBASE.forEach(s=>{ if(window.supBase(s.name)===base){const a=window.supAct(s.name);if(a)schActs.add(a);} });
+    const savedActs = new Set(window.supEx[k].acts);
     // If SCH has acts that the saved array is missing → clear saved array so it auto-derives fully
     const missingFromSaved = [...schActs].filter(a=>!savedActs.has(a));
-    if(missingFromSaved.length > 0 || supEx[k].acts.length === 0){
-      delete supEx[k].acts; clearedActs++;
+    if(missingFromSaved.length > 0 || window.supEx[k].acts.length === 0){
+      delete window.supEx[k].acts; clearedActs++;
     }
   });
 
-  if(added>0||clearedActs>0||mergedFixed>0) save();
+  if(added>0||clearedActs>0||mergedFixed>0) window.save();
   const msg=`🔧 ספקים: ${added} נוספו${mergedFixed?`, ${mergedFixed} mergedAway תוקנו`:''}${clearedActs?`, ${clearedActs} acts תוקנו`:''}`;
   console.log(msg);
-  if(added>0||mergedFixed>0) showToast(`✅ ${msg}`);
-  try{ renderPurchSuppliers(); }catch(e){}
+  if(added>0||mergedFixed>0) window.showToast(`✅ ${msg}`);
+  try{ window.renderPurchSuppliers(); }catch(e){}
   try{ renderSup(); }catch(e){}
 }
 
@@ -329,11 +329,11 @@ function renderSup(){
   let all=getAllSup().filter(s=>{
     const base = s.name||'';
     if(srch && !base.toLowerCase().includes(srch)) return false;
-    return isActSupplier(base); // Only activity suppliers in חוגים panel
+    return window.isActSupplier(base); // Only activity suppliers in חוגים panel
   });
   // Always sort alphabetically first, then by count if selected
   all=[...all].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
-  if(sortMode==='cnt') all=[...all].sort((a,b)=>supBaseCnt(b.name)-supBaseCnt(a.name));
+  if(sortMode==='cnt') all=[...all].sort((a,b)=>window.supBaseCnt(b.name)-window.supBaseCnt(a.name));
 
   if(_supViewMode==='list'){
     document.getElementById('su-body').className='scroll-area';
@@ -349,15 +349,15 @@ function renderSup(){
     _supCurrentList = all; // save for index-based helpers
     all.forEach((s,idx)=>{
       const base=s.name;
-      const ex=supBaseEx(base);
-      const cnt=supBaseCnt(base);
+      const ex=window.supBaseEx(base);
+      const cnt=window.supBaseCnt(base);
       const acts=getSupActs(base);
       const phone=ex.ph1||s.phone||'';
       const bg=idx%2===0?'#fff':'#f8f9ff';
       h+=`<tr style="background:${bg};cursor:pointer" onclick="supOpen(${idx})">`
         +`<td style="padding:6px 12px;font-weight:700;color:#1a237e;border-bottom:1px solid #e8eaf6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0">${base}`
-        +`${isActSupplier(base)?' <span style="font-size:.65rem;color:#1565c0">🎨</span>':''}` 
-        +`${isPurchSupplier(base)?' <span style="font-size:.65rem;color:#2e7d32">🛒</span>':''}` 
+        +`${window.isActSupplier(base)?' <span style="font-size:.65rem;color:#1565c0">🎨</span>':''}` 
+        +`${window.isPurchSupplier(base)?' <span style="font-size:.65rem;color:#2e7d32">🛒</span>':''}` 
         +`</td>`
         +`<td style="padding:6px 8px;text-align:center;color:#2e7d32;border-bottom:1px solid #e8eaf6;white-space:nowrap">${phone||'—'}</td>`
         +`<td style="padding:6px 8px;text-align:center;font-weight:700;color:#1565c0;border-bottom:1px solid #e8eaf6">${cnt}</td>`
@@ -369,7 +369,7 @@ function renderSup(){
     });
     h+='</tbody></table>';
     document.getElementById('su-body').innerHTML=h||'<p style="color:#999">לא נמצאו</p>';
-    setTimeout(_fitScrollAreas,50);
+    setTimeout(window._fitScrollAreas,50);
     return;
   }
 
@@ -378,12 +378,12 @@ function renderSup(){
   let h='';
   all.forEach((s,idx)=>{
     const base=s.name; // already a base name from getAllBaseSups
-    const ex=supBaseEx(base);
-    const cnt=supBaseCnt(base);
+    const ex=window.supBaseEx(base);
+    const cnt=window.supBaseCnt(base);
     const acts=getSupActs(base);
     const phone=ex.ph1||s.phone||'';
-    const cntDone=SCH.filter(sc=>supBase(sc.a)===base&&sc.st==='done').length;
-    const cntCan=SCH.filter(sc=>supBase(sc.a)===base&&sc.st==='can').length;
+    const cntDone=window.SCH.filter(sc=>window.supBase(sc.a)===base&&sc.st==='done').length;
+    const cntCan=window.SCH.filter(sc=>window.supBase(sc.a)===base&&sc.st==='can').length;
     h+=`<div class="sucard" style="cursor:pointer;display:flex;flex-direction:column;justify-content:space-between" onclick="supOpen(${idx})">
       <div>
         <div style="font-weight:800;color:#1a237e;font-size:.88rem;line-height:1.35;margin-bottom:6px;word-break:break-word">📚 ${base}</div>
@@ -395,8 +395,8 @@ function renderSup(){
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid #f0f0f0">
         <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
-          ${isActSupplier(base)?'<span class="sup-flag sup-flag-act" title="ספק חוגים פעיל">🎨</span>':'<span style="display:inline-block;padding:1px 5px;border-radius:10px;font-size:.64rem;background:#fce4ec;color:#c62828;font-weight:700" title="לא מוצג בחוגים">🚫 לא חוג</span>'}
-          ${isPurchSupplier(base)?'':'<span style="display:inline-block;padding:1px 5px;border-radius:10px;font-size:.64rem;background:#fff3e0;color:#e65100;font-weight:700" title="לא ספק רכש">🚫 לא רכש</span>'}
+          ${window.isActSupplier(base)?'<span class="sup-flag sup-flag-act" title="ספק חוגים פעיל">🎨</span>':'<span style="display:inline-block;padding:1px 5px;border-radius:10px;font-size:.64rem;background:#fce4ec;color:#c62828;font-weight:700" title="לא מוצג בחוגים">🚫 לא חוג</span>'}
+          ${window.isPurchSupplier(base)?'':'<span style="display:inline-block;padding:1px 5px;border-radius:10px;font-size:.64rem;background:#fff3e0;color:#e65100;font-weight:700" title="לא ספק רכש">🚫 לא רכש</span>'}
           ${ex.entityType?`<span style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:.66rem;background:#f3e5f5;color:#6a1b9a;font-weight:700">🏢 ${ex.entityType}</span>`:''}
           <span style="color:#1565c0;font-weight:700;font-size:.72rem">📅 ${cnt}</span>
           ${cntDone?`<span style="color:#2e7d32;font-size:.72rem">✔️ ${cntDone}</span>`:''}
@@ -410,13 +410,13 @@ function renderSup(){
     </div>`;
   });
   document.getElementById('su-body').innerHTML=h||'<p style="color:#999">לא נמצאו</p>';
-  setTimeout(_fitScrollAreas,50);
+  setTimeout(window._fitScrollAreas,50);
 }
 function openSupModal(name){
-  editingSup=name||null;
+  window.editingSup=name||null;
   (document.getElementById('sum-title')||{}).textContent =name?'✏️ עריכת ספק':'➕ הוסף ספק';
-  const s=name?SUPBASE.find(x=>x.name===name)||{}:{};
-  const ex=name?supEx[name]||{}:{};
+  const s=name?window.SUPBASE.find(x=>x.name===name)||{}:{};
+  const ex=name?window.supEx[name]||{}:{};
   const nameInput=document.getElementById('su-name');
   nameInput.value=name||'';
   nameInput.disabled=false; // always allow rename
@@ -476,9 +476,9 @@ function addSupAct(){
   const val=inp.value.trim();
   if(!val) return;
   const name=document.getElementById('su-name').dataset.orig||document.getElementById('su-name').value;
-  if(!supEx[name]) supEx[name]={};
-  if(!Array.isArray(supEx[name].acts)) supEx[name].acts=getSupActs(name);
-  if(!supEx[name].acts.includes(val)) supEx[name].acts.push(val);
+  if(!window.supEx[name]) window.supEx[name]={};
+  if(!Array.isArray(window.supEx[name].acts)) window.supEx[name].acts=getSupActs(name);
+  if(!window.supEx[name].acts.includes(val)) window.supEx[name].acts.push(val);
   inp.value='';
   renderSupActsList(name);
 }
@@ -486,37 +486,37 @@ function removeSupAct(idx){
   const name=document.getElementById('su-name').dataset.orig||document.getElementById('su-name').value;
   const acts=getSupActs(name);
   acts.splice(idx,1);
-  if(!supEx[name]) supEx[name]={};
-  supEx[name].acts=acts;
+  if(!window.supEx[name]) window.supEx[name]={};
+  window.supEx[name].acts=acts;
   renderSupActsList(name);
 }
 function deleteSup() {
   const name = document.getElementById('su-name').dataset.orig;
   if (!name) return;
-  const schedCount = SCH.filter(s => s.a === name && s.st !== 'can').length;
+  const schedCount = window.SCH.filter(s => s.a === name && s.st !== 'can').length;
   const msg = schedCount > 0
     ? `לספק "${name}" יש ${schedCount} פעילויות פעילות.\nמחיקה תסיר את הספק מהמערכת אך לא תמחק את הפעילויות.\n\nלהמשיך?`
     : `למחוק את הספק "${name}"?`;
   if (!confirm(msg)) return;
 
   // Remove from supEx
-  delete supEx[name];
+  delete window.supEx[name];
 
   // Remove from custom suppliers list
-  if (supEx['__c']) {
-    supEx['__c'] = supEx['__c'].filter(s => s.name !== name);
+  if (window.supEx['__c']) {
+    window.supEx['__c'] = window.supEx['__c'].filter(s => s.name !== name);
   }
 
   // Mark as deleted in merged-away (hides from SUPBASE-based suppliers)
-  if (!supEx['__merged_away']) supEx['__merged_away'] = [];
-  if (!supEx['__merged_away'].includes(name)) supEx['__merged_away'].push(name);
+  if (!window.supEx['__merged_away']) window.supEx['__merged_away'] = [];
+  if (!window.supEx['__merged_away'].includes(name)) window.supEx['__merged_away'].push(name);
 
-  save();
-  CM('sum');
-  refresh();
+  window.save();
+  window.CM('sum');
+  window.refresh();
   if (typeof renderSup === 'function') renderSup();
-  if (typeof renderPurchSuppliers === 'function') try { renderPurchSuppliers(); } catch(e) {}
-  showToast('🗑️ ספק "' + name + '" נמחק');
+  if (typeof window.renderPurchSuppliers === 'function') try { window.renderPurchSuppliers(); } catch(e) {}
+  window.showToast('🗑️ ספק "' + name + '" נמחק');
 }
 
 function saveSup(){
@@ -527,14 +527,14 @@ function saveSup(){
   if(origName&&origName!==name){
     if(!confirm(`לשנות את שם הספק מ-"${origName}" ל-"${name}"?
 כל השיבוצים יעודכנו אוטומטית.`)) return;
-    SCH.forEach(s=>{if(s.a===origName)s.a=name;});
-    if(supEx[origName]) supEx[name]={...supEx[origName]};
-    delete supEx[origName];
-    if(supEx['__c']) supEx['__c']=supEx['__c'].map(s=>s.name===origName?{...s,name}:s);
+    window.SCH.forEach(s=>{if(s.a===origName)s.a=name;});
+    if(window.supEx[origName]) window.supEx[name]={...window.supEx[origName]};
+    delete window.supEx[origName];
+    if(window.supEx['__c']) window.supEx['__c']=window.supEx['__c'].map(s=>s.name===origName?{...s,name}:s);
   }
-  const existActs=Array.isArray((supEx[name]||{}).acts)?(supEx[name].acts):getSupActs(name);
-  supEx[name]={
-    ...(supEx[name]||{}),
+  const existActs=Array.isArray((window.supEx[name]||{}).acts)?(window.supEx[name].acts):getSupActs(name);
+  window.supEx[name]={
+    ...(window.supEx[name]||{}),
     ph1:document.getElementById('su-ph1').value.trim(),
     ph2:document.getElementById('su-ph2').value.trim(),
     g1:document.getElementById('su-gov1').value.trim(),
@@ -551,12 +551,12 @@ function saveSup(){
     isPurch: !!document.getElementById('su-is-purch')?.checked,
     entityType: document.getElementById('su-entity-type')?.value||''
   };
-  if(!origName&&!SUPBASE.find(s=>s.name===name)){
-    if(!supEx['__c']) supEx['__c']=[];
-    if(!supEx['__c'].find(s=>s.name===name)) supEx['__c'].push({id:Date.now(),name,phone:supEx[name].ph1});
+  if(!origName&&!window.SUPBASE.find(s=>s.name===name)){
+    if(!window.supEx['__c']) window.supEx['__c']=[];
+    if(!window.supEx['__c'].find(s=>s.name===name)) window.supEx['__c'].push({id:Date.now(),name,phone:window.supEx[name].ph1});
   }
-  save();CM('sum');refresh();
-  try{ renderPurchSuppliers(); }catch(e){}
+  window.save();window.CM('sum');window.refresh();
+  try{ window.renderPurchSuppliers(); }catch(e){}
   try{ renderSup(); }catch(e){}
   // If opened from invoice modal, pre-fill the supplier field
   if(window._invPendingNewSup && name){
@@ -567,7 +567,7 @@ function saveSup(){
       if(invModal){
         // Fill supplier field
         const supTxt=document.getElementById('inv-sup-text');
-        if(supTxt){ supTxt.value=name; invUpdateEntityType((supEx[name]||{}).entityType||''); }
+        if(supTxt){ supTxt.value=name; window.invUpdateEntityType((window.supEx[name]||{}).entityType||''); }
         // Re-fill datalist
         const dl=document.getElementById('inv-sup-datalist');
         if(dl) dl.innerHTML=getAllSup().map(s=>{
@@ -583,7 +583,7 @@ function saveSup(){
     const el=document.getElementById(id);if(!el)return;
     const cur=el.value;
     el.innerHTML='<option value="">כל הספקים</option>';
-    getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>el.innerHTML+=`<option value='${s.name}'>${s.name}</option>`);
+    getAllSup().filter(s=>window.isActSupplier(s.name)).forEach(s=>el.innerHTML+=`<option value='${s.name}'>${s.name}</option>`);
     el.value=cur;
   });
 }
@@ -596,8 +596,8 @@ function openMerge(){
   mm.innerHTML='<option value="">בחר ספק ראשי...</option>';
   _mergeSupList.forEach((s,i)=>mm.innerHTML+=`<option value="${i}">${s.name}</option>`);
   document.getElementById('mrg-list').innerHTML=_mergeSupList.map((s,i)=>{
-    const cnt=SCH.filter(sc=>supBase(sc.a)===s.name||sc.a===s.name||sc.a.startsWith(s.name+' - ')).length;
-    const invCnt=(typeof INVOICES!=='undefined')?INVOICES.filter(inv=>inv.supName===s.name||supBase(inv.supName||'')===s.name).length:0;
+    const cnt=window.SCH.filter(sc=>window.supBase(sc.a)===s.name||sc.a===s.name||sc.a.startsWith(s.name+' - ')).length;
+    const invCnt=(typeof window.INVOICES!=='undefined')?window.INVOICES.filter(inv=>inv.supName===s.name||window.supBase(inv.supName||'')===s.name).length:0;
     return `<label style="display:flex;gap:6px;padding:4px 6px;cursor:pointer;align-items:center;border-radius:5px" onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background=''">`
       +`<input type="checkbox" data-idx="${i}" style="width:15px;height:15px">`
       +`<span style="flex:1">${s.name} `
@@ -611,7 +611,7 @@ function openMerge(){
 // Usage: auditMergedSuppliers()
 // ────────────────────────────────────────────────────────────────────────────
 function auditMergedSuppliers(){
-  const mergedAway = supEx['__merged_away']||[];
+  const mergedAway = window.supEx['__merged_away']||[];
   const allSups = getAllSup();
   const lines = [];
 
@@ -621,30 +621,30 @@ function auditMergedSuppliers(){
 
   // For every supplier, show if they have _mergedFrom
   const suppliersWithMerge = allSups.filter(s=>{
-    const ex = supEx[s.name]||supEx[supBase(s.name)]||{};
+    const ex = window.supEx[s.name]||window.supEx[window.supBase(s.name)]||{};
     return (ex._mergedFrom||[]).length>0;
   });
 
   lines.push(`=== ספקים עם _mergedFrom (${suppliersWithMerge.length}) ===`);
   suppliersWithMerge.forEach(s=>{
     const base = s.name;
-    const ex = supEx[base]||{};
+    const ex = window.supEx[base]||{};
     const acts = getSupActs(base);
-    const schCnt = SCH.filter(sc=>supBase(sc.a)===base).length;
-    const invCnt = (typeof INVOICES!=='undefined'?INVOICES:[]).filter(i=>supBase(i.supName||'')===base).length;
+    const schCnt = window.SCH.filter(sc=>window.supBase(sc.a)===base).length;
+    const invCnt = (typeof window.INVOICES!=='undefined'?window.INVOICES:[]).filter(i=>window.supBase(i.supName||'')===base).length;
     lines.push(`\n► ${base}`);
     lines.push(`  _mergedFrom: [${(ex._mergedFrom||[]).join(', ')}]`);
     lines.push(`  isAct: ${ex.isAct} | isPurch: ${ex.isPurch}`);
     lines.push(`  acts (${acts.length}): [${acts.join(', ')}]`);
     lines.push(`  SCH שיבוצים: ${schCnt} | חשבוניות: ${invCnt}`);
-    lines.push(`  בלוח חוגים: ${isActSupplier(base)?'✅ כן':'❌ לא'} | בלוח רכש: ${isPurchSupplier(base)?'✅ כן':'❌ לא'}`);
+    lines.push(`  בלוח חוגים: ${window.isActSupplier(base)?'✅ כן':'❌ לא'} | בלוח רכש: ${window.isPurchSupplier(base)?'✅ כן':'❌ לא'}`);
   });
 
   lines.push('\n=== mergedAway — פירוט כל ספק שמוסתר ===');
   mergedAway.forEach(name=>{
-    const base = supBase(name);
-    const schOrphans = SCH.filter(s=>supBase(s.a)===base).length;
-    const invOrphans = (typeof INVOICES!=='undefined'?INVOICES:[]).filter(i=>supBase(i.supName||'')===base).length;
+    const base = window.supBase(name);
+    const schOrphans = window.SCH.filter(s=>window.supBase(s.a)===base).length;
+    const invOrphans = (typeof window.INVOICES!=='undefined'?window.INVOICES:[]).filter(i=>window.supBase(i.supName||'')===base).length;
     const status = (schOrphans||invOrphans)?'⚠️ יש רשומות יתומות!':'✅ נקי';
     lines.push(`  ${name} (base: ${base}) → ${status}${schOrphans?` SCH:${schOrphans}`:''}${invOrphans?` INV:${invOrphans}`:''}`);
   });
@@ -653,14 +653,14 @@ function auditMergedSuppliers(){
   allSups.forEach(s=>{
     const base=s.name;
     const acts=getSupActs(base);
-    const cnt=SCH.filter(sc=>supBase(sc.a)===base).length;
-    lines.push(`${base}: isAct=${isActSupplier(base)} isPurch=${isPurchSupplier(base)} acts=[${acts.join(',')}] SCH=${cnt}`);
+    const cnt=window.SCH.filter(sc=>window.supBase(sc.a)===base).length;
+    lines.push(`${base}: isAct=${window.isActSupplier(base)} isPurch=${window.isPurchSupplier(base)} acts=[${acts.join(',')}] SCH=${cnt}`);
   });
 
   const report = lines.join('\n');
   console.log(report);
   // Also show a toast summary
-  showToast(`🔍 Audit: ${suppliersWithMerge.length} ספקים ממוזגים, ${mergedAway.length} מוסתרים — ראה console`);
+  window.showToast(`🔍 Audit: ${suppliersWithMerge.length} ספקים ממוזגים, ${mergedAway.length} מוסתרים — ראה console`);
   return report;
 }
 
@@ -674,28 +674,29 @@ function doMerge(){
   if(!toMrg.length){alert('בחר לפחות ספק אחד למיזוג');return;}
   if(!confirm(`לאחד ${toMrg.length} ספקים אל "${main}"?`)) return;
 
-  const mainBase = supBase(main);
+  const mainBase = window.supBase(main);
   let changedSch=0, changedInv=0;
-  const mergedAway = new Set(supEx['__merged_away']||[]);
+  const mergedAway = new Set(window.supEx['__merged_away']||[]);
 
   // Collect all acts from main AND all merged suppliers BEFORE changing anything
   const allActs = new Set(getSupActs(main));
-  let mergedIsAct = isActSupplier(main);
-  let mergedIsPurch = isPurchSupplier(main);
+  let mergedIsAct = window.isActSupplier(main);
+  let mergedIsPurch = window.isPurchSupplier(main);
 
   toMrg.forEach(old=>{
-    const oldBase = supBase(old);
+    const oldBase = window.supBase(old);
 
     // Collect acts from this merged supplier
     getSupActs(old).forEach(a=>allActs.add(a));
-    if(isActSupplier(old)) mergedIsAct = true;
-    if(isPurchSupplier(old)) mergedIsPurch = true;
+    window.getSupActs(old).forEach(a=>allActs.add(a));
+    if(window.isActSupplier(old)) mergedIsAct = true;
+    if(window.isPurchSupplier(old)) mergedIsPurch = true;
 
     // 1. Update SCH: preserve activity type in new name
-    SCH.forEach(s=>{
+    window.SCH.forEach(s=>{
       if(!s.a) return;
-      const sBase = supBase(s.a);
-      const sAct = supAct(s.a);
+      const sBase = window.supBase(s.a);
+      const sAct = window.supAct(s.a);
       if(sBase === oldBase){
         // Keep activity type: if main="חיים בתנועה" and sAct="ריקוד" → "חיים בתנועה - ריקוד"
         // If main has its own act suffix: just use mainBase
@@ -705,17 +706,17 @@ function doMerge(){
     });
 
     // 2. Update INVOICES
-    if(typeof INVOICES!=='undefined') INVOICES.forEach(inv=>{
-      if(supBase(inv.supName||'')===oldBase){
+    if(typeof window.INVOICES!=='undefined') window.INVOICES.forEach(inv=>{
+      if(window.supBase(inv.supName||'')===oldBase){
         inv.supName = main;
         changedInv++;
       }
     });
 
     // 3. Merge supEx metadata
-    const ex = supEx[old] || supEx[oldBase] || {};
-    if(!supEx[mainBase]) supEx[mainBase]={};
-    const mex = supEx[mainBase];
+    const ex = window.supEx[old] || window.supEx[oldBase] || {};
+    if(!window.supEx[mainBase]) window.supEx[mainBase]={};
+    const mex = window.supEx[mainBase];
     if(!mex.ph1 && ex.ph1) mex.ph1=ex.ph1;
     if(!mex.ph2 && ex.ph2) mex.ph2=ex.ph2;
     if(!mex.email && ex.email) mex.email=ex.email;
@@ -727,15 +728,15 @@ function doMerge(){
     if(!mex.notes && ex.notes) mex.notes=ex.notes;
 
     // 4. Remove old from __c and supEx
-    delete supEx[old];
-    if(old !== oldBase) delete supEx[oldBase];
-    if(supEx['__c']) supEx['__c'] = supEx['__c'].filter(s=>supBase(s.name)!==oldBase);
+    delete window.supEx[old];
+    if(old !== oldBase) delete window.supEx[oldBase];
+    if(window.supEx['__c']) window.supEx['__c'] = window.supEx['__c'].filter(s=>window.supBase(s.name)!==oldBase);
 
     // 5. Mark as merged-away (exact names only)
     mergedAway.add(old);
     // Also add all SUPBASE entries for oldBase (except main itself)
-    SUPBASE.forEach(s=>{
-      if(supBase(s.name)===oldBase && s.name!==main) mergedAway.add(s.name);
+    window.SUPBASE.forEach(s=>{
+      if(window.supBase(s.name)===oldBase && s.name!==main) mergedAway.add(s.name);
     });
   });
 
@@ -757,20 +758,20 @@ function doMerge(){
   }
 
   // Ensure main is in __c if not in SUPBASE
-  const inSupbase = SUPBASE.some(s=>supBase(s.name)===mainBase);
+  const inSupbase = window.SUPBASE.some(s=>window.supBase(s.name)===mainBase);
   if(!inSupbase){
-    if(!supEx['__c']) supEx['__c']=[];
-    if(!supEx['__c'].find(s=>supBase(s.name)===mainBase)){
-      supEx['__c'].push({id:Date.now(),name:mainBase,phone:supEx[mainBase]?.ph1||''});
+    if(!window.supEx['__c']) window.supEx['__c']=[];
+    if(!window.supEx['__c'].find(s=>window.supBase(s.name)===mainBase)){
+      window.supEx['__c'].push({id:Date.now(),name:mainBase,phone:window.supEx[mainBase]?.ph1||''});
     }
   }
 
-  supEx['__merged_away'] = [...mergedAway];
-  save(true);
-  CM('mrgm');
-  refresh();
-  try{ renderPurchSuppliers(); }catch(e){}
-  showToast(`✅ אוחדו ${toMrg.length} ספקים → "${main}"${changedSch?` · ${changedSch} שיבוצים`:''}${changedInv?` · ${changedInv} חשבוניות`:''}`);
+  window.supEx['__merged_away'] = [...mergedAway];
+  window.save(true);
+  window.CM('mrgm');
+  window.refresh();
+  try{ window.renderPurchSuppliers(); }catch(e){}
+  window.showToast(`✅ אוחדו ${toMrg.length} ספקים → "${main}"${changedSch?` · ${changedSch} שיבוצים`:''}${changedInv?` · ${changedInv} חשבוניות`:''}`);
 }
 
 var _GARDENS_EXTRA=[]; // user-added gardens stored in localStorage

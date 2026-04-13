@@ -5,12 +5,12 @@ const FIREBASE_DB_URL = 'https://ganmanage-default-rtdb.europe-west1.firebasedat
 const FIREBASE_POLL_INTERVAL = 10000;
 
 // (Global _safeLS is now defined in data.js)
-let _fbLastSaveTs = parseInt(_safeLS.get('_fbLastSaveTs')||'0');
-let _fbLastLoadTs = parseInt(_safeLS.get('_fbLastLoadTs')||'0');
+let _fbLastSaveTs = parseInt(window._safeLS.get('_fbLastSaveTs')||'0');
+let _fbLastLoadTs = parseInt(window._safeLS.get('_fbLastLoadTs')||'0');
 
 let _fbLastOwnSaveTs = 0; // timestamp of OUR last successful save (not from load)
-function _setFbSaveTs(ts){ _fbLastSaveTs=ts; _safeLS.setItem('_fbLastSaveTs',String(ts)); _fbUpdateStatus(); }
-function _setFbLoadTs(ts){ _fbLastLoadTs=ts; _safeLS.setItem('_fbLastLoadTs',String(ts)); _fbUpdateStatus(); }
+function _setFbSaveTs(ts){ _fbLastSaveTs=ts; window._safeLS.setItem('_fbLastSaveTs',String(ts)); _fbUpdateStatus(); }
+function _setFbLoadTs(ts){ _fbLastLoadTs=ts; window._safeLS.setItem('_fbLastLoadTs',String(ts)); _fbUpdateStatus(); }
 let _fbPollTimer = null;
 let _fbTimer = null;
 let _fbSyncing = false;
@@ -121,8 +121,8 @@ async function _processFirebaseLoad(r, silent, force) {
 
   // Store to both localStorage (if available) and in-memory
   const jsonStr = JSON.stringify(appData);
-  _safeLS.setItem('ganv5', jsonStr);
-  _safeLS.setItem('ganv5_local_ts', String(cloudTs));
+  window._safeLS.setItem('ganv5', jsonStr);
+  window._safeLS.setItem('ganv5_local_ts', String(cloudTs));
   window._fbAppData = appData; // in-memory reference, no JSON needed
 
   // Load invoices from separate /data/invoices path
@@ -143,14 +143,14 @@ async function _processFirebaseLoad(r, silent, force) {
   } catch(e){ console.warn('Separate invoices load:', e); }
 
   // Apply data DIRECTLY to memory — does NOT rely on localStorage
-  if (typeof _applyYearData === 'function') {
+  if (typeof window._applyYearData === 'function') {
     try {
-      _applyYearData(appData);
+      window._applyYearData(appData);
     } catch(e) { console.error('_applyYearData failed', e); }
   }
   window._fbLastKnownInvoiceCount = Math.max(
     window._fbLastKnownInvoiceCount||0,
-    (typeof INVOICES!=='undefined'?INVOICES.length:0)
+    (typeof window.INVOICES!=='undefined'?window.INVOICES.length:0)
   );
 
   _setFbLoadTs(Date.now());
@@ -223,21 +223,21 @@ async function saveToFirebase(silent) {
   try {
     // Prefer in-memory data (most up-to-date) over stored
     const liveData = {
-      ch: typeof SCH!=='undefined'?SCH:[],
-      pairs: typeof pairs!=='undefined'?pairs:[],
-      supEx: (()=>{ if(typeof supEx==='undefined') return {};
-        const _s={...supEx}; delete _s['__c']; return _sanitizeSupEx(_s); })(),
-      clusters: typeof clusters!=='undefined'?clusters:{},
-      holidays: typeof holidays!=='undefined'?holidays:[],
-      pairBreaks: typeof pairBreaks!=='undefined'?pairBreaks:{},
-      managers: typeof managers!=='undefined'?managers:{},
-      blockedDates: typeof blockedDates!=='undefined'?blockedDates:{},
-      gardenBlocks: typeof gardenBlocks!=='undefined'?gardenBlocks:{},
+      ch: typeof window.SCH!=='undefined'?window.SCH:[],
+      pairs: typeof window.pairs!=='undefined'?window.pairs:[],
+      supEx: (()=>{ if(typeof window.supEx==='undefined') return {};
+        const _s={...window.supEx}; delete _s['__c']; return _sanitizeSupEx(_s); })(),
+      clusters: typeof window.clusters!=='undefined'?window.clusters:{},
+      holidays: typeof window.holidays!=='undefined'?window.holidays:[],
+      pairBreaks: typeof window.pairBreaks!=='undefined'?window.pairBreaks:{},
+      managers: typeof window.managers!=='undefined'?window.managers:{},
+      blockedDates: typeof window.blockedDates!=='undefined'?window.blockedDates:{},
+      gardenBlocks: typeof window.gardenBlocks!=='undefined'?window.gardenBlocks:{},
       // invoices saved separately to /data/invoices (too large for main payload)
-      autoBackupCfg: loadAutoBackupSettings()||undefined,
-      piStatusFilter: (()=>{ try{ const s=_safeLS.getItem(PI_ST_KEY); return s?JSON.parse(s):undefined; }catch(e){ return undefined; } })(),
-      vatRate: typeof VAT_RATE!=='undefined'?VAT_RATE:18,
-      activeGardens: typeof activeGardens!=='undefined'&&activeGardens?[...activeGardens]:null
+      autoBackupCfg: window.loadAutoBackupSettings()||undefined,
+      piStatusFilter: (()=>{ try{ const s=window._safeLS.getItem(window.PI_ST_KEY); return s?JSON.parse(s):undefined; }catch(e){ return undefined; } })(),
+      vatRate: typeof window.VAT_RATE!=='undefined'?window.VAT_RATE:18,
+      activeGardens: typeof window.activeGardens!=='undefined'&&window.activeGardens?[...window.activeGardens]:null
     };
     // Validate: don't overwrite with significantly less data
     const raw = JSON.stringify(liveData);
@@ -281,7 +281,7 @@ async function saveToFirebase(silent) {
     });
     if (r.ok) {
       _setFbSaveTs(nowTs);
-      _safeLS.setItem('ganv5_local_ts', String(nowTs));
+      window._safeLS.setItem('ganv5_local_ts', String(nowTs));
       _fbLastError = null;
       _fbLastOwnSaveTs = nowTs; // track our own saves
       // Show save indicator (small flash)
@@ -290,9 +290,9 @@ async function saveToFirebase(silent) {
       if (!silent) showToast('✅ סונכרן ל-Firebase ' + _fmtTs(nowTs));
 
       // Save invoices separately to /data/invoices (different path = no overwrite conflict)
-      if(typeof INVOICES!=='undefined' && INVOICES.length > 0 && _saveTok){
+      if(typeof window.INVOICES!=='undefined' && window.INVOICES.length > 0 && _saveTok){
         const _invObj = {};
-        INVOICES.forEach(i=>{ if(i&&i.id) _invObj[i.id]=i; });
+        window.INVOICES.forEach(i=>{ if(i&&i.id) _invObj[i.id]=i; });
         fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+_saveTok, {
           method: 'PUT',
           headers: {'Content-Type':'application/json'},
@@ -312,7 +312,7 @@ async function saveToFirebase(silent) {
           method: 'PUT', headers: {'Content-Type':'application/json'},
           body: JSON.stringify(payload)
         });
-        if(r2.ok){ _setFbSaveTs(nowTs); _safeLS.setItem('ganv5_local_ts',String(nowTs)); return true; }
+        if(r2.ok){ _setFbSaveTs(nowTs); window._safeLS.setItem('ganv5_local_ts',String(nowTs)); return true; }
       } catch(re){}
     }
     _fbLastError = 'שגיאה ' + r.status + (r.status===401||r.status===403?' (הרשאות)':'');
@@ -337,19 +337,19 @@ function firebaseAutoSave() {
 // ── Apply remote data helper (shared by poll + visibility) ──
 function _applyRemoteData(appData, cloudTs) {
   if(!appData || Object.keys(appData).length===0) return;
-  _safeLS.setItem('ganv5', JSON.stringify(appData));
+  window._safeLS.setItem('ganv5', JSON.stringify(appData));
   _setFbSaveTs(cloudTs);
   _setFbLoadTs(Date.now());
   try {
     const d = typeof appData==='string' ? JSON.parse(appData) : appData;
-    if(typeof _applyYearData==='function') _applyYearData(d);
+    if(typeof window._applyYearData==='function') window._applyYearData(d);
     window._fbLastKnownInvoiceCount = Math.max(window._fbLastKnownInvoiceCount||0, d.invoices?.length||0);
-    if(typeof syncSupplierList==='function') syncSupplierList();
-    try{ if(typeof renderDash==='function') renderDash(); }catch(e){}
-    try{ if(typeof renderCal==='function') renderCal(); }catch(e){}
-    try{ if(typeof renderInvoices==='function') renderInvoices(); }catch(e){}
-    try{ if(typeof refreshPurchDash==='function') refreshPurchDash(); }catch(e){}
-    try{ if(typeof updCounts==='function') updCounts(); }catch(e){}
+    if(typeof window.syncSupplierList==='function') window.syncSupplierList();
+    try{ if(typeof window.renderDash==='function') window.renderDash(); }catch(e){}
+    try{ if(typeof window.renderCal==='function') window.renderCal(); }catch(e){}
+    try{ if(typeof window.renderInvoices==='function') window.renderInvoices(); }catch(e){}
+    try{ if(typeof window.refreshPurchDash==='function') window.refreshPurchDash(); }catch(e){}
+    try{ if(typeof window.updCounts==='function') window.updCounts(); }catch(e){}
   } catch(e2){ console.warn('Apply remote data error:', e2); }
   _fbUpdateStatus();
 }
@@ -458,12 +458,12 @@ async function fbLoadNow() {
   if (ok) {
     // _processFirebaseLoad already applied data — just refresh UI
     try {
-      if(typeof renderDash==='function') try{renderDash();}catch(e){}
-      if(typeof renderCal==='function') try{renderCal();}catch(e){}
-      if(typeof renderInvoices==='function') try{renderInvoices();}catch(e){}
-      if(typeof refreshPurchDash==='function') try{refreshPurchDash();}catch(e){}
-      if(typeof updCounts==='function') try{updCounts();}catch(e){}
-      showToast('✅ נטענו נתונים מ-Firebase');
+      if(typeof window.renderDash==='function') try{window.renderDash();}catch(e){}
+      if(typeof window.renderCal==='function') try{window.renderCal();}catch(e){}
+      if(typeof window.renderInvoices==='function') try{window.renderInvoices();}catch(e){}
+      if(typeof window.refreshPurchDash==='function') try{window.refreshPurchDash();}catch(e){}
+      if(typeof window.updCounts==='function') try{window.updCounts();}catch(e){}
+      window.showToast('✅ נטענו נתונים מ-Firebase');
     } catch(e) { console.warn(e); }
   } else {
     showToast('ℹ️ הנתונים כבר מעודכנים');
