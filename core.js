@@ -818,7 +818,9 @@ window.onload = function(){
     initHolDrops();
     refreshClusterDrops();
     refreshMgrDrops();
-    document.getElementById('dash-date').value=td();
+    // dash-date now defaults to empty (All Dates)
+    const dashDateEl=document.getElementById('dash-date'); 
+    if(dashDateEl) dashDateEl.value='';
     ['dash-srch','s-srch','g-srch','su-srch'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     const sfrom=document.getElementById('s-from');if(sfrom&&!sfrom.value) sfrom.value=td();
     const sto=document.getElementById('s-to');if(sto&&!sto.value) sto.value=td();
@@ -2896,12 +2898,13 @@ if(document.readyState==='loading'){
 function dashNavDate(d){
   const el=document.getElementById('dash-date');
   if(!el) return;
-  if(d===0){ el.value=td(); }
+  if(d===0){ el.value=window.td(); }
+  else if(d===999){ el.value=''; }
   else {
-    const cur=el.value?s2d(el.value):new Date();
-    el.value=d2s(addD(cur,d));
+    const cur=el.value?window.s2d(el.value):new Date();
+    el.value=window.d2s(window.addD(cur,d));
   }
-  renderDash();
+  if(window.renderDash) window.renderDash();
 }
 
 // _listGroupMode handled globally in data.js / cal.js

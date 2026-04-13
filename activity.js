@@ -5,15 +5,16 @@ function setDashTab(t){
   renderDash();
 }
 function renderDash(){
-  const date=document.getElementById('dash-date').value||window.td();
+  const date=document.getElementById('dash-date').value;
   const city=document.getElementById('dash-city').value;
   const sup=document.getElementById('dash-sup').value;
   const st=document.getElementById('dash-st').value;
   const clsFilter=_dashTab==='g'?'גנים':'ביה"ס';
   const srch=(document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
   
-  const evs=window.SCH.filter(s=>{
-    if(s.d!==date) return false;
+  const evs = window.SCH.filter(s => {
+    // Only filter if date is explicitly set
+    if (date && s.d !== date) return false;
     const g=window.G(s.g);
     
     if(window.gcls(g)!==clsFilter) return false;
@@ -43,8 +44,10 @@ function renderDash(){
   });
 
   if(!Object.keys(bySup).length){
-    const msg = (st==='todo' || !st) ? 'אין חריגים/השלמות לטיפול ביום זה' : 'אין פעילויות ביום זה';
-    document.getElementById('dash-body').innerHTML = `<p style="color:#999;font-size:.81rem;text-align:center;padding:20px">${msg}</p>`;
+    const emptyMsg = date 
+      ? `אין חריגים/השלמות לטיפול בתאריך ${window.fD(date)}`
+      : 'אין חריגים/השלמות לטיפול (כל התאריכים)';
+    document.getElementById('dash-body').innerHTML = `<p style="color:#999;font-size:.85rem;padding:20px;text-align:center">${emptyMsg}</p>`;
   } else {
     let h='';
     if(st==='todo'){
