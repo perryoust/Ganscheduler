@@ -31,6 +31,21 @@ var managers = window.managers;
 var pairBreaks = window.pairBreaks;
 var VAT_RATE = window.VAT_RATE;
 
+// --- Global UI Helpers ---
+window.OM = function(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+};
+window.CM = function(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    if (el._fromDup) { el.style.zIndex = ''; el._fromDup = false; }
+    el.classList.remove('open');
+  }
+};
+var OM = window.OM;
+var CM = window.CM;
+
 function renderInvoices(){
   const tbody = document.getElementById('pi-tbody');
   if(!tbody) return;

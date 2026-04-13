@@ -36,11 +36,11 @@ function switchMode(mode){
     // Hide all purch panels
     PURCH_TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el) el.style.display='none'; });
     // If currentTab is 'admin' (ניהול משתמשים), always go to 'dash' — otherwise restore last tab
-    const _targetTab = (typeof currentTab!=='undefined' && currentTab!=='admin') ? currentTab : 'dash';
-    ST(_targetTab);
+    const _targetTab = (typeof window.currentTab!=='undefined' && window.currentTab!=='admin') ? window.currentTab : 'dash';
+    window.ST(_targetTab);
   } else {
     // Hide all act panels (use both class removal and display:none to be safe)
-    TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el){ el.classList.remove('active'); el.style.display='none'; } });
+    window.TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el){ el.classList.remove('active'); el.style.display='none'; } });
     SPT(_purchTab);
     refreshPurchDash();
     // Ensure supplier list is fresh
@@ -55,7 +55,7 @@ function SPT(t){
   const _bdEl=document.getElementById('sp-backdrop');
   if(_spEl) _spEl.classList.remove('open');
   if(_bdEl) _bdEl.style.display='none';
-  selEv=null;
+  window.selEv=null;
   PURCH_TABS.forEach((x,i)=>{
     const tabEl = document.querySelectorAll('#tabs-purch .tab')[i];
     if(tabEl) tabEl.classList.toggle('active', x===t);
@@ -66,14 +66,14 @@ function SPT(t){
     fillPiSupFilter(); _fillPiCityFilter(); renderInvoices();
     const ib = document.getElementById('one-time-import-btn');
     if(ib){
-      if(_safeLS.getItem('_oneTimeImportDone')){ ib.style.display='none'; }
+      if(window._safeLS.getItem('_oneTimeImportDone')){ ib.style.display='none'; }
       else{
         // Also check Firebase flag
         const _tk = window._cachedToken;
         if(_tk){
           fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/importDone.json?auth='+_tk)
             .then(r=>r.json()).then(d=>{
-              if(d && d.done){ ib.style.display='none'; _safeLS.setItem('_oneTimeImportDone','1'); }
+              if(d && d.done){ ib.style.display='none'; window._safeLS.setItem('_oneTimeImportDone','1'); }
               else { ib.style.display='inline-block'; }
             }).catch(()=>{ ib.style.display='inline-block'; });
         } else { ib.style.display='inline-block'; }
@@ -111,13 +111,13 @@ function _classifyPath(p) {
 }
 
 function _copyToClipboard(text) {
-  navigator.clipboard?.writeText(text).then(()=>showToast('📋 הועתק!')).catch(()=>{
+  navigator.clipboard?.writeText(text).then(()=>window.showToast('📋 הועתק!')).catch(()=>{
     const ta=document.createElement('textarea');
     ta.value=text; ta.style.cssText='position:fixed;opacity:0;top:0;left:0';
     document.body.appendChild(ta); ta.select();
     try{document.execCommand('copy');}catch(e){}
     document.body.removeChild(ta);
-    showToast('📋 הועתק!');
+    window.showToast('📋 הועתק!');
   });
 }
 
@@ -197,10 +197,10 @@ function invPathChange(section){
 
 // Main open function
 function invOpenFile(invId, section){
-  const inv = INVOICES.find(i=>i.id===invId);
+  const inv = window.INVOICES.find(i=>i.id===invId);
   if(!inv) return;
   const meta = inv['file_'+section];
-  if(!meta){ showToast('❌ לא צורף קובץ לסעיף זה'); return; }
+  if(!meta){ window.showToast('❌ לא צורף קובץ לסעיף זה'); return; }
   if(!meta.path){
     _showPathDialog(invId, section, meta);
     return;
@@ -271,14 +271,14 @@ function _showPathDialog(invId, section, meta){
 function _pathDlgSave(invId, section){
   const val = document.getElementById('path-dlg-input')?.value.trim();
   if(!val) return;
-  const inv = INVOICES.find(i=>i.id===invId);
+  const inv = window.INVOICES.find(i=>i.id===invId);
   if(inv){
     const meta = inv['file_'+section]||{name:''};
     inv['file_'+section] = {...meta, path:val};
-    save();
+    window.save();
     const pi = document.getElementById('inv-path-'+section);
     if(pi){pi.value=val; invPathChange(section);}
-    showToast('✅ קישור נשמר');
+    window.showToast('✅ קישור נשמר');
   }
   _removeOverlay('path-dlg-overlay');
 }
@@ -324,7 +324,7 @@ function _showLocalPathHelp(p, invId, section, meta, pathType){
   // Wire buttons via addEventListener — avoids quote/backslash issues in onclick attrs
   div.querySelector('#_lh-close').addEventListener('click', () => _removeOverlay('localhelp-overlay'));
   div.querySelector('#_lh-copy').addEventListener('click', () => {
-    _copyToClipboard(p); showToast('✅ נתיב הועתק'); _removeOverlay('localhelp-overlay');
+    _copyToClipboard(p); window.showToast('✅ נתיב הועתק'); _removeOverlay('localhelp-overlay');
   });
   div.querySelector('#_lh-open').addEventListener('click', () => _tryOpenLocalFile(p));
   div.querySelector('#_lh-edit').addEventListener('click', () => {
@@ -350,33 +350,33 @@ function invSaveFiles(invId){ return Promise.resolve(); }
 
 // Supplier helpers using the real data model (SUPBASE + supEx)
 function isActSupplier(name){ 
-  const ex = (typeof supEx!=='undefined'?supEx:{})[name]||{};
+  const ex = (typeof window.supEx!=='undefined'?window.supEx:{})[name]||{};
   return ex.isAct !== false; // default true for backward compat
 }
 function isPurchSupplier(name){ 
-  const ex = (typeof supEx!=='undefined'?supEx:{})[name]||{};
+  const ex = (typeof window.supEx!=='undefined'?window.supEx:{})[name]||{};
   return ex.isPurch !== false; // default true — all suppliers are purchase suppliers
 }
 function getAllSupNames(){
-  if(typeof getAllSup==='function') return getAllSup().map(s=>s.name);
+  if(typeof window.getAllSup==='function') return window.getAllSup().map(s=>s.name);
   return [];
 }
 function rebuildMergedSupplierActs(){
   // After merges, some supEx entries may have stale empty acts arrays
   // Clear them so auto-derive from SCH kicks in
-  Object.keys(supEx).forEach(name=>{
-    const ex = supEx[name];
+  Object.keys(window.supEx).forEach(name=>{
+    const ex = window.supEx[name];
     if(Array.isArray(ex.acts) && ex.acts.length===0){
       delete ex.acts; // Let getSupActs auto-derive from SCH
     }
   });
-  save();
+  window.save();
 }
 
 function getPurchSuppliers(){ 
   return getAllSupNames().filter(name=>isPurchSupplier(name)).map(name=>{
-    const ex=(typeof supEx!=='undefined'?supEx:{})[name]||{};
-    const base=(typeof SUPBASE!=='undefined'?SUPBASE:[]).find(s=>s.name===name)||{};
+    const ex=(typeof window.supEx!=='undefined'?window.supEx:{})[name]||{};
+    const base=(typeof window.SUPBASE!=='undefined'?window.SUPBASE:[]).find(s=>s.name===name)||{};
     return {id: base.id||name, name, phone: ex.ph1||base.phone||'', tax:ex.g1||'', email:ex.email||''};
   });
 }
@@ -406,7 +406,7 @@ function sucTypeChg(){
 let _editInvId = null;
 
 // ── VAT helpers ────────────────────────────────────────
-function getVatRate(){ return VAT_RATE||18; }
+function getVatRate(){ return window.VAT_RATE||18; }
 function vatAmt(base, rate){ return +(base * rate / 100).toFixed(2); }
 function withVat(base, rate){ return +(base * (1 + rate/100)).toFixed(2); }
 
@@ -446,7 +446,7 @@ function _fillInvCityDropdown(currentCity){
   const sel = document.getElementById('inv-loc-city');
   const otherInp = document.getElementById('inv-loc-city-other');
   if(!sel) return;
-  const cities = [...new Set(GARDENS.map(g=>g.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+  const cities = [...new Set(window.GARDENS.map(g=>g.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
   sel.innerHTML = '<option value="">-- בחר עיר --</option>' +
     cities.map(c=>`<option value="${c}">${c}</option>`).join('') +
     '<option value="__other__">אחר (הכנס ידנית)</option>';
@@ -510,17 +510,17 @@ function invClearFile(sec){
   if(pill)     pill.style.display='none';
   // Clear saved data too if editing existing invoice
   if(_editInvId){
-    const inv = INVOICES.find(i=>i.id===_editInvId);
-    if(inv){ inv['file_'+sec]=null; save(); }
+    const inv = window.INVOICES.find(i=>i.id===_editInvId);
+    if(inv){ inv['file_'+sec]=null; window.save(); }
   }
   _pendingFiles[sec]=null;
 }
 function deleteInvoiceFromModal(){
   if(!_editInvId) return;
   if(!confirm('למחוק מסמך זה לגמרי?')) return;
-  INVOICES = INVOICES.filter(i=>i.id!==_editInvId);
-  save(true); CM('invoice-m'); renderInvoices(); refreshPurchDash();
-  showToast('🗑️ המסמך נמחק');
+  window.INVOICES = window.INVOICES.filter(i=>i.id!==_editInvId);
+  window.save(true); window.CM('invoice-m'); renderInvoices(); refreshPurchDash();
+  window.showToast('🗑️ המסמך נמחק');
 }
 function resetInvFilter(){
   const ids = ['pi-srch','pi-from','pi-to','pi-type','pi-assign','pi-month','pi-city','pi-loctype'];
@@ -528,20 +528,20 @@ function resetInvFilter(){
   document.querySelectorAll('.pi-st-cb').forEach(cb=>cb.checked=false);
   const allCb=document.getElementById('pi-st-all'); if(allCb) allCb.checked=false;
   _setPiStLabel();
-  try{ _safeLS.removeItem(PI_ST_KEY); }catch(e){}
+  try{ window._safeLS.removeItem(window.PI_ST_KEY); }catch(e){}
   const sortEl=document.getElementById('pi-sort'); if(sortEl) sortEl.value='desc';
   renderInvoices();
 }
 function openNewInvoice(id, presetSup){
   _editInvId = id || null;
-  const inv = id ? INVOICES.find(i=>i.id===id) : null;
+  const inv = id ? window.INVOICES.find(i=>i.id===id) : null;
   document.getElementById('inv-m-title').textContent = id ? '✏️ עריכת מסמך' : '📄 מסמך חדש';
   // Supplier autocomplete datalist
   const dl = document.getElementById('inv-sup-datalist');
   if(dl){
     // Use getAllSup so merged supplier names are up-to-date
-    dl.innerHTML = getAllSup().map(s=>{
-      const ex=supEx[s.name]||{};
+    dl.innerHTML = window.getAllSup().map(s=>{
+      const ex=window.supEx[s.name]||{};
       // Escape quotes in name for HTML attribute
       const safeVal = s.name.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
       return `<option value="${safeVal}">${s.name}${ex.entityType?' ['+ex.entityType+']':''}`;
@@ -553,7 +553,7 @@ function openNewInvoice(id, presetSup){
     supTxt.value = inv ? (inv.supName||'') : (presetSup||'');
     // If preset or existing, trigger entity type update
     const supName = supTxt.value;
-    if(supName) invUpdateEntityType((supEx[supName]||{}).entityType||'');
+    if(supName) invUpdateEntityType((window.supEx[supName]||{}).entityType||'');
   }
   document.getElementById('inv-new-sup-wrap').style.display='none';
   // Clear new supplier fields (fix 18 - don't keep old supplier data)
@@ -805,8 +805,8 @@ function setInvVatMode(m){
 function _getEffectiveVat(){
   // Returns 0 for exempt suppliers, otherwise the configured VAT rate
   const supName = document.getElementById('inv-sup-text')?.value?.trim()||'';
-  const base = supBase(supName);
-  const entityType = (supEx[supName]||supEx[base]||{}).entityType||
+  const base = window.supBase(supName);
+  const entityType = (window.supEx[supName]||window.supEx[base]||{}).entityType||
     document.getElementById('inv-ns-entity')?.value||'';
   if(entityType==='עוסק פטור'||entityType==='עמותה') return 0;
   return parseFloat(document.getElementById('inv-vat')?.value)||getVatRate();
@@ -878,11 +878,11 @@ function toggleVatSettings(){
 function saveVatRate(){
   const v = parseFloat(document.getElementById('vat-rate-input').value);
   if(isNaN(v)||v<0||v>100){ alert('יש להזין אחוז תקין (0–100)'); return; }
-  VAT_RATE = v;
+  window.VAT_RATE = v;
   document.getElementById('inv-vat').value = v;
   onVatChange();
-  save();
-  showToast('✅ שיעור מע"מ עודכן ל-'+v+'%');
+  window.save();
+  window.showToast('✅ שיעור מע"מ עודכן ל-'+v+'%');
   document.getElementById('vat-settings-row').style.display='none';
 }
 
@@ -897,12 +897,12 @@ async function saveInvoice(){
     // New supplier form is open — nsName already read above
     if(!nsName){ alert('יש להזין שם ספק'); return; }
     const entityType = document.getElementById('inv-ns-entity')?.value||'';
-    if(typeof supEx !== 'undefined'){
-      if(!supEx['__c']) supEx['__c']=[];
-      if(!supEx['__c'].find(s=>s.name===nsName))
-        supEx['__c'].push({id:Date.now(),name:nsName,phone:document.getElementById('inv-ns-phone')?.value.trim()});
+    if(typeof window.supEx !== 'undefined'){
+      if(!window.supEx['__c']) window.supEx['__c']=[];
+      if(!window.supEx['__c'].find(s=>s.name===nsName))
+        window.supEx['__c'].push({id:Date.now(),name:nsName,phone:document.getElementById('inv-ns-phone')?.value.trim()});
       const nsIsAct = document.getElementById('inv-ns-acts')?.checked||false;
-    supEx[nsName]={...(supEx[nsName]||{}),
+    window.supEx[nsName]={...(window.supEx[nsName]||{}),
         ph1:document.getElementById('inv-ns-phone')?.value.trim(),
         email:document.getElementById('inv-ns-email')?.value.trim(),
         contact:document.getElementById('inv-ns-contact')?.value.trim(),
@@ -928,7 +928,7 @@ async function saveInvoice(){
   }
   // Check duplicate order number — only for purely numeric numbers (letters/mixed = internal codes, skip)
   if(orderNum && /^\d+$/.test(orderNum)){
-    const dup = INVOICES.find(i=>i.orderNum===orderNum && i.id!==_editInvId);
+    const dup = window.INVOICES.find(i=>i.orderNum===orderNum && i.id!==_editInvId);
     if(dup && !confirm(`⚠️ מספר הזמנה ${orderNum} כבר קיים אצל "${dup.supName}". לשמור בכל זאת?`)) return;
   }
   const vat      = parseFloat(document.getElementById('inv-vat').value)||getVatRate();
@@ -939,7 +939,7 @@ async function saveInvoice(){
   const rawTx    = parseFloat(document.getElementById('inv-tx-amt').value)||0;
   const rawAmt   = parseFloat(document.getElementById('inv-amt').value)||0;
   // Exempt suppliers (עוסק פטור / עמותה) — no VAT
-  const _supEntityType = (supEx[supName]||supEx[supBase(supName)]||{}).entityType||'';
+  const _supEntityType = (window.supEx[supName]||window.supEx[window.supBase(supName)]||{}).entityType||'';
   const isExemptSave = _supEntityType==='עוסק פטור' || _supEntityType==='עמותה';
   const effectiveVat = isExemptSave ? 0 : vat;
   const orderAmt = ordMode==='inc' ? +(rawOrder/(1+effectiveVat/100)).toFixed(2) : rawOrder;
@@ -947,7 +947,7 @@ async function saveInvoice(){
   const amt      = invMode==='inc' ? +(rawAmt/(1+effectiveVat/100)).toFixed(2)  : rawAmt;
   const invId    = _editInvId || Date.now();
 
-  const existingInv = _editInvId ? INVOICES.find(i=>i.id===_editInvId) : null;
+  const existingInv = _editInvId ? window.INVOICES.find(i=>i.id===_editInvId) : null;
   const fileMeta = {};
   for(const sec of ['order','tx','tax']){
     const pathEl = document.getElementById('inv-path-'+sec);
@@ -989,72 +989,71 @@ async function saveInvoice(){
     ts: existingInv?.ts || Date.now()
   };
   if(_editInvId){
-    const idx=INVOICES.findIndex(i=>i.id===_editInvId);
-    if(idx>=0) INVOICES[idx]=inv;
+    const idx=window.INVOICES.findIndex(i=>i.id===_editInvId);
+    if(idx>=0) window.INVOICES[idx]=inv;
   } else {
-    INVOICES.push(inv);
+    window.INVOICES.push(inv);
   }
   // Auto-create supplier card if not exists — must be in supEx['__c'] to appear in list
   if(supName && supName!=='__new__'){
-    const inSupbase = (typeof SUPBASE!=='undefined') && SUPBASE.some(s=>supBase(s.name)===supName);
-    if(!supEx[supName]) supEx[supName]={};
-    if(supEx[supName].isPurch===undefined) supEx[supName].isPurch=true;
+    const inSupbase = (typeof window.SUPBASE!=='undefined') && window.SUPBASE.some(s=>window.supBase(s.name)===supName);
+    if(!window.supEx[supName]) window.supEx[supName]={};
+    if(window.supEx[supName].isPurch===undefined) window.supEx[supName].isPurch=true;
     if(!inSupbase){
-      if(!supEx['__c']) supEx['__c']=[];
-      if(!supEx['__c'].find(s=>supBase(s.name)===supName)){
-        supEx['__c'].push({id:Date.now(),name:supName,phone:supEx[supName].ph1||''});
+      if(!window.supEx['__c']) window.supEx['__c']=[];
+      if(!window.supEx['__c'].find(s=>window.supBase(s.name)===supName)){
+        window.supEx['__c'].push({id:Date.now(),name:supName,phone:window.supEx[supName].ph1||''});
       }
       // Invoice-created suppliers are purch-only by default (not חוגים)
-      if(supEx[supName].isAct===undefined) supEx[supName].isAct=false;
+      if(window.supEx[supName].isAct===undefined) window.supEx[supName].isAct=false;
     }
   }
-  save();
-  try { await invSaveFiles(invId); } catch(e){ showToast('⚠️ שגיאה בשמירת קובץ: '+e.message); }
-  CM('invoice-m');
+  window.save();
+  try { await invSaveFiles(invId); } catch(e){ window.showToast('⚠️ שגיאה בשמירת קובץ: '+e.message); }
+  window.CM('invoice-m');
   renderInvoices(); refreshPurchDash();
-  showToast('✅ מסמך נשמר בהצלחה');
+  window.showToast('✅ מסמך נשמר בהצלחה');
 }
 
 // ── Create supplier cards for all existing invoices (run once) ──
 function createMissingSupCards(){
   // Ensure every supplier in invoices/SCH appears in the supplier list
-  const inSupbase = new Set(SUPBASE.map(s=>supBase(s.name)));
-  if(!supEx['__c']) supEx['__c']=[];
+  const inSupbase = new Set(window.SUPBASE.map(s=>window.supBase(s.name)));
+  if(!window.supEx['__c']) window.supEx['__c']=[];
   let created=0;
-
   // 1. From INVOICES
-  INVOICES.forEach(inv=>{
+  window.INVOICES.forEach(inv=>{
     const name=inv.supName;
     if(!name) return;
-    const base=supBase(name);
-    if(!supEx[base]) supEx[base]={};
-    if(supEx[base].isPurch===undefined) supEx[base].isPurch=true;
+    const base=window.supBase(name);
+    if(!window.supEx[base]) window.supEx[base]={};
+    if(window.supEx[base].isPurch===undefined) window.supEx[base].isPurch=true;
     // Add to __c if not in SUPBASE and not already in __c
-    if(!inSupbase.has(base) && !supEx['__c'].find(s=>supBase(s.name)===base)){
-      supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:supEx[base].ph1||''});
+    if(!inSupbase.has(base) && !window.supEx['__c'].find(s=>window.supBase(s.name)===base)){
+      window.supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:window.supEx[base].ph1||''});
       created++;
     }
   });
 
   // 2. From SCH (any supplier in schedules should have a card)
-  if(typeof SCH!=='undefined') SCH.forEach(s=>{
+  if(typeof window.SCH!=='undefined') window.SCH.forEach(s=>{
     if(!s.a) return;
-    const base=supBase(s.a);
+    const base=window.supBase(s.a);
     if(!base) return;
-    if(!supEx[base]) supEx[base]={};
-    if(!inSupbase.has(base) && !supEx['__c'].find(c=>supBase(c.name)===base)){
-      supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:''});
+    if(!window.supEx[base]) window.supEx[base]={};
+    if(!inSupbase.has(base) && !window.supEx['__c'].find(c=>window.supBase(c.name)===base)){
+      window.supEx['__c'].push({id:Date.now()+Math.random(),name:base,phone:''});
       created++;
     }
   });
 
-  if(created>0){ save(); console.log(`✅ נוצרו ${created} כרטיסי ספק חסרים`); }
+  if(created>0){ window.save(); console.log(`✅ נוצרו ${created} כרטיסי ספק חסרים`); }
 }
 function deleteInvoice(id){
   if(!confirm('למחוק חשבונית זו?')) return;
-  INVOICES=INVOICES.filter(i=>i.id!==id);
+  window.INVOICES=window.INVOICES.filter(i=>i.id!==id);
   ['order','tx','tax'].forEach(sec => fileDelete(fileKey(id,sec)).catch(()=>{}));
-  save(true); renderInvoices(); refreshPurchDash(); // immediate=true → saves to Firebase now
+  window.save(true); renderInvoices(); refreshPurchDash(); // immediate=true → saves to Firebase now
 }
 
 // ── Render invoices table ──────────────────────────────
@@ -1079,7 +1078,7 @@ function toggleAdvFilter(){
 function _fillPiCityFilter(){
   const sel = document.getElementById('pi-city');
   if(!sel) return;
-  const cities = [...new Set(INVOICES.map(i=>i.locCity||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+  const cities = [...new Set(window.INVOICES.map(i=>i.locCity||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
   const cur = sel.value;
   sel.innerHTML = '<option value="">הכל</option>' + cities.map(c=>`<option value="${c}">${c}</option>`).join('');
   if(cur) sel.value = cur;
@@ -1093,8 +1092,8 @@ function fillPiSupFilter(){
 
 function getSupName(supRef){
   if(typeof supRef === 'string') return supRef;
-  if(typeof SUPBASE==='undefined') return String(supRef);
-  const s = SUPBASE.find(x=>x.id===parseInt(supRef));
+  if(typeof window.SUPBASE==='undefined') return String(supRef);
+  const s = window.SUPBASE.find(x=>x.id===parseInt(supRef));
   return s ? s.name : String(supRef);
 }
 
@@ -1138,12 +1137,14 @@ async function _doImportInvoices(ov){
 
   // Build duplicate keys: supName+txNum or supName+taxNum
   const dupKeys = new Set();
-  INVOICES.forEach(i=>{
+  window.INVOICES.forEach(i=>{
     const sup = (i.supName||'').trim().toLowerCase();
     if(sup && i.txNum) dupKeys.add(sup+'|tx|'+(i.txNum||'').trim().toLowerCase());
     if(sup && i.num)   dupKeys.add(sup+'|tax|'+(i.num||'').trim().toLowerCase());
   });
-  const existingSupNames = new Set(getAllSup().map(s=>s.name.toLowerCase().trim()));
+  const existingSupNames = new Set(window.getAllSup().map(s=>s.name.toLowerCase().trim()));
+  const existingOrderNums = new Set();
+  window.INVOICES.forEach(i=>{ if(i.orderNum) existingOrderNums.add(i.orderNum); });
 
   let added=0, skipped=0, suppAdded=0;
   const newInvoices = [];
@@ -1185,15 +1186,15 @@ async function _doImportInvoices(ov){
   }
 
   // Merge into app data
-  INVOICES.push(...newInvoices);
+  window.INVOICES.push(...newInvoices);
   if(newSuppliers.length){
     // Add to SUPBASE
-    if(typeof SUPBASE !== 'undefined') SUPBASE.push(...newSuppliers);
+    if(typeof window.SUPBASE !== 'undefined') window.SUPBASE.push(...newSuppliers);
     // Also add to supEx for quick lookup
-    newSuppliers.forEach(s=>{ supEx[s.name] = s; });
+    newSuppliers.forEach(s=>{ window.supEx[s.name] = s; });
   }
 
-  save(true);
+  window.save(true);
   renderInvoices();
   refreshPurchDash();
 
@@ -1650,7 +1651,7 @@ function openInvExportModal(){
   document.body.appendChild(_ov);
   // Populate supplier datalist
   const dl = _ov.querySelector('#iex-sup-list');
-  [...new Set(INVOICES.map(i=>i.supName||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'))
+  [...new Set(window.INVOICES.map(i=>i.supName||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'))
     .forEach(n=>{ const o=document.createElement('option'); o.value=n; dl.appendChild(o); });
   // Pre-fill from current filter
   const curFrom = document.getElementById('pi-from')?.value||'';
@@ -1685,7 +1686,7 @@ async function _doExportInvXlsx(from='', to='', supF='', typeF='', assignF='', c
   const vat = getVatRate();
   const rows = list.map(i=>{
     const v = i.vat||vat;
-    const isExempt = v===0 || (supEx[i.supName]||{}).entityType==='עוסק פטור'||(supEx[i.supName]||{}).entityType==='עמותה';
+    const isExempt = v===0 || (window.supEx[i.supName]||{}).entityType==='עוסק פטור'||(window.supEx[i.supName]||{}).entityType==='עמותה';
     const calcTot = (base)=> base ? (isExempt ? base : +(base*(1+v/100)).toFixed(2)) : '';
     const orderTot = i.orderTotal || calcTot(i.orderAmt) || '';
     const txBase   = i.txAmt  || '';
@@ -1717,13 +1718,13 @@ async function _doExportInvXlsx(from='', to='', supF='', typeF='', assignF='', c
     };
   });
 
-  if(!rows.length){ showToast('⚠️ אין נתונים לייצוא'); return; }
+  if(!rows.length){ window.showToast('⚠️ אין נתונים לייצוא'); return; }
 
   // Wait for ExcelJS to load if needed
   if(typeof ExcelJS === 'undefined'){
-    showToast('⏳ טוען ExcelJS...');
+    window.showToast('⏳ טוען ExcelJS...');
     await new Promise(r=>setTimeout(r,1500));
-    if(typeof ExcelJS === 'undefined'){ showToast('⚠️ ExcelJS לא נטען, נסה שוב'); return; }
+    if(typeof ExcelJS === 'undefined'){ window.showToast('⚠️ ExcelJS לא נטען, נסה שוב'); return; }
   }
 
   const dataKeys = Object.keys(rows[0]);
@@ -1791,7 +1792,8 @@ async function _doExportInvXlsx(from='', to='', supF='', typeF='', assignF='', c
   const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'דוח_רכש_'+rangeStr+'.xlsx';
+  const bStr  = 'דוח_רכש_'+rangeStr+'.xlsx';
+  a.download = bStr;
   a.click();
-  showToast('✅ קובץ אקסל הורד בהצלחה');
+  window.showToast('✅ קובץ אקסל הורד בהצלחה');
 }

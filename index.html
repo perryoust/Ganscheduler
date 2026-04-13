@@ -113,23 +113,16 @@
     }
   });
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
 <script>
-// Load JSZip first, save reference, then load ExcelJS
+// Load JSZip separately to avoid conflicts if needed
 (function() {
-  var jz = document.createElement('script');
-  jz.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-  jz.onload = function() {
-    window._SafeJSZip = window.JSZip; // save before ExcelJS overwrites it
-    var s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js';
-    s.onerror = function() {
-      console.warn('ExcelJS CDN failed, Excel export will use CSV fallback');
-      window._excelJSFailed = true;
-    };
-    document.head.appendChild(s);
-  };
-  document.head.appendChild(jz);
+  if (!window.JSZip) {
+    var jz = document.createElement('script');
+    jz.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    document.head.appendChild(jz);
+  }
 })();
 </script>
 <script>
@@ -1175,7 +1168,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div id="ns-g2-partner-wrap" style="display:none;margin-bottom:10px;background:#f0f4f8;padding:8px;border-radius:6px;border:1px solid #d1d9e6">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
         <div class="fg"><label>גן בן זוג (תצוגה)</label><div id="ns-g2-name-display" style="font-weight:700;padding:6px;background:#fff;border-radius:4px;border:1px solid #ccc;font-size:.85rem;min-height:30px"></div></div>
-        <div class="fg"><label>שעה לגן בן זוג</label><input type="time" id="ns-time-g2" style="width:100%"></div>
+        <div class="fg"><label id="ns-time-g2-lbl">שעה לגן בן זוג</label><input type="time" id="ns-time-g2" style="width:100%"></div>
       </div>
     </div>
 
@@ -2508,6 +2501,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     w.openMakeupSched = typeof openMakeupSched !== 'undefined' ? openMakeupSched : w.openMakeupSched;
     w.openPostpone = typeof openPostpone !== 'undefined' ? openPostpone : w.openPostpone;
     w.openCopy = typeof openCopy !== 'undefined' ? openCopy : w.openCopy;
+    w.markCompManual = typeof markCompManual !== 'undefined' ? markCompManual : w.markCompManual;
     w.refreshMode = typeof refreshMode !== 'undefined' ? refreshMode : w.refreshMode;
 
     // From gardens.js
@@ -2563,6 +2557,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     w.goToNohap = typeof goToNohap !== 'undefined' ? goToNohap : w.goToNohap;
     w.goToNoHap = typeof goToNoHap !== 'undefined' ? goToNoHap : w.goToNoHap;
     w.CM = typeof CM !== 'undefined' ? CM : w.CM;
+    w.OM = typeof OM !== 'undefined' ? OM : w.OM;
 
     // From admin.js
     w.openUsersModal = typeof openUsersModal !== 'undefined' ? openUsersModal : w.openUsersModal;

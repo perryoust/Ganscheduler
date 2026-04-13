@@ -175,6 +175,9 @@ function nsCheckPair(gid){
         };
       }
       
+      const time2Lbl = document.getElementById('ns-time-g2-lbl');
+      if(time2Lbl) time2Lbl.textContent = `שעה ל${partG.name}`;
+      
       const nameDisp = document.getElementById('ns-g2-name-display');
       if(nameDisp) nameDisp.textContent = partG.name;
       
@@ -528,7 +531,7 @@ function renderSched(){
       [{arr:cityData.gan,lbl:'🏫 צהרונים',cls:'gan'},{arr:cityData.sch,lbl:'🏛️ בתי ספר',cls:'sch'}].forEach(sec=>{
         if(!sec.arr.length) return;
         h+=`<div class="dsh ${sec.cls}" style="font-size:.7rem;margin-bottom:3px">${sec.lbl}</div>
-          <div class="tw"><table style="margin-bottom:6px"><thead><tr>
+        <div class="tw"><table style="margin-bottom:6px"><thead><tr>
             <th>צהרון</th><th>ספק</th><th>שעה</th><th>סטטוס</th><th>הערות</th><th style="width:130px">פעולות</th>
           </tr></thead><tbody>`;
         sec.arr.sort((a,b)=>{

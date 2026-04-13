@@ -234,9 +234,4 @@ function goToNoHap(){
     sPage=1;renderSched();
   },50);
 }
-function CM(id){
-  const _el = document.getElementById(id);
-  if(_el && _el._fromDup){ _el.style.zIndex=''; _el._fromDup=false; }
-  _el?.classList.remove('open');
-}
 
