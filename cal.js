@@ -728,19 +728,6 @@ function renderNormalDay(evs,ds){
     });
   }
 
-                ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
-                ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
-                ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
-                <button title="דחה פעילות" onclick="openPostpone(${s.id})">⏩</button>
-                <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
-              </div>
-            </div>
-          </div>
-        </div>`;
-      });
-      html+='</div></div>'; // end city solo group
-    });
-  }
 
   if(!html||html===topHtml) html+=`<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות ביום זה</div>`;
   return html;
