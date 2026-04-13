@@ -931,7 +931,7 @@ function genExport(){
   _exGids=null;
   const isM_flag = _exIsM;
   _exIsM = false;
-  const rel=SCH.filter(s=>s.d>=from&&s.d<=to&&(!gidsStr||gidsStr.includes(String(s.g))))
+  const rel=SCH.filter(s=>s.d>=from&&s.d<=to&&(!gids||gids.includes(s.g)))
     .sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'99').localeCompare(b.t||'99'));
   const relActive=rel.filter(s=>s.st!=='can');
   if(!rel.length){(document.getElementById('ex-prev')||{}).textContent='אין פעילויות';return;}

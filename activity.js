@@ -18,15 +18,13 @@ function renderDash(){
     
     if(window.gcls(g)!==clsFilter) return false;
     
-    // Status Logic: 
-    if(st==='todo'){
+    // Status Logic:
+    if(st==='todo' || !st){
       const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
-      const isTodo = (s.st==='nohap' || s.st==='post' || isM);
+      const isTodo = (s.st==='nohap' || s.st==='post' || isM) && !s._compByMakeup;
       if(!isTodo) return false;
     } else {
-      if(!st) {
-        if(s.st==='can') return false; 
-      } else if(s.st!==st) return false;
+      if(s.st!==st) return false;
     }
     
     if(city&&g.city!==city) return false;
@@ -1251,3 +1249,4 @@ window.markCompManual = markCompManual;
 window.saveNt = saveNt;
 window.cancelEv = cancelEv;
 window.markNoHap = markNoHap;
+}

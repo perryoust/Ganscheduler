@@ -152,7 +152,7 @@ tr:hover td{background:#f5f7ff}
 .pgr-right{display:flex;align-items:center;flex-shrink:0}
 
 /* Layouts */
-.pairs-4col{display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:12px;margin-bottom:14px}
+.pairs-4col{display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:12px;margin-bottom:14px;align-items:start}
 .pairs-4col .pair-card{margin-bottom:0}
 .pairs-list-layout{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .pairs-list-layout .pair-card{margin-bottom:0;width:100%}

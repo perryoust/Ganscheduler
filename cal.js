@@ -44,7 +44,7 @@ function filterE(f,from,to){
     // Status Filter 
     if(f.st==='todo'){
        const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
-       if(!(s.st==='nohap' || s.st==='post' || isM)) return false;
+       if(!(s.st==='nohap' || s.st==='post' || isM) || s._compByMakeup) return false;
     } else if(!f.st){
        // No status filter: show everything in calendar as requested
     } else if(f.st && s.st!==f.st) return false;
@@ -1516,7 +1516,7 @@ function _listRow(s, clr, ds){
     </div>
     <div style="font-size:.7rem;font-weight:700;color:${stC}">${window.stLabel(s).replace(/<[^>]+>/g,'')}</div>
     <div style="display:flex;gap:4px">
-      <button onclick="event.stopPropagation();_exportGardenWA([${s.g}],'${ds}')" style="background:${clr.solid};border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.72rem;color:#fff;font-weight:700" title="שלח הודעה">📋</button>
+      ${!window.gardenPair(s.g)?`<button onclick="event.stopPropagation();_exportGardenWA([${s.g}],'${ds}')" style="background:${clr.solid};border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.72rem;color:#fff;font-weight:700" title="שלח הודעה">📋</button>`:''}
       ${_quickActionBtns(s)}
     </div>
   </div>`;
