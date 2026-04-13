@@ -143,6 +143,8 @@ tr:hover td{background:#f5f7ff}
 /* 4-column pair grid */
 .pairs-4col{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
 .pairs-4col .pair-card{margin-bottom:0}
+.pairs-list-layout{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.pairs-list-layout .pair-card{margin-bottom:0;width:100%}
 
 /* mob-btn-row on desktop — normal inline flow */
 @media(min-width:769px){.mob-btn-row{display:contents}#mob-nav-purch{display:none!important}}

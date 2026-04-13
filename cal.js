@@ -292,7 +292,7 @@ var CITY_COLORS=window.CITY_COLORS;
 // ─── Shared Helper: Makeups are now handled within regular grouping logic ───
 function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
   const f={city:cityFilter, cls:clsFilter, st:'todo'};
-  const evs = filterE(f, ds, ds).filter(s => {
+  const evs = (typeof filterE === 'function' ? filterE(f, ds, ds) : []).filter(s => {
     // Only include those that are actually makeups
     return !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
   });
@@ -303,10 +303,12 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
   const others=evs.filter(s=> !s._compByMakeup);
 
   window.pairs.forEach(pair=>{
-    if(isPairBroken(pair.id,ds)) return;
+    if(typeof isPairBroken === 'function' && isPairBroken(pair.id,ds)) return;
     const pairEvs=others.filter(s=>pair.ids.includes(s.g));
     if(!pairEvs.length) return;
-    const city=window.G(pair.ids[0]).city||'אחר';
+    const g0 = window.G(pair.ids[0]);
+    if(!g0) return;
+    const city=g0.city||'אחר';
     if(!pairsByCity[city]) pairsByCity[city]=[];
     pairsByCity[city].push({pair,pairEvs});
     pair.ids.forEach(id=>pairedGids.add(id));
@@ -314,6 +316,14 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
 
   const allSoloEvs = others.filter(s=>!pairedGids.has(s.g));
   
+  // Dynamic layout logic:
+  // Cubes (Grid) for Day view or Calendar range mode.
+  // List for Week, Month, List mode or List range mode.
+  const cv = typeof calV !== 'undefined' ? calV : 'day';
+  const rsv = typeof _rangeSubView !== 'undefined' ? _rangeSubView : 'cal';
+  const isList = (cv === 'week' || cv === 'list' || cv === 'month' || (cv === 'range' && rsv === 'list'));
+  const layoutClass = isList ? 'pairs-list-layout' : 'pairs-4col';
+
   let h = `<div style="background:#e1f5fe;border:2px solid #03a9f4;border-radius:12px;padding:12px;margin-bottom:15px">
     <div style="font-weight:800;color:#01579b;margin-bottom:10px;display:flex;align-items:center;gap:8px;font-size:.95rem">
       📅 השלמות להיום
@@ -321,7 +331,7 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
 
   Object.keys(pairsByCity).sort().forEach(city=>{
     const clr=window.CITY_COLORS(city);
-    h += `<div class="pairs-4col">`;
+    h += `<div class="${layoutClass}">`;
     pairsByCity[city].forEach(({pair,pairEvs})=>{
       h += renderPairCard(pair, pairEvs, {ds, clr, showEdit:true, showExport:true, isMakeup:true});
     });
@@ -329,10 +339,12 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
   });
 
   if(allSoloEvs.length){
-    h += `<div class="pairs-4col">`;
+    h += `<div class="${layoutClass}">`;
     allSoloEvs.forEach(s=>{
-      const clr=window.CITY_COLORS(window.G(s.g).city||'אחר');
-      h += renderPairCard({id:'solo_'+s.id, name:window.G(s.g).name, ids:[s.g]}, [s], {ds, clr, showEdit:true, showExport:true, isMakeup:true});
+      const g = window.G(s.g);
+      if(!g) return;
+      const clr=window.CITY_COLORS(g.city||'אחר');
+      h += renderPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds, clr, showEdit:true, showExport:true, isMakeup:true});
     });
     h += `</div>`;
   }
