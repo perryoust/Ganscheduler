@@ -418,19 +418,35 @@ function sRefG(){
   sPage=1;renderSched();
 }
 function getFiltSched(){
-  const city=document.getElementById('s-city').value;
-  const cls=document.getElementById('s-cls').value;
-  const g1=parseInt(document.getElementById('s-g1').value)||null;
-  const g2=parseInt(document.getElementById('s-g2').value)||null;
-  const g3=parseInt(document.getElementById('s-g3').value)||null;
-  const sup=document.getElementById('s-sup').value;
-  const th=document.getElementById('s-th').value;
-  const tt=document.getElementById('s-tt').value;
-  const from=document.getElementById('s-from').value;
-  const to=document.getElementById('s-to').value;
-  const st=document.getElementById('s-st').value;
-  const type=document.getElementById('s-type').value;
-  const srch=document.getElementById('s-srch').value.toLowerCase();
+  const cityEl=document.getElementById('s-city');
+  const clsEl=document.getElementById('s-cls');
+  const g1El=document.getElementById('s-g1');
+  const g2El=document.getElementById('s-g2');
+  const g3El=document.getElementById('s-g3');
+  const supEl=document.getElementById('s-sup');
+  const thEl=document.getElementById('s-th');
+  const ttEl=document.getElementById('s-tt');
+  const fromEl=document.getElementById('s-from');
+  const toEl=document.getElementById('s-to');
+  const stEl=document.getElementById('s-st');
+  const typeEl=document.getElementById('s-type');
+  const srchEl=document.getElementById('s-srch');
+
+  if(!cityEl || !clsEl || !g1El || !fromEl || !toEl || !stEl || !srchEl) return [];
+
+  const city=cityEl.value;
+  const cls=clsEl.value;
+  const g1=parseInt(g1El.value)||null;
+  const g2=g2El?parseInt(g2El.value):null;
+  const g3=g3El?parseInt(g3El.value):null;
+  const sup=supEl?supEl.value:null;
+  const th=thEl?thEl.value:null;
+  const tt=ttEl?ttEl.value:null;
+  const from=fromEl.value;
+  const to=toEl.value;
+  const st=stEl.value;
+  const type=typeEl?typeEl.value:null;
+  const srch=srchEl.value.toLowerCase();
   const gids=[g1,g2,g3].filter(Boolean);
   const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
   return window.SCH.filter(s=>{

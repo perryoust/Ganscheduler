@@ -864,23 +864,22 @@ function updCounts(){
   const tab = (typeof _dashTab !== 'undefined' ? _dashTab : 'g');
   const cls = tab === 'g' ? 'גנים' : 'ביה"ס';
 
-  const can=SCH.filter(s=>s.st==='can' && !s._compByMakeup && gcls(G(s.g))===cls).length;
-  const post=SCH.filter(s=>s.st==='post' && !s._compByMakeup && gcls(G(s.g))===cls).length;
-  const nohap=SCH.filter(s=>s.st==='nohap' && !s._compByMakeup && gcls(G(s.g))===cls).length;
-  const todayCnt=SCH.filter(s=>s.d===td()&&s.st!=='can' && gcls(G(s.g))===cls).length;
-  const allInTab=SCH.filter(s=>gcls(G(s.g))===cls).length;
+  if (!window.SCH || !window.GARDENS) return;
+
+  const can=SCH.filter(s=>s.st==='can' && !s._compByMakeup && window.gcls(window.G(s.g))===cls).length;
+  const post=SCH.filter(s=>s.st==='post' && !s._compByMakeup && window.gcls(window.G(s.g))===cls).length;
+  const nohap=SCH.filter(s=>s.st==='nohap' && !s._compByMakeup && window.gcls(window.G(s.g))===cls).length;
+  const todayCnt=SCH.filter(s=>s.d===td()&&s.st!=='can' && window.gcls(window.G(s.g))===cls).length;
+  const allInTab=SCH.filter(s=>window.gcls(window.G(s.g))===cls).length;
 
   const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   
-  // Dashboard primary stats (should reflect current tab)
   setEl('d-today-cnt', todayCnt);
   setEl('d-can', can);
   setEl('d-post', post);
   setEl('d-nohap', nohap);
   setEl('d-total', allInTab.toLocaleString());
 
-  // Header/Global stats can remain unfiltered or also follow context
-  // For now, let's keep headers as global totals
   setEl('h-pairs',pairs.length);
   setEl('h-can',SCH.filter(s=>s.st==='can' && !s._compByMakeup).length);
   setEl('h-post',SCH.filter(s=>s.st==='post' && !s._compByMakeup).length);
@@ -889,9 +888,8 @@ function updCounts(){
   setEl('h-gardens',GARDENS.length+(_GARDENS_EXTRA||[]).length);
   
   setEl('d-pairs',pairs.length);
-  setEl('d-gardens',GARDENS.filter(g=>gcls(g)===cls).length + (_GARDENS_EXTRA||[]).filter(g=>gcls(g)===cls).length);
+  setEl('d-gardens',GARDENS.filter(g=>window.gcls(g)===cls).length + (_GARDENS_EXTRA||[]).filter(g=>window.gcls(g)===cls).length);
 
-  // Procurement stats in header
   setEl('h-inv', INVOICES.length);
   setEl('h-inv-active', INVOICES.filter(i=>_migrateInvStatus(i.status)==='order').length);
   setEl('h-inv-prog', INVOICES.filter(i=>_migrateInvStatus(i.status)==='tx_invoice').length);

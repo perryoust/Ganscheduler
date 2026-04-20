@@ -7,10 +7,17 @@ function setDashTab(t){
   renderDash();
 }
 function renderDash(){
-  const date=document.getElementById('dash-date').value;
-  const city=document.getElementById('dash-city').value;
-  const sup=document.getElementById('dash-sup').value;
-  const st=document.getElementById('dash-st').value;
+  const dateEl=document.getElementById('dash-date');
+  const cityEl=document.getElementById('dash-city');
+  const supEl=document.getElementById('dash-sup');
+  const stEl=document.getElementById('dash-st');
+  
+  if(!dateEl || !cityEl || !supEl || !stEl) return; // Prevent crash if UI not yet ready
+
+  const date=dateEl.value;
+  const city=cityEl.value;
+  const sup=supEl.value;
+  const st=stEl.value;
   const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
   const clsFilter= tab==='g'?'גנים':'ביה"ס';
   const srch=(document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
@@ -342,7 +349,7 @@ function openSP(id){
       </div>
       <div id="sp-panel-nohap" style="padding:12px;display:none">
         <div class="copts">
-          <div class="copt" onclick="selNO(this,'ספק לא הגיע')">🚫 מדריך לא הגיע</div>
+          <div class="copt" onclick="selNO(this,'ספק לא הגיע')">⚠️ מדריך לא הגיע</div>
           <div class="copt" onclick="selNO(this,'גן סגור')">🤒 מדריך חולה</div>
           <div class="copt" onclick="selNO(this,'אין ילדים')">👤 חסר מדריך</div>
           <div class="copt" onclick="selNO(this,'אחר')">📝 אחר</div>
