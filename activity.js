@@ -219,7 +219,7 @@ function _renderMiniTable(evs){
 }
 
 function markCompManual(id){
-  const s=window.SCH.find(x=>x.id===id); if(!s) return;
+  const s=window.SCH.find(x=>Number(x.id)===Number(id)); if(!s) return;
   const nt=document.getElementById('sp-handle-nt').value;
   s.st='done';
   s._compByManual=true;
@@ -245,7 +245,7 @@ function markCompManual(id){
 
 function openSP(id){
   window.selEv=id;
-  const s=window.SCH.find(x=>x.id===id);if(!s)return;
+  const s=window.SCH.find(x=>Number(x.id)===Number(id));if(!s)return;
   const g=window.G(s.g);
   const spPair=window.gardenPair(s.g);
 
@@ -451,16 +451,18 @@ function spEditActChg(){
   if(wrap) wrap.style.display=v==='__new__'?'block':'none';
 }
 
-function deleteRecurSeries(id){
-  const s=window.SCH.find(x=>x.id===id); if(!s) return;
+function deleteRecurSeries(id) {
+  const s = window.SCH.find(x => Number(x.id) === Number(id));
+  if(!s || !s._recId) return alert('לא מזוהה סדרה');
   const affected=window.SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
   if(!confirm(`האם למחוק ${affected.length} פעילויות קבועות מ-${window.fD(s.d)} ואילך?`)) return;
   affected.forEach(x=>{ const i=window.SCH.indexOf(x); if(i>=0) window.SCH.splice(i,1); });
   window.saveAndRefresh('sp');
 }
 
-function openReplaceRecur(id){
-  const s=window.SCH.find(x=>x.id===id); if(!s) return;
+function openReplaceRecur(id) {
+  const s = window.SCH.find(x => Number(x.id) === Number(id));
+  if(!s || !s._recId) return alert('פעילות זו אינה חלק מסדרה קבועה');
   const affected=window.SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
   const allSups=window.getAllSup().filter(s2=>window.isActSupplier(s2.name));
   const g=window.G(s.g);
@@ -490,7 +492,7 @@ function rrSupChg(){
 }
 
 function saveReplaceRecur(id){
-  const s=window.SCH.find(x=>x.id===id); if(!s) return;
+  const s=window.SCH.find(x=>Number(x.id)===Number(id)); if(!s) return;
   const newSup=document.getElementById('rr-sup').value;
   const newAct=document.getElementById('rr-act').value;
   const newTime=document.getElementById('rr-time').value;
@@ -500,7 +502,7 @@ function saveReplaceRecur(id){
 }
 
 function spEditSave(){
-  const s=window.SCH.find(x=>x.id===window.selEv); if(!s) return;
+  const s=window.SCH.find(x=>Number(x.id)===Number(window.selEv)); if(!s) return;
   const origDate = s.d;
   const origSup = s.a;
   
@@ -546,12 +548,12 @@ function selCO(el,r){document.querySelectorAll('.copt:not([onclick*=selNO])').fo
 function selNO(el,r){document.querySelectorAll('.copt[onclick*=selNO]').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');el.dataset.r=r;}
 
 function cancelEv(){
-  const s=window.SCH.find(x=>x.id===window.selEv); if(!s) return;
+  const s=window.SCH.find(x=>Number(x.id)===Number(window.selEv)); if(!s) return;
   s.st='can'; window.saveAndRefresh('sp');
 }
 
 function markNoHap(){
-  const s=window.SCH.find(x=>x.id===window.selEv); if(!s) return;
+  const s=window.SCH.find(x=>Number(x.id)===Number(window.selEv)); if(!s) return;
   s.st='nohap'; window.saveAndRefresh('sp');
 }
 
@@ -559,7 +561,7 @@ function setStatus(idOrSt, maybeSt){
   let id, st;
   if (maybeSt) { id = idOrSt; st = maybeSt; } 
   else { id = window.selEv; st = idOrSt; }
-  const main=window.SCH.find(x=>x.id===id);
+  const main=window.SCH.find(x=>Number(x.id)===Number(id));
   if(main){
     main.st=st;
     if(st==='ok') { main.cr=''; main.cn=''; }
@@ -568,13 +570,13 @@ function setStatus(idOrSt, maybeSt){
 }
 
 function saveNt(){
-  const s=window.SCH.find(x=>x.id===window.selEv); if(!s) return;
+  const s=window.SCH.find(x=>Number(x.id)===Number(window.selEv)); if(!s) return;
   const nt=document.getElementById('sp-nt').value;
   s.nt=nt; window.saveAndRefresh('sp');
 }
 
 function markCompManual(id){
-  const s=window.SCH.find(x=>x.id===id); if(!s) return;
+  const s=window.SCH.find(x=>Number(x.id)===Number(id)); if(!s) return;
   const syncCheck = document.getElementById('sp-sync-pair');
   const handleNtEl = document.getElementById('sp-handle-nt');
   const doSync = syncCheck && syncCheck.checked;
@@ -616,7 +618,7 @@ function markCompManual(id){
 }
 
 function upd(id,fields){
-  const i=window.SCH.findIndex(s=>s.id===id);
+  const i=window.SCH.findIndex(s=>Number(s.id)===Number(id));
   if(i>=0) Object.assign(window.SCH[i],fields);
 }
 
@@ -647,14 +649,14 @@ function saveAndRefresh(modalId){
 }
 
 function openMakeupSched(origId){
-  const orig=window.SCH.find(s=>s.id===origId); if(!orig) return;
+  const orig=window.SCH.find(s=>Number(s.id)===Number(origId)); if(!orig) return;
   window._makeupOrigId = origId;
   window.openNewSched(orig.g, {date:window.td(), tab:'makeup', makeupFrom:orig.d, time:orig.t});
 }
 
 function openPostpone(id){
   window.selEvPost=id;
-  const s=window.SCH.find(x=>x.id===id); if(!s) return;
+  const s=window.SCH.find(x=>Number(x.id)===Number(id)); if(!s) return;
   const g=window.G(s.g);
   document.getElementById('post-ev-info').innerHTML=`<b>${g.name}</b> · ${g.city} · ${s.a}`;
   document.getElementById('post-date').value='';
@@ -679,7 +681,7 @@ function openPostpone(id){
 
 function openCopy(id){
   window._copySrcId=id;
-  const s=window.SCH.find(x=>x.id===id); if(!s) return;
+  const s=window.SCH.find(x=>Number(x.id)===Number(id)); if(!s) return;
   const g=window.G(s.g);
   document.getElementById('copy-ev-info').innerHTML=`<b>${g.name}</b> · ${g.city} · ${s.a}`;
   document.getElementById('copy-date').value='';
