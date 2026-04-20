@@ -22,7 +22,9 @@ function renderDash(){
   const clsFilter= tab==='g'?'גנים':'ביה"ס';
   const srch=(document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
   
-  const evs = window.SCH.filter(s => {
+  if (window._dashDebug) console.log(`[Dash] Rendering. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
+
+  const evs = (window.SCH || []).filter(s => {
     // Only filter if date is explicitly set
     if (date && s.d !== date) return false;
     const g=window.G(s.g);

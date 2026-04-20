@@ -17,19 +17,8 @@ window.managers = window.managers || {};
 window.pairBreaks = window.pairBreaks || {};
 window.VAT_RATE = window.VAT_RATE || 18;
 
-// Local aliases for module scope
-var SCH = window.SCH;
-var GARDENS = window.GARDENS;
-var INVOICES = window.INVOICES;
-var supEx = window.supEx;
-var pairs = window.pairs;
-var clusters = window.clusters;
-var activeGardens = window.activeGardens;
-var blockedDates = window.blockedDates;
-var gardenBlocks = window.gardenBlocks;
-var managers = window.managers;
-var pairBreaks = window.pairBreaks;
-var VAT_RATE = window.VAT_RATE;
+// Local aliases - we must ensure these are updated when window variables are re-assigned
+// or better yet, use window variables directly in functions.
 
 // --- Global UI Helpers ---
 window.OM = function(id) {
@@ -624,8 +613,13 @@ function initPairs(){
 // ══════════════════════════════════════════════════════════
 
 
-function G(id){return GARDENS.find(g=>Number(g.id)===Number(id))||{}}
-function gcls(g){return (g && g.cls) ? g.cls : 'גנים'}
+function G(id){
+  const gdns = window.GARDENS || [];
+  return gdns.find(g=>Number(g.id)===Number(id)) || {};
+}
+function gcls(g){
+  return (g && g.cls) ? g.cls : 'גנים';
+}
 function gByCF(city,cls){return GARDENS.filter(g=>(!city||g.city===city)&&(!cls||gcls(g)===cls));}
 function d2s(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${dd}`}
 function s2d(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
@@ -898,7 +892,7 @@ function updCounts(){
   setEl('h-sched', sch.length.toLocaleString());
   setEl('h-gardens', gdns.length+(window._GARDENS_EXTRA||[]).length);
   
-  setEl('d-pairs',(window.pairs||[]).length);
+  setEl('d-pairs', (window.pairs||[]).length);
   setEl('d-gardens', gdns.filter(g=>window.gcls(g)===cls).length + (window._GARDENS_EXTRA||[]).filter(g=>window.gcls(g)===cls).length);
 
   setEl('h-inv', (window.INVOICES||[]).length);
