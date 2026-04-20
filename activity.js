@@ -57,6 +57,8 @@ function renderDash(){
       if (!isHandled) return false;
     } else {
       if (s.st !== st) return false;
+      // If it's an exception status (nohap or post), don't show those already handled
+      if ((st === 'nohap' || st === 'post') && isHandled) return false;
     }
     
     if (city && g && g.city && g.city !== city) return false;

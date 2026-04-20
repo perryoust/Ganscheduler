@@ -485,7 +485,9 @@ function getFiltSched(){
        // Specific status selected (e.g. 'nohap', 'ok')
        if(s.st!==st) return false;
        // If filtering for exceptions, don't show those already handled
-       if(isHandled && !isM(s)) return false;
+       if((st === 'nohap' || st === 'post') && isHandled) return false;
+       // Handle cases where handled status is selected if it's the makeup indicator
+       if(isHandled && !isM(s) && st==='done') return false; 
     }
 
     if(srch&&![(g && g.name||''),(g && g.city||''),(s.a||''),(s.nt||'')].some(x=>x.toLowerCase().includes(srch))) return false;
