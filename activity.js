@@ -24,9 +24,16 @@ function renderDash(){
       const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
       const isHandled = !!s._compByMakeup;
       if(st==='todo'){
-        // User wants to see Nohap, Post, and Makeup. 
-        // Previously we filtered out isHandled, but user explicitly wants to see "Completed" (הושלמו) items.
-        if(!(s.st==='nohap' || s.st==='post' || isM)) return false;
+        // Logic: Show pending exceptions (nohap/post) and pending makeups (isM).
+        // Hide once makeup occurred (done) or exception is handled.
+        if (isM) {
+          if (s.st === 'done') return false; // Hide if makeup already occurred
+          return true; // Show pending makeup
+        }
+        if ((s.st === 'nohap' || s.st === 'post') && !isHandled) {
+          return true; // Show pending exception
+        }
+        return false; // Hide everything else (regular ok, passed done, handled exceptions)
       } else {
         // Default View (All Dates)
       }
@@ -179,14 +186,21 @@ function renderCanList(){
   
   const safeSort = (a, b) => (b.d || '').localeCompare(a.d || '');
   
-  // 1. Todo - Nohap/Post that are NOT handled yet, filtered by current tab (Gardens/Schools)
+  // 1. Todo - Pending exceptions or pending makeups, filtered by current tab
   const todoEvs = window.SCH.filter(s => {
-    if (!((s.st === 'nohap' || s.st === 'post') && !s._compByMakeup)) return false;
+    const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+    const isHandled = !!s._compByMakeup;
+
+    let match = false;
+    if ((s.st === 'nohap' || s.st === 'post') && !isHandled) match = true;
+    else if (isM && s.st !== 'done') match = true;
+
+    if (!match) return false;
     const g = window.G(s.g);
     return g && window.gcls(g) === cls;
   }).sort(safeSort);
   
-  // 2. Handled - Items that reached status nohap/post but were marked as compByMakeup, filtered by tab
+  // 2. Handled - Items that were nohap/post but are now handled
   const handledEvs = window.SCH.filter(s => {
     if (!((s.st === 'nohap' || s.st === 'post') && s._compByMakeup)) return false;
     const g = window.G(s.g);
