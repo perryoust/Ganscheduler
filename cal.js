@@ -650,9 +650,10 @@ function renderClusterWeek(evs, weekStart, clusterName){
       html+=`</div>`;
     }
     html+=`</div>`;
-  }
+  });
   return html;
 }
+
 
 function renderNormalDay(evs,ds){
   const calCity=document.getElementById('cal-city').value;
