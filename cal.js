@@ -576,10 +576,10 @@ function renderClusterWeek(evs, weekStart, clusterName){
   const clGids=clObj?(clObj.gardenIds||[]):evs.map(s=>s.g).filter((v,i,a)=>a.indexOf(v)===i);
   const waBtn=`<button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="background:#25d366;border:none;border-radius:4px;color:#fff;font-size:.65rem;padding:2px 8px;cursor:pointer;margin-right:8px">📋 הודעה</button>`;
   let html=`<div style="background:#e8eaf6;border-radius:7px;padding:5px 12px;margin-bottom:10px;font-size:.77rem;font-weight:700;color:#1a237e;display:flex;align-items:center;justify-content:space-between">
-    <span>🔢 ${isAll?'כל האשכולות':('אשכול: '+clusterName)} — תצוגה שבועית לפי שעה</span>
+    <span>🔢 ${isAll?'כל האשכולות':('אשכול: '+clusterName)} — תצוגה שבועית (א'-ה')</span>
     ${waBtn}
   </div>`;
-  for(let i=0;i<6;i++){
+  for(let i=0;i<5;i++){
     const d=addD(weekStart,i);
     const ds=window.d2s(d);
     const dayEvs=evs.filter(s=>s.d===ds && !s._compByMakeup).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
@@ -922,9 +922,9 @@ function renderPairDay(evs,gids){
 }
 
 function renderNormalWeek(evs,ws,f){
-  const dn=['ראשון','שני','שלישי','רביעי','חמישי','שישי'], tday=td();
+  const dn=['ראשון','שני','שלישי','רביעי','חמישי'], tday=td();
   const days=[];
-  for(let i=0;i<6;i++) days.push(addD(ws,i));
+  for(let i=0;i<5;i++) days.push(addD(ws,i));
 
   let gids=[...new Set(evs.map(s=>s.g))];
   if(f.gids&&f.gids.length) gids=f.gids;
@@ -1002,7 +1002,7 @@ function renderNormalWeek(evs,ws,f){
 
     // City header row
     html+=`<tr>
-      <td colspan="7" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;
+      <td colspan="6" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;
         border-bottom:1px solid rgba(255,255,255,.2);position:sticky;left:0">
         🏙️ ${city}
         <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} זוגות · ${byCity[city].solos.length} צהרונים בודדים</span>
@@ -1060,7 +1060,7 @@ function renderNormalWeek(evs,ws,f){
     byCity[city].pairs.forEach(({pair,gids:pGids})=>{
       const pairGidList = pGids.join(',');
       html+=`<tr>
-        <td colspan="7" style="background:${clr.solid};color:#fff;padding:5px 12px;
+        <td colspan="6" style="background:${clr.solid};color:#fff;padding:5px 12px;
           font-size:.82rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2)">
           <div style="display:flex;align-items:center;gap:8px">
             <button onclick="event.stopPropagation();_exportPairWA([${pairGidList}])"
@@ -1111,8 +1111,8 @@ function renderNormalWeek(evs,ws,f){
 }
 
 function renderPairWeek(evs,ws,gids){
-  const days=[],dn=['ראשון','שני','שלישי','רביעי','חמישי','שישי'],tday=td();
-  for(let i=0;i<6;i++) days.push(addD(ws,i));
+  const days=[],dn=['ראשון','שני','שלישי','רביעי','חמישי'],tday=td();
+  for(let i=0;i<5;i++) days.push(addD(ws,i));
   const cols=[gids[0]||null,gids[1]||null,gids[2]||null];
   const pair=gids[0]?gardenPair(gids[0]):null;
   const clr=pair?pairWeekColors(pair.id):{solid:'#1565c0',light:'#e3f2fd'};
