@@ -25,19 +25,23 @@ function renderDash(){
   if (window._dashDebug) console.log(`[Dash] Rendering. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
 
   const evs = (window.SCH || []).filter(s => {
-    // Only filter if date is explicitly set
-    if (date && s.d !== date) return false;
-    const g=window.G(s.g);
-    
-    // Robust class filtering (case-insensitive and trimmed)
-    const gClass = window.gcls(g).trim().toLowerCase();
-    const filterClass = clsFilter.trim().toLowerCase();
-    if (gClass !== filterClass) return false;
-    
-    // Status Logic:
+    // Robust status logic:
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-    // Loosened handled check: only if it's a non-empty string or true
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false" && s._compByMakeup !== "");
+    const isException = (s.st === 'nohap' || s.st === 'post');
+
+    // Date filtering:
+    // If we're in 'todo' mode, we show ALL unhandled exceptions ANY date.
+    // Otherwise, we filter by the selected date.
+    if (st === 'todo') {
+       if (!isException && !isM) {
+         if (date && s.d !== date) return false;
+       }
+    } else {
+       if (date && s.d !== date) return false;
+    }
+
+    const g=window.G(s.g);
 
     if (st === 'todo' || !st) {
       if (st === 'todo') {

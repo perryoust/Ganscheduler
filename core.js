@@ -2969,7 +2969,4 @@ window.getClusters = getClusters;
 window.gardenClusters = gardenClusters;
 window.getGardenBlock = getGardenBlock;
 
-// --- TOTAL GLOBAL BRIDGE ---
-window.SCH = SCH;
-window.GARDENS = GARDENS;
-// [Global Bridge moved to index.html final script tag]
+// [End of core.js]
