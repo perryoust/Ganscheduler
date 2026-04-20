@@ -34,12 +34,11 @@ function renderDash(){
     
     // Status Logic:
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-    const isHandled = !!s._compByMakeup;
+    // Loosened handled check: only if it's a non-empty string or true
+    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false" && s._compByMakeup !== "");
 
     if (st === 'todo' || !st) {
       if (st === 'todo') {
-        // Logic: Show pending exceptions (nohap/post) and upcoming makeups (isM).
-        // Hide if makeup already occurred (done) or exception is explicitly handled.
         if (isM) {
           if (s.st === 'done') return false; 
           return true; 

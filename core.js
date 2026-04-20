@@ -860,18 +860,28 @@ window.onload = function(){
   if(window._fbUser) window._onAuthReady();
 }; // end window.onload
 
+function refreshAppUI(){
+  if(typeof window.updCounts === 'function') window.updCounts();
+  if(typeof window.renderDash === 'function') window.renderDash();
+  if(typeof window.renderSched === 'function') window.renderSched();
+  if(typeof window.renderCal === 'function') window.renderCal();
+  if(typeof window.renderGardens === 'function') window.renderGardens();
+}
+window.refreshAppUI = refreshAppUI;
+
 function updCounts(){
   const tab = (typeof _dashTab !== 'undefined' ? _dashTab : 'g');
   const cls = (tab === 'g' ? 'גנים' : 'ביה"ס');
   const filterClass = cls.trim().toLowerCase();
 
-  if (!window.SCH || !window.GARDENS) return;
+  const sch = window.SCH || [];
+  const gdns = window.GARDENS || [];
 
-  const can=SCH.filter(s=>s.st==='can' && !s._compByMakeup && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
-  const post=SCH.filter(s=>s.st==='post' && !s._compByMakeup && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
-  const nohap=SCH.filter(s=>s.st==='nohap' && !s._compByMakeup && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
-  const todayCnt=SCH.filter(s=>s.d===td()&&s.st!=='can' && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
-  const allInTab=SCH.filter(s=>window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const can=sch.filter(s=>s.st==='can' && !s._compByMakeup && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const post=sch.filter(s=>s.st==='post' && !s._compByMakeup && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const nohap=sch.filter(s=>s.st==='nohap' && !s._compByMakeup && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const todayCnt=sch.filter(s=>s.d===td()&&s.st!=='can' && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const allInTab=sch.filter(s=>window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
 
   const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   
@@ -881,19 +891,19 @@ function updCounts(){
   setEl('d-nohap', nohap);
   setEl('d-total', allInTab.toLocaleString());
 
-  setEl('h-pairs',pairs.length);
-  setEl('h-can',SCH.filter(s=>s.st==='can' && !s._compByMakeup).length);
-  setEl('h-post',SCH.filter(s=>s.st==='post' && !s._compByMakeup).length);
-  setEl('h-nohap',SCH.filter(s=>s.st==='nohap' && !s._compByMakeup).length);
-  setEl('h-sched',SCH.length.toLocaleString());
-  setEl('h-gardens',GARDENS.length+(_GARDENS_EXTRA||[]).length);
+  setEl('h-pairs', (window.pairs||[]).length);
+  setEl('h-can', sch.filter(s=>s.st==='can' && !s._compByMakeup).length);
+  setEl('h-post', sch.filter(s=>s.st==='post' && !s._compByMakeup).length);
+  setEl('h-nohap', sch.filter(s=>s.st==='nohap' && !s._compByMakeup).length);
+  setEl('h-sched', sch.length.toLocaleString());
+  setEl('h-gardens', gdns.length+(window._GARDENS_EXTRA||[]).length);
   
-  setEl('d-pairs',pairs.length);
-  setEl('d-gardens',GARDENS.filter(g=>window.gcls(g)===cls).length + (_GARDENS_EXTRA||[]).filter(g=>window.gcls(g)===cls).length);
+  setEl('d-pairs',(window.pairs||[]).length);
+  setEl('d-gardens', gdns.filter(g=>window.gcls(g)===cls).length + (window._GARDENS_EXTRA||[]).filter(g=>window.gcls(g)===cls).length);
 
-  setEl('h-inv', INVOICES.length);
-  setEl('h-inv-active', INVOICES.filter(i=>_migrateInvStatus(i.status)==='order').length);
-  setEl('h-inv-prog', INVOICES.filter(i=>_migrateInvStatus(i.status)==='tx_invoice').length);
+  setEl('h-inv', (window.INVOICES||[]).length);
+  setEl('h-inv-active', (window.INVOICES||[]).filter(i=>_migrateInvStatus(i.status)==='order').length);
+  setEl('h-inv-prog', (window.INVOICES||[]).filter(i=>_migrateInvStatus(i.status)==='tx_invoice').length);
 }
 
 function initDrops(){

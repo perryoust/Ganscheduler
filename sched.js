@@ -467,7 +467,7 @@ function getFiltSched(){
     if(to&&s.d>to) return false;
 
     // Status Logic
-    const isHandled = !!s._compByMakeup;
+    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false" && s._compByMakeup !== "");
     if(st==='todo'){
       if (isM(s)) {
         if (s.st === 'done') return false; // Hide if makeup already occurred
