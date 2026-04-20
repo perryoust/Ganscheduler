@@ -451,10 +451,14 @@ function getFiltSched(){
   const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
   return window.SCH.filter(s=>{
     const g=window.G(s.g);
+    // Robust class filtering (case-insensitive and trimmed)
+    const gClass = window.gcls(g).trim().toLowerCase();
+    const filterClass = (cls||'').trim().toLowerCase();
+    
     if(type==='makeup' && !isM(s)) return false;
     if(type==='reg' && isM(s)) return false;
     if(city&&g.city!==city) return false;
-    if(cls&&window.gcls(g)!==cls) return false;
+    if(filterClass&&gClass!==filterClass) return false;
     if(gids.length&&!gids.includes(s.g)) return false;
     if(sup&&window.supBase(s.a)!==sup&&s.a!==sup) return false;
     if(th&&s.t&&s.t<th) return false;
@@ -467,14 +471,14 @@ function getFiltSched(){
     if(st==='todo'){
       if (isM(s)) {
         if (s.st === 'done') return false; // Hide if makeup already occurred
-        // Show pending makeup
+        return true;
       } else if ((s.st === 'nohap' || s.st === 'post') && !isHandled) {
-        // Show pending exception - still needs attention
+        return true;
       } else {
         return false; // Hide everything else in 'todo' view
       }
     } else if(!st) {
-       // Default View (All) - hide canceled and already handled items to reduce clutter
+       // Default View (All) - hide canceled and already handled items
        if(s.st==='can' || isHandled) return false;
     } else {
        // Specific status selected (e.g. 'nohap', 'ok')

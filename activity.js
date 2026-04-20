@@ -27,35 +27,39 @@ function renderDash(){
     if (date && s.d !== date) return false;
     const g=window.G(s.g);
     
-    if(window.gcls(g)!==clsFilter) return false;
+    // Robust class filtering (case-insensitive and trimmed)
+    const gClass = window.gcls(g).trim().toLowerCase();
+    const filterClass = clsFilter.trim().toLowerCase();
+    if (gClass !== filterClass) return false;
     
     // Status Logic:
-    if(st==='todo' || !st){
-      const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
-      const isHandled = !!s._compByMakeup;
-      if(st==='todo'){
-        // Logic: Show pending exceptions (nohap/post) and pending makeups (isM).
-        // Hide once makeup occurred (done) or exception is handled.
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+    const isHandled = !!s._compByMakeup;
+
+    if (st === 'todo' || !st) {
+      if (st === 'todo') {
+        // Logic: Show pending exceptions (nohap/post) and upcoming makeups (isM).
+        // Hide if makeup already occurred (done) or exception is explicitly handled.
         if (isM) {
-          if (s.st === 'done') return false; // Hide if makeup already occurred
-          return true; // Show pending makeup
+          if (s.st === 'done') return false; 
+          return true; 
         }
         if ((s.st === 'nohap' || s.st === 'post') && !isHandled) {
-          return true; // Show pending exception
+          return true; 
         }
-        return false; // Hide everything else (regular ok, passed done, handled exceptions)
+        return false; 
       } else {
-        // Default View (All Dates) - hide canceled and already handled items to reduce clutter
+        // Default View (All) - hide canceled and already handled items
         if (s.st === 'can' || isHandled) return false;
       }
-    } else if(st==='handled'){
-      if(!s._compByMakeup) return false;
+    } else if (st === 'handled') {
+      if (!isHandled) return false;
     } else {
-      if(s.st!==st) return false;
+      if (s.st !== st) return false;
     }
     
-    if(city && g && g.city && g.city!==city) return false;
-    if(sup && window.supBase(s.a)!==sup && s.a!==sup) return false;
+    if (city && g && g.city && g.city !== city) return false;
+    if (sup && window.supBase(s.a) !== sup && s.a !== sup) return false;
 
     if(srch && ![(g ? g.name : ''), (g ? g.city : ''), s.a, (g ? g.st : ''), s.act].some(v=>(v||'')
       .toLowerCase().includes(srch))) return false;

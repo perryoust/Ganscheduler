@@ -862,15 +862,16 @@ window.onload = function(){
 
 function updCounts(){
   const tab = (typeof _dashTab !== 'undefined' ? _dashTab : 'g');
-  const cls = tab === 'g' ? 'גנים' : 'ביה"ס';
+  const cls = (tab === 'g' ? 'גנים' : 'ביה"ס');
+  const filterClass = cls.trim().toLowerCase();
 
   if (!window.SCH || !window.GARDENS) return;
 
-  const can=SCH.filter(s=>s.st==='can' && !s._compByMakeup && window.gcls(window.G(s.g))===cls).length;
-  const post=SCH.filter(s=>s.st==='post' && !s._compByMakeup && window.gcls(window.G(s.g))===cls).length;
-  const nohap=SCH.filter(s=>s.st==='nohap' && !s._compByMakeup && window.gcls(window.G(s.g))===cls).length;
-  const todayCnt=SCH.filter(s=>s.d===td()&&s.st!=='can' && window.gcls(window.G(s.g))===cls).length;
-  const allInTab=SCH.filter(s=>window.gcls(window.G(s.g))===cls).length;
+  const can=SCH.filter(s=>s.st==='can' && !s._compByMakeup && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const post=SCH.filter(s=>s.st==='post' && !s._compByMakeup && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const nohap=SCH.filter(s=>s.st==='nohap' && !s._compByMakeup && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const todayCnt=SCH.filter(s=>s.d===td()&&s.st!=='can' && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const allInTab=SCH.filter(s=>window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
 
   const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   
