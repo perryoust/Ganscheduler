@@ -447,11 +447,25 @@ function getFiltSched(){
     if(to&&s.d>to) return false;
 
     // Status Logic
+    const isHandled = !!s._compByMakeup;
     if(st==='todo'){
-      if(!(s.st==='nohap' || s.st==='post' || isM(s)) || s._compByMakeup) return false;
+      if (isM(s)) {
+        if (s.st === 'done') return false; // Hide if makeup already occurred
+        // Show pending makeup
+      } else if ((s.st === 'nohap' || s.st === 'post') && !isHandled) {
+        // Show pending exception - still needs attention
+      } else {
+        return false; // Hide everything else in 'todo' view
+      }
     } else if(!st) {
-       if(s.st==='can' || s._compByMakeup) return false;
-    } else if(s.st!==st) return false;
+       // Default View (All) - hide canceled and already handled items to reduce clutter
+       if(s.st==='can' || isHandled) return false;
+    } else {
+       // Specific status selected (e.g. 'nohap', 'ok')
+       if(s.st!==st) return false;
+       // If filtering for exceptions, don't show those already handled
+       if(isHandled && !isM(s)) return false;
+    }
 
     if(srch&&![(g && g.name||''),(g && g.city||''),(s.a||''),(s.nt||'')].some(x=>x.toLowerCase().includes(srch))) return false;
     return true;
