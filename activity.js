@@ -385,6 +385,8 @@ function openSP(id){
             <option value="">— ללא שינוי —</option>
             ${initialActs.map(a => `<option value="${a}" ${a===s.act ? 'selected':''}>${a}</option>`).join('')}
             <option value="__new__">➕ פעילות חדשה...</option>
+          </select>
+        </div>
         <div class="fg" id="sp-edit-act-new-wrap" style="display:none"><label style="font-size:.75rem;font-weight:700">שם הפעילות החדשה</label><input type="text" id="sp-edit-act-new" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc"></div>
         <div class="fg"><label style="font-size:.75rem;font-weight:700">שעה מעודכנת (${g.name})</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc"></div>
         ${spPair ? window.renderPartnerSynergy(s.g, 'sped', currentTimesSP) : ''}
