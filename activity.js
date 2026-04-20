@@ -276,9 +276,50 @@ function openSP(id){
     </div>`;
   }
 
-  h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-    <button class="btn borange bsm" onclick="window.openPostpone(${s.id})">⏩ דחה לתאריך אחר</button>
-    <button class="btn bp bsm" onclick="window.openCopy(${s.id})">📋 העתק לתאריך אחר</button>
+  if (s._recId) {
+    h += `<div style="margin-top:10px;padding:10px;background:#f3e5f5;border:1px solid #ce93d8;border-radius:8px">
+      <div style="font-size:.82rem;font-weight:800;color:#6a1b9a;margin-bottom:8px">🔄 פעילות קבועה (סדרה)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="btn bp bsm" onclick="window.openReplaceRecur(${s.id})">✏️ שינוי קבוע</button>
+        <button class="btn br bsm" onclick="window.deleteRecurSeries(${s.id})">🗑️ ביטול סדרה</button>
+      </div>
+    </div>`;
+  }
+
+  // Full Edit Section (Collapsible)
+  const allSups = window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : [];
+  const initialActs = window.getSupActs ? window.getSupActs(s.a) : [];
+
+  h += `<div style="margin-top:12px;border-top:1px solid #eee;padding-top:12px">
+    <div onclick="window.toggleSpEdit()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:4px 0">
+      <b style="font-size:.85rem;color:#546e7a">⚙️ עריכה מלאה (חד-פעמי)</b>
+      <span id="sp-edit-arrow" style="transition:0.3s;font-size:.7rem">▼</span>
+    </div>
+    <div id="sp-edit-body" style="display:none;flex-direction:column;gap:10px;margin-top:10px;background:#fafafa;padding:10px;border-radius:8px;border:1px solid #eee">
+      <div class="fg"><label>תאריך</label><input type="date" id="sp-edit-date" value="${s.d}" style="width:100%"></div>
+      <div class="fg"><label>ספק</label>
+        <select id="sp-edit-sup" onchange="window.spEditSupChg()" style="width:100%">
+          ${allSups.map(sup => `<option value="${sup.name}" ${sup.name===s.a ? 'selected':''}>${sup.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg"><label>פעילות</label>
+        <select id="sp-edit-act" onchange="window.spEditActChg()" style="width:100%">
+          <option value="">— ללא שינוי —</option>
+          ${initialActs.map(a => `<option value="${a}" ${a===s.act ? 'selected':''}>${a}</option>`).join('')}
+          <option value="__new__">➕ פעילות חדשה...</option>
+        </select>
+      </div>
+      <div id="sp-edit-act-new-wrap" style="display:none"><input type="text" id="sp-edit-act-new" placeholder="שם הפעילות החדשה..." style="width:100%"></div>
+      <div class="fg"><label>שעה</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%"></div>
+      <button class="btn bg bsm" style="margin-top:5px" onclick="window.spEditSave()">✅ שמור שינויים</button>
+    </div>
+  </div>`;
+
+  h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:15px">
+    <button class="btn borange bsm" onclick="window.openPostpone(${s.id})">⏩ דחה (חד פעמי)</button>
+    <button class="btn bp bsm" onclick="window.openCopy(${s.id})">📋 העתק לתאריך</button>
+    <button class="btn bsm" style="background:#e1f5fe;color:#01579b;border:1px solid #81d4fa" onclick="window.openMakeupSched(${s.id})">📅 שיבוץ השלמה</button>
+    <button class="btn bo bsm" onclick="window.setStatus('can')">❌ ביטול פעילות</button>
   </div>`;
 
   document.getElementById('sp-body').innerHTML=h;
