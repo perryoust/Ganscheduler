@@ -267,6 +267,10 @@ function openSP(id){
           <span style="font-size:.8rem;font-weight:700;color:#bf360c">🔗 החל גם על בן-הזוג (${spPair.name.replace(g.name,'').replace('+','').trim()})</span>
         </label>
       ` : ''}
+      <div style="margin-bottom:10px">
+        <label style="font-size:.75rem;color:#795548;display:block;margin-bottom:3px">📝 אופן הטיפול / הערות לביצוע:</label>
+        <input type="text" id="sp-handle-nt" style="width:100%;padding:8px;border-radius:6px;border:1.5px solid #ffe082;font-size:.82rem" placeholder="לדוגמה: בוצע ידנית ב-20/4...">
+      </div>
       <button class="btn borange" style="width:100%;padding:10px;font-weight:800" onclick="window.markCompManual(${s.id})">🗑️ הסרה מהלוח (סיום טיפול)</button>
       <div style="font-size:.7rem;color:#795548;margin-top:6px;text-align:center">הפעילות תסומן כטופלה ותוסר מרשימת ה-To-Do</div>
     </div>`;
@@ -422,10 +426,16 @@ function saveNt(){
 function markCompManual(id){
   const s=window.SCH.find(x=>x.id===id); if(!s) return;
   const syncCheck = document.getElementById('sp-sync-pair');
+  const handleNtEl = document.getElementById('sp-handle-nt');
   const doSync = syncCheck && syncCheck.checked;
+  const handleNt = handleNtEl ? handleNtEl.value.trim() : '';
   const stamp = 'manual_' + Date.now();
   
   s._compByMakeup = stamp;
+  if (handleNt) {
+    const note = '✅ סיום טיפול: ' + handleNt;
+    s.nt = s.nt ? s.nt + ' | ' + note : note;
+  }
 
   if (doSync) {
     const pair = window.gardenPair(s.g);
@@ -441,7 +451,13 @@ function markCompManual(id){
           (ps.act || '') === (s.act || '') &&
           ps.st !== 'can'
         );
-        if (partnerEv) partnerEv._compByMakeup = stamp;
+        if (partnerEv) {
+          partnerEv._compByMakeup = stamp;
+          if (handleNt) {
+            const note = '✅ סיום טיפול: ' + handleNt;
+            partnerEv.nt = partnerEv.nt ? partnerEv.nt + ' | ' + note : note;
+          }
+        }
       });
     }
   }
