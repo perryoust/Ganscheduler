@@ -37,14 +37,16 @@ function switchMode(mode){
     PURCH_TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el) el.style.display='none'; });
     // If currentTab is 'admin' (ניהול משתמשים), always go to 'dash' — otherwise restore last tab
     const _targetTab = (typeof window.currentTab!=='undefined' && window.currentTab!=='admin') ? window.currentTab : 'dash';
-    window.ST(_targetTab);
+    if(typeof window.ST === 'function') window.ST(_targetTab);
   } else {
     // Hide all act panels (use both class removal and display:none to be safe)
-    window.TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el){ el.classList.remove('active'); el.style.display='none'; } });
-    SPT(_purchTab);
-    refreshPurchDash();
+    if(Array.isArray(window.TABS)){
+      window.TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el){ el.classList.remove('active'); el.style.display='none'; } });
+    }
+    if(typeof SPT === 'function') SPT(_purchTab);
+    if(typeof refreshPurchDash === 'function') refreshPurchDash();
     // Ensure supplier list is fresh
-    try{ if(_purchTab==='psup') renderPurchSuppliers(); }catch(e){}
+    try{ if(_purchTab==='psup' && typeof renderPurchSuppliers === 'function') renderPurchSuppliers(); }catch(e){}
   }
 }
 
