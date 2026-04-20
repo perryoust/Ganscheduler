@@ -618,7 +618,11 @@ function G(id){
   return gdns.find(g=>Number(g.id)===Number(id)) || {};
 }
 function gcls(g){
-  return (g && g.cls) ? g.cls : 'גנים';
+  if (!g || !g.cls) return 'גנים';
+  const c = g.cls.trim();
+  if (c.includes('גן')) return 'גנים';
+  if (c.includes('בית') || c.includes('בי"ס') || c.includes('ביה"ס') || c.includes('ביהס') || c.includes('ספר')) return 'ביה"ס';
+  return 'גנים';
 }
 function gByCF(city,cls){return GARDENS.filter(g=>(!city||g.city===city)&&(!cls||gcls(g)===cls));}
 function d2s(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${dd}`}
