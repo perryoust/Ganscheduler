@@ -22,11 +22,19 @@ function renderDash(){
   const clsFilter= tab==='g'?'גנים':'ביה"ס';
   const srch=(document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
   
-  if (window._dashDebug) console.log(`[Dash] Rendering. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
+  // v92.2 Diagnostic logging
+  console.log(`[Dash Debug] Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
 
-  // Calculate TODO counts for tab buttons
-  const todoG = (window.SCH || []).filter(s => window.gcls && window.gcls(window.G(s.g)) === 'גנים' && (s.st === 'nohap' || s.st === 'post') && !s._compByMakeup).length;
-  const todoS = (window.SCH || []).filter(s => window.gcls && window.gcls(window.G(s.g)) === 'ביה"ס' && (s.st === 'nohap' || s.st === 'post') && !s._compByMakeup).length;
+  // Calculate TODO counts for tab buttons - sync logic with updCounts
+  const todoG = (window.SCH || []).filter(s => {
+    const isExc = (s.st === 'nohap' || s.st === 'post') && !s._compByMakeup;
+    return window.gcls && window.gcls(window.G(s.g)) === 'גנים' && isExc;
+  }).length;
+  const todoS = (window.SCH || []).filter(s => {
+    const isExc = (s.st === 'nohap' || s.st === 'post') && !s._compByMakeup;
+    return window.gcls && window.gcls(window.G(s.g)) === 'ביה"ס' && isExc;
+  }).length;
+
   const gBtn = document.getElementById('dash-tab-g');
   const sBtn = document.getElementById('dash-tab-s');
   if(gBtn) gBtn.textContent = `🚀 גני ילדים (${todoG})`;
@@ -40,7 +48,6 @@ function renderDash(){
 
     // Date filtering:
     // If we're in 'todo' mode, we show ALL unhandled exceptions ANY date.
-    // Otherwise, we filter by the selected date.
     if (st === 'todo') {
        if (!isException && !isM) {
          if (date && s.d !== date) return false;
@@ -52,7 +59,9 @@ function renderDash(){
     const g=window.G(s.g);
     // Robust class filtering (normalize via gcls)
     const gClass = window.gcls ? window.gcls(g) : 'גנים';
-    if (gClass !== clsFilter) return false;
+    // Loose match: if clsFilter is 'גנים', check for 'גן'. If 'ביה"ס', check for 'בית' or 'בי'
+    const shortFilter = clsFilter.substring(0, 2);
+    if (!gClass.includes(shortFilter)) return false;
 
     if (st === 'todo' || !st) {
       if (st === 'todo') {
@@ -60,7 +69,8 @@ function renderDash(){
           if (s.st === 'done') return false; 
           return true; 
         }
-        if (isException && !isHandled) {
+        // Force sync with updCounts: if it's an exception and has no makeup, it's TODO
+        if (isException && !s._compByMakeup) {
           return true; 
         }
         return false; 
