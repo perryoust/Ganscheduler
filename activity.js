@@ -21,7 +21,7 @@ function renderDash(){
   const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
   const srch=(document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
   
-  console.log(`[Dash Debug] v92.5 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
+  console.log(`[Dash Debug] v92.6 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
 
   const checkMatch = (s, tTab, tSt, tDate) => {
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false" && s._compByMakeup !== "");
@@ -149,7 +149,7 @@ function renderDash(){
                   <div class="ev ${stc}" onclick="window.openSP(${s.id})" style="border-radius:5px;border:none;border-right:3px solid ${_sc.solid};background:${_sc.light};margin:0">
                     <span class="est">${window.stLabel(s)}</span>
                     <div class="eg">${s.gd.name}</div>
-                    ${s.act?`<div style="font-size:.67rem;font-weight:600;color:${_sc.solid}">🎯 ${s.act}</div>`:''}
+                    ${s.act?`<div style="font-size:.67rem;font-weight:600;color:${_sc.solid}">🎯 ${window.supBase(s.a)} | ${s.act}</div>`:''}
                     ${s.t?`<div class="et">⏰ ${window.fT(s.t)}</div>`:''}
                   </div>
                 </div>
@@ -172,7 +172,7 @@ function _dashListRow(s){
   return `<div style="display:grid;grid-template-columns:110px 140px 1fr 100px;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #eee;cursor:pointer;background:#fff" onclick="window.openSP(${s.id})">
     <div style="font-weight:700;color:#1a237e;font-size:.82rem">${g.name}</div>
     <div style="font-size:.78rem;color:#546e7a">${g.city} | ${window.gcls ? window.gcls(g) : ''}</div>
-    <div style="font-size:.82rem;color:#1565c0;font-weight:600">🎯 ${s.act||'—'} ${isM?'<span style="color:#0288d1;font-size:.7rem">(השלמה)</span>':''}</div>
+    <div style="font-size:.82rem;color:#1565c0;font-weight:600">🎯 ${window.supBase(s.a)} | ${s.act||'—'} ${isM?'<span style="color:#0288d1;font-size:.7rem">(השלמה)</span>':''}</div>
     <div style="display:flex;flex-direction:column;align-items:flex-end">
        <div style="font-size:.75rem;font-weight:700;color:#333">${s.t? (window.fT?window.fT(s.t):s.t) : '--:--'}</div>
        <div style="transform:scale(0.85);transform-origin:left">${window.stLabel ? window.stLabel(s) : ''}</div>
@@ -222,32 +222,213 @@ function openSP(id){
   window.selEv=id;
   const s=window.SCH.find(x=>x.id===id);if(!s)return;
   const g=window.G(s.g);
+  const isS=window.gcls(g)==='ביה"ס';
   const spPair=window.gardenPair(s.g);
-  let h=`<div style="background:#f5f7ff;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #dbe3ff"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><div><div style="font-size:1.1rem;font-weight:800;color:#1a237e">${g.name}</div><div style="font-size:.85rem;color:#546e7a">${g.city}</div></div><div style="text-align:left"><div style="font-size:.9rem;font-weight:700;color:#1a237e">${window.fD(s.d)}</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid #dbe3ff;padding-top:10px"><div><span style="font-size:.75rem;color:#78909c;display:block">📚 ספק</span><span style="font-weight:700;color:#1a237e">${window.supBase(s.a)}</span></div><div><span style="font-size:.75rem;color:#78909c;display:block">🎯 פעילות</span><span style="font-weight:700;color:#1565c0">${s.act||'—'}</span></div></div></div>`;
-  h+=`<div style="margin-bottom:15px;background:#fff;border-radius:8px;padding:10px;border:1px solid #eee"><textarea id="sp-nt" rows="2" style="width:100%;font-size:.85rem;border-radius:6px;border:1.5px solid #e0e0e0;padding:8px" placeholder="הוסף הערה...">${s.nt||''}</textarea><button class="btn bp bsm" style="width:100%;margin-top:5px" onclick="window.saveNt()">💾 שמור הערה</button></div>`;
-  h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px"><button class="btn bg bsm" onclick="window.setStatus('done')">✔️ התקיים</button><button class="btn bo bsm" onclick="window.setStatus('ok')">🔄 שחזר</button></div>`;
-  h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn borange bsm" onclick="window.openPostpone(${s.id})">⏩ דחה</button><button class="btn bp bsm" onclick="window.openCopy(${s.id})">📋 העתק</button></div>`;
+
+  let h=`<div style="background:#f5f7ff;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #dbe3ff">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+      <div>
+        <div style="font-size:1.1rem;font-weight:800;color:#1a237e">${g.name}</div>
+        <div style="font-size:.85rem;color:#546e7a">${g.city}${g.st?' | '+g.st:''}</div>
+      </div>
+      <div style="text-align:left">
+        <div style="font-size:.9rem;font-weight:700;color:#1a237e">${window.fD(s.d)}</div>
+        <div style="font-size:.8rem;color:#546e7a">יום ${window.dayN(s.d)}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid #dbe3ff;padding-top:10px">
+      <div><span style="font-size:.75rem;color:#78909c;display:block">📚 ספק</span><span style="font-weight:700;color:#1a237e">${window.supBase(s.a)}</span></div>
+      <div><span style="font-size:.75rem;color:#78909c;display:block">🎯 פעילות</span><span style="font-weight:700;color:#1565c0">${s.act||'—'}</span></div>
+      ${s.t?`<div><span style="font-size:.75rem;color:#78909c;display:block">⏰ שעה</span><span style="font-weight:700;color:#1a237e">${window.fT(s.t)}</span></div>`:''}
+      <div><span style="font-size:.75rem;color:#78909c;display:block">📌 סטטוס</span><span style="transform:scale(0.9);transform-origin:right;display:inline-block">${window.stLabel(s)}</span></div>
+    </div>
+  </div>`;
+
+  h+=`<div style="margin-bottom:15px;background:#fff;border-radius:8px;padding:10px;border:1px solid #eee">
+    <textarea id="sp-nt" rows="2" style="width:100%;font-size:.85rem;border-radius:6px;border:1.5px solid #e0e0e0;padding:8px" placeholder="הוסף הערה...">${s.nt||''}</textarea>
+    <button class="btn bp bsm" style="width:100%;margin-top:5px" onclick="window.saveNt()">💾 שמור הערה</button>
+  </div>`;
+
+  h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+    <button class="btn bg bsm" onclick="window.setStatus('done')">✔️ התקיים</button>
+    <button class="btn bo bsm" onclick="window.setStatus('ok')">🔄 שחזר</button>
+  </div>`;
+
+  h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <button class="btn borange bsm" onclick="window.openPostpone(${s.id})">⏩ דחה לתאריך אחר</button>
+    <button class="btn bp bsm" onclick="window.openCopy(${s.id})">📋 העתק לתאריך אחר</button>
+  </div>`;
+
   document.getElementById('sp-body').innerHTML=h;
   document.getElementById('sp').classList.add('open');
-  document.getElementById('sp-backdrop').style.display='block';
+  if(document.getElementById('sp-backdrop')) document.getElementById('sp-backdrop').style.display='block';
+}
+
+function showSpSaved(){
+  const msg=document.getElementById('sp-saved-msg');
+  if(!msg) return;
+  msg.style.display='block';
+  setTimeout(()=>{ msg.style.display='none'; }, 2500);
+}
+
+function toggleSpEdit(){
+  const body=document.getElementById('sp-edit-body');
+  const arrow=document.getElementById('sp-edit-arrow');
+  if(!body||!arrow) return;
+  const isOpening = body.style.display==='none';
+  body.style.display = isOpening ? 'flex' : 'none';
+  arrow.style.transform = isOpening ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+function spEditSupChg(){
+  const sup=document.getElementById('sp-edit-sup').value;
+  const actSel=document.getElementById('sp-edit-act');
+  const s=window.SCH.find(x=>x.id===window.selEv);
+  const acts=window.getSupActs(sup);
+  actSel.innerHTML='<option value="">— ללא שינוי —</option>'+
+    acts.map(a=>`<option value="${a}"${s&&s.act===a?' selected':''}>${a}</option>`).join('')+
+    '<option value="__new__">➕ פעילות חדשה...</option>';
+}
+
+function spEditActChg(){
+  const v=document.getElementById('sp-edit-act').value;
+  const wrap=document.getElementById('sp-edit-act-new-wrap');
+  if(wrap) wrap.style.display=v==='__new__'?'block':'none';
+}
+
+function deleteRecurSeries(id){
+  const s=window.SCH.find(x=>x.id===id); if(!s) return;
+  const affected=window.SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
+  if(!confirm(`האם למחוק ${affected.length} פעילויות קבועות מ-${window.fD(s.d)} ואילך?`)) return;
+  affected.forEach(x=>{ const i=window.SCH.indexOf(x); if(i>=0) window.SCH.splice(i,1); });
+  window.saveAndRefresh('sp');
+}
+
+function openReplaceRecur(id){
+  const s=window.SCH.find(x=>x.id===id); if(!s) return;
+  const affected=window.SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
+  const allSups=window.getAllSup().filter(s2=>window.isActSupplier(s2.name));
+  const g=window.G(s.g);
+  let h=`<div style="font-size:.85rem;font-weight:700;color:#1a237e;margin-bottom:10px">
+    🔄 החלפת שיבוץ קבוע — ${affected.length} פעילויות<br>
+    <span style="font-size:.75rem;font-weight:400;color:#546e7a">גן: ${g.name}</span>
+  </div>
+  <div style="display:grid;gap:8px">
+    <select id="rr-sup" onchange="window.rrSupChg()" style="width:100%">${allSups.map(s2=>`<option value="${s2.name}"${s2.name===s.a?' selected':''}>${s2.name}</option>`).join('')}</select>
+    <select id="rr-act" style="width:100%"><option value="">— ללא שינוי —</option>${window.getSupActs(s.a).map(a=>`<option value="${a}"${a===s.act?' selected':''}>${a}</option>`).join('')}</select>
+    <input type="time" id="rr-time" value="${s.t||''}" style="width:100%">
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+    <button class="btn br bsm" onclick="CM('rrm')">ביטול</button>
+    <button class="btn bg bsm" onclick="window.saveReplaceRecur(${id})">✅ החלף</button>
+  </div>`;
+  document.getElementById('rrm-body').innerHTML=h;
+  window.OM('rrm');
+}
+
+function rrSupChg(){
+  const sup=document.getElementById('rr-sup').value;
+  const actSel=document.getElementById('rr-act');
+  if(!actSel) return;
+  actSel.innerHTML='<option value="">— ללא שינוי —</option>'+
+    window.getSupActs(sup).map(a=>`<option value="${a}">${a}</option>`).join('');
+}
+
+function saveReplaceRecur(id){
+  const s=window.SCH.find(x=>x.id===id); if(!s) return;
+  const newSup=document.getElementById('rr-sup').value;
+  const newAct=document.getElementById('rr-act').value;
+  const newTime=document.getElementById('rr-time').value;
+  const affected=window.SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
+  affected.forEach(x=>{ if(newSup) x.a=newSup; if(newAct) x.act=newAct; if(newTime) x.t=newTime; });
+  window.saveAndRefresh('rrm');
+}
+
+function spEditSave(){
+  const s=window.SCH.find(x=>x.id===window.selEv); if(!s) return;
+  const newDate=document.getElementById('sp-edit-date').value;
+  const newSup=document.getElementById('sp-edit-sup').value;
+  const actVal=document.getElementById('sp-edit-act').value;
+  const newAct=actVal==='__new__' ? (document.getElementById('sp-edit-act-new')||{}).value||'' : actVal;
+  const newTime=document.getElementById('sp-edit-time').value;
+  if(newDate) s.d=newDate; if(newSup) s.a=newSup; if(newAct) s.act=newAct; if(newTime) s.t=newTime;
+  window.saveAndRefresh('sp');
+}
+
+function setSpActionTab(tab){
+  ['nohap','can','comp'].forEach(t=>{
+    const p=document.getElementById('sp-panel-'+t);
+    const b=document.getElementById('sp-tab-'+t);
+    if(p) p.style.display=(t===tab?'block':'none');
+    if(b) b.style.background=(t===tab?'#fff':'#f5f5f5');
+  });
+}
+
+function spTogglePairDetails(){
+  const chk = document.getElementById('sp-pair-chk');
+  const details = document.getElementById('sp-pair-details');
+  if(chk && details) details.style.display = chk.checked ? 'block' : 'none';
+}
+
+function selCO(el,r){document.querySelectorAll('.copt:not([onclick*=selNO])').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');el.dataset.r=r;}
+function selNO(el,r){document.querySelectorAll('.copt[onclick*=selNO]').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');el.dataset.r=r;}
+
+function cancelEv(){
+  const s=window.SCH.find(x=>x.id===window.selEv); if(!s) return;
+  s.st='can'; window.saveAndRefresh('sp');
+}
+
+function markNoHap(){
+  const s=window.SCH.find(x=>x.id===window.selEv); if(!s) return;
+  s.st='nohap'; window.saveAndRefresh('sp');
+}
+
+function setStatus(idOrSt, maybeSt){
+  let id, st;
+  if (maybeSt) { id = idOrSt; st = maybeSt; } 
+  else { id = window.selEv; st = idOrSt; }
+  const main=window.SCH.find(x=>x.id===id);
+  if(main){
+    main.st=st;
+    if(st==='ok') { main.cr=''; main.cn=''; }
+  }
+  window.saveAndRefresh('sp');
 }
 
 function saveNt(){
   const s=window.SCH.find(x=>x.id===window.selEv); if(!s) return;
-  s.nt=document.getElementById('sp-nt').value;
+  const nt=document.getElementById('sp-nt').value;
+  s.nt=nt; window.saveAndRefresh('sp');
+}
+
+function markCompManual(id){
+  const s=window.SCH.find(x=>x.id===id); if(!s) return;
+  s._compByMakeup = 'manual_' + Date.now();
   window.saveAndRefresh('sp');
+}
+
+function upd(id,fields){
+  const i=window.SCH.findIndex(s=>s.id===id);
+  if(i>=0) Object.assign(window.SCH[i],fields);
+}
+
+function updAndRefresh(id,fields){
+  upd(id,fields); window.save(); window.closeSP(); window.refresh();
 }
 
 function closeSP(){
   document.getElementById('sp').classList.remove('open');
-  if(document.getElementById('sp-backdrop')) document.getElementById('sp-backdrop').style.display='none';
+  const bd=document.getElementById('sp-backdrop');
+  if(bd) bd.style.display='none';
+  window.selEv=null;
 }
 
 function refresh(){
-  window.updCounts();
+  if(window.updCounts) window.updCounts();
   window.renderDash();
   window.renderCanList();
-  window.renderCal();
+  if(window.renderCal) window.renderCal();
+  if(window.currentTab==='sched' && window.renderSched) window.renderSched();
 }
 
 function saveAndRefresh(modalId){
@@ -257,13 +438,65 @@ function saveAndRefresh(modalId){
   window.refresh();
 }
 
+function openMakeupSched(origId){
+  const orig=window.SCH.find(s=>s.id===origId); if(!orig) return;
+  window._makeupOrigId = origId;
+  window.openNewSched(orig.g, {date:window.td(), tab:'makeup', makeupFrom:orig.d, time:orig.t});
+}
+
+function openPostpone(id){
+  window.selEvPost=id;
+  const s=window.SCH.find(x=>x.id===id); if(!s) return;
+  const g=window.G(s.g);
+  document.getElementById('post-ev-info').innerHTML=`<b>${g.name}</b> · ${g.city} · ${s.a}`;
+  document.getElementById('post-date').value='';
+  document.getElementById('postm').classList.add('open');
+}
+
+function openCopy(id){
+  window._copySrcId=id;
+  const s=window.SCH.find(x=>x.id===id); if(!s) return;
+  const g=window.G(s.g);
+  document.getElementById('copy-ev-info').innerHTML=`<b>${g.name}</b> · ${g.city} · ${s.a}`;
+  document.getElementById('copym').style.display='flex';
+}
+
+function openSupExport(supName){
+  const date=document.getElementById('dash-date').value||window.td();
+  const evs=window.SCH.filter(s=>s.a===supName&&s.d===date&&s.st!=='can');
+  if(!evs.length){alert('אין פעילויות לייצוא');return;}
+  const rows=evs.map(s=>({ 'עיר':window.G(s.g).city, 'גן':window.G(s.g).name, 'ספק':s.a, 'פעילות':s.act||'', 'שעה':s.t }));
+  window.exportToExcel(rows, `export_${supName}`);
+}
+
 window.setDashTab = setDashTab;
 window.renderDash = renderDash;
 window.renderCanList = renderCanList;
 window.openSP = openSP;
 window.closeSP = closeSP;
+window.setStatus = setStatus;
 window.saveNt = saveNt;
-window.refresh = refresh;
+window.markNoHap = markNoHap;
+window.cancelEv = cancelEv;
+window.openMakeupSched = openMakeupSched;
+window.openPostpone = openPostpone;
+window.openCopy = openCopy;
+window.markCompManual = markCompManual;
+window.openSupExport = openSupExport;
 window.saveAndRefresh = saveAndRefresh;
+window.refresh = refresh;
+window.toggleSpEdit = toggleSpEdit;
+window.spEditSupChg = spEditSupChg;
+window.spEditActChg = spEditActChg;
+window.deleteRecurSeries = deleteRecurSeries;
+window.openReplaceRecur = openReplaceRecur;
+window.rrSupChg = rrSupChg;
+window.saveReplaceRecur = saveReplaceRecur;
+window.spEditSave = spEditSave;
+window.setSpActionTab = setSpActionTab;
+window.spTogglePairDetails = spTogglePairDetails;
+window.selCO = selCO;
+window.selNO = selNO;
+window.updAndRefresh = updAndRefresh;
 
 setTimeout(() => { if (typeof renderDash === 'function') renderDash(); }, 100);
