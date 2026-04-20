@@ -174,13 +174,24 @@ function _dashListRow(s){
 }
 
 function renderCanList(){
+  const tab = (typeof _dashTab !== 'undefined' ? _dashTab : 'g');
+  const cls = tab === 'g' ? 'גנים' : 'ביה"ס';
+  
   const safeSort = (a, b) => (b.d || '').localeCompare(a.d || '');
   
-  // 1. Todo - Nohap/Post that are NOT handled yet
-  const todoEvs = window.SCH.filter(s => (s.st === 'nohap' || s.st === 'post') && !s._compByMakeup).sort(safeSort);
+  // 1. Todo - Nohap/Post that are NOT handled yet, filtered by current tab (Gardens/Schools)
+  const todoEvs = window.SCH.filter(s => {
+    if (!((s.st === 'nohap' || s.st === 'post') && !s._compByMakeup)) return false;
+    const g = window.G(s.g);
+    return g && window.gcls(g) === cls;
+  }).sort(safeSort);
   
-  // 2. Handled - Items that reached status nohap/post but were marked as compByMakeup (manual or via makeup)
-  const handledEvs = window.SCH.filter(s => (s.st === 'nohap' || s.st === 'post') && s._compByMakeup).sort(safeSort).slice(0, 20);
+  // 2. Handled - Items that reached status nohap/post but were marked as compByMakeup, filtered by tab
+  const handledEvs = window.SCH.filter(s => {
+    if (!((s.st === 'nohap' || s.st === 'post') && s._compByMakeup)) return false;
+    const g = window.G(s.g);
+    return g && window.gcls(g) === cls;
+  }).sort(safeSort).slice(0, 25);
 
   let ch = '';
   
@@ -188,7 +199,7 @@ function renderCanList(){
   ch += `<div style="margin-bottom:20px">
     <div style="font-weight:800;color:#c62828;margin-bottom:8px;font-size:.9rem">🔴 דורש טיפול (השלמה / ביטול סופי) (${todoEvs.length})</div>`;
   if (!todoEvs.length) {
-    ch += '<p style="color:#999;font-size:.79rem;padding:10px;background:#f9f9f9;border-radius:6px">אין חריגים הממתינים לטיפול</p>';
+    ch += `<p style="color:#999;font-size:.79rem;padding:10px;background:#f9f9f9;border-radius:6px">אין חריגים הממתינים לטיפול ב${cls}</p>`;
   } else {
     ch += _renderMiniTable(todoEvs);
   }
@@ -198,7 +209,7 @@ function renderCanList(){
   ch += `<div>
     <div style="font-weight:800;color:#2e7d32;margin-bottom:8px;font-size:.9rem">🟢 טופלו לאחרונה (${handledEvs.length})</div>`;
   if (!handledEvs.length) {
-    ch += '<p style="color:#999;font-size:.79rem;padding:10px">אין פריטים שטופלו לאחרונה</p>';
+    ch += `<p style="color:#999;font-size:.79rem;padding:10px">אין פריטים שטופלו לאחרונה ב${cls}</p>`;
   } else {
     ch += _renderMiniTable(handledEvs);
   }
