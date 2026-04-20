@@ -24,11 +24,11 @@ function renderDash(){
       const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
       const isHandled = !!s._compByMakeup;
       if(st==='todo'){
-        if(!(s.st==='nohap' || s.st==='post' || isM) || isHandled) return false;
+        // User wants to see Nohap, Post, and Makeup. 
+        // Previously we filtered out isHandled, but user explicitly wants to see "Completed" (הושלמו) items.
+        if(!(s.st==='nohap' || s.st==='post' || isM)) return false;
       } else {
-        // Default View (All Dates): Show everything for the selected date, 
-        // but if viewing active issues, we might want to prioritize unhandled ones.
-        // The user wants a "Handled" list eventually.
+        // Default View (All Dates)
       }
     } else if(st==='handled'){
       if(!s._compByMakeup) return false;
