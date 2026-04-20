@@ -251,6 +251,7 @@ function openSP(id){
 
   // Find partner garden activities for this specific date/time
   let partnersHtml = '';
+  const currentTimesSP = {};
   if (spPair) {
     const otherIds = spPair.ids.map(Number).filter(oid => oid !== Number(s.g));
     otherIds.forEach(oid => {
@@ -259,6 +260,7 @@ function openSP(id){
         Number(ps.g)===oid && ps.d === s.d && (ps.t === s.t || (!ps.t && !s.t)) && 
         window.supBase(ps.a) === window.supBase(s.a) && ps.st !== 'can'
       );
+      if(pev) currentTimesSP[oid] = window.fT(pev.t || s.t);
       partnersHtml += `<div style="font-size:.82rem;color:#5c6bc0;font-weight:700;margin-top:4px;display:flex;align-items:center;gap:6px">
         <span style="opacity:0.7">🔗</span> 
         <span>${pg.name}</span> 
