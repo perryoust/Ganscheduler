@@ -1,5 +1,7 @@
+window._dashTab = window._dashTab || 'g';
+
 function setDashTab(t){
-  _dashTab=t;
+  window._dashTab=t;
   document.getElementById('dash-tab-g').classList.toggle('active',t==='g');
   document.getElementById('dash-tab-s').classList.toggle('active',t==='s');
   renderDash();
@@ -9,7 +11,8 @@ function renderDash(){
   const city=document.getElementById('dash-city').value;
   const sup=document.getElementById('dash-sup').value;
   const st=document.getElementById('dash-st').value;
-  const clsFilter=_dashTab==='g'?'גנים':'ביה"ס';
+  const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
+  const clsFilter= tab==='g'?'גנים':'ביה"ס';
   const srch=(document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
   
   const evs = window.SCH.filter(s => {
@@ -35,7 +38,8 @@ function renderDash(){
         }
         return false; // Hide everything else (regular ok, passed done, handled exceptions)
       } else {
-        // Default View (All Dates)
+        // Default View (All Dates) - hide canceled and already handled items to reduce clutter
+        if (s.st === 'can' || isHandled) return false;
       }
     } else if(st==='handled'){
       if(!s._compByMakeup) return false;
