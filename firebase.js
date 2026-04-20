@@ -158,6 +158,12 @@ async function _processFirebaseLoad(r, silent, force) {
   // Only update _fbLastSaveTs if we haven't saved more recently
   if(!_fbLastSaveTs || cloudTs > _fbLastSaveTs) _setFbSaveTs(cloudTs);
   if (!silent) _fbUpdateStatus();
+
+  // Force UI refresh after data is applied, regardless of 'silent'
+  if (typeof window.refreshAppUI === 'function') {
+    try { window.refreshAppUI(); } catch(e) { console.error('Initial refreshAppUI failed', e); }
+  }
+
   return true;
 }
 

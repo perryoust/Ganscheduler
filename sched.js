@@ -625,3 +625,8 @@ window.openNewSched = openNewSched;
 window.searchAct = searchAct;
 window.clearSched = clearSched;
 
+// Initial render once module loads
+setTimeout(() => {
+  if (typeof renderSched === 'function') renderSched();
+}, 150);
+

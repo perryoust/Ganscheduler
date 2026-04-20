@@ -1352,3 +1352,8 @@ window.spTogglePairDetails = spTogglePairDetails;
 window.selCO = selCO;
 window.selNO = selNO;
 window.updAndRefresh = updAndRefresh;
+
+// Initial render once module loads
+setTimeout(() => {
+  if (typeof renderDash === 'function') renderDash();
+}, 100);
