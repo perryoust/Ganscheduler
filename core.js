@@ -633,6 +633,18 @@ function addD(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
 function addM(d,n){const x=new Date(d);x.setMonth(x.getMonth()+n);return x}
 function monStart(d){const x=new Date(d);x.setDate(x.getDate()-x.getDay());x.setHours(0,0,0,0);return x}
 function dayN(s){const[y,m,d]=s.split('-').map(Number);return['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(y,m-1,d).getDay()]}
+function getNextWorkDays(start, count){
+  let d = new Date(start);
+  let days = [];
+  while(days.length < count){
+    const dow = d.getDay();
+    if(dow !== 5 && dow !== 6) days.push(new Date(d));
+    d = addD(d, 1);
+  }
+  return days;
+}
+window.getNextWorkDays = getNextWorkDays;
+
 
 // ── Hebrew Date (via built-in Intl API) ─────────────────────
 const _hebFmt = new Intl.DateTimeFormat('he-IL-u-ca-hebrew', {

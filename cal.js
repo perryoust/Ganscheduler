@@ -117,13 +117,14 @@ function setView(v){
 }
 function navCal(d){
   if(calV==='day') calD=addD(calD,d);
-  else if(calV==='week') calD=addD(calD,d*5); // 5-day work week (Sun–Thu)
+  else if(calV==='week') calD=addD(calD,d*7); // Jump 1 week to stay on same starting day
   else if(calV==='list'){
     const lsv=_listSubView||'week';
     if(lsv==='day') calD=addD(calD,d);
-    else if(lsv==='week') calD=addD(calD,d*5); // 5 work days
+    else if(lsv==='week') calD=addD(calD,d*7); // Jump 1 week to stay on same starting day
     else calD=addM(calD,d);
   }
+
   else calD=addM(calD,d);
   renderCal();
 }
@@ -207,19 +208,20 @@ function renderCal(){
     else if(f.cluster) html=renderClusterDay(evs,ds,f.cluster);
     else html=renderNormalDay(evs,ds);
   } else if(calV==='week'){
-    // Show 5 days (Sun-Thu) from calD, not from Monday
-    const ws=new Date(calD); ws.setHours(0,0,0,0);
-    // If on Fri(5) or Sat(6), start from next Sunday
-    const dow0=ws.getDay();
-    if(dow0===5) ws.setDate(ws.getDate()+2);
-    else if(dow0===6) ws.setDate(ws.getDate()+1);
-    const we=window.addD(ws,4); // 5 days: ws+0,1,2,3,4
-    const wsS=window.d2s(ws),weS=window.d2s(we);
-    (document.getElementById('cal-title')||{}).textContent=`${window.fD(wsS)} – ${window.fD(weS)}`;
+    // Show rolling 5 working days from calD
+    let ws=new Date(calD); ws.setHours(0,0,0,0);
+    // If on Fri(5) or Sat(6), snap to next Sunday to find first work day
+    if(ws.getDay()===5) ws.setDate(ws.getDate()+2);
+    else if(ws.getDay()===6) ws.setDate(ws.getDate()+1);
+    
+    const days=window.getNextWorkDays(ws, 5);
+    const wsS=window.d2s(days[0]), weS=window.d2s(days[4]);
+    (document.getElementById('cal-title')||{}).textContent=`${window.fD(wsS)} – ${window.fD(weS)} (5 ימי עבודה)`;
     const evs=filterE(f,wsS,weS);
     if(displayGids) html=renderPairWeek(evs,ws,displayGids);
     else if(f.cluster) html=renderClusterWeek(evs,ws,f.cluster);
     else html=renderNormalWeek(evs,ws,f);
+
   } else if(calV==='range'){
     const from=document.getElementById('cal-range-from')?.value||d2s(calD);
     const to=document.getElementById('cal-range-to')?.value||from;
@@ -235,15 +237,15 @@ function renderCal(){
       fromDs=toDs=d2s(calD);
       titleStr='📋 רשימה — '+window.fD(fromDs)+' '+window.dayN(fromDs);
     } else if(lsv==='week'){
-      // 5 work days from calD — skip Fri(5)/Sat(6)
+      // rolling 5 work days from calD — skip Fri(5)/Sat(6)
       let _ws=new Date(calD); _ws.setHours(0,0,0,0);
       if(_ws.getDay()===5) _ws.setDate(_ws.getDate()+2); // Fri → Sun
       else if(_ws.getDay()===6) _ws.setDate(_ws.getDate()+1); // Sat → Sun
-      // Collect 5 work days
-      let _wd=new Date(_ws), _days=[]; 
-      while(_days.length<5){ if(_wd.getDay()!==5&&_wd.getDay()!==6) _days.push(new Date(_wd)); _wd.setDate(_wd.getDate()+1); }
+      
+      const _days=window.getNextWorkDays(_ws, 5);
       fromDs=d2s(_days[0]); toDs=d2s(_days[4]);
-      titleStr='📋 רשימה — שבוע '+window.fD(fromDs)+' – '+window.fD(toDs);
+      titleStr='📋 רשימה — חמישה ימים '+window.fD(fromDs)+' – '+window.fD(toDs);
+
     } else { // month
       const y2=window.calD.getFullYear(),m2=window.calD.getMonth();
       fromDs=window.d2s(new Date(y2,m2,1)); toDs=window.d2s(new Date(y2,m2+1,0));
@@ -576,12 +578,13 @@ function renderClusterWeek(evs, weekStart, clusterName){
   const clGids=clObj?(clObj.gardenIds||[]):evs.map(s=>s.g).filter((v,i,a)=>a.indexOf(v)===i);
   const waBtn=`<button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="background:#25d366;border:none;border-radius:4px;color:#fff;font-size:.65rem;padding:2px 8px;cursor:pointer;margin-right:8px">📋 הודעה</button>`;
   let html=`<div style="background:#e8eaf6;border-radius:7px;padding:5px 12px;margin-bottom:10px;font-size:.77rem;font-weight:700;color:#1a237e;display:flex;align-items:center;justify-content:space-between">
-    <span>🔢 ${isAll?'כל האשכולות':('אשכול: '+clusterName)} — תצוגה שבועית (א'-ה')</span>
+    <span>🔢 ${isAll?'כל האשכולות':('אשכול: '+clusterName)} — תצוגה שבועית (5 ימי עבודה)</span>
     ${waBtn}
   </div>`;
-  for(let i=0;i<5;i++){
-    const d=addD(weekStart,i);
+  const days = window.getNextWorkDays(weekStart, 5);
+  days.forEach(d=>{
     const ds=window.d2s(d);
+
     const dayEvs=evs.filter(s=>s.d===ds && !s._compByMakeup).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
     const hol=window.getHolidayInfo(ds,null,null);
     const blk=window.getBlockedInfo(ds);
@@ -921,10 +924,10 @@ function renderPairDay(evs,gids){
     ${renderPairColsHTML(evs,gids)}</div>`;
 }
 
-function renderNormalWeek(evs,ws,f){
-  const dn=['ראשון','שני','שלישי','רביעי','חמישי'], tday=td();
-  const days=[];
-  for(let i=0;i<5;i++) days.push(addD(ws,i));
+function renderNormalWeek(evs, ws, f){
+  const tday=td();
+  const days=window.getNextWorkDays(ws, 5);
+
 
   let gids=[...new Set(evs.map(s=>s.g))];
   if(f.gids&&f.gids.length) gids=f.gids;
@@ -977,7 +980,7 @@ function renderNormalWeek(evs,ws,f){
 
   html+=`<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;
     border-bottom:2px solid #9fa8da;border-left:1px solid #c5cae9;
-    position:sticky;top:0;z-index:3;font-size:.76rem">צהרון / זוג</th>`;
+      position:sticky;top:0;z-index:3;font-size:.76rem">צהרון / זוג</th>`;
 
   days.forEach((d,i)=>{
     const ds=d2s(d);
@@ -990,7 +993,8 @@ function renderNormalWeek(evs,ws,f){
     html+=`<th style="background:${bg};color:${col};padding:3px 4px;text-align:center;font-size:.76rem;min-width:132px;
       ${bottomBorder};border-left:1px solid ${isToday?'rgba(255,255,255,.3)':'#c5cae9'};
       position:sticky;top:0;z-index:3;white-space:nowrap;line-height:1.3" onclick="jumpToDay('${ds}')">
-      <span style="font-weight:700">${dn[i]}</span> <span style="font-size:.64rem;font-weight:400">${window.fD(ds)}</span>
+      <span style="font-weight:700">${window.dayN(ds)}</span> <span style="font-size:.64rem;font-weight:400">${window.fD(ds)}</span>
+
       <br><span style="font-size:.56rem;font-weight:400;opacity:.7">${toHebDate(ds)}</span>
       ${blkWk?`<span style="font-size:.58rem;cursor:pointer;display:block" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blkWk.icon||'🚫'} ${blkWk.reason}</span>`:''}
     </th>`;
@@ -1111,12 +1115,12 @@ function renderNormalWeek(evs,ws,f){
 }
 
 function renderPairWeek(evs,ws,gids){
-  const days=[],dn=['ראשון','שני','שלישי','רביעי','חמישי'],tday=td();
-  for(let i=0;i<5;i++) days.push(addD(ws,i));
+  const days=window.getNextWorkDays(ws, 5), tday=td();
   const cols=[gids[0]||null,gids[1]||null,gids[2]||null];
   const pair=gids[0]?gardenPair(gids[0]):null;
   const clr=pair?pairWeekColors(pair.id):{solid:'#1565c0',light:'#e3f2fd'};
   let html='<div class="tw"><table class="wpt"><thead><tr><th class="dth" style="min-width:75px">יום</th>';
+
   cols.forEach((gid,i)=>{
     if(!gid){html+=`<th class="thx">—</th>`;return;}
     const g=window.G(gid);
@@ -1127,7 +1131,8 @@ function renderPairWeek(evs,ws,gids){
     const ds=d2s(d);
     const hol=getHolidayInfo(ds);
     const holStyle=hol?`background:${hol.bg};`:'';
-    html+=`<tr><td class="dth" style="${ds===tday?'background:#1565c0;color:#fff;':holStyle} text-align:center;white-space:nowrap;font-weight:700">${dn[i]}<br><span style="font-size:.66rem;font-weight:400">${window.fD(ds)}</span><br><span style="font-size:.58rem;font-weight:400;opacity:.8">${toHebDate(ds)}</span>${hol?`<br><span style="font-size:.64rem;color:${hol.color}">${hol.name}</span>`:''}</td>`;
+    html+=`<tr><td class="dth" style="${ds===tday?'background:#1565c0;color:#fff;':holStyle} text-align:center;white-space:nowrap;font-weight:700">${window.dayN(ds)}<br><span style="font-size:.66rem;font-weight:400">${window.fD(ds)}</span><br><span style="font-size:.58rem;font-weight:400;opacity:.8">${toHebDate(ds)}</span>${hol?`<br><span style="font-size:.64rem;color:${hol.color}">${hol.name}</span>`:''}</td>`;
+
     cols.forEach((gid,ci)=>{
       if(!gid){html+=`<td style="background:#f5f5f5"></td>`;return;}
       const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));

@@ -68,9 +68,13 @@ function openGmExport(){
   if(!window.gmGid)return;
   const gids=window.gardenPair(window.gmGid)?window.gardenPair(window.gmGid).ids:[window.gmGid];
   window._exGids=gids;
-  const ws=window.monStart(window.gmD);
-  const fDs=window.gmV==='day'?window.d2s(window.gmD):window.gmV==='week'?window.d2s(ws):window.d2s(new Date(window.gmD.getFullYear(),window.gmD.getMonth(),1));
-  const tDs=window.gmV==='day'?window.d2s(window.gmD):window.gmV==='week'?window.d2s(window.addD(ws,5)):window.d2s(new Date(window.gmD.getFullYear(),window.gmD.getMonth()+1,0));
+  let ws = new Date(window.gmD); ws.setHours(0,0,0,0);
+  if(ws.getDay()===5) ws.setDate(ws.getDate()+2);
+  else if(ws.getDay()===6) ws.setDate(ws.getDate()+1);
+  const days = window.getNextWorkDays(ws, 5);
+  const fDs=window.gmV==='day'?window.d2s(window.gmD):window.gmV==='week'?window.d2s(days[0]):window.d2s(new Date(window.gmD.getFullYear(),window.gmD.getMonth(),1));
+  const tDs=window.gmV==='day'?window.d2s(window.gmD):window.gmV==='week'?window.d2s(days[4]):window.d2s(new Date(window.gmD.getFullYear(),window.gmD.getMonth()+1,0));
+
   document.getElementById('ex-d1').value=fDs;
   document.getElementById('ex-d2').value=tDs;
   (document.getElementById('ex-ctx')||{}).textContent=G(gmGid).name+' | '+fD(fDs)+(fDs!==tDs?' – '+fD(tDs):'');
@@ -120,7 +124,15 @@ function renderGmCal(){ renderGM(); }
 function renderGM(){
   const gid=window.gmGid;let from,to,title;
   if(window.gmV==='day'){from=to=window.d2s(window.gmD);title=`${window.fD(from)} - יום ${window.dayN(from)}`;}
-  else if(window.gmV==='week'){const ws=window.monStart(window.gmD);from=window.d2s(ws);to=window.d2s(window.addD(ws,5));title=`${window.fD(from)} – ${window.fD(to)}`;}
+  else if(window.gmV==='week'){
+    let ws = new Date(window.gmD); ws.setHours(0,0,0,0);
+    if(ws.getDay()===5) ws.setDate(ws.getDate()+2);
+    else if(ws.getDay()===6) ws.setDate(ws.getDate()+1);
+    const days = window.getNextWorkDays(ws, 5);
+    from = window.d2s(days[0]); to = window.d2s(days[4]);
+    title=`${window.fD(from)} – ${window.fD(to)} (5 ימי עבודה)`;
+  }
+
   else{const y=window.gmD.getFullYear(),m=window.gmD.getMonth();from=window.d2s(new Date(y,m,1));to=window.d2s(new Date(y,m+1,0));title=window.hebM(window.gmD);}
   (document.getElementById('gm-per')||{}).textContent =title;
   const evs=window.SCH.filter(s=>s.g===gid&&s.d>=from&&s.d<=to).sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'').localeCompare(b.t||''));
@@ -881,9 +893,13 @@ function toggleExportMenu(){
 function closeExportMenu(){const m=document.getElementById('export-menu');if(m)m.style.display='none';}
 function openCalPrint(){
   // Generate export text and open print window directly
-  const ws=monStart(calD);
-  const fromDs=calV==='week'?d2s(ws):calV==='day'?d2s(calD):d2s(new Date(calD.getFullYear(),calD.getMonth(),1));
-  const toDs=calV==='week'?d2s(addD(ws,5)):calV==='day'?d2s(calD):d2s(new Date(calD.getFullYear(),calD.getMonth()+1,0));
+  let _ws = new Date(calD); _ws.setHours(0,0,0,0);
+  if(_ws.getDay()===5) _ws.setDate(_ws.getDate()+2);
+  else if(_ws.getDay()===6) _ws.setDate(_ws.getDate()+1);
+  const _days = window.getNextWorkDays(_ws, 5);
+  const fromDs=calV==='week'?d2s(_days[0]):calV==='day'?d2s(calD):d2s(new Date(calD.getFullYear(),calD.getMonth(),1));
+  const toDs=calV==='week'?d2s(_days[4]):calV==='day'?d2s(calD):d2s(new Date(calD.getFullYear(),calD.getMonth()+1,0));
+
   // Set export fields and generate
   document.getElementById('ex-d1').value=fromDs;
   document.getElementById('ex-d2').value=toDs;
@@ -906,7 +922,11 @@ function openCalPrint(){
   }, 150);
 }
 function openExport(){
-  const ws=monStart(calD), we=addD(ws,5);
+  let _ws = new Date(calD); _ws.setHours(0,0,0,0);
+  if(_ws.getDay()===5) _ws.setDate(_ws.getDate()+2);
+  else if(_ws.getDay()===6) _ws.setDate(_ws.getDate()+1);
+  const _days = window.getNextWorkDays(_ws, 5);
+  const ws = _days[0], we = _days[4];
   const isWeek=(calV==='week');
   const todayStr=d2s(calD);
   document.getElementById('ex-d1').value=isWeek?d2s(ws):todayStr;
@@ -914,6 +934,7 @@ function openExport(){
   const f=getCalF();
   const gids=_exGids||f.gids;
   let ctx=isWeek?`${fD(d2s(ws))} – ${fD(d2s(we))}`:`תאריך: ${fD(d2s(calD))}`;
+
   if(gids&&gids.length) ctx+=` | גנים: ${gids.map(id=>G(id).name||'').join(' + ')}`;
   (document.getElementById('ex-ctx')||{}).textContent =ctx;
   document.getElementById('exm').classList.add('open');

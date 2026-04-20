@@ -516,7 +516,9 @@ function setSchedView(v){
   if(v==='day'){
     sf.value=window.td(); st2.value=window.td();
   } else if(v==='week'){
-    const mon=window.monStart(new Date(d)); sf.value=window.d2s(mon); st2.value=window.d2s(window.addD(mon,6));
+    const days=window.getNextWorkDays(d, 5);
+    sf.value=window.d2s(days[0]); st2.value=window.d2s(days[4]);
+
   } else if(v==='month'){
     const y=d.getFullYear(), m=d.getMonth();
     sf.value=d2s(new Date(y,m,1)); st2.value=d2s(new Date(y,m+1,0));
@@ -531,9 +533,12 @@ function navSched(dir){
   const from=sf.value||window.td(),to=st2.value||window.td();
   const d1=window.s2d(from),d2=window.s2d(to);
   const span=Math.max(0,Math.round((d2-d1)/(1000*60*60*24)));
-  const nd1=window.addD(d1,dir*(span+1));
+  let jump=span+1;
+  if(span>=4&&span<=6) jump=7; // Weekly jump should be 7 days
+  const nd1=window.addD(d1,dir*jump);
   const nd2=window.addD(nd1,span);
   sf.value=window.d2s(nd1); st2.value=window.d2s(nd2);
+
   sPage=1; renderSched();
 }
 function navSchedToday(){
