@@ -24,6 +24,14 @@ function renderDash(){
   
   if (window._dashDebug) console.log(`[Dash] Rendering. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
 
+  // Calculate TODO counts for tab buttons
+  const todoG = (window.SCH || []).filter(s => window.gcls && window.gcls(window.G(s.g)) === 'גנים' && (s.st === 'nohap' || s.st === 'post') && !s._compByMakeup).length;
+  const todoS = (window.SCH || []).filter(s => window.gcls && window.gcls(window.G(s.g)) === 'ביה"ס' && (s.st === 'nohap' || s.st === 'post') && !s._compByMakeup).length;
+  const gBtn = document.getElementById('dash-tab-g');
+  const sBtn = document.getElementById('dash-tab-s');
+  if(gBtn) gBtn.textContent = `🚀 גני ילדים (${todoG})`;
+  if(sBtn) sBtn.textContent = `🏫 בתי ספר (${todoS})`;
+
   const evs = (window.SCH || []).filter(s => {
     // Robust status logic:
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
@@ -42,6 +50,9 @@ function renderDash(){
     }
 
     const g=window.G(s.g);
+    // Robust class filtering (normalize via gcls)
+    const gClass = window.gcls ? window.gcls(g) : 'גנים';
+    if (gClass !== clsFilter) return false;
 
     if (st === 'todo' || !st) {
       if (st === 'todo') {
@@ -49,7 +60,7 @@ function renderDash(){
           if (s.st === 'done') return false; 
           return true; 
         }
-        if ((s.st === 'nohap' || s.st === 'post') && !isHandled) {
+        if (isException && !isHandled) {
           return true; 
         }
         return false; 

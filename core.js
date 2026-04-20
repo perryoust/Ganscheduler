@@ -858,28 +858,37 @@ window.onload = function(){
   if(window._fbUser) window._onAuthReady();
 }; // end window.onload
 
+function td(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+}
+window.td = td;
+
 function refreshAppUI(){
-  if(typeof window.updCounts === 'function') window.updCounts();
-  if(typeof window.renderDash === 'function') window.renderDash();
-  if(typeof window.renderSched === 'function') window.renderSched();
-  if(typeof window.renderCal === 'function') window.renderCal();
-  if(typeof window.renderGardens === 'function') window.renderGardens();
+  try { if(typeof window.updCounts === 'function') window.updCounts(); } catch(e){ console.error("updCounts failed", e); }
+  try { if(typeof window.renderDash === 'function') window.renderDash(); } catch(e){ console.error("renderDash failed", e); }
+  try { if(typeof window.renderSched === 'function') window.renderSched(); } catch(e){ console.error("renderSched failed", e); }
+  try { if(typeof window.renderCal === 'function') window.renderCal(); } catch(e){ console.error("renderCal failed", e); }
+  try { if(typeof window.renderGardens === 'function') window.renderGardens(); } catch(e){ console.error("renderGardens failed", e); }
 }
 window.refreshAppUI = refreshAppUI;
 
 function updCounts(){
-  const tab = (typeof _dashTab !== 'undefined' ? _dashTab : 'g');
+  const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
   const cls = (tab === 'g' ? 'גנים' : 'ביה"ס');
   const filterClass = cls.trim().toLowerCase();
 
   const sch = window.SCH || [];
   const gdns = window.GARDENS || [];
 
-  const can=sch.filter(s=>s.st==='can' && !s._compByMakeup && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
-  const post=sch.filter(s=>s.st==='post' && !s._compByMakeup && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
-  const nohap=sch.filter(s=>s.st==='nohap' && !s._compByMakeup && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
-  const todayCnt=sch.filter(s=>s.d===td()&&s.st!=='can' && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
-  const allInTab=sch.filter(s=>window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const can=sch.filter(s=>s.st==='can' && !s._compByMakeup && window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const post=sch.filter(s=>s.st==='post' && !s._compByMakeup && window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const nohap=sch.filter(s=>s.st==='nohap' && !s._compByMakeup && window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const todayCnt=sch.filter(s=>s.d===td() && s.st!=='can' && window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const allInTab=sch.filter(s=>window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
 
   const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   
