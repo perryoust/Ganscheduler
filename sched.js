@@ -371,17 +371,16 @@ function saveNewSched(){
       const origExt = window.SCH.find(x => x.id === _makeupOrigId);
       if(origExt) {
         origExt._compByMakeup = newId;
-        // PARTNER SYNC: If original has a partner activity, mark it handled too
         const pair = window.gardenPair(origExt.g);
         if(pair){
-          const partnerId = pair.ids.find(pid => Number(pid) !== Number(origExt.g));
-          if(partnerId){
+          const partnerIds = pair.ids.filter(pid => Number(pid) !== Number(origExt.g));
+          partnerIds.forEach(partnerId => {
             const partnerEv = window.SCH.find(ps => 
               Number(ps.g)===Number(partnerId) && ps.d === origExt.d && (ps.t === origExt.t || (!ps.t && !origExt.t)) && 
               window.supBase(ps.a) === window.supBase(origExt.a) && !ps._compByMakeup
             );
             if(partnerEv) partnerEv._compByMakeup = newId;
-          }
+          });
         }
       }
       window._makeupOrigId = null; // Clear after use
