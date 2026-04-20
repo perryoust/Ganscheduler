@@ -1058,19 +1058,51 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
             <option value="12">דצמבר</option>
             <option value="01">ינואר</option>
             <option value="02">פברואר</option>
-            <option value="03    <!-- Row 1: City & Primary Garden -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
-      <div class="fg"><label>עיר</label><select id="ns-city" onchange="nsRefG()" style="width:100%"><option value="">בחר עיר</option></select></div>
-      <div class="fg"><label>גן *</label><select id="ns-g" onchange="nsGChg()" style="width:100%"><option value="">בחר צהרון</option></select></div>
+            <option value="03">מרץ</option>
+            <option value="04">אפריל</option>
+            <option value="05">מאי</option>
+            <option value="06">יוני</option>
+            <option value="07">יולי</option>
+            <option value="08">אוגוסט</option>
+          </select>
+        </div>
+        <div class="fg"><label>עיר</label>
+          <select id="pi-city" onchange="renderInvoices()" style="min-width:110px">
+            <option value="">הכל</option>
+          </select>
+        </div>
+        <div class="fg"><label>סוג מוסד</label>
+          <select id="pi-loctype" onchange="renderInvoices()" style="min-width:100px">
+            <option value="">הכל</option>
+            <option value="garden">גנים</option>
+            <option value="school">בתי ספר</option>
+            <option value="joint">משותף</option>
+            <option value="office">משרדים</option>
+          </select>
+        </div>
+      </div>
     </div>
-
-    <!-- Row 2: Primary Time -->
-    <div class="fg" style="margin-bottom:10px"><label>שעה</label>
-      <input type="time" id="ns-time" style="width:100%">
+    <div style="text-align:left;margin-top:2px">
+      <button onclick="toggleAdvFilter()" id="pi-adv-btn" style="background:none;border:none;color:#7986cb;font-size:.75rem;cursor:pointer;padding:2px 0">? סינון מתקדם</button>
     </div>
+  </div>
+  <div class="tw"><table id="pi-table">
+    <thead><tr>
+      <th>ספק</th>
+      <th>מספרי מסמכים</th>
+      <th>פירוט הזמנה</th>
+      <th>סכומים</th>
+      <th>סטטוס</th>
+      <th>הערות</th>
+      <th>פעולות</th>
+    </tr></thead>
+    <tbody id="pi-tbody"></tbody>
+  </table></div>
+</div>
 
-    <!-- Synergy Container -->
-    <div id="ns-synergy-wrap"></div>  <div class="card" style="padding:11px;margin-bottom:11px">
+<div id="p-psup" class="panel" style="display:none">
+  <!-- Full supplier management panel  master of all suppliers -->
+  <div class="card" style="padding:11px;margin-bottom:11px">
     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
       <div class="vbtns" style="margin-left:5px">
         <button class="vbtn active" id="psup-tab-all" onclick="setPSupTab('all')">?📦 הכל</button>
@@ -1250,16 +1282,14 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <button class="vbtn active" id="gvb-day" onclick="setGmView('day')">יומי</button>
         <button class="vbtn" id="gvb-week" onclick="setGmView('week')">שבועי</button>
         <button class="vbtn" id="gvb-month" onclick="setGmView('month')">חודשי</button>
-        <button class="vbtn" id="gvb-recur" onclick="setGmView('recur')">🚀 חוגים קבועים</button>
       </div>
-      <button class="btn bo bsm" onclick="gmNav(-1)" id="gm-nav-prev">?</button>
+      <button class="btn bo bsm" onclick="gmNav(-1)">?</button>
       <span id="gm-per" style="font-size:.82rem;font-weight:700;color:#1a237e;min-width:135px;text-align:center"></span>
-      <button class="btn bo bsm" onclick="gmNav(1)" id="gm-nav-next">?</button>
-      <button class="btn bp bsm" onclick="openNewSched(gmGid)" id="gm-nav-ns">? שיבוץ חדש</button>
-      <button class="btn bg bsm" onclick="openGmExport()" id="gm-nav-ex">🚀 ייצוא</button>
+      <button class="btn bo bsm" onclick="gmNav(1)">?</button>
+      <button class="btn bp bsm" onclick="openNewSched(gmGid)">? שיבוץ חדש</button>
+      <button class="btn bg bsm" onclick="openGmExport()">🚀 ייצוא</button>
     </div>
     <div id="gm-cal"></div>
-    <div id="gm-recur" style="display:none;background:#f8f9fa;border-radius:8px;padding:12px;border:1.5px solid #d1d9e6"></div>
     <div style="text-align:center;margin-top:11px"><button class="btn bs" onclick="CM('gm')">סגור</button></div>
   </div>
 </div>
@@ -1351,12 +1381,25 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       <div style="font-size:.78rem;font-weight:700;color:#2e7d32;margin-bottom:5px">🚀 ימים פנויים לצהרון זה:</div>
       <div id="post-free-days" style="display:flex;gap:5px;flex-wrap:wrap"></div>
     </div>
-    <!-- Row 1: Target Date -->
-    <div class="fg" style="margin-bottom:10px"><label>תאריך חדש *</label><input type="date" id="post-date" style="width:100%" onchange="postDateChg()"></div>
+    <!-- Row 1: Target Date & Partner Choice -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
+      <div class="fg"><label>תאריך חדש *</label><input type="date" id="post-date" style="width:100%" onchange="postDateChg()"></div>
+      <div class="fg" id="post-pchoice-wrap" style="display:none">
+        <label>שנה גם לבן זוג?</label>
+        <select id="post-pair-chk-sel" style="width:100%" onchange="postTogglePWrap()">
+          <option value="no">לא - רק לכאן</option>
+          <option value="yes" selected>כן - גם לבן זוג</option>
+        </select>
+        <!-- Hidden legacy checkbox for logic compatibility if needed -->
+        <input type="checkbox" id="post-pair-chk" style="display:none">
+      </div>
+    </div>
 
-    <!-- Row 2: Time & Synergy -->
-    <div class="fg" style="margin-bottom:10px"><label>שעה חדשה (ראשי)</label><input type="time" id="post-time" style="width:100%"></div>
-    <div id="post-synergy-wrap"></div>
+    <!-- Row 2: Times -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
+      <div class="fg"><label>שעה חדשה</label><input type="time" id="post-time" style="width:100%"></div>
+      <div class="fg" id="post-ptime-wrap" style="display:none"><label id="post-ptime-lbl">שעה לבן זוג</label><input type="time" id="post-time-g2" style="width:100%"></div>
+    </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px">
       <div class="fg"><label>ספק (שינוי אופציונלי)</label>
@@ -1380,21 +1423,6 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div style="display:flex;gap:7px;justify-content:flex-end">
       <button class="btn borange" id="postm-save-btn" onclick="doPostpone()">🚀 הזז</button>
       <button class="btn bs" onclick="CM('postm')">ביטול</button>
-    </div>
-  </div>
-</div>
-
-<!-- Copy -->
-<div id="copym" class="modal">
-  <div class="mb" style="max-width:480px">
-    <h2 id="copym-title">🚀 העתקת פעילות</h2>
-    <div id="copy-ev-info" style="background:#f5f7ff;border-radius:7px;padding:8px 11px;font-size:.8rem;margin-bottom:10px"></div>
-    <div class="fg" style="margin-bottom:10px"><label>תאריך יעד *</label><input type="date" id="copy-date" style="width:100%" onchange="copyDateChg()"></div>
-    <div class="fg" style="margin-bottom:10px"><label>שעה (ראשי)</label><input type="time" id="copy-time" style="width:100%"></div>
-    <div id="copy-synergy-wrap"></div>
-    <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:10px">
-      <button class="btn bp" id="copym-save-btn" onclick="doCopy()">🚀 העתק</button>
-      <button class="btn bs" onclick="CM('copym')">ביטול</button>
     </div>
   </div>
 </div>

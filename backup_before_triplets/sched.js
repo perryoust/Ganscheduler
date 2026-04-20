@@ -292,7 +292,7 @@ function nsActTypeChg(){
 }
 function saveNewSched(){
   const gid=parseInt(document.getElementById('ns-g').value)||null;
-  const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('ns') : [];
+  const g2id=parseInt(document.getElementById('ns-g2').value)||null;
   const date=document.getElementById('ns-date').value;
   const time=document.getElementById('ns-time').value;
   const sup=document.getElementById('ns-sup').value;
@@ -346,9 +346,7 @@ function saveNewSched(){
           const eid=recurring_id+count;
           const ev={id:eid,g:gid,d:ds,a:sup,act:actType,tp:evTp||'חוג',t:recurTime,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp,_recId:recurring_id};
           window.SCH.push(ev);
-          synergyPartners.forEach((syn, idx) => {
-            window.SCH.push({...ev,id:eid+(idx+1)*2000,g:syn.g,t:syn.t||recurTime});
-          });
+          if(g2id) window.SCH.push({...ev,id:eid+1000,g:g2id});
           count++;
         }
       }
@@ -388,9 +386,10 @@ function saveNewSched(){
     }
 
     window.SCH.push(newSched);
-    synergyPartners.forEach((syn, idx) => {
-      window.SCH.push({...newSched,id:newId+(idx+1),g:syn.g,t:syn.t||time});
-    });
+    if(g2id) {
+      const g2time = document.getElementById('ns-time-g2').value || time;
+      window.SCH.push({...newSched,id:newId+1,g:g2id,t:g2time});
+    }
     saveAndRefresh('nsm');
     showToast('✅ שיבוץ השלמה נשמר');
     return;
@@ -399,9 +398,10 @@ function saveNewSched(){
   // One-time
   const newSched={id:newId,g:gid,d:date,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp};
   window.SCH.push(newSched);
-  synergyPartners.forEach((syn, idx) => {
-    window.SCH.push({...newSched,id:newId+(idx+1),g:syn.g,t:syn.t||time,nt:notes});
-  });
+  if(g2id){
+    const g2time = document.getElementById('ns-time-g2').value || time;
+    window.SCH.push({...newSched,id:newId+1,g:g2id,t:g2time,nt:notes});
+  }
   saveAndRefresh('nsm');
   showToast('✅ שיבוץ נשמר');
 }

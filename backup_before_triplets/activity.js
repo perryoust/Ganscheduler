@@ -218,31 +218,6 @@ function _renderMiniTable(evs){
   return h + '</tbody></table></div>';
 }
 
-function markCompManual(id){
-  const s=window.SCH.find(x=>x.id===id); if(!s) return;
-  const nt=document.getElementById('sp-handle-nt').value;
-  s.st='done';
-  s._compByManual=true;
-  if(nt) s.nt = s.nt ? s.nt + ' | ' + nt : nt;
-  
-  const syncPair = document.getElementById('sp-sync-pair');
-  if(syncPair && syncPair.checked){
-    const spPair = window.gardenPair(s.g);
-    if(spPair){
-      const otherIds = spPair.ids.map(Number).filter(oid => oid !== Number(s.g));
-      otherIds.forEach(oid => {
-        const pEv = window.SCH.find(ps => Number(ps.g)===oid && ps.d === s.d && (ps.t === s.t || (!ps.t && !s.t)) && window.supBase(ps.a) === window.supBase(s.a) && ps.st !== 'can' && ps.st !== 'done');
-        if(pEv){
-          pEv.st='done';
-          pEv._compByManual=true;
-          if(nt) pEv.nt = pEv.nt ? pEv.nt + ' | ' + nt : nt;
-        }
-      });
-    }
-  }
-  window.saveAndRefresh('sp');
-}
-
 function openSP(id){
   window.selEv=id;
   const s=window.SCH.find(x=>x.id===id);if(!s)return;
@@ -314,8 +289,8 @@ function openSP(id){
       <div id="sp-acc-handling" style="display:none;padding:12px;background:#fff;border-top:1px solid #ffe082">
         ${spPair ? `
           <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer;background:#fff8e1;padding:8px 12px;border-radius:6px;border:1px solid #ffe082">
-            <input type="checkbox" id="sp-sync-pair" style="width:18px;height:18px;accent-color:#e65100" checked>
-            <span style="font-size:0.82rem;font-weight:700;color:#bf360c">🔗 החל סיום טיפול גם על בן-הזוג / שותפים</span>
+            <input type="checkbox" id="sp-sync-pair" style="width:18px;height:18px;accent-color:#e65100">
+            <span style="font-size:0.82rem;font-weight:700;color:#bf360c">🔗 החל סיום טיפול גם על בן-הזוג</span>
           </label>
         ` : ''}
         <div style="margin-bottom:12px">
@@ -383,13 +358,9 @@ function openSP(id){
             <option value="">— ללא שינוי —</option>
             ${initialActs.map(a => `<option value="${a}" ${a===s.act ? 'selected':''}>${a}</option>`).join('')}
             <option value="__new__">➕ פעילות חדשה...</option>
-        <div class="fg" id="sp-edit-act-new-wrap" style="display:none"><label style="font-size:.75rem;font-weight:700">שם הפעילות החדשה</label><input type="text" id="sp-edit-act-new" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc"></div>
-        <div class="fg"><label style="font-size:.75rem;font-weight:700">שעה מעודכנת (${g.name})</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc"></div>
-        ${spPair ? window.renderPartnerSynergy(s.g, 'sped', currentTimesSP) : ''}
-        <button class="btn bg" style="width:100%;padding:10px;font-weight:800;margin-top:8px" onclick="window.spEditSave()">💾 שמור שינויים</button>
-      </div>
-    </div>
-  </div>`;
+          </select>
+        </div>
+  h += `</div>`; // Close STEP 7 Edit
 
   document.getElementById('sp-body').innerHTML=h;
   document.getElementById('sp').classList.add('open');
@@ -497,30 +468,13 @@ function saveReplaceRecur(id){
 
 function spEditSave(){
   const s=window.SCH.find(x=>x.id===window.selEv); if(!s) return;
-  const origDate = s.d;
-  const origSup = s.a;
-  
   const newDate=document.getElementById('sp-edit-date').value;
   const newSup=document.getElementById('sp-edit-sup').value;
   const actVal=document.getElementById('sp-edit-act').value;
   const newAct=actVal==='__new__' ? (document.getElementById('sp-edit-act-new')||{}).value||'' : actVal;
   const newTime=document.getElementById('sp-edit-time').value;
-  
   if(newDate) s.d=newDate; if(newSup) s.a=newSup; if(newAct) s.act=newAct; if(newTime) s.t=newTime;
-  
-  const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('sped') : [];
-  synergyPartners.forEach(syn => {
-    const pEv = window.SCH.find(ps => ps.d === origDate && ps.g === syn.g && ps.st !== 'can' && window.supBase(ps.a) === window.supBase(origSup));
-    if(pEv) {
-      if(newDate) pEv.d=newDate; 
-      if(newSup) pEv.a=newSup; 
-      if(newAct) pEv.act=newAct; 
-      if(syn.t || newTime) pEv.t=syn.t || newTime;
-    }
-  });
-
   window.saveAndRefresh('sp');
-  window.showToast('✅ הפעילות עודכנה בהצלחה (כולל סינרגיה)');
 }
 
 function setSpActionTab(tab){
@@ -654,22 +608,6 @@ function openPostpone(id){
   const g=window.G(s.g);
   document.getElementById('post-ev-info').innerHTML=`<b>${g.name}</b> · ${g.city} · ${s.a}`;
   document.getElementById('post-date').value='';
-  
-  // Set up Synergy UI
-  const synWrap = document.getElementById('post-synergy-wrap');
-  if(synWrap) {
-    const pair = window.gardenPair(s.g);
-    const currentTimes = {};
-    if(pair) {
-      pair.ids.forEach(pId => {
-        if(pId === s.g) return;
-        const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === pId && ps.st!=='can' && window.supBase(ps.a)===window.supBase(s.a));
-        if(pEv) currentTimes[pId] = window.fT(pEv.t||s.t);
-      });
-    }
-    synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'post', currentTimes);
-  }
-  
   document.getElementById('postm').classList.add('open');
 }
 
@@ -678,101 +616,7 @@ function openCopy(id){
   const s=window.SCH.find(x=>x.id===id); if(!s) return;
   const g=window.G(s.g);
   document.getElementById('copy-ev-info').innerHTML=`<b>${g.name}</b> · ${g.city} · ${s.a}`;
-  document.getElementById('copy-date').value='';
-  document.getElementById('copy-time').value = window.fT(s.t) || '';
-  
-  // Set up Synergy UI
-  const synWrap = document.getElementById('copy-synergy-wrap');
-  if(synWrap) {
-    const pair = window.gardenPair(s.g);
-    const currentTimes = {};
-    if(pair) {
-      pair.ids.forEach(pId => {
-        if(pId === s.g) return;
-        const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === pId && ps.st!=='can' && window.supBase(ps.a)===window.supBase(s.a));
-        if(pEv) currentTimes[pId] = window.fT(pEv.t||s.t);
-      });
-    }
-    synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'copy', currentTimes);
-  }
-  
   document.getElementById('copym').style.display='flex';
-}
-
-function doPostpone(){
-  const sid = window.selEvPost;
-  const s = window.SCH.find(x => x.id === sid);
-  if(!s) return;
-  const newDate = document.getElementById('post-date').value;
-  const newSup = document.getElementById('post-sup') ? document.getElementById('post-sup').value : '';
-  const newAct = document.getElementById('post-act') ? document.getElementById('post-act').value : '';
-  const reason = document.getElementById('post-reason') ? document.getElementById('post-reason').value : '';
-  if(!newDate) { alert('יש לבחור תאריך'); return; }
-  
-  const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('post') : [];
-  const toProcess = [];
-  
-  // Conflict Alert Phase
-  for(let syn of synergyPartners) {
-    const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === syn.g && ps.st !== 'can' && window.supBase(ps.a) === window.supBase(s.a));
-    if(!pEv) {
-      const gObj = window.G(syn.g);
-      const msg = `⚠️ לצהרון ${gObj ? gObj.name : 'השותף'} לא נמצאה פעילות מקורית של ${s.a} בתאריך ${window.fD(s.d)}.\nהאם תרצה בכל זאת ליצור לו פעילות חדשה בתאריך החדש (${window.fD(newDate)})?`;
-      if(!confirm(msg)) continue;
-    }
-    toProcess.push({ syn, pEv });
-  }
-
-  // Primary
-  s.st = 'post';
-  s.pd = newDate;
-  s.pt = window.fT(s.t);
-  s.cn += reason ? ` (דחייה: ${reason})` : '';
-
-  const newEv1 = {...s, id:Date.now(), d:newDate, t:s.t, a:newSup||s.a, act:newAct||s.act, st:'ok', pd:'', pt:''};
-  if(reason) newEv1.n = s.n ? s.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
-  window.SCH.push(newEv1);
-  
-  // Synergy Execution
-  toProcess.forEach((conf, idx) => {
-    if(conf.pEv) {
-      conf.pEv.st = 'post';
-      conf.pEv.pd = newDate;
-      conf.pEv.pt = conf.syn.t || conf.pEv.t;
-      if(reason) conf.pEv.cn += ` (דחייה: ${reason})`;
-    }
-    const ptEv = conf.pEv || {...s, g: conf.syn.g};
-    const newPtEv = {...ptEv, id:Date.now() + idx + 1, d:newDate, t:conf.syn.t || ptEv.t, a:newSup||s.a, act:newAct||s.act, st:'ok', pd:'', pt:''};
-    if(!conf.pEv && reason) newPtEv.n = ptEv.n ? ptEv.n + ' | נוצר מדחייה: ' + reason : 'נוצר מדחייה: ' + reason;
-    else if(reason) newPtEv.n = ptEv.n ? ptEv.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
-    window.SCH.push(newPtEv);
-  });
-  
-  window.saveAndRefresh('postm');
-  window.showToast('✅ פעילות נדחתה (כולל סינרגיה)');
-}
-
-function doCopy(){
-  const sid = window._copySrcId;
-  const s = window.SCH.find(x => x.id === sid);
-  if(!s) return;
-  const newDate = document.getElementById('copy-date').value;
-  const primaryTime = document.getElementById('copy-time').value;
-  if(!newDate) { alert('יש לבחור תאריך יעד'); return; }
-  
-  // Primary
-  const newEv1 = {...s, id:Date.now(), d:newDate, t:primaryTime || s.t, st:'ok', pd:'', pt:'', cr:'', cn:''};
-  window.SCH.push(newEv1);
-  
-  // Synergy
-  const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('copy') : [];
-  synergyPartners.forEach((syn, idx) => {
-    const newPtEv = {...s, id:Date.now() + idx + 1, g:syn.g, d:newDate, t:syn.t || primaryTime || s.t, st:'ok', pd:'', pt:'', cr:'', cn:''};
-    window.SCH.push(newPtEv);
-  });
-  
-  window.saveAndRefresh('copym');
-  window.showToast('✅ פעילות שוכפלה (כולל סינרגיה)');
 }
 
 function openSupExport(supName){
@@ -782,54 +626,6 @@ function openSupExport(supName){
   const rows=evs.map(s=>({ 'עיר':window.G(s.g).city, 'גן':window.G(s.g).name, 'ספק':s.a, 'פעילות':s.act||'', 'שעה':s.t }));
   window.exportToExcel(rows, `export_${supName}`);
 }
-
-// --- SYNERGY UI HELPER ---
-function renderPartnerSynergy(gid, prefix, currentTimes = {}) {
-  const pair = window.gardenPair(gid);
-  if (!pair) return '';
-  const partners = pair.ids.filter(id => Number(id) !== Number(gid));
-  if (!partners.length) return '';
-  
-  let html = `<div style="background:#f0f4f8;border:1px solid #d1d9e6;border-radius:7px;padding:9px;margin-bottom:10px">`;
-  html += `<div style="font-size:.78rem;font-weight:700;color:#1a237e;margin-bottom:6px">📌 סינרגיה: גנים מקושרים</div>`;
-  html += `<div style="display:flex;flex-direction:column;gap:8px">`;
-  
-  partners.forEach(pId => {
-    const pG = window.G(pId);
-    if (!pG) return;
-    const timeVal = currentTimes[pId] || '';
-    html += `
-      <div style="display:flex;align-items:center;gap:8px;background:#fff;padding:6px;border-radius:5px;border:1px solid #e0e0e0">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1">
-          <input type="checkbox" id="${prefix}-syn-chk-${pId}" class="${prefix}-syn-chk" value="${pId}" checked style="accent-color:#1565c0;width:15px;height:15px">
-          <span style="font-size:.8rem;font-weight:600">${pG.name}</span>
-        </label>
-        <div style="display:flex;align-items:center;gap:5px">
-          <label style="font-size:.7rem;color:#546e7a">שעה:</label>
-          <input type="time" id="${prefix}-syn-time-${pId}" class="${prefix}-syn-time" data-gid="${pId}" value="${timeVal}" style="padding:2px 4px;font-size:.8rem;border:1px solid #ccc;border-radius:4px;width:110px">
-        </div>
-      </div>
-    `;
-  });
-  html += `</div></div>`;
-  return html;
-}
-
-function getSynergyData(prefix) {
-  const data = [];
-  const chks = document.querySelectorAll(`.${prefix}-syn-chk`);
-  chks.forEach(chk => {
-    if (chk.checked) {
-      const pId = chk.value;
-      const timeInput = document.getElementById(`${prefix}-syn-time-${pId}`);
-      data.push({ g: Number(pId), t: timeInput ? timeInput.value : '' });
-    }
-  });
-  return data;
-}
-
-window.renderPartnerSynergy = renderPartnerSynergy;
-window.getSynergyData = getSynergyData;
 
 window.setDashTab = setDashTab;
 window.renderDash = renderDash;
@@ -842,9 +638,7 @@ window.markNoHap = markNoHap;
 window.cancelEv = cancelEv;
 window.openMakeupSched = openMakeupSched;
 window.openPostpone = openPostpone;
-window.doPostpone = doPostpone;
 window.openCopy = openCopy;
-window.doCopy = doCopy;
 window.markCompManual = markCompManual;
 window.openSupExport = openSupExport;
 window.saveAndRefresh = saveAndRefresh;
