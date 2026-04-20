@@ -117,13 +117,14 @@ function setView(v){
 }
 function navCal(d){
   if(calV==='day') calD=addD(calD,d);
-  else if(calV==='week') calD=addD(calD,d*7); // Jump 1 week to stay on same starting day
+  else if(calV==='week') calD=addD(calD,d); // Jump 1 day at a time
   else if(calV==='list'){
     const lsv=_listSubView||'week';
     if(lsv==='day') calD=addD(calD,d);
-    else if(lsv==='week') calD=addD(calD,d*7); // Jump 1 week to stay on same starting day
+    else if(lsv==='week') calD=addD(calD,d); // Jump 1 day at a time
     else calD=addM(calD,d);
   }
+
 
   else calD=addM(calD,d);
   renderCal();

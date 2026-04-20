@@ -115,7 +115,8 @@ function setGmView(v){
 }
 function gmNav(d){
   if(window.gmV==='day') window.gmD=window.addD(window.gmD,d);
-  else if(window.gmV==='week') window.gmD=window.addD(window.gmD,d*7);
+  else if(window.gmV==='week') window.gmD=window.addD(window.gmD,d);
+
   else window.gmD=window.addM(window.gmD,d);
   renderGM();
 }
