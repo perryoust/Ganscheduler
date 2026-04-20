@@ -464,21 +464,27 @@ function getFiltSched(){
     if(sup&&window.supBase(s.a)!==sup&&s.a!==sup) return false;
     if(th&&s.t&&s.t<th) return false;
     if(tt&&s.t&&s.t>tt) return false;
+    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false" && s._compByMakeup !== "");
+    const isExc = (s.st === 'nohap' || s.st === 'post') && !isHandled;
+
+    // Status Logic
+    if(st==='todo'){
+      if(isExc) return true; // Pending items always show in todo backlog
+      if (isM(s)) {
+        if (s.st === 'done') return false; 
+        // For actual makeup todo, we still might want to honor dates if provided
+        if(from&&s.d<from) return false;
+        if(to&&s.d>to) return false;
+        return true;
+      }
+      return false;
+    }
+
+    // Regular filtering (non-todo view)
     if(from&&s.d<from) return false;
     if(to&&s.d>to) return false;
 
-    // Status Logic
-    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false" && s._compByMakeup !== "");
-    if(st==='todo'){
-      if (isM(s)) {
-        if (s.st === 'done') return false; // Hide if makeup already occurred
-        return true;
-      } else if ((s.st === 'nohap' || s.st === 'post') && !isHandled) {
-        return true;
-      } else {
-        return false; // Hide everything else in 'todo' view
-      }
-    } else if(!st) {
+    if(!st) {
        // Default View (All) - hide canceled and already handled items
        if(s.st==='can' || isHandled) return false;
     } else {
