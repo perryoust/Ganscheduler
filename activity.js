@@ -254,6 +254,24 @@ function openSP(id){
     <button class="btn bo bsm" onclick="window.setStatus('ok')">🔄 שחזר</button>
   </div>`;
 
+  const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+  const isExc = (s.st === 'nohap' || s.st === 'post') && !s._compByMakeup;
+  
+  // Handling Section (Removal from board)
+  if (isExc || (isM && s.st !== 'done')) {
+    h+=`<div style="background:#fff8e1;border:1.5px solid #ffe082;border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-size:.82rem;font-weight:800;color:#e65100;margin-bottom:8px">🛠️ טיפול בחריג / השלמה</div>
+      ${spPair ? `
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer;background:#fff;padding:6px 10px;border-radius:6px;border:1px solid #ffe082">
+          <input type="checkbox" id="sp-sync-pair" style="width:17px;height:17px;accent-color:#e65100">
+          <span style="font-size:.8rem;font-weight:700;color:#bf360c">🔗 החל גם על בן-הזוג (${spPair.name.replace(g.name,'').replace('+','').trim()})</span>
+        </label>
+      ` : ''}
+      <button class="btn borange" style="width:100%;padding:10px;font-weight:800" onclick="window.markCompManual(${s.id})">🗑️ הסרה מהלוח (סיום טיפול)</button>
+      <div style="font-size:.7rem;color:#795548;margin-top:6px;text-align:center">הפעילות תסומן כטופלה ותוסר מרשימת ה-To-Do</div>
+    </div>`;
+  }
+
   h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
     <button class="btn borange bsm" onclick="window.openPostpone(${s.id})">⏩ דחה לתאריך אחר</button>
     <button class="btn bp bsm" onclick="window.openCopy(${s.id})">📋 העתק לתאריך אחר</button>
@@ -403,7 +421,31 @@ function saveNt(){
 
 function markCompManual(id){
   const s=window.SCH.find(x=>x.id===id); if(!s) return;
-  s._compByMakeup = 'manual_' + Date.now();
+  const syncCheck = document.getElementById('sp-sync-pair');
+  const doSync = syncCheck && syncCheck.checked;
+  const stamp = 'manual_' + Date.now();
+  
+  s._compByMakeup = stamp;
+
+  if (doSync) {
+    const pair = window.gardenPair(s.g);
+    if (pair) {
+      const otherIds = pair.ids.map(id=>Number(id)).filter(id=>id!==Number(s.g));
+      otherIds.forEach(ogid => {
+        // Find matching activity by date, time, supplier, and activity name
+        const partnerEv = window.SCH.find(ps => 
+          Number(ps.g)===ogid && 
+          ps.d === s.d && 
+          (ps.t === s.t || (!ps.t && !s.t)) && 
+          window.supBase(ps.a) === window.supBase(s.a) &&
+          (ps.act || '') === (s.act || '') &&
+          ps.st !== 'can'
+        );
+        if (partnerEv) partnerEv._compByMakeup = stamp;
+      });
+    }
+  }
+
   window.saveAndRefresh('sp');
 }
 
