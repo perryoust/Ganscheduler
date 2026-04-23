@@ -85,10 +85,13 @@ function renderDash(){
         byCity[c].push({...s, gd:g});
       });
       Object.keys(byCity).sort().forEach(c=>{
-        h+=`<div class="dcity" style="margin-bottom:5px;background:#f5f5f5;padding:4px 10px;border-radius:4px">🏙️ ${c}</div>`;
+        h+=`<details class="city-accordion" open>
+          <summary><span>🏙️ ${c} (${byCity[c].length})</span></summary>
+          <div class="city-accordion-content">`;
         byCity[c].forEach(item=>{
            try { h+=_dashListRow(item); } catch(e){ console.error(e); }
         });
+        h+=`</div></details>`;
       });
       h+=`</div>`;
     } else {
@@ -117,8 +120,9 @@ function renderDash(){
           </div>`;
         Object.keys(byCity).sort().forEach(c=>{
           const ce=byCity[c];
-          h+=`<div style="margin-bottom:8px">
-            <div class="dcity" style="margin-bottom:5px">🏙️ ${c} (${ce.length})</div>`;
+          h+=`<details class="city-accordion" open>
+            <summary><span>🏙️ ${c} (${ce.length})</span></summary>
+            <div class="city-accordion-content">`;
           const usedIds=new Set();
           const rows=[];
           window.pairs.forEach(pair=>{
@@ -158,7 +162,7 @@ function renderDash(){
               </div>`;
             }
           });
-          h+='</div>';
+          h+='</div></details>';
         });
         h+=`</div>`;
       });
@@ -517,7 +521,7 @@ function deleteRecurSeries(id) {
 
 function openReplaceRecur(id) {
   const s = window.SCH.find(x => x.id == id);
-  if(!s || !s._recId) return alert('פעילות זו אינה חלק מסדרה קבועה');
+  if(!s || !s._recId) return alert('פעילות זו אינה חלק מפעילות קבועה');
   const g = window.G(s.g);
   const allSups = window.getAllSup().filter(s2 => window.isActSupplier(s2.name));
   const spPair = window.gardenPair(s.g);

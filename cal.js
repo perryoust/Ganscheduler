@@ -403,13 +403,9 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
         const cityEvs=dayEvs.filter(s=>(window.G(s.g).city||'אחר')===city);
         if(!cityEvs.length) return;
         const clr=window.CITY_COLORS(city);
-        html+=`<div style="margin:0 0 10px 0">`;
-        if(!cityFilter){
-          html+=`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;background:${clr.light};border-right:3px solid ${clr.solid};border-radius:5px;margin-bottom:6px">
-            <span style="font-weight:800;color:${clr.solid};font-size:.8rem">🏙️ ${city}</span>
-            <span style="font-size:.7rem;color:#78909c">${cityEvs.length} פעילויות</span>
-          </div>`;
-        }
+        html+=`<details class="city-accordion" ${cityFilter?'open':''}>
+          <summary><span>🏙️ ${city} (${cityEvs.length})</span></summary>
+          <div class="city-accordion-content">`;
 
         // --- זוגות: מיון לפי שעה הכי מוקדמת בזוג ---
         const pairedGids=new Set();
@@ -454,7 +450,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
           });
           html+=`</div>`;
         }
-        html+=`</div>`; // end city block
+        html+=`</div></details>`; // end city accordion
       });
     }
 
@@ -493,12 +489,13 @@ function renderClusterDay(evs, ds, clusterName){
     // ── כל האשכולות: עיר → אשכול → שעה ──
     const others=evs.filter(s=> s.d===ds);
     const allCities=[...new Set(others.map(s=>window.G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
-    allCities.forEach(city=>{
-      const cityEvs=others.filter(s=>(window.G(s.g).city||'אחר')===city);
-      if(!cityEvs.length) return;
-      const clrCity=window.CITY_COLORS(city);
-      html+=`<div style="margin-bottom:14px">
-        <div style="padding:5px 10px;background:${clrCity.solid};color:#fff;border-radius:6px;font-size:.82rem;font-weight:800;margin-bottom:8px">🏙️ ${city}</div>`;
+      allCities.forEach(city=>{
+        const cityEvs=others.filter(s=>(window.G(s.g).city||'אחר')===city);
+        if(!cityEvs.length) return;
+        const clrCity=window.CITY_COLORS(city);
+        html+=`<details class="city-accordion" open>
+          <summary><span>🏙️ ${city} (${cityEvs.length})</span></summary>
+          <div class="city-accordion-content">`;
       // Group by cluster within city
       const clusterMap={};
       cityEvs.forEach(s=>{
@@ -531,7 +528,7 @@ function renderClusterDay(evs, ds, clusterName){
           });
         html+=`</div></div>`;
       });
-      html+=`</div>`;
+      html+=`</div></details>`;
     });
   } else {
     // ── אשכול בודד: לפי שעה ──
@@ -608,8 +605,9 @@ function renderClusterWeek(evs, weekStart, clusterName){
         const cityEvs=dayEvs.filter(s=>(window.G(s.g).city||'אחר')===city);
         if(!cityEvs.length) return;
         const clrCity=window.CITY_COLORS(city);
-        html+=`<div style="margin-bottom:8px">
-          <div style="padding:3px 8px;background:${clrCity.solid};color:#fff;border-radius:4px;font-size:.73rem;font-weight:700;margin-bottom:4px">🏙️ ${city}</div>`;
+        html+=`<details class="city-accordion" open>
+          <summary><span>🏙️ ${city} (${cityEvs.length})</span></summary>
+          <div class="city-accordion-content">`;
         const clusterMap={};
         cityEvs.forEach(s=>{
           const clKey=(window.gardenClusters(s.g)[0]||{}).name||'ללא אשכול';
@@ -722,15 +720,12 @@ function renderNormalDay(evs,ds){
     Object.keys(cardsByCity).sort().forEach(city=>{
       const cards=cardsByCity[city];
       if(!cards||!cards.length) return;
-      const clr=window.CITY_COLORS(city);
-      html+=`<div style="margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <div style="flex:1;height:2px;background:${clr.solid};opacity:.3"></div>
-          <span style="font-size:.75rem;font-weight:800;color:${clr.solid};white-space:nowrap">🏙️ ${city}</span>
-          <div style="flex:1;height:2px;background:${clr.solid};opacity:.3"></div>
+      html+=`<details class="city-accordion" open>
+        <summary><span>🏙️ ${city} (${cards.length})</span></summary>
+        <div class="city-accordion-content">
+          <div class="pairs-5col">${cards.join('')}</div>
         </div>
-        <div class="pairs-5col">${cards.join('')}</div>
-      </div>`;
+      </details>`;
     });
   }
 

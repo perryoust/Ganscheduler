@@ -589,8 +589,9 @@ function renderSched(){
     </div>`;
     Object.keys(byDate[dateKey]).sort().forEach(city=>{
       const cityData=byDate[dateKey][city];
-      h+=`<div style="margin-bottom:8px">
-        <div style="font-size:.75rem;font-weight:700;color:#546e7a;padding:3px 8px;background:#eceff1;border-radius:4px;margin-bottom:4px">🏙️ ${city}</div>`;
+      h+=`<details class="city-accordion" open>
+        <summary><span>🏙️ ${city}</span></summary>
+        <div class="city-accordion-content">`;
       [{arr:cityData.gan,lbl:'🏫 צהרונים',cls:'gan'},{arr:cityData.sch,lbl:'🏛️ בתי ספר',cls:'sch'}].forEach(sec=>{
         if(!sec.arr.length) return;
         h+=`<div class="dsh ${sec.cls}" style="font-size:.7rem;margin-bottom:3px">${sec.lbl}</div>
@@ -615,7 +616,7 @@ function renderSched(){
         });
         h+='</tbody></table></div>';
       });
-      h+='</div>';
+      h+='</div></details>';
     });
   });
   if(!h) h='<p style="color:#999;text-align:center;padding:20px">אין פעילויות</p>';

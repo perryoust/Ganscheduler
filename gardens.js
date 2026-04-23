@@ -27,8 +27,9 @@ function renderGardens(){
 
   let h='';
   Object.keys(byCity).sort().forEach(cityKey=>{
-    h+=`<div style="margin-bottom:16px">
-      <div style="font-weight:800;color:#1a237e;font-size:.85rem;padding:6px 10px;background:#e8eaf6;border-radius:6px;margin-bottom:8px">🏙️ ${cityKey}</div>`;
+    h+=`<details class="city-accordion" open>
+      <summary><span>🏙️ ${cityKey}</span></summary>
+      <div class="city-accordion-content">`;
     [{arr:byCity[cityKey].gan,lbl:'🏫 גני ילדים',cls:'gan'},{arr:byCity[cityKey].sch,lbl:'🏛️ בתי ספר',cls:'sch'}].forEach(sec=>{
       if(!sec.arr.length) return;
       h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;margin-top:${sec.cls==='sch'?'14px':'0'}"><div style="height:2px;flex:1;background:${sec.cls==='sch'?'#1565c0':'#2e7d32'};opacity:.25"></div><span class="dsh ${sec.cls}" style="font-size:.76rem;font-weight:800;padding:3px 12px;border-radius:10px">${sec.lbl} (${sec.arr.length})</span><div style="height:2px;flex:1;background:${sec.cls==='sch'?'#1565c0':'#2e7d32'};opacity:.25"></div></div>
@@ -294,12 +295,9 @@ function renderPairs(){
 
   let h='';
   Object.keys(byCity).sort().forEach(city=>{
-    const clr=window.CITY_COLORS(city);
-    h+=`<div style="margin-bottom:18px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:7px 11px;background:${clr.light};border-radius:8px;border-right:3px solid ${clr.solid}">
-        <span style="font-weight:800;color:${clr.solid};font-size:.85rem">🏙️ ${city}</span>
-        <span style="font-size:.72rem;color:${clr.solid};opacity:.75">${byCity[city].length} זוגות/שלישיות</span>
-      </div>`;
+    h+=`<details class="city-accordion" open>
+      <summary><span>🏙️ ${city} (${byCity[city].length} זוגות/שלישיות)</span></summary>
+      <div class="city-accordion-content">`;
     byCity[city].forEach(p=>{
       const idx=window.pairs.indexOf(p);
       const gs=p.ids.map(id=>window.G(id)).filter(x=>x.id);
@@ -688,8 +686,9 @@ function renderClusters(){
   } else {
     // ═══ תצוגת כרטיסים (מקורית) ═══
     Object.keys(byCity).sort().forEach(city=>{
-      h+=`<div style="margin-bottom:16px">
-        <div style="font-weight:800;color:#1a237e;font-size:.85rem;padding:6px 10px;background:#e8eaf6;border-radius:6px;margin-bottom:8px">🏙️ ${city}</div>
+      h+=`<details class="city-accordion" open>
+        <summary><span>🏙️ ${city}</span></summary>
+        <div class="city-accordion-content">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px">`;
       [...(byCity[city].gan||[]),...(byCity[city].sch||[])].forEach(cl=>{
         const gs=(cl.gardenIds||[]).map(id=>G(id)).filter(x=>x.id).sort((a,b)=>a.name.localeCompare(b.name,'he'));
