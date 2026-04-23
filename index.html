@@ -2098,10 +2098,10 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div class="inv-section">
       <div class="inv-section-title">🚀 חשבונית עסקה</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="fg"><label>מספר חשבונית עסקה</label><input type="text" id="inv-tx-num" placeholder="מס' חשבונית עסקה" style="width:100%" oninput="autoUpdateInvStatus()"></div>
-        <div class="fg"><label>תאריך חשבונית עסקה</label><input type="date" id="inv-tx-date" style="width:100%"></div>
+        <div class="fg"><label for="inv-tx-num">מספר חשבונית עסקה</label><input type="text" id="inv-tx-num" placeholder="מס' חשבונית עסקה" style="width:100%" oninput="autoUpdateInvStatus()"></div>
+        <div class="fg"><label for="inv-tx-date">תאריך חשבונית עסקה</label><input type="date" id="inv-tx-date" style="width:100%"></div>
         <div class="fg">
-          <label>סכום חשבונית עסקה</label>
+          <label for="inv-tx-amt">סכום חשבונית עסקה</label>
           <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
             <div style="display:flex;gap:2px"><button class="vbtn active" id="vat-tx-ex" onclick="setTxVatMode('ex')" style="font-size:.7rem;padding:2px 6px">לפני מעØמ</button><button class="vbtn" id="vat-tx-inc" onclick="setTxVatMode('inc')" style="font-size:.7rem;padding:2px 6px">כולל מעØמ</button></div>
             <input type="number" id="inv-tx-amt" placeholder="0.00" oninput="calcTxVat()" style="width:110px">
@@ -2132,7 +2132,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         </div>
       </div>
       <div class="fg" style="margin-top:8px">
-        <label>📝 הערות חשבונית עסקה</label>
+        <label for="inv-tx-notes">📝 הערות חשבונית עסקה</label>
         <textarea id="inv-tx-notes" rows="2" placeholder="הערות לחשבונית עסקה..." style="width:100%"></textarea>
       </div>
     </div>
@@ -2150,10 +2150,10 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <button class="vbtn" id="inv-doc-rec" onclick="setInvDocType('receipt')" style="font-size:.75rem">🚀 קבלה בלבד</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="fg"><label>מספר חשבונית מס / קבלה</label><input type="text" id="inv-num" placeholder="מס' חשבונית מס" style="width:100%" oninput="autoUpdateInvStatus()"></div>
-        <div class="fg"><label>תאריך חשבונית מס / קבלה</label><input type="date" id="inv-date" style="width:100%"></div>
+        <div class="fg"><label for="inv-num">מספר חשבונית מס / קבלה</label><input type="text" id="inv-num" placeholder="מס' חשבונית מס" style="width:100%" oninput="autoUpdateInvStatus()"></div>
+        <div class="fg"><label for="inv-date">תאריך חשבונית מס / קבלה</label><input type="date" id="inv-date" style="width:100%"></div>
         <div class="fg">
-          <label>סכום</label>
+          <label for="inv-amt">סכום</label>
           <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
             <div style="display:flex;gap:2px"><button class="vbtn active" id="vat-inv-ex" onclick="setInvVatMode('ex')" style="font-size:.7rem;padding:2px 6px">לפני מעØמ</button><button class="vbtn" id="vat-inv-inc" onclick="setInvVatMode('inc')" style="font-size:.7rem;padding:2px 6px">כולל מעØמ</button></div>
             <input type="number" id="inv-amt" placeholder="0.00" oninput="calcInvTotal()" style="width:110px">
@@ -2185,15 +2185,15 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         </div>
       </div>
       <div class="fg" style="margin-top:8px">
-        <label>🚀 הערות חשבונית מס / קבלה</label>
+        <label for="inv-notes">🚀 הערות חשבונית מס / קבלה</label>
         <textarea id="inv-notes" rows="2" placeholder="הערות לחשבונית מס..." style="width:100%"></textarea>
       </div>
     </div>
 
     <!-- Status + dates + notes -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-      <div class="fg"><label>תאריך טיפול</label><input type="date" id="inv-recv" style="width:100%"></div>
-      <div class="fg"><label>סטטוס</label>
+      <div class="fg"><label for="inv-recv">תאריך טיפול</label><input type="date" id="inv-recv" style="width:100%"></div>
+      <div class="fg"><label for="inv-status">סטטוס</label>
         <select id="inv-status" style="width:100%" onchange="invStatusChg()">
           <option value="order">🚀 הזמנה</option>
           <option value="tx_invoice">🚀 חשבונית עסקה</option>
@@ -2205,7 +2205,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       </div>
     </div>
     <div id="inv-cancel-reason-wrap" style="display:none;margin-bottom:10px">
-      <div class="fg"><label>סיבת ביטול</label><input type="text" id="inv-cancel-reason" placeholder="סיבת ביטול..." style="width:100%"></div>
+      <div class="fg"><label for="inv-cancel-reason">סיבת ביטול</label><input type="text" id="inv-cancel-reason" placeholder="סיבת ביטול..." style="width:100%"></div>
     </div>
 
     <div style="margin-bottom:10px">
@@ -2408,18 +2408,18 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 </div>
 
 <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-<script src="data.js?v=94.0"></script>
-<script src="firebase.js?v=94.0"></script>
-<script src="invoices.js?v=94.0"></script>
-<script src="suppliers.js?v=94.0"></script>
-<script src="cal.js?v=94.0"></script>
-<script src="activity.js?v=94.0"></script>
-<script src="sched.js?v=94.0"></script>
-<script src="gardens.js?v=94.0"></script>
-<script src="export.js?v=94.0"></script>
-<script src="backup.js?v=94.0"></script>
-<script src="admin.js?v=94.0"></script>
-<script src="core.js?v=94.0"></script>
+<script src="data.js?v=95.0"></script>
+<script src="firebase.js?v=95.0"></script>
+<script src="invoices.js?v=95.0"></script>
+<script src="suppliers.js?v=95.0"></script>
+<script src="cal.js?v=95.0"></script>
+<script src="activity.js?v=95.0"></script>
+<script src="sched.js?v=95.0"></script>
+<script src="gardens.js?v=95.0"></script>
+<script src="export.js?v=95.0"></script>
+<script src="backup.js?v=95.0"></script>
+<script src="admin.js?v=95.0"></script>
+<script src="core.js?v=95.0"></script>
 <script>
   var _dashTab = _dashTab || 'g'; // Master global state
   

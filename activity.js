@@ -218,34 +218,11 @@ function _renderMiniTable(evs){
   return h + '</tbody></table></div>';
 }
 
-function markCompManual(id){
-  const s=window.SCH.find(x=>Number(x.id)===Number(id)); if(!s) return;
-  const nt=document.getElementById('sp-handle-nt').value;
-  s.st='done';
-  s._compByManual=true;
-  if(nt) s.nt = s.nt ? s.nt + ' | ' + nt : nt;
-  
-  const syncPair = document.getElementById('sp-sync-pair');
-  if(syncPair && syncPair.checked){
-    const spPair = window.gardenPair(s.g);
-    if(spPair){
-      const otherIds = spPair.ids.map(Number).filter(oid => oid !== Number(s.g));
-      otherIds.forEach(oid => {
-        const pEv = window.SCH.find(ps => Number(ps.g)===oid && ps.d === s.d && (ps.t === s.t || (!ps.t && !s.t)) && window.supBase(ps.a) === window.supBase(s.a) && ps.st !== 'can' && ps.st !== 'done');
-        if(pEv){
-          pEv.st='done';
-          pEv._compByManual=true;
-          if(nt) pEv.nt = pEv.nt ? pEv.nt + ' | ' + nt : nt;
-        }
-      });
-    }
-  }
-  window.saveAndRefresh('sp');
-}
+
 
 function openSP(id){
   window.selEv=id;
-  const s=window.SCH.find(x=>Number(x.id)===Number(id));if(!s)return;
+  const s=window.SCH.find(x=>x.id==id);if(!s)return;
   const g=window.G(s.g);
   const spPair=window.gardenPair(s.g);
 
@@ -292,7 +269,7 @@ function openSP(id){
 
   // --- STEP 2: Notes & Quick Status ---
   h += `<div style="display:grid;grid-template-columns:1fr 140px;gap:10px;margin-bottom:15px;background:#fff;border-radius:10px;padding:12px;border:1px solid #eee">
-    <textarea id="sp-nt" rows="3" style="width:100%;font-size:.88rem;border-radius:8px;border:1.5px solid #e0e0e0;padding:10px;resize:none" placeholder="הערות לפעילות...">${s.nt||''}</textarea>
+    <div class="fg"><label for="sp-nt" style="display:none">הערות</label><textarea id="sp-nt" rows="3" style="width:100%;font-size:.88rem;border-radius:8px;border:1.5px solid #e0e0e0;padding:10px;resize:none" placeholder="הערות לפעילות...">${s.nt||''}</textarea></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;align-content:start">
       <button class="btn bp bsm" style="font-size:0.65rem;padding:2px" onclick="window.saveNt()" title="שמור הערה">💾 שמור</button>
       <button class="btn bg bsm" style="font-size:0.65rem;padding:2px" onclick="window.setStatus('done')" title="בוצע">✔️ בוצע</button>
@@ -315,13 +292,13 @@ function openSP(id){
       </div>
       <div id="sp-acc-handling" style="display:none;padding:12px;background:#fff;border-top:1px solid #ffe082">
         ${spPair ? `
-          <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer;background:#fff8e1;padding:8px 12px;border-radius:6px;border:1px solid #ffe082">
+          <label for="sp-sync-pair" style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer;background:#fff8e1;padding:8px 12px;border-radius:6px;border:1px solid #ffe082">
             <input type="checkbox" id="sp-sync-pair" style="width:18px;height:18px;accent-color:#e65100" checked>
             <span style="font-size:0.82rem;font-weight:700;color:#bf360c">🔗 החל סיום טיפול גם על בן-הזוג / שותפים</span>
           </label>
         ` : ''}
         <div style="margin-bottom:12px">
-          <label style="font-size:0.75rem;color:#795548;display:block;margin-bottom:4px;font-weight:700">📝 פעולת סיום טיפול / השלמה ידנית:</label>
+          <label for="sp-handle-nt" style="font-size:0.75rem;color:#795548;display:block;margin-bottom:4px;font-weight:700">📝 פעולת סיום טיפול / השלמה ידנית:</label>
           <input type="text" id="sp-handle-nt" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid #ffe082;font-size:0.85rem" placeholder="לדוגמה: בוצע ידנית ב-20/4..." value="${s.st==='post'?'נדחה':''}">
         </div>
         <button class="btn borange" style="width:100%;padding:12px;font-weight:900;font-size:0.95rem;box-shadow:0 2px 4px rgba(230,81,0,0.15)" onclick="window.markCompManual(${s.id})">🗑️ סיום טיפול והסרה מהלוח</button>
@@ -374,21 +351,21 @@ function openSP(id){
     </div>
     <div id="sp-acc-edit" style="display:none;padding:12px;background:#fff;border-top:1px solid #e0e0e0">
       <div style="display:flex;flex-direction:column;gap:10px">
-        <div class="fg"><label style="font-size:.75rem;font-weight:700">תאריך</label><input type="date" id="sp-edit-date" value="${s.d}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc"></div>
-        <div class="fg"><label style="font-size:.75rem;font-weight:700">ספק</label>
+        <div class="fg"><label for="sp-edit-date" style="font-size:.75rem;font-weight:700">תאריך</label><input type="date" id="sp-edit-date" value="${s.d}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc"></div>
+        <div class="fg"><label for="sp-edit-sup" style="font-size:.75rem;font-weight:700">ספק</label>
           <select id="sp-edit-sup" onchange="window.spEditSupChg()" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc">
             ${allSups.map(sup => `<option value="${sup.name}" ${sup.name===s.a ? 'selected':''}>${sup.name}</option>`).join('')}
           </select>
         </div>
-        <div class="fg"><label style="font-size:.75rem;font-weight:700">פעילות</label>
+        <div class="fg"><label for="sp-edit-act" style="font-size:.75rem;font-weight:700">פעילות</label>
           <select id="sp-edit-act" onchange="window.spEditActChg()" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc">
             <option value="">— ללא שינוי —</option>
             ${initialActs.map(a => `<option value="${a}" ${a===s.act ? 'selected':''}>${a}</option>`).join('')}
             <option value="__new__">➕ פעילות חדשה...</option>
           </select>
         </div>
-        <div class="fg" id="sp-edit-act-new-wrap" style="display:none"><label style="font-size:.75rem;font-weight:700">שם הפעילות החדשה</label><input type="text" id="sp-edit-act-new" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc"></div>
-        <div class="fg"><label style="font-size:.75rem;font-weight:700">שעה מעודכנת (${g.name})</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc"></div>
+        <div class="fg" id="sp-edit-act-new-wrap" style="display:none"><label for="sp-edit-act-new" style="font-size:.75rem;font-weight:700">שם הפעילות החדשה</label><input type="text" id="sp-edit-act-new" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc"></div>
+        <div class="fg"><label for="sp-edit-time" style="font-size:.75rem;font-weight:700">שעה מעודכנת (${g.name})</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc"></div>
         ${spPair ? window.renderPartnerSynergy(s.g, 'sped', currentTimesSP) : ''}
         <button class="btn bg" style="width:100%;padding:10px;font-weight:800;margin-top:8px" onclick="window.spEditSave()">💾 שמור שינויים</button>
       </div>
@@ -452,7 +429,7 @@ function spEditActChg(){
 }
 
 function deleteRecurSeries(id) {
-  const s = window.SCH.find(x => Number(x.id) === Number(id));
+  const s = window.SCH.find(x => x.id == id);
   if(!s || !s._recId) return alert('לא מזוהה סדרה');
   const affected=window.SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
   if(!confirm(`האם למחוק ${affected.length} פעילויות קבועות מ-${window.fD(s.d)} ואילך?`)) return;
@@ -461,7 +438,7 @@ function deleteRecurSeries(id) {
 }
 
 function openReplaceRecur(id) {
-  const s = window.SCH.find(x => Number(x.id) === Number(id));
+  const s = window.SCH.find(x => x.id == id);
   if(!s || !s._recId) return alert('פעילות זו אינה חלק מסדרה קבועה');
   const affected=window.SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
   const allSups=window.getAllSup().filter(s2=>window.isActSupplier(s2.name));
@@ -471,9 +448,9 @@ function openReplaceRecur(id) {
     <span style="font-size:.75rem;font-weight:400;color:#546e7a">גן: ${g.name}</span>
   </div>
   <div style="display:grid;gap:8px">
-    <select id="rr-sup" onchange="window.rrSupChg()" style="width:100%">${allSups.map(s2=>`<option value="${s2.name}"${s2.name===s.a?' selected':''}>${s2.name}</option>`).join('')}</select>
-    <select id="rr-act" style="width:100%"><option value="">— ללא שינוי —</option>${window.getSupActs(s.a).map(a=>`<option value="${a}"${a===s.act?' selected':''}>${a}</option>`).join('')}</select>
-    <input type="time" id="rr-time" value="${s.t||''}" style="width:100%">
+    <select id="rr-sup" onchange="window.rrSupChg()" title="בחר ספק" style="width:100%">${allSups.map(s2=>`<option value="${s2.name}"${s2.name===s.a?' selected':''}>${s2.name}</option>`).join('')}</select>
+    <select id="rr-act" title="בחר פעילות" style="width:100%"><option value="">— ללא שינוי —</option>${window.getSupActs(s.a).map(a=>`<option value="${a}"${a===s.act?' selected':''}>${a}</option>`).join('')}</select>
+    <input type="time" id="rr-time" title="בחר שעה" value="${s.t||''}" style="width:100%">
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
     <button class="btn br bsm" onclick="CM('rrm')">ביטול</button>
@@ -492,7 +469,7 @@ function rrSupChg(){
 }
 
 function saveReplaceRecur(id){
-  const s=window.SCH.find(x=>Number(x.id)===Number(id)); if(!s) return;
+  const s=window.SCH.find(x=>x.id==id); if(!s) return;
   const newSup=document.getElementById('rr-sup').value;
   const newAct=document.getElementById('rr-act').value;
   const newTime=document.getElementById('rr-time').value;
@@ -502,7 +479,7 @@ function saveReplaceRecur(id){
 }
 
 function spEditSave(){
-  const s=window.SCH.find(x=>Number(x.id)===Number(window.selEv)); if(!s) return;
+  const s=window.SCH.find(x=>x.id==window.selEv); if(!s) return;
   const origDate = s.d;
   const origSup = s.a;
   
@@ -548,12 +525,12 @@ function selCO(el,r){document.querySelectorAll('.copt:not([onclick*=selNO])').fo
 function selNO(el,r){document.querySelectorAll('.copt[onclick*=selNO]').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');el.dataset.r=r;}
 
 function cancelEv(){
-  const s=window.SCH.find(x=>Number(x.id)===Number(window.selEv)); if(!s) return;
+  const s=window.SCH.find(x=>x.id==window.selEv); if(!s) return;
   s.st='can'; window.saveAndRefresh('sp');
 }
 
 function markNoHap(){
-  const s=window.SCH.find(x=>Number(x.id)===Number(window.selEv)); if(!s) return;
+  const s=window.SCH.find(x=>x.id==window.selEv); if(!s) return;
   s.st='nohap'; window.saveAndRefresh('sp');
 }
 
@@ -561,7 +538,7 @@ function setStatus(idOrSt, maybeSt){
   let id, st;
   if (maybeSt) { id = idOrSt; st = maybeSt; } 
   else { id = window.selEv; st = idOrSt; }
-  const main=window.SCH.find(x=>Number(x.id)===Number(id));
+  const main=window.SCH.find(x=>x.id==id);
   if(main){
     main.st=st;
     if(st==='ok') { main.cr=''; main.cn=''; }
@@ -570,13 +547,13 @@ function setStatus(idOrSt, maybeSt){
 }
 
 function saveNt(){
-  const s=window.SCH.find(x=>Number(x.id)===Number(window.selEv)); if(!s) return;
+  const s=window.SCH.find(x=>x.id==window.selEv); if(!s) return;
   const nt=document.getElementById('sp-nt').value;
   s.nt=nt; window.saveAndRefresh('sp');
 }
 
 function markCompManual(id){
-  const s=window.SCH.find(x=>Number(x.id)===Number(id)); if(!s) return;
+  const s=window.SCH.find(x=>x.id==id); if(!s) return;
   const syncCheck = document.getElementById('sp-sync-pair');
   const handleNtEl = document.getElementById('sp-handle-nt');
   const doSync = syncCheck && syncCheck.checked;
@@ -618,7 +595,7 @@ function markCompManual(id){
 }
 
 function upd(id,fields){
-  const i=window.SCH.findIndex(s=>Number(s.id)===Number(id));
+  const i=window.SCH.findIndex(s=>s.id==id);
   if(i>=0) Object.assign(window.SCH[i],fields);
 }
 
@@ -649,16 +626,17 @@ function saveAndRefresh(modalId){
 }
 
 function openMakeupSched(origId){
-  const orig=window.SCH.find(s=>Number(s.id)===Number(origId)); if(!orig) return;
+  const orig=window.SCH.find(s=>s.id==origId); if(!orig) return;
   window._makeupOrigId = origId;
   window.openNewSched(orig.g, {date:window.td(), tab:'makeup', makeupFrom:orig.d, time:orig.t});
 }
 
 function openPostpone(id){
   window.selEvPost=id;
-  const s=window.SCH.find(x=>Number(x.id)===Number(id)); if(!s) return;
+  const s=window.SCH.find(x=>x.id==id); if(!s) return;
   const g=window.G(s.g);
   document.getElementById('post-ev-info').innerHTML=`<b>${g.name}</b> · ${g.city} · ${s.a}`;
+  // Ensure the input has a label associated with it in index.html (verified later)
   document.getElementById('post-date').value='';
   
   // Set up Synergy UI
@@ -681,7 +659,7 @@ function openPostpone(id){
 
 function openCopy(id){
   window._copySrcId=id;
-  const s=window.SCH.find(x=>Number(x.id)===Number(id)); if(!s) return;
+  const s=window.SCH.find(x=>x.id==id); if(!s) return;
   const g=window.G(s.g);
   document.getElementById('copy-ev-info').innerHTML=`<b>${g.name}</b> · ${g.city} · ${s.a}`;
   document.getElementById('copy-date').value='';
@@ -707,7 +685,7 @@ function openCopy(id){
 
 function doPostpone(){
   const sid = window.selEvPost;
-  const s = window.SCH.find(x => x.id === sid);
+  const s = window.SCH.find(x => x.id == sid);
   if(!s) return;
   const newDate = document.getElementById('post-date').value;
   const newSup = document.getElementById('post-sup') ? document.getElementById('post-sup').value : '';
@@ -760,7 +738,7 @@ function doPostpone(){
 
 function doCopy(){
   const sid = window._copySrcId;
-  const s = window.SCH.find(x => x.id === sid);
+  const s = window.SCH.find(x => x.id == sid);
   if(!s) return;
   const newDate = document.getElementById('copy-date').value;
   const primaryTime = document.getElementById('copy-time').value;

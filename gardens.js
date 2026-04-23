@@ -1189,22 +1189,22 @@ window.openBulkUpdateRecurring = function(key, gid) {
     <div style="font-size:1rem;font-weight:900;color:#1a237e;margin-bottom:15px;text-align:center">🛠️ שינוי שיבוץ קבוע (מרחבי)</div>
     
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-      <div class="fg"><label>ספק חדש</label><select id="grm-sup" onchange="window.grmSupChg()" style="width:100%">${allSups.map(s=>`<option value="${s.name}" ${s.name===srExample.a?'selected':''}>${s.name}</option>`).join('')}</select></div>
-      <div class="fg"><label>פעילות חדשה</label><select id="grm-act" style="width:100%">${acts.map(a=>`<option value="${a}" ${a===srExample.act?'selected':''}>${a}</option>`).join('')}</select></div>
+      <div class="fg"><label for="grm-sup">ספק חדש</label><select id="grm-sup" onchange="window.grmSupChg()" title="בחר ספק" style="width:100%">${allSups.map(s=>`<option value="${s.name}" ${s.name===srExample.a?'selected':''}>${s.name}</option>`).join('')}</select></div>
+      <div class="fg"><label for="grm-act">פעילות חדשה</label><select id="grm-act" title="בחר פעילות" style="width:100%">${acts.map(a=>`<option value="${a}" ${a===srExample.act?'selected':''}>${a}</option>`).join('')}</select></div>
     </div>
     
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px;background:#f5f7ff;padding:10px;border-radius:8px">
-      <div class="fg"><label>מ-תאריך</label><input type="date" id="grm-d1" value="${fromDate}" style="width:100%"></div>
-      <div class="fg"><label>עד-תאריך</label><input type="date" id="grm-d2" value="${toDate}" style="width:100%"></div>
-      <div class="fg"><label>ביום קבוע נבחר</label>
-        <select id="grm-wd" style="width:100%">
+      <div class="fg"><label for="grm-d1">מ-תאריך</label><input type="date" id="grm-d1" value="${fromDate}" style="width:100%"></div>
+      <div class="fg"><label for="grm-d2">עד-תאריך</label><input type="date" id="grm-d2" value="${toDate}" style="width:100%"></div>
+      <div class="fg"><label for="grm-wd">ביום קבוע נבחר</label>
+        <select id="grm-wd" title="יום בשבוע" style="width:100%">
           ${['ראשון','שני','שלישי','רביעי','חמישי','שישי'].map((n,i) => `<option value="${i}" ${i===currWd?'selected':''}>יום ${n}</option>`).join('')}
         </select>
       </div>
     </div>
     
     <div style="margin-bottom:15px;border-top:1px dashed #ccc;padding-top:12px">
-      <div class="fg"><label style="font-weight:800;color:#1a237e">שעה מעודכנת עבור הגן הראשי (${window.G(gid).name})</label>
+      <div class="fg"><label for="grm-time" style="font-weight:800;color:#1a237e">שעה מעודכנת עבור הגן הראשי (${window.G(gid).name})</label>
         <input type="time" id="grm-time" value="${window.fT(srExample.t)||''}" style="width:100%;max-width:150px">
       </div>
       <div style="margin-top:15px">
