@@ -261,7 +261,14 @@ function openSP(id){
     });
   }
 
-  // --- STEP 1: Unified Header ---
+  // --- Activity type detection ---
+  const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+  const isRec = !!s._recId;
+  const typeTag = isRec ? '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#e3f2fd;color:#1565c0">🔁 פעילות קבועה</span>'
+    : isM ? '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#fff3e0;color:#e65100">↩️ השלמה</span>'
+    : '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#eceff1;color:#546e7a">📌 חד-פעמי</span>';
+
+  // --- STEP 1: Header ---
   let h = `<div style="background:#f5f7ff;border-radius:10px;padding:15px;margin-bottom:12px;border:1px solid #dbe3ff;box-shadow:0 2px 4px rgba(26,35,126,0.05)">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
       <div>
@@ -280,15 +287,22 @@ function openSP(id){
       ${s.t?`<div><span style="font-size:.72rem;color:#78909c;display:block;font-weight:700;text-transform:uppercase">⏰ שעה</span><span style="font-weight:800;color:#1a237e;font-size:0.95rem">${window.fT(s.t)}</span></div>`:''}
       <div><span style="font-size:.72rem;color:#78909c;display:block;font-weight:700;text-transform:uppercase">📌 סטטוס</span><span style="display:inline-block;margin-top:2px">${window.stLabel(s)}</span></div>
     </div>
+    <div style="margin-top:8px">${typeTag}</div>
   </div>`;
 
-  // --- STEP 2: Notes ---
+  // --- STEP 2: Partner sync checkbox (global) ---
+  if (spPair) {
+    h += `<label for="sp-sync-global" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer;background:#e8eaf6;padding:8px 12px;border-radius:8px;border:1.5px solid #c5cae9">
+      <input type="checkbox" id="sp-sync-global" style="width:18px;height:18px;accent-color:#1565c0" checked>
+      <span style="font-size:0.82rem;font-weight:700;color:#1a237e">🔗 סנכרן פעולות גם לגן בן-הזוג</span>
+    </label>`;
+  }
+
   h += `<div style="margin-bottom:10px;background:#fff;border-radius:10px;padding:12px;border:1px solid #eee">
     <div class="fg" style="margin-bottom:8px"><label for="sp-nt" style="font-size:.75rem;font-weight:700;color:#455a64">📝 הערות</label><textarea id="sp-nt" rows="2" style="width:100%;font-size:.85rem;border-radius:8px;border:1.5px solid #e0e0e0;padding:8px;resize:none" placeholder="הערות לפעילות...">${s.nt||''}</textarea></div>
     <button class="btn bp bsm" style="width:100%" onclick="window.saveNt()">💾 שמור הערה</button>
   </div>`;
 
-  // --- STEP 3: Clear action buttons ---
   h += `<div style="margin-bottom:10px;background:#fff;border-radius:10px;padding:12px;border:1px solid #eee">
     <div style="font-size:.78rem;font-weight:700;color:#455a64;margin-bottom:8px">⚡ פעולות מהירות</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
@@ -300,13 +314,18 @@ function openSP(id){
       <button class="btn borange bsm" onclick="window.openPostpone(${s.id})">⏩ דחייה לתאריך אחר</button>
       <button class="btn bp bsm" onclick="window.openMakeupSched(${s.id})">📅 שיבוץ השלמה</button>
     </div>
-    <div style="display:flex;gap:6px;margin-top:6px">
+    
+    <div id="sp-free-days-wrap" style="margin-top:12px;padding-top:12px;border-top:1px dashed #e0e0e0;display:none">
+      <div style="font-size:.75rem;font-weight:800;color:#2e7d32;margin-bottom:6px">📅 ימים פנויים לשיבוץ (שני הגנים):</div>
+      <div id="sp-free-days-list" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+    </div>
+
+    <div style="display:flex;gap:6px;margin-top:10px">
       <button class="btn bsm" style="flex:1;background:#fff3e0;color:#e65100;border:1px solid #ffcc80" onclick="window.markCompManual('${s.id}')">🗑️ טופל — הסרה מלוח הבקרה</button>
       <button class="btn bo bsm" style="font-size:.7rem" onclick="window.setStatus('ok')">🔄 שחזור</button>
     </div>
   </div>`;
 
-  const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
   const isExc = (s.st === 'nohap' || s.st === 'post') && !s._compByMakeup;
 
   // --- STEP 4: Handling Dropdown (Exceptions / Makeups) — only for exceptions ---
@@ -336,7 +355,7 @@ function openSP(id){
   if (s._recId) {
     h += `<div style="margin-top:10px;border:1.5px solid #ce93d8;border-radius:10px;overflow:hidden">
       <div onclick="window.toggleSpAccordion('sp-acc-series')" style="background:#f3e5f5;padding:10px 15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-        <b style="font-size:0.85rem;color:#6a1b9a">🔄 ניהול סדרה קבועה</b>
+        <b style="font-size:0.85rem;color:#6a1b9a">🔄 ניהול פעילות קבועה</b>
         <span id="sp-acc-series-arrow" style="font-size:0.7rem;transition:0.3s">▼</span>
       </div>
       <div id="sp-acc-series" style="display:none;padding:12px;background:#fff;border-top:1px solid #ce93d8">
@@ -462,42 +481,165 @@ function deleteRecurSeries(id) {
 function openReplaceRecur(id) {
   const s = window.SCH.find(x => x.id == id);
   if(!s || !s._recId) return alert('פעילות זו אינה חלק מסדרה קבועה');
-  const affected=window.SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
-  const allSups=window.getAllSup().filter(s2=>window.isActSupplier(s2.name));
-  const g=window.G(s.g);
-  let h=`<div style="font-size:.85rem;font-weight:700;color:#1a237e;margin-bottom:10px">
-    🔄 החלפת שיבוץ קבוע — ${affected.length} פעילויות<br>
-    <span style="font-size:.75rem;font-weight:400;color:#546e7a">גן: ${g.name}</span>
+  const g = window.G(s.g);
+  const allSups = window.getAllSup().filter(s2 => window.isActSupplier(s2.name));
+  const spPair = window.gardenPair(s.g);
+  
+  // Calculate default dates (from today/activity date till end of year)
+  const defaultTo = '2026-08-31'; // Or calculate based on school year
+  
+  let h = `<div style="font-size:.85rem;font-weight:700;color:#1a237e;margin-bottom:12px">
+    🔄 החלפת פעילות קבועה — גן ${g.name}
+    <div style="font-size:.72rem;font-weight:400;color:#546e7a;margin-top:4px">שינוי זה יסיר את השיבוצים העתידיים הקיימים בפעילות זו וישבץ חדשים בטווח שתבחר.</div>
   </div>
-  <div style="display:grid;gap:8px">
-    <select id="rr-sup" onchange="window.rrSupChg()" title="בחר ספק" style="width:100%">${allSups.map(s2=>`<option value="${s2.name}"${s2.name===s.a?' selected':''}>${s2.name}</option>`).join('')}</select>
-    <select id="rr-act" title="בחר פעילות" style="width:100%"><option value="">— ללא שינוי —</option>${window.getSupActs(s.a).map(a=>`<option value="${a}"${a===s.act?' selected':''}>${a}</option>`).join('')}</select>
-    <input type="time" id="rr-time" title="בחר שעה" value="${s.t||''}" style="width:100%">
+  
+  <div style="display:grid;gap:10px;background:#f9f9f9;padding:12px;border-radius:10px;border:1px solid #eee">
+    <div class="fg"><label style="font-size:.75rem;font-weight:700">📅 טווח תאריכים</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <input type="date" id="rr-from" value="${s.d}" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
+        <input type="date" id="rr-to" value="${defaultTo}" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
+      </div>
+    </div>
+    
+    <div class="fg"><label style="font-size:.75rem;font-weight:700">🗓️ ימים בשבוע</label>
+      <div style="display:flex;justify-content:space-between;background:#fff;padding:8px;border-radius:6px;border:1px solid #ccc">
+        ${['א','ב','ג','ד','ה'].map((d,i)=>`
+          <label style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
+            <span style="font-size:.7rem;font-weight:700">${d}</span>
+            <input type="checkbox" class="rr-day" value="${i}" ${new Date(s.d).getDay()===i?'checked':''} style="width:16px;height:16px">
+          </label>
+        `).join('')}
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fg"><label style="font-size:.75rem;font-weight:700">📚 ספק</label>
+        <select id="rr-sup" onchange="window.rrSupChg()" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
+          ${allSups.map(s2=>`<option value="${s2.name}" ${s2.name===s.a?'selected':''}>${s2.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg"><label style="font-size:.75rem;font-weight:700">🎯 פעילות</label>
+        <select id="rr-act" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
+          <option value="">— ללא שינוי —</option>
+          ${window.getSupActs(s.a).map(a=>`<option value="${a}" ${a===s.act?'selected':''}>${a}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    
+    <div class="fg"><label style="font-size:.75rem;font-weight:700">⏰ שעה (${g.name})</label>
+      <input type="time" id="rr-time" value="${s.t||''}" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
+    </div>
+
+    ${spPair ? `
+      <label style="display:flex;align-items:center;gap:8px;background:#e8eaf6;padding:8px 10px;border-radius:8px;border:1px solid #c5cae9;cursor:pointer">
+        <input type="checkbox" id="rr-sync-pair" checked style="width:18px;height:18px">
+        <span style="font-size:.82rem;font-weight:700;color:#1a237e">🔗 החל גם על גן בן-הזוג</span>
+      </label>
+    ` : ''}
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
-    <button class="btn br bsm" onclick="CM('rrm')">ביטול</button>
-    <button class="btn bg bsm" onclick="window.saveReplaceRecur(${id})">✅ החלף</button>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px">
+    <button class="btn br" onclick="CM('rrm')">ביטול</button>
+    <button class="btn bg" style="font-weight:900" onclick="window.saveReplaceRecur(${id})">✅ בצע החלפה</button>
   </div>`;
-  document.getElementById('rrm-body').innerHTML=h;
+  
+  document.getElementById('rrm-body').innerHTML = h;
   window.OM('rrm');
 }
 
-function rrSupChg(){
-  const sup=document.getElementById('rr-sup').value;
-  const actSel=document.getElementById('rr-act');
+function rrSupChg() {
+  const sup = document.getElementById('rr-sup').value;
+  const actSel = document.getElementById('rr-act');
   if(!actSel) return;
-  actSel.innerHTML='<option value="">— ללא שינוי —</option>'+
-    window.getSupActs(sup).map(a=>`<option value="${a}">${a}</option>`).join('');
+  actSel.innerHTML = '<option value="">— ללא שינוי —</option>' +
+    window.getSupActs(sup).map(a => `<option value="${a}">${a}</option>`).join('');
 }
 
-function saveReplaceRecur(id){
-  const s=window.SCH.find(x=>x.id==id); if(!s) return;
-  const newSup=document.getElementById('rr-sup').value;
-  const newAct=document.getElementById('rr-act').value;
-  const newTime=document.getElementById('rr-time').value;
-  const affected=window.SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
-  affected.forEach(x=>{ if(newSup) x.a=newSup; if(newAct) x.act=newAct; if(newTime) x.t=newTime; });
-  window.saveAndRefresh('rrm');
+function saveReplaceRecur(id) {
+  try {
+    const s = window.SCH.find(x => x.id == id);
+    if(!s) return;
+    
+    const from = document.getElementById('rr-from').value;
+    const to = document.getElementById('rr-to').value;
+    const days = [...document.querySelectorAll('.rr-day:checked')].map(c => parseInt(c.value));
+    const sup = document.getElementById('rr-sup').value;
+    const act = document.getElementById('rr-act').value;
+    const time = document.getElementById('rr-time').value;
+    const sync = document.getElementById('rr-sync-pair')?.checked;
+
+    if(!from || !to || !days.length || !sup) return alert('יש למלא את כל השדות ולבחור ימים');
+
+    if(!confirm('⚠️ פעולה זו תמחוק את כל השיבוצים העתידיים של הסדרה הקיימת ותיצור חדשים.\nהאם אתה בטוח?')) return;
+
+    // 1. Collect all series IDs to remove
+    const seriesIdsToRemove = new Set([s._recId]);
+    const partnerGids = [];
+    if (sync) {
+      const pair = window.gardenPair(s.g);
+      if (pair) pair.ids.forEach(pid => partnerGids.push(Number(pid)));
+    } else {
+      partnerGids.push(Number(s.g));
+    }
+
+    // 2. Remove future occurrences from SCH
+    window.SCH = window.SCH.filter(ev => {
+      const isFuture = ev.d >= from;
+      const isTargetGarden = partnerGids.includes(Number(ev.g));
+      const isOldSeries = ev._recId && seriesIdsToRemove.has(ev._recId);
+      // Extra safety: also match by supplier if _recId is missing but it's clearly part of the same thing
+      const isOldMatch = isTargetGarden && window.supBase(ev.a) === window.supBase(s.a) && ev.d >= from && ev.st !== 'can';
+      
+      return !(isFuture && (isOldSeries || isOldMatch));
+    });
+
+    // 3. Generate new series
+    const newRecId = Date.now();
+    let count = 0;
+    let cur = new Date(from.replace(/-/g, '/'));
+    const endD = new Date(to.replace(/-/g, '/'));
+    
+    while(cur <= endD && count < 500) {
+      if(days.includes(cur.getDay())) {
+        const ds = window.d2s(cur);
+        const hol = window.getHolidayInfo ? window.getHolidayInfo(ds, window.G(s.g).city) : null;
+        if(!hol || hol.canSched || hol.type === 'info') {
+          const eid = newRecId + count;
+          // Add for primary garden
+          window.SCH.push({
+            id: eid, g: s.g, d: ds, a: sup, act: act, t: time, st: 'ok', 
+            nt: s.nt||'', _recId: newRecId, grp: s.grp||1
+          });
+          // Add for partners if synced
+          if (sync) {
+            const pair = window.gardenPair(s.g);
+            if (pair) {
+              pair.ids.forEach((pid, idx) => {
+                if (Number(pid) !== Number(s.g)) {
+                  // Keep partner time if possible, otherwise use main time
+                  // Logic: Find the partner's original activity to get their specific time
+                  // But since we are replacing the whole series, we might not have a "partner time" reference 
+                  // except the one we had in openSP. For now, use the same time or partner's current offset.
+                  window.SCH.push({
+                    id: eid + (idx+1)*5000, g: pid, d: ds, a: sup, act: act, t: time, st: 'ok',
+                    nt: s.nt||'', _recId: newRecId, grp: s.grp||1
+                  });
+                }
+              });
+            }
+          }
+          count++;
+        }
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    window.saveAndRefresh('rrm');
+    window.showToast(`✅ הפעילות הקבועה הוחלפה בהצלחה. נוצרו ${count} שיבוצים חדשים.`);
+  } catch(err) {
+    console.error('[saveReplaceRecur]', err);
+    alert('שגיאה בביצוע ההחלפה: ' + err.message);
+  }
 }
 
 function spEditSave(){
@@ -557,15 +699,35 @@ function markNoHap(){
 }
 
 function setStatus(idOrSt, maybeSt){
+  try {
   let id, st;
   if (maybeSt) { id = idOrSt; st = maybeSt; } 
   else { id = window.selEv; st = idOrSt; }
   const main=window.SCH.find(x=>x.id==id);
-  if(main){
-    main.st=st;
-    if(st==='ok') { main.cr=''; main.cn=''; }
+  if(!main) return;
+  main.st=st;
+  if(st==='ok') { main.cr=''; main.cn=''; }
+
+  // Partner sync — check global checkbox
+  const syncChk = document.getElementById('sp-sync-global');
+  if(syncChk && syncChk.checked) {
+    const pair = window.gardenPair(main.g);
+    if(pair) {
+      const otherIds = pair.ids.map(Number).filter(oid => oid !== Number(main.g));
+      otherIds.forEach(oid => {
+        const pev = window.SCH.find(ps =>
+          Number(ps.g)===oid && ps.d === main.d &&
+          window.supBase(ps.a) === window.supBase(main.a) && ps.st !== 'can'
+        );
+        if(pev) {
+          pev.st = st;
+          if(st==='ok') { pev.cr=''; pev.cn=''; }
+        }
+      });
+    }
   }
   window.saveAndRefresh('sp');
+  } catch(err) { console.error('[setStatus]', err); window.saveAndRefresh('sp'); }
 }
 
 function saveNt(){
@@ -575,8 +737,9 @@ function saveNt(){
 }
 
 function markCompManual(id){
+  try {
   const s=window.SCH.find(x=>x.id==id); if(!s) return;
-  const syncCheck = document.getElementById('sp-sync-pair');
+  const syncCheck = document.getElementById('sp-sync-global') || document.getElementById('sp-sync-pair');
   const handleNtEl = document.getElementById('sp-handle-nt');
   const doSync = syncCheck && syncCheck.checked;
   const handleNt = handleNtEl ? handleNtEl.value.trim() : '';
@@ -593,14 +756,9 @@ function markCompManual(id){
     if (pair) {
       const otherIds = pair.ids.map(id=>Number(id)).filter(id=>id!==Number(s.g));
       otherIds.forEach(ogid => {
-        // Find matching activity by date, time, supplier, and activity name
         const partnerEv = window.SCH.find(ps => 
-          Number(ps.g)===ogid && 
-          ps.d === s.d && 
-          (ps.t === s.t || (!ps.t && !s.t)) && 
-          window.supBase(ps.a) === window.supBase(s.a) &&
-          (ps.act || '') === (s.act || '') &&
-          ps.st !== 'can'
+          Number(ps.g)===ogid && ps.d === s.d && 
+          window.supBase(ps.a) === window.supBase(s.a) && ps.st !== 'can'
         );
         if (partnerEv) {
           partnerEv._compByMakeup = stamp;
@@ -614,6 +772,7 @@ function markCompManual(id){
   }
 
   window.saveAndRefresh('sp');
+  } catch(err) { console.error('[markCompManual]', err); window.saveAndRefresh('sp'); }
 }
 
 function upd(id,fields){
