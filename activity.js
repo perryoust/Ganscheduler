@@ -240,7 +240,7 @@ function openSP(id){
   const g=window.G(s.g);
   const spPair=window.gardenPair(s.g);
 
-  // Find partner garden activities for this specific date/time
+  // Find partner garden activities for this specific date — match by date+supplier only (not time)
   let partnersHtml = '';
   const currentTimesSP = {};
   if (spPair) {
@@ -248,14 +248,15 @@ function openSP(id){
     otherIds.forEach(oid => {
       const pg = window.G(oid);
       const pev = window.SCH.find(ps => 
-        Number(ps.g)===oid && ps.d === s.d && (ps.t === s.t || (!ps.t && !s.t)) && 
+        Number(ps.g)===oid && ps.d === s.d && 
         window.supBase(ps.a) === window.supBase(s.a) && ps.st !== 'can'
       );
       if(pev) currentTimesSP[oid] = window.fT(pev.t || s.t);
       partnersHtml += `<div style="font-size:.82rem;color:#5c6bc0;font-weight:700;margin-top:4px;display:flex;align-items:center;gap:6px">
         <span style="opacity:0.7">🔗</span> 
         <span>${pg.name}</span> 
-        <span style="font-weight:400;font-size:0.75rem;padding:1px 6px;border-radius:4px;background:#e8eaf6">${pev ? window.stLabel(pev) : 'לא משובץ'}</span>
+        ${pev ? `<span style="font-weight:400;font-size:0.75rem;padding:1px 6px;border-radius:4px;background:#e8eaf6">${window.stLabel(pev)}</span>
+        ${pev.t ? '<span style="font-size:.7rem;color:#78909c">⏰ '+window.fT(pev.t)+'</span>' : ''}` : '<span style="font-weight:400;font-size:0.75rem;padding:1px 6px;border-radius:4px;background:#ffebee;color:#c62828">לא משובץ</span>'}
       </div>`;
     });
   }
@@ -281,71 +282,65 @@ function openSP(id){
     </div>
   </div>`;
 
-  // --- STEP 2: Notes & Quick Status ---
-  h += `<div style="display:grid;grid-template-columns:1fr 140px;gap:10px;margin-bottom:15px;background:#fff;border-radius:10px;padding:12px;border:1px solid #eee">
-    <div class="fg"><label for="sp-nt" style="display:none">הערות</label><textarea id="sp-nt" rows="3" style="width:100%;font-size:.88rem;border-radius:8px;border:1.5px solid #e0e0e0;padding:10px;resize:none" placeholder="הערות לפעילות...">${s.nt||''}</textarea></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;align-content:start">
-      <button class="btn bp bsm" style="font-size:0.65rem;padding:2px" onclick="window.saveNt()" title="שמור הערה">💾 שמור</button>
-      <button class="btn bg bsm" style="font-size:0.65rem;padding:2px" onclick="window.setStatus('done')" title="בוצע">✔️ בוצע</button>
-      <button class="btn br bsm" style="font-size:0.65rem;padding:2px" onclick="window.setStatus('nohap')" title="לא התקיים">⚠️ לא קרה</button>
-      <button class="btn bo bsm" style="font-size:0.65rem;padding:2px;background:#f5f5f5;color:#333;border:1px solid #ccc" onclick="window.setStatus('can')" title="בוטל">❌ בוטל</button>
-      <button class="btn borange bsm" style="font-size:0.65rem;padding:2px;grid-column:span 2" onclick="window.markCompManual('${s.id}')" title="סיום טיפול">🗑️ טופל (הסרה מהלוח)</button>
-      <button class="btn bo bsm" style="font-size:0.65rem;padding:2px;grid-column:span 2" onclick="window.setStatus('ok')" title="שחזור">🔄 שחזור</button>
+  // --- STEP 2: Notes ---
+  h += `<div style="margin-bottom:10px;background:#fff;border-radius:10px;padding:12px;border:1px solid #eee">
+    <div class="fg" style="margin-bottom:8px"><label for="sp-nt" style="font-size:.75rem;font-weight:700;color:#455a64">📝 הערות</label><textarea id="sp-nt" rows="2" style="width:100%;font-size:.85rem;border-radius:8px;border:1.5px solid #e0e0e0;padding:8px;resize:none" placeholder="הערות לפעילות...">${s.nt||''}</textarea></div>
+    <button class="btn bp bsm" style="width:100%" onclick="window.saveNt()">💾 שמור הערה</button>
+  </div>`;
+
+  // --- STEP 3: Clear action buttons ---
+  h += `<div style="margin-bottom:10px;background:#fff;border-radius:10px;padding:12px;border:1px solid #eee">
+    <div style="font-size:.78rem;font-weight:700;color:#455a64;margin-bottom:8px">⚡ פעולות מהירות</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+      <button class="btn bg" style="padding:10px 6px;font-size:.8rem" onclick="window.setStatus('done')">✔️ בוצע</button>
+      <button class="btn" style="padding:10px 6px;font-size:.8rem;background:#fce4ec;color:#c62828;border:1.5px solid #e91e63" onclick="window.setStatus('nohap')">⚠️ לא התקיים</button>
+      <button class="btn" style="padding:10px 6px;font-size:.8rem;background:#f5f5f5;color:#333;border:1.5px solid #bbb" onclick="window.setStatus('can')">❌ ביטול</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <button class="btn borange bsm" onclick="window.openPostpone(${s.id})">⏩ דחייה לתאריך אחר</button>
+      <button class="btn bp bsm" onclick="window.openMakeupSched(${s.id})">📅 שיבוץ השלמה</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <button class="btn bsm" style="flex:1;background:#fff3e0;color:#e65100;border:1px solid #ffcc80" onclick="window.markCompManual('${s.id}')">🗑️ טופל — הסרה מלוח הבקרה</button>
+      <button class="btn bo bsm" style="font-size:.7rem" onclick="window.setStatus('ok')">🔄 שחזור</button>
     </div>
   </div>`;
 
   const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
   const isExc = (s.st === 'nohap' || s.st === 'post') && !s._compByMakeup;
-  
-  // --- STEP 3: Handling Dropdown (Exceptions / Makeups) ---
+
+  // --- STEP 4: Handling Dropdown (Exceptions / Makeups) — only for exceptions ---
   if (isExc || (isM && s.st !== 'done')) {
-    h += `<div style="margin-top:12px;border:1.5px solid #ffe082;border-radius:10px;overflow:hidden">
+    h += `<div style="margin-top:10px;border:1.5px solid #ffe082;border-radius:10px;overflow:hidden">
       <div onclick="window.toggleSpAccordion('sp-acc-handling')" style="background:#fff8e1;padding:10px 15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-        <b style="font-size:0.85rem;color:#e65100">🛠️ טיפול בחריג וסיום טיפול</b>
+        <b style="font-size:0.85rem;color:#e65100">🛠️ טיפול בחריג</b>
         <span id="sp-acc-handling-arrow" style="font-size:0.7rem;transition:0.3s">▼</span>
       </div>
       <div id="sp-acc-handling" style="display:none;padding:12px;background:#fff;border-top:1px solid #ffe082">
         ${spPair ? `
           <label for="sp-sync-pair" style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer;background:#fff8e1;padding:8px 12px;border-radius:6px;border:1px solid #ffe082">
             <input type="checkbox" id="sp-sync-pair" style="width:18px;height:18px;accent-color:#e65100" checked>
-            <span style="font-size:0.82rem;font-weight:700;color:#bf360c">🔗 החל סיום טיפול גם על בן-הזוג / שותפים</span>
+            <span style="font-size:0.82rem;font-weight:700;color:#bf360c">🔗 החל גם על בן-הזוג</span>
           </label>
         ` : ''}
         <div style="margin-bottom:12px">
-          <label for="sp-handle-nt" style="font-size:0.75rem;color:#795548;display:block;margin-bottom:4px;font-weight:700">📝 פעולת סיום טיפול / השלמה ידנית:</label>
+          <label for="sp-handle-nt" style="font-size:0.75rem;color:#795548;display:block;margin-bottom:4px;font-weight:700">📝 הערת סיום טיפול:</label>
           <input type="text" id="sp-handle-nt" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid #ffe082;font-size:0.85rem" placeholder="לדוגמה: בוצע ידנית ב-20/4..." value="${s.st==='post'?'נדחה':''}">
         </div>
-        <button class="btn borange" style="width:100%;padding:12px;font-weight:900;font-size:0.95rem;box-shadow:0 2px 4px rgba(230,81,0,0.15)" onclick="window.markCompManual(${s.id})">🗑️ סיום טיפול והסרה מהלוח</button>
-        <div style="font-size:.72rem;color:#795548;margin-top:8px;text-align:center;line-height:1.4">הפעילות תסומן כטופלה ותוסר מרשימת ה-To-Do שבמסך הבית.</div>
+        <button class="btn borange" style="width:100%;padding:12px;font-weight:900;font-size:0.95rem" onclick="window.markCompManual(${s.id})">🗑️ סיום טיפול והסרה מהלוח</button>
       </div>
     </div>`;
   }
 
-  // --- STEP 4 & 5: Actions (Changes & Exceptions) ---
-  h += `<div style="margin-top:10px;border:1px solid #d1d9ff;border-radius:10px;overflow:hidden">
-    <div onclick="window.toggleSpAccordion('sp-acc-actions')" style="background:#f0f2ff;padding:10px 15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-      <b style="font-size:0.85rem;color:#1a237e">📅 שינויים ודיווחים</b>
-      <span id="sp-acc-actions-arrow" style="font-size:0.7rem;transition:0.3s">▼</span>
-    </div>
-    <div id="sp-acc-actions" style="display:none;padding:12px;background:#fff;border-top:1px solid #d1d9ff">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <button class="btn borange bsm" onclick="window.openPostpone(${s.id})">⏩ דחייה</button>
-        <button class="btn bp bsm" onclick="window.openCopy(${s.id})">📋 העתקה</button>
-        <button class="btn bsm" style="background:#e1f5fe;color:#01579b;border:1px solid #81d4fa;grid-column: span 2" onclick="window.openMakeupSched(${s.id})">📅 שיבוץ השלמה חדשה</button>
-        <button class="btn br bsm" onclick="window.setStatus('nohap')">⚠️ לא התקיים</button>
-        <button class="btn bo bsm" style="background:#f5f5f5;color:#333;border:1px solid #ccc" onclick="window.setStatus('can')">❌ ביטול סופי</button>
-      </div>
-    </div>
-  </div>`;
-
-  // --- STEP 6: Series Management ---
+  // --- STEP 5: Series Management ---
   if (s._recId) {
     h += `<div style="margin-top:10px;border:1.5px solid #ce93d8;border-radius:10px;overflow:hidden">
       <div onclick="window.toggleSpAccordion('sp-acc-series')" style="background:#f3e5f5;padding:10px 15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-        <b style="font-size:0.85rem;color:#6a1b9a">🔄 ניהול פעילות קבועה (סדרה)</b>
+        <b style="font-size:0.85rem;color:#6a1b9a">🔄 ניהול סדרה קבועה</b>
         <span id="sp-acc-series-arrow" style="font-size:0.7rem;transition:0.3s">▼</span>
       </div>
       <div id="sp-acc-series" style="display:none;padding:12px;background:#fff;border-top:1px solid #ce93d8">
+        <div style="font-size:.72rem;color:#6a1b9a;margin-bottom:8px">שינוי כאן ישפיע על כל הפעילויות העתידיות בסדרה זו</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <button class="btn bp bsm" onclick="window.openReplaceRecur(${s.id})">✏️ שינוי קבוע</button>
           <button class="btn br bsm" onclick="window.deleteRecurSeries(${s.id})">🗑️ ביטול סדרה</button>
@@ -354,16 +349,17 @@ function openSP(id){
     </div>`;
   }
 
-  // --- STEP 7: Full Edit Accordion ---
+  // --- STEP 6: Edit Accordion — one-time change of date/supplier/time ---
   const allSups = window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : [];
   const initialActs = window.getSupActs ? window.getSupActs(s.a) : [];
 
   h += `<div style="margin-top:10px;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden">
     <div onclick="window.toggleSpAccordion('sp-acc-edit')" style="background:#f5f5f5;padding:10px 15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-      <b style="font-size:0.85rem;color:#455a64">⚙️ עריכת נתוני בסיס (חד-פעמי)</b>
+      <b style="font-size:0.85rem;color:#455a64">✏️ עריכה ידנית (חד-פעמי)</b>
       <span id="sp-acc-edit-arrow" style="font-size:0.7rem;transition:0.3s">▼</span>
     </div>
     <div id="sp-acc-edit" style="display:none;padding:12px;background:#fff;border-top:1px solid #e0e0e0">
+      <div style="font-size:.72rem;color:#78909c;margin-bottom:10px;background:#f9f9f9;padding:6px 10px;border-radius:6px">שינוי תאריך, ספק, פעילות או שעה <b>רק לפעילות זו</b> (לא משנה את הסדרה)</div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <div class="fg"><label for="sp-edit-date" style="font-size:.75rem;font-weight:700">תאריך</label><input type="date" id="sp-edit-date" value="${s.d}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc"></div>
         <div class="fg"><label for="sp-edit-sup" style="font-size:.75rem;font-weight:700">ספק</label>
@@ -379,11 +375,16 @@ function openSP(id){
           </select>
         </div>
         <div class="fg" id="sp-edit-act-new-wrap" style="display:none"><label for="sp-edit-act-new" style="font-size:.75rem;font-weight:700">שם הפעילות החדשה</label><input type="text" id="sp-edit-act-new" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc"></div>
-        <div class="fg"><label for="sp-edit-time" style="font-size:.75rem;font-weight:700">שעה מעודכנת (${g.name})</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc"></div>
+        <div class="fg"><label for="sp-edit-time" style="font-size:.75rem;font-weight:700">שעה (${g.name})</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc"></div>
         ${spPair ? window.renderPartnerSynergy(s.g, 'sped', currentTimesSP) : ''}
         <button class="btn bg" style="width:100%;padding:10px;font-weight:800;margin-top:8px" onclick="window.spEditSave()">💾 שמור שינויים</button>
       </div>
     </div>
+  </div>`;
+
+  // --- STEP 7: Copy button (additional action) ---
+  h += `<div style="margin-top:8px;text-align:center">
+    <button class="btn bo bsm" style="font-size:.72rem" onclick="window.openCopy(${s.id})">📋 שכפול פעילות לתאריך אחר</button>
   </div>`;
 
   document.getElementById('sp-body').innerHTML=h;
