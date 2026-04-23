@@ -1,4 +1,6 @@
 window._dashTab = window._dashTab || 'g';
+window.setDashTab = setDashTab;
+window.renderDash = renderDash;
 
 function setDashTab(t){
   window._dashTab=t;
@@ -146,7 +148,7 @@ function renderDash(){
                    <button onclick="event.stopPropagation();window._exportGardenWA([${s.g}],'${date}')" style="background:rgba(255,255,255,.28);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
                 </div>
                 <div style="background:#fff;padding:7px">
-                  <div class="ev ${stc}" onclick="window.openSP(${s.id})" style="border-radius:5px;border:none;border-right:3px solid ${_sc.solid};background:${_sc.light};margin:0">
+                  <div class="ev ${stc}" onclick="window.openSP('${s.id}')" style="border-radius:5px;border:none;border-right:3px solid ${_sc.solid};background:${_sc.light};margin:0">
                     <span class="est">${window.stLabel(s)}</span>
                     <div class="eg">${s.gd.name}</div>
                     ${s.act?`<div style="font-size:.67rem;font-weight:600;color:${_sc.solid}">🎯 ${window.supBase(s.a)} | ${s.act}</div>`:''}
@@ -169,7 +171,7 @@ function _dashListRow(s){
   const g=window.G(s.g);
   const _sc=window.CITY_COLORS(g.city);
   const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
-  return `<div style="display:grid;grid-template-columns:110px 140px 1fr 100px;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #eee;cursor:pointer;background:#fff" onclick="window.openSP(${s.id})">
+  return `<div style="display:grid;grid-template-columns:110px 140px 1fr 100px;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #eee;cursor:pointer;background:#fff" onclick="window.openSP('${s.id}')">
     <div style="font-weight:700;color:#1a237e;font-size:.82rem">${g.name}</div>
     <div style="font-size:.78rem;color:#546e7a">${g.city} | ${window.gcls ? window.gcls(g) : ''}</div>
     <div style="font-size:.82rem;color:#1565c0;font-weight:600">🎯 ${window.supBase(s.a)} | ${s.act||'—'} ${isM?'<span style="color:#0288d1;font-size:.7rem">(השלמה)</span>':''}</div>
@@ -220,9 +222,21 @@ function _renderMiniTable(evs){
 
 
 
+window.openSP = openSP;
 function openSP(id){
+  console.log('[openSP] Triggered for ID:', id);
   window.selEv=id;
-  const s=window.SCH.find(x=>x.id==id);if(!s)return;
+  const s=window.SCH.find(x=>x.id==id);
+  if(!s){
+    console.error('[openSP] Activity not found in window.SCH for id:', id);
+    // Still open panel with error message
+    var spBody=document.getElementById('sp-body');
+    if(spBody) spBody.innerHTML='<div style="color:#c62828;padding:20px">שגיאה: פעילות לא נמצאה (ID: '+id+')</div>';
+    document.getElementById('sp').classList.add('open');
+    if(document.getElementById('sp-backdrop')) document.getElementById('sp-backdrop').style.display='block';
+    return;
+  }
+  try { // ← try-catch to prevent silent failures
   const g=window.G(s.g);
   const spPair=window.gardenPair(s.g);
 
@@ -275,7 +289,7 @@ function openSP(id){
       <button class="btn bg bsm" style="font-size:0.65rem;padding:2px" onclick="window.setStatus('done')" title="בוצע">✔️ בוצע</button>
       <button class="btn br bsm" style="font-size:0.65rem;padding:2px" onclick="window.setStatus('nohap')" title="לא התקיים">⚠️ לא קרה</button>
       <button class="btn bo bsm" style="font-size:0.65rem;padding:2px;background:#f5f5f5;color:#333;border:1px solid #ccc" onclick="window.setStatus('can')" title="בוטל">❌ בוטל</button>
-      <button class="btn borange bsm" style="font-size:0.65rem;padding:2px;grid-column:span 2" onclick="window.markCompManual(${s.id})" title="סיום טיפול">🗑️ טופל (הסרה מהלוח)</button>
+      <button class="btn borange bsm" style="font-size:0.65rem;padding:2px;grid-column:span 2" onclick="window.markCompManual('${s.id}')" title="סיום טיפול">🗑️ טופל (הסרה מהלוח)</button>
       <button class="btn bo bsm" style="font-size:0.65rem;padding:2px;grid-column:span 2" onclick="window.setStatus('ok')" title="שחזור">🔄 שחזור</button>
     </div>
   </div>`;
@@ -375,6 +389,13 @@ function openSP(id){
   document.getElementById('sp-body').innerHTML=h;
   document.getElementById('sp').classList.add('open');
   if(document.getElementById('sp-backdrop')) document.getElementById('sp-backdrop').style.display='block';
+  } catch(err) {
+    console.error('[openSP] Error building panel:', err);
+    var spBody=document.getElementById('sp-body');
+    if(spBody) spBody.innerHTML='<div style="color:#c62828;padding:20px;font-size:.85rem"><b>שגיאה בפתיחת פרטי פעילות:</b><br><pre style="white-space:pre-wrap;margin-top:8px;background:#fff3f3;padding:10px;border-radius:6px;font-size:.75rem">'+err.message+'\n'+err.stack+'</pre></div>';
+    document.getElementById('sp').classList.add('open');
+    if(document.getElementById('sp-backdrop')) document.getElementById('sp-backdrop').style.display='block';
+  }
 }
 
 function toggleSpAccordion(id){

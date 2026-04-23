@@ -1058,26 +1058,57 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
             <option value="12">דצמבר</option>
             <option value="01">ינואר</option>
             <option value="02">פברואר</option>
-            <option value="03    <!-- Row 1: City & Primary Garden -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
-      <div class="fg"><label>עיר</label><select id="ns-city" onchange="nsRefG()" style="width:100%"><option value="">בחר עיר</option></select></div>
-      <div class="fg"><label>גן *</label><select id="ns-g" onchange="nsGChg()" style="width:100%"><option value="">בחר צהרון</option></select></div>
+            <option value="03">מרץ</option>
+            <option value="04">אפריל</option>
+            <option value="05">מאי</option>
+            <option value="06">יוני</option>
+            <option value="07">יולי</option>
+            <option value="08">אוגוסט</option>
+          </select>
+        </div>
+        <div class="fg"><label>עיר</label>
+          <select id="pi-city" onchange="renderInvoices()" style="min-width:110px">
+            <option value="">הכל</option>
+          </select>
+        </div>
+        <div class="fg"><label>סוג מוסד</label>
+          <select id="pi-loctype" onchange="renderInvoices()" style="min-width:100px">
+            <option value="">הכל</option>
+            <option value="garden">צהרונים</option>
+            <option value="school">בתי ספר</option>
+            <option value="joint">משותף</option>
+            <option value="office">משרדים</option>
+          </select>
+        </div>
+      </div>
     </div>
-
-    <!-- Row 2: Primary Time -->
-    <div class="fg" style="margin-bottom:10px"><label>שעה</label>
-      <input type="time" id="ns-time" style="width:100%">
+    <div style="text-align:left;margin-top:2px">
+      <button onclick="toggleAdvFilter()" id="pi-adv-btn" style="background:none;border:none;color:#7986cb;font-size:.75rem;cursor:pointer;padding:2px 0">▼ סינון מתקדם</button>
     </div>
+  </div>
+  <div class="tw"><table id="pi-table">
+    <thead><tr>
+      <th>ספק</th>
+      <th>מספרי מסמכים</th>
+      <th>פירוט הזמנה</th>
+      <th>סכומים</th>
+      <th>סטטוס</th>
+      <th>הערות</th>
+      <th>פעולות</th>
+    </tr></thead>
+    <tbody id="pi-tbody"></tbody>
+  </table></div>
+</div>
 
-    <!-- Synergy Container -->
-    <div id="ns-synergy-wrap"></div>  <div class="card" style="padding:11px;margin-bottom:11px">
+<div id="p-psup" class="panel" style="display:none">
+  <div class="card" style="padding:11px;margin-bottom:11px">
     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
       <div class="vbtns" style="margin-left:5px">
-        <button class="vbtn active" id="psup-tab-all" onclick="setPSupTab('all')">?📦 הכל</button>
+        <button class="vbtn active" id="psup-tab-all" onclick="setPSupTab('all')">📦 הכל</button>
         <button class="vbtn" id="psup-tab-act" onclick="setPSupTab('act')">🎨 חוגים</button>
         <button class="vbtn" id="psup-tab-purch" onclick="setPSupTab('purch')">🛒 רכש בלבד</button>
       </div>
-      <button class="btn bg bsm" onclick="openSupModal(null)">? ספק חדש</button>
+      <button class="btn bg bsm" onclick="openSupModal(null)">➕ ספק חדש</button>
       <button class="btn bo bsm" onclick="openMerge()">🚀 איחוד</button>
       <button class="btn bp bsm" onclick="openSupExport(null)">🚀 Excel</button>
     </div>
