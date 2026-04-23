@@ -268,61 +268,98 @@ function openSP(id){
     : isM ? '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#fff3e0;color:#e65100">↩️ השלמה</span>'
     : '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#eceff1;color:#546e7a">📌 חד-פעמי</span>';
 
-  // --- STEP 1: Header ---
-  let h = `<div style="background:#f5f7ff;border-radius:10px;padding:15px;margin-bottom:12px;border:1px solid #dbe3ff;box-shadow:0 2px 4px rgba(26,35,126,0.05)">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-      <div>
-        <div style="font-size:1.15rem;font-weight:900;color:#1a237e">${g.name}</div>
-        <div style="font-size:.85rem;color:#7986cb;font-weight:600">${g.city}${g.st?' | '+g.st:''}</div>
-        ${partnersHtml}
-      </div>
-      <div style="text-align:left;background:#fff;padding:5px 10px;border-radius:8px;border:1px solid #dbe3ff">
+  // --- STEP 1: Main Garden Details ---
+  let h = `<div style="background:#fff;border-radius:12px;padding:15px;margin-bottom:12px;border:1.5px solid #e0e0e0;box-shadow:0 4px 6px rgba(0,0,0,0.02)">
+    <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:.7rem;font-weight:900;color:#1a237e;text-transform:uppercase;background:#e8eaf6;padding:3px 8px;border-radius:4px">🏠 גן נוכחי</span>
+      <div style="text-align:left">
         <div style="font-size:.9rem;font-weight:800;color:#1a237e">${window.fD(s.d)}</div>
-        <div style="font-size:.75rem;color:#7986cb;font-weight:700">יום ${window.dayN(s.d)}</div>
+        <div style="font-size:.72rem;color:#7986cb;font-weight:700">יום ${window.dayN(s.d)}</div>
       </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid #dbe3ff;padding-top:12px;margin-top:5px">
-      <div><span style="font-size:.72rem;color:#78909c;display:block;font-weight:700;text-transform:uppercase">📚 ספק</span><span style="font-weight:800;color:#1a237e;font-size:0.95rem">${window.supBase(s.a)}</span></div>
-      <div><span style="font-size:.72rem;color:#78909c;display:block;font-weight:700;text-transform:uppercase">🎯 פעילות</span><span style="font-weight:800;color:#1565c0;font-size:0.95rem">${s.act||'—'}</span></div>
-      ${s.t?`<div><span style="font-size:.72rem;color:#78909c;display:block;font-weight:700;text-transform:uppercase">⏰ שעה</span><span style="font-weight:800;color:#1a237e;font-size:0.95rem">${window.fT(s.t)}</span></div>`:''}
-      <div><span style="font-size:.72rem;color:#78909c;display:block;font-weight:700;text-transform:uppercase">📌 סטטוס</span><span style="display:inline-block;margin-top:2px">${window.stLabel(s)}</span></div>
-    </div>
-    <div style="margin-top:8px">${typeTag}</div>
-  </div>`;
-
-  // --- STEP 2: Partner sync checkbox (global) ---
-  if (spPair) {
-    h += `<label for="sp-sync-global" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer;background:#e8eaf6;padding:8px 12px;border-radius:8px;border:1.5px solid #c5cae9">
-      <input type="checkbox" id="sp-sync-global" style="width:18px;height:18px;accent-color:#1565c0" checked>
-      <span style="font-size:0.82rem;font-weight:700;color:#1a237e">🔗 סנכרן פעולות גם לגן בן-הזוג</span>
-    </label>`;
-  }
-
-  h += `<div style="margin-bottom:10px;background:#fff;border-radius:10px;padding:12px;border:1px solid #eee">
-    <div class="fg" style="margin-bottom:8px"><label for="sp-nt" style="font-size:.75rem;font-weight:700;color:#455a64">📝 הערות</label><textarea id="sp-nt" rows="2" style="width:100%;font-size:.85rem;border-radius:8px;border:1.5px solid #e0e0e0;padding:8px;resize:none" placeholder="הערות לפעילות...">${s.nt||''}</textarea></div>
-    <button class="btn bp bsm" style="width:100%" onclick="window.saveNt()">💾 שמור הערה</button>
-  </div>`;
-
-  h += `<div style="margin-bottom:10px;background:#fff;border-radius:10px;padding:12px;border:1px solid #eee">
-    <div style="font-size:.78rem;font-weight:700;color:#455a64;margin-bottom:8px">⚡ פעולות מהירות</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
-      <button class="btn bg" style="padding:10px 6px;font-size:.8rem" onclick="window.setStatus('done')">✔️ בוצע</button>
-      <button class="btn" style="padding:10px 6px;font-size:.8rem;background:#fce4ec;color:#c62828;border:1.5px solid #e91e63" onclick="window.setStatus('nohap')">⚠️ לא התקיים</button>
-      <button class="btn" style="padding:10px 6px;font-size:.8rem;background:#f5f5f5;color:#333;border:1.5px solid #bbb" onclick="window.setStatus('can')">❌ ביטול</button>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-      <button class="btn borange bsm" onclick="window.openPostpone(${s.id})">⏩ דחייה לתאריך אחר</button>
-      <button class="btn bp bsm" onclick="window.openMakeupSched(${s.id})">📅 שיבוץ השלמה</button>
     </div>
     
-    <div id="sp-free-days-wrap" style="margin-top:12px;padding-top:12px;border-top:1px dashed #e0e0e0;display:none">
-      <div style="font-size:.75rem;font-weight:800;color:#2e7d32;margin-bottom:6px">📅 ימים פנויים לשיבוץ (שני הגנים):</div>
-      <div id="sp-free-days-list" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+    <div style="margin-bottom:15px">
+      <div style="font-size:1.25rem;font-weight:900;color:#1a237e;line-height:1.2">${g.name}</div>
+      <div style="font-size:.85rem;color:#78909c;font-weight:600;margin-top:2px">📍 ${g.city}${g.st?' | '+g.st:''}</div>
     </div>
 
-    <div style="display:flex;gap:6px;margin-top:10px">
-      <button class="btn bsm" style="flex:1;background:#fff3e0;color:#e65100;border:1px solid #ffcc80" onclick="window.markCompManual('${s.id}')">🗑️ טופל — הסרה מלוח הבקרה</button>
-      <button class="btn bo bsm" style="font-size:.7rem" onclick="window.setStatus('ok')">🔄 שחזור</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid #f0f0f0;padding-top:12px;margin-bottom:5px">
+      <div><span style="font-size:.7rem;color:#90a4ae;display:block;font-weight:700;text-transform:uppercase">📚 ספק</span><span style="font-weight:800;color:#1a237e;font-size:0.95rem">${window.supBase(s.a)}</span></div>
+      <div><span style="font-size:.7rem;color:#90a4ae;display:block;font-weight:700;text-transform:uppercase">🎯 פעילות</span><span style="font-weight:800;color:#1565c0;font-size:0.95rem">${s.act||'—'}</span></div>
+      <div><span style="font-size:.7rem;color:#90a4ae;display:block;font-weight:700;text-transform:uppercase">⏰ שעה</span><span style="font-weight:800;color:#1a237e;font-size:0.95rem">${s.t?window.fT(s.t):'—'}</span></div>
+      <div><span style="font-size:.7rem;color:#90a4ae;display:block;font-weight:700;text-transform:uppercase">📌 סטטוס</span><span style="display:inline-block;margin-top:2px">${window.stLabel(s)}</span></div>
+    </div>
+    <div style="margin-top:10px">${typeTag}</div>
+  </div>`;
+
+  // --- STEP 2: Partner Garden Info (If exists) ---
+  if (spPair) {
+    const otherIds = spPair.ids.map(Number).filter(oid => oid !== Number(s.g));
+    const partnerInfo = [];
+    otherIds.forEach(oid => {
+      const pg = window.G(oid);
+      const pev = window.SCH.find(ps => Number(ps.g)===oid && ps.d === s.d && window.supBase(ps.a) === window.supBase(s.a) && ps.st !== 'can');
+      partnerInfo.push({ pg, pev });
+    });
+
+    h += `<div style="background:#f5f7ff;border:1.5px solid #dbe3ff;border-radius:12px;padding:12px;margin-bottom:12px">
+      <div style="font-size:.7rem;font-weight:900;color:#5c6bc0;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <span>🔗 גן בן-זוג</span>
+      </div>
+      ${partnerInfo.map(pi => `
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;padding:8px 10px;border-radius:8px;border:1px solid #dbe3ff">
+          <div>
+            <div style="font-size:.88rem;font-weight:800;color:#1a237e">${pi.pg.name}</div>
+            <div style="font-size:.7rem;color:#7986cb">${pi.pg.city}</div>
+          </div>
+          <div style="text-align:left">
+            ${pi.pev ? `
+              <div style="margin-bottom:2px">${window.stLabel(pi.pev)}</div>
+              ${pi.pev.t ? '<div style="font-size:.72rem;font-weight:700;color:#5c6bc0">⏰ '+window.fT(pi.pev.t)+'</div>' : ''}
+            ` : '<div style="font-size:.75rem;color:#c62828;font-weight:700;background:#ffebee;padding:2px 6px;border-radius:4px">לא משובץ</div>'}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+  }
+
+  // --- STEP 3: Actions & Notes ---
+  h += `<div style="margin-bottom:12px;background:#fff;border-radius:12px;padding:12px;border:1px solid #eee">
+    <div class="fg" style="margin-bottom:8px"><label for="sp-nt" style="font-size:.75rem;font-weight:700;color:#455a64">📝 הערות לפעילות</label><textarea id="sp-nt" rows="2" style="width:100%;font-size:.85rem;border-radius:8px;border:1.5px solid #e0e0e0;padding:8px;resize:none;font-family:inherit" placeholder="כתוב הערה...">${s.nt||''}</textarea></div>
+    <button class="btn bp bsm" style="width:100%;padding:8px;font-weight:700" onclick="window.saveNt()">💾 שמור הערה</button>
+  </div>`;
+
+  h += `<div style="margin-bottom:12px;background:#fff;border-radius:12px;padding:15px;border:1.5px solid #eee">
+    ${spPair ? `
+      <label for="sp-sync-global" style="display:flex;align-items:center;gap:12px;margin-bottom:15px;cursor:pointer;background:#f5f7ff;padding:12px;border-radius:10px;border:1.5px solid #dbe3ff">
+        <input type="checkbox" id="sp-sync-global" style="width:22px;height:22px;accent-color:#1a237e" checked>
+        <div style="line-height:1.3">
+          <div style="font-size:0.85rem;font-weight:900;color:#1a237e">🔗 סנכרון 'בוצע' / 'ביטול' / 'סיום טיפול'</div>
+          <div style="font-size:0.7rem;color:#5c6bc0;font-weight:600">הפעולה שתבחר תתבצע גם עבור הגן השותף: <b>${window.G(spPair.ids.find(id=>Number(id)!==Number(s.g))).name}</b></div>
+        </div>
+      </label>
+    ` : ''}
+
+    <div style="font-size:.8rem;font-weight:900;color:#1a237e;margin-bottom:12px;border-bottom:1px solid #f0f0f0;padding-bottom:8px">⚡ פעולות מהירות</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+      <button class="btn bg" style="padding:12px 6px;font-size:.85rem;font-weight:800;border-radius:10px" onclick="window.setStatus('done')">✔️ בוצע</button>
+      <button class="btn" style="padding:12px 6px;font-size:.85rem;font-weight:800;border-radius:10px;background:#fff;color:#c62828;border:2px solid #ef9a9a" onclick="window.setStatus('nohap')">⚠️ לא התקיים</button>
+      <button class="btn" style="padding:12px 6px;font-size:.85rem;font-weight:800;border-radius:10px;background:#fff;color:#546e7a;border:2px solid #cfd8dc" onclick="window.setStatus('can')">❌ ביטול</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn borange bsm" style="padding:10px;font-weight:700" onclick="window.openPostpone(${s.id})">⏩ דחייה</button>
+      <button class="btn bp bsm" style="padding:10px;font-weight:700" onclick="window.openMakeupSched(${s.id})">📅 שיבוץ השלמה</button>
+    </div>
+    
+    <div id="sp-free-days-wrap" style="margin-top:15px;padding-top:15px;border-top:1px dashed #e0e0e0;display:none">
+      <div style="font-size:.75rem;font-weight:900;color:#2e7d32;margin-bottom:8px">📅 ימים פנויים משותפים (לשני הגנים):</div>
+      <div id="sp-free-days-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn bsm" style="flex:2;background:#fff;color:#e65100;border:2px solid #ffcc80;font-weight:700" onclick="window.markCompManual('${s.id}')">🗑️ סיום טיפול (הסרה)</button>
+      <button class="btn bo bsm" style="flex:1;font-size:.7rem;font-weight:700" onclick="window.setStatus('ok')">🔄 שחזור</button>
     </div>
   </div>`;
 
