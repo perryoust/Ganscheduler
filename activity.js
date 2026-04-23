@@ -10,6 +10,11 @@ function setDashTab(t){
 }
 
 function renderDash(){
+  if(window.showInfoNotice && _dashTab === 'g') {
+    window.showInfoNotice('dash-info-wrap', '<b>ברוך הבא ללוח הבקרה:</b> כאן מוצגים הטיפולים הנדרשים להיום. וודא שכל הפעילויות מסומנות כ-"בוצע" או עם הערת טיפול.', 'info', '📋');
+  } else if(window.showInfoNotice) {
+    document.getElementById('dash-info-wrap').style.display = 'none';
+  }
   const dateEl=document.getElementById('dash-date');
   const cityEl=document.getElementById('dash-city');
   const supEl=document.getElementById('dash-sup');
@@ -335,15 +340,16 @@ function openSP(id){
   </div>`;
 
   h += `<div style="margin-bottom:12px;background:#fff;border-radius:12px;padding:15px;border:1.5px solid #eee">
-    ${spPair ? `
-      <label for="sp-sync-global" style="display:flex;align-items:center;gap:12px;margin-bottom:15px;cursor:pointer;background:#f5f7ff;padding:12px;border-radius:10px;border:1.5px solid #dbe3ff">
+      <label for="sp-sync-global" style="display:flex;align-items:center;gap:12px;margin-bottom:5px;cursor:pointer;background:#f5f7ff;padding:12px;border-radius:10px;border:1.5px solid #dbe3ff">
         <input type="checkbox" id="sp-sync-global" style="width:22px;height:22px;accent-color:#1a237e" checked>
         <div style="line-height:1.3">
           <div style="font-size:0.85rem;font-weight:900;color:#1a237e">🔗 סנכרון 'בוצע' / 'ביטול' / 'סיום טיפול'</div>
-          <div style="font-size:0.7rem;color:#5c6bc0;font-weight:600">הפעולה שתבחר תתבצע גם עבור הגן השותף: <b>${window.G(spPair.ids.find(id=>Number(id)!==Number(s.g))).name}</b></div>
         </div>
       </label>
-    ` : ''}
+      <div class="info-notice" style="margin-top:0; border-top-left-radius:0; border-top-right-radius:0; border-top:none;">
+        <span class="icon">ℹ️</span>
+        <div>הפעולה שתבחר תתבצע גם עבור הגן השותף: <b>${window.G(spPair.ids.find(id=>Number(id)!==Number(s.g))).name}</b></div>
+      </div>
 
     <div style="font-size:.8rem;font-weight:900;color:#1a237e;margin-bottom:12px;border-bottom:1px solid #f0f0f0;padding-bottom:8px">⚡ פעולות מהירות</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
@@ -572,6 +578,10 @@ function openReplaceRecur(id) {
     </div>
 
     ${spPair ? `
+      <div class="info-notice">
+        <span class="icon">🔗</span>
+        <div><b>גן בן-זוג:</b> שינוי זה יוחל גם על <b>${window.G(spPair.ids.find(id=>Number(id)!==Number(s.g))).name}</b> אם תיבת הסימון למטה מסומנת.</div>
+      </div>
       <label style="display:flex;align-items:center;gap:8px;background:#e8eaf6;padding:8px 10px;border-radius:8px;border:1px solid #c5cae9;cursor:pointer">
         <input type="checkbox" id="rr-sync-pair" checked style="width:18px;height:18px">
         <span style="font-size:.82rem;font-weight:700;color:#1a237e">🔗 החל גם על גן בן-הזוג</span>
@@ -998,6 +1008,10 @@ function renderPartnerSynergy(gid, prefix, currentTimes = {}) {
   
   let html = `<div style="background:#f0f4f8;border:1px solid #d1d9e6;border-radius:7px;padding:9px;margin-bottom:10px">`;
   html += `<div style="font-size:.78rem;font-weight:700;color:#1a237e;margin-bottom:6px">📌 סינרגיה: גנים מקושרים</div>`;
+  html += `<div class="info-notice" style="margin-bottom:8px; padding:8px 12px; font-size:0.75rem;">
+    <span class="icon">🔗</span>
+    <div>הפעולה תתבצע גם עבור הגנים המסומנים מטה:</div>
+  </div>`;
   html += `<div style="display:flex;flex-direction:column;gap:8px">`;
   
   partners.forEach(pId => {

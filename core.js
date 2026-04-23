@@ -32,10 +32,31 @@ window.CM = function(id) {
     el.classList.remove('open');
   }
 };
+/**
+ * Injects a standard info-notice box into a container.
+ * @param {string} containerId - The ID of the container element.
+ * @param {string} msg - The message (HTML) to display.
+ * @param {string} type - 'info' (default) or 'warning'.
+ * @param {string} icon - Emoji icon (default ℹ️).
+ */
+window.showInfoNotice = function(containerId, msg, type = 'info', icon = 'ℹ️') {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `
+    <div class="info-notice ${type==='warning'?'warning':''}">
+      <span class="icon">${icon}</span>
+      <div>${msg}</div>
+    </div>
+  `;
+  el.style.display = 'block';
+};
 var OM = window.OM;
 var CM = window.CM;
 
 function renderInvoices(){
+  if(window.showInfoNotice) {
+    window.showInfoNotice('invoices-info-wrap', '<b>ניהול רכש וחשבוניות:</b> כאן ניתן לעקוב אחר סטטוס התשלומים והמסמכים מול הספקים.', 'info', '📄');
+  }
   const tbody = document.getElementById('pi-tbody');
   if(!tbody) return;
   // Populate supplier autocomplete datalist

@@ -170,6 +170,18 @@ function nsCheckPair(gid){
       const g2sel = document.getElementById('ns-g2');
       if(g2sel){
         g2sel.innerHTML=`<option value="">לא - רק ל${g.name}</option><option value="${partnerId}" selected>כן - גם ל${partG.name}</option>`;
+        
+        // Add Dynamic Explanation
+        const infoDivId = 'ns-pair-info-notice';
+        let infoDiv = document.getElementById(infoDivId);
+        if(!infoDiv){
+          infoDiv = document.createElement('div');
+          infoDiv.id = infoDivId;
+          infoDiv.className = 'info-notice';
+          choiceWrap.insertBefore(infoDiv, choiceWrap.firstChild);
+        }
+        infoDiv.innerHTML = `<span class="icon">🔗</span><div><b>שים לב:</b> גן זה מקושר ל-<b>${partG.name}</b>. מומלץ לשבץ את שניהם יחד.</div>`;
+
         g2sel.onchange = () => {
           if(partnerWrap) partnerWrap.style.display = g2sel.value ? 'block' : 'none';
         };
@@ -255,10 +267,11 @@ function nsDateChg(){
   const partnerEv=window.SCH.find(x=>x.g===pId && x.d===date && x.st!=='can');
   
   if(partnerEv && partnerEv.t){
-    hintEl.textContent=`⏰ שעת גן ${partnerG.name}: ${window.fT(partnerEv.t)}`;
-    hintEl.style.display='block';
+    hintEl.className = 'info-notice';
+    hintEl.style.display = 'flex';
+    hintEl.innerHTML = `<span class="icon">⏰</span><div><b>שיבוץ קיים:</b> ל-<b>${partnerG.name}</b> כבר יש פעילות בשעה <b>${window.fT(partnerEv.t)}</b>.</div>`;
   } else {
-    hintEl.style.display='none';
+    hintEl.style.display = 'none';
   }
 }
 
