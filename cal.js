@@ -800,9 +800,9 @@ function renderPairCard(pair, pairEvs, opts){
         </div>
       </div>`;
     } else {
-      // Aggressive filter: If we have ANY 'ok' session and a 'post' session for the same garden, hide the 'post' one.
+      // Aggressive filter: If we have ANY 'ok' session and a 'post' or 'nohap' session for the same garden, hide the exception.
       const hasOk = gEvs.some(ev => ev.st === 'ok');
-      const filteredEvs = hasOk ? gEvs.filter(ev => ev.st !== 'post') : gEvs;
+      const filteredEvs = hasOk ? gEvs.filter(ev => ev.st !== 'post' && ev.st !== 'nohap') : gEvs;
 
       filteredEvs.forEach(ev => {
         const stc=ev&&ev.st!=='ok'?'st-'+ev.st:'';
@@ -849,7 +849,11 @@ function renderGardenCols(evs,gids,clr){
     if(!ge.length){
       html+='<div style="color:#ccc;font-size:.7rem;text-align:center;padding:10px 0">—</div>';
     } else {
-      ge.forEach(s=>{
+      // Aggressive filter for column view
+      const hasOk = ge.some(s => s.st === 'ok');
+      const filtered = hasOk ? ge.filter(s => s.st !== 'post' && s.st !== 'nohap') : ge;
+      
+      filtered.forEach(s=>{
         const stc=s.st!=='ok'?'st-'+s.st:'';
         html+=`<div class="pslot ${stc}" style="border-right:3px solid ${clr.solid}" onclick="openSP(${s.id})">
           ${s._fromD?`<div style="font-size:.67rem;color:#e65100;font-weight:700;background:#fff3e0;padding:1px 5px;border-radius:3px;margin-bottom:2px">↩️ הועבר מ-${window.fD(s._fromD)}</div>`:''}
