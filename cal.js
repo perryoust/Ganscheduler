@@ -800,11 +800,16 @@ function renderPairCard(pair, pairEvs, opts){
         </div>
       </div>`;
     } else {
-      gEvs.forEach(ev => {
+      // Smart filter: Hide 'post' rows if an 'ok' makeup exists for the same garden
+      const hasMakeup = gEvs.some(ev => ev.st === 'ok' && (ev._isMakeup || ev._makeupFrom || (ev.nt && /השלמה/i.test(ev.nt))));
+      const filteredEvs = hasMakeup ? gEvs.filter(ev => ev.st !== 'post') : gEvs;
+
+      filteredEvs.forEach(ev => {
         const stc=ev&&ev.st!=='ok'?'st-'+ev.st:'';
         const gblkEv=ds?window.getGardenBlock(gid,ds):null;
-        const isMakeup = ev._makeupFrom || (ev.nt && ev.nt.includes('השלמה'));
-        const makeupBadge = isMakeup ? `<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>` : '';
+        const isMakeup = ev._isMakeup || ev._makeupFrom || ev._postFrom || (ev.nt && ev.nt.includes('השלמה'));
+        const fromDate = ev._makeupFrom || ev._postFrom || '';
+        const makeupBadge = isMakeup ? `<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה ${fromDate?'מתאריך '+window.fD(fromDate):''}</div>` : '';
         
         html+=`<div class="pair-garden-row ${stc}" style="${gblkEv?'border-right:3px solid #e91e63;':''}" onclick="openSP(${ev.id})">
           <div class="pgr-left">
