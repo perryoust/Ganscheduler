@@ -800,9 +800,23 @@ function renderPairCard(pair, pairEvs, opts){
         </div>
       </div>`;
     } else {
-      // Aggressive filter: If we have ANY 'ok' session and a 'post' or 'nohap' session for the same garden, hide the exception.
-      const hasOk = gEvs.some(ev => ev.st === 'ok');
-      const filteredEvs = hasOk ? gEvs.filter(ev => ev.st !== 'post' && ev.st !== 'nohap') : gEvs;
+      // Deduplicate by supplier: if we have multiple entries for the same supplier, and one is 'ok', hide the 'post'/'nohap' ones.
+      const sups = {};
+      gEvs.forEach(ev => {
+        const sb = window.supBase(ev.a);
+        if(!sups[sb]) sups[sb] = { hasOk: false, evs: [] };
+        if(ev.st === 'ok') sups[sb].hasOk = true;
+        sups[sb].evs.push(ev);
+      });
+
+      const filteredEvs = [];
+      Object.values(sups).forEach(group => {
+        if(group.hasOk) {
+          filteredEvs.push(...group.evs.filter(ev => ev.st !== 'post' && ev.st !== 'nohap'));
+        } else {
+          filteredEvs.push(...group.evs);
+        }
+      });
 
       filteredEvs.forEach(ev => {
         const stc=ev&&ev.st!=='ok'?'st-'+ev.st:'';
@@ -849,9 +863,19 @@ function renderGardenCols(evs,gids,clr){
     if(!ge.length){
       html+='<div style="color:#ccc;font-size:.7rem;text-align:center;padding:10px 0">—</div>';
     } else {
-      // Aggressive filter for column view
-      const hasOk = ge.some(s => s.st === 'ok');
-      const filtered = hasOk ? ge.filter(s => s.st !== 'post' && s.st !== 'nohap') : ge;
+      // Deduplicate by supplier in column view
+      const sups = {};
+      ge.forEach(s => {
+        const sb = window.supBase(s.a);
+        if(!sups[sb]) sups[sb] = { hasOk: false, evs: [] };
+        if(s.st === 'ok') sups[sb].hasOk = true;
+        sups[sb].evs.push(s);
+      });
+      const filtered = [];
+      Object.values(sups).forEach(group => {
+        if(group.hasOk) filtered.push(...group.evs.filter(ev => ev.st !== 'post' && ev.st !== 'nohap'));
+        else filtered.push(...group.evs);
+      });
       
       filtered.forEach(s=>{
         const stc=s.st!=='ok'?'st-'+s.st:'';

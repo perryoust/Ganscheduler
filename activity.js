@@ -28,7 +28,7 @@ function renderDash(){
   const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
   const srch=(document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
   
-  console.log(`[Dash Debug] v95.2 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
+  console.log(`[Dash Debug] v95.3 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
 
   const checkMatch = (s, tTab, tSt, tDate) => {
     // A postponed/failed activity is "handled" if it has a linked makeup/new date
