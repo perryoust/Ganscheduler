@@ -800,9 +800,9 @@ function renderPairCard(pair, pairEvs, opts){
         </div>
       </div>`;
     } else {
-      // Smart filter: Hide 'post' rows if an 'ok' makeup exists for the same garden
-      const hasMakeup = gEvs.some(ev => ev.st === 'ok' && (ev._isMakeup || ev._makeupFrom || (ev.nt && /השלמה/i.test(ev.nt))));
-      const filteredEvs = hasMakeup ? gEvs.filter(ev => ev.st !== 'post') : gEvs;
+      // Aggressive filter: If we have ANY 'ok' session and a 'post' session for the same garden, hide the 'post' one.
+      const hasOk = gEvs.some(ev => ev.st === 'ok');
+      const filteredEvs = hasOk ? gEvs.filter(ev => ev.st !== 'post') : gEvs;
 
       filteredEvs.forEach(ev => {
         const stc=ev&&ev.st!=='ok'?'st-'+ev.st:'';
