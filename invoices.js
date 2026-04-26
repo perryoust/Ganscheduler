@@ -73,7 +73,7 @@ function SPT(t){
         // Also check Firebase flag
         const _tk = window._cachedToken;
         if(_tk){
-          fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/importDone.json?auth='+_tk)
+          fetch('https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/importDone.json?auth='+_tk)
             .then(r=>r.json()).then(d=>{
               if(d && d.done){ ib.style.display='none'; window._safeLS.setItem('_oneTimeImportDone','1'); }
               else { ib.style.display='inline-block'; }
@@ -1227,7 +1227,7 @@ async function _runOneTimeImport(){
   const localInvoices = [];
   const localSups = [];
 
-  const DB_BASE = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app';
+  const DB_BASE = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
   const token = window._cachedToken;
   if(!token){ showToast('❌ לא מחובר'); if(btn){btn.disabled=false;btn.textContent='⚡ ייבוא חד-פעמי';} return; }
 

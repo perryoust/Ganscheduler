@@ -826,7 +826,7 @@ window.onload = function(){
       try {
         if(window._cachedToken){
           const _iR = await fetch(
-            'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+window._cachedToken
+            'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+window._cachedToken
           );
           if(_iR.ok){
             const _iD = await _iR.json();
@@ -2881,7 +2881,7 @@ function piStChange(){
     const _piSt = JSON.stringify(_getPiStSelected());
     _safeLS.setItem(PI_ST_KEY, _piSt);
     const _tok = window._cachedToken;
-    if(_tok) fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/piStatusFilter.json?auth='+_tok,{
+    if(_tok) fetch('https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/piStatusFilter.json?auth='+_tok,{
       method:'PUT', headers:{'Content-Type':'application/json'}, body:_piSt
     }).catch(()=>{});
   }catch(e){}
@@ -2895,7 +2895,7 @@ function piStAll(cb){
     const _piStC = JSON.stringify(cb.checked?[]:[]);
     _safeLS.setItem(PI_ST_KEY, _piStC);
     const _tok2 = window._cachedToken;
-    if(_tok2) fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/piStatusFilter.json?auth='+_tok2,{
+    if(_tok2) fetch('https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/piStatusFilter.json?auth='+_tok2,{
       method:'PUT', headers:{'Content-Type':'application/json'}, body:_piStC
     }).catch(()=>{});
   }catch(e){}

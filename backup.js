@@ -126,7 +126,7 @@ function saveAutoBackupSettings(cfg){
   _safeLS.setItem('autoBackupCfg',JSON.stringify(cfg));
   // Also save to Firebase
   const tok = window._cachedToken;
-  if(tok) fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/autoBackupCfg.json?auth='+tok,{
+  if(tok) fetch('https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/autoBackupCfg.json?auth='+tok,{
     method:'PUT', headers:{'Content-Type':'application/json'},
     body:JSON.stringify(cfg)
   }).catch(()=>{});

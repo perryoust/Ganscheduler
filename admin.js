@@ -2,7 +2,7 @@
 // Daily Firebase Backup — saves to backups/YYYY-MM-DD
 // Max 30 days kept. Runs once per day after successful save.
 // ══════════════════════════════════════════════════════
-const BACKUP_DB_BASE = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/backups';
+const BACKUP_DB_BASE = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/backups';
 const BACKUP_LAST_KEY = '_fbDailyBackupDate';
 
 async function _runDailyBackupIfNeeded(liveData, tok){
@@ -131,8 +131,8 @@ async function forceDailyBackup(){
 // ══════════════════════════════════════════════════════
 // User Management — admin only
 // ══════════════════════════════════════════════════════
-const ADMIN_UID = 'NflZLysieCdmx21KJEfDYx014Op2';
-const USERS_DB  = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/users';
+const ADMIN_UID = 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03';
+const USERS_DB  = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/users';
 
 function _isAdmin(){ return window._fbUser?.uid === ADMIN_UID; }
 
@@ -331,7 +331,7 @@ async function _ensureAdminProfile(){
 // ══════════════════════════════════════════════════════
 // Activity Log — track changes by all users, 30 days
 // ══════════════════════════════════════════════════════
-const LOG_DB = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/activityLog';
+const LOG_DB = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/activityLog';
 
 async function _writeLog(action, target, detail, extra={}){
   try{

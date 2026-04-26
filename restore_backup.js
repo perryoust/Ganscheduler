@@ -61,7 +61,7 @@ console.log('Invoices payload size:', (Buffer.byteLength(JSON.stringify(invObj))
 function putToFirebase(path, data) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify(data);
-    const url = new URL('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app' + path + '?auth=' + TOKEN);
+    const url = new URL('https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app' + path + '?auth=' + TOKEN);
     const options = {
       hostname: url.hostname,
       path: url.pathname + url.search,

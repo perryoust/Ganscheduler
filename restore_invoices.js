@@ -9,7 +9,7 @@ const data = fs.readFileSync('sanitized_invoices.json', 'utf8');
 console.log('Payload size:', (Buffer.byteLength(data) / 1024).toFixed(1), 'KB');
 console.log('Invoice keys:', Object.keys(JSON.parse(data)).length);
 
-const url = new URL('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth=' + TOKEN);
+const url = new URL('https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth=' + TOKEN);
 
 const options = {
   hostname: url.hostname,
