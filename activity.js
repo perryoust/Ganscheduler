@@ -31,6 +31,7 @@ function renderDash(){
   console.log(`[Dash Debug] v92.6 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
 
   const checkMatch = (s, tTab, tSt, tDate) => {
+    // A postponed/failed activity is "handled" if it has a linked makeup/new date
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false" && s._compByMakeup !== "");
     const isExc = (s.st === 'nohap' || s.st === 'post') && !isHandled;
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
@@ -42,14 +43,17 @@ function renderDash(){
     if (tTab === 's' && gClass !== 'ביה"ס') return false;
 
     if (tSt === 'todo') {
+      if (s.st === 'can') return false; // Never show cancelled in todo
       if (isExc) return true;
-      if (isM && s.st !== 'done') {
+      if (isM && s.st !== 'done' && s.st !== 'can') {
         if (tDate && s.d !== tDate) return false;
         return true;
       }
       return false;
     } else if (tSt === 'handled') {
-      if (!isHandled) return false;
+      if (s.st === 'done') return true;
+      if (isHandled) return true;
+      return false;
     } else if (tSt) {
       if (s.st !== tSt) return false;
     } else {
@@ -178,12 +182,23 @@ function renderDash(){
 
 function _dashListRow(s){
   const g=window.G(s.g);
-  const _sc=window.CITY_COLORS(g.city);
-  const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
-  return `<div style="display:grid;grid-template-columns:110px 140px 1fr 100px;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #eee;cursor:pointer;background:#fff" onclick="window.openSP('${s.id}')">
+  const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+  const fromDate = s._makeupFrom || s._postFrom || '';
+  
+  // Badge styling
+  let badge = '';
+  if(s.st === 'post') badge = `<span style="background:#fff3e0;color:#e65100;font-size:.65rem;padding:1px 5px;border-radius:4px;font-weight:700">דחוי ל-${window.fD(s.pd)}</span>`;
+  else if(isM) badge = `<span style="background:#e3f2fd;color:#1565c0;font-size:.65rem;padding:1px 5px;border-radius:4px;font-weight:700">השלמה ${fromDate?'מתאריך '+window.fD(fromDate):''}</span>`;
+
+  return `<div style="display:grid;grid-template-columns:110px 140px 1fr 100px;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #eee;cursor:pointer;background:#fff;${s.st==='post'?'opacity:0.8':''}" onclick="window.openSP('${s.id}')">
     <div style="font-weight:700;color:#1a237e;font-size:.82rem">${g.name}</div>
     <div style="font-size:.78rem;color:#546e7a">${g.city} | ${window.gcls ? window.gcls(g) : ''}</div>
-    <div style="font-size:.82rem;color:#1565c0;font-weight:600">🎯 ${window.supBase(s.a)} | ${s.act||'—'} ${isM?'<span style="color:#0288d1;font-size:.7rem">(השלמה)</span>':''}</div>
+    <div style="font-size:.82rem;color:#1565c0;font-weight:600">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span>🎯 ${window.supBase(s.a)} | ${s.act||'—'}</span>
+        ${badge}
+      </div>
+    </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end">
        <div style="font-size:.75rem;font-weight:700;color:#333">${s.t? (window.fT?window.fT(s.t):s.t) : '--:--'}</div>
        <div style="transform:scale(0.85);transform-origin:left">${window.stLabel ? window.stLabel(s) : ''}</div>
@@ -940,25 +955,29 @@ function doPostpone(){
   }
 
   // Primary
+  const newId1 = Date.now();
   s.st = 'post';
   s.pd = newDate;
   s.pt = window.fT(s.t);
   s.cn += reason ? ` (דחייה: ${reason})` : '';
+  s._compByMakeup = newId1; // Mark original as handled
 
-  const newEv1 = {...s, id:Date.now(), d:newDate, t:s.t, a:newSup||s.a, act:newAct||s.act, st:'ok', pd:'', pt:''};
+  const newEv1 = {...s, id:newId1, d:newDate, t:s.t, a:newSup||s.a, act:newAct||s.act, st:'ok', pd:'', pt:'', _postFrom: s.d};
   if(reason) newEv1.n = s.n ? s.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
   window.SCH.push(newEv1);
   
   // Synergy Execution
   toProcess.forEach((conf, idx) => {
+    const newSynId = Date.now() + idx + 1;
     if(conf.pEv) {
       conf.pEv.st = 'post';
       conf.pEv.pd = newDate;
       conf.pEv.pt = conf.syn.t || conf.pEv.t;
       if(reason) conf.pEv.cn += ` (דחייה: ${reason})`;
+      conf.pEv._compByMakeup = newSynId;
     }
     const ptEv = conf.pEv || {...s, g: conf.syn.g};
-    const newPtEv = {...ptEv, id:Date.now() + idx + 1, d:newDate, t:conf.syn.t || ptEv.t, a:newSup||s.a, act:newAct||s.act, st:'ok', pd:'', pt:''};
+    const newPtEv = {...ptEv, id:newSynId, d:newDate, t:conf.syn.t || ptEv.t, a:newSup||s.a, act:newAct||s.act, st:'ok', pd:'', pt:'', _postFrom: s.d};
     if(!conf.pEv && reason) newPtEv.n = ptEv.n ? ptEv.n + ' | נוצר מדחייה: ' + reason : 'נוצר מדחייה: ' + reason;
     else if(reason) newPtEv.n = ptEv.n ? ptEv.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
     window.SCH.push(newPtEv);
