@@ -1084,4 +1084,9 @@ window.selCO = selCO;
 window.selNO = selNO;
 window.updAndRefresh = updAndRefresh;
 
+function postDateChg() {
+  console.log('Postpone date changed');
+}
+window.postDateChg = postDateChg;
+
 setTimeout(() => { if (typeof renderDash === 'function') renderDash(); }, 100);

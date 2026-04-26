@@ -320,7 +320,15 @@ async function _ensureAdminProfile(){
       if(!d){
         await fetch(`${USERS_DB}/${ADMIN_UID}.json${q}`,{
           method:'PUT', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({uid:ADMIN_UID,username:'perry',name:'Perry',role:'admin',email:'perry@ganmanager.app'})
+          body:JSON.stringify({
+            uid:ADMIN_UID,
+            username:'perry',
+            name:'Perry',
+            role:'admin',
+            email:'perry@ganmanager.app',
+            permAct: true,
+            permPurch: true
+          })
         });
       }
     }
