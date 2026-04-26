@@ -67,7 +67,8 @@
   window._fbSignIn = async function(username, password, remember) {
     const persistence = remember ? browserLocalPersistence : browserSessionPersistence;
     await setPersistence(auth, persistence);
-    return signInWithEmailAndPassword(auth, username + DOMAIN, password);
+    const email = username.includes('@') ? username : username + DOMAIN;
+    return signInWithEmailAndPassword(auth, email, password);
   };
   window._fbSignOut = () => signOut(auth);
   window._fbGetToken = async () => {
@@ -87,7 +88,7 @@
 
   // Create new user using secondary app (admin stays logged in)
   window._fbCreateUser = async function(username, password) {
-    const email = username + DOMAIN;
+    const email = username.includes('@') ? username : username + DOMAIN;
     const cred = await createUserWithEmailAndPassword(auth2, email, password);
     const newUid = cred.user.uid;
     // Sign out from secondary app immediately
