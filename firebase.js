@@ -1,8 +1,8 @@
 // ══════════════════════════════════════════════
 // Firebase Realtime Database Sync - v10.2
 // ══════════════════════════════════════════════
-const FIREBASE_DB_URL = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data.json';
-const FIREBASE_POLL_INTERVAL = 10000;
+const FIREBASE_DB_URL = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data.json';
+const FIREBASE_POLL_INTERVAL = 30000;
 
 // (Global _safeLS is now defined in data.js)
 let _fbLastSaveTs = parseInt(window._safeLS.get('_fbLastSaveTs')||'0');
@@ -130,7 +130,7 @@ async function _processFirebaseLoad(r, silent, force) {
     const _iTok = window._cachedToken || (window._fbUser ? await window._fbUser.getIdToken(false) : null);
     if(_iTok){
       const _iR = await fetch(
-        'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+_iTok
+        'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+_iTok
       );
       if(_iR.ok){
         const _iD = await _iR.json();
@@ -159,10 +159,26 @@ async function _processFirebaseLoad(r, silent, force) {
   if(!_fbLastSaveTs || cloudTs > _fbLastSaveTs) _setFbSaveTs(cloudTs);
   if (!silent) _fbUpdateStatus();
 
-  // Force UI refresh after data is applied, regardless of 'silent'
   if (typeof window.refreshAppUI === 'function') {
     try { window.refreshAppUI(); } catch(e) { console.error('Initial refreshAppUI failed', e); }
   }
+
+  // Update last known raw for save prevention
+  window._fbLastSavedRaw = JSON.stringify({
+    ch: appData.ch||[],
+    pairs: appData.pairs||[],
+    supEx: appData.supEx||{},
+    clusters: appData.clusters||{},
+    holidays: appData.holidays||[],
+    pairBreaks: appData.pairBreaks||{},
+    managers: appData.managers||{},
+    blockedDates: appData.blockedDates||{},
+    gardenBlocks: appData.gardenBlocks||{},
+    autoBackupCfg: appData.autoBackupCfg,
+    piStatusFilter: appData.piStatusFilter,
+    vatRate: appData.vatRate||18,
+    activeGardens: appData.activeGardens||null
+  });
 
   return true;
 }
@@ -248,6 +264,12 @@ async function saveToFirebase(silent) {
     // Validate: don't overwrite with significantly less data
     const raw = JSON.stringify(liveData);
     if(!raw || raw.length < 100) { console.warn('Save aborted: data too small'); return false; }
+    
+    // Bandwidth Optimization: don't save if data hasn't changed since last success
+    if(window._fbLastSavedRaw === raw) {
+      if(!silent) console.log('saveToFirebase: skipped (no changes)');
+      return true; 
+    }
 
     _fbSyncing = true;
     _fbUpdateStatus();
@@ -261,7 +283,7 @@ async function saveToFirebase(silent) {
     const _saveQ   = _saveTok ? '?auth=' + _saveTok : '';
     // ── Conflict guard: detect if another device saved since our last load ──
     try {
-      const _tsUrl = 'https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/ts.json';
+      const _tsUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/ts.json';
       const _cR = await fetch(_tsUrl + (_saveTok ? '?auth='+_saveTok : ''));
       if (_cR.ok) {
         const _remoteTs = await _cR.json();
@@ -285,11 +307,15 @@ async function saveToFirebase(silent) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
+    // Also update a standalone timestamp for efficient polling
+    const tsUrl = FIREBASE_DB_URL.replace('.json', '/ts.json') + _saveQ;
+    fetch(tsUrl, { method: 'PUT', body: JSON.stringify(nowTs) }).catch(()=>{});
     if (r.ok) {
       _setFbSaveTs(nowTs);
       window._safeLS.setItem('ganv5_local_ts', String(nowTs));
       _fbLastError = null;
       _fbLastOwnSaveTs = nowTs; // track our own saves
+      window._fbLastSavedRaw = raw; // track for change detection
       // Show save indicator (small flash)
       const _bi=document.getElementById('backup-ind');
       if(_bi){_bi.textContent='☁️ נשמר';_bi.classList.add('show');clearTimeout(_bi._to);_bi._to=setTimeout(()=>_bi.classList.remove('show'),1500);}
@@ -299,7 +325,7 @@ async function saveToFirebase(silent) {
       if(typeof window.INVOICES!=='undefined' && window.INVOICES.length > 0 && _saveTok){
         const _invObj = {};
         window.INVOICES.forEach(i=>{ if(i&&i.id) _invObj[i.id]=i; });
-        fetch('https://ganmanage-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+_saveTok, {
+        fetch('https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+_saveTok, {
           method: 'PUT',
           headers: {'Content-Type':'application/json'},
           body: JSON.stringify(_invObj)
@@ -417,13 +443,14 @@ function _fbStartPolling() {
     try {
       const _pollTok = window._fbGetToken ? await window._fbGetToken() : null;
       const _pollQ   = _pollTok ? '&auth=' + _pollTok : '';
-      const r = await fetch(FIREBASE_DB_URL + '?ts=' + Date.now() + _pollQ);
+      // Fetch ONLY the timestamp field to save bandwidth (3000% cost reduction)
+      const tsUrl = FIREBASE_DB_URL.replace('.json', '/ts.json');
+      const r = await fetch(tsUrl + '?ts=' + Date.now() + _pollQ);
       if (!r.ok) return;
-      const d = await r.json();
-      const cloudTs = d && d.ts ? d.ts : 0;
-      if (cloudTs > _fbLastSaveTs && cloudTs > 0) {
-        console.log('Firebase: remote change detected, reloading...');
-        _applyRemoteData(d.data || d, cloudTs);
+      const cloudTs = await r.json();
+      if (cloudTs && typeof cloudTs === 'number' && cloudTs > _fbLastSaveTs) {
+        console.log('Firebase: remote change detected (ts=' + cloudTs + '), reloading full data...');
+        await loadFromFirebase(true, true);
         showToast('🔄 נתונים עודכנו ממכשיר אחר');
       }
     } catch(e) { /* ignore polling errors */ }
