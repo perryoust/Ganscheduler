@@ -53,9 +53,21 @@ function filterE(f,from,to){
   });
   const posted=window.SCH.filter(s=>{
     if(s.st!=='post'||!s.pd||s.pd<from||s.pd>to) return false;
+    if(s._compByMakeup && s._compByMakeup !== 'false') return false; // Hide if makeup already exists
     const g=window.G(s.g);
     if(f.city&&g.city!==f.city) return false;
+    if(f.cluster){
+      if(f.cluster==='__all__'){
+        const allClusterGids=new Set(window.getClusters().flatMap(c=>c.gardenIds||[]));
+        if(!allClusterGids.has(s.g)) return false;
+      } else {
+        const cl=window.getClusters().find(c=>c.name===f.cluster);
+        if(!cl||(!(cl.gardenIds||[]).map(Number).includes(Number(s.g)))) return false;
+      }
+    }
+    if(f.cls&&window.gcls(g)!==f.cls) return false;
     if(f.gids&&!f.gids.includes(s.g)) return false;
+    if(f.sup && window.supBase(s.a) !== f.sup && s.a !== f.sup) return false;
     return true;
   }).map(s=>({...s,d:s.pd,_isPostponed:true}));
   return [...all,...posted];
@@ -1390,11 +1402,15 @@ function renderCalList(evs, mDate){
       const clr=window.CITY_COLORS(city);
 
       h+=`<div style="margin-bottom:8px">`;
-      // City header
-      h+=`<div style="display:flex;align-items:center;gap:6px;padding:5px 10px;margin-bottom:5px;background:${clr.light};border-right:4px solid ${clr.solid};border-radius:6px">
-        <span style="font-weight:800;color:${clr.solid};font-size:.88rem">🏙️ ${city}</span>
-        <span style="font-size:.72rem;color:#78909c">${cityEvs.length} פעילויות</span>
-      </div>`;
+      // City header with dropdown toggle
+      h+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 10px;margin-bottom:5px;background:${clr.light};border-right:4px solid ${clr.solid};border-radius:6px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-weight:800;color:${clr.solid};font-size:.88rem">🏙️ ${city}</span>
+          <span style="font-size:.72rem;color:#78909c">${cityEvs.length} פעילויות</span>
+        </div>
+        <span style="font-size:.7rem;opacity:.5;color:${clr.solid}">▼</span>
+      </div>
+      <div style="display:block">`;
 
       // ── Group mode: _listGroupMode controls window.pairs vs window.clusters priority ──
       const _gmode2 = typeof _listGroupMode!=='undefined' ? _listGroupMode : 'window.pairs';
@@ -1467,7 +1483,7 @@ function renderCalList(evs, mDate){
         });
       soloEvs.forEach(s=>{ h+=_listRow(s,clr,ds); });
 
-      h+=`</div>`; // end city
+      h+=`</div></div>`; // end city inner + outer
     });
 
     h+='</div></div>';
@@ -1586,10 +1602,14 @@ function renderRangeListView(evs, fromDs, toDs){
       const clr = window.CITY_COLORS(city);
 
       h += `<div style="margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:6px;padding:5px 10px;margin-bottom:5px;background:${clr.light};border-right:4px solid ${clr.solid};border-radius:6px">
-          <span style="font-weight:800;color:${clr.solid};font-size:.88rem">🏙️ ${city}</span>
-          <span style="font-size:.72rem;color:#78909c">${cityEvs.length} פעילויות</span>
-        </div>`;
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 10px;margin-bottom:5px;background:${clr.light};border-right:4px solid ${clr.solid};border-radius:6px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-weight:800;color:${clr.solid};font-size:.88rem">🏙️ ${city}</span>
+            <span style="font-size:.72rem;color:#78909c">${cityEvs.length} פעילויות</span>
+          </div>
+          <span style="font-size:.7rem;opacity:.5;color:${clr.solid}">▼</span>
+        </div>
+        <div style="display:block">`;
 
       const _gmode = _listGroupMode === 'clusters' ? 'window.clusters' : 'window.pairs';
       const firstUsedGids = new Set();
@@ -1643,7 +1663,7 @@ function renderRangeListView(evs, fromDs, toDs){
         .sort((a,b) => (window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'))
         .forEach(s => { h += _listRow(s, clr, ds); });
 
-      h += `</div>`;
+      h += `</div></div>`;
     });
     h += '</div></div>';
   });
