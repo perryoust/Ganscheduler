@@ -28,7 +28,7 @@ function renderDash(){
   const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
   const srch=(document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
   
-  console.log(`[Dash Debug] v95.5 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
+  console.log(`[Dash Debug] v95.6 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
 
   const checkMatch = (s, tTab, tSt, tDate) => {
     // A postponed/failed activity is "handled" if it has a linked makeup/new date
@@ -368,24 +368,21 @@ function openSP(id){
       </div>
 
     <div style="font-size:.8rem;font-weight:900;color:#1a237e;margin-bottom:12px;border-bottom:1px solid #f0f0f0;padding-bottom:8px">⚡ פעולות מהירות</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
-      <button class="btn bg" style="padding:12px 6px;font-size:.85rem;font-weight:800;border-radius:10px" onclick="window.setStatus('done')">✔️ בוצע</button>
-      <button class="btn" style="padding:12px 6px;font-size:.85rem;font-weight:800;border-radius:10px;background:#fff;color:#c62828;border:2px solid #ef9a9a" onclick="window.setStatus('nohap')">⚠️ לא התקיים</button>
-      <button class="btn" style="padding:12px 6px;font-size:.85rem;font-weight:800;border-radius:10px;background:#fff;color:#546e7a;border:2px solid #cfd8dc" onclick="window.setStatus('can')">❌ ביטול</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+      <button class="btn bg bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px" onclick="window.setStatus('done')">✔️ בוצע</button>
+      <button class="btn bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px;background:#fff;color:#c62828;border:1px solid #ef9a9a" onclick="window.setStatus('nohap')">⚠️ לא התקיים</button>
+      <button class="btn bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px;background:#fff;color:#546e7a;border:1px solid #cfd8dc" onclick="window.setStatus('can')">❌ ביטול</button>
+      <button class="btn borange bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px" onclick="window.openPostpone(${s.id})">⏩ דחייה</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <button class="btn borange bsm" style="padding:10px;font-weight:700" onclick="window.openPostpone(${s.id})">⏩ דחייה</button>
-      <button class="btn bp bsm" style="padding:10px;font-weight:700" onclick="window.openMakeupSched(${s.id})">📅 שיבוץ השלמה</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+      <button class="btn bp bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px" onclick="window.openMakeupSched(${s.id})">📅 השלמה</button>
+      <button class="btn bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px;background:#fff;color:#e65100;border:1px solid #ffcc80" onclick="window.markCompManual('${s.id}')">🗑️ סיום טיפול</button>
+      <button class="btn bo bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px" onclick="window.setStatus('ok')">🔄 שחזור</button>
     </div>
     
     <div id="sp-free-days-wrap" style="margin-top:15px;padding-top:15px;border-top:1px dashed #e0e0e0;display:none">
       <div style="font-size:.75rem;font-weight:900;color:#2e7d32;margin-bottom:8px">📅 ימים פנויים משותפים (לשני הגנים):</div>
       <div id="sp-free-days-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
-    </div>
-
-    <div style="display:flex;gap:8px;margin-top:12px">
-      <button class="btn bsm" style="flex:2;background:#fff;color:#e65100;border:2px solid #ffcc80;font-weight:700" onclick="window.markCompManual('${s.id}')">🗑️ סיום טיפול (הסרה)</button>
-      <button class="btn bo bsm" style="flex:1;font-size:.7rem;font-weight:700" onclick="window.setStatus('ok')">🔄 שחזור</button>
     </div>
   </div>`;
 
@@ -414,22 +411,78 @@ function openSP(id){
     </div>`;
   }
 
-  // --- STEP 5: Series Management ---
-  if (s._recId) {
-    h += `<div style="margin-top:10px;border:1.5px solid #ce93d8;border-radius:10px;overflow:hidden">
-      <div onclick="window.toggleSpAccordion('sp-acc-series')" style="background:#f3e5f5;padding:10px 15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-        <b style="font-size:0.85rem;color:#6a1b9a">🔄 ניהול פעילות קבועה</b>
-        <span id="sp-acc-series-arrow" style="font-size:0.7rem;transition:0.3s">▼</span>
-      </div>
-      <div id="sp-acc-series" style="display:none;padding:12px;background:#fff;border-top:1px solid #ce93d8">
-        <div style="font-size:.72rem;color:#6a1b9a;margin-bottom:8px">שינוי כאן ישפיע על כל הפעילויות העתידיות בסדרה זו</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <button class="btn bp bsm" onclick="window.openReplaceRecur(${s.id})">✏️ שינוי קבוע</button>
-          <button class="btn br bsm" onclick="window.deleteRecurSeries(${s.id})">🗑️ ביטול סדרה</button>
+  // --- STEP 5: Series Management (Always visible toggle) ---
+  const isRecChecked = s._recId ? 'checked' : '';
+  const defaultTo = '2026-08-31';
+  h += `<div style="margin-top:10px;border:1.5px solid #ce93d8;border-radius:10px;overflow:hidden">
+    <div style="background:#f3e5f5;padding:10px 15px;display:flex;justify-content:space-between;align-items:center">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="sp-is-rec-chk" ${isRecChecked} onchange="window.toggleSpRecurBox(this.checked)" style="width:18px;height:18px;accent-color:#6a1b9a">
+        <b style="font-size:0.85rem;color:#6a1b9a">🔄 פעילות קבועה (סדרה)</b>
+      </label>
+      <span id="sp-acc-series-arrow" style="font-size:0.7rem;transition:0.3s;cursor:pointer" onclick="window.toggleSpAccordion('sp-acc-series')">▼</span>
+    </div>
+    <div id="sp-acc-series" style="display:none;padding:12px;background:#fff;border-top:1px solid #ce93d8">
+      <div style="font-size:.8rem;font-weight:700;color:#1565c0;margin-bottom:8px">גן ראשי: ${g.name}</div>
+      <div style="font-size:.72rem;color:#6a1b9a;margin-bottom:10px;background:#f9f9f9;padding:6px 10px;border-radius:6px">הגדרת טווח תאריכים וימים בשבוע. המערכת תשבץ פעילויות אלו באופן אוטומטי. ${s._recId ? 'שינוי כאן יחליף את הפעילויות העתידיות בסדרה זו.' : ''}</div>
+      
+      <div style="display:grid;gap:10px;background:#f9f9f9;padding:12px;border-radius:10px;border:1px solid #eee">
+        <div class="fg"><label style="font-size:.75rem;font-weight:700">📅 טווח תאריכים</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <input type="date" id="rr-from" value="${s.d}" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
+            <input type="date" id="rr-to" value="${defaultTo}" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
+          </div>
         </div>
+        
+        <div class="fg"><label style="font-size:.75rem;font-weight:700">🗓️ ימים בשבוע</label>
+          <div style="display:flex;justify-content:space-between;background:#fff;padding:8px;border-radius:6px;border:1px solid #ccc">
+            ${['א','ב','ג','ד','ה'].map((d,i)=>`
+              <label style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
+                <span style="font-size:.7rem;font-weight:700">${d}</span>
+                <input type="checkbox" class="rr-day" value="${i}" ${new Date(s.d).getDay()===i?'checked':''} style="width:16px;height:16px;accent-color:#6a1b9a">
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="fg"><label style="font-size:.75rem;font-weight:700">📚 ספק</label>
+            <select id="rr-sup" onchange="window.rrSupChg()" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
+              ${(window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : []).map(s2=>`<option value="${s2.name}" ${s2.name===s.a?'selected':''}>${s2.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="fg"><label style="font-size:.75rem;font-weight:700">🎯 פעילות</label>
+            <select id="rr-act" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
+              <option value="">— ללא שינוי —</option>
+              ${(window.getSupActs ? window.getSupActs(s.a) : []).map(a=>`<option value="${a}" ${a===s.act?'selected':''}>${a}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        
+        <div class="fg"><label style="font-size:.75rem;font-weight:700">⏰ שעה (ראשי - ${g.name})</label>
+          <input type="time" id="rr-time" value="${s.t||''}" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
+        </div>
+
+        ${spPair ? `
+          <div class="info-notice" style="margin-top:5px;margin-bottom:5px">
+            <span class="icon">🔗</span>
+            <div><b>גן בן-זוג:</b> שינוי זה יוחל גם על <b>${window.G(spPair.ids.find(id=>Number(id)!==Number(s.g))).name}</b> אם הסימון למטה מסומן.</div>
+          </div>
+          <div class="fg" style="margin-top:-5px">
+            <label style="font-size:.75rem;font-weight:700">⏰ שעה לבן-זוג</label>
+            <input type="time" id="rr-time-partner" value="${(typeof partnerInfo !== 'undefined' && partnerInfo.length > 0 && partnerInfo[0].pev) ? partnerInfo[0].pev.t : (s.t||'')}" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
+          </div>
+          <label style="display:flex;align-items:center;gap:6px;margin-top:8px;cursor:pointer">
+            <input type="checkbox" id="rr-sync" style="width:16px;height:16px;accent-color:#1a237e" checked>
+            <span style="font-size:.8rem;font-weight:700;color:#1a237e">סנכרן עם גן בן-זוג באותם ימים ושעות</span>
+          </label>
+        ` : ''}
+
+        <button class="btn bp" style="width:100%;padding:10px;font-weight:800;font-size:.9rem;margin-top:12px" onclick="window.saveReplaceRecur(${s.id})">💾 שמור שינויים והחל סדרה קבועה</button>
+        ${s._recId ? `<button class="btn br" style="width:100%;padding:8px;font-weight:700;margin-top:6px;background:#fff;border:1px solid #ef9a9a;color:#c62828" onclick="window.deleteRecurSeries(${s.id})">🗑️ הסר פעילות קבועה מכאן והלאה</button>` : ''}
       </div>
-    </div>`;
-  }
+    </div>
+  </div>`;
 
   // --- STEP 6: Edit Accordion — one-time change of date/supplier/time ---
   const allSups = window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : [];
@@ -441,6 +494,7 @@ function openSP(id){
       <span id="sp-acc-edit-arrow" style="font-size:0.7rem;transition:0.3s">▼</span>
     </div>
     <div id="sp-acc-edit" style="display:none;padding:12px;background:#fff;border-top:1px solid #e0e0e0">
+      <div style="font-size:.8rem;font-weight:700;color:#1565c0;margin-bottom:8px">גן ראשי: ${g.name}</div>
       <div style="font-size:.72rem;color:#78909c;margin-bottom:10px;background:#f9f9f9;padding:6px 10px;border-radius:6px">שינוי תאריך, ספק, פעילות או שעה <b>רק לפעילות זו</b> (לא משנה את הסדרה)</div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <div class="fg"><label for="sp-edit-date" style="font-size:.75rem;font-weight:700">תאריך</label><input type="date" id="sp-edit-date" value="${s.d}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc"></div>
@@ -464,10 +518,7 @@ function openSP(id){
     </div>
   </div>`;
 
-  // --- STEP 7: Copy button (additional action) ---
-  h += `<div style="margin-top:8px;text-align:center">
-    <button class="btn bo bsm" style="font-size:.72rem" onclick="window.openCopy(${s.id})">📋 שכפול פעילות לתאריך אחר</button>
-  </div>`;
+  // --- STEP 7 removed per user request ---
 
   document.getElementById('sp-body').innerHTML=h;
   document.getElementById('sp').classList.add('open');
@@ -498,6 +549,29 @@ function toggleSpAccordion(id){
 
   el.style.display = isOpening ? 'block' : 'none';
   if(arrow) arrow.style.transform = isOpening ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+function toggleSpRecurBox(isChecked) {
+  const el = document.getElementById('sp-acc-series');
+  const arrow = document.getElementById('sp-acc-series-arrow');
+  if(isChecked) {
+    // Open the accordion so they can define the series
+    if(el) el.style.display = 'block';
+    if(arrow) arrow.style.transform = 'rotate(180deg)';
+  } else {
+    // Unchecked -> ask if they want to delete series
+    const s = window.SCH.find(x => x.id == window.selEv);
+    if(s && s._recId) {
+      if(confirm('האם תרצה להסיר את הפעילות הקבועה ולבטל את כל השיבוצים העתידיים בסדרה זו?')) {
+        window.deleteRecurSeries(s.id);
+      } else {
+        document.getElementById('sp-is-rec-chk').checked = true; // revert
+      }
+    } else {
+      if(el) el.style.display = 'none';
+      if(arrow) arrow.style.transform = 'rotate(0deg)';
+    }
+  }
 }
 
 function showSpSaved(){
@@ -633,7 +707,8 @@ function saveReplaceRecur(id) {
     const sup = document.getElementById('rr-sup').value;
     const act = document.getElementById('rr-act').value;
     const time = document.getElementById('rr-time').value;
-    const sync = document.getElementById('rr-sync-pair')?.checked;
+    const sync = document.getElementById('rr-sync') ? document.getElementById('rr-sync').checked : false;
+    const partnerTime = document.getElementById('rr-time-partner') ? document.getElementById('rr-time-partner').value : time;
 
     if(!from || !to || !days.length || !sup) return alert('יש למלא את כל השדות ולבחור ימים');
 
@@ -684,11 +759,8 @@ function saveReplaceRecur(id) {
               pair.ids.forEach((pid, idx) => {
                 if (Number(pid) !== Number(s.g)) {
                   // Keep partner time if possible, otherwise use main time
-                  // Logic: Find the partner's original activity to get their specific time
-                  // But since we are replacing the whole series, we might not have a "partner time" reference 
-                  // except the one we had in openSP. For now, use the same time or partner's current offset.
                   window.SCH.push({
-                    id: eid + (idx+1)*5000, g: pid, d: ds, a: sup, act: act, t: time, st: 'ok',
+                    id: eid + (idx+1)*5000, g: pid, d: ds, a: sup, act: act, t: partnerTime, st: 'ok',
                     nt: s.nt||'', _recId: newRecId, grp: s.grp||1
                   });
                 }
