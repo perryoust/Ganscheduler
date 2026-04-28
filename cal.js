@@ -1512,6 +1512,7 @@ function _listRow(s, clr, ds){
     <div>
       <div style="font-size:.75rem;font-weight:600;color:#1565c0">${window.supBase(s.a)}${s.act?' — <span style="color:#546e7a">'+s.act+'</span>':''}</div>
       ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #b3e5fc;margin-top:2px">📅 השלמה</div>`:''}
+      ${s._recId?`<div style="display:inline-block;background:#f3e5f5;color:#6a1b9a;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #e1bee7;margin-top:2px">🔄 קבוע</div>`:''}
       <div style="font-size:.65rem;color:#5c6bc0">${s.tp||'חוג'}</div>
     </div>
     <div style="font-size:.7rem;font-weight:700;color:${stC}">${window.stLabel(s).replace(/<[^>]+>/g,'')}</div>

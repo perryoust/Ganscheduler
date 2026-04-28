@@ -28,7 +28,7 @@ function renderDash(){
   const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
   const srch=(document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
   
-  console.log(`[Dash Debug] v95.4 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
+  console.log(`[Dash Debug] v95.5 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
 
   const checkMatch = (s, tTab, tSt, tDate) => {
     // A postponed/failed activity is "handled" if it has a linked makeup/new date
@@ -189,6 +189,7 @@ function _dashListRow(s){
   let badge = '';
   if(s.st === 'post') badge = `<span style="background:#fff3e0;color:#e65100;font-size:.65rem;padding:1px 5px;border-radius:4px;font-weight:700">דחוי ל-${window.fD(s.pd)}</span>`;
   else if(isM) badge = `<span style="background:#e3f2fd;color:#1565c0;font-size:.65rem;padding:1px 5px;border-radius:4px;font-weight:700">השלמה ${fromDate?'מתאריך '+window.fD(fromDate):''}</span>`;
+  if(s._recId) badge += ` <span style="background:#f3e5f5;color:#6a1b9a;font-size:.65rem;padding:1px 5px;border-radius:4px;font-weight:700;border:1px solid #e1bee7">🔄 קבוע</span>`;
 
   return `<div style="display:grid;grid-template-columns:110px 140px 1fr 100px;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #eee;cursor:pointer;background:#fff;${s.st==='post'?'opacity:0.8':''}" onclick="window.openSP('${s.id}')">
     <div style="font-weight:700;color:#1a237e;font-size:.82rem">${g.name}</div>
@@ -885,6 +886,8 @@ function openPostpone(id){
   document.getElementById('post-ev-info').innerHTML=`<b>${g.name}</b> · ${g.city} · ${s.a}`;
   // Ensure the input has a label associated with it in index.html (verified later)
   document.getElementById('post-date').value='';
+  document.getElementById('post-reason').value='';
+  if(typeof window.setPostMode === 'function') window.setPostMode('move');
   
   // Set up Synergy UI
   const synWrap = document.getElementById('post-synergy-wrap');
@@ -938,6 +941,30 @@ function doPostpone(){
   const newSup = document.getElementById('post-sup') ? document.getElementById('post-sup').value : '';
   const newAct = document.getElementById('post-act') ? document.getElementById('post-act').value : '';
   const reason = document.getElementById('post-reason') ? document.getElementById('post-reason').value : '';
+  
+  if (window._postMode === 'defer') {
+    if(!reason.trim()) { alert('יש להזין סיבה לדחייה'); return; }
+    s.st = 'post';
+    s.pd = ''; // No target date
+    s.cn = s.cn ? s.cn + ` (דחייה: ${reason})` : `(דחייה: ${reason})`;
+    
+    // Process Synergy Partners for defer
+    const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('post') : [];
+    for(let syn of synergyPartners) {
+      const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === syn.g && ps.st !== 'can' && window.supBase(ps.a) === window.supBase(s.a));
+      if(pEv) {
+        pEv.st = 'post';
+        pEv.pd = '';
+        pEv.cn = pEv.cn ? pEv.cn + ` (דחייה: ${reason})` : `(דחייה: ${reason})`;
+      }
+    }
+    
+    window.saveAndRefresh();
+    document.getElementById('postm').classList.remove('open');
+    showToast('הפעילות נדחתה');
+    return;
+  }
+  
   if(!newDate) { alert('יש לבחור תאריך'); return; }
   
   const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('post') : [];
@@ -1107,5 +1134,34 @@ function postDateChg() {
   console.log('Postpone date changed');
 }
 window.postDateChg = postDateChg;
+
+window.setPostMode = function(mode) {
+  window._postMode = mode;
+  const btnMove = document.getElementById('postm-mode-move');
+  const btnDefer = document.getElementById('postm-mode-defer');
+  const dateRow = document.getElementById('post-date').parentElement;
+  const timeRow = document.getElementById('post-time').parentElement;
+  const synWrap = document.getElementById('post-synergy-wrap');
+  const saveBtn = document.getElementById('postm-save-btn');
+  const reasonLbl = document.getElementById('post-reason-lbl');
+
+  if(mode === 'move') {
+    if(btnMove) btnMove.classList.add('active');
+    if(btnDefer) btnDefer.classList.remove('active');
+    if(dateRow) dateRow.style.display = 'block';
+    if(timeRow) timeRow.style.display = 'block';
+    if(synWrap) synWrap.style.display = 'block';
+    if(saveBtn) { saveBtn.textContent = '🚀 הזז וצור השלמה'; saveBtn.className = 'btn borange'; }
+    if(reasonLbl) reasonLbl.textContent = 'סיבה (אופציונלי)';
+  } else {
+    if(btnMove) btnMove.classList.remove('active');
+    if(btnDefer) btnDefer.classList.add('active');
+    if(dateRow) dateRow.style.display = 'none';
+    if(timeRow) timeRow.style.display = 'none';
+    if(synWrap) synWrap.style.display = 'none';
+    if(saveBtn) { saveBtn.textContent = '⏱️ דחה לעת עתה'; saveBtn.className = 'btn bs'; }
+    if(reasonLbl) reasonLbl.textContent = 'סיבה (חובה לדחייה)';
+  }
+};
 
 setTimeout(() => { if (typeof renderDash === 'function') renderDash(); }, 100);
