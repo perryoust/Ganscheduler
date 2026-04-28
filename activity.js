@@ -318,9 +318,9 @@ function openSP(id){
   </div>`;
 
   // --- STEP 2: Partner Garden Info (If exists) ---
+  let partnerInfo = [];
   if (spPair) {
     const otherIds = spPair.ids.map(Number).filter(oid => oid !== Number(s.g));
-    const partnerInfo = [];
     otherIds.forEach(oid => {
       const pg = window.G(oid);
       const pev = window.SCH.find(ps => Number(ps.g)===oid && ps.d === s.d && window.supBase(ps.a) === window.supBase(s.a) && ps.st !== 'can');
@@ -469,8 +469,8 @@ function openSP(id){
             <div><b>גן בן-זוג:</b> שינוי זה יוחל גם על <b>${window.G(spPair.ids.find(id=>Number(id)!==Number(s.g))).name}</b> אם הסימון למטה מסומן.</div>
           </div>
           <div class="fg" style="margin-top:-5px">
-            <label style="font-size:.75rem;font-weight:700">⏰ שעה לבן-זוג</label>
-            <input type="time" id="rr-time-partner" value="${(typeof partnerInfo !== 'undefined' && partnerInfo.length > 0 && partnerInfo[0].pev) ? partnerInfo[0].pev.t : (s.t||'')}" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
+            <label style="font-size:.75rem;font-weight:700">⏰ שעה בן-זוג (${window.G(spPair.ids.find(id=>Number(id)!==Number(s.g))).name})</label>
+            <input type="time" id="rr-time-partner" value="${(partnerInfo.length > 0 && partnerInfo[0].pev) ? partnerInfo[0].pev.t : (s.t||'')}" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
           </div>
           <label style="display:flex;align-items:center;gap:6px;margin-top:8px;cursor:pointer">
             <input type="checkbox" id="rr-sync" style="width:16px;height:16px;accent-color:#1a237e" checked>
