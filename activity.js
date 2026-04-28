@@ -28,7 +28,7 @@ function renderDash(){
   const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
   const srch=(document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
   
-  console.log(`[Dash Debug] v95.7 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
+  console.log(`[Dash Debug] v95.8 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
 
   const checkMatch = (s, tTab, tSt, tDate) => {
     // A postponed/failed activity is "handled" if it has a linked makeup/new date
@@ -413,7 +413,13 @@ function openSP(id){
 
   // --- STEP 5: Series Management (Always visible toggle) ---
   const isRecChecked = s._recId ? 'checked' : '';
-  const defaultTo = '2026-08-31';
+  
+  // Calculate default dates for school year (Sep 1 to Jun 30)
+  const _dObj = s.d ? new Date(s.d) : new Date();
+  const _sY = _dObj.getMonth() >= 7 ? _dObj.getFullYear() : _dObj.getFullYear() - 1;
+  const defaultFrom = `${_sY}-09-01`;
+  const defaultTo = `${_sY + 1}-06-30`;
+
   h += `<div style="margin-top:10px;border:1.5px solid #ce93d8;border-radius:10px;overflow:hidden">
     <div style="background:#f3e5f5;padding:10px 15px;display:flex;justify-content:space-between;align-items:center">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -429,7 +435,7 @@ function openSP(id){
       <div style="display:grid;gap:10px;background:#f9f9f9;padding:12px;border-radius:10px;border:1px solid #eee">
         <div class="fg"><label style="font-size:.75rem;font-weight:700">📅 טווח תאריכים</label>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-            <input type="date" id="rr-from" value="${s.d}" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
+            <input type="date" id="rr-from" value="${defaultFrom}" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
             <input type="date" id="rr-to" value="${defaultTo}" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
           </div>
         </div>
