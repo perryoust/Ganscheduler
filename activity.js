@@ -195,30 +195,46 @@ function _dashListRow(ev) {
   const g = window.G(ev.g);
   if (!g) return '';
   const stc = ev.st !== 'ok' ? 'st-' + ev.st : '';
-  const isMakeup = ev._isMakeup || ev._makeupFrom || ev._postFrom || (ev.nt && ev.nt.includes('השלמה'));
-  const fromDate = ev._makeupFrom || ev._postFrom || '';
-  const isRec = !!(ev._recId || (ev.nt && ev.nt.includes('קבוע')));
-  
-  const makeupBadge = isMakeup ? `<span style="background:#e1f5fe; color:#0288d1; border-radius:4px; padding:1px 5px; font-size:0.65rem; font-weight:800; border:1px solid #b3e5fc; margin-left:6px;">📅 השלמה ${fromDate?window.fD(fromDate):''}</span>` : '';
-  const recBadge = isRec ? `<span style="background:#f3e5f5; color:#6a1b9a; border-radius:4px; padding:1px 5px; font-size:0.65rem; font-weight:800; border:1px solid #e1bee7; margin-left:6px;">🔄 קבוע</span>` : '';
+            rows.push({type: 'pair', pair, evs: pairEvs});
+            seenPairs.add(pair.id);
+          }
+        } else {
+          const key = `${s.g}_${window.supBase(s.a)}`;
+          if (!soloMap.has(key) || s.st === 'ok') {
+            soloMap.set(key, s);
+          }
+        }
+      });
+      
+      // Add solos to rows
+      soloMap.forEach(ev => rows.push({type: 'solo', ev}));
 
-  return `<div class="pair-garden-row ${stc}" style="display:flex; align-items:center; gap:12px; padding:4px 10px; border-bottom:1px solid #f5f5f5;" onclick="window.openSP(${ev.id})">
-    <div style="font-weight:700; color:#1a237e; white-space:nowrap; min-width:110px;">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-    <div style="font-weight:800; color:#fff; background:#5c6bc0; padding:2px 8px; border-radius:4px; font-size:0.75rem; min-width:50px; text-align:center;">${ev.t ? window.fT(ev.t) : '--:--'}</div>
-    <div style="font-size:0.7rem; color:#78909c; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;">${g.st?`📍 ${g.st}`:''}</div>
-    <div style="flex:1; display:flex; align-items:center; gap:6px; overflow:hidden; justify-content:flex-end;">
-      <span style="font-size:0.75rem; color:#455a64; font-weight:700; margin-left:10px;">${ev.a}</span>
-      ${makeupBadge}
-      ${recBadge}
-      <span style="font-size:0.7rem; font-weight:700; color:${ev.st==='ok'?'#2e7d32':'#c62828'}">${window.stLabel(ev)}</span>
-    </div>
-    <div class="qacts" onclick="event.stopPropagation()" style="display:flex; gap:3px;">
-      ${ev.st==='done'?'':`<button title="בוצע" onclick="window.qSetSt(${ev.id},'done')" style="padding:1px 4px;">✔️</button>`}
-      ${ev.st==='can'?'':`<button title="בטל" onclick="window.openCanQ(${ev.id})" style="padding:1px 4px;">❌</button>`}
-      ${ev.st==='nohap'?'':`<button title="חוסר" onclick="window.qSetSt(${ev.id},'nohap')" style="padding:1px 4px;">⚠️</button>`}
-    </div>
-  </div>`;
-}
+      rows.sort((a, b) => {
+        const tA = (a.type === 'pair' ? a.evs[0]?.t : a.ev?.t) || '99:99';
+        const tB = (b.type === 'pair' ? b.evs[0]?.t : b.ev?.t) || '99:99';
+        return tA.localeCompare(tB);
+      });
+
+      let h = '';
+      rows.forEach(row => {
+        if(row.type === 'pair') {
+          const clr = window.CITY_COLORS(c);
+          // Deduplicate pair evs internally
+          const pairMap = new Map();
+          row.evs.forEach(e => {
+            if(!pairMap.has(e.g) || e.st === 'ok') pairMap.set(e.g, e);
+          });
+          h += window.renderPairCard(row.pair, Array.from(pairMap.values()), {ds: date, clr, showEdit: true, showExport: true, isCompact: true});
+        } else {
+          h += _dashListRow(row.ev);
+        }
+      });
+      
+      content.innerHTML = h;
+      accordion.appendChild(content);
+      list.appendChild(accordion);
+    });
+  };
 
 function renderCanList(){
   const tab = (typeof _dashTab !== 'undefined' ? _dashTab : 'g');
