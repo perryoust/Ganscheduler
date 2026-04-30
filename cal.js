@@ -804,10 +804,11 @@ function renderPairCard(pair, pairEvs, opts){
         sups[sb].evs.push(ev);
       });
 
-      Object.values(sups).forEach(group => {
+      for (const k in sups) {
+        const group = sups[k];
         // Show only ONE activity per garden/supplier to avoid duplicates
         const bestEv = group.hasOk ? group.evs.find(ev => ev.st === 'ok') : group.evs[0];
-        if (!bestEv) return;
+        if (!bestEv) continue;
 
         const ev = bestEv;
         const stc = ev.st !== 'ok' ? 'st-' + ev.st : '';
@@ -862,10 +863,11 @@ function renderGardenCols(evs, gids, clr){
         sups[sb].evs.push(s);
       });
       const filtered = [];
-      Object.values(sups).forEach(group => {
+      for (const sb in sups) {
+        const group = sups[sb];
         if (group.hasOk) filtered.push(...group.evs.filter(ev => ev.st !== 'post' && ev.st !== 'nohap'));
         else filtered.push(...group.evs);
-      });
+      }
 
       filtered.forEach(s => {
         const stc = s.st !== 'ok' ? 'st-' + s.st : '';
@@ -1162,7 +1164,8 @@ function renderPairWeek(evs,ws,gids){
         if (!supMap[ev.a]) supMap[ev.a] = ev;
         else if (ev.st === 'ok') supMap[ev.a] = ev;
       });
-      const uniqueDe = Object.values(supMap);
+      const uniqueDe = [];
+      for (const k in supMap) uniqueDe.push(supMap[k]);
 
       html+=`<td style="background:${pwBlk?'#fce4ec':cellBg};${pwBlk?'border:1.5px solid #e91e63;':''}" onclick="openGcellPopup(${gid},'${ds}',event)">${uniqueDe.length?uniqueDe.map(ev=>`<div style="border-radius:4px;padding:2px 6px;margin-bottom:2px;cursor:pointer;font-size:.7rem;background:${clr.light};border-right:2px solid ${clr.solid};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" onclick="event.stopPropagation();openSP(${ev.id})"><div style="font-weight:700;color:#1a237e">${ev.a}</div>${ev.t?`<div style="font-size:.65rem;color:#546e7a">⏰ ${window.fT(ev.t)}</div>`:''}</div>`).join('')+(pwBlk?`<div style="font-size:.62rem;color:#c62828">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`:'')
         :pwBlk?`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`

@@ -150,7 +150,9 @@ function renderDash(){
         if(!bySup[s.a]) bySup[s.a]={name:s.a,ph:s.p||'',evs:[]};
         bySup[s.a].evs.push({...s, gd:g});
       });
-      Object.values(bySup).sort((a,b)=>a.name.localeCompare(b.name,'he')).forEach(supData=>{
+      const supList = [];
+      for (const k in bySup) supList.push(bySup[k]);
+      supList.sort((a,b)=>a.name.localeCompare(b.name,'he')).forEach(supData=>{
         const byCity={};
         supData.evs.forEach(s=>{
           const c=s.gd.city||'אחר';
@@ -177,7 +179,8 @@ function renderDash(){
             if (!uniqueMap[key]) uniqueMap[key] = s;
             else if (s.st === 'ok') uniqueMap[key] = s;
           });
-          const dedupedCe = Object.values(uniqueMap);
+          const dedupedCe = [];
+          for (const k in uniqueMap) dedupedCe.push(uniqueMap[k]);
 
           h+=`<details class="city-accordion">
             <summary><span>🏙️ ${c} (${dedupedCe.length})</span></summary>

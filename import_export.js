@@ -81,8 +81,7 @@ window.importBulkSchedule = function(input) {
   reader.onload = async (e) => {
     try {
       const data = new Uint8Array(e.target.result);
-      const workbook = new window.ExcelJS.Workbook();
-      await workbook.xlsx.load(data);
+      const workbook = window.XLSX.read(data, { type: 'array', cellDates: true });
 
       const schMap = {};
       const gardenMap = {};
@@ -95,7 +94,6 @@ window.importBulkSchedule = function(input) {
         gardenMapClean[cleanStr(name)] = g.id;
       });
 
-      // Create a pair mapping: gardenId -> pairKey (e.g. "12_45")
       const pairMap = {};
       if (window.pairs && Array.isArray(window.pairs)) {
         window.pairs.forEach(p => {
@@ -108,78 +106,81 @@ window.importBulkSchedule = function(input) {
       }
 
       const now = Date.now();
-      const sortedSheets = [];
-      workbook.eachSheet(s => sortedSheets.push(s));
-      sortedSheets.sort((a, b) => {
+      const sheetNames = workbook.SheetNames.slice().sort((a, b) => {
         const getPrio = (name) => {
           if (name.includes('חוסר') || name.includes('חוסרים')) return 3;
           if (name.includes('השלמה') || name.includes('השלמות')) return 2;
           return 1;
         };
-        return getPrio(a.name) - getPrio(b.name);
+        return getPrio(a) - getPrio(b);
       });
 
-      sortedSheets.forEach((ws, sheetId) => {
-        const sheetName = ws.name || '';
-        console.log(`[Import] Processing sheet: "${sheetName}"`);
+      sheetNames.forEach(sheetName => {
+        const sheet = workbook.Sheets[sheetName];
+        const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        console.log(`[Import] Processing sheet: "${sheetName}" (${rows.length} rows)`);
+
         const isMakeupSheet = sheetName.includes('השלמה') || sheetName.includes('השלמות');
         const isMissingSheet = sheetName.includes('חוסר') || sheetName.includes('חוסרים') || sheetName.includes('לא התקיים');
         
         let headers = {};
         let headerRowIdx = -1;
-        for (let i = 1; i <= 10; i++) {
-          const row = ws.getRow(i);
+        for (let i = 0; i < Math.min(10, rows.length); i++) {
+          const row = rows[i];
+          if (!row) continue;
           let foundCount = 0;
-          row.eachCell((cell) => {
-            const val = cleanStr(cell.value);
+          row.forEach(cell => {
+            const val = cleanStr(cell);
             if (val === 'תאריך' || val === 'שםהצהרון' || val === 'שםהחוג') foundCount++;
           });
           if (foundCount >= 2) {
             headerRowIdx = i;
-            row.eachCell((cell, colNumber) => { headers[String(cell.value || '').trim()] = colNumber; });
+            row.forEach((cell, colIdx) => {
+              if (cell) headers[String(cell).trim()] = colIdx;
+            });
             break;
           }
         }
 
+        if (headerRowIdx === -1) {
+          console.warn(`[Import] Could not find header in sheet "${sheetName}"`);
+          return;
+        }
+
         const findCol = (possibleNames) => {
           for (let name of possibleNames) {
-            if (headers[name]) return headers[name];
+            if (headers[name] !== undefined) return headers[name];
             for (let h in headers) { if (h === name || h.includes(name)) return headers[h]; }
           }
           return null;
         };
 
-        const colDate = findCol(['תאריך', 'date']);
-        const colGname = findCol(['שם הצהרון', 'גן', 'garden']);
-        const colSupAct = findCol(['שם החוג', 'חוג', 'ספק']);
-        const colTime = findCol(['שעה', 'time', 'שע']);
-        const colNote = findCol(['הערות', 'note']);
-        const colGrp = findCol(['ק.', 'קבוצה']);
-        const colPhone = findCol(['טלפון', 'phone']);
+        const colDate = findCol(['תאריך', 'יום', 'Date']);
+        const colGname = findCol(['שם הצהרון', 'שם צהרון', 'גן', 'הצהרון', 'Garden']);
+        const colSupAct = findCol(['שם החוג', 'שם חוג', 'ספק', 'חוג', 'Activity', 'Supplier']);
+        const colTime = findCol(['שעה', 'זמן', 'Time']);
+        const colGrp = findCol(['קב', 'קבוצה', 'Group']);
+        const colNote = findCol(['הערות', 'הערה', 'Notes']);
+        const colStatus = findCol(['סטטוס', 'מצב', 'Status']);
 
-        if (!colDate || !colGname || !colSupAct) return;
+        if (colDate === null || colGname === null || colSupAct === null) {
+          console.warn(`[Import] Missing critical columns in sheet "${sheetName}"`);
+          return;
+        }
 
-        ws.eachRow((row, rowNumber) => {
-          if (rowNumber <= headerRowIdx) return;
+        for (let i = headerRowIdx + 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row || !row[colDate]) continue;
 
-          const getV = (colIdx) => {
-            if (!colIdx) return '';
-            const cell = row.getCell(colIdx);
-            if (!cell) return '';
-            let val = cell.value;
-            if (val && typeof val === 'object' && 'result' in val) val = val.result;
-            return val;
-          };
-
-          const rawDate = getV(colDate);
-          if (!rawDate) return;
+          const getV = (idx) => (idx !== null && row[idx] !== undefined) ? row[idx] : null;
 
           let formattedDate = '';
+          const rawDate = getV(colDate);
           if (rawDate instanceof Date) {
-            formattedDate = rawDate.toISOString().slice(0,10);
+            formattedDate = rawDate.toISOString().slice(0, 10);
           } else if (typeof rawDate === 'number') {
             const dateObj = new Date((rawDate - 25569) * 86400 * 1000);
-            formattedDate = dateObj.toISOString().slice(0,10);
+            formattedDate = dateObj.toISOString().slice(0, 10);
           } else if (typeof rawDate === 'string') {
             const parts = rawDate.split(/[\/\-\.]/);
             if (parts.length === 3) {
@@ -188,13 +189,14 @@ window.importBulkSchedule = function(input) {
               formattedDate = `${y}-${m}-${d}`;
             }
           }
-          if (!formattedDate || !formattedDate.match(/^\d{4}-\d{2}-\d{2}$/)) return;
+          if (!formattedDate || !formattedDate.match(/^\d{4}-\d{2}-\d{2}$/)) continue;
 
           const gnameRaw = String(getV(colGname) || '').trim();
           let gid = gardenMap[gnameRaw] || gardenMapClean[cleanStr(gnameRaw)];
-          if (!gid) return;
+          if (!gid) continue;
 
           const fullSup = String(getV(colSupAct) || '').trim();
+          if (!fullSup) continue;
           let supplier = fullSup, activity = '';
           if (fullSup.includes(' - ')) {
             const parts = fullSup.split(' - ');
@@ -202,20 +204,20 @@ window.importBulkSchedule = function(input) {
             activity = parts[1].trim();
           }
 
-          let timeRaw = getV(colTime);
           let time = '';
+          const timeRaw = getV(colTime);
           if (timeRaw && typeof timeRaw === 'number') {
             const totalMinutes = Math.round(timeRaw * 24 * 60);
             const h = Math.floor(totalMinutes / 60);
             const m = totalMinutes % 60;
-            time = h.toString().padStart(2,'0') + ':' + m.toString().padStart(2,'0');
+            time = h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0');
           } else if (timeRaw && timeRaw instanceof Date) {
-            time = timeRaw.getHours().toString().padStart(2,'0') + ':' + timeRaw.getMinutes().toString().padStart(2,'0');
+            time = timeRaw.getHours().toString().padStart(2, '0') + ':' + timeRaw.getMinutes().toString().padStart(2, '0');
           } else if (timeRaw) {
             time = String(timeRaw).trim().replace(/[^\d:]/g, '').slice(0, 5);
-            if (time.includes(':') && time.split(':')[0].length < 2) {
+            if (time.includes(':')) {
               const p = time.split(':');
-              time = p[0].padStart(2,'0') + ':' + p[1].padStart(2,'0');
+              time = p[0].padStart(2, '0') + ':' + p[1].padStart(2, '0');
             }
           }
 
@@ -225,22 +227,21 @@ window.importBulkSchedule = function(input) {
           const isMakeupNote = notes.includes('השלמה');
           const isActualMakeup = isMakeupSheet || isMakeupNote;
 
-          // New logic: if Group column is empty, it's a lack (nohap)
           let status = 'ok';
           const grpStr = String(grpRaw || '').trim();
-          if (grpStr === '') {
-            status = 'nohap';
-          }
+          if (grpStr === '') status = 'nohap';
           if (isMissingSheet) status = 'nohap';
+          
+          const rawSt = String(getV(colStatus) || '').toLowerCase();
+          if (rawSt.includes('בוטל') || rawSt === 'can') status = 'can';
+          else if (rawSt.includes('בוצע') || rawSt === 'done') status = 'done';
 
           let makeupFrom = '';
           if (isActualMakeup) {
-            // Try to extract date from notes like "השלמה לתאריך 1.9"
             const dateMatch = notes.match(/(\d{1,2})[\.\/](\d{1,2})/);
             if (dateMatch) {
               const d = dateMatch[1].padStart(2, '0');
               const m = dateMatch[2].padStart(2, '0');
-              // Guess year based on formattedDate
               const y = formattedDate.split('-')[0];
               makeupFrom = `${y}-${m}-${d}`;
             }
@@ -249,24 +250,28 @@ window.importBulkSchedule = function(input) {
           const locKey = pairMap[gid] || gid;
           const key = `${formattedDate}|${locKey}|${cleanStr(supplier)}|${time}`;
           
-          schMap[key] = {
-            id: now + '_' + sheetId + '_' + rowNumber,
-            d: formattedDate,
-            g: gid,
-            a: supplier,
-            act: activity,
-            t: time,
-            st: status,
-            n: (isMakeupSheet ? 'השלמה: ' : '') + (isMissingSheet ? 'חוסר: ' : '') + notes,
-            p: String(getV(colPhone) || ''),
-            grp: parseInt(grpRaw) || 0,
-            _isMakeup: isActualMakeup,
-            _makeupFrom: makeupFrom
-          };
-        });
+          if (!schMap[key] || status === 'ok' || (schMap[key].st !== 'ok' && status !== 'nohap')) {
+            schMap[key] = {
+              id: now + i + Math.random(),
+              d: formattedDate,
+              g: gid,
+              gd: window.G(gid),
+              a: supplier,
+              act: activity,
+              t: time,
+              st: status,
+              nt: notes,
+              grp: grpRaw || 1,
+              _makeupFrom: makeupFrom,
+              _isImported: true
+            };
+          }
+        }
       });
 
-      const newSCH = Object.values(schMap);
+      const newSCH = [];
+      for (const k in schMap) newSCH.push(schMap[k]);
+
       if (newSCH.length === 0) {
         window._importInProgress = false;
         throw new Error('לא נמצאו נתונים תקינים.');
