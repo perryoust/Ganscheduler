@@ -81,6 +81,9 @@ window.importBulkSchedule = function(input) {
   reader.onload = async (e) => {
     try {
       const data = new Uint8Array(e.target.result);
+      if (!window.XLSX) {
+        throw new Error('ספריית XLSX (SheetJS) לא נטענה. אנא רענן את הדף (F5).');
+      }
       const workbook = window.XLSX.read(data, { type: 'array', cellDates: true });
 
       const schMap = {};
