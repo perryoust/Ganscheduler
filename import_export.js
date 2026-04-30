@@ -73,7 +73,9 @@ window.importBulkSchedule = function(input) {
   if (!file) return;
 
   const statusEl = document.getElementById('bulk-import-status');
-  if (statusEl) statusEl.innerHTML = '⏳ סורק קובץ...';
+  if (statusEl) statusEl.innerHTML = '⏳ מנתח את הגיליונות...';
+
+  window._importInProgress = true;
 
   const reader = new FileReader();
   reader.onload = async (e) => {
@@ -82,12 +84,11 @@ window.importBulkSchedule = function(input) {
       const workbook = new window.ExcelJS.Workbook();
       await workbook.xlsx.load(data);
 
-      const newSCH = [];
+      const schMap = {}; // Use a map to handle overrides/deduplication
       const gardenMap = {};
       const gardenMapClean = {};
       
       const cleanStr = (s) => String(s || '').replace(/[^\u0590-\u05FFa-zA-Z0-9]/g, '').trim();
-
       window.GARDENS.forEach(g => { 
         const name = String(g.name || '').trim();
         gardenMap[name] = g.id;
@@ -95,28 +96,38 @@ window.importBulkSchedule = function(input) {
       });
 
       const now = Date.now();
-      let debugInfo = [];
+      
+      // Sort sheets to process "Regular" first, then "Makeup", then "Missing"
+      // This way, more specific sheets override regular ones.
+      const sortedSheets = [];
+      workbook.eachSheet(s => sortedSheets.push(s));
+      sortedSheets.sort((a, b) => {
+        const getPrio = (name) => {
+          if (name.includes('חוסר') || name.includes('חוסרים')) return 3;
+          if (name.includes('השלמה') || name.includes('השלמות')) return 2;
+          return 1;
+        };
+        return getPrio(a.name) - getPrio(b.name);
+      });
 
-      workbook.eachSheet((ws, sheetId) => {
+      sortedSheets.forEach((ws, sheetId) => {
         const sheetName = ws.name || '';
         const isMakeupSheet = sheetName.includes('השלמה') || sheetName.includes('השלמות');
+        const isMissingSheet = sheetName.includes('חוסר') || sheetName.includes('חוסרים');
         
         let headers = {};
         let headerRowIdx = -1;
 
-        // Search for header row in the first 10 rows
         for (let i = 1; i <= 10; i++) {
           const row = ws.getRow(i);
           let foundCount = 0;
           row.eachCell((cell) => {
             const val = cleanStr(cell.value);
-            if (val.includes('תאריך') || val.includes('גן') || val.includes('חוג') || val.includes('ספק')) foundCount++;
+            if (val === 'תאריך' || val === 'שםהצהרון' || val === 'שםהחוג') foundCount++;
           });
           if (foundCount >= 2) {
             headerRowIdx = i;
-            row.eachCell((cell, colNumber) => {
-              headers[String(cell.value || '').trim()] = colNumber;
-            });
+            row.eachCell((cell, colNumber) => { headers[String(cell.value || '').trim()] = colNumber; });
             break;
           }
         }
@@ -124,23 +135,20 @@ window.importBulkSchedule = function(input) {
         const findCol = (possibleNames) => {
           for (let name of possibleNames) {
             if (headers[name]) return headers[name];
-            for (let h in headers) { if (h.includes(name) || name.includes(h)) return headers[h]; }
+            for (let h in headers) { if (h === name || h.includes(name)) return headers[h]; }
           }
           return null;
         };
 
-        const colDate = findCol(['תאריך', 'date', 'יום']);
-        const colGname = findCol(['שם הצהרון', 'גן', 'garden', 'שם הגן']);
-        const colSupAct = findCol(['שם החוג', 'חוג', 'ספק', 'פעילות']);
-        const colTime = findCol(['שעה', 'time']);
+        const colDate = findCol(['תאריך', 'date']);
+        const colGname = findCol(['שם הצהרון', 'גן', 'garden']);
+        const colSupAct = findCol(['שם החוג', 'חוג', 'ספק']);
+        const colTime = findCol(['שעה', 'time', 'שע']);
         const colNote = findCol(['הערות', 'note']);
         const colGrp = findCol(['ק.', 'קבוצה']);
         const colPhone = findCol(['טלפון', 'phone']);
 
-        if (!colDate || !colGname || !colSupAct) {
-          debugInfo.push(`גיליון "${sheetName}": חסרות עמודות (תאריך:${!!colDate}, גן:${!!colGname}, חוג:${!!colSupAct})`);
-          return;
-        }
+        if (!colDate || !colGname || !colSupAct) return;
 
         ws.eachRow((row, rowNumber) => {
           if (rowNumber <= headerRowIdx) return;
@@ -176,7 +184,6 @@ window.importBulkSchedule = function(input) {
 
           const gnameRaw = String(getV(colGname) || '').trim();
           let gid = gardenMap[gnameRaw] || gardenMapClean[cleanStr(gnameRaw)];
-          
           if (!gid) return;
 
           const fullSup = String(getV(colSupAct) || '').trim();
@@ -187,58 +194,66 @@ window.importBulkSchedule = function(input) {
             activity = parts[1].trim();
           }
 
-          let time = getV(colTime);
-          if (time instanceof Date) {
-            time = time.getHours().toString().padStart(2,'0') + ':' + time.getMinutes().toString().padStart(2,'0');
-          } else if (typeof time === 'object' && time !== null && time.hours !== undefined) {
-            time = time.hours.toString().padStart(2,'0') + ':' + (time.minutes || 0).toString().padStart(2,'0');
+          let timeRaw = getV(colTime);
+          let time = '';
+          if (timeRaw instanceof Date) {
+            time = timeRaw.getHours().toString().padStart(2,'0') + ':' + timeRaw.getMinutes().toString().padStart(2,'0');
+          } else if (typeof timeRaw === 'object' && timeRaw !== null && timeRaw.hours !== undefined) {
+            time = timeRaw.hours.toString().padStart(2,'0') + ':' + (timeRaw.minutes || 0).toString().padStart(2,'0');
           } else {
-            time = String(time || '').trim().slice(0, 5);
+            time = String(timeRaw || '').trim().slice(0, 5);
           }
 
-          const notes = String(getV(colNote) || '');
-          newSCH.push({
+          const notes = String(getV(colNote) || '').trim();
+          let status = 'ok';
+          if (isMissingSheet) status = 'nohap';
+
+          // Unique key for deduplication and status override
+          const key = `${formattedDate}|${gid}|${supplier}|${time}`;
+          
+          schMap[key] = {
             id: now + '_' + sheetId + '_' + rowNumber,
             d: formattedDate,
             g: gid,
             a: supplier,
             act: activity,
             t: time,
-            st: 'ok',
-            n: isMakeupSheet ? (notes ? 'השלמה: ' + notes : 'השלמה') : notes,
+            st: status,
+            n: (isMakeupSheet ? 'השלמה: ' : '') + (isMissingSheet ? 'חוסר: ' : '') + notes,
             p: String(getV(colPhone) || ''),
             grp: parseInt(getV(colGrp)) || 1,
             _isMakeup: isMakeupSheet
-          });
+          };
         });
       });
 
+      const newSCH = Object.values(schMap);
+
       if (newSCH.length === 0) {
-        let errorMsg = 'לא נמצאו נתונים תקינים.\n' + debugInfo.join('\n');
-        throw new Error(errorMsg);
+        window._importInProgress = false;
+        throw new Error('לא נמצאו נתונים תקינים בגיליונות.');
       }
 
-      if (confirm(`✅ הצלחתי לקרוא ${newSCH.length} שיבוצים.\nהאם לעדכן את המערכת?`)) {
+      if (confirm(`✅ נמצאו ${newSCH.length} פעילויות ייחודיות (לאחר מיזוג גיליונות).\nהאם לעדכן את המערכת?`)) {
+        if (statusEl) statusEl.innerHTML = '⏳ שומר בסיס נתונים...';
         window.SCH = newSCH;
-        if (statusEl) statusEl.innerHTML = '⏳ שומר בסיס נתונים (50,000 שורות)... אל תסגור את הדפדפן';
-        
-        // Ensure we wait for the save to complete
         if (typeof window.saveToFirebase === 'function') {
           await window.saveToFirebase(false);
-        } else if (typeof window.save === 'function') {
+        } else {
           window.save();
-          // Fallback wait if save is not returning a promise
           await new Promise(r => setTimeout(r, 4000));
         }
-
-        if (statusEl) statusEl.innerHTML = `✅ הצלחה! ${newSCH.length} שיבוצים נשמרו. מרענן...`;
-        setTimeout(() => location.reload(), 1000);
+        if (statusEl) statusEl.innerHTML = '✅ סיום! המערכת תתרענן.';
+        setTimeout(() => { window._importInProgress = false; location.reload(); }, 1000);
+      } else {
+        window._importInProgress = false;
+        if (statusEl) statusEl.innerHTML = '❌ בוטל';
       }
 
     } catch (err) {
-      console.error('Import error:', err);
-      alert('שגיאה בייבוא:\n' + err.message);
-      if (statusEl) statusEl.innerHTML = '❌ שגיאה בייבוא';
+      window._importInProgress = false;
+      alert('שגיאה: ' + err.message);
+      if (statusEl) statusEl.innerHTML = '❌ שגיאה';
     } finally {
       input.value = '';
     }
