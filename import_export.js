@@ -227,7 +227,8 @@ window.importBulkSchedule = function(input) {
 
           // New logic: if Group column is empty, it's a lack (nohap)
           let status = 'ok';
-          if (grpRaw === '' || grpRaw === null || grpRaw === undefined) {
+          const grpStr = String(grpRaw || '').trim();
+          if (grpStr === '') {
             status = 'nohap';
           }
           if (isMissingSheet) status = 'nohap';
