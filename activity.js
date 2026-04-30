@@ -28,7 +28,7 @@ function renderDash(){
   const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
   const srch=(document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
   
-  console.log(`[Dash Debug] v96.2 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
+  console.log(`[Dash Debug] v96.4 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
 
   const checkMatch = (s, tTab, tSt, tDate) => {
     // A postponed/failed activity is "handled" if it has a linked makeup/new date
@@ -251,8 +251,8 @@ function _renderMiniTable(evs){
 window.openSP = openSP;
 function openSP(id){
   console.log('[openSP] Triggered for ID:', id);
-  window.selEv=id;
-  const s=window.SCH.find(x=>x.id==id);
+  window.selEv = String(id);
+  const s = window.SCH.find(x => String(x.id) === String(id));
   if(!s){
     console.error('[openSP] Activity not found in window.SCH for id:', id);
     // Still open panel with error message
