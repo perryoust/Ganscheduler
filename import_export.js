@@ -73,7 +73,7 @@ window.importBulkSchedule = function(input) {
   if (!file) return;
 
   const statusEl = document.getElementById('bulk-import-status');
-  if (statusEl) statusEl.innerHTML = '⏳ מעבד קובץ...';
+  if (statusEl) statusEl.innerHTML = '⏳ סורק את כל הגיליונות בקובץ... המתן לסיום';
 
   const reader = new FileReader();
   reader.onload = async (e) => {
@@ -81,91 +81,134 @@ window.importBulkSchedule = function(input) {
       const data = new Uint8Array(e.target.result);
       const workbook = new window.ExcelJS.Workbook();
       await workbook.xlsx.load(data);
-      const ws = workbook.getWorksheet(1); // First sheet
 
       const newSCH = [];
-      const headers = {};
-      
-      // Map headers
-      ws.getRow(1).eachCell((cell, colNumber) => {
-        headers[cell.value] = colNumber;
-      });
+      const gardenMap = {};
+      window.GARDENS.forEach(g => { gardenMap[g.name.trim()] = g.id; });
+      const now = Date.now();
+      let totalProcessed = 0;
+      let skipCount = 0;
 
-      // Simple validation of required headers (Date, Garden ID, Supplier)
-      const required = ['תאריך (YYYY-MM-DD)', 'מזהה גן (ID)', 'ספק'];
-      const missing = required.filter(h => !headers[h]);
-      if (missing.length > 0) {
-        throw new Error('חסרות עמודות חובה: ' + missing.join(', '));
-      }
+      // Iterate through ALL worksheets
+      workbook.eachSheet((ws, sheetId) => {
+        const sheetName = ws.name || '';
+        const isMakeupSheet = sheetName.includes('השלמה') || sheetName.includes('השלמות');
+        
+        const headers = {};
+        ws.getRow(1).eachCell((cell, colNumber) => {
+          const h = String(cell.value || '').trim();
+          headers[h] = colNumber;
+        });
 
-      // Iterate rows (skip header)
-      ws.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) return;
-
-        const getVal = (header) => {
-          const cell = row.getCell(headers[header]);
-          if (!cell) return '';
-          let val = cell.value;
-          if (val && typeof val === 'object' && 'result' in val) val = val.result;
-          return val;
+        const findCol = (possibleNames) => {
+          for (let name of possibleNames) {
+            if (headers[name]) return headers[name];
+            for (let h in headers) { if (h === name || h.includes(name)) return headers[h]; }
+          }
+          return null;
         };
 
-        const gardenId = parseInt(getVal('מזהה גן (ID)'));
-        if (isNaN(gardenId)) return; // Skip invalid rows
+        const colDate = findCol(['תאריך', 'date']);
+        const colGname = findCol(['שם הצהרון', 'גן', 'garden']);
+        const colSupAct = findCol(['שם החוג', 'חוג', 'ספק']);
+        const colTime = findCol(['שעה', 'time']);
+        const colNote = findCol(['הערות', 'note']);
+        const colGrp = findCol(['ק.', 'קבוצה']);
+        const colPhone = findCol(['טלפון', 'phone']);
 
-        const eventDate = getVal('תאריך (YYYY-MM-DD)');
-        // Basic date format validation
-        let formattedDate = '';
-        if (eventDate instanceof Date) {
-          formattedDate = eventDate.toISOString().slice(0,10);
-        } else if (typeof eventDate === 'string' && eventDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          formattedDate = eventDate;
-        } else if (typeof eventDate === 'number') {
-          // Handle Excel serial date
-          const dateObj = new Date((eventDate - 25569) * 86400 * 1000);
-          formattedDate = dateObj.toISOString().slice(0,10);
-        } else {
-          console.warn('Invalid date at row', rowNumber, eventDate);
-          return; 
-        }
+        // Skip sheets that don't look like schedule sheets
+        if (!colDate || !colGname || !colSupAct) return;
 
-        const entry = {
-          id: getVal('Event ID') || Date.now() + Math.random().toString(36).substr(2, 5),
-          d: formattedDate,
-          g: gardenId,
-          a: getVal('ספק'),
-          act: getVal('פעילות') || '',
-          t: String(getVal('שעה (HH:MM)') || '').slice(0, 5),
-          grp: parseInt(getVal('קבוצה')) || 1,
-          st: getVal('סטטוס') || 'ok',
-          p: String(getVal('טלפון') || ''),
-          n: String(getVal('הערות') || '')
-        };
+        ws.eachRow((row, rowNumber) => {
+          if (rowNumber === 1) return;
+          totalProcessed++;
 
-        newSCH.push(entry);
+          const getV = (colIdx) => {
+            if (!colIdx) return '';
+            const cell = row.getCell(colIdx);
+            if (!cell) return '';
+            let val = cell.value;
+            if (val && typeof val === 'object' && 'result' in val) val = val.result;
+            return val;
+          };
+
+          // Date Parsing
+          const rawDate = getV(colDate);
+          let formattedDate = '';
+          if (rawDate instanceof Date) {
+            formattedDate = rawDate.toISOString().slice(0,10);
+          } else if (typeof rawDate === 'number') {
+            const dateObj = new Date((rawDate - 25569) * 86400 * 1000);
+            formattedDate = dateObj.toISOString().slice(0,10);
+          } else if (typeof rawDate === 'string') {
+            const parts = rawDate.split(/[\/\-\.]/);
+            if (parts.length === 3) {
+              let d = parts[0].padStart(2, '0'), m = parts[1].padStart(2, '0'), y = parts[2];
+              if (y.length === 2) y = '20' + y;
+              formattedDate = `${y}-${m}-${d}`;
+            }
+          }
+
+          if (!formattedDate || !formattedDate.match(/^\d{4}-\d{2}-\d{2}$/)) { skipCount++; return; }
+
+          const gname = String(getV(colGname) || '').trim();
+          const gid = gardenMap[gname];
+          if (!gid) { skipCount++; return; }
+
+          const fullSup = String(getV(colSupAct) || '').trim();
+          let supplier = fullSup, activity = '';
+          if (fullSup.includes(' - ')) {
+            const parts = fullSup.split(' - ');
+            supplier = parts[0].trim();
+            activity = parts[1].trim();
+          }
+
+          let time = getV(colTime);
+          if (time instanceof Date) {
+            time = time.getHours().toString().padStart(2,'0') + ':' + time.getMinutes().toString().padStart(2,'0');
+          } else if (typeof time === 'object' && time !== null && time.hours !== undefined) {
+            time = time.hours.toString().padStart(2,'0') + ':' + (time.minutes || 0).toString().padStart(2,'0');
+          }
+          time = String(time || '').slice(0, 5);
+
+          const notes = String(getV(colNote) || '');
+          const entry = {
+            id: now + '_' + sheetId + '_' + rowNumber,
+            d: formattedDate,
+            g: gid,
+            a: supplier,
+            act: activity,
+            t: time,
+            st: 'ok',
+            n: isMakeupSheet ? (notes ? 'השלמה: ' + notes : 'השלמה') : notes,
+            p: String(getV(colPhone) || ''),
+            grp: parseInt(getV(colGrp)) || 1,
+            _isMakeup: isMakeupSheet // Internal flag for UI highlighting if needed
+          };
+
+          newSCH.push(entry);
+        });
       });
 
       if (newSCH.length === 0) {
-        throw new Error('לא נמצאו נתונים תקינים לייבוא');
+        throw new Error('לא נמצאו נתונים תקינים באף אחד מהגיליונות. וודא שמות הגנים והתאריכים תקינים.');
       }
 
-      const msg = `⚠️ נמצאו ${newSCH.length} שיבוצים לייבוא.\nפעולה זו תחליף את כל לוח הזמנים הקיים (${window.SCH.length} שיבוצים).\n\nהאם להמשיך?`;
-      if (confirm(msg)) {
+      if (confirm(`🚀 נמצאו ${newSCH.length} שיבוצים ב-${workbook.worksheets.length} גיליונות.\nהאם להחליף את כל לוח הזמנים הקיים?`)) {
         window.SCH = newSCH;
         window.save();
-        window.showToast('✅ לוח זמנים עודכן בהצלחה! טוען מחדש...');
-        if (statusEl) statusEl.innerHTML = `✅ יובאו ${newSCH.length} שיבוצים.`;
+        if (statusEl) statusEl.innerHTML = `✅ הצלחה! ${newSCH.length} שיבוצים עודכנו מכל הגיליונות.`;
         setTimeout(() => location.reload(), 1500);
       } else {
-        if (statusEl) statusEl.innerHTML = '❌ הייבוא בוטל על ידי המשתמש';
+        if (statusEl) statusEl.innerHTML = '❌ בוטל';
       }
 
     } catch (err) {
       console.error('Import error:', err);
-      alert('שגיאה בייבוא: ' + err.message);
+      alert('שגיאה: ' + err.message);
       if (statusEl) statusEl.innerHTML = '❌ שגיאה: ' + err.message;
     } finally {
-      input.value = ''; // Reset input
+      input.value = '';
     }
   };
 
