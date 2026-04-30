@@ -73,7 +73,7 @@ window.importBulkSchedule = function(input) {
   if (!file) return;
 
   const statusEl = document.getElementById('bulk-import-status');
-  if (statusEl) statusEl.innerHTML = '⏳ סורק את כל הגיליונות בקובץ... המתן לסיום';
+  if (statusEl) statusEl.innerHTML = '⏳ סורק קובץ...';
 
   const reader = new FileReader();
   reader.onload = async (e) => {
@@ -84,44 +84,66 @@ window.importBulkSchedule = function(input) {
 
       const newSCH = [];
       const gardenMap = {};
-      window.GARDENS.forEach(g => { gardenMap[g.name.trim()] = g.id; });
-      const now = Date.now();
-      let totalProcessed = 0;
-      let skipCount = 0;
+      const gardenMapClean = {};
+      
+      const cleanStr = (s) => String(s || '').replace(/[^\u0590-\u05FFa-zA-Z0-9]/g, '').trim();
 
-      // Iterate through ALL worksheets
+      window.GARDENS.forEach(g => { 
+        const name = String(g.name || '').trim();
+        gardenMap[name] = g.id;
+        gardenMapClean[cleanStr(name)] = g.id;
+      });
+
+      const now = Date.now();
+      let debugInfo = [];
+
       workbook.eachSheet((ws, sheetId) => {
         const sheetName = ws.name || '';
         const isMakeupSheet = sheetName.includes('השלמה') || sheetName.includes('השלמות');
         
-        const headers = {};
-        ws.getRow(1).eachCell((cell, colNumber) => {
-          const h = String(cell.value || '').trim();
-          headers[h] = colNumber;
-        });
+        let headers = {};
+        let headerRowIdx = -1;
+
+        // Search for header row in the first 10 rows
+        for (let i = 1; i <= 10; i++) {
+          const row = ws.getRow(i);
+          let foundCount = 0;
+          row.eachCell((cell) => {
+            const val = cleanStr(cell.value);
+            if (val.includes('תאריך') || val.includes('גן') || val.includes('חוג') || val.includes('ספק')) foundCount++;
+          });
+          if (foundCount >= 2) {
+            headerRowIdx = i;
+            row.eachCell((cell, colNumber) => {
+              headers[String(cell.value || '').trim()] = colNumber;
+            });
+            break;
+          }
+        }
 
         const findCol = (possibleNames) => {
           for (let name of possibleNames) {
             if (headers[name]) return headers[name];
-            for (let h in headers) { if (h === name || h.includes(name)) return headers[h]; }
+            for (let h in headers) { if (h.includes(name) || name.includes(h)) return headers[h]; }
           }
           return null;
         };
 
-        const colDate = findCol(['תאריך', 'date']);
-        const colGname = findCol(['שם הצהרון', 'גן', 'garden']);
-        const colSupAct = findCol(['שם החוג', 'חוג', 'ספק']);
+        const colDate = findCol(['תאריך', 'date', 'יום']);
+        const colGname = findCol(['שם הצהרון', 'גן', 'garden', 'שם הגן']);
+        const colSupAct = findCol(['שם החוג', 'חוג', 'ספק', 'פעילות']);
         const colTime = findCol(['שעה', 'time']);
         const colNote = findCol(['הערות', 'note']);
         const colGrp = findCol(['ק.', 'קבוצה']);
         const colPhone = findCol(['טלפון', 'phone']);
 
-        // Skip sheets that don't look like schedule sheets
-        if (!colDate || !colGname || !colSupAct) return;
+        if (!colDate || !colGname || !colSupAct) {
+          debugInfo.push(`גיליון "${sheetName}": חסרות עמודות (תאריך:${!!colDate}, גן:${!!colGname}, חוג:${!!colSupAct})`);
+          return;
+        }
 
         ws.eachRow((row, rowNumber) => {
-          if (rowNumber === 1) return;
-          totalProcessed++;
+          if (rowNumber <= headerRowIdx) return;
 
           const getV = (colIdx) => {
             if (!colIdx) return '';
@@ -132,8 +154,9 @@ window.importBulkSchedule = function(input) {
             return val;
           };
 
-          // Date Parsing
           const rawDate = getV(colDate);
+          if (!rawDate) return;
+
           let formattedDate = '';
           if (rawDate instanceof Date) {
             formattedDate = rawDate.toISOString().slice(0,10);
@@ -149,11 +172,12 @@ window.importBulkSchedule = function(input) {
             }
           }
 
-          if (!formattedDate || !formattedDate.match(/^\d{4}-\d{2}-\d{2}$/)) { skipCount++; return; }
+          if (!formattedDate || !formattedDate.match(/^\d{4}-\d{2}-\d{2}$/)) return;
 
-          const gname = String(getV(colGname) || '').trim();
-          const gid = gardenMap[gname];
-          if (!gid) { skipCount++; return; }
+          const gnameRaw = String(getV(colGname) || '').trim();
+          let gid = gardenMap[gnameRaw] || gardenMapClean[cleanStr(gnameRaw)];
+          
+          if (!gid) return;
 
           const fullSup = String(getV(colSupAct) || '').trim();
           let supplier = fullSup, activity = '';
@@ -168,11 +192,12 @@ window.importBulkSchedule = function(input) {
             time = time.getHours().toString().padStart(2,'0') + ':' + time.getMinutes().toString().padStart(2,'0');
           } else if (typeof time === 'object' && time !== null && time.hours !== undefined) {
             time = time.hours.toString().padStart(2,'0') + ':' + (time.minutes || 0).toString().padStart(2,'0');
+          } else {
+            time = String(time || '').trim().slice(0, 5);
           }
-          time = String(time || '').slice(0, 5);
 
           const notes = String(getV(colNote) || '');
-          const entry = {
+          newSCH.push({
             id: now + '_' + sheetId + '_' + rowNumber,
             d: formattedDate,
             g: gid,
@@ -183,30 +208,27 @@ window.importBulkSchedule = function(input) {
             n: isMakeupSheet ? (notes ? 'השלמה: ' + notes : 'השלמה') : notes,
             p: String(getV(colPhone) || ''),
             grp: parseInt(getV(colGrp)) || 1,
-            _isMakeup: isMakeupSheet // Internal flag for UI highlighting if needed
-          };
-
-          newSCH.push(entry);
+            _isMakeup: isMakeupSheet
+          });
         });
       });
 
       if (newSCH.length === 0) {
-        throw new Error('לא נמצאו נתונים תקינים באף אחד מהגיליונות. וודא שמות הגנים והתאריכים תקינים.');
+        let errorMsg = 'לא נמצאו נתונים תקינים.\n' + debugInfo.join('\n');
+        throw new Error(errorMsg);
       }
 
-      if (confirm(`🚀 נמצאו ${newSCH.length} שיבוצים ב-${workbook.worksheets.length} גיליונות.\nהאם להחליף את כל לוח הזמנים הקיים?`)) {
+      if (confirm(`✅ הצלחתי לקרוא ${newSCH.length} שיבוצים.\nהאם לעדכן את המערכת?`)) {
         window.SCH = newSCH;
         window.save();
-        if (statusEl) statusEl.innerHTML = `✅ הצלחה! ${newSCH.length} שיבוצים עודכנו מכל הגיליונות.`;
+        if (statusEl) statusEl.innerHTML = `✅ הצלחה! ${newSCH.length} שיבוצים עודכנו.`;
         setTimeout(() => location.reload(), 1500);
-      } else {
-        if (statusEl) statusEl.innerHTML = '❌ בוטל';
       }
 
     } catch (err) {
       console.error('Import error:', err);
-      alert('שגיאה: ' + err.message);
-      if (statusEl) statusEl.innerHTML = '❌ שגיאה: ' + err.message;
+      alert('שגיאה בייבוא:\n' + err.message);
+      if (statusEl) statusEl.innerHTML = '❌ שגיאה בייבוא';
     } finally {
       input.value = '';
     }
