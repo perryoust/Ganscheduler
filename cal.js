@@ -805,17 +805,18 @@ function renderPairCard(pair, pairEvs, opts){
         const fromDate = ev._makeupFrom || ev._postFrom || '';
         const makeupBadge = isMakeup ? `<span style="background:#e1f5fe; color:#0288d1; border-radius:4px; padding:1px 5px; font-size:0.6rem; font-weight:800; border:1px solid #b3e5fc;">📅 השלמה ${fromDate?window.fD(fromDate):''}</span>` : '';
 
-        html += `<div class="pair-garden-row ${stc}" style="display:flex; align-items:center; gap:12px; padding:4px 10px; border-bottom:1px solid #f5f5f5;" onclick="window.openSP(${ev.id})">
+        html += `<div class="pair-garden-row ${stc}" style="display:flex; align-items:center; gap:12px; padding:4px 10px; border-bottom:1px solid #f5f5f5;" onclick="window.openSP('${ev.id}')">
           <div style="font-weight:700; color:#1a237e; white-space:nowrap; min-width:110px;">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
           <div style="font-weight:800; color:#fff; background:#5c6bc0; padding:2px 8px; border-radius:4px; font-size:0.75rem; min-width:50px; text-align:center;">${ev.t ? window.fT(ev.t) : '--:--'}</div>
+          <div style="font-size:0.7rem; color:#78909c; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:150px;">${g.st?`📍 ${g.st}`:''}</div>
           <div style="flex:1; display:flex; align-items:center; gap:6px; overflow:hidden; justify-content:flex-end;">
             ${makeupBadge}
             <span style="font-size:0.7rem; font-weight:700; color:${ev.st==='ok'?'#2e7d32':'#c62828'}">${window.stLabel(ev)}</span>
           </div>
           <div class="qacts" onclick="event.stopPropagation()" style="display:flex; gap:3px;">
-            ${ev.st==='done'?'':`<button title="בוצע" onclick="window.qSetSt(${ev.id},'done')" style="padding:1px 4px;">✔️</button>`}
-            ${ev.st==='can'?'':`<button title="בטל" onclick="openCanQ(${ev.id})" style="padding:1px 4px;">❌</button>`}
-            ${ev.st==='nohap'?'':`<button title="חוסר" onclick="window.qSetSt(${ev.id},'nohap')" style="padding:1px 4px;">⚠️</button>`}
+            ${ev.st==='done'?'':`<button title="בוצע" onclick="window.qSetSt('${ev.id}','done')" style="padding:1px 4px;">✔️</button>`}
+            ${ev.st==='can'?'':`<button title="בטל" onclick="openCanQ('${ev.id}')" style="padding:1px 4px;">❌</button>`}
+            ${ev.st==='nohap'?'':`<button title="חוסר" onclick="window.qSetSt('${ev.id}','nohap')" style="padding:1px 4px;">⚠️</button>`}
           </div>
         </div>`;
       }

@@ -251,11 +251,11 @@ window.importBulkSchedule = function(input) {
           }
 
           const locKey = pairMap[gid] || gid;
-          const key = `${formattedDate}|${locKey}|${cleanStr(supplier)}`;
+          const key = `${formattedDate}|${gid}|${cleanStr(supplier)}`;
           
           if (!schMap[key] || status === 'ok' || (schMap[key].st !== 'ok' && status !== 'nohap')) {
             schMap[key] = {
-              id: String(now + i + Math.floor(Math.random() * 1000000)),
+              id: `ID_${now}_${i}_${Math.floor(Math.random()*1000)}`,
               d: formattedDate,
               g: gid,
               gd: window.G(gid),

@@ -28,7 +28,7 @@ function renderDash(){
   const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
   const srch=(document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
   
-  console.log(`[Dash Debug] v96.4 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
+  console.log(`[Dash Debug] v96.6 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
 
   const checkMatch = (s, tTab, tSt, tDate) => {
     // A postponed/failed activity is "handled" if it has a linked makeup/new date
@@ -129,7 +129,19 @@ function renderDash(){
         rows.forEach(row => {
           if(row.type === 'pair') {
             const clr = window.CITY_COLORS(c);
-            h += window.renderPairCard(row.pair, row.evs, {ds: date, clr, showEdit: true, showExport: true, isCompact: true});
+            const uniquePairEvs = [];
+            const seenGids = new Set();
+            row.evs.forEach(s => {
+              if(!seenGids.has(s.g) || s.st === 'ok') {
+                const existing = uniquePairEvs.findIndex(x => x.g === s.g);
+                if(s.st === 'ok' && existing !== -1) uniquePairEvs.splice(existing, 1);
+                if(existing === -1 || s.st === 'ok') {
+                   uniquePairEvs.push(s);
+                   seenGids.add(s.g);
+                }
+              }
+            });
+            h += window.renderPairCard(row.pair, uniquePairEvs, {ds: date, clr, showEdit: true, showExport: true, isCompact: true});
           } else {
             h += _dashListRow(row.ev);
           }
