@@ -818,7 +818,7 @@ function renderPairCard(pair, pairEvs, opts){
 
         html += `<div class="pair-garden-row ${stc}" style="display:flex; align-items:center; gap:12px; padding:4px 10px; border-bottom:1px solid #f5f5f5; ${gblkEv?'border-right:4px solid #e91e63;':''}" onclick="openSP(${ev.id})">
           <div style="font-weight:700; color:#1a237e; white-space:nowrap; min-width:110px;">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-          <div style="font-weight:800; color:#37474f; white-space:nowrap; background:#f0f4f8; padding:2px 6px; border-radius:4px; font-size:0.75rem;">${ev.t ? `⏰ ${window.fT(ev.t)}` : ''}</div>
+          <div style="font-weight:800; color:#fff; background:#5c6bc0; padding:2px 8px; border-radius:4px; font-size:0.75rem; min-width:50px; text-align:center;">${ev.t ? window.fT(ev.t) : '--:--'}</div>
           <div style="font-size:0.7rem; color:#78909c; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;">${g.st?`📍 ${g.st}`:''}</div>
           <div style="flex:1; display:flex; align-items:center; gap:6px; overflow:hidden; justify-content:flex-end;">
             ${makeupBadge}
@@ -1156,7 +1156,15 @@ function renderPairWeek(evs,ws,gids){
       const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
       const cellBg=hol?hol.bg:'#fff';
       const pwBlk=window.getGardenBlock(gid,ds);
-      html+=`<td style="background:${pwBlk?'#fce4ec':cellBg};${pwBlk?'border:1.5px solid #e91e63;':''}" onclick="openGcellPopup(${gid},'${ds}',event)">${de.length?de.map(ev=>`<div style="border-radius:4px;padding:4px 6px;margin-bottom:3px;cursor:pointer;font-size:.72rem;background:${clr.light};border-right:2px solid ${clr.solid};" onclick="event.stopPropagation();openSP(${ev.id})"><div style="font-weight:700;color:#1a237e">${ev.a}</div>${ev.t?`<div style="font-size:.68rem;color:#546e7a">⏰ ${window.fT(ev.t)}</div>`:''}</div>`).join('')+(pwBlk?`<div style="font-size:.62rem;color:#c62828">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`:'')
+      // Deduplicate by supplier
+      const supMap = {};
+      de.forEach(ev => {
+        if (!supMap[ev.a]) supMap[ev.a] = ev;
+        else if (ev.st === 'ok') supMap[ev.a] = ev;
+      });
+      const uniqueDe = Object.values(supMap);
+
+      html+=`<td style="background:${pwBlk?'#fce4ec':cellBg};${pwBlk?'border:1.5px solid #e91e63;':''}" onclick="openGcellPopup(${gid},'${ds}',event)">${uniqueDe.length?uniqueDe.map(ev=>`<div style="border-radius:4px;padding:2px 6px;margin-bottom:2px;cursor:pointer;font-size:.7rem;background:${clr.light};border-right:2px solid ${clr.solid};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" onclick="event.stopPropagation();openSP(${ev.id})"><div style="font-weight:700;color:#1a237e">${ev.a}</div>${ev.t?`<div style="font-size:.65rem;color:#546e7a">⏰ ${window.fT(ev.t)}</div>`:''}</div>`).join('')+(pwBlk?`<div style="font-size:.62rem;color:#c62828">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`:'')
         :pwBlk?`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`
         :'<span style="color:#ccc;font-size:.8rem;cursor:pointer">+</span>'}</td>`;
     });

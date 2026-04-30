@@ -204,20 +204,16 @@ window.importBulkSchedule = function(input) {
 
           let timeRaw = getV(colTime);
           let time = '';
-          if (typeof timeRaw === 'number') {
+          if (timeRaw && typeof timeRaw === 'number') {
             const totalMinutes = Math.round(timeRaw * 24 * 60);
             const h = Math.floor(totalMinutes / 60);
             const m = totalMinutes % 60;
             time = h.toString().padStart(2,'0') + ':' + m.toString().padStart(2,'0');
-          } else if (timeRaw instanceof Date) {
-            // Excel times are often stored as Date objects starting in 1899/1900
-            // We use getHours/getMinutes for local consistency
+          } else if (timeRaw && timeRaw instanceof Date) {
             time = timeRaw.getHours().toString().padStart(2,'0') + ':' + timeRaw.getMinutes().toString().padStart(2,'0');
-            // Fallback for UTC cases
-            if (time === '00:00') time = timeRaw.getUTCHours().toString().padStart(2,'0') + ':' + timeRaw.getUTCMinutes().toString().padStart(2,'0');
-          } else {
-            time = String(timeRaw || '').trim().replace(/[^\d:]/g, '').slice(0, 5);
-            if (time.includes(':') && time.length < 5) {
+          } else if (timeRaw) {
+            time = String(timeRaw).trim().replace(/[^\d:]/g, '').slice(0, 5);
+            if (time.includes(':') && time.split(':')[0].length < 2) {
               const p = time.split(':');
               time = p[0].padStart(2,'0') + ':' + p[1].padStart(2,'0');
             }
