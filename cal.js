@@ -307,8 +307,18 @@ var CITY_COLORS=window.CITY_COLORS;
 // ─── Shared Helper: Makeups are now handled within regular grouping logic ───
 function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
   const f={city:cityFilter, cls:clsFilter}; // Removed st: 'todo' to show all makeups regardless of status
+  // Create a pair mapping: gardenId -> pairKey (e.g. "12_45")
+  const pairMap = {};
+  if (window.pairs && Array.isArray(window.pairs)) {
+    window.pairs.forEach(p => {
+      if (p && (Array.isArray(p.ids) || (typeof p.ids === 'object' && p.ids[Symbol.iterator]))) {
+        const arr = [...p.ids];
+        const key = arr.sort((a,b)=>a-b).join('_');
+        arr.forEach(id => { pairMap[id] = key; });
+      }
+    });
+  }
   const evs = (typeof filterE === 'function' ? filterE(f, ds, ds) : []).filter(s => {
-    // Only include those that are actually makeups
     return !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
   });
   if(!evs.length) return '';
@@ -836,18 +846,22 @@ function renderPairCard(pair, pairEvs, opts){
         const fromDate = ev._makeupFrom || ev._postFrom || '';
         const makeupBadge = isMakeup ? `<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה ${fromDate?'מתאריך '+window.fD(fromDate):''}</div>` : '';
         
-        html+=`<div class="pair-garden-row ${stc}" style="${gblkEv?'border-right:3px solid #e91e63;':''}" onclick="openSP(${ev.id})">
-          <div class="pgr-left">
-            <div class="pgr-name">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-            ${g.st?`<div class="pgr-addr">📍 ${g.st}</div>`:''}
+        html+=`<div class="pair-garden-row ${stc}" style="display:flex;align-items:center;gap:10px;padding:4px 10px;${gblkEv?'border-right:4px solid #e91e63;':''}" onclick="openSP(${ev.id})">
+          <div style="font-weight:700;color:#1a237e;white-space:nowrap">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
+          <div style="font-size:.7rem;color:#78909c;white-space:nowrap">${g.st?`📍 ${g.st}`:''}</div>
+          <div style="flex:1;display:flex;align-items:center;gap:8px;overflow:hidden">
             ${makeupBadge}
-            ${ev.t?`<div class="pgr-time">⏰ ${window.fT(ev.t)}</div>`:''}
-            ${gblkEv?`<div style="font-size:.67rem;color:#c62828">${gblkEv.icon||'🚫'} ${gblkEv.reason}</div>`:''}
-            <div class="pgr-status" style="color:${stc?'#c62828':'#2e7d32'}">${window.stLabel(ev)}</div>
+            ${gblkEv?`<span style="font-size:.67rem;color:#c62828;white-space:nowrap">${gblkEv.icon||'🚫'} ${gblkEv.reason}</span>`:''}
+            <span style="font-size:.68rem;color:${stc?'#c62828':'#2e7d32'};font-weight:700;white-space:nowrap">${window.stLabel(ev)}</span>
           </div>
-          <div class="pgr-right" onclick="event.stopPropagation()">
-            <div class="qacts">
-              ${ev.st==='done'?'':`<button title="התקיים" onclick="window.qSetSt(${ev.id},'done')">✔️</button>`}
+          <div style="font-weight:800;color:#37474f;white-space:nowrap">${ev.t?`⏰ ${window.fT(ev.t)}`:''}</div>
+          <div class="qacts" onclick="event.stopPropagation()" style="display:flex;gap:3px">
+            ${ev.st==='done'?'':`<button title="התקיים" onclick="window.qSetSt(${ev.id},'done')" style="padding:2px 4px">✔️</button>`}
+            ${ev.st==='can'?'':`<button title="בטל" onclick="openCanQ(${ev.id})" style="padding:2px 4px">❌</button>`}
+            ${ev.st==='nohap'?'':`<button title="לא התקיים" onclick="window.qSetSt(${ev.id},'nohap')" style="padding:2px 4px">⚠️</button>`}
+            <button title="דחה פעילות" onclick="openPostpone(${ev.id})" style="padding:2px 4px">⏩</button>
+          </div>
+        </div>`;
               ${ev.st==='can'?'':`<button title="בטל" onclick="window.openCanQ(${ev.id})">❌</button>`}
               ${ev.st==='nohap'?'':`<button title="לא התקיים" onclick="window.openNohapQ(${ev.id})">⚠️</button>`}
               <button title="שיבוץ השלמה" class="btn-makeup" onclick="window.openMakeupSched(${ev.id})">📅</button>

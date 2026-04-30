@@ -97,10 +97,12 @@ window.importBulkSchedule = function(input) {
 
       // Create a pair mapping: gardenId -> pairKey (e.g. "12_45")
       const pairMap = {};
-      if (window.pairs) {
+      if (window.pairs && Array.isArray(window.pairs)) {
         window.pairs.forEach(p => {
-          const key = [...p].sort((a,b)=>a-b).join('_');
-          p.forEach(id => { pairMap[id] = key; });
+          if (p && p.ids && Array.isArray(p.ids)) {
+            const key = [...p.ids].sort((a,b)=>a-b).join('_');
+            p.ids.forEach(id => { pairMap[id] = key; });
+          }
         });
       }
 
