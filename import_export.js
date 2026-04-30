@@ -73,7 +73,7 @@ window.importBulkSchedule = function(input) {
   if (!file) return;
 
   const statusEl = document.getElementById('bulk-import-status');
-  if (statusEl) statusEl.innerHTML = '⏳ מנתח את הגיליונות...';
+  if (statusEl) statusEl.innerHTML = '⏳ מנתח נתונים ומאחד זוגות גנים...';
 
   window._importInProgress = true;
 
@@ -84,7 +84,7 @@ window.importBulkSchedule = function(input) {
       const workbook = new window.ExcelJS.Workbook();
       await workbook.xlsx.load(data);
 
-      const schMap = {}; // Use a map to handle overrides/deduplication
+      const schMap = {};
       const gardenMap = {};
       const gardenMapClean = {};
       
@@ -95,10 +95,16 @@ window.importBulkSchedule = function(input) {
         gardenMapClean[cleanStr(name)] = g.id;
       });
 
+      // Create a pair mapping: gardenId -> pairKey (e.g. "12_45")
+      const pairMap = {};
+      if (window.pairs) {
+        window.pairs.forEach(p => {
+          const key = [...p].sort((a,b)=>a-b).join('_');
+          p.forEach(id => { pairMap[id] = key; });
+        });
+      }
+
       const now = Date.now();
-      
-      // Sort sheets to process "Regular" first, then "Makeup", then "Missing"
-      // This way, more specific sheets override regular ones.
       const sortedSheets = [];
       workbook.eachSheet(s => sortedSheets.push(s));
       sortedSheets.sort((a, b) => {
@@ -117,7 +123,6 @@ window.importBulkSchedule = function(input) {
         
         let headers = {};
         let headerRowIdx = -1;
-
         for (let i = 1; i <= 10; i++) {
           const row = ws.getRow(i);
           let foundCount = 0;
@@ -179,7 +184,6 @@ window.importBulkSchedule = function(input) {
               formattedDate = `${y}-${m}-${d}`;
             }
           }
-
           if (!formattedDate || !formattedDate.match(/^\d{4}-\d{2}-\d{2}$/)) return;
 
           const gnameRaw = String(getV(colGname) || '').trim();
@@ -196,20 +200,31 @@ window.importBulkSchedule = function(input) {
 
           let timeRaw = getV(colTime);
           let time = '';
-          if (timeRaw instanceof Date) {
-            time = timeRaw.getHours().toString().padStart(2,'0') + ':' + timeRaw.getMinutes().toString().padStart(2,'0');
-          } else if (typeof timeRaw === 'object' && timeRaw !== null && timeRaw.hours !== undefined) {
-            time = timeRaw.hours.toString().padStart(2,'0') + ':' + (timeRaw.minutes || 0).toString().padStart(2,'0');
+          if (typeof timeRaw === 'number') {
+            // Precise Excel time parsing (fractional day)
+            const totalMinutes = Math.round(timeRaw * 24 * 60);
+            const h = Math.floor(totalMinutes / 60);
+            const m = totalMinutes % 60;
+            time = h.toString().padStart(2,'0') + ':' + m.toString().padStart(2,'0');
+          } else if (timeRaw instanceof Date) {
+            time = timeRaw.getUTCHours().toString().padStart(2,'0') + ':' + timeRaw.getUTCMinutes().toString().padStart(2,'0');
+            // If it's still 00:00, try local hours (some Excel versions)
+            if (time === '00:00') time = timeRaw.getHours().toString().padStart(2,'0') + ':' + timeRaw.getMinutes().toString().padStart(2,'0');
           } else {
             time = String(timeRaw || '').trim().slice(0, 5);
+            if (time.includes(':') && time.length < 5) {
+              const p = time.split(':');
+              time = p[0].padStart(2,'0') + ':' + p[1].padStart(2,'0');
+            }
           }
 
           const notes = String(getV(colNote) || '').trim();
           let status = 'ok';
           if (isMissingSheet) status = 'nohap';
 
-          // Unique key for deduplication and status override
-          const key = `${formattedDate}|${gid}|${supplier}|${time}`;
+          // PAIR-AWARE KEY: If a garden is part of a pair, use the pair key instead of gid
+          const locKey = pairMap[gid] || gid;
+          const key = `${formattedDate}|${locKey}|${supplier}|${time}`;
           
           schMap[key] = {
             id: now + '_' + sheetId + '_' + rowNumber,
@@ -228,14 +243,13 @@ window.importBulkSchedule = function(input) {
       });
 
       const newSCH = Object.values(schMap);
-
       if (newSCH.length === 0) {
         window._importInProgress = false;
-        throw new Error('לא נמצאו נתונים תקינים בגיליונות.');
+        throw new Error('לא נמצאו נתונים תקינים.');
       }
 
-      if (confirm(`✅ נמצאו ${newSCH.length} פעילויות ייחודיות (לאחר מיזוג גיליונות).\nהאם לעדכן את המערכת?`)) {
-        if (statusEl) statusEl.innerHTML = '⏳ שומר בסיס נתונים...';
+      if (confirm(`✅ נמצאו ${newSCH.length} פעילויות ייחודיות (מאוחדות לפי זוגות וגיליונות).\nהאם לעדכן את המערכת?`)) {
+        if (statusEl) statusEl.innerHTML = '⏳ שומר נתונים...';
         window.SCH = newSCH;
         if (typeof window.saveToFirebase === 'function') {
           await window.saveToFirebase(false);
@@ -249,7 +263,6 @@ window.importBulkSchedule = function(input) {
         window._importInProgress = false;
         if (statusEl) statusEl.innerHTML = '❌ בוטל';
       }
-
     } catch (err) {
       window._importInProgress = false;
       alert('שגיאה: ' + err.message);
@@ -258,6 +271,5 @@ window.importBulkSchedule = function(input) {
       input.value = '';
     }
   };
-
   reader.readAsArrayBuffer(file);
 };
