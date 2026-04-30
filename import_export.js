@@ -230,13 +230,16 @@ window.importBulkSchedule = function(input) {
           const isMakeupNote = notes.includes('השלמה');
           const isActualMakeup = isMakeupSheet || isMakeupNote;
 
+          // --- STATUS LOGIC ---
+          // Default is 'ok'. Only set nohap if explicitly a "missing" sheet
+          // OR if the status column says so. Never infer nohap from empty group.
           let status = 'ok';
-          const grpStr = String(grpRaw || '').trim();
-          if (grpStr === '') status = 'nohap';
           if (isMissingSheet) status = 'nohap';
           
           const rawSt = String(getV(colStatus) || '').toLowerCase();
           if (rawSt.includes('בוטל') || rawSt === 'can') status = 'can';
+          else if (rawSt.includes('נדחה') || rawSt === 'post') status = 'post';
+          else if (rawSt.includes('לא התקיים') || rawSt === 'nohap') status = 'nohap';
           else if (rawSt.includes('בוצע') || rawSt === 'done') status = 'done';
 
           let makeupFrom = '';
@@ -250,10 +253,21 @@ window.importBulkSchedule = function(input) {
             }
           }
 
-          const locKey = pairMap[gid] || gid;
+          // --- KEY / DEDUPLICATION LOGIC ---
+          // Each garden (gid) gets its own unique record so BOTH gardens in
+          // a pair are stored in SCH. We simply deduplicate same-garden,
+          // same-date, same-supplier entries that appear across multiple sheets
+          // (e.g. regular sheet + makeup sheet).
           const key = `${formattedDate}|${gid}|${cleanStr(supplier)}`;
           
-          if (!schMap[key] || status === 'ok' || (schMap[key].st !== 'ok' && status !== 'nohap')) {
+          // Accept the new record if: no existing record, OR new status is
+          // 'ok' (prefer positive status), OR existing is nohap and new isn't.
+          const existing = schMap[key];
+          const shouldOverwrite = !existing ||
+            (status === 'ok' && existing.st !== 'ok') ||
+            (existing.st === 'nohap' && status !== 'nohap');
+
+          if (shouldOverwrite) {
             schMap[key] = {
               id: `ID_${now}_${i}_${Math.floor(Math.random()*1000)}`,
               d: formattedDate,
@@ -266,7 +280,8 @@ window.importBulkSchedule = function(input) {
               nt: notes,
               grp: grpRaw || 1,
               _makeupFrom: makeupFrom,
-              _isImported: true
+              _isImported: true,
+              _isMakeup: isActualMakeup || undefined
             };
           }
         }

@@ -45,7 +45,7 @@ const _dashListRow = (s) => {
 };
 
 function renderDash() {
-  const list = document.getElementById('dash-list');
+  const list = document.getElementById('dash-body');
   if(!list) return;
   list.innerHTML = '';
   
