@@ -86,15 +86,27 @@ function renderDash(){
     if(st==='todo'){
       h+=`<div class="card" style="margin-bottom:10px;padding:10px">
         <div style="font-weight:800;color:#1a237e;font-size:.9rem;margin-bottom:10px">📋 רשימת טיפולים מאוחדת (${evs.length})</div>`;
+      // Deduplicate to ensure one row per garden/supplier
+      const uniqueMap = {};
+      evs.forEach(s => {
+        const key = `${s.g}_${s.a}`;
+        if (!uniqueMap[key]) {
+          uniqueMap[key] = s;
+        } else if (s.st === 'ok') {
+          uniqueMap[key] = s;
+        }
+      });
+      const dedupedEvs = Object.values(uniqueMap);
+
       const byCity={};
-      evs.forEach(s=>{
+      dedupedEvs.forEach(s=>{
         const g = window.G(s.g);
         const c = g.city || 'אחר';
         if(!byCity[c]) byCity[c]=[];
         byCity[c].push({...s, gd:g});
       });
       Object.keys(byCity).sort().forEach(c=>{
-        h+=`<details class="city-accordion" open>
+        h+=`<details class="city-accordion" id="dg-${c.replace(/\s+/g,'_')}">
           <summary><span>🏙️ ${c} (${byCity[c].length})</span></summary>
           <div class="city-accordion-content">`;
         
@@ -157,18 +169,28 @@ function renderDash(){
           </div>`;
         Object.keys(byCity).sort().forEach(c=>{
           const ce=byCity[c];
-          h+=`<details class="city-accordion" open>
-            <summary><span>🏙️ ${c} (${ce.length})</span></summary>
+          
+          // Deduplicate
+          const uniqueMap = {};
+          ce.forEach(s => {
+            const key = `${s.g}_${s.a}`;
+            if (!uniqueMap[key]) uniqueMap[key] = s;
+            else if (s.st === 'ok') uniqueMap[key] = s;
+          });
+          const dedupedCe = Object.values(uniqueMap);
+
+          h+=`<details class="city-accordion">
+            <summary><span>🏙️ ${c} (${dedupedCe.length})</span></summary>
             <div class="city-accordion-content">`;
           const usedIds=new Set();
           const rows=[];
           window.pairs.forEach(pair=>{
-            const pairEvs=ce.filter(s=>pair.ids.includes(s.g));
+            const pairEvs=dedupedCe.filter(s=>pair.ids.includes(s.g));
             if(!pairEvs.length) return;
             pairEvs.forEach(s=>usedIds.add(s.id));
             rows.push({type:'pair',pair,evs:pairEvs});
           });
-          ce.filter(s=>!usedIds.has(s.id)).forEach(s=>rows.push({type:'solo',ev:s}));
+          dedupedCe.filter(s=>!usedIds.has(s.id)).forEach(s=>rows.push({type:'solo',ev:s}));
           rows.sort((a,b)=>{
             const nameA=a.type==='pair'?a.pair.name:window.G(a.ev.g).name;
             const nameB=b.type==='pair'?b.pair.name:window.G(b.ev.g).name;
@@ -176,27 +198,10 @@ function renderDash(){
           });
           rows.forEach(row=>{
             if(row.type==='pair'){
-              const _dashClr=window.CITY_COLORS(window.G(row.pair.ids[0]).city);
-              h+=window.renderPairCard(row.pair,row.evs,{ds:date,clr:_dashClr,showEdit:true,showExport:true});
+              const _dashClr=window.CITY_COLORS(c);
+              h+=window.renderPairCard(row.pair,row.evs,{ds:date,clr:_dashClr,showEdit:true,showExport:true,isCompact:true});
             } else {
-              const s=row.ev;
-              const stc=s.st!=='ok'?'st-'+s.st:'';
-              const _sc=window.CITY_COLORS(window.G(s.g).city);
-              h+=`<div class="city-block" style="margin-bottom:7px">
-                <div class="city-block-hdr" style="background:${_sc.solid};font-size:.76rem">
-                   🏫 ${s.gd.name}
-                   <span style="font-size:.67rem;opacity:.8;font-weight:400">📍 ${window.G(s.g).city}</span>
-                   <button onclick="event.stopPropagation();window._exportGardenWA([${s.g}],'${date}')" style="background:rgba(255,255,255,.28);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
-                </div>
-                <div style="background:#fff;padding:7px">
-                  <div class="ev ${stc}" onclick="window.openSP('${s.id}')" style="border-radius:5px;border:none;border-right:3px solid ${_sc.solid};background:${_sc.light};margin:0">
-                    <span class="est">${window.stLabel(s)}</span>
-                    <div class="eg">${s.gd.name}</div>
-                    ${s.act?`<div style="font-size:.67rem;font-weight:600;color:${_sc.solid}">🎯 ${window.supBase(s.a)} | ${s.act}</div>`:''}
-                    ${s.t?`<div class="et">⏰ ${window.fT(s.t)}</div>`:''}
-                  </div>
-                </div>
-              </div>`;
+              h+=_dashListRow(row.ev);
             }
           });
           h+='</div></details>';
@@ -208,25 +213,32 @@ function renderDash(){
   }
 }
 
-function _dashListRow(s){
-  const g=window.G(s.g);
-  const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-  const fromDate = s._makeupFrom || s._postFrom || '';
+function _dashListRow(ev) {
+  const g = window.G(ev.g);
+  if (!g) return '';
+  const stc = ev.st !== 'ok' ? 'st-' + ev.st : '';
+  const isMakeup = ev._isMakeup || ev._makeupFrom || ev._postFrom || (ev.nt && ev.nt.includes('השלמה'));
+  const fromDate = ev._makeupFrom || ev._postFrom || '';
+  const isRec = !!(ev._recId || (ev.nt && ev.nt.includes('קבוע')));
   
-  // Badge styling
-  let badge = '';
-  if(s.st === 'post') badge = `<span style="background:#fff3e0;color:#e65100;font-size:.65rem;padding:1px 5px;border-radius:4px;font-weight:700">דחוי ל-${window.fD(s.pd)}</span>`;
-  else if(isM) badge = `<span style="background:#e3f2fd;color:#1565c0;font-size:.65rem;padding:1px 5px;border-radius:4px;font-weight:700">השלמה ${fromDate?'מתאריך '+window.fD(fromDate):''}</span>`;
-  if(s._recId) badge += ` <span style="background:#f3e5f5;color:#6a1b9a;font-size:.65rem;padding:1px 5px;border-radius:4px;font-weight:700;border:1px solid #e1bee7">🔄 קבוע</span>`;
+  const makeupBadge = isMakeup ? `<span style="background:#e1f5fe; color:#0288d1; border-radius:4px; padding:1px 5px; font-size:0.65rem; font-weight:800; border:1px solid #b3e5fc; margin-left:6px;">📅 השלמה ${fromDate?window.fD(fromDate):''}</span>` : '';
+  const recBadge = isRec ? `<span style="background:#f3e5f5; color:#6a1b9a; border-radius:4px; padding:1px 5px; font-size:0.65rem; font-weight:800; border:1px solid #e1bee7; margin-left:6px;">🔄 קבוע</span>` : '';
 
-  return `<div style="display:flex;align-items:center;gap:12px;padding:4px 12px;border-bottom:1px solid #eee;cursor:pointer;background:#fff;${s.st==='post'?'opacity:0.8':''};min-height:35px" onclick="window.openSP('${s.id}')">
-    <div style="font-weight:700;color:#1a237e;font-size:.82rem;white-space:nowrap">${g.name}</div>
-    <div style="font-size:.75rem;color:#546e7a;white-space:nowrap">📍 ${g.city}</div>
-    <div style="font-size:.82rem;color:#1565c0;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-       · 🎯 ${window.supBase(s.a)}${s.act?' — '+s.act:''} · ${badge}
+  return `<div class="pair-garden-row ${stc}" style="display:flex; align-items:center; gap:12px; padding:4px 10px; border-bottom:1px solid #f5f5f5;" onclick="window.openSP(${ev.id})">
+    <div style="font-weight:700; color:#1a237e; white-space:nowrap; min-width:110px;">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
+    <div style="font-weight:800; color:#fff; background:#5c6bc0; padding:2px 8px; border-radius:4px; font-size:0.75rem; min-width:50px; text-align:center;">${ev.t ? window.fT(ev.t) : '--:--'}</div>
+    <div style="font-size:0.7rem; color:#78909c; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;">${g.st?`📍 ${g.st}`:''}</div>
+    <div style="flex:1; display:flex; align-items:center; gap:6px; overflow:hidden; justify-content:flex-end;">
+      <span style="font-size:0.75rem; color:#455a64; font-weight:700; margin-left:10px;">${ev.a}</span>
+      ${makeupBadge}
+      ${recBadge}
+      <span style="font-size:0.7rem; font-weight:700; color:${ev.st==='ok'?'#2e7d32':'#c62828'}">${window.stLabel(ev)}</span>
     </div>
-    <div style="font-size:.78rem;font-weight:800;color:#333;white-space:nowrap">⏰ ${s.t? (window.fT?window.fT(s.t):s.t) : '--:--'}</div>
-    <div style="white-space:nowrap">${window.stLabel ? window.stLabel(s) : ''}</div>
+    <div class="qacts" onclick="event.stopPropagation()" style="display:flex; gap:3px;">
+      ${ev.st==='done'?'':`<button title="בוצע" onclick="window.qSetSt(${ev.id},'done')" style="padding:1px 4px;">✔️</button>`}
+      ${ev.st==='can'?'':`<button title="בטל" onclick="window.openCanQ(${ev.id})" style="padding:1px 4px;">❌</button>`}
+      ${ev.st==='nohap'?'':`<button title="חוסר" onclick="window.qSetSt(${ev.id},'nohap')" style="padding:1px 4px;">⚠️</button>`}
+    </div>
   </div>`;
 }
 
