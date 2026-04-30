@@ -254,14 +254,10 @@ window.importBulkSchedule = function(input) {
           }
 
           // --- KEY / DEDUPLICATION LOGIC ---
-          // Each garden (gid) gets its own unique record so BOTH gardens in
-          // a pair are stored in SCH. We simply deduplicate same-garden,
-          // same-date, same-supplier entries that appear across multiple sheets
-          // (e.g. regular sheet + makeup sheet).
-          const key = `${formattedDate}|${gid}|${cleanStr(supplier)}`;
+          // Use date, garden ID, supplier AND activity to ensure different
+          // lessons from the same supplier on the same day are not merged.
+          const key = `${formattedDate}|${gid}|${cleanStr(supplier)}|${cleanStr(activity)}`;
           
-          // Accept the new record if: no existing record, OR new status is
-          // 'ok' (prefer positive status), OR existing is nohap and new isn't.
           const existing = schMap[key];
           const shouldOverwrite = !existing ||
             (status === 'ok' && existing.st !== 'ok') ||
@@ -272,7 +268,6 @@ window.importBulkSchedule = function(input) {
               id: `ID_${now}_${i}_${Math.floor(Math.random()*1000)}`,
               d: formattedDate,
               g: gid,
-              gd: window.G(gid),
               a: supplier,
               act: activity,
               t: time,
@@ -292,26 +287,24 @@ window.importBulkSchedule = function(input) {
 
       if (newSCH.length === 0) {
         window._importInProgress = false;
-        throw new Error('לא נמצאו נתונים תקינים.');
+        throw new Error('לא נמצאו נתונים תקינים לעדכון.');
       }
 
-      if (confirm(`✅ נמצאו ${newSCH.length} פעילויות ייחודיות (מאוחדות לפי זוגות וגיליונות).\nהאם לעדכן את המערכת?`)) {
-        if (statusEl) statusEl.innerHTML = '⏳ שומר נתונים...';
+      if (confirm(`✅ נמצאו ${newSCH.length} פעילויות לעדכון.\nשימו לב: פעולה זו תחליף את כל השיבוצים הקיימים בנתונים מהקובץ.\nהאם להמשיך?`)) {
+        if (statusEl) statusEl.innerHTML = '⏳ מסנכרן לבסיס הנתונים...';
         window.SCH = newSCH;
-        // CRITICAL: Must clear import flag BEFORE save, otherwise
-        // saveToFirebase() will skip because _importInProgress is true
-        window._importInProgress = false;
+        
         if (typeof window.saveToFirebase === 'function') {
+          // Manual save (silent=false) will now pass through even if _importInProgress is true
           await window.saveToFirebase(false);
-        } else {
+        } else if (typeof window.save === 'function') {
           window.save();
-          await new Promise(r => setTimeout(r, 4000));
+          await new Promise(r => setTimeout(r, 2000));
         }
-        if (statusEl) statusEl.innerHTML = '✅ סיום! המערכת תתרענן.';
-        setTimeout(() => { location.reload(); }, 1500);
-      } else {
+
+        if (statusEl) statusEl.innerHTML = '✅ העדכון הושלם! טוען נתונים...';
         window._importInProgress = false;
-        if (statusEl) statusEl.innerHTML = '❌ בוטל';
+        setTimeout(() => { location.reload(); }, 2000);
       }
     } catch (err) {
       window._importInProgress = false;

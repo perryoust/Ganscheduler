@@ -185,6 +185,7 @@ async function _processFirebaseLoad(r, silent, force) {
 
 // ── Load from Firebase ────────────────────────
 async function loadFromFirebase(silent, force) {
+  if(window._importInProgress && !force) return; // Block loads during active import
   try {
     if (!silent) { _fbSyncing = true; _fbUpdateStatus(); }
     // Fresh token for load
@@ -236,7 +237,9 @@ function _restoreSupEx(obj){
 }
 
 async function saveToFirebase(silent) {
-  if(window._importInProgress) return; // blocked during import
+  // Only block automatic (silent) saves during import. 
+  // Manual saves (silent=false) should always proceed.
+  if(window._importInProgress && silent) return; 
   // Safety: don't save in first 2 seconds after page load (initialization window)
   if(Date.now() - (window._appStartTime||0) < 2000){
     console.warn('saveToFirebase: skipped (within startup window)');
@@ -381,6 +384,7 @@ function _applyRemoteData(appData, cloudTs) {
     try{ if(typeof window.renderCal==='function') window.renderCal(); }catch(e){}
     try{ if(typeof window.renderInvoices==='function') window.renderInvoices(); }catch(e){}
     try{ if(typeof window.refreshPurchDash==='function') window.refreshPurchDash(); }catch(e){}
+    try{ if(typeof window.renderCanList==='function') window.renderCanList(); }catch(e){}
     try{ if(typeof window.refreshAppUI==='function') window.refreshAppUI(); }catch(e){}
   } catch(e2){ console.warn('Apply remote data error:', e2); }
   _fbUpdateStatus();

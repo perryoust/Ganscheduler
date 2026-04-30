@@ -9,6 +9,7 @@ function setDashTab(t){
   if(gBtn) gBtn.classList.toggle('active', t === 'g');
   if(sBtn) sBtn.classList.toggle('active', t === 's');
   renderDash();
+  renderCanList();
 }
 
 const _dashListRow = (s) => {
