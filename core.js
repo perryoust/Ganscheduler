@@ -944,6 +944,9 @@ function updCounts(){
   setEl('h-inv', (window.INVOICES||[]).length);
   setEl('h-inv-active', (window.INVOICES||[]).filter(i=>_migrateInvStatus(i.status)==='order').length);
   setEl('h-inv-prog', (window.INVOICES||[]).filter(i=>_migrateInvStatus(i.status)==='tx_invoice').length);
+  
+  // Bulk counter
+  setEl('bulk-sch-count', (window.SCH||[]).length.toLocaleString());
 }
 
 function initDrops(){

@@ -220,9 +220,19 @@ window.importBulkSchedule = function(input) {
 
       if (confirm(`✅ הצלחתי לקרוא ${newSCH.length} שיבוצים.\nהאם לעדכן את המערכת?`)) {
         window.SCH = newSCH;
-        window.save();
-        if (statusEl) statusEl.innerHTML = `✅ הצלחה! ${newSCH.length} שיבוצים עודכנו.`;
-        setTimeout(() => location.reload(), 1500);
+        if (statusEl) statusEl.innerHTML = '⏳ שומר בסיס נתונים (50,000 שורות)... אל תסגור את הדפדפן';
+        
+        // Ensure we wait for the save to complete
+        if (typeof window.saveToFirebase === 'function') {
+          await window.saveToFirebase(false);
+        } else if (typeof window.save === 'function') {
+          window.save();
+          // Fallback wait if save is not returning a promise
+          await new Promise(r => setTimeout(r, 4000));
+        }
+
+        if (statusEl) statusEl.innerHTML = `✅ הצלחה! ${newSCH.length} שיבוצים נשמרו. מרענן...`;
+        setTimeout(() => location.reload(), 1000);
       }
 
     } catch (err) {
