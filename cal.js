@@ -315,7 +315,7 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
 
   const pairedGids=new Set();
   const pairsByCity={};
-  const others=evs.filter(s=> s.d===window.d2s(d));
+  const others = evs;
 
   window.pairs.forEach(pair=>{
     const pairEvs=others.filter(s=>pair.ids.includes(s.g));

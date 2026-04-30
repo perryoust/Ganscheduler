@@ -97,8 +97,36 @@ function renderDash(){
         h+=`<details class="city-accordion" open>
           <summary><span>🏙️ ${c} (${byCity[c].length})</span></summary>
           <div class="city-accordion-content">`;
-        byCity[c].forEach(item=>{
-           try { h+=_dashListRow(item); } catch(e){ console.error(e); }
+        
+        const ce = byCity[c];
+        const usedIds = new Set();
+        const rows = [];
+        
+        // Group by pairs
+        window.pairs.forEach(pair => {
+          const pairEvs = ce.filter(s => pair.ids.includes(s.g));
+          if(!pairEvs.length) return;
+          pairEvs.forEach(s => usedIds.add(s.id));
+          rows.push({type: 'pair', pair, evs: pairEvs});
+        });
+        
+        // Solo gardens
+        ce.filter(s => !usedIds.has(s.id)).forEach(s => rows.push({type: 'solo', ev: s}));
+
+        // Sort by name
+        rows.sort((a,b) => {
+          const nameA = a.type === 'pair' ? a.pair.name : (a.ev.gd ? a.ev.gd.name : '');
+          const nameB = b.type === 'pair' ? b.pair.name : (b.ev.gd ? b.ev.gd.name : '');
+          return nameA.localeCompare(nameB, 'he');
+        });
+
+        rows.forEach(row => {
+          if(row.type === 'pair') {
+            const clr = window.CITY_COLORS(c);
+            h += window.renderPairCard(row.pair, row.evs, {ds: date, clr, showEdit: true, showExport: true, isCompact: true});
+          } else {
+            try { h += _dashListRow(row.ev); } catch(e){ console.error(e); }
+          }
         });
         h+=`</div></details>`;
       });
