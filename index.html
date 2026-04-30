@@ -362,7 +362,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     </div>
     <div onclick="goToTodayCal()" style="background:#fff3e0;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
       <span style="font-size:1.5rem">📅</span>
-      <div><div style="font-weight:800;color:#e65100;font-size:1.1rem;line-height:1" id="d-today-cnt"></div><div style="font-size:.65rem;color:#546e7a">פעילויות היום</div></div>
+      <div><div style="font-weight:800;color:#e65100;font-size:1.1rem;line-height:1" id="d-today-cnt">—</div><div style="font-size:.65rem;color:#546e7a">פעילויות היום</div></div>
     </div>
   </div>
   <div class="card" style="margin-bottom:10px">
@@ -1290,28 +1290,33 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 <!-- Garden detail -->
 <div id="gm" class="modal">
   <style>
-    /* Force compact single-row design everywhere */
+    /* FORCE COMPACT SINGLE-ROW EVERYWHERE */
     .pair-garden-row, .pslot, .ev, .dash-row {
       display: flex !important;
       flex-direction: row !important;
       align-items: center !important;
-      gap: 10px !important;
+      gap: 12px !important;
       padding: 4px 10px !important;
-      min-height: 35px !important;
+      min-height: 32px !important;
       height: auto !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
+    /* Fix Calendar Specifics */
+    .pslot { border-bottom: 1px solid #eee; margin: 0 !important; }
+    .pslot > div { margin: 0 !important; padding: 0 !important; white-space: nowrap !important; }
+    .pslot .pn { font-weight: 700; font-size: 0.8rem; flex: 1; }
+    .pslot .pt { font-weight: 800; background: #f0f4f8; padding: 1px 5px; border-radius: 4px; font-size: 0.75rem; }
+    .pslot .pst { font-weight: 700; font-size: 0.7rem; }
+    .pslot .pp { display: none; } /* Hide phone in compact calendar */
+    
     .pgr-left, .pgr-right { display: contents !important; }
-    .pgr-name, .pgr-time, .pgr-status, .pgr-addr { 
-      margin: 0 !important; 
-      padding: 0 !important;
-      white-space: nowrap !important;
-    }
     .pgr-name { font-weight: 700 !important; font-size: 0.82rem !important; }
-    .pgr-time { font-weight: 800 !important; font-size: 0.8rem !important; margin-right: auto !important; }
+    .pgr-time { font-weight: 800 !important; font-size: 0.8rem !important; }
     .pgr-status { font-size: 0.72rem !important; }
-    .pgr-addr { font-size: 0.68rem !important; color: #78909c !important; }
-    .qacts { display: flex !important; gap: 4px !important; margin-right: 10px !important; }
-    .qacts button { padding: 2px 6px !important; font-size: 0.75rem !important; }
+    .pgr-addr { font-size: 0.68rem !important; color: #78909c !important; flex: 1; text-align: right; }
+    .qacts { display: flex !important; gap: 4px !important; margin-right: auto !important; }
+    .qacts button { padding: 1px 5px !important; font-size: 0.75rem !important; line-height: 1 !important; height: 24px !important; }
   </style>
   <div class="mb" style="max-width:680px">
     <h2 id="gm-title"></h2>

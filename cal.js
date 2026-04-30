@@ -1,3 +1,4 @@
+// cal.js v95.8.1 - Compact UI & Deduplication Fix
 function calRefG(){
   // Ensure cal-cls matches the active tab
   const clsSel=document.getElementById('cal-cls');
@@ -804,30 +805,32 @@ function renderPairCard(pair, pairEvs, opts){
       });
 
       Object.values(sups).forEach(group => {
-        const evsToShow = group.hasOk ? group.evs.filter(ev => ev.st === 'ok') : group.evs;
-        evsToShow.forEach(ev => {
-          const stc = ev.st !== 'ok' ? 'st-' + ev.st : '';
-          const gblkEv = ds ? window.getGardenBlock(gid, ds) : null;
-          const isMakeup = ev._isMakeup || ev._makeupFrom || ev._postFrom || (ev.nt && ev.nt.includes('השלמה'));
-          const fromDate = ev._makeupFrom || ev._postFrom || '';
-          const makeupBadge = isMakeup ? `<span style="background:#e1f5fe; color:#0288d1; border-radius:4px; padding:1px 5px; font-size:0.65rem; font-weight:800; border:1px solid #b3e5fc;">📅 השלמה ${fromDate?window.fD(fromDate):''}</span>` : '';
+        // Show only ONE activity per garden/supplier to avoid duplicates
+        const bestEv = group.hasOk ? group.evs.find(ev => ev.st === 'ok') : group.evs[0];
+        if (!bestEv) return;
 
-          html += `<div class="pair-garden-row ${stc}" style="display:flex; align-items:center; gap:10px; padding:4px 10px; border-bottom:1px solid #f5f5f5; ${gblkEv?'border-right:4px solid #e91e63;':''}" onclick="openSP(${ev.id})">
-            <div style="font-weight:700; color:#1a237e; white-space:nowrap;">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-            <div style="font-size:0.7rem; color:#78909c; white-space:nowrap;">${g.st?`📍 ${g.st}`:''}</div>
-            <div style="flex:1; display:flex; align-items:center; gap:6px; overflow:hidden;">
-              ${makeupBadge}
-              ${gblkEv ? `<span style="font-size:0.65rem; color:#c62828;">${gblkEv.icon||'🚫'} ${gblkEv.reason}</span>` : ''}
-              <span style="font-size:0.7rem; font-weight:700; color:${ev.st==='ok'?'#2e7d32':'#c62828'}">${window.stLabel(ev)}</span>
-            </div>
-            <div style="font-weight:800; color:#37474f; white-space:nowrap;">${ev.t ? `⏰ ${window.fT(ev.t)}` : ''}</div>
-            <div class="qacts" onclick="event.stopPropagation()" style="display:flex; gap:3px;">
-              ${ev.st==='done'?'':`<button title="בוצע" onclick="window.qSetSt(${ev.id},'done')" style="padding:1px 4px;">✔️</button>`}
-              ${ev.st==='can'?'':`<button title="בטל" onclick="openCanQ(${ev.id})" style="padding:1px 4px;">❌</button>`}
-              ${ev.st==='nohap'?'':`<button title="חוסר" onclick="window.qSetSt(${ev.id},'nohap')" style="padding:1px 4px;">⚠️</button>`}
-            </div>
-          </div>`;
-        });
+        const ev = bestEv;
+        const stc = ev.st !== 'ok' ? 'st-' + ev.st : '';
+        const gblkEv = ds ? window.getGardenBlock(gid, ds) : null;
+        const isMakeup = ev._isMakeup || ev._makeupFrom || ev._postFrom || (ev.nt && ev.nt.includes('השלמה'));
+        const fromDate = ev._makeupFrom || ev._postFrom || '';
+        const makeupBadge = isMakeup ? `<span style="background:#e1f5fe; color:#0288d1; border-radius:4px; padding:1px 5px; font-size:0.65rem; font-weight:800; border:1px solid #b3e5fc;">📅 השלמה ${fromDate?window.fD(fromDate):''}</span>` : '';
+
+        html += `<div class="pair-garden-row ${stc}" style="display:flex; align-items:center; gap:12px; padding:4px 10px; border-bottom:1px solid #f5f5f5; ${gblkEv?'border-right:4px solid #e91e63;':''}" onclick="openSP(${ev.id})">
+          <div style="font-weight:700; color:#1a237e; white-space:nowrap; min-width:110px;">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
+          <div style="font-weight:800; color:#37474f; white-space:nowrap; background:#f0f4f8; padding:2px 6px; border-radius:4px; font-size:0.75rem;">${ev.t ? `⏰ ${window.fT(ev.t)}` : ''}</div>
+          <div style="font-size:0.7rem; color:#78909c; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;">${g.st?`📍 ${g.st}`:''}</div>
+          <div style="flex:1; display:flex; align-items:center; gap:6px; overflow:hidden; justify-content:flex-end;">
+            ${makeupBadge}
+            ${gblkEv ? `<span style="font-size:0.65rem; color:#c62828;">${gblkEv.icon||'🚫'} ${gblkEv.reason}</span>` : ''}
+            <span style="font-size:0.7rem; font-weight:700; color:${ev.st==='ok'?'#2e7d32':'#c62828'}">${window.stLabel(ev)}</span>
+          </div>
+          <div class="qacts" onclick="event.stopPropagation()" style="display:flex; gap:3px;">
+            ${ev.st==='done'?'':`<button title="בוצע" onclick="window.qSetSt(${ev.id},'done')" style="padding:1px 4px;">✔️</button>`}
+            ${ev.st==='can'?'':`<button title="בטל" onclick="openCanQ(${ev.id})" style="padding:1px 4px;">❌</button>`}
+            ${ev.st==='nohap'?'':`<button title="חוסר" onclick="window.qSetSt(${ev.id},'nohap')" style="padding:1px 4px;">⚠️</button>`}
+          </div>
+        </div>`;
       });
     }
   });
@@ -835,59 +838,59 @@ function renderPairCard(pair, pairEvs, opts){
   html += `</div></div></div></div>`;
   return html;
 }
-function renderGardenCols(evs,gids,clr){
-  const cols=gids.filter(Boolean);
-  let html='';
-  cols.forEach((gid,i)=>{
-    const g=window.G(gid);
-    const ge=evs.filter(s=>s.g===gid).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
-    html+=`<div class="garden-col" style="border-right:${i>0?'1px solid rgba(0,0,0,.06)':'none'}">
+function renderGardenCols(evs, gids, clr){
+  const ds = ''; // ds is not passed but used in pslot? Actually ds is global or not needed here.
+  const cols = gids.filter(Boolean);
+  let html = '';
+  cols.forEach((gid, i) => {
+    const g = window.G(gid);
+    if (!g) return;
+    const ge = evs.filter(s => s.g === gid).sort((a,b) => (a.t || '99:99').localeCompare(b.t || '99:99'));
+    html += `<div class="garden-col" style="border-right:${i > 0 ? '1px solid rgba(0,0,0,.06)' : 'none'}">
       <div class="garden-col-hdr" style="color:${clr.text}">
-        ${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}
+        ${window.gcls(g) === 'بيה"ס' ? '🏛️' : '🏫'} ${g.name}
       </div>`;
-    if(!ge.length){
-      html+='<div style="color:#ccc;font-size:.7rem;text-align:center;padding:10px 0">—</div>';
+    
+    if (!ge.length) {
+      html += '<div style="color:#ccc; font-size:.7rem; text-align:center; padding:10px 0">—</div>';
     } else {
-      // Deduplicate by supplier in column view
       const sups = {};
       ge.forEach(s => {
         const sb = window.supBase(s.a);
-        if(!sups[sb]) sups[sb] = { hasOk: false, evs: [] };
-        if(s.st === 'ok') sups[sb].hasOk = true;
+        if (!sups[sb]) sups[sb] = { hasOk: false, evs: [] };
+        if (s.st === 'ok') sups[sb].hasOk = true;
         sups[sb].evs.push(s);
       });
       const filtered = [];
       Object.values(sups).forEach(group => {
-        if(group.hasOk) filtered.push(...group.evs.filter(ev => ev.st !== 'post' && ev.st !== 'nohap'));
+        if (group.hasOk) filtered.push(...group.evs.filter(ev => ev.st !== 'post' && ev.st !== 'nohap'));
         else filtered.push(...group.evs);
       });
-      
-      filtered.forEach(s=>{
-        const stc=s.st!=='ok'?'st-'+s.st:'';
-        html+=`<div class="pslot ${stc}" style="border-right:3px solid ${clr.solid}" onclick="openSP(${s.id})">
-          ${s._fromD?`<div style="font-size:.67rem;color:#e65100;font-weight:700;background:#fff3e0;padding:1px 5px;border-radius:3px;margin-bottom:2px">↩️ הועבר מ-${window.fD(s._fromD)}</div>`:''}
-          ${s.t?`<div class="pt">⏰ ${window.fT(s.t)}</div>`:''}
+
+      filtered.forEach(s => {
+        const stc = s.st !== 'ok' ? 'st-' + s.st : '';
+        html += `<div class="pslot ${stc}" style="border-right:3px solid ${clr.solid}" onclick="openSP(${s.id})">
+          ${s._fromD ? `<div style="font-size:.67rem; color:#e65100; font-weight:700; background:#fff3e0; padding:1px 5px; border-radius:3px; margin-bottom:2px">↩️ הועבר מ-${window.fD(s._fromD)}</div>` : ''}
+          ${s.t ? `<div class="pt">⏰ ${window.fT(s.t)}</div>` : ''}
           <div class="pn">${window.supBase(s.a)}</div>
-          ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
-          ${(s.act||window.supAct(s.a))?`<div style="font-size:.69rem;color:${clr.solid};font-weight:600;margin-top:1px">🎯 ${s.act||window.supAct(s.a)}</div>`:''}
-          ${s.p?`<div class="pp">📞 ${s.p}</div>`:''}
+          ${s._makeupFrom ? `<div style="display:inline-block; background:#e1f5fe; color:#0288d1; border-radius:4px; padding:1px 6px; font-size:.62rem; font-weight:800; border:1px solid #b3e5fc; margin-bottom:2px">📅 השלמה</div>` : ''}
+          ${(s.act || window.supAct(s.a)) ? `<div style="font-size:.69rem; color:${clr.solid}; font-weight:600; margin-top:1px">🎯 ${s.act || window.supAct(s.a)}</div>` : ''}
+          ${s.p ? `<div class="pp">📞 ${s.p}</div>` : ''}
           <div class="pst">${window.stLabel(s)}</div>
           <div class="qacts" onclick="event.stopPropagation()">
-            ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
-            ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
-            ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
+            ${s.st === 'done' ? '' : `<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
+            ${s.st === 'can' ? '' : `<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
+            ${s.st === 'nohap' ? '' : `<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
             <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
-            <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
           </div>
         </div>`;
       });
     }
-    html+='</div>';
+    html += '</div>';
   });
-  // Pad with empty col if only 2 GARDENS (for 3-col alignment)
-  if(cols.length===2){
-    html+=`<div class="garden-col" style="border-right:none;background:#fafafa">
-      <div style="text-align:center;color:#ddd;padding:20px 0;font-size:.8rem">—</div>
+  if (cols.length === 2) {
+    html += `<div class="garden-col" style="border-right:none; background:#fafafa">
+      <div style="text-align:center; color:#ddd; padding:20px 0; font-size:.8rem">—</div>
     </div>`;
   }
   return html;
