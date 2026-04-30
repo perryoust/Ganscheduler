@@ -719,9 +719,7 @@ function renderNormalDay(evs,ds){
   let html=topHtml;
 
   if(allSoloEvs.length || Object.keys(pairsByCity).length > 0){
-    // Group everything by city
     const cardsByCity={};
-    // 1. Add Pair Cards
     Object.keys(pairsByCity).sort().forEach(city=>{
       const clr=window.CITY_COLORS(city);
       if(!cardsByCity[city]) cardsByCity[city]=[];
@@ -729,7 +727,6 @@ function renderNormalDay(evs,ds){
         cardsByCity[city].push(window.renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true,isCompact:true}));
       });
     });
-    // 2. Add Solo Cards (unified style)
     allSoloEvs.forEach(s=>{
       const g=window.G(s.g);
       const city=g.city||'אחר';
@@ -749,79 +746,55 @@ function renderNormalDay(evs,ds){
       </details>`;
     });
   }
-
-
   if(!html||html===topHtml) html+=`<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות ביום זה</div>`;
   return html;
 }
 
-// ─── Unified pair card renderer ─────────────────────────
-// Used in both calendar day view AND dashboard
-// Layout: pair name label (left) | shared supplier info (top) + garden rows (stacked)
 function renderPairCard(pair, pairEvs, opts){
-  // opts: {ds, clr, showEdit, showExport}
-  const ds=opts&&opts.ds||'';
-  const clr=(opts&&opts.clr)||{solid:'#37474f',light:'#eceff1',border:'#b0bec5',text:'#37474f'};
-  const showEdit=opts&&opts.showEdit!==false;
-  const showExport=opts&&opts.showExport!==false;
+  const ds = opts && opts.ds || '';
+  const clr = (opts && opts.clr) || {solid:'#37474f',light:'#eceff1',border:'#b0bec5',text:'#37474f'};
+  const showEdit = opts && opts.showEdit !== false;
+  const showExport = opts && opts.showExport !== false;
+  const isCompact = !!opts.isCompact;
 
-  // Derive shared supplier info (use first event's data)
-  const firstEv=pairEvs[0]||{};
-  const supName=firstEv.a||'';
-  const supPhone=firstEv.p||(()=>{
-    const ex=supBaseEx(window.supBase(supName));
-    return ex&&ex.ph1?ex.ph1:'';
-  })();
-  const actName=firstEv.act||window.supAct(supName)||'';
+  const firstEv = pairEvs[0] || {};
+  const supName = firstEv.a || '';
+  const supPhone = firstEv.p || (typeof supBaseEx === 'function' ? (supBaseEx(window.supBase(supName))||{}).ph1 : '');
+  const actName = firstEv.act || (window.supAct ? window.supAct(supName) : '');
 
-  // Buttons
-  const editBtn=showEdit&&ds
-    ?`<button onclick="openPairQuickEdit('${pair.id}','${ds}')" style="background:rgba(255,255,255,.25);border:none;border-radius:3px;padding:2px 6px;cursor:pointer;font-size:.65rem;color:#fff" title="ערוך">✏️</button>`
-    :'';
-  const expBtn=showExport&&ds
-    ?`<button onclick="exportPairRow('${pair.id}','${ds}',${!!opts.isMakeup})" style="background:rgba(255,255,255,.3);border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.7rem;color:#fff;font-weight:700">📋 הודעה</button>`
-    :'';
+  const editBtn = showEdit && ds ? `<button onclick="openPairQuickEdit('${pair.id}','${ds}')" style="background:rgba(255,255,255,.25);border:none;border-radius:3px;padding:2px 6px;cursor:pointer;font-size:.65rem;color:#fff">✏️</button>` : '';
+  const expBtn = showExport && ds ? `<button onclick="exportPairRow('${pair.id}','${ds}',${!!opts.isMakeup})" style="background:rgba(255,255,255,.3);border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.7rem;color:#fff;font-weight:700">📋 הודעה</button>` : '';
 
-  const isCompact=!!opts.isCompact;
-  let html=`<div class="pair-card ${opts&&opts.isList?'list-mode':''} ${isCompact?'compact':''}">
-    <div class="pair-card-hdr" style="background:${clr.solid}">
+  let html = `<div class="pair-card ${opts && opts.isList ? 'list-mode' : ''} ${isCompact ? 'compact' : ''}">
+    <div class="pair-card-hdr" style="background:${clr.solid}; display:flex; align-items:center; gap:8px;">
       🔗 ${pair.name}
-      <span style="font-size:.68rem;font-weight:400;opacity:.8;margin-right:auto">${window.G(pair.ids[0]).city||''}</span>
+      <span style="font-size:.68rem;font-weight:400;opacity:.8;margin-right:auto">${window.G(pair.ids[0]).city || ''}</span>
       ${expBtn}${editBtn}
     </div>
     <div class="pair-card-body">
-      ${!isCompact?`<div class="pair-card-label" style="background:${clr.light}">
-        <span class="pcl-name" style="color:${clr.text}">${pair.name}</span>
-        ${showEdit&&ds?`<div class="pcl-btns">
-          <button onclick="openPairQuickEdit('${pair.id}','${ds}')" style="background:${clr.solid};border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.62rem;color:#fff">✏️</button>
-        </div>`:''}
-      </div>`:''}
       <div class="pair-card-content">
-        <div class="pair-card-shared">
-          ${supName?`<span class="pcs-item">📚 <b>${window.supBase(supName)}</b></span>`:''}
-          ${supPhone?`<span class="pcs-item">📞 ${supPhone}</span>`:''}
-          ${actName?`<span class="pcs-item">🎯 ${actName}</span>`:''}
+        <div class="pair-card-shared" style="display:flex; gap:10px; padding:5px 10px; border-bottom:1px solid #eee; font-size:0.8rem; background:#f8f9fa;">
+          ${supName ? `<span>📚 <b>${window.supBase(supName)}</b></span>` : ''}
+          ${actName ? `<span>🎯 ${actName}</span>` : ''}
+          ${supPhone ? `<span style="margin-right:auto;">📞 ${supPhone}</span>` : ''}
         </div>
         <div class="pair-gardens">`;
 
-  // One row per garden
-  pair.ids.filter(Boolean).forEach(gid=>{
-    const g=window.G(gid);
-    const gEvs=pairEvs.filter(s=>s.g===gid).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+  pair.ids.filter(Boolean).forEach(gid => {
+    const g = window.G(gid);
+    if (!g) return;
+    const gEvs = pairEvs.filter(s => s.g === gid).sort((a,b) => (a.t || '99:99').localeCompare(b.t || '99:99'));
     
-    if(!gEvs.length){
-      const gblkNone=ds?window.getGardenBlock(gid,ds):null;
-      html+=`<div class="pair-garden-row" style="opacity:${gblkNone?1:.5};${gblkNone?'background:#fce4ec;border-right:3px solid #e91e63;':''}" onclick="${ds?`openGcellPopup(${gid},'${ds}',event)`:''}" style="cursor:${ds?'pointer':'default'}">
-        <div class="pgr-left">
-          <div class="pgr-name">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-          ${g.st?`<div class="pgr-addr">📍 ${g.st}</div>`:''}
-          ${gblkNone
-            ?`<div class="pgr-status" style="color:#c62828">${gblkNone.icon||'🚫'} ${gblkNone.reason}</div>`
-            :`<div class="pgr-status" style="color:#999;font-size:.67rem">אין פעילות — לחץ להוסיף</div>`}
+    if (!gEvs.length) {
+      const gblkNone = ds ? window.getGardenBlock(gid, ds) : null;
+      html += `<div class="pair-garden-row" style="display:flex; align-items:center; gap:10px; padding:4px 10px; opacity:${gblkNone?1:0.6}; background:${gblkNone?'#fff1f1':'#fff'}" onclick="${ds ? `openGcellPopup(${gid},'${ds}',event)` : ''}">
+        <div style="font-weight:700; color:#1a237e;">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
+        <div style="font-size:0.7rem; color:#78909c;">${g.st?`📍 ${g.st}`:''}</div>
+        <div style="flex:1; font-size:0.7rem; color:${gblkNone?'#c62828':'#999'}">
+          ${gblkNone ? `${gblkNone.icon||'🚫'} ${gblkNone.reason}` : 'אין פעילות'}
         </div>
       </div>`;
     } else {
-      // Deduplicate by supplier: if we have multiple entries for the same supplier, and one is 'ok', hide the 'post'/'nohap' ones.
       const sups = {};
       gEvs.forEach(ev => {
         const sb = window.supBase(ev.a);
@@ -830,43 +803,36 @@ function renderPairCard(pair, pairEvs, opts){
         sups[sb].evs.push(ev);
       });
 
-      const filteredEvs = [];
       Object.values(sups).forEach(group => {
-        if(group.hasOk) {
-          filteredEvs.push(...group.evs.filter(ev => ev.st !== 'post' && ev.st !== 'nohap'));
-        } else {
-          filteredEvs.push(...group.evs);
-        }
-      });
+        const evsToShow = group.hasOk ? group.evs.filter(ev => ev.st === 'ok') : group.evs;
+        evsToShow.forEach(ev => {
+          const stc = ev.st !== 'ok' ? 'st-' + ev.st : '';
+          const gblkEv = ds ? window.getGardenBlock(gid, ds) : null;
+          const isMakeup = ev._isMakeup || ev._makeupFrom || ev._postFrom || (ev.nt && ev.nt.includes('השלמה'));
+          const fromDate = ev._makeupFrom || ev._postFrom || '';
+          const makeupBadge = isMakeup ? `<span style="background:#e1f5fe; color:#0288d1; border-radius:4px; padding:1px 5px; font-size:0.65rem; font-weight:800; border:1px solid #b3e5fc;">📅 השלמה ${fromDate?window.fD(fromDate):''}</span>` : '';
 
-      filteredEvs.forEach(ev => {
-        const stc=ev&&ev.st!=='ok'?'st-'+ev.st:'';
-        const gblkEv=ds?window.getGardenBlock(gid,ds):null;
-        const isMakeup = ev._isMakeup || ev._makeupFrom || ev._postFrom || (ev.nt && ev.nt.includes('השלמה'));
-        const fromDate = ev._makeupFrom || ev._postFrom || '';
-        const makeupBadge = isMakeup ? `<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה ${fromDate?'מתאריך '+window.fD(fromDate):''}</div>` : '';
-        
-        html+=`<div class="pair-garden-row ${stc}" style="display:flex;align-items:center;gap:10px;padding:4px 10px;${gblkEv?'border-right:4px solid #e91e63;':''}" onclick="openSP(${ev.id})">
-          <div style="font-weight:700;color:#1a237e;white-space:nowrap">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-          <div style="font-size:.7rem;color:#78909c;white-space:nowrap">${g.st?`📍 ${g.st}`:''}</div>
-          <div style="flex:1;display:flex;align-items:center;gap:8px;overflow:hidden">
-            ${makeupBadge}
-            ${gblkEv?`<span style="font-size:.67rem;color:#c62828;white-space:nowrap">${gblkEv.icon||'🚫'} ${gblkEv.reason}</span>`:''}
-            <span style="font-size:.68rem;color:${stc?'#c62828':'#2e7d32'};font-weight:700;white-space:nowrap">${window.stLabel(ev)}</span>
-          </div>
-          <div style="font-weight:800;color:#37474f;white-space:nowrap">${ev.t?`⏰ ${window.fT(ev.t)}`:''}</div>
-          <div class="qacts" onclick="event.stopPropagation()" style="display:flex;gap:3px">
-            ${ev.st==='done'?'':`<button title="התקיים" onclick="window.qSetSt(${ev.id},'done')" style="padding:2px 4px">✔️</button>`}
-            ${ev.st==='can'?'':`<button title="בטל" onclick="openCanQ(${ev.id})" style="padding:2px 4px">❌</button>`}
-            ${ev.st==='nohap'?'':`<button title="לא התקיים" onclick="window.qSetSt(${ev.id},'nohap')" style="padding:2px 4px">⚠️</button>`}
-            <button title="דחה פעילות" onclick="openPostpone(${ev.id})" style="padding:2px 4px">⏩</button>
-          </div>
-        </div>`;
+          html += `<div class="pair-garden-row ${stc}" style="display:flex; align-items:center; gap:10px; padding:4px 10px; border-bottom:1px solid #f5f5f5; ${gblkEv?'border-right:4px solid #e91e63;':''}" onclick="openSP(${ev.id})">
+            <div style="font-weight:700; color:#1a237e; white-space:nowrap;">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
+            <div style="font-size:0.7rem; color:#78909c; white-space:nowrap;">${g.st?`📍 ${g.st}`:''}</div>
+            <div style="flex:1; display:flex; align-items:center; gap:6px; overflow:hidden;">
+              ${makeupBadge}
+              ${gblkEv ? `<span style="font-size:0.65rem; color:#c62828;">${gblkEv.icon||'🚫'} ${gblkEv.reason}</span>` : ''}
+              <span style="font-size:0.7rem; font-weight:700; color:${ev.st==='ok'?'#2e7d32':'#c62828'}">${window.stLabel(ev)}</span>
+            </div>
+            <div style="font-weight:800; color:#37474f; white-space:nowrap;">${ev.t ? `⏰ ${window.fT(ev.t)}` : ''}</div>
+            <div class="qacts" onclick="event.stopPropagation()" style="display:flex; gap:3px;">
+              ${ev.st==='done'?'':`<button title="בוצע" onclick="window.qSetSt(${ev.id},'done')" style="padding:1px 4px;">✔️</button>`}
+              ${ev.st==='can'?'':`<button title="בטל" onclick="openCanQ(${ev.id})" style="padding:1px 4px;">❌</button>`}
+              ${ev.st==='nohap'?'':`<button title="חוסר" onclick="window.qSetSt(${ev.id},'nohap')" style="padding:1px 4px;">⚠️</button>`}
+            </div>
+          </div>`;
+        });
       });
     }
   });
 
-  html+='</div></div></div></div>';
+  html += `</div></div></div></div>`;
   return html;
 }
 function renderGardenCols(evs,gids,clr){
