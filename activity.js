@@ -3,238 +3,167 @@ window.setDashTab = setDashTab;
 window.renderDash = renderDash;
 
 function setDashTab(t){
-  window._dashTab=t;
-  document.getElementById('dash-tab-g').classList.toggle('active',t==='g');
-  document.getElementById('dash-tab-s').classList.toggle('active',t==='s');
+  window._dashTab = t;
+  const gBtn = document.getElementById('dash-tab-g');
+  const sBtn = document.getElementById('dash-tab-s');
+  if(gBtn) gBtn.classList.toggle('active', t === 'g');
+  if(sBtn) sBtn.classList.toggle('active', t === 's');
   renderDash();
 }
 
-function renderDash(){
-  if(window.showInfoNotice && _dashTab === 'g') {
-    window.showInfoNotice('dash-info-wrap', '<b>ברוך הבא ללוח הבקרה:</b> כאן מוצגים הטיפולים הנדרשים להיום. וודא שכל הפעילויות מסומנות כ-"בוצע" או עם הערת טיפול.', 'info', '📋');
-  } else if(window.showInfoNotice) {
-    document.getElementById('dash-info-wrap').style.display = 'none';
-  }
-  const dateEl=document.getElementById('dash-date');
-  const cityEl=document.getElementById('dash-city');
-  const supEl=document.getElementById('dash-sup');
-  const stEl=document.getElementById('dash-st');
+const _dashListRow = (s) => {
+  const g = window.G(s.g);
+  if(!g) return '';
+  const stc = s.st !== 'ok' ? 'st-' + s.st : '';
+  const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+  const makeupBadge = isM ? `<span style="background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:800;border:1px solid #ffe0b2;">↩️ השלמה</span>` : '';
+  
+  return `<div class="dash-row ${stc}" onclick="window.openSP('${s.id}')" style="display:flex; align-items:center; gap:15px; padding:10px 15px; border-bottom:1px solid #edf2f7; transition:all 0.2s;">
+    <div style="flex:0 0 160px; font-weight:700; color:#2d3748; display:flex; align-items:center; gap:8px;">
+      <span style="font-size:1.1rem">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'}</span>
+      <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${g.name}</span>
+    </div>
+    <div style="flex:0 0 65px; text-align:center;">
+      <span style="background:#4a5568; color:white; padding:3px 8px; border-radius:6px; font-weight:800; font-size:0.8rem;">${s.t ? window.fT(s.t) : '--:--'}</span>
+    </div>
+    <div style="flex:1; display:flex; align-items:center; gap:10px; min-width:0;">
+      <div style="display:flex; flex-direction:column; min-width:0;">
+        <span style="font-weight:700; color:#4a5568; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.act || 'ללא פעילות'}</span>
+        <span style="font-size:0.75rem; color:#a0aec0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📍 ${g.city} ${g.st?` | ${g.st}`:''}</span>
+      </div>
+      ${makeupBadge}
+    </div>
+    <div style="flex:0 0 100px; text-align:right;">
+      <span style="font-weight:800; font-size:0.75rem; color:${s.st==='ok'?'#38a169':'#e53e3e'}; text-transform:uppercase;">${window.stLabel(s)}</span>
+    </div>
+    <div class="qacts" onclick="event.stopPropagation()" style="flex:0 0 130px; display:flex; justify-content:flex-end; gap:5px;">
+      ${s.st==='done'?'':`<button title="בוצע" onclick="window.qSetSt('${s.id}','done')" style="background:#f0fff4; color:#38a169; border:1px solid #c6f6d5; padding:4px 8px; border-radius:6px; cursor:pointer;">✔️</button>`}
+      ${s.st==='can'?'':`<button title="בטל" onclick="window.openCanQ('${s.id}')" style="background:#fff5f5; color:#e53e3e; border:1px solid #fed7d7; padding:4px 8px; border-radius:6px; cursor:pointer;">❌</button>`}
+      ${s.st==='nohap'?'':`<button title="חוסר" onclick="window.qSetSt('${s.id}','nohap')" style="background:#fffaf0; color:#dd6b20; border:1px solid #fbd38d; padding:4px 8px; border-radius:6px; cursor:pointer;">⚠️</button>`}
+    </div>
+  </div>`;
+};
+
+function renderDash() {
+  const list = document.getElementById('dash-list');
+  if(!list) return;
+  list.innerHTML = '';
+  
+  const dateEl = document.getElementById('dash-date');
+  const cityEl = document.getElementById('dash-city');
+  const supEl = document.getElementById('dash-sup');
+  const stEl = document.getElementById('dash-st');
   if(!dateEl || !cityEl || !supEl || !stEl) return;
 
-  const date=dateEl.value;
-  const city=cityEl.value;
-  const sup=supEl.value;
-  const st=stEl.value;
-  const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
-  const srch=(document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
-  
-  console.log(`[Dash Debug] v96.6 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
+  const date = dateEl.value;
+  const city = cityEl.value;
+  const sup = supEl.value;
+  const st = stEl.value;
+  const tab = window._dashTab || 'g';
+  const srch = (document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
+
+  console.log(`[Dash Debug] v96.7 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
 
   const checkMatch = (s, tTab, tSt, tDate) => {
-    // A postponed/failed activity is "handled" if it has a linked makeup/new date
-    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false" && s._compByMakeup !== "");
-    const isExc = (s.st === 'nohap' || s.st === 'post') && !isHandled;
+    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-    
     const g = window.G(s.g);
+    if(!g) return false;
     const gClass = window.gcls ? window.gcls(g) : 'גנים';
 
     if (tTab === 'g' && gClass !== 'גנים') return false;
     if (tTab === 's' && gClass !== 'ביה"ס') return false;
 
     if (tSt === 'todo') {
-      if (s.st === 'can') return false; // Never show cancelled in todo
-      if (isExc) return true;
-      if (isM && s.st !== 'done' && s.st !== 'can') {
-        if (tDate && s.d !== tDate) return false;
-        return true;
-      }
+      if (s.st === 'can' || isHandled) return false;
+      if (s.st === 'nohap' || s.st === 'post' || isM) return true;
       return false;
     } else if (tSt === 'handled') {
-      if (s.st === 'done') return true;
-      if (isHandled) return true;
-      return false;
+      return (s.st === 'done' || isHandled);
     } else if (tSt) {
       if (s.st !== tSt) return false;
-    } else {
-      if (s.st === 'can' || isHandled) return false;
     }
 
     if (tDate && s.d !== tDate) return false;
     if (city && g.city !== city) return false;
-    if (sup && window.supBase(s.a) !== sup && s.a !== sup) return false;
+    if (sup && window.supBase(s.a) !== sup) return false;
     if (srch && ![(g.name||''), (g.city||''), s.a, s.act].some(v=>(v||'').toLowerCase().includes(srch))) return false;
 
     return true;
   };
 
-  const todoG = (window.SCH || []).filter(s => checkMatch(s, 'g', 'todo', null)).length;
-  const todoS = (window.SCH || []).filter(s => checkMatch(s, 's', 'todo', null)).length;
-  const gBtn = document.getElementById('dash-tab-g');
-  const sBtn = document.getElementById('dash-tab-s');
-  if(gBtn) gBtn.textContent = `🚀 גני ילדים (${todoG})`;
-  if(sBtn) sBtn.textContent = `🏫 בתי ספר (${todoS})`;
+  const filtered = (window.SCH || []).filter(s => checkMatch(s, tab, st, date));
+  
+  // Group by City or Supplier
+  const groups = {};
+  filtered.forEach(s => {
+    const g = window.G(s.g);
+    const mainKey = (tab === 'g') ? (g.city || 'אחר') : (s.a || 'אחר');
+    if(!groups[mainKey]) groups[mainKey] = [];
+    groups[mainKey].push(s);
+  });
 
-  const evs = (window.SCH || []).filter(s => checkMatch(s, tab, st, date))
-    .sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+  Object.keys(groups).sort().forEach(c => {
+    const evs = groups[c];
+    const accordion = document.createElement('details');
+    accordion.className = 'city-accordion';
+    const summary = document.createElement('summary');
+    summary.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+      <span style="font-weight:800; color:#2d3748;">🏙️ ${c} (${evs.length})</span>
+      <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
+    </div>`;
+    accordion.appendChild(summary);
 
-  if(!evs.length){
-    const emptyMsg = date ? `אין פעילויות לטיפול בתאריך ${window.fD(date)}` : 'אין פעילויות לטיפול (כל התאריכים)';
-    document.getElementById('dash-body').innerHTML = `<p style="color:#999;font-size:.85rem;padding:20px;text-align:center">${emptyMsg}</p>`;
-  } else {
-    // Global Deduplication for Dashboard: One row per Garden + Supplier
-    const uniqueMap = {};
+    const content = document.createElement('div');
+    content.className = 'city-accordion-content';
+
+    const rows = [];
+    const seenPairs = new Set();
+    const soloMap = new Map();
+
     evs.forEach(s => {
-      const key = `${s.g}_${s.a}`;
-      if (!uniqueMap[key] || s.st === 'ok') uniqueMap[key] = s;
-    });
-    const finalEvs = [];
-    for (const k in uniqueMap) finalEvs.push(uniqueMap[k]);
-    finalEvs.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
-
-    let h='';
-    if(tab === 'g'){
-      // GARDEN VIEW: Group by City, then Pairs/Solos
-      const byCity={};
-      finalEvs.forEach(s=>{
-        const g = window.G(s.g);
-        const c = g.city || 'אחר';
-        if(!byCity[c]) byCity[c]=[];
-        byCity[c].push(s);
-      });
-      
-      Object.keys(byCity).sort().forEach(c=>{
-        h+=`<details class="city-accordion">
-          <summary><span>🏙️ ${c} (${byCity[c].length})</span></summary>
-          <div class="city-accordion-content">`;
-        
-        const ce = byCity[c];
-        const usedIds = new Set();
-        const rows = [];
-        
-        window.pairs.forEach(pair => {
-          const pairEvs = ce.filter(s => pair.ids.includes(s.g));
-          if(!pairEvs.length) return;
-          pairEvs.forEach(s => usedIds.add(s.id));
-          rows.push({type: 'pair', pair, evs: pairEvs});
-        });
-        ce.filter(s => !usedIds.has(s.id)).forEach(s => rows.push({type: 'solo', ev: s}));
-        
-        rows.sort((a,b) => {
-          const nameA = a.type === 'pair' ? a.pair.name : window.G(a.ev.g).name;
-          const nameB = b.type === 'pair' ? b.pair.name : window.G(b.ev.g).name;
-          return nameA.localeCompare(nameB, 'he');
-        });
-
-        rows.forEach(row => {
-          if(row.type === 'pair') {
-            const clr = window.CITY_COLORS(c);
-            const uniquePairEvs = [];
-            const seenGids = new Set();
-            row.evs.forEach(s => {
-              if(!seenGids.has(s.g) || s.st === 'ok') {
-                const existing = uniquePairEvs.findIndex(x => x.g === s.g);
-                if(s.st === 'ok' && existing !== -1) uniquePairEvs.splice(existing, 1);
-                if(existing === -1 || s.st === 'ok') {
-                   uniquePairEvs.push(s);
-                   seenGids.add(s.g);
-                }
-              }
-            });
-            h += window.renderPairCard(row.pair, uniquePairEvs, {ds: date, clr, showEdit: true, showExport: true, isCompact: true});
-          } else {
-            h += _dashListRow(row.ev);
-          }
-        });
-        h+=`</div></details>`;
-      });
-    } else {
-      // SUPPLIER VIEW: Group by Supplier, then City
-      const bySup={};
-      finalEvs.forEach(s=>{
-        if(!bySup[s.a]) bySup[s.a]={name:s.a,ph:s.p||'',evs:[]};
-        bySup[s.a].evs.push(s);
-      });
-      const supList = [];
-      for (const k in bySup) supList.push(bySup[k]);
-      supList.sort((a,b)=>a.name.localeCompare(b.name,'he')).forEach(supData=>{
-        h+=`<div class="card" style="margin-bottom:10px;padding:10px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <div style="font-weight:800;color:#1a237e;font-size:.9rem">📚 ${window.supBase(supData.name)}</div>
-            ${window.supAct(supData.name)?`<div style="font-size:.75rem;color:#1565c0;font-weight:600">🎯 ${window.supAct(supData.name)}</div>`:''}
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-              ${supData.ph?`<span style="font-size:.75rem;color:#546e7a">📞 ${supData.ph}</span>`:''}
-              <span class="bdg bb" style="font-size:.7rem">${supData.evs.length} גנים</span>
-              <button class="btn bp bsm" style="font-size:.68rem;padding:2px 7px" onclick="openSupExport('${supData.name}')">📊 יצוא לאקסל</button>
-            </div>
-          </div>`;
-        
-        const byCity={};
-        supData.evs.forEach(s=>{
-          const g = window.G(s.g);
-          const c = g.city || 'אחר';
-          if(!byCity[c]) byCity[c]=[];
-          byCity[c].push(s);
-        });
-        
-        Object.keys(byCity).sort().forEach(c=>{
-          h+=`<details class="city-accordion">
-            <summary><span>🏙️ ${c} (${byCity[c].length})</span></summary>
-            <div class="city-accordion-content">`;
-          byCity[c].forEach(s => { h += _dashListRow(s); });
-          h+='</div></details>';
-        });
-        h+=`</div>`;
-      });
-    }
-    document.getElementById('dash-body').innerHTML=h;
-  }
-}
-
-function _dashListRow(ev) {
-  const g = window.G(ev.g);
-  if (!g) return '';
-  const stc = ev.st !== 'ok' ? 'st-' + ev.st : '';
-            rows.push({type: 'pair', pair, evs: pairEvs});
-            seenPairs.add(pair.id);
-          }
-        } else {
-          const key = `${s.g}_${window.supBase(s.a)}`;
-          if (!soloMap.has(key) || s.st === 'ok') {
-            soloMap.set(key, s);
-          }
-        }
-      });
-      
-      // Add solos to rows
-      soloMap.forEach(ev => rows.push({type: 'solo', ev}));
-
-      rows.sort((a, b) => {
-        const tA = (a.type === 'pair' ? a.evs[0]?.t : a.ev?.t) || '99:99';
-        const tB = (b.type === 'pair' ? b.evs[0]?.t : b.ev?.t) || '99:99';
-        return tA.localeCompare(tB);
-      });
-
-      let h = '';
-      rows.forEach(row => {
-        if(row.type === 'pair') {
-          const clr = window.CITY_COLORS(c);
-          // Deduplicate pair evs internally
-          const pairMap = new Map();
-          row.evs.forEach(e => {
-            if(!pairMap.has(e.g) || e.st === 'ok') pairMap.set(e.g, e);
+      const pair = window.gardenPair(s.g);
+      if (pair) {
+        if (!seenPairs.has(pair.id)) {
+          const pairEvs = evs.filter(x => {
+            const xPair = window.gardenPair(x.g);
+            return xPair && xPair.id === pair.id && window.supBase(x.a) === window.supBase(s.a);
           });
-          h += window.renderPairCard(row.pair, Array.from(pairMap.values()), {ds: date, clr, showEdit: true, showExport: true, isCompact: true});
-        } else {
-          h += _dashListRow(row.ev);
+          rows.push({type: 'pair', pair, evs: pairEvs});
+          seenPairs.add(pair.id);
         }
-      });
-      
-      content.innerHTML = h;
-      accordion.appendChild(content);
-      list.appendChild(accordion);
+      } else {
+        const key = `${s.g}_${window.supBase(s.a)}`;
+        if (!soloMap.has(key) || s.st === 'ok') soloMap.set(key, s);
+      }
     });
-  };
+    
+    soloMap.forEach(ev => rows.push({type: 'solo', ev}));
+    rows.sort((a, b) => {
+      const tA = (a.type === 'pair' ? a.evs[0]?.t : a.ev?.t) || '99:99';
+      const tB = (b.type === 'pair' ? b.evs[0]?.t : b.ev?.t) || '99:99';
+      return tA.localeCompare(tB);
+    });
+
+    let h = '';
+    rows.forEach(row => {
+      if(row.type === 'pair') {
+        const clr = window.CITY_COLORS ? window.CITY_COLORS(c) : '#eee';
+        const pairMap = new Map();
+        row.evs.forEach(e => {
+          if(!pairMap.has(e.g) || e.st === 'ok') pairMap.set(e.g, e);
+        });
+        h += window.renderPairCard(row.pair, Array.from(pairMap.values()), {ds: date, clr, showEdit: true, showExport: true, isCompact: true});
+      } else {
+        h += _dashListRow(row.ev);
+      }
+    });
+
+    content.innerHTML = h;
+    accordion.appendChild(content);
+    list.appendChild(accordion);
+  });
+}
 
 function renderCanList(){
   const tab = (typeof _dashTab !== 'undefined' ? _dashTab : 'g');
