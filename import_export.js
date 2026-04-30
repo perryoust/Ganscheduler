@@ -100,8 +100,9 @@ window.importBulkSchedule = function(input) {
       if (window.pairs && Array.isArray(window.pairs)) {
         window.pairs.forEach(p => {
           if (p && p.ids && Array.isArray(p.ids)) {
-            const key = [...p.ids].sort((a,b)=>a-b).join('_');
-            p.ids.forEach(id => { pairMap[id] = key; });
+            const arr = [...p.ids];
+            const key = arr.sort((a,b)=>a-b).join('_');
+            arr.forEach(id => { pairMap[id] = key; });
           }
         });
       }
@@ -223,7 +224,30 @@ window.importBulkSchedule = function(input) {
           }
 
           const notes = String(getV(colNote) || '').trim();
-          let status = isMissingSheet ? 'nohap' : 'ok';
+          const grpRaw = getV(colGrp);
+          
+          const isMakeupNote = notes.includes('השלמה');
+          const isActualMakeup = isMakeupSheet || isMakeupNote;
+
+          // New logic: if Group column is empty, it's a lack (nohap)
+          let status = 'ok';
+          if (grpRaw === '' || grpRaw === null || grpRaw === undefined) {
+            status = 'nohap';
+          }
+          if (isMissingSheet) status = 'nohap';
+
+          let makeupFrom = '';
+          if (isActualMakeup) {
+            // Try to extract date from notes like "השלמה לתאריך 1.9"
+            const dateMatch = notes.match(/(\d{1,2})[\.\/](\d{1,2})/);
+            if (dateMatch) {
+              const d = dateMatch[1].padStart(2, '0');
+              const m = dateMatch[2].padStart(2, '0');
+              // Guess year based on formattedDate
+              const y = formattedDate.split('-')[0];
+              makeupFrom = `${y}-${m}-${d}`;
+            }
+          }
 
           const locKey = pairMap[gid] || gid;
           const key = `${formattedDate}|${locKey}|${cleanStr(supplier)}|${time}`;
@@ -238,8 +262,9 @@ window.importBulkSchedule = function(input) {
             st: status,
             n: (isMakeupSheet ? 'השלמה: ' : '') + (isMissingSheet ? 'חוסר: ' : '') + notes,
             p: String(getV(colPhone) || ''),
-            grp: parseInt(getV(colGrp)) || 1,
-            _isMakeup: isMakeupSheet
+            grp: parseInt(grpRaw) || 0,
+            _isMakeup: isActualMakeup,
+            _makeupFrom: makeupFrom
           };
         });
       });
