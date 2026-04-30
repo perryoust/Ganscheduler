@@ -862,12 +862,6 @@ function renderPairCard(pair, pairEvs, opts){
             <button title="דחה פעילות" onclick="openPostpone(${ev.id})" style="padding:2px 4px">⏩</button>
           </div>
         </div>`;
-              ${ev.st==='can'?'':`<button title="בטל" onclick="window.openCanQ(${ev.id})">❌</button>`}
-              ${ev.st==='nohap'?'':`<button title="לא התקיים" onclick="window.openNohapQ(${ev.id})">⚠️</button>`}
-              <button title="שיבוץ השלמה" class="btn-makeup" onclick="window.openMakeupSched(${ev.id})">📅</button>
-            </div>
-          </div>
-        </div>`;
       });
     }
   });
