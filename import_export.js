@@ -298,6 +298,9 @@ window.importBulkSchedule = function(input) {
       if (confirm(`✅ נמצאו ${newSCH.length} פעילויות ייחודיות (מאוחדות לפי זוגות וגיליונות).\nהאם לעדכן את המערכת?`)) {
         if (statusEl) statusEl.innerHTML = '⏳ שומר נתונים...';
         window.SCH = newSCH;
+        // CRITICAL: Must clear import flag BEFORE save, otherwise
+        // saveToFirebase() will skip because _importInProgress is true
+        window._importInProgress = false;
         if (typeof window.saveToFirebase === 'function') {
           await window.saveToFirebase(false);
         } else {
@@ -305,7 +308,7 @@ window.importBulkSchedule = function(input) {
           await new Promise(r => setTimeout(r, 4000));
         }
         if (statusEl) statusEl.innerHTML = '✅ סיום! המערכת תתרענן.';
-        setTimeout(() => { window._importInProgress = false; location.reload(); }, 1000);
+        setTimeout(() => { location.reload(); }, 1500);
       } else {
         window._importInProgress = false;
         if (statusEl) statusEl.innerHTML = '❌ בוטל';
