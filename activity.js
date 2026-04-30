@@ -219,19 +219,14 @@ function _dashListRow(s){
   else if(isM) badge = `<span style="background:#e3f2fd;color:#1565c0;font-size:.65rem;padding:1px 5px;border-radius:4px;font-weight:700">השלמה ${fromDate?'מתאריך '+window.fD(fromDate):''}</span>`;
   if(s._recId) badge += ` <span style="background:#f3e5f5;color:#6a1b9a;font-size:.65rem;padding:1px 5px;border-radius:4px;font-weight:700;border:1px solid #e1bee7">🔄 קבוע</span>`;
 
-  return `<div style="display:grid;grid-template-columns:110px 140px 1fr 100px;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #eee;cursor:pointer;background:#fff;${s.st==='post'?'opacity:0.8':''}" onclick="window.openSP('${s.id}')">
-    <div style="font-weight:700;color:#1a237e;font-size:.82rem">${g.name}</div>
-    <div style="font-size:.78rem;color:#546e7a">${g.city} | ${window.gcls ? window.gcls(g) : ''}</div>
-    <div style="font-size:.82rem;color:#1565c0;font-weight:600">
-      <div style="display:flex;align-items:center;gap:6px">
-        <span>🎯 ${window.supBase(s.a)} | ${s.act||'—'}</span>
-        ${badge}
-      </div>
+  return `<div style="display:flex;align-items:center;gap:12px;padding:4px 12px;border-bottom:1px solid #eee;cursor:pointer;background:#fff;${s.st==='post'?'opacity:0.8':''};min-height:35px" onclick="window.openSP('${s.id}')">
+    <div style="font-weight:700;color:#1a237e;font-size:.82rem;white-space:nowrap">${g.name}</div>
+    <div style="font-size:.75rem;color:#546e7a;white-space:nowrap">📍 ${g.city}</div>
+    <div style="font-size:.82rem;color:#1565c0;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+       · 🎯 ${window.supBase(s.a)}${s.act?' — '+s.act:''} · ${badge}
     </div>
-    <div style="display:flex;flex-direction:column;align-items:flex-end">
-       <div style="font-size:.75rem;font-weight:700;color:#333">${s.t? (window.fT?window.fT(s.t):s.t) : '--:--'}</div>
-       <div style="transform:scale(0.85);transform-origin:left">${window.stLabel ? window.stLabel(s) : ''}</div>
-    </div>
+    <div style="font-size:.78rem;font-weight:800;color:#333;white-space:nowrap">⏰ ${s.t? (window.fT?window.fT(s.t):s.t) : '--:--'}</div>
+    <div style="white-space:nowrap">${window.stLabel ? window.stLabel(s) : ''}</div>
   </div>`;
 }
 

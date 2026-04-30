@@ -118,8 +118,9 @@ window.importBulkSchedule = function(input) {
 
       sortedSheets.forEach((ws, sheetId) => {
         const sheetName = ws.name || '';
+        console.log(`[Import] Processing sheet: "${sheetName}"`);
         const isMakeupSheet = sheetName.includes('השלמה') || sheetName.includes('השלמות');
-        const isMissingSheet = sheetName.includes('חוסר') || sheetName.includes('חוסרים');
+        const isMissingSheet = sheetName.includes('חוסר') || sheetName.includes('חוסרים') || sheetName.includes('לא התקיים');
         
         let headers = {};
         let headerRowIdx = -1;
@@ -201,17 +202,18 @@ window.importBulkSchedule = function(input) {
           let timeRaw = getV(colTime);
           let time = '';
           if (typeof timeRaw === 'number') {
-            // Precise Excel time parsing (fractional day)
             const totalMinutes = Math.round(timeRaw * 24 * 60);
             const h = Math.floor(totalMinutes / 60);
             const m = totalMinutes % 60;
             time = h.toString().padStart(2,'0') + ':' + m.toString().padStart(2,'0');
           } else if (timeRaw instanceof Date) {
-            time = timeRaw.getUTCHours().toString().padStart(2,'0') + ':' + timeRaw.getUTCMinutes().toString().padStart(2,'0');
-            // If it's still 00:00, try local hours (some Excel versions)
-            if (time === '00:00') time = timeRaw.getHours().toString().padStart(2,'0') + ':' + timeRaw.getMinutes().toString().padStart(2,'0');
+            // Excel times are often stored as Date objects starting in 1899/1900
+            // We use getHours/getMinutes for local consistency
+            time = timeRaw.getHours().toString().padStart(2,'0') + ':' + timeRaw.getMinutes().toString().padStart(2,'0');
+            // Fallback for UTC cases
+            if (time === '00:00') time = timeRaw.getUTCHours().toString().padStart(2,'0') + ':' + timeRaw.getUTCMinutes().toString().padStart(2,'0');
           } else {
-            time = String(timeRaw || '').trim().slice(0, 5);
+            time = String(timeRaw || '').trim().replace(/[^\d:]/g, '').slice(0, 5);
             if (time.includes(':') && time.length < 5) {
               const p = time.split(':');
               time = p[0].padStart(2,'0') + ':' + p[1].padStart(2,'0');
@@ -219,12 +221,10 @@ window.importBulkSchedule = function(input) {
           }
 
           const notes = String(getV(colNote) || '').trim();
-          let status = 'ok';
-          if (isMissingSheet) status = 'nohap';
+          let status = isMissingSheet ? 'nohap' : 'ok';
 
-          // PAIR-AWARE KEY: If a garden is part of a pair, use the pair key instead of gid
           const locKey = pairMap[gid] || gid;
-          const key = `${formattedDate}|${locKey}|${supplier}|${time}`;
+          const key = `${formattedDate}|${locKey}|${cleanStr(supplier)}|${time}`;
           
           schMap[key] = {
             id: now + '_' + sheetId + '_' + rowNumber,
