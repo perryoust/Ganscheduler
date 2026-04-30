@@ -754,32 +754,22 @@ function renderNormalDay(evs,ds){
 function renderPairCard(pair, pairEvs, opts){
   const ds = opts && opts.ds || '';
   const clr = (opts && opts.clr) || {solid:'#37474f',light:'#eceff1',border:'#b0bec5',text:'#37474f'};
-  const showEdit = opts && opts.showEdit !== false;
-  const showExport = opts && opts.showExport !== false;
   const isCompact = !!opts.isCompact;
 
   const firstEv = pairEvs[0] || {};
   const supName = firstEv.a || '';
-  const supPhone = firstEv.p || (typeof supBaseEx === 'function' ? (supBaseEx(window.supBase(supName))||{}).ph1 : '');
   const actName = firstEv.act || (window.supAct ? window.supAct(supName) : '');
 
-  const editBtn = showEdit && ds ? `<button onclick="openPairQuickEdit('${pair.id}','${ds}')" style="background:rgba(255,255,255,.25);border:none;border-radius:3px;padding:2px 6px;cursor:pointer;font-size:.65rem;color:#fff">✏️</button>` : '';
-  const expBtn = showExport && ds ? `<button onclick="exportPairRow('${pair.id}','${ds}',${!!opts.isMakeup})" style="background:rgba(255,255,255,.3);border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.7rem;color:#fff;font-weight:700">📋 הודעה</button>` : '';
+  const editBtn = ds ? `<button onclick="openPairQuickEdit('${pair.id}','${ds}')" style="background:rgba(255,255,255,.3);border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.65rem;color:#fff">✏️</button>` : '';
+  const expBtn = ds ? `<button onclick="exportPairRow('${pair.id}','${ds}',${!!opts.isMakeup})" style="background:rgba(255,255,255,.3);border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.65rem;color:#fff;font-weight:700">📋 הודעה</button>` : '';
 
-  let html = `<div class="pair-card ${opts && opts.isList ? 'list-mode' : ''} ${isCompact ? 'compact' : ''}">
-    <div class="pair-card-hdr" style="background:${clr.solid}; display:flex; align-items:center; gap:8px;">
+  let html = `<div class="pair-card ${isCompact ? 'compact' : ''}" style="border:1px solid ${clr.border}; border-radius:6px; overflow:hidden; margin-bottom:8px; background:#fff">
+    <div class="pair-card-hdr" style="background:${clr.solid}; color:#fff; padding:3px 10px; display:flex; align-items:center; gap:8px; font-size:0.75rem; font-weight:800">
       🔗 ${pair.name}
-      <span style="font-size:.68rem;font-weight:400;opacity:.8;margin-right:auto">${window.G(pair.ids[0]).city || ''}</span>
-      ${expBtn}${editBtn}
+      <span style="font-size:0.65rem; font-weight:400; opacity:0.9; margin-right:auto">${supName ? window.supBase(supName) : ''} ${actName ? '· ' + actName : ''}</span>
+      <div style="display:flex; gap:4px; align-items:center;">${expBtn}${editBtn}</div>
     </div>
-    <div class="pair-card-body">
-      <div class="pair-card-content">
-        <div class="pair-card-shared" style="display:flex; gap:10px; padding:5px 10px; border-bottom:1px solid #eee; font-size:0.8rem; background:#f8f9fa;">
-          ${supName ? `<span>📚 <b>${window.supBase(supName)}</b></span>` : ''}
-          ${actName ? `<span>🎯 ${actName}</span>` : ''}
-          ${supPhone ? `<span style="margin-right:auto;">📞 ${supPhone}</span>` : ''}
-        </div>
-        <div class="pair-gardens">`;
+    <div class="pair-card-body">`;
 
   pair.ids.filter(Boolean).forEach(gid => {
     const g = window.G(gid);
@@ -789,41 +779,37 @@ function renderPairCard(pair, pairEvs, opts){
     if (!gEvs.length) {
       const gblkNone = ds ? window.getGardenBlock(gid, ds) : null;
       html += `<div class="pair-garden-row" style="display:flex; align-items:center; gap:10px; padding:4px 10px; opacity:${gblkNone?1:0.6}; background:${gblkNone?'#fff1f1':'#fff'}" onclick="${ds ? `openGcellPopup(${gid},'${ds}',event)` : ''}">
-        <div style="font-weight:700; color:#1a237e;">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-        <div style="font-size:0.7rem; color:#78909c;">${g.st?`📍 ${g.st}`:''}</div>
+        <div style="font-weight:700; color:#1a237e; min-width:110px;">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
         <div style="flex:1; font-size:0.7rem; color:${gblkNone?'#c62828':'#999'}">
           ${gblkNone ? `${gblkNone.icon||'🚫'} ${gblkNone.reason}` : 'אין פעילות'}
         </div>
       </div>`;
     } else {
       const sups = {};
-      gEvs.forEach(ev => {
+      for (const k in gEvs) {
+        const ev = gEvs[k];
         const sb = window.supBase(ev.a);
         if(!sups[sb]) sups[sb] = { hasOk: false, evs: [] };
         if(ev.st === 'ok') sups[sb].hasOk = true;
         sups[sb].evs.push(ev);
-      });
+      }
 
       for (const k in sups) {
         const group = sups[k];
-        // Show only ONE activity per garden/supplier to avoid duplicates
         const bestEv = group.hasOk ? group.evs.find(ev => ev.st === 'ok') : group.evs[0];
         if (!bestEv) continue;
 
         const ev = bestEv;
         const stc = ev.st !== 'ok' ? 'st-' + ev.st : '';
-        const gblkEv = ds ? window.getGardenBlock(gid, ds) : null;
         const isMakeup = ev._isMakeup || ev._makeupFrom || ev._postFrom || (ev.nt && ev.nt.includes('השלמה'));
         const fromDate = ev._makeupFrom || ev._postFrom || '';
-        const makeupBadge = isMakeup ? `<span style="background:#e1f5fe; color:#0288d1; border-radius:4px; padding:1px 5px; font-size:0.65rem; font-weight:800; border:1px solid #b3e5fc;">📅 השלמה ${fromDate?window.fD(fromDate):''}</span>` : '';
+        const makeupBadge = isMakeup ? `<span style="background:#e1f5fe; color:#0288d1; border-radius:4px; padding:1px 5px; font-size:0.6rem; font-weight:800; border:1px solid #b3e5fc;">📅 השלמה ${fromDate?window.fD(fromDate):''}</span>` : '';
 
-        html += `<div class="pair-garden-row ${stc}" style="display:flex; align-items:center; gap:12px; padding:4px 10px; border-bottom:1px solid #f5f5f5; ${gblkEv?'border-right:4px solid #e91e63;':''}" onclick="openSP(${ev.id})">
+        html += `<div class="pair-garden-row ${stc}" style="display:flex; align-items:center; gap:12px; padding:4px 10px; border-bottom:1px solid #f5f5f5;" onclick="window.openSP(${ev.id})">
           <div style="font-weight:700; color:#1a237e; white-space:nowrap; min-width:110px;">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
           <div style="font-weight:800; color:#fff; background:#5c6bc0; padding:2px 8px; border-radius:4px; font-size:0.75rem; min-width:50px; text-align:center;">${ev.t ? window.fT(ev.t) : '--:--'}</div>
-          <div style="font-size:0.7rem; color:#78909c; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;">${g.st?`📍 ${g.st}`:''}</div>
           <div style="flex:1; display:flex; align-items:center; gap:6px; overflow:hidden; justify-content:flex-end;">
             ${makeupBadge}
-            ${gblkEv ? `<span style="font-size:0.65rem; color:#c62828;">${gblkEv.icon||'🚫'} ${gblkEv.reason}</span>` : ''}
             <span style="font-size:0.7rem; font-weight:700; color:${ev.st==='ok'?'#2e7d32':'#c62828'}">${window.stLabel(ev)}</span>
           </div>
           <div class="qacts" onclick="event.stopPropagation()" style="display:flex; gap:3px;">
@@ -836,7 +822,7 @@ function renderPairCard(pair, pairEvs, opts){
     }
   });
 
-  html += `</div></div></div></div>`;
+  html += `</div></div>`;
   return html;
 }
 function renderGardenCols(evs, gids, clr){

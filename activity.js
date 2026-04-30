@@ -28,7 +28,7 @@ function renderDash(){
   const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
   const srch=(document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
   
-  console.log(`[Dash Debug] v96.1 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
+  console.log(`[Dash Debug] v96.2 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
 
   const checkMatch = (s, tTab, tSt, tDate) => {
     // A postponed/failed activity is "handled" if it has a linked makeup/new date
@@ -79,34 +79,32 @@ function renderDash(){
     .sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
 
   if(!evs.length){
-    const emptyMsg = date ? `אין חריגים/השלמות לטיפול בתאריך ${window.fD(date)}` : 'אין חריגים/השלמות לטיפול (כל התאריכים)';
+    const emptyMsg = date ? `אין פעילויות לטיפול בתאריך ${window.fD(date)}` : 'אין פעילויות לטיפול (כל התאריכים)';
     document.getElementById('dash-body').innerHTML = `<p style="color:#999;font-size:.85rem;padding:20px;text-align:center">${emptyMsg}</p>`;
   } else {
-    let h='';
-    if(st==='todo'){
-      h+=`<div class="card" style="margin-bottom:10px;padding:10px">
-        <div style="font-weight:800;color:#1a237e;font-size:.9rem;margin-bottom:10px">📋 רשימת טיפולים מאוחדת (${evs.length})</div>`;
-      // Deduplicate to ensure one row per garden/supplier
-      const uniqueMap = {};
-      evs.forEach(s => {
-        const key = `${s.g}_${s.a}`;
-        if (!uniqueMap[key]) {
-          uniqueMap[key] = s;
-        } else if (s.st === 'ok') {
-          uniqueMap[key] = s;
-        }
-      });
-      const dedupedEvs = Object.values(uniqueMap);
+    // Global Deduplication for Dashboard: One row per Garden + Supplier
+    const uniqueMap = {};
+    evs.forEach(s => {
+      const key = `${s.g}_${s.a}`;
+      if (!uniqueMap[key] || s.st === 'ok') uniqueMap[key] = s;
+    });
+    const finalEvs = [];
+    for (const k in uniqueMap) finalEvs.push(uniqueMap[k]);
+    finalEvs.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
 
+    let h='';
+    if(tab === 'g'){
+      // GARDEN VIEW: Group by City, then Pairs/Solos
       const byCity={};
-      dedupedEvs.forEach(s=>{
+      finalEvs.forEach(s=>{
         const g = window.G(s.g);
         const c = g.city || 'אחר';
         if(!byCity[c]) byCity[c]=[];
-        byCity[c].push({...s, gd:g});
+        byCity[c].push(s);
       });
+      
       Object.keys(byCity).sort().forEach(c=>{
-        h+=`<details class="city-accordion" id="dg-${c.replace(/\s+/g,'_')}">
+        h+=`<details class="city-accordion">
           <summary><span>🏙️ ${c} (${byCity[c].length})</span></summary>
           <div class="city-accordion-content">`;
         
@@ -114,21 +112,17 @@ function renderDash(){
         const usedIds = new Set();
         const rows = [];
         
-        // Group by pairs
         window.pairs.forEach(pair => {
           const pairEvs = ce.filter(s => pair.ids.includes(s.g));
           if(!pairEvs.length) return;
           pairEvs.forEach(s => usedIds.add(s.id));
           rows.push({type: 'pair', pair, evs: pairEvs});
         });
-        
-        // Solo gardens
         ce.filter(s => !usedIds.has(s.id)).forEach(s => rows.push({type: 'solo', ev: s}));
-
-        // Sort by name
+        
         rows.sort((a,b) => {
-          const nameA = a.type === 'pair' ? a.pair.name : (a.ev.gd ? a.ev.gd.name : '');
-          const nameB = b.type === 'pair' ? b.pair.name : (b.ev.gd ? b.ev.gd.name : '');
+          const nameA = a.type === 'pair' ? a.pair.name : window.G(a.ev.g).name;
+          const nameB = b.type === 'pair' ? b.pair.name : window.G(b.ev.g).name;
           return nameA.localeCompare(nameB, 'he');
         });
 
@@ -137,28 +131,21 @@ function renderDash(){
             const clr = window.CITY_COLORS(c);
             h += window.renderPairCard(row.pair, row.evs, {ds: date, clr, showEdit: true, showExport: true, isCompact: true});
           } else {
-            try { h += _dashListRow(row.ev); } catch(e){ console.error(e); }
+            h += _dashListRow(row.ev);
           }
         });
         h+=`</div></details>`;
       });
-      h+=`</div>`;
     } else {
+      // SUPPLIER VIEW: Group by Supplier, then City
       const bySup={};
-      evs.forEach(s=>{
-        const g = window.G(s.g);
+      finalEvs.forEach(s=>{
         if(!bySup[s.a]) bySup[s.a]={name:s.a,ph:s.p||'',evs:[]};
-        bySup[s.a].evs.push({...s, gd:g});
+        bySup[s.a].evs.push(s);
       });
       const supList = [];
       for (const k in bySup) supList.push(bySup[k]);
       supList.sort((a,b)=>a.name.localeCompare(b.name,'he')).forEach(supData=>{
-        const byCity={};
-        supData.evs.forEach(s=>{
-          const c=s.gd.city||'אחר';
-          if(!byCity[c]) byCity[c]=[];
-          byCity[c].push(s);
-        });
         h+=`<div class="card" style="margin-bottom:10px;padding:10px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div style="font-weight:800;color:#1a237e;font-size:.9rem">📚 ${window.supBase(supData.name)}</div>
@@ -169,44 +156,20 @@ function renderDash(){
               <button class="btn bp bsm" style="font-size:.68rem;padding:2px 7px" onclick="openSupExport('${supData.name}')">📊 יצוא לאקסל</button>
             </div>
           </div>`;
+        
+        const byCity={};
+        supData.evs.forEach(s=>{
+          const g = window.G(s.g);
+          const c = g.city || 'אחר';
+          if(!byCity[c]) byCity[c]=[];
+          byCity[c].push(s);
+        });
+        
         Object.keys(byCity).sort().forEach(c=>{
-          const ce=byCity[c];
-          
-          // Deduplicate
-          const uniqueMap = {};
-          ce.forEach(s => {
-            const key = `${s.g}_${s.a}`;
-            if (!uniqueMap[key]) uniqueMap[key] = s;
-            else if (s.st === 'ok') uniqueMap[key] = s;
-          });
-          const dedupedCe = [];
-          for (const k in uniqueMap) dedupedCe.push(uniqueMap[k]);
-
           h+=`<details class="city-accordion">
-            <summary><span>🏙️ ${c} (${dedupedCe.length})</span></summary>
+            <summary><span>🏙️ ${c} (${byCity[c].length})</span></summary>
             <div class="city-accordion-content">`;
-          const usedIds=new Set();
-          const rows=[];
-          window.pairs.forEach(pair=>{
-            const pairEvs=dedupedCe.filter(s=>pair.ids.includes(s.g));
-            if(!pairEvs.length) return;
-            pairEvs.forEach(s=>usedIds.add(s.id));
-            rows.push({type:'pair',pair,evs:pairEvs});
-          });
-          dedupedCe.filter(s=>!usedIds.has(s.id)).forEach(s=>rows.push({type:'solo',ev:s}));
-          rows.sort((a,b)=>{
-            const nameA=a.type==='pair'?a.pair.name:window.G(a.ev.g).name;
-            const nameB=b.type==='pair'?b.pair.name:window.G(b.ev.g).name;
-            return nameA.localeCompare(nameB,'he');
-          });
-          rows.forEach(row=>{
-            if(row.type==='pair'){
-              const _dashClr=window.CITY_COLORS(c);
-              h+=window.renderPairCard(row.pair,row.evs,{ds:date,clr:_dashClr,showEdit:true,showExport:true,isCompact:true});
-            } else {
-              h+=_dashListRow(row.ev);
-            }
-          });
+          byCity[c].forEach(s => { h += _dashListRow(s); });
           h+='</div></details>';
         });
         h+=`</div>`;
