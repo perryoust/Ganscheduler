@@ -154,6 +154,11 @@ function renderDash() {
         row.evs.forEach(e => {
           if(!pairMap.has(e.g) || e.st === 'ok') pairMap.set(e.g, e);
         });
+        row.pair.ids.forEach(gid => {
+          if(!pairMap.has(gid)) {
+            pairMap.set(gid, { id: 'dummy_'+gid, g: gid, st: 'unassigned', d: date, t: '', act: '' });
+          }
+        });
         const sorted = Array.from(pairMap.values()).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
         
         h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">

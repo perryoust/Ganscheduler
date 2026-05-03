@@ -1482,17 +1482,23 @@ function renderCalList(evs, mDate){
 window._listRow = _listRow;
 function _listRow(s, clr, ds){
   const g=window.G(s.g);
-  const stC=s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':'#333';
+  const isUnassigned = s.st === 'unassigned';
+  const bg = isUnassigned ? '#f5f5f5' : s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light;
+  const stC = isUnassigned ? '#9e9e9e' : s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':'#333';
+  const stLabelText = isUnassigned ? 'לא משובץ' : window.stLabel(s).replace(/<[^>]+>/g,'');
+  const supText = isUnassigned ? '' : `${window.supBase(s.a)}${s.act?' — <span style="color:#546e7a">'+s.act+'</span>':''}`;
+  const clickHandler = isUnassigned ? `event.stopPropagation(); if(window.openNewSched) window.openNewSched('${s.d}', ${s.g});` : `window.openSP('${s.id}')`;
+  
   const addrLink=g.st?`<a href="https://maps.google.com/?q=${encodeURIComponent(g.st+' '+g.city)}" target="_blank" onclick="event.stopPropagation()" style="font-size:.63rem;color:#1565c0;text-decoration:none">📍 ${g.st}</a>`:'';
   
   // Only show the garden-level WhatsApp button for Solo items. 
   // For pairs, the button is already in the group header.
   const isPaired = !!window.gardenPair(s.g);
-  const waBtn = (!isPaired && window._exportGardenWA) 
+  const waBtn = (!isPaired && window._exportGardenWA && !isUnassigned) 
     ? `<button onclick="event.stopPropagation();window._exportGardenWA([${s.g}],'${ds||''}')" style="background:${clr.solid};border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.72rem;color:#fff;font-weight:700" title="שלח הודעה">📋</button>`
     : '';
 
-  return `<div style="display:grid;grid-template-columns:minmax(150px, auto) 1fr auto auto auto;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;margin-bottom:1px;background:${s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light};border-right:3px solid ${clr.solid};cursor:pointer;min-height:36px" onclick="openSP(${s.id})">
+  return `<div style="display:grid;grid-template-columns:minmax(150px, auto) 1fr auto auto auto;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;margin-bottom:1px;background:${bg};border-right:3px solid ${clr.solid};cursor:pointer;min-height:36px" onclick="${clickHandler}">
     <div style="display:flex; flex-direction:column; gap:1px; justify-content:center;">
       <div style="display:flex; align-items:center; gap:5px;">
         <span style="font-weight:800;font-size:.85rem;color:#1565c0;white-space:nowrap">${s.t?'⏰ '+window.fT(s.t):''}</span>
@@ -1501,15 +1507,15 @@ function _listRow(s, clr, ds){
       ${addrLink}
     </div>
     <div>
-      <div style="font-size:.75rem;font-weight:600;color:#1565c0">${window.supBase(s.a)}${s.act?' — <span style="color:#546e7a">'+s.act+'</span>':''}</div>
+      <div style="font-size:.75rem;font-weight:600;color:#1565c0">${supText}</div>
       ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #b3e5fc;margin-top:2px">📅 השלמה</div>`:''}
       ${s._recId?`<div style="display:inline-block;background:#f3e5f5;color:#6a1b9a;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #e1bee7;margin-top:2px">🔄 קבוע</div>`:''}
-      <div style="font-size:.65rem;color:#5c6bc0">${s.tp||'חוג'}</div>
+      ${!isUnassigned ? `<div style="font-size:.65rem;color:#5c6bc0">${s.tp||'חוג'}</div>` : ''}
     </div>
-    <div style="font-size:.7rem;font-weight:700;color:${stC}">${window.stLabel(s).replace(/<[^>]+>/g,'')}</div>
+    <div style="font-size:.7rem;font-weight:700;color:${stC}">${stLabelText}</div>
     <div style="display:flex;gap:4px">
       ${waBtn}
-      ${_quickActionBtns(s)}
+      ${!isUnassigned ? _quickActionBtns(s) : ''}
     </div>
   </div>`;
 }
@@ -1634,7 +1640,14 @@ function renderRangeListView(evs, fromDs, toDs){
       });
       pairGroups.sort((a,b) => (a.pair.name||'').localeCompare(b.pair.name||'', 'he'));
       pairGroups.forEach(({pair, pairEvs}) => {
-        const sorted = pairEvs.sort((a,b) => (window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
+        const pairMap = new Map();
+        pairEvs.forEach(s => pairMap.set(s.g, s));
+        pair.ids.forEach(gid => {
+          if(!pairMap.has(gid)) {
+            pairMap.set(gid, { id: 'dummy_'+gid, g: gid, st: 'unassigned', d: ds, t: '', act: '' });
+          }
+        });
+        const sorted = Array.from(pairMap.values()).sort((a,b) => (window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
         h += `<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
           <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
             <span>🔗 ${pair.name}</span>

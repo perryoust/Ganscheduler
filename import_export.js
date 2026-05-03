@@ -190,7 +190,7 @@ window.importBulkSchedule = function(input) {
           if (rawDate instanceof Date) {
             formattedDate = rawDate.toISOString().slice(0, 10);
           } else if (typeof rawDate === 'number') {
-            const dateObj = new Date((rawDate - 25569) * 86400 * 1000);
+            const dateObj = new Date(Math.round((rawDate - 25569) * 86400) * 1000);
             formattedDate = dateObj.toISOString().slice(0, 10);
           } else if (typeof rawDate === 'string') {
             const parts = rawDate.split(/[\/\-\.]/);
