@@ -209,6 +209,11 @@ window.importBulkSchedule = function(input) {
             stats.skippedDate++;
             continue;
           }
+          
+          if (!window._debugDatesShown) window._debugDatesShown = [];
+          if (window._debugDatesShown.length < 5) {
+             window._debugDatesShown.push(`מקור: ${rawDate} -> תורגם: ${formattedDate}`);
+          }
 
           const gnameRaw = String(getV(colGname) || '').trim();
           let gid = gardenMap[gnameRaw] || gardenMapClean[cleanStr(gnameRaw)] || gardenMapClean[megaClean(gnameRaw)];
