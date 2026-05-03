@@ -110,12 +110,13 @@ window.importBulkSchedule = function(input) {
       const now = Date.now();
       const sheetNames = workbook.SheetNames.slice().sort((a, b) => {
         const getPrio = (name) => {
-          if (name.includes('חוסר') || name.includes('חוסרים')) return 3;
-          if (name.includes('השלמה') || name.includes('השלמות')) return 2;
-          return 1;
+          if (name.includes('השלמה') || name.includes('השלמות')) return 3; // Makeups win (processed last)
+          if (name.includes('חוסר') || name.includes('חוסרים') || name.includes('לא התקיים') || name.includes('לא התקיימו')) return 2; // Missing sheets
+          return 1; // Default sheets
         };
         return getPrio(a) - getPrio(b);
       });
+      console.log('[Import] Sheets order:', sheetNames);
 
       sheetNames.forEach(sheetName => {
         const sheet = workbook.Sheets[sheetName];
@@ -123,7 +124,7 @@ window.importBulkSchedule = function(input) {
         console.log(`[Import] Processing sheet: "${sheetName}" (${rows.length} rows)`);
 
         const isMakeupSheet = sheetName.includes('השלמה') || sheetName.includes('השלמות');
-        const isMissingSheet = sheetName.includes('חוסר') || sheetName.includes('חוסרים') || sheetName.includes('לא התקיים');
+        const isMissingSheet = sheetName.includes('חוסר') || sheetName.includes('חוסרים') || sheetName.includes('לא התקיים') || sheetName.includes('לא התקיימו');
         
         let headers = {};
         let headerRowIdx = -1;
@@ -272,9 +273,11 @@ window.importBulkSchedule = function(input) {
           const key = `${formattedDate}|${gid}|${cleanStr(supplier)}|${cleanStr(activity)}`;
           
           const existing = schMap[key];
-          const shouldOverwrite = !existing ||
-            (status === 'ok' && existing.st !== 'ok') ||
-            (existing.st === 'nohap' && status !== 'nohap');
+          // Overwrite if:
+          // 1. It's the first time we see this activity
+          // 2. OR the current row has a non-standard status (missing/makeup)
+          // 3. OR the existing one was 'ok' and this one is also 'ok' (latest win)
+          const shouldOverwrite = !existing || status !== 'ok' || existing.st === 'ok';
 
           if (shouldOverwrite) {
             schMap[key] = {
@@ -317,17 +320,24 @@ window.importBulkSchedule = function(input) {
         window.SCH = newSCH;
         window.useSraws = false; // Disable merging with static sraws.json
         
+        let saveOk = false;
         if (typeof window.saveToFirebase === 'function') {
-          // Manual save (silent=false) will now pass through even if _importInProgress is true
-          await window.saveToFirebase(false);
+          saveOk = await window.saveToFirebase(false);
         } else if (typeof window.save === 'function') {
           window.save();
           await new Promise(r => setTimeout(r, 2000));
+          saveOk = true;
         }
 
-        if (statusEl) statusEl.innerHTML = '✅ העדכון הושלם! טוען נתונים...';
-        window._importInProgress = false;
-        setTimeout(() => { location.reload(); }, 3000);
+        if (saveOk) {
+          if (statusEl) statusEl.innerHTML = '✅ העדכון הושלם בהצלחה!';
+          window._importInProgress = false;
+          setTimeout(() => { location.reload(); }, 2500);
+        } else {
+          window._importInProgress = false;
+          if (statusEl) statusEl.innerHTML = '❌ הסנכרון נכשל. נסה שוב.';
+          alert('הנתונים עובדו אך הסנכרון לשרת נכשל. אנא בדקו את החיבור לאינטרנט.');
+        }
       }
     } catch (err) {
       window._importInProgress = false;
