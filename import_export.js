@@ -188,16 +188,21 @@ window.importBulkSchedule = function(input) {
           let formattedDate = '';
           const rawDate = getV(colDate);
           if (rawDate instanceof Date) {
-            formattedDate = rawDate.toISOString().slice(0, 10);
+            const safeDate = new Date(rawDate.getTime() + 12 * 60 * 60 * 1000);
+            formattedDate = safeDate.toISOString().slice(0, 10);
           } else if (typeof rawDate === 'number') {
-            const dateObj = new Date(Math.round((rawDate - 25569) * 86400) * 1000);
-            formattedDate = dateObj.toISOString().slice(0, 10);
+            const safeDate = new Date(Math.round((rawDate - 25569) * 86400) * 1000 + 12 * 60 * 60 * 1000);
+            formattedDate = safeDate.toISOString().slice(0, 10);
           } else if (typeof rawDate === 'string') {
             const parts = rawDate.split(/[\/\-\.]/);
             if (parts.length === 3) {
-              let d = parts[0].padStart(2, '0'), m = parts[1].padStart(2, '0'), y = parts[2];
-              if (y.length === 2) y = '20' + y;
-              formattedDate = `${y}-${m}-${d}`;
+              if (parts[0].length === 4) {
+                formattedDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+              } else {
+                let d = parts[0].padStart(2, '0'), m = parts[1].padStart(2, '0'), y = parts[2];
+                if (y.length === 2) y = '20' + y;
+                formattedDate = `${y}-${m}-${d}`;
+              }
             }
           }
           if (!formattedDate || !formattedDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
