@@ -293,6 +293,7 @@ window.importBulkSchedule = function(input) {
       if (confirm(`✅ נמצאו ${newSCH.length} פעילויות לעדכון.\nשימו לב: פעולה זו תחליף את כל השיבוצים הקיימים בנתונים מהקובץ.\nהאם להמשיך?`)) {
         if (statusEl) statusEl.innerHTML = '⏳ מסנכרן לבסיס הנתונים...';
         window.SCH = newSCH;
+        window.useSraws = false; // Disable merging with static sraws.json
         
         if (typeof window.saveToFirebase === 'function') {
           // Manual save (silent=false) will now pass through even if _importInProgress is true

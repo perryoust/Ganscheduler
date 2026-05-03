@@ -432,17 +432,18 @@ function openSupCardFromPurch(name){
 
 function _applyYearData(o){
   if(o.ch){
-    if(SRAWS.length>0){
+    window.useSraws = (o.useSraws !== false);
+    if(SRAWS.length>0 && window.useSraws){
       // SRAWS loaded: merge SRAWS base data with saved changes
       const m={};o.ch.forEach(x=>m[x.id]=x);
       window.SCH = SRAWS.map(s=>{const x=m[s.id];return x?{...s,...x}:s;});
       // Include user-created schedules (not in SRAWS) that have full data
       const srawsIds=new Set(SRAWS.map(s=>s.id));
-      SCH.push(...o.ch.filter(x=>!srawsIds.has(x.id)&&x.g&&x.d&&x.a));
+      window.SCH.push(...o.ch.filter(x=>!srawsIds.has(x.id)&&x.g&&x.d&&x.a));
     } else {
-      // SRAWS not loaded: preserve ALL ch entries with defaults for missing fields
+      // SRAWS not loaded OR explicitly disabled: preserve ALL ch entries with defaults for missing fields
       window.SCH = o.ch.map(x=>({g:0,d:'',a:'',t:'',p:'',n:'',st:'ok',cr:'',cn:'',nt:'',pd:'',pt:'',grp:1,...x}))
-             .filter(x=>x.g>0&&x.d);
+             .filter(x=>x.g&&x.d);
     }
   }
   else window.SCH = SRAWS.map(s=>({...s,st:'ok',cr:'',cn:'',nt:s.n||'',pd:'',pt:'',grp:1}));

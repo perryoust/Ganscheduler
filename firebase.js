@@ -262,7 +262,8 @@ async function saveToFirebase(silent) {
       autoBackupCfg: window.loadAutoBackupSettings()||undefined,
       piStatusFilter: (()=>{ try{ const s=window._safeLS.getItem(window.PI_ST_KEY); return s?JSON.parse(s):undefined; }catch(e){ return undefined; } })(),
       vatRate: typeof window.VAT_RATE!=='undefined'?window.VAT_RATE:18,
-      activeGardens: typeof window.activeGardens!=='undefined'&&window.activeGardens?[...window.activeGardens]:null
+      activeGardens: typeof window.activeGardens!=='undefined'&&window.activeGardens?[...window.activeGardens]:null,
+      useSraws: typeof window.useSraws!=='undefined'?window.useSraws:true
     };
     // Validate: don't overwrite with significantly less data
     const raw = JSON.stringify(liveData);
