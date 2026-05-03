@@ -603,7 +603,8 @@ function save(immediate){
       ch:SCH.map(s=>({id:s.id,g:s.g,d:s.d,a:s.a,t:s.t,p:s.p,n:s.n,st:s.st,cr:s.cr,cn:s.cn,nt:s.nt,pd:s.pd,pt:s.pt,grp:s.grp,act:s.act||''})),
       pairs,supEx,clusters,holidays,pairBreaks,managers,blockedDates,gardenBlocks,
       invoices:INVOICES,vatRate:VAT_RATE,
-      activeGardens:activeGardens?[...activeGardens]:null
+      activeGardens:activeGardens?[...activeGardens]:null,
+      useSraws: typeof window.useSraws!=='undefined'?window.useSraws:true
     };
     const _json=JSON.stringify(data);
     _safeLS.setItem('ganv5',_json);
