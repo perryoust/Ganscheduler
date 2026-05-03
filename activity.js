@@ -148,15 +148,23 @@ function renderDash() {
 
     let h = '';
     rows.forEach(row => {
+      const clr = window.CITY_COLORS ? window.CITY_COLORS(c) : {solid:'#ccc', light:'#eee', border:'#ddd'};
       if(row.type === 'pair') {
-        const clr = window.CITY_COLORS ? window.CITY_COLORS(c) : '#eee';
         const pairMap = new Map();
         row.evs.forEach(e => {
           if(!pairMap.has(e.g) || e.st === 'ok') pairMap.set(e.g, e);
         });
-        h += window.renderPairCard(row.pair, Array.from(pairMap.values()), {ds: date, clr, showEdit: true, showExport: true, isCompact: true});
+        const sorted = Array.from(pairMap.values()).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+        
+        h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
+          <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
+            <span>🔗 ${row.pair.name}</span>
+            <button onclick="event.stopPropagation();if(window._exportPairWA)window._exportPairWA(${JSON.stringify(row.pair.ids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
+          </div>`;
+        sorted.forEach(s=>{ h+=window._listRow ? window._listRow(s,clr,date) : _dashListRow(s); });
+        h+=`</div>`;
       } else {
-        h += _dashListRow(row.ev);
+        h += window._listRow ? window._listRow(row.ev, clr, date) : _dashListRow(row.ev);
       }
     });
 

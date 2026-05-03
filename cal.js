@@ -1239,19 +1239,16 @@ function renderRangeListView(evs, fromDs, toDs){
       const cityEvs=dayEvs.filter(s=>(window.G(s.g).city||'אחר')===city);
       const clr=window.CITY_COLORS(city);
 
-      h+=`<div style="margin-bottom:8px">
-        <div style="background:${clr.light};border-right:4px solid ${clr.solid};border-radius:6px;padding:5px 10px;margin-bottom:5px;font-weight:800;color:${clr.solid};font-size:.88rem">
+      h+=`<details class="city-accordion" style="margin-bottom:8px" open>
+        <summary style="background:${clr.light};border-right:4px solid ${clr.solid};border-radius:6px;padding:5px 10px;margin-bottom:5px;font-weight:800;color:${clr.solid};font-size:.88rem;cursor:pointer">
           🏙️ ${city} · ${cityEvs.length}
-        </div>`;
+        </summary>
+        <div style="padding:4px 0">`;
 
-      // ── Group mode: window.pairs first OR window.clusters first based on _listGroupMode ──
       const _gmode = typeof _listGroupMode!=='undefined' ? _listGroupMode : 'pairs';
-
-      // Step 1: determine first-priority group
       const firstUsedGids=new Set();
 
       if(_gmode==='clusters'){
-        // window.clusters first
         const dayClusters=(typeof getClusters==='function'?getClusters():[]).filter(cl=>
           (cl.city===city||!cl.city)&&(cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===parseInt(gid))));
         const clusteredGids=new Set();
@@ -1269,7 +1266,6 @@ function renderRangeListView(evs, fromDs, toDs){
           clEvs.forEach(s=>{ h+=_listRow(s,clr); });
           h+=`</div>`;
         });
-        // window.pairs second (only non-clustered)
         const pairedGids=new Set();
         const pairGroups=[];
         window.pairs.forEach(pair=>{
@@ -1292,7 +1288,6 @@ function renderRangeListView(evs, fromDs, toDs){
           h+=`</div>`;
         });
       } else {
-        // pairs first (default)
         const pairedGids=new Set();
         const pairGroups=[];
         window.pairs.forEach(pair=>{
@@ -1314,7 +1309,6 @@ function renderRangeListView(evs, fromDs, toDs){
           sorted.forEach(s=>{ h+=_listRow(s,clr); });
           h+=`</div>`;
         });
-        // window.clusters second (non-paired only)
         const dayClusters=(typeof getClusters==='function'?getClusters():[]).filter(cl=>
           (cl.city===city||!cl.city)&&(cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===parseInt(gid)&&!firstUsedGids.has(s.g))));
         dayClusters.forEach(cl=>{
@@ -1485,6 +1479,7 @@ function renderCalList(evs, mDate){
   return h+'</div>';
 }
 
+window._listRow = _listRow;
 function _listRow(s, clr, ds){
   const g=window.G(s.g);
   const stC=s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':'#333';
@@ -1497,10 +1492,12 @@ function _listRow(s, clr, ds){
     ? `<button onclick="event.stopPropagation();window._exportGardenWA([${s.g}],'${ds||''}')" style="background:${clr.solid};border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.72rem;color:#fff;font-weight:700" title="שלח הודעה">📋</button>`
     : '';
 
-  return `<div style="display:grid;grid-template-columns:110px 1fr auto auto auto;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;margin-bottom:1px;background:${s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light};border-right:3px solid ${clr.solid};cursor:pointer;min-height:36px" onclick="openSP(${s.id})">
-    <div>
-      <div style="font-weight:700;font-size:.72rem;color:#1a237e;line-height:1.2">${g.name}</div>
-      <div style="font-size:.62rem;color:#78909c">${s.t?'⏰ '+window.fT(s.t):''}</div>
+  return `<div style="display:grid;grid-template-columns:minmax(150px, auto) 1fr auto auto auto;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;margin-bottom:1px;background:${s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light};border-right:3px solid ${clr.solid};cursor:pointer;min-height:36px" onclick="openSP(${s.id})">
+    <div style="display:flex; flex-direction:column; gap:1px; justify-content:center;">
+      <div style="display:flex; align-items:center; gap:5px;">
+        <span style="font-weight:800;font-size:.85rem;color:#1565c0;white-space:nowrap">${s.t?'⏰ '+window.fT(s.t):''}</span>
+        <span style="font-weight:700;font-size:.76rem;color:#1a237e;line-height:1">${g.name}</span>
+      </div>
       ${addrLink}
     </div>
     <div>
@@ -1596,15 +1593,14 @@ function renderRangeListView(evs, fromDs, toDs){
       if(!cityEvs.length) return;
       const clr = window.CITY_COLORS(city);
 
-      h += `<div style="margin-bottom:8px">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 10px;margin-bottom:5px;background:${clr.light};border-right:4px solid ${clr.solid};border-radius:6px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-weight:800;color:${clr.solid};font-size:.88rem">🏙️ ${city}</span>
-            <span style="font-size:.72rem;color:#78909c">${cityEvs.length} פעילויות</span>
+      h += `<details class="city-accordion">
+        <summary>
+          <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+            <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cityEvs.length} פעילויות)</span>
+            <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
           </div>
-          <span style="font-size:.7rem;opacity:.5;color:${clr.solid}">▼</span>
-        </div>
-        <div style="display:block">`;
+        </summary>
+        <div class="city-accordion-content">`;
 
       const _gmode = _listGroupMode === 'clusters' ? 'window.clusters' : 'window.pairs';
       const firstUsedGids = new Set();
@@ -1658,7 +1654,7 @@ function renderRangeListView(evs, fromDs, toDs){
         .sort((a,b) => (window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'))
         .forEach(s => { h += _listRow(s, clr, ds); });
 
-      h += `</div></div>`;
+      h += `</div></details>`;
     });
     h += '</div></div>';
   });
