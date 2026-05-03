@@ -320,18 +320,20 @@ window.importBulkSchedule = function(input) {
         window.SCH = newSCH;
         window.useSraws = false; // Disable merging with static sraws.json
         
-        // 1. Force local save first so reload reads the new data immediately
-        if (typeof window.save === 'function') {
-          window.save(true);
-        }
+        // Force Firebase to see this as a "fresh" change by clearing the comparison cache
+        window._fbLastSavedRaw = null;
 
         let saveOk = false;
         if (typeof window.saveToFirebase === 'function') {
+          // Manual save (silent=false)
           saveOk = await window.saveToFirebase(false);
         } else {
-          // Fallback if Firebase logic missing
-          await new Promise(r => setTimeout(r, 2000));
           saveOk = true;
+        }
+
+        // 2. Also update local storage so reload is fast
+        if (typeof window.save === 'function') {
+          window.save(true);
         }
 
         if (saveOk) {
