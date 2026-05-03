@@ -91,22 +91,21 @@ window.importBulkSchedule = function(input) {
       const gardenMapClean = {};
       
       const cleanStr = (s) => String(s || '').replace(/[^\u0590-\u05FFa-zA-Z0-9]/g, '').trim();
+      const prefixes = ['גן', 'צהרון', 'ביהס', 'ביס', 'ביתספר', 'ביהס'];
+      const megaClean = (s) => {
+        let str = cleanStr(s);
+        for (let p of prefixes) { if (str.startsWith(p)) { str = str.substring(p.length); break; } }
+        return str;
+      };
+
       window.GARDENS.forEach(g => { 
         const name = String(g.name || '').trim();
         gardenMap[name] = g.id;
         gardenMapClean[cleanStr(name)] = g.id;
+        gardenMapClean[megaClean(name)] = g.id;
       });
 
-      const pairMap = {};
-      if (window.pairs && Array.isArray(window.pairs)) {
-        window.pairs.forEach(p => {
-          if (p && p.ids && Array.isArray(p.ids)) {
-            const arr = [...p.ids];
-            const key = arr.sort((a,b)=>a-b).join('_');
-            arr.forEach(id => { pairMap[id] = key; });
-          }
-        });
-      }
+      const stats = { sheets: 0, rows: 0, imported: 0, skippedGarden: new Set(), skippedDate: 0, skippedEmpty: 0 };
 
       const now = Date.now();
       const sheetNames = workbook.SheetNames.slice().sort((a, b) => {
@@ -128,13 +127,15 @@ window.importBulkSchedule = function(input) {
         
         let headers = {};
         let headerRowIdx = -1;
-        for (let i = 0; i < Math.min(10, rows.length); i++) {
+        for (let i = 0; i < Math.min(15, rows.length); i++) {
           const row = rows[i];
-          if (!row) continue;
+          if (!row || !Array.isArray(row)) continue;
           let foundCount = 0;
           row.forEach(cell => {
             const val = cleanStr(cell);
-            if (val === 'תאריך' || val === 'שםהצהרון' || val === 'שםהחוג') foundCount++;
+            if (val === 'תאריך' || val.includes('תאריך') || val === 'יום') foundCount++;
+            if (val.includes('גן') || val.includes('צהרון') || val === 'הצהרון') foundCount++;
+            if (val.includes('חוג') || val.includes('ספק') || val.includes('פעילות')) foundCount++;
           });
           if (foundCount >= 2) {
             headerRowIdx = i;
@@ -147,6 +148,10 @@ window.importBulkSchedule = function(input) {
 
         if (headerRowIdx === -1) {
           console.warn(`[Import] Could not find header in sheet "${sheetName}"`);
+          // If it's not a known "trash" sheet, maybe alert the user
+          if (rows.length > 5 && !sheetName.includes('Sheet')) {
+            alert(`גיליון "${sheetName}" דולג: לא נמצאו עמודות 'תאריך', 'גן' או 'חוג'.\nאנא ודאו שהכותרות נמצאות ב-15 השורות הראשונות.`);
+          }
           return;
         }
 
@@ -170,10 +175,12 @@ window.importBulkSchedule = function(input) {
           console.warn(`[Import] Missing critical columns in sheet "${sheetName}"`);
           return;
         }
+        stats.sheets++;
 
         for (let i = headerRowIdx + 1; i < rows.length; i++) {
           const row = rows[i];
-          if (!row || !row[colDate]) continue;
+          if (!row || row.every(c => !c)) { stats.skippedEmpty++; continue; }
+          stats.rows++;
 
           const getV = (idx) => (idx !== null && row[idx] !== undefined) ? row[idx] : null;
 
@@ -192,11 +199,17 @@ window.importBulkSchedule = function(input) {
               formattedDate = `${y}-${m}-${d}`;
             }
           }
-          if (!formattedDate || !formattedDate.match(/^\d{4}-\d{2}-\d{2}$/)) continue;
+          if (!formattedDate || !formattedDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            stats.skippedDate++;
+            continue;
+          }
 
           const gnameRaw = String(getV(colGname) || '').trim();
-          let gid = gardenMap[gnameRaw] || gardenMapClean[cleanStr(gnameRaw)];
-          if (!gid) continue;
+          let gid = gardenMap[gnameRaw] || gardenMapClean[cleanStr(gnameRaw)] || gardenMapClean[megaClean(gnameRaw)];
+          if (!gid) {
+            if (gnameRaw) stats.skippedGarden.add(gnameRaw);
+            continue;
+          }
 
           const fullSup = String(getV(colSupAct) || '').trim();
           if (!fullSup) continue;
@@ -237,10 +250,10 @@ window.importBulkSchedule = function(input) {
           if (isMissingSheet) status = 'nohap';
           
           const rawSt = String(getV(colStatus) || '').toLowerCase();
-          if (rawSt.includes('בוטל') || rawSt === 'can') status = 'can';
-          else if (rawSt.includes('נדחה') || rawSt === 'post') status = 'post';
-          else if (rawSt.includes('לא התקיים') || rawSt === 'nohap') status = 'nohap';
-          else if (rawSt.includes('בוצע') || rawSt === 'done') status = 'done';
+          if (rawSt.includes('בוטל') || rawSt.includes('ביטול') || rawSt === 'can') status = 'can';
+          else if (rawSt.includes('נדחה') || rawSt.includes('הזזה') || rawSt === 'post') status = 'post';
+          else if (rawSt.includes('לא התקיים') || rawSt.includes('לא בוצע') || rawSt === 'nohap') status = 'nohap';
+          else if (rawSt.includes('בוצע') || rawSt.includes('התקיים') || rawSt === 'done') status = 'done';
 
           let makeupFrom = '';
           if (isActualMakeup) {
@@ -278,6 +291,7 @@ window.importBulkSchedule = function(input) {
               _isImported: true,
               _isMakeup: isActualMakeup || undefined
             };
+            stats.imported++;
           }
         }
       });
@@ -287,10 +301,18 @@ window.importBulkSchedule = function(input) {
 
       if (newSCH.length === 0) {
         window._importInProgress = false;
-        throw new Error('לא נמצאו נתונים תקינים לעדכון.');
+        let msg = 'לא נמצאו נתונים תקינים לעדכון.';
+        if (stats.skippedGarden.size > 0) {
+          msg += '\n\nגנים שלא זוהו:\n' + [...stats.skippedGarden].slice(0, 10).join(', ') + (stats.skippedGarden.size > 10 ? '...' : '');
+        }
+        throw new Error(msg);
       }
 
-      if (confirm(`✅ נמצאו ${newSCH.length} פעילויות לעדכון.\nשימו לב: פעולה זו תחליף את כל השיבוצים הקיימים בנתונים מהקובץ.\nהאם להמשיך?`)) {
+      let summary = `✅ נמצאו ${newSCH.length} פעילויות לעדכון מתוך ${stats.rows} שורות.`;
+      if (stats.skippedGarden.size > 0) summary += `\n⚠️ ${stats.skippedGarden.size} גנים לא זוהו ודולגו.`;
+      if (stats.skippedDate > 0) summary += `\n⚠️ ${stats.skippedDate} שורות דולגו בגלל תאריך לא תקין.`;
+      
+      if (confirm(`${summary}\n\nשימו לב: פעולה זו תחליף את כל השיבוצים הקיימים בנתונים מהקובץ.\nהאם להמשיך?`)) {
         if (statusEl) statusEl.innerHTML = '⏳ מסנכרן לבסיס הנתונים...';
         window.SCH = newSCH;
         window.useSraws = false; // Disable merging with static sraws.json
@@ -305,7 +327,7 @@ window.importBulkSchedule = function(input) {
 
         if (statusEl) statusEl.innerHTML = '✅ העדכון הושלם! טוען נתונים...';
         window._importInProgress = false;
-        setTimeout(() => { location.reload(); }, 2000);
+        setTimeout(() => { location.reload(); }, 3000);
       }
     } catch (err) {
       window._importInProgress = false;
