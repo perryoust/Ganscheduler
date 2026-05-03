@@ -72,6 +72,8 @@ window.importBulkSchedule = function(input) {
   const file = input.files[0];
   if (!file) return;
 
+  alert('גרסת ייבוא מתקדמת (v3) - מופעלת! מתחיל לקרוא את הקובץ...');
+
   const statusEl = document.getElementById('bulk-import-status');
   if (statusEl) statusEl.innerHTML = '⏳ מנתח נתונים ומאחד זוגות גנים...';
 
@@ -318,7 +320,20 @@ window.importBulkSchedule = function(input) {
         if (stats.skippedGarden.size > 0) {
           msg += '\n\nגנים שלא זוהו:\n' + [...stats.skippedGarden].slice(0, 10).join(', ') + (stats.skippedGarden.size > 10 ? '...' : '');
         }
+        
+        // Show the debug dates to the user!
+        if (window._debugDatesShown && window._debugDatesShown.length > 0) {
+          alert("נתוני חקירה מהיבוא (אנא צלם מסך ושלח לי):\n\n" + window._debugDatesShown.join("\n"));
+          window._debugDatesShown = [];
+        }
+
         throw new Error(msg);
+      }
+      
+      // Show the debug dates to the user!
+      if (window._debugDatesShown && window._debugDatesShown.length > 0) {
+        alert("נתוני חקירה מהיבוא (אנא צלם מסך ושלח לי):\n\n" + window._debugDatesShown.join("\n"));
+        window._debugDatesShown = [];
       }
 
       let summary = `✅ נמצאו ${newSCH.length} פעילויות לעדכון מתוך ${stats.rows} שורות.`;
