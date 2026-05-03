@@ -185,7 +185,7 @@ async function _processFirebaseLoad(r, silent, force) {
 
 // ── Load from Firebase ────────────────────────
 async function loadFromFirebase(silent, force) {
-  if(window._importInProgress && !force) return; // Block loads during active import
+  if(window._importInProgress) return; // STRICT BLOCK: Never load while importing
   try {
     if (!silent) { _fbSyncing = true; _fbUpdateStatus(); }
     // Fresh token for load
@@ -396,6 +396,7 @@ let _lastVisibilitySync = 0;
 let _lastHiddenAt = 0;
 
 document.addEventListener('visibilitychange', async ()=>{
+  if(window._importInProgress) return; // Block sync during import
   if(document.visibilityState === 'hidden'){
     _lastHiddenAt = Date.now();
     return;
