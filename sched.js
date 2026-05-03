@@ -602,8 +602,13 @@ function renderSched(){
     </div>`;
     Object.keys(byDate[dateKey]).sort().forEach(city=>{
       const cityData=byDate[dateKey][city];
-      h+=`<details class="city-accordion" open>
-        <summary><span>🏙️ ${city}</span></summary>
+      h+=`<details class="city-accordion">
+        <summary>
+          <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+            <span style="font-weight:800; color:#2d3748;">🏙️ ${city}</span>
+            <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
+          </div>
+        </summary>
         <div class="city-accordion-content">`;
       [{arr:cityData.gan,lbl:'🏫 צהרונים',cls:'gan'},{arr:cityData.sch,lbl:'🏛️ בתי ספר',cls:'sch'}].forEach(sec=>{
         if(!sec.arr.length) return;

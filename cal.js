@@ -426,8 +426,13 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
         const cityEvs=dayEvs.filter(s=>(window.G(s.g).city||'אחר')===city);
         if(!cityEvs.length) return;
         const clr=window.CITY_COLORS(city);
-        html+=`<details class="city-accordion" ${cityFilter?'open':''}>
-          <summary><span>🏙️ ${city} (${cityEvs.length})</span></summary>
+        html+=`<details class="city-accordion">
+          <summary>
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+              <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cityEvs.length})</span>
+              <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
+            </div>
+          </summary>
           <div class="city-accordion-content">`;
 
         // --- זוגות: מיון לפי שעה הכי מוקדמת בזוג ---
@@ -516,8 +521,13 @@ function renderClusterDay(evs, ds, clusterName){
         const cityEvs=others.filter(s=>(window.G(s.g).city||'אחר')===city);
         if(!cityEvs.length) return;
         const clrCity=window.CITY_COLORS(city);
-        html+=`<details class="city-accordion" open>
-          <summary><span>🏙️ ${city} (${cityEvs.length})</span></summary>
+        html+=`<details class="city-accordion">
+          <summary>
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+              <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cityEvs.length})</span>
+              <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
+            </div>
+          </summary>
           <div class="city-accordion-content">`;
       // Group by cluster within city
       const clusterMap={};
@@ -627,8 +637,13 @@ function renderClusterWeek(evs, weekStart, clusterName){
         const cityEvs=dayEvs.filter(s=>(window.G(s.g).city||'אחר')===city);
         if(!cityEvs.length) return;
         const clrCity=window.CITY_COLORS(city);
-        html+=`<details class="city-accordion" open>
-          <summary><span>🏙️ ${city} (${cityEvs.length})</span></summary>
+        html+=`<details class="city-accordion">
+          <summary>
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+              <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cityEvs.length})</span>
+              <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
+            </div>
+          </summary>
           <div class="city-accordion-content">`;
         const clusterMap={};
         cityEvs.forEach(s=>{
@@ -739,8 +754,13 @@ function renderNormalDay(evs,ds){
     Object.keys(cardsByCity).sort().forEach(city=>{
       const cards=cardsByCity[city];
       if(!cards||!cards.length) return;
-      html+=`<details class="city-accordion" open>
-        <summary><span>🏙️ ${city} (${cards.length})</span></summary>
+      html+=`<details class="city-accordion">
+        <summary>
+          <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+            <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cards.length})</span>
+            <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
+          </div>
+        </summary>
         <div class="city-accordion-content">
           <div class="pairs-5col">${cards.join('')}</div>
         </div>

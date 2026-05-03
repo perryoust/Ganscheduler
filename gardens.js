@@ -31,7 +31,12 @@ function renderGardens(){
   let h='';
   Object.keys(byCity).sort().forEach(cityKey=>{
     h+=`<details class="city-accordion">
-      <summary><span>🏙️ ${cityKey}</span></summary>
+      <summary>
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+          <span style="font-weight:800; color:#2d3748;">🏙️ ${cityKey}</span>
+          <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
+        </div>
+      </summary>
       <div class="city-accordion-content">`;
     [{arr:byCity[cityKey].gan,lbl:'🏫 גני ילדים',cls:'gan'},{arr:byCity[cityKey].sch,lbl:'🏛️ בתי ספר',cls:'sch'}].forEach(sec=>{
       if(!sec.arr.length) return;
@@ -299,7 +304,12 @@ function renderPairs(){
   let h='';
   Object.keys(byCity).sort().forEach(city=>{
     h+=`<details class="city-accordion">
-      <summary><span>🏙️ ${city} (${byCity[city].length} זוגות/שלישיות)</span></summary>
+      <summary>
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+          <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${byCity[city].length} זוגות/שלישיות)</span>
+          <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
+        </div>
+      </summary>
       <div class="city-accordion-content">`;
     byCity[city].forEach(p=>{
       const idx=window.pairs.indexOf(p);
@@ -690,7 +700,12 @@ function renderClusters(){
     // ═══ תצוגת כרטיסים (מקורית) ═══
     Object.keys(byCity).sort().forEach(city=>{
       h+=`<details class="city-accordion">
-        <summary><span>🏙️ ${city}</span></summary>
+        <summary>
+          <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+            <span style="font-weight:800; color:#2d3748;">🏙️ ${city}</span>
+            <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
+          </div>
+        </summary>
         <div class="city-accordion-content">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px">`;
       [...(byCity[city].gan||[]),...(byCity[city].sch||[])].forEach(cl=>{

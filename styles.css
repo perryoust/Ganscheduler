@@ -180,6 +180,10 @@ tr:hover td{background:#f5f7ff}
   padding: 5px;
   background: #fff;
 }
+.scroll-area {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
 
 .city-block{margin-bottom:10px;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.09)}
 .city-block-hdr{padding:6px 12px;display:flex;align-items:center;gap:8px;font-size:.82rem;font-weight:800;color:#fff;letter-spacing:.01em}
