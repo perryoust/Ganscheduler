@@ -102,9 +102,16 @@ window.importBulkSchedule = function(input) {
 
       window.GARDENS.forEach(g => { 
         const name = String(g.name || '').trim();
+        const city = String(g.city || '').trim();
         gardenMap[name] = g.id;
         gardenMapClean[cleanStr(name)] = g.id;
         gardenMapClean[megaClean(name)] = g.id;
+        
+        if (city) {
+          gardenMap[name + '|' + city] = g.id;
+          gardenMapClean[cleanStr(name) + '|' + cleanStr(city)] = g.id;
+          gardenMapClean[megaClean(name) + '|' + cleanStr(city)] = g.id;
+        }
       });
 
       const stats = { sheets: 0, rows: 0, imported: 0, skippedGarden: new Set(), skippedDate: 0, skippedEmpty: 0 };
@@ -168,6 +175,7 @@ window.importBulkSchedule = function(input) {
 
         const colDate = findCol(['תאריך', 'יום', 'Date']);
         const colGname = findCol(['שם הצהרון', 'שם צהרון', 'גן', 'הצהרון', 'Garden']);
+        const colCity = findCol(['עיר', 'ישוב', 'יישוב', 'City']);
         const colSupAct = findCol(['שם החוג', 'שם חוג', 'ספק', 'חוג', 'Activity', 'Supplier']);
         const colTime = findCol(['שעה', 'זמן', 'Time']);
         const colGrp = findCol(['קב', 'קבוצה', 'Group']);
@@ -218,7 +226,18 @@ window.importBulkSchedule = function(input) {
           }
 
           const gnameRaw = String(getV(colGname) || '').trim();
-          let gid = gardenMap[gnameRaw] || gardenMapClean[cleanStr(gnameRaw)] || gardenMapClean[megaClean(gnameRaw)];
+          const cityRaw = String(getV(colCity) || '').trim();
+          
+          let gid = null;
+          if (cityRaw) {
+            gid = gardenMap[gnameRaw + '|' + cityRaw] || 
+                  gardenMapClean[cleanStr(gnameRaw) + '|' + cleanStr(cityRaw)] || 
+                  gardenMapClean[megaClean(gnameRaw) + '|' + cleanStr(cityRaw)];
+          }
+          if (!gid) {
+            gid = gardenMap[gnameRaw] || gardenMapClean[cleanStr(gnameRaw)] || gardenMapClean[megaClean(gnameRaw)];
+          }
+          
           if (!gid) {
             if (gnameRaw) stats.skippedGarden.add(gnameRaw);
             continue;
