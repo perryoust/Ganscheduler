@@ -7,18 +7,28 @@ window._safeLS = {
   check(){
     if(this._works!==null) return this._works;
     try {
-      const k='__test__';
-      localStorage.setItem(k,k); localStorage.removeItem(k);
-      sessionStorage.setItem(k,k); sessionStorage.removeItem(k);
-      this._works=true;
-    } catch(e) { this._works=false; }
+      const k='__ls_test__';
+      localStorage.setItem(k,k); 
+      const res = localStorage.getItem(k) === k;
+      localStorage.removeItem(k);
+      this._works = res;
+      console.log('Storage Check: localStorage is', res ? 'WORKING' : 'BLOCKED');
+    } catch(e) { 
+      this._works=false; 
+      console.warn('Storage Check: localStorage is BLOCKED by browser settings');
+    }
     return this._works;
   },
   get(k){
-    if(window['_mem_'+k]) return window['_mem_'+k];
+    const mem = window['_mem_'+k];
+    if(mem) return mem;
     if(this.check()){
-      try{ const v=sessionStorage.getItem(k); if(v){ window['_mem_'+k]=v; return v; } }catch(e){}
-      try{ const v=localStorage.getItem(k); if(v){ window['_mem_'+k]=v; return v; } }catch(e){}
+      try{ 
+        const vs = sessionStorage.getItem(k); 
+        const vl = localStorage.getItem(k);
+        const v = vs || vl;
+        if(v){ window['_mem_'+k]=v; return v; } 
+      }catch(e){}
     }
     return null;
   },
@@ -27,6 +37,8 @@ window._safeLS = {
     if(this.check()){
       try{ sessionStorage.setItem(k,v); }catch(e){}
       try{ localStorage.setItem(k,v); }catch(e){}
+    } else {
+      console.error('CRITICAL: Data NOT saved to disk (Storage Blocked). Changes will be lost on reload!');
     }
   },
   removeItem(k){
