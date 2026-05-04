@@ -382,7 +382,7 @@ function openSP(id){
     <div style="font-size:.8rem;font-weight:900;color:#1a237e;margin-bottom:12px;border-bottom:1px solid #f0f0f0;padding-bottom:8px">⚡ פעולות מהירות</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px">
       <button class="btn bg bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px" onclick="window.setStatus('done')">✔️ בוצע</button>
-      <button class="btn bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px;background:#fff;color:#c62828;border:1px solid #ef9a9a" onclick="window.setStatus('nohap')">⚠️ לא התקיים</button>
+      <button class="btn bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px;background:#fff;color:#c62828;border:1px solid #ef9a9a" onclick="window.qSetSt('${s.id}','nohap')">⚠️ לא התקיים</button>
       <button class="btn bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px;background:#fff;color:#546e7a;border:1px solid #cfd8dc" onclick="window.setStatus('can')">❌ ביטול</button>
       <button class="btn borange bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px" onclick="window.openPostpone('${s.id}')">⏩ דחייה</button>
     </div>
@@ -911,8 +911,8 @@ function saveNt(){
   }
   
   // Synergy Sync: Copy note and status to partner garden if synced
-  const pair = window.gardenPair(s.g);
-  if(pair) {
+  const syncChk = document.getElementById('sp-sync-global');
+  if(syncChk && syncChk.checked && pair) {
     pair.ids.forEach(pId => {
       if(pId === s.g) return;
       const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === pId && ps.st !== 'can' && window.supBase(ps.a) === window.supBase(s.a));

@@ -1172,7 +1172,7 @@ function _quickActionBtns(s){
     ${isCan?'':`<button title="בטל" style="background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
       onclick="openCanQ('${sid}')">❌</button>`}
     ${isNohap?'':`<button title="לא התקיים" style="background:#f3e5f5;color:#6a1b9a;border:1px solid #ce93d8;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
-      onclick="qSetSt('${sid}','nohap')">⚠️</button>`}
+      onclick="window.qSetSt('${sid}','nohap')">⚠️</button>`}
     <button title="דחה" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
       onclick="openPostpone('${sid}')">⏩</button>
     <button title="שיבוץ השלמה" class="btn-makeup" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
@@ -1465,7 +1465,11 @@ function _listRow(s, clr, ds){
   const bg = isUnassigned ? '#f5f5f5' : s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light;
   const stC = isUnassigned ? '#9e9e9e' : s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':'#333';
   const stLabelText = isUnassigned ? 'לא משובץ' : window.stLabel(s).replace(/<[^>]+>/g,'');
-  const recBadge = s._recId ? `<span style="font-size:0.6rem;color:#6a1b9a;margin-left:4px;vertical-align:middle" title="שיבוץ קבוע">🔄</span>` : '';
+  const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|makeup/i.test(s.nt)));
+  const _dow = new Date(s.d).getDay();
+  const repeats = window.SCH.filter(x => x.g === s.g && new Date(x.d).getDay() === _dow && window.supBase(x.a) === window.supBase(s.a) && x.t === s.t && x.st !== 'can').length >= 2;
+  const isRec = !isM && (!!s._recId || repeats);
+  const recBadge = isRec ? `<span style="font-size:0.65rem;color:#6a1b9a;margin-left:4px;vertical-align:middle;font-weight:900" title="שיבוץ קבוע">🔄</span>` : '';
   const supText = isUnassigned ? '' : `${window.supBase(s.a)}${recBadge}${s.act?' — <span style="color:#546e7a">'+s.act+'</span>':''}`;
   const clickHandler = isUnassigned ? `event.stopPropagation(); if(window.openNewSched) window.openNewSched('${s.d}', ${s.g});` : `window.openSP('${s.id}')`;
   
