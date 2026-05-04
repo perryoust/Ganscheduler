@@ -114,11 +114,13 @@ var _srawsReady=(async function(){
         
         const note = (s.nt || '').toLowerCase();
         const isMakeup = note.includes('השלמה');
-        const isFailure = s.st === 'can' || s.st === 'nohap' || (!isMakeup && [...canWords, ...nohapWords].some(w => note.includes(w)));
+        
+        // ONLY activities that need makeup: 'nohap' status or nohap keywords
+        const isDebt = s.st === 'nohap' || (!isMakeup && nohapWords.some(w => note.includes(w)));
         
         if(isMakeup && (s.st === 'ok' || s.st === 'done')) {
           groups[key].makeups.push(s);
-        } else if(isFailure) {
+        } else if(isDebt) {
           groups[key].failures.push(s);
         }
       });
