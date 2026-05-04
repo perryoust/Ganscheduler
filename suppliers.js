@@ -14,11 +14,19 @@ function openSupExport(supName){
   (document.getElementById('supexm-title')||{}).textContent=supName?`📊 יצוא: ${supName}`:'📊 יצוא דוח ספקים';
   
   const now=new Date();
-  const cardFrom = document.getElementById('suc-from')?.value;
-  const cardTo = document.getElementById('suc-to')?.value;
+  // Hierarchy: Supplier Card > Dashboard > Timeline > Current Month
+  const from = document.getElementById('suc-from')?.value 
+            || document.getElementById('dash-from')?.value 
+            || document.getElementById('s-from')?.value
+            || window.d2s(new Date(now.getFullYear(), now.getMonth(), 1));
+
+  const to = document.getElementById('suc-to')?.value 
+          || document.getElementById('dash-to')?.value 
+          || document.getElementById('s-to')?.value
+          || window.d2s(new Date(now.getFullYear(), now.getMonth() + 1, 0));
   
-  document.getElementById('supex-from').value = cardFrom || window.d2s(new Date(now.getFullYear(),now.getMonth(),1));
-  document.getElementById('supex-to').value = cardTo || window.d2s(new Date(now.getFullYear(),now.getMonth()+1,0));
+  document.getElementById('supex-from').value = from;
+  document.getElementById('supex-to').value = to;
   
   document.getElementById('supex-prev').style.display='none';
   document.getElementById('supexm').classList.add('open');
