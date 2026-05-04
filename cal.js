@@ -442,6 +442,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
               <div style="font-weight:700;font-size:.78rem;color:#1a237e">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
               ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
               <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${window.supBase(s.a)}${(s.act||window.supAct(s.a))?` · ${s.act||window.supAct(s.a)}`:''}</div>
+              ${s.nt?`<div style="font-size:.65rem;color:#d84315;margin-top:2px;font-weight:700;line-height:1.15;max-width:100%;white-space:normal">📝 ${s.nt}</div>`:''}
               <div style="font-size:.68rem;font-weight:700;margin-top:2px">${window.stLabel(s)}</div>
             </div>`;
           });
@@ -518,6 +519,7 @@ function renderClusterDay(evs, ds, clusterName){
               <span style="font-weight:800;color:${clrCity.solid};white-space:nowrap">${s.t?`⏰ ${window.fT(s.t)}`:'--:--'}</span>
               <span style="font-weight:700;color:#1a237e;white-space:nowrap">${window.gcls(g)==='ביה"ס'?'🏗️':'🏫'} ${g.name}</span>
               <span style="color:#546e7a;font-size:.74rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${window.supBase(s.a)}${(s.act||window.supAct(s.a))?` · ${s.act||window.supAct(s.a)}`:''}</span>
+              ${s.nt?`<span style="color:#d84315;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">📝 ${s.nt}</span>`:''}
               <span style="font-size:.68rem;font-weight:700;white-space:nowrap">${window.stLabel(s)}</span>
               <div class="qacts" onclick="event.stopPropagation()" style="margin-right:auto;display:flex;gap:3px">
                 ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt('${s.id}','done')" style="padding:2px 4px">✔️</button>`}
@@ -551,6 +553,7 @@ function renderClusterDay(evs, ds, clusterName){
             <span style="font-weight:800;color:${clrCity.solid};white-space:nowrap">${s.t?`⏰ ${window.fT(s.t)}`:'--:--'}</span>
             <span style="font-weight:700;color:#1a237e;white-space:nowrap">${window.supBase(s.a)}</span>
             <span style="font-size:.74rem;color:${clrCity.solid};font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(s.act||window.supAct(s.a))?`🎯 ${s.act||window.supAct(s.a)}`:''}</span>
+            ${s.nt?`<span style="color:#d84315;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">📝 ${s.nt}</span>`:''}
             ${s.grp>1?`<span style="font-size:.68rem;color:#546e7a;white-space:nowrap">👥 ${s.grp}</span>`:''}
             <span style="font-size:.68rem;white-space:nowrap">${window.stLabel(s)}</span>
             <div class="qacts" onclick="event.stopPropagation()" style="display:flex;gap:3px">
@@ -629,6 +632,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
               ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clrCity.solid}">⏰ ${window.fT(s.t)}</div>`:''}
               <div style="font-weight:700;font-size:.76rem;color:#1a237e">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
               <div style="font-size:.7rem;color:#546e7a">${window.supBase(s.a)}${(s.act||window.supAct(s.a))?` · ${s.act||window.supAct(s.a)}`:''}</div>
+              ${s.nt?`<div style="font-size:.65rem;color:#d84315;margin-top:2px;font-weight:700;line-height:1.15;white-space:normal">📝 ${s.nt}</div>`:''}
               <div style="font-size:.67rem;margin-top:2px">${window.stLabel(s)}</div>
             </div>`;
           });
@@ -649,6 +653,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
           <div style="font-weight:700;font-size:.78rem;color:#1a237e">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
           ${clBadge?`<div style="font-size:.66rem;color:#546e7a">🔢 ${clBadge}</div>`:''}
           <div style="font-size:.73rem;color:#546e7a">${window.supBase(s.a)}${(s.act||window.supAct(s.a))?` · ${s.act||window.supAct(s.a)}`:''}</div>
+          ${s.nt?`<div style="font-size:.65rem;color:#d84315;margin-top:2px;font-weight:700;line-height:1.15;white-space:normal">📝 ${s.nt}</div>`:''}
           <div style="font-size:.68rem;font-weight:700;margin-top:2px">${window.stLabel(s)}</div>
         </div>`;
       });
@@ -1477,6 +1482,7 @@ function _listRow(s, clr, ds){
     </div>
     <div>
       <div style="font-size:.75rem;font-weight:600;color:#1565c0">${supText}</div>
+      ${s.nt?`<div style="font-size:.68rem;color:#d84315;margin-top:2px;max-width:200px;white-space:normal;line-height:1.15;font-weight:700">📝 ${s.nt}</div>`:''}
       ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #b3e5fc;margin-top:2px">📅 השלמה</div>`:''}
       ${s._recId?`<div style="display:inline-block;background:#f3e5f5;color:#6a1b9a;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #e1bee7;margin-top:2px">🔄 קבוע</div>`:''}
       ${!isUnassigned ? `<div style="font-size:.65rem;color:#5c6bc0">${s.tp||'חוג'}</div>` : ''}
