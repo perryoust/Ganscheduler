@@ -96,6 +96,55 @@ var _srawsReady=(async function(){
       }
       window._safeLS.setItem('_statusSyncDone_v989', '1');
     }
+    
+    // AUTOMATIC MAKEUP MATCHING: Offset old failures with new makeups
+    const _matchDone = window._safeLS.getItem('_makeupMatchDone_v999');
+    if(!_matchDone){
+      const groups = {};
+      const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
+      const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע'];
+      
+      // Group by Garden + Activity Base
+      window.SCH.forEach(s => {
+        if(s.d < '2025-09-01') return; // Only current school year
+        const base = window.supBase(s.a);
+        if(!base) return;
+        const key = `${s.g}_${base}`;
+        if(!groups[key]) groups[key] = { failures: [], makeups: [] };
+        
+        const note = (s.nt || '').toLowerCase();
+        const isMakeup = note.includes('השלמה');
+        const isFailure = s.st === 'can' || s.st === 'nohap' || (!isMakeup && [...canWords, ...nohapWords].some(w => note.includes(w)));
+        
+        if(isMakeup && (s.st === 'ok' || s.st === 'done')) {
+          groups[key].makeups.push(s);
+        } else if(isFailure) {
+          groups[key].failures.push(s);
+        }
+      });
+      
+      let matchedCount = 0;
+      Object.values(groups).forEach(g => {
+        // Sort failures by date (oldest first) so we close the old ones
+        g.failures.sort((a,b) => a.d.localeCompare(b.d));
+        // Match 1-to-1
+        let mCount = g.makeups.length;
+        for(let i=0; i < Math.min(mCount, g.failures.length); i++){
+          const f = g.failures[i];
+          if(!f._compByMakeup) {
+            f._compByMakeup = 'auto_match_' + Date.now();
+            matchedCount++;
+          }
+        }
+      });
+      
+      if(matchedCount > 0) {
+        console.log(`Auto-Match: Successfully matched and closed ${matchedCount} old failures.`);
+        setTimeout(() => { if(typeof window.save === 'function') window.save(); }, 3000);
+      }
+      window._safeLS.setItem('_makeupMatchDone_v999', '1');
+    }
+
 
     if(typeof renderSup === 'function') renderSup();
     if(typeof renderPurchSuppliers === 'function') renderPurchSuppliers();
