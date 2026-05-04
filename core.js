@@ -2648,11 +2648,25 @@ function _renderGardenFixedRow(g){
       const actN=s.act||supAct(s.a)||'';
       const time=s.t?s.t.slice(0,5):'—';
       const key = s._recId || `${s.a}_${s.act}_${dow}`;
+      
+      // Look for partner info
+      let partnerInfo = '<span style="color:#90a4ae">—</span>';
+      const pair = window.gardenPair(gid);
+      if (pair) {
+        const partnerId = pair.ids.find(id => Number(id) !== Number(gid));
+        if (partnerId) {
+          const pg = window.G(partnerId);
+          const pev = window.SCH.find(ps => Number(ps.g) === Number(partnerId) && ps.d === s.d && window.supBase(ps.a) === window.supBase(s.a));
+          partnerInfo = `<span style="font-weight:700;color:#5c6bc0">${pg.name}</span> ${pev ? '<span style="font-size:.7rem;color:#78909c">('+window.fT(pev.t)+')</span>' : '<span style="color:#c62828;font-size:.7rem">(לא משובץ)</span>'}`;
+        }
+      }
+
       rows+=`<tr style="border-bottom:1px solid #eef0fb">
         <td style="padding:3px 10px;font-weight:600;color:#1a237e;white-space:nowrap">יום ${HEB_DAYS_SHORT[dow]}</td>
         <td style="padding:3px 10px;color:#222">${supN}${actN?' — '+actN:''}</td>
         <td style="padding:3px 10px;color:#5c6bc0;font-size:.71rem">${s.tp||'חוג'}</td>
         <td style="padding:3px 10px;color:#2e7d32;font-weight:600;white-space:nowrap">${time}</td>
+        <td style="padding:3px 10px;font-size:.72rem">${partnerInfo}</td>
         <td style="padding:2px 6px;white-space:nowrap">
           <button onclick="event.stopPropagation();openGM(${gid});setTimeout(()=>window.openBulkUpdateRecurring('${key}',${gid}),100)" style="background:#e8eaf6;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#3949ab" title="ערוך שיבוץ קבוע (סדרה)">✏️</button>
           <button onclick="event.stopPropagation();openSP('${s.id}')" style="background:#ffebee;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#c62828;margin-right:2px" title="ביטול/החרגה חד פעמית">❌</button>
@@ -2677,6 +2691,7 @@ function _renderGardenFixedRow(g){
           <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">ספק / פעילות</th>
           <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">סוג</th>
           <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">שעה</th>
+          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">גן בן-זוג</th>
           <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700"></th>
         </tr></thead>
         <tbody>${rows}</tbody>

@@ -261,8 +261,11 @@ function openSP(id){
   }
 
   // --- Activity type detection ---
+  // Heuristic for recurrence: formal ID or appears at least twice in same day-of-week, time, and supplier
+  const _dow = new Date(s.d).getDay();
   const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-  const isRec = !!s._recId;
+  const repeats = window.SCH.filter(x => x.g === s.g && new Date(x.d).getDay() === _dow && window.supBase(x.a) === window.supBase(s.a) && x.t === s.t && x.st !== 'can').length >= 2;
+  const isRec = !!s._recId || repeats;
   const typeTag = isRec ? '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#e3f2fd;color:#1565c0">🔁 פעילות קבועה</span>'
     : isM ? '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#fff3e0;color:#e65100">↩️ השלמה</span>'
     : '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#eceff1;color:#546e7a">📌 חד-פעמי</span>';
@@ -273,7 +276,7 @@ function openSP(id){
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:.7rem;font-weight:900;color:#1a237e;text-transform:uppercase;background:#e8eaf6;padding:3px 8px;border-radius:4px">🏠 גן נוכחי</span>
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer;background:#f3e5f5;padding:3px 8px;border-radius:4px;border:1px solid #ce93d8">
-          <input type="checkbox" id="sp-is-rec-chk" ${s._recId ? 'checked' : ''} onchange="window.toggleSpRecurBox(this.checked)" style="width:16px;height:16px;accent-color:#6a1b9a">
+          <input type="checkbox" id="sp-is-rec-chk" ${isRec ? 'checked' : ''} onchange="window.toggleSpRecurBox(this.checked)" style="width:16px;height:16px;accent-color:#6a1b9a">
           <span style="font-size:0.7rem;font-weight:800;color:#6a1b9a">שיבוץ קבוע</span>
         </label>
       </div>
