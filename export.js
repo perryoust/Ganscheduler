@@ -731,7 +731,13 @@ async function exportToExcel(data, filename, opts = {}) {
               typeGroups += grpCount;
               totalGroups += grpCount;
 
-              const row = ws.addRow([window.fD(s.d), g.name, s.act || window.supAct(s.a) || '', s.t, grpCount, statusLabel, s.nt || '']);
+              // Clean up status label: only show if NOT 'ok' or if it's an exception
+              let displayStatus = statusLabel;
+              if(isOk && (statusLabel === 'מתקיים' || s.st === 'ok' || s.st === 'done')) {
+                 displayStatus = ''; 
+              }
+              
+              const row = ws.addRow([window.fD(s.d), g.name, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, s.nt || '']);
               row.eachCell(cell => {
                  cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
                  cell.alignment = { horizontal: 'right' };
