@@ -657,30 +657,30 @@ function buildSheetData(garden, evs) {
       ]);
     });
   });
+  return {rows};
+}
+
+
+
 async function exportToExcel(data, filename, opts = {}) {
-  console.log('Export Engine v97.7');
+  console.log('Export Engine v97.8');
   if (!data || !data.length) { alert('אין נתונים לייצוא'); return; }
   
-  // If ExcelJS is available, use it for RTL and styling
   if (typeof window.ExcelJS !== 'undefined') {
     try {
       const workbook = new window.ExcelJS.Workbook();
       const ws = workbook.addWorksheet('Sheet1', { views: [{ rightToLeft: true }] });
       
-      let currentRow = 1;
-
-      // Header Title if provided
       if(opts.title){
         const titleRow = ws.addRow([opts.title]);
         titleRow.font = { name: 'Arial', size: 16, bold: true };
-        ws.mergeCells(1, 1, 1, 5);
-        currentRow = 3;
+        ws.mergeCells(1, 1, 1, 6);
       }
 
       const isSupplierExport = opts.type === 'supplier';
-      
+      let totalOk = 0, totalNo = 0, totalGroups = 0;
+
       if(isSupplierExport){
-        // Group by City
         const byCity = {};
         data.forEach(s => {
           const c = window.G(s.g).city || 'אחר';
@@ -689,25 +689,20 @@ async function exportToExcel(data, filename, opts = {}) {
         });
 
         const cities = Object.keys(byCity).sort();
-        let totalOk = 0, totalNo = 0, totalGroups = 0;
-
         cities.forEach(city => {
           const cityEvs = byCity[city];
-          // Get unique types (Gardens/Schools) in this city
           const types = [...new Set(cityEvs.map(s => window.gcls(window.G(s.g))))].sort();
 
           types.forEach(type => {
             let typeOk = 0, typeNo = 0, typeGroups = 0;
             const typeEvs = cityEvs.filter(s => window.gcls(window.G(s.g)) === type).sort((a,b) => a.d.localeCompare(b.d) || (a.t||'').localeCompare(b.t||''));
 
-            // Section Header: [Sup] - [City] - [Type]
             const titleRow = ws.addRow([`${window._supExName || 'כל הספקים'} - ${city} - ${type}`]);
             titleRow.font = { bold: true };
             titleRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
             titleRow.alignment = { horizontal: 'right' };
             ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, 6);
 
-            // Table Header (New Order)
             const headRow = ws.addRow(['תאריך', 'גן/בי"ס', 'פעילות', 'שעה', 'קבוצות', 'סטטוס']);
             headRow.font = { bold: true };
             headRow.eachCell(cell => {
@@ -717,39 +712,22 @@ async function exportToExcel(data, filename, opts = {}) {
             });
 
             typeEvs.forEach(s => {
-              let status = window.stLabel ? window.stLabel(s) : s.st;
-              status = status.replace(/<[^>]*>/g, ''); 
-              
+              let status = (window.stLabel ? window.stLabel(s) : s.st).replace(/<[^>]*>/g, '');
               const g = window.G(s.g);
               const isSchool = window.gcls(g) === 'ביה"ס';
               const isOk = s.st === 'ok' || s.st === 'done';
-              
-              let grpCount = 0;
-              if(isOk) {
-                typeOk++; totalOk++;
-                grpCount = isSchool ? (s.grp || 1) : 1;
-              } else {
-                typeNo++; totalNo++;
-                grpCount = 0;
-              }
+              let grpCount = isOk ? (isSchool ? (s.grp || 1) : 1) : 0;
+              if(isOk) typeOk++; else typeNo++;
               typeGroups += grpCount;
               totalGroups += grpCount;
 
-              const row = ws.addRow([
-                window.fD(s.d),
-                g.name,
-                s.act || window.supAct(s.a) || '',
-                s.t,
-                grpCount,
-                status
-              ]);
+              const row = ws.addRow([window.fD(s.d), g.name, s.act || window.supAct(s.a) || '', s.t, grpCount, status]);
               row.eachCell(cell => {
                  cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
                  cell.alignment = { horizontal: 'right' };
               });
             });
 
-            // Section Sub-Summary
             const typeSum = ws.addRow([`📊 סיכום ${type} (${city}):`, `בוצע: ${typeOk}`, `חסר: ${typeNo}`, `סה"כ קבוצות: ${typeGroups}`, '', '']);
             typeSum.font = { bold: true, size: 10 };
             typeSum.eachCell((cell, i) => {
@@ -757,12 +735,10 @@ async function exportToExcel(data, filename, opts = {}) {
               if(i<=4) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
             });
             ws.mergeCells(typeSum.number, 4, typeSum.number, 6);
-
-            ws.addRow([]); // Spacer
+            ws.addRow([]);
           });
         });
 
-        // Summary Table
         ws.addRow([]);
         const sumHead = ws.addRow(['📊 סיכום פעילות כולל', '', '']);
         sumHead.font = { bold: true, size: 12 };
@@ -772,24 +748,19 @@ async function exportToExcel(data, filename, opts = {}) {
         const r2 = ws.addRow(['בוצע בפועל (פעילויות)', totalOk, '']);
         const r3 = ws.addRow(['לא התקיים / חסר', totalNo, '']);
         const r4 = ws.addRow(['סה"כ קבוצות לתשלום', totalGroups, '']);
-        
         [r1, r2, r3, r4].forEach(row => {
           row.getCell(1).font = { bold: true };
           row.eachCell(cell => {
             cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
           });
         });
-
       } else {
-        // Generic Export (fallback)
         const keys = Object.keys(data[0]);
         ws.addRow(keys).font = { bold: true };
         data.forEach(item => ws.addRow(Object.values(item)));
       }
 
-      // Column Widths
       ws.columns.forEach(col => { col.width = 20; });
-
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const a = document.createElement('a');
@@ -802,7 +773,6 @@ async function exportToExcel(data, filename, opts = {}) {
     }
   }
 
-  // Fallback to simple SheetJS if ExcelJS fails or is missing
   const ws = window.XLSX.utils.json_to_sheet(data);
   const wb = window.XLSX.utils.book_new();
   window.XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
