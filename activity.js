@@ -884,7 +884,23 @@ function saveNt(){
   const s=window.SCH.find(x=>x.id==window.selEv); if(!s) return;
   const ntEl=document.getElementById('sp-nt');
   const nEl=document.getElementById('sp-n');
-  if(ntEl) s.nt=ntEl.value;
+  if(ntEl) {
+    const val = ntEl.value;
+    s.nt = val;
+    // Auto-Correct status based on note keywords
+    if(s.st === 'ok' || s.st === 'done') {
+      const lower = val.toLowerCase();
+      const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
+      const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך'];
+      if(canWords.some(w => lower.includes(w))) {
+        s.st = 'can';
+        if(typeof window.showToast==='function') window.showToast('ℹ️ הסטטוס עודכן אוטומטית ל"בוטל" עקב ההערה');
+      } else if(nohapWords.some(w => lower.includes(w))) {
+        s.st = 'nohap';
+        if(typeof window.showToast==='function') window.showToast('ℹ️ הסטטוס עודכן אוטומטית ל"לא התקיים" עקב ההערה');
+      }
+    }
+  }
   if(nEl) {
     s.n=nEl.value;
     if(s._recId) {

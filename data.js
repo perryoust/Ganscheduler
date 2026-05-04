@@ -71,7 +71,28 @@ var _srawsReady=(async function(){
     const data=await r.json();
     SRAWS.push(...data);
     console.log('SRAWS loaded:',SRAWS.length);
-    // Trigger UI updates once data is ready
+    
+    // AUTOMATIC DATA CLEANUP: Sync statuses based on notes (ONE-TIME RUN)
+    const _syncDone = window._safeLS.getItem('_statusSyncDone_v989');
+    if(!_syncDone){
+      let changed = 0;
+      const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
+      const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך'];
+      
+      window.SCH.forEach(s => {
+        const note = (s.nt || '').toLowerCase();
+        if(s.st === 'ok' || s.st === 'done') {
+          if(canWords.some(w => note.includes(w))) { s.st = 'can'; changed++; }
+          else if(nohapWords.some(w => note.includes(w))) { s.st = 'nohap'; changed++; }
+        }
+      });
+      if(changed > 0) { 
+        console.log(`Auto-Sync: Fixed ${changed} statuses based on notes.`);
+        setTimeout(() => { if(typeof window.save === 'function') window.save(); }, 2000); 
+      }
+      window._safeLS.setItem('_statusSyncDone_v989', '1');
+    }
+
     if(typeof renderSup === 'function') renderSup();
     if(typeof renderPurchSuppliers === 'function') renderPurchSuppliers();
   }catch(e){
