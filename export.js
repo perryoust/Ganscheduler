@@ -713,16 +713,24 @@ async function exportToExcel(data, filename, opts = {}) {
             });
 
             typeEvs.forEach(s => {
-              let status = (window.stLabel ? window.stLabel(s) : s.st).replace(/<[^>]*>/g, '');
+              const statusLabel = (window.stLabel ? window.stLabel(s) : s.st).replace(/<[^>]*>/g, '');
               const g = window.G(s.g);
               const isSchool = window.gcls(g) === 'ביה"ס';
-              const isOk = s.st === 'ok' || s.st === 'done';
+              const note = (s.nt || '').toLowerCase();
+              
+              // Robust status check: only 'ok' or 'done' are considered "happened"
+              // ADDED: Safety check for cancellation keywords in notes
+              let isOk = s.st === 'ok' || s.st === 'done';
+              if(isOk && (note.includes('בוטל') || note.includes('לא התקיים') || note.includes('מבוטל'))) {
+                 isOk = false;
+              }
+              
               let grpCount = isOk ? (isSchool ? (s.grp || 1) : 1) : 0;
               if(isOk) { typeOk++; totalOk++; } else { typeNo++; totalNo++; }
               typeGroups += grpCount;
               totalGroups += grpCount;
 
-              const row = ws.addRow([window.fD(s.d), g.name, s.act || window.supAct(s.a) || '', s.t, grpCount, status, s.nt || '']);
+              const row = ws.addRow([window.fD(s.d), g.name, s.act || window.supAct(s.a) || '', s.t, grpCount, statusLabel, s.nt || '']);
               row.eachCell(cell => {
                  cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
                  cell.alignment = { horizontal: 'right' };

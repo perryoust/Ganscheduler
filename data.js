@@ -71,6 +71,9 @@ var _srawsReady=(async function(){
     const data=await r.json();
     SRAWS.push(...data);
     console.log('SRAWS loaded:',SRAWS.length);
+    // Trigger UI updates once data is ready
+    if(typeof renderSup === 'function') renderSup();
+    if(typeof renderPurchSuppliers === 'function') renderPurchSuppliers();
   }catch(e){
     console.warn('SRAWS load failed:',e.message);
     setTimeout(()=>{if(typeof window.showToast==='function') window.showToast('⚠️ sraws.json לא נטען — חלק מהפעילויות עשויות להיות חסרות');},2000);
