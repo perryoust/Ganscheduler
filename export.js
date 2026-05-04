@@ -693,38 +693,57 @@ async function exportToExcel(data, filename, opts = {}) {
         });
 
         const cities = Object.keys(byCity).sort();
-        let totalOk = 0, totalNo = 0;
+        let totalOk = 0, totalNo = 0, totalGroups = 0;
 
         cities.forEach(city => {
-          let cityOk = 0, cityNo = 0;
+          let cityOk = 0, cityNo = 0, cityGroups = 0;
           // City Header
           const cityRow = ws.addRow([`🏙️ עיר: ${city}`]);
           cityRow.font = { bold: true };
           cityRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
-          ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, 6);
+          ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, 7);
+
+          // Group by Type (Gardens vs Schools) within City
+          const cityEvs = byCity[city].sort((a,b) => {
+             const ga = window.G(a.g), gb = window.G(b.g);
+             return window.gcls(ga).localeCompare(window.gcls(gb));
+          });
 
           // Table Header
-          const headRow = ws.addRow(['גן', 'ספק', 'פעילות', 'תאריך', 'שעה', 'סטטוס']);
+          const headRow = ws.addRow(['סוג', 'גן/בי"ס', 'ספק', 'פעילות', 'תאריך', 'שעה', 'קבוצות', 'סטטוס']);
           headRow.font = { bold: true };
           headRow.eachCell(cell => {
              cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1D9E6' } };
           });
 
-          byCity[city].forEach(s => {
+          cityEvs.forEach(s => {
             let status = window.stLabel ? window.stLabel(s) : s.st;
-            // Strip HTML tags from status
-            status = status.replace(/<[^>]*>/g, '');
+            status = status.replace(/<[^>]*>/g, ''); // Strip HTML
             
+            const g = window.G(s.g);
+            const isSchool = window.gcls(g) === 'ביה"ס';
             const isOk = s.st === 'ok' || s.st === 'done';
-            if(isOk) { totalOk++; cityOk++; } else { totalNo++; cityNo++; }
+            
+            let grpCount = 0;
+            if(isOk) {
+              cityOk++; totalOk++;
+              grpCount = isSchool ? (s.grp || 1) : 1;
+            } else {
+              cityNo++; totalNo++;
+              grpCount = 0;
+            }
+            cityGroups += grpCount;
+            totalGroups += grpCount;
 
             const row = ws.addRow([
-              window.G(s.g).name,
+              window.gcls(g),
+              g.name,
               window.supBase(s.a),
               s.act || window.supAct(s.a) || '',
               window.fD(s.d),
               s.t,
+              grpCount,
               status
             ]);
             row.eachCell(cell => {
@@ -733,12 +752,12 @@ async function exportToExcel(data, filename, opts = {}) {
           });
 
           // City Sub-Summary
-          const citySum = ws.addRow([`📊 סיכום ${city}:`, `בוצע: ${cityOk}`, `חסר: ${cityNo}`, `סה"כ: ${byCity[city].length}`, '', '']);
+          const citySum = ws.addRow([`📊 סיכום ${city}:`, `בוצע: ${cityOk}`, `חסר: ${cityNo}`, `סה"כ קבוצות: ${cityGroups}`, '', '', '', '']);
           citySum.font = { bold: true, size: 10 };
           citySum.eachCell((cell, i) => {
             if(i<=4) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
           });
-          ws.mergeCells(citySum.number, 4, citySum.number, 6);
+          ws.mergeCells(citySum.number, 4, citySum.number, 8);
 
           ws.addRow([]); // Spacer
         });
@@ -749,11 +768,12 @@ async function exportToExcel(data, filename, opts = {}) {
         sumHead.font = { bold: true, size: 12 };
         ws.mergeCells(sumHead.number, 1, sumHead.number, 3);
 
-        const r1 = ws.addRow(['סה"כ פעילויות', data.length, '']);
-        const r2 = ws.addRow(['בוצע בפועל', totalOk, '']);
+        const r1 = ws.addRow(['סה"כ שורות', data.length, '']);
+        const r2 = ws.addRow(['בוצע בפועל (פעילויות)', totalOk, '']);
         const r3 = ws.addRow(['לא התקיים / חסר', totalNo, '']);
+        const r4 = ws.addRow(['סה"כ קבוצות לתשלום', totalGroups, '']);
         
-        [r1, r2, r3].forEach(row => {
+        [r1, r2, r3, r4].forEach(row => {
           row.getCell(1).font = { bold: true };
           row.eachCell(cell => {
             cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
