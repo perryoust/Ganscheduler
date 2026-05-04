@@ -125,10 +125,11 @@ function getAllSup(){
 
   // 3. DISCOVERY FROM SCHEDULES (SCH)
   // Ensure anyone with actual activities appears in the list, even if definitions are missing
+  // We skip mergedAway check here because if they have activities, we WANT to see them
   if(Array.isArray(window.SCH)){
     window.SCH.forEach(s=>{
       const base = window.supBase(s.a);
-      if(!base || mergedAway.has(base)) return;
+      if(!base) return; 
       if(!map[base]){
         map[base]={name:base, phone:'', acts:new Set(), fullNames:new Set(), isDiscovered:true};
       }

@@ -719,9 +719,10 @@ async function exportToExcel(data, filename, opts = {}) {
               const note = (s.nt || '').toLowerCase();
               
               // Robust status check: only 'ok' or 'done' are considered "happened"
-              // ADDED: Safety check for cancellation keywords in notes
+              // Expanded cancellation keywords based on user feedback
               let isOk = s.st === 'ok' || s.st === 'done';
-              if(isOk && (note.includes('בוטל') || note.includes('לא התקיים') || note.includes('מבוטל'))) {
+              const cancelWords = ['בוטל', 'לא התקיים', 'מבוטל', 'חסר מדריך', 'חוסר מדריך'];
+              if(isOk && cancelWords.some(w => note.includes(w))) {
                  isOk = false;
               }
               
