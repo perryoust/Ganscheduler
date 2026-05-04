@@ -1708,8 +1708,13 @@ function renderSupCard(){
 }
 function openSupExportFromCard(){
   if(!_sucName) return;
+  const f = document.getElementById('suc-from')?.value;
+  const t = document.getElementById('suc-to')?.value;
   CM('sucard-m');
   openSupExport(_sucName);
+  // Re-apply captured dates to the export modal if they exist
+  if(f) document.getElementById('supex-from').value = f;
+  if(t) document.getElementById('supex-to').value = t;
 }
 
 function goToTodayCal(){
