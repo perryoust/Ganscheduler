@@ -1891,17 +1891,17 @@ function openNohapQ(id){
   }
   document.getElementById('nohapqm').classList.add('open');
 }
-function selNohapReason(btn,reason){
-  document.querySelectorAll('.nohap-reason-btn').forEach(b=>b.classList.remove('sel'));
+function selNohapReason(btn, reason){
+  document.querySelectorAll('.nohap-reason-btn').forEach(b => b.classList.remove('sel'));
   btn.classList.add('sel');
-  const inp=document.getElementById('nohapq-reason');
-  if(reason==='אחר') inp.focus();
-  else inp.placeholder=reason;
+  const inp = document.getElementById('nohapq-reason');
+  if (reason === 'אחר') inp.focus();
+  else inp.placeholder = reason;
 }
 function saveNohapQ(){
-  const sel=document.querySelector('.nohap-reason-btn.sel');
-  const mainReason=sel?sel.textContent.replace(/^\S+ /,'').trim():'';
-  const extra=document.getElementById('nohapq-reason').value.trim();
+  const sel = document.querySelector('.nohap-reason-btn.sel');
+  const mainReason = sel ? (sel.dataset.r || sel.textContent.replace(/^\S+ /,'').trim()) : '';
+  const extra = document.getElementById('nohapq-reason').value.trim();
   const fullReason=[mainReason,extra].filter(Boolean).join(' — ');
   if(!mainReason&&!extra){alert('יש לבחור סיבה');return;}
   const scopeEl=document.querySelector('input[name="nohapq-scope"]:checked');
@@ -1955,7 +1955,24 @@ function saveNohapQ(){
       console.warn('nohap: gardenPair not found for gid='+origG2n+', pairs count='+pairs.length);
     }
   }
-  saveAndRefresh('nohapqm');
+  // Save + ask about makeup
+  save();
+  CM('nohapqm');
+  refresh();
+  
+  // Prompt for makeup scheduling
+  const origEvForMakeup = SCH.find(s => s.id === _nohapQId);
+  if (origEvForMakeup) {
+    setTimeout(() => {
+      const wantMakeup = confirm(
+        '⚠️ הפעילות סומנה כ"לא התקיים".\n\n' +
+        'האם תרצה לשבץ השלמה עכשיו?'
+      );
+      if (wantMakeup) {
+        window.openMakeupSched(_nohapQId);
+      }
+    }, 200);
+  }
 }
 
 // ─── Blocked Dates ────────────────────────────────────────────
@@ -3004,7 +3021,26 @@ window.getBlockedInfo = getBlockedInfo;
 window.getHolidayInfo = getHolidayInfo;
 window.cities = cities;
 window.openSP = window.openSP || (()=>{});
-window.qSetSt = window.qSetSt || (()=>{});
+// qSetSt — quick status setter. Routes to dialogs for nohap/can.
+function qSetSt(id, st) {
+  if (st === 'nohap') { openNohapQ(id); return; }
+  if (st === 'can')   { openCanQ(id);   return; }
+  if (st === 'post')  { openPostpone(id); return; }
+  // done / ok — set directly, sync pair
+  const s = SCH.find(x => x.id === id); if (!s) return;
+  s.st = st;
+  if (st === 'ok') { s.cr = ''; s.cn = ''; }
+  const pair = gardenPair(s.g);
+  if (pair) {
+    pair.ids.map(Number).filter(gid => gid !== Number(s.g)).forEach(gid => {
+      const pev = SCH.find(ps => Number(ps.g) === gid && ps.d === s.d &&
+        supBase(ps.a) === supBase(s.a) && ps.st !== 'can');
+      if (pev) { pev.st = st; if (st==='ok'){pev.cr='';pev.cn='';} }
+    });
+  }
+  save(); refresh();
+}
+window.qSetSt = qSetSt;
 window.openCanQ = window.openCanQ || (()=>{});
 window.openPostpone = window.openPostpone || (()=>{});
 window.openNohapQ = window.openNohapQ || (()=>{});

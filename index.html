@@ -2464,10 +2464,10 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div class="fg" style="margin-bottom:10px">
       <label style="font-weight:700">סיבה</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
-        <button class="nohap-reason-btn btn" onclick="selNohapReason(this,'ספק לא הגיע')">❌ מדריך לא הגיע</button>
-        <button class="nohap-reason-btn btn" onclick="selNohapReason(this,'גן סגור')">🤒 מדריך חולה</button>
-        <button class="nohap-reason-btn btn" onclick="selNohapReason(this,'אין ילדים')">缺失 חסר מדריך</button>
-        <button class="nohap-reason-btn btn" onclick="selNohapReason(this,'אחר')">📌 אחר</button>
+        <button class="nohap-reason-btn btn" data-r="מדריך לא הגיע" onclick="selNohapReason(this,'מדריך לא הגיע')">❌ מדריך לא הגיע</button>
+        <button class="nohap-reason-btn btn" data-r="מדריך חולה" onclick="selNohapReason(this,'מדריך חולה')">🤒 מדריך חולה</button>
+        <button class="nohap-reason-btn btn" data-r="גן סגור" onclick="selNohapReason(this,'גן סגור')">🏫 גן סגור</button>
+        <button class="nohap-reason-btn btn" data-r="אחר" onclick="selNohapReason(this,'אחר')">📌 אחר</button>
       </div>
       <input type="text" id="nohapq-reason" placeholder="פרט נוסף (אופציונלי)..." style="width:100%;margin-bottom:10px">
     </div>
