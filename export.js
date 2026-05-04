@@ -722,8 +722,10 @@ async function exportToExcel(data, filename, opts = {}) {
               // Expanded cancellation keywords based on user feedback
               let isOk = s.st === 'ok' || s.st === 'done';
               const cancelWords = ['בוטל', 'לא התקיים', 'מבוטל', 'חסר מדריך', 'חוסר מדריך'];
+              let isForcedCancel = false;
               if(isOk && cancelWords.some(w => note.includes(w))) {
                  isOk = false;
+                 isForcedCancel = true;
               }
               
               let grpCount = isOk ? (isSchool ? (s.grp || 1) : 1) : 0;
@@ -733,8 +735,12 @@ async function exportToExcel(data, filename, opts = {}) {
 
               // Clean up status label: only show if NOT 'ok' or if it's an exception
               let displayStatus = statusLabel;
-              if(isOk && (statusLabel === 'מתקיים' || s.st === 'ok' || s.st === 'done')) {
-                 displayStatus = ''; 
+              if(isOk) {
+                // If it's OK, we don't want to see "מתקיים" (user requested clean report)
+                if(statusLabel === 'מתקיים' || s.st === 'ok' || s.st === 'done') displayStatus = '';
+              } else {
+                // If it's NOT OK, show the reason. If we forced it via note, show "בוטל"
+                if(isForcedCancel) displayStatus = 'בוטל (לפי הערה)';
               }
               
               const row = ws.addRow([window.fD(s.d), g.name, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, s.nt || '']);
