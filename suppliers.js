@@ -63,7 +63,6 @@ function doSupExport(){
 
   window.CM('supexm');
 }
-}
 function exportExcel(){
   const f=window.getCalF();
   const y=window.calD.getFullYear(),m=window.calD.getMonth();
