@@ -307,73 +307,42 @@ var CITY_COLORS=window.CITY_COLORS;
 // ─── Shared Helper: Render global makeups for a day (ignores filters) ───
 // ─── Shared Helper: Makeups are now handled within regular grouping logic ───
 function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
-  const f={city:cityFilter, cls:clsFilter}; // Removed st: 'todo' to show all makeups regardless of status
-  // Create a pair mapping: gardenId -> pairKey (e.g. "12_45")
-  const pairMap = {};
-  if (window.pairs && Array.isArray(window.pairs)) {
-    window.pairs.forEach(p => {
-      if (p && (Array.isArray(p.ids) || (typeof p.ids === 'object' && p.ids[Symbol.iterator]))) {
-        const arr = [...p.ids];
-        const key = arr.sort((a,b)=>a-b).join('_');
-        arr.forEach(id => { pairMap[id] = key; });
-      }
-    });
-  }
+  const f={city:cityFilter, cls:clsFilter};
   const evs = (typeof filterE === 'function' ? filterE(f, ds, ds) : []).filter(s => {
     return !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
   });
   if(!evs.length) return '';
 
-  const pairedGids=new Set();
-  const pairsByCity={};
-  const others = evs;
-
-  window.pairs.forEach(pair=>{
-    const pairEvs=others.filter(s=>pair.ids.includes(s.g));
-    if(!pairEvs.length) return;
-    const g0 = window.G(pair.ids[0]);
-    if(!g0) return;
-    const city=g0.city||'אחר';
-    if(!pairsByCity[city]) pairsByCity[city]=[];
-    pairsByCity[city].push({pair,pairEvs});
-    pair.ids.forEach(id=>pairedGids.add(id));
+  // Group by city
+  const byCity = {};
+  evs.forEach(s => {
+    const g = window.G(s.g);
+    if (!g) return;
+    const city = g.city || 'אחר';
+    if (!byCity[city]) byCity[city] = [];
+    byCity[city].push(s);
   });
 
-  const allSoloEvs = others.filter(s=>!pairedGids.has(s.g));
-  
-  // Dynamic layout logic:
-  // Cubes (Grid) for Day view or Calendar range mode.
-  // List for Week, Month, List mode or List range mode.
-  const cv = typeof window.calV !== 'undefined' ? window.calV : 'day';
-  const rsv = typeof window._rangeSubView !== 'undefined' ? window._rangeSubView : 'cal';
-  const isList = (cv === 'week' || cv === 'list' || cv === 'month' || (cv === 'range' && rsv === 'list'));
-  const layoutClass = isList ? 'pairs-list-layout' : 'pairs-4col';
-
-  let h = `<div style="background:linear-gradient(135deg,#e1f5fe,#fff);border:2px solid #03a9f4;border-radius:12px;padding:12px;margin-bottom:15px;box-shadow:0 4px 15px rgba(3,169,244,.1)">
-    <div style="font-weight:800;color:#01579b;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.95rem">
-      <span>🚀 השלמות להיום</span>
-      <span style="font-size:.7rem;opacity:.7">${window.fD(ds)}</span>
+  let h = `<div style="background:linear-gradient(135deg,#e1f5fe,#f0f9ff);border:2px solid #0288d1;border-radius:10px;padding:10px 12px 6px;margin-bottom:12px;box-shadow:0 2px 10px rgba(3,169,244,.12)">
+    <div style="font-weight:800;color:#01579b;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.88rem;padding:0 2px">
+      <span>📅 השלמות להיום</span>
+      <span style="font-size:.68rem;opacity:.6;font-weight:400">${window.fD(ds)}</span>
     </div>`;
 
-  Object.keys(pairsByCity).sort().forEach(city=>{
-    const clr=window.CITY_COLORS(city);
-    h += `<div class="${layoutClass}">`;
-    pairsByCity[city].forEach(({pair,pairEvs})=>{
-      h += renderPairCard(pair, pairEvs, {ds, clr, showEdit:true, showExport:true, isMakeup:true, isList:isList});
-    });
-    h += `</div>`;
+  Object.keys(byCity).sort().forEach(city => {
+    const clr = window.CITY_COLORS(city);
+    const cityEvs = byCity[city].sort((a,b) => (window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he') || (a.t||'99:99').localeCompare(b.t||'99:99'));
+    h += `<details class="city-accordion" style="margin-bottom:4px">
+      <summary>
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+          <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cityEvs.length})</span>
+          <span style="font-size:0.75rem; color:#718096;">לחץ לפירוט</span>
+        </div>
+      </summary>
+      <div class="city-accordion-content">`;
+    cityEvs.forEach(s => { h += _listRow(s, clr, ds); });
+    h += `</div></details>`;
   });
-
-  if(allSoloEvs.length){
-    h += `<div class="${layoutClass}">`;
-    allSoloEvs.forEach(s=>{
-      const g = window.G(s.g);
-      if(!g) return;
-      const clr=window.CITY_COLORS(g.city||'אחר');
-      h += renderPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds, clr, showEdit:true, showExport:true, isMakeup:true, isList:isList});
-    });
-    h += `</div>`;
-  }
 
   h += `</div>`;
   return h;
@@ -545,17 +514,17 @@ function renderClusterDay(evs, ds, clusterName){
           sorted.forEach(s => {
             const g=window.G(s.g);
             const stc=s.st!=='ok'?'st-'+s.st:'';
-            html+=`<div style="display:flex;align-items:center;gap:8px;border:1.5px solid ${clrCity.border};border-radius:6px;padding:4px 10px;cursor:pointer;background:#fff;border-right:4px solid ${clrCity.solid};margin-bottom:4px" onclick="openSP(${s.id})" class="${stc}">
+            html+=`<div style="display:flex;align-items:center;gap:8px;border:1.5px solid ${clrCity.border};border-radius:6px;padding:4px 10px;cursor:pointer;background:#fff;border-right:4px solid ${clrCity.solid};margin-bottom:4px" onclick="openSP('${s.id}')" class="${stc}">
               <span style="font-weight:800;color:${clrCity.solid};white-space:nowrap">${s.t?`⏰ ${window.fT(s.t)}`:'--:--'}</span>
-              <span style="font-weight:700;color:#1a237e;white-space:nowrap">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</span>
+              <span style="font-weight:700;color:#1a237e;white-space:nowrap">${window.gcls(g)==='ביה"ס'?'🏗️':'🏫'} ${g.name}</span>
               <span style="color:#546e7a;font-size:.74rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${window.supBase(s.a)}${(s.act||window.supAct(s.a))?` · ${s.act||window.supAct(s.a)}`:''}</span>
               <span style="font-size:.68rem;font-weight:700;white-space:nowrap">${window.stLabel(s)}</span>
               <div class="qacts" onclick="event.stopPropagation()" style="margin-right:auto;display:flex;gap:3px">
-                ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')" style="padding:2px 4px">✔️</button>`}
-                ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})" style="padding:2px 4px">❌</button>`}
-                ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')" style="padding:2px 4px">⚠️</button>`}
-                <button title="דחה פעילות" onclick="openPostpone(${s.id})" style="padding:2px 4px">⏩</button>
-                <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})" style="padding:2px 4px">📅</button>
+                ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt('${s.id}','done')" style="padding:2px 4px">✔️</button>`}
+                ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ('${s.id}')" style="padding:2px 4px">❌</button>`}
+                ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt('${s.id}','nohap')" style="padding:2px 4px">⚠️</button>`}
+                <button title="דחה פעילות" onclick="openPostpone('${s.id}')" style="padding:2px 4px">⏩</button>
+                <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched('${s.id}')" style="padding:2px 4px">📅</button>
               </div>
             </div>`;
           });
@@ -578,18 +547,18 @@ function renderClusterDay(evs, ds, clusterName){
           <button onclick="event.stopPropagation();_exportGardenWA([${g.id}],'${ds}')" style="background:rgba(255,255,255,.28);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
         </div>
         <div style="background:#fff;padding:2px 7px">
-          <div class="pslot ${stc}" style="border-right:4px solid ${clrCity.solid};background:${clrCity.light};display:flex;align-items:center;gap:10px;padding:4px 10px;border-radius:4px" onclick="openSP(${s.id})">
+          <div class="pslot ${stc}" style="border-right:4px solid ${clrCity.solid};background:${clrCity.light};display:flex;align-items:center;gap:10px;padding:4px 10px;border-radius:4px" onclick="openSP('${s.id}')">
             <span style="font-weight:800;color:${clrCity.solid};white-space:nowrap">${s.t?`⏰ ${window.fT(s.t)}`:'--:--'}</span>
             <span style="font-weight:700;color:#1a237e;white-space:nowrap">${window.supBase(s.a)}</span>
             <span style="font-size:.74rem;color:${clrCity.solid};font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(s.act||window.supAct(s.a))?`🎯 ${s.act||window.supAct(s.a)}`:''}</span>
             ${s.grp>1?`<span style="font-size:.68rem;color:#546e7a;white-space:nowrap">👥 ${s.grp}</span>`:''}
             <span style="font-size:.68rem;white-space:nowrap">${window.stLabel(s)}</span>
             <div class="qacts" onclick="event.stopPropagation()" style="display:flex;gap:3px">
-              ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')" style="padding:2px 4px">✔️</button>`}
-              ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})" style="padding:2px 4px">❌</button>`}
-              ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')" style="padding:2px 4px">⚠️</button>`}
-              <button title="דחה פעילות" onclick="openPostpone(${s.id})" style="padding:2px 4px">⏩</button>
-              <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})" style="padding:2px 4px">📅</button>
+              ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt('${s.id}','done')" style="padding:2px 4px">✔️</button>`}
+              ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ('${s.id}')" style="padding:2px 4px">❌</button>`}
+              ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt('${s.id}','nohap')" style="padding:2px 4px">⚠️</button>`}
+              <button title="דחה פעילות" onclick="openPostpone('${s.id}')" style="padding:2px 4px">⏩</button>
+              <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched('${s.id}')" style="padding:2px 4px">📅</button>
             </div>
           </div>
         </div>
@@ -1189,15 +1158,15 @@ function _quickActionBtns(s){
   const isDone=s.st==='done', isCan=s.st==='can', isNohap=s.st==='nohap';
   return `<div class="qacts" style="opacity:1;display:flex;gap:3px;flex-shrink:0" onclick="event.stopPropagation()">
     ${isDone?'':`<button title="התקיים" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
-      onclick="qSetSt(${sid},'done')">✔️</button>`}
+      onclick="qSetSt('${sid}','done')">✔️</button>`}
     ${isCan?'':`<button title="בטל" style="background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
-      onclick="openCanQ(${sid})">❌</button>`}
+      onclick="openCanQ('${sid}')">❌</button>`}
     ${isNohap?'':`<button title="לא התקיים" style="background:#f3e5f5;color:#6a1b9a;border:1px solid #ce93d8;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
-      onclick="qSetSt(${sid},'nohap')">⚠️</button>`}
+      onclick="qSetSt('${sid}','nohap')">⚠️</button>`}
     <button title="דחה" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
-      onclick="openPostpone(${sid})">⏩</button>
+      onclick="openPostpone('${sid}')">⏩</button>
     <button title="שיבוץ השלמה" class="btn-makeup" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
-      onclick="openMakeupSched(${sid})">📅</button>
+      onclick="openMakeupSched('${sid}')">📅</button>
   </div>`;
 }
 
