@@ -761,7 +761,7 @@ function saveReplaceRecur(id) {
           // Add for primary garden
           window.SCH.push({
             id: eid, g: s.g, d: ds, a: sup, act: act, t: time, st: 'ok', 
-            nt: s.nt||'', _recId: newRecId, grp: s.grp||1
+            nt: '', _recId: newRecId, grp: s.grp||1
           });
           // Add for partners if synced
           if (sync) {
@@ -772,7 +772,7 @@ function saveReplaceRecur(id) {
                   // Keep partner time if possible, otherwise use main time
                   window.SCH.push({
                     id: eid + (idx+1)*5000, g: pid, d: ds, a: sup, act: act, t: partnerTime, st: 'ok',
-                    nt: s.nt||'', _recId: newRecId, grp: s.grp||1
+                    nt: '', _recId: newRecId, grp: s.grp||1
                   });
                 }
               });
