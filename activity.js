@@ -77,7 +77,7 @@ function renderDash() {
 
     if (tSt === 'todo') {
       if (s.st === 'can' || isHandled) return false;
-      if (s.st === 'nohap' || s.st === 'post' || isM) return true;
+      if (s.st === 'nohap' || isM) return true;
       return false;
     } else if (tSt === 'handled') {
       return (s.st === 'done' || isHandled);

@@ -206,6 +206,8 @@ function goToCancelled(){
   ST('dash');
   setTimeout(()=>{
     const el = document.getElementById('dash-st');
+    const dt = document.getElementById('dash-date');
+    if(dt) dt.value = '';
     if(el) { el.value='can'; renderDash(); }
   },50);
 }
@@ -213,6 +215,8 @@ function goToPostponed(){
   ST('dash');
   setTimeout(()=>{
     const el = document.getElementById('dash-st');
+    const dt = document.getElementById('dash-date');
+    if(dt) dt.value = '';
     if(el) { el.value='post'; renderDash(); }
   },50);
 }
@@ -220,6 +224,8 @@ function goToNohap(){
   ST('dash');
   setTimeout(()=>{
     const el = document.getElementById('dash-st');
+    const dt = document.getElementById('dash-date');
+    if(dt) dt.value = '';
     if(el) { el.value='nohap'; renderDash(); }
   },50);
 }
@@ -227,6 +233,8 @@ function goToNoHap(){
   ST('dash');
   setTimeout(()=>{
     const el = document.getElementById('dash-st');
+    const dt = document.getElementById('dash-date');
+    if(dt) dt.value = '';
     if(el) { el.value='nohap'; renderDash(); }
   },50);
 }

@@ -803,9 +803,12 @@ function renderPairCard(pair, pairEvs, opts){
           <div style="font-weight:700; color:#1a237e; white-space:nowrap; min-width:110px;">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
           <div style="font-weight:800; color:#fff; background:#5c6bc0; padding:2px 8px; border-radius:4px; font-size:0.75rem; min-width:50px; text-align:center;">${ev.t ? window.fT(ev.t) : '--:--'}</div>
           <div style="font-size:0.7rem; color:#78909c; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:150px;">${g.st?`📍 ${g.st}`:''}</div>
-          <div style="flex:1; display:flex; align-items:center; gap:6px; overflow:hidden; justify-content:flex-end;">
-            ${makeupBadge}
-            <span style="font-size:0.7rem; font-weight:700; color:${ev.st==='ok'?'#2e7d32':'#c62828'}">${window.stLabel(ev)}</span>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:flex-end; gap:2px; overflow:hidden; justify-content:center;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              ${makeupBadge}
+              <span style="font-size:0.7rem; font-weight:700; color:${ev.st==='ok'?'#2e7d32':'#c62828'}">${window.stLabel(ev)}</span>
+            </div>
+            ${ev.nt ? `<span style="color:#d84315; font-size:0.65rem; font-weight:700; line-height:1.1; max-width:100%; white-space:normal; text-align:right;">📝 ${ev.nt}</span>` : ''}
           </div>
           <div class="qacts" onclick="event.stopPropagation()" style="display:flex; gap:3px;">
             ${ev.st==='done'?'':`<button title="בוצע" onclick="window.qSetSt('${ev.id}','done')" style="padding:1px 4px;">✔️</button>`}

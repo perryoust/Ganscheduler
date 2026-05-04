@@ -67,7 +67,7 @@ function renderGardens(){
       });
       h+='</div>';
     });
-    h+='</div>';
+    h+='</div></details>';
   });
   document.getElementById('g-body').innerHTML=h||'<p style="color:#999">לא נמצאו צהרונים</p>';
   setTimeout(window._fitScrollAreas,50);
@@ -340,7 +340,7 @@ function renderPairs(){
       if(gs.length<3) h+=`<div style="background:#fafafa;border-right:1px solid #e8eaf6;display:flex;align-items:center;justify-content:center"><span style="color:#d0d0d0;font-size:.8rem">—</span></div>`;
       h+='</div></div>';
     });
-    h+='</div>';
+    h+='</div></details>';
   });
   document.getElementById('pairs-main').innerHTML=h;
 }
@@ -733,7 +733,7 @@ function renderClusters(){
           <button class="btn bp bsm" style="width:100%" onclick="openClusterSchedule('${cl.id}')">📅 שבץ לאשכול</button>
         </div>`;
       });
-      h+='</div></div>';
+      h+='</div></div></details>';
     });
     // גנים ללא אשכול — תצוגת כרטיסים
     if(noCluster.length){
