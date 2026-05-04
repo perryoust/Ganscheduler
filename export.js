@@ -723,7 +723,7 @@ async function exportToExcel(data, filename, opts = {}) {
               // Expanded cancellation keywords based on user feedback
               let isOk = s.st === 'ok' || s.st === 'done';
               const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
-              const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים'];
+              const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע'];
               
               let isForcedCancel = false;
               // If it's a makeup (השלמה), it COUNTS as ok even if it mentions a cancellation

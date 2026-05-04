@@ -891,7 +891,7 @@ function saveNt(){
     if((s.st === 'ok' || s.st === 'done') && !val.includes('השלמה')) {
       const lower = val.toLowerCase();
       const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
-      const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים'];
+      const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע'];
       if(canWords.some(w => lower.includes(w))) {
         s.st = 'can';
         if(typeof window.showToast==='function') window.showToast('ℹ️ הסטטוס עודכן אוטומטית ל"בוטל" עקב ההערה');

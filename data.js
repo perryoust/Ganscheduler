@@ -77,7 +77,7 @@ var _srawsReady=(async function(){
     if(!_syncDone){
       let changed = 0;
       const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
-      const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך'];
+      const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע'];
       
       window.SCH.forEach(s => {
         const note = (s.nt || '').toLowerCase();
