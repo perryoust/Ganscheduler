@@ -414,7 +414,7 @@ function openSP(id){
           <label for="sp-handle-nt" style="font-size:0.75rem;color:#795548;display:block;margin-bottom:4px;font-weight:700">📝 הערת סיום טיפול:</label>
           <input type="text" id="sp-handle-nt" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid #ffe082;font-size:0.85rem" placeholder="לדוגמה: בוצע ידנית ב-20/4..." value="${s.st==='post'?'נדחה':''}">
         </div>
-        <button class="btn borange" style="width:100%;padding:12px;font-weight:900;font-size:0.95rem" onclick="window.markCompManual(${s.id})">🗑️ סיום טיפול והסרה מהלוח</button>
+        <button class="btn borange" style="width:100%;padding:12px;font-weight:900;font-size:0.95rem" onclick="window.markCompManual('${s.id}')">🗑️ סיום טיפול והסרה מהלוח</button>
       </div>
     </div>`;
   }
@@ -489,8 +489,8 @@ function openSP(id){
           </label>
         ` : ''}
 
-        <button class="btn bp" style="width:100%;padding:10px;font-weight:800;font-size:.9rem;margin-top:12px" onclick="window.saveReplaceRecur(${s.id})">💾 שמור שינויים והחל סדרה קבועה</button>
-        ${s._recId ? `<button class="btn br" style="width:100%;padding:8px;font-weight:700;margin-top:6px;background:#fff;border:1px solid #ef9a9a;color:#c62828" onclick="window.deleteRecurSeries(${s.id})">🗑️ הסר פעילות קבועה מכאן והלאה</button>` : ''}
+        <button class="btn bp" style="width:100%;padding:10px;font-weight:800;font-size:.9rem;margin-top:12px" onclick="window.saveReplaceRecur('${s.id}')">💾 שמור שינויים והחל סדרה קבועה</button>
+        ${s._recId ? `<button class="btn br" style="width:100%;padding:8px;font-weight:700;margin-top:6px;background:#fff;border:1px solid #ef9a9a;color:#c62828" onclick="window.deleteRecurSeries('${s.id}')">🗑️ הסר פעילות קבועה מכאן והלאה</button>` : ''}
       </div>
     </div>
   </div>`;
