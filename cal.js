@@ -437,7 +437,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
           soloEvs.forEach(s=>{
             const g=window.G(s.g);
             const stc=s.st!=='ok'?'st-'+s.st:'';
-            html+=`<div style="min-width:160px;flex:1;max-width:260px;border:1.5px solid ${clr.border};border-radius:7px;padding:7px;cursor:pointer;background:${clr.light};border-right:3px solid ${clr.solid}" onclick="openSP(${s.id})" class="${stc}">
+            html+=`<div style="min-width:160px;flex:1;max-width:260px;border:1.5px solid ${clr.border};border-radius:7px;padding:7px;cursor:pointer;background:${clr.light};border-right:3px solid ${clr.solid}" onclick="openSP('${s.id}')" class="${stc}">
               ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clr.solid};margin-bottom:2px">⏰ ${window.fT(s.t)}</div>`:''}
               <div style="font-weight:700;font-size:.78rem;color:#1a237e">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
               ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
@@ -625,7 +625,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
           [...clEvs].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s=>{
             const g=window.G(s.g);
             const stc=s.st!=='ok'?'st-'+s.st:'';
-            html+=`<div style="min-width:150px;flex:1;max-width:240px;border:1.5px solid ${clrCity.border};border-right:3px solid ${clrCity.solid};border-radius:6px;padding:6px;cursor:pointer;background:#fff" onclick="openSP(${s.id})" class="${stc}">
+            html+=`<div style="min-width:150px;flex:1;max-width:240px;border:1.5px solid ${clrCity.border};border-right:3px solid ${clrCity.solid};border-radius:6px;padding:6px;cursor:pointer;background:#fff" onclick="openSP('${s.id}')" class="${stc}">
               ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clrCity.solid}">⏰ ${window.fT(s.t)}</div>`:''}
               <div style="font-weight:700;font-size:.76rem;color:#1a237e">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
               <div style="font-size:.7rem;color:#546e7a">${window.supBase(s.a)}${(s.act||window.supAct(s.a))?` · ${s.act||window.supAct(s.a)}`:''}</div>
@@ -644,7 +644,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
         const stc=s.st!=='ok'?'st-'+s.st:'';
         const clrCity=window.CITY_COLORS(g.city||'');
         const clBadge=isAll?(window.gardenClusters(g.id)[0]||{}).name||'':'';
-        html+=`<div style="min-width:180px;flex:1;border:1.5px solid ${clrCity.border};border-radius:7px;padding:7px;cursor:pointer;background:${clrCity.light}" onclick="openSP(${s.id})" class="${stc}">
+        html+=`<div style="min-width:180px;flex:1;border:1.5px solid ${clrCity.border};border-radius:7px;padding:7px;cursor:pointer;background:${clrCity.light}" onclick="openSP('${s.id}')" class="${stc}">
           ${s.t?`<div style="font-size:.82rem;font-weight:800;color:${clrCity.solid};margin-bottom:2px">⏰ ${window.fT(s.t)}</div>`:''}
           <div style="font-weight:700;font-size:.78rem;color:#1a237e">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
           ${clBadge?`<div style="font-size:.66rem;color:#546e7a">🔢 ${clBadge}</div>`:''}

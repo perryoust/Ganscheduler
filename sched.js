@@ -623,7 +623,7 @@ function renderSched(){
           const pnB=pB?pB.name:window.G(b.g).name;
           return pnA.localeCompare(pnB,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
         }).forEach(s=>{
-          h+=`<tr onclick="window.openSP(${s.id})" class="${window.stClass(s)}" style="cursor:pointer">
+          h+=`<tr onclick="window.openSP('${s.id}')" class="${window.stClass(s)}" style="cursor:pointer">
             <td><div style="font-weight:700">${s.gd.name}</div>${s.gd.st?`<div style="font-size:.68rem;color:#78909c">${s.gd.st}</div>`:''}</td>
             <td><div style="font-weight:700">${window.supBase(s.a)}</div>${window.supAct(s.a)?`<div style="font-size:.7rem;color:#1565c0">🎯 ${window.supAct(s.a)}</div>`:''}<span style="font-size:.68rem;color:#78909c">${s.p||''}</span></td>
             <td>${window.fT ? window.fT(s.t) : s.t}</td>

@@ -177,8 +177,7 @@ function renderGM(){
   evs.forEach(s=>{
     const g=window.G(s.g);
     const gblk=window.getGardenBlock(s.g,s.d);
-    h+=`<tr onclick="window.openSP(${s.id})" class="${window.stClass(s)}"><td>${window.fD(s.d)}</td><td>יום ${window.dayN(s.d)}</td><td>${s.a}</td><td>${window.fT(s.t)}</td><td>${gblk?`<span style="color:#c62828;font-size:.72rem">${gblk.icon||'🚫'} ${gblk.reason}</span>${s.nt?' | '+s.nt:''}`:s.nt||''}</td><td>${window.stLabel(s)}</td></tr>`;
-  });
+    h+=`<tr onclick="window.openSP('${s.id}')" class="${window.stClass(s)}"><td>${window.fD(s.d)}</td><td>יום ${window.dayN(s.d)}</td><td>${s.a}</td><td>${window.fT(s.t)}</td><td>${gblk?`<span style="color:#c62828;font-size:.72rem">${gblk.icon||'🚫'} ${gblk.reason}</span>${s.nt?' | '+s.nt:''}`:s.nt||''}</td><td>${window.stLabel(s)}</td></tr>`;  });
   document.getElementById('gm-cal').innerHTML=h+'</tbody></table></div>';
 }
 function quickAddPartner(gid){

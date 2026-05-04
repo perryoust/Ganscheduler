@@ -344,10 +344,10 @@ function openSP(id){
       <button class="btn bg bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px" onclick="window.setStatus('done')">✔️ בוצע</button>
       <button class="btn bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px;background:#fff;color:#c62828;border:1px solid #ef9a9a" onclick="window.setStatus('nohap')">⚠️ לא התקיים</button>
       <button class="btn bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px;background:#fff;color:#546e7a;border:1px solid #cfd8dc" onclick="window.setStatus('can')">❌ ביטול</button>
-      <button class="btn borange bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px" onclick="window.openPostpone(${s.id})">⏩ דחייה</button>
+      <button class="btn borange bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px" onclick="window.openPostpone('${s.id}')">⏩ דחייה</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
-      <button class="btn bp bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px" onclick="window.openMakeupSched(${s.id})">📅 השלמה</button>
+      <button class="btn bp bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px" onclick="window.openMakeupSched('${s.id}')">📅 השלמה</button>
       <button class="btn bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px;background:#fff;color:#e65100;border:1px solid #ffcc80" onclick="window.markCompManual('${s.id}')">🗑️ סיום טיפול</button>
       <button class="btn bo bsm" style="font-size:.72rem;padding:8px 2px;font-weight:800;border-radius:8px" onclick="window.setStatus('ok')">🔄 שחזור</button>
     </div>

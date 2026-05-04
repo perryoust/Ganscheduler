@@ -1028,7 +1028,7 @@ function navSearchInput(val){
         icon:'📅',
         label:`${supBase(s.a)} — ${g?.name||''}`,
         sub: `${fD(s.d)} ${s.t?fT(s.t):''}`,
-        action: `switchMode('act');ST('cal');setTimeout(()=>{goDate('${s.d}');setTimeout(()=>openSP(${s.id}),200);},150);navSearchClose();`
+        action: `switchMode('act');ST('cal');setTimeout(()=>{goDate('${s.d}');setTimeout(()=>openSP('${s.id}'),200);},150);navSearchClose();`
       });
     });
   }
@@ -1700,7 +1700,7 @@ function renderSupCard(){
       <td style="text-align:center">${s.grp||1}</td>
       <td>${stLabel(s)}</td>
       <td style="max-width:100px;font-size:.71rem">${s.nt||''}</td>
-      <td><button class="btn bo bsm" style="font-size:.65rem" onclick="openSP(${s.id})">✏️</button></td>
+      <td><button class="btn bo bsm" style="font-size:.65rem" onclick="openSP('${s.id}')">✏️</button></td>
     </tr>`;
   });
   h+='</tbody></table></div>';
@@ -2632,8 +2632,8 @@ function _renderGardenFixedRow(g){
         <td style="padding:3px 10px;color:#5c6bc0;font-size:.71rem">${s.tp||'חוג'}</td>
         <td style="padding:3px 10px;color:#2e7d32;font-weight:600;white-space:nowrap">${time}</td>
         <td style="padding:2px 6px;white-space:nowrap">
-          <button onclick="event.stopPropagation();openSP(${s.id})" style="background:#e8eaf6;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#3949ab" title="פתח / ערוך">✏️</button>
-          <button onclick="event.stopPropagation();openSP(${s.id})" style="background:#ffebee;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#c62828;margin-right:2px" title="ביטול">❌</button>
+          <button onclick="event.stopPropagation();openSP('${s.id}')" style="background:#e8eaf6;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#3949ab" title="פתח / ערוך">✏️</button>
+          <button onclick="event.stopPropagation();openSP('${s.id}')" style="background:#ffebee;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#c62828;margin-right:2px" title="ביטול">❌</button>
         </td>
       </tr>`;
     });
