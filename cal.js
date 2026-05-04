@@ -1484,13 +1484,13 @@ function _listRow(s, clr, ds){
         <span style="font-weight:700;font-size:.76rem;color:#1a237e;line-height:1">${g.name}</span>
       </div>
       ${addrLink}
+      ${s._recId?`<div style="display:inline-block;background:#f3e5f5;color:#6a1b9a;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:800;border:1px solid #e1bee7;margin-top:2px;width:fit-content">🔄 קבוע</div>`:''}
     </div>
     <div>
       <div style="font-size:.75rem;font-weight:600;color:#1565c0">${supText}</div>
       ${s.nt?`<div style="font-size:.68rem;color:#d84315;margin-top:2px;max-width:200px;white-space:normal;line-height:1.15;font-weight:700">📝 ${s.nt}</div>`:''}
       ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #b3e5fc;margin-top:2px">📅 השלמה</div>`:''}
       ${(s._compByMakeup && s._compByMakeup!=='false')?`<div style="display:inline-block;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #a5d6a7;margin-top:2px">✅ נקבעה השלמה${(window.SCH.find(x=>x.id===s._compByMakeup)||{}).d ? ' ל-'+window.fD((window.SCH.find(x=>x.id===s._compByMakeup)||{}).d) : ''}</div>`:''}
-      ${s._recId?`<div style="display:inline-block;background:#f3e5f5;color:#6a1b9a;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #e1bee7;margin-top:2px">🔄 קבוע</div>`:''}
       ${!isUnassigned ? `<div style="font-size:.65rem;color:#5c6bc0">${s.tp||'חוג'}</div>` : ''}
     </div>
     <div style="font-size:.7rem;font-weight:700;color:${stC}">${stLabelText}</div>
