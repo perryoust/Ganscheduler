@@ -887,15 +887,18 @@ function saveNt(){
   if(ntEl) {
     const val = ntEl.value;
     s.nt = val;
-    const isPos = val.includes('השלמה') || val.includes('נדחה') || val.includes('הזזה') || val.includes('הוזז');
+    const lower = val.toLowerCase();
+    const isMovedFrom = lower.includes('נדחה מ') || lower.includes('הוזז מ') || lower.includes('הזזה מ');
+    const isMovedTo = lower.includes('נדחה ל') || lower.includes('הוזז ל') || lower.includes('הזזה ל');
+    const isPos = lower.includes('השלמה') || isMovedFrom || (lower.includes('נדחה') && !isMovedTo);
+    
     // Auto-Correct status based on note keywords (skip if it's a positive exception)
     if((s.st === 'ok' || s.st === 'done') && !isPos) {
-      const lower = val.toLowerCase();
       const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
       const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע'];
-      if(canWords.some(w => lower.includes(w))) {
+      if(canWords.some(w => lower.includes(w)) || isMovedTo) {
         s.st = 'can';
-        if(typeof window.showToast==='function') window.showToast('ℹ️ הסטטוס עודכן אוטומטית ל"בוטל" עקב ההערה');
+        if(typeof window.showToast==='function') window.showToast('ℹ️ הסטטוס עודכן אוטומטית ל"בוטל" (נדחה למועד אחר)');
       } else if(nohapWords.some(w => lower.includes(w))) {
         s.st = 'nohap';
         if(typeof window.showToast==='function') window.showToast('ℹ️ הסטטוס עודכן אוטומטית ל"לא התקיים" עקב ההערה');

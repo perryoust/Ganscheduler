@@ -81,9 +81,12 @@ var _srawsReady=(async function(){
       
       window.SCH.forEach(s => {
         const note = (s.nt || '').toLowerCase();
-        const isPositive = note.includes('השלמה') || note.includes('נדחה') || note.includes('הזזה') || note.includes('הוזז');
+        const isMovedFrom = note.includes('נדחה מ') || note.includes('הוזז מ') || note.includes('הזזה מ');
+        const isMovedTo = note.includes('נדחה ל') || note.includes('הוזז ל') || note.includes('הזזה ל');
+        const isPositive = note.includes('השלמה') || isMovedFrom || (note.includes('נדחה') && !isMovedTo);
+        
         if((s.st === 'ok' || s.st === 'done') && !isPositive) {
-          if(canWords.some(w => note.includes(w))) { s.st = 'can'; changed++; }
+          if(canWords.some(w => note.includes(w)) || isMovedTo) { s.st = 'can'; changed++; }
           else if(nohapWords.some(w => note.includes(w))) { s.st = 'nohap'; changed++; }
         }
       });

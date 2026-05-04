@@ -717,19 +717,28 @@ async function exportToExcel(data, filename, opts = {}) {
               const g = window.G(s.g);
               const isSchool = window.gcls(g) === 'ביה"ס';
               const note = (s.nt || '').toLowerCase();
-              const isPositive = note.includes('השלמה') || note.includes('נדחה') || note.includes('הזזה') || note.includes('הוזז');
+              
+              // Positive indicators: makeup sessions or activities moved FROM another date
+              const isMakeup = note.includes('השלמה');
+              const isMovedFrom = note.includes('נדחה מ') || note.includes('הוזז מ') || note.includes('הזזה מ');
+              // Negative indicators: activities moved TO another date
+              const isMovedTo = note.includes('נדחה ל') || note.includes('הוזז ל') || note.includes('הזזה ל');
+              
+              const isPositive = isMakeup || isMovedFrom || (note.includes('נדחה') && !isMovedTo);
               
               // 1. Check status first: ok/done are positive
               let isOk = s.st === 'ok' || s.st === 'done';
               
-              // 2. If it's officially not ok (nohap/can), it's ALWAYS 0, no matter what's in the note
+              // 2. If it's officially not ok (nohap/can), it's ALWAYS 0
               if(!isOk) {
                  // it's 0.
               } else {
-                // It's ok, but let's see if there's a cancellation keyword in the note
+                // It's ok, but let's see if there's a cancellation keyword or "Moved TO"
                 const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
                 const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע'];
-                if(!isPositive && [...canWords, ...nohapWords].some(w => note.includes(w))) {
+                const isManualCancel = [...canWords, ...nohapWords].some(w => note.includes(w));
+                
+                if((isManualCancel || isMovedTo) && !isPositive) {
                    isOk = false;
                 }
               }
