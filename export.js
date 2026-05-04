@@ -718,9 +718,23 @@ async function exportToExcel(data, filename, opts = {}) {
               const isSchool = window.gcls(g) === 'ביה"ס';
               const note = (s.nt || '').toLowerCase();
               
-              // Report is now strictly faithful to the site's status
+              // Report is faithful to site, but has safety overrides for notes
+              const isMakeup = note.includes('השלמה');
+              const isMovedFrom = note.includes('נדחה מ') || note.includes('הוזז מ') || note.includes('הזזה מ');
+              const isMovedTo = note.includes('נדחה ל') || note.includes('הוזז ל') || note.includes('הזזה ל');
+              const isPositive = isMakeup || isMovedFrom || (note.includes('נדחה') && !isMovedTo);
+
               let isOk = s.st === 'ok' || s.st === 'done';
               
+              if(isOk) {
+                const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
+                const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע', 'לא נשאר', 'עזב', 'לא התקיימה'];
+                const isManualCancel = [...canWords, ...nohapWords].some(w => note.includes(w));
+                if((isManualCancel || isMovedTo) && !isPositive) {
+                   isOk = false;
+                }
+              }
+
               // Always show real group count from data, default to 1 if ok
               let grpCount = isOk ? (s.grp || 1) : 0;
               

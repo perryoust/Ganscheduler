@@ -72,33 +72,29 @@ var _srawsReady=(async function(){
     SRAWS.push(...data);
     console.log('SRAWS loaded:',SRAWS.length);
     
-    // AUTOMATIC DATA CLEANUP: Sync statuses based on notes (ONE-TIME RUN)
-    const _syncDone = window._safeLS.getItem('_statusSyncDone_v989');
-    if(!_syncDone){
-      let changed = 0;
-      const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
-      const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע', 'לא נשאר', 'עזב', 'לא התקיימה'];
+    // AUTOMATIC DATA CLEANUP: Continuous Health Check
+    let changed = 0;
+    const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
+    const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע', 'לא נשאר', 'עזב', 'לא התקיימה'];
+    
+    window.SCH.forEach(s => {
+      const note = (s.nt || '').toLowerCase();
+      const isMovedFrom = note.includes('נדחה מ') || note.includes('הוזז מ') || note.includes('הזזה מ');
+      const isMovedTo = note.includes('נדחה ל') || note.includes('הוזז ל') || note.includes('הזזה ל');
+      const isPositive = note.includes('השלמה') || isMovedFrom || (note.includes('נדחה') && !isMovedTo);
       
-      window.SCH.forEach(s => {
-        const note = (s.nt || '').toLowerCase();
-        const isMovedFrom = note.includes('נדחה מ') || note.includes('הוזז מ') || note.includes('הזזה מ');
-        const isMovedTo = note.includes('נדחה ל') || note.includes('הוזז ל') || note.includes('הזזה ל');
-        const isPositive = note.includes('השלמה') || isMovedFrom || (note.includes('נדחה') && !isMovedTo);
-        
-        if((s.st === 'ok' || s.st === 'done') && !isPositive) {
-          if(canWords.some(w => note.includes(w)) || isMovedTo) { s.st = 'can'; changed++; }
-          else if(nohapWords.some(w => note.includes(w))) { s.st = 'nohap'; changed++; }
-        }
-      });
-      if(changed > 0) { 
-        console.log(`Auto-Sync: Fixed ${changed} statuses based on notes.`);
-        setTimeout(() => { if(typeof window.save === 'function') window.save(); }, 2000); 
+      if((s.st === 'ok' || s.st === 'done') && !isPositive) {
+        if(canWords.some(w => note.includes(w)) || isMovedTo) { s.st = 'can'; changed++; }
+        else if(nohapWords.some(w => note.includes(w))) { s.st = 'nohap'; changed++; }
       }
-      window._safeLS.setItem('_statusSyncDone_v100', '1');
+    });
+    if(changed > 0) { 
+      console.log(`Auto-Sync: Fixed ${changed} statuses based on notes.`);
+      if(typeof window.save === 'function') window.save(); 
     }
     
     // AUTOMATIC MAKEUP MATCHING: Offset old failures with new makeups
-    const _matchDone = window._safeLS.getItem('_makeupMatchDone_v100');
+    const _matchDone = window._safeLS.getItem('_makeupMatchDone_v101');
     if(!_matchDone){
       const groups = {};
       const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
