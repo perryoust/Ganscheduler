@@ -662,9 +662,113 @@ function buildSheetData(garden, evs) {
 
 
 
-function exportToExcel(data, filename) {
+async function exportToExcel(data, filename, opts = {}) {
   if (!data || !data.length) { alert('אין נתונים לייצוא'); return; }
-  if (typeof window.XLSX === 'undefined') { alert('ספריית Excel לא נטענה'); return; }
+  
+  // If ExcelJS is available, use it for RTL and styling
+  if (typeof window.ExcelJS !== 'undefined') {
+    try {
+      const workbook = new window.ExcelJS.Workbook();
+      const ws = workbook.addWorksheet('Sheet1', { views: [{ rightToLeft: true }] });
+      
+      let currentRow = 1;
+
+      // Header Title if provided
+      if(opts.title){
+        const titleRow = ws.addRow([opts.title]);
+        titleRow.font = { name: 'Arial', size: 16, bold: true };
+        ws.mergeCells(1, 1, 1, 5);
+        currentRow = 3;
+      }
+
+      const isSupplierExport = opts.type === 'supplier';
+      
+      if(isSupplierExport){
+        // Group by City
+        const byCity = {};
+        data.forEach(s => {
+          const c = window.G(s.g).city || 'אחר';
+          if(!byCity[c]) byCity[c] = [];
+          byCity[c].push(s);
+        });
+
+        const cities = Object.keys(byCity).sort();
+        let totalOk = 0, totalNo = 0;
+
+        cities.forEach(city => {
+          // City Header
+          const cityRow = ws.addRow([`🏙️ עיר: ${city}`]);
+          cityRow.font = { bold: true };
+          cityRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+          ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, 5);
+
+          // Table Header
+          const headRow = ws.addRow(['גן', 'ספק', 'פעילות', 'שעה', 'סטטוס']);
+          headRow.font = { bold: true };
+          headRow.eachCell(cell => {
+             cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
+             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1D9E6' } };
+          });
+
+          byCity[city].forEach(s => {
+            const status = window.stLabel ? window.stLabel(s) : s.st;
+            const isOk = s.st === 'ok' || s.st === 'done';
+            if(isOk) totalOk++; else totalNo++;
+
+            const row = ws.addRow([
+              window.G(s.g).name,
+              window.supBase(s.a),
+              s.act || window.supAct(s.a) || '',
+              s.t,
+              status
+            ]);
+            row.eachCell(cell => {
+               cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
+            });
+          });
+          ws.addRow([]); // Spacer
+        });
+
+        // Summary Table
+        ws.addRow([]);
+        const sumHead = ws.addRow(['📊 סיכום פעילות', '', '']);
+        sumHead.font = { bold: true, size: 12 };
+        ws.mergeCells(sumHead.number, 1, sumHead.number, 3);
+
+        const r1 = ws.addRow(['סה"כ פעילויות', data.length, '']);
+        const r2 = ws.addRow(['בוצע בפועל', totalOk, '']);
+        const r3 = ws.addRow(['לא התקיים / חסר', totalNo, '']);
+        
+        [r1, r2, r3].forEach(row => {
+          row.getCell(1).font = { bold: true };
+          row.eachCell(cell => {
+            cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
+          });
+        });
+
+      } else {
+        // Generic Export (fallback)
+        const keys = Object.keys(data[0]);
+        ws.addRow(keys).font = { bold: true };
+        data.forEach(item => ws.addRow(Object.values(item)));
+      }
+
+      // Column Widths
+      ws.columns.forEach(col => { col.width = 20; });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (filename || 'export') + ".xlsx";
+      a.click();
+      return;
+    } catch (e) {
+      console.error('Advanced export failed:', e);
+    }
+  }
+
+  // Fallback to simple SheetJS if ExcelJS fails or is missing
   const ws = window.XLSX.utils.json_to_sheet(data);
   const wb = window.XLSX.utils.book_new();
   window.XLSX.utils.book_append_sheet(wb, ws, "Sheet1");

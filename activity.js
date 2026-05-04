@@ -1130,8 +1130,7 @@ function openSupExport(supName){
   const date=document.getElementById('dash-date').value||window.td();
   const evs=window.SCH.filter(s=>s.a===supName&&s.d===date&&s.st!=='can');
   if(!evs.length){alert('אין פעילויות לייצוא');return;}
-  const rows=evs.map(s=>({ 'עיר':window.G(s.g).city, 'גן':window.G(s.g).name, 'ספק':s.a, 'פעילות':s.act||'', 'שעה':s.t }));
-  window.exportToExcel(rows, `export_${supName}`);
+  window.exportToExcel(evs, `דו"ח_יומי_${supName}_${date}`, {type:'supplier', title:`דו"ח יומי לספק: ${supName} (${window.fD(date)})`});
 }
 
 // --- SYNERGY UI HELPER ---
