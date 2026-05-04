@@ -717,7 +717,7 @@ async function exportToExcel(data, filename, opts = {}) {
               const isSchool = window.gcls(g) === 'ביה"ס';
               const isOk = s.st === 'ok' || s.st === 'done';
               let grpCount = isOk ? (isSchool ? (s.grp || 1) : 1) : 0;
-              if(isOk) typeOk++; else typeNo++;
+              if(isOk) { typeOk++; totalOk++; } else { typeNo++; totalNo++; }
               typeGroups += grpCount;
               totalGroups += grpCount;
 
@@ -728,13 +728,13 @@ async function exportToExcel(data, filename, opts = {}) {
               });
             });
 
-            const typeSum = ws.addRow([`📊 סיכום ${type} (${city}):`, `בוצע: ${typeOk}`, `חסר: ${typeNo}`, `סה"כ קבוצות: ${typeGroups}`, '', '']);
-            typeSum.font = { bold: true, size: 10 };
-            typeSum.eachCell((cell, i) => {
+            // Section Sub-Summary (Simplified as requested)
+            const typeSum = ws.addRow([`📌 ${city} - ${type}: בוצעו ${typeOk} פעילויות (כולל השלמות)`, '', '', '', '', '']);
+            typeSum.font = { bold: true, size: 10, color: { argb: 'FF1A237E' } };
+            typeSum.eachCell((cell) => {
               cell.alignment = { horizontal: 'right' };
-              if(i<=4) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
             });
-            ws.mergeCells(typeSum.number, 4, typeSum.number, 6);
+            ws.mergeCells(typeSum.number, 1, typeSum.number, 6);
             ws.addRow([]);
           });
         });
@@ -744,11 +744,10 @@ async function exportToExcel(data, filename, opts = {}) {
         sumHead.font = { bold: true, size: 12 };
         ws.mergeCells(sumHead.number, 1, sumHead.number, 3);
 
-        const r1 = ws.addRow(['סה"כ שורות', data.length, '']);
-        const r2 = ws.addRow(['בוצע בפועל (פעילויות)', totalOk, '']);
-        const r3 = ws.addRow(['לא התקיים / חסר', totalNo, '']);
-        const r4 = ws.addRow(['סה"כ קבוצות לתשלום', totalGroups, '']);
-        [r1, r2, r3, r4].forEach(row => {
+        const r1 = ws.addRow(['סה"כ פעילויות שבוצעו', totalOk, '']);
+        const r2 = ws.addRow(['לא התקיים / חסר', totalNo, '']);
+        const r3 = ws.addRow(['סה"כ קבוצות לתשלום', totalGroups, '']);
+        [r1, r2, r3].forEach(row => {
           row.getCell(1).font = { bold: true };
           row.eachCell(cell => {
             cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
