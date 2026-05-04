@@ -689,6 +689,7 @@ async function exportToExcel(data, filename, opts = {}) {
         });
 
         const cities = Object.keys(byCity).sort();
+        const summaryRows = [];
         cities.forEach(city => {
           const cityEvs = byCity[city];
           const types = [...new Set(cityEvs.map(s => window.gcls(window.G(s.g))))].sort();
@@ -728,7 +729,7 @@ async function exportToExcel(data, filename, opts = {}) {
               });
             });
 
-            // Section Sub-Summary (Simplified as requested)
+            // Section Sub-Summary
             const typeSum = ws.addRow([`📌 ${city} - ${type}: בוצעו ${typeOk} פעילויות (כולל השלמות)`, '', '', '', '', '']);
             typeSum.font = { bold: true, size: 10, color: { argb: 'FF1A237E' } };
             typeSum.eachCell((cell) => {
@@ -736,23 +737,32 @@ async function exportToExcel(data, filename, opts = {}) {
             });
             ws.mergeCells(typeSum.number, 1, typeSum.number, 6);
             ws.addRow([]);
+            
+            summaryRows.push({ label: `${city} - ${type}`, ok: typeOk, grp: typeGroups });
           });
         });
 
         ws.addRow([]);
-        const sumHead = ws.addRow(['📊 סיכום פעילות כולל', '', '']);
+        const sumHead = ws.addRow(['📊 ריכוז פעילות סופי', '', '']);
         sumHead.font = { bold: true, size: 12 };
         ws.mergeCells(sumHead.number, 1, sumHead.number, 3);
 
-        const r1 = ws.addRow(['סה"כ פעילויות שבוצעו', totalOk, '']);
-        const r2 = ws.addRow(['לא התקיים / חסר', totalNo, '']);
-        const r3 = ws.addRow(['סה"כ קבוצות לתשלום', totalGroups, '']);
-        [r1, r2, r3].forEach(row => {
-          row.getCell(1).font = { bold: true };
+        summaryRows.forEach(sr => {
+          const row = ws.addRow([sr.label, `בוצעו ${sr.ok} פעילויות`, `סה"כ ${sr.grp} קבוצות`]);
           row.eachCell(cell => {
             cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
+            cell.alignment = { horizontal: 'right' };
           });
         });
+
+        const totalRow = ws.addRow(['💰 סה"כ קבוצות לתשלום (כללי)', '', totalGroups]);
+        totalRow.font = { bold: true };
+        totalRow.eachCell(cell => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+          cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
+          cell.alignment = { horizontal: 'right' };
+        });
+        ws.mergeCells(totalRow.number, 1, totalRow.number, 2);
       } else {
         const keys = Object.keys(data[0]);
         ws.addRow(keys).font = { bold: true };
