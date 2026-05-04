@@ -742,9 +742,17 @@ async function exportToExcel(data, filename, opts = {}) {
               typeGroups += grpCount;
               totalGroups += grpCount;
 
-              // Clean up status label: only show exceptions
+              // Clean up status label: show failure if not ok
               let displayStatus = statusLabel;
-              if(isOk && (statusLabel === 'מתקיים' || s.st === 'ok' || s.st === 'done')) {
+              if(!isOk) {
+                const lower = note.toLowerCase();
+                const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
+                if(canWords.some(w => lower.includes(w)) || s.st === 'can') {
+                  displayStatus = '❌ בוטל';
+                } else {
+                  displayStatus = '⚠️ לא התקיים';
+                }
+              } else if (statusLabel === 'מתקיים' || s.st === 'ok' || s.st === 'done') {
                  displayStatus = ''; 
               }
               

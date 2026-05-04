@@ -1465,7 +1465,8 @@ function _listRow(s, clr, ds){
   const bg = isUnassigned ? '#f5f5f5' : s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light;
   const stC = isUnassigned ? '#9e9e9e' : s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':'#333';
   const stLabelText = isUnassigned ? 'לא משובץ' : window.stLabel(s).replace(/<[^>]+>/g,'');
-  const supText = isUnassigned ? '' : `${window.supBase(s.a)}${s.act?' — <span style="color:#546e7a">'+s.act+'</span>':''}`;
+  const recBadge = s._recId ? `<span style="font-size:0.6rem;color:#6a1b9a;margin-left:4px;vertical-align:middle" title="שיבוץ קבוע">🔄</span>` : '';
+  const supText = isUnassigned ? '' : `${window.supBase(s.a)}${recBadge}${s.act?' — <span style="color:#546e7a">'+s.act+'</span>':''}`;
   const clickHandler = isUnassigned ? `event.stopPropagation(); if(window.openNewSched) window.openNewSched('${s.d}', ${s.g});` : `window.openSP('${s.id}')`;
   
   const addrLink=g.st?`<a href="https://maps.google.com/?q=${encodeURIComponent(g.st+' '+g.city)}" target="_blank" onclick="event.stopPropagation()" style="font-size:.63rem;color:#1565c0;text-decoration:none">📍 ${g.st}</a>`:'';
@@ -1484,7 +1485,6 @@ function _listRow(s, clr, ds){
         <span style="font-weight:700;font-size:.76rem;color:#1a237e;line-height:1">${g.name}</span>
       </div>
       ${addrLink}
-      ${s._recId?`<div style="display:inline-block;background:#f3e5f5;color:#6a1b9a;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:800;border:1px solid #e1bee7;margin-top:2px;width:fit-content">🔄 קבוע</div>`:''}
     </div>
     <div>
       <div style="font-size:.75rem;font-weight:600;color:#1565c0">${supText}</div>
