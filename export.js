@@ -717,13 +717,17 @@ async function exportToExcel(data, filename, opts = {}) {
               const g = window.G(s.g);
               const isSchool = window.gcls(g) === 'ביה"ס';
               const note = (s.nt || '').toLowerCase();
+              const isMakeup = note.includes('השלמה');
               
               // Robust status check: only 'ok' or 'done' are considered "happened"
               // Expanded cancellation keywords based on user feedback
               let isOk = s.st === 'ok' || s.st === 'done';
-              const cancelWords = ['בוטל', 'לא התקיים', 'מבוטל', 'חסר מדריך', 'חוסר מדריך'];
+              const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
+              const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים'];
+              
               let isForcedCancel = false;
-              if(isOk && cancelWords.some(w => note.includes(w))) {
+              // If it's a makeup (השלמה), it COUNTS as ok even if it mentions a cancellation
+              if(isOk && !isMakeup && [...canWords, ...nohapWords].some(w => note.includes(w))) {
                  isOk = false;
                  isForcedCancel = true;
               }

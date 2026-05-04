@@ -887,11 +887,11 @@ function saveNt(){
   if(ntEl) {
     const val = ntEl.value;
     s.nt = val;
-    // Auto-Correct status based on note keywords
-    if(s.st === 'ok' || s.st === 'done') {
+    // Auto-Correct status based on note keywords (skip if it's a makeup)
+    if((s.st === 'ok' || s.st === 'done') && !val.includes('השלמה')) {
       const lower = val.toLowerCase();
       const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
-      const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך'];
+      const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים'];
       if(canWords.some(w => lower.includes(w))) {
         s.st = 'can';
         if(typeof window.showToast==='function') window.showToast('ℹ️ הסטטוס עודכן אוטומטית ל"בוטל" עקב ההערה');
