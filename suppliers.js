@@ -12,9 +12,14 @@ function openSupExport(supName){
   _supExType='act';
   setSupExType('act');
   (document.getElementById('supexm-title')||{}).textContent=supName?`📊 יצוא: ${supName}`:'📊 יצוא דוח ספקים';
+  
   const now=new Date();
-  document.getElementById('supex-from').value=window.d2s(new Date(now.getFullYear(),now.getMonth(),1));
-  document.getElementById('supex-to').value=window.d2s(new Date(now.getFullYear(),now.getMonth()+1,0));
+  const cardFrom = document.getElementById('suc-from')?.value;
+  const cardTo = document.getElementById('suc-to')?.value;
+  
+  document.getElementById('supex-from').value = cardFrom || window.d2s(new Date(now.getFullYear(),now.getMonth(),1));
+  document.getElementById('supex-to').value = cardTo || window.d2s(new Date(now.getFullYear(),now.getMonth()+1,0));
+  
   document.getElementById('supex-prev').style.display='none';
   document.getElementById('supexm').classList.add('open');
 }
@@ -30,19 +35,14 @@ function doSupExport(){
     return;
   }
 
-  // ── יצוא פעילויות ──
   const from=document.getElementById('supex-from').value;
   const to=document.getElementById('supex-to').value;
   if(!from||!to){alert('בחר תאריכים');return;}
 
-  const _supBase=window._supExName?window.supBase(window._supExName):'';
-  const _supExData=_supBase?window.supEx[_supBase]||{}:{};
-  const _supObj=window._supExName?Object.values(window.SUPBASE||{}).find(s=>window.supBase(s.name)===_supBase)||null:null;
-  const supPhone=_supExData.phone||(_supObj&&_supObj.phone)||(window._supExName?window.SCH.find(s=>window.supBase(s.a)===_supBase&&s.p)?.p||'':'');
-
   const evs=window.SCH.filter(s=>{
     if(s.d<from||s.d>to) return false;
     if(window._supExName&&window.supBase(s.a)!==window.supBase(window._supExName)) return false;
+    if(s.st === 'can') return false; // Match openSupExport logic
     return true;
   }).sort((a,b)=>{
     const ga=window.G(a.g),gb=window.G(b.g);
@@ -51,67 +51,18 @@ function doSupExport(){
       ||(a.t||'99:99').localeCompare(b.t||'99:99')
       ||(ga.name||'').localeCompare(gb.name||'','he');
   });
+  
   if(!evs.length){alert('אין פעילויות בטווח זה');return;}
 
-  const stMap={ok:'מתקיים',done:'התקיים',can:'בוטל ❌',post:'נדחה',nohap:'לא התקיים ⚠️'};
-  const bom='\uFEFF';
-  const q=c=>`"${String(c==null?'':c).replace(/"/g,'""')}"`;
-  const lines=[];
-
-  // grp=קבוצות: 1=התקיים בפועל, 0=לא התקיים (כולל ביטול/לא התקיים/נדחה)
-  const isHappened = s => (s.grp||1) >= 1 && s.st!=='can' && s.st!=='nohap' && s.st!=='post';
-  const isNotHappened = s => (s.grp||1) === 0 || s.st==='can' || s.st==='nohap';
-  const isMakeup = s => !!s._makeupFrom;
-
-  const sumRow=(label,evArr)=>{
-    const tot    = evArr.length;
-    const done   = evArr.filter(s=>isHappened(s)).length; // כולל השלמות שהתקיימו
-    const makeup = evArr.filter(s=>isMakeup(s)&&isHappened(s)).length; // השלמות שהתקיימו בפועל
-    const notHap = evArr.filter(s=>isNotHappened(s)).length;
-    const can    = evArr.filter(s=>s.st==='can').length;
-    return [q(label),q(tot),q('התקיימו:'),q(done),q('השלמות:'),q(makeup),q('בוטלו:'),q(can),q('לא התקיימו:'),q(notHap),''].join(',');
-  };
-
-  // Header
-  if(window._supExName){
-    lines.push([window.q('ספק:'),window.q(window._supExName),'','','','','','','','',''].join(','));
-    lines.push([window.q('טלפון:'),window.q(supPhone),'','','','','','','','',''].join(','));
-    lines.push([window.q('תקופה:'),window.q(window.fD(from)+' – '+window.fD(to)),'','','','','','','','',''].join(','));
-    lines.push('');
-  }
-
-  lines.push(['עיר','כתובת','שם צהרון','תאריך','יום','פעילות','קבוצות','שעה','סטטוס','סיבה','הערות'].map(q).join(','));
-
-  // Group by city, add per-city summary row
-  const cities=[...new Set(evs.map(s=>window.G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
-  cities.forEach(city=>{
-    const cityEvs=evs.filter(s=>(window.G(s.g).city||'אחר')===city);
-    cityEvs.forEach(s=>{
-      const g=window.G(s.g);
-      const actName=window.supAct(s.a)||s.a;
-      lines.push([
-        window.q(g.city||''),window.q(g.st||''),window.q(g.name||''),
-        window.q(window.fD(s.d)),window.q(window.dayN(s.d)),
-        window.q(actName),window.q(isHappened(s)?(s.grp||1):0),window.q(window.fT(s.t)),
-        window.q(stMap[s.st]||'מתקיים'),window.q(s.cr||''),window.q(s.nt||'')
-      ].join(','));
-    });
-    // City summary row
-    lines.push(sumRow(`סה"כ ${city}:`, cityEvs));
-    lines.push('');
+  const title = window._supExName ? `דו"ח פעילות לספק: ${window._supExName} (טווח: ${window.fD(from)} - ${window.fD(to)})` : `דו"ח פעילות ספקים (טווח: ${window.fD(from)} - ${window.fD(to)})`;
+  
+  window.exportToExcel(evs, `דו"ח_פעילויות_${window._supExName||'כל_הספקים'}_${from}_${to}`, {
+    type:'supplier',
+    title: title
   });
 
-  // Grand total row
-  lines.push(sumRow('סה"כ פעילויות:', evs));
-
-  const csv=bom+lines.join('\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=`דוח_פעילויות_${_supExName||'כל_הספקים'}_${from}_${to}.csv`;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  CM('supexm');
+  window.CM('supexm');
+}
 }
 function exportExcel(){
   const f=window.getCalF();

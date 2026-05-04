@@ -76,8 +76,14 @@ function renderDash() {
     if (tTab === 'g' && gClass !== 'גנים') return false;
     if (tTab === 's' && gClass !== 'ביה"ס') return false;
 
-    if (tDate && s.d !== tDate) return false;
-    if (!tDate && s.d < window.td()) return false;
+    const from = document.getElementById('dash-from')?.value;
+    const to = document.getElementById('dash-to')?.value;
+    if (from && to) {
+      if (s.d < from || s.d > to) return false;
+    } else if (tDate && s.d !== tDate) {
+      return false;
+    }
+    if (!tDate && !from && s.d < window.td()) return false;
 
     if (tSt === 'todo') {
       if (s.st === 'can' || isHandled) return false;

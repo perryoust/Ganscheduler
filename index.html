@@ -383,6 +383,8 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <button class="flt-toggle" id="dash-flt-btn" onclick="fltToggle('dash-flt','dash-flt-btn')">🔍 סינון <span class="flt-arrow">▼</span></button>
       </div>
       <div id="dash-flt" class="flt-wrap">
+        <div class="fg"><label>מתאריך</label><input type="date" id="dash-from" onchange="renderDash()"></div>
+        <div class="fg"><label>עד תאריך</label><input type="date" id="dash-to" onchange="renderDash()"></div>
         <div class="fg"><label>עיר</label><select id="dash-city" onchange="renderDash()"><option value="">כל הערים</option></select></div>
         <div class="fg"><label>ספק</label><select id="dash-sup" onchange="renderDash()"><option value="">כל הספקים</option></select></div>
         <div class="fg"><label>סטטוס</label><select id="dash-st" onchange="renderDash()"><option value="todo" selected>לטיפול (חריגים+השלמות)</option><option value="">הכל (לא כולל בוטלו)</option><option value="ok">מתקיים</option><option value="done">התקיים</option><option value="can">בוטל</option><option value="post">נדחה</option><option value="nohap">לא התקיים</option></select></div>
