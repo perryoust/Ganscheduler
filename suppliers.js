@@ -99,13 +99,12 @@ function downloadCSV(data,fname){
 
 function getAllSup(){
   if(typeof window.SUPBASE==='undefined'||typeof window.supEx==='undefined') return [];
-  // mergedAway: exact supplier names that were merged INTO another (the sources)
   const mergedAway = new Set(window.supEx['__merged_away']||[]);
   const map={};
 
-  // Add SUPBASE entries — skip only exact merged-away names
+  // 1. Master List (SUPBASE)
   window.SUPBASE.forEach(s=>{
-    if(mergedAway.has(s.name)) return; // this entry was explicitly merged away
+    if(mergedAway.has(s.name)) return;
     const base=window.supBase(s.name);
     const act=window.supAct(s.name);
     if(!map[base]) map[base]={name:base,phone:s.phone,acts:new Set(),fullNames:new Set()};
@@ -114,14 +113,30 @@ function getAllSup(){
     if(!map[base].phone&&s.phone) map[base].phone=s.phone;
   });
 
-  // Add custom suppliers (__c) — skip exact merged-away names
+  // 2. Custom Suppliers (__c)
   (window.supEx['__c']||[]).forEach(s=>{
     if(mergedAway.has(s.name)) return;
     const base=window.supBase(s.name);
+    if(mergedAway.has(base)) return;
     if(!map[base]) map[base]={name:base,phone:s.phone||'',acts:new Set(),fullNames:new Set()};
     map[base].fullNames.add(s.name);
-    if(!map[base].phone&&s.phone) map[base].phone=s.phone;
+    if(!map[base].phone&&(s.phone||'')) map[base].phone=s.phone;
   });
+
+  // 3. DISCOVERY FROM SCHEDULES (SCH)
+  // Ensure anyone with actual activities appears in the list, even if definitions are missing
+  if(Array.isArray(window.SCH)){
+    window.SCH.forEach(s=>{
+      const base = window.supBase(s.a);
+      if(!base || mergedAway.has(base)) return;
+      if(!map[base]){
+        map[base]={name:base, phone:'', acts:new Set(), fullNames:new Set(), isDiscovered:true};
+      }
+      const act = window.supAct(s.a);
+      if(act) map[base].acts.add(act);
+      map[base].fullNames.add(s.a);
+    });
+  }
 
   return Object.values(map).map(m=>({
     ...m,

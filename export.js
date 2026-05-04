@@ -704,7 +704,7 @@ async function exportToExcel(data, filename, opts = {}) {
             titleRow.alignment = { horizontal: 'right' };
             ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, 6);
 
-            const headRow = ws.addRow(['תאריך', 'גן/בי"ס', 'פעילות', 'שעה', 'קבוצות', 'סטטוס']);
+            const headRow = ws.addRow(['תאריך', 'גן/בי"ס', 'פעילות', 'שעה', 'קבוצות', 'סטטוס', 'הערות']);
             headRow.font = { bold: true };
             headRow.eachCell(cell => {
                cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
@@ -722,7 +722,7 @@ async function exportToExcel(data, filename, opts = {}) {
               typeGroups += grpCount;
               totalGroups += grpCount;
 
-              const row = ws.addRow([window.fD(s.d), g.name, s.act || window.supAct(s.a) || '', s.t, grpCount, status]);
+              const row = ws.addRow([window.fD(s.d), g.name, s.act || window.supAct(s.a) || '', s.t, grpCount, status, s.nt || '']);
               row.eachCell(cell => {
                  cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
                  cell.alignment = { horizontal: 'right' };
@@ -730,12 +730,12 @@ async function exportToExcel(data, filename, opts = {}) {
             });
 
             // Section Sub-Summary
-            const typeSum = ws.addRow([`📌 ${city} - ${type}: בוצעו ${typeOk} פעילויות (כולל השלמות)`, '', '', '', '', '']);
+            const typeSum = ws.addRow([`📌 ${city} - ${type}: בוצעו ${typeOk} פעילויות (כולל השלמות)`, '', '', '', '', '', '']);
             typeSum.font = { bold: true, size: 10, color: { argb: 'FF1A237E' } };
             typeSum.eachCell((cell) => {
               cell.alignment = { horizontal: 'right' };
             });
-            ws.mergeCells(typeSum.number, 1, typeSum.number, 6);
+            ws.mergeCells(typeSum.number, 1, typeSum.number, 7);
             ws.addRow([]);
             
             summaryRows.push({ label: `${city} - ${type}`, ok: typeOk, grp: typeGroups });
