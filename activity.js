@@ -323,8 +323,18 @@ function openSP(id){
 
   // --- STEP 3: Actions & Notes ---
   h += `<div style="margin-bottom:12px;background:#fff;border-radius:12px;padding:12px;border:1px solid #eee">
-    <div class="fg" style="margin-bottom:8px"><label for="sp-nt" style="font-size:.75rem;font-weight:700;color:#455a64">📝 הערות לפעילות</label><textarea id="sp-nt" rows="2" style="width:100%;font-size:.85rem;border-radius:8px;border:1.5px solid #e0e0e0;padding:8px;resize:none;font-family:inherit" placeholder="כתוב הערה...">${s.nt||''}</textarea></div>
-    <button class="btn bp bsm" style="width:100%;padding:8px;font-weight:700" onclick="window.saveNt()">💾 שמור הערה</button>
+    <div style="font-size:.75rem;font-weight:700;color:#455a64;margin-bottom:8px">📝 הערות לפעילות</div>
+    <div style="display:flex;gap:4px;margin-bottom:8px">
+      <button class="btn bsm" id="sp-tab-nt" style="flex:1;background:#e8eaf6;color:#1a237e;border:1.5px solid #1a237e;font-weight:700" onclick="document.getElementById('sp-nt-wrap').style.display='block';document.getElementById('sp-n-wrap').style.display='none';this.style.background='#e8eaf6';document.getElementById('sp-tab-n').style.background='#fff';">הערה חד פעמית</button>
+      <button class="btn bsm" id="sp-tab-n" style="flex:1;background:#fff;color:#1a237e;border:1.5px solid #1a237e;font-weight:700" onclick="document.getElementById('sp-nt-wrap').style.display='none';document.getElementById('sp-n-wrap').style.display='block';this.style.background='#e8eaf6';document.getElementById('sp-tab-nt').style.background='#fff';">הערה קבועה</button>
+    </div>
+    <div id="sp-nt-wrap">
+      <textarea id="sp-nt" rows="2" style="width:100%;font-size:.85rem;border-radius:8px;border:1.5px solid #e0e0e0;padding:8px;resize:none;font-family:inherit" placeholder="הערה חד פעמית לפעילות זו (למשל: אי קיום, השלמות)...">${s.nt||''}</textarea>
+    </div>
+    <div id="sp-n-wrap" style="display:none">
+      <textarea id="sp-n" rows="2" style="width:100%;font-size:.85rem;border-radius:8px;border:1.5px solid #e0e0e0;padding:8px;resize:none;font-family:inherit" placeholder="הערה קבועה לפעילות זו (מעודכן קדימה)...">${s.n||''}</textarea>
+    </div>
+    <button class="btn bp bsm" style="width:100%;padding:8px;font-weight:700;margin-top:8px" onclick="window.saveNt()">💾 שמור הערה</button>
   </div>`;
 
   h += `<div style="margin-bottom:12px;background:#fff;border-radius:12px;padding:15px;border:1.5px solid #eee">
@@ -849,8 +859,20 @@ function setStatus(idOrSt, maybeSt){
 
 function saveNt(){
   const s=window.SCH.find(x=>x.id==window.selEv); if(!s) return;
-  const nt=document.getElementById('sp-nt').value;
-  s.nt=nt; window.saveAndRefresh('sp');
+  const ntEl=document.getElementById('sp-nt');
+  const nEl=document.getElementById('sp-n');
+  if(ntEl) s.nt=ntEl.value;
+  if(nEl) {
+    s.n=nEl.value;
+    if(s._recId) {
+      window.SCH.forEach(x => {
+        if(x._recId === s._recId && x.d >= s.d) {
+          x.n = nEl.value;
+        }
+      });
+    }
+  }
+  window.saveAndRefresh('sp');
 }
 
 function markCompManual(id){
