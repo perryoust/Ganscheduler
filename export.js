@@ -719,17 +719,19 @@ async function exportToExcel(data, filename, opts = {}) {
               const note = (s.nt || '').toLowerCase();
               const isPositive = note.includes('השלמה') || note.includes('נדחה') || note.includes('הזזה') || note.includes('הוזז');
               
-              // Robust status check: only 'ok' or 'done' are considered "happened"
+              // 1. Check status first: ok/done are positive
               let isOk = s.st === 'ok' || s.st === 'done';
-              const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
-              const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע'];
               
-              let isForcedCancel = false;
-              // If it's Positive (השלמה/נדחה/הזזה), it COUNTS as ok (1)
-              // Otherwise, if it has cancellation keywords, it's 0
-              if(isOk && !isPositive && [...canWords, ...nohapWords].some(w => note.includes(w))) {
-                 isOk = false;
-                 isForcedCancel = true;
+              // 2. If it's officially not ok (nohap/can), it's ALWAYS 0, no matter what's in the note
+              if(!isOk) {
+                 // it's 0.
+              } else {
+                // It's ok, but let's see if there's a cancellation keyword in the note
+                const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
+                const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע'];
+                if(!isPositive && [...canWords, ...nohapWords].some(w => note.includes(w))) {
+                   isOk = false;
+                }
               }
               
               let grpCount = isOk ? (isSchool ? (s.grp || 1) : 1) : 0;
