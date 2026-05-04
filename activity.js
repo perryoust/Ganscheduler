@@ -75,6 +75,9 @@ function renderDash() {
     if (tTab === 'g' && gClass !== 'גנים') return false;
     if (tTab === 's' && gClass !== 'ביה"ס') return false;
 
+    if (tDate && s.d !== tDate) return false;
+    if (!tDate && s.d < window.td()) return false;
+
     if (tSt === 'todo') {
       if (s.st === 'can' || isHandled) return false;
       if (s.st === 'nohap' || isM) return true;
@@ -85,7 +88,6 @@ function renderDash() {
       if (s.st !== tSt) return false;
     }
 
-    if (tDate && s.d !== tDate) return false;
     if (city && g.city !== city) return false;
     if (sup && window.supBase(s.a) !== sup) return false;
     if (srch && ![(g.name||''), (g.city||''), s.a, s.act].some(v=>(v||'').toLowerCase().includes(srch))) return false;
