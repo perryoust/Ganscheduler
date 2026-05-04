@@ -887,8 +887,9 @@ function saveNt(){
   if(ntEl) {
     const val = ntEl.value;
     s.nt = val;
-    // Auto-Correct status based on note keywords (skip if it's a makeup)
-    if((s.st === 'ok' || s.st === 'done') && !val.includes('השלמה')) {
+    const isPos = val.includes('השלמה') || val.includes('נדחה') || val.includes('הזזה') || val.includes('הוזז');
+    // Auto-Correct status based on note keywords (skip if it's a positive exception)
+    if((s.st === 'ok' || s.st === 'done') && !isPos) {
       const lower = val.toLowerCase();
       const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
       const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע'];
