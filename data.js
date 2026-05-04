@@ -77,7 +77,7 @@ var _srawsReady=(async function(){
     if(!_syncDone){
       let changed = 0;
       const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
-      const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע'];
+      const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע', 'לא נשאר', 'עזב', 'לא התקיימה'];
       
       window.SCH.forEach(s => {
         const note = (s.nt || '').toLowerCase();
@@ -94,15 +94,15 @@ var _srawsReady=(async function(){
         console.log(`Auto-Sync: Fixed ${changed} statuses based on notes.`);
         setTimeout(() => { if(typeof window.save === 'function') window.save(); }, 2000); 
       }
-      window._safeLS.setItem('_statusSyncDone_v989', '1');
+      window._safeLS.setItem('_statusSyncDone_v100', '1');
     }
     
     // AUTOMATIC MAKEUP MATCHING: Offset old failures with new makeups
-    const _matchDone = window._safeLS.getItem('_makeupMatchDone_v999');
+    const _matchDone = window._safeLS.getItem('_makeupMatchDone_v100');
     if(!_matchDone){
       const groups = {};
       const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
-      const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע'];
+      const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע', 'לא נשאר', 'עזב', 'לא התקיימה'];
       
       // Group by Garden + Activity Base
       window.SCH.forEach(s => {
