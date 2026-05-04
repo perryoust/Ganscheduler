@@ -516,7 +516,7 @@ function renderClusterDay(evs, ds, clusterName){
             const g=window.G(s.g);
             const stc=s.st!=='ok'?'st-'+s.st:'';
             html+=`<div style="display:flex;align-items:center;gap:8px;border:1.5px solid ${clrCity.border};border-radius:6px;padding:4px 10px;cursor:pointer;background:#fff;border-right:4px solid ${clrCity.solid};margin-bottom:4px" onclick="openSP('${s.id}')" class="${stc}">
-              <span style="font-weight:800;color:${clrCity.solid};white-space:nowrap">${s.t?`⏰ ${window.fT(s.t)}`:'--:--'}</span>
+              <span style="font-weight:800;color:${clrCity.solid};white-space:nowrap">${s.d?'📅 '+window.fD(s.d):''} ${s.t?`⏰ ${window.fT(s.t)}`:'--:--'}</span>
               <span style="font-weight:700;color:#1a237e;white-space:nowrap">${window.gcls(g)==='ביה"ס'?'🏗️':'🏫'} ${g.name}</span>
               <span style="color:#546e7a;font-size:.74rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${window.supBase(s.a)}${(s.act||window.supAct(s.a))?` · ${s.act||window.supAct(s.a)}`:''}</span>
               ${s.nt?`<span style="color:#d84315;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">📝 ${s.nt}</span>`:''}
@@ -551,7 +551,7 @@ function renderClusterDay(evs, ds, clusterName){
         </div>
         <div style="background:#fff;padding:2px 7px">
           <div class="pslot ${stc}" style="border-right:4px solid ${clrCity.solid};background:${clrCity.light};display:flex;align-items:center;gap:10px;padding:4px 10px;border-radius:4px" onclick="openSP('${s.id}')">
-            <span style="font-weight:800;color:${clrCity.solid};white-space:nowrap">${s.t?`⏰ ${window.fT(s.t)}`:'--:--'}</span>
+            <span style="font-weight:800;color:${clrCity.solid};white-space:nowrap">${s.d?'📅 '+window.fD(s.d):''} ${s.t?`⏰ ${window.fT(s.t)}`:'--:--'}</span>
             <span style="font-weight:700;color:#1a237e;white-space:nowrap">${window.supBase(s.a)}</span>
             <span style="font-size:.74rem;color:${clrCity.solid};font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(s.act||window.supAct(s.a))?`🎯 ${s.act||window.supAct(s.a)}`:''}</span>
             ${s.nt?`<span style="color:#d84315;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">📝 ${s.nt}</span>`:''}
@@ -1480,7 +1480,7 @@ function _listRow(s, clr, ds){
   return `<div style="display:grid;grid-template-columns:minmax(150px, auto) 1fr auto auto auto;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;margin-bottom:1px;background:${bg};border-right:3px solid ${clr.solid};cursor:pointer;min-height:36px" onclick="${clickHandler}">
     <div style="display:flex; flex-direction:column; gap:1px; justify-content:center;">
       <div style="display:flex; align-items:center; gap:5px;">
-        <span style="font-weight:800;font-size:.85rem;color:#1565c0;white-space:nowrap">${s.t?'⏰ '+window.fT(s.t):''}</span>
+        <span style="font-weight:800;font-size:.85rem;color:#1565c0;white-space:nowrap">${s.d?'📅 '+window.fD(s.d):''} ${s.t?'⏰ '+window.fT(s.t):''}</span>
         <span style="font-weight:700;font-size:.76rem;color:#1a237e;line-height:1">${g.name}</span>
       </div>
       ${addrLink}
