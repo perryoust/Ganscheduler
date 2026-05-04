@@ -381,18 +381,28 @@ function saveNewSched(){
     
     // Requirement: Link back to original activity and mark it as completed (with partner sync)
     if(typeof _makeupOrigId !== 'undefined' && _makeupOrigId){
-      const origExt = window.SCH.find(x => x.id === _makeupOrigId);
+      const origExt = window.SCH.find(x => String(x.id) === String(_makeupOrigId));
       if(origExt) {
         origExt._compByMakeup = newId;
+        const noticeNote = `השלמה נקבעה ל-${window.fD(date)}`;
+        if(!origExt.nt || !origExt.nt.includes(noticeNote)) {
+           origExt.nt = (origExt.nt ? origExt.nt + ' | ' : '') + noticeNote;
+        }
+
         const pair = window.gardenPair(origExt.g);
         if(pair){
           const partnerIds = pair.ids.filter(pid => Number(pid) !== Number(origExt.g));
           partnerIds.forEach(partnerId => {
             const partnerEv = window.SCH.find(ps => 
-              Number(ps.g)===Number(partnerId) && ps.d === origExt.d && (ps.t === origExt.t || (!ps.t && !origExt.t)) && 
+              Number(ps.g)===Number(partnerId) && ps.d === origExt.d && 
               window.supBase(ps.a) === window.supBase(origExt.a) && !ps._compByMakeup
             );
-            if(partnerEv) partnerEv._compByMakeup = newId;
+            if(partnerEv) {
+               partnerEv._compByMakeup = newId;
+               if(!partnerEv.nt || !partnerEv.nt.includes(noticeNote)) {
+                  partnerEv.nt = (partnerEv.nt ? partnerEv.nt + ' | ' : '') + noticeNote;
+               }
+            }
           });
         }
       }

@@ -31,6 +31,7 @@ const _dashListRow = (s) => {
       <div style="display:flex; flex-direction:column; min-width:0;">
         <span style="font-weight:700; color:#4a5568; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.act || 'ללא פעילות'}</span>
         <span style="font-size:0.75rem; color:#a0aec0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📍 ${g.city} ${g.st?` | ${g.st}`:''}</span>
+        ${s.nt ? `<span style="font-size:0.75rem; color:#e53e3e; font-weight:700; background:#fff5f5; padding:2px 6px; border-radius:4px; margin-top:2px; display:inline-block;">📝 ${s.nt}</span>` : ''}
       </div>
       ${makeupBadge}
     </div>
