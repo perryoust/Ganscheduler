@@ -912,6 +912,7 @@ function saveNt(){
   
   // Synergy Sync: Copy note and status to partner garden if synced
   const syncChk = document.getElementById('sp-sync-global');
+  const pair = window.gardenPair(s.g);
   if(syncChk && syncChk.checked && pair) {
     pair.ids.forEach(pId => {
       if(pId === s.g) return;
