@@ -394,7 +394,7 @@ function openSP(id){
     </div>
   </div>`;
 
-  const isExc = (s.st === 'nohap' || s.st === 'post') && !s._compByMakeup;
+  const isExc = (s.st === 'nohap' || s.st === 'post' || s.st === 'can') && !s._compByMakeup;
 
   // --- STEP 4: Handling Dropdown (Exceptions / Makeups) — only for exceptions ---
   if (isExc || (isM && s.st !== 'done')) {

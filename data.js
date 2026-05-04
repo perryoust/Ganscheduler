@@ -93,9 +93,9 @@ var _srawsReady=(async function(){
       if(typeof window.save === 'function') window.save(); 
     }
     
-    // AUTOMATIC MAKEUP MATCHING: Offset old failures with new makeups
-    const _matchDone = window._safeLS.getItem('_makeupMatchDone_v101');
-    if(!_matchDone){
+    // AUTOMATIC MAKEUP MATCHING: (TEMPORARILY DISABLED FOR VERIFICATION)
+    const _matchDone = '1'; // Force skip for now to show everything
+    if(false && !_matchDone){
       const groups = {};
       const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
       const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע', 'לא נשאר', 'עזב', 'לא התקיימה'];
