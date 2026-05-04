@@ -111,16 +111,7 @@ function renderDash() {
     const evs = groups[c];
     const accordion = document.createElement('details');
     accordion.className = 'city-accordion';
-    const summary = document.createElement('summary');
-    summary.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-      <span style="font-weight:800; color:#2d3748;">🏙️ ${c} (${evs.length})</span>
-      <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
-    </div>`;
-    accordion.appendChild(summary);
-
-    const content = document.createElement('div');
-    content.className = 'city-accordion-content';
-
+    
     const rows = [];
     const seenPairs = new Set();
     const soloMap = new Map();
@@ -148,6 +139,16 @@ function renderDash() {
       const tB = (b.type === 'pair' ? b.evs[0]?.t : b.ev?.t) || '99:99';
       return tA.localeCompare(tB);
     });
+
+    const summary = document.createElement('summary');
+    summary.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+      <span style="font-weight:800; color:#2d3748;">🏙️ ${c} (${rows.length})</span>
+      <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
+    </div>`;
+    accordion.appendChild(summary);
+
+    const content = document.createElement('div');
+    content.className = 'city-accordion-content';
 
     let h = '';
     rows.forEach(row => {
