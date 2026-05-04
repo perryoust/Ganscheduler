@@ -657,12 +657,8 @@ function buildSheetData(garden, evs) {
       ]);
     });
   });
-  return {rows};
-}
-
-
-
 async function exportToExcel(data, filename, opts = {}) {
+  console.log('Export Engine v97.7');
   if (!data || !data.length) { alert('אין נתונים לייצוא'); return; }
   
   // If ExcelJS is available, use it for RTL and styling
