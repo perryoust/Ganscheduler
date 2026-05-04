@@ -696,70 +696,74 @@ async function exportToExcel(data, filename, opts = {}) {
         let totalOk = 0, totalNo = 0, totalGroups = 0;
 
         cities.forEach(city => {
-          let cityOk = 0, cityNo = 0, cityGroups = 0;
-          // City Header
-          const cityRow = ws.addRow([`🏙️ עיר: ${city}`]);
-          cityRow.font = { bold: true };
-          cityRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
-          ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, 7);
+          const cityEvs = byCity[city];
+          // Get unique types (Gardens/Schools) in this city
+          const types = [...new Set(cityEvs.map(s => window.gcls(window.G(s.g))))].sort();
 
-          // Group by Type (Gardens vs Schools) within City
-          const cityEvs = byCity[city].sort((a,b) => {
-             const ga = window.G(a.g), gb = window.G(b.g);
-             return window.gcls(ga).localeCompare(window.gcls(gb));
-          });
+          types.forEach(type => {
+            let typeOk = 0, typeNo = 0, typeGroups = 0;
+            const typeEvs = cityEvs.filter(s => window.gcls(window.G(s.g)) === type).sort((a,b) => a.d.localeCompare(b.d) || (a.t||'').localeCompare(b.t||''));
 
-          // Table Header
-          const headRow = ws.addRow(['סוג', 'גן/בי"ס', 'ספק', 'פעילות', 'תאריך', 'שעה', 'קבוצות', 'סטטוס']);
-          headRow.font = { bold: true };
-          headRow.eachCell(cell => {
-             cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
-             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1D9E6' } };
-          });
+            // Section Header: [Sup] - [City] - [Type]
+            const titleRow = ws.addRow([`${window._supExName || 'כל הספקים'} - ${city} - ${type}`]);
+            titleRow.font = { bold: true };
+            titleRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+            titleRow.alignment = { horizontal: 'right' };
+            ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, 6);
 
-          cityEvs.forEach(s => {
-            let status = window.stLabel ? window.stLabel(s) : s.st;
-            status = status.replace(/<[^>]*>/g, ''); // Strip HTML
-            
-            const g = window.G(s.g);
-            const isSchool = window.gcls(g) === 'ביה"ס';
-            const isOk = s.st === 'ok' || s.st === 'done';
-            
-            let grpCount = 0;
-            if(isOk) {
-              cityOk++; totalOk++;
-              grpCount = isSchool ? (s.grp || 1) : 1;
-            } else {
-              cityNo++; totalNo++;
-              grpCount = 0;
-            }
-            cityGroups += grpCount;
-            totalGroups += grpCount;
-
-            const row = ws.addRow([
-              window.gcls(g),
-              g.name,
-              window.supBase(s.a),
-              s.act || window.supAct(s.a) || '',
-              window.fD(s.d),
-              s.t,
-              grpCount,
-              status
-            ]);
-            row.eachCell(cell => {
+            // Table Header (New Order)
+            const headRow = ws.addRow(['תאריך', 'גן/בי"ס', 'פעילות', 'שעה', 'קבוצות', 'סטטוס']);
+            headRow.font = { bold: true };
+            headRow.eachCell(cell => {
                cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
+               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1D9E6' } };
+               cell.alignment = { horizontal: 'right' };
             });
-          });
 
-          // City Sub-Summary
-          const citySum = ws.addRow([`📊 סיכום ${city}:`, `בוצע: ${cityOk}`, `חסר: ${cityNo}`, `סה"כ קבוצות: ${cityGroups}`, '', '', '', '']);
-          citySum.font = { bold: true, size: 10 };
-          citySum.eachCell((cell, i) => {
-            if(i<=4) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
-          });
-          ws.mergeCells(citySum.number, 4, citySum.number, 8);
+            typeEvs.forEach(s => {
+              let status = window.stLabel ? window.stLabel(s) : s.st;
+              status = status.replace(/<[^>]*>/g, ''); 
+              
+              const g = window.G(s.g);
+              const isSchool = window.gcls(g) === 'ביה"ס';
+              const isOk = s.st === 'ok' || s.st === 'done';
+              
+              let grpCount = 0;
+              if(isOk) {
+                typeOk++; totalOk++;
+                grpCount = isSchool ? (s.grp || 1) : 1;
+              } else {
+                typeNo++; totalNo++;
+                grpCount = 0;
+              }
+              typeGroups += grpCount;
+              totalGroups += grpCount;
 
-          ws.addRow([]); // Spacer
+              const row = ws.addRow([
+                window.fD(s.d),
+                g.name,
+                s.act || window.supAct(s.a) || '',
+                s.t,
+                grpCount,
+                status
+              ]);
+              row.eachCell(cell => {
+                 cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
+                 cell.alignment = { horizontal: 'right' };
+              });
+            });
+
+            // Section Sub-Summary
+            const typeSum = ws.addRow([`📊 סיכום ${type} (${city}):`, `בוצע: ${typeOk}`, `חסר: ${typeNo}`, `סה"כ קבוצות: ${typeGroups}`, '', '']);
+            typeSum.font = { bold: true, size: 10 };
+            typeSum.eachCell((cell, i) => {
+              cell.alignment = { horizontal: 'right' };
+              if(i<=4) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+            });
+            ws.mergeCells(typeSum.number, 4, typeSum.number, 6);
+
+            ws.addRow([]); // Spacer
+          });
         });
 
         // Summary Table
