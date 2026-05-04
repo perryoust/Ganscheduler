@@ -535,7 +535,7 @@ function getFiltSched(){
 
     if(srch&&![(g && g.name||''),(g && g.city||''),(s.a||''),(s.nt||'')].some(x=>x.toLowerCase().includes(srch))) return false;
     return true;
-  }).sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'').localeCompare(b.t||''));
+  }).sort((a,b)=>b.d.localeCompare(a.d)||(a.t||'').localeCompare(b.t||''));
 }
 
 // Global Bridge
@@ -606,7 +606,7 @@ function renderSched(){
   });
 
   let h='';
-  Object.keys(byDate).sort().forEach(dateKey=>{
+  Object.keys(byDate).sort((a,b)=>b.localeCompare(a)).forEach(dateKey=>{
     h+=`<div style="font-weight:800;color:#1a237e;font-size:.83rem;padding:6px 10px;background:#e8eaf6;border-radius:6px;margin-bottom:6px;margin-top:10px">
       📅 ${window.fD(dateKey)} יום ${window.dayN(dateKey)}
     </div>`;
