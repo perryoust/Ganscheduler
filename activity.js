@@ -264,7 +264,10 @@ function openSP(id){
   // --- Activity type detection ---
   // Heuristic for recurrence: formal ID or appears at least twice in same day-of-week, time, and supplier
   const _dow = new Date(s.d).getDay();
-  const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+  const isM = !!(s._isMakeup || s._makeupFrom || 
+                (s.nt && /השלמה|makeup/i.test(s.nt)) || 
+                (s.n && /השלמה|makeup/i.test(s.n)) || 
+                (s.cn && /השלמה|makeup/i.test(s.cn)));
   const repeats = window.SCH.filter(x => x.g === s.g && new Date(x.d).getDay() === _dow && window.supBase(x.a) === window.supBase(s.a) && x.t === s.t && x.st !== 'can').length >= 2;
   const isRec = !isM && (!!s._recId || repeats);
   const typeTag = isRec ? '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#e3f2fd;color:#1565c0">🔁 פעילות קבועה</span>'
