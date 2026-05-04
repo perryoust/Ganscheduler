@@ -1239,7 +1239,7 @@ window.setPostMode = function(mode) {
     if(btnDefer) btnDefer.classList.add('active');
     if(dateRow) dateRow.style.display = 'none';
     if(timeRow) timeRow.style.display = 'none';
-    if(synWrap) synWrap.style.display = 'none';
+    if(synWrap) synWrap.style.display = 'block'; // Keep synergy visible for defer too!
     if(saveBtn) { saveBtn.textContent = '⏱️ דחה לעת עתה'; saveBtn.className = 'btn bs'; }
     if(reasonLbl) reasonLbl.textContent = 'סיבה (חובה לדחייה)';
   }
