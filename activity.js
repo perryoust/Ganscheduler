@@ -270,7 +270,13 @@ function openSP(id){
   // --- STEP 1: Main Garden Details ---
   let h = `<div style="background:#fff;border-radius:12px;padding:15px;margin-bottom:12px;border:1.5px solid #e0e0e0;box-shadow:0 4px 6px rgba(0,0,0,0.02)">
     <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:.7rem;font-weight:900;color:#1a237e;text-transform:uppercase;background:#e8eaf6;padding:3px 8px;border-radius:4px">🏠 גן נוכחי</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:.7rem;font-weight:900;color:#1a237e;text-transform:uppercase;background:#e8eaf6;padding:3px 8px;border-radius:4px">🏠 גן נוכחי</span>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;background:#f3e5f5;padding:3px 8px;border-radius:4px;border:1px solid #ce93d8">
+          <input type="checkbox" id="sp-is-rec-chk" ${s._recId ? 'checked' : ''} onchange="window.toggleSpRecurBox(this.checked)" style="width:16px;height:16px;accent-color:#6a1b9a">
+          <span style="font-size:0.7rem;font-weight:800;color:#6a1b9a">שיבוץ קבוע</span>
+        </label>
+      </div>
       <div style="text-align:left">
         <div style="font-size:.9rem;font-weight:800;color:#1a237e">${window.fD(s.d)}</div>
         <div style="font-size:.72rem;color:#7986cb;font-weight:700">יום ${window.dayN(s.d)}</div>
@@ -405,12 +411,9 @@ function openSP(id){
   const defaultTo = `${_sY + 1}-06-30`;
 
   h += `<div style="margin-top:10px;border:1.5px solid #ce93d8;border-radius:10px;overflow:hidden">
-    <div style="background:#f3e5f5;padding:10px 15px;display:flex;justify-content:space-between;align-items:center">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <input type="checkbox" id="sp-is-rec-chk" ${isRecChecked} onchange="window.toggleSpRecurBox(this.checked)" style="width:18px;height:18px;accent-color:#6a1b9a">
-        <b style="font-size:0.85rem;color:#6a1b9a">🔄 פעילות קבועה (סדרה)</b>
-      </label>
-      <span id="sp-acc-series-arrow" style="font-size:0.7rem;transition:0.3s;cursor:pointer" onclick="window.toggleSpAccordion('sp-acc-series')">▼</span>
+    <div style="background:#f3e5f5;padding:10px 15px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="window.toggleSpAccordion('sp-acc-series')">
+      <b style="font-size:0.85rem;color:#6a1b9a">🔄 הגדרות פעילות קבועה (סדרה)</b>
+      <span id="sp-acc-series-arrow" style="font-size:0.7rem;transition:0.3s">▼</span>
     </div>
     <div id="sp-acc-series" style="display:none;padding:12px;background:#fff;border-top:1px solid #ce93d8">
       <div style="font-size:.8rem;font-weight:700;color:#1565c0;margin-bottom:8px">גן ראשי: ${g.name}</div>
