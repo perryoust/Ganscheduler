@@ -538,7 +538,12 @@ function getFiltSched(){
   }).sort((a,b)=> {
     const dComp = b.d.localeCompare(a.d);
     if(dComp !== 0) return dComp;
-    return (a.t || '00:00').localeCompare(b.t || '00:00');
+    const tComp = (a.t || '00:00').localeCompare(b.t || '00:00');
+    if(tComp !== 0) return tComp;
+    const pA=window.gardenPair(a.g), pB=window.gardenPair(b.g);
+    const nA = pA ? pA.name : window.G(a.g).name;
+    const nB = pB ? pB.name : window.G(b.g).name;
+    return nA.localeCompare(nB, 'he');
   });
 }
 

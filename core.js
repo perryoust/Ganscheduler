@@ -919,9 +919,9 @@ function updCounts(){
   const sch = window.SCH || [];
   const gdns = window.GARDENS || [];
 
-  const can=sch.filter(s=>s.st==='can' && !s._compByMakeup && s.d >= window.td() && window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
-  const post=sch.filter(s=>s.st==='post' && !s._compByMakeup && s.d >= window.td() && window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
-  const nohap=sch.filter(s=>s.st==='nohap' && !s._compByMakeup && s.d >= window.td() && window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const can=sch.filter(s=>s.st==='can' && !s._compByMakeup && window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const post=sch.filter(s=>s.st==='post' && !s._compByMakeup && window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const nohap=sch.filter(s=>s.st==='nohap' && !s._compByMakeup && window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
   const todayCnt=sch.filter(s=>s.d===td() && s.st!=='can' && window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
   const allInTab=sch.filter(s=>window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
 
