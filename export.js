@@ -745,6 +745,7 @@ async function exportToExcel(data, filename, opts = {}) {
         ws.addRow([]);
         const sumHead = ws.addRow(['📊 ריכוז פעילות סופי', '', '']);
         sumHead.font = { bold: true, size: 12 };
+        sumHead.alignment = { horizontal: 'right' };
         ws.mergeCells(sumHead.number, 1, sumHead.number, 3);
 
         summaryRows.forEach(sr => {
