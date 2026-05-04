@@ -743,7 +743,9 @@ async function exportToExcel(data, filename, opts = {}) {
                 }
               }
               
-              let grpCount = isOk ? (isSchool ? (s.grp || 1) : 1) : 0;
+              // Always show real group count from data, default to 1 if ok
+              let grpCount = isOk ? (s.grp || 1) : 0;
+              
               if(isOk) { typeOk++; totalOk++; } else { typeNo++; totalNo++; }
               typeGroups += grpCount;
               totalGroups += grpCount;
