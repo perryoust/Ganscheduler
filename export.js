@@ -662,6 +662,22 @@ function buildSheetData(garden, evs) {
 
 
 
+function exportToExcel(data, filename) {
+  if (!data || !data.length) { alert('אין נתונים לייצוא'); return; }
+  if (typeof window.XLSX === 'undefined') { alert('ספריית Excel לא נטענה'); return; }
+  const ws = window.XLSX.utils.json_to_sheet(data);
+  const wb = window.XLSX.utils.book_new();
+  window.XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+  window.XLSX.writeFile(wb, (filename || 'export') + ".xlsx");
+}
+
+window.openMonthlyExport = openMonthlyExport;
+window.doMonthlyExport = doMonthlyExport;
+window.exportToExcel = exportToExcel;
+window.downloadWB = downloadWB;
+window.buildCityWB = buildCityWB;
+window.buildGardenWB = buildGardenWB;
+
 // ─── Garden Cell Popup ────────────────────────────────────────
 var _gcellGid=null, _gcellDs=null;
 

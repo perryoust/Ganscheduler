@@ -535,7 +535,11 @@ function getFiltSched(){
 
     if(srch&&![(g && g.name||''),(g && g.city||''),(s.a||''),(s.nt||'')].some(x=>x.toLowerCase().includes(srch))) return false;
     return true;
-  }).sort((a,b)=>b.d.localeCompare(a.d)||(a.t||'').localeCompare(b.t||''));
+  }).sort((a,b)=> {
+    const dComp = b.d.localeCompare(a.d);
+    if(dComp !== 0) return dComp;
+    return (a.t || '00:00').localeCompare(b.t || '00:00');
+  });
 }
 
 // Global Bridge
