@@ -696,14 +696,15 @@ async function exportToExcel(data, filename, opts = {}) {
         let totalOk = 0, totalNo = 0;
 
         cities.forEach(city => {
+          let cityOk = 0, cityNo = 0;
           // City Header
           const cityRow = ws.addRow([`🏙️ עיר: ${city}`]);
           cityRow.font = { bold: true };
           cityRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
-          ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, 5);
+          ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, 6);
 
           // Table Header
-          const headRow = ws.addRow(['גן', 'ספק', 'פעילות', 'שעה', 'סטטוס']);
+          const headRow = ws.addRow(['גן', 'ספק', 'פעילות', 'תאריך', 'שעה', 'סטטוס']);
           headRow.font = { bold: true };
           headRow.eachCell(cell => {
              cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
@@ -711,14 +712,18 @@ async function exportToExcel(data, filename, opts = {}) {
           });
 
           byCity[city].forEach(s => {
-            const status = window.stLabel ? window.stLabel(s) : s.st;
+            let status = window.stLabel ? window.stLabel(s) : s.st;
+            // Strip HTML tags from status
+            status = status.replace(/<[^>]*>/g, '');
+            
             const isOk = s.st === 'ok' || s.st === 'done';
-            if(isOk) totalOk++; else totalNo++;
+            if(isOk) { totalOk++; cityOk++; } else { totalNo++; cityNo++; }
 
             const row = ws.addRow([
               window.G(s.g).name,
               window.supBase(s.a),
               s.act || window.supAct(s.a) || '',
+              window.fD(s.d),
               s.t,
               status
             ]);
@@ -726,12 +731,21 @@ async function exportToExcel(data, filename, opts = {}) {
                cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
             });
           });
+
+          // City Sub-Summary
+          const citySum = ws.addRow([`📊 סיכום ${city}:`, `בוצע: ${cityOk}`, `חסר: ${cityNo}`, `סה"כ: ${byCity[city].length}`, '', '']);
+          citySum.font = { bold: true, size: 10 };
+          citySum.eachCell((cell, i) => {
+            if(i<=4) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+          });
+          ws.mergeCells(citySum.number, 4, citySum.number, 6);
+
           ws.addRow([]); // Spacer
         });
 
         // Summary Table
         ws.addRow([]);
-        const sumHead = ws.addRow(['📊 סיכום פעילות', '', '']);
+        const sumHead = ws.addRow(['📊 סיכום פעילות כולל', '', '']);
         sumHead.font = { bold: true, size: 12 };
         ws.mergeCells(sumHead.number, 1, sumHead.number, 3);
 

@@ -1127,10 +1127,22 @@ function doCopy(){
 }
 
 function openSupExport(supName){
-  const date=document.getElementById('dash-date').value||window.td();
-  const evs=window.SCH.filter(s=>s.a===supName&&s.d===date&&s.st!=='can');
-  if(!evs.length){alert('אין פעילויות לייצוא');return;}
-  window.exportToExcel(evs, `דו"ח_יומי_${supName}_${date}`, {type:'supplier', title:`דו"ח יומי לספק: ${supName} (${window.fD(date)})`});
+  // Check for range filters first (Dashboard or Timeline)
+  const dFrom = document.getElementById('dash-from')?.value || document.getElementById('s-from')?.value;
+  const dTo = document.getElementById('dash-to')?.value || document.getElementById('s-to')?.value;
+  const dSingle = document.getElementById('dash-date')?.value || window.td();
+
+  const from = dFrom || dSingle;
+  const to = dTo || dSingle;
+
+  const evs = window.SCH.filter(s => s.a === supName && s.d >= from && s.d <= to && s.st !== 'can');
+  if(!evs.length){alert('אין פעילויות לייצוא בטווח הנבחר');return;}
+  
+  const dateStr = (from === to) ? window.fD(from) : `${window.fD(from)} - ${window.fD(to)}`;
+  window.exportToExcel(evs, `דו"ח_${supName}_${from}_${to}`, {
+    type:'supplier', 
+    title:`דו"ח פעילות לספק: ${supName} (טווח: ${dateStr})`
+  });
 }
 
 // --- SYNERGY UI HELPER ---
