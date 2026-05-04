@@ -718,30 +718,8 @@ async function exportToExcel(data, filename, opts = {}) {
               const isSchool = window.gcls(g) === 'ביה"ס';
               const note = (s.nt || '').toLowerCase();
               
-              // Positive indicators: makeup sessions or activities moved FROM another date
-              const isMakeup = note.includes('השלמה');
-              const isMovedFrom = note.includes('נדחה מ') || note.includes('הוזז מ') || note.includes('הזזה מ');
-              // Negative indicators: activities moved TO another date
-              const isMovedTo = note.includes('נדחה ל') || note.includes('הוזז ל') || note.includes('הזזה ל');
-              
-              const isPositive = isMakeup || isMovedFrom || (note.includes('נדחה') && !isMovedTo);
-              
-              // 1. Check status first: ok/done are positive
+              // Report is now strictly faithful to the site's status
               let isOk = s.st === 'ok' || s.st === 'done';
-              
-              // 2. If it's officially not ok (nohap/can), it's ALWAYS 0
-              if(!isOk) {
-                 // it's 0.
-              } else {
-                // It's ok, but let's see if there's a cancellation keyword or "Moved TO"
-                const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
-                const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע'];
-                const isManualCancel = [...canWords, ...nohapWords].some(w => note.includes(w));
-                
-                if((isManualCancel || isMovedTo) && !isPositive) {
-                   isOk = false;
-                }
-              }
               
               // Always show real group count from data, default to 1 if ok
               let grpCount = isOk ? (s.grp || 1) : 0;
@@ -750,14 +728,10 @@ async function exportToExcel(data, filename, opts = {}) {
               typeGroups += grpCount;
               totalGroups += grpCount;
 
-              // Clean up status label: only show if NOT 'ok' or if it's an exception
+              // Clean up status label: only show exceptions
               let displayStatus = statusLabel;
-              if(isOk) {
-                // If it's OK, we don't want to see "מתקיים" (user requested clean report)
-                if(statusLabel === 'מתקיים' || s.st === 'ok' || s.st === 'done') displayStatus = '';
-              } else {
-                // If it's NOT OK, show the reason. If we forced it via note, show "בוטל"
-                if(isForcedCancel) displayStatus = 'בוטל (לפי הערה)';
+              if(isOk && (statusLabel === 'מתקיים' || s.st === 'ok' || s.st === 'done')) {
+                 displayStatus = ''; 
               }
               
               const row = ws.addRow([window.fD(s.d), g.name, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, s.nt || '']);
