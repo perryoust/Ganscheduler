@@ -1969,13 +1969,13 @@ function saveNohapQ(){
   const origEvForMakeup = SCH.find(s => s.id === _nohapQId);
   if (origEvForMakeup) {
     setTimeout(() => {
-      const wantMakeup = confirm(
+      window.askYesNo(
         '⚠️ הפעילות סומנה כ"לא התקיים".\n\n' +
-        'האם תרצה לשבץ השלמה עכשיו?'
+        'האם תרצה לשבץ השלמה עכשיו?',
+        () => {
+          window.openMakeupSched(_nohapQId);
+        }
       );
-      if (wantMakeup) {
-        window.openMakeupSched(_nohapQId);
-      }
     }, 200);
   }
 }
@@ -3042,6 +3042,17 @@ window.stClass = stClass;
 window.gardenPair = gardenPair;
 window.showToast = showToast;
 window.ST = ST;
+window.askYesNo = (msg, onYes) => {
+  const m = document.getElementById('askm');
+  if(!m) return;
+  document.getElementById('ask-msg').innerText = msg;
+  const y = document.getElementById('ask-yes');
+  const n = document.getElementById('ask-no');
+  y.onclick = () => { CM('askm'); if(onYes) onYes(); };
+  n.onclick = () => { CM('askm'); };
+  m.classList.add('open');
+};
+
 window.getBlockedInfo = getBlockedInfo;
 window.getHolidayInfo = getHolidayInfo;
 window.cities = cities;
