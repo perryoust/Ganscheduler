@@ -905,6 +905,20 @@ function saveNt(){
       }
     }
   }
+  
+  // Synergy Sync: Copy note and status to partner garden if synced
+  const pair = window.gardenPair(s.g);
+  if(pair) {
+    pair.ids.forEach(pId => {
+      if(pId === s.g) return;
+      const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === pId && ps.st !== 'can' && window.supBase(ps.a) === window.supBase(s.a));
+      if(pEv) {
+        pEv.nt = s.nt;
+        pEv.st = s.st;
+      }
+    });
+  }
+
   if(nEl) {
     s.n=nEl.value;
     if(s._recId) {
