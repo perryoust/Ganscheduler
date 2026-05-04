@@ -275,17 +275,34 @@ window.importBulkSchedule = function(input) {
           const isMakeupNote = notes.includes('השלמה');
           const isActualMakeup = isMakeupSheet || isMakeupNote;
 
-          // --- STATUS LOGIC ---
-          // Default is 'ok'. Only set nohap if explicitly a "missing" sheet
-          // OR if the status column says so. Never infer nohap from empty group.
+          // --- STATUS LOGIC (SMART IMPORT) ---
           let status = 'ok';
           if (isMissingSheet) status = 'nohap';
           
           const rawSt = String(getV(colStatus) || '').toLowerCase();
+          const lowerNotes = notes.toLowerCase();
+          
+          // Keywords lists
+          const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
+          const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע', 'לא נשאר', 'עזב', 'לא התקיימה'];
+          
+          // 1. Check Status Column
           if (rawSt.includes('בוטל') || rawSt.includes('ביטול') || rawSt === 'can') status = 'can';
           else if (rawSt.includes('נדחה') || rawSt.includes('הזזה') || rawSt === 'post') status = 'post';
           else if (rawSt.includes('לא התקיים') || rawSt.includes('לא בוצע') || rawSt === 'nohap') status = 'nohap';
           else if (rawSt.includes('בוצע') || rawSt.includes('התקיים') || rawSt === 'done') status = 'done';
+          
+          // 2. Smart Override from Notes (if status is still 'ok')
+          if (status === 'ok') {
+            const isMovedFrom = lowerNotes.includes('נדחה מ') || lowerNotes.includes('הוזז מ') || lowerNotes.includes('הזזה מ');
+            const isMovedTo = lowerNotes.includes('נדחה ל') || lowerNotes.includes('הוזז ל') || lowerNotes.includes('הזזה ל');
+            const isPos = lowerNotes.includes('השלמה') || isMovedFrom || (lowerNotes.includes('נדחה') && !isMovedTo);
+
+            if (!isPos) {
+              if (canWords.some(w => lowerNotes.includes(w)) || isMovedTo) status = 'can';
+              else if (nohapWords.some(w => lowerNotes.includes(w))) status = 'nohap';
+            }
+          }
 
           let makeupFrom = '';
           if (isActualMakeup) {
@@ -320,7 +337,7 @@ window.importBulkSchedule = function(input) {
               t: time,
               st: status,
               nt: notes,
-              grp: grpRaw || 1,
+              grp: (status === 'can' || status === 'nohap') ? 0 : (grpRaw || 1),
               _makeupFrom: makeupFrom,
               _isImported: true,
               _isMakeup: isActualMakeup || undefined
