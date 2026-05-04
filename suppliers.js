@@ -161,18 +161,6 @@ function getSupActs(name){
     SCH.forEach(s=>{ if(supBase(s.a)===oldBase){const a=supAct(s.a);if(a)fromSch.add(a);} });
     SUPBASE.forEach(s=>{ if(supBase(s.name)===oldBase){const a=supAct(s.name);if(a)fromSch.add(a);} });
   });
-  // 4. Fallback: check mergedAway — find SUPBASE entries whose base was merged into this supplier
-  const mergedAway = window.supEx['__merged_away']||[];
-  mergedAway.forEach(mName=>{
-    const mBase=window.supBase(mName);
-    if(window.SCH.some(s=>window.supBase(s.a)===base)){
-      window.SUPBASE.forEach(s=>{ if(window.supBase(s.name)===mBase && mBase!==base){
-        if(window.SCH.some(s2=>window.supBase(s2.a)===mBase)){
-          const a=window.supAct(s.name); if(a) fromSch.add(a);
-        }
-      }});
-    }
-  });
   // 5. Merge with explicitly saved acts (manual additions not in SCH)
   if(Array.isArray(ex.acts)) ex.acts.forEach(a=>{ if(a) fromSch.add(a); });
 
