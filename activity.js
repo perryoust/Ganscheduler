@@ -169,7 +169,11 @@ function renderDash() {
             pairMap.set(gid, { id: 'dummy_'+gid, g: gid, st: 'unassigned', d: date, t: '', act: '' });
           }
         });
-        const sorted = Array.from(pairMap.values()).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+        const sorted = Array.from(pairMap.values()).sort((a,b) => {
+          const tA = (a.t || '99:99').padStart(5, '0');
+          const tB = (b.t || '99:99').padStart(5, '0');
+          return tA.localeCompare(tB);
+        });
         
         h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
           <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
