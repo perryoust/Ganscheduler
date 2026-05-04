@@ -878,7 +878,7 @@ function renderGardenCols(evs, gids, clr){
 
       filtered.forEach(s => {
         const stc = s.st !== 'ok' ? 'st-' + s.st : '';
-        html += `<div class="pslot ${stc}" style="border-right:3px solid ${clr.solid}" onclick="openSP(${s.id})">
+        html += `<div class="pslot ${stc}" style="border-right:3px solid ${clr.solid}" onclick="openSP('${s.id}')">
           ${s._fromD ? `<div style="font-size:.67rem; color:#e65100; font-weight:700; background:#fff3e0; padding:1px 5px; border-radius:3px; margin-bottom:2px">↩️ הועבר מ-${window.fD(s._fromD)}</div>` : ''}
           ${s.t ? `<div class="pt">⏰ ${window.fT(s.t)}</div>` : ''}
           <div class="pn">${window.supBase(s.a)}</div>
@@ -887,10 +887,10 @@ function renderGardenCols(evs, gids, clr){
           ${s.p ? `<div class="pp">📞 ${s.p}</div>` : ''}
           <div class="pst">${window.stLabel(s)}</div>
           <div class="qacts" onclick="event.stopPropagation()">
-            ${s.st === 'done' ? '' : `<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
-            ${s.st === 'can' ? '' : `<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
-            ${s.st === 'nohap' ? '' : `<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
-            <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
+            ${s.st === 'done' ? '' : `<button title="התקיים" onclick="qSetSt('${s.id}','done')">✔️</button>`}
+            ${s.st === 'can' ? '' : `<button title="בטל" onclick="openCanQ('${s.id}')">❌</button>`}
+            ${s.st === 'nohap' ? '' : `<button title="לא התקיים" onclick="qSetSt('${s.id}','nohap')">⚠️</button>`}
+            <button title="דחה" onclick="openPostpone('${s.id}')">⏩</button>
           </div>
         </div>`;
       });
@@ -921,18 +921,18 @@ function renderPairColsHTML(evs,gids,pairId){
       <div class="pch"><span>${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</span></div>
       <div class="pcb">`;
     if(!ge.length) html+='<div class="pempty">אין פעילויות</div>';
-    else ge.forEach(s=>html+=`<div class="pslot ${s.st!=='ok'?'st-'+s.st:''}" onclick="openSP(${s.id})">
+    else ge.forEach(s=>html+=`<div class="pslot ${s.st!=='ok'?'st-'+s.st:''}" onclick="openSP('${s.id}')">
       ${s.t?`<div class="pt">⏰ ${window.fT(s.t)}</div>`:''}
       ${s.act?`<div style="font-size:.68rem;color:#1565c0;font-weight:600">${s.act}</div>`:''}
       <div class="pn">${s.a}</div>
       ${s.p?`<div class="pp">📞 ${s.p}</div>`:''}
       <div class="pst">${window.stLabel(s)}</div>
       <div class="qacts" onclick="event.stopPropagation()">
-        ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt(${s.id},'done')">✔️</button>`}
-        ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ(${s.id})">❌</button>`}
-        ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt(${s.id},'nohap')">⚠️</button>`}
-        <button title="דחה" onclick="openPostpone(${s.id})">⏩</button>
-        <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched(${s.id})">📅</button>
+        ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt('${s.id}','done')">✔️</button>`}
+        ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ('${s.id}')">❌</button>`}
+        ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt('${s.id}','nohap')">⚠️</button>`}
+        <button title="דחה" onclick="openPostpone('${s.id}')">⏩</button>
+        <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched('${s.id}')">📅</button>
       </div>
     </div>`);
     html+='</div></div>';
@@ -1051,7 +1051,7 @@ function renderNormalWeek(evs, ws, f){
             background:#fff;border-right:3px solid ${clrObj.solid};
             ${ev.st==='can'?'opacity:.5;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':ev.st==='done'?'background:#f1f8e9;':ev.st==='nohap'?'background:#fce4ec;':''}">
             <div style="display:flex;align-items:flex-start;gap:4px">
-              <div style="cursor:pointer;flex:1;min-width:0" onclick="event.stopPropagation();openSP(${ev.id})">
+              <div style="cursor:pointer;flex:1;min-width:0" onclick="event.stopPropagation();openSP('${ev.id}')">
                 <div style="font-weight:700;color:${clrObj.solid};word-break:break-word;line-height:1.3">${window.supBase(ev.a)}${ev.act?`<span style="color:#78909c;font-weight:400"> — ${ev.act}</span>`:''}</div>
                 ${ev._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 5px;font-size:11px;font-weight:800;border:1px solid #b3e5fc;margin-top:2px">📅 השלמה</div>`:''}
                 <div style="font-size:12px;color:#5c6bc0;margin-top:1px">${ev.tp||'חוג'}${ev.grp>1?` · <span style="color:#546e7a">👥${ev.grp}</span>`:''}</div>
@@ -1059,15 +1059,15 @@ function renderNormalWeek(evs, ws, f){
               </div>
               <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0" onclick="event.stopPropagation()">
                 <button title="התקיים" style="background:${ev.st==='done'?'#2e7d32':'#e8f5e9'};color:${ev.st==='done'?'#fff':'#2e7d32'};border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
-                  onclick="openSP(${ev.id});setTimeout(()=>setStatus('done'),80)">✔️</button>
+                  onclick="openSP('${ev.id}');setTimeout(()=>setStatus('done'),80)">✔️</button>
                 <button title="בטל" style="background:${ev.st==='can'?'#c62828':'#ffebee'};color:${ev.st==='can'?'#fff':'#c62828'};border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
-                  onclick="openSP(${ev.id})">❌</button>
+                  onclick="openSP('${ev.id}')">❌</button>
                 <button title="לא התקיים" style="background:${ev.st==='nohap'?'#6a1b9a':'#f3e5f5'};color:${ev.st==='nohap'?'#fff':'#6a1b9a'};border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
-                  onclick="openSP(${ev.id});setTimeout(()=>markNoHap(),80)">⚠️</button>
+                  onclick="openSP('${ev.id}');setTimeout(()=>markNoHap(),80)">⚠️</button>
                 <button title="דחה" style="background:#fff3e0;color:#e65100;border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
-                  onclick="event.stopPropagation();openPostpone(${ev.id})">⏩</button>
+                  onclick="event.stopPropagation();openPostpone('${ev.id}')">⏩</button>
                 <button title="שיבוץ השלמה" class="btn-makeup" style="background:#e3f2fd;color:#1565c0;border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
-                  onclick="event.stopPropagation();openMakeupSched(${ev.id})">📅</button>
+                  onclick="event.stopPropagation();openMakeupSched('${ev.id}')">📅</button>
               </div>
             </div>
           </div>`;
@@ -1174,7 +1174,7 @@ function renderPairWeek(evs,ws,gids){
       const uniqueDe = [];
       for (const k in supMap) uniqueDe.push(supMap[k]);
 
-      html+=`<td style="background:${pwBlk?'#fce4ec':cellBg};${pwBlk?'border:1.5px solid #e91e63;':''}" onclick="openGcellPopup(${gid},'${ds}',event)">${uniqueDe.length?uniqueDe.map(ev=>`<div style="border-radius:4px;padding:2px 6px;margin-bottom:2px;cursor:pointer;font-size:.7rem;background:${clr.light};border-right:2px solid ${clr.solid};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" onclick="event.stopPropagation();openSP(${ev.id})"><div style="font-weight:700;color:#1a237e">${ev.a}</div>${ev.t?`<div style="font-size:.65rem;color:#546e7a">⏰ ${window.fT(ev.t)}</div>`:''}</div>`).join('')+(pwBlk?`<div style="font-size:.62rem;color:#c62828">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`:'')
+      html+=`<td style="background:${pwBlk?'#fce4ec':cellBg};${pwBlk?'border:1.5px solid #e91e63;':''}" onclick="openGcellPopup(${gid},'${ds}',event)">${uniqueDe.length?uniqueDe.map(ev=>`<div style="border-radius:4px;padding:2px 6px;margin-bottom:2px;cursor:pointer;font-size:.7rem;background:${clr.light};border-right:2px solid ${clr.solid};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" onclick="event.stopPropagation();openSP('${ev.id}')"><div style="font-weight:700;color:#1a237e">${ev.a}</div>${ev.t?`<div style="font-size:.65rem;color:#546e7a">⏰ ${window.fT(ev.t)}</div>`:''}</div>`).join('')+(pwBlk?`<div style="font-size:.62rem;color:#c62828">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`:'')
         :pwBlk?`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`
         :'<span style="color:#ccc;font-size:.8rem;cursor:pointer">+</span>'}</td>`;
     });
