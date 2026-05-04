@@ -2612,10 +2612,14 @@ function renderGardensFixed(){
       else groups.push({type:'solo',gardens:[g]});
     });
 
-    h+=`<div style="margin-bottom:20px">
-      <div style="font-weight:800;color:#1a237e;font-size:.88rem;padding:7px 12px;background:#e8eaf6;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
-        🏙️ ${city}<span style="font-size:.72rem;color:#5c6bc0;font-weight:600">(${gardens.length})</span>
-      </div>`;
+    h+=`<details class="city-accordion">
+      <summary>
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+          <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${gardens.length} גנים)</span>
+          <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
+        </div>
+      </summary>
+      <div class="city-accordion-content">`;
 
     groups.forEach(group=>{
       if(group.type==='pair'){
@@ -2625,7 +2629,7 @@ function renderGardensFixed(){
         h+=_renderGardenFixedRow(group.gardens[0]);
       }
     });
-    h+='</div>';
+    h+='</div></details>';
   });
 
   document.getElementById('g-body').innerHTML=h||'<p style="color:#999;padding:20px">לא נמצאו צהרונים</p>';
@@ -2643,14 +2647,15 @@ function _renderGardenFixedRow(g){
       const supN=supBase(s.a)||s.a||'';
       const actN=s.act||supAct(s.a)||'';
       const time=s.t?s.t.slice(0,5):'—';
+      const key = s._recId || `${s.a}_${s.act}_${dow}`;
       rows+=`<tr style="border-bottom:1px solid #eef0fb">
         <td style="padding:3px 10px;font-weight:600;color:#1a237e;white-space:nowrap">יום ${HEB_DAYS_SHORT[dow]}</td>
         <td style="padding:3px 10px;color:#222">${supN}${actN?' — '+actN:''}</td>
         <td style="padding:3px 10px;color:#5c6bc0;font-size:.71rem">${s.tp||'חוג'}</td>
         <td style="padding:3px 10px;color:#2e7d32;font-weight:600;white-space:nowrap">${time}</td>
         <td style="padding:2px 6px;white-space:nowrap">
-          <button onclick="event.stopPropagation();openSP('${s.id}')" style="background:#e8eaf6;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#3949ab" title="פתח / ערוך">✏️</button>
-          <button onclick="event.stopPropagation();openSP('${s.id}')" style="background:#ffebee;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#c62828;margin-right:2px" title="ביטול">❌</button>
+          <button onclick="event.stopPropagation();openGM(${gid});setTimeout(()=>window.openBulkUpdateRecurring('${key}',${gid}),100)" style="background:#e8eaf6;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#3949ab" title="ערוך שיבוץ קבוע (סדרה)">✏️</button>
+          <button onclick="event.stopPropagation();openSP('${s.id}')" style="background:#ffebee;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#c62828;margin-right:2px" title="ביטול/החרגה חד פעמית">❌</button>
         </td>
       </tr>`;
     });

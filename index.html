@@ -564,6 +564,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div style="display:none"><select id="g-cls" onchange="renderGardens()"><option value="">הכל</option><option value="גנים">גנים</option><option value='ביה"ס'>בתי ספר</option></select></div>
     <div id="g-fixed-controls" style="display:none;margin-bottom:8px">
       <div class="row">
+        <button class="btn bp bsm" onclick="window.openNewSched(null, {tab:'recur'})">➕ שיבוץ קבוע חדש</button>
         <div class="fg"><label>מתאריך</label><input type="date" id="g-fixed-from" onchange="renderGardensFixed()" style="min-width:130px"></div>
         <div class="fg"><label>עד תאריך</label><input type="date" id="g-fixed-to" onchange="renderGardensFixed()" style="min-width:130px"></div>
         <button class="btn bo bsm" onclick="(()=>{const n=new Date(),ld=new Date(n.getFullYear(),n.getMonth()+1,0);document.getElementById('g-fixed-from').value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-01';document.getElementById('g-fixed-to').value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(ld.getDate()).padStart(2,'0');renderGardensFixed();})()">החודש הנוכחי</button>

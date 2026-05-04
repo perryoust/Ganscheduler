@@ -310,6 +310,7 @@ function renderPairs(){
         </div>
       </summary>
       <div class="city-accordion-content">`;
+    const clr = window.CITY_COLORS(city);
     byCity[city].forEach(p=>{
       const idx=window.pairs.indexOf(p);
       const gs=p.ids.map(id=>window.G(id)).filter(x=>x.id);
