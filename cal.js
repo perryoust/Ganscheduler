@@ -520,6 +520,7 @@ function renderClusterDay(evs, ds, clusterName){
               <span style="font-weight:700;color:#1a237e;white-space:nowrap">${window.gcls(g)==='ביה"ס'?'🏗️':'🏫'} ${g.name}</span>
               <span style="color:#546e7a;font-size:.74rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${window.supBase(s.a)}${(s.act||window.supAct(s.a))?` · ${s.act||window.supAct(s.a)}`:''}</span>
               ${s.nt?`<span style="color:#d84315;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">📝 ${s.nt}</span>`:''}
+              ${(s._compByMakeup && s._compByMakeup!=='false')?`<span style="color:#2e7d32;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">✅ נקבעה השלמה${(window.SCH.find(x=>x.id===s._compByMakeup)||{}).d ? ' ל-'+window.fD((window.SCH.find(x=>x.id===s._compByMakeup)||{}).d) : ''}</span>`:''}
               <span style="font-size:.68rem;font-weight:700;white-space:nowrap">${window.stLabel(s)}</span>
               <div class="qacts" onclick="event.stopPropagation()" style="margin-right:auto;display:flex;gap:3px">
                 ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt('${s.id}','done')" style="padding:2px 4px">✔️</button>`}
@@ -554,6 +555,7 @@ function renderClusterDay(evs, ds, clusterName){
             <span style="font-weight:700;color:#1a237e;white-space:nowrap">${window.supBase(s.a)}</span>
             <span style="font-size:.74rem;color:${clrCity.solid};font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(s.act||window.supAct(s.a))?`🎯 ${s.act||window.supAct(s.a)}`:''}</span>
             ${s.nt?`<span style="color:#d84315;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">📝 ${s.nt}</span>`:''}
+            ${(s._compByMakeup && s._compByMakeup!=='false')?`<span style="color:#2e7d32;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">✅ נקבעה השלמה${(window.SCH.find(x=>x.id===s._compByMakeup)||{}).d ? ' ל-'+window.fD((window.SCH.find(x=>x.id===s._compByMakeup)||{}).d) : ''}</span>`:''}
             ${s.grp>1?`<span style="font-size:.68rem;color:#546e7a;white-space:nowrap">👥 ${s.grp}</span>`:''}
             <span style="font-size:.68rem;white-space:nowrap">${window.stLabel(s)}</span>
             <div class="qacts" onclick="event.stopPropagation()" style="display:flex;gap:3px">
@@ -1487,6 +1489,7 @@ function _listRow(s, clr, ds){
       <div style="font-size:.75rem;font-weight:600;color:#1565c0">${supText}</div>
       ${s.nt?`<div style="font-size:.68rem;color:#d84315;margin-top:2px;max-width:200px;white-space:normal;line-height:1.15;font-weight:700">📝 ${s.nt}</div>`:''}
       ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #b3e5fc;margin-top:2px">📅 השלמה</div>`:''}
+      ${(s._compByMakeup && s._compByMakeup!=='false')?`<div style="display:inline-block;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #a5d6a7;margin-top:2px">✅ נקבעה השלמה${(window.SCH.find(x=>x.id===s._compByMakeup)||{}).d ? ' ל-'+window.fD((window.SCH.find(x=>x.id===s._compByMakeup)||{}).d) : ''}</div>`:''}
       ${s._recId?`<div style="display:inline-block;background:#f3e5f5;color:#6a1b9a;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #e1bee7;margin-top:2px">🔄 קבוע</div>`:''}
       ${!isUnassigned ? `<div style="font-size:.65rem;color:#5c6bc0">${s.tp||'חוג'}</div>` : ''}
     </div>

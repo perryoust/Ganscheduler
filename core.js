@@ -934,11 +934,11 @@ function updCounts(){
   setEl('d-total', allInTab.toLocaleString());
 
   setEl('h-pairs', (window.pairs||[]).length);
-  setEl('h-can', sch.filter(s=>s.st==='can' && !s._compByMakeup).length);
-  setEl('h-post', sch.filter(s=>s.st==='post' && !s._compByMakeup).length);
-  setEl('h-nohap', sch.filter(s=>s.st==='nohap' && !s._compByMakeup).length);
-  setEl('h-sched', sch.length.toLocaleString());
-  setEl('h-gardens', gdns.length+(window._GARDENS_EXTRA||[]).length);
+  setEl('h-can', can);
+  setEl('h-post', post);
+  setEl('h-nohap', nohap);
+  setEl('h-sched', allInTab.toLocaleString());
+  setEl('h-gardens', gdns.filter(g=>window.gcls(g)===cls).length + (window._GARDENS_EXTRA||[]).filter(g=>window.gcls(g)===cls).length);
   
   setEl('d-pairs', (window.pairs||[]).length);
   setEl('d-gardens', gdns.filter(g=>window.gcls(g)===cls).length + (window._GARDENS_EXTRA||[]).filter(g=>window.gcls(g)===cls).length);
