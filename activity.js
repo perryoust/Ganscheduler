@@ -267,9 +267,13 @@ function openSP(id){
   const isM = !!(s._isMakeup || s._makeupFrom || 
                 (s.nt && /השלמה|makeup/i.test(s.nt)) || 
                 (s.n && /השלמה|makeup/i.test(s.n)) || 
-                (s.cn && /השלמה|makeup/i.test(s.cn)));
+                (s.cn && /השלמה|makeup/i.test(s.cn)) ||
+                (s.a && /השלמה|makeup/i.test(s.a)) ||
+                (s.act && /השלמה|makeup/i.test(s.act)));
   const repeats = window.SCH.filter(x => x.g === s.g && new Date(x.d).getDay() === _dow && window.supBase(x.a) === window.supBase(s.a) && x.t === s.t && x.st !== 'can').length >= 2;
   const isRec = !isM && (!!s._recId || repeats);
+  
+  console.log(`[Recur Check] ID:${s.id} isM:${isM} isRec:${isRec} nt:${s.nt}`);
   const typeTag = isRec ? '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#e3f2fd;color:#1565c0">🔁 פעילות קבועה</span>'
     : isM ? '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#fff3e0;color:#e65100">↩️ השלמה</span>'
     : '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#eceff1;color:#546e7a">📌 חד-פעמי</span>';
