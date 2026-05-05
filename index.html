@@ -1901,6 +1901,35 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   </div>
 </div>
 
+<!-- Bulk Edit for Cluster for Specific Date -->
+<div id="clbulk-m" class="modal">
+  <div class="mb" style="max-width:800px">
+    <h2 id="clbulk-title">✏️ עריכה מרוכזת לאשכול</h2>
+    <div id="clbulk-info" style="background:#e3f2fd;border-radius:7px;padding:8px 12px;margin-bottom:11px;font-size:.81rem;color:#0d47a1;border-right:4px solid #1565c0"></div>
+    
+    <div class="row" style="margin-bottom:11px">
+      <div class="fg"><label>ספק לכולם</label><select id="clbulk-sup" style="min-width:200px"><option value="">ללא שינוי</option></select></div>
+      <div class="fg"><label>טלפון ספק</label><input type="text" id="clbulk-ph" placeholder="ללא שינוי" style="min-width:120px"></div>
+    </div>
+    
+    <div class="row" style="margin-bottom:11px">
+      <div class="fg" style="flex:1"><label>הערה לכולם</label><input type="text" id="clbulk-nt" placeholder="ללא שינוי" style="width:100%"></div>
+      <div class="fg" style="width:120px"><label>שעה אחידה</label><input type="time" id="clbulk-uni-time" oninput="applyClBulkUniTime(this.value)"></div>
+    </div>
+
+    <div style="font-weight:700;font-size:.82rem;color:#1a237e;margin-bottom:6px">פירוט גנים ושיבוצים להיום:</div>
+    <div id="clbulk-list" style="max-height:280px;overflow-y:auto;border:1.5px solid #c5cae9;border-radius:7px;padding:5px;margin-bottom:11px"></div>
+
+    <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:10px">
+      <button class="btn bp" onclick="saveClusterBulkEdit()" style="flex:1">💾 שמור שינויים לכולם</button>
+      <button class="btn bs" onclick="CM('clbulk-m')">ביטול</button>
+    </div>
+    <div style="margin-top:12px;text-align:center">
+       <button class="btn br bsm" onclick="deleteClusterDay()" style="opacity:.7">🗑️ מחק את כל הפעילויות של האשכול להיום</button>
+    </div>
+  </div>
+</div>
+
 
 
 <!-- ???? Password Overlay ???? -->

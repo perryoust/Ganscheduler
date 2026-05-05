@@ -1316,3 +1316,170 @@ window.doBulkUpdateRecurring = function(key, gid){
   window.saveAndRefresh('gm');
   window.showToast(`✅ תהליך הושלם!\nהוסרו ${cRemoved} מפגשים ישנים ושובצו ${cAdded} חדשים בסינרגיה.`);
 };
+
+// --- Cluster Bulk Edit Logic ---
+window.openClusterBulkEdit = function(clId, ds) {
+  window._clsId = clId;
+  window._clBulkDate = ds;
+  const cl = window.clusters[clId];
+  if(!cl) return;
+
+  (document.getElementById('clbulk-title')||{}).textContent = `✏️ עריכה מרוכזת: ${cl.name}`;
+  (document.getElementById('clbulk-info')||{}).textContent = `תאריך: ${window.fD(ds)} | יום ${window.dayN(ds)}`;
+  
+  const supSel = document.getElementById('clbulk-sup');
+  supSel.innerHTML = '<option value="">ללא שינוי</option>';
+  [...new Set(window.SCH.map(s=>s.a))].sort().forEach(n=>supSel.innerHTML+=`<option value="${n}">${n}</option>`);
+  window.SUPBASE.forEach(s=>{if(!document.querySelector(`#clbulk-sup option[value="${s.name}"]`)) supSel.innerHTML+=`<option value="${s.name}">${s.name}</option>`;});
+  
+  document.getElementById('clbulk-ph').value = '';
+  document.getElementById('clbulk-nt').value = '';
+  document.getElementById('clbulk-uni-time').value = '';
+
+  const allSupsHtml = supSel.innerHTML.replace('<option value="">ללא שינוי</option>', '<option value="">-- בחר ספק --</option>');
+
+  const gs = (cl.gardenIds||[]).map(id=>window.G(id)).filter(x=>x.id).sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  let h = '';
+  gs.forEach(g => {
+    const ev = window.SCH.find(s => s.g === g.id && s.d === ds && s.st !== 'can');
+    h += `<div style="display:grid;grid-template-columns:130px 160px 150px 80px 40px;gap:6px;align-items:center;padding:6px 5px;border-bottom:1px solid #f0f0f0;font-size:.72rem">
+      <span style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${g.name}">${g.name}</span>
+      <select id="clbulk-s-${g.id}" style="font-size:.7rem;padding:2px" onchange="window.clBulkSupChg('${g.id}', this.value)">
+        ${allSupsHtml}
+      </select>
+      <select id="clbulk-act-${g.id}" style="font-size:.7rem;padding:2px">
+        <option value="">-- פעילות --</option>
+      </select>
+      <input type="time" id="clbulk-t-${g.id}" value="${ev?window.fT(ev.t):''}" style="padding:2px;font-size:.7rem">
+      <label style="display:flex;align-items:center;gap:3px;cursor:pointer;justify-content:center">
+        <input type="checkbox" id="clbulk-inc-${g.id}" checked>
+      </label>
+    </div>`;
+  });
+  document.getElementById('clbulk-list').innerHTML = h || '<p style="color:#999;padding:10px">אין גנים באשכול זה</p>';
+
+  // Pre-fill existing
+  gs.forEach(g => {
+    const ev = window.SCH.find(s => s.g === g.id && s.d === ds && s.st !== 'can');
+    if(ev) {
+       const sEl = document.getElementById(`clbulk-s-${g.id}`);
+       if(sEl) {
+         sEl.value = ev.a || '';
+         window.clBulkSupChg(g.id, ev.a, ev.act);
+       }
+    }
+  });
+
+  supSel.onchange = function() {
+    const s = window.SCH.find(x=>x.a===this.value && x.p);
+    if(s) document.getElementById('clbulk-ph').value = s.p;
+    window.applyClBulkUniSup(this.value);
+  };
+
+  document.getElementById('clbulk-m').classList.add('open');
+};
+
+window.applyClBulkUniTime = function(t) {
+  const cl = window.clusters[window._clsId];
+  if(!cl) return;
+  cl.gardenIds.forEach(gid => {
+    const el = document.getElementById(`clbulk-t-${gid}`);
+    if(el) el.value = t;
+  });
+};
+
+window.applyClBulkUniSup = function(sup) {
+  const cl = window.clusters[window._clsId];
+  if(!cl || !sup) return;
+  cl.gardenIds.forEach(gid => {
+    const el = document.getElementById(`clbulk-s-${gid}`);
+    if(el) {
+       el.value = sup;
+       window.clBulkSupChg(gid, sup);
+    }
+  });
+};
+
+window.clBulkSupChg = function(gid, supName, selAct) {
+  const actSel = document.getElementById(`clbulk-act-${gid}`);
+  if(!actSel) return;
+  actSel.innerHTML = '<option value="">-- פעילות --</option>';
+  if(!supName) return;
+  
+  const su = window.SUPBASE.find(s => s.name === supName);
+  const acts = su ? (su.acts || []) : [];
+  if(!acts.length) {
+     // fallback to searching SCH for this supplier's activities
+     const sActs = [...new Set(window.SCH.filter(s=>s.a===supName&&s.act).map(s=>s.act))].sort();
+     sActs.forEach(a => actSel.innerHTML += `<option value="${a}">${a}</option>`);
+  } else {
+     acts.forEach(a => actSel.innerHTML += `<option value="${a.name || a}">${a.name || a}</option>`);
+  }
+  if(selAct) actSel.value = selAct;
+};
+
+window.saveClusterBulkEdit = function() {
+  const cl = window.clusters[window._clsId];
+  const ds = window._clBulkDate;
+  if(!cl || !ds) return;
+
+  const globalSup = document.getElementById('clbulk-sup').value;
+  const globalPh = document.getElementById('clbulk-ph').value;
+  const globalNt = document.getElementById('clbulk-nt').value;
+
+  let updated = 0, added = 0;
+  cl.gardenIds.forEach(gid => {
+    const inc = document.getElementById(`clbulk-inc-${gid}`);
+    if(!inc || !inc.checked) return;
+
+    const rowSup = document.getElementById(`clbulk-s-${gid}`).value || globalSup;
+    const rowAct = document.getElementById(`clbulk-act-${gid}`).value;
+    const t = document.getElementById(`clbulk-t-${gid}`)?.value || '';
+    
+    if(!rowSup) return; // Skip if no supplier selected at all
+
+    const ev = window.SCH.find(s => s.g === gid && s.d === ds && s.st !== 'can');
+
+    if(ev) {
+      ev.a = rowSup;
+      if(rowAct) ev.act = rowAct;
+      if(globalPh) ev.p = globalPh;
+      if(globalNt) ev.nt = (ev.nt ? ev.nt + ' | ' : '') + globalNt;
+      if(t) ev.t = t;
+      updated++;
+    } else {
+      window.SCH.push({
+        id: Date.now() + Math.random(),
+        g: gid, d: ds, a: rowSup, act: rowAct, t: t, p: globalPh, nt: globalNt, st: 'ok', grp: 1
+      });
+      added++;
+    }
+  });
+
+  window.save();
+  window.refresh();
+  window.CM('clbulk-m');
+  window.showToast(`✅ עודכנו ${updated} פעילויות${added ? ' ונוספו '+added : ''}`);
+};
+
+window.deleteClusterDay = function() {
+  const cl = window.clusters[window._clsId];
+  const ds = window._clBulkDate;
+  if(!cl || !ds) return;
+
+  if(!confirm(`למחוק את כל הפעילויות של אשכול "${cl.name}" בתאריך ${window.fD(ds)}?`)) return;
+
+  let deleted = 0;
+  for(let i = window.SCH.length-1; i >= 0; i--) {
+    const s = window.SCH[i];
+    if(s.d === ds && cl.gardenIds.includes(s.g)) {
+      window.SCH.splice(i, 1);
+      deleted++;
+    }
+  }
+
+  window.save();
+  window.refresh();
+  window.CM('clbulk-m');
+  window.showToast(`🗑️ נמחקו ${deleted} פעילויות`);
+};

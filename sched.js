@@ -538,12 +538,18 @@ function getFiltSched(){
   }).sort((a,b)=> {
     const dComp = b.d.localeCompare(a.d);
     if(dComp !== 0) return dComp;
-    const tComp = (a.t || '00:00').localeCompare(b.t || '00:00');
-    if(tComp !== 0) return tComp;
+
+    const gA = window.G(a.g), gB = window.G(b.g);
+    const cComp = (gA.city||'').localeCompare(gB.city||'', 'he');
+    if(cComp !== 0) return cComp;
+
     const pA=window.gardenPair(a.g), pB=window.gardenPair(b.g);
-    const nA = pA ? pA.name : window.G(a.g).name;
-    const nB = pB ? pB.name : window.G(b.g).name;
-    return nA.localeCompare(nB, 'he');
+    const nA = pA ? pA.name : (gA.name||'');
+    const nB = pB ? pB.name : (gB.name||'');
+    const nComp = nA.localeCompare(nB, 'he');
+    if(nComp !== 0) return nComp;
+
+    return (a.t || '99:99').localeCompare(b.t || '99:99');
   });
 }
 
