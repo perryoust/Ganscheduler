@@ -1907,103 +1907,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 </div>
 
 <!-- Bulk Edit for Cluster for Specific Date -->
-<div id="clbulk-m" class="modal">
-  <div class="mb" style="max-width:900px; padding: 0; overflow: hidden; border-radius: 12px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
-    <!-- Header -->
-    <div style="background: linear-gradient(135deg, #1565c0, #1e88e5); padding: 12px 20px; color: #fff;">
-      <div style="display:flex; justify-content: space-between; align-items: center;">
-        <div>
-          <h2 id="clbulk-title" style="margin:0; font-size: 1.15rem; font-weight: 800; display:flex; align-items: center; gap: 8px;">
-            <span style="background: rgba(255,255,255,0.2); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 1rem;">✏️</span>
-            עריכה מרוכזת לאשכול
-          </h2>
-          <div id="clbulk-info" style="margin-top: 2px; font-size: 0.78rem; opacity: 0.9; font-weight: 500;"></div>
-        </div>
-        <button onclick="CM('clbulk-m')" style="background: rgba(255,255,255,0.1); border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">✕</button>
-      </div>
-    </div>
-    
-    <div style="padding: 10px 15px;">
-      <!-- Global Controls Card -->
-      <div style="background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px; margin-bottom: 10px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);">
-        <div style="font-weight: 700; font-size: 0.8rem; color: #1565c0; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-          <span style="font-size: 0.9rem;">🌐</span> פעולות גלובליות (הכל על המסומנים)
-        </div>
-        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
-          <div class="fg">
-            <label style="font-size: 0.68rem; color: #546e7a; font-weight: 700; margin-bottom: 2px; display: block;">📅 תאריך</label>
-            <input type="date" id="clbulk-new-date" style="width: 100%; padding: 5px; border-radius: 5px; border: 1.5px solid #cfd8dc; font-size: 0.8rem;">
-          </div>
-          <div class="fg">
-            <label style="font-size: 0.68rem; color: #546e7a; font-weight: 700; margin-bottom: 2px; display: block;">🚀 ספק</label>
-            <select id="clbulk-sup" style="width: 100%; padding: 5px; border-radius: 5px; border: 1.5px solid #cfd8dc; font-size: 0.8rem;"><option value="">ללא שינוי</option></select>
-          </div>
-          <div class="fg">
-            <label style="font-size: 0.68rem; color: #546e7a; font-weight: 700; margin-bottom: 2px; display: block;">🎯 פעילות</label>
-            <select id="clbulk-act" onchange="window.applyClBulkUniAct(this.value)" style="width: 100%; padding: 5px; border-radius: 5px; border: 1.5px solid #cfd8dc; font-size: 0.8rem;"><option value="">ללא שינוי</option></select>
-          </div>
-          <div class="fg">
-            <label style="font-size: 0.68rem; color: #546e7a; font-weight: 700; margin-bottom: 2px; display: block;">📞 טלפון ספק</label>
-            <input type="text" id="clbulk-ph" placeholder="ללא שינוי" style="width: 100%; padding: 5px; border-radius: 5px; border: 1.5px solid #cfd8dc; font-size: 0.8rem;">
-          </div>
-          <div class="fg">
-            <label style="font-size: 0.68rem; color: #546e7a; font-weight: 700; margin-bottom: 2px; display: block;">📊 סוג</label>
-            <select id="clbulk-uni-tp" onchange="window.applyClBulkUniTp(this.value)" style="width: 100%; padding: 5px; border-radius: 5px; border: 1.5px solid #cfd8dc; font-size: 0.8rem;">
-              <option value="">ללא שינוי</option>
-              <option value="חוג">חוג</option>
-              <option value="צהרון">צהרון</option>
-              <option value="בוקר">בוקר</option>
-              <option value="השלמה">השלמה</option>
-            </select>
-          </div>
-          <div class="fg">
-            <label style="font-size: 0.68rem; color: #546e7a; font-weight: 700; margin-bottom: 2px; display: block;">⚡ סטטוס</label>
-            <select id="clbulk-uni-st" onchange="window.applyClBulkUniStatus(this.value)" style="width: 100%; padding: 5px; border-radius: 5px; border: 1.5px solid #cfd8dc; font-size: 0.8rem;">
-              <option value="">ללא שינוי</option>
-              <option value="ok">✅ תקין</option>
-              <option value="can">❌ בוטל</option>
-              <option value="nohap">⚠️ לא התקיים</option>
-            </select>
-          </div>
-          <div class="fg" style="grid-column: span 2;">
-            <label style="font-size: 0.68rem; color: #546e7a; font-weight: 700; margin-bottom: 2px; display: block;">📝 הערה לכולם</label>
-            <input type="text" id="clbulk-nt" placeholder="ללא שינוי" style="width: 100%; padding: 5px; border-radius: 5px; border: 1.5px solid #cfd8dc; font-size: 0.8rem;">
-          </div>
-        </div>
-      </div>
-
-      <!-- Per-Garden List -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <div style="font-weight: 800; font-size: 0.85rem; color: #37474f; display:flex; align-items: center; gap: 6px;">
-          <span style="color: #1565c0;">🏡</span> פירוט גנים ושיבוצים
-        </div>
-        <div style="font-size: 0.7rem; color: #78909c;">
-          סמן גנים לעדכון/הוספה
-        </div>
-      </div>
-      
-      <div id="clbulk-list-header" style="display:grid; grid-template-columns: 30px 1fr 100px 100px 70px 80px 65px; gap: 6px; padding: 6px 10px; background: #eceff1; border-radius: 6px 6px 0 0; font-size: 0.68rem; font-weight: 800; color: #455a64; border: 1px solid #cfd8dc; border-bottom: none;">
-        <span></span>
-        <span>שם הגן</span>
-        <span>ספק</span>
-        <span>פעילות</span>
-        <span>סוג</span>
-        <span>סטטוס</span>
-        <span>שעה</span>
-      </div>
-      <div id="clbulk-list" style="max-height: 200px; overflow-y: auto; overflow-x: hidden; border: 1px solid #cfd8dc; border-top: none; border-radius: 0 0 6px 6px; background: #fff;"></div>
-
-      <div style="display:flex; gap:10px; justify-content: center; margin-top: 15px; padding-top: 10px; border-top: 1px solid #f0f0f0;">
-        <button class="btn bs" onclick="CM('clbulk-m')" style="min-width: 100px; padding: 8px 15px; font-weight: 600; border: 1.5px solid #cfd8dc; font-size: 0.85rem;">ביטול</button>
-        <button class="btn bp" onclick="saveClusterBulkEdit()" style="min-width: 200px; padding: 8px 20px; font-weight: 700; font-size: 0.9rem; box-shadow: 0 3px 10px rgba(21,101,192,0.2);">💾 שמור שינויים לכולם</button>
-      </div>
-      
-      <div style="margin-top: 12px; padding-top: 8px; text-align: center; border-top: 1px dashed #e0e0e0;">
-         <button class="btn br bsm" onclick="deleteClusterDay()" style="opacity: 0.7; padding: 6px 15px; font-size: 0.75rem;">🗑️ מחק את כל הפעילויות של האשכול להיום</button>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- Cluster Bulk Edit Unified into sp-m -->
 
 
 
@@ -2613,19 +2517,19 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 </div>
 
 <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-<script src="data.js?v=101.4"></script>
-<script src="firebase.js?v=101.4"></script>
-<script src="invoices.js?v=101.4"></script>
-<script src="suppliers.js?v=101.4"></script>
-<script src="cal.js?v=101.4"></script>
-<script src="activity.js?v=101.4"></script>
-<script src="sched.js?v=101.4"></script>
-<script src="gardens.js?v=101.4"></script>
-<script src="export.js?v=101.4"></script>
-<script src="backup.js?v=101.4"></script>
-<script src="admin.js?v=101.4"></script>
-<script src="import_export.js?v=101.4"></script>
-<script src="core.js?v=101.4"></script>
+<script src="data.js?v=101.5"></script>
+<script src="firebase.js?v=101.5"></script>
+<script src="invoices.js?v=101.5"></script>
+<script src="suppliers.js?v=101.5"></script>
+<script src="cal.js?v=101.5"></script>
+<script src="activity.js?v=101.5"></script>
+<script src="sched.js?v=101.5"></script>
+<script src="gardens.js?v=101.5"></script>
+<script src="export.js?v=101.5"></script>
+<script src="backup.js?v=101.5"></script>
+<script src="admin.js?v=101.5"></script>
+<script src="import_export.js?v=101.5"></script>
+<script src="core.js?v=101.5"></script>
 <script>
   var _dashTab = _dashTab || 'g'; // Master global state
   

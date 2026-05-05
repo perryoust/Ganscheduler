@@ -320,19 +320,16 @@ window.spBatchSaveNt = function() {
 };
 
 window.openSP = openSP;
-function openSP(id){
-  console.log('[openSP] Triggered for ID:', id);
-  window.selEv = String(id);
-  const s = window.SCH.find(x => String(x.id) === String(id));
-  if(!s){
-    console.error('[openSP] Activity not found in window.SCH for id:', id);
-    // Still open panel with error message
-    var spBody=document.getElementById('sp-body');
-    if(spBody) spBody.innerHTML='<div style="color:#c62828;padding:20px">שגיאה: פעילות לא נמצאה (ID: '+id+')</div>';
-    document.getElementById('sp').classList.add('open');
-    if(document.getElementById('sp-backdrop')) document.getElementById('sp-backdrop').style.display='block';
-    return;
+  const isClusterMode = (window._listGroupMode === 'clusters' || window._dashTab === 'clusters');
+  if (isClusterMode) {
+    const cls = window.gardenClusters ? window.gardenClusters(s.g) : [];
+    if (cls && cls.length > 0) {
+      if (window.openClusterBulkEdit) {
+        return window.openClusterBulkEdit(cls[0].id, s.d);
+      }
+    }
   }
+
   try { // ← try-catch to prevent silent failures
   const g=window.G(s.g);
   const spPair=window.gardenPair(s.g);

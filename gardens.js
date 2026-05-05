@@ -1319,6 +1319,57 @@ window.doBulkUpdateRecurring = function(key, gid){
 };
 
 // --- Cluster Bulk Edit Logic ---
+function getClusterGlobalFieldsHtml() {
+  return `
+    <div style="background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px; margin-bottom: 10px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);">
+      <div style="font-weight: 700; font-size: 0.8rem; color: #1565c0; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+        <span style="font-size: 0.9rem;">🌐</span> פעולות גלובליות (הכל על המסומנים)
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+        <div class="fg">
+          <label style="font-size: 0.68rem; color: #546e7a; font-weight: 700; margin-bottom: 2px; display: block;">📅 תאריך</label>
+          <input type="date" id="clbulk-new-date" style="width: 100%; padding: 5px; border-radius: 5px; border: 1.5px solid #cfd8dc; font-size: 0.8rem;">
+        </div>
+        <div class="fg">
+          <label style="font-size: 0.68rem; color: #546e7a; font-weight: 700; margin-bottom: 2px; display: block;">🚀 ספק</label>
+          <select id="clbulk-sup" style="width: 100%; padding: 5px; border-radius: 5px; border: 1.5px solid #cfd8dc; font-size: 0.8rem;"><option value="">ללא שינוי</option></select>
+        </div>
+        <div class="fg">
+          <label style="font-size: 0.68rem; color: #546e7a; font-weight: 700; margin-bottom: 2px; display: block;">🎯 פעילות</label>
+          <select id="clbulk-act" onchange="window.applyClBulkUniAct(this.value)" style="width: 100%; padding: 5px; border-radius: 5px; border: 1.5px solid #cfd8dc; font-size: 0.8rem;"><option value="">ללא שינוי</option></select>
+        </div>
+        <div class="fg">
+          <label style="font-size: 0.68rem; color: #546e7a; font-weight: 700; margin-bottom: 2px; display: block;">📞 טלפון ספק</label>
+          <input type="text" id="clbulk-ph" placeholder="ללא שינוי" style="width: 100%; padding: 5px; border-radius: 5px; border: 1.5px solid #cfd8dc; font-size: 0.8rem;">
+        </div>
+        <div class="fg">
+          <label style="font-size: 0.68rem; color: #546e7a; font-weight: 700; margin-bottom: 2px; display: block;">📊 סוג</label>
+          <select id="clbulk-uni-tp" onchange="window.applyClBulkUniTp(this.value)" style="width: 100%; padding: 5px; border-radius: 5px; border: 1.5px solid #cfd8dc; font-size: 0.8rem;">
+            <option value="">ללא שינוי</option>
+            <option value="חוג">חוג</option>
+            <option value="צהרון">צהרון</option>
+            <option value="בוקר">בוקר</option>
+            <option value="השלמה">השלמה</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label style="font-size: 0.68rem; color: #546e7a; font-weight: 700; margin-bottom: 2px; display: block;">⚡ סטטוס</label>
+          <select id="clbulk-uni-st" onchange="window.applyClBulkUniStatus(this.value)" style="width: 100%; padding: 5px; border-radius: 5px; border: 1.5px solid #cfd8dc; font-size: 0.8rem;">
+            <option value="">ללא שינוי</option>
+            <option value="ok">✅ תקין</option>
+            <option value="can">❌ בוטל</option>
+            <option value="nohap">⚠️ לא התקיים</option>
+          </select>
+        </div>
+        <div class="fg" style="grid-column: span 2;">
+          <label style="font-size: 0.68rem; color: #546e7a; font-weight: 700; margin-bottom: 2px; display: block;">📝 הערה לכולם</label>
+          <input type="text" id="clbulk-nt" placeholder="ללא שינוי" style="width: 100%; padding: 5px; border-radius: 5px; border: 1.5px solid #cfd8dc; font-size: 0.8rem;">
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 window.openClusterBulkEdit = function(clId, ds) {
   console.log('openClusterBulkEdit called with:', clId, ds);
   window._clsId = clId;
@@ -1330,8 +1381,45 @@ window.openClusterBulkEdit = function(clId, ds) {
     else console.warn('[BulkEdit] Cluster not found by ID:', clId);
   }
 
-  (document.getElementById('clbulk-title')||{}).textContent = `✏️ עריכה מרוכזת: ${cl.name}`;
-  (document.getElementById('clbulk-info')||{}).textContent = `תאריך: ${window.fD(ds)} | יום ${window.dayN(ds)}`;
+  (document.getElementById('sp-m-title')||{}).textContent = `✏️ עריכה מרוכזת: ${cl.name}`;
+  
+  let mainHtml = `
+    <div style="padding: 10px 15px;">
+      ${getClusterGlobalFieldsHtml()}
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <div style="font-weight: 800; font-size: 0.85rem; color: #37474f; display:flex; align-items: center; gap: 6px;">
+          <span style="color: #1565c0;">🏡</span> פירוט גנים ושיבוצים
+        </div>
+        <div style="font-size: 0.7rem; color: #78909c;">
+          סמן גנים לעדכון/הוספה | תאריך: ${window.fD(ds)}
+        </div>
+      </div>
+      
+      <div id="clbulk-list-header" style="display:grid; grid-template-columns: 30px 1fr 100px 100px 70px 80px 65px; gap: 6px; padding: 6px 10px; background: #eceff1; border-radius: 6px 6px 0 0; font-size: 0.68rem; font-weight: 800; color: #455a64; border: 1px solid #cfd8dc; border-bottom: none;">
+        <span></span>
+        <span>שם הגן</span>
+        <span>ספק</span>
+        <span>פעילות</span>
+        <span>סוג</span>
+        <span>סטטוס</span>
+        <span>שעה</span>
+      </div>
+      <div id="clbulk-list" style="max-height: 350px; overflow-y: auto; overflow-x: hidden; border: 1px solid #cfd8dc; border-top: none; border-radius: 0 0 6px 6px; background: #fff;"></div>
+
+      <div style="display:flex; gap:10px; justify-content: center; margin-top: 15px; padding-top: 10px; border-top: 1px solid #f0f0f0;">
+        <button class="btn bs" onclick="CM('sp-m')" style="min-width: 100px; padding: 8px 15px; font-weight: 600; border: 1.5px solid #cfd8dc; font-size: 0.85rem;">ביטול</button>
+        <button class="btn bp" onclick="window.saveClusterBulkEdit()" style="min-width: 200px; padding: 8px 20px; font-weight: 700; font-size: 0.9rem; box-shadow: 0 3px 10px rgba(21,101,192,0.2);">💾 שמור שינויים לכולם</button>
+      </div>
+
+      <div style="margin-top: 12px; padding-top: 8px; text-align: center; border-top: 1px dashed #e0e0e0;">
+         <button class="btn br bsm" onclick="window.deleteClusterDay()" style="opacity: 0.7; padding: 6px 15px; font-size: 0.75rem;">🗑️ מחק את כל הפעילויות של האשכול להיום</button>
+      </div>
+    </div>
+  `;
+  
+  const spBody = document.getElementById('sp-m-body');
+  if(spBody) spBody.innerHTML = mainHtml;
   
   const supSel = document.getElementById('clbulk-sup');
   supSel.innerHTML = '<option value="">ללא שינוי</option>';
@@ -1436,7 +1524,7 @@ window.openClusterBulkEdit = function(clId, ds) {
     }
   };
 
-  document.getElementById('clbulk-m').classList.add('open');
+  OM('sp-m');
 };
 
 window.applyClBulkUniTime = function(t) {
@@ -1586,7 +1674,7 @@ window.saveClusterBulkEdit = function() {
     console.error('UI Refresh failed:', e);
   }
   
-  window.CM('clbulk-m');
+  window.CM('sp-m');
   if(window.showToast) {
     window.showToast(`✅ עודכנו ${updated} פעילויות${added ? ' ונוספו '+added : ''}`);
   }
@@ -1611,6 +1699,6 @@ window.deleteClusterDay = function() {
 
   window.save();
   window.refresh();
-  window.CM('clbulk-m');
+  window.CM('sp-m');
   window.showToast(`🗑️ נמחקו ${deleted} פעילויות`);
 };
