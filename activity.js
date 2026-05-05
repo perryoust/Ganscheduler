@@ -481,7 +481,7 @@ function openSP(id) {
       <span>🏠 פירוט גנים ושיבוצים - ${window.fD(s.d)} (${window.dayN(s.d)})</span>
       <div style="display:flex;gap:8px;align-items:center">
         ${typeTag}
-        <button onclick="window._exportGardenWA(['${g.id}'], '${s.d}')" class="btn bsm" style="background:#1565c0;color:#fff;padding:2px 6px;border-radius:4px;display:flex;align-items:center;gap:4px;border:none">
+        <button onclick="window._exportGardenWA([${allGardens.map(ag=>ag.pg.id).join(',')}], '${s.d}')" class="btn bsm" style="background:#1565c0;color:#fff;padding:2px 6px;border-radius:4px;display:flex;align-items:center;gap:4px;border:none">
           <span style="font-size:0.8rem">🚀</span>
           <span style="font-size:0.65rem;font-weight:800">יצוא להודעה</span>
         </button>

@@ -913,14 +913,14 @@ function showCopyToast(msg){
 
 
 function _exportGardenWA(gids, ds, isM){
-  _exGids = Array.isArray(gids) ? gids : JSON.parse(gids);
+  _exGids = (Array.isArray(gids) ? gids : JSON.parse(gids)).map(Number);
   _exIsM = isM;
   if(ds) calD = s2d(ds);
   openExport();
 }
 
 function _exportPairWA(gids, isM){
-  _exGids = Array.isArray(gids)?gids:JSON.parse(gids);
+  _exGids = (Array.isArray(gids)?gids:JSON.parse(gids)).map(Number);
   _exIsM = isM;
   openExport();
 }
@@ -991,12 +991,10 @@ function genExport(){
   const to=document.getElementById('ex-d2').value||from;
   const fmt=document.getElementById('ex-fmt').value;
   if(!from){alert('בחר תאריך');return;}
-  const f=getCalF();
-  const gids=_exGids||f.gids;
-  _exGids=null;
+  const gids = (_exGids || f.gids) ? (_exGids || f.gids).map(Number) : null;
+  // DON'T clear _exGids here so manual re-generation works
   const isM_flag = _exIsM;
-  _exIsM = false;
-  const rel=SCH.filter(s=>s.d>=from&&s.d<=to&&(!gids||gids.includes(s.g)))
+  const rel=SCH.filter(s=>s.d>=from&&s.d<=to&&(!gids||gids.includes(Number(s.g))))
     .sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'99').localeCompare(b.t||'99'));
   const relActive=rel.filter(s=>s.st!=='can');
   if(!rel.length){(document.getElementById('ex-prev')||{}).textContent='אין פעילויות';return;}
