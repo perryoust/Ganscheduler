@@ -1323,10 +1323,10 @@ window.openClusterBulkEdit = function(clId, ds) {
   console.log('openClusterBulkEdit called with:', clId, ds);
   window._clsId = clId;
   window._clBulkDate = ds;
-  let cl = clusters[clId];
+  let cl = (typeof clusters !== 'undefined' ? clusters[clId] : null);
   if(!cl) {
     console.warn('Cluster not found by ID, trying fallback search:', clId);
-    cl = window.getClusters().find(c => c.id === clId);
+    cl = (window.getClusters ? window.getClusters() : []).find(c => c.id === clId);
   }
   if(!cl) {
     console.error('Cluster NOT found:', clId);
@@ -1344,7 +1344,7 @@ window.openClusterBulkEdit = function(clId, ds) {
   
   document.getElementById('clbulk-ph').value = '';
   document.getElementById('clbulk-nt').value = '';
-  document.getElementById('clbulk-uni-time').value = '';
+  if(document.getElementById('clbulk-uni-time')) document.getElementById('clbulk-uni-time').value = '';
   if(document.getElementById('clbulk-act')) document.getElementById('clbulk-act').value = '';
   if(document.getElementById('clbulk-uni-tp')) document.getElementById('clbulk-uni-tp').value = '';
   document.getElementById('clbulk-uni-st').value = '';
@@ -1357,8 +1357,8 @@ window.openClusterBulkEdit = function(clId, ds) {
   gs.sort((a,b) => {
     const evA = window.SCH.find(s => s.g === a.id && s.d === ds && s.st !== 'can');
     const evB = window.SCH.find(s => s.g === b.id && s.d === ds && s.st !== 'can');
-    const tA = (evA && evA.t) || '99:99';
-    const tB = (evB && evB.t) || '99:99';
+    const tA = (evA && evA.t) ? evA.t.replace(/[^\d:]/g,'').slice(0,5) : '99:99';
+    const tB = (evB && evB.t) ? evB.t.replace(/[^\d:]/g,'').slice(0,5) : '99:99';
     return tA.localeCompare(tB) || a.name.localeCompare(b.name, 'he');
   });
   let h = '';
@@ -1408,19 +1408,30 @@ window.openClusterBulkEdit = function(clId, ds) {
 
   supSel.onchange = function() {
     const supName = this.value;
-    const s = window.SCH.find(x=>x.a===supName && x.p);
-    if(s) document.getElementById('clbulk-ph').value = s.p;
+    // 1. Phone Lookup (Official helper + robust fallback)
+    if(typeof window.getSupPhone === 'function') {
+       document.getElementById('clbulk-ph').value = window.getSupPhone(supName);
+    } else {
+       const base = window.supBase ? window.supBase(supName) : supName;
+       const s = window.SUPBASE.find(x => (window.supBase ? window.supBase(x.name) : x.name) === base);
+       if(s && s.phone) document.getElementById('clbulk-ph').value = s.phone;
+       else {
+         const evPh = window.SCH.find(x => x.a === supName && x.p);
+         if(evPh) document.getElementById('clbulk-ph').value = evPh.p;
+       }
+    }
     window.applyClBulkUniSup(supName);
     
-    // Update global activity dropdown
+    // 2. Global Activity dropdown (Robust matching)
     const actSel = document.getElementById('clbulk-act');
     if(actSel) {
       actSel.innerHTML = '<option value="">ללא שינוי</option>';
       if(supName) {
-        const su = SUPBASE.find(x => x.name === supName);
+        const base = window.supBase ? window.supBase(supName) : supName;
+        const su = window.SUPBASE.find(x => (window.supBase ? window.supBase(x.name) : x.name) === base);
         const acts = su ? (su.acts || []) : [];
         if(!acts.length) {
-           const sActs = [...new Set(window.SCH.filter(x=>x.a===supName&&x.act).map(x=>x.act))].sort();
+           const sActs = [...new Set(window.SCH.filter(x => (window.supBase ? window.supBase(x.a) : x.a) === base && x.act).map(x=>x.act))].sort();
            sActs.forEach(a => actSel.innerHTML += `<option value="${a}">${a}</option>`);
         } else {
            acts.forEach(a => actSel.innerHTML += `<option value="${a.name || a}">${a.name || a}</option>`);
@@ -1486,10 +1497,11 @@ window.clBulkSupChg = function(gid, supName, selAct) {
   actSel.innerHTML = '<option value="">-- פעילות --</option>';
   if(!supName) return;
   
-  const su = SUPBASE.find(s => s.name === supName);
+  const base = window.supBase ? window.supBase(supName) : supName;
+  const su = window.SUPBASE.find(s => (window.supBase ? window.supBase(s.name) : s.name) === base);
   const acts = su ? (su.acts || []) : [];
   if(!acts.length) {
-     const sActs = [...new Set(window.SCH.filter(s=>s.a===supName&&s.act).map(s=>s.act))].sort();
+     const sActs = [...new Set(window.SCH.filter(x => (window.supBase ? window.supBase(x.a) : x.a) === base && x.act).map(x=>x.act))].sort();
      sActs.forEach(a => actSel.innerHTML += `<option value="${a}">${a}</option>`);
   } else {
      acts.forEach(a => actSel.innerHTML += `<option value="${a.name || a}">${a.name || a}</option>`);
@@ -1499,11 +1511,12 @@ window.clBulkSupChg = function(gid, supName, selAct) {
 
 window.saveClusterBulkEdit = function() {
   console.log('saveClusterBulkEdit started');
-  const cl = clusters[window._clsId] || window.getClusters().find(c => c.id === window._clsId);
+  const cl = (typeof clusters !== 'undefined' ? clusters[window._clsId] : null) || (window.getClusters ? window.getClusters().find(c => c.id === window._clsId) : null);
   const ds = window._clBulkDate;
   console.log('Bulk Edit Target:', cl ? cl.name : 'NULL', ds);
   if(!cl || !ds) {
     console.error('Missing Cluster or Date');
+    if(window.showToast) window.showToast('⚠️ שגיאה: נתוני אשכול חסרים');
     return;
   }
 
@@ -1520,7 +1533,7 @@ window.saveClusterBulkEdit = function() {
 
     const rowSup = document.getElementById(`clbulk-s-${gid}`).value || globalSup;
     const rowAct = document.getElementById(`clbulk-act-${gid}`).value;
-    const rowTp = document.getElementById(`clbulk-tp-${gid}`).value || document.getElementById('clbulk-uni-tp').value;
+    const rowTp = document.getElementById(`clbulk-tp-${gid}`).value || (document.getElementById('clbulk-uni-tp') ? document.getElementById('clbulk-uni-tp').value : '');
     const rowSt = document.getElementById(`clbulk-st-${gid}`).value;
     const t = document.getElementById(`clbulk-t-${gid}`)?.value || '';
     
@@ -1544,14 +1557,14 @@ window.saveClusterBulkEdit = function() {
       updated++;
     } else {
       window.SCH.push({
-        id: Date.now() + Math.random(),
+        id: `IMP_${Date.now()}_${gid}_${Math.floor(Math.random()*100)}`,
         g: gid, d: newDate || ds, a: rowSup, act: rowAct, tp: rowTp, st: rowSt || 'ok', t: t, p: globalPh, nt: globalNt, grp: 1
       });
       added++;
     }
   });
 
-  window.save();
+  window.save(true); // Force immediate Firebase sync
   try {
     if(typeof window.refresh === 'function') window.refresh();
     else if(typeof window.renderCal === 'function') window.renderCal();

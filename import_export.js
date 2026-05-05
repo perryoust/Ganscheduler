@@ -332,6 +332,10 @@ window.importBulkSchedule = function(input) {
           // lessons from the same supplier on the same day are not merged.
           const key = `${formattedDate}|${gid}|${cleanStr(supplier)}|${cleanStr(activity)}`;
           
+          // Deterministic ID generation based on the key
+          // This ensures that the same row in Excel always maps to the same ID in the system.
+          const deterministicId = 'IMP_' + btoa(unescape(encodeURIComponent(key))).replace(/=/g, '').slice(0, 32);
+
           const existing = schMap[key];
           // Overwrite if:
           // 1. It's the first time we see this activity
@@ -341,7 +345,7 @@ window.importBulkSchedule = function(input) {
 
           if (shouldOverwrite) {
             schMap[key] = {
-              id: `ID_${now}_${i}_${Math.floor(Math.random()*1000)}`,
+              id: deterministicId,
               d: formattedDate,
               g: gid,
               a: supplier,
