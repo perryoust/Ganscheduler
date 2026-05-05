@@ -21,7 +21,9 @@ function nsSetTab(tab){
   if(freeWrap){
     if(tab==='makeup'){
       const gid=parseInt(document.getElementById('ns-g').value)||null;
+      const date=document.getElementById('ns-date').value;
       nsShowFreeDays(gid);
+      window.updateMakeupPartnersTable('ns-mu-partners-wrap', gid, date);
     } else {
       freeWrap.style.display='none';
     }
@@ -264,6 +266,10 @@ function nsDateChg(){
   
   // Re-render partner table to show their status on the new date
   renderPartnerTable();
+  
+  if(_nsmTab === 'makeup') {
+    window.updateMakeupPartnersTable('ns-mu-partners-wrap', gid, date);
+  }
 
   const hintEl=document.getElementById('ns-partner-time-hint');
   if(!hintEl) return;
@@ -324,7 +330,8 @@ function nsActTypeChg(){
 }
 function saveNewSched(){
   const gid=parseInt(document.getElementById('ns-g').value)||null;
-  const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('ns') : [];
+  const synPrefix = (_nsmTab === 'makeup') ? 'ns-mu' : 'ns';
+  const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData(synPrefix) : [];
   const date=document.getElementById('ns-date').value;
   const time=document.getElementById('ns-time').value;
   const sup=document.getElementById('ns-sup').value;

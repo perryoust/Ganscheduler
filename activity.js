@@ -1108,19 +1108,23 @@ function markCompManual(id){
 
   if (doSync) {
     const pair = window.gardenPair(s.g);
-    if (pair) {
-      const otherIds = pair.ids.map(id=>Number(id)).filter(id=>id!==Number(s.g));
-      otherIds.forEach(ogid => {
-        const partnerEv = window.findPartnerActivity(ogid, s.d, s.a);
-        if (partnerEv) {
-          partnerEv._compByMakeup = stamp;
-          if (handleNt) {
-            const note = '✅ סיום טיפול: ' + handleNt;
-            partnerEv.nt = partnerEv.nt ? partnerEv.nt + ' | ' + note : note;
-          }
+    const cluster = window.CLUSTERS ? window.CLUSTERS.find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
+    
+    const allPartnerIds = new Set();
+    if(pair) pair.ids.forEach(id => allPartnerIds.add(Number(id)));
+    if(cluster) cluster.gids.forEach(id => allPartnerIds.add(Number(id)));
+    allPartnerIds.delete(Number(s.g));
+
+    allPartnerIds.forEach(ogid => {
+      const partnerEv = window.findPartnerActivity(ogid, s.d, s.a);
+      if (partnerEv) {
+        partnerEv._compByMakeup = stamp;
+        if (handleNt) {
+          const note = '✅ סיום טיפול: ' + handleNt;
+          partnerEv.nt = partnerEv.nt ? partnerEv.nt + ' | ' + note : note;
         }
-      });
-    }
+      }
+    });
   }
 
   window.saveAndRefresh('sp', true);
@@ -1504,19 +1508,28 @@ window.spMuDateChg = function() {
   }
 };
 
-window.spUpdateMakeupPartnersTable = function(gid, date, aid) {
-  console.log('[spUpdateMakeupPartnersTable]', {gid, date, aid});
+window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
+  console.log('[updateMakeupPartnersTable]', {containerId, gid, date, aid});
   const pair = window.gardenPair(gid);
-  const container = document.getElementById('sp-mu-partners-wrap');
+  const cluster = window.CLUSTERS ? window.CLUSTERS.find(c => c.gids && c.gids.map(Number).includes(Number(gid))) : null;
+  
+  const allPartnerIds = new Set();
+  if(pair) pair.ids.forEach(id => allPartnerIds.add(Number(id)));
+  if(cluster) cluster.gids.forEach(id => allPartnerIds.add(Number(id)));
+  allPartnerIds.delete(Number(gid));
+  
+  const container = document.getElementById(containerId);
   if(!container) return;
   
-  if(!pair || pair.ids.length < 2) {
+  if(allPartnerIds.size === 0) {
     container.innerHTML = `<div style="font-size:0.7rem;color:#777;padding:12px;text-align:center;background:#fff;border-radius:8px;border:1px dashed #ffb74d">ℹ️ אין גנים שותפים לסנכרון אוטומטי (גן בודד)</div>`;
     return;
   }
   
-  const otherIds = pair.ids.map(Number).filter(oid => oid !== Number(gid));
+  const otherIds = Array.from(allPartnerIds);
   let rowsHtml = '';
+  const prefix = containerId.startsWith('ns') ? 'ns-mu' : 'sp-mu';
+
   otherIds.forEach(pId => {
     const pG = window.G(pId);
     if(!pG) return;
@@ -1528,7 +1541,7 @@ window.spUpdateMakeupPartnersTable = function(gid, date, aid) {
     const time = ev ? (window.fT ? window.fT(ev.t) : ev.t) : '—';
     
     rowsHtml += `<tr style="border-bottom:1px solid #eee;font-size:0.75rem;background:${stClass==='busy'?'#fff9f9':'#fff'}">
-      <td style="padding:6px;text-align:center"><input type="checkbox" class="sp-mu-syn-chk" value="${pId}" checked style="width:16px;height:16px;accent-color:#e65100"></td>
+      <td style="padding:6px;text-align:center"><input type="checkbox" class="${prefix}-syn-chk" value="${pId}" checked style="width:16px;height:16px;accent-color:#e65100"></td>
       <td style="padding:6px;font-weight:700">${pG.name}</td>
       <td style="padding:6px">${sup}</td>
       <td style="padding:6px">${act}</td>
@@ -1542,11 +1555,15 @@ window.spUpdateMakeupPartnersTable = function(gid, date, aid) {
     <div class="tw" style="border:1px solid #ffcc80;border-radius:6px;overflow:hidden">
       <table style="width:100%;border-collapse:collapse;text-align:right">
         <thead style="background:#fff3e0;color:#bf360c">
-          <tr><th style="padding:6px;width:30px"><input type="checkbox" checked onclick="const cbs=document.querySelectorAll('.sp-mu-syn-chk'); cbs.forEach(cb=>cb.checked=this.checked)"></th><th style="padding:6px">גן</th><th style="padding:6px">ספק</th><th style="padding:6px">פעילות</th><th style="padding:6px">סטטוס</th><th style="padding:6px">שעה</th></tr>
+          <tr><th style="padding:6px;width:30px"><input type="checkbox" checked onclick="const cbs=document.querySelectorAll('.${prefix}-syn-chk'); cbs.forEach(cb=>cb.checked=this.checked)"></th><th style="padding:6px">גן</th><th style="padding:6px">ספק</th><th style="padding:6px">פעילות</th><th style="padding:6px">סטטוס</th><th style="padding:6px">שעה</th></tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
       </table>
     </div>`;
+};
+
+window.spUpdateMakeupPartnersTable = function(gid, date, aid) {
+    window.updateMakeupPartnersTable('sp-mu-partners-wrap', gid, date, aid);
 };
 
 window.spShowFreeDays = function(gid) {
@@ -1665,13 +1682,18 @@ window.createMakeupActivity = function(data) {
        
        // Sync partner's completion status if applicable
        const pair = window.gardenPair(origExt.g);
-       if(pair) {
-         const partnerIds = pair.ids.filter(pid => Number(pid) !== Number(origExt.g));
-         partnerIds.forEach(partnerId => {
-           const partnerEv = window.SCH.find(ps => 
-             Number(ps.g)===Number(partnerId) && ps.d === origExt.d && 
-             window.supBase(ps.a) === window.supBase(origExt.a) && !ps._compByMakeup
-           );
+       const cluster = window.CLUSTERS ? window.CLUSTERS.find(c => c.gids && c.gids.map(Number).includes(Number(origExt.g))) : null;
+       
+       const allPartnerIds = new Set();
+       if(pair) pair.ids.forEach(id => allPartnerIds.add(Number(id)));
+       if(cluster) cluster.gids.forEach(id => allPartnerIds.add(Number(id)));
+       allPartnerIds.delete(Number(origExt.g));
+
+       allPartnerIds.forEach(partnerId => {
+         const partnerEv = window.SCH.find(ps => 
+           Number(ps.g)===Number(partnerId) && ps.d === origExt.d && 
+           window.supBase(ps.a) === window.supBase(origExt.a) && !ps._compByMakeup
+         );
            if(partnerEv) {
               partnerEv._compByMakeup = loopId;
               if(!partnerEv.nt || !partnerEv.nt.includes(noticeNote)) {
@@ -1681,7 +1703,6 @@ window.createMakeupActivity = function(data) {
          });
        }
     }
-  }
   
   window.SCH.push(newEv);
   return loopId;
