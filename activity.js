@@ -243,7 +243,81 @@ function _renderMiniTable(evs){
   return h + '</tbody></table></div>';
 }
 
+// --- Table Batch Action Wrappers ---
+window.spGetSelectedIds = function() {
+  const checkboxes = document.querySelectorAll('.sp-garden-sel:checked');
+  if(checkboxes.length) {
+    return Array.from(checkboxes).map(c => c.value);
+  }
+  return [window.selEv]; // Fallback if no checkboxes exist/checked
+};
 
+window.spBatchStatus = function(st) {
+  const ids = window.spGetSelectedIds();
+  ids.forEach(id => window.setStatus(id, st));
+};
+
+window.spBatchQSetSt = function(st) {
+  const ids = window.spGetSelectedIds();
+  if(ids.length) window.qSetSt(ids[0], st); 
+};
+
+window.spBatchMarkCompManual = function() {
+  const ids = window.spGetSelectedIds();
+  const handleNtEl = document.getElementById('sp-handle-nt');
+  const handleNt = handleNtEl ? handleNtEl.value.trim() : '';
+  const stamp = 'manual_' + Date.now();
+  
+  ids.forEach(id => {
+    const ev = window.SCH.find(x => x.id == id);
+    if(ev) {
+      ev._compByMakeup = stamp;
+      if(handleNt) {
+        const note = '✅ סיום טיפול: ' + handleNt;
+        ev.nt = ev.nt ? ev.nt + ' | ' + note : note;
+      }
+    }
+  });
+  window.saveAndRefresh('sp');
+};
+
+window.spBatchSaveNt = function() {
+  const ids = window.spGetSelectedIds();
+  const ntEl = document.getElementById('sp-nt');
+  const nEl = document.getElementById('sp-n');
+  
+  ids.forEach(id => {
+    const ev = window.SCH.find(x => x.id == id);
+    if(!ev) return;
+    if(ntEl) ev.nt = ntEl.value;
+    if(nEl) {
+      ev.n = nEl.value;
+      if(ev._recId) {
+        window.SCH.forEach(x => {
+          if(x._recId === ev._recId && x.d >= ev.d) x.n = nEl.value;
+        });
+      }
+    }
+    // Auto-status logic
+    if(ntEl && (ev.st === 'ok' || ev.st === 'done')) {
+      const val = ntEl.value;
+      const lower = val.toLowerCase();
+      const isMovedTo = lower.includes('נדחה ל') || lower.includes('הוזז ל') || lower.includes('הזזה ל');
+      const isMovedFrom = lower.includes('נדחה מ') || lower.includes('הוזז מ') || lower.includes('הזזה מ');
+      const isPos = lower.includes('השלמה') || isMovedFrom || (lower.includes('נדחה') && !isMovedTo);
+      if(!isPos) {
+        const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
+        const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע', 'לא נשאר', 'עזב', 'לא התקיימה'];
+        if(canWords.some(w => lower.includes(w)) || isMovedTo) {
+          ev.st = 'can';
+        } else if(nohapWords.some(w => lower.includes(w))) {
+          ev.st = 'nohap';
+        }
+      }
+    }
+  });
+  window.saveAndRefresh('sp');
+};
 
 window.openSP = openSP;
 function openSP(id){
@@ -263,123 +337,105 @@ function openSP(id){
   const g=window.G(s.g);
   const spPair=window.gardenPair(s.g);
 
-  // Find partner garden activities for this specific date — match by date+supplier only (not time)
-  let partnersHtml = '';
+  // Build partner info array and currentTimesSP for later use
   const currentTimesSP = {};
+  const partnerInfo = [];
   if (spPair) {
     const otherIds = spPair.ids.map(Number).filter(oid => oid !== Number(s.g));
     otherIds.forEach(oid => {
       const pg = window.G(oid);
-      const pev = window.SCH.find(ps => 
-        Number(ps.g)===oid && ps.d === s.d && 
+      const pev = window.SCH.find(ps =>
+        Number(ps.g)===oid && ps.d === s.d &&
         window.supBase(ps.a) === window.supBase(s.a) && ps.st !== 'can'
       );
       if(pev) currentTimesSP[oid] = window.fT(pev.t || s.t);
-      partnersHtml += `<div style="font-size:.82rem;color:#5c6bc0;font-weight:700;margin-top:4px;display:flex;align-items:center;gap:6px">
-        <span style="opacity:0.7">🔗</span> 
-        <span>${pg.name}</span> 
-        ${pev ? `<span style="font-weight:400;font-size:0.75rem;padding:1px 6px;border-radius:4px;background:#e8eaf6">${window.stLabel(pev)}</span>
-        ${pev.t ? '<span style="font-size:.7rem;color:#78909c">⏰ '+window.fT(pev.t)+'</span>' : ''}` : '<span style="font-weight:400;font-size:0.75rem;padding:1px 6px;border-radius:4px;background:#ffebee;color:#c62828">לא משובץ</span>'}
-      </div>`;
+      partnerInfo.push({ pg, pev });
     });
   }
 
   // --- Activity type detection ---
-  // Heuristic for recurrence: formal ID or appears at least twice in same day-of-week, time, and supplier
   const _dow = new Date(s.d).getDay();
-  const isM = !!(s._isMakeup || s._makeupFrom || 
-                (s.nt && /השלמה|makeup/i.test(s.nt)) || 
-                (s.n && /השלמה|makeup/i.test(s.n)) || 
+  const isM = !!(s._isMakeup || s._makeupFrom ||
+                (s.nt && /השלמה|makeup/i.test(s.nt)) ||
+                (s.n && /השלמה|makeup/i.test(s.n)) ||
                 (s.cn && /השלמה|makeup/i.test(s.cn)) ||
                 (s.a && /השלמה|makeup/i.test(s.a)) ||
                 (s.act && /השלמה|makeup/i.test(s.act)));
   const repeats = window.SCH.filter(x => x.g === s.g && new Date(x.d).getDay() === _dow && window.supBase(x.a) === window.supBase(s.a) && x.t === s.t && x.st !== 'can').length >= 2;
   const isRec = !isM && (!!s._recId || repeats);
-  
-  console.log(`[Recur Check] ID:${s.id} isM:${isM} isRec:${isRec} nt:${s.nt}`);
-  const typeTag = isRec ? '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#e3f2fd;color:#1565c0">🔁 פעילות קבועה</span>'
-    : isM ? '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#fff3e0;color:#e65100">↩️ השלמה</span>'
+
+  const typeTag = isRec
+    ? '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#e3f2fd;color:#1565c0">🔁 פעילות קבועה</span>'
+    : isM
+    ? '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#fff3e0;color:#e65100">↩️ השלמה</span>'
     : '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#eceff1;color:#546e7a">📌 חד-פעמי</span>';
 
-  // --- STEP 1 & 2: Garden Details (Grid) ---
-  let h = `<div style="display:grid; grid-template-columns: ${spPair ? '1fr 1fr' : '1fr'}; gap:12px; margin-bottom:12px;">`;
+  // --- STEP 1 & 2: Garden Details (Table) ---
+  const allGardens = [{pg: g, pev: s}, ...partnerInfo];
   
-  // Main Garden Card
-  h += `<div style="background:#fff;border-radius:10px;padding:12px;border:1px solid #e0e0e0;box-shadow:0 2px 4px rgba(0,0,0,0.02)">
-    <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:.7rem;font-weight:900;color:#1a237e;text-transform:uppercase;background:#e8eaf6;padding:3px 8px;border-radius:4px">🏠 גן נוכחי</span>
-      <div style="text-align:left;line-height:1.1">
-        <div style="font-size:.85rem;font-weight:800;color:#1a237e">${window.fD(s.d)}</div>
-        <div style="font-size:.7rem;color:#7986cb;font-weight:700">יום ${window.dayN(s.d)}</div>
+  let h = `<div style="background:#fff;border-radius:10px;padding:12px;border:1px solid #e0e0e0;margin-bottom:12px;box-shadow:0 2px 4px rgba(0,0,0,0.02)">
+    <div style="font-size:0.85rem;font-weight:800;color:#1a237e;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+      <span>🏠 פירוט גנים ושיבוצים - ${window.fD(s.d)} (${window.dayN(s.d)})</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        ${typeTag}
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;background:#f3e5f5;padding:2px 6px;border-radius:4px;border:1px solid #ce93d8">
+          <input type="checkbox" id="sp-is-rec-chk" ${isRec ? 'checked' : ''} onchange="window.toggleSpRecurBox(this.checked)" style="width:14px;height:14px;accent-color:#6a1b9a">
+          <span style="font-size:0.65rem;font-weight:800;color:#6a1b9a">שיבוץ קבוע</span>
+        </label>
       </div>
     </div>
-    <div style="font-size:1.1rem;font-weight:900;color:#1a237e;line-height:1.2">${g.name}</div>
-    <div style="font-size:.75rem;color:#78909c;font-weight:600;margin-bottom:8px">📍 ${g.city}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid #f0f0f0;padding-top:8px">
-      <div><span style="font-size:.65rem;color:#90a4ae;display:block;font-weight:700">ספק</span><span style="font-weight:800;color:#1a237e;font-size:0.85rem">${window.supBase(s.a)}</span></div>
-      <div><span style="font-size:.65rem;color:#90a4ae;display:block;font-weight:700">פעילות</span><span style="font-weight:800;color:#1565c0;font-size:0.85rem">${s.act||'—'}</span></div>
-      <div><span style="font-size:.65rem;color:#90a4ae;display:block;font-weight:700">שעה</span><span style="font-weight:800;color:#1a237e;font-size:0.85rem">${s.t?window.fT(s.t):'—'}</span></div>
-      <div><span style="font-size:.65rem;color:#90a4ae;display:block;font-weight:700">סטטוס</span><span style="display:inline-block;margin-top:2px">${window.stLabel(s)}</span></div>
-    </div>
-    <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
-      ${typeTag}
-      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;background:#f3e5f5;padding:2px 6px;border-radius:4px;border:1px solid #ce93d8">
-        <input type="checkbox" id="sp-is-rec-chk" ${isRec ? 'checked' : ''} onchange="window.toggleSpRecurBox(this.checked)" style="width:14px;height:14px;accent-color:#6a1b9a">
-        <span style="font-size:0.65rem;font-weight:800;color:#6a1b9a">שיבוץ קבוע</span>
-      </label>
+    <div class="tw" style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;text-align:right;font-size:0.8rem">
+        <thead>
+          <tr style="background:#f5f7ff;color:#5c6bc0;border-bottom:2px solid #dbe3ff">
+            <th style="padding:6px;width:30px;text-align:center">סמן</th>
+            <th style="padding:6px">שם הגן</th>
+            <th style="padding:6px">ספק</th>
+            <th style="padding:6px">פעילות</th>
+            <th style="padding:6px">סוג</th>
+            <th style="padding:6px">סטטוס</th>
+            <th style="padding:6px">שעה</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${allGardens.map((info, idx) => {
+            const pev = info.pev;
+            const pId = pev ? pev.id : '';
+            const rowG = info.pg;
+            return \`
+            <tr style="border-bottom:1px solid #f0f0f0;background:\${idx===0?'#fff':'#fafafa'}">
+              <td style="padding:6px;text-align:center">
+                \${pId ? \`<input type="checkbox" class="sp-garden-sel" value="\${pId}" checked style="width:16px;height:16px;accent-color:#5c6bc0">\` : '-'}
+              </td>
+              <td style="padding:6px;font-weight:800;color:#1a237e">\${idx===0?'':'🔗 '}\${rowG.name} <span style="font-size:0.65rem;color:#78909c">(\${rowG.city})</span></td>
+              <td style="padding:6px">\${pev ? window.supBase(pev.a) : '—'}</td>
+              <td style="padding:6px">\${pev ? (pev.act||'—') : '—'}</td>
+              <td style="padding:6px">\${window.gcls(rowG)==='גנים'?'חוג':'—'}</td>
+              <td style="padding:6px">\${pev ? window.stLabel(pev) : '<span style="font-size:.7rem;color:#c62828;font-weight:700">לא משובץ</span>'}</td>
+              <td style="padding:6px;font-weight:700">\${pev&&pev.t ? window.fT(pev.t) : '—'}</td>
+            </tr>\`;
+          }).join('')}
+        </tbody>
+      </table>
     </div>
   </div>`;
-
-  // Partner Garden Card
-  let partnerInfo = [];
-  if (spPair) {
-    const otherIds = spPair.ids.map(Number).filter(oid => oid !== Number(s.g));
-    otherIds.forEach(oid => {
-      const pg = window.G(oid);
-      const pev = window.SCH.find(ps => Number(ps.g)===oid && ps.d === s.d && window.supBase(ps.a) === window.supBase(s.a) && ps.st !== 'can');
-      partnerInfo.push({ pg, pev });
-    });
-
-    h += `<div style="background:#f5f7ff;border-radius:10px;padding:12px;border:1px solid #dbe3ff;box-shadow:0 2px 4px rgba(0,0,0,0.02)">
-      <div style="margin-bottom:8px">
-        <span style="font-size:.7rem;font-weight:900;color:#5c6bc0;text-transform:uppercase;background:#e8eaf6;padding:3px 8px;border-radius:4px">🔗 גן בן-זוג</span>
-      </div>
-      ${partnerInfo.map(pi => `
-        <div style="font-size:1.1rem;font-weight:900;color:#1a237e;line-height:1.2">${pi.pg.name}</div>
-        <div style="font-size:.75rem;color:#78909c;font-weight:600;margin-bottom:8px">📍 ${pi.pg.city}</div>
-        <div style="border-top:1px solid #dbe3ff;padding-top:8px">
-          ${pi.pev ? `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <div><span style="font-size:.65rem;color:#90a4ae;display:block;font-weight:700">שעה</span><span style="font-weight:800;color:#1a237e;font-size:0.85rem">${pi.pev.t?window.fT(pi.pev.t):'—'}</span></div>
-              <div><span style="font-size:.65rem;color:#90a4ae;display:block;font-weight:700">סטטוס</span><span style="display:inline-block;margin-top:2px">${window.stLabel(pi.pev)}</span></div>
-            </div>
-          ` : '<div style="font-size:.75rem;color:#c62828;font-weight:700;background:#ffebee;padding:4px 8px;border-radius:4px;display:inline-block">לא משובץ לאותו יום/ספק</div>'}
-        </div>
-      `).join('')}
-    </div>`;
-  }
-  h += `</div>`; // Close grid
 
   // --- STEP 3: Quick Actions ---
   h += `<div style="background:#f8f9fa;border-radius:10px;padding:12px;border:1px solid #e0e0e0;margin-bottom:12px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="font-size:.8rem;font-weight:800;color:#1a237e">⚡ פעולות מהירות</div>
-      ${spPair ? `
-      <label for="sp-sync-global" style="display:flex;align-items:center;gap:6px;cursor:pointer;background:#e8eaf6;padding:2px 8px;border-radius:6px;border:1px solid #c5cae9">
-        <input type="checkbox" id="sp-sync-global" style="width:14px;height:14px;accent-color:#1a237e" checked>
-        <span style="font-size:0.7rem;font-weight:800;color:#1a237e">סנכרון פעולות לזוג</span>
-      </label>` : ''}
+      <div style="font-size:.8rem;font-weight:800;color:#1a237e">🌐 פעולות גלובליות (על המסומנים)</div>
+      <div style="font-size:0.7rem;color:#546e7a">הפעולות יחולו רק על הגנים המסומנים בטבלה</div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(6, 1fr);gap:6px">
-      <button class="btn bg bsm" style="font-size:.7rem;padding:6px 2px;font-weight:800;border-radius:6px" onclick="window.setStatus('done')">✔️ בוצע</button>
-      <button class="btn bsm" style="font-size:.7rem;padding:6px 2px;font-weight:800;border-radius:6px;background:#fff;color:#c62828;border:1px solid #ef9a9a" onclick="window.qSetSt('${s.id}','nohap')">⚠️ לא התקיים</button>
-      <button class="btn bsm" style="font-size:.7rem;padding:6px 2px;font-weight:800;border-radius:6px;background:#fff;color:#546e7a;border:1px solid #cfd8dc" onclick="window.setStatus('can')">❌ ביטול</button>
+      <button class="btn bg bsm" style="font-size:.7rem;padding:6px 2px;font-weight:800;border-radius:6px" onclick="window.spBatchStatus('done')">✔️ בוצע</button>
+      <button class="btn bsm" style="font-size:.7rem;padding:6px 2px;font-weight:800;border-radius:6px;background:#fff;color:#c62828;border:1px solid #ef9a9a" onclick="window.spBatchQSetSt('nohap')">⚠️ לא התקיים</button>
+      <button class="btn bsm" style="font-size:.7rem;padding:6px 2px;font-weight:800;border-radius:6px;background:#fff;color:#546e7a;border:1px solid #cfd8dc" onclick="window.spBatchStatus('can')">❌ ביטול</button>
       <button class="btn borange bsm" style="font-size:.7rem;padding:6px 2px;font-weight:800;border-radius:6px" onclick="window.openPostpone('${s.id}')">⏩ דחייה</button>
       <button class="btn bp bsm" style="font-size:.7rem;padding:6px 2px;font-weight:800;border-radius:6px" onclick="window.openMakeupSched('${s.id}')">📅 השלמה</button>
-      <button class="btn bo bsm" style="font-size:.7rem;padding:6px 2px;font-weight:800;border-radius:6px" onclick="window.setStatus('ok')">🔄 שחזור</button>
+      <button class="btn bo bsm" style="font-size:.7rem;padding:6px 2px;font-weight:800;border-radius:6px" onclick="window.spBatchStatus('ok')">🔄 שחזור</button>
     </div>
     <div style="margin-top:8px;text-align:center">
-      <button class="btn bsm" style="font-size:.7rem;padding:4px 10px;font-weight:800;border-radius:6px;background:#fff;color:#e65100;border:1px dashed #ffcc80" onclick="window.markCompManual('${s.id}')">🗑️ סיום טיפול והסרה מהלוח</button>
+      <button class="btn bsm" style="font-size:.7rem;padding:4px 10px;font-weight:800;border-radius:6px;background:#fff;color:#e65100;border:1px dashed #ffcc80" onclick="window.spBatchMarkCompManual()">🗑️ סיום טיפול והסרה מהלוח</button>
     </div>
   </div>`;
 
@@ -394,7 +450,7 @@ function openSP(id){
       <textarea id="sp-n" rows="2" style="width:100%;font-size:.8rem;border-radius:6px;border:1px solid #ccc;padding:6px;resize:none;font-family:inherit" placeholder="מעודכן לכל הפעילויות הבאות...">${s.n||''}</textarea>
     </div>
     <div style="grid-column:1/-1">
-      <button class="btn bp bsm" style="width:100%;padding:8px;font-weight:700;border-radius:6px" onclick="window.saveNt()">💾 שמור הערות</button>
+      <button class="btn bp bsm" style="width:100%;padding:8px;font-weight:700;border-radius:6px" onclick="window.spBatchSaveNt()">💾 שמור הערות לכל המסומנים</button>
     </div>
   </div>`;
 
@@ -926,9 +982,7 @@ function updAndRefresh(id,fields){
 }
 
 function closeSP(){
-  document.getElementById('sp').classList.remove('open');
-  const bd=document.getElementById('sp-backdrop');
-  if(bd) bd.style.display='none';
+  if(window.CM) window.CM('sp-m');
   window.selEv=null;
 }
 
