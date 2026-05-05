@@ -1465,19 +1465,26 @@ window.openWA = function(phone) {
 setTimeout(() => { if (typeof renderDash === 'function') renderDash(); }, 100);
 
 window.spMuDateChg = function() {
-  const date = document.getElementById('sp-mu-date').value;
+  console.log('[spMuDateChg] Start');
+  const dateEl = document.getElementById('sp-mu-date');
+  if(!dateEl) { console.error('[spMuDateChg] sp-mu-date not found'); return; }
+  const date = dateEl.value;
   const sid = window.selEv;
   const s = window.SCH.find(x => x.id == sid);
-  if(!date || !s) return;
+  if(!date || !s) { console.warn('[spMuDateChg] No date or activity found', {date, sid, s}); return; }
   
-  // Update partners table
-  window.spUpdateMakeupPartnersTable(s.g, date, s.a);
-  
-  // Show free days
-  window.spShowFreeDays(s.g);
+  try {
+    // Update partners table
+    window.spUpdateMakeupPartnersTable(s.g, date, s.a);
+    // Show free days
+    window.spShowFreeDays(s.g);
+  } catch(err) {
+    console.error('[spMuDateChg] Error:', err);
+  }
 };
 
 window.spUpdateMakeupPartnersTable = function(gid, date, aid) {
+  console.log('[spUpdateMakeupPartnersTable]', {gid, date, aid});
   const pair = window.gardenPair(gid);
   const container = document.getElementById('sp-mu-partners-wrap');
   if(!container) return;
