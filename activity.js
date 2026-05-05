@@ -403,18 +403,18 @@ function openSP(id) {
             const pev = info.pev;
             const pId = pev ? pev.id : '';
             const rowG = info.pg;
-            return \`
-            <tr style="border-bottom:1px solid #f0f0f0;background:\${idx===0?'#fff':'#fafafa'}">
+            return `
+            <tr style="border-bottom:1px solid #f0f0f0;background:${idx===0?'#fff':'#fafafa'}">
               <td style="padding:6px;text-align:center">
-                \${pId ? \`<input type="checkbox" class="sp-garden-sel" value="\${pId}" checked style="width:16px;height:16px;accent-color:#5c6bc0">\` : '-'}
+                ${pId ? `<input type="checkbox" class="sp-garden-sel" value="${pId}" checked style="width:16px;height:16px;accent-color:#5c6bc0">` : '-'}
               </td>
-              <td style="padding:6px;font-weight:800;color:#1a237e">\${idx===0?'':'🔗 '}\${rowG.name} <span style="font-size:0.65rem;color:#78909c">(\${rowG.city})</span></td>
-              <td style="padding:6px">\${pev ? window.supBase(pev.a) : '—'}</td>
-              <td style="padding:6px">\${pev ? (pev.act||'—') : '—'}</td>
-              <td style="padding:6px">\${window.gcls(rowG)==='גנים'?'חוג':'—'}</td>
-              <td style="padding:6px">\${pev ? window.stLabel(pev) : '<span style="font-size:.7rem;color:#c62828;font-weight:700">לא משובץ</span>'}</td>
-              <td style="padding:6px;font-weight:700">\${pev&&pev.t ? window.fT(pev.t) : '—'}</td>
-            </tr>\`;
+              <td style="padding:6px;font-weight:800;color:#1a237e">${idx===0?'':'🔗 '}${rowG.name} <span style="font-size:0.65rem;color:#78909c">(${rowG.city})</span></td>
+              <td style="padding:6px">${pev ? window.supBase(pev.a) : '—'}</td>
+              <td style="padding:6px">${pev ? (pev.act||'—') : '—'}</td>
+              <td style="padding:6px">${window.gcls(rowG)==='גנים'?'חוג':'—'}</td>
+              <td style="padding:6px">${pev ? window.stLabel(pev) : '<span style="font-size:.7rem;color:#c62828;font-weight:700">לא משובץ</span>'}</td>
+              <td style="padding:6px;font-weight:700">${pev&&pev.t ? window.fT(pev.t) : '—'}</td>
+            </tr>`;
           }).join('')}
         </tbody>
       </table>
