@@ -1345,13 +1345,22 @@ window.openClusterBulkEdit = function(clId, ds) {
   document.getElementById('clbulk-ph').value = '';
   document.getElementById('clbulk-nt').value = '';
   document.getElementById('clbulk-uni-time').value = '';
-  document.getElementById('clbulk-uni-tp').value = '';
+  if(document.getElementById('clbulk-act')) document.getElementById('clbulk-act').value = '';
+  if(document.getElementById('clbulk-uni-tp')) document.getElementById('clbulk-uni-tp').value = '';
   document.getElementById('clbulk-uni-st').value = '';
   if(document.getElementById('clbulk-new-date')) document.getElementById('clbulk-new-date').value = '';
 
   const allSupsHtml = supSel.innerHTML.replace('<option value="">ללא שינוי</option>', '<option value="">-- בחר ספק --</option>');
 
-  const gs = (cl.gardenIds||[]).map(id=>window.G(id)).filter(x=>x.id).sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  const gs = (cl.gardenIds||[]).map(id=>window.G(id)).filter(x=>x.id);
+  // Sort by time of existing activity, then by name
+  gs.sort((a,b) => {
+    const evA = window.SCH.find(s => s.g === a.id && s.d === ds && s.st !== 'can');
+    const evB = window.SCH.find(s => s.g === b.id && s.d === ds && s.st !== 'can');
+    const tA = (evA && evA.t) || '99:99';
+    const tB = (evB && evB.t) || '99:99';
+    return tA.localeCompare(tB) || a.name.localeCompare(b.name, 'he');
+  });
   let h = '';
   gs.forEach(g => {
     const ev = window.SCH.find(s => s.g === g.id && s.d === ds && s.st !== 'can');
@@ -1392,15 +1401,32 @@ window.openClusterBulkEdit = function(clId, ds) {
          sEl.value = ev.a || '';
          window.clBulkSupChg(g.id, ev.a, ev.act);
        }
-       if(document.getElementById(`clbulk-tp-${g.id}`)) document.getElementById(`clbulk-tp-${g.id}`).value = ev.tp || '';
+       if(document.getElementById(`clbulk-tp-${g.id}`)) document.getElementById(`clbulk-tp-${g.id}`).value = ev.tp || 'חוג';
        if(document.getElementById(`clbulk-st-${g.id}`)) document.getElementById(`clbulk-st-${g.id}`).value = ev.st || 'ok';
     }
   });
 
   supSel.onchange = function() {
-    const s = window.SCH.find(x=>x.a===this.value && x.p);
+    const supName = this.value;
+    const s = window.SCH.find(x=>x.a===supName && x.p);
     if(s) document.getElementById('clbulk-ph').value = s.p;
-    window.applyClBulkUniSup(this.value);
+    window.applyClBulkUniSup(supName);
+    
+    // Update global activity dropdown
+    const actSel = document.getElementById('clbulk-act');
+    if(actSel) {
+      actSel.innerHTML = '<option value="">ללא שינוי</option>';
+      if(supName) {
+        const su = SUPBASE.find(x => x.name === supName);
+        const acts = su ? (su.acts || []) : [];
+        if(!acts.length) {
+           const sActs = [...new Set(window.SCH.filter(x=>x.a===supName&&x.act).map(x=>x.act))].sort();
+           sActs.forEach(a => actSel.innerHTML += `<option value="${a}">${a}</option>`);
+        } else {
+           acts.forEach(a => actSel.innerHTML += `<option value="${a.name || a}">${a.name || a}</option>`);
+        }
+      }
+    }
   };
 
   document.getElementById('clbulk-m').classList.add('open');
@@ -1428,11 +1454,20 @@ window.applyClBulkUniSup = function(sup) {
 };
 
 window.applyClBulkUniTp = function(tp) {
-  const cl = clusters[window._clsId];
+  const cl = clusters[window._clsId] || window.getClusters().find(c => c.id === window._clsId);
   if(!cl || !tp) return;
   cl.gardenIds.forEach(gid => {
     const el = document.getElementById(`clbulk-tp-${gid}`);
     if(el) el.value = tp;
+  });
+};
+
+window.applyClBulkUniAct = function(act) {
+  const cl = clusters[window._clsId] || window.getClusters().find(c => c.id === window._clsId);
+  if(!cl || !act) return;
+  cl.gardenIds.forEach(gid => {
+    const el = document.getElementById(`clbulk-act-${gid}`);
+    if(el) el.value = act;
   });
 };
 
@@ -1463,14 +1498,20 @@ window.clBulkSupChg = function(gid, supName, selAct) {
 };
 
 window.saveClusterBulkEdit = function() {
-  const cl = clusters[window._clsId];
+  console.log('saveClusterBulkEdit started');
+  const cl = clusters[window._clsId] || window.getClusters().find(c => c.id === window._clsId);
   const ds = window._clBulkDate;
-  if(!cl || !ds) return;
+  console.log('Bulk Edit Target:', cl ? cl.name : 'NULL', ds);
+  if(!cl || !ds) {
+    console.error('Missing Cluster or Date');
+    return;
+  }
 
   const newDate = document.getElementById('clbulk-new-date').value;
   const globalSup = document.getElementById('clbulk-sup').value;
   const globalPh = document.getElementById('clbulk-ph').value;
   const globalNt = document.getElementById('clbulk-nt').value;
+  console.log('Global values:', {newDate, globalSup, globalPh, globalNt});
 
   let updated = 0, added = 0;
   cl.gardenIds.forEach(gid => {
@@ -1483,7 +1524,11 @@ window.saveClusterBulkEdit = function() {
     const rowSt = document.getElementById(`clbulk-st-${gid}`).value;
     const t = document.getElementById(`clbulk-t-${gid}`)?.value || '';
     
-    if(!rowSup) return; 
+    console.log(`Processing Garden ${gid}:`, {rowSup, rowAct, rowTp, rowSt, t});
+    if(!rowSup) {
+      console.warn(`Skipping garden ${gid} - No Supplier`);
+      return; 
+    }
 
     const ev = window.SCH.find(s => s.g === gid && s.d === ds && s.st !== 'can');
 
@@ -1507,7 +1552,12 @@ window.saveClusterBulkEdit = function() {
   });
 
   window.save();
-  window.refresh();
+  try {
+    if(typeof window.refresh === 'function') window.refresh();
+    else if(typeof window.renderCal === 'function') window.renderCal();
+  } catch(e) {
+    console.error('Error during refresh:', e);
+  }
   window.CM('clbulk-m');
   window.showToast(`✅ עודכנו ${updated} פעילויות${added ? ' ונוספו '+added : ''}${newDate ? ' והועברו לתאריך '+newDate : ''}`);
 };
