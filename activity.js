@@ -359,7 +359,7 @@ window.spRowStatusChg = function(id, st) {
         if(st === 'ok') { pev.cr = ''; pev.cn = ''; }
       }
     }
-    window.saveAndRefresh('sp');
+    window.saveAndRefresh('sp', true);
   }
   // Dynamic UI update
   setTimeout(() => window.spUpdateExVisibility(), 100);
@@ -397,7 +397,7 @@ window.spBatchMarkCompManual = function() {
       }
     }
   });
-  window.saveAndRefresh('sp');
+  window.saveAndRefresh('sp', true);
 };
 
 window.spBatchSaveNt = function() {
@@ -435,7 +435,7 @@ window.spBatchSaveNt = function() {
       }
     }
   });
-  window.saveAndRefresh('sp');
+  window.saveAndRefresh('sp', true);
 };
 
 window.openSP = function(id) {
@@ -650,16 +650,17 @@ window.openSP = function(id) {
             <b>שיבוץ השלמה:</b> בחר תאריך חדש לביצוע הפעילות. המערכת תסנכרן את השיבוץ לגנים השותפים המסומנים.
           </div>
           <div style="display:grid;gap:10px">
+             <div id="sp-mu-free-wrap" style="margin-top:4px"></div>
              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div class="fg"><label style="font-size:.7rem;font-weight:700">מפצה על תאריך</label><input type="date" id="sp-mu-orig" value="${s.d}" readonly style="width:100%;background:#f5f5f5;color:#666;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
                 <div class="fg"><label style="font-size:.7rem;font-weight:700">תאריך השלמה *</label><input type="date" id="sp-mu-date" value="${window.td()}" style="width:100%;border:1px solid #ffb74d;padding:4px;border-radius:4px" onchange="window.spMuDateChg()"></div>
              </div>
-             <div id="sp-mu-free-wrap" style="margin-top:4px"></div>
              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div class="fg"><label style="font-size:.7rem;font-weight:700">שעה *</label><input type="time" id="sp-mu-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
-                <div class="fg"><label style="font-size:.7rem;font-weight:700">ספק</label><div style="padding:6px;background:#f9f9f9;border:1px solid #ddd;border-radius:4px;font-size:0.8rem;font-weight:700">${window.supBase(s.a)}</div></div>
+                <div class="fg"><label style="font-size:.7rem;font-weight:700">סוג פעילות</label><input type="text" id="sp-mu-act" value="${s.act||''}" placeholder="למשל: תיאטרון, ספורט..." style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
              </div>
-             <div id="sp-mu-partners-wrap" style="margin-top:5px"></div>
+             <div class="fg"><label style="font-size:.7rem;font-weight:700">ספק</label><div style="padding:6px;background:#f9f9f9;border:1px solid #ddd;border-radius:4px;font-size:0.8rem;font-weight:700">${window.supBase(s.a)}</div></div>
+             <div id="sp-mu-partners-wrap" style="margin-top:5px;border:1px solid #eee;border-radius:8px;padding:8px;background:#fafafa"></div>
              <button class="btn borange bsm" style="width:100%;padding:10px;font-weight:800;margin-top:5px" onclick="window.spSaveMakeup()">🚀 בצע שיבוץ השלמה למסומנים</button>
           </div>
        </div>
@@ -1033,7 +1034,7 @@ function setStatus(idOrSt, maybeSt){
     }
   }
   window.saveAndRefresh('sp');
-  } catch(err) { console.error('[setStatus]', err); window.saveAndRefresh('sp'); }
+  } catch(err) { console.error('[setStatus]', err); window.saveAndRefresh('sp', true); }
 }
 
 function saveNt(){
@@ -1121,8 +1122,8 @@ function markCompManual(id){
     }
   }
 
-  window.saveAndRefresh('sp');
-  } catch(err) { console.error('[markCompManual]', err); window.saveAndRefresh('sp'); }
+  window.saveAndRefresh('sp', true);
+  } catch(err) { console.error('[markCompManual]', err); window.saveAndRefresh('sp', true); }
 }
 
 function upd(id,fields){
@@ -1147,11 +1148,16 @@ function refresh(){
   if(window.currentTab==='sched' && window.renderSched) window.renderSched();
 }
 
-function saveAndRefresh(modalId){
+function saveAndRefresh(modalId, stayOpen = false){
   window.save();
-  if(modalId) window.CM(modalId);
-  closeSP();
+  if(!stayOpen) {
+    if(modalId) window.CM(modalId);
+    if(modalId === 'sp' || modalId === 'sp-m') closeSP();
+  }
   window.refresh();
+  if(stayOpen && (modalId === 'sp' || modalId === 'sp-m') && window.selEv) {
+    window.openSP(window.selEv);
+  }
 }
 
 function openMakeupSched(origId){
@@ -1159,6 +1165,8 @@ function openMakeupSched(origId){
   window._makeupOrigId = origId;
   window.openSP(origId);
   setTimeout(() => {
+    const muWrap = document.getElementById('sp-acc-makeup-wrap');
+    if(muWrap) muWrap.style.display = 'block';
     window.toggleSpAccordion('sp-acc-makeup', true);
     window.spMuDateChg();
   }, 300);
@@ -1497,7 +1505,7 @@ window.spUpdateMakeupPartnersTable = function(gid, date, aid) {
   if(!container) return;
   
   if(!pair || pair.ids.length < 2) {
-    container.innerHTML = '';
+    container.innerHTML = `<div style="font-size:0.7rem;color:#777;padding:12px;text-align:center;background:#fff;border-radius:8px;border:1px dashed #ffb74d">ℹ️ אין גנים שותפים לסנכרון אוטומטי (גן בודד)</div>`;
     return;
   }
   
@@ -1528,7 +1536,7 @@ window.spUpdateMakeupPartnersTable = function(gid, date, aid) {
     <div class="tw" style="border:1px solid #ffcc80;border-radius:6px;overflow:hidden">
       <table style="width:100%;border-collapse:collapse;text-align:right">
         <thead style="background:#fff3e0;color:#bf360c">
-          <tr><th style="padding:6px;width:30px"></th><th style="padding:6px">גן</th><th style="padding:6px">ספק</th><th style="padding:6px">פעילות</th><th style="padding:6px">סטטוס</th><th style="padding:6px">שעה</th></tr>
+          <tr><th style="padding:6px;width:30px"><input type="checkbox" checked onclick="const cbs=document.querySelectorAll('.sp-mu-syn-chk'); cbs.forEach(cb=>cb.checked=this.checked)"></th><th style="padding:6px">גן</th><th style="padding:6px">ספק</th><th style="padding:6px">פעילות</th><th style="padding:6px">סטטוס</th><th style="padding:6px">שעה</th></tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
       </table>
@@ -1584,6 +1592,8 @@ window.spSaveMakeup = function() {
   const synGids = Array.from(document.querySelectorAll('.sp-mu-syn-chk:checked')).map(c => parseInt(c.value));
   const allGids = [origEv.g, ...synGids];
   
+  const actName = document.getElementById('sp-mu-act').value || origEv.act;
+  
   if(!confirm(`לבצע שיבוץ השלמה ל-${allGids.length} גנים בתאריך ${window.fD(newDate)}?`)) return;
   
   allGids.forEach(gId => {
@@ -1593,7 +1603,7 @@ window.spSaveMakeup = function() {
       d: newDate,
       t: time,
       a: origEv.a,
-      act: origEv.act,
+      act: actName,
       tp: origEv.tp || 'חוג',
       st: 'ok',
       nt: `השלמה על ${window.fD(origEv.d)}`,
