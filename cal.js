@@ -511,11 +511,16 @@ function renderClusterDay(evs, ds, clusterName){
       });
       Object.entries(clusterMap).sort((a,b)=>a[0].localeCompare(b[0],'he')).forEach(([clName,clEvs])=>{
         const sorted=[...clEvs].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+        const clObj = clName !== 'ללא אשכול' ? window.getClusters().find(c => c.name === clName) : null;
+        const clGids = clEvs.map(s => s.g);
+        
         html+=`<div style="margin-bottom:10px">
           <div style="padding:3px 10px;background:${clrCity.light};border-right:3px solid ${clrCity.solid};border-radius:4px;font-size:.74rem;font-weight:700;color:${clrCity.solid};margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
             <span>🔢 ${clName} — ${sorted.length} פעילויות</span>
-            ${(clObjD && clName!=='ללא אשכול') ? `<button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${clObjD.id}','${ds}')" style="font-size:.62rem;padding:1px 6px">✏️ עריכה</button>` : 
-              (window.getClusters().find(c=>c.name===clName) ? `<button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${window.getClusters().find(c=>c.name===clName).id}','${ds}')" style="font-size:.62rem;padding:1px 6px">✏️ עריכה</button>` : '')}
+            <div style="display:flex;gap:4px">
+              ${clObj ? `<button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${clObj.id}','${ds}')" style="font-size:.62rem;padding:1px 6px">✏️ עריכה</button>` : ''}
+              ${clGids.length ? `<button class="btn bg bsm" onclick="event.stopPropagation();window._exportPairWA(${JSON.stringify(clGids)})" style="font-size:.62rem;padding:1px 6px">📋 הודעה</button>` : ''}
+            </div>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:6px">`;
           
@@ -636,10 +641,15 @@ function renderClusterWeek(evs, weekStart, clusterName){
           (clusterMap[clKey]=clusterMap[clKey]||[]).push(s);
         });
         Object.entries(clusterMap).sort((a,b)=>a[0].localeCompare(b[0],'he')).forEach(([clName,clEvs])=>{
-          const clObj = window.getClusters().find(c => c.name === clName);
+          const clObj = clName !== 'ללא אשכול' ? window.getClusters().find(c => c.name === clName) : null;
+          const clGids = clEvs.map(s => s.g);
+          
           html+=`<div style="font-size:.68rem;font-weight:700;color:${clrCity.solid};background:${clrCity.light};padding:2px 7px;border-radius:3px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center">
             <span>🔢 ${clName}</span>
-            ${clObj ? `<button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${clObj.id}','${ds}')" style="font-size:.62rem;padding:1px 6px">✏️ עריכה</button>` : ''}
+            <div style="display:flex;gap:4px">
+              ${clObj ? `<button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${clObj.id}','${ds}')" style="font-size:.62rem;padding:1px 6px">✏️ עריכה</button>` : ''}
+              ${clGids.length ? `<button class="btn bg bsm" onclick="event.stopPropagation();window._exportPairWA(${JSON.stringify(clGids)})" style="font-size:.62rem;padding:1px 6px">📋 הודעה</button>` : ''}
+            </div>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px">`;
           [...clEvs].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s=>{
@@ -1484,8 +1494,8 @@ function renderRangeListView(evs, fromDs, toDs){
           <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
             <span>🏘️ ${cl.name}</span>
             <div style="display:flex;gap:4px">
-               <button onclick="event.stopPropagation();window.openClusterBulkEdit('${cl.id}','${ds}')" style="background:#1565c0;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">✏️ עריכה</button>
-               <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
+               <button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${cl.id}','${ds}')" style="font-size:.62rem;padding:1px 6px">✏️ עריכה</button>
+               <button class="btn bg bsm" onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="font-size:.62rem;padding:1px 6px">📋 הודעה</button>
             </div>
           </div>`;
         clEvs.forEach(s => { h += _listRow(s, clr, ds); });
