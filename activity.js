@@ -308,12 +308,22 @@ window.spBatchAction = function(val) {
   const ids = window.spGetSelectedIds();
   if(!ids.length) { alert('יש לסמן לפחות גן אחד בטבלה'); return; }
   
-  if(val === 'makeup') { window.openMakeupSched(ids[0]); return; }
-  if(val === 'post') { window.openPostpone(ids[0]); return; }
-  if(val === 'nohap') { window.qSetSt(ids[0], 'nohap'); return; } // qSetSt handles reason prompt
-  
-  // Standard statuses (done, ok, can)
-  window.spBatchStatus(val);
+  switch(val) {
+    case 'makeup':
+      window.toggleSpAccordion('sp-acc-makeup', true);
+      window.spMuDateChg();
+      break;
+    case 'post': 
+      window.openPostpone(ids[0]); 
+      break;
+    case 'nohap': 
+      window.qSetSt(ids[0], 'nohap'); 
+      break;
+    default:
+      // Standard statuses (done, ok, can)
+      window.spBatchStatus(val);
+      break;
+  }
 };
 
 window.spRowStatusChg = function(id, st) {
@@ -424,7 +434,7 @@ window.spBatchSaveNt = function() {
   window.saveAndRefresh('sp');
 };
 
-function openSP(id) {
+window.openSP = function(id) {
   window.selEv = id;
   const s = window.SCH.find(x => x.id == id);
   if(!s) return;
@@ -583,7 +593,6 @@ function openSP(id) {
     </div>`;
 
   // --- STEP 6: Series Management ---
-  const isRecChecked = s._recId ? 'checked' : '';
   const _dObj = s.d ? new Date(s.d) : new Date();
   const _sY = _dObj.getMonth() >= 7 ? _dObj.getFullYear() : _dObj.getFullYear() - 1;
   const defaultFrom = `${_sY}-09-01`;
@@ -1114,7 +1123,11 @@ function saveAndRefresh(modalId){
 function openMakeupSched(origId){
   const orig=window.SCH.find(s=>s.id==origId); if(!orig) return;
   window._makeupOrigId = origId;
-  window.openNewSched(orig.g, {date:window.td(), tab:'makeup', makeupFrom:orig.d, time:orig.t});
+  window.openSP(origId);
+  setTimeout(() => {
+    window.toggleSpAccordion('sp-acc-makeup', true);
+    window.spMuDateChg();
+  }, 300);
 }
 
 function openPostpone(id){
@@ -1422,3 +1435,134 @@ window.openWA = function(phone) {
 };
 
 setTimeout(() => { if (typeof renderDash === 'function') renderDash(); }, 100);
+
+window.spMuDateChg = function() {
+  const date = document.getElementById('sp-mu-date').value;
+  const sid = window.selEv;
+  const s = window.SCH.find(x => x.id == sid);
+  if(!date || !s) return;
+  
+  // Update partners table
+  window.spUpdateMakeupPartnersTable(s.g, date, s.a);
+  
+  // Show free days
+  window.spShowFreeDays(s.g);
+};
+
+window.spUpdateMakeupPartnersTable = function(gid, date, aid) {
+  const pair = window.gardenPair(gid);
+  const container = document.getElementById('sp-mu-partners-wrap');
+  if(!container) return;
+  
+  if(!pair || pair.ids.length < 2) {
+    container.innerHTML = '';
+    return;
+  }
+  
+  const otherIds = pair.ids.map(Number).filter(oid => oid !== Number(gid));
+  let rowsHtml = '';
+  otherIds.forEach(pId => {
+    const pG = window.G(pId);
+    if(!pG) return;
+    const ev = window.SCH.find(s => s.g === pId && s.d === date && s.st !== 'can');
+    const stLabel = ev ? (window.stLabel ? window.stLabel(ev) : ev.st) : '—';
+    const stClass = ev ? (window.stClass ? window.stClass(ev) : '') : '';
+    const sup = ev ? window.supBase(ev.a) : '—';
+    const act = ev ? (ev.act || '—') : '—';
+    const time = ev ? (window.fT ? window.fT(ev.t) : ev.t) : '—';
+    
+    rowsHtml += `<tr style="border-bottom:1px solid #eee;font-size:0.75rem;background:${stClass==='busy'?'#fff9f9':'#fff'}">
+      <td style="padding:6px;text-align:center"><input type="checkbox" class="sp-mu-syn-chk" value="${pId}" checked style="width:16px;height:16px;accent-color:#e65100"></td>
+      <td style="padding:6px;font-weight:700">${pG.name}</td>
+      <td style="padding:6px">${sup}</td>
+      <td style="padding:6px">${act}</td>
+      <td style="padding:6px">${stLabel}</td>
+      <td style="padding:6px;font-weight:700">${time}</td>
+    </tr>`;
+  });
+  
+  container.innerHTML = `
+    <div style="font-size:0.75rem;font-weight:700;color:#546e7a;margin-bottom:6px">🔗 שותפים לסנכרון השלמה:</div>
+    <div class="tw" style="border:1px solid #ffcc80;border-radius:6px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;text-align:right">
+        <thead style="background:#fff3e0;color:#bf360c">
+          <tr><th style="padding:6px;width:30px"></th><th style="padding:6px">גן</th><th style="padding:6px">ספק</th><th style="padding:6px">פעילות</th><th style="padding:6px">סטטוס</th><th style="padding:6px">שעה</th></tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>`;
+};
+
+window.spShowFreeDays = function(gid) {
+  const container = document.getElementById('sp-mu-free-wrap');
+  if(!container) return;
+  
+  const DAY_HEB=['ראשון','שני','שלישי','רביעי','חמישי'];
+  const g = window.G(gid);
+  const busyDates = new Set(window.SCH.filter(x => {
+    if(Number(x.g) !== Number(gid)) return false;
+    if(x.st === 'can' || x.st === 'nohap' || x.st === 'post') return false;
+    return true;
+  }).map(x=>x.d));
+  
+  const free = []; let d = new Date(); d.setHours(0,0,0,0);
+  for(let i=0; i<21; i++) {
+    const dow = d.getDay();
+    if(dow >= 0 && dow <= 4) {
+      const ds = window.d2s(d);
+      const hol = window.getHolidayInfo(ds, g.city, window.gcls(g));
+      const isToday = i === 0;
+      if(!busyDates.has(ds) && (!hol || isToday)) {
+        free.push({ds, lbl: DAY_HEB[dow] + ' ' + window.fD(ds)});
+      }
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  
+  if(free.length) {
+    container.innerHTML = `<div style="font-size:0.65rem;font-weight:800;color:#2e7d32;margin-bottom:4px">ימים פנויים:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
+      ${free.map(f => `<button class="btn bg bsm" style="font-size:0.68rem;padding:2px 6px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9" onclick="document.getElementById('sp-mu-date').value='${f.ds}'; window.spMuDateChg()">${f.lbl}</button>`).join('')}
+    </div>`;
+  } else {
+    container.innerHTML = '';
+  }
+};
+
+window.spSaveMakeup = function() {
+  const sid = window.selEv;
+  const origEv = window.SCH.find(x => x.id == sid);
+  if(!origEv) return;
+  
+  const newDate = document.getElementById('sp-mu-date').value;
+  const time = document.getElementById('sp-mu-time').value;
+  
+  if(!newDate || !time) { alert('בחר תאריך ושעה'); return; }
+  
+  const synGids = Array.from(document.querySelectorAll('.sp-mu-syn-chk:checked')).map(c => parseInt(c.value));
+  const allGids = [origEv.g, ...synGids];
+  
+  if(!confirm(`לבצע שיבוץ השלמה ל-${allGids.length} גנים בתאריך ${window.fD(newDate)}?`)) return;
+  
+  allGids.forEach(gId => {
+    const newEv = {
+      id: Date.now() + Math.random(),
+      g: gId,
+      d: newDate,
+      t: time,
+      a: origEv.a,
+      act: origEv.act,
+      tp: origEv.tp || 'חוג',
+      st: 'ok',
+      nt: `השלמה על ${window.fD(origEv.d)}`,
+      _isMakeup: true,
+      _makeupFrom: origEv.d
+    };
+    window.SCH.push(newEv);
+  });
+  
+  if(window.save) window.save();
+  window.showToast('✅ שיבוץ ההשלמה בוצע בהצלחה');
+  window.closeSP();
+  window.refresh();
+};
