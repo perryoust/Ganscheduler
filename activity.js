@@ -252,6 +252,48 @@ window.spGetSelectedIds = function() {
   return [window.selEv]; // Fallback if no checkboxes exist/checked
 };
 
+// Helper to find the best matching partner activity (relaxed supplier check)
+window.findPartnerActivity = function(gid, date, targetSup) {
+  const tSupBase = targetSup ? window.supBase(targetSup) : null;
+  const targetGid = Number(gid);
+  
+  const normD = (d) => {
+    if(!d) return '';
+    if(d instanceof Date) return d.toISOString().split('T')[0];
+    if(typeof d === 'string') {
+      if(d.includes('T')) return d.split('T')[0];
+      if(d.includes('-')) return d; // Assume YYYY-MM-DD
+    }
+    // Fallback: try new Date
+    try { 
+      const parsed = new Date(d);
+      if(!isNaN(parsed)) return parsed.toISOString().split('T')[0];
+    } catch(e){}
+    return String(d);
+  };
+
+  const targetDate = normD(date);
+  
+  // 1. Same date, same supplier
+  let pEv = window.SCH.find(ps => 
+    Number(ps.g) === targetGid && normD(ps.d) === targetDate && ps.st !== 'can' &&
+    (tSupBase ? window.supBase(ps.a) === tSupBase : true)
+  );
+  
+  // 2. Fallback: Same date, any supplier
+  if (!pEv) {
+    pEv = window.SCH.find(ps => 
+      Number(ps.g) === targetGid && normD(ps.d) === targetDate && ps.st !== 'can'
+    );
+  }
+  
+  if (!pEv) {
+    // console.warn(`[findPartnerActivity] No activity found for garden ${gid} on ${targetDate}`);
+  }
+  
+  return pEv;
+};
+
 window.spBatchStatus = function(st) {
   const ids = window.spGetSelectedIds();
   ids.forEach(id => window.setStatus(id, st));
@@ -260,6 +302,69 @@ window.spBatchStatus = function(st) {
 window.spBatchQSetSt = function(st) {
   const ids = window.spGetSelectedIds();
   if(ids.length) window.qSetSt(ids[0], st); 
+};
+
+window.spBatchAction = function(val) {
+  const ids = window.spGetSelectedIds();
+  if(!ids.length) { alert('יש לסמן לפחות גן אחד בטבלה'); return; }
+  
+  if(val === 'makeup') { window.openMakeupSched(ids[0]); return; }
+  if(val === 'post') { window.openPostpone(ids[0]); return; }
+  if(val === 'nohap') { window.qSetSt(ids[0], 'nohap'); return; } // qSetSt handles reason prompt
+  
+  // Standard statuses (done, ok, can)
+  window.spBatchStatus(val);
+};
+
+window.spRowStatusChg = function(id, st) {
+  const ev = window.SCH.find(x => x.id == id);
+  if(!ev) return;
+  
+  const pair = window.gardenPair(ev.g);
+  let syncPartner = false;
+  if(pair) {
+    const pGid = pair.ids.find(pid => Number(pid) !== Number(ev.g));
+    const pG = window.G(pGid);
+    if(confirm(`האם להחיל את הסטטוס "${window.stLabel({st})}" גם על הגן בן-הזוג (${pG.name})?`)) {
+      syncPartner = true;
+    }
+  }
+
+  if(st === 'nohap' || st === 'can' || st === 'post') {
+    if(st === 'nohap') window.openNohapQ(id);
+    else if(st === 'can') window.openCanQ(id);
+    else if(st === 'post') window.openPostpone(id);
+    window._spSyncPartnerNext = syncPartner; 
+  } else {
+    ev.st = st;
+    if(st === 'ok') { ev.cr = ''; ev.cn = ''; }
+    if(syncPartner) {
+      const pev = window.findPartnerActivity(pair.ids.find(pid => Number(pid) !== Number(ev.g)), ev.d, ev.a);
+      if(pev) {
+        pev.st = st;
+        if(st === 'ok') { pev.cr = ''; pev.cn = ''; }
+      }
+    }
+    window.saveAndRefresh('sp');
+  }
+  // Dynamic UI update
+  setTimeout(() => window.spUpdateExVisibility(), 100);
+};
+
+window.spUpdateExVisibility = function() {
+  const ids = window.spGetSelectedIds();
+  const box = document.getElementById('sp-ex-box');
+  if(!box) return;
+  
+  const hasExc = ids.some(id => {
+    const ev = window.SCH.find(x => x.id == id);
+    if(!ev) return false;
+    const isM = !!(ev._isMakeup || ev._makeupFrom || (ev.nt && /השלמה/i.test(ev.nt)) || (ev.a && /השלמה/i.test(ev.a)));
+    const isExc = (ev.st === 'nohap' || ev.st === 'post' || ev.st === 'can') && !ev._compByMakeup;
+    return isExc || (isM && ev.st !== 'done');
+  });
+  
+  box.style.display = hasExc ? 'block' : 'none';
 };
 
 window.spBatchMarkCompManual = function() {
@@ -345,10 +450,7 @@ function openSP(id) {
     const otherIds = spPair.ids.map(Number).filter(oid => oid !== Number(s.g));
     otherIds.forEach(oid => {
       const pg = window.G(oid);
-      const pev = window.SCH.find(ps =>
-        Number(ps.g)===oid && ps.d === s.d &&
-        window.supBase(ps.a) === window.supBase(s.a) && ps.st !== 'can'
-      );
+      const pev = window.findPartnerActivity(oid, s.d, s.a);
       if(pev) currentTimesSP[oid] = window.fT(pev.t || s.t);
       partnerInfo.push({ pg, pev });
     });
@@ -403,16 +505,27 @@ function openSP(id) {
             const pev = info.pev;
             const pId = pev ? pev.id : '';
             const rowG = info.pg;
+            const curSt = pev ? pev.st : '';
             return `
             <tr style="border-bottom:1px solid #f0f0f0;background:${idx===0?'#fff':'#fafafa'}">
               <td style="padding:6px;text-align:center">
-                ${pId ? `<input type="checkbox" class="sp-garden-sel" value="${pId}" checked style="width:16px;height:16px;accent-color:#5c6bc0">` : '-'}
+                ${pId ? `<input type="checkbox" class="sp-garden-sel" value="${pId}" checked onchange="window.spUpdateExVisibility()" style="width:16px;height:16px;accent-color:#5c6bc0">` : '-'}
               </td>
               <td style="padding:6px;font-weight:800;color:#1a237e">${idx===0?'':'🔗 '}${rowG.name} <span style="font-size:0.65rem;color:#78909c">(${rowG.city})</span></td>
               <td style="padding:6px">${pev ? window.supBase(pev.a) : '—'}</td>
               <td style="padding:6px">${pev ? (pev.act||'—') : '—'}</td>
               <td style="padding:6px">${window.gcls(rowG)==='גנים'?'חוג':'—'}</td>
-              <td style="padding:6px">${pev ? window.stLabel(pev) : '<span style="font-size:.7rem;color:#c62828;font-weight:700">לא משובץ</span>'}</td>
+              <td style="padding:6px">
+                ${pev ? `
+                  <select onchange="window.spRowStatusChg('${pev.id}', this.value)" style="padding:2px 4px;font-size:0.7rem;border-radius:4px;border:1px solid #ccc;background:${window.stClass(pev)==='done'?'#e8f5e9':(window.stClass(pev)==='nohap'?'#ffebee':'#fff')}">
+                    <option value="ok" ${curSt==='ok'?'selected':''}>🔄 תקין</option>
+                    <option value="done" ${curSt==='done'?'selected':''}>✔️ בוצע</option>
+                    <option value="nohap" ${curSt==='nohap'?'selected':''}>⚠️ לא התקיים</option>
+                    <option value="can" ${curSt==='can'?'selected':''}>❌ בוטל</option>
+                    <option value="post" ${curSt==='post'?'selected':''}>⏩ נדחה</option>
+                  </select>
+                ` : '<span style="font-size:.7rem;color:#c62828;font-weight:700">לא משובץ</span>'}
+              </td>
               <td style="padding:6px;font-weight:700">${pev&&pev.t ? window.fT(pev.t) : '—'}</td>
             </tr>`;
           }).join('')}
@@ -421,22 +534,22 @@ function openSP(id) {
     </div>
   </div>`;
 
-  // --- STEP 3: Quick Actions ---
-  h += `<div style="background:#f8f9fa;border-radius:10px;padding:12px;border:1px solid #e0e0e0;margin-bottom:12px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="font-size:.8rem;font-weight:800;color:#1a237e">🌐 פעולות גלובליות (על המסומנים)</div>
-      <div style="font-size:0.7rem;color:#546e7a">הפעולות יחולו רק על הגנים המסומנים בטבלה</div>
+  // --- STEP 3: Quick Actions (Compact Dropdown) ---
+  h += `<div style="background:#f8f9fa;border-radius:10px;padding:12px;border:1px solid #e0e0e0;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+    <div style="display:flex;flex-direction:column">
+      <div style="font-size:.75rem;font-weight:800;color:#1a237e">🌐 פעולות גלובליות (על המסומנים)</div>
+      <div style="font-size:0.65rem;color:#546e7a">הפעולות יחולו רק על הגנים המסומנים בטבלה</div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(6, 1fr);gap:6px">
-      <button class="btn bg bsm" style="font-size:.7rem;padding:6px 2px;font-weight:800;border-radius:6px" onclick="window.spBatchStatus('done')">✔️ בוצע</button>
-      <button class="btn bsm" style="font-size:.7rem;padding:6px 2px;font-weight:800;border-radius:6px;background:#fff;color:#c62828;border:1px solid #ef9a9a" onclick="window.spBatchQSetSt('nohap')">⚠️ לא התקיים</button>
-      <button class="btn bsm" style="font-size:.7rem;padding:6px 2px;font-weight:800;border-radius:6px;background:#fff;color:#546e7a;border:1px solid #cfd8dc" onclick="window.spBatchStatus('can')">❌ ביטול</button>
-      <button class="btn borange bsm" style="font-size:.7rem;padding:6px 2px;font-weight:800;border-radius:6px" onclick="window.openPostpone('${s.id}')">⏩ דחייה</button>
-      <button class="btn bp bsm" style="font-size:.7rem;padding:6px 2px;font-weight:800;border-radius:6px" onclick="window.openMakeupSched('${s.id}')">📅 השלמה</button>
-      <button class="btn bo bsm" style="font-size:.7rem;padding:6px 2px;font-weight:800;border-radius:6px" onclick="window.spBatchStatus('ok')">🔄 שחזור</button>
-    </div>
-    <div style="margin-top:8px;text-align:center">
-      <button class="btn bsm" style="font-size:.7rem;padding:4px 10px;font-weight:800;border-radius:6px;background:#fff;color:#e65100;border:1px dashed #ffcc80" onclick="window.spBatchMarkCompManual()">🗑️ סיום טיפול והסרה מהלוח</button>
+    <div style="display:flex;gap:8px">
+      <select onchange="if(this.value) window.spBatchAction(this.value); this.value='';" style="padding:6px 12px;font-size:0.8rem;font-weight:700;border-radius:6px;border:1px solid #5c6bc0;background:#fff;color:#1a237e;cursor:pointer">
+        <option value="">🚀 בחר פעולה מהירה...</option>
+        <option value="done">✔️ סמן כ"בוצע"</option>
+        <option value="nohap">⚠️ סמן כ"לא התקיים"</option>
+        <option value="can">❌ בטל פעילות</option>
+        <option value="ok">🔄 שחזור לתקין</option>
+        <option value="post">⏩ דחייה למועד אחר</option>
+        <option value="makeup">📅 קביעת השלמה</option>
+      </select>
     </div>
   </div>`;
 
@@ -455,19 +568,15 @@ function openSP(id) {
     </div>
   </div>`;
 
-  const isExc = (s.st === 'nohap' || s.st === 'post' || s.st === 'can') && !s._compByMakeup;
-
-  // --- STEP 5: Exception Handling ---
-  if (isExc || (isM && s.st !== 'done')) {
-    h += `<div style="margin-bottom:12px;border:1.5px solid #ffe082;border-radius:10px;padding:10px;background:#fff8e1">
+  // --- STEP 5: Exception Handling (Only for relevant statuses) ---
+  h += `<div id="sp-ex-box" style="display:none;margin-bottom:12px;border:1.5px solid #ffe082;border-radius:10px;padding:10px;background:#fff8e1">
       <div style="font-size:0.8rem;color:#e65100;font-weight:800;margin-bottom:6px">🛠️ טיפול בחריג</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <input type="text" id="sp-handle-nt" style="flex:1;min-width:200px;padding:6px;border-radius:6px;border:1px solid #ffe082;font-size:0.8rem" placeholder="הערת סיום טיפול (לדוגמה: בוצע ידנית ב-20/4...)" value="${s.st==='post'?'נדחה':''}">
         ${spPair ? `<label for="sp-sync-pair" style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="sp-sync-pair" style="width:14px;height:14px;accent-color:#e65100" checked><span style="font-size:0.75rem;font-weight:700;color:#bf360c">סנכרן לזוג</span></label>` : ''}
-        <button class="btn borange bsm" style="padding:6px 12px;font-weight:800;border-radius:6px" onclick="window.markCompManual('${s.id}')">סיום טיפול</button>
+        <button class="btn borange bsm" style="padding:6px 12px;font-weight:800;border-radius:6px" onclick="window.spBatchMarkCompManual()">סיום טיפול לכל המסומנים</button>
       </div>
     </div>`;
-  }
 
   // --- STEP 6: Series Management ---
   const isRecChecked = s._recId ? 'checked' : '';
@@ -535,6 +644,7 @@ function openSP(id) {
   </div>`;
 
   document.getElementById('sp-m-body').innerHTML = h;
+  window.spUpdateExVisibility(); // Initial check
   window.OM('sp-m');
   } catch(err) {
     console.error('[openSP] Error building panel:', err);
@@ -809,7 +919,7 @@ function spEditSave(){
   
   const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('sped') : [];
   synergyPartners.forEach(syn => {
-    const pEv = window.SCH.find(ps => ps.d === origDate && ps.g === syn.g && ps.st !== 'can' && window.supBase(ps.a) === window.supBase(origSup));
+    const pEv = window.findPartnerActivity(syn.g, origDate, origSup);
     if(pEv) {
       if(newDate) pEv.d=newDate; 
       if(newSup) pEv.a=newSup; 
@@ -867,10 +977,7 @@ function setStatus(idOrSt, maybeSt){
     if(pair) {
       const otherIds = pair.ids.map(Number).filter(oid => oid !== Number(main.g));
       otherIds.forEach(oid => {
-        const pev = window.SCH.find(ps =>
-          Number(ps.g)===oid && ps.d === main.d &&
-          window.supBase(ps.a) === window.supBase(main.a) && ps.st !== 'can'
-        );
+        const pev = window.findPartnerActivity(oid, main.d, main.a);
         if(pev) {
           pev.st = st;
           if(st==='ok') { pev.cr=''; pev.cn=''; }
@@ -914,7 +1021,7 @@ function saveNt(){
   if(syncChk && syncChk.checked && pair) {
     pair.ids.forEach(pId => {
       if(pId === s.g) return;
-      const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === pId && ps.st !== 'can' && window.supBase(ps.a) === window.supBase(s.a));
+      const pEv = window.findPartnerActivity(pId, s.d, s.a);
       if(pEv) {
         pEv.nt = s.nt;
         pEv.st = s.st;
@@ -955,10 +1062,7 @@ function markCompManual(id){
     if (pair) {
       const otherIds = pair.ids.map(id=>Number(id)).filter(id=>id!==Number(s.g));
       otherIds.forEach(ogid => {
-        const partnerEv = window.SCH.find(ps => 
-          Number(ps.g)===ogid && ps.d === s.d && 
-          window.supBase(ps.a) === window.supBase(s.a) && ps.st !== 'can'
-        );
+        const partnerEv = window.findPartnerActivity(ogid, s.d, s.a);
         if (partnerEv) {
           partnerEv._compByMakeup = stamp;
           if (handleNt) {
@@ -1258,6 +1362,23 @@ function postDateChg() {
   console.log('Postpone date changed');
 }
 window.postDateChg = postDateChg;
+
+// Override core openNohapQ to respect the side-panel sync flag
+const origOpenNohapQ = window.openNohapQ;
+window.openNohapQ = function(id) {
+  if(typeof origOpenNohapQ === 'function') origOpenNohapQ(id);
+  if(typeof window._spSyncPartnerNext !== 'undefined') {
+    const scopeWrap = document.getElementById('nohapq-scope-wrap');
+    if(scopeWrap) {
+      scopeWrap.style.display = 'none'; // Hide redundancy
+      // Pre-set the radio value
+      const radio = document.querySelector(`input[name="nohapq-scope"][value="${window._spSyncPartnerNext ? 'pair' : 'solo'}"]`);
+      if(radio) radio.checked = true;
+    }
+    // Clear flag after use
+    setTimeout(() => { delete window._spSyncPartnerNext; }, 500);
+  }
+};
 
 window.setPostMode = function(mode) {
   window._postMode = mode;

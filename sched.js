@@ -216,8 +216,20 @@ function nsShowFreeDays(gid){
   const g=window.G(gid);
   const fromD=new Date(); // from today
   const DAY_HEB=['ראשון','שני','שלישי','רביעי','חמישי'];
-  const busyDates=new Set(window.SCH.filter(x=>x.g===gid&&x.st!=='can').map(x=>x.d));
-  const free=[]; let d=new Date(fromD);
+  // For busyDates, only exclude dates that have a fully 'ok' or 'done' activity 
+  // unless we are in makeup mode where we might want to override.
+  const isMakeup = _nsmTab === 'makeup';
+  const busyDates=new Set(window.SCH.filter(x => {
+    if(x.g !== gid || x.st === 'can') return false;
+    // If it's a makeup, we can schedule on a day that has a 'nohap' or 'post' activity
+    if(isMakeup && (x.st === 'nohap' || x.st === 'post' || x.st === 'can')) return false;
+    return true;
+  }).map(x=>x.d));
+
+  const free=[]; let d=new Date();
+  // Ensure we check from today or the start of the search range
+  d.setHours(0,0,0,0);
+
   for(let i=0;i<21;i++){
     const dow=d.getDay();
     if(dow>=0&&dow<=4){
@@ -267,9 +279,16 @@ function nsDateChg(){
   const partnerEv=window.SCH.find(x=>x.g===pId && x.d===date && x.st!=='can');
   
   if(partnerEv && partnerEv.t){
-    hintEl.className = 'info-notice';
+    const pTime = window.fT(partnerEv.t);
+    const myTime = document.getElementById('ns-time').value;
+    const isSameTime = myTime && window.fT(myTime) === pTime;
+    
+    hintEl.className = isSameTime ? 'info-notice error' : 'info-notice';
     hintEl.style.display = 'flex';
-    hintEl.innerHTML = `<span class="icon">⏰</span><div><b>שיבוץ קיים:</b> ל-<b>${partnerG.name}</b> כבר יש פעילות בשעה <b>${window.fT(partnerEv.t)}</b>.</div>`;
+    hintEl.style.background = isSameTime ? '#fff5f5' : '#e3f2fd';
+    hintEl.style.borderColor = isSameTime ? '#feb2b2' : '#bbdefb';
+
+    hintEl.innerHTML = `<span class="icon">${isSameTime?'⚠️':'ℹ️'}</span><div><b>שיבוץ קיים:</b> ל-<b>${partnerG.name}</b> כבר יש פעילות בשעה <b>${pTime}</b>.${!isSameTime ? ' (ניתן לשבץ בשעה שונה)' : ''}</div>`;
   } else {
     hintEl.style.display = 'none';
   }
@@ -334,9 +353,8 @@ function saveNewSched(){
     const period=h<13?'morning':'afternoon';
     const conflict=window.SCH.find(s=>s.g===gid&&s.d===date&&!['can','nohap','post'].includes(s.st)&&!s._compByMakeup&&s.t&&(parseInt(s.t.split(':')[0])<13?'morning':'afternoon')===period&&s.id!==undefined);
     if(conflict){
-      document.getElementById('ns-warn').style.display='block';
-      (document.getElementById('ns-warn')||{}).textContent =`⚠️ כבר קיימת פעילות ב${period==='morning'?'בוקר':'אחה"צ'}: ${conflict.a} ב-${window.fT(conflict.t)}`;
-      return;
+      const msg = `⚠️ כבר קיימת פעילות ב${period==='morning'?'בוקר':'אחה"צ'}: ${conflict.a} ב-${window.fT(conflict.t)}.\nהאם תרצה בכל זאת להוסיף את השיבוץ הנוכחי?`;
+      if(!confirm(msg)) return;
     }
   }
   const newId=Date.now();
