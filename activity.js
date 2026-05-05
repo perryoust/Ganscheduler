@@ -123,15 +123,15 @@ function renderDash() {
     const soloMap = new Map();
 
     evs.forEach(s => {
-      const pair = window.gardenPair(s.g);
-      if (pair) {
-        if (!seenPairs.has(pair.id)) {
-          const pairEvs = evs.filter(x => {
-            const xPair = window.gardenPair(x.g);
-            return xPair && xPair.id === pair.id && window.supBase(x.a) === window.supBase(s.a);
+      const group = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
+      if (group) {
+        if (!seenPairs.has(group.id)) {
+          const groupEvs = evs.filter(x => {
+            const xGroup = window.getGardenGroup ? window.getGardenGroup(x.g) : window.gardenPair(x.g);
+            return xGroup && xGroup.id === group.id && window.supBase(x.a) === window.supBase(s.a);
           });
-          rows.push({type: 'pair', pair, evs: pairEvs});
-          seenPairs.add(pair.id);
+          rows.push({type: 'pair', pair: group, evs: groupEvs});
+          seenPairs.add(group.id);
         }
       } else {
         const key = `${s.g}_${window.supBase(s.a)}`;
@@ -150,7 +150,10 @@ function renderDash() {
       };
       const tA = getMinTime(a);
       const tB = getMinTime(b);
-      return tA.localeCompare(tB);
+      if (tA !== tB) return tA.localeCompare(tB);
+      const nA = (a.type === 'solo' ? window.G(a.ev.g).name : a.pair.name) || '';
+      const nB = (b.type === 'solo' ? window.G(b.ev.g).name : b.pair.name) || '';
+      return nA.localeCompare(nB, 'he');
     });
 
     const summary = document.createElement('summary');
@@ -176,11 +179,7 @@ function renderDash() {
             pairMap.set(gid, { id: 'dummy_'+gid, g: gid, st: 'unassigned', d: date, t: '', act: '' });
           }
         });
-        const sorted = Array.from(pairMap.values()).sort((a,b) => {
-          const tA = (a.t || '99:99').padStart(5, '0');
-          const tB = (b.t || '99:99').padStart(5, '0');
-          return tA.localeCompare(tB);
-        });
+        const sorted = Array.from(pairMap.values()).sort((a,b) => window.compareActivities ? window.compareActivities(a, b) : (a.t||'').localeCompare(b.t||''));
         
         const realEv = sorted.find(x=>x.id && !x.id.toString().startsWith('dummy'));
         const realId = realEv ? realEv.id : '';

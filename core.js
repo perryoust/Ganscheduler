@@ -684,6 +684,28 @@ function hebM(d){return['ינואר','פברואר','מרץ','אפריל','מא�
 function td(){return d2s(new Date())}
 function cities(){return[...new Set(GARDENS.map(g=>g.city))].sort()}
 function gardenPair(gid){const n=parseInt(gid);return pairs.find(p=>p.ids.map(x=>parseInt(x)).includes(n))||null}
+window.getGardenGroup = function(gid) {
+  const n = parseInt(gid);
+  const pair = (window.pairs || []).find(p => p.ids.map(x => parseInt(x)).includes(n));
+  if (pair) return { type: 'pair', ...pair };
+  const clusters = window.clusters || {};
+  for (const cid in clusters) {
+    const cl = clusters[cid];
+    if ((cl.gardenIds || []).map(x => parseInt(x)).includes(n)) {
+      return { type: 'cluster', id: cid, ids: cl.gardenIds.map(x => parseInt(x)), name: cl.name };
+    }
+  }
+  return null;
+};
+window.compareActivities = function(a, b) {
+  const tA = (a.t || '99:99').padStart(5, '0');
+  const tB = (b.t || '99:99').padStart(5, '0');
+  if (tA !== tB) return tA.localeCompare(tB);
+  const gA = window.G(a.g)?.name || '';
+  const gB = window.G(b.g)?.name || '';
+  return gA.localeCompare(gB, 'he');
+};
+
 function stLabel(s){
   if(s.st==='can') return'<span class="bdg br2">❌ בוטל</span>';
   if(s.st==='done') return'<span class="bdg bg2">✔️ התקיים</span>';
