@@ -481,6 +481,10 @@ function openSP(id) {
       <span>🏠 פירוט גנים ושיבוצים - ${window.fD(s.d)} (${window.dayN(s.d)})</span>
       <div style="display:flex;gap:8px;align-items:center">
         ${typeTag}
+        <button onclick="window.openWA('${g.phone}')" class="btn bsm" style="background:#25D366;color:#fff;padding:2px 6px;border-radius:4px;display:flex;align-items:center;gap:4px;border:none">
+          <span style="font-size:0.8rem">💬</span>
+          <span style="font-size:0.65rem;font-weight:800">הודעה</span>
+        </button>
         <label style="display:flex;align-items:center;gap:4px;cursor:pointer;background:#f3e5f5;padding:2px 6px;border-radius:4px;border:1px solid #ce93d8">
           <input type="checkbox" id="sp-is-rec-chk" ${isRec ? 'checked' : ''} onchange="window.toggleSpRecurBox(this.checked)" style="width:14px;height:14px;accent-color:#6a1b9a">
           <span style="font-size:0.65rem;font-weight:800;color:#6a1b9a">שיבוץ קבוע</span>
@@ -1407,6 +1411,13 @@ window.setPostMode = function(mode) {
     if(saveBtn) { saveBtn.textContent = '⏱️ דחה לעת עתה'; saveBtn.className = 'btn bs'; }
     if(reasonLbl) reasonLbl.textContent = 'סיבה (חובה לדחייה)';
   }
+};
+
+window.openWA = function(phone) {
+  if(!phone) return;
+  const clean = phone.replace(/\D/g, '');
+  const target = clean.startsWith('972') ? clean : '972' + clean.replace(/^0/, '');
+  window.open(`https://wa.me/${target}`, '_blank');
 };
 
 setTimeout(() => { if (typeof renderDash === 'function') renderDash(); }, 100);

@@ -16,6 +16,7 @@ function nsSetTab(tab){
   if(onceWrap) onceWrap.style.display=(tab==='once'||tab==='makeup')?'block':'none';
 
   // Free days wrap logic
+
   const freeWrap = document.getElementById('ns-free-wrap');
   if(freeWrap){
     if(tab==='makeup'){
@@ -197,16 +198,35 @@ function nsCheckPair(gid){
       const t2inp = document.getElementById('ns-time-g2');
       if(t2inp){
         const date=document.getElementById('ns-date').value;
-        const partnerEv=window.SCH.find(x=>x.g===partnerId && x.d===date && x.st!=='can');
-        if(partnerEv&&partnerEv.t) t2inp.value=window.fT(partnerEv.t);
-        else t2inp.value='';
-      }
-      // Trigger display if selected
-      if(partnerWrap) partnerWrap.style.display = (g2sel && g2sel.value) ? 'block' : 'none';
+  
+  if(pair){
+    const otherIds = pair.ids.map(Number).filter(oid => oid !== Number(gid));
+    let partnerGridHtml = '';
+    otherIds.forEach(pId => {
+      const pG = window.G(pId);
+      if(!pG) return;
+      partnerGridHtml += `
+        <label style="display:flex;align-items:center;gap:8px;background:#fff;padding:8px;border-radius:8px;border:1.5px solid #e0e0e0;cursor:pointer;flex:1;min-width:140px">
+          <input type="checkbox" id="ns-syn-chk-${pId}" class="ns-syn-chk" value="${pId}" onchange="nsTogglePartner(this)" style="width:18px;height:18px;accent-color:#1565c0">
+          <div style="display:flex;flex-direction:column">
+            <span style="font-size:0.8rem;font-weight:800;color:#1a237e">${pG.name}</span>
+            <span style="font-size:0.65rem;color:#546e7a">${pG.city}</span>
+          </div>
+        </label>`;
+    });
+
+    const g2Choice = document.getElementById('ns-g2-choice-container');
+    if(g2Choice) {
+      g2Choice.innerHTML = `
+        <div style="font-size:0.75rem;font-weight:700;color:#546e7a;margin-bottom:6px">🔗 גנים שותפים לסנכרון (בחר לשיבוץ מקביל):</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px" id="ns-partners-grid">
+          ${partnerGridHtml}
+        </div>`;
     }
+    
+    if(choiceWrap) choiceWrap.style.display = 'block';
   } else {
-    if(choiceWrap) choiceWrap.style.display='none';
-    if(partnerWrap) partnerWrap.style.display='none';
+    if(choiceWrap) choiceWrap.style.display = 'none';
   }
   nsDateChg();
 }
@@ -227,7 +247,6 @@ function nsShowFreeDays(gid){
   }).map(x=>x.d));
 
   const free=[]; let d=new Date();
-  // Ensure we check from today or the start of the search range
   d.setHours(0,0,0,0);
 
   for(let i=0;i<21;i++){
@@ -249,8 +268,7 @@ function nsShowFreeDays(gid){
       '</div>';
     wrap.style.display='block';
   } else {
-    fd.innerHTML='<div style="color:#e65100;font-size:.75rem">אין ימים פנויים ב-21 יום הקרובים</div>';
-    wrap.style.display='block';
+    wrap.style.display='none';
   }
 }
 
@@ -390,60 +408,75 @@ function saveNewSched(){
     return;
   }
 
-  if(_nsmTab==='makeup'){
-    // Makeup schedule
-    const makeupOrig=document.getElementById('ns-makeup-orig').value;
-    const makeupNote = `השלמה מ-${window.fD(makeupOrig)}`;
-    const fullNote = notes ? notes + ' | ' + makeupNote : makeupNote;
-    const newSched={id:newId,g:gid,d:date,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:fullNote,st:'ok',cr:'',cn:'',nt:fullNote,pd:'',pt:'',grp,_makeupFrom:makeupOrig||'',_isMakeup:true};
+  const datesToSchedule = (window._nsSelectedDates && window._nsSelectedDates.length > 0) 
+    ? window._nsSelectedDates 
+    : [date];
+
+  let totalScheduled = 0;
+  
+  for (const d of datesToSchedule) {
+    const loopId = Date.now() + totalScheduled;
     
-    // Requirement: Link back to original activity and mark it as completed (with partner sync)
-    if(typeof _makeupOrigId !== 'undefined' && _makeupOrigId){
-      const origExt = window.SCH.find(x => String(x.id) === String(_makeupOrigId));
-      if(origExt) {
-        origExt._compByMakeup = newId;
-        const noticeNote = `השלמה נקבעה ל-${window.fD(date)}`;
-        if(!origExt.nt || !origExt.nt.includes(noticeNote)) {
-           origExt.nt = (origExt.nt ? origExt.nt + ' | ' : '') + noticeNote;
-        }
+    if(_nsmTab==='makeup'){
+      // Makeup schedule
+      const makeupOrig=document.getElementById('ns-makeup-orig').value;
+      const makeupNote = `השלמה מ-${window.fD(makeupOrig)}`;
+      const fullNote = notes ? notes + ' | ' + makeupNote : makeupNote;
+      const newSched={id:loopId,g:gid,d:d,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:fullNote,st:'ok',cr:'',cn:'',nt:fullNote,pd:'',pt:'',grp,_makeupFrom:makeupOrig||'',_isMakeup:true};
+      
+      // Requirement: Link back to original activity and mark it as completed (with partner sync)
+      // Only do this for the FIRST makeup if multiple selected, or maybe just once?
+      // Actually, if they schedule 3 makeups for 1 canceled activity, it's fine.
+      if(typeof _makeupOrigId !== 'undefined' && _makeupOrigId){
+        const origExt = window.SCH.find(x => String(x.id) === String(_makeupOrigId));
+        if(origExt) {
+          origExt._compByMakeup = loopId;
+          const noticeNote = `השלמה נקבעה ל-${window.fD(d)}`;
+          if(!origExt.nt || !origExt.nt.includes(noticeNote)) {
+             origExt.nt = (origExt.nt ? origExt.nt + ' | ' : '') + noticeNote;
+          }
 
-        const pair = window.gardenPair(origExt.g);
-        if(pair){
-          const partnerIds = pair.ids.filter(pid => Number(pid) !== Number(origExt.g));
-          partnerIds.forEach(partnerId => {
-            const partnerEv = window.SCH.find(ps => 
-              Number(ps.g)===Number(partnerId) && ps.d === origExt.d && 
-              window.supBase(ps.a) === window.supBase(origExt.a) && !ps._compByMakeup
-            );
-            if(partnerEv) {
-               partnerEv._compByMakeup = newId;
-               if(!partnerEv.nt || !partnerEv.nt.includes(noticeNote)) {
-                  partnerEv.nt = (partnerEv.nt ? partnerEv.nt + ' | ' : '') + noticeNote;
-               }
-            }
-          });
+          const pair = window.gardenPair(origExt.g);
+          if(pair){
+            const partnerIds = pair.ids.filter(pid => Number(pid) !== Number(origExt.g));
+            partnerIds.forEach(partnerId => {
+              const partnerEv = window.SCH.find(ps => 
+                Number(ps.g)===Number(partnerId) && ps.d === origExt.d && 
+                window.supBase(ps.a) === window.supBase(origExt.a) && !ps._compByMakeup
+              );
+              if(partnerEv) {
+                 partnerEv._compByMakeup = loopId;
+                 if(!partnerEv.nt || !partnerEv.nt.includes(noticeNote)) {
+                    partnerEv.nt = (partnerEv.nt ? partnerEv.nt + ' | ' : '') + noticeNote;
+                 }
+              }
+            });
+          }
         }
+        // Don't clear _makeupOrigId yet, we need it for all dates in this loop? 
+        // No, if we have 3 dates, all 3 are makeups for the SAME original ID.
       }
-      window._makeupOrigId = null; // Clear after use
-    }
 
-    window.SCH.push(newSched);
-    synergyPartners.forEach((syn, idx) => {
-      window.SCH.push({...newSched,id:newId+(idx+1),g:syn.g,t:syn.t||time});
-    });
-    saveAndRefresh('nsm');
-    showToast('✅ שיבוץ השלמה נשמר');
-    return;
+      window.SCH.push(newSched);
+      synergyPartners.forEach((syn, idx) => {
+        window.SCH.push({...newSched,id:loopId+(idx+1)*10,g:syn.g,t:syn.t||time});
+      });
+      totalScheduled++;
+    } else {
+      // One-time
+      const newSched={id:loopId,g:gid,d:d,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp};
+      window.SCH.push(newSched);
+      synergyPartners.forEach((syn, idx) => {
+        window.SCH.push({...newSched,id:loopId+(idx+1)*10,g:syn.g,t:syn.t||time,nt:notes});
+      });
+      totalScheduled++;
+    }
   }
 
-  // One-time
-  const newSched={id:newId,g:gid,d:date,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp};
-  window.SCH.push(newSched);
-  synergyPartners.forEach((syn, idx) => {
-    window.SCH.push({...newSched,id:newId+(idx+1),g:syn.g,t:syn.t||time,nt:notes});
-  });
+  window._makeupOrigId = null; // Clear at the end
+  window._nsSelectedDates = []; // Clear selection
   saveAndRefresh('nsm');
-  showToast('✅ שיבוץ נשמר');
+  showToast(`✅ נשמרו ${totalScheduled} שיבוצים בהצלחה`);
 }
 
 function sSchedStChange(){
