@@ -247,62 +247,16 @@ function renderPartnerTable(){
 }
 
 function nsShowFreeDays(gid){
-  if(!gid){ document.getElementById('ns-free-wrap').style.display='none'; return; }
-  const g=window.G(gid);
-  const fromD=new Date(); // from today
-  const DAY_HEB=['ראשון','שני','שלישי','רביעי','חמישי'];
-  // For busyDates, only exclude dates that have a fully 'ok' or 'done' activity 
-  // unless we are in makeup mode where we might want to override.
-  const isMakeup = _nsmTab === 'makeup';
-  const busyDates=new Set(window.SCH.filter(x => {
-    if(Number(x.g) !== Number(gid)) return false;
-    // These statuses mean the day is NOT busy for a new activity
-    if(x.st === 'can' || x.st === 'nohap' || x.st === 'post') return false;
-    return true;
-  }).map(x=>x.d));
-
-  const free=[]; let d=new Date();
-  d.setHours(0,0,0,0);
-
-  for(let i=0;i<21;i++){
-    const dow=d.getDay();
-    if(dow>=0&&dow<=4){
-      const ds=window.d2s(d);
-      const hol=window.getHolidayInfo(ds,g.city,window.gcls(g));
-      const isToday = i === 0;
-      // Allow today always if it's a workday, or allow if not busy and not a holiday (unless it's a makeup and we want to allow it)
-      const isFree = !busyDates.has(ds);
-      const isAllowed = isFree && (!hol || isMakeup || isToday); 
-      
-      if(isAllowed) {
-        let label = DAY_HEB[dow]+' '+window.fD(ds);
-        if(hol) label += ` (${hol.name})`;
-        free.push({ds, lbl: label});
-      }
+  window.showFreeDaysForMakeup('ns-free-wrap', gid, (ds) => {
+    const dateInp = document.getElementById('ns-date');
+    if(dateInp){
+      dateInp.value=ds;
+      nsDateChg();
     }
-    d.setDate(d.getDate()+1);
-  }
-  const wrap=document.getElementById('ns-free-wrap');
-  const fd=document.getElementById('ns-free-days');
-  if(!wrap||!fd) return;
-  if(free.length){
-    fd.innerHTML='<div style="font-size:.74rem;font-weight:700;color:#2e7d32;margin-bottom:5px;width:100%">ימים פנויים לשיבוץ — לחץ לבחירה:</div>'+
-      '<div style="display:flex;flex-wrap:wrap;gap:4px">'+
-      free.map(f=>`<button class="btn bg bsm" style="font-size:.72rem;padding:3px 9px" onclick="nsPickFree('${f.ds}')">${f.lbl}</button>`).join('')+
-      '</div>';
-    wrap.style.display='block';
-  } else {
-    wrap.style.display='none';
-  }
+  });
 }
 
-function nsPickFree(ds){
-  const dateInp = document.getElementById('ns-date');
-  if(dateInp){
-    dateInp.value=ds;
-    nsDateChg();
-  }
-}
+
 
 function nsDateChg(){
   const gid=parseInt(document.getElementById('ns-g').value);
@@ -448,46 +402,21 @@ function saveNewSched(){
     if(_nsmTab==='makeup'){
       // Makeup schedule
       const makeupOrig=document.getElementById('ns-makeup-orig').value;
-      const makeupNote = `השלמה מ-${window.fD(makeupOrig)}`;
-      const fullNote = notes ? notes + ' | ' + makeupNote : makeupNote;
-      const newSched={id:loopId,g:gid,d:d,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:fullNote,st:'ok',cr:'',cn:'',nt:fullNote,pd:'',pt:'',grp,_makeupFrom:makeupOrig||'',_isMakeup:true};
-      
-      // Requirement: Link back to original activity and mark it as completed (with partner sync)
-      // Only do this for the FIRST makeup if multiple selected, or maybe just once?
-      // Actually, if they schedule 3 makeups for 1 canceled activity, it's fine.
-      if(typeof _makeupOrigId !== 'undefined' && _makeupOrigId){
-        const origExt = window.SCH.find(x => String(x.id) === String(_makeupOrigId));
-        if(origExt) {
-          origExt._compByMakeup = loopId;
-          const noticeNote = `השלמה נקבעה ל-${window.fD(d)}`;
-          if(!origExt.nt || !origExt.nt.includes(noticeNote)) {
-             origExt.nt = (origExt.nt ? origExt.nt + ' | ' : '') + noticeNote;
-          }
+      const loopId = window.createMakeupActivity({
+        g: gid,
+        d: d,
+        t: time,
+        a: sup,
+        act: actType,
+        tp: evTp || 'חוג',
+        origD: makeupOrig || '',
+        origId: window._makeupOrigId || null,
+        notes: notes
+      });
 
-          const pair = window.gardenPair(origExt.g);
-          if(pair){
-            const partnerIds = pair.ids.filter(pid => Number(pid) !== Number(origExt.g));
-            partnerIds.forEach(partnerId => {
-              const partnerEv = window.SCH.find(ps => 
-                Number(ps.g)===Number(partnerId) && ps.d === origExt.d && 
-                window.supBase(ps.a) === window.supBase(origExt.a) && !ps._compByMakeup
-              );
-              if(partnerEv) {
-                 partnerEv._compByMakeup = loopId;
-                 if(!partnerEv.nt || !partnerEv.nt.includes(noticeNote)) {
-                    partnerEv.nt = (partnerEv.nt ? partnerEv.nt + ' | ' : '') + noticeNote;
-                 }
-              }
-            });
-          }
-        }
-        // Don't clear _makeupOrigId yet, we need it for all dates in this loop? 
-        // No, if we have 3 dates, all 3 are makeups for the SAME original ID.
-      }
-
-      window.SCH.push(newSched);
       synergyPartners.forEach((syn, idx) => {
-        window.SCH.push({...newSched,id:loopId+(idx+1)*10,g:syn.g,t:syn.t||time});
+        const baseEv = window.SCH.find(x=>x.id===loopId);
+        if(baseEv) window.SCH.push({...baseEv, id: loopId+(idx+1)*10, g: syn.g, t: syn.t||time});
       });
       totalScheduled++;
     } else {

@@ -311,11 +311,7 @@ window.spBatchAction = function(val) {
   console.log('[spBatchAction]', val, {ids});
   switch(val) {
     case 'makeup':
-      console.log('[spBatchAction] Opening makeup accordion...');
-      const muWrap = document.getElementById('sp-acc-makeup-wrap');
-      if(muWrap) muWrap.style.display = 'block';
-      window.toggleSpAccordion('sp-acc-makeup', true);
-      window.spMuDateChg();
+      window.spTriggerMakeupUI();
       break;
     case 'post': 
       window.openPostpone(ids[0]); 
@@ -659,7 +655,12 @@ window.openSP = function(id) {
                 <div class="fg"><label style="font-size:.7rem;font-weight:700">שעה *</label><input type="time" id="sp-mu-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
                 <div class="fg"><label style="font-size:.7rem;font-weight:700">סוג פעילות</label><input type="text" id="sp-mu-act" value="${s.act||''}" placeholder="למשל: תיאטרון, ספורט..." style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
              </div>
-             <div class="fg"><label style="font-size:.7rem;font-weight:700">ספק</label><div style="padding:6px;background:#f9f9f9;border:1px solid #ddd;border-radius:4px;font-size:0.8rem;font-weight:700">${window.supBase(s.a)}</div></div>
+             <div class="fg">
+                <label style="font-size:.7rem;font-weight:700;color:#e65100">ספק מבצע</label>
+                <select id="sp-mu-sup" style="width:100%;padding:6px;border-radius:4px;border:1px solid #ffb74d;font-weight:700;background:#fff8f0">
+                  ${allSups.map(sup => `<option value="${sup.name}" ${window.supBase(sup.name)===window.supBase(s.a)?'selected':''}>${sup.name}</option>`).join('')}
+                </select>
+             </div>
              <div id="sp-mu-partners-wrap" style="margin-top:5px;border:1px solid #eee;border-radius:8px;padding:8px;background:#fafafa"></div>
              <button class="btn borange bsm" style="width:100%;padding:10px;font-weight:800;margin-top:5px" onclick="window.spSaveMakeup()">🚀 בצע שיבוץ השלמה למסומנים</button>
           </div>
@@ -1165,12 +1166,17 @@ function openMakeupSched(origId){
   window._makeupOrigId = origId;
   window.openSP(origId);
   setTimeout(() => {
-    const muWrap = document.getElementById('sp-acc-makeup-wrap');
-    if(muWrap) muWrap.style.display = 'block';
-    window.toggleSpAccordion('sp-acc-makeup', true);
-    window.spMuDateChg();
+    window.spTriggerMakeupUI();
   }, 300);
 }
+
+window.spTriggerMakeupUI = function() {
+  console.log('[spTriggerMakeupUI] Activating makeup interface...');
+  const muWrap = document.getElementById('sp-acc-makeup-wrap');
+  if(muWrap) muWrap.style.display = 'block';
+  window.toggleSpAccordion('sp-acc-makeup', true);
+  window.spMuDateChg();
+};
 
 function openPostpone(id){
   window.selEvPost=id;
@@ -1544,11 +1550,20 @@ window.spUpdateMakeupPartnersTable = function(gid, date, aid) {
 };
 
 window.spShowFreeDays = function(gid) {
-  const container = document.getElementById('sp-mu-free-wrap');
+  window.showFreeDaysForMakeup('sp-mu-free-wrap', gid, (ds) => {
+    document.getElementById('sp-mu-date').value = ds;
+    window.spMuDateChg();
+  });
+};
+
+window.showFreeDaysForMakeup = function(containerId, gid, onSelect) {
+  const container = document.getElementById(containerId);
   if(!container) return;
   
   const DAY_HEB=['ראשון','שני','שלישי','רביעי','חמישי'];
   const g = window.G(gid);
+  if(!g) { container.innerHTML = ''; return; }
+
   const busyDates = new Set(window.SCH.filter(x => {
     if(Number(x.g) !== Number(gid)) return false;
     if(x.st === 'can' || x.st === 'nohap' || x.st === 'post') return false;
@@ -1556,6 +1571,8 @@ window.spShowFreeDays = function(gid) {
   }).map(x=>x.d));
   
   const free = []; let d = new Date(); d.setHours(0,0,0,0);
+  const isMakeup = true; // Always true for this function context
+  
   for(let i=0; i<21; i++) {
     const dow = d.getDay();
     if(dow >= 0 && dow <= 4) {
@@ -1563,7 +1580,9 @@ window.spShowFreeDays = function(gid) {
       const hol = window.getHolidayInfo(ds, g.city, window.gcls(g));
       const isToday = i === 0;
       if(!busyDates.has(ds) && (!hol || isToday)) {
-        free.push({ds, lbl: DAY_HEB[dow] + ' ' + window.fD(ds)});
+        let label = DAY_HEB[dow] + ' ' + window.fD(ds);
+        if(hol) label += ` (${hol.name})`;
+        free.push({ds, lbl: label});
       }
     }
     d.setDate(d.getDate() + 1);
@@ -1572,8 +1591,9 @@ window.spShowFreeDays = function(gid) {
   if(free.length) {
     container.innerHTML = `<div style="font-size:0.65rem;font-weight:800;color:#2e7d32;margin-bottom:4px">ימים פנויים:</div>
     <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
-      ${free.map(f => `<button class="btn bg bsm" style="font-size:0.68rem;padding:2px 6px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9" onclick="document.getElementById('sp-mu-date').value='${f.ds}'; window.spMuDateChg()">${f.lbl}</button>`).join('')}
+      ${free.map(f => `<button class="btn bg bsm" style="font-size:0.68rem;padding:2px 6px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9" onclick="window._tmpOnSelect('${f.ds}')">${f.lbl}</button>`).join('')}
     </div>`;
+    window._tmpOnSelect = onSelect;
   } else {
     container.innerHTML = '';
   }
@@ -1586,6 +1606,7 @@ window.spSaveMakeup = function() {
   
   const newDate = document.getElementById('sp-mu-date').value;
   const time = document.getElementById('sp-mu-time').value;
+  const supName = document.getElementById('sp-mu-sup').value || origEv.a;
   
   if(!newDate || !time) { alert('בחר תאריך ושעה'); return; }
   
@@ -1597,24 +1618,71 @@ window.spSaveMakeup = function() {
   if(!confirm(`לבצע שיבוץ השלמה ל-${allGids.length} גנים בתאריך ${window.fD(newDate)}?`)) return;
   
   allGids.forEach(gId => {
-    const newEv = {
-      id: Date.now() + Math.random(),
+    window.createMakeupActivity({
       g: gId,
       d: newDate,
       t: time,
-      a: origEv.a,
+      a: supName,
       act: actName,
       tp: origEv.tp || 'חוג',
-      st: 'ok',
-      nt: `השלמה על ${window.fD(origEv.d)}`,
-      _isMakeup: true,
-      _makeupFrom: origEv.d
-    };
-    window.SCH.push(newEv);
+      origD: origEv.d,
+      origId: sid
+    });
   });
   
-  if(window.save) window.save();
+  window.saveAndRefresh('sp', true);
   window.showToast('✅ שיבוץ ההשלמה בוצע בהצלחה');
-  window.closeSP();
-  window.refresh();
-};
+}
+
+window.createMakeupActivity = function(data) {
+  const loopId = Date.now() + Math.random();
+  const makeupNote = `השלמה על ${window.fD(data.origD)}`;
+  const fullNote = data.notes ? data.notes + ' | ' + makeupNote : makeupNote;
+  
+  const newEv = {
+    id: loopId,
+    g: data.g,
+    d: data.d,
+    t: data.t,
+    a: data.a,
+    act: data.act,
+    tp: data.tp || 'חוג',
+    st: 'ok',
+    nt: fullNote,
+    _isMakeup: true,
+    _makeupFrom: data.origD
+  };
+  
+  // Link back to original
+  if(data.origId) {
+    const origExt = window.SCH.find(x => String(x.id) === String(data.origId));
+    if(origExt) {
+       origExt._compByMakeup = loopId;
+       const noticeNote = `השלמה נקבעה ל-${window.fD(data.d)}`;
+       if(!origExt.nt || !origExt.nt.includes(noticeNote)) {
+          origExt.nt = (origExt.nt ? origExt.nt + ' | ' : '') + noticeNote;
+       }
+       
+       // Sync partner's completion status if applicable
+       const pair = window.gardenPair(origExt.g);
+       if(pair) {
+         const partnerIds = pair.ids.filter(pid => Number(pid) !== Number(origExt.g));
+         partnerIds.forEach(partnerId => {
+           const partnerEv = window.SCH.find(ps => 
+             Number(ps.g)===Number(partnerId) && ps.d === origExt.d && 
+             window.supBase(ps.a) === window.supBase(origExt.a) && !ps._compByMakeup
+           );
+           if(partnerEv) {
+              partnerEv._compByMakeup = loopId;
+              if(!partnerEv.nt || !partnerEv.nt.includes(noticeNote)) {
+                 partnerEv.nt = (partnerEv.nt ? partnerEv.nt + ' | ' : '') + noticeNote;
+              }
+           }
+         });
+       }
+    }
+  }
+  
+  window.SCH.push(newEv);
+  return loopId;
+};;
