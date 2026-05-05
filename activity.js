@@ -634,7 +634,35 @@ window.openSP = function(id) {
     </div>
   </div>`;
 
-  // --- STEP 7: Manual Edit ---
+  // --- STEP 7: Makeup Management ---
+  h += `<div id="sp-acc-makeup-wrap" style="margin-top:10px;border:1px solid #ffb74d;border-radius:10px;overflow:hidden;display:${(s.st==='nohap'||s.st==='post'||s.st==='can')?'block':'none'}">
+    <div style="background:#fff3e0;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="window.toggleSpAccordion('sp-acc-makeup')">
+      <b style="font-size:0.8rem;color:#e65100">📅 קביעת השלמה לפעילות זו</b>
+      <span id="sp-acc-makeup-arrow" style="font-size:0.7rem;transition:0.3s">▼</span>
+    </div>
+    <div id="sp-acc-makeup" style="display:none;padding:12px;background:#fff;border-top:1px solid #ffb74d">
+       <div id="sp-makeup-form-inner">
+          <div style="font-size:.72rem;color:#e65100;margin-bottom:10px;background:#fff9f0;padding:6px 10px;border-radius:6px;border:1px solid #ffe0b2">
+            <b>שיבוץ השלמה:</b> בחר תאריך חדש לביצוע הפעילות. המערכת תסנכרן את השיבוץ לגנים השותפים המסומנים.
+          </div>
+          <div style="display:grid;gap:10px">
+             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="fg"><label style="font-size:.7rem;font-weight:700">מפצה על תאריך</label><input type="date" id="sp-mu-orig" value="${s.d}" readonly style="width:100%;background:#f5f5f5;color:#666;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
+                <div class="fg"><label style="font-size:.7rem;font-weight:700">תאריך השלמה *</label><input type="date" id="sp-mu-date" value="${window.td()}" style="width:100%;border:1px solid #ffb74d;padding:4px;border-radius:4px" onchange="window.spMuDateChg()"></div>
+             </div>
+             <div id="sp-mu-free-wrap" style="margin-top:4px"></div>
+             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="fg"><label style="font-size:.7rem;font-weight:700">שעה *</label><input type="time" id="sp-mu-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
+                <div class="fg"><label style="font-size:.7rem;font-weight:700">ספק</label><div style="padding:6px;background:#f9f9f9;border:1px solid #ddd;border-radius:4px;font-size:0.8rem;font-weight:700">${window.supBase(s.a)}</div></div>
+             </div>
+             <div id="sp-mu-partners-wrap" style="margin-top:5px"></div>
+             <button class="btn borange bsm" style="width:100%;padding:10px;font-weight:800;margin-top:5px" onclick="window.spSaveMakeup()">🚀 בצע שיבוץ השלמה למסומנים</button>
+          </div>
+       </div>
+    </div>
+  </div>`;
+
+  // --- STEP 8: Manual Edit ---
   const allSups = window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : [];
   const initialActs = window.getSupActs ? window.getSupActs(s.a) : [];
   h += `<div style="margin-top:10px;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden">
