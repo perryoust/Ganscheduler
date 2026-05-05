@@ -1320,10 +1320,19 @@ window.doBulkUpdateRecurring = function(key, gid){
 
 // --- Cluster Bulk Edit Logic ---
 window.openClusterBulkEdit = function(clId, ds) {
+  console.log('openClusterBulkEdit called with:', clId, ds);
   window._clsId = clId;
   window._clBulkDate = ds;
-  const cl = window.clusters[clId];
-  if(!cl) return;
+  let cl = clusters[clId];
+  if(!cl) {
+    console.warn('Cluster not found by ID, trying fallback search:', clId);
+    cl = window.getClusters().find(c => c.id === clId);
+  }
+  if(!cl) {
+    console.error('Cluster NOT found:', clId);
+    if(window.showToast) window.showToast('⚠️ שגיאה: אשכול לא נמצא');
+    return;
+  }
 
   (document.getElementById('clbulk-title')||{}).textContent = `✏️ עריכה מרוכזת: ${cl.name}`;
   (document.getElementById('clbulk-info')||{}).textContent = `תאריך: ${window.fD(ds)} | יום ${window.dayN(ds)}`;
@@ -1398,7 +1407,7 @@ window.openClusterBulkEdit = function(clId, ds) {
 };
 
 window.applyClBulkUniTime = function(t) {
-  const cl = window.clusters[window._clsId];
+  const cl = clusters[window._clsId];
   if(!cl) return;
   cl.gardenIds.forEach(gid => {
     const el = document.getElementById(`clbulk-t-${gid}`);
@@ -1407,7 +1416,7 @@ window.applyClBulkUniTime = function(t) {
 };
 
 window.applyClBulkUniSup = function(sup) {
-  const cl = window.clusters[window._clsId];
+  const cl = clusters[window._clsId];
   if(!cl || !sup) return;
   cl.gardenIds.forEach(gid => {
     const el = document.getElementById(`clbulk-s-${gid}`);
@@ -1419,7 +1428,7 @@ window.applyClBulkUniSup = function(sup) {
 };
 
 window.applyClBulkUniTp = function(tp) {
-  const cl = window.clusters[window._clsId];
+  const cl = clusters[window._clsId];
   if(!cl || !tp) return;
   cl.gardenIds.forEach(gid => {
     const el = document.getElementById(`clbulk-tp-${gid}`);
@@ -1428,7 +1437,7 @@ window.applyClBulkUniTp = function(tp) {
 };
 
 window.applyClBulkUniStatus = function(st) {
-  const cl = window.clusters[window._clsId];
+  const cl = clusters[window._clsId];
   if(!cl || !st) return;
   cl.gardenIds.forEach(gid => {
     const el = document.getElementById(`clbulk-st-${gid}`);
@@ -1442,7 +1451,7 @@ window.clBulkSupChg = function(gid, supName, selAct) {
   actSel.innerHTML = '<option value="">-- פעילות --</option>';
   if(!supName) return;
   
-  const su = window.SUPBASE.find(s => s.name === supName);
+  const su = SUPBASE.find(s => s.name === supName);
   const acts = su ? (su.acts || []) : [];
   if(!acts.length) {
      const sActs = [...new Set(window.SCH.filter(s=>s.a===supName&&s.act).map(s=>s.act))].sort();
@@ -1454,7 +1463,7 @@ window.clBulkSupChg = function(gid, supName, selAct) {
 };
 
 window.saveClusterBulkEdit = function() {
-  const cl = window.clusters[window._clsId];
+  const cl = clusters[window._clsId];
   const ds = window._clBulkDate;
   if(!cl || !ds) return;
 
@@ -1504,7 +1513,7 @@ window.saveClusterBulkEdit = function() {
 };
 
 window.deleteClusterDay = function() {
-  const cl = window.clusters[window._clsId];
+  const cl = clusters[window._clsId];
   const ds = window._clBulkDate;
   if(!cl || !ds) return;
 

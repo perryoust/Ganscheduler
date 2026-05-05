@@ -511,7 +511,7 @@ function renderClusterDay(evs, ds, clusterName){
       });
       Object.entries(clusterMap).sort((a,b)=>a[0].localeCompare(b[0],'he')).forEach(([clName,clEvs])=>{
         const sorted=[...clEvs].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
-        const clObj = clName !== 'ללא אשכול' ? window.getClusters().find(c => c.name === clName) : null;
+        const clObj = clName !== 'ללא אשכול' ? window.getClusters().find(c => c.name.trim() === clName.trim()) : null;
         const clGids = clEvs.map(s => s.g);
         
         html+=`<div style="margin-bottom:10px">
@@ -641,7 +641,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
           (clusterMap[clKey]=clusterMap[clKey]||[]).push(s);
         });
         Object.entries(clusterMap).sort((a,b)=>a[0].localeCompare(b[0],'he')).forEach(([clName,clEvs])=>{
-          const clObj = clName !== 'ללא אשכול' ? window.getClusters().find(c => c.name === clName) : null;
+          const clObj = clName !== 'ללא אשכול' ? window.getClusters().find(c => c.name.trim() === clName.trim()) : null;
           const clGids = clEvs.map(s => s.g);
           
           html+=`<div style="font-size:.68rem;font-weight:700;color:${clrCity.solid};background:${clrCity.light};padding:2px 7px;border-radius:3px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center">
