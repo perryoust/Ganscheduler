@@ -159,32 +159,9 @@ function nsCheckPair(gid){
   document.getElementById('ns-grp-wrap').style.display='block';
   const pair=window.gardenPair(gid);
   const choiceWrap = document.getElementById('ns-g2-choice-wrap');
-  const partnerWrap = document.getElementById('ns-g2-partner-wrap');
-  const g2ChoiceContainer = document.getElementById('ns-g2-choice-container');
   
   if(pair && pair.ids.length >= 2){
-    const otherIds = pair.ids.map(Number).filter(oid => oid !== Number(gid));
-    let partnerGridHtml = '';
-    otherIds.forEach(pId => {
-      const pG = window.G(pId);
-      if(!pG) return;
-      partnerGridHtml += `
-        <label style="display:flex;align-items:center;gap:8px;background:#fff;padding:8px;border-radius:8px;border:1.5px solid #e0e0e0;cursor:pointer;flex:1;min-width:140px">
-          <input type="checkbox" id="ns-syn-chk-${pId}" class="ns-syn-chk" value="${pId}" onchange="nsTogglePartner(this)" style="width:18px;height:18px;accent-color:#1565c0">
-          <div style="display:flex;flex-direction:column">
-            <span style="font-size:0.8rem;font-weight:800;color:#1a237e">${pG.name}</span>
-            <span style="font-size:0.65rem;color:#546e7a">${pG.city}</span>
-          </div>
-        </label>`;
-    });
-
-    if(g2ChoiceContainer) {
-      g2ChoiceContainer.innerHTML = `
-        <div style="font-size:0.75rem;font-weight:700;color:#546e7a;margin-bottom:6px">🔗 גנים שותפים לסנכרון (בחר לשיבוץ מקביל):</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px" id="ns-partners-grid">
-          ${partnerGridHtml}
-        </div>`;
-    }
+    renderPartnerTable();
     
     // Add Dynamic Explanation (if not already there)
     const infoDivId = 'ns-pair-info-notice';
@@ -196,6 +173,7 @@ function nsCheckPair(gid){
       choiceWrap.insertBefore(infoDiv, choiceWrap.firstChild);
     }
     if(infoDiv){
+      const otherIds = pair.ids.map(Number).filter(oid => oid !== Number(gid));
       const partNames = otherIds.map(id => window.G(id).name).join(', ');
       infoDiv.innerHTML = `<span class="icon">🔗</span><div><b>שים לב:</b> גן זה מקושר ל-<b>${partNames}</b>. מומלץ לשבץ אותם יחד.</div>`;
     }
@@ -205,6 +183,67 @@ function nsCheckPair(gid){
     if(choiceWrap) choiceWrap.style.display = 'none';
   }
   nsDateChg();
+}
+
+function renderPartnerTable(){
+  const gid=parseInt(document.getElementById('ns-g').value);
+  const date=document.getElementById('ns-date').value;
+  const pair=window.gardenPair(gid);
+  const g2ChoiceContainer = document.getElementById('ns-g2-choice-container');
+  if(!g2ChoiceContainer) return;
+
+  if(!pair || pair.ids.length < 2){
+    g2ChoiceContainer.innerHTML = '';
+    return;
+  }
+
+  const otherIds = pair.ids.map(Number).filter(oid => oid !== Number(gid));
+  let rowsHtml = '';
+  
+  otherIds.forEach(pId => {
+    const pG = window.G(pId);
+    if(!pG) return;
+    const ev = window.SCH.find(s => s.g === pId && s.d === date && s.st !== 'can');
+    
+    const stLabel = ev ? (window.stLabel ? window.stLabel(ev) : ev.st) : '—';
+    const stClass = ev ? (window.stClass ? window.stClass(ev) : '') : '';
+    const sup = ev ? window.supBase(ev.a) : '—';
+    const act = ev ? (window.supAct(ev.a) || ev.act || '—') : '—';
+    const time = ev ? (window.fT ? window.fT(ev.t) : ev.t) : '—';
+    const type = ev ? (ev.tp || 'חוג') : '—';
+
+    rowsHtml += `
+      <tr class="${stClass}">
+        <td style="text-align:center"><input type="checkbox" id="ns-syn-chk-${pId}" class="ns-syn-chk" value="${pId}" style="width:18px;height:18px;accent-color:#1565c0" checked></td>
+        <td style="font-weight:800;color:#1a237e">${pG.name}</td>
+        <td style="font-weight:600">${sup}</td>
+        <td>${act}</td>
+        <td>${type}</td>
+        <td>${stLabel}</td>
+        <td style="font-weight:600">${time}</td>
+      </tr>`;
+  });
+
+  g2ChoiceContainer.innerHTML = `
+    <div style="font-size:0.75rem;font-weight:700;color:#546e7a;margin-bottom:8px">🔗 גנים שותפים לסנכרון (בחר לשיבוץ מקביל):</div>
+    <div class="tw" style="margin-bottom:10px; border-radius:8px; overflow:hidden; border:1px solid #e0e0e0">
+      <table style="width:100%;font-size:0.72rem;border-collapse:collapse">
+        <thead>
+          <tr style="background:#f1f3f9">
+            <th style="width:40px;text-align:center;padding:8px">סמן</th>
+            <th style="padding:8px">שם הגן</th>
+            <th style="padding:8px">ספק</th>
+            <th style="padding:8px">פעילות</th>
+            <th style="padding:8px">סוג</th>
+            <th style="padding:8px">סטטוס</th>
+            <th style="padding:8px">שעה</th>
+          </tr>
+        </thead>
+        <tbody id="ns-partners-table-body">
+          ${rowsHtml}
+        </tbody>
+      </table>
+    </div>`;
 }
 
 function nsShowFreeDays(gid){
@@ -259,6 +298,10 @@ function nsPickFree(ds){
 function nsDateChg(){
   const gid=parseInt(document.getElementById('ns-g').value);
   const date=document.getElementById('ns-date').value;
+  
+  // Re-render partner table to show their status on the new date
+  renderPartnerTable();
+
   const hintEl=document.getElementById('ns-partner-time-hint');
   if(!hintEl) return;
   if(!gid||!date){ hintEl.style.display='none'; return; }
@@ -266,16 +309,16 @@ function nsDateChg(){
   const pair=gardenPair(gid);
   if(!pair){ hintEl.style.display='none'; return; }
   
-  const pId=pair.ids.find(id=>id!==gid);
+  const pId=pair.ids.find(id=>Number(id)!==Number(gid));
   if(!pId){ hintEl.style.display='none'; return; }
   
   const partnerG=window.G(pId);
-  const partnerEv=window.SCH.find(x=>x.g===pId && x.d===date && x.st!=='can');
+  const partnerEv=window.SCH.find(x=>Number(x.g)===Number(pId) && x.d===date && x.st!=='can');
   
   if(partnerEv && partnerEv.t){
-    const pTime = window.fT(partnerEv.t);
+    const pTime = window.fT ? window.fT(partnerEv.t) : partnerEv.t;
     const myTime = document.getElementById('ns-time').value;
-    const isSameTime = myTime && window.fT(myTime) === pTime;
+    const isSameTime = myTime && (window.fT ? window.fT(myTime) : myTime) === pTime;
     
     hintEl.className = isSameTime ? 'info-notice error' : 'info-notice';
     hintEl.style.display = 'flex';
