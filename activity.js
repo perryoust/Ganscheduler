@@ -312,6 +312,8 @@ window.spBatchAction = function(val) {
   switch(val) {
     case 'makeup':
       console.log('[spBatchAction] Opening makeup accordion...');
+      const muWrap = document.getElementById('sp-acc-makeup-wrap');
+      if(muWrap) muWrap.style.display = 'block';
       window.toggleSpAccordion('sp-acc-makeup', true);
       window.spMuDateChg();
       break;
@@ -706,9 +708,8 @@ function toggleSpAccordion(id, forceState = null){
   const isCurrentlyOpen = el.style.display !== 'none';
   const shouldOpen = forceState !== null ? forceState : !isCurrentlyOpen;
   
-  // Optional: Close others
   document.querySelectorAll('[id^="sp-acc-"]').forEach(acc => {
-    if(acc.id !== id) {
+    if(acc.id !== id && !acc.id.endsWith('-wrap')) {
       acc.style.display = 'none';
       const otherArrow = document.getElementById(acc.id + '-arrow');
       if(otherArrow) otherArrow.style.transform = 'rotate(0deg)';
