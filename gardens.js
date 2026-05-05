@@ -1360,30 +1360,30 @@ window.openClusterBulkEdit = function(clId, ds) {
   let h = '';
   gs.forEach(g => {
     const ev = window.SCH.find(s => s.g === g.id && s.d === ds && s.st !== 'can');
-    h += `<div style="display:grid;grid-template-columns:35px 1fr 110px 110px 75px 85px 75px;gap:6px;align-items:center;padding:10px 15px;border-bottom:1px solid #f0f0f0;font-size:.82rem; transition: background 0.2s;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
+    h += `<div style="display:grid;grid-template-columns:30px 1fr 100px 100px 70px 80px 65px;gap:6px;align-items:center;padding:5px 10px;border-bottom:1px solid #f0f0f0;font-size:.8rem; transition: background 0.2s;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
       <label style="display:flex;align-items:center;justify-content:center;cursor:pointer">
-        <input type="checkbox" id="clbulk-inc-${g.id}" checked style="width:16px;height:16px;accent-color:#1565c0">
+        <input type="checkbox" id="clbulk-inc-${g.id}" checked style="width:15px;height:15px;accent-color:#1565c0">
       </label>
       <span style="font-weight:700;color:#2c3e50;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${g.name}">${g.name}</span>
-      <select id="clbulk-s-${g.id}" style="font-size:.8rem;padding:6px;border-radius:4px;border:1px solid #cfd8dc" onchange="window.clBulkSupChg('${g.id}', this.value)">
+      <select id="clbulk-s-${g.id}" style="font-size:.78rem;padding:4px;border-radius:4px;border:1px solid #cfd8dc" onchange="window.clBulkSupChg('${g.id}', this.value)">
         ${allSupsHtml}
       </select>
-      <select id="clbulk-act-${g.id}" style="font-size:.8rem;padding:6px;border-radius:4px;border:1px solid #cfd8dc">
+      <select id="clbulk-act-${g.id}" style="font-size:.78rem;padding:4px;border-radius:4px;border:1px solid #cfd8dc">
         <option value="">-- פעילות --</option>
       </select>
-      <select id="clbulk-tp-${g.id}" style="font-size:.8rem;padding:6px;border-radius:4px;border:1px solid #cfd8dc">
+      <select id="clbulk-tp-${g.id}" style="font-size:.78rem;padding:4px;border-radius:4px;border:1px solid #cfd8dc">
         <option value="">-- סוג --</option>
         <option value="חוג">חוג</option>
         <option value="צהרון">צהרון</option>
         <option value="בוקר">בוקר</option>
         <option value="השלמה">השלמה</option>
       </select>
-      <select id="clbulk-st-${g.id}" style="font-size:.8rem;padding:6px;border-radius:4px;border:1px solid #cfd8dc">
+      <select id="clbulk-st-${g.id}" style="font-size:.78rem;padding:4px;border-radius:4px;border:1px solid #cfd8dc">
         <option value="ok">✅ תקין</option>
         <option value="can">❌ בוטל</option>
         <option value="nohap">⚠️ לא התקיים</option>
       </select>
-      <input type="time" id="clbulk-t-${g.id}" value="${ev?window.fT(ev.t):''}" style="padding:5px;font-size:.8rem;border-radius:4px;border:1px solid #cfd8dc">
+      <input type="time" id="clbulk-t-${g.id}" value="${ev?window.fT(ev.t):''}" style="padding:3px;font-size:.78rem;border-radius:4px;border:1px solid #cfd8dc">
     </div>`;
   });
   document.getElementById('clbulk-list').innerHTML = h || '<p style="color:#999;padding:20px;text-align:center">אין גנים באשכול זה</p>';
