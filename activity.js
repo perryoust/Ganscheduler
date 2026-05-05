@@ -319,7 +319,11 @@ window.spBatchSaveNt = function() {
   window.saveAndRefresh('sp');
 };
 
-window.openSP = openSP;
+function openSP(id) {
+  window.selEv = id;
+  const s = window.SCH.find(x => x.id == id);
+  if(!s) return;
+
   const isClusterMode = (window._listGroupMode === 'clusters' || window._dashTab === 'clusters');
   if (isClusterMode) {
     const cls = window.gardenClusters ? window.gardenClusters(s.g) : [];
@@ -539,6 +543,7 @@ window.openSP = openSP;
     window.OM('sp-m');
   }
 }
+window.openSP = openSP;
 
 function toggleSpAccordion(id){
   const el = document.getElementById(id);
