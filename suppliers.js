@@ -54,10 +54,16 @@ function doSupExport(){
     return true;
   }).sort((a,b)=>{
     const ga=window.G(a.g),gb=window.G(b.g);
-    return (ga.city||'').localeCompare(gb.city||'','he')
-      ||a.d.localeCompare(b.d)
-      ||(a.t||'99:99').localeCompare(b.t||'99:99')
-      ||(ga.name||'').localeCompare(gb.name||'','he');
+    const cs = (ga.city||'').localeCompare(gb.city||'','he');
+    if(cs !== 0) return cs;
+    const ds = a.d.localeCompare(b.d);
+    if(ds !== 0) return ds;
+    const pA = window.gardenPair(a.g), pB = window.gardenPair(b.g);
+    const nA = pA ? pA.name : ga.name;
+    const nB = pB ? pB.name : gb.name;
+    const ns = nA.localeCompare(nB, 'he');
+    if(ns !== 0) return ns;
+    return (a.t||'99:99').localeCompare(b.t||'99:99');
   });
   
   if(!evs.length){alert('אין פעילויות בטווח זה');return;}

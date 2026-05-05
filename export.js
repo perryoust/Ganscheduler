@@ -696,7 +696,16 @@ async function exportToExcel(data, filename, opts = {}) {
 
           types.forEach(type => {
             let typeOk = 0, typeNo = 0, typeGroups = 0;
-            const typeEvs = cityEvs.filter(s => window.gcls(window.G(s.g)) === type).sort((a,b) => a.d.localeCompare(b.d) || (a.t||'').localeCompare(b.t||''));
+            const typeEvs = cityEvs.filter(s => window.gcls(window.G(s.g)) === type).sort((a,b) => {
+              const ds = a.d.localeCompare(b.d);
+              if(ds !== 0) return ds;
+              const pA = window.gardenPair(a.g), pB = window.gardenPair(b.g);
+              const nA = pA ? pA.name : window.G(a.g).name;
+              const nB = pB ? pB.name : window.G(b.g).name;
+              const ns = nA.localeCompare(nB, 'he');
+              if(ns !== 0) return ns;
+              return (a.t || '99:99').localeCompare(b.t || '99:99');
+            });
 
             const titleRow = ws.addRow([`${window._supExName || 'כל הספקים'} - ${city} - ${type}`]);
             titleRow.font = { bold: true };

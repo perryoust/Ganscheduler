@@ -34,7 +34,19 @@ window.exportBulkSchedule = async function() {
     ws.getRow(1).alignment = { horizontal: 'center' };
 
     // Add data
-    const sch = window.SCH || [];
+    const sch = [...(window.SCH || [])].sort((a,b)=>{
+      const ds = (a.d||'').localeCompare(b.d||'');
+      if(ds !== 0) return ds;
+      const ga = window.G(a.g), gb = window.G(b.g);
+      const cs = (ga.city||'').localeCompare(gb.city||'','he');
+      if(cs !== 0) return cs;
+      const pA = window.gardenPair(a.g), pB = window.gardenPair(b.g);
+      const nA = pA ? pA.name : (ga.name||'');
+      const nB = pB ? pB.name : (gb.name||'');
+      const ns = nA.localeCompare(nB, 'he');
+      if(ns !== 0) return ns;
+      return (a.t||'99:99').localeCompare(b.t||'99:99');
+    });
     sch.forEach(s => {
       const g = window.G(s.g);
       ws.addRow({

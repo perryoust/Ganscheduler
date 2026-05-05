@@ -1903,29 +1903,77 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 
 <!-- Bulk Edit for Cluster for Specific Date -->
 <div id="clbulk-m" class="modal">
-  <div class="mb" style="max-width:800px">
-    <h2 id="clbulk-title">✏️ עריכה מרוכזת לאשכול</h2>
-    <div id="clbulk-info" style="background:#e3f2fd;border-radius:7px;padding:8px 12px;margin-bottom:11px;font-size:.81rem;color:#0d47a1;border-right:4px solid #1565c0"></div>
-    
-    <div class="row" style="margin-bottom:11px">
-      <div class="fg"><label>ספק לכולם</label><select id="clbulk-sup" style="min-width:200px"><option value="">ללא שינוי</option></select></div>
-      <div class="fg"><label>טלפון ספק</label><input type="text" id="clbulk-ph" placeholder="ללא שינוי" style="min-width:120px"></div>
+  <div class="mb" style="max-width:900px; padding: 0; overflow: hidden; border-radius: 12px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #1565c0, #1e88e5); padding: 20px 25px; color: #fff;">
+      <div style="display:flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h2 id="clbulk-title" style="margin:0; font-size: 1.4rem; font-weight: 800; display:flex; align-items: center; gap: 10px;">
+            <span style="background: rgba(255,255,255,0.2); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px;">✏️</span>
+            עריכה מרוכזת לאשכול
+          </h2>
+          <div id="clbulk-info" style="margin-top: 5px; font-size: 0.85rem; opacity: 0.9; font-weight: 500;"></div>
+        </div>
+        <button onclick="CM('clbulk-m')" style="background: rgba(255,255,255,0.1); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">✕</button>
+      </div>
     </div>
     
-    <div class="row" style="margin-bottom:11px">
-      <div class="fg" style="flex:1"><label>הערה לכולם</label><input type="text" id="clbulk-nt" placeholder="ללא שינוי" style="width:100%"></div>
-      <div class="fg" style="width:120px"><label>שעה אחידה</label><input type="time" id="clbulk-uni-time" oninput="applyClBulkUniTime(this.value)"></div>
-    </div>
+    <div style="padding: 25px;">
+      <!-- Global Controls Card -->
+      <div style="background: #f8f9fa; border-radius: 10px; border: 1px solid #e0e0e0; padding: 18px; margin-bottom: 25px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
+        <div style="font-weight: 700; font-size: 0.85rem; color: #1565c0; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 1rem;">🌐</span> פעולות גלובליות (החל על כל הגנים המסומנים)
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+          <div class="fg">
+            <label style="font-size: 0.75rem; color: #546e7a; font-weight: 700; margin-bottom: 4px; display: block;">🚀 ספק לכולם</label>
+            <select id="clbulk-sup" style="width: 100%; padding: 8px; border-radius: 6px; border: 1.5px solid #cfd8dc; font-size: 0.85rem;"><option value="">ללא שינוי</option></select>
+          </div>
+          <div class="fg">
+            <label style="font-size: 0.75rem; color: #546e7a; font-weight: 700; margin-bottom: 4px; display: block;">🚀 טלפון ספק</label>
+            <input type="text" id="clbulk-ph" placeholder="ללא שינוי" style="width: 100%; padding: 8px; border-radius: 6px; border: 1.5px solid #cfd8dc; font-size: 0.85rem;">
+          </div>
+          <div class="fg">
+            <label style="font-size: 0.75rem; color: #546e7a; font-weight: 700; margin-bottom: 4px; display: block;">🕒 שעה אחידה</label>
+            <div style="display:flex; gap: 6px;">
+              <input type="time" id="clbulk-uni-time" oninput="applyClBulkUniTime(this.value)" style="flex:1; padding: 7px; border-radius: 6px; border: 1.5px solid #cfd8dc; font-size: 0.85rem;">
+              <button class="btn bp bsm" onclick="applyClBulkUniTime(document.getElementById('clbulk-uni-time').value)" style="padding: 0 12px; font-size: 0.75rem;">החל</button>
+            </div>
+          </div>
+        </div>
+        <div class="fg" style="margin-top: 12px;">
+          <label style="font-size: 0.75rem; color: #546e7a; font-weight: 700; margin-bottom: 4px; display: block;">📝 הערה לכולם</label>
+          <input type="text" id="clbulk-nt" placeholder="ללא שינוי (יופיע בסוף ההערה הקיימת)" style="width: 100%; padding: 8px; border-radius: 6px; border: 1.5px solid #cfd8dc; font-size: 0.85rem;">
+        </div>
+      </div>
 
-    <div style="font-weight:700;font-size:.82rem;color:#1a237e;margin-bottom:6px">פירוט גנים ושיבוצים להיום:</div>
-    <div id="clbulk-list" style="max-height:280px;overflow-y:auto;border:1.5px solid #c5cae9;border-radius:7px;padding:5px;margin-bottom:11px"></div>
+      <!-- Per-Garden List -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div style="font-weight: 800; font-size: 0.95rem; color: #37474f; display:flex; align-items: center; gap: 8px;">
+          <span style="color: #1565c0;">🏡</span> פירוט גנים ושיבוצים להיום
+        </div>
+        <div style="font-size: 0.75rem; color: #78909c;">
+          סמן גנים לעדכון/הוספה
+        </div>
+      </div>
+      
+      <div id="clbulk-list-header" style="display:grid; grid-template-columns: 35px 1fr 180px 160px 80px; gap: 12px; padding: 10px 15px; background: #eceff1; border-radius: 8px 8px 0 0; font-size: 0.75rem; font-weight: 800; color: #455a64; border: 1px solid #cfd8dc; border-bottom: none;">
+        <span></span>
+        <span>שם הגן</span>
+        <span>ספק</span>
+        <span>פעילות</span>
+        <span>שעה</span>
+      </div>
+      <div id="clbulk-list" style="max-height: 380px; overflow-y: auto; border: 1px solid #cfd8dc; border-top: none; border-radius: 0 0 8px 8px; background: #fff;"></div>
 
-    <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:10px">
-      <button class="btn bp" onclick="saveClusterBulkEdit()" style="flex:1">💾 שמור שינויים לכולם</button>
-      <button class="btn bs" onclick="CM('clbulk-m')">ביטול</button>
-    </div>
-    <div style="margin-top:12px;text-align:center">
-       <button class="btn br bsm" onclick="deleteClusterDay()" style="opacity:.7">🗑️ מחק את כל הפעילויות של האשכול להיום</button>
+      <div style="display:flex; gap:12px; justify-content: flex-end; margin-top: 25px; padding-top: 15px; border-top: 1px solid #f0f0f0;">
+        <button class="btn bs" onclick="CM('clbulk-m')" style="min-width: 120px; padding: 12px; font-weight: 600; border: 1.5px solid #cfd8dc;">ביטול</button>
+        <button class="btn bp" onclick="saveClusterBulkEdit()" style="min-width: 240px; padding: 12px; font-weight: 700; font-size: 1rem; box-shadow: 0 4px 12px rgba(21,101,192,0.3);">💾 שמור שינויים לכולם</button>
+      </div>
+      
+      <div style="margin-top: 20px; padding-top: 15px; text-align: center; border-top: 1px dashed #e0e0e0;">
+         <button class="btn br bsm" onclick="deleteClusterDay()" style="opacity: 0.8; padding: 8px 20px; font-size: 0.8rem;">🗑️ מחק את כל הפעילויות של האשכול להיום</button>
+      </div>
     </div>
   </div>
 </div>

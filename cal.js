@@ -475,9 +475,9 @@ function renderClusterDay(evs, ds, clusterName){
   const clGidsD=clObjD?(clObjD.gardenIds||[]):evs.map(s=>s.g).filter((v,i,a)=>a.indexOf(v)===i);
   html+=`<div style="background:#e8eaf6;border-radius:7px;padding:6px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;font-size:.78rem;font-weight:700;color:#1a237e">
     <span>🔢 ${isAll?'כל האשכולות':('אשכול: '+clusterName)} <span style="font-weight:400;color:#546e7a">${evs.length} פעילויות</span></span>
-    <div style="display:flex;gap:4px">
-      ${!isAll && clObjD ? `<button onclick="event.stopPropagation();window.openClusterBulkEdit('${clObjD.id}','${ds}')" style="background:#1565c0;border:none;border-radius:4px;color:#fff;font-size:.65rem;padding:2px 8px;cursor:pointer">✏️ עריכה מרוכזת</button>` : ''}
-      <button onclick="event.stopPropagation();window._exportPairWA(${JSON.stringify(clGidsD)})" style="background:#25d366;border:none;border-radius:4px;color:#fff;font-size:.65rem;padding:2px 8px;cursor:pointer">📋 הודעה</button>
+    <div style="display:flex;gap:6px">
+      ${!isAll && clObjD ? `<button onclick="event.stopPropagation();window.openClusterBulkEdit('${clObjD.id}','${ds}')" style="background: linear-gradient(135deg, #1565c0, #1e88e5); border:none; border-radius:4px; color:#fff; font-size:.7rem; font-weight:700; padding:3px 10px; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; align-items:center; gap:3px;">✏️ עריכה מרוכזת</button>` : ''}
+      <button onclick="event.stopPropagation();window._exportPairWA(${JSON.stringify(clGidsD)})" style="background:#25d366; border:none; border-radius:4px; color:#fff; font-size:.7rem; font-weight:700; padding:3px 10px; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; align-items:center; gap:3px;">📋 הודעה</button>
     </div>
   </div>`;
   // respects view's class filter
@@ -597,9 +597,9 @@ function renderClusterWeek(evs, weekStart, clusterName){
     const blk=window.getBlockedInfo(ds);
     const editBtn = (!isAll && clObj) ? `<button onclick="event.stopPropagation();window.openClusterBulkEdit('${clObj.id}','${ds}')" style="background:rgba(255,255,255,.25);border:none;border-radius:4px;color:#fff;font-size:.65rem;padding:1px 8px;cursor:pointer;margin-right:auto">✏️ עריכה מרוכזת</button>` : '';
     html+=`<div class="dsec" style="margin-bottom:10px">
-      <div class="dsh gan" style="display:flex;align-items:center">
+      <div class="dsh gan" style="display:flex;align-items:center; justify-content:space-between">
         <span>${window.fD(ds)} — יום ${window.dayN(ds)}${hol?` 🎉 ${hol.name}`:''}</span>
-        ${editBtn}
+        ${editBtn.replace('margin-right:auto', 'margin-right:8px; background: linear-gradient(135deg, #1565c0, #1e88e5); border:none; border-radius:4px; color:#fff; font-size:.7rem; font-weight:700; padding:3px 10px; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);')}
       </div>`;
     if(blk) html+=`<div style="padding:5px 12px;background:#ffebee;font-size:.75rem;color:#c62828;font-weight:700">${blk.icon||'🚫'} ${blk.reason}</div>`;
 
@@ -1247,9 +1247,9 @@ function renderRangeListView(evs, fromDs, toDs){
           h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
             <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
               <span>🏘️ ${cl.name}</span>
-              <div style="display:flex;gap:4px">
-                <button onclick="event.stopPropagation();window.openClusterBulkEdit('${cl.id}','${ds}')" style="background:#1565c0;border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">✏️ עריכה</button>
-                <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
+              <div style="display:flex;gap:6px">
+                <button onclick="event.stopPropagation();window.openClusterBulkEdit('${cl.id}','${ds}')" style="background: linear-gradient(135deg, #1565c0, #1e88e5); border:none; border-radius:4px; padding:2px 10px; cursor:pointer; font-size:.7rem; color:#fff; font-weight:700; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; align-items:center; gap:3px;">✏️ עריכה</button>
+                <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="background:${clr.solid}; border:none; border-radius:4px; padding:2px 10px; cursor:pointer; font-size:.7rem; color:#fff; font-weight:700; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; align-items:center; gap:3px;">📋 הודעה</button>
               </div>
             </div>`;
           clEvs.forEach(s=>{ h+=_listRow(s,clr); });

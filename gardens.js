@@ -1342,21 +1342,21 @@ window.openClusterBulkEdit = function(clId, ds) {
   let h = '';
   gs.forEach(g => {
     const ev = window.SCH.find(s => s.g === g.id && s.d === ds && s.st !== 'can');
-    h += `<div style="display:grid;grid-template-columns:130px 160px 150px 80px 40px;gap:6px;align-items:center;padding:6px 5px;border-bottom:1px solid #f0f0f0;font-size:.72rem">
-      <span style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${g.name}">${g.name}</span>
-      <select id="clbulk-s-${g.id}" style="font-size:.7rem;padding:2px" onchange="window.clBulkSupChg('${g.id}', this.value)">
+    h += `<div style="display:grid;grid-template-columns:35px 1fr 180px 160px 80px;gap:12px;align-items:center;padding:10px 15px;border-bottom:1px solid #f0f0f0;font-size:.82rem; transition: background 0.2s;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
+      <label style="display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <input type="checkbox" id="clbulk-inc-${g.id}" checked style="width:16px;height:16px;accent-color:#1565c0">
+      </label>
+      <span style="font-weight:700;color:#2c3e50;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${g.name}">${g.name}</span>
+      <select id="clbulk-s-${g.id}" style="font-size:.8rem;padding:6px;border-radius:4px;border:1px solid #cfd8dc" onchange="window.clBulkSupChg('${g.id}', this.value)">
         ${allSupsHtml}
       </select>
-      <select id="clbulk-act-${g.id}" style="font-size:.7rem;padding:2px">
+      <select id="clbulk-act-${g.id}" style="font-size:.8rem;padding:6px;border-radius:4px;border:1px solid #cfd8dc">
         <option value="">-- פעילות --</option>
       </select>
-      <input type="time" id="clbulk-t-${g.id}" value="${ev?window.fT(ev.t):''}" style="padding:2px;font-size:.7rem">
-      <label style="display:flex;align-items:center;gap:3px;cursor:pointer;justify-content:center">
-        <input type="checkbox" id="clbulk-inc-${g.id}" checked>
-      </label>
+      <input type="time" id="clbulk-t-${g.id}" value="${ev?window.fT(ev.t):''}" style="padding:5px;font-size:.8rem;border-radius:4px;border:1px solid #cfd8dc">
     </div>`;
   });
-  document.getElementById('clbulk-list').innerHTML = h || '<p style="color:#999;padding:10px">אין גנים באשכול זה</p>';
+  document.getElementById('clbulk-list').innerHTML = h || '<p style="color:#999;padding:20px;text-align:center">אין גנים באשכול זה</p>';
 
   // Pre-fill existing
   gs.forEach(g => {
@@ -1409,7 +1409,6 @@ window.clBulkSupChg = function(gid, supName, selAct) {
   const su = window.SUPBASE.find(s => s.name === supName);
   const acts = su ? (su.acts || []) : [];
   if(!acts.length) {
-     // fallback to searching SCH for this supplier's activities
      const sActs = [...new Set(window.SCH.filter(s=>s.a===supName&&s.act).map(s=>s.act))].sort();
      sActs.forEach(a => actSel.innerHTML += `<option value="${a}">${a}</option>`);
   } else {
@@ -1436,7 +1435,7 @@ window.saveClusterBulkEdit = function() {
     const rowAct = document.getElementById(`clbulk-act-${gid}`).value;
     const t = document.getElementById(`clbulk-t-${gid}`)?.value || '';
     
-    if(!rowSup) return; // Skip if no supplier selected at all
+    if(!rowSup) return; 
 
     const ev = window.SCH.find(s => s.g === gid && s.d === ds && s.st !== 'can');
 
