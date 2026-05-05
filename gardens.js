@@ -674,7 +674,8 @@ function renderClusters(){
           <td style="padding:7px 8px;color:#78909c;font-size:.76rem">${lastDate}</td>
           <td style="padding:7px 8px;text-align:center;white-space:nowrap">
             <button class="btn bp bsm" onclick="openClusterSchedule('${cl.id}')" title="שיבוץ פעילות לאשכול">📅 שיבוץ</button>
-            <button class="btn bo bsm" onclick="openEditCluster('${cl.id}')" title="עריכת הגדרות האשכול">✏️ עריכה</button>
+            <button class="btn bg bsm" onclick="(()=>{const d=prompt('הכנס תאריך (YYYY-MM-DD):',new Date().toISOString().slice(0,10)); if(d) window.openClusterBulkEdit('${cl.id}', d);})()" title="עריכה מרוכזת של שיבוצים לתאריך">✏️ עריכת שיבוצים</button>
+            <button class="btn bo bsm" onclick="openEditCluster('${cl.id}')" title="עריכת הגדרות האשכול">⚙️ הגדרות</button>
             <button class="btn br bsm" onclick="deleteCluster('${cl.id}')" title="מחק אשכול">🗑️</button>
           </td>
         </tr>`;
