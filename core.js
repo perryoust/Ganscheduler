@@ -698,9 +698,17 @@ window.getGardenGroup = function(gid) {
   return null;
 };
 window.compareActivities = function(a, b) {
-  const tA = (a.t || '99:99').padStart(5, '0');
-  const tB = (b.t || '99:99').padStart(5, '0');
+  // Normalize time: extract HH:mm and pad
+  const getT = (t) => {
+    if (!t) return '99:99';
+    const parts = t.split(':');
+    if (parts.length < 2) return t.padStart(5, '0');
+    return parts[0].padStart(2, '0') + ':' + parts[1].padStart(2, '0');
+  };
+  const tA = getT(a.t);
+  const tB = getT(b.t);
   if (tA !== tB) return tA.localeCompare(tB);
+  
   const gA = window.G(a.g)?.name || '';
   const gB = window.G(b.g)?.name || '';
   return gA.localeCompare(gB, 'he');

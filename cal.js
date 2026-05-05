@@ -796,7 +796,7 @@ function renderPairCard(pair, pairEvs, opts){
   pair.ids.filter(Boolean).forEach(gid => {
     const g = window.G(gid);
     if (!g) return;
-    const gEvs = pairEvs.filter(s => s.g === gid).sort((a,b) => (a.t || '99:99').localeCompare(b.t || '99:99'));
+    const gEvs = pairEvs.filter(s => s.g === gid).sort((a,b) => window.compareActivities(a, b));
     
     if (!gEvs.length) {
       const gblkNone = ds ? window.getGardenBlock(gid, ds) : null;
@@ -858,7 +858,7 @@ function renderGardenCols(evs, gids, clr){
   cols.forEach((gid, i) => {
     const g = window.G(gid);
     if (!g) return;
-    const ge = evs.filter(s => s.g === gid).sort((a,b) => (a.t || '99:99').localeCompare(b.t || '99:99'));
+    const ge = evs.filter(s => s.g === gid).sort((a,b) => window.compareActivities(a, b));
     html += `<div class="garden-col" style="border-right:${i > 0 ? '1px solid rgba(0,0,0,.06)' : 'none'}">
       <div class="garden-col-hdr" style="color:${clr.text}">
         ${window.gcls(g) === 'بيה"ס' ? '🏛️' : '🏫'} ${g.name}
@@ -920,7 +920,7 @@ function renderPairColsHTML(evs,gids,pairId){
       return;
     }
     const g=window.G(gid);
-    const ge=evs.filter(s=>s.g===gid).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+    const ge=evs.filter(s=>s.g===gid).sort((a,b)=>window.compareActivities(a, b));
     html+=`<div class="pcol">
       <div style="font-size:.66rem;font-weight:700;text-align:center;padding:2px 6px;background:rgba(0,0,0,.12);color:#fff">${g.city}</div>
       <div class="pch"><span>${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</span></div>
@@ -1117,7 +1117,7 @@ function renderNormalWeek(evs, ws, f){
           const ds=d2s(d);
           const hol=getHolidayInfo(ds,g.city,window.gcls(g));
           const gBlk=window.getGardenBlock(gid,ds);
-          const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
+          const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>window.compareActivities(a, b));
           html+=makeCell(gid,ds,de,gBlk,hol,clr);
         });
         html+='</tr>';
@@ -1136,7 +1136,7 @@ function renderNormalWeek(evs, ws, f){
         const ds=d2s(d);
         const hol=getHolidayInfo(ds,g.city,window.gcls(g));
         const soloBlk=window.getGardenBlock(gid,ds);
-        const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
+        const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>window.compareActivities(a, b));
         html+=makeCell(gid,ds,de,soloBlk,hol,clr);
       });
       html+='</tr>';
@@ -1272,7 +1272,7 @@ function renderCalList(evs, mDate){
 
       const _renderCluster2=(cl)=>{
         const clEvs=cityEvs.filter(s=>(cl.gardenIds||[]).map(x=>parseInt(x)).includes(s.g)&&!pairedGids.has(s.g)&&!clusteredGidsC.has(s.g))
-          .sort((a,b)=>(window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
+          .sort((a,b)=>window.compareActivities(a, b));
         if(!clEvs.length) return;
         clEvs.forEach(s=>clusteredGidsC.add(s.g));
         const clGids2=clEvs.map(s=>s.g);
@@ -1317,10 +1317,7 @@ function renderCalList(evs, mDate){
 
         pairGroups.forEach(({pair,pairEvs})=>{
           // Sort pair events by garden name then time
-          const sorted=pairEvs.sort((a,b)=>{
-            const na=window.G(a.g).name||'', nb=window.G(b.g).name||'';
-            return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
-          });
+          const sorted=pairEvs.sort((a,b)=>window.compareActivities(a, b));
           h+=`<div style="margin-bottom:3px;border:1px solid ${clr.border};border-radius:5px;overflow:hidden">
             <div style="background:${clr.solid}18;padding:2px 8px;font-size:.68rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
               <span>🔗 ${pair.name}</span>
@@ -1331,12 +1328,9 @@ function renderCalList(evs, mDate){
         });
 
       // Solos — sorted by garden name (not in pair or cluster)
-      const soloEvs=cityEvs
+        const soloEvs=cityEvs
         .filter(s=>!pairedGids.has(s.g)&&!clusteredGidsC.has(s.g))
-        .sort((a,b)=>{
-          const na=window.G(a.g).name||'', nb=window.G(b.g).name||'';
-          return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
-        });
+        .sort((a,b)=>window.compareActivities(a, b));
       soloEvs.forEach(s=>{ h+=_listRow(s,clr,ds); });
 
       h+=`</div></div>`; // end city inner + outer
@@ -1487,7 +1481,7 @@ function renderRangeListView(evs, fromDs, toDs){
       
       const _renderCl = (cl) => {
         const clEvs = cityEvs.filter(s => (cl.gardenIds || []).map(x => parseInt(x)).includes(s.g) && !firstUsedGids.has(s.g))
-          .sort((a,b) => (window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
+          .sort((a,b) => window.compareActivities(a, b));
         if(!clEvs.length) return;
         clEvs.forEach(s => firstUsedGids.add(s.g));
         const clGids = clEvs.map(s => s.g);
@@ -1524,7 +1518,7 @@ function renderRangeListView(evs, fromDs, toDs){
             pairMap.set(gid, { id: 'dummy_'+gid, g: gid, st: 'unassigned', d: ds, t: '', act: '' });
           }
         });
-        const sorted = Array.from(pairMap.values()).sort((a,b) => (window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
+        const sorted = Array.from(pairMap.values()).sort((a,b) => window.compareActivities(a, b));
         h += `<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
           <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
             <span>🔗 ${pair.name}</span>
@@ -1541,7 +1535,7 @@ function renderRangeListView(evs, fromDs, toDs){
       }
 
       cityEvs.filter(s => !firstUsedGids.has(s.g))
-        .sort((a,b) => (window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'))
+        .sort((a,b) => window.compareActivities(a, b))
         .forEach(s => { h += _listRow(s, clr, ds); });
 
       h += `</div></details>`;

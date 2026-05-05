@@ -179,7 +179,10 @@ function renderDash() {
             pairMap.set(gid, { id: 'dummy_'+gid, g: gid, st: 'unassigned', d: date, t: '', act: '' });
           }
         });
-        const sorted = Array.from(pairMap.values()).sort((a,b) => window.compareActivities ? window.compareActivities(a, b) : (a.t||'').localeCompare(b.t||''));
+        const sorted = Array.from(pairMap.values()).sort((a,b) => {
+          const res = window.compareActivities(a, b);
+          return res;
+        });
         
         const realEv = sorted.find(x=>x.id && !x.id.toString().startsWith('dummy'));
         const realId = realEv ? realEv.id : '';
@@ -653,11 +656,16 @@ window.openSP = function(id) {
              </div>
              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div class="fg"><label style="font-size:.7rem;font-weight:700">שעה *</label><input type="time" id="sp-mu-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
-                <div class="fg"><label style="font-size:.7rem;font-weight:700">סוג פעילות</label><input type="text" id="sp-mu-act" value="${s.act||''}" placeholder="למשל: תיאטרון, ספורט..." style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
+                <div class="fg">
+                  <label style="font-size:.7rem;font-weight:700">סוג פעילות</label>
+                  <select id="sp-mu-act" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">
+                    <option value="">בחר פעילות...</option>
+                  </select>
+                </div>
              </div>
              <div class="fg">
                 <label style="font-size:.7rem;font-weight:700;color:#e65100">ספק מבצע</label>
-                <select id="sp-mu-sup" style="width:100%;padding:6px;border-radius:4px;border:1px solid #ffb74d;font-weight:700;background:#fff8f0">
+                <select id="sp-mu-sup" onchange="window.spMuSupChg()" style="width:100%;padding:6px;border-radius:4px;border:1px solid #ffb74d;font-weight:700;background:#fff8f0">
                   ${allSups.map(sup => `<option value="${sup.name}" ${window.supBase(sup.name)===window.supBase(s.a)?'selected':''}>${sup.name}</option>`).join('')}
                 </select>
              </div>
@@ -1178,6 +1186,7 @@ window.spTriggerMakeupUI = function() {
   const muWrap = document.getElementById('sp-acc-makeup-wrap');
   if(muWrap) muWrap.style.display = 'block';
   window.toggleSpAccordion('sp-acc-makeup', true);
+  window.spMuSupChg();
   window.spMuDateChg();
 };
 
@@ -1488,23 +1497,28 @@ window.openWA = function(phone) {
 // Removed redundant renderDash trigger to stabilize UI
 // setTimeout(() => { if (typeof renderDash === 'function') renderDash(); }, 100);
 
+window.spMuSupChg = function() {
+  const sup = document.getElementById('sp-mu-sup').value;
+  const actSel = document.getElementById('sp-mu-act');
+  if(!actSel) return;
+  const sid = window.selEv;
+  const s = window.SCH.find(x => x.id == sid);
+  const acts = window.getSupActs(sup);
+  actSel.innerHTML = '<option value="">בחר פעילות...</option>' + 
+    acts.map(a => `<option value="${a}" ${s && a===s.act ? 'selected' : ''}>${a}</option>`).join('') +
+    '<option value="__new__">➕ הוסף פעילות חדשה...</option>';
+};
+
 window.spMuDateChg = function() {
-  console.log('[spMuDateChg] Start');
   const dateEl = document.getElementById('sp-mu-date');
-  if(!dateEl) { console.error('[spMuDateChg] sp-mu-date not found'); return; }
+  if(!dateEl) return;
   const date = dateEl.value;
   const sid = window.selEv;
   const s = window.SCH.find(x => x.id == sid);
-  if(!date || !s) { console.warn('[spMuDateChg] No date or activity found', {date, sid, s}); return; }
+  if(!date || !s) return;
   
-  try {
-    // Update partners table
-    window.spUpdateMakeupPartnersTable(s.g, date, s.a);
-    // Show free days
-    window.spShowFreeDays(s.g);
-  } catch(err) {
-    console.error('[spMuDateChg] Error:', err);
-  }
+  window.spUpdateMakeupPartnersTable(s.g, date, s.a);
+  window.spShowFreeDays(s.g);
 };
 
 window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
