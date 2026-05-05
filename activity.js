@@ -141,8 +141,15 @@ function renderDash() {
     
     soloMap.forEach(ev => rows.push({type: 'solo', ev}));
     rows.sort((a, b) => {
-      const tA = (a.type === 'pair' ? a.evs[0]?.t : a.ev?.t) || '99:99';
-      const tB = (b.type === 'pair' ? b.evs[0]?.t : b.ev?.t) || '99:99';
+      const getMinTime = (row) => {
+        if (row.type === 'solo') return (row.ev?.t || '99:99').padStart(5, '0');
+        if (!row.evs || !row.evs.length) return '99:99';
+        const times = row.evs.map(e => (e.t || '99:99').padStart(5, '0'));
+        times.sort();
+        return times[0];
+      };
+      const tA = getMinTime(a);
+      const tB = getMinTime(b);
       return tA.localeCompare(tB);
     });
 
@@ -457,18 +464,26 @@ function openSP(id){
       <span id="sp-acc-edit-arrow" style="font-size:0.7rem;transition:0.3s">▼</span>
     </div>
     <div id="sp-acc-edit" style="display:none;padding:12px;background:#fff;border-top:1px solid #e0e0e0">
+      <div style="font-size:.72rem;color:#78909c;margin-bottom:8px;background:#f9f9f9;padding:4px 8px;border-radius:4px">שינוי תאריך, ספק, פעילות או שעה <b>רק לפעילות זו</b></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fg"><label for="sp-edit-date" style="font-size:.7rem;font-weight:700">תאריך</label><input type="date" id="sp-edit-date" value="${s.d}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
+        <div class="fg"><label for="sp-edit-time" style="font-size:.7rem;font-weight:700">שעה (${g.name})</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
+        <div class="fg"><label for="sp-edit-sup" style="font-size:.7rem;font-weight:700">ספק</label><select id="sp-edit-sup" onchange="window.spEditSupChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">${allSups.map(sup => `<option value="${sup.name}" ${sup.name===s.a ? 'selected':''}>${sup.name}</option>`).join('')}</select></div>
+        <div class="fg"><label for="sp-edit-act" style="font-size:.7rem;font-weight:700">פעילות</label><select id="sp-edit-act" onchange="window.spEditActChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"><option value="">— ללא שינוי —</option>${initialActs.map(a => `<option value="${a}" ${a===s.act ? 'selected':''}>${a}</option>`).join('')}<option value="__new__">➕ פעילות חדשה...</option></select></div>
+      </div>
+      <div class="fg" id="sp-edit-act-new-wrap" style="display:none;margin-top:8px"><label for="sp-edit-act-new" style="font-size:.7rem;font-weight:700">שם הפעילות החדשה</label><input type="text" id="sp-edit-act-new" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
+      ${spPair ? window.renderPartnerSynergy(s.g, 'sped', currentTimesSP) : ''}
+      <button class="btn bg" style="width:100%;padding:8px;font-weight:800;margin-top:8px;font-size:.8rem" onclick="window.spEditSave()">💾 שמור שינויים</button>
+    </div>
+  </div>`;
 
-  // --- STEP 7 removed per user request ---
-
-  document.getElementById('sp-body').innerHTML=h;
-  document.getElementById('sp').classList.add('open');
-  if(document.getElementById('sp-backdrop')) document.getElementById('sp-backdrop').style.display='block';
+  document.getElementById('sp-m-body').innerHTML = h;
+  window.OM('sp-m');
   } catch(err) {
     console.error('[openSP] Error building panel:', err);
-    var spBody=document.getElementById('sp-body');
+    var spBody=document.getElementById('sp-m-body');
     if(spBody) spBody.innerHTML='<div style="color:#c62828;padding:20px;font-size:.85rem"><b>שגיאה בפתיחת פרטי פעילות:</b><br><pre style="white-space:pre-wrap;margin-top:8px;background:#fff3f3;padding:10px;border-radius:6px;font-size:.75rem">'+err.message+'\n'+err.stack+'</pre></div>';
-    document.getElementById('sp').classList.add('open');
-    if(document.getElementById('sp-backdrop')) document.getElementById('sp-backdrop').style.display='block';
+    window.OM('sp-m');
   }
 }
 
