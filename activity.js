@@ -452,6 +452,7 @@ window.openSP = function(id) {
   try { // ← try-catch to prevent silent failures
   const g=window.G(s.g);
   const spPair=window.gardenPair(s.g);
+  const allSups = window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : [];
 
   // Build partner info array and currentTimesSP for later use
   const currentTimesSP = {};
@@ -669,7 +670,6 @@ window.openSP = function(id) {
   </div>`;
 
   // --- STEP 8: Manual Edit ---
-  const allSups = window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : [];
   const initialActs = window.getSupActs ? window.getSupActs(s.a) : [];
   h += `<div style="margin-top:10px;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden">
     <div onclick="window.toggleSpAccordion('sp-acc-edit')" style="background:#f5f5f5;padding:8px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
