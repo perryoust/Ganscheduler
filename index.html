@@ -437,8 +437,8 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
     <div class="row">
       <div class="mob-flt-wrap-always">
         <div class="vbtns">
-          <button class="vbtn" id="vb-list" onclick="setView('list')">🚀 רשימה</button>
-          <button class="vbtn active" id="vb-day" onclick="setView('day')">יומי</button>
+          <button class="vbtn active" id="vb-list" onclick="setView('list')">🚀 רשימה</button>
+          <button class="vbtn" id="vb-day" onclick="setView('day')">יומי</button>
           <button class="vbtn" id="vb-week" onclick="setView('week')">שבועי</button>
           <button class="vbtn" id="vb-month" onclick="setView('month')">חודשי</button>
           <button class="vbtn" id="vb-range" onclick="setView('range')">🚀 טווח</button>
@@ -448,7 +448,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         </div>
         <!-- Range date pickers  shown only in range view -->
         <!-- List sub-view controls  shown only in list mode -->
-        <div id="cal-list-row" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
+        <div id="cal-list-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <div style="display:flex;gap:3px;align-items:center">
             <button id="vlb-day" class="vbtn active" onclick="setListSubView('day')">🚀 יומי</button>
             <button id="vlb-week" class="vbtn" onclick="setListSubView('week')">שבועי</button>
@@ -1918,7 +1918,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
       </div>
     </div>
     
-    <div style="padding: 25px;">
+    <div style="padding: 15px 20px;">
       <!-- Global Controls Card -->
       <div style="background: #f8f9fa; border-radius: 10px; border: 1px solid #e0e0e0; padding: 12px; margin-bottom: 15px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
         <div style="font-weight: 700; font-size: 0.85rem; color: #1565c0; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
@@ -1977,7 +1977,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         </div>
       </div>
       
-      <div id="clbulk-list-header" style="display:grid; grid-template-columns: 35px 1fr 140px 140px 100px 100px 80px; gap: 8px; padding: 10px 15px; background: #eceff1; border-radius: 8px 8px 0 0; font-size: 0.75rem; font-weight: 800; color: #455a64; border: 1px solid #cfd8dc; border-bottom: none;">
+      <div id="clbulk-list-header" style="display:grid; grid-template-columns: 35px 1fr 110px 110px 75px 85px 75px; gap: 6px; padding: 8px 12px; background: #eceff1; border-radius: 8px 8px 0 0; font-size: 0.7rem; font-weight: 800; color: #455a64; border: 1px solid #cfd8dc; border-bottom: none;">
         <span></span>
         <span>שם הגן</span>
         <span>ספק</span>
@@ -1986,7 +1986,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <span>סטטוס</span>
         <span>שעה</span>
       </div>
-      <div id="clbulk-list" style="max-height: 280px; overflow-y: auto; border: 1px solid #cfd8dc; border-top: none; border-radius: 0 0 8px 8px; background: #fff;"></div>
+      <div id="clbulk-list" style="max-height: 240px; overflow-y: auto; overflow-x: hidden; border: 1px solid #cfd8dc; border-top: none; border-radius: 0 0 8px 8px; background: #fff;"></div>
 
       <div style="display:flex; gap:12px; justify-content: flex-end; margin-top: 25px; padding-top: 15px; border-top: 1px solid #f0f0f0;">
         <button class="btn bs" onclick="CM('clbulk-m')" style="min-width: 120px; padding: 12px; font-weight: 600; border: 1.5px solid #cfd8dc;">ביטול</button>
@@ -2608,19 +2608,19 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
 </div>
 
 <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-<script src="data.js?v=97.5"></script>
-<script src="firebase.js?v=97.5"></script>
-<script src="invoices.js?v=97.5"></script>
-<script src="suppliers.js?v=97.5"></script>
-<script src="cal.js?v=97.5"></script>
-<script src="activity.js?v=97.5"></script>
-<script src="sched.js?v=97.5"></script>
-<script src="gardens.js?v=97.5"></script>
-<script src="export.js?v=97.5"></script>
-<script src="backup.js?v=97.5"></script>
-<script src="admin.js?v=97.3"></script>
-<script src="import_export.js?v=97.5"></script>
-<script src="core.js?v=97.5"></script>
+<script src="data.js?v=101.2"></script>
+<script src="firebase.js?v=101.2"></script>
+<script src="invoices.js?v=101.2"></script>
+<script src="suppliers.js?v=101.2"></script>
+<script src="cal.js?v=101.2"></script>
+<script src="activity.js?v=101.2"></script>
+<script src="sched.js?v=101.2"></script>
+<script src="gardens.js?v=101.2"></script>
+<script src="export.js?v=101.2"></script>
+<script src="backup.js?v=101.2"></script>
+<script src="admin.js?v=101.2"></script>
+<script src="import_export.js?v=101.2"></script>
+<script src="core.js?v=101.2"></script>
 <script>
   var _dashTab = _dashTab || 'g'; // Master global state
   

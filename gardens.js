@@ -1360,7 +1360,7 @@ window.openClusterBulkEdit = function(clId, ds) {
   let h = '';
   gs.forEach(g => {
     const ev = window.SCH.find(s => s.g === g.id && s.d === ds && s.st !== 'can');
-    h += `<div style="display:grid;grid-template-columns:35px 1fr 140px 140px 100px 100px 80px;gap:8px;align-items:center;padding:10px 15px;border-bottom:1px solid #f0f0f0;font-size:.82rem; transition: background 0.2s;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
+    h += `<div style="display:grid;grid-template-columns:35px 1fr 110px 110px 75px 85px 75px;gap:6px;align-items:center;padding:10px 15px;border-bottom:1px solid #f0f0f0;font-size:.82rem; transition: background 0.2s;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
       <label style="display:flex;align-items:center;justify-content:center;cursor:pointer">
         <input type="checkbox" id="clbulk-inc-${g.id}" checked style="width:16px;height:16px;accent-color:#1565c0">
       </label>

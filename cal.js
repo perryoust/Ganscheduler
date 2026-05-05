@@ -1,4 +1,4 @@
-// cal.js v95.8.1 - Compact UI & Deduplication Fix
+// cal.js v101.2 - Compact UI & Default View Fix
 function calRefG(){
   // Ensure cal-cls matches the active tab
   const clsSel=document.getElementById('cal-cls');
@@ -76,6 +76,7 @@ function filterE(f,from,to){
 let _rangeSubView = 'list'; // Default to list view per user request
 let _listSubView='day'; // Default to daily list
 let _calTab = 'g'; // 'g'|'s' (gardens vs schools)
+window._listGroupMode = 'pairs'; // Default to pairs grouping
 
 function setCalTab(t){
   _calTab = t;
