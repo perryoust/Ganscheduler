@@ -255,9 +255,9 @@ function nsShowFreeDays(gid){
   // unless we are in makeup mode where we might want to override.
   const isMakeup = _nsmTab === 'makeup';
   const busyDates=new Set(window.SCH.filter(x => {
-    if(x.g !== gid || x.st === 'can') return false;
-    // If it's a makeup, we can schedule on a day that has a 'nohap' or 'post' activity
-    if(isMakeup && (x.st === 'nohap' || x.st === 'post' || x.st === 'can')) return false;
+    if(Number(x.g) !== Number(gid)) return false;
+    // These statuses mean the day is NOT busy for a new activity
+    if(x.st === 'can' || x.st === 'nohap' || x.st === 'post') return false;
     return true;
   }).map(x=>x.d));
 
@@ -269,7 +269,16 @@ function nsShowFreeDays(gid){
     if(dow>=0&&dow<=4){
       const ds=window.d2s(d);
       const hol=window.getHolidayInfo(ds,g.city,window.gcls(g));
-      if(!busyDates.has(ds)&&!hol) free.push({ds,lbl:DAY_HEB[dow]+' '+window.fD(ds)});
+      const isToday = i === 0;
+      // Allow today always if it's a workday, or allow if not busy and not a holiday (unless it's a makeup and we want to allow it)
+      const isFree = !busyDates.has(ds);
+      const isAllowed = isFree && (!hol || isMakeup || isToday); 
+      
+      if(isAllowed) {
+        let label = DAY_HEB[dow]+' '+window.fD(ds);
+        if(hol) label += ` (${hol.name})`;
+        free.push({ds, lbl: label});
+      }
     }
     d.setDate(d.getDate()+1);
   }
