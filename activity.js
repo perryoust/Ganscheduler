@@ -308,8 +308,10 @@ window.spBatchAction = function(val) {
   const ids = window.spGetSelectedIds();
   if(!ids.length) { alert('יש לסמן לפחות גן אחד בטבלה'); return; }
   
+  console.log('[spBatchAction]', val, {ids});
   switch(val) {
     case 'makeup':
+      console.log('[spBatchAction] Opening makeup accordion...');
       window.toggleSpAccordion('sp-acc-makeup', true);
       window.spMuDateChg();
       break;
@@ -696,11 +698,13 @@ window.openSP = function(id) {
 }
 window.openSP = openSP;
 
-function toggleSpAccordion(id){
+function toggleSpAccordion(id, forceState = null){
   const el = document.getElementById(id);
   const arrow = document.getElementById(id + '-arrow');
   if(!el) return;
-  const isOpening = el.style.display === 'none';
+  
+  const isCurrentlyOpen = el.style.display !== 'none';
+  const shouldOpen = forceState !== null ? forceState : !isCurrentlyOpen;
   
   // Optional: Close others
   document.querySelectorAll('[id^="sp-acc-"]').forEach(acc => {
@@ -711,8 +715,9 @@ function toggleSpAccordion(id){
     }
   });
 
-  el.style.display = isOpening ? 'block' : 'none';
-  if(arrow) arrow.style.transform = isOpening ? 'rotate(180deg)' : 'rotate(0deg)';
+  el.style.display = shouldOpen ? 'block' : 'none';
+  if(arrow) arrow.style.transform = shouldOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+  if(shouldOpen) el.scrollIntoView({behavior: 'smooth', block: 'nearest'});
 }
 
 function toggleSpRecurBox(isChecked) {
@@ -1462,7 +1467,8 @@ window.openWA = function(phone) {
   window.open(`https://wa.me/${target}`, '_blank');
 };
 
-setTimeout(() => { if (typeof renderDash === 'function') renderDash(); }, 100);
+// Removed redundant renderDash trigger to stabilize UI
+// setTimeout(() => { if (typeof renderDash === 'function') renderDash(); }, 100);
 
 window.spMuDateChg = function() {
   console.log('[spMuDateChg] Start');
