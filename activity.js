@@ -1414,7 +1414,8 @@ window.setPostMode = function(mode) {
 };
 
 window.openWA = function(phone) {
-  if(!phone) return;
+  if(!phone) { console.warn('openWA: No phone number provided'); return; }
+  console.log('openWA: Opening WhatsApp for', phone);
   const clean = phone.replace(/\D/g, '');
   const target = clean.startsWith('972') ? clean : '972' + clean.replace(/^0/, '');
   window.open(`https://wa.me/${target}`, '_blank');

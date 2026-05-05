@@ -160,46 +160,9 @@ function nsCheckPair(gid){
   const pair=window.gardenPair(gid);
   const choiceWrap = document.getElementById('ns-g2-choice-wrap');
   const partnerWrap = document.getElementById('ns-g2-partner-wrap');
+  const g2ChoiceContainer = document.getElementById('ns-g2-choice-container');
   
-  if(pair && pair.ids.length>=2){
-    const partnerId = pair.ids.find(id=>id!==gid);
-    if(partnerId){
-      const partG = window.G(partnerId);
-      if(choiceWrap) choiceWrap.style.display='block';
-      const lbl = document.getElementById('ns-g2-lbl');
-      if(lbl) lbl.textContent=`צהרון בן זוג? (${partG.name})`;
-      const g2sel = document.getElementById('ns-g2');
-      if(g2sel){
-        g2sel.innerHTML=`<option value="">לא - רק ל${g.name}</option><option value="${partnerId}" selected>כן - גם ל${partG.name}</option>`;
-        
-        // Add Dynamic Explanation
-        const infoDivId = 'ns-pair-info-notice';
-        let infoDiv = document.getElementById(infoDivId);
-        if(!infoDiv){
-          infoDiv = document.createElement('div');
-          infoDiv.id = infoDivId;
-          infoDiv.className = 'info-notice';
-          choiceWrap.insertBefore(infoDiv, choiceWrap.firstChild);
-        }
-        infoDiv.innerHTML = `<span class="icon">🔗</span><div><b>שים לב:</b> גן זה מקושר ל-<b>${partG.name}</b>. מומלץ לשבץ את שניהם יחד.</div>`;
-
-        g2sel.onchange = () => {
-          if(partnerWrap) partnerWrap.style.display = g2sel.value ? 'block' : 'none';
-        };
-      }
-      
-      const time2Lbl = document.getElementById('ns-time-g2-lbl');
-      if(time2Lbl) time2Lbl.textContent = `שעה ל${partG.name}`;
-      
-      const nameDisp = document.getElementById('ns-g2-name-display');
-      if(nameDisp) nameDisp.textContent = partG.name;
-      
-      // Secondary time for partner
-      const t2inp = document.getElementById('ns-time-g2');
-      if(t2inp){
-        const date=document.getElementById('ns-date').value;
-  
-  if(pair){
+  if(pair && pair.ids.length >= 2){
     const otherIds = pair.ids.map(Number).filter(oid => oid !== Number(gid));
     let partnerGridHtml = '';
     otherIds.forEach(pId => {
@@ -215,15 +178,28 @@ function nsCheckPair(gid){
         </label>`;
     });
 
-    const g2Choice = document.getElementById('ns-g2-choice-container');
-    if(g2Choice) {
-      g2Choice.innerHTML = `
+    if(g2ChoiceContainer) {
+      g2ChoiceContainer.innerHTML = `
         <div style="font-size:0.75rem;font-weight:700;color:#546e7a;margin-bottom:6px">🔗 גנים שותפים לסנכרון (בחר לשיבוץ מקביל):</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px" id="ns-partners-grid">
           ${partnerGridHtml}
         </div>`;
     }
     
+    // Add Dynamic Explanation (if not already there)
+    const infoDivId = 'ns-pair-info-notice';
+    let infoDiv = document.getElementById(infoDivId);
+    if(!infoDiv && choiceWrap){
+      infoDiv = document.createElement('div');
+      infoDiv.id = infoDivId;
+      infoDiv.className = 'info-notice';
+      choiceWrap.insertBefore(infoDiv, choiceWrap.firstChild);
+    }
+    if(infoDiv){
+      const partNames = otherIds.map(id => window.G(id).name).join(', ');
+      infoDiv.innerHTML = `<span class="icon">🔗</span><div><b>שים לב:</b> גן זה מקושר ל-<b>${partNames}</b>. מומלץ לשבץ אותם יחד.</div>`;
+    }
+
     if(choiceWrap) choiceWrap.style.display = 'block';
   } else {
     if(choiceWrap) choiceWrap.style.display = 'none';
