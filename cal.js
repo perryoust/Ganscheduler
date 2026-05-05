@@ -476,8 +476,8 @@ function renderClusterDay(evs, ds, clusterName){
   html+=`<div style="background:#e8eaf6;border-radius:7px;padding:6px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;font-size:.78rem;font-weight:700;color:#1a237e">
     <span>🔢 ${isAll?'כל האשכולות':('אשכול: '+clusterName)} <span style="font-weight:400;color:#546e7a">${evs.length} פעילויות</span></span>
     <div style="display:flex;gap:6px">
-      ${!isAll && clObjD ? `<button onclick="event.stopPropagation();window.openClusterBulkEdit('${clObjD.id}','${ds}')" style="background: linear-gradient(135deg, #1565c0, #1e88e5); border:none; border-radius:4px; color:#fff; font-size:.7rem; font-weight:700; padding:3px 10px; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; align-items:center; gap:3px;">✏️ עריכה מרוכזת</button>` : ''}
-      <button onclick="event.stopPropagation();window._exportPairWA(${JSON.stringify(clGidsD)})" style="background:#25d366; border:none; border-radius:4px; color:#fff; font-size:.7rem; font-weight:700; padding:3px 10px; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; align-items:center; gap:3px;">📋 הודעה</button>
+      ${!isAll && clObjD ? `<button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${clObjD.id}','${ds}')" style="font-size:.68rem;padding:2px 8px">✏️ עריכה מרוכזת</button>` : ''}
+      <button class="btn bg bsm" onclick="event.stopPropagation();window._exportPairWA(${JSON.stringify(clGidsD)})" style="font-size:.68rem;padding:2px 8px">📋 הודעה</button>
     </div>
   </div>`;
   // respects view's class filter
@@ -635,7 +635,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
           const clObj = window.getClusters().find(c => c.name === clName);
           html+=`<div style="font-size:.68rem;font-weight:700;color:${clrCity.solid};background:${clrCity.light};padding:2px 7px;border-radius:3px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center">
             <span>🔢 ${clName}</span>
-            ${clObj ? `<button onclick="event.stopPropagation();window.openClusterBulkEdit('${clObj.id}','${ds}')" style="background: linear-gradient(135deg, #1565c0, #1e88e5); border:none; border-radius:4px; color:#fff; font-size:.62rem; font-weight:700; padding:1px 6px; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">✏️ עריכה</button>` : ''}
+            ${clObj ? `<button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${clObj.id}','${ds}')" style="font-size:.62rem;padding:1px 6px">✏️ עריכה</button>` : ''}
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px">`;
           [...clEvs].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s=>{
@@ -1252,8 +1252,8 @@ function renderRangeListView(evs, fromDs, toDs){
             <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
               <span>🏘️ ${cl.name}</span>
               <div style="display:flex;gap:6px">
-                <button onclick="event.stopPropagation();window.openClusterBulkEdit('${cl.id}','${ds}')" style="background: linear-gradient(135deg, #1565c0, #1e88e5); border:none; border-radius:4px; padding:2px 10px; cursor:pointer; font-size:.7rem; color:#fff; font-weight:700; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; align-items:center; gap:3px;">✏️ עריכה</button>
-                <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="background:${clr.solid}; border:none; border-radius:4px; padding:2px 10px; cursor:pointer; font-size:.7rem; color:#fff; font-weight:700; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; align-items:center; gap:3px;">📋 הודעה</button>
+                <button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${cl.id}','${ds}')" style="font-size:.68rem;padding:2px 8px">✏️ עריכה</button>
+                <button class="btn bg bsm" onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="font-size:.68rem;padding:2px 8px">📋 הודעה</button>
               </div>
             </div>`;
           clEvs.forEach(s=>{ h+=_listRow(s,clr); });

@@ -1336,6 +1336,7 @@ window.openClusterBulkEdit = function(clId, ds) {
   document.getElementById('clbulk-ph').value = '';
   document.getElementById('clbulk-nt').value = '';
   document.getElementById('clbulk-uni-time').value = '';
+  if(document.getElementById('clbulk-new-date')) document.getElementById('clbulk-new-date').value = '';
 
   const allSupsHtml = supSel.innerHTML.replace('<option value="">ללא שינוי</option>', '<option value="">-- בחר ספק --</option>');
 
@@ -1423,6 +1424,7 @@ window.saveClusterBulkEdit = function() {
   const ds = window._clBulkDate;
   if(!cl || !ds) return;
 
+  const newDate = document.getElementById('clbulk-new-date').value;
   const globalSup = document.getElementById('clbulk-sup').value;
   const globalPh = document.getElementById('clbulk-ph').value;
   const globalNt = document.getElementById('clbulk-nt').value;
@@ -1441,6 +1443,7 @@ window.saveClusterBulkEdit = function() {
     const ev = window.SCH.find(s => s.g === gid && s.d === ds && s.st !== 'can');
 
     if(ev) {
+      if(newDate) ev.d = newDate;
       ev.a = rowSup;
       if(rowAct) ev.act = rowAct;
       if(globalPh) ev.p = globalPh;
@@ -1450,7 +1453,7 @@ window.saveClusterBulkEdit = function() {
     } else {
       window.SCH.push({
         id: Date.now() + Math.random(),
-        g: gid, d: ds, a: rowSup, act: rowAct, t: t, p: globalPh, nt: globalNt, st: 'ok', grp: 1
+        g: gid, d: newDate || ds, a: rowSup, act: rowAct, t: t, p: globalPh, nt: globalNt, st: 'ok', grp: 1
       });
       added++;
     }
@@ -1459,7 +1462,7 @@ window.saveClusterBulkEdit = function() {
   window.save();
   window.refresh();
   window.CM('clbulk-m');
-  window.showToast(`✅ עודכנו ${updated} פעילויות${added ? ' ונוספו '+added : ''}`);
+  window.showToast(`✅ עודכנו ${updated} פעילויות${added ? ' ונוספו '+added : ''}${newDate ? ' והועברו לתאריך '+newDate : ''}`);
 };
 
 window.deleteClusterDay = function() {
