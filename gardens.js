@@ -1325,13 +1325,9 @@ window.openClusterBulkEdit = function(clId, ds) {
   window._clBulkDate = ds;
   let cl = (typeof clusters !== 'undefined' ? clusters[clId] : null);
   if(!cl) {
-    console.warn('Cluster not found by ID, trying fallback search:', clId);
     cl = (window.getClusters ? window.getClusters() : []).find(c => c.id === clId);
-  }
-  if(!cl) {
-    console.error('Cluster NOT found:', clId);
-    if(window.showToast) window.showToast('⚠️ שגיאה: אשכול לא נמצא');
-    return;
+    if(cl) console.log('[BulkEdit] Cluster identified via fallback search:', clId);
+    else console.warn('[BulkEdit] Cluster not found by ID:', clId);
   }
 
   (document.getElementById('clbulk-title')||{}).textContent = `✏️ עריכה מרוכזת: ${cl.name}`;
@@ -1444,7 +1440,7 @@ window.openClusterBulkEdit = function(clId, ds) {
 };
 
 window.applyClBulkUniTime = function(t) {
-  const cl = clusters[window._clsId];
+  const cl = (typeof clusters !== 'undefined' ? clusters[window._clsId] : null) || (window.getClusters ? window.getClusters().find(c => c.id === window._clsId) : null);
   if(!cl) return;
   cl.gardenIds.forEach(gid => {
     const el = document.getElementById(`clbulk-t-${gid}`);
@@ -1453,7 +1449,8 @@ window.applyClBulkUniTime = function(t) {
 };
 
 window.applyClBulkUniSup = function(sup) {
-  const cl = clusters[window._clsId];
+  const cl = (typeof clusters !== 'undefined' ? clusters[window._clsId] : null) || (window.getClusters ? window.getClusters().find(c => c.id === window._clsId) : null);
+  console.log('applyClBulkUniSup:', sup, 'Cluster found:', cl ? cl.name : 'NO');
   if(!cl || !sup) return;
   cl.gardenIds.forEach(gid => {
     const el = document.getElementById(`clbulk-s-${gid}`);
@@ -1465,7 +1462,7 @@ window.applyClBulkUniSup = function(sup) {
 };
 
 window.applyClBulkUniTp = function(tp) {
-  const cl = clusters[window._clsId] || window.getClusters().find(c => c.id === window._clsId);
+  const cl = (typeof clusters !== 'undefined' ? clusters[window._clsId] : null) || (window.getClusters ? window.getClusters().find(c => c.id === window._clsId) : null);
   if(!cl || !tp) return;
   cl.gardenIds.forEach(gid => {
     const el = document.getElementById(`clbulk-tp-${gid}`);
@@ -1474,7 +1471,7 @@ window.applyClBulkUniTp = function(tp) {
 };
 
 window.applyClBulkUniAct = function(act) {
-  const cl = clusters[window._clsId] || window.getClusters().find(c => c.id === window._clsId);
+  const cl = (typeof clusters !== 'undefined' ? clusters[window._clsId] : null) || (window.getClusters ? window.getClusters().find(c => c.id === window._clsId) : null);
   if(!cl || !act) return;
   cl.gardenIds.forEach(gid => {
     const el = document.getElementById(`clbulk-act-${gid}`);
@@ -1483,7 +1480,7 @@ window.applyClBulkUniAct = function(act) {
 };
 
 window.applyClBulkUniStatus = function(st) {
-  const cl = clusters[window._clsId];
+  const cl = (typeof clusters !== 'undefined' ? clusters[window._clsId] : null) || (window.getClusters ? window.getClusters().find(c => c.id === window._clsId) : null);
   if(!cl || !st) return;
   cl.gardenIds.forEach(gid => {
     const el = document.getElementById(`clbulk-st-${gid}`);
@@ -1510,13 +1507,25 @@ window.clBulkSupChg = function(gid, supName, selAct) {
 };
 
 window.saveClusterBulkEdit = function() {
-  console.log('saveClusterBulkEdit started');
-  const cl = (typeof clusters !== 'undefined' ? clusters[window._clsId] : null) || (window.getClusters ? window.getClusters().find(c => c.id === window._clsId) : null);
+  console.log('--- saveClusterBulkEdit Execution Start ---');
+  let cl = (typeof clusters !== 'undefined' ? clusters[window._clsId] : null);
+  if(!cl && window.getClusters) {
+     const allCl = window.getClusters();
+     cl = allCl.find(c => c.id === window._clsId || c.name === window._clsId);
+     if(!cl && window._clsId.includes('_')) {
+        // Very aggressive fallback: match by last segment of ID if it's like cl_city_-_9
+        const parts = window._clsId.split('_');
+        const lastPart = parts[parts.length-1];
+        cl = allCl.find(c => c.id.endsWith('_' + lastPart) || c.name.endsWith(' ' + lastPart));
+     }
+  }
+  
   const ds = window._clBulkDate;
-  console.log('Bulk Edit Target:', cl ? cl.name : 'NULL', ds);
+  console.log('Target Cluster:', cl ? cl.name : 'NOT FOUND', 'ID:', window._clsId, 'Date:', ds);
+  
   if(!cl || !ds) {
-    console.error('Missing Cluster or Date');
-    if(window.showToast) window.showToast('⚠️ שגיאה: נתוני אשכול חסרים');
+    console.error('Critical Error: Cluster or Date missing from context.');
+    if(window.showToast) window.showToast('⚠️ שגיאה: נתוני אשכול חסרים. נסה לרענן.');
     return;
   }
 
@@ -1524,7 +1533,7 @@ window.saveClusterBulkEdit = function() {
   const globalSup = document.getElementById('clbulk-sup').value;
   const globalPh = document.getElementById('clbulk-ph').value;
   const globalNt = document.getElementById('clbulk-nt').value;
-  console.log('Global values:', {newDate, globalSup, globalPh, globalNt});
+  console.log('Input Parameters:', {newDate, globalSup, globalPh, globalNt});
 
   let updated = 0, added = 0;
   cl.gardenIds.forEach(gid => {
@@ -1537,15 +1546,15 @@ window.saveClusterBulkEdit = function() {
     const rowSt = document.getElementById(`clbulk-st-${gid}`).value;
     const t = document.getElementById(`clbulk-t-${gid}`)?.value || '';
     
-    console.log(`Processing Garden ${gid}:`, {rowSup, rowAct, rowTp, rowSt, t});
     if(!rowSup) {
-      console.warn(`Skipping garden ${gid} - No Supplier`);
+      console.warn(`Skipping garden ${gid}: No Supplier selected.`);
       return; 
     }
 
     const ev = window.SCH.find(s => s.g === gid && s.d === ds && s.st !== 'can');
 
     if(ev) {
+      console.log(`Updating existing event for garden ${gid}`);
       if(newDate) ev.d = newDate;
       ev.a = rowSup;
       if(rowAct) ev.act = rowAct;
@@ -1556,6 +1565,7 @@ window.saveClusterBulkEdit = function() {
       if(t) ev.t = t;
       updated++;
     } else {
+      console.log(`Creating NEW event for garden ${gid}`);
       window.SCH.push({
         id: `IMP_${Date.now()}_${gid}_${Math.floor(Math.random()*100)}`,
         g: gid, d: newDate || ds, a: rowSup, act: rowAct, tp: rowTp, st: rowSt || 'ok', t: t, p: globalPh, nt: globalNt, grp: 1
@@ -1564,15 +1574,23 @@ window.saveClusterBulkEdit = function() {
     }
   });
 
+  console.log(`Syncing to Firebase. Updated: ${updated}, Added: ${added}`);
   window.save(true); // Force immediate Firebase sync
+  
   try {
+    console.log('Triggering UI Refresh...');
     if(typeof window.refresh === 'function') window.refresh();
     else if(typeof window.renderCal === 'function') window.renderCal();
+    else if(typeof window.renderDash === 'function') window.renderDash();
   } catch(e) {
-    console.error('Error during refresh:', e);
+    console.error('UI Refresh failed:', e);
   }
+  
   window.CM('clbulk-m');
-  window.showToast(`✅ עודכנו ${updated} פעילויות${added ? ' ונוספו '+added : ''}${newDate ? ' והועברו לתאריך '+newDate : ''}`);
+  if(window.showToast) {
+    window.showToast(`✅ עודכנו ${updated} פעילויות${added ? ' ונוספו '+added : ''}`);
+  }
+  console.log('--- saveClusterBulkEdit Execution Finished ---');
 };
 
 window.deleteClusterDay = function() {

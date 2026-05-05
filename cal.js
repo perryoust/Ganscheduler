@@ -73,8 +73,8 @@ function filterE(f,from,to){
   }).map(s=>({...s,d:s.pd,_isPostponed:true}));
   return [...all,...posted];
 }
-let _rangeSubView = 'cal'; // 'cal' | 'list'
-let _listSubView='day'; // 'day'|'week'|'month' — sub-view when calV==='list'
+let _rangeSubView = 'list'; // Default to list view per user request
+let _listSubView='day'; // Default to daily list
 let _calTab = 'g'; // 'g'|'s' (gardens vs schools)
 
 function setCalTab(t){

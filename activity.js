@@ -64,7 +64,7 @@ function renderDash() {
   const tab = window._dashTab || 'g';
   const srch = (document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
 
-  console.log(`[Dash Debug] v96.9 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
+  console.log(`[Dash Debug] v101.2 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
 
   const checkMatch = (s, tTab, tSt, tDate) => {
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
