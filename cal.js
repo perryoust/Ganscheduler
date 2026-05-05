@@ -512,7 +512,11 @@ function renderClusterDay(evs, ds, clusterName){
       Object.entries(clusterMap).sort((a,b)=>a[0].localeCompare(b[0],'he')).forEach(([clName,clEvs])=>{
         const sorted=[...clEvs].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
         html+=`<div style="margin-bottom:10px">
-          <div style="padding:3px 10px;background:${clrCity.light};border-right:3px solid ${clrCity.solid};border-radius:4px;font-size:.74rem;font-weight:700;color:${clrCity.solid};margin-bottom:5px">🔢 ${clName} — ${sorted.length} פעילויות</div>
+          <div style="padding:3px 10px;background:${clrCity.light};border-right:3px solid ${clrCity.solid};border-radius:4px;font-size:.74rem;font-weight:700;color:${clrCity.solid};margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
+            <span>🔢 ${clName} — ${sorted.length} פעילויות</span>
+            ${(clObjD && clName!=='ללא אשכול') ? `<button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${clObjD.id}','${ds}')" style="font-size:.62rem;padding:1px 6px">✏️ עריכה</button>` : 
+              (window.getClusters().find(c=>c.name===clName) ? `<button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${window.getClusters().find(c=>c.name===clName).id}','${ds}')" style="font-size:.62rem;padding:1px 6px">✏️ עריכה</button>` : '')}
+          </div>
           <div style="display:flex;flex-wrap:wrap;gap:6px">`;
           
           sorted.forEach(s => {
@@ -1192,149 +1196,6 @@ function _quickActionBtns(s){
 }
 
 // List view for a date range (used when range sub-view = list)
-function renderRangeListView(evs, fromDs, toDs){
-  const tday=td();
-  const byDate={};
-  evs.forEach(s=>{
-    const dk=s._isPostponed?s.pd:s.d;
-    if(dk>=fromDs&&dk<=toDs){ if(!byDate[dk]) byDate[dk]=[]; byDate[dk].push(s); }
-  });
-  const dates=Object.keys(byDate).sort();
-  const totalEvs=dates.reduce((n,d)=>n+byDate[d].length,0);
-  let h=`<div style="font-size:.78rem;color:#546e7a;padding:6px 10px;background:#e8eaf6;border-radius:7px;margin-bottom:8px">
-    📊 ${dates.length} ימים · ${totalEvs} פעילויות | ${window.fD(fromDs)} – ${window.fD(toDs)}
-  </div><div class="card" style="padding:0;overflow:hidden">`;
-  if(!dates.length) return h+'<div style="padding:20px;text-align:center;color:#999">אין פעילויות בטווח זה</div></div>';
-
-  dates.forEach(ds=>{
-    const dayEvs=byDate[ds].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
-    const isToday=ds===tday;
-    const hol=getHolidayInfo(ds);
-    const blk=getBlockedInfo(ds);
-
-    h+=`<div style="border-bottom:2px solid #c5cae9">
-      <div style="background:${isToday?'#1565c0':hol?hol.bg:blk?'#fce4ec':'#e8eaf6'};color:${isToday?'#fff':hol?hol.color:blk?'#c62828':'#283593'};padding:6px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="jumpToDay('${ds}')">
-        <span style="font-weight:700;font-size:.82rem">📅 ${window.dayN(ds)} ${window.fD(ds)}</span>
-        <span style="display:flex;gap:8px;align-items:center">
-          ${hol?`<span style="font-size:.7rem">${hol.emoji} ${hol.name}</span>`:''}
-          ${blk?`<span style="font-size:.7rem;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')">${blk.icon} ${blk.reason} ✏️</span>`:`<span style="font-size:.65rem;opacity:.4;cursor:pointer" onclick="event.stopPropagation();openBlockedDate('${ds}')" title="חסום">🚫</span>`}
-          <span style="font-size:.72rem">${dayEvs.length} פעילויות</span>
-        </span>
-      </div>
-      <div style="padding:6px 8px">`;
-
-    const allCities=[...new Set(dayEvs.map(s=>window.G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
-
-    allCities.forEach(city=>{
-      const cityEvs=dayEvs.filter(s=>(window.G(s.g).city||'אחר')===city);
-      const clr=window.CITY_COLORS(city);
-
-      h+=`<details class="city-accordion" style="margin-bottom:8px" open>
-        <summary style="background:${clr.light};border-right:4px solid ${clr.solid};border-radius:6px;padding:5px 10px;margin-bottom:5px;font-weight:800;color:${clr.solid};font-size:.88rem;cursor:pointer">
-          🏙️ ${city} · ${cityEvs.length}
-        </summary>
-        <div style="padding:4px 0">`;
-
-      const _gmode = typeof _listGroupMode!=='undefined' ? _listGroupMode : 'pairs';
-      const firstUsedGids=new Set();
-
-      if(_gmode==='clusters'){
-        const dayClusters=(typeof getClusters==='function'?getClusters():[]).filter(cl=>
-          (cl.city===city||!cl.city)&&(cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===parseInt(gid))));
-        const clusteredGids=new Set();
-        dayClusters.forEach(cl=>{
-          const clEvs=cityEvs.filter(s=>(cl.gardenIds||[]).map(x=>parseInt(x)).includes(s.g))
-            .sort((a,b)=>(window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
-          if(!clEvs.length) return;
-          clEvs.forEach(s=>{clusteredGids.add(s.g);firstUsedGids.add(s.g);});
-          const clGids=clEvs.map(s=>s.g);
-          h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
-            <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
-              <span>🏘️ ${cl.name}</span>
-              <div style="display:flex;gap:6px">
-                <button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${cl.id}','${ds}')" style="font-size:.68rem;padding:2px 8px">✏️ עריכה</button>
-                <button class="btn bg bsm" onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="font-size:.68rem;padding:2px 8px">📋 הודעה</button>
-              </div>
-            </div>`;
-          clEvs.forEach(s=>{ h+=_listRow(s,clr); });
-          h+=`</div>`;
-        });
-        const pairedGids=new Set();
-        const pairGroups=[];
-        window.pairs.forEach(pair=>{
-          if(typeof isPairBroken==='function'&&isPairBroken(pair.id,ds)) return;
-          const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
-          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!firstUsedGids.has(s.g) && !isM(s));
-          if(!pairEvs.length) return;
-          pairEvs.forEach(s=>{pairedGids.add(s.g);firstUsedGids.add(s.g);});
-          pairGroups.push({pair,pairEvs});
-        });
-        pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he'));
-        pairGroups.forEach(({pair,pairEvs})=>{
-          const sorted=pairEvs.sort((a,b)=>(window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
-          h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
-            <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
-              <span>🔗 ${pair.name}</span>
-              <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
-            </div>`;
-          sorted.forEach(s=>{ h+=_listRow(s,clr); });
-          h+=`</div>`;
-        });
-      } else {
-        const pairedGids=new Set();
-        const pairGroups=[];
-        window.pairs.forEach(pair=>{
-          if(typeof isPairBroken==='function'&&isPairBroken(pair.id,ds)) return;
-          const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
-          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g) && !isM(s));
-          if(!pairEvs.length) return;
-          pairEvs.forEach(s=>{pairedGids.add(s.g);firstUsedGids.add(s.g);});
-          pairGroups.push({pair,pairEvs});
-        });
-        pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he'));
-        pairGroups.forEach(({pair,pairEvs})=>{
-          const sorted=pairEvs.sort((a,b)=>(window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
-          h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
-            <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
-              <span>🔗 ${pair.name}</span>
-              <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
-            </div>`;
-          sorted.forEach(s=>{ h+=_listRow(s,clr); });
-          h+=`</div>`;
-        });
-        const dayClusters=(typeof getClusters==='function'?getClusters():[]).filter(cl=>
-          (cl.city===city||!cl.city)&&(cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===parseInt(gid)&&!firstUsedGids.has(s.g))));
-        dayClusters.forEach(cl=>{
-          const clEvs=cityEvs.filter(s=>(cl.gardenIds||[]).map(x=>parseInt(x)).includes(s.g)&&!firstUsedGids.has(s.g))
-            .sort((a,b)=>(window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'));
-          if(!clEvs.length) return;
-          clEvs.forEach(s=>firstUsedGids.add(s.g));
-          const clGids=clEvs.map(s=>s.g);
-          h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
-            <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
-              <span>🏘️ ${cl.name}</span>
-              <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
-            </div>`;
-          clEvs.forEach(s=>{ h+=_listRow(s,clr); });
-          h+=`</div>`;
-        });
-      }
-
-      const _allUsedGids=firstUsedGids;
-
-
-      // ── Solos sorted by time ──
-      cityEvs.filter(s=>!_allUsedGids.has(s.g) || (s._makeupFrom || (s.nt && s.nt.includes('השלמה'))))
-        .sort((a,b)=>(window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he')||(a.t||'99:99').localeCompare(b.t||'99:99'))
-        .forEach(s=>{ h+=_listRow(s,clr); });
-
-      h+=`</div>`;
-    });
-
-    h+='</div></div>';
-  });
-  return h+'</div>';
-}
 
 function renderCalList(evs, mDate){
   const y=mDate.getFullYear(),m=mDate.getMonth();
@@ -1622,7 +1483,10 @@ function renderRangeListView(evs, fromDs, toDs){
         h += `<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
           <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
             <span>🏘️ ${cl.name}</span>
-            <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
+            <div style="display:flex;gap:4px">
+               <button onclick="event.stopPropagation();window.openClusterBulkEdit('${cl.id}','${ds}')" style="background:#1565c0;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">✏️ עריכה</button>
+               <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
+            </div>
           </div>`;
         clEvs.forEach(s => { h += _listRow(s, clr, ds); });
         h += `</div>`;

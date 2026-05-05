@@ -1336,6 +1336,8 @@ window.openClusterBulkEdit = function(clId, ds) {
   document.getElementById('clbulk-ph').value = '';
   document.getElementById('clbulk-nt').value = '';
   document.getElementById('clbulk-uni-time').value = '';
+  document.getElementById('clbulk-uni-tp').value = '';
+  document.getElementById('clbulk-uni-st').value = '';
   if(document.getElementById('clbulk-new-date')) document.getElementById('clbulk-new-date').value = '';
 
   const allSupsHtml = supSel.innerHTML.replace('<option value="">ללא שינוי</option>', '<option value="">-- בחר ספק --</option>');
@@ -1344,7 +1346,7 @@ window.openClusterBulkEdit = function(clId, ds) {
   let h = '';
   gs.forEach(g => {
     const ev = window.SCH.find(s => s.g === g.id && s.d === ds && s.st !== 'can');
-    h += `<div style="display:grid;grid-template-columns:35px 1fr 180px 160px 80px;gap:12px;align-items:center;padding:10px 15px;border-bottom:1px solid #f0f0f0;font-size:.82rem; transition: background 0.2s;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
+    h += `<div style="display:grid;grid-template-columns:35px 1fr 140px 140px 100px 100px 80px;gap:8px;align-items:center;padding:10px 15px;border-bottom:1px solid #f0f0f0;font-size:.82rem; transition: background 0.2s;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
       <label style="display:flex;align-items:center;justify-content:center;cursor:pointer">
         <input type="checkbox" id="clbulk-inc-${g.id}" checked style="width:16px;height:16px;accent-color:#1565c0">
       </label>
@@ -1354,6 +1356,18 @@ window.openClusterBulkEdit = function(clId, ds) {
       </select>
       <select id="clbulk-act-${g.id}" style="font-size:.8rem;padding:6px;border-radius:4px;border:1px solid #cfd8dc">
         <option value="">-- פעילות --</option>
+      </select>
+      <select id="clbulk-tp-${g.id}" style="font-size:.8rem;padding:6px;border-radius:4px;border:1px solid #cfd8dc">
+        <option value="">-- סוג --</option>
+        <option value="חוג">חוג</option>
+        <option value="צהרון">צהרון</option>
+        <option value="בוקר">בוקר</option>
+        <option value="השלמה">השלמה</option>
+      </select>
+      <select id="clbulk-st-${g.id}" style="font-size:.8rem;padding:6px;border-radius:4px;border:1px solid #cfd8dc">
+        <option value="ok">✅ תקין</option>
+        <option value="can">❌ בוטל</option>
+        <option value="nohap">⚠️ לא התקיים</option>
       </select>
       <input type="time" id="clbulk-t-${g.id}" value="${ev?window.fT(ev.t):''}" style="padding:5px;font-size:.8rem;border-radius:4px;border:1px solid #cfd8dc">
     </div>`;
@@ -1369,6 +1383,8 @@ window.openClusterBulkEdit = function(clId, ds) {
          sEl.value = ev.a || '';
          window.clBulkSupChg(g.id, ev.a, ev.act);
        }
+       if(document.getElementById(`clbulk-tp-${g.id}`)) document.getElementById(`clbulk-tp-${g.id}`).value = ev.tp || '';
+       if(document.getElementById(`clbulk-st-${g.id}`)) document.getElementById(`clbulk-st-${g.id}`).value = ev.st || 'ok';
     }
   });
 
@@ -1399,6 +1415,24 @@ window.applyClBulkUniSup = function(sup) {
        el.value = sup;
        window.clBulkSupChg(gid, sup);
     }
+  });
+};
+
+window.applyClBulkUniTp = function(tp) {
+  const cl = window.clusters[window._clsId];
+  if(!cl || !tp) return;
+  cl.gardenIds.forEach(gid => {
+    const el = document.getElementById(`clbulk-tp-${gid}`);
+    if(el) el.value = tp;
+  });
+};
+
+window.applyClBulkUniStatus = function(st) {
+  const cl = window.clusters[window._clsId];
+  if(!cl || !st) return;
+  cl.gardenIds.forEach(gid => {
+    const el = document.getElementById(`clbulk-st-${gid}`);
+    if(el) el.value = st;
   });
 };
 
@@ -1436,6 +1470,8 @@ window.saveClusterBulkEdit = function() {
 
     const rowSup = document.getElementById(`clbulk-s-${gid}`).value || globalSup;
     const rowAct = document.getElementById(`clbulk-act-${gid}`).value;
+    const rowTp = document.getElementById(`clbulk-tp-${gid}`).value || document.getElementById('clbulk-uni-tp').value;
+    const rowSt = document.getElementById(`clbulk-st-${gid}`).value;
     const t = document.getElementById(`clbulk-t-${gid}`)?.value || '';
     
     if(!rowSup) return; 
@@ -1446,6 +1482,8 @@ window.saveClusterBulkEdit = function() {
       if(newDate) ev.d = newDate;
       ev.a = rowSup;
       if(rowAct) ev.act = rowAct;
+      if(rowTp) ev.tp = rowTp;
+      if(rowSt) ev.st = rowSt;
       if(globalPh) ev.p = globalPh;
       if(globalNt) ev.nt = (ev.nt ? ev.nt + ' | ' : '') + globalNt;
       if(t) ev.t = t;
@@ -1453,7 +1491,7 @@ window.saveClusterBulkEdit = function() {
     } else {
       window.SCH.push({
         id: Date.now() + Math.random(),
-        g: gid, d: newDate || ds, a: rowSup, act: rowAct, t: t, p: globalPh, nt: globalNt, st: 'ok', grp: 1
+        g: gid, d: newDate || ds, a: rowSup, act: rowAct, tp: rowTp, st: rowSt || 'ok', t: t, p: globalPh, nt: globalNt, grp: 1
       });
       added++;
     }

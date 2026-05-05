@@ -1939,9 +1939,26 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
           </div>
           <div class="fg">
             <label style="font-size: 0.75rem; color: #546e7a; font-weight: 700; margin-bottom: 4px; display: block;">🕒 שעה אחידה</label>
-            <div style="display:flex; gap: 6px;">
-              <input type="time" id="clbulk-uni-time" oninput="applyClBulkUniTime(this.value)" style="flex:1; padding: 7px; border-radius: 6px; border: 1.5px solid #cfd8dc; font-size: 0.85rem;">
-            </div>
+            <input type="time" id="clbulk-uni-time" oninput="applyClBulkUniTime(this.value)" style="width: 100%; padding: 7px; border-radius: 6px; border: 1.5px solid #cfd8dc; font-size: 0.85rem;">
+          </div>
+          <div class="fg">
+            <label style="font-size: 0.75rem; color: #546e7a; font-weight: 700; margin-bottom: 4px; display: block;">📊 סוג (לכולם)</label>
+            <select id="clbulk-uni-tp" onchange="window.applyClBulkUniTp(this.value)" style="width: 100%; padding: 8px; border-radius: 6px; border: 1.5px solid #cfd8dc; font-size: 0.85rem;">
+              <option value="">ללא שינוי</option>
+              <option value="חוג">חוג</option>
+              <option value="צהרון">צהרון</option>
+              <option value="בוקר">בוקר</option>
+              <option value="השלמה">השלמה</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label style="font-size: 0.75rem; color: #546e7a; font-weight: 700; margin-bottom: 4px; display: block;">⚡ סטטוס (לכולם)</label>
+            <select id="clbulk-uni-st" onchange="window.applyClBulkUniStatus(this.value)" style="width: 100%; padding: 8px; border-radius: 6px; border: 1.5px solid #cfd8dc; font-size: 0.85rem;">
+              <option value="">ללא שינוי</option>
+              <option value="ok">✅ תקין</option>
+              <option value="can">❌ בוטל</option>
+              <option value="nohap">⚠️ לא התקיים</option>
+            </select>
           </div>
         </div>
         <div class="fg" style="margin-top: 12px;">
@@ -1960,11 +1977,13 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         </div>
       </div>
       
-      <div id="clbulk-list-header" style="display:grid; grid-template-columns: 35px 1fr 180px 160px 80px; gap: 12px; padding: 10px 15px; background: #eceff1; border-radius: 8px 8px 0 0; font-size: 0.75rem; font-weight: 800; color: #455a64; border: 1px solid #cfd8dc; border-bottom: none;">
+      <div id="clbulk-list-header" style="display:grid; grid-template-columns: 35px 1fr 140px 140px 100px 100px 80px; gap: 8px; padding: 10px 15px; background: #eceff1; border-radius: 8px 8px 0 0; font-size: 0.75rem; font-weight: 800; color: #455a64; border: 1px solid #cfd8dc; border-bottom: none;">
         <span></span>
         <span>שם הגן</span>
         <span>ספק</span>
         <span>פעילות</span>
+        <span>סוג</span>
+        <span>סטטוס</span>
         <span>שעה</span>
       </div>
       <div id="clbulk-list" style="max-height: 380px; overflow-y: auto; border: 1px solid #cfd8dc; border-top: none; border-radius: 0 0 8px 8px; background: #fff;"></div>
