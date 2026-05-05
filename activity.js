@@ -481,9 +481,9 @@ function openSP(id) {
       <span>🏠 פירוט גנים ושיבוצים - ${window.fD(s.d)} (${window.dayN(s.d)})</span>
       <div style="display:flex;gap:8px;align-items:center">
         ${typeTag}
-        <button onclick="window.openWA('${g.phone}')" class="btn bsm" style="background:#25D366;color:#fff;padding:2px 6px;border-radius:4px;display:flex;align-items:center;gap:4px;border:none">
-          <span style="font-size:0.8rem">💬</span>
-          <span style="font-size:0.65rem;font-weight:800">הודעה</span>
+        <button onclick="window._exportGardenWA(['${g.id}'], '${s.d}')" class="btn bsm" style="background:#1565c0;color:#fff;padding:2px 6px;border-radius:4px;display:flex;align-items:center;gap:4px;border:none">
+          <span style="font-size:0.8rem">🚀</span>
+          <span style="font-size:0.65rem;font-weight:800">יצוא להודעה</span>
         </button>
         <label style="display:flex;align-items:center;gap:4px;cursor:pointer;background:#f3e5f5;padding:2px 6px;border-radius:4px;border:1px solid #ce93d8">
           <input type="checkbox" id="sp-is-rec-chk" ${isRec ? 'checked' : ''} onchange="window.toggleSpRecurBox(this.checked)" style="width:14px;height:14px;accent-color:#6a1b9a">
