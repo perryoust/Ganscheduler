@@ -1,4 +1,4 @@
-// cal.js v101.3 - Compact UI & Default View Fix
+// cal.js v101.2 - Compact UI & Default View Fix
 function calRefG(){
   // Ensure cal-cls matches the active tab
   const clsSel=document.getElementById('cal-cls');
@@ -145,7 +145,7 @@ function navCal(d){
 }
 function goToday(){calD=new Date();document.getElementById('cal-dp').value=td();renderCal();}
 function goDate(s){if(s){calD=s2d(s);renderCal();}}
-function jumpToDay(ds){calD=s2d(ds);setListSubView('day');setView('list');}
+function jumpToDay(ds){calD=s2d(ds);setView('day');}
 function clearCal(){
   ['cal-city','cal-cls','cal-cl','cal-sup'].forEach(id=>document.getElementById(id).value='');
   ['cal-g1','cal-g2','cal-g3'].forEach((id,i)=>{
