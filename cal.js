@@ -847,6 +847,7 @@ function renderPairCard(pair, pairEvs, opts){
             ${ev.st==='nohap'?'':`<button title="חוסר" onclick="window.qSetSt('${ev.id}','nohap')" style="padding:1px 4px;">⚠️</button>`}
           </div>
         </div>`;
+        });
       }
     }
   });

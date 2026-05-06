@@ -1318,6 +1318,7 @@ function doPostpone(){
   s._compByMakeup = newId1; // Mark original as handled
 
   const newEv1 = {...s, id:newId1, d:newDate, t:s.t, a:newSup||s.a, act:newAct||s.act, st:'ok', pd:'', pt:'', _postFrom: s.d};
+  delete newEv1._recId;
   if(reason) newEv1.n = s.n ? s.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
   window.SCH.push(newEv1);
   
@@ -1333,6 +1334,7 @@ function doPostpone(){
     }
     const ptEv = conf.pEv || {...s, g: conf.syn.g};
     const newPtEv = {...ptEv, id:newSynId, d:newDate, t:conf.syn.t || ptEv.t, a:newSup||s.a, act:newAct||s.act, st:'ok', pd:'', pt:'', _postFrom: s.d};
+    delete newPtEv._recId;
     if(!conf.pEv && reason) newPtEv.n = ptEv.n ? ptEv.n + ' | נוצר מדחייה: ' + reason : 'נוצר מדחייה: ' + reason;
     else if(reason) newPtEv.n = ptEv.n ? ptEv.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
     window.SCH.push(newPtEv);
@@ -1352,12 +1354,14 @@ function doCopy(){
   
   // Primary
   const newEv1 = {...s, id:Date.now(), d:newDate, t:primaryTime || s.t, st:'ok', pd:'', pt:'', cr:'', cn:''};
+  delete newEv1._recId;
   window.SCH.push(newEv1);
   
   // Synergy
   const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('copy') : [];
   synergyPartners.forEach((syn, idx) => {
     const newPtEv = {...s, id:Date.now() + idx + 1, g:syn.g, d:newDate, t:syn.t || primaryTime || s.t, st:'ok', pd:'', pt:'', cr:'', cn:''};
+    delete newPtEv._recId;
     window.SCH.push(newPtEv);
   });
   
