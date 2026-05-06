@@ -2462,7 +2462,6 @@ function exportMgrContact(id){
   if(m.notes) txt+=`💬 ${m.notes}\n`;
   txt+='\n';
   txt+=`🏫 צהרונים באחריותו (${gs.length}):\n`;
-  txt+='━━━━━━━━━━━━━━━━━━━━━━\n';
   // group by city
   const byCity={};
   gs.forEach(g=>{if(!byCity[g.city])byCity[g.city]=[];byCity[g.city].push(g);});

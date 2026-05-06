@@ -1002,7 +1002,7 @@ function genExport(){
   let text='';
   const dates=Object.keys(byDate).sort();
   dates.forEach((date,di)=>{
-    text+=`📅 ${fD(date)} - יום ${dayN(date)}${isM_flag ? ' (השלמה)' : ''}\n━━━━━━━━━━━━━━━━\n`;
+    text+=`📅 ${fD(date)} - יום ${dayN(date)}${isM_flag ? ' (השלמה)' : ''}\n`;
     const byCity={};
     byDate[date].forEach(s=>{
       const g=G(s.g);const c=g.city||'';
