@@ -388,11 +388,17 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
         <button id="dvp-todo" class="dash-view-pill active" onclick="setDashView('todo')">
           <span>🚀 לטיפול</span> <b class="badge" id="dvp-cnt-todo">0</b>
         </button>
+        <button id="dvp-nohap" class="dash-view-pill" onclick="setDashView('nohap')">
+          <span>⚠️ לא התקיים</span> <b class="badge" id="dvp-cnt-nohap">0</b>
+        </button>
+        <button id="dvp-post" class="dash-view-pill" onclick="setDashView('post')">
+          <span>📅 נדחה</span> <b class="badge" id="dvp-cnt-post">0</b>
+        </button>
         <button id="dvp-handled" class="dash-view-pill" onclick="setDashView('handled')">
-          <span>✅ טופלו</span>
+          <span>✅ טופלו</span> <b class="badge" id="dvp-cnt-handled">0</b>
         </button>
         <button id="dvp-all" class="dash-view-pill" onclick="setDashView('all')">
-          <span>📋 הכל</span>
+          <span>📋 הכל</span> <b class="badge" id="dvp-cnt-all">0</b>
         </button>
         <button id="dvp-can" class="dash-view-pill" onclick="setDashView('can')">
           <span>🚫 בוטלו</span> <b class="badge" id="dvp-cnt-can">0</b>

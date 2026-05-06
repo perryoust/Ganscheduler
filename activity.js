@@ -111,7 +111,14 @@ function renderDash() {
       const isExc = (s.st === 'nohap' || s.st === 'post');
       const isPendingM = isM && s.st !== 'done';
       if (!isExc && !isPendingM) return false;
-      // For global todo, we usually ignore date unless from/to range is set
+      if (from && s.d < from) return false;
+      if (to && s.d > to) return false;
+    } else if (view === 'nohap') {
+      if (s.st !== 'nohap' || isHandled) return false;
+      if (from && s.d < from) return false;
+      if (to && s.d > to) return false;
+    } else if (view === 'post') {
+      if (s.st !== 'post' || isHandled) return false;
       if (from && s.d < from) return false;
       if (to && s.d > to) return false;
     } else if (view === 'handled') {
@@ -125,7 +132,7 @@ function renderDash() {
       if (to && s.d > to) return false;
       if (!from && !to && date && s.d !== date) return false;
     } else { // 'all'
-      if (s.st === 'can' && view !== 'can') return false; // Hide can by default in 'all'
+      if (s.st === 'can' && view !== 'can') return false;
       if (from && s.d < from) return false;
       if (to && s.d > to) return false;
       if (!from && !to && date && s.d !== date) return false;
@@ -209,7 +216,14 @@ function renderDash() {
 window.dashCheckAll = function(groupId, checked) {
   const group = document.getElementById(groupId);
   if (group) {
-    group.querySelectorAll('.dash-row-chk').forEach(cb => cb.checked = checked);
+    const chks = group.querySelectorAll('.dash-row-chk');
+    chks.forEach(cb => {
+      cb.checked = checked;
+      // Force repaint/reflow for checkbox visibility issues
+      cb.style.display = 'none';
+      cb.offsetHeight;
+      cb.style.display = 'inline-block';
+    });
   }
   dashUpdateBulkBar();
 };
@@ -249,19 +263,32 @@ window.dashBatchAction = function(action) {
           const nText = '✅ טופל: ' + note;
           s.nt = s.nt ? s.nt + ' | ' + nText : nText;
         }
-        // Also sync to partner if applicable
+        // Also sync to partners if applicable
         const pair = window.gardenPair(s.g);
-        if (pair) {
-          const pId = pair.ids.find(pid => Number(pid) !== Number(s.g));
+        const cluster = window.clusters ? window.clusters.find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
+        
+        const allPartnerIds = new Set();
+        if(pair) pair.ids.forEach(pid => allPartnerIds.add(Number(pid)));
+        if(cluster) cluster.gids.forEach(pid => allPartnerIds.add(Number(pid)));
+        allPartnerIds.delete(Number(s.g));
+
+        allPartnerIds.forEach(pId => {
           const ps = window.findPartnerActivity(pId, s.d, s.a);
           if (ps) {
             ps._compByMakeup = stamp;
-            if (note) ps.nt = ps.nt ? ps.nt + ' | ' + ( '✅ טופל: ' + note ) : ( '✅ טופל: ' + note );
+            if (note) {
+              const nText = '✅ טופל: ' + note;
+              ps.nt = ps.nt ? ps.nt + ' | ' + nText : nText;
+            }
           }
-        }
+        });
       }
     });
     window.saveAndRefresh('dash', true);
+    setTimeout(() => {
+      document.querySelectorAll('.dash-row-chk').forEach(cb => cb.checked = false);
+      dashUpdateBulkBar();
+    }, 100);
     showToast(`✅ ${ids.length} פריטים סומנו כטופלו`);
   }
 };

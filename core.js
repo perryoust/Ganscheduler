@@ -997,7 +997,11 @@ function updCounts(){
   setEl('h-inv-prog', (window.INVOICES||[]).filter(i=>_migrateInvStatus(i.status)==='tx_invoice').length);
   
   // Dashboard Pill Badges
-  setEl('dvp-cnt-todo', nohap);
+  setEl('dvp-cnt-todo', todo);
+  setEl('dvp-cnt-nohap', nohap);
+  setEl('dvp-cnt-post', post);
+  setEl('dvp-cnt-handled', handled);
+  setEl('dvp-cnt-all', allInTab.toLocaleString());
   setEl('dvp-cnt-can', can);
 
   // Bulk counter
