@@ -314,10 +314,14 @@ async function saveToFirebase(silent) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    // Also update a standalone timestamp for efficient polling
-    const tsUrl = FIREBASE_DB_URL.replace('.json', '/ts.json') + _saveQ;
-    fetch(tsUrl, { method: 'PUT', body: JSON.stringify(nowTs) }).catch(()=>{});
+    
     if (r.ok) {
+      // Also update a standalone timestamp for efficient polling (awaited for reliability)
+      try {
+        const tsUrl = FIREBASE_DB_URL.replace('.json', '/ts.json') + _saveQ;
+        await fetch(tsUrl, { method: 'PUT', body: JSON.stringify(nowTs) });
+      } catch(e) { console.warn('TS update failed', e); }
+
       _setFbSaveTs(nowTs);
       window._safeLS.setItem('ganv5_local_ts', String(nowTs));
       _fbLastError = null;

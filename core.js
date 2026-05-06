@@ -3135,7 +3135,7 @@ function qSetSt(id, st) {
       if (pev) { pev.st = st; if (st==='ok'){pev.cr='';pev.cn='';} }
     });
   }
-  save(); refresh();
+  save(true); refresh();
 }
 window.qSetSt = qSetSt;
 window.getGardenBlock = getGardenBlock;

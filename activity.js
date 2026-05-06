@@ -275,7 +275,7 @@ window.dashBatchAction = function(action) {
         });
       }
     });
-    window.saveAndRefresh('dash', true);
+    window.saveAndRefresh('dash', false, true);
     setTimeout(() => {
       document.querySelectorAll('.dash-row-chk').forEach(cb => cb.checked = false);
       dashUpdateBulkBar();
@@ -1270,8 +1270,8 @@ function refresh(){
   if(window.currentTab==='sched' && window.renderSched) window.renderSched();
 }
 
-function saveAndRefresh(modalId, stayOpen = false){
-  window.save();
+function saveAndRefresh(modalId, stayOpen = false, immediate = false){
+  window.save(immediate);
   if(!stayOpen) {
     if(modalId) window.CM(modalId);
     if(modalId === 'sp' || modalId === 'sp-m') closeSP();
