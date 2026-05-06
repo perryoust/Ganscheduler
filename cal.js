@@ -45,7 +45,7 @@ function filterE(f,from,to){
      // Status Filter 
      if(f.st==='todo'){
         const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
-        if(!(s.st==='nohap' || s.st==='post' || isM) || (s._compByMakeup && s._compByMakeup !== 'false')) return false;
+        if(!(s.st==='nohap' || s.st==='post' || isM)) return false;
      } else if(!f.st){
         // No status filter: show everything in calendar regardless of _compByMakeup
      } else if(f.st && s.st!==f.st) return false;
@@ -410,7 +410,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
         const pairBlocks=[];
         window.pairs.forEach(pair=>{
           if(window.isPairBroken(pair.id,ds)) return;
-          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g) && !s._makeupFrom);
+          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g));
           if(!pairEvs.length) return;
           pair.ids.forEach(id=>pairedGids.add(id));
           const earliest=pairEvs.map(s=>s.t||'99:99').sort()[0];
@@ -428,7 +428,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
 
         // --- גנים בודדים: לפי שם צהרון (אחר"כ שעה) ---
         const soloEvs=cityEvs
-          .filter(s=>!pairedGids.has(s.g) || s._makeupFrom)
+          .filter(s=>!pairedGids.has(s.g))
           .sort((a,b)=>{
             const na=window.G(a.g).name||'', nb=window.G(b.g).name||'';
             return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
@@ -484,7 +484,7 @@ function renderClusterDay(evs, ds, clusterName){
   // respects view's class filter
   const calCls=document.getElementById('cal-cls').value;
   const calCity=document.getElementById('cal-city').value;
-  const makeupsSection = renderMakeupsTop(ds, calCity, calCls);
+  const makeupsSection = ''; // renderMakeupsTop removed as they are now in regular rows
   html += makeupsSection;
 
   if(isAll){
@@ -616,7 +616,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
     // Global Makeups at Top
     const calClsW=document.getElementById('cal-cls').value;
     const calCityW=document.getElementById('cal-city').value;
-    html += renderMakeupsTop(ds, calCityW, calClsW);
+    html += ''; // renderMakeupsTop removed as they are now in regular rows
 
     if(!dayEvs.length){
       html+=`<div style="padding:12px;text-align:center;color:#bbb;font-size:.76rem;background:#fff">אין פעילויות</div>`;
@@ -655,7 +655,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
           <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px">`;
           [...clEvs].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s=>{
             const g=window.G(s.g);
-            const stc=s.st!=='ok'?'st-'+s.st:'';
+            const stc=s.st!=='ok'?'st-'+s.st:''
             html+=`<div style="min-width:150px;flex:1;max-width:240px;border:1.5px solid ${clrCity.border};border-right:3px solid ${clrCity.solid};border-radius:6px;padding:6px;cursor:pointer;background:#fff" onclick="openSP('${s.id}')" class="${stc}">
               ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clrCity.solid}">⏰ ${window.fT(s.t)}</div>`:''}
               <div style="font-weight:700;font-size:.76rem;color:#1a237e">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
@@ -706,8 +706,8 @@ function renderNormalDay(evs,ds){
   </div>`;
   
   const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-  // Regular section shows everything that is NOT a makeup
-  const others=evs.filter(s=> !isM(s)); // KEEP _compByMakeup activities visible on calendar
+  // Show everything in the regular section
+  const others=evs; 
   const pairedGids=new Set();
   const pairsByCity={};
 
@@ -811,7 +811,7 @@ function renderPairCard(pair, pairEvs, opts){
       for (const k in gEvs) {
         const ev = gEvs[k];
         const sb = window.supBase(ev.a);
-        const groupKey = sb + '|' + (ev.t || '') + '|' + (ev.act || '');
+        const groupKey = sb + '|' + (ev.t || '') + '|' + (ev.act || '') + '|' + ev.st;
         if(!sups[groupKey]) sups[groupKey] = { hasOk: false, evs: [] };
         if(ev.st === 'ok') sups[groupKey].hasOk = true;
         sups[groupKey].evs.push(ev);
@@ -862,7 +862,7 @@ function renderGardenCols(evs, gids, clr){
     const ge = evs.filter(s => s.g === gid).sort((a,b) => window.compareActivities(a, b));
     html += `<div class="garden-col" style="border-right:${i > 0 ? '1px solid rgba(0,0,0,.06)' : 'none'}">
       <div class="garden-col-hdr" style="color:${clr.text}">
-        ${window.gcls(g) === 'بيה"ס' ? '🏛️' : '🏫'} ${g.name}
+        ${window.gcls(g) === 'ביה"ס' ? '🏛️' : '🏫'} ${g.name}
       </div>`;
     
     if (!ge.length) {
@@ -1245,14 +1245,14 @@ function renderCalList(evs, mDate){
 
     // Global Makeups at Top
     const f=getCalF();
-    h += renderMakeupsTop(ds, f&&f.city, f&&f.cls);
+    h += ''; // renderMakeupsTop removed
 
     // Group by city → sort cities
     const allCities=[...new Set(dayEvs.map(s=>window.G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
 
     allCities.forEach(city=>{
       // Filter out makeups from the regular city block because they are in MakeupsTop now
-      const cityEvs=dayEvs.filter(s=>(window.G(s.g).city||'אחר')===city && !isM(s));
+      const cityEvs=dayEvs.filter(s=>(window.G(s.g).city||'אחר')===city);
       if(!cityEvs.length) return;
       const clr=window.CITY_COLORS(city);
 
@@ -1460,12 +1460,12 @@ function renderRangeListView(evs, fromDs, toDs){
       </div>`;
 
     h += '<div style="padding:6px 8px">';
-    h += renderMakeupsTop(ds);
+    h += ''; // renderMakeupsTop removed as they are now in regular rows
 
     const allCities = [...new Set(dayEvs.map(s => window.G(s.g).city || 'אחר'))].sort((a,b) => a.localeCompare(b, 'he'));
 
     allCities.forEach(city => {
-      const cityEvs = dayEvs.filter(s => (window.G(s.g).city || 'אחר') === city && !isM(s));
+      const cityEvs = dayEvs.filter(s => (window.G(s.g).city || 'אחר') === city);
       if(!cityEvs.length) return;
       const clr = window.CITY_COLORS(city);
 
