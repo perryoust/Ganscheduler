@@ -1392,7 +1392,7 @@ function getSynergyData(prefix) {
   chks.forEach(chk => {
     if (chk.checked) {
       const pId = chk.value;
-      const timeInput = document.getElementById(`${prefix}-syn-time-${pId}`);
+      const timeInput = document.querySelector(`.${prefix}-syn-time[data-gid="${pId}"]`);
       data.push({ g: Number(pId), t: timeInput ? timeInput.value : '' });
     }
   });
@@ -1517,7 +1517,7 @@ window.spMuDateChg = function() {
   const s = window.SCH.find(x => x.id == sid);
   if(!date || !s) return;
   
-  window.spUpdateMakeupPartnersTable(s.g, date, s.a);
+  window.spUpdateMakeupPartnersTable(s.g, date, s.id);
   window.spShowFreeDays(s.g);
 };
 
@@ -1552,14 +1552,17 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
     const sup = ev ? window.supBase(ev.a) : '—';
     const act = ev ? (ev.act || '—') : '—';
     const time = ev ? (window.fT ? window.fT(ev.t) : ev.t) : '—';
+    const makeupTime = document.getElementById(prefix.startsWith('sp') ? 'sp-mu-time' : 'ns-mu-time')?.value || (ev ? ev.t : '14:00');
     
     rowsHtml += `<tr style="border-bottom:1px solid #eee;font-size:0.75rem;background:${stClass==='busy'?'#fff9f9':'#fff'}">
       <td style="padding:6px;text-align:center"><input type="checkbox" class="${prefix}-syn-chk" value="${pId}" checked style="width:16px;height:16px;accent-color:#e65100"></td>
       <td style="padding:6px;font-weight:700">${pG.name}</td>
       <td style="padding:6px">${sup}</td>
       <td style="padding:6px">${act}</td>
-      <td style="padding:6px">${stLabel}</td>
-      <td style="padding:6px;font-weight:700">${time}</td>
+      <td style="padding:6px;text-align:center"><span class="badge ${stClass}">${stLabel}</span></td>
+      <td style="padding:6px">
+        <input type="time" class="${prefix}-syn-time" data-gid="${pId}" value="${makeupTime}" style="width:75px;padding:2px;border:1px solid #ccc;border-radius:4px;font-size:0.7rem">
+      </td>
     </tr>`;
   });
   
@@ -1640,18 +1643,17 @@ window.spSaveMakeup = function() {
   
   if(!newDate || !time) { alert('בחר תאריך ושעה'); return; }
   
-  const synGids = Array.from(document.querySelectorAll('.sp-mu-syn-chk:checked')).map(c => parseInt(c.value));
-  const allGids = [origEv.g, ...synGids];
+  const targets = [{ g: origEv.g, t: time }, ...window.getSynergyData('sp-mu')];
   
   const actName = document.getElementById('sp-mu-act').value || origEv.act;
   
   if(!confirm(`לבצע שיבוץ השלמה ל-${allGids.length} גנים בתאריך ${window.fD(newDate)}?`)) return;
   
-  allGids.forEach(gId => {
+  targets.forEach(tgt => {
     window.createMakeupActivity({
-      g: gId,
+      g: tgt.g,
       d: newDate,
-      t: time,
+      t: tgt.t,
       a: supName,
       act: actName,
       tp: origEv.tp || 'חוג',

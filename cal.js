@@ -811,9 +811,10 @@ function renderPairCard(pair, pairEvs, opts){
       for (const k in gEvs) {
         const ev = gEvs[k];
         const sb = window.supBase(ev.a);
-        if(!sups[sb]) sups[sb] = { hasOk: false, evs: [] };
-        if(ev.st === 'ok') sups[sb].hasOk = true;
-        sups[sb].evs.push(ev);
+        const groupKey = sb + '|' + (ev.t || '') + '|' + (ev.act || '');
+        if(!sups[groupKey]) sups[groupKey] = { hasOk: false, evs: [] };
+        if(ev.st === 'ok') sups[groupKey].hasOk = true;
+        sups[groupKey].evs.push(ev);
       }
 
       for (const k in sups) {
@@ -870,9 +871,10 @@ function renderGardenCols(evs, gids, clr){
       const sups = {};
       ge.forEach(s => {
         const sb = window.supBase(s.a);
-        if (!sups[sb]) sups[sb] = { hasOk: false, evs: [] };
-        if (s.st === 'ok') sups[sb].hasOk = true;
-        sups[sb].evs.push(s);
+        const groupKey = sb + '|' + (s.t || '') + '|' + (s.act || '');
+        if (!sups[groupKey]) sups[groupKey] = { hasOk: false, evs: [] };
+        if (s.st === 'ok') sups[groupKey].hasOk = true;
+        sups[groupKey].evs.push(s);
       });
       const filtered = [];
       for (const sb in sups) {
