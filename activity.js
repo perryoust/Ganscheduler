@@ -108,33 +108,44 @@ function renderDash() {
       <summary>
         <div style="display:flex; align-items:center; gap:12px; flex:1">
           <input type="checkbox" onclick="event.stopPropagation(); dashCheckAll('${groupId}', this.checked)" style="width:18px;height:18px">
+          <span style="font-weight:800; color:#1e293b; font-size:1.1rem">🏙️ ${cityName}</span>
           <span style="font-weight:700; color:#64748b; font-size:0.9rem; margin-right:5px">(${cityEvs.length})</span>
         </div>
         <div style="font-size:0.75rem; color:#64748b; font-weight:600">לחץ לפירוט ▼</div>
       </summary>
       <div id="${groupId}" class="dash-city-content" style="padding:10px; display:flex; flex-direction:column; gap:8px">`;
 
-    // Internal Grouping: Pairs
-    const usedIds = new Set();
-    const cityCards = [];
-
-    // Pairs
-    (window.pairs || []).forEach(p => {
-      const pEvs = cityEvs.filter(s => !usedIds.has(s.id) && p.ids.includes(s.g));
-      if (pEvs.length) {
-        cityCards.push({ type: 'pair', obj: p, evs: pEvs });
-        pEvs.forEach(s => usedIds.add(s.id));
-      }
+    // Internal Grouping: Date -> Pairs/Solo
+    const dateGroups = {};
+    cityEvs.forEach(s => {
+      (dateGroups[s.d] = dateGroups[s.d] || []).push(s);
     });
 
-    // Standalone
-    cityEvs.filter(s => !usedIds.has(s.id)).forEach(s => {
-      const g = window.G(s.g);
-      cityCards.push({ type: 'solo', obj: { name: g.name, ids: [g.id] }, evs: [s] });
-    });
+    Object.keys(dateGroups).sort().forEach(date => {
+      const dateEvs = dateGroups[date];
+      html += `<div style="padding:6px 15px; background:#f8f9fa; border-bottom:1px solid #e9ecef; font-weight:700; color:#495057; font-size:0.85rem">📅 ${window.fD(date)}</div>`;
+      
+      const dateUsedIds = new Set();
+      const dateCards = [];
 
-    cityCards.forEach(card => {
-      html += _renderDashCard(card);
+      // Pairs within this date
+      (window.pairs || []).forEach(p => {
+        const pEvs = dateEvs.filter(s => !dateUsedIds.has(s.id) && p.ids.includes(s.g));
+        if (pEvs.length) {
+          dateCards.push({ type: 'pair', obj: p, evs: pEvs });
+          pEvs.forEach(s => dateUsedIds.add(s.id));
+        }
+      });
+
+      // Standalone within this date
+      dateEvs.filter(s => !dateUsedIds.has(s.id)).forEach(s => {
+        const g = window.G(s.g);
+        dateCards.push({ type: 'solo', obj: { name: g.name, ids: [g.id] }, evs: [s] });
+      });
+
+      dateCards.forEach(card => {
+        html += _renderDashCard(card);
+      });
     });
 
     html += `</div></details>`;
@@ -167,21 +178,25 @@ function _renderDashCard(card) {
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
 
     const label = window.stLabel ? window.stLabel(s) : '';
-    h += `<div class="dash-row ${stCls}" style="display:flex; align-items:center; gap:12px; padding:10px 15px; border-bottom:1px solid #f1f5f9; cursor:pointer" onclick="window.openSP('${s.id}')">
-      <input type="checkbox" class="dash-row-chk" value="${s.id}" onclick="event.stopPropagation(); window.dashUpdateBulkBar()" style="width:18px; height:18px; flex-shrink:0">
-      <div style="width:85px; font-size:0.78rem; font-weight:700; color:#475569; flex-shrink:0">${window.fD(s.d)}</div>
-      <div style="flex:1; min-width:0">
-        <div style="font-weight:800; font-size:0.92rem; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${g.name}</div>
-        <div style="font-size:0.78rem; color:#64748b">${s.a || ''} ${isM ? ' | <b style="color:#0288d1">השלמה</b>' : ''}</div>
-        ${s.nt ? `<div style="font-size:0.72rem; color:#b91c1c; font-weight:700; margin-top:2px">📝 ${s.nt}</div>` : ''}
+    h += `<div class="dash-row ${stCls}" style="display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid #f1f5f9; cursor:pointer" onclick="window.openSP('${s.id}')">
+      <div style="display:flex; align-items:center; gap:15px; flex:1">
+        <input type="checkbox" class="dash-row-chk" value="${s.id}" onclick="event.stopPropagation(); window.dashUpdateBulkBar()" style="width:19px; height:19px; flex-shrink:0">
+        <div style="width:85px; font-size:0.8rem; font-weight:700; color:#475569; flex-shrink:0">${window.fD(s.d)}</div>
+        <div style="flex:1">
+          <div style="font-weight:800; font-size:1.05rem; color:#1e293b">
+            ${g.name} <span style="color:#0288d1; font-weight:700">· ${s.a || ''}</span>
+            ${isM ? ' | <b style="color:#f59e0b">השלמה</b>' : ''}
+          </div>
+          ${s.nt ? `<div style="font-size:0.8rem; color:#b91c1c; font-weight:700; margin-top:3px">📝 ${s.nt}</div>` : ''}
+        </div>
       </div>
-      <div style="display:flex; align-items:center; gap:10px; flex-shrink:0">
-        <span class="st-tag ${stCls}" style="font-size:.72rem; padding:4px 10px; border-radius:6px; font-weight:700">${label}</span>
+      <div style="display:flex; align-items:center; gap:12px; flex-shrink:0">
+        <span class="st-tag ${stCls}" style="font-size:.74rem; padding:4px 12px; border-radius:6px; font-weight:700">${label}</span>
         <div class="qacts" style="display:flex; gap:6px" onclick="event.stopPropagation()">
-          ${s.st === 'done' ? '' : `<button title="בוצע" onclick="window.qSetSt('${s.id}','done')" class="qbtn qbtn-done" style="padding:4px 8px; font-size:0.85rem; border-radius:4px; border:1px solid #e2e8f0; background:#fff">✔️</button>`}
-          ${s.st === 'can' ? '' : `<button title="בטל" onclick="window.openCanQ('${s.id}')" class="qbtn qbtn-can" style="padding:4px 8px; font-size:0.85rem; border-radius:4px; border:1px solid #e2e8f0; background:#fff">❌</button>`}
-          ${s.st === 'nohap' ? '' : `<button title="חוסר" onclick="window.qSetSt('${s.id}','nohap')" class="qbtn qbtn-nohap" style="padding:4px 8px; font-size:0.85rem; border-radius:4px; border:1px solid #e2e8f0; background:#fff">⚠️</button>`}
-          <button title="השלמה" onclick="window.openMakeupSched('${s.id}')" class="qbtn qbtn-post" style="padding:4px 8px; font-size:0.85rem; border-radius:4px; border:1px solid #e2e8f0; background:#fff">📅</button>
+          ${s.st === 'done' ? '' : `<button title="בוצע" onclick="window.qSetSt('${s.id}','done')" class="qbtn qbtn-done" style="padding:5px 10px; font-size:0.9rem; border-radius:6px; border:1px solid #e2e8f0; background:#fff">✔️</button>`}
+          ${s.st === 'can' ? '' : `<button title="בטל" onclick="window.openCanQ('${s.id}')" class="qbtn qbtn-can" style="padding:5px 10px; font-size:0.9rem; border-radius:6px; border:1px solid #e2e8f0; background:#fff">❌</button>`}
+          ${s.st === 'nohap' ? '' : `<button title="חוסר" onclick="window.qSetSt('${s.id}','nohap')" class="qbtn qbtn-nohap" style="padding:5px 10px; font-size:0.9rem; border-radius:6px; border:1px solid #e2e8f0; background:#fff">⚠️</button>`}
+          <button title="השלמה" onclick="window.openMakeupSched('${s.id}')" class="qbtn qbtn-post" style="padding:5px 10px; font-size:0.9rem; border-radius:6px; border:1px solid #e2e8f0; background:#fff">📅</button>
         </div>
       </div>
     </div>`;
