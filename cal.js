@@ -540,42 +540,59 @@ function renderClusterDay(evs, ds, clusterName){
               <span style="color:#546e7a;font-size:.74rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${window.supBase(s.a)}${(s.act||window.supAct(s.a))?` · ${s.act||window.supAct(s.a)}`:''}</span>
               ${s.nt?`<span style="color:#d84315;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">📝 ${s.nt}</span>`:''}
               ${(s._compByMakeup && s._compByMakeup!=='false')?`<span style="color:#2e7d32;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">✅ נקבעה השלמה${(window.SCH.find(x=>x.id===s._compByMakeup)||{}).d ? ' ל-'+window.fD((window.SCH.find(x=>x.id===s._compByMakeup)||{}).d) : ''}</span>`:''}
-              <span style="font-size:.68rem;font-weight:700;white-space:nowrap">${window.stLabel(s)}</span>
-              <div class="qacts" onclick="event.stopPropagation()" style="margin-right:auto;display:flex;gap:3px">
+              <span style="font-size:.68rem;font-weight:700;white-space:nowrap">${wind    });
+    html+=`</div></details>`;
+  } else {
+    // ── אשכול בודד: עיר → גן → שעה ──
+    const others=evs.filter(s=> s.d===ds);
+    const citiesInCluster = [...new Set(others.map(s => window.G(s.g).city || 'אחר'))].sort();
+    
+    citiesInCluster.forEach(city => {
+      const cityEvs = others.filter(s => (window.G(s.g).city || 'אחר') === city);
+      const clrCity = window.CITY_COLORS(city);
+      
+      html += `<details class="city-accordion" open>
+        <summary>
+          <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+            <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cityEvs.length})</span>
+            <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
+          </div>
+        </summary>
+        <div class="city-accordion-content">`;
+
+      cityEvs.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s=>{
+        const g=window.G(s.g);
+        const stc=s.st!=='ok'?'st-'+s.st:'';
+        html+=`<div class="city-block" style="margin-bottom:8px">
+          <div class="city-block-hdr" style="background:${clrCity.solid};font-size:.76rem">
+            ${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}
+            ${g.st?`<span style="font-size:.65rem;font-weight:400;opacity:.8">${g.st}</span>`:''}
+            <span style="font-size:.65rem;opacity:.75;font-weight:400">📍 ${g.city||''}</span>
+            <button onclick="event.stopPropagation();_exportGardenWA([${g.id}],'${ds}')" style="background:rgba(255,255,255,.28);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
+          </div>
+          <div style="background:#fff;padding:2px 7px">
+            <div class="pslot ${stc}" style="border-right:4px solid ${clrCity.solid};background:${clrCity.light};display:flex;align-items:center;gap:10px;padding:4px 10px;border-radius:4px" onclick="openSP('${s.id}')">
+              <span style="font-weight:800;color:${clrCity.solid};white-space:nowrap">${s.d?'📅 '+window.fD(s.d):''} ${s.t?`⏰ ${window.fT(s.t)}`:'--:--'}</span>
+              <span style="font-weight:700;color:#1a237e;white-space:nowrap">${window.supBase(s.a)}</span>
+              <span style="font-size:.74rem;color:${clrCity.solid};font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(s.act||window.supAct(s.a))?`🎯 ${s.act||window.supAct(s.a)}`:''}</span>
+              ${s.nt?`<span style="color:#d84315;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">📝 ${s.nt}</span>`:''}
+              ${(s._compByMakeup && s._compByMakeup!=='false')?`<span style="color:#2e7d32;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">✅ נקבעה השלמה${(window.SCH.find(x=>x.id===s._compByMakeup)||{}).d ? ' ל-'+window.fD((window.SCH.find(x=>x.id===s._compByMakeup)||{}).d) : ''}</span>`:''}
+              ${s.grp>1?`<span style="font-size:.68rem;color:#546e7a;white-space:nowrap">👥 ${s.grp}</span>`:''}
+              <span style="font-size:.68rem;white-space:nowrap">${window.stLabel(s)}</span>
+              <div class="qacts" onclick="event.stopPropagation()" style="display:flex;gap:3px">
                 ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt('${s.id}','done')" style="padding:2px 4px">✔️</button>`}
                 ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ('${s.id}')" style="padding:2px 4px">❌</button>`}
                 ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt('${s.id}','nohap')" style="padding:2px 4px">⚠️</button>`}
                 <button title="דחה פעילות" onclick="openPostpone('${s.id}')" style="padding:2px 4px">⏩</button>
                 <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched('${s.id}')" style="padding:2px 4px">📅</button>
               </div>
-            </div>`;
-          });
-        html+=`</div></div>`;
+            </div>
+          </div>
+        </div>`;
       });
-      html+=`</div></details>`;
+      html += `</div></details>`;
     });
-  } else {
-    // ── אשכול בודד: לפי שעה ──
-    const others=evs.filter(s=> s.d===ds);
-    others.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s=>{
-      const g=window.G(s.g);
-      const stc=s.st!=='ok'?'st-'+s.st:'';
-      const clrCity=window.CITY_COLORS(g.city||'');
-      html+=`<div class="city-block" style="margin-bottom:8px">
-        <div class="city-block-hdr" style="background:${clrCity.solid};font-size:.76rem">
-          ${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}
-          ${g.st?`<span style="font-size:.65rem;font-weight:400;opacity:.8">${g.st}</span>`:''}
-          <span style="font-size:.65rem;opacity:.75;font-weight:400">📍 ${g.city||''}</span>
-          <button onclick="event.stopPropagation();_exportGardenWA([${g.id}],'${ds}')" style="background:rgba(255,255,255,.28);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
-        </div>
-        <div style="background:#fff;padding:2px 7px">
-          <div class="pslot ${stc}" style="border-right:4px solid ${clrCity.solid};background:${clrCity.light};display:flex;align-items:center;gap:10px;padding:4px 10px;border-radius:4px" onclick="openSP('${s.id}')">
-            <span style="font-weight:800;color:${clrCity.solid};white-space:nowrap">${s.d?'📅 '+window.fD(s.d):''} ${s.t?`⏰ ${window.fT(s.t)}`:'--:--'}</span>
-            <span style="font-weight:700;color:#1a237e;white-space:nowrap">${window.supBase(s.a)}</span>
-            <span style="font-size:.74rem;color:${clrCity.solid};font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(s.act||window.supAct(s.a))?`🎯 ${s.act||window.supAct(s.a)}`:''}</span>
-            ${s.nt?`<span style="color:#d84315;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">📝 ${s.nt}</span>`:''}
-            ${(s._compByMakeup && s._compByMakeup!=='false')?`<span style="color:#2e7d32;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">✅ נקבעה השלמה${(window.SCH.find(x=>x.id===s._compByMakeup)||{}).d ? ' ל-'+window.fD((window.SCH.find(x=>x.id===s._compByMakeup)||{}).d) : ''}</span>`:''}
-            ${s.grp>1?`<span style="font-size:.68rem;color:#546e7a;white-space:nowrap">👥 ${s.grp}</span>`:''}
+  }grp>1?`<span style="font-size:.68rem;color:#546e7a;white-space:nowrap">👥 ${s.grp}</span>`:''}
             <span style="font-size:.68rem;white-space:nowrap">${window.stLabel(s)}</span>
             <div class="qacts" onclick="event.stopPropagation()" style="display:flex;gap:3px">
               ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt('${s.id}','done')" style="padding:2px 4px">✔️</button>`}
@@ -989,8 +1006,8 @@ function renderNormalWeek(evs, ws, f){
   wkMakeupHtml += '</div>';
 
   // border-separate avoids border-collapse + sticky bug
-  let html = wkMakeupHtml + '<div style="overflow-x:auto;border-radius:8px;border:2px solid #9fa8da">'
-          +'<table style="min-width:950px;border-collapse:separate;border-spacing:0;width:100%"><thead><tr>';
+  let html = wkMakeupHtml + '<div class="tw-sticky">'
+          +'<table style="min-width:950px;width:100%"><thead><tr>';
 
   html+=`<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;
     border-bottom:2px solid #9fa8da;border-left:1px solid #c5cae9;
@@ -1018,14 +1035,20 @@ function renderNormalWeek(evs, ws, f){
   sortedCities.forEach(city=>{
     const clr=window.CITY_COLORS(city);
 
-    // City header row
-    html+=`<tr>
+    // City header row - added toggle function for weekly table
+    const cityId = `city-${city.replace(/\s+/g,'-')}`;
+    html+=`<tr onclick="toggleTableCity('${cityId}')" style="cursor:pointer" class="city-header-row">
       <td colspan="6" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;
-        border-bottom:1px solid rgba(255,255,255,.2);position:sticky;left:0">
-        🏙️ ${city}
-        <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} זוגות · ${byCity[city].solos.length} צהרונים בודדים</span>
+        border-bottom:1px solid rgba(255,255,255,.2);position:sticky;right:0;z-index:9">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span>🏙️ ${city} <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} זוגות · ${byCity[city].solos.length} צהרונים בודדים</span></span>
+          <span style="font-size:0.7rem; font-weight:400; opacity:0.8;">לחץ לכיווץ/הרחבה ↕️</span>
+        </div>
       </td>
     </tr>`;
+
+    // Wrapper for rows of this city
+    const cityRowClass = `city-row-${cityId}`;
 
     function makeCell(gid, ds, de, blk, hol, clrObj){
       const isToday=ds===tday;
@@ -1077,7 +1100,7 @@ function renderNormalWeek(evs, ws, f){
     // window.pairs
     byCity[city].pairs.forEach(({pair,gids:pGids})=>{
       const pairGidList = pGids.join(',');
-      html+=`<tr>
+      html+=`<tr class="${cityRowClass}">
         <td colspan="6" style="background:${clr.solid};color:#fff;padding:5px 12px;
           font-size:.92rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2)">
           <div style="display:flex;align-items:center;gap:8px">
@@ -1090,7 +1113,7 @@ function renderNormalWeek(evs, ws, f){
       </tr>`;
       pGids.forEach(gid=>{
         const g=window.G(gid);
-        html+=`<tr><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
+        html+=`<tr class="${cityRowClass}"><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
           border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
           position:sticky;right:0;z-index:1;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">
           ${g.name}<br><span style="font-size:12px;color:#78909c;font-weight:400">${g.city}</span>
@@ -1109,7 +1132,7 @@ function renderNormalWeek(evs, ws, f){
     // Solo GARDENS
     byCity[city].solos.forEach(gid=>{
       const g=window.G(gid);
-      html+=`<tr><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
+      html+=`<tr class="${cityRowClass}"><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
         border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
         position:sticky;right:0;z-index:1;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">
         ${g.name}<br><span style="font-size:12px;color:#78909c;font-weight:400">${g.city}</span>
@@ -1577,3 +1600,10 @@ function jumpToPairWeeklySchedule(pairId, ds, soloGid){
 
 // Attach to window for accessibility
 window.jumpToPairWeeklySchedule = jumpToPairWeeklySchedule;
+function toggleTableCity(cityId) {
+  const rows = document.querySelectorAll('.city-row-' + cityId);
+  rows.forEach(r => {
+    r.style.display = (r.style.display === 'none') ? '' : 'none';
+  });
+}
+window.toggleTableCity = toggleTableCity;
