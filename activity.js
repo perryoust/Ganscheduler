@@ -235,7 +235,7 @@ window.dashUpdateBulkBar = function() {
 };
 
 
-window.dashBatchAction = function(action) {
+window.dashBatchAction = async function(action) {
   const ids = Array.from(document.querySelectorAll('.dash-row-chk:checked')).map(cb => cb.value);
   if (ids.length === 0) return;
 
