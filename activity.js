@@ -224,7 +224,10 @@ function renderCanList(){
     } else if (isM && s.st !== 'done') match = true;
     if (!match) return false;
     const g = window.G(s.g);
-    return g && window.gcls(g) === cls;
+    if(!g) return false;
+    const gClass = (window.gcls(g) || '').trim().toLowerCase();
+    const targetClass = cls.trim().toLowerCase();
+    return gClass === targetClass;
   }).sort(safeSort);
 
   const handledEvs = window.SCH.filter(s => {
