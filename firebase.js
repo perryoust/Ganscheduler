@@ -321,17 +321,17 @@ async function saveToFirebase(silent) {
     });
     
     if (r.ok) {
+      _setFbSaveTs(nowTs);
+      _fbLastOwnSaveTs = nowTs; 
+      window._safeLS.setItem('ganv5_local_ts', String(nowTs));
+      _fbLastError = null;
+      window._fbLastSavedRaw = raw; 
+
       // Also update a standalone timestamp for efficient polling (awaited for reliability)
       try {
         const tsUrl = FIREBASE_DB_URL.replace('.json', '/ts.json') + _saveQ;
         await fetch(tsUrl, { method: 'PUT', body: JSON.stringify(nowTs) });
       } catch(e) { console.warn('TS update failed', e); }
-
-      _setFbSaveTs(nowTs);
-      window._safeLS.setItem('ganv5_local_ts', String(nowTs));
-      _fbLastError = null;
-      _fbLastOwnSaveTs = nowTs; // track our own saves
-      window._fbLastSavedRaw = raw; // track for change detection
       // Show save indicator (small flash)
       const _bi=document.getElementById('backup-ind');
       if(_bi){_bi.textContent='☁️ נשמר';_bi.classList.add('show');clearTimeout(_bi._to);_bi._to=setTimeout(()=>_bi.classList.remove('show'),1500);}

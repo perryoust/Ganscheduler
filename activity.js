@@ -96,12 +96,18 @@ function renderDash() {
     groups[c].push(s);
   });
 
+  const openCities = new Set();
+  document.querySelectorAll('.dash-city-accordion[open]').forEach(det => {
+    const cityTitle = det.querySelector('summary span:nth-child(2)')?.textContent?.replace('🏙️ ', '').trim();
+    if (cityTitle) openCities.add(cityTitle);
+  });
+
   let html = '';
   Object.keys(groups).sort().forEach((cityName, idx) => {
     const cityEvs = groups[cityName];
-    const cityOpen = !!city; 
+    const cityOpen = !!city || openCities.has(cityName); 
     const cityNameEsc = cityName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    const groupId = `dash-group-${idx}`;
+    const groupId = `dash-group-${cityName.replace(/\s+/g, '_')}`;
     const clr = window.CITY_COLORS ? window.CITY_COLORS(cityName) : {solid:'#1a237e', light:'#f8fafc', border:'#e2e8f0'};
 
     html += `<details class="dash-city-accordion" ${cityOpen ? 'open' : ''}>
