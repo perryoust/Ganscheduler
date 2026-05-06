@@ -1,287 +1,279 @@
-window._dashTab = window._dashTab || 'g';
+window._dashTab = window._dashTab || 'g'; // 'g' for Gardens, 's' for Schools
+window._dashView = window._dashView || 'todo'; // 'todo', 'handled', 'all', 'can'
 window.setDashTab = setDashTab;
+window.setDashView = setDashView;
 window.renderDash = renderDash;
 
-function setDashTab(t){
+function setDashTab(t) {
   window._dashTab = t;
   const gBtn = document.getElementById('dash-tab-g');
   const sBtn = document.getElementById('dash-tab-s');
-  if(gBtn) gBtn.classList.toggle('active', t === 'g');
-  if(sBtn) sBtn.classList.toggle('active', t === 's');
+  if (gBtn) gBtn.classList.toggle('active', t === 'g');
+  if (sBtn) sBtn.classList.toggle('active', t === 's');
   renderDash();
-  renderCanList();
 }
 
-const _dashListRow = (s) => {
+function setDashView(v) {
+  window._dashView = v;
+  document.querySelectorAll('.dash-view-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.id === 'dvp-' + v);
+  });
+  renderDash();
+}
+
+const _dashTableRow = (s, cityColor) => {
   const g = window.G(s.g);
-  if(!g) return '';
-  const stc = s.st !== 'ok' ? 'st-' + s.st : '';
+  if (!g) return '';
   const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-  const makeupBadge = isM ? `<span style="background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:800;border:1px solid #ffe0b2;">↩️ השלמה</span>` : '';
+  const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
+  const stClass = window.stClass ? window.stClass(s) : '';
+  const stLabel = window.stLabel ? window.stLabel(s) : s.st;
   
-  return `<div class="dash-row ${stc}" onclick="window.openSP('${s.id}')" style="display:flex; align-items:center; gap:15px; padding:10px 15px; border-bottom:1px solid #edf2f7; transition:all 0.2s;">
-    <div style="flex:0 0 160px; font-weight:700; color:#2d3748; display:flex; align-items:center; gap:8px;">
-      <span style="font-size:1.1rem">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'}</span>
-      <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${g.name}</span>
-    </div>
-    <div style="flex:0 0 65px; text-align:center;">
-      <span style="background:#4a5568; color:white; padding:3px 8px; border-radius:6px; font-weight:800; font-size:0.8rem;">${s.t ? window.fT(s.t) : '--:--'}</span>
-    </div>
-    <div style="flex:1; display:flex; align-items:center; gap:10px; min-width:0;">
-      <div style="display:flex; flex-direction:column; min-width:0;">
-        <span style="font-weight:700; color:#4a5568; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.act || 'ללא פעילות'}</span>
-        <span style="font-size:0.75rem; color:#a0aec0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📍 ${g.city} ${g.st?` | ${g.st}`:''}</span>
-        ${s.nt ? `<span style="font-size:0.75rem; color:#e53e3e; font-weight:700; background:#fff5f5; padding:2px 6px; border-radius:4px; margin-top:2px; display:inline-block;">📝 ${s.nt}</span>` : ''}
+  const makeupBadge = isM ? `<span class="handled-badge" style="background:#fff3e0;color:#e65100;border-color:#ffe0b2">↩️ השלמה</span>` : '';
+  const handledBadge = isHandled ? `<span class="handled-badge">✅ טופל</span>` : '';
+
+  return `<tr class="${stClass} ${isHandled ? 'st-handled' : ''}" onclick="window.openSP('${s.id}')" style="cursor:pointer">
+    <td class="dash-check-col" onclick="event.stopPropagation()">
+      <input type="checkbox" class="dash-row-chk" value="${s.id}" onchange="dashUpdateBulkBar()">
+    </td>
+    <td>
+      <div style="font-weight:700; color:#1a237e">${g.name}</div>
+      <div style="font-size:0.68rem; color:#78909c">${g.st || ''}</div>
+    </td>
+    <td>
+      <div style="font-weight:700">${window.supBase(s.a)}</div>
+      <div style="font-size:0.7rem; color:#1565c0">${window.supAct(s.a) || s.act || ''}</div>
+    </td>
+    <td style="text-align:center">
+      <span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-weight:700">${s.t ? window.fT(s.t) : '--:--'}</span>
+    </td>
+    <td>
+      <span class="bdg ${stClass}">${stLabel}</span>
+      ${makeupBadge} ${handledBadge}
+    </td>
+    <td style="max-width:120px; font-size:0.72rem; color:#4a5568">
+      ${s.nt || ''}
+    </td>
+    <td onclick="event.stopPropagation()" style="text-align:left">
+      <div class="qacts" style="display:flex; justify-content:flex-end; gap:5px;">
+        ${s.st === 'done' ? '' : `<button title="בוצע" onclick="window.qSetSt('${s.id}','done')" class="qbtn qbtn-done">✔️</button>`}
+        ${s.st === 'can' ? '' : `<button title="בטל" onclick="window.openCanQ('${s.id}')" class="qbtn qbtn-can">❌</button>`}
+        ${s.st === 'nohap' ? '' : `<button title="חוסר" onclick="window.qSetSt('${s.id}','nohap')" class="qbtn qbtn-nohap">⚠️</button>`}
       </div>
-      ${makeupBadge}
-    </div>
-    <div style="flex:0 0 100px; text-align:right;">
-      <span style="font-weight:800; font-size:0.75rem; color:${s.st==='ok'?'#38a169':'#e53e3e'}; text-transform:uppercase;">${window.stLabel(s)}</span>
-    </div>
-    <div class="qacts" onclick="event.stopPropagation()" style="flex:0 0 130px; display:flex; justify-content:flex-end; gap:5px;">
-      ${s.st==='done'?'':`<button title="בוצע" onclick="window.qSetSt('${s.id}','done')" style="background:#f0fff4; color:#38a169; border:1px solid #c6f6d5; padding:4px 8px; border-radius:6px; cursor:pointer;">✔️</button>`}
-      ${s.st==='can'?'':`<button title="בטל" onclick="window.openCanQ('${s.id}')" style="background:#fff5f5; color:#e53e3e; border:1px solid #fed7d7; padding:4px 8px; border-radius:6px; cursor:pointer;">❌</button>`}
-      ${s.st==='nohap'?'':`<button title="חוסר" onclick="window.qSetSt('${s.id}','nohap')" style="background:#fffaf0; color:#dd6b20; border:1px solid #fbd38d; padding:4px 8px; border-radius:6px; cursor:pointer;">⚠️</button>`}
-    </div>
-  </div>`;
+    </td>
+  </tr>`;
 };
 
 function renderDash() {
   const list = document.getElementById('dash-body');
-  if(!list) return;
-  list.innerHTML = '';
+  if (!list) return;
   
   const dateEl = document.getElementById('dash-date');
   const cityEl = document.getElementById('dash-city');
   const supEl = document.getElementById('dash-sup');
-  const stEl = document.getElementById('dash-st');
-  if(!dateEl || !cityEl || !supEl || !stEl) return;
+  const fromEl = document.getElementById('dash-from');
+  const toEl = document.getElementById('dash-to');
+  const srchEl = document.getElementById('dash-srch');
+  
+  if (!dateEl) return;
 
   const date = dateEl.value;
-  const city = cityEl.value;
-  const sup = supEl.value;
-  const st = stEl.value;
+  const city = cityEl ? cityEl.value : '';
+  const sup = supEl ? supEl.value : '';
+  const from = fromEl ? fromEl.value : '';
+  const to = toEl ? toEl.value : '';
+  const srch = (srchEl ? srchEl.value : '').toLowerCase();
   const tab = window._dashTab || 'g';
-  const srch = (document.getElementById('dash-srch')||{value:''}).value.toLowerCase();
+  const view = window._dashView || 'todo';
 
-  console.log(`[Dash Debug] v101.2 Start. Tab:${tab}, St:${st}, Date:${date}, SCH:${window.SCH ? window.SCH.length : 'null'}`);
-
-  const checkMatch = (s, tTab, tSt, tDate) => {
-    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+  const filtered = (window.SCH || []).filter(s => {
     const g = window.G(s.g);
-    if(!g) return false;
+    if (!g) return false;
+    
+    // Classification (Garden/School)
     const gClass = window.gcls ? window.gcls(g) : 'גנים';
+    if (tab === 'g' && gClass !== 'גנים') return false;
+    if (tab === 's' && gClass !== 'ביה"ס') return false;
 
-    if (tTab === 'g' && gClass !== 'גנים') return false;
-    if (tTab === 's' && gClass !== 'ביה"ס') return false;
-
-    const from = document.getElementById('dash-from')?.value;
-    const to = document.getElementById('dash-to')?.value;
-
-    if (tSt === 'todo') {
-      if (from && to) {
-        if (s.d < from || s.d > to) return false;
-      }
-      // Ignore tDate for todo - we want global todo list unless explicitly using from/to range
-    } else {
-      if (from && to) {
-        if (s.d < from || s.d > to) return false;
-      } else if (tDate && s.d !== tDate) {
-        return false;
-      }
-      if (!tDate && !from && s.d < window.td()) return false;
-    }
-
-    if (tSt === 'todo') {
-      const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
-      const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-
-      if (s.st === 'can') return false; 
-      if ((s.st === 'nohap' || s.st === 'post') && !isHandled) return true;
-      if (isM && s.st !== 'done') return true;
-      return false;
-    } else if (tSt === 'handled') {
-      const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
-      return (s.st === 'done' || isHandled);
-    } else if (tSt) {
-      if (s.st !== tSt) return false;
-    }
-
+    // Filters
     if (city && g.city !== city) return false;
     if (sup && window.supBase(s.a) !== sup) return false;
-    if (srch && ![(g.name||''), (g.city||''), s.a, s.act].some(v=>(v||'').toLowerCase().includes(srch))) return false;
+    if (srch && ![(g.name||''), (g.city||''), s.a, s.act, s.nt].some(v=>(v||'').toLowerCase().includes(srch))) return false;
+
+    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+
+    // View Logic
+    if (view === 'todo') {
+      // Todo: Exceptions (nohap, post) not handled yet, or pending Makeups
+      if (s.st === 'can') return false;
+      if (isHandled) return false;
+      const isExc = (s.st === 'nohap' || s.st === 'post');
+      const isPendingM = isM && s.st !== 'done';
+      if (!isExc && !isPendingM) return false;
+      // For global todo, we usually ignore date unless from/to range is set
+      if (from && s.d < from) return false;
+      if (to && s.d > to) return false;
+    } else if (view === 'handled') {
+      if (!isHandled && s.st !== 'done') return false;
+      if (from && s.d < from) return false;
+      if (to && s.d > to) return false;
+      if (!from && !to && date && s.d !== date) return false;
+    } else if (view === 'can') {
+      if (s.st !== 'can') return false;
+      if (from && s.d < from) return false;
+      if (to && s.d > to) return false;
+      if (!from && !to && date && s.d !== date) return false;
+    } else { // 'all'
+      if (s.st === 'can' && view !== 'can') return false; // Hide can by default in 'all'
+      if (from && s.d < from) return false;
+      if (to && s.d > to) return false;
+      if (!from && !to && date && s.d !== date) return false;
+    }
 
     return true;
-  };
+  });
 
-  const filtered = (window.SCH || []).filter(s => checkMatch(s, tab, st, date));
-  
-  // Group by City or Supplier
+  // Sort: Newest first for todo/handled, Chronological for 'all'
+  filtered.sort((a, b) => {
+    if (view === 'todo' || view === 'handled') {
+      const dComp = b.d.localeCompare(a.d);
+      if (dComp !== 0) return dComp;
+    } else {
+      const dComp = a.d.localeCompare(b.d);
+      if (dComp !== 0) return dComp;
+    }
+    const gA = window.G(a.g), gB = window.G(b.g);
+    return (gA.city||'').localeCompare(gB.city||'', 'he') || (gA.name||'').localeCompare(gB.name||'', 'he');
+  });
+
+  // Group by City
   const groups = {};
   filtered.forEach(s => {
     const g = window.G(s.g);
-    const mainKey = (tab === 'g') ? (g.city || 'אחר') : (s.a || 'אחר');
-    if(!groups[mainKey]) groups[mainKey] = [];
-    groups[mainKey].push(s);
+    const c = g.city || 'אחר';
+    if (!groups[c]) groups[c] = [];
+    groups[c].push(s);
   });
 
+  let html = '';
   Object.keys(groups).sort().forEach(c => {
     const evs = groups[c];
-    const accordion = document.createElement('details');
-    accordion.className = 'city-accordion';
+    const clr = window.CITY_COLORS ? window.CITY_COLORS(c) : {solid:'#1a237e', light:'#f8fafc', border:'#e2e8f0'};
     
-    const rows = [];
-    const seenPairs = new Set();
-    const soloMap = new Map();
-
-    evs.forEach(s => {
-      const group = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
-      if (group) {
-        if (!seenPairs.has(group.id + '_' + window.supBase(s.a) + '_' + s.d)) {
-          const groupEvs = evs.filter(x => {
-            const xGroup = window.getGardenGroup ? window.getGardenGroup(x.g) : window.gardenPair(x.g);
-            return xGroup && xGroup.id === group.id && window.supBase(x.a) === window.supBase(s.a);
-          });
-          rows.push({type: 'pair', pair: group, evs: groupEvs});
-          seenPairs.add(group.id + '_' + window.supBase(s.a) + '_' + s.d);
-        }
-      } else {
-        rows.push({type: 'solo', ev: s});
-      }
-    });
-
-    rows.sort((a, b) => {
-      const dA = a.type === 'solo' ? a.ev.d : a.evs[0].d;
-      const dB = b.type === 'solo' ? b.ev.d : b.evs[0].d;
-      if (dA !== dB) return dB.localeCompare(dA); // Newest first
-
-      const getMinTime = (row) => {
-        if (row.type === 'solo') return (row.ev?.t || '99:99').padStart(5, '0');
-        if (!row.evs || !row.evs.length) return '99:99';
-        const times = row.evs.map(e => (e.t || '99:99').padStart(5, '0'));
-        times.sort();
-        return times[0];
-      };
-      const tA = getMinTime(a);
-      const tB = getMinTime(b);
-      if (tA !== tB) return tA.localeCompare(tB);
-      const nA = (a.type === 'solo' ? window.G(a.ev.g).name : a.pair.name) || '';
-      const nB = (b.type === 'solo' ? window.G(b.ev.g).name : b.pair.name) || '';
-      return nA.localeCompare(nB, 'he');
-    });
-
-    const summary = document.createElement('summary');
-    summary.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-      <span style="font-weight:800; color:#2d3748;">🏙️ ${c} (${rows.length})</span>
-      <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
-    </div>`;
-    accordion.appendChild(summary);
-
-    const content = document.createElement('div');
-    content.className = 'city-accordion-content';
-
-    let h = '';
-    rows.forEach(row => {
-      const clr = window.CITY_COLORS ? window.CITY_COLORS(c) : {solid:'#ccc', light:'#eee', border:'#ddd'};
-      if(row.type === 'pair') {
-        // Group by garden to allow multiple activities per garden if they have different statuses
-        const gardenActivities = new Map();
-        row.evs.forEach(e => {
-          if(!gardenActivities.has(e.g)) gardenActivities.set(e.g, []);
-          gardenActivities.get(e.g).push(e);
-        });
-        
-        const sorted = [];
-        row.pair.ids.forEach(gid => {
-          if(gardenActivities.has(gid)) {
-            sorted.push(...gardenActivities.get(gid));
-          } else {
-            sorted.push({ id: 'dummy_'+gid, g: gid, st: 'unassigned', d: date, t: '', act: '' });
-          }
-        });
-        sorted.sort((a,b) => window.compareActivities(a, b));
-
-        
-        const realEv = sorted.find(x=>x.id && !x.id.toString().startsWith('dummy'));
-        const realId = realEv ? realEv.id : '';
-        h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
-          <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
-            <span>🔗 ${row.pair.name}</span>
-            <div style="display:flex;gap:4px">
-              ${realId ? `<button onclick="event.stopPropagation();if(window.openSP)window.openSP('${realId}')" style="background:rgba(255,255,255,0.5);border:1px solid ${clr.solid};border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:${clr.solid};font-weight:800" title="עריכת פעילות">✏️ עריכה</button>` : ''}
-              <button onclick="event.stopPropagation();if(window._exportPairWA)window._exportPairWA(${JSON.stringify(row.pair.ids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
-            </div>
-          </div>`;
-        sorted.forEach(s=>{ h+=window._listRow ? window._listRow(s,clr,date) : _dashListRow(s); });
-        h+=`</div>`;
-      } else {
-        h += window._listRow ? window._listRow(row.ev, clr, date) : _dashListRow(row.ev);
-      }
-    });
-
-    content.innerHTML = h;
-    accordion.appendChild(content);
-    list.appendChild(accordion);
+    html += `<details class="dash-city-accordion">
+      <summary>
+        <div style="display:flex; align-items:center; gap:12px">
+          <span style="font-size:1.1rem">🏙️</span>
+          <span style="font-weight:800; color:#1e293b">${c}</span>
+          <span class="badge" style="background:${clr.solid}; color:#fff; font-size:0.7rem">${evs.length}</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:15px">
+           <label style="font-size:0.75rem; color:#64748b; cursor:pointer" onclick="event.stopPropagation()">
+             <input type="checkbox" onchange="dashCheckAll('${c}', this.checked)" style="vertical-align:middle"> בחר הכל
+           </label>
+           <span style="font-size:0.7rem; color:#94a3b8">לחץ לפירוט ▼</span>
+        </div>
+      </summary>
+      <div class="tw" style="padding:0">
+        <table class="dash-table">
+          <thead>
+            <tr>
+              <th class="dash-check-col"></th>
+              <th>צהרון</th>
+              <th>ספק</th>
+              <th style="text-align:center">שעה</th>
+              <th>סטטוס</th>
+              <th>הערות</th>
+              <th style="width:140px; text-align:left">פעולות</th>
+            </tr>
+          </thead>
+          <tbody id="dash-group-${c}">
+            ${evs.map(s => _dashTableRow(s, clr)).join('')}
+          </tbody>
+        </table>
+      </div>
+    </details>`;
   });
+
+  list.innerHTML = html || `<div style="padding:40px; text-align:center; color:#94a3b8">
+    <div style="font-size:3rem; margin-bottom:10px">✨</div>
+    <div style="font-weight:700">אין פעילויות להצגה בתנאי הסינון הנוכחיים</div>
+  </div>`;
+  
+  dashUpdateBulkBar();
+  if (window.updCounts) window.updCounts();
 }
 
-function renderCanList(){
-  const tab = (typeof _dashTab !== 'undefined' ? _dashTab : 'g');
-  const cls = tab === 'g' ? 'גנים' : 'ביה"ס';
-  const safeSort = (a, b) => (b.d || '').localeCompare(a.d || '');
-  
-  const todoEvs = window.SCH.filter(s => {
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-    const isHandled = !!s._compByMakeup;
-    let match = false;
-    if (s.st === 'can') match = false;
-    else if ((s.st === 'nohap' || s.st === 'post') || isHandled) {
-      if(!isHandled) match = true; // Still needs handling
-    } else if (isM && s.st !== 'done') match = true;
-    if (!match) return false;
-    const g = window.G(s.g);
-    if(!g) return false;
-    const gClass = (window.gcls(g) || '').trim().toLowerCase();
-    const targetClass = cls.trim().toLowerCase();
-    return gClass === targetClass;
-  }).sort(safeSort);
-
-  const handledEvs = window.SCH.filter(s => {
-    if (!((s.st === 'nohap' || s.st === 'post') && s._compByMakeup)) return false;
-    const g = window.G(s.g);
-    const gClass = (window.gcls(g) || '').trim().toLowerCase();
-    const targetClass = cls.trim().toLowerCase();
-    return gClass === targetClass;
-  }).sort(safeSort).slice(0, 25);
-
-  let ch = `<div style="margin-bottom:20px">
-    <div style="font-weight:800;color:#c62828;margin-bottom:12px;font-size:1rem;display:flex;align-items:center;gap:8px">
-       🔴 דורש טיפול (השלמה / ביטול סופי) 
-       <span style="background:#ffcdd2;color:#c62828;padding:2px 8px;border-radius:12px;font-size:0.8rem">${todoEvs.length}</span>
-    </div>`;
-  
-  if (!todoEvs.length) {
-    ch += `<p style="color:#999;font-size:.79rem;padding:20px;background:#f9f9f9;border-radius:10px;text-align:center;border:1.5px dashed #ddd">הכל מטופל! אין חריגים הממתינים לטיפול ב${cls}</p>`;
-  } else {
-    ch += _renderGroupedByCity(todoEvs, false);
+window.dashCheckAll = function(city, checked) {
+  const group = document.getElementById('dash-group-' + city);
+  if (group) {
+    group.querySelectorAll('.dash-row-chk').forEach(cb => cb.checked = checked);
   }
+  dashUpdateBulkBar();
+};
+
+window.dashUpdateBulkBar = function() {
+  const chks = document.querySelectorAll('.dash-row-chk:checked');
+  const bar = document.getElementById('dash-bulk-bar');
+  const countEl = document.getElementById('dash-bulk-count');
+  if (!bar || !countEl) return;
   
-  ch += `</div><div style="margin-top:30px">
-    <div style="font-weight:800;color:#2e7d32;margin-bottom:12px;font-size:1rem;display:flex;align-items:center;gap:8px">
-       🟢 טופלו לאחרונה 
-       <span style="background:#c8e6c9;color:#2e7d32;padding:2px 8px;border-radius:12px;font-size:0.8rem">${handledEvs.length}</span>
-    </div>`;
-  
-  if (!handledEvs.length) {
-    ch += `<p style="color:#999;font-size:.79rem;padding:10px">אין פריטים שטופלו לאחרונה ב${cls}</p>`;
+  if (chks.length > 0) {
+    bar.style.display = 'flex';
+    countEl.textContent = chks.length;
   } else {
-    ch += _renderGroupedByCity(handledEvs, false);
+    bar.style.display = 'none';
   }
-  ch += `</div>`;
-  
-  if (document.getElementById('dash-can-body')) document.getElementById('dash-can-body').innerHTML = ch;
-}
+};
+
+window.dashBatchAction = function(action) {
+  const ids = Array.from(document.querySelectorAll('.dash-row-chk:checked')).map(cb => cb.value);
+  if (ids.length === 0) return;
+
+  if (action === 'clear') {
+    document.querySelectorAll('.dash-row-chk').forEach(cb => cb.checked = false);
+    dashUpdateBulkBar();
+    return;
+  }
+
+  if (action === 'handled') {
+    const note = prompt('הערות לטיפול (אופציונלי):');
+    const stamp = 'bulk_' + Date.now();
+    ids.forEach(id => {
+      const s = window.SCH.find(x => x.id == id);
+      if (s) {
+        s._compByMakeup = stamp;
+        if (note) {
+          const nText = '✅ טופל: ' + note;
+          s.nt = s.nt ? s.nt + ' | ' + nText : nText;
+        }
+        // Also sync to partner if applicable
+        const pair = window.gardenPair(s.g);
+        if (pair) {
+          const pId = pair.ids.find(pid => Number(pid) !== Number(s.g));
+          const ps = window.findPartnerActivity(pId, s.d, s.a);
+          if (ps) {
+            ps._compByMakeup = stamp;
+            if (note) ps.nt = ps.nt ? ps.nt + ' | ' + ( '✅ טופל: ' + note ) : ( '✅ טופל: ' + note );
+          }
+        }
+      }
+    });
+    window.saveAndRefresh('dash', true);
+    showToast(`✅ ${ids.length} פריטים סומנו כטופלו`);
+  }
+};
+
+window.dashNavDate = function(dir) {
+  const el = document.getElementById('dash-date');
+  if (!el) return;
+  if (dir === 0) el.value = window.td();
+  else el.value = window.addD(window.s2d(el.value || window.td()), dir).toISOString().split('T')[0];
+  renderDash();
+};
+
+function renderCanList() { /* Redundant - Integrated into renderDash */ }
 
 function _renderGroupedByCity(evs, isOpen = false) {
   const byCity = {};
@@ -1285,7 +1277,6 @@ function markCompQuick(id){
     window.save();
     if(window.updCounts) window.updCounts();
     window.renderDash();
-    window.renderCanList();
     if(window.showToast) window.showToast('✅ סומן כטופל');
   } catch(e){ console.error(e); }
 }
@@ -1308,7 +1299,6 @@ function closeSP(){
 function refresh(){
   if(window.updCounts) window.updCounts();
   window.renderDash();
-  window.renderCanList();
   if(window.renderCal) window.renderCal();
   if(window.currentTab==='sched' && window.renderSched) window.renderSched();
 }
@@ -1887,4 +1877,38 @@ window.createMakeupActivity = function(data) {
   
   window.SCH.push(newEv);
   return loopId;
-};;
+};
+
+// Global Exports
+window.saveAndRefresh = saveAndRefresh;
+window.openMakeupSched = openMakeupSched;
+window.closeSP = closeSP;
+window.refresh = refresh;
+window.setStatus = setStatus;
+window.markCompManual = markCompManual;
+window.openPostpone = openPostpone;
+window.openCopy = openCopy;
+window.doPostpone = doPostpone;
+window.doCopy = doCopy;
+window.renderCanList = renderCanList;
+window.toggleSpAccordion = toggleSpAccordion;
+window.toggleSpRecurBox = toggleSpRecurBox;
+window.showSpSaved = showSpSaved;
+window.toggleSpEdit = toggleSpEdit;
+window.spEditSupChg = spEditSupChg;
+window.spEditActChg = spEditActChg;
+window.deleteRecurSeries = deleteRecurSeries;
+window.deleteSingleActivity = deleteSingleActivity;
+window.openReplaceRecur = openReplaceRecur;
+window.rrSupChg = rrSupChg;
+window.saveReplaceRecur = saveReplaceRecur;
+window.spEditSave = spEditSave;
+window.setSpActionTab = setSpActionTab;
+window.spTogglePairDetails = spTogglePairDetails;
+window.cancelEv = cancelEv;
+window.markNoHap = markNoHap;
+window.saveNt = saveNt;
+window.updAndRefresh = updAndRefresh;
+window.renderPartnerSynergy = renderPartnerSynergy;
+window.getSynergyData = getSynergyData;
+window.postDateChg = postDateChg;

@@ -388,7 +388,6 @@ function _applyRemoteData(appData, cloudTs) {
     try{ if(typeof window.renderCal==='function') window.renderCal(); }catch(e){}
     try{ if(typeof window.renderInvoices==='function') window.renderInvoices(); }catch(e){}
     try{ if(typeof window.refreshPurchDash==='function') window.refreshPurchDash(); }catch(e){}
-    try{ if(typeof window.renderCanList==='function') window.renderCanList(); }catch(e){}
     try{ if(typeof window.refreshAppUI==='function') window.refreshAppUI(); }catch(e){}
   } catch(e2){ console.warn('Apply remote data error:', e2); }
   _fbUpdateStatus();

@@ -510,3 +510,144 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 .info-notice.warning b {
   color: #bf360c;
 }
+
+/* Dashboard View Pills */
+.dash-view-pills {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding: 4px 2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.dash-view-pills::-webkit-scrollbar { display: none; }
+
+.dash-view-pill {
+  padding: 8px 16px;
+  background: #fff;
+  border: 1.5px solid #c5cae9;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #546e7a;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dash-view-pill:hover {
+  background: #f0f2ff;
+  border-color: #1565c0;
+  color: #1565c0;
+}
+.dash-view-pill.active {
+  background: #1a237e;
+  border-color: #1a237e;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(26,35,126,0.3);
+}
+.dash-view-pill .badge {
+  background: rgba(255,255,255,0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+}
+.dash-view-pill.active .badge {
+  background: rgba(255,255,255,0.25);
+}
+
+/* Bulk Action Bar */
+#dash-bulk-bar {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a237e;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 50px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  z-index: 1000;
+  align-items: center;
+  gap: 15px;
+  animation: dashSlideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes dashSlideUp {
+  from { transform: translate(-50%, 100px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+#dash-bulk-bar .count-info {
+  font-weight: 800;
+  border-left: 1px solid rgba(255,255,255,0.3);
+  padding-left: 15px;
+  margin-left: 5px;
+  font-size: 0.9rem;
+}
+#dash-bulk-bar .actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* Handled Status indicator */
+.st-handled {
+  background-color: #f1f8e9 !important;
+  color: #2e7d32 !important;
+  opacity: 0.8;
+}
+.st-handled td {
+  text-decoration: none !important;
+}
+.handled-badge {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+/* Dashboard Table Row Checkbox */
+.dash-check-col {
+  width: 40px;
+  text-align: center;
+}
+.dash-check-col input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #1a237e;
+}
+
+/* Improved Accordion for Dashboard */
+.dash-city-accordion {
+  margin-bottom: 15px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+.dash-city-accordion summary {
+  padding: 12px 18px;
+  background: #f8fafc;
+  font-weight: 700;
+  color: #1e293b;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  list-style: none;
+}
+.dash-city-accordion summary:hover {
+  background: #f1f5f9;
+}
+.dash-city-accordion[open] summary {
+  border-bottom: 1px solid #e2e8f0;
+  background: #f1f5f9;
+}
+
