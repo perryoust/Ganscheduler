@@ -1170,17 +1170,22 @@ function renderPairWeek(evs,ws,gids){
 // Quick action buttons for list/weekly views
 function _quickActionBtns(s){
   const sid=s.id;
-  const isDone=s.st==='done', isCan=s.st==='can', isNohap=s.st==='nohap';
+  const isDone=s.st==='done', isCan=s.st==='can', isNohap=s.st==='nohap', isPost=s.st==='post';
+  const isException = isNohap || isPost || isCan;
+  const isHandled = !!(s._compByMakeup && s._compByMakeup !== 'false');
+
   return `<div class="qacts" style="opacity:1;display:flex;gap:3px;flex-shrink:0" onclick="event.stopPropagation()">
-    ${isDone?'':`<button title="התקיים" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
+    ${isDone?'':`<button title="בוצע" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
       onclick="qSetSt('${sid}','done')">✔️</button>`}
-    ${isCan?'':`<button title="בטל" style="background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
+    ${(isException && !isHandled) ? `<button title="סיום טיפול (הסרה מהלוח)" style="background:#fff9c4;color:#f57f17;border:1px solid #fff176;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1;font-weight:800"
+      onclick="if(window.markCompManual)window.markCompManual('${sid}')">✅ טופל</button>` : ''}
+    ${isCan?'':`<button title="ביטול" style="background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
       onclick="openCanQ('${sid}')">❌</button>`}
     ${isNohap?'':`<button title="לא התקיים" style="background:#f3e5f5;color:#6a1b9a;border:1px solid #ce93d8;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
       onclick="window.qSetSt('${sid}','nohap')">⚠️</button>`}
-    <button title="דחה" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
+    <button title="דחייה" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
       onclick="openPostpone('${sid}')">⏩</button>
-    <button title="שיבוץ השלמה" class="btn-makeup" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
+    <button title="קביעת השלמה" class="btn-makeup" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
       onclick="openMakeupSched('${sid}')">📅</button>
   </div>`;
 }

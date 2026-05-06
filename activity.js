@@ -153,6 +153,10 @@ function renderDash() {
     });
 
     rows.sort((a, b) => {
+      const dA = a.type === 'solo' ? a.ev.d : a.evs[0].d;
+      const dB = b.type === 'solo' ? b.ev.d : b.evs[0].d;
+      if (dA !== dB) return dB.localeCompare(dA); // Newest first
+
       const getMinTime = (row) => {
         if (row.type === 'solo') return (row.ev?.t || '99:99').padStart(5, '0');
         if (!row.evs || !row.evs.length) return '99:99';
