@@ -278,7 +278,16 @@ window.dashBatchAction = function(action) {
         });
       }
     });
-    window.saveAndRefresh('dash', false, true);
+    // Show loading indicator
+    const saveToast = window.showToast('💾 שומר שינויים לענן...', 0);
+    try {
+      await window.saveAndRefresh('dash', false, true);
+      if (saveToast && saveToast.close) saveToast.close();
+      window.showToast('✅ נשמר בהצלחה');
+    } catch(err) {
+      if (saveToast && saveToast.close) saveToast.close();
+      window.showToast('❌ שגיאה בשמירה: ' + err.message);
+    }
     setTimeout(() => {
       document.querySelectorAll('.dash-row-chk').forEach(cb => cb.checked = false);
       dashUpdateBulkBar();
@@ -1273,8 +1282,8 @@ function refresh(){
   if(window.currentTab==='sched' && window.renderSched) window.renderSched();
 }
 
-function saveAndRefresh(modalId, stayOpen = false, immediate = false){
-  window.save(immediate);
+async function saveAndRefresh(modalId, stayOpen = false, immediate = false){
+  const ok = await window.save(immediate);
   if(!stayOpen) {
     if(modalId) window.CM(modalId);
     if(modalId === 'sp' || modalId === 'sp-m') closeSP();
@@ -1283,6 +1292,7 @@ function saveAndRefresh(modalId, stayOpen = false, immediate = false){
   if(stayOpen && (modalId === 'sp' || modalId === 'sp-m') && window.selEv) {
     window.openSP(window.selEv);
   }
+  return ok;
 }
 
 function openMakeupSched(origId){

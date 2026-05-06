@@ -611,7 +611,8 @@ function save(immediate){
     window._mem_ganv5=_json; // ensure in-memory is also up to date
     // Also update year key if meta exists
     try{const _m=JSON.parse(_safeLS.getItem('ganv5_meta')||'null');if(_m&&_m.currentYear)_safeLS.setItem('ganv5_y_'+_m.currentYear,_json);}catch(_){}
-    try{ghAutoSave(immediate===true);}catch(_){}
+    let res = null;
+    try{ res = ghAutoSave(immediate===true); }catch(_){}
     save._cnt=(save._cnt||0)+1;
     if(save._cnt%30===0){
       try{
@@ -622,6 +623,7 @@ function save(immediate){
         _safeLS.setItem('ganv5_snaps',JSON.stringify(snaps));
       }catch(e2){}
     }
+    return res;
   }catch(e){}
 }
 function initPairs(){

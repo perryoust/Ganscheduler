@@ -280,6 +280,11 @@ async function saveToFirebase(silent) {
 
     _fbSyncing = true;
     _fbUpdateStatus();
+    
+    // Update indicator to "Saving..."
+    const _bi=document.getElementById('backup-ind');
+    if(_bi){_bi.textContent='⏳ שומר...';_bi.classList.add('show');}
+
     const nowTs = Date.now();
     const payload = { data: JSON.parse(raw), ts: nowTs, version: '10.2' };
     console.log('Saving to Firebase: SCH=', JSON.parse(raw).ch?.length, '| invoices saved separately');
@@ -518,8 +523,9 @@ async function fbLoadNow() {
 function ghAutoSave(immediate) { 
   if(immediate){ 
     clearTimeout(window._fbTimer);
-    saveToFirebase(true).catch(()=>{}); 
+    return saveToFirebase(true); 
   } else { 
     firebaseAutoSave(); 
+    return Promise.resolve(true);
   }
 }
