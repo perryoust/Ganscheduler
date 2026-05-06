@@ -1320,7 +1320,11 @@ function doPostpone(){
   s.cn += reason ? ` (דחייה: ${reason})` : '';
   s._compByMakeup = newId1; // Mark original as handled
 
-  const newEv1 = {...s, id:newId1, d:newDate, t:s.t, a:newSup||s.a, act:newAct||s.act, st:'ok', pd:'', pt:'', _postFrom: s.d};
+  const newEv1 = {
+    ...s, id:newId1, d:newDate, t:s.t, a:newSup||s.a, act:newAct||s.act, st:'ok', 
+    pd:'', pt:'', _postFrom: s.d, _isMakeup: true,
+    nt: (s.nt ? s.nt + ' | ' : '') + 'השלמה מיום ' + window.fD(s.d)
+  };
   delete newEv1._recId;
   if(reason) newEv1.n = s.n ? s.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
   window.SCH.push(newEv1);
@@ -1336,7 +1340,11 @@ function doPostpone(){
       conf.pEv._compByMakeup = newSynId;
     }
     const ptEv = conf.pEv || {...s, g: conf.syn.g};
-    const newPtEv = {...ptEv, id:newSynId, d:newDate, t:conf.syn.t || ptEv.t, a:newSup||s.a, act:newAct||s.act, st:'ok', pd:'', pt:'', _postFrom: s.d};
+    const newPtEv = {
+      ...ptEv, id:newSynId, d:newDate, t:conf.syn.t || ptEv.t, a:newSup||s.a, act:newAct||s.act, st:'ok', 
+      pd:'', pt:'', _postFrom: s.d, _isMakeup: true,
+      nt: (ptEv.nt ? ptEv.nt + ' | ' : '') + 'השלמה מיום ' + window.fD(s.d)
+    };
     delete newPtEv._recId;
     if(!conf.pEv && reason) newPtEv.n = ptEv.n ? ptEv.n + ' | נוצר מדחייה: ' + reason : 'נוצר מדחייה: ' + reason;
     else if(reason) newPtEv.n = ptEv.n ? ptEv.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
