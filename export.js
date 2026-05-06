@@ -729,9 +729,9 @@ async function exportToExcel(data, filename, opts = {}) {
               
               // Report is faithful to site, but has safety overrides for notes
               const isMakeup = note.includes('השלמה');
-              const isMovedFrom = note.includes('נדחה מ') || note.includes('הוזז מ') || note.includes('הזזה מ');
-              const isMovedTo = note.includes('נדחה ל') || note.includes('הוזז ל') || note.includes('הזזה ל');
-              const isPositive = isMakeup || isMovedFrom || (note.includes('נדחה') && !isMovedTo);
+              const isMovedFrom = note.includes('נדחה מ') || note.includes('הוזז מ') || note.includes('הזזה מ') || note.includes('הוקדם מ');
+              const isMovedTo = note.includes('נדחה ל') || note.includes('הוזז ל') || note.includes('הזזה ל') || note.includes('הוקדם ל');
+              const isPositive = isMakeup || isMovedFrom || ((note.includes('נדחה') || note.includes('הוקדם')) && !isMovedTo);
 
               let isOk = s.st === 'ok' || s.st === 'done';
               
