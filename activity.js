@@ -121,7 +121,7 @@ function renderDash() {
       (dateGroups[s.d] = dateGroups[s.d] || []).push(s);
     });
 
-    Object.keys(dateGroups).sort().forEach(date => {
+    Object.keys(dateGroups).sort().reverse().forEach(date => {
       const dateEvs = dateGroups[date];
       html += `<div style="padding:6px 15px; background:#f8f9fa; border-bottom:1px solid #e9ecef; font-weight:700; color:#495057; font-size:0.85rem">📅 ${window.fD(date)}</div>`;
       
@@ -183,7 +183,7 @@ function _renderDashCard(card) {
         <input type="checkbox" class="dash-row-chk" value="${s.id}" onclick="event.stopPropagation(); window.dashUpdateBulkBar()" style="width:19px; height:19px; flex-shrink:0">
         <div style="width:85px; font-size:0.8rem; font-weight:700; color:#475569; flex-shrink:0">${window.fD(s.d)}</div>
         <div style="flex:1">
-          <div style="font-weight:800; font-size:1.05rem; color:#1e293b">
+          <div style="font-weight:800; font-size:0.98rem; color:#1e293b">
             ${g.name} <span style="color:#0288d1; font-weight:700">· ${s.a || ''}</span>
             ${isM ? ' | <b style="color:#f59e0b">השלמה</b>' : ''}
           </div>
