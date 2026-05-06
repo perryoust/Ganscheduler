@@ -549,6 +549,7 @@ window.openSP = function(id) {
                     <option value="can" ${curSt==='can'?'selected':''}>❌ בוטל</option>
                     <option value="post" ${curSt==='post'?'selected':''}>⏩ נדחה</option>
                   </select>
+                  ${(curSt==='nohap'||curSt==='can') ? `<button class="btn br bsm" style="padding:1px 4px;margin-right:3px;border:1px solid #ef9a9a;background:#fff;color:#c62828" title="מחיקה מהלוח" onclick="window.deleteSingleActivity('${pev.id}')">🗑️</button>` : ''}
                 ` : '<span style="font-size:.7rem;color:#c62828;font-weight:700">לא משובץ</span>'}
               </td>
               <td style="padding:6px;font-weight:700">${pev&&pev.t ? window.fT(pev.t) : '—'}</td>
@@ -574,6 +575,7 @@ window.openSP = function(id) {
         <option value="ok">🔄 שחזור לתקין</option>
         <option value="post">⏩ דחייה למועד אחר</option>
         <option value="makeup">📅 קביעת השלמה</option>
+        <option value="delete">🗑️ מחיקה מהלוח</option>
       </select>
     </div>
   </div>`;
