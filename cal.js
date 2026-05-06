@@ -808,25 +808,10 @@ function renderPairCard(pair, pairEvs, opts){
         </div>
       </div>`;
     } else {
-      // Group by supplier, time, and activity to group duplicates if needed, but DO NOT hide based on status
-      const sups = {};
-      for (const k in gEvs) {
-        const ev = gEvs[k];
-        const sb = window.supBase(ev.a);
-        const groupKey = sb + '|' + (ev.t || '') + '|' + (ev.act || '') + '|' + ev.st;
-        if(!sups[groupKey]) sups[groupKey] = { evs: [] };
-        sups[groupKey].evs.push(ev);
-      }
-
-      for (const k in sups) {
-        const group = sups[k];
-        group.evs.forEach(bestEv => {
-          if (!bestEv) return;
-
-
-        const ev = bestEv;
+      gEvs.forEach(ev => {
+        if (!ev) return;
         const stc = ev.st !== 'ok' ? 'st-' + ev.st : '';
-        const isMakeup = ev._isMakeup || ev._makeupFrom || ev._postFrom || (ev.nt && ev.nt.includes('השלמה'));
+        const isMakeup = !!(ev._isMakeup || ev._makeupFrom || ev._postFrom || (ev.nt && ev.nt.includes('השלמה')));
         const fromDate = ev._makeupFrom || ev._postFrom || '';
         const makeupBadge = isMakeup ? `<span style="background:#e1f5fe; color:#0288d1; border-radius:4px; padding:1px 5px; font-size:0.6rem; font-weight:800; border:1px solid #b3e5fc;">📅 השלמה ${fromDate?window.fD(fromDate):''}</span>` : '';
 
@@ -847,8 +832,7 @@ function renderPairCard(pair, pairEvs, opts){
             ${ev.st==='nohap'?'':`<button title="חוסר" onclick="window.qSetSt('${ev.id}','nohap')" style="padding:1px 4px;">⚠️</button>`}
           </div>
         </div>`;
-        });
-      }
+      });
     }
   });
 

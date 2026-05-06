@@ -125,13 +125,13 @@ function renderDash() {
     evs.forEach(s => {
       const group = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
       if (group) {
-        if (!seenPairs.has(group.id + '_' + window.supBase(s.a) + '_' + s.d + '_' + s.t)) {
+        if (!seenPairs.has(group.id + '_' + window.supBase(s.a) + '_' + s.d + '_' + s.t + '_' + s.st)) {
           const groupEvs = evs.filter(x => {
             const xGroup = window.getGardenGroup ? window.getGardenGroup(x.g) : window.gardenPair(x.g);
             return xGroup && xGroup.id === group.id && window.supBase(x.a) === window.supBase(s.a);
           });
           rows.push({type: 'pair', pair: group, evs: groupEvs});
-          seenPairs.add(group.id + '_' + window.supBase(s.a) + '_' + s.d + '_' + s.t);
+          seenPairs.add(group.id + '_' + window.supBase(s.a) + '_' + s.d + '_' + s.t + '_' + s.st);
         }
       } else {
         rows.push({type: 'solo', ev: s});
