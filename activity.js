@@ -63,8 +63,12 @@ function renderDash() {
       if (s.st === 'can') return false;
       if (isHandled) return false;
       const isExc = (s.st === 'nohap' || s.st === 'post');
-      const isPendingM = isM && s.st !== 'done';
-      if (!isExc) return false;
+      
+      const today = window.td();
+      // Makeup is pending if it's today/future AND not done, OR if it failed (nohap)
+      const isPendingM = isM && (s.d >= today || s.st === 'nohap') && s.st !== 'done';
+      
+      if (!isExc && !isPendingM) return false;
     } else if (view === 'makeups') {
       if (!isM) return false;
     } else if (view === 'nohap') {

@@ -410,6 +410,8 @@ document.addEventListener('visibilitychange', async ()=>{
   if(window._importInProgress) return; // Block sync during import
   if(document.visibilityState === 'hidden'){
     _lastHiddenAt = Date.now();
+    // CRITICAL: Save immediately when leaving the app to prevent data loss
+    if(typeof saveToFirebase === 'function') saveToFirebase(true);
     return;
   }
   const now = Date.now();
@@ -432,10 +434,13 @@ document.addEventListener('visibilitychange', async ()=>{
     if(!r.ok) return;
     const d = await r.json();
     const cloudTs = d && d.ts ? d.ts : 0;
-    if(cloudTs > 0 && (cloudTs > _fbLastSaveTs || awayMs > 10000)){
+    
+    // Only reload if cloud has NEWER data than what we last saved/loaded.
+    // Removed awayMs > 10000 check which was causing accidental overwrites of unsaved local changes.
+    if(cloudTs > 0 && cloudTs > _fbLastSaveTs){
       _applyRemoteData(d.data||d, cloudTs);
       _setFbLoadTs(now);
-      if(awayMs > 10000) showToast('🔄 נתונים עודכנו');
+      showToast('🔄 נתונים עודכנו מהענן');
     } else {
       _fbUpdateStatus();
     }

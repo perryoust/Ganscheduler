@@ -791,9 +791,9 @@ function renderPairCard(pair, pairEvs, opts){
   const expBtn = ds ? `<button onclick="exportPairRow('${pair.id}','${ds}',${!!opts.isMakeup})" style="background:rgba(255,255,255,.3);border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.65rem;color:#fff;font-weight:700">📋 הודעה</button>` : '';
 
   let html = `<div class="pair-card ${isCompact ? 'compact' : ''}" style="border:1px solid ${clr.border}; border-radius:6px; overflow:hidden; margin-bottom:8px; background:#fff">
-    <div class="pair-card-hdr" style="background:${clr.solid}; color:#fff; padding:3px 10px; display:flex; align-items:center; gap:8px; font-size:0.88rem; font-weight:800">
+    <div class="pair-card-hdr" style="background:${clr.solid}; color:#fff; padding:4px 10px; display:flex; align-items:center; gap:8px; font-size:0.92rem; font-weight:800">
       🔗 ${pair.name}
-      <span style="font-size:0.65rem; font-weight:400; opacity:0.9; margin-right:auto">${supName ? window.supBase(supName) : ''} ${actName ? '· ' + actName : ''}</span>
+      <span style="font-size:0.8rem; font-weight:700; opacity:0.95; margin-right:auto">${supName ? window.supBase(supName) : ''} ${actName ? '· ' + actName : ''}</span>
       <div style="display:flex; gap:4px; align-items:center;">${expBtn}${editBtn}</div>
     </div>
     <div class="pair-card-body">`;
@@ -1340,6 +1340,8 @@ function _listRow(s, clr, ds){
   const isRec = !isM && (!!s._recId || repeats);
   const recBadge = isRec ? `<span style="font-size:0.65rem;color:#6a1b9a;margin-left:4px;vertical-align:middle;font-weight:900" title="שיבוץ קבוע">🔄</span>` : '';
   const supText = isUnassigned ? '' : `${window.supBase(s.a)}${recBadge}${s.act?' — <span style="color:#546e7a">'+s.act+'</span>':''}`;
+  // Increase font size for supplier/activity text as requested
+  const supStyle = `font-size:.82rem;font-weight:700;color:#1565c0`;
   const clickHandler = isUnassigned ? `event.stopPropagation(); if(window.openNewSched) window.openNewSched('${s.d}', ${s.g});` : `window.openSP('${s.id}')`;
   
   const addrLink=g.st?`<a href="https://maps.google.com/?q=${encodeURIComponent(g.st+' '+g.city)}" target="_blank" onclick="event.stopPropagation()" style="font-size:.63rem;color:#1565c0;text-decoration:none">📍 ${g.st}</a>`:'';
@@ -1354,13 +1356,13 @@ function _listRow(s, clr, ds){
   return `<div style="display:grid;grid-template-columns:minmax(150px, auto) 1fr auto auto auto;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;margin-bottom:1px;background:${bg};border-right:3px solid ${clr.solid};cursor:pointer;min-height:36px" onclick="${clickHandler}">
     <div style="display:flex; flex-direction:column; gap:1px; justify-content:center;">
       <div style="display:flex; align-items:center; gap:5px;">
-        <span style="font-weight:800;font-size:.85rem;color:#1565c0;white-space:nowrap">${s.d?'📅 '+window.fD(s.d):''} ${s.t?'⏰ '+window.fT(s.t):''}</span>
+        <span style="font-weight:800;font-size:.85rem;color:#1565c0;white-space:nowrap">${s.t?'⏰ '+window.fT(s.t):''}</span>
         <span style="font-weight:700;font-size:.76rem;color:#1a237e;line-height:1">${g.name}</span>
       </div>
       ${addrLink}
     </div>
     <div>
-      <div style="font-size:.75rem;font-weight:600;color:#1565c0">${supText}</div>
+      <div style="${supStyle}">${supText}</div>
       ${s.nt?`<div style="font-size:.68rem;color:#d84315;margin-top:2px;max-width:200px;white-space:normal;line-height:1.15;font-weight:700">📝 ${s.nt}</div>`:''}
       ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #b3e5fc;margin-top:2px">📅 השלמה</div>`:''}
       ${(s._compByMakeup && s._compByMakeup!=='false')?`<div style="display:inline-block;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #a5d6a7;margin-top:2px">✅ נקבעה השלמה${(window.SCH.find(x=>x.id===s._compByMakeup)||{}).d ? ' ל-'+window.fD((window.SCH.find(x=>x.id===s._compByMakeup)||{}).d) : ''}</div>`:''}

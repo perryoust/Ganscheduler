@@ -968,9 +968,13 @@ function updCounts(){
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
     if (isHandled || s.st === 'can') return false;
+    
     if (s.st === 'nohap' || s.st === 'post') return true;
-    // Hide 'ok' makeups from To-Do as requested
-    // if (isM && s.st !== 'done') return true; 
+    
+    const today = window.td();
+    // Include pending or failed makeups
+    if (isM && (s.d >= today || s.st === 'nohap') && s.st !== 'done') return true;
+    
     return false;
   }).length;
 
