@@ -43,13 +43,15 @@ function filterE(f,from,to){
     if(f.sup && window.supBase(s.a) !== f.sup && s.a !== f.sup) return false;
 
      // Status Filter 
+     if(s.st==='nohap') return true; // Always show nohap in calendar
+     
      if(f.st==='todo'){
-        if(s.st==='can') return false; // Never show cancelled in Todo
+        if(s.st==='can') return false; 
         const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
         const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
         if(!(s.st==='nohap' || s.st==='post' || isM || isHandled)) return false;
      } else if(!f.st){
-        // No status filter: show everything in calendar regardless of _compByMakeup
+        // No status filter
      } else if(f.st && s.st!==f.st) return false;
 
     return true;
@@ -1488,14 +1490,21 @@ function renderRangeListView(evs, fromDs, toDs){
       });
       pairGroups.sort((a,b) => (a.pair.name||'').localeCompare(b.pair.name||'', 'he'));
       pairGroups.forEach(({pair, pairEvs}) => {
-        const pairMap = new Map();
-        pairEvs.forEach(s => pairMap.set(s.g, s));
+        const gardenActivities = new Map();
+        pairEvs.forEach(s => {
+          if(!gardenActivities.has(s.g)) gardenActivities.set(s.g, []);
+          gardenActivities.get(s.g).push(s);
+        });
+        
+        const finalEvs = [];
         pair.ids.forEach(gid => {
-          if(!pairMap.has(gid)) {
-            pairMap.set(gid, { id: 'dummy_'+gid, g: gid, st: 'unassigned', d: ds, t: '', act: '' });
+          if(gardenActivities.has(gid)) {
+            finalEvs.push(...gardenActivities.get(gid));
+          } else {
+            finalEvs.push({ id: 'dummy_'+gid, g: gid, st: 'unassigned', d: ds, t: '', act: '' });
           }
         });
-        const sorted = Array.from(pairMap.values()).sort((a,b) => window.compareActivities(a, b));
+        const sorted = finalEvs.sort((a,b) => window.compareActivities(a, b));
         h += `<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
           <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
             <span>🔗 ${pair.name}</span>
