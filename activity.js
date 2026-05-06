@@ -108,10 +108,9 @@ function renderDash() {
       <summary>
         <div style="display:flex; align-items:center; gap:12px; flex:1">
           <input type="checkbox" onclick="event.stopPropagation(); dashCheckAll('${groupId}', this.checked)" style="width:18px;height:18px">
-          <span style="font-weight:800; color:#1e293b; font-size:1.1rem">🏙️ ${cityName}</span>
-          <span class="badge" style="background:${clr.solid}; color:#fff; font-size:0.75rem">${cityEvs.length}</span>
+          <span style="font-weight:700; color:#64748b; font-size:0.9rem; margin-right:5px">(${cityEvs.length})</span>
         </div>
-        <div style="font-size:0.7rem; color:#94a3b8">לחץ לפירוט ▼</div>
+        <div style="font-size:0.75rem; color:#64748b; font-weight:600">לחץ לפירוט ▼</div>
       </summary>
       <div id="${groupId}" class="dash-city-content" style="padding:10px; display:flex; flex-direction:column; gap:8px">`;
 
@@ -168,21 +167,21 @@ function _renderDashCard(card) {
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
 
     const label = window.stLabel ? window.stLabel(s) : '';
-    h += `<div class="dash-row ${stCls}" style="display:flex; align-items:center; gap:12px; padding:8px 12px; border-bottom:1px solid #f9f9f9; cursor:pointer" onclick="window.openSP('${s.id}')">
-      <input type="checkbox" class="dash-row-chk" value="${s.id}" onclick="event.stopPropagation(); window.dashUpdateBulkBar()" style="width:17px; height:17px">
-      <div style="width:85px; font-size:0.75rem; font-weight:700; color:#546e7a">${window.fD(s.d)}</div>
-      <div style="flex:1">
-        <div style="font-weight:800; font-size:0.88rem; color:#1a237e">${g.name}</div>
-        <div style="font-size:0.74rem; color:#78909c">${s.a || ''} ${isM ? ' | <b style="color:#0288d1">השלמה</b>' : ''}</div>
-        ${s.nt ? `<div style="font-size:0.68rem; color:#d84315; font-weight:700; margin-top:2px">📝 ${s.nt}</div>` : ''}
+    h += `<div class="dash-row ${stCls}" style="display:flex; align-items:center; gap:12px; padding:10px 15px; border-bottom:1px solid #f1f5f9; cursor:pointer" onclick="window.openSP('${s.id}')">
+      <input type="checkbox" class="dash-row-chk" value="${s.id}" onclick="event.stopPropagation(); window.dashUpdateBulkBar()" style="width:18px; height:18px; flex-shrink:0">
+      <div style="width:85px; font-size:0.78rem; font-weight:700; color:#475569; flex-shrink:0">${window.fD(s.d)}</div>
+      <div style="flex:1; min-width:0">
+        <div style="font-weight:800; font-size:0.92rem; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${g.name}</div>
+        <div style="font-size:0.78rem; color:#64748b">${s.a || ''} ${isM ? ' | <b style="color:#0288d1">השלמה</b>' : ''}</div>
+        ${s.nt ? `<div style="font-size:0.72rem; color:#b91c1c; font-weight:700; margin-top:2px">📝 ${s.nt}</div>` : ''}
       </div>
-      <div style="display:flex; align-items:center; gap:8px">
-        <span class="st-tag ${stCls}" style="font-size:.7rem; padding:3px 8px; border-radius:4px; font-weight:700">${label}</span>
-        <div class="qacts" style="display:flex; gap:4px" onclick="event.stopPropagation()">
-          ${s.st === 'done' ? '' : `<button title="בוצע" onclick="window.qSetSt('${s.id}','done')" class="qbtn qbtn-done" style="padding:2px 5px; font-size:0.8rem">✔️</button>`}
-          ${s.st === 'can' ? '' : `<button title="בטל" onclick="window.openCanQ('${s.id}')" class="qbtn qbtn-can" style="padding:2px 5px; font-size:0.8rem">❌</button>`}
-          ${s.st === 'nohap' ? '' : `<button title="חוסר" onclick="window.qSetSt('${s.id}','nohap')" class="qbtn qbtn-nohap" style="padding:2px 5px; font-size:0.8rem">⚠️</button>`}
-          <button title="השלמה" onclick="window.openMakeupSched('${s.id}')" class="qbtn qbtn-post" style="padding:2px 5px; font-size:0.8rem">📅</button>
+      <div style="display:flex; align-items:center; gap:10px; flex-shrink:0">
+        <span class="st-tag ${stCls}" style="font-size:.72rem; padding:4px 10px; border-radius:6px; font-weight:700">${label}</span>
+        <div class="qacts" style="display:flex; gap:6px" onclick="event.stopPropagation()">
+          ${s.st === 'done' ? '' : `<button title="בוצע" onclick="window.qSetSt('${s.id}','done')" class="qbtn qbtn-done" style="padding:4px 8px; font-size:0.85rem; border-radius:4px; border:1px solid #e2e8f0; background:#fff">✔️</button>`}
+          ${s.st === 'can' ? '' : `<button title="בטל" onclick="window.openCanQ('${s.id}')" class="qbtn qbtn-can" style="padding:4px 8px; font-size:0.85rem; border-radius:4px; border:1px solid #e2e8f0; background:#fff">❌</button>`}
+          ${s.st === 'nohap' ? '' : `<button title="חוסר" onclick="window.qSetSt('${s.id}','nohap')" class="qbtn qbtn-nohap" style="padding:4px 8px; font-size:0.85rem; border-radius:4px; border:1px solid #e2e8f0; background:#fff">⚠️</button>`}
+          <button title="השלמה" onclick="window.openMakeupSched('${s.id}')" class="qbtn qbtn-post" style="padding:4px 8px; font-size:0.85rem; border-radius:4px; border:1px solid #e2e8f0; background:#fff">📅</button>
         </div>
       </div>
     </div>`;
@@ -241,7 +240,8 @@ window.dashBatchAction = function(action) {
         }
         // Also sync to partners if applicable
         const pair = window.gardenPair(s.g);
-        const cluster = window.clusters ? window.clusters.find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
+        const clusterArr = window.clusters ? Object.values(window.clusters) : [];
+        const cluster = clusterArr.find(c => c.gids && c.gids.map(Number).includes(Number(s.g)));
         
         const allPartnerIds = new Set();
         if(pair) pair.ids.forEach(pid => allPartnerIds.add(Number(pid)));
