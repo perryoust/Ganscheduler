@@ -21,81 +21,37 @@ function setDashView(v) {
   renderDash();
 }
 
-const _dashTableRow = (s, cityColor) => {
-  const g = window.G(s.g);
-  if (!g) return '';
-  const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-  const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
-  const stClass = window.stClass ? window.stClass(s) : '';
-  const stLabel = window.stLabel ? window.stLabel(s) : s.st;
-  
-  const makeupBadge = isM ? `<span class="handled-badge" style="background:#fff3e0;color:#e65100;border-color:#ffe0b2">↩️ השלמה</span>` : '';
-  const handledBadge = isHandled ? `<span class="handled-badge">✅ טופל</span>` : '';
 
-  return `<tr class="${stClass} ${isHandled ? 'st-handled' : ''}" onclick="window.openSP('${s.id}')" style="cursor:pointer">
-    <td class="dash-check-col" onclick="event.stopPropagation()">
-      <input type="checkbox" class="dash-row-chk" value="${s.id}" onchange="dashUpdateBulkBar()">
-    </td>
-    <td>
-      <div style="font-weight:700; color:#1a237e">${g.name}</div>
-      <div style="font-size:0.68rem; color:#78909c">${g.st || ''}</div>
-    </td>
-    <td>
-      <div style="font-weight:700">${window.supBase(s.a)}</div>
-      <div style="font-size:0.7rem; color:#1565c0">${window.supAct(s.a) || s.act || ''}</div>
-    </td>
-    <td style="text-align:center">
-      <span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-weight:700">${s.t ? window.fT(s.t) : '--:--'}</span>
-    </td>
-    <td>
-      <span class="bdg ${stClass}">${stLabel}</span>
-      ${makeupBadge} ${handledBadge}
-    </td>
-    <td style="max-width:120px; font-size:0.72rem; color:#4a5568">
-      ${s.nt || ''}
-    </td>
-    <td onclick="event.stopPropagation()" style="text-align:left">
-      <div class="qacts" style="display:flex; justify-content:flex-end; gap:5px;">
-        ${s.st === 'done' ? '' : `<button title="בוצע" onclick="window.qSetSt('${s.id}','done')" class="qbtn qbtn-done">✔️</button>`}
-        ${s.st === 'can' ? '' : `<button title="בטל" onclick="window.openCanQ('${s.id}')" class="qbtn qbtn-can">❌</button>`}
-        ${s.st === 'nohap' ? '' : `<button title="חוסר" onclick="window.qSetSt('${s.id}','nohap')" class="qbtn qbtn-nohap">⚠️</button>`}
-      </div>
-    </td>
-  </tr>`;
-};
 
 function renderDash() {
   const list = document.getElementById('dash-body');
   if (!list) return;
-  
+
   const dateEl = document.getElementById('dash-date');
   const cityEl = document.getElementById('dash-city');
   const supEl = document.getElementById('dash-sup');
   const fromEl = document.getElementById('dash-from');
   const toEl = document.getElementById('dash-to');
-  const srchEl = document.getElementById('dash-srch');
-  
-  if (!dateEl) return;
+  const srchEl = document.getElementById('dash-search');
 
-  const date = dateEl.value;
+  const date = dateEl ? dateEl.value : '';
   const city = cityEl ? cityEl.value : '';
   const sup = supEl ? supEl.value : '';
   const from = fromEl ? fromEl.value : '';
   const to = toEl ? toEl.value : '';
   const srch = (srchEl ? srchEl.value : '').toLowerCase();
-  const tab = window._dashTab || 'g';
-  const view = window._dashView || 'todo';
+
+  const tab = window._dashTab || 'g'; // 'g' for Gardens, 's' for Schools
+  const view = window._dashView || 'todo'; // 'todo', 'nohap', 'post', 'handled', 'can', 'all'
 
   const filtered = (window.SCH || []).filter(s => {
     const g = window.G(s.g);
     if (!g) return false;
     
-    // Classification (Garden/School)
     const gClass = window.gcls ? window.gcls(g) : 'גנים';
     if (tab === 'g' && gClass !== 'גנים') return false;
     if (tab === 's' && gClass !== 'ביה"ס') return false;
 
-    // Filters
     if (city && g.city !== city) return false;
     if (sup && window.supBase(s.a) !== sup) return false;
     if (srch && ![(g.name||''), (g.city||''), s.a, s.act, s.nt].some(v=>(v||'').toLowerCase().includes(srch))) return false;
@@ -103,56 +59,33 @@ function renderDash() {
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
 
-    // View Logic
     if (view === 'todo') {
-      // Todo: Exceptions (nohap, post) not handled yet, or pending Makeups
       if (s.st === 'can') return false;
       if (isHandled) return false;
       const isExc = (s.st === 'nohap' || s.st === 'post');
       const isPendingM = isM && s.st !== 'done';
       if (!isExc && !isPendingM) return false;
-      if (from && s.d < from) return false;
-      if (to && s.d > to) return false;
     } else if (view === 'nohap') {
       if (s.st !== 'nohap' || isHandled) return false;
-      if (from && s.d < from) return false;
-      if (to && s.d > to) return false;
     } else if (view === 'post') {
       if (s.st !== 'post' || isHandled) return false;
-      if (from && s.d < from) return false;
-      if (to && s.d > to) return false;
     } else if (view === 'handled') {
       if (!isHandled && s.st !== 'done') return false;
-      if (from && s.d < from) return false;
-      if (to && s.d > to) return false;
-      if (!from && !to && date && s.d !== date) return false;
     } else if (view === 'can') {
       if (s.st !== 'can') return false;
-      if (from && s.d < from) return false;
-      if (to && s.d > to) return false;
-      if (!from && !to && date && s.d !== date) return false;
-    } else { // 'all'
-      if (s.st === 'can' && view !== 'can') return false;
-      if (from && s.d < from) return false;
-      if (to && s.d > to) return false;
-      if (!from && !to && date && s.d !== date) return false;
+    } else if (view === 'all') {
+       // show everything
     }
+
+    if (from && s.d < from) return false;
+    if (to && s.d > to) return false;
+    if (!from && !to && date && s.d !== date) return false;
 
     return true;
   });
 
-  // Sort: Newest first for todo/handled, Chronological for 'all'
-  filtered.sort((a, b) => {
-    if (view === 'todo' || view === 'handled') {
-      const dComp = b.d.localeCompare(a.d);
-      if (dComp !== 0) return dComp;
-    } else {
-      const dComp = a.d.localeCompare(b.d);
-      if (dComp !== 0) return dComp;
-    }
-    const gA = window.G(a.g), gB = window.G(b.g);
-    return (gA.city||'').localeCompare(gB.city||'', 'he') || (gA.name||'').localeCompare(gB.name||'', 'he');
-  });
+  // Sort newest first
+  filtered.sort((a, b) => b.d.localeCompare(a.d) || (b.t || '').localeCompare(a.t || ''));
 
   // Group by City
   const groups = {};
@@ -164,44 +97,47 @@ function renderDash() {
   });
 
   let html = '';
-  Object.keys(groups).sort().forEach((c, idx) => {
-    const evs = groups[c];
-    const clr = window.CITY_COLORS ? window.CITY_COLORS(c) : {solid:'#1a237e', light:'#f8fafc', border:'#e2e8f0'};
+  Object.keys(groups).sort().forEach((cityName, idx) => {
+    const cityEvs = groups[cityName];
+    const cityOpen = !!city; 
     const groupId = `dash-group-${idx}`;
-    
-    html += `<details class="dash-city-accordion">
+    const clr = window.CITY_COLORS ? window.CITY_COLORS(cityName) : {solid:'#1a237e', light:'#f8fafc', border:'#e2e8f0'};
+
+    html += `<details class="dash-city-accordion" ${cityOpen ? 'open' : ''}>
       <summary>
-        <div style="display:flex; align-items:center; gap:12px">
-          <span style="font-size:1.1rem">🏙️</span>
-          <span style="font-weight:800; color:#1e293b">${c}</span>
-          <span class="badge" style="background:${clr.solid}; color:#fff; font-size:0.7rem">${evs.length}</span>
+        <div style="display:flex; align-items:center; gap:12px; flex:1">
+          <input type="checkbox" onclick="event.stopPropagation(); dashCheckAll('${groupId}', this.checked)" style="width:18px;height:18px">
+          <span style="font-weight:800; color:#1e293b; font-size:1.1rem">🏙️ ${cityName}</span>
+          <span class="badge" style="background:${clr.solid}; color:#fff; font-size:0.75rem">${cityEvs.length}</span>
         </div>
-        <div style="display:flex; align-items:center; gap:15px">
-           <label style="font-size:0.75rem; color:#64748b; cursor:pointer" onclick="event.stopPropagation()">
-             <input type="checkbox" onchange="dashCheckAll('${groupId}', this.checked)" style="vertical-align:middle"> בחר הכל
-           </label>
-           <span style="font-size:0.7rem; color:#94a3b8">לחץ לפירוט ▼</span>
-        </div>
+        <div style="font-size:0.7rem; color:#94a3b8">לחץ לפירוט ▼</div>
       </summary>
-      <div class="tw" style="padding:0">
-        <table class="dash-table">
-          <thead>
-            <tr>
-              <th class="dash-check-col"></th>
-              <th>צהרון</th>
-              <th>ספק</th>
-              <th style="text-align:center">שעה</th>
-              <th>סטטוס</th>
-              <th>הערות</th>
-              <th style="width:140px; text-align:left">פעולות</th>
-            </tr>
-          </thead>
-          <tbody id="${groupId}">
-            ${evs.map(s => _dashTableRow(s, clr)).join('')}
-          </tbody>
-        </table>
-      </div>
-    </details>`;
+      <div id="${groupId}" class="dash-city-content" style="padding:10px; display:flex; flex-direction:column; gap:8px">`;
+
+    // Internal Grouping: Pairs
+    const usedIds = new Set();
+    const cityCards = [];
+
+    // Pairs
+    (window.pairs || []).forEach(p => {
+      const pEvs = cityEvs.filter(s => !usedIds.has(s.id) && p.ids.includes(s.g));
+      if (pEvs.length) {
+        cityCards.push({ type: 'pair', obj: p, evs: pEvs });
+        pEvs.forEach(s => usedIds.add(s.id));
+      }
+    });
+
+    // Standalone
+    cityEvs.filter(s => !usedIds.has(s.id)).forEach(s => {
+      const g = window.G(s.g);
+      cityCards.push({ type: 'solo', obj: { name: g.name, ids: [g.id] }, evs: [s] });
+    });
+
+    cityCards.forEach(card => {
+      html += _renderDashCard(card);
+    });
+
+    html += `</div></details>`;
   });
 
   list.innerHTML = html || `<div style="padding:40px; text-align:center; color:#94a3b8">
@@ -209,8 +145,49 @@ function renderDash() {
     <div style="font-weight:700">אין פעילויות להצגה בתנאי הסינון הנוכחיים</div>
   </div>`;
   
-  dashUpdateBulkBar();
+  if (window.dashUpdateBulkBar) window.dashUpdateBulkBar();
   if (window.updCounts) window.updCounts();
+}
+
+function _renderDashCard(card) {
+  const { type, obj, evs } = card;
+  const isSolo = type === 'solo';
+  const firstG = window.G(evs[0].g);
+  const clr = window.CITY_COLORS ? window.CITY_COLORS(firstG.city) : {solid:'#1a237e', light:'#f8fafc', border:'#e2e8f0'};
+
+  let h = `<div class="dash-card" style="border:1px solid ${clr.border}; border-radius:8px; background:#fff; overflow:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.05)">
+    <div style="background:${clr.light}; padding:6px 12px; border-bottom:1px solid ${clr.border}; display:flex; align-items:center; gap:10px">
+      <span style="font-weight:800; font-size:0.85rem; color:${clr.solid}">${isSolo ? '' : '🔗 '}${obj.name}</span>
+    </div>
+    <div style="display:flex; flex-direction:column">`;
+
+  evs.forEach(s => {
+    const g = window.G(s.g);
+    const stCls = window.stClass ? window.stClass(s) : '';
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+
+    h += `<div class="dash-row ${stCls}" style="display:flex; align-items:center; gap:12px; padding:8px 12px; border-bottom:1px solid #f9f9f9; cursor:pointer" onclick="window.openSP('${s.id}')">
+      <input type="checkbox" class="dash-row-chk" value="${s.id}" onclick="event.stopPropagation(); window.dashUpdateBulkBar()" style="width:17px; height:17px">
+      <div style="width:85px; font-size:0.75rem; font-weight:700; color:#546e7a">${window.fD(s.d)}</div>
+      <div style="flex:1">
+        <div style="font-weight:800; font-size:0.88rem; color:#1a237e">${g.name}</div>
+        <div style="font-size:0.74rem; color:#78909c">${s.a || ''} ${isM ? ' | <b style="color:#0288d1">השלמה</b>' : ''}</div>
+        ${s.nt ? `<div style="font-size:0.68rem; color:#d84315; font-weight:700; margin-top:2px">📝 ${s.nt}</div>` : ''}
+      </div>
+      <div style="display:flex; align-items:center; gap:8px">
+        <span class="st-tag ${stCls}" style="font-size:.7rem; padding:3px 8px; border-radius:4px; font-weight:700">${stLabel}</span>
+        <div class="qacts" style="display:flex; gap:4px" onclick="event.stopPropagation()">
+          ${s.st === 'done' ? '' : `<button title="בוצע" onclick="window.qSetSt('${s.id}','done')" class="qbtn qbtn-done" style="padding:2px 5px; font-size:0.8rem">✔️</button>`}
+          ${s.st === 'can' ? '' : `<button title="בטל" onclick="window.openCanQ('${s.id}')" class="qbtn qbtn-can" style="padding:2px 5px; font-size:0.8rem">❌</button>`}
+          ${s.st === 'nohap' ? '' : `<button title="חוסר" onclick="window.qSetSt('${s.id}','nohap')" class="qbtn qbtn-nohap" style="padding:2px 5px; font-size:0.8rem">⚠️</button>`}
+          <button title="השלמה" onclick="window.openMakeupSched('${s.id}')" class="qbtn qbtn-post" style="padding:2px 5px; font-size:0.8rem">📅</button>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  h += `</div></div>`;
+  return h;
 }
 
 window.dashCheckAll = function(groupId, checked) {
@@ -219,13 +196,9 @@ window.dashCheckAll = function(groupId, checked) {
     const chks = group.querySelectorAll('.dash-row-chk');
     chks.forEach(cb => {
       cb.checked = checked;
-      // Force repaint/reflow for checkbox visibility issues
-      cb.style.display = 'none';
-      cb.offsetHeight;
-      cb.style.display = 'inline-block';
     });
   }
-  dashUpdateBulkBar();
+  window.dashUpdateBulkBar();
 };
 
 window.dashUpdateBulkBar = function() {
@@ -241,6 +214,7 @@ window.dashUpdateBulkBar = function() {
     bar.style.display = 'none';
   }
 };
+
 
 window.dashBatchAction = function(action) {
   const ids = Array.from(document.querySelectorAll('.dash-row-chk:checked')).map(cb => cb.value);
@@ -303,59 +277,7 @@ window.dashNavDate = function(dir) {
 
 function renderCanList() { /* Redundant - Integrated into renderDash */ }
 
-function _renderGroupedByCity(evs, isOpen = false) {
-  const byCity = {};
-  evs.forEach(s => {
-    const g = window.G(s.g);
-    const city = g ? (g.city || 'אחר') : 'אחר';
-    if (!byCity[city]) byCity[city] = [];
-    byCity[city].push(s);
-  });
 
-  const sortedCities = Object.keys(byCity).sort((a,b) => a.localeCompare(b, 'he'));
-  
-  return sortedCities.map(city => {
-    const cityEvs = byCity[city];
-    const clr = window.CITY_COLORS ? window.CITY_COLORS(city) : {solid:'#607d8b', light:'#f1f3f4', border:'#cfd8dc'};
-    
-    return `<details class="city-accordion" ${isOpen ? 'open' : ''} style="margin-bottom:8px;border:1px solid ${clr.border};border-radius:10px;overflow:hidden;background:#fff">
-      <summary style="padding:10px 14px;background:${clr.light};cursor:pointer;display:flex;justify-content:space-between;align-items:center;list-style:none">
-        <div style="display:flex;align-items:center;gap:10px">
-           <span style="font-weight:800;color:${clr.solid};font-size:0.9rem">🏙️ ${city}</span>
-           <span style="background:${clr.solid};color:#fff;font-size:0.7rem;padding:2px 7px;border-radius:10px;font-weight:700">${cityEvs.length}</span>
-        </div>
-        <span style="font-size:0.7rem;color:#78909c">לחץ לפתיחה/סגירה ▼</span>
-      </summary>
-      <div style="padding:8px">
-        ${cityEvs.map(s => {
-          const g = window.G(s.g);
-          const stLabel = window.stLabel ? window.stLabel(s) : s.st;
-          const stCls = window.stClass ? window.stClass(s) : '';
-          return `<div onclick="window.openSP('${s.id}')" style="display:grid;grid-template-columns:85px 1fr 90px;gap:10px;padding:10px;border-bottom:1px solid #f0f0f0;cursor:pointer;align-items:center;transition:background 0.2s" onmouseover="this.style.background='#f5f7ff'" onmouseout="this.style.background='transparent'">
-            <div style="font-size:0.75rem;font-weight:700;color:#546e7a">${window.fD(s.d)}</div>
-            <div>
-              <div style="font-size:0.85rem;font-weight:800;color:#1a237e">${g.name}</div>
-              <div style="font-size:0.72rem;color:#78909c">${s.a || ''} ${s.act ? ' - ' + s.act : ''}</div>
-              ${s.cr ? `<div style="font-size:0.7rem;color:#c62828;margin-top:2px">⚠️ ${s.cr}</div>` : ''}
-            </div>
-            <div style="text-align:left">
-              <span class="st-tag ${stCls}" style="font-size:0.65rem;padding:3px 8px;border-radius:6px;display:inline-block">${stLabel}</span>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-    </details>`;
-  }).join('');
-}
-
-function _renderMiniTable(evs){
-  let h = '<div class="tw"><table><thead><tr><th>תאריך</th><th>עיר</th><th>גן</th><th>ספק</th><th>סטטוס</th><th>סיבה</th></tr></thead><tbody>';
-  evs.forEach(s => {
-    const g = window.G(s.g);
-    h += `<tr onclick="window.openSP('${s.id}')" class="${window.stClass?window.stClass(s):''}" style="cursor:pointer"><td>${window.fD(s.d)}</td><td>${g.city||''}</td><td>${g.name||''}</td><td>${s.a||''}</td><td>${window.stLabel(s)}</td><td>${s.cr||''}${s.cn?' ('+s.cn+')':''}</td></tr>`;
-  });
-  return h + '</tbody></table></div>';
-}
 
 // --- Table Batch Action Wrappers ---
 window.spGetSelectedIds = function() {

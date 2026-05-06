@@ -908,20 +908,12 @@ window.onload = function(){
     const _inv = typeof INVOICES!=='undefined'?INVOICES.length:0;
     const _sch = typeof SCH!=='undefined'?SCH.length:0;
     console.log('App fully ready: SCH = ',_sch,'INVOICES = ',_inv);
-    // Show status if invoices didn't load (mobile debugging)
-    if(_inv === 0 && window._fbLastKnownInvoiceCount > 0){
-      showToast('⚠️ חשבוניות לא נטענו! לחץ Firebase → טען עכשיו');
-    }
     _fbStartPolling();
     setTimeout(_fitScrollAreas, 100);
-    // Init user management UI (admin only)
     try{ _ensureAdminProfile(); }catch(e){}
-
-  }; // end _onAuthReady
-  // On mobile, Firebase may fire onAuthStateChanged BEFORE window.onload
-  // In that case _fbUser is already set — trigger immediately
+  }; 
   if(window._fbUser) window._onAuthReady();
-}; // end window.onload
+};
 
 function td(){
   const d = new Date();
@@ -944,37 +936,50 @@ window.refreshAppUI = refreshAppUI;
 function updCounts(){
   const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
   const cls = (tab === 'g' ? 'גנים' : 'ביה"ס');
-  const filterClass = cls.trim().toLowerCase();
+  const filterClass = cls.trim();
 
   const sch = window.SCH || [];
   const gdns = window.GARDENS || [];
 
-  const can=sch.filter(s=>{
-    if(!window.gcls || !window.G(s.g)) return false;
-    if(window.gcls(window.G(s.g)).trim().toLowerCase()!==filterClass) return false;
-    return s.st==='can' && !s._compByMakeup;
-  }).length;
+  const filterByTab = (s) => {
+    const g = window.G(s.g);
+    if (!g) return false;
+    const gcls = window.gcls ? window.gcls(g) : 'גנים';
+    return gcls === cls;
+  };
+
+  const tabSch = sch.filter(filterByTab);
+
+  const can = tabSch.filter(s => s.st === 'can').length;
   
-  const post=sch.filter(s=>{
-    if(!window.gcls || !window.G(s.g)) return false;
-    if(window.gcls(window.G(s.g)).trim().toLowerCase()!==filterClass) return false;
-    return s.st==='post' && !s._compByMakeup;
+  const post = tabSch.filter(s => {
+    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
+    return s.st === 'post' && !isHandled;
   }).length;
 
-  const nohap=sch.filter(s=>{
-    if(!window.gcls || !window.G(s.g)) return false;
-    if(window.gcls(window.G(s.g)).trim().toLowerCase()!==filterClass) return false;
+  const nohap = tabSch.filter(s => {
+    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
+    return s.st === 'nohap' && !isHandled;
+  }).length;
+
+  const todo = tabSch.filter(s => {
+    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
-    const isHandled = !!s._compByMakeup;
-    if(s.st === 'can') return false;
-    if((s.st === 'nohap' || s.st === 'post') && !isHandled) return true;
-    if(isM && s.st !== 'done') return true;
+    if (isHandled || s.st === 'can') return false;
+    if (s.st === 'nohap' || s.st === 'post') return true;
+    if (isM && s.st !== 'done') return true;
     return false;
   }).length;
-  const todayCnt=sch.filter(s=>s.d===td() && s.st!=='can' && window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
-  const allInTab=sch.filter(s=>window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
 
-  const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  const handled = tabSch.filter(s => {
+    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
+    return isHandled || s.st === 'done';
+  }).length;
+
+  const todayCnt = tabSch.filter(s => s.d === td() && s.st !== 'can').length;
+  const allInTab = tabSch.length;
+
+  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
   
   setEl('d-today-cnt', todayCnt);
   setEl('d-can', can);
@@ -982,19 +987,19 @@ function updCounts(){
   setEl('d-nohap', nohap);
   setEl('d-total', allInTab.toLocaleString());
 
-  setEl('h-pairs', (window.pairs||[]).length);
+  setEl('h-pairs', (window.pairs || []).length);
   setEl('h-can', can);
   setEl('h-post', post);
   setEl('h-nohap', nohap);
   setEl('h-sched', allInTab.toLocaleString());
-  setEl('h-gardens', gdns.filter(g=>window.gcls(g)===cls).length + (window._GARDENS_EXTRA||[]).filter(g=>window.gcls(g)===cls).length);
+  setEl('h-gardens', gdns.filter(g => window.gcls(g) === cls).length + (window._GARDENS_EXTRA || []).filter(g => window.gcls(g) === cls).length);
   
-  setEl('d-pairs', (window.pairs||[]).length);
-  setEl('d-gardens', gdns.filter(g=>window.gcls(g)===cls).length + (window._GARDENS_EXTRA||[]).filter(g=>window.gcls(g)===cls).length);
+  setEl('d-pairs', (window.pairs || []).length);
+  setEl('d-gardens', gdns.filter(g => window.gcls(g) === cls).length + (window._GARDENS_EXTRA || []).filter(g => window.gcls(g) === cls).length);
 
-  setEl('h-inv', (window.INVOICES||[]).length);
-  setEl('h-inv-active', (window.INVOICES||[]).filter(i=>_migrateInvStatus(i.status)==='order').length);
-  setEl('h-inv-prog', (window.INVOICES||[]).filter(i=>_migrateInvStatus(i.status)==='tx_invoice').length);
+  setEl('h-inv', (window.INVOICES || []).length);
+  setEl('h-inv-active', (window.INVOICES || []).filter(i => _migrateInvStatus(i.status) === 'order').length);
+  setEl('h-inv-prog', (window.INVOICES || []).filter(i => _migrateInvStatus(i.status) === 'tx_invoice').length);
   
   // Dashboard Pill Badges
   setEl('dvp-cnt-todo', todo);
@@ -1002,11 +1007,8 @@ function updCounts(){
   setEl('dvp-cnt-post', post);
   setEl('dvp-cnt-handled', handled);
   setEl('dvp-cnt-all', allInTab.toLocaleString());
-  setEl('dvp-cnt-can', can);
-
-  // Bulk counter
-  setEl('bulk-sch-count', (window.SCH||[]).length.toLocaleString());
 }
+
 
 function initDrops(){
   const cs=cities();
