@@ -288,23 +288,25 @@ function setPairBreak(pairId,ds,broken){
   window.save(); window.refresh();
 }
 
-// City-based color map for calendar
+// City-based color map - updated to a uniform light blue theme for all cities
 window.CITY_COLORS=(()=>{
-  // Neutral palette — one color per city, readable and clean
-  const palette=[
-    {solid:'#1565c0',light:'#e3f2fd',border:'#90caf9',text:'#1565c0'}, // Blue (Rosh HaAyin)
-    {solid:'#455a64',light:'#f0f4f8',border:'#cfd8dc',text:'#455a64'}, // Slate Blue/Grey
-    {solid:'#00796b',light:'#e0f2f1',border:'#b2dfdb',text:'#00796b'}, // Teal
-    {solid:'#3949ab',light:'#e8eaf6',border:'#c5cae9',text:'#3949ab'}, // Indigo
-    {solid:'#2e7d32',light:'#f1f8e9',border:'#dcedc8',text:'#2e7d32'}, // Greenish
-    {solid:'#00838f',light:'#e0f7fa',border:'#b2ebf2',text:'#00838f'}, // Cyan
-    {solid:'#546e7a',light:'#f1f3f4',border:'#cfd8dc',text:'#546e7a'}, // Neutral
-  ];
-  const map={};let idx=0;
+  const uniformTheme = {
+    solid: '#1a237e',   // Dark blue for badges/accents
+    light: '#f5f7ff',   // Very light blue for backgrounds
+    border: '#dbe3ff',  // Border color
+    text: '#1a237e'     // Text color
+  };
+  
+  const norm = (c) => {
+    if(!c) return '';
+    let n = c.trim().replace(/"/g,"'");
+    if(n==='פ\'ת' || n==='פ"ת' || n==='פתח תקוה') return 'פתח תקווה';
+    return n;
+  };
+
   return(city)=>{
-    if(!city) return palette[0];
-    if(!map[city]) map[city]=palette[idx++%palette.length];
-    return map[city];
+    // Always return the same uniform theme for a consistent look
+    return uniformTheme;
   };
 })();
 var CITY_COLORS=window.CITY_COLORS;

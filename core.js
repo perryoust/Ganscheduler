@@ -1007,6 +1007,7 @@ function updCounts(){
   setEl('dvp-cnt-post', post);
   setEl('dvp-cnt-handled', handled);
   setEl('dvp-cnt-all', allInTab.toLocaleString());
+  setEl('dvp-cnt-can', can);
 }
 
 

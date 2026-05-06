@@ -100,6 +100,7 @@ function renderDash() {
   Object.keys(groups).sort().forEach((cityName, idx) => {
     const cityEvs = groups[cityName];
     const cityOpen = !!city; 
+    const cityNameEsc = cityName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
     const groupId = `dash-group-${idx}`;
     const clr = window.CITY_COLORS ? window.CITY_COLORS(cityName) : {solid:'#1a237e', light:'#f8fafc', border:'#e2e8f0'};
 
@@ -166,6 +167,7 @@ function _renderDashCard(card) {
     const stCls = window.stClass ? window.stClass(s) : '';
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
 
+    const label = window.stLabel ? window.stLabel(s) : '';
     h += `<div class="dash-row ${stCls}" style="display:flex; align-items:center; gap:12px; padding:8px 12px; border-bottom:1px solid #f9f9f9; cursor:pointer" onclick="window.openSP('${s.id}')">
       <input type="checkbox" class="dash-row-chk" value="${s.id}" onclick="event.stopPropagation(); window.dashUpdateBulkBar()" style="width:17px; height:17px">
       <div style="width:85px; font-size:0.75rem; font-weight:700; color:#546e7a">${window.fD(s.d)}</div>
@@ -175,7 +177,7 @@ function _renderDashCard(card) {
         ${s.nt ? `<div style="font-size:0.68rem; color:#d84315; font-weight:700; margin-top:2px">📝 ${s.nt}</div>` : ''}
       </div>
       <div style="display:flex; align-items:center; gap:8px">
-        <span class="st-tag ${stCls}" style="font-size:.7rem; padding:3px 8px; border-radius:4px; font-weight:700">${stLabel}</span>
+        <span class="st-tag ${stCls}" style="font-size:.7rem; padding:3px 8px; border-radius:4px; font-weight:700">${label}</span>
         <div class="qacts" style="display:flex; gap:4px" onclick="event.stopPropagation()">
           ${s.st === 'done' ? '' : `<button title="בוצע" onclick="window.qSetSt('${s.id}','done')" class="qbtn qbtn-done" style="padding:2px 5px; font-size:0.8rem">✔️</button>`}
           ${s.st === 'can' ? '' : `<button title="בטל" onclick="window.openCanQ('${s.id}')" class="qbtn qbtn-can" style="padding:2px 5px; font-size:0.8rem">❌</button>`}
@@ -1870,3 +1872,6 @@ window.updAndRefresh = updAndRefresh;
 window.renderPartnerSynergy = renderPartnerSynergy;
 window.getSynergyData = getSynergyData;
 window.postDateChg = postDateChg;
+window.setDashTab = setDashTab;
+window.setDashView = setDashView;
+window.renderDash = renderDash;
