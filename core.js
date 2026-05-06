@@ -949,9 +949,28 @@ function updCounts(){
   const sch = window.SCH || [];
   const gdns = window.GARDENS || [];
 
-  const can=sch.filter(s=>s.st==='can' && !s._compByMakeup && window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
-  const post=sch.filter(s=>s.st==='post' && !s._compByMakeup && window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
-  const nohap=sch.filter(s=>s.st==='nohap' && !s._compByMakeup && window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
+  const can=sch.filter(s=>{
+    if(!window.gcls || !window.G(s.g)) return false;
+    if(window.gcls(window.G(s.g)).trim().toLowerCase()!==filterClass) return false;
+    return s.st==='can' && !s._compByMakeup;
+  }).length;
+  
+  const post=sch.filter(s=>{
+    if(!window.gcls || !window.G(s.g)) return false;
+    if(window.gcls(window.G(s.g)).trim().toLowerCase()!==filterClass) return false;
+    return s.st==='post' && !s._compByMakeup;
+  }).length;
+
+  const nohap=sch.filter(s=>{
+    if(!window.gcls || !window.G(s.g)) return false;
+    if(window.gcls(window.G(s.g)).trim().toLowerCase()!==filterClass) return false;
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+    const isHandled = !!s._compByMakeup;
+    if(s.st === 'can') return false;
+    if((s.st === 'nohap' || s.st === 'post') && !isHandled) return true;
+    if(isM && s.st !== 'done') return true;
+    return false;
+  }).length;
   const todayCnt=sch.filter(s=>s.d===td() && s.st!=='can' && window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
   const allInTab=sch.filter(s=>window.gcls && window.gcls(window.G(s.g)).trim().toLowerCase()===filterClass).length;
 

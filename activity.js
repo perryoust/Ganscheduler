@@ -245,7 +245,7 @@ function renderCanList(){
   if (!todoEvs.length) {
     ch += `<p style="color:#999;font-size:.79rem;padding:20px;background:#f9f9f9;border-radius:10px;text-align:center;border:1.5px dashed #ddd">הכל מטופל! אין חריגים הממתינים לטיפול ב${cls}</p>`;
   } else {
-    ch += _renderGroupedByCity(todoEvs, true);
+    ch += _renderGroupedByCity(todoEvs, false);
   }
   
   ch += `</div><div style="margin-top:30px">

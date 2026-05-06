@@ -292,13 +292,13 @@ function setPairBreak(pairId,ds,broken){
 window.CITY_COLORS=(()=>{
   // Neutral palette — one color per city, readable and clean
   const palette=[
-    {solid:'#37474f',light:'#eceff1',border:'#b0bec5',text:'#37474f'},
-    {solid:'#1565c0',light:'#e3f2fd',border:'#90caf9',text:'#1565c0'},
-    {solid:'#2e7d32',light:'#e8f5e9',border:'#a5d6a7',text:'#2e7d32'},
-    {solid:'#6a1b9a',light:'#f3e5f5',border:'#ce93d8',text:'#6a1b9a'},
-    {solid:'#c62828',light:'#ffebee',border:'#ef9a9a',text:'#c62828'},
-    {solid:'#00695c',light:'#e0f2f1',border:'#80cbc4',text:'#00695c'},
-    {solid:'#e65100',light:'#fff3e0',border:'#ffcc80',text:'#e65100'},
+    {solid:'#1565c0',light:'#e3f2fd',border:'#90caf9',text:'#1565c0'}, // Blue (Rosh HaAyin)
+    {solid:'#455a64',light:'#f0f4f8',border:'#cfd8dc',text:'#455a64'}, // Slate Blue/Grey
+    {solid:'#00796b',light:'#e0f2f1',border:'#b2dfdb',text:'#00796b'}, // Teal
+    {solid:'#3949ab',light:'#e8eaf6',border:'#c5cae9',text:'#3949ab'}, // Indigo
+    {solid:'#2e7d32',light:'#f1f8e9',border:'#dcedc8',text:'#2e7d32'}, // Greenish
+    {solid:'#00838f',light:'#e0f7fa',border:'#b2ebf2',text:'#00838f'}, // Cyan
+    {solid:'#546e7a',light:'#f1f3f4',border:'#cfd8dc',text:'#546e7a'}, // Neutral
   ];
   const map={};let idx=0;
   return(city)=>{
