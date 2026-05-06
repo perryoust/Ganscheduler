@@ -340,7 +340,8 @@ window.spRowStatusChg = function(id, st) {
   if(pair) {
     const pGid = pair.ids.find(pid => Number(pid) !== Number(ev.g));
     const pG = window.G(pGid);
-    if(confirm(`האם להחיל את הסטטוס "${window.stLabel({st})}" גם על הגן בן-הזוג (${pG.name})?`)) {
+    const stText = st === 'nohap' ? 'לא התקיים' : (st === 'can' ? 'בוטל' : (st === 'post' ? 'נדחה' : st));
+    if(confirm(`האם להחיל את הסטטוס "${stText}" גם על הגן בן-הזוג (${pG.name})?`)) {
       syncPartner = true;
     }
   }
@@ -1465,17 +1466,7 @@ window.postDateChg = postDateChg;
 const origOpenNohapQ = window.openNohapQ;
 window.openNohapQ = function(id) {
   if(typeof origOpenNohapQ === 'function') origOpenNohapQ(id);
-  if(typeof window._spSyncPartnerNext !== 'undefined') {
-    const scopeWrap = document.getElementById('nohapq-scope-wrap');
-    if(scopeWrap) {
-      scopeWrap.style.display = 'none'; // Hide redundancy
-      // Pre-set the radio value
-      const radio = document.querySelector(`input[name="nohapq-scope"][value="${window._spSyncPartnerNext ? 'pair' : 'solo'}"]`);
-      if(radio) radio.checked = true;
-    }
-    // Clear flag after use
-    setTimeout(() => { delete window._spSyncPartnerNext; }, 500);
-  }
+  // Flag is used directly in core.js doMarkNoHap now
 };
 
 window.setPostMode = function(mode) {

@@ -1872,7 +1872,7 @@ function selCancelDayReason(btn) {
 
 function saveCancelDay() {
   const sel = document.querySelector('.cancelday-reason-btn.sel');
-  const mainReason = sel ? sel.dataset.r : '';
+  const mainReason = document.querySelector('.cancelday-reason-btn.sel')?.dataset.r || '';
   const extra = document.getElementById('cancelday-note').value.trim();
   const fullReason = [mainReason, extra].filter(Boolean).join(' — ');
   if (!fullReason) { alert('יש לבחור סיבה'); return; }
@@ -1909,18 +1909,19 @@ function openNohapQ(id){
     const partners=pair.ids.filter(gid=>gid!==s.g).map(gid=>G(gid)).filter(x=>x.id);
     const partnerEvs=partners.map(pg=>SCH.find(ps=>ps.g===pg.id&&ps.d===s.d&&ps.st!=='can')).filter(Boolean);
     scopeBtns.innerHTML='';
-    // Option: this garden only
-    scopeBtns.innerHTML+=`<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;padding:4px 6px;border-radius:5px;border:1.5px solid #e0e0e0;background:#fff">
-      <input type="radio" name="nohapq-scope" value="solo" checked style="accent-color:#e91e63">
-      <span>🏫 <b>${g.name}</b> בלבד</span>
-    </label>`;
     // Option: full pair
     const allNames=[g,...partners].map(x=>x.name).join(' + ');
+    const pairChecked = (window._spSyncPartnerNext === true);
     scopeBtns.innerHTML+=`<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;padding:4px 6px;border-radius:5px;border:1.5px solid #e0e0e0;background:#fff">
-      <input type="radio" name="nohapq-scope" value="pair" style="accent-color:#e91e63">
+      <input type="radio" name="nohapq-scope" value="solo" ${pairChecked?'':'checked'} style="accent-color:#e91e63">
+      <span>🏫 <b>${g.name}</b> בלבד</span>
+    </label>`;
+    scopeBtns.innerHTML+=`<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;padding:4px 6px;border-radius:5px;border:1.5px solid #e0e0e0;background:#fff">
+      <input type="radio" name="nohapq-scope" value="pair" ${pairChecked?'checked':''} style="accent-color:#e91e63">
       <span>🔗 כל הזוג — <b>${allNames}</b></span>
     </label>`;
-    scopeWrap.style.display='block';
+    if(pairChecked) scopeWrap.style.display='none'; // Hide if already confirmed sync
+    else scopeWrap.style.display='block';
   } else {
     scopeWrap.style.display='none';
   }
@@ -1940,7 +1941,7 @@ function saveNohapQ(){
   const fullReason=[mainReason,extra].filter(Boolean).join(' — ');
   if(!mainReason&&!extra){alert('יש לבחור סיבה');return;}
   const scopeEl=document.querySelector('input[name="nohapq-scope"]:checked');
-  const forPair=scopeEl&&scopeEl.value==='pair';
+  const forPair=(scopeEl&&scopeEl.value==='pair') || (window._spSyncPartnerNext === true);
 
   // Read orig BEFORE modifying SCH
   const origEv2=SCH.find(s=>s.id===_nohapQId);

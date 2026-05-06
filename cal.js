@@ -1277,7 +1277,7 @@ function renderCalList(evs, mDate){
       window.pairs.forEach(pair=>{
         if(isPairBroken&&isPairBroken(pair.id,ds)) return;
         const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
-        const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!clusteredGidsC.has(s.g) && !isM(s));
+        const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g)&&!clusteredGidsC.has(s.g));
         if(!pairEvs.length) return;
         pairEvs.forEach(s=>pairedGids.add(s.g));
         pairGroups.push({pair,pairEvs});
