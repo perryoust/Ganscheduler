@@ -44,8 +44,10 @@ function filterE(f,from,to){
 
      // Status Filter 
      if(f.st==='todo'){
+        if(s.st==='can') return false; // Never show cancelled in Todo
         const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
-        if(!(s.st==='nohap' || s.st==='post' || isM)) return false;
+        const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
+        if(!(s.st==='nohap' || s.st==='post' || isM || isHandled)) return false;
      } else if(!f.st){
         // No status filter: show everything in calendar regardless of _compByMakeup
      } else if(f.st && s.st!==f.st) return false;
@@ -54,7 +56,7 @@ function filterE(f,from,to){
   });
   const posted=window.SCH.filter(s=>{
     if(s.st!=='post'||!s.pd||s.pd<from||s.pd>to) return false;
-    if(s._compByMakeup && s._compByMakeup !== 'false') return false; // Hide if makeup already exists
+    // Removed: if(s._compByMakeup && s._compByMakeup !== 'false') return false; 
     const g=window.G(s.g);
     if(f.city&&g.city!==f.city) return false;
     if(f.cluster){
@@ -704,8 +706,7 @@ function renderNormalDay(evs,ds){
     <span style="font-size:.85rem;font-weight:700;color:#c62828">${blk.icon||'🚫'} <b>${blk.reason}</b>${blk.note?' — '+blk.note:''}</span>
     <button onclick="openBlockedDate('${ds}')" style="background:none;border:1.5px solid #e91e63;color:#c62828;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:.72rem">✏️ ערוך</button>
   </div>`;
-  
-  const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+    const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)) || (s.n && /השלמה|makeup/i.test(s.n)));
   // Show everything in the regular section
   const others=evs; 
   const pairedGids=new Set();
@@ -807,20 +808,21 @@ function renderPairCard(pair, pairEvs, opts){
         </div>
       </div>`;
     } else {
+      // Group by supplier, time, and activity to group duplicates if needed, but DO NOT hide based on status
       const sups = {};
       for (const k in gEvs) {
         const ev = gEvs[k];
         const sb = window.supBase(ev.a);
         const groupKey = sb + '|' + (ev.t || '') + '|' + (ev.act || '') + '|' + ev.st;
-        if(!sups[groupKey]) sups[groupKey] = { hasOk: false, evs: [] };
-        if(ev.st === 'ok') sups[groupKey].hasOk = true;
+        if(!sups[groupKey]) sups[groupKey] = { evs: [] };
         sups[groupKey].evs.push(ev);
       }
 
       for (const k in sups) {
         const group = sups[k];
-        const bestEv = group.hasOk ? group.evs.find(ev => ev.st === 'ok') : group.evs[0];
-        if (!bestEv) continue;
+        group.evs.forEach(bestEv => {
+          if (!bestEv) return;
+
 
         const ev = bestEv;
         const stc = ev.st !== 'ok' ? 'st-' + ev.st : '';
@@ -868,20 +870,8 @@ function renderGardenCols(evs, gids, clr){
     if (!ge.length) {
       html += '<div style="color:#ccc; font-size:.7rem; text-align:center; padding:10px 0">—</div>';
     } else {
-      const sups = {};
-      ge.forEach(s => {
-        const sb = window.supBase(s.a);
-        const groupKey = sb + '|' + (s.t || '') + '|' + (s.act || '');
-        if (!sups[groupKey]) sups[groupKey] = { hasOk: false, evs: [] };
-        if (s.st === 'ok') sups[groupKey].hasOk = true;
-        sups[groupKey].evs.push(s);
-      });
-      const filtered = [];
-      for (const sb in sups) {
-        const group = sups[sb];
-        if (group.hasOk) filtered.push(...group.evs.filter(ev => ev.st !== 'post' && ev.st !== 'nohap'));
-        else filtered.push(...group.evs);
-      }
+      const filtered = ge; // No longer deduplicating and hiding based on status
+
 
       filtered.forEach(s => {
         const stc = s.st !== 'ok' ? 'st-' + s.st : '';
@@ -1350,7 +1340,7 @@ function _listRow(s, clr, ds){
   const bg = isUnassigned ? '#f5f5f5' : s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light;
   const stC = isUnassigned ? '#9e9e9e' : s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':'#333';
   const stLabelText = isUnassigned ? 'לא משובץ' : window.stLabel(s).replace(/<[^>]+>/g,'');
-  const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|makeup/i.test(s.nt)));
+   const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|makeup/i.test(s.nt)) || (s.n && /השלמה|makeup/i.test(s.n)));
   const _dow = new Date(s.d).getDay();
   const repeats = window.SCH.filter(x => x.g === s.g && new Date(x.d).getDay() === _dow && window.supBase(x.a) === window.supBase(s.a) && x.t === s.t && x.st !== 'can').length >= 2;
   const isRec = !isM && (!!s._recId || repeats);

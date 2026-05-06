@@ -86,8 +86,8 @@ function renderDash() {
     if (!tDate && !from && s.d < window.td()) return false;
 
     if (tSt === 'todo') {
-      if (s.st === 'can' || isHandled) return false;
-      if (s.st === 'nohap' || isM) return true;
+      if (s.st === 'can') return false; // Still hide fully cancelled
+      if (s.st === 'nohap' || isM || isHandled) return true; // Show both nohap and makeups
       return false;
     } else if (tSt === 'handled') {
       return (s.st === 'done' || isHandled);
@@ -125,21 +125,19 @@ function renderDash() {
     evs.forEach(s => {
       const group = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
       if (group) {
-        if (!seenPairs.has(group.id)) {
+        if (!seenPairs.has(group.id + '_' + window.supBase(s.a) + '_' + s.d + '_' + s.t)) {
           const groupEvs = evs.filter(x => {
             const xGroup = window.getGardenGroup ? window.getGardenGroup(x.g) : window.gardenPair(x.g);
             return xGroup && xGroup.id === group.id && window.supBase(x.a) === window.supBase(s.a);
           });
           rows.push({type: 'pair', pair: group, evs: groupEvs});
-          seenPairs.add(group.id);
+          seenPairs.add(group.id + '_' + window.supBase(s.a) + '_' + s.d + '_' + s.t);
         }
       } else {
-        const key = `${s.g}_${window.supBase(s.a)}`;
-        if (!soloMap.has(key) || s.st === 'ok') soloMap.set(key, s);
+        rows.push({type: 'solo', ev: s});
       }
     });
-    
-    soloMap.forEach(ev => rows.push({type: 'solo', ev}));
+
     rows.sort((a, b) => {
       const getMinTime = (row) => {
         if (row.type === 'solo') return (row.ev?.t || '99:99').padStart(5, '0');
@@ -170,19 +168,23 @@ function renderDash() {
     rows.forEach(row => {
       const clr = window.CITY_COLORS ? window.CITY_COLORS(c) : {solid:'#ccc', light:'#eee', border:'#ddd'};
       if(row.type === 'pair') {
-        const pairMap = new Map();
+        // Group by garden to allow multiple activities per garden if they have different statuses
+        const gardenActivities = new Map();
         row.evs.forEach(e => {
-          if(!pairMap.has(e.g) || e.st === 'ok') pairMap.set(e.g, e);
+          if(!gardenActivities.has(e.g)) gardenActivities.set(e.g, []);
+          gardenActivities.get(e.g).push(e);
         });
+        
+        const sorted = [];
         row.pair.ids.forEach(gid => {
-          if(!pairMap.has(gid)) {
-            pairMap.set(gid, { id: 'dummy_'+gid, g: gid, st: 'unassigned', d: date, t: '', act: '' });
+          if(gardenActivities.has(gid)) {
+            sorted.push(...gardenActivities.get(gid));
+          } else {
+            sorted.push({ id: 'dummy_'+gid, g: gid, st: 'unassigned', d: date, t: '', act: '' });
           }
         });
-        const sorted = Array.from(pairMap.values()).sort((a,b) => {
-          const res = window.compareActivities(a, b);
-          return res;
-        });
+        sorted.sort((a,b) => window.compareActivities(a, b));
+
         
         const realEv = sorted.find(x=>x.id && !x.id.toString().startsWith('dummy'));
         const realId = realEv ? realEv.id : '';
@@ -215,7 +217,8 @@ function renderCanList(){
     const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
     const isHandled = !!s._compByMakeup;
     let match = false;
-    if ((s.st === 'nohap' || s.st === 'post') && !isHandled) match = true;
+    if (s.st === 'can') match = false;
+    else if ((s.st === 'nohap' || s.st === 'post') || isHandled) match = true;
     else if (isM && s.st !== 'done') match = true;
     if (!match) return false;
     const g = window.G(s.g);
@@ -409,7 +412,9 @@ window.spBatchSaveNt = function() {
     if(ntEl) ev.nt = ntEl.value;
     if(nEl) {
       ev.n = nEl.value;
-      if(ev._recId) {
+      const isM = !!(ev._isMakeup || ev._makeupFrom || (ev.nt && /השלמה|makeup/i.test(ev.nt)));
+      const isP = !!ev._postFrom;
+      if(ev._recId && !isM && !isP) {
         window.SCH.forEach(x => {
           if(x._recId === ev._recId && x.d >= ev.d) x.n = nEl.value;
         });
@@ -1087,7 +1092,9 @@ function saveNt(){
 
   if(nEl) {
     s.n=nEl.value;
-    if(s._recId) {
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|makeup/i.test(s.nt)));
+    const isP = !!s._postFrom;
+    if(s._recId && !isM && !isP) {
       window.SCH.forEach(x => {
         if(x._recId === s._recId && x.d >= s.d) {
           x.n = nEl.value;
@@ -1173,12 +1180,22 @@ function saveAndRefresh(modalId, stayOpen = false){
 }
 
 function openMakeupSched(origId){
-  const orig=window.SCH.find(s=>s.id==origId); if(!orig) return;
+  const orig=window.SCH.find(s=>String(s.id)==String(origId)); if(!orig) return;
   window._makeupOrigId = origId;
   window.openSP(origId);
-  setTimeout(() => {
-    window.spTriggerMakeupUI();
-  }, 300);
+  
+  // Use a more robust check to ensure the makeup accordion exists before triggering
+  let attempts = 0;
+  const checkAndTrigger = () => {
+    const muWrap = document.getElementById('sp-acc-makeup-wrap');
+    if(muWrap) {
+      window.spTriggerMakeupUI();
+    } else if (attempts < 10) {
+      attempts++;
+      setTimeout(checkAndTrigger, 100);
+    }
+  };
+  setTimeout(checkAndTrigger, 100);
 }
 
 window.spTriggerMakeupUI = function() {
