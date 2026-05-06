@@ -157,9 +157,10 @@ function renderDash() {
   });
 
   let html = '';
-  Object.keys(groups).sort().forEach(c => {
+  Object.keys(groups).sort().forEach((c, idx) => {
     const evs = groups[c];
     const clr = window.CITY_COLORS ? window.CITY_COLORS(c) : {solid:'#1a237e', light:'#f8fafc', border:'#e2e8f0'};
+    const groupId = `dash-group-${idx}`;
     
     html += `<details class="dash-city-accordion">
       <summary>
@@ -170,7 +171,7 @@ function renderDash() {
         </div>
         <div style="display:flex; align-items:center; gap:15px">
            <label style="font-size:0.75rem; color:#64748b; cursor:pointer" onclick="event.stopPropagation()">
-             <input type="checkbox" onchange="dashCheckAll('${c}', this.checked)" style="vertical-align:middle"> בחר הכל
+             <input type="checkbox" onchange="dashCheckAll('${groupId}', this.checked)" style="vertical-align:middle"> בחר הכל
            </label>
            <span style="font-size:0.7rem; color:#94a3b8">לחץ לפירוט ▼</span>
         </div>
@@ -188,7 +189,7 @@ function renderDash() {
               <th style="width:140px; text-align:left">פעולות</th>
             </tr>
           </thead>
-          <tbody id="dash-group-${c}">
+          <tbody id="${groupId}">
             ${evs.map(s => _dashTableRow(s, clr)).join('')}
           </tbody>
         </table>
@@ -205,8 +206,8 @@ function renderDash() {
   if (window.updCounts) window.updCounts();
 }
 
-window.dashCheckAll = function(city, checked) {
-  const group = document.getElementById('dash-group-' + city);
+window.dashCheckAll = function(groupId, checked) {
+  const group = document.getElementById(groupId);
   if (group) {
     group.querySelectorAll('.dash-row-chk').forEach(cb => cb.checked = checked);
   }
@@ -1231,7 +1232,7 @@ function markCompManual(id){
 
   if (doSync) {
     const pair = window.gardenPair(s.g);
-    const cluster = window.CLUSTERS ? window.CLUSTERS.find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
+    const cluster = window.clusters ? window.clusters.find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
     
     const allPartnerIds = new Set();
     if(pair) pair.ids.forEach(id => allPartnerIds.add(Number(id)));
@@ -1262,7 +1263,7 @@ function markCompQuick(id){
     
     // Sync with partners automatically if it's a pair/cluster (silent sync)
     const pair = window.gardenPair(s.g);
-    const cluster = window.CLUSTERS ? window.CLUSTERS.find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
+    const cluster = window.clusters ? window.clusters.find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
     if(pair || cluster){
       const gids = new Set();
       if(pair) pair.ids.forEach(i => gids.add(Number(i)));
@@ -1760,7 +1761,7 @@ window.showFreeDaysForMakeup = function(containerId, gid, onSelect) {
   }).map(x=>x.d));
   
   const free = []; let d = new Date(); d.setHours(0,0,0,0);
-  const isMakeup = true; // Always true for this function context
+  const isMakeup = true;
   
   for(let i=0; i<21; i++) {
     const dow = d.getDay();
@@ -1853,7 +1854,7 @@ window.createMakeupActivity = function(data) {
        
        // Sync partner's completion status if applicable
        const pair = window.gardenPair(origExt.g);
-       const cluster = window.CLUSTERS ? window.CLUSTERS.find(c => c.gids && c.gids.map(Number).includes(Number(origExt.g))) : null;
+       const cluster = window.clusters ? window.clusters.find(c => c.gids && c.gids.map(Number).includes(Number(origExt.g))) : null;
        
        const allPartnerIds = new Set();
        if(pair) pair.ids.forEach(id => allPartnerIds.add(Number(id)));
@@ -1878,6 +1879,14 @@ window.createMakeupActivity = function(data) {
   window.SCH.push(newEv);
   return loopId;
 };
+
+// Quick action handlers (moved from core.js or centralized here)
+function qSetSt(id, st) {
+  if (st === 'done') window.markCompQuick(id);
+  else if (st === 'can') window.openCanQ(id);
+  else if (st === 'nohap') window.markNoHap(id);
+}
+window.qSetSt = qSetSt;
 
 // Global Exports
 window.saveAndRefresh = saveAndRefresh;
