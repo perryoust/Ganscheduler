@@ -791,7 +791,7 @@ function renderPairCard(pair, pairEvs, opts){
   const expBtn = ds ? `<button onclick="exportPairRow('${pair.id}','${ds}',${!!opts.isMakeup})" style="background:rgba(255,255,255,.3);border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.65rem;color:#fff;font-weight:700">📋 הודעה</button>` : '';
 
   let html = `<div class="pair-card ${isCompact ? 'compact' : ''}" style="border:1px solid ${clr.border}; border-radius:6px; overflow:hidden; margin-bottom:8px; background:#fff">
-    <div class="pair-card-hdr" style="background:${clr.solid}; color:#fff; padding:3px 10px; display:flex; align-items:center; gap:8px; font-size:0.75rem; font-weight:800">
+    <div class="pair-card-hdr" style="background:${clr.solid}; color:#fff; padding:3px 10px; display:flex; align-items:center; gap:8px; font-size:0.88rem; font-weight:800">
       🔗 ${pair.name}
       <span style="font-size:0.65rem; font-weight:400; opacity:0.9; margin-right:auto">${supName ? window.supBase(supName) : ''} ${actName ? '· ' + actName : ''}</span>
       <div style="display:flex; gap:4px; align-items:center;">${expBtn}${editBtn}</div>
@@ -931,7 +931,7 @@ function renderPairDay(evs,gids){
   const pairIds = gids.filter(Boolean);
   return`<div class="pair-row ${pclr}">
     <div class="pair-row-label ${pclr}" style="display:flex;justify-content:space-between;align-items:center">
-      <span>🔗 ${gids.map(id=>window.G(id).name||'').join(' + ')}</span>
+      <span style="font-size:0.92rem; font-weight:800">🔗 ${gids.map(id=>window.G(id).name||'').join(' + ')}</span>
       <button onclick="event.stopPropagation();_exportPairWA([${pairIds.join(',')}])" style="background:rgba(255,255,255,.25);border:none;border-radius:4px;color:#fff;font-size:.65rem;padding:1px 6px;cursor:pointer">📋 הודעה</button>
     </div>
     ${renderPairColsHTML(evs,gids)}</div>`;
@@ -1078,7 +1078,7 @@ function renderNormalWeek(evs, ws, f){
       const pairGidList = pGids.join(',');
       html+=`<tr>
         <td colspan="6" style="background:${clr.solid};color:#fff;padding:5px 12px;
-          font-size:.82rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2)">
+          font-size:.92rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2)">
           <div style="display:flex;align-items:center;gap:8px">
             <button onclick="event.stopPropagation();_exportPairWA([${pairGidList}])"
               style="background:rgba(255,255,255,.22);border:none;border-radius:5px;color:#fff;

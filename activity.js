@@ -64,7 +64,9 @@ function renderDash() {
       if (isHandled) return false;
       const isExc = (s.st === 'nohap' || s.st === 'post');
       const isPendingM = isM && s.st !== 'done';
-      if (!isExc && !isPendingM) return false;
+      if (!isExc) return false;
+    } else if (view === 'makeups') {
+      if (!isM) return false;
     } else if (view === 'nohap') {
       if (s.st !== 'nohap' || isHandled) return false;
     } else if (view === 'post') {
@@ -174,7 +176,7 @@ function _renderDashCard(card) {
 
   let h = `<div class="dash-card" style="border:1px solid ${clr.border}; border-radius:8px; background:#fff; overflow:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.05)">
     <div style="background:${clr.light}; padding:6px 12px; border-bottom:1px solid ${clr.border}; display:flex; align-items:center; gap:10px">
-      <span style="font-weight:800; font-size:0.85rem; color:${clr.solid}">${isSolo ? '' : '🔗 '}${obj.name}</span>
+      <span style="font-weight:800; font-size:0.92rem; color:${clr.solid}">${isSolo ? '' : '🔗 '}${obj.name}</span>
       <div style="margin-right:auto">
         <button class="btn bg bsm" onclick="event.stopPropagation(); window._exportPairWA(${JSON.stringify(obj.ids)})" style="padding:2px 8px; font-size:0.7rem; background:#25d366; border:none; color:white; font-weight:700; border-radius:4px">📋 הודעה</button>
       </div>

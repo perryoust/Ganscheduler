@@ -969,8 +969,14 @@ function updCounts(){
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
     if (isHandled || s.st === 'can') return false;
     if (s.st === 'nohap' || s.st === 'post') return true;
-    if (isM && s.st !== 'done') return true;
+    // Hide 'ok' makeups from To-Do as requested
+    // if (isM && s.st !== 'done') return true; 
     return false;
+  }).length;
+
+  const makeupsCount = tabSch.filter(s => {
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+    return isM && s.st !== 'can';
   }).length;
 
   const handled = tabSch.filter(s => {
@@ -1010,6 +1016,7 @@ function updCounts(){
   setEl('dvp-cnt-handled', handled);
   setEl('dvp-cnt-all', allInTab.toLocaleString());
   setEl('dvp-cnt-can', can);
+  setEl('dvp-cnt-makeups', makeupsCount);
 }
 
 
