@@ -95,10 +95,15 @@ function renderDash() {
     }
 
     if (tSt === 'todo') {
-      if (s.st === 'can') return false; // Still hide fully cancelled
-      if (s.st === 'nohap' || isM || isHandled) return true; // Show both nohap and makeups
+      const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
+      const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+
+      if (s.st === 'can') return false; 
+      if ((s.st === 'nohap' || s.st === 'post') && !isHandled) return true;
+      if (isM && s.st !== 'done') return true;
       return false;
     } else if (tSt === 'handled') {
+      const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
       return (s.st === 'done' || isHandled);
     } else if (tSt) {
       if (s.st !== tSt) return false;
