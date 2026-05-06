@@ -78,12 +78,21 @@ function renderDash() {
 
     const from = document.getElementById('dash-from')?.value;
     const to = document.getElementById('dash-to')?.value;
-    if (from && to) {
-      if (s.d < from || s.d > to) return false;
-    } else if (tDate && s.d !== tDate) {
-      return false;
+
+    if (tSt === 'todo') {
+      if (from && to) {
+        if (s.d < from || s.d > to) return false;
+      } else if (tDate) {
+        if (s.d !== tDate) return false;
+      }
+    } else {
+      if (from && to) {
+        if (s.d < from || s.d > to) return false;
+      } else if (tDate && s.d !== tDate) {
+        return false;
+      }
+      if (!tDate && !from && s.d < window.td()) return false;
     }
-    if (!tDate && !from && s.d < window.td()) return false;
 
     if (tSt === 'todo') {
       if (s.st === 'can') return false; // Still hide fully cancelled
@@ -233,7 +242,9 @@ function renderCanList(){
   const handledEvs = window.SCH.filter(s => {
     if (!((s.st === 'nohap' || s.st === 'post') && s._compByMakeup)) return false;
     const g = window.G(s.g);
-    return g && window.gcls(g) === cls;
+    const gClass = (window.gcls(g) || '').trim().toLowerCase();
+    const targetClass = cls.trim().toLowerCase();
+    return gClass === targetClass;
   }).sort(safeSort).slice(0, 25);
 
   let ch = `<div style="margin-bottom:20px">
