@@ -789,12 +789,13 @@ function renderPairCard(pair, pairEvs, opts){
 
   const editBtn = ds ? `<button onclick="openPairQuickEdit('${pair.id}','${ds}')" style="background:rgba(255,255,255,.3);border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.65rem;color:#fff">✏️</button>` : '';
   const expBtn = ds ? `<button onclick="exportPairRow('${pair.id}','${ds}',${!!opts.isMakeup})" style="background:rgba(255,255,255,.3);border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.65rem;color:#fff;font-weight:700">📋 הודעה</button>` : '';
+  const weekBtn = ds ? `<button onclick="jumpToPairWeeklySchedule('${pair.id}','${ds}')" style="background:rgba(255,255,255,.3);border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.65rem;color:#fff;font-weight:700" title="מעבר ללוח שבועי">📅 שבוע</button>` : '';
 
   let html = `<div class="pair-card ${isCompact ? 'compact' : ''}" style="border:1px solid ${clr.border}; border-radius:6px; overflow:hidden; margin-bottom:8px; background:#fff">
     <div class="pair-card-hdr" style="background:${clr.solid}; color:#fff; padding:4px 10px; display:flex; align-items:center; gap:8px; font-size:0.92rem; font-weight:800">
       🔗 ${pair.name}
       <span style="font-size:0.8rem; font-weight:700; opacity:0.95; margin-right:auto">${supName ? window.supBase(supName) : ''} ${actName ? '· ' + actName : ''}</span>
-      <div style="display:flex; gap:4px; align-items:center;">${expBtn}${editBtn}</div>
+      <div style="display:flex; gap:4px; align-items:center;">${expBtn}${weekBtn}${editBtn}</div>
     </div>
     <div class="pair-card-body">`;
 
@@ -1352,6 +1353,9 @@ function _listRow(s, clr, ds){
   const waBtn = (!isPaired && window._exportGardenWA && !isUnassigned) 
     ? `<button onclick="event.stopPropagation();window._exportGardenWA([${s.g}],'${ds||''}')" style="background:${clr.solid};border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.72rem;color:#fff;font-weight:700" title="שלח הודעה">📋</button>`
     : '';
+  const weekBtnSolo = (!isPaired && !isUnassigned)
+    ? `<button onclick="event.stopPropagation();jumpToPairWeeklySchedule(null,'${s.d}',${s.g})" style="background:#455a64;border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.72rem;color:#fff;font-weight:700" title="לוח שבועי">📅</button>`
+    : '';
 
   return `<div style="display:grid;grid-template-columns:minmax(150px, auto) 1fr auto auto auto;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;margin-bottom:1px;background:${bg};border-right:3px solid ${clr.solid};cursor:pointer;min-height:36px" onclick="${clickHandler}">
     <div style="display:flex; flex-direction:column; gap:1px; justify-content:center;">
@@ -1371,6 +1375,7 @@ function _listRow(s, clr, ds){
     <div style="font-size:.7rem;font-weight:700;color:${stC}">${stLabelText}</div>
     <div style="display:flex;gap:4px">
       ${waBtn}
+      ${weekBtnSolo}
       ${!isUnassigned ? _quickActionBtns(s) : ''}
     </div>
   </div>`;
@@ -1541,3 +1546,34 @@ function renderRangeListView(evs, fromDs, toDs){
 }
 
 // [Global Bridge moved to index.html final script tag]
+function jumpToPairWeeklySchedule(pairId, ds, soloGid){
+  const pair = pairId ? (window.pairs.find(p=>p.id==pairId) || window.pairs.find(p=>p.name==pairId)) : null;
+  const gids = pair ? pair.ids : (soloGid ? [soloGid] : []);
+  if(!gids.length) return;
+
+  // 1. Switch to Schedule tab
+  if(window.switchMode) window.switchMode('act');
+  if(window.ST) window.ST('sched');
+
+  // 2. Set dates to the week of ds
+  const sf = document.getElementById('s-from');
+  if(sf) {
+    sf.value = ds;
+    if(window.setSchedView) window.setSchedView('week');
+  }
+
+  // 3. Clear existing garden filters and set new ones
+  ['s-g1','s-g2','s-g3'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  gids.forEach((gid, i) => {
+    const el = document.getElementById('s-g'+(i+1));
+    if(el) el.value = gid;
+  });
+
+  // 4. Trigger render
+  if(window.renderSched) window.renderSched();
+  
+  window.showToast('📅 עובר ללוח שבועי של ' + (pair ? pair.name : window.G(soloGid).name));
+}
+
+// Attach to window for accessibility
+window.jumpToPairWeeklySchedule = jumpToPairWeeklySchedule;
