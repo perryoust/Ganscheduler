@@ -165,6 +165,7 @@ function supBase(fullName){
   const i=norm.indexOf(' - ');
   return i>0?norm.substring(0,i).trim():norm.trim();
 }
+window.supBase = supBase;
 function supAct(fullName){
   if(!fullName) return '';
   const norm = _SUP_ALIASES[fullName]||fullName;

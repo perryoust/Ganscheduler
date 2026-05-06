@@ -1897,17 +1897,17 @@ function openNohapQ(id){
   const s=SCH.find(x=>x.id===id); if(!s) return;
   const g=G(s.g);
   document.getElementById('nohapq-info').innerHTML=
-    `<b>${g.name}</b> · ${g.city} · ${s.a}${s.act?' · '+s.act:''}<br>📅 ${fD(s.d)} ${s.t?'⏰ '+fT(s.t):''}`;
+    `<b>${g.name}</b> מ-${g.city} | ${s.a}${s.act?' - '+s.act:''}<br>בתאריך ${fD(s.d)} ${s.t?'בשעה '+fT(s.t):''}`;
   document.getElementById('nohapq-reason').value='';
   document.querySelectorAll('.nohap-reason-btn').forEach(b=>b.classList.remove('sel'));
 
-  // Build scope options — this garden + pair partners
+  // Build scope options - this garden + pair partners
   const pair=gardenPair(s.g);
   const scopeWrap=document.getElementById('nohapq-scope-wrap');
   const scopeBtns=document.getElementById('nohapq-scope-btns');
   if(pair){
     const partners=pair.ids.filter(gid=>gid!==s.g).map(gid=>G(gid)).filter(x=>x.id);
-    const partnerEvs=partners.map(pg=>SCH.find(ps=>ps.g===pg.id&&ps.d===s.d&&ps.st!=='can')).filter(Boolean);
+    const partnerEvs=partners.map(pg=> window.findPartnerActivity ? window.findPartnerActivity(pg.id, s.d, s.a) : null).filter(Boolean);
     scopeBtns.innerHTML='';
     // Option: full pair
     const allNames=[g,...partners].map(x=>x.name).join(' + ');
@@ -1944,12 +1944,12 @@ function saveNohapQ(){
   const forPair=(scopeEl&&scopeEl.value==='pair') || (window._spSyncPartnerNext === true);
 
   // Read orig BEFORE modifying SCH
-  const origEv2=SCH.find(s=>s.id===_nohapQId);
+  const origEv2=SCH.find(s=>s.id==_nohapQId);
   const origG2=origEv2?origEv2.g:null;
   const origD2=origEv2?origEv2.d:null;
 
   const markNohap=(evId)=>{
-    const i=SCH.findIndex(s=>s.id===evId); if(i<0) return;
+    const i=SCH.findIndex(s=>s.id==evId); if(i<0) return;
     const prev=SCH[i].nt||'';
     const noteAdd='⚠️ לא התקיים: '+fullReason;
     SCH[i].st='nohap';
@@ -1962,39 +1962,35 @@ function saveNohapQ(){
   if(forPair && origG2 && origD2){
     const origG2n=parseInt(origG2);
     const pair2=gardenPair(origG2n);
-    console.log('nohap pair: origG='+origG2n+' origD='+origD2+' pair='+JSON.stringify(pair2));
     if(pair2){
       pair2.ids
         .map(id=>parseInt(id))
         .filter(gid=>gid!==origG2n)
         .forEach(gid=>{
-          const partnerEv=SCH.find(ps=>parseInt(ps.g)===gid && ps.d===origD2 && ps.st!=='can' && window.supBase(ps.a) === window.supBase(origEv2.a));
-          console.log('nohap partner gid='+gid+' found='+!!(partnerEv)+(partnerEv?' st='+partnerEv.st:''));
+          const partnerEv = window.findPartnerActivity ? window.findPartnerActivity(gid, origD2, origEv2.a) : null;
           if(partnerEv){
             markNohap(partnerEv.id);
           } else {
             // No scheduled event for partner on this date — create one
-            const origEv3=SCH.find(s=>s.id===_nohapQId);
+            const origEv3=SCH.find(s=>s.id==_nohapQId);
             const newId=Date.now()+gid;
             SCH.push({
               id:newId, g:gid, d:origD2,
               a:origEv3?origEv3.a:'', act:origEv3?origEv3.act:'',
               t:origEv3?origEv3.t:'', grp:origEv3?origEv3.grp:1,
               st:'nohap', cr:fullReason,
-              nt:'⚠️ לא התקיים: '+fullReason+' (נוצר אוטומטית עם הזוג)',
+              nt: '⚠️ לא התקיים: ' + fullReason + ' (נוצר אוטומטית עם הזוג)',
               sup:origEv3?origEv3.sup:''
             });
-            console.log('nohap: created new event for partner gid='+gid);
           }
         });
-    } else {
-      console.warn('nohap: gardenPair not found for gid='+origG2n+', pairs count='+pairs.length);
     }
   }
   // Save + ask about makeup
   save();
   CM('nohapqm');
   refresh();
+  if (window.selEv) window.openSP(window.selEv);
   
   // Prompt for makeup scheduling
   const origEvForMakeup = SCH.find(s => s.id === _nohapQId);
