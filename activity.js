@@ -213,30 +213,97 @@ function renderCanList(){
   const tab = (typeof _dashTab !== 'undefined' ? _dashTab : 'g');
   const cls = tab === 'g' ? 'גנים' : 'ביה"ס';
   const safeSort = (a, b) => (b.d || '').localeCompare(a.d || '');
+  
   const todoEvs = window.SCH.filter(s => {
-    const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
     const isHandled = !!s._compByMakeup;
     let match = false;
     if (s.st === 'can') match = false;
-    else if ((s.st === 'nohap' || s.st === 'post') || isHandled) match = true;
-    else if (isM && s.st !== 'done') match = true;
+    else if ((s.st === 'nohap' || s.st === 'post') || isHandled) {
+      if(!isHandled) match = true; // Still needs handling
+    } else if (isM && s.st !== 'done') match = true;
     if (!match) return false;
     const g = window.G(s.g);
     return g && window.gcls(g) === cls;
   }).sort(safeSort);
+
   const handledEvs = window.SCH.filter(s => {
     if (!((s.st === 'nohap' || s.st === 'post') && s._compByMakeup)) return false;
     const g = window.G(s.g);
     return g && window.gcls(g) === cls;
   }).sort(safeSort).slice(0, 25);
-  let ch = `<div style="margin-bottom:20px"><div style="font-weight:800;color:#c62828;margin-bottom:8px;font-size:.9rem">🔴 דורש טיפול (השלמה / ביטול סופי) (${todoEvs.length})</div>`;
-  if (!todoEvs.length) ch += `<p style="color:#999;font-size:.79rem;padding:10px;background:#f9f9f9;border-radius:6px">אין חריגים הממתינים לטיפול ב${cls}</p>`;
-  else ch += _renderMiniTable(todoEvs);
-  ch += `</div><div><div style="font-weight:800;color:#2e7d32;margin-bottom:8px;font-size:.9rem">🟢 טופלו לאחרונה (${handledEvs.length})</div>`;
-  if (!handledEvs.length) ch += `<p style="color:#999;font-size:.79rem;padding:10px">אין פריטים שטופלו לאחרונה ב${cls}</p>`;
-  else ch += _renderMiniTable(handledEvs);
+
+  let ch = `<div style="margin-bottom:20px">
+    <div style="font-weight:800;color:#c62828;margin-bottom:12px;font-size:1rem;display:flex;align-items:center;gap:8px">
+       🔴 דורש טיפול (השלמה / ביטול סופי) 
+       <span style="background:#ffcdd2;color:#c62828;padding:2px 8px;border-radius:12px;font-size:0.8rem">${todoEvs.length}</span>
+    </div>`;
+  
+  if (!todoEvs.length) {
+    ch += `<p style="color:#999;font-size:.79rem;padding:20px;background:#f9f9f9;border-radius:10px;text-align:center;border:1.5px dashed #ddd">הכל מטופל! אין חריגים הממתינים לטיפול ב${cls}</p>`;
+  } else {
+    ch += _renderGroupedByCity(todoEvs, true);
+  }
+  
+  ch += `</div><div style="margin-top:30px">
+    <div style="font-weight:800;color:#2e7d32;margin-bottom:12px;font-size:1rem;display:flex;align-items:center;gap:8px">
+       🟢 טופלו לאחרונה 
+       <span style="background:#c8e6c9;color:#2e7d32;padding:2px 8px;border-radius:12px;font-size:0.8rem">${handledEvs.length}</span>
+    </div>`;
+  
+  if (!handledEvs.length) {
+    ch += `<p style="color:#999;font-size:.79rem;padding:10px">אין פריטים שטופלו לאחרונה ב${cls}</p>`;
+  } else {
+    ch += _renderGroupedByCity(handledEvs, false);
+  }
   ch += `</div>`;
+  
   if (document.getElementById('dash-can-body')) document.getElementById('dash-can-body').innerHTML = ch;
+}
+
+function _renderGroupedByCity(evs, isOpen = false) {
+  const byCity = {};
+  evs.forEach(s => {
+    const g = window.G(s.g);
+    const city = g ? (g.city || 'אחר') : 'אחר';
+    if (!byCity[city]) byCity[city] = [];
+    byCity[city].push(s);
+  });
+
+  const sortedCities = Object.keys(byCity).sort((a,b) => a.localeCompare(b, 'he'));
+  
+  return sortedCities.map(city => {
+    const cityEvs = byCity[city];
+    const clr = window.CITY_COLORS ? window.CITY_COLORS(city) : {solid:'#607d8b', light:'#f1f3f4', border:'#cfd8dc'};
+    
+    return `<details class="city-accordion" ${isOpen ? 'open' : ''} style="margin-bottom:8px;border:1px solid ${clr.border};border-radius:10px;overflow:hidden;background:#fff">
+      <summary style="padding:10px 14px;background:${clr.light};cursor:pointer;display:flex;justify-content:space-between;align-items:center;list-style:none">
+        <div style="display:flex;align-items:center;gap:10px">
+           <span style="font-weight:800;color:${clr.solid};font-size:0.9rem">🏙️ ${city}</span>
+           <span style="background:${clr.solid};color:#fff;font-size:0.7rem;padding:2px 7px;border-radius:10px;font-weight:700">${cityEvs.length}</span>
+        </div>
+        <span style="font-size:0.7rem;color:#78909c">לחץ לפתיחה/סגירה ▼</span>
+      </summary>
+      <div style="padding:8px">
+        ${cityEvs.map(s => {
+          const g = window.G(s.g);
+          const stLabel = window.stLabel ? window.stLabel(s) : s.st;
+          const stCls = window.stClass ? window.stClass(s) : '';
+          return `<div onclick="window.openSP('${s.id}')" style="display:grid;grid-template-columns:85px 1fr 90px;gap:10px;padding:10px;border-bottom:1px solid #f0f0f0;cursor:pointer;align-items:center;transition:background 0.2s" onmouseover="this.style.background='#f5f7ff'" onmouseout="this.style.background='transparent'">
+            <div style="font-size:0.75rem;font-weight:700;color:#546e7a">${window.fD(s.d)}</div>
+            <div>
+              <div style="font-size:0.85rem;font-weight:800;color:#1a237e">${g.name}</div>
+              <div style="font-size:0.72rem;color:#78909c">${s.a || ''} ${s.act ? ' - ' + s.act : ''}</div>
+              ${s.cr ? `<div style="font-size:0.7rem;color:#c62828;margin-top:2px">⚠️ ${s.cr}</div>` : ''}
+            </div>
+            <div style="text-align:left">
+              <span class="st-tag ${stCls}" style="font-size:0.65rem;padding:3px 8px;border-radius:6px;display:inline-block">${stLabel}</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </details>`;
+  }).join('');
 }
 
 function _renderMiniTable(evs){
