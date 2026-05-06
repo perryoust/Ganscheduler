@@ -3084,8 +3084,6 @@ window.askYesNo = (msg, onYes) => {
 };
 
 window.getBlockedInfo = getBlockedInfo;
-window.getHolidayInfo = getHolidayInfo;
-window.cities = cities;
 window.openSP = window.openSP || (()=>{});
 // qSetSt — quick status setter. Routes to dialogs for nohap/can.
 function qSetSt(id, st) {
@@ -3107,19 +3105,10 @@ function qSetSt(id, st) {
   save(); refresh();
 }
 window.qSetSt = qSetSt;
-window.openCanQ = window.openCanQ || (()=>{});
-window.openPostpone = window.openPostpone || (()=>{});
-window.openNohapQ = window.openNohapQ || (()=>{});
-window.openMakeupSched = window.openMakeupSched || (()=>{});
-window.openBlockedDate = window.openBlockedDate || (()=>{});
-window.jumpToDay = window.jumpToDay || (()=>{});
-window.calRefG = window.calRefG || (()=>{});
 window.supBase = supBase;
 window.supAct = supAct;
 window.supDisplayName = supDisplayName;
 window.supBaseEx = supBaseEx;
-window.getClusters = getClusters;
-window.gardenClusters = gardenClusters;
 window.getGardenBlock = getGardenBlock;
 
 // [End of core.js]
