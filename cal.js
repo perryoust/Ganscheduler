@@ -277,7 +277,7 @@ function renderCal(){
     const y=calD.getFullYear(),m=calD.getMonth();
     (document.getElementById('cal-title')||{}).textContent =hebM(calD);
     const evs=filterE(f,d2s(new Date(y,m,1)),d2s(new Date(y,m+1,0)));
-    html=renderMonth(evs,calD);
+    html=renderMonth(evs,calD,f);
   }
   document.getElementById('cal-body').innerHTML=html;
 }
@@ -806,13 +806,16 @@ function renderPairCard(pair, pairEvs, opts){
 
   const editBtn = ds ? `<button onclick="openPairQuickEdit('${pair.id}','${ds}')" style="background:rgba(255,255,255,.3);border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.65rem;color:#fff">✏️</button>` : '';
   const expBtn = ds ? `<button onclick="exportPairRow('${pair.id}','${ds}',${!!opts.isMakeup})" style="background:rgba(255,255,255,.3);border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.65rem;color:#fff;font-weight:700">📋 הודעה</button>` : '';
-  const weekBtn = ds ? `<button onclick="jumpToPairWeeklySchedule('${pair.id}','${ds}')" style="background:rgba(255,255,255,.3);border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.65rem;color:#fff;font-weight:700" title="מעבר ללוח שבועי">📅 שבוע</button>` : '';
+  const isSolo = pair.id && String(pair.id).startsWith('solo_');
+  const soloGid = isSolo ? pair.ids[0] : null;
+  const weekBtn = ds ? `<button onclick="jumpToPairWeeklySchedule('${isSolo ? '' : pair.id}','${ds}','${soloGid || ''}')" style="background:rgba(255,255,255,.3);border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.65rem;color:#fff;font-weight:700" title="מעבר ללוח שבועי">📅 שבוע</button>` : '';
+  const monthBtn = ds ? `<button onclick="jumpToPairMonthlySchedule('${isSolo ? '' : pair.id}','${ds}','${soloGid || ''}')" style="background:rgba(255,255,255,.3);border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.65rem;color:#fff;font-weight:700" title="מעבר ללוח חודשי">🗓️ חודש</button>` : '';
 
   let html = `<div class="pair-card ${isCompact ? 'compact' : ''}" style="border:1px solid ${clr.border}; border-radius:6px; overflow:hidden; margin-bottom:8px; background:#fff">
     <div class="pair-card-hdr" style="background:${clr.solid}; color:#fff; padding:4px 10px; display:flex; align-items:center; gap:8px; font-size:0.92rem; font-weight:800">
-      🔗 ${pair.name}
+      🔗 ${pair.name} ${weekBtn} ${monthBtn}
       <span style="font-size:0.8rem; font-weight:700; opacity:0.95; margin-right:auto">${supName ? window.supBase(supName) : ''} ${actName ? '· ' + actName : ''}</span>
-      <div style="display:flex; gap:4px; align-items:center;">${expBtn}${weekBtn}${editBtn}</div>
+      <div style="display:flex; gap:4px; align-items:center;">${expBtn}${editBtn}</div>
     </div>
     <div class="pair-card-body">`;
 
@@ -1379,6 +1382,9 @@ function _listRow(s, clr, ds){
   const weekBtnSolo = (!isPaired && !isUnassigned)
     ? `<button onclick="event.stopPropagation();jumpToPairWeeklySchedule(null,'${s.d}',${s.g})" style="background:#455a64;border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.72rem;color:#fff;font-weight:700" title="לוח שבועי">📅</button>`
     : '';
+  const monthBtnSolo = (!isPaired && !isUnassigned)
+    ? `<button onclick="event.stopPropagation();jumpToPairMonthlySchedule(null,'${s.d}',${s.g})" style="background:#455a64;border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.72rem;color:#fff;font-weight:700" title="לוח חודשי">🗓️</button>`
+    : '';
 
   return `<div style="display:grid;grid-template-columns:minmax(150px, auto) 1fr auto auto auto;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;margin-bottom:1px;background:${bg};border-right:3px solid ${clr.solid};cursor:pointer;min-height:36px" onclick="${clickHandler}">
     <div style="display:flex; flex-direction:column; gap:1px; justify-content:center;">
@@ -1399,25 +1405,55 @@ function _listRow(s, clr, ds){
     <div style="display:flex;gap:4px">
       ${waBtn}
       ${weekBtnSolo}
+      ${monthBtnSolo}
       ${!isUnassigned ? _quickActionBtns(s) : ''}
     </div>
   </div>`;
 }
 
-function renderMonth(evs,mDate){
+function renderMonth(evs,mDate,f){
   const y=mDate.getFullYear(),m=mDate.getMonth(),tday=td();
   const fd=new Date(y,m,1),ld=new Date(y,m+1,0);
-  const cnt={};evs.forEach(s=>{const dk=s._isPostponed?s.pd:s.d;if(!cnt[dk])cnt[dk]={t:0,c:0};cnt[dk].t++;if(s.st==='can')cnt[dk].c++;});
+  
+  // Group events by date for monthly cell lookup
+  const evsByDate = {};
+  evs.forEach(s => {
+    const dk = s._isPostponed ? s.pd : s.d;
+    if(!evsByDate[dk]) evsByDate[dk] = [];
+    evsByDate[dk].push(s);
+  });
+
+  const isFocused = f && (f.gids || f.city || f.sup);
+
   let html='<div class="card"><div class="mgrid">';
   ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'].forEach(d=>html+=`<div class="mdh">${d}</div>`);
   for(let i=0;i<fd.getDay();i++) html+='<div class="md om"></div>';
   for(let d=1;d<=ld.getDate();d++){
     const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const c=cnt[ds];
-    const hol=getHolidayInfo(ds);
-    const blkM=getBlockedInfo(ds);
-    const holStyle=hol?`background:${hol.bg};border-top:3px solid ${hol.border};`:(blkM?'background:#fce4ec;border-top:3px solid #e91e63;':'');
-    html+=`<div class="md ${ds===tday?'tdy':''} ${c?'hev':''}" style="${holStyle}" onclick="jumpToDay('${ds}')">
+    let cellContent = '';
+    const dayEvs = evsByDate[ds];
+    if(dayEvs && dayEvs.length > 0){
+      if(isFocused && dayEvs.length <= 4){
+        // Detailed view for focused filters
+        cellContent = '<div style="margin-top:2px; display:flex; flex-direction:column; gap:1px;">';
+        dayEvs.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s => {
+          const sup = window.supBase(s.a);
+          const act = s.act || window.supAct(s.a) || '';
+          const stC = s.st === 'can' ? '#c62828' : s.st === 'post' ? '#e65100' : '#1565c0';
+          const isCan = s.st === 'can';
+          cellContent += `<div style="font-size:0.62rem; line-height:1.1; color:${stC}; border-right:2px solid ${stC}; padding-right:3px; background:rgba(0,0,0,0.03); border-radius:2px; ${isCan?'text-decoration:line-through;opacity:0.6':''}">
+            <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sup}</b>
+            <span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.58rem;opacity:0.8">${act}</span>
+          </div>`;
+        });
+        cellContent += '</div>';
+      } else {
+        // Simple count view
+        cellContent = `<div class="mcnt">${dayEvs.length} פעילויות</div>`;
+      }
+    }
+
+    html+=`<div class="md ${ds===tday?'tdy':''} ${dayEvs?'hev':''}" style="${holStyle}" onclick="jumpToDay('${ds}')">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
           <div class="dnum" style="${blkM?'color:#c62828':''}">${d}</div>
@@ -1427,7 +1463,7 @@ function renderMonth(evs,mDate){
       </div>
       ${hol?`<div style="font-size:.65rem;color:${hol.color};font-weight:700">${hol.emoji} ${hol.name}</div>`:''}
       ${blkM?`<div style="font-size:.62rem;color:#c62828;font-weight:700">${blkM.reason}${blkM.note?' — '+blkM.note:''}</div>`:''}
-      ${c?`<div class="mcnt">${c.t} פעילויות</div>`:''}
+      ${cellContent}
     </div>`;
   }
   const e=ld.getDay();for(let i=e+1;i<7;i++) html+='<div class="md om"></div>';
@@ -1600,6 +1636,30 @@ function jumpToPairWeeklySchedule(pairId, ds, soloGid){
 
 // Attach to window for accessibility
 window.jumpToPairWeeklySchedule = jumpToPairWeeklySchedule;
+
+function jumpToPairMonthlySchedule(pairId, ds, soloGid){
+  const pair = pairId ? (window.pairs.find(p=>p.id==pairId) || window.pairs.find(p=>p.name==pairId)) : null;
+  const gids = pair ? pair.ids : (soloGid ? [soloGid] : []);
+  if(!gids.length) return;
+
+  // 1. Switch to Calendar tab
+  if(window.ST) window.ST('cal');
+
+  // 2. Set filters
+  const f1 = document.getElementById('cal-g1');
+  const f2 = document.getElementById('cal-g2');
+  const f3 = document.getElementById('cal-g3');
+  if(f1) f1.value = gids[0] || '';
+  if(f2) f2.value = gids[1] || '';
+  if(f3) f3.value = gids[2] || '';
+
+  // 3. Set date and view
+  if(window.goDate) window.goDate(ds);
+  if(window.setView) window.setView('month');
+  
+  window.showToast('🗓️ עובר ללוח חודשי של ' + (pair ? pair.name : window.G(soloGid).name));
+}
+window.jumpToPairMonthlySchedule = jumpToPairMonthlySchedule;
 function toggleTableCity(cityId) {
   const rows = document.querySelectorAll('.city-row-' + cityId);
   rows.forEach(r => {
