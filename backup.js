@@ -217,7 +217,7 @@ function goToPostponed(){
     const el = document.getElementById('dash-st');
     const dt = document.getElementById('dash-date');
     if(dt) dt.value = '';
-    if(el) { el.value='post'; renderDash(); }
+    if(el) { el.value='todo'; renderDash(); }
   },50);
 }
 function goToNohap(){
@@ -226,7 +226,7 @@ function goToNohap(){
     const el = document.getElementById('dash-st');
     const dt = document.getElementById('dash-date');
     if(dt) dt.value = '';
-    if(el) { el.value='nohap'; renderDash(); }
+    if(el) { el.value='todo'; renderDash(); }
   },50);
 }
 function goToNoHap(){
@@ -235,7 +235,7 @@ function goToNoHap(){
     const el = document.getElementById('dash-st');
     const dt = document.getElementById('dash-date');
     if(dt) dt.value = '';
-    if(el) { el.value='nohap'; renderDash(); }
+    if(el) { el.value='todo'; renderDash(); }
   },50);
 }
 

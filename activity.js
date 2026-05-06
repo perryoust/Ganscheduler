@@ -82,9 +82,8 @@ function renderDash() {
     if (tSt === 'todo') {
       if (from && to) {
         if (s.d < from || s.d > to) return false;
-      } else if (tDate) {
-        if (s.d !== tDate) return false;
       }
+      // Ignore tDate for todo - we want global todo list unless explicitly using from/to range
     } else {
       if (from && to) {
         if (s.d < from || s.d > to) return false;
@@ -1262,6 +1261,35 @@ function markCompManual(id){
   window.saveAndRefresh('sp', true);
   } catch(err) { console.error('[markCompManual]', err); window.saveAndRefresh('sp', true); }
 }
+
+function markCompQuick(id){
+  try {
+    const s=window.SCH.find(x=>x.id==id); if(!s) return;
+    const stamp = 'quick_' + Date.now();
+    s._compByMakeup = stamp;
+    
+    // Sync with partners automatically if it's a pair/cluster (silent sync)
+    const pair = window.gardenPair(s.g);
+    const cluster = window.CLUSTERS ? window.CLUSTERS.find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
+    if(pair || cluster){
+      const gids = new Set();
+      if(pair) pair.ids.forEach(i => gids.add(Number(i)));
+      if(cluster) cluster.gids.forEach(i => gids.add(Number(i)));
+      window.SCH.forEach(p => {
+        if(p.d===s.d && p.t===s.t && window.supBase(p.a)===window.supBase(s.a) && gids.has(Number(p.g))){
+          p._compByMakeup = stamp;
+        }
+      });
+    }
+
+    window.save();
+    if(window.updCounts) window.updCounts();
+    window.renderDash();
+    window.renderCanList();
+    if(window.showToast) window.showToast('✅ סומן כטופל');
+  } catch(e){ console.error(e); }
+}
+window.markCompQuick = markCompQuick;
 
 function upd(id,fields){
   const i=window.SCH.findIndex(s=>s.id==id);

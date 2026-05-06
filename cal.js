@@ -1178,7 +1178,7 @@ function _quickActionBtns(s){
     ${isDone?'':`<button title="בוצע" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
       onclick="qSetSt('${sid}','done')">✔️</button>`}
     ${(isException && !isHandled) ? `<button title="סיום טיפול (הסרה מהלוח)" style="background:#fff9c4;color:#f57f17;border:1px solid #fff176;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1;font-weight:800"
-      onclick="if(window.markCompManual)window.markCompManual('${sid}')">✅ טופל</button>` : ''}
+      onclick="if(window.markCompQuick)window.markCompQuick('${sid}')">✅ טופל</button>` : ''}
     ${isCan?'':`<button title="ביטול" style="background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
       onclick="openCanQ('${sid}')">❌</button>`}
     ${isNohap?'':`<button title="לא התקיים" style="background:#f3e5f5;color:#6a1b9a;border:1px solid #ce93d8;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
