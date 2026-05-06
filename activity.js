@@ -641,6 +641,7 @@ window.openSP = function(id) {
         ${spPair ? `<label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="rr-sync" style="width:14px;height:14px;accent-color:#1a237e" checked><span style="font-size:.75rem;font-weight:700;color:#1a237e">סנכרן עם גן בן-זוג באותם ימים ושעות</span></label>` : ''}
         <button class="btn bp" style="width:100%;padding:8px;font-weight:800;font-size:.85rem;margin-top:6px" onclick="window.saveReplaceRecur('${s.id}')">💾 שמור שינויים והחל סדרה קבועה</button>
         ${s._recId ? `<button class="btn br" style="width:100%;padding:6px;font-weight:700;margin-top:4px;background:#fff;border:1px solid #ef9a9a;color:#c62828;font-size:.75rem" onclick="window.deleteRecurSeries('${s.id}')">🗑️ הסר פעילות קבועה מכאן והלאה</button>` : ''}
+        <button class="btn br" style="width:100%;padding:6px;font-weight:700;margin-top:4px;background:#fff;border:1px solid #ccc;color:#666;font-size:.75rem" onclick="window.deleteSingleActivity('${s.id}')">🗑️ מחק שיבוץ זה בלבד (הסרה מהלוח)</button>
       </div>
     </div>
   </div>`;
@@ -799,6 +800,28 @@ function deleteRecurSeries(id) {
   const affected=window.SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
   if(!confirm(`האם למחוק ${affected.length} פעילויות קבועות מ-${window.fD(s.d)} ואילך?`)) return;
   affected.forEach(x=>{ const i=window.SCH.indexOf(x); if(i>=0) window.SCH.splice(i,1); });
+  window.saveAndRefresh('sp');
+}
+
+function deleteSingleActivity(id) {
+  const s = window.SCH.find(x => x.id == id);
+  if(!s) return;
+  const g = window.G(s.g);
+  if(!confirm(`האם למחוק את השיבוץ של גן ${g.name} בתאריך ${window.fD(s.d)} לצמיתות?`)) return;
+  
+  const i = window.SCH.indexOf(s);
+  if(i >= 0) window.SCH.splice(i, 1);
+  
+  // Also check for partner sync
+  const pair = window.gardenPair(s.g);
+  if(pair) {
+    const pEv = window.findPartnerActivity ? window.findPartnerActivity(pair.ids.find(pid => Number(pid) !== Number(s.g)), s.d, s.a) : null;
+    if(pEv && confirm(`האם למחוק גם את השיבוץ המקביל בגן בן-הזוג (${window.G(pEv.g).name})?`)) {
+      const pi = window.SCH.indexOf(pEv);
+      if(pi >= 0) window.SCH.splice(pi, 1);
+    }
+  }
+  
   window.saveAndRefresh('sp');
 }
 
@@ -1457,6 +1480,7 @@ window.toggleSpAccordion = toggleSpAccordion;
 window.spEditSupChg = spEditSupChg;
 window.spEditActChg = spEditActChg;
 window.deleteRecurSeries = deleteRecurSeries;
+window.deleteSingleActivity = deleteSingleActivity;
 window.openReplaceRecur = openReplaceRecur;
 window.rrSupChg = rrSupChg;
 window.saveReplaceRecur = saveReplaceRecur;
