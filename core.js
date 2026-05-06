@@ -3105,10 +3105,6 @@ function qSetSt(id, st) {
   save(); refresh();
 }
 window.qSetSt = qSetSt;
-window.supBase = supBase;
-window.supAct = supAct;
-window.supDisplayName = supDisplayName;
-window.supBaseEx = supBaseEx;
 window.getGardenBlock = getGardenBlock;
 
 // [End of core.js]
