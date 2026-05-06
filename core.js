@@ -1968,7 +1968,7 @@ function saveNohapQ(){
         .map(id=>parseInt(id))
         .filter(gid=>gid!==origG2n)
         .forEach(gid=>{
-          const partnerEv=SCH.find(ps=>parseInt(ps.g)===gid&&ps.d===origD2&&ps.st!=='can');
+          const partnerEv=SCH.find(ps=>parseInt(ps.g)===gid && ps.d===origD2 && ps.st!=='can' && window.supBase(ps.a) === window.supBase(origEv2.a));
           console.log('nohap partner gid='+gid+' found='+!!(partnerEv)+(partnerEv?' st='+partnerEv.st:''));
           if(partnerEv){
             markNohap(partnerEv.id);

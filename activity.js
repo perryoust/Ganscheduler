@@ -125,13 +125,13 @@ function renderDash() {
     evs.forEach(s => {
       const group = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
       if (group) {
-        if (!seenPairs.has(group.id + '_' + window.supBase(s.a) + '_' + s.d + '_' + s.t + '_' + s.st)) {
+        if (!seenPairs.has(group.id + '_' + window.supBase(s.a) + '_' + s.d)) {
           const groupEvs = evs.filter(x => {
             const xGroup = window.getGardenGroup ? window.getGardenGroup(x.g) : window.gardenPair(x.g);
             return xGroup && xGroup.id === group.id && window.supBase(x.a) === window.supBase(s.a);
           });
           rows.push({type: 'pair', pair: group, evs: groupEvs});
-          seenPairs.add(group.id + '_' + window.supBase(s.a) + '_' + s.d + '_' + s.t + '_' + s.st);
+          seenPairs.add(group.id + '_' + window.supBase(s.a) + '_' + s.d);
         }
       } else {
         rows.push({type: 'solo', ev: s});
@@ -340,11 +340,13 @@ window.spRowStatusChg = function(id, st) {
   if(pair) {
     const pGid = pair.ids.find(pid => Number(pid) !== Number(ev.g));
     const pG = window.G(pGid);
-    const stText = st === 'nohap' ? 'לא התקיים' : (st === 'can' ? 'בוטל' : (st === 'post' ? 'נדחה' : st));
-    if(confirm(`האם להחיל את הסטטוס "${stText}" גם על הגן בן-הזוג (${pG.name})?`)) {
+    const stText = st === 'nohap' ? 'לא התקיים' : (st === 'can' ? 'ביטול' : (st === 'post' ? 'דחייה' : st));
+    if(confirm(`האם לעדכן את הסטטוס "${stText}" גם בגן בן-הזוג (${pG.name})?`)) {
       syncPartner = true;
     }
   }
+
+  window._spSyncPartnerNext = syncPartner; 
 
   if(st === 'nohap' || st === 'can' || st === 'post') {
     if(st === 'nohap') window.openNohapQ(id);
