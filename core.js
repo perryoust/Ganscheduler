@@ -1471,9 +1471,16 @@ function sucAddAct(){
   inp.value=''; sucRefreshActsList(); save();
 }
 function sucRemoveAct(idx){
-  const acts=[...getSupActs(_sucName)]; acts.splice(idx,1);
+  const acts=getSupActs(_sucName); 
+  const actToRemove = acts[idx];
   if(!supEx[_sucName]) supEx[_sucName]={};
-  supEx[_sucName].acts=acts; sucRefreshActsList(); save();
+  if(!supEx[_sucName].hiddenActs) supEx[_sucName].hiddenActs=[];
+  if(!supEx[_sucName].hiddenActs.includes(actToRemove)) supEx[_sucName].hiddenActs.push(actToRemove);
+
+  if(Array.isArray(supEx[_sucName].acts)) {
+    supEx[_sucName].acts = supEx[_sucName].acts.filter(a => a !== actToRemove);
+  }
+  sucRefreshActsList(); save();
 }
 function deleteSupFromCard() {
   // Use _sucName (set by openSupCard) as the reliable source

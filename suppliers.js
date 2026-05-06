@@ -167,10 +167,11 @@ function getSupActs(name){
     SCH.forEach(s=>{ if(supBase(s.a)===oldBase){const a=supAct(s.a);if(a)fromSch.add(a);} });
     SUPBASE.forEach(s=>{ if(supBase(s.name)===oldBase){const a=supAct(s.name);if(a)fromSch.add(a);} });
   });
+  const hidden = new Set(ex.hiddenActs || []);
   // 5. Merge with explicitly saved acts (manual additions not in SCH)
   if(Array.isArray(ex.acts)) ex.acts.forEach(a=>{ if(a) fromSch.add(a); });
 
-  return [...fromSch].sort((a,b)=>a.localeCompare(b,'he'));
+  return [...fromSch].filter(a => !hidden.has(a)).sort((a,b)=>a.localeCompare(b,'he'));
 }
 // Supplier list index helpers — avoid HTML attribute escaping issues
 let _supCurrentList = [];
@@ -453,9 +454,14 @@ function addSupAct(){
 function removeSupAct(idx){
   const name=document.getElementById('su-name').dataset.orig||document.getElementById('su-name').value;
   const acts=getSupActs(name);
-  acts.splice(idx,1);
+  const actToRemove = acts[idx];
   if(!window.supEx[name]) window.supEx[name]={};
-  window.supEx[name].acts=acts;
+  if(!window.supEx[name].hiddenActs) window.supEx[name].hiddenActs=[];
+  if(!window.supEx[name].hiddenActs.includes(actToRemove)) window.supEx[name].hiddenActs.push(actToRemove);
+  
+  if(Array.isArray(window.supEx[name].acts)) {
+    window.supEx[name].acts = window.supEx[name].acts.filter(a => a !== actToRemove);
+  }
   renderSupActsList(name);
 }
 function deleteSup() {
