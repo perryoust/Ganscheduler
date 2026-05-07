@@ -444,6 +444,7 @@ function _applyYearData(o){
       // SRAWS not loaded OR explicitly disabled: preserve ALL ch entries with defaults for missing fields
       window.SCH = o.ch.map(x=>({g:0,d:'',a:'',t:'',p:'',n:'',st:'ok',cr:'',cn:'',nt:'',pd:'',pt:'',grp:1,...x}))
              .filter(x=>x.g&&x.d);
+    }
   } else if (window.SCH && window.SCH.length > 0) {
     console.warn('Firebase data missing "ch" key. Preserving existing memory state.');
   } else {
