@@ -502,16 +502,18 @@ window.spBatchSaveNt = function() {
     if(ntEl && (ev.st === 'ok' || ev.st === 'done')) {
       const val = ntEl.value;
       const lower = val.toLowerCase();
-      const isMovedTo = lower.includes('נדחה ל') || lower.includes('הוזז ל') || lower.includes('הזזה ל');
-      const isMovedFrom = lower.includes('נדחה מ') || lower.includes('הוזז מ') || lower.includes('הזזה מ');
+      const isMovedTo = lower.includes('נדחה ל') || lower.includes('הוזז ל') || lower.includes('הזזה ל') || lower.includes('הוקדם ל') || lower.includes('עבר ל') || lower.includes('עובר ל');
+      const isMovedFrom = lower.includes('נדחה מ') || lower.includes('הוזז מ') || lower.includes('הזזה מ') || lower.includes('הוקדם מ') || lower.includes('עבר מ') || lower.includes('עובר מ');
       const isPos = lower.includes('השלמה') || isMovedFrom || (lower.includes('נדחה') && !isMovedTo);
       if(!isPos) {
-        const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
-        const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע', 'לא נשאר', 'עזב', 'לא התקיימה'];
+        const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה', 'מסיבת פורים', 'מסיבות אישיות'];
+        const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע', 'לא נשאר', 'עזב', 'לא התקיימה', 'לא מרגיש טוב', 'לא עונה', 'טעה ביום', 'טעות בשיבוץ', 'לא מצא חניה', 'איחר לא העביר'];
         if(canWords.some(w => lower.includes(w)) || isMovedTo) {
           ev.st = 'can';
         } else if(nohapWords.some(w => lower.includes(w))) {
           ev.st = 'nohap';
+        } else if(lower.includes('הושלם') || lower.includes('התקיים') || lower.includes('בוצע')) {
+          ev.st = 'done';
         }
       }
     }
@@ -538,6 +540,7 @@ window.openSP = function(id) {
   const g=window.G(s.g);
   const spPair=window.gardenPair(s.g);
   const allSups = window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : [];
+  const initialActs = window.getSupActs ? window.getSupActs(s.a) : [];
 
   // Build partner info array and currentTimesSP for later use
   const currentTimesSP = {};
@@ -768,7 +771,6 @@ window.openSP = function(id) {
   </div>`;
 
   // --- STEP 8: Manual Edit ---
-  const initialActs = window.getSupActs ? window.getSupActs(s.a) : [];
   h += `<div style="margin-top:10px;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden">
     <div onclick="window.toggleSpAccordion('sp-acc-edit')" style="background:#f5f5f5;padding:8px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
       <b style="font-size:0.8rem;color:#455a64">✏️ עריכה ידנית (חד-פעמי)</b>

@@ -295,24 +295,25 @@ window.importBulkSchedule = function(input) {
           const lowerNotes = notes.toLowerCase();
           
           // Keywords lists
-          const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
-          const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע', 'לא נשאר', 'עזב', 'לא התקיימה'];
+          const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה', 'מסיבת פורים', 'מסיבות אישיות'];
+          const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע', 'לא נשאר', 'עזב', 'לא התקיימה', 'לא מרגיש טוב', 'לא עונה', 'טעה ביום', 'טעות בשיבוץ', 'לא מצא חניה', 'איחר לא העביר'];
           
           // 1. Check Status Column
           if (rawSt.includes('בוטל') || rawSt.includes('ביטול') || rawSt === 'can') status = 'can';
           else if (rawSt.includes('נדחה') || rawSt.includes('הזזה') || rawSt === 'post') status = 'post';
           else if (rawSt.includes('לא התקיים') || rawSt.includes('לא בוצע') || rawSt === 'nohap') status = 'nohap';
-          else if (rawSt.includes('בוצע') || rawSt.includes('התקיים') || rawSt === 'done') status = 'done';
+          else if (rawSt.includes('בוצע') || rawSt.includes('התקיים') || rawSt.includes('הושלם') || rawSt === 'done') status = 'done';
           
           // 2. Smart Override from Notes (if status is still 'ok')
           if (status === 'ok') {
-            const isMovedFrom = lowerNotes.includes('נדחה מ') || lowerNotes.includes('הוזז מ') || lowerNotes.includes('הזזה מ');
-            const isMovedTo = lowerNotes.includes('נדחה ל') || lowerNotes.includes('הוזז ל') || lowerNotes.includes('הזזה ל');
+            const isMovedFrom = lowerNotes.includes('נדחה מ') || lowerNotes.includes('הוזז מ') || lowerNotes.includes('הזזה מ') || lowerNotes.includes('הוקדם מ') || lowerNotes.includes('עבר מ') || lowerNotes.includes('עובר מ');
+            const isMovedTo = lowerNotes.includes('נדחה ל') || lowerNotes.includes('הוזז ל') || lowerNotes.includes('הזזה ל') || lowerNotes.includes('הוקדם ל') || lowerNotes.includes('עבר ל') || lowerNotes.includes('עובר ל');
             const isPos = lowerNotes.includes('השלמה') || isMovedFrom || (lowerNotes.includes('נדחה') && !isMovedTo);
 
             if (!isPos) {
               if (canWords.some(w => lowerNotes.includes(w)) || isMovedTo) status = 'can';
               else if (nohapWords.some(w => lowerNotes.includes(w))) status = 'nohap';
+              else if (lowerNotes.includes('הושלם') || lowerNotes.includes('התקיים') || lowerNotes.includes('בוצע')) status = 'done';
             }
           }
 
