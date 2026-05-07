@@ -70,7 +70,7 @@ function renderDash() {
       
       if (!isExc && !isPendingM) return false;
     } else if (view === 'makeups') {
-      if (!isM) return false;
+      if (!isM || s.st === 'done') return false;
     } else if (view === 'nohap') {
       if (s.st !== 'nohap' || isHandled) return false;
     } else if (view === 'post') {
@@ -181,6 +181,10 @@ function _renderDashCard(card) {
   let h = `<div class="dash-card" style="border:1px solid ${clr.border}; border-radius:8px; background:#fff; overflow:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.05)">
     <div style="background:${clr.light}; padding:6px 12px; border-bottom:1px solid ${clr.border}; display:flex; align-items:center; gap:10px">
       <span style="font-weight:800; font-size:0.92rem; color:${clr.solid}">${isSolo ? '' : '🔗 '}${obj.name}</span>
+      <div style="display:flex; gap:4px; margin-right:8px">
+        <button class="btn bp bsm" onclick="event.stopPropagation(); window.jumpToPairWeeklySchedule('${isSolo ? '' : obj.id}', '${evs[0].d}', '${isSolo ? obj.ids[0] : ''}')" style="padding:2px 6px; font-size:0.65rem; background:rgba(0,0,0,0.05); border:1px solid rgba(0,0,0,0.1); color:${clr.solid}; font-weight:700; border-radius:4px" title="לוח שבועי">📅 שבוע</button>
+        <button class="btn bp bsm" onclick="event.stopPropagation(); window.jumpToPairMonthlySchedule('${isSolo ? '' : obj.id}', '${evs[0].d}', '${isSolo ? obj.ids[0] : ''}')" style="padding:2px 6px; font-size:0.65rem; background:rgba(0,0,0,0.05); border:1px solid rgba(0,0,0,0.1); color:${clr.solid}; font-weight:700; border-radius:4px" title="לוח חודשי">🗓️ חודש</button>
+      </div>
       <div style="margin-right:auto">
         <button class="btn bg bsm" onclick="event.stopPropagation(); window._exportPairWA(${JSON.stringify(obj.ids)})" style="padding:2px 8px; font-size:0.7rem; background:#25d366; border:none; color:white; font-weight:700; border-radius:4px">📋 הודעה</button>
       </div>
@@ -199,7 +203,7 @@ function _renderDashCard(card) {
         <div style="width:85px; font-size:0.8rem; font-weight:700; color:#475569; flex-shrink:0">${window.fD(s.d)}</div>
         <div style="flex:1">
           <div style="font-weight:800; font-size:0.98rem; color:#1e293b">
-            ${g.name} <span style="color:#0288d1; font-weight:700">· ${s.a || ''}</span>
+            <span style="font-size:1.05rem">${g.name}</span> <span style="color:#0288d1; font-weight:700; font-size:1rem">· ${s.a || ''}</span>
             ${isM ? ' | <b style="color:#f59e0b">השלמה</b>' : ''}
           </div>
           ${s.nt ? `<div style="font-size:0.8rem; color:#b91c1c; font-weight:700; margin-top:3px">📝 ${s.nt}</div>` : ''}
@@ -1120,6 +1124,7 @@ function markNoHap(){
   const s=window.SCH.find(x=>x.id==window.selEv); if(!s) return;
   s.st='nohap'; window.saveAndRefresh('sp');
 }
+window.markNoHap = markNoHap;
 
 function setStatus(idOrSt, maybeSt){
   try {

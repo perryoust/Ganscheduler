@@ -600,7 +600,7 @@ function save(immediate){
   try{
     // Save ALL entries with ALL fields — works with or without SRAWS
     const data={
-      ch:SCH.map(s=>({id:s.id,g:s.g,d:s.d,a:s.a,t:s.t,p:s.p,n:s.n,st:s.st,cr:s.cr,cn:s.cn,nt:s.nt,pd:s.pd,pt:s.pt,grp:s.grp,act:s.act||''})),
+      ch:SCH.map(s=>({id:s.id,g:s.g,d:s.d,a:s.a,t:s.t,p:s.p,n:s.n,st:s.st,cr:s.cr,cn:s.cn,nt:s.nt,pd:s.pd,pt:s.pt,grp:s.grp,act:s.act||'',_isMakeup:s._isMakeup||false,_makeupFrom:s._makeupFrom||'',_compByMakeup:s._compByMakeup||'',_fromD:s._fromD||''})),
       pairs,supEx,clusters,holidays,pairBreaks,managers,blockedDates,gardenBlocks,
       invoices:INVOICES,vatRate:VAT_RATE,
       activeGardens:activeGardens?[...activeGardens]:null,
@@ -1176,21 +1176,21 @@ function ST(t){
     if(typeof loadUsersList==='function') setTimeout(loadUsersList,300);
     if(typeof loadActivityLog==='function') setTimeout(()=>loadActivityLog(document.getElementById('log-filter')?.value||'week'),500);
   }
-  if(t==='sched') renderSched();
-  if(t==='gardens'){renderGardens();refreshMgrDrops();}
+  if(t==='sched') { if(window.renderSched) window.renderSched(); }
+  if(t==='gardens'){ if(window.renderGardens) window.renderGardens(); if(window.refreshMgrDrops) window.refreshMgrDrops(); }
   if(t==='cal'){
     // Restore nav buttons in case they were hidden by range view
-    if(calV!=='range'){
-      document.querySelectorAll('[onclick="navCal(-1)"],[onclick="navCal(1)"]').forEach(b=>b.style.display='');
+    if(window.calV!=='range'){
+      document.querySelectorAll('[onclick="window.navCal(-1)"],[onclick="window.navCal(1)"]').forEach(b=>b.style.display='');
     }
-    renderCal();
+    if(window.renderCal) window.renderCal();
   }
-  if(t==='pairs') renderPairs();
-  if(t==='holidays'){initHolDrops();renderHolidays();}
-  if(t==='clusters') renderClusters();
-  if(t==='managers'){renderManagers();refreshMgrDrops();}
-  if(t==='sup') renderSup();
-  setTimeout(_fitScrollAreas, 120);
+  if(t==='pairs') { if(window.renderPairs) window.renderPairs(); }
+  if(t==='holidays'){ if(window.initHolDrops) window.initHolDrops(); if(window.renderHolidays) window.renderHolidays(); }
+  if(t==='clusters') { if(window.renderClusters) window.renderClusters(); }
+  if(t==='managers'){ if(window.renderManagers) window.renderManagers(); if(window.refreshMgrDrops) window.refreshMgrDrops(); }
+  if(t==='sup') { if(window.renderSup) window.renderSup(); }
+  setTimeout(window._fitScrollAreas, 120);
 }
 
 function getAllGardens(){return [...GARDENS,..._GARDENS_EXTRA];}
