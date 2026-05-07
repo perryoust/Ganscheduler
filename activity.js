@@ -428,7 +428,6 @@ window.spRowStatusChg = function(id, st) {
     if(st === 'nohap') window.openNohapQ(id);
     else if(st === 'can') window.openCanQ(id);
     else if(st === 'post') window.openPostpone(id);
-    window._spSyncPartnerNext = syncPartner; 
   } else {
     ev.st = st;
     if(st === 'ok') { ev.cr = ''; ev.cn = ''; }
@@ -744,11 +743,16 @@ window.openSP = function(id) {
              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div class="fg"><label style="font-size:.7rem;font-weight:700">שעה *</label><input type="time" id="sp-mu-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
                 <div class="fg">
-                  <label style="font-size:.7rem;font-weight:700">סוג פעילות</label>
-                  <select id="sp-mu-act" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">
+                  <select id="sp-mu-act" onchange="window.spMuActChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">
                     <option value="">בחר פעילות...</option>
+                    ${initialActs.map(a => `<option value="${a}" ${s.act===a?'selected':''}>${a}</option>`).join('')}
+                    <option value="__new__">➕ הוסף פעילות חדשה...</option>
                   </select>
                 </div>
+             </div>
+             <div id="sp-mu-act-new-wrap" style="display:none;margin-bottom:8px">
+                <label style="font-size:.7rem;font-weight:700;color:#e65100">שם פעילות חדשה</label>
+                <input type="text" id="sp-mu-act-new" placeholder="הכנס שם פעילות..." style="width:100%;padding:6px;border-radius:4px;border:1px solid #ffb74d">
              </div>
              <div class="fg">
                 <label style="font-size:.7rem;font-weight:700;color:#e65100">ספק מבצע</label>
@@ -1660,6 +1664,16 @@ window.spMuSupChg = function() {
   actSel.innerHTML = '<option value="">בחר פעילות...</option>' + 
     acts.map(a => `<option value="${a}" ${s && a===s.act ? 'selected' : ''}>${a}</option>`).join('') +
     '<option value="__new__">➕ הוסף פעילות חדשה...</option>';
+  
+  // Hide new activity input on supplier change
+  const wrap = document.getElementById('sp-mu-act-new-wrap');
+  if(wrap) wrap.style.display = 'none';
+};
+
+window.spMuActChg = function() {
+  const v = document.getElementById('sp-mu-act').value;
+  const wrap = document.getElementById('sp-mu-act-new-wrap');
+  if(wrap) wrap.style.display = v === '__new__' ? 'block' : 'none';
 };
 
 window.spMuDateChg = function() {
@@ -1798,9 +1812,10 @@ window.spSaveMakeup = function() {
   
   const targets = [{ g: origEv.g, t: time }, ...window.getSynergyData('sp-mu')];
   
-  const actName = document.getElementById('sp-mu-act').value || origEv.act;
+  const actVal = document.getElementById('sp-mu-act').value;
+  const actName = actVal === '__new__' ? (document.getElementById('sp-mu-act-new')||{}).value : (actVal || origEv.act);
   
-  if(!confirm(`לבצע שיבוץ השלמה ל-${allGids.length} גנים בתאריך ${window.fD(newDate)}?`)) return;
+  if(!confirm(`לבצע שיבוץ השלמה ל-${targets.length} גנים בתאריך ${window.fD(newDate)}?`)) return;
   
   targets.forEach(tgt => {
     window.createMakeupActivity({

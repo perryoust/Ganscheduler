@@ -1841,16 +1841,18 @@ function openCanQ(id) {
   if (pair) {
     const partners = pair.ids.filter(gid=>gid!==s.g).map(gid=>G(gid)).filter(x=>x.id);
     const allNames = [g,...partners].map(x=>x.name).join(' + ');
+    const pairChecked = (window._spSyncPartnerNext === true);
     btns.innerHTML =
       `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;padding:4px 6px;border-radius:5px;border:1.5px solid #e0e0e0;background:#fff">
-        <input type="radio" name="canq-scope" value="solo" checked style="accent-color:#c62828">
+        <input type="radio" name="canq-scope" value="solo" ${pairChecked?'':'checked'} style="accent-color:#c62828">
         <span>🏫 <b>${g.name}</b> בלבד</span>
       </label>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;padding:4px 6px;border-radius:5px;border:1.5px solid #e0e0e0;background:#fff">
-        <input type="radio" name="canq-scope" value="pair" style="accent-color:#c62828">
+        <input type="radio" name="canq-scope" value="pair" ${pairChecked?'checked':''} style="accent-color:#c62828">
         <span>🔗 כל הזוג — <b>${allNames}</b></span>
       </label>`;
-    wrap.style.display = 'block';
+    if(pairChecked) wrap.style.display='none';
+    else wrap.style.display = 'block';
   } else {
     wrap.style.display = 'none';
   }
@@ -1870,7 +1872,7 @@ function saveCanQ() {
   const fullReason = [mainReason, extra].filter(Boolean).join(' — ');
   if (!mainReason && !extra) { alert('יש לבחור סיבת ביטול'); return; }
   const scopeEl = document.querySelector('input[name="canq-scope"]:checked');
-  const forPair = scopeEl && scopeEl.value === 'pair';
+  const forPair = (scopeEl && scopeEl.value === 'pair') || (window._spSyncPartnerNext === true);
   const s = SCH.find(x => x.id === _canQId); if (!s) return;
   const doCancel = (evId) => {
     const ev = SCH.find(x => x.id === evId); if (!ev) return;

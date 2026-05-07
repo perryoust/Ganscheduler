@@ -543,8 +543,10 @@ function renderClusterDay(evs, ds, clusterName){
               <span style="color:#546e7a;font-size:.74rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${window.supBase(s.a)}${(s.act||window.supAct(s.a))?` · ${s.act||window.supAct(s.a)}`:''}</span>
               ${s.nt?`<span style="color:#d84315;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">📝 ${s.nt}</span>`:''}
               ${(s._compByMakeup && s._compByMakeup!=='false')?`<span style="color:#2e7d32;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">✅ נקבעה השלמה${(window.SCH.find(x=>x.id===s._compByMakeup)||{}).d ? ' ל-'+window.fD((window.SCH.find(x=>x.id===s._compByMakeup)||{}).d) : ''}</span>`:''}
-              <span style="font-size:.68rem;font-weight:700;white-space:nowrap">${wind    });
-    html+=`</div></details>`;
+              <span style="font-size:.68rem;font-weight:700;white-space:nowrap">${window.stLabel(s)}</span>
+            </div>`;
+          });
+          html+=`</div></div></details>`;
   } else {
     // ── אשכול בודד: עיר → גן → שעה ──
     const others=evs.filter(s=> s.d===ds);
