@@ -261,59 +261,80 @@ window.dashBatchAction = async function(action) {
 
   if (action === 'clear') {
     document.querySelectorAll('.dash-row-chk').forEach(cb => cb.checked = false);
-    dashUpdateBulkBar();
+    window.dashUpdateBulkBar();
     return;
   }
 
-  if (action === 'handled') {
-    const note = prompt('הערות לטיפול (אופציונלי):');
-    const stamp = 'bulk_' + Date.now();
-    ids.forEach(id => {
-      const s = window.SCH.find(x => x.id == id);
-      if (s) {
-        s._compByMakeup = stamp;
-        if (note) {
-          const nText = '✅ טופל: ' + note;
-          s.nt = s.nt ? s.nt + ' | ' + nText : nText;
-        }
-        // Also sync to partners if applicable
-        const pair = window.gardenPair(s.g);
-        const clusterArr = window.clusters ? Object.values(window.clusters) : [];
-        const cluster = clusterArr.find(c => c.gids && c.gids.map(Number).includes(Number(s.g)));
-        
-        const allPartnerIds = new Set();
-        if(pair) pair.ids.forEach(pid => allPartnerIds.add(Number(pid)));
-        if(cluster) cluster.gids.forEach(pid => allPartnerIds.add(Number(pid)));
-        allPartnerIds.delete(Number(s.g));
+  let promptMsg = '';
+  let notePrefix = '';
+  let status = '';
+  let stampPrefix = '';
 
-        allPartnerIds.forEach(pId => {
-          const ps = window.findPartnerActivity(pId, s.d, s.a);
-          if (ps) {
-            ps._compByMakeup = stamp;
-            if (note) {
-              const nText = '✅ טופל: ' + note;
-              ps.nt = ps.nt ? ps.nt + ' | ' + nText : nText;
-            }
-          }
-        });
-      }
-    });
-    // Show loading indicator
-    const saveToast = window.showToast('💾 שומר שינויים לענן...', 0);
-    try {
-      await window.saveAndRefresh('dash', false, true);
-      if (saveToast && saveToast.close) saveToast.close();
-      window.showToast('✅ נשמר בהצלחה');
-    } catch(err) {
-      if (saveToast && saveToast.close) saveToast.close();
-      window.showToast('❌ שגיאה בשמירה: ' + err.message);
-    }
-    setTimeout(() => {
-      document.querySelectorAll('.dash-row-chk').forEach(cb => cb.checked = false);
-      dashUpdateBulkBar();
-    }, 100);
-    showToast(`✅ ${ids.length} פריטים סומנו כטופלו`);
+  if (action === 'handled') {
+    promptMsg = 'הערות לטיפול (אופציונלי):';
+    notePrefix = '✅ טופל: ';
+    stampPrefix = 'bulk_handled_';
+  } else if (action === 'nohap') {
+    promptMsg = 'סיבה ל"לא התקיים" (אופציונלי):';
+    notePrefix = '⚠️ לא התקיים: ';
+    status = 'nohap';
+    stampPrefix = 'bulk_nohap_';
+  } else if (action === 'can') {
+    promptMsg = 'סיבת ביטול (אופציונלי):';
+    notePrefix = '❌ בוטל: ';
+    status = 'can';
+    stampPrefix = 'bulk_can_';
   }
+
+  const note = prompt(promptMsg);
+  if (note === null) return; // User cancelled prompt
+
+  const stamp = stampPrefix + Date.now();
+  
+  ids.forEach(id => {
+    const s = window.SCH.find(x => x.id == id);
+    if (s) {
+      if (status) s.st = status;
+      s._compByMakeup = stamp;
+      const nText = notePrefix + (note || (status === 'nohap' ? 'לא התקיים' : status === 'can' ? 'בוטל' : 'טופל'));
+      s.nt = s.nt ? s.nt + ' | ' + nText : nText;
+      
+      // Sync to partners
+      const pair = window.gardenPair(s.g);
+      const clusterArr = window.gardenClusters ? window.gardenClusters(s.g) : [];
+      
+      const allPartnerIds = new Set();
+      if(pair) pair.ids.forEach(pid => allPartnerIds.add(Number(pid)));
+      if(clusterArr) clusterArr.forEach(c => {
+        if(c.gids) c.gids.forEach(pid => allPartnerIds.add(Number(pid)));
+      });
+      allPartnerIds.delete(Number(s.g));
+
+      allPartnerIds.forEach(pId => {
+        const ps = window.findPartnerActivity(pId, s.d, s.a);
+        if (ps) {
+          if (status) ps.st = status;
+          ps._compByMakeup = stamp;
+          ps.nt = ps.nt ? ps.nt + ' | ' + nText : nText;
+        }
+      });
+    }
+  });
+
+  const saveToast = window.showToast('💾 שומר שינויים לענן...', 0);
+  try {
+    await window.saveAndRefresh('dash', false, true);
+    if (saveToast && saveToast.close) saveToast.close();
+    window.showToast('✅ נשמר בהצלחה');
+  } catch(err) {
+    if (saveToast && saveToast.close) saveToast.close();
+    window.showToast('❌ שגיאה בשמירה: ' + err.message);
+  }
+
+  setTimeout(() => {
+    document.querySelectorAll('.dash-row-chk').forEach(cb => cb.checked = false);
+    window.dashUpdateBulkBar();
+  }, 100);
 };
 
 window.dashNavDate = function(dir) {
@@ -2074,7 +2095,7 @@ window.saveCanQ = function() {
   if (forPair) {
     const pair = window.gardenPair(s.g);
     if (pair) pair.ids.filter(gid=>gid!==s.g).forEach(gid=>{
-      const pEv = window.SCH.find(ps=>parseInt(ps.g)===parseInt(gid)&&ps.d===s.d);
+      const pEv = window.findPartnerActivity(gid, s.d, s.a);
       if (pEv && pEv.st !== 'can') doCancel(pEv.id);
     });
   }
@@ -2213,7 +2234,7 @@ window.saveNohapQ = function(){
   if(forPair){
     const pair=window.gardenPair(s.g);
     if(pair) pair.ids.filter(gid=>gid!==s.g).forEach(gid=>{
-      const pEv = window.SCH.find(ps=>parseInt(ps.g)===parseInt(gid)&&ps.d===s.d);
+      const pEv = window.findPartnerActivity(gid, s.d, s.a);
       if(pEv && pEv.st !== 'nohap' && pEv.st !== 'done') doNohap(pEv.id);
     });
   }

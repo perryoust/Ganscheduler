@@ -409,31 +409,32 @@ window.importBulkSchedule = function(input) {
         // Force Firebase to see this as a "fresh" change by clearing the comparison cache
         window._fbLastSavedRaw = null;
 
+        console.log('[Import] Saving new schedule to Firebase...', { count: newSCH.length });
         let saveOk = false;
-        if (typeof window.saveToFirebase === 'function') {
-          // Manual save (silent=false)
-          console.log('[Import] Triggering saveToFirebase with', window.SCH.length, 'events');
+        try {
           saveOk = await window.saveToFirebase(false);
           console.log('[Import] saveToFirebase result:', saveOk);
-        } else {
-          console.warn('[Import] saveToFirebase not found!');
-          saveOk = true;
+        } catch (err) {
+          console.error('[Import] saveToFirebase failed:', err);
+          throw new Error('שגיאה בשמירה ל-Firebase: ' + err.message);
         }
-        
-        // Final verification check
+
         if (saveOk) {
-          if (statusEl) statusEl.innerHTML = '✅ העדכון הושלם בהצלחה! מרענן דף...';
+          if (typeof window.showToast === 'function') window.showToast('✅ הייבוא הושלם בהצלחה! מרענן...', 3000);
+          else if (statusEl) statusEl.innerHTML = '✅ העדכון הושלם בהצלחה! מרענן דף...';
           window._importInProgress = false;
-          setTimeout(() => { location.reload(); }, 2500);
+          setTimeout(() => { 
+            console.log('[Import] Reloading page...');
+            location.reload(); 
+          }, 2500);
         } else {
-          window._importInProgress = false;
-          if (statusEl) statusEl.innerHTML = '❌ הסנכרון נכשל. נסה שוב.';
-          alert('הנתונים עובדו אך הסנכרון לשרת נכשל. אנא בדקו את החיבור לאינטרנט.');
+          throw new Error('השמירה ל-Firebase נכשלה (ללא שגיאה מפורטת). בדוק חיבור לאינטרנט.');
         }
       }
     } catch (err) {
+      console.error('[Import] Fatal error:', err);
       window._importInProgress = false;
-      alert('שגיאה: ' + err.message);
+      alert('❌ שגיאה בייבוא: ' + err.message);
       if (statusEl) statusEl.innerHTML = '❌ שגיאה';
     } finally {
       input.value = '';

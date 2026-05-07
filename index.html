@@ -433,8 +433,10 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAA
   <div id="dash-bulk-bar">
     <div class="count-info">נבחרו <span id="dash-bulk-count">0</span> פריטים</div>
     <div class="actions">
-      <button class="btn bg" onclick="dashBatchAction('handled')">✅ סיום טיפול</button>
-      <button class="btn bo" onclick="dashBatchAction('clear')">🧹 נקה בחירה</button>
+      <button class="btn bg" onclick="window.dashBatchAction('handled')">✅ סיום טיפול</button>
+      <button class="btn bpurple" onclick="window.dashBatchAction('nohap')">⚠️ לא התקיים</button>
+      <button class="btn br2" onclick="window.dashBatchAction('can')">🚫 בוטל</button>
+      <button class="btn bo" onclick="window.dashBatchAction('clear')">🧹 נקה בחירה</button>
     </div>
   </div>
 
