@@ -962,7 +962,16 @@ function updCounts(){
     
     if (from && s.d < from) return false;
     if (to && s.d > to) return false;
-    if (!from && !to && date && s.d !== date) return false;
+    
+    // Check if handled state (needed for the next check)
+    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+
+    // Ignore single-day filter for backlog items (exceptions, pending makeups)
+    const isException = (s.st === 'nohap' || s.st === 'post') && !isHandled;
+    const isPendingM = isM && s.st !== 'done' && !isHandled;
+
+    if (!from && !to && date && s.d !== date && !isException && !isPendingM) return false;
 
     return true;
   };
@@ -986,8 +995,7 @@ function updCounts(){
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
     if (isHandled || s.st === 'can') return false;
     if (s.st === 'nohap' || s.st === 'post') return true;
-    const today = window.td();
-    if (isM && (s.d >= today || s.st === 'nohap') && s.st !== 'done') return true;
+    if (isM && s.st !== 'done') return true;
     return false;
   }).length;
 

@@ -65,8 +65,9 @@ function renderDash() {
       const isExc = (s.st === 'nohap' || s.st === 'post');
       
       const today = window.td();
-      // Makeup is pending if it's today/future AND not done, OR if it failed (nohap)
-      const isPendingM = isM && (s.d >= today || s.st === 'nohap') && s.st !== 'done';
+      // Makeup is pending if it's not done (past, today, or future)
+      // or if it explicitly failed (nohap)
+      const isPendingM = isM && s.st !== 'done';
       
       if (!isExc && !isPendingM) return false;
     } else if (view === 'makeups') {
@@ -85,7 +86,10 @@ function renderDash() {
 
     if (from && s.d < from) return false;
     if (to && s.d > to) return false;
-    if (!from && !to && date && s.d !== date) return false;
+    
+    // Ignore single-day filter for backlog views (To-Do, exceptions, makeups)
+    const isBacklogView = ['todo', 'makeups', 'nohap', 'post'].includes(view);
+    if (!from && !to && date && s.d !== date && !isBacklogView) return false;
 
     return true;
   });
