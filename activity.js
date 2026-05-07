@@ -2034,7 +2034,7 @@ window.renderDash = renderDash;
 let _canQId = null;
 window.openCanQ = function(id) {
   _canQId = id;
-  const s = window.SCH.find(x => x.id === id); if (!s) return;
+  const s = window.SCH.find(x => x.id == id); if (!s) return;
   const g = window.G(s.g);
   const infoEl = document.getElementById('canq-info');
   if(infoEl) infoEl.innerHTML = `<b>${g.name}</b> · ${g.city} · ${s.a}${s.act?' · '+s.act:''}<br>📅 ${window.fD(s.d)} ${s.t?'⏰ '+window.fT(s.t):''}`;
@@ -2085,22 +2085,33 @@ window.saveCanQ = function() {
   
   const s = window.SCH.find(x => x.id == _canQId); if (!s) return;
   const doCancel = (evId) => {
-    const ev = window.SCH.find(x => x.id === evId); if (!ev) return;
+    const ev = window.SCH.find(x => x.id == evId); if (!ev) return;
     ev.st = 'can'; ev.cr = mainReason || 'בוטל'; ev.cn = extra;
     const noteAdd = '❌ בוטל: ' + fullReason;
-    ev.nt = ev.nt ? ev.nt + ' | ' + noteAdd : noteAdd;
+    if (!(ev.nt||'').includes(noteAdd)) {
+      ev.nt = ev.nt ? ev.nt + ' | ' + noteAdd : noteAdd;
+    }
   };
   
-  doCancel(_canQId);
-  if (forPair) {
-    const pair = window.gardenPair(s.g);
-    if (pair) pair.ids.filter(gid=>gid!==s.g).forEach(gid=>{
-      const pEv = window.findPartnerActivity(gid, s.d, s.a);
-      if (pEv && pEv.st !== 'can') doCancel(pEv.id);
-    });
-  }
+  // Find all selected IDs if this was a batch action
+  const selectedIds = new Set();
+  document.querySelectorAll('.dash-row-chk:checked').forEach(cb => selectedIds.add(cb.value));
+  if (selectedIds.size === 0) selectedIds.add(_canQId);
+
+  selectedIds.forEach(id => {
+    const ev = window.SCH.find(x => x.id == id);
+    if (!ev) return;
+    doCancel(id);
+    if(forPair){
+      const pair = window.gardenPair(ev.g);
+      if(pair) pair.ids.filter(gid => Number(gid) !== Number(ev.g)).forEach(gid => {
+        const pEv = window.findPartnerActivity(gid, ev.d, ev.a);
+        if(pEv && pEv.st !== 'can') doCancel(pEv.id);
+      });
+    }
+  });
   
-  window.saveAndRefresh('canqm');
+  window.saveAndRefresh('canqm', true);
 
   // Prompt for makeup
   setTimeout(() => {
@@ -2172,7 +2183,7 @@ window.saveCancelDay = function() {
 let _nohapQId=null;
 window.openNohapQ = function(id){
   _nohapQId=id;
-  const s=window.SCH.find(x=>x.id===id); if(!s) return;
+  const s=window.SCH.find(x=>x.id==id); if(!s) return;
   const g=window.G(s.g);
   const infoEl = document.getElementById('nohapq-info');
   if(infoEl) infoEl.innerHTML = `<b>${g.name}</b> מ-${g.city} | ${s.a}${s.act?' - '+s.act:''}<br>בתאריך ${window.fD(s.d)} ${s.t?'בשעה '+window.fT(s.t):''}`;
@@ -2224,21 +2235,33 @@ window.saveNohapQ = function(){
   
   const s = window.SCH.find(x => x.id == _nohapQId); if(!s) return;
   const doNohap = (evId) => {
-    const ev = window.SCH.find(x => x.id === evId); if(!ev) return;
+    const ev = window.SCH.find(x => x.id == evId); if(!ev) return;
     ev.st = 'nohap';
     const noteAdd = '⚠️ לא התקיים: ' + fullReason;
-    ev.nt = ev.nt ? ev.nt + ' | ' + noteAdd : noteAdd;
+    if (!(ev.nt||'').includes(noteAdd)) {
+      ev.nt = ev.nt ? ev.nt + ' | ' + noteAdd : noteAdd;
+    }
   };
   
-  doNohap(_nohapQId);
-  if(forPair){
-    const pair=window.gardenPair(s.g);
-    if(pair) pair.ids.filter(gid=>gid!==s.g).forEach(gid=>{
-      const pEv = window.findPartnerActivity(gid, s.d, s.a);
-      if(pEv && pEv.st !== 'nohap' && pEv.st !== 'done') doNohap(pEv.id);
-    });
-  }
-  window.saveAndRefresh('nohapqm');
+  // Find all selected IDs if this was a batch action
+  const selectedIds = new Set();
+  document.querySelectorAll('.dash-row-chk:checked').forEach(cb => selectedIds.add(cb.value));
+  if (selectedIds.size === 0) selectedIds.add(_nohapQId);
+
+  selectedIds.forEach(id => {
+    const ev = window.SCH.find(x => x.id == id);
+    if (!ev) return;
+    doNohap(id);
+    if(forPair){
+      const pair = window.gardenPair(ev.g);
+      if(pair) pair.ids.filter(gid => Number(gid) !== Number(ev.g)).forEach(gid => {
+        const pEv = window.findPartnerActivity(gid, ev.d, ev.a);
+        if(pEv && pEv.st !== 'nohap' && pEv.st !== 'done') doNohap(pEv.id);
+      });
+    }
+  });
+
+  window.saveAndRefresh('nohapqm', true);
   
   // Prompt for makeup
   setTimeout(() => {

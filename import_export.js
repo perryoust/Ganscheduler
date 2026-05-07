@@ -412,7 +412,7 @@ window.importBulkSchedule = function(input) {
         console.log('[Import] Saving new schedule to Firebase...', { count: newSCH.length });
         let saveOk = false;
         try {
-          saveOk = await window.saveToFirebase(false);
+          saveOk = await window.saveToFirebase(false, true);
           console.log('[Import] saveToFirebase result:', saveOk);
         } catch (err) {
           console.error('[Import] saveToFirebase failed:', err);

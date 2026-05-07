@@ -855,8 +855,8 @@ function initDrops(){
   if(calClsInit) calClsInit.value='גנים';
 }
 
-const TABS=['dash','cal','sched','gardens','pairs','holidays','clusters','sup','managers','admin'];
-var currentTab='dash';
+window.TABS=['dash','cal','sched','gardens','pairs','holidays','clusters','sup','managers','admin'];
+window.currentTab='dash';
 
 // ─── GLOBAL NAVIGATION SEARCH ────────────────────────────────────────────────
 function navSearchInput(val){
@@ -1089,9 +1089,10 @@ function initSucTabs(){
   if(!tabsDiv||!actsDiv||!docsDiv) return;
 
   if(isAct && isPurch){
-    // Show tabs, default to acts
+    // Show tabs, default based on mode
     tabsDiv.style.display = 'block';
-    setSucTab('acts');
+    const isModePurch = (typeof _appMode!=='undefined' && _appMode==='purch');
+    setSucTab(isModePurch ? 'docs' : 'acts');
   } else if(isPurch && !isAct){
     // Pure purch: show only docs
     tabsDiv.style.display = 'none';

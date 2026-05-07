@@ -241,7 +241,7 @@ function _restoreSupEx(obj){
   return out;
 }
 
-async function saveToFirebase(silent) {
+async function saveToFirebase(silent, force) {
   // Only block automatic (silent) saves during import. 
   // Manual saves (silent=false) should always proceed.
   if(window._importInProgress && silent) return; 
@@ -321,7 +321,7 @@ async function saveToFirebase(silent) {
       if (_cR.ok) {
         const _remoteTs = await _cR.json();
         const _myLastTs = _fbLastOwnSaveTs || _fbLastSaveTs || 0;
-        if (_remoteTs && typeof _remoteTs === 'number' && _remoteTs > _myLastTs) {
+        if (!force && _remoteTs && typeof _remoteTs === 'number' && _remoteTs > _myLastTs) {
           if (!silent) {
             const _proceed = confirm('⚠️ מכשיר אחר שמר נתונים ב-' + _fmtTs(_remoteTs) + '\nהמשך ידרוס את השינויים שלו.\nלחץ אישור להמשך, ביטול לטעינת הגרסה החדשה.');
             if (!_proceed) {

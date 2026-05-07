@@ -2124,7 +2124,22 @@ window.importInvoices = function(input) {
 
       alert(`✅ סיום ייבוא: נוספו ${added} רשומות חדשות, עודכנו ${updated} קיימות.`);
       if (typeof renderInvoices === "function") renderInvoices();
-      if (typeof saveToFirebase === "function") saveToFirebase(true);
+      
+      console.log('[Import-Purch] Saving to Firebase...', { count: window.INVOICES.length });
+      if (typeof saveToFirebase === "function") {
+        try {
+          const ok = await saveToFirebase(false, true);
+          console.log('[Import-Purch] saveToFirebase result:', ok);
+          if (ok) {
+            window.showToast('✅ הנתונים סונכרנו בהצלחה');
+          } else {
+            alert('⚠️ הנתונים יובאו מקומית אך הסנכרון לענן נכשל. נסה לשמור ידנית.');
+          }
+        } catch (err) {
+          console.error('[Import-Purch] Save failed:', err);
+          alert('❌ שגיאה בסנכרון לענן: ' + err.message);
+        }
+      }
       
       input.value = ""; // Reset input
     } catch (err) {
