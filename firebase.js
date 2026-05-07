@@ -125,22 +125,27 @@ async function _processFirebaseLoad(r, silent, force) {
   window._safeLS.setItem('ganv5_local_ts', String(cloudTs));
   window._fbAppData = appData; // in-memory reference, no JSON needed
 
-  // Load invoices from separate /data/invoices path
-  try {
-    const _iTok = window._cachedToken || (window._fbUser ? await window._fbUser.getIdToken(false) : null);
-    if(_iTok){
-      const _iR = await fetch(
-        'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+_iTok
-      );
-      if(_iR.ok){
-        const _iD = await _iR.json();
-        if(_iD && typeof _iD==='object'){
-          appData.invoices = Array.isArray(_iD) ? _iD : Object.values(_iD);
-          console.log('Invoices loaded from separate path:', appData.invoices.length);
+  // Load invoices from separate /data/invoices path ONLY if not in unified payload
+  const hasUnifiedInvoices = appData.invoices && appData.invoices.length > 0;
+  if (!hasUnifiedInvoices) {
+    try {
+      const _iTok = window._cachedToken || (window._fbUser ? await window._fbUser.getIdToken(false) : null);
+      if(_iTok){
+        const _iR = await fetch(
+          'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+_iTok
+        );
+        if(_iR.ok){
+          const _iD = await _iR.json();
+          if(_iD && typeof _iD==='object'){
+            appData.invoices = Array.isArray(_iD) ? _iD : Object.values(_iD);
+            console.log('Invoices loaded from separate path:', appData.invoices.length);
+          }
         }
       }
-    }
-  } catch(e){ console.warn('Separate invoices load:', e); }
+    } catch(e){ console.warn('Separate invoices load failed:', e); }
+  } else {
+    console.log('Invoices loaded from unified payload:', appData.invoices.length);
+  }
 
   // Apply data DIRECTLY to memory — does NOT rely on localStorage
   if (typeof window._applyYearData === 'function') {
@@ -263,7 +268,9 @@ async function saveToFirebase(silent) {
       vatRate: typeof window.VAT_RATE!=='undefined'?window.VAT_RATE:18,
       activeGardens: typeof window.activeGardens!=='undefined'&&window.activeGardens?[...window.activeGardens]:null,
       useSraws: typeof window.useSraws!=='undefined'?window.useSraws:true,
-      invoices: typeof window.INVOICES!=='undefined' ? window.INVOICES : []
+      invoices: typeof window.INVOICES!=='undefined' ? window.INVOICES : [],
+      _unified: true,
+      _v: '10.3'
     };
     // Validate: don't overwrite with significantly less data
     const raw = JSON.stringify(liveData);

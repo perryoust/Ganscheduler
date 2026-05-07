@@ -89,6 +89,11 @@ window.importBulkSchedule = function(input) {
   const statusEl = document.getElementById('bulk-import-status');
   if (statusEl) statusEl.innerHTML = '⏳ מנתח נתונים ומאחד זוגות גנים...';
 
+  if (!window.GARDENS || window.GARDENS.length === 0) {
+    alert('שגיאה: רשימת הגנים לא נטענה. אנא רענן את הדף (F5) ונסה שוב.');
+    return;
+  }
+
   window._importInProgress = true;
 
   const reader = new FileReader();
@@ -364,6 +369,8 @@ window.importBulkSchedule = function(input) {
         }
       });
 
+      console.log('[Import] Finished processing sheets. Map size:', Object.keys(schMap).length);
+
       const newSCH = [];
       for (const k in schMap) newSCH.push(schMap[k]);
 
@@ -393,7 +400,8 @@ window.importBulkSchedule = function(input) {
       if (stats.skippedGarden.size > 0) summary += `\n⚠️ ${stats.skippedGarden.size} גנים לא זוהו ודולגו.`;
       if (stats.skippedDate > 0) summary += `\n⚠️ ${stats.skippedDate} שורות דולגו בגלל תאריך לא תקין.`;
       
-      if (confirm(`${summary}\n\nשימו לב: פעולה זו תחליף את כל השיבוצים הקיימים בנתונים מהקובץ.\nהאם להמשיך?`)) {
+      const firstFew = newSCH.slice(0, 3).map(x => `${x.d}: ${window.G(x.g).name} - ${x.a}`).join('\n');
+      if (confirm(`${summary}\n\nדוגמא לנתונים:\n${firstFew}\n\nשימו לב: פעולה זו תחליף את כל השיבוצים הקיימים בנתונים מהקובץ.\nהאם להמשיך?`)) {
         if (statusEl) statusEl.innerHTML = '⏳ מסנכרן לבסיס הנתונים...';
         window.SCH = newSCH;
         window.useSraws = false; // Disable merging with static sraws.json

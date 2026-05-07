@@ -472,82 +472,110 @@ window.spUpdateExVisibility = function() {
   box.style.display = hasExc ? 'block' : 'none';
 };
 
-window.spBatchMarkCompManual = function() {
-  const ids = window.spGetSelectedIds();
-  const handleNtEl = document.getElementById('sp-handle-nt');
-  const handleNt = handleNtEl ? handleNtEl.value.trim() : '';
-  const stamp = 'manual_' + Date.now();
-  const syncCheck = document.getElementById('sp-sync-global') || document.getElementById('sp-sync-pair');
-  const doSync = syncCheck && syncCheck.checked;
-  
+// ── Centralized Activity Update Engine ───────────────────
+window.updateActivities = function(ids, fields, options = {}) {
+  const stamp = options.stamp || 'man_' + Date.now();
+  const doSync = options.syncPartner || false;
+  const autoStatus = options.autoStatus !== false;
+
   ids.forEach(id => {
     const ev = window.SCH.find(x => x.id == id);
-    if(ev) {
-      ev._compByMakeup = stamp;
-      if(handleNt) {
-        const note = '✅ סיום טיפול: ' + handleNt;
-        ev.nt = ev.nt ? ev.nt + ' | ' + note : note;
+    if(!ev) return;
+
+    // Apply fields
+    Object.keys(fields).forEach(k => {
+      if(k === 'nt' && options.appendNote) {
+        ev.nt = ev.nt ? ev.nt + ' | ' + fields[k] : fields[k];
+      } else {
+        ev[k] = fields[k];
       }
-      
-      // Sync with partner if checkbox is checked
-      if (doSync) {
-        const pair = window.gardenPair(ev.g);
-        if (pair) {
-          pair.ids.forEach(pId => {
-            if (Number(pId) === Number(ev.g)) return;
-            const pEv = window.findPartnerActivity(pId, ev.d, ev.a);
-            if (pEv) {
-              pEv._compByMakeup = stamp;
-              if (handleNt) {
-                const note = '✅ סיום טיפול: ' + handleNt;
-                pEv.nt = pEv.nt ? pEv.nt + ' | ' + note : note;
+    });
+
+    if(autoStatus && fields.nt) {
+      const newSt = window._autoDetermineStatus(ev.st, fields.nt);
+      if(newSt) ev.st = newSt;
+    }
+
+    if(doSync) {
+      const pair = window.gardenPair(ev.g);
+      if(pair) {
+        pair.ids.forEach(pId => {
+          if(Number(pId) === Number(ev.g)) return;
+          const pev = window.findPartnerActivity(pId, ev.d, ev.a);
+          if(pev) {
+            Object.keys(fields).forEach(k => {
+              if(k === 'nt' && options.appendNote) {
+                pev.nt = pev.nt ? pev.nt + ' | ' + fields[k] : fields[k];
+              } else {
+                pev[k] = fields[k];
               }
+            });
+            if(autoStatus && fields.nt) {
+              const newSt = window._autoDetermineStatus(pev.st, fields.nt);
+              if(newSt) pev.st = newSt;
             }
-          });
-        }
+          }
+        });
       }
     }
+  });
+};
+
+window._autoDetermineStatus = function(currentSt, note) {
+  if(!note) return null;
+  if(currentSt !== 'ok' && currentSt !== 'done') return null;
+  
+  const lower = note.toLowerCase();
+  const isMovedTo = lower.includes('נדחה ל') || lower.includes('הוזז ל') || lower.includes('הזזה ל') || lower.includes('הוקדם ל') || lower.includes('עבר ל') || lower.includes('עובר ל');
+  const isMovedFrom = lower.includes('נדחה מ') || lower.includes('הוזז מ') || lower.includes('הזזה מ') || lower.includes('הוקדם מ') || lower.includes('עבר מ') || lower.includes('עובר מ');
+  const isPos = lower.includes('השלמה') || isMovedFrom || (lower.includes('נדחה') && !isMovedTo);
+  
+  if(isPos) return null;
+
+  const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה', 'מסיבת פורים', 'מסיבות אישיות'];
+  const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע', 'לא נשאר', 'עזב', 'לא התקיימה', 'לא מרגיש טוב', 'לא עונה', 'טעה ביום', 'טעות בשיבוץ', 'לא מצא חניה', 'איחר לא העביר'];
+  
+  if(canWords.some(w => lower.includes(w)) || isMovedTo) return 'can';
+  if(nohapWords.some(w => lower.includes(w))) return 'nohap';
+  if(lower.includes('הושלם') || lower.includes('התקיים') || lower.includes('בוצע')) return 'done';
+  
+  return null;
+};
+
+window.spBatchMarkCompManual = function() {
+  const ids = window.spGetSelectedIds();
+  const handleNt = (document.getElementById('sp-handle-nt')?.value||'').trim();
+  const syncCheck = document.getElementById('sp-sync-global') || document.getElementById('sp-sync-pair');
+  
+  window.updateActivities(ids, {
+    _compByMakeup: 'manual_' + Date.now(),
+    ...(handleNt ? { nt: '✅ סיום טיפול: ' + handleNt } : {})
+  }, {
+    syncPartner: !!(syncCheck && syncCheck.checked),
+    appendNote: true
   });
   window.saveAndRefresh('sp', true);
 };
 
 window.spBatchSaveNt = function() {
   const ids = window.spGetSelectedIds();
-  const ntEl = document.getElementById('sp-nt');
-  const nEl = document.getElementById('sp-n');
+  const nt = document.getElementById('sp-nt')?.value;
+  const n = document.getElementById('sp-n')?.value;
   
   ids.forEach(id => {
     const ev = window.SCH.find(x => x.id == id);
     if(!ev) return;
-    if(ntEl) ev.nt = ntEl.value;
-    if(nEl) {
-      ev.n = nEl.value;
-      const isM = !!(ev._isMakeup || ev._makeupFrom || (ev.nt && /השלמה|makeup/i.test(ev.nt)));
-      const isP = !!ev._postFrom;
-      if(ev._recId && !isM && !isP) {
-        window.SCH.forEach(x => {
-          if(x._recId === ev._recId && x.d >= ev.d) x.n = nEl.value;
-        });
+    if(nt !== undefined) ev.nt = nt;
+    if(n !== undefined) {
+      ev.n = n;
+      if(ev._recId && !ev._isMakeup && !ev._makeupFrom && !ev._postFrom) {
+        window.SCH.forEach(x => { if(x._recId === ev._recId && x.d >= ev.d) x.n = n; });
       }
     }
-    // Auto-status logic
-    if(ntEl && (ev.st === 'ok' || ev.st === 'done')) {
-      const val = ntEl.value;
-      const lower = val.toLowerCase();
-      const isMovedTo = lower.includes('נדחה ל') || lower.includes('הוזז ל') || lower.includes('הזזה ל') || lower.includes('הוקדם ל') || lower.includes('עבר ל') || lower.includes('עובר ל');
-      const isMovedFrom = lower.includes('נדחה מ') || lower.includes('הוזז מ') || lower.includes('הזזה מ') || lower.includes('הוקדם מ') || lower.includes('עבר מ') || lower.includes('עובר מ');
-      const isPos = lower.includes('השלמה') || isMovedFrom || (lower.includes('נדחה') && !isMovedTo);
-      if(!isPos) {
-        const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה', 'מסיבת פורים', 'מסיבות אישיות'];
-        const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע', 'לא נשאר', 'עזב', 'לא התקיימה', 'לא מרגיש טוב', 'לא עונה', 'טעה ביום', 'טעות בשיבוץ', 'לא מצא חניה', 'איחר לא העביר'];
-        if(canWords.some(w => lower.includes(w)) || isMovedTo) {
-          ev.st = 'can';
-        } else if(nohapWords.some(w => lower.includes(w))) {
-          ev.st = 'nohap';
-        } else if(lower.includes('הושלם') || lower.includes('התקיים') || lower.includes('בוצע')) {
-          ev.st = 'done';
-        }
-      }
+    // Still apply auto-status for the main notes field
+    if(nt) {
+      const newSt = window._autoDetermineStatus(ev.st, nt);
+      if(newSt) ev.st = newSt;
     }
   });
   window.saveAndRefresh('sp', true);
@@ -1158,9 +1186,9 @@ function cancelEv(){
   s.st='can'; window.saveAndRefresh('sp');
 }
 
-function markNoHap(){
-  const s=window.SCH.find(x=>x.id==window.selEv); if(!s) return;
-  s.st='nohap'; window.saveAndRefresh('sp');
+function markNoHap(id){
+  const targetId = id || window.selEv;
+  window.openNohapQ(targetId);
 }
 window.markNoHap = markNoHap;
 
@@ -1341,7 +1369,7 @@ function refresh(){
   if(window.currentTab==='sched' && window.renderSched) window.renderSched();
 }
 
-async function saveAndRefresh(modalId, stayOpen = false, immediate = false){
+async function saveAndRefresh(modalId, stayOpen = false, immediate = true){
   const ok = await window.save(immediate);
   if(!stayOpen) {
     if(modalId) window.CM(modalId);
@@ -1980,3 +2008,221 @@ window.postDateChg = postDateChg;
 window.setDashTab = setDashTab;
 window.setDashView = setDashView;
 window.renderDash = renderDash;
+
+// ── Activity Exception Modals ───────────────────────────
+let _canQId = null;
+window.openCanQ = function(id) {
+  _canQId = id;
+  const s = window.SCH.find(x => x.id === id); if (!s) return;
+  const g = window.G(s.g);
+  const infoEl = document.getElementById('canq-info');
+  if(infoEl) infoEl.innerHTML = `<b>${g.name}</b> · ${g.city} · ${s.a}${s.act?' · '+s.act:''}<br>📅 ${window.fD(s.d)} ${s.t?'⏰ '+window.fT(s.t):''}`;
+  const noteEl = document.getElementById('canq-note');
+  if(noteEl) noteEl.value = '';
+  document.querySelectorAll('.can-reason-btn').forEach(b => b.classList.remove('sel'));
+  
+  const pair = window.gardenPair(s.g);
+  const wrap = document.getElementById('canq-scope-wrap');
+  const btns = document.getElementById('canq-scope-btns');
+  if (pair && btns && wrap) {
+    const partners = pair.ids.filter(gid=>gid!==s.g).map(gid=>window.G(gid)).filter(x=>x.id);
+    const allNames = [g,...partners].map(x=>x.name).join(' + ');
+    const pairChecked = (window._spSyncPartnerNext === true);
+    btns.innerHTML =
+      `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;padding:4px 6px;border-radius:5px;border:1.5px solid #e0e0e0;background:#fff">
+        <input type="radio" name="canq-scope" value="solo" ${pairChecked?'':'checked'} style="accent-color:#c62828">
+        <span>🏫 <b>${g.name}</b> בלבד</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;padding:4px 6px;border-radius:5px;border:1.5px solid #e0e0e0;background:#fff">
+        <input type="radio" name="canq-scope" value="pair" ${pairChecked?'checked':''} style="accent-color:#c62828">
+        <span>🔗 כל הזוג — <b>${allNames}</b></span>
+      </label>`;
+    wrap.style.display = pairChecked ? 'none' : 'block';
+  } else if(wrap) {
+    wrap.style.display = 'none';
+  }
+  const modal = document.getElementById('canqm');
+  if(modal) modal.classList.add('open');
+};
+
+window.selCanReason = function(btn, reason) {
+  document.querySelectorAll('.can-reason-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  const noteEl = document.getElementById('canq-note');
+  if (reason === 'אחר' && noteEl) noteEl.focus();
+};
+
+window.saveCanQ = function() {
+  const sel = document.querySelector('.can-reason-btn.sel');
+  const mainReason = sel ? sel.dataset.r : '';
+  const extra = (document.getElementById('canq-note')||{}).value?.trim() || '';
+  const fullReason = [mainReason, extra].filter(Boolean).join(' — ');
+  if (!mainReason && !extra) { alert('יש לבחור סיבת ביטול'); return; }
+  
+  const scopeEl = document.querySelector('input[name="canq-scope"]:checked');
+  const forPair = (scopeEl && scopeEl.value === 'pair') || (window._spSyncPartnerNext === true);
+  
+  const s = window.SCH.find(x => x.id == _canQId); if (!s) return;
+  const doCancel = (evId) => {
+    const ev = window.SCH.find(x => x.id === evId); if (!ev) return;
+    ev.st = 'can'; ev.cr = mainReason || 'בוטל'; ev.cn = extra;
+    const noteAdd = '❌ בוטל: ' + fullReason;
+    ev.nt = ev.nt ? ev.nt + ' | ' + noteAdd : noteAdd;
+  };
+  
+  doCancel(_canQId);
+  if (forPair) {
+    const pair = window.gardenPair(s.g);
+    if (pair) pair.ids.filter(gid=>gid!==s.g).forEach(gid=>{
+      const pEv = window.SCH.find(ps=>parseInt(ps.g)===parseInt(gid)&&ps.d===s.d);
+      if (pEv && pEv.st !== 'can') doCancel(pEv.id);
+    });
+  }
+  
+  window.saveAndRefresh('canqm');
+
+  // Prompt for makeup
+  setTimeout(() => {
+    if (confirm('🎨 האם ברצונך לקבוע שיעור השלמה כעת?')) {
+      window.openMakeupSched(_canQId);
+    }
+  }, 500);
+};
+
+let _cancelDayDs = null;
+window.openCancelDay = function(ds) {
+  _cancelDayDs = ds || window.td();
+  const dateEl = document.getElementById('cancelday-date');
+  if(dateEl) dateEl.value = _cancelDayDs;
+  const noteEl = document.getElementById('cancelday-note');
+  if(noteEl) noteEl.value = '';
+  document.querySelectorAll('.cancelday-reason-btn').forEach(b => b.classList.remove('sel'));
+  window._updateCancelDayCnt();
+  const modal = document.getElementById('cancelday-m');
+  if(modal) modal.classList.add('open');
+};
+
+window._updateCancelDayCnt = function() {
+  const cnt = window.SCH.filter(s => s.d === _cancelDayDs && s.st !== 'can').length;
+  const el = document.getElementById('cancelday-cnt');
+  if (!el) return;
+  el.textContent = cnt > 0 ? `נמצאו ${cnt} פעילויות ביום זה שיבוטלו` : 'אין פעילויות פעילות ביום זה';
+  el.style.color = cnt > 0 ? '#c62828' : '#888';
+};
+
+window.cancelDayDateChg = function() {
+  _cancelDayDs = (document.getElementById('cancelday-date')||{}).value;
+  window._updateCancelDayCnt();
+};
+
+window.selCancelDayReason = function(btn) {
+  document.querySelectorAll('.cancelday-reason-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  if (btn.dataset.r === 'אחר') {
+    const noteEl = document.getElementById('cancelday-note');
+    if(noteEl) noteEl.focus();
+  }
+};
+
+window.saveCancelDay = function() {
+  const sel = document.querySelector('.cancelday-reason-btn.sel');
+  const mainReason = sel?.dataset.r || '';
+  const extra = (document.getElementById('cancelday-note')||{}).value?.trim() || '';
+  const fullReason = [mainReason, extra].filter(Boolean).join(' — ');
+  if (!fullReason) { alert('יש לבחור סיבה'); return; }
+  if (!_cancelDayDs) return;
+  
+  const toCancel = window.SCH.filter(s => s.d === _cancelDayDs && s.st !== 'can');
+  if (toCancel.length === 0) { window.showToast('אין פעילויות לביטול ביום זה'); window.CM('cancelday-m'); return; }
+  if (!confirm(`לבטל ${toCancel.length} פעילויות בתאריך ${window.fD(_cancelDayDs)}?\nסיבה: ${fullReason}`)) return;
+  
+  toCancel.forEach(s => {
+    s.st = 'can'; s.cr = mainReason || 'בוטל'; s.cn = extra;
+    const noteAdd = '❌ בוטל: ' + fullReason;
+    s.nt = s.nt ? s.nt + ' | ' + noteAdd : noteAdd;
+  });
+  const icon = mainReason.includes('שביתה')?'✊':mainReason.includes('מלחמה')||mainReason.includes('מצב')?'🚨':mainReason.includes('חג')?'🕍':'🚫';
+  if(!window.blockedDates) window.blockedDates = {};
+  window.blockedDates[_cancelDayDs] = { reason: fullReason, note: extra, icon };
+  window.saveAndRefresh('cancelday-m');
+  window.showToast(`❌ בוטלו ${toCancel.length} פעילויות — ${window.fD(_cancelDayDs)}`);
+};
+
+let _nohapQId=null;
+window.openNohapQ = function(id){
+  _nohapQId=id;
+  const s=window.SCH.find(x=>x.id===id); if(!s) return;
+  const g=window.G(s.g);
+  const infoEl = document.getElementById('nohapq-info');
+  if(infoEl) infoEl.innerHTML = `<b>${g.name}</b> מ-${g.city} | ${s.a}${s.act?' - '+s.act:''}<br>בתאריך ${window.fD(s.d)} ${s.t?'בשעה '+window.fT(s.t):''}`;
+  const reasonEl = document.getElementById('nohapq-reason');
+  if(reasonEl) reasonEl.value='';
+  document.querySelectorAll('.nohap-reason-btn').forEach(b=>b.classList.remove('sel'));
+
+  const pair=window.gardenPair(s.g);
+  const scopeWrap=document.getElementById('nohapq-scope-wrap');
+  const scopeBtns=document.getElementById('nohapq-scope-btns');
+  if(pair && scopeBtns && scopeWrap){
+    const partners=pair.ids.filter(gid=>gid!==s.g).map(gid=>window.G(gid)).filter(x=>x.id);
+    scopeBtns.innerHTML='';
+    const allNames=[g,...partners].map(x=>x.name).join(' + ');
+    const pairChecked = (window._spSyncPartnerNext === true);
+    scopeBtns.innerHTML+=`<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;padding:4px 6px;border-radius:5px;border:1.5px solid #e0e0e0;background:#fff">
+      <input type="radio" name="nohapq-scope" value="solo" ${pairChecked?'':'checked'} style="accent-color:#e91e63">
+      <span>🏫 <b>${g.name}</b> בלבד</span>
+    </label>`;
+    scopeBtns.innerHTML+=`<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;padding:4px 6px;border-radius:5px;border:1.5px solid #e0e0e0;background:#fff">
+      <input type="radio" name="nohapq-scope" value="pair" ${pairChecked?'checked':''} style="accent-color:#e91e63">
+      <span>🔗 כל הזוג — <b>${allNames}</b></span>
+    </label>`;
+    scopeWrap.style.display = pairChecked ? 'none' : 'block';
+  } else if(scopeWrap) {
+    scopeWrap.style.display='none';
+  }
+  const modal = document.getElementById('nohapqm');
+  if(modal) modal.classList.add('open');
+};
+
+window.selNohapReason = function(btn, reason){
+  document.querySelectorAll('.nohap-reason-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  const inp = document.getElementById('nohapq-reason');
+  if (reason === 'אחר' && inp) inp.focus();
+  else if(inp) inp.placeholder = reason;
+};
+
+window.saveNohapQ = function(){
+  const sel = document.querySelector('.nohap-reason-btn.sel');
+  const mainReason = sel ? (sel.dataset.r || sel.textContent.replace(/^\S+ /,'').trim()) : '';
+  const extra = (document.getElementById('nohapq-reason')||{}).value?.trim() || '';
+  const fullReason=[mainReason,extra].filter(Boolean).join(' — ');
+  if(!mainReason&&!extra){alert('יש לבחור סיבה');return;}
+  
+  const scopeEl=document.querySelector('input[name="nohapq-scope"]:checked');
+  const forPair=(scopeEl&&scopeEl.value==='pair') || (window._spSyncPartnerNext === true);
+  
+  const s = window.SCH.find(x => x.id == _nohapQId); if(!s) return;
+  const doNohap = (evId) => {
+    const ev = window.SCH.find(x => x.id === evId); if(!ev) return;
+    ev.st = 'nohap';
+    const noteAdd = '⚠️ לא התקיים: ' + fullReason;
+    ev.nt = ev.nt ? ev.nt + ' | ' + noteAdd : noteAdd;
+  };
+  
+  doNohap(_nohapQId);
+  if(forPair){
+    const pair=window.gardenPair(s.g);
+    if(pair) pair.ids.filter(gid=>gid!==s.g).forEach(gid=>{
+      const pEv = window.SCH.find(ps=>parseInt(ps.g)===parseInt(gid)&&ps.d===s.d);
+      if(pEv && pEv.st !== 'nohap' && pEv.st !== 'done') doNohap(pEv.id);
+    });
+  }
+  window.saveAndRefresh('nohapqm');
+  
+  // Prompt for makeup
+  setTimeout(() => {
+    if (confirm('🎨 האם ברצונך לקבוע שיעור השלמה כעת?')) {
+      window.openMakeupSched(_nohapQId);
+    }
+  }, 500);
+};

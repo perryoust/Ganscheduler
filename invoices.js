@@ -88,6 +88,224 @@ function SPT(t){
   if(t==='pdash') refreshPurchDash();
 }
 
+function renderInvoices(){
+  if(window.showInfoNotice) {
+    window.showInfoNotice('invoices-info-wrap', '<b>ניהול רכש וחשבוניות:</b> כאן ניתן לעקוב אחר סטטוס התשלומים והמסמכים מול הספקים.', 'info', '📄');
+  }
+  const tbody = document.getElementById('pi-tbody');
+  if(!tbody) return;
+  // Populate supplier autocomplete datalist
+  const dl = document.getElementById('pi-sup-list');
+  if(dl){
+    const supNames=[...new Set(INVOICES.map(i=>i.supName||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+    dl.innerHTML=supNames.map(n=>`<option value="${n}">`).join('');
+  }
+  const srch = (document.getElementById('pi-srch')?.value||'').toLowerCase();
+  // Multi-select status filter
+  const stfArr = (typeof _getPiStSelected === 'function') ? _getPiStSelected() : [];
+  const from = document.getElementById('pi-from')?.value||'';
+  const to   = document.getElementById('pi-to')?.value||'';
+  const sortDir = document.getElementById('pi-sort')?.value||'desc';
+  let list = [...INVOICES];
+  if(typeof _dupFilterActive !== 'undefined' && _dupFilterActive){ const _dids=_getDupIds(); list=list.filter(i=>_dids.has(i.id)); }
+  if(srch) list = list.filter(i=>
+    (i.supName||'').toLowerCase().includes(srch)||
+    (i.num||'').toLowerCase().includes(srch)||
+    (i.orderNum||'').toLowerCase().includes(srch)||
+    (i.txNum||'').toLowerCase().includes(srch)||
+    (i.orderDesc||'').toLowerCase().includes(srch)||
+    (i.cancelReason||'').toLowerCase().includes(srch)
+  );
+  const advType   = document.getElementById('pi-type')?.value||'';
+  const advAssign = document.getElementById('pi-assign')?.value||'';
+  const advMonth  = document.getElementById('pi-month')?.value||'';
+  const advCity   = document.getElementById('pi-city')?.value||'';
+  const advLocType= document.getElementById('pi-loctype')?.value||'';
+  if(advType)    list = list.filter(i=>i.orderType===advType);
+  if(advAssign)  list = list.filter(i=>i.assignment===advAssign);
+  if(advMonth)   list = list.filter(i=>i.actMonth===advMonth);
+  if(advCity)    list = list.filter(i=>(i.locCity||'').toLowerCase()===advCity.toLowerCase());
+  if(advLocType) list = list.filter(i=>i.locType===advLocType);
+  if(stfArr.length){
+    list = list.filter(i=>{
+      const st = _migrateInvStatus(i.status);
+      return stfArr.some(f=> f==='tax_receipt' ? i.status==='tax_receipt' : st===f);
+    });
+  }
+  if(from) list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')>=from);
+  if(to)   list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')<=to);
+  list.sort((a,b)=>{
+    const da = a.orderDate||a.txDate||a.date||'', db = b.orderDate||b.txDate||b.date||'';
+    return sortDir==='asc' ? da.localeCompare(db) : db.localeCompare(da);
+  });
+  const fmtAmt = (n, vat, exempt)=>{
+    if(!n) return '<span style="color:#ccc">—</span>';
+    if(exempt||vat===0) return `<b style="color:#2e7d32" title="פטור ממע&quot;מ">₪${n.toLocaleString()} <span style="font-size:.63rem;color:#2e7d32">(פטור)</span></b>`;
+    const vatA = +(n*vat/100).toFixed(2);
+    const tot  = +(n*(1+vat/100)).toFixed(2);
+    return `<span style="color:#546e7a;font-size:.75rem">₪${n.toLocaleString()}</span>`+
+           `<span style="font-size:.65rem;color:#e65100;margin:0 2px">+מע"מ ₪${vatA.toLocaleString()}</span>`+
+           `<b style="color:#2e7d32"> = ₪${tot.toLocaleString()}</b>`;
+  };
+  const statusStepper = (stRaw)=>{
+    const st = _migrateInvStatus(stRaw);
+    if(st==='tax_receipt') return `<span style="background:#1b5e20;color:#fff;border-radius:10px;padding:2px 8px;font-size:.63rem;font-weight:700">📑🧾 חשבונית מס קבלה</span>`;
+    const stages = [
+      {k:'order',l:'הזמנה',c:'#1565c0'},
+      {k:'tx_invoice',l:'עסקה',c:'#6a1b9a'},
+      {k:'tax_invoice',l:'חשבונית מס',c:'#2e7d32'},
+      {k:'receipt',l:'קבלה',c:'#2e7d32'}
+    ];
+    if(st==='cancelled') return `<span style="background:#ffcdd2;color:#c62828;border-radius:10px;padding:2px 8px;font-size:.65rem;font-weight:700">❌ מבוטל</span>`;
+    const cur = stages.findIndex(s=>s.k===st);
+    if(cur<0) return `<span style="color:#888;font-size:.65rem">${st}</span>`;
+    return `<div style="display:flex;gap:2px;align-items:center;flex-wrap:wrap">` +
+      stages.slice(0,cur+1).map((s,i)=>{
+        const isLast = i===cur;
+        const bg = isLast?s.c:'#e0e0e0';
+        const col = isLast?'#fff':'#999';
+        return `<div style="background:${bg};color:${col};border-radius:10px;padding:2px 7px;font-size:.63rem;font-weight:700;white-space:nowrap">${s.l}</div>`;
+      }).join('') + `</div>`;
+  };
+  if(!list.length){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:25px">אין חשבוניות תואמות לסינון</td></tr>'; return;
+  }
+  tbody.innerHTML = list.map(inv=>{
+    if(!inv.supName) return '';
+    const vat = inv.vat||getVatRate();
+    const isExempt = vat===0 || (supEx[inv.supName]||{}).entityType==='עוסק פטור'||(supEx[inv.supName]||{}).entityType==='עמותה';
+    const hasOrder = inv.orderNum;
+    const hasTx    = inv.txNum;
+    const hasTax   = inv.num;
+    const mkFileBtn = (sec, docNum) => {
+      if(!docNum || (sec==='order' && !/\d/.test(docNum))) return '';
+      const meta = inv['file_'+sec];
+      if(meta && meta.path){
+        const name = _extractNameFromUrl(meta.path)||meta.name||'פתח';
+        return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${inv.id},'${sec}')" title="${name}">📎 ${name} ↗</span>`;
+      }
+      if(/\d/.test(docNum)){
+        return `<span style="display:inline-flex;align-items:center;gap:2px;background:#fff8e1;border:1px solid #ffe082;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice(${inv.id})" title="עדכן קישור לקובץ">📎 עדכן קישור</span>`;
+      }
+      return '';
+    };
+    const _isDup = (typeof _dupFilterActive !== 'undefined' && _dupFilterActive);
+    return `<tr class="inv-row-clickable" style="${_isDup?'background:#fce4ec;border-right:3px solid #c62828;':''}" onclick="openNewInvoice(${inv.id})">
+      <td style="min-width:120px;padding:8px">
+        <div style="font-weight:700;color:#1a237e;font-size:.83rem">${inv.supName||''}</div>
+        <div style="font-size:.67rem;color:#999;margin-top:2px">${(supEx[inv.supName]||{}).entityType||''}</div>
+      </td>
+      <td style="font-size:.75rem;line-height:2;padding:8px">
+        ${hasOrder?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.orderNum}</b>${inv.orderDate?'<span style="color:#999"> · '+fD(inv.orderDate)+'</span>':''} ${mkFileBtn('order',inv.orderNum)}</div>`:''}
+        ${hasTx?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.txNum}</b>${inv.txDate?'<span style="color:#999"> · '+fD(inv.txDate)+'</span>':''} ${mkFileBtn('tx',inv.txNum)}</div>`:''}
+        ${hasTax?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">📑</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.num}</b>${inv.date?'<span style="color:#999"> · '+fD(inv.date)+'</span>':''} ${mkFileBtn('tax',inv.num)}</div>`:''}
+      </td>
+      <td style="font-size:.75rem;color:#37474f;padding:8px">
+        ${inv.orderDesc||''}
+        ${inv.orderType?`<div style="font-size:.65rem;color:#1565c0">${{enrichment:'🎨 העשרה',operations:'🔧 תפעול',breakfast:'🍞 ארוחות בוקר',transport:'🚌 נסיעות',other:'📦 אחר'}[inv.orderType]||''}</div>`:''}
+        ${inv.locCity||inv.locName?`<div style="font-size:.65rem;color:#546e7a">📍 ${[inv.locCity,inv.locName].filter(Boolean).join(' · ')}</div>`:''}
+        ${inv.cancelReason?`<div style="font-size:.64rem;color:#c62828">❌ ${inv.cancelReason}</div>`:''}
+      </td>
+      <td style="font-size:.75rem;padding:8px;white-space:nowrap">
+        ${hasOrder?`<div style="margin-bottom:3px"><span style="font-size:.63rem;color:#546e7a">הזמנה: </span>${fmtAmt(inv.orderAmt,vat,isExempt)}</div>`:''}
+        ${hasTx?`<div style="margin-bottom:3px"><span style="font-size:.63rem;color:#546e7a">עסקה: </span>${fmtAmt(inv.txAmt,vat,isExempt)}</div>`:''}
+        ${hasTax?`<div><span style="font-size:.63rem;color:#546e7a">מסמך: </span>${fmtAmt(inv.amt,vat,isExempt)}</div>`:''}
+      </td>
+      <td style="padding:8px">${statusStepper(inv.status||'active')}</td>
+      <td style="font-size:.72rem;color:#78909c;max-width:120px;padding:8px">${inv.notes||''}</td>
+      <td style="padding:8px;white-space:nowrap" onclick="event.stopPropagation()">
+        <button class="btn bsm bo" onclick="openNewInvoice(${inv.id})">✏️</button>
+        <button class="btn bsm br" onclick="deleteInvoice(${inv.id})">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function refreshPurchDash(){
+  const invs = INVOICES;
+  const byStatus = st => invs.filter(i=>_migrateInvStatus(i.status)===st).length;
+  const totalOrders = byStatus('order');
+  const totalTx = byStatus('tx_invoice');
+  const totalTax = byStatus('tax_invoice') + byStatus('receipt') + invs.filter(i=>i.status==='tax_receipt').length;
+  const totalCancelled = byStatus('cancelled');
+  const invEl = document.getElementById('ps-invoices'); if(invEl) invEl.textContent = invs.length;
+  const supEl = document.getElementById('ps-suppliers'); if(supEl) supEl.textContent = getPurchSuppliers().length;
+  const openEl = document.getElementById('ps-open'); if(openEl) openEl.textContent = totalOrders + totalTx;
+  const issEl = document.getElementById('ps-issues'); if(issEl) issEl.textContent = totalTax;
+  
+  const activeInvs = invs.filter(i=>_migrateInvStatus(i.status)!=='cancelled');
+  const sumBase  = activeInvs.reduce((s,i)=>s+(i.orderAmt||i.txAmt||i.amt||0),0);
+  const sumTotal = activeInvs.reduce((s,i)=>s+(i.orderTotal||i.txTotal||i.total||0),0);
+  const vatSumEl = document.getElementById('ps-vat-summary');
+  if(vatSumEl && activeInvs.length){
+    vatSumEl.innerHTML =
+      `<span style="color:#546e7a">לפני מע"מ: <b>₪${sumBase.toLocaleString('he-IL',{maximumFractionDigits:0})}</b></span>`+
+      `<span style="margin:0 10px;color:#c5cae9">|</span>`+
+      `<span style="color:#2e7d32">כולל מע"מ: <b style="font-size:.9rem">₪${sumTotal.toLocaleString('he-IL',{maximumFractionDigits:0})}</b></span>`;
+  } else if(vatSumEl){ vatSumEl.innerHTML=''; }
+  
+  const ACTIVE_ST = new Set(['order','tx_invoice']);
+  const rec = [...invs]
+    .filter(i=>ACTIVE_ST.has(_migrateInvStatus(i.status)))
+    .sort((a,b)=>(b.ts||0)-(a.ts||0))
+    .slice(0,10);
+  const el = document.getElementById('pdash-recent-invoices');
+  if(!el) return;
+  if(!rec.length){ el.innerHTML='<div style="color:#aaa;font-size:.8rem;text-align:center;padding:20px">אין הזמנות או חשבוניות עסקה פתוחות</div>'; return; }
+  
+  const fmtAmt2=(base,total,vat)=>{
+    if(!base&&!total) return '—';
+    if(vat===0) return `<span style="color:#2e7d32">₪${base.toLocaleString()}</span> <span style="font-size:.62rem;color:#888">(פטור)</span>`;
+    const t=total||base;
+    return `<span style="color:#546e7a;font-size:.73rem">₪${base.toLocaleString()}</span><b style="color:#2e7d32"> = ₪${t.toLocaleString()}</b>`;
+  };
+  const stLabel={order:'📋 הזמנה',tx_invoice:'🧾 חשבונית עסקה'};
+  el.innerHTML=`<table style="width:100%;font-size:.78rem;border-collapse:collapse">
+    <thead><tr style="background:#e8f5e9;position:sticky;top:0">
+      <th style="padding:5px 8px;text-align:right">ספק</th>
+      <th style="padding:5px 8px;text-align:right">מסמכים</th>
+      <th style="padding:5px 8px;text-align:right">פירוט</th>
+      <th style="padding:5px 8px;text-align:left">סכומים</th>
+      <th style="padding:5px 8px">סטטוס</th>
+      <th style="padding:5px 8px;text-align:right">הערות</th>
+    </tr></thead>
+    <tbody>${rec.map(i=>{
+      const st=_migrateInvStatus(i.status);
+      const base=i.orderAmt||i.txAmt||i.amt||0;
+      const total=i.orderTotal||i.txTotal||i.total||0;
+      const dateStr=i.orderDate||i.txDate||i.date||'';
+      const mkDashDoc = (icon, docNum, sec) => {
+        if(!docNum) return '';
+        const showBadge = !(sec==='order' && !/\d/.test(docNum));
+        const meta = i['file_'+sec];
+        let badge = '';
+        if(showBadge){
+          if(meta && meta.path){
+            const name = _extractNameFromUrl(meta.path)||meta.name||'פתח';
+            badge = `<span style="display:inline-flex;align-items:center;gap:2px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${i.id},'${sec}')" title="${name}">📎 ${name} ↗</span>`;
+          } else if(/\d/.test(docNum)){
+            badge = `<span style="display:inline-flex;align-items:center;background:#fff8e1;border:1px solid #ffe082;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice(${i.id})">📎 עדכן קישור</span>`;
+          }
+        }
+        return `<div style="display:flex;align-items:center;gap:4px;white-space:nowrap">${icon} ${docNum} ${badge}</div>`;
+      };
+      const docs = [
+        mkDashDoc('📋',i.orderNum,'order'),
+        mkDashDoc('🧾',i.txNum,'tx'),
+        mkDashDoc('📑',i.num,'tax')
+      ].filter(Boolean).join('');
+      return '<tr onclick="openNewInvoice('+i.id+')" class="inv-row-clickable" style="border-bottom:1px solid #f0f4f8">'+
+        '<td style="padding:5px 8px;font-weight:700;color:#1a237e">'+i.supName+'<br><span style="font-weight:400;color:#888;font-size:.7rem">'+dateStr+'</span></td>'+
+        '<td style="padding:5px 8px;font-size:.72rem">'+(docs||'—')+'</td>'+
+        '<td style="padding:5px 8px;max-width:130px;font-size:.72rem;color:#444">'+(i.orderDesc||'').slice(0,35)+'</td>'+
+        '<td style="padding:5px 8px;white-space:nowrap">'+fmtAmt2(base,total,i.vat||0)+'</td>'+
+        '<td style="padding:5px 8px"><span style="font-size:.72rem">'+(stLabel[st]||st)+'</span></td>'+
+        '<td style="padding:5px 8px;font-size:.7rem;color:#666;max-width:110px">'+(i.notes||'').slice(0,25)+'</td>'+
+        '</tr>';
+    }).join('')}</tbody>
+  </table>`;
+}
+
 // INVOICES DATA
 window.INVOICES = [];
 var VAT_RATE = 18; // Default VAT % — editable by user in invoice settings
@@ -1860,8 +2078,12 @@ window.importInvoices = function(input) {
 
         if (!item.supName) return; // Skip invalid rows
         
-        // Safety: If the row looks like a calendar activity (has Garden name but no Supplier name in the expected place)
-        if (row["שם הגן"] || row["גן"] || row["צהרון"]) {
+        // Safety: If the row looks like a calendar activity (has Garden name or Hebrew activity headers)
+        const lowerK = Object.keys(row).map(k=>String(k).toLowerCase());
+        const isActivity = lowerK.some(k=>k.includes('גן') || k.includes('צהרון') || k.includes('חוג') || k.includes('ספק') || k.includes('פעילות'));
+        const isProcurement = lowerK.some(k=>k.includes('חשבונית') || k.includes('קבלה') || k.includes('הזמנה'));
+        
+        if (isActivity && !isProcurement) {
            console.warn("Skipping row that looks like a calendar activity:", row);
            return;
         }
