@@ -1000,10 +1000,10 @@ function renderNormalWeek(evs, ws, f){
     const ds = window.d2s(d);
     const m = window.renderMakeupsTop ? window.renderMakeupsTop(ds, calCityNW, calClsNW) : '';
     if(m) {
-      wkMakeupHtml += \`<div style="margin-bottom:10px;border-bottom:1px solid #ddd;padding-bottom:5px">
-        <div style="font-size:.72rem;font-weight:700;color:#1a237e;margin-bottom:4px">📅 \${window.dayN(ds)} \${window.fD(ds)}</div>
-        \${m}
-      </div>\`;
+      wkMakeupHtml += `<div style="margin-bottom:10px;border-bottom:1px solid #ddd;padding-bottom:5px">
+        <div style="font-size:.72rem;font-weight:700;color:#1a237e;margin-bottom:4px">📅 ${window.dayN(ds)} ${window.fD(ds)}</div>
+        ${m}
+      </div>`;
     }
   });
   wkMakeupHtml += '</div>';
@@ -1012,9 +1012,9 @@ function renderNormalWeek(evs, ws, f){
   let html = wkMakeupHtml + '<div class="tw-sticky">'
           +'<table style="min-width:950px;width:100%"><thead><tr>';
 
-  html+=\`<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;
+  html+=`<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;
     border-bottom:2px solid #9fa8da;border-left:1px solid #c5cae9;
-    position:sticky;top:0;z-index:3;font-size:.76rem">צהרון / זוג</th>\`;
+    position:sticky;top:0;z-index:3;font-size:.76rem">צהרון / זוג</th>`;
 
   days.forEach((d,i)=>{
     const ds=window.d2s(d);
@@ -1024,14 +1024,14 @@ function renderNormalWeek(evs, ws, f){
     const bg=isToday?'#1565c0':blkWk?'#fce4ec':hol?hol.bg:'#e8eaf6';
     const col=isToday?'#fff':blkWk?'#c62828':hol?hol.color:'#283593';
     const bottomBorder=blkWk?'border-bottom:3px solid #e91e63':'border-bottom:2px solid #9fa8da';
-    html+=\`<th style="background:\${bg};color:\${col};padding:3px 4px;text-align:center;font-size:.76rem;min-width:132px;
-      \${bottomBorder};border-left:1px solid \${isToday?'rgba(255,255,255,.3)':'#c5cae9'};
-      position:sticky;top:0;z-index:3;white-space:nowrap;line-height:1.3" onclick="window.jumpToDay('\${ds}')">
-      <span style="font-weight:700">\${window.dayN(ds)}</span> <span style="font-size:.64rem;font-weight:400">\${window.fD(ds)}</span>
+    html+=`<th style="background:${bg};color:${col};padding:3px 4px;text-align:center;font-size:.76rem;min-width:132px;
+      ${bottomBorder};border-left:1px solid ${isToday?'rgba(255,255,255,.3)':'#c5cae9'};
+      position:sticky;top:0;z-index:3;white-space:nowrap;line-height:1.3" onclick="window.jumpToDay('${ds}')">
+      <span style="font-weight:700">${window.dayN(ds)}</span> <span style="font-size:.64rem;font-weight:400">${window.fD(ds)}</span>
 
-      <br><span style="font-size:.56rem;font-weight:400;opacity:.7">\${window.toHebDate ? window.toHebDate(ds) : ''}</span>
-      \${blkWk?\`<span style="font-size:.58rem;cursor:pointer;display:block" onclick="event.stopPropagation();window.openBlockedDate('\${ds}')">\${blkWk.icon||'🚫'} \${blkWk.reason}</span>\`:''}
-    </th>\`;
+      <br><span style="font-size:.56rem;font-weight:400;opacity:.7">${window.toHebDate ? window.toHebDate(ds) : ''}</span>
+      ${blkWk?`<span style="font-size:.58rem;cursor:pointer;display:block" onclick="event.stopPropagation();window.openBlockedDate('${ds}')">${blkWk.icon||'🚫'} ${blkWk.reason}</span>`:''}
+    </th>`;
   });
 
   html+='</tr></thead><tbody>';

@@ -938,16 +938,33 @@ window.refreshAppUI = refreshAppUI;
 function updCounts(){
   const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
   const cls = (tab === 'g' ? 'גנים' : 'ביה"ס');
-  const filterClass = cls.trim();
-
   const sch = window.SCH || [];
   const gdns = window.GARDENS || [];
+
+  // Read Dashboard Filters
+  const date = document.getElementById('dash-date')?.value || '';
+  const city = document.getElementById('dash-city')?.value || '';
+  const sup = document.getElementById('dash-sup')?.value || '';
+  const from = document.getElementById('dash-from')?.value || '';
+  const to = document.getElementById('dash-to')?.value || '';
+  const srch = (document.getElementById('dash-srch')?.value || '').toLowerCase();
 
   const filterByTab = (s) => {
     const g = window.G(s.g);
     if (!g) return false;
     const gcls = window.gcls ? window.gcls(g) : 'גנים';
-    return gcls === cls;
+    if (gcls !== cls) return false;
+    
+    // Apply Dashboard Filters
+    if (city && g.city !== city) return false;
+    if (sup && window.supBase(s.a) !== sup) return false;
+    if (srch && ![(g.name||''), (g.city||''), s.a, s.act, s.nt].some(v=>(v||'').toLowerCase().includes(srch))) return false;
+    
+    if (from && s.d < from) return false;
+    if (to && s.d > to) return false;
+    if (!from && !to && date && s.d !== date) return false;
+
+    return true;
   };
 
   const tabSch = sch.filter(filterByTab);
@@ -968,13 +985,9 @@ function updCounts(){
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
     if (isHandled || s.st === 'can') return false;
-    
     if (s.st === 'nohap' || s.st === 'post') return true;
-    
     const today = window.td();
-    // Include pending or failed makeups
     if (isM && (s.d >= today || s.st === 'nohap') && s.st !== 'done') return true;
-    
     return false;
   }).length;
 
