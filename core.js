@@ -1886,7 +1886,7 @@ function saveCanQ() {
   if (!mainReason && !extra) { alert('יש לבחור סיבת ביטול'); return; }
   const scopeEl = document.querySelector('input[name="canq-scope"]:checked');
   const forPair = (scopeEl && scopeEl.value === 'pair') || (window._spSyncPartnerNext === true);
-  const s = SCH.find(x => x.id === _canQId); if (!s) return;
+  const s = SCH.find(x => x.id == _canQId); if (!s) return;
   const doCancel = (evId) => {
     const ev = SCH.find(x => x.id === evId); if (!ev) return;
     ev.st = 'can'; ev.cr = mainReason || 'בוטל'; ev.cn = extra;

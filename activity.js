@@ -417,8 +417,16 @@ window.spRowStatusChg = function(id, st) {
     const pGid = pair.ids.find(pid => Number(pid) !== Number(ev.g));
     const pG = window.G(pGid);
     const stText = st === 'nohap' ? 'לא התקיים' : (st === 'can' ? 'ביטול' : (st === 'post' ? 'דחייה' : st));
-    if(confirm(`האם לעדכן את הסטטוס "${stText}" גם בגן בן-הזוג (${pG.name})?`)) {
-      syncPartner = true;
+    
+    // Only ask confirm for simple statuses (done/ok). 
+    // Exceptions (nohap/can/post) have their own modals with sync options.
+    if(st === 'done' || st === 'ok') {
+        if(confirm(`האם לעדכן את הסטטוס "${stText}" גם בגן בן-הזוג (${pG.name})?`)) {
+            syncPartner = true;
+        }
+    } else {
+        // For exceptions, we pre-set syncPartner to true so it's checked by default in the next modal
+        syncPartner = true; 
     }
   }
 
