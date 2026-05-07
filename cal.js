@@ -546,7 +546,10 @@ function renderClusterDay(evs, ds, clusterName){
               <span style="font-size:.68rem;font-weight:700;white-space:nowrap">${window.stLabel(s)}</span>
             </div>`;
           });
-          html+=`</div></div></details>`;
+          html+=`</div></div>`;
+        });
+        html+=`</div></details>`;
+      });
   } else {
     // ── אשכול בודד: עיר → גן → שעה ──
     const others=evs.filter(s=> s.d===ds);
@@ -1684,3 +1687,15 @@ function toggleTableCity(cityId) {
   });
 }
 window.toggleTableCity = toggleTableCity;
+
+// Global Exports for HTML event handlers
+window.setListSubView = setListSubView;
+window.setRangeSubView = setRangeSubView;
+window.setView = setView;
+window.navCal = navCal;
+window.goToday = goToday;
+window.calRefG = calRefG;
+window.goDate = goDate;
+window.jumpToDay = jumpToDay;
+window.clearCal = clearCal;
+window.renderCal = renderCal;
