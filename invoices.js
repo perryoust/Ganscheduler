@@ -573,10 +573,14 @@ function isActSupplier(name){
   const ex = (typeof window.supEx!=='undefined'?window.supEx:{})[name]||{};
   return ex.isAct !== false; // default true for backward compat
 }
+window.isActSupplier = isActSupplier;
 function isPurchSupplier(name){ 
   const ex = (typeof window.supEx!=='undefined'?window.supEx:{})[name]||{};
-  return ex.isPurch !== false; // default true — all suppliers are purchase suppliers
+  // If isPurch is explicitly false, it's NOT a purchase supplier.
+  // Otherwise default to true for all suppliers.
+  return ex.isPurch !== false;
 }
+window.isPurchSupplier = isPurchSupplier;
 function getAllSupNames(){
   if(typeof window.getAllSup==='function') return window.getAllSup().map(s=>s.name);
   return [];
@@ -2031,7 +2035,7 @@ window.importInvoices = function(input) {
   }
 
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     try {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: "array" });

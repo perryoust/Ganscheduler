@@ -2783,26 +2783,8 @@ window.askYesNo = (msg, onYes) => {
 
 window.getBlockedInfo = getBlockedInfo;
 window.openSP = window.openSP || (()=>{});
-// qSetSt — quick status setter. Routes to dialogs for nohap/can.
-function qSetSt(id, st) {
-  if (st === 'nohap') { openNohapQ(id); return; }
-  if (st === 'can')   { openCanQ(id);   return; }
-  if (st === 'post')  { openPostpone(id); return; }
-  // done / ok — set directly, sync pair
-  const s = SCH.find(x => x.id === id); if (!s) return;
-  s.st = st;
-  if (st === 'ok') { s.cr = ''; s.cn = ''; }
-  const pair = gardenPair(s.g);
-  if (pair) {
-    pair.ids.map(Number).filter(gid => gid !== Number(s.g)).forEach(gid => {
-      const pev = SCH.find(ps => Number(ps.g) === gid && ps.d === s.d &&
-        supBase(ps.a) === supBase(s.a) && ps.st !== 'can');
-      if (pev) { pev.st = st; if (st==='ok'){pev.cr='';pev.cn='';} }
-    });
-  }
-  save(true); refresh();
-}
-window.qSetSt = qSetSt;
+// qSetSt removed - use the one in activity.js
+
 window.getGardenBlock = getGardenBlock;
 
 // [End of core.js]
