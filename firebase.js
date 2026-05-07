@@ -262,7 +262,8 @@ async function saveToFirebase(silent) {
       piStatusFilter: (()=>{ try{ const s=window._safeLS.getItem(window.PI_ST_KEY); return s?JSON.parse(s):undefined; }catch(e){ return undefined; } })(),
       vatRate: typeof window.VAT_RATE!=='undefined'?window.VAT_RATE:18,
       activeGardens: typeof window.activeGardens!=='undefined'&&window.activeGardens?[...window.activeGardens]:null,
-      useSraws: typeof window.useSraws!=='undefined'?window.useSraws:true
+      useSraws: typeof window.useSraws!=='undefined'?window.useSraws:true,
+      invoices: typeof window.INVOICES!=='undefined' ? window.INVOICES : []
     };
     // Validate: don't overwrite with significantly less data
     const raw = JSON.stringify(liveData);
@@ -300,7 +301,7 @@ async function saveToFirebase(silent) {
 
     const nowTs = Date.now();
     const payload = { data: JSON.parse(raw), ts: nowTs, version: '10.2' };
-    console.log('Saving to Firebase: SCH=', JSON.parse(raw).ch?.length, '| invoices saved separately');
+    console.log('Saving to Firebase: SCH=', (JSON.parse(raw).ch||[]).length, '| INVOICES=', (JSON.parse(raw).invoices||[]).length);
     // Always refresh token before saving (prevents 401 on mobile)
     let _saveTok = null;
     if(window._fbUser){ try{ _saveTok = await window._fbUser.getIdToken(false); }catch(te){ try{ _saveTok = await window._fbUser.getIdToken(true); }catch(te2){} } }

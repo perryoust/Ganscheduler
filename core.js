@@ -141,9 +141,10 @@ function renderInvoices(){
       }).join('') + `</div>`;
   };
   if(!list.length){
-    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:25px">אין חשבוניות</td></tr>'; return;
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:25px">אין חשבוניות תואמות לסינון</td></tr>'; return;
   }
   tbody.innerHTML = list.map(inv=>{
+    if(!inv.supName) return ''; // Isolate procurement from other data types
     const vat = inv.vat||getVatRate();
     const isExempt = vat===0 || (supEx[inv.supName]||{}).entityType==='עוסק פטור'||(supEx[inv.supName]||{}).entityType==='עמותה';
     const hasOrder = inv.orderNum;

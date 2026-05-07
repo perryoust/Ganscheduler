@@ -1799,3 +1799,116 @@ async function _doExportInvXlsx(from='', to='', supF='', typeF='', assignF='', c
   a.click();
   window.showToast('✅ קובץ אקסל הורד בהצלחה');
 }
+
+/**
+ * Smart Invoice Importer (Merge/Update Logic)
+ */
+window.importInvoices = function(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  if (typeof window.XLSX === "undefined") {
+    alert("שגיאה: ספריית XLSX לא נטענה. אנא רענן את הדף.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const rows = XLSX.utils.sheet_to_json(worksheet);
+
+      if (rows.length === 0) {
+        alert("הקובץ ריק או לא תקין.");
+        return;
+      }
+
+      // Header Mapping (Hebrew -> Internal Key)
+      const map = {
+        "מספר הזמנה": "orderNum",
+        "תאריך הזמנה": "orderDate",
+        "שם הספק": "supName",
+        "פירוט": "orderDesc",
+        "סהכ הזמנה כולל מעמ": "orderTotal",
+        "מס חשבון עסקה": "txNum",
+        "תאריך חשבון עסקה": "txDate",
+        "סכום עסקה לפני מעמ": "txAmt",
+        "סכום עסקה כולל מעמ": "txTotal",
+        "מס חשבונית / קבלה": "num",
+        "תאריך חשבונית": "date",
+        "סכום חשבונית לפני מעמ": "amt",
+        "סכום חשבונית כולל מעמ": "total",
+        "הערות": "notes",
+        "עיר": "locCity",
+        "שם גן-ביהס": "locName"
+      };
+
+      let added = 0;
+      let updated = 0;
+
+      rows.forEach(row => {
+        const item = {};
+        Object.keys(row).forEach(k => {
+          const val = row[k];
+          const cleanK = String(k).trim();
+          const key = map[cleanK] || cleanK;
+          item[key] = val;
+        });
+
+        if (!item.supName) return; // Skip invalid rows
+        
+        // Safety: If the row looks like a calendar activity (has Garden name but no Supplier name in the expected place)
+        if (row["שם הגן"] || row["גן"] || row["צהרון"]) {
+           console.warn("Skipping row that looks like a calendar activity:", row);
+           return;
+        }
+
+        // Format dates if they are numeric (Excel serial)
+        ["orderDate", "txDate", "date"].forEach(dk => {
+          if (typeof item[dk] === "number") {
+             const d = new Date(Math.round((item[dk] - 25569) * 86400 * 1000));
+             item[dk] = d.toISOString().slice(0, 10);
+          }
+        });
+
+        // Unique ID for merging: Supplier + OrderNum + Date + Total
+        const sName = String(item.supName || "").trim();
+        const oNum  = String(item.orderNum || "").trim();
+        const oDate = String(item.orderDate || "").trim();
+        const tAmt  = String(item.total || "").trim();
+        
+        const existingIdx = window.INVOICES.findIndex(inv => {
+          const isName = String(inv.supName || "").trim() === sName;
+          const isONum = String(inv.orderNum || "").trim() === oNum;
+          const isODate = String(inv.orderDate || "").trim() === oDate;
+          const isTotal = String(inv.total || "").trim() === tAmt;
+          return isName && isONum && isODate && isTotal;
+        });
+
+        if (existingIdx !== -1) {
+          // Update existing (merge keys, but preserve ID)
+          window.INVOICES[existingIdx] = { ...window.INVOICES[existingIdx], ...item };
+          updated++;
+        } else {
+          // Add new
+          item.id = Date.now() + Math.floor(Math.random() * 10000);
+          window.INVOICES.push(item);
+          added++;
+        }
+      });
+
+      alert(`✅ סיום ייבוא: נוספו ${added} רשומות חדשות, עודכנו ${updated} קיימות.`);
+      if (typeof renderInvoices === "function") renderInvoices();
+      if (typeof saveToFirebase === "function") saveToFirebase(true);
+      
+      input.value = ""; // Reset input
+    } catch (err) {
+      console.error("Import error:", err);
+      alert("שגיאה בתהליך הייבוא: " + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+};

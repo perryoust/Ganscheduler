@@ -404,18 +404,17 @@ window.importBulkSchedule = function(input) {
         let saveOk = false;
         if (typeof window.saveToFirebase === 'function') {
           // Manual save (silent=false)
+          console.log('[Import] Triggering saveToFirebase with', window.SCH.length, 'events');
           saveOk = await window.saveToFirebase(false);
+          console.log('[Import] saveToFirebase result:', saveOk);
         } else {
+          console.warn('[Import] saveToFirebase not found!');
           saveOk = true;
         }
-
-        // 2. Also update local storage so reload is fast
-        if (typeof window.save === 'function') {
-          window.save(true);
-        }
-
+        
+        // Final verification check
         if (saveOk) {
-          if (statusEl) statusEl.innerHTML = '✅ העדכון הושלם בהצלחה!';
+          if (statusEl) statusEl.innerHTML = '✅ העדכון הושלם בהצלחה! מרענן דף...';
           window._importInProgress = false;
           setTimeout(() => { location.reload(); }, 2500);
         } else {

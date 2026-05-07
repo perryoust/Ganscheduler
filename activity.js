@@ -477,6 +477,8 @@ window.spBatchMarkCompManual = function() {
   const handleNtEl = document.getElementById('sp-handle-nt');
   const handleNt = handleNtEl ? handleNtEl.value.trim() : '';
   const stamp = 'manual_' + Date.now();
+  const syncCheck = document.getElementById('sp-sync-global') || document.getElementById('sp-sync-pair');
+  const doSync = syncCheck && syncCheck.checked;
   
   ids.forEach(id => {
     const ev = window.SCH.find(x => x.id == id);
@@ -485,6 +487,24 @@ window.spBatchMarkCompManual = function() {
       if(handleNt) {
         const note = '✅ סיום טיפול: ' + handleNt;
         ev.nt = ev.nt ? ev.nt + ' | ' + note : note;
+      }
+      
+      // Sync with partner if checkbox is checked
+      if (doSync) {
+        const pair = window.gardenPair(ev.g);
+        if (pair) {
+          pair.ids.forEach(pId => {
+            if (Number(pId) === Number(ev.g)) return;
+            const pEv = window.findPartnerActivity(pId, ev.d, ev.a);
+            if (pEv) {
+              pEv._compByMakeup = stamp;
+              if (handleNt) {
+                const note = '✅ סיום טיפול: ' + handleNt;
+                pEv.nt = pEv.nt ? pEv.nt + ' | ' + note : note;
+              }
+            }
+          });
+        }
       }
     }
   });
@@ -1625,12 +1645,8 @@ function postDateChg() {
 }
 window.postDateChg = postDateChg;
 
-// Override core openNohapQ to respect the side-panel sync flag
-const origOpenNohapQ = window.openNohapQ;
-window.openNohapQ = function(id) {
-  if(typeof origOpenNohapQ === 'function') origOpenNohapQ(id);
-  // Flag is used directly in core.js doMarkNoHap now
-};
+// The openNohapQ modal is defined in core.js. 
+// We don't need to override it here anymore as core.js now respects window._spSyncPartnerNext
 
 window.setPostMode = function(mode) {
   window._postMode = mode;
