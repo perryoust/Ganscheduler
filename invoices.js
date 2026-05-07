@@ -89,7 +89,7 @@ function SPT(t){
 }
 
 // INVOICES DATA
-var INVOICES = [];
+window.INVOICES = [];
 var VAT_RATE = 18; // Default VAT % — editable by user in invoice settings
 
 // ════════════════════════════════════════════════════════

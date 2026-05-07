@@ -248,17 +248,16 @@ async function saveToFirebase(silent) {
   try {
     // Prefer in-memory data (most up-to-date) over stored
     const liveData = {
-      ch: typeof window.SCH!=='undefined'?window.SCH:[],
-      pairs: typeof window.pairs!=='undefined'?window.pairs:[],
+      ch: (typeof window.SCH!=='undefined' && window.SCH) ? window.SCH : [],
+      pairs: (typeof window.pairs!=='undefined' && window.pairs) ? window.pairs : [],
       supEx: (()=>{ if(typeof window.supEx==='undefined') return {};
         const _s={...window.supEx}; delete _s['__c']; return _sanitizeSupEx(_s); })(),
-      clusters: typeof window.clusters!=='undefined'?window.clusters:{},
-      holidays: typeof window.holidays!=='undefined'?window.holidays:[],
-      pairBreaks: typeof window.pairBreaks!=='undefined'?window.pairBreaks:{},
-      managers: typeof window.managers!=='undefined'?window.managers:{},
-      blockedDates: typeof window.blockedDates!=='undefined'?window.blockedDates:{},
-      gardenBlocks: typeof window.gardenBlocks!=='undefined'?window.gardenBlocks:{},
-      // invoices saved separately to /data/invoices (too large for main payload)
+      clusters: (typeof window.clusters!=='undefined' && window.clusters) ? window.clusters : {},
+      holidays: (typeof window.holidays!=='undefined' && window.holidays) ? window.holidays : [],
+      pairBreaks: (typeof window.pairBreaks!=='undefined' && window.pairBreaks) ? window.pairBreaks : {},
+      managers: (typeof window.managers!=='undefined' && window.managers) ? window.managers : {},
+      blockedDates: (typeof window.blockedDates!=='undefined' && window.blockedDates) ? window.blockedDates : {},
+      gardenBlocks: (typeof window.gardenBlocks!=='undefined' && window.gardenBlocks) ? window.gardenBlocks : {},
       autoBackupCfg: window.loadAutoBackupSettings()||undefined,
       piStatusFilter: (()=>{ try{ const s=window._safeLS.getItem(window.PI_ST_KEY); return s?JSON.parse(s):undefined; }catch(e){ return undefined; } })(),
       vatRate: typeof window.VAT_RATE!=='undefined'?window.VAT_RATE:18,
@@ -268,6 +267,20 @@ async function saveToFirebase(silent) {
     // Validate: don't overwrite with significantly less data
     const raw = JSON.stringify(liveData);
     if(!raw || raw.length < 100) { console.warn('Save aborted: data too small'); return false; }
+
+    // Root Cause Protection: If cloud had schedule/holidays and now we have 0, abort auto-save
+    if(window._fbAppData) {
+      if(window._fbAppData.ch && window._fbAppData.ch.length > 0 && liveData.ch.length === 0) {
+        console.error('CRITICAL: Aborting save - Schedule missing in local state but present in cloud.');
+        if(!silent) alert('שגיאה קריטית: המערכת זיהתה ניסיון דריסת נתוני לוח זמנים. השמירה בוטלה להגנה על המידע.');
+        return false;
+      }
+      if(window._fbAppData.holidays && window._fbAppData.holidays.length > 0 && liveData.holidays.length === 0) {
+        console.error('CRITICAL: Aborting save - Holidays missing in local state but present in cloud.');
+        if(!silent) alert('שגיאה: המערכת זיהתה ניסיון דריסת נתוני חופשות. השמירה בוטלה להגנה על המידע.');
+        return false;
+      }
+    }
     
     // Bandwidth Optimization: don't save if data hasn't changed since last success
     if(window._fbLastSavedRaw === raw) {
@@ -339,6 +352,11 @@ async function saveToFirebase(silent) {
 
       // Save invoices separately to /data/invoices (different path = no overwrite conflict)
       if(typeof window.INVOICES!=='undefined' && window.INVOICES.length > 0 && _saveTok){
+        // Root Cause Protection: If cloud had invoices and now we have 0, abort auto-save
+        if((window._fbLastKnownInvoiceCount||0) > 0 && window.INVOICES.length === 0) {
+           console.error('CRITICAL: Aborting separate invoice save - Invoices missing in local state but known in cloud.');
+           return;
+        }
         const _invObj = {};
         window.INVOICES.forEach(i=>{ if(i&&i.id) _invObj[i.id]=i; });
         fetch('https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+_saveTok, {

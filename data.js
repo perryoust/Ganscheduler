@@ -238,20 +238,25 @@ function isFixedSchMonth(ds){
   return m>=9||m<=6; // true for Sep,Oct,Nov,Dec,Jan,Feb,Mar,Apr,May,Jun
 }
 
-var SCH=SRAWS.map(s=>({...s,st:'ok',cr:'',cn:'',nt:s.n||'',pd:'',pt:'',grp:1}));
-var pairs=[];
-var supEx={};
-var holidays=[]; // [{id,name,from,to,type,city,scope,note}]
-var clusters={}; // {clusterName: {name, city, gardens:[gid...]}}
-var pairBreaks={}; // {pairId+'_'+date: true}  — one-time breaks
-var blockedDates={}; // {'2025-11-15':{reason:'טיול',icon:'🚌',note:''}, ...}
-var gardenBlocks={}; // {'gid_date':{reason,icon,note}} — per-garden date blocks
-var calV='list',calD=new Date();
-var gmV='week',gmD=new Date(),gmGid=null;
-var selEv=null,selEvPost=null;
-var sPage=1;
-var PG=50;
-var editingSup=null,editPairIdx=null;
-var managers={}; // {id: {id,name,role,phone,city,gardenIds:[]}}
+window.SCH = SRAWS.map(s=>({...s,st:'ok',cr:'',cn:'',nt:s.n||'',pd:'',pt:'',grp:1}));
+window.pairs = [];
+window.supEx = {};
+window.holidays = []; // [{id,name,from,to,type,city,scope,note}]
+window.clusters = {}; // {clusterName: {name, city, gardens:[gid...]}}
+window.pairBreaks = {}; // {pairId+'_'+date: true}  — one-time breaks
+window.blockedDates = {}; // {'2025-11-15':{reason:'טיול',icon:'🚌',note:''}, ...}
+window.gardenBlocks = {}; // {'gid_date':{reason,icon,note}} — per-garden date blocks
+window.calV = 'list';
+window.calD = new Date();
+window.gmV = 'week';
+window.gmD = new Date();
+window.gmGid = null;
+window.selEv = null;
+window.selEvPost = null;
+window.sPage = 1;
+window.PG = 50;
+window.editingSup = null;
+window.editPairIdx = null;
+window.managers = {}; // {id: {id,name,role,phone,city,gardenIds:[]}}
 var _exGids=null;
 var newSchedForGarden=null; // pre-fill garden when opening new schedule

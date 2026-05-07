@@ -552,7 +552,7 @@ window.openSP = function(id) {
   const g=window.G(s.g);
   const spPair=window.gardenPair(s.g);
   const allSups = window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : [];
-  const initialActs = window.getSupActs ? window.getSupActs(s.a) : [];
+  var initialActs = window.getSupActs ? window.getSupActs(s.a) : [];
 
   // Build partner info array and currentTimesSP for later use
   const currentTimesSP = {};
@@ -1146,37 +1146,40 @@ window.markNoHap = markNoHap;
 
 function setStatus(idOrSt, maybeSt){
   try {
-  let id, st;
-  if (maybeSt) { id = idOrSt; st = maybeSt; } 
-  else { id = window.selEv; st = idOrSt; }
-  const main=window.SCH.find(x=>x.id==id);
-  if(!main) return;
-  main.st=st;
-  if(st==='ok') { main.cr=''; main.cn=''; }
+    let id, st;
+    if (maybeSt) { id = idOrSt; st = maybeSt; } 
+    else { id = window.selEv; st = idOrSt; }
+    const main=window.SCH.find(x=>x.id==id);
+    if(!main) return;
+    main.st=st;
+    if(st==='ok') { main.cr=''; main.cn=''; }
 
-  // Partner sync — check global checkbox
-  const syncChk = document.getElementById('sp-sync-global');
-  if(syncChk && syncChk.checked) {
-    const pair = window.gardenPair(main.g);
-    if(pair) {
-      const otherIds = pair.ids.map(Number).filter(oid => oid !== Number(main.g));
-      otherIds.forEach(oid => {
-        const pev = window.findPartnerActivity(oid, main.d, main.a);
-        if(pev) {
-          pev.st = st;
-          if(st==='ok') { pev.cr=''; pev.cn=''; }
-        }
-      });
+    // Partner sync — check global checkbox
+    const syncChk = document.getElementById('sp-sync-global') || document.getElementById('sp-sync-pair');
+    if(syncChk && syncChk.checked) {
+      const pair = window.gardenPair(main.g);
+      if(pair) {
+        const otherIds = pair.ids.map(Number).filter(oid => oid !== Number(main.g));
+        otherIds.forEach(oid => {
+          const pev = window.findPartnerActivity(oid, main.d, main.a);
+          if(pev) {
+            pev.st = st;
+            if(st==='ok') { pev.cr=''; pev.cn=''; }
+          }
+        });
+      }
     }
-  }
-  window.saveAndRefresh('sp');
+    window.saveAndRefresh('sp');
   } catch(err) { console.error('[setStatus]', err); window.saveAndRefresh('sp', true); }
 }
+window.setStatus = setStatus;
 
 function saveNt(){
   const s=window.SCH.find(x=>x.id==window.selEv); if(!s) return;
   const ntEl=document.getElementById('sp-nt');
   const nEl=document.getElementById('sp-n');
+  const syncChk = document.getElementById('sp-sync-global') || document.getElementById('sp-sync-pair');
+  
   if(ntEl) {
     const val = ntEl.value;
     s.nt = val;
@@ -1200,17 +1203,18 @@ function saveNt(){
   }
   
   // Synergy Sync: Copy note and status to partner garden if synced
-  const syncChk = document.getElementById('sp-sync-global');
-  const pair = window.gardenPair(s.g);
-  if(syncChk && syncChk.checked && pair) {
-    pair.ids.forEach(pId => {
-      if(pId === s.g) return;
-      const pEv = window.findPartnerActivity(pId, s.d, s.a);
-      if(pEv) {
-        pEv.nt = s.nt;
-        pEv.st = s.st;
-      }
-    });
+  if(syncChk && syncChk.checked) {
+    const pair = window.gardenPair(s.g);
+    if(pair) {
+      pair.ids.forEach(pId => {
+        if(pId === s.g) return;
+        const pEv = window.findPartnerActivity(pId, s.d, s.a);
+        if(pEv) {
+          pEv.nt = s.nt;
+          pEv.st = s.st;
+        }
+      });
+    }
   }
 
   if(nEl) {

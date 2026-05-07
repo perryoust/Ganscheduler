@@ -444,9 +444,11 @@ function _applyYearData(o){
       // SRAWS not loaded OR explicitly disabled: preserve ALL ch entries with defaults for missing fields
       window.SCH = o.ch.map(x=>({g:0,d:'',a:'',t:'',p:'',n:'',st:'ok',cr:'',cn:'',nt:'',pd:'',pt:'',grp:1,...x}))
              .filter(x=>x.g&&x.d);
-    }
+  } else if (window.SCH && window.SCH.length > 0) {
+    console.warn('Firebase data missing "ch" key. Preserving existing memory state.');
+  } else {
+    window.SCH = SRAWS.map(s=>({...s,st:'ok',cr:'',cn:'',nt:s.n||'',pd:'',pt:'',grp:1}));
   }
-  else window.SCH = SRAWS.map(s=>({...s,st:'ok',cr:'',cn:'',nt:s.n||'',pd:'',pt:'',grp:1}));
   if(Array.isArray(o.pairs)&&o.pairs.length>0){
     window.pairs = o.pairs.map(p=>({...p,ids:p.ids.map(id=>parseInt(id)).filter(id=>G(id).id)}));
     window.pairs = pairs.filter(p=>p.ids.length>=2);
@@ -456,8 +458,6 @@ function _applyYearData(o){
     window.INVOICES = Array.isArray(o.invoices) ? o.invoices : Object.values(o.invoices);
     // ── Migrate invoices with double-VAT bug ──
     // Symptom: ordVatMode missing AND orderTotal ≈ orderAmt * (1 + vat/100)
-    // This means the user entered the VAT-inclusive amount in 'ex' mode,
-    // so orderTotal = entered_amount * 1.18 (double VAT).
     // Fix: set ordVatMode='inc', recalculate orderAmt (base) and orderTotal (= entered).
     INVOICES.forEach(inv=>{
       if(inv.ordVatMode) return; // already has mode — skip
@@ -510,12 +510,12 @@ function _applyYearData(o){
   if(o.autoBackupCfg){ _safeLS.setItem('autoBackupCfg',JSON.stringify(o.autoBackupCfg)); if(window._fbAppData) window._fbAppData.autoBackupCfg=o.autoBackupCfg; }
   if(o.piStatusFilter){ try{ _safeLS.setItem(PI_ST_KEY,JSON.stringify(o.piStatusFilter)); }catch(e){} }
   window.clusters = o.clusters&&Object.keys(o.clusters).length?o.clusters:JSON.parse(JSON.stringify(INIT_CLUSTERS));
-  holidays=o.holidays||[];
+  window.holidays = o.holidays||[];
   if(supEx['__gardens_extra']) _GARDENS_EXTRA=supEx['__gardens_extra'];
-  pairBreaks=o.pairBreaks||{};
-  blockedDates=o.blockedDates||{};
-  gardenBlocks=o.gardenBlocks||{};
-  managers=o.managers||{};
+  window.pairBreaks = o.pairBreaks||{};
+  window.blockedDates = o.blockedDates||{};
+  window.gardenBlocks = o.gardenBlocks||{};
+  window.managers = o.managers||{};
   activeGardens = Array.isArray(o.activeGardens)?new Set(o.activeGardens):null;
 }
 
