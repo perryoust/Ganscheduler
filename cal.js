@@ -600,20 +600,7 @@ function renderClusterDay(evs, ds, clusterName){
       });
       html += `</div></details>`;
     });
-  }grp>1?`<span style="font-size:.68rem;color:#546e7a;white-space:nowrap">👥 ${s.grp}</span>`:''}
-            <span style="font-size:.68rem;white-space:nowrap">${window.stLabel(s)}</span>
-            <div class="qacts" onclick="event.stopPropagation()" style="display:flex;gap:3px">
-              ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt('${s.id}','done')" style="padding:2px 4px">✔️</button>`}
-              ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ('${s.id}')" style="padding:2px 4px">❌</button>`}
-              ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt('${s.id}','nohap')" style="padding:2px 4px">⚠️</button>`}
-              <button title="דחה פעילות" onclick="openPostpone('${s.id}')" style="padding:2px 4px">⏩</button>
-              <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched('${s.id}')" style="padding:2px 4px">📅</button>
-            </div>
-          </div>
-        </div>
-      </div>`;
-    });
-  }
+    }
 
 
   return html;
