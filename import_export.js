@@ -433,7 +433,8 @@ window.importBulkSchedule = function(input) {
             location.reload(); 
           }, 2500);
         } else {
-          throw new Error('השמירה ל-Firebase נכשלה (ללא שגיאה מפורטת). בדוק חיבור לאינטרנט.');
+          const detailedErr = window._fbLastError ? `\nפירוט: ${window._fbLastError}` : '';
+          throw new Error('השמירה ל-Firebase נכשלה. בדוק חיבור לאינטרנט.' + detailedErr);
         }
       }
     } catch (err) {

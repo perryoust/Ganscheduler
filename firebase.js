@@ -335,10 +335,13 @@ async function saveToFirebase(silent, force) {
       }
     } catch(_ce) { /* if conflict check fails, proceed with save */ }
     // ── End conflict guard ──
+    const payloadStr = JSON.stringify(payload);
+    console.log('Firebase Save Payload Size:', (payloadStr.length / 1024).toFixed(2), 'KB');
+
     const r = await fetch(FIREBASE_DB_URL + _saveQ, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: payloadStr
     });
     
     if (r.ok) {
@@ -381,6 +384,15 @@ async function saveToFirebase(silent, force) {
       _runDailyBackupIfNeeded(JSON.parse(raw), _saveTok).catch(()=>{});
       return true;
     }
+
+    // If not OK, try to get more info
+    let errorDetail = '';
+    try {
+      const respText = await r.text();
+      errorDetail = respText.substring(0, 200);
+      console.error('Firebase save failed details:', { status: r.status, body: respText });
+    } catch(e) {}
+
     if (r.status === 401 || r.status === 403) {
       // Token expired — refresh and retry once
       try {
@@ -388,16 +400,19 @@ async function saveToFirebase(silent, force) {
         const newQ = window._cachedToken ? '?auth=' + window._cachedToken : '';
         const r2 = await fetch(FIREBASE_DB_URL + newQ, {
           method: 'PUT', headers: {'Content-Type':'application/json'},
-          body: JSON.stringify(payload)
+          body: payloadStr
         });
         if(r2.ok){ _setFbSaveTs(nowTs); window._safeLS.setItem('ganv5_local_ts',String(nowTs)); return true; }
       } catch(re){}
     }
-    _fbLastError = 'שגיאה ' + r.status + (r.status===401||r.status===403?' (הרשאות)':'');
+
+    _fbLastError = 'שגיאה ' + r.status + (errorDetail ? ': ' + errorDetail : '');
     _fbUpdateStatus();
     if (!silent) showToast('❌ שגיאת סנכרון Firebase (' + r.status + ')');
     return false;
   } catch(e) {
+    console.error('Firebase save fetch error:', e);
+    _fbLastError = 'שגיאת רשת/Firebase: ' + e.message;
     if (!silent) showToast('❌ Firebase: ' + e.message);
     return false;
   } finally {
@@ -558,9 +573,10 @@ async function fbLoadNow() {
 function ghAutoSave(immediate) { 
   if(immediate){ 
     clearTimeout(window._fbTimer);
-    return saveToFirebase(true); 
+    return saveToFirebase(false, true); 
   } else { 
     firebaseAutoSave(); 
     return Promise.resolve(true);
   }
 }
+window.ghAutoSave = ghAutoSave;
