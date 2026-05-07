@@ -1094,11 +1094,17 @@ function renderNormalWeek(evs, ws, f){
       } else {
         inner=`<div style="color:#c8cdd5;font-size:1.4rem;font-weight:300;text-align:center;line-height:1;padding:4px 0;cursor:pointer;user-select:none">+</div>`;
       }
-      return `<td style="background:${cellBg};
+      const jumpBtn = `<button onclick="event.stopPropagation(); window.jumpToPairWeeklySchedule(null,'${ds}','${gid}')" 
+        style="position:absolute;top:2px;left:2px;background:rgba(25,118,210,0.1);border:1px solid rgba(25,118,210,0.2);
+        border-radius:4px;color:#1976d2;font-size:10px;padding:1px 4px;cursor:pointer;opacity:0;transition:opacity 0.2s" class="cell-jump-btn" title="לוח שבועי">📅</button>`;
+
+      return `<td style="background:${cellBg};position:relative;
         border-bottom:1px solid ${borderColor};border-left:1px solid ${borderColor};
         ${blk?'border:1.5px solid #e91e63;':''}
         padding:4px;vertical-align:top;min-width:130px"
-        onclick="window.openGcellPopup(${gid},'${ds}',event)">${inner}</td>`;
+        onmouseover="this.querySelector('.cell-jump-btn').style.opacity=1"
+        onmouseout="this.querySelector('.cell-jump-btn').style.opacity=0"
+        onclick="window.openGcellPopup(${gid},'${ds}',event)">${jumpBtn}${inner}</td>`;
     }
 
     // window.pairs

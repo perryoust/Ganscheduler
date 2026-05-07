@@ -1006,16 +1006,21 @@ function updCounts(){
 
   const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
   
-  setEl('d-today-cnt', todayCnt);
+  setEl('d-todo-cnt', todo);
   setEl('d-can', can);
   setEl('d-post', post);
   setEl('d-nohap', nohap);
+  setEl('d-makeups', makeupsCount);
+  setEl('d-handled', handled);
   setEl('d-total', allInTab.toLocaleString());
 
   setEl('h-pairs', (window.pairs || []).length);
+  setEl('h-todo', todo);
   setEl('h-can', can);
   setEl('h-post', post);
   setEl('h-nohap', nohap);
+  setEl('h-makeups', makeupsCount);
+  setEl('h-handled', handled);
   setEl('h-sched', allInTab.toLocaleString());
   setEl('h-gardens', gdns.filter(g => window.gcls(g) === cls).length + (window._GARDENS_EXTRA || []).filter(g => window.gcls(g) === cls).length);
   

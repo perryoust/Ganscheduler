@@ -214,6 +214,9 @@ function renderPartnerTable(){
     const time = ev ? (window.fT ? window.fT(ev.t) : ev.t) : '—';
     const type = ev ? (ev.tp || 'חוג') : '—';
 
+    const timeVal = ev ? (window.fT ? window.fT(ev.t) : ev.t) : (document.getElementById('ns-time')?.value || '');
+    const timeDisplay = ev ? `<span style="font-weight:600">${timeVal}</span>` : `<input type="time" class="ns-syn-time" data-gid="${pId}" value="${timeVal}" style="width:70px;font-size:.7rem;padding:2px">`;
+
     rowsHtml += `
       <tr class="${stClass}">
         <td style="text-align:center"><input type="checkbox" id="ns-syn-chk-${pId}" class="ns-syn-chk" value="${pId}" style="width:18px;height:18px;accent-color:#1565c0" checked></td>
@@ -222,7 +225,7 @@ function renderPartnerTable(){
         <td>${act}</td>
         <td>${type}</td>
         <td>${stLabel}</td>
-        <td style="font-weight:600">${time}</td>
+        <td>${timeDisplay}</td>
       </tr>`;
   });
 

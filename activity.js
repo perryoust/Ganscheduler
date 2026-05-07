@@ -1241,7 +1241,7 @@ function markCompManual(id){
 
   if (doSync) {
     const pair = window.gardenPair(s.g);
-    const cluster = window.clusters ? window.clusters.find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
+    const cluster = window.clusters ? Object.values(window.clusters).find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
     
     const allPartnerIds = new Set();
     if(pair) pair.ids.forEach(id => allPartnerIds.add(Number(id)));
@@ -1272,7 +1272,7 @@ function markCompQuick(id){
     
     // Sync with partners automatically if it's a pair/cluster (silent sync)
     const pair = window.gardenPair(s.g);
-    const cluster = window.clusters ? window.clusters.find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
+    const cluster = window.clusters ? Object.values(window.clusters).find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
     if(pair || cluster){
       const gids = new Set();
       if(pair) pair.ids.forEach(i => gids.add(Number(i)));
@@ -1825,6 +1825,15 @@ window.spSaveMakeup = function() {
   const actVal = document.getElementById('sp-mu-act').value;
   const actName = actVal === '__new__' ? (document.getElementById('sp-mu-act-new')||{}).value : (actVal || origEv.act);
   
+  if(actVal === '__new__' && actName) {
+    const base = window.supBase(supName);
+    if(!window.supEx[base]) window.supEx[base] = {};
+    if(!window.supEx[base].acts) window.supEx[base].acts = window.getSupActs(supName);
+    if(!window.supEx[base].acts.includes(actName)) {
+      window.supEx[base].acts.push(actName);
+    }
+  }
+  
   if(!confirm(`לבצע שיבוץ השלמה ל-${targets.length} גנים בתאריך ${window.fD(newDate)}?`)) return;
   
   targets.forEach(tgt => {
@@ -1863,6 +1872,8 @@ window.createMakeupActivity = function(data) {
     _makeupFrom: data.origD
   };
   
+  window.SCH.push(newEv);
+  
   // Link back to original
   if(data.origId) {
     const origExt = window.SCH.find(x => String(x.id) === String(data.origId));
@@ -1875,7 +1886,7 @@ window.createMakeupActivity = function(data) {
        
        // Sync partner's completion status if applicable
        const pair = window.gardenPair(origExt.g);
-       const cluster = window.clusters ? window.clusters.find(c => c.gids && c.gids.map(Number).includes(Number(origExt.g))) : null;
+       const cluster = window.clusters ? Object.values(window.clusters).find(c => c.gids && c.gids.map(Number).includes(Number(origExt.g))) : null;
        
        const allPartnerIds = new Set();
        if(pair) pair.ids.forEach(id => allPartnerIds.add(Number(id)));
