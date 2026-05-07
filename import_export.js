@@ -409,20 +409,25 @@ window.importBulkSchedule = function(input) {
         // Force Firebase to see this as a "fresh" change by clearing the comparison cache
         window._fbLastSavedRaw = null;
 
-        console.log('[Import] Saving new schedule to Firebase...', { count: newSCH.length });
+        console.log('[Import] Saving new schedule...', { count: newSCH.length });
         let saveOk = false;
         try {
-          saveOk = await window.saveToFirebase(false, true);
-          console.log('[Import] saveToFirebase result:', saveOk);
+          // Use window.save(true) to update BOTH LocalStorage and Firebase
+          // This prevents the "revert to old data" bug on page reload.
+          saveOk = await window.save(true);
+          console.log('[Import] save result:', saveOk);
         } catch (err) {
-          console.error('[Import] saveToFirebase failed:', err);
-          throw new Error('שגיאה בשמירה ל-Firebase: ' + err.message);
+          console.error('[Import] save failed:', err);
+          throw new Error('שגיאה בשמירה: ' + err.message);
         }
 
         if (saveOk) {
           if (typeof window.showToast === 'function') window.showToast('✅ הייבוא הושלם בהצלחה! מרענן...', 3000);
           else if (statusEl) statusEl.innerHTML = '✅ העדכון הושלם בהצלחה! מרענן דף...';
-          window._importInProgress = false;
+          
+          // CRITICAL: We DO NOT set window._importInProgress = false here.
+          // We keep it true to block background syncs until the reload happens.
+          
           setTimeout(() => { 
             console.log('[Import] Reloading page...');
             location.reload(); 

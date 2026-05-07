@@ -345,6 +345,10 @@ async function saveToFirebase(silent, force) {
       _setFbSaveTs(nowTs);
       _fbLastOwnSaveTs = nowTs; 
       window._safeLS.setItem('ganv5_local_ts', String(nowTs));
+      // Fallback: Ensure LocalStorage is also updated with the same data we sent to Firebase
+      window._safeLS.setItem('ganv5', raw);
+      window._mem_ganv5 = raw;
+      
       _fbLastError = null;
       window._fbLastSavedRaw = raw; 
 
