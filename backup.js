@@ -76,7 +76,7 @@ function updateAppFromHTML(input){
 function importBackup(input){
   const file=input.files[0];if(!file)return;
   const r=new FileReader();
-  r.onload=e=>{
+  r.onload = async e => {
     try{
       const data=JSON.parse(e.target.result);
       if(!data.ch&&!data.pairs) throw new Error('פורמט לא תקין');
