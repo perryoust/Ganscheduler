@@ -8,7 +8,8 @@ const FIREBASE_POLL_INTERVAL = 30000;
 let _fbLastSaveTs = parseInt(window._safeLS.get('_fbLastSaveTs')||'0');
 let _fbLastLoadTs = parseInt(window._safeLS.get('_fbLastLoadTs')||'0');
 
-let _fbLastOwnSaveTs = 0; // timestamp of OUR last successful save (not from load)
+let _fbLastOwnSaveTs = 0; 
+window._MASTER_LOCK = false; // If true, ignore incoming cloud data
 function _setFbSaveTs(ts){ _fbLastSaveTs=ts; window._safeLS.setItem('_fbLastSaveTs',String(ts)); _fbUpdateStatus(); }
 function _setFbLoadTs(ts){ _fbLastLoadTs=ts; window._safeLS.setItem('_fbLastLoadTs',String(ts)); _fbUpdateStatus(); }
 let _fbPollTimer = null;
@@ -117,6 +118,15 @@ async function _processFirebaseLoad(r, silent, force) {
   try { cloudData = await r.json(); } catch(e){ console.error('Firebase JSON error',e); return false; }
   if (!cloudData || typeof cloudData !== 'object') return false;
   const cloudTs = cloudData.ts || 0;
+  
+  // STRICT VERSION CHECK: Is cloud data NEWER than our last load/save?
+  const localTs = Math.max(_fbLastLoadTs, _fbLastSaveTs, _fbLastOwnSaveTs);
+  if (!force && cloudTs > 0 && cloudTs <= localTs) {
+    if (!silent) console.log('Firebase: skipping apply (cloud data is same or older)', {cloudTs, localTs});
+    _setFbLoadTs(cloudTs);
+    return true;
+  }
+
   const appData = cloudData.data || cloudData;
   if (!appData || Object.keys(appData).length === 0) return false;
 
@@ -193,6 +203,11 @@ async function _processFirebaseLoad(r, silent, force) {
 async function loadFromFirebase(silent, force) {
   if(window._importInProgress) return; // STRICT BLOCK: Never load while importing
   
+  if (window._MASTER_LOCK) {
+    console.warn('Firebase: skipping load (MASTER LOCK ACTIVE)');
+    return true;
+  }
+
   // CRITICAL: Protection against eventual consistency / stale cache after import or manual save
   const ignoreUntil = parseInt(window._safeLS.get('fb_sync_ignore_until')||'0');
   if (ignoreUntil > Date.now()) {

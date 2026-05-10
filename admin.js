@@ -100,10 +100,14 @@ async function restoreCloudBackup(dateKey){
     // Save current as local snapshot first
     createSnapshot('לפני שחזור מענן');
     // Apply the backup data
+    window._MASTER_LOCK = true;
     _applyYearData(appData);
-    save(true);
-    showToast('✅ שוחזר מגיבוי '+fD(dateKey)+' — שומר...');
-    setTimeout(()=>{ refresh(); CM('backupm'); }, 1500);
+    const ok = await save(true);
+    window._MASTER_LOCK = false;
+    if(ok){
+      showToast('✅ שוחזר מגיבוי '+fD(dateKey)+' — שומר...');
+      setTimeout(()=>{ refresh(); CM('backupm'); }, 1500);
+    }
   } catch(e){ showToast('❌ שגיאת שחזור: '+e.message); }
 }
 

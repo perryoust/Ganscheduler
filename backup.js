@@ -75,7 +75,7 @@ function updateAppFromHTML(input){
 
 function importBackup(input){
   const file=input.files[0];if(!file)return;
-  window._importInProgress = true;
+  window._MASTER_LOCK = true;
   const r=new FileReader();
   r.onload = async e => {
     try{
@@ -108,11 +108,11 @@ function importBackup(input){
 
       window.showCopyToast('✅ ייבוא הצליח! טוען מחדש...');
       setTimeout(()=> {
-        window._importInProgress = false;
+        window._MASTER_LOCK = false;
         location.reload();
       }, 1400);
     }catch(err){
-      window._importInProgress = false;
+      window._MASTER_LOCK = false;
       alert('שגיאה בקובץ: '+err.message);
     }
   };
