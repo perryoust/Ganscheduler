@@ -296,28 +296,42 @@ window.importBulkSchedule = function(input) {
           let status = 'ok';
           if (isMissingSheet) status = 'nohap';
           
-          const rawSt = String(getV(colStatus) || '').toLowerCase();
-          const lowerNotes = notes.toLowerCase();
+          const valSt = getV(colStatus);
+          const valNt = notes;
           
-          // Keywords lists
+          // 1. Keywords & Status Extraction
           const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה', 'מסיבת פורים', 'מסיבות אישיות'];
           const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע', 'לא נשאר', 'עזב', 'לא התקיימה', 'לא מרגיש טוב', 'לא עונה', 'טעה ביום', 'טעות בשיבוץ', 'לא מצא חניה', 'איחר לא העביר'];
           
-          // 1. Check Status Column
-          if (rawSt.includes('בוטל') || rawSt.includes('ביטול') || rawSt === 'can') status = 'can';
-          else if (rawSt.includes('נדחה') || rawSt.includes('הזזה') || rawSt === 'post') status = 'post';
-          else if (rawSt.includes('לא התקיים') || rawSt.includes('לא בוצע') || rawSt === 'nohap') status = 'nohap';
-          else if (rawSt.includes('בוצע') || rawSt.includes('התקיים') || rawSt.includes('הושלם') || rawSt === 'done') status = 'done';
+          const cleanSt = (valSt || '').toString().trim().replace(/\s+/g, ' ');
+          const lowerNotes = (valNt || '').toString().toLowerCase();
+
+          // 2. Check explicit Status column (Priority 1)
+          if (cleanSt.includes('לא התקיים') || cleanSt.includes('לא בוצע') || cleanSt === 'nohap' || cleanSt === 'לא התקימה') {
+            status = 'nohap';
+          } 
+          else if (cleanSt.includes('בוטל') || cleanSt.includes('מבוטל') || cleanSt === 'can') {
+            status = 'can';
+          }
+          else if (cleanSt.includes('נדחה') || cleanSt === 'post') {
+            status = 'post';
+          }
+          else if (cleanSt.includes('התקיים') || cleanSt.includes('בוצע') || cleanSt === 'done' || cleanSt === 'ok') {
+            status = 'done';
+          }
           
-          // 2. Smart Override from Notes (if status is still 'ok')
+          // 3. Fallback to Notes column if status is still default (ok)
           if (status === 'ok') {
             const isMovedFrom = lowerNotes.includes('נדחה מ') || lowerNotes.includes('הוזז מ') || lowerNotes.includes('הזזה מ') || lowerNotes.includes('הוקדם מ') || lowerNotes.includes('עבר מ') || lowerNotes.includes('עובר מ');
             const isMovedTo = lowerNotes.includes('נדחה ל') || lowerNotes.includes('הוזז ל') || lowerNotes.includes('הזזה ל') || lowerNotes.includes('הוקדם ל') || lowerNotes.includes('עבר ל') || lowerNotes.includes('עובר ל');
             const isPos = lowerNotes.includes('השלמה') || isMovedFrom || (lowerNotes.includes('נדחה') && !isMovedTo);
 
             if (!isPos) {
-              if (canWords.some(w => lowerNotes.includes(w)) || isMovedTo) status = 'can';
-              else if (nohapWords.some(w => lowerNotes.includes(w))) status = 'nohap';
+              if (nohapWords.some(w => lowerNotes.includes(w))) {
+                 status = 'nohap';
+                 console.log(`[Import] Row ${i}: Assigned 'nohap' based on notes: "${valNt}"`);
+              }
+              else if (canWords.some(w => lowerNotes.includes(w)) || isMovedTo) status = 'can';
               else if (lowerNotes.includes('הושלם') || lowerNotes.includes('התקיים') || lowerNotes.includes('בוצע')) status = 'done';
             }
           }
@@ -430,11 +444,12 @@ window.importBulkSchedule = function(input) {
           window._safeLS.setItem('fb_sync_ignore_until', String(Date.now() + 60000));
           
           // CRITICAL: Give Firebase enough time to finish the PUT request (3MB+ can take time)
-          // We wait 10 seconds before reloading to be safe.
-          let countdown = 10;
+          // We wait 15 seconds before reloading to be safe.
+          window._importInProgress = false; 
+          let countdown = 15;
           const interval = setInterval(() => {
             countdown--;
-            if (statusEl) statusEl.innerHTML = `✅ הייבוא נשמר! מרענן בעוד ${countdown} שניות...`;
+            if (statusEl) statusEl.innerHTML = `✅ הייבוא נשמר בענן! מרענן בעוד ${countdown} שניות...`;
             if (countdown <= 0) {
               clearInterval(interval);
               location.reload();
