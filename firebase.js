@@ -318,7 +318,7 @@ async function saveToFirebase(silent, force) {
     }
     
     // Bandwidth Optimization: don't save if data hasn't changed since last success
-    if(window._fbLastSavedRaw === raw) {
+    if(!force && window._fbLastSavedRaw === raw) {
       if(!silent) console.log('saveToFirebase: skipped (no changes)');
       // Even if skipped, we are officially in sync with what we expect to be in cloud
       const nowTs = Date.now();

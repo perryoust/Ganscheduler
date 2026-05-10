@@ -28,14 +28,19 @@ window.importBulkSchedule = function(input) {
       const recordsToUpsert = [];
       const stats = { sheets: 0, rows: 0, imported: 0, skipped: 0, noGarden: 0, noDate: 0 };
       
-      // Build SRAWS lookup for ID consistency
-      const srawsLookup = {};
-      if (Array.isArray(window.SRAWS)) {
-        window.SRAWS.forEach(s => {
-          const k = `${s.d}|${s.g}|${window.utils.norm(s.a)}|${s.t}`;
-          srawsLookup[k] = s.id;
+      // 1. Build lookup from existing SCH (to prevent duplicates) and SRAWS
+      const schLookup = {};
+      const addToList = (list) => {
+        if (!Array.isArray(list)) return;
+        list.forEach(s => {
+          const normA = window.utils.megaClean(s.a);
+          const normT = (s.t || '').slice(0, 5);
+          const k = `${s.d}|${s.g}|${normA}|${normT}`;
+          schLookup[k] = s.id;
         });
-      }
+      };
+      addToList(window.SRAWS);
+      addToList(window.SCH);
 
       for (const sheetName of sheetNames) {
         const sheet = workbook.Sheets[sheetName];
@@ -127,7 +132,7 @@ window.importBulkSchedule = function(input) {
           let st = 'ok';
           
           // User logic: If groups is empty -> didn't occur (nohap)
-          if (rawGr === undefined || rawGr === null || String(rawGr).trim() === '') {
+          if (rawGr === undefined || rawGr === null || String(rawGr).trim() === '' || Number(rawGr) === 0) {
             st = 'nohap';
           } else {
             const lnt = nt.toLowerCase();
@@ -136,9 +141,13 @@ window.importBulkSchedule = function(input) {
             else if (/הושלם|בוצע|התקיים/.test(lnt)) st = 'done';
           }
 
-          const sKey = `${d}|${garden.id}|${window.utils.norm(supplier.name)}|${t}`;
-          // Use supplier.name for ID consistency
-          const fId = srawsLookup[sKey] || window.utils.getEventId(d, garden.id, supplier.name, '', t);
+          const normA = window.utils.megaClean(supplier.name);
+          const sKey = `${d}|${garden.id}|${normA}|${t}`;
+          const fId = schLookup[sKey] || window.utils.getEventId(d, garden.id, supplier.name, '', t);
+
+          if (gn.includes('צלף') || gn.includes('רוזמרין')) {
+             console.log(`[Import Debug] Garden: ${gn}, Date: ${d}, Time: ${t}, Groups: "${rawGr}", Set Status: ${st}, ID: ${fId}, SCH Match: ${!!schLookup[sKey]}`);
+          }
 
           recordsToUpsert.push({
             id: fId, d, g: garden.id, a: supplier.name, act: '', t, st, nt,
