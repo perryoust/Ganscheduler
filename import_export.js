@@ -260,14 +260,20 @@ window.importBulkSchedule = function(input) {
             continue;
           }
 
-          const fullSup = String(getV(colSupAct) || '').trim();
-          if (!fullSup) continue;
-          let supplier = fullSup, activity = '';
-          if (fullSup.includes(' - ')) {
-            const parts = fullSup.split(' - ');
-            supplier = parts[0].trim();
-            activity = parts[1].trim();
+          const norm = s => (s || '').toString().trim().replace(/["'״׳]/g, '').replace(/\s+/g, ' ');
+          const nSupRaw = String(getV(colSupAct) || '');
+          const partsSupAct = nSupRaw.split(' - ');
+          const nSupName = norm(partsSupAct[0]);
+          const nActName = norm(partsSupAct[1] || '');
+
+          const supplier = window.getAllSup().find(s => norm(s.name) === nSupName);
+          
+          if (!supplier) {
+            if (i < 50) console.warn(`[Import] Missing match at row ${i}: Supplier="${nSupName}"`);
+            continue;
           }
+
+          const activity = (window.SUPBASE_ACTIVITIES[supplier.id] || []).find(a => norm(a.name) === nActName) || { id: 0, name: nActName || nSupRaw };
 
           let time = '';
           const timeRaw = getV(colTime);

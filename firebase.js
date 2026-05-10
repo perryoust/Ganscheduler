@@ -363,7 +363,10 @@ async function saveToFirebase(silent, force) {
     } catch(_ce) { /* if conflict check fails, proceed with save */ }
     // ── End conflict guard ──
     const payloadStr = JSON.stringify(payload);
-    console.log('Firebase Save Payload Size:', (payloadStr.length / 1024).toFixed(2), 'KB');
+    console.log('Firebase: sending PUT request...', { 
+       size: (payloadStr.length / 1024).toFixed(2) + ' KB',
+       first5: payload.data.ch.slice(0, 5).map(s => ({ d: s.d, a: s.a, st: s.st }))
+    });
 
     const r = await fetch(FIREBASE_DB_URL + _saveQ, {
       method: 'PUT',
