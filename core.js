@@ -359,6 +359,16 @@ function resetPairsFromAuto(){
   refresh();
   alert('✅ הזוגות עודכנו! '+pairs.length+' זוגות נטענו.');
 }
+const HOLIDAYS_RESTORE = [{"canSched":false,"city":"","from":"2026-03-31","id":"h_1774174272522","name":"חופשת פסח","note":"","scope":"all","to":"2026-04-08","type":"vacation"},{"canSched":false,"city":"","from":"2026-04-22","id":"h_1775731003564","name":"יום הזכרון לחללי מערכות ישראל","note":"","scope":"all","to":"2026-04-22","type":"vacation"},{"canSched":false,"city":"","from":"2026-04-23","id":"h_1775731019768","name":"יום העצמאות","note":"","scope":"all","to":"2026-04-23","type":"vacation"},{"canSched":false,"city":"","from":"2026-05-21","id":"h_1775731118232","name":"שבועות","note":"","scope":"all","to":"2026-05-21","type":"vacation"},{"canSched":false,"city":"גבעתיים","from":"2026-05-05","id":"h_1775731199678","name":"ל\"ג בעומר","note":"","scope":"ביה\"ס","to":"2026-05-05","type":"vacation"},{"canSched":true,"city":"","from":"2026-05-05","id":"h_1775731246284","name":"קייטנת ל\"ג בעומר","note":"","scope":"all","to":"2026-05-05","type":"camp"},{"canSched":true,"city":"גבעתיים","from":"2026-05-05","id":"h_1775731264839","name":"קייטנת ל\"ג בעומר","note":"","scope":"גנים","to":"2026-05-05","type":"camp"}];
+
+function restoreMissingHolidays() {
+  if (window.holidays && window.holidays.length === 0) {
+    console.log('Restoring holidays from internal seed...');
+    window.holidays = HOLIDAYS_RESTORE;
+    return true;
+  }
+  return false;
+}
 function migrateSupActSplit(){
   // Run on every load — SCHEDULES_JS source data has "supplier - activity" format
   let changed=0;
@@ -681,6 +691,7 @@ window.onload = function(){
 
     }catch(initErr){ console.warn('Init error:', initErr); }
     load();
+    restoreMissingHolidays();
     syncSupplierList(); // supEx is now populated from load()
     migratePairsFromAuto();
     migrateSupActSplit();

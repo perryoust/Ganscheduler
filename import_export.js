@@ -429,10 +429,17 @@ window.importBulkSchedule = function(input) {
           // Firebase might have a slight delay or browser cache might interfere.
           window._safeLS.setItem('fb_sync_ignore_until', String(Date.now() + 60000));
           
-          setTimeout(() => { 
-            console.log('[Import] Reloading page...');
-            location.reload(); 
-          }, 2500);
+          // CRITICAL: Give Firebase enough time to finish the PUT request (3MB+ can take time)
+          // We wait 10 seconds before reloading to be safe.
+          let countdown = 10;
+          const interval = setInterval(() => {
+            countdown--;
+            if (statusEl) statusEl.innerHTML = `✅ הייבוא נשמר! מרענן בעוד ${countdown} שניות...`;
+            if (countdown <= 0) {
+              clearInterval(interval);
+              location.reload();
+            }
+          }, 1000);
         } else {
           const detailedErr = window._fbLastError ? `\nפירוט: ${window._fbLastError}` : '';
           throw new Error('השמירה ל-Firebase נכשלה. בדוק חיבור לאינטרנט.' + detailedErr);
