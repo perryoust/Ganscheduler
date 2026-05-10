@@ -84,30 +84,46 @@ window.importBulkSchedule = function(input) {
         const isExS = /חוסר|חוסרים|לא התקיים/.test(sheetName);
         const isMkS = /השלמה|השלמות/.test(sheetName);
 
-        let colMap = {}, headerRowIdx = -1;
+        let bestHeader = { idx: -1, count: 0, map: {} };
         for (let i = 0; i < Math.min(15, rows.length); i++) {
           const r = rows[i];
           if (!r || !Array.isArray(r)) continue;
           
-          let found = 0;
-          r.forEach(c => {
-            const s = String(c||'');
+          let found = 0, currentMap = {};
+          r.forEach((c, idx) => {
+            if (!c) return;
+            const s = String(c).trim();
+            const n = window.utils.norm(s);
+            currentMap[n] = idx;
+            
             if (/תאריך|date|יום/.test(s)) found++;
             if (/גן|garden|צהרון/.test(s)) found++;
             if (/חוג|ספק|activity/.test(s)) found++;
           });
 
-          if (found >= 2) {
-            headerRowIdx = i;
-            r.forEach((c, idx) => { if (c) colMap[window.utils.norm(c)] = idx; });
-            console.log(`[Import] Found headers on row ${i} in sheet "${sheetName}":`, colMap);
-            break;
+          if (found > bestHeader.count) {
+            bestHeader = { idx: i, count: found, map: currentMap };
           }
+          if (found >= 3) break;
         }
-        if (headerRowIdx === -1) {
-          console.warn(`[Import] No headers found in sheet "${sheetName}"`);
+
+        if (bestHeader.count < 2) {
+          console.warn(`[Import] No valid headers in "${sheetName}" (Best match count: ${bestHeader.count})`);
           continue;
         }
+
+        headerRowIdx = bestHeader.idx;
+        colMap = bestHeader.map;
+        console.log(`[Import] Best header row ${headerRowIdx} in "${sheetName}" (${bestHeader.count} matches):`, Object.keys(colMap));
+        
+        // Debug: alert first row after header
+        if (rows.length > headerRowIdx + 1) {
+           const debugRow = JSON.stringify(rows[headerRowIdx + 1]);
+           console.log(`[Import] First data row preview: ${debugRow}`);
+        } else {
+           console.warn(`[Import] Sheet "${sheetName}" has no rows after header at index ${headerRowIdx}. Total rows: ${rows.length}`);
+        }
+
         stats.sheets++;
 
         const getCol = (names) => {
