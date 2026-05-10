@@ -1,467 +1,167 @@
 // ══════════════════════════════════════════════
-// Firebase Realtime Database Sync - v10.2
+// Firebase Realtime Database Sync - v2.0 (Strict Sequence)
 // ══════════════════════════════════════════════
 const FIREBASE_DB_URL = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data.json';
 const FIREBASE_POLL_INTERVAL = 30000;
 
-// (Global _safeLS is now defined in data.js)
-let _fbLastSaveTs = parseInt(window._safeLS.get('_fbLastSaveTs')||'0');
-let _fbLastLoadTs = parseInt(window._safeLS.get('_fbLastLoadTs')||'0');
-
-let _fbLastOwnSaveTs = 0; 
-window._MASTER_LOCK = false; // If true, ignore incoming cloud data
-function _setFbSaveTs(ts){ _fbLastSaveTs=ts; window._safeLS.setItem('_fbLastSaveTs',String(ts)); _fbUpdateStatus(); }
-function _setFbLoadTs(ts){ _fbLastLoadTs=ts; window._safeLS.setItem('_fbLastLoadTs',String(ts)); _fbUpdateStatus(); }
-let _fbPollTimer = null;
-let _fbTimer = null;
+let _localSeq = parseInt(window._safeLS.get('_fbSeq') || '0');
+let _lastSyncTs = 0;
+let _isLocked = false;
+let _syncTimer = null;
 let _fbSyncing = false;
-let _fbLastError = null; // last sync error message
-window._fbSyncReady = false; // Block saves until first load completes
+let _fbLastError = null;
+window._fbSyncReady = false;
 
-// ── Login (called from HTML button) ──────────
-async function doLogin() {
-  const username = (document.getElementById('auth-username').value || '').trim().toLowerCase();
-  const password = (document.getElementById('auth-password').value || '');
-  const remember = document.getElementById('auth-remember').checked;
-  const err      = document.getElementById('auth-err');
-  const btn      = document.getElementById('auth-login-btn');
-
-  if (!username || !password) { err.textContent = 'נא למלא שם משתמש וסיסמה'; return; }
-  err.textContent = '';
-  btn.textContent = 'מתחבר...';
-  btn.disabled = true;
-
-  try {
-    await window._fbSignIn(username, password, remember);
-    // onAuthStateChanged in index.html will fire _onAuthReady
-  } catch(e) {
-    const msg = e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found'
-      ? 'שם משתמש או סיסמה שגויים'
-      : e.code === 'auth/too-many-requests'
-      ? 'יותר מדי נסיונות — נסה שוב עוד כמה דקות'
-      : 'שגיאת התחברות: ' + e.code;
-    err.textContent = msg;
-    btn.textContent = 'כניסה';
-    btn.disabled = false;
+// ── State Update ─────────────────────────────
+function _setSyncState(seq, ts, error = null) {
+  if (seq) {
+    _localSeq = seq;
+    window._safeLS.setItem('_fbSeq', String(seq));
   }
+  if (ts) _lastSyncTs = ts;
+  _fbLastError = error;
+  _fbUpdateStatus();
 }
 
-async function doLogout() {
-  if (!confirm('להתנתק?')) return;
-  await window._fbSignOut();
-  location.reload();
-}
-
-// ── Format timestamp ──────────────────────────
-function _fmtTs(ts) {
-  if (!ts) return 'אף פעם';
-  const d = new Date(ts);
-  const pad = n => String(n).padStart(2, '0');
-  return pad(d.getDate()) + '/' + pad(d.getMonth()+1) + '/' + d.getFullYear() +
-    ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
-}
-
-// ── Update Firebase status UI ─────────────────
+// ── Status UI ────────────────────────────────
 function _fbUpdateStatus() {
   const btn = document.getElementById('od-btn');
-  if (btn) {
-    if (_fbSyncing) {
-      btn.textContent = '🔄 מסנכרן...';
-      btn.style.background = '#e65100';
-    } else if (_fbLastSaveTs) {
-      const ageMs = Date.now() - _fbLastSaveTs;
-      const ageMins = Math.floor(ageMs / 60000);
-      let label;
-      const timeStr = _fbLastSaveTs ? _fmtTs(_fbLastSaveTs).replace(/\d{4}-/,'').replace(/-/,'/') : '';
-      // Format: HH:MM DD/MM on 2 lines
-      const tsShort = _fbLastSaveTs ? (()=>{const d=new Date(_fbLastSaveTs);const pad=n=>String(n).padStart(2,'0');return pad(d.getHours())+':'+pad(d.getMinutes())+' '+pad(d.getDate())+'/'+pad(d.getMonth()+1);})() : '';
-      if(_fbLastError){
-        btn.innerHTML = '❌ ' + _fbLastError + (tsShort?`<br><span style="font-size:.58rem;opacity:.8;font-weight:400;letter-spacing:0">${tsShort}</span>`:'');
-        btn.style.background = '#c62828';
-      } else if(ageMs < 60000){
-        btn.innerHTML = '☁️ Active ✓' + (tsShort?`<br><span style="font-size:.58rem;opacity:.8;font-weight:400;letter-spacing:0">${tsShort}</span>`:'');
-        btn.style.background='#2e7d32';
-      } else if(ageMins < 5){
-        btn.innerHTML = `☁️ לפני ${ageMins}ד'` + (tsShort?`<br><span style="font-size:.58rem;opacity:.8;font-weight:400;letter-spacing:0">${tsShort}</span>`:'');
-        btn.style.background='#2e7d32';
-      } else if(ageMins < 60){
-        btn.innerHTML = `☁️ ${ageMins}ד' לא סונכרן` + (tsShort?`<br><span style="font-size:.58rem;opacity:.8;font-weight:400;letter-spacing:0">${tsShort}</span>`:'');
-        btn.style.background=ageMins>=10?'#c62828':'#e65100';
-      } else {
-        btn.innerHTML = '⚠️ לא סונכרן' + (tsShort?`<br><span style="font-size:.58rem;opacity:.8;font-weight:400;letter-spacing:0">${tsShort}</span>`:'');
-        btn.style.background='#c62828';
-      }
-      label = ''; // handled via innerHTML above
-    } else {
-      btn.textContent = '☁️ Firebase';
-      btn.style.background = '#2e7d32';
-    }
-  }
-  // update Firebase modal
-  const el = document.getElementById('fb-last-save');
-  if (el) el.textContent = _fmtTs(_fbLastSaveTs);
-  const el2 = document.getElementById('fb-last-load');
-  if (el2) el2.textContent = _fmtTs(_fbLastLoadTs);
-  // update info modal
-  const el3 = document.getElementById('info-fb-save');
-  if (el3) el3.textContent = _fbLastSaveTs ? _fmtTs(_fbLastSaveTs) : '—';
-  const el4 = document.getElementById('info-fb-load');
-  if (el4) el4.textContent = _fbLastLoadTs ? _fmtTs(_fbLastLoadTs) : '—';
-}
-
-// Refresh status display every 30s so age label updates live
-setInterval(_fbUpdateStatus, 30000);
-
-// Helper: process Firebase load response
-async function _processFirebaseLoad(r, silent, force) {
-  let cloudData;
-  try { cloudData = await r.json(); } catch(e){ console.error('Firebase JSON error',e); return false; }
-  if (!cloudData || typeof cloudData !== 'object') return false;
-  const cloudTs = cloudData.ts || 0;
+  if (!btn) return;
   
-  // STRICT VERSION CHECK: Is cloud data NEWER than our last load/save?
-  const localTs = Math.max(_fbLastLoadTs, _fbLastSaveTs, _fbLastOwnSaveTs);
-  if (!force && cloudTs > 0 && cloudTs <= localTs) {
-    if (!silent) console.log('Firebase: skipping apply (cloud data is same or older)', {cloudTs, localTs});
-    _setFbLoadTs(cloudTs);
-    return true;
+  if (_fbSyncing) {
+    btn.innerHTML = '🔄 מסנכרן...';
+    btn.style.background = '#e65100';
+    return;
   }
-
-  const appData = cloudData.data || cloudData;
-  if (!appData || Object.keys(appData).length === 0) return false;
-
-  // Store to both localStorage (if available) and in-memory
-  const jsonStr = JSON.stringify(appData);
-  window._safeLS.setItem('ganv5', jsonStr);
-  window._safeLS.setItem('ganv5_local_ts', String(cloudTs));
-  window._fbAppData = appData; // in-memory reference, no JSON needed
-
-  // Load invoices from separate /data/invoices path ONLY if not in unified payload
-  const hasUnifiedInvoices = appData.invoices && appData.invoices.length > 0;
-  if (!hasUnifiedInvoices) {
-    try {
-      const _iTok = window._cachedToken || (window._fbUser ? await window._fbUser.getIdToken(false) : null);
-      if(_iTok){
-        const _iR = await fetch(
-          'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+_iTok
-        );
-        if(_iR.ok){
-          const _iD = await _iR.json();
-          if(_iD && typeof _iD==='object'){
-            appData.invoices = Array.isArray(_iD) ? _iD : Object.values(_iD);
-            console.log('Invoices loaded from separate path:', appData.invoices.length);
-          }
-        }
-      }
-    } catch(e){ console.warn('Separate invoices load failed:', e); }
+  
+  if (_fbLastError) {
+    btn.innerHTML = '❌ שגיאת סנכרון<br><span style="font-size:.6rem">' + _fbLastError + '</span>';
+    btn.style.background = '#c62828';
+    return;
+  }
+  
+  const ageSec = Math.floor((Date.now() - _lastSyncTs) / 1000);
+  if (_lastSyncTs && ageSec < 120) {
+    btn.innerHTML = '☁️ מעודכן ✓<br><span style="font-size:.6rem">הרגע</span>';
+    btn.style.background = '#2e7d32';
+  } else if (_lastSyncTs) {
+    const mins = Math.floor(ageSec / 60);
+    btn.innerHTML = `☁️ סונכרן לפני ${mins}ד'<br><span style="font-size:.6rem">v${_localSeq}</span>`;
+    btn.style.background = mins > 10 ? '#e65100' : '#2e7d32';
   } else {
-    console.log('Invoices loaded from unified payload:', appData.invoices.length);
+    btn.innerHTML = '☁️ מתחבר...';
   }
-
-  // Apply data DIRECTLY to memory — does NOT rely on localStorage
-  if (typeof window._applyYearData === 'function') {
-    try {
-      window._applyYearData(appData);
-    } catch(e) { console.error('_applyYearData failed', e); }
-  }
-  window._fbLastKnownInvoiceCount = Math.max(
-    window._fbLastKnownInvoiceCount||0,
-    (typeof window.INVOICES!=='undefined'?window.INVOICES.length:0)
-  );
-
-  _setFbLoadTs(Date.now());
-  window._fbLastCloudTs = cloudTs; // track remote ts separately
-  // Only update _fbLastSaveTs if we haven't saved more recently
-  if(!_fbLastSaveTs || cloudTs > _fbLastSaveTs) _setFbSaveTs(cloudTs);
-  if (!silent) _fbUpdateStatus();
-
-  if (typeof window.refreshAppUI === 'function') {
-    try { window.refreshAppUI(); } catch(e) { console.error('Initial refreshAppUI failed', e); }
-  }
-
-  // Update last known raw for save prevention
-  window._fbLastSavedRaw = JSON.stringify({
-    ch: appData.ch||[],
-    pairs: appData.pairs||[],
-    supEx: appData.supEx||{},
-    clusters: appData.clusters||{},
-    holidays: appData.holidays||[],
-    pairBreaks: appData.pairBreaks||{},
-    managers: appData.managers||{},
-    blockedDates: appData.blockedDates||{},
-    gardenBlocks: appData.gardenBlocks||{},
-    autoBackupCfg: appData.autoBackupCfg,
-    piStatusFilter: appData.piStatusFilter,
-    vatRate: appData.vatRate||18,
-    activeGardens: appData.activeGardens||null
-  });
-
-  return true;
 }
 
-// ── Load from Firebase ────────────────────────
-async function loadFromFirebase(silent, force) {
-  if(window._importInProgress) return; // STRICT BLOCK: Never load while importing
+// ── Authentication ────────────────────────────
+async function doLogin() {
+  const u = (document.getElementById('auth-username').value || '').trim().toLowerCase();
+  const p = (document.getElementById('auth-password').value || '');
+  if (!u || !p) { alert('נא למלא שם משתמש וסיסמה'); return; }
   
-  if (window._MASTER_LOCK) {
-    console.warn('Firebase: skipping load (MASTER LOCK ACTIVE)');
-    return true;
-  }
-
-  // CRITICAL: Protection against eventual consistency / stale cache after import or manual save
-  const ignoreUntil = parseInt(window._safeLS.get('fb_sync_ignore_until')||'0');
-  if (ignoreUntil > Date.now()) {
-    console.log('Firebase: skipping load (within import/save protection window until ' + _fmtTs(ignoreUntil) + ')');
-    return true; 
-  }
-
   try {
-    if (!silent) { _fbSyncing = true; _fbUpdateStatus(); }
-    // Fresh token for load
-    let _tok = null;
-    if(window._fbUser){ try{ _tok = await window._fbUser.getIdToken(false); }catch(te){ try{ _tok = await window._fbUser.getIdToken(true); }catch(te2){} } }
-    if(!_tok && window._fbGetToken) _tok = await window._fbGetToken();
-    const _authQ = _tok ? '&auth=' + _tok : '';
-    const r = await fetch(FIREBASE_DB_URL + '?cb=' + Date.now() + _authQ);
-    if (!r.ok) {
-      if (r.status === 401 || r.status === 403) {
-        console.warn('Firebase: אין הרשאה — ייתכן שהטוקן פג תוקף, מתחדש...');
-        // Force token refresh and retry once
-        if (window._fbUser) {
-          try {
-            window._cachedToken = await window._fbUser.getIdToken(true);
-            const r2 = await fetch(FIREBASE_DB_URL + '?ts=' + Date.now() + '&auth=' + window._cachedToken);
-            if (r2.ok) { 
-              const success = await _processFirebaseLoad(r2, silent);
-              _fbSyncing = false;
-              window._fbSyncReady = true;
-              _fbUpdateStatus();
-              return success;
-            }
-          } catch(e2) {}
-        }
-      }
-      console.warn('Firebase load failed: ' + r.status); 
-      _fbSyncing = false;
-      _fbUpdateStatus();
-      return false;
-    }
-    const success = await _processFirebaseLoad(r, silent, force);
-    _fbSyncing = false;
-    window._fbSyncReady = true;
-    _fbUpdateStatus();
-    return success;
+    const btn = document.getElementById('auth-login-btn');
+    btn.disabled = true; btn.textContent = 'מתחבר...';
+    await window._fbSignIn(u, p, document.getElementById('auth-remember').checked);
   } catch(e) {
-    console.error('Firebase load error:', e);
-    _fbSyncing = false;
-    _fbUpdateStatus();
-    return false;
+    alert('שגיאת התחברות: ' + e.message);
+    location.reload();
   }
 }
 
-// ── Save to Firebase ──────────────────────────
-
-// Sanitize Firebase keys (forbidden: . $ # [ ] /)
-function _fbSanitizeKey(k){ return k.replace(/\./g,'｡').replace(/\$/g,'＄').replace(/#/g,'＃').replace(/\[/g,'［').replace(/\]/g,'］').replace(/\//g,'∕'); }
-function _fbRestoreKey(k){ return k.replace(/｡/g,'.').replace(/＄/g,'$').replace(/＃/g,'#').replace(/［/g,'[').replace(/］/g,']').replace(/∕/g,'/'); }
-function _sanitizeSupEx(obj){
-  if(!obj) return {};
-  const out={};
-  Object.entries(obj).forEach(([k,v])=>{ out[_fbSanitizeKey(k)]=v; });
-  return out;
-}
-function _restoreSupEx(obj){
-  if(!obj) return {};
-  const out={};
-  Object.entries(obj).forEach(([k,v])=>{ out[_fbRestoreKey(k)]=v; });
-  return out;
-}
-
-async function saveToFirebase(silent, force) {
-  // Only block automatic (silent) saves during import. 
-  // Manual saves (silent=false) should always proceed.
-  if(window._importInProgress && silent) return; 
-  if (_fbSyncing) return false;
-  if (!window._fbUser) return false;
-  
-  // CRITICAL: Block saves until at least one successful load has occurred
-  // to prevent overwriting cloud data with empty local state at startup.
-  if (!window._fbSyncReady && !force) {
-    console.warn('saveToFirebase: blocked (first load not yet complete)');
-    return false;
-  }
-  
+// ── Core Sync Logic ──────────────────────────
+async function saveToFirebase(silent = false, force = false) {
+  if (_isLocked && !force) return false;
+  _isLocked = true;
   _fbSyncing = true;
+  _fbUpdateStatus();
+
   try {
-    // Prefer in-memory data (most up-to-date) over stored
     const liveData = {
-      ch: (typeof window.SCH!=='undefined' && window.SCH) ? window.SCH : [],
-      pairs: (typeof window.pairs!=='undefined' && window.pairs) ? window.pairs : [],
-      supEx: (()=>{ if(typeof window.supEx==='undefined') return {};
-        const _s={...window.supEx}; delete _s['__c']; return _sanitizeSupEx(_s); })(),
-      clusters: (typeof window.clusters!=='undefined' && window.clusters) ? window.clusters : {},
-      holidays: (typeof window.holidays!=='undefined' && window.holidays) ? window.holidays : [],
-      pairBreaks: (typeof window.pairBreaks!=='undefined' && window.pairBreaks) ? window.pairBreaks : {},
-      managers: (typeof window.managers!=='undefined' && window.managers) ? window.managers : {},
-      blockedDates: (typeof window.blockedDates!=='undefined' && window.blockedDates) ? window.blockedDates : {},
-      gardenBlocks: (typeof window.gardenBlocks!=='undefined' && window.gardenBlocks) ? window.gardenBlocks : {},
-      autoBackupCfg: (typeof window.loadAutoBackupSettings === 'function') ? window.loadAutoBackupSettings() : undefined,
-      piStatusFilter: (()=>{ try{ const s=window._safeLS.getItem(window.PI_ST_KEY); return s?JSON.parse(s):undefined; }catch(e){ return undefined; } })(),
-      vatRate: typeof window.VAT_RATE!=='undefined'?window.VAT_RATE:18,
-      activeGardens: typeof window.activeGardens!=='undefined'&&window.activeGardens?[...window.activeGardens]:null,
-      useSraws: typeof window.useSraws!=='undefined'?window.useSraws:true,
-      invoices: typeof window.INVOICES!=='undefined' ? window.INVOICES : [],
-      _unified: true,
-      _v: '10.3'
+      ch: window.SCH || [],
+      pairs: window.pairs || [],
+      supEx: window.supEx || {},
+      clusters: window.clusters || {},
+      holidays: window.holidays || [],
+      pairBreaks: window.pairBreaks || {},
+      managers: window.managers || {},
+      blockedDates: window.blockedDates || {},
+      gardenBlocks: window.gardenBlocks || {},
+      vatRate: window.VAT_RATE || 18,
+      activeGardens: window.activeGardens ? [...window.activeGardens] : null
     };
-    // Validate: don't overwrite with significantly less data
-    const raw = JSON.stringify(liveData);
-    if(!raw || raw.length < 100) { console.warn('Save aborted: data too small'); return false; }
 
-    // Root Cause Protection: If cloud had schedule/holidays and now we have 0, abort auto-save
-    if(window._fbAppData) {
-      if(window._fbAppData.ch && window._fbAppData.ch.length > 0 && liveData.ch.length === 0) {
-        console.error('CRITICAL: Aborting save - Schedule missing in local state but present in cloud.');
-        if(!silent) alert('שגיאה קריטית: המערכת זיהתה ניסיון דריסת נתוני לוח זמנים. השמירה בוטלה להגנה על המידע.');
-        return false;
-      }
-      if(window._fbAppData.holidays && window._fbAppData.holidays.length > 0 && liveData.holidays.length === 0) {
-        console.error('CRITICAL: Aborting save - Holidays missing in local state but present in cloud.');
-        if(!silent) alert('שגיאה: המערכת זיהתה ניסיון דריסת נתוני חופשות. השמירה בוטלה להגנה על המידע.');
-        return false;
-      }
-    }
+    // Increment Sequence
+    const newSeq = _localSeq + 1;
+    const payload = { data: liveData, ts: Date.now(), seq: newSeq, version: '2.0' };
     
-    // Bandwidth Optimization: don't save if data hasn't changed since last success
-    if(!force && window._fbLastSavedRaw === raw) {
-      if(!silent) console.log('saveToFirebase: skipped (no changes)');
-      // Even if skipped, we are officially in sync with what we expect to be in cloud
-      const nowTs = Date.now();
-      _setFbSaveTs(nowTs); 
-      return true; 
-    }
-
-    _fbSyncing = true;
-    _fbUpdateStatus();
+    let tok = await window._fbUser?.getIdToken(true);
+    const url = FIREBASE_DB_URL + (tok ? '?auth=' + tok : '');
     
-    // Update indicator to "Saving..."
-    const _bi=document.getElementById('backup-ind');
-    if(_bi){_bi.textContent='⏳ שומר...';_bi.classList.add('show');}
-
-    const nowTs = Date.now();
-    const payload = { data: JSON.parse(raw), ts: nowTs, version: '10.2' };
-    console.log('Saving to Firebase: SCH=', (JSON.parse(raw).ch||[]).length, '| INVOICES=', (JSON.parse(raw).invoices||[]).length);
-    // Always refresh token before saving (prevents 401 on mobile)
-    let _saveTok = null;
-    if(window._fbUser){ try{ _saveTok = await window._fbUser.getIdToken(false); }catch(te){ try{ _saveTok = await window._fbUser.getIdToken(true); }catch(te2){} } }
-    if(!_saveTok && window._fbGetToken) _saveTok = await window._fbGetToken();
-    const _saveQ   = _saveTok ? '?auth=' + _saveTok : '';
-    // ── Conflict guard: detect if another device saved since our last load ──
-    try {
-      const _tsUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/ts.json';
-      const _cR = await fetch(_tsUrl + (_saveTok ? '?auth='+_saveTok : ''));
-      if (_cR.ok) {
-        const _remoteTs = await _cR.json();
-        const _myLastTs = _fbLastOwnSaveTs || _fbLastSaveTs || 0;
-        if (!force && _remoteTs && typeof _remoteTs === 'number' && _remoteTs > _myLastTs) {
-          if (!silent) {
-            const _proceed = confirm('⚠️ מכשיר אחר שמר נתונים ב-' + _fmtTs(_remoteTs) + '\nהמשך ידרוס את השינויים שלו.\nלחץ אישור להמשך, ביטול לטעינת הגרסה החדשה.');
-            if (!_proceed) {
-              _fbSyncing = false;
-              _fbUpdateStatus();
-              await loadFromFirebase(false, true);
-              return false;
-            }
-          }
-        }
-      }
-    } catch(_ce) { /* if conflict check fails, proceed with save */ }
-    // ── End conflict guard ──
-    const payloadStr = JSON.stringify(payload);
-    console.log('Firebase: sending PUT request...', { 
-       size: (payloadStr.length / 1024).toFixed(2) + ' KB',
-       first5: payload.data.ch.slice(0, 5).map(s => ({ d: s.d, a: s.a, st: s.st }))
-    });
-
-    const r = await fetch(FIREBASE_DB_URL + _saveQ, {
+    const r = await fetch(url, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: payloadStr
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
     });
+
+    if (!r.ok) throw new Error('HTTP ' + r.status);
     
-    if (r.ok) {
-      _setFbSaveTs(nowTs);
-      _fbLastOwnSaveTs = nowTs; 
-      window._safeLS.setItem('ganv5_local_ts', String(nowTs));
-      // Fallback: Ensure LocalStorage is also updated with the same data we sent to Firebase
-      window._safeLS.setItem('ganv5', raw);
-      window._mem_ganv5 = raw;
-      
-      // If manual save, prevent immediate reload of potentially stale data
-      if(!silent) window._safeLS.setItem('fb_sync_ignore_until', String(Date.now() + 15000));
-      
-      _fbLastError = null;
-      window._fbLastSavedRaw = raw; 
+    // Save Invoices Separately
+    if (window.INVOICES && window.INVOICES.length > 0) {
+      const invUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json' + (tok ? '?auth=' + tok : '');
+      await fetch(invUrl, { method: 'PUT', body: JSON.stringify(window.INVOICES) });
+    }
 
-      // Also update a standalone timestamp for efficient polling (awaited for reliability)
-      try {
-        const tsUrl = FIREBASE_DB_URL.replace('.json', '/ts.json') + _saveQ;
-        await fetch(tsUrl, { method: 'PUT', body: JSON.stringify(nowTs) });
-      } catch(e) { console.warn('TS update failed', e); }
-      // Show save indicator (small flash)
-      const _bi=document.getElementById('backup-ind');
-      if(_bi){_bi.textContent='☁️ נשמר';_bi.classList.add('show');clearTimeout(_bi._to);_bi._to=setTimeout(()=>_bi.classList.remove('show'),1500);}
-      if (!silent) showToast('✅ סונכרן ל-Firebase ' + _fmtTs(nowTs));
+    _setSyncState(newSeq, Date.now());
+    console.log('[Sync] Saved v' + newSeq);
+    return true;
+  } catch(e) {
+    _setSyncState(null, null, e.message);
+    return false;
+  } finally {
+    _fbSyncing = false;
+    _isLocked = false;
+    _fbUpdateStatus();
+  }
+}
 
-      // Save invoices separately to /data/invoices (different path = no overwrite conflict)
-      if(typeof window.INVOICES!=='undefined' && window.INVOICES.length > 0 && _saveTok){
-        // Root Cause Protection: If cloud had invoices and now we have 0, abort auto-save
-        if((window._fbLastKnownInvoiceCount||0) > 0 && window.INVOICES.length === 0) {
-           console.error('CRITICAL: Aborting separate invoice save - Invoices missing in local state but known in cloud.');
-           return;
-        }
-        const _invObj = {};
-        window.INVOICES.forEach(i=>{ if(i&&i.id) _invObj[i.id]=i; });
-        fetch('https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+_saveTok, {
-          method: 'PUT',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify(_invObj)
-        }).catch(e=>console.warn('Invoice separate save failed:',e));
-      }
-      // Trigger daily backup (async, non-blocking)
-      _runDailyBackupIfNeeded(JSON.parse(raw), _saveTok).catch(()=>{});
+async function loadFromFirebase(silent = false, force = false) {
+  if (_isLocked && !force) return false;
+  _fbSyncing = true;
+  _fbUpdateStatus();
+
+  try {
+    let tok = await window._fbUser?.getIdToken(false);
+    const url = FIREBASE_DB_URL + (tok ? '?auth=' + tok : '');
+    
+    const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'cb=' + Date.now());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    
+    const cloud = await r.json();
+    if (!cloud || !cloud.seq) return true;
+
+    if (!force && cloud.seq <= _localSeq) {
+      _setSyncState(cloud.seq, Date.now());
       return true;
     }
 
-    // If not OK, try to get more info
-    let errorDetail = '';
-    try {
-      const respText = await r.text();
-      errorDetail = respText.substring(0, 200);
-      console.error('Firebase save failed details:', { status: r.status, body: respText });
-    } catch(e) {}
-
-    if (r.status === 401 || r.status === 403) {
-      // Token expired — refresh and retry once
-      try {
-        if(window._fbUser) window._cachedToken = await window._fbUser.getIdToken(true);
-        const newQ = window._cachedToken ? '?auth=' + window._cachedToken : '';
-        const r2 = await fetch(FIREBASE_DB_URL + newQ, {
-          method: 'PUT', headers: {'Content-Type':'application/json'},
-          body: payloadStr
-        });
-        if(r2.ok){ _setFbSaveTs(nowTs); window._safeLS.setItem('ganv5_local_ts',String(nowTs)); return true; }
-      } catch(re){}
+    // Load Invoices Separately
+    const invUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json' + (tok ? '?auth=' + tok : '');
+    const ir = await fetch(invUrl);
+    if (ir.ok) {
+      const invs = await ir.json();
+      cloud.data.invoices = Array.isArray(invs) ? invs : Object.values(invs || {});
     }
 
-    _fbLastError = 'שגיאה ' + r.status + (errorDetail ? ': ' + errorDetail : '');
-    _fbUpdateStatus();
-    if (!silent) showToast('❌ שגיאת סנכרון Firebase (' + r.status + ')');
-    return false;
+    if (window._applyYearData) {
+      window._applyYearData(cloud.data);
+    }
+    
+    _setSyncState(cloud.seq, Date.now());
+    window._fbSyncReady = true;
+    return true;
   } catch(e) {
-    console.error('Firebase save fetch error:', e);
-    _fbLastError = 'שגיאת רשת/Firebase: ' + e.message;
-    if (!silent) showToast('❌ Firebase: ' + e.message);
+    _setSyncState(null, null, e.message);
     return false;
   } finally {
     _fbSyncing = false;
@@ -469,166 +169,14 @@ async function saveToFirebase(silent, force) {
   }
 }
 
-// ── Auto-save debounce ────────────────────────
-function firebaseAutoSave() {
-  clearTimeout(_fbTimer);
-  _fbTimer = setTimeout(() => saveToFirebase(true), 1000);
-}
-
-// ── Apply remote data helper (shared by poll + visibility) ──
-function _applyRemoteData(appData, cloudTs) {
-  if(!appData || Object.keys(appData).length===0) return;
-  window._safeLS.setItem('ganv5', JSON.stringify(appData));
-  _setFbSaveTs(cloudTs);
-  _setFbLoadTs(Date.now());
-  try {
-    const d = typeof appData==='string' ? JSON.parse(appData) : appData;
-    if(typeof window._applyYearData==='function') window._applyYearData(d);
-    window._fbLastKnownInvoiceCount = Math.max(window._fbLastKnownInvoiceCount||0, d.invoices?.length||0);
-    if(typeof window.syncSupplierList==='function') window.syncSupplierList();
-    try{ if(typeof window.renderDash==='function') window.renderDash(); }catch(e){}
-    try{ if(typeof window.renderCal==='function') window.renderCal(); }catch(e){}
-    try{ if(typeof window.renderInvoices==='function') window.renderInvoices(); }catch(e){}
-    try{ if(typeof window.refreshPurchDash==='function') window.refreshPurchDash(); }catch(e){}
-    try{ if(typeof window.refreshAppUI==='function') window.refreshAppUI(); }catch(e){}
-  } catch(e2){ console.warn('Apply remote data error:', e2); }
-  _fbUpdateStatus();
-}
-
-// ── Visibility change: sync when returning to app from background ──
-let _lastVisibilitySync = 0;
-let _lastHiddenAt = 0;
-
-document.addEventListener('visibilitychange', async ()=>{
-  if(window._importInProgress) return; // Block sync during import
-  if(document.visibilityState === 'hidden'){
-    _lastHiddenAt = Date.now();
-    // CRITICAL: Save immediately when leaving the app to prevent data loss
-    if(typeof saveToFirebase === 'function') saveToFirebase(true);
-    return;
-  }
-  const now = Date.now();
-  if(now - _lastVisibilitySync < 3000) return; // throttle 3s
-  _lastVisibilitySync = now;
-  if(!window._fbUser) return;
-  // Restart polling — mobile browsers kill setInterval in background
-  _fbStartPolling();
-  const awayMs = _lastHiddenAt > 0 ? now - _lastHiddenAt : 99999;
-  try{
-    // Force token refresh if away > 5 min (Android/iOS token expiry)
-    const forceRefresh = awayMs > 300000;
-    let tok = null;
-    if(window._fbUser){
-      try{ tok = await window._fbUser.getIdToken(forceRefresh); }
-      catch(te){ try{ tok = await window._fbUser.getIdToken(true); }catch(_){} }
-    }
-    const q = tok ? '&auth='+tok : '';
-    const r = await fetch(FIREBASE_DB_URL+'?cb='+now+q);
-    if(!r.ok) return;
-    const d = await r.json();
-    const cloudTs = d && d.ts ? d.ts : 0;
-    
-    // Only reload if cloud has NEWER data than what we last saved/loaded.
-    // Removed awayMs > 10000 check which was causing accidental overwrites of unsaved local changes.
-    if(cloudTs > 0 && cloudTs > _fbLastSaveTs){
-      _applyRemoteData(d.data||d, cloudTs);
-      _setFbLoadTs(now);
-      showToast('🔄 נתונים עודכנו מהענן');
-    } else {
-      _fbUpdateStatus();
-    }
-  } catch(e){ console.warn('Visibility sync:', e.message); }
-});
-
-// All mobile: pageshow for bfcache restore (back/forward button)
-window.addEventListener('pageshow', async (e)=>{
-  if(!e.persisted) return;
-  if(!window._fbUser) return;
-  _lastVisibilitySync = 0;
-  _fbStartPolling();
-  try{ await loadFromFirebase(true, true); showToast('🔄 נתונים עודכנו'); }catch(ex){}
-});
-
-window.addEventListener('offline', ()=>{ showToast('📵 אין חיבור — שינויים יסונכרנו בהתחברות'); });
-
-
 function _fbStartPolling() {
-  clearInterval(_fbPollTimer);
-  _fbPollTimer = setInterval(async () => {
-    // skip polling if within import protection window
-    const ignoreUntil = parseInt(window._safeLS.get('fb_sync_ignore_until')||'0');
-    if (ignoreUntil > Date.now()) return;
-
-    try {
-      const _pollTok = window._fbGetToken ? await window._fbGetToken() : null;
-      const _pollQ   = _pollTok ? '&auth=' + _pollTok : '';
-      // Fetch ONLY the timestamp field to save bandwidth (3000% cost reduction)
-      const tsUrl = FIREBASE_DB_URL.replace('.json', '/ts.json');
-      const r = await fetch(tsUrl + '?ts=' + Date.now() + _pollQ);
-      if (!r.ok) return;
-      const cloudTs = await r.json();
-      if (cloudTs && typeof cloudTs === 'number' && cloudTs > _fbLastSaveTs) {
-        console.log('Firebase: remote change detected (ts=' + cloudTs + '), reloading full data...');
-        await loadFromFirebase(true, true);
-        showToast('🔄 נתונים עודכנו ממכשיר אחר');
-      }
-    } catch(e) { /* ignore polling errors */ }
-  }, FIREBASE_POLL_INTERVAL);
+  if (_syncTimer) clearInterval(_syncTimer);
+  _syncTimer = setInterval(() => loadFromFirebase(true), FIREBASE_POLL_INTERVAL);
 }
 
-// ── UI helpers ────────────────────────────────
-function odUpdateUI() { _fbUpdateStatus(); }
-
-// ── Heartbeat: ensure save every 2 minutes ───
-const FB_HEARTBEAT_MS = 120000; // 2 minutes
-setInterval(async ()=>{
-  if(!window._fbUser) return; // not logged in
-  if(_fbSyncing) return; // already saving
-  const age = Date.now() - (_fbLastOwnSaveTs||_fbLastSaveTs||0);
-  if(age > FB_HEARTBEAT_MS){
-    console.log('Heartbeat: saving (age='+Math.round(age/1000)+'s)');
-    try{
-      // Refresh token silently first
-      if(window._fbUser) try{ window._cachedToken=await window._fbUser.getIdToken(false); }catch(e){}
-      await saveToFirebase(true);
-    } catch(e){ console.warn('Heartbeat save failed:', e.message); }
-  }
-}, 60000); // check every 60s
-
-function odToggle() {
-  _fbUpdateStatus();
-  const modal = document.getElementById('od-modal');
-  if (modal) modal.classList.toggle('open');
-}
-
-async function fbSyncNow() {
-  await saveToFirebase(false);
-}
-
-async function fbLoadNow() {
-  const ok = await loadFromFirebase(false, true);
-  if (ok) {
-    // _processFirebaseLoad already applied data — just refresh UI
-    try {
-      if(typeof window.renderDash==='function') try{window.renderDash();}catch(e){}
-      if(typeof window.renderCal==='function') try{window.renderCal();}catch(e){}
-      if(typeof window.renderInvoices==='function') try{window.renderInvoices();}catch(e){}
-      if(typeof window.refreshPurchDash==='function') try{window.refreshPurchDash();}catch(e){}
-      if(typeof window.updCounts==='function') try{window.updCounts();}catch(e){}
-      window.showToast('✅ נטענו נתונים מ-Firebase');
-    } catch(e) { console.warn(e); }
-  } else {
-    showToast('ℹ️ הנתונים כבר מעודכנים');
-  }
-}
-
-function ghAutoSave(immediate) { 
-  if(immediate){ 
-    clearTimeout(window._fbTimer);
-    return saveToFirebase(false, true); 
-  } else { 
-    firebaseAutoSave(); 
-    return Promise.resolve(true);
-  }
-}
-window.ghAutoSave = ghAutoSave;
+window.save = saveToFirebase;
+window.load = loadFromFirebase;
+window._onAuthReady = async function() {
+  await loadFromFirebase();
+  _fbStartPolling();
+};

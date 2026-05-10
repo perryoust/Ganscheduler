@@ -466,11 +466,15 @@ async function changeUserPassword(uid, username){
 async function fixData() {
   if (!confirm('האם לבצע תיקון ואיחוד כפילויות לכל הנתונים?\nפעולה זו תסיר כפילויות ותשמור את השינויים לענן.')) return;
   
+  window._MASTER_LOCK = true;
+  window._safeLS.setItem('fb_sync_ignore_until', String(Date.now() + 120000));
+  
   if (window.DataManager && window.DataManager.cleanupDuplicates) {
     window.showCopyToast('⏳ מנקה כפילויות...');
     window.DataManager.cleanupDuplicates();
     window.showCopyToast('⏳ שומר שינויים...');
     const ok = await window.save(true);
+    window._MASTER_LOCK = false;
     if (ok) {
       alert('✅ התיקון הושלם! המערכת תתרענן.');
       location.reload();
@@ -478,6 +482,7 @@ async function fixData() {
       alert('❌ השמירה נכשלה. נסה שוב.');
     }
   } else {
+    window._MASTER_LOCK = false;
     alert('❌ שגיאה: כלי התיקון לא נטען כראוי.');
   }
 }
