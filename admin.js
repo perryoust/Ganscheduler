@@ -459,3 +459,22 @@ async function changeUserPassword(uid, username){
     alert(`✅ הסיסמה של "${username}" שונתה בהצלחה.\n\nסיסמה חדשה: ${newPass}`);
   } catch(e){ showToast('❌ שגיאה: '+e.message); }
 }
+async function fixData() {
+  if (!confirm('האם לבצע תיקון ואיחוד כפילויות לכל הנתונים?\nפעולה זו תסיר כפילויות ותשמור את השינויים לענן.')) return;
+  
+  if (window.DataManager && window.DataManager.cleanupDuplicates) {
+    window.showCopyToast('⏳ מנקה כפילויות...');
+    window.DataManager.cleanupDuplicates();
+    window.showCopyToast('⏳ שומר שינויים...');
+    const ok = await window.save(true);
+    if (ok) {
+      alert('✅ התיקון הושלם! המערכת תתרענן.');
+      location.reload();
+    } else {
+      alert('❌ השמירה נכשלה. נסה שוב.');
+    }
+  } else {
+    alert('❌ שגיאה: כלי התיקון לא נטען כראוי.');
+  }
+}
+window.fixData = fixData;
