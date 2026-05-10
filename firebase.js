@@ -290,7 +290,7 @@ async function saveToFirebase(silent, force) {
       managers: (typeof window.managers!=='undefined' && window.managers) ? window.managers : {},
       blockedDates: (typeof window.blockedDates!=='undefined' && window.blockedDates) ? window.blockedDates : {},
       gardenBlocks: (typeof window.gardenBlocks!=='undefined' && window.gardenBlocks) ? window.gardenBlocks : {},
-      autoBackupCfg: window.loadAutoBackupSettings()||undefined,
+      autoBackupCfg: (typeof window.loadAutoBackupSettings === 'function') ? window.loadAutoBackupSettings() : undefined,
       piStatusFilter: (()=>{ try{ const s=window._safeLS.getItem(window.PI_ST_KEY); return s?JSON.parse(s):undefined; }catch(e){ return undefined; } })(),
       vatRate: typeof window.VAT_RATE!=='undefined'?window.VAT_RATE:18,
       activeGardens: typeof window.activeGardens!=='undefined'&&window.activeGardens?[...window.activeGardens]:null,
