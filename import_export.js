@@ -1,5 +1,6 @@
 /**
  * Bulk Import/Export Schedule Logic
+ * v4.0.0 - Smarter Architecture
  */
 
 window.exportBulkSchedule = async function() {
@@ -7,13 +8,10 @@ window.exportBulkSchedule = async function() {
     alert('שגיאה: ספריית ExcelJS לא נטענה');
     return;
   }
-
   try {
     const workbook = new window.ExcelJS.Workbook();
     const ws = workbook.addWorksheet('Schedule');
     ws.views = [{ rightToLeft: true }];
-
-    // Define columns
     ws.columns = [
       { header: 'Event ID', key: 'id', width: 15 },
       { header: 'תאריך (YYYY-MM-DD)', key: 'd', width: 15 },
@@ -28,43 +26,15 @@ window.exportBulkSchedule = async function() {
       { header: 'טלפון', key: 'p', width: 15 },
       { header: 'הערות', key: 'n', width: 30 }
     ];
-
-    // Style header
     ws.getRow(1).font = { bold: true };
-    ws.getRow(1).alignment = { horizontal: 'center' };
-
-    // Add data
-    const sch = [...(window.SCH || [])].sort((a,b)=>{
-      const ds = (a.d||'').localeCompare(b.d||'');
-      if(ds !== 0) return ds;
-      const ga = window.G(a.g), gb = window.G(b.g);
-      const cs = (ga.city||'').localeCompare(gb.city||'','he');
-      if(cs !== 0) return cs;
-      const pA = window.gardenPair(a.g), pB = window.gardenPair(b.g);
-      const nA = pA ? pA.name : (ga.name||'');
-      const nB = pB ? pB.name : (gb.name||'');
-      const ns = nA.localeCompare(nB, 'he');
-      if(ns !== 0) return ns;
-      return (a.t||'99:99').localeCompare(b.t||'99:99');
-    });
+    const sch = [...(window.SCH || [])].sort((a,b)=>a.d.localeCompare(b.d)||(window.G(a.g).city||'').localeCompare(window.G(b.g).city||'','he'));
     sch.forEach(s => {
       const g = window.G(s.g);
       ws.addRow({
-        id: s.id,
-        d: s.d,
-        g: s.g,
-        garden_name: g ? g.name : '',
-        city: g ? g.city : '',
-        a: s.a || '',
-        act: s.act || '',
-        t: s.t || '',
-        grp: s.grp || 1,
-        st: s.st || 'ok',
-        p: s.p || '',
-        n: s.n || ''
+        id: s.id, d: s.d, g: s.g, garden_name: g ? g.name : '', city: g ? g.city : '',
+        a: s.a || '', act: s.act || '', t: s.t || '', grp: s.grp || 1, st: s.st || 'ok', p: s.p || '', n: s.n || ''
       });
     });
-
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
@@ -72,10 +42,8 @@ window.exportBulkSchedule = async function() {
     a.href = url;
     a.download = `Kids_Schedule_Bulk_${new Date().toISOString().slice(0,10)}.xlsx`;
     a.click();
-    URL.revokeObjectURL(url);
     window.showToast('✅ לוח זמנים יוצא בהצלחה');
   } catch (err) {
-    console.error('Export error:', err);
     alert('שגיאה בייצוא: ' + err.message);
   }
 };
@@ -84,405 +52,161 @@ window.importBulkSchedule = function(input) {
   const file = input.files[0];
   if (!file) return;
 
-  alert('גרסת ייבוא מתקדמת (v3) - מופעלת! מתחיל לקרוא את הקובץ...');
-
   const statusEl = document.getElementById('bulk-import-status');
-  if (statusEl) statusEl.innerHTML = '⏳ מנתח נתונים ומאחד זוגות גנים...';
-
-  if (!window.GARDENS || window.GARDENS.length === 0) {
-    alert('שגיאה: רשימת הגנים לא נטענה. אנא רענן את הדף (F5) ונסה שוב.');
-    return;
-  }
+  if (statusEl) statusEl.innerHTML = '⏳ מנתח נתונים (Smarter Import v4)...';
 
   window._importInProgress = true;
-
   const reader = new FileReader();
   reader.onload = async (e) => {
     try {
       const data = new Uint8Array(e.target.result);
-      if (!window.XLSX) {
-        throw new Error('ספריית XLSX (SheetJS) לא נטענה. אנא רענן את הדף (F5).');
-      }
-      const workbook = window.XLSX.read(data, { type: 'array', cellDates: true });
-
-      const schMap = {};
-      const gardenMap = {};
-      const gardenMapClean = {};
+      if (!window.XLSX) throw new Error('ספריית XLSX לא נטענה');
+      const workbook = window.XLSX.read(data, { type: 'array' });
       
-      const cleanStr = (s) => String(s || '').replace(/[^\u0590-\u05FFa-zA-Z0-9]/g, '').trim();
-      const prefixes = ['גן', 'צהרון', 'ביהס', 'ביס', 'ביתספר', 'ביהס'];
-      const megaClean = (s) => {
-        let str = cleanStr(s);
-        for (let p of prefixes) { if (str.startsWith(p)) { str = str.substring(p.length); break; } }
-        return str;
-      };
-
-      window.GARDENS.forEach(g => { 
-        const name = String(g.name || '').trim();
-        const city = String(g.city || '').trim();
-        gardenMap[name] = g.id;
-        gardenMapClean[cleanStr(name)] = g.id;
-        gardenMapClean[megaClean(name)] = g.id;
-        
-        if (city) {
-          gardenMap[name + '|' + city] = g.id;
-          gardenMapClean[cleanStr(name) + '|' + cleanStr(city)] = g.id;
-          gardenMapClean[megaClean(name) + '|' + cleanStr(city)] = g.id;
-        }
-      });
-
-      const stats = { sheets: 0, rows: 0, imported: 0, skippedGarden: new Set(), skippedDate: 0, skippedEmpty: 0 };
-
-      const now = Date.now();
-      const sheetNames = workbook.SheetNames.slice().sort((a, b) => {
-        const getPrio = (name) => {
-          if (name.includes('השלמה') || name.includes('השלמות')) return 3; // Makeups win (processed last)
-          if (name.includes('חוסר') || name.includes('חוסרים') || name.includes('לא התקיים') || name.includes('לא התקיימו')) return 2; // Missing sheets
-          return 1; // Default sheets
-        };
+      const sheetNames = workbook.SheetNames.sort((a, b) => {
+        const getPrio = n => (/השלמה|השלמות/.test(n) ? 3 : (/חוסר|חוסרים|לא התקיים/.test(n) ? 2 : 1));
         return getPrio(a) - getPrio(b);
       });
-      console.log('[Import] Sheets order:', sheetNames);
 
-      // --- SRAWS LOOKUP (for correct merging) ---
+      const schMap = {};
+      const stats = { sheets: 0, rows: 0, imported: 0, skippedDate: 0, skippedGarden: new Set() };
+      
       const srawsLookup = {};
-      const _norm = s => (s || '').toString().trim().replace(/["'״׳]/g, '').replace(/\s+/g, ' ');
       if (Array.isArray(window.SRAWS)) {
         window.SRAWS.forEach(s => {
-          const k = `${s.d}|${s.g}|${_norm(s.a)}|${s.t}`;
+          const k = `${s.d}|${s.g}|${window.utils.norm(s.a)}|${s.t}`;
           srawsLookup[k] = s.id;
         });
       }
 
-      sheetNames.forEach(sheetName => {
+      for (const sheetName of sheetNames) {
         const sheet = workbook.Sheets[sheetName];
         const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1 });
-        console.log(`[Import] Processing sheet: "${sheetName}" (${rows.length} rows)`);
+        const isExS = /חוסר|חוסרים|לא התקיים/.test(sheetName);
+        const isMkS = /השלמה|השלמות/.test(sheetName);
 
-        const isMakeupSheet = sheetName.includes('השלמה') || sheetName.includes('השלמות');
-        const isMissingSheet = sheetName.includes('חוסר') || sheetName.includes('חוסרים') || sheetName.includes('לא התקיים') || sheetName.includes('לא התקיימו');
-        
-        let headers = {};
-        let headerRowIdx = -1;
+        let colMap = {}, headerRowIdx = -1;
         for (let i = 0; i < Math.min(15, rows.length); i++) {
-          const row = rows[i];
-          if (!row || !Array.isArray(row)) continue;
-          let foundCount = 0;
-          row.forEach(cell => {
-            const val = cleanStr(cell);
-            if (val === 'תאריך' || val.includes('תאריך') || val === 'יום') foundCount++;
-            if (val.includes('גן') || val.includes('צהרון') || val === 'הצהרון') foundCount++;
-            if (val.includes('חוג') || val.includes('ספק') || val.includes('פעילות')) foundCount++;
-          });
-          if (foundCount >= 2) {
+          const r = rows[i];
+          if (r && Array.isArray(r) && r.some(c => /תאריך|גן|חוג/.test(String(c)))) {
             headerRowIdx = i;
-            row.forEach((cell, colIdx) => {
-              if (cell) headers[String(cell).trim()] = colIdx;
-            });
+            r.forEach((c, idx) => { if (c) colMap[window.utils.norm(c)] = idx; });
             break;
           }
         }
+        if (headerRowIdx === -1) continue;
+        stats.sheets++;
 
-        if (headerRowIdx === -1) {
-          console.warn(`[Import] Could not find header in sheet "${sheetName}"`);
-          // If it's not a known "trash" sheet, maybe alert the user
-          if (rows.length > 5 && !sheetName.includes('Sheet')) {
-            alert(`גיליון "${sheetName}" דולג: לא נמצאו עמודות 'תאריך', 'גן' או 'חוג'.\nאנא ודאו שהכותרות נמצאות ב-15 השורות הראשונות.`);
-          }
-          return;
-        }
-
-        const findCol = (possibleNames) => {
-          for (let name of possibleNames) {
-            if (headers[name] !== undefined) return headers[name];
-            for (let h in headers) { if (h === name || h.includes(name)) return headers[h]; }
+        const getCol = (names) => {
+          for (let n of names) {
+            const normN = window.utils.norm(n);
+            if (colMap[normN] !== undefined) return colMap[normN];
+            for (let k in colMap) if (k.includes(normN)) return colMap[k];
           }
           return null;
         };
 
-        const colDate = findCol(['תאריך', 'יום', 'Date']);
-        const colGname = findCol(['שם הצהרון', 'שם צהרון', 'גן', 'הצהרון', 'Garden']);
-        const colCity = findCol(['עיר', 'ישוב', 'יישוב', 'City']);
-        const colSupAct = findCol(['שם החוג', 'שם חוג', 'ספק', 'חוג', 'Activity', 'Supplier']);
-        const colTime = findCol(['שעה', 'זמן', 'Time']);
-        const colGrp = findCol(['קב', 'קבוצה', 'Group']);
-        const colNote = findCol(['הערות', 'הערה', 'Notes']);
-        const colStatus = findCol(['סטטוס', 'מצב', 'Status']);
-
-        if (colDate === null || colGname === null || colSupAct === null) {
-          console.warn(`[Import] Missing critical columns in sheet "${sheetName}"`);
-          return;
-        }
-        stats.sheets++;
+        const cD = getCol(['תאריך', 'date']), cG = getCol(['גן', 'garden']), cS = getCol(['חוג', 'ספק', 'activity']);
+        const cT = getCol(['שעה', 'time']), cGr = getCol(['קבוצה', 'group']), cN = getCol(['הערות', 'notes']), cSt = getCol(['סטטוס', 'status']);
+        if (cD === null || cG === null || cS === null) continue;
 
         for (let i = headerRowIdx + 1; i < rows.length; i++) {
           const row = rows[i];
-          if (!row || row.every(c => !c)) { stats.skippedEmpty++; continue; }
+          if (!row || row.every(c => !c)) continue;
           stats.rows++;
 
-          const getV = (idx) => (idx !== null && row[idx] !== undefined) ? row[idx] : null;
+          const val = (idx) => (idx !== null && row[idx] !== undefined) ? row[idx] : null;
 
-          let formattedDate = '';
-          const rawDate = getV(colDate);
-          if (rawDate instanceof Date) {
-            const safeDate = new Date(rawDate.getTime() + 12 * 60 * 60 * 1000);
-            formattedDate = safeDate.toISOString().slice(0, 10);
-          } else if (typeof rawDate === 'number') {
-            const safeDate = new Date(Math.round((rawDate - 25569) * 86400) * 1000 + 12 * 60 * 60 * 1000);
-            formattedDate = safeDate.toISOString().slice(0, 10);
-          } else if (typeof rawDate === 'string') {
-            const parts = rawDate.split(/[\/\-\.]/);
-            if (parts.length === 3) {
-              if (parts[0].length === 4) {
-                formattedDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-              } else {
-                let d = parts[0].padStart(2, '0'), m = parts[1].padStart(2, '0'), y = parts[2];
-                if (y.length === 2) y = '20' + y;
-                formattedDate = `${y}-${m}-${d}`;
-              }
-            }
+          let d = '';
+          const rd = val(cD);
+          if (rd instanceof Date) d = new Date(rd.getTime() + 12*3600000).toISOString().slice(0, 10);
+          else if (typeof rd === 'number') d = new Date(new Date(1899,11,30).getTime() + rd*86400000 + 12*3600000).toISOString().slice(0, 10);
+          else if (typeof rd === 'string') {
+            const m = rd.match(/(\d{1,2})[\.\/\-](\d{1,2})[\.\/\-](\d{2,4})/);
+            if (m) d = `${m[3].length===2?'20'+m[3]:m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
           }
-          if (!formattedDate || !formattedDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            stats.skippedDate++;
-            continue;
-          }
-          
-          if (!window._debugDatesShown) window._debugDatesShown = [];
-          if (window._debugDatesShown.length < 5) {
-             window._debugDatesShown.push(`מקור: ${rawDate} -> תורגם: ${formattedDate}`);
-          }
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { stats.skippedDate++; continue; }
 
-          const gnameRaw = String(getV(colGname) || '').trim();
-          const cityRaw = String(getV(colCity) || '').trim();
-          
-          let gid = null;
-          if (cityRaw) {
-            gid = gardenMap[gnameRaw + '|' + cityRaw] || 
-                  gardenMapClean[cleanStr(gnameRaw) + '|' + cleanStr(cityRaw)] || 
-                  gardenMapClean[megaClean(gnameRaw) + '|' + cleanStr(cityRaw)];
-          }
-          if (!gid) {
-            gid = gardenMap[gnameRaw] || gardenMapClean[cleanStr(gnameRaw)] || gardenMapClean[megaClean(gnameRaw)];
-          }
-          
-          if (!gid) {
-            if (gnameRaw) stats.skippedGarden.add(gnameRaw);
-            continue;
-          }
+          const gn = String(val(cG) || '').trim();
+          const city = getCol(['עיר', 'ישוב']) !== null ? String(val(getCol(['עיר', 'ישוב'])) || '').trim() : '';
+          const garden = window.utils.findGarden(gn, city);
+          if (!garden) { if (gn) stats.skippedGarden.add(gn); continue; }
 
-          const norm = s => (s || '').toString().trim().replace(/["'״׳]/g, '').replace(/\s+/g, ' ');
-          const nSupRaw = String(getV(colSupAct) || '');
-          const partsSupAct = nSupRaw.split(' - ');
-          const nSupName = norm(partsSupAct[0]);
-          const nActName = norm(partsSupAct[1] || '');
+          const sRaw = String(val(cS) || '');
+          const parts = sRaw.split(' - ');
+          const supplier = window.utils.findSupplier(parts[0]);
+          if (!supplier) continue;
 
-          const supplier = window.getAllSup().find(s => norm(s.name) === nSupName);
-          
-          if (!supplier) {
-            if (i < 50) console.warn(`[Import] Missing match at row ${i}: Supplier="${nSupName}"`);
-            continue;
-          }
-
-          // In this system, activities are strings, not objects.
+          const aName = window.utils.norm(parts[1] || '');
           const acts = typeof window.getSupActs === 'function' ? window.getSupActs(supplier.name) : [];
-          const foundAct = acts.find(a => norm(a) === nActName);
-          const activityName = foundAct || nActName || nSupRaw;
-          const activityId = 0; // Activities don't have numeric IDs
+          const actName = acts.find(a => window.utils.norm(a) === aName) || aName || sRaw;
 
-          let time = '';
-          const timeRaw = getV(colTime);
-          if (timeRaw && typeof timeRaw === 'number') {
-            const totalMinutes = Math.round(timeRaw * 24 * 60);
-            const h = Math.floor(totalMinutes / 60);
-            const m = totalMinutes % 60;
-            time = h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0');
-          } else if (timeRaw && timeRaw instanceof Date) {
-            time = timeRaw.getHours().toString().padStart(2, '0') + ':' + timeRaw.getMinutes().toString().padStart(2, '0');
-          } else if (timeRaw) {
-            time = String(timeRaw).trim().replace(/[^\d:]/g, '').slice(0, 5);
-            if (time.includes(':')) {
-              const p = time.split(':');
-              time = p[0].padStart(2, '0') + ':' + p[1].padStart(2, '0');
-            }
+          let t = '';
+          const rt = val(cT);
+          if (typeof rt === 'number') {
+            const mTot = Math.round(rt * 1440);
+            t = `${Math.floor(mTot/60).toString().padStart(2,'0')}:${(mTot%60).toString().padStart(2,'0')}`;
+          } else if (rt instanceof Date) t = `${rt.getHours().toString().padStart(2,'0')}:${rt.getMinutes().toString().padStart(2,'0')}`;
+          else if (rt) {
+            const tm = String(rt).trim().replace(/[^\d:]/g, '').slice(0, 5);
+            if (tm.includes(':')) { const p = tm.split(':'); t = p[0].padStart(2,'0') + ':' + p[1].padStart(2,'0'); }
           }
 
-          const notes = String(getV(colNote) || '').trim();
-          const grpRaw = getV(colGrp);
-          
-          const isMakeupNote = notes.includes('השלמה');
-          const isActualMakeup = isMakeupSheet || isMakeupNote;
+          const nt = String(val(cN) || '').trim();
+          const isMk = isMkS || nt.includes('השלמה');
+          let st = isExS ? 'nohap' : 'ok';
+          const vSt = window.utils.norm(val(cSt));
+          const lNt = nt.toLowerCase();
 
-          // --- STATUS LOGIC (SMART IMPORT) ---
-          let status = 'ok';
-          if (isMissingSheet) status = 'nohap';
-          
-          const valSt = getV(colStatus);
-          const valNt = notes;
-          
-          // 1. Keywords & Status Extraction
-          const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה', 'מסיבת פורים', 'מסיבות אישיות'];
-          const nohapWords = ['חסר מדריך', 'חוסר מדריך', 'אין מדריך', 'לא התקיים', 'לא הגיע', 'חולה', 'נתקע', 'לא נשאר', 'עזב', 'לא התקיימה', 'לא מרגיש טוב', 'לא עונה', 'טעה ביום', 'טעות בשיבוץ', 'לא מצא חניה', 'איחר לא העביר'];
-          
-          const cleanSt = (valSt || '').toString().trim().replace(/\s+/g, ' ');
-          const lowerNotes = (valNt || '').toString().toLowerCase();
-
-          // 2. Check explicit Status column (Priority 1)
-          if (cleanSt.includes('לא התקיים') || cleanSt.includes('לא בוצע') || cleanSt === 'nohap' || cleanSt === 'לא התקימה') {
-            status = 'nohap';
-          } 
-          else if (cleanSt.includes('בוטל') || cleanSt.includes('מבוטל') || cleanSt === 'can') {
-            status = 'can';
-          }
-          else if (cleanSt.includes('נדחה') || cleanSt === 'post') {
-            status = 'post';
-          }
-          else if (cleanSt.includes('התקיים') || cleanSt.includes('בוצע') || cleanSt === 'done' || cleanSt === 'ok') {
-            status = 'done';
-          }
-          
-          // 3. Fallback to Notes column if status is still default (ok)
-          if (status === 'ok') {
-            const isMovedFrom = lowerNotes.includes('נדחה מ') || lowerNotes.includes('הוזז מ') || lowerNotes.includes('הזזה מ') || lowerNotes.includes('הוקדם מ') || lowerNotes.includes('עבר מ') || lowerNotes.includes('עובר מ');
-            const isMovedTo = lowerNotes.includes('נדחה ל') || lowerNotes.includes('הוזז ל') || lowerNotes.includes('הזזה ל') || lowerNotes.includes('הוקדם ל') || lowerNotes.includes('עבר ל') || lowerNotes.includes('עובר ל');
-            const isPos = lowerNotes.includes('השלמה') || isMovedFrom || (lowerNotes.includes('נדחה') && !isMovedTo);
-
-            if (!isPos) {
-              if (nohapWords.some(w => lowerNotes.includes(w))) {
-                 status = 'nohap';
-                 console.log(`[Import] Row ${i}: Assigned 'nohap' based on notes: "${valNt}"`);
-              }
-              else if (canWords.some(w => lowerNotes.includes(w)) || isMovedTo) status = 'can';
-              else if (lowerNotes.includes('הושלם') || lowerNotes.includes('התקיים') || lowerNotes.includes('בוצע')) status = 'done';
-            }
+          if (/לא התקיים|nohap|לא התקימה/.test(vSt)) st = 'nohap';
+          else if (/בוטל|can/.test(vSt)) st = 'can';
+          else if (/נדחה|post/.test(vSt)) st = 'post';
+          else if (/התקיים|done|ok/.test(vSt)) st = 'done';
+          else if (st === 'ok') {
+            if (['חסר מדריך', 'לא התקיים', 'חוסר מדריך', 'לא הגיע'].some(w => lNt.includes(w))) st = 'nohap';
+            else if (['בוטל', 'מבוטל', 'סגר', 'שביתה'].some(w => lNt.includes(w))) st = 'can';
+            else if (/הושלם|התקיים|בוצע/.test(lNt)) st = 'done';
           }
 
-          let makeupFrom = '';
-          if (isActualMakeup) {
-            const dateMatch = notes.match(/(\d{1,2})[\.\/](\d{1,2})/);
-            if (dateMatch) {
-              const d = dateMatch[1].padStart(2, '0');
-              const m = dateMatch[2].padStart(2, '0');
-              const y = formattedDate.split('-')[0];
-              makeupFrom = `${y}-${m}-${d}`;
-            }
-          }
+          const fullA = actName ? `${supplier.name} - ${actName}` : supplier.name;
+          const sKey = `${d}|${garden.id}|${window.utils.norm(fullA)}|${t}`;
+          const fId = srawsLookup[sKey] || window.utils.getEventId(d, garden.id, supplier.name, actName, t);
 
-          // --- KEY / DEDUPLICATION LOGIC ---
-          const fullSupName = activityName ? (supplier.name + ' - ' + activityName) : supplier.name;
-          const lookupKey = `${formattedDate}|${gid}|${_norm(fullSupName)}|${time}`;
-          const originalId = srawsLookup[lookupKey];
-          
-          const key = `${formattedDate}|${gid}|${cleanStr(supplier.name)}|${cleanStr(activityName)}`;
-          const deterministicId = 'IMP_' + btoa(unescape(encodeURIComponent(key))).replace(/=/g, '').slice(0, 32);
-
-          const finalId = originalId || deterministicId;
-
-          const existing = schMap[finalId];
-          const shouldOverwrite = !existing || status !== 'ok' || existing.st === 'ok';
-
-          if (shouldOverwrite) {
-            schMap[finalId] = {
-              id: finalId,
-              d: formattedDate,
-              g: gid,
-              a: fullSupName,
-              act: activityName,
-              t: time,
-              st: status,
-              nt: notes,
-              grp: (status === 'can' || status === 'nohap') ? 0 : (grpRaw || 1),
-              _makeupFrom: makeupFrom,
-              _isImported: true,
-              _isMakeup: isActualMakeup || undefined
+          if (!schMap[fId] || st !== 'ok' || schMap[fId].st === 'ok') {
+            schMap[fId] = {
+              id: fId, d, g: garden.id, a: fullA, act: actName, t, st, nt,
+              grp: (st === 'can' || st === 'nohap') ? 0 : (val(cGr) || 1),
+              _makeupFrom: isMk ? (nt.match(/(\d{1,2})[\.\/](\d{1,2})/) ? `${d.split('-')[0]}-${nt.match(/(\d{1,2})[\.\/](\d{1,2})/)[2].padStart(2,'0')}-${nt.match(/(\d{1,2})[\.\/](\d{1,2})/)[1].padStart(2,'0')}` : '') : '',
+              _isImported: true, _isMakeup: isMk || undefined
             };
             stats.imported++;
           }
         }
-      });
-
-      console.log('[Import] Finished processing sheets. Map size:', Object.keys(schMap).length);
-
-      const newSCH = [];
-      for (const k in schMap) newSCH.push(schMap[k]);
-
-      if (newSCH.length === 0) {
-        window._importInProgress = false;
-        let msg = 'לא נמצאו נתונים תקינים לעדכון.';
-        if (stats.skippedGarden.size > 0) {
-          msg += '\n\nגנים שלא זוהו:\n' + [...stats.skippedGarden].slice(0, 10).join(', ') + (stats.skippedGarden.size > 10 ? '...' : '');
-        }
-        
-        // Show the debug dates to the user!
-        if (window._debugDatesShown && window._debugDatesShown.length > 0) {
-          alert("נתוני חקירה מהיבוא (אנא צלם מסך ושלח לי):\n\n" + window._debugDatesShown.join("\n"));
-          window._debugDatesShown = [];
-        }
-
-        throw new Error(msg);
-      }
-      
-      // Show the debug dates to the user!
-      if (window._debugDatesShown && window._debugDatesShown.length > 0) {
-        alert("נתוני חקירה מהיבוא (אנא צלם מסך ושלח לי):\n\n" + window._debugDatesShown.join("\n"));
-        window._debugDatesShown = [];
       }
 
-      let summary = `✅ נמצאו ${newSCH.length} פעילויות לעדכון מתוך ${stats.rows} שורות.`;
-      if (stats.skippedGarden.size > 0) summary += `\n⚠️ ${stats.skippedGarden.size} גנים לא זוהו ודולגו.`;
-      if (stats.skippedDate > 0) summary += `\n⚠️ ${stats.skippedDate} שורות דולגו בגלל תאריך לא תקין.`;
-      
-      const firstFew = newSCH.slice(0, 3).map(x => `${x.d}: ${window.G(x.g).name} - ${x.a}`).join('\n');
-      if (confirm(`${summary}\n\nדוגמא לנתונים:\n${firstFew}\n\nשימו לב: פעולה זו תחליף את כל השיבוצים הקיימים בנתונים מהקובץ.\nהאם להמשיך?`)) {
-        if (statusEl) statusEl.innerHTML = '⏳ מסנכרן לבסיס הנתונים...';
+      const newSCH = Object.values(schMap);
+      if (newSCH.length === 0) throw new Error('לא נמצאו נתונים תקינים');
+
+      if (confirm(`✅ נמצאו ${newSCH.length} פעילויות.\nהאם לעדכן?`)) {
         window.SCH = newSCH;
-        window.useSraws = false; // Disable merging with static sraws.json
-        
-        // Force Firebase to see this as a "fresh" change by clearing the comparison cache
-        window._fbLastSavedRaw = null;
-
-        console.log('[Import] Saving new schedule...', { count: newSCH.length });
-        let saveOk = false;
-        try {
-          // Use window.save(true) to update BOTH LocalStorage and Firebase
-          // This prevents the "revert to old data" bug on page reload.
-          saveOk = await window.save(true);
-          console.log('[Import] save result:', saveOk);
-        } catch (err) {
-          console.error('[Import] save failed:', err);
-          throw new Error('שגיאה בשמירה: ' + err.message);
-        }
-
-        if (saveOk) {
-          if (typeof window.showToast === 'function') window.showToast('✅ הייבוא הושלם בהצלחה! מרענן...', 3000);
-          else if (statusEl) statusEl.innerHTML = '✅ העדכון הושלם בהצלחה! מרענן דף...';
-          
-          // CRITICAL: Prevent the app from loading stale cloud data immediately after reload.
-          // Firebase might have a slight delay or browser cache might interfere.
+        window.useSraws = false;
+        const ok = await window.save(true);
+        if (ok) {
           window._safeLS.setItem('fb_sync_ignore_until', String(Date.now() + 60000));
-          
-          // CRITICAL: Give Firebase enough time to finish the PUT request (3MB+ can take time)
-          // We wait 15 seconds before reloading to be safe.
-          window._importInProgress = false; 
-          let countdown = 15;
-          const interval = setInterval(() => {
-            countdown--;
-            if (statusEl) statusEl.innerHTML = `✅ הייבוא נשמר בענן! מרענן בעוד ${countdown} שניות...`;
-            if (countdown <= 0) {
-              clearInterval(interval);
-              location.reload();
-            }
-          }, 1000);
-        } else {
-          const detailedErr = window._fbLastError ? `\nפירוט: ${window._fbLastError}` : '';
-          throw new Error('השמירה ל-Firebase נכשלה. בדוק חיבור לאינטרנט.' + detailedErr);
-        }
+          let sec = 5, cd = document.createElement('div');
+          cd.style = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.9);color:white;padding:30px;border-radius:15px;z-index:10000;text-align:center';
+          const u = () => {
+            cd.innerHTML = `<h3>הייבוא הושלם!</h3><p>מרענן בעוד <b>${sec}</b>...</p>`;
+            if (sec <= 0) location.reload(); else { sec--; setTimeout(u, 1000); }
+          };
+          document.body.appendChild(cd);
+          u();
+        } else alert('השמירה נכשלה');
       }
     } catch (err) {
-      console.error('[Import] Fatal error:', err);
-      window._importInProgress = false;
-      alert('❌ שגיאה בייבוא: ' + err.message);
-      if (statusEl) statusEl.innerHTML = '❌ שגיאה';
+      alert('❌ שגיאה: ' + err.message);
     } finally {
+      window._importInProgress = false;
       input.value = '';
     }
   };
