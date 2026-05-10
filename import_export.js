@@ -61,8 +61,7 @@ window.importBulkSchedule = function(input) {
     try {
       const data = new Uint8Array(e.target.result);
       if (!window.XLSX) throw new Error('ספריית XLSX לא נטענה');
-      const workbook = window.XLSX.read(data, { type: 'array' });
-      
+      const workbook = window.XLSX.read(data, { type: 'array', cellDates: true });
       const sheetNames = workbook.SheetNames.sort((a, b) => {
         const getPrio = n => (/השלמה|השלמות/.test(n) ? 3 : (/חוסר|חוסרים|לא התקיים/.test(n) ? 2 : 1));
         return getPrio(a) - getPrio(b);
@@ -88,13 +87,27 @@ window.importBulkSchedule = function(input) {
         let colMap = {}, headerRowIdx = -1;
         for (let i = 0; i < Math.min(15, rows.length); i++) {
           const r = rows[i];
-          if (r && Array.isArray(r) && r.some(c => /תאריך|גן|חוג/.test(String(c)))) {
+          if (!r || !Array.isArray(r)) continue;
+          
+          let found = 0;
+          r.forEach(c => {
+            const s = String(c||'');
+            if (/תאריך|date|יום/.test(s)) found++;
+            if (/גן|garden|צהרון/.test(s)) found++;
+            if (/חוג|ספק|activity/.test(s)) found++;
+          });
+
+          if (found >= 2) {
             headerRowIdx = i;
             r.forEach((c, idx) => { if (c) colMap[window.utils.norm(c)] = idx; });
+            console.log(`[Import] Found headers on row ${i} in sheet "${sheetName}":`, colMap);
             break;
           }
         }
-        if (headerRowIdx === -1) continue;
+        if (headerRowIdx === -1) {
+          console.warn(`[Import] No headers found in sheet "${sheetName}"`);
+          continue;
+        }
         stats.sheets++;
 
         const getCol = (names) => {
