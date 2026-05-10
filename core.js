@@ -207,25 +207,69 @@ function openSupCardFromPurch(name){
 
 
 function _applyYearData(o){
-  if(o.ch){
-    window.useSraws = (o.useSraws !== false);
-    if(SRAWS.length>0 && window.useSraws){
-      // SRAWS loaded: merge SRAWS base data with saved changes
-      const m={};o.ch.forEach(x=>m[x.id]=x);
-      window.SCH = SRAWS.map(s=>{const x=m[s.id];return x?{...s,...x}:s;});
-      // Include user-created schedules (not in SRAWS) that have full data
-      const srawsIds=new Set(SRAWS.map(s=>s.id));
-      window.SCH.push(...o.ch.filter(x=>!srawsIds.has(x.id)&&x.g&&x.d&&x.a));
-    } else {
-      // SRAWS not loaded OR explicitly disabled: preserve ALL ch entries with defaults for missing fields
-      window.SCH = o.ch.map(x=>({g:0,d:'',a:'',t:'',p:'',n:'',st:'ok',cr:'',cn:'',nt:'',pd:'',pt:'',grp:1,...x}))
-             .filter(x=>x.g&&x.d);
-    }
-  } else if (window.SCH && window.SCH.length > 0) {
-    console.warn('Firebase data missing "ch" key. Preserving existing memory state.');
+  if(!o || !o.ch){
+    window.SCH = SRAWS.map(s=>({...s,st:'ok',nt:s.n||'',grp:1}));
   } else {
-    window.SCH = SRAWS.map(s=>({...s,st:'ok',cr:'',cn:'',nt:s.n||'',pd:'',pt:'',grp:1}));
+    // 1. Map SRAWS by fuzzy key for merging imported data
+    const srawsFuzzy = {};
+    const clean = (a) => (window.utils ? window.utils.megaClean(a) : String(a||'').toLowerCase().trim());
+    
+    SRAWS.forEach(s => {
+      const k = `${s.d}|${s.g}|${clean(s.a)}|${(s.t||'').slice(0,5)}`;
+      srawsFuzzy[k] = s;
+    });
+
+    // 2. Process changes from cloud/backup
+    const m = {}; // SRAWS ID -> Final Object
+    const manual = []; // Non-SRAWS manual/imported records
+    
+    o.ch.forEach(x => {
+      if(!x.d || !x.g) return;
+      
+      const isManualId = String(x.id).startsWith('e_');
+      if (!isManualId) {
+        // Direct SRAWS ID match
+        m[x.id] = {...(m[x.id]||{}), ...x};
+      } else {
+        // Imported/Manual record: attempt fuzzy match with SRAWS
+        const k = `${x.d}|${x.g}|${clean(x.a)}|${(x.t||'').slice(0,5)}`;
+        if (srawsFuzzy[k]) {
+          const s = srawsFuzzy[k];
+          // Merge imported data into the SRAWS slot
+          m[s.id] = {...s, ...(m[s.id]||{}), ...x, id: s.id};
+        } else {
+          manual.push(x);
+        }
+      }
+    });
+
+    // 3. Assemble SCH: SRAWS (merged) + remaining Manual
+    window.SCH = SRAWS.map(s => {
+      const x = m[s.id];
+      return x ? {...s, ...x} : s;
+    });
+    
+    // Merge manual records (deduplicated by fuzzy key)
+    const manualSeen = {};
+    manual.forEach(x => {
+      const k = `${x.d}|${x.g}|${clean(x.a)}|${(x.t||'').slice(0,5)}`;
+      if(!manualSeen[k]) {
+        manualSeen[k] = x;
+        window.SCH.push(x);
+      } else {
+        // Already have this manual record? Merge it (prefer non-ok status)
+        if(x.st !== 'ok') manualSeen[k].st = x.st;
+        if(x.nt) manualSeen[k].nt = (manualSeen[k].nt ? manualSeen[k].nt + ' | ' + x.nt : x.nt);
+      }
+    });
   }
+
+  // 4. Final integrity cleanup
+  if(window.DataManager && window.DataManager.cleanupDuplicates) {
+    window.DataManager.cleanupDuplicates();
+  }
+
+  // REST OF THE FUNCTION (Pairs, Invoices, etc.)
   if(Array.isArray(o.pairs)&&o.pairs.length>0){
     window.pairs = o.pairs.map(p=>({...p,ids:p.ids.map(id=>parseInt(id)).filter(id=>G(id).id)}));
     window.pairs = pairs.filter(p=>p.ids.length>=2);

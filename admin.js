@@ -464,26 +464,34 @@ async function changeUserPassword(uid, username){
   } catch(e){ showToast('❌ שגיאה: '+e.message); }
 }
 async function fixData() {
-  if (!confirm('האם לבצע תיקון ואיחוד כפילויות לכל הנתונים?\nפעולה זו תסיר כפילויות ותשמור את השינויים לענן.')) return;
+  if (!confirm('🛠️ "סופר תיקון" נתונים:\n1. מחיקת מטמון מקומי.\n2. טעינה מחדש מהענן.\n3. איחוד כפילויות אגרסיבי.\n4. שמירה סופית לענן.\n\nלהמשיך?')) return;
   
-  window._MASTER_LOCK = true;
-  window._safeLS.setItem('fb_sync_ignore_until', String(Date.now() + 120000));
-  
-  if (window.DataManager && window.DataManager.cleanupDuplicates) {
-    window.showCopyToast('⏳ מנקה כפילויות...');
-    window.DataManager.cleanupDuplicates();
-    window.showCopyToast('⏳ שומר שינויים...');
-    const ok = await window.save(true);
-    window._MASTER_LOCK = false;
+  try {
+    window.showCopyToast('⏳ מנקה מטמון וטוען מהענן...');
+    localStorage.removeItem('ganv5');
+    localStorage.removeItem('_fbSeq');
+    window._localSeq = 0;
+    
+    // Force load from cloud (ignoring local)
+    await window.load(true, true);
+    
+    window.showCopyToast('⏳ מבצע איחוד כפילויות עמוק...');
+    if (window.DataManager && window.DataManager.cleanupDuplicates) {
+      window.DataManager.cleanupDuplicates();
+    }
+    
+    window.showCopyToast('⏳ שומר גרסה נקייה לענן...');
+    const ok = await window.save(true, true);
+    
     if (ok) {
-      alert('✅ התיקון הושלם! המערכת תתרענן.');
+      alert('✅ הנתונים תוקנו וסונכרנו! המערכת תתרענן כעת.');
       location.reload();
     } else {
-      alert('❌ השמירה נכשלה. נסה שוב.');
+      alert('❌ השמירה נכשלה. נסה שוב מאוחר יותר.');
     }
-  } else {
-    window._MASTER_LOCK = false;
-    alert('❌ שגיאה: כלי התיקון לא נטען כראוי.');
+  } catch(e) {
+    console.error(e);
+    alert('❌ שגיאה בתהליך התיקון: ' + e.message);
   }
 }
 window.fixData = fixData;

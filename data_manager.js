@@ -71,9 +71,16 @@ window.DataManager = {
     const toKeep = [];
     const before = window.SCH.length;
     
+    const aggressiveClean = (a) => {
+      if(!a) return '';
+      // Remove text in parentheses, strip common suffixes, trim
+      let s = String(a).replace(/\(.*\)/g, '').split('-')[0].split('/')[0];
+      return (window.utils ? window.utils.megaClean(s) : s.toLowerCase().trim());
+    };
+
     window.SCH.forEach(s => {
       if (!s.d || !s.g) return;
-      const normA = (window.utils ? window.utils.megaClean(s.a) : String(s.a||'').toLowerCase().trim());
+      const normA = aggressiveClean(s.a);
       const normT = (s.t || '').slice(0, 5);
       const normG = Number(s.g);
       const k = `${s.d}|${normG}|${normA}|${normT}`;
@@ -83,20 +90,26 @@ window.DataManager = {
         toKeep.push(s);
       } else {
         const existing = seen[k];
-        // Prioritize non-ok status (exceptions)
+        // 1. Prioritize non-ok status (exceptions)
         if (s.st !== 'ok' && existing.st === 'ok') existing.st = s.st;
-        // Merge unique notes
+        // 2. Merge unique notes
         if (s.nt && existing.nt !== s.nt) {
           if (!existing.nt.includes(s.nt)) existing.nt = (existing.nt ? existing.nt + ' | ' + s.nt : s.nt);
         }
-        // Keep the record that looks more like a manual edit
-        if (String(s.id).startsWith('e_')) existing.id = s.id;
+        // 3. Prefer manual ID (e_...) but keep track of original SRAWS ID if possible
+        if (String(s.id).startsWith('e_') && !String(existing.id).startsWith('e_')) {
+           // existing is SRAWS, s is manual. Keep SRAWS ID for cloud mapping but take s's data
+           Object.assign(existing, s, {id: existing.id}); 
+        } else if (String(s.id).startsWith('e_')) {
+           existing.id = s.id;
+        }
+        
         if (!existing.act && s.act) existing.act = s.act;
         if (s.grp > existing.grp) existing.grp = s.grp;
       }
     });
     
     window.SCH = toKeep;
-    console.log(`[DataManager] Cleanup: Merged ${before - toKeep.length} duplicates.`);
+    console.log(`[DataManager] Aggressive Cleanup: Merged ${before - toKeep.length} duplicates. Result: ${toKeep.length}`);
   }
 };
