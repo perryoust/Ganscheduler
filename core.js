@@ -294,6 +294,9 @@ function _applyYearData(o){
   window.gardenBlocks = o.gardenBlocks||{};
   window.managers = o.managers||{};
   activeGardens = Array.isArray(o.activeGardens)?new Set(o.activeGardens):null;
+  if(window.DataManager && window.DataManager.cleanupDuplicates) {
+    window.DataManager.cleanupDuplicates();
+  }
 }
 
 function load(){
@@ -727,7 +730,13 @@ window.onload = function(){
     try{ renderInvoices(); }catch(e){}
     const _inv = typeof INVOICES!=='undefined'?INVOICES.length:0;
     const _sch = typeof SCH!=='undefined'?SCH.length:0;
-    console.log('App fully ready: SCH = ',_sch,'INVOICES = ',_inv);
+    // AUTO-CLEANUP if duplicated (20k records detected)
+    if (_sch > 15000 && window.DataManager && window.DataManager.cleanupDuplicates) {
+      console.warn('[Core] Data bloat detected! Cleaning duplicates...');
+      window.DataManager.cleanupDuplicates();
+      window.save(true); // Persist cleanup
+    }
+    console.log('App fully ready: SCH = ',window.SCH.length,'INVOICES = ',_inv);
     _fbStartPolling();
     setTimeout(_fitScrollAreas, 100);
     try{ _ensureAdminProfile(); }catch(e){}

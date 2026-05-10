@@ -13,8 +13,9 @@ window.utils = {
   },
 
   megaClean: function(s) {
+    if (!s) return '';
     let str = this.norm(s);
-    // Common prefixes to ignore during matching
+    // 1. Strip common prefixes
     const prefixes = ['גן', 'צהרון', 'ביהס', 'ביס', 'ביתספר', 'בית ספר'];
     for (let p of prefixes) {
       if (str.startsWith(p)) {
@@ -22,6 +23,8 @@ window.utils = {
         break;
       }
     }
+    // 2. Strip anything after dash or slash for fuzzy matching
+    str = str.split(' - ')[0].split(' / ')[0].split('-')[0].trim();
     return str;
   },
 

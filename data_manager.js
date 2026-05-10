@@ -72,18 +72,27 @@ window.DataManager = {
     const before = window.SCH.length;
     
     window.SCH.forEach(s => {
-      const normA = (window.utils ? window.utils.megaClean(s.a) : s.a);
+      if (!s.d || !s.g) return;
+      const normA = (window.utils ? window.utils.megaClean(s.a) : String(s.a||'').toLowerCase().trim());
       const normT = (s.t || '').slice(0, 5);
-      const k = `${s.d}|${Number(s.g)}|${normA}|${normT}`;
+      const normG = Number(s.g);
+      const k = `${s.d}|${normG}|${normA}|${normT}`;
       
       if (!seen[k]) {
         seen[k] = s;
         toKeep.push(s);
       } else {
-        // MERGE: If existing is 'ok' but duplicate is 'nohap', use 'nohap'
-        if (s.st !== 'ok') seen[k].st = s.st;
-        if (s.nt) seen[k].nt = (seen[k].nt ? seen[k].nt + ' | ' + s.nt : s.nt);
-        if (s.grp > 0) seen[k].grp = s.grp;
+        const existing = seen[k];
+        // Prioritize non-ok status (exceptions)
+        if (s.st !== 'ok' && existing.st === 'ok') existing.st = s.st;
+        // Merge unique notes
+        if (s.nt && existing.nt !== s.nt) {
+          if (!existing.nt.includes(s.nt)) existing.nt = (existing.nt ? existing.nt + ' | ' + s.nt : s.nt);
+        }
+        // Keep the record that looks more like a manual edit
+        if (String(s.id).startsWith('e_')) existing.id = s.id;
+        if (!existing.act && s.act) existing.act = s.act;
+        if (s.grp > existing.grp) existing.grp = s.grp;
       }
     });
     

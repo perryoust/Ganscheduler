@@ -75,6 +75,7 @@ function updateAppFromHTML(input){
 
 function importBackup(input){
   const file=input.files[0];if(!file)return;
+  window._importInProgress = true;
   const r=new FileReader();
   r.onload = async e => {
     try{
@@ -96,16 +97,24 @@ function importBackup(input){
       }
       window._safeLS.setItem('ganv5_y_'+meta.currentYear,json);
       
-      // CRITICAL: Ensure it saves to Firebase before reload
+      // CRITICAL: Set protection BEFORE save to block race conditions
+      window._safeLS.setItem('fb_sync_ignore_until', String(Date.now() + 60000));
+      
       if(window.save) {
         window.showCopyToast('⏳ שומר ל-Firebase...');
-        await window.save(true);
-        window._safeLS.setItem('fb_sync_ignore_until', String(Date.now() + 60000));
+        const ok = await window.save(true);
+        if(!ok) console.error('[Import] Firebase save failed, but LS is updated.');
       }
 
       window.showCopyToast('✅ ייבוא הצליח! טוען מחדש...');
-      setTimeout(()=>location.reload(),1400);
-    }catch(err){alert('שגיאה בקובץ: '+err.message);}
+      setTimeout(()=> {
+        window._importInProgress = false;
+        location.reload();
+      }, 1400);
+    }catch(err){
+      window._importInProgress = false;
+      alert('שגיאה בקובץ: '+err.message);
+    }
   };
   r.readAsText(file);
 }
