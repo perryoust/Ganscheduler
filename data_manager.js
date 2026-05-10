@@ -25,6 +25,8 @@ window.DataManager = {
         console.log(`[Upsert Debug] UPDATING existing record for ${gn}: ID=${record.id}, OldSt=${existing.st}, NewSt=${record.st}`);
       }
       window.SCH[existingIdx] = { ...existing, ...record };
+      // Preserve existing 'act' if the new one is empty
+      if (!record.act && existing.act) window.SCH[existingIdx].act = existing.act;
       return 'updated';
     } else {
       const gn = (typeof window.G === 'function' ? window.G(record.g).name : record.g);
@@ -37,29 +39,8 @@ window.DataManager = {
   },
 
   importBulk: async function(records) {
-    let stats = { created: 0, updated: 0, cleaned: 0 };
+    let stats = { created: 0, updated: 0 };
     
-    // 1. Cleanup Pre-existing duplicates in SCH before import
-    // (If two records have the same Date|Garden|Supplier|Time but different IDs)
-    const seen = new Set();
-    const toRemove = [];
-    window.SCH.forEach((s, idx) => {
-      const normA = window.utils.megaClean(s.a);
-      const normT = (s.t || '').slice(0, 5);
-      const k = `${s.d}|${Number(s.g)}|${normA}|${normT}`;
-      if (seen.has(k)) {
-        toRemove.push(idx);
-      } else {
-        seen.add(k);
-      }
-    });
-    if (toRemove.length > 0) {
-      // Remove from end to start to keep indices valid
-      toRemove.sort((a,b) => b - a).forEach(idx => window.SCH.splice(idx, 1));
-      stats.cleaned = toRemove.length;
-      console.log(`[DataManager] Cleaned ${stats.cleaned} duplicate keys from SCH`);
-    }
-
     records.forEach(r => {
       const res = this.upsert(r);
       if (res === 'created') stats.created++;

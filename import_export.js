@@ -150,7 +150,7 @@ window.importBulkSchedule = function(input) {
           }
 
           recordsToUpsert.push({
-            id: fId, d, g: garden.id, a: supplier.name, act: '', t, st, nt,
+            id: fId, d, g: garden.id, a: supplier.name, t, st, nt,
             grp: (st === 'can' || st === 'nohap') ? 0 : (parseInt(rawGr) || 1),
             _isImported: true
           });
