@@ -76,10 +76,11 @@ window.importBulkSchedule = function(input) {
         const idxG = getC(['שם הצהרון', 'גן'], 3);
         const idxC = getC(['עיר'], 1);
         const idxA = getC(['שם החוג', 'ספק', 'חוג'], 8);
+        const idxGr = getC(['קבוצות', 'קב'], 10);
         const idxT = getC(['שעה'], 11);
         const idxN = getC(['הערות'], 12);
 
-        console.log(`[Import] Sheet: ${sheetName}, HeaderRow: ${bestHeader.idx}, Indices: D=${idxD}, G=${idxG}, A=${idxA}`);
+        console.log(`[Import] Sheet: ${sheetName}, HeaderRow: ${bestHeader.idx}, Indices: D=${idxD}, G=${idxG}, A=${idxA}, Gr=${idxGr}`);
         stats.sheets++;
 
         for (let i = (bestHeader.idx === -1 ? 1 : bestHeader.idx + 1); i < rows.length; i++) {
@@ -87,7 +88,7 @@ window.importBulkSchedule = function(input) {
           if (!row || row.length < 5) continue;
           stats.rows++;
 
-          // 1. Date Parsing
+          // ... (Date and Garden Parsing remains same)
           let d = '';
           const rd = row[idxD];
           if (rd instanceof Date) d = rd.toISOString().slice(0, 10);
@@ -98,16 +99,14 @@ window.importBulkSchedule = function(input) {
           }
           if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { stats.noDate++; continue; }
 
-          // 2. Garden Parsing
           const gn = String(row[idxG] || '').trim();
           const city = String(row[idxC] || '').trim();
           if (!gn) continue;
           const garden = window.utils.findGarden(gn, city);
           if (!garden) { stats.noGarden++; continue; }
 
-          // 3. Activity/Supplier Parsing
           const rawA = String(row[idxA] || '').trim();
-          if (!rawA || rawA === 'null') { stats.skipped++; continue; } // Skip placeholder rows
+          if (!rawA || rawA === 'null') { stats.skipped++; continue; }
           const supplier = window.utils.findSupplier(rawA);
           if (!supplier) { stats.skipped++; continue; }
 
@@ -122,20 +121,28 @@ window.importBulkSchedule = function(input) {
             if (tm) t = tm[1].padStart(2,'0') + ':' + tm[2].padStart(2,'0');
           }
 
-          // 5. Status Parsing (Exceptions)
+          // 5. Status Parsing (CRITICAL: Groups Check)
+          const rawGr = row[idxGr];
           const nt = String(row[idxN] || '').trim();
           let st = 'ok';
-          const lnt = nt.toLowerCase();
-          if (/לא התקיים|חסר מדריך|לא הגיע|חוסר מדריך/.test(lnt)) st = 'nohap';
-          else if (/בוטל|מבוטל/.test(lnt)) st = 'can';
-          else if (/הושלם|בוצע|התקיים/.test(lnt)) st = 'done';
+          
+          // User logic: If groups is empty -> didn't occur (nohap)
+          if (rawGr === undefined || rawGr === null || String(rawGr).trim() === '') {
+            st = 'nohap';
+          } else {
+            const lnt = nt.toLowerCase();
+            if (/לא התקיים|חסר מדריך|לא הגיע|חוסר מדריך/.test(lnt)) st = 'nohap';
+            else if (/בוטל|מבוטל/.test(lnt)) st = 'can';
+            else if (/הושלם|בוצע|התקיים/.test(lnt)) st = 'done';
+          }
 
           const sKey = `${d}|${garden.id}|${window.utils.norm(supplier.name)}|${t}`;
+          // Use supplier.name for ID consistency
           const fId = srawsLookup[sKey] || window.utils.getEventId(d, garden.id, supplier.name, '', t);
 
           recordsToUpsert.push({
             id: fId, d, g: garden.id, a: supplier.name, act: '', t, st, nt,
-            grp: (st === 'can' || st === 'nohap') ? 0 : 1,
+            grp: (st === 'can' || st === 'nohap') ? 0 : (parseInt(rawGr) || 1),
             _isImported: true
           });
           stats.imported++;
