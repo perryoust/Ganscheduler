@@ -144,6 +144,16 @@ window.importBulkSchedule = function(input) {
       });
       console.log('[Import] Sheets order:', sheetNames);
 
+      // --- SRAWS LOOKUP (for correct merging) ---
+      const srawsLookup = {};
+      const _norm = s => (s || '').toString().trim().replace(/["'״׳]/g, '').replace(/\s+/g, ' ');
+      if (Array.isArray(window.SRAWS)) {
+        window.SRAWS.forEach(s => {
+          const k = `${s.d}|${s.g}|${_norm(s.a)}|${s.t}`;
+          srawsLookup[k] = s.id;
+        });
+      }
+
       sheetNames.forEach(sheetName => {
         const sheet = workbook.Sheets[sheetName];
         const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1 });
@@ -358,27 +368,24 @@ window.importBulkSchedule = function(input) {
           }
 
           // --- KEY / DEDUPLICATION LOGIC ---
-          // Use date, garden ID, supplier AND activity to ensure different
-          // lessons from the same supplier on the same day are not merged.
-          const key = `${formattedDate}|${gid}|${cleanStr(supplier.name)}|${cleanStr(activityName)}`;
+          const fullSupName = activityName ? (supplier.name + ' - ' + activityName) : supplier.name;
+          const lookupKey = `${formattedDate}|${gid}|${_norm(fullSupName)}|${time}`;
+          const originalId = srawsLookup[lookupKey];
           
-          // Deterministic ID generation based on the key
-          // This ensures that the same row in Excel always maps to the same ID in the system.
+          const key = `${formattedDate}|${gid}|${cleanStr(supplier.name)}|${cleanStr(activityName)}`;
           const deterministicId = 'IMP_' + btoa(unescape(encodeURIComponent(key))).replace(/=/g, '').slice(0, 32);
 
-          const existing = schMap[key];
-          // Overwrite if:
-          // 1. It's the first time we see this activity
-          // 2. OR the current row has a non-standard status (missing/makeup)
-          // 3. OR the existing one was 'ok' and this one is also 'ok' (latest win)
+          const finalId = originalId || deterministicId;
+
+          const existing = schMap[finalId];
           const shouldOverwrite = !existing || status !== 'ok' || existing.st === 'ok';
 
           if (shouldOverwrite) {
-            schMap[key] = {
-              id: deterministicId,
+            schMap[finalId] = {
+              id: finalId,
               d: formattedDate,
               g: gid,
-              a: supplier.name,
+              a: fullSupName,
               act: activityName,
               t: time,
               st: status,
