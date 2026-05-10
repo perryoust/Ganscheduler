@@ -35,7 +35,7 @@ window.importBulkSchedule = function(input) {
         list.forEach(s => {
           const normA = window.utils.megaClean(s.a);
           const normT = (s.t || '').slice(0, 5);
-          const k = `${s.d}|${s.g}|${normA}|${normT}`;
+          const k = `${s.d}|${Number(s.g)}|${normA}|${normT}`;
           schLookup[k] = s.id;
         });
       };
@@ -142,8 +142,8 @@ window.importBulkSchedule = function(input) {
           }
 
           const normA = window.utils.megaClean(supplier.name);
-          const sKey = `${d}|${garden.id}|${normA}|${t}`;
-          const fId = schLookup[sKey] || window.utils.getEventId(d, garden.id, supplier.name, '', t);
+          const sKey = `${d}|${Number(garden.id)}|${normA}|${t}`;
+          const fId = schLookup[sKey] || window.utils.getEventId(d, Number(garden.id), supplier.name, '', t);
 
           if (gn.includes('צלף') || gn.includes('רוזמרין')) {
              console.log(`[Import Debug] Garden: ${gn}, Date: ${d}, Time: ${t}, Groups: "${rawGr}", Set Status: ${st}, ID: ${fId}, SCH Match: ${!!schLookup[sKey]}`);
@@ -167,8 +167,8 @@ window.importBulkSchedule = function(input) {
         const ok = await window.save(true);
         if (ok) {
           window._safeLS.setItem('fb_sync_ignore_until', String(Date.now() + 60000));
-          alert('הייבוא הושלם בהצלחה! המערכת תתרענן כעת.');
-          location.reload();
+          alert('הייבוא הושלם בהצלחה!');
+          if (typeof window.refreshAppUI === 'function') window.refreshAppUI();
         } else alert('השמירה נכשלה');
       }
     } catch (err) {
