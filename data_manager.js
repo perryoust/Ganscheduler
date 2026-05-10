@@ -15,7 +15,19 @@ window.DataManager = {
     record.grp = record.grp || 1;
     record.t = record.t || '00:00';
     
-    const existingIdx = window.SCH.findIndex(s => String(s.id) === String(record.id));
+    let existingIdx = window.SCH.findIndex(s => String(s.id) === String(record.id));
+    
+    // FUZZY MATCH: If ID doesn't match, check by (date, garden, supplier, time)
+    if (existingIdx === -1) {
+      const normA = (window.utils ? window.utils.megaClean(record.a) : record.a);
+      const normT = (record.t || '').slice(0, 5);
+      existingIdx = window.SCH.findIndex(s => 
+        s.d === record.d && 
+        Number(s.g) === Number(record.g) && 
+        (window.utils ? window.utils.megaClean(s.a) : s.a) === normA &&
+        (s.t || '').slice(0, 5) === normT
+      );
+    }
     
     if (existingIdx !== -1) {
       const existing = window.SCH[existingIdx];
@@ -40,17 +52,42 @@ window.DataManager = {
 
   importBulk: async function(records) {
     let stats = { created: 0, updated: 0 };
-    
     records.forEach(r => {
       const res = this.upsert(r);
       if (res === 'created') stats.created++;
       if (res === 'updated') stats.updated++;
     });
     
-    // After bulk upsert, we disable SRAWS merging to prevent stale data overlay
-    window.useSraws = false;
+    // Auto-cleanup after bulk import to merge any accidental leftovers
+    this.cleanupDuplicates();
     
+    window.useSraws = false;
     console.log('[DataManager] Bulk import complete:', stats);
     return stats;
+  },
+
+  cleanupDuplicates: function() {
+    const seen = {};
+    const toKeep = [];
+    const before = window.SCH.length;
+    
+    window.SCH.forEach(s => {
+      const normA = (window.utils ? window.utils.megaClean(s.a) : s.a);
+      const normT = (s.t || '').slice(0, 5);
+      const k = `${s.d}|${Number(s.g)}|${normA}|${normT}`;
+      
+      if (!seen[k]) {
+        seen[k] = s;
+        toKeep.push(s);
+      } else {
+        // MERGE: If existing is 'ok' but duplicate is 'nohap', use 'nohap'
+        if (s.st !== 'ok') seen[k].st = s.st;
+        if (s.nt) seen[k].nt = (seen[k].nt ? seen[k].nt + ' | ' + s.nt : s.nt);
+        if (s.grp > 0) seen[k].grp = s.grp;
+      }
+    });
+    
+    window.SCH = toKeep;
+    console.log(`[DataManager] Cleanup: Merged ${before - toKeep.length} duplicates.`);
   }
 };
