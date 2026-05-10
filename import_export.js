@@ -198,7 +198,16 @@ window.importBulkSchedule = function(input) {
       }
 
       const newSCH = Object.values(schMap);
-      if (newSCH.length === 0) throw new Error('לא נמצאו נתונים תקינים');
+      if (newSCH.length === 0) {
+        let msg = 'לא נמצאו נתונים תקינים לעדכון.';
+        if (stats.sheets === 0) msg += '\nלא נמצאו כותרות מתאימות בגיליונות.';
+        else {
+          msg += `\nנסרקו ${stats.sheets} גיליונות ו- ${stats.rows} שורות.`;
+          if (stats.skippedGarden.size > 0) msg += `\nלא זוהו ${stats.skippedGarden.size} גנים.`;
+          if (stats.skippedDate > 0) msg += `\n${stats.skippedDate} שורות דולגו בגלל תאריך.`;
+        }
+        throw new Error(msg);
+      }
 
       if (confirm(`✅ נמצאו ${newSCH.length} פעילויות.\nהאם לעדכן?`)) {
         window.SCH = newSCH;
