@@ -273,7 +273,11 @@ window.importBulkSchedule = function(input) {
             continue;
           }
 
-          const activity = (window.SUPBASE_ACTIVITIES[supplier.id] || []).find(a => norm(a.name) === nActName) || { id: 0, name: nActName || nSupRaw };
+          // In this system, activities are strings, not objects.
+          const acts = typeof window.getSupActs === 'function' ? window.getSupActs(supplier.name) : [];
+          const foundAct = acts.find(a => norm(a) === nActName);
+          const activityName = foundAct || nActName || nSupRaw;
+          const activityId = 0; // Activities don't have numeric IDs
 
           let time = '';
           const timeRaw = getV(colTime);
@@ -356,7 +360,7 @@ window.importBulkSchedule = function(input) {
           // --- KEY / DEDUPLICATION LOGIC ---
           // Use date, garden ID, supplier AND activity to ensure different
           // lessons from the same supplier on the same day are not merged.
-          const key = `${formattedDate}|${gid}|${cleanStr(supplier)}|${cleanStr(activity)}`;
+          const key = `${formattedDate}|${gid}|${cleanStr(supplier.name)}|${cleanStr(activityName)}`;
           
           // Deterministic ID generation based on the key
           // This ensures that the same row in Excel always maps to the same ID in the system.
@@ -374,8 +378,8 @@ window.importBulkSchedule = function(input) {
               id: deterministicId,
               d: formattedDate,
               g: gid,
-              a: supplier,
-              act: activity,
+              a: supplier.name,
+              act: activityName,
               t: time,
               st: status,
               nt: notes,
