@@ -15,6 +15,7 @@ let _fbPollTimer = null;
 let _fbTimer = null;
 let _fbSyncing = false;
 let _fbLastError = null; // last sync error message
+window._fbSyncReady = false; // Block saves until first load completes
 
 // ── Login (called from HTML button) ──────────
 async function doLogin() {
@@ -191,6 +192,14 @@ async function _processFirebaseLoad(r, silent, force) {
 // ── Load from Firebase ────────────────────────
 async function loadFromFirebase(silent, force) {
   if(window._importInProgress) return; // STRICT BLOCK: Never load while importing
+  
+  // CRITICAL: Protection against eventual consistency / stale cache after import or manual save
+  const ignoreUntil = parseInt(window._safeLS.get('fb_sync_ignore_until')||'0');
+  if (ignoreUntil > Date.now()) {
+    console.log('Firebase: skipping load (within import/save protection window until ' + _fmtTs(ignoreUntil) + ')');
+    return true; 
+  }
+
   try {
     if (!silent) { _fbSyncing = true; _fbUpdateStatus(); }
     // Fresh token for load
@@ -207,19 +216,31 @@ async function loadFromFirebase(silent, force) {
           try {
             window._cachedToken = await window._fbUser.getIdToken(true);
             const r2 = await fetch(FIREBASE_DB_URL + '?ts=' + Date.now() + '&auth=' + window._cachedToken);
-            if (r2.ok) { return await _processFirebaseLoad(r2, silent); }
+            if (r2.ok) { 
+              const success = await _processFirebaseLoad(r2, silent);
+              _fbSyncing = false;
+              window._fbSyncReady = true;
+              _fbUpdateStatus();
+              return success;
+            }
           } catch(e2) {}
         }
       }
-      console.warn('Firebase load failed: ' + r.status); return false;
+      console.warn('Firebase load failed: ' + r.status); 
+      _fbSyncing = false;
+      _fbUpdateStatus();
+      return false;
     }
-    return await _processFirebaseLoad(r, silent, force);
+    const success = await _processFirebaseLoad(r, silent, force);
+    _fbSyncing = false;
+    window._fbSyncReady = true;
+    _fbUpdateStatus();
+    return success;
   } catch(e) {
-    console.warn('Firebase load error:', e.message);
-    return false;
-  } finally {
+    console.error('Firebase load error:', e);
     _fbSyncing = false;
     _fbUpdateStatus();
+    return false;
   }
 }
 
@@ -245,11 +266,17 @@ async function saveToFirebase(silent, force) {
   // Only block automatic (silent) saves during import. 
   // Manual saves (silent=false) should always proceed.
   if(window._importInProgress && silent) return; 
-  // Safety: don't save in first 2 seconds after page load (initialization window)
-  if(Date.now() - (window._appStartTime||0) < 2000){
-    console.warn('saveToFirebase: skipped (within startup window)');
+  if (_fbSyncing) return false;
+  if (!window._fbUser) return false;
+  
+  // CRITICAL: Block saves until at least one successful load has occurred
+  // to prevent overwriting cloud data with empty local state at startup.
+  if (!window._fbSyncReady && !force) {
+    console.warn('saveToFirebase: blocked (first load not yet complete)');
     return false;
   }
+  
+  _fbSyncing = true;
   try {
     // Prefer in-memory data (most up-to-date) over stored
     const liveData = {
@@ -351,6 +378,9 @@ async function saveToFirebase(silent, force) {
       // Fallback: Ensure LocalStorage is also updated with the same data we sent to Firebase
       window._safeLS.setItem('ganv5', raw);
       window._mem_ganv5 = raw;
+      
+      // If manual save, prevent immediate reload of potentially stale data
+      if(!silent) window._safeLS.setItem('fb_sync_ignore_until', String(Date.now() + 15000));
       
       _fbLastError = null;
       window._fbLastSavedRaw = raw; 
@@ -507,6 +537,10 @@ window.addEventListener('offline', ()=>{ showToast('📵 אין חיבור — �
 function _fbStartPolling() {
   clearInterval(_fbPollTimer);
   _fbPollTimer = setInterval(async () => {
+    // skip polling if within import protection window
+    const ignoreUntil = parseInt(window._safeLS.get('fb_sync_ignore_until')||'0');
+    if (ignoreUntil > Date.now()) return;
+
     try {
       const _pollTok = window._fbGetToken ? await window._fbGetToken() : null;
       const _pollQ   = _pollTok ? '&auth=' + _pollTok : '';

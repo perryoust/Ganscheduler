@@ -425,8 +425,9 @@ window.importBulkSchedule = function(input) {
           if (typeof window.showToast === 'function') window.showToast('✅ הייבוא הושלם בהצלחה! מרענן...', 3000);
           else if (statusEl) statusEl.innerHTML = '✅ העדכון הושלם בהצלחה! מרענן דף...';
           
-          // CRITICAL: We DO NOT set window._importInProgress = false here.
-          // We keep it true to block background syncs until the reload happens.
+          // CRITICAL: Prevent the app from loading stale cloud data immediately after reload.
+          // Firebase might have a slight delay or browser cache might interfere.
+          window._safeLS.setItem('fb_sync_ignore_until', String(Date.now() + 60000));
           
           setTimeout(() => { 
             console.log('[Import] Reloading page...');

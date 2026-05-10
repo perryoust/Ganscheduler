@@ -95,6 +95,14 @@ function importBackup(input){
         window._safeLS.setItem('ganv5_meta',JSON.stringify(meta));
       }
       window._safeLS.setItem('ganv5_y_'+meta.currentYear,json);
+      
+      // CRITICAL: Ensure it saves to Firebase before reload
+      if(window.save) {
+        window.showCopyToast('⏳ שומר ל-Firebase...');
+        await window.save(true);
+        window._safeLS.setItem('fb_sync_ignore_until', String(Date.now() + 60000));
+      }
+
       window.showCopyToast('✅ ייבוא הצליח! טוען מחדש...');
       setTimeout(()=>location.reload(),1400);
     }catch(err){alert('שגיאה בקובץ: '+err.message);}

@@ -89,8 +89,9 @@ var _srawsReady=(async function(){
       }
     });
     if(changed > 0) { 
-      console.log(`Auto-Sync: Fixed ${changed} statuses based on notes.`);
-      if(typeof window.save === 'function') window.save(); 
+      console.log(`Auto-Sync: Fixed ${changed} statuses based on notes (Local memory only).`);
+      // DISABLED: Never auto-save during startup before Firebase is ready.
+      // if(typeof window.save === 'function') window.save(); 
     }
     
     // AUTOMATIC MAKEUP MATCHING: (TEMPORARILY DISABLED FOR VERIFICATION)

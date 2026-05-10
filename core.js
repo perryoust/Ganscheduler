@@ -10,6 +10,7 @@ window.INVOICES = window.INVOICES || [];
 window.supEx = window.supEx || {};
 window.pairs = window.pairs || [];
 window.clusters = window.clusters || {};
+window.holidays = window.holidays || [];
 window.activeGardens = window.activeGardens || null;
 window.blockedDates = window.blockedDates || {};
 window.gardenBlocks = window.gardenBlocks || {};
@@ -369,17 +370,40 @@ function migrateSupActSplit(){
       changed++;
     }
   });
-  if(changed>0){ save(); console.log('migrateSupAct: fixed '+changed); }
+  if(changed>0){ 
+    console.log('migrateSupAct: fixed '+changed); 
+    if(window._fbSyncReady) {
+      save(); 
+    } else {
+      console.warn('migrateSupAct: skip auto-save (Firebase not ready)');
+    }
+  }
 }
-function save(immediate){
+async function save(immediate){
   if(false){ showToast('⚠️ מצב ארכיון — לא ניתן לשמור שינויים'); return; }
+  
+  // CRITICAL: Block all saves (including localStorage) until the first Firebase load completes.
+  // This prevents startup migrations from creating a "newer" local state that blocks the cloud load.
+  if(!window._fbSyncReady && !immediate) {
+    console.warn('save: blocked (Firebase not ready yet)');
+    return false;
+  }
+  
   try{
     // Save ALL entries with ALL fields — works with or without SRAWS
     const data={
-      ch:SCH.map(s=>({id:s.id,g:s.g,d:s.d,a:s.a,t:s.t,p:s.p,n:s.n,st:s.st,cr:s.cr,cn:s.cn,nt:s.nt,pd:s.pd,pt:s.pt,grp:s.grp,act:s.act||'',_isMakeup:s._isMakeup||false,_makeupFrom:s._makeupFrom||'',_compByMakeup:s._compByMakeup||'',_fromD:s._fromD||''})),
-      pairs,supEx,clusters,holidays,pairBreaks,managers,blockedDates,gardenBlocks,
-      invoices:INVOICES,vatRate:VAT_RATE,
-      activeGardens:activeGardens?[...activeGardens]:null,
+      ch:(window.SCH||[]).map(s=>({id:s.id,g:s.g,d:s.d,a:s.a,t:s.t,p:s.p,n:s.n,st:s.st,cr:s.cr,cn:s.cn,nt:s.nt,pd:s.pd,pt:s.pt,grp:s.grp,act:s.act||'',_isMakeup:s._isMakeup||false,_makeupFrom:s._makeupFrom||'',_compByMakeup:s._compByMakeup||'',_fromD:s._fromD||''})),
+      pairs:window.pairs||[],
+      supEx:window.supEx||{},
+      clusters:window.clusters||{},
+      holidays:window.holidays||[],
+      pairBreaks:window.pairBreaks||{},
+      managers:window.managers||{},
+      blockedDates:window.blockedDates||{},
+      gardenBlocks:window.gardenBlocks||{},
+      invoices:window.INVOICES||[],
+      vatRate:window.VAT_RATE||18,
+      activeGardens:window.activeGardens?[...window.activeGardens]:null,
       useSraws: typeof window.useSraws!=='undefined'?window.useSraws:true
     };
     const _json=JSON.stringify(data);
@@ -387,8 +411,15 @@ function save(immediate){
     window._mem_ganv5=_json; // ensure in-memory is also up to date
     // Also update year key if meta exists
     try{const _m=JSON.parse(_safeLS.getItem('ganv5_meta')||'null');if(_m&&_m.currentYear)_safeLS.setItem('ganv5_y_'+_m.currentYear,_json);}catch(_){}
-    let res = null;
-    try{ res = ghAutoSave(immediate===true); }catch(_){}
+    
+    let res = true;
+    if (typeof ghAutoSave === 'function') {
+      try {
+        // CRITICAL: await the Firebase sync if immediate=true
+        res = await ghAutoSave(immediate === true);
+      } catch(e) { console.error('Firebase save failed', e); res = false; }
+    }
+    
     save._cnt=(save._cnt||0)+1;
     if(save._cnt%30===0){
       try{
@@ -400,7 +431,7 @@ function save(immediate){
       }catch(e2){}
     }
     return res;
-  }catch(e){}
+  }catch(e){ console.error('Save fatal error', e); return false; }
 }
 function initPairs(){
   window.pairs = AUTOPAIRS.map((arr,i)=>{
