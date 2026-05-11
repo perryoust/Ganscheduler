@@ -40,6 +40,7 @@ window.importBulkSchedule = function(input) {
 
       const recordsToUpsert = [];
       const coveredDateGardens = new Set();
+      const allSups = (window.getAllSup ? window.getAllSup() : []);
       const stats = { sheets: 0, rows: 0, imported: 0, skipped: 0, noGarden: 0, noDate: 0, nohap: 0 };
       
       for (const sheetName of sheetNames) {
@@ -117,7 +118,7 @@ window.importBulkSchedule = function(input) {
           // Supplier Parsing
           const rawA = String(row[idxA] || '').trim();
           if (!rawA || rawA === 'null') { stats.skipped++; continue; }
-          const supplier = window.utils.findSupplier(rawA);
+          const supplier = window.utils.findSupplier(rawA, allSups);
           if (!supplier) { stats.skipped++; continue; }
 
           // Time Parsing

@@ -34,13 +34,13 @@ window.utils = {
     return 'e_' + btoa(unescape(encodeURIComponent(key))).replace(/=/g, '').slice(0, 24);
   },
 
-  findSupplier: function(name) {
+  findSupplier: function(name, _all) {
     if (!name) return null;
     const n = this.norm(name);
     const m = this.megaClean(name);
     
     // 1. Try exact match first
-    const all = window.getAllSup() || [];
+    const all = _all || (window.getAllSup ? window.getAllSup() : []);
     let found = all.find(s => this.norm(s.name) === n);
     if (found) return found;
     
