@@ -94,9 +94,11 @@ window.importBulkSchedule = function(input) {
           // Date Parsing
           let d = '';
           const rd = row[idxD];
-          if (rd instanceof Date) d = rd.toISOString().slice(0, 10);
-          else if (typeof rd === 'number') d = new Date(new Date(1899,11,30).getTime() + rd*86400000 + 12*3600000).toISOString().slice(0, 10);
-          else if (typeof rd === 'string') {
+          if (rd instanceof Date) {
+            d = new Date(rd.getTime() + 12*3600000).toISOString().slice(0, 10);
+          } else if (typeof rd === 'number') {
+            d = new Date(new Date(1899,11,30).getTime() + rd*86400000 + 12*3600000).toISOString().slice(0, 10);
+          } else if (typeof rd === 'string') {
             const m = rd.match(/(\d{1,2})[\.\/\-](\d{1,2})[\.\/\-](\d{2,4})/);
             if (m) d = `${m[3].length===2?'20'+m[3]:m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
           }
