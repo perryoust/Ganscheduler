@@ -197,3 +197,17 @@ window.editPairIdx = null;
 window.managers = {};
 var _exGids=null;
 var newSchedForGarden=null;
+
+// FINAL MIGRATION & CLEANUP
+setTimeout(() => {
+  let migrated = 0;
+  if(window.SCH) {
+    window.SCH.forEach(s => {
+      if(s.a === 'תלתן' && s.act === 'כלבנות') { s.act = 'ספורט'; migrated++; }
+    });
+    if(migrated > 0) {
+      console.log(`[Final Migration] Fixed ${migrated} Tilitan assignments.`);
+      if(typeof window.save === 'function') window.save();
+    }
+  }
+}, 2000);
