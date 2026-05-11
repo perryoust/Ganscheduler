@@ -137,7 +137,7 @@ window.DataManager = {
   calculateMakeupBalance: function() {
     const balanceMap = {}; // gardenId -> {name, debt: 0, credit: 0, balance: 0}
     
-    const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)) || (s.n && /השלמה/i.test(s.n)));
+    const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.a)));
 
     (window.SCH || []).forEach(s => {
       // Exclude cancelled activities (they don't count towards balance)
@@ -176,7 +176,7 @@ window.DataManager = {
    */
   applyAutoMakeupMatching: function() {
     const gardens = {};
-    const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)) || (s.n && /השלמה/i.test(s.n)));
+    const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.a)));
 
     (window.SCH || []).forEach(s => {
       // Clear previous auto-matches to start fresh

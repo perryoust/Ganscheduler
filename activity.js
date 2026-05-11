@@ -93,7 +93,7 @@ function renderDash() {
     if (srch && ![(g.name||''), (g.city||''), s.a, s.act, s.nt].some(v=>(v||'').toLowerCase().includes(srch))) return false;
 
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)) || (s.n && /השלמה/i.test(s.n)) || (s.a && /השלמה/i.test(s.a)));
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.a)));
 
     if (view === 'todo') {
       if (s.st === 'can') return false;
@@ -234,7 +234,7 @@ function _renderDashCard(card) {
   evs.forEach(s => {
     const g = window.G(s.g);
     const stCls = window.stClass ? window.stClass(s) : '';
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)) || (s.n && /השלמה/i.test(s.n)) || (s.a && /השלמה/i.test(s.a)));
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.a)));
 
     const label = window.stLabel ? window.stLabel(s) : '';
     h += `<div class="dash-row ${stCls}" style="display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid #f1f5f9; cursor:pointer" onclick="window.openSP('${s.id}')">
