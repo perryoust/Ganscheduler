@@ -494,4 +494,31 @@ async function fixData() {
     alert('❌ שגיאה בתהליך התיקון: ' + e.message);
   }
 }
+async function nuclearReset() {
+  if (!confirm('☢️ מחיקה מוחלטת (Nuclear Reset):\nפעולה זו תמחק את כל השינויים, הייבואים והנתונים מהענן ותחזיר את המערכת למצב ברירת מחדל (SRAWS).\n\nהאם אתה בטוח לחלוטין?')) return;
+  if (!confirm('⚠️ אזהרה אחרונה: כל המידע בענן יימחק!')) return;
+  
+  try {
+    window.showCopyToast('⏳ מוחק נתונים מהענן...');
+    // 1. Reset to base SRAWS
+    window.SCH = SRAWS.map(s => ({...s, st:'ok', nt:s.n||'', grp:1}));
+    window.pairs = [];
+    window.supEx = {};
+    
+    // 2. Force save this "Empty" state
+    const ok = await window.save(true, true);
+    
+    if (ok) {
+      alert('✅ המערכת אופסה לחלוטין! המטמון המקומי יימחק כעת.');
+      localStorage.removeItem('ganv5');
+      localStorage.removeItem('_fbSeq');
+      location.reload();
+    } else {
+      alert('❌ המחיקה נכשלה.');
+    }
+  } catch(e) {
+    alert('❌ שגיאה: ' + e.message);
+  }
+}
+window.nuclearReset = nuclearReset;
 window.fixData = fixData;

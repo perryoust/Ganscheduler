@@ -104,6 +104,11 @@ window.DataManager = {
       const normG = Number(s.g);
       const k = `${s.d}|${normG}|${normA}|${normT}`;
       
+      if (debugCount < 20) {
+         console.log(`[Dedupe Debug] ID: ${s.id}, Key: ${k}`);
+         debugCount++;
+      }
+
       if (!seen[k]) {
         seen[k] = s;
         toKeep.push(s);

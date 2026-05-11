@@ -279,7 +279,7 @@ function _applyYearData(o){
     window.pairs = o.pairs.map(p=>({...p,ids:p.ids.map(id=>parseInt(id)).filter(id=>G(id).id)}));
     window.pairs = pairs.filter(p=>p.ids.length>=2);
   } else { initPairs(); }
-  window.supEx = _restoreSupEx(o.supEx||{});
+  window.supEx = o.supEx || {};
   if(o.invoices){
     window.INVOICES = Array.isArray(o.invoices) ? o.invoices : Object.values(o.invoices);
     // ── Migrate invoices with double-VAT bug ──
