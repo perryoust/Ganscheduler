@@ -1,26 +1,27 @@
 /**
- * Data Manager Module - Smarter Architecture
+ * Data Manager Module - v5.0 (True Overwrite)
  * Centralized logic for all schedule manipulations.
  */
 window.DataManager = {
   /**
-   * Upsert a record into the global schedule.
-   * Handles merging, status updates, and ID consistency.
+   * Upsert a single record into the global schedule.
+   * Uses fuzzy matching to find existing records and update them.
    */
   upsert: function(record) {
     if (!record || !record.id) return false;
     
     // Ensure all required fields exist
     record.st = record.st || 'ok';
-    record.grp = record.grp || 1;
+    record.grp = (record.st === 'can' || record.st === 'nohap') ? 0 : (record.grp || 1);
     record.t = record.t || '00:00';
     
+    const normA = (window.utils ? window.utils.megaClean(record.a) : record.a);
+    const normT = (record.t || '').slice(0, 5);
+    
+    // Find existing record by ID first, then by fuzzy key
     let existingIdx = window.SCH.findIndex(s => String(s.id) === String(record.id));
     
-    // FUZZY MATCH: If ID doesn't match, check by (date, garden, supplier, time)
     if (existingIdx === -1) {
-      const normA = (window.utils ? window.utils.megaClean(record.a) : record.a);
-      const normT = (record.t || '').slice(0, 5);
       existingIdx = window.SCH.findIndex(s => 
         s.d === record.d && 
         Number(s.g) === Number(record.g) && 
@@ -31,45 +32,96 @@ window.DataManager = {
     
     if (existingIdx !== -1) {
       const existing = window.SCH[existingIdx];
-      // Debug for target gardens
-      const gn = (typeof window.G === 'function' ? window.G(record.g).name : record.g);
-      if (gn.includes('צלף') || gn.includes('רוזמרין')) {
-        console.log(`[Upsert Debug] UPDATING existing record for ${gn}: ID=${record.id}, OldSt=${existing.st}, NewSt=${record.st}`);
-      }
       window.SCH[existingIdx] = { ...existing, ...record };
-      // Preserve existing 'act' if the new one is empty
       if (!record.act && existing.act) window.SCH[existingIdx].act = existing.act;
       return 'updated';
     } else {
-      const gn = (typeof window.G === 'function' ? window.G(record.g).name : record.g);
-      if (gn.includes('צלף') || gn.includes('רוזמרין')) {
-        console.log(`[Upsert Debug] CREATING NEW record for ${gn}: ID=${record.id}, St=${record.st}`);
-      }
       window.SCH.push(record);
       return 'created';
     }
   },
 
-  importBulk: async function(records) {
-    console.log('[DataManager] Starting Master Overwrite import...');
+  /**
+   * MASTER OVERWRITE IMPORT
+   * Completely replaces the schedule with data from the imported records.
+   * The imported records become the SINGLE source of truth for their specific dates/gardens.
+   */
+  importBulk: function(records) {
+    console.log('[DataManager] Master Overwrite Import: ' + records.length + ' records');
     
-    // 1. Reset everything to baseline (SRAWS default state)
-    // This clears all previous imported records (e_...) and resets SRAWS changes.
-    window.SCH = SRAWS.map(s => ({...s, st:'ok', nt:s.n||'', grp:1}));
-    
-    // 2. Apply new records (fuzzy-matched)
-    let stats = { created: 0, updated: 0 };
+    // Step 1: Index imported records by Date + Garden
+    // Since some gardens have multiple activities on the same day, we store arrays
+    const importedByDateGarden = {};
     records.forEach(r => {
-      const res = this.upsert(r);
-      if (res === 'created') stats.created++;
-      if (res === 'updated') stats.updated++;
+      const k = `${r.d}|${Number(r.g)}`;
+      if (!importedByDateGarden[k]) importedByDateGarden[k] = [];
+      importedByDateGarden[k].push(r);
     });
     
-    // 3. Final nuclear cleanup
+    // Step 2: Process base records (SRAWS or existing SCH)
+    const result = [];
+    const usedKeys = new Set();
+    
+    // We start with existing SRAWS to preserve anything NOT in the Excel file
+    if (typeof SRAWS !== 'undefined' && Array.isArray(SRAWS)) {
+      SRAWS.forEach(s => {
+        const k = `${s.d}|${Number(s.g)}`;
+        
+        // If the Excel file has data for this Date+Garden, we SKIP the SRAWS entry entirely.
+        // We will insert the Excel records instead later. This prevents duplicates when suppliers change.
+        if (importedByDateGarden[k]) {
+          usedKeys.add(k);
+        } else {
+          // No import data for this specific Date+Garden — keep SRAWS default
+          result.push({
+            ...s,
+            st: s.st || 'ok',
+            nt: s.n || '',
+            grp: s.grp || 1,
+            cr: s.cr || '',
+            cn: s.cn || '',
+            pd: s.pd || '',
+            pt: s.pt || ''
+          });
+        }
+      });
+    }
+    
+    // Step 3: Add ALL imported records
+    // This replaces the skipped SRAWS entries and adds any new ones
+    records.forEach(r => {
+      result.push({
+        id: r.id,
+        d: r.d,
+        g: r.g,
+        a: r.a,
+        t: r.t,
+        p: r.p || '',
+        n: r.n || '',
+        st: r.st || 'ok',
+        cr: r.cr || '',
+        cn: r.cn || '',
+        nt: r.nt || '',
+        pd: r.pd || '',
+        pt: r.pt || '',
+        grp: r.grp || 1,
+        act: r.act || '',
+        _isImported: true
+      });
+    });
+    
+    // Step 4: Replace SCH entirely
+    window.SCH = result;
+    
+    // Step 5: Clean duplicates as safety net
     this.cleanupDuplicates();
     
-    window.useSraws = false;
-    console.log('[DataManager] Overwrite import complete:', stats);
+    const stats = {
+      total: result.length,
+      fromImport: records.length,
+      fromSraws: result.length - records.length
+    };
+    console.log('[DataManager] Import complete:', stats);
     return stats;
   },
 
@@ -78,15 +130,16 @@ window.DataManager = {
     const toKeep = [];
     const before = window.SCH.length;
     
-    const normClean = (val) => window.utils.megaClean(val);
+    const normClean = (val) => {
+      if (!val) return '';
+      return String(val).replace(/\(.*\)/g, '').replace(/[^א-תa-zA-Z0-9]/g, '').toLowerCase();
+    };
     const normTime = (t) => {
       if(!t) return '00:00';
       let m = String(t).match(/(\d{1,2}):(\d{1,2})/);
       if(!m) return '00:00';
       return m[1].padStart(2,'0') + ':' + m[2].padStart(2,'0');
     };
-
-    let debugCount = 0;
 
     window.SCH.forEach(s => {
       if (!s.d || !s.g) return;
@@ -95,41 +148,32 @@ window.DataManager = {
       const normG = Number(s.g);
       const k = `${s.d}|${normG}|${normA}|${normT}`;
       
-      if (debugCount < 20) {
-         console.log(`[Dedupe Debug] ID: ${s.id}, Key: ${k}`);
-         debugCount++;
-      }
-
       if (!seen[k]) {
         seen[k] = s;
         toKeep.push(s);
       } else {
         const existing = seen[k];
-        
-        if (debugCount < 5 && s.id !== existing.id) {
-           console.log(`[Dedupe Match] Merging ${s.id} into ${existing.id} for key: ${k}`);
-           debugCount++;
-        }
-
-        // 1. Prioritize non-ok status (exceptions)
+        // Keep the more meaningful status (nohap/can/post > ok)
         if (s.st !== 'ok' && existing.st === 'ok') existing.st = s.st;
-        // 2. Merge unique notes
+        // Merge notes
         if (s.nt && existing.nt !== s.nt) {
-          if (!existing.nt.includes(s.nt)) existing.nt = (existing.nt ? existing.nt + ' | ' + s.nt : s.nt);
+          if (!existing.nt) existing.nt = s.nt;
+          else if (!existing.nt.includes(s.nt)) existing.nt += ' | ' + s.nt;
         }
-        // 3. Keep manual ID if available
-        if (String(s.id).startsWith('e_') && !String(existing.id).startsWith('e_')) {
-           Object.assign(existing, s, {id: existing.id}); 
-        } else if (String(s.id).startsWith('e_')) {
-           existing.id = s.id;
-        }
-        
-        if (!existing.act && s.act) existing.act = s.act;
+        // Keep non-zero grp
         if (s.grp > existing.grp) existing.grp = s.grp;
+        // Keep act if existing doesn't have one
+        if (!existing.act && s.act) existing.act = s.act;
+        // Keep makeup info
+        if (s._isMakeup) existing._isMakeup = true;
+        if (s._makeupFrom) existing._makeupFrom = s._makeupFrom;
+        if (s._compByMakeup) existing._compByMakeup = s._compByMakeup;
       }
     });
     
     window.SCH = toKeep;
-    console.log(`[DataManager] Nuclear Cleanup: Merged ${before - toKeep.length} duplicates. Result: ${toKeep.length}`);
+    if (before !== toKeep.length) {
+      console.log(`[DataManager] Cleanup: removed ${before - toKeep.length} duplicates → ${toKeep.length} records`);
+    }
   }
 };

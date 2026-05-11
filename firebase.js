@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════
-// Firebase Realtime Database Sync - v2.0 (Strict Sequence)
+// Firebase Realtime Database Sync - v3.0 (Robust)
 // ══════════════════════════════════════════════
 const FIREBASE_DB_URL = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data.json';
 const FIREBASE_POLL_INTERVAL = 30000;
@@ -11,6 +11,7 @@ let _syncTimer = null;
 let _fbSyncing = false;
 let _fbLastError = null;
 window._fbSyncReady = false;
+window._importInProgress = false; // Global flag: blocks polling during import
 
 // ── State Update ─────────────────────────────
 function _setSyncState(seq, ts, error = null) {
@@ -93,7 +94,7 @@ async function saveToFirebase(silent = false, force = false) {
 
     // Increment Sequence
     const newSeq = _localSeq + 1;
-    const payload = { data: liveData, ts: Date.now(), seq: newSeq, version: '2.0' };
+    const payload = { data: liveData, ts: Date.now(), seq: newSeq, version: '3.0' };
     
     let tok = await window._fbUser?.getIdToken(true);
     const url = FIREBASE_DB_URL + (tok ? '?auth=' + tok : '');
@@ -113,10 +114,11 @@ async function saveToFirebase(silent = false, force = false) {
     }
 
     _setSyncState(newSeq, Date.now());
-    console.log('[Sync] Saved v' + newSeq);
+    console.log('[Sync] Saved v' + newSeq + ' (' + (liveData.ch?.length || 0) + ' records)');
     return true;
   } catch(e) {
     _setSyncState(null, null, e.message);
+    console.error('[Sync] Save failed:', e.message);
     return false;
   } finally {
     _fbSyncing = false;
@@ -126,6 +128,11 @@ async function saveToFirebase(silent = false, force = false) {
 }
 
 async function loadFromFirebase(silent = false, force = false) {
+  // CRITICAL: Never load from Firebase during an import — it would overwrite the imported data
+  if (window._importInProgress) {
+    console.warn('[Sync] Load blocked — import in progress');
+    return true;
+  }
   if (_isLocked && !force) return false;
   _fbSyncing = true;
   _fbUpdateStatus();
@@ -174,8 +181,22 @@ function _fbStartPolling() {
   _syncTimer = setInterval(() => loadFromFirebase(true), FIREBASE_POLL_INTERVAL);
 }
 
+function _fbStopPolling() {
+  if (_syncTimer) { clearInterval(_syncTimer); _syncTimer = null; }
+  console.log('[Sync] Polling stopped');
+}
+
+// ── PUBLIC API ───────────────────────────────
+// CRITICAL: ghAutoSave is called by core.js save() to push data to Firebase.
+// Without this alias, Firebase never gets updated!
+window.ghAutoSave = saveToFirebase;
 window.save = saveToFirebase;
 window.load = loadFromFirebase;
+window.saveToFirebase = saveToFirebase;
+window.loadFromFirebase = loadFromFirebase;
+window._fbStartPolling = _fbStartPolling;
+window._fbStopPolling = _fbStopPolling;
+
 window._onAuthReady = async function() {
   await loadFromFirebase();
   _fbStartPolling();
