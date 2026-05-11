@@ -859,9 +859,8 @@ function updCounts(){
 
     // Ignore single-day filter for backlog items (exceptions, pending makeups)
     const isException = (s.st === 'nohap' || s.st === 'post') && !isHandled;
-    const isPendingM = isM && s.st !== 'done' && !isHandled;
 
-    if (!from && !to && date && s.d !== date && !isException && !isPendingM) return false;
+    if (!from && !to && date && s.d !== date && !isException) return false;
 
     return true;
   };
@@ -882,16 +881,16 @@ function updCounts(){
 
   const todo = tabSch.filter(s => {
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
     if (isHandled || s.st === 'can') return false;
+    // Only show unresolved exceptions (Nohap/Postpone) in To-Do
     if (s.st === 'nohap' || s.st === 'post') return true;
-    if (isM && s.st !== 'done') return true;
     return false;
   }).length;
 
   const makeupsCount = tabSch.filter(s => {
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.a)));
-    return isM && s.st !== 'can';
+    const isFuture = s.d >= td();
+    return isM && s.st !== 'can' && s.st !== 'done' && isFuture;
   }).length;
 
   const handled = tabSch.filter(s => {

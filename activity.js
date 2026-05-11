@@ -99,15 +99,10 @@ function renderDash() {
       if (s.st === 'can') return false;
       if (isHandled) return false;
       const isExc = (s.st === 'nohap' || s.st === 'post');
-      
-      const today = window.td();
-      // Makeup is pending if it's not done (past, today, or future)
-      // or if it explicitly failed (nohap)
-      const isPendingM = isM && s.st !== 'done';
-      
-      if (!isExc && !isPendingM) return false;
+      if (!isExc) return false;
     } else if (view === 'makeups') {
-      if (!isM || s.st === 'done') return false;
+      const isFuture = s.d >= window.td();
+      if (!isM || s.st === 'done' || !isFuture) return false;
     } else if (view === 'nohap') {
       if (s.st !== 'nohap' || isHandled) return false;
     } else if (view === 'post') {
