@@ -210,8 +210,9 @@ function _applyYearData(o){
   if(!o || !o.ch){
     window.SCH = SRAWS.map(s=>({...s,st:'ok',nt:s.n||'',grp:1}));
   } else {
-    // 1. Map SRAWS by fuzzy key for merging imported data
+    // 1. Map SRAWS by fuzzy key and ID for merging
     const srawsFuzzy = {};
+    const srawsFuzzyById = {};
     const nuclearClean = (val) => {
       if(!val) return '';
       return String(val).replace(/\(.*\)/g, '').replace(/[^א-תa-zA-Z0-9]/g, '').toLowerCase();
@@ -226,6 +227,7 @@ function _applyYearData(o){
     SRAWS.forEach(s => {
       const k = `${s.d}|${Number(s.g)}|${nuclearClean(s.a)}|${nuclearTime(s.t)}`;
       srawsFuzzy[k] = s;
+      srawsFuzzyById[s.id] = s;
     });
 
     // 2. Process changes from cloud/backup
@@ -236,19 +238,15 @@ function _applyYearData(o){
       if(!x.d || !x.g) return;
       
       const isManualId = String(x.id).startsWith('e_');
-      if (!isManualId) {
-        // Direct SRAWS ID match
-        m[x.id] = {...(m[x.id]||{}), ...x};
+      const k = `${x.d}|${Number(x.g)}|${nuclearClean(x.a)}|${nuclearTime(x.t)}`;
+      
+      if (srawsFuzzy[k]) {
+        const s = srawsFuzzy[k];
+        m[s.id] = {...s, ...(m[s.id]||{}), ...x, id: s.id};
+      } else if (!isManualId && srawsFuzzyById[x.id]) {
+        m[x.id] = {...srawsFuzzyById[x.id], ...(m[x.id]||{}), ...x};
       } else {
-        // Imported/Manual record: attempt fuzzy match with SRAWS
-        const k = `${x.d}|${Number(x.g)}|${nuclearClean(x.a)}|${nuclearTime(x.t)}`;
-        if (srawsFuzzy[k]) {
-          const s = srawsFuzzy[k];
-          // Merge imported data into the SRAWS slot
-          m[s.id] = {...s, ...(m[s.id]||{}), ...x, id: s.id};
-        } else {
-          manual.push(x);
-        }
+        manual.push(x);
       }
     });
 
@@ -266,14 +264,12 @@ function _applyYearData(o){
         manualSeen[k] = x;
         window.SCH.push(x);
       } else {
-        // Already have this manual record? Merge it (prefer non-ok status)
         if(x.st !== 'ok') manualSeen[k].st = x.st;
         if(x.nt) manualSeen[k].nt = (manualSeen[k].nt ? manualSeen[k].nt + ' | ' + x.nt : x.nt);
       }
     });
   }
 
-  // 4. Final integrity cleanup
   if(window.DataManager && window.DataManager.cleanupDuplicates) {
     window.DataManager.cleanupDuplicates();
   }
