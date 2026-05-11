@@ -150,19 +150,20 @@ window.importBulkSchedule = function(input) {
           // Override with note-based detection (Takes precedence over groups column)
           if (nt) {
             const lnt = nt.toLowerCase();
-            if (/הוקדם מ|הוקדם מיום|נדחה מ/.test(lnt)) {
-              st = 'ok';
-              if (st === 'nohap') stats.nohap--; // Correct stats if it was initially nohap
-            } else if (/הוקדם ל|הוקדם ליום|נדחה ל/.test(lnt)) {
-              if (st === 'ok') stats.nohap++;
-              st = 'nohap';
-            } else if (st === 'ok') {
-              if (/לא התקיים|חסר מדריך|לא הגיע|חוסר מדריך|אין מדריך|לא נשאר|עזב|חולה/.test(lnt)) {
-                st = 'nohap';
-                stats.nohap++;
-              } else if (/בוטל|מבוטל|מצב בטחוני|סגר|שביתה/.test(lnt)) {
-                st = 'can';
-              }
+            let newSt = st;
+
+            if (/בוטל|מבוטל|מצב בטחוני|סגר|שביתה|מסיבת פורים/.test(lnt)) {
+              newSt = 'can';
+            } else if (/לא התקיים|הוקדם ל|נדחה ל|חסר מדריך|מדריך חסר|לא הגיע|חוסר מדריך|אין מדריך|לא נשאר|עזב|חולה|נתקע|נתקעה|במחלה|מסיבות אישיות|לא יכול|לא יכל|לא מגיע|לא מרגיש טוב|לא עונה|לא הודיע|טעה ב|טעות ב|השלמה לא התקיימה|יושלם ב|הועבר ל|חשב ש|איחר לא|לא מתקיים/.test(lnt)) {
+              newSt = 'nohap';
+            } else if (/הוקדם מ|נדחה מ|השלמה|במקום|התקיים|הושלם|הוחלף|הצלבת|החלפה|מדריך מחליף|מדריך משלים|מדריך השלים/.test(lnt)) {
+              newSt = 'ok';
+            }
+            
+            if (st !== newSt) {
+               if (st === 'nohap') stats.nohap--;
+               if (newSt === 'nohap') stats.nohap++;
+               st = newSt;
             }
           }
 
