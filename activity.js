@@ -238,7 +238,7 @@ function _renderDashCard(card) {
         <div style="width:85px; font-size:0.8rem; font-weight:700; color:#475569; flex-shrink:0">${window.fD(s.d)}</div>
         <div style="flex:1">
           <div style="font-weight:800; font-size:0.98rem; color:#1e293b">
-            <span style="font-size:1.05rem">${g.name}</span> <span style="color:#0288d1; font-weight:700; font-size:1rem">· ${s.a || ''}</span>
+            <span style="font-size:1.05rem">${g.name}</span> <span style="color:#0288d1; font-weight:700; font-size:1rem">· ${window.supBase(s.a)}${(s.act || window.supAct(s.a)) ? ' — ' + (s.act || window.supAct(s.a)) : ''}</span>
             ${isM ? ' | <b style="color:#f59e0b">השלמה</b>' : ''}
           </div>
           ${s.nt ? `<div style="font-size:0.8rem; color:#b91c1c; font-weight:700; margin-top:3px">📝 ${s.nt}</div>` : ''}
@@ -638,7 +638,7 @@ window.openSP = function(id) {
   const s = window.SCH.find(x => x.id == id);
   if(!s) return;
 
-  const isClusterMode = (window._listGroupMode === 'clusters' || window._dashTab === 'clusters');
+  const isClusterMode = (window._listGroupMode === 'clusters' || window._dashTab === 'clusters') && window._dashView !== 'todo';
   if (isClusterMode) {
     const cls = window.gardenClusters ? window.gardenClusters(s.g) : [];
     if (cls && cls.length > 0) {
@@ -2068,7 +2068,7 @@ window.openCanQ = function(id) {
   const s = window.SCH.find(x => x.id == id); if (!s) return;
   const g = window.G(s.g);
   const infoEl = document.getElementById('canq-info');
-  if(infoEl) infoEl.innerHTML = `<b>${g.name}</b> · ${g.city} · ${s.a}${s.act?' · '+s.act:''}<br>📅 ${window.fD(s.d)} ${s.t?'⏰ '+window.fT(s.t):''}`;
+  if(infoEl) infoEl.innerHTML = `<b>${g.name}</b> · ${g.city} · ${window.supBase(s.a)}${(s.act || window.supAct(s.a)) ? ' — ' + (s.act || window.supAct(s.a)) : ''}<br>📅 ${window.fD(s.d)} ${s.t?'⏰ '+window.fT(s.t):''}`;
   const noteEl = document.getElementById('canq-note');
   if(noteEl) noteEl.value = '';
   document.querySelectorAll('.can-reason-btn').forEach(b => b.classList.remove('sel'));
@@ -2217,7 +2217,7 @@ window.openNohapQ = function(id){
   const s=window.SCH.find(x=>x.id==id); if(!s) return;
   const g=window.G(s.g);
   const infoEl = document.getElementById('nohapq-info');
-  if(infoEl) infoEl.innerHTML = `<b>${g.name}</b> מ-${g.city} | ${s.a}${s.act?' - '+s.act:''}<br>בתאריך ${window.fD(s.d)} ${s.t?'בשעה '+window.fT(s.t):''}`;
+  if(infoEl) infoEl.innerHTML = `<b>${g.name}</b> מ-${g.city} | ${window.supBase(s.a)}${(s.act || window.supAct(s.a)) ? ' — ' + (s.act || window.supAct(s.a)) : ''}<br>בתאריך ${window.fD(s.d)} ${s.t?'בשעה '+window.fT(s.t):''}`;
   const reasonEl = document.getElementById('nohapq-reason');
   if(reasonEl) reasonEl.value='';
   document.querySelectorAll('.nohap-reason-btn').forEach(b=>b.classList.remove('sel'));

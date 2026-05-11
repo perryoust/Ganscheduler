@@ -930,7 +930,7 @@ function renderPairColsHTML(evs,gids,pairId){
     if(!ge.length) html+='<div class="pempty">אין פעילויות</div>';
     else ge.forEach(s=>html+=`<div class="pslot ${s.st!=='ok'?'st-'+s.st:''}" onclick="window.openSP('${s.id}')">
       ${s.t?`<div class="pt">⏰ ${window.fT(s.t)}</div>`:''}
-      ${s.act?`<div style="font-size:.68rem;color:#1565c0;font-weight:600">${s.act}</div>`:''}
+      ${(s.act || window.supAct(s.a))?`<div style="font-size:.68rem;color:#1565c0;font-weight:600">${s.act || window.supAct(s.a)}</div>`:''}
       <div class="pn">${s.a}</div>
       ${s.p?`<div class="pp">📞 ${s.p}</div>`:''}
       <div class="pst">${window.stLabel(s)}</div>
@@ -1373,7 +1373,7 @@ function _listRow(s, clr, ds){
   const repeats = window.SCH.filter(x => x.g === s.g && new Date(x.d).getDay() === _dow && window.supBase(x.a) === window.supBase(s.a) && x.t === s.t && x.st !== 'can').length >= 2;
   const isRec = !isM && (!!s._recId || repeats);
   const recBadge = isRec ? `<span style="font-size:0.65rem;color:#6a1b9a;margin-left:4px;vertical-align:middle;font-weight:900" title="שיבוץ קבוע">🔄</span>` : '';
-  const supText = isUnassigned ? '' : `${window.supBase(s.a)}${recBadge}${s.act?' — <span style="color:#546e7a">'+s.act+'</span>':''}`;
+  const supText = isUnassigned ? '' : `${window.supBase(s.a)}${recBadge}${(s.act || window.supAct(s.a))?' — <span style="color:#546e7a">'+(s.act || window.supAct(s.a))+'</span>':''}`;
   // Increase font size for supplier/activity text as requested
   const supStyle = `font-size:.82rem;font-weight:700;color:#1565c0`;
   const clickHandler = isUnassigned ? `event.stopPropagation(); if(window.openNewSched) window.openNewSched('${s.d}', ${s.g});` : `window.openSP('${s.id}')`;
