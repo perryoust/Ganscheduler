@@ -147,11 +147,23 @@ window.importBulkSchedule = function(input) {
             stats.nohap++;
           }
           
-          // Override with note-based detection if groups is positive
-          if (st === 'ok' && nt) {
+          // Override with note-based detection (Takes precedence over groups column)
+          if (nt) {
             const lnt = nt.toLowerCase();
-            if (/לא התקיים|חסר מדריך|לא הגיע|חוסר מדריך|אין מדריך|לא נשאר|עזב|חולה/.test(lnt)) st = 'nohap';
-            else if (/בוטל|מבוטל|מצב בטחוני|סגר|שביתה/.test(lnt)) st = 'can';
+            if (/הוקדם מ|הוקדם מיום|נדחה מ/.test(lnt)) {
+              st = 'ok';
+              if (st === 'nohap') stats.nohap--; // Correct stats if it was initially nohap
+            } else if (/הוקדם ל|הוקדם ליום|נדחה ל/.test(lnt)) {
+              if (st === 'ok') stats.nohap++;
+              st = 'nohap';
+            } else if (st === 'ok') {
+              if (/לא התקיים|חסר מדריך|לא הגיע|חוסר מדריך|אין מדריך|לא נשאר|עזב|חולה/.test(lnt)) {
+                st = 'nohap';
+                stats.nohap++;
+              } else if (/בוטל|מבוטל|מצב בטחוני|סגר|שביתה/.test(lnt)) {
+                st = 'can';
+              }
+            }
           }
 
           // Split supplier name into base + activity (e.g. "דרך הספורט - התעמלות")
