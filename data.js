@@ -163,16 +163,18 @@ var _SUP_ALIASES = {
 function supBase(fullName){
   if(!fullName) return '';
   const norm = _SUP_ALIASES[fullName]||fullName;
-  const i=norm.indexOf(' - ');
-  return i>0?norm.substring(0,i).trim():norm.trim();
+  // Match first occurrence of any dash type (hyphen, en-dash, em-dash)
+  const match = norm.match(/^(.*?)\s*([-\u2013\u2014])\s*(.*)$/);
+  return match ? match[1].trim() : norm.trim();
 }
 window.supBase = supBase;
 function supAct(fullName){
   if(!fullName) return '';
   const norm = _SUP_ALIASES[fullName]||fullName;
-  const i=norm.indexOf(' - ');
-  return i>0?norm.substring(i+3).trim():'';
+  const match = norm.match(/^(.*?)\s*([-\u2013\u2014])\s*(.*)$/);
+  return match ? match[3].trim() : '';
 }
+window.supAct = supAct;
 // Get all unique base supplier names from schedules + SUPBASE
 function getAllBaseSups(){
   // mergedAway: custom suppliers that were merged into another — NEVER apply to SUPBASE

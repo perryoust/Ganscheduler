@@ -931,7 +931,7 @@ function renderPairColsHTML(evs,gids,pairId){
     else ge.forEach(s=>html+=`<div class="pslot ${s.st!=='ok'?'st-'+s.st:''}" onclick="window.openSP('${s.id}')">
       ${s.t?`<div class="pt">⏰ ${window.fT(s.t)}</div>`:''}
       ${(s.act || window.supAct(s.a))?`<div style="font-size:.68rem;color:#1565c0;font-weight:600">${s.act || window.supAct(s.a)}</div>`:''}
-      <div class="pn">${s.a}</div>
+      <div class="pn">${window.supBase(s.a)}</div>
       ${s.p?`<div class="pp">📞 ${s.p}</div>`:''}
       <div class="pst">${window.stLabel(s)}</div>
       <div class="qacts" onclick="event.stopPropagation()">
