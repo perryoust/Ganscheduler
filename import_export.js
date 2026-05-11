@@ -162,14 +162,17 @@ window.importBulkSchedule = function(input) {
         throw new Error(`לא נמצאו נתונים תקינים לעדכון.\nנסרקו ${stats.sheets} גיליונות ו- ${stats.rows} שורות.\n(חסרו תאריכים: ${stats.noDate}, גנים לא זוהו: ${stats.noGarden}, שורות ריקות: ${stats.skipped})`);
       }
 
-      if (confirm(`✅ נמצאו ${recordsToUpsert.length} פעילויות לעדכון.\nהאם להמשיך?`)) {
+      if (confirm(`✅ נמצאו ${recordsToUpsert.length} פעילויות לעדכון.\nהאם להמשיך?\nשים לב: הפעולה תדרוס את לוח הזמנים הקיים ותבצע רענון לדף.`)) {
+        window.showCopyToast('⏳ מייבא נתונים ודורס ישנים...');
         await window.DataManager.importBulk(recordsToUpsert);
-        const ok = await window.save(true);
+        window.showCopyToast('⏳ שומר שינויים לענן...');
+        const ok = await window.save(true, true);
         if (ok) {
-          window._safeLS.setItem('fb_sync_ignore_until', String(Date.now() + 60000));
-          alert('הייבוא הושלם בהצלחה!');
-          if (typeof window.refreshAppUI === 'function') window.refreshAppUI();
-        } else alert('השמירה נכשלה');
+          alert('✅ הייבוא הושלם בהצלחה! המערכת תתרענן כעת.');
+          location.reload();
+        } else {
+          alert('❌ השמירה נכשלה. נסה שוב.');
+        }
       }
     } catch (err) {
       alert('❌ שגיאה: ' + err.message);
