@@ -147,7 +147,9 @@ window.importBulkSchedule = function(input) {
             stats.nohap++;
           }
           
-          // Override with note-based detection (Takes precedence over groups column)
+          // Override with note-based detection (Takes precedence over groups column, with ONE exception)
+          // EXCEPTION: If groups column was empty (st === 'nohap'), we NEVER change it back to 'ok' (מתקיים).
+          // We only allow an empty group column to be upgraded to 'can' (בוטל).
           if (nt) {
             const lnt = nt.toLowerCase();
             let newSt = st;
@@ -161,9 +163,14 @@ window.importBulkSchedule = function(input) {
             }
             
             if (st !== newSt) {
-               if (st === 'nohap') stats.nohap--;
-               if (newSt === 'nohap') stats.nohap++;
-               st = newSt;
+               // Rule: If groups column is empty (st is nohap), we NEVER allow notes to mark it as 'ok'.
+               if (st === 'nohap' && newSt === 'ok') {
+                 // Ignore note. Empty groups column means it did NOT occur.
+               } else {
+                 if (st === 'nohap') stats.nohap--;
+                 if (newSt === 'nohap') stats.nohap++;
+                 st = newSt;
+               }
             }
           }
 
