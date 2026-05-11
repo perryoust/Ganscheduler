@@ -890,7 +890,7 @@ function updCounts(){
   }).length;
 
   const makeupsCount = tabSch.filter(s => {
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)) || (s.n && /השלמה/i.test(s.n)) || (s.a && /השלמה/i.test(s.a)));
     return isM && s.st !== 'can';
   }).length;
 
