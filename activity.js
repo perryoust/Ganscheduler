@@ -1285,7 +1285,7 @@ function saveNt(){
     s.nt = val;
     const lower = val.toLowerCase();
     const isMovedFrom = lower.includes('נדחה מ') || lower.includes('הוזז מ') || lower.includes('הזזה מ');
-    const isMovedTo = lower.includes('נדחה ל') || lower.includes('הוזז ל') || lower.includes('הזזה ל');
+    const isMovedTo = lower.includes('נדחה ל') || lower.includes('הוזז ל') || lower.includes('הזזה ל') || lower.includes('הוקדם ל') || lower.includes('הקדמה ל');
     const isPos = lower.includes('השלמה') || isMovedFrom || (lower.includes('נדחה') && !isMovedTo);
     
     // Auto-Correct status based on note keywords (skip if it's a positive exception)

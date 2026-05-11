@@ -177,14 +177,22 @@ window.DataManager = {
   applyAutoMakeupMatching: function() {
     const gardens = {};
     const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.a)));
+    
+    const isMovedTo = s => !!((s.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל/i.test(s.n)));
 
     (window.SCH || []).forEach(s => {
       // Clear previous auto-matches to start fresh
-      if (s._compByMakeup === 'auto_match') delete s._compByMakeup;
+      if (s._compByMakeup && (s._compByMakeup === 'auto_match' || s._compByMakeup === 'auto_match_moved')) delete s._compByMakeup;
       
       if (s.st === 'can') return;
       const gid = Number(s.g);
       if (!gid) return;
+
+      // If it's a nohap but has a "Moved To" note, mark it as handled immediately
+      if (s.st === 'nohap' && isMovedTo(s)) {
+        s._compByMakeup = 'auto_match_moved';
+        return;
+      }
 
       if (!gardens[gid]) gardens[gid] = { nohaps: [], makeups: [] };
 
