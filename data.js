@@ -65,7 +65,7 @@ var GARDEN_PHONES={"22": {"ph1": "035265284", "ph2": ""}, "43": {"ph1": "0869942
 
 var SRAWS=[];
 var _srawsReady=(async function(){
-  const VERSION = "v102.73";
+  const VERSION = "v102.75";
   const el = document.getElementById('app-version');
   if (el) el.textContent = VERSION;
   try{
@@ -98,6 +98,10 @@ window.supBase = supBase;
 function supAct(fullName){
   if(!fullName) return '';
   const norm = _SUP_ALIASES[fullName]||fullName;
+  
+  // AGGRESSIVE OVERRIDE: Tilitan always defaults to Sport unless explicitly changed to something else
+  if(norm === 'תלתן' || norm === 'תלתן - כלבנות') return 'ספורט';
+  
   const match = norm.match(/^(.*?)\s*([-\u2013\u2014])\s*(.*)$/);
   if(match) return match[3].trim();
 
