@@ -46,7 +46,7 @@ window.DataManager = {
    * Completely replaces the schedule with data from the imported records.
    * The imported records become the SINGLE source of truth for their specific dates/gardens.
    */
-  importBulk: function(records) {
+  importBulk: function(records, coveredDateGardens) {
     console.log('[DataManager] Master Overwrite Import: ' + records.length + ' records');
     
     // Step 1: Index imported records by Date + Garden
@@ -69,7 +69,7 @@ window.DataManager = {
         
         // If the Excel file has data for this Date+Garden, we SKIP the SRAWS entry entirely.
         // We will insert the Excel records instead later. This prevents duplicates when suppliers change.
-        if (importedByDateGarden[k]) {
+        if ((coveredDateGardens && coveredDateGardens.has(k)) || importedByDateGarden[k]) {
           usedKeys.add(k);
         } else {
           // No import data for this specific Date+Garden — keep SRAWS default

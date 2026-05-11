@@ -39,6 +39,7 @@ window.importBulkSchedule = function(input) {
       });
 
       const recordsToUpsert = [];
+      const coveredDateGardens = new Set();
       const stats = { sheets: 0, rows: 0, imported: 0, skipped: 0, noGarden: 0, noDate: 0, nohap: 0 };
       
       for (const sheetName of sheetNames) {
@@ -111,6 +112,8 @@ window.importBulkSchedule = function(input) {
           const garden = window.utils.findGarden(gn, city);
           if (!garden) { stats.noGarden++; continue; }
 
+          coveredDateGardens.add(`${d}|${Number(garden.id)}`);
+
           // Supplier Parsing
           const rawA = String(row[idxA] || '').trim();
           if (!rawA || rawA === 'null') { stats.skipped++; continue; }
@@ -180,7 +183,7 @@ window.importBulkSchedule = function(input) {
       if (confirm(msg)) {
         // STEP 2: Overwrite SCH
         window.showCopyToast('⏳ מייבא נתונים ודורס ישנים...');
-        window.DataManager.importBulk(recordsToUpsert);
+        window.DataManager.importBulk(recordsToUpsert, coveredDateGardens);
         console.log('[Import] SCH replaced. New count:', window.SCH.length);
 
         // STEP 3: Save to localStorage first
