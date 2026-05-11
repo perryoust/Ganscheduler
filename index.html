@@ -409,6 +409,7 @@
           <button id="dash-tab-g" class="vbtn active" onclick="setDashTab('g')">🚀 גני ילדים</button>
           <button id="dash-tab-s" class="vbtn" onclick="setDashTab('s')">🏫 בתי ספר</button>
           <div style="flex:1"></div>
+          <button id="dash-mu-bal-btn" class="btn bo bsm" onclick="window.openMakeupBalance()" style="display:none; background:#e65100; border-color:#e65100; color:#fff">⚖️ מאזן השלמות</button>
           <button class="btn bp bsm" onclick="openNewSched(null)">➕ שיבוץ חדש</button>
           <button class="btn br2 bsm" onclick="openCancelDay(document.getElementById('dash-date').value||td())"
             title="ביטול כל פעילויות יום">🚫 ביטול יום</button>
@@ -1993,10 +1994,37 @@
             placeholder="פ&quot;ת - 9">
         </div>
       </div>
-      <div style="display:flex;gap:7px;justify-content:flex-end">
-        <button class="btn bp" onclick="saveNewGarden()">💾 שמור</button>
-        <button class="btn bs" onclick="CM('addgm')">ביטול</button>
+  <!-- Makeup Balance Modal -->
+  <div id="mbm" class="modal">
+    <div class="mb" style="max-width:600px; border-top: 5px solid #e65100;">
+      <h2 style="color:#e65100; margin-bottom:12px">⚖️ מאזן השלמות (חוסרים מול ביצוע)</h2>
+      <div style="background:#fff8e1; border-radius:8px; padding:12px; margin-bottom:12px; font-size:.8rem; line-height:1.6; color:#e65100; border:1px solid #ffe0b2">
+        💡 <b>איך זה עובד?</b> המערכת סופרת כמה פעילויות לא התקיימו (חוסר) וכמה פעילויות בוצעו כ"השלמה" (פיצוי) לכל גן באופן עצמאי. היתרה מייצגת כמה השלמות עוד נדרש לשבץ.
       </div>
+      
+      <div id="mbm-body" style="max-height:400px; overflow-y:auto; border:1px solid #e0e0e0; border-radius:8px; background:#fff">
+        <table style="width:100%; border-collapse:collapse; font-size:.82rem">
+          <thead style="background:#f5f5f5; position:sticky; top:0; z-index:1">
+            <tr>
+              <th style="padding:10px; text-align:right; border-bottom:2px solid #e0e0e0">צהרון</th>
+              <th style="padding:10px; text-align:center; border-bottom:2px solid #e0e0e0">חוסרים ⚠️</th>
+              <th style="padding:10px; text-align:center; border-bottom:2px solid #e0e0e0">בוצעו ✅</th>
+              <th style="padding:10px; text-align:center; border-bottom:2px solid #e0e0e0">יתרה ⚖️</th>
+            </tr>
+          </thead>
+          <tbody id="mbm-tbody">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+      
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:15px">
+        <button class="btn bo" onclick="CM('mbm')">סגור</button>
+        <button class="btn bg" onclick="location.reload()">🔄 רענן מערכת</button>
+      </div>
+    </div>
+  </div>
+
     </div>
   </div>
 

@@ -280,8 +280,9 @@ function _applyYearData(o){
     });
   }
 
-  if(window.DataManager && window.DataManager.cleanupDuplicates) {
-    window.DataManager.cleanupDuplicates();
+  if(window.DataManager) {
+    if(window.DataManager.cleanupDuplicates) window.DataManager.cleanupDuplicates();
+    if(window.DataManager.applyAutoMakeupMatching) window.DataManager.applyAutoMakeupMatching();
   }
 
   // REST OF THE FUNCTION (Pairs, Invoices, etc.)
@@ -462,6 +463,9 @@ async function save(immediate){
   }
   
   try{
+    if(window.DataManager && window.DataManager.applyAutoMakeupMatching) {
+      window.DataManager.applyAutoMakeupMatching();
+    }
     // Save ALL entries with ALL fields — works with or without SRAWS
     const data={
       ch:(window.SCH||[]).map(s=>({id:s.id,g:s.g,d:s.d,a:s.a,t:s.t,p:s.p,n:s.n,st:s.st,cr:s.cr,cn:s.cn,nt:s.nt,pd:s.pd,pt:s.pt,grp:s.grp,act:s.act||'',_isMakeup:s._isMakeup||false,_makeupFrom:s._makeupFrom||'',_compByMakeup:s._compByMakeup||'',_fromD:s._fromD||''})),
@@ -851,7 +855,7 @@ function updCounts(){
     
     // Check if handled state (needed for the next check)
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)) || (s.n && /השלמה/i.test(s.n)) || (s.a && /השלמה/i.test(s.a)));
 
     // Ignore single-day filter for backlog items (exceptions, pending makeups)
     const isException = (s.st === 'nohap' || s.st === 'post') && !isHandled;

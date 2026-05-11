@@ -18,8 +18,44 @@ function setDashView(v) {
   document.querySelectorAll('.dash-view-pill').forEach(btn => {
     btn.classList.toggle('active', btn.id === 'dvp-' + v);
   });
+  // Show "Makeup Balance" button only in Makeups view
+  const balBtn = document.getElementById('dash-mu-bal-btn');
+  if (balBtn) balBtn.style.display = (v === 'makeups') ? 'inline-block' : 'none';
   renderDash();
 }
+
+window.openMakeupBalance = function() {
+  const map = window.DataManager.calculateMakeupBalance();
+  const tbody = document.getElementById('mbm-tbody');
+  if (!tbody) return;
+
+  const rows = Object.values(map)
+    .filter(b => b.debt > 0 || b.credit > 0) // Only show gardens with some activity
+    .sort((a, b) => b.balance - a.balance || a.name.localeCompare(b.name, 'he'));
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#999">אין חוסרים או השלמות רשומים במערכת</td></tr>';
+  } else {
+    tbody.innerHTML = rows.map(b => {
+      const balColor = b.balance > 0 ? '#c62828' : (b.balance < 0 ? '#2e7d32' : '#546e7a');
+      const balWeight = b.balance !== 0 ? '800' : '400';
+      const balIcon = b.balance > 0 ? '⚠️' : (b.balance < 0 ? '✅' : '⚖️');
+      
+      return `
+        <tr style="border-bottom:1px solid #eee">
+          <td style="padding:10px; font-weight:700; color:#1a237e">${b.name}</td>
+          <td style="padding:10px; text-align:center; color:#c62828; font-weight:700">${b.debt}</td>
+          <td style="padding:10px; text-align:center; color:#2e7d32; font-weight:700">${b.credit}</td>
+          <td style="padding:10px; text-align:center; color:${balColor}; font-weight:${balWeight}; font-size:1.05rem">
+            ${balIcon} ${b.balance}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  window.SM('mbm');
+};
 
 
 
@@ -57,7 +93,7 @@ function renderDash() {
     if (srch && ![(g.name||''), (g.city||''), s.a, s.act, s.nt].some(v=>(v||'').toLowerCase().includes(srch))) return false;
 
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)) || (s.n && /השלמה/i.test(s.n)) || (s.a && /השלמה/i.test(s.a)));
 
     if (view === 'todo') {
       if (s.st === 'can') return false;
@@ -198,7 +234,7 @@ function _renderDashCard(card) {
   evs.forEach(s => {
     const g = window.G(s.g);
     const stCls = window.stClass ? window.stClass(s) : '';
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)) || (s.n && /השלמה/i.test(s.n)) || (s.a && /השלמה/i.test(s.a)));
 
     const label = window.stLabel ? window.stLabel(s) : '';
     h += `<div class="dash-row ${stCls}" style="display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid #f1f5f9; cursor:pointer" onclick="window.openSP('${s.id}')">

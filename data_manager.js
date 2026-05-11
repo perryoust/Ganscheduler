@@ -116,6 +116,9 @@ window.DataManager = {
     // Step 5: Clean duplicates as safety net
     this.cleanupDuplicates();
     
+    // Step 6: Apply automatic makeup matching (debt/credit)
+    this.applyAutoMakeupMatching();
+    
     const stats = {
       total: result.length,
       fromImport: records.length,
@@ -123,6 +126,88 @@ window.DataManager = {
     };
     console.log('[DataManager] Import complete:', stats);
     return stats;
+  },
+
+  /**
+   * Calculates the balance of "Owed" vs "Completed" makeups per garden.
+   * Debt: Activities that didn't occur (nohap).
+   * Credit: Activities marked as "השלמה".
+   * Balance: Debt - Credit.
+   */
+  calculateMakeupBalance: function() {
+    const balanceMap = {}; // gardenId -> {name, debt: 0, credit: 0, balance: 0}
+    
+    const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)) || (s.n && /השלמה/i.test(s.n)));
+
+    (window.SCH || []).forEach(s => {
+      // Exclude cancelled activities (they don't count towards balance)
+      if (s.st === 'can') return;
+
+      const gid = Number(s.g);
+      if (!gid) return;
+
+      if (!balanceMap[gid]) {
+        const garden = (window.GARDENS || []).find(g => Number(g.id) === gid) || { name: 'גן #' + gid };
+        balanceMap[gid] = { id: gid, name: garden.name, debt: 0, credit: 0, balance: 0 };
+      }
+
+      // 1. Debt: Not Occurred
+      if (s.st === 'nohap') {
+        balanceMap[gid].debt++;
+      }
+
+      // 2. Credit: Makeup
+      if (isM(s)) {
+        balanceMap[gid].credit++;
+      }
+    });
+
+    // Final balance calculation
+    Object.values(balanceMap).forEach(b => {
+      b.balance = b.debt - b.credit;
+    });
+
+    return balanceMap;
+  },
+
+  /**
+   * Automatically matches "Not Occurred" activities with "Makeup" activities.
+   * Marks matched nohap activities as handled (_compByMakeup = 'auto_match').
+   */
+  applyAutoMakeupMatching: function() {
+    const gardens = {};
+    const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)) || (s.n && /השלמה/i.test(s.n)));
+
+    (window.SCH || []).forEach(s => {
+      // Clear previous auto-matches to start fresh
+      if (s._compByMakeup === 'auto_match') delete s._compByMakeup;
+      
+      if (s.st === 'can') return;
+      const gid = Number(s.g);
+      if (!gid) return;
+
+      if (!gardens[gid]) gardens[gid] = { nohaps: [], makeups: [] };
+
+      // We only match nohaps that aren't ALREADY handled manually
+      if (s.st === 'nohap' && !s._compByMakeup) {
+        gardens[gid].nohaps.push(s);
+      } else if (isM(s)) {
+        gardens[gid].makeups.push(s);
+      }
+    });
+
+    Object.values(gardens).forEach(g => {
+      // Sort nohaps by date ASC (oldest first)
+      g.nohaps.sort((a, b) => a.d.localeCompare(b.d));
+      
+      const makeupCount = g.makeups.length;
+      // Match up to the number of makeups available
+      for (let i = 0; i < Math.min(makeupCount, g.nohaps.length); i++) {
+        g.nohaps[i]._compByMakeup = 'auto_match';
+      }
+    });
+    
+    console.log('[DataManager] Auto-makeup matching applied.');
   },
 
   cleanupDuplicates: function() {
