@@ -233,9 +233,12 @@ function _applyYearData(o){
     // 2. Process changes from cloud/backup
     const m = {}; // SRAWS ID -> Final Object
     const manual = []; // Non-SRAWS manual/imported records
+    const coveredDateGardens = new Set();
     
     o.ch.forEach(x => {
       if(!x.d || !x.g) return;
+      
+      coveredDateGardens.add(`${x.d}|${Number(x.g)}`);
       
       const isManualId = String(x.id).startsWith('e_');
       const k = `${x.d}|${Number(x.g)}|${nuclearClean(x.a)}|${nuclearTime(x.t)}`;
@@ -253,8 +256,15 @@ function _applyYearData(o){
     // 3. Assemble SCH: SRAWS (merged) + remaining Manual
     window.SCH = SRAWS.map(s => {
       const x = m[s.id];
-      return x ? {...s, ...x} : s;
-    });
+      if (x) return {...s, ...x};
+      
+      // If this Date+Garden is already covered by the incoming data, 
+      // and this SRAWS record didn't match anything above, it's a "Zombie" — skip it.
+      if (coveredDateGardens.has(`${s.d}|${Number(s.g)}`)) {
+        return null;
+      }
+      return s;
+    }).filter(Boolean);
     
     // Merge manual records (deduplicated by fuzzy key)
     const manualSeen = {};
