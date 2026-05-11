@@ -212,10 +212,19 @@ function _applyYearData(o){
   } else {
     // 1. Map SRAWS by fuzzy key for merging imported data
     const srawsFuzzy = {};
-    const clean = (a) => (window.utils ? window.utils.megaClean(a) : String(a||'').toLowerCase().trim());
+    const nuclearClean = (val) => {
+      if(!val) return '';
+      return String(val).replace(/\(.*\)/g, '').replace(/[^א-תa-zA-Z0-9]/g, '').toLowerCase();
+    };
+    const nuclearTime = (t) => {
+      if(!t) return '00:00';
+      let m = String(t).match(/(\d{1,2}):(\d{1,2})/);
+      if(!m) return '00:00';
+      return m[1].padStart(2,'0') + ':' + m[2].padStart(2,'0');
+    };
     
     SRAWS.forEach(s => {
-      const k = `${s.d}|${s.g}|${clean(s.a)}|${(s.t||'').slice(0,5)}`;
+      const k = `${s.d}|${Number(s.g)}|${nuclearClean(s.a)}|${nuclearTime(s.t)}`;
       srawsFuzzy[k] = s;
     });
 
@@ -232,7 +241,7 @@ function _applyYearData(o){
         m[x.id] = {...(m[x.id]||{}), ...x};
       } else {
         // Imported/Manual record: attempt fuzzy match with SRAWS
-        const k = `${x.d}|${x.g}|${clean(x.a)}|${(x.t||'').slice(0,5)}`;
+        const k = `${x.d}|${Number(x.g)}|${nuclearClean(x.a)}|${nuclearTime(x.t)}`;
         if (srawsFuzzy[k]) {
           const s = srawsFuzzy[k];
           // Merge imported data into the SRAWS slot
@@ -252,7 +261,7 @@ function _applyYearData(o){
     // Merge manual records (deduplicated by fuzzy key)
     const manualSeen = {};
     manual.forEach(x => {
-      const k = `${x.d}|${x.g}|${clean(x.a)}|${(x.t||'').slice(0,5)}`;
+      const k = `${x.d}|${Number(x.g)}|${nuclearClean(x.a)}|${nuclearTime(x.t)}`;
       if(!manualSeen[k]) {
         manualSeen[k] = x;
         window.SCH.push(x);

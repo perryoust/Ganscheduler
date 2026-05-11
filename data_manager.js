@@ -51,6 +51,13 @@ window.DataManager = {
   },
 
   importBulk: async function(records) {
+    console.log('[DataManager] Starting Master Overwrite import...');
+    
+    // 1. Reset everything to baseline (SRAWS default state)
+    // This clears all previous imported records (e_...) and resets SRAWS changes.
+    window.SCH = SRAWS.map(s => ({...s, st:'ok', nt:s.n||'', grp:1}));
+    
+    // 2. Apply new records (fuzzy-matched)
     let stats = { created: 0, updated: 0 };
     records.forEach(r => {
       const res = this.upsert(r);
@@ -58,11 +65,11 @@ window.DataManager = {
       if (res === 'updated') stats.updated++;
     });
     
-    // Auto-cleanup after bulk import to merge any accidental leftovers
+    // 3. Final nuclear cleanup
     this.cleanupDuplicates();
     
     window.useSraws = false;
-    console.log('[DataManager] Bulk import complete:', stats);
+    console.log('[DataManager] Overwrite import complete:', stats);
     return stats;
   },
 
@@ -71,17 +78,29 @@ window.DataManager = {
     const toKeep = [];
     const before = window.SCH.length;
     
-    const aggressiveClean = (a) => {
-      if(!a) return '';
-      // Remove text in parentheses, strip common suffixes, trim
-      let s = String(a).replace(/\(.*\)/g, '').split('-')[0].split('/')[0];
-      return (window.utils ? window.utils.megaClean(s) : s.toLowerCase().trim());
+    const nuclearClean = (val) => {
+      if(!val) return '';
+      // Strip everything except Hebrew, English, and Digits. Remove all whitespace.
+      return String(val)
+        .replace(/\(.*\)/g, '') // Remove parentheses content
+        .replace(/[^א-תa-zA-Z0-9]/g, '') // Remove special chars
+        .toLowerCase();
     };
+
+    const nuclearTime = (t) => {
+      if(!t) return '00:00';
+      // Keep only HH:MM
+      let m = String(t).match(/(\d{1,2}):(\d{1,2})/);
+      if(!m) return '00:00';
+      return m[1].padStart(2,'0') + ':' + m[2].padStart(2,'0');
+    };
+
+    let debugCount = 0;
 
     window.SCH.forEach(s => {
       if (!s.d || !s.g) return;
-      const normA = aggressiveClean(s.a);
-      const normT = (s.t || '').slice(0, 5);
+      const normA = nuclearClean(s.a);
+      const normT = nuclearTime(s.t);
       const normG = Number(s.g);
       const k = `${s.d}|${normG}|${normA}|${normT}`;
       
@@ -90,15 +109,20 @@ window.DataManager = {
         toKeep.push(s);
       } else {
         const existing = seen[k];
+        
+        if (debugCount < 5 && s.id !== existing.id) {
+           console.log(`[Dedupe Match] Merging ${s.id} into ${existing.id} for key: ${k}`);
+           debugCount++;
+        }
+
         // 1. Prioritize non-ok status (exceptions)
         if (s.st !== 'ok' && existing.st === 'ok') existing.st = s.st;
         // 2. Merge unique notes
         if (s.nt && existing.nt !== s.nt) {
-          if (!existing.nt.includes(s.nt)) existing.nt = (existing.nt ? existing.nt + ' | ' + s.nt : s.nt);
+          if (!existing.nt.includes(s.nt)) existing.nt = (existing.nt ? existing.nt + ' | ' + x.nt : s.nt);
         }
-        // 3. Prefer manual ID (e_...) but keep track of original SRAWS ID if possible
+        // 3. Keep manual ID if available
         if (String(s.id).startsWith('e_') && !String(existing.id).startsWith('e_')) {
-           // existing is SRAWS, s is manual. Keep SRAWS ID for cloud mapping but take s's data
            Object.assign(existing, s, {id: existing.id}); 
         } else if (String(s.id).startsWith('e_')) {
            existing.id = s.id;
@@ -110,6 +134,6 @@ window.DataManager = {
     });
     
     window.SCH = toKeep;
-    console.log(`[DataManager] Aggressive Cleanup: Merged ${before - toKeep.length} duplicates. Result: ${toKeep.length}`);
+    console.log(`[DataManager] Nuclear Cleanup: Merged ${before - toKeep.length} duplicates. Result: ${toKeep.length}`);
   }
 };
