@@ -175,13 +175,11 @@ function supAct(fullName){
   if(match) return match[3].trim();
 
   // If no dash found, try to look up the activity from the master SUPBASE list by base name
+  // BUT: Only if there is exactly ONE activity for this supplier to avoid wrong guesses (e.g. Tilitan)
   if(typeof SUPBASE !== 'undefined' && Array.isArray(SUPBASE)){
-    const found = SUPBASE.find(s => {
-      const b = supBase(s.name);
-      return b === norm;
-    });
-    if(found){
-      const m2 = found.name.match(/^(.*?)\s*([-\u2013\u2014])\s*(.*)$/);
+    const matches = SUPBASE.filter(s => supBase(s.name) === norm);
+    if(matches.length === 1){
+      const m2 = matches[0].name.match(/^(.*?)\s*([-\u2013\u2014])\s*(.*)$/);
       if(m2) return m2[3].trim();
     }
   }

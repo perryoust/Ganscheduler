@@ -44,12 +44,20 @@ window.utils = {
     let found = all.find(s => this.norm(s.name) === n);
     if (found) return found;
     
-    // 2. Try megaClean match
-    found = all.find(s => this.megaClean(s.name) === m);
-    if (found) return found;
+    // 2. Try megaClean match with activity prioritization
+    const matches = all.filter(s => this.megaClean(s.name) === m);
+    if (matches.length > 0) {
+      if (matches.length === 1) return matches[0];
+      // Multiple suppliers with same base name - try to find the one that matches the activity in the raw name
+      const bestMatch = matches.find(s => {
+        const act = window.supAct ? window.supAct(s.name) : '';
+        return act && n.includes(this.norm(act));
+      });
+      return bestMatch || matches[0];
+    }
     
     // 3. Try base match (if name contains " - ")
-    const base = name.split(' - ')[0];
+    const base = name.split(/[-\u2013\u2014\/]/)[0].trim();
     const nb = this.norm(base);
     return all.find(s => this.norm(s.name).startsWith(nb));
   },
