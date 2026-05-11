@@ -172,7 +172,20 @@ function supAct(fullName){
   if(!fullName) return '';
   const norm = _SUP_ALIASES[fullName]||fullName;
   const match = norm.match(/^(.*?)\s*([-\u2013\u2014])\s*(.*)$/);
-  return match ? match[3].trim() : '';
+  if(match) return match[3].trim();
+
+  // If no dash found, try to look up the activity from the master SUPBASE list by base name
+  if(typeof SUPBASE !== 'undefined' && Array.isArray(SUPBASE)){
+    const found = SUPBASE.find(s => {
+      const b = supBase(s.name);
+      return b === norm;
+    });
+    if(found){
+      const m2 = found.name.match(/^(.*?)\s*([-\u2013\u2014])\s*(.*)$/);
+      if(m2) return m2[3].trim();
+    }
+  }
+  return '';
 }
 window.supAct = supAct;
 // Get all unique base supplier names from schedules + SUPBASE
