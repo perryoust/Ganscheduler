@@ -1104,7 +1104,14 @@ function genExport(){
 function copyExport(){
   const t=document.getElementById('ex-prev').textContent;
   if(!t||t.startsWith('לחץ')) return;
-  navigator.clipboard.writeText(t).then(()=>alert('✅ הועתק!')).catch(()=>{const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('✅ הועתק!');});
+  navigator.clipboard.writeText(t).then(()=>{
+    if(typeof window.showToast==='function') window.showToast('✅ הועתק ללוח!');
+    else alert('✅ הועתק!');
+  }).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    if(typeof window.showToast==='function') window.showToast('✅ הועתק ללוח!');
+    else alert('✅ הועתק!');
+  });
 }
 function printExport(){
   const t=document.getElementById('ex-prev').textContent;
