@@ -777,88 +777,6 @@ function renderNormalDay(evs,ds){
 }
 
 // Unified rendering functions moved to core.js window.ui
-function renderGardenCols(evs, gids, clr){
-  const ds = ''; // ds is not passed but used in pslot? Actually ds is global or not needed here.
-  const cols = gids.filter(Boolean);
-  let html = '';
-  cols.forEach((gid, i) => {
-    const g = window.G(gid);
-    if (!g) return;
-    const ge = evs.filter(s => s.g === gid).sort((a,b) => window.compareActivities(a, b));
-    html += `<div class="garden-col" style="border-right:${i > 0 ? '1px solid rgba(0,0,0,.06)' : 'none'}">
-      <div class="garden-col-hdr" style="color:${clr.text}">
-        ${window.gcls(g) === 'ביה"ס' ? '🏛️' : '🏫'} ${g.name}
-      </div>`;
-    
-    if (!ge.length) {
-      html += '<div style="color:#ccc; font-size:.7rem; text-align:center; padding:10px 0">—</div>';
-    } else {
-      const filtered = ge; // No longer deduplicating and hiding based on status
-
-
-      filtered.forEach(s => {
-        const stc = s.st !== 'ok' ? 'st-' + s.st : '';
-        html += `<div class="pslot ${stc}" style="border-right:3px solid ${clr.solid}" onclick="openSP('${s.id}')">
-          ${s._fromD ? `<div style="font-size:.67rem; color:#e65100; font-weight:700; background:#fff3e0; padding:1px 5px; border-radius:3px; margin-bottom:2px">↩️ הועבר מ-${window.fD(s._fromD)}</div>` : ''}
-          ${s.t ? `<div class="pt">⏰ ${window.fT(s.t)}</div>` : ''}
-          <div class="pn">${window.supBase(s.a)}</div>
-          ${s._makeupFrom ? `<div style="display:inline-block; background:#e1f5fe; color:#0288d1; border-radius:4px; padding:1px 6px; font-size:.62rem; font-weight:800; border:1px solid #b3e5fc; margin-bottom:2px">📅 השלמה</div>` : ''}
-          ${(s.act || window.supAct(s.a)) ? `<div style="font-size:.69rem; color:${clr.solid}; font-weight:600; margin-top:1px">🎯 ${s.act || window.supAct(s.a)}</div>` : ''}
-          ${s.p ? `<div class="pp">📞 ${s.p}</div>` : ''}
-          <div class="pst">${window.stLabel(s)}</div>
-          <div class="qacts" onclick="event.stopPropagation()">
-            ${s.st === 'done' ? '' : `<button title="התקיים" onclick="qSetSt('${s.id}','done')">✔️</button>`}
-            ${s.st === 'can' ? '' : `<button title="בטל" onclick="openCanQ('${s.id}')">❌</button>`}
-            ${s.st === 'nohap' ? '' : `<button title="לא התקיים" onclick="qSetSt('${s.id}','nohap')">⚠️</button>`}
-            <button title="דחה" onclick="openPostpone('${s.id}')">⏩</button>
-          </div>
-        </div>`;
-      });
-    }
-    html += '</div>';
-  });
-  if (cols.length === 2) {
-    html += `<div class="garden-col" style="border-right:none; background:#fafafa">
-      <div style="text-align:center; color:#ddd; padding:20px 0; font-size:.8rem">—</div>
-    </div>`;
-  }
-  return html;
-}
-function renderPairColsHTML(evs,gids,pairId){
-  const cols=[gids[0]||null,gids[1]||null,gids[2]||null];
-  const nCols=cols.filter(Boolean).length||1;
-  const colsTpl=nCols===1?'1fr':nCols===2?'1fr 1fr':'1fr 1fr 1fr';
-  let html=`<div class="pair-cols" style="grid-template-columns:${colsTpl}">`;
-  cols.forEach((gid,i)=>{
-    if(!gid){
-      html+=`<div class="pcol"><div class="pch cx">—</div><div class="pcb"><div class="pempty">—</div></div></div>`;
-      return;
-    }
-    const g=window.G(gid);
-    const ge=evs.filter(s=>s.g===gid).sort((a,b)=>window.compareActivities(a, b));
-    html+=`<div class="pcol">
-      <div style="font-size:.66rem;font-weight:700;text-align:center;padding:2px 6px;background:rgba(0,0,0,.12);color:#fff">${g.city}</div>
-      <div class="pch"><span>${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</span></div>
-      <div class="pcb">`;
-    if(!ge.length) html+='<div class="pempty">אין פעילויות</div>';
-    else ge.forEach(s=>html+=`<div class="pslot ${s.st!=='ok'?'st-'+s.st:''}" onclick="window.openSP('${s.id}')">
-      ${s.t?`<div class="pt">⏰ ${window.fT(s.t)}</div>`:''}
-      ${(s.act || window.supAct(s.a))?`<div style="font-size:.68rem;color:#1565c0;font-weight:600">${s.act || window.supAct(s.a)}</div>`:''}
-      <div class="pn">${window.supBase(s.a)}</div>
-      ${s.p?`<div class="pp">📞 ${s.p}</div>`:''}
-      <div class="pst">${window.stLabel(s)}</div>
-      <div class="qacts" onclick="event.stopPropagation()">
-        ${s.st==='done'?'':`<button title="התקיים" onclick="window.qSetSt('${s.id}','done')">✔️</button>`}
-        ${s.st==='can'?'':`<button title="בטל" onclick="window.openCanQ('${s.id}')">❌</button>`}
-        ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="window.qSetSt('${s.id}','nohap')">⚠️</button>`}
-        <button title="דחה" onclick="window.openPostpone('${s.id}')">⏩</button>
-        <button title="שיבוץ השלמה" class="btn-makeup" onclick="window.openMakeupSched('${s.id}')">📅</button>
-      </div>
-    </div>`);
-    html+='</div></div>';
-  });
-  return html+'</div>';
-}
 
 function renderPairDay(evs,gids){
   const pclr=window.pairClrClass ? window.pairClrClass(gids[0]?window.gardenPair(gids[0])?.id:0) : 'pc0';
@@ -969,52 +887,42 @@ function renderNormalWeek(evs, ws, f){
 
     function makeCell(gid, ds, de, blk, hol, clrObj){
       const isToday=ds===tday;
-      const cellBg=blk?'#fce4ec':isToday?'#eef2ff':hol?hol.bg+'33':'#fff';
-      const borderColor=isToday?'#7986cb':'#dde1f0';
+      const cellBg=blk?'#fff5f5':isToday?'#f8faff':hol?hol.bg+'22':'#fff';
+      const borderColor=isToday?'var(--c-primary)':'#e2e8f0';
       let inner='';
       if(de.length){
         de.forEach(ev=>{
-          inner+=`<div style="border-radius:5px;padding:5px 6px;margin:2px 0;font-size:14px;
-            background:#fff;border-right:3px solid ${clrObj.solid};
-            ${ev.st==='can'?'opacity:.5;text-decoration:line-through;':ev.st==='post'?'background:#fff8e1;':ev.st==='done'?'background:#f1f8e9;':ev.st==='nohap'?'background:#fce4ec;':''}">
-            <div style="display:flex;align-items:flex-start;gap:4px">
-              <div style="cursor:pointer;flex:1;min-width:0" onclick="event.stopPropagation();window.openSP('${ev.id}')">
-                <div style="font-weight:700;color:${clrObj.solid};word-break:break-word;line-height:1.3">${window.supBase(ev.a)}${ev.act?`<span style="color:#78909c;font-weight:400"> — ${ev.act}</span>`:''}</div>
-                ${ev._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 5px;font-size:11px;font-weight:800;border:1px solid #b3e5fc;margin-top:2px">📅 השלמה</div>`:''}
-                <div style="font-size:12px;color:#5c6bc0;margin-top:1px">${ev.tp||'חוג'}${ev.grp>1?` · <span style="color:#546e7a">👥${ev.grp}</span>`:''}</div>
-                ${ev.t?`<div style="font-size:12px;color:#546e7a">⏰ ${window.fT(ev.t)}</div>`:''}
+          const stC = ev.st==='can'?'st-can':ev.st==='done'?'st-done':ev.st==='nohap'?'st-nohap':ev.st==='post'?'st-post':'';
+          inner+=`<div class="pslot ${stC}" style="border-radius:6px; padding:6px 8px; margin:3px 0; font-size:var(--fs-xs);
+            background:#fff; border:1px solid #e2e8f0; border-right:3px solid ${clrObj.solid}; box-shadow:0 1px 2px rgba(0,0,0,0.03); cursor:pointer"
+            onclick="event.stopPropagation();window.openSP('${ev.id}')">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:4px">
+              <div style="flex:1; min-width:0">
+                <div style="font-weight:800; color:var(--c-secondary); font-size:var(--fs-small); line-height:1.2">${window.supBase(ev.a)}</div>
+                ${ev.act ? `<div style="color:var(--c-info); font-size:var(--fs-xs); margin-top:1px">${ev.act}</div>` : ''}
+                ${ev.t ? `<div style="font-size:var(--fs-xs); color:#64748b; margin-top:2px">⏰ ${window.fT(ev.t)}</div>` : ''}
+                ${ev._makeupFrom?`<div style="display:inline-block; background:#e1f5fe; color:#0288d1; border-radius:4px; padding:1px 5px; font-size:0.6rem; font-weight:800; border:1px solid #b3e5fc; margin-top:3px">📅 השלמה</div>`:''}
               </div>
-              <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0" onclick="event.stopPropagation()">
-                <button title="התקיים" style="background:${ev.st==='done'?'#2e7d32':'#e8f5e9'};color:${ev.st==='done'?'#fff':'#2e7d32'};border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
-                  onclick="window.openSP('${ev.id}');setTimeout(()=>window.setStatus('${ev.id}','done'),80)">✔️</button>
-                <button title="בטל" style="background:${ev.st==='can'?'#c62828':'#ffebee'};color:${ev.st==='can'?'#fff':'#c62828'};border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
-                  onclick="window.openSP('${ev.id}')">❌</button>
-                <button title="לא התקיים" style="background:${ev.st==='nohap'?'#6a1b9a':'#f3e5f5'};color:${ev.st==='nohap'?'#fff':'#6a1b9a'};border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
-                  onclick="window.openSP('${ev.id}');setTimeout(()=>window.markNoHap(),80)">⚠️</button>
-                <button title="דחה" style="background:#fff3e0;color:#e65100;border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
-                  onclick="event.stopPropagation();window.openPostpone('${ev.id}')">⏩</button>
-                <button title="שיבוץ השלמה" class="btn-makeup" style="background:#e3f2fd;color:#1565c0;border:none;border-radius:3px;padding:2px 5px;font-size:12px;cursor:pointer;line-height:1.4"
-                  onclick="event.stopPropagation();window.openMakeupSched('${ev.id}')">📅</button>
+              <div style="display:flex; flex-direction:column; gap:3px; flex-shrink:0" onclick="event.stopPropagation()">
+                ${window.ui.renderQuickActionBtns(ev)}
               </div>
             </div>
           </div>`;
         });
-        if(blk) inner+=`<div style="font-size:.68rem;color:#c62828;padding:2px 4px">${blk.icon||'🚫'} ${blk.reason}</div>`;
+        if(blk) inner+=`<div style="font-size:var(--fs-xs); color:var(--c-error); padding:4px; font-weight:700">${blk.icon||'🚫'} ${blk.reason}</div>`;
       } else if(blk){
-        inner=`<div style="font-size:.72rem;color:#c62828;padding:4px;text-align:center">${blk.icon||'🚫'} ${blk.reason}</div>`;
+        inner=`<div style="font-size:var(--fs-xs); color:var(--c-error); padding:6px; text-align:center; font-weight:700">${blk.icon||'🚫'} ${blk.reason}</div>`;
       } else if(hol){
-        inner=`<span style="font-size:.7rem;color:${hol.color}">${hol.emoji}</span>`;
+        inner=`<div style="font-size:var(--fs-xs); color:${hol.color}; font-weight:700; padding:4px; text-align:center">${hol.emoji} ${hol.name}</div>`;
       } else {
-        inner=`<div style="color:#c8cdd5;font-size:1.4rem;font-weight:300;text-align:center;line-height:1;padding:4px 0;cursor:pointer;user-select:none">+</div>`;
+        inner=`<div style="color:#cbd5e1; font-size:1.2rem; font-weight:300; text-align:center; padding:8px 0; cursor:pointer">+</div>`;
       }
-      const jumpBtn = `<button onclick="event.stopPropagation(); window.jumpToPairWeeklySchedule(null,'${ds}','${gid}')" 
-        style="position:absolute;top:2px;left:2px;background:rgba(25,118,210,0.1);border:1px solid rgba(25,118,210,0.2);
-        border-radius:4px;color:#1976d2;font-size:10px;padding:1px 4px;cursor:pointer;opacity:0;transition:opacity 0.2s" class="cell-jump-btn" title="לוח שבועי">📅</button>`;
+      const jumpBtn = `<button onclick="event.stopPropagation(); window.calJump('','week','${gid}')" 
+        style="position:absolute; top:4px; left:4px; background:white; border:1px solid #e2e8f0;
+        border-radius:4px; color:#64748b; font-size:10px; padding:2px 5px; cursor:pointer; opacity:0; transition:all 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.1)" class="cell-jump-btn">📅</button>`;
 
-      return `<td style="background:${cellBg};position:relative;
-        border-bottom:1px solid ${borderColor};border-left:1px solid ${borderColor};
-        ${blk?'border:1.5px solid #e91e63;':''}
-        padding:4px;vertical-align:top;min-width:130px"
+      return `<td style="background:${cellBg}; position:relative; border-bottom:1px solid ${borderColor}; border-left:1px solid ${borderColor};
+        padding:5px; vertical-align:top; min-width:140px"
         onmouseover="this.querySelector('.cell-jump-btn').style.opacity=1"
         onmouseout="this.querySelector('.cell-jump-btn').style.opacity=0"
         onclick="window.openGcellPopup(${gid},'${ds}',event)">${jumpBtn}${inner}</td>`;
@@ -1209,16 +1117,14 @@ function renderCalList(evs, mDate){
         if(!clEvs.length) return;
         clEvs.forEach(s=>clusteredGidsC.add(s.g));
         const clGids2=clEvs.map(s=>s.g);
-        h+=`<div style="margin-bottom:4px;border:1px solid ${clr.border};border-radius:6px;overflow:hidden">
-          <div style="background:${clr.solid}22;padding:3px 8px;font-size:.72rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
-            <span>🏘️ ${cl.name}</span>
-            <div style="display:flex;gap:4px">
-               <button onclick="event.stopPropagation();window.openClusterBulkEdit('${cl.id}','${ds}')" style="background:#1565c0;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">✏️ עריכה</button>
-               <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids2)})" style="background:#25d366;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
-            </div>
-          </div>`;
-        clEvs.forEach(s=>{ h+=_listRow(s,clr); });
-        h+=`</div>`;
+        
+        // Use a standard card for the cluster but with a cluster-specific header style if needed, 
+        // or just use renderStandardPairCard with a generated pair object.
+        h += window.ui.renderStandardPairCard({id:'cl_'+cl.id, name:'🔢 '+cl.name, ids:cl.gardenIds}, clEvs, {
+          ds: ds,
+          clr: clr,
+          context: 'cal'
+        });
       };
       const clAll=(typeof getClusters==='function'?getClusters():[]).filter(cl=>
         (cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===parseInt(gid))));
@@ -1248,23 +1154,28 @@ function renderCalList(evs, mDate){
       // ── Render window.pairs ──
       pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he'));
 
-        pairGroups.forEach(({pair,pairEvs})=>{
-          // Sort pair events by garden name then time
-          const sorted=pairEvs.sort((a,b)=>window.compareActivities(a, b));
-          h+=`<div style="margin-bottom:3px;border:1px solid ${clr.border};border-radius:5px;overflow:hidden">
-            <div style="background:${clr.solid}18;padding:2px 8px;font-size:.68rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
-              <span>🔗 ${pair.name}</span>
-              <button onclick="event.stopPropagation();window._exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:3px;padding:1px 6px;cursor:pointer;font-size:.64rem;color:#fff;font-weight:700">📋 הודעה</button>
-            </div>`;
-          sorted.forEach(s=>{ h+=_listRow(s,clr,ds); });
-          h+=`</div>`;
+      pairGroups.forEach(({pair,pairEvs})=>{
+        h += window.ui.renderStandardPairCard(pair, pairEvs, {
+          ds: ds,
+          clr: clr,
+          context: 'cal'
         });
+      });
 
       // Solos — sorted by garden name (not in pair or cluster)
-        const soloEvs=cityEvs
+      const soloEvs=cityEvs
         .filter(s=>!pairedGids.has(s.g)&&!clusteredGidsC.has(s.g))
         .sort((a,b)=>window.compareActivities(a, b));
-      soloEvs.forEach(s=>{ h+=_listRow(s,clr,ds); });
+      
+      soloEvs.forEach(s=>{
+        const g = window.G(s.g);
+        h += window.ui.renderStandardPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {
+          ds: ds,
+          clr: clr,
+          context: 'cal',
+          isSolo: true
+        });
+      });
 
       h+=`</div></div>`; // end city inner + outer
     });
@@ -1274,62 +1185,6 @@ function renderCalList(evs, mDate){
   return h+'</div>';
 }
 
-window._listRow = _listRow;
-function _listRow(s, clr, ds){
-  const g=window.G(s.g);
-  const isUnassigned = s.st === 'unassigned';
-  const bg = isUnassigned ? '#f5f5f5' : s.st==='done'?'#f1f8e9':s.st==='nohap'?'#fce4ec':clr.light;
-  const stC = isUnassigned ? '#9e9e9e' : s.st==='nohap'?'#c62828':s.st==='post'?'#e65100':s.st==='done'?'#2e7d32':'#333';
-  const stLabelText = isUnassigned ? 'לא משובץ' : window.stLabel(s).replace(/<[^>]+>/g,'');
-   const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|makeup/i.test(s.nt)) || (s.n && /השלמה|makeup/i.test(s.n)));
-  const _dow = new Date(s.d).getDay();
-  const repeats = window.SCH.filter(x => x.g === s.g && new Date(x.d).getDay() === _dow && window.supBase(x.a) === window.supBase(s.a) && x.t === s.t && x.st !== 'can').length >= 2;
-  const isRec = !isM && (!!s._recId || repeats);
-  const recBadge = isRec ? `<span style="font-size:0.65rem;color:#6a1b9a;margin-left:4px;vertical-align:middle;font-weight:900" title="שיבוץ קבוע">🔄</span>` : '';
-  const supText = isUnassigned ? '' : `${window.supBase(s.a)}${recBadge}${(s.act || window.supAct(s.a))?' — <span style="color:#546e7a">'+(s.act || window.supAct(s.a))+'</span>':''}`;
-  // Increase font size for supplier/activity text as requested
-  const supStyle = `font-size:var(--fs-body);font-weight:700;color:var(--c-secondary)`;
-  const clickHandler = isUnassigned ? `event.stopPropagation(); if(window.openNewSched) window.openNewSched('${s.d}', ${s.g});` : `window.openSP('${s.id}')`;
-  
-  const addrLink=g.st?`<a href="https://maps.google.com/?q=${encodeURIComponent(g.st+' '+g.city)}" target="_blank" onclick="event.stopPropagation()" style="font-size:.63rem;color:#1565c0;text-decoration:none">📍 ${g.st}</a>`:'';
-  
-  // Only show the garden-level WhatsApp button for Solo items. 
-  // For pairs, the button is already in the group header.
-  const isPaired = !!window.gardenPair(s.g);
-  const waBtn = (!isPaired && window._exportGardenWA && !isUnassigned) 
-    ? `<button onclick="event.stopPropagation();window._exportGardenWA([${s.g}],'${ds||''}')" style="background:${clr.solid};border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.72rem;color:#fff;font-weight:700" title="שלח הודעה">📋</button>`
-    : '';
-  const weekBtnSolo = (!isPaired && !isUnassigned)
-    ? `<button onclick="event.stopPropagation();jumpToPairWeeklySchedule(null,'${s.d}',${s.g})" style="background:#455a64;border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.72rem;color:#fff;font-weight:700" title="לוח שבועי">📅</button>`
-    : '';
-  const monthBtnSolo = (!isPaired && !isUnassigned)
-    ? `<button onclick="event.stopPropagation();jumpToPairMonthlySchedule(null,'${s.d}',${s.g})" style="background:#455a64;border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.72rem;color:#fff;font-weight:700" title="לוח חודשי">🗓️</button>`
-    : '';
-
-  return `<div style="display:grid;grid-template-columns:minmax(150px, auto) 1fr auto auto auto;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;margin-bottom:1px;background:${bg};border-right:3px solid ${clr.solid};cursor:pointer;min-height:36px" onclick="${clickHandler}">
-    <div style="display:flex; flex-direction:column; gap:1px; justify-content:center;">
-      <div style="display:flex; align-items:center; gap:5px;">
-        <span style="font-weight:800;font-size:var(--fs-card-title);color:var(--c-secondary);white-space:nowrap">${s.t?'⏰ '+window.fT(s.t):''}</span>
-        <span style="font-weight:700;font-size:var(--fs-body);color:var(--c-primary);line-height:1">${g.name}</span>
-      </div>
-      ${addrLink}
-    </div>
-    <div>
-      <div style="${supStyle}">${supText}</div>
-      ${s.nt?`<div style="font-size:.68rem;color:#d84315;margin-top:2px;max-width:200px;white-space:normal;line-height:1.15;font-weight:700">📝 ${s.nt}</div>`:''}
-      ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #b3e5fc;margin-top:2px">📅 השלמה</div>`:''}
-      ${(s._compByMakeup && s._compByMakeup!=='false')?`<div style="display:inline-block;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:800;border:1px solid #a5d6a7;margin-top:2px">✅ נקבעה השלמה${(window.SCH.find(x=>x.id===s._compByMakeup)||{}).d ? ' ל-'+window.fD((window.SCH.find(x=>x.id===s._compByMakeup)||{}).d) : ''}</div>`:''}
-      ${!isUnassigned ? `<div style="font-size:.65rem;color:#5c6bc0">${s.tp||'חוג'}</div>` : ''}
-    </div>
-    <div style="font-size:.7rem;font-weight:700;color:${stC}">${stLabelText}</div>
-    <div style="display:flex;gap:4px">
-      ${waBtn}
-      ${weekBtnSolo}
-      ${monthBtnSolo}
-      ${!isUnassigned ? _quickActionBtns(s) : ''}
-    </div>
-  </div>`;
-}
 
 function renderMonth(evs,mDate,f){
   const y=mDate.getFullYear(),m=mDate.getMonth(),tday=window.td();
