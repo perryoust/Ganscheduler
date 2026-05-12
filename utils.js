@@ -83,44 +83,61 @@ window.utils = {
     return all.find(s => this.norm(s.name).startsWith(nb));
   },
 
-  findGarden: function(name, city) {
-    if (!name) return null;
-    let n = this.norm(name);
-    let m = this.megaClean(name);
-    let c = this.norm(city);
+  findGarden: function(rawName, city) {
+    if (!rawName) return null;
+    let g = null;
+    const GARDENS = window.GARDENS || [];
     
-    // Extract city from name if not provided (e.g., "Garden (City)")
-    if (!c) {
-      const cityMatch = name.match(/\(([^)]+)\)\s*$/);
-      if (cityMatch) {
-        const potentialCity = this.norm(cityMatch[1]);
-        if (['פת', 'ראש העין', 'גבעתיים', 'באר יעקב', 'נס ציונה'].includes(potentialCity)) {
-          c = potentialCity;
-          // Re-clean the name without the city suffix for matching
-          m = this.megaClean(name.replace(/\(([^)]+)\)\s*$/, '').trim());
-        }
+    // Normalize city if provided
+    const normC = city ? this.megaClean(this.normCity(city)) : null;
+
+    // 1. Precise match (cleaned)
+    if(!g) {
+      g = GARDENS.find(x => this.megaClean(x.name) === this.megaClean(rawName) && (!normC || this.megaClean(this.normCity(x.city)) === normC));
+    }
+
+    // 2. City extraction from ANY parenthesis (loop through all)
+    if(!g && !city) {
+      const parentheticals = (rawName.match(/\(([^)]+)\)/g) || []).map(m => m.slice(1, -1));
+      for (const p of parentheticals) {
+        const c = this.megaClean(this.normCity(p));
+        const nameWithoutP = rawName.replace(/\([^)]+\)/g, '').trim();
+        const nClean = this.megaClean(nameWithoutP);
+        
+        // Try to find garden where name is the leftover and city is the extracted paren
+        g = GARDENS.find(x => this.megaClean(x.name) === nClean && this.megaClean(this.normCity(x.city)) === c);
+        if(g) break;
+        
+        // Try to find garden where name (with its own parens) matches the raw name minus ONLY the city paren
+        const rawMinusThisP = rawName.replace(`(${p})`, '').trim();
+        g = GARDENS.find(x => this.megaClean(x.name) === this.megaClean(rawMinusThisP) && this.megaClean(this.normCity(x.city)) === c);
+        if(g) break;
       }
     }
 
-    const gardens = window.GARDENS || [];
-    
-    // Priority 1: Exact Name + City match
-    let found = gardens.find(g => (this.norm(g.name) === n || this.megaClean(g.name) === m) && (!c || this.norm(g.city) === c));
-    if (found) return found;
-
-    // Priority 2: Fuzzy match city (e.g. if city is part of the name but not column)
-    if (!c) {
-      const cityMatches = gardens.filter(g => n.includes(this.norm(g.city)));
-      if (cityMatches.length > 0) {
-        const best = cityMatches.find(g => this.megaClean(g.name) === m);
-        if (best) return best;
-      }
+    // 3. Fallback to norm name + city fuzzy
+    if(!g) {
+      const n = this.norm(rawName);
+      g = GARDENS.find(x => this.norm(x.name) === n && (!normC || this.megaClean(this.normCity(x.city)) === normC));
     }
-    
-    // Priority 3: Name match only (if unique enough)
-    const matches = gardens.filter(g => this.norm(g.name) === n || this.megaClean(g.name) === m);
-    if (matches.length === 1) return matches[0];
-    
-    return null;
+
+    return g;
+  },
+
+  normCity: function(c) {
+    const CITY_MAP = {
+      'פתח תקווה': 'פ"ת',
+      'פתח תקוה': 'פ"ת',
+      'פ"ת': 'פ"ת',
+      'ראש העין': 'ראש העין',
+      'ראשל"צ': 'ראשון לציון',
+      'ראשון לציון': 'ראשון לציון',
+      'באר יעקב': 'באר יעקב',
+      'גבעתיים': 'גבעתיים',
+      'נס ציונה': 'נס ציונה'
+    };
+    if(!c) return '';
+    const clean = c.trim();
+    return CITY_MAP[clean] || clean;
   }
 };
