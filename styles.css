@@ -466,6 +466,27 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   body{font-size:13px; overflow-x: hidden;}
   .content{padding:5px; padding-bottom: 85px;}
 
+  /* Table Compactness on Mobile */
+  .tw td, .tw th { padding: 4px 6px; font-size: 0.72rem; }
+  .tw-sticky { max-height: 80vh; }
+  
+  /* Pair Card Mobile Fixes */
+  .pair-card-body { grid-template-columns: 1fr; }
+  @media(min-width: 480px) {
+    .pair-card-body { grid-template-columns: 80px 1fr; }
+  }
+  .pair-card-label { padding: 6px; border-left: none; border-bottom: 1px solid rgba(0,0,0,.08); width: 100%; flex-direction: row; justify-content: space-between; align-items: center; }
+  .pair-card-label .pcl-name { font-size: 0.75rem; text-align: right; }
+  .pair-card-label .pcl-btns { margin-top: 0; }
+  
+  .pair-garden-row { padding: 5px 8px; }
+  .pgr-name { font-size: 0.82rem; }
+  .pgr-addr { font-size: 0.6rem; }
+  .pgr-time { font-size: 0.74rem; }
+
+  /* Quick Actions - Slightly larger tap area */
+  .qbtn { width: 32px; height: 32px; font-size: 0.95rem; }
+
   /* Header - Compact */
   .hdr{padding:6px 10px;gap:6px}
   .hdr h1{font-size:.9rem}
@@ -497,19 +518,16 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   #od-btn { padding: 3px 6px; font-size: 0.65rem; min-height: 28px; }
 
   /* Side panel (event details) — full width on mobile */
-  .sp{width:100%;left:0;right:0;top:auto;bottom:0;height:85vh;border-radius:12px 12px 0 0;
-      transform:translateY(100%);box-shadow:0 -4px 15px rgba(0,0,0,.15); padding:10px}
+  .sp{width:100%;left:0;right:0;top:auto;bottom:0;height:88vh;border-radius:15px 15px 0 0;
+      transform:translateY(100%);box-shadow:0 -5px 25px rgba(0,0,0,.2); padding:12px; z-index: 3000;}
   .sp.open{transform:translateY(0)}
 
   /* Pair cards — 1 column on small phones */
   .pairs-4col{grid-template-columns:1fr;gap:6px}
-  .pair-card-body{grid-template-columns:70px 1fr}
-  .pgr-name{font-size:.75rem}
-  .pgr-time{font-size:.7rem}
 
   /* Modal full width */
-  .modal .mb{width:100%;max-width:100%;border-radius:12px 12px 0 0;
-             position:fixed;bottom:0;left:0;right:0;max-height:92vh}
+  .modal .mb{width:100%;max-width:100%;border-radius:15px 15px 0 0;
+             position:fixed;bottom:0;left:0;right:0;max-height:94vh; padding: 15px;}
 
   /* Hide redundant elements on mobile header */
   #nav-search-input, #nav-search-input+span, #nav-search-results { display: none!important; }
@@ -520,6 +538,10 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
     flex-direction: row; 
     flex-wrap: wrap; 
     gap: 6px; 
+    background: #f8faff;
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 4px;
   }
   .flt-wrap > .fg { width: calc(50% - 3px); }
   .flt-wrap.open { display: flex; }

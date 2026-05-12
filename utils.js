@@ -85,17 +85,39 @@ window.utils = {
 
   findGarden: function(name, city) {
     if (!name) return null;
-    const n = this.norm(name);
-    const m = this.megaClean(name);
-    const c = this.norm(city);
+    let n = this.norm(name);
+    let m = this.megaClean(name);
+    let c = this.norm(city);
     
+    // Extract city from name if not provided (e.g., "Garden (City)")
+    if (!c) {
+      const cityMatch = name.match(/\(([^)]+)\)\s*$/);
+      if (cityMatch) {
+        const potentialCity = this.norm(cityMatch[1]);
+        if (['פת', 'ראש העין', 'גבעתיים', 'באר יעקב', 'נס ציונה'].includes(potentialCity)) {
+          c = potentialCity;
+          // Re-clean the name without the city suffix for matching
+          m = this.megaClean(name.replace(/\(([^)]+)\)\s*$/, '').trim());
+        }
+      }
+    }
+
     const gardens = window.GARDENS || [];
     
-    // Priority 1: Name + City match
+    // Priority 1: Exact Name + City match
     let found = gardens.find(g => (this.norm(g.name) === n || this.megaClean(g.name) === m) && (!c || this.norm(g.city) === c));
     if (found) return found;
+
+    // Priority 2: Fuzzy match city (e.g. if city is part of the name but not column)
+    if (!c) {
+      const cityMatches = gardens.filter(g => n.includes(this.norm(g.city)));
+      if (cityMatches.length > 0) {
+        const best = cityMatches.find(g => this.megaClean(g.name) === m);
+        if (best) return best;
+      }
+    }
     
-    // Priority 2: Name match only (if unique enough)
+    // Priority 3: Name match only (if unique enough)
     const matches = gardens.filter(g => this.norm(g.name) === n || this.megaClean(g.name) === m);
     if (matches.length === 1) return matches[0];
     
