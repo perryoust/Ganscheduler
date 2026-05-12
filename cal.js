@@ -150,6 +150,34 @@ function navCal(d){
 function goToday(){calD=new Date();document.getElementById('cal-dp').value=td();renderCal();}
 function goDate(s){if(s){calD=s2d(s);renderCal();}}
 function jumpToDay(ds){calD=s2d(ds);setListSubView('day');setView('list');}
+window.calJump = function(pairId, view, gardenId) {
+  // 1. Switch to Calendar Mode
+  if (window.setMode) window.setMode('cal');
+
+  // 2. Clear previous filters
+  if (window.clearCal) window.clearCal();
+
+  // 3. Apply target filter
+  if (pairId) {
+    const pSel = document.getElementById('cal-pair');
+    if (pSel) {
+      pSel.value = pairId;
+      window.calSelectPair(); // Trigger the pair selection logic
+    }
+  } else if (gardenId) {
+    const gSel = document.getElementById('cal-g1');
+    if (gSel) {
+      gSel.value = gardenId;
+    }
+  }
+
+  // 4. Set View
+  if (view === 'week') window.setView('week');
+  else if (view === 'month') window.setView('month');
+
+  // 5. Refresh
+  if (window.renderCal) window.renderCal();
+};
 function clearCal(){
   ['cal-city','cal-cls','cal-cl','cal-sup'].forEach(id=>document.getElementById(id).value='');
   ['cal-g1','cal-g2','cal-g3'].forEach((id,i)=>{

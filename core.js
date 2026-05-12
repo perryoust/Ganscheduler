@@ -77,43 +77,43 @@ window.ui = {
 
     // 2. Garden Name (צהרון)
     rowHtml += `
-      <td style="padding:10px; font-weight:700; color:var(--c-primary)">
+      <td style="padding:7px 10px; font-weight:700; color:var(--c-primary)">
          ${gIcon} ${g.name}
       </td>`;
 
     // 3. Supplier (ספק)
     rowHtml += `
-      <td style="padding:10px; font-weight:600; color:var(--c-secondary)">
+      <td style="padding:7px 10px; font-weight:600; color:var(--c-secondary)">
         ${supBase} ${phone && context === 'dash' ? `<span style="font-size:0.7rem; color:var(--c-success); margin-right:6px">📞 ${phone}</span>` : ''}
       </td>`;
 
     // 4. Activity Type (פעילות)
     rowHtml += `
-      <td style="padding:10px; color:var(--c-info); font-weight:500">
+      <td style="padding:7px 10px; color:var(--c-info); font-weight:500">
         ${supAct}
       </td>`;
 
     // 5. Time (שעה)
     rowHtml += `
-      <td style="padding:10px; text-align:center; font-weight:600">
+      <td style="padding:7px 10px; text-align:center; font-weight:600">
         ${timeStr}
       </td>`;
 
     // 6. Status (סטטוס)
     rowHtml += `
-      <td style="padding:10px; text-align:center">
+      <td style="padding:7px 10px; text-align:center">
         ${stLbl}
       </td>`;
 
     // 7. Notes (הערות)
     rowHtml += `
-      <td style="padding:10px; font-size:0.72rem; color:var(--c-error)">
+      <td style="padding:7px 10px; font-size:var(--fs-xs); color:var(--c-error)">
         ${isM ? '<b style="color:var(--c-warning)">[השלמה]</b> ' : ''}${s.nt || ''}
       </td>`;
 
     // 8. Actions (פעולות)
     rowHtml += `
-      <td style="padding:10px; text-align:center" onclick="event.stopPropagation()">
+      <td style="padding:7px 10px; text-align:center" onclick="event.stopPropagation()">
         ${window.ui.renderQuickActionBtns(s)}
       </td>`;
 
@@ -181,18 +181,18 @@ window.ui = {
       <div class="tw" style="overflow:auto">
         <table style="width:100%; border-collapse:collapse; font-size:var(--fs-small)">
           <thead>
-            <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0; color:#64748b; font-weight:700">
+          <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0; color:#64748b; font-weight:700; font-size:var(--fs-small)">
               ${context === 'dash' ? '<th style="width:35px; text-align:center; padding:10px"></th>' : ''}
-              <th style="text-align:right; padding:10px">צהרון</th>
-              <th style="text-align:right; padding:10px">ספק</th>
-              <th style="text-align:right; padding:10px">פעילות</th>
-              <th style="text-align:center; padding:10px">שעה</th>
-              <th style="text-align:center; padding:10px">סטטוס</th>
-              <th style="text-align:right; padding:10px">הערות</th>
-              <th style="width:140px; text-align:center; padding:10px">פעולות</th>
+              <th style="text-align:right; padding:8px 10px">צהרון</th>
+              <th style="text-align:right; padding:8px 10px">ספק</th>
+              <th style="text-align:right; padding:8px 10px">פעילות</th>
+              <th style="text-align:center; padding:8px 10px">שעה</th>
+              <th style="text-align:center; padding:8px 10px">סטטוס</th>
+              <th style="text-align:right; padding:8px 10px">הערות</th>
+              <th style="width:140px; text-align:center; padding:8px 10px">פעולות</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody style="font-size:var(--fs-small)">
             ${tableRows}
           </tbody>
         </table>
