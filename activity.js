@@ -32,7 +32,7 @@ function renderDash() {
   const supEl = document.getElementById('dash-sup');
   const fromEl = document.getElementById('dash-from');
   const toEl = document.getElementById('dash-to');
-  const srchEl = document.getElementById('dash-search');
+  const srchEl = document.getElementById('dash-srch');
 
   const date = dateEl ? dateEl.value : '';
   const city = cityEl ? cityEl.value : '';
@@ -60,18 +60,19 @@ function renderDash() {
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.a)));
 
     if (view === 'todo') {
-      if (s.st === 'can') return false;
-      if (isHandled) return false;
-      const isExc = (s.st === 'nohap' || s.st === 'post');
-      if (!isExc) return false;
+      if (s.st === 'can' || isHandled || isM) return false;
+      if (s.st !== 'nohap' && s.st !== 'post') return false;
     } else if (view === 'makeups') {
-      if (!isM || s.st === 'done' || s.st === 'can') return false;
+      const isFuture = s.d >= window.td();
+      if (!isM || s.st === 'done' || s.st === 'can' || !isFuture) return false;
     } else if (view === 'nohap') {
       if (s.st !== 'nohap' || isHandled) return false;
     } else if (view === 'post') {
       if (s.st !== 'post' || isHandled) return false;
     } else if (view === 'handled') {
-      if (!isHandled && s.st !== 'done') return false;
+      const isPast = s.d < window.td();
+      const autoDoneMakeup = isM && s.st !== 'can' && isPast;
+      if (!isHandled && s.st !== 'done' && !autoDoneMakeup) return false;
     } else if (view === 'can') {
       if (s.st !== 'can') return false;
     } else if (view === 'all') {
