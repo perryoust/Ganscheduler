@@ -56,22 +56,16 @@ function renderDash() {
     if (sup && window.supBase(s.a) !== sup) return false;
     if (srch && ![(g.name||''), (g.city||''), s.a, s.act, s.nt].some(v=>(v||'').toLowerCase().includes(srch))) return false;
 
-    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false") || !!((s.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל/i.test(s.n)));
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.a)));
+    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false") || !!((s.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.n)));
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.a)));
 
     if (view === 'todo') {
       if (s.st === 'can') return false;
       if (isHandled) return false;
       const isExc = (s.st === 'nohap' || s.st === 'post');
-      
-      const today = window.td();
-      // Makeup is pending if it's not done (past, today, or future)
-      // or if it explicitly failed (nohap)
-      const isPendingM = isM && s.st !== 'done';
-      
-      if (!isExc && !isPendingM) return false;
+      if (!isExc) return false;
     } else if (view === 'makeups') {
-      if (!isM || s.st === 'done') return false;
+      if (!isM || s.st === 'done' || s.st === 'can') return false;
     } else if (view === 'nohap') {
       if (s.st !== 'nohap' || isHandled) return false;
     } else if (view === 'post') {
