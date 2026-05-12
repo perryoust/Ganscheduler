@@ -173,11 +173,11 @@ function renderGM(){
   const evs=window.SCH.filter(s=>s.g===gid&&s.d>=from&&s.d<=to).sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'').localeCompare(b.t||''));
   if(!evs.length){document.getElementById('gm-cal').innerHTML='<p style="color:#999;text-align:center;padding:18px">אין פעילויות</p>';return;}
   if(window.gmV==='month'){document.getElementById('gm-cal').innerHTML=window.renderMonth(evs,window.gmD);return;}
-  let h='<div class="tw"><table><thead><tr><th>תאריך</th><th>יום</th><th>ספק</th><th>שעה</th><th>הערות</th><th>סטטוס</th></tr></thead><tbody>';
+  let h='<div class="tw"><table><thead><tr><th>תאריך</th><th>יום</th><th>שעה</th><th>ספק</th><th>הערות</th><th>סטטוס</th></tr></thead><tbody>';
   evs.forEach(s=>{
     const g=window.G(s.g);
     const gblk=window.getGardenBlock(s.g,s.d);
-    h+=`<tr onclick="window.openSP('${s.id}')" class="${window.stClass(s)}"><td>${window.fD(s.d)}</td><td>יום ${window.dayN(s.d)}</td><td>${s.a}</td><td>${window.fT(s.t)}</td><td>${gblk?`<span style="color:#c62828;font-size:.72rem">${gblk.icon||'🚫'} ${gblk.reason}</span>${s.nt?' | '+s.nt:''}`:s.nt||''}</td><td>${window.stLabel(s)}</td></tr>`;  });
+    h+=`<tr onclick="window.openSP('${s.id}')" class="${window.stClass(s)}"><td>${window.fD(s.d)}</td><td>יום ${window.dayN(s.d)}</td><td>${window.fT(s.t)}</td><td>${s.a}</td><td>${gblk?`<span style="color:#c62828;font-size:.72rem">${gblk.icon||'🚫'} ${gblk.reason}</span>${s.nt?' | '+s.nt:''}`:s.nt||''}</td><td>${window.stLabel(s)}</td></tr>`;  });
   document.getElementById('gm-cal').innerHTML=h+'</tbody></table></div>';
 }
 function quickAddPartner(gid){

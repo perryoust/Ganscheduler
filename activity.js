@@ -1768,12 +1768,12 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
     rowsHtml += `<tr style="border-bottom:1px solid #eee;font-size:0.75rem;background:${stClass==='busy'?'#fff9f9':'#fff'}">
       <td style="padding:6px;text-align:center"><input type="checkbox" class="${prefix}-syn-chk" value="${pId}" checked style="width:16px;height:16px;accent-color:#e65100"></td>
       <td style="padding:6px;font-weight:700">${pG.name}</td>
-      <td style="padding:6px">${sup}</td>
-      <td style="padding:6px">${act}</td>
-      <td style="padding:6px;text-align:center"><span class="badge ${stClass}">${stLabel}</span></td>
       <td style="padding:6px">
         <input type="time" class="${prefix}-syn-time" data-gid="${pId}" value="${makeupTime}" style="width:75px;padding:2px;border:1px solid #ccc;border-radius:4px;font-size:0.7rem">
       </td>
+      <td style="padding:6px">${sup}</td>
+      <td style="padding:6px">${act}</td>
+      <td style="padding:6px;text-align:center"><span class="badge ${stClass}">${stLabel}</span></td>
     </tr>`;
   });
   
@@ -1782,7 +1782,7 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
     <div class="tw" style="border:1px solid #ffcc80;border-radius:6px;overflow:hidden">
       <table style="width:100%;border-collapse:collapse;text-align:right">
         <thead style="background:#fff3e0;color:#bf360c">
-          <tr><th style="padding:6px;width:30px"><input type="checkbox" checked onclick="const cbs=document.querySelectorAll('.${prefix}-syn-chk'); cbs.forEach(cb=>cb.checked=this.checked)"></th><th style="padding:6px">גן</th><th style="padding:6px">ספק</th><th style="padding:6px">פעילות</th><th style="padding:6px">סטטוס</th><th style="padding:6px">שעה</th></tr>
+          <tr><th style="padding:6px;width:30px"><input type="checkbox" checked onclick="const cbs=document.querySelectorAll('.${prefix}-syn-chk'); cbs.forEach(cb=>cb.checked=this.checked)"></th><th style="padding:6px">גן</th><th style="padding:6px">שעה</th><th style="padding:6px">ספק</th><th style="padding:6px">פעילות</th><th style="padding:6px">סטטוס</th></tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
       </table>
