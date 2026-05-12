@@ -725,6 +725,18 @@ function initPairs(){
     const gs=arr.map(id=>G(id)).filter(x=>x.id);
     return{id:i+1,ids:arr,name:gs.map(g=>g.name).join(' + ')};
   });
+  
+  // v102.97 Emergency Injection: Ensure missing gardens are paired if not already
+  const missingCritical = [98, 99, 100];
+  missingCritical.forEach(gid => {
+    if(!window.gardenPair(gid)) {
+      const auto = AUTOPAIRS.find(a => a.includes(gid));
+      if(auto) {
+        window.pairs.push({id:Date.now() + Math.random(), ids:auto, name:auto.map(id=>G(id).name).join(' + ')});
+        console.log(`[Emergency] Restored pair for garden ${gid}`);
+      }
+    }
+  });
 }
 
 // ══════════════════════════════════════════════════════════
