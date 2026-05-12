@@ -1,4 +1,4 @@
-window.APP_VERSION = '102.87';
+window.APP_VERSION = '102.88';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── core.js — globals, data layer, utilities, init ──────────────

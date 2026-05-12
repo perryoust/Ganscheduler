@@ -15,17 +15,27 @@ window._listRow = function(s, clr, ds) {
 window.utils = {
   norm: function(s) {
     if (!s) return '';
-    return s.toString()
+    let str = s.toString()
       .trim()
       .replace(/["'״׳]/g, '')
       .replace(/\s+/g, ' ')
       .toLowerCase();
+    
+    // City name normalizations
+    if (str === 'פתח תקוה' || str === 'פתח תקווה') return 'פת';
+    if (str === 'ראשון לציון') return 'ראשלצ';
+    
+    return str;
   },
 
   megaClean: function(s) {
     if (!s) return '';
     let str = this.norm(s);
-    // 1. Strip common prefixes
+    
+    // 1. Strip all parentheses and their contents (e.g., city names, descriptions)
+    str = str.replace(/\([^)]*\)/g, '').trim();
+    
+    // 2. Strip common prefixes
     const prefixes = ['גן', 'צהרון', 'ביהס', 'ביס', 'ביתספר', 'בית ספר'];
     for (let p of prefixes) {
       if (str.startsWith(p)) {
@@ -33,7 +43,7 @@ window.utils = {
         break;
       }
     }
-    // 2. Strip anything after dash or slash for fuzzy matching
+    // 3. Strip anything after dash or slash for fuzzy matching
     str = str.split(' - ')[0].split(' / ')[0].split('-')[0].trim();
     return str;
   },
