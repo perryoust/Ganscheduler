@@ -22,6 +22,185 @@ window.VAT_RATE = window.VAT_RATE || 18;
 // or better yet, use window variables directly in functions.
 
 // --- Global UI Helpers ---
+window.ui = {
+  /**
+   * Renders a standardized activity row for tables.
+   */
+  /**
+   * Renders the 5 quick action buttons (V, X, !, Postpone, Calendar).
+   */
+  renderQuickActionBtns: function(s) {
+    const sid = s.id;
+    const isDone = s.st === 'done';
+    const isCan = s.st === 'can';
+    const isNohap = s.st === 'nohap';
+    const isPost = s.st === 'post';
+    const isException = isNohap || isPost || isCan;
+    const isHandled = !!(s._compByMakeup && s._compByMakeup !== 'false');
+
+    return `
+      <div class="qacts" style="display:flex; gap:3px; justify-content:center" onclick="event.stopPropagation()">
+        ${isDone ? '' : `<button title="בוצע" class="qbtn q-done" onclick="window.qSetSt('${sid}','done')">✔️</button>`}
+        ${(isException && !isHandled) ? `<button title="סיום טיפול" class="qbtn q-handled" onclick="if(window.markCompQuick)window.markCompQuick('${sid}')">✅</button>` : ''}
+        ${isCan ? '' : `<button title="ביטול" class="qbtn q-can" onclick="window.openCanQ('${sid}')">❌</button>`}
+        ${isNohap ? '' : `<button title="לא התקיים" class="qbtn q-nohap" onclick="window.qSetSt('${sid}','nohap')">⚠️</button>`}
+        <button title="דחייה" class="qbtn q-post" onclick="window.openPostpone('${sid}')">⏩</button>
+        <button title="קביעת השלמה" class="qbtn q-mu" onclick="window.openMakeupSched('${sid}')">📅</button>
+      </div>`;
+  },
+
+  /**
+   * Renders a standardized activity row for tables (8 columns).
+   */
+  renderActivityRow: function(s, opts = {}) {
+    const g = window.G(s.g) || {};
+    const supBase = window.supBase(s.a);
+    const supAct = s.act || window.supAct(s.a) || '—';
+    const timeStr = window.fT ? window.fT(s.t) : s.t;
+    const stLbl = window.stLabel ? window.stLabel(s) : s.st;
+    const stCls = window.stClass ? window.stClass(s) : '';
+    const phone = (typeof window.getSupPhone === 'function') ? window.getSupPhone(s.a) : '';
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+    const context = opts.context || 'dash'; // dash, cal, sched
+    const gIcon = window.gcls(g) === 'ביה"ס' ? '🏛️' : '🏫';
+
+    let rowHtml = `
+      <tr class="${stCls}" style="border-bottom:1px solid #f1f5f9; cursor:pointer" onclick="window.openSP('${s.id}')">`;
+
+    // 1. Checkbox Column (Dashboard only)
+    if (opts.showCheckbox) {
+      rowHtml += `
+        <td class="dash-check-col" onclick="event.stopPropagation()">
+          <input type="checkbox" class="dash-row-chk" value="${s.id}" onclick="window.dashUpdateBulkBar()">
+        </td>`;
+    }
+
+    // 2. Garden Name (צהרון)
+    rowHtml += `
+      <td style="padding:10px; font-weight:700; color:var(--c-primary)">
+         ${gIcon} ${g.name}
+      </td>`;
+
+    // 3. Supplier (ספק)
+    rowHtml += `
+      <td style="padding:10px; font-weight:600; color:var(--c-secondary)">
+        ${supBase} ${phone && context === 'dash' ? `<span style="font-size:0.7rem; color:var(--c-success); margin-right:6px">📞 ${phone}</span>` : ''}
+      </td>`;
+
+    // 4. Activity Type (פעילות)
+    rowHtml += `
+      <td style="padding:10px; color:var(--c-info); font-weight:500">
+        ${supAct}
+      </td>`;
+
+    // 5. Time (שעה)
+    rowHtml += `
+      <td style="padding:10px; text-align:center; font-weight:600">
+        ${timeStr}
+      </td>`;
+
+    // 6. Status (סטטוס)
+    rowHtml += `
+      <td style="padding:10px; text-align:center">
+        ${stLbl}
+      </td>`;
+
+    // 7. Notes (הערות)
+    rowHtml += `
+      <td style="padding:10px; font-size:0.72rem; color:var(--c-error)">
+        ${isM ? '<b style="color:var(--c-warning)">[השלמה]</b> ' : ''}${s.nt || ''}
+      </td>`;
+
+    // 8. Actions (פעולות)
+    rowHtml += `
+      <td style="padding:10px; text-align:center" onclick="event.stopPropagation()">
+        ${window.ui.renderQuickActionBtns(s)}
+      </td>`;
+
+    rowHtml += `</tr>`;
+    return rowHtml;
+  },
+
+  /**
+   * Renders a standardized pair card with header and table.
+   */
+  renderStandardPairCard: function(pair, evs, opts = {}) {
+    const ds = opts.ds || '';
+    const clr = opts.clr || { solid: '#1a237e', light: '#f8fafc', border: '#e2e8f0' };
+    const context = opts.context || 'dash';
+    const isSolo = !!opts.isSolo;
+    const gids = pair.ids || [];
+
+    // Header Buttons
+    const weekBtn = `<button class="btn bo bsm" style="font-weight:700" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','week','${isSolo ? gids[0] : ''}')">📅 שבוע</button>`;
+    const monthBtn = `<button class="btn bo bsm" style="font-weight:700" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','month','${isSolo ? gids[0] : ''}')">📅 חודש</button>`;
+    const expBtn = `<button class="btn bg bsm" style="font-weight:700; background:#25d366; color:#fff; border:none" onclick="event.stopPropagation(); window._exportPairWA(${JSON.stringify(gids)})">🗒️ הודעה</button>`;
+
+    let tableRows = '';
+    
+    // Sort events by garden and time
+    const sortedEvs = [...evs].sort((a,b) => {
+      const gA = window.G(a.g), gB = window.G(b.g);
+      return (gA.name||'').localeCompare(gB.name||'', 'he') || (a.t||'99:99').localeCompare(b.t||'99:99');
+    });
+
+    if (sortedEvs.length === 0) {
+      // Handle empty pair (mostly for calendar view)
+      gids.forEach(gid => {
+        const g = window.G(gid);
+        if(!g) return;
+        const gblk = ds ? window.getGardenBlock(gid, ds) : null;
+        tableRows += `
+          <tr style="border-bottom:1px solid #f1f5f9; background:${gblk ? '#fff5f5' : '#fff'}; opacity:0.8; cursor:pointer" onclick="${ds ? `window.openGcellPopup(${gid},'${ds}',event)` : ''}">
+            <td style="padding:10px; font-weight:700; color:var(--c-primary)">🏫 ${g.name}</td>
+            <td colspan="7" style="padding:10px; font-size:0.7rem; color:${gblk ? '#c62828' : '#94a3b8'}">
+              ${gblk ? `${gblk.icon || '🚫'} ${gblk.reason}` : 'אין פעילות רשומה ביום זה'}
+            </td>
+          </tr>`;
+      });
+    } else {
+      sortedEvs.forEach(s => {
+        tableRows += window.ui.renderActivityRow(s, { 
+          showCheckbox: context === 'dash',
+          context: context
+        });
+      });
+    }
+
+    return `
+    <div class="card standard-pair-card" style="margin-bottom:16px; border-top:4px solid ${clr.solid}; padding:0; border-radius:10px; overflow:hidden; background:#fff; box-shadow:0 4px 6px rgba(0,0,0,0.05); border:1px solid #e2e8f0; border-top-width:4px">
+      <div style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:${clr.light}; border-bottom:1px solid #e2e8f0">
+        <div style="display:flex; align-items:center; gap:8px">
+          <span style="font-size:1.3rem">${isSolo ? '🏡' : '🔗'}</span>
+          <div style="font-weight:800; font-size:var(--fs-card-title); color:var(--c-primary)">${pair.name}</div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; margin-right:auto">
+          ${weekBtn} ${monthBtn} ${expBtn}
+        </div>
+      </div>
+      <div class="tw" style="overflow:auto">
+        <table style="width:100%; border-collapse:collapse; font-size:var(--fs-small)">
+          <thead>
+            <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0; color:#64748b; font-weight:700">
+              ${context === 'dash' ? '<th style="width:35px; text-align:center; padding:10px"></th>' : ''}
+              <th style="text-align:right; padding:10px">צהרון</th>
+              <th style="text-align:right; padding:10px">ספק</th>
+              <th style="text-align:right; padding:10px">פעילות</th>
+              <th style="text-align:center; padding:10px">שעה</th>
+              <th style="text-align:center; padding:10px">סטטוס</th>
+              <th style="text-align:right; padding:10px">הערות</th>
+              <th style="width:140px; text-align:center; padding:10px">פעולות</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+};
+
 window.OM = function(id) {
   const el = document.getElementById(id);
   if (el) el.classList.add('open');

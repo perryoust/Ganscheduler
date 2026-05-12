@@ -267,24 +267,44 @@ tr:hover td{background:#f5f7ff}
 .pgr-right{display:flex;align-items:center;flex-shrink:0}
 
 /* Layouts */
-.pairs-4col{display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:12px;margin-bottom:14px;align-items:start}
-.pairs-4col .pair-card{margin-bottom:0}
-.pairs-list-layout{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
-.pairs-list-layout .pair-card{margin-bottom:0;width:100%}
+.pairs-list-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.pairs-list-layout .standard-pair-card {
+  margin-bottom: 0;
+  width: 100%;
+}
 
-/* List mode for pair cards: horizontal layout */
-.pair-card.list-mode .pair-card-body { display: block; }
-.pair-card.list-mode .pair-card-label { display: none; }
-.pair-card.list-mode .pair-card-shared { background: #fafbff; padding: 8px 12px; }
-
-/* COMPACT MODE for 5-column layout */
-.pairs-5col { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-bottom: 14px; align-items: start; }
-.pair-card.compact .pair-card-body { display: block; }
-.pair-card.compact .pair-card-label { display: none; }
-.pair-card.compact .pgr-name { font-size: 0.72rem; }
-.pair-card.compact .pgr-addr { font-size: 0.62rem; }
-.pair-card.compact .pcs-item { font-size: 0.7rem; }
-.pair-card.compact .qacts button { width: 22px; height: 22px; padding: 0; font-size: 0.65rem; }
+/* Quick Action Buttons */
+.qbtn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  line-height: 1;
+  padding: 0;
+}
+.qbtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+}
+.q-done:hover { background: #e8f5e9; border-color: #a5d6a7; }
+.q-handled:hover { background: #f1f8e9; border-color: #c5e1a5; }
+.q-can:hover { background: #ffebee; border-color: #ef9a9a; }
+.q-nohap:hover { background: #f3e5f5; border-color: #ce93d8; }
+.q-post:hover { background: #fff3e0; border-color: #ffcc80; }
+.q-mu:hover { background: #e3f2fd; border-color: #90caf9; }
 
 
 @media(min-width:769px){.mob-btn-row{display:contents}#mob-nav-purch{display:none!important}}
@@ -765,3 +785,14 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   }
 }
 
+
+.dash-check-col {
+  width: 38px;
+  text-align: center;
+  padding: 10px;
+}
+.dash-check-col input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}

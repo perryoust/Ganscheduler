@@ -655,27 +655,42 @@ function renderSched(){
         <div class="city-accordion-content">`;
       [{arr:cityData.gan,lbl:'🏫 צהרונים',cls:'gan'},{arr:cityData.sch,lbl:'🏛️ בתי ספר',cls:'sch'}].forEach(sec=>{
         if(!sec.arr.length) return;
-        h+=`<div class="dsh ${sec.cls}" style="font-size:.7rem;margin-bottom:3px">${sec.lbl}</div>
-        <div class="tw"><table style="margin-bottom:6px"><thead><tr>
-            <th>צהרון</th><th>ספק</th><th>שעה</th><th>סטטוס</th><th>הערות</th><th style="width:130px">פעולות</th>
-          </tr></thead><tbody>`;
-        sec.arr.sort((a,b)=>{
-          // Sort by pair name first, then time — matches calendar order
-          const pA=window.gardenPair(a.g),pB=window.gardenPair(b.g);
-          const pnA=pA?pA.name:window.G(a.g).name;
-          const pnB=pB?pB.name:window.G(b.g).name;
-          return pnA.localeCompare(pnB,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
-        }).forEach(s=>{
-          h+=`<tr onclick="window.openSP('${s.id}')" class="${window.stClass(s)}" style="cursor:pointer">
-            <td><div style="font-weight:700">${s.gd.name}</div>${s.gd.st?`<div style="font-size:.68rem;color:#78909c">${s.gd.st}</div>`:''}</td>
-            <td><div style="font-weight:700">${window.supBase(s.a)}</div>${window.supAct(s.a)?`<div style="font-size:.7rem;color:#1565c0">🎯 ${window.supAct(s.a)}</div>`:''}<span style="font-size:.68rem;color:#78909c">${s.p||''}</span></td>
-            <td>${window.fT ? window.fT(s.t) : s.t}</td>
-            <td>${window.stLabel ? window.stLabel(s) : ''}</td>
-            <td style="max-width:90px;font-size:.72rem">${s.nt||''}</td>
-            <td onclick="event.stopPropagation()">${window._quickActionBtns ? window._quickActionBtns(s) : ''}</td>
-          </tr>`;
+        h+=`<div class="dsh ${sec.cls}" style="font-size:.7rem;margin-bottom:8px;font-weight:800;color:#546e7a;border-bottom:2px solid #e2e8f0;padding-bottom:4px">${sec.lbl}</div>`;
+        
+        // Group by pair for consistency
+        const pairsMap={};
+        const soloList=[];
+        sec.arr.forEach(s=>{
+          const pair=window.gardenPair(s.g);
+          if(pair){
+            if(!pairsMap[pair.id]) pairsMap[pair.id]={pair,evs:[]};
+            pairsMap[pair.id].evs.push(s);
+          } else {
+            soloList.push(s);
+          }
         });
-        h+='</tbody></table></div>';
+
+        // Render Pairs using central UI function
+        Object.values(pairsMap).sort((a,b)=>a.pair.name.localeCompare(b.pair.name,'he')).forEach(({pair,evs})=>{
+          const clr=window.CITY_COLORS ? window.CITY_COLORS(city) : {solid:'#1a237e', light:'#f8fafc', border:'#e2e8f0'};
+          h+=window.ui.renderStandardPairCard(pair, evs, {
+            ds: evs[0].d,
+            clr: clr,
+            context: 'sched'
+          });
+        });
+
+        // Render Solo Gardens using central UI function
+        if(soloList.length){
+          soloList.sort((a,b)=>a.gd.name.localeCompare(b.gd.name,'he')).forEach(s=>{
+            h+=window.ui.renderStandardPairCard({id:'solo_'+s.id, name:s.gd.name, ids:[s.g]}, [s], {
+              ds: s.d,
+              clr: window.CITY_COLORS ? window.CITY_COLORS(city) : {solid:'#1a237e', light:'#f8fafc', border:'#e2e8f0'},
+              context: 'sched',
+              isSolo: true
+            });
+          });
+        }
       });
       h+='</div></details>';
     });

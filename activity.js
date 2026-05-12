@@ -18,44 +18,8 @@ function setDashView(v) {
   document.querySelectorAll('.dash-view-pill').forEach(btn => {
     btn.classList.toggle('active', btn.id === 'dvp-' + v);
   });
-  // Show "Makeup Balance" button only in Makeups view
-  const balBtn = document.getElementById('dash-mu-bal-btn');
-  if (balBtn) balBtn.style.display = (v === 'makeups') ? 'inline-block' : 'none';
   renderDash();
 }
-
-window.openMakeupBalance = function() {
-  const map = window.DataManager.calculateMakeupBalance();
-  const tbody = document.getElementById('mbm-tbody');
-  if (!tbody) return;
-
-  const rows = Object.values(map)
-    .filter(b => b.debt > 0 || b.credit > 0) // Only show gardens with some activity
-    .sort((a, b) => b.balance - a.balance || a.name.localeCompare(b.name, 'he'));
-
-  if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#999">אין חוסרים או השלמות רשומים במערכת</td></tr>';
-  } else {
-    tbody.innerHTML = rows.map(b => {
-      const balColor = b.balance > 0 ? '#c62828' : (b.balance < 0 ? '#2e7d32' : '#546e7a');
-      const balWeight = b.balance !== 0 ? '800' : '400';
-      const balIcon = b.balance > 0 ? '⚠️' : (b.balance < 0 ? '✅' : '⚖️');
-      
-      return `
-        <tr style="border-bottom:1px solid #eee">
-          <td style="padding:10px; font-weight:700; color:#1a237e">${b.name}</td>
-          <td style="padding:10px; text-align:center; color:#c62828; font-weight:700">${b.debt}</td>
-          <td style="padding:10px; text-align:center; color:#2e7d32; font-weight:700">${b.credit}</td>
-          <td style="padding:10px; text-align:center; color:${balColor}; font-weight:${balWeight}; font-size:1.05rem">
-            ${balIcon} ${b.balance}
-          </td>
-        </tr>
-      `;
-    }).join('');
-  }
-
-  window.SM('mbm');
-};
 
 
 
@@ -93,16 +57,21 @@ function renderDash() {
     if (srch && ![(g.name||''), (g.city||''), s.a, s.act, s.nt].some(v=>(v||'').toLowerCase().includes(srch))) return false;
 
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.a)));
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
 
     if (view === 'todo') {
       if (s.st === 'can') return false;
       if (isHandled) return false;
       const isExc = (s.st === 'nohap' || s.st === 'post');
-      if (!isExc) return false;
+      
+      const today = window.td();
+      // Makeup is pending if it's not done (past, today, or future)
+      // or if it explicitly failed (nohap)
+      const isPendingM = isM && s.st !== 'done';
+      
+      if (!isExc && !isPendingM) return false;
     } else if (view === 'makeups') {
-      const isFuture = s.d >= window.td();
-      if (!isM || s.st === 'done' || !isFuture) return false;
+      if (!isM || s.st === 'done') return false;
     } else if (view === 'nohap') {
       if (s.st !== 'nohap' || isHandled) return false;
     } else if (view === 'post') {
@@ -213,52 +182,12 @@ function _renderDashCard(card) {
   const firstG = window.G(evs[0].g);
   const clr = window.CITY_COLORS ? window.CITY_COLORS(firstG.city) : {solid:'#1a237e', light:'#f8fafc', border:'#e2e8f0'};
 
-  let h = `<div class="dash-card" style="border:1px solid ${clr.border}; border-radius:8px; background:#fff; overflow:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.05)">
-    <div style="background:${clr.light}; padding:6px 12px; border-bottom:1px solid ${clr.border}; display:flex; align-items:center; gap:10px">
-      <span style="font-weight:800; font-size:0.92rem; color:${clr.solid}">${isSolo ? '' : '🔗 '}${obj.name}</span>
-      <div style="display:flex; gap:4px; margin-right:8px">
-        <button class="btn bp bsm" onclick="event.stopPropagation(); window.jumpToPairWeeklySchedule('${isSolo ? '' : obj.id}', '${evs[0].d}', '${isSolo ? obj.ids[0] : ''}')" style="padding:2px 6px; font-size:0.65rem; background:rgba(0,0,0,0.05); border:1px solid rgba(0,0,0,0.1); color:${clr.solid}; font-weight:700; border-radius:4px" title="לוח שבועי">📅 שבוע</button>
-        <button class="btn bp bsm" onclick="event.stopPropagation(); window.jumpToPairMonthlySchedule('${isSolo ? '' : obj.id}', '${evs[0].d}', '${isSolo ? obj.ids[0] : ''}')" style="padding:2px 6px; font-size:0.65rem; background:rgba(0,0,0,0.05); border:1px solid rgba(0,0,0,0.1); color:${clr.solid}; font-weight:700; border-radius:4px" title="לוח חודשי">🗓️ חודש</button>
-      </div>
-      <div style="margin-right:auto">
-        <button class="btn bg bsm" onclick="event.stopPropagation(); window._exportPairWA(${JSON.stringify(obj.ids)})" style="padding:2px 8px; font-size:0.7rem; background:#25d366; border:none; color:white; font-weight:700; border-radius:4px">📋 הודעה</button>
-      </div>
-    </div>
-    <div style="display:flex; flex-direction:column">`;
-
-  evs.forEach(s => {
-    const g = window.G(s.g);
-    const stCls = window.stClass ? window.stClass(s) : '';
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.a)));
-
-    const label = window.stLabel ? window.stLabel(s) : '';
-    h += `<div class="dash-row ${stCls}" style="display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid #f1f5f9; cursor:pointer" onclick="window.openSP('${s.id}')">
-      <div style="display:flex; align-items:center; gap:15px; flex:1">
-        <input type="checkbox" class="dash-row-chk" value="${s.id}" onclick="event.stopPropagation(); window.dashUpdateBulkBar()" style="width:19px; height:19px; flex-shrink:0">
-        <div style="width:85px; font-size:0.8rem; font-weight:700; color:#475569; flex-shrink:0">${window.fD(s.d)}</div>
-        <div style="flex:1">
-          <div style="font-weight:800; font-size:var(--fs-card-title); color:var(--c-primary)">
-            <span style="font-size:var(--fs-card-title)">🏫 ${g.name}</span> <span style="color:var(--c-secondary); font-weight:700; font-size:var(--fs-body)">· ${window.supBase(s.a)}${(s.act || window.supAct(s.a)) ? ' — ' + (s.act || window.supAct(s.a)) : ''}</span>
-            ${isM ? ' | <b style="color:var(--c-warning)">השלמה</b>' : ''}
-            ${(typeof window.getSupPhone === 'function' && window.getSupPhone(s.a)) ? `<span style="margin-right:10px; color:var(--c-success); font-size:var(--fs-small)">📞 ${window.getSupPhone(s.a)}</span>` : ''}
-          </div>
-          ${s.nt ? `<div style="font-size:var(--fs-small); color:var(--c-error); font-weight:700; margin-top:3px">📝 ${s.nt}</div>` : ''}
-        </div>
-      </div>
-      <div style="display:flex; align-items:center; gap:12px; flex-shrink:0">
-        <span class="st-tag ${stCls}" style="font-size:.74rem; padding:4px 12px; border-radius:6px; font-weight:700">${label}</span>
-        <div class="qacts" style="display:flex; gap:6px" onclick="event.stopPropagation()">
-          ${s.st === 'done' ? '' : `<button title="בוצע" onclick="window.qSetSt('${s.id}','done')" class="qbtn qbtn-done" style="padding:5px 10px; font-size:0.9rem; border-radius:6px; border:1px solid #e2e8f0; background:#fff">✔️</button>`}
-          ${s.st === 'can' ? '' : `<button title="בטל" onclick="window.openCanQ('${s.id}')" class="qbtn qbtn-can" style="padding:5px 10px; font-size:0.9rem; border-radius:6px; border:1px solid #e2e8f0; background:#fff">❌</button>`}
-          ${s.st === 'nohap' ? '' : `<button title="חוסר" onclick="window.qSetSt('${s.id}','nohap')" class="qbtn qbtn-nohap" style="padding:5px 10px; font-size:0.9rem; border-radius:6px; border:1px solid #e2e8f0; background:#fff">⚠️</button>`}
-          <button title="השלמה" onclick="window.openMakeupSched('${s.id}')" class="qbtn qbtn-post" style="padding:5px 10px; font-size:0.9rem; border-radius:6px; border:1px solid #e2e8f0; background:#fff">📅</button>
-        </div>
-      </div>
-    </div>`;
+  return window.ui.renderStandardPairCard(obj, evs, {
+    ds: evs[0].d,
+    clr: clr,
+    context: 'dash',
+    isSolo: isSolo
   });
-
-  h += `</div></div>`;
-  return h;
 }
 
 window.dashCheckAll = function(groupId, checked) {
@@ -639,7 +568,7 @@ window.openSP = function(id) {
   const s = window.SCH.find(x => x.id == id);
   if(!s) return;
 
-  const isClusterMode = (window._listGroupMode === 'clusters' || window._dashTab === 'clusters') && window._dashView !== 'todo';
+  const isClusterMode = (window._listGroupMode === 'clusters' || window._dashTab === 'clusters');
   if (isClusterMode) {
     const cls = window.gardenClusters ? window.gardenClusters(s.g) : [];
     if (cls && cls.length > 0) {
@@ -1286,7 +1215,7 @@ function saveNt(){
     s.nt = val;
     const lower = val.toLowerCase();
     const isMovedFrom = lower.includes('נדחה מ') || lower.includes('הוזז מ') || lower.includes('הזזה מ');
-    const isMovedTo = lower.includes('נדחה ל') || lower.includes('הוזז ל') || lower.includes('הזזה ל') || lower.includes('הוקדם ל') || lower.includes('הקדמה ל');
+    const isMovedTo = lower.includes('נדחה ל') || lower.includes('הוזז ל') || lower.includes('הזזה ל');
     const isPos = lower.includes('השלמה') || isMovedFrom || (lower.includes('נדחה') && !isMovedTo);
     
     // Auto-Correct status based on note keywords (skip if it's a positive exception)
@@ -2069,7 +1998,7 @@ window.openCanQ = function(id) {
   const s = window.SCH.find(x => x.id == id); if (!s) return;
   const g = window.G(s.g);
   const infoEl = document.getElementById('canq-info');
-  if(infoEl) infoEl.innerHTML = `<b>${g.name}</b> · ${g.city} · ${window.supBase(s.a)}${(s.act || window.supAct(s.a)) ? ' — ' + (s.act || window.supAct(s.a)) : ''}<br>📅 ${window.fD(s.d)} ${s.t?'⏰ '+window.fT(s.t):''}`;
+  if(infoEl) infoEl.innerHTML = `<b>${g.name}</b> · ${g.city} · ${s.a}${s.act?' · '+s.act:''}<br>📅 ${window.fD(s.d)} ${s.t?'⏰ '+window.fT(s.t):''}`;
   const noteEl = document.getElementById('canq-note');
   if(noteEl) noteEl.value = '';
   document.querySelectorAll('.can-reason-btn').forEach(b => b.classList.remove('sel'));
@@ -2218,7 +2147,7 @@ window.openNohapQ = function(id){
   const s=window.SCH.find(x=>x.id==id); if(!s) return;
   const g=window.G(s.g);
   const infoEl = document.getElementById('nohapq-info');
-  if(infoEl) infoEl.innerHTML = `<b>${g.name}</b> מ-${g.city} | ${window.supBase(s.a)}${(s.act || window.supAct(s.a)) ? ' — ' + (s.act || window.supAct(s.a)) : ''}<br>בתאריך ${window.fD(s.d)} ${s.t?'בשעה '+window.fT(s.t):''}`;
+  if(infoEl) infoEl.innerHTML = `<b>${g.name}</b> מ-${g.city} | ${s.a}${s.act?' - '+s.act:''}<br>בתאריך ${window.fD(s.d)} ${s.t?'בשעה '+window.fT(s.t):''}`;
   const reasonEl = document.getElementById('nohapq-reason');
   if(reasonEl) reasonEl.value='';
   document.querySelectorAll('.nohap-reason-btn').forEach(b=>b.classList.remove('sel'));

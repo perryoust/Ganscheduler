@@ -428,33 +428,25 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
         // sort pair blocks by earliest event time
         pairBlocks.sort((a,b)=>a.earliest.localeCompare(b.earliest));
         if(pairBlocks.length){
-          html+=`<div class="pairs-4col" style="margin-bottom:8px">`;
+          html+=`<div class="pairs-list-layout" style="margin-bottom:8px">`;
           pairBlocks.forEach(({pair,pairEvs})=>{
-            html+=window.renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true});
+            html+=window.ui.renderStandardPairCard(pair,pairEvs,{ds,clr,context:'cal'});
           });
           html+=`</div>`;
         }
 
-        // --- גנים בודדים: לפי שם צהרון (אחר"כ שעה) ---
-        const soloEvs=cityEvs
-          .filter(s=>!pairedGids.has(s.g))
+        // --- גנים בודדים ---
+        const soloEvs=cityEvs.filter(s=>!pairedGids.has(s.g))
           .sort((a,b)=>{
             const na=window.G(a.g).name||'', nb=window.G(b.g).name||'';
             return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
           });
+          
         if(soloEvs.length){
-          html+=`<div style="display:flex;flex-wrap:wrap;gap:6px">`;
+          html+=`<div class="pairs-list-layout">`;
           soloEvs.forEach(s=>{
             const g=window.G(s.g);
-            const stc=s.st!=='ok'?'st-'+s.st:'';
-            html+=`<div style="min-width:160px;flex:1;max-width:260px;border:1.5px solid ${clr.border};border-radius:7px;padding:7px;cursor:pointer;background:${clr.light};border-right:3px solid ${clr.solid}" onclick="openSP('${s.id}')" class="${stc}">
-              ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clr.solid};margin-bottom:2px">⏰ ${window.fT(s.t)}</div>`:''}
-              <div style="font-weight:700;font-size:.78rem;color:#1a237e">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-              ${s._makeupFrom?`<div style="display:inline-block;background:#e1f5fe;color:#0288d1;border-radius:4px;padding:1px 6px;font-size:.62rem;font-weight:800;border:1px solid #b3e5fc;margin-bottom:2px">📅 השלמה</div>`:''}
-              <div style="font-size:.72rem;color:#546e7a;margin-top:1px">${window.supBase(s.a)}${(s.act||window.supAct(s.a))?` · ${s.act||window.supAct(s.a)}`:''}</div>
-              ${s.nt?`<div style="font-size:.65rem;color:#d84315;margin-top:2px;font-weight:700;line-height:1.15;max-width:100%;white-space:normal">📝 ${s.nt}</div>`:''}
-              <div style="font-size:.68rem;font-weight:700;margin-top:2px">${window.stLabel(s)}</div>
-            </div>`;
+            html+=window.ui.renderStandardPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds,clr,context:'cal',isSolo:true});
           });
           html+=`</div>`;
         }
@@ -535,16 +527,12 @@ function renderClusterDay(evs, ds, clusterName){
           <div style="display:flex;flex-wrap:wrap;gap:6px">`;
           
           sorted.forEach(s => {
-            const g=window.G(s.g);
-            const stc=s.st!=='ok'?'st-'+s.st:'';
-            html+=`<div style="display:flex;align-items:center;gap:8px;border:1.5px solid ${clrCity.border};border-radius:6px;padding:4px 10px;cursor:pointer;background:#fff;border-right:4px solid ${clrCity.solid};margin-bottom:4px" onclick="openSP('${s.id}')" class="${stc}">
-              <span style="font-weight:800;color:${clrCity.solid};white-space:nowrap">${s.d?'📅 '+window.fD(s.d):''} ${s.t?`⏰ ${window.fT(s.t)}`:'--:--'}</span>
-              <span style="font-weight:700;color:#1a237e;white-space:nowrap">${window.gcls(g)==='ביה"ס'?'🏗️':'🏫'} ${g.name}</span>
-              <span style="color:#546e7a;font-size:.74rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${window.supBase(s.a)}${(s.act||window.supAct(s.a))?` · ${s.act||window.supAct(s.a)}`:''}</span>
-              ${s.nt?`<span style="color:#d84315;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">📝 ${s.nt}</span>`:''}
-              ${(s._compByMakeup && s._compByMakeup!=='false')?`<span style="color:#2e7d32;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">✅ נקבעה השלמה${(window.SCH.find(x=>x.id===s._compByMakeup)||{}).d ? ' ל-'+window.fD((window.SCH.find(x=>x.id===s._compByMakeup)||{}).d) : ''}</span>`:''}
-              <span style="font-size:.68rem;font-weight:700;white-space:nowrap">${window.stLabel(s)}</span>
-            </div>`;
+            html += window.ui.renderStandardPairCard({id:'solo_'+s.id, name:window.G(s.g).name, ids:[s.g]}, [s], {
+              ds: s.d,
+              clr: clrCity,
+              context: 'cal',
+              isSolo: true
+            });
           });
           html+=`</div></div>`;
         });
@@ -570,33 +558,12 @@ function renderClusterDay(evs, ds, clusterName){
 
       cityEvs.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s=>{
         const g=window.G(s.g);
-        const stc=s.st!=='ok'?'st-'+s.st:'';
-        html+=`<div class="city-block" style="margin-bottom:8px">
-          <div class="city-block-hdr" style="background:${clrCity.solid};font-size:.76rem">
-            ${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}
-            ${g.st?`<span style="font-size:.65rem;font-weight:400;opacity:.8">${g.st}</span>`:''}
-            <span style="font-size:.65rem;opacity:.75;font-weight:400">📍 ${g.city||''}</span>
-            <button onclick="event.stopPropagation();_exportGardenWA([${g.id}],'${ds}')" style="background:rgba(255,255,255,.28);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:700">📋 הודעה</button>
-          </div>
-          <div style="background:#fff;padding:2px 7px">
-            <div class="pslot ${stc}" style="border-right:4px solid ${clrCity.solid};background:${clrCity.light};display:flex;align-items:center;gap:10px;padding:4px 10px;border-radius:4px" onclick="openSP('${s.id}')">
-              <span style="font-weight:800;color:${clrCity.solid};white-space:nowrap">${s.d?'📅 '+window.fD(s.d):''} ${s.t?`⏰ ${window.fT(s.t)}`:'--:--'}</span>
-              <span style="font-weight:700;color:#1a237e;white-space:nowrap">${window.supBase(s.a)}</span>
-              <span style="font-size:.74rem;color:${clrCity.solid};font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(s.act||window.supAct(s.a))?`🎯 ${s.act||window.supAct(s.a)}`:''}</span>
-              ${s.nt?`<span style="color:#d84315;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">📝 ${s.nt}</span>`:''}
-              ${(s._compByMakeup && s._compByMakeup!=='false')?`<span style="color:#2e7d32;font-size:.65rem;font-weight:700;margin-right:5px;white-space:normal;line-height:1.15">✅ נקבעה השלמה${(window.SCH.find(x=>x.id===s._compByMakeup)||{}).d ? ' ל-'+window.fD((window.SCH.find(x=>x.id===s._compByMakeup)||{}).d) : ''}</span>`:''}
-              ${s.grp>1?`<span style="font-size:.68rem;color:#546e7a;white-space:nowrap">👥 ${s.grp}</span>`:''}
-              <span style="font-size:.68rem;white-space:nowrap">${window.stLabel(s)}</span>
-              <div class="qacts" onclick="event.stopPropagation()" style="display:flex;gap:3px">
-                ${s.st==='done'?'':`<button title="התקיים" onclick="qSetSt('${s.id}','done')" style="padding:2px 4px">✔️</button>`}
-                ${s.st==='can'?'':`<button title="בטל" onclick="openCanQ('${s.id}')" style="padding:2px 4px">❌</button>`}
-                ${s.st==='nohap'?'':`<button title="לא התקיים" onclick="qSetSt('${s.id}','nohap')" style="padding:2px 4px">⚠️</button>`}
-                <button title="דחה פעילות" onclick="openPostpone('${s.id}')" style="padding:2px 4px">⏩</button>
-                <button title="שיבוץ השלמה" class="btn-makeup" onclick="openMakeupSched('${s.id}')" style="padding:2px 4px">📅</button>
-              </div>
-            </div>
-          </div>
-        </div>`;
+        html += window.ui.renderStandardPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {
+          ds: s.d,
+          clr: clrCity,
+          context: 'cal',
+          isSolo: true
+        });
       });
       html += `</div></details>`;
     });
@@ -672,15 +639,12 @@ function renderClusterWeek(evs, weekStart, clusterName){
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px">`;
           [...clEvs].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s=>{
-            const g=window.G(s.g);
-            const stc=s.st!=='ok'?'st-'+s.st:''
-            html+=`<div style="min-width:150px;flex:1;max-width:240px;border:1.5px solid ${clrCity.border};border-right:3px solid ${clrCity.solid};border-radius:6px;padding:6px;cursor:pointer;background:#fff" onclick="openSP('${s.id}')" class="${stc}">
-              ${s.t?`<div style="font-size:.8rem;font-weight:800;color:${clrCity.solid}">⏰ ${window.fT(s.t)}</div>`:''}
-              <div style="font-weight:700;font-size:.76rem;color:#1a237e">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-              <div style="font-size:.7rem;color:#546e7a">${window.supBase(s.a)}${(s.act||window.supAct(s.a))?` · ${s.act||window.supAct(s.a)}`:''}</div>
-              ${s.nt?`<div style="font-size:.65rem;color:#d84315;margin-top:2px;font-weight:700;line-height:1.15;white-space:normal">📝 ${s.nt}</div>`:''}
-              <div style="font-size:.67rem;margin-top:2px">${window.stLabel(s)}</div>
-            </div>`;
+            html += window.ui.renderStandardPairCard({id:'solo_'+s.id, name:window.G(s.g).name, ids:[s.g]}, [s], {
+              ds: s.d,
+              clr: clrCity,
+              context: 'cal',
+              isSolo: true
+            });
           });
           html+=`</div>`;
         });
@@ -690,18 +654,12 @@ function renderClusterWeek(evs, weekStart, clusterName){
     } else {
       html+=`<div style="background:#fff;padding:8px;display:flex;flex-wrap:wrap;gap:6px">`;
       dayEvs.forEach(s=>{
-        const g=window.G(s.g);
-        const stc=s.st!=='ok'?'st-'+s.st:'';
-        const clrCity=window.CITY_COLORS(g.city||'');
-        const clBadge=isAll?(window.gardenClusters(g.id)[0]||{}).name||'':'';
-        html+=`<div style="min-width:180px;flex:1;border:1.5px solid ${clrCity.border};border-radius:7px;padding:7px;cursor:pointer;background:${clrCity.light}" onclick="openSP('${s.id}')" class="${stc}">
-          ${s.t?`<div style="font-size:.82rem;font-weight:800;color:${clrCity.solid};margin-bottom:2px">⏰ ${window.fT(s.t)}</div>`:''}
-          <div style="font-weight:700;font-size:.78rem;color:#1a237e">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-          ${clBadge?`<div style="font-size:.66rem;color:#546e7a">🔢 ${clBadge}</div>`:''}
-          <div style="font-size:.73rem;color:#546e7a">${window.supBase(s.a)}${(s.act||window.supAct(s.a))?` · ${s.act||window.supAct(s.a)}`:''}</div>
-          ${s.nt?`<div style="font-size:.65rem;color:#d84315;margin-top:2px;font-weight:700;line-height:1.15;white-space:normal">📝 ${s.nt}</div>`:''}
-          <div style="font-size:.68rem;font-weight:700;margin-top:2px">${window.stLabel(s)}</div>
-        </div>`;
+        html += window.ui.renderStandardPairCard({id:'solo_'+s.id, name:window.G(s.g).name, ids:[s.g]}, [s], {
+          ds: s.d,
+          clr: window.CITY_COLORS(window.G(s.g).city||''),
+          context: 'cal',
+          isSolo: true
+        });
       });
       html+=`</div>`;
     }
@@ -759,21 +717,21 @@ function renderNormalDay(evs,ds){
       const clr=window.CITY_COLORS(city);
       if(!cardsByCity[city]) cardsByCity[city]=[];
       pairsByCity[city].forEach(({pair,pairEvs})=>{
-        cardsByCity[city].push(window.renderPairCard(pair,pairEvs,{ds,clr,showEdit:true,showExport:true,isCompact:true}));
-      });
+      cardsByCity[city].push(window.ui.renderStandardPairCard(pair,pairEvs,{ds,clr,context:'cal'}));
     });
-    allSoloEvs.forEach(s=>{
-      const g=window.G(s.g);
-      const city=g.city||'אחר';
-      const clr=window.CITY_COLORS(city);
-      if(!cardsByCity[city]) cardsByCity[city]=[];
-      cardsByCity[city].push(window.renderPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds,clr,showEdit:true,showExport:true,isCompact:true}));
-    });
+  });
+  allSoloEvs.forEach(s=>{
+    const g=window.G(s.g);
+    const city=g.city||'אחר';
+    const clr=window.CITY_COLORS(city);
+    if(!cardsByCity[city]) cardsByCity[city]=[];
+    cardsByCity[city].push(window.ui.renderStandardPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds,clr,context:'cal',isSolo:true}));
+  });
 
     Object.keys(cardsByCity).sort().forEach(city=>{
-      const cards=cardsByCity[city];
-      if(!cards||!cards.length) return;
-      html+=`<details class="city-accordion">
+      const cards = cardsByCity[city];
+      if(!cards || !cards.length) return;
+      html += `<details class="city-accordion">
         <summary>
           <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
             <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cards.length})</span>
@@ -781,7 +739,7 @@ function renderNormalDay(evs,ds){
           </div>
         </summary>
         <div class="city-accordion-content">
-          <div class="pairs-5col">${cards.join('')}</div>
+          <div class="pairs-list-layout">${cards.join('')}</div>
         </div>
       </details>`;
     });
@@ -790,80 +748,7 @@ function renderNormalDay(evs,ds){
   return html;
 }
 
-function renderPairCard(pair, pairEvs, opts){
-  const ds = opts && opts.ds || '';
-  const clr = (opts && opts.clr) || {solid:'#37474f',light:'#eceff1',border:'#b0bec5',text:'#37474f'};
-  const isCompact = !!opts.isCompact;
-
-  const firstEv = pairEvs[0] || {};
-  const supName = firstEv.a || '';
-  const actName = firstEv.act || (window.supAct ? window.supAct(supName) : '');
-
-  const editBtn = ds ? `<button onclick="window.openPairQuickEdit('${pair.id}','${ds}')" style="background:rgba(255,255,255,.3);border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.65rem;color:#fff">✏️</button>` : '';
-  const expBtn = ds ? `<button onclick="window.exportPairRow('${pair.id}','${ds}',${!!opts.isMakeup})" style="background:rgba(255,255,255,.3);border:none;border-radius:3px;padding:1px 5px;cursor:pointer;font-size:.65rem;color:#fff;font-weight:700">📋 הודעה</button>` : '';
-  const isSolo = pair.id && String(pair.id).startsWith('solo_');
-  const soloGid = isSolo ? pair.ids[0] : null;
-  const weekBtn = ds ? `<button onclick="event.stopPropagation(); window.jumpToPairWeeklySchedule('${isSolo ? '' : pair.id}','${ds}','${soloGid || ''}')" style="background:rgba(255,255,255,.2);border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:800;display:flex;align-items:center;gap:4px;transition:background 0.2s;" title="מעבר ללוח שבועי" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">📅 שבועי</button>` : '';
-  const monthBtn = ds ? `<button onclick="event.stopPropagation(); window.jumpToPairMonthlySchedule('${isSolo ? '' : pair.id}','${ds}','${soloGid || ''}')" style="background:rgba(255,255,255,.2);border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:800;display:flex;align-items:center;gap:4px;transition:background 0.2s;" title="מעבר ללוח חודשי" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">🗓️ חודש</button>` : '';
-
-  let html = `<div class="pair-card ${isCompact ? 'compact' : ''}" style="border:1px solid ${clr.border}; border-radius:10px; overflow:hidden; margin-bottom:12px; background:#fff; box-shadow: 0 4px 12px rgba(0,0,0,0.05)">
-    <div class="pair-card-hdr" style="background:${clr.solid}; color:#fff; padding:8px 12px; display:flex; align-items:center; gap:10px; font-size:var(--fs-card-title); font-weight:800">
-      <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="window.calSelectPair('${isSolo?'':pair.id}', '${ds}', '${soloGid||''}')">
-        <span>🔗 ${pair.name}</span>
-      </div>
-      <div style="display:flex; gap:5px; margin-right:8px">
-        ${weekBtn} ${monthBtn}
-      </div>
-      <span style="font-size:0.85rem; font-weight:700; opacity:0.95; margin-right:auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${supName ? window.supBase(supName) : ''} ${actName ? '· ' + actName : ''}</span>
-      <div style="display:flex; gap:6px; align-items:center; margin-right:10px">${expBtn}${editBtn}</div>
-    </div>
-    <div class="pair-card-body">`;
-
-  pair.ids.filter(Boolean).forEach(gid => {
-    const g = window.G(gid);
-    if (!g) return;
-    const gEvs = pairEvs.filter(s => s.g === gid).sort((a,b) => window.compareActivities(a, b));
-    
-    if (!gEvs.length) {
-      const gblkNone = ds ? window.getGardenBlock(gid, ds) : null;
-      html += `<div class="pair-garden-row" style="display:flex; align-items:center; gap:10px; padding:4px 10px; opacity:${gblkNone?1:0.6}; background:${gblkNone?'#fff1f1':'#fff'}" onclick="${ds ? `window.openGcellPopup(${gid},'${ds}',event)` : ''}">
-        <div style="font-weight:700; color:#1a237e; min-width:110px;">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-        <div style="flex:1; font-size:0.7rem; color:${gblkNone?'#c62828':'#999'}">
-          ${gblkNone ? `${gblkNone.icon||'🚫'} ${gblkNone.reason}` : 'אין פעילות'}
-        </div>
-      </div>`;
-    } else {
-      gEvs.forEach(ev => {
-        if (!ev) return;
-        const stc = ev.st !== 'ok' ? 'st-' + ev.st : '';
-        const isMakeup = !!(ev._isMakeup || ev._makeupFrom || ev._postFrom || (ev.nt && ev.nt.includes('השלמה')));
-        const fromDate = ev._makeupFrom || ev._postFrom || '';
-        const makeupBadge = isMakeup ? `<span style="background:#e1f5fe; color:#0288d1; border-radius:4px; padding:1px 5px; font-size:0.6rem; font-weight:800; border:1px solid #b3e5fc;">📅 השלמה ${fromDate?window.fD(fromDate):''}</span>` : '';
-
-        html += `<div class="pair-garden-row ${stc}" style="display:flex; align-items:center; gap:12px; padding:4px 10px; border-bottom:1px solid #f5f5f5;" onclick="window.openSP('${ev.id}')">
-          <div style="font-weight:700; color:#1a237e; white-space:nowrap; min-width:110px;">${window.gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</div>
-          <div style="font-weight:800; color:#fff; background:#5c6bc0; padding:2px 8px; border-radius:4px; font-size:0.75rem; min-width:50px; text-align:center;">${ev.t ? window.fT(ev.t) : '--:--'}</div>
-          <div style="font-size:0.7rem; color:#78909c; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:150px;">${g.st?`📍 ${g.st}`:''}</div>
-          <div style="flex:1; display:flex; flex-direction:column; align-items:flex-end; gap:2px; overflow:hidden; justify-content:center;">
-            <div style="display:flex; align-items:center; gap:6px;">
-              ${makeupBadge}
-              <span style="font-size:0.7rem; font-weight:700; color:${ev.st==='ok'?'#2e7d32':'#c62828'}">${window.stLabel(ev)}</span>
-            </div>
-            ${ev.nt ? `<span style="color:#d84315; font-size:0.65rem; font-weight:700; line-height:1.1; max-width:100%; white-space:normal; text-align:right;">📝 ${ev.nt}</span>` : ''}
-          </div>
-          <div class="qacts" onclick="event.stopPropagation()" style="display:flex; gap:3px;">
-            ${ev.st==='done'?'':`<button title="בוצע" onclick="window.qSetSt('${ev.id}','done')" style="padding:1px 4px;">✔️</button>`}
-            ${ev.st==='can'?'':`<button title="בטל" onclick="openCanQ('${ev.id}')" style="padding:1px 4px;">❌</button>`}
-            ${ev.st==='nohap'?'':`<button title="חוסר" onclick="window.qSetSt('${ev.id}','nohap')" style="padding:1px 4px;">⚠️</button>`}
-          </div>
-        </div>`;
-      });
-    }
-  });
-
-  html += `</div></div>`;
-  return html;
-}
+// Unified rendering functions moved to core.js window.ui
 function renderGardenCols(evs, gids, clr){
   const ds = ''; // ds is not passed but used in pslot? Actually ds is global or not needed here.
   const cols = gids.filter(Boolean);
