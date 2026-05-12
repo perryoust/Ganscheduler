@@ -39,6 +39,10 @@ function filterE(f,from,to){
       }
     }
     if(f.cls&&window.gcls(g)!==f.cls) return false;
+    // Strict isolation based on active tab
+    if(window._calTab==='g' && window.gcls(g)!=='גנים') return false;
+    if(window._calTab==='s' && window.gcls(g)!=='ביה"ס') return false;
+    
     if(f.gids&&!f.gids.includes(s.g)) return false;
     if(f.sup && window.supBase(s.a) !== f.sup && s.a !== f.sup) return false;
 
@@ -71,6 +75,10 @@ function filterE(f,from,to){
       }
     }
     if(f.cls&&window.gcls(g)!==f.cls) return false;
+    // Strict isolation based on active tab
+    if(window._calTab==='g' && window.gcls(g)!=='גנים') return false;
+    if(window._calTab==='s' && window.gcls(g)!=='ביה"ס') return false;
+
     if(f.gids&&!f.gids.includes(s.g)) return false;
     if(f.sup && window.supBase(s.a) !== f.sup && s.a !== f.sup) return false;
     return true;
