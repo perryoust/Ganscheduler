@@ -944,10 +944,10 @@ function renderNormalWeek(evs, ws, f){
       </tr>`;
       pGids.forEach(gid=>{
         const g=window.G(gid);
-        html+=`<tr class="${cityRowClass}"><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
-          border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
-          position:sticky;right:0;z-index:1;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">
-          ${g.name}<br><span style="font-size:12px;color:#78909c;font-weight:400">${g.city}</span>
+        html+=`<tr class="${cityRowClass}"><td style="background:#fafbff; font-size:var(--fs-small); padding:6px 10px; color:var(--c-primary); font-weight:700;
+          border-right:3px solid ${clr.solid}; border-bottom:1px solid #dde1f0; border-left:1px solid #dde1f0;
+          position:sticky; right:0; z-index:1; white-space:nowrap; max-width:180px; overflow:hidden; text-overflow:ellipsis; line-height:1.2">
+          ${g.name}<br><span style="font-size:var(--fs-xs); color:#64748b; font-weight:400">${g.st ? '📍 ' + g.st : g.city}</span>
         </td>`;
         days.forEach(d=>{
           const ds=d2s(d);

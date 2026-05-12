@@ -77,26 +77,27 @@ window.ui = {
 
     // 2. Garden Name (צהרון)
     rowHtml += `
-      <td style="padding:7px 10px; font-weight:700; color:var(--c-primary)">
+      <td style="padding:7px 10px; font-weight:700; color:var(--c-primary); line-height:1.2">
          ${gIcon} ${g.name}
+         ${g.st ? `<div style="font-size:var(--fs-xs); font-weight:400; color:#64748b; margin-top:1px">📍 ${g.st}</div>` : ''}
       </td>`;
 
-    // 3. Supplier (ספק)
+    // 3. Time (שעה) - SWAPPED TO HERE
+    rowHtml += `
+      <td style="padding:7px 10px; text-align:center; font-weight:700; color:var(--c-secondary)">
+        ${timeStr}
+      </td>`;
+
+    // 4. Supplier (ספק)
     rowHtml += `
       <td style="padding:7px 10px; font-weight:600; color:var(--c-secondary)">
         ${supBase} ${phone && context === 'dash' ? `<span style="font-size:0.7rem; color:var(--c-success); margin-right:6px">📞 ${phone}</span>` : ''}
       </td>`;
 
-    // 4. Activity Type (פעילות)
+    // 5. Activity Type (פעילות)
     rowHtml += `
       <td style="padding:7px 10px; color:var(--c-info); font-weight:500">
         ${supAct}
-      </td>`;
-
-    // 5. Time (שעה)
-    rowHtml += `
-      <td style="padding:7px 10px; text-align:center; font-weight:600">
-        ${timeStr}
       </td>`;
 
     // 6. Status (סטטוס)
@@ -184,9 +185,9 @@ window.ui = {
           <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0; color:#64748b; font-weight:700; font-size:var(--fs-small)">
               ${context === 'dash' ? '<th style="width:35px; text-align:center; padding:10px"></th>' : ''}
               <th style="text-align:right; padding:8px 10px">צהרון</th>
+              <th style="text-align:center; padding:8px 10px">שעה</th>
               <th style="text-align:right; padding:8px 10px">ספק</th>
               <th style="text-align:right; padding:8px 10px">פעילות</th>
-              <th style="text-align:center; padding:8px 10px">שעה</th>
               <th style="text-align:center; padding:8px 10px">סטטוס</th>
               <th style="text-align:right; padding:8px 10px">הערות</th>
               <th style="width:140px; text-align:center; padding:8px 10px">פעולות</th>

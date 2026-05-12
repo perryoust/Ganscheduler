@@ -221,11 +221,11 @@ function renderPartnerTable(){
       <tr class="${stClass}">
         <td style="text-align:center"><input type="checkbox" id="ns-syn-chk-${pId}" class="ns-syn-chk" value="${pId}" style="width:18px;height:18px;accent-color:#1565c0" checked></td>
         <td style="font-weight:800;color:#1a237e">${pG.name}</td>
+        <td>${timeDisplay}</td>
         <td style="font-weight:600">${sup}</td>
         <td>${act}</td>
         <td>${type}</td>
         <td>${stLabel}</td>
-        <td>${timeDisplay}</td>
       </tr>`;
   });
 
@@ -237,11 +237,11 @@ function renderPartnerTable(){
           <tr style="background:#f1f3f9">
             <th style="width:40px;text-align:center;padding:8px">סמן</th>
             <th style="padding:8px">שם הגן</th>
+            <th style="padding:8px">שעה</th>
             <th style="padding:8px">ספק</th>
             <th style="padding:8px">פעילות</th>
             <th style="padding:8px">סוג</th>
             <th style="padding:8px">סטטוס</th>
-            <th style="padding:8px">שעה</th>
           </tr>
         </thead>
         <tbody id="ns-partners-table-body">
