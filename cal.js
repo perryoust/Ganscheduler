@@ -374,12 +374,28 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
       <summary>
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
           <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cityEvs.length})</span>
-          <span style="font-size:0.75rem; color:#718096;">לחץ לפירוט</span>
         </div>
       </summary>
-      <div class="city-accordion-content">`;
-    cityEvs.forEach(s => { h += _listRow(s, clr, ds); });
-    h += `</div></details>`;
+      <div class="city-accordion-content">
+        <div class="tw" style="margin-top:5px; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden">
+          <table style="width:100%; border-collapse:collapse">
+            <thead>
+              <tr style="background:#f8fafc; color:#64748b; font-weight:700; font-size:var(--fs-xs)">
+                <th style="padding:8px 10px; text-align:right">צהרון</th>
+                <th style="padding:8px 10px; text-align:center">שעה</th>
+                <th style="padding:8px 10px; text-align:right">ספק</th>
+                <th style="padding:8px 10px; text-align:right">פעילות</th>
+                <th style="padding:8px 10px; text-align:center">סטטוס</th>
+                <th style="padding:8px 10px; text-align:right">הערות</th>
+                <th style="padding:8px 10px; text-align:center">פעולות</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${cityEvs.map(s => window.ui.renderActivityRow(s, { ds, clr, context:'cal' })).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div></details>`;
   });
 
   h += `</div>`;
@@ -1325,9 +1341,13 @@ function renderRangeListView(evs, fromDs, toDs){
                <button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${cl.id}','${ds}')" style="font-size:.62rem;padding:1px 6px">✏️ עריכה</button>
                <button class="btn bg bsm" onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="font-size:.62rem;padding:1px 6px">📋 הודעה</button>
             </div>
-          </div>`;
-        clEvs.forEach(s => { h += _listRow(s, clr, ds); });
-        h += `</div>`;
+          </div>
+          <table style="width:100%; border-collapse:collapse">
+            <tbody>
+              ${clEvs.map(s => window.ui.renderActivityRow(s, { ds, clr, context:'cal' })).join('')}
+            </tbody>
+          </table>
+        </div>`;
       };
 
       if(_gmode === 'window.clusters'){
@@ -1363,9 +1383,13 @@ function renderRangeListView(evs, fromDs, toDs){
           <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
             <span>🔗 ${pair.name}</span>
             <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
-          </div>`;
-        sorted.forEach(s => { h += _listRow(s, clr); });
-        h += `</div>`;
+          </div>
+          <table style="width:100%; border-collapse:collapse">
+            <tbody>
+              ${sorted.map(s => window.ui.renderActivityRow(s, { ds, clr, context:'cal' })).join('')}
+            </tbody>
+          </table>
+        </div>`;
       });
 
       if(_gmode === 'window.pairs'){
@@ -1376,7 +1400,11 @@ function renderRangeListView(evs, fromDs, toDs){
 
       cityEvs.filter(s => !firstUsedGids.has(s.g))
         .sort((a,b) => window.compareActivities(a, b))
-        .forEach(s => { h += _listRow(s, clr, ds); });
+        .forEach(s => { 
+          h += window.ui.renderStandardPairCard({id:'solo_'+s.id, name:window.G(s.g).name, ids:[s.g]}, [s], {
+            ds, clr, context: 'cal', isSolo: true
+          });
+        });
 
       h += `</div></details>`;
     });

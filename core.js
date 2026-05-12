@@ -1,3 +1,15 @@
+window.APP_VERSION = '102.85';
+console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
+
+// Fallback for legacy calls from cached files
+window._listRow = function(s, clr, ds) {
+  console.warn('Legacy _listRow called. Please refresh (Ctrl+F5).');
+  if (window.ui && window.ui.renderActivityRow) {
+    return window.ui.renderActivityRow(s, { ds, clr, context: 'legacy' });
+  }
+  return '';
+};
+
 // ── core.js — globals, data layer, utilities, init ──────────────
 // Load order: firebase.js → invoices.js → suppliers.js → cal.js
 //              → activity.js → sched.js → gardens.js → export.js
@@ -606,8 +618,9 @@ const HOLIDAYS_RESTORE = [{"canSched":false,"city":"","from":"2026-03-31","id":"
 
 function restoreMissingHolidays() {
   if (window.holidays && window.holidays.length === 0) {
-    console.log('Restoring holidays from internal seed...');
     window.holidays = HOLIDAYS_RESTORE;
+    return true;
+  }
     return true;
   }
   return false;
@@ -1862,7 +1875,7 @@ function renderSupCard(){
   </div>`;
 
   h+=`<div class="tw"><table><thead><tr>
-    <th>תאריך</th><th>יום</th><th>עיר</th><th>צהרון</th><th>פעילות</th><th>שעה</th><th>קב'</th><th>סטטוס</th><th>הערות</th><th></th>
+    <th>תאריך</th><th>יום</th><th>עיר</th><th>צהרון</th><th>שעה</th><th>פעילות</th><th>קב'</th><th>סטטוס</th><th>הערות</th><th></th>
   </tr></thead><tbody>`;
   evs.filter(s => !s._compByMakeup).forEach(s=>{
     const g=G(s.g);
@@ -1871,8 +1884,8 @@ function renderSupCard(){
       <td>יום ${dayN(s.d)}</td>
       <td>${g.city||''}</td>
       <td><div style="font-weight:700">${g.name}</div>${g.st?`<div style="font-size:.67rem;color:#78909c">${g.st}</div>`:''}</td>
-      <td><span style="background:#e3f2fd;color:#1565c0;border-radius:10px;padding:1px 7px;font-size:.73rem;font-weight:600">${s.act||'—'}</span></td>
       <td>${fT(s.t)}</td>
+      <td><span style="background:#e3f2fd;color:#1565c0;border-radius:10px;padding:1px 7px;font-size:.73rem;font-weight:600">${s.act||'—'}</span></td>
       <td style="text-align:center">${s.grp||1}</td>
       <td>${stLabel(s)}</td>
       <td style="max-width:100px;font-size:.71rem">${s.nt||''}</td>
@@ -2689,9 +2702,9 @@ function _renderGardenFixedRow(g){
 
       rows+=`<tr style="border-bottom:1px solid #eef0fb">
         <td style="padding:3px 10px;font-weight:600;color:#1a237e;white-space:nowrap">יום ${HEB_DAYS_SHORT[dow]}</td>
+        <td style="padding:3px 10px;color:#2e7d32;font-weight:600;white-space:nowrap">${time}</td>
         <td style="padding:3px 10px;color:#222">${supN}${actN?' — '+actN:''}</td>
         <td style="padding:3px 10px;color:var(--c-secondary);font-size:var(--fs-small)">${s.tp||'חוג'}</td>
-        <td style="padding:3px 10px;color:#2e7d32;font-weight:600;white-space:nowrap">${time}</td>
         <td style="padding:3px 10px;font-size:var(--fs-small)">${partnerInfo}</td>
         <td style="padding:2px 6px;white-space:nowrap">
           <button onclick="event.stopPropagation();openGM(${gid});setTimeout(()=>window.openBulkUpdateRecurring('${key}',${gid}),100)" style="background:#e8eaf6;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#3949ab" title="ערוך שיבוץ קבוע (סדרה)">✏️</button>
@@ -2714,9 +2727,9 @@ function _renderGardenFixedRow(g){
       <table style="width:100%;border-collapse:collapse;font-size:.78rem">
         <thead><tr style="background:#eef2ff">
           <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">יום</th>
+          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">שעה</th>
           <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">ספק / פעילות</th>
           <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">סוג</th>
-          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">שעה</th>
           <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">גן בן-זוג</th>
           <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700"></th>
         </tr></thead>
