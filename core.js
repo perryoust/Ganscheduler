@@ -1,4 +1,4 @@
-window.APP_VERSION = '102.86';
+window.APP_VERSION = '102.87';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── core.js — globals, data layer, utilities, init ──────────────
@@ -392,7 +392,36 @@ function openSupCardFromPurch(name){
 function _applyYearData(o){
   if(!o || !o.ch){
     window.SCH = SRAWS.map(s=>({...s,st:'ok',nt:s.n||'',grp:1}));
+  } else if(o.useSraws === false) {
+    // ═══ DIRECT MODE: Excel import was used — SRAWS is irrelevant ═══
+    // The ch array IS the complete schedule. No merging needed.
+    console.log('[_applyYearData] Direct mode (useSraws=false): using ' + o.ch.length + ' records directly');
+    window.useSraws = false;
+    window.SCH = o.ch.map(x => ({
+      id: x.id,
+      g: x.g,
+      d: x.d,
+      a: x.a || '',
+      t: x.t || '',
+      p: x.p || '',
+      n: x.n || '',
+      st: x.st || 'ok',
+      cr: x.cr || '',
+      cn: x.cn || '',
+      nt: x.nt || '',
+      pd: x.pd || '',
+      pt: x.pt || '',
+      grp: x.grp || 1,
+      act: x.act || '',
+      tp: x.tp || '',
+      _isMakeup: x._isMakeup || false,
+      _makeupFrom: x._makeupFrom || '',
+      _compByMakeup: x._compByMakeup || '',
+      _fromD: x._fromD || '',
+      _isImported: x._isImported || false
+    }));
   } else {
+    // ═══ LEGACY MODE: Merge SRAWS with cloud changes ═══
     // 1. Map SRAWS by fuzzy key and ID for merging
     const srawsFuzzy = {};
     const srawsFuzzyById = {};
