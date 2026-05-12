@@ -612,8 +612,6 @@ function restoreMissingHolidays() {
     window.holidays = HOLIDAYS_RESTORE;
     return true;
   }
-    return true;
-  }
   return false;
 }
 function migrateSupActSplit(){
