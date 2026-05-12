@@ -49,19 +49,19 @@ function renderGardens(){
         const gd=window.getGardenData(g.id);
         h+=`<div class="gc" onclick="window.openGM(${g.id})">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div style="font-weight:700;color:#1a237e;margin-bottom:3px;flex:1">${gd.name||g.name}</div>
-            <button onclick="event.stopPropagation();openGardenEdit(${g.id})" style="background:none;border:none;cursor:pointer;font-size:.7rem;color:#90a4ae;padding:0 2px" title="ערוך כרטיס גן">✏️</button>
+            <div style="font-weight:800;color:var(--c-primary);margin-bottom:3px;flex:1;font-size:var(--fs-card-title)">${gd.name||g.name}</div>
+            <button onclick="event.stopPropagation();openGardenEdit(${g.id})" style="background:none;border:none;cursor:pointer;font-size:var(--fs-small);color:#90a4ae;padding:0 2px" title="ערוך כרטיס גן">✏️</button>
           </div>
-          ${(gd.st||g.st)?`<div style="font-size:.73rem;color:#666" onclick="event.stopPropagation()">📍 <a href="https://maps.google.com/?q=${encodeURIComponent((gd.st||g.st)+' '+g.city)}" target="_blank" style="color:#1565c0;text-decoration:underline">${gd.st||g.st}</a></div>`:''}
-          ${ gd.phone?`<div style="font-size:.72rem;color:#2e7d32;font-weight:600">📞 ${gd.phone}</div>`:''}
-          ${mgr?`<div style="font-size:.7rem;color:#1565c0;border-top:1px solid #e8eaf6;margin-top:4px;padding-top:3px">${mgr.role==='manager'?'🏛️':'👤'} ${mgr.name}${mgr.phone?' · 📞 '+mgr.phone:''}</div>`:''}
-          ${window.gardenClusters(g.id).length?`<div style="font-size:.71rem;color:#6a1b9a">🔢 ${window.gardenClusters(g.id).map(c=>c.name).join(', ')}</div>`:''}
+          ${(gd.st||g.st)?`<div style="font-size:var(--fs-body);color:var(--c-text-light)" onclick="event.stopPropagation()">📍 <a href="https://maps.google.com/?q=${encodeURIComponent((gd.st||g.st)+' '+g.city)}" target="_blank" style="color:var(--c-secondary);text-decoration:underline">${gd.st||g.st}</a></div>`:''}
+          ${ gd.phone?`<div style="font-size:var(--fs-body);color:var(--c-success);font-weight:600">📞 ${gd.phone}</div>`:''}
+          ${mgr?`<div style="font-size:var(--fs-small);color:var(--c-secondary);border-top:1px solid #e8eaf6;margin-top:4px;padding-top:3px">${mgr.role==='manager'?'🏛️':'👤'} ${mgr.name}${mgr.phone?' · 📞 '+mgr.phone:''}</div>`:''}
+          ${window.gardenClusters(g.id).length?`<div style="font-size:var(--fs-small);color:#6a1b9a">🔢 ${window.gardenClusters(g.id).map(c=>c.name).join(', ')}</div>`:''}
           <div style="display:flex;align-items:center;justify-content:space-between;margin-top:5px">
             ${pair
-              ?`<span style="font-size:.7rem;color:#2e7d32;font-weight:700">🔗 ${pair.name}</span>`
-              :`<button class="btn bg bsm" style="font-size:.63rem;padding:1px 6px" onclick="event.stopPropagation();quickAddPartner(${g.id})">➕ בן זוג</button>`
+              ?`<span style="font-size:var(--fs-small);color:var(--c-success);font-weight:700">🔗 ${pair.name}</span>`
+              :`<button class="btn bg bsm" style="font-size:var(--fs-xs);padding:1px 6px" onclick="event.stopPropagation();quickAddPartner(${g.id})">➕ בן זוג</button>`
             }
-            <span style="font-size:.7rem;color:#1565c0">📅 ${cnt}</span>
+            <span style="font-size:var(--fs-small);color:var(--c-secondary)">📅 ${cnt}</span>
           </div>
         </div>`;
       });
@@ -1002,7 +1002,10 @@ function genExport(){
   let text='';
   const dates=Object.keys(byDate).sort();
   dates.forEach((date,di)=>{
-    text+=`🗓️ ${fD(date)} - יום ${dayN(date)}${isM_flag ? ' (השלמה)' : ''}\n`;
+    const dayIcons = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣'];
+    const dow = new Date(date).getDay();
+    const dayIcon = dayIcons[dow] || '🗓️';
+    text+=`${dayIcon} ${fD(date)} - יום ${dayN(date)}${isM_flag ? ' (השלמה)' : ''}\n`;
     const byCity={};
     byDate[date].forEach(s=>{
       const g=G(s.g);const c=g.city||'';
@@ -1030,7 +1033,7 @@ function genExport(){
           Object.values(bySup).forEach(group=>{
             const s0=group[0];
             const actLabel=s0.act||supAct(s0.a)||'';
-            const supPhone = s0.p || (SUPBASE.find(sb => sb.name === s0.a) || {}).phone || '';
+            const supPhone = s0.p || (typeof window.getSupPhone === 'function' ? window.getSupPhone(s0.a) : '') || (SUPBASE.find(sb => sb.name === s0.a) || {}).phone || '';
             const supLine=`📚 ${supDisplayName(supBase(s0.a))}${actLabel?' - '+actLabel:''}${supPhone?' · 📞 '+supPhone:''}`;
             const addrs=[...new Set(group.map(s=>s.gd.st||''))];
             const sameAddr=addrs.length===1&&addrs[0];
@@ -1065,7 +1068,7 @@ function genExport(){
           Object.values(bySup).forEach(group=>{
             const s0=group[0];
             const actLabel=s0.act||supAct(s0.a)||'';
-            const supPhone = s0.p || (SUPBASE.find(sb => sb.name === s0.a) || {}).phone || '';
+            const supPhone = s0.p || (typeof window.getSupPhone === 'function' ? window.getSupPhone(s0.a) : '') || (SUPBASE.find(sb => sb.name === s0.a) || {}).phone || '';
             const supLine=`📚 ${supDisplayName(supBase(s0.a))}${actLabel?' - '+actLabel:''}${supPhone?' · 📞 '+supPhone:''}`;
             const addrs=[...new Set(group.map(s=>s.gd.st||''))];
             const sameAddr=addrs.length===1&&addrs[0];

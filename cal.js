@@ -807,7 +807,7 @@ function renderPairCard(pair, pairEvs, opts){
   const monthBtn = ds ? `<button onclick="event.stopPropagation(); window.jumpToPairMonthlySchedule('${isSolo ? '' : pair.id}','${ds}','${soloGid || ''}')" style="background:rgba(255,255,255,.2);border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:.68rem;color:#fff;font-weight:800;display:flex;align-items:center;gap:4px;transition:background 0.2s;" title="מעבר ללוח חודשי" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">🗓️ חודש</button>` : '';
 
   let html = `<div class="pair-card ${isCompact ? 'compact' : ''}" style="border:1px solid ${clr.border}; border-radius:10px; overflow:hidden; margin-bottom:12px; background:#fff; box-shadow: 0 4px 12px rgba(0,0,0,0.05)">
-    <div class="pair-card-hdr" style="background:${clr.solid}; color:#fff; padding:8px 12px; display:flex; align-items:center; gap:10px; font-size:1rem; font-weight:800">
+    <div class="pair-card-hdr" style="background:${clr.solid}; color:#fff; padding:8px 12px; display:flex; align-items:center; gap:10px; font-size:var(--fs-card-title); font-weight:800">
       <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="window.calSelectPair('${isSolo?'':pair.id}', '${ds}', '${soloGid||''}')">
         <span>🔗 ${pair.name}</span>
       </div>
@@ -1375,7 +1375,7 @@ function _listRow(s, clr, ds){
   const recBadge = isRec ? `<span style="font-size:0.65rem;color:#6a1b9a;margin-left:4px;vertical-align:middle;font-weight:900" title="שיבוץ קבוע">🔄</span>` : '';
   const supText = isUnassigned ? '' : `${window.supBase(s.a)}${recBadge}${(s.act || window.supAct(s.a))?' — <span style="color:#546e7a">'+(s.act || window.supAct(s.a))+'</span>':''}`;
   // Increase font size for supplier/activity text as requested
-  const supStyle = `font-size:.82rem;font-weight:700;color:#1565c0`;
+  const supStyle = `font-size:var(--fs-body);font-weight:700;color:var(--c-secondary)`;
   const clickHandler = isUnassigned ? `event.stopPropagation(); if(window.openNewSched) window.openNewSched('${s.d}', ${s.g});` : `window.openSP('${s.id}')`;
   
   const addrLink=g.st?`<a href="https://maps.google.com/?q=${encodeURIComponent(g.st+' '+g.city)}" target="_blank" onclick="event.stopPropagation()" style="font-size:.63rem;color:#1565c0;text-decoration:none">📍 ${g.st}</a>`:'';
@@ -1396,8 +1396,8 @@ function _listRow(s, clr, ds){
   return `<div style="display:grid;grid-template-columns:minmax(150px, auto) 1fr auto auto auto;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;margin-bottom:1px;background:${bg};border-right:3px solid ${clr.solid};cursor:pointer;min-height:36px" onclick="${clickHandler}">
     <div style="display:flex; flex-direction:column; gap:1px; justify-content:center;">
       <div style="display:flex; align-items:center; gap:5px;">
-        <span style="font-weight:800;font-size:.85rem;color:#1565c0;white-space:nowrap">${s.t?'⏰ '+window.fT(s.t):''}</span>
-        <span style="font-weight:700;font-size:.76rem;color:#1a237e;line-height:1">${g.name}</span>
+        <span style="font-weight:800;font-size:var(--fs-card-title);color:var(--c-secondary);white-space:nowrap">${s.t?'⏰ '+window.fT(s.t):''}</span>
+        <span style="font-weight:700;font-size:var(--fs-body);color:var(--c-primary);line-height:1">${g.name}</span>
       </div>
       ${addrLink}
     </div>

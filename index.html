@@ -10,12 +10,20 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="קידס שיבוץ">
   <meta name="theme-color" content="#1a237e">
-  <title>Ganscheduler v102.75</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <title>Ganscheduler v102.78</title>
+  <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
+  <!-- CSS standard variables and design system -->
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
-  <link rel="stylesheet" href="styles.css?v=102.75">
-  <script type="module" src="firebase_init.js?v=102.75"></script>
-  <script src="assets.js?v=102.75"></script>
+  <link rel="stylesheet" href="styles.css?v=102.78">
+  <script>
+    window.APP_VERSION = "v102.78";
+  </script>
+  <script type="module" src="firebase_init.js?v=102.78"></script>
+  <script src="assets.js?v=102.78"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script>
@@ -319,7 +327,7 @@
         </div>
         <div onclick="goToNoHap()"
           style="background:#fce4ec;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
-          <span style="font-size:1.5rem">⚠️</span>
+          <span style="font-size:1.5rem">🏫</span>
           <div>
             <div style="font-weight:800;color:#e91e63;font-size:1.1rem;line-height:1" id="d-nohap">0</div>
             <div style="font-size:.65rem;color:#546e7a">לא התקיים</div>

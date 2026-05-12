@@ -604,7 +604,7 @@ function stLabel(s){
   if(s.st==='done') return'<span class="bdg bg2">✔️ התקיים</span>';
   if(s.st==='post') return`<span class="bdg bor">⏩ נדחה ${s.pd?'→ '+fD(s.pd):''}</span>`;
   if(s.st==='nohap') return'<span class="bdg br2">⚠️ לא התקיים</span>';
-  return'<span class="bdg bg2">📅 מתקיים</span>';
+  return'<span class="bdg bg2">🏫 מתקיים</span>';
 }
 
 // ── renderReadOnlyBanner (stub — no archive mode in this version) ──
@@ -2503,16 +2503,16 @@ function _renderGardenFixedRow(g){
         if (partnerId) {
           const pg = window.G(partnerId);
           const pev = window.SCH.find(ps => Number(ps.g) === Number(partnerId) && ps.d === s.d && window.supBase(ps.a) === window.supBase(s.a));
-          partnerInfo = `<span style="font-weight:700;color:#5c6bc0">${pg.name}</span> ${pev ? '<span style="font-size:.7rem;color:#78909c">('+window.fT(pev.t)+')</span>' : '<span style="color:#c62828;font-size:.7rem">(לא משובץ)</span>'}`;
+          partnerInfo = `<span style="font-weight:700;color:var(--c-secondary)">${pg.name}</span> ${pev ? '<span style="font-size:var(--fs-small);color:var(--c-text-light)">('+window.fT(pev.t)+')</span>' : '<span style="color:var(--c-error);font-size:var(--fs-small)">(לא משובץ)</span>'}`;
         }
       }
 
       rows+=`<tr style="border-bottom:1px solid #eef0fb">
         <td style="padding:3px 10px;font-weight:600;color:#1a237e;white-space:nowrap">יום ${HEB_DAYS_SHORT[dow]}</td>
         <td style="padding:3px 10px;color:#222">${supN}${actN?' — '+actN:''}</td>
-        <td style="padding:3px 10px;color:#5c6bc0;font-size:.71rem">${s.tp||'חוג'}</td>
+        <td style="padding:3px 10px;color:var(--c-secondary);font-size:var(--fs-small)">${s.tp||'חוג'}</td>
         <td style="padding:3px 10px;color:#2e7d32;font-weight:600;white-space:nowrap">${time}</td>
-        <td style="padding:3px 10px;font-size:.72rem">${partnerInfo}</td>
+        <td style="padding:3px 10px;font-size:var(--fs-small)">${partnerInfo}</td>
         <td style="padding:2px 6px;white-space:nowrap">
           <button onclick="event.stopPropagation();openGM(${gid});setTimeout(()=>window.openBulkUpdateRecurring('${key}',${gid}),100)" style="background:#e8eaf6;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#3949ab" title="ערוך שיבוץ קבוע (סדרה)">✏️</button>
           <button onclick="event.stopPropagation();openSP('${s.id}')" style="background:#ffebee;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#c62828;margin-right:2px" title="ביטול/החרגה חד פעמית">❌</button>
@@ -2524,7 +2524,7 @@ function _renderGardenFixedRow(g){
   }
   return `<div style="display:flex;margin-bottom:7px;border:1px solid #e3e7f5;border-radius:8px;overflow:hidden">
     <div style="background:#f5f7ff;padding:8px 10px;min-width:120px;max-width:140px;display:flex;flex-direction:column;justify-content:space-between;border-left:1px solid #e3e7f5">
-      <div style="font-weight:800;color:#1a237e;font-size:.8rem;margin-bottom:6px">${g.name}</div>
+      <div style="font-weight:800;color:var(--c-primary);font-size:var(--fs-card-title);margin-bottom:6px">${g.name}</div>
       <div style="display:flex;flex-direction:column;gap:3px;margin-top:4px">
         <button class="btn bp bsm" style="font-size:.62rem;padding:2px 5px" onclick="openGM(${gid})">📂 כרטיס</button>
         <button class="btn bo bsm" style="font-size:.62rem;padding:2px 5px" onclick="_goToGardenSched(${gid})">📅 שיבוצים</button>

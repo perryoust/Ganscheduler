@@ -237,11 +237,12 @@ function _renderDashCard(card) {
         <input type="checkbox" class="dash-row-chk" value="${s.id}" onclick="event.stopPropagation(); window.dashUpdateBulkBar()" style="width:19px; height:19px; flex-shrink:0">
         <div style="width:85px; font-size:0.8rem; font-weight:700; color:#475569; flex-shrink:0">${window.fD(s.d)}</div>
         <div style="flex:1">
-          <div style="font-weight:800; font-size:0.98rem; color:#1e293b">
-            <span style="font-size:1.05rem">${g.name}</span> <span style="color:#0288d1; font-weight:700; font-size:1rem">· ${window.supBase(s.a)}${(s.act || window.supAct(s.a)) ? ' — ' + (s.act || window.supAct(s.a)) : ''}</span>
-            ${isM ? ' | <b style="color:#f59e0b">השלמה</b>' : ''}
+          <div style="font-weight:800; font-size:var(--fs-card-title); color:var(--c-primary)">
+            <span style="font-size:var(--fs-card-title)">🏫 ${g.name}</span> <span style="color:var(--c-secondary); font-weight:700; font-size:var(--fs-body)">· ${window.supBase(s.a)}${(s.act || window.supAct(s.a)) ? ' — ' + (s.act || window.supAct(s.a)) : ''}</span>
+            ${isM ? ' | <b style="color:var(--c-warning)">השלמה</b>' : ''}
+            ${(typeof window.getSupPhone === 'function' && window.getSupPhone(s.a)) ? `<span style="margin-right:10px; color:var(--c-success); font-size:var(--fs-small)">📞 ${window.getSupPhone(s.a)}</span>` : ''}
           </div>
-          ${s.nt ? `<div style="font-size:0.8rem; color:#b91c1c; font-weight:700; margin-top:3px">📝 ${s.nt}</div>` : ''}
+          ${s.nt ? `<div style="font-size:var(--fs-small); color:var(--c-error); font-weight:700; margin-top:3px">📝 ${s.nt}</div>` : ''}
         </div>
       </div>
       <div style="display:flex; align-items:center; gap:12px; flex-shrink:0">
