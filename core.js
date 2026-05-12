@@ -1,15 +1,6 @@
 window.APP_VERSION = '102.85';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
-// Fallback for legacy calls from cached files
-window._listRow = function(s, clr, ds) {
-  console.warn('Legacy _listRow called. Please refresh (Ctrl+F5).');
-  if (window.ui && window.ui.renderActivityRow) {
-    return window.ui.renderActivityRow(s, { ds, clr, context: 'legacy' });
-  }
-  return '';
-};
-
 // ── core.js — globals, data layer, utilities, init ──────────────
 // Load order: firebase.js → invoices.js → suppliers.js → cal.js
 //              → activity.js → sched.js → gardens.js → export.js

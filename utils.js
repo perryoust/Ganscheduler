@@ -1,7 +1,17 @@
 /**
  * Ganscheduler Utils
- * v4.1.0 - Robust Matching for GAN.xlsx
+ * v102.85 - Global UI Unification
  */
+ 
+// Fallback for legacy calls from cached files
+window._listRow = function(s, clr, ds) {
+  console.warn('Legacy _listRow called. Please refresh (Ctrl+F5).');
+  if (window.ui && window.ui.renderActivityRow) {
+    return window.ui.renderActivityRow(s, { ds, clr, context: 'legacy' });
+  }
+  return '';
+};
+
 window.utils = {
   norm: function(s) {
     if (!s) return '';
