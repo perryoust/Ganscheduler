@@ -2490,7 +2490,7 @@ function _renderGardenFixedRow(g){
   if(fixedEvs.length){
     fixedEvs.forEach(s=>{
       const dow=new Date(s.d).getDay();
-      const supN=supBase(s.a)||s.a||'';
+      const supN=supBase(s.a)||s.a||'ללא שם';
       const actN=s.act||supAct(s.a)||'';
       const time=s.t?s.t.slice(0,5):'—';
       const key = s._recId || `${s.a}_${s.act}_${dow}`;
