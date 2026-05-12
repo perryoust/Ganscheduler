@@ -17,13 +17,14 @@ window.utils = {
     if (!s) return '';
     let str = s.toString()
       .trim()
+      .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces
       .replace(/["'״׳]/g, '')
       .replace(/\s+/g, ' ')
       .toLowerCase();
     
-    // City name normalizations
-    if (str === 'פתח תקוה' || str === 'פתח תקווה') return 'פת';
-    if (str === 'ראשון לציון') return 'ראשלצ';
+    if (str === 'פת' || str === 'פ"ת' || str === 'פתח תקוה' || str === 'פתח תקווה') return 'פת';
+    if (str === 'ראשון' || str === 'ראשלצ' || str === 'ראשל"צ' || str === 'ראשון לציון') return 'ראשלצ';
+    if (str === 'ראש העין' || str === 'ראש עין' || str === 'ראש-העין') return 'ראש העין';
     
     return str;
   },
