@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+vendor/
+.venv/
+
+# Build outputs
+dist/
+build/
+*.min.js
+
+# Large files
+*.log
+*.db
+*.sqlite
+
+# Media
+*.mp4
+*.mov
+*.pdf
+
+# Project specific large files
+GAN.xlsx
+backup.json
+payload.json
+sraws.json
+gan_import.xlsx
