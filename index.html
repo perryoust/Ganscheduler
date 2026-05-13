@@ -346,13 +346,35 @@
 
       <!-- Quick stats shared? We'll see -->
       <div id="dash-stat-boxes" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
-        <!-- ... stats ... -->
+        <div class="card stat-box" onclick="setDashView('todo')" style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
+          <div id="d-todo-cnt" class="card-val" style="font-size:1.2rem; font-weight:800;">0</div>
+          <div style="font-size:0.75rem;">לטיפול</div>
+        </div>
+        <div class="card stat-box" onclick="setDashView('makeups')" style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
+          <div id="d-makeups" class="card-val" style="font-size:1.2rem; font-weight:800;">0</div>
+          <div style="font-size:0.75rem;">השלמות</div>
+        </div>
+        <div class="card stat-box" onclick="setDashView('nohap')" style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
+          <div id="d-nohap" class="card-val" style="font-size:1.2rem; font-weight:800; color:var(--c-warning);">0</div>
+          <div style="font-size:0.75rem;">לא התקיים</div>
+        </div>
+        <div class="card stat-box" onclick="setDashView('post')" style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
+          <div id="d-post" class="card-val" style="font-size:1.2rem; font-weight:800; color:var(--c-secondary);">0</div>
+          <div style="font-size:0.75rem;">נדחו</div>
+        </div>
+        <div class="card stat-box" onclick="setDashView('can')" style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
+          <div id="d-can" class="card-val" style="font-size:1.2rem; font-weight:800; color:var(--c-error);">0</div>
+          <div style="font-size:0.75rem;">בוטלו</div>
+        </div>
+        <div class="card stat-box" onclick="setDashView('handled')" style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
+          <div id="d-handled" class="card-val" style="font-size:1.2rem; font-weight:800; color:var(--c-success);">0</div>
+          <div style="font-size:0.75rem;">טופלו</div>
+        </div>
       </div>
 
           <!-- View Pills -->
-          <div class="dash-view-pills">
-
-      <div id="dash-body" class="scroll-area"></div>
+          <div class="dash-view-pills"></div>
+          <div id="dash-body" class="scroll-area"></div>
 
       <!-- Bulk Action Bar -->
       <div id="dash-bulk-bar">
@@ -3117,27 +3139,27 @@
     </div>
 
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <script src="utils.js?v=103.05"></script>
-    <script src="data_manager.js?v=103.05"></script>
-    <script src="data.js?v=103.05"></script>
-    <script src="firebase.js?v=103.05"></script>
-    <script src="invoices.js?v=103.05"></script>
-    <script src="suppliers.js?v=103.05"></script>
-    <script src="cal.js?v=103.05"></script>
-    <script src="activity.js?v=103.05"></script>
-    <script src="sched.js?v=103.05"></script>
-    <script src="gardens.js?v=103.05"></script>
-    <script src="export.js?v=103.05"></script>
-    <script src="backup.js?v=103.05"></script>
-    <script src="admin.js?v=103.05"></script>
-    <script src="import_export.js?v=103.05"></script>
-    <script src="core.js?v=103.05"></script>
+    <script src="utils.js?v=103.10"></script>
+    <script src="data_manager.js?v=103.10"></script>
+    <script src="data.js?v=103.10"></script>
+    <script src="firebase.js?v=103.10"></script>
+    <script src="invoices.js?v=103.10"></script>
+    <script src="suppliers.js?v=103.10"></script>
+    <script src="cal.js?v=103.10"></script>
+    <script src="activity.js?v=103.10"></script>
+    <script src="sched.js?v=103.10"></script>
+    <script src="gardens.js?v=103.10"></script>
+    <script src="export.js?v=103.10"></script>
+    <script src="backup.js?v=103.10"></script>
+    <script src="admin.js?v=103.10"></script>
+    <script src="import_export.js?v=103.10"></script>
+    <script src="core.js?v=103.10"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
-      console.log('Ganscheduler Architecture: v103.05 Ready');
+      console.log('Ganscheduler Architecture: v103.10 Ready');
     </script>
 
+    </div>
 </body>
-
 </html>
 
