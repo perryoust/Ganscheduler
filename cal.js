@@ -543,9 +543,11 @@ function renderClusterDay(evs, ds, clusterName){
   const calCity=document.getElementById('cal-city').value;
   // Global Makeups at Top
   html += renderMakeupsTop(ds, calCity, calCls);
-  
+
   // Filter out makeups from the regular section to avoid duplication
   const others = evs.filter(s => !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt))));
+
+  if (isAll) {
     const allCities=[...new Set(others.map(s=>window.G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
       allCities.forEach(city=>{
         const cityEvs=others.filter(s=>(window.G(s.g).city||'אחר')===city);
@@ -662,8 +664,6 @@ function renderClusterWeek(evs, weekStart, clusterName){
     if(blk) html+=`<div style="padding:5px 12px;background:#ffebee;font-size:.75rem;color:#c62828;font-weight:700">${blk.icon||'🚫'} ${blk.reason}</div>`;
 
     // Global Makeups at Top
-    const calClsW=document.getElementById('cal-cls').value;
-    const calCityW=document.getElementById('cal-city').value;
     html += ''; // renderMakeupsTop removed as they are now in regular rows
 
     if(!dayEvs.length){
