@@ -1,0 +1,33 @@
+# Local backups and temp files
+_backups/
+_temp/
+*.backup.js
+*.backup.html
+*.swp
+*.swo
+*~
+
+# Node/Build (if we add later)
+node_modules/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large files (keep locally but don't commit)
+*.xlsx.bak
+payload.json
+backup.json
+
+# Firebase credentials (if we add later)
+.env
+.env.local
+firebase-key.json
