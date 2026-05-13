@@ -144,7 +144,7 @@ function renderDash() {
 
       // Pairs within this date
       (window.pairs || []).forEach(p => {
-        const pEvs = dateEvs.filter(s => !dateUsedIds.has(s.id) && p.ids.includes(s.g));
+        const pEvs = dateEvs.filter(s => !dateUsedIds.has(s.id) && p.ids.map(Number).includes(Number(s.g)));
         if (pEvs.length) {
           dateCards.push({ type: 'pair', obj: p, evs: pEvs });
           pEvs.forEach(s => dateUsedIds.add(s.id));
