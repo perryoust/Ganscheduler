@@ -2,7 +2,7 @@
 function calRefG(){
   // Ensure cal-cls matches the active tab
   const clsSel=document.getElementById('cal-cls');
-  if(clsSel&&window._calTab) clsSel.value=window._calTab==='g'?'גנים':'ביה"ס';
+  if(clsSel && typeof _calTab !== 'undefined') clsSel.value = (_calTab === 'g' ? 'גנים' : 'ביה"ס');
   const city=document.getElementById('cal-city').value;
   const cls=document.getElementById('cal-cls').value;
   const gs=window.gByCF(city,cls).sort((a,b)=>{

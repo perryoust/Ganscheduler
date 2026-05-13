@@ -751,8 +751,13 @@ function G(id){
 function gcls(g){
   if (!g || !g.cls) return 'גנים';
   const c = g.cls.trim();
+  // Support both standard quotes (") and Hebrew Gershayim (״)
+  const isSchool = c.includes('בית') || c.includes('בי"ס') || c.includes('בי״ס') || 
+                   c.includes('ביה"ס') || c.includes('ביה״ס') || c.includes('ביהס') || 
+                   c.includes('ספר');
+  
   if (c.includes('גן')) return 'גנים';
-  if (c.includes('בית') || c.includes('בי"ס') || c.includes('ביה"ס') || c.includes('ביהס') || c.includes('ספר')) return 'ביה"ס';
+  if (isSchool) return 'ביה"ס';
   return 'גנים';
 }
 function gByCF(city,cls){return GARDENS.filter(g=>(!city||g.city===city)&&(!cls||gcls(g)===cls));}

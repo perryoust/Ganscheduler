@@ -49,6 +49,9 @@ function renderDash() {
     if (!g) return false;
     
     const gClass = window.gcls ? window.gcls(g) : 'גנים';
+    if (tab === 's' && gClass === 'ביה"ס') {
+       // Debug: console.log('Found school activity:', s.a, s.st, view);
+    }
     if (tab === 'g' && gClass !== 'גנים') return false;
     if (tab === 's' && gClass !== 'ביה"ס') return false;
 
