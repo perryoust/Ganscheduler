@@ -1,4 +1,4 @@
-window.APP_VERSION = '103.01';
+window.APP_VERSION = '103.02';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── Platform Detection ──
@@ -1252,10 +1252,15 @@ function initDrops(){
   fG('cal-g1','כל הצהרונים',true);fG('cal-g2','—',true);fG('cal-g3','—',true);
   fG('s-g1','כל הצהרונים',true);fG('s-g2','—',true);fG('s-g3','—',true);
   fG('apm-g1','בחר צהרון',true);fG('apm-g2','בחר צהרון',true);fG('apm-g3','—',true);
-  document.getElementById('cal-dp').value=td();
+  ['', '-desktop', '-mobile'].forEach(suffix => {
+    const el = document.getElementById('cal-dp' + suffix);
+    if (el) el.value = td();
+  });
   // Default calendar to גנים tab
-  const calClsInit=document.getElementById('cal-cls');
-  if(calClsInit) calClsInit.value='גנים';
+  ['', '-desktop', '-mobile'].forEach(suffix => {
+    const el = document.getElementById('cal-cls' + suffix);
+    if (el) el.value = 'גנים';
+  });
 }
 
 window.TABS=['dash','cal','sched','gardens','pairs','holidays','clusters','sup','managers','admin'];
