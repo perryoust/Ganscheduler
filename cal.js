@@ -1355,13 +1355,13 @@ function renderRangeListView(evs, fromDs, toDs){
         <div class="city-accordion-content">`;
 
       const _gmode = _listGroupMode === 'clusters' ? 'window.clusters' : 'window.pairs';
-      const dateUsedIds = new Set();
+      const firstUsedGids = new Set();
       
       const _renderCl = (cl) => {
-        const clEvs = dayEvs.filter(s => !dateUsedIds.has(String(s.id)) && (cl.gardenIds || []).map(Number).includes(Number(s.g)))
+        const clEvs = cityEvs.filter(s => (cl.gardenIds || []).map(Number).includes(Number(s.g)) && !firstUsedGids.has(Number(s.g)))
           .sort((a,b) => window.compareActivities(a, b));
         if(!clEvs.length) return;
-        clEvs.forEach(s => dateUsedIds.add(String(s.id)));
+        clEvs.forEach(s => firstUsedGids.add(Number(s.g)));
         const clGids = clEvs.map(s => s.g);
         h += `<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
           <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
