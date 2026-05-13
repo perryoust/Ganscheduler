@@ -1048,7 +1048,7 @@ function refreshAppUI(){
 }
 window.refreshAppUI = refreshAppUI;
 
-function updCounts(){
+function updCounts() {
   const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
   const cls = (tab === 'g' ? 'גנים' : 'ביה"ס');
   const sch = window.SCH || [];
@@ -1062,13 +1062,23 @@ function updCounts(){
   const to = document.getElementById('dash-to')?.value || '';
   const srch = (document.getElementById('dash-srch')?.value || '').toLowerCase();
 
-  const filterByTab = (s) => {
+  // Helper logic for classification
+  const getGcls = (g) => {
+    if (typeof window.gcls === 'function') return window.gcls(g);
+    if (!g || !g.cls) return 'גנים';
+    const c = g.cls.trim();
+    if (c.includes('גן')) return 'גנים';
+    if (c.includes('בית') || c.includes('בי"ס') || c.includes('ביה"ס') || c.includes('ביהס') || c.includes('ספר')) return 'ביה"ס';
+    return 'גנים';
+  };
+
+  // 1. Filter by Tab and basic filters (city, sup, srch, date-range)
+  // This is the "Base Set" of relevant activities before date filtering.
+  const baseSch = sch.filter(s => {
     const g = window.G(s.g);
     if (!g) return false;
-    const gcls = window.gcls ? window.gcls(g) : 'גנים';
-    if (gcls !== cls) return false;
+    if (getGcls(g) !== cls) return false;
     
-    // Apply Dashboard Filters
     if (city && g.city !== city) return false;
     if (sup && window.supBase(s.a) !== sup) return false;
     if (srch && ![(g.name||''), (g.city||''), s.a, s.act, s.nt].some(v=>(v||'').toLowerCase().includes(srch))) return false;
@@ -1076,92 +1086,82 @@ function updCounts(){
     if (from && s.d < from) return false;
     if (to && s.d > to) return false;
     
-    // Check if handled state
-    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false") || !!((s.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.n)));
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.a)));
-
-    // Ignore single-day filter for backlog items (exceptions, pending makeups)
-    const isException = (s.st === 'nohap' || s.st === 'post') && !isHandled;
-
-    if (!from && !to && date && s.d !== date && !isException) return false;
-
     return true;
-  };
+  });
 
-  const tabSch = sch.filter(filterByTab);
-
-  const can = tabSch.filter(s => s.st === 'can').length;
-  
-  const post = tabSch.filter(s => {
-    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false") || !!((s.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.n)));
-    return s.st === 'post' && !isHandled;
-  }).length;
-
-  const nohap = tabSch.filter(s => {
-    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false") || !!((s.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.n)));
-    return s.st === 'nohap' && !isHandled;
-  }).length;
-
-  const todo = tabSch.filter(s => {
+  // 2. Calculate Stats
+  const today = td();
+  const stats = baseSch.reduce((acc, s) => {
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false") || !!((s.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.n)));
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.a)));
-    if (isHandled || s.st === 'can' || isM) return false;
-    return s.st === 'nohap' || s.st === 'post';
-  }).length;
+    const isException = (s.st === 'nohap' || s.st === 'post') && !isHandled;
+    const isMakeupBacklog = isM && s.st !== 'can' && s.st !== 'done' && s.d >= today;
+    
+    const onSelectedDate = (!from && !to && date) ? (s.d === date) : true;
 
-  const makeupsCount = tabSch.filter(s => {
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.a)));
-    const isFuture = s.d >= td();
-    return isM && s.st !== 'can' && s.st !== 'done' && isFuture;
-  }).length;
+    // Backlog counts (Ignore date filter)
+    if (isException) {
+      if (s.st === 'nohap') acc.nohap++;
+      if (s.st === 'post') acc.post++;
+      if (!isM) acc.todo++;
+    }
+    if (isMakeupBacklog) acc.makeups++;
 
-  const handled = tabSch.filter(s => {
-    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false") || !!((s.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.n)));
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.a)));
-    if (isHandled || s.st === 'done') return true;
-    const isPast = s.d < td();
-    if (isM && s.st !== 'can' && isPast) return true;
-    return false;
-  }).length;
+    // Date-respecting counts (Respect date filter)
+    if (onSelectedDate) {
+      acc.all++;
+      if (s.st === 'can') acc.can++;
+      if (isHandled || s.st === 'done' || (isM && s.st !== 'can' && s.d < today)) {
+        acc.handled++;
+      }
+    }
 
-  const todayCnt = tabSch.filter(s => s.d === td() && s.st !== 'can').length;
-  const allInTab = tabSch.length;
+    return acc;
+  }, { todo: 0, can: 0, post: 0, nohap: 0, makeups: 0, handled: 0, all: 0 });
 
   const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
   
-  setEl('d-todo-cnt', todo);
-  setEl('d-can', can);
-  setEl('d-post', post);
-  setEl('d-nohap', nohap);
-  setEl('d-makeups', makeupsCount);
-  setEl('d-handled', handled);
-  setEl('d-total', allInTab.toLocaleString());
+  // Dashboard Boxes (Quick Stats)
+  setEl('d-todo-cnt', stats.todo);
+  setEl('d-can', stats.can);
+  setEl('d-post', stats.post);
+  setEl('d-nohap', stats.nohap);
+  setEl('d-makeups', stats.makeups);
+  setEl('d-handled', stats.handled);
+  setEl('d-total', stats.all.toLocaleString());
 
+  // Header Stats
   setEl('h-pairs', (window.pairs || []).length);
-  setEl('h-todo', todo);
-  setEl('h-can', can);
-  setEl('h-post', post);
-  setEl('h-nohap', nohap);
-  setEl('h-makeups', makeupsCount);
-  setEl('h-handled', handled);
-  setEl('h-sched', allInTab.toLocaleString());
-  setEl('h-gardens', gdns.filter(g => window.gcls(g) === cls).length + (window._GARDENS_EXTRA || []).filter(g => window.gcls(g) === cls).length);
+  setEl('h-todo', stats.todo);
+  setEl('h-can', stats.can);
+  setEl('h-post', stats.post);
+  setEl('h-nohap', stats.nohap);
+  setEl('h-makeups', stats.makeups);
+  setEl('h-handled', stats.handled);
+  setEl('h-sched', stats.all.toLocaleString());
   
+  const gardenCount = gdns.filter(g => getGcls(g) === cls).length + (window._GARDENS_EXTRA || []).filter(g => getGcls(g) === cls).length;
+  setEl('h-gardens', gardenCount);
+  setEl('d-gardens', gardenCount);
   setEl('d-pairs', (window.pairs || []).length);
-  setEl('d-gardens', gdns.filter(g => window.gcls(g) === cls).length + (window._GARDENS_EXTRA || []).filter(g => window.gcls(g) === cls).length);
 
-  setEl('h-inv', (window.INVOICES || []).length);
-  setEl('h-inv-active', (window.INVOICES || []).filter(i => _migrateInvStatus(i.status) === 'order').length);
-  setEl('h-inv-prog', (window.INVOICES || []).filter(i => _migrateInvStatus(i.status) === 'tx_invoice').length);
+  // Invoices
+  if (typeof window.INVOICES !== 'undefined') {
+    setEl('h-inv', window.INVOICES.length);
+    if (typeof _migrateInvStatus === 'function') {
+      setEl('h-inv-active', window.INVOICES.filter(i => _migrateInvStatus(i.status) === 'order').length);
+      setEl('h-inv-prog', window.INVOICES.filter(i => _migrateInvStatus(i.status) === 'tx_invoice').length);
+    }
+  }
   
   // Dashboard Pill Badges
-  setEl('dvp-cnt-todo', todo);
-  setEl('dvp-cnt-nohap', nohap);
-  setEl('dvp-cnt-post', post);
-  setEl('dvp-cnt-handled', handled);
-  setEl('dvp-cnt-all', allInTab.toLocaleString());
-  setEl('dvp-cnt-can', can);
-  setEl('dvp-cnt-makeups', makeupsCount);
+  setEl('dvp-cnt-todo', stats.todo);
+  setEl('dvp-cnt-nohap', stats.nohap);
+  setEl('dvp-cnt-post', stats.post);
+  setEl('dvp-cnt-handled', stats.handled);
+  setEl('dvp-cnt-all', stats.all.toLocaleString());
+  setEl('dvp-cnt-can', stats.can);
+  setEl('dvp-cnt-makeups', stats.makeups);
 }
 
 

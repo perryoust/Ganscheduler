@@ -137,7 +137,7 @@ window.DataManager = {
   calculateMakeupBalance: function() {
     const balanceMap = {}; // gardenId -> {name, debt: 0, credit: 0, balance: 0}
     
-    const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ/i.test(s.a)));
+    const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.a)));
 
     (window.SCH || []).forEach(s => {
       // Exclude cancelled activities (they don't count towards balance)
@@ -151,8 +151,9 @@ window.DataManager = {
         balanceMap[gid] = { id: gid, name: garden.name, debt: 0, credit: 0, balance: 0 };
       }
 
-      // 1. Debt: Not Occurred
-      if (s.st === 'nohap') {
+      // 1. Debt: Not Occurred or Postponed (and not handled)
+      const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false") || !!((s.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.n)));
+      if ((s.st === 'nohap' || s.st === 'post') && !isHandled) {
         balanceMap[gid].debt++;
       }
 
