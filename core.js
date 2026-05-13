@@ -1,5 +1,17 @@
-window.APP_VERSION = '102.92';
+window.APP_VERSION = '103.01';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
+
+// ── Platform Detection ──
+window.isMobileMode = () => window.innerWidth <= 768;
+let _lastMode = window.isMobileMode();
+window.addEventListener('resize', () => {
+  const currentMode = window.isMobileMode();
+  if (currentMode !== _lastMode) {
+    _lastMode = currentMode;
+    console.log('Platform mode changed to:', currentMode ? 'Mobile' : 'Desktop');
+    if (window.refresh) window.refresh();
+  }
+});
 
 // ── core.js — globals, data layer, utilities, init ──────────────
 // Load order: firebase.js → invoices.js → suppliers.js → cal.js
@@ -235,15 +247,21 @@ window.CM = function(id) {
  * @param {string} icon - Emoji icon (default ℹ️).
  */
 window.showInfoNotice = function(containerId, msg, type = 'info', icon = 'ℹ️') {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  el.innerHTML = `
+  // Check for dual containers
+  const desktopEl = document.getElementById(containerId + '-desktop');
+  const mobileEl = document.getElementById(containerId + '-mobile');
+  const fallbackEl = document.getElementById(containerId);
+  
+  const html = `
     <div class="info-notice ${type==='warning'?'warning':''}">
       <span class="icon">${icon}</span>
       <div>${msg}</div>
     </div>
   `;
-  el.style.display = 'block';
+  
+  if (desktopEl) { desktopEl.innerHTML = html; desktopEl.style.display = 'block'; }
+  if (mobileEl) { mobileEl.innerHTML = html; mobileEl.style.display = 'block'; }
+  if (fallbackEl) { fallbackEl.innerHTML = html; fallbackEl.style.display = 'block'; }
 };
 var OM = window.OM;
 var CM = window.CM;
@@ -1131,8 +1149,29 @@ function updCounts() {
 
     return acc;
   }, { todo: 0, can: 0, post: 0, nohap: 0, makeups: 0, handled: 0, all: 0 });
+  return stats;
+}
+window.getDashStats = updCounts;
 
-  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+function updUIStats() {
+  const stats = updCounts();
+  const setEl = (id, v) => { 
+    const m = document.getElementById(id + '-mobile');
+    const d = document.getElementById(id + '-desktop');
+    const r = document.getElementById(id);
+    if (m) m.textContent = v;
+    if (d) d.textContent = v;
+    if (r) r.textContent = v;
+    
+    // Also try legacy header IDs
+    const hId = 'h-' + id.replace('d-', '').replace('-cnt', '');
+    const hm = document.getElementById(hId + '-mobile');
+    const hd = document.getElementById(hId + '-desktop');
+    const hr = document.getElementById(hId);
+    if (hm) hm.textContent = v;
+    if (hd) hd.textContent = v;
+    if (hr) hr.textContent = v;
+  };
   
   // Dashboard Boxes (Quick Stats)
   setEl('d-todo-cnt', stats.todo);
@@ -1143,20 +1182,17 @@ function updCounts() {
   setEl('d-handled', stats.handled);
   setEl('d-total', stats.all.toLocaleString());
 
-  // Header Stats
-  setEl('h-pairs', (window.pairs || []).length);
-  setEl('h-todo', stats.todo);
-  setEl('h-can', stats.can);
-  setEl('h-post', stats.post);
-  setEl('h-nohap', stats.nohap);
-  setEl('h-makeups', stats.makeups);
-  setEl('h-handled', stats.handled);
-  setEl('h-sched', stats.all.toLocaleString());
+  // Header Stats (Desktop/Mobile sync)
+  const hPairs = window.getEl('h-pairs');
+  if(hPairs) hPairs.textContent = (window.pairs || []).length;
   
-  const gardenCount = gdns.filter(g => getGcls(g) === cls).length + (window._GARDENS_EXTRA || []).filter(g => getGcls(g) === cls).length;
-  setEl('h-gardens', gardenCount);
-  setEl('d-gardens', gardenCount);
-  setEl('d-pairs', (window.pairs || []).length);
+  const hGardens = window.getEl('h-gardens');
+  if(hGardens) {
+    const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
+    const cls = (tab === 'g' ? 'גנים' : 'ביה"ס');
+    const gardenCount = (window.GARDENS || []).filter(g => window.gcls(g) === cls).length + (window._GARDENS_EXTRA || []).filter(g => window.gcls(g) === cls).length;
+    hGardens.textContent = gardenCount;
+  }
 
   // Invoices
   if (typeof window.INVOICES !== 'undefined') {
@@ -1166,8 +1202,8 @@ function updCounts() {
       setEl('h-inv-prog', window.INVOICES.filter(i => _migrateInvStatus(i.status) === 'tx_invoice').length);
     }
   }
-  
-  // Dashboard Pill Badges
+
+  // Dashboard Pill Badges (Desktop/Mobile sync via getEl)
   setEl('dvp-cnt-todo', stats.todo);
   setEl('dvp-cnt-nohap', stats.nohap);
   setEl('dvp-cnt-post', stats.post);
@@ -1176,6 +1212,7 @@ function updCounts() {
   setEl('dvp-cnt-can', stats.can);
   setEl('dvp-cnt-makeups', stats.makeups);
 }
+window.updCounts = updUIStats;
 
 
 function initDrops(){
@@ -2564,33 +2601,32 @@ function getGardenMgr(gid){
   return Object.values(managers).find(m=>(m.gardenIds||[]).includes(gid))||null;
 }
 function setGardensTab(t){
-  _gardensTab=t;
-  ['gan','sch','pairs','clusters','managers','fixed'].forEach(id=>{
-    const b=document.getElementById('g-tab-'+id);
-    if(b) b.classList.toggle('active',id===t);
+  _gardensTab = t;
+  document.querySelectorAll('[id^="g-tab-"]').forEach(btn => {
+    const btnT = btn.id.replace('g-tab-', '').replace('-desktop', '').replace('-mobile', '');
+    btn.classList.toggle('active', btnT === t);
   });
 
-  // Always stay inside the gardens panel — render everything into g-body
-  const gBody=document.getElementById('g-body');
-  const gFilters=document.getElementById('g-filters');
-  const fixedCtrl=document.getElementById('g-fixed-controls');
-  const addBtn=document.querySelector('#p-gardens .btn.bp');
+  const gBody = document.getElementById('g-body');
+  const gToolsD = document.getElementById('gardens-tools-desktop');
+  const gToolsM = document.getElementById('gardens-tools-mobile');
+  const fixedCtrl = document.getElementById('g-fixed-controls');
+  const addBtns = document.querySelectorAll('#p-gardens .btn.bp');
 
-  // Show/hide filter row — only for gan/sch
-  const showFilters=['gan','sch'].includes(t);
-  if(gFilters) gFilters.style.display=showFilters?'':'none';
-  if(fixedCtrl) fixedCtrl.style.display=t==='fixed'?'':'none';
-  const gInfo=document.getElementById('g-info');
-  if(gInfo) gInfo.style.display=t==='fixed'?'none':'';
-  if(addBtn) addBtn.style.display=['gan','sch'].includes(t)?'':'none';
+  const isG = ['gan','sch'].includes(t);
+  if(gToolsD) gToolsD.style.display = isG ? '' : 'none';
+  if(gToolsM) gToolsM.style.display = isG ? '' : 'none';
+  if(fixedCtrl) fixedCtrl.style.display = t==='fixed' ? '' : 'none';
+  const gInfo = document.getElementById('g-info');
+  if(gInfo) gInfo.style.display = t==='fixed' ? 'none' : '';
+  addBtns.forEach(btn => btn.style.display = isG ? '' : 'none');
 
   if(t==='pairs'){
     gBody.className='scroll-area';
     gBody.innerHTML='';
-    // Clone pairs panel content into g-body
     const src=document.querySelector('#p-pairs .card');
     if(src){ gBody.innerHTML=src.innerHTML; }
-    renderPairs();
+    if(typeof renderPairs === 'function') renderPairs();
     return;
   }
   if(t==='clusters'){
@@ -2598,7 +2634,7 @@ function setGardensTab(t){
     gBody.innerHTML='';
     const src=document.querySelector('#p-clusters .card');
     if(src){ gBody.innerHTML=src.innerHTML; }
-    renderClusters();
+    if(typeof renderClusters === 'function') renderClusters();
     return;
   }
   if(t==='managers'){
@@ -3071,15 +3107,31 @@ if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded', initPiStatusFilter);
 } else { initPiStatusFilter(); }
 
-function dashNavDate(d){
-  const el=document.getElementById('dash-date');
-  if(!el) return;
-  if(d===0){ el.value=window.td(); }
-  else if(d===999){ el.value=''; }
-  else {
-    const cur=el.value?window.s2d(el.value):new Date();
-    el.value=window.d2s(window.addD(cur,d));
+window.getEl = function(id) {
+  if (window.isMobileMode()) {
+    return document.getElementById(id + '-mobile') || document.getElementById(id + '-desktop') || document.getElementById(id);
   }
+  return document.getElementById(id + '-desktop') || document.getElementById(id + '-mobile') || document.getElementById(id);
+};
+
+window.syncDashDate = function(val) {
+  const d = document.getElementById('dash-date-desktop');
+  const m = document.getElementById('dash-date-mobile');
+  if (d) d.value = val;
+  if (m) m.value = val;
+};
+
+function dashNavDate(d){
+  const el = window.getEl('dash-date');
+  if(!el) return;
+  let newVal = '';
+  if(d===0){ newVal = window.td(); }
+  else if(d===999){ newVal = ''; }
+  else {
+    const cur = el.value ? window.s2d(el.value) : new Date();
+    newVal = window.d2s(window.addD(cur, d));
+  }
+  window.syncDashDate(newVal);
   if(window.renderDash) window.renderDash();
 }
 

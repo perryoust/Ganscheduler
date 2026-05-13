@@ -1,27 +1,48 @@
 // cal.js v101.3 - Compact UI & Default View Fix
 function calRefG(){
   // Ensure cal-cls matches the active tab
-  const clsSel=document.getElementById('cal-cls');
+  const clsSel = window.getEl('cal-cls');
   if(clsSel && typeof _calTab !== 'undefined') clsSel.value = (_calTab === 'g' ? 'גנים' : 'ביה"ס');
-  const city=document.getElementById('cal-city').value;
-  const cls=document.getElementById('cal-cls').value;
+  const city = (window.getEl('cal-city')?.value || '');
+  const cls = (window.getEl('cal-cls')?.value || '');
   const gs=window.gByCF(city,cls).sort((a,b)=>{
     if(!city){const cc=(a.city||'').localeCompare(b.city||'','he');if(cc)return cc;}
     return (a.name||'').localeCompare(b.name||'','he');
   });
+  
   ['cal-g1','cal-g2','cal-g3'].forEach((id,i)=>{
-    const sel=document.getElementById(id);
-    sel.innerHTML=i===0?'<option value="">כל הצהרונים</option>':'<option value="">—</option>';
-    gs.forEach(g=>sel.innerHTML+=`<option value="${g.id}">${city?g.name:g.city+' · '+g.name}</option>`);
+    // Update both desktop and mobile selects if they exist
+    ['desktop', 'mobile'].forEach(plat => {
+      const sel = document.getElementById(id + '-' + plat);
+      if(!sel) return;
+      sel.innerHTML = i===0 ? '<option value="">כל הצהרונים</option>' : '<option value="">—</option>';
+      gs.forEach(g => sel.innerHTML += `<option value="${g.id}">${city ? g.name : g.city + ' · ' + g.name}</option>`);
+    });
+    // Fallback for single ID if it exists
+    const sel = document.getElementById(id);
+    if(sel && !document.getElementById(id + '-desktop')){
+      sel.innerHTML = i===0 ? '<option value="">כל הצהרונים</option>' : '<option value="">—</option>';
+      gs.forEach(g => sel.innerHTML += `<option value="${g.id}">${city ? g.name : g.city + ' · ' + g.name}</option>`);
+    }
   });
   renderCal();
 }
 function getCalGids(){
-  return[parseInt(document.getElementById('cal-g1').value)||null,parseInt(document.getElementById('cal-g2').value)||null,parseInt(document.getElementById('cal-g3').value)||null].filter(Boolean);
+  const g1 = window.getEl('cal-g1');
+  const g2 = window.getEl('cal-g2');
+  const g3 = window.getEl('cal-g3');
+  return [parseInt(g1?.value)||null, parseInt(g2?.value)||null, parseInt(g3?.value)||null].filter(Boolean);
 }
 function getCalF(){
-  const gids=getCalGids();
-  return{gids:gids.length?gids:null,city:document.getElementById('cal-city').value,cls:document.getElementById('cal-cls').value,cluster:document.getElementById('cal-cl').value,sup:document.getElementById('cal-sup').value,st:document.getElementById('cal-st').value};
+  const gids = getCalGids();
+  return {
+    gids: gids.length ? gids : null,
+    city: window.getEl('cal-city')?.value || '',
+    cls: window.getEl('cal-cls')?.value || '',
+    cluster: window.getEl('cal-cl')?.value || '',
+    sup: window.getEl('cal-sup')?.value || '',
+    st: window.getEl('cal-st')?.value || ''
+  };
 }
 function filterE(f,from,to){
   const all=window.SCH.filter(s=>{
@@ -91,23 +112,30 @@ window._listGroupMode = 'pairs'; // Default to pairs grouping
 
 function setCalTab(t){
   _calTab = t;
-  const elG = document.getElementById('cal-tab-g');
-  const elS = document.getElementById('cal-tab-s');
-  if(elG) elG.classList.toggle('active', t === 'g');
-  if(elS) elS.classList.toggle('active', t === 's');
+  document.querySelectorAll('[id^="cal-tab-"]').forEach(btn => {
+    const btnTab = btn.id.replace('cal-tab-', '').replace('-desktop', '').replace('-mobile', '');
+    btn.classList.toggle('active', btnTab === t);
+  });
   calRefG();
 }
 
 function setListSubView(v){
   _listSubView=v;
-  ['day','week','month'].forEach(x=>document.getElementById('vlb-'+x)?.classList.toggle('active',x===v));
+  document.querySelectorAll('[id^="vlb-"]').forEach(btn => {
+    const btnV = btn.id.replace('vlb-', '').replace('-desktop', '').replace('-mobile', '');
+    if (['day', 'week', 'month'].includes(btnV)) {
+      btn.classList.toggle('active', btnV === v);
+    }
+  });
   renderCal();
 }
 
 function setRangeSubView(v){
   _rangeSubView = v;
-  document.getElementById('vb-range-cal')?.classList.toggle('active', v==='cal');
-  document.getElementById('vb-range-list')?.classList.toggle('active', v==='list');
+  document.querySelectorAll('[id^="vb-range-"]').forEach(btn => {
+    const btnV = btn.id.replace('vb-range-', '').replace('-desktop', '').replace('-mobile', '');
+    btn.classList.toggle('active', btnV === v);
+  });
   renderCal();
 }
 
@@ -115,8 +143,9 @@ function setView(v){
   calV=v;
   _rangeSubView='cal';
   ['day','week','month','list','range'].forEach(x=>{
-    const el=document.getElementById('vb-'+x);
-    if(el) el.classList.toggle('active',x===v);
+    document.querySelectorAll('#vb-' + x + '-desktop, #vb-' + x + '-mobile').forEach(el => {
+      el.classList.toggle('active', x === v);
+    });
   });
   const rangeRow = document.getElementById('cal-range-row');
   const listRow  = document.getElementById('cal-list-row');
@@ -154,8 +183,15 @@ function navCal(d){
   else calD=addM(calD,d);
   renderCal();
 }
-function goToday(){calD=new Date();document.getElementById('cal-dp').value=td();renderCal();}
-function goDate(s){if(s){calD=s2d(s);renderCal();}}
+function goToday(){
+  calD=new Date();
+  const dpD = document.getElementById('cal-dp-desktop');
+  const dpM = document.getElementById('cal-dp-mobile');
+  if(dpD) dpD.value=window.td();
+  if(dpM) dpM.value=window.td();
+  renderCal();
+}
+function goDate(s){if(s){calD=window.s2d(s);renderCal();}}
 function jumpToDay(ds){calD=s2d(ds);setListSubView('day');setView('list');}
 window.calJump = function(pairId, view, gardenId) {
   // 1. Switch to Calendar Mode

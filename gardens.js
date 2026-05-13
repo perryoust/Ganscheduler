@@ -3,14 +3,16 @@ function renderGardens(){
     window.showInfoNotice('gardens-info-wrap', '<b>ניהול צהרונים:</b> כאן ניתן לראות את כל הגנים, הזוגות והאשכולות. שינויים בזוגות ישפיעו על הסנכרון בלוח הבקרה ובשיבוץ.', 'info', '🏡');
   }
   if(_gardensTab==='fixed'){ renderGardensFixed(); return; }
-  // Sync g-cls from active tab if not overridden
-  const gClsEl=document.getElementById('g-cls');
-  if(gClsEl&&!gClsEl.value) gClsEl.value=_gardensTab==='sch'?'ביה"ס':'גנים';
-  const city=document.getElementById('g-city').value;
-  const cls=document.getElementById('g-cls').value;
-  const cl=document.getElementById('g-cl').value;
-  const srch=document.getElementById('g-srch').value.toLowerCase();
-  const mgrF=(document.getElementById('g-mgr')||{}).value||'';
+  
+  const gClsEl = window.getEl('g-cls');
+  if(gClsEl && !gClsEl.value) gClsEl.value = _gardensTab === 'sch' ? 'ביה"ס' : 'גנים';
+  
+  const city = window.getEl('g-city')?.value || '';
+  const cls = window.getEl('g-cls')?.value || '';
+  const cl = window.getEl('g-cl')?.value || '';
+  const srch = (window.getEl('g-srch')?.value || '').toLowerCase();
+  const mgrF = window.getEl('g-mgr')?.value || '';
+  
   const f=[...window.GARDENS,...(window._GARDENS_EXTRA||[])].filter(g=>{
     if(city&&g.city!==city) return false;
     if(cls&&window.gcls(g)!==cls) return false;
@@ -253,7 +255,7 @@ function pqmBreakPermanent(){
 }
 
 function renderPairs(){
-  const cityFilt=(document.getElementById('pairs-city')||{}).value||'';
+  const cityFilt = window.getEl('pairs-city')?.value || '';
   const f=window.pairs.filter(p=>{
     if(!cityFilt) return true;
     return p.ids.some(id=>window.G(id).city===cityFilt);
@@ -575,10 +577,12 @@ function pairWeekColors(pairId){
 }
 function refreshClusterDrops(){
   ['cal-cl','g-cl'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(!el) return;
-    el.innerHTML='<option value="">הכל</option><option value="__all__">🔢 כל האשכולות</option>';
-    getClusters().forEach(cl=>el.innerHTML+=`<option value='${cl.name}'>${cl.name}</option>`);
+    ['desktop', 'mobile'].forEach(plat => {
+      const el = document.getElementById(id + '-' + plat);
+      if(!el) return;
+      el.innerHTML='<option value="">הכל</option><option value="__all__">🔢 כל האשכולות</option>';
+      getClusters().forEach(cl=>el.innerHTML+=`<option value='${cl.name}'>${cl.name}</option>`);
+    });
   });
   const pairEl=document.getElementById('cal-pair');
   if(!pairEl) return;

@@ -448,67 +448,63 @@ function saveNewSched(){
 }
 
 function sSchedStChange(){
-  const st=document.getElementById('s-st').value;
-  const from=document.getElementById('s-from');
-  const to=document.getElementById('s-to');
+  const st = window.getEl('s-st')?.value;
+  const from = window.getEl('s-from');
+  const to = window.getEl('s-to');
+  
+  let fromVal = from?.value || '', toVal = to?.value || '';
   if(!st){
-    // הכל → default to today
-    if(from&&!from.value) from.value=window.td();
-    if(to&&!to.value) to.value=window.td();
+    if(!fromVal) fromVal = window.td();
+    if(!toVal) toVal = window.td();
   } else {
-    // ספציפי → clear date filter to show all
-    if(from) from.value='';
-    if(to) to.value='';
+    fromVal = ''; toVal = '';
   }
+
+  // Sync back to both desktop/mobile
+  ['desktop', 'mobile'].forEach(plat => {
+    const f = document.getElementById('s-from-' + plat);
+    const t = document.getElementById('s-to-' + plat);
+    if(f) f.value = fromVal;
+    if(t) t.value = toVal;
+  });
+
   sPage=1; renderSched();
 }
 function sRefG(){
-  const city=document.getElementById('s-city').value;
-  const cls=document.getElementById('s-cls').value;
+  const city = window.getEl('s-city')?.value || '';
+  const cls = window.getEl('s-cls')?.value || '';
   const gs=window.gByCF(city,cls).sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  
   ['s-g1','s-g2','s-g3'].forEach((id,i)=>{
-    const sel=document.getElementById(id);
-    sel.innerHTML=i===0?'<option value="">כל הצהרונים</option>':'<option value="">—</option>';
-    gs.forEach(g=>sel.innerHTML+=`<option value="${g.id}">${city?g.name:g.city+' · '+g.name}</option>`);
+    ['desktop', 'mobile'].forEach(plat => {
+      const sel = document.getElementById(id + '-' + plat);
+      if(!sel) return;
+      sel.innerHTML = i===0 ? '<option value="">כל הצהרונים</option>' : '<option value="">—</option>';
+      gs.forEach(g => sel.innerHTML += `<option value="${g.id}">${city ? g.name : g.city + ' · ' + g.name}</option>`);
+    });
   });
-  sPage=1;renderSched();
+  sPage=1; renderSched();
 }
 function getFiltSched(){
-  const cityEl=document.getElementById('s-city');
-  const clsEl=document.getElementById('s-cls');
-  const g1El=document.getElementById('s-g1');
-  const g2El=document.getElementById('s-g2');
-  const g3El=document.getElementById('s-g3');
-  const supEl=document.getElementById('s-sup');
-  const thEl=document.getElementById('s-th');
-  const ttEl=document.getElementById('s-tt');
-  const fromEl=document.getElementById('s-from');
-  const toEl=document.getElementById('s-to');
-  const stEl=document.getElementById('s-st');
-  const typeEl=document.getElementById('s-type');
-  const srchEl=document.getElementById('s-srch');
-
-  if(!cityEl || !clsEl || !g1El || !fromEl || !toEl || !stEl || !srchEl) return [];
-
-  const city=cityEl.value;
-  const cls=clsEl.value;
-  const g1=parseInt(g1El.value)||null;
-  const g2=g2El?parseInt(g2El.value):null;
-  const g3=g3El?parseInt(g3El.value):null;
-  const sup=supEl?supEl.value:null;
-  const th=thEl?thEl.value:null;
-  const tt=ttEl?ttEl.value:null;
-  const from=fromEl.value;
-  const to=toEl.value;
-  const st=stEl.value;
-  const type=typeEl?typeEl.value:null;
-  const srch=srchEl.value.toLowerCase();
+  const city = window.getEl('s-city')?.value || '';
+  const cls = window.getEl('s-cls')?.value || '';
+  const g1 = parseInt(window.getEl('s-g1')?.value) || null;
+  const g2 = parseInt(window.getEl('s-g2')?.value) || null;
+  const g3 = parseInt(window.getEl('s-g3')?.value) || null;
+  const sup = window.getEl('s-sup')?.value || '';
+  const th = window.getEl('s-th')?.value || '';
+  const tt = window.getEl('s-tt')?.value || '';
+  const from = window.getEl('s-from')?.value || '';
+  const to = window.getEl('s-to')?.value || '';
+  const st = window.getEl('s-st')?.value || '';
+  const type = window.getEl('s-type')?.value || '';
+  const srch = (window.getEl('s-srch')?.value || '').toLowerCase();
+  
   const gids=[g1,g2,g3].filter(Boolean).map(id=>Number(id));
   const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
   return (window.SCH || []).filter(s=>{
     const g=window.G(s.g);
     if(!g) return false;
-    // Robust class filtering (case-insensitive and trimmed)
     const gClass = window.gcls(g).trim().toLowerCase();
     const filterClass = (cls||'').trim().toLowerCase();
     
@@ -523,12 +519,10 @@ function getFiltSched(){
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false" && s._compByMakeup !== "");
     const isExc = (s.st === 'nohap' || s.st === 'post') && !isHandled;
 
-    // Status Logic
     if(st==='todo'){
-      if(isExc) return true; // Pending items always show in todo backlog
+      if(isExc) return true;
       if (isM(s)) {
         if (s.st === 'done') return false; 
-        // For actual makeup todo, we still might want to honor dates if provided
         if(from&&s.d<from) return false;
         if(to&&s.d>to) return false;
         return true;
@@ -536,19 +530,14 @@ function getFiltSched(){
       return false;
     }
 
-    // Regular filtering (non-todo view)
     if(from&&s.d<from) return false;
     if(to&&s.d>to) return false;
 
     if(!st) {
-       // Default View (All) - hide canceled and already handled items
        if(s.st==='can' || isHandled) return false;
     } else {
-       // Specific status selected (e.g. 'nohap', 'ok')
        if(s.st!==st) return false;
-       // If filtering for exceptions, don't show those already handled
        if((st === 'nohap' || st === 'post') && isHandled) return false;
-       // Handle cases where handled status is selected if it's the makeup indicator
        if(isHandled && !isM(s) && st==='done') return false; 
     }
 
@@ -572,57 +561,76 @@ function getFiltSched(){
   });
 }
 
-// Global Bridge
-window.renderSched = renderSched;
-window.setSchedView = setSchedView;
-window.navSched = navSched;
-window.navSchedToday = navSchedToday;
-window.sSchedStChange = sSchedStChange;
-window.sRefG = sRefG;
 function setSchedView(v){
-  const sf=document.getElementById('s-from'), st2=document.getElementById('s-to');
+  const sf = window.getEl('s-from');
+  const st2 = window.getEl('s-to');
   if(!sf||!st2) return;
-  const base=sf.value||window.td();
-  const d=window.s2d(base);
+  const base = sf.value || window.td();
+  const d = window.s2d(base);
+  
+  let fromVal = '', toVal = '';
   if(v==='day'){
-    sf.value=window.td(); st2.value=window.td();
+    fromVal = window.td(); toVal = window.td();
   } else if(v==='week'){
-    const days=window.getNextWorkDays(d, 5);
-    sf.value=window.d2s(days[0]); st2.value=window.d2s(days[4]);
-
+    const days = window.getNextWorkDays(d, 5);
+    fromVal = window.d2s(days[0]); toVal = window.d2s(days[4]);
   } else if(v==='month'){
     const y=d.getFullYear(), m=d.getMonth();
-    sf.value=d2s(new Date(y,m,1)); st2.value=d2s(new Date(y,m+1,0));
+    fromVal = window.d2s(new Date(y,m,1)); toVal = window.d2s(new Date(y,m+1,0));
   }
-  ['day','week','month'].forEach(x=>document.getElementById('svb-'+x)?.classList.toggle('active',x===v));
+  
+  ['desktop', 'mobile'].forEach(plat => {
+    const f = document.getElementById('s-from-' + plat);
+    const t = document.getElementById('s-to-' + plat);
+    if(f) f.value = fromVal;
+    if(t) t.value = toVal;
+  });
+
+  document.querySelectorAll('[id^="svb-"]').forEach(btn => {
+    const btnV = btn.id.replace('svb-', '').replace('-desktop', '').replace('-mobile', '');
+    if (['day', 'week', 'month'].includes(btnV)) {
+      btn.classList.toggle('active', btnV === v);
+    }
+  });
   sPage=1; renderSched();
 }
 
 function navSched(dir){
-  const sf=document.getElementById('s-from'),st2=document.getElementById('s-to');
+  const sf = window.getEl('s-from');
+  const st2 = window.getEl('s-to');
   if(!sf||!st2) return;
-  const from=sf.value||window.td(),to=st2.value||window.td();
-  const d1=window.s2d(from),d2=window.s2d(to);
-  const span=Math.max(0,Math.round((d2-d1)/(1000*60*60*24)));
-  let jump=span+1;
-  if(span>=4&&span<=6) jump=1; // Shift by 1 day for rolling weekly view
+  const from = sf.value || window.td(), to = st2.value || window.td();
+  const d1 = window.s2d(from), d2 = window.s2d(to);
+  const span = Math.max(0, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+  let jump = span + 1;
+  if(span >= 4 && span <= 6) jump = 1;
 
-  const nd1=window.addD(d1,dir*jump);
-  const nd2=window.addD(nd1,span);
-  sf.value=window.d2s(nd1); st2.value=window.d2s(nd2);
+  const nd1 = window.addD(d1, dir * jump);
+  const nd2 = window.addD(nd1, span);
+  
+  const fromVal = window.d2s(nd1), toVal = window.d2s(nd2);
+  ['desktop', 'mobile'].forEach(plat => {
+    const f = document.getElementById('s-from-' + plat);
+    const t = document.getElementById('s-to-' + plat);
+    if(f) f.value = fromVal;
+    if(t) t.value = toVal;
+  });
 
   sPage=1; renderSched();
 }
 function navSchedToday(){
-  const t=window.td();
-  document.getElementById('s-from').value=t;
-  document.getElementById('s-to').value=t;
+  const t = window.td();
+  ['desktop', 'mobile'].forEach(plat => {
+    const f = document.getElementById('s-from-' + plat);
+    const to = document.getElementById('s-to-' + plat);
+    if(f) f.value = t;
+    if(to) to.value = t;
+  });
   sPage=1; renderSched();
 }
 function renderSched(){
   const all=getFiltSched();
-  const hasFilter=['s-city','s-cls','s-sup','s-th','s-tt','s-from','s-to','s-st','s-srch'].some(id=>{const el=document.getElementById(id);return el&&el.value;});
-  const todayDate=document.getElementById('s-from').value||document.getElementById('s-to').value;
+  const todayDate = window.getEl('s-from')?.value || window.getEl('s-to')?.value;
   const pages=Math.ceil(all.length/PG);
   if(sPage>pages&&pages>0) sPage=1;
   const data=all.slice((sPage-1)*PG,sPage*PG);
@@ -716,7 +724,12 @@ function searchAct(){
   renderSched();
 }
 function clearSched(){
-  ['s-city','s-cls','s-sup','s-th','s-tt','s-from','s-to','s-st','s-srch'].forEach(id=>document.getElementById(id).value='');
+  ['s-city','s-cls','s-sup','s-th','s-tt','s-from','s-to','s-st','s-srch'].forEach(id => {
+    const elD = document.getElementById(id + '-desktop');
+    const elM = document.getElementById(id + '-mobile');
+    if(elD) elD.value = '';
+    if(elM) elM.value = '';
+  });
   sRefG();
 }
 

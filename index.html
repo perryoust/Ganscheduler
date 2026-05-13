@@ -291,138 +291,66 @@
     </div>
 
     <div id="p-dash" class="panel active">
-      <!-- Quick stats -->
-      <div id="dash-stat-boxes" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
-        <div onclick="ST('gardens')"
-          style="background:#e8eaf6;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
-          <span style="font-size:1.5rem">🏫</span>
-          <div>
-            <div style="font-weight:800;color:#1a237e;font-size:1.1rem;line-height:1" id="d-gardens">125</div>
-            <div style="font-size:.65rem;color:#546e7a">צהרונים</div>
+      <!-- 🖥️ DESKTOP DASHBOARD TOOLS 🖥️ -->
+      <div id="dash-tools-desktop" class="card desktop-only" style="margin-bottom:10px">
+        <div class="row mb-4">
+          <div class="fg">
+            <label>תאריך</label>
+            <div class="flex-c gap-2">
+              <input type="date" id="dash-date-desktop" onchange="window.syncDashDate(this.value); renderDash()" style="width:140px">
+              <button class="btn bg" onclick="dashNavDate(-1)">◀</button>
+              <button class="btn bg" onclick="dashNavDate(0)">היום</button>
+              <button class="btn bg" onclick="dashNavDate(1)">▶</button>
+            </div>
+          </div>
+          <div class="fg"><label>עיר</label><select id="dash-city-desktop" onchange="renderDash()"><option value="">כל הערים</option></select></div>
+          <div class="fg"><label>ספק</label><select id="dash-sup-desktop" onchange="renderDash()"><option value="">כל הספקים</option></select></div>
+          <div class="fg"><label>חיפוש חופשי</label><input type="text" id="dash-srch-desktop" placeholder="שם צהרון, ספק..." oninput="renderDash()" style="width:180px"></div>
+          <div class="mr-auto flex-c gap-8">
+             <button class="btn bp" onclick="openNewSched(null)">➕ שיבוץ חדש</button>
+             <button class="btn br2" onclick="openCancelDay(document.getElementById('dash-date-desktop').value||td())">🚫 ביטול יום</button>
           </div>
         </div>
-        <div onclick="goToTodayActivities()"
-          style="background:#e3f2fd;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
-          <span style="font-size:1.5rem">📋</span>
-          <div>
-            <div style="font-weight:800;color:#1565c0;font-size:1.1rem;line-height:1" id="d-total">0</div>
-            <div style="font-size:.65rem;color:#546e7a">כל הפעילויות</div>
-          </div>
-        </div>
-        <div onclick="goToCancelled()"
-          style="background:#ffebee;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
-          <span style="font-size:1.5rem">❌</span>
-          <div>
-            <div style="font-weight:800;color:#c62828;font-size:1.1rem;line-height:1" id="d-can">0</div>
-            <div style="font-size:.65rem;color:#546e7a">בוטלו</div>
-          </div>
-        </div>
-        <div onclick="goToPostponed()"
-          style="background:#fff8e1;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
-          <span style="font-size:1.5rem">⏩</span>
-          <div>
-            <div style="font-weight:800;color:#e65100;font-size:1.1rem;line-height:1" id="d-post">0</div>
-            <div style="font-size:.65rem;color:#546e7a">נדחו</div>
-          </div>
-        </div>
-        <div onclick="goToNoHap()"
-          style="background:#fce4ec;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
-          <span style="font-size:1.5rem">🏫</span>
-          <div>
-            <div style="font-weight:800;color:#e91e63;font-size:1.1rem;line-height:1" id="d-nohap">0</div>
-            <div style="font-size:.65rem;color:#546e7a">לא התקיים</div>
-          </div>
-        </div>
-        <div onclick="ST('gardens');setGardensTab('pairs')"
-          style="background:#e8f5e9;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
-          <span style="font-size:1.5rem">⚖️</span>
-          <div>
-            <div style="font-weight:800;color:#2e7d32;font-size:1.1rem;line-height:1" id="d-pairs">0</div>
-            <div style="font-size:.65rem;color:#546e7a">זוגות</div>
-          </div>
-        </div>
-        <div onclick="goToTodayCal()"
-          style="background:#fff3e0;border-radius:8px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:110px">
-          <span style="font-size:1.5rem">📅</span>
-          <div>
-            <div style="font-weight:800;color:#e65100;font-size:1.1rem;line-height:1" id="d-today-cnt">—</div>
-            <div style="font-size:.65rem;color:#546e7a">פעילויות היום</div>
-          </div>
+        <div class="dash-view-pills">
+           <button id="dvp-todo-desktop" class="dash-view-pill active" onclick="setDashView('todo')"><span>🚀 לטיפול</span> <b class="badge" id="dvp-cnt-todo-desktop">0</b></button>
+           <button id="dvp-makeups-desktop" class="dash-view-pill" onclick="setDashView('makeups')"><span>📅 השלמות</span> <b class="badge" id="dvp-cnt-makeups-desktop">0</b></button>
+           <button id="dvp-all-desktop" class="dash-view-pill" onclick="setDashView('all')"><span>📋 הכל</span> <b class="badge" id="dvp-cnt-all-desktop">0</b></button>
+           <button id="dvp-handled-desktop" class="dash-view-pill" onclick="setDashView('handled')"><span>✅ טופלו</span> <b class="badge" id="dvp-cnt-handled-desktop">0</b></button>
         </div>
       </div>
-      <div class="card" style="margin-bottom:10px">
-        <div>
-          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
-            <div style="display:flex;align-items:center;gap:3px;flex:1;min-width:200px">
-              <div style="flex:1">
-                <label style="font-size:.72rem;color:#546e7a;display:block;margin-bottom:2px">תאריך</label>
-                <input type="date" id="dash-date" onchange="renderDash()" style="width:100%">
-              </div>
-              <div style="display:flex;gap:2px;align-self:flex-end;padding-bottom:1px">
-                <button class="btn bg bsm" onclick="dashNavDate(-1)" title="יום קודם"
-                  style="padding:5px 9px;min-height:34px">◀</button>
-                <button class="btn bg bsm" onclick="dashNavDate(0)" title="היום"
-                  style="padding:5px 9px;min-height:34px;font-size:.76rem">היום</button>
-                <button class="btn bg bsm" onclick="dashNavDate(1)" title="יום הבא"
-                  style="padding:5px 9px;min-height:34px">▶</button>
-              </div>
+
+      <!-- 📱 MOBILE DASHBOARD TOOLS 📱 -->
+      <div id="dash-tools-mobile" class="card mobile-only" style="margin-bottom:8px">
+         <div class="flex-c justify-between mb-4">
+            <div class="flex-c gap-2">
+               <input type="date" id="dash-date-mobile" onchange="window.syncDashDate(this.value); renderDash()" style="width:130px">
+               <button class="btn bg bsm" onclick="dashNavDate(0)">היום</button>
             </div>
-            <button class="flt-toggle" id="dash-flt-btn" onclick="fltToggle('dash-flt','dash-flt-btn')">🔍 סינון <span
-                class="flt-arrow">▼</span></button>
-          </div>
+            <div class="flex-c gap-2">
+               <button class="btn br2 bsm" onclick="openCancelDay(document.getElementById('dash-date-mobile').value||td())">🚫 ביטול יום</button>
+               <button class="flt-toggle bsm" id="dash-flt-btn-mobile" onclick="fltToggle('dash-flt-mobile','dash-flt-btn-mobile')">🔍 סינון</button>
+            </div>
+         </div>
+         <div id="dash-flt-mobile" class="flt-wrap">
+            <div class="fg"><label>עיר</label><select id="dash-city-mobile" onchange="renderDash()"><option value="">כל הערים</option></select></div>
+            <div class="fg"><label>ספק</label><select id="dash-sup-mobile" onchange="renderDash()"><option value="">כל הספקים</option></select></div>
+            <div class="fg"><label>חיפוש</label><input type="text" id="dash-srch-mobile" oninput="renderDash()"></div>
+         </div>
+         <div class="dash-view-pills mt-2">
+            <button id="dvp-todo-mobile" class="dash-view-pill active bsm" onclick="setDashView('todo')">🚀 <b id="dvp-cnt-todo-mobile">0</b></button>
+            <button id="dvp-makeups-mobile" class="dash-view-pill bsm" onclick="setDashView('makeups')">📅 <b id="dvp-cnt-makeups-mobile">0</b></button>
+            <button id="dvp-all-mobile" class="dash-view-pill bsm" onclick="setDashView('all')">📋 <b id="dvp-cnt-all-mobile">0</b></button>
+            <button id="dvp-handled-mobile" class="dash-view-pill bsm" onclick="setDashView('handled')">✅ <b id="dvp-cnt-handled-mobile">0</b></button>
+         </div>
+      </div>
+
+      <!-- Quick stats shared? We'll see -->
+      <div id="dash-stat-boxes" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
+        <!-- ... stats ... -->
+      </div>
 
           <!-- View Pills -->
           <div class="dash-view-pills">
-            <button id="dvp-todo" class="dash-view-pill active" onclick="setDashView('todo')">
-              <span>🚀 לטיפול</span> <b class="badge" id="dvp-cnt-todo">0</b>
-            </button>
-            <button id="dvp-makeups" class="dash-view-pill" onclick="setDashView('makeups')">
-              <span>📅 השלמות</span> <b class="badge" id="dvp-cnt-makeups">0</b>
-            </button>
-            <button id="dvp-nohap" class="dash-view-pill" onclick="setDashView('nohap')">
-              <span>⚠️ לא התקיים</span> <b class="badge" id="dvp-cnt-nohap">0</b>
-            </button>
-            <button id="dvp-post" class="dash-view-pill" onclick="setDashView('post')">
-              <span>📅 נדחה</span> <b class="badge" id="dvp-cnt-post">0</b>
-            </button>
-            <button id="dvp-handled" class="dash-view-pill" onclick="setDashView('handled')">
-              <span>✅ טופלו</span> <b class="badge" id="dvp-cnt-handled">0</b>
-            </button>
-            <button id="dvp-all" class="dash-view-pill" onclick="setDashView('all')">
-              <span>📋 הכל</span> <b class="badge" id="dvp-cnt-all">0</b>
-            </button>
-            <button id="dvp-can" class="dash-view-pill" onclick="setDashView('can')">
-              <span>🚫 בוטלו</span> <b class="badge" id="dvp-cnt-can">0</b>
-            </button>
-          </div>
-
-          <div id="dash-flt" class="flt-wrap">
-            <div class="fg"><label>מתאריך</label><input type="date" id="dash-from" onchange="renderDash()"></div>
-            <div class="fg"><label>עד תאריך</label><input type="date" id="dash-to" onchange="renderDash()"></div>
-            <div class="fg"><label>עיר</label><select id="dash-city" onchange="renderDash()">
-                <option value="">כל הערים</option>
-              </select></div>
-            <div class="fg"><label>ספק</label><select id="dash-sup" onchange="renderDash()">
-                <option value="">כל הספקים</option>
-              </select></div>
-            <div class="fg" style="display:none"><label>סטטוס</label><select id="dash-st" onchange="renderDash()">
-                <option value="todo" selected>לטיפול</option>
-              </select></div>
-            <div class="fg"><label>חיפוש חופשי</label><input type="text" id="dash-srch" placeholder="שם צהרון, ספק..."
-                autocomplete="off" oninput="renderDash()" style="min-width:130px"></div>
-          </div>
-        </div>
-        <!-- Classification tabs -->
-        <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;align-items:center">
-          <button id="dash-tab-g" class="vbtn active" onclick="setDashTab('g')">🚀 גני ילדים</button>
-          <button id="dash-tab-s" class="vbtn" onclick="setDashTab('s')">🏫 בתי ספר</button>
-          <div style="flex:1"></div>
-          <button id="dash-mu-bal-btn" class="btn bo bsm" onclick="window.openMakeupBalance()" style="display:none; background:#e65100; border-color:#e65100; color:#fff">⚖️ מאזן השלמות</button>
-          <button class="btn bp bsm" onclick="openNewSched(null)">➕ שיבוץ חדש</button>
-          <button class="btn br2 bsm" onclick="openCancelDay(document.getElementById('dash-date').value||td())"
-            title="ביטול כל פעילויות יום">🚫 ביטול יום</button>
-        </div>
-      </div>
 
       <div id="dash-body" class="scroll-area"></div>
 
@@ -446,249 +374,194 @@
 
     <!-- ====== CALENDAR ====== -->
     <div id="p-cal" class="panel">
-      <div class="card" style="padding:11px">
-        <div style="margin-bottom:7px">
-          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:4px">
-            <button class="flt-toggle" id="cal-flt-btn" onclick="fltToggle('cal-flt','cal-flt-btn')">🔍 סינון <span
-                class="flt-arrow">▼</span></button>
-            <button class="btn bo bsm" onclick="clearCal()">נקה</button>
-            <button class="btn bg bsm" onclick="addPairFromCal()">⚖️ שמור כזוג</button>
-          </div>
-          <div id="cal-flt" class="flt-wrap">
-            <div class="fg"><label>עיר</label><select id="cal-city" onchange="calRefG()">
-                <option value="">כל הערים</option>
-              </select></div>
-            <div style="display:none"><select id="cal-cls" onchange="calRefG()">
-                <option value="">הכל</option>
-                <option value="גנים">גנים</option>
-                <option value='ביה"ס'>בתי ספר</option>
-              </select></div>
-            <div class="fg"><label>זוג/שלישיה מוגדר</label><select id="cal-pair" onchange="calSelectPair()"
-                style="min-width:155px">
-                <option value="">בחר זוג...</option>
-              </select></div>
-            <div class="fg"><label>צהרון 1</label><select id="cal-g1" onchange="renderCal()">
-                <option value="">כל הצהרונים</option>
-              </select></div>
-            <div class="fg"><label>צהרון 2</label><select id="cal-g2" onchange="renderCal()">
-                <option value="">—</option>
-              </select></div>
-            <div class="fg"><label>צהרון 3</label><select id="cal-g3" onchange="renderCal()">
-                <option value="">—</option>
-              </select></div>
-            <div class="fg"><label>ספק</label><select id="cal-sup" onchange="renderCal()">
-                <option value="">כל הספקים</option>
-              </select></div>
-            <div class="fg"><label>אשכול</label><select id="cal-cl" onchange="renderCal()">
-                <option value="">הכל</option>
-                <option value="__all__">🚀 כל הצהרונים המשובצים באשכולות</option>
-              </select></div>
-            <div class="fg"><label>סטטוס</label><select id="cal-st" onchange="renderCal()">
-                <option value="">הכל (לא כולל בוטלו)</option>
-                <option value="todo">לטיפול (חריגים+השלמות)</option>
-                <option value="ok">מתקיים</option>
-                <option value="done">התקיים</option>
-                <option value="can">בוטל</option>
-                <option value="post">נדחה</option>
-                <option value="nohap">לא התקיים</option>
-              </select></div>
-          </div>
+      <!-- 🖥️ DESKTOP CALENDAR TOOLS 🖥️ -->
+      <div id="cal-tools-desktop" class="card desktop-only" style="margin-bottom:10px">
+        <div class="row mb-4">
+           <div class="fg">
+             <label>תאריך/ניווט</label>
+             <div class="flex-c gap-2">
+               <input type="date" id="cal-dp-desktop" onchange="goDate(this.value)" style="width:140px">
+               <button class="btn bg" onclick="navCal(-1)">◀</button>
+               <button class="btn bg" onclick="goToday()">היום</button>
+               <button class="btn bg" onclick="navCal(1)">▶</button>
+             </div>
+           </div>
+           <div class="fg"><label>עיר</label><select id="cal-city-desktop" onchange="calRefG()"><option value="">כל הערים</option></select></div>
+           <div class="fg"><label>צהרון 1</label><select id="cal-g1-desktop" onchange="renderCal()"><option value="">בחר...</option></select></div>
+           <div class="fg"><label>צהרון 2</label><select id="cal-g2-desktop" onchange="renderCal()"><option value="">—</option></select></div>
+           <div class="fg"><label>ספק</label><select id="cal-sup-desktop" onchange="renderCal()"><option value="">כל הספקים</option></select></div>
+           <div class="mr-auto flex-c gap-8">
+             <button class="btn bp" onclick="openNewSched()">➕ שיבוץ חדש</button>
+             <button class="btn bg" onclick="toggleExportMenu()">📤 ייצוא ▼</button>
+           </div>
         </div>
-        <div id="cal-pair-bar" class="notice">
-          <span style="color:#1b5e20;font-weight:700">🚀 זוג:</span>
-          <span id="cal-pair-lbl" style="color:#2e7d32;flex:1"></span>
-          <button class="btn br bsm" onclick="clearCalPair()">✕</button>
-        </div>
-        <div class="row">
-          <div class="mob-flt-wrap-always">
-            <div class="vbtns">
-              <button class="vbtn active" id="vb-list" onclick="setView('list')">🚀 רשימה</button>
-              <button class="vbtn" id="vb-day" onclick="setView('day')">יומי</button>
-              <button class="vbtn" id="vb-week" onclick="setView('week')">שבועי</button>
-              <button class="vbtn" id="vb-month" onclick="setView('month')">חודשי</button>
-              <button class="vbtn" id="vb-range" onclick="setView('range')">🚀 טווח</button>
-              <div style="width:1px;background:#c5cae9;margin:0 2px;align-self:stretch"></div>
-              <button id="cal-tab-g" class="vbtn active" onclick="setCalTab('g')">🚀 גני ילדים</button>
-              <button id="cal-tab-s" class="vbtn" onclick="setCalTab('s')">🏫 בתי ספר</button>
-            </div>
-            <!-- Range date pickers — shown only in range view -->
-            <!-- List sub-view controls — shown only in list mode -->
-            <div id="cal-list-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-              <div style="display:flex;gap:3px;align-items:center">
-                <button id="vlb-day" class="vbtn active" onclick="setListSubView('day')">🚀 יומי</button>
-                <button id="vlb-week" class="vbtn" onclick="setListSubView('week')">שבועי</button>
-                <button id="vlb-month" class="vbtn" onclick="setListSubView('month')">חודשי</button>
-              </div>
-              <div style="width:1px;height:20px;background:#c5cae9;margin:0 2px"></div>
-              <div style="display:flex;gap:3px;align-items:center">
-                <button id="vlb-group-pairs" class="vbtn active" onclick="setListGroupMode('pairs')"
-                  title="קבץ לפי זוגות">🚀 זוגות</button>
-                <button id="vlb-group-clusters" class="vbtn" onclick="setListGroupMode('clusters')"
-                  title="קבץ לפי אשכולות">📦 אשכולות</button>
-              </div>
-            </div>
-            <div id="cal-range-row" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
-              <div class="fg"><label>מ</label><input type="date" id="cal-range-from" onchange="renderCal()"
-                  style="min-width:130px"></div>
-              <div class="fg"><label>עד</label><input type="date" id="cal-range-to" onchange="renderCal()"
-                  style="min-width:130px"></div>
-              <div style="display:flex;gap:3px;align-items:flex-end;padding-bottom:2px">
-                <button id="vb-range-cal" class="vbtn active" onclick="setRangeSubView('cal')" title="תצוגה יומית">🚀
-                  יומי</button>
-                <button id="vb-range-list" class="vbtn" onclick="setRangeSubView('list')" title="תצוגת רשימה">🚀
-                  רשימה</button>
-              </div>
-            </div>
+        <div class="flex-c justify-between">
+          <div class="vbtns">
+            <button class="vbtn active" id="vb-list-desktop" onclick="setView('list')">🚀 רשימה</button>
+            <button class="vbtn" id="vb-day-desktop" onclick="setView('day')">יומי</button>
+            <button class="vbtn" id="vb-week-desktop" onclick="setView('week')">שבועי</button>
+            <button class="vbtn" id="vb-month-desktop" onclick="setView('month')">חודשי</button>
           </div>
-          <div class="mob-btn-row mob-nav-controls">
-            <button class="btn bo bsm" onclick="navCal(-1)">◀ קודם</button>
-            <span id="cal-title"
-              style="font-weight:700;color:#1a237e;text-align:center;font-size:.88rem;flex:1;min-width:0"></span>
-            <button class="btn bo bsm" onclick="navCal(1)">הבא ▶</button>
-          </div>
-          <div class="mob-btn-row">
-            <button class="btn bp bsm" onclick="openNewSched()">➕ שיבוץ חדש</button>
-            <button class="btn bs bsm" onclick="goToday()">🚀 היום</button>
-            <div class="fg" style="flex:0 0 auto"><label>עבור ל</label><input type="date" id="cal-dp"
-                onchange="goDate(this.value)" style="width:130px"></div>
-            <button class="btn bsm" id="block-date-btn"
-              style="background:#fce4ec;color:#c62828;border:1.5px solid #e91e63"
-              onclick="openBlockedDate(d2s(calD))">🚀 חסום</button>
-            <div style="position:relative;display:inline-block">
-              <button class="btn bg bsm" id="export-main-btn" onclick="toggleExportMenu()">📤 ייצוא ▼</button>
-              <div id="export-menu"
-                style="display:none;position:absolute;left:0;top:110%;background:#fff;border:1.5px solid #c5cae9;border-radius:9px;box-shadow:0 4px 18px #0002;z-index:999;min-width:170px;padding:5px 0">
-                <div onclick="closeExportMenu();openExport()"
-                  style="padding:9px 16px;cursor:pointer;display:flex;gap:8px;align-items:center;font-size:.82rem;border-bottom:1px solid #eee">
-                  💬 ייצוא WhatsApp</div>
-                <div onclick="closeExportMenu();openMonthlyExport()"
-                  style="padding:9px 16px;cursor:pointer;display:flex;gap:8px;align-items:center;font-size:.82rem;border-bottom:1px solid #eee">
-                  📑 ייצוא Excel</div>
-                <div onclick="closeExportMenu();openCalPrint()"
-                  style="padding:9px 16px;cursor:pointer;display:flex;gap:8px;align-items:center;font-size:.82rem">🖨️
-                  הדפסה</div>
-              </div>
-            </div>
+          <div id="cal-list-row-desktop" class="flex-c gap-6">
+             <div class="vbtns">
+               <button id="vlb-day-desktop" class="vbtn active" onclick="setListSubView('day')">📅 יומי</button>
+               <button id="vlb-week-desktop" class="vbtn" onclick="setListSubView('week')">שבועי</button>
+             </div>
+             <div class="vbtns">
+               <button id="vlb-group-pairs-desktop" class="vbtn active" onclick="setListGroupMode('pairs')">⚖️ זוגות</button>
+               <button id="vlb-group-clusters-desktop" class="vbtn" onclick="setListGroupMode('clusters')">📦 אשכולות</button>
+             </div>
           </div>
         </div>
       </div>
-      <div id="cal-body" class="scroll-area" style="overflow-x:auto"></div>
+
+      <!-- 📱 MOBILE CALENDAR TOOLS 📱 -->
+      <div id="cal-tools-mobile" class="card mobile-only" style="margin-bottom:8px">
+         <div class="flex-c justify-between mb-4">
+            <div class="flex-c gap-2">
+               <input type="date" id="cal-dp-mobile" onchange="goDate(this.value)" style="width:130px">
+               <button class="btn bg bsm" onclick="goToday()">היום</button>
+            </div>
+            <button class="flt-toggle bsm" id="cal-flt-btn-mobile" onclick="fltToggle('cal-flt-mobile','cal-flt-btn-mobile')">🔍 סינון</button>
+         </div>
+         <div id="cal-flt-mobile" class="flt-wrap">
+            <div class="fg"><label>עיר</label><select id="cal-city-mobile" onchange="calRefG()"><option value="">כל הערים</option></select></div>
+            <div class="fg"><label>צהרון 1</label><select id="cal-g1-mobile" onchange="renderCal()"><option value="">בחר...</option></select></div>
+            <div class="fg"><label>צהרון 2</label><select id="cal-g2-mobile" onchange="renderCal()"><option value="">—</option></select></div>
+            <div class="fg"><label>ספק</label><select id="cal-sup-mobile" onchange="renderCal()"><option value="">כל הספקים</option></select></div>
+         </div>
+         <div class="vbtns w-full mt-2" style="overflow-x:auto">
+            <button class="vbtn active" id="vb-list-mobile" onclick="setView('list')">רשימה</button>
+            <button class="vbtn" id="vb-day-mobile" onclick="setView('day')">יומי</button>
+            <button class="vbtn" id="vb-week-mobile" onclick="setView('week')">שבועי</button>
+            <button class="vbtn" id="vb-month-mobile" onclick="setView('month')">חודשי</button>
+         </div>
+         <div id="cal-list-row-mobile" class="flex-c gap-4 mt-2" style="overflow-x:auto">
+             <div class="vbtns">
+               <button id="vlb-day-mobile" class="vbtn active" onclick="setListSubView('day')">📅 יומי</button>
+               <button id="vlb-week-mobile" class="vbtn" onclick="setListSubView('week')">שבועי</button>
+             </div>
+             <div class="vbtns">
+               <button id="vlb-group-pairs-mobile" class="vbtn active" onclick="setListGroupMode('pairs')">⚖️ זוגות</button>
+               <button id="vlb-group-clusters-mobile" class="vbtn" onclick="setListGroupMode('clusters')">📦 אשכולות</button>
+             </div>
+         </div>
+      </div>
+
+      <div id="cal-title" class="card text-center font-bold text-primary mb-2" style="font-size:1.1rem"></div>
+      <div id="cal-body" class="scroll-area"></div>
     </div>
 
     <!-- ====== SCHEDULES ====== -->
     <div id="p-sched" class="panel">
+      <!-- 🖥️ DESKTOP SCHEDULE TOOLS 🖥️ -->
+      <div id="sched-tools-desktop" class="card desktop-only" style="margin-bottom:10px">
+        <div class="row mb-4">
+           <div class="fg">
+             <label>ניווט תאריכים</label>
+             <div class="flex-c gap-2">
+               <button class="btn bo" onclick="navSched(-1)">◀</button>
+               <button class="btn bs" onclick="navSchedToday()">היום</button>
+               <button class="btn bo" onclick="navSched(1)">▶</button>
+             </div>
+           </div>
+           <div class="fg"><label>עיר</label><select id="s-city-desktop" onchange="sRefG()"><option value="">כל הערים</option></select></div>
+           <div class="fg"><label>סיווג</label><select id="s-cls-desktop" onchange="sRefG()"><option value="">הכל</option><option value="גנים">גנים</option><option value='ביה"ס'>בתי ספר</option></select></div>
+           <div class="fg"><label>מנהל/רכז</label><select id="s-mgr-desktop" onchange="renderSched()"><option value="">הכל</option></select></div>
+           <div class="fg"><label>סטטוס</label><select id="s-st-desktop" onchange="renderSched()"><option value="todo" selected>לטיפול</option><option value="">הכל</option><option value="ok">מתקיים</option><option value="done">בוצע</option><option value="can">בוטל</option></select></div>
+           <div class="mr-auto flex-c gap-2">
+             <button class="btn bp" onclick="openNewSched()">➕ שיבוץ חדש</button>
+             <button class="btn bg" onclick="exportExcelSched()">📑 Excel חודשי</button>
+           </div>
+        </div>
+        <div class="row">
+           <div class="fg"><label>מתאריך</label><input type="date" id="s-from-desktop" onchange="renderSched()"></div>
+           <div class="fg"><label>עד תאריך</label><input type="date" id="s-to-desktop" onchange="renderSched()"></div>
+           <div class="fg"><label>חיפוש</label><input type="text" id="s-srch-desktop" placeholder="חפש..." oninput="renderSched()" style="min-width:180px"></div>
+           <div class="fg"><label>ספק</label><select id="s-sup-desktop" onchange="renderSched()"><option value="">כל הספקים</option></select></div>
+        </div>
+      </div>
+
+      <!-- 📱 MOBILE SCHEDULE TOOLS 📱 -->
+      <div id="sched-tools-mobile" class="card mobile-only" style="margin-bottom:8px">
+        <div class="flex-c justify-between mb-4">
+           <div class="flex-c gap-2">
+             <button class="btn bo bsm" onclick="navSchedToday()">היום</button>
+             <div class="flex-c gap-1">
+               <button class="btn bo bsm" onclick="navSched(-1)">◀</button>
+               <button class="btn bo bsm" onclick="navSched(1)">▶</button>
+             </div>
+           </div>
+           <button class="flt-toggle bsm" id="sched-flt-btn-mobile" onclick="fltToggle('sched-flt-mobile','sched-flt-btn-mobile')">🔍 סינון</button>
+        </div>
+        <div id="sched-flt-mobile" class="flt-wrap">
+           <div class="fg"><label>עיר</label><select id="s-city-mobile" onchange="sRefG()"><option value="">כל הערים</option></select></div>
+           <div class="fg"><label>סיווג</label><select id="s-cls-mobile" onchange="sRefG()"><option value="">הכל</option><option value="גנים">גנים</option><option value='ביה"ס'>בתי ספר</option></select></div>
+           <div class="fg"><label>סטטוס</label><select id="s-st-mobile" onchange="renderSched()"><option value="todo" selected>לטיפול</option><option value="">הכל</option></select></div>
+           <div class="fg"><label>מתאריך</label><input type="date" id="s-from-mobile" onchange="renderSched()"></div>
+           <div class="fg"><label>עד תאריך</label><input type="date" id="s-to-mobile" onchange="renderSched()"></div>
+           <div class="fg"><label>חיפוש</label><input type="text" id="s-srch-mobile" placeholder="חפש..." oninput="renderSched()"></div>
+           <div class="fg"><label>ספק</label><select id="s-sup-mobile" onchange="renderSched()"><option value="">כל הספקים</option></select></div>
+           <div class="fg"><label>מנהל/רכז</label><select id="s-mgr-mobile" onchange="renderSched()"><option value="">הכל</option></select></div>
+        </div>
+        <div class="flex-c gap-2 mt-2">
+           <button class="btn bp bsm flex-1" onclick="openNewSched()">➕ שיבוץ חדש</button>
+           <button class="btn bg bsm flex-1" onclick="exportExcelSched()">📑 Excel</button>
+        </div>
+      </div>
       <div class="card">
-        <div style="margin-bottom:9px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <span style="font-size:.9rem;font-weight:700;color:#1a237e;flex:1">🕒 לוח זמנים - כל הפעילויות</span>
-            <div class="vbtns" style="margin-left:4px">
-              <button class="vbtn" id="svb-day" onclick="setSchedView('day')" title="תצוגה יומית">יומי</button>
-              <button class="vbtn" id="svb-week" onclick="setSchedView('week')" title="תצוגה שבועית">שבועי</button>
-              <button class="vbtn" id="svb-month" onclick="setSchedView('month')" title="תצוגה חודשית">חודשי</button>
-            </div>
-            <button class="btn bo bsm" onclick="navSched(-1)" title="טווח קודם">◀</button>
-            <button class="btn bs bsm" onclick="navSchedToday()" style="font-size:.75rem" title="היום">📅 היום</button>
-            <button class="btn bo bsm" onclick="navSched(1)" title="טווח הבא">▶</button>
-            <button class="flt-toggle" id="sched-flt-btn" onclick="fltToggle('sched-flt','sched-flt-btn')">🔍 סינון
-              <span class="flt-arrow">▼</span></button>
-          </div>
-          <div id="sched-flt" class="flt-wrap">
-            <div class="fg"><label>עיר</label><select id="s-city" onchange="sRefG()">
-                <option value="">כל הערים</option>
-              </select></div>
-            <div class="fg"><label>סיווג</label><select id="s-cls" onchange="sRefG()">
-                <option value="">הכל</option>
-                <option value="גנים">גנים</option>
-                <option value='ביה"ס'>בתי ספר</option>
-              </select></div>
-            <div class="fg"><label>מנהל/רכז</label><select id="s-mgr" onchange="renderSched()">
-                <option value="">הכל</option>
-              </select></div>
-            <div class="fg"><label>צהרון 1</label><select id="s-g1" onchange="renderSched()">
-                <option value="">כל הצהרונים</option>
-              </select></div>
-            <div class="fg"><label>צהרון 2</label><select id="s-g2" onchange="renderSched()">
-                <option value="">—</option>
-              </select></div>
-            <div class="fg"><label>צהרון 3</label><select id="s-g3" onchange="renderSched()">
-                <option value="">—</option>
-              </select></div>
-            <div class="fg"><label>ספק</label><select id="s-sup" onchange="renderSched()">
-                <option value="">כל הספקים</option>
-              </select></div>
-            <div class="fg"><label>שעה מ</label><input type="time" id="s-th" onchange="renderSched()"></div>
-            <div class="fg"><label>שעה עד</label><input type="time" id="s-tt" onchange="renderSched()"></div>
-            <div class="fg"><label>מתאריך</label><input type="date" id="s-from" onchange="renderSched()"></div>
-            <div class="fg"><label>עד תאריך</label><input type="date" id="s-to" onchange="renderSched()"></div>
-            <div class="fg"><label>סטטוס</label><select id="s-st" onchange="sSchedStChange()">
-                <option value="todo" selected>לטיפול (חריגים+השלמות)</option>
-                <option value="">הכל (לא כולל בוטלו)</option>
-                <option value="ok">📅 מתקיים</option>
-                <option value="done">✅ התקיים</option>
-                <option value="can">❌ בוטל</option>
-                <option value="post">⏩ נדחה</option>
-                <option value="nohap">⚠️ לא התקיים</option>
-              </select></div>
-            <div class="fg"><label>סוג</label><select id="s-type" onchange="renderSched()">
-                <option value="">הכל</option>
-                <option value="reg">✨ רגיל</option>
-                <option value="makeup">🔄 השלמה</option>
-              </select></div>
-            <div class="fg"><label>חיפוש</label><input type="text" id="s-srch" placeholder="חפש..."
-                oninput="renderSched()" style="min-width:130px"></div>
-          </div>
-        </div>
-        <div class="row" style="margin-bottom:9px">
-          <div class="mob-btn-row">
-            <button class="btn bs bsm" onclick="clearSched()">🧹 נקה</button>
-            <button class="btn bg bsm" onclick="addPairFromSched()">⚖️ שמור כזוג</button>
-            <button class="btn bp bsm" onclick="openNewSched()">➕ שיבוץ חדש</button>
-            <button class="btn bg bsm" onclick="exportExcelSched()">📑 Excel חודשי</button>
-          </div>
-        </div>
         <div id="s-info" style="font-size:.74rem;color:#666;margin-bottom:6px"></div>
         <div id="s-body" class="scroll-area"></div>
         <div id="s-pag" class="pag"></div>
       </div>
     </div>
+    </div>
 
     <!-- ====== GARDENS ====== -->
     <div id="p-gardens" class="panel">
+      <!-- 🖥️ DESKTOP GARDENS TOOLS 🖥️ -->
+      <div id="gardens-tools-desktop" class="card desktop-only" style="margin-bottom:10px">
+         <div class="flex-c justify-between mb-4">
+            <div class="g-tab-bar">
+               <button id="g-tab-gan-desktop" class="vbtn active" onclick="setGardensTab('gan')">🏡 צהרונים</button>
+               <button id="g-tab-sch-desktop" class="vbtn" onclick="setGardensTab('sch')">🏫 בתי ספר</button>
+               <button id="g-tab-pairs-desktop" class="vbtn" onclick="setGardensTab('pairs')">🚀 זוגות</button>
+               <button id="g-tab-clusters-desktop" class="vbtn" onclick="setGardensTab('clusters')">🚀 אשכולות</button>
+               <button id="g-tab-managers-desktop" class="vbtn" onclick="setGardensTab('managers')">🚀 מנהלים</button>
+               <button id="g-tab-fixed-desktop" class="vbtn" onclick="setGardensTab('fixed')">🚀 שיבוץ קבוע</button>
+            </div>
+            <button class="btn bp" onclick="openAddGardenModal()">➕ הוסף מקום חדש</button>
+         </div>
+         <div class="row">
+            <div class="fg"><label>עיר</label><select id="g-city-desktop" onchange="renderGardens()"><option value="">כל הערים</option></select></div>
+            <div class="fg"><label>אשכול</label><select id="g-cl-desktop" onchange="renderGardens()"><option value="">הכל</option></select></div>
+            <div class="fg"><label>מנהל/רכז</label><select id="g-mgr-desktop" onchange="renderGardens()"><option value="">הכל</option></select></div>
+            <div class="fg flex-1"><label>חיפוש</label><input type="text" id="g-srch-desktop" placeholder="חפש..." oninput="renderGardens()"></div>
+         </div>
+      </div>
+
+      <!-- 📱 MOBILE GARDENS TOOLS 📱 -->
+      <div id="gardens-tools-mobile" class="card mobile-only" style="margin-bottom:8px">
+         <div class="flex-c justify-between mb-2">
+            <button class="btn bp bsm" onclick="openAddGardenModal()">➕ הוסף</button>
+            <button class="flt-toggle bsm" id="g-flt-btn-mobile" onclick="fltToggle('g-flt-mobile','g-flt-btn-mobile')">🔍 סינון</button>
+         </div>
+         <div class="vbtns w-full mb-3" style="overflow-x:auto">
+            <button id="g-tab-gan-mobile" class="vbtn active" onclick="setGardensTab('gan')">צהרונים</button>
+            <button id="g-tab-sch-mobile" class="vbtn" onclick="setGardensTab('sch')">בתי ספר</button>
+            <button id="g-tab-pairs-mobile" class="vbtn" onclick="setGardensTab('pairs')">זוגות</button>
+            <button id="g-tab-clusters-mobile" class="vbtn" onclick="setGardensTab('clusters')">אשכולות</button>
+            <button id="g-tab-fixed-mobile" class="vbtn" onclick="setGardensTab('fixed')">קבוע</button>
+         </div>
+         <div id="g-flt-mobile" class="flt-wrap">
+            <div class="fg"><label>עיר</label><select id="g-city-mobile" onchange="renderGardens()"><option value="">כל הערים</option></select></div>
+            <div class="fg"><label>אשכול</label><select id="g-cl-mobile" onchange="renderGardens()"><option value="">הכל</option></select></div>
+            <div class="fg"><label>מנהל/רכז</label><select id="g-mgr-mobile" onchange="renderGardens()"><option value="">הכל</option></select></div>
+            <div class="fg"><label>חיפוש</label><input type="text" id="g-srch-mobile" placeholder="חפש..." oninput="renderGardens()"></div>
+         </div>
+      </div>
+
       <div class="card">
-        <div class="g-top-bar"
-          style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
-          <div class="g-tab-bar" style="display:flex;gap:6px">
-            <button id="g-tab-gan" class="vbtn active" onclick="setGardensTab('gan')">🏡 צהרונים</button>
-            <button id="g-tab-sch" class="vbtn" onclick="setGardensTab('sch')">🏫 בתי ספר</button>
-            <button id="g-tab-pairs" class="vbtn" onclick="setGardensTab('pairs')">🚀 זוגות</button>
-            <button id="g-tab-clusters" class="vbtn" onclick="setGardensTab('clusters')">🚀 אשכולות</button>
-            <button id="g-tab-managers" class="vbtn" onclick="setGardensTab('managers')">🚀 מנהלים</button>
-            <button id="g-tab-fixed" class="vbtn" onclick="setGardensTab('fixed')">🚀 שיבוץ קבוע</button>
-          </div>
-          <button class="btn bp bsm" onclick="openAddGardenModal()">➕ הוסף מקום חדש</button>
-          <button class="flt-toggle" id="g-flt-btn" onclick="fltToggle('g-flt','g-flt-btn')">🔍 סינון <span
-              class="flt-arrow">▼</span></button>
-        </div>
-        <div id="g-filters" style="margin-bottom:8px">
-          <div id="g-flt" class="flt-wrap">
-            <div class="fg"><label>עיר</label><select id="g-city" onchange="renderGardens()">
-                <option value="">כל הערים</option>
-              </select></div>
-            <div class="fg"><label>אשכול</label><select id="g-cl" onchange="renderGardens()">
-                <option value="">הכל</option>
-              </select></div>
-            <div class="fg"><label>מנהל/רכז</label><select id="g-mgr" onchange="renderGardens()">
-                <option value="">הכל</option>
-              </select></div>
-            <div class="fg"><label>חיפוש</label><input type="text" id="g-srch" placeholder="חפש..."
-                oninput="renderGardens()" style="min-width:130px"></div>
-          </div>
-        </div>
-        <div style="display:none"><select id="g-cls" onchange="renderGardens()">
-            <option value="">הכל</option>
-            <option value="גנים">גנים</option>
-            <option value='ביה"ס'>בתי ספר</option>
-          </select></div>
         <div id="g-fixed-controls" style="display:none;margin-bottom:8px">
           <div class="row">
             <button class="btn bp bsm" onclick="window.openNewSched(null, {tab:'recur'})">➕ שיבוץ קבוע חדש</button>
@@ -710,21 +583,29 @@
 
     <!-- ====== MANAGERS ====== -->
     <div id="p-managers" class="panel">
-      <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <b style="font-size:.9rem;color:#1a237e">🚀 מנהלים ורכזים</b>
-          <button class="btn bp bsm" onclick="openMgrModal(null)">➕ הוסף מנהל/רכז</button>
-        </div>
-        <div class="row" style="margin-bottom:12px">
-          <div class="fg"><label>סנן עיר</label><select id="mgr-city-filt" onchange="renderManagers()">
-              <option value="">כל הערים</option>
-            </select></div>
-          <div class="fg"><label>תפקיד</label><select id="mgr-role-filt" onchange="renderManagers()">
-              <option value="">הכל</option>
-              <option value="manager">👥 מנהל</option>
-              <option value="coord">🚀 רכז</option>
-            </select></div>
-        </div>
+      <!-- 🖥️ DESKTOP MANAGERS TOOLS 🖥️ -->
+      <div id="mgr-tools-desktop" class="card desktop-only" style="margin-bottom:10px">
+         <div class="flex-c justify-between mb-4">
+            <b style="font-size:.9rem;color:#1a237e">🚀 מנהלים ורכזים</b>
+            <button class="btn bp" onclick="openMgrModal(null)">➕ הוסף מנהל/רכז</button>
+         </div>
+         <div class="row">
+            <div class="fg"><label>סנן עיר</label><select id="mgr-city-filt-desktop" onchange="renderManagers()"><option value="">כל הערים</option></select></div>
+            <div class="fg"><label>תפקיד</label><select id="mgr-role-filt-desktop" onchange="renderManagers()"><option value="">הכל</option><option value="manager">👥 מנהל</option><option value="coord">🚀 רכז</option></select></div>
+         </div>
+      </div>
+
+      <!-- 📱 MOBILE MANAGERS TOOLS 📱 -->
+      <div id="mgr-tools-mobile" class="card mobile-only" style="margin-bottom:8px">
+         <div class="flex-c justify-between mb-2">
+            <b style="font-size:.85rem;color:#1a237e">🚀 מנהלים</b>
+            <button class="btn bp bsm" onclick="openMgrModal(null)">➕ הוסף</button>
+         </div>
+         <div class="flex-c gap-2">
+            <div class="fg flex-1"><label>סנן עיר</label><select id="mgr-city-filt-mobile" onchange="renderManagers()"><option value="">כל הערים</option></select></div>
+            <div class="fg flex-1"><label>תפקיד</label><select id="mgr-role-filt-mobile" onchange="renderManagers()"><option value="">הכל</option></select></div>
+         </div>
+      </div>
         <div id="mgr-info-wrap" style="margin-bottom:10px; display:none;"></div>
         <div id="dash-info-wrap" style="margin-bottom:10px; display:none;"></div>
         <div id="mgr-body"></div>

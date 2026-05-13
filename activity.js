@@ -6,17 +6,18 @@ window.renderDash = renderDash;
 
 function setDashTab(t) {
   window._dashTab = t;
-  const gBtn = document.getElementById('dash-tab-g');
-  const sBtn = document.getElementById('dash-tab-s');
-  if (gBtn) gBtn.classList.toggle('active', t === 'g');
-  if (sBtn) sBtn.classList.toggle('active', t === 's');
+  document.querySelectorAll('[id^="dash-tab-"]').forEach(btn => {
+    const btnTab = btn.id.replace('dash-tab-', '').replace('-desktop', '').replace('-mobile', '');
+    btn.classList.toggle('active', btnTab === t);
+  });
   renderDash();
 }
 
 function setDashView(v) {
   window._dashView = v;
   document.querySelectorAll('.dash-view-pill').forEach(btn => {
-    btn.classList.toggle('active', btn.id === 'dvp-' + v);
+    const btnView = btn.id.replace('dvp-', '').replace('-desktop', '').replace('-mobile', '');
+    btn.classList.toggle('active', btnView === v);
   });
   renderDash();
 }
@@ -27,12 +28,12 @@ function renderDash() {
   const list = document.getElementById('dash-body');
   if (!list) return;
 
-  const dateEl = document.getElementById('dash-date');
-  const cityEl = document.getElementById('dash-city');
-  const supEl = document.getElementById('dash-sup');
-  const fromEl = document.getElementById('dash-from');
-  const toEl = document.getElementById('dash-to');
-  const srchEl = document.getElementById('dash-srch');
+  const dateEl = window.getEl('dash-date');
+  const cityEl = window.getEl('dash-city');
+  const supEl = window.getEl('dash-sup');
+  const fromEl = window.getEl('dash-from');
+  const toEl = window.getEl('dash-to');
+  const srchEl = window.getEl('dash-srch');
 
   const date = dateEl ? dateEl.value : '';
   const city = cityEl ? cityEl.value : '';
@@ -171,7 +172,14 @@ function renderDash() {
   </div>`;
   
   if (window.dashUpdateBulkBar) window.dashUpdateBulkBar();
-  if (window.updCounts) window.updCounts();
+  // Update counts on all active view pills (desktop and mobile)
+  const stats = window.getDashStats ? window.getDashStats() : {};
+  Object.keys(stats).forEach(k => {
+    const dBadge = document.getElementById('dvp-cnt-' + k + '-desktop');
+    const mBadge = document.getElementById('dvp-cnt-' + k + '-mobile');
+    if (dBadge) dBadge.textContent = stats[k];
+    if (mBadge) mBadge.textContent = stats[k];
+  });
 }
 
 function _renderDashCard(card) {
@@ -297,10 +305,12 @@ window.dashBatchAction = async function(action) {
 };
 
 window.dashNavDate = function(dir) {
-  const el = document.getElementById('dash-date');
+  const el = window.getEl('dash-date');
   if (!el) return;
-  if (dir === 0) el.value = window.td();
-  else el.value = window.addD(window.s2d(el.value || window.td()), dir).toISOString().split('T')[0];
+  let newVal = '';
+  if (dir === 0) newVal = window.td();
+  else newVal = window.addD(window.s2d(el.value || window.td()), dir).toISOString().split('T')[0];
+  window.syncDashDate(newVal);
   renderDash();
 };
 
