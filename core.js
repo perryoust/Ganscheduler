@@ -42,7 +42,7 @@ window.ui = {
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== 'false');
 
     return `
-      <div class="qacts" style="display:flex; gap:3px; justify-content:center" onclick="event.stopPropagation()">
+      <div class="qacts flex-c justify-center gap-3" onclick="event.stopPropagation()">
         ${isDone ? '' : `<button title="בוצע" class="qbtn q-done" onclick="window.qSetSt('${sid}','done')">✔️</button>`}
         ${(isException && !isHandled) ? `<button title="סיום טיפול" class="qbtn q-handled" onclick="if(window.markCompQuick)window.markCompQuick('${sid}')">✅</button>` : ''}
         ${isCan ? '' : `<button title="ביטול" class="qbtn q-can" onclick="window.openCanQ('${sid}')">❌</button>`}
@@ -68,7 +68,7 @@ window.ui = {
     const gIcon = window.gcls(g) === 'ביה"ס' ? '🏛️' : '🏫';
 
     let rowHtml = `
-      <tr class="${stCls}" style="border-bottom:1px solid #f1f5f9; cursor:pointer" onclick="window.openSP('${s.id}')">`;
+      <tr class="${stCls} border-b cursor-pointer" onclick="window.openSP('${s.id}')">`;
 
     // 1. Checkbox Column (Dashboard only)
     if (opts.showCheckbox) {
@@ -80,44 +80,44 @@ window.ui = {
 
     // 2. Garden Name (צהרון)
     rowHtml += `
-      <td style="padding:7px 10px; font-weight:700; color:var(--c-primary); line-height:1.2">
+      <td class="p-8 font-bold text-primary" style="line-height:1.2">
          ${gIcon} ${g.name}
-         ${g.st ? `<div style="font-size:var(--fs-xs); font-weight:400; color:#64748b; margin-top:1px">📍 ${g.st}</div>` : ''}
+         ${g.st ? `<div class="text-xs text-light mt-1">📍 ${g.st}</div>` : ''}
       </td>`;
 
     // 3. Time (שעה) - SWAPPED TO HERE
     rowHtml += `
-      <td style="padding:7px 10px; text-align:center; font-weight:700; color:var(--c-secondary)">
+      <td class="p-8 text-center font-bold text-secondary">
         ${timeStr}
       </td>`;
 
     // 4. Supplier (ספק)
     rowHtml += `
-      <td style="padding:7px 10px; font-weight:600; color:var(--c-secondary)">
-        ${supBase} ${phone && context === 'dash' ? `<span style="font-size:0.7rem; color:var(--c-success); margin-right:6px">📞 ${phone}</span>` : ''}
+      <td class="p-8 font-600 text-secondary">
+        ${supBase} ${phone && context === 'dash' ? `<span class="text-xs text-success mr-2">📞 ${phone}</span>` : ''}
       </td>`;
 
     // 5. Activity Type (פעילות)
     rowHtml += `
-      <td style="padding:7px 10px; color:var(--c-info); font-weight:500">
+      <td class="p-8" style="color:var(--c-info); font-weight:500">
         ${supAct}
       </td>`;
 
     // 6. Status (סטטוס)
     rowHtml += `
-      <td style="padding:7px 10px; text-align:center">
+      <td class="p-8 text-center">
         ${stLbl}
       </td>`;
 
     // 7. Notes (הערות)
     rowHtml += `
-      <td style="padding:7px 10px; font-size:var(--fs-xs); color:var(--c-error)">
+      <td class="p-8 text-xs text-error">
         ${isM ? '<b style="color:var(--c-warning)">[השלמה]</b> ' : ''}${s.nt || ''}
       </td>`;
 
     // 8. Actions (פעולות)
     rowHtml += `
-      <td style="padding:7px 10px; text-align:center" onclick="event.stopPropagation()">
+      <td class="p-8 text-center" onclick="event.stopPropagation()">
         ${window.ui.renderQuickActionBtns(s)}
       </td>`;
 
@@ -136,9 +136,9 @@ window.ui = {
     const gids = pair.ids || [];
 
     // Header Buttons
-    const weekBtn = `<button class="btn bo bsm" style="font-weight:700" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','week','${isSolo ? gids[0] : ''}')">📅 שבוע</button>`;
-    const monthBtn = `<button class="btn bo bsm" style="font-weight:700" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','month','${isSolo ? gids[0] : ''}')">📅 חודש</button>`;
-    const expBtn = `<button class="btn bg bsm" style="font-weight:700; background:#25d366; color:#fff; border:none" onclick="event.stopPropagation(); window._exportPairWA(${JSON.stringify(gids)})">🗒️ הודעה</button>`;
+    const weekBtn = `<button class="btn bo bsm font-bold" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','week','${isSolo ? gids[0] : ''}')">📅 שבוע</button>`;
+    const monthBtn = `<button class="btn bo bsm font-bold" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','month','${isSolo ? gids[0] : ''}')">📅 חודש</button>`;
+    const expBtn = `<button class="btn bg bsm font-bold" style="background:#25d366; color:#fff; border:none" onclick="event.stopPropagation(); window._exportPairWA(${JSON.stringify(gids)})">🗒️ הודעה</button>`;
 
     let tableRows = '';
     
@@ -172,18 +172,18 @@ window.ui = {
     }
 
     return `
-    <div class="card standard-pair-card" style="margin-bottom:16px; border-top:4px solid ${clr.solid}; padding:0; border-radius:10px; overflow:hidden; background:#fff; box-shadow:0 4px 6px rgba(0,0,0,0.05); border:1px solid #e2e8f0; border-top-width:4px">
-      <div style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:${clr.light}; border-bottom:1px solid #e2e8f0">
-        <div style="display:flex; align-items:center; gap:8px">
+    <div class="card standard-pair-card mb-4" style="border-top:4px solid ${clr.solid}; padding:0; border-radius:10px; overflow:hidden; background:#fff; box-shadow:0 4px 6px rgba(0,0,0,0.05); border:1px solid #e2e8f0; border-top-width:4px">
+      <div class="flex-c gap-10 p-12" style="background:${clr.light}; border-bottom:1px solid #e2e8f0">
+        <div class="flex-c gap-8">
           <span style="font-size:1.3rem">${isSolo ? '🏡' : '🔗'}</span>
-          <div style="font-weight:800; font-size:var(--fs-card-title); color:var(--c-primary)">${pair.name}</div>
+          <div class="font-800 text-primary" style="font-size:var(--fs-card-title)">${pair.name}</div>
         </div>
-        <div style="display:flex; gap:8px; align-items:center; margin-right:auto">
+        <div class="flex-c gap-8 mr-auto">
           ${weekBtn} ${monthBtn} ${expBtn}
         </div>
       </div>
-      <div class="tw" style="overflow:auto">
-        <table style="width:100%; border-collapse:collapse; font-size:var(--fs-small)">
+      <div class="tw overflow-auto">
+        <table class="w-full" style="border-collapse:collapse; font-size:var(--fs-small)">
           <thead>
           <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0; color:#64748b; font-weight:700; font-size:var(--fs-small)">
               ${context === 'dash' ? '<th style="width:35px; text-align:center; padding:10px"></th>' : ''}
@@ -352,22 +352,22 @@ function renderPurchSuppliers(){
     const isAct = isActSupplier(base);
     return `<div class="sucard" style="cursor:pointer;display:flex;flex-direction:column;justify-content:space-between" onclick="psupOpen(${idx})">
       <div>
-        <div style="font-weight:800;color:#1a237e;font-size:.88rem;line-height:1.35;margin-bottom:6px;word-break:break-word">
+        <div class="font-800 text-primary text-base mb-2 break-word" style="line-height:1.35">
           📚 ${base}
-          ${isAct?'<span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:8px;padding:1px 5px;margin-right:4px">🎨</span>':''}
+          ${isAct?'<span class="text-xs text-success rounded-6" style="background:#e8f5e9;padding:1px 5px;margin-right:4px">🎨</span>':''}
         </div>
-        ${phone?`<div style="color:#2e7d32;font-size:.78rem;font-weight:600;margin-bottom:5px">📞 ${phone}</div>`:''}
-        ${acts.length&&isAct?`<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:3px">
-          ${acts.map(a=>`<span style="background:#e3f2fd;color:#1565c0;border-radius:10px;padding:2px 8px;font-size:.71rem;font-weight:600">🎯 ${a}</span>`).join('')}
+        ${phone?`<div class="text-success text-sm font-600 mb-2">📞 ${phone}</div>`:''}
+        ${acts.length&&isAct?`<div class="mb-2 flex-c flex-wrap gap-3">
+          ${acts.map(a=>`<span class="text-xs font-600 text-secondary rounded-10" style="background:#e3f2fd;padding:2px 8px">🎯 ${a}</span>`).join('')}
         </div>`:''}
-        ${ex.entityType?`<div style="font-size:.72rem;color:#6a1b9a;margin-bottom:4px">🏢 ${ex.entityType}</div>`:''}
-        ${ex.notes?`<div style="font-size:.68rem;color:#78909c;margin-bottom:4px">📝 ${ex.notes}</div>`:''}
+        ${ex.entityType?`<div class="text-xs mb-1" style="color:#6a1b9a">🏢 ${ex.entityType}</div>`:''}
+        ${ex.notes?`<div class="text-xs text-light mb-1">📝 ${ex.notes}</div>`:''}
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid #f0f0f0">
-        <span style="color:#1565c0;font-weight:700;font-size:.72rem">${isAct?`📅 ${cnt} פעילויות${cntDone?` · ✔️ ${cntDone}`:''}`:''}</span>
-        <div style="display:flex;gap:4px;flex-shrink:0" onclick="event.stopPropagation()">
-          <button class="btn bp bsm" style="font-size:.65rem" onclick="psupNewInvoice(${idx})">📄 הזמנה</button>
-          <button class="btn bo bsm" style="font-size:.65rem" onclick="psupEdit(${idx})">✏️</button>
+      <div class="flex-c justify-between mt-2 pt-2" style="border-top:1px solid #f0f0f0">
+        <span class="text-xs font-bold text-secondary">${isAct?`📅 ${cnt} פעילויות${cntDone?` · ✔️ ${cntDone}`:''}`:''}</span>
+        <div class="flex-c gap-2 flex-none" onclick="event.stopPropagation()">
+          <button class="btn bp bsm text-xs" onclick="psupNewInvoice(${idx})">📄 הזמנה</button>
+          <button class="btn bo bsm text-xs" onclick="psupEdit(${idx})">✏️</button>
         </div>
       </div>
     </div>`;
