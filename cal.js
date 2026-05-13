@@ -222,20 +222,29 @@ window.calJump = function(pairId, view, gardenId) {
   if (window.renderCal) window.renderCal();
 };
 function clearCal(){
-  ['cal-city','cal-cls','cal-cl','cal-sup'].forEach(id=>document.getElementById(id).value='');
-  ['cal-g1','cal-g2','cal-g3'].forEach((id,i)=>{
-    const el=document.getElementById(id);
-    el.innerHTML=i===0?'<option value="">כל הצהרונים</option>':'<option value="">—</option>';
-    window.GARDENS.forEach(g=>el.innerHTML+=`<option value="${g.id}">${g.city} · ${g.name}</option>`);
+  ['cal-city','cal-cls','cal-cl','cal-sup'].forEach(id=>{
+    const el = window.getEl(id);
+    if (el) el.value = '';
   });
-  document.getElementById('cal-pair-bar').classList.remove('show');
+  ['cal-g1','cal-g2','cal-g3'].forEach((id,i)=>{
+    ['desktop', 'mobile'].forEach(plat => {
+      const el = document.getElementById(id + '-' + plat);
+      if(!el) return;
+      el.innerHTML=i===0?'<option value="">כל הצהרונים</option>':'<option value="">—</option>';
+      window.GARDENS.forEach(g=>el.innerHTML+=`<option value="${g.id}">${g.city} · ${g.name}</option>`);
+    });
+  });
+  const bar = window.getEl('cal-pair-bar');
+  if (bar) bar.style.display = 'none';
   renderCal();
 }
 function clearCalPair(){
-  document.getElementById('cal-g1').value='';
-  document.getElementById('cal-g2').value='';
-  document.getElementById('cal-g3').value='';
-  document.getElementById('cal-pair-bar').classList.remove('show');
+  ['cal-g1','cal-g2','cal-g3'].forEach(id => {
+    const el = window.getEl(id);
+    if (el) el.value = '';
+  });
+  const bar = window.getEl('cal-pair-bar');
+  if (bar) bar.style.display = 'none';
   renderCal();
 }
 // Unified pair save — called from calendar, schedule, and garden modal
