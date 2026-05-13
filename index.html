@@ -410,9 +410,13 @@
              <div class="vbtns">
                <button id="vlb-group-pairs-desktop" class="vbtn active" onclick="setListGroupMode('pairs')">⚖️ זוגות</button>
                <button id="vlb-group-clusters-desktop" class="vbtn" onclick="setListGroupMode('clusters')">📦 אשכולות</button>
-             </div>
-          </div>
-        </div>
+              </div>
+           </div>
+         </div>
+       </div>
+      <div id="cal-pair-bar-desktop" class="card desktop-only" style="display:none;background:#e3f2fd;margin-bottom:10px;padding:8px 12px;align-items:center;justify-content:space-between">
+         <span>⚖️ זוג שנבחר: <b id="cal-pair-lbl-desktop"></b></span>
+         <button class="btn bp bsm" onclick="saveCalPair()">💾 שמור כזוג קבוע</button>
       </div>
 
       <!-- 📱 MOBILE CALENDAR TOOLS 📱 -->
@@ -446,6 +450,10 @@
                <button id="vlb-group-clusters-mobile" class="vbtn" onclick="setListGroupMode('clusters')">📦 אשכולות</button>
              </div>
          </div>
+      </div>
+      <div id="cal-pair-bar-mobile" class="card mobile-only" style="display:none;background:#e3f2fd;margin-bottom:8px;padding:6px 10px;align-items:center;justify-content:space-between">
+         <span style="font-size:.8rem">⚖️ <b id="cal-pair-lbl-mobile"></b></span>
+         <button class="btn bp bsm" onclick="saveCalPair()">💾 שמור זוג</button>
       </div>
 
       <div id="cal-title" class="card text-center font-bold text-primary mb-2" style="font-size:1.1rem"></div>

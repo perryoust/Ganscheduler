@@ -273,12 +273,15 @@ function checkDupePairAndSave(gids){
 function renderCal(){
   try {
     const gids=getCalGids();
-    const bar=document.getElementById('cal-pair-bar');
-    if(gids.length>=2){
-      bar.classList.add('show');
-      (document.getElementById('cal-pair-lbl')||{}).textContent =gids.map(id=>window.G(id).name||'').join(' + ');
-    } else {
-      bar.classList.remove('show');
+    const bar = window.getEl('cal-pair-bar');
+    if (bar) {
+      if(gids.length>=2){
+        bar.style.display = 'flex';
+        const lbl = window.getEl('cal-pair-lbl');
+        if (lbl) lbl.textContent = gids.map(id=>window.G(id).name||'').join(' + ');
+      } else {
+        bar.style.display = 'none';
+      }
     }
 
     const f=getCalF();
