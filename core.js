@@ -1079,19 +1079,19 @@ function refreshAppUI(){
 }
 window.refreshAppUI = refreshAppUI;
 
-function updCounts() {
+function calculateStats() {
   const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
   const cls = (tab === 'g' ? 'גנים' : 'ביה"ס');
   const sch = window.SCH || [];
   const gdns = window.GARDENS || [];
 
   // Read Dashboard Filters
-  const date = document.getElementById('dash-date')?.value || '';
-  const city = document.getElementById('dash-city')?.value || '';
-  const sup = document.getElementById('dash-sup')?.value || '';
-  const from = document.getElementById('dash-from')?.value || '';
-  const to = document.getElementById('dash-to')?.value || '';
-  const srch = (document.getElementById('dash-srch')?.value || '').toLowerCase();
+  const date = (window.getEl('dash-date')||{}).value || '';
+  const city = (window.getEl('dash-city')||{}).value || '';
+  const sup = (window.getEl('dash-sup')||{}).value || '';
+  const from = (window.getEl('dash-from')||{}).value || '';
+  const to = (window.getEl('dash-to')||{}).value || '';
+  const srch = ((window.getEl('dash-srch')||{}).value || '').toLowerCase();
 
   // Helper logic for classification
   const getGcls = (g) => {
@@ -1151,10 +1151,10 @@ function updCounts() {
   }, { todo: 0, can: 0, post: 0, nohap: 0, makeups: 0, handled: 0, all: 0 });
   return stats;
 }
-window.getDashStats = updCounts;
+window.getDashStats = calculateStats;
 
 function updUIStats() {
-  const stats = updCounts();
+  const stats = calculateStats();
   const setEl = (id, v) => { 
     const m = document.getElementById(id + '-mobile');
     const d = document.getElementById(id + '-desktop');
@@ -1164,7 +1164,7 @@ function updUIStats() {
     if (r) r.textContent = v;
     
     // Also try legacy header IDs
-    const hId = 'h-' + id.replace('d-', '').replace('-cnt', '');
+    const hId = 'h-' + id.replace('d-', '').replace('dvp-cnt-', '').replace('-cnt', '');
     const hm = document.getElementById(hId + '-mobile');
     const hd = document.getElementById(hId + '-desktop');
     const hr = document.getElementById(hId);
@@ -1217,19 +1217,33 @@ window.updCounts = updUIStats;
 
 function initDrops(){
   const cs=cities();
-  function fC(id){cs.forEach(c=>document.getElementById(id).innerHTML+=`<option value='${c}'>${c}</option>`);}
+  function fC(id){
+    const items = cs.map(c => `<option value='${c}'>${c}</option>`).join('');
+    ['', '-desktop', '-mobile'].forEach(suffix => {
+      const el = document.getElementById(id + suffix);
+      if (el) el.innerHTML += items;
+    });
+  }
   function fG(id,first,prefix){
-    const el=document.getElementById(id);
-    el.innerHTML=`<option value="">${first}</option>`;
-    [...GARDENS].sort((a,b)=>{
+    const items = `<option value="">${first}</option>` + [...GARDENS].sort((a,b)=>{
       const cc=(a.city||'').localeCompare(b.city||'','he');
       return cc||((a.name||'').localeCompare(b.name||'','he'));
-    }).forEach(g=>el.innerHTML+=`<option value='${g.id}'>${prefix?g.city+' · ':''} ${g.name}</option>`);
+    }).map(g=>`<option value='${g.id}'>${prefix?g.city+' · ':''} ${g.name}</option>`).join('');
+    
+    ['', '-desktop', '-mobile'].forEach(suffix => {
+      const el = document.getElementById(id + suffix);
+      if (el) el.innerHTML = items;
+    });
   }
   fC('dash-city');fC('cal-city');fC('s-city');fC('g-city');fC('apm-city');fC('pairs-city');fC('cl-city');
   // Filter dropdowns (search/filter): show ONLY act suppliers in חוגים views
   getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>{
-    ['dash-sup','cal-sup','s-sup'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML+=`<option value='${s.name}'>${s.name}</option>`;});
+    ['dash-sup','cal-sup','s-sup'].forEach(id=>{
+      ['', '-desktop', '-mobile'].forEach(suffix => {
+        const el = document.getElementById(id + suffix);
+        if (el) el.innerHTML += `<option value='${s.name}'>${s.name}</option>`;
+      });
+    });
   });
   // Scheduling dropdowns: show ONLY act suppliers (isAct=true)
   getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>{

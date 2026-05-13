@@ -29,6 +29,8 @@
   .mobile-only { display: inherit; }
   .card { padding: 8px 10px; }
   .content { padding: 8px; }
+  .btn:not(.bp) { padding: 4px 8px; font-size: 0.75rem; }
+  .vbtn { padding: 4px 10px; font-size: 0.75rem; }
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
