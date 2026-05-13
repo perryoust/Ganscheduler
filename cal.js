@@ -754,15 +754,19 @@ function renderNormalDay(evs,ds){
 
   window.pairs.forEach(pair=>{
     if(window.isPairBroken(pair.id,ds)) return;
-    const pairEvs=others.filter(s=>pair.ids.map(Number).includes(Number(s.g)));
+    const pairEvs=others.filter(s => pair.ids.map(Number).includes(Number(s.g)));
     if(!pairEvs.length) return;
+    
+    // Mark ALL ids in this pair as paired, even if they don't have activities today
+    // to prevent them from showing up in the solo list below
+    pair.ids.forEach(id => pairedGids.add(Number(id)));
+    
     const city=window.G(pair.ids[0]).city||'אחר';
     if(!pairsByCity[city]) pairsByCity[city]=[];
     pairsByCity[city].push({pair,pairEvs});
-    pair.ids.forEach(id=>pairedGids.add(id));
   });
 
-  const allSoloEvs = others.filter(s=>!pairedGids.has(s.g));
+  const allSoloEvs = others.filter(s => !pairedGids.has(Number(s.g)));
 
   window.pairs.forEach(pair=>{
     if(!window.isPairBroken(pair.id,ds)) return;

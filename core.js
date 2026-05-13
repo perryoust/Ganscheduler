@@ -67,8 +67,8 @@ window.ui = {
     const context = opts.context || 'dash'; // dash, cal, sched
     const gClass = window.gcls(g);
     const gIcon = gClass === 'ביה"ס' ? '🏛️' : '🏫';
-    const evType = s.tp || (gClass === 'גנים' ? 'חוג' : '—');
-    const grpCount = s.grp || 1;
+    const evType = s.tp || (gClass === 'גנים' ? 'חוג' : '');
+    const grpCount = s.grp || (gClass === 'גנים' ? 1 : '');
 
     let rowHtml = `
       <tr class="${stCls} border-b cursor-pointer" onclick="window.openSP('${s.id}')">`;
@@ -733,10 +733,18 @@ async function save(immediate){
 }
 function initPairs(){
   // Initialize pairs from AUTOPAIRS constant
+  const gdns = window.GARDENS || [];
+  if(!gdns.length) return;
+
   window.pairs = AUTOPAIRS.map((arr,i)=>{
-    const gs=arr.map(id=>G(id)).filter(x=>x.id);
-    return {id:i+1, ids:arr, name:gs.map(g=>g.name).join(' + ')};
-  });
+    const ids = arr.map(id => Number(id));
+    const gs = ids.map(id => window.G(id)).filter(x => x && x.id);
+    return {
+      id: i + 1, 
+      ids: ids, 
+      name: gs.length > 0 ? gs.map(g => g.name).join(' + ') : 'זוג ללא שם'
+    };
+  }).filter(p => p.ids.length > 0);
 }
 
 // ══════════════════════════════════════════════════════════

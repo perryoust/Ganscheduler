@@ -347,10 +347,10 @@ function saveNewSched(){
   }
   const ph=document.getElementById('ns-ph').value;
   const notes=document.getElementById('ns-notes').value;
-  const grp=parseInt(document.getElementById('ns-grp').value)||1;
-  let actType=document.getElementById('ns-act-type').value;
-  if(actType==='__new__'){actType=document.getElementById('ns-act-type-new').value.trim();}
-  const evTp=(document.getElementById('ns-ev-type')||{}).value||'חוג';
+  const grp = parseInt(document.getElementById('ns-grp')?.value) || 1;
+  let actType = document.getElementById('ns-act-type')?.value;
+  if(actType === '__new__') { actType = document.getElementById('ns-act-type-new')?.value.trim(); }
+  const evTp = (document.getElementById('ns-ev-type') || {}).value || '';
   if(actType&&actType!=='__new__'){
     if(!window.supEx[sup]) window.supEx[sup]={};
     if(!Array.isArray(window.supEx[sup].acts)) window.supEx[sup].acts=window.getSupActs(sup);
