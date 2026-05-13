@@ -477,6 +477,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
           if(window.isPairBroken(pair.id,ds)) return;
           const pairEvs=cityEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g)));
           if(!pairEvs.length) return;
+          pairEvs.forEach(s => dateUsedIds.add(String(s.id)));
           pair.ids.forEach(id=>pairedGids.add(id));
           const earliest=pairEvs.map(s=>s.t||'99:99').sort()[0];
           pairBlocks.push({pair,pairEvs,earliest});
@@ -1154,10 +1155,10 @@ function renderCalList(evs, mDate){
       const clusteredGidsC=new Set();
 
       const _renderCluster2=(cl)=>{
-        const clEvs=cityEvs.filter(s=>(cl.gardenIds||[]).map(Number).includes(Number(s.g))&&!pairedGids.has(s.g)&&!clusteredGidsC.has(s.g))
+        const clEvs=cityEvs.filter(s=>(cl.gardenIds||[]).map(Number).includes(Number(s.g))&&!pairedGids.has(Number(s.g))&&!clusteredGidsC.has(Number(s.g)))
           .sort((a,b)=>window.compareActivities(a, b));
         if(!clEvs.length) return;
-        clEvs.forEach(s=>clusteredGidsC.add(s.g));
+        clEvs.forEach(s=>clusteredGidsC.add(Number(s.g)));
         const clGids2=clEvs.map(s=>s.g);
         
         // Use a standard card for the cluster but with a cluster-specific header style if needed, 
@@ -1181,9 +1182,9 @@ function renderCalList(evs, mDate){
       window.pairs.forEach(pair=>{
         if(isPairBroken&&isPairBroken(pair.id,ds)) return;
         const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
-        const pairEvs=cityEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g))&&!clusteredGidsC.has(s.g));
+        const pairEvs=cityEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g))&&!clusteredGidsC.has(Number(s.g)));
         if(!pairEvs.length) return;
-        pairEvs.forEach(s=>pairedGids.add(s.g));
+        pairEvs.forEach(s=>pairedGids.add(Number(s.g)));
         pairGroups.push({pair,pairEvs});
       });
       pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he'));
@@ -1354,13 +1355,13 @@ function renderRangeListView(evs, fromDs, toDs){
         <div class="city-accordion-content">`;
 
       const _gmode = _listGroupMode === 'clusters' ? 'window.clusters' : 'window.pairs';
-      const firstUsedGids = new Set();
+      const dateUsedIds = new Set();
       
       const _renderCl = (cl) => {
-        const clEvs = cityEvs.filter(s => (cl.gardenIds || []).map(Number).includes(Number(s.g)) && !firstUsedGids.has(s.g))
+        const clEvs = dayEvs.filter(s => !dateUsedIds.has(String(s.id)) && (cl.gardenIds || []).map(Number).includes(Number(s.g)))
           .sort((a,b) => window.compareActivities(a, b));
         if(!clEvs.length) return;
-        clEvs.forEach(s => firstUsedGids.add(s.g));
+        clEvs.forEach(s => dateUsedIds.add(String(s.id)));
         const clGids = clEvs.map(s => s.g);
         h += `<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
           <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
@@ -1385,9 +1386,9 @@ function renderRangeListView(evs, fromDs, toDs){
       const pairGroups = [];
       window.pairs.forEach(pair => {
         if(isPairBroken && isPairBroken(pair.id, ds)) return;
-        const pairEvs = cityEvs.filter(s => pair.ids.map(Number).includes(Number(s.g)) && !firstUsedGids.has(s.g));
+        const pairEvs = cityEvs.filter(s => pair.ids.map(Number).includes(Number(s.g)) && !firstUsedGids.has(Number(s.g)));
         if(!pairEvs.length) return;
-        pairEvs.forEach(s => firstUsedGids.add(s.g));
+        pairEvs.forEach(s => firstUsedGids.add(Number(s.g)));
         pairGroups.push({pair, pairEvs});
       });
       pairGroups.sort((a,b) => (a.pair.name||'').localeCompare(b.pair.name||'', 'he'));
@@ -1422,11 +1423,11 @@ function renderRangeListView(evs, fromDs, toDs){
 
       if(_gmode === 'window.pairs'){
         const dayClusters = (typeof getClusters === 'function' ? getClusters() : []).filter(cl =>
-          (cl.city === city || !cl.city) && (cl.gardenIds || []).some(gid => cityEvs.some(s => s.g === parseInt(gid) && !firstUsedGids.has(s.g))));
+          (cl.city === city || !cl.city) && (cl.gardenIds || []).some(gid => cityEvs.some(s => Number(s.g) === Number(gid) && !firstUsedGids.has(Number(s.g)))));
         dayClusters.forEach(cl => _renderCl(cl));
       }
 
-      cityEvs.filter(s => !firstUsedGids.has(s.g))
+      cityEvs.filter(s => !firstUsedGids.has(Number(s.g)))
         .sort((a,b) => window.compareActivities(a, b))
         .forEach(s => { 
           h += window.ui.renderStandardPairCard({id:'solo_'+s.id, name:window.G(s.g).name, ids:[s.g]}, [s], {
