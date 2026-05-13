@@ -65,7 +65,10 @@ window.ui = {
     const phone = (typeof window.getSupPhone === 'function') ? window.getSupPhone(s.a) : '';
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
     const context = opts.context || 'dash'; // dash, cal, sched
-    const gIcon = window.gcls(g) === 'ביה"ס' ? '🏛️' : '🏫';
+    const gClass = window.gcls(g);
+    const gIcon = gClass === 'ביה"ס' ? '🏛️' : '🏫';
+    const evType = s.tp || (gClass === 'גנים' ? 'חוג' : '—');
+    const grpCount = s.grp || 1;
 
     let rowHtml = `
       <tr class="${stCls} border-b cursor-pointer" onclick="window.openSP('${s.id}')">`;
@@ -85,7 +88,7 @@ window.ui = {
          ${g.st ? `<div class="text-xs text-light mt-1">📍 ${g.st}</div>` : ''}
       </td>`;
 
-    // 3. Time (שעה) - SWAPPED TO HERE
+    // 3. Time (שעה)
     rowHtml += `
       <td class="p-8 text-center font-bold text-secondary">
         ${timeStr}
@@ -100,22 +103,29 @@ window.ui = {
     // 5. Activity Type (פעילות)
     rowHtml += `
       <td class="p-8" style="color:var(--c-info); font-weight:500">
+        <div style="font-size:0.75rem; color:#78909c; margin-bottom:2px">${evType}</div>
         ${supAct}
       </td>`;
 
-    // 6. Status (סטטוס)
+    // 6. Groups (קבוצות)
+    rowHtml += `
+      <td class="p-8 text-center" style="font-weight:700; color:#5c6bc0">
+        ${grpCount}
+      </td>`;
+
+    // 7. Status (סטטוס)
     rowHtml += `
       <td class="p-8 text-center">
         ${stLbl}
       </td>`;
 
-    // 7. Notes (הערות)
+    // 8. Notes (הערות)
     rowHtml += `
       <td class="p-8 text-xs text-error">
         ${isM ? '<b style="color:var(--c-warning)">[השלמה]</b> ' : ''}${s.nt || ''}
       </td>`;
 
-    // 8. Actions (פעולות)
+    // 9. Actions (פעולות)
     rowHtml += `
       <td class="p-8 text-center" onclick="event.stopPropagation()">
         ${window.ui.renderQuickActionBtns(s)}
@@ -191,6 +201,7 @@ window.ui = {
               <th style="text-align:center; padding:8px 10px">שעה</th>
               <th style="text-align:right; padding:8px 10px">ספק</th>
               <th style="text-align:right; padding:8px 10px">פעילות</th>
+              <th style="text-align:center; padding:8px 10px">קבוצות</th>
               <th style="text-align:center; padding:8px 10px">סטטוס</th>
               <th style="text-align:right; padding:8px 10px">הערות</th>
               <th style="width:140px; text-align:center; padding:8px 10px">פעולות</th>
@@ -721,21 +732,10 @@ async function save(immediate){
   }catch(e){ console.error('Save fatal error', e); return false; }
 }
 function initPairs(){
+  // Initialize pairs from AUTOPAIRS constant
   window.pairs = AUTOPAIRS.map((arr,i)=>{
     const gs=arr.map(id=>G(id)).filter(x=>x.id);
-    return{id:i+1,ids:arr,name:gs.map(g=>g.name).join(' + ')};
-  });
-  
-  // v102.97 Emergency Injection: Ensure missing gardens are paired if not already
-  const missingCritical = [98, 99, 100];
-  missingCritical.forEach(gid => {
-    if(!window.gardenPair(gid)) {
-      const auto = AUTOPAIRS.find(a => a.includes(gid));
-      if(auto) {
-        window.pairs.push({id:Date.now() + Math.random(), ids:auto, name:auto.map(id=>G(id).name).join(' + ')});
-        console.log(`[Emergency] Restored pair for garden ${gid}`);
-      }
-    }
+    return {id:i+1, ids:arr, name:gs.map(g=>g.name).join(' + ')};
   });
 }
 

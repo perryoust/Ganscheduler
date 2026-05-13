@@ -633,15 +633,16 @@ window.openSP = function(id) {
     <div class="tw" style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse;text-align:right;font-size:0.8rem">
         <thead>
-          <tr style="background:#f5f7ff;color:#5c6bc0;border-bottom:2px solid #dbe3ff">
-            <th style="padding:6px;width:30px;text-align:center">סמן</th>
-            <th style="padding:6px">שם הגן</th>
-            <th style="padding:6px">ספק</th>
-            <th style="padding:6px">פעילות</th>
-            <th style="padding:6px">סוג</th>
-            <th style="padding:6px">סטטוס</th>
-            <th style="padding:6px">שעה</th>
-          </tr>
+            <tr style="background:#f5f7ff;color:#5c6bc0;border-bottom:2px solid #dbe3ff">
+              <th style="padding:6px;width:30px;text-align:center">סמן</th>
+              <th style="padding:6px">שם הגן</th>
+              <th style="padding:6px">ספק</th>
+              <th style="padding:6px">פעילות</th>
+              <th style="padding:6px">סוג</th>
+              <th style="padding:6px;text-align:center">קבוצות</th>
+              <th style="padding:6px">סטטוס</th>
+              <th style="padding:6px">שעה</th>
+            </tr>
         </thead>
         <tbody>
           ${allGardens.map((info, idx) => {
@@ -657,7 +658,8 @@ window.openSP = function(id) {
               <td style="padding:6px;font-weight:800;color:#1a237e">${idx===0?'':'🔗 '}${rowG.name} <span style="font-size:0.65rem;color:#78909c">(${rowG.city})</span></td>
               <td style="padding:6px">${pev ? window.supBase(pev.a) : '—'}</td>
               <td style="padding:6px">${pev ? (pev.act||'—') : '—'}</td>
-              <td style="padding:6px">${window.gcls(rowG)==='גנים'?'חוג':'—'}</td>
+              <td style="padding:6px">${pev ? (pev.tp || (window.gcls(rowG)==='גנים'?'חוג':'—')) : '—'}</td>
+              <td style="padding:6px;text-align:center;font-weight:700">${pev ? (pev.grp || 1) : '—'}</td>
               <td style="padding:6px">
                 ${pev ? `
                   <select onchange="window.spRowStatusChg('${pev.id}', this.value)" style="padding:2px 4px;font-size:0.7rem;border-radius:4px;border:1px solid #ccc;background:${window.stClass(pev)==='done'?'#e8f5e9':(window.stClass(pev)==='nohap'?'#ffebee':'#fff')}">
@@ -1900,6 +1902,7 @@ window.createMakeupActivity = function(data) {
     tp: data.tp || 'חוג',
     st: 'ok',
     nt: fullNote,
+    grp: data.grp || 1,
     _isMakeup: true,
     _makeupFrom: data.origD
   };

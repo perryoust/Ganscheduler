@@ -421,7 +421,8 @@ function saveNewSched(){
         tp: evTp || 'חוג',
         origD: makeupOrig || '',
         origId: window._makeupOrigId || null,
-        notes: notes
+        notes: notes,
+        grp: grp
       });
 
       synergyPartners.forEach((syn, idx) => {

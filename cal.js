@@ -744,7 +744,7 @@ function renderNormalDay(evs,ds){
     <button onclick="window.openBlockedDate('${ds}')" style="background:none;border:1.5px solid #e91e63;color:#c62828;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:.72rem">✏️ ערוך</button>
   </div>`;
   // Global Makeups at Top
-  html += renderMakeupsTop(ds, calCity, calCls);
+  topHtml += renderMakeupsTop(ds, calCity, calCls);
   
   const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)) || (s.n && /השלמה|makeup/i.test(s.n)));
   // Filter out makeups from the regular section to avoid duplication
