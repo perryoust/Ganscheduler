@@ -54,13 +54,13 @@ window.ui = {
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== 'false');
 
     return `
-      <div class="qacts flex-c justify-center gap-3" onclick="event.stopPropagation()">
-        ${isDone ? '' : `<button title="בוצע" class="qbtn q-done" onclick="window.qSetSt('${sid}','done')">✔️</button>`}
-        ${(isException && !isHandled) ? `<button title="סיום טיפול" class="qbtn q-handled" onclick="if(window.markCompQuick)window.markCompQuick('${sid}')">✅</button>` : ''}
-        ${isCan ? '' : `<button title="ביטול" class="qbtn q-can" onclick="window.openCanQ('${sid}')">❌</button>`}
-        ${isNohap ? '' : `<button title="לא התקיים" class="qbtn q-nohap" onclick="window.qSetSt('${sid}','nohap')">⚠️</button>`}
-        <button title="דחייה" class="qbtn q-post" onclick="window.openPostpone('${sid}')">⏩</button>
-        <button title="קביעת השלמה" class="qbtn q-mu" onclick="window.openMakeupSched('${sid}')">📅</button>
+      <div class="qacts flex-c justify-center gap-3 ${window.isMobileMode()?'mob-ver':''}" onclick="event.stopPropagation()">
+        ${isDone ? '' : `<button title="בוצע" class="qbtn q-done" onclick="window.qSetSt('${sid}','done')">✔️ ${window.isMobileMode()?'בוצע':''}</button>`}
+        ${(isException && !isHandled) ? `<button title="סיום טיפול" class="qbtn q-handled" onclick="if(window.markCompQuick)window.markCompQuick('${sid}')">✅ ${window.isMobileMode()?'טופל':''}</button>` : ''}
+        ${isCan ? '' : `<button title="ביטול" class="qbtn q-can" onclick="window.openCanQ('${sid}')">❌ ${window.isMobileMode()?'ביטול':''}</button>`}
+        ${isNohap ? '' : `<button title="לא התקיים" class="qbtn q-nohap" onclick="window.qSetSt('${sid}','nohap')">⚠️ ${window.isMobileMode()?'לא התקיים':''}</button>`}
+        <button title="דחייה" class="qbtn q-post" onclick="window.openPostpone('${sid}')">⏩ ${window.isMobileMode()?'דחייה':''}</button>
+        <button title="קביעת השלמה" class="qbtn q-mu" onclick="window.openMakeupSched('${sid}')">📅 ${window.isMobileMode()?'השלמה':''}</button>
       </div>`;
   },
 
@@ -81,6 +81,26 @@ window.ui = {
     const gIcon = gClass === 'ביה"ס' ? '🏛️' : '🏫';
     const evType = s.tp || (gClass === 'גנים' ? 'חוג' : '');
     const grpCount = s.grp || (gClass === 'גנים' ? 1 : '');
+
+    if (window.isMobileMode()) {
+      return `
+        <div class="mob-act-card ${stCls}" onclick="window.openSP('${s.id}')">
+          <div class="mob-act-hdr">
+            <span class="mob-act-time">${timeStr}</span>
+            <span class="mob-act-garden">${g.name}</span>
+            <span class="mob-act-status">${stLbl}</span>
+          </div>
+          <div class="mob-act-body">
+            <div>👤 ${supBase}</div>
+            <div>🎨 ${supAct}</div>
+            ${g.st ? `<div style="grid-column: span 2">📍 ${g.st}</div>` : ''}
+            ${s.nt ? `<div style="grid-column: span 2; color:var(--c-error)">📝 ${s.nt}</div>` : ''}
+          </div>
+          <div class="mob-act-btns">
+            ${window.ui.renderQuickActionBtns(s)}
+          </div>
+        </div>`;
+    }
 
     let rowHtml = `
       <tr class="${stCls} border-b cursor-pointer" onclick="window.openSP('${s.id}')">`;
@@ -191,6 +211,25 @@ window.ui = {
           context: context
         });
       });
+    }
+
+    if (window.isMobileMode()) {
+      return `
+      <details class="mob-accordion" style="border-top: 4px solid ${clr.solid}">
+        <summary class="mob-summary">
+           <span class="icon">${isSolo ? '🏡' : '🔗'}</span>
+           <span class="title">${pair.name}</span>
+           <div class="flex-c gap-4">
+              <button class="btn bg bsm" style="background:#25d366; border:none; padding:4px 8px" onclick="event.stopPropagation(); window._exportPairWA(${JSON.stringify(gids)})">📱</button>
+           </div>
+        </summary>
+        <div class="mob-content p-4">
+           <div class="flex-c gap-8 mb-8 p-8" style="background:#f1f5f9; border-radius:6px">
+              ${weekBtn} ${monthBtn}
+           </div>
+           ${tableRows}
+        </div>
+      </details>`;
     }
 
     return `

@@ -31,6 +31,68 @@
   .content { padding: 8px; }
   .btn:not(.bp) { padding: 4px 8px; font-size: 0.75rem; }
   .vbtn { padding: 4px 10px; font-size: 0.75rem; }
+
+  /* Mobile Accordion & Compact Layout */
+  .mob-accordion {
+    margin-bottom: 10px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    border: 1px solid #e2e8f0;
+  }
+  .mob-summary {
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    list-style: none;
+  }
+  .mob-summary::-webkit-details-marker { display: none; }
+  .mob-summary .icon { font-size: 1.2rem; }
+  .mob-summary .title { font-weight: 800; color: #1a237e; flex: 1; }
+  
+  .mob-act-card {
+    padding: 10px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .mob-act-card:last-child { border-bottom: none; }
+  .mob-act-hdr { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .mob-act-time { font-weight: 800; color: #1565c0; font-size: 0.9rem; }
+  .mob-act-garden { font-weight: 700; color: #1a237e; flex: 1; }
+  .mob-act-status { font-size: 0.75rem; }
+  
+  .mob-act-body { font-size: 0.85rem; color: #455a64; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .mob-act-body > div { background: #f8faff; padding: 4px 8px; border-radius: 4px; }
+  
+  .mob-act-btns { 
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f1f5f9;
+    padding: 6px;
+    border-radius: 6px;
+  }
+  
+  .qacts.mob-ver {
+    flex-direction: column !important;
+    gap: 4px !important;
+    align-items: stretch !important;
+  }
+  .qacts.mob-ver .qbtn {
+    width: 100% !important;
+    padding: 8px !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    font-size: 0.85rem !important;
+  }
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
