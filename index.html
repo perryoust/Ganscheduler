@@ -13,14 +13,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>מערכת שיבוץ - גרסה 103.30</title>
+  <title>מערכת שיבוץ - גרסה 103.31</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
-  <link rel="stylesheet" href="styles.css?v=103.30" />
+  <link rel="stylesheet" href="styles.css?v=103.31" />
   <script>
-    window.APP_VERSION = '103.30';
+    window.APP_VERSION = '103.31';
   </script>
   <script type="module" src="firebase_init.js?v=102.78"></script>
   <script src="assets.js?v=102.78"></script>
@@ -45,7 +45,7 @@
   <div class="hdr">
     <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
       <span style="font-size:1.3rem">📅</span>
-      <h1>טומשין קידס <span style="font-size:.6rem;opacity:.5;font-weight:400;vertical-align:middle">v103.30</span></h1>
+      <h1>טומשין קידס <span style="font-size:.6rem;opacity:.5;font-weight:400;vertical-align:middle">v103.31</span></h1>
     </div>
     <div class="hs" id="hdr-stats" style="overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch">
       <span
@@ -1370,18 +1370,14 @@
         <button onclick="CM('nsm')" class="close-btn">✕</button>
       </div>
 
-      <!-- Garden and Partner Row 1: City & Inclusion Choice -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
-        <div class="fg"><label>עיר</label><select id="ns-city" onchange="nsRefG()" style="width:100%">
+      <!-- City Selection Row -->
+      <div style="display:grid;grid-template-columns:1fr;gap:9px;margin-bottom:10px">
+        <div class="fg"><label>עיר *</label><select id="ns-city" onchange="nsRefG()" style="width:100%">
             <option value="">בחר עיר</option>
-          </select></div>
-        <div class="fg" id="ns-g2-choice-wrap"><label id="ns-g2-lbl">צהרון בן זוג? (חמד/בוקר)</label><select id="ns-g2"
-            style="width:100%">
-            <option value="">—</option>
           </select></div>
       </div>
 
-      <!-- Row 2: Primary Garden & Primary Time -->
+      <!-- Primary Garden & Time Row -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
         <div class="fg"><label>גן *</label><select id="ns-g" onchange="nsGChg()" style="width:100%">
             <option value="">בחר צהרון</option>
@@ -1393,19 +1389,14 @@
         </div>
       </div>
 
-      <!-- Row 3: Partner Specific Info (Hidden until chosen) -->
-      <div id="ns-g2-partner-wrap"
-        style="display:none;margin-bottom:10px;background:#f0f4f8;padding:8px;border-radius:6px;border:1px solid #d1d9e6">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
-          <div class="fg"><label>גן בן זוג (תצוגה)</label>
-            <div id="ns-g2-name-display"
-              style="font-weight:700;padding:6px;background:#fff;border-radius:4px;border:1px solid #ccc;font-size:.85rem;min-height:30px">
-            </div>
-          </div>
-          <div class="fg"><label id="ns-time-g2-lbl">שעה לגן בן זוג</label><input type="time" id="ns-time-g2"
-              style="width:100%"></div>
-        </div>
+      <!-- Synergy Partners Table Wrapper -->
+      <div id="ns-g2-choice-wrap" style="display:none;margin-bottom:10px">
+        <div id="ns-g2-choice-container"></div>
       </div>
+      
+      <!-- Hidden backward-compatible inputs to prevent JS exceptions -->
+      <input type="hidden" id="ns-time-g2" value="">
+
 
       <!-- Schedule type tabs -->
       <div style="display:flex;gap:7px;margin-bottom:12px;background:#e8eaf6;border-radius:9px;padding:6px"
@@ -1487,7 +1478,7 @@
           </div>
         </div>
         <div class="fg" style="grid-column:1/-1">
-          <label>סוג הפעילות</label>
+          <label>קטגוריית שיבוץ</label>
           <select id="ns-ev-type" style="width:100%">
             <option value="חוג" selected>🚀 חוג</option>
             <option value="הפעלה">🚀 הפעלה</option>
@@ -1496,7 +1487,7 @@
           </select>
         </div>
         <div class="fg" style="grid-column:1/-1">
-          <label>סוג פעילות</label>
+          <label>שם הפעילות</label>
           <div style="display:flex;gap:5px;align-items:center">
             <select id="ns-act-type" onchange="nsActTypeChg()" style="flex:1">
               <option value="">בחר שם פעילות...</option>
@@ -3147,24 +3138,24 @@
     </div>
 
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <script src="utils.js?v=103.30"></script>
-    <script src="data_manager.js?v=103.30"></script>
-    <script src="data.js?v=103.30"></script>
-    <script src="firebase.js?v=103.30"></script>
-    <script src="invoices.js?v=103.30"></script>
-    <script src="suppliers.js?v=103.30"></script>
-    <script src="cal.js?v=103.30"></script>
-    <script src="activity.js?v=103.30"></script>
-    <script src="sched.js?v=103.30"></script>
-    <script src="gardens.js?v=103.30"></script>
-    <script src="export.js?v=103.30"></script>
-    <script src="backup.js?v=103.30"></script>
-    <script src="admin.js?v=103.30"></script>
-    <script src="import_export.js?v=103.30"></script>
-    <script src="core.js?v=103.30"></script>
+    <script src="utils.js?v=103.31"></script>
+    <script src="data_manager.js?v=103.31"></script>
+    <script src="data.js?v=103.31"></script>
+    <script src="firebase.js?v=103.31"></script>
+    <script src="invoices.js?v=103.31"></script>
+    <script src="suppliers.js?v=103.31"></script>
+    <script src="cal.js?v=103.31"></script>
+    <script src="activity.js?v=103.31"></script>
+    <script src="sched.js?v=103.31"></script>
+    <script src="gardens.js?v=103.31"></script>
+    <script src="export.js?v=103.31"></script>
+    <script src="backup.js?v=103.31"></script>
+    <script src="admin.js?v=103.31"></script>
+    <script src="import_export.js?v=103.31"></script>
+    <script src="core.js?v=103.31"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
-      console.log('Ganscheduler Architecture: v103.30 Ready');
+      console.log('Ganscheduler Architecture: v103.31 Ready');
     </script>
 
     </div>
