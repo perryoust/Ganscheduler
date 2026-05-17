@@ -1,4 +1,4 @@
-window.APP_VERSION = '103.23';
+window.APP_VERSION = '103.25';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── Platform Detection ──
@@ -1427,7 +1427,7 @@ function ST(t){
   if(t==='cal'){
     // Restore nav buttons in case they were hidden by range view
     if(window.calV!=='range'){
-      document.querySelectorAll('[onclick="window.navCal(-1)"],[onclick="window.navCal(1)"]').forEach(b=>b.style.display='');
+      document.querySelectorAll('[onclick*="navCal(-1)"],[onclick*="navCal(1)"]').forEach(b=>b.style.display='');
     }
     if(window.renderCal) window.renderCal();
   }

@@ -143,7 +143,7 @@ function setView(v){
   });
   const rangeRow = document.getElementById('cal-range-row');
   const listRow  = document.getElementById('cal-list-row');
-  const navBtns  = document.querySelectorAll('[onclick="navCal(-1)"],[onclick="navCal(1)"]');
+  const navBtns  = document.querySelectorAll('[onclick*="navCal(-1)"],[onclick*="navCal(1)"]');
   if(v==='range'){
     if(rangeRow) rangeRow.style.display='flex';
     if(listRow)  listRow.style.display='none';

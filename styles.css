@@ -82,16 +82,25 @@
   }
   
   .qacts.mob-ver {
-    flex-direction: column !important;
-    gap: 4px !important;
-    align-items: stretch !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+    margin-top: 8px !important;
   }
   .qacts.mob-ver .qbtn {
-    width: 100% !important;
-    padding: 8px !important;
-    justify-content: flex-start !important;
-    gap: 10px !important;
-    font-size: 0.85rem !important;
+    width: auto !important;
+    flex: 0 1 auto !important;
+    min-width: 65px !important;
+    height: 28px !important;
+    padding: 3px 8px !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    font-size: 0.74rem !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
   }
 }
 
