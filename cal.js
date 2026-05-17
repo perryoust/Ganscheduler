@@ -445,7 +445,7 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
 
   Object.keys(byCity).sort().forEach(city => {
     const clr = window.CITY_COLORS ? window.CITY_COLORS(city) : { solid: '#1a237e', light: '#f5f7ff' };
-    const cityEvs = byCity[city].sort((a,b) => (window.G(a.g).name||'').localeCompare(window.G(b.g).name||'','he') || (a.t||'99:99').localeCompare(b.t||'99:99'));
+    const cityEvs = byCity[city];
     
     h += `<details class="city-accordion" style="margin-bottom:6px; border-color:rgba(21,101,192,0.2)">
       <summary style="padding:10px 14px; background:#fff">
@@ -453,32 +453,52 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
           <span style="font-weight:800; color:var(--c-primary, #1a237e); font-size:0.86rem">🏙️ ${city} <span style="font-weight:400; font-size:0.75rem; color:#666; margin-right:6px">(${cityEvs.length} השלמות)</span></span>
         </div>
       </summary>
-      <div class="city-accordion-content" style="padding:0">
-        <div class="tw" style="border-top:1px solid #edf2f7; overflow-x:auto">
-          <table style="width:100%; border-collapse:collapse; min-width:600px">
-            <thead>
-              <tr style="background:#f8fafc; color:#64748b; font-weight:700; font-size:var(--fs-xs, 0.74rem)">
-                <th style="padding:10px 12px; text-align:right">צהרון</th>
-                <th style="padding:10px 12px; text-align:center">שעה</th>
-                <th style="padding:10px 12px; text-align:right">ספק</th>
-                <th style="padding:10px 12px; text-align:right">פעילות</th>
-                <th style="padding:10px 12px; text-align:center">קבוצות</th>
-                <th style="padding:10px 12px; text-align:center">סטטוס</th>
-                <th style="padding:10px 12px; text-align:right">הערות</th>
-                <th style="padding:10px 12px; text-align:center">פעולות</th>
-              </tr>
-            </thead>
-            <tbody style="background:#fff">
-              ${cityEvs.map(s => window.ui.renderActivityRow(s, { ds, clr, context:'cal' })).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div></details>`;
+      <div class="city-accordion-content" style="padding:10px">`;
+
+    // --- זוגות: מיון לפי שעה הכי מוקדמת בזוג ---
+    const pairedGids=new Set();
+    const pairBlocks=[];
+    window.pairs.forEach(pair=>{
+      if(window.isPairBroken(pair.id,ds)) return;
+      const pairEvs=cityEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g)));
+      if(!pairEvs.length) return;
+      pair.ids.forEach(id=>pairedGids.add(id));
+      const earliest=pairEvs.map(s=>s.t||'99:99').sort()[0];
+      pairBlocks.push({pair,pairEvs,earliest});
+    });
+    // sort pair blocks by earliest event time
+    pairBlocks.sort((a,b)=>a.earliest.localeCompare(b.earliest));
+    if(pairBlocks.length){
+      h+=`<div class="pairs-list-layout" style="margin-bottom:8px">`;
+      pairBlocks.forEach(({pair,pairEvs})=>{
+        h+=window.ui.renderStandardPairCard(pair,pairEvs,{ds,clr,context:'cal'});
+      });
+      h+=`</div>`;
+    }
+
+    // --- גנים בודדים ---
+    const soloEvs=cityEvs.filter(s=>!pairedGids.has(s.g) && !pairedGids.has(String(s.g)) && !pairedGids.has(Number(s.g)))
+      .sort((a,b)=>{
+        const na=window.G(a.g).name||'', nb=window.G(b.g).name||'';
+        return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
+      });
+      
+    if(soloEvs.length){
+      h+=`<div class="pairs-list-layout">`;
+      soloEvs.forEach(s=>{
+        const g=window.G(s.g);
+        h+=window.ui.renderStandardPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds,clr,context:'cal',isSolo:true});
+      });
+      h+=`</div>`;
+    }
+
+    h += `</div></details>`;
   });
 
   h += `</div>`;
   return h;
 }
+
 // ─── Range View — day-by-day between two dates ───────────────────
 function renderRangeView(evs, fromDs, toDs, f, displayGids){
   let html='';
