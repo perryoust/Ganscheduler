@@ -2,7 +2,13 @@
  * Ganscheduler Utils
  * v102.85 - Global UI Unification
  */
- 
+window.isMobileMode = window.isMobileMode || (() => window.innerWidth <= 768);
+window.getEl = function(id) {
+  if (window.isMobileMode()) {
+    return document.getElementById(id + '-mobile') || document.getElementById(id + '-desktop') || document.getElementById(id);
+  }
+  return document.getElementById(id + '-desktop') || document.getElementById(id + '-mobile') || document.getElementById(id);
+};
 // Fallback for legacy calls from cached files
 window._listRow = function(s, clr, ds) {
   console.warn('Legacy _listRow called. Please refresh (Ctrl+F5).');

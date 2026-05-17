@@ -1,4 +1,4 @@
-window.APP_VERSION = '103.20';
+window.APP_VERSION = '103.22';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── Platform Detection ──
@@ -2047,12 +2047,10 @@ function openSupExportFromCard(){
 function goToTodayCal(){
   ST('cal');
   setTimeout(()=>{
-    document.getElementById('cal-pair').value='';
-    document.getElementById('cal-g1').value='';
-    document.getElementById('cal-g2').value='';
-    document.getElementById('cal-g3').value='';
-    document.getElementById('cal-city').value='';
-    document.getElementById('cal-cls').value='';
+    ['cal-pair', 'cal-g1', 'cal-g2', 'cal-g3', 'cal-city', 'cal-cls'].forEach(id => {
+      const el = window.getEl ? window.getEl(id) : document.getElementById(id);
+      if (el) el.value = '';
+    });
     calD=new Date();calV='list';
     setListSubView('day');setView('list');renderCal();
   },50);
@@ -2717,7 +2715,8 @@ function setGardensTab(t){
   }
   // gan / sch
   gBody.className='ggrid scroll-area';
-  document.getElementById('g-cls').value=t==='gan'?'גנים':'ביה"ס';
+  const gClsEl = window.getEl ? window.getEl('g-cls') : document.getElementById('g-cls');
+  if (gClsEl) gClsEl.value=t==='gan'?'גנים':'ביה"ס';
   renderGardens();
 }
 

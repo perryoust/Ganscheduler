@@ -614,9 +614,8 @@ function renderClusterDay(evs, ds, clusterName){
       <button class="btn bg bsm" onclick="event.stopPropagation();window._exportPairWA(${JSON.stringify(clGidsD)})" style="font-size:.68rem;padding:2px 8px">📋 הודעה</button>
     </div>
   </div>`;
-  // respects view's class filter
-  const calCls=document.getElementById('cal-cls').value;
-  const calCity=document.getElementById('cal-city').value;
+  const calCls = window.getEl ? (window.getEl('cal-cls')?.value || '') : (document.getElementById('cal-cls')?.value || '');
+  const calCity = window.getEl ? (window.getEl('cal-city')?.value || '') : (document.getElementById('cal-city')?.value || '');
   // Global Makeups at Top
   html += renderMakeupsTop(ds, calCity, calCls);
 
@@ -731,8 +730,8 @@ function renderClusterWeek(evs, weekStart, clusterName){
 
     const hol=window.getHolidayInfo(ds,null,null);
     const blk=window.getBlockedInfo(ds);
-    const calClsW=document.getElementById('cal-cls').value;
-    const calCityW=document.getElementById('cal-city').value;
+    const calClsW = window.getEl ? (window.getEl('cal-cls')?.value || '') : (document.getElementById('cal-cls')?.value || '');
+    const calCityW = window.getEl ? (window.getEl('cal-city')?.value || '') : (document.getElementById('cal-city')?.value || '');
     
     // Global Makeups at Top
     html += renderMakeupsTop(ds, calCityW, calClsW);
@@ -818,8 +817,8 @@ function renderClusterWeek(evs, weekStart, clusterName){
 
 
 function renderNormalDay(evs,ds){
-  const calCity=document.getElementById('cal-city').value;
-  const calCls=document.getElementById('cal-cls').value;
+  const calCls = window.getEl ? (window.getEl('cal-cls')?.value || '') : (document.getElementById('cal-cls')?.value || '');
+  const calCity = window.getEl ? (window.getEl('cal-city')?.value || '') : (document.getElementById('cal-city')?.value || '');
   const hol=window.getHolidayInfo ? window.getHolidayInfo(ds,calCity||null,calCls||null) : null;
   let topHtml='';
   if(hol) topHtml=`<div class="hol-banner ${hol.type||'vacation'}" style="margin-bottom:8px;font-size:.82rem">${hol.emoji} <b>${hol.name}</b>${hol.note?' — '+hol.note:''}</div>`;
@@ -950,8 +949,8 @@ function renderNormalWeek(evs, ws, f){
   });
 
   // Universal Makeup Section at Top of Week
-  const calClsNW = document.getElementById('cal-cls').value;
-  const calCityNW = document.getElementById('cal-city').value;
+  const calClsNW = window.getEl ? (window.getEl('cal-cls')?.value || '') : (document.getElementById('cal-cls')?.value || '');
+  const calCityNW = window.getEl ? (window.getEl('cal-city')?.value || '') : (document.getElementById('cal-city')?.value || '');
   // We'll show a summary row for makeups of the week or individual days
   let wkMakeupHtml = '<div style="margin-bottom:15px">';
   days.forEach(d => {

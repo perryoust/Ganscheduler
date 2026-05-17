@@ -131,8 +131,6 @@ function renderDash() {
         </div>
         <div style="font-size:0.75rem; color:#64748b; font-weight:600">לחץ לפירוט ▼</div>
       </summary>
-      <div id="${groupId}" class="dash-city-content" style="padding:10px; display:flex; flex-direction:column; gap:8px">`;<div style="font-size:0.75rem; color:#64748b; font-weight:600">לחץ לפירוט ▼</div>
-      </summary>
       <div id="${groupId}" class="dash-city-content" style="padding:10px; display:flex; flex-direction:column; gap:8px">`;
 
     // Internal Grouping: Date -> Pairs/Solo
