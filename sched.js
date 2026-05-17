@@ -4,12 +4,14 @@ function nsSetTab(tab){
     const btn=document.getElementById('ns-tab-'+t);
     const wrap=document.getElementById('ns-'+t+'-wrap');
     if(btn){
-      const isActive = t===tab;
-      btn.style.background=isActive?'#1a237e':'transparent';
-      btn.style.color=isActive?'#fff':'#1a237e';
-      btn.style.borderRadius='7px';
-      btn.style.boxShadow=isActive?'0 2px 6px rgba(26, 35, 126, 0.2)':'none';
-      btn.style.fontWeight=isActive?'700':'600';
+      if(t===tab) btn.classList.add('active');
+      else btn.classList.remove('active');
+      // Clean up old dynamic inline style assignments
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.style.borderRadius = '';
+      btn.style.boxShadow = '';
+      btn.style.fontWeight = '';
     }
     if(wrap) wrap.style.display=t===tab?'block':'none';
   });

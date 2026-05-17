@@ -13,14 +13,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>מערכת שיבוץ - גרסה 103.31</title>
+  <title>מערכת שיבוץ - גרסה 103.32</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
-  <link rel="stylesheet" href="styles.css?v=103.31" />
+  <link rel="stylesheet" href="styles.css?v=103.32" />
   <script>
-    window.APP_VERSION = '103.31';
+    window.APP_VERSION = '103.32';
   </script>
   <script type="module" src="firebase_init.js?v=102.78"></script>
   <script src="assets.js?v=102.78"></script>
@@ -45,7 +45,7 @@
   <div class="hdr">
     <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
       <span style="font-size:1.3rem">📅</span>
-      <h1>טומשין קידס <span style="font-size:.6rem;opacity:.5;font-weight:400;vertical-align:middle">v103.31</span></h1>
+      <h1>טומשין קידס <span style="font-size:.6rem;opacity:.5;font-weight:400;vertical-align:middle">v103.32</span></h1>
     </div>
     <div class="hs" id="hdr-stats" style="overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch">
       <span
@@ -1364,11 +1364,18 @@
   <!-- ===== MODALS ===== -->
   <!-- New Schedule -->
   <div id="nsm" class="modal">
-    <div class="mb" style="max-width:540px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <h2 id="nsm-title" style="margin:0">➕ שיבוץ חדש</h2>
-        <button onclick="CM('nsm')" class="close-btn">✕</button>
+    <div class="modal-box" style="max-width:540px; padding: 0; overflow: hidden; border-radius: 12px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2); background: #fff; width: 94%;">
+      <!-- Header -->
+      <div style="background: linear-gradient(135deg, #1a237e, #283593); padding: 12px 20px; color: #fff; display:flex; justify-content: space-between; align-items: center;">
+        <h2 id="nsm-title" style="margin:0; font-size: 1.15rem; font-weight: 800; color: #fff; border: none; padding: 0; display:flex; align-items: center; gap: 8px;">
+          <span style="background: rgba(255,255,255,0.2); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 1rem;">➕</span>
+          שיבוץ חדש
+        </h2>
+        <button onclick="CM('nsm')" style="background: rgba(255,255,255,0.1); border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">✕</button>
       </div>
+      
+      <!-- Content Body -->
+      <div style="padding: 20px; max-height: 80vh; overflow-y: auto;">
 
       <!-- City Selection Row -->
       <div style="display:grid;grid-template-columns:1fr;gap:9px;margin-bottom:10px">
@@ -1399,17 +1406,10 @@
 
 
       <!-- Schedule type tabs -->
-      <div style="display:flex;gap:7px;margin-bottom:12px;background:#e8eaf6;border-radius:9px;padding:6px"
-        id="ns-tabs-wrap">
-        <button id="ns-tab-once" class="btn bsm"
-          style="flex:1;background:#fff;color:#1a237e;border:none;font-weight:700" onclick="nsSetTab('once')">🚀
-          חד-פעמי</button>
-        <button id="ns-tab-recur" class="btn bsm"
-          style="flex:1;background:transparent;color:#1a237e;border:none;font-weight:700" onclick="nsSetTab('recur')">🚀
-          קבוע (חוזר)</button>
-        <button id="ns-tab-makeup" class="btn bsm"
-          style="flex:1;background:transparent;color:#1a237e;border:none;font-weight:700"
-          onclick="nsSetTab('makeup')">🚀 השלמה</button>
+      <div class="tabs" id="ns-tabs-wrap" style="margin-bottom:15px; border-bottom:2px solid #e8eaf6; display:flex">
+        <div id="ns-tab-once" class="tab active" style="flex:1; text-align:center; justify-content:center" onclick="nsSetTab('once')">🚀 חד-פעמי</div>
+        <div id="ns-tab-recur" class="tab" style="flex:1; text-align:center; justify-content:center" onclick="nsSetTab('recur')">🚀 קבוע (חוזר)</div>
+        <div id="ns-tab-makeup" class="tab" style="flex:1; text-align:center; justify-content:center" onclick="nsSetTab('makeup')">🚀 השלמה</div>
       </div>
 
       <!-- Free days suggestion for Makeup -->
@@ -1511,7 +1511,8 @@
         <button class="btn bp" onclick="saveNewSched()">💾 שמור</button>
         <button class="btn bs" onclick="CM('nsm')">ביטול</button>
       </div>
-    </div>
+      </div> <!-- End Content Body -->
+    </div> <!-- End modal-box -->
   </div>
 
   <!-- Garden detail -->
@@ -3138,24 +3139,24 @@
     </div>
 
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <script src="utils.js?v=103.31"></script>
-    <script src="data_manager.js?v=103.31"></script>
-    <script src="data.js?v=103.31"></script>
-    <script src="firebase.js?v=103.31"></script>
-    <script src="invoices.js?v=103.31"></script>
-    <script src="suppliers.js?v=103.31"></script>
-    <script src="cal.js?v=103.31"></script>
-    <script src="activity.js?v=103.31"></script>
-    <script src="sched.js?v=103.31"></script>
-    <script src="gardens.js?v=103.31"></script>
-    <script src="export.js?v=103.31"></script>
-    <script src="backup.js?v=103.31"></script>
-    <script src="admin.js?v=103.31"></script>
-    <script src="import_export.js?v=103.31"></script>
-    <script src="core.js?v=103.31"></script>
+    <script src="utils.js?v=103.32"></script>
+    <script src="data_manager.js?v=103.32"></script>
+    <script src="data.js?v=103.32"></script>
+    <script src="firebase.js?v=103.32"></script>
+    <script src="invoices.js?v=103.32"></script>
+    <script src="suppliers.js?v=103.32"></script>
+    <script src="cal.js?v=103.32"></script>
+    <script src="activity.js?v=103.32"></script>
+    <script src="sched.js?v=103.32"></script>
+    <script src="gardens.js?v=103.32"></script>
+    <script src="export.js?v=103.32"></script>
+    <script src="backup.js?v=103.32"></script>
+    <script src="admin.js?v=103.32"></script>
+    <script src="import_export.js?v=103.32"></script>
+    <script src="core.js?v=103.32"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
-      console.log('Ganscheduler Architecture: v103.31 Ready');
+      console.log('Ganscheduler Architecture: v103.32 Ready');
     </script>
 
     </div>
