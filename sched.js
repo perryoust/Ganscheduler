@@ -505,7 +505,7 @@ function getFiltSched(){
   const srch = (window.getEl('s-srch')?.value || '').toLowerCase();
   
   const gids=[g1,g2,g3].filter(Boolean).map(id=>Number(id));
-  const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+  const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
   return (window.SCH || []).filter(s=>{
     const g=window.G(s.g);
     if(!g) return false;

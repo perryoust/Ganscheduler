@@ -612,8 +612,9 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   .pairs-4col{grid-template-columns:1fr;gap:6px}
 
   /* Modal full width */
-  .modal .mb{width:100%;max-width:100%;border-radius:15px 15px 0 0;
+  .modal .mb, .modal .modal-box{width:100%;max-width:100%;border-radius:15px 15px 0 0;
              position:fixed;bottom:0;left:0;right:0;max-height:94vh; padding: 15px;}
+  .modal .modal-box{padding: 0!important; overflow: hidden!important;}
 
   /* Hide redundant elements on mobile header */
   #nav-search-input, #nav-search-input+span, #nav-search-results { display: none!important; }
