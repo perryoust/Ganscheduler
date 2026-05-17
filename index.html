@@ -13,14 +13,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>מערכת שיבוץ - גרסה 103.35</title>
+  <title>מערכת שיבוץ - גרסה 103.37</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
-  <link rel="stylesheet" href="styles.css?v=103.35" />
+  <link rel="stylesheet" href="styles.css?v=103.37" />
   <script>
-    window.APP_VERSION = '103.35';
+    window.APP_VERSION = '103.37';
   </script>
   <script type="module" src="firebase_init.js?v=102.78"></script>
   <script src="assets.js?v=102.78"></script>
@@ -3029,10 +3029,11 @@
         </div>
         <input type="text" id="canq-note" placeholder="הערה נוספת (אופציונלי)..." style="width:100%;margin-bottom:10px">
       </div>
-      <div id="canq-scope-wrap"
-        style="display:none;margin-bottom:12px;background:#fff3e0;border-radius:7px;padding:9px 12px;border:1px solid #ffe082">
-        <div style="font-size:.78rem;font-weight:700;color:#e65100;margin-bottom:7px">🚀 בטל עבור:</div>
-        <div id="canq-scope-btns" style="display:flex;flex-direction:column;gap:5px"></div>
+      <div id="canq-sync-container" style="display:none;margin-bottom:12px;padding:10px 12px;background:#f8fafc;border-radius:8px;border:1.5px solid #cbd5e1">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:0.8rem;color:#1e293b;margin:0">
+          <input type="checkbox" id="canq-sync-chk" checked style="width:16px;height:16px;accent-color:#c62828;cursor:pointer">
+          <span id="canq-sync-label">סנכרן גם לגן בן הזוג</span>
+        </label>
       </div>
       <div style="display:flex;gap:7px;justify-content:flex-end">
         <button class="btn br2" onclick="saveCanQ()">? בטל פעילות</button>
@@ -3102,10 +3103,11 @@
           style="width:100%;margin-bottom:10px">
       </div>
       <!-- Scope: which gardens to mark -->
-      <div id="nohapq-scope-wrap"
-        style="display:none;margin-bottom:12px;background:#fff3e0;border-radius:7px;padding:9px 12px;border:1px solid #ffe082">
-        <div style="font-size:.78rem;font-weight:700;color:#e65100;margin-bottom:7px">🚀 סמן לא התקיים עבור:</div>
-        <div id="nohapq-scope-btns" style="display:flex;flex-direction:column;gap:5px"></div>
+      <div id="nohapq-sync-container" style="display:none;margin-bottom:12px;padding:10px 12px;background:#f8fafc;border-radius:8px;border:1.5px solid #cbd5e1">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:0.8rem;color:#1e293b;margin:0">
+          <input type="checkbox" id="nohapq-sync-chk" checked style="width:16px;height:16px;accent-color:#e91e63;cursor:pointer">
+          <span id="nohapq-sync-label">סנכרן גם לגן בן הזוג</span>
+        </label>
       </div>
       <div style="display:flex;gap:7px;justify-content:flex-end">
         <button class="btn bpurple" onclick="saveNohapQ()">💾 שמור</button>

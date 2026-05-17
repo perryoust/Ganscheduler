@@ -265,7 +265,11 @@ window.dashBatchAction = async function(action) {
     const s = window.SCH.find(x => x.id == id);
     if (s) {
       if (status) s.st = status;
-      s._compByMakeup = stamp;
+      if (action === 'handled') {
+        s._compByMakeup = stamp;
+      } else {
+        delete s._compByMakeup;
+      }
       const nText = notePrefix + (note || (status === 'nohap' ? 'לא התקיים' : status === 'can' ? 'בוטל' : 'טופל'));
       s.nt = s.nt ? s.nt + ' | ' + nText : nText;
       
@@ -284,7 +288,11 @@ window.dashBatchAction = async function(action) {
         const ps = window.findPartnerActivity(pId, s.d, s.a);
         if (ps) {
           if (status) ps.st = status;
-          ps._compByMakeup = stamp;
+          if (action === 'handled') {
+            ps._compByMakeup = stamp;
+          } else {
+            delete ps._compByMakeup;
+          }
           ps.nt = ps.nt ? ps.nt + ' | ' + nText : nText;
         }
       });
@@ -352,16 +360,31 @@ window.findPartnerActivity = function(gid, date, targetSup) {
 
   const targetDate = normD(date);
   
-  // 1. Same date, same supplier
+  // 1. Same date, same supplier (active)
   let pEv = window.SCH.find(ps => 
     Number(ps.g) === targetGid && normD(ps.d) === targetDate && ps.st !== 'can' &&
     (tSupBase ? window.supBase(ps.a) === tSupBase : true)
   );
   
-  // 2. Fallback: Same date, any supplier
+  // 2. Fallback: Same date, any supplier (active)
   if (!pEv) {
     pEv = window.SCH.find(ps => 
       Number(ps.g) === targetGid && normD(ps.d) === targetDate && ps.st !== 'can'
+    );
+  }
+
+  // 3. Fallback: Same date, same supplier (including cancelled)
+  if (!pEv) {
+    pEv = window.SCH.find(ps => 
+      Number(ps.g) === targetGid && normD(ps.d) === targetDate &&
+      (tSupBase ? window.supBase(ps.a) === tSupBase : true)
+    );
+  }
+
+  // 4. Fallback: Same date, any supplier (including cancelled)
+  if (!pEv) {
+    pEv = window.SCH.find(ps => 
+      Number(ps.g) === targetGid && normD(ps.d) === targetDate
     );
   }
   
@@ -435,12 +458,50 @@ window.spRowStatusChg = function(id, st) {
     else if(st === 'post') window.openPostpone(id);
   } else {
     ev.st = st;
-    if(st === 'ok') { ev.cr = ''; ev.cn = ''; }
+    if(st === 'ok') {
+      ev.cr = '';
+      ev.cn = '';
+      ev._compByMakeup = '';
+      if(ev.nt) {
+        ev.nt = ev.nt.split(' | ').filter(part => 
+          !part.includes('לא התקיים:') && 
+          !part.includes('בוטל:') && 
+          !part.includes('השלמה נקבעה ל-') && 
+          !part.includes('הוקדם ל-') &&
+          !part.includes('נדחה ל-') &&
+          !part.includes('הוזז ל-') &&
+          !part.includes('הקדמה ל-') &&
+          !part.includes('דחייה ל-') &&
+          !part.includes('עבר ל-') &&
+          !part.includes('עובר ל-') &&
+          !part.includes('הועבר ל-')
+        ).join(' | ').trim();
+      }
+    }
     if(syncPartner) {
       const pev = window.findPartnerActivity(pair.ids.find(pid => Number(pid) !== Number(ev.g)), ev.d, ev.a);
       if(pev) {
         pev.st = st;
-        if(st === 'ok') { pev.cr = ''; pev.cn = ''; }
+        if(st === 'ok') {
+          pev.cr = '';
+          pev.cn = '';
+          pev._compByMakeup = '';
+          if(pev.nt) {
+            pev.nt = pev.nt.split(' | ').filter(part => 
+              !part.includes('לא התקיים:') && 
+              !part.includes('בוטל:') && 
+              !part.includes('השלמה נקבעה ל-') && 
+              !part.includes('הוקדם ל-') &&
+              !part.includes('נדחה ל-') &&
+              !part.includes('הוזז ל-') &&
+              !part.includes('הקדמה ל-') &&
+              !part.includes('דחייה ל-') &&
+              !part.includes('עבר ל-') &&
+              !part.includes('עובר ל-') &&
+              !part.includes('הועבר ל-')
+            ).join(' | ').trim();
+          }
+        }
       }
     }
     window.saveAndRefresh('sp', true);
@@ -878,6 +939,100 @@ function toggleSpAccordion(id, forceState = null){
   if(shouldOpen) el.scrollIntoView({behavior: 'smooth', block: 'nearest'});
 }
 
+function deleteRecurSeries(id) {
+  const s = window.SCH.find(x => x.id == id);
+  if(!s || !s._recId) return alert('לא מזוהה סדרה');
+  const g = window.G(s.g);
+  const affected = window.SCH.filter(x => x._recId === s._recId && x.d >= s.d && x.g === s.g);
+  
+  const pair = window.gardenPair(s.g);
+  let pRecId = null;
+  let pGname = '';
+  if (pair) {
+    const pGid = pair.ids.find(pid => Number(pid) !== Number(s.g));
+    const pG = window.G(pGid);
+    if (pG) {
+      pGname = pG.name.startsWith('גן') ? pG.name : `גן ${pG.name}`;
+      const pEv = window.SCH.find(x => x._recId && x.d === s.d && Number(x.g) === Number(pGid) && window.supBase(x.a) === window.supBase(s.a));
+      if (pEv) pRecId = pEv._recId;
+    }
+  }
+
+  const gName = g.name.startsWith('גן') ? g.name : `גן ${g.name}`;
+  let confirmMsg = `האם למחוק ${affected.length} פעילויות קבועות של ${gName} מ-${window.fD(s.d)} ואילך?`;
+  if (pRecId) {
+    confirmMsg = `האם למחוק ${affected.length} פעילויות קבועות מ-${window.fD(s.d)} ואילך גם עבור ${gName} וגם עבור גן בן-הזוג (${pGname})?`;
+  }
+  
+  if(!confirm(confirmMsg)) return;
+
+  if (!window.supEx) window.supEx = {};
+  if (!window.supEx['__deleted_sraws_ids']) window.supEx['__deleted_sraws_ids'] = [];
+
+  affected.forEach(x => {
+    const isSraws = !String(x.id).startsWith('e_');
+    if (isSraws && !window.supEx['__deleted_sraws_ids'].includes(x.id)) {
+      window.supEx['__deleted_sraws_ids'].push(x.id);
+    }
+    const i = window.SCH.indexOf(x);
+    if(i >= 0) window.SCH.splice(i, 1);
+  });
+
+  if (pRecId) {
+    const pAffected = window.SCH.filter(x => x._recId === pRecId && x.d >= s.d && Number(x.g) !== Number(s.g));
+    pAffected.forEach(x => {
+      const isSraws = !String(x.id).startsWith('e_');
+      if (isSraws && !window.supEx['__deleted_sraws_ids'].includes(x.id)) {
+        window.supEx['__deleted_sraws_ids'].push(x.id);
+      }
+      const i = window.SCH.indexOf(x);
+      if(i >= 0) window.SCH.splice(i, 1);
+    });
+  }
+
+  window.saveAndRefresh('sp');
+}
+
+function deleteSingleActivity(id) {
+  const s = window.SCH.find(x => x.id == id);
+  if(!s) return;
+  const g = window.G(s.g);
+  
+  const gName = g.name.startsWith('גן') ? g.name : `גן ${g.name}`;
+  if(!confirm(`האם למחוק את השיבוץ של ${gName} בתאריך ${window.fD(s.d)} לצמיתות?`)) return;
+  
+  if (!window.supEx) window.supEx = {};
+  if (!window.supEx['__deleted_sraws_ids']) window.supEx['__deleted_sraws_ids'] = [];
+  
+  const isSraws = !String(s.id).startsWith('e_');
+  if (isSraws && !window.supEx['__deleted_sraws_ids'].includes(s.id)) {
+    window.supEx['__deleted_sraws_ids'].push(s.id);
+  }
+  
+  const i = window.SCH.indexOf(s);
+  if(i >= 0) window.SCH.splice(i, 1);
+  
+  // Also check for partner sync
+  const pair = window.gardenPair(s.g);
+  if(pair) {
+    const pEv = window.findPartnerActivity ? window.findPartnerActivity(pair.ids.find(pid => Number(pid) !== Number(s.g)), s.d, s.a) : null;
+    if(pEv) {
+      const pG = window.G(pEv.g);
+      const pGname = pG.name.startsWith('גן') ? pG.name : `גן ${pG.name}`;
+      if (confirm(`האם למחוק גם את השיבוץ המקביל ב${pGname}?`)) {
+        const isSrawsPartner = !String(pEv.id).startsWith('e_');
+        if (isSrawsPartner && !window.supEx['__deleted_sraws_ids'].includes(pEv.id)) {
+          window.supEx['__deleted_sraws_ids'].push(pEv.id);
+        }
+        const pi = window.SCH.indexOf(pEv);
+        if(pi >= 0) window.SCH.splice(pi, 1);
+      }
+    }
+  }
+  
+  window.saveAndRefresh('sp');
+}
+
 function toggleSpRecurBox(isChecked) {
   const el = document.getElementById('sp-acc-series');
   const arrow = document.getElementById('sp-acc-series-arrow');
@@ -1195,7 +1350,26 @@ function setStatus(idOrSt, maybeSt){
     const main=window.SCH.find(x=>x.id==id);
     if(!main) return;
     main.st=st;
-    if(st==='ok') { main.cr=''; main.cn=''; }
+    if(st==='ok') {
+      main.cr='';
+      main.cn='';
+      main._compByMakeup = '';
+      if(main.nt) {
+        main.nt = main.nt.split(' | ').filter(part => 
+          !part.includes('לא התקיים:') && 
+          !part.includes('בוטל:') && 
+          !part.includes('השלמה נקבעה ל-') && 
+          !part.includes('הוקדם ל-') &&
+          !part.includes('נדחה ל-') &&
+          !part.includes('הוזז ל-') &&
+          !part.includes('הקדמה ל-') &&
+          !part.includes('דחייה ל-') &&
+          !part.includes('עבר ל-') &&
+          !part.includes('עובר ל-') &&
+          !part.includes('הועבר ל-')
+        ).join(' | ').trim();
+      }
+    }
 
     // Partner sync — check global checkbox
     const syncChk = document.getElementById('sp-sync-global') || document.getElementById('sp-sync-pair');
@@ -1207,7 +1381,26 @@ function setStatus(idOrSt, maybeSt){
           const pev = window.findPartnerActivity(oid, main.d, main.a);
           if(pev) {
             pev.st = st;
-            if(st==='ok') { pev.cr=''; pev.cn=''; }
+            if(st==='ok') {
+              pev.cr='';
+              pev.cn='';
+              pev._compByMakeup = '';
+              if(pev.nt) {
+                pev.nt = pev.nt.split(' | ').filter(part => 
+                  !part.includes('לא התקיים:') && 
+                  !part.includes('בוטל:') && 
+                  !part.includes('השלמה נקבעה ל-') && 
+                  !part.includes('הוקדם ל-') &&
+                  !part.includes('נדחה ל-') &&
+                  !part.includes('הוזז ל-') &&
+                  !part.includes('הקדמה ל-') &&
+                  !part.includes('דחייה ל-') &&
+                  !part.includes('עבר ל-') &&
+                  !part.includes('עובר ל-') &&
+                  !part.includes('הועבר ל-')
+                ).join(' | ').trim();
+              }
+            }
           }
         });
       }
@@ -2016,24 +2209,23 @@ window.openCanQ = function(id) {
   document.querySelectorAll('.can-reason-btn').forEach(b => b.classList.remove('sel'));
   
   const pair = window.gardenPair(s.g);
-  const wrap = document.getElementById('canq-scope-wrap');
-  const btns = document.getElementById('canq-scope-btns');
-  if (pair && btns && wrap) {
-    const partners = pair.ids.filter(gid=>gid!==s.g).map(gid=>window.G(gid)).filter(x=>x.id);
-    const allNames = [g,...partners].map(x=>x.name).join(' + ');
-    const pairChecked = (window._spSyncPartnerNext === true);
-    btns.innerHTML =
-      `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;padding:4px 6px;border-radius:5px;border:1.5px solid #e0e0e0;background:#fff">
-        <input type="radio" name="canq-scope" value="solo" ${pairChecked?'':'checked'} style="accent-color:#c62828">
-        <span>🏫 <b>${g.name}</b> בלבד</span>
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;padding:4px 6px;border-radius:5px;border:1.5px solid #e0e0e0;background:#fff">
-        <input type="radio" name="canq-scope" value="pair" ${pairChecked?'checked':''} style="accent-color:#c62828">
-        <span>🔗 כל הזוג — <b>${allNames}</b></span>
-      </label>`;
-    wrap.style.display = pairChecked ? 'none' : 'block';
-  } else if(wrap) {
-    wrap.style.display = 'none';
+  const syncContainer = document.getElementById('canq-sync-container');
+  const syncLabel = document.getElementById('canq-sync-label');
+  const syncChk = document.getElementById('canq-sync-chk');
+  
+  if (pair && syncContainer && syncLabel && syncChk) {
+    const partnerId = pair.ids.find(gid => Number(gid) !== Number(s.g));
+    const partner = window.G(partnerId);
+    if (partner) {
+      const pName = partner.name.startsWith('גן') ? partner.name : `גן ${partner.name}`;
+      syncLabel.innerHTML = `סנכרן גם לגן בן הזוג (<b>${pName}</b>)`;
+      syncChk.checked = true;
+      syncContainer.style.display = 'block';
+    } else {
+      syncContainer.style.display = 'none';
+    }
+  } else if (syncContainer) {
+    syncContainer.style.display = 'none';
   }
   const modal = document.getElementById('canqm');
   if(modal) modal.classList.add('open');
@@ -2053,8 +2245,8 @@ window.saveCanQ = function() {
   const fullReason = [mainReason, extra].filter(Boolean).join(' — ');
   if (!mainReason && !extra) { alert('יש לבחור סיבת ביטול'); return; }
   
-  const scopeEl = document.querySelector('input[name="canq-scope"]:checked');
-  const forPair = (scopeEl && scopeEl.value === 'pair') || (window._spSyncPartnerNext === true);
+  const syncChk = document.getElementById('canq-sync-chk');
+  const forPair = syncChk ? syncChk.checked : false;
   
   const s = window.SCH.find(x => x.id == _canQId); if (!s) return;
   const doCancel = (evId) => {
@@ -2158,24 +2350,23 @@ window.openNohapQ = function(id){
   document.querySelectorAll('.nohap-reason-btn').forEach(b=>b.classList.remove('sel'));
 
   const pair=window.gardenPair(s.g);
-  const scopeWrap=document.getElementById('nohapq-scope-wrap');
-  const scopeBtns=document.getElementById('nohapq-scope-btns');
-  if(pair && scopeBtns && scopeWrap){
-    const partners=pair.ids.filter(gid=>gid!==s.g).map(gid=>window.G(gid)).filter(x=>x.id);
-    scopeBtns.innerHTML='';
-    const allNames=[g,...partners].map(x=>x.name).join(' + ');
-    const pairChecked = (window._spSyncPartnerNext === true);
-    scopeBtns.innerHTML+=`<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;padding:4px 6px;border-radius:5px;border:1.5px solid #e0e0e0;background:#fff">
-      <input type="radio" name="nohapq-scope" value="solo" ${pairChecked?'':'checked'} style="accent-color:#e91e63">
-      <span>🏫 <b>${g.name}</b> בלבד</span>
-    </label>`;
-    scopeBtns.innerHTML+=`<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;padding:4px 6px;border-radius:5px;border:1.5px solid #e0e0e0;background:#fff">
-      <input type="radio" name="nohapq-scope" value="pair" ${pairChecked?'checked':''} style="accent-color:#e91e63">
-      <span>🔗 כל הזוג — <b>${allNames}</b></span>
-    </label>`;
-    scopeWrap.style.display = pairChecked ? 'none' : 'block';
-  } else if(scopeWrap) {
-    scopeWrap.style.display='none';
+  const syncContainer = document.getElementById('nohapq-sync-container');
+  const syncLabel = document.getElementById('nohapq-sync-label');
+  const syncChk = document.getElementById('nohapq-sync-chk');
+  
+  if(pair && syncContainer && syncLabel && syncChk){
+    const partnerId = pair.ids.find(gid => Number(gid) !== Number(s.g));
+    const partner = window.G(partnerId);
+    if (partner) {
+      const pName = partner.name.startsWith('גן') ? partner.name : `גן ${partner.name}`;
+      syncLabel.innerHTML = `סנכרן גם לגן בן הזוג (<b>${pName}</b>)`;
+      syncChk.checked = true;
+      syncContainer.style.display = 'block';
+    } else {
+      syncContainer.style.display = 'none';
+    }
+  } else if(syncContainer) {
+    syncContainer.style.display='none';
   }
   const modal = document.getElementById('nohapqm');
   if(modal) modal.classList.add('open');
@@ -2196,8 +2387,8 @@ window.saveNohapQ = function(){
   const fullReason=[mainReason,extra].filter(Boolean).join(' — ');
   if(!mainReason&&!extra){alert('יש לבחור סיבה');return;}
   
-  const scopeEl=document.querySelector('input[name="nohapq-scope"]:checked');
-  const forPair=(scopeEl&&scopeEl.value==='pair') || (window._spSyncPartnerNext === true);
+  const syncChk = document.getElementById('nohapq-sync-chk');
+  const forPair = syncChk ? syncChk.checked : false;
   
   const s = window.SCH.find(x => x.id == _nohapQId); if(!s) return;
   const doNohap = (evId) => {

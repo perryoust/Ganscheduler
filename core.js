@@ -1,4 +1,4 @@
-window.APP_VERSION = '103.35';
+window.APP_VERSION = '103.37';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── Platform Detection ──
@@ -539,7 +539,9 @@ function _applyYearData(o){
     });
 
     // 3. Assemble SCH: SRAWS (merged) + remaining Manual
+    const delIds = (o.supEx && o.supEx['__deleted_sraws_ids']) || [];
     window.SCH = SRAWS.map(s => {
+      if (delIds.includes(s.id)) return null;
       const x = m[s.id];
       if (x) return {...s, ...x};
       
