@@ -457,7 +457,7 @@ window.spUpdateExVisibility = function() {
   const hasExc = ids.some(id => {
     const ev = window.SCH.find(x => x.id == id);
     if(!ev) return false;
-    const isM = !!(ev._isMakeup || ev._makeupFrom || (ev.nt && /השלמה/i.test(ev.nt)) || (ev.a && /השלמה/i.test(ev.a)));
+    const isM = !!(ev._isMakeup || ev._makeupFrom || (ev.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(ev.nt)) || (ev.a && /השלמה|הוקדם מ/i.test(ev.a)));
     const isExc = (ev.st === 'nohap' || ev.st === 'post' || ev.st === 'can') && !ev._compByMakeup;
     return isExc || (isM && ev.st !== 'done');
   });
@@ -611,8 +611,8 @@ window.openSP = function(id) {
   // --- Activity type detection ---
   const _dow = new Date(s.d).getDay();
   const isM = !!(s._isMakeup || s._makeupFrom ||
-                (s.nt && /השלמה|makeup/i.test(s.nt)) ||
-                (s.n && /השלמה|makeup/i.test(s.n)) ||
+                (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) ||
+                (s.n && /השלמה|הוקדם מ/i.test(s.n)) ||
                 (s.cn && /השלמה|makeup/i.test(s.cn)) ||
                 (s.a && /השלמה|makeup/i.test(s.a)) ||
                 (s.act && /השלמה|makeup/i.test(s.act)));
@@ -1262,7 +1262,7 @@ function saveNt(){
 
   if(nEl) {
     s.n=nEl.value;
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|makeup/i.test(s.nt)));
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)));
     const isP = !!s._postFrom;
     if(s._recId && !isM && !isP) {
       window.SCH.forEach(x => {

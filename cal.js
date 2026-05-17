@@ -69,7 +69,7 @@ function filterE(f,from,to){
      
     if(f.st==='todo'){
        if(s.st==='can') return false; 
-       const isM = !!(s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+       const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
        const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false");
        if(!(s.st==='nohap' || s.st==='post' || isM || isHandled)) return false;
     } else if(!f.st){
@@ -420,7 +420,7 @@ var CITY_COLORS=window.CITY_COLORS;
 function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
   const f={city:cityFilter, cls:clsFilter};
   const evs = (typeof filterE === 'function' ? filterE(f, ds, ds) : []).filter(s => {
-    return !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+    return !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
   });
   if(!evs.length) return '';
 
@@ -640,7 +640,7 @@ function renderClusterDay(evs, ds, clusterName){
   html += renderMakeupsTop(ds, calCity, calCls);
 
   // Filter out makeups from the regular section to avoid duplication
-  const others = evs.filter(s => !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt))));
+  const others = evs.filter(s => !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n))));
 
   if (isAll) {
     const allCities=[...new Set(others.map(s=>window.G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
@@ -757,7 +757,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
     html += renderMakeupsTop(ds, calCityW, calClsW);
     
     // Filter out makeups from the regular section to avoid duplication
-    const dayEvs = evs.filter(s => s.d === ds && !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt))))
+    const dayEvs = evs.filter(s => s.d === ds && !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n))))
                     .sort((a,b) => (a.t||'99:99').localeCompare(b.t||'99:99'));
     const editBtn = (!isAll && clObj) ? `<button onclick="event.stopPropagation();window.openClusterBulkEdit('${clObj.id}','${ds}')" style="background: linear-gradient(135deg, #1565c0, #1e88e5); border:none; border-radius:4px; color:#fff; font-size:.7rem; font-weight:700; padding:3px 10px; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">✏️ עריכה מרוכזת</button>` : '';
     html+=`<div class="dsec" style="margin-bottom:10px">
@@ -850,7 +850,7 @@ function renderNormalDay(evs,ds){
   // Global Makeups at Top
   topHtml += renderMakeupsTop(ds, calCity, calCls);
   
-  const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)) || (s.n && /השלמה|makeup/i.test(s.n)));
+  const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
   // Filter out makeups from the regular section to avoid duplication
   const others = evs.filter(s => !isM(s)); 
   const pairedGids=new Set();
@@ -1208,7 +1208,7 @@ function renderCalList(evs, mDate){
   if(!dates.length) return '<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות בחודש זה</div>';
 
   let h='<div class="card" style="padding:0;overflow:hidden">';
-  const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+  const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
   dates.forEach(ds=>{
     const dayEvs=byDate[ds].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
     const isToday=ds===tday;
@@ -1233,7 +1233,7 @@ function renderCalList(evs, mDate){
     h += renderMakeupsTop(ds, f.city, f.cls);
 
     // Group by city → sort cities
-    const dayEvsNonM = dayEvs.filter(s => !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt))));
+    const dayEvsNonM = dayEvs.filter(s => !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n))));
     const allCities=[...new Set(dayEvsNonM.map(s=>window.G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
 
     allCities.forEach(city=>{
@@ -1284,7 +1284,7 @@ function renderCalList(evs, mDate){
       const pairGroups=[];
       window.pairs.forEach(pair=>{
         if(isPairBroken&&isPairBroken(pair.id,ds)) return;
-        const isM = s => (s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+        const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
         const pairEvs=cityEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g))&&!clusteredGidsC.has(Number(s.g)));
         if(!pairEvs.length) return;
         pairEvs.forEach(s=>pairedGids.add(Number(s.g)));
@@ -1418,7 +1418,7 @@ function renderRangeListView(evs, fromDs, toDs){
   if(!dates.length) return '<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות בטווח זה</div>';
 
   let h = '<div class="card" style="padding:0;overflow:hidden">';
-  const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && s.nt.includes('השלמה')));
+  const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
   const f = getCalF();
   
   dates.forEach(ds => {
@@ -1440,7 +1440,7 @@ function renderRangeListView(evs, fromDs, toDs){
     h += '<div style="padding:6px 8px">';
     h += renderMakeupsTop(ds, f.city, f.cls);
 
-    const dayEvsNonM = dayEvs.filter(s => !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt))));
+    const dayEvsNonM = dayEvs.filter(s => !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n))));
     const allCities = [...new Set(dayEvsNonM.map(s => window.G(s.g).city || 'אחר'))].sort((a,b) => a.localeCompare(b, 'he'));
 
     allCities.forEach(city => {
