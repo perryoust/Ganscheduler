@@ -1,4 +1,4 @@
-window.APP_VERSION = '103.28';
+window.APP_VERSION = '103.29';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── Platform Detection ──
@@ -91,9 +91,16 @@ window.ui = {
             <span class="mob-act-status">${stLbl}</span>
           </div>
           <div class="mob-act-body">
-            <div>👤 ${supBase}</div>
-            <div>🎨 ${supAct}</div>
-            ${s.nt ? `<div style="grid-column: span 2; color:var(--c-error)">📝 ${s.nt}</div>` : ''}
+            <div style="grid-column: span 2">
+              👤 <b>${supBase}</b> ${phone ? `<span style="color:var(--c-success);font-weight:600;font-size:0.75rem;margin-right:6px">📞 ${phone}</span>` : ''}
+            </div>
+            <div style="grid-column: span 2">
+              🎨 <b>${supAct}</b> ${evType ? `<span style="color:#78909c;font-size:0.75rem">(${evType})</span>` : ''} ${grpCount ? `<span style="background:#e8eaf6;color:#3f51b5;border-radius:4px;padding:1px 5px;font-size:0.68rem;margin-right:6px;font-weight:700;display:inline-block">${grpCount} קב'</span>` : ''}
+            </div>
+            ${(s.nt || isM) ? `
+              <div style="grid-column: span 2; color:var(--c-error)">
+                📝 ${isM ? `<span style="background:#ffe082;color:#b71c1c;border-radius:4px;padding:1px 4px;font-size:0.65rem;font-weight:800;margin-left:4px;display:inline-block">השלמה</span> ` : ''}${s.nt || ''}
+              </div>` : ''}
           </div>
           <div class="mob-act-btns">
             ${window.ui.renderQuickActionBtns(s)}
