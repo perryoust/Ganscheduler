@@ -1,4 +1,4 @@
-window.APP_VERSION = '103.12';
+window.APP_VERSION = '103.20';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── Platform Detection ──
@@ -1142,12 +1142,9 @@ function calculateStats() {
     return 'גנים';
   };
 
-  // 1. Filter by Tab and basic filters (city, sup, srch, date-range)
-  // This is the "Base Set" of relevant activities before date filtering.
   const baseSch = sch.filter(s => {
     const g = window.G(s.g);
     if (!g) return false;
-    if (getGcls(g) !== cls) return false;
     
     if (city && g.city !== city) return false;
     if (sup && window.supBase(s.a) !== sup) return false;

@@ -50,11 +50,6 @@ function renderDash() {
     if (!g) return false;
     
     const gClass = window.gcls ? window.gcls(g) : 'גנים';
-    if (tab === 's' && gClass === 'ביה"ס') {
-       // Debug: console.log('Found school activity:', s.a, s.st, view);
-    }
-    if (tab === 'g' && gClass !== 'גנים') return false;
-    if (tab === 's' && gClass !== 'ביה"ס') return false;
 
     if (city && g.city !== city) return false;
     if (sup && window.supBase(s.a) !== sup) return false;
@@ -96,37 +91,47 @@ function renderDash() {
   // Sort newest first
   filtered.sort((a, b) => b.d.localeCompare(a.d) || (b.t || '').localeCompare(a.t || ''));
 
-  // Group by City
+  // Group by City and Classification
   const groups = {};
   filtered.forEach(s => {
     const g = window.G(s.g);
     const c = g.city || 'אחר';
-    if (!groups[c]) groups[c] = [];
-    groups[c].push(s);
+    const gClass = window.gcls ? window.gcls(g) : 'גנים';
+    const key = `${c} - ${gClass}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(s);
   });
 
   const openCities = new Set();
   document.querySelectorAll('.dash-city-accordion[open]').forEach(det => {
-    const cityTitle = det.querySelector('summary span:nth-child(2)')?.textContent?.replace('🏙️ ', '').trim();
+    const cityTitle = det.querySelector('summary span:nth-child(2)')?.textContent?.substring(2).trim();
     if (cityTitle) openCities.add(cityTitle);
   });
 
   let html = '';
-  Object.keys(groups).sort().forEach((cityName, idx) => {
-    const cityEvs = groups[cityName];
-    const cityOpen = !!city || openCities.has(cityName); 
-    const cityNameEsc = cityName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    const groupId = `dash-group-${cityName.replace(/\s+/g, '_')}`;
+  Object.keys(groups).sort().forEach((groupKey, idx) => {
+    const cityEvs = groups[groupKey];
+    const parts = groupKey.split(' - ');
+    const cityName = parts[0];
+    const gClass = parts[1] || 'גנים';
+    const displayName = gClass === 'ביה"ס' ? `${cityName} - בתי ספר` : `${cityName} - צהרוני גנים`;
+    const typeIcon = gClass === 'ביה"ס' ? '🏛️' : '🏫';
+    
+    const cityOpen = !!city || openCities.has(displayName); 
+    const cityNameEsc = displayName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const groupId = `dash-group-${groupKey.replace(/\s+/g, '_').replace(/"/g, '').replace(/'/g, '')}`;
     const clr = window.CITY_COLORS ? window.CITY_COLORS(cityName) : {solid:'#1a237e', light:'#f8fafc', border:'#e2e8f0'};
 
     html += `<details class="dash-city-accordion" ${cityOpen ? 'open' : ''}>
       <summary>
         <div style="display:flex; align-items:center; gap:12px; flex:1">
           <input type="checkbox" onclick="event.stopPropagation(); dashCheckAll('${groupId}', this.checked)" style="width:18px;height:18px">
-          <span style="font-weight:800; color:#1e293b; font-size:1.1rem">🏙️ ${cityName}</span>
+          <span style="font-weight:800; color:#1e293b; font-size:1.1rem">${typeIcon} ${displayName}</span>
           <span style="font-weight:700; color:#64748b; font-size:0.9rem; margin-right:5px">(${cityEvs.length})</span>
         </div>
         <div style="font-size:0.75rem; color:#64748b; font-weight:600">לחץ לפירוט ▼</div>
+      </summary>
+      <div id="${groupId}" class="dash-city-content" style="padding:10px; display:flex; flex-direction:column; gap:8px">`;<div style="font-size:0.75rem; color:#64748b; font-weight:600">לחץ לפירוט ▼</div>
       </summary>
       <div id="${groupId}" class="dash-city-content" style="padding:10px; display:flex; flex-direction:column; gap:8px">`;
 

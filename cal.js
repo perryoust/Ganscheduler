@@ -60,9 +60,6 @@ function filterE(f,from,to){
       }
     }
     if(f.cls&&window.gcls(g)!==f.cls) return false;
-    // Strict isolation based on active tab
-    if(window._calTab==='g' && window.gcls(g)!=='גנים') return false;
-    if(window._calTab==='s' && window.gcls(g)!=='ביה"ס') return false;
     
     if(f.gids&&!f.gids.map(Number).includes(Number(s.g))) return false;
     if(f.sup && window.supBase(s.a) !== f.sup && s.a !== f.sup) return false;
@@ -95,9 +92,6 @@ function filterE(f,from,to){
       }
     }
     if(f.cls&&window.gcls(g)!==f.cls) return false;
-    // Strict isolation based on active tab
-    if(window._calTab==='g' && window.gcls(g)!=='גנים') return false;
-    if(window._calTab==='s' && window.gcls(g)!=='ביה"ס') return false;
 
     if(f.gids&&!f.gids.map(Number).includes(Number(s.g))) return false;
     if(f.sup && window.supBase(s.a) !== f.sup && s.a !== f.sup) return false;
@@ -532,54 +526,63 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
       allCities.forEach(city=>{
         const cityEvs=dayEvs.filter(s=>(window.G(s.g).city||'אחר')===city);
         if(!cityEvs.length) return;
-        const clr=window.CITY_COLORS(city);
-        html+=`<details class="city-accordion">
-          <summary>
-            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-              <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cityEvs.length})</span>
-              <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
-            </div>
-          </summary>
-          <div class="city-accordion-content">`;
 
-        // --- זוגות: מיון לפי שעה הכי מוקדמת בזוג ---
-        const pairedGids=new Set();
-        const pairBlocks=[];
-        window.pairs.forEach(pair=>{
-          if(window.isPairBroken(pair.id,ds)) return;
-          const pairEvs=cityEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g)));
-          if(!pairEvs.length) return;
-          pairEvs.forEach(s => dateUsedIds.add(String(s.id)));
-          pair.ids.forEach(id=>pairedGids.add(id));
-          const earliest=pairEvs.map(s=>s.t||'99:99').sort()[0];
-          pairBlocks.push({pair,pairEvs,earliest});
-        });
-        // sort pair blocks by earliest event time
-        pairBlocks.sort((a,b)=>a.earliest.localeCompare(b.earliest));
-        if(pairBlocks.length){
-          html+=`<div class="pairs-list-layout" style="margin-bottom:8px">`;
-          pairBlocks.forEach(({pair,pairEvs})=>{
-            html+=window.ui.renderStandardPairCard(pair,pairEvs,{ds,clr,context:'cal'});
-          });
-          html+=`</div>`;
-        }
-
-        // --- גנים בודדים ---
-        const soloEvs=cityEvs.filter(s=>!pairedGids.has(s.g))
-          .sort((a,b)=>{
-            const na=window.G(a.g).name||'', nb=window.G(b.g).name||'';
-            return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
-          });
+        ['גנים', 'ביה"ס'].forEach(gClass => {
+          const typeEvs = cityEvs.filter(s => window.gcls(window.G(s.g)) === gClass);
+          if(!typeEvs.length) return;
           
-        if(soloEvs.length){
-          html+=`<div class="pairs-list-layout">`;
-          soloEvs.forEach(s=>{
-            const g=window.G(s.g);
-            html+=window.ui.renderStandardPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds,clr,context:'cal',isSolo:true});
+          const clr=window.CITY_COLORS(city);
+          const typeName = gClass === 'ביה"ס' ? 'בתי ספר' : 'צהרוני גנים';
+          const typeIcon = gClass === 'ביה"ס' ? '🏛️' : '🏫';
+
+          html+=`<details class="city-accordion">
+            <summary>
+              <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                <span style="font-weight:800; color:#2d3748;">${typeIcon} ${city} - ${typeName} (${typeEvs.length})</span>
+                <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
+              </div>
+            </summary>
+            <div class="city-accordion-content">`;
+
+          // --- זוגות: מיון לפי שעה הכי מוקדמת בזוג ---
+          const pairedGids=new Set();
+          const pairBlocks=[];
+          window.pairs.forEach(pair=>{
+            if(window.isPairBroken(pair.id,ds)) return;
+            const pairEvs=typeEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g)));
+            if(!pairEvs.length) return;
+            pairEvs.forEach(s => dateUsedIds.add(String(s.id)));
+            pair.ids.forEach(id=>pairedGids.add(id));
+            const earliest=pairEvs.map(s=>s.t||'99:99').sort()[0];
+            pairBlocks.push({pair,pairEvs,earliest});
           });
-          html+=`</div>`;
-        }
-        html+=`</div></details>`; // end city accordion
+          // sort pair blocks by earliest event time
+          pairBlocks.sort((a,b)=>a.earliest.localeCompare(b.earliest));
+          if(pairBlocks.length){
+            html+=`<div class="pairs-list-layout" style="margin-bottom:8px">`;
+            pairBlocks.forEach(({pair,pairEvs})=>{
+              html+=window.ui.renderStandardPairCard(pair,pairEvs,{ds,clr,context:'cal'});
+            });
+            html+=`</div>`;
+          }
+
+          // --- גנים בודדים ---
+          const soloEvs=typeEvs.filter(s=>!pairedGids.has(s.g) && !pairedGids.has(String(s.g)) && !pairedGids.has(Number(s.g)))
+            .sort((a,b)=>{
+              const na=window.G(a.g).name||'', nb=window.G(b.g).name||'';
+              return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
+            });
+            
+          if(soloEvs.length){
+            html+=`<div class="pairs-list-layout">`;
+            soloEvs.forEach(s=>{
+              const g=window.G(s.g);
+              html+=window.ui.renderStandardPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds,clr,context:'cal',isSolo:true});
+            });
+            html+=`</div>`;
+          }
+          html+=`</div></details>`; // end city type accordion
+        });
       });
     }
 
@@ -625,48 +628,57 @@ function renderClusterDay(evs, ds, clusterName){
       allCities.forEach(city=>{
         const cityEvs=others.filter(s=>(window.G(s.g).city||'אחר')===city);
         if(!cityEvs.length) return;
-        const clrCity=window.CITY_COLORS(city);
-        html+=`<details class="city-accordion">
-          <summary>
-            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-              <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cityEvs.length})</span>
-              <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
-            </div>
-          </summary>
-          <div class="city-accordion-content">`;
-      // Group by cluster within city
-      const clusterMap={};
-      cityEvs.forEach(s=>{
-        const gClusters=window.gardenClusters(s.g);
-        const clKey=gClusters.length?gClusters[0].name:'ללא אשכול';
-        (clusterMap[clKey]=clusterMap[clKey]||[]).push(s);
-      });
-      Object.entries(clusterMap).sort((a,b)=>a[0].localeCompare(b[0],'he')).forEach(([clName,clEvs])=>{
-        const sorted=[...clEvs].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
-        const clObj = clName !== 'ללא אשכול' ? window.getClusters().find(c => c.name.trim() === clName.trim()) : null;
-        const clGids = clEvs.map(s => s.g);
-        
-        html+=`<div style="margin-bottom:10px">
-          <div style="padding:3px 10px;background:${clrCity.light};border-right:3px solid ${clrCity.solid};border-radius:4px;font-size:.74rem;font-weight:700;color:${clrCity.solid};margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
-            <span>🔢 ${clName} — ${sorted.length} פעילויות</span>
-            <div style="display:flex;gap:4px">
-              ${clObj ? `<button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${clObj.id}','${ds}')" style="font-size:.62rem;padding:1px 6px">✏️ עריכה</button>` : ''}
-              ${clGids.length ? `<button class="btn bg bsm" onclick="event.stopPropagation();window._exportPairWA(${JSON.stringify(clGids)})" style="font-size:.62rem;padding:1px 6px">📋 הודעה</button>` : ''}
-            </div>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px">`;
-          
-          sorted.forEach(s => {
-            html += window.ui.renderStandardPairCard({id:'solo_'+s.id, name:window.G(s.g).name, ids:[s.g]}, [s], {
-              ds: s.d,
-              clr: clrCity,
-              context: 'cal',
-              isSolo: true
-            });
-          });
-          html+=`</div></div>`;
+
+        ['גנים', 'ביה"ס'].forEach(gClass => {
+          const typeEvs = cityEvs.filter(s => window.gcls(window.G(s.g)) === gClass);
+          if(!typeEvs.length) return;
+
+          const clrCity=window.CITY_COLORS(city);
+          const typeName = gClass === 'ביה"ס' ? 'בתי ספר' : 'צהרוני גנים';
+          const typeIcon = gClass === 'ביה"ס' ? '🏛️' : '🏫';
+
+          html+=`<details class="city-accordion">
+            <summary>
+              <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                <span style="font-weight:800; color:#2d3748;">${typeIcon} ${city} - ${typeName} (${typeEvs.length})</span>
+                <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
+              </div>
+            </summary>
+            <div class="city-accordion-content">`;
+        // Group by cluster within city type
+        const clusterMap={};
+        typeEvs.forEach(s=>{
+          const gClusters=window.gardenClusters(s.g);
+          const clKey=gClusters.length?gClusters[0].name:'ללא אשכול';
+          (clusterMap[clKey]=clusterMap[clKey]||[]).push(s);
         });
-        html+=`</div></details>`;
+        Object.entries(clusterMap).sort((a,b)=>a[0].localeCompare(b[0],'he')).forEach(([clName,clEvs])=>{
+          const sorted=[...clEvs].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+          const clObj = clName !== 'ללא אשכול' ? window.getClusters().find(c => c.name.trim() === clName.trim()) : null;
+          const clGids = clEvs.map(s => s.g);
+          
+          html+=`<div style="margin-bottom:10px">
+            <div style="padding:3px 10px;background:${clrCity.light};border-right:3px solid ${clrCity.solid};border-radius:4px;font-size:.74rem;font-weight:700;color:${clrCity.solid};margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
+              <span>🔢 ${clName} — ${sorted.length} פעילויות</span>
+              <div style="display:flex;gap:4px">
+                ${clObj ? `<button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${clObj.id}','${ds}')" style="font-size:.62rem;padding:1px 6px">✏️ עריכה</button>` : ''}
+                ${clGids.length ? `<button class="btn bg bsm" onclick="event.stopPropagation();window._exportPairWA(${JSON.stringify(clGids)})" style="font-size:.62rem;padding:1px 6px">📋 הודעה</button>` : ''}
+              </div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">`;
+            
+            sorted.forEach(s => {
+              html += window.ui.renderStandardPairCard({id:'solo_'+s.id, name:window.G(s.g).name, ids:[s.g]}, [s], {
+                ds: s.d,
+                clr: clrCity,
+                context: 'cal',
+                isSolo: true
+              });
+            });
+            html+=`</div></div>`;
+          });
+          html+=`</div></details>`;
+        });
       });
   } else {
     // ── אשכול בודד: עיר → גן → שעה ──
