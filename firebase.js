@@ -148,7 +148,7 @@ async function loadFromFirebase(silent = false, force = false) {
     const cloud = await r.json();
     if (!cloud || !cloud.seq) return true;
 
-    if (!force && cloud.seq <= _localSeq) {
+    if (!force && cloud.seq <= _localSeq && window._fbSyncReady) {
       _setSyncState(cloud.seq, Date.now());
       return true;
     }
