@@ -1920,8 +1920,6 @@ window.createMakeupActivity = function(data) {
     _makeupFrom: data.origD
   };
   
-  window.SCH.push(newEv);
-  
   // Link back to original
   if(data.origId) {
     const origExt = window.SCH.find(x => String(x.id) === String(data.origId));
