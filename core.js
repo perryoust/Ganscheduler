@@ -1,4 +1,4 @@
-window.APP_VERSION = '103.27';
+window.APP_VERSION = '103.28';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── Platform Detection ──
@@ -87,13 +87,12 @@ window.ui = {
         <div class="mob-act-card ${stCls}" onclick="window.openSP('${s.id}')">
           <div class="mob-act-hdr">
             <span class="mob-act-time">${timeStr}</span>
-            <span class="mob-act-garden">${g.name}</span>
+            <span class="mob-act-garden">${g.name}${g.st ? ` <span style="font-size:0.72rem; color:#64748b; font-weight:400; margin-right:6px; display:inline-block">📍 ${g.st}</span>` : ''}</span>
             <span class="mob-act-status">${stLbl}</span>
           </div>
           <div class="mob-act-body">
             <div>👤 ${supBase}</div>
             <div>🎨 ${supAct}</div>
-            ${g.st ? `<div style="grid-column: span 2">📍 ${g.st}</div>` : ''}
             ${s.nt ? `<div style="grid-column: span 2; color:var(--c-error)">📝 ${s.nt}</div>` : ''}
           </div>
           <div class="mob-act-btns">
@@ -116,8 +115,7 @@ window.ui = {
     // 2. Garden Name (צהרון)
     rowHtml += `
       <td class="p-8 font-bold text-primary" style="line-height:1.2">
-         ${gIcon} ${g.name}
-         ${g.st ? `<div class="text-xs text-light mt-1">📍 ${g.st}</div>` : ''}
+         ${gIcon} ${g.name}${g.st ? ` <span style="font-size:0.75rem; color:#64748b; font-weight:400; margin-right:6px; display:inline-block">📍 ${g.st}</span>` : ''}
       </td>`;
 
     // 3. Time (שעה)
