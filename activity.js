@@ -2066,25 +2066,18 @@ window.saveCanQ = function() {
     }
   };
   
-  // Find all selected IDs if this was a batch action
-  const selectedIds = new Set();
-  document.querySelectorAll('.dash-row-chk:checked').forEach(cb => selectedIds.add(cb.value));
-  if (selectedIds.size === 0) selectedIds.add(_canQId);
-
-  selectedIds.forEach(id => {
-    const ev = window.SCH.find(x => x.id == id);
-    if (!ev) return;
-    doCancel(id);
-    if(forPair){
-      const pair = window.gardenPair(ev.g);
-      if(pair) pair.ids.filter(gid => Number(gid) !== Number(ev.g)).forEach(gid => {
-        const pEv = window.findPartnerActivity(gid, ev.d, ev.a);
-        if(pEv && pEv.st !== 'can') doCancel(pEv.id);
+  doCancel(_canQId);
+  if (forPair) {
+    const pair = window.gardenPair(s.g);
+    if (pair) {
+      pair.ids.filter(gid => Number(gid) !== Number(s.g)).forEach(gid => {
+        const pEv = window.findPartnerActivity(gid, s.d, s.a);
+        if (pEv && pEv.st !== 'can') doCancel(pEv.id);
       });
     }
-  });
+  }
   
-  window.saveAndRefresh('canqm', true);
+  window.saveAndRefresh('canqm', false);
 
   // Prompt for makeup
   setTimeout(() => {
@@ -2216,25 +2209,18 @@ window.saveNohapQ = function(){
     }
   };
   
-  // Find all selected IDs if this was a batch action
-  const selectedIds = new Set();
-  document.querySelectorAll('.dash-row-chk:checked').forEach(cb => selectedIds.add(cb.value));
-  if (selectedIds.size === 0) selectedIds.add(_nohapQId);
-
-  selectedIds.forEach(id => {
-    const ev = window.SCH.find(x => x.id == id);
-    if (!ev) return;
-    doNohap(id);
-    if(forPair){
-      const pair = window.gardenPair(ev.g);
-      if(pair) pair.ids.filter(gid => Number(gid) !== Number(ev.g)).forEach(gid => {
-        const pEv = window.findPartnerActivity(gid, ev.d, ev.a);
-        if(pEv && pEv.st !== 'nohap' && pEv.st !== 'done') doNohap(pEv.id);
+  doNohap(_nohapQId);
+  if (forPair) {
+    const pair = window.gardenPair(s.g);
+    if (pair) {
+      pair.ids.filter(gid => Number(gid) !== Number(s.g)).forEach(gid => {
+        const pEv = window.findPartnerActivity(gid, s.d, s.a);
+        if (pEv && pEv.st !== 'nohap' && pEv.st !== 'done') doNohap(pEv.id);
       });
     }
-  });
+  }
 
-  window.saveAndRefresh('nohapqm', true);
+  window.saveAndRefresh('nohapqm', false);
   
   // Prompt for makeup
   setTimeout(() => {
