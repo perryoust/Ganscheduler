@@ -178,9 +178,14 @@ function navCal(d){
     else if(lsv==='week') calD=addD(calD,d); // Jump 1 day at a time
     else calD=addM(calD,d);
   }
-
-
   else calD=addM(calD,d);
+
+  // Sync datepickers
+  const dpD = document.getElementById('cal-dp-desktop');
+  const dpM = document.getElementById('cal-dp-mobile');
+  if(dpD) dpD.value=window.d2s(calD);
+  if(dpM) dpM.value=window.d2s(calD);
+
   renderCal();
 }
 function goToday(){
@@ -191,8 +196,27 @@ function goToday(){
   if(dpM) dpM.value=window.td();
   renderCal();
 }
-function goDate(s){if(s){calD=window.s2d(s);renderCal();}}
-function jumpToDay(ds){calD=s2d(ds);setListSubView('day');setView('list');}
+function goDate(s){
+  if(s){
+    calD=window.s2d(s);
+    // Sync other datepicker
+    const dpD = document.getElementById('cal-dp-desktop');
+    const dpM = document.getElementById('cal-dp-mobile');
+    if(dpD && dpD.value !== s) dpD.value = s;
+    if(dpM && dpM.value !== s) dpM.value = s;
+    renderCal();
+  }
+}
+function jumpToDay(ds){
+  calD=s2d(ds);
+  // Sync datepickers
+  const dpD = document.getElementById('cal-dp-desktop');
+  const dpM = document.getElementById('cal-dp-mobile');
+  if(dpD) dpD.value=ds;
+  if(dpM) dpM.value=ds;
+  setListSubView('day');
+  setView('list');
+}
 window.calJump = function(pairId, view, gardenId) {
   // 1. Switch to Calendar Mode
   if (window.setMode) window.setMode('cal');
