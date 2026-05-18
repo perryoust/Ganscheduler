@@ -2044,93 +2044,202 @@ window.importInvoices = function(input) {
       const workbook = XLSX.read(data, { type: "array" });
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
-      const rows = XLSX.utils.sheet_to_json(worksheet);
-
-      if (rows.length === 0) {
+      
+      // Convert to 2D array to support robust header row detection
+      const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      if (rawRows.length === 0) {
         alert("הקובץ ריק או לא תקין.");
         return;
       }
 
-      // Header Mapping (Hebrew -> Internal Key)
+      // Check if Row 1 has more columns than Row 0 (multi-row header sheet structure)
+      let headerRowIndex = 0;
+      if (rawRows.length > 1) {
+        const row0Cells = rawRows[0].filter(c => c !== null && c !== undefined && c !== '').length;
+        const row1Cells = rawRows[1].filter(c => c !== null && c !== undefined && c !== '').length;
+        if (row1Cells > row0Cells && rawRows[1].some(c => String(c).includes('ספק') || String(c).includes('הזמנה') || String(c).includes('חשבונית'))) {
+          headerRowIndex = 1;
+        }
+      }
+
+      // Header Mapping (Hebrew -> Internal Key) for fallback
       const map = {
+        "מס' הזמנת רכש (רץ)": "orderNum",
+        "תאריך הזמנה מדוייק": "orderDate",
+        "שם הספק (שרשום ע\"ג החשבונית)": "supName",
+        "פירוט הרכישה": "orderDesc",
+        "סיווג הרכישה(העשרה/תפעול/ארוחות בוקר/נסיעות/אחר)": "orderType",
+        "סיווג הרכישה": "orderType",
+        "שיוך הרכישה (משותף/צהרונים/חנוכה/פסח/יום ארוך/קייטנת קיץ/כללי)": "orderAssign",
+        "שיוך הרכישה": "orderAssign",
+        "חודש הפעילות": "orderMonth",
+        "עיר": "locCity",
+        "גן /ביה\"ס / משותף משרדים": "locType",
+        "שם ביה\"ס/גן": "locName",
+        "שם גן-ביהס": "locName",
+        "סהכ' סכום ההזמנה כולל מע\"מ": "orderTotal",
+        "מס' חשבון עיסקה": "txNum",
+        "תאריך חשבון עיסקה": "txDate",
+        "מס' חשבונית/קבלה": "num",
+        "תאריך החשבונית": "date",
         "מספר הזמנה": "orderNum",
         "תאריך הזמנה": "orderDate",
         "שם הספק": "supName",
         "פירוט": "orderDesc",
         "סהכ הזמנה כולל מעמ": "orderTotal",
         "מס חשבון עסקה": "txNum",
-        "תאריך חשבון עסקה": "txDate",
         "סכום עסקה לפני מעמ": "txAmt",
         "סכום עסקה כולל מעמ": "txTotal",
         "מס חשבונית / קבלה": "num",
         "תאריך חשבונית": "date",
         "סכום חשבונית לפני מעמ": "amt",
         "סכום חשבונית כולל מעמ": "total",
-        "הערות": "notes",
-        "עיר": "locCity",
-        "שם גן-ביהס": "locName"
+        "הערות": "notes"
       };
 
       let added = 0;
       let updated = 0;
 
-      rows.forEach(row => {
-        const item = {};
-        Object.keys(row).forEach(k => {
-          const val = row[k];
-          const cleanK = String(k).trim();
-          const key = map[cleanK] || cleanK;
-          item[key] = val;
-        });
+      for (let i = headerRowIndex + 1; i < rawRows.length; i++) {
+        const row = rawRows[i];
+        if (!row || row.length === 0) continue;
 
-        if (!item.supName) return; // Skip invalid rows
-        
-        // Safety: If the row looks like a calendar activity (has Garden name or Hebrew activity headers)
-        const lowerK = Object.keys(row).map(k=>String(k).toLowerCase());
-        const isActivity = lowerK.some(k=>k.includes('גן') || k.includes('צהרון') || k.includes('חוג') || k.includes('ספק') || k.includes('פעילות'));
-        const isProcurement = lowerK.some(k=>k.includes('חשבונית') || k.includes('קבלה') || k.includes('הזמנה'));
-        
-        if (isActivity && !isProcurement) {
-           console.warn("Skipping row that looks like a calendar activity:", row);
-           return;
+        const item = {};
+        if (headerRowIndex === 1) {
+          // Precise index-based mapping for two-row Excel format to avoid identical name conflicts
+          const colMapping = [
+            null, // 0: מס"ד
+            "orderNum", // 1
+            "orderDate", // 2
+            "supName", // 3
+            "orderDesc", // 4
+            "orderType", // 5
+            "orderAssign", // 6
+            "orderMonth", // 7
+            "locCity", // 8
+            "locType", // 9
+            "locName", // 10
+            "orderTotal", // 11
+            "orderNotes", // 12
+            "txNum", // 13
+            "txDate", // 14
+            "txAmt", // 15
+            "txTotal", // 16
+            "num", // 17
+            "date", // 18
+            "amt", // 19
+            "total", // 20
+            "notes" // 21
+          ];
+          colMapping.forEach((key, colIdx) => {
+            if (key) item[key] = row[colIdx];
+          });
+        } else {
+          // Standard key-based mapping
+          const headers = rawRows[headerRowIndex].map(h => String(h || '').trim());
+          headers.forEach((h, colIdx) => {
+            if (h) {
+              const key = map[h] || h;
+              item[key] = row[colIdx];
+            }
+          });
         }
 
-        // Format dates if they are numeric (Excel serial)
+        if (!item.supName) continue; // Skip invalid rows
+
+        // Format dates if they are numeric (Excel serial format)
         ["orderDate", "txDate", "date"].forEach(dk => {
           if (typeof item[dk] === "number") {
-             const d = new Date(Math.round((item[dk] - 25569) * 86400 * 1000));
-             item[dk] = d.toISOString().slice(0, 10);
+            const d = new Date(Math.round((item[dk] - 25569) * 86400 * 1000));
+            item[dk] = d.toISOString().slice(0, 10);
           }
         });
 
-        // Unique ID for merging: Supplier + OrderNum + Date + Total
+        // Ensure numeric fields are correctly typed
+        ["orderTotal", "txAmt", "txTotal", "amt", "total"].forEach(nk => {
+          if (item[nk] !== undefined && item[nk] !== null) {
+            if (typeof item[nk] === 'string') {
+              const parsed = parseFloat(item[nk].replace(/[^\d.-]/g, ''));
+              item[nk] = isNaN(parsed) ? 0 : parsed;
+            } else if (typeof item[nk] === 'number') {
+              item[nk] = item[nk];
+            }
+          } else {
+            item[nk] = 0;
+          }
+        });
+
         const sName = String(item.supName || "").trim();
         const oNum  = String(item.orderNum || "").trim();
         const oDate = String(item.orderDate || "").trim();
-        const tAmt  = String(item.total || "").trim();
-        
+        const txNum = String(item.txNum || "").trim();
+        const num   = String(item.num || "").trim();
+        const oDesc = String(item.orderDesc || "").trim();
+        const oTotal = parseFloat(item.orderTotal || 0).toFixed(2);
+
+        // Robust duplicate checking
         const existingIdx = window.INVOICES.findIndex(inv => {
-          const isName = String(inv.supName || "").trim() === sName;
-          const isONum = String(inv.orderNum || "").trim() === oNum;
-          const isODate = String(inv.orderDate || "").trim() === oDate;
-          const isTotal = String(inv.total || "").trim() === tAmt;
-          return isName && isONum && isODate && isTotal;
+          if (num && inv.num && String(inv.num).trim() === num && String(inv.supName).trim().toLowerCase() === sName.toLowerCase()) {
+            return true;
+          }
+          if (txNum && inv.txNum && String(inv.txNum).trim() === txNum && String(inv.supName).trim().toLowerCase() === sName.toLowerCase()) {
+            return true;
+          }
+          if (oNum && inv.orderNum && String(inv.orderNum).trim() !== "" && String(inv.orderNum).trim() === oNum && String(inv.supName).trim().toLowerCase() === sName.toLowerCase()) {
+            return true;
+          }
+          return String(inv.supName).trim().toLowerCase() === sName.toLowerCase() &&
+                 String(inv.orderDesc).trim() === oDesc &&
+                 parseFloat(inv.orderTotal || 0).toFixed(2) === oTotal;
         });
 
+        // Auto-infer invoice status
+        let status = 'order';
+        if (item.num) status = 'tax_invoice';
+        else if (item.txNum) status = 'tx_invoice';
+        item.status = status;
+
         if (existingIdx !== -1) {
-          // Update existing (merge keys, but preserve ID)
+          // Update existing, merge keys safely while preserving database ID
           window.INVOICES[existingIdx] = { ...window.INVOICES[existingIdx], ...item };
           updated++;
         } else {
-          // Add new
+          // Add new record
           item.id = Date.now() + Math.floor(Math.random() * 10000);
           window.INVOICES.push(item);
           added++;
         }
-      });
+
+        // Auto-Register Supplier Card
+        if (sName) {
+          if (typeof window.supEx !== 'undefined') {
+            if (!window.supEx[sName]) {
+              window.supEx[sName] = {
+                isPurch: true,
+                isAct: false,
+                ph1: item.phone || '',
+                g1: item.tax || '',
+                entityType: '',
+                notes: 'נוצר אוטומטית מייבוא רכש'
+              };
+            }
+            const inSupbase = Array.isArray(window.SUPBASE) && window.SUPBASE.some(s => s.name === sName);
+            if (!window.supEx['__c']) window.supEx['__c'] = [];
+            const inCustom = window.supEx['__c'].some(s => s.name === sName);
+            if (!inSupbase && !inCustom) {
+              window.supEx['__c'].push({
+                name: sName,
+                phone: item.phone || ''
+              });
+            }
+          }
+        }
+      }
 
       alert(`✅ סיום ייבוא: נוספו ${added} רשומות חדשות, עודכנו ${updated} קיימות.`);
       if (typeof renderInvoices === "function") renderInvoices();
+      if (typeof renderPurchSuppliers === "function") renderPurchSuppliers();
+      if (typeof refreshPurchDash === "function") refreshPurchDash();
       
       console.log('[Import-Purch] Saving to Firebase...', { count: window.INVOICES.length });
       if (typeof saveToFirebase === "function") {
