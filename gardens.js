@@ -1011,12 +1011,26 @@ function genExport(){
     .sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'99').localeCompare(b.t||'99'));
   const relActive=rel.filter(s=>s.st!=='can');
   if(!rel.length){(document.getElementById('ex-prev')||{}).textContent='אין פעילויות';return;}
+
+  const isAllMakeup = rel.every(s => s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
+  const isAllNohap = rel.every(s => s.st === 'nohap');
+  const isAllCan = rel.every(s => s.st === 'can');
+
+  let headerTitle = '';
+  if (isAllMakeup) {
+    headerTitle = '*השלמה*\n';
+  } else if (isAllNohap) {
+    headerTitle = '*לא מתקיים*\n';
+  } else if (isAllCan) {
+    headerTitle = '*בוטל*\n';
+  }
+
   const byDate={};rel.forEach(s=>{if(!byDate[s.d])byDate[s.d]=[];byDate[s.d].push(s);});
-  let text='';
+  let text = headerTitle;
   const dates=Object.keys(byDate).sort();
   dates.forEach((date,di)=>{
     const dayIcon = '🗓️';
-    text+=`${dayIcon} ${fD(date)} - יום ${dayN(date)}${isM_flag ? ' (השלמה)' : ''}\n`;
+    text+=`${dayIcon} ${fD(date)} - יום ${dayN(date)}\n`;
     const byCity={};
     byDate[date].forEach(s=>{
       const g=G(s.g);const c=g.city||'';
@@ -1051,18 +1065,18 @@ function genExport(){
             if(sameAddr){
               text+=`${supLine}\n  📍 ${addrs[0]}\n`;
               group.forEach(s=>{ 
-                const mTag = (s._makeupFrom || (s.nt && s.nt.includes('השלמה'))) ? '*השלמה* · ' : '';
+                const mTag = (!isAllMakeup && (s._makeupFrom || (s.nt && s.nt.includes('השלמה')))) ? '*השלמה* · ' : '';
                 const stIcon = s.st==='can'?'❌ ':'🏫 ';
-                const statusTag = s.st==='can'?' *(בוטל)*':s.st==='nohap'?' *(לא התקיים)*':'';
+                const statusTag = (s.st==='can' && !isAllCan) ? ' *(בוטל)*' : (s.st==='nohap' && !isAllNohap) ? ' *(לא התקיים)*' : '';
                 text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`; 
               });
             } else {
               text+=`${supLine}\n`;
               group.forEach(s=>{
-                const mTag = (s._makeupFrom || (s.nt && s.nt.includes('השלמה'))) ? '*השלמה* · ' : '';
+                const mTag = (!isAllMakeup && (s._makeupFrom || (s.nt && s.nt.includes('השלמה')))) ? '*השלמה* · ' : '';
                 const stIcon = s.st==='can'?'❌ ':'🏫 ';
                 const addr=s.gd.st?`📍 ${s.gd.st} · `:'';
-                const statusTag = s.st==='can'?' *(בוטל)*':s.st==='nohap'?' *(לא התקיים)*':'';
+                const statusTag = (s.st==='can' && !isAllCan) ? ' *(בוטל)*' : (s.st==='nohap' && !isAllNohap) ? ' *(לא התקיים)*' : '';
                 text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`;
               });
             }
@@ -1088,18 +1102,18 @@ function genExport(){
             if(sameAddr){
               text+=`${supLine}\n  📍 ${addrs[0]}\n`;
               group.forEach(s=>{ 
-                const mTag = (s._makeupFrom || (s.nt && s.nt.includes('השלמה'))) ? '*השלמה* · ' : '';
+                const mTag = (!isAllMakeup && (s._makeupFrom || (s.nt && s.nt.includes('השלמה')))) ? '*השלמה* · ' : '';
                 const stIcon = s.st==='can'?'❌ ':'🏫 ';
-                const statusTag = s.st==='can'?' *(בוטל)*':s.st==='nohap'?' *(לא התקיים)*':'';
+                const statusTag = (s.st==='can' && !isAllCan) ? ' *(בוטל)*' : (s.st==='nohap' && !isAllNohap) ? ' *(לא התקיים)*' : '';
                 text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`; 
               });
             } else {
               text+=`${supLine}\n`;
               group.forEach(s=>{
-                const mTag = (s._makeupFrom || (s.nt && s.nt.includes('השלמה'))) ? '*השלמה* · ' : '';
+                const mTag = (!isAllMakeup && (s._makeupFrom || (s.nt && s.nt.includes('השלמה')))) ? '*השלמה* · ' : '';
                 const stIcon = s.st==='can'?'❌ ':'🏫 ';
                 const addr=s.gd.st?`📍 ${s.gd.st} · `:'';
-                const statusTag = s.st==='can'?' *(בוטל)*':s.st==='nohap'?' *(לא התקיים)*':'';
+                const statusTag = (s.st==='can' && !isAllCan) ? ' *(בוטל)*' : (s.st==='nohap' && !isAllNohap) ? ' *(לא התקיים)*' : '';
                 text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`;
               });
             }
@@ -1108,9 +1122,9 @@ function genExport(){
         }
       } else {
         byCity[c].forEach(s=>{
-          const mTag = (s._makeupFrom || (s.nt && s.nt.includes('השלמה'))) ? '*השלמה* · ' : '';
+          const mTag = (!isAllMakeup && (s._makeupFrom || (s.nt && s.nt.includes('השלמה')))) ? '*השלמה* · ' : '';
           const stIcon = s.st==='can'?'❌ ':'🏫 ';
-          const statusTag = s.st==='can'?' *(בוטל)*':s.st==='nohap'?' *(לא התקיים)*':'';
+          const statusTag = (s.st==='can' && !isAllCan) ? ' *(בוטל)*' : (s.st==='nohap' && !isAllNohap) ? ' *(לא התקיים)*' : '';
           text+=`${stIcon}${mTag}${s.gd.name}${statusTag} - ${s.a}${s.t?' · ⏰ '+fT(s.t):''}\n`;
         });
       }
