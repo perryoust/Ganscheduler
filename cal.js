@@ -220,10 +220,14 @@ window.calJump = function(pairId, view, gardenId) {
 
   // 3. Apply target filter
   if (pairId) {
-    const pSel = document.getElementById('cal-pair');
-    if (pSel) {
-      pSel.value = pairId;
-      window.calSelectPair(); // Trigger the pair selection logic
+    const pair = (window.pairs || []).find(p => Number(p.id) === Number(pairId));
+    if (pair) {
+      const g1 = window.getEl('cal-g1');
+      const g2 = window.getEl('cal-g2');
+      const g3 = window.getEl('cal-g3');
+      if (g1) g1.value = pair.ids[0] || '';
+      if (g2) g2.value = pair.ids[1] || '';
+      if (g3) g3.value = pair.ids[2] || '';
     }
   } else if (gardenId) {
     const gSel = window.getEl('cal-g1');
@@ -273,6 +277,8 @@ function addPair(gids){
 function addPairFromCal(){
   addPair(getCalGids());
 }
+window.addPairFromCal = addPairFromCal;
+window.saveCalPair = addPairFromCal;
 function addPairFromSched(){
   const ids=[parseInt(document.getElementById('s-g1').value)||null,
              parseInt(document.getElementById('s-g2').value)||null,
@@ -302,7 +308,11 @@ function renderCal(){
     const gids=getCalGids();
     const bar = window.getEl('cal-pair-bar');
     if (bar) {
-      if(gids.length>=2){
+      const isAlreadyPair = gids.length >= 2 && (window.pairs || []).some(p => {
+        if (p.ids.length !== gids.length) return false;
+        return gids.every(id => p.ids.map(Number).includes(Number(id)));
+      });
+      if(gids.length>=2 && !isAlreadyPair){
         bar.style.display = 'flex';
         const lbl = window.getEl('cal-pair-lbl');
         if (lbl) lbl.textContent = gids.map(id=>window.G(id).name||'').join(' + ');
