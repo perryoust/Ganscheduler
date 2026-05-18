@@ -439,7 +439,7 @@ var CITY_COLORS=window.CITY_COLORS;
 
 // ─── Shared Helper: Render global makeups for a day (ignores filters) ───
 // ─── Shared Helper: Makeups are now handled within regular grouping logic ───
-function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
+function renderMakeupsTop(ds, cityFilter='', clsFilter='', collapseAll=false){
   const f={city:cityFilter, cls:clsFilter};
   const evs = (typeof filterE === 'function' ? filterE(f, ds, ds) : []).filter(s => {
     return !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
@@ -456,14 +456,27 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
     byCity[city].push(s);
   });
 
-  let h = `<div style="background:linear-gradient(135deg, #f0f7ff, #ffffff); border:2px solid var(--c-secondary, #1565c0); border-radius:var(--br, 10px); padding:12px 14px 8px; margin-bottom:15px; box-shadow:0 6px 16px rgba(21,101,192,0.08);">
-    <div style="font-weight:800; color:var(--c-primary, #1a237e); margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:0.92rem; padding:0 2px">
-      <div style="display:flex; align-items:center; gap:8px">
-        <span style="font-size:1.2rem">📅</span>
-        <span>השלמות וביטולים להיום</span>
-      </div>
-      <span style="font-size:0.7rem; color:var(--c-text-light, #546e7a); font-weight:600; background:rgba(21,101,192,0.08); padding:2px 8px; border-radius:12px">${window.fD(ds)}</span>
-    </div>`;
+  let h = '';
+  if (collapseAll) {
+    h = `<details class="makeups-accordion" style="margin-bottom:8px; border:1px solid #90caf9; border-radius:6px; background:#e3f2fd; overflow:hidden">
+      <summary style="display:flex; align-items:center; justify-content:space-between; cursor:pointer; list-style:none; outline:none; font-weight:800; color:#1565c0; font-size:0.75rem; padding:4px 8px; user-select:none">
+        <div style="display:flex; align-items:center; gap:6px">
+          <span style="font-size:0.9rem">🔄</span>
+          <span>השלמות וביטולים (${evs.length})</span>
+        </div>
+        <span style="font-size:0.65rem; color:#1565c0; font-weight:700">▼ לחץ לפירוט</span>
+      </summary>
+      <div style="background:#fff; border-top:1px solid #90caf9; padding:8px 8px 4px">`;
+  } else {
+    h = `<div style="background:linear-gradient(135deg, #f0f7ff, #ffffff); border:2px solid var(--c-secondary, #1565c0); border-radius:var(--br, 10px); padding:12px 14px 8px; margin-bottom:15px; box-shadow:0 6px 16px rgba(21,101,192,0.08);">
+      <div style="font-weight:800; color:var(--c-primary, #1a237e); margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:0.92rem; padding:0 2px">
+        <div style="display:flex; align-items:center; gap:8px">
+          <span style="font-size:1.2rem">📅</span>
+          <span>השלמות וביטולים להיום</span>
+        </div>
+        <span style="font-size:0.7rem; color:var(--c-text-light, #546e7a); font-weight:600; background:rgba(21,101,192,0.08); padding:2px 8px; border-radius:12px">${window.fD(ds)}</span>
+      </div>`;
+  }
 
   Object.keys(byCity).sort().forEach(city => {
     const clr = window.CITY_COLORS ? window.CITY_COLORS(city) : { solid: '#1a237e', light: '#f5f7ff' };
@@ -475,7 +488,7 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
           <span style="font-weight:800; color:var(--c-primary, #1a237e); font-size:0.86rem">🏙️ ${city} <span style="font-weight:400; font-size:0.75rem; color:#666; margin-right:6px">(${cityEvs.length} השלמות/ביטולים)</span></span>
         </div>
       </summary>
-      <div class="city-accordion-content" style="padding:10px">`;
+      <div class="city-accordion-content" style="padding:8px">`;
 
     // --- זוגות: מיון לפי שעה הכי מוקדמת בזוג ---
     const pairedGids=new Set();
@@ -517,7 +530,11 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
     h += `</div></details>`;
   });
 
-  h += `</div>`;
+  if (collapseAll) {
+    h += `</div></details>`;
+  } else {
+    h += `</div>`;
+  }
   return h;
 }
 
@@ -545,7 +562,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
     if(blk) html+=`<div style="padding:5px 12px;background:#ffebee;font-size:.75rem;color:#c62828;font-weight:700">${blk.icon||'🚫'} ${blk.reason}${blk.note?' — '+blk.note:''}</div>`;
   
     // Global Makeups at Top
-    html += renderMakeupsTop(ds, f&&f.city, f&&f.cls);
+    html += renderMakeupsTop(ds, f&&f.city, f&&f.cls, true);
 
     if(!dayEvs.length){
       html+=`<div style="padding:10px;text-align:center;color:#bbb;font-size:.76rem;background:#fff">אין פעילויות</div>`;
@@ -776,7 +793,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
     const calCityW = window.getEl ? (window.getEl('cal-city')?.value || '') : (document.getElementById('cal-city')?.value || '');
     
     // Global Makeups at Top
-    html += renderMakeupsTop(ds, calCityW, calClsW);
+    html += renderMakeupsTop(ds, calCityW, calClsW, true);
     
     // Filter out makeups from the regular section to avoid duplication
     const dayEvs = evs.filter(s => s.d === ds && !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n))))
@@ -997,7 +1014,7 @@ function renderNormalWeek(evs, ws, f){
   let wkMakeupHtml = '<div style="margin-bottom:15px">';
   days.forEach(d => {
     const ds = window.d2s(d);
-    const m = window.renderMakeupsTop ? window.renderMakeupsTop(ds, calCityNW, calClsNW) : '';
+    const m = window.renderMakeupsTop ? window.renderMakeupsTop(ds, calCityNW, calClsNW, true) : '';
     if(m) {
       wkMakeupHtml += `<div style="margin-bottom:10px;border-bottom:1px solid #ddd;padding-bottom:5px">
         <div style="font-size:.72rem;font-weight:700;color:#1a237e;margin-bottom:4px">📅 ${window.dayN(ds)} ${window.fD(ds)}</div>
@@ -1252,7 +1269,7 @@ function renderCalList(evs, mDate){
 
     // Global Makeups at Top
     const f=getCalF();
-    h += renderMakeupsTop(ds, f.city, f.cls);
+    h += renderMakeupsTop(ds, f.city, f.cls, true);
 
     // Group by city → sort cities
     const dayEvsNonM = dayEvs.filter(s => !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n))));
@@ -1460,7 +1477,7 @@ function renderRangeListView(evs, fromDs, toDs){
       </div>`;
 
     h += '<div style="padding:6px 8px">';
-    h += renderMakeupsTop(ds, f.city, f.cls);
+    h += renderMakeupsTop(ds, f.city, f.cls, true);
 
     const dayEvsNonM = dayEvs.filter(s => !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n))));
     const allCities = [...new Set(dayEvsNonM.map(s => window.G(s.g).city || 'אחר'))].sort((a,b) => a.localeCompare(b, 'he'));
