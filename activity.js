@@ -1557,7 +1557,7 @@ function refresh(){
   if(window.currentTab==='sched' && window.renderSched) window.renderSched();
   
   // Also refresh SP modal if it is open to keep details in sync!
-  const spm = document.getElementById('spm');
+  const spm = document.getElementById('sp-m');
   if(spm && spm.classList.contains('open') && window.selEv) {
     window.openSP(window.selEv);
   }
@@ -2412,7 +2412,7 @@ window.saveNohapQ = function(){
     if (pair) {
       pair.ids.filter(gid => Number(gid) !== Number(s.g)).forEach(gid => {
         const pEv = window.findPartnerActivity(gid, s.d, s.a);
-        if (pEv && pEv.st !== 'nohap' && pEv.st !== 'done') doNohap(pEv.id);
+        if (pEv && pEv.st !== 'nohap') doNohap(pEv.id);
       });
     }
   }
