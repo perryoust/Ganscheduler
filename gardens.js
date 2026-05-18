@@ -1015,9 +1015,7 @@ function genExport(){
   let text='';
   const dates=Object.keys(byDate).sort();
   dates.forEach((date,di)=>{
-    const dayIcons = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣'];
-    const dow = new Date(date).getDay();
-    const dayIcon = dayIcons[dow] || '🗓️';
+    const dayIcon = '🗓️';
     text+=`${dayIcon} ${fD(date)} - יום ${dayN(date)}${isM_flag ? ' (השלמה)' : ''}\n`;
     const byCity={};
     byDate[date].forEach(s=>{
