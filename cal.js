@@ -226,7 +226,7 @@ window.calJump = function(pairId, view, gardenId) {
       window.calSelectPair(); // Trigger the pair selection logic
     }
   } else if (gardenId) {
-    const gSel = document.getElementById('cal-g1');
+    const gSel = window.getEl('cal-g1');
     if (gSel) {
       gSel.value = gardenId;
     }
@@ -1587,9 +1587,9 @@ function jumpToPairMonthlySchedule(pairId, ds, soloGid){
   if(window.ST) window.ST('cal');
 
   // 2. Set filters
-  const f1 = document.getElementById('cal-g1');
-  const f2 = document.getElementById('cal-g2');
-  const f3 = document.getElementById('cal-g3');
+  const f1 = window.getEl('cal-g1');
+  const f2 = window.getEl('cal-g2');
+  const f3 = window.getEl('cal-g3');
   if(f1) f1.value = gids[0] || '';
   if(f2) f2.value = gids[1] || '';
   if(f3) f3.value = gids[2] || '';

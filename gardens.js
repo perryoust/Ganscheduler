@@ -612,12 +612,21 @@ function refreshClusterDrops(){
 }
 function calSelectPair(){
   const pairId=parseInt(document.getElementById('cal-pair').value)||null;
-  if(!pairId){document.getElementById('cal-g1').value='';document.getElementById('cal-g2').value='';document.getElementById('cal-g3').value='';renderCal();return;}
+  const g1 = window.getEl('cal-g1');
+  const g2 = window.getEl('cal-g2');
+  const g3 = window.getEl('cal-g3');
+  if(!pairId){
+    if(g1) g1.value='';
+    if(g2) g2.value='';
+    if(g3) g3.value='';
+    renderCal();
+    return;
+  }
   const pair=pairs.find(p=>p.id===pairId);
   if(!pair) return;
-  document.getElementById('cal-g1').value=pair.ids[0]||'';
-  document.getElementById('cal-g2').value=pair.ids[1]||'';
-  document.getElementById('cal-g3').value=pair.ids[2]||'';
+  if(g1) g1.value=pair.ids[0]||'';
+  if(g2) g2.value=pair.ids[1]||'';
+  if(g3) g3.value=pair.ids[2]||'';
   renderCal();
 }
 

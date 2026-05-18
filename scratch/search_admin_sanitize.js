@@ -4,7 +4,7 @@ const content = fs.readFileSync('c:\\Users\\Perry\\רשת תיכוני טומש�
 const lines = content.split('\n');
 
 lines.forEach((line, idx) => {
-  if (line.includes('sanitizeSupEx')) {
+  if (line.includes('sanitizeSupEx') || line.includes('_sanitizeSupEx')) {
     console.log(`Line ${idx + 1}: ${line.trim()}`);
   }
 });

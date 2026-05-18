@@ -54,6 +54,17 @@
   .mob-summary::-webkit-details-marker { display: none; }
   .mob-summary .icon { font-size: 1.2rem; }
   .mob-summary .title { font-weight: 800; color: #1a237e; flex: 1; }
+  .mob-summary .btn {
+    height: 22px !important;
+    min-height: 22px !important;
+    line-height: 20px !important;
+    padding: 0 5px !important;
+    font-size: 0.62rem !important;
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 2px !important;
+  }
   
   .mob-act-card {
     padding: 10px;

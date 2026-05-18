@@ -4,7 +4,7 @@ const content = fs.readFileSync('c:\\Users\\Perry\\רשת תיכוני טומש�
 const lines = content.split('\n');
 
 lines.forEach((line, idx) => {
-  if (line.includes('renderMakeups') || line.includes('makeups') || line.includes('Makeups')) {
+  if (line.includes('calJump') || line.includes('function calJump')) {
     console.log(`Line ${idx + 1}: ${line.trim()}`);
   }
 });
