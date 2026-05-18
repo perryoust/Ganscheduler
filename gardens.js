@@ -179,7 +179,8 @@ function renderGM(){
   evs.forEach(s=>{
     const g=window.G(s.g);
     const gblk=window.getGardenBlock(s.g,s.d);
-    h+=`<tr onclick="window.openSP('${s.id}')" class="${window.stClass(s)}"><td>${window.fD(s.d)}</td><td>יום ${window.dayN(s.d)}</td><td>${window.fT(s.t)}</td><td>${s.a}</td><td>${gblk?`<span style="color:#c62828;font-size:.72rem">${gblk.icon||'🚫'} ${gblk.reason}</span>${s.nt?' | '+s.nt:''}`:s.nt||''}</td><td>${window.stLabel(s)}</td></tr>`;  });
+    const waBtn = `<button class="btn bsm" style="background:#25d366;color:#fff;border:none;padding:2px 6px;font-size:.7rem;cursor:pointer;margin-right:8px;display:inline-flex;align-items:center;height:20px;vertical-align:middle;border-radius:4px" onclick="event.stopPropagation(); window.exportSingleRecurringWA('${s.id}')">📋 הודעה</button>`;
+    h+=`<tr onclick="window.openSP('${s.id}')" class="${window.stClass(s)}"><td>${window.fD(s.d)}</td><td>יום ${window.dayN(s.d)}</td><td>${window.fT(s.t)}</td><td>${s.a}</td><td>${gblk?`<span style="color:#c62828;font-size:.72rem">${gblk.icon||'🚫'} ${gblk.reason}</span>${s.nt?' | '+s.nt:''}`:s.nt||''}</td><td style="white-space:nowrap">${window.stLabel(s)}${s.st==='ok'?waBtn:''}</td></tr>`;  });
   document.getElementById('gm-cal').innerHTML=h+'</tbody></table></div>';
 }
 function quickAddPartner(gid){
@@ -1207,7 +1208,8 @@ window.renderGmRecurring = function(gid, el){
           יום <b>${daysHe[sr.wd]}</b> &nbsp;|&nbsp; שעה <b>${window.fT(sr.t)}</b> &nbsp;|&nbsp; ${sr.count} מפגשים צפי (${window.fD(sr.firstDate)} – ${window.fD(sr.lastDate)})
         </div>
       </div>
-      <div>
+      <div style="display:flex;gap:6px">
+        <button class="btn bsm" style="background:#25d366;color:#fff;border:none;padding:6px 12px;font-size:.8rem;cursor:pointer;display:inline-flex;align-items:center;gap:4px;border-radius:4px" onclick="event.stopPropagation(); window.exportRecurringWA('${sr.key}', ${gid})">📋 הודעה</button>
         <button class="btn bp bsm" onclick="window.openBulkUpdateRecurring('${sr.key}', ${gid})">✏️ שינוי שיבוץ (מערכתי)</button>
       </div>
     </div>`;
@@ -1746,4 +1748,143 @@ window.deleteClusterDay = function() {
   window.refresh();
   window.CM('sp-m');
   window.showToast(`🗑️ נמחקו ${deleted} פעילויות`);
+};
+
+window.exportSingleRecurringWA = function(sid) {
+  const s = window.SCH.find(x => x.id === sid);
+  if (!s) return;
+  const g = window.G(s.g);
+  const pair = window.gardenPair(s.g);
+  const gids = pair ? pair.ids.map(Number) : [Number(s.g)];
+
+  // Find all matching activities on this date
+  const rel = window.SCH.filter(x => x.d === s.d && gids.includes(Number(x.g)) && x.a === s.a && x.st === 'ok');
+
+  const dow = new Date(s.d).getDay();
+  const daysHe = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  const dayName = daysHe[dow] || window.dayN(s.d);
+
+  let text = `🗓️ יום ${dayName}\n`;
+  text += `📍 ${g.city || ''}\n`;
+
+  const actLabel = s.act || window.supAct(s.a) || '';
+  const supPhone = (typeof window.getSupPhone === 'function' ? window.getSupPhone(s.a) : '') || (SUPBASE.find(sb => sb.name === s.a) || {}).phone || '';
+  const supLine = `📚 ${window.supDisplayName(window.supBase(s.a))}${actLabel ? ' - ' + actLabel : ''}${supPhone ? ' · 📞 ' + supPhone : ''}`;
+  text += `${supLine}\n`;
+
+  const addrs = [...new Set(rel.map(x => window.G(x.g).st || ''))].filter(Boolean);
+  const sameAddr = addrs.length === 1 && rel.every(x => window.G(x.g).st === addrs[0]);
+
+  if (sameAddr && addrs[0]) {
+    text += `  📍 ${addrs[0]}\n`;
+    rel.forEach(x => {
+      const gardenName = window.G(x.g).name;
+      text += `     🏫 ${gardenName}${x.t ? ' · ⏰ ' + window.fT(x.t) : ''}\n`;
+    });
+  } else {
+    rel.forEach(x => {
+      const gd = window.G(x.g);
+      const addr = gd.st ? `📍 ${gd.st} · ` : '';
+      text += `  🏫 ${addr}${gd.name}${x.t ? ' · ⏰ ' + window.fT(x.t) : ''}\n`;
+    });
+  }
+
+  navigator.clipboard.writeText(text).then(() => {
+    if (typeof window.showToast === 'function') window.showToast('✅ ההודעה הועתקה ללוח!');
+    else alert('✅ ההודעה הועתקה ללוח:\n\n' + text);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (typeof window.showToast === 'function') window.showToast('✅ ההודעה הועתקה ללוח!');
+    else alert('✅ ההודעה הועתקה ללוח:\n\n' + text);
+  });
+};
+
+window.exportRecurringWA = function(key, gid) {
+  const g = window.G(gid);
+  const pair = window.gardenPair(gid);
+  const gids = pair ? pair.ids.map(Number) : [Number(gid)];
+
+  const evs = window.SCH.filter(s => Number(s.g) === Number(gid) && s.d >= window.td() && s.st !== 'can');
+  const seriesMap = {};
+  evs.forEach(s => {
+    if(s.st !== 'ok') return;
+    let wd = -1;
+    try { const p=s.d.split('-'); wd=new Date(p[0],parseInt(p[1])-1,p[2]).getDay(); } catch(e){}
+    if(wd === -1) return;
+    const k = s._recId || `${s.a}_${s.act}_${wd}`;
+    if (k === key) {
+      seriesMap[k] = { a: s.a, act: s.act, wd: wd, t: s.t };
+    }
+  });
+
+  const sr = seriesMap[key];
+  if (!sr) {
+    alert('לא נמצא מידע על פעילות זו');
+    return;
+  }
+
+  const daysHe = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  const dayName = daysHe[sr.wd];
+
+  let text = `🗓️ יום ${dayName}\n`;
+  text += `📍 ${g.city || ''}\n`;
+
+  const actLabel = sr.act || window.supAct(sr.a) || '';
+  const supPhone = (typeof window.getSupPhone === 'function' ? window.getSupPhone(sr.a) : '') || (SUPBASE.find(sb => sb.name === sr.a) || {}).phone || '';
+  const supLine = `📚 ${window.supDisplayName(window.supBase(sr.a))}${actLabel ? ' - ' + actLabel : ''}${supPhone ? ' · 📞 ' + supPhone : ''}`;
+  text += `${supLine}\n`;
+
+  const group = [];
+  gids.forEach(id => {
+    const garden = window.G(id);
+    const pEvs = window.SCH.filter(ps => Number(ps.g) === id && ps.st === 'ok' && ps.a === sr.a && ps.d >= window.td());
+    let matchEv = null;
+    pEvs.forEach(ps => {
+      let pwd = -1;
+      try { const p=ps.d.split('-'); pwd=new Date(p[0],parseInt(p[1])-1,p[2]).getDay(); } catch(e){}
+      if (pwd === sr.wd) {
+        matchEv = ps;
+      }
+    });
+
+    if (matchEv) {
+      group.push({ gd: garden, t: matchEv.t });
+    } else if (id === Number(gid)) {
+      group.push({ gd: g, t: sr.t });
+    }
+  });
+
+  const addrs = [...new Set(group.map(s => s.gd.st || ''))].filter(Boolean);
+  const sameAddr = addrs.length === 1 && group.every(s => s.gd.st === addrs[0]);
+
+  if (sameAddr && addrs[0]) {
+    text += `  📍 ${addrs[0]}\n`;
+    group.forEach(s => {
+      text += `     🏫 ${s.gd.name}${s.t ? ' · ⏰ ' + window.fT(s.t) : ''}\n`;
+    });
+  } else {
+    group.forEach(s => {
+      const addr = s.gd.st ? `📍 ${s.gd.st} · ` : '';
+      text += `  🏫 ${addr}${s.gd.name}${s.t ? ' · ⏰ ' + window.fT(s.t) : ''}\n`;
+    });
+  }
+
+  navigator.clipboard.writeText(text).then(() => {
+    if (typeof window.showToast === 'function') window.showToast('✅ ההודעה הועתקה ללוח!');
+    else alert('✅ ההודעה הועתקה ללוח:\n\n' + text);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (typeof window.showToast === 'function') window.showToast('✅ ההודעה הועתקה ללוח!');
+    else alert('✅ ההודעה הועתקה ללוח:\n\n' + text);
+  });
 };
