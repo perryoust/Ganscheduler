@@ -1013,7 +1013,7 @@ function genExport(){
   const relActive=rel.filter(s=>s.st!=='can');
   if(!rel.length){(document.getElementById('ex-prev')||{}).textContent='אין פעילויות';return;}
 
-  const isAllMakeup = rel.every(s => s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
+  const isAllMakeup = rel.every(s => s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.nt)) || (s.n && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.n)) || (s.a && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.a)));
   const isAllNohap = rel.every(s => s.st === 'nohap');
   const isAllCan = rel.every(s => s.st === 'can');
 
@@ -1040,7 +1040,6 @@ function genExport(){
     });
     Object.keys(byCity).sort().forEach(c=>{
       if(fmt==='full'){
-        text+=`📍 ${c}\n`;
         // ── Group by pairs first, then solos ──────────────────────────
         const cityEvs=byCity[c];
         const usedIds=new Set();
@@ -1063,18 +1062,21 @@ function genExport(){
             const supLine=`📚 ${supDisplayName(supBase(s0.a))}${actLabel?' - '+actLabel:''}${supPhone?' · 📞 '+supPhone:''}`;
             const addrs=[...new Set(group.map(s=>s.gd.st||''))];
             const sameAddr=addrs.length===1&&addrs[0];
+            
+            // Reorder: Supplier line first, then City line!
+            text+=`${supLine}\n📍 ${c}\n`;
+            
             if(sameAddr){
-              text+=`${supLine}\n  📍 ${addrs[0]}\n`;
+              text+=`  📍 ${addrs[0]}\n`;
               group.forEach(s=>{ 
-                const mTag = (!isAllMakeup && (s._makeupFrom || (s.nt && s.nt.includes('השלמה')))) ? '*השלמה* · ' : '';
+                const mTag = (!isAllMakeup && (s._makeupFrom || (s.nt && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.nt)) || (s.n && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.n)) || (s.a && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.a)))) ? '*השלמה* · ' : '';
                 const stIcon = s.st==='can'?'❌ ':'🏫 ';
                 const statusTag = (s.st==='can' && !isAllCan) ? ' *(בוטל)*' : (s.st==='nohap' && !isAllNohap) ? ' *(לא התקיים)*' : '';
                 text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`; 
               });
             } else {
-              text+=`${supLine}\n`;
               group.forEach(s=>{
-                const mTag = (!isAllMakeup && (s._makeupFrom || (s.nt && s.nt.includes('השלמה')))) ? '*השלמה* · ' : '';
+                const mTag = (!isAllMakeup && (s._makeupFrom || (s.nt && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.nt)) || (s.n && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.n)) || (s.a && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.a)))) ? '*השלמה* · ' : '';
                 const stIcon = s.st==='can'?'❌ ':'🏫 ';
                 const addr=s.gd.st?`📍 ${s.gd.st} · `:'';
                 const statusTag = (s.st==='can' && !isAllCan) ? ' *(בוטל)*' : (s.st==='nohap' && !isAllNohap) ? ' *(לא התקיים)*' : '';
@@ -1100,18 +1102,21 @@ function genExport(){
             const supLine=`📚 ${supDisplayName(supBase(s0.a))}${actLabel?' - '+actLabel:''}${supPhone?' · 📞 '+supPhone:''}`;
             const addrs=[...new Set(group.map(s=>s.gd.st||''))];
             const sameAddr=addrs.length===1&&addrs[0];
+            
+            // Reorder: Supplier line first, then City line!
+            text+=`${supLine}\n📍 ${c}\n`;
+            
             if(sameAddr){
-              text+=`${supLine}\n  📍 ${addrs[0]}\n`;
+              text+=`  📍 ${addrs[0]}\n`;
               group.forEach(s=>{ 
-                const mTag = (!isAllMakeup && (s._makeupFrom || (s.nt && s.nt.includes('השלמה')))) ? '*השלמה* · ' : '';
+                const mTag = (!isAllMakeup && (s._makeupFrom || (s.nt && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.nt)) || (s.n && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.n)) || (s.a && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.a)))) ? '*השלמה* · ' : '';
                 const stIcon = s.st==='can'?'❌ ':'🏫 ';
                 const statusTag = (s.st==='can' && !isAllCan) ? ' *(בוטל)*' : (s.st==='nohap' && !isAllNohap) ? ' *(לא התקיים)*' : '';
                 text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`; 
               });
             } else {
-              text+=`${supLine}\n`;
               group.forEach(s=>{
-                const mTag = (!isAllMakeup && (s._makeupFrom || (s.nt && s.nt.includes('השלמה')))) ? '*השלמה* · ' : '';
+                const mTag = (!isAllMakeup && (s._makeupFrom || (s.nt && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.nt)) || (s.n && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.n)) || (s.a && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.a)))) ? '*השלמה* · ' : '';
                 const stIcon = s.st==='can'?'❌ ':'🏫 ';
                 const addr=s.gd.st?`📍 ${s.gd.st} · `:'';
                 const statusTag = (s.st==='can' && !isAllCan) ? ' *(בוטל)*' : (s.st==='nohap' && !isAllNohap) ? ' *(לא התקיים)*' : '';
@@ -1122,8 +1127,9 @@ function genExport(){
           });
         }
       } else {
+        text+=`📍 ${c}\n`;
         byCity[c].forEach(s=>{
-          const mTag = (!isAllMakeup && (s._makeupFrom || (s.nt && s.nt.includes('השלמה')))) ? '*השלמה* · ' : '';
+          const mTag = (!isAllMakeup && (s._makeupFrom || (s.nt && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.nt)) || (s.n && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.n)) || (s.a && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.a)))) ? '*השלמה* · ' : '';
           const stIcon = s.st==='can'?'❌ ':'🏫 ';
           const statusTag = (s.st==='can' && !isAllCan) ? ' *(בוטל)*' : (s.st==='nohap' && !isAllNohap) ? ' *(לא התקיים)*' : '';
           text+=`${stIcon}${mTag}${s.gd.name}${statusTag} - ${s.a}${s.t?' · ⏰ '+fT(s.t):''}\n`;
@@ -1765,12 +1771,12 @@ window.exportSingleRecurringWA = function(sid) {
   const dayName = daysHe[dow] || window.dayN(s.d);
 
   let text = `🗓️ יום ${dayName}\n`;
-  text += `📍 ${g.city || ''}\n`;
 
   const actLabel = s.act || window.supAct(s.a) || '';
   const supPhone = (typeof window.getSupPhone === 'function' ? window.getSupPhone(s.a) : '') || (SUPBASE.find(sb => sb.name === s.a) || {}).phone || '';
   const supLine = `📚 ${window.supDisplayName(window.supBase(s.a))}${actLabel ? ' - ' + actLabel : ''}${supPhone ? ' · 📞 ' + supPhone : ''}`;
   text += `${supLine}\n`;
+  text += `📍 ${g.city || ''}\n`;
 
   const addrs = [...new Set(rel.map(x => window.G(x.g).st || ''))].filter(Boolean);
   const sameAddr = addrs.length === 1 && rel.every(x => window.G(x.g).st === addrs[0]);
@@ -1832,12 +1838,12 @@ window.exportRecurringWA = function(key, gid) {
   const dayName = daysHe[sr.wd];
 
   let text = `🗓️ יום ${dayName}\n`;
-  text += `📍 ${g.city || ''}\n`;
 
   const actLabel = sr.act || window.supAct(sr.a) || '';
   const supPhone = (typeof window.getSupPhone === 'function' ? window.getSupPhone(sr.a) : '') || (SUPBASE.find(sb => sb.name === sr.a) || {}).phone || '';
   const supLine = `📚 ${window.supDisplayName(window.supBase(sr.a))}${actLabel ? ' - ' + actLabel : ''}${supPhone ? ' · 📞 ' + supPhone : ''}`;
   text += `${supLine}\n`;
+  text += `📍 ${g.city || ''}\n`;
 
   const group = [];
   gids.forEach(id => {

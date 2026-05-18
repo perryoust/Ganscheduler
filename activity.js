@@ -1555,6 +1555,12 @@ function refresh(){
   window.renderDash();
   if(window.renderCal) window.renderCal();
   if(window.currentTab==='sched' && window.renderSched) window.renderSched();
+  
+  // Also refresh SP modal if it is open to keep details in sync!
+  const spm = document.getElementById('spm');
+  if(spm && spm.classList.contains('open') && window.selEv) {
+    window.openSP(window.selEv);
+  }
 }
 
 async function saveAndRefresh(modalId, stayOpen = false, immediate = true){
