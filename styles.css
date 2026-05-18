@@ -21,12 +21,12 @@
 }
 
 /* ── Visibility Utilities ── */
-.desktop-only { display: block; }
-.mobile-only { display: none; }
+.desktop-only { display: block !important; }
+.mobile-only { display: none !important; }
 
 @media (max-width: 768px) {
   .desktop-only { display: none !important; }
-  .mobile-only { display: block; }
+  .mobile-only { display: block !important; }
   .card { padding: 8px 10px; }
   .content { padding: 8px; }
   .btn:not(.bp) { padding: 4px 8px; font-size: 0.75rem; }
