@@ -257,7 +257,11 @@ window.calJump = function(pairId, view, gardenId, clusterName) {
 };
 function clearCal(){
   ['cal-city','cal-cls','cal-cl','cal-sup'].forEach(id=>{
-    const el = window.getEl(id);
+    ['desktop', 'mobile'].forEach(plat => {
+      const el = document.getElementById(id + '-' + plat);
+      if (el) el.value = '';
+    });
+    const el = document.getElementById(id);
     if (el) el.value = '';
   });
   ['cal-g1','cal-g2','cal-g3'].forEach((id,i)=>{
@@ -270,7 +274,12 @@ function clearCal(){
   });
   const bar = window.getEl('cal-pair-bar');
   if (bar) bar.style.display = 'none';
-  renderCal();
+  
+  if (window.setView) {
+    window.setView('day');
+  } else {
+    renderCal();
+  }
 }
 function clearCalPair(){
   ['cal-g1','cal-g2','cal-g3'].forEach(id => {
