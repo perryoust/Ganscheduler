@@ -63,16 +63,18 @@
         התקיים</span>
       <span onclick="switchMode('act');goToPostponed()" style="cursor:pointer" title="נדחו">⏩ <b id="h-post">0</b>
         נדחו</span>
-      <span style="opacity:.3;font-size:.7rem;padding:0 2px;background:none!important">|</span>
-      <span
-        style="opacity:.5;font-size:.7rem;letter-spacing:.03em;text-transform:uppercase;background:none!important">🛒
-        רכש</span>
-      <span onclick="switchMode('purch');SPT('pinvoices')" style="cursor:pointer" title="הזמנות">📦 <b id="h-inv">0</b>
-        הזמנות</span>
-      <span onclick="switchMode('purch');SPT('pinvoices')" style="cursor:pointer" title="הזמנות פתוחות">📂 <b
-          id="h-inv-active">0</b> הזמנות</span>
-      <span onclick="switchMode('purch');SPT('pinvoices')" style="cursor:pointer" title="חשבוניות עסקה">📄 <b
-          id="h-inv-prog">0</b> עסקה</span>
+      <span style="display:contents" id="hdr-purch-stats-group">
+        <span style="opacity:.3;font-size:.7rem;padding:0 2px;background:none!important">|</span>
+        <span
+          style="opacity:.5;font-size:.7rem;letter-spacing:.03em;text-transform:uppercase;background:none!important">🛒
+          רכש</span>
+        <span onclick="switchMode('purch');SPT('pinvoices')" style="cursor:pointer" title="הזמנות">📦 <b id="h-inv">0</b>
+          הזמנות</span>
+        <span onclick="switchMode('purch');SPT('pinvoices')" style="cursor:pointer" title="הזמנות פתוחות">📂 <b
+            id="h-inv-active">0</b> הזמנות</span>
+        <span onclick="switchMode('purch');SPT('pinvoices')" style="cursor:pointer" title="חשבוניות עסקה">📄 <b
+            id="h-inv-prog">0</b> עסקה</span>
+      </span>
     </div>
     <div style="display:flex;align-items:center;gap:5px;margin-right:4px">
       <div style="position:relative">

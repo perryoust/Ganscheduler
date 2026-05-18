@@ -161,6 +161,14 @@ window._initUsersUI = function _initUsersUI(){
   if(btn) btn.style.display = isAdm ? 'inline-flex' : 'none';
   const hBtn = document.getElementById('users-hdr-btn');
   if(hBtn) hBtn.style.display = isAdm ? '' : 'none';
+  
+  // Dynamic Purchase Mode Visibility
+  const hasPurch = !!(window.permPurch || isAdm);
+  const purchModeBtn = document.getElementById('modeBtn-purch');
+  if(purchModeBtn) purchModeBtn.style.display = hasPurch ? '' : 'none';
+  const purchStatsGrp = document.getElementById('hdr-purch-stats-group');
+  if(purchStatsGrp) purchStatsGrp.style.display = hasPurch ? 'contents' : 'none';
+
   // Show logged-in username in header
   if(window._fbUser){
     const uname = window._fbUser.email?.replace('@ganmanager.app','')||'';

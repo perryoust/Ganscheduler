@@ -1099,6 +1099,15 @@ window.onload = function(){
       window.save(true); // Persist cleanup
     }
     console.log('App fully ready: SCH = ',window.SCH.length,'INVOICES = ',_inv);
+    
+    // Restore last active mode if permitted, otherwise cleanly default to 'act'
+    const savedMode = (typeof _safeLS !== 'undefined' ? _safeLS.getItem('activeAppMode') : null) || 'act';
+    if (savedMode === 'purch' && window.permPurch && typeof window.switchMode === 'function') {
+      window.switchMode('purch');
+    } else if (typeof window.switchMode === 'function') {
+      window.switchMode('act');
+    }
+
     _fbStartPolling();
     setTimeout(_fitScrollAreas, 100);
     try{ _ensureAdminProfile(); }catch(e){}
@@ -1409,8 +1418,9 @@ function ST(t){
     if(panelEl){
       const isActive = x===t;
       panelEl.classList.toggle('active', isActive);
-      // Remove inline display style — let CSS handle it via .panel/.panel.active
-      panelEl.style.display='';
+      // Remove inline display style — let CSS handle it via .panel/.panel.active.
+      // Force display='none' if in purch mode to prevent UI layout clash.
+      panelEl.style.display = (window._appMode === 'purch') ? 'none' : '';
     }
   });
   // purch panels are managed by switchMode, not ST

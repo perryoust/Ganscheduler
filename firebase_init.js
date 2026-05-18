@@ -64,6 +64,36 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     window._fbUser = user;
     try { window._cachedToken = await user.getIdToken(false); } catch (e) { window._cachedToken = null; }
+    
+    // Load User Permissions
+    const ADMIN_UID = 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03';
+    let permPurch = false;
+    let permAct = true;
+    let role = 'view';
+    if (user.uid === ADMIN_UID) {
+      permPurch = true;
+      permAct = true;
+      role = 'admin';
+    } else {
+      try {
+        const q = window._cachedToken ? '?auth=' + window._cachedToken : '';
+        const userRes = await fetch(`https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/users/${user.uid}.json${q}`);
+        if (userRes.ok) {
+          const profile = await userRes.json();
+          if (profile) {
+            permPurch = !!profile.permPurch;
+            permAct = profile.permAct !== false;
+            role = profile.role || 'view';
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load user permissions:', e);
+      }
+    }
+    window.permPurch = permPurch;
+    window.permAct = permAct;
+    window.role = role;
+
     const authOverlay = document.getElementById('auth-overlay');
     if (authOverlay) authOverlay.style.display = 'none';
     const uname = document.getElementById('auth-user-name');
@@ -74,6 +104,9 @@ onAuthStateChanged(auth, async (user) => {
   } else {
     window._fbUser = null;
     window._cachedToken = null;
+    window.permPurch = false;
+    window.permAct = false;
+    window.role = null;
     const authOverlay = document.getElementById('auth-overlay');
     if (authOverlay) authOverlay.style.display = 'flex';
   }

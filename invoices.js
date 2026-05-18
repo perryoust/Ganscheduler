@@ -10,6 +10,9 @@ const PURCH_TABS = ['pdash','pinvoices','psup'];
 // ── Mode switcher ──────────────────────────────────────
 function switchMode(mode){
   _appMode = mode;
+  window._appMode = mode;
+  if (typeof _safeLS !== 'undefined') _safeLS.setItem('activeAppMode', mode);
+
   // Always close side panel + backdrop when switching modes (critical for mobile)
   const _spEl=document.getElementById('sp');
   const _bdEl=document.getElementById('sp-backdrop');
