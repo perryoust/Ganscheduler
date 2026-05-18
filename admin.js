@@ -111,6 +111,16 @@ async function restoreCloudBackup(dateKey){
   } catch(e){ showToast('❌ שגיאת שחזור: '+e.message); }
 }
 
+function _sanitizeSupEx(obj) {
+  if (!obj || typeof obj !== 'object') return obj || {};
+  const cleaned = {};
+  for (const [k, v] of Object.entries(obj)) {
+    const cleanKey = k.replace(/[\.\$\#\[\]\/]/g, '_');
+    cleaned[cleanKey] = v;
+  }
+  return cleaned;
+}
+
 async function forceDailyBackup(){
   const btn = document.getElementById('cloud-backup-btn');
   showToast('☁️ שומר גיבוי...');

@@ -221,17 +221,16 @@ window.ui = {
     if (window.isMobileMode()) {
       return `
       <details class="mob-accordion" style="border-top: 4px solid ${clr.solid}">
-        <summary class="mob-summary">
-           <span class="icon">${isSolo ? '🏡' : '🔗'}</span>
-           <span class="title">${pair.name}</span>
-           <div class="flex-c gap-4">
-              <button class="btn bg bsm" style="background:#25d366; border:none; padding:4px 8px" onclick="event.stopPropagation(); window._exportPairWA(${JSON.stringify(gids)})">📱</button>
+        <summary class="mob-summary" style="padding: 8px 10px">
+           <span class="icon" style="font-size:1.1rem; margin-left:4px">${isSolo ? '🏡' : '🔗'}</span>
+           <span class="title" style="font-size:0.82rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; padding-left:8px">${pair.name}</span>
+           <div style="display:flex; align-items:center; gap:5px; flex-shrink:0">
+              <button class="btn bo bsm" style="font-size:0.68rem; padding:2px 6px; border:1px solid #1e88e5; background:#fff; color:#1e88e5; font-weight:700; border-radius:4px; white-space:nowrap" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','week','${isSolo ? gids[0] : ''}')">📅 שבוע</button>
+              <button class="btn bo bsm" style="font-size:0.68rem; padding:2px 6px; border:1px solid #1e88e5; background:#fff; color:#1e88e5; font-weight:700; border-radius:4px; white-space:nowrap" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','month','${isSolo ? gids[0] : ''}')">📅 חודש</button>
+              <button class="btn bg bsm" style="background:#25d366; color:#fff; border:none; padding:2px 6px; font-size:0.68rem; font-weight:700; border-radius:4px; white-space:nowrap" onclick="event.stopPropagation(); window._exportPairWA(${JSON.stringify(gids)})">📱 הודעה</button>
            </div>
         </summary>
         <div class="mob-content p-4">
-           <div class="flex-c gap-8 mb-8 p-8" style="background:#f1f5f9; border-radius:6px">
-              ${weekBtn} ${monthBtn}
-           </div>
            ${tableRows}
         </div>
       </details>`;
