@@ -213,7 +213,8 @@ function jumpToDay(ds){
 }
 window.calJump = function(pairId, view, gardenId) {
   // 1. Switch to Calendar Mode
-  if (window.setMode) window.setMode('cal');
+  if (window.ST) window.ST('cal');
+  else if (window.setMode) window.setMode('cal');
 
   // 2. Clear previous filters
   if (window.clearCal) window.clearCal();
@@ -222,18 +223,22 @@ window.calJump = function(pairId, view, gardenId) {
   if (pairId) {
     const pair = (window.pairs || []).find(p => Number(p.id) === Number(pairId));
     if (pair) {
-      const g1 = window.getEl('cal-g1');
-      const g2 = window.getEl('cal-g2');
-      const g3 = window.getEl('cal-g3');
-      if (g1) g1.value = pair.ids[0] || '';
-      if (g2) g2.value = pair.ids[1] || '';
-      if (g3) g3.value = pair.ids[2] || '';
+      ['desktop', 'mobile'].forEach(plat => {
+        const g1 = document.getElementById('cal-g1-' + plat);
+        const g2 = document.getElementById('cal-g2-' + plat);
+        const g3 = document.getElementById('cal-g3-' + plat);
+        if (g1) g1.value = pair.ids[0] || '';
+        if (g2) g2.value = pair.ids[1] || '';
+        if (g3) g3.value = pair.ids[2] || '';
+      });
     }
   } else if (gardenId) {
-    const gSel = window.getEl('cal-g1');
-    if (gSel) {
-      gSel.value = gardenId;
-    }
+    ['desktop', 'mobile'].forEach(plat => {
+      const gSel = document.getElementById('cal-g1-' + plat);
+      if (gSel) {
+        gSel.value = gardenId;
+      }
+    });
   }
 
   // 4. Set View
