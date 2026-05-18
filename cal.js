@@ -211,7 +211,7 @@ function jumpToDay(ds){
   setListSubView('day');
   setView('list');
 }
-window.calJump = function(pairId, view, gardenId) {
+window.calJump = function(pairId, view, gardenId, clusterName) {
   // 1. Switch to Calendar Mode
   if (window.ST) window.ST('cal');
   else if (window.setMode) window.setMode('cal');
@@ -220,7 +220,14 @@ window.calJump = function(pairId, view, gardenId) {
   if (window.clearCal) window.clearCal();
 
   // 3. Apply target filter
-  if (pairId) {
+  if (clusterName) {
+    ['desktop', 'mobile'].forEach(plat => {
+      const clSel = document.getElementById('cal-cl-' + plat);
+      if (clSel) {
+        clSel.value = clusterName;
+      }
+    });
+  } else if (pairId) {
     const pair = (window.pairs || []).find(p => Number(p.id) === Number(pairId));
     if (pair) {
       ['desktop', 'mobile'].forEach(plat => {
@@ -1484,9 +1491,11 @@ function renderRangeListView(evs, fromDs, toDs){
         h += `<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
           <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
             <span>🏘️ ${cl.name}</span>
-            <div style="display:flex;gap:4px">
-               <button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${cl.id}','${ds}')" style="font-size:.62rem;padding:1px 6px">✏️ עריכה</button>
-               <button class="btn bg bsm" onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="font-size:.62rem;padding:1px 6px">📋 הודעה</button>
+            <div style="display:flex;gap:4px;align-items:center">
+               <button class="btn bo bsm" style="font-size:0.62rem !important; height:20px !important; min-height:20px !important; line-height:18px !important; padding:0 4px !important; border:1px solid #1e88e5 !important; background:#fff !important; color:#1e88e5 !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important; margin:0 !important;" onclick="event.stopPropagation(); window.calJump('','week','','${cl.name}')">📅 שבוע</button>
+               <button class="btn bo bsm" style="font-size:0.62rem !important; height:20px !important; min-height:20px !important; line-height:18px !important; padding:0 4px !important; border:1px solid #1e88e5 !important; background:#fff !important; color:#1e88e5 !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important; margin:0 !important;" onclick="event.stopPropagation(); window.calJump('','month','','${cl.name}')">📅 חודש</button>
+               <button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${cl.id}','${ds}')" style="font-size:.62rem; padding:1px 6px; height:20px !important; display:inline-flex; align-items:center; margin:0 !important">✏️ עריכה</button>
+               <button class="btn bg bsm" onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="font-size:.62rem; padding:1px 6px; height:20px !important; display:inline-flex; align-items:center; margin:0 !important; background:#25d366; color:#fff; border:none">📋 הודעה</button>
             </div>
           </div>
           <table style="width:100%; border-collapse:collapse">
@@ -1526,17 +1535,7 @@ function renderRangeListView(evs, fromDs, toDs){
           }
         });
         const sorted = finalEvs.sort((a,b) => window.compareActivities(a, b));
-        h += `<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
-          <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
-            <span>🔗 ${pair.name}</span>
-            <button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(pair.ids)})" style="background:${clr.solid};border:none;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:.65rem;color:#fff">📋 הודעה</button>
-          </div>
-          <table style="width:100%; border-collapse:collapse">
-            <tbody>
-              ${sorted.map(s => window.ui.renderActivityRow(s, { ds, clr, context:'cal' })).join('')}
-            </tbody>
-          </table>
-        </div>`;
+        h += window.ui.renderStandardPairCard(pair, sorted, { ds, clr, context: 'cal' });
       });
 
       if(_gmode === 'window.pairs'){

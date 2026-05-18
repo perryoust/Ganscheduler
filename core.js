@@ -183,9 +183,9 @@ window.ui = {
     const gids = pair.ids || [];
 
     // Header Buttons
-    const weekBtn = `<button class="btn bo bsm font-bold" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','week','${isSolo ? gids[0] : ''}')">📅 שבוע</button>`;
-    const monthBtn = `<button class="btn bo bsm font-bold" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','month','${isSolo ? gids[0] : ''}')">📅 חודש</button>`;
-    const expBtn = `<button class="btn bg bsm font-bold" style="background:#25d366; color:#fff; border:none" onclick="event.stopPropagation(); window._exportPairWA(${JSON.stringify(gids)})">🗒️ הודעה</button>`;
+    const weekBtn = `<button class="btn bo bsm" style="font-size:0.65rem !important; height:24px !important; min-height:24px !important; line-height:22px !important; padding:0 6px !important; border:1px solid #1e88e5 !important; background:#fff !important; color:#1e88e5 !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important;" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','week','${isSolo ? gids[0] : ''}')">📅 שבוע</button>`;
+    const monthBtn = `<button class="btn bo bsm" style="font-size:0.65rem !important; height:24px !important; min-height:24px !important; line-height:22px !important; padding:0 6px !important; border:1px solid #1e88e5 !important; background:#fff !important; color:#1e88e5 !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important;" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','month','${isSolo ? gids[0] : ''}')">📅 חודש</button>`;
+    const expBtn = `<button class="btn bg bsm" style="background:#25d366 !important; color:#fff !important; border:none !important; height:24px !important; min-height:24px !important; line-height:24px !important; padding:0 7px !important; font-size:0.65rem !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important;" onclick="event.stopPropagation(); window._exportPairWA(${JSON.stringify(gids)})">📱 הודעה</button>`;
 
     let tableRows = '';
     
@@ -237,13 +237,13 @@ window.ui = {
     }
 
     return `
-    <div class="card standard-pair-card mb-4" style="border-top:4px solid ${clr.solid}; padding:0; border-radius:10px; overflow:hidden; background:#fff; box-shadow:0 4px 6px rgba(0,0,0,0.05); border:1px solid #e2e8f0; border-top-width:4px">
-      <div class="flex-c gap-10 p-12" style="background:${clr.light}; border-bottom:1px solid #e2e8f0">
-        <div class="flex-c gap-8">
-          <span style="font-size:1.3rem">${isSolo ? '🏡' : '🔗'}</span>
-          <div class="font-800 text-primary" style="font-size:var(--fs-card-title)">${pair.name}</div>
+    <div class="card standard-pair-card" style="border-top:3px solid ${clr.solid}; padding:0; border-radius:6px; overflow:hidden; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,0.03); border:1px solid #e2e8f0; border-top-width:3px; margin-bottom:6px !important">
+      <div class="flex-c gap-8" style="background:${clr.light}; border-bottom:1px solid #e2e8f0; padding:4px 8px !important; min-height:30px !important; align-items:center !important">
+        <div class="flex-c gap-6" style="align-items:center !important">
+          <span style="font-size:1.0rem; display:inline-flex; align-items:center">${isSolo ? '🏡' : '🔗'}</span>
+          <div class="font-800 text-primary" style="font-size:0.75rem !important; line-height:1.2">${pair.name}</div>
         </div>
-        <div class="flex-c gap-8 mr-auto">
+        <div class="flex-c gap-6 mr-auto" style="align-items:center !important">
           ${weekBtn} ${monthBtn} ${expBtn}
         </div>
       </div>
