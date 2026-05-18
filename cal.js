@@ -438,7 +438,7 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
     <div style="font-weight:800; color:var(--c-primary, #1a237e); margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:0.92rem; padding:0 2px">
       <div style="display:flex; align-items:center; gap:8px">
         <span style="font-size:1.2rem">📅</span>
-        <span>השלמות שנקבעו להיום</span>
+        <span>השלמות וביטולים להיום</span>
       </div>
       <span style="font-size:0.7rem; color:var(--c-text-light, #546e7a); font-weight:600; background:rgba(21,101,192,0.08); padding:2px 8px; border-radius:12px">${window.fD(ds)}</span>
     </div>`;
@@ -450,7 +450,7 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter=''){
     h += `<details class="city-accordion" style="margin-bottom:6px; border-color:rgba(21,101,192,0.2)">
       <summary style="padding:10px 14px; background:#fff">
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-          <span style="font-weight:800; color:var(--c-primary, #1a237e); font-size:0.86rem">🏙️ ${city} <span style="font-weight:400; font-size:0.75rem; color:#666; margin-right:6px">(${cityEvs.length} השלמות)</span></span>
+          <span style="font-weight:800; color:var(--c-primary, #1a237e); font-size:0.86rem">🏙️ ${city} <span style="font-weight:400; font-size:0.75rem; color:#666; margin-right:6px">(${cityEvs.length} השלמות/ביטולים)</span></span>
         </div>
       </summary>
       <div class="city-accordion-content" style="padding:10px">`;
