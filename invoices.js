@@ -197,6 +197,7 @@ function renderInvoices(){
       <td style="min-width:120px;padding:8px">
         <div style="font-weight:700;color:#1a237e;font-size:.83rem">${inv.supName||''}</div>
         <div style="font-size:.67rem;color:#999;margin-top:2px">${(supEx[inv.supName]||{}).entityType||''}</div>
+        ${inv.fileUrl ? `<a href="${inv.fileUrl}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;margin-top:4px;background:#e3f2fd;color:#1565c0;font-size:.7rem;padding:3px 8px;border-radius:4px;text-decoration:none;border:1px solid #90caf9;font-weight:600" title="פתיחת מסמך מקורי מהענן">📄 צפה במסמך</a>` : ''}
       </td>
       <td style="font-size:.75rem;line-height:2;padding:8px">
         ${hasOrder?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.orderNum}</b>${inv.orderDate?'<span style="color:#999"> · '+fD(inv.orderDate)+'</span>':''} ${mkFileBtn('order',inv.orderNum)}</div>`:''}
