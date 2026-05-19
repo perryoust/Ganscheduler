@@ -189,10 +189,12 @@ window.ui = {
 
     let tableRows = '';
     
-    // Sort events by garden and time
+    // Sort events primarily by time and secondarily by garden name
     const sortedEvs = [...evs].sort((a,b) => {
+      const tA = a.t || '99:99', tB = b.t || '99:99';
+      if (tA !== tB) return tA.localeCompare(tB);
       const gA = window.G(a.g), gB = window.G(b.g);
-      return (gA.name||'').localeCompare(gB.name||'', 'he') || (a.t||'99:99').localeCompare(b.t||'99:99');
+      return (gA.name||'').localeCompare(gB.name||'', 'he');
     });
 
     if (sortedEvs.length === 0) {
@@ -572,11 +574,13 @@ function _applyYearData(o){
   }
 
   // REST OF THE FUNCTION (Pairs, Invoices, etc.)
+  window.supEx = o.supEx || {};
+  if(window.supEx['__gardens_extra']) window._GARDENS_EXTRA = window.supEx['__gardens_extra'];
+
   if(Array.isArray(o.pairs)&&o.pairs.length>0){
     window.pairs = o.pairs.map(p=>({...p,ids:p.ids.map(id=>parseInt(id)).filter(id=>G(id).id)}));
     window.pairs = pairs.filter(p=>p.ids.length>=2);
   } else { initPairs(); }
-  window.supEx = o.supEx || {};
   if(o.invoices){
     window.INVOICES = Array.isArray(o.invoices) ? o.invoices : Object.values(o.invoices);
     // ── Migrate invoices with double-VAT bug ──
@@ -634,7 +638,7 @@ function _applyYearData(o){
   if(o.piStatusFilter){ try{ _safeLS.setItem(PI_ST_KEY,JSON.stringify(o.piStatusFilter)); }catch(e){} }
   window.clusters = o.clusters&&Object.keys(o.clusters).length?o.clusters:JSON.parse(JSON.stringify(INIT_CLUSTERS));
   window.holidays = o.holidays||[];
-  if(supEx['__gardens_extra']) _GARDENS_EXTRA=supEx['__gardens_extra'];
+  // _GARDENS_EXTRA already populated above
   window.pairBreaks = o.pairBreaks||{};
   window.blockedDates = o.blockedDates||{};
   window.gardenBlocks = o.gardenBlocks||{};
@@ -820,7 +824,8 @@ function initPairs(){
 
 function G(id){
   const gdns = window.GARDENS || [];
-  return gdns.find(g=>Number(g.id)===Number(id)) || {};
+  const extra = window._GARDENS_EXTRA || [];
+  return gdns.find(g=>Number(g.id)===Number(id)) || extra.find(g=>Number(g.id)===Number(id)) || {};
 }
 function gcls(g){
   if (!g || !g.cls) return 'גנים';

@@ -802,7 +802,7 @@ window.openSP = function(id) {
   // --- STEP 6: Series Management ---
   const _dObj = s.d ? new Date(s.d) : new Date();
   const _sY = _dObj.getMonth() >= 7 ? _dObj.getFullYear() : _dObj.getFullYear() - 1;
-  const defaultFrom = `${_sY}-09-01`;
+  const defaultFrom = typeof window.td === 'function' ? window.td() : new Date().toISOString().split('T')[0];
   const defaultTo = `${_sY + 1}-06-30`;
 
   h += `<div style="margin-top:10px;border:1px solid #ce93d8;border-radius:10px;overflow:hidden">
