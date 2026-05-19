@@ -905,6 +905,20 @@ window.openSP = function(id) {
       <button class="btn bg" style="width:100%;padding:8px;font-weight:800;margin-top:8px;font-size:.8rem" onclick="window.spEditSave()">💾 שמור שינויים</button>
     </div>
   </div>`;
+  
+  // --- STEP 9: Free Days Info ---
+  h += `<div style="margin-top:10px;border:1px solid #c8e6c9;border-radius:10px;overflow:hidden">
+    <div onclick="window.toggleSpAccordion('sp-acc-free')" style="background:#e8f5e9;padding:8px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+      <b style="font-size:0.8rem;color:#2e7d32">🗓️ ימים פנויים לצהרון (מידע בלבד)</b>
+      <span id="sp-acc-free-arrow" style="font-size:0.7rem;transition:0.3s;color:#2e7d32">▼</span>
+    </div>
+    <div id="sp-acc-free" style="display:none;padding:12px;background:#fff;border-top:1px solid #c8e6c9">
+      <div style="font-size:.72rem;color:#78909c;margin-bottom:8px;background:#f9f9f9;padding:4px 8px;border-radius:4px">תאריכים פנויים לשלושת השבועות הקרובים:</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        ${window.getSpFreeDaysHtml(s.g)}
+      </div>
+    </div>
+  </div>`;
 
   document.getElementById('sp-m-body').innerHTML = h;
   window.spUpdateExVisibility(); // Initial check
@@ -2528,4 +2542,41 @@ window.saveNohapQ = function(){
       window.openMakeupSched(_nohapQId);
     }
   }, 500);
+};
+
+window.getSpFreeDaysHtml = function(gid) {
+  const DAY_HEB=['ראשון','שני','שלישי','רביעי','חמישי'];
+  const g = window.G(gid);
+  if(!g) return '';
+
+  const busyDates = new Set(window.SCH.filter(x => {
+    if(Number(x.g) !== Number(gid)) return false;
+    if(x.st === 'can' || x.st === 'nohap' || x.st === 'post') return false;
+    return true;
+  }).map(x=>x.d));
+  
+  const free = []; let d = new Date(); d.setHours(0,0,0,0);
+  
+  for(let i=0; i<21; i++) {
+    const dow = d.getDay();
+    if(dow >= 0 && dow <= 4) {
+      const ds = window.d2s(d);
+      const hol = window.getHolidayInfo(ds, g.city, window.gcls(g));
+      const isToday = i === 0;
+      if(!busyDates.has(ds) && (!hol || isToday)) {
+        let label = DAY_HEB[dow] + ' ' + window.fD(ds);
+        if(hol) label += ` (${hol.name})`;
+        free.push({ds, lbl: label});
+      }
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  
+  if(!free.length) return '<span style="color:#777;font-size:0.75rem">לא נמצאו ימים פנויים ב-3 השבועות הקרובים</span>';
+  
+  return free.map(f => `
+    <span style="font-size:0.7rem;padding:4px 8px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;border-radius:4px;display:inline-block;margin:2px;font-weight:700;">
+      ${f.lbl}
+    </span>
+  `).join('');
 };
