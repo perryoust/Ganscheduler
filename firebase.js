@@ -169,16 +169,17 @@ async function saveToFirebase(silent = false, force = false) {
     let tok = await window._fbUser?.getIdToken(true);
     const url = FIREBASE_DB_URL + (tok ? '?auth=' + tok : '');
     
+    // CRITICAL: Use PATCH instead of PUT to prevent deleting sibling paths under /data (like invoices)
     const r = await fetch(url, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(payload)
     });
 
     if (!r.ok) throw new Error('HTTP ' + r.status);
     
-    // Save Invoices Separately
-    if (window.INVOICES && window.INVOICES.length > 0) {
+    // Save Invoices Separately (only if sync completed successfully to avoid overwriting with empty array)
+    if (window._fbSyncReady && Array.isArray(window.INVOICES)) {
       const invUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json' + (tok ? '?auth=' + tok : '');
       await fetch(invUrl, { method: 'PUT', body: JSON.stringify(window.INVOICES) });
     }
@@ -225,10 +226,9 @@ async function loadFromFirebase(silent = false, force = false) {
     // Load Invoices Separately
     const invUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json' + (tok ? '?auth=' + tok : '');
     const ir = await fetch(invUrl);
-    if (ir.ok) {
-      const invs = await ir.json();
-      cloud.data.invoices = Array.isArray(invs) ? invs : Object.values(invs || {});
-    }
+    if (!ir.ok) throw new Error('Invoices HTTP ' + ir.status);
+    const invs = await ir.json();
+    cloud.data.invoices = Array.isArray(invs) ? invs : Object.values(invs || {});
 
     window._fbAppData = cloud.data;
 
