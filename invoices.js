@@ -2290,7 +2290,7 @@ window.startSharePointScanner = async function() {
   }
   try {
     const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
-    const baseUrl = prompt('בחרת את התיקייה המקומית בהצלחה!\n\nכעת, אנא הדבק כאן את קישור האינטרנט של התיקייה הזו כפי שהוא מופיע בדפדפן ב-SharePoint:\n(לדוגמה: https://tomshin.sharepoint.com/sites/...)');
+    const baseUrl = prompt('בחרת את התיקייה המקומית בהצלחה!\n\nכעת, אנא הדבק כאן את קישור האינטרנט של התיקייה הזו כפי שהוא מופיע בדפדפן ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/sites/zaharonim/...)');
     if (!baseUrl) return;
     
     // Parse SharePoint URL to extract direct web directory path
@@ -2306,14 +2306,14 @@ window.startSharePointScanner = async function() {
         const libIndex = u.indexOf('צהרונים - מסמכים');
         if (libIndex !== -1) {
           const relativePath = u.substring(libIndex);
-          return 'https://tomshin.sharepoint.com/sites/docs/' + relativePath.replace(/\/+$/, '');
+          return 'https://tomashin1.sharepoint.com/sites/zaharonim/' + relativePath.replace(/\/+$/, '');
         }
         
         // Fallback for any other local path synced via SharePoint tenant
         const tomshinIndex = u.indexOf('רשת תיכוני טומשין בע מ');
         if (tomshinIndex !== -1) {
           const rest = u.substring(tomshinIndex).replace(/^[^/]+\//, '');
-          return 'https://tomshin.sharepoint.com/sites/docs/' + rest.replace(/\/+$/, '');
+          return 'https://tomashin1.sharepoint.com/sites/zaharonim/' + rest.replace(/\/+$/, '');
         }
         
         return u.replace(/\/+$/, '');
@@ -2367,7 +2367,21 @@ window.startSharePointScanner = async function() {
       return ':b:/r/'; // default fallback
     };
     
-    let origin = 'https://tomshin.sharepoint.com';
+    // Helper to safely URL-encode path segments without double-encoding
+    const encodePath = (p) => {
+      return p.split('/').map(segment => {
+        if (!segment) return '';
+        if (segment.includes('%')) {
+          try {
+            decodeURIComponent(segment);
+            return segment; // Already encoded
+          } catch(e) {}
+        }
+        return encodeURIComponent(segment);
+      }).join('/');
+    };
+
+    let origin = 'https://tomashin1.sharepoint.com';
     let path = cleanBaseUrl;
     try {
       const uObj = new URL(cleanBaseUrl);
@@ -2375,14 +2389,16 @@ window.startSharePointScanner = async function() {
       path = uObj.pathname;
     } catch(e) {}
     if (!path.startsWith('/')) path = '/' + path;
+    
+    const encodedPath = encodePath(path);
 
     let matchCount = 0;
     const resultsData = [['שם הקובץ', 'מספר שזוהה', 'סטטוס התאמה', 'קישור שנוצר']];
     for (const file of filesFound) {
       const numbersInName = file.name.match(/\d+/g) || [];
       const decorator = getSharePointDecorator(file.name);
-      const urlPath = ('/' + decorator + '/' + path + '/' + file.relativePath).replace(/\/+/g, '/');
-      const link = decodeURIComponent(`${origin}${urlPath}?web=1`);
+      const urlPath = ('/' + decorator + '/' + encodedPath + '/' + file.relativePath).replace(/\/+/g, '/');
+      const link = `${origin}${urlPath}?web=1`;
       let matchedInvoice = null;
       for (const numStr of numbersInName) {
         if (numStr.length < 3) continue;
