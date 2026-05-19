@@ -197,7 +197,6 @@ function renderInvoices(){
       <td style="min-width:120px;padding:8px">
         <div style="font-weight:700;color:#1a237e;font-size:.83rem">${inv.supName||''}</div>
         <div style="font-size:.67rem;color:#999;margin-top:2px">${(supEx[inv.supName]||{}).entityType||''}</div>
-        ${inv.fileUrl ? `<a href="#" onclick="event.stopPropagation(); if (typeof window.openInvoiceFile === 'function') { window.openInvoiceFile('${inv.fileUrl.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${inv.id}); } else { window.open('${inv.fileUrl.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', '_blank'); } return false;" style="display:inline-flex;align-items:center;margin-top:4px;background:#e3f2fd;color:#1565c0;font-size:.7rem;padding:3px 8px;border-radius:4px;text-decoration:none;border:1px solid #90caf9;font-weight:600" title="פתיחת מסמך">📄 צפה במסמך</a>` : ''}
       </td>
       <td style="font-size:.75rem;line-height:2;padding:8px">
         ${hasOrder?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.orderNum}</b>${inv.orderDate?'<span style="color:#999"> · '+fD(inv.orderDate)+'</span>':''} ${mkFileBtn('order',inv.orderNum)}</div>`:''}
@@ -2400,19 +2399,33 @@ window.startSharePointScanner = async function() {
       const urlPath = ('/' + decorator + '/' + encodedPath + '/' + file.relativePath).replace(/\/+/g, '/');
       const link = `${origin}${urlPath}?web=1`;
       let matchedInvoice = null;
+      let matchedSec = null; // 'order', 'tx', or 'tax'
       for (const numStr of numbersInName) {
         if (numStr.length < 3) continue;
-        matchedInvoice = window.INVOICES.find(inv => 
-          (inv.num && String(inv.num).trim() === numStr) ||
-          (inv.orderNum && String(inv.orderNum).trim() === numStr) ||
-          (inv.txNum && String(inv.txNum).trim() === numStr)
-        );
+        matchedInvoice = window.INVOICES.find(inv => {
+          if (inv.num && String(inv.num).trim() === numStr) {
+            matchedSec = 'tax';
+            return true;
+          }
+          if (inv.txNum && String(inv.txNum).trim() === numStr) {
+            matchedSec = 'tx';
+            return true;
+          }
+          if (inv.orderNum && String(inv.orderNum).trim() === numStr) {
+            matchedSec = 'order';
+            return true;
+          }
+          return false;
+        });
         if (matchedInvoice) break;
       }
-      if (matchedInvoice) {
-        matchedInvoice.fileUrl = link;
+      if (matchedInvoice && matchedSec) {
+        matchedInvoice['file_' + matchedSec] = {
+          path: link,
+          name: file.name
+        };
         matchCount++;
-        resultsData.push([file.name, numbersInName.join(','), 'הותאם לספק: ' + matchedInvoice.supName, link]);
+        resultsData.push([file.name, numbersInName.join(','), `הותאם לספק: ${matchedInvoice.supName} (${matchedSec})`, link]);
       } else {
         resultsData.push([file.name, numbersInName.join(','), 'לא נמצאה התאמה בחשבוניות', link]);
       }
