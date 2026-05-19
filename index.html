@@ -13,14 +13,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>מערכת שיבוץ - גרסה 103.67</title>
+  <title>מערכת שיבוץ - גרסה 103.69</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
-  <link rel="stylesheet" href="styles.css?v=103.67" />
+  <link rel="stylesheet" href="styles.css?v=103.69" />
   <script>
-    window.APP_VERSION = '103.67';
+    window.APP_VERSION = '103.69';
   </script>
   <script type="module" src="firebase_init.js?v=102.78"></script>
   <script src="assets.js?v=102.78"></script>
@@ -45,7 +45,7 @@
   <div class="hdr">
     <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
       <span style="font-size:1.3rem">📅</span>
-      <h1>טומשין קידס <span style="font-size:.6rem;opacity:.5;font-weight:400;vertical-align:middle">v103.67</span></h1>
+      <h1>טומשין קידס <span style="font-size:.6rem;opacity:.5;font-weight:400;vertical-align:middle">v103.69</span></h1>
     </div>
     <div class="hs" id="hdr-stats" style="overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch">
       <span
@@ -112,24 +112,35 @@
 
   <!-- 📊 MODE TABS — ניהול חוגים / ניהול רכש 📊 -->
   <div class="mode-bar" id="mode-bar">
-    <button class="mode-btn active" id="modeBtn-act" onclick="switchMode('act')">🎨 ניהול חוגים</button>
-    <button class="mode-btn" id="modeBtn-purch" onclick="switchMode('purch')">🛒 ניהול רכש</button>
-    <button class="mode-btn" id="modeBtn-admin" onclick="ST('admin')" style="display:none;color:#ce93d8">👥 ניהול
-      משתמשים</button>
+    <button class="mode-btn active" id="modeBtn-act" onclick="switchMode('act')"
+      title="מעבר למערכת ניהול חוגים, צהרונים, שיבוצים ולוח שנה">🎨 ניהול חוגים</button>
+    <button class="mode-btn" id="modeBtn-purch" onclick="switchMode('purch')"
+      title="מעבר למערכת ניהול רכש, הזמנות ספקים, חשבוניות ואישורי תשלום">🛒 ניהול רכש</button>
+    <button class="mode-btn" id="modeBtn-admin" onclick="ST('admin')" style="display:none;color:#ce93d8"
+      title="ניהול הרשאות ומשתמשים במערכת (למנהלים בלבד)">👥 ניהול משתמשים</button>
   </div>
   <div class="tabs" id="tabs-act">
-    <div class="tab active" onclick="ST('dash')">📊 לוח בקרה</div>
-    <div class="tab" onclick="if(window.clearCal)window.clearCal();ST('cal')">📆 לוח שנה</div>
-    <div class="tab" onclick="ST('sched')">🕒 לוח זמנים</div>
-    <div class="tab" onclick="ST('gardens')">🏡 צהרונים</div>
-    <div class="tab" onclick="ST('holidays')">🏖️ חופשות</div>
-    <div class="tab" onclick="ST('sup')">👨‍🏫 ספקים</div>
+    <div class="tab active" onclick="ST('dash')"
+      title="לוח בקרה כללי, סטטיסטיקות, יתרות תקציב וסיכומי פעילות">📊 לוח בקרה</div>
+    <div class="tab" onclick="if(window.clearCal)window.clearCal();ST('cal')"
+      title="לוח שנה אינטראקטיבי להצגת שיבוצי חוגים שבועיים וחודשיים וניהול השלמות">📆 לוח שנה</div>
+    <div class="tab" onclick="ST('sched')"
+      title="טבלת שיבוצי חוגים מפורטת לפי ימים, ספקים וצהרונים">🕒 לוח זמנים</div>
+    <div class="tab" onclick="ST('gardens')"
+      title="ניהול גני ילדים ובתי ספר, חלוקה לאשכולות וניהול זוגות גנים">🏡 צהרונים</div>
+    <div class="tab" onclick="ST('holidays')"
+      title="ניהול ימי חופשה, לוח חגים וימי שביתה שבהם אין חוגים">🏖️ חופשות</div>
+    <div class="tab" onclick="ST('sup')"
+      title="ניהול רשימת ספקי החוגים, פרטי קשר, תחומי פעילות והסכמים">👨‍🏫 ספקים</div>
   </div>
   <!-- PROCUREMENT TABS -->
   <div class="tabs" id="tabs-purch" style="display:none">
-    <div class="tab active" onclick="SPT('pdash')">📊 לוח בקרה רכש</div>
-    <div class="tab" onclick="SPT('pinvoices')">📄 דוח הזמנות רכש וחשבוניות</div>
-    <div class="tab" onclick="SPT('psup')">👥 ניהול ספקים</div>
+    <div class="tab active" onclick="SPT('pdash')"
+      title="לוח בקרה פיננסי לרכש, סיכומי מע&quot;מ, יתרות פתוחות וחשבוניות אחרונות">📊 לוח בקרה רכש</div>
+    <div class="tab" onclick="SPT('pinvoices')"
+      title="ניהול ומעקב אחר הזמנות רכש, חשבוניות עסקה, חשבוניות מס וקבלות">📄 דוח הזמנות רכש וחשבוניות</div>
+    <div class="tab" onclick="SPT('psup')"
+      title="ניהול ספקי הרכש, הגדרת סוג ישות (חברה/עוסק), טלפונים ואישורי ניהול ספרים">👥 ניהול ספקים</div>
   </div>
   <div id="mob-nav">
     <div class="mob-nav-inner">
@@ -1154,9 +1165,11 @@
               וסינון <span id="pi-flt-arrow"
                 style="font-size:.9rem;color:#546e7a;transition:transform .2s">▼</span></span>
             <button class="btn bs" onclick="document.getElementById('pi-import-input').click()"
+              title="ייבוא של נתוני רכש, ספקים וחשבוניות מתוך קובץ Excel מרוכז למערכת"
               style="padding:4px 10px;font-size:.75rem;background:#f5f5f5;border:1px solid #c5cae9;color:#283593">📂
               ייבוא רכש (Excel)</button>
             <button class="btn bs" onclick="window.startSharePointScanner()"
+              title="סריקת תיקיית מסמכים מקומית מ-SharePoint/OneDrive וקישור אוטומטי של קבצים לחשבוניות על פי מספרי מסמכים (הזמנות, עסקאות וחשבוניות מס)"
               style="padding:4px 10px;font-size:.75rem;background:#e3f2fd;border:1px solid #90caf9;color:#0d47a1;margin-right:2px">🔗
               סורק SharePoint (מקומי)</button>
             <input type="file" id="pi-import-input" accept=".xlsx, .xls" style="display:none"
@@ -2690,6 +2703,7 @@
           </div>
           <div id="inv-path-input-row-order" style="display:flex;gap:5px;align-items:center">
             <input type="text" id="inv-path-order" placeholder="הדבק קישור OneDrive / SharePoint..."
+              title="הדבק קישור OneDrive או SharePoint של קובץ ההזמנה כדי לאפשר גישה מכל מחשב או טלפון"
               style="flex:1;font-size:.72rem;border-radius:5px;border:1.5px solid #c5cae9;padding:5px 9px;direction:ltr;text-align:left"
               oninput="invPathChange('order')">
           </div>
@@ -2774,6 +2788,7 @@
           </div>
           <div id="inv-path-input-row-tx" style="display:flex;gap:5px;align-items:center">
             <input type="text" id="inv-path-tx" placeholder="הדבק קישור OneDrive / SharePoint..."
+              title="הדבק קישור OneDrive או SharePoint של קובץ חשבונית העסקה כדי לאפשר גישה מכל מחשב או טלפון"
               style="flex:1;font-size:.72rem;border-radius:5px;border:1.5px solid #c5cae9;padding:5px 9px;direction:ltr;text-align:left"
               oninput="invPathChange('tx')">
           </div>
@@ -2853,6 +2868,7 @@
           </div>
           <div id="inv-path-input-row-tax" style="display:flex;gap:5px;align-items:center">
             <input type="text" id="inv-path-tax" placeholder="הדבק קישור OneDrive / SharePoint..."
+              title="הדבק קישור OneDrive או SharePoint של קובץ חשבונית המס או הקבלה כדי לאפשר גישה מכל מחשב או טלפון"
               style="flex:1;font-size:.72rem;border-radius:5px;border:1.5px solid #c5cae9;padding:5px 9px;direction:ltr;text-align:left"
               oninput="invPathChange('tax')">
           </div>
@@ -3146,24 +3162,24 @@
     </div>
 
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <script src="utils.js?v=103.67"></script>
-    <script src="data_manager.js?v=103.67"></script>
-    <script src="data.js?v=103.67"></script>
-    <script src="firebase.js?v=103.67"></script>
-    <script src="invoices.js?v=103.67"></script>
-    <script src="suppliers.js?v=103.67"></script>
-    <script src="cal.js?v=103.67"></script>
-    <script src="activity.js?v=103.67"></script>
-    <script src="sched.js?v=103.67"></script>
-    <script src="gardens.js?v=103.67"></script>
-    <script src="export.js?v=103.67"></script>
-    <script src="backup.js?v=103.67"></script>
-    <script src="admin.js?v=103.67"></script>
-    <script src="import_export.js?v=103.67"></script>
-    <script src="core.js?v=103.67"></script>
+    <script src="utils.js?v=103.69"></script>
+    <script src="data_manager.js?v=103.69"></script>
+    <script src="data.js?v=103.69"></script>
+    <script src="firebase.js?v=103.69"></script>
+    <script src="invoices.js?v=103.69"></script>
+    <script src="suppliers.js?v=103.69"></script>
+    <script src="cal.js?v=103.69"></script>
+    <script src="activity.js?v=103.69"></script>
+    <script src="sched.js?v=103.69"></script>
+    <script src="gardens.js?v=103.69"></script>
+    <script src="export.js?v=103.69"></script>
+    <script src="backup.js?v=103.69"></script>
+    <script src="admin.js?v=103.69"></script>
+    <script src="import_export.js?v=103.69"></script>
+    <script src="core.js?v=103.69"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
-      console.log('Ganscheduler Architecture: v103.67 Ready');
+      console.log('Ganscheduler Architecture: v103.69 Ready');
     </script>
 
     </div>
