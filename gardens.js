@@ -1013,21 +1013,47 @@ function genExport(){
   const relActive=rel.filter(s=>s.st!=='can');
   if(!rel.length){(document.getElementById('ex-prev')||{}).textContent='אין פעילויות';return;}
 
-  // Upgraded: Detect if all activities in this list are preponed-credit (הוקדם מ... / הקדמה)
-  const isAllPreponed = rel.every(s => (s.nt && /הוקדם מ|הקדמה/i.test(s.nt)) || (s.n && /הוקדם מ|הקדמה/i.test(s.n)) || (s.a && /הוקדם מ|הקדמה/i.test(s.a)));
-  
-  // Upgraded: Detect if all activities in this list are preponed-debt (הוקדם ל...)
-  const isAllPreponedOut = rel.every(s => (s.nt && /הוקדם ל/i.test(s.nt)) || (s.n && /הוקדם ל/i.test(s.n)) || (s.a && /הוקדם ל/i.test(s.a)));
+  // Row-level type detector
+  const getEvType = (s) => {
+    const noteText = (s.nt || '') + ' ' + (s.n || '') + ' ' + (s.a || '');
+    
+    // 1. Advancement (הקדמה)
+    if (s._postFrom && s.d < s._postFrom) return 'preponed';
+    if (/הקדמה מיום|הוקדם מיום|הקדמה|הוקדם מ/i.test(noteText)) return 'preponed';
+    
+    // 2. Postponement (דחייה)
+    if (s._postFrom && s.d > s._postFrom) return 'postponed';
+    if (/דחייה מיום|נדחה מיום|הוזז מיום|עבר מיום|דחייה|נדחה|הוזז|השלמה מיום/i.test(noteText)) {
+      return 'postponed';
+    }
+    
+    // 3. Preponed out (הוקדם ל...)
+    if (/הוקדם ל/i.test(noteText)) return 'preponed_out';
+    
+    // 4. Makeup (השלמה)
+    if (s._makeupFrom || (s._isMakeup && !s._postFrom)) return 'makeup';
+    if (/השלמה/i.test(noteText)) return 'makeup';
+    
+    // 5. Cancel / Nohap
+    if (s.st === 'can') return 'can';
+    if (s.st === 'nohap') return 'nohap';
+    
+    return 'normal';
+  };
 
-  const isAllMakeup = rel.every(s => s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.nt)) || (s.n && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.n)) || (s.a && /השלמה|הוקדם|נדחה|הוזז|עבר|עובר|הועבר/i.test(s.a)));
-  
-  // Check if all are non-occurring (either via status or comment indicating reschedule-out)
-  const isAllNohap = rel.every(s => s.st === 'nohap' || (s.nt && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.n)));
+  const types = rel.map(getEvType);
+  const isAllPreponed = types.every(t => t === 'preponed');
+  const isAllPostponed = types.every(t => t === 'postponed');
+  const isAllPreponedOut = types.every(t => t === 'preponed_out');
+  const isAllMakeup = types.every(t => t === 'makeup');
+  const isAllNohap = rel.every(s => s.st === 'nohap' || (s.nt && /נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)));
   const isAllCan = rel.every(s => s.st === 'can');
 
   let headerTitle = '';
   if (isAllPreponed) {
     headerTitle = '*הקדמה*\n';
+  } else if (isAllPostponed) {
+    headerTitle = '*דחייה*\n';
   } else if (isAllPreponedOut) {
     headerTitle = '*לא מתקיים - הוקדם*\n';
   } else if (isAllMakeup) {
@@ -1040,16 +1066,12 @@ function genExport(){
 
   // Row-level label builder based on exact comments
   const getRowTag = (s) => {
-    if (isAllMakeup || isAllPreponed || isAllPreponedOut) return ''; // Already handled globally
-    const noteText = (s.nt || '') + ' ' + (s.n || '') + ' ' + (s.a || '');
-    if (/הוקדם ל/i.test(noteText)) {
-      return '*הוקדם* · ';
-    }
-    if (/הוקדם מ|הקדמה/i.test(noteText)) {
-      return '*הקדמה* · ';
-    }
-    const hasMakeup = s._isMakeup || s._makeupFrom || /השלמה|נדחה|הוזז|עבר|עובר|הועבר/i.test(noteText);
-    if (hasMakeup) return '*השלמה* · ';
+    const t = getEvType(s);
+    if (isAllMakeup || isAllPreponed || isAllPostponed || isAllPreponedOut) return ''; // Already handled globally
+    if (t === 'preponed') return '*הקדמה* · ';
+    if (t === 'postponed') return '*דחייה* · ';
+    if (t === 'preponed_out') return '*הוקדם* · ';
+    if (t === 'makeup') return '*השלמה* · ';
     return '';
   };
 

@@ -1604,6 +1604,50 @@ window.spTriggerMakeupUI = function() {
   window.spMuDateChg();
 };
 
+window.postShowFreeDays = function(gid) {
+  const container = document.getElementById('post-free-days');
+  const wrap = document.getElementById('post-free-wrap');
+  if(!container || !wrap) return;
+  
+  const DAY_HEB=['ראשון','שני','שלישי','רביעי','חמישי'];
+  const g = window.G(gid);
+  if(!g) { wrap.style.display = 'none'; return; }
+
+  const busyDates = new Set(window.SCH.filter(x => {
+    if(Number(x.g) !== Number(gid)) return false;
+    if(x.st === 'can' || x.st === 'nohap' || x.st === 'post') return false;
+    return true;
+  }).map(x=>x.d));
+  
+  const free = []; let d = new Date(); d.setHours(0,0,0,0);
+  
+  for(let i=0; i<21; i++) {
+    const dow = d.getDay();
+    if(dow >= 0 && dow <= 4) {
+      const ds = window.d2s(d);
+      const hol = window.getHolidayInfo(ds, g.city, window.gcls(g));
+      const isToday = i === 0;
+      if(!busyDates.has(ds) && (!hol || isToday)) {
+        let label = DAY_HEB[dow] + ' ' + window.fD(ds);
+        if(hol) label += ` (${hol.name})`;
+        free.push({ds, lbl: label});
+      }
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  
+  if(free.length) {
+    container.innerHTML = free.map(f => `
+      <button type="button" class="btn bg bsm" style="font-size:0.68rem;padding:2px 6px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;cursor:pointer;border-radius:4px;display:inline-block;margin:2px" onclick="document.getElementById('post-date').value='${f.ds}'; if(window.postDateChg) window.postDateChg();">
+        ${f.lbl}
+      </button>
+    `).join('');
+    wrap.style.display = window._postMode === 'move' ? 'block' : 'none';
+  } else {
+    wrap.style.display = 'none';
+  }
+};
+
 function openPostpone(id){
   window.selEvPost=id;
   const s=window.SCH.find(x=>x.id==id); if(!s) return;
@@ -1612,8 +1656,18 @@ function openPostpone(id){
   // Ensure the input has a label associated with it in index.html (verified later)
   document.getElementById('post-date').value='';
   document.getElementById('post-reason').value='';
+  
+  // Show / Hide conflict warnings initially
+  const warn = document.getElementById('post-conflict-warn');
+  if(warn) warn.style.display = 'none';
+
   if(typeof window.setPostMode === 'function') window.setPostMode('move');
   
+  // Populate Free Days
+  if(typeof window.postShowFreeDays === 'function') {
+    window.postShowFreeDays(s.g);
+  }
+
   // Set up Synergy UI
   const synWrap = document.getElementById('post-synergy-wrap');
   if(synWrap) {
@@ -1714,10 +1768,13 @@ function doPostpone(){
   s.cn += reason ? ` (דחייה: ${reason})` : '';
   s._compByMakeup = newId1; // Mark original as handled
 
+  const isPostpone = newDate > s.d;
+  const labelText = isPostpone ? 'דחייה' : 'הקדמה';
+
   const newEv1 = {
     ...s, id:newId1, d:newDate, t:s.t, a:newSup||s.a, act:newAct||s.act, st:'ok', 
     pd:'', pt:'', _postFrom: s.d, _isMakeup: true,
-    nt: (s.nt ? s.nt + ' | ' : '') + 'השלמה מיום ' + window.fD(s.d)
+    nt: (s.nt ? s.nt + ' | ' : '') + `${labelText} מיום ` + window.fD(s.d)
   };
   delete newEv1._recId;
   if(reason) newEv1.n = s.n ? s.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
@@ -1734,10 +1791,12 @@ function doPostpone(){
       conf.pEv._compByMakeup = newSynId;
     }
     const ptEv = conf.pEv || {...s, g: conf.syn.g};
+    const isPostponePartner = newDate > ptEv.d;
+    const partnerLabelText = isPostponePartner ? 'דחייה' : 'הקדמה';
     const newPtEv = {
       ...ptEv, id:newSynId, d:newDate, t:conf.syn.t || ptEv.t, a:newSup||s.a, act:newAct||s.act, st:'ok', 
-      pd:'', pt:'', _postFrom: s.d, _isMakeup: true,
-      nt: (ptEv.nt ? ptEv.nt + ' | ' : '') + 'השלמה מיום ' + window.fD(s.d)
+      pd:'', pt:'', _postFrom: ptEv.d, _isMakeup: true,
+      nt: (ptEv.nt ? ptEv.nt + ' | ' : '') + `${partnerLabelText} מיום ` + window.fD(ptEv.d)
     };
     delete newPtEv._recId;
     if(!conf.pEv && reason) newPtEv.n = ptEv.n ? ptEv.n + ' | נוצר מדחייה: ' + reason : 'נוצר מדחייה: ' + reason;
@@ -1745,8 +1804,9 @@ function doPostpone(){
     window.SCH.push(newPtEv);
   });
   
+  const toastMsg = isPostpone ? '✅ פעילות נדחתה (כולל סינרגיה)' : '✅ פעילות הוקדמה (כולל סינרגיה)';
   window.saveAndRefresh('postm');
-  window.showToast('✅ פעילות נדחתה (כולל סינרגיה)');
+  window.showToast(toastMsg);
 }
 
 function doCopy(){
@@ -1864,11 +1924,39 @@ window.updAndRefresh = updAndRefresh;
 
 function postDateChg() {
   console.log('Postpone date changed');
+  const sid = window.selEvPost;
+  const s = window.SCH.find(x => x.id == sid);
+  if(!s) return;
+  const targetDate = document.getElementById('post-date').value;
+  const warn = document.getElementById('post-conflict-warn');
+  const saveBtn = document.getElementById('postm-save-btn');
+  
+  if(!targetDate) {
+    if(warn) warn.style.display = 'none';
+    if(saveBtn && window._postMode === 'move') {
+      saveBtn.textContent = '🚀 הזז ועדכן';
+    }
+    return;
+  }
+  
+  // Set dynamic button text
+  if(saveBtn && window._postMode === 'move') {
+    const isPostpone = targetDate > s.d;
+    saveBtn.textContent = isPostpone ? '🚀 הזז ובצע דחייה' : '🚀 הזז ובצע הקדמה';
+  }
+  
+  // Check if there is an active activity for this garden on targetDate
+  const conflict = window.SCH.some(x => 
+    Number(x.g) === Number(s.g) && 
+    x.d === targetDate && 
+    x.st !== 'can' && 
+    x.st !== 'nohap' && 
+    x.st !== 'post'
+  );
+  
+  if(warn) warn.style.display = conflict ? 'block' : 'none';
 }
 window.postDateChg = postDateChg;
-
-// The openNohapQ modal is defined in core.js. 
-// We don't need to override it here anymore as core.js now respects window._spSyncPartnerNext
 
 window.setPostMode = function(mode) {
   window._postMode = mode;
@@ -1879,6 +1967,7 @@ window.setPostMode = function(mode) {
   const synWrap = document.getElementById('post-synergy-wrap');
   const saveBtn = document.getElementById('postm-save-btn');
   const reasonLbl = document.getElementById('post-reason-lbl');
+  const freeWrap = document.getElementById('post-free-wrap');
 
   if(mode === 'move') {
     if(btnMove) btnMove.classList.add('active');
@@ -1886,7 +1975,20 @@ window.setPostMode = function(mode) {
     if(dateRow) dateRow.style.display = 'block';
     if(timeRow) timeRow.style.display = 'block';
     if(synWrap) synWrap.style.display = 'block';
-    if(saveBtn) { saveBtn.textContent = '🚀 הזז וצור השלמה'; saveBtn.className = 'btn borange'; }
+    if(freeWrap) {
+      const freeDaysContainer = document.getElementById('post-free-days');
+      if (freeDaysContainer && freeDaysContainer.children.length > 0) {
+        freeWrap.style.display = 'block';
+      } else {
+        freeWrap.style.display = 'none';
+      }
+    }
+    if(typeof window.postDateChg === 'function') {
+      window.postDateChg();
+    } else if(saveBtn) {
+      saveBtn.textContent = '🚀 הזז ועדכן';
+      saveBtn.className = 'btn borange';
+    }
     if(reasonLbl) reasonLbl.textContent = 'סיבה (אופציונלי)';
   } else {
     if(btnMove) btnMove.classList.remove('active');
@@ -1894,6 +1996,7 @@ window.setPostMode = function(mode) {
     if(dateRow) dateRow.style.display = 'none';
     if(timeRow) timeRow.style.display = 'none';
     if(synWrap) synWrap.style.display = 'block'; // Keep synergy visible for defer too!
+    if(freeWrap) freeWrap.style.display = 'none'; // Hide in defer mode
     if(saveBtn) { saveBtn.textContent = '⏱️ דחה לעת עתה'; saveBtn.className = 'btn bs'; }
     if(reasonLbl) reasonLbl.textContent = 'סיבה (חובה לדחייה)';
   }
