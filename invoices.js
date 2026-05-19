@@ -197,7 +197,7 @@ function renderInvoices(){
       <td style="min-width:120px;padding:8px">
         <div style="font-weight:700;color:#1a237e;font-size:.83rem">${inv.supName||''}</div>
         <div style="font-size:.67rem;color:#999;margin-top:2px">${(supEx[inv.supName]||{}).entityType||''}</div>
-        ${inv.fileUrl ? `<a href="${inv.fileUrl}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;margin-top:4px;background:#e3f2fd;color:#1565c0;font-size:.7rem;padding:3px 8px;border-radius:4px;text-decoration:none;border:1px solid #90caf9;font-weight:600" title="פתיחת מסמך מקורי מהענן">📄 צפה במסמך</a>` : ''}
+        ${inv.fileUrl ? `<a href="#" onclick="event.stopPropagation(); if (typeof window.openInvoiceFile === 'function') { window.openInvoiceFile('${inv.fileUrl.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${inv.id}); } else { window.open('${inv.fileUrl.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', '_blank'); } return false;" style="display:inline-flex;align-items:center;margin-top:4px;background:#e3f2fd;color:#1565c0;font-size:.7rem;padding:3px 8px;border-radius:4px;text-decoration:none;border:1px solid #90caf9;font-weight:600" title="פתיחת מסמך">📄 צפה במסמך</a>` : ''}
       </td>
       <td style="font-size:.75rem;line-height:2;padding:8px">
         ${hasOrder?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.orderNum}</b>${inv.orderDate?'<span style="color:#999"> · '+fD(inv.orderDate)+'</span>':''} ${mkFileBtn('order',inv.orderNum)}</div>`:''}
@@ -555,6 +555,15 @@ function _showLocalPathHelp(p, invId, section, meta, pathType){
     _removeOverlay('localhelp-overlay'); _showPathDialog(invId, section, meta);
   });
 }
+
+window.openInvoiceFile = function(url, invId) {
+  const c = _classifyPath(url);
+  if (c.type === 'url') {
+    window.open(c.url, '_blank');
+  } else {
+    _showLocalPathHelp(url, invId, 'file', { name: _extractNameFromUrl(url) || 'קובץ סרוק' }, c.type);
+  }
+};
 
 function invOpenFileFromModal(section){
   if(_editInvId) invOpenFile(_editInvId, section);
@@ -2281,9 +2290,59 @@ window.startSharePointScanner = async function() {
   }
   try {
     const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
-    const baseUrl = prompt('בחרת את התיקייה המקומית בהצלחה!\n\nכעת, אנא הדבק כאן את קישור האינטרנט של התיקייה הזו בדיוק כפי שהוא מופיע ב-SharePoint\n(לדוגמה: https://tomshin.sharepoint.com/sites/docs/Shared%20Documents/...) :');
+    const baseUrl = prompt('בחרת את התיקייה המקומית בהצלחה!\n\nכעת, אנא הדבק כאן את קישור האינטרנט של התיקייה הזו כפי שהוא מופיע בדפדפן ב-SharePoint:\n(לדוגמה: https://tomshin.sharepoint.com/sites/...)');
     if (!baseUrl) return;
-    const cleanBaseUrl = baseUrl.trim().replace(/\/+$/, '');
+    
+    // Parse SharePoint URL to extract direct web directory path
+    const parseSharePointBaseUrl = (url) => {
+      let u = url.trim();
+      
+      // If it's a local path (e.g. C:\Users\... or contains backslashes)
+      if (!/^https?:\/\//i.test(u)) {
+        // Normalize backslashes to forward slashes
+        u = u.replace(/\\/g, '/');
+        
+        // Check if it contains the SharePoint library folder
+        const libIndex = u.indexOf('צהרונים - מסמכים');
+        if (libIndex !== -1) {
+          const relativePath = u.substring(libIndex);
+          return 'https://tomshin.sharepoint.com/sites/docs/' + relativePath.replace(/\/+$/, '');
+        }
+        
+        // Fallback for any other local path synced via SharePoint tenant
+        const tomshinIndex = u.indexOf('רשת תיכוני טומשין בע מ');
+        if (tomshinIndex !== -1) {
+          const rest = u.substring(tomshinIndex).replace(/^[^/]+\//, '');
+          return 'https://tomshin.sharepoint.com/sites/docs/' + rest.replace(/\/+$/, '');
+        }
+        
+        return u.replace(/\/+$/, '');
+      }
+
+      try {
+        const urlObj = new URL(u);
+        const origin = urlObj.origin;
+        
+        // 1. If user copied browser address bar URL (e.g. contains AllItems.aspx?id=...)
+        const idParam = urlObj.searchParams.get('id');
+        if (idParam) {
+          const decodedId = decodeURIComponent(idParam);
+          return origin + decodedId.replace(/\/+$/, '');
+        }
+        
+        // 2. Otherwise, clean standard pathname
+        let cleanPath = urlObj.pathname;
+        
+        // 3. Remove SharePoint folder/file viewer path decorators like /:f:/r or /:b:/s etc.
+        cleanPath = cleanPath.replace(/\/:[a-z]:\/[a-z0-9]/i, '');
+        
+        return origin + cleanPath.replace(/\/+$/, '');
+      } catch (e) {
+        return u.replace(/\?.*$/, '').replace(/\/+$/, '');
+      }
+    };
+    
+    const cleanBaseUrl = parseSharePointBaseUrl(baseUrl);
     window.showToast('⏳ סורק קבצים במחשב... נא להמתין', 60000);
     const filesFound = [];
     async function scanDir(handle, currentPath) {
@@ -2298,11 +2357,32 @@ window.startSharePointScanner = async function() {
       }
     }
     await scanDir(dirHandle, '');
+    // Helper to get SharePoint decorator based on extension
+    const getSharePointDecorator = (filename) => {
+      const ext = String(filename).split('.').pop().toLowerCase();
+      if (['pdf', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'txt'].includes(ext)) return ':b:/r/';
+      if (['docx', 'doc', 'rtf'].includes(ext)) return ':w:/r/';
+      if (['xlsx', 'xls', 'csv'].includes(ext)) return ':x:/r/';
+      if (['pptx', 'ppt'].includes(ext)) return ':p:/r/';
+      return ':b:/r/'; // default fallback
+    };
+    
+    let origin = 'https://tomshin.sharepoint.com';
+    let path = cleanBaseUrl;
+    try {
+      const uObj = new URL(cleanBaseUrl);
+      origin = uObj.origin;
+      path = uObj.pathname;
+    } catch(e) {}
+    if (!path.startsWith('/')) path = '/' + path;
+
     let matchCount = 0;
     const resultsData = [['שם הקובץ', 'מספר שזוהה', 'סטטוס התאמה', 'קישור שנוצר']];
     for (const file of filesFound) {
       const numbersInName = file.name.match(/\d+/g) || [];
-      const link = `${cleanBaseUrl}${file.relativePath}?web=1`;
+      const decorator = getSharePointDecorator(file.name);
+      const urlPath = ('/' + decorator + '/' + path + '/' + file.relativePath).replace(/\/+/g, '/');
+      const link = decodeURIComponent(`${origin}${urlPath}?web=1`);
       let matchedInvoice = null;
       for (const numStr of numbersInName) {
         if (numStr.length < 3) continue;
