@@ -2175,7 +2175,8 @@ window.importInvoices = function(input) {
           }
         });
 
-        const sName = String(item.supName || "").trim();
+        const sName = String(item.supName || "").trim().replace(/[.$#[\]/]/g, '');
+        item.supName = sName;
         const oNum  = String(item.orderNum || "").trim();
         const oDate = String(item.orderDate || "").trim();
         const txNum = String(item.txNum || "").trim();

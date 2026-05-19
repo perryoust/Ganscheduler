@@ -748,6 +748,9 @@ async function save(immediate){
   }
   
   try{
+    if (typeof window.cleanSupplierNamesBeforeSave === 'function') {
+      window.cleanSupplierNamesBeforeSave();
+    }
     if(window.DataManager && window.DataManager.applyAutoMakeupMatching) {
       window.DataManager.applyAutoMakeupMatching();
     }

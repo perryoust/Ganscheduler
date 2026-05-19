@@ -70,6 +70,72 @@ async function doLogin() {
   }
 }
 
+// Helper to sanitize supplier names for Firebase Database keys (removes . $ # [ ] /)
+window.cleanSupplierNamesBeforeSave = function() {
+  if (typeof window.supEx === 'undefined') return;
+  const clean = (s) => String(s || '').replace(/[.$#[\]/]/g, '').trim();
+
+  // 1. Clean window.supEx keys
+  const oldKeys = Object.keys(window.supEx);
+  for (const key of oldKeys) {
+    if (key === '__c' || key === '__merged_away') continue;
+    const cleanedKey = clean(key);
+    if (cleanedKey !== key) {
+      console.log(`[Clean] Renaming supEx key "${key}" -> "${cleanedKey}"`);
+      window.supEx[cleanedKey] = { ...(window.supEx[cleanedKey] || {}), ...window.supEx[key] };
+      delete window.supEx[key];
+    }
+  }
+
+  // 2. Clean names inside window.supEx['__c']
+  if (Array.isArray(window.supEx['__c'])) {
+    window.supEx['__c'].forEach(s => {
+      if (s.name) {
+        const cleanedName = clean(s.name);
+        if (cleanedName !== s.name) {
+          console.log(`[Clean] Renaming supEx.__c name "${s.name}" -> "${cleanedName}"`);
+          s.name = cleanedName;
+        }
+      }
+    });
+  }
+
+  // 3. Clean names inside window.supEx['__merged_away']
+  if (Array.isArray(window.supEx['__merged_away'])) {
+    window.supEx['__merged_away'] = window.supEx['__merged_away'].map(name => {
+      const cleanedName = clean(name);
+      if (cleanedName !== name) {
+        console.log(`[Clean] Renaming supEx.__merged_away name "${name}" -> "${cleanedName}"`);
+      }
+      return cleanedName;
+    });
+  }
+
+  // 4. Clean names inside window.INVOICES
+  if (Array.isArray(window.INVOICES)) {
+    window.INVOICES.forEach(inv => {
+      if (inv.supName) {
+        const cleanedName = clean(inv.supName);
+        if (cleanedName !== inv.supName) {
+          inv.supName = cleanedName;
+        }
+      }
+    });
+  }
+
+  // 5. Clean names inside window.SCH
+  if (Array.isArray(window.SCH)) {
+    window.SCH.forEach(s => {
+      if (s.a) {
+        const cleanedName = clean(s.a);
+        if (cleanedName !== s.a) {
+          s.a = cleanedName;
+        }
+      }
+    });
+  }
+};
+
 // ── Core Sync Logic ──────────────────────────
 async function saveToFirebase(silent = false, force = false) {
   if (_isLocked && !force) return false;
@@ -78,6 +144,9 @@ async function saveToFirebase(silent = false, force = false) {
   _fbUpdateStatus();
 
   try {
+    // Sanitize supplier names before save to prevent PUT 400 Bad Request
+    window.cleanSupplierNamesBeforeSave();
+
     const liveData = {
       ch: window.SCH || [],
       pairs: window.pairs || [],
