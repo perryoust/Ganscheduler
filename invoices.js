@@ -2194,17 +2194,19 @@ window.importInvoices = function(input) {
 
         // Robust duplicate checking
         const existingIdx = window.INVOICES.findIndex(inv => {
-          if (num && inv.num && String(inv.num).trim() === num && String(inv.supName).trim().toLowerCase() === sName.toLowerCase()) {
-            return true;
+          const sameSup = String(inv.supName).trim().toLowerCase() === sName.toLowerCase();
+          if (!sameSup) return false;
+          // Match by invoice number (most specific)
+          if (num && inv.num && String(inv.num).trim() === num) return true;
+          // Match by transaction number
+          if (txNum && inv.txNum && String(inv.txNum).trim() === txNum) return true;
+          // Match by orderNum — only if it's a real numeric order number AND description matches
+          // (generic text values like "חוגים"/"הסעות" are NOT valid unique identifiers)
+          if (oNum && inv.orderNum && String(inv.orderNum).trim() === oNum && /^\d/.test(oNum)) {
+            if (String(inv.orderDesc || '').trim() === oDesc) return true;
           }
-          if (txNum && inv.txNum && String(inv.txNum).trim() === txNum && String(inv.supName).trim().toLowerCase() === sName.toLowerCase()) {
-            return true;
-          }
-          if (oNum && inv.orderNum && String(inv.orderNum).trim() !== "" && String(inv.orderNum).trim() === oNum && String(inv.supName).trim().toLowerCase() === sName.toLowerCase()) {
-            return true;
-          }
-          return String(inv.supName).trim().toLowerCase() === sName.toLowerCase() &&
-                 String(inv.orderDesc).trim() === oDesc &&
+          // Fallback: exact match on supplier + description + amount
+          return String(inv.orderDesc).trim() === oDesc &&
                  parseFloat(inv.orderTotal || 0).toFixed(2) === oTotal;
         });
 
