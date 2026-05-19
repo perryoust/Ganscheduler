@@ -2400,6 +2400,14 @@ window.startSharePointScanner = async function() {
       const link = `${origin}${urlPath}?web=1`;
       let matchedInvoice = null;
       let matchedSec = null; // 'order', 'tx', or 'tax'
+      
+      const cleanFilenameDigits = file.name.replace(/\D/g, '');
+      const isYear = (val) => {
+        const num = parseInt(val, 10);
+        return num >= 2020 && num <= 2030;
+      };
+
+      // 1. First attempt: Strict exact matching
       for (const numStr of numbersInName) {
         if (numStr.length < 3) continue;
         matchedInvoice = window.INVOICES.find(inv => {
@@ -2419,6 +2427,49 @@ window.startSharePointScanner = async function() {
         });
         if (matchedInvoice) break;
       }
+      
+      // 2. Second attempt: Fuzzy digits matching (handling leading zeros, slashes, dashes, letters)
+      if (!matchedInvoice) {
+        matchedInvoice = window.INVOICES.find(inv => {
+          // Clean invoice values to digits only (and remove leading zeros)
+          const cleanInv = String(inv.num || '').replace(/\D/g, '').replace(/^0+/, '');
+          const cleanTx = String(inv.txNum || '').replace(/\D/g, '').replace(/^0+/, '');
+          const cleanOrder = String(inv.orderNum || '').replace(/\D/g, '').replace(/^0+/, '');
+          
+          if (cleanInv.length >= 3) {
+            const isMatch = isYear(cleanInv) 
+              ? numbersInName.map(n => n.replace(/^0+/, '')).includes(cleanInv)
+              : cleanFilenameDigits.includes(cleanInv);
+            if (isMatch) {
+              matchedSec = 'tax';
+              return true;
+            }
+          }
+          
+          if (cleanTx.length >= 3) {
+            const isMatch = isYear(cleanTx) 
+              ? numbersInName.map(n => n.replace(/^0+/, '')).includes(cleanTx)
+              : cleanFilenameDigits.includes(cleanTx);
+            if (isMatch) {
+              matchedSec = 'tx';
+              return true;
+            }
+          }
+          
+          if (cleanOrder.length >= 3) {
+            const isMatch = isYear(cleanOrder) 
+              ? numbersInName.map(n => n.replace(/^0+/, '')).includes(cleanOrder)
+              : cleanFilenameDigits.includes(cleanOrder);
+            if (isMatch) {
+              matchedSec = 'order';
+              return true;
+            }
+          }
+          
+          return false;
+        });
+      }
+
       if (matchedInvoice && matchedSec) {
         matchedInvoice['file_' + matchedSec] = {
           path: link,
@@ -2430,6 +2481,46 @@ window.startSharePointScanner = async function() {
         resultsData.push([file.name, numbersInName.join(','), 'לא נמצאה התאמה בחשבוניות', link]);
       }
     }
+
+    // Detailed diagnostic logging to the browser console
+    console.log("=== SharePoint Scanner Diagnostic ===");
+    console.log("Total files found:", filesFound.length);
+    console.log("Successfully matched:", matchCount);
+    const unmatched = [];
+    for (const file of filesFound) {
+      const cleanFilenameDigits = file.name.replace(/\D/g, '');
+      const nums = file.name.match(/\d+/g) || [];
+      const hasMatch = window.INVOICES.some(inv => {
+        const cleanInv = String(inv.num || '').replace(/\D/g, '').replace(/^0+/, '');
+        const cleanTx = String(inv.txNum || '').replace(/\D/g, '').replace(/^0+/, '');
+        const cleanOrder = String(inv.orderNum || '').replace(/\D/g, '').replace(/^0+/, '');
+        
+        const isYear = (val) => {
+          const num = parseInt(val, 10);
+          return num >= 2020 && num <= 2030;
+        };
+        
+        const matchNum = cleanInv.length >= 3 && (isYear(cleanInv) ? nums.map(n => n.replace(/^0+/, '')).includes(cleanInv) : cleanFilenameDigits.includes(cleanInv));
+        const matchTx = cleanTx.length >= 3 && (isYear(cleanTx) ? nums.map(n => n.replace(/^0+/, '')).includes(cleanTx) : cleanFilenameDigits.includes(cleanTx));
+        const matchOrder = cleanOrder.length >= 3 && (isYear(cleanOrder) ? nums.map(n => n.replace(/^0+/, '')).includes(cleanOrder) : cleanFilenameDigits.includes(cleanOrder));
+        return matchNum || matchTx || matchOrder;
+      });
+      if (!hasMatch) {
+        unmatched.push({
+          name: file.name,
+          extractedNumbers: nums,
+          digitsOnly: cleanFilenameDigits
+        });
+      }
+    }
+    console.log("Unmatched files details:", unmatched);
+    console.log("Active database invoices sample:", window.INVOICES.map(inv => ({
+      id: inv.id,
+      supName: inv.supName,
+      num: inv.num,
+      txNum: inv.txNum,
+      orderNum: inv.orderNum
+    })));
     if (matchCount > 0) {
       window.showToast(`✅ נמצאו ${filesFound.length} קבצים, מתוכם שודכו ${matchCount} למסמכים במערכת! שומר...`);
       if (typeof window.save === 'function') await window.save(true);
