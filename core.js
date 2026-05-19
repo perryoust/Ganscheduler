@@ -648,8 +648,8 @@ function _applyYearData(o){
 function load(){
   try{
     // If Firebase already applied data directly, skip re-loading
-    if(window._fbAppData && typeof INVOICES!=='undefined' && INVOICES.length>0) {
-      return; // data already in memory from _processFirebaseLoad
+    if(window._fbAppData) {
+      return; // data already in memory from Firebase
     }
     // Support migration from old Y1 system (ganv5_y_ keys)
     let st = null;

@@ -2248,10 +2248,10 @@ window.importInvoices = function(input) {
       if (typeof refreshPurchDash === "function") refreshPurchDash();
       
       console.log('[Import-Purch] Saving to Firebase...', { count: window.INVOICES.length });
-      if (typeof saveToFirebase === "function") {
+      if (typeof window.save === "function") {
         try {
-          const ok = await saveToFirebase(false, true);
-          console.log('[Import-Purch] saveToFirebase result:', ok);
+          const ok = await window.save(true);
+          console.log('[Import-Purch] window.save result:', ok);
           if (ok) {
             window.showToast('✅ הנתונים סונכרנו בהצלחה');
           } else {
@@ -2322,7 +2322,7 @@ window.startSharePointScanner = async function() {
     }
     if (matchCount > 0) {
       window.showToast(`✅ נמצאו ${filesFound.length} קבצים, מתוכם שודכו ${matchCount} למסמכים במערכת! שומר...`);
-      if (typeof window.saveToFirebase === 'function') await window.saveToFirebase(false, true);
+      if (typeof window.save === 'function') await window.save(true);
       if (typeof window.renderInvoices === 'function') window.renderInvoices();
     } else {
       window.showToast(`סריקה הסתיימה. נמצאו ${filesFound.length} קבצים, אך 0 התאמות למסמכים הקיימים.`);

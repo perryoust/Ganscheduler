@@ -161,6 +161,8 @@ async function loadFromFirebase(silent = false, force = false) {
       cloud.data.invoices = Array.isArray(invs) ? invs : Object.values(invs || {});
     }
 
+    window._fbAppData = cloud.data;
+
     if (window._applyYearData) {
       window._applyYearData(cloud.data);
     }
