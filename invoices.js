@@ -2185,29 +2185,22 @@ window.importInvoices = function(input) {
 
         const sName = String(item.supName || "").trim().replace(/[.$#[\]/]/g, '');
         item.supName = sName;
-        const oNum  = String(item.orderNum || "").trim();
-        const oDate = String(item.orderDate || "").trim();
-        const txNum = String(item.txNum || "").trim();
-        const num   = String(item.num || "").trim();
         const oDesc = String(item.orderDesc || "").trim();
         const oTotal = parseFloat(item.orderTotal || 0).toFixed(2);
+        const oMonth = String(item.orderMonth || "").trim();
 
-        // Robust duplicate checking
+        // Duplicate checking — conservative approach:
+        // Only match on supplier + description + amount + month.
+        // Do NOT use num/txNum/orderNum as sole identifiers because:
+        //   - Consolidated invoices (חשבוניות מרכזות) share the same invoice number
+        //   - Generic orderNums like "חוגים"/"הסעות" are shared across many distinct records
         const existingIdx = window.INVOICES.findIndex(inv => {
           const sameSup = String(inv.supName).trim().toLowerCase() === sName.toLowerCase();
           if (!sameSup) return false;
-          // Match by invoice number (most specific)
-          if (num && inv.num && String(inv.num).trim() === num) return true;
-          // Match by transaction number
-          if (txNum && inv.txNum && String(inv.txNum).trim() === txNum) return true;
-          // Match by orderNum — only if it's a real numeric order number AND description matches
-          // (generic text values like "חוגים"/"הסעות" are NOT valid unique identifiers)
-          if (oNum && inv.orderNum && String(inv.orderNum).trim() === oNum && /^\d/.test(oNum)) {
-            if (String(inv.orderDesc || '').trim() === oDesc) return true;
-          }
-          // Fallback: exact match on supplier + description + amount
-          return String(inv.orderDesc).trim() === oDesc &&
-                 parseFloat(inv.orderTotal || 0).toFixed(2) === oTotal;
+          const sameDesc = String(inv.orderDesc || '').trim() === oDesc;
+          const sameTotal = parseFloat(inv.orderTotal || 0).toFixed(2) === oTotal;
+          const sameMonth = String(inv.orderMonth || '').trim() === oMonth;
+          return sameDesc && sameTotal && sameMonth;
         });
 
         // Auto-infer invoice status
@@ -2217,7 +2210,7 @@ window.importInvoices = function(input) {
         item.status = status;
 
         if (existingIdx !== -1) {
-          // Update existing, merge keys safely while preserving database ID
+          // Update existing — merge safely, preserving database-only fields (fileUrl, recv, customNote, etc.)
           window.INVOICES[existingIdx] = { ...window.INVOICES[existingIdx], ...item };
           updated++;
         } else {
