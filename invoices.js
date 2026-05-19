@@ -2270,18 +2270,19 @@ window.importInvoices = function(input) {
   };
   reader.readAsArrayBuffer(file);
 };
-// ?? SharePoint Local Scanner ?????????????????????????????
+
+// β”€β”€ SharePoint Local Scanner β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€
 window.startSharePointScanner = async function() {
   if (!window.showDirectoryPicker) {
-    alert('δγτγτο ωμκ ΰιπε ϊεξκ αρψιχϊ ϊιχιεϊ ξχεξιϊ. ΰπΰ δωϊξω α-Chrome ΰε Edge ςγλπι.');
+    alert('Χ”Χ“Χ¤Χ“Χ¤Χ Χ©ΧΧ ΧΧ™Χ Χ• ΧªΧ•ΧΧ Χ‘Χ΅Χ¨Χ™Χ§Χª ΧªΧ™Χ§Χ™Χ•Χª ΧΧ§Χ•ΧΧ™Χª. ΧΧ Χ Χ”Χ©ΧªΧΧ© Χ‘-Chrome ΧΧ• Edge ΧΆΧ“Χ›Χ Χ™.');
     return;
   }
   try {
     const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
-    const baseUrl = prompt('αηψϊ ΰϊ δϊιχιιδ δξχεξιϊ αδφμηδ!\n\nλςϊ, ΰπΰ δγαχ λΰο ΰϊ χιωεψ δΰιπθψπθ ωμ δϊιχιιδ δζε αγιεχ λτι ωδεΰ ξετις α-SharePoint\n(μγεβξδ: https://tomshin.sharepoint.com/sites/docs/Shared%20Documents/...) :');
+    const baseUrl = prompt('Χ‘Χ—Χ¨Χª ΧΧª Χ”ΧªΧ™Χ§Χ™Χ™Χ” Χ”ΧΧ§Χ•ΧΧ™Χª Χ‘Χ”Χ¦ΧΧ—Χ”!\n\nΧ›ΧΆΧª, ΧΧ Χ Χ”Χ“Χ‘Χ§ Χ›ΧΧ ΧΧª Χ§Χ™Χ©Χ•Χ¨ Χ”ΧΧ™Χ ΧΧ¨Χ Χ Χ©Χ Χ”ΧªΧ™Χ§Χ™Χ™Χ” Χ”Χ–Χ• Χ‘Χ“Χ™Χ•Χ§ Χ›Χ¤Χ™ Χ©Χ”Χ•Χ ΧΧ•Χ¤Χ™ΧΆ Χ‘-SharePoint\n(ΧΧ“Χ•Χ’ΧΧ”: https://tomshin.sharepoint.com/sites/docs/Shared%20Documents/...) :');
     if (!baseUrl) return;
     const cleanBaseUrl = baseUrl.trim().replace(/\/+$/, '');
-    window.showToast('? ρεψχ χαφιν αξηωα... πΰ μδξϊιο', 60000);
+    window.showToast('β³ Χ΅Χ•Χ¨Χ§ Χ§Χ‘Χ¦Χ™Χ Χ‘ΧΧ—Χ©Χ‘... Χ Χ ΧΧ”ΧΧªΧ™Χ', 60000);
     const filesFound = [];
     async function scanDir(handle, currentPath) {
       for await (const entry of handle.values()) {
@@ -2296,10 +2297,10 @@ window.startSharePointScanner = async function() {
     }
     await scanDir(dirHandle, '');
     let matchCount = 0;
-    const resultsData = [['ων δχεαυ', 'ξρτψ ωζεδδ', 'ρθθερ δϊΰξδ', 'χιωεψ ωπεφψ']];
+    const resultsData = [['Χ©Χ Χ”Χ§Χ•Χ‘Χ¥', 'ΧΧ΅Χ¤Χ¨ Χ©Χ–Χ•Χ”Χ”', 'Χ΅ΧΧΧ•Χ΅ Χ”ΧªΧΧΧ”', 'Χ§Χ™Χ©Χ•Χ¨ Χ©Χ Χ•Χ¦Χ¨']];
     for (const file of filesFound) {
       const numbersInName = file.name.match(/\d+/g) || [];
-      const link = \\\?web=1\;
+      const link = `${cleanBaseUrl}${file.relativePath}?web=1`;
       let matchedInvoice = null;
       for (const numStr of numbersInName) {
         if (numStr.length < 3) continue;
@@ -2313,27 +2314,27 @@ window.startSharePointScanner = async function() {
       if (matchedInvoice) {
         matchedInvoice.fileUrl = link;
         matchCount++;
-        resultsData.push([file.name, numbersInName.join(','), 'δεϊΰν μρτχ: ' + matchedInvoice.supName, link]);
+        resultsData.push([file.name, numbersInName.join(','), 'Χ”Χ•ΧªΧΧ ΧΧ΅Χ¤Χ§: ' + matchedInvoice.supName, link]);
       } else {
-        resultsData.push([file.name, numbersInName.join(','), 'μΰ πξφΰδ δϊΰξδ αηωαεπιεϊ', link]);
+        resultsData.push([file.name, numbersInName.join(','), 'ΧΧ Χ ΧΧ¦ΧΧ” Χ”ΧªΧΧΧ” Χ‘Χ—Χ©Χ‘Χ•Χ Χ™Χ•Χª', link]);
       }
     }
     if (matchCount > 0) {
-      window.showToast(\? πξφΰε \ χαφιν, ξϊελν ωεγλε \ μξρξλιν αξςψλϊ! ωεξψ...\);
+      window.showToast(`β… Χ ΧΧ¦ΧΧ• ${filesFound.length} Χ§Χ‘Χ¦Χ™Χ, ΧΧªΧ•Χ›Χ Χ©Χ•Χ“Χ›Χ• ${matchCount} ΧΧΧ΅ΧΧ›Χ™Χ Χ‘ΧΧΆΧ¨Χ›Χª! Χ©Χ•ΧΧ¨...`);
       if (typeof window.saveToFirebase === 'function') await window.saveToFirebase(false, true);
       if (typeof window.renderInvoices === 'function') window.renderInvoices();
     } else {
-      window.showToast(\ρψιχδ δρϊιιξδ. πξφΰε \ χαφιν, ΰκ 0 δϊΰξεϊ μξρξλιν δχιιξιν.\);
+      window.showToast(`Χ΅Χ¨Χ™Χ§Χ” Χ”Χ΅ΧªΧ™Χ™ΧΧ”. Χ ΧΧ¦ΧΧ• ${filesFound.length} Χ§Χ‘Χ¦Χ™Χ, ΧΧ 0 Χ”ΧªΧΧΧ•Χª ΧΧΧ΅ΧΧ›Χ™Χ Χ”Χ§Χ™Χ™ΧΧ™Χ.`);
     }
     if (window.XLSX) {
       const wb = window.XLSX.utils.book_new();
       const ws = window.XLSX.utils.aoa_to_sheet(resultsData);
       ws['!cols'] = [{wch: 40}, {wch: 15}, {wch: 30}, {wch: 80}];
-      window.XLSX.utils.book_append_sheet(wb, ws, 'ϊεφΰεϊ ρψιχδ');
-      window.XLSX.writeFile(wb, 'ϊεφΰεϊ_ρψιχϊ_sharepoint.xlsx');
+      window.XLSX.utils.book_append_sheet(wb, ws, 'ΧªΧ•Χ¦ΧΧ•Χª Χ΅Χ¨Χ™Χ§Χ”');
+      window.XLSX.writeFile(wb, 'ΧªΧ•Χ¦ΧΧ•Χª_Χ΅Χ¨Χ™Χ§Χª_sharepoint.xlsx');
     }
-    alert(\ριεν! πρψχε \ χαφιν.\nδεϊΰξε εωεγλε: \\nγεη δετχ ειψγ μξηωα ωμκ.\);
+    alert(`Χ΅Χ™Χ•Χ! Χ Χ΅Χ¨Χ§Χ• ${filesFound.length} Χ§Χ‘Χ¦Χ™Χ.\nΧ”Χ•ΧªΧΧΧ• Χ•Χ©Χ•Χ“Χ›Χ•: ${matchCount}\nΧ“Χ•Χ— Χ”Χ•Χ¤Χ§ Χ•Χ™Χ¨Χ“ ΧΧΧ—Χ©Χ‘ Χ©ΧΧ.`);
   } catch (error) {
-    if (error.name !== 'AbortError') alert('ωβιΰδ αρψιχδ: ' + error.message);
+    if (error.name !== 'AbortError') alert('Χ©Χ’Χ™ΧΧ” Χ‘Χ΅Χ¨Χ™Χ§Χ”: ' + error.message);
   }
 };
