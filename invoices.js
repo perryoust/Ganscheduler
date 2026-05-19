@@ -2052,13 +2052,18 @@ window.importInvoices = function(input) {
         return;
       }
 
-      // Check if Row 1 has more columns than Row 0 (multi-row header sheet structure)
+      // Dynamically find the real header row
       let headerRowIndex = 0;
-      if (rawRows.length > 1) {
-        const row0Cells = rawRows[0].filter(c => c !== null && c !== undefined && c !== '').length;
-        const row1Cells = rawRows[1].filter(c => c !== null && c !== undefined && c !== '').length;
-        if (row1Cells > row0Cells && rawRows[1].some(c => String(c).includes('ספק') || String(c).includes('הזמנה') || String(c).includes('חשבונית'))) {
-          headerRowIndex = 1;
+      let isComplexFormat = false;
+      for (let i = 0; i < Math.min(5, rawRows.length); i++) {
+        const rowCells = rawRows[i].filter(c => c !== null && c !== undefined && c !== '').length;
+        if (rowCells > 5 && rawRows[i].some(c => String(c).includes('ספק'))) {
+          headerRowIndex = i;
+          const headerStrs = rawRows[i].map(x => String(x || '').trim());
+          if (headerStrs.filter(x => x === 'הערות').length > 1 || headerStrs.filter(x => x.includes('מע"מ')).length > 2) {
+            isComplexFormat = true;
+          }
+          break;
         }
       }
 
@@ -2105,7 +2110,7 @@ window.importInvoices = function(input) {
         if (!row || row.length === 0) continue;
 
         const item = {};
-        if (headerRowIndex === 1) {
+        if (isComplexFormat) {
           // Precise index-based mapping for two-row Excel format to avoid identical name conflicts
           const colMapping = [
             null, // 0: מס"ד
