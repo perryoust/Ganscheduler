@@ -1,0 +1,38 @@
+{
+  "model": "claude-opus-4-7",
+  "apiProvider": "anthropic",
+  "externalModels": {
+    "googleGemini": {
+      "provider": "google",
+      "model": "gemini-pro",
+      "apiKey": "${GOOGLE_API_KEY}",
+      "projectId": "${GOOGLE_PROJECT_ID}",
+      "endpoint": "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
+    }
+  },
+  "agents": {
+    "scheduler": {
+      "type": "anthropic-sdk",
+      "model": "claude-opus-4-7",
+      "description": "GanScheduler - Claude Primary Agent"
+    },
+    "geminiDeveloper": {
+      "type": "external-llm",
+      "provider": "google",
+      "model": "gemini-pro",
+      "description": "Google Gemini for development tasks",
+      "useCases": ["code-generation", "analysis", "documentation"]
+    }
+  },
+  "allowedPermissions": [
+    "bash:npm",
+    "bash:node",
+    "read:files",
+    "write:files",
+    "edit:files"
+  ],
+  "environment": {
+    "GOOGLE_API_KEY": "AIzaSyBh8adcwTrNL9LtMiQ0nShWZ1ARat5ZwAQ",
+    "GOOGLE_PROJECT_ID": "548407314044"
+  }
+}
