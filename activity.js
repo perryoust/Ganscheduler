@@ -2074,6 +2074,8 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
   const container = document.getElementById(containerId);
   if(!container) return;
   
+  const origEv = aid ? window.SCH.find(x => String(x.id) === String(aid)) : null;
+
   if(allPartnerIds.size === 0) {
     container.innerHTML = `<div style="font-size:0.7rem;color:#777;padding:12px;text-align:center;background:#fff;border-radius:8px;border:1px dashed #ffb74d">ℹ️ אין גנים שותפים לסנכרון אוטומטי (גן בודד)</div>`;
     return;
@@ -2087,12 +2089,12 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
     const pG = window.G(pId);
     if(!pG) return;
     const ev = window.SCH.find(s => s.g === pId && s.d === date && s.st !== 'can');
+    const origPartnerEv = origEv ? window.SCH.find(s => Number(s.g) === Number(pId) && s.d === origEv.d && window.supBase(s.a) === window.supBase(origEv.a)) : null;
     const stLabel = ev ? (window.stLabel ? window.stLabel(ev) : ev.st) : '—';
     const stClass = ev ? (window.stClass ? window.stClass(ev) : '') : '';
-    const sup = ev ? window.supBase(ev.a) : '—';
-    const act = ev ? (ev.act || '—') : '—';
-    const time = ev ? (window.fT ? window.fT(ev.t) : ev.t) : '—';
-    const makeupTime = document.getElementById(prefix.startsWith('sp') ? 'sp-mu-time' : 'ns-mu-time')?.value || (ev ? ev.t : '14:00');
+    const sup = ev ? window.supBase(ev.a) : (origPartnerEv ? window.supBase(origPartnerEv.a) : '—');
+    const act = ev ? (ev.act || '—') : (origPartnerEv ? (origPartnerEv.act || '—') : '—');
+    const makeupTime = ev ? ev.t : (origPartnerEv ? origPartnerEv.t : (document.getElementById(prefix.startsWith('sp') ? 'sp-mu-time' : 'ns-mu-time')?.value || ''));
     
     rowsHtml += `<tr style="border-bottom:1px solid #eee;font-size:0.75rem;background:${stClass==='busy'?'#fff9f9':'#fff'}">
       <td style="padding:6px;text-align:center"><input type="checkbox" class="${prefix}-syn-chk" value="${pId}" checked style="width:16px;height:16px;accent-color:#e65100"></td>
