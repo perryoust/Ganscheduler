@@ -2084,6 +2084,7 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
   const otherIds = Array.from(allPartnerIds);
   let rowsHtml = '';
   const prefix = containerId.startsWith('ns') ? 'ns-mu' : 'sp-mu';
+  const primaryMainTime = origEv ? origEv.t : (document.getElementById(prefix.startsWith('sp') ? 'sp-mu-time' : 'ns-mu-time')?.value || '');
 
   otherIds.forEach(pId => {
     const pG = window.G(pId);
@@ -2094,7 +2095,7 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
     const stClass = ev ? (window.stClass ? window.stClass(ev) : '') : '';
     const sup = ev ? window.supBase(ev.a) : (origPartnerEv ? window.supBase(origPartnerEv.a) : '—');
     const act = ev ? (ev.act || '—') : (origPartnerEv ? (origPartnerEv.act || '—') : '—');
-    const makeupTime = (ev && ev.t) ? ev.t : (origPartnerEv && origPartnerEv.t) ? origPartnerEv.t : (document.getElementById(prefix.startsWith('sp') ? 'sp-mu-time' : 'ns-mu-time')?.value || '');
+    const makeupTime = (ev && ev.t) ? ev.t : (origPartnerEv && origPartnerEv.t) ? origPartnerEv.t : primaryMainTime;
     
     rowsHtml += `<tr style="border-bottom:1px solid #eee;font-size:0.75rem;background:${stClass==='busy'?'#fff9f9':'#fff'}">
       <td style="padding:6px;text-align:center"><input type="checkbox" class="${prefix}-syn-chk" value="${pId}" checked style="width:16px;height:16px;accent-color:#e65100"></td>
@@ -2512,9 +2513,6 @@ window.saveNohapQ = function(){
   const fullReason=[mainReason,extra].filter(Boolean).join(' — ');
   if(!mainReason&&!extra){alert('יש לבחור סיבה');return;}
   
-  const syncChk = document.getElementById('nohapq-sync-chk');
-  const forPair = syncChk ? syncChk.checked : false;
-  
   const s = window.SCH.find(x => x.id == _nohapQId); if(!s) return;
   const doNohap = (evId) => {
     const ev = window.SCH.find(x => x.id == evId); if(!ev) return;
@@ -2525,15 +2523,16 @@ window.saveNohapQ = function(){
     }
   };
   
+  // Always mark main event
   doNohap(_nohapQId);
-  if (forPair) {
-    const pair = window.gardenPair(s.g);
-    if (pair) {
-      pair.ids.filter(gid => Number(gid) !== Number(s.g)).forEach(gid => {
-        const pEv = window.findPartnerActivity(gid, s.d, s.a);
-        if (pEv && pEv.st !== 'nohap') doNohap(pEv.id);
-      });
-    }
+  
+  // ALWAYS sync pair if exists (no checkbox needed)
+  const pair = window.gardenPair(s.g);
+  if (pair) {
+    pair.ids.filter(gid => Number(gid) !== Number(s.g)).forEach(gid => {
+      const pEv = window.findPartnerActivity(gid, s.d, s.a);
+      if (pEv && pEv.st !== 'nohap') doNohap(pEv.id);
+    });
   }
 
   window.saveAndRefresh('nohapqm', false);
