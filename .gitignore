@@ -31,3 +31,5 @@ backup.json
 .env
 .env.local
 firebase-key.json
+google-credentials.json
+service-account.json

@@ -2094,7 +2094,7 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
     const stClass = ev ? (window.stClass ? window.stClass(ev) : '') : '';
     const sup = ev ? window.supBase(ev.a) : (origPartnerEv ? window.supBase(origPartnerEv.a) : '—');
     const act = ev ? (ev.act || '—') : (origPartnerEv ? (origPartnerEv.act || '—') : '—');
-    const makeupTime = ev ? ev.t : (origPartnerEv ? origPartnerEv.t : (document.getElementById(prefix.startsWith('sp') ? 'sp-mu-time' : 'ns-mu-time')?.value || ''));
+    const makeupTime = (ev && ev.t) ? ev.t : (origPartnerEv && origPartnerEv.t) ? origPartnerEv.t : (document.getElementById(prefix.startsWith('sp') ? 'sp-mu-time' : 'ns-mu-time')?.value || '');
     
     rowsHtml += `<tr style="border-bottom:1px solid #eee;font-size:0.75rem;background:${stClass==='busy'?'#fff9f9':'#fff'}">
       <td style="padding:6px;text-align:center"><input type="checkbox" class="${prefix}-syn-chk" value="${pId}" checked style="width:16px;height:16px;accent-color:#e65100"></td>
@@ -2185,7 +2185,7 @@ window.spSaveMakeup = function() {
   
   if(!newDate || !time) { alert('בחר תאריך ושעה'); return; }
   
-  const targets = [{ g: origEv.g, t: time }, ...window.getSynergyData('sp-mu')];
+  const targets = [{ g: origEv.g, t: time }, ...window.getSynergyData('sp-mu').map(tgt => ({ g: tgt.g, t: tgt.t || time }))];
   
   const actVal = document.getElementById('sp-mu-act').value;
   const actName = actVal === '__new__' ? (document.getElementById('sp-mu-act-new')||{}).value : (actVal || origEv.act);

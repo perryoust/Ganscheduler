@@ -17,6 +17,20 @@
 }
 ```
 
+### 2.1️⃣ אם אתה משתמש ב-Google Cloud SDK או ב-ADC
+- הורד קובץ Service Account JSON מה-GCP Console.
+- שמור אותו במקום מקומי בטוח, למשל `google-credentials.json`.
+- הבטח שהנתיב מוגדר בסביבה:
+```powershell
+$env:GOOGLE_APPLICATION_CREDENTIALS = "C:\path\to\google-credentials.json"
+```
+- או קבע אותו כמשתנה מערכת:
+```powershell
+[System.Environment]::SetEnvironmentVariable('GOOGLE_APPLICATION_CREDENTIALS', 'C:\path\to\google-credentials.json', 'User')
+```
+
+> אם אתה ב-Windows, תוכל להשתמש גם ב-`setup-google-credentials.ps1` מהפרויקט.
+
 ### 3️⃣ בדוק את הקשר
 ```bash
 npm install axios

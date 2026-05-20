@@ -58,6 +58,21 @@ GOOGLE_API_KEY="your_api_key"
 GOOGLE_PROJECT_ID="your_project"
 ```
 
+### 1.1 If you use Google Cloud SDK or ADC
+```bash
+# הורד קובץ Service Account JSON ושים נתיב לסביבה
+setx GOOGLE_APPLICATION_CREDENTIALS "C:\path\to\google-credentials.json"
+```
+
+או ב-PowerShell פעיל:
+```powershell
+$env:GOOGLE_APPLICATION_CREDENTIALS = "C:\path\to\google-credentials.json"
+```
+
+> חשוב: קבצי אישורי Google חייבים להיות מאוחסנים במקום מאובטח ובלתי מחייב ב-git.
+>
+> ניתן להשתמש ב-`setup-google-credentials.ps1` לקביעת `GOOGLE_APPLICATION_CREDENTIALS` ב-Windows.
+>
 ### 2. Firebase Configuration
 ```javascript
 // firebase_init.js מכיל:
