@@ -18,7 +18,7 @@ function switchMode(mode){
   const _bdEl=document.getElementById('sp-backdrop');
   if(_spEl) _spEl.classList.remove('open');
   if(_bdEl) _bdEl.style.display='none';
-  selEv=null;
+  window.selEv=null;
   // Toggle body class for CSS theming
   document.body.classList.toggle('mode-purch', mode==='purch');
   // Show/hide tab bars

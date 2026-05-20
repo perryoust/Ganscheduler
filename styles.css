@@ -643,6 +643,40 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   }
   .flt-wrap > .fg { width: calc(50% - 3px); }
   .flt-wrap.open { display: flex; }
+
+  /* ── Procurement Mobile ── */
+  /* Invoice table: force horizontal scroll with min-width */
+  #p-pinvoices .tw { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  #p-pinvoices .tw table,
+  #pi-table { min-width: 750px; table-layout: fixed; }
+  #pi-table th, #pi-table td { padding: 5px 6px; font-size: 0.7rem; word-break: break-word; }
+  #pi-table th:nth-child(1), #pi-table td:nth-child(1) { width: 100px; } /* ספק */
+  #pi-table th:nth-child(2), #pi-table td:nth-child(2) { width: 180px; } /* מסמכים */
+  #pi-table th:nth-child(3), #pi-table td:nth-child(3) { width: 150px; } /* פירוט */
+  #pi-table th:nth-child(4), #pi-table td:nth-child(4) { width: 110px; } /* סכומים */
+  #pi-table th:nth-child(5), #pi-table td:nth-child(5) { width: 90px; }  /* סטטוס */
+  #pi-table th:nth-child(6), #pi-table td:nth-child(6) { width: 70px; }  /* הערות */
+  #pi-table th:nth-child(7), #pi-table td:nth-child(7) { width: 50px; }  /* פעולות */
+
+  /* Procurement dashboard stat grid */
+  .purch-stat-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; }
+  .purch-stat { padding: 8px !important; }
+  .psn { font-size: 1.2rem !important; }
+  .psl { font-size: 0.65rem !important; }
+
+  /* pdash recent invoices table */
+  #pdash-recent-invoices { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  #pdash-recent-invoices table { min-width: 600px; }
+
+  /* Filter area compact */
+  #pi-flt-header { flex-direction: column; gap: 6px; align-items: stretch !important; }
+  #pi-flt-header > div { flex-wrap: wrap; gap: 4px; }
+  #pi-flt-body { gap: 4px !important; }
+  #pi-flt-body > .fg { width: calc(50% - 2px); }
+
+  /* Purch mobile button row */
+  .mob-btn-row { gap: 4px !important; }
+  .mob-btn-row .btn { font-size: 0.7rem !important; padding: 5px 8px !important; }
 }
 
 /* ─── Mobile bottom nav ───────────────── */
