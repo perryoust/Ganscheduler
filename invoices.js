@@ -2553,6 +2553,7 @@ window.startSharePointScanner = async function() {
 
     let matchCount = 0;
     const resultsData = [['שם הקובץ', 'מספר שזוהה', 'סטטוס התאמה', 'קישור שנוצר']];
+    window._askUnmatched = true; // Reset skipping state for each scan
     for (const file of filesFound) {
       const numbersInName = file.name.match(/\d+/g) || [];
       const decorator = getSharePointDecorator(file.name);
@@ -2737,7 +2738,16 @@ window.startSharePointScanner = async function() {
            }
            if (!matchedSupName) {
              for (const supName of activeSups) {
+               const ex = window.supEx[supName] || (window.supBase ? window.supEx[window.supBase(supName)] : {}) || {};
+               const supplierAlias = ex.alias;
+               const baseName = window.supBase ? window.supBase(supName) : supName;
+               if (supplierAlias && supplierAlias.length >= 2 && file.name.includes(supplierAlias)) {
+                 matchedSupName = supName; break;
+               }
                if (supName.length >= 3 && file.name.includes(supName)) {
+                 matchedSupName = supName; break;
+               }
+               if (baseName !== supName && baseName.length >= 3 && file.name.includes(baseName)) {
                  matchedSupName = supName; break;
                }
              }
@@ -2766,7 +2776,7 @@ window.startSharePointScanner = async function() {
 
         if (!handled && numbersInName.length > 0 && window._askUnmatched !== false) {
            const ans = prompt(`לא נמצאה התאמה לקובץ:\n${file.name}\n\nאם זו חשבונית של ספק חדש, הקלד את שם הספק כדי ליצור לו חשבונית חדשה.\n\nהסבר אפשרויות דילוג:\n- לחץ על "ביטול" (או השאר ריק): כדי לדלג על הקובץ הנוכחי בלבד.\n- הקלד את המילה "דלג": כדי לדלג אוטומטית על *כל* שאר הקבצים החסרים בסריקה זו (Skip All).`);
-           if (ans === 'דלג') {
+           if (ans && ans.trim() === 'דלג') {
               window._askUnmatched = false;
            } else if (ans && ans.trim()) {
               const supName = ans.trim();
