@@ -2610,34 +2610,38 @@ window.startSharePointScanner = async function() {
           const cleanTx = String(inv.txNum || '').replace(/\D/g, '').replace(/^0+/, '');
           const cleanOrder = String(inv.orderNum || '').replace(/\D/g, '').replace(/^0+/, '');
           
-          if (cleanInv.length >= 3 && (!primaryType || primaryType === 'tax')) {
-            const isMatch = isYear(cleanInv) 
-              ? numbersInName.map(n => n.replace(/^0+/, '')).includes(cleanInv)
-              : cleanFilenameDigits.includes(cleanInv);
-            if (isMatch) {
-              matchedInfos.push({ inv, sec: 'tax', score: getSupplierScore(inv) });
-              fileMatched = true;
+          const checkFuzzyMatch = (targetNum) => {
+            if (targetNum.length < 3) return false;
+            // Exact match in individual number blocks (ignoring leading zeros)
+            if (numbersInName.map(n => n.replace(/^0+/, '')).includes(targetNum)) return true;
+            if (isYear(targetNum)) return false; // Don't combine blocks for years
+            
+            // Check combining adjacent blocks (e.g. "500" and "076" for invoice "500076")
+            for (let i = 0; i < numbersInName.length; i++) {
+              let combined = numbersInName[i];
+              if (combined.replace(/^0+/, '') === targetNum) return true;
+              for (let j = i + 1; j < numbersInName.length; j++) {
+                combined += numbersInName[j];
+                if (combined.replace(/^0+/, '') === targetNum) return true;
+                if (combined.length > targetNum.length + 2) break; // Optimization
+              }
             }
+            return false;
+          };
+
+          if ((!primaryType || primaryType === 'tax') && checkFuzzyMatch(cleanInv)) {
+            matchedInfos.push({ inv, sec: 'tax', score: getSupplierScore(inv) });
+            fileMatched = true;
           }
           
-          if (cleanTx.length >= 3 && (!primaryType || primaryType === 'tx')) {
-            const isMatch = isYear(cleanTx) 
-              ? numbersInName.map(n => n.replace(/^0+/, '')).includes(cleanTx)
-              : cleanFilenameDigits.includes(cleanTx);
-            if (isMatch) {
-              matchedInfos.push({ inv, sec: 'tx', score: getSupplierScore(inv) });
-              fileMatched = true;
-            }
+          if ((!primaryType || primaryType === 'tx') && checkFuzzyMatch(cleanTx)) {
+            matchedInfos.push({ inv, sec: 'tx', score: getSupplierScore(inv) });
+            fileMatched = true;
           }
           
-          if (cleanOrder.length >= 3 && (!primaryType || primaryType === 'order')) {
-            const isMatch = isYear(cleanOrder) 
-              ? numbersInName.map(n => n.replace(/^0+/, '')).includes(cleanOrder)
-              : cleanFilenameDigits.includes(cleanOrder);
-            if (isMatch) {
-              matchedInfos.push({ inv, sec: 'order', score: getSupplierScore(inv) });
-              fileMatched = true;
-            }
+          if ((!primaryType || primaryType === 'order') && checkFuzzyMatch(cleanOrder)) {
+            matchedInfos.push({ inv, sec: 'order', score: getSupplierScore(inv) });
+            fileMatched = true;
           }
         });
       }
