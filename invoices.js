@@ -2484,7 +2484,8 @@ window.startSharePointScanner = async function() {
       for await (const entry of handle.values()) {
         if (entry.kind === 'file') {
           if (!entry.name.startsWith('.') && !entry.name.startsWith('~')) {
-            filesFound.push({ name: entry.name, relativePath: currentPath + '/' + encodeURIComponent(entry.name) });
+            const f = await entry.getFile();
+            filesFound.push({ name: entry.name, relativePath: currentPath + '/' + encodeURIComponent(entry.name), lastModified: f.lastModified });
           }
         } else if (entry.kind === 'directory') {
           await scanDir(entry, currentPath + '/' + encodeURIComponent(entry.name));
@@ -2492,6 +2493,26 @@ window.startSharePointScanner = async function() {
       }
     }
     await scanDir(dirHandle, '');
+    
+    // Filter out old files based on the oldest invoice in the system (with a 60-day buffer)
+    let oldestDateStr = '2099-12-31';
+    window.INVOICES.forEach(i => {
+      const d = i.orderDate || i.txDate || i.date;
+      if (d && d < oldestDateStr && d.length >= 4) oldestDateStr = d;
+    });
+    if (oldestDateStr !== '2099-12-31') {
+      const oldestTs = new Date(oldestDateStr).getTime() - (60 * 24 * 60 * 60 * 1000); // 60 days buffer
+      const originalCount = filesFound.length;
+      for (let i = filesFound.length - 1; i >= 0; i--) {
+        if (filesFound[i].lastModified && filesFound[i].lastModified < oldestTs) {
+          filesFound.splice(i, 1);
+        }
+      }
+      if (originalCount > filesFound.length) {
+        console.log(`Skipped ${originalCount - filesFound.length} old files (older than ${oldestDateStr} - 60 days).`);
+      }
+    }
+
     // Helper to get SharePoint decorator based on extension
     const getSharePointDecorator = (filename) => {
       const ext = String(filename).split('.').pop().toLowerCase();
@@ -2587,6 +2608,7 @@ window.startSharePointScanner = async function() {
       for (const numStr of numbersInName) {
         if (numStr.length < 3) continue;
         window.INVOICES.forEach(inv => {
+          if (typeof window.isPurchSupplier === 'function' && !window.isPurchSupplier(inv.supName)) return;
           if (inv.num && String(inv.num).trim() === numStr && (!primaryType || primaryType === 'tax')) {
             matchedInfos.push({ inv, sec: 'tax', score: getSupplierScore(inv) });
             fileMatched = true;
@@ -2605,6 +2627,7 @@ window.startSharePointScanner = async function() {
       // 2. Second attempt: Fuzzy digits matching (handling leading zeros, slashes, dashes, letters)
       if (!fileMatched) {
         window.INVOICES.forEach(inv => {
+          if (typeof window.isPurchSupplier === 'function' && !window.isPurchSupplier(inv.supName)) return;
           // Clean invoice values to digits only (and remove leading zeros)
           const cleanInv = String(inv.num || '').replace(/\D/g, '').replace(/^0+/, '');
           const cleanTx = String(inv.txNum || '').replace(/\D/g, '').replace(/^0+/, '');
@@ -2696,7 +2719,34 @@ window.startSharePointScanner = async function() {
         const matchDesc = uniqueMatchedInfos.map(info => `${info.inv.supName} (${labels[info.sec] || info.sec})`).join(', ');
         resultsData.push([file.name, numbersInName.join(','), `הותאם: ${matchDesc}`, link]);
       } else {
-        resultsData.push([file.name, numbersInName.join(','), 'לא נמצאה התאמה בחשבוניות', link]);
+        let handled = false;
+        if (numbersInName.length > 0 && window._askUnmatched !== false) {
+           const ans = prompt(`לא נמצאה התאמה לקובץ:\n${file.name}\n\nאם זו חשבונית של ספק חדש, הקלד את שם הספק כדי ליצור לו חשבונית חדשה.\n\nהסבר אפשרויות דילוג:\n- לחץ על "ביטול" (או השאר ריק): כדי לדלג על הקובץ הנוכחי בלבד.\n- הקלד את המילה "דלג": כדי לדלג אוטומטית על *כל* שאר הקבצים החסרים בסריקה זו (Skip All).`);
+           if (ans === 'דלג') {
+              window._askUnmatched = false;
+           } else if (ans && ans.trim()) {
+              const supName = ans.trim();
+              const newInv = {
+                 id: Date.now() + Math.floor(Math.random()*1000),
+                 supName: supName,
+                 status: 'tax_invoice',
+                 date: new Date().toISOString().split('T')[0],
+                 file_tax: { path: link, name: file.name },
+                 amt: 0,
+                 num: numbersInName.join('-') || '1'
+              };
+              if (window.supEx && !window.supEx[supName]) {
+                 window.supEx[supName] = { isPurch: true, isAct: false };
+              }
+              window.INVOICES.push(newInv);
+              matchCount++;
+              resultsData.push([file.name, newInv.num, `נוצר ספק חדש: ${supName}`, link]);
+              handled = true;
+           }
+        }
+        if (!handled) {
+          resultsData.push([file.name, numbersInName.join(','), 'לא נמצאה התאמה בחשבוניות', link]);
+        }
       }
     }
 
