@@ -2484,8 +2484,11 @@ window.startSharePointScanner = async function() {
       for await (const entry of handle.values()) {
         if (entry.kind === 'file') {
           if (!entry.name.startsWith('.') && !entry.name.startsWith('~')) {
-            const f = await entry.getFile();
-            filesFound.push({ name: entry.name, relativePath: currentPath + '/' + encodeURIComponent(entry.name), lastModified: f.lastModified });
+            const ext = entry.name.split('.').pop().toLowerCase();
+            if (!['xls', 'xlsx', 'csv'].includes(ext)) {
+              const f = await entry.getFile();
+              filesFound.push({ name: entry.name, relativePath: currentPath + '/' + encodeURIComponent(entry.name), lastModified: f.lastModified });
+            }
           }
         } else if (entry.kind === 'directory') {
           await scanDir(entry, currentPath + '/' + encodeURIComponent(entry.name));
@@ -2720,23 +2723,74 @@ window.startSharePointScanner = async function() {
         resultsData.push([file.name, numbersInName.join(','), `הותאם: ${matchDesc}`, link]);
       } else {
         let handled = false;
-        if (numbersInName.length > 0 && window._askUnmatched !== false) {
+        
+        // Auto-match if filename contains a known supplier name or alias
+        if (numbersInName.length > 0) {
+           const activeSups = (typeof getAllSupNames === 'function' ? getAllSupNames() : []).filter(name => isPurchSupplier(name));
+           const aliasesMap = window.spScannerAliases || {};
+           let matchedSupName = null;
+           
+           for (const [aliasWord, supName] of Object.entries(aliasesMap)) {
+             if (file.name.includes(aliasWord) && isPurchSupplier(supName)) {
+               matchedSupName = supName; break;
+             }
+           }
+           if (!matchedSupName) {
+             for (const supName of activeSups) {
+               if (supName.length >= 3 && file.name.includes(supName)) {
+                 matchedSupName = supName; break;
+               }
+             }
+           }
+           
+           if (matchedSupName) {
+              const secKey = primaryType || 'tax';
+              const statusMap = { tax: 'tax_invoice', tx: 'tx_invoice', order: 'order' };
+              const newInv = {
+                 id: Date.now() + Math.floor(Math.random()*1000),
+                 supName: matchedSupName,
+                 status: statusMap[secKey],
+                 date: new Date().toISOString().split('T')[0],
+                 amt: 0
+              };
+              newInv['file_' + secKey] = { path: link, name: file.name };
+              if (secKey === 'tax') newInv.num = numbersInName.join('-') || '1';
+              if (secKey === 'tx') newInv.txNum = numbersInName.join('-') || '1';
+              if (secKey === 'order') newInv.orderNum = numbersInName.join('-') || '1';
+              window.INVOICES.push(newInv);
+              matchCount++;
+              resultsData.push([file.name, numbersInName.join('-'), `נוצר מסמך אוטומטית לפי שם הקובץ: ${matchedSupName}`, link]);
+              handled = true;
+           }
+        }
+
+        if (!handled && numbersInName.length > 0 && window._askUnmatched !== false) {
            const ans = prompt(`לא נמצאה התאמה לקובץ:\n${file.name}\n\nאם זו חשבונית של ספק חדש, הקלד את שם הספק כדי ליצור לו חשבונית חדשה.\n\nהסבר אפשרויות דילוג:\n- לחץ על "ביטול" (או השאר ריק): כדי לדלג על הקובץ הנוכחי בלבד.\n- הקלד את המילה "דלג": כדי לדלג אוטומטית על *כל* שאר הקבצים החסרים בסריקה זו (Skip All).`);
            if (ans === 'דלג') {
               window._askUnmatched = false;
            } else if (ans && ans.trim()) {
               const supName = ans.trim();
+              const secKey = primaryType || 'tax';
+              const statusMap = { tax: 'tax_invoice', tx: 'tx_invoice', order: 'order' };
               const newInv = {
                  id: Date.now() + Math.floor(Math.random()*1000),
                  supName: supName,
-                 status: 'tax_invoice',
+                 status: statusMap[secKey],
                  date: new Date().toISOString().split('T')[0],
-                 file_tax: { path: link, name: file.name },
-                 amt: 0,
-                 num: numbersInName.join('-') || '1'
+                 amt: 0
               };
+              newInv['file_' + secKey] = { path: link, name: file.name };
+              if (secKey === 'tax') newInv.num = numbersInName.join('-') || '1';
+              if (secKey === 'tx') newInv.txNum = numbersInName.join('-') || '1';
+              if (secKey === 'order') newInv.orderNum = numbersInName.join('-') || '1';
+              
               if (window.supEx && !window.supEx[supName]) {
                  window.supEx[supName] = { isPurch: true, isAct: false };
+              }
+              // Add to custom suppliers so it's immediately recognized for the next files
+              if (!window.supEx['__c']) window.supEx['__c'] = [];
+              if (!window.supEx['__c'].find(s => s.name === supName)) {
+                 window.supEx['__c'].push({ id: Date.now(), name: supName, phone: '' });
               }
               window.INVOICES.push(newInv);
               matchCount++;
