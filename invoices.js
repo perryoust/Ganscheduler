@@ -1592,9 +1592,9 @@ async function _runOneTimeImport(){
 
   const dupKeys = new Set();
   INVOICES.forEach(i=>{
-    const sup = (i.supName||'').trim().toLowerCase();
-    if(sup && i.txNum) dupKeys.add(sup+'|tx|'+(i.txNum||'').trim().toLowerCase());
-    if(sup && i.num)   dupKeys.add(sup+'|tax|'+(i.num||'').trim().toLowerCase());
+    const sup = String(i.supName||'').trim().toLowerCase();
+    if(sup && i.txNum) dupKeys.add(sup+'|tx|'+String(i.txNum||'').trim().toLowerCase());
+    if(sup && i.num)   dupKeys.add(sup+'|tax|'+String(i.num||'').trim().toLowerCase());
   });
   const existingSupNames = new Set(getAllSup().map(s=>s.name.toLowerCase().trim()));
 
@@ -1604,7 +1604,7 @@ async function _runOneTimeImport(){
 
   const DB_BASE = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
   const token = window._cachedToken;
-  if(!token){ showToast('❌ לא מחובר'); if(btn){btn.disabled=false;btn.textContent='⚡ ייבוא חד-פעמי';} return; }
+  if(!token){ showToast('❌ לא מחובר'); window._importInProgress=false; if(btn){btn.disabled=false;btn.textContent='⚡ ייבוא חד-פעמי';} return; }
 
   // Convert existing array to object in Firebase first (one-time migration)
   const existingArr = INVOICES;
@@ -1615,16 +1615,16 @@ async function _runOneTimeImport(){
       method:'PUT', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(existingObj)
     });
-    if(!r0.ok){ showToast('❌ שגיאה במיגרציה: ' + r0.status); if(btn){btn.disabled=false;btn.textContent='⚡ ייבוא חד-פעמי';} return; }
+    if(!r0.ok){ showToast('❌ שגיאה במיגרציה: ' + r0.status); window._importInProgress=false; if(btn){btn.disabled=false;btn.textContent='⚡ ייבוא חד-פעמי';} return; }
     if(btn) btn.textContent = '⏳ ממיר... 0/' + _IMPORT_DATA.length;
   }
 
   // Now PATCH new invoices in batches of 50
   const toWrite = {};
   for(const inv of _IMPORT_DATA){
-    const sup = (inv.supName||'').trim().toLowerCase();
-    const txKey  = sup && inv.txNum ? sup+'|tx|' +(inv.txNum||'').trim().toLowerCase() : null;
-    const taxKey = sup && inv.num   ? sup+'|tax|'+(inv.num||'').trim().toLowerCase()   : null;
+    const sup = String(inv.supName||'').trim().toLowerCase();
+    const txKey  = sup && inv.txNum ? sup+'|tx|' +String(inv.txNum||'').trim().toLowerCase() : null;
+    const taxKey = sup && inv.num   ? sup+'|tax|'+String(inv.num||'').trim().toLowerCase()   : null;
     if((txKey && dupKeys.has(txKey)) || (taxKey && dupKeys.has(taxKey))){ skipped++; continue; }
     if(txKey)  dupKeys.add(txKey);
     if(taxKey) dupKeys.add(taxKey);
