@@ -73,16 +73,6 @@ window.importBulkSchedule = function(input) {
           sheetReport.rows++;
           report.totalRows++;
 
-          // 0. COMPLETED CHECK (Skip completed makeups/activities)
-          if (cols.completed !== -1) {
-            const completedVal = String(row[cols.completed] || '').trim();
-            if (completedVal && completedVal !== 'null' && completedVal !== 'undefined') {
-              sheetReport.skipped++;
-              report.skipped++;
-              continue;
-            }
-          }
-
           // 1. DATE PARSING
           const d = _parseDate(row[cols.date]);
           if (!d) { report.noDate++; continue; }
@@ -306,7 +296,7 @@ function _detectHeaders(rows) {
     const cols = {
       date: -1, garden: -1, city: -1, supplier: -1, groups: -1,
       time: -1, notes: -1, actType: -1, cluster: -1, coordinator: -1,
-      street: -1, cls: -1, phone: -1, completed: -1
+      street: -1, cls: -1, phone: -1
     };
     let score = 0;
 
@@ -340,8 +330,6 @@ function _detectHeaders(rows) {
       else if (/^סיווג$|^סוג$/.test(n)) { cols.cls = idx; score += 1; }
       // Phone
       else if (/טלפון|phone/.test(n)) { cols.phone = idx; score += 1; }
-      // Completed (הושלם)
-      else if (/^הושלם$|^completed$/.test(n)) { cols.completed = idx; score += 2; }
     });
 
     if (score > bestScore && cols.date !== -1 && cols.garden !== -1) {
