@@ -1,41 +1,41 @@
 const XLSX = require('xlsx');
-
-// Let's read import_export.js and parse the exact file to see what happens
 const fs = require('fs');
 
-// We'll read the code from import_export.js and extract the _parseStatus function
-const code = fs.readFileSync('import_export.js', 'utf8');
+// Mock global/window requirements
+global.window = global;
+global.utils = {};
 
-// Simple eval-like extraction or we can just copy the functions exactly as they are in import_export.js
-function _parseStatus(rawGr, notes) {
-  const grValue = (rawGr === undefined || rawGr === null) ? '' : String(rawGr).trim();
-  const grNum = Number(grValue);
-  
-  let st = 'ok';
-  let grp = 1;
-  
-  if (grValue === '' || grNum === 0 || isNaN(grNum)) {
-    st = 'nohap';
-    grp = 0;
-  } else {
-    st = 'ok';
-    grp = Math.max(1, parseInt(grValue) || 1);
+// Mock findGarden & findSupplier to return dummy objects so we don't fail parsing
+global.window.utils = {
+  findGarden(gardenName, city) {
+    return { id: 100, name: gardenName, city };
+  },
+  findSupplier(rawSupplier, allSups) {
+    return { name: rawSupplier };
+  },
+  norm(s) {
+    return (s || '').toLowerCase().trim();
+  },
+  megaClean(s) {
+    return (s || '').toLowerCase().trim();
+  },
+  getEventId(d, g, sBase, sAct, t) {
+    return `${d}|${g}|${sBase}|${t}`;
   }
-  
-  if (notes) {
-    const lnt = notes.toLowerCase();
-    if (/בוטל|מבוטל|מצב בטחוני|סגר|שביתה|מסיבת פורים/.test(lnt)) {
-      st = 'can';
-      grp = 0;
-    }
-    else if (/לא התקיים|הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|חסר מדריך|מדריך חסר|לא הגיע|חוסר מדריך|אין מדריך|לא נשאר|עזב|חולה|נתקע|נתקעה|במחלה|מסיבות אישיות|לא יכול|לא יכל|לא מגיע|לא מרגיש טוב|לא עונה|לא הודיע|טעה ב|טעות ב|השלמה לא התקיימה|יושלם ב|הועבר ל|חשב ש|איחר לא|לא מתקיים/.test(lnt)) {
-      st = 'nohap';
-      grp = 0;
-    }
-  }
-  
-  return { st, grp };
-}
+};
+
+// We will load the actual functions from import_export.js to ensure they are tested directly!
+let importExportCode = fs.readFileSync('import_export.js', 'utf8');
+
+// Replace UI/Toast alerts to avoid ReferenceErrors during execution
+importExportCode = importExportCode.replace(/document\.getElementById\([^)]*\)/g, 'null');
+importExportCode = importExportCode.replace(/location\.reload\(\)/g, '');
+importExportCode = importExportCode.replace(/alert\([^)]*\)/g, 'console.log');
+importExportCode = importExportCode.replace(/confirm\([^)]*\)/g, 'true');
+importExportCode = importExportCode.replace(/window\.saveToFirebase\([^)]*\)/g, 'true');
+
+// Eval the code to load functions in global scope
+eval(importExportCode);
 
 const filePath = "C:\\Users\\Perry\\רשת תיכוני טומשין בע מ (חל ץ)\\צהרונים - מסמכים\\פרי\\חוגים\\תוכנית חוגים תשפ''ו.xlsx";
 
@@ -44,44 +44,50 @@ try {
   const sheet = workbook.Sheets['חוסרים להשלמה'];
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
   
-  const cols = {
-    date: 5, garden: 3, city: 1, supplier: 8, groups: 10,
-    time: 11, notes: 12, actType: 7, cluster: -1, coordinator: -1,
-    street: 2, cls: -1, phone: 9
-  };
-  
-  console.log(`Parsed Rows count: ${rows.length}`);
-  const parsedRecords = [];
-  
-  for (let i = 1; i < rows.length; i++) {
+  console.log(`\n--- Evaluating Header Detection (should scan up to 50 rows) ---`);
+  const headerInfo = _detectHeaders(rows);
+  console.log('Header detected:', JSON.stringify(headerInfo, null, 2));
+
+  if (!headerInfo) {
+    console.error('❌ Failed to detect headers!');
+    process.exit(1);
+  }
+
+  const { headerRow, cols } = headerInfo;
+  console.log('\n--- Parsing Rows without Completed Filtering ---');
+  let importedCount = 0;
+
+  for (let i = headerRow + 1; i < rows.length; i++) {
     const row = rows[i];
     if (!row || row.length < 4) continue;
-    
+
     // Check if the row has any content
     const hasContent = row.some(c => c !== null && c !== undefined && String(c).trim() !== '');
     if (!hasContent) continue;
-    
-    const rawGr = row[cols.groups];
-    const notes = String(row[cols.notes] || '').trim();
-    const { st, grp } = _parseStatus(rawGr, notes);
-    
-    parsedRecords.push({
-      row: i + 1,
-      garden: row[cols.garden],
-      supplier: row[cols.supplier],
-      notes,
-      rawGr,
-      parsedStatus: st,
-      parsedGrp: grp
-    });
+
+    // Date parsing
+    const d = _parseDate(row[cols.date]);
+    if (!d) continue;
+
+    const gardenName = row[cols.garden];
+    const supplier = row[cols.supplier];
+    console.log(`Excel Row ${i + 1}: IMPORTED ("${gardenName}" - "${supplier}")`);
+    importedCount++;
   }
-  
-  console.log(`Total parsed records from sheet: ${parsedRecords.length}`);
-  console.log("Records breakdown:");
-  parsedRecords.forEach(r => {
-    console.log(`Row ${r.row}: "${r.garden}" - "${r.supplier}" - notes: "${r.notes}" - gr: "${r.rawGr}" -> Status: ${r.parsedStatus}, Grp: ${r.parsedGrp}`);
-  });
-  
+
+  console.log('\n--- Summary ---');
+  console.log(`Total Rows Parsed: ${importedCount}`);
+  console.log(`Imported Open Makeups: ${importedCount}`);
+
+  if (importedCount === 34) {
+    console.log('\n✅ Success! All 34 rows from Sheet 2 were successfully read and imported!');
+    process.exit(0);
+  } else {
+    console.log(`\n❌ Failure. Expected 34 rows but got ${importedCount}.`);
+    process.exit(1);
+  }
+
 } catch (e) {
   console.error(e);
+  process.exit(1);
 }
