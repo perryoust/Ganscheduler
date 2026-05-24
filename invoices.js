@@ -2560,7 +2560,7 @@ window.startSharePointScanner = async function() {
 
       // Supplier Match Score helper
       const cleanFileBase = file.name.replace(/[-_.]/g, ' ');
-      const aliases = JSON.parse(localStorage.getItem('spScannerAliases') || '{}');
+      const aliases = window.spScannerAliases || {};
       
       const getSupplierScore = (inv) => {
         let score = 0;
@@ -2659,8 +2659,9 @@ window.startSharePointScanner = async function() {
             const chosenSup = bestMatches[0].inv.supName;
             const aliasWord = prompt(`בחרת בספק: ${chosenSup}.\n\nכדי שהמערכת תזכור זאת לפעמים הבאות, אנא הקלד מילה מתוך שם הקובץ ("${file.name}") שתמיד תזהה את הספק הזה (לדוגמה: "חוגות" או "בית הלחמי").\nאם אינך רוצה לשמור, השאר ריק ולחץ אישור.`);
             if (aliasWord && aliasWord.trim().length > 1) {
-              aliases[aliasWord.trim()] = chosenSup;
-              localStorage.setItem('spScannerAliases', JSON.stringify(aliases));
+              window.spScannerAliases = window.spScannerAliases || {};
+              window.spScannerAliases[aliasWord.trim()] = chosenSup;
+              if (window.ghAutoSave) window.ghAutoSave(); // Save to Firebase!
               window.showToast(`✅ המילה "${aliasWord.trim()}" נשמרה כזיהוי לספק ${chosenSup}`);
             }
           } else {

@@ -576,6 +576,7 @@ function _applyYearData(o){
   // REST OF THE FUNCTION (Pairs, Invoices, etc.)
   window.supEx = o.supEx || {};
   if(window.supEx['__gardens_extra']) window._GARDENS_EXTRA = window.supEx['__gardens_extra'];
+  window.spScannerAliases = o.spScannerAliases || {};
 
   if(Array.isArray(o.pairs)&&o.pairs.length>0){
     window.pairs = o.pairs.map(p=>({...p,ids:p.ids.map(id=>parseInt(id)).filter(id=>G(id).id)}));
