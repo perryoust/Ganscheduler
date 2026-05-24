@@ -2560,9 +2560,20 @@ window.startSharePointScanner = async function() {
 
       // Supplier Match Score helper
       const cleanFileBase = file.name.replace(/[-_.]/g, ' ');
+      const aliases = JSON.parse(localStorage.getItem('spScannerAliases') || '{}');
+      
       const getSupplierScore = (inv) => {
+        let score = 0;
         const supplierBase = window.supBase ? window.supBase(inv.supName) : inv.supName;
         const supplierWords = (supplierBase||'').split(/\s+/).filter(w => w.length > 2);
+        
+        // Check saved aliases first (highest priority)
+        for (const [aliasWord, supName] of Object.entries(aliases)) {
+          if (cleanFileBase.includes(aliasWord) && supName === inv.supName) {
+            return 5; // Alias match is the strongest
+          }
+        }
+
         if (cleanFileBase.includes(inv.supName)) return 3;
         if (cleanFileBase.includes(supplierBase)) return 2;
         if (supplierWords.length > 0 && supplierWords.some(w => cleanFileBase.includes(w))) return 1;
@@ -2634,7 +2645,28 @@ window.startSharePointScanner = async function() {
       if (fileMatched && matchedInfos.length > 0) {
         // Filter by highest supplier match score to avoid false positives with same invoice numbers
         const maxScore = Math.max(...matchedInfos.map(m => m.score));
-        const bestMatches = matchedInfos.filter(m => m.score === maxScore);
+        let bestMatches = matchedInfos.filter(m => m.score === maxScore);
+
+        // Interactive Tie-Breaker: Ask the user if there are multiple matches with the same score
+        if (bestMatches.length > 1) {
+          const optionsText = bestMatches.map((m, idx) => `${idx + 1}. ${m.inv.supName} (מספר מזוהה: ${m.inv.num||m.inv.txNum||m.inv.orderNum})`).join('\n');
+          const ans = prompt(`קובץ: ${file.name}\n\nהמערכת מצאה ${bestMatches.length} ספקים אפשריים (בעלי מספר חשבונית זהה). למי מהם לשייך את הקובץ?\n(הקלד את המספר ולחץ אישור, או ביטול כדי לדלג על קובץ זה)\n\n${optionsText}`);
+          const selectedIdx = parseInt(ans, 10) - 1;
+          if (!isNaN(selectedIdx) && bestMatches[selectedIdx]) {
+            bestMatches = [bestMatches[selectedIdx]];
+            
+            // Ask to remember the alias for future
+            const chosenSup = bestMatches[0].inv.supName;
+            const aliasWord = prompt(`בחרת בספק: ${chosenSup}.\n\nכדי שהמערכת תזכור זאת לפעמים הבאות, אנא הקלד מילה מתוך שם הקובץ ("${file.name}") שתמיד תזהה את הספק הזה (לדוגמה: "חוגות" או "בית הלחמי").\nאם אינך רוצה לשמור, השאר ריק ולחץ אישור.`);
+            if (aliasWord && aliasWord.trim().length > 1) {
+              aliases[aliasWord.trim()] = chosenSup;
+              localStorage.setItem('spScannerAliases', JSON.stringify(aliases));
+              window.showToast(`✅ המילה "${aliasWord.trim()}" נשמרה כזיהוי לספק ${chosenSup}`);
+            }
+          } else {
+            bestMatches = []; // User cancelled or entered invalid input, skip this file
+          }
+        }
 
         // Deduplicate matches to prevent double linking same section
         const uniqueMatchedInfos = [];
