@@ -2540,23 +2540,52 @@ window.startSharePointScanner = async function() {
         return num >= 2020 && num <= 2030;
       };
 
+      // Determine primary document type based on keywords
+      const typeKeywords = [
+        { key: 'tax', words: ['חשבונית מס', 'חשבונית_מס', 'חש מס', 'קבלה'] },
+        { key: 'tx', words: ['חשבונית עסקה', 'דרישת תשלום', 'דרישת_תשלום', 'חשבון עסקה'] },
+        { key: 'order', words: ['הזמנה'] }
+      ];
+      let lastTypeIndex = -1;
+      let primaryType = null;
+      typeKeywords.forEach(tk => {
+        tk.words.forEach(w => {
+          const idx = file.name.lastIndexOf(w);
+          if (idx > lastTypeIndex) {
+            lastTypeIndex = idx;
+            primaryType = tk.key;
+          }
+        });
+      });
+
+      // Supplier Match Score helper
+      const cleanFileBase = file.name.replace(/[-_.]/g, ' ');
+      const getSupplierScore = (inv) => {
+        const supplierBase = window.supBase ? window.supBase(inv.supName) : inv.supName;
+        const supplierWords = (supplierBase||'').split(/\s+/).filter(w => w.length > 2);
+        if (cleanFileBase.includes(inv.supName)) return 3;
+        if (cleanFileBase.includes(supplierBase)) return 2;
+        if (supplierWords.length > 0 && supplierWords.some(w => cleanFileBase.includes(w))) return 1;
+        return 0;
+      };
+
       let fileMatched = false;
-      const matchedInfos = []; // Array of { inv, sec }
+      const matchedInfos = []; // Array of { inv, sec, score }
 
       // 1. First attempt: Strict exact matching
       for (const numStr of numbersInName) {
         if (numStr.length < 3) continue;
         window.INVOICES.forEach(inv => {
-          if (inv.num && String(inv.num).trim() === numStr) {
-            matchedInfos.push({ inv, sec: 'tax' });
+          if (inv.num && String(inv.num).trim() === numStr && (!primaryType || primaryType === 'tax')) {
+            matchedInfos.push({ inv, sec: 'tax', score: getSupplierScore(inv) });
             fileMatched = true;
           }
-          if (inv.txNum && String(inv.txNum).trim() === numStr) {
-            matchedInfos.push({ inv, sec: 'tx' });
+          if (inv.txNum && String(inv.txNum).trim() === numStr && (!primaryType || primaryType === 'tx')) {
+            matchedInfos.push({ inv, sec: 'tx', score: getSupplierScore(inv) });
             fileMatched = true;
           }
-          if (inv.orderNum && String(inv.orderNum).trim() === numStr) {
-            matchedInfos.push({ inv, sec: 'order' });
+          if (inv.orderNum && String(inv.orderNum).trim() === numStr && (!primaryType || primaryType === 'order')) {
+            matchedInfos.push({ inv, sec: 'order', score: getSupplierScore(inv) });
             fileMatched = true;
           }
         });
@@ -2570,32 +2599,32 @@ window.startSharePointScanner = async function() {
           const cleanTx = String(inv.txNum || '').replace(/\D/g, '').replace(/^0+/, '');
           const cleanOrder = String(inv.orderNum || '').replace(/\D/g, '').replace(/^0+/, '');
           
-          if (cleanInv.length >= 3) {
+          if (cleanInv.length >= 3 && (!primaryType || primaryType === 'tax')) {
             const isMatch = isYear(cleanInv) 
               ? numbersInName.map(n => n.replace(/^0+/, '')).includes(cleanInv)
               : cleanFilenameDigits.includes(cleanInv);
             if (isMatch) {
-              matchedInfos.push({ inv, sec: 'tax' });
+              matchedInfos.push({ inv, sec: 'tax', score: getSupplierScore(inv) });
               fileMatched = true;
             }
           }
           
-          if (cleanTx.length >= 3) {
+          if (cleanTx.length >= 3 && (!primaryType || primaryType === 'tx')) {
             const isMatch = isYear(cleanTx) 
               ? numbersInName.map(n => n.replace(/^0+/, '')).includes(cleanTx)
               : cleanFilenameDigits.includes(cleanTx);
             if (isMatch) {
-              matchedInfos.push({ inv, sec: 'tx' });
+              matchedInfos.push({ inv, sec: 'tx', score: getSupplierScore(inv) });
               fileMatched = true;
             }
           }
           
-          if (cleanOrder.length >= 3) {
+          if (cleanOrder.length >= 3 && (!primaryType || primaryType === 'order')) {
             const isMatch = isYear(cleanOrder) 
               ? numbersInName.map(n => n.replace(/^0+/, '')).includes(cleanOrder)
               : cleanFilenameDigits.includes(cleanOrder);
             if (isMatch) {
-              matchedInfos.push({ inv, sec: 'order' });
+              matchedInfos.push({ inv, sec: 'order', score: getSupplierScore(inv) });
               fileMatched = true;
             }
           }
@@ -2603,10 +2632,14 @@ window.startSharePointScanner = async function() {
       }
 
       if (fileMatched && matchedInfos.length > 0) {
+        // Filter by highest supplier match score to avoid false positives with same invoice numbers
+        const maxScore = Math.max(...matchedInfos.map(m => m.score));
+        const bestMatches = matchedInfos.filter(m => m.score === maxScore);
+
         // Deduplicate matches to prevent double linking same section
         const uniqueMatchedInfos = [];
         const seenMatchKeys = new Set();
-        matchedInfos.forEach(info => {
+        bestMatches.forEach(info => {
           const key = `${info.inv.id}_${info.sec}`;
           if (!seenMatchKeys.has(key)) {
             seenMatchKeys.add(key);
