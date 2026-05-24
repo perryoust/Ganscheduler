@@ -73,6 +73,48 @@ $env:GOOGLE_APPLICATION_CREDENTIALS = "C:\path\to\google-credentials.json"
 >
 > ניתן להשתמש ב-`setup-google-credentials.ps1` לקביעת `GOOGLE_APPLICATION_CREDENTIALS` ב-Windows.
 >
+> אם יש לך הרשאות מתאימות ו־`gcloud` מחובר לחשבון, ניתן גם ליצור את קובץ המפתח אוטומטית בתיקיית הפרויקט:
+> ```powershell
+> gcloud iam service-accounts create ganscheduler-agent --display-name "GanScheduler Agent"
+> gcloud iam service-accounts keys create google-credentials.json --iam-account=ganscheduler-agent@YOUR_PROJECT_ID.iam.gserviceaccount.com --project=YOUR_PROJECT_ID
+> .\setup-google-credentials.ps1 -Path ".\google-credentials.json"
+> ```
+>
+### 1.2 Quick: Install gcloud & configure ADC (Windows)
+If you don't have `gcloud` installed, you can install with admin rights or use the portable ZIP method below.
+
+Admin (recommended) via winget:
+```powershell
+winget install --id Google.CloudSDK -e --accept-package-agreements --accept-source-agreements
+```
+
+Portable (no-admin) - downloads and installs to your user profile:
+```powershell
+$url = 'https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-569.0.0-windows-x86_64.zip'
+$tmp = "$env:TEMP\gcloud.zip"
+Invoke-WebRequest -Uri $url -OutFile $tmp -UseBasicParsing
+Expand-Archive -LiteralPath $tmp -DestinationPath $env:USERPROFILE -Force
+& "$env:USERPROFILE\google-cloud-sdk\install.bat" --quiet
+```
+
+After `gcloud` is available, create or download a Service Account key JSON and set ADC:
+```powershell
+# If you already have a key file:
+.\setup-google-credentials.ps1 -Path "C:\path\to\google-credentials.json"
+
+# Or activate directly using gcloud (optional):
+gcloud auth activate-service-account --key-file="C:\path\to\google-credentials.json"
+```
+
+If you need to create a service account and key (requires project Owner or IAM permissions):
+```bash
+gcloud iam service-accounts create ganscheduler-agent --display-name "GanScheduler Agent"
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID --member="serviceAccount:ganscheduler-agent@YOUR_PROJECT_ID.iam.gserviceaccount.com" --role="roles/owner"
+gcloud iam service-accounts keys create google-credentials.json --iam-account=ganscheduler-agent@YOUR_PROJECT_ID.iam.gserviceaccount.com
+```
+
+Store the `google-credentials.json` safely and then run the `setup-google-credentials.ps1` script above.
+
 ### 2. Firebase Configuration
 ```javascript
 // firebase_init.js מכיל:

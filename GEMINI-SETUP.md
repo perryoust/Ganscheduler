@@ -31,6 +31,28 @@ $env:GOOGLE_APPLICATION_CREDENTIALS = "C:\path\to\google-credentials.json"
 
 > אם אתה ב-Windows, תוכל להשתמש גם ב-`setup-google-credentials.ps1` מהפרויקט.
 
+### Quick: Install gcloud & ADC (Windows)
+Install `gcloud` (admin) via `winget`:
+```powershell
+winget install --id Google.CloudSDK -e --accept-package-agreements --accept-source-agreements
+```
+
+Portable (no-admin):
+```powershell
+$url = 'https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-569.0.0-windows-x86_64.zip'
+$tmp = "$env:TEMP\gcloud.zip"
+Invoke-WebRequest -Uri $url -OutFile $tmp -UseBasicParsing
+Expand-Archive -LiteralPath $tmp -DestinationPath $env:USERPROFILE -Force
+& "$env:USERPROFILE\google-cloud-sdk\install.bat" --quiet
+```
+
+After you have a Service Account key JSON file, run:
+```powershell
+.\setup-google-credentials.ps1 -Path "C:\path\to\google-credentials.json"
+gcloud auth activate-service-account --key-file="C:\path\to\google-credentials.json"
+```
+
+
 ### 3️⃣ בדוק את הקשר
 ```bash
 npm install axios
