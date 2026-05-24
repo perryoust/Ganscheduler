@@ -1206,3 +1206,121 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   letter-spacing: 0.3px;
   background: #f1f5f9;
 }
+
+/* ── Mobile Invoices (Procurement) Cards ── */
+.mob-inv-card {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border: 1px solid #e8eaf6;
+  border-right: 4px solid #1a237e;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: right;
+}
+.mob-inv-card.cancelled {
+  border-right-color: #c62828 !important;
+  background: #fff8f8 !important;
+}
+.mob-inv-card.order {
+  border-right-color: #1565c0 !important;
+}
+.mob-inv-card.tx_invoice {
+  border-right-color: #6a1b9a !important;
+}
+.mob-inv-card.tax_invoice, 
+.mob-inv-card.tax_receipt, 
+.mob-inv-card.receipt {
+  border-right-color: #2e7d32 !important;
+}
+
+.mob-inv-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  border-bottom: 1px dashed #e8eaf6;
+  padding-bottom: 6px;
+}
+.mob-inv-sup {
+  font-weight: 800;
+  color: #1a237e;
+  font-size: 0.9rem;
+}
+.mob-inv-entity {
+  font-size: 0.67rem;
+  color: #888;
+  margin-top: 1px;
+}
+.mob-inv-status {
+  font-size: 0.72rem;
+}
+
+.mob-inv-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #37474f;
+}
+.mob-inv-docs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mob-inv-doc-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  line-height: 1.5;
+}
+.mob-inv-desc {
+  background: #f8fafc;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  color: #455a64;
+}
+.mob-inv-amounts {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: #f1f8e9;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+.mob-inv-amt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mob-inv-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9fa;
+  padding: 6px;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+.mob-inv-notes {
+  font-size: 0.72rem;
+  color: #78909c;
+  flex: 1;
+  padding-left: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+.mob-inv-btns {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
