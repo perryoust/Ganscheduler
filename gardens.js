@@ -411,11 +411,19 @@ function savePairModal(){
   }
   const nm=document.getElementById('apm-name').value||ids.map(id=>window.G(id).name||'').join(' + ');
   const isEdit=window.editPairIdx!==null&&window.editPairIdx!==undefined;
+  let targetPairId;
   if(isEdit){
+    targetPairId = window.pairs[window.editPairIdx].id;
     window.pairs[window.editPairIdx]={...window.pairs[window.editPairIdx],ids,name:nm};
   } else {
-    window.pairs.push({id:Date.now(),ids,name:nm});
+    targetPairId = Date.now();
+    window.pairs.push({id:targetPairId,ids,name:nm});
   }
+  // Cleanup duplicates from other pairs
+  window.pairs = window.pairs.map(p => {
+    if (p.id === targetPairId) return p;
+    return { ...p, ids: p.ids.filter(id => !ids.map(Number).includes(Number(id))) };
+  }).filter(p => p.ids.length >= 2);
   window.save();window.CM('apm');window.refresh();
   if(window.currentTab==='managers') window.renderManagers();
   alert('✅ '+(isEdit?'הזוג עודכן':'הזוג נשמר')+': '+nm);

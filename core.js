@@ -1506,7 +1506,13 @@ function saveNewGarden(){
   if(partnerId){
     const ids=[newId,partnerId,partner3Id].filter(Boolean);
     const pName=ids.map(id=>{const g=GARDENS.find(x=>x.id===id)||_GARDENS_EXTRA.find(x=>x.id===id);return g?g.name:'';}).join(' + ');
-    pairs.push({id:Date.now()+1,ids,name:pName});
+    const targetId = Date.now()+1;
+    pairs.push({id:targetId,ids,name:pName});
+    // Cleanup duplicates from other pairs
+    window.pairs = window.pairs.map(p => {
+      if (p.id === targetId) return p;
+      return { ...p, ids: p.ids.filter(id => !ids.map(Number).includes(Number(id))) };
+    }).filter(p => p.ids.length >= 2);
   }
   const clVal=document.getElementById('addg-cluster').value;
   if(clVal&&clVal!=='__new__'){

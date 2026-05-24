@@ -319,7 +319,13 @@ function checkDupePairAndSave(gids){
   const name=gids.map(id=>window.G(id).name||'').join(' + ');
   const nm=prompt('שם לזוג:',name);
   if(nm===null) return;
-  window.pairs.push({id:Date.now(),ids:gids,name:nm||name});
+  const targetId = Date.now();
+  window.pairs.push({id:targetId,ids:gids,name:nm||name});
+  // Cleanup duplicates from other pairs
+  window.pairs = window.pairs.map(p => {
+    if (p.id === targetId) return p;
+    return { ...p, ids: p.ids.filter(id => !gids.map(Number).includes(Number(id))) };
+  }).filter(p => p.ids.length >= 2);
   window.save(); window.refresh();
   alert(`✅ הזוג "${nm||name}" נשמר!`);
 }
@@ -602,6 +608,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
           const clr=window.CITY_COLORS(city);
           const typeName = gClass === 'ביה"ס' ? 'בתי ספר' : 'צהרוני גנים';
           const typeIcon = gClass === 'ביה"ס' ? '🏛️' : '🏫';
+          const dateUsedIds = new Set();
 
           html+=`<details class="city-accordion">
             <summary>
