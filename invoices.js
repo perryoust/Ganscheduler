@@ -2731,23 +2731,24 @@ window.startSharePointScanner = async function() {
         return num >= 2010 && num <= 2035;
       };
 
-      // Determine primary document type based on keywords
+      // Determine document types based on keywords
+      const foundTypes = new Set();
       const typeKeywords = [
         { key: 'tax', words: ['חשבונית מס', 'חשבונית_מס', 'חש מס', 'קבלה'] },
         { key: 'tx', words: ['חשבונית עסקה', 'דרישת תשלום', 'דרישת_תשלום', 'חשבון עסקה'] },
         { key: 'order', words: ['הזמנה'] }
       ];
-      let lastTypeIndex = -1;
-      let primaryType = null;
       typeKeywords.forEach(tk => {
         tk.words.forEach(w => {
-          const idx = file.name.lastIndexOf(w);
-          if (idx > lastTypeIndex) {
-            lastTypeIndex = idx;
-            primaryType = tk.key;
-          }
+          if (file.name.includes(w)) foundTypes.add(tk.key);
         });
       });
+      // Fallback: if it has "חשבונית" but not "עסקה"
+      if (file.name.includes('חשבונית') && !file.name.includes('עסקה')) {
+        foundTypes.add('tax');
+      }
+      
+      const canMatch = (type) => foundTypes.size === 0 || foundTypes.has(type);
 
       // Supplier Match Score helper
       const cleanFileBase = file.name.replace(/[-_.]/g, ' ');
@@ -2786,15 +2787,15 @@ window.startSharePointScanner = async function() {
             if (numStr.length < 4 && !String(inv.num || '').startsWith(numStr) && numStr !== String(inv.num)) return;
           }
           
-          if (inv.num && String(inv.num).trim() === numStr && (!primaryType || primaryType === 'tax')) {
+          if (inv.num && String(inv.num).trim() === numStr && canMatch('tax')) {
             matchedInfos.push({ inv, sec: 'tax', score });
             fileMatched = true;
           }
-          if (inv.txNum && String(inv.txNum).trim() === numStr && (!primaryType || primaryType === 'tx')) {
+          if (inv.txNum && String(inv.txNum).trim() === numStr && canMatch('tx')) {
             matchedInfos.push({ inv, sec: 'tx', score });
             fileMatched = true;
           }
-          if (inv.orderNum && String(inv.orderNum).trim() === numStr && (!primaryType || primaryType === 'order')) {
+          if (inv.orderNum && String(inv.orderNum).trim() === numStr && canMatch('order')) {
             matchedInfos.push({ inv, sec: 'order', score });
             fileMatched = true;
           }
@@ -2836,17 +2837,17 @@ window.startSharePointScanner = async function() {
             return false;
           };
 
-          if ((!primaryType || primaryType === 'tax') && checkFuzzyMatch(cleanInv)) {
+          if (canMatch('tax') && checkFuzzyMatch(cleanInv)) {
             matchedInfos.push({ inv, sec: 'tax', score });
             fileMatched = true;
           }
           
-          if ((!primaryType || primaryType === 'tx') && checkFuzzyMatch(cleanTx)) {
+          if (canMatch('tx') && checkFuzzyMatch(cleanTx)) {
             matchedInfos.push({ inv, sec: 'tx', score });
             fileMatched = true;
           }
           
-          if ((!primaryType || primaryType === 'order') && checkFuzzyMatch(cleanOrder)) {
+          if (canMatch('order') && checkFuzzyMatch(cleanOrder)) {
             matchedInfos.push({ inv, sec: 'order', score });
             fileMatched = true;
           }
