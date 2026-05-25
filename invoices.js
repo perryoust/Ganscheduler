@@ -2994,34 +2994,74 @@ window.startSharePointScanner = async function() {
       // 2.5. Petty Cash (קופה קטנה) specific matching based on Month/Year
       // If the file is a petty cash document, link it to all petty cash rows for that supplier in the same month
       if (file.name.includes('קופה קטנה')) {
-        const fileDate = new Date(file.lastModified || Date.now());
+        let targetMonth = -1;
+        let targetYear = -1;
         const hebMonths = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
-        let targetMonth = fileDate.getMonth();
-        let targetYear = fileDate.getFullYear();
         
-        // If file name has a Hebrew month, use it instead of the file date
-        const matchHeb = file.name.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\s*(\d{4})/);
-        if (matchHeb) {
-          targetMonth = hebMonths.indexOf(matchHeb[1]);
-          targetYear = parseInt(matchHeb[2]);
-        } else {
-          // Alternative: check if there's a standalone year in the file name
-          const yearMatch = file.name.match(/\b(202\d)\b/);
-          if (yearMatch) targetYear = parseInt(yearMatch[1]);
+        // 1. Try to extract month from file name
+        const matchHebName = file.name.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\s*(\d{4})?/);
+        if (matchHebName) {
+          targetMonth = hebMonths.indexOf(matchHebName[1]);
+          if (matchHebName[2]) targetYear = parseInt(matchHebName[2]);
+        }
+        
+        // 2. Try to extract month from file path (folder name)
+        if (targetMonth === -1 && file.path) {
+          try {
+            const decodedPath = decodeURIComponent(file.path);
+            const matchHebPath = decodedPath.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\s*(\d{4})?/);
+            if (matchHebPath) {
+              targetMonth = hebMonths.indexOf(matchHebPath[1]);
+              if (matchHebPath[2]) targetYear = parseInt(matchHebPath[2]);
+            }
+          } catch(e) {}
+        }
+        
+        // 3. Fallback to file's lastModified date
+        if (targetMonth === -1) {
+          const fileDate = new Date(file.lastModified || Date.now());
+          targetMonth = fileDate.getMonth();
+          if (targetYear === -1) targetYear = fileDate.getFullYear();
+        }
+        
+        // Ensure year is set
+        if (targetYear === -1) {
+          const yearMatch = file.name.match(/\b(202\d)\b/) || (file.path && decodeURIComponent(file.path).match(/\b(202\d)\b/));
+          targetYear = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
         }
 
         window.INVOICES.forEach(inv => {
           // Must be a petty cash row
-          if (inv.orderNum === 'קופה קטנה' || String(inv.notes||'').includes('קופה קטנה') || String(inv.txNum||'').includes('קופה קטנה')) {
+          if (inv.orderNum === 'קופה קטנה' || String(inv.notes||'').includes('קופה קטנה') || String(inv.txNum||'').includes('קופה קטנה') || String(inv.orderDesc||'').includes('קופה קטנה')) {
             const score = getSupplierScore(inv);
             if (score > 0) { // Supplier must match!
-              if (inv.date) {
-                const invDate = new Date(inv.date);
-                if (invDate.getMonth() === targetMonth && invDate.getFullYear() === targetYear) {
-                  // Attach as a tax invoice (since user specified it acts as a tax invoice for the site)
-                  matchedInfos.push({ inv, sec: 'tax', score: score + 10 }); // +10 to ensure it beats any fuzzy match
-                  fileMatched = true;
+              let invMonth = -1;
+              let invYear = -1;
+              
+              const dStr = inv.date || inv.orderDate || inv.txDate || '';
+              if (dStr) {
+                let invDate = new Date(dStr);
+                // Handle DD/MM/YYYY
+                if (dStr.includes('/')) {
+                  const parts = dStr.split('/');
+                  if (parts.length === 3) invDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
                 }
+                if (!isNaN(invDate.getMonth())) {
+                  invMonth = invDate.getMonth();
+                  invYear = invDate.getFullYear();
+                }
+              }
+              
+              // Fallback: check invoice description for Hebrew month
+              if (invMonth === -1) {
+                const matchHebDesc = String(inv.orderDesc||'').match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)/);
+                if (matchHebDesc) invMonth = hebMonths.indexOf(matchHebDesc[1]);
+              }
+
+              if (invMonth === targetMonth) {
+                // Attach as a tax invoice (since user specified it acts as a tax invoice for the site)
+                matchedInfos.push({ inv, sec: 'tax', score: score + 10 }); // +10 to ensure it beats any fuzzy match
+                fileMatched = true;
               }
             }
           }
@@ -3048,11 +3088,13 @@ window.startSharePointScanner = async function() {
               
               // Ask to remember the alias for future
               const chosenSup = bestMatches[0].inv.supName;
-              const aliasWord = prompt(`בחרת בספק: ${chosenSup}.\n\nכדי שהמערכת תזכור זאת לפעמים הבאות, אנא הקלד מילה מתוך שם הקובץ ("${file.name}") שתמיד תזהה את הספק הזה (לדוגמה: "חוגות" או "בית הלחמי").\nאם אינך רוצה לשמור, השאר ריק ולחץ אישור.`);
+              let guessedAlias = file.name.replace(/\.(pdf|jpg|png|jpeg)$/i, '').split(/[\s\-]+/)[0] || '';
+              if (guessedAlias.length < 2) guessedAlias = '';
+              const aliasWord = prompt(`בחרת בספק: ${chosenSup}.\n\nכדי שהמערכת תזכור זאת לפעמים הבאות, לחץ אישור כדי לשמור מילת זיהוי זו (או ערוך אותה למילה אחרת מתוך שם הקובץ "${file.name}").\nאם אינך רוצה לשמור, השאר ריק ולחץ אישור.`, guessedAlias);
               if (aliasWord && aliasWord.trim().length > 1) {
                 window.spScannerAliases = window.spScannerAliases || {};
                 window.spScannerAliases[aliasWord.trim()] = chosenSup;
-                if (window.ghAutoSave) window.ghAutoSave(); // Save to Firebase!
+                if (window.ghAutoSave) window.ghAutoSave(true, true); // Force save to Firebase!
                 window.showToast(`✅ המילה "${aliasWord.trim()}" נשמרה כזיהוי לספק ${chosenSup}`);
               }
             } else {
@@ -3153,11 +3195,15 @@ window.startSharePointScanner = async function() {
               const supName = ans.trim();
               
               // Ask user for a persistent alias to avoid asking next time
-              const aliasWord = prompt(`שייכת את הקובץ "${file.name}" לספק: ${supName}.\n\nכדי שהמערכת תזהה את הספק הזה אוטומטית בעתיד, הקלד מילת מפתח ייחודית מתוך שם הקובץ (לדוגמה: שם הספק כפי שהוא בקובץ).\nהשאר ריק אם אינך רוצה לשמור זיהוי.`);
+              // Auto-guess alias from filename to help the user
+              let guessedAlias = file.name.replace(/\.(pdf|jpg|png|jpeg)$/i, '').split(/[\s\-]+/)[0] || '';
+              if (guessedAlias.length < 2) guessedAlias = '';
+              
+              const aliasWord = prompt(`שייכת את הקובץ "${file.name}" לספק: ${supName}.\n\nכדי שהמערכת תזהה את הספק הזה אוטומטית בעתיד, לחץ אישור כדי לשמור את מילת הזיהוי (או ערוך אותה).\nהשאר ריק אם אינך רוצה לשמור זיהוי.`, guessedAlias);
               if (aliasWord && aliasWord.trim().length > 1) {
                  window.spScannerAliases = window.spScannerAliases || {};
                  window.spScannerAliases[aliasWord.trim()] = supName;
-                 if (window.ghAutoSave) window.ghAutoSave(); // Save to database!
+                 if (window.ghAutoSave) window.ghAutoSave(true, true); // Force save to database!
                  window.showToast(`✅ המילה "${aliasWord.trim()}" נשמרה כזיהוי לספק ${supName}`);
               }
 
