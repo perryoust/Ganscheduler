@@ -720,8 +720,16 @@ function isPurchSupplier(name){
 }
 window.isPurchSupplier = isPurchSupplier;
 function getAllSupNames(){
-  if(typeof window.getAllSup==='function') return window.getAllSup().map(s=>s.name);
-  return [];
+  const names = new Set();
+  if(typeof window.getAllSup==='function') {
+    window.getAllSup().forEach(s => names.add(s.name));
+  }
+  if(Array.isArray(window.INVOICES)) {
+    window.INVOICES.forEach(inv => {
+      if(inv.supName) names.add(window.supBase ? window.supBase(inv.supName) : inv.supName);
+    });
+  }
+  return Array.from(names);
 }
 function rebuildMergedSupplierActs(){
   // After merges, some supEx entries may have stale empty acts arrays
