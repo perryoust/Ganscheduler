@@ -2907,7 +2907,6 @@ window.startSharePointScanner = async function() {
       for (const numStr of numbersInName) {
         if (numStr.length < 3) continue;
         window.INVOICES.forEach(inv => {
-          if (typeof window.isPurchSupplier === 'function' && !window.isPurchSupplier(inv.supName)) return;
           
           const score = getSupplierScore(inv);
           if (score === 0) {
@@ -2933,7 +2932,6 @@ window.startSharePointScanner = async function() {
       // 2. Second attempt: Fuzzy digits matching (handling leading zeros, slashes, dashes, letters)
       if (!fileMatched) {
         window.INVOICES.forEach(inv => {
-          if (typeof window.isPurchSupplier === 'function' && !window.isPurchSupplier(inv.supName)) return;
           
           const score = getSupplierScore(inv);
           
