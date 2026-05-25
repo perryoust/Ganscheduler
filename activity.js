@@ -1115,18 +1115,37 @@ function deleteSingleActivity(id) {
   const s = window.SCH.find(x => x.id == id);
   if(!s) return;
   const g = window.G(s.g);
-  if(!confirm(`האם למחוק את השיבוץ של גן ${g.name} בתאריך ${window.fD(s.d)} לצמיתות?`)) return;
+  
+  const origEvs = s._isMakeup ? window.SCH.filter(orig => String(orig._compByMakeup) === String(s.id)) : [];
+  const restoreMsg = origEvs.length > 0 ? `\n\n(מחיקה זו גם תחזיר את הפעילות המקורית שלא התקיימה לרשימה)` : '';
+
+  if(!confirm(`האם למחוק את השיבוץ של גן ${g.name} בתאריך ${window.fD(s.d)} לצמיתות?` + restoreMsg)) return;
   
   const i = window.SCH.indexOf(s);
   if(i >= 0) window.SCH.splice(i, 1);
+  
+  if (origEvs.length > 0) {
+    origEvs.forEach(orig => {
+      orig._compByMakeup = '';
+    });
+  }
   
   // Also check for partner sync
   const pair = window.gardenPair(s.g);
   if(pair) {
     const pEv = window.findPartnerActivity ? window.findPartnerActivity(pair.ids.find(pid => Number(pid) !== Number(s.g)), s.d, s.a) : null;
-    if(pEv && confirm(`האם למחוק גם את השיבוץ המקביל בגן בן-הזוג (${window.G(pEv.g).name})?`)) {
-      const pi = window.SCH.indexOf(pEv);
-      if(pi >= 0) window.SCH.splice(pi, 1);
+    if(pEv) {
+      const pOrigEvs = pEv._isMakeup ? window.SCH.filter(orig => String(orig._compByMakeup) === String(pEv.id)) : [];
+      const pRestoreMsg = pOrigEvs.length > 0 ? `\n(פעילות זו היא השלמה ותחזיר את הפעילות המקורית)` : '';
+      if(confirm(`האם למחוק גם את השיבוץ המקביל בגן בן-הזוג (${window.G(pEv.g).name})?` + pRestoreMsg)) {
+        const pi = window.SCH.indexOf(pEv);
+        if(pi >= 0) window.SCH.splice(pi, 1);
+        if (pOrigEvs.length > 0) {
+          pOrigEvs.forEach(orig => {
+            orig._compByMakeup = '';
+          });
+        }
+      }
     }
   }
   
