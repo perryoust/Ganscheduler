@@ -198,21 +198,33 @@
     <div id="p-admin" class="panel" style="display:none">
       <div class="card" style="max-width:700px;margin:0 auto">
         <h2 style="color:#6a1b9a;margin-bottom:20px">🚀 ניהול מערכת</h2>
+        <!-- Purchasing Management section -->
+        <div style="border-top:2px solid #e8eaf6;padding-top:18px;margin-bottom:20px">
+          <div style="font-weight:800;font-size:.95rem;color:#c62828;margin-bottom:14px">🛒 ניהול נתוני רכש (פעולות מנהל בלבד)</div>
+          <div style="background:#fff3e0;border-radius:10px;padding:14px;border:1.5px solid #ffb74d">
+            <p style="font-size:0.8rem;color:#e65100;margin-top:0;margin-bottom:12px;line-height:1.4">
+              <b>איפוס סורק SharePoint:</b> מוחק רק את הקישורים של קבצי ה-PDF ששודכו לחשבוניות. החשבוניות עצמן <b>לא</b> יימחקו, והסורק פשוט יתחיל לחפש את הקבצים מחדש בפעם הבאה שתפעיל אותו. מצוין אם שינית שמות קבצים במחשב ואתה רוצה לסרוק מחדש.
+            </p>
+            <button class="btn bs" onclick="window.clearScannerLinks()"
+              title="מחיקת כל הקבצים ששודכו בטעות ואיפוס זיכרון הסורק (החשבוניות עצמן לא יימחקו)"
+              style="padding:6px 12px;font-size:.8rem;background:#fff;border:1px solid #ff9800;color:#e65100;margin-bottom:16px;display:block">🧹
+              איפוס חיבורי סורק SharePoint</button>
+              
+            <p style="font-size:0.8rem;color:#b71c1c;margin-top:0;margin-bottom:12px;line-height:1.4;border-top:1px solid #ffcc80;padding-top:12px">
+              <b>מחיקת כל נתוני הרכש (דף חלק):</b> ⚠️ פעולה בלתי הפיכה! מוחקת לחלוטין את כל החשבוניות, הספקים וההזמנות ממערכת הרכש. השתמש בזה רק אם אתה רוצה להתחיל מאפס ולייבא קובץ אקסל רכש מחדש.
+            </p>
+            <button class="btn bs" onclick="window.deleteAllInvoices()"
+              title="מחיקת כל נתוני הרכש והחשבוניות כדי להתחיל דף חדש ולייבא את הקובץ מחדש"
+              style="padding:6px 12px;font-size:.8rem;background:#ffebee;border:1px solid #ef5350;color:#c62828;font-weight:bold;display:block">🗑️
+              מחיקת הכל (מחיקת בסיס נתוני רכש)</button>
+          </div>
+        </div>
+
         <!-- Users section -->
         <div style="border-top:2px solid #e8eaf6;padding-top:18px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
             <div style="font-weight:800;font-size:.95rem;color:#6a1b9a">👥 ניהול משתמשים</div>
-            <div style="display:flex;gap:8px">
-              <button class="btn bs" onclick="window.clearScannerLinks()"
-                title="מחיקת כל הקבצים ששודכו בטעות ואיפוס זיכרון הסורק (החשבוניות עצמן לא יימחקו)"
-                style="padding:4px 10px;font-size:.75rem;background:#fff3e0;border:1px solid #ffcc80;color:#e65100">🧹
-                איפוס סורק SharePoint</button>
-              <button class="btn bs" onclick="window.deleteAllInvoices()"
-                title="מחיקת כל נתוני הרכש והחשבוניות כדי להתחיל דף חדש ולייבא את הקובץ מחדש"
-                style="padding:4px 10px;font-size:.75rem;background:#ffebee;border:1px solid #ffcdd2;color:#c62828;font-weight:bold">🗑️
-                מחיקת כל הרכש (איפוס)</button>
-              <button class="btn bg bsm" onclick="loadUsersList()">🔄 רענן</button>
-            </div>
+            <button class="btn bg bsm" onclick="loadUsersList()">🔄 רענן</button>
           </div>
 
           <!-- Create new user -->
