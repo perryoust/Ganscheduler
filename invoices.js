@@ -2425,6 +2425,7 @@ window.startSharePointScanner = async function() {
     alert('הדפדפן שלך אינו תומך בסריקת תיקיות מקומית. אנא השתמש ב-Chrome או Edge עדכני.');
     return;
   }
+  try {
     const selectedFolders = [];
     while (true) {
       const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
