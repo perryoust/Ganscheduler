@@ -1421,9 +1421,25 @@ function renderMonth(evs,mDate,f){
         dayEvs.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s => {
           const sup = window.supBase(s.a);
           const act = s.act || (window.supAct ? window.supAct(s.a) : '') || '';
-          const stC = s.st === 'can' ? '#c62828' : s.st === 'post' ? '#e65100' : '#1565c0';
-          const isCan = s.st === 'can';
-          cellContent += `<div style="font-size:0.62rem; line-height:1.2; color:${stC}; border-right:2.5px solid ${stC}; padding-right:4px; background:rgba(0,0,0,0.03); border-radius:3px; ${isCan?'text-decoration:line-through;opacity:0.6':''}">
+          
+          let stColor = '#1565c0';
+          let stBg = 'rgba(0,0,0,0.03)';
+          let isCan = false;
+          let isMakeup = !!(s._isMakeup || s._makeupFrom);
+
+          if (s.st === 'can') {
+             stColor = '#c62828'; stBg = '#ffebee'; isCan = true;
+          } else if (s.st === 'nohap') {
+             stColor = '#6a1b9a'; stBg = '#f3e5f5';
+          } else if (s.st === 'post') {
+             stColor = '#e65100'; stBg = '#fff3e0';
+          } else if (s.st === 'done') {
+             stColor = '#2e7d32'; stBg = '#e8f5e9';
+          } else if (isMakeup) {
+             stColor = '#0288d1'; stBg = '#e1f5fe';
+          }
+
+          cellContent += `<div style="font-size:0.62rem; line-height:1.2; color:${stColor}; border-right:3px solid ${stColor}; padding:3px 5px; margin-bottom:3px; background:${stBg}; border-radius:4px; ${isCan?'text-decoration:line-through;opacity:0.7':''}">
             <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sup}</b>
             <span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.58rem;opacity:0.85">${act}</span>
           </div>`;
