@@ -1025,26 +1025,27 @@ function genExport(){
   const getEvType = (s) => {
     const noteText = (s.nt || '') + ' ' + (s.n || '') + ' ' + (s.a || '');
     
-    // 1. Advancement (הקדמה)
+    // 1. Explicit Cancel / Nohap logic first
+    if (s.st === 'can') return 'can';
+    if (s.st === 'nohap') {
+      if (/הוקדם ל/i.test(noteText)) return 'preponed_out';
+      return 'nohap'; 
+    }
+    
+    // 2. Advancement (הקדמה)
     if (s._postFrom && s.d < s._postFrom) return 'preponed';
     if (/הקדמה מיום|הוקדם מיום|הקדמה|הוקדם מ/i.test(noteText)) return 'preponed';
     
-    // 2. Postponement (דחייה)
+    // 3. Postponement (דחייה)
     if (s._postFrom && s.d > s._postFrom) return 'postponed';
-    if (/דחייה מיום|נדחה מיום|הוזז מיום|עבר מיום|דחייה|נדחה|הוזז|השלמה מיום/i.test(noteText)) {
-      return 'postponed';
-    }
+    if (/דחייה מיום|נדחה מיום|הוזז מיום|עבר מיום|דחייה|נדחה|הוזז|השלמה מיום/i.test(noteText)) return 'postponed';
     
-    // 3. Preponed out (הוקדם ל...)
+    // 4. Preponed out fallback
     if (/הוקדם ל/i.test(noteText)) return 'preponed_out';
     
-    // 4. Makeup (השלמה)
+    // 5. Makeup (השלמה)
     if (s._makeupFrom || (s._isMakeup && !s._postFrom)) return 'makeup';
     if (/השלמה/i.test(noteText)) return 'makeup';
-    
-    // 5. Cancel / Nohap
-    if (s.st === 'can') return 'can';
-    if (s.st === 'nohap') return 'nohap';
     
     return 'normal';
   };
