@@ -584,6 +584,38 @@ function _applyYearData(o){
   } else { initPairs(); }
   if(o.invoices){
     window.INVOICES = Array.isArray(o.invoices) ? o.invoices : Object.values(o.invoices);
+    
+    // Deduplicate identical invoices created by accident
+    const uniqueInvs = [];
+    const invMap = new Map();
+    window.INVOICES.forEach(inv => {
+      // Create a unique key based on supplier name and whatever number is present
+      const numKey = inv.num || inv.txNum || inv.orderNum || '';
+      if (!numKey) {
+        uniqueInvs.push(inv); // Keep invoices without any numbers
+        return;
+      }
+      const key = `${window.supBase ? window.supBase(inv.supName) : inv.supName}_${numKey}`;
+      
+      if (!invMap.has(key)) {
+        invMap.set(key, inv);
+      } else {
+        // We have a duplicate. Keep the one that has more file links or details!
+        const existing = invMap.get(key);
+        const existingScore = (existing.file_tax ? 1 : 0) + (existing.file_tx ? 1 : 0) + (existing.file_order ? 1 : 0);
+        const newScore = (inv.file_tax ? 1 : 0) + (inv.file_tx ? 1 : 0) + (inv.file_order ? 1 : 0);
+        
+        if (newScore > existingScore) {
+          invMap.set(key, inv); // replace with the better one
+        } else if (newScore === existingScore) {
+           // Merge file links if they have different ones
+           if (!existing.file_tax && inv.file_tax) existing.file_tax = inv.file_tax;
+           if (!existing.file_tx && inv.file_tx) existing.file_tx = inv.file_tx;
+           if (!existing.file_order && inv.file_order) existing.file_order = inv.file_order;
+        }
+      }
+    });
+    window.INVOICES = Array.from(invMap.values()).concat(uniqueInvs);
     // ── Migrate invoices with double-VAT bug ──
     // Symptom: ordVatMode missing AND orderTotal ≈ orderAmt * (1 + vat/100)
     // Fix: set ordVatMode='inc', recalculate orderAmt (base) and orderTotal (= entered).

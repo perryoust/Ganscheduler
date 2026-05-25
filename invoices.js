@@ -2680,23 +2680,27 @@ window.startSharePointScanner = async function() {
 
         // Interactive Tie-Breaker: Ask the user if there are multiple matches with the same score
         if (bestMatches.length > 1) {
-          const optionsText = bestMatches.map((m, idx) => `${idx + 1}. ${m.inv.supName} (מספר מזוהה: ${m.inv.num||m.inv.txNum||m.inv.orderNum})`).join('\n');
-          const ans = prompt(`קובץ: ${file.name}\n\nהמערכת מצאה ${bestMatches.length} ספקים אפשריים (בעלי מספר חשבונית זהה). למי מהם לשייך את הקובץ?\n(הקלד את המספר ולחץ אישור, או ביטול כדי לדלג על קובץ זה)\n\n${optionsText}`);
-          const selectedIdx = parseInt(ans, 10) - 1;
-          if (!isNaN(selectedIdx) && bestMatches[selectedIdx]) {
-            bestMatches = [bestMatches[selectedIdx]];
-            
-            // Ask to remember the alias for future
-            const chosenSup = bestMatches[0].inv.supName;
-            const aliasWord = prompt(`בחרת בספק: ${chosenSup}.\n\nכדי שהמערכת תזכור זאת לפעמים הבאות, אנא הקלד מילה מתוך שם הקובץ ("${file.name}") שתמיד תזהה את הספק הזה (לדוגמה: "חוגות" או "בית הלחמי").\nאם אינך רוצה לשמור, השאר ריק ולחץ אישור.`);
-            if (aliasWord && aliasWord.trim().length > 1) {
-              window.spScannerAliases = window.spScannerAliases || {};
-              window.spScannerAliases[aliasWord.trim()] = chosenSup;
-              if (window.ghAutoSave) window.ghAutoSave(); // Save to Firebase!
-              window.showToast(`✅ המילה "${aliasWord.trim()}" נשמרה כזיהוי לספק ${chosenSup}`);
+          const uniqueSuppliers = new Set(bestMatches.map(m => window.supBase ? window.supBase(m.inv.supName) : m.inv.supName));
+          
+          if (uniqueSuppliers.size > 1) {
+            const optionsText = bestMatches.map((m, idx) => `${idx + 1}. ${m.inv.supName} (מספר מזוהה: ${m.inv.num||m.inv.txNum||m.inv.orderNum})`).join('\n');
+            const ans = prompt(`קובץ: ${file.name}\n\nהמערכת מצאה ${bestMatches.length} ספקים אפשריים (בעלי מספר חשבונית זהה). למי מהם לשייך את הקובץ?\n(הקלד את המספר ולחץ אישור, או ביטול כדי לדלג על קובץ זה)\n\n${optionsText}`);
+            const selectedIdx = parseInt(ans, 10) - 1;
+            if (!isNaN(selectedIdx) && bestMatches[selectedIdx]) {
+              bestMatches = [bestMatches[selectedIdx]];
+              
+              // Ask to remember the alias for future
+              const chosenSup = bestMatches[0].inv.supName;
+              const aliasWord = prompt(`בחרת בספק: ${chosenSup}.\n\nכדי שהמערכת תזכור זאת לפעמים הבאות, אנא הקלד מילה מתוך שם הקובץ ("${file.name}") שתמיד תזהה את הספק הזה (לדוגמה: "חוגות" או "בית הלחמי").\nאם אינך רוצה לשמור, השאר ריק ולחץ אישור.`);
+              if (aliasWord && aliasWord.trim().length > 1) {
+                window.spScannerAliases = window.spScannerAliases || {};
+                window.spScannerAliases[aliasWord.trim()] = chosenSup;
+                if (window.ghAutoSave) window.ghAutoSave(); // Save to Firebase!
+                window.showToast(`✅ המילה "${aliasWord.trim()}" נשמרה כזיהוי לספק ${chosenSup}`);
+              }
+            } else {
+              bestMatches = []; // User cancelled or entered invalid input, skip this file
             }
-          } else {
-            bestMatches = []; // User cancelled or entered invalid input, skip this file
           }
         }
 
