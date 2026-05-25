@@ -451,9 +451,11 @@
            </div>
          </div>
        </div>
-      <div id="cal-pair-bar-desktop" class="card desktop-only" style="display:none;background:#e3f2fd;margin-bottom:10px;padding:8px 12px;align-items:center;justify-content:space-between">
-         <span>⚖️ זוג שנבחר: <b id="cal-pair-lbl-desktop"></b></span>
-         <button class="btn bp bsm" onclick="saveCalPair()">💾 שמור כזוג קבוע</button>
+      <div class="desktop-only">
+        <div id="cal-pair-bar-desktop" class="card" style="display:none;background:#e3f2fd;margin-bottom:10px;padding:8px 12px;align-items:center;justify-content:space-between">
+           <span>⚖️ זוג שנבחר: <b id="cal-pair-lbl-desktop"></b></span>
+           <button class="btn bp bsm" onclick="saveCalPair()">💾 שמור כזוג קבוע</button>
+        </div>
       </div>
 
       <!-- 📱 MOBILE CALENDAR TOOLS 📱 -->
@@ -490,9 +492,11 @@
              </div>
          </div>
       </div>
-      <div id="cal-pair-bar-mobile" class="card mobile-only" style="display:none;background:#e3f2fd;margin-bottom:8px;padding:6px 10px;align-items:center;justify-content:space-between">
-         <span style="font-size:.8rem">⚖️ <b id="cal-pair-lbl-mobile"></b></span>
-         <button class="btn bp bsm" onclick="saveCalPair()">💾 שמור זוג</button>
+      <div class="mobile-only">
+         <div id="cal-pair-bar-mobile" class="card" style="display:none;background:#e3f2fd;margin-bottom:8px;padding:6px 10px;align-items:center;justify-content:space-between">
+            <span style="font-size:.8rem">⚖️ <b id="cal-pair-lbl-mobile"></b></span>
+            <button class="btn bp bsm" onclick="saveCalPair()">💾 שמור זוג</button>
+         </div>
       </div>
 
       <div class="flex-c justify-between mb-2 gap-2" style="width:100%">

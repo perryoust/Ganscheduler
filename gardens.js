@@ -1116,7 +1116,7 @@ function genExport(){
   if (isAllPreponed) {
     headerTitle = refStr ? `*הקדמה מ${refStr}*\n` : '*הקדמה*\n';
   } else if (isAllPostponed) {
-    headerTitle = refStr ? `*דחייה מ${refStr}*\n` : '*דחייה*\n';
+    headerTitle = refStr ? `*נדחה מ${refStr}*\n` : '*נדחה*\n';
   } else if (isAllPreponedOut) {
     headerTitle = refStr ? `*לא מתקיים - הוקדם ל${refStr}*\n` : '*לא מתקיים - הוקדם*\n';
   } else if (isAllMakeup) {
@@ -1133,7 +1133,7 @@ function genExport(){
     if (isAllMakeup || isAllPreponed || isAllPostponed || isAllPreponedOut) return ''; // Already handled globally
     const sRef = getRefDateStr([s], s.d);
     if (t === 'preponed') return sRef ? `*הקדמה מ${sRef}* · ` : '*הקדמה* · ';
-    if (t === 'postponed') return sRef ? `*דחייה מ${sRef}* · ` : '*דחייה* · ';
+    if (t === 'postponed') return sRef ? `*נדחה מ${sRef}* · ` : '*נדחה* · ';
     if (t === 'preponed_out') return sRef ? `*הוקדם ל${sRef}* · ` : '*הוקדם* · ';
     if (t === 'makeup') return sRef ? `*השלמה מ${sRef}* · ` : '*השלמה* · ';
     return '';

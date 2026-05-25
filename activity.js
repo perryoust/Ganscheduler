@@ -1783,7 +1783,7 @@ function doPostpone(){
   s._compByMakeup = newId1; // Mark original as handled
 
   const isPostpone = newDate > s.d;
-  const labelText = isPostpone ? 'דחייה' : 'הקדמה';
+  const labelText = isPostpone ? 'נדחה' : 'הקדמה';
 
   const newEv1 = {
     ...s, id:newId1, d:newDate, t:s.t, a:newSup||s.a, act:newAct||s.act, st:'ok', 
@@ -1806,7 +1806,7 @@ function doPostpone(){
     }
     const ptEv = conf.pEv || {...s, g: conf.syn.g};
     const isPostponePartner = newDate > ptEv.d;
-    const partnerLabelText = isPostponePartner ? 'דחייה' : 'הקדמה';
+    const partnerLabelText = isPostponePartner ? 'נדחה' : 'הקדמה';
     const newPtEv = {
       ...ptEv, id:newSynId, d:newDate, t:conf.syn.t || ptEv.t, a:newSup||s.a, act:newAct||s.act, st:'ok', 
       pd:'', pt:'', _postFrom: ptEv.d, _isMakeup: true,
