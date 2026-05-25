@@ -2949,7 +2949,7 @@ window.startSharePointScanner = async function() {
            }
            
            if (matchedSupName) {
-              const secKey = primaryType || 'tax';
+              const secKey = Array.from(foundTypes)[0] || 'tax';
               const statusMap = { tax: 'tax_invoice', tx: 'tx_invoice', order: 'order' };
               const newInv = {
                  id: Date.now() + Math.floor(Math.random()*1000),
@@ -2985,7 +2985,7 @@ window.startSharePointScanner = async function() {
                  window.showToast(`✅ המילה "${aliasWord.trim()}" נשמרה כזיהוי לספק ${supName}`);
               }
 
-              const secKey = primaryType || 'tax';
+              const secKey = Array.from(foundTypes)[0] || 'tax';
               const statusMap = { tax: 'tax_invoice', tx: 'tx_invoice', order: 'order' };
               const newInv = {
                  id: Date.now() + Math.floor(Math.random()*1000),
