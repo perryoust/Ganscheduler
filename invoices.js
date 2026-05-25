@@ -69,21 +69,6 @@ function SPT(t){
   });
   if(t==='pinvoices'){
     fillPiSupFilter(); _fillPiCityFilter(); renderInvoices();
-    const ib = document.getElementById('one-time-import-btn');
-    if(ib){
-      if(window._safeLS.getItem('_oneTimeImportDone')){ ib.style.display='none'; }
-      else{
-        // Also check Firebase flag
-        const _tk = window._cachedToken;
-        if(_tk){
-          fetch('https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/importDone.json?auth='+_tk)
-            .then(r=>r.json()).then(d=>{
-              if(d && d.done){ ib.style.display='none'; window._safeLS.setItem('_oneTimeImportDone','1'); }
-              else { ib.style.display='inline-block'; }
-            }).catch(()=>{ ib.style.display='inline-block'; });
-        } else { ib.style.display='inline-block'; }
-      }
-    }
   }
   if(t==='psup'){
     setTimeout(renderPurchSuppliers, 50);
