@@ -2398,8 +2398,25 @@ window.importInvoices = function(input) {
       console.error("Import error:", err);
       alert("שגיאה בתהליך הייבוא: " + err.message);
     }
-  };
+};
   reader.readAsArrayBuffer(file);
+};
+
+window.clearScannerLinks = function() {
+  if (!confirm('האם אתה בטוח שברצונך לנתק את כל קבצי ה-PDF והתמונות ששודכו לחשבוניות עד כה?\n(החשבוניות עצמן לא יימחקו, רק הקבצים ינותקו).')) return;
+  let count = 0;
+  window.INVOICES.forEach(inv => {
+    if (inv.file_tax || inv.file_tx || inv.file_order) {
+      delete inv.file_tax;
+      delete inv.file_tx;
+      delete inv.file_order;
+      count++;
+    }
+  });
+  window.spScannerAliases = {};
+  window.save(true);
+  if (typeof window.renderInvoices === 'function') window.renderInvoices();
+  alert(`נותקו קבצים מ-${count} חשבוניות, וזיכרון מילות הסריקה אופס בהצלחה!`);
 };
 
 // ── SharePoint Local Scanner ─────────────────────────────
@@ -2408,11 +2425,19 @@ window.startSharePointScanner = async function() {
     alert('הדפדפן שלך אינו תומך בסריקת תיקיות מקומית. אנא השתמש ב-Chrome או Edge עדכני.');
     return;
   }
-  try {
-    const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
-    const baseUrl = prompt('בחרת את התיקייה המקומית בהצלחה!\n\nכעת, אנא הדבק כאן את קישור האינטרנט של התיקייה הזו כפי שהוא מופיע בדפדפן ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/sites/zaharonim/...)');
-    if (!baseUrl) return;
-    
+    const selectedFolders = [];
+    while (true) {
+      const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+      const baseUrl = prompt('בחרת תיקייה בהצלחה!\n\nכעת, הדבק כאן את קישור האינטרנט של התיקייה הזו ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/...)');
+      if (baseUrl) {
+        selectedFolders.push({ dirHandle, baseUrl });
+      }
+      if (!confirm('האם תרצה להוסיף תיקייה נוספת לסריקה זו?\n\n• לחץ "אישור" (OK) כדי לבחור תיקייה נוספת.\n• לחץ "ביטול" (Cancel) כדי לסיים את בחירת התיקיות ולהתחיל בסריקה.')) {
+        break;
+      }
+    }
+    if (selectedFolders.length === 0) return;
+
     // Parse SharePoint URL to extract direct web directory path
     const parseSharePointBaseUrl = (url) => {
       let u = url.trim();
@@ -2462,25 +2487,42 @@ window.startSharePointScanner = async function() {
       }
     };
     
-    const cleanBaseUrl = parseSharePointBaseUrl(baseUrl);
     window.showToast('⏳ סורק קבצים במחשב... נא להמתין', 60000);
     const filesFound = [];
-    async function scanDir(handle, currentPath) {
+    async function scanDir(handle, currentPath, origin, path) {
       for await (const entry of handle.values()) {
         if (entry.kind === 'file') {
           if (!entry.name.startsWith('.') && !entry.name.startsWith('~')) {
             const ext = entry.name.split('.').pop().toLowerCase();
             if (!['xls', 'xlsx', 'csv'].includes(ext)) {
               const f = await entry.getFile();
-              filesFound.push({ name: entry.name, relativePath: currentPath + '/' + encodeURIComponent(entry.name), lastModified: f.lastModified });
+              filesFound.push({ 
+                name: entry.name, 
+                relativePath: currentPath + '/' + encodeURIComponent(entry.name), 
+                lastModified: f.lastModified,
+                origin,
+                path
+              });
             }
           }
         } else if (entry.kind === 'directory') {
-          await scanDir(entry, currentPath + '/' + encodeURIComponent(entry.name));
+          await scanDir(entry, currentPath + '/' + encodeURIComponent(entry.name), origin, path);
         }
       }
     }
-    await scanDir(dirHandle, '');
+    
+    for (const folder of selectedFolders) {
+      const cleanBaseUrl = parseSharePointBaseUrl(folder.baseUrl);
+      let origin = 'https://tomashin1.sharepoint.com';
+      let path = cleanBaseUrl;
+      try {
+        const uObj = new URL(cleanBaseUrl);
+        origin = uObj.origin;
+        path = uObj.pathname;
+      } catch(e) {}
+      if (!path.startsWith('/')) path = '/' + path;
+      await scanDir(folder.dirHandle, '', origin, path);
+    }
     
     // Filter out old files based on the oldest invoice in the system (with a 60-day buffer)
     let oldestDateStr = '2099-12-31';
@@ -2520,7 +2562,6 @@ window.startSharePointScanner = async function() {
       return ':b:/r/'; // default fallback
     };
     
-    // Helper to safely URL-encode path segments without double-encoding
     const encodePath = (p) => {
       return p.split('/').map(segment => {
         if (!segment) return '';
@@ -2534,25 +2575,15 @@ window.startSharePointScanner = async function() {
       }).join('/');
     };
 
-    let origin = 'https://tomashin1.sharepoint.com';
-    let path = cleanBaseUrl;
-    try {
-      const uObj = new URL(cleanBaseUrl);
-      origin = uObj.origin;
-      path = uObj.pathname;
-    } catch(e) {}
-    if (!path.startsWith('/')) path = '/' + path;
-    
-    const encodedPath = encodePath(path);
-
     let matchCount = 0;
     const resultsData = [['שם הקובץ', 'מספר שזוהה', 'סטטוס התאמה', 'קישור שנוצר']];
     window._askUnmatched = true; // Reset skipping state for each scan
     for (const file of filesFound) {
       const numbersInName = file.name.match(/\d+/g) || [];
       const decorator = getSharePointDecorator(file.name);
+      const encodedPath = encodePath(file.path);
       const urlPath = ('/' + decorator + '/' + encodedPath + '/' + file.relativePath).replace(/\/+/g, '/');
-      const link = `${origin}${urlPath}?web=1`;
+      const link = `${file.origin}${urlPath}?web=1`;
       const cleanFilenameDigits = file.name.replace(/\D/g, '');
       const isYear = (val) => {
         const num = parseInt(val, 10);
@@ -2605,11 +2636,14 @@ window.startSharePointScanner = async function() {
       // 1. First attempt: Strict exact matching
       for (const numStr of numbersInName) {
         if (numStr.length < 3) continue;
-        window.INVOICES.forEach(inv => {
+        validInvoices.forEach(inv => {
           if (typeof window.isPurchSupplier === 'function' && !window.isPurchSupplier(inv.supName)) return;
           
           const score = getSupplierScore(inv);
-          if (isYear(numStr) && score === 0) return;
+          if (score === 0) {
+            if (isYear(numStr)) return;
+            if (numStr.length < 4 && !inv.num?.startsWith(numStr) && numStr !== inv.num) return;
+          }
           
           if (inv.num && String(inv.num).trim() === numStr && (!primaryType || primaryType === 'tax')) {
             matchedInfos.push({ inv, sec: 'tax', score });
@@ -2628,7 +2662,7 @@ window.startSharePointScanner = async function() {
 
       // 2. Second attempt: Fuzzy digits matching (handling leading zeros, slashes, dashes, letters)
       if (!fileMatched) {
-        window.INVOICES.forEach(inv => {
+        validInvoices.forEach(inv => {
           if (typeof window.isPurchSupplier === 'function' && !window.isPurchSupplier(inv.supName)) return;
           
           const score = getSupplierScore(inv);
@@ -2640,7 +2674,10 @@ window.startSharePointScanner = async function() {
           
           const checkFuzzyMatch = (targetNum) => {
             if (targetNum.length < 3) return false;
-            if (isYear(targetNum) && score === 0) return false;
+            if (score === 0) {
+              if (isYear(targetNum)) return false;
+              if (targetNum.length < 4) return false; // Prevent generic short number fuzzy matches
+            }
             // Exact match in individual number blocks (ignoring leading zeros)
             if (numbersInName.map(n => n.replace(/^0+/, '')).includes(targetNum)) return true;
             if (isYear(targetNum)) return false; // Don't combine blocks for years
