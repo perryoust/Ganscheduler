@@ -2553,7 +2553,7 @@ window.startSharePointScanner = async function() {
       const cleanFilenameDigits = file.name.replace(/\D/g, '');
       const isYear = (val) => {
         const num = parseInt(val, 10);
-        return num >= 2020 && num <= 2030;
+        return num >= 2010 && num <= 2035;
       };
 
       // Determine primary document type based on keywords
@@ -2604,16 +2604,20 @@ window.startSharePointScanner = async function() {
         if (numStr.length < 3) continue;
         window.INVOICES.forEach(inv => {
           if (typeof window.isPurchSupplier === 'function' && !window.isPurchSupplier(inv.supName)) return;
+          
+          const score = getSupplierScore(inv);
+          if (isYear(numStr) && score === 0) return;
+          
           if (inv.num && String(inv.num).trim() === numStr && (!primaryType || primaryType === 'tax')) {
-            matchedInfos.push({ inv, sec: 'tax', score: getSupplierScore(inv) });
+            matchedInfos.push({ inv, sec: 'tax', score });
             fileMatched = true;
           }
           if (inv.txNum && String(inv.txNum).trim() === numStr && (!primaryType || primaryType === 'tx')) {
-            matchedInfos.push({ inv, sec: 'tx', score: getSupplierScore(inv) });
+            matchedInfos.push({ inv, sec: 'tx', score });
             fileMatched = true;
           }
           if (inv.orderNum && String(inv.orderNum).trim() === numStr && (!primaryType || primaryType === 'order')) {
-            matchedInfos.push({ inv, sec: 'order', score: getSupplierScore(inv) });
+            matchedInfos.push({ inv, sec: 'order', score });
             fileMatched = true;
           }
         });
@@ -2623,6 +2627,9 @@ window.startSharePointScanner = async function() {
       if (!fileMatched) {
         window.INVOICES.forEach(inv => {
           if (typeof window.isPurchSupplier === 'function' && !window.isPurchSupplier(inv.supName)) return;
+          
+          const score = getSupplierScore(inv);
+          
           // Clean invoice values to digits only (and remove leading zeros)
           const cleanInv = String(inv.num || '').replace(/\D/g, '').replace(/^0+/, '');
           const cleanTx = String(inv.txNum || '').replace(/\D/g, '').replace(/^0+/, '');
@@ -2630,6 +2637,7 @@ window.startSharePointScanner = async function() {
           
           const checkFuzzyMatch = (targetNum) => {
             if (targetNum.length < 3) return false;
+            if (isYear(targetNum) && score === 0) return false;
             // Exact match in individual number blocks (ignoring leading zeros)
             if (numbersInName.map(n => n.replace(/^0+/, '')).includes(targetNum)) return true;
             if (isYear(targetNum)) return false; // Don't combine blocks for years
@@ -2648,17 +2656,17 @@ window.startSharePointScanner = async function() {
           };
 
           if ((!primaryType || primaryType === 'tax') && checkFuzzyMatch(cleanInv)) {
-            matchedInfos.push({ inv, sec: 'tax', score: getSupplierScore(inv) });
+            matchedInfos.push({ inv, sec: 'tax', score });
             fileMatched = true;
           }
           
           if ((!primaryType || primaryType === 'tx') && checkFuzzyMatch(cleanTx)) {
-            matchedInfos.push({ inv, sec: 'tx', score: getSupplierScore(inv) });
+            matchedInfos.push({ inv, sec: 'tx', score });
             fileMatched = true;
           }
           
           if ((!primaryType || primaryType === 'order') && checkFuzzyMatch(cleanOrder)) {
-            matchedInfos.push({ inv, sec: 'order', score: getSupplierScore(inv) });
+            matchedInfos.push({ inv, sec: 'order', score });
             fileMatched = true;
           }
         });
