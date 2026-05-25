@@ -1453,28 +1453,33 @@ function ST(t){
     const fn = btn.getAttribute('onclick')||'';
     btn.classList.toggle('active', fn.includes(`'${t}'`) || fn.includes(`"${t}"`));
   });
-  // Hide all act panels + admin panel, show only active
-  [...TABS, 'admin'].forEach(x=>{
+  
+  // Hide all act panels + admin panel + purch panels, show only active
+  const allPanels = [...TABS, 'admin', 'pdash', 'pinvoices', 'psup'];
+  allPanels.forEach(x=>{
     const panelEl=document.getElementById('p-'+x);
     if(panelEl){
       const isActive = x===t;
-      panelEl.classList.toggle('active', isActive);
-      // Remove inline display style — let CSS handle it via .panel/.panel.active.
-      // Force display='none' if in purch mode to prevent UI layout clash.
-      panelEl.style.display = (window._appMode === 'purch') ? 'none' : '';
+      if(isActive) panelEl.style.display='block';
+      else panelEl.style.display='none';
     }
   });
+
   // purch panels are managed by switchMode, not ST
   if(t==='admin'){
-    // Hide purch panels (user may be coming from purch mode)
-    PURCH_TABS.forEach(x=>{
-      const panelEl=document.getElementById('p-'+x);
-      if(panelEl){ panelEl.style.display='none'; panelEl.classList.remove('active'); }
-    });
-    // Switch mode visuals to 'act' mode styling (admin sits in act mode)
+    document.getElementById('mode-bar').scrollIntoView();
+    // Refresh log stats periodically while admin is open
+    if(window._admInt) clearInterval(window._admInt);
+    window._admInt=setInterval(()=>{if(currentTab==='admin'&&typeof updateLogStats==='function')updateLogStats()},3000);
+    // Switch mode visuals to 'admin' mode styling
     document.body.classList.remove('mode-purch');
-    document.getElementById('tabs-act')?.style && (document.getElementById('tabs-act').style.display='');
-    document.getElementById('tabs-purch') && (document.getElementById('tabs-purch').style.display='none');
+    document.getElementById('tabs-act').style.display='none';
+    document.getElementById('tabs-purch').style.display='none';
+    document.getElementById('modeBtn-act').classList.remove('active');
+    document.getElementById('modeBtn-purch').classList.remove('active');
+    const adminBtn = document.getElementById('modeBtn-admin');
+    if(adminBtn) adminBtn.classList.add('active');
+    
     // Load admin data
     if(typeof loadUsersList==='function') setTimeout(loadUsersList,300);
     if(typeof loadActivityLog==='function') setTimeout(()=>loadActivityLog(document.getElementById('log-filter')?.value||'week'),500);

@@ -2783,7 +2783,7 @@ window.startSharePointScanner = async function() {
           const score = getSupplierScore(inv);
           if (score === 0) {
             if (isYear(numStr)) return;
-            if (numStr.length < 4 && !inv.num?.startsWith(numStr) && numStr !== inv.num) return;
+            if (numStr.length < 4 && !String(inv.num || '').startsWith(numStr) && numStr !== String(inv.num)) return;
           }
           
           if (inv.num && String(inv.num).trim() === numStr && (!primaryType || primaryType === 'tax')) {
