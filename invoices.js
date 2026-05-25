@@ -2490,20 +2490,23 @@ window.startSharePointScanner = async function() {
         if (d && d < oldestDateStr && d.length >= 4) oldestDateStr = d;
       }
     });
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    const oneYearAgoStr = oneYearAgo.toISOString().split('T')[0];
-    if (oldestDateStr < oneYearAgoStr || oldestDateStr === '2099-12-31') oldestDateStr = oneYearAgoStr;
+    
+    const minDateLimit = '2022-09-01'; // User's Excel file starts here
+    if (oldestDateStr < minDateLimit || oldestDateStr === '2099-12-31') oldestDateStr = minDateLimit;
+    
     if (oldestDateStr !== '2099-12-31') {
       const oldestTs = new Date(oldestDateStr).getTime() - (60 * 24 * 60 * 60 * 1000); // 60 days buffer
+      const minTs = new Date(minDateLimit).getTime();
+      const cutoffTs = Math.max(oldestTs, minTs); // Never scan before Sep 2022
+      
       const originalCount = filesFound.length;
       for (let i = filesFound.length - 1; i >= 0; i--) {
-        if (filesFound[i].lastModified && filesFound[i].lastModified < oldestTs) {
+        if (filesFound[i].lastModified && filesFound[i].lastModified < cutoffTs) {
           filesFound.splice(i, 1);
         }
       }
       if (originalCount > filesFound.length) {
-        console.log(`Skipped ${originalCount - filesFound.length} old files (older than ${oldestDateStr} - 60 days).`);
+        console.log(`Skipped ${originalCount - filesFound.length} old files (older than ${new Date(cutoffTs).toLocaleDateString()}).`);
       }
     }
 
