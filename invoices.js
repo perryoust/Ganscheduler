@@ -2566,6 +2566,72 @@ window.asyncConfirm = function(message) {
   });
 };
 
+// ── SharePoint Local Scanner Admin UI ─────────────────────────────
+window.renderAdminSpLinks = function() {
+  const container = document.getElementById('admin-sp-links-list');
+  if (!container) return;
+  
+  let links = {};
+  try {
+    links = JSON.parse(localStorage.getItem('spScannerFolderLinks') || '{}');
+  } catch(e){}
+  if (window.spScannerFolderLinks) {
+    Object.assign(links, window.spScannerFolderLinks);
+  }
+  
+  const keys = Object.keys(links);
+  if (keys.length === 0) {
+    container.innerHTML = '<div style="color:#999;font-style:italic">לא הוגדרו קישורים. הקישורים יוצגו כאן לאחר סריקה או הוספה ידנית.</div>';
+    return;
+  }
+  
+  let html = '';
+  keys.forEach(k => {
+    html += `
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ffe0b2; padding:4px 0;">
+        <div style="flex:1; overflow:hidden;">
+          <strong style="color:#d84315">${k}</strong><br>
+          <a href="${links[k]}" target="_blank" style="color:#1e88e5; text-decoration:none; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; display:block; direction:ltr; text-align:left;">${links[k]}</a>
+        </div>
+        <button class="btn bs bsm" onclick="window.removeSpLink('${k}')" style="background:none; color:#e53935; border:none; padding:4px; font-size:1.1rem;" title="מחק">🗑️</button>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+};
+
+window.addNewSpLink = async function() {
+  const folderName = await window.asyncPrompt('<b>שם התיקייה המקומית במחשב שלך:</b>\n(לדוגמה: רכש או חוגים)');
+  if (!folderName) return;
+  
+  const spLink = await window.asyncPrompt(`<b>קישור SharePoint לתיקייה "${folderName}":</b>\nהדבק את הקישור המלא כאן`);
+  if (!spLink) return;
+  
+  window.spScannerFolderLinks = window.spScannerFolderLinks || {};
+  window.spScannerFolderLinks[folderName.trim()] = spLink.trim();
+  localStorage.setItem('spScannerFolderLinks', JSON.stringify(window.spScannerFolderLinks));
+  if (typeof window.ghAutoSave === 'function') window.ghAutoSave(true);
+  
+  window.renderAdminSpLinks();
+  window.showToast('הקישור נשמר בהצלחה');
+};
+
+window.removeSpLink = function(key) {
+  if (!confirm(`למחוק את הקישור לתיקייה "${key}"?`)) return;
+  if (window.spScannerFolderLinks && window.spScannerFolderLinks[key]) {
+    delete window.spScannerFolderLinks[key];
+  }
+  const localLinks = JSON.parse(localStorage.getItem('spScannerFolderLinks') || '{}');
+  if (localLinks[key]) {
+    delete localLinks[key];
+    localStorage.setItem('spScannerFolderLinks', JSON.stringify(localLinks));
+  }
+  if (typeof window.ghAutoSave === 'function') window.ghAutoSave(true);
+  window.renderAdminSpLinks();
+};
+
+setTimeout(() => { if(window.renderAdminSpLinks) window.renderAdminSpLinks(); }, 1500);
+
 // ── SharePoint Local Scanner ─────────────────────────────
 window.startSharePointScanner = async function() {
   if (!window.showDirectoryPicker) {
@@ -2576,7 +2642,25 @@ window.startSharePointScanner = async function() {
     const selectedFolders = [];
     while (true) {
       const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
-      const baseUrl = await window.asyncPrompt('<b>בחרת תיקייה בהצלחה!</b>\n\nכעת, הדבק כאן את קישור האינטרנט של התיקייה הזו ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/...)');
+      
+      let baseUrl = window.spScannerFolderLinks?.[dirHandle.name];
+      if (!baseUrl) {
+        // Try localStorage fallback
+        try {
+          const localLinks = JSON.parse(localStorage.getItem('spScannerFolderLinks') || '{}');
+          if (localLinks[dirHandle.name]) baseUrl = localLinks[dirHandle.name];
+        } catch(e){}
+      }
+      
+      if (!baseUrl) {
+        baseUrl = await window.asyncPrompt('<b>בחרת תיקייה בהצלחה!</b>\n\nכעת, הדבק כאן את קישור האינטרנט של התיקייה הזו ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/...)');
+        if (baseUrl) {
+          window.spScannerFolderLinks = window.spScannerFolderLinks || {};
+          window.spScannerFolderLinks[dirHandle.name] = baseUrl;
+          localStorage.setItem('spScannerFolderLinks', JSON.stringify(window.spScannerFolderLinks));
+        }
+      }
+      
       if (baseUrl) {
         selectedFolders.push({ dirHandle, baseUrl });
       }

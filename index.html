@@ -210,10 +210,12 @@
               style="padding:6px 12px;font-size:.8rem;background:#fff;border:1px solid #ff9800;color:#e65100;margin-bottom:8px;display:block">🧹
               איפוס חיבורי סורק SharePoint</button>
               
-            <button class="btn bs" onclick="if(confirm('למחוק את הקישורים שנשמרו לתיקיות השונות?')) { window.spScannerFolderLinks = {}; window.ghAutoSave(); window.showToast('הקישורים נמחקו בהצלחה'); }"
-              title="מחיקת הקישורים (URL) שנשמרו לתיקיות המקומיות כדי להזין קישורים חדשים בסריקה הבאה"
-              style="padding:6px 12px;font-size:.8rem;background:#fff;border:1px solid #ffb74d;color:#f57c00;margin-bottom:16px;display:block">🔗
-              איפוס קישורי התיקיות השמורים</button>
+            <div style="background:rgba(255,255,255,0.7); border:1px solid #ffb74d; border-radius:6px; padding:10px; margin-bottom:16px;">
+               <div style="font-weight:700; font-size:.85rem; color:#e65100; margin-bottom:8px;">🔗 קישורי סורק SharePoint שמורים</div>
+               <div id="admin-sp-links-list" style="margin-bottom:8px; font-size:0.8rem; line-height:1.4;"></div>
+               <button class="btn bs bsm" onclick="window.addNewSpLink()" style="background:#fff; color:#f57c00; border:1px solid #ffb74d;">➕ הוסף / ערוך קישור ידנית</button>
+               <button class="btn bs bsm" onclick="if(confirm('למחוק את כל הקישורים?')) { window.spScannerFolderLinks = {}; localStorage.setItem('spScannerFolderLinks','{}'); window.ghAutoSave(); if(window.renderAdminSpLinks) window.renderAdminSpLinks(); window.showToast('הקישורים נמחקו בהצלחה'); }" style="background:#fff; color:#e53935; border:1px solid #e53935; margin-right:6px;">🗑️ איפוס הכל</button>
+            </div>
               
             <p style="font-size:0.8rem;color:#b71c1c;margin-top:0;margin-bottom:12px;line-height:1.4;border-top:1px solid #ffcc80;padding-top:12px">
               <b>מחיקת כל נתוני הרכש (דף חלק):</b> ⚠️ פעולה בלתי הפיכה! מוחקת לחלוטין את כל החשבוניות, הספקים וההזמנות ממערכת הרכש. השתמש בזה רק אם אתה רוצה להתחיל מאפס ולייבא קובץ אקסל רכש מחדש.
