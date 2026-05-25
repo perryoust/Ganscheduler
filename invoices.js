@@ -3075,7 +3075,7 @@ window.startSharePointScanner = async function() {
                  id: Date.now() + Math.floor(Math.random()*1000),
                  supName: matchedSupName,
                  status: statusMap[secKey],
-                 date: new Date().toISOString().split('T')[0],
+                 date: new Date(file.lastModified || Date.now()).toISOString().split('T')[0],
                  amt: 0
               };
               newInv['file_' + secKey] = { path: link, name: file.name };
@@ -3111,7 +3111,7 @@ window.startSharePointScanner = async function() {
                  id: Date.now() + Math.floor(Math.random()*1000),
                  supName: supName,
                  status: statusMap[secKey],
-                 date: new Date().toISOString().split('T')[0],
+                 date: new Date(file.lastModified || Date.now()).toISOString().split('T')[0],
                  amt: 0
               };
               newInv['file_' + secKey] = { path: link, name: file.name };
