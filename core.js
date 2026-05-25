@@ -616,6 +616,19 @@ function _applyYearData(o){
       }
     });
     window.INVOICES = Array.from(invMap.values()).concat(uniqueInvs);
+
+    // Auto-cancel invoices if "בוטל" is in the notes, date, or orderDesc
+    window.INVOICES.forEach(inv => {
+      if (inv.status !== 'cancelled') {
+        const notesStr = String(inv.notes || '').toLowerCase();
+        const dateStr = String(inv.date || '').toLowerCase();
+        const descStr = String(inv.orderDesc || '').toLowerCase();
+        if (['בוטל', 'מבוטל'].some(w => notesStr.includes(w) || dateStr.includes(w) || descStr.includes(w))) {
+          inv.status = 'cancelled';
+        }
+      }
+    });
+
     // ── Migrate invoices with double-VAT bug ──
     // Symptom: ordVatMode missing AND orderTotal ≈ orderAmt * (1 + vat/100)
     // Fix: set ordVatMode='inc', recalculate orderAmt (base) and orderTotal (= entered).

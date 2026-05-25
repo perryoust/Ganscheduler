@@ -2341,6 +2341,14 @@ window.importInvoices = function(input) {
         let status = 'order';
         if (item.num) status = 'tax_invoice';
         else if (item.txNum) status = 'tx_invoice';
+
+        const notesLower = String(item.notes || '').toLowerCase();
+        const dateLower = String(item.date || '').toLowerCase();
+        const descLower = String(item.orderDesc || '').toLowerCase();
+        if (['בוטל', 'מבוטל'].some(w => notesLower.includes(w) || dateLower.includes(w) || descLower.includes(w))) {
+          status = 'cancelled';
+        }
+        
         item.status = status;
 
         if (existingIdx !== -1) {
@@ -2911,7 +2919,10 @@ window.startSharePointScanner = async function() {
           const score = getSupplierScore(inv);
           if (score === 0) {
             if (isYear(numStr)) return;
-            if (numStr.length < 4 && !String(inv.num || '').startsWith(numStr) && numStr !== String(inv.num)) return;
+            const matchesNum = String(inv.num || '') === numStr || String(inv.num || '').startsWith(numStr);
+            const matchesTx = String(inv.txNum || '') === numStr || String(inv.txNum || '').startsWith(numStr);
+            const matchesOrder = String(inv.orderNum || '') === numStr || String(inv.orderNum || '').startsWith(numStr);
+            if (numStr.length < 4 && !matchesNum && !matchesTx && !matchesOrder) return;
           }
           
           if (inv.num && String(inv.num).trim() === numStr && canMatch('tax')) {
