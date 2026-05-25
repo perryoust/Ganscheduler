@@ -1175,8 +1175,12 @@
               סורק SharePoint (מקומי)</button>
             <button class="btn bs" onclick="window.clearScannerLinks()"
               title="מחיקת כל הקבצים ששודכו בטעות ואיפוס זיכרון הסורק (החשבוניות עצמן לא יימחקו)"
-              style="padding:4px 10px;font-size:.75rem;background:#ffebee;border:1px solid #ffcdd2;color:#c62828;margin-right:2px">🧹
+              style="padding:4px 10px;font-size:.75rem;background:#fff3e0;border:1px solid #ffcc80;color:#e65100;margin-right:2px">🧹
               איפוס חיבורי סורק</button>
+            <button class="btn bs" onclick="window.deleteAllInvoices()"
+              title="מחיקת כל נתוני הרכש והחשבוניות כדי להתחיל דף חדש ולייבא את הקובץ מחדש"
+              style="padding:4px 10px;font-size:.75rem;background:#ffebee;border:1px solid #ffcdd2;color:#c62828;margin-right:2px;font-weight:bold">🗑️
+              מחיקת הכל (דף חלק)</button>
             <input type="file" id="pi-import-input" accept=".xlsx, .xls" style="display:none"
               onchange="window.importInvoices(this)">
           </div>

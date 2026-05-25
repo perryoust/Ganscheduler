@@ -2419,6 +2419,17 @@ window.clearScannerLinks = function() {
   alert(`נותקו קבצים מ-${count} חשבוניות, וזיכרון מילות הסריקה אופס בהצלחה!`);
 };
 
+window.deleteAllInvoices = async function() {
+  const ans = await window.asyncConfirm('<b>⚠️ אזהרה חמורה!</b>\n\nהאם אתה בטוח שברצונך למחוק לחלוטין את כל נתוני הרכש והחשבוניות מהמערכת?\nפעולה זו תאפשר לך להתחיל דף חלק ולייבא את האקסל מחדש.\n\n• לחץ <b>אישור</b> כדי למחוק הכל.\n• לחץ <b>סיום ובדיקה</b> כדי לבטל.');
+  if (ans) {
+    window.INVOICES = [];
+    if (typeof window.save === 'function') await window.save(true);
+    if (typeof window.renderInvoices === 'function') window.renderInvoices();
+    if (typeof window.refreshPurchDash === 'function') window.refreshPurchDash();
+    alert('✅ כל החשבוניות נמחקו בהצלחה. המערכת מוכנה לייבוא מחדש.');
+  }
+};
+
 window.asyncPrompt = function(message, defaultText = '') {
   return new Promise((resolve) => {
     const dialog = document.createElement('dialog');
