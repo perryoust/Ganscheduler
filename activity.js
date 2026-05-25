@@ -836,8 +836,6 @@ window.openSP = function(id) {
         </div>
         ${spPair ? `<label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="rr-sync" style="width:14px;height:14px;accent-color:#1a237e" checked><span style="font-size:.75rem;font-weight:700;color:#1a237e">סנכרן עם גן בן-זוג באותם ימים ושעות</span></label>` : ''}
         <button class="btn bp" style="width:100%;padding:8px;font-weight:800;font-size:.85rem;margin-top:6px" onclick="window.saveReplaceRecur('${s.id}')">💾 שמור שינויים והחל סדרה קבועה</button>
-        ${s._recId ? `<button class="btn br" style="width:100%;padding:6px;font-weight:700;margin-top:4px;background:#fff;border:1px solid #ef9a9a;color:#c62828;font-size:.75rem" onclick="window.deleteRecurSeries('${s.id}')">🗑️ הסר פעילות קבועה מכאן והלאה</button>` : ''}
-        <button class="btn br" style="width:100%;padding:6px;font-weight:700;margin-top:4px;background:#fff;border:1px solid #ccc;color:#666;font-size:.75rem" onclick="window.deleteSingleActivity('${s.id}')">🗑️ מחק שיבוץ זה בלבד (הסרה מהלוח)</button>
       </div>
     </div>
   </div>`;
@@ -918,6 +916,13 @@ window.openSP = function(id) {
         ${window.getSpFreeDaysHtml(s.g)}
       </div>
     </div>
+  </div>`;
+
+  // --- STEP 10: Delete Button ---
+  const delBtnText = s._isMakeup ? '🗑️ מחק פעילות השלמה (והחזר מקורית)' : '🗑️ מחק פעילות זו מהלוח (לצמיתות)';
+  h += `<div style="margin-top:15px; text-align:center;">
+    ${s._recId ? `<button class="btn br" style="width:100%;padding:10px;font-weight:700;background:#fff;border:1px solid #ef9a9a;color:#c62828;font-size:.85rem;border-radius:8px;margin-bottom:8px" onclick="window.deleteRecurSeries('${s.id}')">🗑️ הסר סדרה קבועה מכאן והלאה</button>` : ''}
+    <button class="btn br" style="width:100%;padding:10px;font-weight:800;background:#ffebee;border:1px solid #ef9a9a;color:#c62828;font-size:.85rem;border-radius:8px" onclick="window.deleteSingleActivity('${s.id}')">${delBtnText}</button>
   </div>`;
 
   document.getElementById('sp-m-body').innerHTML = h;
@@ -1550,16 +1555,21 @@ function markCompQuick(id){
     // Sync with partners automatically if it's a pair/cluster (silent sync)
     const pair = window.gardenPair(s.g);
     const cluster = window.clusters ? Object.values(window.clusters).find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
-    if(pair || cluster){
-      const gids = new Set();
-      if(pair) pair.ids.forEach(i => gids.add(Number(i)));
-      if(cluster) cluster.gids.forEach(i => gids.add(Number(i)));
-      window.SCH.forEach(p => {
-        if(p.d===s.d && p.t===s.t && window.supBase(p.a)===window.supBase(s.a) && gids.has(Number(p.g))){
-          p._compByMakeup = stamp;
-        }
-      });
-    }
+    
+    const allPartnerIds = new Set();
+    if(pair) pair.ids.forEach(i => allPartnerIds.add(Number(i)));
+    if(cluster) cluster.gids.forEach(i => allPartnerIds.add(Number(i)));
+    allPartnerIds.delete(Number(s.g));
+
+    allPartnerIds.forEach(ogid => {
+      const partnerEv = typeof window.findPartnerActivity === 'function' 
+        ? window.findPartnerActivity(ogid, s.d, s.a)
+        : window.SCH.find(p => p.d === s.d && window.supBase(p.a) === window.supBase(s.a) && Number(p.g) === Number(ogid));
+        
+      if (partnerEv) {
+        partnerEv._compByMakeup = stamp;
+      }
+    });
 
     window.save();
     if(window.updCounts) window.updCounts();
