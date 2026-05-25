@@ -2485,9 +2485,15 @@ window.startSharePointScanner = async function() {
     // Filter out old files based on the oldest invoice in the system (with a 60-day buffer)
     let oldestDateStr = '2099-12-31';
     window.INVOICES.forEach(i => {
-      const d = i.orderDate || i.txDate || i.date;
-      if (d && d < oldestDateStr && d.length >= 4) oldestDateStr = d;
+      if (!i.file_tax && !i.file_tx && !i.file_order) {
+        const d = i.orderDate || i.txDate || i.date;
+        if (d && d < oldestDateStr && d.length >= 4) oldestDateStr = d;
+      }
     });
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const oneYearAgoStr = oneYearAgo.toISOString().split('T')[0];
+    if (oldestDateStr < oneYearAgoStr || oldestDateStr === '2099-12-31') oldestDateStr = oneYearAgoStr;
     if (oldestDateStr !== '2099-12-31') {
       const oldestTs = new Date(oldestDateStr).getTime() - (60 * 24 * 60 * 60 * 1000); // 60 days buffer
       const originalCount = filesFound.length;
@@ -2667,7 +2673,9 @@ window.startSharePointScanner = async function() {
         if (bestMatches.length > 1) {
           const uniqueSuppliers = new Set(bestMatches.map(m => window.supBase ? window.supBase(m.inv.supName) : m.inv.supName));
           
-          if (uniqueSuppliers.size > 1) {
+          if (maxScore === 0 && uniqueSuppliers.size > 2) {
+             bestMatches = []; // Too ambiguous and no text match in filename, fall through to manual prompt
+          } else if (uniqueSuppliers.size > 1) {
             const optionsText = bestMatches.map((m, idx) => `${idx + 1}. ${m.inv.supName} (מספר מזוהה: ${m.inv.num||m.inv.txNum||m.inv.orderNum})`).join('\n');
             const ans = prompt(`קובץ: ${file.name}\n\nהמערכת מצאה ${bestMatches.length} ספקים אפשריים (בעלי מספר חשבונית זהה). למי מהם לשייך את הקובץ?\n(הקלד את המספר ולחץ אישור, או ביטול כדי לדלג על קובץ זה)\n\n${optionsText}`);
             const selectedIdx = parseInt(ans, 10) - 1;
@@ -2764,11 +2772,21 @@ window.startSharePointScanner = async function() {
         }
 
         if (!handled && numbersInName.length > 0 && window._askUnmatched !== false) {
-           const ans = prompt(`לא נמצאה התאמה לקובץ:\n${file.name}\n\nאם זו חשבונית של ספק חדש, הקלד את שם הספק כדי ליצור לו חשבונית חדשה.\n\nהסבר אפשרויות דילוג:\n- לחץ על "ביטול" (או השאר ריק): כדי לדלג על הקובץ הנוכחי בלבד.\n- הקלד את המילה "דלג": כדי לדלג אוטומטית על *כל* שאר הקבצים החסרים בסריקה זו (Skip All).`);
+           const ans = prompt(`לא נמצאה התאמה לקובץ:\n${file.name}\n\nאם זו חשבונית של ספק (חדש או קיים), הקלד את שמו.\n\nאפשרויות דילוג:\n- "ביטול" או ריק: דילוג על קובץ זה.\n- המילה "דלג": דילוג אוטומטי על כל שאר הקבצים בסריקה זו.`);
            if (ans && ans.trim() === 'דלג') {
               window._askUnmatched = false;
            } else if (ans && ans.trim()) {
               const supName = ans.trim();
+              
+              // Ask user for a persistent alias to avoid asking next time
+              const aliasWord = prompt(`שייכת את הקובץ "${file.name}" לספק: ${supName}.\n\nכדי שהמערכת תזהה את הספק הזה אוטומטית בעתיד, הקלד מילת מפתח ייחודית מתוך שם הקובץ (לדוגמה: שם הספק כפי שהוא בקובץ).\nהשאר ריק אם אינך רוצה לשמור זיהוי.`);
+              if (aliasWord && aliasWord.trim().length > 1) {
+                 window.spScannerAliases = window.spScannerAliases || {};
+                 window.spScannerAliases[aliasWord.trim()] = supName;
+                 if (window.ghAutoSave) window.ghAutoSave(); // Save to database!
+                 window.showToast(`✅ המילה "${aliasWord.trim()}" נשמרה כזיהוי לספק ${supName}`);
+              }
+
               const secKey = primaryType || 'tax';
               const statusMap = { tax: 'tax_invoice', tx: 'tx_invoice', order: 'order' };
               const newInv = {
@@ -2786,11 +2804,11 @@ window.startSharePointScanner = async function() {
               if (window.supEx && !window.supEx[supName]) {
                  window.supEx[supName] = { isPurch: true, isAct: false };
               }
-              // Add to custom suppliers so it's immediately recognized for the next files
               if (!window.supEx['__c']) window.supEx['__c'] = [];
               if (!window.supEx['__c'].find(s => s.name === supName)) {
                  window.supEx['__c'].push({ id: Date.now(), name: supName, phone: '' });
               }
+
               window.INVOICES.push(newInv);
               matchCount++;
               resultsData.push([file.name, newInv.num, `נוצר ספק חדש: ${supName}`, link]);

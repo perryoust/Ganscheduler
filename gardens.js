@@ -1057,15 +1057,70 @@ function genExport(){
   const isAllNohap = rel.every(s => s.st === 'nohap' || (s.nt && /נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)));
   const isAllCan = rel.every(s => s.st === 'can');
 
+  const getRefDateStr = (relArr, currentExportDate) => {
+    for (let s of relArr) {
+      let refDate = s._postFrom || s._makeupFrom || null;
+      if (!refDate) {
+         const txt = (s.nt || '') + ' ' + (s.n || '');
+         const m1 = txt.match(/(\d{4})-(\d{2})-(\d{2})/);
+         if (m1) refDate = m1[0];
+         else {
+            const m2 = txt.match(/(\d{1,2})[./\-](\d{1,2})([./\-]\d{2,4})?/);
+            if(m2) {
+               const rawY = m2[3] ? m2[3].replace(/[./\-]/g, '') : '';
+               const y = rawY ? (rawY.length===2 ? '20'+rawY : rawY) : new Date(currentExportDate).getFullYear();
+               const m = m2[2].padStart(2, '0');
+               const d = m2[1].padStart(2, '0');
+               refDate = `${y}-${m}-${d}`;
+            }
+         }
+      }
+      if (refDate && refDate !== currentExportDate) {
+         try {
+           let rDateObj;
+           if(typeof window.s2d === 'function') rDateObj = window.s2d(refDate);
+           else {
+               const parts = refDate.split('-');
+               rDateObj = new Date(parts[0], parts[1]-1, parts[2]);
+           }
+           let cDateObj;
+           if(typeof window.s2d === 'function') cDateObj = window.s2d(currentExportDate);
+           else {
+               const parts = currentExportDate.split('-');
+               cDateObj = new Date(parts[0], parts[1]-1, parts[2]);
+           }
+           
+           if (isNaN(rDateObj)) continue;
+           
+           const dName = typeof window.dayN === 'function' ? window.dayN(refDate) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][rDateObj.getDay()];
+           
+           // Same week check (Sun to Sat week)
+           const wStart = (d) => { const x=new Date(d); x.setDate(x.getDate() - x.getDay()); return x.getTime(); };
+           const rW = wStart(rDateObj);
+           const cW = wStart(cDateObj);
+           
+           if (rW === cW) {
+              return `יום ${dName}`;
+           } else {
+              return `יום ${dName} ${rDateObj.getDate().toString().padStart(2,'0')}/${(rDateObj.getMonth()+1).toString().padStart(2,'0')}`;
+           }
+         } catch(e) {}
+      }
+    }
+    return '';
+  };
+
+  const refStr = getRefDateStr(rel, rel[0]?.d || from);
+
   let headerTitle = '';
   if (isAllPreponed) {
-    headerTitle = '*הקדמה*\n';
+    headerTitle = refStr ? `*הקדמה מ${refStr}*\n` : '*הקדמה*\n';
   } else if (isAllPostponed) {
-    headerTitle = '*דחייה*\n';
+    headerTitle = refStr ? `*דחייה מ${refStr}*\n` : '*דחייה*\n';
   } else if (isAllPreponedOut) {
-    headerTitle = '*לא מתקיים - הוקדם*\n';
+    headerTitle = refStr ? `*לא מתקיים - הוקדם ל${refStr}*\n` : '*לא מתקיים - הוקדם*\n';
   } else if (isAllMakeup) {
-    headerTitle = '*השלמה*\n';
+    headerTitle = refStr ? `*השלמה מ${refStr}*\n` : '*השלמה*\n';
   } else if (isAllNohap) {
     headerTitle = '*לא מתקיים*\n';
   } else if (isAllCan) {
@@ -1076,10 +1131,11 @@ function genExport(){
   const getRowTag = (s) => {
     const t = getEvType(s);
     if (isAllMakeup || isAllPreponed || isAllPostponed || isAllPreponedOut) return ''; // Already handled globally
-    if (t === 'preponed') return '*הקדמה* · ';
-    if (t === 'postponed') return '*דחייה* · ';
-    if (t === 'preponed_out') return '*הוקדם* · ';
-    if (t === 'makeup') return '*השלמה* · ';
+    const sRef = getRefDateStr([s], s.d);
+    if (t === 'preponed') return sRef ? `*הקדמה מ${sRef}* · ` : '*הקדמה* · ';
+    if (t === 'postponed') return sRef ? `*דחייה מ${sRef}* · ` : '*דחייה* · ';
+    if (t === 'preponed_out') return sRef ? `*הוקדם ל${sRef}* · ` : '*הוקדם* · ';
+    if (t === 'makeup') return sRef ? `*השלמה מ${sRef}* · ` : '*השלמה* · ';
     return '';
   };
 
