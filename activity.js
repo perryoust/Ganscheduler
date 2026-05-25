@@ -2270,6 +2270,14 @@ window.spSaveMakeup = function() {
   if(!confirm(`לבצע שיבוץ השלמה ל-${targets.length} גנים בתאריך ${window.fD(newDate)}?`)) return;
   
   targets.forEach(tgt => {
+    // Find the original activity for this specific target garden, or fallback to sid if not found
+    const targetOrigEv = window.SCH.find(x => 
+      Number(x.g) === Number(tgt.g) && 
+      x.d === origEv.d && 
+      window.supBase(x.a) === window.supBase(origEv.a)
+    );
+    const correctOrigId = targetOrigEv ? targetOrigEv.id : sid;
+
     window.createMakeupActivity({
       g: tgt.g,
       d: newDate,
@@ -2278,7 +2286,7 @@ window.spSaveMakeup = function() {
       act: actName,
       tp: origEv.tp || 'חוג',
       origD: origEv.d,
-      origId: sid
+      origId: correctOrigId
     });
   });
   

@@ -457,7 +457,7 @@ var CITY_COLORS=window.CITY_COLORS;
 function renderMakeupsTop(ds, cityFilter='', clsFilter='', collapseAll=false){
   const f={city:cityFilter, cls:clsFilter};
   const evs = (typeof filterE === 'function' ? filterE(f, ds, ds) : []).filter(s => {
-    return !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
+    return !!(s.st === 'can' || s.st === 'nohap' || s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
   });
   if(!evs.length) return '';
 
@@ -694,8 +694,8 @@ function renderClusterDay(evs, ds, clusterName){
   // Global Makeups at Top
   html += renderMakeupsTop(ds, calCity, calCls);
 
-  // Filter out makeups from the regular section to avoid duplication
-  const others = evs.filter(s => !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n))));
+  // Filter out makeups and cancellations from the regular section to avoid duplication
+  const others = evs.filter(s => !(s.st === 'can' || s.st === 'nohap' || s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n))));
 
   if (isAll) {
     const allCities=[...new Set(others.map(s=>window.G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
@@ -811,8 +811,8 @@ function renderClusterWeek(evs, weekStart, clusterName){
     // Global Makeups at Top
     html += renderMakeupsTop(ds, calCityW, calClsW, true);
     
-    // Filter out makeups from the regular section to avoid duplication
-    const dayEvs = evs.filter(s => s.d === ds && !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n))))
+    // Filter out makeups and cancellations from the regular section to avoid duplication
+    const dayEvs = evs.filter(s => s.d === ds && !(s.st === 'can' || s.st === 'nohap' || s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n))))
                     .sort((a,b) => (a.t||'99:99').localeCompare(b.t||'99:99'));
     const editBtn = (!isAll && clObj) ? `<button onclick="event.stopPropagation();window.openClusterBulkEdit('${clObj.id}','${ds}')" style="background: linear-gradient(135deg, #1565c0, #1e88e5); border:none; border-radius:4px; color:#fff; font-size:.7rem; font-weight:700; padding:3px 10px; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">✏️ עריכה מרוכזת</button>` : '';
     html+=`<div class="dsec" style="margin-bottom:10px">
