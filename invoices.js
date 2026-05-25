@@ -2751,9 +2751,15 @@ window.startSharePointScanner = async function() {
           if (file.name.includes(w)) foundTypes.add(tk.key);
         });
       });
-      // Fallback: if it has "חשבונית" but not "עסקה"
-      if (file.name.includes('חשבונית') && !file.name.includes('עסקה')) {
+      // Fallback: if it has "חשבונית" but not specifically "חשבונית עסקה"
+      if (file.name.includes('חשבונית') && !file.name.includes('חשבונית עסקה')) {
         foundTypes.add('tax');
+      }
+      
+      // If a file is a tax invoice, treat it strictly as a tax invoice, 
+      // even if it mentions the transaction invoice number in its name.
+      if (foundTypes.has('tax')) {
+        foundTypes.delete('tx');
       }
       
       const canMatch = (type) => foundTypes.size === 0 || foundTypes.has(type);
