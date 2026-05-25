@@ -1177,25 +1177,43 @@ function genExport(){
             const addrs=[...new Set(group.map(s=>s.gd.st||''))];
             const sameAddr=addrs.length===1&&addrs[0];
             
-            // Reorder: Supplier line first, then City line!
+            const isNohapFunc = (s) => s.st === 'can' || s.st === 'nohap' || (s.nt && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.n));
+            const allNohap = group.every(isNohapFunc);
+            
+            let blockTitle = '';
+            let skipInlineNohap = false;
+            let skipInlineMTag = false;
+            
+            if (allNohap && !isAllCan && !isAllNohap && !isAllPreponedOut) {
+              blockTitle = '*(לא התקיים)*\n';
+              skipInlineNohap = true;
+            } else {
+              const tags = group.map(s => getRowTag(s));
+              if (tags[0] && tags.every(t => t === tags[0])) {
+                blockTitle = `${tags[0].replace(' · ', '')}\n`;
+                skipInlineMTag = true;
+              }
+            }
+            
+            if (blockTitle) text += blockTitle;
             text+=`${supLine}\n📍 ${c}\n`;
             
             if(sameAddr){
               text+=`  📍 ${addrs[0]}\n`;
               group.forEach(s=>{ 
-                const mTag = getRowTag(s);
-                const isNohapRow = s.st === 'can' || s.st === 'nohap' || (s.nt && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.n));
+                const mTag = skipInlineMTag ? '' : getRowTag(s);
+                const isNohapRow = isNohapFunc(s);
                 const stIcon = isNohapRow ? '❌ ' : '🏫 ';
-                const statusTag = (isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
+                const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
                 text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`; 
               });
             } else {
               group.forEach(s=>{
-                const mTag = getRowTag(s);
-                const isNohapRow = s.st === 'can' || s.st === 'nohap' || (s.nt && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.n));
+                const mTag = skipInlineMTag ? '' : getRowTag(s);
+                const isNohapRow = isNohapFunc(s);
                 const stIcon = isNohapRow ? '❌ ' : '🏫 ';
                 const addr=s.gd.st?`📍 ${s.gd.st} · `:'';
-                const statusTag = (isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
+                const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
                 text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`;
               });
             }
@@ -1219,25 +1237,43 @@ function genExport(){
             const addrs=[...new Set(group.map(s=>s.gd.st||''))];
             const sameAddr=addrs.length===1&&addrs[0];
             
-            // Reorder: Supplier line first, then City line!
+            const isNohapFunc = (s) => s.st === 'can' || s.st === 'nohap' || (s.nt && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.n));
+            const allNohap = group.every(isNohapFunc);
+            
+            let blockTitle = '';
+            let skipInlineNohap = false;
+            let skipInlineMTag = false;
+            
+            if (allNohap && !isAllCan && !isAllNohap && !isAllPreponedOut) {
+              blockTitle = '*(לא התקיים)*\n';
+              skipInlineNohap = true;
+            } else {
+              const tags = group.map(s => getRowTag(s));
+              if (tags[0] && tags.every(t => t === tags[0])) {
+                blockTitle = `${tags[0].replace(' · ', '')}\n`;
+                skipInlineMTag = true;
+              }
+            }
+            
+            if (blockTitle) text += blockTitle;
             text+=`${supLine}\n📍 ${c}\n`;
             
             if(sameAddr){
               text+=`  📍 ${addrs[0]}\n`;
               group.forEach(s=>{ 
-                const mTag = getRowTag(s);
-                const isNohapRow = s.st === 'can' || s.st === 'nohap' || (s.nt && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.n));
+                const mTag = skipInlineMTag ? '' : getRowTag(s);
+                const isNohapRow = isNohapFunc(s);
                 const stIcon = isNohapRow ? '❌ ' : '🏫 ';
-                const statusTag = (isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
+                const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
                 text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`; 
               });
             } else {
               group.forEach(s=>{
-                const mTag = getRowTag(s);
-                const isNohapRow = s.st === 'can' || s.st === 'nohap' || (s.nt && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.n));
+                const mTag = skipInlineMTag ? '' : getRowTag(s);
+                const isNohapRow = isNohapFunc(s);
                 const stIcon = isNohapRow ? '❌ ' : '🏫 ';
                 const addr=s.gd.st?`📍 ${s.gd.st} · `:'';
-                const statusTag = (isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
+                const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
                 text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`;
               });
             }
