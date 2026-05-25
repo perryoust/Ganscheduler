@@ -207,8 +207,13 @@
             </p>
             <button class="btn bs" onclick="window.clearScannerLinks()"
               title="מחיקת כל הקבצים ששודכו בטעות ואיפוס זיכרון הסורק (החשבוניות עצמן לא יימחקו)"
-              style="padding:6px 12px;font-size:.8rem;background:#fff;border:1px solid #ff9800;color:#e65100;margin-bottom:16px;display:block">🧹
+              style="padding:6px 12px;font-size:.8rem;background:#fff;border:1px solid #ff9800;color:#e65100;margin-bottom:8px;display:block">🧹
               איפוס חיבורי סורק SharePoint</button>
+              
+            <button class="btn bs" onclick="if(confirm('למחוק את הקישורים שנשמרו לתיקיות השונות?')) { window.spScannerFolderLinks = {}; window.ghAutoSave(); window.showToast('הקישורים נמחקו בהצלחה'); }"
+              title="מחיקת הקישורים (URL) שנשמרו לתיקיות המקומיות כדי להזין קישורים חדשים בסריקה הבאה"
+              style="padding:6px 12px;font-size:.8rem;background:#fff;border:1px solid #ffb74d;color:#f57c00;margin-bottom:16px;display:block">🔗
+              איפוס קישורי התיקיות השמורים</button>
               
             <p style="font-size:0.8rem;color:#b71c1c;margin-top:0;margin-bottom:12px;line-height:1.4;border-top:1px solid #ffcc80;padding-top:12px">
               <b>מחיקת כל נתוני הרכש (דף חלק):</b> ⚠️ פעולה בלתי הפיכה! מוחקת לחלוטין את כל החשבוניות, הספקים וההזמנות ממערכת הרכש. השתמש בזה רק אם אתה רוצה להתחיל מאפס ולייבא קובץ אקסל רכש מחדש.
