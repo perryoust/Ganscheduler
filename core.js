@@ -827,7 +827,7 @@ async function save(immediate){
         const snaps=JSON.parse(_safeLS.getItem('ganv5_snaps')||'[]');
         const d=_json;
         snaps.unshift({ts:Date.now(),label:'אוטומטי',size:d.length,data:d});
-        if(snaps.length>20) snaps.length=20;
+        if(snaps.length>5) snaps.length=5;
         _safeLS.setItem('ganv5_snaps',JSON.stringify(snaps));
       }catch(e2){}
     }

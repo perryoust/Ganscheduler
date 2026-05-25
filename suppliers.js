@@ -158,13 +158,25 @@ function getSupActs(name){
   const fromSch=new Set();
 
   // 1. From SCH entries (always scan — never skip)
-  window.SCH.forEach(s=>{ if(window.supBase(s.a)===base){const a=window.supAct(s.a);if(a)fromSch.add(a);} });
+  window.SCH.forEach(s=>{ 
+    if(window.supBase(s.a)===base){
+      const a=window.supAct(s.a);
+      if(a)fromSch.add(a);
+      if(s.act)fromSch.add(s.act);
+    } 
+  });
   // 2. From SUPBASE (current base)
   window.SUPBASE.forEach(s=>{ if(window.supBase(s.name)===base){const a=window.supAct(s.name);if(a)fromSch.add(a);} });
   // 3. From merged-from history (_mergedFrom stores old bases that were merged into this one)
   const mergedFromBases = ex._mergedFrom||[];
   mergedFromBases.forEach(oldBase=>{
-    SCH.forEach(s=>{ if(supBase(s.a)===oldBase){const a=supAct(s.a);if(a)fromSch.add(a);} });
+    SCH.forEach(s=>{ 
+      if(supBase(s.a)===oldBase){
+        const a=supAct(s.a);
+        if(a)fromSch.add(a);
+        if(s.act)fromSch.add(s.act);
+      } 
+    });
     SUPBASE.forEach(s=>{ if(supBase(s.name)===oldBase){const a=supAct(s.name);if(a)fromSch.add(a);} });
   });
   const hidden = new Set(ex.hiddenActs || []);
@@ -273,7 +285,13 @@ function repairAllSuppliers(){
     const base = window.supBase(k)||k;
     // Derive what SCH actually has for this supplier
     const schActs = new Set();
-    window.SCH.forEach(s=>{ if(window.supBase(s.a)===base){const a=window.supAct(s.a);if(a)schActs.add(a);} });
+    window.SCH.forEach(s=>{ 
+      if(window.supBase(s.a)===base){
+        const a=window.supAct(s.a);
+        if(a)schActs.add(a);
+        if(s.act)schActs.add(s.act);
+      } 
+    });
     window.SUPBASE.forEach(s=>{ if(window.supBase(s.name)===base){const a=window.supAct(s.name);if(a)schActs.add(a);} });
     const savedActs = new Set(window.supEx[k].acts);
     // If SCH has acts that the saved array is missing → clear saved array so it auto-derives fully
