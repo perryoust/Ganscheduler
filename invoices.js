@@ -2419,6 +2419,134 @@ window.clearScannerLinks = function() {
   alert(`נותקו קבצים מ-${count} חשבוניות, וזיכרון מילות הסריקה אופס בהצלחה!`);
 };
 
+window.asyncPrompt = function(message, defaultText = '') {
+  return new Promise((resolve) => {
+    const dialog = document.createElement('dialog');
+    dialog.style.padding = '20px';
+    dialog.style.borderRadius = '8px';
+    dialog.style.border = '1px solid #ccc';
+    dialog.style.fontFamily = 'system-ui, sans-serif';
+    dialog.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    dialog.style.direction = 'rtl';
+    dialog.style.maxWidth = '450px';
+    dialog.style.zIndex = '9999';
+
+    const p = document.createElement('p');
+    p.innerHTML = message.replace(/\n/g, '<br>');
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = defaultText;
+    input.style.width = '100%';
+    input.style.padding = '8px';
+    input.style.marginTop = '10px';
+    input.style.marginBottom = '20px';
+    input.style.boxSizing = 'border-box';
+    
+    const btnContainer = document.createElement('div');
+    btnContainer.style.display = 'flex';
+    btnContainer.style.gap = '10px';
+    
+    const okBtn = document.createElement('button');
+    okBtn.innerText = 'אישור';
+    okBtn.style.padding = '6px 16px';
+    okBtn.style.background = '#e3f2fd';
+    okBtn.style.border = '1px solid #90caf9';
+    okBtn.style.color = '#0d47a1';
+    okBtn.style.borderRadius = '4px';
+    okBtn.style.cursor = 'pointer';
+    okBtn.onclick = () => {
+      resolve(input.value);
+      dialog.close();
+      dialog.remove();
+    };
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.innerText = 'ביטול';
+    cancelBtn.style.padding = '6px 16px';
+    cancelBtn.style.background = '#f5f5f5';
+    cancelBtn.style.border = '1px solid #ccc';
+    cancelBtn.style.color = '#333';
+    cancelBtn.style.borderRadius = '4px';
+    cancelBtn.style.cursor = 'pointer';
+    cancelBtn.onclick = () => {
+      resolve(null);
+      dialog.close();
+      dialog.remove();
+    };
+    
+    btnContainer.appendChild(okBtn);
+    btnContainer.appendChild(cancelBtn);
+    
+    dialog.appendChild(p);
+    dialog.appendChild(input);
+    dialog.appendChild(btnContainer);
+    
+    document.body.appendChild(dialog);
+    dialog.showModal();
+    input.focus();
+  });
+};
+
+window.asyncConfirm = function(message) {
+  return new Promise((resolve) => {
+    const dialog = document.createElement('dialog');
+    dialog.style.padding = '20px';
+    dialog.style.borderRadius = '8px';
+    dialog.style.border = '1px solid #ccc';
+    dialog.style.fontFamily = 'system-ui, sans-serif';
+    dialog.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    dialog.style.direction = 'rtl';
+    dialog.style.maxWidth = '450px';
+    dialog.style.zIndex = '9999';
+
+    const p = document.createElement('p');
+    p.innerHTML = message.replace(/\n/g, '<br>');
+    
+    const btnContainer = document.createElement('div');
+    btnContainer.style.display = 'flex';
+    btnContainer.style.gap = '10px';
+    btnContainer.style.marginTop = '20px';
+    
+    const okBtn = document.createElement('button');
+    okBtn.innerText = 'אישור (OK)';
+    okBtn.style.padding = '6px 16px';
+    okBtn.style.background = '#e3f2fd';
+    okBtn.style.border = '1px solid #90caf9';
+    okBtn.style.color = '#0d47a1';
+    okBtn.style.borderRadius = '4px';
+    okBtn.style.cursor = 'pointer';
+    okBtn.onclick = () => {
+      resolve(true);
+      dialog.close();
+      dialog.remove();
+    };
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.innerText = 'סיום ובדיקה (Cancel)';
+    cancelBtn.style.padding = '6px 16px';
+    cancelBtn.style.background = '#ffebee';
+    cancelBtn.style.border = '1px solid #ffcdd2';
+    cancelBtn.style.color = '#c62828';
+    cancelBtn.style.borderRadius = '4px';
+    cancelBtn.style.cursor = 'pointer';
+    cancelBtn.onclick = () => {
+      resolve(false);
+      dialog.close();
+      dialog.remove();
+    };
+    
+    btnContainer.appendChild(okBtn);
+    btnContainer.appendChild(cancelBtn);
+    
+    dialog.appendChild(p);
+    dialog.appendChild(btnContainer);
+    
+    document.body.appendChild(dialog);
+    dialog.showModal();
+  });
+};
+
 // ── SharePoint Local Scanner ─────────────────────────────
 window.startSharePointScanner = async function() {
   if (!window.showDirectoryPicker) {
@@ -2429,11 +2557,12 @@ window.startSharePointScanner = async function() {
     const selectedFolders = [];
     while (true) {
       const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
-      const baseUrl = prompt('בחרת תיקייה בהצלחה!\n\nכעת, הדבק כאן את קישור האינטרנט של התיקייה הזו ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/...)');
+      const baseUrl = await window.asyncPrompt('<b>בחרת תיקייה בהצלחה!</b>\n\nכעת, הדבק כאן את קישור האינטרנט של התיקייה הזו ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/...)');
       if (baseUrl) {
         selectedFolders.push({ dirHandle, baseUrl });
       }
-      if (!confirm('האם תרצה להוסיף תיקייה נוספת לסריקה זו?\n\n• לחץ "אישור" (OK) כדי לבחור תיקייה נוספת.\n• לחץ "ביטול" (Cancel) כדי לסיים את בחירת התיקיות ולהתחיל בסריקה.')) {
+      const wantMore = await window.asyncConfirm('<b>האם תרצה להוסיף תיקייה נוספת לסריקה זו?</b>\n\n• לחץ <b>אישור</b> כדי לבחור תיקייה נוספת.\n• לחץ <b>סיום ובדיקה</b> כדי לסיים את בחירת התיקיות ולהתחיל בסריקה.');
+      if (!wantMore) {
         break;
       }
     }
