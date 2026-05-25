@@ -2566,6 +2566,55 @@ window.asyncConfirm = function(message) {
   });
 };
 
+// ── SharePoint URL Parser ─────────────────────────────
+window.parseSharePointBaseUrl = (url) => {
+  let u = url.trim();
+  
+  // If it's a local path (e.g. C:\Users\... or contains backslashes)
+  if (!/^https?:\/\//i.test(u)) {
+    // Normalize backslashes to forward slashes
+    u = u.replace(/\\/g, '/');
+    
+    // Check if it contains the SharePoint library folder
+    const libIndex = u.indexOf('צהרונים - מסמכים');
+    if (libIndex !== -1) {
+      const relativePath = u.substring(libIndex);
+      return 'https://tomashin1.sharepoint.com/sites/zaharonim/' + relativePath.replace(/\/+$/, '');
+    }
+    
+    // Fallback for any other local path synced via SharePoint tenant
+    const tomshinIndex = u.indexOf('רשת תיכוני טומשין בע מ');
+    if (tomshinIndex !== -1) {
+      const rest = u.substring(tomshinIndex).replace(/^[^/]+\//, '');
+      return 'https://tomashin1.sharepoint.com/sites/zaharonim/' + rest.replace(/\/+$/, '');
+    }
+    
+    return u.replace(/\/+$/, '');
+  }
+
+  try {
+    const urlObj = new URL(u);
+    const origin = urlObj.origin;
+    
+    // 1. If user copied browser address bar URL (e.g. contains AllItems.aspx?id=...)
+    const idParam = urlObj.searchParams.get('id');
+    if (idParam) {
+      const decodedId = decodeURIComponent(idParam);
+      return origin + decodedId.replace(/\/+$/, '');
+    }
+    
+    // 2. Otherwise, clean standard pathname
+    let cleanPath = urlObj.pathname;
+    
+    // 3. Remove SharePoint folder/file viewer path decorators like /:f:/r or /:b:/s etc.
+    cleanPath = cleanPath.replace(/\/:[a-z]:\/[a-z0-9]/i, '');
+    
+    return origin + cleanPath.replace(/\/+$/, '');
+  } catch (e) {
+    return u.replace(/\?.*$/, '').replace(/\/+$/, '');
+  }
+};
+
 // ── SharePoint Local Scanner Admin UI ─────────────────────────────
 window.renderAdminSpLinks = function() {
   const container = document.getElementById('admin-sp-links-list');
@@ -2587,13 +2636,19 @@ window.renderAdminSpLinks = function() {
   
   let html = '';
   keys.forEach(k => {
+    const val = links[k];
+    const isObj = typeof val === 'object' && val !== null;
+    const local = isObj ? val.local : '';
+    const sp = isObj ? val.sp : val;
+
     html += `
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ffe0b2; padding:4px 0;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid #ffe0b2; padding:8px 0;">
         <div style="flex:1; overflow:hidden;">
-          <strong style="color:#d84315">${k}</strong><br>
-          <a href="${links[k]}" target="_blank" style="color:#1e88e5; text-decoration:none; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; display:block; direction:ltr; text-align:left;">${links[k]}</a>
+          <strong style="color:#d84315">${k}</strong>
+          ${local ? `<div style="font-size:0.75rem; color:#616161; margin-top:4px;"><b>מקומי:</b> <span dir="ltr">${local}</span></div>` : ''}
+          <div style="font-size:0.75rem; color:#1e88e5; margin-top:2px;"><b>SharePoint:</b> <a href="${sp}" target="_blank" style="color:#1e88e5; text-decoration:none; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; display:inline-block; max-width:80%; vertical-align:bottom;" dir="ltr">${sp}</a></div>
         </div>
-        <button class="btn bs bsm" onclick="window.removeSpLink('${k}')" style="background:none; color:#e53935; border:none; padding:4px; font-size:1.1rem;" title="מחק">🗑️</button>
+        <button class="btn bs bsm" onclick="window.removeSpLink('${k}')" style="background:none; color:#e53935; border:none; padding:4px; font-size:1.1rem; margin-top:8px" title="מחק">🗑️</button>
       </div>
     `;
   });
@@ -2604,11 +2659,28 @@ window.addNewSpLink = async function() {
   const folderName = await window.asyncPrompt('<b>שם התיקייה המקומית במחשב שלך:</b>\n(לדוגמה: רכש או חוגים)');
   if (!folderName) return;
   
-  const spLink = await window.asyncPrompt(`<b>קישור SharePoint לתיקייה "${folderName}":</b>\nהדבק את הקישור המלא כאן`);
+  const localLink = await window.asyncPrompt(`<b>נתיב מקומי לתיקייה "${folderName}":</b>\nהדבק את הקישור במחשב (מתחיל לרוב ב- C:\\)`);
+  if (!localLink) return;
+
+  let defaultSpLink = window.parseSharePointBaseUrl(localLink);
+  let promptText = `<b>קישור SharePoint חיצוני לתיקייה "${folderName}":</b>\nהמערכת ייצרה קישור אוטומטי. תוכל לאשר או להדביק קישור אחר (מתחיל ב- https://):`;
+  
+  if (!defaultSpLink.startsWith('http')) {
+     defaultSpLink = '';
+     promptText = `<b>קישור SharePoint חיצוני לתיקייה "${folderName}":</b>\nלא הצלחתי לייצר קישור אוטומטי. אנא הדבק את הקישור המלא שמתחיל ב- https://`;
+  }
+  
+  let spLink = await window.asyncPrompt(promptText, defaultSpLink);
   if (!spLink) return;
   
+  // Auto-convert if they pasted a local path again by mistake
+  spLink = window.parseSharePointBaseUrl(spLink);
+  
   window.spScannerFolderLinks = window.spScannerFolderLinks || {};
-  window.spScannerFolderLinks[folderName.trim()] = spLink.trim();
+  window.spScannerFolderLinks[folderName.trim()] = {
+    local: localLink.trim(),
+    sp: spLink.trim()
+  };
   localStorage.setItem('spScannerFolderLinks', JSON.stringify(window.spScannerFolderLinks));
   if (typeof window.ghAutoSave === 'function') window.ghAutoSave(true);
   
@@ -2652,6 +2724,11 @@ window.startSharePointScanner = async function() {
         } catch(e){}
       }
       
+      // If baseUrl is an object (new format), extract the SP link
+      if (typeof baseUrl === 'object' && baseUrl !== null) {
+        baseUrl = baseUrl.sp;
+      }
+      
       if (!baseUrl) {
         baseUrl = await window.asyncPrompt('<b>בחרת תיקייה בהצלחה!</b>\n\nכעת, הדבק כאן את קישור האינטרנט של התיקייה הזו ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/...)');
         if (baseUrl) {
@@ -2671,54 +2748,7 @@ window.startSharePointScanner = async function() {
     }
     if (selectedFolders.length === 0) return;
 
-    // Parse SharePoint URL to extract direct web directory path
-    const parseSharePointBaseUrl = (url) => {
-      let u = url.trim();
-      
-      // If it's a local path (e.g. C:\Users\... or contains backslashes)
-      if (!/^https?:\/\//i.test(u)) {
-        // Normalize backslashes to forward slashes
-        u = u.replace(/\\/g, '/');
-        
-        // Check if it contains the SharePoint library folder
-        const libIndex = u.indexOf('צהרונים - מסמכים');
-        if (libIndex !== -1) {
-          const relativePath = u.substring(libIndex);
-          return 'https://tomashin1.sharepoint.com/sites/zaharonim/' + relativePath.replace(/\/+$/, '');
-        }
-        
-        // Fallback for any other local path synced via SharePoint tenant
-        const tomshinIndex = u.indexOf('רשת תיכוני טומשין בע מ');
-        if (tomshinIndex !== -1) {
-          const rest = u.substring(tomshinIndex).replace(/^[^/]+\//, '');
-          return 'https://tomashin1.sharepoint.com/sites/zaharonim/' + rest.replace(/\/+$/, '');
-        }
-        
-        return u.replace(/\/+$/, '');
-      }
-
-      try {
-        const urlObj = new URL(u);
-        const origin = urlObj.origin;
-        
-        // 1. If user copied browser address bar URL (e.g. contains AllItems.aspx?id=...)
-        const idParam = urlObj.searchParams.get('id');
-        if (idParam) {
-          const decodedId = decodeURIComponent(idParam);
-          return origin + decodedId.replace(/\/+$/, '');
-        }
-        
-        // 2. Otherwise, clean standard pathname
-        let cleanPath = urlObj.pathname;
-        
-        // 3. Remove SharePoint folder/file viewer path decorators like /:f:/r or /:b:/s etc.
-        cleanPath = cleanPath.replace(/\/:[a-z]:\/[a-z0-9]/i, '');
-        
-        return origin + cleanPath.replace(/\/+$/, '');
-      } catch (e) {
-        return u.replace(/\?.*$/, '').replace(/\/+$/, '');
-      }
-    };
+    const parseSharePointBaseUrl = window.parseSharePointBaseUrl;
     
     window.showToast('⏳ סורק קבצים במחשב... נא להמתין', 60000);
     const filesFound = [];
