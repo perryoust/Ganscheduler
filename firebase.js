@@ -171,7 +171,8 @@ async function saveToFirebase(silent = false, force = false) {
       vatRate: window.VAT_RATE || 18,
       activeGardens: window.activeGardens ? [...window.activeGardens] : null,
       useSraws: typeof window.useSraws !== 'undefined' ? window.useSraws : true,
-      spScannerAliases: window.spScannerAliases || {}
+      spScannerAliases: window.spScannerAliases || {},
+      spScannerFolderLinks: window.spScannerFolderLinks || {}
     };
 
     // Increment Sequence
@@ -262,6 +263,10 @@ async function loadFromFirebase(silent = false, force = false) {
     cloud.data.invoices = cloudInvs;
 
     window._fbAppData = cloud.data;
+    
+    // Restore scanner metadata
+    window.spScannerAliases = cloud.data.spScannerAliases || {};
+    window.spScannerFolderLinks = cloud.data.spScannerFolderLinks || {};
 
     if (window._applyYearData) {
       window._applyYearData(cloud.data);
