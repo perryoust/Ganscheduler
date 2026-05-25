@@ -2980,6 +2980,43 @@ window.startSharePointScanner = async function() {
         });
       }
 
+      // 2.5. Petty Cash (קופה קטנה) specific matching based on Month/Year
+      // If the file is a petty cash document, link it to all petty cash rows for that supplier in the same month
+      if (file.name.includes('קופה קטנה')) {
+        const fileDate = new Date(file.lastModified || Date.now());
+        const hebMonths = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+        let targetMonth = fileDate.getMonth();
+        let targetYear = fileDate.getFullYear();
+        
+        // If file name has a Hebrew month, use it instead of the file date
+        const matchHeb = file.name.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\s*(\d{4})/);
+        if (matchHeb) {
+          targetMonth = hebMonths.indexOf(matchHeb[1]);
+          targetYear = parseInt(matchHeb[2]);
+        } else {
+          // Alternative: check if there's a standalone year in the file name
+          const yearMatch = file.name.match(/\b(202\d)\b/);
+          if (yearMatch) targetYear = parseInt(yearMatch[1]);
+        }
+
+        window.INVOICES.forEach(inv => {
+          // Must be a petty cash row
+          if (inv.orderNum === 'קופה קטנה' || String(inv.notes||'').includes('קופה קטנה') || String(inv.txNum||'').includes('קופה קטנה')) {
+            const score = getSupplierScore(inv);
+            if (score > 0) { // Supplier must match!
+              if (inv.date) {
+                const invDate = new Date(inv.date);
+                if (invDate.getMonth() === targetMonth && invDate.getFullYear() === targetYear) {
+                  // Attach as a tax invoice (since user specified it acts as a tax invoice for the site)
+                  matchedInfos.push({ inv, sec: 'tax', score: score + 10 }); // +10 to ensure it beats any fuzzy match
+                  fileMatched = true;
+                }
+              }
+            }
+          }
+        });
+      }
+
       if (fileMatched && matchedInfos.length > 0) {
         // Filter by highest supplier match score to avoid false positives with same invoice numbers
         const maxScore = Math.max(...matchedInfos.map(m => m.score));
@@ -3062,6 +3099,16 @@ window.startSharePointScanner = async function() {
                }
                if (baseName !== supName && baseName.length >= 3 && file.name.includes(baseName)) {
                  matchedSupName = supName; break;
+               }
+               
+               // Fuzzy heuristic: If the first two words of the base name match, it's very likely the same supplier
+               // (e.g. "חכמת התנועה לקידום החינוך" vs "חכמת התנועה")
+               const words = baseName.split(/\s+/);
+               if (words.length >= 2) {
+                 const firstTwoWords = words[0] + ' ' + words[1];
+                 if (firstTwoWords.length >= 5 && file.name.includes(firstTwoWords)) {
+                   matchedSupName = supName; break;
+                 }
                }
              }
            }
