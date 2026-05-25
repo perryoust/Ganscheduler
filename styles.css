@@ -503,7 +503,7 @@ tr:hover td{background:#f5f7ff}
 .md{background:#fff;min-height:60px;padding:4px;cursor:pointer}
 .md:hover{background:#f5f7ff}
 .md.om{background:#fafafa;opacity:.4}
-.md.tdy{background:#fffde7;border:2px solid #f9a825}
+.md.tdy{background:#f0f4ff;border:2px solid #2962ff;box-shadow:inset 0 0 5px rgba(41,98,255,0.1)}
 .md.hev{border-top:3px solid #1565c0}
 .dnum{font-size:.72rem;font-weight:700;color:#546e7a}
 .mcnt{font-size:.65rem;color:#1565c0;font-weight:600}
