@@ -3042,12 +3042,12 @@ window.startSharePointScanner = async function() {
         
         // Auto-match if filename contains a known supplier name or alias
         if (numbersInName.length > 0) {
-           const activeSups = (typeof getAllSupNames === 'function' ? getAllSupNames() : []).filter(name => isPurchSupplier(name));
+           const activeSups = (typeof getAllSupNames === 'function' ? getAllSupNames() : []);
            const aliasesMap = window.spScannerAliases || {};
            let matchedSupName = null;
            
            for (const [aliasWord, supName] of Object.entries(aliasesMap)) {
-             if (file.name.includes(aliasWord) && isPurchSupplier(supName)) {
+             if (file.name.includes(aliasWord)) {
                matchedSupName = supName; break;
              }
            }
