@@ -197,6 +197,12 @@ function openInfoModal(){
     `<div>נתונים שמורים: <b>${kb} KB</b> / ~5,000 KB אחסון מקסימלי</div>
      <div>גנים: ${GARDENS.length} | פעילויות: ${SCH.length.toLocaleString()} | זוגות: ${pairs.length}</div>
      <div>אשכולות: ${Object.keys(clusters||{}).length} | ספקים: ${getAllSup().length}</div>`;
+  
+  const sEl = document.getElementById('info-fb-save');
+  if (sEl) sEl.textContent = window._fbLastSaveTs ? new Date(window._fbLastSaveTs).toLocaleTimeString('he-IL') : '—';
+  const lEl = document.getElementById('info-fb-load');
+  if (lEl) lEl.textContent = window._fbLastLoadTs ? new Date(window._fbLastLoadTs).toLocaleTimeString('he-IL') : '—';
+
   document.getElementById('infom').classList.add('open');
 }
 function exportFullBackup(){

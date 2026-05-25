@@ -14,12 +14,23 @@ window._fbSyncReady = false;
 window._importInProgress = false; // Global flag: blocks polling during import
 
 // ── State Update ─────────────────────────────
-function _setSyncState(seq, ts, error = null) {
+function _setSyncState(seq, ts, error = null, isLoad = false) {
   if (seq) {
     _localSeq = seq;
     window._safeLS.setItem('_fbSeq', String(seq));
   }
-  if (ts) _lastSyncTs = ts;
+  if (ts) {
+    _lastSyncTs = ts;
+    if (isLoad) {
+      window._fbLastLoadTs = ts;
+      const el = document.getElementById('info-fb-load');
+      if (el) el.textContent = new Date(ts).toLocaleTimeString('he-IL');
+    } else {
+      window._fbLastSaveTs = ts;
+      const el = document.getElementById('info-fb-save');
+      if (el) el.textContent = new Date(ts).toLocaleTimeString('he-IL');
+    }
+  }
   _fbLastError = error;
   _fbUpdateStatus();
 }
@@ -186,11 +197,11 @@ async function saveToFirebase(silent = false, force = false) {
       console.log('[Sync] Invoices saved:', window.INVOICES.length);
     }
 
-    _setSyncState(newSeq, Date.now());
+    _setSyncState(newSeq, Date.now(), null, false);
     console.log('[Sync] Saved v' + newSeq + ' (' + (liveData.ch?.length || 0) + ' records)');
     return true;
   } catch(e) {
-    _setSyncState(null, null, e.message);
+    _setSyncState(null, null, e.message, false);
     console.error('[Sync] Save failed:', e.message);
     return false;
   } finally {
@@ -221,7 +232,7 @@ async function loadFromFirebase(silent = false, force = false) {
     if (!cloud || !cloud.seq) return true;
 
     if (!force && cloud.seq <= _localSeq && window._fbSyncReady) {
-      _setSyncState(cloud.seq, Date.now());
+      _setSyncState(cloud.seq, Date.now(), null, true);
       return true;
     }
 
@@ -256,11 +267,11 @@ async function loadFromFirebase(silent = false, force = false) {
       window._applyYearData(cloud.data);
     }
     
-    _setSyncState(cloud.seq, Date.now());
+    _setSyncState(cloud.seq, Date.now(), null, true);
     window._fbSyncReady = true;
     return true;
   } catch(e) {
-    _setSyncState(null, null, e.message);
+    _setSyncState(null, null, e.message, true);
     return false;
   } finally {
     _fbSyncing = false;
