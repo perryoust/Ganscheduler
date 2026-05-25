@@ -400,6 +400,41 @@ window.spBatchStatus = function(st) {
   ids.forEach(id => window.setStatus(id, st));
 };
 
+window.spBatchDelete = function() {
+  const ids = window.spGetSelectedIds();
+  if(!ids.length) { alert('יש לסמן לפחות גן אחד למחיקה'); return; }
+  
+  const restoreMsg = window.SCH.some(x => ids.includes(String(x.id)) && x._isMakeup) ? '\n(פעילויות השלמה מסומנות יוחזרו למקוריות שלא התקיימו)' : '';
+  
+  if(!confirm(`האם למחוק ${ids.length > 1 ? ids.length + ' שיבוצים מסומנים' : 'את השיבוץ המסומן'} מהלוח לצמיתות?` + restoreMsg)) return;
+  
+  if (!window.supEx) window.supEx = {};
+  if (!window.supEx['__deleted_sraws_ids']) window.supEx['__deleted_sraws_ids'] = [];
+  
+  ids.forEach(id => {
+    const s = window.SCH.find(x => x.id == id);
+    if(!s) return;
+    
+    // Check for makeup restoration
+    const origEvs = s._isMakeup ? window.SCH.filter(orig => String(orig._compByMakeup) === String(s.id)) : [];
+    if (origEvs.length > 0) {
+      origEvs.forEach(orig => {
+        orig._compByMakeup = '';
+      });
+    }
+    
+    const isSraws = !String(s.id).startsWith('e_');
+    if (isSraws && !window.supEx['__deleted_sraws_ids'].includes(s.id)) {
+      window.supEx['__deleted_sraws_ids'].push(s.id);
+    }
+    
+    const i = window.SCH.indexOf(s);
+    if(i >= 0) window.SCH.splice(i, 1);
+  });
+  
+  window.saveAndRefresh('sp');
+};
+
 window.spBatchQSetSt = function(st) {
   const ids = window.spGetSelectedIds();
   if(ids.length) window.qSetSt(ids[0], st); 
@@ -419,6 +454,9 @@ window.spBatchAction = function(val) {
       break;
     case 'nohap': 
       window.qSetSt(ids[0], 'nohap'); 
+      break;
+    case 'delete':
+      window.spBatchDelete();
       break;
     default:
       // Standard statuses (done, ok, can)
@@ -922,7 +960,7 @@ window.openSP = function(id) {
   const delBtnText = s._isMakeup ? '🗑️ מחק פעילות השלמה (והחזר מקורית)' : '🗑️ מחק פעילות זו מהלוח (לצמיתות)';
   h += `<div style="margin-top:15px; text-align:center;">
     ${s._recId ? `<button class="btn br" style="width:100%;padding:10px;font-weight:700;background:#fff;border:1px solid #ef9a9a;color:#c62828;font-size:.85rem;border-radius:8px;margin-bottom:8px" onclick="window.deleteRecurSeries('${s.id}')">🗑️ הסר סדרה קבועה מכאן והלאה</button>` : ''}
-    <button class="btn br" style="width:100%;padding:10px;font-weight:800;background:#ffebee;border:1px solid #ef9a9a;color:#c62828;font-size:.85rem;border-radius:8px" onclick="window.deleteSingleActivity('${s.id}')">${delBtnText}</button>
+    <button class="btn br" style="width:100%;padding:10px;font-weight:800;background:#ffebee;border:1px solid #ef9a9a;color:#c62828;font-size:.85rem;border-radius:8px" onclick="window.spBatchDelete()">${delBtnText}</button>
   </div>`;
 
   document.getElementById('sp-m-body').innerHTML = h;
