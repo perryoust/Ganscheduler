@@ -1285,7 +1285,8 @@ function saveReplaceRecur(id) {
     const to = document.getElementById('rr-to').value;
     const days = [...document.querySelectorAll('.rr-day:checked')].map(c => parseInt(c.value));
     const sup = document.getElementById('rr-sup').value;
-    const act = document.getElementById('rr-act').value;
+    let act = document.getElementById('rr-act').value;
+    if (!act && sup === s.a) act = s.act;
     const time = document.getElementById('rr-time').value;
     const sync = document.getElementById('rr-sync') ? document.getElementById('rr-sync').checked : false;
     const partnerTime = document.getElementById('rr-time-partner') ? document.getElementById('rr-time-partner').value : time;
@@ -1372,7 +1373,10 @@ function spEditSave(){
   const newAct=actVal==='__new__' ? (document.getElementById('sp-edit-act-new')||{}).value||'' : actVal;
   const newTime=document.getElementById('sp-edit-time').value;
   
-  if(newDate) s.d=newDate; if(newSup) s.a=newSup; if(newAct) s.act=newAct; if(newTime) s.t=newTime;
+  if(newDate) s.d=newDate; 
+  if(newSup) s.a=newSup; 
+  if(newAct) { s.act=newAct; } else if (newSup && newSup !== origSup) { s.act=''; }
+  if(newTime) s.t=newTime;
   
   const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('sped') : [];
   synergyPartners.forEach(syn => {
@@ -2256,7 +2260,8 @@ window.spSaveMakeup = function() {
   const targets = [{ g: origEv.g, t: time }, ...window.getSynergyData('sp-mu').map(tgt => ({ g: tgt.g, t: tgt.t || time }))];
   
   const actVal = document.getElementById('sp-mu-act').value;
-  const actName = actVal === '__new__' ? (document.getElementById('sp-mu-act-new')||{}).value : (actVal || origEv.act);
+  const actName = actVal === '__new__' ? (document.getElementById('sp-mu-act-new')||{}).value : 
+                  (actVal ? actVal : (supName === origEv.a ? origEv.act : ''));
   
   if(actVal === '__new__' && actName) {
     const base = window.supBase(supName);
