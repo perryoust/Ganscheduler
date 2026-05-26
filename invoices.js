@@ -3354,7 +3354,7 @@ window.startSharePointScanner = async function() {
     if (error.name !== 'AbortError') alert('שגיאה בסריקה: ' + error.message);
   }
 };
-window.autoFixInvoicesVAT = async function() {
+async function autoFixInvoicesVAT() {
   let fixed = 0;
   window.INVOICES.forEach(inv => {
     const vat = inv.vat || window.VAT_RATE || 17;
@@ -3397,4 +3397,5 @@ window.autoFixInvoicesVAT = async function() {
   } else {
     alert('לא נמצאו חשבוניות הדורשות תיקון סכומים.');
   }
-};
+}
+window.autoFixInvoicesVAT = autoFixInvoicesVAT;

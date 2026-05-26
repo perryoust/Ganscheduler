@@ -585,6 +585,12 @@ function _applyYearData(o){
   // REST OF THE FUNCTION (Pairs, Invoices, etc.)
   window.supEx = o.supEx || {};
   if(window.supEx['__gardens_extra']) window._GARDENS_EXTRA = window.supEx['__gardens_extra'];
+  // For new years: load the full garden list from the year's data
+  if(Array.isArray(window.supEx['__gardens_all']) && window.supEx['__gardens_all'].length > 0) {
+    window._GARDENS_ALL = window.supEx['__gardens_all'];
+  } else {
+    window._GARDENS_ALL = null; // Fall back to GARDENS + _GARDENS_EXTRA
+  }
   window.spScannerAliases = o.spScannerAliases || {};
 
   if(Array.isArray(o.pairs)&&o.pairs.length>0){
@@ -825,6 +831,10 @@ async function save(immediate){
       window.DataManager.applyAutoMakeupMatching();
     }
     // Save ALL entries with ALL fields — works with or without SRAWS
+    // Persist year-specific garden list into supEx before saving
+    if (Array.isArray(window._GARDENS_ALL) && window._GARDENS_ALL.length > 0) {
+      (window.supEx || {}).__gardens_all = window._GARDENS_ALL;
+    }
     const data={
       ch:(window.SCH||[]).map(s=>({id:s.id,g:s.g,d:s.d,a:s.a,t:s.t,p:s.p,n:s.n,st:s.st,cr:s.cr,cn:s.cn,nt:s.nt,pd:s.pd,pt:s.pt,grp:s.grp,act:s.act||'',_isMakeup:s._isMakeup||false,_makeupFrom:s._makeupFrom||'',_compByMakeup:s._compByMakeup||'',_fromD:s._fromD||''})),
       pairs:window.pairs||[],
@@ -3281,17 +3291,51 @@ window.initYearSelector = function() {
     const metaStr = window._safeLS.getItem('ganv5_meta');
     if (metaStr) {
       const meta = JSON.parse(metaStr);
+      const yearKeys = Object.keys(meta.years || {});
       sel.innerHTML = '';
-      Object.entries(meta.years || {}).forEach(([k, v]) => {
+      yearKeys.forEach(k => {
+        const v = meta.years[k];
         const opt = document.createElement('option');
         opt.value = k;
         opt.textContent = v.name || k;
         if (k === window.CURRENT_YEAR) opt.selected = true;
         sel.appendChild(opt);
       });
+      // Only show selector if more than 1 year exists
+      sel.style.display = yearKeys.length > 1 ? '' : 'none';
     }
   } catch(e) {}
+  
+  // Show archive warning banner if viewing a non-latest year
+  _showArchiveBanner();
 };
+
+function _showArchiveBanner() {
+  // Remove existing banner if any
+  const existing = document.getElementById('archive-year-banner');
+  if (existing) existing.remove();
+  
+  try {
+    const metaStr = window._safeLS.getItem('ganv5_meta');
+    if (!metaStr) return;
+    const meta = JSON.parse(metaStr);
+    const yearKeys = Object.keys(meta.years || {});
+    if (yearKeys.length <= 1) return; // Only one year — no banner needed
+    
+    // Find the "latest" year (last in the order)
+    const latestYear = yearKeys[yearKeys.length - 1];
+    if (window.CURRENT_YEAR === latestYear) return; // We're on the latest — no banner
+    
+    const yearName = (meta.years[window.CURRENT_YEAR] || {}).name || window.CURRENT_YEAR;
+    const banner = document.createElement('div');
+    banner.id = 'archive-year-banner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#fff3e0,#ffe0b2);border-bottom:3px solid #e65100;padding:8px 16px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:.82rem;font-weight:700;color:#bf360c;box-shadow:0 2px 8px rgba(0,0,0,.15)';
+    banner.innerHTML = `⚠️ אתה צופה/עורך את <span style="background:#e65100;color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem">${yearName}</span> — שנה ארכיונית. שינויים יישמרו רק לשנה זו.`;
+    document.body.prepend(banner);
+    // Push content down
+    document.body.style.paddingTop = (banner.offsetHeight + 2) + 'px';
+  } catch(e) {}
+}
 
 window.changeCurrentYear = function(year) {
   if (year === window.CURRENT_YEAR) return;

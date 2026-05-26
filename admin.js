@@ -541,77 +541,226 @@ async function nuclearReset() {
 window.nuclearReset = nuclearReset;
 window.fixData = fixData;
 
-window.startNewYearWizard = function() {
-  const m = document.getElementById('nyw-modal');
-  if (m) {
-    document.getElementById('nyw-id').value = '';
-    document.getElementById('nyw-name').value = '';
-    document.getElementById('nyw-copy-gardens').checked = true;
-    document.getElementById('nyw-copy-sups').checked = true;
-    document.getElementById('nyw-copy-pairs').checked = true;
-    m.classList.add('open');
-  }
+// ══════════════════════════════════════════════════════
+// New Year Wizard — Creates a new school year in Firebase
+// ══════════════════════════════════════════════════════
+
+// Hebrew year names map
+const _HEBREW_YEARS = {
+  'tashpav': 'תשפ"ו (2025-2026)',
+  'tashpaz': 'תשפ"ז (2026-2027)',
+  'tashpach': 'תשפ"ח (2027-2028)',
+  'tashpat': 'תשפ"ט (2028-2029)',
+  'tashtzain': 'תש"צ (2029-2030)'
 };
 
-window.executeNewYearWizard = async function() {
-  const yId = document.getElementById('nyw-id').value.trim();
-  const yName = document.getElementById('nyw-name').value.trim();
-  const cGardens = document.getElementById('nyw-copy-gardens').checked;
-  const cSups = document.getElementById('nyw-copy-sups').checked;
-  const cPairs = document.getElementById('nyw-copy-pairs').checked;
+function _getNextYearId() {
+  const order = ['tashpav','tashpaz','tashpach','tashpat','tashtzain'];
+  const curIdx = order.indexOf(window.CURRENT_YEAR || 'tashpav');
+  return curIdx >= 0 && curIdx < order.length - 1 ? order[curIdx + 1] : null;
+}
 
-  if (!yId || !yName) {
-    alert('יש להזין מזהה ושם לשנה החדשה.');
-    return;
-  }
-  if (!/^[a-zA-Z0-9]+$/.test(yId)) {
-    alert('מזהה השנה חייב להכיל אותיות באנגלית ומספרים בלבד (ללא רווחים).');
+function _getNextYearDates(yearId) {
+  const map = {
+    'tashpaz': { start: '2026-09-01', end: '2027-08-21' },
+    'tashpach': { start: '2027-09-01', end: '2028-08-21' },
+    'tashpat': { start: '2028-09-01', end: '2029-08-21' },
+    'tashtzain': { start: '2029-09-01', end: '2030-08-21' }
+  };
+  return map[yearId] || { start: '', end: '' };
+}
+
+window.openNewYearWizard = function() {
+  if (!_isAdmin()) { showToast('❌ רק מנהל יכול לפתוח שנה חדשה'); return; }
+  
+  const nextId = _getNextYearId();
+  if (!nextId) { alert('לא ניתן ליצור שנה נוספת — המערכת מגיעה למגבלה.'); return; }
+  
+  // Check if already exists
+  const metaStr = window._safeLS.getItem('ganv5_meta');
+  let meta = metaStr ? JSON.parse(metaStr) : { currentYear: 'tashpav', years: { 'tashpav': { name: _HEBREW_YEARS['tashpav'] } } };
+  if (meta.years[nextId]) {
+    alert('שנת ' + (_HEBREW_YEARS[nextId]||nextId) + ' כבר קיימת במערכת. ניתן לעבור אליה דרך בורר השנה.');
     return;
   }
   
-  try {
-    const metaStr = window._safeLS.getItem('ganv5_meta');
-    let meta = { currentYear: 'tashpav', years: { 'tashpav': { name: 'תשפ"ו (2025-2026)' } } };
-    if (metaStr) {
-      meta = JSON.parse(metaStr);
-    }
+  const m = document.getElementById('newyear-m');
+  if (!m) { alert('Modal not found'); return; }
+  
+  // Fill header info
+  const dates = _getNextYearDates(nextId);
+  const fromEl = document.getElementById('nyw-from');
+  const toEl = document.getElementById('nyw-to');
+  if (fromEl) fromEl.textContent = dates.start ? window.fD(dates.start) : '';
+  if (toEl) toEl.textContent = dates.end ? window.fD(dates.end) : '';
+  
+  const titleEl = document.getElementById('nyw-title');
+  if (titleEl) titleEl.textContent = '➕ פתיחת שנה: ' + (_HEBREW_YEARS[nextId] || nextId);
+  
+  // Store target year key in hidden field
+  const keyEl = document.getElementById('nyw-target-key');
+  if (keyEl) keyEl.value = nextId;
+  
+  // Build garden checkbox list grouped by city
+  const allGardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+  const byCity = {};
+  allGardens.forEach(g => {
+    const city = g.city || 'אחר';
+    if (!byCity[city]) byCity[city] = [];
+    byCity[city].push(g);
+  });
+  
+  const listEl = document.getElementById('nyw-garden-list');
+  if (listEl) {
+    let html = '<div style="display:flex;gap:8px;margin-bottom:10px">' +
+      '<button class="btn bg bsm" onclick="document.querySelectorAll(\'#nyw-garden-list input[type=checkbox]\').forEach(c=>c.checked=true)">✅ בחר הכל</button>' +
+      '<button class="btn br2 bsm" onclick="document.querySelectorAll(\'#nyw-garden-list input[type=checkbox]\').forEach(c=>c.checked=false)">❌ בטל הכל</button>' +
+      '</div>';
     
-    if (meta.years[yId]) {
-      alert('שנה עם מזהה זה כבר קיימת במערכת.');
+    const cities = Object.keys(byCity).sort((a,b) => a.localeCompare(b,'he'));
+    cities.forEach(city => {
+      const gardens = byCity[city].sort((a,b) => a.name.localeCompare(b.name,'he'));
+      html += `<div style="margin-bottom:10px">
+        <div style="font-weight:700;font-size:.82rem;color:#1a237e;margin-bottom:5px;border-bottom:1px solid #e8eaf6;padding-bottom:3px">
+          📍 ${city} (${gardens.length})
+          <button style="font-size:.65rem;background:none;border:none;color:#1565c0;cursor:pointer;margin-right:6px" 
+            onclick="this.closest('div').querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=true)">בחר עיר</button>
+          <button style="font-size:.65rem;background:none;border:none;color:#c62828;cursor:pointer" 
+            onclick="this.closest('div').querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=false)">בטל עיר</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">`;
+      gardens.forEach(g => {
+        html += `<label style="display:flex;align-items:center;gap:5px;font-size:.78rem;cursor:pointer;padding:2px 4px;border-radius:4px;transition:background .15s" 
+          onmouseover="this.style.background='#e8f5e9'" onmouseout="this.style.background=''">
+          <input type="checkbox" checked value="${g.id}" name="nyw-garden" style="accent-color:#2e7d32"> ${g.name}
+        </label>`;
+      });
+      html += '</div></div>';
+    });
+    listEl.innerHTML = html;
+  }
+  
+  // Show the execute button (ensure it exists)
+  let execBtn = document.getElementById('nyw-exec-btn');
+  if (!execBtn) {
+    const btnRow = m.querySelector('div[style*="justify-content:flex-end"]');
+    if (btnRow) {
+      const btn = document.createElement('button');
+      btn.id = 'nyw-exec-btn';
+      btn.className = 'btn bg';
+      btn.textContent = '🚀 פתח שנה חדשה';
+      btn.onclick = window.executeNewYear;
+      btnRow.insertBefore(btn, btnRow.firstChild);
+    }
+  }
+  
+  m.classList.add('open');
+};
+
+window.executeNewYear = async function() {
+  const yearId = document.getElementById('nyw-target-key')?.value;
+  if (!yearId) { alert('שגיאה: לא נבחרה שנה.'); return; }
+  
+  const yearName = _HEBREW_YEARS[yearId] || yearId;
+  
+  if (!confirm(`האם ליצור את שנת ${yearName}?\n\nהגנים המסומנים יועברו לשנה החדשה.\nהשיבוצים יתאפסו.\nהרכש נשאר גלובלי ולא מושפע.`)) return;
+  
+  const execBtn = document.getElementById('nyw-exec-btn');
+  if (execBtn) { execBtn.disabled = true; execBtn.textContent = '⏳ יוצר שנה...'; }
+  
+  try {
+    // 1. Collect selected gardens
+    const checks = document.querySelectorAll('#nyw-garden-list input[name="nyw-garden"]:checked');
+    const selectedGardenIds = new Set([...checks].map(c => parseInt(c.value)));
+    
+    // Build full garden objects from current gardens
+    const allGardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+    const gardensForNewYear = allGardens.filter(g => selectedGardenIds.has(g.id));
+    
+    if (gardensForNewYear.length === 0) {
+      alert('יש לבחור לפחות גן אחד!');
+      if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח שנה חדשה'; }
       return;
     }
-
-    // Build the new initial state
-    const newState = {
-      ch: [],
-      pairs: cPairs && window.pairs ? JSON.parse(JSON.stringify(window.pairs)) : [],
-      supEx: cSups && window.supEx ? JSON.parse(JSON.stringify(window.supEx)) : {},
-      clusters: cGardens && window.clusters ? JSON.parse(JSON.stringify(window.clusters)) : {},
-      holidays: [],
-      pairBreaks: {},
-      managers: cGardens && window.managers ? JSON.parse(JSON.stringify(window.managers)) : {},
-      blockedDates: {},
-      gardenBlocks: {},
-      activeGardens: cGardens && window.activeGardens ? [...window.activeGardens] : null,
-      useSraws: window.useSraws !== undefined ? window.useSraws : true
-    };
-
-    // Save the new state
-    window._safeLS.setItem('ganv5_y_' + yId, JSON.stringify(newState));
     
-    // Update meta
-    meta.years[yId] = { name: yName };
-    meta.currentYear = yId;
+    // 2. Build pairs (only those with ALL gardens selected)
+    const currentPairs = window.pairs || [];
+    const newPairs = currentPairs
+      .map(p => ({...p, ids: p.ids.filter(id => selectedGardenIds.has(parseInt(id)))}))
+      .filter(p => p.ids.length >= 2);
+    
+    // 3. Build supEx — deep copy, add __gardens_all
+    const newSupEx = JSON.parse(JSON.stringify(window.supEx || {}));
+    newSupEx.__gardens_all = gardensForNewYear;
+    // Remove tashpav-specific keys
+    delete newSupEx.__deleted_sraws_ids;
+    delete newSupEx.__phonesVer;
+    
+    // 4. Build the new year state
+    const newState = {
+      data: {
+        ch: [],  // Empty schedule — will be built from new Excel import
+        pairs: newPairs,
+        supEx: newSupEx,
+        clusters: JSON.parse(JSON.stringify(window.clusters || {})),
+        holidays: [],
+        pairBreaks: {},
+        managers: JSON.parse(JSON.stringify(window.managers || {})),
+        blockedDates: {},
+        gardenBlocks: {},
+        activeGardens: [...selectedGardenIds],
+        useSraws: false  // New years always use direct mode (no SRAWS)
+      },
+      ts: Date.now(),
+      seq: 1,
+      version: '3.0'
+    };
+    
+    // 5. Save to Firebase
+    let tok = null;
+    if (window._fbUser) try { tok = await window._fbUser.getIdToken(true); } catch(e) {}
+    if (!tok) { alert('שגיאת אימות — יש להתחבר מחדש.'); if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח שנה חדשה'; } return; }
+    
+    const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
+    const url = `${base}/years/${yearId}/data.json?auth=${tok}`;
+    
+    showToast('⏳ שומר שנה חדשה לענן...');
+    const r = await fetch(url, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(newState)
+    });
+    
+    if (!r.ok) throw new Error('Firebase PUT failed: ' + r.status);
+    
+    // 6. Update meta in localStorage
+    const metaStr = window._safeLS.getItem('ganv5_meta');
+    let meta = metaStr ? JSON.parse(metaStr) : { currentYear: 'tashpav', years: { 'tashpav': { name: _HEBREW_YEARS['tashpav'] } } };
+    const dates = _getNextYearDates(yearId);
+    meta.years[yearId] = { name: _HEBREW_YEARS[yearId] || yearId, start: dates.start, end: dates.end };
+    // Do NOT change currentYear — user switches manually
     window._safeLS.setItem('ganv5_meta', JSON.stringify(meta));
     
-    // We should also initialize invoices empty so it doesn't leak
-    // invoices are normally synced separately
+    // 7. Also save to localStorage for the new year
+    window._safeLS.setItem('ganv5_y_' + yearId, JSON.stringify(newState.data));
     
-    // Hide modal and refresh
-    document.getElementById('nyw-modal').classList.remove('open');
-    alert('שנת הלימודים החדשה נוצרה בהצלחה!');
-    window.location.reload();
+    // 8. Close modal
+    const m = document.getElementById('newyear-m');
+    if (m) m.classList.remove('open');
+    
+    // 9. Refresh year selector
+    if (window.initYearSelector) window.initYearSelector();
+    
+    alert(`✅ שנת ${yearName} נוצרה בהצלחה!\n\n${gardensForNewYear.length} גנים הועברו.\n${newPairs.length} זוגות הועברו.\n\nכדי לעבור לשנה החדשה, בחר אותה מתפריט השנה בראש המסך.`);
+    showToast('✅ שנה חדשה נוצרה — עבור דרך בורר השנה');
+    
   } catch(e) {
-    alert('אירעה שגיאה ביצירת השנה: ' + e.message);
+    console.error('New year creation failed:', e);
+    alert('❌ שגיאה ביצירת השנה: ' + e.message);
+  } finally {
+    if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח שנה חדשה'; }
   }
 };
+
+// Legacy aliases
+window.startNewYearWizard = window.openNewYearWizard;
