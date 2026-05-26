@@ -639,21 +639,6 @@ window.openNewYearWizard = function() {
     });
     listEl.innerHTML = html;
   }
-  
-  // Show the execute button (ensure it exists)
-  let execBtn = document.getElementById('nyw-exec-btn');
-  if (!execBtn) {
-    const btnRow = m.querySelector('div[style*="justify-content:flex-end"]');
-    if (btnRow) {
-      const btn = document.createElement('button');
-      btn.id = 'nyw-exec-btn';
-      btn.className = 'btn bg';
-      btn.textContent = '🚀 פתח שנה חדשה';
-      btn.onclick = window.executeNewYear;
-      btnRow.insertBefore(btn, btnRow.firstChild);
-    }
-  }
-  
   m.classList.add('open');
 };
 
