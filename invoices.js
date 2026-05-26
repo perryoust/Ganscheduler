@@ -934,17 +934,18 @@ function openNewInvoice(id, presetSup){
   const nsActs=document.getElementById('inv-ns-acts'); if(nsActs) nsActs.checked=false;
   // VAT rate
   document.getElementById('inv-vat').value = inv ? (inv.vat||getVatRate()) : getVatRate();
+  const effectiveVatCalc = _getEffectiveVat();
   onVatChange();
   // Order section
   document.getElementById('inv-order-num').value   = inv ? (inv.orderNum||'')   : '';
   document.getElementById('inv-order-date').value  = inv ? (inv.orderDate||'')  : '';
   document.getElementById('inv-order-desc').value  = inv ? (inv.orderDesc||'')  : '';
-  document.getElementById('inv-order-amt').value   = inv ? (inv.orderAmt||'')   : '';
   // Restore order VAT mode (so editing doesn't recalculate wrong)
   const ordVatModeR = inv ? (inv.ordVatMode||'ex') : 'ex';
   window._ordVatMode = ordVatModeR;
   document.getElementById('vat-ord-ex')?.classList.toggle('active', ordVatModeR==='ex');
   document.getElementById('vat-ord-inc')?.classList.toggle('active', ordVatModeR==='inc');
+  document.getElementById('inv-order-amt').value   = inv ? (ordVatModeR==='inc' && inv.orderAmt ? withVat(inv.orderAmt, effectiveVatCalc) : (inv.orderAmt||''))   : '';
   document.getElementById('inv-order-notes').value = inv ? (inv.orderNotes||'') : '';
   const ordType = document.getElementById('inv-order-type'); if(ordType) ordType.value=inv?(inv.orderType||''):'';
   // Load assignment — handle free text case
@@ -3351,5 +3352,49 @@ window.startSharePointScanner = async function() {
     alert(`סיום! נסרקו ${filesFound.length} קבצים.\nהותאמו ושודכו: ${matchCount}\nדוח הופק וירד למחשב שלך.`);
   } catch (error) {
     if (error.name !== 'AbortError') alert('שגיאה בסריקה: ' + error.message);
+  }
+};
+window.autoFixInvoicesVAT = async function() {
+  let fixed = 0;
+  window.INVOICES.forEach(inv => {
+    const vat = inv.vat || window.VAT_RATE || 17;
+    const supName = inv.supName || '';
+    const et = (window.supEx && window.supEx[supName]) ? window.supEx[supName].entityType : '';
+    const isExempt = et==='עוסק פטור' || et==='עמותה';
+    const effectiveVat = isExempt ? 0 : vat;
+
+    let changed = false;
+    if (inv.orderTotal) {
+      const expectedAmt = +(inv.orderTotal / (1 + effectiveVat/100)).toFixed(2);
+      if (!inv.orderAmt || Math.abs(inv.orderAmt - expectedAmt) > 0.05) {
+        inv.orderAmt = expectedAmt;
+        changed = true;
+      }
+    }
+    if (inv.txTotal) {
+      const expectedAmt = +(inv.txTotal / (1 + effectiveVat/100)).toFixed(2);
+      if (!inv.txAmt || Math.abs(inv.txAmt - expectedAmt) > 0.05) {
+        inv.txAmt = expectedAmt;
+        changed = true;
+      }
+    }
+    if (inv.total) {
+      const expectedAmt = +(inv.total / (1 + effectiveVat/100)).toFixed(2);
+      if (!inv.amt || Math.abs(inv.amt - expectedAmt) > 0.05) {
+        inv.amt = expectedAmt;
+        changed = true;
+      }
+    }
+    if (changed) fixed++;
+  });
+
+  if (fixed > 0) {
+    console.log("Fixed VAT for " + fixed + " invoices.");
+    if (typeof window.save === 'function') window.save(true);
+    if(window.renderInvoices) window.renderInvoices();
+    if(window.refreshPurchDash) window.refreshPurchDash();
+    alert('תוקנו סכומים של ' + fixed + ' חשבוניות לפי המע"מ הנכון!');
+  } else {
+    alert('לא נמצאו חשבוניות הדורשות תיקון סכומים.');
   }
 };

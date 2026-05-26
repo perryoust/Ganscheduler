@@ -1,25 +1,73 @@
 const fs = require('fs');
+let code = fs.readFileSync('invoices.js', 'utf8');
 
-const path = 'invoices.js';
-let content = fs.readFileSync(path, 'utf8');
+const target1 = `        const sName = String(item.supName || "").trim().replace(/[.$#[\\]/]/g, '');
+        item.supName = sName;
+        const oDesc = String(item.orderDesc || "").trim();`;
 
-const target2Match = content.match(/const ans = prompt\(`לא נמצאה התאמה לקובץ:[\s\S]*?if\s*\(ans\s*&&\s*ans\.trim\(\)\s*===\s*'דלג'\)\s*{\s*window\._askUnmatched\s*=\s*false;\s*}\s*else\s*if\s*\(ans\s*&&\s*ans\.trim\(\)\)\s*{/m);
+const replacement1 = `        const sName = String(item.supName || "").trim().replace(/[.$#[\\]/]/g, '');
+        item.supName = sName;
+        
+        // Auto-compute base amounts (orderAmt, txAmt, amt) from totals if they are missing
+        const vatRate = typeof window !== 'undefined' && window.VAT_RATE !== undefined ? window.VAT_RATE : 17;
+        const et = (typeof window !== 'undefined' && window.supEx && window.supEx[sName]) ? window.supEx[sName].entityType : '';
+        const isExempt = et==='עוסק פטור' || et==='עמותה';
+        const effectiveVat = isExempt ? 0 : vatRate;
+        
+        if (item.orderTotal && !item.orderAmt) item.orderAmt = +(item.orderTotal / (1+effectiveVat/100)).toFixed(2);
+        if (item.txTotal && !item.txAmt) item.txAmt = +(item.txTotal / (1+effectiveVat/100)).toFixed(2);
+        if (item.total && !item.amt) item.amt = +(item.total / (1+effectiveVat/100)).toFixed(2);
 
-if (target2Match) {
-  const replacement2 = `const ans = prompt(\`לא נמצאה התאמה לקובץ:\\n\${file.name}\\n\\nאם זו חשבונית של ספק (חדש או קיים), הקלד את שמו.\\n\\nאפשרויות דילוג:\\n- "ביטול" או ריק: דילוג על קובץ זה (ישאל שוב בסריקה הבאה).\\n- המילה "דלג": דילוג אוטומטי על כל שאר הקבצים בסריקה זו.\\n- המילה "תמיד": התעלם מקובץ זה לצמיתות (לא ישאל שוב).\`);
-            if (ans && ans.trim() === 'דלג') {
-               window._askUnmatched = false;
-            } else if (ans && ans.trim() === 'תמיד') {
-               window.spScannerAliases = window.spScannerAliases || {};
-               window.spScannerAliases[\`__skip__\${file.name}\`] = true;
-               if (window.ghAutoSave) window.ghAutoSave(true, true);
-               window.showToast(\`✅ הקובץ סומן להתעלמות תמידית בסריקות הבאות\`);
-            } else if (ans && ans.trim()) {`;
-  content = content.replace(target2Match[0], replacement2);
-  console.log('Replaced target 2');
-} else {
-  console.log('Target 2 not found');
+        const oDesc = String(item.orderDesc || "").trim();`;
+
+code = code.replace(target1, replacement1);
+
+if (!code.includes('autoFixInvoicesVAT')) {
+  code += `\nwindow.autoFixInvoicesVAT = async function() {
+  let fixed = 0;
+  window.INVOICES.forEach(inv => {
+    const vat = inv.vat || window.VAT_RATE || 17;
+    const supName = inv.supName || '';
+    const et = (window.supEx && window.supEx[supName]) ? window.supEx[supName].entityType : '';
+    const isExempt = et==='עוסק פטור' || et==='עמותה';
+    const effectiveVat = isExempt ? 0 : vat;
+
+    let changed = false;
+    if (inv.orderTotal) {
+      const expectedAmt = +(inv.orderTotal / (1 + effectiveVat/100)).toFixed(2);
+      if (!inv.orderAmt || Math.abs(inv.orderAmt - expectedAmt) > 0.05) {
+        inv.orderAmt = expectedAmt;
+        changed = true;
+      }
+    }
+    if (inv.txTotal) {
+      const expectedAmt = +(inv.txTotal / (1 + effectiveVat/100)).toFixed(2);
+      if (!inv.txAmt || Math.abs(inv.txAmt - expectedAmt) > 0.05) {
+        inv.txAmt = expectedAmt;
+        changed = true;
+      }
+    }
+    if (inv.total) {
+      const expectedAmt = +(inv.total / (1 + effectiveVat/100)).toFixed(2);
+      if (!inv.amt || Math.abs(inv.amt - expectedAmt) > 0.05) {
+        inv.amt = expectedAmt;
+        changed = true;
+      }
+    }
+    if (changed) fixed++;
+  });
+
+  if (fixed > 0) {
+    console.log("Fixed VAT for " + fixed + " invoices.");
+    if (typeof window.save === 'function') window.save(true);
+    if(window.renderInvoices) window.renderInvoices();
+    if(window.refreshPurchDash) window.refreshPurchDash();
+    alert('תוקנו סכומים של ' + fixed + ' חשבוניות לפי המע"מ הנכון!');
+  } else {
+    alert('לא נמצאו חשבוניות הדורשות תיקון סכומים.');
+  }
+};\n`;
 }
 
-fs.writeFileSync(path, content, 'utf8');
-console.log('Done');
+fs.writeFileSync('invoices.js', code, 'utf8');
+console.log('Injected replacements');

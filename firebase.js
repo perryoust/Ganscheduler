@@ -1,7 +1,18 @@
 // ══════════════════════════════════════════════
 // Firebase Realtime Database Sync - v3.0 (Robust)
 // ══════════════════════════════════════════════
-const FIREBASE_DB_URL = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data.json';
+function getFirebaseDbUrl() {
+  const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
+  if (window.CURRENT_YEAR && window.CURRENT_YEAR !== 'tashpav') {
+    return `${base}/years/${window.CURRENT_YEAR}/data.json`;
+  }
+  return `${base}/data.json`;
+}
+
+function getFirebaseInvoicesUrl() {
+  const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
+  return `${base}/data/invoices.json`;
+}
 const FIREBASE_POLL_INTERVAL = 30000;
 
 let _localSeq = parseInt(window._safeLS.get('_fbSeq') || '0');
@@ -180,7 +191,7 @@ async function saveToFirebase(silent = false, force = false) {
     const payload = { data: liveData, ts: Date.now(), seq: newSeq, version: '3.0' };
     
     let tok = await window._fbUser?.getIdToken(true);
-    const url = FIREBASE_DB_URL + (tok ? '?auth=' + tok : '');
+    const url = getFirebaseDbUrl() + (tok ? '?auth=' + tok : '');
     
     // CRITICAL: Use PATCH instead of PUT to prevent deleting sibling paths under /data (like invoices)
     const r = await fetch(url, {
@@ -193,7 +204,7 @@ async function saveToFirebase(silent = false, force = false) {
     
     // Save Invoices Separately — always save if we have invoice data (no _fbSyncReady gate)
     if (Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
-      const invUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json' + (tok ? '?auth=' + tok : '');
+      const invUrl = getFirebaseInvoicesUrl() + (tok ? '?auth=' + tok : '');
       await fetch(invUrl, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(window.INVOICES) });
       console.log('[Sync] Invoices saved:', window.INVOICES.length);
     }
@@ -224,7 +235,7 @@ async function loadFromFirebase(silent = false, force = false) {
 
   try {
     let tok = await window._fbUser?.getIdToken(false);
-    const url = FIREBASE_DB_URL + (tok ? '?auth=' + tok : '');
+    const url = getFirebaseDbUrl() + (tok ? '?auth=' + tok : '');
     
     const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'cb=' + Date.now());
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -238,7 +249,7 @@ async function loadFromFirebase(silent = false, force = false) {
     }
 
     // Load Invoices Separately — merge file links from local copy to avoid losing them
-    const invUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json' + (tok ? '?auth=' + tok : '');
+    const invUrl = getFirebaseInvoicesUrl() + (tok ? '?auth=' + tok : '');
     const ir = await fetch(invUrl);
     if (!ir.ok) throw new Error('Invoices HTTP ' + ir.status);
     const invs = await ir.json();

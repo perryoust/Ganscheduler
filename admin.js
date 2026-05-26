@@ -540,3 +540,78 @@ async function nuclearReset() {
 }
 window.nuclearReset = nuclearReset;
 window.fixData = fixData;
+
+window.startNewYearWizard = function() {
+  const m = document.getElementById('nyw-modal');
+  if (m) {
+    document.getElementById('nyw-id').value = '';
+    document.getElementById('nyw-name').value = '';
+    document.getElementById('nyw-copy-gardens').checked = true;
+    document.getElementById('nyw-copy-sups').checked = true;
+    document.getElementById('nyw-copy-pairs').checked = true;
+    m.classList.add('open');
+  }
+};
+
+window.executeNewYearWizard = async function() {
+  const yId = document.getElementById('nyw-id').value.trim();
+  const yName = document.getElementById('nyw-name').value.trim();
+  const cGardens = document.getElementById('nyw-copy-gardens').checked;
+  const cSups = document.getElementById('nyw-copy-sups').checked;
+  const cPairs = document.getElementById('nyw-copy-pairs').checked;
+
+  if (!yId || !yName) {
+    alert('יש להזין מזהה ושם לשנה החדשה.');
+    return;
+  }
+  if (!/^[a-zA-Z0-9]+$/.test(yId)) {
+    alert('מזהה השנה חייב להכיל אותיות באנגלית ומספרים בלבד (ללא רווחים).');
+    return;
+  }
+  
+  try {
+    const metaStr = window._safeLS.getItem('ganv5_meta');
+    let meta = { currentYear: 'tashpav', years: { 'tashpav': { name: 'תשפ"ו (2025-2026)' } } };
+    if (metaStr) {
+      meta = JSON.parse(metaStr);
+    }
+    
+    if (meta.years[yId]) {
+      alert('שנה עם מזהה זה כבר קיימת במערכת.');
+      return;
+    }
+
+    // Build the new initial state
+    const newState = {
+      ch: [],
+      pairs: cPairs && window.pairs ? JSON.parse(JSON.stringify(window.pairs)) : [],
+      supEx: cSups && window.supEx ? JSON.parse(JSON.stringify(window.supEx)) : {},
+      clusters: cGardens && window.clusters ? JSON.parse(JSON.stringify(window.clusters)) : {},
+      holidays: [],
+      pairBreaks: {},
+      managers: cGardens && window.managers ? JSON.parse(JSON.stringify(window.managers)) : {},
+      blockedDates: {},
+      gardenBlocks: {},
+      activeGardens: cGardens && window.activeGardens ? [...window.activeGardens] : null,
+      useSraws: window.useSraws !== undefined ? window.useSraws : true
+    };
+
+    // Save the new state
+    window._safeLS.setItem('ganv5_y_' + yId, JSON.stringify(newState));
+    
+    // Update meta
+    meta.years[yId] = { name: yName };
+    meta.currentYear = yId;
+    window._safeLS.setItem('ganv5_meta', JSON.stringify(meta));
+    
+    // We should also initialize invoices empty so it doesn't leak
+    // invoices are normally synced separately
+    
+    // Hide modal and refresh
+    document.getElementById('nyw-modal').classList.remove('open');
+    alert('שנת הלימודים החדשה נוצרה בהצלחה!');
+    window.location.reload();
+  } catch(e) {
+    alert('אירעה שגיאה ביצירת השנה: ' + e.message);
+  }
+};

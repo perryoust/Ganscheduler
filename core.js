@@ -591,8 +591,17 @@ function _applyYearData(o){
     window.pairs = o.pairs.map(p=>({...p,ids:p.ids.map(id=>parseInt(id)).filter(id=>G(id).id)}));
     window.pairs = pairs.filter(p=>p.ids.length>=2);
   } else { initPairs(); }
-  if(o.invoices){
-    window.INVOICES = Array.isArray(o.invoices) ? o.invoices : Object.values(o.invoices);
+  const localVat = window._safeLS.getItem('ganv5_vat');
+  if (localVat) try { window.VAT_RATE = JSON.parse(localVat); } catch(e){}
+  else window.VAT_RATE = o.vatRate || 18;
+
+  const localInvs = window._safeLS.getItem('ganv5_invoices');
+  let loadedInvs = null;
+  if (localInvs) try { loadedInvs = JSON.parse(localInvs); } catch(e){}
+  if (!loadedInvs && o.invoices) loadedInvs = o.invoices;
+
+  if (loadedInvs) {
+    window.INVOICES = Array.isArray(loadedInvs) ? loadedInvs : Object.values(loadedInvs);
     
     // Deduplicate identical invoices created by accident
     const uniqueInvs = [];
@@ -712,9 +721,11 @@ function load(){
     }
     // Support migration from old Y1 system (ganv5_y_ keys)
     let st = null;
-    try{ const meta=JSON.parse(_safeLS.getItem('ganv5_meta')||'null');
-         if(meta&&meta.currentYear) st=_safeLS.getItem('ganv5_y_'+meta.currentYear); }catch(_){}
-    if(!st) st = _safeLS.get('ganv5');
+    const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpav');
+    st = _safeLS.getItem(yearKey);
+    if(!st && (!window.CURRENT_YEAR || window.CURRENT_YEAR === 'tashpav')) {
+      st = _safeLS.getItem('ganv5');
+    }
     if(!st && window._fbAppData) { _applyYearData(window._fbAppData); return; }
     if(st){ _applyYearData(JSON.parse(st)); }
     else { initPairs();window.clusters = JSON.parse(JSON.stringify(INIT_CLUSTERS));activeGardens = null; }
@@ -824,16 +835,21 @@ async function save(immediate){
       managers:window.managers||{},
       blockedDates:window.blockedDates||{},
       gardenBlocks:window.gardenBlocks||{},
-      invoices:window.INVOICES||[],
-      vatRate:window.VAT_RATE||18,
       activeGardens:window.activeGardens?[...window.activeGardens]:null,
       useSraws: typeof window.useSraws!=='undefined'?window.useSraws:true
     };
     const _json=JSON.stringify(data);
-    _safeLS.setItem('ganv5',_json);
-    window._mem_ganv5=_json; // ensure in-memory is also up to date
-    // Also update year key if meta exists
-    try{const _m=JSON.parse(_safeLS.getItem('ganv5_meta')||'null');if(_m&&_m.currentYear)_safeLS.setItem('ganv5_y_'+_m.currentYear,_json);}catch(_){}
+    const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpav');
+    _safeLS.setItem(yearKey, _json);
+    
+    // Save invoices globally
+    _safeLS.setItem('ganv5_invoices', JSON.stringify(window.INVOICES||[]));
+    _safeLS.setItem('ganv5_vat', JSON.stringify(window.VAT_RATE||18));
+    
+    if (!window.CURRENT_YEAR || window.CURRENT_YEAR === 'tashpav') {
+      _safeLS.setItem('ganv5', _json);
+    }
+    window['_mem_' + yearKey] = _json;
     
     let res = true;
     if (typeof ghAutoSave === 'function') {
@@ -3256,5 +3272,40 @@ window.openSP = window.openSP || (()=>{});
 // qSetSt removed - use the one in activity.js
 
 window.getGardenBlock = getGardenBlock;
+
+// ── Year Management ──
+window.initYearSelector = function() {
+  const sel = document.getElementById('year-selector');
+  if (!sel) return;
+  try {
+    const metaStr = window._safeLS.getItem('ganv5_meta');
+    if (metaStr) {
+      const meta = JSON.parse(metaStr);
+      sel.innerHTML = '';
+      Object.entries(meta.years || {}).forEach(([k, v]) => {
+        const opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = v.name || k;
+        if (k === window.CURRENT_YEAR) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+  } catch(e) {}
+};
+
+window.changeCurrentYear = function(year) {
+  if (year === window.CURRENT_YEAR) return;
+  try {
+    const metaStr = window._safeLS.getItem('ganv5_meta');
+    if (metaStr) {
+      const meta = JSON.parse(metaStr);
+      meta.currentYear = year;
+      window._safeLS.setItem('ganv5_meta', JSON.stringify(meta));
+      window.location.reload();
+    }
+  } catch(e) {}
+};
+
+document.addEventListener('DOMContentLoaded', window.initYearSelector);
 
 // [End of core.js]

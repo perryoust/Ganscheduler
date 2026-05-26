@@ -46,6 +46,9 @@
     <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
       <span style="font-size:1.3rem">📅</span>
       <h1>טומשין קידס <span style="font-size:.6rem;opacity:.5;font-weight:400;vertical-align:middle">v103.80</span></h1>
+      <select id="year-selector" onchange="window.changeCurrentYear(this.value)" style="margin-right:15px; font-size:0.8rem; border-radius:4px; border:1px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.15); color:white; padding:3px 8px; outline:none; font-weight:600; cursor:pointer;" title="בחר שנת לימודים">
+        <!-- populated by JS -->
+      </select>
     </div>
     <div class="hs" id="hdr-stats" style="overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch">
       <span
@@ -198,6 +201,21 @@
     <div id="p-admin" class="panel" style="display:none">
       <div class="card" style="max-width:700px;margin:0 auto">
         <h2 style="color:#6a1b9a;margin-bottom:20px">🚀 ניהול מערכת</h2>
+        <!-- Year Management section -->
+        <div style="border-top:2px solid #e8eaf6;padding-top:18px;margin-bottom:20px">
+          <div style="font-weight:800;font-size:.95rem;color:#00796b;margin-bottom:14px">📅 ניהול שנת לימודים</div>
+          <div style="background:#e0f2f1;border-radius:10px;padding:14px;border:1.5px solid #4db6ac">
+            <p style="font-size:0.8rem;color:#00695c;margin-top:0;margin-bottom:12px;line-height:1.4">
+              <b>פתיחת שנת לימודים חדשה:</b> מעביר את המערכת לשנה הבאה. נתוני השנה הנוכחית יישמרו ויהיה ניתן לחזור אליהם לצפייה (Time Travel) דרך התפריט העליון. פתיחת שנה מאפשרת לייבא גנים, ספקים או להתחיל מדף חלק.
+            </p>
+            <button class="btn bg" onclick="window.startNewYearWizard()"
+              title="פתיחת אשף יצירת שנת לימודים חדשה"
+              style="padding:6px 12px;font-size:.8rem;background:#00796b;border:1px solid #004d40;color:white;display:block">
+              🌟 התחל שנת לימודים חדשה
+            </button>
+          </div>
+        </div>
+
         <!-- Purchasing Management section -->
         <div style="border-top:2px solid #e8eaf6;padding-top:18px;margin-bottom:20px">
           <div style="font-weight:800;font-size:.95rem;color:#c62828;margin-bottom:14px">🛒 ניהול נתוני רכש (פעולות מנהל בלבד)</div>
@@ -3138,6 +3156,50 @@
           <button class="modal-x" onclick="CM('rrm')">✕</button>
         </div>
         <div id="rrm-body" style="padding:12px"></div>
+      </div>
+    </div>
+
+    <!-- ====== NEW YEAR WIZARD MODAL ====== -->
+    <div id="nyw-modal" class="modal">
+      <div class="modal-c" style="max-width:500px">
+        <h2 style="color:#00796b;margin-bottom:15px;display:flex;align-items:center;gap:8px">
+          <span style="font-size:1.5rem">🌟</span> פתיחת שנת לימודים חדשה
+        </h2>
+        <div style="background:#e0f2f1;border-radius:8px;padding:12px;margin-bottom:15px;border:1px solid #80cbc4;font-size:0.85rem;color:#00695c;line-height:1.4">
+          <p style="margin-top:0">יצירת שנה חדשה (למשל תשפ"ז) תשמור את השנה הנוכחית (Time Travel) ותפתח מסד נתונים חדש.</p>
+          <p style="margin-bottom:0"><b>שים לב:</b> ניתן לייבא את הגנים, הספקים, והזוגות מהשנה הקודמת, או להתחיל מדף חלק לגמרי.</p>
+        </div>
+        
+        <div class="fg" style="margin-bottom:15px">
+          <label style="font-weight:700;color:#004d40">מזהה השנה (למשל tashpaz)</label>
+          <input type="text" id="nyw-id" placeholder="tashpaz" style="width:100%" dir="ltr">
+        </div>
+        
+        <div class="fg" style="margin-bottom:15px">
+          <label style="font-weight:700;color:#004d40">שם השנה לתצוגה</label>
+          <input type="text" id="nyw-name" placeholder='תשפ"ז (2026-2027)' style="width:100%">
+        </div>
+        
+        <div class="fg" style="margin-bottom:20px">
+          <label style="font-weight:700;color:#004d40">הגדרות ייבוא מהשנה הנוכחית</label>
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer">
+            <input type="checkbox" id="nyw-copy-gardens" checked>
+            <span>ייבא רשימת גנים, בתי ספר ואשכולות</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer">
+            <input type="checkbox" id="nyw-copy-sups" checked>
+            <span>ייבא רשימת ספקים (פרטי קשר, תעריפים)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="nyw-copy-pairs" checked>
+            <span>ייבא זוגות צהרונים ששובצו</span>
+          </label>
+        </div>
+        
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+          <button class="btn bo" onclick="CM('nyw-modal')">ביטול</button>
+          <button class="btn bg" onclick="window.executeNewYearWizard()" style="background:#00796b;border-color:#004d40">🚀 פתח שנה חדשה</button>
+        </div>
       </div>
     </div>
 
