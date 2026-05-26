@@ -2916,10 +2916,20 @@ window.startSharePointScanner = async function() {
       // Supplier Match Score helper
       const cleanFileBase = file.name.replace(/[-_.]/g, ' ');
       const aliases = window.spScannerAliases || {};
+
+      const normalizeHebrew = (str) => {
+        return (str || '')
+          .replace(/יי/g, 'י')
+          .replace(/וו/g, 'ו')
+          .trim();
+      };
+      const normFileBase = normalizeHebrew(cleanFileBase);
       
       const getSupplierScore = (inv) => {
         let score = 0;
         const supplierBase = window.supBase ? window.supBase(inv.supName) : inv.supName;
+        const normSupName = normalizeHebrew(inv.supName);
+        const normSupBase = normalizeHebrew(supplierBase);
         const supplierAct = window.supAct ? window.supAct(inv.supName) : '';
         
         // Remove common words to avoid false positive supplier matching
@@ -2935,8 +2945,8 @@ window.startSharePointScanner = async function() {
 
         if (cleanFileBase.includes('גט טקסי') && inv.supName.includes('גטאקסי')) return 5;
 
-        if (cleanFileBase.includes(inv.supName)) return 4;
-        if (cleanFileBase.includes(supplierBase)) return 3;
+        if (cleanFileBase.includes(inv.supName) || normFileBase.includes(normSupName)) return 4;
+        if (cleanFileBase.includes(supplierBase) || normFileBase.includes(normSupBase)) return 3;
         if (supplierAct && supplierAct.length > 2 && cleanFileBase.includes(supplierAct) && !ignoreWords.includes(supplierAct)) return 2;
         if (supplierWords.length > 0 && supplierWords.some(w => cleanFileBase.includes(w))) return 1;
         return 0;
