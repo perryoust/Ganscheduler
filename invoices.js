@@ -2906,6 +2906,8 @@ window.startSharePointScanner = async function() {
           }
         }
 
+        if (cleanFileBase.includes('גט טקסי') && inv.supName.includes('גטאקסי')) return 5;
+
         if (cleanFileBase.includes(inv.supName)) return 4;
         if (cleanFileBase.includes(supplierBase)) return 3;
         if (supplierAct && supplierAct.length > 2 && cleanFileBase.includes(supplierAct) && !ignoreWords.includes(supplierAct)) return 2;
@@ -3009,6 +3011,7 @@ window.startSharePointScanner = async function() {
       // Apply this logic if it's explicitly Petty Cash OR if there are no invoice numbers in the filename (other than years) and a month is explicitly mentioned.
       const hasOnlyYearNumbers = numbersInName.filter(n => !isYear(n)).length === 0;
       const isPettyCash = file.name.includes('קופה קטנה');
+      const isGett = file.name.includes('גט') && file.name.includes('טקסי');
 
       let explicitMonthFound = false;
       let targetMonth = -1;
@@ -3036,7 +3039,7 @@ window.startSharePointScanner = async function() {
         } catch(e) {}
       }
 
-      if (!fileMatched && (isPettyCash || (hasOnlyYearNumbers && explicitMonthFound))) {
+      if (!fileMatched && (isPettyCash || isGett || (hasOnlyYearNumbers && explicitMonthFound))) {
         
         // 3. Fallback to file's lastModified date ONLY for Petty Cash
         if (targetMonth === -1) {

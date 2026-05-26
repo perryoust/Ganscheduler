@@ -93,7 +93,8 @@ function downloadCSV(data,fname){
   const rows=data.map(s=>{
     const g=window.G(s.g);
     const stMap={ok:'מתקיים',done:'התקיים',can:'בוטל',post:'נדחה',nohap:'לא התקיים'};
-    return[window.fD(s.d),`יום ${window.dayN(s.d)}`,g.city||'',g.name||'',g.st||'',s.a,window.fT(s.t),s.grp>1?s.grp:'',stMap[s.st]||s.st,s.cr||'',s.nt||'',s.pd?window.fD(s.pd):''];
+    const formattedNote = typeof window.formatNoteWithTag === 'function' ? window.formatNoteWithTag(s) : (s.nt || '');
+    return[window.fD(s.d),`יום ${window.dayN(s.d)}`,g.city||'',g.name||'',g.st||'',s.a,window.fT(s.t),s.grp>1?s.grp:'',stMap[s.st]||s.st,s.cr||'',formattedNote,s.pd?window.fD(s.pd):''];
   });
   const bom='\uFEFF';
   const csv=bom+[headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
