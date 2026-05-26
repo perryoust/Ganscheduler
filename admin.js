@@ -148,7 +148,11 @@ async function forceDailyBackup(){
 const ADMIN_UID = 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03';
 const USERS_DB  = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/users';
 
-function _isAdmin(){ return window._fbUser?.uid === ADMIN_UID; }
+function _isAdmin(){
+  const email = (window._fbUser?.email || '').toLowerCase().trim();
+  const dn = (window._fbUser?.displayName || '').toLowerCase().trim();
+  return window._fbUser?.uid === ADMIN_UID || email === 'perry@ganmanager.app' || dn === 'perry';
+}
 
 // Show users button only for admin
 window._initUsersUI = function _initUsersUI(){
