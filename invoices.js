@@ -2850,6 +2850,9 @@ window.startSharePointScanner = async function() {
     const resultsData = [['שם הקובץ', 'מספר שזוהה', 'סטטוס התאמה', 'קישור שנוצר']];
     window._askUnmatched = true; // Reset skipping state for each scan
     for (const file of filesFound) {
+      const spAliases = window.spScannerAliases || {};
+      if (spAliases[`__skip__${file.name}`]) continue;
+
       const numbersInName = file.name.match(/\d+/g) || [];
       const decorator = getSharePointDecorator(file.name);
       const encodedPath = encodePath(file.path);
@@ -3121,11 +3124,16 @@ window.startSharePointScanner = async function() {
           if (maxScore === 0 && uniqueSuppliers.size > 2) {
              bestMatches = []; // Too ambiguous and no text match in filename, fall through to manual prompt
           } else if (uniqueSuppliers.size > 1) {
-            const optionsText = bestMatches.map((m, idx) => `${idx + 1}. ${m.inv.supName} (מספר מזוהה: ${m.inv.num||m.inv.txNum||m.inv.orderNum})`).join('\n');
-            const ans = prompt(`קובץ: ${file.name}\n\nהמערכת מצאה ${bestMatches.length} ספקים אפשריים (בעלי מספר חשבונית זהה). למי מהם לשייך את הקובץ?\n(הקלד את המספר ולחץ אישור, או ביטול כדי לדלג על קובץ זה)\n\n${optionsText}`);
+            const uniqueSuppliersArr = Array.from(uniqueSuppliers);
+            const optionsText = uniqueSuppliersArr.map((sup, idx) => {
+              const count = bestMatches.filter(m => (window.supBase ? window.supBase(m.inv.supName) : m.inv.supName) === sup).length;
+              return `${idx + 1}. ${sup}` + (count > 1 ? ` (${count} מסמכים)` : '');
+            }).join('\n');
+            const ans = prompt(`קובץ: ${file.name}\n\nהמערכת מצאה ${uniqueSuppliersArr.length} ספקים אפשריים. למי מהם לשייך את הקובץ?\n(הקלד את המספר ולחץ אישור, או ביטול כדי לדלג על קובץ זה)\n\n${optionsText}`);
             const selectedIdx = parseInt(ans, 10) - 1;
-            if (!isNaN(selectedIdx) && bestMatches[selectedIdx]) {
-              bestMatches = [bestMatches[selectedIdx]];
+            if (!isNaN(selectedIdx) && uniqueSuppliersArr[selectedIdx]) {
+              const chosenSupBase = uniqueSuppliersArr[selectedIdx];
+              bestMatches = bestMatches.filter(m => (window.supBase ? window.supBase(m.inv.supName) : m.inv.supName) === chosenSupBase);
               
               // Ask to remember the alias for future
               const chosenSup = bestMatches[0].inv.supName;
@@ -3229,10 +3237,15 @@ window.startSharePointScanner = async function() {
         }
 
         if (!handled && numbersInName.length > 0 && window._askUnmatched !== false) {
-           const ans = prompt(`לא נמצאה התאמה לקובץ:\n${file.name}\n\nאם זו חשבונית של ספק (חדש או קיים), הקלד את שמו.\n\nאפשרויות דילוג:\n- "ביטול" או ריק: דילוג על קובץ זה.\n- המילה "דלג": דילוג אוטומטי על כל שאר הקבצים בסריקה זו.`);
-           if (ans && ans.trim() === 'דלג') {
-              window._askUnmatched = false;
-           } else if (ans && ans.trim()) {
+           const ans = prompt(`לא נמצאה התאמה לקובץ:\n${file.name}\n\nאם זו חשבונית של ספק (חדש או קיים), הקלד את שמו.\n\nאפשרויות דילוג:\n- "ביטול" או ריק: דילוג על קובץ זה (ישאל שוב בסריקה הבאה).\n- המילה "דלג": דילוג אוטומטי על כל שאר הקבצים בסריקה זו.\n- המילה "תמיד": התעלם מקובץ זה לצמיתות (לא ישאל שוב).`);
+            if (ans && ans.trim() === 'דלג') {
+               window._askUnmatched = false;
+            } else if (ans && ans.trim() === 'תמיד') {
+               window.spScannerAliases = window.spScannerAliases || {};
+               window.spScannerAliases[`__skip__${file.name}`] = true;
+               if (window.ghAutoSave) window.ghAutoSave(true, true);
+               window.showToast(`✅ הקובץ סומן להתעלמות תמידית בסריקות הבאות`);
+            } else if (ans && ans.trim()) {
               const supName = ans.trim();
               
               // Ask user for a persistent alias to avoid asking next time
