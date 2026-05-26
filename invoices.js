@@ -2893,7 +2893,11 @@ window.startSharePointScanner = async function() {
       const getSupplierScore = (inv) => {
         let score = 0;
         const supplierBase = window.supBase ? window.supBase(inv.supName) : inv.supName;
-        const supplierWords = (supplierBase||'').split(/\s+/).filter(w => w.length > 2);
+        const supplierAct = window.supAct ? window.supAct(inv.supName) : '';
+        
+        // Remove common words to avoid false positive supplier matching
+        const ignoreWords = ['חוגים', 'סדנאות', 'הפעלות', 'תוכניות', 'גן', 'גני', 'בית', 'ספר', 'צהרון', 'צהרונים', 'מוסיקה', 'ספורט', 'תנועה', 'תיאטרון', 'תאטרון', 'חוג', 'פעילות', 'מחול', 'ריתמיקה'];
+        const supplierWords = (supplierBase||'').split(/\s+/).filter(w => w.length > 2 && !ignoreWords.includes(w));
         
         // Check saved aliases first (highest priority)
         for (const [aliasWord, supName] of Object.entries(aliases)) {
@@ -2902,8 +2906,9 @@ window.startSharePointScanner = async function() {
           }
         }
 
-        if (cleanFileBase.includes(inv.supName)) return 3;
-        if (cleanFileBase.includes(supplierBase)) return 2;
+        if (cleanFileBase.includes(inv.supName)) return 4;
+        if (cleanFileBase.includes(supplierBase)) return 3;
+        if (supplierAct && supplierAct.length > 2 && cleanFileBase.includes(supplierAct) && !ignoreWords.includes(supplierAct)) return 2;
         if (supplierWords.length > 0 && supplierWords.some(w => cleanFileBase.includes(w))) return 1;
         return 0;
       };
@@ -2913,16 +2918,21 @@ window.startSharePointScanner = async function() {
 
       // 1. First attempt: Strict exact matching
       for (const numStr of numbersInName) {
-        if (numStr.length < 3) continue;
         window.INVOICES.forEach(inv => {
           
           const score = getSupplierScore(inv);
+          
           if (score === 0) {
+            if (numStr.length < 3) return; // Prevent generic short number matches when supplier doesn't match
             if (isYear(numStr)) return;
             const matchesNum = String(inv.num || '') === numStr || String(inv.num || '').startsWith(numStr);
             const matchesTx = String(inv.txNum || '') === numStr || String(inv.txNum || '').startsWith(numStr);
             const matchesOrder = String(inv.orderNum || '') === numStr || String(inv.orderNum || '').startsWith(numStr);
             if (numStr.length < 4 && !matchesNum && !matchesTx && !matchesOrder) return;
+          } else {
+            // Supplier matches! Allow shorter numbers, but ignore years
+            if (isYear(numStr)) return;
+            // Allow length 1 or 2 since the supplier is a match!
           }
           
           if (inv.num && String(inv.num).trim() === numStr && canMatch('tax')) {
@@ -2952,10 +2962,14 @@ window.startSharePointScanner = async function() {
           const cleanOrder = String(inv.orderNum || '').replace(/\D/g, '').replace(/^0+/, '');
           
           const checkFuzzyMatch = (targetNum) => {
-            if (targetNum.length < 3) return false;
+            if (!targetNum) return false;
             if (score === 0) {
+              if (targetNum.length < 3) return false;
               if (isYear(targetNum)) return false;
               if (targetNum.length < 4) return false; // Prevent generic short number fuzzy matches
+            } else {
+              // Supplier matches! We can allow shorter target numbers.
+              if (isYear(targetNum)) return false;
             }
             // Exact match in individual number blocks (ignoring leading zeros)
             if (numbersInName.map(n => n.replace(/^0+/, '')).includes(targetNum)) return true;
@@ -2991,33 +3005,40 @@ window.startSharePointScanner = async function() {
         });
       }
 
-      // 2.5. Petty Cash (קופה קטנה) specific matching based on Month/Year
-      // If the file is a petty cash document, link it to all petty cash rows for that supplier in the same month
-      if (file.name.includes('קופה קטנה')) {
-        let targetMonth = -1;
-        let targetYear = -1;
-        const hebMonths = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+      // 2.5. Monthly recurring bills (Petty Cash, Transportation, etc.) based on Month/Year
+      // Apply this logic if it's explicitly Petty Cash OR if there are no invoice numbers in the filename (other than years) and a month is explicitly mentioned.
+      const hasOnlyYearNumbers = numbersInName.filter(n => !isYear(n)).length === 0;
+      const isPettyCash = file.name.includes('קופה קטנה');
+
+      let explicitMonthFound = false;
+      let targetMonth = -1;
+      let targetYear = -1;
+      const hebMonths = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+      
+      // 1. Try to extract month from file name
+      const matchHebName = file.name.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\s*(\d{4})?/);
+      if (matchHebName) {
+        targetMonth = hebMonths.indexOf(matchHebName[1]);
+        if (matchHebName[2]) targetYear = parseInt(matchHebName[2]);
+        explicitMonthFound = true;
+      }
+      
+      // 2. Try to extract month from file path (folder name)
+      if (!explicitMonthFound && file.path) {
+        try {
+          const decodedPath = decodeURIComponent(file.path);
+          const matchHebPath = decodedPath.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\s*(\d{4})?/);
+          if (matchHebPath) {
+            targetMonth = hebMonths.indexOf(matchHebPath[1]);
+            if (matchHebPath[2]) targetYear = parseInt(matchHebPath[2]);
+            explicitMonthFound = true;
+          }
+        } catch(e) {}
+      }
+
+      if (!fileMatched && (isPettyCash || (hasOnlyYearNumbers && explicitMonthFound))) {
         
-        // 1. Try to extract month from file name
-        const matchHebName = file.name.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\s*(\d{4})?/);
-        if (matchHebName) {
-          targetMonth = hebMonths.indexOf(matchHebName[1]);
-          if (matchHebName[2]) targetYear = parseInt(matchHebName[2]);
-        }
-        
-        // 2. Try to extract month from file path (folder name)
-        if (targetMonth === -1 && file.path) {
-          try {
-            const decodedPath = decodeURIComponent(file.path);
-            const matchHebPath = decodedPath.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\s*(\d{4})?/);
-            if (matchHebPath) {
-              targetMonth = hebMonths.indexOf(matchHebPath[1]);
-              if (matchHebPath[2]) targetYear = parseInt(matchHebPath[2]);
-            }
-          } catch(e) {}
-        }
-        
-        // 3. Fallback to file's lastModified date
+        // 3. Fallback to file's lastModified date ONLY for Petty Cash
         if (targetMonth === -1) {
           const fileDate = new Date(file.lastModified || Date.now());
           targetMonth = fileDate.getMonth();
@@ -3030,42 +3051,59 @@ window.startSharePointScanner = async function() {
           targetYear = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
         }
 
-        window.INVOICES.forEach(inv => {
-          // Must be a petty cash row
-          if (inv.orderNum === 'קופה קטנה' || String(inv.notes||'').includes('קופה קטנה') || String(inv.txNum||'').includes('קופה קטנה') || String(inv.orderDesc||'').includes('קופה קטנה')) {
-            const score = getSupplierScore(inv);
-            if (score > 0) { // Supplier must match!
-              let invMonth = -1;
-              let invYear = -1;
-              
-              const dStr = inv.date || inv.orderDate || inv.txDate || '';
-              if (dStr) {
-                let invDate = new Date(dStr);
-                // Handle DD/MM/YYYY
-                if (dStr.includes('/')) {
-                  const parts = dStr.split('/');
-                  if (parts.length === 3) invDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-                }
-                if (!isNaN(invDate.getMonth())) {
-                  invMonth = invDate.getMonth();
-                  invYear = invDate.getFullYear();
-                }
-              }
-              
-              // Fallback: check invoice description for Hebrew month
-              if (invMonth === -1) {
-                const matchHebDesc = String(inv.orderDesc||'').match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)/);
-                if (matchHebDesc) invMonth = hebMonths.indexOf(matchHebDesc[1]);
-              }
+        let fallbackMatches = [];
 
-              if (invMonth === targetMonth) {
-                // Attach as a tax invoice (since user specified it acts as a tax invoice for the site)
-                matchedInfos.push({ inv, sec: 'tax', score: score + 10 }); // +10 to ensure it beats any fuzzy match
-                fileMatched = true;
+        window.INVOICES.forEach(inv => {
+          // If it's a petty cash file, require the invoice to be a petty cash invoice
+          const isInvPettyCash = inv.orderNum === 'קופה קטנה' || String(inv.notes||'').includes('קופה קטנה') || String(inv.txNum||'').includes('קופה קטנה') || String(inv.orderDesc||'').includes('קופה קטנה');
+          if (isPettyCash && !isInvPettyCash) return;
+          
+          const score = getSupplierScore(inv);
+          if (score > 0) { // Supplier must match!
+            let invMonth = -1;
+            let invYear = -1;
+            
+            const dStr = inv.date || inv.orderDate || inv.txDate || '';
+            if (dStr) {
+              let invDate = new Date(dStr);
+              // Handle DD/MM/YYYY
+              if (dStr.includes('/')) {
+                const parts = dStr.split('/');
+                if (parts.length === 3) invDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
               }
+              if (!isNaN(invDate.getMonth())) {
+                invMonth = invDate.getMonth();
+                invYear = invDate.getFullYear();
+              }
+            }
+            
+            // Fallback: check invoice description for Hebrew month
+            if (invMonth === -1) {
+              const matchHebDesc = String(inv.orderDesc||'').match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)/);
+              if (matchHebDesc) invMonth = hebMonths.indexOf(matchHebDesc[1]);
+            }
+
+            if (invMonth === targetMonth && (invYear === targetYear || targetYear === -1 || invYear === -1)) {
+              // Exact month match
+              matchedInfos.push({ inv, sec: 'tax', score: score + 10 }); // +10 to ensure it beats any fuzzy match
+              fileMatched = true;
+            } else if (invYear === targetYear || targetYear === -1 || invYear === -1) {
+              // Fallback: year matches but month differs (e.g. May invoice for June budget)
+              let mDiff = (invMonth !== -1 && targetMonth !== -1) ? Math.abs(invMonth - targetMonth) : 99;
+              fallbackMatches.push({ inv, sec: 'tax', score: score + 5, monthDiff: mDiff });
             }
           }
         });
+
+        // If no exact month matched, use the fallback (closest month in the same year)
+        if (!fileMatched && fallbackMatches.length > 0) {
+          fallbackMatches.sort((a, b) => a.monthDiff - b.monthDiff);
+          const bestDiff = fallbackMatches[0].monthDiff;
+          fallbackMatches.filter(m => m.monthDiff === bestDiff).forEach(m => {
+            matchedInfos.push({ inv: m.inv, sec: m.sec, score: m.score });
+            fileMatched = true;
+          });
+        }
       }
 
       if (fileMatched && matchedInfos.length > 0) {
