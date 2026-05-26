@@ -82,6 +82,15 @@ window.ui = {
     const evType = s.tp || (gClass === 'גנים' ? 'חוג' : '');
     const grpCount = s.grp || (gClass === 'גנים' ? 1 : '');
 
+    let tagText = '';
+    if (s.st === 'can' || (s.nt && /ביטול|בוטל/i.test(s.nt))) tagText = 'ביטול';
+    else if (s.nt && /הקדמה|הוקדם/i.test(s.nt)) tagText = 'הקדמה';
+    else if (s.nt && /דחי?יה|נדחה/i.test(s.nt)) tagText = 'דחיה';
+    else if (isM || (s.nt && /השלמה/i.test(s.nt))) tagText = 'השלמה';
+    
+    const tagMobile = tagText ? `<span style="background:#ffe082;color:#b71c1c;border-radius:4px;padding:1px 4px;font-size:0.65rem;font-weight:800;margin-left:4px;display:inline-block">${tagText}</span> ` : '';
+    const tagDesktop = tagText ? `<b style="color:var(--c-warning)">[${tagText}]</b> ` : '';
+
     if (window.isMobileMode()) {
       return `
         <div class="mob-act-card ${stCls}" onclick="window.openSP('${s.id}')">
@@ -97,9 +106,9 @@ window.ui = {
             <div style="grid-column: span 2">
               🎨 <b>${supAct}</b> ${evType ? `<span style="color:#78909c;font-size:0.75rem">(${evType})</span>` : ''} ${grpCount ? `<span style="background:#e8eaf6;color:#3f51b5;border-radius:4px;padding:1px 5px;font-size:0.68rem;margin-right:6px;font-weight:700;display:inline-block">${grpCount} קב'</span>` : ''}
             </div>
-            ${(s.nt || isM) ? `
+            ${(s.nt || tagText) ? `
               <div style="grid-column: span 2; color:var(--c-error)">
-                📝 ${isM ? `<span style="background:#ffe082;color:#b71c1c;border-radius:4px;padding:1px 4px;font-size:0.65rem;font-weight:800;margin-left:4px;display:inline-block">השלמה</span> ` : ''}${s.nt || ''}
+                📝 ${tagMobile}${s.nt || ''}
               </div>` : ''}
           </div>
           <div class="mob-act-btns">
@@ -159,7 +168,7 @@ window.ui = {
     // 8. Notes (הערות)
     rowHtml += `
       <td class="p-8 text-xs text-error">
-        ${isM ? '<b style="color:var(--c-warning)">[השלמה]</b> ' : ''}${s.nt || ''}
+        ${tagDesktop}${s.nt || ''}
       </td>`;
 
     // 9. Actions (פעולות)

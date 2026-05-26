@@ -179,8 +179,16 @@ function renderGM(){
   evs.forEach(s=>{
     const g=window.G(s.g);
     const gblk=window.getGardenBlock(s.g,s.d);
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+    let tagText = '';
+    if (s.st === 'can' || (s.nt && /ביטול|בוטל/i.test(s.nt))) tagText = 'ביטול';
+    else if (s.nt && /הקדמה|הוקדם/i.test(s.nt)) tagText = 'הקדמה';
+    else if (s.nt && /דחי?יה|נדחה/i.test(s.nt)) tagText = 'דחיה';
+    else if (isM || (s.nt && /השלמה/i.test(s.nt))) tagText = 'השלמה';
+    const tagHtml = tagText ? `<b style="color:var(--c-warning)">[${tagText}]</b> ` : '';
+    const ntStr = gblk ? `<span style="color:#c62828;font-size:.72rem">${gblk.icon||'🚫'} ${gblk.reason}</span>${s.nt?' | '+tagHtml+s.nt:''}` : (s.nt ? tagHtml+s.nt : '');
     const waBtn = `<button class="btn bsm" style="background:#25d366;color:#fff;border:none;padding:2px 6px;font-size:.7rem;cursor:pointer;margin-right:8px;display:inline-flex;align-items:center;height:20px;vertical-align:middle;border-radius:4px" onclick="event.stopPropagation(); window.exportSingleRecurringWA('${s.id}')">📋 הודעה</button>`;
-    h+=`<tr onclick="window.openSP('${s.id}')" class="${window.stClass(s)}"><td>${window.fD(s.d)}</td><td>יום ${window.dayN(s.d)}</td><td>${window.fT(s.t)}</td><td>${s.a}</td><td>${gblk?`<span style="color:#c62828;font-size:.72rem">${gblk.icon||'🚫'} ${gblk.reason}</span>${s.nt?' | '+s.nt:''}`:s.nt||''}</td><td style="white-space:nowrap">${window.stLabel(s)}${s.st==='ok'?waBtn:''}</td></tr>`;  });
+    h+=`<tr onclick="window.openSP('${s.id}')" class="${window.stClass(s)}"><td>${window.fD(s.d)}</td><td>יום ${window.dayN(s.d)}</td><td>${window.fT(s.t)}</td><td>${s.a}</td><td>${ntStr}</td><td style="white-space:nowrap">${window.stLabel(s)}${s.st==='ok'?waBtn:''}</td></tr>`;  });
   document.getElementById('gm-cal').innerHTML=h+'</tbody></table></div>';
 }
 function quickAddPartner(gid){
