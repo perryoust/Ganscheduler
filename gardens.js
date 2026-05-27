@@ -1003,12 +1003,44 @@ function openExport(){
   const ws = _days[0], we = _days[4];
   const isWeek=(calV==='week');
   const todayStr=d2s(calD);
-  document.getElementById('ex-d1').value=isWeek?d2s(ws):todayStr;
-  document.getElementById('ex-d2').value=isWeek?d2s(we):todayStr;
+  
+  let d1Val = isWeek ? d2s(ws) : todayStr;
+  let d2Val = isWeek ? d2s(we) : todayStr;
+  
   const f=getCalF();
   const gids=_exGids||f.gids;
+  
+  // Dynamic Date Range expansion if exporting a single day that has a linked postponement
+  if (!isWeek && gids && gids.length) {
+    const listGids = gids.map(Number);
+    // Find if there is a postponement linked to today (either pointing back to today from future, or today pointing back to past)
+    const linkedEvent = SCH.find(s => listGids.includes(Number(s.g)) && (
+      (s.d === todayStr && (s._postFrom || s._makeupFrom)) || 
+      (s.st === 'nohap' && SCH.some(fs => fs.st === 'ok' && fs.g === s.g && fs.a === s.a && (fs._postFrom === todayStr || fs._makeupFrom === todayStr)))
+    ));
+    
+    if (linkedEvent) {
+      // Find the other date
+      let otherDate = '';
+      if (linkedEvent.d === todayStr) {
+        otherDate = linkedEvent._postFrom || linkedEvent._makeupFrom;
+      } else {
+        const futureEv = SCH.find(fs => fs.st === 'ok' && fs.g === linkedEvent.g && fs.a === linkedEvent.a && (fs._postFrom === todayStr || fs._makeupFrom === todayStr));
+        if (futureEv) otherDate = futureEv.d;
+      }
+      
+      if (otherDate) {
+        const dates = [todayStr, otherDate].sort();
+        d1Val = dates[0];
+        d2Val = dates[1];
+      }
+    }
+  }
+  
+  document.getElementById('ex-d1').value=d1Val;
+  document.getElementById('ex-d2').value=d2Val;
+  
   let ctx=isWeek?`${fD(d2s(ws))} – ${fD(d2s(we))}`:`תאריך: ${fD(d2s(calD))}`;
-
   if(gids&&gids.length) ctx+=` | גנים: ${gids.map(id=>G(id).name||'').join(' + ')}`;
   (document.getElementById('ex-ctx')||{}).textContent =ctx;
   document.getElementById('exm').classList.add('open');
