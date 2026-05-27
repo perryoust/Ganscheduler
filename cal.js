@@ -81,8 +81,8 @@ function filterE(f,from,to){
   const posted=window.SCH.filter(s=>{
     if(s.st!=='post'||!s.pd||s.pd<from||s.pd>to) return false;
     // De-duplicate: If there is already an event in `all` for the same garden (s.g) 
-    // that is postponed from s.d, then skip this virtual one to avoid duplication.
-    const hasRescheduled = all.some(x => Number(x.g) === Number(s.g) && (x._postFrom === s.d || x._makeupFrom === s.d));
+    // and same supplier/activity on the target day, then skip this virtual one to avoid duplication.
+    const hasRescheduled = all.some(x => Number(x.g) === Number(s.g) && window.supBase(x.a) === window.supBase(s.a) && x.st !== 'nohap' && x.st !== 'can');
     if (hasRescheduled) return false;
     
     const g=window.G(s.g);
