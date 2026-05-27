@@ -317,6 +317,29 @@ window._fbStartPolling = _fbStartPolling;
 window._fbStopPolling = _fbStopPolling;
 
 window._onAuthReady = async function () {
+  // Sync years/periods metadata first
+  try {
+    let tok = await window._fbUser?.getIdToken(false);
+    const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
+    const r = await fetch(`${base}/years_meta.json${tok ? '?auth=' + tok : ''}`);
+    if (r.ok) {
+      const cloudMeta = await r.json();
+      if (cloudMeta && cloudMeta.years) {
+        const localMetaStr = window._safeLS.getItem('ganv5_meta');
+        let localMeta = localMetaStr ? JSON.parse(localMetaStr) : { currentYear: 'tashpav', years: {} };
+        // Merge cloud years into local
+        localMeta.years = { ...localMeta.years, ...cloudMeta.years };
+        if (cloudMeta.currentYear && !localMeta.years[localMeta.currentYear]) {
+          localMeta.currentYear = cloudMeta.currentYear;
+        }
+        window._safeLS.setItem('ganv5_meta', JSON.stringify(localMeta));
+        if (window.initYearSelector) window.initYearSelector();
+      }
+    }
+  } catch(e) {
+    console.warn('Failed to load years metadata from Firebase:', e);
+  }
+
   await loadFromFirebase();
   _fbStartPolling();
 };

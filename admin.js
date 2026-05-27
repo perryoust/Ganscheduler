@@ -577,33 +577,25 @@ function _getNextYearDates(yearId) {
 window.openNewYearWizard = function() {
   if (!_isAdmin()) { showToast('❌ רק מנהל יכול לפתוח שנה חדשה'); return; }
   
-  const nextId = _getNextYearId();
-  if (!nextId) { alert('לא ניתן ליצור שנה נוספת — המערכת מגיעה למגבלה.'); return; }
-  
-  // Check if already exists
-  const metaStr = window._safeLS.getItem('ganv5_meta');
-  let meta = metaStr ? JSON.parse(metaStr) : { currentYear: 'tashpav', years: { 'tashpav': { name: _HEBREW_YEARS['tashpav'] } } };
-  if (meta.years[nextId]) {
-    alert('שנת ' + (_HEBREW_YEARS[nextId]||nextId) + ' כבר קיימת במערכת. ניתן לעבור אליה דרך בורר השנה.');
-    return;
-  }
+  const nextId = _getNextYearId() || '';
+  const dates = nextId ? _getNextYearDates(nextId) : { start: '', end: '' };
+  const suggestedName = nextId ? (_HEBREW_YEARS[nextId] || '') : '';
   
   const m = document.getElementById('newyear-m');
   if (!m) { alert('Modal not found'); return; }
   
-  // Fill header info
-  const dates = _getNextYearDates(nextId);
-  const fromEl = document.getElementById('nyw-from');
-  const toEl = document.getElementById('nyw-to');
-  if (fromEl) fromEl.textContent = dates.start ? window.fD(dates.start) : '';
-  if (toEl) toEl.textContent = dates.end ? window.fD(dates.end) : '';
+  // Fill inputs
+  const nameEl = document.getElementById('nyw-custom-name');
+  if (nameEl) nameEl.value = suggestedName;
   
-  const titleEl = document.getElementById('nyw-title');
-  if (titleEl) titleEl.textContent = '➕ פתיחת שנה: ' + (_HEBREW_YEARS[nextId] || nextId);
+  const idEl = document.getElementById('nyw-custom-id');
+  if (idEl) idEl.value = nextId;
   
-  // Store target year key in hidden field
-  const keyEl = document.getElementById('nyw-target-key');
-  if (keyEl) keyEl.value = nextId;
+  const fromEl = document.getElementById('nyw-custom-start');
+  if (fromEl) fromEl.value = dates.start || '';
+  
+  const toEl = document.getElementById('nyw-custom-end');
+  if (toEl) toEl.value = dates.end || '';
   
   // Build garden checkbox list grouped by city
   const allGardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
@@ -647,15 +639,34 @@ window.openNewYearWizard = function() {
 };
 
 window.executeNewYear = async function() {
-  const yearId = document.getElementById('nyw-target-key')?.value;
-  if (!yearId) { alert('שגיאה: לא נבחרה שנה.'); return; }
+  const yearIdInput = document.getElementById('nyw-custom-id');
+  const yearNameInput = document.getElementById('nyw-custom-name');
+  const startInput = document.getElementById('nyw-custom-start');
+  const endInput = document.getElementById('nyw-custom-end');
   
-  const yearName = _HEBREW_YEARS[yearId] || yearId;
+  const yearId = yearIdInput?.value.trim().toLowerCase();
+  const yearName = yearNameInput?.value.trim();
+  const startDate = startInput?.value;
+  const endDate = endInput?.value;
   
-  if (!confirm(`האם ליצור את שנת ${yearName}?\n\nהגנים המסומנים יועברו לשנה החדשה.\nהשיבוצים יתאפסו.\nהרכש נשאר גלובלי ולא מושפע.`)) return;
+  if (!yearId) { alert('שגיאה: יש להזין מזהה ייחודי באנגלית.'); return; }
+  if (!/^[a-z0-9_-]+$/.test(yearId)) { alert('שגיאה: המזהה יכול להכיל אותיות באנגלית, מספרים, מקף או קו תחתון בלבד.'); return; }
+  if (!yearName) { alert('שגיאה: יש להזין שם לתקופה/שנה.'); return; }
+  if (!startDate || !endDate) { alert('שגיאה: יש להזין תאריכי התחלה וסיום.'); return; }
+  if (new Date(startDate) > new Date(endDate)) { alert('שגיאה: תאריך ההתחלה לא יכול להיות אחרי תאריך הסיום.'); return; }
+  
+  // Check if already exists in metadata
+  const metaStr = window._safeLS.getItem('ganv5_meta');
+  let meta = metaStr ? JSON.parse(metaStr) : { currentYear: 'tashpav', years: { 'tashpav': { name: 'תשפ"ו (2025-2026)', start: '2025-09-01', end: '2026-08-21' } } };
+  if (meta.years[yearId]) {
+    alert(`שגיאה: מזהה "${yearId}" כבר קיים במערכת.`);
+    return;
+  }
+  
+  if (!confirm(`האם ליצור את "${yearName}"?\n\nהגנים המסומנים יועברו לתקופה החדשה.\nהשיבוצים יתאפסו.\nהרכש נשאר גלובלי ולא מושפע.`)) return;
   
   const execBtn = document.getElementById('nyw-exec-btn');
-  if (execBtn) { execBtn.disabled = true; execBtn.textContent = '⏳ יוצר שנה...'; }
+  if (execBtn) { execBtn.disabled = true; execBtn.textContent = '⏳ יוצר תקופה...'; }
   
   try {
     // 1. Collect selected gardens
@@ -668,7 +679,7 @@ window.executeNewYear = async function() {
     
     if (gardensForNewYear.length === 0) {
       alert('יש לבחור לפחות גן אחד!');
-      if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח שנה חדשה'; }
+      if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח תקופה/קייטנה חדשה'; }
       return;
     }
     
@@ -681,14 +692,14 @@ window.executeNewYear = async function() {
     // 3. Build supEx — deep copy, add __gardens_all
     const newSupEx = JSON.parse(JSON.stringify(window.supEx || {}));
     newSupEx.__gardens_all = gardensForNewYear;
-    // Remove tashpav-specific keys
+    // Remove specific keys
     delete newSupEx.__deleted_sraws_ids;
     delete newSupEx.__phonesVer;
     
-    // 4. Build the new year state
+    // 4. Build the new period state
     const newState = {
       data: {
-        ch: [],  // Empty schedule — will be built from new Excel import
+        ch: [],  // Empty schedule
         pairs: newPairs,
         supEx: newSupEx,
         clusters: JSON.parse(JSON.stringify(window.clusters || {})),
@@ -698,7 +709,7 @@ window.executeNewYear = async function() {
         blockedDates: {},
         gardenBlocks: {},
         activeGardens: [...selectedGardenIds],
-        useSraws: false  // New years always use direct mode (no SRAWS)
+        useSraws: false  // New periods always use direct mode
       },
       ts: Date.now(),
       seq: 1,
@@ -708,12 +719,12 @@ window.executeNewYear = async function() {
     // 5. Save to Firebase
     let tok = null;
     if (window._fbUser) try { tok = await window._fbUser.getIdToken(true); } catch(e) {}
-    if (!tok) { alert('שגיאת אימות — יש להתחבר מחדש.'); if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח שנה חדשה'; } return; }
+    if (!tok) { alert('שגיאת אימות — יש להתחבר מחדש.'); if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח תקופה/קייטנה חדשה'; } return; }
     
     const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
     const url = `${base}/years/${yearId}/data.json?auth=${tok}`;
     
-    showToast('⏳ שומר שנה חדשה לענן...');
+    showToast('⏳ שומר תקופה חדשה לענן...');
     const r = await fetch(url, {
       method: 'PUT',
       headers: {'Content-Type': 'application/json'},
@@ -723,12 +734,20 @@ window.executeNewYear = async function() {
     if (!r.ok) throw new Error('Firebase PUT failed: ' + r.status);
     
     // 6. Update meta in localStorage
-    const metaStr = window._safeLS.getItem('ganv5_meta');
-    let meta = metaStr ? JSON.parse(metaStr) : { currentYear: 'tashpav', years: { 'tashpav': { name: _HEBREW_YEARS['tashpav'] } } };
-    const dates = _getNextYearDates(yearId);
-    meta.years[yearId] = { name: _HEBREW_YEARS[yearId] || yearId, start: dates.start, end: dates.end };
-    // Do NOT change currentYear — user switches manually
+    meta.years[yearId] = { name: yearName, start: startDate, end: endDate };
     window._safeLS.setItem('ganv5_meta', JSON.stringify(meta));
+    
+    // Save years metadata globally to Firebase
+    try {
+      const metaUrl = `${base}/years_meta.json?auth=${tok}`;
+      await fetch(metaUrl, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(meta)
+      });
+    } catch(e) {
+      console.warn('Failed to save years metadata to Firebase:', e);
+    }
     
     // 7. Also save to localStorage for the new year
     window._safeLS.setItem('ganv5_y_' + yearId, JSON.stringify(newState.data));
@@ -740,14 +759,14 @@ window.executeNewYear = async function() {
     // 9. Refresh year selector
     if (window.initYearSelector) window.initYearSelector();
     
-    alert(`✅ שנת ${yearName} נוצרה בהצלחה!\n\n${gardensForNewYear.length} גנים הועברו.\n${newPairs.length} זוגות הועברו.\n\nכדי לעבור לשנה החדשה, בחר אותה מתפריט השנה בראש המסך.`);
-    showToast('✅ שנה חדשה נוצרה — עבור דרך בורר השנה');
+    alert(`✅ התקופה/קייטנה "${yearName}" נוצרה בהצלחה!\n\n${gardensForNewYear.length} גנים הועברו.\n${newPairs.length} זוגות הועברו.\n\nכדי לעבור לתקופה החדשה, בחר אותה מתפריט השנה בראש המסך.`);
+    showToast('✅ שנה/תקופה חדשה נוצרה — עבור דרך בורר השנה');
     
   } catch(e) {
-    console.error('New year creation failed:', e);
-    alert('❌ שגיאה ביצירת השנה: ' + e.message);
+    console.error('Creation failed:', e);
+    alert('❌ שגיאה ביצירת התקופה: ' + e.message);
   } finally {
-    if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח שנה חדשה'; }
+    if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח תקופה/קייטנה חדשה'; }
   }
 };
 
