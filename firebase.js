@@ -50,19 +50,19 @@ function _setSyncState(seq, ts, error = null, isLoad = false) {
 function _fbUpdateStatus() {
   const btn = document.getElementById('od-btn');
   if (!btn) return;
-  
+
   if (_fbSyncing) {
     btn.innerHTML = '🔄 מסנכרן...';
     btn.style.background = '#e65100';
     return;
   }
-  
+
   if (_fbLastError) {
     btn.innerHTML = '❌ שגיאת סנכרון<br><span style="font-size:.6rem">' + _fbLastError + '</span>';
     btn.style.background = '#c62828';
     return;
   }
-  
+
   const ageSec = Math.floor((Date.now() - _lastSyncTs) / 1000);
   if (_lastSyncTs && ageSec < 120) {
     btn.innerHTML = '☁️ מעודכן ✓<br><span style="font-size:.6rem">הרגע</span>';
@@ -81,19 +81,19 @@ async function doLogin() {
   const u = (document.getElementById('auth-username').value || '').trim().toLowerCase();
   const p = (document.getElementById('auth-password').value || '');
   if (!u || !p) { alert('נא למלא שם משתמש וסיסמה'); return; }
-  
+
   try {
     const btn = document.getElementById('auth-login-btn');
     btn.disabled = true; btn.textContent = 'מתחבר...';
     await window._fbSignIn(u, p, document.getElementById('auth-remember').checked);
-  } catch(e) {
+  } catch (e) {
     alert('שגיאת התחברות: ' + e.message);
     location.reload();
   }
 }
 
 // Helper to sanitize supplier names for Firebase Database keys (removes . $ # [ ] /)
-window.cleanSupplierNamesBeforeSave = function() {
+window.cleanSupplierNamesBeforeSave = function () {
   if (typeof window.supEx === 'undefined') return;
   const clean = (s) => String(s || '').replace(/[.$#[\]/]/g, '').trim();
 
@@ -189,30 +189,30 @@ async function saveToFirebase(silent = false, force = false) {
     // Increment Sequence
     const newSeq = _localSeq + 1;
     const payload = { data: liveData, ts: Date.now(), seq: newSeq, version: '3.0' };
-    
+
     let tok = await window._fbUser?.getIdToken(true);
     const url = getFirebaseDbUrl() + (tok ? '?auth=' + tok : '');
-    
+
     // CRITICAL: Use PATCH instead of PUT to prevent deleting sibling paths under /data (like invoices)
     const r = await fetch(url, {
       method: 'PATCH',
-      headers: {'Content-Type': 'application/json'},
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    
+
     // Save Invoices Separately — always save if we have invoice data (no _fbSyncReady gate)
     if (Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
       const invUrl = getFirebaseInvoicesUrl() + (tok ? '?auth=' + tok : '');
-      await fetch(invUrl, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(window.INVOICES) });
+      await fetch(invUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.INVOICES) });
       console.log('[Sync] Invoices saved:', window.INVOICES.length);
     }
 
     _setSyncState(newSeq, Date.now(), null, false);
     console.log('[Sync] Saved v' + newSeq + ' (' + (liveData.ch?.length || 0) + ' records)');
     return true;
-  } catch(e) {
+  } catch (e) {
     _setSyncState(null, null, e.message, false);
     console.error('[Sync] Save failed:', e.message);
     return false;
@@ -236,10 +236,10 @@ async function loadFromFirebase(silent = false, force = false) {
   try {
     let tok = await window._fbUser?.getIdToken(false);
     const url = getFirebaseDbUrl() + (tok ? '?auth=' + tok : '');
-    
+
     const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'cb=' + Date.now());
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    
+
     const cloud = await r.json();
     if (!cloud || !cloud.seq) return true;
 
@@ -254,16 +254,16 @@ async function loadFromFirebase(silent = false, force = false) {
     if (!ir.ok) throw new Error('Invoices HTTP ' + ir.status);
     const invs = await ir.json();
     let cloudInvs = Array.isArray(invs) ? invs : Object.values(invs || {});
-    
+
     // Merge: preserve local file links (file_order, file_tx, file_tax) that may not be in cloud yet
     if (Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
       const localById = {};
-      window.INVOICES.forEach(inv => { if(inv.id) localById[inv.id] = inv; });
+      window.INVOICES.forEach(inv => { if (inv.id) localById[inv.id] = inv; });
       cloudInvs = cloudInvs.map(ci => {
         const local = localById[ci.id];
         if (!local) return ci;
         // Preserve file links from local if cloud doesn't have them
-        ['file_order','file_tx','file_tax'].forEach(fk => {
+        ['file_order', 'file_tx', 'file_tax'].forEach(fk => {
           if (local[fk] && local[fk].path && (!ci[fk] || !ci[fk].path)) {
             ci[fk] = local[fk];
           }
@@ -274,7 +274,7 @@ async function loadFromFirebase(silent = false, force = false) {
     cloud.data.invoices = cloudInvs;
 
     window._fbAppData = cloud.data;
-    
+
     // Restore scanner metadata
     window.spScannerAliases = cloud.data.spScannerAliases || {};
     window.spScannerFolderLinks = cloud.data.spScannerFolderLinks || {};
@@ -282,11 +282,11 @@ async function loadFromFirebase(silent = false, force = false) {
     if (window._applyYearData) {
       window._applyYearData(cloud.data);
     }
-    
+
     _setSyncState(cloud.seq, Date.now(), null, true);
     window._fbSyncReady = true;
     return true;
-  } catch(e) {
+  } catch (e) {
     _setSyncState(null, null, e.message, true);
     return false;
   } finally {
@@ -316,7 +316,7 @@ window.loadFromFirebase = loadFromFirebase;
 window._fbStartPolling = _fbStartPolling;
 window._fbStopPolling = _fbStopPolling;
 
-window._onAuthReady = async function() {
+window._onAuthReady = async function () {
   await loadFromFirebase();
   _fbStartPolling();
 };
