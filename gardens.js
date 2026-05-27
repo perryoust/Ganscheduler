@@ -1013,7 +1013,7 @@ function openExport(){
   // Dynamic Date Range expansion if exporting a single day that has a linked postponement
   if (!isWeek && gids && gids.length) {
     const listGids = gids.map(Number);
-    let otherDate = '';
+    let targetDate = '';
     
     // Find any event for these gardens on todayStr that is postponed or has a linked event
     const todayEvents = SCH.filter(s => listGids.includes(Number(s.g)) && s.d === todayStr);
@@ -1021,16 +1021,16 @@ function openExport(){
     for (let s of todayEvents) {
       // 1. If today's event is postponed to another day (Wednesday -> Thursday)
       if (s.pd && s.pd !== todayStr) {
-        otherDate = s.pd;
+        targetDate = s.pd;
         break;
       }
       // 2. If today's event is postponed from another day (Thursday -> Wednesday)
       if (s._postFrom && s._postFrom !== todayStr) {
-        otherDate = s._postFrom;
+        targetDate = s.d;
         break;
       }
       if (s._makeupFrom && s._makeupFrom !== todayStr) {
-        otherDate = s._makeupFrom;
+        targetDate = s.d;
         break;
       }
       
@@ -1050,24 +1050,27 @@ function openExport(){
         }
       }
       if (parsedDate && parsedDate !== todayStr) {
-        otherDate = parsedDate;
+        if (s.st === 'nohap' || s.st === 'can') {
+          targetDate = parsedDate;
+        } else {
+          targetDate = s.d;
+        }
         break;
       }
     }
     
     // 4. If we are on the target day (Thursday), but the event does not have _postFrom/notes pointing to it,
     // look for the original event (Wednesday) that has pd === todayStr (Thursday)
-    if (!otherDate) {
+    if (!targetDate) {
       const origEvent = SCH.find(fs => listGids.includes(Number(fs.g)) && fs.pd === todayStr && fs.d !== todayStr);
       if (origEvent) {
-        otherDate = origEvent.d;
+        targetDate = todayStr;
       }
     }
     
-    if (otherDate) {
-      const dates = [todayStr, otherDate].sort();
-      d1Val = dates[0];
-      d2Val = dates[1];
+    if (targetDate) {
+      d1Val = targetDate;
+      d2Val = targetDate;
     }
   }
   
