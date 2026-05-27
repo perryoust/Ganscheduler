@@ -1122,14 +1122,44 @@ function genExport(){
   const refStr = getRefDateStr(rel, rel[0]?.d || from);
 
   let headerTitle = '';
+  const getTargetDayStr = (targetDate, refDate) => {
+    try {
+      const tDateObj = typeof window.s2d === 'function' ? window.s2d(targetDate) : new Date(targetDate.split('-')[0], targetDate.split('-')[1]-1, targetDate.split('-')[2]);
+      const rDateObj = typeof window.s2d === 'function' ? window.s2d(refDate) : new Date(refDate.split('-')[0], refDate.split('-')[1]-1, refDate.split('-')[2]);
+      if (isNaN(tDateObj)) return '';
+      const dName = typeof window.dayN === 'function' ? window.dayN(targetDate) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][tDateObj.getDay()];
+      
+      const wStart = (d) => { const x=new Date(d); x.setDate(x.getDate() - x.getDay()); return x.getTime(); };
+      if (wStart(tDateObj) === wStart(rDateObj)) {
+        return `ליום ${dName}`;
+      } else {
+        return `ליום ${dName} ${tDateObj.getDate().toString().padStart(2,'0')}/${(tDateObj.getMonth()+1).toString().padStart(2,'0')}`;
+      }
+    } catch(e) { return ''; }
+  };
+
   if (isAllPreponed) {
-    headerTitle = refStr ? `*הקדמה מ${refStr}*\n` : '*הקדמה*\n';
+    const targetStr = rel[0] && refStr ? getTargetDayStr(rel[0].d, rel[0]._postFrom || rel[0]._makeupFrom || rel[0].d) : '';
+    headerTitle = refStr ? `*הקדמה מ${refStr}${targetStr ? ' ' + targetStr : ''}*\n` : '*הקדמה*\n';
   } else if (isAllPostponed) {
-    headerTitle = refStr ? `*נדחה מ${refStr}*\n` : '*נדחה*\n';
+    // Look up the actual original reference date to compute original->new
+    let originalDate = '';
+    for (let s of rel) {
+      originalDate = s._postFrom || s._makeupFrom || null;
+      if (!originalDate) {
+        const txt = (s.nt || '') + ' ' + (s.n || '');
+        const m1 = txt.match(/(\d{4})-(\d{2})-(\d{2})/);
+        if (m1) originalDate = m1[0];
+      }
+      if (originalDate) break;
+    }
+    const targetStr = rel[0] && originalDate ? getTargetDayStr(rel[0].d, originalDate) : '';
+    headerTitle = refStr ? `*נדחה מ${refStr}${targetStr ? ' ' + targetStr : ''}*\n` : '*נדחה*\n';
   } else if (isAllPreponedOut) {
     headerTitle = refStr ? `*לא מתקיים - הוקדם ל${refStr}*\n` : '*לא מתקיים - הוקדם*\n';
   } else if (isAllMakeup) {
-    headerTitle = refStr ? `*השלמה מ${refStr}*\n` : '*השלמה*\n';
+    const targetStr = rel[0] && refStr ? getTargetDayStr(rel[0].d, rel[0]._postFrom || rel[0]._makeupFrom || rel[0].d) : '';
+    headerTitle = refStr ? `*השלמה מ${refStr}${targetStr ? ' ' + targetStr : ''}*\n` : '*השלמה*\n';
   } else if (isAllNohap) {
     headerTitle = '*לא מתקיים*\n';
   } else if (isAllCan) {
