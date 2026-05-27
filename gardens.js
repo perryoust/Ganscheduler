@@ -1227,7 +1227,7 @@ function genExport(){
     }
     
     // Fallback: if we only have 1 date loaded or couldn't find mutual links within rel, use individual event properties
-    if (!forwardTargetDate && !backwardOriginalDate) {
+    if (!forwardTargetDate && !backwardOriginalDate && rel.length > 0) {
       const s0 = rel[0];
       if (s0.pd && s0.pd !== s0.d) {
         backwardOriginalDate = s0.d;
@@ -1235,6 +1235,20 @@ function genExport(){
       } else if (s0._postFrom && s0._postFrom !== s0.d) {
         backwardOriginalDate = s0._postFrom;
         forwardTargetDate = s0.d;
+      } else {
+        // Look up in the entire SCH for any postponed event in the same garden pointing to s0.d
+        const origEvent = SCH.find(fs => Number(fs.g) === Number(s0.g) && fs.pd === s0.d && fs.d !== s0.d);
+        if (origEvent) {
+          backwardOriginalDate = origEvent.d;
+          forwardTargetDate = s0.d;
+        } else {
+          // Look up if s0 is the original event that has been postponed to a target day in SCH
+          const targetEv = SCH.find(fs => Number(fs.g) === Number(s0.g) && fs.d === s0.pd && fs.d !== s0.d);
+          if (targetEv) {
+            backwardOriginalDate = s0.d;
+            forwardTargetDate = targetEv.d;
+          }
+        }
       }
     }
   }

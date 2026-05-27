@@ -457,7 +457,7 @@ var CITY_COLORS=window.CITY_COLORS;
 function renderMakeupsTop(ds, cityFilter='', clsFilter='', collapseAll=false){
   const f={city:cityFilter, cls:clsFilter};
   const evs = (typeof filterE === 'function' ? filterE(f, ds, ds) : []).filter(s => {
-    return !!(s.st === 'can' || s.st === 'nohap' || s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
+    return !!(s.st === 'can' || s.st === 'nohap' || s.st === 'post' || s._postFrom || s.pd || s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
   });
   if(!evs.length) return '';
 
@@ -477,7 +477,7 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter='', collapseAll=false){
       <summary style="display:flex; align-items:center; justify-content:space-between; cursor:pointer; list-style:none; outline:none; font-weight:800; color:#1565c0; font-size:0.75rem; padding:4px 8px; user-select:none">
         <div style="display:flex; align-items:center; gap:6px">
           <span style="font-size:0.9rem">🔄</span>
-          <span>השלמות וביטולים (${evs.length})</span>
+          <span>השלמות ושינויים (${evs.length})</span>
         </div>
         <span style="font-size:0.65rem; color:#1565c0; font-weight:700">▼ לחץ לפירוט</span>
       </summary>
@@ -487,7 +487,7 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter='', collapseAll=false){
       <div style="font-weight:800; color:var(--c-primary, #1a237e); margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:0.92rem; padding:0 2px">
         <div style="display:flex; align-items:center; gap:8px">
           <span style="font-size:1.2rem">📅</span>
-          <span>השלמות וביטולים להיום</span>
+          <span>השלמות ושינויים להיום</span>
         </div>
         <span style="font-size:0.7rem; color:var(--c-text-light, #546e7a); font-weight:600; background:rgba(21,101,192,0.08); padding:2px 8px; border-radius:12px">${window.fD(ds)}</span>
       </div>`;
@@ -500,24 +500,25 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter='', collapseAll=false){
     h += `<details class="city-accordion" style="margin-bottom:6px; border-color:rgba(21,101,192,0.2)">
       <summary style="padding:10px 14px; background:#fff">
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-          <span style="font-weight:800; color:var(--c-primary, #1a237e); font-size:0.86rem">🏙️ ${city} <span style="font-weight:400; font-size:0.75rem; color:#666; margin-right:6px">(${cityEvs.length} השלמות/ביטולים)</span></span>
+          <span style="font-weight:800; color:var(--c-primary, #1a237e); font-size:0.86rem">🏙️ ${city} <span style="font-weight:400; font-size:0.75rem; color:#666; margin-right:6px">(${cityEvs.length} השלמות/שינויים)</span></span>
         </div>
       </summary>
       <div class="city-accordion-content" style="padding:8px">`;
 
-    // --- זוגות: מיון לפי שעה הכי מוקדמת בזוג ---
+    // --- זוגות: מיון לפי שם ואז לפי שעה ---
     const pairedGids=new Set();
     const pairBlocks=[];
     window.pairs.forEach(pair=>{
       if(window.isPairBroken(pair.id,ds)) return;
       const pairEvs=cityEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g)));
       if(!pairEvs.length) return;
+      pairEvs.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
       pair.ids.forEach(id=>pairedGids.add(id));
       const earliest=pairEvs.map(s=>s.t||'99:99').sort()[0];
       pairBlocks.push({pair,pairEvs,earliest});
     });
-    // sort pair blocks by earliest event time
-    pairBlocks.sort((a,b)=>a.earliest.localeCompare(b.earliest));
+    // sort pair blocks by name alphabetically
+    pairBlocks.sort((a,b)=>a.pair.name.localeCompare(b.pair.name,'he'));
     if(pairBlocks.length){
       h+=`<div class="pairs-list-layout" style="margin-bottom:8px">`;
       pairBlocks.forEach(({pair,pairEvs})=>{
@@ -619,7 +620,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
             </summary>
             <div class="city-accordion-content">`;
 
-          // --- זוגות: מיון לפי שעה הכי מוקדמת בזוג ---
+          // --- זוגות: מיון לפי שם ואז לפי שעה ---
           const pairedGids=new Set();
           const pairBlocks=[];
           window.pairs.forEach(pair=>{
@@ -627,12 +628,13 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
             const pairEvs=typeEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g)));
             if(!pairEvs.length) return;
             pairEvs.forEach(s => dateUsedIds.add(String(s.id)));
+            pairEvs.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
             pair.ids.forEach(id=>pairedGids.add(id));
             const earliest=pairEvs.map(s=>s.t||'99:99').sort()[0];
             pairBlocks.push({pair,pairEvs,earliest});
           });
-          // sort pair blocks by earliest event time
-          pairBlocks.sort((a,b)=>a.earliest.localeCompare(b.earliest));
+          // sort pair blocks by name alphabetically
+          pairBlocks.sort((a,b)=>a.pair.name.localeCompare(b.pair.name,'he'));
           if(pairBlocks.length){
             html+=`<div class="pairs-list-layout" style="margin-bottom:8px">`;
             pairBlocks.forEach(({pair,pairEvs})=>{
