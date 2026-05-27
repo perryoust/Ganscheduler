@@ -1207,9 +1207,11 @@ function genExport(){
         
         const wStart = (d) => { const x=new Date(d); x.setDate(x.getDate() - x.getDay()); return x.getTime(); };
         
+        const currentCalDateStr = typeof window.d2s === 'function' ? window.d2s(window.calD) : new Date(window.calD).toISOString().split('T')[0];
+        
         if (wStart(oDateObj) === wStart(tDateObj)) {
           // SAME WEEK
-          if (rel[0].d === backwardOriginalDate) {
+          if (currentCalDateStr === backwardOriginalDate) {
             // We are exporting from the ORIGINAL day (Wednesday) -> Show target (Thursday)
             customRefStr = `יום ${dNameOriginal}`;
             customTargetStr = ` ליום ${dNameTarget}`;
@@ -1220,7 +1222,7 @@ function genExport(){
           }
         } else {
           // DIFFERENT WEEK
-          if (rel[0].d === backwardOriginalDate) {
+          if (currentCalDateStr === backwardOriginalDate) {
             // We are exporting from the ORIGINAL day (Wednesday) -> Show target date + original date
             customRefStr = `יום ${dNameOriginal} ${oDateObj.getDate().toString().padStart(2,'0')}/${(oDateObj.getMonth()+1).toString().padStart(2,'0')}`;
             customTargetStr = ` ליום ${dNameTarget} ${tDateObj.getDate().toString().padStart(2,'0')}/${(tDateObj.getMonth()+1).toString().padStart(2,'0')}`;
