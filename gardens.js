@@ -1138,38 +1138,70 @@ function genExport(){
     } catch(e) { return ''; }
   };
 
+  // Find linked forward/backward postponement dates dynamically
+  let forwardTargetDate = '';
+  let backwardOriginalDate = '';
+  
+  if (rel.length > 0) {
+    const s0 = rel[0];
+    const s0EvType = getEvType(s0);
+    
+    // If it's a nohap/cancelled/normal event on the original day, check if it has a postponed/makeup counterpart in the future
+    if (s0EvType === 'nohap' || s0.st === 'nohap') {
+      const futureCon = SCH.find(fs => fs.st === 'ok' && fs.g === s0.g && fs.a === s0.a && (fs._postFrom === s0.d || fs._makeupFrom === s0.d));
+      if (futureCon) {
+        forwardTargetDate = futureCon.d;
+        backwardOriginalDate = s0.d;
+      }
+    } else if (s0EvType === 'postponed' || s0._postFrom) {
+      backwardOriginalDate = s0._postFrom;
+      forwardTargetDate = s0.d;
+    }
+  }
+
   if (isAllPreponed) {
     const targetStr = rel[0] && refStr ? getTargetDayStr(rel[0].d, rel[0]._postFrom || rel[0]._makeupFrom || rel[0].d) : '';
     headerTitle = refStr ? `*הקדמה מ${refStr}${targetStr ? ' ' + targetStr : ''}*\n` : '*הקדמה*\n';
-  } else if (isAllPostponed) {
-    // Look up the actual original reference date to compute original->new
-    let originalDate = '';
-    for (let s of rel) {
-      originalDate = s._postFrom || s._makeupFrom || null;
-      if (!originalDate) {
-        const txt = (s.nt || '') + ' ' + (s.n || '');
-        const m1 = txt.match(/(\d{4})-(\d{2})-(\d{2})/);
-        if (m1) originalDate = m1[0];
-      }
-      if (originalDate) break;
-    }
+  } else if (isAllPostponed || (forwardTargetDate && backwardOriginalDate)) {
+    let customRefStr = '';
+    let customTargetStr = '';
     
-    // Check if original and target are in different weeks to force date display on original refStr
-    let customRefStr = refStr;
-    if (originalDate && rel[0]) {
+    if (forwardTargetDate && backwardOriginalDate) {
       try {
-        const oDateObj = typeof window.s2d === 'function' ? window.s2d(originalDate) : new Date(originalDate.split('-')[0], originalDate.split('-')[1]-1, originalDate.split('-')[2]);
-        const tDateObj = typeof window.s2d === 'function' ? window.s2d(rel[0].d) : new Date(rel[0].d.split('-')[0], rel[0].d.split('-')[1]-1, rel[0].d.split('-')[2]);
+        const oDateObj = typeof window.s2d === 'function' ? window.s2d(backwardOriginalDate) : new Date(backwardOriginalDate.split('-')[0], backwardOriginalDate.split('-')[1]-1, backwardOriginalDate.split('-')[2]);
+        const tDateObj = typeof window.s2d === 'function' ? window.s2d(forwardTargetDate) : new Date(forwardTargetDate.split('-')[0], forwardTargetDate.split('-')[1]-1, forwardTargetDate.split('-')[2]);
+        const dNameOriginal = typeof window.dayN === 'function' ? window.dayN(backwardOriginalDate) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][oDateObj.getDay()];
+        const dNameTarget = typeof window.dayN === 'function' ? window.dayN(forwardTargetDate) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][tDateObj.getDay()];
+        
         const wStart = (d) => { const x=new Date(d); x.setDate(x.getDate() - x.getDay()); return x.getTime(); };
-        if (wStart(oDateObj) !== wStart(tDateObj)) {
-          const dName = typeof window.dayN === 'function' ? window.dayN(originalDate) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][oDateObj.getDay()];
-          customRefStr = `יום ${dName} ${oDateObj.getDate().toString().padStart(2,'0')}/${(oDateObj.getMonth()+1).toString().padStart(2,'0')}`;
+        
+        if (wStart(oDateObj) === wStart(tDateObj)) {
+          // SAME WEEK
+          if (rel[0].d === backwardOriginalDate) {
+            // We are exporting from the ORIGINAL day (Wednesday) -> Show target (Thursday)
+            customRefStr = `יום ${dNameOriginal}`;
+            customTargetStr = ` ליום ${dNameTarget}`;
+          } else {
+            // We are exporting from the TARGET day (Thursday) -> Show only original (Wednesday)
+            customRefStr = `יום ${dNameOriginal}`;
+            customTargetStr = '';
+          }
+        } else {
+          // DIFFERENT WEEK
+          if (rel[0].d === backwardOriginalDate) {
+            // We are exporting from the ORIGINAL day (Wednesday) -> Show target date + original date
+            customRefStr = `יום ${dNameOriginal} ${oDateObj.getDate().toString().padStart(2,'0')}/${(oDateObj.getMonth()+1).toString().padStart(2,'0')}`;
+            customTargetStr = ` ליום ${dNameTarget} ${tDateObj.getDate().toString().padStart(2,'0')}/${(tDateObj.getMonth()+1).toString().padStart(2,'0')}`;
+          } else {
+            // We are exporting from the TARGET day (Thursday) -> Show only original date
+            customRefStr = `יום ${dNameOriginal} ${oDateObj.getDate().toString().padStart(2,'0')}/${(oDateObj.getMonth()+1).toString().padStart(2,'0')}`;
+            customTargetStr = '';
+          }
         }
       } catch(e) {}
     }
     
-    const targetStr = rel[0] && originalDate ? getTargetDayStr(rel[0].d, originalDate) : '';
-    headerTitle = customRefStr ? `*נדחה מ${customRefStr}${targetStr ? ' ' + targetStr : ''}*\n` : '*נדחה*\n';
+    headerTitle = customRefStr ? `*נדחה מ${customRefStr}${customTargetStr}*\n` : '*נדחה*\n';
   } else if (isAllPreponedOut) {
     headerTitle = refStr ? `*לא מתקיים - הוקדם ל${refStr}*\n` : '*לא מתקיים - הוקדם*\n';
   } else if (isAllMakeup) {
