@@ -970,9 +970,7 @@ function renderNormalDay(evs,ds){
 
     Object.keys(cityCards).sort().forEach(city=>{
       cityCards[city].sort((a,b)=>a.name.localeCompare(b.name,'he'));
-      cardsByCity[city] = cityCards[city].map(c=>c.html);
-    });
-      const cards = cardsByCity[city];
+      const cards = cityCards[city].map(c=>c.html);
       if(!cards || !cards.length) return;
       html += `<details class="city-accordion">
         <summary>
