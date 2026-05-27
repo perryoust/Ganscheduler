@@ -399,6 +399,17 @@ window.spBatchStatus = function(st) {
   const ids = window.spGetSelectedIds();
   ids.forEach(id => window.setStatus(id, st));
 };
+function cleanMakeupNote(orig, dateStr) {
+  const formattedDate = typeof window.fD === 'function' ? window.fD(dateStr) : dateStr;
+  const targetStr = 'השלמה נקבעה ל-' + formattedDate;
+  
+  if (orig.nt) {
+    orig.nt = orig.nt.split(' | ').filter(part => !part.includes(targetStr)).join(' | ').trim();
+  }
+  if (orig.n) {
+    orig.n = orig.n.split(' | ').filter(part => !part.includes(targetStr)).join(' | ').trim();
+  }
+}
 
 window.spBatchDelete = function() {
   const ids = window.spGetSelectedIds();
@@ -420,6 +431,7 @@ window.spBatchDelete = function() {
     if (origEvs.length > 0) {
       origEvs.forEach(orig => {
         orig._compByMakeup = '';
+        cleanMakeupNote(orig, s.d);
       });
     }
     
@@ -1176,6 +1188,7 @@ function deleteSingleActivity(id) {
   if (origEvs.length > 0) {
     origEvs.forEach(orig => {
       orig._compByMakeup = '';
+      cleanMakeupNote(orig, s.d);
     });
   }
   
@@ -1192,6 +1205,7 @@ function deleteSingleActivity(id) {
         if (pOrigEvs.length > 0) {
           pOrigEvs.forEach(orig => {
             orig._compByMakeup = '';
+            cleanMakeupNote(orig, pEv.d);
           });
         }
       }
