@@ -1013,27 +1013,61 @@ function openExport(){
   // Dynamic Date Range expansion if exporting a single day that has a linked postponement
   if (!isWeek && gids && gids.length) {
     const listGids = gids.map(Number);
-    // Find if there is a postponement linked to today
-    const linkedEvent = SCH.find(s => listGids.includes(Number(s.g)) && (
-      (s.d === todayStr && (s._postFrom || s._makeupFrom)) || 
-      SCH.some(fs => fs.g === s.g && fs.a === s.a && (fs._postFrom === todayStr || fs._makeupFrom === todayStr))
-    ));
+    let otherDate = '';
     
-    if (linkedEvent) {
-      // Find the other date
-      let otherDate = '';
-      if (linkedEvent._postFrom || linkedEvent._makeupFrom) {
-        otherDate = linkedEvent._postFrom || linkedEvent._makeupFrom;
-      } else {
-        const futureEv = SCH.find(fs => fs.g === linkedEvent.g && fs.a === linkedEvent.a && (fs._postFrom === linkedEvent.d || fs._makeupFrom === linkedEvent.d));
-        if (futureEv) otherDate = futureEv.d;
+    // Find any event for these gardens on todayStr that is postponed or has a linked event
+    const todayEvents = SCH.filter(s => listGids.includes(Number(s.g)) && s.d === todayStr);
+    
+    for (let s of todayEvents) {
+      // 1. If today's event is postponed to another day (Wednesday -> Thursday)
+      if (s.pd && s.pd !== todayStr) {
+        otherDate = s.pd;
+        break;
+      }
+      // 2. If today's event is postponed from another day (Thursday -> Wednesday)
+      if (s._postFrom && s._postFrom !== todayStr) {
+        otherDate = s._postFrom;
+        break;
+      }
+      if (s._makeupFrom && s._makeupFrom !== todayStr) {
+        otherDate = s._makeupFrom;
+        break;
       }
       
-      if (otherDate) {
-        const dates = [todayStr, otherDate].sort();
-        d1Val = dates[0];
-        d2Val = dates[1];
+      // 3. Look at notes/comments for date patterns
+      const txt = (s.nt || '') + ' ' + (s.n || '') + ' ' + (s.cn || '');
+      const m1 = txt.match(/(\d{4})-(\d{2})-(\d{2})/);
+      let parsedDate = '';
+      if (m1) parsedDate = m1[0];
+      else {
+        const m2 = txt.match(/(\d{1,2})[./\-](\d{1,2})([./\-]\d{2,4})?/);
+        if (m2) {
+          const rawY = m2[3] ? m2[3].replace(/[./\-]/g, '') : '';
+          const y = rawY ? (rawY.length === 2 ? '20' + rawY : rawY) : new Date(s.d).getFullYear();
+          const m = m2[2].padStart(2, '0');
+          const d = m2[1].padStart(2, '0');
+          parsedDate = `${y}-${m}-${d}`;
+        }
       }
+      if (parsedDate && parsedDate !== todayStr) {
+        otherDate = parsedDate;
+        break;
+      }
+    }
+    
+    // 4. If we are on the target day (Thursday), but the event does not have _postFrom/notes pointing to it,
+    // look for the original event (Wednesday) that has pd === todayStr (Thursday)
+    if (!otherDate) {
+      const origEvent = SCH.find(fs => listGids.includes(Number(fs.g)) && fs.pd === todayStr && fs.d !== todayStr);
+      if (origEvent) {
+        otherDate = origEvent.d;
+      }
+    }
+    
+    if (otherDate) {
+      const dates = [todayStr, otherDate].sort();
+      d1Val = dates[0];
+      d2Val = dates[1];
     }
   }
   
@@ -1175,19 +1209,30 @@ function genExport(){
   let backwardOriginalDate = '';
   
   if (rel.length > 0) {
-    const s0 = rel[0];
-    const s0EvType = getEvType(s0);
-    
-    // If it's a nohap/cancelled/normal event on the original day, check if it has a postponed/makeup counterpart in the future
-    if (s0EvType === 'nohap' || s0.st === 'nohap') {
-      const futureCon = SCH.find(fs => fs.st !== 'can' && fs.st !== 'nohap' && fs.g === s0.g && fs.a === s0.a && (fs._postFrom === s0.d || fs._makeupFrom === s0.d));
-      if (futureCon) {
-        forwardTargetDate = futureCon.d;
-        backwardOriginalDate = s0.d;
+    // Search if there is any event in rel that points to another date in rel
+    for (let s of rel) {
+      if (s._postFrom && rel.some(x => x.d === s._postFrom)) {
+        backwardOriginalDate = s._postFrom;
+        forwardTargetDate = s.d;
+        break;
       }
-    } else if (s0EvType === 'postponed' || s0._postFrom) {
-      backwardOriginalDate = s0._postFrom;
-      forwardTargetDate = s0.d;
+      if (s.pd && rel.some(x => x.d === s.pd)) {
+        backwardOriginalDate = s.d;
+        forwardTargetDate = s.pd;
+        break;
+      }
+    }
+    
+    // Fallback: if we only have 1 date loaded or couldn't find mutual links within rel, use individual event properties
+    if (!forwardTargetDate && !backwardOriginalDate) {
+      const s0 = rel[0];
+      if (s0.pd && s0.pd !== s0.d) {
+        backwardOriginalDate = s0.d;
+        forwardTargetDate = s0.pd;
+      } else if (s0._postFrom && s0._postFrom !== s0.d) {
+        backwardOriginalDate = s0._postFrom;
+        forwardTargetDate = s0.d;
+      }
     }
   }
 

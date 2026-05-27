@@ -1,4 +1,4 @@
-window.APP_VERSION = '103.43';
+window.APP_VERSION = '103.84';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── Platform Detection ──
@@ -501,6 +501,7 @@ function _applyYearData(o){
       _makeupFrom: x._makeupFrom || '',
       _compByMakeup: x._compByMakeup || '',
       _fromD: x._fromD || '',
+      _postFrom: x._postFrom || '',
       _isImported: x._isImported || false
     }));
   } else {
