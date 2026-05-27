@@ -1013,19 +1013,19 @@ function openExport(){
   // Dynamic Date Range expansion if exporting a single day that has a linked postponement
   if (!isWeek && gids && gids.length) {
     const listGids = gids.map(Number);
-    // Find if there is a postponement linked to today (either pointing back to today from future, or today pointing back to past)
+    // Find if there is a postponement linked to today
     const linkedEvent = SCH.find(s => listGids.includes(Number(s.g)) && (
       (s.d === todayStr && (s._postFrom || s._makeupFrom)) || 
-      (s.st === 'nohap' && SCH.some(fs => fs.st === 'ok' && fs.g === s.g && fs.a === s.a && (fs._postFrom === todayStr || fs._makeupFrom === todayStr)))
+      SCH.some(fs => fs.g === s.g && fs.a === s.a && (fs._postFrom === todayStr || fs._makeupFrom === todayStr))
     ));
     
     if (linkedEvent) {
       // Find the other date
       let otherDate = '';
-      if (linkedEvent.d === todayStr) {
+      if (linkedEvent._postFrom || linkedEvent._makeupFrom) {
         otherDate = linkedEvent._postFrom || linkedEvent._makeupFrom;
       } else {
-        const futureEv = SCH.find(fs => fs.st === 'ok' && fs.g === linkedEvent.g && fs.a === linkedEvent.a && (fs._postFrom === todayStr || fs._makeupFrom === todayStr));
+        const futureEv = SCH.find(fs => fs.g === linkedEvent.g && fs.a === linkedEvent.a && (fs._postFrom === linkedEvent.d || fs._makeupFrom === linkedEvent.d));
         if (futureEv) otherDate = futureEv.d;
       }
       
@@ -1180,7 +1180,7 @@ function genExport(){
     
     // If it's a nohap/cancelled/normal event on the original day, check if it has a postponed/makeup counterpart in the future
     if (s0EvType === 'nohap' || s0.st === 'nohap') {
-      const futureCon = SCH.find(fs => fs.st === 'ok' && fs.g === s0.g && fs.a === s0.a && (fs._postFrom === s0.d || fs._makeupFrom === s0.d));
+      const futureCon = SCH.find(fs => fs.st !== 'can' && fs.st !== 'nohap' && fs.g === s0.g && fs.a === s0.a && (fs._postFrom === s0.d || fs._makeupFrom === s0.d));
       if (futureCon) {
         forwardTargetDate = futureCon.d;
         backwardOriginalDate = s0.d;
@@ -1207,7 +1207,7 @@ function genExport(){
         
         const wStart = (d) => { const x=new Date(d); x.setDate(x.getDate() - x.getDay()); return x.getTime(); };
         
-        const currentCalDateStr = typeof window.d2s === 'function' ? window.d2s(window.calD) : new Date(window.calD).toISOString().split('T')[0];
+        const currentCalDateStr = typeof d2s === 'function' ? d2s(calD) : (typeof window.d2s === 'function' ? window.d2s(window.calD) : new Date(calD).toISOString().split('T')[0]);
         
         if (wStart(oDateObj) === wStart(tDateObj)) {
           // SAME WEEK
