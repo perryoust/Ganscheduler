@@ -80,6 +80,11 @@ function filterE(f,from,to){
   });
   const posted=window.SCH.filter(s=>{
     if(s.st!=='post'||!s.pd||s.pd<from||s.pd>to) return false;
+    // De-duplicate: If there is already an event in `all` for the same garden (s.g) 
+    // that is postponed from s.d, then skip this virtual one to avoid duplication.
+    const hasRescheduled = all.some(x => Number(x.g) === Number(s.g) && (x._postFrom === s.d || x._makeupFrom === s.d));
+    if (hasRescheduled) return false;
+    
     const g=window.G(s.g);
     if(f.city&&g.city!==f.city) return false;
     if(f.cluster){
@@ -944,22 +949,29 @@ function renderNormalDay(evs,ds){
 
   if(allSoloEvs.length || Object.keys(pairsByCity).length > 0){
     const cardsByCity={};
+    const cityCards={};
     Object.keys(pairsByCity).sort().forEach(city=>{
       const clr=window.CITY_COLORS(city);
-      if(!cardsByCity[city]) cardsByCity[city]=[];
+      if(!cityCards[city]) cityCards[city]=[];
       pairsByCity[city].forEach(({pair,pairEvs})=>{
-      cardsByCity[city].push(window.ui.renderStandardPairCard(pair,pairEvs,{ds,clr,context:'cal'}));
+        pairEvs.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+        const ch = window.ui.renderStandardPairCard(pair,pairEvs,{ds,clr,context:'cal'});
+        cityCards[city].push({name:pair.name, html:ch});
+      });
     });
-  });
-  allSoloEvs.forEach(s=>{
-    const g=window.G(s.g);
-    const city=g.city||'אחר';
-    const clr=window.CITY_COLORS(city);
-    if(!cardsByCity[city]) cardsByCity[city]=[];
-    cardsByCity[city].push(window.ui.renderStandardPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds,clr,context:'cal',isSolo:true}));
-  });
+    allSoloEvs.forEach(s=>{
+      const g=window.G(s.g);
+      const city=g.city||'אחר';
+      const clr=window.CITY_COLORS(city);
+      if(!cityCards[city]) cityCards[city]=[];
+      const ch = window.ui.renderStandardPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds,clr,context:'cal',isSolo:true});
+      cityCards[city].push({name:g.name, html:ch});
+    });
 
-    Object.keys(cardsByCity).sort().forEach(city=>{
+    Object.keys(cityCards).sort().forEach(city=>{
+      cityCards[city].sort((a,b)=>a.name.localeCompare(b.name,'he'));
+      cardsByCity[city] = cityCards[city].map(c=>c.html);
+    });
       const cards = cardsByCity[city];
       if(!cards || !cards.length) return;
       html += `<details class="city-accordion">
