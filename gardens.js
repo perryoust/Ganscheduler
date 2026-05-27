@@ -1153,8 +1153,23 @@ function genExport(){
       }
       if (originalDate) break;
     }
+    
+    // Check if original and target are in different weeks to force date display on original refStr
+    let customRefStr = refStr;
+    if (originalDate && rel[0]) {
+      try {
+        const oDateObj = typeof window.s2d === 'function' ? window.s2d(originalDate) : new Date(originalDate.split('-')[0], originalDate.split('-')[1]-1, originalDate.split('-')[2]);
+        const tDateObj = typeof window.s2d === 'function' ? window.s2d(rel[0].d) : new Date(rel[0].d.split('-')[0], rel[0].d.split('-')[1]-1, rel[0].d.split('-')[2]);
+        const wStart = (d) => { const x=new Date(d); x.setDate(x.getDate() - x.getDay()); return x.getTime(); };
+        if (wStart(oDateObj) !== wStart(tDateObj)) {
+          const dName = typeof window.dayN === 'function' ? window.dayN(originalDate) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][oDateObj.getDay()];
+          customRefStr = `יום ${dName} ${oDateObj.getDate().toString().padStart(2,'0')}/${(oDateObj.getMonth()+1).toString().padStart(2,'0')}`;
+        }
+      } catch(e) {}
+    }
+    
     const targetStr = rel[0] && originalDate ? getTargetDayStr(rel[0].d, originalDate) : '';
-    headerTitle = refStr ? `*נדחה מ${refStr}${targetStr ? ' ' + targetStr : ''}*\n` : '*נדחה*\n';
+    headerTitle = customRefStr ? `*נדחה מ${customRefStr}${targetStr ? ' ' + targetStr : ''}*\n` : '*נדחה*\n';
   } else if (isAllPreponedOut) {
     headerTitle = refStr ? `*לא מתקיים - הוקדם ל${refStr}*\n` : '*לא מתקיים - הוקדם*\n';
   } else if (isAllMakeup) {
