@@ -45,6 +45,7 @@ async function _runDailyBackupIfNeeded(liveData, tok){
     }
   } catch(e){ console.warn('Daily backup error:', e.message); }
 }
+window._runDailyBackupIfNeeded = _runDailyBackupIfNeeded;
 
 async function loadCloudBackups(){
   const el=document.getElementById('cloud-backup-list');

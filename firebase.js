@@ -211,6 +211,12 @@ async function saveToFirebase(silent = false, force = false) {
 
     _setSyncState(newSeq, Date.now(), null, false);
     console.log('[Sync] Saved v' + newSeq + ' (' + (liveData.ch?.length || 0) + ' records)');
+
+    // Trigger daily backup automatically on first save of the day
+    if (typeof window._runDailyBackupIfNeeded === 'function') {
+      window._runDailyBackupIfNeeded(liveData, tok).catch(e => console.warn('Auto daily backup error:', e));
+    }
+
     return true;
   } catch (e) {
     _setSyncState(null, null, e.message, false);

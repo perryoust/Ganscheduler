@@ -1,4 +1,4 @@
-window.APP_VERSION = '103.93';
+window.APP_VERSION = '103.97';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── Platform Detection ──
@@ -1405,7 +1405,7 @@ function initDrops(){
 }
 
 window.TABS=['dash','cal','sched','gardens','pairs','holidays','clusters','sup','managers','admin'];
-window.currentTab='dash';
+window.currentTab='cal';
 
 // ─── GLOBAL NAVIGATION SEARCH ────────────────────────────────────────────────
 function navSearchInput(val){

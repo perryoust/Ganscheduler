@@ -39,7 +39,7 @@ function switchMode(mode){
     // Hide all purch panels
     PURCH_TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el) el.style.display='none'; });
     // If currentTab is 'admin' (ניהול משתמשים), always go to 'dash' — otherwise restore last tab
-    const _targetTab = (typeof window.currentTab!=='undefined' && window.currentTab!=='admin') ? window.currentTab : 'dash';
+    const _targetTab = (typeof window.currentTab!=='undefined' && window.currentTab!=='admin') ? window.currentTab : 'cal';
     if(typeof window.ST === 'function') window.ST(_targetTab);
   } else {
     // Hide all act panels (use both class removal and display:none to be safe)
