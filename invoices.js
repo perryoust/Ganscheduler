@@ -2367,8 +2367,15 @@ window.importInvoices = function(input) {
 
         // Auto-infer invoice status
         let status = 'order';
-        if (item.num) status = 'tax_invoice';
-        else if (item.txNum) status = 'tx_invoice';
+        const hasTaxDetails = !!(item.num || item.date || item.total || item.amt);
+        const hasTxDetails = !!(item.txNum || item.txDate || item.txTotal || item.txAmt);
+        
+        if (hasTaxDetails) {
+          const isExempt = (window.supEx && window.supEx[sName] && (window.supEx[sName].entityType==='עוסק פטור'||window.supEx[sName].entityType==='עמותה'));
+          status = isExempt ? 'receipt' : (hasTxDetails ? 'tax_receipt' : 'tax_invoice');
+        } else if (hasTxDetails) {
+          status = 'tx_invoice';
+        }
 
         const notesLower = String(item.notes || '').toLowerCase();
         const dateLower = String(item.date || '').toLowerCase();
@@ -3210,6 +3217,43 @@ window.startSharePointScanner = async function() {
             path: link,
             name: file.name
           };
+
+          // Auto-promote status if a tax/receipt file is linked
+          if (info.sec === 'tax') {
+            const isExempt = (window.supEx && window.supEx[info.inv.supName] && (window.supEx[info.inv.supName].entityType==='עוסק פטור'||window.supEx[info.inv.supName].entityType==='עמותה'));
+            const hasTx = !!(info.inv.txNum || info.inv.file_tx || info.inv.txTotal);
+            const newSt = isExempt ? 'receipt' : (hasTx ? 'tax_receipt' : 'tax_invoice');
+            
+            // Only promote if current status is open/active
+            const currSt = _migrateInvStatus(info.inv.status);
+            if (currSt === 'order' || currSt === 'tx_invoice') {
+              info.inv.status = newSt;
+            }
+            
+            // Try to extract receipt/tax invoice number from file name if missing
+            if (!info.inv.num) {
+              const numbersInName = file.name.match(/\d+/g) || [];
+              const isYear = (val) => {
+                const num = parseInt(val, 10);
+                return num >= 2010 && num <= 2035;
+              };
+              const nonYearNums = numbersInName.filter(numStr => {
+                if (isYear(numStr)) return false;
+                if (info.inv.txNum && String(info.inv.txNum) === numStr) return false;
+                if (info.inv.orderNum && String(info.inv.orderNum) === numStr) return false;
+                return true;
+              });
+              if (nonYearNums.length > 0) {
+                // Use the first remaining number as the document number
+                info.inv.num = nonYearNums[0];
+              }
+            }
+          } else if (info.sec === 'tx') {
+            const currSt = _migrateInvStatus(info.inv.status);
+            if (currSt === 'order') {
+              info.inv.status = 'tx_invoice';
+            }
+          }
         });
         
         matchCount++;
