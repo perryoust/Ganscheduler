@@ -2453,10 +2453,9 @@ window.clearScannerLinks = function() {
       count++;
     }
   });
-  window.spScannerAliases = {};
   window.save(true);
   if (typeof window.renderInvoices === 'function') window.renderInvoices();
-  alert(`נותקו קבצים מ-${count} חשבוניות, וזיכרון מילות הסריקה אופס בהצלחה!`);
+  alert(`נותקו קבצים מ-${count} חשבוניות בהצלחה!`);
 };
 
 window.deleteAllInvoices = async function() {
