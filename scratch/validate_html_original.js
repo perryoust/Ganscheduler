@@ -1,0 +1,44 @@
+const fs = require('fs');
+const content = fs.readFileSync('index.html', 'utf8');
+
+let stack = [];
+const regex = /<\/?(div|body|html)\b[^>]*>/gi;
+let match;
+let errors = 0;
+
+while ((match = regex.exec(content)) !== null) {
+  const tag = match[0];
+  const isClose = tag.startsWith('</');
+  const tagName = match[1].toLowerCase();
+  const line = content.substring(0, match.index).split('\n').length;
+  
+  if (!isClose) {
+    let idMatch = tag.match(/id=\s*["']([^"']+)["']/i);
+    let classMatch = tag.match(/class=\s*["']([^"']+)["']/i);
+    stack.push({
+      tagName,
+      id: idMatch ? idMatch[1] : null,
+      className: classMatch ? classMatch[1] : null,
+      line
+    });
+  } else {
+    if (stack.length === 0) {
+      console.log(`Error: Close tag </${tagName}> on line ${line} has no matching open tag.`);
+      errors++;
+    } else {
+      const open = stack.pop();
+      if (open.tagName !== tagName) {
+        console.log(`Error: Close tag </${tagName}> on line ${line} mismatches open tag <${open.tagName} id="${open.id}" class="${open.className}"> on line ${open.line}`);
+        errors++;
+        // Push it back to keep stack aligned if possible, or don't.
+      }
+    }
+  }
+}
+
+if (stack.length > 0) {
+  console.log('Error: Remaining open tags at end of file:');
+  stack.forEach(s => console.log(`  Line ${s.line}: <${s.tagName} id="${s.id}" class="${s.className}">`));
+}
+
+console.log(`Validation complete. Errors found: ${errors}`);
