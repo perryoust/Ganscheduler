@@ -2378,6 +2378,13 @@ window.importInvoices = function(input) {
             if (item.orderNum && inv.orderNum && /\d/.test(item.orderNum) && String(item.orderNum).trim() === String(inv.orderNum).trim()) {
               return true;
             }
+            // Cross-match between Transaction Invoice and Tax Invoice numbers
+            if (item.txNum && inv.num && String(item.txNum).trim() === String(inv.num).trim()) {
+              return true;
+            }
+            if (item.num && inv.txNum && String(item.num).trim() === String(inv.txNum).trim()) {
+              return true;
+            }
           }
 
           // Fallback to conservative match (supplier + description + amount + month)
@@ -2971,7 +2978,7 @@ window.startSharePointScanner = async function() {
         const supplierAct = window.supAct ? window.supAct(inv.supName) : '';
         
         // Remove common words to avoid false positive supplier matching
-        const ignoreWords = ['חוגים', 'סדנאות', 'הפעלות', 'תוכניות', 'גן', 'גני', 'בית', 'ספר', 'צהרון', 'צהרונים', 'מוסיקה', 'ספורט', 'תנועה', 'תיאטרון', 'תאטרון', 'חוג', 'פעילות', 'מחול', 'ריתמיקה'];
+        const ignoreWords = ['חוגים', 'סדנאות', 'הפעלות', 'תוכניות', 'גן', 'גני', 'בית', 'ספר', 'צהרון', 'צהרונים', 'מוסיקה', 'ספורט', 'תנועה', 'תיאטרון', 'תאטרון', 'חוג', 'פעילות', 'מחול', 'ריתמיקה', 'פלוס'];
         const supplierWords = (supplierBase||'').split(/\s+/).filter(w => w.length > 2 && !ignoreWords.includes(w));
         
         // Check saved aliases first (highest priority)
@@ -3212,16 +3219,14 @@ window.startSharePointScanner = async function() {
               const chosenSupBase = uniqueSuppliersArr[selectedIdx];
               bestMatches = bestMatches.filter(m => (window.supBase ? window.supBase(m.inv.supName) : m.inv.supName) === chosenSupBase);
               
-              // Ask to remember the alias for future
+              // Silently register the alias to avoid prompting again during this session and save it
               const chosenSup = bestMatches[0].inv.supName;
               let guessedAlias = file.name.replace(/\.(pdf|jpg|png|jpeg)$/i, '').split(/[\s\-]+/)[0] || '';
-              if (guessedAlias.length < 2) guessedAlias = '';
-              const aliasWord = prompt(`בחרת בספק: ${chosenSup}.\n\nכדי שהמערכת תזכור זאת לפעמים הבאות, לחץ אישור כדי לשמור מילת זיהוי זו (או ערוך אותה למילה אחרת מתוך שם הקובץ "${file.name}").\nאם אינך רוצה לשמור, השאר ריק ולחץ אישור.`, guessedAlias);
-              if (aliasWord && aliasWord.trim().length > 1) {
+              if (guessedAlias.length > 1) {
                 window.spScannerAliases = window.spScannerAliases || {};
-                window.spScannerAliases[aliasWord.trim()] = chosenSup;
+                window.spScannerAliases[guessedAlias.trim()] = chosenSup;
                 if (window.ghAutoSave) window.ghAutoSave(true, true); // Force save to Firebase!
-                window.showToast(`✅ המילה "${aliasWord.trim()}" נשמרה כזיהוי לספק ${chosenSup}`);
+                window.showToast(`✅ זיהוי "${guessedAlias.trim()}" נשמר עבור ${chosenSup}`);
               }
             } else {
               bestMatches = []; // User cancelled or entered invalid input, skip this file
