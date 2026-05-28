@@ -924,7 +924,7 @@ function gcls(g){
 function gByCF(city,cls){return GARDENS.filter(g=>(!city||g.city===city)&&(!cls||gcls(g)===cls));}
 function d2s(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${dd}`}
 function s2d(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
-function fD(s){if(!s)return'';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`}
+function fD(s){if(!s)return '';if(typeof s !== 'string')return s;if(s.includes('/') && !s.includes('-'))return s;const parts=s.split('-');if(parts.length===3){const[y,m,d]=parts;return`${d}/${m}/${y}`}return s}
 function fT(t){return t?t.slice(0,5):''}
 function addD(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
 function addM(d,n){const x=new Date(d);x.setMonth(x.getMonth()+n);return x}
