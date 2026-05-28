@@ -30,10 +30,14 @@ function switchMode(mode){
   // Mobile nav: show correct bar
   // Mobile nav — only manipulate on mobile screens (CSS handles desktop hide)
   const mnPurch = document.getElementById('mob-nav-purch');
-  if(mnPurch) mnPurch.style.display = mode==='purch' ? 'block' : 'none';
-  // For act nav: remove any inline style so CSS @media rule controls it
   const mnAct = document.getElementById('mob-nav');
-  if(mnAct) mnAct.style.display = '';  // let CSS decide: hidden on desktop, block on mobile
+  if (mode === 'purch') {
+    if(mnPurch) mnPurch.style.display = 'block';
+    if(mnAct) mnAct.style.display = 'none';
+  } else {
+    if(mnPurch) mnPurch.style.display = 'none';
+    if(mnAct) mnAct.style.display = ''; // let CSS decide: hidden on desktop, block on mobile
+  }
   // Show panels
   if(mode==='act'){
     // Hide all purch panels
