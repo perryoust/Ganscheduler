@@ -1308,7 +1308,8 @@ function saveReplaceRecur(id) {
     let act = document.getElementById('rr-act').value;
     if (!act && sup === s.a) act = s.act;
     const time = document.getElementById('rr-time').value;
-    const sync = document.getElementById('rr-sync') ? document.getElementById('rr-sync').checked : false;
+    const syncChk = document.getElementById('rr-sync-pair') || document.getElementById('rr-sync');
+    const sync = syncChk ? syncChk.checked : false;
     const partnerTime = document.getElementById('rr-time-partner') ? document.getElementById('rr-time-partner').value : time;
 
     if(!from || !to || !days.length || !sup) return alert('יש למלא את כל השדות ולבחור ימים');
