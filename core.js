@@ -1011,7 +1011,7 @@ function stLabel(s){
         isAdv = pdObj < dObj;
       }
     }
-    return `<span class="bdg bor">${isAdv ? '⏪ הוקדם' : '⏩ נדחה'} ${s.pd?'→ '+fD(s.pd):''}</span>`;
+    return `<span class="bdg bor">${isAdv ? '⏪ הוקדם' : '⏩ נדחה'} ${s.pd?'ל-'+fD(s.pd):''}</span>`;
   }
   if(s.st==='nohap') return'<span class="bdg br2">⚠️ לא התקיים</span>';
   return'<span class="bdg bg2">🏫 מתקיים</span>';
