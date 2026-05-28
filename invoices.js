@@ -3105,10 +3105,14 @@ window.startSharePointScanner = async function() {
             const dStr = inv.date || inv.orderDate || inv.txDate || '';
             if (dStr) {
               let invDate = new Date(dStr);
-              // Handle DD/MM/YYYY
+              // Handle DD/MM/YYYY or DD/MM/YY
               if (dStr.includes('/')) {
                 const parts = dStr.split('/');
-                if (parts.length === 3) invDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                if (parts.length === 3) {
+                  let yStr = parts[2].trim();
+                  if (yStr.length === 2) yStr = '20' + yStr;
+                  invDate = new Date(`${yStr}-${parts[1]}-${parts[0]}`);
+                }
               }
               if (!isNaN(invDate.getMonth())) {
                 invMonth = invDate.getMonth();
@@ -3122,11 +3126,12 @@ window.startSharePointScanner = async function() {
               if (matchHebDesc) invMonth = hebMonths.indexOf(matchHebDesc[1]);
             }
 
-            if (invMonth === targetMonth && (invYear === targetYear || targetYear === -1 || invYear === -1)) {
+            const yearsMatch = (invYear === -1 || targetYear === -1 || String(invYear).slice(-2) === String(targetYear).slice(-2));
+            if (invMonth === targetMonth && yearsMatch) {
               // Exact month match
               matchedInfos.push({ inv, sec: 'tax', score: score + 10 }); // +10 to ensure it beats any fuzzy match
               fileMatched = true;
-            } else if (invYear === targetYear || targetYear === -1 || invYear === -1) {
+            } else if (yearsMatch) {
               // Fallback: year matches but month differs (e.g. May invoice for June budget)
               let mDiff = (invMonth !== -1 && targetMonth !== -1) ? Math.abs(invMonth - targetMonth) : 99;
               fallbackMatches.push({ inv, sec: 'tax', score: score + 5, monthDiff: mDiff });

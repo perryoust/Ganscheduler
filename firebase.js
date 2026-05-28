@@ -190,7 +190,7 @@ async function saveToFirebase(silent = false, force = false) {
     const newSeq = _localSeq + 1;
     const payload = { data: liveData, ts: Date.now(), seq: newSeq, version: '3.0' };
 
-    let tok = await window._fbUser?.getIdToken(true);
+    let tok = await window._fbUser?.getIdToken(false);
     const url = getFirebaseDbUrl() + (tok ? '?auth=' + tok : '');
 
     // CRITICAL: Use PATCH instead of PUT to prevent deleting sibling paths under /data (like invoices)

@@ -1,4 +1,4 @@
-window.APP_VERSION = '103.98';
+window.APP_VERSION = '104.00';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── Platform Detection ──
@@ -991,7 +991,28 @@ window.compareActivities = function(a, b) {
 function stLabel(s){
   if(s.st==='can') return'<span class="bdg br2">❌ בוטל</span>';
   if(s.st==='done') return'<span class="bdg bg2">✔️ התקיים</span>';
-  if(s.st==='post') return`<span class="bdg bor">⏩ נדחה ${s.pd?'→ '+fD(s.pd):''}</span>`;
+  if(s.st==='post') {
+    let isAdv = false;
+    if (s.pd && s.d) {
+      const parseDate = (str) => {
+        if (!str) return null;
+        const parts = str.split(/[-/]/);
+        if (parts.length === 3) {
+          if (parts[0].length === 4) {
+            return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+          }
+          return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+        }
+        return new Date(str);
+      };
+      const pdObj = parseDate(s.pd);
+      const dObj = parseDate(s.d);
+      if (pdObj && dObj) {
+        isAdv = pdObj < dObj;
+      }
+    }
+    return `<span class="bdg bor">${isAdv ? '⏪ הוקדם' : '⏩ נדחה'} ${s.pd?'→ '+fD(s.pd):''}</span>`;
+  }
   if(s.st==='nohap') return'<span class="bdg br2">⚠️ לא התקיים</span>';
   return'<span class="bdg bg2">🏫 מתקיים</span>';
 }
