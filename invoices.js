@@ -2226,11 +2226,17 @@ window.importInvoices = function(input) {
       // Dynamically find the real header row
       let headerRowIndex = 0;
       let isComplexFormat = false;
-      for (let i = 0; i < Math.min(5, rawRows.length); i++) {
+      for (let i = 0; i < Math.min(10, rawRows.length); i++) {
+        if (!rawRows[i]) continue;
         const rowCells = rawRows[i].filter(c => c !== null && c !== undefined && c !== '').length;
-        if (rowCells > 5 && rawRows[i].some(c => String(c).includes('ספק'))) {
+        const rowStrs = rawRows[i].map(c => String(c || '').trim());
+        const hasSupplier = rowStrs.some(c => c.includes('ספק'));
+        const hasDate = rowStrs.some(c => c.includes('תאריך') || c.includes('חודש'));
+        const hasDescOrNum = rowStrs.some(c => c.includes('פירוט') || c.includes('מספר') || c.includes('מס\''));
+        
+        if (rowCells > 5 && hasSupplier && hasDate && hasDescOrNum) {
           headerRowIndex = i;
-          const headerStrs = rawRows[i].map(x => String(x || '').trim());
+          const headerStrs = rowStrs;
           if (headerStrs.filter(x => x === 'הערות').length > 1 || headerStrs.filter(x => x.includes('מע"מ')).length > 2) {
             isComplexFormat = true;
           }
@@ -2351,17 +2357,32 @@ window.importInvoices = function(input) {
         const oTotal = parseFloat(item.orderTotal || 0).toFixed(2);
         const oMonth = String(item.orderMonth || "").trim();
 
-        // Duplicate checking — conservative approach:
-        // Only match on supplier + description + amount + month.
-        // Do NOT use num/txNum/orderNum as sole identifiers because:
-        //   - Consolidated invoices (חשבוניות מרכזות) share the same invoice number
-        //   - Generic orderNums like "חוגים"/"הסעות" are shared across many distinct records
+        // Duplicate checking — smart matching:
+        // 1. Try matching by unique document/order numbers within the same month.
+        // 2. Fall back to description + amount + month if no document numbers match.
         const existingIdx = window.INVOICES.findIndex(inv => {
           const sameSup = String(inv.supName).trim().toLowerCase() === sName.toLowerCase();
           if (!sameSup) return false;
+          const sameMonth = String(inv.orderMonth || '').trim() === oMonth;
+
+          if (sameMonth) {
+            // Match by Tax Invoice Number if present
+            if (item.num && inv.num && String(item.num).trim() === String(inv.num).trim()) {
+              return true;
+            }
+            // Match by Transaction Invoice Number if present
+            if (item.txNum && inv.txNum && String(item.txNum).trim() === String(inv.txNum).trim()) {
+              return true;
+            }
+            // Match by Order Number if present and contains digits
+            if (item.orderNum && inv.orderNum && /\d/.test(item.orderNum) && String(item.orderNum).trim() === String(inv.orderNum).trim()) {
+              return true;
+            }
+          }
+
+          // Fallback to conservative match (supplier + description + amount + month)
           const sameDesc = String(inv.orderDesc || '').trim() === oDesc;
           const sameTotal = parseFloat(inv.orderTotal || 0).toFixed(2) === oTotal;
-          const sameMonth = String(inv.orderMonth || '').trim() === oMonth;
           return sameDesc && sameTotal && sameMonth;
         });
 
@@ -2388,7 +2409,14 @@ window.importInvoices = function(input) {
 
         if (existingIdx !== -1) {
           // Update existing — merge safely, preserving database-only fields (fileUrl, recv, customNote, etc.)
-          window.INVOICES[existingIdx] = { ...window.INVOICES[existingIdx], ...item };
+          // Clean empty, undefined or null values from item to prevent overwriting existing data
+          const cleanItem = {};
+          Object.keys(item).forEach(k => {
+            if (item[k] !== undefined && item[k] !== null && item[k] !== '') {
+              cleanItem[k] = item[k];
+            }
+          });
+          window.INVOICES[existingIdx] = { ...window.INVOICES[existingIdx], ...cleanItem };
           updated++;
         } else {
           // Add new record
