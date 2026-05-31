@@ -1685,14 +1685,8 @@ function setSucTab(tab){
 function initSucTabs(){
   const name = _sucName;
   // Determine supplier type based on explicit flags AND actual data
-  const exIsAct = supEx[name]?.isAct;
-  const exIsPurch = supEx[name]?.isPurch;
-  const hasSchEntries = SCH.some(s=>supBase(s.a)===name);
-  const hasInvoices = INVOICES.some(i=>supBase(i.supName||'')===name);
-  // isAct = explicitly marked OR (not explicitly marked purch-only AND has schedule entries)
-  const isAct = exIsAct===true || (exIsAct===undefined && hasSchEntries && !hasInvoices);
-  // isPurch = explicitly marked OR has invoices OR default (but SUPBASE-only suppliers treated as act)
-  const isPurch = exIsPurch===true || hasInvoices || (exIsPurch===undefined && !hasSchEntries);
+  const isAct = isActSupplier(name);
+    const isPurch = isPurchSupplier(name);
     const btnExpAct = document.getElementById('suc-btn-exp-act');
     const btnExpPurch = document.getElementById('suc-btn-exp-purch');
     if(btnExpAct) btnExpAct.style.display = isAct ? 'inline-flex' : 'none';
