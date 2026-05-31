@@ -670,6 +670,7 @@ async function exportToExcel(data, filename, opts = {}) {
     try {
       const workbook = new window.ExcelJS.Workbook();
       const ws = workbook.addWorksheet('Sheet1', { views: [{ rightToLeft: true }] });
+      ws.pageSetup.margins = { left: 0.3/2.54, right: 0.3/2.54, top: 0.4/2.54, bottom: 0.4/2.54, header: 0.8/2.54, footer: 0.8/2.54 };
       
       if(opts.title){
         const titleRow = ws.addRow([opts.title]);
@@ -787,7 +788,8 @@ async function exportToExcel(data, filename, opts = {}) {
         });
 
         ws.addRow([]);
-        const sumHead = ws.addRow(['📊 ריכוז פעילות סופי', '', '']);
+        const summaryTitleStr = opts.summaryTitle || '📊 ריכוז פעילות סופי';
+        const sumHead = ws.addRow([summaryTitleStr, '', '']);
         sumHead.font = { bold: true, size: 12 };
         sumHead.alignment = { horizontal: 'right' };
         ws.mergeCells(sumHead.number, 1, sumHead.number, 3);
@@ -800,7 +802,7 @@ async function exportToExcel(data, filename, opts = {}) {
           });
         });
 
-        const totalRow = ws.addRow(['💰 סה"כ קבוצות לתשלום (כללי)', '', totalGroups]);
+        const totalRow = ws.addRow(['₪ סה"כ קבוצות לתשלום (כללי)', '', totalGroups]);
         totalRow.font = { bold: true };
         totalRow.eachCell(cell => {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };

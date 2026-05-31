@@ -72,8 +72,8 @@ function doSupExport(){
   
   window.exportToExcel(evs, `דו"ח_פעילויות_${window._supExName||'כל_הספקים'}_${from}_${to}`, {
     type:'supplier',
-    title: title
-  });
+    title: title,
+    summaryTitle: window._supExName ? ריכוז פעילות לספק:  (טווח:  - ) : ריכוז פעילות כל הספקים (טווח:  - )\n  });
 
   window.CM('supexm');
 }
