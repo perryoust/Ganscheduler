@@ -43,6 +43,7 @@
       const origAlert = window.alert;
       const origPrompt = window.prompt;
       const origFbCreateUser = window._fbCreateUser;
+      const origChangeCurrentYear = window.changeCurrentYear;
 
       // Mock DOM overrides
       const origGetElementById = document.getElementById;
@@ -89,6 +90,11 @@
       window.alert = () => {};
       window.prompt = () => 'mock_input';
       window._fbCreateUser = () => Promise.resolve({ uid: 'mock_uid_123', email: 'teacher_test@ganmanager.app' });
+      
+      // Prevent year change from triggering actual reload
+      window.changeCurrentYear = function(year) {
+        window.CURRENT_YEAR = year;
+      };
 
       // Completely isolated DOM Mock setup
       const setupDOM = (values) => {
@@ -217,6 +223,7 @@
       window.prompt = origPrompt;
       window.fetch = origFetch;
       window._fbCreateUser = origFbCreateUser;
+      window.changeCurrentYear = origChangeCurrentYear;
       restoreDOM();
 
       if (resultsContainer) {
