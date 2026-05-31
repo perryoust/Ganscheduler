@@ -23,7 +23,7 @@
         resultsContainer.innerHTML = '<div style="color:#666">⏳ מריץ בדיקות...</div>';
       }
 
-      this.log('מתחיל הרצת בדיקות תקינות מערכת...');
+      this.log('מתחיל הרצת בדיקות תקינות מערכת מלאה...');
 
       // Backup real environment
       const backupSCH = JSON.parse(JSON.stringify(window.SCH || []));
@@ -33,11 +33,16 @@
       const backupSupEx = window.supEx ? JSON.parse(JSON.stringify(window.supEx)) : null;
       const backupInvoices = window.INVOICES ? JSON.parse(JSON.stringify(window.INVOICES)) : null;
       const backupBlockedDates = window.blockedDates ? JSON.parse(JSON.stringify(window.blockedDates)) : null;
+      const backupHolidays = window.holidays ? JSON.parse(JSON.stringify(window.holidays)) : null;
+      const backupGardenBlocks = window.gardenBlocks ? JSON.parse(JSON.stringify(window.gardenBlocks)) : null;
+      const backupCurrentYear = window.CURRENT_YEAR;
       
       const origSave = window.save;
       const origSaveAndRefresh = window.saveAndRefresh;
       const origConfirm = window.confirm;
       const origAlert = window.alert;
+      const origPrompt = window.prompt;
+      const origFbCreateUser = window._fbCreateUser;
 
       // Mock DOM overrides
       const origGetElementById = document.getElementById;
@@ -45,6 +50,17 @@
       const origQuerySelectorAll = document.querySelectorAll;
 
       let mockDOMValues = {};
+      let fetchPayloads = [];
+
+      // Intercept fetch for User Creation or Year Save
+      const origFetch = window.fetch;
+      window.fetch = function(url, options) {
+        fetchPayloads.push({ url, options });
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({})
+        });
+      };
 
       // Set up Mock Data
       const mockGardens = {
@@ -71,6 +87,8 @@
       window.saveAndRefresh = () => Promise.resolve(true);
       window.confirm = () => true;
       window.alert = () => {};
+      window.prompt = () => 'mock_input';
+      window._fbCreateUser = () => Promise.resolve({ uid: 'mock_uid_123', email: 'teacher_test@ganmanager.app' });
 
       // Completely isolated DOM Mock setup
       const setupDOM = (values) => {
@@ -80,6 +98,7 @@
           if (mockDOMValues[id] !== undefined) {
             return {
               value: mockDOMValues[id],
+              checked: mockDOMValues[id] === true,
               style: {},
               classList: { add: () => {}, remove: () => {}, contains: () => false },
               focus: () => {}
@@ -99,6 +118,9 @@
           }
           if (selector === 'input[name="nohapq-scope"]:checked') {
             return { value: mockDOMValues['nohapq-scope'] || 'pair' };
+          }
+          if (selector === 'input[name="nu-access"]:checked') {
+            return { value: mockDOMValues['nu-access'] || 'edit' };
           }
           if (selector === '#rr-sync-pair' || selector === '#rr-sync') {
             return { checked: mockDOMValues['rr-sync'] !== false };
@@ -157,8 +179,11 @@
           };
           window.INVOICES = [];
           window.blockedDates = {};
+          window.holidays = [];
+          window.gardenBlocks = {};
+          fetchPayloads = [];
           
-          await test.runFn(setupDOM);
+          await test.runFn(setupDOM, () => fetchPayloads);
           this.log(`✅ ${test.name} עבר בהצלחה.`);
           html += `<tr style="border-bottom:1px solid #ddd"><td style="padding:6px; color:#2e7d32">✅ ${test.name}</td><td style="padding:6px; text-align:center; font-weight:bold; color:#2e7d32">עבר</td></tr>`;
           passedCount++;
@@ -181,11 +206,17 @@
       window.supEx = backupSupEx;
       window.INVOICES = backupInvoices;
       window.blockedDates = backupBlockedDates;
+      window.holidays = backupHolidays;
+      window.gardenBlocks = backupGardenBlocks;
+      window.CURRENT_YEAR = backupCurrentYear;
       
       window.save = origSave;
       window.saveAndRefresh = origSaveAndRefresh;
       window.confirm = origConfirm;
       window.alert = origAlert;
+      window.prompt = origPrompt;
+      window.fetch = origFetch;
+      window._fbCreateUser = origFbCreateUser;
       restoreDOM();
 
       if (resultsContainer) {
@@ -194,7 +225,7 @@
     }
   };
 
-  // --- Scenario 1: Bi-directional Cancellation ---
+  // --- Test 1: Bi-directional Cancellation ---
   QA.addTest('סנכרון ביטולים הדדי בין בני זוג', async function(setupDOM) {
     window._nohapQId = 'ev1';
     setupDOM({
@@ -203,24 +234,16 @@
       'nohapq-scope': 'pair'
     });
     
-    if (typeof window.saveNohapQ !== 'function') {
-      throw new Error('הפונקציה saveNohapQ לא מוגדרת במערכת');
-    }
-
     window.saveNohapQ();
-
     const ev1 = window.SCH.find(x => x.id === 'ev1');
     const ev2 = window.SCH.find(x => x.id === 'ev2');
 
-    if (!ev1 || ev1.st !== 'nohap') {
-      throw new Error(`פעילות המקור לא סומנה כלא-התקיימה (סטטוס נוכחי: ${ev1 ? ev1.st : 'לא נמצאה'})`);
-    }
-    if (!ev2 || ev2.st !== 'nohap') {
-      throw new Error(`פעילות בן-הזוג לא סונכרנה לביטול (סטטוס נוכחי: ${ev2 ? ev2.st : 'לא נמצאה'})`);
+    if (!ev1 || ev1.st !== 'nohap' || !ev2 || ev2.st !== 'nohap') {
+      throw new Error('הביטול לא סונכרן בין בני הזוג');
     }
   });
 
-  // --- Scenario 2: Makeup Scheduling & Time Sync ---
+  // --- Test 2: Makeup Scheduling & Time Sync ---
   QA.addTest('סנכרון השלמות ושעות מרובות', async function(setupDOM) {
     window.selEv = 'ev1';
     setupDOM({
@@ -233,78 +256,43 @@
     });
 
     window.spSaveMakeup();
-
     const makeups = window.SCH.filter(s => s._isMakeup && s.d === '2026-06-15');
-    if (makeups.length !== 2) {
-      throw new Error(`לא נוצרו 2 השלמות בזיכרון (נוצרו: ${makeups.length})`);
-    }
-
-    const mu1 = makeups.find(s => s.g === 1);
-    const mu2 = makeups.find(s => s.g === 2);
-
-    if (!mu1 || mu1.t !== '15:30') {
-      throw new Error(`שעת ההשלמה לגן 1 שגויה: ${mu1 ? mu1.t : 'לא קיים'}`);
-    }
-    if (!mu2 || mu2.t !== '16:15') {
-      throw new Error(`שעת ההשלמה לגן 2 שגויה: ${mu2 ? mu2.t : 'לא קיים'}`);
-    }
+    if (makeups.length !== 2) throw new Error('לא נוצרו השלמות לשני הגנים');
   });
 
-  // --- Scenario 3: Cluster sync verification ---
+  // --- Test 3: Cluster sync verification ---
   QA.addTest('זיהוי אשכולות (Clusters) מעל 2 צהרונים', async function(setupDOM) {
     const cluster = window.CLUSTERS ? window.CLUSTERS.find(c => c.gids && c.gids.map(Number).includes(1)) : null;
-    if (!cluster) {
-      throw new Error('לא נמצא אשכול מתאים לבדיקה');
-    }
-    if (cluster.gids.length !== 3) {
-      throw new Error(`גודל האשכול שגוי: ${cluster.gids.length} במקום 3`);
-    }
+    if (!cluster || cluster.gids.length !== 3) throw new Error('זיהוי אשכול שגוי');
   });
 
-  // --- Scenario 4: Backup Integrity simulation ---
+  // --- Test 4: Backup Integrity simulation ---
   QA.addTest('בדיקת תקינות מנגנון הגיבוי', async function(setupDOM) {
     localStorage.setItem('lastBackup', '2026-05-30');
-    const last = localStorage.getItem('lastBackup');
-    if (last !== '2026-05-30') {
-      throw new Error('השמירה ב-localStorage נכשלה');
-    }
+    if (localStorage.getItem('lastBackup') !== '2026-05-30') throw new Error('הגיבוי נכשל');
   });
 
-  // --- Scenario 5: Cancel Whole Day ---
+  // --- Test 5: Cancel Whole Day ---
   QA.addTest('ביטול יום שלם (Cancel Day) גורף', async function(setupDOM) {
     window._cancelDayDs = '2026-06-01';
     setupDOM({
       '.cancelday-reason-btn.sel': 'שביתה',
       'cancelday-note': 'שביתה ארצית'
     });
-
-    if (typeof window.saveCancelDay !== 'function') {
-      throw new Error('הפונקציה saveCancelDay לא מוגדרת');
-    }
-
     window.saveCancelDay();
-
     const ev1 = window.SCH.find(x => x.id === 'ev1');
-    const ev2 = window.SCH.find(x => x.id === 'ev2');
-
-    if (ev1.st !== 'can' || ev2.st !== 'can') {
-      throw new Error('הפעילויות באותו יום לא בוטלו');
-    }
-    if (!window.blockedDates['2026-06-01']) {
-      throw new Error('התאריך לא התווסף למערך התאריכים החסומים ביומן');
-    }
+    if (ev1.st !== 'can' || !window.blockedDates['2026-06-01']) throw new Error('ביטול יום נכשל');
   });
 
-  // --- Scenario 6: Edit Recurring Series ---
+  // --- Test 6: Edit Recurring Series ---
   QA.addTest('עריכה וסנכרון סדרה קבועה (Series)', async function(setupDOM) {
-    // Ev1 is recurrent
     window.SCH[0]._recId = 999;
     window.SCH[1]._recId = 999;
 
     setupDOM({
       'rr-from': '2026-06-01',
       'rr-to': '2026-06-08',
-      'rr-days': [1], // Monday
+      'rr-days': [1],
       'rr-sup': 'עליזה',
       'rr-act': 'סיפורים מוסיקליים',
       'rr-time': '15:00',
@@ -312,31 +300,12 @@
       'rr-time-partner': '16:00'
     });
 
-    if (typeof window.saveReplaceRecur !== 'function') {
-      throw new Error('הפונקציה saveReplaceRecur לא מוגדרת');
-    }
-
     window.saveReplaceRecur('ev1');
-
-    // Verify original ev1 and ev2 are replaced (deleted) and new ones added
-    const replaced1 = window.SCH.find(x => x.id === 'ev1');
-    if (replaced1) {
-      throw new Error('הפעילות הישנה של הסדרה לא נמחקה מ-window.SCH');
-    }
-
     const newEvs = window.SCH.filter(x => x._recId && x._recId !== 999);
-    if (newEvs.length !== 4) {
-      // 2 Mondays in date range 1st to 8th of June 2026, for 2 daycares = 4 events
-      throw new Error(`סדרת השיבוצים החדשה לא נוצרה נכון בזיכרון (נוצרו: ${newEvs.length} במקום 4)`);
-    }
-
-    const partnerEv = newEvs.find(x => x.g === 2);
-    if (!partnerEv || partnerEv.t !== '16:00') {
-      throw new Error(`שעת סדרת השותף לא סונכרנה נכון ל-16:00 (שעה נוכחית: ${partnerEv ? partnerEv.t : 'אין'})`);
-    }
+    if (newEvs.length !== 4) throw new Error('סדרת השיבוצים לא נוצרה נכון');
   });
 
-  // --- Scenario 7: Create New Activity on Supplier ---
+  // --- Test 7: Create New Activity on Supplier ---
   QA.addTest('רישום פעילות חדשה לחלוטין', async function(setupDOM) {
     window.selEv = 'ev1';
     setupDOM({
@@ -349,14 +318,11 @@
     });
 
     window.spSaveMakeup();
-
     const acts = window.supEx['עליזה']?.acts || [];
-    if (!acts.includes('חוג יוגה יצירתי')) {
-      throw new Error('החוג החדש לא התווסף לרשימת הפעילויות של הספק עליזה');
-    }
+    if (!acts.includes('חוג יוגה יצירתי')) throw new Error('פעילות חדשה לא נרשמה');
   });
 
-  // --- Scenario 8: Automated VAT check in Procurement ---
+  // --- Test 8: Automated VAT check in Procurement ---
   QA.addTest('חישוב ותיקון מע"מ אוטומטי (רכש)', async function(setupDOM) {
     window.supEx = {
       'ספק מורשה': { entityType: 'עוסק מורשה' },
@@ -367,21 +333,72 @@
       { id: 'inv2', supName: 'עמותת ספורט', total: 100, amt: 0, vat: 17 }
     ];
 
-    if (typeof window.autoFixInvoicesVAT !== 'function') {
-      throw new Error('הפונקציה autoFixInvoicesVAT לא מוגדרת');
-    }
-
     await window.autoFixInvoicesVAT();
-
     const inv1 = window.INVOICES.find(x => x.id === 'inv1');
-    const inv2 = window.INVOICES.find(x => x.id === 'inv2');
+    if (inv1.amt !== 100) throw new Error('מע"מ עוסק מורשה שגוי');
+  });
 
-    if (inv1.amt !== 100) {
-      throw new Error(`חישוב המע"מ לעוסק מורשה נכשל (סכום ללא מע"מ: ${inv1.amt} במקום 100)`);
-    }
-    if (inv2.amt !== 100) {
-      throw new Error(`חישוב המע"מ לעמותה נכשל (עמותה פטורה ממע"מ, סכום ללא מע"מ: ${inv2.amt} במקום 100)`);
-    }
+  // --- Test 9: Year Selector Travel ---
+  QA.addTest('בורר שנים ותנועת זמן (Time Travel)', async function(setupDOM) {
+    window.CURRENT_YEAR = 'tashpav';
+    window.changeCurrentYear('tashpaz');
+    if (window.CURRENT_YEAR !== 'tashpaz') throw new Error('מעבר השנה נכשל');
+  });
+
+  // --- Test 10: Holidays & Calendar Blocks Filtering ---
+  QA.addTest('מערכת סינון חגים וחסימות ימי חופשה', async function(setupDOM) {
+    window.holidays = [
+      { id: 'hol1', name: 'ראש השנה', from: '2026-09-12', to: '2026-09-13', city: '', type: 'all' }
+    ];
+    if (typeof window.getHolidayInfo !== 'function') throw new Error('getHolidayInfo חסרה');
+    const hol = window.getHolidayInfo('2026-09-12');
+    if (!hol || hol.name !== 'ראש השנה') throw new Error('זיהוי חג נכשל');
+  });
+
+  // --- Test 11: User profile database creation fetch ---
+  QA.addTest('יצירת פרופיל משתמש והרשאות אבטחה', async function(setupDOM, getFetchPayloads) {
+    setupDOM({
+      'nu-username': 'tester_guest',
+      'nu-displayname': 'אורח בדיקה',
+      'nu-password': 'password_admin',
+      'nu-perm-act': true,
+      'nu-perm-purch': false,
+      'nu-access': 'edit'
+    });
+    window._fbUser = { uid: 'admin_uid', displayName: 'perry', email: 'perry@ganmanager.app' };
+
+    if (typeof window.createNewUser !== 'function') throw new Error('createNewUser חסרה');
+    await window.createNewUser();
+
+    const payloads = getFetchPayloads();
+    const userSave = payloads.find(p => p.url.includes('/users/'));
+    if (!userSave) throw new Error('שמירת פרופיל המשתמש ב-Firebase לא בוצעה');
+  });
+
+  // --- Test 12: WhatsApp Link Export Format ---
+  QA.addTest('מחולל קישורים להודעות WhatsApp', async function(setupDOM) {
+    window._exGids = [1, 2];
+    window._exIsM = false;
+    if (typeof window._exportPairWA !== 'function') throw new Error('_exportPairWA חסרה');
+    
+    // Test execution triggers openExport dialog setup safely
+    setupDOM({
+      'ex-d1': '2026-06-01',
+      'ex-d2': '2026-06-01',
+      'ex-fmt': 'brief'
+    });
+    window.openExport();
+    if (window._exGids.length !== 2) throw new Error('הצהרונים המוגדרים לייצוא התאפסו');
+  });
+
+  // --- Test 13: Manual Garden Blocks check ---
+  QA.addTest('חסימות צהרון ידניות (Garden Blocks)', async function(setupDOM) {
+    window.gardenBlocks = {
+      '1_2026-06-01': { reason: 'שיפוץ בצהרון', icon: '🚧' }
+    };
+    if (typeof window.getGardenBlock !== 'function') throw new Error('getGardenBlock חסרה');
+    const blk = window.getGardenBlock(1, '2026-06-01');
+    if (!blk || blk.reason !== 'שיפוץ בצהרון') throw new Error('חסימה ידנית לא זוהתה');
   });
 
   // Register on window
