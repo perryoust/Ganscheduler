@@ -2182,9 +2182,10 @@
           </div>
         </div>
         <div style="display:flex;gap:5px">
-          <button class="btn bp bsm" onclick="openSupExportFromCard()">🚀 יצוא לאקסל</button>
-          <button class="btn bo bsm" onclick="sucToggleEdit()">🚀 ערוך</button>
-          <button class="btn bs bsm" onclick="CM('sucard-m')">✕</button>
+          <button id="suc-btn-exp-purch" class="btn bg bsm" onclick="sucExportDocs()" style="display:none">?? ���� ��� ���</button>
+          <button id="suc-btn-exp-act" class="btn bp bsm" onclick="openSupExportFromCard()" style="display:none">?? ���� ��� ������</button>
+          <button class="btn bo bsm" onclick="sucToggleEdit()">?? ����</button>
+          <button class="btn bs bsm" onclick="CM('sucard-m')">?</button>
         </div>
       </div>
 
@@ -2299,7 +2300,6 @@
             <div style="font-weight:700;color:#1565c0;font-size:.8rem">🚀 רשימת מסמכים</div>
             <div style="display:flex;gap:5px">
               <button class="btn bp bsm" style="font-size:.7rem" onclick="sucOpenNewDoc()">🚀 מסמך חדש</button>
-              <button class="btn bg bsm" style="font-size:.7rem" onclick="sucExportDocs()">🚀 יצוא</button>
             </div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px">
