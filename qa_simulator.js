@@ -106,8 +106,22 @@
               value: mockDOMValues[id],
               checked: mockDOMValues[id] === true,
               style: {},
-              classList: { add: () => {}, remove: () => {}, contains: () => false },
-              focus: () => {}
+              classList: { add: () => {}, remove: () => {}, contains: () => false, toggle: () => {} },
+              focus: () => {},
+              innerHTML: '',
+              textContent: ''
+            };
+          }
+          // Default fallbacks for elements that must not return null to prevent crashes
+          if (['nu-status', 'nu-create-btn', 'exm', 'ex-ctx', 'ex-d1', 'ex-d2', 'cancelday-date', 'cancelday-note', 'cancelday-cnt', 'cancelday-m'].includes(id)) {
+            return {
+              value: '',
+              checked: false,
+              style: {},
+              classList: { add: () => {}, remove: () => {}, contains: () => false, toggle: () => {} },
+              focus: () => {},
+              innerHTML: '',
+              textContent: ''
             };
           }
           return null;
@@ -234,13 +248,12 @@
 
   // --- Test 1: Bi-directional Cancellation ---
   QA.addTest('סנכרון ביטולים הדדי בין בני זוג', async function(setupDOM) {
-    window._nohapQId = 'ev1';
     setupDOM({
       '.nohap-reason-btn.sel': 'מזג אוויר סוער',
       'nohapq-reason': 'בשל גשמים חזקים',
       'nohapq-scope': 'pair'
     });
-    
+    window.openNohapQ('ev1');
     window.saveNohapQ();
     const ev1 = window.SCH.find(x => x.id === 'ev1');
     const ev2 = window.SCH.find(x => x.id === 'ev2');
@@ -281,11 +294,11 @@
 
   // --- Test 5: Cancel Whole Day ---
   QA.addTest('ביטול יום שלם (Cancel Day) גורף', async function(setupDOM) {
-    window._cancelDayDs = '2026-06-01';
     setupDOM({
       '.cancelday-reason-btn.sel': 'שביתה',
       'cancelday-note': 'שביתה ארצית'
     });
+    window.openCancelDay('2026-06-01');
     window.saveCancelDay();
     const ev1 = window.SCH.find(x => x.id === 'ev1');
     if (ev1.st !== 'can' || !window.blockedDates['2026-06-01']) throw new Error('ביטול יום נכשל');
@@ -370,7 +383,9 @@
       'nu-password': 'password_admin',
       'nu-perm-act': true,
       'nu-perm-purch': false,
-      'nu-access': 'edit'
+      'nu-access': 'edit',
+      'nu-status': '',
+      'nu-create-btn': ''
     });
     window._fbUser = { uid: 'admin_uid', displayName: 'perry', email: 'perry@ganmanager.app' };
 
@@ -392,7 +407,9 @@
     setupDOM({
       'ex-d1': '2026-06-01',
       'ex-d2': '2026-06-01',
-      'ex-fmt': 'brief'
+      'ex-fmt': 'brief',
+      'exm': '',
+      'ex-ctx': ''
     });
     window.openExport();
     if (window._exGids.length !== 2) throw new Error('הצהרונים המוגדרים לייצוא התאפסו');
