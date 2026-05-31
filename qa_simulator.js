@@ -58,12 +58,6 @@
         { id: 'cluster1', name: 'אשכול ראש העין', gids: [1, 2, 3] }
       ];
 
-      // Reset test events
-      window.SCH = [
-        { id: 'ev1', g: 1, d: '2026-06-01', t: '14:40', a: 'עליזה', act: 'סיפורים מוסיקליים', st: 'ok', grp: 1 },
-        { id: 'ev2', g: 2, d: '2026-06-01', t: '14:40', a: 'עליזה', act: 'סיפורים מוסיקליים', st: 'ok', grp: 1 }
-      ];
-
       // Override global helpers
       window.G = (id) => mockGardens[id] || null;
       window.gardenPair = (gid) => mockPairs.find(p => p.ids.map(Number).includes(Number(gid))) || null;
@@ -75,9 +69,10 @@
       window.confirm = () => true;
       window.alert = () => {};
 
-      // DOM Mock setup helper
+      // Completely isolated DOM Mock setup
       const setupDOM = (values) => {
         mockDOMValues = values;
+
         document.getElementById = (id) => {
           if (mockDOMValues[id] !== undefined) {
             return {
@@ -87,8 +82,10 @@
               focus: () => {}
             };
           }
-          return origGetElementById.call(document, id);
+          // Do not leak live page inputs into test
+          return null;
         };
+
         document.querySelector = (selector) => {
           if (mockDOMValues[selector] !== undefined) {
             const val = mockDOMValues[selector];
@@ -98,29 +95,34 @@
               checked: val === true
             };
           }
-          return origQuerySelector.call(document, selector);
-        };
-        document.querySelectorAll = (selector) => {
           if (selector === 'input[name="nohapq-scope"]:checked') {
-            return [{ value: mockDOMValues['nohapq-scope'] || 'pair' }];
+            return { value: mockDOMValues['nohapq-scope'] || 'pair' };
+          }
+          if (selector.startsWith('.sp-mu-syn-time')) {
+            // e.g. .sp-mu-syn-time[data-gid="2"]
+            const m = selector.match(/data-gid="(\d+)"/);
+            const gid = m ? m[1] : null;
+            const times = mockDOMValues['sp-mu-syn-times'] || {};
+            return { value: times[gid] || '' };
+          }
+          return null;
+        };
+
+        document.querySelectorAll = (selector) => {
+          if (selector === '.dash-row-chk:checked') {
+            // During testing we want this empty so it defaults to the single target _nohapQId
+            return [];
           }
           if (selector.includes('-syn-chk')) {
             const pfx = selector.includes('sp') ? 'sp-mu' : 'ns-mu';
             const ids = mockDOMValues[pfx + '-syn-ids'] || [];
             return ids.map(id => ({
               value: id,
-              checked: true
+              checked: true,
+              disabled: Number(id) === 1 // The main garden checkbox is disabled in the UI
             }));
           }
-          if (selector.includes('-syn-time')) {
-            const pfx = selector.includes('sp') ? 'sp-mu' : 'ns-mu';
-            const times = mockDOMValues[pfx + '-syn-times'] || {};
-            return Object.keys(times).map(id => ({
-              dataset: { gid: id },
-              value: times[id]
-            }));
-          }
-          return origQuerySelectorAll.call(document, selector);
+          return [];
         };
       };
 
@@ -195,11 +197,11 @@
     const ev1 = window.SCH.find(x => x.id === 'ev1');
     const ev2 = window.SCH.find(x => x.id === 'ev2');
 
-    if (ev1.st !== 'nohap') {
-      throw new Error(`פעילות המקור לא סומנה כלא-התקיימה (סטטוס נוכחי: ${ev1.st})`);
+    if (!ev1 || ev1.st !== 'nohap') {
+      throw new Error(`פעילות המקור לא סומנה כלא-התקיימה (סטטוס נוכחי: ${ev1 ? ev1.st : 'לא נמצאה'})`);
     }
-    if (ev2.st !== 'nohap') {
-      throw new Error(`פעילות בן-הזוג לא סונכרנה לביטול (סטטוס נוכחי: ${ev2.st})`);
+    if (!ev2 || ev2.st !== 'nohap') {
+      throw new Error(`פעילות בן-הזוג לא סונכרנה לביטול (סטטוס נוכחי: ${ev2 ? ev2.st : 'לא נמצאה'})`);
     }
     if (!ev1.nt.includes('לא התקיים') || !ev2.nt.includes('לא התקיים')) {
       throw new Error('הערת הביטול לא התווספה לשני הגנים');
