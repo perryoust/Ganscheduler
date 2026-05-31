@@ -167,6 +167,10 @@ window._initUsersUI = function _initUsersUI(){
   const hBtn = document.getElementById('users-hdr-btn');
   if(hBtn) hBtn.style.display = isAdm ? '' : 'none';
   
+  // QA Simulator
+  const qaContainer = document.getElementById('qa-simulator-container');
+  if(qaContainer) qaContainer.style.display = isAdm ? '' : 'none';
+  
   // Dynamic Purchase Mode Visibility
   const hasPurch = !!(window.permPurch || isAdm);
   const purchModeBtn = document.getElementById('modeBtn-purch');
