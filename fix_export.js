@@ -1,0 +1,1 @@
+const fs=require("fs"); let c=fs.readFileSync("export.js","utf8"); c=c.replace("בוצעו ${typeOk} פעילויות (כולל השלמות)", "בוצעו ${typeGroups} פעילויות (כולל השלמות)"); c=c.replace("בוצעו ${sr.ok} פעילויות", "בוצעו ${sr.grp} פעילויות"); c=c.replace("בסה\\"כ ${sr.grp} קבוצות", "${sr.ok} מפגשים/ימים"); fs.writeFileSync("export.js", c);

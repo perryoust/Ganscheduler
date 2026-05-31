@@ -674,7 +674,7 @@ async function exportToExcel(data, filename, opts = {}) {
       if(opts.title){
         const titleRow = ws.addRow([opts.title]);
         titleRow.font = { name: 'Arial', size: 16, bold: true };
-        ws.mergeCells(1, 1, 1, 6);
+        ws.mergeCells(1, 1, 1, 7);
       }
 
       const isSupplierExport = opts.type === 'supplier';
@@ -711,7 +711,7 @@ async function exportToExcel(data, filename, opts = {}) {
             titleRow.font = { bold: true };
             titleRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
             titleRow.alignment = { horizontal: 'right' };
-            ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, 6);
+            ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, 7);
 
             const headRow = ws.addRow(['תאריך', 'גן/בי"ס', 'פעילות', 'שעה', 'קבוצות', 'סטטוס', 'הערות']);
             headRow.font = { bold: true };
@@ -774,7 +774,7 @@ async function exportToExcel(data, filename, opts = {}) {
             });
 
             // Section Sub-Summary
-            const typeSum = ws.addRow([`📌 ${city} - ${type}: בוצעו ${typeOk} פעילויות (כולל השלמות)`, '', '', '', '', '', '']);
+            const typeSum = ws.addRow([`📌 ${city} - ${type}: בוצעו ${typeGroups} פעילויות (כולל השלמות)`, '', '', '', '', '', '']);
             typeSum.font = { bold: true, size: 10, color: { argb: 'FF1A237E' } };
             typeSum.eachCell((cell) => {
               cell.alignment = { horizontal: 'right' };
@@ -793,7 +793,7 @@ async function exportToExcel(data, filename, opts = {}) {
         ws.mergeCells(sumHead.number, 1, sumHead.number, 3);
 
         summaryRows.forEach(sr => {
-          const row = ws.addRow([sr.label, `בוצעו ${sr.ok} פעילויות`, `סה"כ ${sr.grp} קבוצות`]);
+          const row = ws.addRow([sr.label, `בוצעו ${sr.grp} פעילויות`, '']);
           row.eachCell(cell => {
             cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
             cell.alignment = { horizontal: 'right' };
