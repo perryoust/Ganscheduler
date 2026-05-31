@@ -154,18 +154,22 @@ function startAutoBackup(){
   if(!cfg||!cfg.enabled) return;
   const ms=cfg.freq==='daily'?24*60*60*1000:7*24*60*60*1000;
   _autoBackupTimer=setInterval(()=>{ triggerAutoBackup(); },ms);
-  // Check if overdue
-  if(cfg.lastBackup){
+  // Check if overdue or not initialized
+  if(!cfg.lastBackup){
+    triggerAutoBackup();
+  } else {
     const diff=Date.now()-new Date(cfg.lastBackup).getTime();
     if(diff>ms) triggerAutoBackup();
   }
 }
 function triggerAutoBackup(){
   const cfg=loadAutoBackupSettings()||{};
-  exportFullBackup();
-  cfg.lastBackup=new Date().toISOString();
-  saveAutoBackupSettings(cfg);
-  showToast('💾 גיבוי אוטומטי הורד');
+  if(confirm("💾 הגיע הזמן לגיבוי אוטומטי של המערכת. האם ברצונך להוריד את קובץ הגיבוי למחשב כעת?")) {
+    exportFullBackup();
+    cfg.lastBackup=new Date().toISOString();
+    saveAutoBackupSettings(cfg);
+    showToast('💾 גיבוי אוטומטי הורד');
+  }
 }
 function openAutoBackupSettings(){
   const cfg=loadAutoBackupSettings()||{enabled:false,freq:'daily',hour:'08:00'};
