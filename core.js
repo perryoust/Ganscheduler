@@ -3361,8 +3361,8 @@ window.initYearSelector = function() {
         if (k === window.CURRENT_YEAR) opt.selected = true;
         sel.appendChild(opt);
       });
-      // Only show selector if more than 1 year exists
-      sel.style.display = yearKeys.length > 1 ? '' : 'none';
+      // Show selector if at least 1 year exists
+      sel.style.display = yearKeys.length >= 1 ? '' : 'none';
     }
   } catch(e) {}
   
