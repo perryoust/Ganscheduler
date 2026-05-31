@@ -59,7 +59,7 @@ window.ui = {
         ${(isException && !isHandled) ? `<button title="סיום טיפול" class="qbtn q-handled" onclick="if(window.markCompQuick)window.markCompQuick('${sid}')">✅ ${window.isMobileMode()?'טופל':''}</button>` : ''}
         ${isCan ? '' : `<button title="ביטול" class="qbtn q-can" onclick="window.openCanQ('${sid}')">❌ ${window.isMobileMode()?'ביטול':''}</button>`}
         ${isNohap ? '' : `<button title="לא התקיים" class="qbtn q-nohap" onclick="window.qSetSt('${sid}','nohap')">⚠️ ${window.isMobileMode()?'לא התקיים':''}</button>`}
-        <button title="דחייה" class="qbtn q-post" onclick="window.openPostpone('${sid}')">⏩ ${window.isMobileMode()?'דחייה':''}</button>
+        <button title="הזזה (דחייה / הקדמה)" class="qbtn q-post" onclick="window.openPostpone('${sid}')">⏩ ${window.isMobileMode()?'הזזה':''}</button>
         <button title="קביעת השלמה" class="qbtn q-mu" onclick="window.openMakeupSched('${sid}')">📅 ${window.isMobileMode()?'השלמה':''}</button>
       </div>`;
   },

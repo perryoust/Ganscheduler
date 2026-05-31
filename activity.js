@@ -913,16 +913,24 @@ window.openSP = function(id) {
                 <div class="fg"><label style="font-size:.7rem;font-weight:700">מפצה על תאריך</label><input type="date" id="sp-mu-orig" value="${s.d}" readonly style="width:100%;background:#f5f5f5;color:#666;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
                 <div class="fg"><label style="font-size:.7rem;font-weight:700">תאריך השלמה *</label><input type="date" id="sp-mu-date" value="${window.td()}" style="width:100%;border:1px solid #ffb74d;padding:4px;border-radius:4px" onchange="window.spMuDateChg()"></div>
              </div>
-             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                <div class="fg"><label style="font-size:.7rem;font-weight:700">שעה *</label><input type="time" id="sp-mu-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
-                <div class="fg">
-                  <select id="sp-mu-act" onchange="window.spMuActChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">
-                    <option value="">בחר פעילות...</option>
-                    ${initialActs.map(a => `<option value="${a}" ${s.act===a?'selected':''}>${a}</option>`).join('')}
-                    <option value="__new__">➕ הוסף פעילות חדשה...</option>
-                  </select>
-                </div>
-             </div>
+                           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                 <div class="fg"><label style="font-size:.7rem;font-weight:700">שעה *</label><input type="time" id="sp-mu-time" value="${s.t||''}" oninput="const tblInp = document.querySelector('.sp-mu-syn-time[data-gid=\'${s.g}\']'); if(tblInp) tblInp.value = this.value" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
+                 <div class="fg">
+                   <label style="font-size:.7rem;font-weight:700">בחר פעילות *</label>
+                   <select id="sp-mu-act" onchange="window.spMuActChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">
+                     <option value="">בחר פעילות...</option>
+                     ${initialActs.map(a => `<option value="${a}" ${s.act===a?'selected':''}>${a}</option>`).join('')}
+                     <option value="__new__">➕ הוסף פעילות חדשה...</option>
+                   </select>
+                 </div>
+              </div>
+              <div style="display:${(window.gcls(g) === 'ביה&quot;ס' || window.gcls(g) === 'ביה\"ס') ? 'grid' : 'none'};grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+                 <div class="fg">
+                   <label style="font-size:.7rem;font-weight:700;color:#e65100">מספר קבוצות</label>
+                   <input type="number" id="sp-mu-grp" min="1" max="10" value="${s.grp||1}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ffb74d">
+                 </div>
+                 <div></div>
+              </div>
              <div id="sp-mu-act-new-wrap" style="display:none;margin-bottom:8px">
                 <label style="font-size:.7rem;font-weight:700;color:#e65100">שם פעילות חדשה</label>
                 <input type="text" id="sp-mu-act-new" placeholder="הכנס שם פעילות..." style="width:100%;padding:6px;border-radius:4px;border:1px solid #ffb74d">
@@ -1982,7 +1990,7 @@ function getSynergyData(prefix) {
   const data = [];
   const chks = document.querySelectorAll(`.${prefix}-syn-chk`);
   chks.forEach(chk => {
-    if (chk.checked) {
+    if (chk.checked && !chk.disabled) {
       const pId = chk.value;
       const timeInput = document.querySelector(`.${prefix}-syn-time[data-gid="${pId}"]`);
       data.push({ g: Number(pId), t: timeInput ? timeInput.value : '' });
@@ -2178,6 +2186,32 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
   const prefix = containerId.startsWith('ns') ? 'ns-mu' : 'sp-mu';
   const primaryMainTime = origEv ? origEv.t : (document.getElementById(prefix.startsWith('sp') ? 'sp-mu-time' : 'ns-mu-time')?.value || '');
 
+  // Add the main garden row first
+  const mainG = window.G(gid);
+  if (mainG) {
+    const ev = window.SCH.find(s => s.g === gid && s.d === date && s.st !== 'can');
+    const stLabel = ev ? (window.stLabel ? window.stLabel(ev) : ev.st) : '—';
+    const stClass = ev ? (window.stClass ? window.stClass(ev) : '') : '';
+    const sup = ev ? window.supBase(ev.a) : (origEv ? window.supBase(origEv.a) : '—');
+    const act = ev ? (ev.act || '—') : (origEv ? (origEv.act || '—') : '—');
+    const makeupTime = primaryMainTime;
+    
+    rowsHtml += `<tr style="border-bottom:1px solid #eee;font-size:0.75rem;background:#f5f7ff;font-weight:bold">
+      <td style="padding:6px;text-align:center">
+        <input type="checkbox" class="${prefix}-syn-chk" value="${gid}" checked disabled style="width:16px;height:16px;accent-color:#e65100">
+      </td>
+      <td style="padding:6px;color:#1a237e">${mainG.name} (ראשי)</td>
+      <td style="padding:6px">
+        <input type="time" class="${prefix}-syn-time" data-gid="${gid}" value="${makeupTime}" 
+          oninput="const mainTimeInp = document.getElementById('${prefix.startsWith('sp') ? 'sp-mu-time' : 'ns-mu-time'}'); if(mainTimeInp) mainTimeInp.value = this.value"
+          style="width:75px;padding:2px;border:1px solid #ffb74d;border-radius:4px;font-size:0.7rem;font-weight:bold;background:#fffde7">
+      </td>
+      <td style="padding:6px">${sup}</td>
+      <td style="padding:6px">${act}</td>
+      <td style="padding:6px;text-align:center"><span class="badge ${stClass}">${stLabel}</span></td>
+    </tr>`;
+  }
+
   otherIds.forEach(pId => {
     const pG = window.G(pId);
     if(!pG) return;
@@ -2295,6 +2329,9 @@ window.spSaveMakeup = function() {
   
   if(!confirm(`לבצע שיבוץ השלמה ל-${targets.length} גנים בתאריך ${window.fD(newDate)}?`)) return;
   
+  const grpInput = document.getElementById('sp-mu-grp');
+  const customGrp = grpInput ? parseInt(grpInput.value, 10) : null;
+
   targets.forEach(tgt => {
     // Find the original activity for this specific target garden, or fallback to sid if not found
     const targetOrigEv = window.SCH.find(x => 
@@ -2303,6 +2340,7 @@ window.spSaveMakeup = function() {
       window.supBase(x.a) === window.supBase(origEv.a)
     );
     const correctOrigId = targetOrigEv ? targetOrigEv.id : sid;
+    const grpCount = customGrp || (targetOrigEv ? targetOrigEv.grp : origEv.grp) || 1;
 
     window.createMakeupActivity({
       g: tgt.g,
@@ -2312,7 +2350,8 @@ window.spSaveMakeup = function() {
       act: actName,
       tp: origEv.tp || 'חוג',
       origD: origEv.d,
-      origId: correctOrigId
+      origId: correctOrigId,
+      grp: grpCount
     });
   });
   

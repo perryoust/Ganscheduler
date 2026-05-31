@@ -712,14 +712,16 @@ function invSaveFiles(invId){ return Promise.resolve(); }
 
 // Supplier helpers using the real data model (SUPBASE + supEx)
 function isActSupplier(name){ 
-  const ex = (typeof window.supEx!=='undefined'?window.supEx:{})[name]||{};
+  if (typeof window.supEx === 'undefined') return true;
+  const base = typeof window.supBase === 'function' ? window.supBase(name) : name;
+  const ex = window.supEx[name] || window.supEx[base] || {};
   return ex.isAct !== false; // default true for backward compat
 }
 window.isActSupplier = isActSupplier;
 function isPurchSupplier(name){ 
-  const ex = (typeof window.supEx!=='undefined'?window.supEx:{})[name]||{};
-  // If isPurch is explicitly false, it's NOT a purchase supplier.
-  // Otherwise default to true for all suppliers.
+  if (typeof window.supEx === 'undefined') return true;
+  const base = typeof window.supBase === 'function' ? window.supBase(name) : name;
+  const ex = window.supEx[name] || window.supEx[base] || {};
   return ex.isPurch !== false;
 }
 window.isPurchSupplier = isPurchSupplier;

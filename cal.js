@@ -1253,7 +1253,7 @@ function _quickActionBtns(s){
       onclick="window.openCanQ('${sid}')">❌</button>`}
     ${isNohap?'':`<button title="לא התקיים" style="background:#f3e5f5;color:#6a1b9a;border:1px solid #ce93d8;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
       onclick="window.qSetSt('${sid}','nohap')">⚠️</button>`}
-    <button title="דחייה" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
+    <button title="הזזה (דחייה / הקדמה)" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
       onclick="window.openPostpone('${sid}')">⏩</button>
     <button title="קביעת השלמה" class="btn-makeup" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:4px;padding:2px 5px;font-size:.72rem;cursor:pointer;line-height:1"
       onclick="window.openMakeupSched('${sid}')">📅</button>
