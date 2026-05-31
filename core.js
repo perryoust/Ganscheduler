@@ -197,7 +197,6 @@ window.ui = {
     const expBtn = `<button class="btn bg bsm" style="background:#25d366 !important; color:#fff !important; border:none !important; height:24px !important; min-height:24px !important; line-height:24px !important; padding:0 7px !important; font-size:0.65rem !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important;" onclick="event.stopPropagation(); window._exportPairWA(${JSON.stringify(gids)})">📱 הודעה</button>`;
 
     let tableRows = '';
-    let mobHtml = '';
     
     // Sort events primarily by time and secondarily by garden name
     const sortedEvs = [...evs].sort((a,b) => {
@@ -206,9 +205,6 @@ window.ui = {
       const gA = window.G(a.g), gB = window.G(b.g);
       return (gA.name||'').localeCompare(gB.name||'', 'he');
     });
-
-    const cancellations = sortedEvs.filter(s => s.st === 'can' || s.st === 'nohap' || s.st === 'post');
-    const activeEvs = sortedEvs.filter(s => s.st !== 'can' && s.st !== 'nohap' && s.st !== 'post');
 
     if (sortedEvs.length === 0) {
       // Handle empty pair (mostly for calendar view)
@@ -225,49 +221,15 @@ window.ui = {
           </tr>`;
       });
     } else {
-      if (cancellations.length > 0) {
-        tableRows += `<tr style="background:#fff5f5; border-bottom:1px solid #ffd8d8"><td colspan="${context === 'dash' ? 9 : 8}" style="padding:8px 10px; font-weight:800; color:#c62828; font-size:0.75rem; text-align:right">⚠️ פעילויות שלא התקיימו / בוטלו:</td></tr>`;
-        cancellations.forEach(s => {
-          tableRows += window.ui.renderActivityRow(s, { showCheckbox: context === 'dash', context: context });
+      sortedEvs.forEach(s => {
+        tableRows += window.ui.renderActivityRow(s, { 
+          showCheckbox: context === 'dash',
+          context: context
         });
-      }
-      if (activeEvs.length > 0) {
-        tableRows += `<tr style="background:#f0faf4; border-bottom:1px solid #c3f2d7"><td colspan="${context === 'dash' ? 9 : 8}" style="padding:8px 10px; font-weight:800; color:#2e7d32; font-size:0.75rem; text-align:right">🏫 פעילויות השלמה / מתקיימות:</td></tr>`;
-        activeEvs.forEach(s => {
-          tableRows += window.ui.renderActivityRow(s, { showCheckbox: context === 'dash', context: context });
-        });
-      }
+      });
     }
 
     if (window.isMobileMode()) {
-      if (sortedEvs.length === 0) {
-        gids.forEach(gid => {
-          const g = window.G(gid);
-          if(!g) return;
-          const gblk = ds ? window.getGardenBlock(gid, ds) : null;
-          mobHtml += `
-            <div style="padding:10px; margin-bottom:6px; border-radius:6px; background:${gblk ? '#fff5f5' : '#fff'}; border:1px solid ${gblk ? '#ffd8d8' : '#e2e8f0'}">
-              <div style="font-weight:700; color:var(--c-primary); font-size:0.8rem">🏫 ${g.name}</div>
-              <div style="font-size:0.7rem; color:${gblk ? '#c62828' : '#94a3b8'}; margin-top:4px">
-                ${gblk ? `${gblk.icon || '🚫'} ${gblk.reason}` : 'אין פעילות רשומה ביום זה'}
-              </div>
-            </div>`;
-        });
-      } else {
-        if (cancellations.length > 0) {
-          mobHtml += `<div style="background:#fff5f5; border:1px solid #ffd8d8; border-radius:6px; padding:6px 10px; font-weight:800; color:#c62828; font-size:0.72rem; margin-bottom:6px; text-align:right">⚠️ פעילויות שלא התקיימו / בוטלו:</div>`;
-          cancellations.forEach(s => {
-            mobHtml += window.ui.renderActivityRow(s, { showCheckbox: context === 'dash', context: context });
-          });
-        }
-        if (activeEvs.length > 0) {
-          mobHtml += `<div style="background:#f0faf4; border:1px solid #c3f2d7; border-radius:6px; padding:6px 10px; font-weight:800; color:#2e7d32; font-size:0.72rem; margin-bottom:6px; margin-top:8px; text-align:right">🏫 פעילויות השלמה / מתקיימות:</div>`;
-          activeEvs.forEach(s => {
-            mobHtml += window.ui.renderActivityRow(s, { showCheckbox: context === 'dash', context: context });
-          });
-        }
-      }
-
       return `
       <details class="mob-accordion" style="border-top: 4px solid ${clr.solid}">
         <summary class="mob-summary" style="padding: 8px 10px">
@@ -280,7 +242,7 @@ window.ui = {
            </div>
         </summary>
         <div class="mob-content p-4">
-           ${mobHtml}
+           ${tableRows}
         </div>
       </details>`;
     }
