@@ -675,7 +675,7 @@ async function exportToExcel(data, filename, opts = {}) {
       if(opts.title){
         const titleRow = ws.addRow([opts.title]);
         titleRow.font = { name: 'Arial', size: 16, bold: true };
-        ws.mergeCells(1, 1, 1, 7);
+        ws.mergeCells(1, 1, 1, 8);
       }
 
       const isSupplierExport = opts.type === 'supplier';
@@ -712,9 +712,9 @@ async function exportToExcel(data, filename, opts = {}) {
             titleRow.font = { bold: true };
             titleRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
             titleRow.alignment = { horizontal: 'right' };
-            ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, 7);
+            ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, 8);
 
-            const headRow = ws.addRow(['תאריך', 'גן/בי"ס', 'פעילות', 'שעה', 'קבוצות', 'סטטוס', 'הערות']);
+            const headRow = ws.addRow(['תאריך', 'יום', 'גן/בי"ס', 'פעילות', 'שעה', 'קבוצות', 'סטטוס', 'הערות']);
             headRow.font = { bold: true };
             headRow.eachCell(cell => {
                cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
@@ -767,7 +767,9 @@ async function exportToExcel(data, filename, opts = {}) {
               }
               
               const formattedNote = typeof window.formatNoteWithTag === 'function' ? window.formatNoteWithTag(s) : (s.nt || '');
-              const row = ws.addRow([window.fD(s.d), g.name, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote]);
+              const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+              const dayStr = 'יום ' + dayNames[new Date(s.d).getDay()];
+              const row = ws.addRow([window.fD(s.d), dayStr, g.name, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote]);
               row.eachCell(cell => {
                  cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
                  cell.alignment = { horizontal: 'right' };
@@ -775,12 +777,12 @@ async function exportToExcel(data, filename, opts = {}) {
             });
 
             // Section Sub-Summary
-            const typeSum = ws.addRow([`📌 ${city} - ${type}: בוצעו ${typeGroups} פעילויות (כולל השלמות)`, '', '', '', '', '', '']);
+            const typeSum = ws.addRow([`📌 ${city} - ${type}: בוצעו ${typeGroups} פעילויות (כולל השלמות)`, '', '', '', '', '', '', '']);
             typeSum.font = { bold: true, size: 10, color: { argb: 'FF1A237E' } };
             typeSum.eachCell((cell) => {
               cell.alignment = { horizontal: 'right' };
             });
-            ws.mergeCells(typeSum.number, 1, typeSum.number, 7);
+            ws.mergeCells(typeSum.number, 1, typeSum.number, 8);
             ws.addRow([]);
             
             summaryRows.push({ label: `${city} - ${type}`, ok: typeOk, grp: typeGroups });
