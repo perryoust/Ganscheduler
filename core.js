@@ -221,12 +221,40 @@ window.ui = {
           </tr>`;
       });
     } else {
-      sortedEvs.forEach(s => {
-        tableRows += window.ui.renderActivityRow(s, { 
-          showCheckbox: context === 'dash',
-          context: context
+      const cancellations = sortedEvs.filter(s => s.st === 'can' || s.st === 'nohap' || s.st === 'post');
+      const activeEvs = sortedEvs.filter(s => s.st !== 'can' && s.st !== 'nohap' && s.st !== 'post');
+      const hasBoth = cancellations.length > 0 && activeEvs.length > 0;
+
+      if (hasBoth) {
+        const isMob = window.isMobileMode();
+        
+        if (isMob) {
+          tableRows += `<div style="background:#fff5f5; border:1px solid #ffd8d8; border-radius:6px; padding:6px 10px; font-weight:800; color:#c62828; font-size:0.72rem; margin-bottom:6px; text-align:right">⚠️ פעילויות שלא התקיימו / בוטלו:</div>`;
+        } else {
+          tableRows += `<tr style="background:#fff5f5; border-bottom:1px solid #ffd8d8"><td colspan="${context === 'dash' ? 9 : 8}" style="padding:8px 10px; font-weight:800; color:#c62828; font-size:0.75rem; text-align:right">⚠️ פעילויות שלא התקיימו / בוטלו:</td></tr>`;
+        }
+        
+        cancellations.forEach(s => {
+          tableRows += window.ui.renderActivityRow(s, { showCheckbox: context === 'dash', context: context });
         });
-      });
+        
+        if (isMob) {
+          tableRows += `<div style="background:#f0faf4; border:1px solid #c3f2d7; border-radius:6px; padding:6px 10px; font-weight:800; color:#2e7d32; font-size:0.72rem; margin-bottom:6px; margin-top:8px; text-align:right">🏫 פעילויות השלמה / מתקיימות:</div>`;
+        } else {
+          tableRows += `<tr style="background:#f0faf4; border-bottom:1px solid #c3f2d7"><td colspan="${context === 'dash' ? 9 : 8}" style="padding:8px 10px; font-weight:800; color:#2e7d32; font-size:0.75rem; text-align:right">🏫 פעילויות השלמה / מתקיימות:</td></tr>`;
+        }
+        
+        activeEvs.forEach(s => {
+          tableRows += window.ui.renderActivityRow(s, { showCheckbox: context === 'dash', context: context });
+        });
+      } else {
+        sortedEvs.forEach(s => {
+          tableRows += window.ui.renderActivityRow(s, { 
+            showCheckbox: context === 'dash',
+            context: context
+          });
+        });
+      }
     }
 
     if (window.isMobileMode()) {
