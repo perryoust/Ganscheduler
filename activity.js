@@ -2327,10 +2327,29 @@ window.spSaveMakeup = function() {
     }
   }
   
-  if(!confirm(`לבצע שיבוץ השלמה ל-${targets.length} גנים בתאריך ${window.fD(newDate)}?`)) return;
-  
   const grpInput = document.getElementById('sp-mu-grp');
   const customGrp = grpInput ? parseInt(grpInput.value, 10) : null;
+
+  let totalGrps = 0;
+  targets.forEach(tgt => {
+    const targetOrigEv = window.SCH.find(x => 
+      Number(x.g) === Number(tgt.g) && 
+      x.d === origEv.d && 
+      window.supBase(x.a) === window.supBase(origEv.a)
+    );
+    const grpCount = customGrp || (targetOrigEv ? targetOrigEv.grp : origEv.grp) || 1;
+    totalGrps += grpCount;
+  });
+
+  const isSchool = window.gcls ? window.gcls(window.G(origEv.g)) === 'ביה"ס' : false;
+  const unitName = isSchool ? 'בתי ספר' : 'גנים';
+  const grpText = totalGrps > targets.length ? ` (${totalGrps} קבוצות)` : '';
+  const gardenName = window.G(origEv.g) ? window.G(origEv.g).name : 'גן';
+  const confirmMsg = targets.length === 1 
+    ? `לבצע שיבוץ השלמה ל-${gardenName}${grpText} בתאריך ${window.fD(newDate)}?`
+    : `לבצע שיבוץ השלמה ל-${targets.length} ${unitName}${grpText} בתאריך ${window.fD(newDate)}?`;
+
+  if(!confirm(confirmMsg)) return;
 
   targets.forEach(tgt => {
     // Find the original activity for this specific target garden, or fallback to sid if not found
