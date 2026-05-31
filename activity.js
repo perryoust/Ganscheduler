@@ -991,6 +991,7 @@ window.openSP = function(id) {
 
   document.getElementById('sp-m-body').innerHTML = h;
   window.spUpdateExVisibility(); // Initial check
+  window.spMuDateChg(); // Pre-populate partners table and free days!
   window.OM('sp-m');
   } catch(err) {
     console.error('[openSP] Error building panel:', err);
