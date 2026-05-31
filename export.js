@@ -671,6 +671,7 @@ async function exportToExcel(data, filename, opts = {}) {
       const workbook = new window.ExcelJS.Workbook();
       const ws = workbook.addWorksheet('Sheet1', { views: [{ rightToLeft: true }] });
       ws.pageSetup.margins = { left: 0.3/2.54, right: 0.3/2.54, top: 0.4/2.54, bottom: 0.4/2.54, header: 0.8/2.54, footer: 0.8/2.54 };
+      ws.pageSetup.margins = { left: 0.3/2.54, right: 0.3/2.54, top: 0.4/2.54, bottom: 0.4/2.54, header: 0.8/2.54, footer: 0.8/2.54 };
       
       if(opts.title){
         const titleRow = ws.addRow([opts.title]);
@@ -818,7 +819,18 @@ async function exportToExcel(data, filename, opts = {}) {
         data.forEach(item => ws.addRow(Object.values(item)));
       }
 
-      ws.columns.forEach(col => { col.width = 20; });
+      ws.columns.forEach(col => {
+        let maxLength = 0;
+        col.eachCell({ includeEmpty: true }, cell => {
+          if (cell.isMerged) return; // Skip merged cells like titles
+          const columnLength = cell.value ? cell.value.toString().length : 0;
+          if (columnLength > maxLength) {
+            maxLength = columnLength;
+          }
+        });
+        // Add padding, minimum width 10, maximum width 60
+        col.width = Math.min(Math.max(maxLength + 2, 10), 60);
+      });
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const a = document.createElement('a');
