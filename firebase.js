@@ -1,3 +1,4 @@
+ול
 // ══════════════════════════════════════════════
 // Firebase Realtime Database Sync - v3.0 (Robust)
 // ══════════════════════════════════════════════
@@ -342,7 +343,7 @@ window._onAuthReady = async function () {
         if (window.initYearSelector) window.initYearSelector();
       }
     }
-  } catch(e) {
+  } catch (e) {
     console.warn('Failed to load years metadata from Firebase:', e);
   }
 
