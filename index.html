@@ -344,6 +344,23 @@
             <span style="color:#999;font-size:.78rem;padding:10px;display:block">לחץ "רענן" לטעינת השינויים</span>
           </div>
         </div>
+
+        <!-- QA Test Simulator -->
+        <div style="border-top:2px solid #e8eaf6;padding-top:18px;margin-top:18px">
+          <div style="font-weight:800;font-size:.95rem;color:#bf360c;margin-bottom:14px">⚙️ סימולטור בדיקות תקינות מערכת (QA)</div>
+          <div style="background:#fff3e0;border-radius:10px;padding:14px;border:1.5px solid #ffb74d">
+            <p style="font-size:0.8rem;color:#e65100;margin-top:0;margin-bottom:12px;line-height:1.4">
+              סימולטור זה מריץ מגוון רחב של תרחישי בדיקה (כמו סנכרון זוגות, שלשות, ביטולים והשלמות) בזיכרון נפרד כדי לוודא שאין באגים במערכת, ללא פגיעה בנתונים האמיתיים שלך.
+            </p>
+            <button class="btn bg" onclick="window.QA_SIMULATOR.runAll()"
+              style="padding:8px 16px;font-size:.85rem;background:#bf360c;border:1px solid #d84315;color:white;font-weight:bold;margin-bottom:10px;cursor:pointer">
+              🏃‍♂️ הרץ בדיקות תקינות
+            </button>
+            <div id="qa-results" style="margin-top:10px;padding:10px;background:#fff;border-radius:6px;border:1px solid #ffe0b2;min-height:40px">
+              <span style="color:#999;font-size:.8rem">לחץ על הכפתור כדי להריץ את הבדיקות האוטומטיות.</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -3233,6 +3250,7 @@
     <script src="admin.js?v=104.02"></script>
     <script src="import_export.js?v=104.02"></script>
     <script src="core.js?v=104.02"></script>
+    <script src="qa_simulator.js?v=104.02"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
       console.log('Ganscheduler Architecture: v' + (window.APP_VERSION || '103.82') + ' Ready');
