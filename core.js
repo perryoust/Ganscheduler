@@ -1693,10 +1693,15 @@ function initSucTabs(){
   const isAct = exIsAct===true || (exIsAct===undefined && hasSchEntries && !hasInvoices);
   // isPurch = explicitly marked OR has invoices OR default (but SUPBASE-only suppliers treated as act)
   const isPurch = exIsPurch===true || hasInvoices || (exIsPurch===undefined && !hasSchEntries);
-  const tabsDiv = document.getElementById('suc-section-tabs');
-  const actsDiv = document.getElementById('suc-acts-section');
-  const docsDiv = document.getElementById('suc-docs-section');
-  if(!tabsDiv||!actsDiv||!docsDiv) return;
+    const btnExpAct = document.getElementById('suc-btn-exp-act');
+    const btnExpPurch = document.getElementById('suc-btn-exp-purch');
+    if(btnExpAct) btnExpAct.style.display = isAct ? 'inline-flex' : 'none';
+    if(btnExpPurch) btnExpPurch.style.display = isPurch ? 'inline-flex' : 'none';
+
+    const tabsDiv = document.getElementById('suc-section-tabs');
+    const actsDiv = document.getElementById('suc-acts-section');
+    const docsDiv = document.getElementById('suc-docs-section');
+    if(!tabsDiv||!actsDiv||!docsDiv) return;
 
   if(isAct && isPurch){
     // Show tabs, default based on mode
