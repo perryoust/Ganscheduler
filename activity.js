@@ -765,7 +765,7 @@ window.openSP = function(id) {
         <thead>
             <tr style="background:#f5f7ff;color:#5c6bc0;border-bottom:2px solid #dbe3ff">
               <th style="padding:6px;width:30px;text-align:center">סמן</th>
-              <th style="padding:6px">שם הגן</th>
+              <th style="padding:6px">שם הצהרון</th>
               <th style="padding:6px">ספק</th>
               <th style="padding:6px">פעילות</th>
               <th style="padding:6px">סוג</th>
@@ -2240,7 +2240,7 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
     <div class="tw" style="border:1px solid #ffcc80;border-radius:6px;overflow:hidden">
       <table style="width:100%;border-collapse:collapse;text-align:right">
         <thead style="background:#fff3e0;color:#bf360c">
-          <tr><th style="padding:6px;width:30px"><input type="checkbox" checked onclick="const cbs=document.querySelectorAll('.${prefix}-syn-chk'); cbs.forEach(cb=>cb.checked=this.checked)"></th><th style="padding:6px">גן</th><th style="padding:6px">שעה</th><th style="padding:6px">ספק</th><th style="padding:6px">פעילות</th><th style="padding:6px">סטטוס</th></tr>
+          <tr><th style="padding:6px;width:30px"><input type="checkbox" checked onclick="const cbs=document.querySelectorAll('.${prefix}-syn-chk'); cbs.forEach(cb=>cb.checked=this.checked)"></th><th style="padding:6px">צהרון</th><th style="padding:6px">שעה</th><th style="padding:6px">ספק</th><th style="padding:6px">פעילות</th><th style="padding:6px">סטטוס</th></tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
       </table>

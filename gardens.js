@@ -1787,7 +1787,7 @@ window.openClusterBulkEdit = function(clId, ds) {
       
       <div id="clbulk-list-header" style="display:grid; grid-template-columns: 30px 1fr 100px 100px 70px 80px 65px; gap: 6px; padding: 6px 10px; background: #eceff1; border-radius: 6px 6px 0 0; font-size: 0.68rem; font-weight: 800; color: #455a64; border: 1px solid #cfd8dc; border-bottom: none;">
         <span></span>
-        <span>שם הגן</span>
+        <span>שם הצהרון</span>
         <span>ספק</span>
         <span>פעילות</span>
         <span>סוג</span>

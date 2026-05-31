@@ -2445,7 +2445,7 @@ function openGardenEdit(gid){
   const clr=CITY_COLORS(g.city);
   document.getElementById('gedit-badge').innerHTML=
     `<span style="background:${clr.light};color:${clr.solid};border-radius:12px;padding:2px 10px;font-size:.75rem;font-weight:700">🏙️ ${g.city}</span>`+
-    `<span style="background:#e8f5e9;color:#2e7d32;border-radius:12px;padding:2px 10px;font-size:.75rem">${gcls(g)==='ביה"ס'?'🏛️ בית ספר':'🏫 גן/צהרון'}</span>`;
+    `<span style="background:#e8f5e9;color:#2e7d32;border-radius:12px;padding:2px 10px;font-size:.75rem">${gcls(g)==='ביה"ס'?'🏛️ צהרון בית ספר':'🏫 צהרון גן'}</span>`;
 
   // Fields — override from supEx if exists
   document.getElementById('gedit-name').value=ex.name||g.name||'';

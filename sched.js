@@ -146,7 +146,7 @@ function nsRefG(){
   const gs=window.gByCF(city,'').sort((a,b)=>a.name.localeCompare(b.name,'he'));
   const sel=document.getElementById('ns-g');
   if(!sel) return;
-  sel.innerHTML='<option value="">בחר גן</option>';
+  sel.innerHTML='<option value="">בחר צהרון</option>';
   gs.forEach(g=>sel.innerHTML+=`<option value="${g.id}">${g.name}</option>`);
   
   const choiceWrap = document.getElementById('ns-g2-choice-wrap');
@@ -240,7 +240,7 @@ function renderPartnerTable(){
         <thead>
           <tr style="background:#f1f3f9">
             <th style="width:40px;text-align:center;padding:8px">סמן</th>
-            <th style="padding:8px">שם הגן</th>
+            <th style="padding:8px">שם הצהרון</th>
             <th style="padding:8px">שעה</th>
             <th style="padding:8px">ספק</th>
             <th style="padding:8px">פעילות</th>
