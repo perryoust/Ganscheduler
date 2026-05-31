@@ -15,7 +15,7 @@ function getFirebaseInvoicesUrl() {
 }
 const FIREBASE_POLL_INTERVAL = 30000;
 
-let _localSeq = parseInt(window._safeLS.get('_fbSeq') || '0');
+let _localSeq = parseInt(window._safeLS.getItem('_fbSeq') || '0');
 let _lastSyncTs = 0;
 let _isLocked = false;
 let _syncTimer = null;
