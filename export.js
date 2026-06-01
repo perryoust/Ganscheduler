@@ -849,13 +849,117 @@ async function exportToExcel(data, filename, opts = {}) {
   window.XLSX.writeFile(wb, (filename || 'export') + ".xlsx");
 }
 
+async function exportShortagesToExcel() {
+  if (typeof window.ExcelJS === 'undefined') {
+    alert('ExcelJS is not loaded yet. Please wait a moment and try again.');
+    return;
+  }
+
+  const wb = new window.ExcelJS.Workbook();
+  const ws = wb.addWorksheet('חוסרים להשלמה');
+  ws.views = [{ rightToLeft: true }];
+
+  ws.columns = [
+    { header: 'עש/סוג', key: 'type', width: 10 },
+    { header: 'עיר', key: 'city', width: 15 },
+    { header: 'רחוב', key: 'street', width: 25 },
+    { header: 'שם המוסד/גן', key: 'name', width: 25 },
+    { header: 'גיל', key: 'age', width: 10 },
+    { header: 'תאריך', key: 'date', width: 15 },
+    { header: 'יום', key: 'day', width: 15 },
+    { header: 'חוג/פעולה', key: 'actType', width: 15 },
+    { header: 'שם החוג', key: 'sup', width: 30 },
+    { header: 'טלפון', key: 'supPhone', width: 15 },
+    { header: 'קבוצות', key: 'groups', width: 10 },
+    { header: 'שעה', key: 'time', width: 10 },
+    { header: 'הערות', key: 'notes', width: 30 },
+    { header: 'הושלם', key: 'makeup', width: 30 },
+    { header: 'טלפון מפעיל/רכז', key: 'operator', width: 20 }
+  ];
+
+  ws.getRow(1).eachCell(cell => {
+    cell.font = { bold: true };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+    cell.alignment = { horizontal: 'center' };
+  });
+
+  const HEB_DAYS = ['יום ראשון','יום שני','יום שלישי','יום רביעי','יום חמישי','יום שישי','שבת'];
+
+  const shortages = (window.SCH || []).filter(s => {
+    if (!s) return false;
+    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false") || !!((s.nt && /הושלם|במקום זה|במקום פעילות|השלמה עבור/i.test(s.nt)) || (s.n && /הושלם|במקום זה|במקום פעילות|השלמה עבור/i.test(s.n)));
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|במקום/i.test(s.nt)) || (s.n && /השלמה|במקום/i.test(s.n)) || (s.a && /השלמה|במקום/i.test(s.a)));
+    
+    if (s.st !== 'nohap' && s.st !== 'post') return false;
+    if (s.st === 'can' || isM || isHandled) return false;
+    return true;
+  });
+
+  shortages.forEach(s => {
+    const g = window.G(s.g) || {};
+    const city = g.city || '';
+    const type = window.gcls ? window.gcls(g) : (g.name && g.name.startsWith('ביה"ס') ? 'ביה"ס' : 'גנים');
+    
+    let dateStr = s.d;
+    let dayStr = '';
+    if (dateStr) {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) dateStr = `${parts[2]}/${parts[1]}/${parts[0].slice(-2)}`;
+      try {
+        const dObj = new Date(s.d);
+        if (!isNaN(dObj)) dayStr = HEB_DAYS[dObj.getDay()];
+      } catch(e){}
+    }
+    
+    let supPhone = '';
+    if (window.getAllSup) {
+      const allSups = window.getAllSup();
+      const sObj = allSups.find(x => x.name === s.a || (window.supBase && window.supBase(x.name) === window.supBase(s.a)));
+      if (sObj && sObj.phone) supPhone = sObj.phone;
+    }
+    
+    let operatorStr = g.operator || g.opPhone || '';
+    if (g.operator && g.opPhone) operatorStr = `${g.operator} - ${g.opPhone}`;
+
+    ws.addRow({
+      type: type,
+      city: city,
+      street: g.address || '',
+      name: g.name || '',
+      age: g.age || g.type || '',
+      date: dateStr,
+      day: dayStr,
+      actType: 'חוג',
+      sup: s.a + (s.act ? ` - ${s.act}` : ''),
+      supPhone: supPhone,
+      groups: s.gr || '',
+      time: window.fT ? window.fT(s.t) : s.t || '',
+      notes: s.nt || s.n || 'לא התקיים',
+      makeup: '', 
+      operator: operatorStr
+    });
+  });
+
+  try {
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `דוח_חוסרים_${window.td().split('-').reverse().join('-')}.xlsx`;
+    a.click();
+  } catch (e) {
+    console.error('Shortages export failed:', e);
+    alert('שגיאה בייצוא הדוח');
+  }
+}
+
+
+
 window.openMonthlyExport = openMonthlyExport;
 window.doMonthlyExport = doMonthlyExport;
 window.exportToExcel = exportToExcel;
+window.exportShortagesToExcel = exportShortagesToExcel;
 window.downloadWB = downloadWB;
 window.buildCityWB = buildCityWB;
 window.buildGardenWB = buildGardenWB;
-
-// ─── Garden Cell Popup ────────────────────────────────────────
-var _gcellGid=null, _gcellDs=null;
 

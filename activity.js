@@ -59,8 +59,8 @@ function renderDash() {
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.a)));
 
     if (view === 'todo') {
-      if (s.st === 'can' || isHandled || isM) return false;
-      if (s.st !== 'nohap' && s.st !== 'post') return false;
+      if (isHandled) return false; // Hide if already handled
+      if (s.st !== 'nohap' && s.st !== 'post' && s.st !== 'can') return false; // Show shortages including cancellations and failed makeups
     } else if (view === 'makeups') {
       const isFuture = s.d >= window.td();
       if (!isM || s.st === 'done' || s.st === 'can' || !isFuture) return false;
@@ -2753,3 +2753,13 @@ window.getSpFreeDaysHtml = function(gid) {
     </span>
   `).join('');
 };
+
+window.jumpToCalendar = function(pairId, gid, dateStr, eventId) {
+  if (window.calJump) {
+    if (pairId && pairId !== 'undefined') window.calJump(pairId, 'week', null);
+    else window.calJump(null, 'week', gid);
+  }
+  if (window.goDate) window.goDate(dateStr);
+  setTimeout(() => { if (window.openSP) window.openSP(eventId); }, 300);
+};
+

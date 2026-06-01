@@ -350,7 +350,7 @@
           <div style="font-weight:800;font-size:.95rem;color:#bf360c;margin-bottom:14px">⚙️ סימולטור בדיקות תקינות מערכת (QA)</div>
           <div style="background:#fff3e0;border-radius:10px;padding:14px;border:1.5px solid #ffb74d">
             <p style="font-size:0.8rem;color:#e65100;margin-top:0;margin-bottom:12px;line-height:1.4">
-              סימולטור זה מריץ מגוון רחב של תרחישי בדיקה (כמו סנכרון זוגות, שלשות, ביטולים והשלמות) בזיכרון נפרד כדי לוודא שאין באגים במערכת, ללא פגיעה בנתונים האמיתיים שלך.
+              סימולטור זה מריץ מגוון רחב של תרחישי בדיקה (כמו סנכרון זוגות, שלשות, ביטולים והשלמות) בזיכרון נפרד כדי לוודא שאין באגים במערכת, ללא פגיעה בנתונים האמיתיים שלנו.
             </p>
             <button class="btn bg" onclick="window.QA_SIMULATOR.runAll()"
               style="padding:8px 16px;font-size:.85rem;background:#bf360c;border:1px solid #d84315;color:white;font-weight:bold;margin-bottom:10px;cursor:pointer">
@@ -412,11 +412,14 @@
             <div class="fg"><label>ספק</label><select id="dash-sup-mobile" onchange="renderDash()"><option value="">כל הספקים</option></select></div>
             <div class="fg"><label>חיפוש</label><input type="text" id="dash-srch-mobile" oninput="renderDash()"></div>
          </div>
-         <div class="dash-view-pills mt-2">
-            <button id="dvp-todo-mobile" class="dash-view-pill active bsm" onclick="setDashView('todo')">🚀 <b id="dvp-cnt-todo-mobile">0</b></button>
-            <button id="dvp-makeups-mobile" class="dash-view-pill bsm" onclick="setDashView('makeups')">📅 <b id="dvp-cnt-makeups-mobile">0</b></button>
-            <button id="dvp-all-mobile" class="dash-view-pill bsm" onclick="setDashView('all')">📋 <b id="dvp-cnt-all-mobile">0</b></button>
-            <button id="dvp-handled-mobile" class="dash-view-pill bsm" onclick="setDashView('handled')">✅ <b id="dvp-cnt-handled-mobile">0</b></button>
+         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top: 8px;">
+            <div class="dash-view-pills">
+               <button id="dvp-todo-mobile" class="dash-view-pill active bsm" onclick="setDashView('todo')">🚀 <b id="dvp-cnt-todo-mobile">0</b></button>
+               <button id="dvp-makeups-mobile" class="dash-view-pill bsm" onclick="setDashView('makeups')">📅 <b id="dvp-cnt-makeups-mobile">0</b></button>
+               <button id="dvp-all-mobile" class="dash-view-pill bsm" onclick="setDashView('all')">📋 <b id="dvp-cnt-all-mobile">0</b></button>
+               <button id="dvp-handled-mobile" class="dash-view-pill bsm" onclick="setDashView('handled')">✅ <b id="dvp-cnt-handled-mobile">0</b></button>
+            </div>
+            <button class="btn bg bsm" onclick="exportShortagesToExcel()" title="ייצוא רשימת החוסרים לאקסל בהתאם לפורמט הדרוש">📥 דוח חוסרים</button>
          </div>
       </div>
 
