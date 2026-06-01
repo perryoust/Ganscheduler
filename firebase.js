@@ -155,6 +155,21 @@ window.cleanSupplierNamesBeforeSave = function () {
         }
       }
     });
+  // 6. Clean keys in window.spScannerAliases to prevent Firebase errors
+  if (typeof window.spScannerAliases === 'object' && window.spScannerAliases !== null) {
+    const oldAliasKeys = Object.keys(window.spScannerAliases);
+    for (const key of oldAliasKeys) {
+      const cleanedKey = clean(key);
+      if (cleanedKey !== key) {
+        if (cleanedKey) {
+          console.log(`[Clean] Renaming spScannerAliases key "${key}" -> "${cleanedKey}"`);
+          window.spScannerAliases[cleanedKey] = window.spScannerAliases[key];
+        } else {
+          console.log(`[Clean] Removing invalid spScannerAliases key "${key}"`);
+        }
+        delete window.spScannerAliases[key];
+      }
+    }
   }
 };
 
