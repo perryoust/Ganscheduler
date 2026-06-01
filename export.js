@@ -792,10 +792,10 @@ async function exportToExcel(data, filename, opts = {}) {
 
         ws.addRow([]);
         const summaryTitleStr = opts.summaryTitle || '📊 ריכוז פעילות סופי';
-        const sumHead = ws.addRow([summaryTitleStr, '', '']);
+        const sumHead = ws.addRow([summaryTitleStr, '', '', '', '', '', '', '']);
         sumHead.font = { bold: true, size: 12 };
         sumHead.alignment = { horizontal: 'right' };
-        ws.mergeCells(sumHead.number, 1, sumHead.number, 3);
+        ws.mergeCells(sumHead.number, 1, sumHead.number, 8);
 
         summaryRows.forEach(sr => {
           const row = ws.addRow([sr.label, `בוצעו ${sr.grp} פעילויות`, '']);
