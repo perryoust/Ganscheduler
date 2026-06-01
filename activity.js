@@ -714,7 +714,7 @@ window.openSP = function(id) {
     otherIds.forEach(oid => {
       const pg = window.G(oid);
       const pev = window.findPartnerActivity(oid, s.d, s.a);
-      if(pev) currentTimesSP[oid] = window.fT(pev.t || s.t);
+      if(pev) { currentTimesSP[oid] = window.fT(pev.t || s.t); currentGrpsSP[oid] = pev.grp || 1; }
       partnerInfo.push({ pg, pev });
     });
   }
@@ -965,7 +965,7 @@ window.openSP = function(id) {
         <div class="fg"><label for="sp-edit-act" style="font-size:.7rem;font-weight:700">פעילות</label><select id="sp-edit-act" onchange="window.spEditActChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"><option value="">— ללא שינוי —</option>${initialActs.map(a => `<option value="${a}" ${a===s.act ? 'selected':''}>${a}</option>`).join('')}<option value="__new__">➕ פעילות חדשה...</option></select></div>
       </div>
       <div class="fg" id="sp-edit-act-new-wrap" style="display:none;margin-top:8px"><label for="sp-edit-act-new" style="font-size:.7rem;font-weight:700">שם הפעילות החדשה</label><input type="text" id="sp-edit-act-new" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
-      ${spPair ? window.renderPartnerSynergy(s.g, 'sped', currentTimesSP) : ''}
+      ${spPair ? window.renderPartnerSynergy(s.g, 'sped', currentTimesSP, currentGrpsSP) : ''}
       <button class="btn bg" style="width:100%;padding:8px;font-weight:800;margin-top:8px;font-size:.8rem" onclick="window.spEditSave()">💾 שמור שינויים</button>
     </div>
   </div>`;
@@ -1420,7 +1420,7 @@ function spEditSave(){
     const pEv = window.findPartnerActivity(syn.g, origDate, origSup);
     if(pEv) {
       if(newDate) pEv.d=newDate;
-        if(newGrp && newGrp > 0) pEv.grp=newGrp; 
+        if(syn.grp) pEv.grp = syn.grp; else if(newGrp && newGrp > 0) pEv.grp = newGrp; 
       if(newSup) pEv.a=newSup; 
       if(newAct) pEv.act=newAct; 
       if(syn.t || newTime) pEv.t=syn.t || newTime;
@@ -1800,10 +1800,10 @@ function openPostpone(id){
       pair.ids.forEach(pId => {
         if(pId === s.g) return;
         const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === pId && ps.st!=='can' && window.supBase(ps.a)===window.supBase(s.a));
-        if(pEv) currentTimes[pId] = window.fT(pEv.t||s.t);
+        if(pEv) { currentTimes[pId] = window.fT(pEv.t||s.t); currentGrps[pId] = pEv.grp || 1; }
       });
     }
-    synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'post', currentTimes);
+    synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'post', currentTimes, currentGrps);
   }
   
   document.getElementById('postm').classList.add('open');
@@ -1826,10 +1826,10 @@ function openCopy(id){
       pair.ids.forEach(pId => {
         if(pId === s.g) return;
         const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === pId && ps.st!=='can' && window.supBase(ps.a)===window.supBase(s.a));
-        if(pEv) currentTimes[pId] = window.fT(pEv.t||s.t);
+        if(pEv) { currentTimes[pId] = window.fT(pEv.t||s.t); currentGrps[pId] = pEv.grp || 1; }
       });
     }
-    synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'copy', currentTimes);
+    synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'copy', currentTimes, currentGrps);
   }
   
   document.getElementById('copym').style.display='flex';
@@ -1948,7 +1948,7 @@ function doCopy(){
   // Synergy
   const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('copy') : [];
   synergyPartners.forEach((syn, idx) => {
-    const newPtEv = {...s, id:Date.now() + idx + 1, g:syn.g, d:newDate, t:syn.t || primaryTime || s.t, st:'ok', pd:'', pt:'', cr:'', cn:''};
+    const newPtEv = {...s, id:Date.now() + idx + 1, g:syn.g, d:newDate, t:syn.t || primaryTime || s.t, st:'ok', pd:'', pt:'', cr:'', cn:'', grp: syn.grp || s.grp || 1};
     delete newPtEv._recId;
     window.SCH.push(newPtEv);
   });
@@ -1960,10 +1960,10 @@ function doCopy(){
 
 
 // --- SYNERGY UI HELPER ---
-function renderPartnerSynergy(gid, prefix, currentTimes = {}) {
+function renderPartnerSynergy(gid, prefix, currentTimes = {}, currentGrps = {}) {
   const pair = window.gardenPair(gid);
   if (!pair) return '';
-  const partners = pair.ids.filter(id => Number(id) !== Number(gid));
+  const partners = pair.ids;
   if (!partners.length) return '';
   
   let html = `<div style="background:#f0f4f8;border:1px solid #d1d9e6;border-radius:7px;padding:9px;margin-bottom:10px">`;
@@ -1985,7 +1985,7 @@ function renderPartnerSynergy(gid, prefix, currentTimes = {}) {
           <span style="font-size:.8rem;font-weight:600">${pG.name}</span>
         </label>
         <div style="display:flex;align-items:center;gap:5px">
-          <label style="font-size:.7rem;color:#546e7a">שעה:</label>
+          <label style="font-size:.7rem;color:#546e7a">קבוצות:</label>\n            <input type="number" id="${prefix}-syn-grp-${pId}" class="${prefix}-syn-grp" data-gid="${pId}" value="${currentGrps[pId] || 1}" min="1" max="10" style="padding:2px 4px;font-size:.8rem;border:1px solid #ccc;border-radius:4px;width:40px">\n          </div>\n          <div style="display:flex;align-items:center;gap:5px">\n            <label style="font-size:.7rem;color:#546e7a">שעה:</label>
           <input type="time" id="${prefix}-syn-time-${pId}" class="${prefix}-syn-time" data-gid="${pId}" value="${timeVal}" style="padding:2px 4px;font-size:.8rem;border:1px solid #ccc;border-radius:4px;width:110px">
         </div>
       </div>
@@ -2002,7 +2002,8 @@ function getSynergyData(prefix) {
     if (chk.checked && !chk.disabled) {
       const pId = chk.value;
       const timeInput = document.querySelector(`.${prefix}-syn-time[data-gid="${pId}"]`);
-      data.push({ g: Number(pId), t: timeInput ? timeInput.value : '' });
+        const grpInput = document.querySelector(`.${prefix}-syn-grp[data-gid="${pId}"]`);
+      data.push({ g: Number(pId), t: timeInput ? timeInput.value : '', grp: grpInput ? parseInt(grpInput.value, 10) : null });
     }
   });
   return data;
@@ -2321,7 +2322,7 @@ window.spSaveMakeup = function() {
   
   if(!newDate || !time) { alert('בחר תאריך ושעה'); return; }
   
-  const targets = [{ g: origEv.g, t: time }, ...window.getSynergyData('sp-mu').map(tgt => ({ g: tgt.g, t: tgt.t || time }))];
+  const targets = [{ g: origEv.g, t: time }, ...window.getSynergyData('sp-mu').map(tgt => ({ g: tgt.g, t: tgt.t || time, grp: tgt.grp }))];
   
   const actVal = document.getElementById('sp-mu-act').value;
   const actName = actVal === '__new__' ? (document.getElementById('sp-mu-act-new')||{}).value : 
@@ -2346,7 +2347,7 @@ window.spSaveMakeup = function() {
       x.d === origEv.d && 
       window.supBase(x.a) === window.supBase(origEv.a)
     );
-    const grpCount = customGrp || (targetOrigEv ? targetOrigEv.grp : origEv.grp) || 1;
+    const grpCount = customGrp || tgt.grp || (targetOrigEv ? targetOrigEv.grp : origEv.grp) || 1;
     totalGrps += grpCount;
   });
 
@@ -2368,7 +2369,7 @@ window.spSaveMakeup = function() {
       window.supBase(x.a) === window.supBase(origEv.a)
     );
     const correctOrigId = targetOrigEv ? targetOrigEv.id : sid;
-    const grpCount = customGrp || (targetOrigEv ? targetOrigEv.grp : origEv.grp) || 1;
+    const grpCount = customGrp || tgt.grp || (targetOrigEv ? targetOrigEv.grp : origEv.grp) || 1;
 
     window.createMakeupActivity({
       g: tgt.g,
