@@ -195,9 +195,20 @@ window.importBulkSchedule = function(input) {
         return;
       }
 
-      // ═══ STEP 2: FULL REPLACE SCH ═══
-      window.showCopyToast('⏳ מחליף נתונים...');
+      // ═══ STEP 2: MERGE WITH EXISTING SCH ═══
+      window.showCopyToast('⏳ ממזג נתונים...');
       
+      const existingMapById = {};
+      const existingMapByKey = {};
+      if (window.SCH) {
+        window.SCH.forEach(s => {
+          existingMapById[s.id] = s;
+          const normA = window.utils ? window.utils.megaClean(s.a) : s.a;
+          const k = s.d + '|' + Number(s.g) + '|' + normA + '|' + s.t;
+          existingMapByKey[k] = s;
+        });
+      }
+
       // Deduplicate imported records (same Date+Garden+Supplier+Time)
       const seen = {};
       const dedupedRecords = [];
@@ -216,10 +227,44 @@ window.importBulkSchedule = function(input) {
         }
       });
 
+      const finalRecords = [];
+      const processedIds = new Set();
+      
+      dedupedRecords.forEach(r => {
+        const normA = window.utils ? window.utils.megaClean(r.a) : r.a;
+        const k = r.d + '|' + Number(r.g) + '|' + normA + '|' + r.t;
+        let old = existingMapById[r.id] || existingMapByKey[k];
+        
+        if (old) {
+          // Preserve custom properties
+          if (old._compByMakeup !== undefined) r._compByMakeup = old._compByMakeup;
+          if (old._isMakeup !== undefined) r._isMakeup = old._isMakeup;
+          if (old._makeupFrom !== undefined) r._makeupFrom = old._makeupFrom;
+          if (old._postFrom !== undefined) r._postFrom = old._postFrom;
+          if (old._isManual !== undefined) r._isManual = old._isManual;
+          // Preserve original ID to maintain links
+          r.id = old.id;
+        }
+        finalRecords.push(r);
+        processedIds.add(String(r.id));
+      });
+
+      // Retain manually added events (makeups, exceptions) not found in Excel
+      if (window.SCH) {
+        window.SCH.forEach(s => {
+          if (!processedIds.has(String(s.id))) {
+            const isManualEvent = s._isMakeup || s._postFrom || s._makeupFrom || s._isManual || s.tp === 'הפעלה' || (!String(s.id).startsWith('e_') && !s._isImported);
+            if (isManualEvent) {
+              finalRecords.push(s);
+            }
+          }
+        });
+      }
+
       // CRITICAL: Set useSraws = false BEFORE saving
       window.useSraws = false;
-      window.SCH = dedupedRecords;
-      console.log('[Import v6] SCH replaced with ' + window.SCH.length + ' records (useSraws=false)');
+      window.SCH = finalRecords;
+      console.log('[Import v6] SCH replaced with ' + window.SCH.length + ' records (merged manual events & states)');
 
       // Apply auto-makeup matching
       if (window.DataManager && window.DataManager.applyAutoMakeupMatching) {
@@ -386,43 +431,27 @@ function _parseTime(rt) {
 // STATUS PARSING — Based on groups column + notes
 // ═══════════════════════════════════════════════════
 function _parseStatus(rawGr, notes) {
-  // Step 1: Determine base status from Groups column
   const grValue = (rawGr === undefined || rawGr === null) ? '' : String(rawGr).trim();
   const grNum = Number(grValue);
   
   let st = 'ok';
   let grp = 1;
   
+  // Rule #1: Groups column is the absolute source of truth
   if (grValue === '' || grNum === 0 || isNaN(grNum)) {
-    // Groups column is empty or zero → NOT OCCURRED
-    st = 'nohap';
     grp = 0;
+    st = 'nohap'; // Default for 0 groups is didn't happen (חוסר)
+    
+    // Check if explicitly cancelled (and not just a makeup that was cancelled)
+    if (notes) {
+      const lnt = notes.toLowerCase();
+      if (lnt.includes('בוטל') && !lnt.includes('נדחה')) {
+        st = 'can'; // Cancellation (doesn't require makeup)
+      }
+    }
   } else {
-    st = 'ok';
     grp = Math.max(1, parseInt(grValue) || 1);
-  }
-  
-  // Step 2: Refine status based on notes
-  if (notes) {
-    const lnt = notes.toLowerCase();
-    
-    // CANCELLED patterns (override everything)
-    if (/בוטל|מבוטל|מצב בטחוני|סגר|שביתה|מסיבת פורים/.test(lnt)) {
-      st = 'can';
-      grp = 0;
-    }
-    // NOT OCCURRED patterns (forces status to nohap even if groups was not empty!)
-    else if (/לא התקיים|הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|חסר מדריך|מדריך חסר|לא הגיע|חוסר מדריך|אין מדריך|לא נשאר|עזב|חולה|נתקע|נתקעה|במחלה|מסיבות אישיות|לא יכול|לא יכל|לא מגיע|לא מרגיש טוב|לא עונה|לא הודיע|טעה ב|טעות ב|השלמה לא התקיימה|יושלם ב|הועבר ל|חשב ש|איחר לא|לא מתקיים/.test(lnt)) {
-      st = 'nohap';
-      grp = 0;
-    }
-    // MAKEUP / OCCURRED patterns — ONLY if groups column has a value
-    else if (st === 'ok' && /הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|השלמה|במקום|התקיים|הושלם|הוחלף|הצלבת|החלפה|מדריך מחליף|מדריך משלים|מדריך השלים/.test(lnt)) {
-      // Already ok — keep it
-    }
-    
-    // KEY RULE: If groups column is empty (nohap), NEVER flip back to 'ok' based on notes alone.
-    // The groups column is the source of truth for whether an activity occurred.
+    st = 'ok'; // Happened
   }
   
   return { st, grp };

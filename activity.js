@@ -60,7 +60,7 @@ function renderDash() {
 
     if (view === 'todo') {
       if (isHandled) return false; // Hide if already handled
-      if (s.st !== 'nohap' && s.st !== 'post' && s.st !== 'can') return false; // Show shortages including cancellations and failed makeups
+      if (s.st !== 'nohap' && s.st !== 'post') return false; // Show only shortages, DO NOT show cancellations (can)
     } else if (view === 'makeups') {
       const isFuture = s.d >= window.td();
       if (!isM || s.st === 'done' || s.st === 'can' || !isFuture) return false;
