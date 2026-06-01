@@ -1302,7 +1302,15 @@ function genExport(){
     headerTitle = refStr ? `*לא מתקיים - הוקדם ל${refStr}*\n` : '*לא מתקיים - הוקדם*\n';
   } else if (isAllMakeup) {
     const targetStr = rel[0] && refStr ? getTargetDayStr(rel[0].d, rel[0]._postFrom || rel[0]._makeupFrom || rel[0].d) : '';
-    headerTitle = refStr ? `*השלמה מ${refStr}${targetStr ? ' ' + targetStr : ''}*\n` : '*השלמה*\n';
+    const origDate = rel[0] ? (rel[0]._postFrom || rel[0]._makeupFrom) : null;
+    const today = typeof window.td === 'function' ? window.td() : new Date().toISOString().split('T')[0];
+    
+    if (origDate === today) {
+      const dNameTarget = typeof window.dayN === 'function' ? window.dayN(rel[0].d) : '';
+      headerTitle = `*לא יתקיים היום חוג*\n*השלמה נקבעה ליום ${dNameTarget}*\n`;
+    } else {
+      headerTitle = refStr ? `*השלמה מ${refStr}${targetStr ? ' ' + targetStr : ''}*\n` : '*השלמה*\n';
+    }
   } else if (isAllNohap) {
     headerTitle = '*לא מתקיים*\n';
   } else if (isAllCan) {
