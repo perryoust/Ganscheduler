@@ -708,7 +708,10 @@ window.openSP = function(id) {
 
   // Build partner info array and currentTimesSP for later use
   const currentTimesSP = {};
-  const partnerInfo = [];
+    const currentGrpsSP = {};
+    currentTimesSP[s.g] = window.fT(s.t);
+    currentGrpsSP[s.g] = s.grp || 1;
+    const partnerInfo = [];
   if (spPair) {
     const otherIds = spPair.ids.map(Number).filter(oid => oid !== Number(s.g));
     otherIds.forEach(oid => {
