@@ -2812,8 +2812,9 @@ window.startSharePointScanner = async function() {
         baseUrl = await window.asyncPrompt('<b>בחרת תיקייה בהצלחה!</b>\n\nכעת, הדבק כאן את קישור האינטרנט של התיקייה הזו ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/...)');
         if (baseUrl) {
           window.spScannerFolderLinks = window.spScannerFolderLinks || {};
-          window.spScannerFolderLinks[dirHandle.name] = baseUrl;
-          localStorage.setItem('spScannerFolderLinks', JSON.stringify(window.spScannerFolderLinks));
+          window.spScannerFolderLinks[dirHandle.name] = { sp: baseUrl, local: "" };
+            localStorage.setItem('spScannerFolderLinks', JSON.stringify(window.spScannerFolderLinks));
+            if (typeof window.ghAutoSave === 'function') window.ghAutoSave(true);
         }
       }
       
