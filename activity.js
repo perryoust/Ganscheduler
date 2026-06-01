@@ -789,7 +789,7 @@ window.openSP = function(id) {
               <td style="padding:6px">${pev ? window.supBase(pev.a) : '—'}</td>
               <td style="padding:6px">${pev ? (pev.act||'—') : '—'}</td>
               <td style="padding:6px">${pev ? (pev.tp || (window.gcls(rowG)==='גנים'?'חוג':'—')) : '—'}</td>
-              <td style="padding:6px;text-align:center;font-weight:700">${pev ? (pev.grp || 1) : '—'}</td>
+              <td style="padding:6px;text-align:center;font-weight:700">${pev ? `<input type="number" min="1" max="10" value="${pev.grp || 1}" style="width:40px;text-align:center;border:1px solid #ccc;border-radius:4px" onchange="window.spRowGrpChg(\'${pev.id}\', this.value)">` : '—'}</td>
               <td style="padding:6px">
                 ${pev ? `
                   <select onchange="window.spRowStatusChg('${pev.id}', this.value)" style="padding:2px 4px;font-size:0.7rem;border-radius:4px;border:1px solid #ccc;background:${window.stClass(pev)==='done'?'#e8f5e9':(window.stClass(pev)==='nohap'?'#ffebee':'#fff')}">
@@ -887,6 +887,7 @@ window.openSP = function(id) {
           </div>
         </div>
         <div style="display:grid;grid-template-columns:${spPair?'1fr 1fr':'1fr'};gap:8px">
+          <div class="fg"><label style="font-size:.7rem;font-weight:700">קבוצות</label><input type="number" id="rr-grp" value="${s.grp||1}" min="1" max="10" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
           <div class="fg"><label style="font-size:.7rem;font-weight:700">⏰ שעה (${g.name})</label><input type="time" id="rr-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
           ${spPair ? `<div class="fg"><label style="font-size:.7rem;font-weight:700">⏰ שעה (${window.G(spPair.ids.find(id=>Number(id)!==Number(s.g))).name})</label><input type="time" id="rr-time-partner" value="${(partnerInfo.length > 0 && partnerInfo[0].pev) ? partnerInfo[0].pev.t : (s.t||'')}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>` : ''}
         </div>
@@ -960,6 +961,7 @@ window.openSP = function(id) {
         <div class="fg"><label for="sp-edit-date" style="font-size:.7rem;font-weight:700">תאריך</label><input type="date" id="sp-edit-date" value="${s.d}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
         <div class="fg"><label for="sp-edit-time" style="font-size:.7rem;font-weight:700">שעה (${g.name})</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
         <div class="fg"><label for="sp-edit-sup" style="font-size:.7rem;font-weight:700">ספק</label><select id="sp-edit-sup" onchange="window.spEditSupChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">${allSups.map(sup => `<option value="${sup.name}" ${sup.name===s.a ? 'selected':''}>${sup.name}</option>`).join('')}</select></div>
+        <div class="fg"><label for="sp-edit-grp" style="font-size:.7rem;font-weight:700">קבוצות</label><input type="number" id="sp-edit-grp" value="${s.grp||1}" min="1" max="10" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
         <div class="fg"><label for="sp-edit-act" style="font-size:.7rem;font-weight:700">פעילות</label><select id="sp-edit-act" onchange="window.spEditActChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"><option value="">— ללא שינוי —</option>${initialActs.map(a => `<option value="${a}" ${a===s.act ? 'selected':''}>${a}</option>`).join('')}<option value="__new__">➕ פעילות חדשה...</option></select></div>
       </div>
       <div class="fg" id="sp-edit-act-new-wrap" style="display:none;margin-top:8px"><label for="sp-edit-act-new" style="font-size:.7rem;font-weight:700">שם הפעילות החדשה</label><input type="text" id="sp-edit-act-new" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
@@ -1317,6 +1319,8 @@ function saveReplaceRecur(id) {
     let act = document.getElementById('rr-act').value;
     if (!act && sup === s.a) act = s.act;
     const time = document.getElementById('rr-time').value;
+      const grpInput = document.getElementById('rr-grp');
+      const newGrp = grpInput ? parseInt(grpInput.value, 10) : null;
     const syncChk = document.getElementById('rr-sync-pair') || document.getElementById('rr-sync');
     const sync = syncChk ? syncChk.checked : false;
     const partnerTime = document.getElementById('rr-time-partner') ? document.getElementById('rr-time-partner').value : time;
@@ -1361,7 +1365,7 @@ function saveReplaceRecur(id) {
           // Add for primary garden
           window.SCH.push({
             id: eid, g: s.g, d: ds, a: sup, act: act, t: time, st: 'ok', 
-            nt: '', _recId: newRecId, grp: s.grp||1
+            nt: '', _recId: newRecId, grp: newGrp || s.grp || 1
           });
           // Add for partners if synced
           if (sync) {
@@ -1372,7 +1376,7 @@ function saveReplaceRecur(id) {
                   // Keep partner time if possible, otherwise use main time
                   window.SCH.push({
                     id: eid + (idx+1)*5000, g: pid, d: ds, a: sup, act: act, t: partnerTime, st: 'ok',
-                    nt: '', _recId: newRecId, grp: s.grp||1
+                    nt: '', _recId: newRecId, grp: newGrp || s.grp || 1
                   });
                 }
               });
@@ -1402,17 +1406,21 @@ function spEditSave(){
   const actVal=document.getElementById('sp-edit-act').value;
   const newAct=actVal==='__new__' ? (document.getElementById('sp-edit-act-new')||{}).value||'' : actVal;
   const newTime=document.getElementById('sp-edit-time').value;
+    const grpInput=document.getElementById('sp-edit-grp');
+    const newGrp=grpInput ? parseInt(grpInput.value, 10) : null;
   
   if(newDate) s.d=newDate; 
   if(newSup) s.a=newSup; 
   if(newAct) { s.act=newAct; } else if (newSup && newSup !== origSup) { s.act=''; }
   if(newTime) s.t=newTime;
+    if(newGrp && newGrp > 0) s.grp=newGrp;
   
   const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('sped') : [];
   synergyPartners.forEach(syn => {
     const pEv = window.findPartnerActivity(syn.g, origDate, origSup);
     if(pEv) {
-      if(newDate) pEv.d=newDate; 
+      if(newDate) pEv.d=newDate;
+        if(newGrp && newGrp > 0) pEv.grp=newGrp; 
       if(newSup) pEv.a=newSup; 
       if(newAct) pEv.act=newAct; 
       if(syn.t || newTime) pEv.t=syn.t || newTime;
