@@ -478,7 +478,7 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter='', collapseAll=false){
 
   let h = '';
   if (collapseAll) {
-    h = `<details class="makeups-accordion" style="margin-bottom:8px; border:1px solid #90caf9; border-radius:6px; background:#e3f2fd; overflow:hidden">
+    h = `<details class="makeups-accordion" open style="margin-bottom:8px; border:1px solid #90caf9; border-radius:6px; background:#e3f2fd; overflow:hidden">
       <summary style="display:flex; align-items:center; justify-content:space-between; cursor:pointer; list-style:none; outline:none; font-weight:800; color:#1565c0; font-size:0.75rem; padding:4px 8px; user-select:none">
         <div style="display:flex; align-items:center; gap:6px">
           <span style="font-size:0.9rem">🔄</span>
