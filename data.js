@@ -109,7 +109,19 @@ function supBase(fullName){
   if(!fullName) return '';
   const norm = _SUP_ALIASES[fullName]||fullName;
   const match = norm.match(/^(.*?)\s*([-\u2013\u2014])\s*(.*)$/);
-  return match ? match[1].trim() : norm.trim();
+  const base = match ? match[1].trim() : norm.trim();
+  
+  // Resolve dynamic aliases from merged suppliers
+  if (typeof window !== 'undefined' && window.supEx) {
+    for (const mainName in window.supEx) {
+      if (window.supEx[mainName] && Array.isArray(window.supEx[mainName]._mergedFrom)) {
+        if (window.supEx[mainName]._mergedFrom.includes(base)) {
+          return mainName;
+        }
+      }
+    }
+  }
+  return base;
 }
 window.supBase = supBase;
 
@@ -166,7 +178,11 @@ function getAllBaseSups(){
   })).sort((a,b)=>a.name.localeCompare(b.name,'he'));
 }
 
-function supBaseCnt(base){return SCH.filter(s=>supBase(s.a)===base).length;}
+function supBaseCnt(base) { if(window.buildSupIndex && (!window._supStats || Object.keys(window._supStats).length === 0)) { window.buildSupIndex(); } 
+  if (window._supStats && window._supStats[base]) return window._supStats[base].cnt;
+  if (window._supStats) return 0;
+  return SCH.filter(s=>supBase(s.a)===base).length; 
+}
 function supBaseEx(base){
   const ex=supEx[base]||{};
   SUPBASE.filter(s=>supBase(s.name)===base).forEach(s=>{

@@ -148,10 +148,34 @@ function renderDash() {
 
       // Pairs within this date
       (window.pairs || []).forEach(p => {
-        const pEvs = dateEvs.filter(s => !dateUsedIds.has(String(s.id)) && p.ids.map(Number).includes(Number(s.g)));
-        if (pEvs.length) {
-          dateCards.push({ type: 'pair', obj: p, evs: pEvs });
-          pEvs.forEach(s => dateUsedIds.add(String(s.id)));
+        const hasException = dateEvs.some(s => !dateUsedIds.has(String(s.id)) && p.ids.map(Number).includes(Number(s.g)));
+        if (hasException) {
+          const allPairEvs = (window.SCH || []).filter(s => {
+            const g = window.G(s.g);
+            if (!g) return false;
+            if (s.d !== date) return false;
+            if (!p.ids.map(Number).includes(Number(s.g))) return false;
+            
+            const gClass = window.gcls ? window.gcls(g) : 'גנים';
+            if (tab === 'g' && gClass !== 'גנים') return false;
+            if (tab === 's' && gClass !== 'ביה"ס') return false;
+            
+            // In todo view: only exclude makeup (השלמה) activities that are NOT unhandled exceptions.
+            // Unhandled exceptions (nohap/post without _compByMakeup) must always appear.
+            if (view === 'todo') {
+              const isExceptionUnhandled = (s.st === 'nohap' || s.st === 'post') && !(s._compByMakeup && s._compByMakeup !== 'false');
+              if (isExceptionUnhandled) return true; // Always include unhandled exceptions
+              const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)));
+              if (isM) return false; // Exclude resolved makeup activities from context
+            }
+            
+            return true;
+          });
+          
+          if (allPairEvs.length) {
+            dateCards.push({ type: 'pair', obj: p, evs: allPairEvs });
+            allPairEvs.forEach(s => dateUsedIds.add(String(s.id)));
+          }
         }
       });
 
@@ -477,6 +501,32 @@ window.spBatchAction = function(val) {
   }
 };
 
+
+window.spRowGrpChg = function(id, val) {
+  const ev = window.SCH.find(x => x.id == id);
+  if(!ev) return;
+  const v = parseInt(val, 10);
+  if(v > 0) {
+    ev.grp = v;
+    const pair = window.gardenPair(ev.g);
+    let syncPartner = false;
+    if(pair) {
+      const pGid = pair.ids.find(pid => Number(pid) !== Number(ev.g));
+      const pG = window.G(pGid);
+      if(pG && confirm('האם לעדכן את מספר הקבוצות גם בצהרון המקביל (' + pG.name + ')?')) {
+        syncPartner = true;
+      }
+    }
+    if(syncPartner) {
+      const pGid = pair.ids.find(pid => Number(pid) !== Number(ev.g));
+      const pEv = window.findPartnerActivity ? window.findPartnerActivity(pGid, ev.d, ev.a) : null;
+      if(pEv) pEv.grp = v;
+    }
+    window.save();
+    window.refresh();
+  }
+};
+
 window.spRowStatusChg = function(id, st) {
   const ev = window.SCH.find(x => x.id == id);
   if(!ev) return;
@@ -658,7 +708,7 @@ window.spBatchMarkCompManual = function() {
     syncPartner: !!(syncCheck && syncCheck.checked),
     appendNote: true
   });
-  window.saveAndRefresh('sp', true);
+  window.saveAndRefresh('sp', false);
 };
 
 window.spBatchSaveNt = function() {
@@ -895,7 +945,10 @@ window.openSP = function(id) {
           ${spPair ? `<div class="fg"><label style="font-size:.7rem;font-weight:700">⏰ שעה (${window.G(spPair.ids.find(id=>Number(id)!==Number(s.g))).name})</label><input type="time" id="rr-time-partner" value="${(partnerInfo.length > 0 && partnerInfo[0].pev) ? partnerInfo[0].pev.t : (s.t||'')}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>` : ''}
         </div>
         ${spPair ? `<label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="rr-sync" style="width:14px;height:14px;accent-color:#1a237e" checked><span style="font-size:.75rem;font-weight:700;color:#1a237e">סנכרן עם גן בן-זוג באותם ימים ושעות</span></label>` : ''}
-        <button class="btn bp" style="width:100%;padding:8px;font-weight:800;font-size:.85rem;margin-top:6px" onclick="window.saveReplaceRecur('${s.id}')">💾 שמור שינויים והחל סדרה קבועה</button>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="btn bp" style="flex:1;padding:8px;font-weight:800;font-size:.85rem" onclick="window.saveReplaceRecur('${s.id}')">💾 שמור שינויים והחל סדרה קבועה</button>
+          <button class="btn br" style="flex:1;padding:8px;font-weight:800;font-size:.85rem;background:#ffebee;border:1px solid #ef9a9a;color:#c62828" onclick="window.deleteRecurSeries('${s.id}')">ביטול פעילות (עתידי) מתאריך זה והלאה</button>
+        </div>
       </div>
     </div>
   </div>`;
@@ -990,7 +1043,6 @@ window.openSP = function(id) {
   // --- STEP 10: Delete Button ---
   const delBtnText = s._isMakeup ? '🗑️ מחק פעילות השלמה (והחזר מקורית)' : '🗑️ מחק פעילות זו מהלוח (לצמיתות)';
   h += `<div style="margin-top:15px; text-align:center;">
-    ${s._recId ? `<button class="btn br" style="width:100%;padding:10px;font-weight:700;background:#fff;border:1px solid #ef9a9a;color:#c62828;font-size:.85rem;border-radius:8px;margin-bottom:8px" onclick="window.deleteRecurSeries('${s.id}')">🗑️ הסר סדרה קבועה מכאן והלאה</button>` : ''}
     <button class="btn br" style="width:100%;padding:10px;font-weight:800;background:#ffebee;border:1px solid #ef9a9a;color:#c62828;font-size:.85rem;border-radius:8px" onclick="window.spBatchDelete()">${delBtnText}</button>
   </div>`;
 
@@ -1030,27 +1082,43 @@ function toggleSpAccordion(id, forceState = null){
 
 function deleteRecurSeries(id) {
   const s = window.SCH.find(x => x.id == id);
-  if(!s || !s._recId) return alert('לא מזוהה סדרה');
+  if(!s) return alert('שגיאה. רשומה לא קיימת');
   const g = window.G(s.g);
-  const affected = window.SCH.filter(x => x._recId === s._recId && x.d >= s.d && x.g === s.g);
+  
+  const affected = s._recId
+    ? window.SCH.filter(x => x._recId === s._recId && x.d >= s.d && x.g === s.g)
+    : window.SCH.filter(x => window.supBase(x.a) === window.supBase(s.a) && x.d >= s.d && x.g === s.g);
   
   const pair = window.gardenPair(s.g);
   let pRecId = null;
   let pGname = '';
+  let useFallbackPartner = false;
   if (pair) {
     const pGid = pair.ids.find(pid => Number(pid) !== Number(s.g));
     const pG = window.G(pGid);
     if (pG) {
       pGname = pG.name.startsWith('גן') ? pG.name : `גן ${pG.name}`;
-      const pEv = window.SCH.find(x => x._recId && x.d === s.d && Number(x.g) === Number(pGid) && window.supBase(x.a) === window.supBase(s.a));
-      if (pEv) pRecId = pEv._recId;
+      if (s._recId) {
+        const pEv = window.SCH.find(x => x._recId && x.d === s.d && Number(x.g) === Number(pGid) && window.supBase(x.a) === window.supBase(s.a));
+        if (pEv) pRecId = pEv._recId;
+      } else {
+        const pEv = window.SCH.find(x => x.d === s.d && Number(x.g) === Number(pGid) && window.supBase(x.a) === window.supBase(s.a));
+        if (pEv) useFallbackPartner = true;
+      }
     }
   }
 
+  const syncChk = document.getElementById('rr-sync-pair') || document.getElementById('rr-sync');
+  const sync = syncChk ? syncChk.checked : true;
+  if (!sync) {
+    pRecId = null;
+    useFallbackPartner = false;
+  }
+
   const gName = g.name.startsWith('גן') ? g.name : `גן ${g.name}`;
-  let confirmMsg = `האם למחוק ${affected.length} פעילויות קבועות של ${gName} מ-${window.fD(s.d)} ואילך?`;
-  if (pRecId) {
-    confirmMsg = `האם למחוק ${affected.length} פעילויות קבועות מ-${window.fD(s.d)} ואילך גם עבור ${gName} וגם עבור גן בן-הזוג (${pGname})?`;
+  let confirmMsg = `האם אתה בטוח שברצונך למחוק ${affected.length} פעילויות של הספק מתאריך זה והלאה בגן ${gName} מהלוח?`;
+  if (pRecId || useFallbackPartner) {
+    confirmMsg = `האם אתה בטוח שברצונך למחוק ${affected.length} פעילויות של הספק מתאריך זה והלאה גם מהלוח של הגן ${gName} וגם מהלוח של הגן בן-הזוג (${pGname})?`;
   }
   
   if(!confirm(confirmMsg)) return;
@@ -1067,8 +1135,11 @@ function deleteRecurSeries(id) {
     if(i >= 0) window.SCH.splice(i, 1);
   });
 
-  if (pRecId) {
-    const pAffected = window.SCH.filter(x => x._recId === pRecId && x.d >= s.d && Number(x.g) !== Number(s.g));
+  if (pRecId || useFallbackPartner) {
+    const pAffected = pRecId
+      ? window.SCH.filter(x => x._recId === pRecId && x.d >= s.d && Number(x.g) !== Number(s.g))
+      : window.SCH.filter(x => window.supBase(x.a) === window.supBase(s.a) && x.d >= s.d && Number(x.g) === Number(pair.ids.find(pid => Number(pid) !== Number(s.g))));
+    
     pAffected.forEach(x => {
       const isSraws = !String(x.id).startsWith('e_');
       if (isSraws && !window.supEx['__deleted_sraws_ids'].includes(x.id)) {
@@ -1078,7 +1149,7 @@ function deleteRecurSeries(id) {
       if(i >= 0) window.SCH.splice(i, 1);
     });
   }
-
+  
   window.saveAndRefresh('sp');
 }
 
@@ -1177,14 +1248,7 @@ function spEditActChg(){
   if(wrap) wrap.style.display=v==='__new__'?'block':'none';
 }
 
-function deleteRecurSeries(id) {
-  const s = window.SCH.find(x => x.id == id);
-  if(!s || !s._recId) return alert('לא מזוהה סדרה');
-  const affected=window.SCH.filter(x=>x._recId===s._recId&&x.d>=s.d&&x.g===s.g);
-  if(!confirm(`האם למחוק ${affected.length} פעילויות קבועות מ-${window.fD(s.d)} ואילך?`)) return;
-  affected.forEach(x=>{ const i=window.SCH.indexOf(x); if(i>=0) window.SCH.splice(i,1); });
-  window.saveAndRefresh('sp');
-}
+
 
 function deleteSingleActivity(id) {
   const s = window.SCH.find(x => x.id == id);
@@ -1343,6 +1407,9 @@ function saveReplaceRecur(id) {
     }
 
     // 2. Remove future occurrences from SCH
+    if (!window.supEx) window.supEx = {};
+    if (!window.supEx['__deleted_sraws_ids']) window.supEx['__deleted_sraws_ids'] = [];
+
     window.SCH = window.SCH.filter(ev => {
       const isFuture = ev.d >= from;
       const isTargetGarden = partnerGids.includes(Number(ev.g));
@@ -1350,7 +1417,14 @@ function saveReplaceRecur(id) {
       // Extra safety: also match by supplier if _recId is missing but it's clearly part of the same thing
       const isOldMatch = isTargetGarden && window.supBase(ev.a) === window.supBase(s.a) && ev.d >= from && ev.st !== 'can';
       
-      return !(isFuture && (isOldSeries || isOldMatch));
+      const shouldRemove = isFuture && (isOldSeries || isOldMatch);
+      if (shouldRemove) {
+        const isSraws = !String(ev.id).startsWith('e_');
+        if (isSraws && !window.supEx['__deleted_sraws_ids'].includes(ev.id)) {
+          window.supEx['__deleted_sraws_ids'].push(ev.id);
+        }
+      }
+      return !shouldRemove;
     });
 
     // 3. Generate new series
@@ -1476,10 +1550,10 @@ function setStatus(idOrSt, maybeSt){
       main.cn='';
       main._compByMakeup = '';
       if(main.nt) {
-        main.nt = main.nt.split(' | ').filter(part => 
-          !part.includes('לא התקיים:') && 
-          !part.includes('בוטל:') && 
-          !part.includes('השלמה נקבעה ל-') && 
+        main.nt = main.nt.split(' | ').filter(part =>
+          !part.includes('לא התקיים:') &&
+          !part.includes('בוטל:') &&
+          !part.includes('השלמה נקבעה ל-') &&
           !part.includes('הוקדם ל-') &&
           !part.includes('נדחה ל-') &&
           !part.includes('הוזז ל-') &&
@@ -1490,11 +1564,13 @@ function setStatus(idOrSt, maybeSt){
           !part.includes('הועבר ל-')
         ).join(' | ').trim();
       }
+    } else if (st === 'nohap' || st === 'can' || st === 'post') {
+      // A new exception is NOT yet handled — clear any stale stamp
+      main._compByMakeup = '';
     }
 
-    // Partner sync — check global checkbox
-    const syncChk = document.getElementById('sp-sync-global') || document.getElementById('sp-sync-pair');
-    if(syncChk && syncChk.checked) {
+    // Partner sync using the confirmed syncPartner value
+    if(syncPartner) {
       const pair = window.gardenPair(main.g);
       if(pair) {
         const otherIds = pair.ids.map(Number).filter(oid => oid !== Number(main.g));
@@ -1521,6 +1597,9 @@ function setStatus(idOrSt, maybeSt){
                   !part.includes('הועבר ל-')
                 ).join(' | ').trim();
               }
+            } else if (st === 'nohap' || st === 'can' || st === 'post') {
+              // A new exception on partner — clear any stale handled stamp
+              pev._compByMakeup = '';
             }
           }
         });
@@ -1655,8 +1734,10 @@ function markCompQuick(id){
     });
 
     window.save();
-    if(window.updCounts) window.updCounts();
-    window.renderDash();
+    setTimeout(() => {
+      if(window.updCounts) window.updCounts();
+      window.renderDash();
+    }, 20);
     if(window.showToast) window.showToast('✅ סומן כטופל');
   } catch(e){ console.error(e); }
 }
@@ -1668,7 +1749,8 @@ function upd(id,fields){
 }
 
 function updAndRefresh(id,fields){
-  upd(id,fields); window.save(); window.closeSP(); window.refresh();
+  upd(id,fields); window.save(); window.closeSP(); 
+  setTimeout(() => { if(window.refresh) window.refresh(); }, 20);
 }
 
 function closeSP(){
@@ -1690,13 +1772,27 @@ function refresh(){
 }
 
 async function saveAndRefresh(modalId, stayOpen = false, immediate = true){
-  const ok = await window.save(immediate);
   if(!stayOpen) {
     if(modalId) window.CM(modalId);
     if(modalId === 'sp' || modalId === 'sp-m') closeSP();
   }
+  
+  // Yield to browser to let UI update (like closing modals)
+  await new Promise(r => setTimeout(r, 20));
+  
+  const ok = await window.save(immediate);
+  
+  // Yield again before the heavy refresh
+  await new Promise(r => setTimeout(r, 20));
+  
   window.refresh();
-  if(stayOpen && (modalId === 'sp' || modalId === 'sp-m') && window.selEv) {
+  // If SP panel is open and we're closing a different modal (e.g. nohapqm, canqm),
+  // re-render the SP panel so it reflects the updated data immediately.
+  const spEl = document.getElementById('sp');
+  const spIsOpen = spEl && spEl.classList.contains('open');
+  if (stayOpen && (modalId === 'sp' || modalId === 'sp-m') && window.selEv) {
+    window.openSP(window.selEv);
+  } else if (spIsOpen && window.selEv && modalId !== 'sp' && modalId !== 'sp-m') {
     window.openSP(window.selEv);
   }
   return ok;
@@ -1775,41 +1871,62 @@ window.postShowFreeDays = function(gid) {
 };
 
 function openPostpone(id){
-  window.selEvPost=id;
-  const s=window.SCH.find(x=>x.id==id); if(!s) return;
-  const g=window.G(s.g);
-  document.getElementById('post-ev-info').innerHTML=`<b>${g.name}</b> · ${g.city} · ${s.a}`;
-  // Ensure the input has a label associated with it in index.html (verified later)
-  document.getElementById('post-date').value='';
-  document.getElementById('post-reason').value='';
-  
-  // Show / Hide conflict warnings initially
-  const warn = document.getElementById('post-conflict-warn');
-  if(warn) warn.style.display = 'none';
-
-  if(typeof window.setPostMode === 'function') window.setPostMode('move');
-  
-  // Populate Free Days
-  if(typeof window.postShowFreeDays === 'function') {
-    window.postShowFreeDays(s.g);
-  }
-
-  // Set up Synergy UI
-  const synWrap = document.getElementById('post-synergy-wrap');
-  if(synWrap) {
-    const pair = window.gardenPair(s.g);
-    const currentTimes = {};
-    if(pair) {
-      pair.ids.forEach(pId => {
-        if(pId === s.g) return;
-        const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === pId && ps.st!=='can' && window.supBase(ps.a)===window.supBase(s.a));
-        if(pEv) { currentTimes[pId] = window.fT(pEv.t||s.t); currentGrps[pId] = pEv.grp || 1; }
-      });
+  try {
+    window.selEvPost=id;
+    const s=window.SCH.find(x=>x.id==id); if(!s) return;
+    const g=window.G(s.g);
+    document.getElementById('post-ev-info').innerHTML=`<b>${g.name}</b> · ${g.city} · ${s.a}`;
+    // Ensure the input has a label associated with it in index.html (verified later)
+    document.getElementById('post-date').value='';
+    document.getElementById('post-reason').value='';
+    
+    // Populate Suppliers
+    const allSups = (window.getAllSup ? window.getAllSup() : (typeof getAllSup === 'function' ? getAllSup() : [])).filter(s2 => window.isActSupplier && window.isActSupplier(s2.name));
+    const supSel = document.getElementById('post-sup');
+    if (supSel) {
+      supSel.innerHTML = '<option value="">— אותו ספק —</option>' + 
+        allSups.map(s2 => `<option value="${s2.name}">${s2.name}</option>`).join('');
+      supSel.value = ''; // default to same
     }
-    synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'post', currentTimes, currentGrps);
+    
+    const actSel = document.getElementById('post-act');
+    if (actSel) {
+      actSel.innerHTML = '<option value="">— אותה פעילות —</option>';
+    }
+    
+    // Show / Hide conflict warnings initially
+    const warn = document.getElementById('post-conflict-warn');
+    if(warn) warn.style.display = 'none';
+
+    if(typeof window.setPostMode === 'function') window.setPostMode('move');
+    
+    // Populate Free Days
+    if(typeof window.postShowFreeDays === 'function') {
+      window.postShowFreeDays(s.g);
+    }
+
+    // Set up Synergy UI
+    const synWrap = document.getElementById('post-synergy-wrap');
+    if(synWrap) {
+      const pair = window.gardenPair(s.g);
+      const currentTimes = {};
+      const currentGrps = {};
+      currentTimes[s.g] = window.fT(s.t) || '';
+      currentGrps[s.g] = s.grp || 1;
+      if(pair) {
+        pair.ids.forEach(pId => {
+          if(pId === s.g) return;
+          const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === pId && ps.st!=='can' && window.supBase(ps.a)===window.supBase(s.a));
+          if(pEv) { currentTimes[pId] = window.fT(pEv.t||s.t); currentGrps[pId] = pEv.grp || 1; }
+        });
+      }
+      synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'post', currentTimes, currentGrps);
+    }
+    
+    document.getElementById('postm').classList.add('open');
+  } catch(e) {
+    alert("שגיאה בפתיחת הזזה: " + e.message);
   }
-  
-  document.getElementById('postm').classList.add('open');
 }
 
 function openCopy(id){
@@ -1825,6 +1942,9 @@ function openCopy(id){
   if(synWrap) {
     const pair = window.gardenPair(s.g);
     const currentTimes = {};
+    const currentGrps = {};
+    currentTimes[s.g] = window.fT(s.t) || '';
+    currentGrps[s.g] = s.grp || 1;
     if(pair) {
       pair.ids.forEach(pId => {
         if(pId === s.g) return;
@@ -1839,100 +1959,112 @@ function openCopy(id){
 }
 
 function doPostpone(){
-  const sid = window.selEvPost;
-  const s = window.SCH.find(x => x.id == sid);
-  if(!s) return;
-  const newDate = document.getElementById('post-date').value;
-  const newSup = document.getElementById('post-sup') ? document.getElementById('post-sup').value : '';
-  const newAct = document.getElementById('post-act') ? document.getElementById('post-act').value : '';
-  const reason = document.getElementById('post-reason') ? document.getElementById('post-reason').value : '';
-  
-  if (window._postMode === 'defer') {
-    if(!reason.trim()) { alert('יש להזין סיבה לדחייה'); return; }
-    s.st = 'post';
-    s.pd = ''; // No target date
-    s.cn = s.cn ? s.cn + ` (דחייה: ${reason})` : `(דחייה: ${reason})`;
+  try {
+    const sid = window.selEvPost;
+    const s = window.SCH.find(x => x.id == sid);
+    if(!s) return;
+    const newDate = document.getElementById('post-date').value;
+    const newSup = document.getElementById('post-sup') ? document.getElementById('post-sup').value : '';
+    const newAct = document.getElementById('post-act') ? document.getElementById('post-act').value : '';
+    const reason = document.getElementById('post-reason') ? document.getElementById('post-reason').value : '';
     
-    // Process Synergy Partners for defer
+    if (window._postMode === 'defer') {
+      if(!reason.trim()) { alert('יש להזין סיבה לדחייה'); return; }
+      s.st = 'post';
+      s.pd = ''; // No target date
+      s.cn = s.cn ? s.cn + ` (דחייה: ${reason})` : `(דחייה: ${reason})`;
+      
+      // Process Synergy Partners for defer
+      const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('post') : [];
+      for(let syn of synergyPartners) {
+        const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === syn.g && ps.st !== 'can' && window.supBase(ps.a) === window.supBase(s.a));
+        if(pEv) {
+          pEv.st = 'post';
+          pEv.pd = '';
+          pEv.cn = pEv.cn ? pEv.cn + ` (דחייה: ${reason})` : `(דחייה: ${reason})`;
+        }
+      }
+      
+      const spModal = document.getElementById('sp');
+      if (spModal && spModal.style.display !== 'none' && window.selEv) {
+        window.openSP(window.selEv);
+      }
+      window.saveAndRefresh();
+      document.getElementById('postm').classList.remove('open');
+      showToast('הפעילות נדחתה');
+      return;
+    }
+    
+    if(!newDate) { alert('יש לבחור תאריך'); return; }
+    
     const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('post') : [];
+    const toProcess = [];
+    
+    // Conflict Alert Phase
     for(let syn of synergyPartners) {
       const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === syn.g && ps.st !== 'can' && window.supBase(ps.a) === window.supBase(s.a));
-      if(pEv) {
-        pEv.st = 'post';
-        pEv.pd = '';
-        pEv.cn = pEv.cn ? pEv.cn + ` (דחייה: ${reason})` : `(דחייה: ${reason})`;
+      if(!pEv) {
+        const gObj = window.G(syn.g);
+        const msg = `⚠️ לצהרון ${gObj ? gObj.name : 'השותף'} לא נמצאה פעילות מקורית של ${s.a} בתאריך ${window.fD(s.d)}.\nהאם תרצה בכל זאת ליצור לו פעילות חדשה בתאריך החדש (${window.fD(newDate)})?`;
+        if(!confirm(msg)) continue;
       }
+      toProcess.push({ syn, pEv });
     }
-    
-    window.saveAndRefresh();
-    document.getElementById('postm').classList.remove('open');
-    showToast('הפעילות נדחתה');
-    return;
-  }
-  
-  if(!newDate) { alert('יש לבחור תאריך'); return; }
-  
-  const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('post') : [];
-  const toProcess = [];
-  
-  // Conflict Alert Phase
-  for(let syn of synergyPartners) {
-    const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === syn.g && ps.st !== 'can' && window.supBase(ps.a) === window.supBase(s.a));
-    if(!pEv) {
-      const gObj = window.G(syn.g);
-      const msg = `⚠️ לצהרון ${gObj ? gObj.name : 'השותף'} לא נמצאה פעילות מקורית של ${s.a} בתאריך ${window.fD(s.d)}.\nהאם תרצה בכל זאת ליצור לו פעילות חדשה בתאריך החדש (${window.fD(newDate)})?`;
-      if(!confirm(msg)) continue;
-    }
-    toProcess.push({ syn, pEv });
-  }
 
-  // Primary
-  const newId1 = Date.now();
-  s.st = 'post';
-  s.pd = newDate;
-  s.pt = window.fT(s.t);
-  s.cn += reason ? ` (דחייה: ${reason})` : '';
-  s._compByMakeup = newId1; // Mark original as handled
+    // Primary
+    const newId1 = Date.now();
+    s.st = 'post';
+    s.pd = newDate;
+    s.pt = window.fT(s.t);
+    s.cn += reason ? ` (דחייה: ${reason})` : '';
+    s._compByMakeup = newId1; // Mark original as handled
 
-  const isPostpone = newDate > s.d;
-  const labelText = isPostpone ? 'נדחה' : 'הקדמה';
+    const isPostpone = newDate > s.d;
+    const labelText = isPostpone ? 'נדחה' : 'הקדמה';
 
-  const newEv1 = {
-    ...s, id:newId1, d:newDate, t:s.t, a:newSup||s.a, act:newAct||s.act, st:'ok', 
-    pd:'', pt:'', _postFrom: s.d, _isMakeup: true,
-    nt: (s.nt ? s.nt + ' | ' : '') + `${labelText} מיום ` + window.fD(s.d)
-  };
-  delete newEv1._recId;
-  if(reason) newEv1.n = s.n ? s.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
-  window.SCH.push(newEv1);
-  
-  // Synergy Execution
-  toProcess.forEach((conf, idx) => {
-    const newSynId = Date.now() + idx + 1;
-    if(conf.pEv) {
-      conf.pEv.st = 'post';
-      conf.pEv.pd = newDate;
-      conf.pEv.pt = conf.syn.t || conf.pEv.t;
-      if(reason) conf.pEv.cn += ` (דחייה: ${reason})`;
-      conf.pEv._compByMakeup = newSynId;
-    }
-    const ptEv = conf.pEv || {...s, g: conf.syn.g};
-    const isPostponePartner = newDate > ptEv.d;
-    const partnerLabelText = isPostponePartner ? 'נדחה' : 'הקדמה';
-    const newPtEv = {
-      ...ptEv, id:newSynId, d:newDate, t:conf.syn.t || ptEv.t, a:newSup||s.a, act:newAct||s.act, st:'ok', 
-      pd:'', pt:'', _postFrom: ptEv.d, _isMakeup: true,
-      nt: (ptEv.nt ? ptEv.nt + ' | ' : '') + `${partnerLabelText} מיום ` + window.fD(ptEv.d)
+    const newEv1 = {
+      ...s, id:newId1, d:newDate, t:s.t, a:newSup||s.a, act:newAct||s.act, st:'ok', 
+      pd:'', pt:'', _postFrom: s.d, _isMakeup: true,
+      nt: (s.nt ? s.nt + ' | ' : '') + `${labelText} מיום ` + window.fD(s.d)
     };
-    delete newPtEv._recId;
-    if(!conf.pEv && reason) newPtEv.n = ptEv.n ? ptEv.n + ' | נוצר מדחייה: ' + reason : 'נוצר מדחייה: ' + reason;
-    else if(reason) newPtEv.n = ptEv.n ? ptEv.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
-    window.SCH.push(newPtEv);
-  });
-  
-  const toastMsg = isPostpone ? '✅ פעילות נדחתה (כולל סינרגיה)' : '✅ פעילות הוקדמה (כולל סינרגיה)';
-  window.saveAndRefresh('postm');
-  window.showToast(toastMsg);
+    delete newEv1._recId;
+    if(reason) newEv1.n = s.n ? s.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
+    window.SCH.push(newEv1);
+    
+    // Synergy Execution
+    toProcess.forEach((conf, idx) => {
+      const newSynId = Date.now() + idx + 1;
+      if(conf.pEv) {
+        conf.pEv.st = 'post';
+        conf.pEv.pd = newDate;
+        conf.pEv.pt = conf.syn.t || conf.pEv.t;
+        if(reason) conf.pEv.cn += ` (דחייה: ${reason})`;
+        conf.pEv._compByMakeup = newSynId;
+      }
+      const ptEv = conf.pEv || {...s, g: conf.syn.g};
+      const isPostponePartner = newDate > ptEv.d;
+      const partnerLabelText = isPostponePartner ? 'נדחה' : 'הקדמה';
+      const newPtEv = {
+        ...ptEv, id:newSynId, d:newDate, t:conf.syn.t || ptEv.t, a:newSup||s.a, act:newAct||s.act, st:'ok', 
+        pd:'', pt:'', _postFrom: ptEv.d, _isMakeup: true,
+        nt: (ptEv.nt ? ptEv.nt + ' | ' : '') + `${partnerLabelText} מיום ` + window.fD(ptEv.d)
+      };
+      delete newPtEv._recId;
+      if(!conf.pEv && reason) newPtEv.n = ptEv.n ? ptEv.n + ' | נוצר מדחייה: ' + reason : 'נוצר מדחייה: ' + reason;
+      else if(reason) newPtEv.n = ptEv.n ? ptEv.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
+      window.SCH.push(newPtEv);
+    });
+    
+    const toastMsg = isPostpone ? '✅ פעילות נדחתה (כולל סינרגיה)' : '✅ פעילות הוקדמה (כולל סינרגיה)';
+    const spModal = document.getElementById('sp');
+    if (spModal && spModal.style.display !== 'none' && window.selEv) {
+      window.openSP(window.selEv);
+    }
+    window.saveAndRefresh('postm');
+    window.showToast(toastMsg);
+  } catch(e) {
+    alert("שגיאה בביצוע הזזה: " + e.message);
+  }
 }
 
 function doCopy(){
@@ -1956,6 +2088,10 @@ function doCopy(){
     window.SCH.push(newPtEv);
   });
   
+  const spModal = document.getElementById('sp');
+  if (spModal && spModal.style.display !== 'none' && window.selEv) {
+    window.openSP(window.selEv);
+  }
   window.saveAndRefresh('copym');
   window.showToast('✅ פעילות שוכפלה (כולל סינרגיה)');
 }
@@ -1978,17 +2114,22 @@ function renderPartnerSynergy(gid, prefix, currentTimes = {}, currentGrps = {}) 
   html += `<div style="display:flex;flex-direction:column;gap:8px">`;
   
   partners.forEach(pId => {
+    const isCurrent = (pId === gid);
     const pG = window.G(pId);
     if (!pG) return;
     const timeVal = currentTimes[pId] || '';
     html += `
       <div style="display:flex;align-items:center;gap:8px;background:#fff;padding:6px;border-radius:5px;border:1px solid #e0e0e0">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1">
-          <input type="checkbox" id="${prefix}-syn-chk-${pId}" class="${prefix}-syn-chk" value="${pId}" checked style="accent-color:#1565c0;width:15px;height:15px">
-          <span style="font-size:.8rem;font-weight:600">${pG.name}</span>
+          <input type="checkbox" id="${prefix}-syn-chk-${pId}" class="${prefix}-syn-chk" value="${pId}" checked ${isCurrent ? 'disabled' : ''} style="accent-color:#1565c0;width:15px;height:15px">
+          <span style="font-size:.8rem;font-weight:600">${pG.name}${isCurrent ? ' (ראשי)' : ''}</span>
         </label>
         <div style="display:flex;align-items:center;gap:5px">
-          <label style="font-size:.7rem;color:#546e7a">קבוצות:</label>\n            <input type="number" id="${prefix}-syn-grp-${pId}" class="${prefix}-syn-grp" data-gid="${pId}" value="${currentGrps[pId] || 1}" min="1" max="10" style="padding:2px 4px;font-size:.8rem;border:1px solid #ccc;border-radius:4px;width:40px">\n          </div>\n          <div style="display:flex;align-items:center;gap:5px">\n            <label style="font-size:.7rem;color:#546e7a">שעה:</label>
+          <label style="font-size:.7rem;color:#546e7a">קבוצות:</label>
+          <input type="number" id="${prefix}-syn-grp-${pId}" class="${prefix}-syn-grp" data-gid="${pId}" value="${currentGrps[pId] || 1}" min="1" max="10" style="padding:2px 4px;font-size:.8rem;border:1px solid #ccc;border-radius:4px;width:40px">
+        </div>
+        <div style="display:flex;align-items:center;gap:5px">
+          <label style="font-size:.7rem;color:#546e7a">שעה:</label>
           <input type="time" id="${prefix}-syn-time-${pId}" class="${prefix}-syn-time" data-gid="${pId}" value="${timeVal}" style="padding:2px 4px;font-size:.8rem;border:1px solid #ccc;border-radius:4px;width:110px">
         </div>
       </div>
@@ -2048,6 +2189,25 @@ window.spTogglePairDetails = spTogglePairDetails;
 window.selCO = selCO;
 window.selNO = selNO;
 window.updAndRefresh = updAndRefresh;
+
+function postSupChg() {
+  const supName = document.getElementById('post-sup').value;
+  const actSel = document.getElementById('post-act');
+  if (!actSel) return;
+  
+  const sid = window.selEvPost;
+  const s = window.SCH ? window.SCH.find(x => x.id == sid) : null;
+  const targetSup = supName || (s ? s.a : null);
+  
+  if (!targetSup) {
+    actSel.innerHTML = '<option value="">- ללא שינוי -</option>';
+    return;
+  }
+  
+  const acts = window.getSupActs ? window.getSupActs(targetSup) : [];
+  actSel.innerHTML = '<option value="">- ללא שינוי -</option>' + acts.map(a => `<option value="${a}">${a}</option>`).join('');
+}
+window.postSupChg = postSupChg;
 
 function postDateChg() {
   console.log('Postpone date changed');
@@ -2550,6 +2710,8 @@ window.saveCanQ = function() {
   const doCancel = (evId) => {
     const ev = window.SCH.find(x => x.id == evId); if (!ev) return;
     ev.st = 'can'; ev.cr = mainReason || 'בוטל'; ev.cn = extra;
+    // Always clear any previous "handled" stamp — a new cancellation is NOT yet handled
+    ev._compByMakeup = '';
     const noteAdd = '❌ בוטל: ' + fullReason;
     if (!(ev.nt||'').includes(noteAdd)) {
       ev.nt = ev.nt ? ev.nt + ' | ' + noteAdd : noteAdd;
@@ -2689,6 +2851,8 @@ window.saveNohapQ = function(){
   const doNohap = (evId) => {
     const ev = window.SCH.find(x => x.id == evId); if(!ev) return;
     ev.st = 'nohap';
+    // Always clear any previous "handled" stamp — a new exception is NOT yet handled
+    ev._compByMakeup = '';
     const noteAdd = '⚠️ לא התקיים: ' + fullReason;
     if (!(ev.nt||'').includes(noteAdd)) {
       ev.nt = ev.nt ? ev.nt + ' | ' + noteAdd : noteAdd;
@@ -2698,9 +2862,16 @@ window.saveNohapQ = function(){
   // Always mark main event
   doNohap(_nohapQId);
   
-  // ALWAYS sync pair if exists (no checkbox needed)
+  // Sync pair if exists and checkbox is checked (also check _spSyncPartnerNext from spRowStatusChg)
   const pair = window.gardenPair(s.g);
-  if (pair) {
+  const syncChk = document.getElementById('nohapq-sync-chk');
+  // _spSyncPartnerNext is set by spRowStatusChg before opening this modal
+  const presetSync = (typeof window._spSyncPartnerNext !== 'undefined') ? window._spSyncPartnerNext : true;
+  const shouldSync = syncChk ? syncChk.checked : presetSync;
+  // Reset the preset so it doesn't bleed into next call
+  window._spSyncPartnerNext = undefined;
+  
+  if (pair && shouldSync) {
     pair.ids.filter(gid => Number(gid) !== Number(s.g)).forEach(gid => {
       const pEv = window.findPartnerActivity(gid, s.d, s.a);
       if (pEv && pEv.st !== 'nohap') doNohap(pEv.id);
@@ -2763,3 +2934,94 @@ window.jumpToCalendar = function(pairId, gid, dateStr, eventId) {
   setTimeout(() => { if (window.openSP) window.openSP(eventId); }, 300);
 };
 
+
+
+
+
+window.autoScheduleMakeupToDate = function(eventId, dateStr) {
+  if (window.openMakeupSched) {
+    window.openMakeupSched(eventId);
+    let attempts = 0;
+    const setDateInput = () => {
+      const dateInput = document.getElementById('sp-mu-date');
+      if (dateInput) {
+        dateInput.value = dateStr;
+        dateInput.dispatchEvent(new Event('change'));
+      } else if (attempts < 15) {
+        attempts++;
+        setTimeout(setDateInput, 100);
+      }
+    };
+    setTimeout(setDateInput, 150);
+  }
+};
+
+window.getPairSharedFreeDaysHtml = function(gids, nohapEvId = '') {
+  if (!gids || gids.length === 0) return '';
+  const DAY_HEB = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'];
+  
+  const busyDates = new Set();
+  gids.forEach(gid => {
+    window.SCH.forEach(x => {
+      if (Number(x.g) === Number(gid)) {
+        if (x.st !== 'can' && x.st !== 'nohap' && x.st !== 'post') {
+          busyDates.add(x.d);
+        }
+      }
+    });
+  });
+
+  const free = [];
+  let d = new Date();
+  d.setHours(0, 0, 0, 0);
+
+  // Search up to 21 days, limit to 8 free days
+  for (let i = 0; i < 21 && free.length < 8; i++) {
+    const dow = d.getDay();
+    if (dow >= 0 && dow <= 4) {
+      const ds = window.d2s(d);
+      const isToday = i === 0;
+
+      let hasHoliday = false;
+      for (const gid of gids) {
+        const g = window.G(gid);
+        if (g) {
+          const hol = window.getHolidayInfo(ds, g.city, window.gcls(g));
+          if (hol && !isToday) {
+            hasHoliday = true;
+            break;
+          }
+        }
+      }
+
+      if (!busyDates.has(ds) && !hasHoliday) {
+        free.push({ ds, lbl: DAY_HEB[dow] + ' ' + window.fD(ds) });
+      }
+    }
+    d.setDate(d.getDate() + 1);
+  }
+
+  if (!free.length) {
+    return '<span style="color:#ef4444; font-size:0.68rem; font-weight:600;">אין ימים פנויים בשבועות הקרובים</span>';
+  }
+
+  return free.map(f => {
+    if (nohapEvId) {
+      return `
+        <button class="btn" 
+                style="font-size:0.68rem; padding:3px 9px; background:#f1fcf4; color:#1b5e20; border:1px solid #c8e6c9; border-radius:6px; font-weight:700; white-space:nowrap; display:inline-block; margin: 2px; cursor:pointer; transition: transform 0.1s; line-height:1.2;"
+                onclick="event.stopPropagation(); window.autoScheduleMakeupToDate('${nohapEvId}', '${f.ds}')"
+                onmouseover="this.style.background='#e8f5e9'; this.style.transform='scale(1.05)';"
+                onmouseout="this.style.background='#f1fcf4'; this.style.transform='none';">
+          ${f.lbl}
+        </button>
+      `;
+    } else {
+      return `
+        <span style="font-size:0.68rem; padding:3px 9px; background:#f1fcf4; color:#1b5e20; border:1px solid #c8e6c9; border-radius:6px; font-weight:700; white-space:nowrap; display:inline-block; margin: 2px; line-height:1.2;">
+          ${f.lbl}
+        </span>
+      `;
+    }
+  }).join(' ');
+};

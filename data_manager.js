@@ -179,50 +179,30 @@ window.DataManager = {
    * Marks matched nohap activities as handled (_compByMakeup = 'auto_match').
    */
   applyAutoMakeupMatching: function() {
-    const gardens = {};
-    const isM = s => {
-      if (s.st === 'nohap' || s.st === 'can' || s.st === 'post') return false;
-      return !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.a)));
-    };
-    
-    const isMovedTo = s => !!((s.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.n)));
-
+    // Auto-matching is DISABLED.
+    // A nohap is only considered "handled" when:
+    //   1. The user explicitly clicks ✅ (טופל) in the dashboard
+    //   2. A makeup was explicitly linked via createMakeupActivity or doPostpone
+    //      (these set _compByMakeup directly with a real activity ID)
+    //
+    // We DO clear any leftover 'auto_match'/'auto_match_moved' stamps
+    // from previous runs so they don't falsely hide nohaps.
     (window.SCH || []).forEach(s => {
-      // Clear previous auto-matches to start fresh
-      if (s._compByMakeup && (s._compByMakeup === 'auto_match' || s._compByMakeup === 'auto_match_moved')) delete s._compByMakeup;
-      
-      if (s.st === 'can') return;
-      const gid = Number(s.g);
-      if (!gid) return;
+      if (s._compByMakeup === 'auto_match' || s._compByMakeup === 'auto_match_moved') {
+        delete s._compByMakeup;
+      }
+    });
 
-      // If it's a nohap/post but has a "Moved To" note, mark it as handled immediately
-      if ((s.st === 'nohap' || s.st === 'post') && isMovedTo(s)) {
+    // Handle "moved" nohaps: if a nohap/post has a note saying it was moved TO another date,
+    // mark it as handled so it doesn't appear in the todo list (the new date activity covers it).
+    const isMovedTo = s => !!((s.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.n)));
+    (window.SCH || []).forEach(s => {
+      if ((s.st === 'nohap' || s.st === 'post') && isMovedTo(s) && !s._compByMakeup) {
         s._compByMakeup = 'auto_match_moved';
-        return;
-      }
-
-      if (!gardens[gid]) gardens[gid] = { nohaps: [], makeups: [] };
-
-      // We only match nohaps that aren't ALREADY handled manually
-      if (s.st === 'nohap' && !s._compByMakeup) {
-        gardens[gid].nohaps.push(s);
-      } else if (isM(s)) {
-        gardens[gid].makeups.push(s);
       }
     });
 
-    Object.values(gardens).forEach(g => {
-      // Sort nohaps by date ASC (oldest first)
-      g.nohaps.sort((a, b) => a.d.localeCompare(b.d));
-      
-      const makeupCount = g.makeups.length;
-      // Match up to the number of makeups available
-      for (let i = 0; i < Math.min(makeupCount, g.nohaps.length); i++) {
-        g.nohaps[i]._compByMakeup = 'auto_match';
-      }
-    });
-    
-    console.log('[DataManager] Auto-makeup matching applied.');
+    console.log('[DataManager] Auto-makeup matching is disabled. Manual handling only.');
   },
 
   cleanupDuplicates: function() {

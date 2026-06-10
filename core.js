@@ -612,6 +612,33 @@ function _applyYearData(o){
     if(window.DataManager.applyAutoMakeupMatching) window.DataManager.applyAutoMakeupMatching();
   }
 
+  // ─── FINAL DEDUPLICATION: Ensure no duplicate IDs or (garden|supplier|date|time) keys ───
+  try {
+    const seenIds = new Set();
+    const seenKeys = new Set();
+    const dedupSCH = [];
+    
+    (window.SCH || []).forEach(s => {
+      if (!s || !s.id) return;
+      
+      // Skip if this ID was already added
+      if (seenIds.has(s.id)) return;
+      
+      // Skip if this (garden|supplier|date|time) combination was already added
+      const fuzzyKey = `${s.g}|${s.a}|${s.d}|${s.t}`;
+      if (seenKeys.has(fuzzyKey)) return;
+      
+      seenIds.add(s.id);
+      seenKeys.add(fuzzyKey);
+      dedupSCH.push(s);
+    });
+    
+    if (dedupSCH.length < (window.SCH || []).length) {
+      console.log(`[_applyYearData] Removed ${(window.SCH || []).length - dedupSCH.length} duplicate schedules`);
+      window.SCH = dedupSCH;
+    }
+  } catch(e) { console.warn('Final deduplication failed:', e); }
+
   // REST OF THE FUNCTION (Pairs, Invoices, etc.)
   window.supEx = o.supEx || {};
   if(window.supEx['__gardens_extra']) window._GARDENS_EXTRA = window.supEx['__gardens_extra'];

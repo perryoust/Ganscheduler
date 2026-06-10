@@ -723,11 +723,14 @@ async function exportToExcel(data, filename, opts = {}) {
                cell.alignment = { horizontal: 'right' };
             });
 
+            const schoolStats = {};
             typeEvs.forEach(s => {
               const statusLabel = (window.stLabel ? window.stLabel(s) : s.st).replace(/<[^>]*>/g, '');
               const g = window.G(s.g);
               const isSchool = window.gcls(g) === 'ביה"ס';
               const note = (s.nt || '').toLowerCase();
+              
+              if(!schoolStats[g.name]) schoolStats[g.name] = { ok: 0, grp: 0 };
               
               // Report is faithful to site, but has safety overrides for notes
               const isMakeup = note.includes('השלמה');
@@ -749,9 +752,10 @@ async function exportToExcel(data, filename, opts = {}) {
               // Always show real group count from data, default to 1 if ok
               let grpCount = isOk ? (s.grp || 1) : 0;
               
-              if(isOk) { typeOk++; totalOk++; } else { typeNo++; totalNo++; }
+              if(isOk) { typeOk++; totalOk++; schoolStats[g.name].ok++; } else { typeNo++; totalNo++; }
               typeGroups += grpCount;
               totalGroups += grpCount;
+              schoolStats[g.name].grp += grpCount;
 
               // Clean up status label: show failure if not ok
               let displayStatus = statusLabel;
@@ -786,7 +790,17 @@ async function exportToExcel(data, filename, opts = {}) {
             ws.mergeCells(typeSum.number, 1, typeSum.number, 8);
             ws.addRow([]);
             
-            summaryRows.push({ label: `${city} - ${type}`, ok: typeOk, grp: typeGroups });
+            if (type === 'ביה"ס') {
+              Object.keys(schoolStats).sort().forEach(sName => {
+                if (schoolStats[sName].grp > 0) {
+                  summaryRows.push({ label: sName, ok: schoolStats[sName].ok, grp: schoolStats[sName].grp });
+                }
+              });
+            } else {
+              if (typeGroups > 0) {
+                summaryRows.push({ label: `${city} - ${type}`, ok: typeOk, grp: typeGroups });
+              }
+            }
           });
         });
 
