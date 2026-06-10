@@ -677,6 +677,7 @@ async function exportToExcel(data, filename, opts = {}) {
         const titleRow = ws.addRow([opts.title]);
         titleRow.font = { name: 'Arial', size: 16, bold: true };
         ws.mergeCells(1, 1, 1, 8);
+        ws.pageSetup.printTitlesRow = '1:1';
       }
 
       const isSupplierExport = opts.type === 'supplier';
