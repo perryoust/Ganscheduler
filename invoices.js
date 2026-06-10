@@ -254,7 +254,28 @@ function renderInvoices(){
   if(to)   list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')<=to);
   list.sort((a,b)=>{
     const da = a.orderDate||a.txDate||a.date||'', db = b.orderDate||b.txDate||b.date||'';
-    return sortDir==='asc' ? da.localeCompare(db) : db.localeCompare(da);
+    
+    // Parse to timestamp for accurate chronological sorting
+    const parseSortDate = (dStr) => {
+      if (!dStr) return 0;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dStr)) return new Date(dStr).getTime();
+      const parts = dStr.split(/[\/\-.]/);
+      if (parts.length === 3) {
+        let d = parseInt(parts[0], 10), m = parseInt(parts[1], 10), y = parseInt(parts[2], 10);
+        if (y < 100) y += 2000;
+        if (d > 1000) { y = d; d = parseInt(parts[2], 10); } // Handle YYYY-MM-DD that split weirdly
+        return new Date(y, m - 1, d).getTime();
+      }
+      return new Date(dStr).getTime() || 0;
+    };
+    
+    const timeA = parseSortDate(da);
+    const timeB = parseSortDate(db);
+    
+    if (timeA !== timeB) {
+      return sortDir === 'asc' ? timeA - timeB : timeB - timeA;
+    }
+    return sortDir === 'asc' ? da.localeCompare(db) : db.localeCompare(da);
   });
   const fmtAmt = (n, vat, exempt)=>{
     if(!n) return '<span style="color:#ccc">—</span>';
