@@ -1033,7 +1033,7 @@ window.openSP = function(id) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div class="fg"><label for="sp-edit-date" style="font-size:.7rem;font-weight:700">תאריך</label><input type="date" id="sp-edit-date" value="${s.d}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
         <div class="fg"><label for="sp-edit-time" style="font-size:.7rem;font-weight:700">שעה (${g.name})</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
-        <div class="fg"><label for="sp-edit-sup" style="font-size:.7rem;font-weight:700">ספק</label><select id="sp-edit-sup" onchange="window.spEditSupChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">${allSups.map(sup => `<option value="${sup.name}" ${sup.name===s.a ? 'selected':''}>${sup.name}</option>`).join('')}</select></div>
+        <div class="fg"><label for="sp-edit-sup" style="font-size:.7rem;font-weight:700">ספק</label><select id="sp-edit-sup" onchange="window.spEditSupChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">${allSups.map(sup => { const disp = window.supNameLabel(sup.name) !== sup.name ? window.supNameLabel(sup.name) + ' (' + sup.name + ')' : sup.name; return `<option value="${sup.name}" ${sup.name===s.a ? 'selected':''}>${disp}</option>`; }).join('')}</select></div>
         <div class="fg"><label for="sp-edit-grp" style="font-size:.7rem;font-weight:700">קבוצות</label><input type="number" id="sp-edit-grp" value="${s.grp||1}" min="1" max="10" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
         <div class="fg"><label for="sp-edit-act" style="font-size:.7rem;font-weight:700">פעילות</label><select id="sp-edit-act" onchange="window.spEditActChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"><option value="">— ללא שינוי —</option>${initialActs.map(a => `<option value="${a}" ${a===s.act ? 'selected':''}>${a}</option>`).join('')}<option value="__new__">➕ פעילות חדשה...</option></select></div>
       </div>
@@ -1907,7 +1907,7 @@ function openPostpone(id){
     const supSel = document.getElementById('post-sup');
     if (supSel) {
       supSel.innerHTML = '<option value="">— אותו ספק —</option>' + 
-        allSups.map(s2 => `<option value="${s2.name}">${s2.name}</option>`).join('');
+        allSups.map(s2 => { const disp = window.supNameLabel(s2.name) !== s2.name ? window.supNameLabel(s2.name) + ' (' + s2.name + ')' : s2.name; return `<option value="${s2.name}">${disp}</option>`; }).join('');
       supSel.value = ''; // default to same
     }
     

@@ -4,6 +4,58 @@ window.onload = function(){
   // _onAuthReady is called once user is authenticated
   window._onAuthReady = async function(){
     cleanupStaleLocalStorage();
+
+    // 1. Load local data immediately to show UI fast
+    load();
+    restoreMissingHolidays();
+    syncSupplierList(); // supEx is now populated from load()
+    migratePairsFromAuto();
+    migrateSupActSplit();
+    importContactsFromGardens();
+    migrateGardenPhones();
+    initDrops();
+    initHolDrops();
+    refreshClusterDrops();
+    refreshMgrDrops();
+    // dash-date now defaults to empty (All Dates)
+    const dashDateEl=document.getElementById('dash-date'); 
+    if(dashDateEl) dashDateEl.value='';
+    ['dash-srch','s-srch','g-srch','su-srch'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    const sfrom=document.getElementById('s-from');if(sfrom&&!sfrom.value) sfrom.value=td();
+    const sto=document.getElementById('s-to');if(sto&&!sto.value) sto.value=td();
+    const calClsEl=document.getElementById('cal-cls');
+    if(calClsEl) calClsEl.value='גנים';
+    const gClsEl=document.getElementById('g-cls');
+    if(gClsEl) gClsEl.value='גנים';
+    renderReadOnlyBanner();
+    // Always run supplier repair on load to ensure cards exist
+    repairAllSuppliers();
+    syncSupplierList(); // re-sync after repair
+
+    // Initial render with local data
+    try{ renderDash(); }catch(e){}
+    try{ renderCal(); }catch(e){}
+    try{ renderClusters(); }catch(e){}
+    try{ renderSup(); }catch(e){}
+    try{ renderManagers(); }catch(e){}
+    try{ updCounts(); }catch(e){}
+    try{ odUpdateUI(); }catch(e){}
+    try{ refreshPurchDash(); }catch(e){}
+    try{ renderPurchSuppliers(); }catch(e){}
+    try{ renderInvoices(); }catch(e){}
+
+    // Restore last active mode if permitted, otherwise cleanly default to 'act'
+    const savedMode = (typeof _safeLS !== 'undefined' ? _safeLS.getItem('activeAppMode') : null) || 'act';
+    if (savedMode === 'purch' && window.permPurch && typeof window.switchMode === 'function') {
+      window.switchMode('purch');
+    } else if (typeof window.switchMode === 'function') {
+      window.switchMode('act');
+    }
+
+    setTimeout(_fitScrollAreas, 100);
+    try{ _ensureAdminProfile(); }catch(e){}
+
+    // 2. Fetch Firebase data in the background
     try{
       // Step 1: Always get a fresh token before loading
       if(window._fbUser){
@@ -32,42 +84,24 @@ window.onload = function(){
         }
       } catch(ie){ console.warn('Explicit invoices load failed:', ie); }
 
+      // If Firebase load was successful, update the data and re-render
+      if (fbOk) {
+        load();
+        syncSupplierList();
+        try{ renderDash(); }catch(e){}
+        try{ renderCal(); }catch(e){}
+        try{ renderClusters(); }catch(e){}
+        try{ renderSup(); }catch(e){}
+        try{ renderManagers(); }catch(e){}
+        try{ updCounts(); }catch(e){}
+        try{ odUpdateUI(); }catch(e){}
+        try{ refreshPurchDash(); }catch(e){}
+        try{ renderPurchSuppliers(); }catch(e){}
+        try{ renderInvoices(); }catch(e){}
+      }
+
     }catch(initErr){ console.warn('Init error:', initErr); }
-    load();
-    restoreMissingHolidays();
-    syncSupplierList(); // supEx is now populated from load()
-    migratePairsFromAuto();
-    migrateSupActSplit();
-    importContactsFromGardens();
-    migrateGardenPhones();
-    initDrops();
-    initHolDrops();
-    refreshClusterDrops();
-    refreshMgrDrops();
-    // dash-date now defaults to empty (All Dates)
-    const dashDateEl=document.getElementById('dash-date'); 
-    if(dashDateEl) dashDateEl.value='';
-    ['dash-srch','s-srch','g-srch','su-srch'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-    const sfrom=document.getElementById('s-from');if(sfrom&&!sfrom.value) sfrom.value=td();
-    const sto=document.getElementById('s-to');if(sto&&!sto.value) sto.value=td();
-    const calClsEl=document.getElementById('cal-cls');
-    if(calClsEl) calClsEl.value='גנים';
-    const gClsEl=document.getElementById('g-cls');
-    if(gClsEl) gClsEl.value='גנים';
-    renderReadOnlyBanner();
-    // Always run supplier repair on load to ensure cards exist
-    repairAllSuppliers();
-    syncSupplierList(); // re-sync after repair
-    try{ renderDash(); }catch(e){}
-    try{ renderCal(); }catch(e){}
-    try{ renderClusters(); }catch(e){}
-    try{ renderSup(); }catch(e){}
-    try{ renderManagers(); }catch(e){}
-    try{ updCounts(); }catch(e){}
-    try{ odUpdateUI(); }catch(e){}
-    try{ refreshPurchDash(); }catch(e){}
-    try{ renderPurchSuppliers(); }catch(e){}
-    try{ renderInvoices(); }catch(e){}
+
     const _inv = typeof INVOICES!=='undefined'?INVOICES.length:0;
     const _sch = typeof SCH!=='undefined'?SCH.length:0;
     // AUTO-CLEANUP if duplicated (20k records detected)
@@ -78,17 +112,7 @@ window.onload = function(){
     }
     console.log('App fully ready: SCH = ',window.SCH.length,'INVOICES = ',_inv);
     
-    // Restore last active mode if permitted, otherwise cleanly default to 'act'
-    const savedMode = (typeof _safeLS !== 'undefined' ? _safeLS.getItem('activeAppMode') : null) || 'act';
-    if (savedMode === 'purch' && window.permPurch && typeof window.switchMode === 'function') {
-      window.switchMode('purch');
-    } else if (typeof window.switchMode === 'function') {
-      window.switchMode('act');
-    }
-
     _fbStartPolling();
-    setTimeout(_fitScrollAreas, 100);
-    try{ _ensureAdminProfile(); }catch(e){}
   }; 
   if(window._fbUser) window._onAuthReady();
 };

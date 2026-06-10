@@ -367,8 +367,8 @@ tr:hover td{background:#f5f7ff}
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  will-change: transform;
   overscroll-behavior-y: contain;
+  touch-action: pan-y;
 }
 
 .city-block{margin-bottom:10px;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.09)}
