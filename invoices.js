@@ -2726,69 +2726,697 @@ window.parseSharePointBaseUrl = (url) => {
 // ── SharePoint Local Scanner ─────────────────────────────
 window.startSharePointScanner = async function() {
   if (!window.showDirectoryPicker) {
-    alert('הדפדפן שלך אינו תומך בסריקת תיקיות מקומית. אנא השתמש ב-Chrome או Edge עדכני.');
+    alert('╫פ╫ף╫ñ╫ף╫ñ╫ƒ ╫⌐╫£╫ת ╫נ╫ש╫á╫ץ ╫¬╫ץ╫₧╫ת ╫ס╫í╫¿╫ש╫º╫¬ ╫¬╫ש╫º╫ש╫ץ╫¬ ╫₧╫º╫ץ╫₧╫ש╫¬. ╫נ╫á╫נ ╫פ╫⌐╫¬╫₧╫⌐ ╫ס-Chrome ╫נ╫ץ Edge ╫ó╫ף╫¢╫á╫ש.');
     return;
   }
   try {
-    const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
-    const baseUrl = prompt('בחרת את התיקייה המקומית בהצלחה!\n\nכעת, אנא הדבק כאן את קישור האינטרנט של התיקייה הזו בדיוק כפי שהוא מופיע ב-SharePoint\n(לדוגמה: https://tomshin.sharepoint.com/sites/docs/Shared%20Documents/...) :');
-    if (!baseUrl) return;
-    const cleanBaseUrl = baseUrl.trim().replace(/\/+$/, '');
-    window.showToast('⏳ סורק קבצים במחשב... נא להמתין', 60000);
+    const selectedFolders = [];
+    while (true) {
+      const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+      
+      let baseUrl = window.spScannerFolderLinks?.[dirHandle.name];
+      if (!baseUrl) {
+        // Try localStorage fallback
+        try {
+          const localLinks = JSON.parse(localStorage.getItem('spScannerFolderLinks') || '{}');
+          if (localLinks[dirHandle.name]) baseUrl = localLinks[dirHandle.name];
+        } catch(e){}
+      }
+      
+      // If baseUrl is an object (new format), extract the SP link
+      if (typeof baseUrl === 'object' && baseUrl !== null) {
+        baseUrl = baseUrl.sp;
+      }
+      
+      if (!baseUrl) {
+        baseUrl = await window.asyncPrompt('<b>╫ס╫ק╫¿╫¬ ╫¬╫ש╫º╫ש╫ש╫פ ╫ס╫פ╫ª╫£╫ק╫פ!</b>\n\n╫¢╫ó╫¬, ╫פ╫ף╫ס╫º ╫¢╫נ╫ƒ ╫נ╫¬ ╫º╫ש╫⌐╫ץ╫¿ ╫פ╫נ╫ש╫á╫ר╫¿╫á╫ר ╫⌐╫£ ╫פ╫¬╫ש╫º╫ש╫ש╫פ ╫פ╫צ╫ץ ╫ס-SharePoint:\n(╫£╫ף╫ץ╫ע╫₧╫פ: https://tomashin1.sharepoint.com/...)');
+        if (baseUrl) {
+          window.spScannerFolderLinks = window.spScannerFolderLinks || {};
+          window.spScannerFolderLinks[dirHandle.name] = baseUrl;
+          localStorage.setItem('spScannerFolderLinks', JSON.stringify(window.spScannerFolderLinks));
+        }
+      }
+      
+      if (baseUrl) {
+        selectedFolders.push({ dirHandle, baseUrl });
+      }
+      const wantMore = await window.asyncConfirm('<b>╫פ╫נ╫¥ ╫¬╫¿╫ª╫פ ╫£╫פ╫ץ╫í╫ש╫ú ╫¬╫ש╫º╫ש╫ש╫פ ╫á╫ץ╫í╫ñ╫¬ ╫£╫í╫¿╫ש╫º╫פ ╫צ╫ץ?</b>\n\nΓאó ╫£╫ק╫Ñ <b>╫נ╫ש╫⌐╫ץ╫¿</b> ╫¢╫ף╫ש ╫£╫ס╫ק╫ץ╫¿ ╫¬╫ש╫º╫ש╫ש╫פ ╫á╫ץ╫í╫ñ╫¬.\nΓאó ╫£╫ק╫Ñ <b>╫í╫ש╫ץ╫¥ ╫ץ╫ס╫ף╫ש╫º╫פ</b> ╫¢╫ף╫ש ╫£╫í╫ש╫ש╫¥ ╫נ╫¬ ╫ס╫ק╫ש╫¿╫¬ ╫פ╫¬╫ש╫º╫ש╫ץ╫¬ ╫ץ╫£╫פ╫¬╫ק╫ש╫£ ╫ס╫í╫¿╫ש╫º╫פ.');
+      if (!wantMore) {
+        break;
+      }
+    }
+    if (selectedFolders.length === 0) return;
+
+    const parseSharePointBaseUrl = window.parseSharePointBaseUrl;
+    
+    window.showToast('Γן│ ╫í╫ץ╫¿╫º ╫º╫ס╫ª╫ש╫¥ ╫ס╫₧╫ק╫⌐╫ס... ╫á╫נ ╫£╫פ╫₧╫¬╫ש╫ƒ', 60000);
     const filesFound = [];
-    async function scanDir(handle, currentPath) {
+    async function scanDir(handle, currentPath, origin, path) {
       for await (const entry of handle.values()) {
         if (entry.kind === 'file') {
           if (!entry.name.startsWith('.') && !entry.name.startsWith('~')) {
-            filesFound.push({ name: entry.name, relativePath: currentPath + '/' + encodeURIComponent(entry.name) });
+            const ext = entry.name.split('.').pop().toLowerCase();
+            if (!['xls', 'xlsx', 'csv'].includes(ext)) {
+              const f = await entry.getFile();
+              filesFound.push({ 
+                name: entry.name, 
+                relativePath: currentPath + '/' + encodeURIComponent(entry.name), 
+                lastModified: f.lastModified,
+                origin,
+                path
+              });
+            }
           }
         } else if (entry.kind === 'directory') {
-          await scanDir(entry, currentPath + '/' + encodeURIComponent(entry.name));
+          await scanDir(entry, currentPath + '/' + encodeURIComponent(entry.name), origin, path);
         }
       }
     }
-    await scanDir(dirHandle, '');
-    let matchCount = 0;
-    const resultsData = [['שם הקובץ', 'מספר שזוהה', 'סטטוס התאמה', 'קישור שנוצר']];
-    for (const file of filesFound) {
-      const numbersInName = file.name.match(/\d+/g) || [];
-      const link = `${cleanBaseUrl}${file.relativePath}?web=1`;
-      let matchedInvoice = null;
-      let matchedType = null;
-      for (const numStr of numbersInName) {
-        if (numStr.length < 3) continue;
-        matchedInvoice = window.INVOICES.find(inv => {
-          if (inv.num && String(inv.num).trim() === numStr) { matchedType = 'tax'; return true; }
-          if (inv.txNum && String(inv.txNum).trim() === numStr) { matchedType = 'tx'; return true; }
-          if (inv.orderNum && String(inv.orderNum).trim() === numStr) { matchedType = 'order'; return true; }
-          return false;
-        });
-        if (matchedInvoice) break;
+    
+    for (const folder of selectedFolders) {
+      const cleanBaseUrl = parseSharePointBaseUrl(folder.baseUrl);
+      let origin = 'https://tomashin1.sharepoint.com';
+      let path = cleanBaseUrl;
+      try {
+        const uObj = new URL(cleanBaseUrl);
+        origin = uObj.origin;
+        path = uObj.pathname;
+      } catch(e) {}
+      if (!path.startsWith('/')) path = '/' + path;
+      await scanDir(folder.dirHandle, '', origin, path);
+    }
+    
+    // Filter out old files based on the oldest invoice in the system (with a 60-day buffer)
+    let oldestDateStr = '2099-12-31';
+    window.INVOICES.forEach(i => {
+      if (!i.file_tax && !i.file_tx && !i.file_order) {
+        const d = i.orderDate || i.txDate || i.date;
+        if (d && d < oldestDateStr && d.length >= 4) oldestDateStr = d;
       }
-      if (matchedInvoice && matchedType) {
-        matchedInvoice['file_' + matchedType] = { path: link, local: '' };
-        matchCount++;
-        resultsData.push([file.name, numbersInName.join(','), 'הותאם לספק: ' + matchedInvoice.supName, link]);
-      } else {
-        resultsData.push([file.name, numbersInName.join(','), 'לא נמצאה התאמה בחשבוניות', link]);
+    });
+    
+    const minDateLimit = '2022-09-01'; // User's Excel file starts here
+    if (oldestDateStr < minDateLimit || oldestDateStr === '2099-12-31') oldestDateStr = minDateLimit;
+    
+    if (oldestDateStr !== '2099-12-31') {
+      const oldestTs = new Date(oldestDateStr).getTime() - (60 * 24 * 60 * 60 * 1000); // 60 days buffer
+      const minTs = new Date(minDateLimit).getTime();
+      const cutoffTs = Math.max(oldestTs, minTs); // Never scan before Sep 2022
+      
+      const originalCount = filesFound.length;
+      for (let i = filesFound.length - 1; i >= 0; i--) {
+        if (filesFound[i].lastModified && filesFound[i].lastModified < cutoffTs) {
+          filesFound.splice(i, 1);
+        }
+      }
+      if (originalCount > filesFound.length) {
+        console.log(`Skipped ${originalCount - filesFound.length} old files (older than ${new Date(cutoffTs).toLocaleDateString()}).`);
       }
     }
+
+    // Helper to get SharePoint decorator based on extension
+    const getSharePointDecorator = (filename) => {
+      const ext = String(filename).split('.').pop().toLowerCase();
+      if (['pdf', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'txt'].includes(ext)) return ':b:/r/';
+      if (['docx', 'doc', 'rtf'].includes(ext)) return ':w:/r/';
+      if (['xlsx', 'xls', 'csv'].includes(ext)) return ':x:/r/';
+      if (['pptx', 'ppt'].includes(ext)) return ':p:/r/';
+      return ':b:/r/'; // default fallback
+    };
+    
+    const encodePath = (p) => {
+      return p.split('/').map(segment => {
+        if (!segment) return '';
+        if (segment.includes('%')) {
+          try {
+            decodeURIComponent(segment);
+            return segment; // Already encoded
+          } catch(e) {}
+        }
+        return encodeURIComponent(segment);
+      }).join('/');
+    };
+
+    let matchCount = 0;
+    const resultsData = [['╫⌐╫¥ ╫פ╫º╫ץ╫ס╫Ñ', '╫₧╫í╫ñ╫¿ ╫⌐╫צ╫ץ╫פ╫פ', '╫í╫ר╫ר╫ץ╫í ╫פ╫¬╫נ╫₧╫פ', '╫º╫ש╫⌐╫ץ╫¿ ╫⌐╫á╫ץ╫ª╫¿']];
+    window._askUnmatched = true; // Reset skipping state for each scan
+    for (const file of filesFound) {
+      const spAliases = window.spScannerAliases || {};
+      if (spAliases[`__skip__${file.name}`]) continue;
+
+      const numbersInName = file.name.match(/\d+/g) || [];
+      const decorator = getSharePointDecorator(file.name);
+      const encodedPath = encodePath(file.path);
+      const urlPath = ('/' + decorator + '/' + encodedPath + '/' + file.relativePath).replace(/\/+/g, '/');
+      const link = `${file.origin}${urlPath}?web=1`;
+      const cleanFilenameDigits = file.name.replace(/\D/g, '');
+      const isYear = (val) => {
+        const num = parseInt(val, 10);
+        return num >= 2010 && num <= 2035;
+      };
+
+      // Determine document types based on keywords
+      const foundTypes = new Set();
+      const typeKeywords = [
+        { key: 'tax', words: ['╫ק╫⌐╫ס╫ץ╫á╫ש╫¬ ╫₧╫í', '╫ק╫⌐╫ס╫ץ╫á╫ש╫¬_╫₧╫í', '╫ק╫⌐ ╫₧╫í', '╫º╫ס╫£╫פ'] },
+        { key: 'tx', words: ['╫ק╫⌐╫ס╫ץ╫á╫ש╫¬ ╫ó╫í╫º╫פ', '╫ף╫¿╫ש╫⌐╫¬ ╫¬╫⌐╫£╫ץ╫¥', '╫ף╫¿╫ש╫⌐╫¬_╫¬╫⌐╫£╫ץ╫¥', '╫ק╫⌐╫ס╫ץ╫ƒ ╫ó╫í╫º╫פ'] },
+        { key: 'order', words: ['╫פ╫צ╫₧╫á╫פ'] }
+      ];
+      typeKeywords.forEach(tk => {
+        tk.words.forEach(w => {
+          if (file.name.includes(w)) foundTypes.add(tk.key);
+        });
+      });
+      // Fallback: if it has "╫ק╫⌐╫ס╫ץ╫á╫ש╫¬" but not specifically "╫ק╫⌐╫ס╫ץ╫á╫ש╫¬ ╫ó╫í╫º╫פ"
+      if (file.name.includes('╫ק╫⌐╫ס╫ץ╫á╫ש╫¬') && !file.name.includes('╫ק╫⌐╫ס╫ץ╫á╫ש╫¬ ╫ó╫í╫º╫פ')) {
+        foundTypes.add('tax');
+      }
+      
+      // If a file is a tax invoice, treat it strictly as a tax invoice, 
+      // even if it mentions the transaction invoice number in its name.
+      if (foundTypes.has('tax')) {
+        foundTypes.delete('tx');
+      }
+      
+      const canMatch = (type) => foundTypes.size === 0 || foundTypes.has(type);
+
+      // Supplier Match Score helper
+      const cleanFileBase = file.name.replace(/[-_.]/g, ' ');
+      const aliases = window.spScannerAliases || {};
+
+      const normalizeHebrew = (str) => {
+        return (str || '')
+          .replace(/╫ש╫ש/g, '╫ש')
+          .replace(/╫ץ╫ץ/g, '╫ץ')
+          .trim();
+      };
+      const normFileBase = normalizeHebrew(cleanFileBase);
+      
+      const getSupplierScore = (inv) => {
+        let score = 0;
+        const supplierBase = window.supBase ? window.supBase(inv.supName) : inv.supName;
+        const normSupName = normalizeHebrew(inv.supName);
+        const normSupBase = normalizeHebrew(supplierBase);
+        const supplierAct = window.supAct ? window.supAct(inv.supName) : '';
+        
+        // Remove common words to avoid false positive supplier matching
+        const ignoreWords = ['╫ק╫ץ╫ע╫ש╫¥', '╫í╫ף╫á╫נ╫ץ╫¬', '╫פ╫ñ╫ó╫£╫ץ╫¬', '╫¬╫ץ╫¢╫á╫ש╫ץ╫¬', '╫ע╫ƒ', '╫ע╫á╫ש', '╫ס╫ש╫¬', '╫í╫ñ╫¿', '╫ª╫פ╫¿╫ץ╫ƒ', '╫ª╫פ╫¿╫ץ╫á╫ש╫¥', '╫₧╫ץ╫í╫ש╫º╫פ', '╫í╫ñ╫ץ╫¿╫ר', '╫¬╫á╫ץ╫ó╫פ', '╫¬╫ש╫נ╫ר╫¿╫ץ╫ƒ', '╫¬╫נ╫ר╫¿╫ץ╫ƒ', '╫ק╫ץ╫ע', '╫ñ╫ó╫ש╫£╫ץ╫¬', '╫₧╫ק╫ץ╫£', '╫¿╫ש╫¬╫₧╫ש╫º╫פ'];
+        const supplierWords = (supplierBase||'').split(/\s+/).filter(w => w.length > 2 && !ignoreWords.includes(w));
+        
+        // Check saved aliases first (highest priority)
+        for (const [aliasWord, supName] of Object.entries(aliases)) {
+          if (cleanFileBase.includes(aliasWord) && supName === inv.supName) {
+            return 5; // Alias match is the strongest
+          }
+        }
+
+        if (cleanFileBase.includes('╫ע╫ר ╫ר╫º╫í╫ש') && inv.supName.includes('╫ע╫ר╫נ╫º╫í╫ש')) return 5;
+
+        if (cleanFileBase.includes(inv.supName) || normFileBase.includes(normSupName)) return 4;
+        if (cleanFileBase.includes(supplierBase) || normFileBase.includes(normSupBase)) return 3;
+        if (supplierAct && supplierAct.length > 2 && cleanFileBase.includes(supplierAct) && !ignoreWords.includes(supplierAct)) return 2;
+        if (supplierWords.length > 0 && supplierWords.some(w => cleanFileBase.includes(w))) return 1;
+        return 0;
+      };
+
+      let fileMatched = false;
+      const matchedInfos = []; // Array of { inv, sec, score }
+
+      // 1. First attempt: Strict exact matching
+      for (const numStr of numbersInName) {
+        window.INVOICES.forEach(inv => {
+          
+          const score = getSupplierScore(inv);
+          
+          if (score === 0) {
+            if (numStr.length < 3) return; // Prevent generic short number matches when supplier doesn't match
+            if (isYear(numStr)) return;
+            const matchesNum = String(inv.num || '') === numStr || String(inv.num || '').startsWith(numStr);
+            const matchesTx = String(inv.txNum || '') === numStr || String(inv.txNum || '').startsWith(numStr);
+            const matchesOrder = String(inv.orderNum || '') === numStr || String(inv.orderNum || '').startsWith(numStr);
+            if (numStr.length < 4 && !matchesNum && !matchesTx && !matchesOrder) return;
+          } else {
+            // Supplier matches! Allow shorter numbers, but ignore years
+            if (isYear(numStr)) return;
+            // Allow length 1 or 2 since the supplier is a match!
+          }
+          
+          if (inv.num && String(inv.num).trim() === numStr && canMatch('tax')) {
+            matchedInfos.push({ inv, sec: 'tax', score });
+            fileMatched = true;
+          }
+          if (inv.txNum && String(inv.txNum).trim() === numStr && canMatch('tx')) {
+            matchedInfos.push({ inv, sec: 'tx', score });
+            fileMatched = true;
+          }
+          if (inv.orderNum && String(inv.orderNum).trim() === numStr && canMatch('order')) {
+            matchedInfos.push({ inv, sec: 'order', score });
+            fileMatched = true;
+          }
+        });
+      }
+
+      // 2. Second attempt: Fuzzy digits matching (handling leading zeros, slashes, dashes, letters)
+      if (!fileMatched) {
+        window.INVOICES.forEach(inv => {
+          
+          const score = getSupplierScore(inv);
+          
+          // Clean invoice values to digits only (and remove leading zeros)
+          const cleanInv = String(inv.num || '').replace(/\D/g, '').replace(/^0+/, '');
+          const cleanTx = String(inv.txNum || '').replace(/\D/g, '').replace(/^0+/, '');
+          const cleanOrder = String(inv.orderNum || '').replace(/\D/g, '').replace(/^0+/, '');
+          
+          const checkFuzzyMatch = (targetNum) => {
+            if (!targetNum) return false;
+            if (score === 0) {
+              if (targetNum.length < 3) return false;
+              if (isYear(targetNum)) return false;
+              if (targetNum.length < 4) return false; // Prevent generic short number fuzzy matches
+            } else {
+              // Supplier matches! We can allow shorter target numbers.
+              if (isYear(targetNum)) return false;
+            }
+            // Exact match in individual number blocks (ignoring leading zeros)
+            if (numbersInName.map(n => n.replace(/^0+/, '')).includes(targetNum)) return true;
+            if (isYear(targetNum)) return false; // Don't combine blocks for years
+            
+            // Check combining adjacent blocks (e.g. "500" and "076" for invoice "500076")
+            for (let i = 0; i < numbersInName.length; i++) {
+              let combined = numbersInName[i];
+              if (combined.replace(/^0+/, '') === targetNum) return true;
+              for (let j = i + 1; j < numbersInName.length; j++) {
+                combined += numbersInName[j];
+                if (combined.replace(/^0+/, '') === targetNum) return true;
+                if (combined.length > targetNum.length + 2) break; // Optimization
+              }
+            }
+            return false;
+          };
+
+          if (canMatch('tax') && checkFuzzyMatch(cleanInv)) {
+            matchedInfos.push({ inv, sec: 'tax', score });
+            fileMatched = true;
+          }
+          
+          if (canMatch('tx') && checkFuzzyMatch(cleanTx)) {
+            matchedInfos.push({ inv, sec: 'tx', score });
+            fileMatched = true;
+          }
+          
+          if (canMatch('order') && checkFuzzyMatch(cleanOrder)) {
+            matchedInfos.push({ inv, sec: 'order', score });
+            fileMatched = true;
+          }
+        });
+      }
+
+      // 2.5. Monthly recurring bills (Petty Cash, Transportation, etc.) based on Month/Year
+      // Apply this logic if it's explicitly Petty Cash OR if there are no invoice numbers in the filename (other than years) and a month is explicitly mentioned.
+      const hasOnlyYearNumbers = numbersInName.filter(n => !isYear(n)).length === 0;
+      const isPettyCash = file.name.includes('╫º╫ץ╫ñ╫פ ╫º╫ר╫á╫פ');
+      const isGett = file.name.includes('╫ע╫ר') && file.name.includes('╫ר╫º╫í╫ש');
+
+      let explicitMonthFound = false;
+      let targetMonth = -1;
+      let targetYear = -1;
+      const hebMonths = ['╫ש╫á╫ץ╫נ╫¿','╫ñ╫ס╫¿╫ץ╫נ╫¿','╫₧╫¿╫Ñ','╫נ╫ñ╫¿╫ש╫£','╫₧╫נ╫ש','╫ש╫ץ╫á╫ש','╫ש╫ץ╫£╫ש','╫נ╫ץ╫ע╫ץ╫í╫ר','╫í╫ñ╫ר╫₧╫ס╫¿','╫נ╫ץ╫º╫ר╫ץ╫ס╫¿','╫á╫ץ╫ס╫₧╫ס╫¿','╫ף╫ª╫₧╫ס╫¿'];
+      
+      // 1. Try to extract month from file name
+      const matchHebName = file.name.match(/(╫ש╫á╫ץ╫נ╫¿|╫ñ╫ס╫¿╫ץ╫נ╫¿|╫₧╫¿╫Ñ|╫נ╫ñ╫¿╫ש╫£|╫₧╫נ╫ש|╫ש╫ץ╫á╫ש|╫ש╫ץ╫£╫ש|╫נ╫ץ╫ע╫ץ╫í╫ר|╫í╫ñ╫ר╫₧╫ס╫¿|╫נ╫ץ╫º╫ר╫ץ╫ס╫¿|╫á╫ץ╫ס╫₧╫ס╫¿|╫ף╫ª╫₧╫ס╫¿)\s*(\d{4})?/);
+      if (matchHebName) {
+        targetMonth = hebMonths.indexOf(matchHebName[1]);
+        if (matchHebName[2]) targetYear = parseInt(matchHebName[2]);
+        explicitMonthFound = true;
+      }
+      
+      // 2. Try to extract month from file path (folder name)
+      if (!explicitMonthFound && file.path) {
+        try {
+          const decodedPath = decodeURIComponent(file.path);
+          const matchHebPath = decodedPath.match(/(╫ש╫á╫ץ╫נ╫¿|╫ñ╫ס╫¿╫ץ╫נ╫¿|╫₧╫¿╫Ñ|╫נ╫ñ╫¿╫ש╫£|╫₧╫נ╫ש|╫ש╫ץ╫á╫ש|╫ש╫ץ╫£╫ש|╫נ╫ץ╫ע╫ץ╫í╫ר|╫í╫ñ╫ר╫₧╫ס╫¿|╫נ╫ץ╫º╫ר╫ץ╫ס╫¿|╫á╫ץ╫ס╫₧╫ס╫¿|╫ף╫ª╫₧╫ס╫¿)\s*(\d{4})?/);
+          if (matchHebPath) {
+            targetMonth = hebMonths.indexOf(matchHebPath[1]);
+            if (matchHebPath[2]) targetYear = parseInt(matchHebPath[2]);
+            explicitMonthFound = true;
+          }
+        } catch(e) {}
+      }
+
+      if (!fileMatched && (isPettyCash || isGett || (hasOnlyYearNumbers && explicitMonthFound))) {
+        
+        // 3. Fallback to file's lastModified date ONLY for Petty Cash
+        if (targetMonth === -1) {
+          const fileDate = new Date(file.lastModified || Date.now());
+          targetMonth = fileDate.getMonth();
+          if (targetYear === -1) targetYear = fileDate.getFullYear();
+        }
+        
+        // Ensure year is set
+        if (targetYear === -1) {
+          const yearMatch = file.name.match(/\b(202\d)\b/) || (file.path && decodeURIComponent(file.path).match(/\b(202\d)\b/));
+          targetYear = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
+        }
+
+        let fallbackMatches = [];
+
+        window.INVOICES.forEach(inv => {
+          // If it's a petty cash file, require the invoice to be a petty cash invoice
+          const isInvPettyCash = inv.orderNum === '╫º╫ץ╫ñ╫פ ╫º╫ר╫á╫פ' || String(inv.notes||'').includes('╫º╫ץ╫ñ╫פ ╫º╫ר╫á╫פ') || String(inv.txNum||'').includes('╫º╫ץ╫ñ╫פ ╫º╫ר╫á╫פ') || String(inv.orderDesc||'').includes('╫º╫ץ╫ñ╫פ ╫º╫ר╫á╫פ');
+          if (isPettyCash && !isInvPettyCash) return;
+          
+          const score = getSupplierScore(inv);
+          if (score > 0) { // Supplier must match!
+            let invMonth = -1;
+            let invYear = -1;
+            
+            const dStr = inv.date || inv.orderDate || inv.txDate || '';
+            if (dStr) {
+              let invDate = new Date(dStr);
+              // Handle DD/MM/YYYY
+              if (dStr.includes('/')) {
+                const parts = dStr.split('/');
+                if (parts.length === 3) invDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+              }
+              if (!isNaN(invDate.getMonth())) {
+                invMonth = invDate.getMonth();
+                invYear = invDate.getFullYear();
+              }
+            }
+            
+            // Fallback: check invoice description for Hebrew month
+            if (invMonth === -1) {
+              const matchHebDesc = String(inv.orderDesc||'').match(/(╫ש╫á╫ץ╫נ╫¿|╫ñ╫ס╫¿╫ץ╫נ╫¿|╫₧╫¿╫Ñ|╫נ╫ñ╫¿╫ש╫£|╫₧╫נ╫ש|╫ש╫ץ╫á╫ש|╫ש╫ץ╫£╫ש|╫נ╫ץ╫ע╫ץ╫í╫ר|╫í╫ñ╫ר╫₧╫ס╫¿|╫נ╫ץ╫º╫ר╫ץ╫ס╫¿|╫á╫ץ╫ס╫₧╫ס╫¿|╫ף╫ª╫₧╫ס╫¿)/);
+              if (matchHebDesc) invMonth = hebMonths.indexOf(matchHebDesc[1]);
+            }
+
+            if (invMonth === targetMonth && (invYear === targetYear || targetYear === -1 || invYear === -1)) {
+              // Exact month match
+              matchedInfos.push({ inv, sec: 'tax', score: score + 10 }); // +10 to ensure it beats any fuzzy match
+              fileMatched = true;
+            } else if (invYear === targetYear || targetYear === -1 || invYear === -1) {
+              // Fallback: year matches but month differs (e.g. May invoice for June budget)
+              let mDiff = (invMonth !== -1 && targetMonth !== -1) ? Math.abs(invMonth - targetMonth) : 99;
+              fallbackMatches.push({ inv, sec: 'tax', score: score + 5, monthDiff: mDiff });
+            }
+          }
+        });
+
+        // If no exact month matched, use the fallback (closest month in the same year)
+        if (!fileMatched && fallbackMatches.length > 0) {
+          fallbackMatches.sort((a, b) => a.monthDiff - b.monthDiff);
+          const bestDiff = fallbackMatches[0].monthDiff;
+          fallbackMatches.filter(m => m.monthDiff === bestDiff).forEach(m => {
+            matchedInfos.push({ inv: m.inv, sec: m.sec, score: m.score });
+            fileMatched = true;
+          });
+        }
+      }
+
+      if (fileMatched && matchedInfos.length > 0) {
+        // Filter by highest supplier match score to avoid false positives with same invoice numbers
+        const maxScore = Math.max(...matchedInfos.map(m => m.score));
+        let bestMatches = matchedInfos.filter(m => m.score === maxScore);
+
+        // Interactive Tie-Breaker: Ask the user if there are multiple matches with the same score
+        if (bestMatches.length > 1) {
+          const uniqueSuppliers = new Set(bestMatches.map(m => window.supBase ? window.supBase(m.inv.supName) : m.inv.supName));
+          
+          if (maxScore === 0 && uniqueSuppliers.size > 2) {
+             bestMatches = []; // Too ambiguous and no text match in filename, fall through to manual prompt
+          } else if (uniqueSuppliers.size > 1) {
+            const uniqueSuppliersArr = Array.from(uniqueSuppliers);
+            const optionsText = uniqueSuppliersArr.map((sup, idx) => {
+              const count = bestMatches.filter(m => (window.supBase ? window.supBase(m.inv.supName) : m.inv.supName) === sup).length;
+              return `${idx + 1}. ${sup}` + (count > 1 ? ` (${count} ╫₧╫í╫₧╫¢╫ש╫¥)` : '');
+            }).join('\n');
+            const ans = prompt(`╫º╫ץ╫ס╫Ñ: ${file.name}\n\n╫פ╫₧╫ó╫¿╫¢╫¬ ╫₧╫ª╫נ╫פ ${uniqueSuppliersArr.length} ╫í╫ñ╫º╫ש╫¥ ╫נ╫ñ╫⌐╫¿╫ש╫ש╫¥. ╫£╫₧╫ש ╫₧╫פ╫¥ ╫£╫⌐╫ש╫ש╫ת ╫נ╫¬ ╫פ╫º╫ץ╫ס╫Ñ?\n(╫פ╫º╫£╫ף ╫נ╫¬ ╫פ╫₧╫í╫ñ╫¿ ╫ץ╫£╫ק╫Ñ ╫נ╫ש╫⌐╫ץ╫¿, ╫נ╫ץ ╫ס╫ש╫ר╫ץ╫£ ╫¢╫ף╫ש ╫£╫ף╫£╫ע ╫ó╫£ ╫º╫ץ╫ס╫Ñ ╫צ╫פ)\n\n${optionsText}`);
+            const selectedIdx = parseInt(ans, 10) - 1;
+            if (!isNaN(selectedIdx) && uniqueSuppliersArr[selectedIdx]) {
+              const chosenSupBase = uniqueSuppliersArr[selectedIdx];
+              bestMatches = bestMatches.filter(m => (window.supBase ? window.supBase(m.inv.supName) : m.inv.supName) === chosenSupBase);
+              
+              // Ask to remember the alias for future
+              const chosenSup = bestMatches[0].inv.supName;
+              let guessedAlias = file.name.replace(/\.(pdf|jpg|png|jpeg)$/i, '').split(/[\s\-]+/)[0] || '';
+              if (guessedAlias.length < 2) guessedAlias = '';
+              const aliasWord = prompt(`╫ס╫ק╫¿╫¬ ╫ס╫í╫ñ╫º: ${chosenSup}.\n\n╫¢╫ף╫ש ╫⌐╫פ╫₧╫ó╫¿╫¢╫¬ ╫¬╫צ╫¢╫ץ╫¿ ╫צ╫נ╫¬ ╫£╫ñ╫ó╫₧╫ש╫¥ ╫פ╫ס╫נ╫ץ╫¬, ╫£╫ק╫Ñ ╫נ╫ש╫⌐╫ץ╫¿ ╫¢╫ף╫ש ╫£╫⌐╫₧╫ץ╫¿ ╫₧╫ש╫£╫¬ ╫צ╫ש╫פ╫ץ╫ש ╫צ╫ץ (╫נ╫ץ ╫ó╫¿╫ץ╫ת ╫נ╫ץ╫¬╫פ ╫£╫₧╫ש╫£╫פ ╫נ╫ק╫¿╫¬ ╫₧╫¬╫ץ╫ת ╫⌐╫¥ ╫פ╫º╫ץ╫ס╫Ñ "${file.name}").\n╫נ╫¥ ╫נ╫ש╫á╫ת ╫¿╫ץ╫ª╫פ ╫£╫⌐╫₧╫ץ╫¿, ╫פ╫⌐╫נ╫¿ ╫¿╫ש╫º ╫ץ╫£╫ק╫Ñ ╫נ╫ש╫⌐╫ץ╫¿.`, guessedAlias);
+              if (aliasWord && aliasWord.trim().length > 1) {
+                window.spScannerAliases = window.spScannerAliases || {};
+                window.spScannerAliases[aliasWord.trim()] = chosenSup;
+                if (window.ghAutoSave) window.ghAutoSave(true, true); // Force save to Firebase!
+                window.showToast(`Γ£ו ╫פ╫₧╫ש╫£╫פ "${aliasWord.trim()}" ╫á╫⌐╫₧╫¿╫פ ╫¢╫צ╫ש╫פ╫ץ╫ש ╫£╫í╫ñ╫º ${chosenSup}`);
+              }
+            } else {
+              bestMatches = []; // User cancelled or entered invalid input, skip this file
+            }
+          }
+        }
+
+        // Deduplicate matches to prevent double linking same section
+        const uniqueMatchedInfos = [];
+        const seenMatchKeys = new Set();
+        bestMatches.forEach(info => {
+          const key = `${info.inv.id}_${info.sec}`;
+          if (!seenMatchKeys.has(key)) {
+            seenMatchKeys.add(key);
+            uniqueMatchedInfos.push(info);
+          }
+        });
+
+        uniqueMatchedInfos.forEach(info => {
+          info.inv['file_' + info.sec] = {
+            path: link,
+            name: file.name
+          };
+        });
+        
+        matchCount++;
+        const labels = { tax: '╫₧╫í╫₧╫ת', tx: '╫ó╫í╫º╫פ', order: '╫פ╫צ╫₧╫á╫פ' };
+        const matchDesc = uniqueMatchedInfos.map(info => `${info.inv.supName} (${labels[info.sec] || info.sec})`).join(', ');
+        resultsData.push([file.name, numbersInName.join(','), `╫פ╫ץ╫¬╫נ╫¥: ${matchDesc}`, link]);
+      } else {
+        let handled = false;
+        
+        // Auto-match if filename contains a known supplier name or alias
+        if (numbersInName.length > 0) {
+           const activeSups = (typeof getAllSupNames === 'function' ? getAllSupNames() : []);
+           const aliasesMap = window.spScannerAliases || {};
+           let matchedSupName = null;
+           
+           for (const [aliasWord, supName] of Object.entries(aliasesMap)) {
+             if (file.name.includes(aliasWord)) {
+               matchedSupName = supName; break;
+             }
+           }
+           if (!matchedSupName) {
+             for (const supName of activeSups) {
+               const ex = window.supEx[supName] || (window.supBase ? window.supEx[window.supBase(supName)] : {}) || {};
+               const supplierAlias = ex.alias;
+               const baseName = window.supBase ? window.supBase(supName) : supName;
+               if (supplierAlias && supplierAlias.length >= 2 && file.name.includes(supplierAlias)) {
+                 matchedSupName = supName; break;
+               }
+               if (supName.length >= 3 && file.name.includes(supName)) {
+                 matchedSupName = supName; break;
+               }
+               if (baseName !== supName && baseName.length >= 3 && file.name.includes(baseName)) {
+                 matchedSupName = supName; break;
+               }
+               
+               // Fuzzy heuristic: If the first two words of the base name match, it's very likely the same supplier
+               // (e.g. "╫ק╫¢╫₧╫¬ ╫פ╫¬╫á╫ץ╫ó╫פ ╫£╫º╫ש╫ף╫ץ╫¥ ╫פ╫ק╫ש╫á╫ץ╫ת" vs "╫ק╫¢╫₧╫¬ ╫פ╫¬╫á╫ץ╫ó╫פ")
+               const words = baseName.split(/\s+/);
+               if (words.length >= 2) {
+                 const firstTwoWords = words[0] + ' ' + words[1];
+                 if (firstTwoWords.length >= 5 && file.name.includes(firstTwoWords)) {
+                   matchedSupName = supName; break;
+                 }
+               }
+             }
+           }
+           
+           if (matchedSupName) {
+              const secKey = Array.from(foundTypes)[0] || 'tax';
+              const statusMap = { tax: 'tax_invoice', tx: 'tx_invoice', order: 'order' };
+              const newInv = {
+                 id: Date.now() + Math.floor(Math.random()*1000),
+                 supName: matchedSupName,
+                 status: statusMap[secKey],
+                 date: new Date(file.lastModified || Date.now()).toISOString().split('T')[0],
+                 amt: 0
+              };
+              newInv['file_' + secKey] = { path: link, name: file.name };
+              if (secKey === 'tax') newInv.num = numbersInName.join('-') || '1';
+              if (secKey === 'tx') newInv.txNum = numbersInName.join('-') || '1';
+              if (secKey === 'order') newInv.orderNum = numbersInName.join('-') || '1';
+              window.INVOICES.push(newInv);
+              matchCount++;
+              resultsData.push([file.name, numbersInName.join('-'), `╫á╫ץ╫ª╫¿ ╫₧╫í╫₧╫ת ╫נ╫ץ╫ר╫ץ╫₧╫ר╫ש╫¬ ╫£╫ñ╫ש ╫⌐╫¥ ╫פ╫º╫ץ╫ס╫Ñ: ${matchedSupName}`, link]);
+              handled = true;
+           }
+        }
+
+        if (!handled && numbersInName.length > 0 && window._askUnmatched !== false) {
+           const ans = prompt(`╫£╫נ ╫á╫₧╫ª╫נ╫פ ╫פ╫¬╫נ╫₧╫פ ╫£╫º╫ץ╫ס╫Ñ:\n${file.name}\n\n╫נ╫¥ ╫צ╫ץ ╫ק╫⌐╫ס╫ץ╫á╫ש╫¬ ╫⌐╫£ ╫í╫ñ╫º (╫ק╫ף╫⌐ ╫נ╫ץ ╫º╫ש╫ש╫¥), ╫פ╫º╫£╫ף ╫נ╫¬ ╫⌐╫₧╫ץ.\n\n╫נ╫ñ╫⌐╫¿╫ץ╫ש╫ץ╫¬ ╫ף╫ש╫£╫ץ╫ע:\n- "╫ס╫ש╫ר╫ץ╫£" ╫נ╫ץ ╫¿╫ש╫º: ╫ף╫ש╫£╫ץ╫ע ╫ó╫£ ╫º╫ץ╫ס╫Ñ ╫צ╫פ (╫ש╫⌐╫נ╫£ ╫⌐╫ץ╫ס ╫ס╫í╫¿╫ש╫º╫פ ╫פ╫ס╫נ╫פ).\n- ╫פ╫₧╫ש╫£╫פ "╫ף╫£╫ע": ╫ף╫ש╫£╫ץ╫ע ╫נ╫ץ╫ר╫ץ╫₧╫ר╫ש ╫ó╫£ ╫¢╫£ ╫⌐╫נ╫¿ ╫פ╫º╫ס╫ª╫ש╫¥ ╫ס╫í╫¿╫ש╫º╫פ ╫צ╫ץ.\n- ╫פ╫₧╫ש╫£╫פ "╫¬╫₧╫ש╫ף": ╫פ╫¬╫ó╫£╫¥ ╫₧╫º╫ץ╫ס╫Ñ ╫צ╫פ ╫£╫ª╫₧╫ש╫¬╫ץ╫¬ (╫£╫נ ╫ש╫⌐╫נ╫£ ╫⌐╫ץ╫ס).`);
+            if (ans && ans.trim() === '╫ף╫£╫ע') {
+               window._askUnmatched = false;
+            } else if (ans && ans.trim() === '╫¬╫₧╫ש╫ף') {
+               window.spScannerAliases = window.spScannerAliases || {};
+               window.spScannerAliases[`__skip__${file.name}`] = true;
+               if (window.ghAutoSave) window.ghAutoSave(true, true);
+               window.showToast(`Γ£ו ╫פ╫º╫ץ╫ס╫Ñ ╫í╫ץ╫₧╫ƒ ╫£╫פ╫¬╫ó╫£╫₧╫ץ╫¬ ╫¬╫₧╫ש╫ף╫ש╫¬ ╫ס╫í╫¿╫ש╫º╫ץ╫¬ ╫פ╫ס╫נ╫ץ╫¬`);
+            } else if (ans && ans.trim()) {
+              const supName = ans.trim();
+              
+              // Ask user for a persistent alias to avoid asking next time
+              // Auto-guess alias from filename to help the user
+              let guessedAlias = file.name.replace(/\.(pdf|jpg|png|jpeg)$/i, '').split(/[\s\-]+/)[0] || '';
+              if (guessedAlias.length < 2) guessedAlias = '';
+              
+              const aliasWord = prompt(`╫⌐╫ש╫ש╫¢╫¬ ╫נ╫¬ ╫פ╫º╫ץ╫ס╫Ñ "${file.name}" ╫£╫í╫ñ╫º: ${supName}.\n\n╫¢╫ף╫ש ╫⌐╫פ╫₧╫ó╫¿╫¢╫¬ ╫¬╫צ╫פ╫פ ╫נ╫¬ ╫פ╫í╫ñ╫º ╫פ╫צ╫פ ╫נ╫ץ╫ר╫ץ╫₧╫ר╫ש╫¬ ╫ס╫ó╫¬╫ש╫ף, ╫£╫ק╫Ñ ╫נ╫ש╫⌐╫ץ╫¿ ╫¢╫ף╫ש ╫£╫⌐╫₧╫ץ╫¿ ╫נ╫¬ ╫₧╫ש╫£╫¬ ╫פ╫צ╫ש╫פ╫ץ╫ש (╫נ╫ץ ╫ó╫¿╫ץ╫ת ╫נ╫ץ╫¬╫פ).\n╫פ╫⌐╫נ╫¿ ╫¿╫ש╫º ╫נ╫¥ ╫נ╫ש╫á╫ת ╫¿╫ץ╫ª╫פ ╫£╫⌐╫₧╫ץ╫¿ ╫צ╫ש╫פ╫ץ╫ש.`, guessedAlias);
+              if (aliasWord && aliasWord.trim().length > 1) {
+                 window.spScannerAliases = window.spScannerAliases || {};
+                 window.spScannerAliases[aliasWord.trim()] = supName;
+                 if (window.ghAutoSave) window.ghAutoSave(true, true); // Force save to database!
+                 window.showToast(`Γ£ו ╫פ╫₧╫ש╫£╫פ "${aliasWord.trim()}" ╫á╫⌐╫₧╫¿╫פ ╫¢╫צ╫ש╫פ╫ץ╫ש ╫£╫í╫ñ╫º ${supName}`);
+              }
+
+              const secKey = Array.from(foundTypes)[0] || 'tax';
+              const statusMap = { tax: 'tax_invoice', tx: 'tx_invoice', order: 'order' };
+              const newInv = {
+                 id: Date.now() + Math.floor(Math.random()*1000),
+                 supName: supName,
+                 status: statusMap[secKey],
+                 date: new Date(file.lastModified || Date.now()).toISOString().split('T')[0],
+                 amt: 0
+              };
+              newInv['file_' + secKey] = { path: link, name: file.name };
+              if (secKey === 'tax') newInv.num = numbersInName.join('-') || '1';
+              if (secKey === 'tx') newInv.txNum = numbersInName.join('-') || '1';
+              if (secKey === 'order') newInv.orderNum = numbersInName.join('-') || '1';
+              
+              if (window.supEx && !window.supEx[supName]) {
+                 window.supEx[supName] = { isPurch: true, isAct: false };
+              }
+              if (!window.supEx['__c']) window.supEx['__c'] = [];
+              if (!window.supEx['__c'].find(s => s.name === supName)) {
+                 window.supEx['__c'].push({ id: Date.now(), name: supName, phone: '' });
+              }
+
+              window.INVOICES.push(newInv);
+              matchCount++;
+              resultsData.push([file.name, newInv.num, `╫á╫ץ╫ª╫¿ ╫í╫ñ╫º ╫ק╫ף╫⌐: ${supName}`, link]);
+              handled = true;
+           }
+        }
+        if (!handled) {
+          resultsData.push([file.name, numbersInName.join(','), '╫£╫נ ╫á╫₧╫ª╫נ╫פ ╫פ╫¬╫נ╫₧╫פ ╫ס╫ק╫⌐╫ס╫ץ╫á╫ש╫ץ╫¬', link]);
+        }
+      }
+    }
+
+    // Detailed diagnostic logging to the browser console
+    console.log("=== SharePoint Scanner Diagnostic ===");
+    console.log("Total files found:", filesFound.length);
+    console.log("Successfully matched:", matchCount);
+    const unmatched = [];
+    for (const file of filesFound) {
+      const cleanFilenameDigits = file.name.replace(/\D/g, '');
+      const nums = file.name.match(/\d+/g) || [];
+      const hasMatch = window.INVOICES.some(inv => {
+        const cleanInv = String(inv.num || '').replace(/\D/g, '').replace(/^0+/, '');
+        const cleanTx = String(inv.txNum || '').replace(/\D/g, '').replace(/^0+/, '');
+        const cleanOrder = String(inv.orderNum || '').replace(/\D/g, '').replace(/^0+/, '');
+        
+        const isYear = (val) => {
+          const num = parseInt(val, 10);
+          return num >= 2020 && num <= 2030;
+        };
+        
+        const matchNum = cleanInv.length >= 3 && (isYear(cleanInv) ? nums.map(n => n.replace(/^0+/, '')).includes(cleanInv) : cleanFilenameDigits.includes(cleanInv));
+        const matchTx = cleanTx.length >= 3 && (isYear(cleanTx) ? nums.map(n => n.replace(/^0+/, '')).includes(cleanTx) : cleanFilenameDigits.includes(cleanTx));
+        const matchOrder = cleanOrder.length >= 3 && (isYear(cleanOrder) ? nums.map(n => n.replace(/^0+/, '')).includes(cleanOrder) : cleanFilenameDigits.includes(cleanOrder));
+        return matchNum || matchTx || matchOrder;
+      });
+      if (!hasMatch) {
+        unmatched.push({
+          name: file.name,
+          extractedNumbers: nums,
+          digitsOnly: cleanFilenameDigits
+        });
+      }
+    }
+    console.log("Unmatched files details:", unmatched);
+    console.log("Active database invoices sample:", window.INVOICES.map(inv => ({
+      id: inv.id,
+      supName: inv.supName,
+      num: inv.num,
+      txNum: inv.txNum,
+      orderNum: inv.orderNum
+    })));
     if (matchCount > 0) {
-      window.showToast(`✅ נמצאו ${filesFound.length} קבצים, מתוכם שודכו ${matchCount} למסמכים במערכת! שומר...`);
-      if (typeof window.save === 'function') await window.save(true);
+      window.showToast(`Γ£ו ╫á╫₧╫ª╫נ╫ץ ${filesFound.length} ╫º╫ס╫ª╫ש╫¥, ╫₧╫¬╫ץ╫¢╫¥ ╫⌐╫ץ╫ף╫¢╫ץ ${matchCount} ╫£╫₧╫í╫₧╫¢╫ש╫¥ ╫ס╫₧╫ó╫¿╫¢╫¬! ╫⌐╫ץ╫₧╫¿...`);
+      if (window._safeLS) window._safeLS.setItem('ganv5_invoices', JSON.stringify(window.INVOICES||[]));
+      if (typeof window.saveToFirebase === 'function') await window.saveToFirebase(true, true);
+      else if (typeof window.save === 'function') await window.save(true);
       if (typeof window.renderInvoices === 'function') window.renderInvoices();
     } else {
-      window.showToast(`סריקה הסתיימה. נמצאו ${filesFound.length} קבצים, אך 0 התאמות למסמכים הקיימים.`);
+      window.showToast(`╫í╫¿╫ש╫º╫פ ╫פ╫í╫¬╫ש╫ש╫₧╫פ. ╫á╫₧╫ª╫נ╫ץ ${filesFound.length} ╫º╫ס╫ª╫ש╫¥, ╫נ╫ת 0 ╫פ╫¬╫נ╫₧╫ץ╫¬ ╫£╫₧╫í╫₧╫¢╫ש╫¥ ╫פ╫º╫ש╫ש╫₧╫ש╫¥.`);
     }
     if (window.XLSX) {
       const wb = window.XLSX.utils.book_new();
       const ws = window.XLSX.utils.aoa_to_sheet(resultsData);
       ws['!cols'] = [{wch: 40}, {wch: 15}, {wch: 30}, {wch: 80}];
-      window.XLSX.utils.book_append_sheet(wb, ws, 'תוצאות סריקה');
-      window.XLSX.writeFile(wb, 'תוצאות_סריקת_sharepoint.xlsx');
+      window.XLSX.utils.book_append_sheet(wb, ws, '╫¬╫ץ╫ª╫נ╫ץ╫¬ ╫í╫¿╫ש╫º╫פ');
+      window.XLSX.writeFile(wb, '╫¬╫ץ╫ª╫נ╫ץ╫¬_╫í╫¿╫ש╫º╫¬_sharepoint.xlsx');
     }
-    alert(`סיום! נסרקו ${filesFound.length} קבצים.\nהותאמו ושודכו: ${matchCount}\nדוח הופק וירד למחשב שלך.`);
+    alert(`╫í╫ש╫ץ╫¥! ╫á╫í╫¿╫º╫ץ ${filesFound.length} ╫º╫ס╫ª╫ש╫¥.\n╫פ╫ץ╫¬╫נ╫₧╫ץ ╫ץ╫⌐╫ץ╫ף╫¢╫ץ: ${matchCount}\n╫ף╫ץ╫ק ╫פ╫ץ╫ñ╫º ╫ץ╫ש╫¿╫ף ╫£╫₧╫ק╫⌐╫ס ╫⌐╫£╫ת.`);
   } catch (error) {
-    if (error.name !== 'AbortError') alert('שגיאה בסריקה: ' + error.message);
+    if (error.name !== 'AbortError') alert('╫⌐╫ע╫ש╫נ╫פ ╫ס╫í╫¿╫ש╫º╫פ: ' + error.message);
+  }
+};
+async function autoFixInvoicesVAT() {
+  let fixed = 0;
+  window.INVOICES.forEach(inv => {
+    const vat = inv.vat || window.VAT_RATE || 17;
+    const supName = inv.supName || '';
+    const et = (window.supEx && window.supEx[supName]) ? window.supEx[supName].entityType : '';
+    const isExempt = et==='╫ó╫ץ╫í╫º ╫ñ╫ר╫ץ╫¿' || et==='╫ó╫₧╫ץ╫¬╫פ';
+    const effectiveVat = isExempt ? 0 : vat;
+
+    let changed = false;
+    if (inv.orderTotal) {
+      const expectedAmt = +(inv.orderTotal / (1 + effectiveVat/100)).toFixed(2);
+      if (!inv.orderAmt || Math.abs(inv.orderAmt - expectedAmt) > 0.05) {
+        inv.orderAmt = expectedAmt;
+        changed = true;
+      }
+    }
+    if (inv.txTotal) {
+      const expectedAmt = +(inv.txTotal / (1 + effectiveVat/100)).toFixed(2);
+      if (!inv.txAmt || Math.abs(inv.txAmt - expectedAmt) > 0.05) {
+        inv.txAmt = expectedAmt;
+        changed = true;
+      }
+    }
+    if (inv.total) {
+      const expectedAmt = +(inv.total / (1 + effectiveVat/100)).toFixed(2);
+      if (!inv.amt || Math.abs(inv.amt - expectedAmt) > 0.05) {
+        inv.amt = expectedAmt;
+        changed = true;
+      }
+    }
+    if (changed) fixed++;
+  });
+
+  if (fixed > 0) {
+    console.log("Fixed VAT for " + fixed + " invoices.");
+    if (typeof window.save === 'function') window.save(true);
+    if(window.renderInvoices) window.renderInvoices();
+    if(window.refreshPurchDash) window.refreshPurchDash();
+    alert('╫¬╫ץ╫º╫á╫ץ ╫í╫¢╫ץ╫₧╫ש╫¥ ╫⌐╫£ ' + fixed + ' ╫ק╫⌐╫ס╫ץ╫á╫ש╫ץ╫¬ ╫£╫ñ╫ש ╫פ╫₧╫ó"╫₧ ╫פ╫á╫¢╫ץ╫ƒ!');
+  } else {
+    alert('╫£╫נ ╫á╫₧╫ª╫נ╫ץ ╫ק╫⌐╫ס╫ץ╫á╫ש╫ץ╫¬ ╫פ╫ף╫ץ╫¿╫⌐╫ץ╫¬ ╫¬╫ש╫º╫ץ╫ƒ ╫í╫¢╫ץ╫₧╫ש╫¥.');
   }
 };
