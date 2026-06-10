@@ -22,8 +22,8 @@
   <script>
     window.APP_VERSION = '105.00';
   </script>
-  <script type="module" src="firebase_init.js?v=102.78"></script>
-  <script src="assets.js?v=102.78"></script>
+  <script type="module" src="firebase_init.js?v=105.00"></script>
+  <script src="assets.js?v=105.00"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script>
@@ -526,6 +526,7 @@
            <div class="fg"><label>צהרון 2</label><select id="cal-g2-desktop" onchange="renderCal()"><option value="">—</option></select></div>
            <div class="fg"><label>ספק</label><select id="cal-sup-desktop" onchange="renderCal()"><option value="">כל הספקים</option></select></div>
            <div class="mr-auto flex-c gap-8">
+             <button class="btn bo" onclick="if(window.clearCal)window.clearCal();if(window.renderCal)window.renderCal()">🧹 נקה סינון</button>
              <button class="btn bp" onclick="openNewSched()">➕ שיבוץ חדש</button>
              <button class="btn bg" onclick="toggleExportMenu()">📤 ייצוא ▼</button>
            </div>
@@ -565,7 +566,10 @@
                <button class="btn bg bsm" onclick="goToday()">היום</button>
                <button class="btn bg bsm" onclick="navCal(1)">▶</button>
             </div>
-            <button class="flt-toggle bsm" id="cal-flt-btn-mobile" onclick="fltToggle('cal-flt-mobile','cal-flt-btn-mobile')">🔍 סינון</button>
+            <div class="flex-c gap-2">
+               <button class="btn bo bsm" onclick="if(window.clearCal)window.clearCal();if(window.renderCal)window.renderCal()">🧹 נקה סינון</button>
+               <button class="flt-toggle bsm" id="cal-flt-btn-mobile" onclick="fltToggle('cal-flt-mobile','cal-flt-btn-mobile')">🔍 סינון</button>
+            </div>
          </div>
          <div id="cal-flt-mobile" class="flt-wrap">
             <div class="fg"><label>עיר</label><select id="cal-city-mobile" onchange="calRefG()"><option value="">כל הערים</option></select></div>
@@ -2548,7 +2552,7 @@
         </div>
 
         <!-- Danger Zone -->
-        <div style="background:#ffebee;border-radius:8px;padding:12px;border-right:4px solid #c62828">
+        <div id="settings-danger-zone" style="display:none;background:#ffebee;border-radius:8px;padding:12px;border-right:4px solid #c62828">
            <b style="color:#c62828">⚠️ אזור מסוכן</b>
            <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:8px">
              <button class="btn br2 bsm" onclick="fixData()">🛠️ תקן נתונים פגומים</button>

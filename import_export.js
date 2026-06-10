@@ -253,7 +253,7 @@ window.importBulkSchedule = function(input) {
       if (window.SCH) {
         window.SCH.forEach(s => {
           if (!processedIds.has(String(s.id))) {
-            const isManualEvent = s._isMakeup || s._postFrom || s._makeupFrom || s._isManual || s.tp === 'הפעלה' || (!String(s.id).startsWith('e_') && !s._isImported);
+            const isManualEvent = s._isMakeup || s._postFrom || s._makeupFrom || s._isManual || s.tp === 'הפעלה';
             if (isManualEvent) {
               finalRecords.push(s);
             }

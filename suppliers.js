@@ -577,7 +577,10 @@ function saveSup(){
     const el=document.getElementById(id);if(!el)return;
     const cur=el.value;
     el.innerHTML='<option value="">כל הספקים</option>';
-    getAllSup().filter(s=>window.isActSupplier(s.name)).forEach(s=>el.innerHTML+=`<option value='${s.name}'>${s.name}</option>`);
+    getAllSup().filter(s=>window.isActSupplier(s.name)).forEach(s=>{
+      const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
+      el.innerHTML+=`<option value='${s.name}'>${disp}</option>`;
+    });
     el.value=cur;
   });
 }

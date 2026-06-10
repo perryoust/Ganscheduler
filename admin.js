@@ -179,10 +179,14 @@ window._initUsersUI = function _initUsersUI(){
   if(purchStatsGrp) purchStatsGrp.style.display = hasPurch ? 'contents' : 'none';
 
   // Danger Zone - Super Admin only
+  const isSuperAdmin = window._fbUser?.uid === ADMIN_UID || (window._fbUser?.email || '').toLowerCase().trim() === 'perry@ganmanager.app' || (window._fbUser?.displayName || '').toLowerCase().trim() === 'perry';
   const dangerZone = document.getElementById('admin-danger-zone');
   if(dangerZone) {
-     const isSuperAdmin = window._fbUser?.uid === ADMIN_UID || (window._fbUser?.email || '').toLowerCase().trim() === 'perry@ganmanager.app' || (window._fbUser?.displayName || '').toLowerCase().trim() === 'perry';
      dangerZone.style.display = isSuperAdmin ? '' : 'none';
+  }
+  const settingsDangerZone = document.getElementById('settings-danger-zone');
+  if(settingsDangerZone) {
+     settingsDangerZone.style.display = isSuperAdmin ? '' : 'none';
   }
 
   // Show logged-in username in header

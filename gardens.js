@@ -845,8 +845,16 @@ function openClusterSchedule(clId){
   (document.getElementById('clsm-title')||{}).textContent =`📅 שיבוץ לאשכול: ${cl.name}`;
   document.getElementById('cls-date').value=d2s(calD);
   document.getElementById('cls-sup').innerHTML='<option value="">בחר ספק</option>';
-  [...new Set(SCH.map(s=>s.a))].sort().forEach(n=>document.getElementById('cls-sup').innerHTML+=`<option value="${n}">${n}</option>`);
-  SUPBASE.forEach(s=>{if(!document.querySelector(`#cls-sup option[value="${s.name}"]`)) document.getElementById('cls-sup').innerHTML+=`<option value="${s.name}">${s.name}</option>`;});
+  [...new Set(SCH.map(s=>s.a))].sort().forEach(n=>{
+    const disp = window.supNameLabel(n) !== n ? window.supNameLabel(n) + ' (' + n + ')' : n;
+    document.getElementById('cls-sup').innerHTML+=`<option value="${n}">${disp}</option>`;
+  });
+  SUPBASE.forEach(s=>{
+    if(!document.querySelector(`#cls-sup option[value="${s.name}"]`)){
+      const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
+      document.getElementById('cls-sup').innerHTML+=`<option value="${s.name}">${disp}</option>`;
+    }
+  });
   document.getElementById('cls-ph').value='';
   document.getElementById('cls-warn').style.display='none';
   document.getElementById('cls-autotime-row').style.display='none';
@@ -1604,7 +1612,7 @@ window.openBulkUpdateRecurring = function(key, gid) {
     <div style="font-size:1rem;font-weight:900;color:#1a237e;margin-bottom:15px;text-align:center">🛠️ שינוי שיבוץ קבוע (מרחבי)</div>
     
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-      <div class="fg"><label for="grm-sup">ספק חדש</label><select id="grm-sup" onchange="window.grmSupChg()" title="בחר ספק" style="width:100%">${allSups.map(s=>`<option value="${s.name}" ${s.name===srExample.a?'selected':''}>${s.name}</option>`).join('')}</select></div>
+      <div class="fg"><label for="grm-sup">ספק חדש</label><select id="grm-sup" onchange="window.grmSupChg()" title="בחר ספק" style="width:100%">${allSups.map(s=>{ const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name; return `<option value="${s.name}" ${s.name===srExample.a?'selected':''}>${disp}</option>`; }).join('')}</select></div>
       <div class="fg"><label for="grm-act">פעילות חדשה</label><select id="grm-act" title="בחר פעילות" style="width:100%">${acts.map(a=>`<option value="${a}" ${a===srExample.act?'selected':''}>${a}</option>`).join('')}</select></div>
     </div>
     
@@ -1820,8 +1828,16 @@ window.openClusterBulkEdit = function(clId, ds) {
   
   const supSel = document.getElementById('clbulk-sup');
   supSel.innerHTML = '<option value="">ללא שינוי</option>';
-  [...new Set(window.SCH.map(s=>s.a))].sort().forEach(n=>supSel.innerHTML+=`<option value="${n}">${n}</option>`);
-  window.SUPBASE.forEach(s=>{if(!document.querySelector(`#clbulk-sup option[value="${s.name}"]`)) supSel.innerHTML+=`<option value="${s.name}">${s.name}</option>`;});
+  [...new Set(window.SCH.map(s=>s.a))].sort().forEach(n=>{
+    const disp = window.supNameLabel(n) !== n ? window.supNameLabel(n) + ' (' + n + ')' : n;
+    supSel.innerHTML+=`<option value="${n}">${disp}</option>`;
+  });
+  window.SUPBASE.forEach(s=>{
+    if(!document.querySelector(`#clbulk-sup option[value="${s.name}"]`)){
+      const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
+      supSel.innerHTML+=`<option value="${s.name}">${disp}</option>`;
+    }
+  });
   
   document.getElementById('clbulk-ph').value = '';
   document.getElementById('clbulk-nt').value = '';

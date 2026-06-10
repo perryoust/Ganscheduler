@@ -885,6 +885,7 @@ async function save(immediate){
     return false;
   }
   
+  window._isSaving = true;
   try{
     if (typeof window.cleanSupplierNamesBeforeSave === 'function') {
       window.cleanSupplierNamesBeforeSave();
@@ -943,6 +944,7 @@ async function save(immediate){
     }
     return res;
   }catch(e){ console.error('Save fatal error', e); return false; }
+  finally { window._isSaving = false; }
 }
 function initPairs(){
   // Initialize pairs from AUTOPAIRS constant
@@ -1198,6 +1200,7 @@ window.onload = function(){
   // Auth is handled by onAuthStateChanged in index.html (Firebase module)
   // _onAuthReady is called once user is authenticated
   window._onAuthReady = async function(){
+    cleanupStaleLocalStorage();
     try{
       // Step 1: Always get a fresh token before loading
       if(window._fbUser){
@@ -1461,16 +1464,18 @@ function initDrops(){
   fC('dash-city');fC('cal-city');fC('s-city');fC('g-city');fC('apm-city');fC('pairs-city');fC('cl-city');
   // Filter dropdowns (search/filter): show ONLY act suppliers in חוגים views
   getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>{
+    const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
     ['dash-sup','cal-sup','s-sup'].forEach(id=>{
       ['', '-desktop', '-mobile'].forEach(suffix => {
         const el = document.getElementById(id + suffix);
-        if (el) el.innerHTML += `<option value='${s.name}'>${s.name}</option>`;
+        if (el) el.innerHTML += `<option value='${s.name}'>${disp}</option>`;
       });
     });
   });
   // Scheduling dropdowns: show ONLY act suppliers (isAct=true)
   getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>{
-    ['ns-sup','es-sup'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML+=`<option value='${s.name}'>${s.name}</option>`;});
+    const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
+    ['ns-sup','es-sup'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML+=`<option value='${s.name}'>${disp}</option>`;});
   });
   fG('cal-g1','כל הצהרונים',true);fG('cal-g2','—',true);fG('cal-g3','—',true);
   fG('s-g1','כל הצהרונים',true);fG('s-g2','—',true);fG('s-g3','—',true);
@@ -2025,7 +2030,10 @@ function sucSaveEdit(){
     const el=document.getElementById(id); if(!el) return;
     const cur=el.value;
     el.innerHTML=id==='es-sup'?'<option value="">-- ללא שינוי --</option>':'<option value="">כל הספקים</option>';
-    getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>el.innerHTML+=`<option value='${s.name}'>${s.name}</option>`);
+    getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>{
+      const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
+      el.innerHTML+=`<option value='${s.name}'>${disp}</option>`;
+    });
     el.value=cur;
   });
   sucToggleEdit(); sucRefreshInfo(); sucRefreshActFilt();
@@ -3191,6 +3199,36 @@ async function mobileQuickSync(){
 
 // ── Invoice status multi-select filter ────────────────────────
 const PI_ST_KEY = 'pi_status_filter';
+
+// ── Memory error cleanup ────────────────────────
+function cleanupStaleLocalStorage() {
+  const currentKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpav');
+  let toDelete = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('ganv5_y_') && key !== currentKey) {
+      toDelete.push(key);
+    }
+  }
+  toDelete.forEach(k => {
+    try { localStorage.removeItem(k); console.log('Cleaned up stale storage key:', k); } catch(e){}
+  });
+  
+  try {
+    const snaps = localStorage.getItem('ganv5_snaps');
+    if (snaps && snaps.length > 5 * 1024 * 1024) { // 5MB
+      localStorage.removeItem('ganv5_snaps');
+      console.log('Cleaned up oversized snaps data');
+    }
+  } catch(e) {}
+}
+
+// ── Cross-tab sync listener ────────────────────────
+window.addEventListener('storage', (e) => {
+  if (e.key && e.key.startsWith('ganv5_y_') && !window._isSaving) {
+    showToast('⚠️ נתונים שונו בלשונית אחרת — רענן את הדף', 5000);
+  }
+});
 
 function _getPiStSelected(){
   return [...document.querySelectorAll('.pi-st-cb:checked')].map(c=>c.value);

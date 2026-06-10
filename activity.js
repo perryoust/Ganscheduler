@@ -109,6 +109,23 @@ function renderDash() {
   });
 
   let html = '';
+
+  const todayStr = window.td ? window.td() : new Date().toISOString().split('T')[0];
+  const todayPostponed = (window.SCH || []).filter(s => {
+    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false") || !!((s.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.n)));
+    return s.st === 'post' && s.d === todayStr && !isHandled;
+  });
+
+  if (todayPostponed.length > 0) {
+    html += `<div style="background:#fff3cd; color:#856404; border:1px solid #ffeeba; padding:12px 15px; border-radius:8px; margin-bottom:15px; font-weight:bold; display:flex; align-items:center; gap:10px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+        <span style="font-size:1.8rem">⚠️</span>
+        <div>
+          <div style="font-size:1.1rem;margin-bottom:4px">שימו לב: ${todayPostponed.length} דחיות מהיום להיום!</div>
+          <div style="font-size:0.85rem;font-weight:normal">יש לוודא עדכון מול הרכזים וההורים על פעילויות שנדחו היום.</div>
+        </div>
+     </div>`;
+  }
+
   Object.keys(groups).sort().forEach((groupKey, idx) => {
     const cityEvs = groups[groupKey];
     const parts = groupKey.split(' - ');
@@ -933,7 +950,7 @@ window.openSP = function(id) {
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div class="fg"><label style="font-size:.7rem;font-weight:700">📚 ספק</label>
-            <select id="rr-sup" onchange="window.rrSupChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">${(window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : []).map(s2=>`<option value="${s2.name}" ${s2.name===s.a?'selected':''}>${s2.name}</option>`).join('')}</select>
+            <select id="rr-sup" onchange="window.rrSupChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">${(window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : []).map(s2=>{ const disp = window.supNameLabel(s2.name) !== s2.name ? window.supNameLabel(s2.name) + ' (' + s2.name + ')' : s2.name; return `<option value="${s2.name}" ${s2.name===s.a?'selected':''}>${disp}</option>`; }).join('')}</select>
           </div>
           <div class="fg"><label style="font-size:.7rem;font-weight:700">🎯 פעילות</label>
             <select id="rr-act" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"><option value="">— ללא שינוי —</option>${(window.getSupActs ? window.getSupActs(s.a) : []).map(a=>`<option value="${a}" ${a===s.act?'selected':''}>${a}</option>`).join('')}</select>
@@ -1033,10 +1050,15 @@ window.openSP = function(id) {
       <span id="sp-acc-free-arrow" style="font-size:0.7rem;transition:0.3s;color:#2e7d32">▼</span>
     </div>
     <div id="sp-acc-free" style="display:none;padding:12px;background:#fff;border-top:1px solid #c8e6c9">
-      <div style="font-size:.72rem;color:#78909c;margin-bottom:8px;background:#f9f9f9;padding:4px 8px;border-radius:4px">תאריכים פנויים לשלושת השבועות הקרובים:</div>
+      <div style="font-size:.72rem;color:#78909c;margin-bottom:8px;background:#f9f9f9;padding:4px 8px;border-radius:4px">תאריכים פנויים לשלושת השבועות הקרובים לצהרון זה:</div>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
         ${window.getSpFreeDaysHtml(s.g)}
       </div>
+      ${spPair ? `
+      <div style="font-size:.72rem;color:#e65100;margin-top:12px;margin-bottom:8px;background:#fff9f0;padding:4px 8px;border-radius:4px;border:1px solid #ffe0b2;font-weight:700">תאריכים פנויים משותפים לזוג הגנים (מידע בלבד):</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        ${window.getPairSharedFreeDaysHtml(spPair.ids)}
+      </div>` : ''}
     </div>
   </div>`;
 

@@ -1,4 +1,4 @@
-﻿// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
 
 
 // ── PROCUREMENT MODULE - v9.0 ────────────────────────────────
@@ -2458,9 +2458,9 @@ window.importInvoices = function(input) {
                 notes: 'נוצר אוטומטית מייבוא רכש'
               };
             }
-            const inSupbase = Array.isArray(window.SUPBASE) && window.SUPBASE.some(s => s.name === sName);
+            const inSupbase = Array.isArray(window.SUPBASE) && window.SUPBASE.some(s => (typeof window.supBase === 'function' ? window.supBase(s.name) : s.name) === sName);
             if (!window.supEx['__c']) window.supEx['__c'] = [];
-            const inCustom = window.supEx['__c'].some(s => s.name === sName);
+            const inCustom = window.supEx['__c'].some(s => (typeof window.supBase === 'function' ? window.supBase(s.name) : s.name) === sName);
             if (!inSupbase && !inCustom) {
               window.supEx['__c'].push({
                 name: sName,

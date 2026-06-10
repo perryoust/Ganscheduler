@@ -669,8 +669,9 @@ async function exportToExcel(data, filename, opts = {}) {
   if (typeof window.ExcelJS !== 'undefined') {
     try {
       const workbook = new window.ExcelJS.Workbook();
-      const ws = workbook.addWorksheet('Sheet1', { views: [{ rightToLeft: true }] });
-      ws.pageSetup.margins = { left: 0.3/2.54, right: 0.3/2.54, top: 0.4/2.54, bottom: 0.4/2.54, header: 0.8/2.54, footer: 0.8/2.54 };
+      const ws = workbook.addWorksheet('Sheet1', { 
+        views: [{ rightToLeft: true, state: 'frozen', xSplit: 0, ySplit: 1 }] 
+      });
       ws.pageSetup.margins = { left: 0.3/2.54, right: 0.3/2.54, top: 0.4/2.54, bottom: 0.4/2.54, header: 0.8/2.54, footer: 0.8/2.54 };
       
       if(opts.title){
