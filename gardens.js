@@ -1267,16 +1267,27 @@ function genExport(){
           customRefStr = `יום ${dNameOriginal} ${oDateObj.getDate()}/${oDateObj.getMonth()+1}`;
           customTargetStr = ` ליום ${dNameTarget} ${tDateObj.getDate()}/${tDateObj.getMonth()+1}`;
         } else {
-          // We are exporting from the TARGET day -> Show only original date
+          // We are exporting from the TARGET day -> Show both original and target date
           customRefStr = `יום ${dNameOriginal} ${oDateObj.getDate()}/${oDateObj.getMonth()+1}`;
-          customTargetStr = '';
+          customTargetStr = ` ליום ${dNameTarget} ${tDateObj.getDate()}/${tDateObj.getMonth()+1}`;
         }
       } catch(e) {}
     }
     
     headerTitle = customRefStr ? `*נדחה מ${customRefStr}${customTargetStr}*\n` : '*נדחה*\n';
   } else if (isAllPreponedOut) {
-    headerTitle = refStr ? `*לא מתקיים - הוקדם ל${refStr}*\n` : '*לא מתקיים - הוקדם*\n';
+    let origStr = '';
+    try {
+      const oDateObj = typeof window.s2d === 'function' ? window.s2d(rel[0].d) : new Date(rel[0].d.split('-')[0], rel[0].d.split('-')[1]-1, rel[0].d.split('-')[2]);
+      const dNameOriginal = typeof window.dayN === 'function' ? window.dayN(rel[0].d) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][oDateObj.getDay()];
+      origStr = `יום ${dNameOriginal} ${oDateObj.getDate()}/${oDateObj.getMonth()+1}`;
+    } catch(e) {}
+    
+    if (origStr && refStr) {
+      headerTitle = `*הוקדם מ${origStr} ל${refStr}*\n`;
+    } else {
+      headerTitle = refStr ? `*הוקדם ל${refStr}*\n` : '*הוקדם*\n';
+    }
   } else if (isAllMakeup) {
     const targetStr = rel[0] && refStr ? getTargetDayStr(rel[0].d, rel[0]._postFrom || rel[0]._makeupFrom || rel[0].d) : '';
     const origDate = rel[0] ? (rel[0]._postFrom || rel[0]._makeupFrom) : null;
