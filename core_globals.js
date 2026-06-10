@@ -36,6 +36,15 @@ window.VAT_RATE = window.VAT_RATE || 18;
 // Local aliases - we must ensure these are updated when window variables are re-assigned
 // or better yet, use window variables directly in functions.
 
+// --- Utilities ---
+window.debounce = function(func, wait) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
+};
+
 // --- Global UI Helpers ---
 window.ui = {
   /**

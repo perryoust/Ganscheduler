@@ -7,6 +7,15 @@ let _appMode = 'act'; // 'act' | 'purch'
 let _purchTab = 'pdash';
 const PURCH_TABS = ['pdash','pinvoices','psup'];
 
+// --- Debounced rendering for performance ---
+window.debouncedRenderInvoices = window.debounce ? window.debounce(() => {
+  if(typeof window.renderInvoices === 'function') window.renderInvoices();
+}, 250) : () => { if(typeof window.renderInvoices === 'function') window.renderInvoices(); };
+
+window.debouncedRenderPurchSuppliers = window.debounce ? window.debounce(() => {
+  if(typeof window.renderPurchSuppliers === 'function') window.renderPurchSuppliers();
+}, 250) : () => { if(typeof window.renderPurchSuppliers === 'function') window.renderPurchSuppliers(); };
+
 // ── Mode switcher ──────────────────────────────────────
 function switchMode(mode){
   _appMode = mode;
@@ -209,12 +218,6 @@ function renderInvoices(){
   const tbody = document.getElementById('pi-tbody');
   const mobList = document.getElementById('pi-mobile-list');
   if(!tbody) return;
-  // Populate supplier autocomplete datalist
-  const dl = document.getElementById('pi-sup-list');
-  if(dl){
-    const supNames=[...new Set(INVOICES.map(i=>i.supName||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
-    dl.innerHTML=supNames.map(n=>`<option value="${n}">`).join('');
-  }
   const srch = (document.getElementById('pi-srch')?.value||'').toLowerCase();
   // Multi-select status filter
   const stfArr = (typeof _getPiStSelected === 'function') ? _getPiStSelected() : [];
@@ -283,13 +286,21 @@ function renderInvoices(){
       }).join('') + `</div>`;
   };
 
+  const MAX_RENDER = 150;
+  const isCapped = list.length > MAX_RENDER;
+  const renderList = isCapped ? list.slice(0, MAX_RENDER) : list;
+  const cappedMsg = isCapped ? `<div style="text-align:center;color:#888;padding:15px;font-size:0.8rem">מציג ${MAX_RENDER} תוצאות מתוך ${list.length}. השתמש בחיפוש למיקוד...</div>` : '';
+
   if (window.isMobileMode()) {
-    if(!list.length){
+    if(!renderList.length){
       if (mobList) mobList.innerHTML = '<div style="text-align:center;color:#aaa;padding:25px">אין חשבוניות תואמות לסינון</div>';
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#aaa;padding:25px">אין חשבוניות תואמות לסינון</td></tr>';
       return;
     }
-    if (mobList) mobList.innerHTML = list.map(inv => renderMobileInvoiceCard(inv)).join('');
+    if (mobList) {
+      mobList.innerHTML = renderList.map(inv => renderMobileInvoiceCard(inv)).join('');
+      if(isCapped) mobList.innerHTML += cappedMsg;
+    }
     tbody.innerHTML = '';
   } else {
     if(!list.length){
@@ -297,7 +308,7 @@ function renderInvoices(){
       if (mobList) mobList.innerHTML = '';
       return;
     }
-    tbody.innerHTML = list.map(inv=>{
+    tbody.innerHTML = renderList.map(inv=>{
       if(!inv.supName) return '';
       const vat = inv.vat||getVatRate();
       const isExempt = vat===0 || (supEx[inv.supName]||{}).entityType==='עוסק פטור'||(supEx[inv.supName]||{}).entityType==='עמותה';
@@ -346,6 +357,9 @@ function renderInvoices(){
         </td>
       </tr>`;
     }).join('');
+    if(isCapped){
+      tbody.innerHTML += `<tr><td colspan="7">${cappedMsg}</td></tr>`;
+    }
     if (mobList) mobList.innerHTML = '';
   }
 }
@@ -750,9 +764,13 @@ function rebuildMergedSupplierActs(){
 }
 
 function getPurchSuppliers(){ 
+  const baseMap = new Map();
+  if(typeof window.SUPBASE !== 'undefined') {
+    window.SUPBASE.forEach(s => baseMap.set(s.name, s));
+  }
   return getAllSupNames().filter(name=>isPurchSupplier(name)).map(name=>{
     const ex=(typeof window.supEx!=='undefined'?window.supEx:{})[name]||{};
-    const base=(typeof window.SUPBASE!=='undefined'?window.SUPBASE:[]).find(s=>s.name===name)||{};
+    const base=baseMap.get(name)||{};
     return {id: base.id||name, name, phone: ex.ph1||base.phone||'', tax:ex.g1||'', email:ex.email||''};
   });
 }

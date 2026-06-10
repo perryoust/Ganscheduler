@@ -1282,8 +1282,8 @@
         </div>
         <div id="pi-flt-body" class="row" style="flex-wrap:wrap;gap:6px">
           <div class="fg"><label>חיפוש</label>
-            <input type="text" id="pi-srch" list="pi-sup-list" placeholder="ספק / מס' מסמך / פירוט..."
-              oninput="renderInvoices()" style="min-width:220px">
+            <input type="text" id="pi-srch" list="pi-sup-list" placeholder="🔍 חפש עוסק / מס' חשבונית / נתוני הזמנה..."
+              oninput="window.debouncedRenderInvoices()" style="min-width:220px">
             <datalist id="pi-sup-list"></datalist>
           </div>
           <div class="fg" style="position:relative">
@@ -1444,7 +1444,7 @@
           <button class="btn bp bsm" onclick="openSupExport(null)">🚀 Excel</button>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-          <input type="text" id="psu-srch" placeholder="חפש ספק..." oninput="renderPurchSuppliers()"
+          <input type="text" id="psu-srch" placeholder="חפש ספק..." oninput="window.debouncedRenderPurchSuppliers()"
             style="border-radius:5px;border:1.5px solid #c5cae9;padding:5px 10px;font-size:.8rem;flex:1;min-width:180px">
           <select id="psu-sort" onchange="renderPurchSuppliers()"
             style="border-radius:5px;border:1.5px solid #c5cae9;padding:5px;font-size:.8rem">

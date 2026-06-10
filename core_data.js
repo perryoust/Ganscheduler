@@ -69,6 +69,11 @@ function renderPurchSuppliers(){
     return;
   }
 
+  const MAX_RENDER = 150;
+  const isCapped = list.length > MAX_RENDER;
+  const renderList = isCapped ? list.slice(0, MAX_RENDER) : list;
+  const cappedMsg = isCapped ? `<div style="text-align:center;color:#888;padding:15px;font-size:0.8rem;grid-column:1/-1">מציג ${MAX_RENDER} ספקים מתוך ${list.length}. השתמש בחיפוש למיקוד...</div>` : '';
+
   if(_pSupView==='list'){
     // List view
     let h='<table style="width:100%;border-collapse:collapse;font-size:.83rem">'
@@ -79,7 +84,7 @@ function renderPurchSuppliers(){
       +'<th style="padding:7px 8px;text-align:right">סוג</th>'
       +'<th style="padding:7px 8px"></th>'
       +'</tr></thead><tbody>';
-    list.forEach((s,idx)=>{
+    renderList.forEach((s,idx)=>{
       const base=s.name;
       const ex=supBaseEx(base);
       const cnt=supBaseCnt(base);
@@ -98,13 +103,16 @@ function renderPurchSuppliers(){
         +`<button class="btn bo bsm" style="font-size:.65rem" onclick="psupEdit(${idx})">✏️</button>`
         +`</td></tr>`;
     });
+    if(isCapped){
+      h+=`<tr><td colspan="5">${cappedMsg.replace('grid-column:1/-1', '')}</td></tr>`;
+    }
     h+='</tbody></table>';
     el.innerHTML=h;
     return;
   }
 
   // Cards view
-  const _cardsHtml=list.map((s,idx)=>{
+  const _cardsHtml=renderList.map((s,idx)=>{
     const base=s.name;
     const ex=supBaseEx(base);
     const cnt=supBaseCnt(base);
@@ -134,7 +142,7 @@ function renderPurchSuppliers(){
       </div>
     </div>`;
   }).join('');
-  el.innerHTML=`<div class="sugrid">${_cardsHtml}</div>`;
+  el.innerHTML=`<div class="sugrid">${_cardsHtml}${cappedMsg}</div>`;
 }
 
 function openNewPurchSupplier(){
