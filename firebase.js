@@ -325,6 +325,15 @@ async function loadFromFirebase(silent = false, force = false) {
     }
 
     _setSyncState(cloud.seq, Date.now(), null, true);
+    
+    // Auto-refresh view after loading from cloud
+    // Ensure we don't interrupt the user if they have a modal open
+    if (!window._fbSyncReady || !document.querySelector('.sp-modal-content, .modal.open, .sp-popup')) {
+       if (typeof window.refresh === 'function') {
+         setTimeout(() => window.refresh(), 100);
+       }
+    }
+    
     window._fbSyncReady = true;
     return true;
   } catch (e) {
