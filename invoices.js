@@ -2878,65 +2878,29 @@ window.startSharePointScanner = async function() {
     } catch (e) { /* user cancelled second folder picker */ }
   }
 
-  // Helper to safely encode path segments for SharePoint URLs
-  const encodePath = (pathStr) => pathStr.split('/').map(encodeURIComponent).join('/');
-
-  // Helper to get SharePoint decorator based on extension
-  const getSharePointDecorator = (filename) => {
-    const ext = String(filename).split('.').pop().toLowerCase();
-    if (['pdf', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'txt'].includes(ext)) return ':b:/r/';
-    if (['doc', 'docx'].includes(ext)) return ':w:/r/';
-    if (['xls', 'xlsx', 'csv'].includes(ext)) return ':x:/r/';
-    return ':u:/r/';
-  };
-
   // ── Step 4: Scan all selected folders
   window.showToast('⏳ סורק קבצים במחשב... נא להמתין', 60000);
   const filesFound = [];
 
-  async function scanDir(handle, currentPath, folderObj) {
+  async function scanDir(handle, currentPath, cleanBase) {
     for await (const entry of handle.values()) {
       if (entry.kind === 'file') {
         if (!entry.name.startsWith('.') && !entry.name.startsWith('~')) {
-          const decorator = getSharePointDecorator(entry.name);
-          const encodedPath = encodePath(currentPath);
-          const encodedName = encodeURIComponent(entry.name);
-          const urlPath = ('/' + decorator + '/' + encodedPath + '/' + encodedName).replace(/\/+/g, '/');
-          const link = folderObj.origin + folderObj.baseContext + urlPath + '?csf=1&web=1&e=dummy';
-          
+          // Build direct file URL: cleanBase (folder path) + sub-path + filename + ?web=1
           filesFound.push({
             name: entry.name,
-            link: link
+            link: cleanBase + currentPath + '/' + encodeURIComponent(entry.name) + '?web=1'
           });
         }
       } else if (entry.kind === 'directory') {
-        await scanDir(entry, currentPath + '/' + entry.name, folderObj);
+        await scanDir(entry, currentPath + '/' + encodeURIComponent(entry.name), cleanBase);
       }
     }
   }
 
   try {
     for (const folder of selectedFolders) {
-      let origin = 'https://tomashin1.sharepoint.com';
-      let path = folder.cleanBase;
-      try {
-        const u = new URL(folder.cleanBase);
-        origin = u.origin;
-        path = u.pathname;
-      } catch(e) {}
-      
-      const pathSegments = path.split('/').filter(Boolean);
-      let baseContext = path;
-      if (pathSegments[0] === 'sites' && pathSegments.length >= 3) {
-        baseContext = '/' + pathSegments.slice(0, 3).join('/');
-      } else if (pathSegments.length >= 2 && pathSegments[0] === 'personal') {
-        baseContext = '/' + pathSegments.slice(0, 2).join('/');
-      }
-
-      folder.origin = origin;
-      folder.baseContext = baseContext;
-      
-      await scanDir(folder.handle, path.replace(baseContext, ''), folder);
+      await scanDir(folder.handle, '', folder.cleanBase);
     }
   } catch (scanErr) {
     await _spAlertDialog('❌ שגיאה בסריקת הקבצים:\n' + scanErr.message);
