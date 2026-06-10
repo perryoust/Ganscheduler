@@ -2698,91 +2698,36 @@ window.asyncConfirm = function(message) {
 // ── SharePoint URL Parser ─────────────────────────────
 window.parseSharePointBaseUrl = (url) => {
   let u = url.trim();
-  
-  // If it's a local path (e.g. C:\Users\... or contains backslashes)
-  if (!/^https?:\/\//i.test(u)) {
-    // Normalize backslashes to forward slashes
+
+  try {
+    // 1. Normalize backslashes
     u = u.replace(/\\/g, '/');
-    
-    // Check if it contains the SharePoint library folder
+
+    // Local synced path — map to web URL
     const libIndex = u.indexOf('צהרונים - מסמכים');
     if (libIndex !== -1) {
       const relativePath = u.substring(libIndex);
       return 'https://tomashin1.sharepoint.com/sites/zaharonim/' + relativePath.replace(/\/+$/, '');
     }
-    
-    // Fallback for any other local path synced via SharePoint tenant
     const tomshinIndex = u.indexOf('רשת תיכוני טומשין בע מ');
     if (tomshinIndex !== -1) {
       const rest = u.substring(tomshinIndex).replace(/^[^/]+\//, '');
       return 'https://tomashin1.sharepoint.com/sites/zaharonim/' + rest.replace(/\/+$/, '');
     }
-    
-    return u.replace(/\/+$/, '');
-  }
 
-  try {
-    const urlObj = new URL(u);
-    const origin = urlObj.origin;
-    
-    // 1. If user copied browser address bar URL (e.g. contains AllItems.aspx?id=...)
-    const idParam = urlObj.searchParams.get('id');
-    if (idParam) {
-      const decodedId = decodeURIComponent(idParam);
-      return origin + decodedId.replace(/\/+$/, '');
-    }
-    
-    // 2. Otherwise, clean standard pathname
-    let cleanPath = urlObj.pathname;
-    
-    // 3. Remove SharePoint folder/file viewer path decorators like /:f:/r or /:b:/s etc.
-    cleanPath = cleanPath.replace(/\/:[a-z]:\/[a-z0-9]/i, '');
-    
-    return origin + cleanPath.replace(/\/+$/, '');
-  } catch (e) {
-    return u.replace(/\?.*$/, '').replace(/\/+$/, '');
-  }
-};
+    if (!u.startsWith('http')) return u.replace(/\/+$/, '');
 
-// ── SharePoint URL Parser ─────────────────────────────
-window.parseSharePointBaseUrl = (url) => {
-  let u = url.trim();
-  
-  try {
-    // 1. Normalize slashes
-    u = u.replace(/\\/g, '/');
-    
-    // Check if it contains the SharePoint library folder (local sync mapping)
-    const libIndex = u.indexOf(' - מסמכים');
-    if (libIndex !== -1) {
-      let relativePath = u.substring(libIndex + 10);
-      relativePath = relativePath.replace(/^\//, '');
-      return 'https://tomashin1.sharepoint.com/sites/zaharonim/Shared Documents/' + relativePath.replace(/\/+$/, '');
-    }
-    
-    // Fallback for any other local path synced via SharePoint tenant
-    const tomshinIndex = u.indexOf('רשת תיכוני טומשין');
-    if (tomshinIndex !== -1) {
-      const rest = u.substring(tomshinIndex).replace(/^[^/]+\//, '');
-      return 'https://tomashin1.sharepoint.com/sites/zaharonim/Shared Documents/' + rest.replace(/\/+$/, '');
-    }
-    
-    // 2. If it's already a web URL, try to clean it
-    if (!u.startsWith('http')) return u;
-    
     const urlObj = new URL(u);
-    
-    // If it's an AllItems.aspx link, the true path is in the 'id' parameter
+
+    // AllItems.aspx?id=... → extract real folder path
     if (urlObj.pathname.toLowerCase().endsWith('allitems.aspx') && urlObj.searchParams.has('id')) {
       return urlObj.origin + urlObj.searchParams.get('id').replace(/\/+$/, '');
     }
-    
-    let cleanPath = urlObj.pathname;
-    
-    // 3. Remove SharePoint folder/file viewer path decorators like /:f:/r or /:b:/s etc.
-    cleanPath = cleanPath.replace(/\/:[a-z]:\/[a-z0-9]/i, '');
-    
+
+    // Standard SharePoint link — strip /:f:/r decorators
+    let cleanPath = urlObj.pathname.replace(/\/:[a-z]:\/[a-z0-9]/i, '');
     return urlObj.origin + cleanPath.replace(/\/+$/, '');
+
   } catch (e) {
     return u.replace(/\?.*$/, '').replace(/\/+$/, '');
   }
@@ -2794,109 +2739,139 @@ window.startSharePointScanner = async function() {
     alert('הדפדפן שלך אינו תומך בסריקת תיקיות מקומית. אנא השתמש ב-Chrome או Edge עדכני.');
     return;
   }
-  
+
+  // ── Step 1: Pick first folder (requires direct user gesture)
+  let dirHandle;
   try {
-    const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
-    
-    let baseUrl = '';
-    if (window.spScannerFolderLinks && window.spScannerFolderLinks[dirHandle.name]) {
-      baseUrl = window.spScannerFolderLinks[dirHandle.name];
-    }
-    
-    if (!baseUrl) {
-      baseUrl = prompt('בחרת תיקייה בהצלחה!\n\nכעת, הדבק כאן את קישור האינטרנט של התיקייה הזו ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/...)');
-      if (baseUrl) {
-        window.spScannerFolderLinks = window.spScannerFolderLinks || {};
-        window.spScannerFolderLinks[dirHandle.name] = baseUrl.trim();
-      }
-    }
-    
-    if (!baseUrl) return;
-    
-    const selectedFolders = [{ handle: dirHandle, baseUrl: baseUrl.trim().replace(/\/+$/, '') }];
-
-
-    const parseSharePointBaseUrl = window.parseSharePointBaseUrl;
-    
-    window.showToast('⏳ סורק קבצים במחשב... נא להמתין', 60000);
-    const filesFound = [];
-    
-    async function scanDir(handle, currentPath, folderObj) {
-      for await (const entry of handle.values()) {
-        if (entry.kind === 'file') {
-          if (!entry.name.startsWith('.') && !entry.name.startsWith('~')) {
-            filesFound.push({ 
-              name: entry.name, 
-              link: folderObj.cleanBaseUrl + currentPath + '/' + encodeURIComponent(entry.name) + '?web=1'
-            });
-          }
-        } else if (entry.kind === 'directory') {
-          await scanDir(entry, currentPath + '/' + encodeURIComponent(entry.name), folderObj);
-        }
-      }
-    }
-    
-    for (const folder of selectedFolders) {
-      // Use the exact URL pasted without smart SharePoint decoding to avoid breaking links
-      const cleanBaseUrl = folder.baseUrl.trim().replace(/\/+$/, '');
-      folder.cleanBaseUrl = cleanBaseUrl;
-      await scanDir(folder.handle, '', folder);
-    }
-    
-    let matchCount = 0;
-    const resultsData = [['שם הקובץ', 'מספר שזוהה', 'סטטוס התאמה', 'קישור שנוצר']];
-    
-    for (const file of filesFound) {
-      const numbersInName = file.name.match(/\d+/g) || [];
-      const link = file.link;
-      
-      let matchedInvoice = null;
-      let matchedType = null;
-      
-      let handled = false;
-      for (const numStr of numbersInName) {
-        if (numStr.length < 3) continue;
-        matchedInvoice = window.INVOICES.find(inv => {
-          if (inv.num && String(inv.num).trim() === numStr) { matchedType = 'tax'; return true; }
-          if (inv.txNum && String(inv.txNum).trim() === numStr) { matchedType = 'tx'; return true; }
-          if (inv.orderNum && String(inv.orderNum).trim() === numStr) { matchedType = 'order'; return true; }
-          return false;
-        });
-        if (matchedInvoice) break;
-      }
-      
-      if (matchedInvoice && matchedType) {
-        matchedInvoice['file_' + matchedType] = { path: link, local: '' };
-        matchCount++;
-        resultsData.push([file.name, numbersInName.join(','), 'הותאם לספק: ' + matchedInvoice.supName, link]);
-        handled = true;
-      }
-      
-      if (!handled) {
-        resultsData.push([file.name, numbersInName.join(','), 'לא נמצאה התאמה בחשבוניות', link]);
-      }
-    }
-
-    if (matchCount > 0) {
-      window.showToast(`✅ נמצאו ${filesFound.length} קבצים, מתוכם שודכו ${matchCount} למסמכים במערכת! שומר...`);
-      if (window._safeLS) window._safeLS.setItem('ganv5_invoices', JSON.stringify(window.INVOICES||[]));
-      if (typeof window.saveToFirebase === 'function') await window.saveToFirebase(true, true);
-      else if (typeof window.save === 'function') await window.save(true);
-      if (typeof window.renderInvoices === 'function') window.renderInvoices();
-    } else {
-      window.showToast(`סריקה הסתיימה. נמצאו ${filesFound.length} קבצים, אך 0 התאמות למסמכים הקיימים.`);
-    }
-    
-    if (window.XLSX) {
-      const wb = window.XLSX.utils.book_new();
-      const ws = window.XLSX.utils.aoa_to_sheet(resultsData);
-      ws['!cols'] = [{wch: 40}, {wch: 15}, {wch: 30}, {wch: 80}];
-      window.XLSX.utils.book_append_sheet(wb, ws, 'תוצאות סריקה');
-      window.XLSX.writeFile(wb, 'תוצאות_סריקת_sharepoint.xlsx');
-    }
-    
-    alert(`סיום! נסרקו ${filesFound.length} קבצים.\nהותאמו ושודכו: ${matchCount}\nדוח הופק וירד למחשב שלך.`);
-  } catch (error) {
-    if (error.name !== 'AbortError') alert('שגיאה בסריקה: ' + error.message);
+    dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+  } catch (e) {
+    if (e.name !== 'AbortError') alert('שגיאה: ' + e.message);
+    return;
   }
+
+  // ── Step 2: Ask for / confirm SharePoint URL for this folder
+  window.spScannerFolderLinks = window.spScannerFolderLinks || {};
+  const savedUrl = window.spScannerFolderLinks[dirHandle.name] || '';
+
+  const promptMsg = savedUrl
+    ? `📁 תיקייה: "${dirHandle.name}"\n\n🔗 קישור שמור: ${savedUrl}\n\nהדבק קישור חדש כדי לעדכן, או לחץ אישור כדי להשתמש בקישור הנוכחי:`
+    : `✅ בחרת: "${dirHandle.name}"\n\nכעת, הדבק כאן את קישור האינטרנט של תיקייה זו ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/sites/zaharonim/Shared%20Documents/...)`;
+
+  const inputtedUrl = prompt(promptMsg, savedUrl);
+  if (inputtedUrl === null) return; // user cancelled
+
+  const baseUrl = (inputtedUrl.trim() || savedUrl).replace(/\/+$/, '');
+  if (!baseUrl) { alert('לא הוזן קישור — הסריקה בוטלה.'); return; }
+
+  window.spScannerFolderLinks[dirHandle.name] = baseUrl;
+  // Persist to localStorage
+  try { localStorage.setItem('spScannerFolderLinks', JSON.stringify(window.spScannerFolderLinks)); } catch(e) {}
+  if (typeof window.ghAutoSave === 'function') window.ghAutoSave();
+
+  const selectedFolders = [{ handle: dirHandle, baseUrl }];
+
+  // ── Step 3: Optionally add more folders (sequential, no loop around picker)
+  const addMore = confirm('האם תרצה לסרוק תיקייה נוספת במקביל?\n(לחץ אישור להוספת תיקייה נוספת, ביטול להמשיך לסריקה)');
+  if (addMore) {
+    try {
+      const dir2 = await window.showDirectoryPicker({ mode: 'read' });
+      const saved2 = window.spScannerFolderLinks[dir2.name] || '';
+      const url2 = prompt(
+        saved2
+          ? `📁 "${dir2.name}" — קישור שמור: ${saved2}\n\nהדבק קישור חדש או השאר ריק לשימוש בנוכחי:`
+          : `✅ תיקייה נוספת: "${dir2.name}"\n\nהדבק את קישור SharePoint עבורה:`,
+        saved2
+      );
+      const base2 = ((url2 !== null ? url2.trim() : '') || saved2).replace(/\/+$/, '');
+      if (base2) {
+        window.spScannerFolderLinks[dir2.name] = base2;
+        selectedFolders.push({ handle: dir2, baseUrl: base2 });
+        try { localStorage.setItem('spScannerFolderLinks', JSON.stringify(window.spScannerFolderLinks)); } catch(e) {}
+      }
+    } catch (e) { /* user cancelled second folder */ }
+  }
+
+  // ── Step 4: Scan all selected folders
+  window.showToast('⏳ סורק קבצים במחשב... נא להמתין', 60000);
+  const filesFound = [];
+
+  async function scanDir(handle, currentPath, folderBaseUrl) {
+    for await (const entry of handle.values()) {
+      if (entry.kind === 'file') {
+        if (!entry.name.startsWith('.') && !entry.name.startsWith('~')) {
+          filesFound.push({
+            name: entry.name,
+            link: folderBaseUrl + currentPath + '/' + encodeURIComponent(entry.name) + '?web=1'
+          });
+        }
+      } else if (entry.kind === 'directory') {
+        await scanDir(entry, currentPath + '/' + encodeURIComponent(entry.name), folderBaseUrl);
+      }
+    }
+  }
+
+  try {
+    for (const folder of selectedFolders) {
+      await scanDir(folder.handle, '', folder.baseUrl);
+    }
+  } catch (scanErr) {
+    alert('שגיאה בסריקת הקבצים: ' + scanErr.message);
+    return;
+  }
+
+  // ── Step 5: Match files to invoices by document number
+  let matchCount = 0;
+  const resultsData = [['שם הקובץ', 'מספר שזוהה', 'סטטוס התאמה', 'קישור שנוצר']];
+
+  for (const file of filesFound) {
+    const numbersInName = file.name.match(/\d+/g) || [];
+    const link = file.link;
+
+    let matchedInvoice = null;
+    let matchedType = null;
+
+    for (const numStr of numbersInName) {
+      if (numStr.length < 3) continue;
+      matchedInvoice = window.INVOICES.find(inv => {
+        if (inv.num     && String(inv.num).trim()      === numStr) { matchedType = 'tax';   return true; }
+        if (inv.txNum   && String(inv.txNum).trim()    === numStr) { matchedType = 'tx';    return true; }
+        if (inv.orderNum && String(inv.orderNum).trim() === numStr) { matchedType = 'order'; return true; }
+        return false;
+      });
+      if (matchedInvoice) break;
+    }
+
+    if (matchedInvoice && matchedType) {
+      // Set path so clicking the badge opens the file directly
+      matchedInvoice['file_' + matchedType] = { path: link, name: file.name };
+      matchCount++;
+      resultsData.push([file.name, numbersInName.join(','), 'הותאם לספק: ' + matchedInvoice.supName, link]);
+    } else {
+      resultsData.push([file.name, numbersInName.join(','), 'לא נמצאה התאמה בחשבוניות', link]);
+    }
+  }
+
+  // ── Step 6: Save & render
+  if (matchCount > 0) {
+    window.showToast(`✅ נמצאו ${filesFound.length} קבצים, שודכו ${matchCount} למסמכים! שומר...`);
+    if (window._safeLS) window._safeLS.setItem('ganv5_invoices', JSON.stringify(window.INVOICES || []));
+    if (typeof window.saveToFirebase === 'function') await window.saveToFirebase(true, true);
+    else if (typeof window.save === 'function') await window.save(true);
+    if (typeof window.renderInvoices === 'function') window.renderInvoices();
+    if (typeof window.renderAdminSpLinks === 'function') window.renderAdminSpLinks();
+  } else {
+    window.showToast(`סריקה הסתיימה. נמצאו ${filesFound.length} קבצים, אך 0 התאמות למסמכים הקיימים.`);
+  }
+
+  // ── Step 7: Export results Excel
+  if (window.XLSX) {
+    const wb = window.XLSX.utils.book_new();
+    const ws = window.XLSX.utils.aoa_to_sheet(resultsData);
+    ws['!cols'] = [{wch: 40}, {wch: 15}, {wch: 30}, {wch: 80}];
+    window.XLSX.utils.book_append_sheet(wb, ws, 'תוצאות סריקה');
+    window.XLSX.writeFile(wb, 'תוצאות_סריקת_sharepoint.xlsx');
+  }
+
+  alert(`סיום הסריקה!\n📁 נסרקו: ${filesFound.length} קבצים\n✅ שודכו: ${matchCount} למסמכים\n\nכעת לחץ על הסמל 📎 ליד כל מסמך כדי לפתוח אותו ישירות.`);
 };
+
