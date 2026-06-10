@@ -209,6 +209,25 @@ async function saveToFirebase(silent = false, force = false) {
     let tok = await window._fbUser?.getIdToken(false);
     const url = getFirebaseDbUrl() + (tok ? '?auth=' + tok : '');
 
+    // Quick check: has the cloud advanced while we were asleep?
+    if (window._fbSyncReady && _localSeq > 0) {
+      try {
+        const seqUrl = getFirebaseDbUrl().replace('.json', '/seq.json') + (tok ? '?auth=' + tok : '');
+        const seqRes = await fetch(seqUrl + (seqUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now());
+        if (seqRes.ok) {
+          const cloudSeq = await seqRes.json();
+          if (cloudSeq > _localSeq && !force) {
+            console.warn(`[Sync] BLOCKED: Dirty Write Detected. Local: ${_localSeq}, Cloud: ${cloudSeq}`);
+            _fbSyncing = false;
+            _isLocked = false;
+            alert('⚠️ המערכת זיהתה שבוצע שינוי ממכשיר אחר!\nהנתונים החדשים נטענים כעת כדי למנוע מחיקת מידע חשוב.\n\nאנא המתן שנייה ונסה שוב את הפעולה שעשית.');
+            loadFromFirebase(true); // Force load
+            return false;
+          }
+        }
+      } catch(e) { console.warn('[Sync] Failed to verify sequence before save:', e); }
+    }
+
     // CRITICAL: Use PATCH instead of PUT to prevent deleting sibling paths under /data (like invoices)
     const r = await fetch(url, {
       method: 'PATCH',
@@ -337,6 +356,14 @@ window.saveToFirebase = saveToFirebase;
 window.loadFromFirebase = loadFromFirebase;
 window._fbStartPolling = _fbStartPolling;
 window._fbStopPolling = _fbStopPolling;
+
+// Sync immediately when app comes to foreground (Crucial for Mobile/PWAs)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && window._fbSyncReady && !window._importInProgress) {
+    console.log('[Sync] App became visible, checking Firebase...');
+    loadFromFirebase(true);
+  }
+});
 
 window._onAuthReady = async function () {
   // Sync years/periods metadata first
