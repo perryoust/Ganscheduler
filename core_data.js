@@ -535,9 +535,10 @@ async function save(immediate){
     if (typeof window.cleanSupplierNamesBeforeSave === 'function') {
       window.cleanSupplierNamesBeforeSave();
     }
-    if(window.DataManager && window.DataManager.applyAutoMakeupMatching) {
-      window.DataManager.applyAutoMakeupMatching();
-    }
+    // Auto-Makeup disabled by user request
+    // if(window.DataManager && window.DataManager.applyAutoMakeupMatching) {
+    //   window.DataManager.applyAutoMakeupMatching();
+    // }
     // Save ALL entries with ALL fields — works with or without SRAWS
     // Persist year-specific garden list into supEx before saving
     if (Array.isArray(window._GARDENS_ALL) && window._GARDENS_ALL.length > 0) {

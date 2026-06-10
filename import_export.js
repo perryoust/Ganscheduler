@@ -266,10 +266,10 @@ window.importBulkSchedule = function(input) {
       window.SCH = finalRecords;
       console.log('[Import v6] SCH replaced with ' + window.SCH.length + ' records (merged manual events & states)');
 
-      // Apply auto-makeup matching
-      if (window.DataManager && window.DataManager.applyAutoMakeupMatching) {
-        window.DataManager.applyAutoMakeupMatching();
-      }
+      // Apply auto-makeup matching      // Auto-Makeup disabled by user request
+      // if (window.DataManager && window.DataManager.applyAutoMakeupMatching) {
+      //   window.DataManager.applyAutoMakeupMatching();
+      // }
 
       // ═══ STEP 3: Save to localStorage ═══
       const lsData = {
