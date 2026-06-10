@@ -113,12 +113,18 @@ function supBase(fullName){
   
   // Resolve dynamic aliases from merged suppliers
   if (typeof window !== 'undefined' && window.supEx) {
-    for (const mainName in window.supEx) {
-      if (window.supEx[mainName] && Array.isArray(window.supEx[mainName]._mergedFrom)) {
-        if (window.supEx[mainName]._mergedFrom.includes(base)) {
-          return mainName;
+    if (!window._mergedAliasMap) {
+      window._mergedAliasMap = {};
+      for (const mainName in window.supEx) {
+        if (window.supEx[mainName] && Array.isArray(window.supEx[mainName]._mergedFrom)) {
+          window.supEx[mainName]._mergedFrom.forEach(alias => {
+            window._mergedAliasMap[alias] = mainName;
+          });
         }
       }
+    }
+    if (window._mergedAliasMap[base]) {
+      return window._mergedAliasMap[base];
     }
   }
   return base;

@@ -740,6 +740,7 @@ function doMerge(){
   const prevMergedFrom = supEx[mainBase]._mergedFrom||[];
   const newMergedBases = toMrg.map(o=>supBase(o)).filter(b=>b!==mainBase);
   supEx[mainBase]._mergedFrom = [...new Set([...prevMergedFrom,...newMergedBases])];
+  window._mergedAliasMap = null;
   supEx[mainBase].isAct = mergedIsAct;
   supEx[mainBase].isPurch = mergedIsPurch;
   supEx[mainBase].acts = [...allActs].sort((a,b)=>a.localeCompare(b,'he'));
