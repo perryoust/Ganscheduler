@@ -2735,6 +2735,23 @@ window.parseSharePointBaseUrl = (url) => {
 
 // ── SharePoint Local Scanner ─────────────────────────────
 
+// Helper: Show a simple HTML alert instead of native alert()
+function _spAlertDialog(msgHtml) {
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10002;display:flex;align-items:center;justify-content:center';
+    ov.innerHTML = `<div style="background:#fff;border-radius:12px;padding:24px;max-width:400px;width:90%;box-shadow:0 10px 30px rgba(0,0,0,.25);direction:rtl;font-family:inherit;text-align:center">
+  <div style="font-size:.9rem;color:#37474f;margin-bottom:20px;line-height:1.6;white-space:pre-wrap">${msgHtml}</div>
+  <button id="_sp-alert-ok" class="btn bp" style="padding:8px 24px">אישור</button>
+</div>`;
+    document.body.appendChild(ov);
+    const btn = ov.querySelector('#_sp-alert-ok');
+    btn.addEventListener('click', () => { ov.remove(); resolve(); });
+    setTimeout(() => btn.focus(), 50);
+  });
+}
+
+
 // Show a styled HTML dialog for SharePoint folder setup
 // Returns Promise<{url:string, overwrite:bool, addSecond:bool} | null>
 function _spFolderDialog(folderName, savedUrl, isSecond) {
@@ -2802,7 +2819,7 @@ function _spFolderDialog(folderName, savedUrl, isSecond) {
     ov.querySelector('#_sp-cancel').addEventListener('click', () => { ov.remove(); resolve(null); });
     ov.querySelector('#_sp-ok').addEventListener('click', () => {
       const url = (urlEl.value.trim() || savedUrl || '').replace(/\/+$/, '');
-      if (!url) { alert('יש להזין קישור SharePoint'); return; }
+      if (!url) { _spAlertDialog('⚠️ יש להזין קישור SharePoint'); return; }
       const overwrite  = ov.querySelector('#_sp-overwrite').checked;
       const addSecond  = !isSecond && ov.querySelector('#_sp-add2') ? ov.querySelector('#_sp-add2').checked : false;
       ov.remove();
@@ -2815,7 +2832,7 @@ function _spFolderDialog(folderName, savedUrl, isSecond) {
 
 window.startSharePointScanner = async function() {
   if (!window.showDirectoryPicker) {
-    alert('הדפדפן שלך אינו תומך בסריקת תיקיות מקומית. אנא השתמש ב-Chrome או Edge עדכני.');
+    await _spAlertDialog('❌ הדפדפן שלך אינו תומך בסריקת תיקיות מקומית.\nאנא השתמש ב-Chrome או Edge עדכני.');
     return;
   }
 
@@ -2830,7 +2847,7 @@ window.startSharePointScanner = async function() {
   try {
     dirHandle = await window.showDirectoryPicker({ mode: 'read' });
   } catch (e) {
-    if (e.name !== 'AbortError') alert('שגיאה: ' + e.message);
+    if (e.name !== 'AbortError') await _spAlertDialog('❌ שגיאה בבחירת תיקייה:\n' + e.message);
     return;
   }
 
@@ -2922,7 +2939,7 @@ window.startSharePointScanner = async function() {
       await scanDir(folder.handle, path.replace(baseContext, ''), folder);
     }
   } catch (scanErr) {
-    alert('שגיאה בסריקת הקבצים: ' + scanErr.message);
+    await _spAlertDialog('❌ שגיאה בסריקת הקבצים:\n' + scanErr.message);
     return;
   }
 
@@ -2987,12 +3004,12 @@ window.startSharePointScanner = async function() {
     window.XLSX.writeFile(wb, 'תוצאות_סריקת_sharepoint.xlsx');
   }
 
-  alert(
-    `✅ סריקה הסתיימה!\n` +
-    `📁 נסרקו: ${filesFound.length} קבצים\n` +
-    `🔗 שודכו / עודכנו: ${matchCount}\n` +
-    (skippedCount ? `⏭️ דולגו (קישור קיים ולא נדרס): ${skippedCount}\n` : '') +
-    `\nלחץ 📎 ליד כל מסמך לפתיחה ישירה ב-SharePoint.`
+  await _spAlertDialog(
+    `<b style="color:#1b5e20;font-size:1.1rem">✅ סריקה הסתיימה בהצלחה!</b>\n\n` +
+    `📁 <b>נסרקו:</b> ${filesFound.length} קבצים\n` +
+    `🔗 <b>שודכו / עודכנו:</b> ${matchCount} למסמכים\n` +
+    (skippedCount ? `⏭️ <b>דולגו</b> (קישור קיים ולא נדרס): ${skippedCount}\n` : '') +
+    `\n<span style="color:#1565c0">כעת תוכל ללחוץ על סמל ה-📎 ליד כל מסמך כדי לפתוח אותו ישירות ב-SharePoint.</span>`
   );
 };
 
