@@ -1745,15 +1745,22 @@ function markCompQuick(id){
     if(cluster) cluster.gids.forEach(i => allPartnerIds.add(Number(i)));
     allPartnerIds.delete(Number(s.g));
 
+    let partnersToUpdate = [];
     allPartnerIds.forEach(ogid => {
       const partnerEv = typeof window.findPartnerActivity === 'function' 
         ? window.findPartnerActivity(ogid, s.d, s.a)
         : window.SCH.find(p => p.d === s.d && window.supBase(p.a) === window.supBase(s.a) && Number(p.g) === Number(ogid));
         
-      if (partnerEv) {
-        partnerEv._compByMakeup = stamp;
+      if (partnerEv && (partnerEv.st === 'nohap' || partnerEv.st === 'can' || partnerEv.st === 'post') && !partnerEv._compByMakeup) {
+        partnersToUpdate.push(partnerEv);
       }
     });
+
+    if (partnersToUpdate.length > 0) {
+      if (confirm('זיהינו גנים מקבילים (זוג/אשכול) עם חריגות באותה פעילות. האם לסמן "טופל" גם עבורם?')) {
+        partnersToUpdate.forEach(pev => pev._compByMakeup = stamp);
+      }
+    }
 
     window.save();
     setTimeout(() => {

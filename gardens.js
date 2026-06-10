@@ -1337,6 +1337,14 @@ function genExport(){
     return '';
   };
 
+  const incCoord = document.getElementById('ex-inc-coord') && document.getElementById('ex-inc-coord').checked;
+  const getCoordStr = (gid) => {
+    if (!incCoord) return '';
+    const mgr = Object.values(window.managers || {}).find(m => (m.gardenIds||[]).includes(gid));
+    if (mgr) return ` (רכז/ת: ${mgr.name} ${mgr.phone||''})`.trimEnd();
+    return '';
+  };
+
   const byDate={};rel.forEach(s=>{if(!byDate[s.d])byDate[s.d]=[];byDate[s.d].push(s);});
   let text = headerTitle;
   const dates=Object.keys(byDate).sort();
@@ -1377,6 +1385,10 @@ function genExport(){
             const isNohapFunc = (s) => s.st === 'can' || s.st === 'nohap' || (s.nt && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.n));
             const allNohap = group.every(isNohapFunc);
             
+            const groupMgrs = [...new Set(group.map(s => getCoordStr(s.gd.id)).filter(Boolean))];
+            const isPairWithSameMgr = group.length > 1 && groupMgrs.length === 1;
+            const sharedMgrStr = isPairWithSameMgr ? groupMgrs[0] : '';
+            
             let blockTitle = '';
             let skipInlineNohap = false;
             let skipInlineMTag = false;
@@ -1402,7 +1414,8 @@ function genExport(){
                 const isNohapRow = isNohapFunc(s);
                 const stIcon = isNohapRow ? '❌ ' : '🏫 ';
                 const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
-                text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`; 
+                const coordText = isPairWithSameMgr ? '' : getCoordStr(s.gd.id);
+                text+=`     ${stIcon}${mTag}${s.gd.name}${coordText}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`; 
               });
             } else {
               group.forEach(s=>{
@@ -1411,8 +1424,12 @@ function genExport(){
                 const stIcon = isNohapRow ? '❌ ' : '🏫 ';
                 const addr=s.gd.st?`📍 ${s.gd.st} · `:'';
                 const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
-                text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`;
+                const coordText = isPairWithSameMgr ? '' : getCoordStr(s.gd.id);
+                text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${coordText}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`;
               });
+            }
+            if (isPairWithSameMgr && sharedMgrStr) {
+               text+=`     👤 ${sharedMgrStr.replace(' (', '').replace(')', '')}\n`;
             }
             text+='\n';
           });
@@ -1462,7 +1479,8 @@ function genExport(){
                 const isNohapRow = isNohapFunc(s);
                 const stIcon = isNohapRow ? '❌ ' : '🏫 ';
                 const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
-                text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`; 
+                const coordText = getCoordStr(s.gd.id);
+                text+=`     ${stIcon}${mTag}${s.gd.name}${coordText}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`; 
               });
             } else {
               group.forEach(s=>{
@@ -1471,7 +1489,8 @@ function genExport(){
                 const stIcon = isNohapRow ? '❌ ' : '🏫 ';
                 const addr=s.gd.st?`📍 ${s.gd.st} · `:'';
                 const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
-                text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`;
+                const coordText = getCoordStr(s.gd.id);
+                text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${coordText}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`;
               });
             }
             text+='\n';
@@ -1484,7 +1503,8 @@ function genExport(){
           const isNohapRow = s.st === 'can' || s.st === 'nohap' || (s.nt && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.n));
           const stIcon = isNohapRow ? '❌ ' : '🏫 ';
           const statusTag = (isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
-          text+=`${stIcon}${mTag}${s.gd.name}${statusTag} - ${s.a}${s.t?' · ⏰ '+fT(s.t):''}\n`;
+          const coordText = getCoordStr(s.gd.id);
+          text+=`${stIcon}${mTag}${s.gd.name}${coordText}${statusTag} - ${s.a}${s.t?' · ⏰ '+fT(s.t):''}\n`;
         });
       }
     });
