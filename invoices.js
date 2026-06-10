@@ -2754,17 +2754,19 @@ window.startSharePointScanner = async function() {
       const numbersInName = file.name.match(/\d+/g) || [];
       const link = `${cleanBaseUrl}${file.relativePath}?web=1`;
       let matchedInvoice = null;
+      let matchedType = null;
       for (const numStr of numbersInName) {
         if (numStr.length < 3) continue;
-        matchedInvoice = window.INVOICES.find(inv => 
-          (inv.num && String(inv.num).trim() === numStr) ||
-          (inv.orderNum && String(inv.orderNum).trim() === numStr) ||
-          (inv.txNum && String(inv.txNum).trim() === numStr)
-        );
+        matchedInvoice = window.INVOICES.find(inv => {
+          if (inv.num && String(inv.num).trim() === numStr) { matchedType = 'tax'; return true; }
+          if (inv.txNum && String(inv.txNum).trim() === numStr) { matchedType = 'tx'; return true; }
+          if (inv.orderNum && String(inv.orderNum).trim() === numStr) { matchedType = 'order'; return true; }
+          return false;
+        });
         if (matchedInvoice) break;
       }
-      if (matchedInvoice) {
-        matchedInvoice.fileUrl = link;
+      if (matchedInvoice && matchedType) {
+        matchedInvoice['file_' + matchedType] = { path: link, local: '' };
         matchCount++;
         resultsData.push([file.name, numbersInName.join(','), 'הותאם לספק: ' + matchedInvoice.supName, link]);
       } else {
@@ -2773,7 +2775,7 @@ window.startSharePointScanner = async function() {
     }
     if (matchCount > 0) {
       window.showToast(`✅ נמצאו ${filesFound.length} קבצים, מתוכם שודכו ${matchCount} למסמכים במערכת! שומר...`);
-      if (typeof window.saveToFirebase === 'function') await window.saveToFirebase(false, true);
+      if (typeof window.save === 'function') await window.save(true);
       if (typeof window.renderInvoices === 'function') window.renderInvoices();
     } else {
       window.showToast(`סריקה הסתיימה. נמצאו ${filesFound.length} קבצים, אך 0 התאמות למסמכים הקיימים.`);
