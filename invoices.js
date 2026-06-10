@@ -2789,33 +2789,25 @@ window.startSharePointScanner = async function() {
   }
   
   try {
-    const selectedFolders = [];
-    let addAnother = true;
+    const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
     
-    while (addAnother) {
-      const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
-      
-      let baseUrl = '';
-      if (window.spScannerFolderLinks && window.spScannerFolderLinks[dirHandle.name]) {
-        baseUrl = window.spScannerFolderLinks[dirHandle.name];
-      }
-      
-      if (!baseUrl) {
-        baseUrl = prompt('בחרת תיקייה בהצלחה!\n\nכעת, הדבק כאן את קישור האינטרנט של התיקייה הזו ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/...)');
-        if (baseUrl) {
-          window.spScannerFolderLinks = window.spScannerFolderLinks || {};
-          window.spScannerFolderLinks[dirHandle.name] = baseUrl.trim();
-        }
-      }
-      
-      if (baseUrl) {
-        selectedFolders.push({ handle: dirHandle, baseUrl: baseUrl.trim().replace(/\/+$/, '') });
-      }
-      
-      addAnother = confirm('האם תרצה לסרוק תיקייה מקומית נוספת במקביל?');
+    let baseUrl = '';
+    if (window.spScannerFolderLinks && window.spScannerFolderLinks[dirHandle.name]) {
+      baseUrl = window.spScannerFolderLinks[dirHandle.name];
     }
     
-    if (selectedFolders.length === 0) return;
+    if (!baseUrl) {
+      baseUrl = prompt('בחרת תיקייה בהצלחה!\n\nכעת, הדבק כאן את קישור האינטרנט של התיקייה הזו ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/...)');
+      if (baseUrl) {
+        window.spScannerFolderLinks = window.spScannerFolderLinks || {};
+        window.spScannerFolderLinks[dirHandle.name] = baseUrl.trim();
+      }
+    }
+    
+    if (!baseUrl) return;
+    
+    const selectedFolders = [{ handle: dirHandle, baseUrl: baseUrl.trim().replace(/\/+$/, '') }];
+
 
     const parseSharePointBaseUrl = window.parseSharePointBaseUrl;
     
