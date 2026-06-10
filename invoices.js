@@ -2822,71 +2822,34 @@ window.startSharePointScanner = async function() {
     window.showToast('⏳ סורק קבצים במחשב... נא להמתין', 60000);
     const filesFound = [];
     
-    // Helper to safely encode path segments for SharePoint URLs
-    const encodePath = (pathStr) => pathStr.split('/').map(encodeURIComponent).join('/');
-
     async function scanDir(handle, currentPath, folderObj) {
       for await (const entry of handle.values()) {
         if (entry.kind === 'file') {
           if (!entry.name.startsWith('.') && !entry.name.startsWith('~')) {
             filesFound.push({ 
               name: entry.name, 
-              path: currentPath,
-              folderObj: folderObj,
-              lastModified: (await entry.getFile()).lastModified
+              link: folderObj.cleanBaseUrl + currentPath + '/' + encodeURIComponent(entry.name) + '?web=1'
             });
           }
         } else if (entry.kind === 'directory') {
-          await scanDir(entry, currentPath + '/' + entry.name, folderObj);
+          await scanDir(entry, currentPath + '/' + encodeURIComponent(entry.name), folderObj);
         }
       }
     }
     
     for (const folder of selectedFolders) {
-      const cleanBaseUrl = parseSharePointBaseUrl(folder.baseUrl);
-      let origin = 'https://tomashin1.sharepoint.com';
-      let path = cleanBaseUrl;
-      try {
-        const u = new URL(cleanBaseUrl);
-        origin = u.origin;
-        path = u.pathname;
-      } catch(e) {}
-      
-      // Extract the relevant part of the base path (e.g., /sites/zaharonim/Shared Documents)
-      const pathSegments = path.split('/').filter(Boolean);
-      let baseContext = path;
-      if (pathSegments[0] === 'sites' && pathSegments.length >= 3) {
-        baseContext = '/' + pathSegments.slice(0, 3).join('/');
-      } else if (pathSegments.length >= 2 && pathSegments[0] === 'personal') {
-         baseContext = '/' + pathSegments.slice(0, 2).join('/');
-      }
-
-      folder.baseContext = baseContext;
-      folder.origin = origin;
-      
-      await scanDir(folder.handle, path.replace(baseContext, ''), folder);
+      // Use the exact URL pasted without smart SharePoint decoding to avoid breaking links
+      const cleanBaseUrl = folder.baseUrl.trim().replace(/\/+$/, '');
+      folder.cleanBaseUrl = cleanBaseUrl;
+      await scanDir(folder.handle, '', folder);
     }
     
     let matchCount = 0;
     const resultsData = [['שם הקובץ', 'מספר שזוהה', 'סטטוס התאמה', 'קישור שנוצר']];
     
-    // Helper to get SharePoint decorator based on extension
-    const getSharePointDecorator = (filename) => {
-      const ext = String(filename).split('.').pop().toLowerCase();
-      if (['pdf', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'txt'].includes(ext)) return ':b:/r/';
-      if (['doc', 'docx'].includes(ext)) return ':w:/r/';
-      if (['xls', 'xlsx', 'csv'].includes(ext)) return ':x:/r/';
-      if (['ppt', 'pptx'].includes(ext)) return ':p:/r/';
-      return ':u:/r/';
-    };
-
     for (const file of filesFound) {
       const numbersInName = file.name.match(/\d+/g) || [];
-      const decorator = getSharePointDecorator(file.name);
-      const encodedPath = encodePath(file.path);
-      const encodedName = encodeURIComponent(file.name);
-      const urlPath = ('/' + decorator + '/' + encodedPath + '/' + encodedName).replace(/\/+/g, '/');
-      const link = file.folderObj.origin + file.folderObj.baseContext + urlPath + '?csf=1&web=1&e=dummy';
+      const link = file.link;
       
       let matchedInvoice = null;
       let matchedType = null;
