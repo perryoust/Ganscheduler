@@ -1297,7 +1297,8 @@ function genExport(){
       const dNameTarget = typeof window.dayN === 'function' ? window.dayN(rel[0].d) : '';
       headerTitle = `*לא יתקיים היום חוג*\n*השלמה נקבעה ליום ${dNameTarget}*\n`;
     } else {
-      headerTitle = refStr ? `*השלמה מ${refStr}${targetStr ? ' ' + targetStr : ''}*\n` : '*השלמה*\n';
+      const formattedTarget = targetStr ? ' תתקיים ' + targetStr.replace('ליום', 'ביום') : '';
+      headerTitle = refStr ? `*השלמה מ${refStr}${formattedTarget}*\n` : '*השלמה*\n';
     }
   } else if (isAllNohap) {
     headerTitle = '*לא מתקיים*\n';
