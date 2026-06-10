@@ -249,17 +249,8 @@ window.importBulkSchedule = function(input) {
         processedIds.add(String(r.id));
       });
 
-      // Retain manually added events (makeups, exceptions) not found in Excel
-      if (window.SCH) {
-        window.SCH.forEach(s => {
-          if (!processedIds.has(String(s.id))) {
-            const isManualEvent = s._isMakeup || s._postFrom || s._makeupFrom || s._isManual || s.tp === 'הפעלה';
-            if (isManualEvent) {
-              finalRecords.push(s);
-            }
-          }
-        });
-      }
+      // Removed per user request: No longer retaining manually added events (makeups, exceptions) not found in Excel.
+      // The Excel file is now the absolute source of truth.
 
       // CRITICAL: Set useSraws = false BEFORE saving
       window.useSraws = false;
