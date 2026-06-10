@@ -1,0 +1,26 @@
+{
+  "rules": {
+    "data": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "years": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "users": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03'"
+      }
+    },
+    "activityLog": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "years_meta": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
+  }
+}
