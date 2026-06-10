@@ -2752,24 +2752,31 @@ window.parseSharePointBaseUrl = (url) => {
     // 1. Normalize slashes
     u = u.replace(/\\/g, '/');
     
-    // Check if it contains the SharePoint library folder
+    // Check if it contains the SharePoint library folder (local sync mapping)
     const libIndex = u.indexOf(' - מסמכים');
     if (libIndex !== -1) {
-      const relativePath = u.substring(libIndex);
-      return 'https://tomashin1.sharepoint.com/sites/zaharonim/' + relativePath.replace(/\/+$/, '');
+      let relativePath = u.substring(libIndex + 10);
+      relativePath = relativePath.replace(/^\//, '');
+      return 'https://tomashin1.sharepoint.com/sites/zaharonim/Shared Documents/' + relativePath.replace(/\/+$/, '');
     }
     
     // Fallback for any other local path synced via SharePoint tenant
     const tomshinIndex = u.indexOf('רשת תיכוני טומשין');
     if (tomshinIndex !== -1) {
       const rest = u.substring(tomshinIndex).replace(/^[^/]+\//, '');
-      return 'https://tomashin1.sharepoint.com/sites/zaharonim/' + rest.replace(/\/+$/, '');
+      return 'https://tomashin1.sharepoint.com/sites/zaharonim/Shared Documents/' + rest.replace(/\/+$/, '');
     }
     
     // 2. If it's already a web URL, try to clean it
     if (!u.startsWith('http')) return u;
     
     const urlObj = new URL(u);
+    
+    // If it's an AllItems.aspx link, the true path is in the 'id' parameter
+    if (urlObj.pathname.toLowerCase().endsWith('allitems.aspx') && urlObj.searchParams.has('id')) {
+      return urlObj.origin + urlObj.searchParams.get('id').replace(/\/+$/, '');
+    }
+    
     let cleanPath = urlObj.pathname;
     
     // 3. Remove SharePoint folder/file viewer path decorators like /:f:/r or /:b:/s etc.
