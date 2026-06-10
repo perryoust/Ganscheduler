@@ -1306,6 +1306,10 @@ function genExport(){
     headerTitle = '*בוטל*\n';
   }
 
+  if (headerTitle) {
+    headerTitle += '\n';
+  }
+
   // Row-level label builder based on exact comments
   const getRowTag = (s) => {
     const t = getEvType(s);
