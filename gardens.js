@@ -1180,16 +1180,7 @@ function genExport(){
            
            const dName = typeof window.dayN === 'function' ? window.dayN(refDate) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][rDateObj.getDay()];
            
-           // Same week check (Sun to Sat week)
-           const wStart = (d) => { const x=new Date(d); x.setDate(x.getDate() - x.getDay()); return x.getTime(); };
-           const rW = wStart(rDateObj);
-           const cW = wStart(cDateObj);
-           
-           if (rW === cW) {
-              return `יום ${dName}`;
-           } else {
-              return `יום ${dName} ${rDateObj.getDate().toString().padStart(2,'0')}/${(rDateObj.getMonth()+1).toString().padStart(2,'0')}`;
-           }
+           return `יום ${dName} ${rDateObj.getDate()}/${rDateObj.getMonth()+1}`;
          } catch(e) {}
       }
     }
@@ -1205,13 +1196,7 @@ function genExport(){
       const rDateObj = typeof window.s2d === 'function' ? window.s2d(refDate) : new Date(refDate.split('-')[0], refDate.split('-')[1]-1, refDate.split('-')[2]);
       if (isNaN(tDateObj)) return '';
       const dName = typeof window.dayN === 'function' ? window.dayN(targetDate) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][tDateObj.getDay()];
-      
-      const wStart = (d) => { const x=new Date(d); x.setDate(x.getDate() - x.getDay()); return x.getTime(); };
-      if (wStart(tDateObj) === wStart(rDateObj)) {
-        return `ליום ${dName}`;
-      } else {
-        return `ליום ${dName} ${tDateObj.getDate().toString().padStart(2,'0')}/${(tDateObj.getMonth()+1).toString().padStart(2,'0')}`;
-      }
+      return `ליום ${dName} ${tDateObj.getDate()}/${tDateObj.getMonth()+1}`;
     } catch(e) { return ''; }
   };
 
@@ -1275,32 +1260,16 @@ function genExport(){
         const dNameOriginal = typeof window.dayN === 'function' ? window.dayN(backwardOriginalDate) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][oDateObj.getDay()];
         const dNameTarget = typeof window.dayN === 'function' ? window.dayN(forwardTargetDate) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][tDateObj.getDay()];
         
-        const wStart = (d) => { const x=new Date(d); x.setDate(x.getDate() - x.getDay()); return x.getTime(); };
-        
         const currentCalDateStr = typeof d2s === 'function' ? d2s(calD) : (typeof window.d2s === 'function' ? window.d2s(window.calD) : new Date(calD).toISOString().split('T')[0]);
         
-        if (wStart(oDateObj) === wStart(tDateObj)) {
-          // SAME WEEK
-          if (currentCalDateStr === backwardOriginalDate) {
-            // We are exporting from the ORIGINAL day (Wednesday) -> Show target (Thursday)
-            customRefStr = `יום ${dNameOriginal}`;
-            customTargetStr = ` ליום ${dNameTarget}`;
-          } else {
-            // We are exporting from the TARGET day (Thursday) -> Show only original (Wednesday)
-            customRefStr = `יום ${dNameOriginal}`;
-            customTargetStr = '';
-          }
+        if (currentCalDateStr === backwardOriginalDate) {
+          // We are exporting from the ORIGINAL day -> Show target date + original date
+          customRefStr = `יום ${dNameOriginal} ${oDateObj.getDate()}/${oDateObj.getMonth()+1}`;
+          customTargetStr = ` ליום ${dNameTarget} ${tDateObj.getDate()}/${tDateObj.getMonth()+1}`;
         } else {
-          // DIFFERENT WEEK
-          if (currentCalDateStr === backwardOriginalDate) {
-            // We are exporting from the ORIGINAL day (Wednesday) -> Show target date + original date
-            customRefStr = `יום ${dNameOriginal} ${oDateObj.getDate().toString().padStart(2,'0')}/${(oDateObj.getMonth()+1).toString().padStart(2,'0')}`;
-            customTargetStr = ` ליום ${dNameTarget} ${tDateObj.getDate().toString().padStart(2,'0')}/${(tDateObj.getMonth()+1).toString().padStart(2,'0')}`;
-          } else {
-            // We are exporting from the TARGET day (Thursday) -> Show only original date
-            customRefStr = `יום ${dNameOriginal} ${oDateObj.getDate().toString().padStart(2,'0')}/${(oDateObj.getMonth()+1).toString().padStart(2,'0')}`;
-            customTargetStr = '';
-          }
+          // We are exporting from the TARGET day -> Show only original date
+          customRefStr = `יום ${dNameOriginal} ${oDateObj.getDate()}/${oDateObj.getMonth()+1}`;
+          customTargetStr = '';
         }
       } catch(e) {}
     }
