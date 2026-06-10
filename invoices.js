@@ -2825,19 +2825,19 @@ window.startSharePointScanner = async function() {
     // Helper to safely encode path segments for SharePoint URLs
     const encodePath = (pathStr) => pathStr.split('/').map(encodeURIComponent).join('/');
 
-    async function scanDir(handle, currentPath) {
+    async function scanDir(handle, currentPath, folderObj) {
       for await (const entry of handle.values()) {
         if (entry.kind === 'file') {
           if (!entry.name.startsWith('.') && !entry.name.startsWith('~')) {
             filesFound.push({ 
               name: entry.name, 
-              relativePath: currentPath + '/' + encodeURIComponent(entry.name),
               path: currentPath,
+              folderObj: folderObj,
               lastModified: (await entry.getFile()).lastModified
             });
           }
         } else if (entry.kind === 'directory') {
-          await scanDir(entry, currentPath + '/' + entry.name);
+          await scanDir(entry, currentPath + '/' + entry.name, folderObj);
         }
       }
     }
@@ -2861,10 +2861,10 @@ window.startSharePointScanner = async function() {
          baseContext = '/' + pathSegments.slice(0, 2).join('/');
       }
 
-      await scanDir(folder.handle, path.replace(baseContext, ''));
-      
       folder.baseContext = baseContext;
       folder.origin = origin;
+      
+      await scanDir(folder.handle, path.replace(baseContext, ''), folder);
     }
     
     let matchCount = 0;
@@ -2884,8 +2884,9 @@ window.startSharePointScanner = async function() {
       const numbersInName = file.name.match(/\d+/g) || [];
       const decorator = getSharePointDecorator(file.name);
       const encodedPath = encodePath(file.path);
-      const urlPath = ('/' + decorator + '/' + encodedPath + '/' + file.relativePath).replace(/\/+/g, '/');
-      const link = selectedFolders[0].origin + selectedFolders[0].baseContext + urlPath + '?csf=1&web=1&e=dummy';
+      const encodedName = encodeURIComponent(file.name);
+      const urlPath = ('/' + decorator + '/' + encodedPath + '/' + encodedName).replace(/\/+/g, '/');
+      const link = file.folderObj.origin + file.folderObj.baseContext + urlPath + '?csf=1&web=1&e=dummy';
       
       let matchedInvoice = null;
       let matchedType = null;
