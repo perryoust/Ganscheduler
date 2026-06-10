@@ -1140,7 +1140,7 @@ function genExport(){
   const isAllPostponed = types.every(t => t === 'postponed');
   const isAllPreponedOut = types.every(t => t === 'preponed_out');
   const isAllMakeup = types.every(t => t === 'makeup');
-  const isAllNohap = rel.every(s => s.st === 'nohap' || (s.nt && /נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)));
+  const isAllNohap = rel.every(s => s.st === 'nohap');
   const isAllCan = rel.every(s => s.st === 'can');
 
   const getRefDateStr = (relArr, currentExportDate) => {
@@ -1351,7 +1351,7 @@ function genExport(){
             const addrs=[...new Set(group.map(s=>s.gd.st||''))];
             const sameAddr=addrs.length===1&&addrs[0];
             
-            const isNohapFunc = (s) => s.st === 'can' || s.st === 'nohap' || (s.nt && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.n));
+            const isNohapFunc = (s) => s.st === 'can' || s.st === 'nohap';
             const allNohap = group.every(isNohapFunc);
             
             const groupMgrs = [...new Set(group.map(s => getCoordStr(s.gd.id)).filter(Boolean))];
@@ -1420,7 +1420,7 @@ function genExport(){
             const addrs=[...new Set(group.map(s=>s.gd.st||''))];
             const sameAddr=addrs.length===1&&addrs[0];
             
-            const isNohapFunc = (s) => s.st === 'can' || s.st === 'nohap' || (s.nt && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.n));
+            const isNohapFunc = (s) => s.st === 'can' || s.st === 'nohap';
             const allNohap = group.every(isNohapFunc);
             
             let blockTitle = '';
@@ -1469,7 +1469,7 @@ function genExport(){
         text+=`📍 ${c}\n`;
         byCity[c].forEach(s=>{
           const mTag = getRowTag(s);
-          const isNohapRow = s.st === 'can' || s.st === 'nohap' || (s.nt && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|עבר ל|עובר ל|הועבר ל/i.test(s.n));
+          const isNohapRow = s.st === 'can' || s.st === 'nohap';
           const stIcon = isNohapRow ? '❌ ' : '🏫 ';
           const statusTag = (isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
           const coordText = getCoordStr(s.gd.id);
