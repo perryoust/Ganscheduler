@@ -235,12 +235,12 @@
                <button class="btn bs bsm" onclick="if(confirm('למחוק את כל הקישורים?')) { window.spScannerFolderLinks = {}; localStorage.setItem('spScannerFolderLinks','{}'); window.ghAutoSave(); if(window.renderAdminSpLinks) window.renderAdminSpLinks(); window.showToast('הקישורים נמחקו בהצלחה'); }" style="background:#fff; color:#e53935; border:1px solid #e53935; margin-right:6px;">🗑️ איפוס הכל</button>
             </div>
               
-            <p style="font-size:0.8rem;color:#b71c1c;margin-top:0;margin-bottom:12px;line-height:1.4;border-top:1px solid #ffcc80;padding-top:12px">
+            <p style="font-size:0.8rem;color:#b71c1c;margin-top:0;margin-bottom:12px;line-height:1.4;border-top:1px solid #ffcc80;padding-top:12px;display:none;">
               <b>מחיקת כל נתוני הרכש (דף חלק):</b> ⚠️ פעולה בלתי הפיכה! מוחקת לחלוטין את כל החשבוניות, הספקים וההזמנות ממערכת הרכש. השתמש בזה רק אם אתה רוצה להתחיל מאפס ולייבא קובץ אקסל רכש מחדש.
             </p>
             <button class="btn bs" onclick="window.deleteAllInvoices()"
               title="מחיקת כל נתוני הרכש והחשבוניות כדי להתחיל דף חדש ולייבא את הקובץ מחדש"
-              style="padding:6px 12px;font-size:.8rem;background:#ffebee;border:1px solid #ef5350;color:#c62828;font-weight:bold;display:block">🗑️
+              style="display:none;padding:6px 12px;font-size:.8rem;background:#ffebee;border:1px solid #ef5350;color:#c62828;font-weight:bold;">🗑️
               מחיקת הכל (מחיקת בסיס נתוני רכש)</button>
           </div>
         </div>
@@ -361,6 +361,40 @@
             </div>
           </div>
         </div>
+
+        <!-- ☠️ DANGER ZONE ☠️ -->
+        <div id="admin-danger-zone" style="display:none;border-top:2px solid #ffcdd2;padding-top:18px;margin-top:18px">
+          <div style="font-weight:800;font-size:.95rem;color:#b71c1c;margin-bottom:14px">☠️ אזור סכנה (מחיקות)</div>
+          <div style="background:#ffebee;border-radius:10px;padding:14px;border:1.5px solid #ef5350">
+            <p style="font-size:0.8rem;color:#c62828;margin-top:0;margin-bottom:12px;line-height:1.4">
+              <b>מחיקת שנת פעילות:</b> מוחק לחלוטין את כל נתוני שנת הלימודים (חוגים, שיבוצים, ימי חופשה) מהמערכת ומ-Firebase. לא ניתן לבטל פעולה זו!
+            </p>
+            <button class="btn bs" onclick="window.deleteYearPrompt()"
+              title="מחיקת שנת פעילות שלמה מהמערכת"
+              style="padding:6px 12px;font-size:.8rem;background:#fff;border:1px solid #e53935;color:#c62828;margin-bottom:16px;display:block">
+              🗑️ מחיקת שנת פעילות
+            </button>
+
+            <p style="font-size:0.8rem;color:#b71c1c;margin-top:0;margin-bottom:12px;line-height:1.4;border-top:1px solid #ffcdd2;padding-top:12px">
+              <b>מחיקת כל נתוני הרכש (דף חלק):</b> ⚠️ מוחקת לחלוטין את כל החשבוניות, הספקים וההזמנות ממערכת הרכש.
+            </p>
+            <button class="btn bs" onclick="window.deleteAllInvoices()"
+              title="מחיקת כל נתוני הרכש והחשבוניות כדי להתחיל דף חדש ולייבא את הקובץ מחדש"
+              style="padding:6px 12px;font-size:.8rem;background:#ffebee;border:1px solid #ef5350;color:#c62828;font-weight:bold;margin-bottom:16px;display:block">
+              🗑️ מחיקת בסיס נתוני רכש
+            </button>
+            
+            <p style="font-size:0.8rem;color:#b71c1c;margin-top:0;margin-bottom:12px;line-height:1.4;border-top:1px solid #ffcdd2;padding-top:12px">
+              <b>מחיקה מוחלטת והתחלה מחדש:</b> ☢️ מוחקת את כל נתוני המערכת ומחזירה לברירת מחדל ריקה.
+            </p>
+            <button class="btn bs" onclick="window.nuclearReset()"
+              title="מחיקה מוחלטת של כל הנתונים"
+              style="padding:6px 12px;font-size:.8rem;background:#dc3545;color:#fff;border:none;font-weight:bold;display:block">
+              ☢️ מחיקה מוחלטת (Nuclear Reset)
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
 

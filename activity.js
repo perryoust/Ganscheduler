@@ -141,7 +141,7 @@ function renderDash() {
 
     Object.keys(dateGroups).sort().reverse().forEach(date => {
       const dateEvs = dateGroups[date];
-      html += `<div style="padding:6px 15px; background:#f8f9fa; border-bottom:1px solid #e9ecef; font-weight:700; color:#495057; font-size:0.85rem">📅 ${window.fD(date)}</div>`;
+      html += `<div onclick="window.ST('cal'); if(window.goDate) window.goDate('${date}')" style="padding:6px 15px; background:#f8f9fa; border-bottom:1px solid #e9ecef; font-weight:700; color:#1e88e5; font-size:0.85rem; cursor:pointer;" title="קפוץ ללוח השנה בתאריך זה">📅 ${window.fD(date)} <span style="font-size:0.7rem; font-weight:normal; margin-right:6px">🔗 הצג בלוח שנה</span></div>`;
       
       const dateUsedIds = new Set();
       const dateCards = [];

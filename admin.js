@@ -178,6 +178,13 @@ window._initUsersUI = function _initUsersUI(){
   const purchStatsGrp = document.getElementById('hdr-purch-stats-group');
   if(purchStatsGrp) purchStatsGrp.style.display = hasPurch ? 'contents' : 'none';
 
+  // Danger Zone - Super Admin only
+  const dangerZone = document.getElementById('admin-danger-zone');
+  if(dangerZone) {
+     const isSuperAdmin = window._fbUser?.uid === ADMIN_UID || (window._fbUser?.email || '').toLowerCase().trim() === 'perry@ganmanager.app' || (window._fbUser?.displayName || '').toLowerCase().trim() === 'perry';
+     dangerZone.style.display = isSuperAdmin ? '' : 'none';
+  }
+
   // Show logged-in username in header
   if(window._fbUser){
     const uname = window._fbUser.email?.replace('@ganmanager.app','')||'';
@@ -549,6 +556,78 @@ async function nuclearReset() {
 }
 window.nuclearReset = nuclearReset;
 window.fixData = fixData;
+
+window.deleteYearPrompt = async function() {
+  if (!_isAdmin()) return;
+  const metaStr = window._safeLS.getItem('ganv5_meta');
+  let meta = metaStr ? JSON.parse(metaStr) : null;
+  if (!meta || !meta.years || Object.keys(meta.years).length === 0) {
+    alert('אין תקופות זמינות למחיקה (חוץ מברירת המחדל).');
+    return;
+  }
+  
+  const currentId = meta.currentYear || 'tashpav';
+  const availableYears = Object.entries(meta.years).map(([id, y]) => `${id}: ${y.name}`).join('\n');
+  
+  const idToDelete = prompt(`הזן את מזהה התקופה שברצונך למחוק (באנגלית, למשל tashpaz).\nהתקופה הנוכחית היא: ${currentId}\n\nתקופות קיימות:\n${availableYears}`);
+  
+  if (!idToDelete) return;
+  if (!meta.years[idToDelete]) {
+    alert(`שגיאה: תקופה עם מזהה "${idToDelete}" לא קיימת.`);
+    return;
+  }
+  if (idToDelete === 'tashpav') {
+     if (!confirm('אזהרה: אתה מנסה למחוק את שנת הלימודים הראשית "tashpav"! האם אתה בטוח שברצונך למחוק אותה?')) return;
+  } else {
+     if (!confirm(`האם אתה בטוח לחלוטין שברצונך למחוק את התקופה "${meta.years[idToDelete].name}" (${idToDelete})?\nכל השיבוצים, הגנים, החופשות והזוגות של תקופה זו יימחקו מהענן! פעולה זו אינה הפיכה!`)) return;
+  }
+  
+  try {
+    let tok = null;
+    if (window._fbUser) try { tok = await window._fbUser.getIdToken(true); } catch(e) {}
+    if (!tok) { alert('שגיאת אימות — יש להתחבר מחדש.'); return; }
+    
+    if (window.showCopyToast) window.showCopyToast('⏳ מוחק את התקופה מהענן...');
+    const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
+    
+    // 1. Delete from /years node
+    const r = await fetch(`${base}/years/${idToDelete}.json?auth=${tok}`, {
+      method: 'DELETE'
+    });
+    if (!r.ok) throw new Error('Firebase DELETE failed: ' + r.status);
+    
+    // 2. Remove from local meta
+    delete meta.years[idToDelete];
+    if (meta.currentYear === idToDelete) {
+       meta.currentYear = Object.keys(meta.years)[0] || 'tashpav';
+    }
+    window._safeLS.setItem('ganv5_meta', JSON.stringify(meta));
+    window._safeLS.removeItem('ganv5_y_' + idToDelete);
+    
+    // 3. Update meta in cloud
+    try {
+      await fetch(`${base}/years_meta.json?auth=${tok}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(meta)
+      });
+    } catch(e) {
+      console.warn('Failed to update meta in Firebase:', e);
+    }
+    
+    // Refresh year selector
+    if (window.initYearSelector) window.initYearSelector();
+    if (window.changeCurrentYear) {
+      window.changeCurrentYear(meta.currentYear);
+    } else {
+      location.reload();
+    }
+    
+    alert(`✅ התקופה ${idToDelete} נמחקה בהצלחה!`);
+  } catch(e) {
+    alert('❌ שגיאה במחיקה: ' + e.message);
+  }
+};
 
 // ══════════════════════════════════════════════════════
 // New Year Wizard — Creates a new school year in Firebase
