@@ -325,17 +325,29 @@ window.todo = {
   },
 
   showReminderPopup: function(item) {
+    let container = document.getElementById('todo-reminders-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'todo-reminders-container';
+      container.style.position = 'fixed';
+      container.style.top = '40px';
+      container.style.left = '50%';
+      container.style.transform = 'translateX(-50%)';
+      container.style.zIndex = '999999';
+      container.style.display = 'flex';
+      container.style.flexDirection = 'column';
+      container.style.gap = '15px';
+      container.style.maxHeight = '90vh';
+      container.style.overflowY = 'auto';
+      container.style.padding = '10px';
+      document.body.appendChild(container);
+    }
     const div = document.createElement('div');
-    div.style.position = 'fixed';
-    div.style.top = '40px';
-    div.style.left = '50%';
-    div.style.transform = 'translateX(-50%)';
     div.style.background = '#e65100';
     div.style.color = '#fff';
     div.style.padding = '24px';
     div.style.borderRadius = '12px';
     div.style.boxShadow = '0 15px 50px rgba(0,0,0,0.4)';
-    div.style.zIndex = '999999';
     div.style.display = 'flex';
     div.style.flexDirection = 'column';
     div.style.gap = '15px';
@@ -361,7 +373,7 @@ window.todo = {
       </div>
     `;
     
-    document.body.appendChild(div);
+    container.appendChild(div);
     
     document.getElementById('btn-remind-done-' + item.id).onclick = () => {
       this.toggleDone(item.id);

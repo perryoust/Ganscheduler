@@ -2562,22 +2562,6 @@
           <div id="info-storage-stats" style="margin-top:6px"></div>
         </div>
 
-        <!-- Backup & Restore -->
-        <div style="background:#fff8e1;border-radius:8px;padding:12px;border-right:4px solid #f57f17;margin-bottom:12px">
-          <b style="color:#e65100">💾 גיבוי ושחזור (מקומי)</b><br>
-          <span style="font-size:.75rem">מומלץ להוריד קובץ גיבוי למחשב מדי פעם ליתר ביטחון.</span>
-          <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;margin-bottom:8px">
-            <button class="btn bo bsm" onclick="exportFullBackup()">🚀 הורד גיבוי JSON (ייצוא)</button>
-            <button class="btn bg bsm" onclick="document.getElementById('restore-file').click()">📂 טען מקובץ JSON (ייבוא)</button>
-            <input type="file" id="restore-file" style="display:none" accept=".json" onchange="importBackup(this)">
-            <button class="btn bp bsm" onclick="createSnapshot('ידני')">💾 שמור גרסה (Snap)</button>
-          </div>
-          <div style="font-size:.76rem;color:#78909c;margin-bottom:10px" id="backup-storage-info"></div>
-          <div id="backup-list"></div>
-          
-          <button class="btn bsm" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;width:100%;text-align:right;padding:7px 11px;border-radius:7px;margin-bottom:10px;margin-top:10px" onclick="openAutoBackupSettings()">⚙️ הגדרות גיבוי אוטומטי</button>
-        </div>
-        
         <!-- ====== BACKUPS ====== -->
         <div style="background:#fff8e1;border-radius:8px;padding:12px;border-right:4px solid #f57f17;margin-bottom:12px">
           <b style="color:#e65100">💾 גיבוי ושחזור נתונים</b><br>
@@ -2593,6 +2577,9 @@
             <button class="btn bg bsm" onclick="document.getElementById('restore-file').click()">📂 שחזר מגיבוי (JSON)</button>
             <input type="file" id="restore-file" style="display:none" accept=".json" onchange="importBackup(this)">
           </div>
+          
+          <div style="font-size:.76rem;color:#78909c;margin-bottom:10px" id="backup-storage-info"></div>
+          <div id="backup-list"></div>
           
           <button class="btn bsm" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;width:100%;text-align:right;padding:7px 11px;border-radius:7px;margin-top:8px" onclick="openAutoBackupSettings()">⚙️ הגדרות גיבוי ענן אוטומטי (Auto-Backup)</button>
         </div>
