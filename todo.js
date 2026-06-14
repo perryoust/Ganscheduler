@@ -4,7 +4,7 @@ window.todo = {
   init: function() {
     this.load();
     this.render();
-    setInterval(this.checkReminders.bind(this), 30000); // Check every 30 seconds
+    setInterval(this.checkReminders.bind(this), 5000); // Check every 5 seconds for immediate response
   },
 
   load: function() {
