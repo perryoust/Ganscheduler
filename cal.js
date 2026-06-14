@@ -3,10 +3,15 @@ function calRefG(){
   // Ensure cal-cls matches the active tab
   const clsSel = window.getEl('cal-cls');
   if(clsSel && typeof _calTab !== 'undefined') clsSel.value = (_calTab === 'g' ? 'גנים' : 'ביה"ס');
-  const city = (window.getEl('cal-city')?.value || '');
+  const cities = window.getCalCity ? window.getCalCity() : [];
   const cls = (window.getEl('cal-cls')?.value || '');
-  const gs=window.gByCF(city,cls).sort((a,b)=>{
-    if(!city){const cc=(a.city||'').localeCompare(b.city||'','he');if(cc)return cc;}
+  const allGs = window.gByCF ? window.gByCF('', cls) : (window.GARDENS||[]).filter(g=>!cls||window.getGardenClass(g)===cls);
+  const gs = cities.length > 0 
+    ? allGs.filter(g => cities.includes(g.city))
+    : allGs;
+  
+  gs.sort((a,b)=>{
+    const cc=(a.city||'').localeCompare(b.city||'','he');if(cc)return cc;
     return (a.name||'').localeCompare(b.name||'','he');
   });
   
@@ -20,7 +25,7 @@ function calRefG(){
       </label>
     `;
     gs.forEach(g => {
-      const lbl = city ? g.name : (g.city + ' · ' + g.name);
+      const lbl = (cities.length === 1) ? g.name : (g.city + ' · ' + g.name);
       let tooltip = lbl;
       let partnerNote = '';
       if(window.gardenPair) {
@@ -134,21 +139,186 @@ window.clearCalGMulti = function(plat) {
   window.filterCalGMulti(plat);
 };
 
+window.initCalMultiSelect = function(type, items, getLabelFn) {
+  ['desktop', 'mobile'].forEach(plat => {
+    const listEl = document.getElementById(`cal-${type}-multi-items-${plat}`);
+    if(!listEl) return;
+    listEl.innerHTML = `
+      <label class="custom-multi-item" style="font-weight:bold; border-bottom:1px solid #ccc; position:sticky; top:0; background:#fff; z-index:2;">
+        <input type="checkbox" id="cal-${type}-multi-all-${plat}" onchange="window.toggleAllCalMulti('${type}', '${plat}')">
+        <span>(בחר הכל / נקה הכל)</span>
+      </label>
+    `;
+    items.forEach(item => {
+      const val = typeof item === 'object' ? item.id : item;
+      const lbl = getLabelFn(item);
+      listEl.innerHTML += `<label class="custom-multi-item cal-${type}-multi-real-item" title="${lbl}">
+        <input type="checkbox" value="${val}" class="cal-${type}-multi-chk" onchange="window.calMultiChanged('${type}', '${plat}')">
+        <span>${lbl}</span>
+      </label>`;
+    });
+    if(window.calMultiChanged) window.calMultiChanged(type, plat);
+  });
+};
+
+window.toggleCalMulti = function(type, plat) {
+  const list = document.getElementById(`cal-${type}-multi-list-${plat}`);
+  if(list) list.classList.toggle('open');
+};
+
+window.filterCalMulti = function(type, plat) {
+  const input = document.getElementById(`cal-${type}-multi-search-${plat}`);
+  const filter = input.value.toLowerCase();
+  const list = document.getElementById(`cal-${type}-multi-items-${plat}`);
+  if(!list) return;
+  const items = list.querySelectorAll('.custom-multi-item');
+  items.forEach(item => {
+    if(item.textContent.toLowerCase().includes(filter)) item.style.display = '';
+    else item.style.display = 'none';
+  });
+};
+
+window.toggleAllCalMulti = function(type, plat) {
+  const isChecked = document.getElementById(`cal-${type}-multi-all-${plat}`).checked;
+  const list = document.getElementById(`cal-${type}-multi-items-${plat}`);
+  if(list) {
+    list.querySelectorAll(`.cal-${type}-multi-chk`).forEach(el => {
+      if(el.closest('label').style.display !== 'none') el.checked = isChecked;
+    });
+  }
+  window.calMultiChanged(type, plat);
+};
+
+window.calMultiChanged = function(type, sourcePlat) {
+  const sourceList = document.getElementById(`cal-${type}-multi-items-${sourcePlat}`);
+  if(!sourceList) return;
+  const chks = Array.from(sourceList.querySelectorAll(`.cal-${type}-multi-chk`));
+  const checked = chks.filter(el => el.checked).map(el => el.value);
+  
+  const allChk = document.getElementById(`cal-${type}-multi-all-${sourcePlat}`);
+  if(allChk) {
+    const visibleChks = chks.filter(el => el.closest('label').style.display !== 'none');
+    const allVisibleChecked = visibleChks.length > 0 && visibleChks.every(el => el.checked);
+    const someVisibleChecked = visibleChks.some(el => el.checked);
+    allChk.checked = allVisibleChecked;
+    allChk.indeterminate = !allVisibleChecked && someVisibleChecked;
+  }
+  
+  const otherPlat = sourcePlat === 'desktop' ? 'mobile' : 'desktop';
+  const otherList = document.getElementById(`cal-${type}-multi-items-${otherPlat}`);
+  if(otherList) {
+    otherList.querySelectorAll(`.cal-${type}-multi-chk`).forEach(el => {
+      el.checked = checked.includes(el.value);
+    });
+    const otherAllChk = document.getElementById(`cal-${type}-multi-all-${otherPlat}`);
+    if(otherAllChk && allChk) {
+      otherAllChk.checked = allChk.checked;
+      otherAllChk.indeterminate = allChk.indeterminate;
+    }
+  }
+
+  ['desktop', 'mobile'].forEach(plat => {
+    const btn = document.getElementById(`cal-${type}-multi-btn-${plat}`);
+    if(btn) {
+      const typeLabel = type === 'city' ? 'כל הערים' : 'כל הספקים';
+      if(checked.length === 0) {
+        btn.innerHTML = `<span>${typeLabel}</span> <span style="font-size:0.6rem">▼</span>`;
+      } else if (checked.length === 1) {
+        let lbl = checked[0];
+        if(type === 'sup' && window.supNameLabel) lbl = window.supNameLabel(lbl);
+        btn.innerHTML = `<span>${lbl}</span> <span style="font-size:0.6rem">▼</span>`;
+      } else {
+        const noun = type === 'city' ? 'ערים' : 'ספקים';
+        btn.innerHTML = `<span>נבחרו ${checked.length} ${noun}</span> <span style="font-size:0.6rem">▼</span>`;
+      }
+    }
+  });
+  
+  if (type === 'city') calRefG();
+  else renderCal();
+};
+
+window.clearCalMulti = function(type, plat) {
+  const list = document.getElementById(`cal-${type}-multi-items-${plat}`);
+  if(list) list.querySelectorAll('input').forEach(el => el.checked = false);
+  if(window.calMultiChanged) window.calMultiChanged(type, plat);
+  const searchInput = document.getElementById(`cal-${type}-multi-search-${plat}`);
+  if(searchInput) searchInput.value = '';
+  window.filterCalMulti(type, plat);
+};
+
+window.toggleCalCityMulti = plat => window.toggleCalMulti('city', plat);
+window.filterCalCityMulti = plat => window.filterCalMulti('city', plat);
+window.clearCalCityMulti = plat => window.clearCalMulti('city', plat);
+
+window.toggleCalSupMulti = plat => window.toggleCalMulti('sup', plat);
+window.filterCalSupMulti = plat => window.filterCalMulti('sup', plat);
+window.clearCalSupMulti = plat => window.clearCalMulti('sup', plat);
+
+window.toggleCalClMulti = plat => window.toggleCalMulti('cl', plat);
+window.filterCalClMulti = plat => window.filterCalMulti('cl', plat);
+window.clearCalClMulti = plat => window.clearCalMulti('cl', plat);
+
+window.getCalCity = function() {
+  const plat = window.innerWidth > 768 ? 'desktop' : 'mobile';
+  const listEl = document.getElementById('cal-city-multi-items-' + plat) || document.getElementById('cal-city-multi-items-desktop');
+  if(!listEl) return [];
+  return Array.from(listEl.querySelectorAll('.cal-city-multi-chk:checked')).map(el => el.value);
+};
+
+window.getCalSup = function() {
+  const plat = window.innerWidth > 768 ? 'desktop' : 'mobile';
+  const listEl = document.getElementById('cal-sup-multi-items-' + plat) || document.getElementById('cal-sup-multi-items-desktop');
+  if(!listEl) return [];
+  return Array.from(listEl.querySelectorAll('.cal-sup-multi-chk:checked')).map(el => el.value);
+};
+
+window.calRefCity = function() {
+  const cities = [...new Set((window.GARDENS||[]).map(g=>g.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+  window.initCalMultiSelect('city', cities, city => city);
+};
+
+window.calRefSup = function() {
+  const sups = [...new Set((window.SCH||[]).map(s=>window.supBase(s.a)))].filter(Boolean).sort((a,b)=>a.localeCompare(b,'he'));
+  window.initCalMultiSelect('sup', sups, sup => window.supNameLabel ? window.supNameLabel(sup) : sup);
+};
+
+window.calRefCl = function() {
+  const clsItems = [{id: '__all__', name: '— הכל (גנים באשכולות) —'}, ...window.getClusters().map(c => ({id: c.name, name: c.name}))].sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  window.initCalMultiSelect('cl', clsItems, item => item.name);
+};
+
+window.getCalCl = function() {
+  const plat = window.innerWidth > 768 ? 'desktop' : 'mobile';
+  const listEl = document.getElementById('cal-cl-multi-items-' + plat) || document.getElementById('cal-cl-multi-items-desktop');
+  if(!listEl) return [];
+  return Array.from(listEl.querySelectorAll('.cal-cl-multi-chk:checked')).map(el => el.value);
+};
+
+window.initCalFilters = function() {
+  window.calRefCity();
+  window.calRefSup();
+  window.calRefCl();
+  window.calRefG();
+};
+
 document.addEventListener('click', function(e) {
   ['desktop', 'mobile'].forEach(plat => {
-    const wrap = document.getElementById('cal-g-multi-wrap-' + plat);
-    const list = document.getElementById('cal-g-multi-list-' + plat);
-    if(wrap && list && !wrap.contains(e.target)) list.classList.remove('open');
+    ['g', 'city', 'sup', 'cl'].forEach(type => {
+      const wrap = document.getElementById(`cal-${type}-multi-wrap-${plat}`);
+      const list = document.getElementById(`cal-${type}-multi-list-${plat}`);
+      if(wrap && list && !wrap.contains(e.target)) list.classList.remove('open');
+    });
   });
 });
 function getCalF(){
   const gids = getCalGids();
   return {
     gids: gids.length ? gids : null,
-    city: window.getEl('cal-city')?.value || '',
+    cities: window.getCalCity ? window.getCalCity() : [],
     cls: window.getEl('cal-cls')?.value || '',
-    cluster: window.getEl('cal-cl')?.value || '',
-    sup: window.getEl('cal-sup')?.value || '',
+    clusters: window.getCalCl ? window.getCalCl() : [],
+    sups: window.getCalSup ? window.getCalSup() : [],
     st: window.getEl('cal-st')?.value || ''
   };
 }
@@ -156,21 +326,29 @@ function filterE(f,from,to){
   const all=window.SCH.filter(s=>{
     if(s.d<from||s.d>to) return false;
     const g=window.G(s.g);
-    if(f.city&&g.city!==f.city) return false;
-    if(f.cluster){
-      if(f.cluster==='__all__'){
-        // only show GARDENS that belong to at least one cluster
-        const allClusterGids=new Set(window.getClusters().flatMap(c=>c.gardenIds||[]).map(Number));
-        if(!allClusterGids.has(Number(s.g))) return false;
-      } else {
-        const cl=window.getClusters().find(c=>c.name===f.cluster);
-        if(!cl||(!(cl.gardenIds||[]).map(Number).includes(Number(s.g)))) return false;
+    
+    if(f.cities && f.cities.length > 0 && !f.cities.includes(g.city)) return false;
+    
+    if(f.clusters && f.clusters.length > 0){
+      let hasMatch = false;
+      for (const clName of f.clusters) {
+        if(clName==='__all__'){
+          const allClusterGids=new Set(window.getClusters().flatMap(c=>c.gardenIds||[]).map(Number));
+          if(allClusterGids.has(Number(s.g))) { hasMatch = true; break; }
+        } else {
+          const cl=window.getClusters().find(c=>c.name===clName);
+          if(cl && (cl.gardenIds||[]).map(Number).includes(Number(s.g))) { hasMatch = true; break; }
+        }
       }
+      if(!hasMatch) return false;
     }
+    
     if(f.cls&&window.gcls(g)!==f.cls) return false;
     
     if(f.gids&&!f.gids.map(Number).includes(Number(s.g))) return false;
-    if(f.sup && window.supBase(s.a) !== f.sup && s.a !== f.sup) return false;
+    
+    const supBase = window.supBase ? window.supBase(s.a) : s.a;
+    if(f.sups && f.sups.length > 0 && !f.sups.includes(supBase) && !f.sups.includes(s.a)) return false;
     
     // Status Filter 
     if(s.st==='nohap') return true; // Always show nohap in calendar
@@ -413,6 +591,38 @@ function addPair(gids){
 function addPairFromCal(){
   addPair(getCalGids());
 }
+window.addPairFromCal = addPairFromCal; // Export it
+
+window.addClusterFromCal = function(){
+  const gids = getCalGids();
+  if(!gids || gids.length < 2) return;
+  
+  const name = gids.map(id=>window.G(id).name||'').join(' + ');
+  const nm = prompt('שם לאשכול:', name);
+  if(nm === null) return;
+  const finalName = nm.trim();
+  if(!finalName) return;
+
+  // Check if cluster exists
+  let targetId = 'cl_' + Date.now();
+  const existingCl = Object.values(window.clusters).find(c => c.name === finalName);
+  if (existingCl) {
+    if(!confirm(`⚠️ האשכול "${finalName}" כבר קיים במערכת.\nהאם תרצה לדרוס אותו עם הרשימה החדשה?`)) {
+      return;
+    }
+    targetId = existingCl.id;
+  }
+  
+  window.clusters[targetId] = {
+    id: targetId,
+    name: finalName,
+    desc: existingCl ? existingCl.desc : '',
+    gardenIds: gids
+  };
+  
+  window.save(); window.refresh(); window.refreshClusterDrops();
+  alert(`✅ האשכול "${finalName}" נשמר!`);
+};
 window.addPairFromCal = addPairFromCal;
 window.saveCalPair = addPairFromCal;
 function addPairFromSched(){
@@ -458,6 +668,17 @@ function renderCal(){
         bar.style.display = 'flex';
         const lbl = window.getEl('cal-pair-lbl');
         if (lbl) lbl.textContent = gids.map(id=>window.G(id).name||'').join(' + ');
+        
+        const btn = bar.querySelector('button');
+        if (btn) {
+           if (gids.length <= 3) {
+             btn.textContent = '💾 שמור כזוג קבוע';
+             btn.onclick = window.addPairFromCal;
+           } else {
+             btn.textContent = '💾 שמור כאשכול';
+             btn.onclick = window.addClusterFromCal;
+           }
+        }
       } else {
         bar.style.display = 'none';
       }

@@ -170,11 +170,11 @@ function initDrops(){
       if (el) el.innerHTML = items;
     });
   }
-  fC('dash-city');fC('cal-city');fC('s-city');fC('g-city');fC('apm-city');fC('pairs-city');fC('cl-city');
+  fC('dash-city');fC('s-city');fC('g-city');fC('apm-city');fC('pairs-city');fC('cl-city');
   // Filter dropdowns (search/filter): show ONLY act suppliers in חוגים views
   getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>{
     const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
-    ['dash-sup','cal-sup','s-sup'].forEach(id=>{
+    ['dash-sup','s-sup'].forEach(id=>{
       ['', '-desktop', '-mobile'].forEach(suffix => {
         const el = document.getElementById(id + suffix);
         if (el) el.innerHTML += `<option value='${s.name}'>${disp}</option>`;
@@ -198,6 +198,7 @@ function initDrops(){
     const el = document.getElementById('cal-cls' + suffix);
     if (el) el.value = 'גנים';
   });
+  if (window.initCalFilters) window.initCalFilters();
 }
 
 window.TABS=['dash','cal','sched','gardens','pairs','holidays','clusters','sup','managers','admin'];

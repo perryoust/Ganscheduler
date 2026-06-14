@@ -18,12 +18,12 @@
   <!-- CSS standard variables and design system -->
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
-  <link rel="stylesheet" href="styles.css?v=105.00" />
+  <link rel="stylesheet" href="styles.css?v=106.01" />
   <script>
-    window.APP_VERSION = '105.00';
+    window.APP_VERSION = '106.01';
   </script>
-  <script type="module" src="firebase_init.js?v=105.00"></script>
-  <script src="assets.js?v=105.00"></script>
+  <script type="module" src="firebase_init.js?v=106.00"></script>
+  <script src="assets.js?v=106.00"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script>
@@ -367,7 +367,19 @@
                <button class="btn bg" onclick="navCal(1)">▶</button>
              </div>
            </div>
-           <div class="fg"><label>עיר</label><select id="cal-city-desktop" onchange="calRefG()"><option value="">כל הערים</option></select></div>
+           <div class="fg custom-multi-wrap" id="cal-city-multi-wrap-desktop">
+             <label>עיר</label>
+             <div class="custom-multi-select" onclick="window.toggleCalCityMulti('desktop')" id="cal-city-multi-btn-desktop">
+               <span>כל הערים</span> <span style="font-size:0.6rem">▼</span>
+             </div>
+             <div class="custom-multi-dropdown" id="cal-city-multi-list-desktop">
+               <div style="display:flex;align-items:center;border-bottom:1px solid #ccc;">
+                 <input type="text" class="custom-multi-search" id="cal-city-multi-search-desktop" placeholder="🔍 חפש עיר..." onkeyup="window.filterCalCityMulti('desktop')" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
+                 <button onclick="window.clearCalCityMulti('desktop');event.stopPropagation()" style="background:none;border:none;color:#d32f2f;cursor:pointer;padding:0 8px;font-size:0.75rem;white-space:nowrap;" title="נקה בחירה">🧹 נקה</button>
+               </div>
+               <div id="cal-city-multi-items-desktop" style="max-height:250px;overflow-y:auto;"></div>
+             </div>
+           </div>
            <div class="fg custom-multi-wrap" id="cal-g-multi-wrap-desktop">
              <label>צהרונים</label>
              <div class="custom-multi-select" onclick="window.toggleCalGMulti('desktop')" id="cal-g-multi-btn-desktop">
@@ -381,7 +393,32 @@
                <div id="cal-g-multi-items-desktop" style="max-height:250px;overflow-y:auto;"></div>
              </div>
            </div>
-           <div class="fg"><label>ספק</label><select id="cal-sup-desktop" onchange="renderCal()"><option value="">כל הספקים</option></select></div>
+           <div class="fg custom-multi-wrap" id="cal-sup-multi-wrap-desktop">
+             <label>ספק</label>
+             <div class="custom-multi-select" onclick="window.toggleCalSupMulti('desktop')" id="cal-sup-multi-btn-desktop">
+               <span>כל הספקים</span> <span style="font-size:0.6rem">▼</span>
+             </div>
+             <div class="custom-multi-dropdown" id="cal-sup-multi-list-desktop">
+               <div style="display:flex;align-items:center;border-bottom:1px solid #ccc;">
+                 <input type="text" class="custom-multi-search" id="cal-sup-multi-search-desktop" placeholder="🔍 חפש ספק..." onkeyup="window.filterCalSupMulti('desktop')" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
+                 <button onclick="window.clearCalSupMulti('desktop');event.stopPropagation()" style="background:none;border:none;color:#d32f2f;cursor:pointer;padding:0 8px;font-size:0.75rem;white-space:nowrap;" title="נקה בחירה">🧹 נקה</button>
+               </div>
+               <div id="cal-sup-multi-items-desktop" style="max-height:250px;overflow-y:auto;"></div>
+             </div>
+           </div>
+           <div class="fg custom-multi-wrap" id="cal-cl-multi-wrap-desktop">
+             <label>אשכולות</label>
+             <div class="custom-multi-select" onclick="window.toggleCalClMulti('desktop')" id="cal-cl-multi-btn-desktop">
+               <span>כל האשכולות</span> <span style="font-size:0.6rem">▼</span>
+             </div>
+             <div class="custom-multi-dropdown" id="cal-cl-multi-list-desktop">
+               <div style="display:flex;align-items:center;border-bottom:1px solid #ccc;">
+                 <input type="text" class="custom-multi-search" id="cal-cl-multi-search-desktop" placeholder="🔍 חפש אשכול..." onkeyup="window.filterCalClMulti('desktop')" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
+                 <button onclick="window.clearCalClMulti('desktop');event.stopPropagation()" style="background:none;border:none;color:#d32f2f;cursor:pointer;padding:0 8px;font-size:0.75rem;white-space:nowrap;" title="נקה בחירה">🧹 נקה</button>
+               </div>
+               <div id="cal-cl-multi-items-desktop" style="max-height:250px;overflow-y:auto;"></div>
+             </div>
+           </div>
            <div class="mr-auto flex-c gap-8">
              <button class="btn bo" onclick="if(window.clearCal)window.clearCal();if(window.renderCal)window.renderCal()">🧹 נקה סינון</button>
              <button class="btn bp" onclick="openNewSched()">➕ שיבוץ חדש</button>
@@ -429,7 +466,19 @@
             </div>
          </div>
          <div id="cal-flt-mobile" class="flt-wrap">
-            <div class="fg"><label>עיר</label><select id="cal-city-mobile" onchange="calRefG()"><option value="">כל הערים</option></select></div>
+            <div class="fg custom-multi-wrap" id="cal-city-multi-wrap-mobile">
+              <label>עיר</label>
+              <div class="custom-multi-select" onclick="window.toggleCalCityMulti('mobile')" id="cal-city-multi-btn-mobile" style="width:100%">
+                <span>כל הערים</span> <span style="font-size:0.6rem">▼</span>
+              </div>
+              <div class="custom-multi-dropdown" id="cal-city-multi-list-mobile" style="width:100%">
+                <div style="display:flex;align-items:center;border-bottom:1px solid #ccc;">
+                  <input type="text" class="custom-multi-search" id="cal-city-multi-search-mobile" placeholder="🔍 חפש עיר..." onkeyup="window.filterCalCityMulti('mobile')" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
+                  <button onclick="window.clearCalCityMulti('mobile');event.stopPropagation()" style="background:none;border:none;color:#d32f2f;cursor:pointer;padding:0 8px;font-size:0.75rem;white-space:nowrap;" title="נקה בחירה">🧹 נקה</button>
+                </div>
+                <div id="cal-city-multi-items-mobile" style="max-height:200px;overflow-y:auto;"></div>
+              </div>
+            </div>
             <div class="fg custom-multi-wrap" id="cal-g-multi-wrap-mobile">
               <label>צהרונים</label>
               <div class="custom-multi-select" onclick="window.toggleCalGMulti('mobile')" id="cal-g-multi-btn-mobile" style="width:100%">
@@ -443,7 +492,32 @@
                 <div id="cal-g-multi-items-mobile" style="max-height:200px;overflow-y:auto;"></div>
               </div>
             </div>
-            <div class="fg"><label>ספק</label><select id="cal-sup-mobile" onchange="renderCal()"><option value="">כל הספקים</option></select></div>
+             <div class="fg custom-multi-wrap" id="cal-sup-multi-wrap-mobile">
+               <label>ספק</label>
+               <div class="custom-multi-select" onclick="window.toggleCalSupMulti('mobile')" id="cal-sup-multi-btn-mobile" style="width:100%">
+                 <span>כל הספקים</span> <span style="font-size:0.6rem">▼</span>
+               </div>
+               <div class="custom-multi-dropdown" id="cal-sup-multi-list-mobile" style="width:100%">
+                 <div style="display:flex;align-items:center;border-bottom:1px solid #ccc;">
+                   <input type="text" class="custom-multi-search" id="cal-sup-multi-search-mobile" placeholder="🔍 חפש ספק..." onkeyup="window.filterCalSupMulti('mobile')" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
+                   <button onclick="window.clearCalSupMulti('mobile');event.stopPropagation()" style="background:none;border:none;color:#d32f2f;cursor:pointer;padding:0 8px;font-size:0.75rem;white-space:nowrap;" title="נקה בחירה">🧹 נקה</button>
+                 </div>
+                 <div id="cal-sup-multi-items-mobile" style="max-height:200px;overflow-y:auto;"></div>
+               </div>
+             </div>
+             <div class="fg custom-multi-wrap" id="cal-cl-multi-wrap-mobile">
+               <label>אשכולות</label>
+               <div class="custom-multi-select" onclick="window.toggleCalClMulti('mobile')" id="cal-cl-multi-btn-mobile" style="width:100%">
+                 <span>כל האשכולות</span> <span style="font-size:0.6rem">▼</span>
+               </div>
+               <div class="custom-multi-dropdown" id="cal-cl-multi-list-mobile" style="width:100%">
+                 <div style="display:flex;align-items:center;border-bottom:1px solid #ccc;">
+                   <input type="text" class="custom-multi-search" id="cal-cl-multi-search-mobile" placeholder="🔍 חפש אשכול..." onkeyup="window.filterCalClMulti('mobile')" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
+                   <button onclick="window.clearCalClMulti('mobile');event.stopPropagation()" style="background:none;border:none;color:#d32f2f;cursor:pointer;padding:0 8px;font-size:0.75rem;white-space:nowrap;" title="נקה בחירה">🧹 נקה</button>
+                 </div>
+                 <div id="cal-cl-multi-items-mobile" style="max-height:200px;overflow-y:auto;"></div>
+               </div>
+             </div>
          </div>
          <div class="vbtns w-full mt-2" style="overflow-x:auto">
             <button class="vbtn active" id="vb-list-mobile" onclick="setView('list')">רשימה</button>
@@ -3251,7 +3325,7 @@
     <script src="firebase.js?v=104.02"></script>
     <script src="invoices.js?v=104.03"></script>
     <script src="suppliers.js?v=104.02"></script>
-    <script src="cal.js?v=104.02"></script>
+    <script src="cal.js?v=106.01"></script>
     <script src="activity.js?v=104.02"></script>
     <script src="sched.js?v=104.02"></script>
     <script src="gardens.js?v=104.03"></script>
@@ -3260,7 +3334,7 @@
     <script src="admin.js?v=104.02"></script>
     <script src="import_export.js?v=104.02"></script>
     <script src="core_globals.js?v=105.00"></script>
-    <script src="core_data.js?v=105.00"></script>
+    <script src="core_data.js?v=106.01"></script>
     <script src="core_dash.js?v=105.00"></script>
     <script src="core_app.js?v=105.00"></script>
     <script src="qa_simulator.js?v=104.02"></script>
