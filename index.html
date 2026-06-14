@@ -20,7 +20,7 @@
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
   <link rel="stylesheet" href="styles.css?v=106.04" />
   <script>
-    window.APP_VERSION = '106.04';
+    window.APP_VERSION = '106.05';
   </script>
   <script type="module" src="firebase_init.js?v=106.00"></script>
   <script src="assets.js?v=106.00"></script>
@@ -643,6 +643,53 @@
       <div style="display:flex;gap:8px">
         <button class="btn bg" style="flex:1;background:#00695c;border-color:#004d40" onclick="generateChangesExcelReport()">📥 הפק והורד Excel</button>
         <button class="btn bs" onclick="CM('export-changes-m')">ביטול</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== Auto Export Settings Modal ====== -->
+  <div id="auto-export-changes-m" class="modal">
+    <div class="mb" style="max-width:400px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 style="margin:0;color:#e65100">⏱️ הגדרות ייצוא אוטומטי</h2>
+        <button onclick="CM('auto-export-changes-m')" class="close-btn">✕</button>
+      </div>
+      <div style="margin-bottom:12px;font-size:0.8rem;color:#555">
+        הגדר מתי תרצה שהמערכת תוריד אוטומטית את דוח השינויים. ההורדה תתבצע אוטומטית לתיקיית ההורדות של המחשב כאשר המערכת תהיה פתוחה.
+      </div>
+      <div class="fg">
+        <label>סטטוס ייצוא אוטומטי</label>
+        <select id="auto-exc-status" style="width:100%">
+          <option value="off">כבוי</option>
+          <option value="on">פעיל</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>תדירות</label>
+        <select id="auto-exc-freq" style="width:100%" onchange="document.getElementById('auto-exc-day-wrap').style.display=this.value==='weekly'?'block':'none'">
+          <option value="daily">כל יום</option>
+          <option value="weekly">פעם בשבוע</option>
+        </select>
+      </div>
+      <div class="fg" id="auto-exc-day-wrap" style="display:none">
+        <label>יום בשבוע</label>
+        <select id="auto-exc-day" style="width:100%">
+          <option value="0">ראשון</option>
+          <option value="1">שני</option>
+          <option value="2">שלישי</option>
+          <option value="3">רביעי</option>
+          <option value="4">חמישי</option>
+          <option value="5">שישי</option>
+          <option value="6">שבת</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:15px">
+        <label>שעת ייצוא מבוקשת</label>
+        <input type="time" id="auto-exc-time" style="width:100%" value="17:00">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn bg" style="flex:1;background:#e65100;border-color:#e65100" onclick="saveAutoExportSettings()">💾 שמור הגדרות</button>
+        <button class="btn bs" onclick="CM('auto-export-changes-m')">ביטול</button>
       </div>
     </div>
   </div>

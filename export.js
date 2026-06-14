@@ -978,9 +978,9 @@ window.exportShortagesToExcel = exportShortagesToExcel;
 window.downloadWB = downloadWB;
 window.buildCityWB = buildCityWB;
 window.buildGardenWB = buildGardenWB;
-window.generateChangesExcelReport = async function() {
+window.generateChangesExcelReport = async function(isAuto = false) {
   if (typeof window.ExcelJS === 'undefined') {
-    alert('ExcelJS is not loaded yet. Please wait a moment and try again.');
+    if (!isAuto) alert('ExcelJS is not loaded yet. Please wait a moment and try again.');
     return;
   }
 
@@ -988,7 +988,7 @@ window.generateChangesExcelReport = async function() {
   const toStr = document.getElementById('exc-to').value;
   
   if (!fromStr || !toStr) {
-    alert('נא לבחור טווח תאריכים מלא (מתאריך ועד תאריך).');
+    if (!isAuto) alert('נא לבחור טווח תאריכים מלא (מתאריך ועד תאריך).');
     return;
   }
 
@@ -1011,7 +1011,7 @@ window.generateChangesExcelReport = async function() {
   });
 
   if (changes.length === 0) {
-    alert('לא נמצאו פעילויות חריגות (שינויים) בטווח התאריכים הנבחר.');
+    if (!isAuto) alert('לא נמצאו פעילויות חריגות (שינויים) בטווח התאריכים הנבחר.');
     return;
   }
 
@@ -1086,11 +1086,89 @@ window.generateChangesExcelReport = async function() {
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `דוח_שינויים_${fromStr}_עד_${toStr}.xlsx`;
+    a.download = `דוח_שינויים_${fromStr}_עד_${toStr}${isAuto ? '_אוטומטי' : ''}.xlsx`;
     a.click();
     if(window.CM) window.CM('export-changes-m');
+    if(isAuto && window.showToast) window.showToast('✅ הדוח ירד בהצלחה (אוטומטי)');
   } catch (e) {
     console.error('Changes export failed:', e);
-    alert('שגיאה בייצוא הדוח');
+    if (!isAuto) alert('שגיאה בייצוא הדוח');
   }
 };
+
+window.initAutoExportSettingsModal = function() {
+  const confStr = localStorage.getItem('autoExportChangesConf');
+  if(confStr) {
+    try {
+      const conf = JSON.parse(confStr);
+      document.getElementById('auto-exc-status').value = conf.status || 'off';
+      document.getElementById('auto-exc-freq').value = conf.freq || 'daily';
+      document.getElementById('auto-exc-day').value = conf.day || '0';
+      document.getElementById('auto-exc-time').value = conf.time || '17:00';
+      document.getElementById('auto-exc-day-wrap').style.display = conf.freq === 'weekly' ? 'block' : 'none';
+    } catch(e){}
+  }
+};
+
+window.saveAutoExportSettings = function() {
+  const conf = {
+    status: document.getElementById('auto-exc-status').value,
+    freq: document.getElementById('auto-exc-freq').value,
+    day: document.getElementById('auto-exc-day').value,
+    time: document.getElementById('auto-exc-time').value
+  };
+  localStorage.setItem('autoExportChangesConf', JSON.stringify(conf));
+  window.CM('auto-export-changes-m');
+  if (window.showToast) window.showToast('✅ הגדרות ייצוא אוטומטי נשמרו!');
+  window.checkAutoExport();
+};
+
+window.checkAutoExport = function() {
+  const confStr = localStorage.getItem('autoExportChangesConf');
+  if(!confStr) return;
+  try {
+    const conf = JSON.parse(confStr);
+    if (conf.status !== 'on') return;
+    
+    const now = new Date();
+    const currentDay = now.getDay().toString();
+    const [h, m] = conf.time.split(':').map(Number);
+    
+    if (conf.freq === 'weekly' && currentDay !== conf.day) return;
+    
+    const targetTime = new Date(now);
+    targetTime.setHours(h, m, 0, 0);
+    
+    if (now >= targetTime) {
+      const lastExportStr = localStorage.getItem('lastAutoExportTime');
+      const targetTimeStr = targetTime.getTime().toString();
+      
+      if (lastExportStr !== targetTimeStr) {
+        localStorage.setItem('lastAutoExportTime', targetTimeStr);
+        if (conf.freq === 'daily') {
+          const td = window.td();
+          document.getElementById('exc-from').value = td;
+          document.getElementById('exc-to').value = td;
+        } else {
+          const past = new Date(now);
+          past.setDate(past.getDate() - 6);
+          document.getElementById('exc-from').value = window.d2s(past);
+          document.getElementById('exc-to').value = window.td();
+        }
+        
+        if (window.showToast) window.showToast('📥 מוריד דוח שינויים אוטומטי...');
+        setTimeout(() => {
+          window.generateChangesExcelReport(true);
+        }, 500);
+      }
+    }
+  } catch(e) {
+    console.error('Auto export error', e);
+  }
+};
+
+// Check periodically every minute
+setInterval(() => {
+  if (typeof window.checkAutoExport === 'function') window.checkAutoExport();
+}, 60000);
+
