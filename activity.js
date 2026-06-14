@@ -1123,16 +1123,21 @@ window.getSpMissedHtml = function(gid) {
   
   if(!missedEvs.length) return '<div style="font-size:.75rem;color:#546e7a">אין פעילויות שעונות לקריטריון זה.</div>';
   
-  let h = '<div style="max-height:150px;overflow-y:auto;border:1px solid #eee;border-radius:4px"><table style="width:100%;font-size:.75rem;border-collapse:collapse;text-align:right"><thead><tr style="background:#f5f5f5;border-bottom:1px solid #ddd"><th style="padding:4px">תאריך</th><th style="padding:4px">ספק</th><th style="padding:4px">פעילות</th><th style="padding:4px">הערות</th><th style="padding:4px">סטטוס</th></tr></thead><tbody>';
+  let h = '<div style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:2px">';
   missedEvs.forEach(ev => {
     const onclickStr = `window.calD=new Date('${ev.d}');window.currentTab='calendar';if(window.renderCal)window.renderCal();if(window.switchTab)window.switchTab('calendar');window.CM('sp-m');`;
     const stLabel = window.stLabel(ev);
     const ntStr = ev.nt || '';
-    h += `<tr onclick="${onclickStr}" style="cursor:pointer;border-bottom:1px solid #eee;transition:0.2s" onmouseover="this.style.background='#f0f8ff'" onmouseout="this.style.background='transparent'">
-      <td style="padding:4px">${window.fD(ev.d)}</td><td style="padding:4px">${ev.a}</td><td style="padding:4px">${ev.act||''}</td><td style="padding:4px">${ntStr}</td><td style="padding:4px">${stLabel}</td>
-    </tr>`;
+    h += `<div onclick="${onclickStr}" style="cursor:pointer;border:1px solid #ffcdd2;border-radius:6px;padding:8px;background:#fff;transition:0.2s" onmouseover="this.style.background='#ffebee'" onmouseout="this.style.background='#fff'">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-weight:800;color:#c62828;font-size:.8rem">${window.fD(ev.d)} - יום ${window.dayN(ev.d)}</span>
+        <span style="font-size:.7rem">${stLabel}</span>
+      </div>
+      <div style="font-size:.75rem;color:#1a237e;font-weight:700;margin-bottom:2px">${ev.a} ${ev.act ? `| ${ev.act}` : ''}</div>
+      ${ntStr ? `<div style="font-size:.7rem;color:#d32f2f">📝 ${ntStr}</div>` : ''}
+    </div>`;
   });
-  h += '</tbody></table></div>';
+  h += '</div>';
   return h;
 };
 
