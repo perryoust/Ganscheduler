@@ -986,16 +986,30 @@ window.generateChangesExcelReport = async function(isAuto = false) {
 
   const normalizeDateInput = (val) => {
     if (!val) return '';
-    if (val.includes('/')) {
-      const p = val.split('/');
+    let v = val;
+    // Strip time portion if any (e.g. T00:00:00)
+    if (v.length > 10 && v.includes('T')) v = v.split('T')[0];
+
+    const convert = (p) => {
+      let y = p[2];
+      if (y.length === 2) y = '20' + y;
+      return `${y}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+    };
+
+    if (v.includes('/')) {
+      const p = v.split('/');
       if (p[0].length === 4) return `${p[0]}-${p[1].padStart(2,'0')}-${p[2].padStart(2,'0')}`;
-      if (p.length === 3) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+      if (p.length === 3) return convert(p);
     }
-    if (val.includes('-')) {
-      const p = val.split('-');
-      if (p[0].length !== 4) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+    if (v.includes('-')) {
+      const p = v.split('-');
+      if (p[0].length !== 4) return convert(p);
     }
-    return val;
+    if (v.includes('.')) {
+      const p = v.split('.');
+      if (p[0].length !== 4) return convert(p);
+    }
+    return v;
   };
 
   const fromStr = normalizeDateInput(document.getElementById('exc-from').value);
