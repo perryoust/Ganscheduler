@@ -93,15 +93,55 @@ window.todo = {
   add: function() {
     const input = document.getElementById('todo-input');
     if (!input) return;
-    const text = input.value.trim();
+    let text = input.value.trim();
     if (!text) return;
 
-    this.items.unshift({
+    let remindAt = null;
+    const now = new Date();
+
+    // Parse "DD/MM HH:MM" or "DD/MM HHMM" or "DD.MM HHMM"
+    const regexDate = /^(\d{1,2})[\/\.](\d{1,2})\s+(\d{1,2}):?(\d{2})\s+(.*)$/;
+    // Parse "HH:MM" or "HHMM"
+    const regexTime = /^(\d{1,2}):?(\d{2})\s+(.*)$/;
+
+    let m;
+    if ((m = text.match(regexDate))) {
+      let day = parseInt(m[1], 10);
+      let month = parseInt(m[2], 10) - 1;
+      let hour = parseInt(m[3], 10);
+      let minute = parseInt(m[4], 10);
+      text = m[5];
+
+      let targetDate = new Date(now.getFullYear(), month, day, hour, minute, 0, 0);
+      if (targetDate.getTime() < now.getTime() - 86400000) {
+        targetDate.setFullYear(now.getFullYear() + 1);
+      }
+      remindAt = targetDate.getTime();
+    } else if ((m = text.match(regexTime))) {
+      let hour = parseInt(m[1], 10);
+      let minute = parseInt(m[2], 10);
+      text = m[3];
+
+      let targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute, 0, 0);
+      if (targetDate.getTime() <= now.getTime()) {
+        targetDate.setDate(targetDate.getDate() + 1);
+      }
+      remindAt = targetDate.getTime();
+    }
+
+    const newItem = {
       id: 't_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
       text: text,
       done: false,
       ts: Date.now()
-    });
+    };
+
+    if (remindAt) {
+      newItem.remindAt = remindAt;
+      newItem.remindTriggered = false;
+    }
+
+    this.items.unshift(newItem);
 
     input.value = '';
     this.save();
