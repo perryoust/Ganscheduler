@@ -173,6 +173,50 @@ window.todo = {
       alert('אין משימות לייצוא');
       return;
     }
+    
+    // Check if ExcelJS is loaded for true XLSX export
+    if (typeof ExcelJS !== 'undefined') {
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('משימות');
+      ws.views = [{ rightToLeft: true }];
+      
+      ws.columns = [
+        { header: 'מזהה', key: 'id', width: 20 },
+        { header: 'משימה', key: 'text', width: 50 },
+        { header: 'נוצרה ב', key: 'created', width: 20 },
+        { header: 'תזכורת', key: 'remind', width: 20 },
+        { header: 'הושלמה?', key: 'done', width: 10 }
+      ];
+      
+      // Add styling to headers
+      ws.getRow(1).font = { bold: true };
+      
+      this.items.forEach(item => {
+        ws.addRow({
+          id: item.id,
+          text: item.text,
+          created: item.ts ? new Date(item.ts).toLocaleString('he-IL') : '',
+          remind: item.remindAt ? new Date(item.remindAt).toLocaleString('he-IL') : '',
+          done: item.done ? 'כן' : 'לא'
+        });
+      });
+      
+      wb.xlsx.writeBuffer().then(buf => {
+        const blob = new Blob([buf], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'משימות_' + new Date().toISOString().slice(0,10) + '.xlsx';
+        link.click();
+      }).catch(e => {
+        console.error('XLSX Export failed, falling back to CSV', e);
+        this._fallbackCSVExport();
+      });
+    } else {
+      this._fallbackCSVExport();
+    }
+  },
+
+  _fallbackCSVExport: function() {
     const rows = [
       ['מזהה', 'משימה', 'נוצרה ב', 'תזכורת', 'הושלמה?']
     ];
@@ -180,13 +224,11 @@ window.todo = {
       rows.push([
         item.id,
         item.text,
-        new Date(item.addedAt).toLocaleString('he-IL'),
+        item.ts ? new Date(item.ts).toLocaleString('he-IL') : '',
         item.remindAt ? new Date(item.remindAt).toLocaleString('he-IL') : '',
         item.done ? 'כן' : 'לא'
       ]);
     });
-    
-    // Fallback to CSV
     const csvContent = '\uFEFF' + rows.map(e => e.map(cell => '"' + (cell||'').toString().replace(/"/g, '""') + '"').join(",")).join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');

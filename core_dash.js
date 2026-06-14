@@ -1794,7 +1794,8 @@ function mobNavPurch(btn){
 function exportData(){
   const data=_safeLS.getItem('ganv5')||'{}';
   const snaps=_safeLS.getItem('ganv5_snaps')||'[]';
-  const blob=new Blob([JSON.stringify({data:JSON.parse(data),snaps:JSON.parse(snaps),ts:Date.now()},null,2)],{type:'application/json'});
+  const todos=_safeLS.getItem('ganv5_todos')||'[]';
+  const blob=new Blob([JSON.stringify({data:JSON.parse(data),snaps:JSON.parse(snaps),todos:JSON.parse(todos),ts:Date.now()},null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download='kids_backup_'+new Date().toISOString().slice(0,10)+'.json';
