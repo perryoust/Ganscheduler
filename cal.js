@@ -13,7 +13,12 @@ function calRefG(){
   ['desktop', 'mobile'].forEach(plat => {
     const listEl = document.getElementById('cal-g-multi-items-' + plat);
     if(!listEl) return;
-    listEl.innerHTML = '';
+    listEl.innerHTML = `
+      <label class="custom-multi-item" style="font-weight:bold; border-bottom:1px solid #ccc; position:sticky; top:0; background:#fff; z-index:2;">
+        <input type="checkbox" id="cal-g-multi-all-${plat}" onchange="window.toggleAllCalGMulti('${plat}')">
+        <span>(בחר הכל / נקה הכל)</span>
+      </label>
+    `;
     gs.forEach(g => {
       const lbl = city ? g.name : (g.city + ' · ' + g.name);
       let tooltip = lbl;
@@ -29,7 +34,7 @@ function calRefG(){
           }
         }
       }
-      listEl.innerHTML += `<label class="custom-multi-item" title="${tooltip}">
+      listEl.innerHTML += `<label class="custom-multi-item cal-g-multi-real-item" title="${tooltip}">
         <input type="checkbox" value="${g.id}" class="cal-g-multi-chk" onchange="window.calMultiGChanged('${plat}')">
         <span>${lbl}</span>
         ${partnerNote}
@@ -62,17 +67,47 @@ window.filterCalGMulti = function(plat) {
   });
 };
 
+window.toggleAllCalGMulti = function(plat) {
+  const isChecked = document.getElementById('cal-g-multi-all-' + plat).checked;
+  const list = document.getElementById('cal-g-multi-items-' + plat);
+  if(list) {
+    list.querySelectorAll('.cal-g-multi-chk').forEach(el => {
+      // Only toggle visible items if there's a filter, or all if no filter
+      if(el.closest('label').style.display !== 'none') {
+        el.checked = isChecked;
+      }
+    });
+  }
+  window.calMultiGChanged(plat);
+};
+
 window.calMultiGChanged = function(sourcePlat) {
   const sourceList = document.getElementById('cal-g-multi-items-' + sourcePlat);
   if(!sourceList) return;
-  const checked = Array.from(sourceList.querySelectorAll('input:checked')).map(el => el.value);
+  const chks = Array.from(sourceList.querySelectorAll('.cal-g-multi-chk'));
+  const checked = chks.filter(el => el.checked).map(el => el.value);
+  
+  // Sync 'Select All' checkbox state
+  const allChk = document.getElementById('cal-g-multi-all-' + sourcePlat);
+  if(allChk) {
+    const visibleChks = chks.filter(el => el.closest('label').style.display !== 'none');
+    const allVisibleChecked = visibleChks.length > 0 && visibleChks.every(el => el.checked);
+    const someVisibleChecked = visibleChks.some(el => el.checked);
+    allChk.checked = allVisibleChecked;
+    allChk.indeterminate = !allVisibleChecked && someVisibleChecked;
+  }
   
   const otherPlat = sourcePlat === 'desktop' ? 'mobile' : 'desktop';
   const otherList = document.getElementById('cal-g-multi-items-' + otherPlat);
   if(otherList) {
-    otherList.querySelectorAll('input').forEach(el => {
+    otherList.querySelectorAll('.cal-g-multi-chk').forEach(el => {
       el.checked = checked.includes(el.value);
     });
+    const otherAllChk = document.getElementById('cal-g-multi-all-' + otherPlat);
+    if(otherAllChk && allChk) {
+      otherAllChk.checked = allChk.checked;
+      otherAllChk.indeterminate = allChk.indeterminate;
+    }
   }
 
   ['desktop', 'mobile'].forEach(plat => {
