@@ -121,7 +121,7 @@ function delPairFromGarden(){
 }
 function setGmView(v){
   window.gmV=v;
-  ['day','week','month','recur'].forEach(x=>{
+  ['day','week','month','recur','missed'].forEach(x=>{
     const el = document.getElementById('gvb-'+x);
     if(el) el.classList.toggle('active',x===v);
   });
@@ -150,6 +150,39 @@ function renderGM(){
       const el = document.getElementById(id);
       if(el) el.style.visibility = 'hidden';
     });
+    return;
+  }
+  
+  if(window.gmV === 'missed') {
+    document.getElementById('gm-cal').style.display = 'block';
+    const recurEl = document.getElementById('gm-recur');
+    if(recurEl) recurEl.style.display = 'none';
+    ['gm-nav-prev', 'gm-nav-next', 'gm-nav-ns', 'gm-nav-ex'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.style.visibility = 'hidden';
+    });
+    const perEl = document.getElementById('gm-per');
+    if(perEl) { perEl.style.visibility = 'visible'; perEl.textContent = 'לא התקיים / נדחה'; }
+    
+    const missedEvs = window.SCH.filter(s => {
+      if(s.g !== gid) return false;
+      const nt = s.nt || '';
+      return s.st === 'can' || s.st === 'nohap' || /דחי?יה|נדחה|הוזז/i.test(nt);
+    }).sort((a,b) => b.d.localeCompare(a.d) || (a.t||'').localeCompare(b.t||''));
+    
+    if(!missedEvs.length){
+      document.getElementById('gm-cal').innerHTML='<p style="color:#999;text-align:center;padding:18px">אין פעילויות שעונות לקריטריון זה.</p>';
+      return;
+    }
+    
+    let h='<div class="tw"><table><thead><tr><th>תאריך</th><th>יום</th><th>שעה</th><th>ספק</th><th>הערות</th><th>סטטוס</th></tr></thead><tbody>';
+    missedEvs.forEach(s=>{
+      const gblk=window.getGardenBlock(s.g,s.d);
+      const ntStr = gblk ? `<span style="color:#c62828;font-size:.72rem">${gblk.icon||'🚫'} ${gblk.reason}</span>${s.nt?' | '+s.nt:''}` : (s.nt || '');
+      const onclickStr = `window.calD=new Date('${s.d}');window.currentTab='calendar';if(window.renderCal)window.renderCal();if(window.switchTab)window.switchTab('calendar');window.CM('gm');`;
+      h+=`<tr onclick="${onclickStr}" class="${window.stClass(s)}" style="cursor:pointer" title="לחץ למעבר ללוח השנה"><td>${window.fD(s.d)}</td><td>יום ${window.dayN(s.d)}</td><td>${window.fT(s.t)}</td><td>${s.a}</td><td>${ntStr}</td><td style="white-space:nowrap">${window.stLabel(s)}</td></tr>`;
+    });
+    document.getElementById('gm-cal').innerHTML=h+'</tbody></table></div>';
     return;
   }
   
@@ -1097,43 +1130,48 @@ function genExport(){
   const from=document.getElementById('ex-d1').value;
   const to=document.getElementById('ex-d2').value||from;
   const fmt=document.getElementById('ex-fmt').value;
+  const typeFlt=document.getElementById('ex-type-flt')?.value || 'all';
   if(!from){alert('בחר תאריך');return;}
   const gids = (_exGids || f.gids) ? (_exGids || f.gids).map(Number) : null;
   // DON'T clear _exGids here so manual re-generation works
   const isM_flag = _exIsM;
-  const rel=SCH.filter(s=>s.d>=from&&s.d<=to&&(!gids||gids.includes(Number(s.g))))
-    .sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'99').localeCompare(b.t||'99'));
-  const relActive=rel.filter(s=>s.st!=='can');
-  if(!rel.length){(document.getElementById('ex-prev')||{}).textContent='אין פעילויות';return;}
-
-  // Row-level type detector
+  
+  // Row-level type detector (moved up for filtering)
   const getEvType = (s) => {
     const noteText = (s.nt || '') + ' ' + (s.n || '') + ' ' + (s.a || '');
-    
-    // 1. Explicit Cancel / Nohap logic first
     if (s.st === 'can') return 'can';
     if (s.st === 'nohap') {
       if (/הוקדם ל/i.test(noteText)) return 'preponed_out';
       return 'nohap'; 
     }
-    
-    // 2. Advancement (הקדמה)
     if (s._postFrom && s.d < s._postFrom) return 'preponed';
     if (/הקדמה מיום|הוקדם מיום|הקדמה|הוקדם מ/i.test(noteText)) return 'preponed';
-    
-    // 3. Postponement (דחייה)
     if (s._postFrom && s.d > s._postFrom) return 'postponed';
     if (/דחייה מיום|נדחה מיום|הוזז מיום|עבר מיום|דחייה|נדחה|הוזז|השלמה מיום/i.test(noteText)) return 'postponed';
-    
-    // 4. Preponed out fallback
     if (/הוקדם ל/i.test(noteText)) return 'preponed_out';
-    
-    // 5. Makeup (השלמה)
     if (s._makeupFrom || (s._isMakeup && !s._postFrom)) return 'makeup';
     if (/השלמה/i.test(noteText)) return 'makeup';
-    
     return 'normal';
   };
+
+  let rel=SCH.filter(s=>s.d>=from&&s.d<=to&&(!gids||gids.includes(Number(s.g))))
+    .sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'99').localeCompare(b.t||'99'));
+    
+  // Apply type filter if not 'all'
+  if (typeFlt === 'missed') {
+    rel = rel.filter(s => {
+      const t = getEvType(s);
+      return t === 'can' || t === 'nohap' || t === 'postponed' || t === 'preponed_out';
+    });
+  } else if (typeFlt === 'makeup') {
+    rel = rel.filter(s => {
+      const t = getEvType(s);
+      return t === 'makeup' || t === 'preponed';
+    });
+  }
+  
+  const relActive=rel.filter(s=>s.st!=='can');
+  if(!rel.length){(document.getElementById('ex-prev')||{}).textContent='אין פעילויות';return;}
 
   const types = rel.map(getEvType);
   const isAllPreponed = types.every(t => t === 'preponed');

@@ -1756,6 +1756,7 @@
           <button class="vbtn" id="gvb-week" onclick="setGmView('week')">שבועי</button>
           <button class="vbtn" id="gvb-month" onclick="setGmView('month')">חודשי</button>
           <button class="vbtn" id="gvb-recur" onclick="setGmView('recur')">🚀 חוגים קבועים</button>
+          <button class="vbtn" id="gvb-missed" onclick="setGmView('missed')">לא התקיים</button>
         </div>
         <button class="btn bo bsm" onclick="gmNav(-1)" id="gm-nav-prev">?</button>
         <span id="gm-per"
@@ -1778,6 +1779,11 @@
       <div class="row" style="margin-bottom:9px">
         <div class="fg"><label>תאריך</label><input type="date" id="ex-d1"></div>
         <div class="fg"><label>עד (אופציונלי)</label><input type="date" id="ex-d2"></div>
+        <div class="fg"><label>סינון סוג</label><select id="ex-type-flt">
+            <option value="all">הכל</option>
+            <option value="missed">רק לא התקיים / דחייה / בוטל</option>
+            <option value="makeup">רק השלמות / הקדמות</option>
+          </select></div>
         <div class="fg"><label>פורמט</label><select id="ex-fmt">
             <option value="full">מלא</option>
             <option value="short">קצר</option>
