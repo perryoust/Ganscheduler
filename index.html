@@ -18,12 +18,12 @@
   <!-- CSS standard variables and design system -->
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
-  <link rel="stylesheet" href="styles.css?v=106.16" />
+  <link rel="stylesheet" href="styles.css?v=106.17" />
   <script>
     window.APP_VERSION = '106.10';
   </script>
-  <script type="module" src="firebase_init.js?v=106.16"></script>
-  <script src="assets.js?v=106.16"></script>
+  <script type="module" src="firebase_init.js?v=106.17"></script>
+  <script src="assets.js?v=106.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script>
@@ -3380,26 +3380,26 @@
     </div>
 
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-     <script src="utils.js?v=106.16"></script>
-    <script src="data_manager.js?v=106.16"></script>
-    <script src="data.js?v=106.16"></script>
-    <script src="firebase.js?v=106.16"></script>
-    <script src="invoices.js?v=106.16"></script>
-    <script src="suppliers.js?v=106.16"></script>
-    <script src="cal.js?v=106.16"></script>
-    <script src="activity.js?v=106.16"></script>
-    <script src="sched.js?v=106.16"></script>
-    <script src="gardens.js?v=106.16"></script>
-    <script src="export.js?v=106.16"></script>
-    <script src="backup.js?v=106.16"></script>
-    <script src="admin.js?v=106.16"></script>
-    <script src="import_export.js?v=106.16"></script>
-    <script src="core_globals.js?v=106.16"></script>
-    <script src="core_data.js?v=106.16"></script>
-    <script src="core_dash.js?v=106.16"></script>
-    <script src="core_app.js?v=106.16"></script>
-    <script src="qa_simulator.js?v=106.16"></script>
-    <script src="todo.js?v=106.16"></script>
+     <script src="utils.js?v=106.17"></script>
+    <script src="data_manager.js?v=106.17"></script>
+    <script src="data.js?v=106.17"></script>
+    <script src="firebase.js?v=106.17"></script>
+    <script src="invoices.js?v=106.17"></script>
+    <script src="suppliers.js?v=106.17"></script>
+    <script src="cal.js?v=106.17"></script>
+    <script src="activity.js?v=106.17"></script>
+    <script src="sched.js?v=106.17"></script>
+    <script src="gardens.js?v=106.17"></script>
+    <script src="export.js?v=106.17"></script>
+    <script src="backup.js?v=106.17"></script>
+    <script src="admin.js?v=106.17"></script>
+    <script src="import_export.js?v=106.17"></script>
+    <script src="core_globals.js?v=106.17"></script>
+    <script src="core_data.js?v=106.17"></script>
+    <script src="core_dash.js?v=106.17"></script>
+    <script src="core_app.js?v=106.17"></script>
+    <script src="qa_simulator.js?v=106.17"></script>
+    <script src="todo.js?v=106.17"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
       console.log('Ganscheduler Architecture: v' + (window.APP_VERSION || '103.82') + ' Ready');
@@ -3424,13 +3424,13 @@
           <div id="todo-list" style="max-height:400px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
           
           <div style="margin-top:20px; border-top:1px solid #eee; padding-top:10px;">
-            <button onclick="window.todo.toggleArchive()" style="background:none; border:none; color:#78909c; cursor:pointer; font-size:0.9rem; width:100%; text-align:right;">
-              ▼ משימות שהושלמו (<span id="todo-archive-count">0</span>)
-            </button>
-            <div id="todo-archive-list" style="display:none; max-height:200px; overflow-y:auto; margin-top:10px; opacity:0.7; flex-direction:column; gap:8px;"></div>
-            <div style="text-align:left; margin-top:10px;">
-               <button onclick="window.todo.clearArchive()" style="background:none; border:none; color:#d32f2f; cursor:pointer; font-size:0.8rem; text-decoration:underline;">נקה היסטוריה</button>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <button onclick="window.todo.toggleArchive()" style="background:none; border:none; color:#78909c; cursor:pointer; font-size:0.9rem; flex:1; text-align:right;">
+                ▼ משימות שהושלמו (<span id="todo-archive-count">0</span>)
+              </button>
+              <button onclick="window.todo.clearArchive()" style="background:none; border:none; color:#d32f2f; cursor:pointer; font-size:1.1rem; padding:0 5px;" title="מחק את כל המשימות שהושלמו">🗑️</button>
             </div>
+            <div id="todo-archive-list" style="display:none; max-height:200px; overflow-y:auto; margin-top:10px; opacity:0.7; flex-direction:column; gap:8px;"></div>
           </div>
         </div>
     </div>

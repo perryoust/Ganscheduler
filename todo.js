@@ -145,6 +145,7 @@ window.todo = {
 
     input.value = '';
     this.save();
+    if (remindAt) setTimeout(() => this.checkReminders(), 100);
   },
 
   toggleDone: function(id) {
@@ -214,6 +215,7 @@ window.todo = {
       item.remindTriggered = false;
     }
     this.save();
+    if (val) setTimeout(() => this.checkReminders(), 100);
   },
 
   checkReminders: function() {
