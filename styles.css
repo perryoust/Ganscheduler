@@ -1350,6 +1350,8 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 
 /* TODO STYLES */
 #todo-fab {
+  user-select: none;
+  -webkit-user-select: none;
   position: fixed;
   bottom: 24px;
   left: 24px;
