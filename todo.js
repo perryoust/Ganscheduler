@@ -273,9 +273,12 @@ window.todo = {
       <div style="font-size:2rem;">⏰</div>
       <div style="font-size:1.4rem; font-weight:800;">תזכורת למשימה!</div>
       <div style="font-size:1.2rem; font-weight:600; margin:10px 0; background:rgba(255,255,255,0.1); padding:10px; border-radius:6px;">${item.text}</div>
-      <div style="display:flex; gap:10px; justify-content:center; margin-top:10px;">
-        <button id="btn-remind-done-${item.id}" style="background:#fff; color:#e65100; border:none; padding:10px 20px; border-radius:6px; font-weight:bold; font-size:1rem; cursor:pointer;">סמן כבוצע</button>
-        <button id="btn-remind-close-${item.id}" style="background:none; color:#fff; border:2px solid #fff; padding:10px 20px; border-radius:6px; font-size:1rem; cursor:pointer;">סגור</button>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
+        <div style="display:flex; gap:10px; justify-content:center;">
+          <button id="btn-remind-done-${item.id}" style="background:#fff; color:#e65100; border:none; padding:10px 20px; border-radius:6px; font-weight:bold; font-size:1rem; cursor:pointer;">סמן כבוצע</button>
+          <button id="btn-remind-close-${item.id}" style="background:none; color:#fff; border:2px solid #fff; padding:10px 20px; border-radius:6px; font-size:1rem; cursor:pointer;" title="משאיר ברשימת המשימות">סגור</button>
+        </div>
+        <button id="btn-remind-snooze-${item.id}" style="background:none; color:#ffd54f; border:none; padding:5px; text-decoration:underline; cursor:pointer; font-size:0.9rem;">נודניק (הזכר שוב בעוד 15 דקות)</button>
       </div>
     `;
     
@@ -286,6 +289,13 @@ window.todo = {
       div.remove();
     };
     document.getElementById('btn-remind-close-' + item.id).onclick = () => {
+      div.remove();
+    };
+    document.getElementById('btn-remind-snooze-' + item.id).onclick = () => {
+      // Add 15 minutes (900000 ms)
+      item.remindAt = Date.now() + 900000;
+      item.remindTriggered = false;
+      this.save();
       div.remove();
     };
   }
