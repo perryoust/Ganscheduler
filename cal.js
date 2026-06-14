@@ -91,6 +91,14 @@ window.calMultiGChanged = function(sourcePlat) {
   renderCal();
 };
 
+window.clearCalGMulti = function(plat) {
+  const list = document.getElementById('cal-g-multi-items-' + plat);
+  if(list) list.querySelectorAll('input').forEach(el => el.checked = false);
+  if(window.calMultiGChanged) window.calMultiGChanged(plat);
+  document.getElementById('cal-g-multi-search-' + plat).value = '';
+  window.filterCalGMulti(plat);
+};
+
 document.addEventListener('click', function(e) {
   ['desktop', 'mobile'].forEach(plat => {
     const wrap = document.getElementById('cal-g-multi-wrap-' + plat);

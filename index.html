@@ -374,7 +374,10 @@
                <span>כל הצהרונים</span> <span style="font-size:0.6rem">▼</span>
              </div>
              <div class="custom-multi-dropdown" id="cal-g-multi-list-desktop">
-               <input type="text" class="custom-multi-search" id="cal-g-multi-search-desktop" placeholder="🔍 חפש צהרון..." onkeyup="window.filterCalGMulti('desktop')" onclick="event.stopPropagation()">
+               <div style="display:flex;align-items:center;border-bottom:1px solid #ccc;">
+                 <input type="text" class="custom-multi-search" id="cal-g-multi-search-desktop" placeholder="🔍 חפש צהרון..." onkeyup="window.filterCalGMulti('desktop')" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
+                 <button onclick="window.clearCalGMulti('desktop');event.stopPropagation()" style="background:none;border:none;color:#d32f2f;cursor:pointer;padding:0 8px;font-size:0.75rem;white-space:nowrap;" title="נקה בחירה">🧹 נקה</button>
+               </div>
                <div id="cal-g-multi-items-desktop" style="max-height:250px;overflow-y:auto;"></div>
              </div>
            </div>
@@ -433,7 +436,10 @@
                 <span>כל הצהרונים</span> <span style="font-size:0.6rem">▼</span>
               </div>
               <div class="custom-multi-dropdown" id="cal-g-multi-list-mobile" style="width:100%">
-                <input type="text" class="custom-multi-search" id="cal-g-multi-search-mobile" placeholder="🔍 חפש צהרון..." onkeyup="window.filterCalGMulti('mobile')" onclick="event.stopPropagation()">
+                <div style="display:flex;align-items:center;border-bottom:1px solid #ccc;">
+                  <input type="text" class="custom-multi-search" id="cal-g-multi-search-mobile" placeholder="🔍 חפש צהרון..." onkeyup="window.filterCalGMulti('mobile')" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
+                  <button onclick="window.clearCalGMulti('mobile');event.stopPropagation()" style="background:none;border:none;color:#d32f2f;cursor:pointer;padding:0 8px;font-size:0.75rem;white-space:nowrap;" title="נקה בחירה">🧹 נקה</button>
+                </div>
                 <div id="cal-g-multi-items-mobile" style="max-height:200px;overflow-y:auto;"></div>
               </div>
             </div>
