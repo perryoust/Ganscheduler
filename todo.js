@@ -281,6 +281,11 @@ window.todo = {
           <button id="btn-remind-close-${item.id}" style="background:none; color:#fff; border:2px solid #fff; padding:10px 20px; border-radius:6px; font-size:1rem; cursor:pointer;" title="משאיר ברשימת המשימות">סגור</button>
         </div>
         <button id="btn-remind-snooze-${item.id}" style="background:none; color:#ffd54f; border:none; padding:5px; text-decoration:underline; cursor:pointer; font-size:0.9rem;">נודניק (הזכר שוב בעוד 15 דקות)</button>
+        <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:5px; border-top:1px solid rgba(255,255,255,0.3); padding-top:10px;">
+           <span style="font-size:0.85rem;">או דחה לשעה:</span>
+           <input type="datetime-local" id="input-remind-reschedule-${item.id}" style="padding:4px; border-radius:4px; border:none; outline:none; font-size:0.85rem; color:#333;">
+           <button id="btn-remind-reschedule-${item.id}" style="background:#4caf50; color:#fff; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:0.85rem;">שמור</button>
+        </div>
       </div>
     `;
     
@@ -299,6 +304,15 @@ window.todo = {
       item.remindTriggered = false;
       this.save();
       div.remove();
+    };
+    document.getElementById('btn-remind-reschedule-' + item.id).onclick = () => {
+      const val = document.getElementById('input-remind-reschedule-' + item.id).value;
+      if (val) {
+        item.remindAt = new Date(val).getTime();
+        item.remindTriggered = false;
+        this.save();
+        div.remove();
+      }
     };
   }
 };
