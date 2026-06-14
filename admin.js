@@ -224,6 +224,8 @@ window._initUsersUI = function _initUsersUI(){
   if(settingsDangerZone) settingsDangerZone.style.display = isSuperAdmin ? '' : 'none';
 
   // Show Data Management and Year Management in Settings only for Admins
+  const settingsAdminTabBtn = document.getElementById('settings-admin-tab-btn');
+  if(settingsAdminTabBtn) settingsAdminTabBtn.style.display = isAdm ? '' : 'none';
   const settingsAdminData = document.getElementById('settings-admin-data');
   if(settingsAdminData) settingsAdminData.style.display = isAdm ? '' : 'none';
   
