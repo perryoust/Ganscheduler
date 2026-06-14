@@ -21,6 +21,10 @@
     "years_meta": {
       ".read": "auth != null",
       ".write": "auth != null"
+    },
+    "backups": {
+      ".read": "auth != null",
+      ".write": "auth != null"
     }
   }
 }
