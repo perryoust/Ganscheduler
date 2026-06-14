@@ -1062,6 +1062,18 @@ window.openSP = function(id) {
     </div>
   </div>`;
 
+  // --- STEP 9.5: Missed Activities ---
+  h += `<div style="margin-top:10px;border:1px solid #ef9a9a;border-radius:10px;overflow:hidden">
+    <div onclick="window.toggleSpAccordion('sp-acc-missed')" style="background:#ffebee;padding:8px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+      <b style="font-size:0.8rem;color:#c62828">⚠️ פעילויות שלא התקיימו / נדחו (מידע בלבד)</b>
+      <span id="sp-acc-missed-arrow" style="font-size:0.7rem;transition:0.3s;color:#c62828">▼</span>
+    </div>
+    <div id="sp-acc-missed" style="display:none;padding:12px;background:#fff;border-top:1px solid #ef9a9a">
+      <div style="font-size:.72rem;color:#c62828;margin-bottom:8px;background:#f9f9f9;padding:4px 8px;border-radius:4px">פעילויות שטרם התקיימו או נדחו ב-${g.name}:</div>
+      ${window.getSpMissedHtml ? window.getSpMissedHtml(s.g) : ''}
+    </div>
+  </div>`;
+
   // --- STEP 10: Delete Button ---
   const delBtnText = s._isMakeup ? '🗑️ מחק פעילות השלמה (והחזר מקורית)' : '🗑️ מחק פעילות זו מהלוח (לצמיתות)';
   h += `<div style="margin-top:15px; text-align:center;">
@@ -1101,6 +1113,28 @@ function toggleSpAccordion(id, forceState = null){
   if(arrow) arrow.style.transform = shouldOpen ? 'rotate(180deg)' : 'rotate(0deg)';
   if(shouldOpen) el.scrollIntoView({behavior: 'smooth', block: 'nearest'});
 }
+
+window.getSpMissedHtml = function(gid) {
+  const missedEvs = window.SCH.filter(ev => {
+    if(ev.g !== gid) return false;
+    const nt = ev.nt || '';
+    return ev.st === 'can' || ev.st === 'nohap' || /דחי?יה|נדחה|הוזז/i.test(nt);
+  }).sort((a,b) => b.d.localeCompare(a.d) || (a.t||'').localeCompare(b.t||''));
+  
+  if(!missedEvs.length) return '<div style="font-size:.75rem;color:#546e7a">אין פעילויות שעונות לקריטריון זה.</div>';
+  
+  let h = '<div style="max-height:150px;overflow-y:auto;border:1px solid #eee;border-radius:4px"><table style="width:100%;font-size:.75rem;border-collapse:collapse;text-align:right"><thead><tr style="background:#f5f5f5;border-bottom:1px solid #ddd"><th style="padding:4px">תאריך</th><th style="padding:4px">ספק</th><th style="padding:4px">פעילות</th><th style="padding:4px">הערות</th><th style="padding:4px">סטטוס</th></tr></thead><tbody>';
+  missedEvs.forEach(ev => {
+    const onclickStr = `window.calD=new Date('${ev.d}');window.currentTab='calendar';if(window.renderCal)window.renderCal();if(window.switchTab)window.switchTab('calendar');window.CM('sp-m');`;
+    const stLabel = window.stLabel(ev);
+    const ntStr = ev.nt || '';
+    h += `<tr onclick="${onclickStr}" style="cursor:pointer;border-bottom:1px solid #eee;transition:0.2s" onmouseover="this.style.background='#f0f8ff'" onmouseout="this.style.background='transparent'">
+      <td style="padding:4px">${window.fD(ev.d)}</td><td style="padding:4px">${ev.a}</td><td style="padding:4px">${ev.act||''}</td><td style="padding:4px">${ntStr}</td><td style="padding:4px">${stLabel}</td>
+    </tr>`;
+  });
+  h += '</tbody></table></div>';
+  return h;
+};
 
 function deleteRecurSeries(id) {
   const s = window.SCH.find(x => x.id == id);

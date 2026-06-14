@@ -121,7 +121,7 @@ function delPairFromGarden(){
 }
 function setGmView(v){
   window.gmV=v;
-  ['day','week','month','recur','missed'].forEach(x=>{
+  ['day','week','month','recur'].forEach(x=>{
     const el = document.getElementById('gvb-'+x);
     if(el) el.classList.toggle('active',x===v);
   });
@@ -150,39 +150,6 @@ function renderGM(){
       const el = document.getElementById(id);
       if(el) el.style.visibility = 'hidden';
     });
-    return;
-  }
-  
-  if(window.gmV === 'missed') {
-    document.getElementById('gm-cal').style.display = 'block';
-    const recurEl = document.getElementById('gm-recur');
-    if(recurEl) recurEl.style.display = 'none';
-    ['gm-nav-prev', 'gm-nav-next', 'gm-nav-ns', 'gm-nav-ex'].forEach(id => {
-      const el = document.getElementById(id);
-      if(el) el.style.visibility = 'hidden';
-    });
-    const perEl = document.getElementById('gm-per');
-    if(perEl) { perEl.style.visibility = 'visible'; perEl.textContent = 'לא התקיים / נדחה'; }
-    
-    const missedEvs = window.SCH.filter(s => {
-      if(s.g !== gid) return false;
-      const nt = s.nt || '';
-      return s.st === 'can' || s.st === 'nohap' || /דחי?יה|נדחה|הוזז/i.test(nt);
-    }).sort((a,b) => b.d.localeCompare(a.d) || (a.t||'').localeCompare(b.t||''));
-    
-    if(!missedEvs.length){
-      document.getElementById('gm-cal').innerHTML='<p style="color:#999;text-align:center;padding:18px">אין פעילויות שעונות לקריטריון זה.</p>';
-      return;
-    }
-    
-    let h='<div class="tw"><table><thead><tr><th>תאריך</th><th>יום</th><th>שעה</th><th>ספק</th><th>הערות</th><th>סטטוס</th></tr></thead><tbody>';
-    missedEvs.forEach(s=>{
-      const gblk=window.getGardenBlock(s.g,s.d);
-      const ntStr = gblk ? `<span style="color:#c62828;font-size:.72rem">${gblk.icon||'🚫'} ${gblk.reason}</span>${s.nt?' | '+s.nt:''}` : (s.nt || '');
-      const onclickStr = `window.calD=new Date('${s.d}');window.currentTab='calendar';if(window.renderCal)window.renderCal();if(window.switchTab)window.switchTab('calendar');window.CM('gm');`;
-      h+=`<tr onclick="${onclickStr}" class="${window.stClass(s)}" style="cursor:pointer" title="לחץ למעבר ללוח השנה"><td>${window.fD(s.d)}</td><td>יום ${window.dayN(s.d)}</td><td>${window.fT(s.t)}</td><td>${s.a}</td><td>${ntStr}</td><td style="white-space:nowrap">${window.stLabel(s)}</td></tr>`;
-    });
-    document.getElementById('gm-cal').innerHTML=h+'</tbody></table></div>';
     return;
   }
   
