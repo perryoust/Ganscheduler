@@ -2789,6 +2789,11 @@ function setGardensTab(t){
 const HEB_DAYS_SHORT=['╫¿╫נ╫⌐╫ץ╫ƒ','╫⌐╫á╫ש','╫⌐╫£╫ש╫⌐╫ש','╫¿╫ס╫ש╫ó╫ש','╫ק╫₧╫ש╫⌐╫ש','╫⌐╫ש╫⌐╫ש','╫⌐╫ס╫¬'];
 
 function getGardenFixedSched(gardenId, fromDate, toDate){
+  if(!confirm('האם לשחזר נתונים מקובץ גיבוי זה?\nהפעולה תדרוס את כל הנתונים המקומיים.')) return;
+  _safeLS.setItem('ganv5',JSON.stringify(data));
+  if(parsed.snaps) _safeLS.setItem('ganv5_snaps',JSON.stringify(parsed.snaps));
+  if(parsed.todos) _safeLS.setItem('ganv5_todos',JSON.stringify(parsed.todos));
+  showToast('✅ הנתונים שוחזרו. מרענן...');
   const gardenEvs = SCH.filter(s=>{
     if(s.g!==gardenId) return false;
     if(s.st&&s.st!=='ok') return false;
@@ -2998,7 +3003,8 @@ function mobNavPurch(btn){
 function exportData(){
   const data=_safeLS.getItem('ganv5')||'{}';
   const snaps=_safeLS.getItem('ganv5_snaps')||'[]';
-  const blob=new Blob([JSON.stringify({data:JSON.parse(data),snaps:JSON.parse(snaps),ts:Date.now()},null,2)],{type:'application/json'});
+  const todos=_safeLS.getItem('ganv5_todos')||'[]';
+  const blob=new Blob([JSON.stringify({data:JSON.parse(data),snaps:JSON.parse(snaps),todos:JSON.parse(todos),ts:Date.now()},null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download='kids_backup_'+new Date().toISOString().slice(0,10)+'.json';
@@ -3019,6 +3025,7 @@ function importData(){
         if(!confirm('Γתá∩╕ן ╫ש╫ש╫ס╫ץ╫נ ╫ש╫ק╫£╫ש╫ú ╫נ╫¬ ╫¢╫£ ╫פ╫á╫¬╫ץ╫á╫ש╫¥ ╫פ╫á╫ץ╫¢╫ק╫ש╫ש╫¥.\n╫פ╫₧╫⌐╫ת?')) return;
         _safeLS.setItem('ganv5',JSON.stringify(data));
         if(parsed.snaps) _safeLS.setItem('ganv5_snaps',JSON.stringify(parsed.snaps));
+        if(parsed.todos) _safeLS.setItem('ganv5_todos',JSON.stringify(parsed.todos));
         showToast('Γ£ו ╫פ╫á╫¬╫ץ╫á╫ש╫¥ ╫ש╫ץ╫ס╫נ╫ץ. ╫ר╫ץ╫ó╫ƒ ╫₧╫ק╫ף╫⌐...');
         setTimeout(()=>location.reload(),1200);
       }catch(err){alert('╫⌐╫ע╫ש╫נ╫פ ╫ס╫º╫ץ╫ס╫Ñ ╫פ╫ע╫ש╫ס╫ץ╫ש: '+err.message);}

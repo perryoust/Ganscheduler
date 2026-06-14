@@ -85,9 +85,11 @@ function importBackup(input){
       const sd={ch:data.ch||[],pairs:data.pairs||[],supEx:data.supEx||{},
         clusters:data.clusters||{},holidays:data.holidays||[],pairBreaks:data.pairBreaks||{},
         managers:data.managers||{},blockedDates:data.blockedDates||{},
-        gardenBlocks:data.gardenBlocks||{},invoices:data.invoices||[]};
+        gardenBlocks:data.gardenBlocks||{},invoices:data.invoices||[],
+        todos:data.todos||[]};
       const json=JSON.stringify(sd);
       window._safeLS.setItem('ganv5',json);
+      if(sd.todos.length) window._safeLS.setItem('ganv5_todos', JSON.stringify(sd.todos));
       // Init meta if missing, write to year key
       let meta=JSON.parse(window._safeLS.getItem('ganv5_meta')||'null');
       if(!meta){
@@ -219,7 +221,8 @@ function exportFullBackup(){
     managers:typeof managers!=='undefined'?managers:{},
     blockedDates:typeof blockedDates!=='undefined'?blockedDates:{},
     gardenBlocks:typeof gardenBlocks!=='undefined'?gardenBlocks:{},
-    invoices:typeof INVOICES!=='undefined'?INVOICES:[]
+    invoices:typeof INVOICES!=='undefined'?INVOICES:[],
+    todos:window.todo ? window.todo.items : []
   };
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);

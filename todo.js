@@ -168,6 +168,36 @@ window.todo = {
     this.save();
   },
 
+  exportToExcel: function() {
+    if (!this.items.length) {
+      alert('אין משימות לייצוא');
+      return;
+    }
+    const rows = [
+      ['מזהה', 'משימה', 'נוצרה ב', 'תזכורת', 'הושלמה?']
+    ];
+    this.items.forEach(item => {
+      rows.push([
+        item.id,
+        item.text,
+        new Date(item.addedAt).toLocaleString('he-IL'),
+        item.remindAt ? new Date(item.remindAt).toLocaleString('he-IL') : '',
+        item.done ? 'כן' : 'לא'
+      ]);
+    });
+    
+    // Fallback to CSV
+    const csvContent = '\uFEFF' + rows.map(e => e.map(cell => '"' + (cell||'').toString().replace(/"/g, '""') + '"').join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'משימות_' + new Date().toISOString().slice(0,10) + '.csv';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  },
+
   openModal: function() {
     const m = document.getElementById('todo-m');
     if(m) {
