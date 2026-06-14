@@ -95,6 +95,10 @@ window.onload = function(){
       if (fbOk) {
         load();
         syncSupplierList();
+        initDrops();
+        initHolDrops();
+        refreshClusterDrops();
+        refreshMgrDrops();
         try{ renderDash(); }catch(e){}
         try{ renderCal(); }catch(e){}
         try{ renderClusters(); }catch(e){}

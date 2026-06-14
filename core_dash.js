@@ -156,7 +156,11 @@ function initDrops(){
     const items = cs.map(c => `<option value='${c}'>${c}</option>`).join('');
     ['', '-desktop', '-mobile'].forEach(suffix => {
       const el = document.getElementById(id + suffix);
-      if (el) el.innerHTML += items;
+      if (el) {
+        const firstOpt = el.querySelector('option[value=""]');
+        const firstHtml = firstOpt ? firstOpt.outerHTML : '';
+        el.innerHTML = firstHtml + items;
+      }
     });
   }
   function fG(id,first,prefix){
@@ -172,6 +176,16 @@ function initDrops(){
   }
   fC('dash-city');fC('s-city');fC('g-city');fC('apm-city');fC('pairs-city');fC('cl-city');
   // Filter dropdowns (search/filter): show ONLY act suppliers in חוגים views
+  ['dash-sup','s-sup'].forEach(id=>{
+    ['', '-desktop', '-mobile'].forEach(suffix => {
+      const el = document.getElementById(id + suffix);
+      if (el) {
+        const firstOpt = el.querySelector('option[value=""]');
+        const firstHtml = firstOpt ? firstOpt.outerHTML : '';
+        el.innerHTML = firstHtml;
+      }
+    });
+  });
   getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>{
     const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
     ['dash-sup','s-sup'].forEach(id=>{
@@ -181,7 +195,16 @@ function initDrops(){
       });
     });
   });
+  
   // Scheduling dropdowns: show ONLY act suppliers (isAct=true)
+  ['ns-sup','es-sup'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) {
+      const firstOpt = el.querySelector('option[value=""]');
+      const firstHtml = firstOpt ? firstOpt.outerHTML : '';
+      el.innerHTML = firstHtml;
+    }
+  });
   getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>{
     const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
     ['ns-sup','es-sup'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML+=`<option value='${s.name}'>${disp}</option>`;});

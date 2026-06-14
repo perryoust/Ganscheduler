@@ -601,6 +601,7 @@ function refreshClusterDrops(){
       getClusters().forEach(cl=>el.innerHTML+=`<option value='${cl.name}'>${cl.name}</option>`);
     });
   });
+  if (window.calRefCl) window.calRefCl();
   const pairEl=document.getElementById('cal-pair');
   if(!pairEl) return;
   pairEl.innerHTML='<option value="">בחר זוג מוגדר...</option>';
