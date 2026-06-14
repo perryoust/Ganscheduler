@@ -4,6 +4,7 @@ window.todo = {
   init: function() {
     this.load();
     this.render();
+    this.makeDraggable();
     setInterval(this.checkReminders.bind(this), 5000); // Check every 5 seconds for immediate response
   },
 
@@ -241,6 +242,7 @@ window.todo = {
   },
 
   openModal: function() {
+    if (this._hasMoved) { this._hasMoved = false; return; }
     const m = document.getElementById('todo-m');
     if(m) {
       m.style.display = 'block';
@@ -398,6 +400,56 @@ window.todo = {
         div.remove();
       }
     };
+  },
+
+  makeDraggable: function() {
+    const fab = document.getElementById('todo-fab');
+    if (!fab) return;
+    let isDragging = false;
+    let startY, startBottom;
+
+    const onStart = (e) => {
+      if (e.target.tagName.toLowerCase() === 'button' || e.target.closest('button')) return;
+      isDragging = true;
+      this._hasMoved = false;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      startY = clientY;
+      const computed = window.getComputedStyle(fab);
+      startBottom = parseInt(computed.bottom, 10) || 90;
+      fab.style.transition = 'none';
+    };
+
+    const onMove = (e) => {
+      if (!isDragging) return;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const deltaY = startY - clientY;
+      if (Math.abs(deltaY) > 5) {
+        this._hasMoved = true;
+      }
+      if (this._hasMoved) {
+        e.preventDefault(); // Prevent scrolling while dragging
+        let newBottom = startBottom + deltaY;
+        if (newBottom < 20) newBottom = 20;
+        const maxBottom = window.innerHeight - 80;
+        if (newBottom > maxBottom) newBottom = maxBottom;
+        fab.style.bottom = newBottom + 'px';
+      }
+    };
+
+    const onEnd = (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      fab.style.transition = '';
+      setTimeout(() => { if(this._hasMoved) this._hasMoved = false; }, 50);
+    };
+
+    fab.addEventListener('touchstart', onStart, {passive: false});
+    document.addEventListener('touchmove', onMove, {passive: false});
+    document.addEventListener('touchend', onEnd);
+    
+    fab.addEventListener('mousedown', onStart);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
   }
 };
 

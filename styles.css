@@ -702,6 +702,7 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 
 @media(max-width:768px){
   #mob-nav, #mob-nav-purch{display:block}
+  .scroll-area{padding-bottom:75px!important}
   .tabs{display:none!important}
   .mode-bar{display:none!important}
   .content{padding-top:0!important}
