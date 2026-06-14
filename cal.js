@@ -16,9 +16,23 @@ function calRefG(){
     listEl.innerHTML = '';
     gs.forEach(g => {
       const lbl = city ? g.name : (g.city + ' · ' + g.name);
-      listEl.innerHTML += `<label class="custom-multi-item" title="${lbl}">
+      let tooltip = lbl;
+      let partnerNote = '';
+      if(window.gardenPair) {
+        const pair = window.gardenPair(g.id);
+        if(pair) {
+          const otherIds = pair.ids.filter(id => Number(id) !== Number(g.id));
+          const otherNames = otherIds.map(id => window.G(id)?.name).filter(Boolean).join(' + ');
+          if(otherNames) {
+            tooltip = `${lbl}\n🔗 שותף לזוג: ${otherNames}`;
+            partnerNote = `<span style="font-size:0.65rem; color:#888; margin-right:auto;">(זוג: ${otherNames})</span>`;
+          }
+        }
+      }
+      listEl.innerHTML += `<label class="custom-multi-item" title="${tooltip}">
         <input type="checkbox" value="${g.id}" class="cal-g-multi-chk" onchange="window.calMultiGChanged('${plat}')">
         <span>${lbl}</span>
+        ${partnerNote}
       </label>`;
     });
     if(window.calMultiGChanged) window.calMultiGChanged(plat); // Sync button state
