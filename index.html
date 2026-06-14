@@ -510,6 +510,7 @@
         <div class="flex-c gap-2 mt-2">
            <button class="btn bp bsm flex-1" onclick="openNewSched()">➕ שיבוץ חדש</button>
            <button class="btn bg bsm flex-1" onclick="exportExcelSched()">📑 Excel</button>
+           <button class="btn bo bsm flex-1" onclick="OM('export-changes-m')">📋 חריגים</button>
         </div>
       </div>
       <div class="card">
@@ -518,6 +519,39 @@
         <div id="s-pag" class="pag"></div>
       </div>
     </div>
+
+  <!-- ====== Export Changes Modal ====== -->
+  <div id="export-changes-m" class="modal">
+    <div class="mb" style="max-width:400px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 style="margin:0;color:#00695c">📋 ייצוא דוח שינויים וחריגים</h2>
+        <button onclick="CM('export-changes-m')" class="close-btn">✕</button>
+      </div>
+      <div style="margin-bottom:12px;font-size:0.8rem;color:#555">
+        בחר את טווח התאריכים להפקת הדוח. המערכת תשלוף רק פעילויות המוגדרות כחריגות (ביטול, דחייה, לא התקיים, או השלמה/הקדמה).
+      </div>
+      <div class="fg" style="margin-bottom:15px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:0.75rem;color:#00695c;font-weight:bold">מתאריך:</label>
+            <input type="date" id="exc-from" style="width:100%">
+          </div>
+          <div>
+            <label style="font-size:0.75rem;color:#00695c;font-weight:bold">עד תאריך:</label>
+            <input type="date" id="exc-to" style="width:100%">
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn bg" style="flex:1;background:#00695c;border-color:#004d40" onclick="generateChangesExcelReport()">📥 הפק והורד Excel</button>
+        <button class="btn bs" onclick="CM('export-changes-m')">ביטול</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- FIREBASE IMPORTS (SDK V9) -->
 
     <!-- ====== GARDENS ====== -->
     <div id="p-gardens" class="panel">
@@ -2415,6 +2449,13 @@
           </div>
           
           <div style="display:flex;flex-direction:column;gap:12px">
+            <!-- Excel Changes Report -->
+            <div style="background:#fff;padding:10px;border-radius:6px;border:1px solid #b2ebf2">
+              <b style="color:#00695c">📋 ייצוא דוח שינויים וחריגים (Excel)</b>
+              <div style="font-size:.7rem;margin-bottom:8px;color:#555">הפקת דוח אקסל המרכז את כל הפעילויות החריגות (ביטולים, דחיות, לא התקיים, השלמות והקדמות) בטווח תאריכים מוגדר.</div>
+              <button class="btn bo bsm" onclick="OM('export-changes-m')" style="background:#e0f2f1;color:#00695c;border:1px solid #80cbc4">📋 פתח חלון ייצוא</button>
+            </div>
+
             <!-- Excel Chugim -->
             <div style="background:#fff;padding:10px;border-radius:6px;border:1px solid #b2ebf2">
               <b style="color:#2e7d32">🎨 ייבוא/ייצוא שיבוצי חוגים שנתי (Excel)</b>

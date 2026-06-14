@@ -978,4 +978,119 @@ window.exportShortagesToExcel = exportShortagesToExcel;
 window.downloadWB = downloadWB;
 window.buildCityWB = buildCityWB;
 window.buildGardenWB = buildGardenWB;
+window.generateChangesExcelReport = async function() {
+  if (typeof window.ExcelJS === 'undefined') {
+    alert('ExcelJS is not loaded yet. Please wait a moment and try again.');
+    return;
+  }
 
+  const fromStr = document.getElementById('exc-from').value;
+  const toStr = document.getElementById('exc-to').value;
+  
+  if (!fromStr || !toStr) {
+    alert('נא לבחור טווח תאריכים מלא (מתאריך ועד תאריך).');
+    return;
+  }
+
+  const fromD = new Date(fromStr);
+  const toD = new Date(toStr);
+
+  const changes = (window.SCH || []).filter(s => {
+    if (!s || !s.d) return false;
+    const sD = new Date(s.d);
+    if (sD < fromD || sD > toD) return false;
+
+    // Is it a changed status?
+    if (['nohap', 'can', 'post'].includes(s.st)) return true;
+    
+    // Is it a makeup / preponed?
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|במקום/i.test(s.nt)) || (s.n && /השלמה|במקום/i.test(s.n)) || (s.a && /השלמה|במקום/i.test(s.a)));
+    if (isM) return true;
+    
+    return false;
+  });
+
+  if (changes.length === 0) {
+    alert('לא נמצאו פעילויות חריגות (שינויים) בטווח התאריכים הנבחר.');
+    return;
+  }
+
+  const wb = new window.ExcelJS.Workbook();
+  const ws = wb.addWorksheet('דוח שינויים');
+  ws.views = [{ rightToLeft: true }];
+
+  ws.columns = [
+    { header: 'תאריך', key: 'date', width: 15 },
+    { header: 'יום', key: 'day', width: 12 },
+    { header: 'עיר', key: 'city', width: 15 },
+    { header: 'שם הצהרון/בי"ס', key: 'name', width: 25 },
+    { header: 'חוג/ספק', key: 'sup', width: 25 },
+    { header: 'שעה מקורית', key: 'time', width: 12 },
+    { header: 'סוג חריגה', key: 'changeType', width: 18 },
+    { header: 'הערות (סיבה/פירוט)', key: 'notes', width: 40 },
+    { header: 'סטטוס מערכת', key: 'status', width: 15 }
+  ];
+
+  ws.getRow(1).eachCell(cell => {
+    cell.font = { bold: true };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB2EBF2' } };
+    cell.alignment = { horizontal: 'center' };
+  });
+
+  const HEB_DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+
+  changes.sort((a,b) => {
+    const ds = a.d.localeCompare(b.d);
+    if(ds !== 0) return ds;
+    const gA = window.G(a.g) || {};
+    const gB = window.G(b.g) || {};
+    return (gA.name||'').localeCompare(gB.name||'');
+  });
+
+  changes.forEach(s => {
+    const g = window.G(s.g) || {};
+    let dayStr = '';
+    let fDate = s.d;
+    try {
+      const dObj = new Date(s.d);
+      if (!isNaN(dObj)) {
+        dayStr = 'יום ' + HEB_DAYS[dObj.getDay()];
+        const parts = s.d.split('-');
+        if (parts.length === 3) fDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+    } catch(e){}
+
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|במקום/i.test(s.nt)) || (s.n && /השלמה|במקום/i.test(s.n)) || (s.a && /השלמה|במקום/i.test(s.a)));
+    
+    let changeType = '';
+    if (s.st === 'can') changeType = '❌ ביטול';
+    else if (s.st === 'nohap') changeType = '⚠️ לא התקיים';
+    else if (s.st === 'post') changeType = '⏩ דחייה';
+    else if (isM) changeType = '🔄 השלמה / הקדמה';
+
+    ws.addRow({
+      date: fDate,
+      day: dayStr,
+      city: g.city || '',
+      name: g.name || '',
+      sup: s.a + (s.act ? ` - ${s.act}` : ''),
+      time: window.fT ? window.fT(s.t) : s.t || '',
+      changeType: changeType,
+      notes: s.nt || s.n || '',
+      status: s.st
+    });
+  });
+
+  try {
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `דוח_שינויים_${fromStr}_עד_${toStr}.xlsx`;
+    a.click();
+    if(window.CM) window.CM('export-changes-m');
+  } catch (e) {
+    console.error('Changes export failed:', e);
+    alert('שגיאה בייצוא הדוח');
+  }
+};

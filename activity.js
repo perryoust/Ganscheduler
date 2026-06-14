@@ -1606,9 +1606,35 @@ function setStatus(idOrSt, maybeSt){
     const main=window.SCH.find(x=>x.id==id);
     if(!main) return;
     main.st=st;
+    let userConfirmedDelete = false;
+    let userDeclinedDelete = false;
+
     if(st==='ok') {
       main.cr='';
       main.cn='';
+      
+      if (main._compByMakeup && main._compByMakeup !== 'false') {
+        const mkIdx = window.SCH.findIndex(x => x.id == main._compByMakeup);
+        if (mkIdx > -1) {
+          if (confirm('פעילות זו קושרה להשלמה/דחייה שנוצרה בתאריך חלופי.\nהחזרתה למצב תקין מאפשרת למחוק גם את הפעילות החלופית.\nהאם למחוק את הפעילות החלופית שנוצרה?')) {
+            window.SCH.splice(mkIdx, 1);
+            userConfirmedDelete = true;
+          } else {
+            userDeclinedDelete = true;
+          }
+        }
+      }
+      
+      if (!main._compByMakeup || main._compByMakeup === 'false') {
+         const linkedMkIdx = window.SCH.findIndex(x => x._postFrom === main.d && x.g === main.g && window.supBase(x.a) === window.supBase(main.a) && x._isMakeup);
+         if (linkedMkIdx > -1 && !userDeclinedDelete) {
+            if (userConfirmedDelete || confirm('פעילות זו קושרה להשלמה/דחייה שנוצרה בתאריך חלופי.\nהחזרתה למצב תקין מאפשרת למחוק גם את הפעילות החלופית.\nהאם למחוק את הפעילות החלופית שנוצרה?')) {
+               window.SCH.splice(linkedMkIdx, 1);
+               userConfirmedDelete = true;
+            }
+         }
+      }
+
       main._compByMakeup = '';
       if(main.nt) {
         main.nt = main.nt.split(' | ').filter(part =>
@@ -1642,6 +1668,19 @@ function setStatus(idOrSt, maybeSt){
             if(st==='ok') {
               pev.cr='';
               pev.cn='';
+              
+              if (pev._compByMakeup && pev._compByMakeup !== 'false') {
+                const mkIdx = window.SCH.findIndex(x => x.id == pev._compByMakeup);
+                if (mkIdx > -1 && userConfirmedDelete) {
+                  window.SCH.splice(mkIdx, 1);
+                }
+              } else {
+                const linkedMkIdx = window.SCH.findIndex(x => x._postFrom === pev.d && x.g === pev.g && window.supBase(x.a) === window.supBase(pev.a) && x._isMakeup);
+                if (linkedMkIdx > -1 && userConfirmedDelete) {
+                  window.SCH.splice(linkedMkIdx, 1);
+                }
+              }
+              
               pev._compByMakeup = '';
               if(pev.nt) {
                 pev.nt = pev.nt.split(' | ').filter(part => 
