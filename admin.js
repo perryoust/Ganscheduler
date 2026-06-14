@@ -20,7 +20,17 @@ async function _runDailyBackupIfNeeded(liveData, tok){
     delete _backupData.invoices;
     const _now = new Date();
     const _timeStr = _now.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
-    const payload = { data: _backupData, ts: Date.now(), time: _timeStr, version: '10.2' };
+    
+    // Compress data using GZIP base64 to save 90% bandwidth and prevent hang
+    let payload;
+    const compressed = await window.utils.compressData(_backupData);
+    if (compressed) {
+      payload = { gz: compressed, ts: Date.now(), time: _timeStr, version: '10.2c' };
+    } else {
+      // Fallback if compression fails
+      payload = { data: _backupData, ts: Date.now(), time: _timeStr, version: '10.2' };
+    }
+
     const r = await fetch(backupUrl, {
       method: 'PUT',
       headers: {'Content-Type':'application/json'},
@@ -102,7 +112,17 @@ async function restoreCloudBackup(dateKey){
       return; 
     }
     const backup=await r.json();
-    const appData=backup.data||backup;
+    let appData;
+    if (backup.gz) {
+      appData = await window.utils.decompressData(backup.gz);
+      if (!appData) {
+        window.showToast('❌ שגיאה בפריסת הגיבוי');
+        if(el) el.innerHTML = prevHtml;
+        return;
+      }
+    } else {
+      appData = backup.data||backup;
+    }
     if(!appData||!appData.ch){ 
       window.showToast('❌ גיבוי פגום (חסר מידע)'); 
       if(el) el.innerHTML = prevHtml;

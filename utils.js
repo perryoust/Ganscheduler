@@ -147,3 +147,44 @@ window.utils = {
     return CITY_MAP[clean] || clean;
   }
 };
+
+window.utils.compressData = async function(data) {
+  try {
+    const jsonStr = typeof data === 'string' ? data : JSON.stringify(data);
+    const stream = new Blob([jsonStr]).stream();
+    const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
+    const compressedResponse = new Response(compressedStream);
+    const blob = await compressedResponse.blob();
+    const buffer = await blob.arrayBuffer();
+    // Convert to base64
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  } catch (e) {
+    console.error('Compression failed', e);
+    return null;
+  }
+};
+
+window.utils.decompressData = async function(base64Str) {
+  try {
+    const binary = atob(base64Str);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const stream = new Blob([bytes]).stream();
+    const decompressedStream = stream.pipeThrough(new DecompressionStream("gzip"));
+    const decompressedResponse = new Response(decompressedStream);
+    const text = await decompressedResponse.text();
+    return JSON.parse(text);
+  } catch (e) {
+    console.error('Decompression failed', e);
+    return null;
+  }
+};
