@@ -199,7 +199,8 @@ async function saveToFirebase(silent = false, force = false) {
       activeGardens: window.activeGardens ? [...window.activeGardens] : null,
       useSraws: typeof window.useSraws !== 'undefined' ? window.useSraws : true,
       spScannerAliases: window.spScannerAliases || {},
-      spScannerFolderLinks: window.spScannerFolderLinks || {}
+      spScannerFolderLinks: window.spScannerFolderLinks || {},
+      todos: window.todo ? window.todo.items : []
     };
 
     // Increment Sequence
