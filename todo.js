@@ -112,11 +112,31 @@ window.todo = {
   },
 
   openModal: function() {
-    if(window.CM) window.CM('todo-m');
     const m = document.getElementById('todo-m');
     if(m) {
-      m.classList.add('open');
+      m.style.display = 'block';
       setTimeout(() => document.getElementById('todo-input').focus(), 100);
+      
+      // Close on outside click
+      if (!this._clickListenerAdded) {
+        document.addEventListener('click', this.handleOutsideClick.bind(this));
+        this._clickListenerAdded = true;
+      }
+    }
+  },
+
+  closeModal: function() {
+    const m = document.getElementById('todo-m');
+    if(m) m.style.display = 'none';
+  },
+
+  handleOutsideClick: function(e) {
+    const m = document.getElementById('todo-m');
+    const fab = document.getElementById('todo-fab');
+    if (m && m.style.display === 'block') {
+      if (!m.contains(e.target) && !fab.contains(e.target)) {
+        this.closeModal();
+      }
     }
   },
 
