@@ -89,16 +89,25 @@ async function loadCloudBackups(){
 async function restoreCloudBackup(dateKey){
   if(!confirm(`לשחזר גיבוי מ-${window.fD(dateKey)}?\nהנתונים הנוכחיים יישמרו תחילה כ-snapshot מקומי.`)) return;
   const el=document.getElementById('cloud-backup-list');
-  if(el) el.innerHTML='<span style="color:#e65100">משחזר...</span>';
+  const prevHtml = el ? el.innerHTML : '';
+  if(el) el.innerHTML='<span style="color:#e65100">משחזר... (אנא המתן, זה עשוי לקחת מספר שניות)</span>';
   try{
     let tok=null;
     if(window._fbUser) try{ tok=await window._fbUser.getIdToken(false); }catch(e){}
     const authQ=tok?'?auth='+tok:'';
     const r=await fetch(`${BACKUP_DB_BASE}/${dateKey}.json${authQ}`);
-    if(!r.ok){ window.showToast('❌ שגיאה בטעינת גיבוי: '+r.status); return; }
+    if(!r.ok){ 
+      window.showToast('❌ שגיאה בטעינת גיבוי: '+r.status); 
+      if(el) el.innerHTML = prevHtml;
+      return; 
+    }
     const backup=await r.json();
     const appData=backup.data||backup;
-    if(!appData||!appData.ch){ window.showToast('❌ גיבוי פגום'); return; }
+    if(!appData||!appData.ch){ 
+      window.showToast('❌ גיבוי פגום (חסר מידע)'); 
+      if(el) el.innerHTML = prevHtml;
+      return; 
+    }
     // Save current as local snapshot first
     createSnapshot('לפני שחזור מענן');
     // Apply the backup data
@@ -107,10 +116,16 @@ async function restoreCloudBackup(dateKey){
     const ok = await save(true);
     window._MASTER_LOCK = false;
     if(ok){
-      showToast('✅ שוחזר מגיבוי '+fD(dateKey)+' — שומר...');
+      showToast('✅ שוחזר מגיבוי '+fD(dateKey)+' — המערכת מתרעננת...');
       setTimeout(()=>{ refresh(); CM('backupm'); }, 1500);
+    } else {
+      window.showToast('❌ שגיאה בשמירת הנתונים המשוחזרים לענן!');
+      if(el) el.innerHTML = prevHtml;
     }
-  } catch(e){ showToast('❌ שגיאת שחזור: '+e.message); }
+  } catch(e){ 
+    showToast('❌ שגיאת שחזור: '+e.message); 
+    if(el) el.innerHTML = prevHtml;
+  }
 }
 
 function _sanitizeSupEx(obj) {
