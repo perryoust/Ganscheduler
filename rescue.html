@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>שחזור חירום</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #fff3e0; }
+    button { padding: 10px 15px; margin: 5px; cursor: pointer; background: #e65100; color: #fff; border: none; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <h2>שחזור חירום מקומי (Snapshots)</h2>
+  <div id="snaps">טוען...</div>
+  <script>
+    const snaps = JSON.parse(localStorage.getItem('ganv5_snaps') || '[]');
+    const el = document.getElementById('snaps');
+    if(!snaps.length) {
+      el.innerHTML = '<p>לא נמצאו גיבויים מקומיים בדפדפן.</p>';
+    } else {
+      el.innerHTML = snaps.map((s, i) => 
+        '<div style="background:#fff; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;">' +
+        '<b>' + s.label + '</b> - ' + new Date(s.ts).toLocaleString('he-IL') + ' (' + Math.round(s.size/1024) + 'KB)' +
+        '<br><br><button onclick="doRestore(' + i + ')">שחזר לגרסה זו</button>' +
+        '</div>'
+      ).join('');
+    }
+    
+    window.doRestore = function(i) {
+      if(!confirm('האם אתה בטוח שברצונך לשחזר נתונים לגרסה זו?')) return;
+      const snap = snaps[i];
+      const data = JSON.parse(snap.data);
+      // We will override the ganv5_y_tashpav directly!
+      const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpav');
+      localStorage.setItem(yearKey, JSON.stringify(data));
+      // Force sync flag so it uploads immediately
+      localStorage.setItem('__force_sync', 'true');
+      alert('הנתונים שוחזרו בהצלחה! פותח את המערכת...');
+      window.location.href = 'index.html';
+    };
+  </script>
+</body>
+</html>
