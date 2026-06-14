@@ -984,16 +984,27 @@ window.generateChangesExcelReport = async function(isAuto = false) {
     return;
   }
 
-  const fromStr = document.getElementById('exc-from').value;
-  const toStr = document.getElementById('exc-to').value;
+  const normalizeDateInput = (val) => {
+    if (!val) return '';
+    if (val.includes('/')) {
+      const p = val.split('/');
+      if (p[0].length === 4) return `${p[0]}-${p[1].padStart(2,'0')}-${p[2].padStart(2,'0')}`;
+      if (p.length === 3) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+    }
+    if (val.includes('-')) {
+      const p = val.split('-');
+      if (p[0].length !== 4) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+    }
+    return val;
+  };
+
+  const fromStr = normalizeDateInput(document.getElementById('exc-from').value);
+  const toStr = normalizeDateInput(document.getElementById('exc-to').value);
   
   if (!fromStr || !toStr) {
     if (!isAuto) alert('נא לבחור טווח תאריכים מלא (מתאריך ועד תאריך).');
     return;
   }
-
-  const fromD = new Date(fromStr);
-  const toD = new Date(toStr);
 
   const changes = (window.SCH || []).filter(s => {
     if (!s || !s.d) return false;
