@@ -2548,7 +2548,12 @@
               <div id="info-fb-load" style="font-weight:700;color:#1565c0;font-size:.78rem">—</div>
             </div>
           </div>
-          <div style="font-size:.75rem;color:#558b2f">שמירה אוטומטית לענן מתבצעת באופן מיידי לאחר כל שינוי</div>
+          <div style="font-size:.75rem;color:#558b2f;margin-bottom:8px">שמירה אוטומטית לענן מתבצעת באופן מיידי לאחר כל שינוי</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid #c8e6c9;padding-top:10px">
+            <button class="btn bsm" onclick="loadCloudBackups()" id="cloud-backup-btn" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9">☁️ חפש גיבויים קודמים בענן</button>
+            <button class="btn bsm" onclick="forceDailyBackup()" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7">💾 צור גיבוי ענן ידני עכשיו</button>
+          </div>
+          <div id="cloud-backup-list" style="font-size:.78rem;color:#999;background:#f5f5f5;padding:6px;border-radius:4px;display:none;max-height:120px;overflow-y:auto;margin-top:8px"></div>
         </div>
 
         <!-- Stats -->
@@ -2587,10 +2592,7 @@
             <button class="btn bo bsm" onclick="exportFullBackup()">🚀 הורד גיבוי למחשב (JSON)</button>
             <button class="btn bg bsm" onclick="document.getElementById('restore-file').click()">📂 שחזר מגיבוי (JSON)</button>
             <input type="file" id="restore-file" style="display:none" accept=".json" onchange="importBackup(this)">
-            <button class="btn bsm" onclick="loadCloudBackups()" id="cloud-backup-btn" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9">☁️ חפש גיבויים בענן</button>
-            <button class="btn bsm" onclick="forceDailyBackup()" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7">💾 צור גיבוי ענן עכשיו</button>
           </div>
-          <div id="cloud-backup-list" style="font-size:.78rem;color:#999;background:#f5f5f5;padding:6px;border-radius:4px;display:none;max-height:120px;overflow-y:auto;margin-bottom:8px"></div>
           
           <button class="btn bsm" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;width:100%;text-align:right;padding:7px 11px;border-radius:7px;margin-top:8px" onclick="openAutoBackupSettings()">⚙️ הגדרות גיבוי ענן אוטומטי (Auto-Backup)</button>
         </div>
