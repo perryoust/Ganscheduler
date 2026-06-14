@@ -5,6 +5,28 @@ window.onload = function(){
   window._onAuthReady = async function(){
     cleanupStaleLocalStorage();
 
+    // 0. Sync years/periods metadata from Firebase (must run before loadFromFirebase)
+    try {
+      let tok = await window._fbUser?.getIdToken(false);
+      const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
+      const r = await fetch(`${base}/years_meta.json${tok ? '?auth=' + tok : ''}`);
+      if (r.ok) {
+        const cloudMeta = await r.json();
+        if (cloudMeta && cloudMeta.years) {
+          const localMetaStr = window._safeLS.getItem('ganv5_meta');
+          let localMeta = localMetaStr ? JSON.parse(localMetaStr) : { currentYear: 'tashpav', years: {} };
+          localMeta.years = { ...localMeta.years, ...cloudMeta.years };
+          if (cloudMeta.currentYear && !localMeta.years[localMeta.currentYear]) {
+            localMeta.currentYear = cloudMeta.currentYear;
+          }
+          window._safeLS.setItem('ganv5_meta', JSON.stringify(localMeta));
+          if (window.initYearSelector) window.initYearSelector();
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load years metadata from Firebase:', e);
+    }
+
     // 1. Load local data immediately to show UI fast
     load();
     restoreMissingHolidays();
@@ -67,22 +89,7 @@ window.onload = function(){
       const fbOk = await loadFromFirebase(false, true); // force=true to always load
       if(!fbOk) console.warn('Firebase load returned false, using local data');
 
-      // Load invoices explicitly — they live at a separate Firebase path
-      // and need the token that is now guaranteed to be fresh
-      try {
-        if(window._cachedToken){
-          const _iR = await fetch(
-            'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json?auth='+window._cachedToken
-          );
-          if(_iR.ok){
-            const _iD = await _iR.json();
-            if(_iD && typeof _iD==='object'){
-              window.INVOICES = Array.isArray(_iD) ? _iD : Object.values(_iD);
-              console.log('Invoices loaded explicitly:', INVOICES.length);
-            }
-          }
-        }
-      } catch(ie){ console.warn('Explicit invoices load failed:', ie); }
+      // Invoices are loaded by loadFromFirebase() (firebase.js L292-L314) — no separate fetch needed
 
       // If Firebase load was successful, update the data and re-render
       if (fbOk) {

@@ -307,6 +307,7 @@ function _applyYearData(o){
     window._GARDENS_ALL = null; // Fall back to GARDENS + _GARDENS_EXTRA
   }
   window.spScannerAliases = o.spScannerAliases || {};
+  window.spScannerFolderLinks = o.spScannerFolderLinks || window.spScannerFolderLinks || {};
 
   if(Array.isArray(o.pairs)&&o.pairs.length>0){
     window.pairs = o.pairs.map(p=>({...p,ids:p.ids.map(id=>parseInt(id)).filter(id=>G(id).id)}));
@@ -316,10 +317,13 @@ function _applyYearData(o){
   if (localVat) try { window.VAT_RATE = JSON.parse(localVat); } catch(e){}
   else window.VAT_RATE = o.vatRate || 18;
 
-  const localInvs = window._safeLS.getItem('ganv5_invoices');
   let loadedInvs = null;
-  if (localInvs) try { loadedInvs = JSON.parse(localInvs); } catch(e){}
-  if (!loadedInvs && o.invoices) loadedInvs = o.invoices;
+  if (Array.isArray(o.invoices) && o.invoices.length > 0) {
+    loadedInvs = o.invoices; // Cloud/merged data — set by loadFromFirebase()
+  } else {
+    const localInvs = window._safeLS.getItem('ganv5_invoices');
+    if (localInvs) try { loadedInvs = JSON.parse(localInvs); } catch(e){}
+  }
 
   if (loadedInvs) {
     window.INVOICES = Array.isArray(loadedInvs) ? loadedInvs : Object.values(loadedInvs);
@@ -563,7 +567,9 @@ async function save(immediate){
       blockedDates:window.blockedDates||{},
       gardenBlocks:window.gardenBlocks||{},
       activeGardens:window.activeGardens?[...window.activeGardens]:null,
-      useSraws: typeof window.useSraws!=='undefined'?window.useSraws:true
+      useSraws: typeof window.useSraws!=='undefined'?window.useSraws:true,
+      spScannerAliases: window.spScannerAliases || {},
+      spScannerFolderLinks: window.spScannerFolderLinks || {}
     };
     const _json=JSON.stringify(data);
     const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpav');

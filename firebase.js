@@ -240,8 +240,13 @@ async function saveToFirebase(silent = false, force = false) {
     // Save Invoices Separately — always save if we have invoice data (no _fbSyncReady gate)
     if (Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
       const invUrl = getFirebaseInvoicesUrl() + (tok ? '?auth=' + tok : '');
-      await fetch(invUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.INVOICES) });
-      console.log('[Sync] Invoices saved:', window.INVOICES.length);
+      const invResp = await fetch(invUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.INVOICES) });
+      if (!invResp.ok) {
+        console.error('[Sync] ❌ Invoices save FAILED:', invResp.status, invResp.statusText);
+        window.showToast?.('⚠️ שגיאה בשמירת חשבוניות לענן! (' + invResp.status + ')');
+      } else {
+        console.log('[Sync] Invoices saved:', window.INVOICES.length);
+      }
     }
 
     _setSyncState(newSeq, Date.now(), null, false);

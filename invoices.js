@@ -1469,7 +1469,6 @@ function createMissingSupCards(){
 function deleteInvoice(id){
   if(!confirm('למחוק חשבונית זו?')) return;
   window.INVOICES=window.INVOICES.filter(i=>i.id!==id);
-  ['order','tx','tax'].forEach(sec => fileDelete(fileKey(id,sec)).catch(()=>{}));
   window.save(true); renderInvoices(); refreshPurchDash(); // immediate=true → saves to Firebase now
 }
 
