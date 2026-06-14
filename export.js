@@ -997,8 +997,7 @@ window.generateChangesExcelReport = async function(isAuto = false) {
 
   const changes = (window.SCH || []).filter(s => {
     if (!s || !s.d) return false;
-    const sD = new Date(s.d);
-    if (sD < fromD || sD > toD) return false;
+    if (s.d < fromStr || s.d > toStr) return false;
 
     // Is it a changed status?
     if (['nohap', 'can', 'post'].includes(s.st)) return true;
