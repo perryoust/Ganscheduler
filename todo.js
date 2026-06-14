@@ -406,33 +406,47 @@ window.todo = {
     const fab = document.getElementById('todo-fab');
     if (!fab) return;
     let isDragging = false;
-    let startY, startBottom;
+    let startY, startX, startBottom, startLeft;
 
     const onStart = (e) => {
       if (e.target.tagName.toLowerCase() === 'button' || e.target.closest('button')) return;
       isDragging = true;
       this._hasMoved = false;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       startY = clientY;
+      startX = clientX;
       const computed = window.getComputedStyle(fab);
-      startBottom = parseInt(computed.bottom, 10) || 90;
+      startBottom = parseInt(computed.bottom, 10) || 24;
+      startLeft = parseInt(computed.left, 10) || 24;
       fab.style.transition = 'none';
     };
 
     const onMove = (e) => {
       if (!isDragging) return;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const deltaY = startY - clientY;
-      if (Math.abs(deltaY) > 5) {
+      const deltaX = clientX - startX;
+      
+      if (Math.abs(deltaY) > 5 || Math.abs(deltaX) > 5) {
         this._hasMoved = true;
       }
       if (this._hasMoved) {
         e.preventDefault(); // Prevent scrolling while dragging
         let newBottom = startBottom + deltaY;
+        let newLeft = startLeft + deltaX;
+        
         if (newBottom < 20) newBottom = 20;
         const maxBottom = window.innerHeight - 80;
         if (newBottom > maxBottom) newBottom = maxBottom;
+        
+        if (newLeft < 10) newLeft = 10;
+        const maxLeft = window.innerWidth - 66;
+        if (newLeft > maxLeft) newLeft = maxLeft;
+
         fab.style.bottom = newBottom + 'px';
+        fab.style.left = newLeft + 'px';
       }
     };
 
