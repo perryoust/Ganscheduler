@@ -193,62 +193,11 @@
     <div id="p-admin" class="panel" style="display:none">
       <div class="card" style="max-width:700px;margin:0 auto">
         <h2 style="color:#6a1b9a;margin-bottom:20px">🚀 ניהול מערכת</h2>
-        <!-- Year Management section -->
-        <div style="border-top:2px solid #e8eaf6;padding-top:18px;margin-bottom:20px">
-          <div style="font-weight:800;font-size:.95rem;color:#00796b;margin-bottom:14px">📅 ניהול שנת לימודים</div>
-          <div style="background:#e0f2f1;border-radius:10px;padding:14px;border:1.5px solid #4db6ac">
-            <p style="font-size:0.8rem;color:#00695c;margin-top:0;margin-bottom:12px;line-height:1.4">
-              <b>פתיחת שנת לימודים חדשה:</b> מעביר את המערכת לשנה הבאה. נתוני השנה הנוכחית יישמרו ויהיה ניתן לחזור אליהם לצפייה (Time Travel) דרך התפריט העליון. פתיחת שנה מאפשרת לייבא גנים, ספקים או להתחיל מדף חלק.
-            </p>
-            <button class="btn bg" onclick="window.startNewYearWizard()"
-              title="פתיחת אשף יצירת שנת לימודים חדשה"
-              style="padding:6px 12px;font-size:.8rem;background:#00796b;border:1px solid #004d40;color:white;display:block">
-              🌟 התחל שנת לימודים חדשה
-            </button>
-          </div>
-        </div>
+        <!-- Year, Purchasing moved to infom -->
 
-        <!-- Purchasing Management section -->
-        <div style="border-top:2px solid #e8eaf6;padding-top:18px;margin-bottom:20px">
-          <div style="font-weight:800;font-size:.95rem;color:#c62828;margin-bottom:14px">🛒 ניהול נתוני רכש (פעולות מנהל בלבד)</div>
-          <div style="background:#fff3e0;border-radius:10px;padding:14px;border:1.5px solid #ffb74d">
-            <p style="font-size:0.8rem;color:#e65100;margin-top:0;margin-bottom:12px;line-height:1.4">
-              <b>איפוס סורק SharePoint:</b> מוחק רק את הקישורים של קבצי ה-PDF ששודכו לחשבוניות. החשבוניות עצמן <b>לא</b> יימחקו, והסורק פשוט יתחיל לחפש את הקבצים מחדש בפעם הבאה שתפעיל אותו. מצוין אם שינית שמות קבצים במחשב ואתה רוצה לסרוק מחדש.
-            </p>
-            <button class="btn bs" onclick="window.clearScannerLinks()"
-              title="מחיקת כל הקבצים ששודכו בטעות ואיפוס זיכרון הסורק (החשבוניות עצמן לא יימחקו)"
-              style="padding:6px 12px;font-size:.8rem;background:#fff;border:1px solid #ff9800;color:#e65100;margin-bottom:8px;display:block">🧹
-              איפוס חיבורי סורק SharePoint</button>
-              
-            <p style="font-size:0.8rem;color:#e65100;margin-top:0;margin-bottom:12px;line-height:1.4;border-top:1px solid #ffcc80;padding-top:12px">
-              <b>תיקון מע"מ גורף:</b> מתקן באופן גורף את כל חישובי המע"מ והסכומים של החשבוניות הקיימות במערכת בהתאם לסוג הספק (עוסק פטור, עוסק מורשה, עמותה וכו').
-            </p>
-            <button class="btn bs" onclick="autoFixInvoicesVAT()"
-              title="מתקן באופן גורף את כל חישובי המע&quot;מ והסכומים של החשבוניות הקיימות במערכת בהתאם לסוג הספק"
-              style="padding:6px 12px;font-size:.8rem;background:#fff;border:1px solid #ff9800;color:#e65100;margin-bottom:8px;display:block">🔧
-              תיקון מע"מ גורף</button>
-              
-            <div style="background:rgba(255,255,255,0.7); border:1px solid #ffb74d; border-radius:6px; padding:10px; margin-bottom:16px;">
-               <div style="font-weight:700; font-size:.85rem; color:#e65100; margin-bottom:8px;">🔗 קישורי סורק SharePoint שמורים</div>
-               <div id="admin-sp-links-list" style="margin-bottom:8px; font-size:0.8rem; line-height:1.4;"></div>
-               <button class="btn bs bsm" onclick="window.addNewSpLink()" style="background:#fff; color:#f57c00; border:1px solid #ffb74d;">➕ הוסף / ערוך קישור ידנית</button>
-               <button class="btn bs bsm" onclick="if(confirm('למחוק את כל הקישורים?')) { window.spScannerFolderLinks = {}; localStorage.setItem('spScannerFolderLinks','{}'); window.ghAutoSave(); if(window.renderAdminSpLinks) window.renderAdminSpLinks(); window.showToast('הקישורים נמחקו בהצלחה'); }" style="background:#fff; color:#e53935; border:1px solid #e53935; margin-right:6px;">🗑️ איפוס הכל</button>
-            </div>
-              
-            <p style="font-size:0.8rem;color:#b71c1c;margin-top:0;margin-bottom:12px;line-height:1.4;border-top:1px solid #ffcc80;padding-top:12px;display:none;">
-              <b>מחיקת כל נתוני הרכש (דף חלק):</b> ⚠️ פעולה בלתי הפיכה! מוחקת לחלוטין את כל החשבוניות, הספקים וההזמנות ממערכת הרכש. השתמש בזה רק אם אתה רוצה להתחיל מאפס ולייבא קובץ אקסל רכש מחדש.
-            </p>
-            <button class="btn bs" onclick="window.deleteAllInvoices()"
-              title="מחיקת כל נתוני הרכש והחשבוניות כדי להתחיל דף חדש ולייבא את הקובץ מחדש"
-              style="display:none;padding:6px 12px;font-size:.8rem;background:#ffebee;border:1px solid #ef5350;color:#c62828;font-weight:bold;">🗑️
-              מחיקת הכל (מחיקת בסיס נתוני רכש)</button>
-          </div>
-        </div>
-
-        <!-- Users section -->
         <div style="border-top:2px solid #e8eaf6;padding-top:18px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-            <div style="font-weight:800;font-size:.95rem;color:#6a1b9a">👥 ניהול משתמשים</div>
+            <div style="font-weight:800;font-size:1.1rem;color:#6a1b9a">👥 ניהול משתמשים והרשאות</div>
             <button class="btn bg bsm" onclick="loadUsersList()">🔄 רענן</button>
           </div>
 
@@ -293,68 +242,6 @@
           <div id="users-list"><span style="color:#999;font-size:.8rem">לחץ "רענן" לטעינת הרשימה</span></div>
         </div>
 
-        <!-- Bulk Schedule Management -->
-        <div style="border-top:2px solid #e8eaf6;padding-top:18px;margin-top:18px">
-          <div style="font-weight:800;font-size:.95rem;color:#2e7d32;margin-bottom:14px">📑 ניהול שיבוצים ב-Excel
-            (ייבוא/ייצוא)</div>
-          <div style="background:#e8f5e9;border-radius:10px;padding:14px;border:1.5px solid #a5d6a7">
-            <p
-              style="font-size:.8rem;color:#2e7d32;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-              <span>
-                🚀 כאן ניתן לנהל את כל לוח הזמנים באמצעות קובץ Excel אחד.
-                <br>
-                <b>שימו לב:</b> ייבוא קובץ יחליף את כל השיבוצים הקיימים במערכת!
-              </span>
-              <span id="bulk-sch-count"
-                style="font-weight:800;font-size:1.1rem;background:#fff;padding:4px 10px;border-radius:6px;border:1.5px solid #a5d6a7;color:#1b5e20"
-                title="מספר שיבוצים נוכחי">0</span>
-            </p>
-            <div style="display:flex;gap:10px;flex-wrap:wrap">
-              <button class="btn bg" onclick="exportBulkSchedule()" style="background:#2e7d32;border-color:#2e7d32">📥
-                הורד לוח נוכחי (Excel)</button>
-              <div style="position:relative;display:inline-block">
-                <button class="btn bp" onclick="document.getElementById('bulk-import-input').click()">📤 העלה לוח חדש
-                  (Excel)</button>
-                <input type="file" id="bulk-import-input" accept=".xlsx, .xls" style="display:none"
-                  onchange="importBulkSchedule(this)">
-              </div>
-            </div>
-            <div id="bulk-import-status" style="margin-top:10px;font-size:.78rem"></div>
-          </div>
-        </div>
-
-        <!-- Activity Log -->
-
-        <div style="border-top:2px solid #e8eaf6;padding-top:18px;margin-top:18px">
-          <div
-            style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-            <div style="font-weight:800;font-size:.95rem;color:#1a237e">📜 שינויים אחרונים</div>
-            <div style="display:flex;gap:6px;align-items:center">
-              <select id="log-filter" onchange="loadActivityLog(this.value)"
-                style="font-size:.78rem;border-radius:6px;border:1.5px solid #c5cae9;padding:4px 8px">
-                <option value="day">24 שעות</option>
-                <option value="week" selected>שבוע אחרון</option>
-                <option value="month">30 יום</option>
-              </select>
-              <button class="btn bs bsm" onclick="loadActivityLog(document.getElementById('log-filter').value)">🔄
-                רענן</button>
-            </div>
-          </div>
-          <div id="admin-log-body" style="max-height:400px;overflow-y:auto;border-radius:8px;border:1px solid #e8eaf6">
-            <span style="color:#999;font-size:.78rem;padding:10px;display:block">לחץ "רענן" לטעינת השינויים</span>
-          </div>
-        </div>
-
-        <!-- QA Test Simulator -->
-        <div id="qa-simulator-container" style="display:none; border-top:2px solid #e8eaf6;padding-top:18px;margin-top:18px">
-          <div style="font-weight:800;font-size:.95rem;color:#bf360c;margin-bottom:14px">⚙️ סימולטור בדיקות תקינות מערכת (QA)</div>
-          <div style="background:#fff3e0;border-radius:10px;padding:14px;border:1.5px solid #ffb74d">
-            <p style="font-size:0.8rem;color:#e65100;margin-top:0;margin-bottom:12px;line-height:1.4">
-              סימולטור זה מריץ מגוון רחב של תרחישי בדיקה (כמו סנכרון זוגות, שלשות, ביטולים והשלמות) בזיכרון נפרד כדי לוודא שאין באגים במערכת, ללא פגיעה בנתונים האמיתיים שלנו.
-            </p>
-            <button class="btn bg" onclick="window.QA_SIMULATOR.runAll()"
-              style="padding:8px 16px;font-size:.85rem;background:#bf360c;border:1px solid #d84315;color:white;font-weight:bold;margin-bottom:10px;cursor:pointer">
-              🏃‍♂️ הרץ בדיקות תקינות
             </button>
             <div id="qa-results" style="margin-top:10px;padding:10px;background:#fff;border-radius:6px;border:1px solid #ffe0b2;min-height:40px">
               <span style="color:#999;font-size:.8rem">לחץ על הכפתור כדי להריץ את הבדיקות האוטומטיות.</span>
@@ -1268,16 +1155,6 @@
             <span style="font-weight:700;font-size:.85rem;color:#1a237e;cursor:pointer" onclick="togglePiFlt()">🚀 חיפוש
               וסינון <span id="pi-flt-arrow"
                 style="font-size:.9rem;color:#546e7a;transition:transform .2s">▼</span></span>
-            <button class="btn bs" onclick="document.getElementById('pi-import-input').click()"
-              title="ייבוא של נתוני רכש, ספקים וחשבוניות מתוך קובץ Excel מרוכז למערכת"
-              style="padding:4px 10px;font-size:.75rem;background:#f5f5f5;border:1px solid #c5cae9;color:#283593">📂
-              ייבוא רכש (Excel)</button>
-            <button class="btn bs" onclick="window.startSharePointScanner()"
-              title="סריקת תיקיית מסמכים מקומית מ-SharePoint/OneDrive וקישור אוטומטי של קבצים לחשבוניות על פי מספרי מסמכים (הזמנות, עסקאות וחשבוניות מס)"
-              style="padding:4px 10px;font-size:.75rem;background:#e3f2fd;border:1px solid #90caf9;color:#0d47a1;margin-right:2px">🔗
-              סורק SharePoint (מקומי)</button>
-            <input type="file" id="pi-import-input" accept=".xlsx, .xls" style="display:none"
-              onchange="window.importInvoices(this)">
           </div>
         </div>
         <div id="pi-flt-body" class="row" style="flex-wrap:wrap;gap:6px">
@@ -1838,27 +1715,27 @@
 
   <div id="od-modal" class="modal">
     <div class="mb" style="max-width:440px; border-top: 5px solid #2e7d32;">
-      <h2 style="color:#1b5e20; margin-bottom:12px">🚀 סנכרון Firebase</h2>
+      <h2 style="color:#1b5e20; margin-bottom:12px">⚡ סנכרון חי (זמן אמת)</h2>
       <div
         style="background:#e8f5e9; border-radius:8px; padding:12px 14px; margin-bottom:12px; font-size:.8rem; line-height:1.9">
         <div
           style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #c8e6c9; padding-bottom:7px; margin-bottom:7px">
-          <span style="color:#555; font-weight:600">🚀 סטטוס</span>
+          <span style="color:#555; font-weight:600">🚀 סטטוס חיבור לענן</span>
           <span style="color:#2e7d32; font-weight:700">מחובר</span>
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
-          <span style="color:#555">🚀 שמירה אחרונה לענן</span>
+          <span style="color:#555">🚀 דחיפה אחרונה לענן</span>
           <span id="fb-last-save" style="color:#1b5e20; font-size:.75rem; font-family:monospace">—</span>
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center">
-          <span style="color:#555">🚀 טעינה אחרונה מענן</span>
+          <span style="color:#555">🚀 משיכה אחרונה מענן</span>
           <span id="fb-last-load" style="color:#1b5e20; font-size:.75rem; font-family:monospace">—</span>
         </div>
       </div>
       <div
         style="background:#f1f8e9; border-radius:7px; padding:8px 12px; margin-bottom:12px; font-size:.75rem; color:#558b2f">
-        🔄 הסנכרון אוטומטי — כל שינוי נשמר לענן תוך שנייה.<br>
-        🔍 בדיקת עדכונים ממכשירים אחרים כל 60 שניות.</div>
+        🔄 <b>מידע בלבד:</b> מנגנון זה דואג לעדכן את שאר המכשירים בזמן אמת ולא נועד לגיבוי היסטורי.<br>
+        כל שינוי נדחף לענן תוך שנייה, ובדיקת עדכונים מתבצעת אוטומטית.</div>
       <button
         onclick="showToast('🚀 SCH:'+(typeof SCH!=='undefined'?SCH.length:'?')+' | חשבוניות:'+(typeof INVOICES!=='undefined'?INVOICES.length:'?')+' | ספקים:'+(typeof supEx!=='undefined'?Object.keys(supEx).filter(k=>!k.startsWith('__')).length:'?'))"
         style="width:100%;background:#e3f2fd;border:1px solid #90caf9;border-radius:6px;padding:8px;font-size:.8rem;cursor:pointer;margin-bottom:8px;font-weight:600">
@@ -1868,8 +1745,8 @@
       </div>
       <div style="display:flex; gap:8px; justify-content:space-between; align-items:center">
         <div style="display:flex; gap:8px">
-          <button class="btn bg bsm" onclick="fbSyncNow()">💾 שמור עכשיו</button>
-          <button class="btn bo bsm" onclick="fbLoadNow()">🚀 טען עכשיו</button>
+          <button class="btn bg bsm" onclick="fbSyncNow()">🚀 דחוף לענן</button>
+          <button class="btn bo bsm" onclick="fbLoadNow()">🚀 משוך מהענן</button>
         </div>
         <button class="btn bs bsm" onclick="CM('od-modal')">סגור</button>
       </div>
@@ -2550,24 +2427,83 @@
           <button class="btn bsm" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;width:100%;text-align:right;padding:7px 11px;border-radius:7px;margin-bottom:10px;margin-top:10px" onclick="openAutoBackupSettings()">⚙️ הגדרות גיבוי אוטומטי</button>
         </div>
         
-        <!-- Cloud Backups (Firebase) -->
-        <div style="background:#e3f2fd;border-radius:8px;padding:12px;border-right:4px solid #1565c0;margin-bottom:12px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <span style="font-weight:700;font-size:.83rem;color:#1a237e">☁️ גיבויים היסטוריים בענן</span>
-            <div style="display:flex;gap:5px">
-              <button class="btn bs bsm" onclick="loadCloudBackups()" id="cloud-backup-btn">🚀 טען</button>
-              <button class="btn bg bsm" onclick="forceDailyBackup()">💾 שמור עכשיו</button>
-            </div>
+        <!-- ====== BACKUPS ====== -->
+        <div style="background:#fff8e1;border-radius:8px;padding:12px;border-right:4px solid #f57f17;margin-bottom:12px">
+          <b style="color:#e65100">💾 גיבוי ושחזור נתונים</b><br>
+          <div style="font-size:.75rem;margin-top:6px;line-height:1.6">
+            <b>1. גיבוי קובץ פנימי (Snap):</b> גיבוי מהיר שיישמר בדפדפן למקרה שתרצה לבטל פעולה שעשית הרגע.<br>
+            <b>2. הורדת גיבוי JSON:</b> קובץ שנשמר במחשב שלך. <u>מומלץ להוריד פעם בשבוע כגיבוי בטוח!</u><br>
+            <b>3. טעינת גיבוי מהענן:</b> שחזור לנקודת זמן קודמת (המערכת עושה גיבוי לענן בעצמה בכל יום).
           </div>
-          <div id="cloud-backup-list" style="font-size:.78rem;color:#999">לחץ "טען" לצפייה בגיבויים מהענן</div>
+          
+          <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;margin-bottom:8px">
+            <button class="btn bp bsm" onclick="createSnapshot('ידני')">💾 שמור Snap פנימי מהיר</button>
+            <button class="btn bo bsm" onclick="exportFullBackup()">🚀 הורד גיבוי למחשב (JSON)</button>
+            <button class="btn bg bsm" onclick="document.getElementById('restore-file').click()">📂 שחזר מגיבוי (JSON)</button>
+            <input type="file" id="restore-file" style="display:none" accept=".json" onchange="importBackup(this)">
+            <button class="btn bs bsm" onclick="loadCloudBackups()" id="cloud-backup-btn" style="border:1px solid #1565c0;color:#1565c0">☁️ חפש גיבויים קודמים בענן</button>
+          </div>
+          <div id="cloud-backup-list" style="font-size:.78rem;color:#999;background:#f5f5f5;padding:6px;border-radius:4px;display:none;max-height:120px;overflow-y:auto;margin-bottom:8px"></div>
+          
+          <button class="btn bsm" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;width:100%;text-align:right;padding:7px 11px;border-radius:7px;margin-top:8px" onclick="openAutoBackupSettings()">⚙️ הגדרות גיבוי ענן אוטומטי (Auto-Backup)</button>
         </div>
 
-        <!-- Danger Zone -->
+        <!-- ====== DATA AND IMPORTS (Unified) ====== -->
+        <div id="settings-admin-data" style="display:none;background:#e0f7fa;border-radius:8px;padding:12px;border-right:4px solid #00acc1;margin-bottom:12px">
+          <b style="color:#00838f">📥 ניהול נתונים ויבוא קבצים</b>
+          <div style="font-size:.75rem;color:#006064;margin-bottom:12px;margin-top:4px">
+            פעולות העלאת נתונים מרוכזות כאן. זמין למנהלים בלבד.
+          </div>
+          
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <!-- Excel Chugim -->
+            <div style="background:#fff;padding:10px;border-radius:6px;border:1px solid #b2ebf2">
+              <b style="color:#2e7d32">🎨 ייבוא/ייצוא שיבוצי חוגים שנתי (Excel)</b>
+              <div style="font-size:.7rem;margin-bottom:8px;color:#555">ייבוא קובץ יחליף את כל השיבוצים הקיימים במערכת! (יש <span id="bulk-sch-count" style="font-weight:bold">0</span> קיימים)</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn bg bsm" onclick="exportBulkSchedule()" style="background:#2e7d32;border-color:#2e7d32">📥 הורד לוח נוכחי</button>
+                <button class="btn bp bsm" onclick="document.getElementById('bulk-import-input').click()">📤 העלה לוח חוגים חדש</button>
+                <input type="file" id="bulk-import-input" accept=".xlsx, .xls" style="display:none" onchange="importBulkSchedule(this)">
+              </div>
+              <div id="bulk-import-status" style="margin-top:5px;font-size:.7rem"></div>
+            </div>
+
+            <!-- Excel Rechesh -->
+            <div style="background:#fff;padding:10px;border-radius:6px;border:1px solid #b2ebf2">
+              <b style="color:#1565c0">🛒 ייבוא נתוני רכש וחשבוניות (Excel)</b>
+              <div style="font-size:.7rem;margin-bottom:8px;color:#555">ייבוא מרוכז של חשבוניות מס, עסקאות וספקים מקובץ Excel למערכת.</div>
+              <button class="btn bs bsm" onclick="document.getElementById('pi-import-input-moved').click()" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9">📂 בחר קובץ העלאת רכש</button>
+              <input type="file" id="pi-import-input-moved" accept=".xlsx, .xls" style="display:none" onchange="window.importInvoices(this)">
+            </div>
+            
+            <!-- SharePoint Scanner -->
+            <div style="background:#fff;padding:10px;border-radius:6px;border:1px solid #b2ebf2">
+              <b style="color:#e65100">🔗 סורק SharePoint (מקומי)</b>
+              <div style="font-size:.7rem;margin-bottom:8px;color:#555">סריקת תיקיית מחשב מקומית המחוברת ל-SharePoint כדי לשדך קבצי PDF לחשבוניות קיימות.</div>
+              <button class="btn bs bsm" onclick="window.startSharePointScanner()" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80">🔍 הפעל סורק</button>
+              <button class="btn bs bsm" onclick="window.clearScannerLinks()" style="margin-right:8px;background:#ffebee;color:#c62828;border:1px solid #ef9a9a">🧹 אפס חיבורים קיימים</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- System & Year Management -->
+        <div id="settings-admin-year" style="display:none;background:#f3e5f5;border-radius:8px;padding:12px;border-right:4px solid #8e24aa;margin-bottom:12px">
+           <b style="color:#6a1b9a">⚙️ ניהול שנת פעילות ומערכת</b>
+           <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+             <button class="btn bg bsm" onclick="window.startNewYearWizard()" style="background:#8e24aa;border-color:#8e24aa">🌟 התחל שנת לימודים חדשה (אשף)</button>
+             <button class="btn bs bsm" onclick="autoFixInvoicesVAT()">🔧 תיקון מע"מ גורף לחשבוניות</button>
+             <button class="btn bp bsm" onclick="window.QA_SIMULATOR.runAll()">🏃‍♂️ הרץ בדיקות QA</button>
+           </div>
+        </div>
+
+        <!-- ====== DANGER ZONE ====== -->
         <div id="settings-danger-zone" style="display:none;background:#ffebee;border-radius:8px;padding:12px;border-right:4px solid #c62828">
-           <b style="color:#c62828">⚠️ אזור מסוכן</b>
+           <b style="color:#c62828">⚠️ אזור מסוכן (מחיקות ואיפוס)</b>
            <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:8px">
              <button class="btn br2 bsm" onclick="fixData()">🛠️ תקן נתונים פגומים</button>
-             <button class="btn bsm" style="background:#dc3545;color:#fff;border:none" onclick="nuclearReset()">☢️ מחיקה מוחלטת והתחלה מחדש</button>
+             <button class="btn bsm" onclick="window.deleteCurrentYear()" style="background:#c62828;color:#fff;border:none">🗑️ מחק שנת פעילות נוכחית</button>
+             <button class="btn bsm" onclick="window.deleteAllInvoices()" style="background:#b71c1c;color:#fff;border:none">🗑️ מחיקת כל נתוני הרכש</button>
+             <button class="btn bsm" style="background:#d32f2f;color:#fff;border:none" onclick="nuclearReset()">☢️ מחיקה מוחלטת והתחלה מחדש</button>
            </div>
         </div>
 

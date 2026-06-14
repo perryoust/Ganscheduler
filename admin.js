@@ -51,6 +51,7 @@ async function loadCloudBackups(){
   const el=document.getElementById('cloud-backup-list');
   const btn=document.getElementById('cloud-backup-btn');
   if(!el) return;
+  el.style.display = 'block';
   el.innerHTML='<span style="color:#999">טוען...</span>';
   if(btn) btn.disabled=true;
   try{
@@ -178,16 +179,21 @@ window._initUsersUI = function _initUsersUI(){
   const purchStatsGrp = document.getElementById('hdr-purch-stats-group');
   if(purchStatsGrp) purchStatsGrp.style.display = hasPurch ? 'contents' : 'none';
 
-  // Danger Zone - Super Admin only
+  // Danger Zone & Admin Settings - Super Admin / Admin only
   const isSuperAdmin = window._fbUser?.uid === ADMIN_UID || (window._fbUser?.email || '').toLowerCase().trim() === 'perry@ganmanager.app' || (window._fbUser?.displayName || '').toLowerCase().trim() === 'perry';
+  
   const dangerZone = document.getElementById('admin-danger-zone');
-  if(dangerZone) {
-     dangerZone.style.display = isSuperAdmin ? '' : 'none';
-  }
+  if(dangerZone) dangerZone.style.display = isSuperAdmin ? '' : 'none';
+  
   const settingsDangerZone = document.getElementById('settings-danger-zone');
-  if(settingsDangerZone) {
-     settingsDangerZone.style.display = isSuperAdmin ? '' : 'none';
-  }
+  if(settingsDangerZone) settingsDangerZone.style.display = isSuperAdmin ? '' : 'none';
+
+  // Show Data Management and Year Management in Settings only for Admins
+  const settingsAdminData = document.getElementById('settings-admin-data');
+  if(settingsAdminData) settingsAdminData.style.display = isAdm ? '' : 'none';
+  
+  const settingsAdminYear = document.getElementById('settings-admin-year');
+  if(settingsAdminYear) settingsAdminYear.style.display = isAdm ? '' : 'none';
 
   // Show logged-in username in header
   if(window._fbUser){
