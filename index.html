@@ -18,9 +18,9 @@
   <!-- CSS standard variables and design system -->
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
-  <link rel="stylesheet" href="styles.css?v=106.04" />
+  <link rel="stylesheet" href="styles.css?v=106.06" />
   <script>
-    window.APP_VERSION = '106.05';
+    window.APP_VERSION = '106.06';
   </script>
   <script type="module" src="firebase_init.js?v=106.00"></script>
   <script src="assets.js?v=106.00"></script>
@@ -619,7 +619,7 @@
     </div>
 
   <!-- ====== Export Changes Modal ====== -->
-  <div id="export-changes-m" class="modal">
+  <div id="export-changes-m" class="modal" style="z-index:99999;">
     <div class="mb" style="max-width:400px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <h2 style="margin:0;color:#00695c">📋 ייצוא דוח שינויים וחריגים</h2>
@@ -648,7 +648,7 @@
   </div>
 
   <!-- ====== Auto Export Settings Modal ====== -->
-  <div id="auto-export-changes-m" class="modal">
+  <div id="auto-export-changes-m" class="modal" style="z-index:99999;">
     <div class="mb" style="max-width:400px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <h2 style="margin:0;color:#e65100">⏱️ הגדרות ייצוא אוטומטי</h2>
@@ -2598,7 +2598,8 @@
             <div style="background:#fff;padding:10px;border-radius:6px;border:1px solid #b2ebf2">
               <b style="color:#00695c">📋 ייצוא דוח שינויים וחריגים (Excel)</b>
               <div style="font-size:.7rem;margin-bottom:8px;color:#555">הפקת דוח אקסל המרכז את כל הפעילויות החריגות (ביטולים, דחיות, לא התקיים, השלמות והקדמות) בטווח תאריכים מוגדר.</div>
-              <button class="btn bo bsm" onclick="OM('export-changes-m')" style="background:#e0f2f1;color:#00695c;border:1px solid #80cbc4">📋 פתח חלון ייצוא</button>
+              <button class="btn bo bsm" onclick="OM('export-changes-m')" style="background:#e0f2f1;color:#00695c;border:1px solid #80cbc4;margin-bottom:6px;width:100%">📋 פתח חלון ייצוא ידני</button>
+              <button class="btn bo bsm" onclick="window.initAutoExportSettingsModal(); OM('auto-export-changes-m')" style="background:#fff3e0;color:#e65100;border:1px solid #ffb74d;width:100%">⏱️ הגדרות ייצוא אוטומטי ומתוזמן</button>
             </div>
 
             <!-- Excel Chugim -->
@@ -3168,6 +3169,10 @@
           </div>
         </div>
       </div>
+      <script src="core_globals.js?v=106.06"></script>
+  <script src="core_data.js?v=106.06"></script>
+  <script src="core_dash.js?v=106.06"></script>
+  <script src="core_app.js?v=106.06"></script>
       <div
         style="background:#fff8e1;border-right:3px solid #ffc107;border-radius:5px;padding:8px 11px;font-size:.76rem;color:#795548;margin-bottom:12px">
         ⚠️ הגנים המסומנים יועברו לתקופה החדשה (עם האשכולות והזוגות שמשתייכים אליהם). השיבוצים היומיים יתחילו כדף חלק.

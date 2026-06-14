@@ -1063,10 +1063,37 @@ window.generateChangesExcelReport = async function(isAuto = false) {
     const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|במקום/i.test(s.nt)) || (s.n && /השלמה|במקום/i.test(s.n)) || (s.a && /השלמה|במקום/i.test(s.a)));
     
     let changeType = '';
-    if (s.st === 'can') changeType = '❌ ביטול';
-    else if (s.st === 'nohap') changeType = '⚠️ לא התקיים';
-    else if (s.st === 'post') changeType = '⏩ דחייה';
-    else if (isM) changeType = '🔄 השלמה / הקדמה';
+    let extraNotes = '';
+    
+    // Check if there's a makeup or postponement linked to this activity
+    const linkedNext = (window.SCH || []).find(x => x.g === s.g && x.a === s.a && (x._postFrom === s.d || x._makeupFrom === s.d));
+    let linkedDateStr = '';
+    if (linkedNext) {
+      let pDate = linkedNext.d;
+      try { pDate = `${pDate.split('-')[2]}/${pDate.split('-')[1]}/${pDate.split('-')[0]}`; } catch(e){}
+      linkedDateStr = pDate;
+    }
+
+    if (s.st === 'can') {
+      changeType = '❌ ביטול';
+      if (linkedDateStr) extraNotes = `הושלם ב-${linkedDateStr}`;
+    }
+    else if (s.st === 'nohap') {
+      changeType = '⚠️ לא התקיים';
+      if (linkedDateStr) extraNotes = `הושלם ב-${linkedDateStr}`;
+    }
+    else if (s.st === 'post') {
+      changeType = '⏩ דחייה';
+      if (linkedDateStr) extraNotes = `נדחה ל-${linkedDateStr}`;
+    }
+    else if (isM) {
+      changeType = '🔄 השלמה / הקדמה';
+    }
+
+    let finalNotes = s.nt || s.n || '';
+    if (extraNotes) {
+      finalNotes = finalNotes ? `${finalNotes} (${extraNotes})` : extraNotes;
+    }
 
     ws.addRow({
       date: fDate,
@@ -1076,7 +1103,7 @@ window.generateChangesExcelReport = async function(isAuto = false) {
       sup: s.a + (s.act ? ` - ${s.act}` : ''),
       time: window.fT ? window.fT(s.t) : s.t || '',
       changeType: changeType,
-      notes: s.nt || s.n || '',
+      notes: finalNotes,
       status: s.st
     });
   });
