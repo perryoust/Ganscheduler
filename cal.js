@@ -364,31 +364,7 @@ function filterE(f,from,to){
 
     return true;
   });
-  const posted=window.SCH.filter(s=>{
-    if(s.st!=='post'||!s.pd||s.pd<from||s.pd>to) return false;
-    // De-duplicate: If there is already an event in `all` for the same garden (s.g) 
-    // and same supplier/activity on the target day, then skip this virtual one to avoid duplication.
-    const hasRescheduled = all.some(x => Number(x.g) === Number(s.g) && window.supBase(x.a) === window.supBase(s.a) && x.st !== 'nohap' && x.st !== 'can');
-    if (hasRescheduled) return false;
-    
-    const g=window.G(s.g);
-    if(f.city&&g.city!==f.city) return false;
-    if(f.cluster){
-      if(f.cluster==='__all__'){
-        const allClusterGids=new Set(window.getClusters().flatMap(c=>c.gardenIds||[]).map(Number));
-        if(!allClusterGids.has(Number(s.g))) return false;
-      } else {
-        const cl=window.getClusters().find(c=>c.name===f.cluster);
-        if(!cl||(!(cl.gardenIds||[]).map(Number).includes(Number(s.g)))) return false;
-      }
-    }
-    if(f.cls&&window.gcls(g)!==f.cls) return false;
-
-    if(f.gids&&!f.gids.map(Number).includes(Number(s.g))) return false;
-    if(f.sup && window.supBase(s.a) !== f.sup && s.a !== f.sup) return false;
-    return true;
-  }).map(s=>({...s,d:s.pd,_isPostponed:true}));
-  return [...all,...posted];
+  return all;
 }
 let _rangeSubView = 'list'; // Default to list view per user request
 let _listSubView='day'; // Default to daily list
@@ -551,13 +527,16 @@ window.calJump = function(pairId, view, gardenId, clusterName) {
   if (window.renderCal) window.renderCal();
 };
 function clearCal(){
-  ['cal-city','cal-cls','cal-cl','cal-sup'].forEach(id=>{
-    ['desktop', 'mobile'].forEach(plat => {
+  ['desktop', 'mobile'].forEach(plat => {
+    if (window.clearCalCityMulti) window.clearCalCityMulti(plat);
+    if (window.clearCalClsMulti) window.clearCalClsMulti(plat);
+    if (window.clearCalClMulti) window.clearCalClMulti(plat);
+    if (window.clearCalSupMulti) window.clearCalSupMulti(plat);
+    
+    ['cal-city','cal-cls','cal-cl','cal-sup'].forEach(id=>{
       const el = document.getElementById(id + '-' + plat);
       if (el) el.value = '';
     });
-    const el = document.getElementById(id);
-    if (el) el.value = '';
   });
   ['desktop', 'mobile'].forEach(plat => {
     const list = document.getElementById('cal-g-multi-items-' + plat);
