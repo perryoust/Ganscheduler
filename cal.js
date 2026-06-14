@@ -10,29 +10,80 @@ function calRefG(){
     return (a.name||'').localeCompare(b.name||'','he');
   });
   
-  ['cal-g1','cal-g2','cal-g3'].forEach((id,i)=>{
-    // Update both desktop and mobile selects if they exist
-    ['desktop', 'mobile'].forEach(plat => {
-      const sel = document.getElementById(id + '-' + plat);
-      if(!sel) return;
-      sel.innerHTML = i===0 ? '<option value="">כל הצהרונים</option>' : '<option value="">—</option>';
-      gs.forEach(g => sel.innerHTML += `<option value="${g.id}">${city ? g.name : g.city + ' · ' + g.name}</option>`);
+  ['desktop', 'mobile'].forEach(plat => {
+    const listEl = document.getElementById('cal-g-multi-items-' + plat);
+    if(!listEl) return;
+    listEl.innerHTML = '';
+    gs.forEach(g => {
+      const lbl = city ? g.name : (g.city + ' · ' + g.name);
+      listEl.innerHTML += `<label class="custom-multi-item" title="${lbl}">
+        <input type="checkbox" value="${g.id}" class="cal-g-multi-chk" onchange="window.calMultiGChanged('${plat}')">
+        <span>${lbl}</span>
+      </label>`;
     });
-    // Fallback for single ID if it exists
-    const sel = document.getElementById(id);
-    if(sel && !document.getElementById(id + '-desktop')){
-      sel.innerHTML = i===0 ? '<option value="">כל הצהרונים</option>' : '<option value="">—</option>';
-      gs.forEach(g => sel.innerHTML += `<option value="${g.id}">${city ? g.name : g.city + ' · ' + g.name}</option>`);
-    }
+    if(window.calMultiGChanged) window.calMultiGChanged(plat); // Sync button state
   });
   renderCal();
 }
 function getCalGids(){
-  const g1 = window.getEl('cal-g1');
-  const g2 = window.getEl('cal-g2');
-  const g3 = window.getEl('cal-g3');
-  return [parseInt(g1?.value)||null, parseInt(g2?.value)||null, parseInt(g3?.value)||null].filter(Boolean);
+  const plat = window.innerWidth > 768 ? 'desktop' : 'mobile';
+  const listEl = document.getElementById('cal-g-multi-items-' + plat) || document.getElementById('cal-g-multi-items-desktop');
+  if(!listEl) return [];
+  return Array.from(listEl.querySelectorAll('input:checked')).map(el => parseInt(el.value));
 }
+
+window.toggleCalGMulti = function(plat) {
+  const list = document.getElementById('cal-g-multi-list-' + plat);
+  if(list) list.classList.toggle('open');
+};
+
+window.filterCalGMulti = function(plat) {
+  const input = document.getElementById('cal-g-multi-search-' + plat);
+  const filter = input.value.toLowerCase();
+  const list = document.getElementById('cal-g-multi-items-' + plat);
+  const items = list.querySelectorAll('.custom-multi-item');
+  items.forEach(item => {
+    if(item.textContent.toLowerCase().includes(filter)) item.style.display = '';
+    else item.style.display = 'none';
+  });
+};
+
+window.calMultiGChanged = function(sourcePlat) {
+  const sourceList = document.getElementById('cal-g-multi-items-' + sourcePlat);
+  if(!sourceList) return;
+  const checked = Array.from(sourceList.querySelectorAll('input:checked')).map(el => el.value);
+  
+  const otherPlat = sourcePlat === 'desktop' ? 'mobile' : 'desktop';
+  const otherList = document.getElementById('cal-g-multi-items-' + otherPlat);
+  if(otherList) {
+    otherList.querySelectorAll('input').forEach(el => {
+      el.checked = checked.includes(el.value);
+    });
+  }
+
+  ['desktop', 'mobile'].forEach(plat => {
+    const btn = document.getElementById('cal-g-multi-btn-' + plat);
+    if(btn) {
+      if(checked.length === 0) {
+        btn.innerHTML = '<span>כל הצהרונים</span> <span style="font-size:0.6rem">▼</span>';
+      } else if (checked.length === 1) {
+        const gObj = window.G(checked[0]);
+        btn.innerHTML = `<span>${gObj?gObj.name:'צהרון'}</span> <span style="font-size:0.6rem">▼</span>`;
+      } else {
+        btn.innerHTML = `<span>נבחרו ${checked.length} צהרונים</span> <span style="font-size:0.6rem">▼</span>`;
+      }
+    }
+  });
+  renderCal();
+};
+
+document.addEventListener('click', function(e) {
+  ['desktop', 'mobile'].forEach(plat => {
+    const wrap = document.getElementById('cal-g-multi-wrap-' + plat);
+    const list = document.getElementById('cal-g-multi-list-' + plat);
+    if(wrap && list && !wrap.contains(e.target)) list.classList.remove('open');
+  });
+});
 function getCalF(){
   const gids = getCalGids();
   return {
@@ -236,20 +287,24 @@ window.calJump = function(pairId, view, gardenId, clusterName) {
     const pair = (window.pairs || []).find(p => Number(p.id) === Number(pairId));
     if (pair) {
       ['desktop', 'mobile'].forEach(plat => {
-        const g1 = document.getElementById('cal-g1-' + plat);
-        const g2 = document.getElementById('cal-g2-' + plat);
-        const g3 = document.getElementById('cal-g3-' + plat);
-        if (g1) g1.value = pair.ids[0] || '';
-        if (g2) g2.value = pair.ids[1] || '';
-        if (g3) g3.value = pair.ids[2] || '';
+        const list = document.getElementById('cal-g-multi-items-' + plat);
+        if(list) {
+          list.querySelectorAll('input').forEach(el => {
+            el.checked = pair.ids.map(Number).includes(Number(el.value));
+          });
+        }
+        if(window.calMultiGChanged) window.calMultiGChanged(plat);
       });
     }
   } else if (gardenId) {
     ['desktop', 'mobile'].forEach(plat => {
-      const gSel = document.getElementById('cal-g1-' + plat);
-      if (gSel) {
-        gSel.value = gardenId;
+      const list = document.getElementById('cal-g-multi-items-' + plat);
+      if(list) {
+        list.querySelectorAll('input').forEach(el => {
+          el.checked = (Number(el.value) === Number(gardenId));
+        });
       }
+      if(window.calMultiGChanged) window.calMultiGChanged(plat);
     });
   }
 
@@ -269,13 +324,10 @@ function clearCal(){
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-  ['cal-g1','cal-g2','cal-g3'].forEach((id,i)=>{
-    ['desktop', 'mobile'].forEach(plat => {
-      const el = document.getElementById(id + '-' + plat);
-      if(!el) return;
-      el.innerHTML=i===0?'<option value="">כל הצהרונים</option>':'<option value="">—</option>';
-      window.GARDENS.forEach(g=>el.innerHTML+=`<option value="${g.id}">${g.city} · ${g.name}</option>`);
-    });
+  ['desktop', 'mobile'].forEach(plat => {
+    const list = document.getElementById('cal-g-multi-items-' + plat);
+    if(list) list.querySelectorAll('input').forEach(el => el.checked = false);
+    if(window.calMultiGChanged) window.calMultiGChanged(plat);
   });
   const bar = window.getEl('cal-pair-bar');
   if (bar) bar.style.display = 'none';
@@ -287,9 +339,10 @@ function clearCal(){
   }
 }
 function clearCalPair(){
-  ['cal-g1','cal-g2','cal-g3'].forEach(id => {
-    const el = window.getEl(id);
-    if (el) el.value = '';
+  ['desktop', 'mobile'].forEach(plat => {
+    const list = document.getElementById('cal-g-multi-items-' + plat);
+    if(list) list.querySelectorAll('input').forEach(el => el.checked = false);
+    if(window.calMultiGChanged) window.calMultiGChanged(plat);
   });
   const bar = window.getEl('cal-pair-bar');
   if (bar) bar.style.display = 'none';

@@ -368,8 +368,16 @@
              </div>
            </div>
            <div class="fg"><label>עיר</label><select id="cal-city-desktop" onchange="calRefG()"><option value="">כל הערים</option></select></div>
-           <div class="fg"><label>צהרון 1</label><select id="cal-g1-desktop" onchange="renderCal()"><option value="">בחר...</option></select></div>
-           <div class="fg"><label>צהרון 2</label><select id="cal-g2-desktop" onchange="renderCal()"><option value="">—</option></select></div>
+           <div class="fg custom-multi-wrap">
+             <label>צהרונים</label>
+             <div class="custom-multi-select" onclick="window.toggleCalGMulti('desktop')" id="cal-g-multi-btn-desktop">
+               <span>כל הצהרונים</span> <span style="font-size:0.6rem">▼</span>
+             </div>
+             <div class="custom-multi-dropdown" id="cal-g-multi-list-desktop">
+               <input type="text" class="custom-multi-search" id="cal-g-multi-search-desktop" placeholder="🔍 חפש צהרון..." onkeyup="window.filterCalGMulti('desktop')" onclick="event.stopPropagation()">
+               <div id="cal-g-multi-items-desktop" style="max-height:250px;overflow-y:auto;"></div>
+             </div>
+           </div>
            <div class="fg"><label>ספק</label><select id="cal-sup-desktop" onchange="renderCal()"><option value="">כל הספקים</option></select></div>
            <div class="mr-auto flex-c gap-8">
              <button class="btn bo" onclick="if(window.clearCal)window.clearCal();if(window.renderCal)window.renderCal()">🧹 נקה סינון</button>
@@ -419,8 +427,16 @@
          </div>
          <div id="cal-flt-mobile" class="flt-wrap">
             <div class="fg"><label>עיר</label><select id="cal-city-mobile" onchange="calRefG()"><option value="">כל הערים</option></select></div>
-            <div class="fg"><label>צהרון 1</label><select id="cal-g1-mobile" onchange="renderCal()"><option value="">בחר...</option></select></div>
-            <div class="fg"><label>צהרון 2</label><select id="cal-g2-mobile" onchange="renderCal()"><option value="">—</option></select></div>
+            <div class="fg custom-multi-wrap">
+              <label>צהרונים</label>
+              <div class="custom-multi-select" onclick="window.toggleCalGMulti('mobile')" id="cal-g-multi-btn-mobile" style="width:100%">
+                <span>כל הצהרונים</span> <span style="font-size:0.6rem">▼</span>
+              </div>
+              <div class="custom-multi-dropdown" id="cal-g-multi-list-mobile" style="width:100%">
+                <input type="text" class="custom-multi-search" id="cal-g-multi-search-mobile" placeholder="🔍 חפש צהרון..." onkeyup="window.filterCalGMulti('mobile')" onclick="event.stopPropagation()">
+                <div id="cal-g-multi-items-mobile" style="max-height:200px;overflow-y:auto;"></div>
+              </div>
+            </div>
             <div class="fg"><label>ספק</label><select id="cal-sup-mobile" onchange="renderCal()"><option value="">כל הספקים</option></select></div>
          </div>
          <div class="vbtns w-full mt-2" style="overflow-x:auto">
