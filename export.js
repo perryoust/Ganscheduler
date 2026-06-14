@@ -1008,7 +1008,8 @@ window.generateChangesExcelReport = async function(isAuto = false) {
 
   const changes = (window.SCH || []).filter(s => {
     if (!s || !s.d) return false;
-    if (s.d < fromStr || s.d > toStr) return false;
+    const sDateStr = normalizeDateInput(s.d);
+    if (sDateStr < fromStr || sDateStr > toStr) return false;
 
     // Is it a changed status?
     if (['nohap', 'can', 'post'].includes(s.st)) return true;
@@ -1050,7 +1051,9 @@ window.generateChangesExcelReport = async function(isAuto = false) {
   const HEB_DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 
   changes.sort((a,b) => {
-    const ds = a.d.localeCompare(b.d);
+    const dA = normalizeDateInput(a.d);
+    const dB = normalizeDateInput(b.d);
+    const ds = dA.localeCompare(dB);
     if(ds !== 0) return ds;
     const gA = window.G(a.g) || {};
     const gB = window.G(b.g) || {};
