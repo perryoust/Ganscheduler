@@ -1299,7 +1299,12 @@ function genExport(){
     const origDate = rel[0] ? (rel[0]._postFrom || rel[0]._makeupFrom) : null;
     const today = typeof window.td === 'function' ? window.td() : new Date().toISOString().split('T')[0];
     
-    if (origDate === today) {
+    let currentCalDateStr = '';
+    try {
+      currentCalDateStr = typeof d2s === 'function' ? d2s(calD) : (typeof window.d2s === 'function' ? window.d2s(window.calD) : new Date(calD).toISOString().split('T')[0]);
+    } catch(e) {}
+    
+    if (origDate === today && currentCalDateStr === origDate) {
       const dNameTarget = typeof window.dayN === 'function' ? window.dayN(rel[0].d) : '';
       headerTitle = `*לא יתקיים היום חוג*\n*השלמה נקבעה ליום ${dNameTarget}*\n`;
     } else {
