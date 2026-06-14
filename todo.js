@@ -4,6 +4,7 @@ window.todo = {
   init: function() {
     this.load();
     this.render();
+    setInterval(this.checkReminders.bind(this), 30000); // Check every 30 seconds
   },
 
   load: function() {
@@ -47,11 +48,26 @@ window.todo = {
     let archiveCount = 0;
 
     this.items.forEach(item => {
+      const remindTimeStr = item.remindAt ? new Date(item.remindAt).toLocaleString('he-IL', {dateStyle:'short', timeStyle:'short'}) : '';
+      const bellColor = item.remindAt ? (item.remindTriggered ? '#9e9e9e' : '#1976d2') : '#9e9e9e';
+      
       const html = `
         <div class="todo-item ${item.done ? 'done' : ''}" style="display:flex; align-items:flex-start; gap:10px; padding:10px; background:#f9f9f9; border-radius:6px; transition:all 0.3s; ${item.done?'opacity:0.6; text-decoration:line-through':''}">
           <input type="checkbox" class="todo-checkbox" style="width:18px;height:18px;margin-top:2px;cursor:pointer;" 
             ${item.done ? 'checked' : ''} onchange="window.todo.toggleDone('${item.id}')">
-          <div class="todo-text" style="flex:1; font-size:0.95rem;">${item.text}</div>
+          <div style="flex:1; display:flex; flex-direction:column;">
+            <div class="todo-text" style="font-size:0.95rem;">${item.text}</div>
+            ${item.remindAt && !item.done ? `<div style="font-size:0.75rem; color:${item.remindTriggered?'#999':'#1976d2'}; margin-top:4px;">⏰ ${remindTimeStr}</div>` : ''}
+          </div>
+          ${!item.done ? `
+            <div style="position:relative; display:inline-block; margin-top:2px;">
+              <input type="datetime-local" title="הגדר תזכורת" 
+                     style="position:absolute; opacity:0; width:24px; height:24px; cursor:pointer; right:0;"
+                     onchange="window.todo.setReminder('${item.id}', this.value)"
+                     value="${item.remindAt ? new Date(item.remindAt - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16) : ''}">
+              <span style="font-size:1.2rem; color:${bellColor}; pointer-events:none; display:inline-block;">🔔</span>
+            </div>
+          ` : ''}
           <button onclick="window.todo.remove('${item.id}')" style="background:none;border:none;color:#d32f2f;cursor:pointer;font-size:1.1rem;padding:0 5px;">🗑️</button>
         </div>
       `;
@@ -145,6 +161,93 @@ window.todo = {
     if (el) {
       el.style.display = el.style.display === 'none' ? 'flex' : 'none';
     }
+  },
+
+  setReminder: function(id, val) {
+    const item = this.items.find(i => i.id === id);
+    if (!item) return;
+    if (!val) {
+      delete item.remindAt;
+      delete item.remindTriggered;
+    } else {
+      item.remindAt = new Date(val).getTime();
+      item.remindTriggered = false;
+    }
+    this.save();
+  },
+
+  checkReminders: function() {
+    const now = Date.now();
+    let changed = false;
+    this.items.forEach(item => {
+      if (!item.done && item.remindAt && !item.remindTriggered && item.remindAt <= now) {
+        item.remindTriggered = true;
+        changed = true;
+        this.triggerAlarm(item);
+      }
+    });
+    if (changed) this.save();
+  },
+
+  triggerAlarm: function(item) {
+    this.playBeep();
+    this.showReminderPopup(item);
+  },
+
+  playBeep: function() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = 800; // 800Hz beep
+      gain.gain.setValueAtTime(0.5, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+    } catch(e) {}
+  },
+
+  showReminderPopup: function(item) {
+    const div = document.createElement('div');
+    div.style.position = 'fixed';
+    div.style.top = '40px';
+    div.style.left = '50%';
+    div.style.transform = 'translateX(-50%)';
+    div.style.background = '#e65100';
+    div.style.color = '#fff';
+    div.style.padding = '24px';
+    div.style.borderRadius = '12px';
+    div.style.boxShadow = '0 15px 50px rgba(0,0,0,0.4)';
+    div.style.zIndex = '999999';
+    div.style.display = 'flex';
+    div.style.flexDirection = 'column';
+    div.style.gap = '15px';
+    div.style.minWidth = '320px';
+    div.style.textAlign = 'center';
+    div.style.border = '3px solid #fff';
+    
+    div.innerHTML = `
+      <div style="font-size:2rem;">⏰</div>
+      <div style="font-size:1.4rem; font-weight:800;">תזכורת למשימה!</div>
+      <div style="font-size:1.2rem; font-weight:600; margin:10px 0; background:rgba(255,255,255,0.1); padding:10px; border-radius:6px;">${item.text}</div>
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:10px;">
+        <button id="btn-remind-done-${item.id}" style="background:#fff; color:#e65100; border:none; padding:10px 20px; border-radius:6px; font-weight:bold; font-size:1rem; cursor:pointer;">סמן כבוצע</button>
+        <button id="btn-remind-close-${item.id}" style="background:none; color:#fff; border:2px solid #fff; padding:10px 20px; border-radius:6px; font-size:1rem; cursor:pointer;">סגור</button>
+      </div>
+    `;
+    
+    document.body.appendChild(div);
+    
+    document.getElementById('btn-remind-done-' + item.id).onclick = () => {
+      this.toggleDone(item.id);
+      div.remove();
+    };
+    document.getElementById('btn-remind-close-' + item.id).onclick = () => {
+      div.remove();
+    };
   }
 };
 
