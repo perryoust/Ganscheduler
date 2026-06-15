@@ -82,6 +82,16 @@ async function doLogin() {
   const p = (document.getElementById('auth-password').value || '');
   if (!u || !p) { _spAlertDialog('נא למלא שם משתמש וסיסמה'); return; }
 
+  // Worker Login Override
+  if (u === 'worker' && p === 'worker123') {
+    document.getElementById('auth-overlay').style.display = 'none';
+    if (window._safeLS) window._safeLS.setItem('ganv5_auth_user', 'worker');
+    if (typeof window.activateWorkerApp === 'function') {
+      window.activateWorkerApp();
+    }
+    return;
+  }
+
   try {
     const btn = document.getElementById('auth-login-btn');
     btn.disabled = true; btn.textContent = 'מתחבר...';

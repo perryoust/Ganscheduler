@@ -61,6 +61,16 @@ window._fbCreateUser = async function (username, password) {
 
 // Listen for auth state — kick off app once signed in
 onAuthStateChanged(auth, async (user) => {
+  // Check for worker fast-track
+  if (window._safeLS && window._safeLS.getItem('ganv5_auth_user') === 'worker') {
+    const authOverlay = document.getElementById('auth-overlay');
+    if (authOverlay) authOverlay.style.display = 'none';
+    if (typeof window.activateWorkerApp === 'function') {
+      window.activateWorkerApp();
+    }
+    return;
+  }
+
   if (user) {
     window._fbUser = user;
     try { window._cachedToken = await user.getIdToken(false); } catch (e) { window._cachedToken = null; }

@@ -167,6 +167,7 @@ function _applyYearData(o){
     // The ch array IS the complete schedule. No merging needed.
     console.log('[_applyYearData] Direct mode (useSraws=false): using ' + o.ch.length + ' records directly');
     window.useSraws = false;
+    window.WORKER_TASKS = Array.isArray(o.workerTasks) ? o.workerTasks : [];
     window.SCH = o.ch.map(x => ({
       id: x.id,
       g: x.g,
@@ -193,7 +194,8 @@ function _applyYearData(o){
     }));
   } else {
     // ═══ LEGACY MODE: Merge SRAWS with cloud changes ═══
-    // 1. Map SRAWS by fuzzy key and ID for merging
+    window.WORKER_TASKS = Array.isArray(o.workerTasks) ? o.workerTasks : [];
+    console.log('[_applyYearData] Legacy mode: Merging SRAWS with cloud changes');
     const srawsFuzzy = {};
     const srawsFuzzyById = {};
     const nuclearClean = (val) => {
@@ -569,7 +571,8 @@ async function save(immediate){
       activeGardens:window.activeGardens?[...window.activeGardens]:null,
       useSraws: typeof window.useSraws!=='undefined'?window.useSraws:true,
       spScannerAliases: window.spScannerAliases || {},
-      spScannerFolderLinks: window.spScannerFolderLinks || {}
+      spScannerFolderLinks: window.spScannerFolderLinks || {},
+      workerTasks: window.WORKER_TASKS || []
     };
     const _json=JSON.stringify(data);
     const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpav');
