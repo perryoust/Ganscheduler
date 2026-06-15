@@ -354,23 +354,55 @@ window.workerLogout = function() {
 const originalST = window.ST;
 window.ST = function(tab) {
   if (tab === 'worker_tasks') {
-    // Hide all tabs
-    document.querySelectorAll('.content, .tabs').forEach(el => el.style.display = 'none');
-    document.getElementById('c-worker_tasks').style.display = 'block';
+    // Hide original content wrapper and tab bars
+    const c = document.querySelector('.content');
+    if (c) c.style.display = 'none';
+    document.querySelectorAll('.tabs').forEach(el => el.style.display = 'none');
     
-    // Update active tab buttons
-    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+    const wt = document.getElementById('c-worker_tasks');
+    if (wt) wt.style.display = 'block';
     
-    // Find the worker_tasks tab and make it active
-    const wtab = Array.from(document.querySelectorAll('.tab')).find(el => el.getAttribute('onclick') === "ST('worker_tasks')");
-    if (wtab) wtab.classList.add('active');
+    // Update mode buttons
+    document.getElementById('modeBtn-act').classList.remove('active');
+    document.getElementById('modeBtn-purch').classList.remove('active');
+    const adminBtn = document.getElementById('modeBtn-admin');
+    if (adminBtn) adminBtn.classList.remove('active');
+    
+    const workerBtn = document.getElementById('modeBtn-worker');
+    if (workerBtn) workerBtn.classList.add('active');
     
     window.renderWorkerTasksAdmin();
     return;
   }
   
+  // If switching to something else, restore content
+  const c = document.querySelector('.content');
+  if(c) c.style.display = '';
+  const wt = document.getElementById('c-worker_tasks');
+  if(wt) wt.style.display = 'none';
+  
+  const workerBtn = document.getElementById('modeBtn-worker');
+  if (workerBtn) workerBtn.classList.remove('active');
+  
   if (originalST) {
     originalST(tab);
+  }
+};
+
+// Hook into switchMode
+const originalSwitchMode = window.switchMode;
+window.switchMode = function(mode) {
+  // Restore content
+  const c = document.querySelector('.content');
+  if(c) c.style.display = '';
+  const wt = document.getElementById('c-worker_tasks');
+  if(wt) wt.style.display = 'none';
+  
+  const workerBtn = document.getElementById('modeBtn-worker');
+  if (workerBtn) workerBtn.classList.remove('active');
+
+  if (originalSwitchMode) {
+    originalSwitchMode(mode);
   }
 };
 
