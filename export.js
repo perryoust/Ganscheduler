@@ -1185,36 +1185,46 @@ window.checkAutoExport = function() {
     if (conf.status !== 'on') return;
     
     const now = new Date();
-    const currentDay = now.getDay().toString();
     const [h, m] = conf.time.split(':').map(Number);
     
-    if (conf.freq === 'weekly' && currentDay !== conf.day) return;
-    
-    const targetTime = new Date(now);
+    let targetTime = new Date(now);
     targetTime.setHours(h, m, 0, 0);
-    
-    if (now >= targetTime) {
-      const lastExportStr = localStorage.getItem('lastAutoExportTime');
-      const targetTimeStr = targetTime.getTime().toString();
-      
-      if (lastExportStr !== targetTimeStr) {
-        localStorage.setItem('lastAutoExportTime', targetTimeStr);
-        if (conf.freq === 'daily') {
-          const td = window.td();
-          document.getElementById('exc-from').value = td;
-          document.getElementById('exc-to').value = td;
-        } else {
-          const past = new Date(now);
-          past.setDate(past.getDate() - 6);
-          document.getElementById('exc-from').value = window.d2s(past);
-          document.getElementById('exc-to').value = window.td();
-        }
-        
-        if (window.showToast) window.showToast('📥 מוריד דוח שינויים אוטומטי...');
-        setTimeout(() => {
-          window.generateChangesExcelReport(true);
-        }, 500);
+
+    if (conf.freq === 'daily') {
+      if (now < targetTime) {
+        targetTime.setDate(targetTime.getDate() - 1);
       }
+    } else if (conf.freq === 'weekly') {
+      const targetDay = Number(conf.day);
+      let diff = now.getDay() - targetDay;
+      if (diff < 0) diff += 7;
+      if (diff === 0 && now < targetTime) {
+        diff = 7;
+      }
+      targetTime.setDate(targetTime.getDate() - diff);
+    }
+    
+    const lastExportStr = localStorage.getItem('lastAutoExportTime');
+    const targetTimeStr = targetTime.getTime().toString();
+    
+    if (lastExportStr !== targetTimeStr) {
+      localStorage.setItem('lastAutoExportTime', targetTimeStr);
+      
+      if (conf.freq === 'daily') {
+        const td = window.d2s(targetTime);
+        document.getElementById('exc-from').value = td;
+        document.getElementById('exc-to').value = td;
+      } else {
+        const past = new Date(targetTime);
+        past.setDate(past.getDate() - 6);
+        document.getElementById('exc-from').value = window.d2s(past);
+        document.getElementById('exc-to').value = window.d2s(targetTime);
+      }
+      
+      if (window.showToast) window.showToast('📥 מוריד דוח שינויים אוטומטי...');
+      setTimeout(() => {
+        window.generateChangesExcelReport(true);
+      }, 500);
     }
   } catch(e) {
     console.error('Auto export error', e);
