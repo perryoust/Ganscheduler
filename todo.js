@@ -189,29 +189,29 @@ window.todo = {
   },
 
   remove: async function(id) {
-    if (!(await window.spConfirm(`למחוק משימה זו?`))) return;
+    if (!(await window.spConfirm("\u05DC\u05DE\u05D7\u05D5\u05E7 \u05DE\u05E9\u05D9\u05DE\u05D4 \u05D6\u05D5?"))) return;
     this.items = this.items.filter(i => i.id !== id);
     this.save();
   },
 
   clearArchive: async function() {
-    if (!(await window.spConfirm(`האם למחוק את כל המשימות שהושלמו?\nפעולה זו אינה ניתנת לביטול.`))) return;
+    if (!(await window.spConfirm("\u05D4\u05D0\u05DD \u05DC\u05DE\u05D7\u05D5\u05E7 \u05D0\u05EA \u05DB\u05DC \u05D4\u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05E9\u05D4\u05D5\u05E9\u05DC\u05DE\u05D5?\n\u05E4\u05E2\u05D5\u05DC\u05D4 \u05D6\u05D5 \u05D0\u05D9\u05E0\u05D4 \u05E0\u05D9\u05EA\u05E0\u05EA \u05DC\u05D1\u05D9\u05D8\u05D5\u05DC."))) return;
     this.items = this.items.filter(i => !i.done);
     this.save();
   },
 
   exportToExcel: async function() {
     if (!this.items.length) {
-      await window.spAlert(`אין משימות לייצוא`);
+      await window.spAlert("\u05D0\u05D9\u05DF \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05DC\u05D9\u05D9\u05E6\u05D5\u05D0");
       return;
     }
     
     // Check if ExcelJS is loaded for true XLSX export
     if (typeof ExcelJS !== 'undefined') {
-      const ws = wb.addWorksheet(`משימות`);
+      const wb = new ExcelJS.Workbook();
       const ws = wb.addWorksheet('משימות');
       ws.views = [{ rightToLeft: true }];
-        { header: `מזהה`, key: `id`, width: 20 },
+      
       ws.columns = [
         { header: 'מזהה', key: 'id', width: 20 },
         { header: 'משימה', key: 'text', width: 50 },
