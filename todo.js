@@ -189,29 +189,29 @@ window.todo = {
   },
 
   remove: async function(id) {
-    if (!(await window.spConfirm('למחוק משימה זו?'))) return;
+    if (!(await window.spConfirm(`למחוק משימה זו?`))) return;
     this.items = this.items.filter(i => i.id !== id);
     this.save();
   },
 
   clearArchive: async function() {
-    if (!(await window.spConfirm('האם למחוק את כל המשימות שהושלמו?\nפעולה זו אינה ניתנת לביטול.'))) return;
+    if (!(await window.spConfirm(`האם למחוק את כל המשימות שהושלמו?\nפעולה זו אינה ניתנת לביטול.`))) return;
     this.items = this.items.filter(i => !i.done);
     this.save();
   },
 
   exportToExcel: async function() {
     if (!this.items.length) {
-      await window.spAlert('אין משימות לייצוא');
+      await window.spAlert(`אין משימות לייצוא`);
       return;
     }
     
     // Check if ExcelJS is loaded for true XLSX export
     if (typeof ExcelJS !== 'undefined') {
-      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet(`משימות`);
       const ws = wb.addWorksheet('משימות');
       ws.views = [{ rightToLeft: true }];
-      
+        { header: `מזהה`, key: `id`, width: 20 },
       ws.columns = [
         { header: 'מזהה', key: 'id', width: 20 },
         { header: 'משימה', key: 'text', width: 50 },

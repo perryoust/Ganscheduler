@@ -363,23 +363,24 @@ window.showInfoNotice = function(containerId, msg, type = 'info', icon = 'ℹ️
 var OM = window.OM;
 var CM = window.CM;
 
+
 window.spAlert = function(msg) {
   return new Promise(resolve => {
-    const overlay = document.createElement('div');
-    overlay.className = 'sp-sys-dialog-overlay';
+    const overlay = document.createElement("div");
+    overlay.className = "sp-sys-dialog-overlay";
     overlay.innerHTML = `
       <div class="sp-sys-dialog">
-        <div class="sp-sys-dialog-msg"></div>
+        <div class="sp-sys-dialog-msg">${msg}</div>
         <div class="sp-sys-dialog-btns">
           <button class="sp-sys-btn sp-sys-btn-ok" id="sp-alert-ok">אישור</button>
         </div>
       </div>
     `;
     document.body.appendChild(overlay);
-    setTimeout(() => overlay.classList.add('show'), 10);
+    setTimeout(() => overlay.classList.add("show"), 10);
     
-    document.getElementById('sp-alert-ok').onclick = () => {
-      overlay.classList.remove('show');
+    document.getElementById("sp-alert-ok").onclick = () => {
+      overlay.classList.remove("show");
       setTimeout(() => { overlay.remove(); resolve(); }, 200);
     };
   });
@@ -387,11 +388,11 @@ window.spAlert = function(msg) {
 
 window.spConfirm = function(msg) {
   return new Promise(resolve => {
-    const overlay = document.createElement('div');
-    overlay.className = 'sp-sys-dialog-overlay';
+    const overlay = document.createElement("div");
+    overlay.className = "sp-sys-dialog-overlay";
     overlay.innerHTML = `
       <div class="sp-sys-dialog">
-        <div class="sp-sys-dialog-msg"></div>
+        <div class="sp-sys-dialog-msg">${msg}</div>
         <div class="sp-sys-dialog-btns">
           <button class="sp-sys-btn sp-sys-btn-cancel" id="sp-conf-no">ביטול</button>
           <button class="sp-sys-btn sp-sys-btn-ok" id="sp-conf-yes">אישור</button>
@@ -399,16 +400,15 @@ window.spConfirm = function(msg) {
       </div>
     `;
     document.body.appendChild(overlay);
-    setTimeout(() => overlay.classList.add('show'), 10);
+    setTimeout(() => overlay.classList.add("show"), 10);
     
-    document.getElementById('sp-conf-yes').onclick = () => {
-      overlay.classList.remove('show');
+    document.getElementById("sp-conf-yes").onclick = () => {
+      overlay.classList.remove("show");
       setTimeout(() => { overlay.remove(); resolve(true); }, 200);
     };
-    document.getElementById('sp-conf-no').onclick = () => {
-      overlay.classList.remove('show');
+    document.getElementById("sp-conf-no").onclick = () => {
+      overlay.classList.remove("show");
       setTimeout(() => { overlay.remove(); resolve(false); }, 200);
     };
   });
 };
-
