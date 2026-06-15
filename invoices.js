@@ -3073,7 +3073,8 @@ window.startSharePointScanner = async function() {
     }
   }
 
-\n  // ── Step 6: Save & render
+
+  // ── Step 6: Save & render
   if (matchCount > 0) {
     window.showToast(`✅ שודכו ${matchCount} קבצים! שומר...`);
     if (window._safeLS) window._safeLS.setItem('ganv5_invoices', JSON.stringify(window.INVOICES || []));
