@@ -220,7 +220,10 @@ window.calMultiChanged = function(type, sourcePlat) {
   ['desktop', 'mobile'].forEach(plat => {
     const btn = document.getElementById(`cal-${type}-multi-btn-${plat}`);
     if(btn) {
-      const typeLabel = type === 'city' ? 'כל הערים' : 'כל הספקים';
+      let typeLabel = 'כל הספקים';
+      if(type==='city') typeLabel='כל הערים';
+      else if(type==='cluster') typeLabel='כל האשכולות';
+      else if(type==='class') typeLabel='כל הכיתות';
       if(checked.length === 0) {
         btn.innerHTML = `<span>${typeLabel}</span> <span style="font-size:0.6rem">▼</span>`;
       } else if (checked.length === 1) {
@@ -228,7 +231,10 @@ window.calMultiChanged = function(type, sourcePlat) {
         if(type === 'sup' && window.supNameLabel) lbl = window.supNameLabel(lbl);
         btn.innerHTML = `<span>${lbl}</span> <span style="font-size:0.6rem">▼</span>`;
       } else {
-        const noun = type === 'city' ? 'ערים' : 'ספקים';
+        let noun = 'ספקים';
+        if(type==='city') noun='ערים';
+        else if(type==='cluster') noun='אשכולות';
+        else if(type==='class') noun='כיתות';
         btn.innerHTML = `<span>נבחרו ${checked.length} ${noun}</span> <span style="font-size:0.6rem">▼</span>`;
       }
     }
