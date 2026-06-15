@@ -45,7 +45,7 @@ function doSupExport(){
 
   const from=document.getElementById('supex-from').value;
   const to=document.getElementById('supex-to').value;
-  if(!from||!to){alert('בחר תאריכים');return;}
+  if(!from||!to){window.spAlert('בחר תאריכים');return;}
 
   const evs=window.SCH.filter(s=>{
     if(s.d<from||s.d>to) return false;
@@ -66,7 +66,7 @@ function doSupExport(){
     return (a.t||'99:99').localeCompare(b.t||'99:99');
   });
   
-  if(!evs.length){alert('אין פעילויות בטווח זה');return;}
+  if(!evs.length){window.spAlert('אין פעילויות בטווח זה');return;}
 
   const title = window._supExName ? `דו"ח פעילות לספק: ${window._supExName} (טווח: ${window.fD(from)} - ${window.fD(to)})` : `דו"ח פעילות ספקים (טווח: ${window.fD(from)} - ${window.fD(to)})`;
   
@@ -517,7 +517,7 @@ function saveSup(){
   const nameEl=document.getElementById('su-name');
   const name=nameEl.value.trim();
   const origName=nameEl.dataset.orig;
-  if(!name){alert('יש להזין שם');return;}
+  if(!name){window.spAlert('יש להזין שם');return;}
   if(origName&&origName!==name){
     if(!confirm(`לשנות את שם הספק מ-"${origName}" ל-"${name}"?
 כל השיבוצים יעודכנו אוטומטית.`)) return;
@@ -663,12 +663,12 @@ function auditMergedSuppliers(){
 
 function doMerge(){
   const mainIdx=document.getElementById('mrg-main').value;
-  if(mainIdx===''){alert('בחר ספק ראשי');return;}
+  if(mainIdx===''){window.spAlert('בחר ספק ראשי');return;}
   const main=_mergeSupList[parseInt(mainIdx)]?.name;
-  if(!main){alert('שגיאה: לא נמצא ספק ראשי');return;}
+  if(!main){window.spAlert('שגיאה: לא נמצא ספק ראשי');return;}
   const checkedIdxs=[...document.querySelectorAll('#mrg-list input[type=checkbox]:checked')].map(c=>parseInt(c.dataset.idx));
   const toMrg=checkedIdxs.map(i=>_mergeSupList[i]?.name).filter(n=>n && n!==main);
-  if(!toMrg.length){alert('בחר לפחות ספק אחד למיזוג');return;}
+  if(!toMrg.length){window.spAlert('בחר לפחות ספק אחד למיזוג');return;}
   if(!confirm(`לאחד ${toMrg.length} ספקים אל "${main}"?`)) return;
 
   const mainBase = window.supBase(main);

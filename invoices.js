@@ -1294,7 +1294,7 @@ function toggleVatSettings(){
 
 function saveVatRate(){
   const v = parseFloat(document.getElementById('vat-rate-input').value);
-  if(isNaN(v)||v<0||v>100){ alert('יש להזין אחוז תקין (0–100)'); return; }
+  if(isNaN(v)||v<0||v>100){ window.spAlert('יש להזין אחוז תקין (0–100)'); return; }
   window.VAT_RATE = v;
   document.getElementById('inv-vat').value = v;
   onVatChange();
@@ -1312,7 +1312,7 @@ async function saveInvoice(){
   const nsName = document.getElementById('inv-ns-name')?.value.trim();
   if(nsWrap && nsWrap.style.display!=='none' && nsName){
     // New supplier form is open — nsName already read above
-    if(!nsName){ alert('יש להזין שם ספק'); return; }
+    if(!nsName){ window.spAlert('יש להזין שם ספק'); return; }
     const entityType = document.getElementById('inv-ns-entity')?.value||'';
     if(typeof window.supEx !== 'undefined'){
       if(!window.supEx['__c']) window.supEx['__c']=[];
@@ -1336,12 +1336,12 @@ async function saveInvoice(){
     // Hide new supplier form
     if(nsWrap) nsWrap.style.display='none';
   }
-  if(!supName){ alert('יש לבחור ספק'); return; }
+  if(!supName){ window.spAlert('יש לבחור ספק'); return; }
   const num      = document.getElementById('inv-num').value.trim();
   const txNum    = document.getElementById('inv-tx-num').value.trim();
   const orderNum = document.getElementById('inv-order-num').value.trim();
   if(!orderNum && !txNum && !num){
-    alert('יש להזין לפחות מספר הזמנה, מספר חשבונית עסקה, או מספר חשבונית מס'); return;
+    window.spAlert('יש להזין לפחות מספר הזמנה, מספר חשבונית עסקה, או מספר חשבונית מס'); return;
   }
   // Check duplicate order number — only for purely numeric numbers (letters/mixed = internal codes, skip)
   if(orderNum && /^\d+$/.test(orderNum)){
@@ -2244,7 +2244,7 @@ window.importInvoices = function(input) {
   if (!file) return;
 
   if (typeof window.XLSX === "undefined") {
-    alert("שגיאה: ספריית XLSX לא נטענה. אנא רענן את הדף.");
+    window.spAlert("שגיאה: ספריית XLSX לא נטענה. אנא רענן את הדף.");
     return;
   }
 
@@ -2259,7 +2259,7 @@ window.importInvoices = function(input) {
       // Convert to 2D array to support robust header row detection
       const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
       if (rawRows.length === 0) {
-        alert("הקובץ ריק או לא תקין.");
+        window.spAlert("הקובץ ריק או לא תקין.");
         return;
       }
 
@@ -2509,7 +2509,7 @@ window.importInvoices = function(input) {
         }
       }
 
-      alert(`✅ סיום ייבוא: נוספו ${added} רשומות חדשות, עודכנו ${updated} קיימות.`);
+      window.spAlert(`✅ סיום ייבוא: נוספו ${added} רשומות חדשות, עודכנו ${updated} קיימות.`);
       if (typeof renderInvoices === "function") renderInvoices();
       if (typeof renderPurchSuppliers === "function") renderPurchSuppliers();
       if (typeof refreshPurchDash === "function") refreshPurchDash();
@@ -2522,18 +2522,18 @@ window.importInvoices = function(input) {
           if (ok) {
             window.showToast('✅ הנתונים סונכרנו בהצלחה');
           } else {
-            alert('⚠️ הנתונים יובאו מקומית אך הסנכרון לענן נכשל. נסה לשמור ידנית.');
+            window.spAlert('⚠️ הנתונים יובאו מקומית אך הסנכרון לענן נכשל. נסה לשמור ידנית.');
           }
         } catch (err) {
           console.error('[Import-Purch] Save failed:', err);
-          alert('❌ שגיאה בסנכרון לענן: ' + err.message);
+          window.spAlert('❌ שגיאה בסנכרון לענן: ' + err.message);
         }
       }
       
       input.value = ""; // Reset input
     } catch (err) {
       console.error("Import error:", err);
-      alert("שגיאה בתהליך הייבוא: " + err.message);
+      window.spAlert("שגיאה בתהליך הייבוא: " + err.message);
     }
 };
   reader.readAsArrayBuffer(file);
@@ -2552,7 +2552,7 @@ window.clearScannerLinks = function() {
   });
   window.save(true);
   if (typeof window.renderInvoices === 'function') window.renderInvoices();
-  alert(`נותקו קבצים מ-${count} חשבוניות בהצלחה!`);
+  window.spAlert(`נותקו קבצים מ-${count} חשבוניות בהצלחה!`);
 };
 
 window.deleteAllInvoices = async function() {
@@ -2562,7 +2562,7 @@ window.deleteAllInvoices = async function() {
     if (typeof window.save === 'function') await window.save(true);
     if (typeof window.renderInvoices === 'function') window.renderInvoices();
     if (typeof window.refreshPurchDash === 'function') window.refreshPurchDash();
-    alert('✅ כל החשבוניות נמחקו בהצלחה. המערכת מוכנה לייבוא מחדש.');
+    window.spAlert('✅ כל החשבוניות נמחקו בהצלחה. המערכת מוכנה לייבוא מחדש.');
   }
 };
 
@@ -2734,7 +2734,7 @@ window.parseSharePointBaseUrl = (url) => {
 
 // ── SharePoint Local Scanner ─────────────────────────────
 
-// Helper: Show a simple HTML alert instead of native alert()
+// Helper: Show a simple HTML alert instead of native window.spAlert()
 function _spAlertDialog(msgHtml) {
   return new Promise(resolve => {
     const ov = document.createElement('div');

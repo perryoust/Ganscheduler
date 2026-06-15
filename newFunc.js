@@ -1,6 +1,6 @@
 window.startSharePointScanner = async function() {
   if (!window.showDirectoryPicker) {
-    alert('הדפדפן שלך אינו תומך בסריקת תיקיות מקומית. אנא השתמש ב-Chrome או Edge עדכני.');
+    window.spAlert('הדפדפן שלך אינו תומך בסריקת תיקיות מקומית. אנא השתמש ב-Chrome או Edge עדכני.');
     return;
   }
   
@@ -112,8 +112,8 @@ window.startSharePointScanner = async function() {
       window.XLSX.writeFile(wb, 'תוצאות_סריקת_sharepoint.xlsx');
     }
     
-    alert(`סיום! נסרקו ${filesFound.length} קבצים.\nהותאמו ושודכו: ${matchCount}\nדוח הופק וירד למחשב שלך.`);
+    window.spAlert(`סיום! נסרקו ${filesFound.length} קבצים.\nהותאמו ושודכו: ${matchCount}\nדוח הופק וירד למחשב שלך.`);
   } catch (error) {
-    if (error.name !== 'AbortError') alert('שגיאה בסריקה: ' + error.message);
+    if (error.name !== 'AbortError') window.spAlert('שגיאה בסריקה: ' + error.message);
   }
 }

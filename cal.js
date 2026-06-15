@@ -570,7 +570,7 @@ function clearCalPair(){
 }
 // Unified pair save — called from calendar, schedule, and garden modal
 function addPair(gids){
-  if(!gids||gids.length<2){alert('יש לבחור לפחות 2 צהרונים');return;}
+  if(!gids||gids.length<2){window.spAlert('יש לבחור לפחות 2 צהרונים');return;}
   checkDupePairAndSave(gids);
 }
 function addPairFromCal(){
@@ -606,7 +606,7 @@ window.addClusterFromCal = function(){
   };
   
   window.save(); window.refresh(); window.refreshClusterDrops();
-  alert(`✅ האשכול "${finalName}" נשמר!`);
+  window.spAlert(`✅ האשכול "${finalName}" נשמר!`);
 };
 window.addPairFromCal = addPairFromCal;
 window.saveCalPair = addPairFromCal;
@@ -619,7 +619,7 @@ function addPairFromSched(){
 function savePairFromGarden(){
   const g2=parseInt(document.getElementById('gm-pg2').value)||null;
   const g3=parseInt(document.getElementById('gm-pg3').value)||null;
-  if(!g2){alert('יש לבחור לפחות צהרון שני');return;}
+  if(!g2){window.spAlert('יש לבחור לפחות צהרון שני');return;}
   addPair([window.gmGid,g2,g3].filter(Boolean));
   window.openGM(window.gmGid);
 }
@@ -637,7 +637,7 @@ function checkDupePairAndSave(gids){
     return { ...p, ids: p.ids.filter(id => !gids.map(Number).includes(Number(id))) };
   }).filter(p => p.ids.length >= 2);
   window.save(); window.refresh();
-  alert(`✅ הזוג "${nm||name}" נשמר!`);
+  window.spAlert(`✅ הזוג "${nm||name}" נשמר!`);
 }
 
 function renderCal(){

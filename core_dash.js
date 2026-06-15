@@ -398,7 +398,7 @@ function saveNewGarden(){
   const name=document.getElementById('addg-name').value.trim();
   const city=document.getElementById('addg-city').value;
   const cls=document.getElementById('addg-cls').value;
-  if(!name||!city){alert('יש למלא שם ועיר');return;}
+  if(!name||!city){window.spAlert('יש למלא שם ועיר');return;}
   const newId=Date.now();
   const newG={id:newId,name,city,
     st:document.getElementById('addg-st').value.trim(),
@@ -434,7 +434,7 @@ function saveNewGarden(){
   if(!supEx['__gardens_extra']) supEx['__gardens_extra']=[];
   supEx['__gardens_extra'].push(newG);
   save();CM('addgm');refresh();refreshClusterDrops();
-  alert('✅ '+name+' נוסף בהצלחה!');
+  window.spAlert('✅ '+name+' נוסף בהצלחה!');
 }
 let _sucName=null;
 // ── Supplier card: tab between activities and documents ─────────────
@@ -692,7 +692,7 @@ function sucRemoveAct(idx){
 function deleteSupFromCard() {
   // Use _sucName (set by openSupCard) as the reliable source
   const name = _sucName || (document.getElementById('suc-edit-name') && document.getElementById('suc-edit-name').dataset.orig);
-  if (!name) { alert('לא נמצא שם ספק'); return; }
+  if (!name) { window.spAlert('לא נמצא שם ספק'); return; }
 
   const activeCount = SCH.filter(s => s.a === name && s.st !== 'can').length;
   const totalCount  = SCH.filter(s => s.a === name).length;
@@ -724,7 +724,7 @@ function deleteSupFromCard() {
 function sucSaveEdit(){
   const nameEl=document.getElementById('suc-edit-name');
   const newBase=nameEl.value.trim(); const origBase=nameEl.dataset.orig;
-  if(!newBase){alert('יש להזין שם ספק');return;}
+  if(!newBase){window.spAlert('יש להזין שם ספק');return;}
   if(origBase&&origBase!==newBase){
     const affected=SCH.filter(s=>supBase(s.a)===origBase).length;
     if(!confirm(`לשנות שם מ-"${origBase}" ל-"${newBase}"?\n${affected} שיבוצים יעודכנו.`)) return;
@@ -770,7 +770,7 @@ function sucSaveEdit(){
     el.value=cur;
   });
   sucToggleEdit(); sucRefreshInfo(); sucRefreshActFilt();
-  alert('✅ פרטי הספק נשמרו!');
+  window.spAlert('✅ פרטי הספק נשמרו!');
 }
 function clearSupCardFilter(){
   document.getElementById('suc-from').value='';
@@ -1137,7 +1137,7 @@ function gcellBlock(){ openBlockModal('garden', _gcellGid, _gcellDs); }
 
 function saveBlock(){
   const reason=document.getElementById('block-m-reason').value.trim();
-  if(!reason){alert('יש להזין סיבה');return;}
+  if(!reason){window.spAlert('יש להזין סיבה');return;}
   const note=document.getElementById('block-m-note').value.trim();
   const icon=getBlockedIcon(reason);
   if(_blockMode==='garden'){
@@ -1414,7 +1414,7 @@ function mgrSelectAllGardens(sel){
 
 function saveMgr(){
   const name=document.getElementById('mgr-name').value.trim();
-  if(!name){alert('יש להזין שם');return;}
+  if(!name){window.spAlert('יש להזין שם');return;}
   const id=_editMgrId||('mgr_'+Date.now());
   const gardenIds=[...document.querySelectorAll('#mgr-gardens input:checked')].map(cb=>parseInt(cb.value));
   managers[id]={
@@ -1761,7 +1761,7 @@ function openAddGardenModal(){
 function saveNewPlace(){
   const name=document.getElementById('ap-name').value.trim();
   const city=document.getElementById('ap-city').value;
-  if(!name||!city){alert('יש למלא שם ועיר');return;}
+  if(!name||!city){window.spAlert('יש למלא שם ועיר');return;}
   const newId=Math.max(...GARDENS.map(g=>g.id),0)+Date.now()%100000;
   const newG={
     id:newId,
@@ -1777,7 +1777,7 @@ function saveNewPlace(){
   if(!supEx['__gardens_extra']) supEx['__gardens_extra']=[];
   supEx['__gardens_extra']=_GARDENS_EXTRA;
   save();CM('addplace-m');refresh();
-  alert('✅ '+name+' נוסף בהצלחה!');
+  window.spAlert('✅ '+name+' נוסף בהצלחה!');
 }
 
 // ─── Mobile nav ───────────────────────────────────────
@@ -1818,7 +1818,7 @@ function importData(){
         if(parsed.snaps) _safeLS.setItem('ganv5_snaps',JSON.stringify(parsed.snaps));
         showToast('✅ הנתונים יובאו. טוען מחדש...');
         setTimeout(()=>location.reload(),1200);
-      }catch(err){alert('שגיאה בקובץ הגיבוי: '+err.message);}
+      }catch(err){window.spAlert('שגיאה בקובץ הגיבוי: '+err.message);}
     };
     reader.readAsText(file);
   };

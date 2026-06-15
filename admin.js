@@ -541,7 +541,7 @@ async function changeUserPassword(uid, username){
     });
     if(!passRes.ok){ const e=await passRes.json(); throw new Error(e.error||'שגיאה'); }
     showToast(`✅ סיסמה שונתה עבור "${username}"`);
-    alert(`✅ הסיסמה של "${username}" שונתה בהצלחה.\n\nסיסמה חדשה: ${newPass}`);
+    window.spAlert(`✅ הסיסמה של "${username}" שונתה בהצלחה.\n\nסיסמה חדשה: ${newPass}`);
   } catch(e){ showToast('❌ שגיאה: '+e.message); }
 }
 async function fixData() {
@@ -565,14 +565,14 @@ async function fixData() {
     const ok = await window.save(true, true);
     
     if (ok) {
-      alert('✅ הנתונים תוקנו וסונכרנו! המערכת תתרענן כעת.');
+      window.spAlert('✅ הנתונים תוקנו וסונכרנו! המערכת תתרענן כעת.');
       location.reload();
     } else {
-      alert('❌ השמירה נכשלה. נסה שוב מאוחר יותר.');
+      window.spAlert('❌ השמירה נכשלה. נסה שוב מאוחר יותר.');
     }
   } catch(e) {
     console.error(e);
-    alert('❌ שגיאה בתהליך התיקון: ' + e.message);
+    window.spAlert('❌ שגיאה בתהליך התיקון: ' + e.message);
   }
 }
 async function nuclearReset() {
@@ -590,15 +590,15 @@ async function nuclearReset() {
     const ok = await window.save(true, true);
     
     if (ok) {
-      alert('✅ המערכת אופסה לחלוטין! המטמון המקומי יימחק כעת.');
+      window.spAlert('✅ המערכת אופסה לחלוטין! המטמון המקומי יימחק כעת.');
       localStorage.removeItem('ganv5');
       localStorage.removeItem('_fbSeq');
       location.reload();
     } else {
-      alert('❌ המחיקה נכשלה.');
+      window.spAlert('❌ המחיקה נכשלה.');
     }
   } catch(e) {
-    alert('❌ שגיאה: ' + e.message);
+    window.spAlert('❌ שגיאה: ' + e.message);
   }
 }
 window.nuclearReset = nuclearReset;
@@ -609,7 +609,7 @@ window.deleteYearPrompt = async function() {
   const metaStr = window._safeLS.getItem('ganv5_meta');
   let meta = metaStr ? JSON.parse(metaStr) : null;
   if (!meta || !meta.years || Object.keys(meta.years).length === 0) {
-    alert('אין תקופות זמינות למחיקה (חוץ מברירת המחדל).');
+    window.spAlert('אין תקופות זמינות למחיקה (חוץ מברירת המחדל).');
     return;
   }
   
@@ -620,7 +620,7 @@ window.deleteYearPrompt = async function() {
   
   if (!idToDelete) return;
   if (!meta.years[idToDelete]) {
-    alert(`שגיאה: תקופה עם מזהה "${idToDelete}" לא קיימת.`);
+    window.spAlert(`שגיאה: תקופה עם מזהה "${idToDelete}" לא קיימת.`);
     return;
   }
   if (idToDelete === 'tashpav') {
@@ -632,7 +632,7 @@ window.deleteYearPrompt = async function() {
   try {
     let tok = null;
     if (window._fbUser) try { tok = await window._fbUser.getIdToken(true); } catch(e) {}
-    if (!tok) { alert('שגיאת אימות — יש להתחבר מחדש.'); return; }
+    if (!tok) { window.spAlert('שגיאת אימות — יש להתחבר מחדש.'); return; }
     
     if (window.showCopyToast) window.showCopyToast('⏳ מוחק את התקופה מהענן...');
     const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
@@ -670,9 +670,9 @@ window.deleteYearPrompt = async function() {
       location.reload();
     }
     
-    alert(`✅ התקופה ${idToDelete} נמחקה בהצלחה!`);
+    window.spAlert(`✅ התקופה ${idToDelete} נמחקה בהצלחה!`);
   } catch(e) {
-    alert('❌ שגיאה במחיקה: ' + e.message);
+    window.spAlert('❌ שגיאה במחיקה: ' + e.message);
   }
 };
 
@@ -713,7 +713,7 @@ window.openNewYearWizard = function() {
   const suggestedName = nextId ? (_HEBREW_YEARS[nextId] || '') : '';
   
   const m = document.getElementById('newyear-m');
-  if (!m) { alert('Modal not found'); return; }
+  if (!m) { window.spAlert('Modal not found'); return; }
   
   // Fill inputs
   const nameEl = document.getElementById('nyw-custom-name');
@@ -780,17 +780,17 @@ window.executeNewYear = async function() {
   const startDate = startInput?.value;
   const endDate = endInput?.value;
   
-  if (!yearId) { alert('שגיאה: יש להזין מזהה ייחודי באנגלית.'); return; }
-  if (!/^[a-z0-9_-]+$/.test(yearId)) { alert('שגיאה: המזהה יכול להכיל אותיות באנגלית, מספרים, מקף או קו תחתון בלבד.'); return; }
-  if (!yearName) { alert('שגיאה: יש להזין שם לתקופה/שנה.'); return; }
-  if (!startDate || !endDate) { alert('שגיאה: יש להזין תאריכי התחלה וסיום.'); return; }
-  if (new Date(startDate) > new Date(endDate)) { alert('שגיאה: תאריך ההתחלה לא יכול להיות אחרי תאריך הסיום.'); return; }
+  if (!yearId) { window.spAlert('שגיאה: יש להזין מזהה ייחודי באנגלית.'); return; }
+  if (!/^[a-z0-9_-]+$/.test(yearId)) { window.spAlert('שגיאה: המזהה יכול להכיל אותיות באנגלית, מספרים, מקף או קו תחתון בלבד.'); return; }
+  if (!yearName) { window.spAlert('שגיאה: יש להזין שם לתקופה/שנה.'); return; }
+  if (!startDate || !endDate) { window.spAlert('שגיאה: יש להזין תאריכי התחלה וסיום.'); return; }
+  if (new Date(startDate) > new Date(endDate)) { window.spAlert('שגיאה: תאריך ההתחלה לא יכול להיות אחרי תאריך הסיום.'); return; }
   
   // Check if already exists in metadata
   const metaStr = window._safeLS.getItem('ganv5_meta');
   let meta = metaStr ? JSON.parse(metaStr) : { currentYear: 'tashpav', years: { 'tashpav': { name: 'תשפ"ו (2025-2026)', start: '2025-09-01', end: '2026-08-21' } } };
   if (meta.years[yearId]) {
-    alert(`שגיאה: מזהה "${yearId}" כבר קיים במערכת.`);
+    window.spAlert(`שגיאה: מזהה "${yearId}" כבר קיים במערכת.`);
     return;
   }
   
@@ -809,7 +809,7 @@ window.executeNewYear = async function() {
     const gardensForNewYear = allGardens.filter(g => selectedGardenIds.has(g.id));
     
     if (gardensForNewYear.length === 0) {
-      alert('יש לבחור לפחות גן אחד!');
+      window.spAlert('יש לבחור לפחות גן אחד!');
       if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח תקופה/קייטנה חדשה'; }
       return;
     }
@@ -850,7 +850,7 @@ window.executeNewYear = async function() {
     // 5. Save to Firebase
     let tok = null;
     if (window._fbUser) try { tok = await window._fbUser.getIdToken(true); } catch(e) {}
-    if (!tok) { alert('שגיאת אימות — יש להתחבר מחדש.'); if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח תקופה/קייטנה חדשה'; } return; }
+    if (!tok) { window.spAlert('שגיאת אימות — יש להתחבר מחדש.'); if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח תקופה/קייטנה חדשה'; } return; }
     
     const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
     const url = `${base}/years/${yearId}/data.json?auth=${tok}`;
@@ -890,12 +890,12 @@ window.executeNewYear = async function() {
     // 9. Refresh year selector
     if (window.initYearSelector) window.initYearSelector();
     
-    alert(`✅ התקופה/קייטנה "${yearName}" נוצרה בהצלחה!\n\n${gardensForNewYear.length} גנים הועברו.\n${newPairs.length} זוגות הועברו.\n\nכדי לעבור לתקופה החדשה, בחר אותה מתפריט השנה בראש המסך.`);
+    window.spAlert(`✅ התקופה/קייטנה "${yearName}" נוצרה בהצלחה!\n\n${gardensForNewYear.length} גנים הועברו.\n${newPairs.length} זוגות הועברו.\n\nכדי לעבור לתקופה החדשה, בחר אותה מתפריט השנה בראש המסך.`);
     showToast('✅ שנה/תקופה חדשה נוצרה — עבור דרך בורר השנה');
     
   } catch(e) {
     console.error('Creation failed:', e);
-    alert('❌ שגיאה ביצירת התקופה: ' + e.message);
+    window.spAlert('❌ שגיאה ביצירת התקופה: ' + e.message);
   } finally {
     if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח תקופה/קייטנה חדשה'; }
   }

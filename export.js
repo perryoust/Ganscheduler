@@ -34,7 +34,7 @@ function gardenManager(gardenId){
 function doMonthlyExport(){
   const fromM=document.getElementById('exp-from').value;
   const toM=document.getElementById('exp-to').value;
-  if(!fromM||!toM){alert('יש לבחור תקופה');return;}
+  if(!fromM||!toM){window.spAlert('יש לבחור תקופה');return;}
   const mode=document.querySelector('input[name="exp-mode"]:checked').value;
   const cityFilter=document.getElementById('exp-city').value;
   const mgrFilter=document.getElementById('exp-mgr').value;
@@ -61,7 +61,7 @@ function doMonthlyExport(){
   if(effectiveSplit==='garden'){
     gList.forEach(g=>{
       const gEvs=evs.filter(s=>s.g===g.id);
-      if(!gEvs.length){ if(mode==='garden') alert(`אין פעילויות לגן "${g.name}" בתקופה שנבחרה`); return; }
+      if(!gEvs.length){ if(mode==='garden') window.spAlert(`אין פעילויות לגן "${g.name}" בתקופה שנבחרה`); return; }
       downloadWB(buildGardenWB(g, gEvs, fromDate, toDate), `לוח_חוגים_${g.name}_${fromM}.xlsx`, fromM);
       filesExported++;
     });
@@ -75,7 +75,7 @@ function doMonthlyExport(){
   }
   window.CM('export-m');
   if(filesExported>0) window.showToast(`📊 ${filesExported} קבצי Excel נוצרו בהצלחה!`);
-  else if(mode!=='garden') alert('⚠️ לא נמצאו פעילויות בטווח התאריכים שנבחר.');
+  else if(mode!=='garden') window.spAlert('⚠️ לא נמצאו פעילויות בטווח התאריכים שנבחר.');
 }
 
 function buildCityWB(city, gardens, allEvs, fromDate, toDate){
@@ -408,7 +408,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
     window.showToast('📊 קובץ Excel נוצר!');
   } catch(e) {
     console.error('ExcelJS error:', e);
-    alert('שגיאה ביצירת Excel: ' + e.message + '\n\nבדוק את ה-console לפרטים');
+    window.spAlert('שגיאה ביצירת Excel: ' + e.message + '\n\nבדוק את ה-console לפרטים');
     _csvFallback({sheets: gardens.map(g => ({garden:g, evs:allEvs.filter(s=>s.g===g.id)}))}, filename);
   }
 }
@@ -664,7 +664,7 @@ function buildSheetData(garden, evs) {
 
 async function exportToExcel(data, filename, opts = {}) {
   console.log('Export Engine v97.8');
-  if (!data || !data.length) { alert('אין נתונים לייצוא'); return; }
+  if (!data || !data.length) { window.spAlert('אין נתונים לייצוא'); return; }
   
   if (typeof window.ExcelJS !== 'undefined') {
     try {
@@ -867,7 +867,7 @@ async function exportToExcel(data, filename, opts = {}) {
 
 async function exportShortagesToExcel() {
   if (typeof window.ExcelJS === 'undefined') {
-    alert('ExcelJS is not loaded yet. Please wait a moment and try again.');
+    window.spAlert('ExcelJS is not loaded yet. Please wait a moment and try again.');
     return;
   }
 
@@ -965,7 +965,7 @@ async function exportShortagesToExcel() {
     a.click();
   } catch (e) {
     console.error('Shortages export failed:', e);
-    alert('שגיאה בייצוא הדוח');
+    window.spAlert('שגיאה בייצוא הדוח');
   }
 }
 
@@ -980,7 +980,7 @@ window.buildCityWB = buildCityWB;
 window.buildGardenWB = buildGardenWB;
 window.generateChangesExcelReport = async function(isAuto = false) {
   if (typeof window.ExcelJS === 'undefined') {
-    if (!isAuto) alert('ExcelJS is not loaded yet. Please wait a moment and try again.');
+    if (!isAuto) window.spAlert('ExcelJS is not loaded yet. Please wait a moment and try again.');
     return;
   }
 
@@ -1016,7 +1016,7 @@ window.generateChangesExcelReport = async function(isAuto = false) {
   const toStr = normalizeDateInput(document.getElementById('exc-to').value);
   
   if (!fromStr || !toStr) {
-    if (!isAuto) alert('נא לבחור טווח תאריכים מלא (מתאריך ועד תאריך).');
+    if (!isAuto) window.spAlert('נא לבחור טווח תאריכים מלא (מתאריך ועד תאריך).');
     return;
   }
 
@@ -1036,7 +1036,7 @@ window.generateChangesExcelReport = async function(isAuto = false) {
   });
 
   if (changes.length === 0) {
-    if (!isAuto) alert('לא נמצאו פעילויות חריגות (שינויים) בטווח התאריכים הנבחר.');
+    if (!isAuto) window.spAlert('לא נמצאו פעילויות חריגות (שינויים) בטווח התאריכים הנבחר.');
     return;
   }
 
@@ -1146,7 +1146,7 @@ window.generateChangesExcelReport = async function(isAuto = false) {
     if(isAuto && window.showToast) window.showToast('✅ הדוח ירד בהצלחה (אוטומטי)');
   } catch (e) {
     console.error('Changes export failed:', e);
-    if (!isAuto) alert('שגיאה בייצוא הדוח');
+    if (!isAuto) window.spAlert('שגיאה בייצוא הדוח');
   }
 };
 

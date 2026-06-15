@@ -55,7 +55,7 @@ function updateAppFromHTML(input){
       window._safeLS.setItem('_restore_cfg',currentCfg||'');
       window._safeLS.setItem('_pending_restore','1');
       window.location.href=url;
-    }catch(err){alert('שגיאה: '+err.message);}
+    }catch(err){window.spAlert('שגיאה: '+err.message);}
   };
   r.readAsText(file,'utf-8');
 }
@@ -115,7 +115,7 @@ function importBackup(input){
       }, 1400);
     }catch(err){
       window._MASTER_LOCK = false;
-      alert('שגיאה בקובץ: '+err.message);
+      window.spAlert('שגיאה בקובץ: '+err.message);
     }
   };
   r.readAsText(file);

@@ -454,7 +454,7 @@ function cleanMakeupNote(orig, dateStr) {
 
 window.spBatchDelete = function() {
   const ids = window.spGetSelectedIds();
-  if(!ids.length) { alert('יש לסמן לפחות גן אחד למחיקה'); return; }
+  if(!ids.length) { window.spAlert('יש לסמן לפחות גן אחד למחיקה'); return; }
   
   const restoreMsg = window.SCH.some(x => ids.includes(String(x.id)) && x._isMakeup) ? '\n(פעילויות השלמה מסומנות יוחזרו למקוריות שלא התקיימו)' : '';
   
@@ -495,7 +495,7 @@ window.spBatchQSetSt = function(st) {
 
 window.spBatchAction = function(val) {
   const ids = window.spGetSelectedIds();
-  if(!ids.length) { alert('יש לסמן לפחות גן אחד בטבלה'); return; }
+  if(!ids.length) { window.spAlert('יש לסמן לפחות גן אחד בטבלה'); return; }
   
   console.log('[spBatchAction]', val, {ids});
   switch(val) {
@@ -1143,7 +1143,7 @@ window.getSpMissedHtml = function(gid) {
 
 function deleteRecurSeries(id) {
   const s = window.SCH.find(x => x.id == id);
-  if(!s) return alert('שגיאה. רשומה לא קיימת');
+  if(!s) return window.spAlert('שגיאה. רשומה לא קיימת');
   const g = window.G(s.g);
   
   const affected = s._recId
@@ -1356,7 +1356,7 @@ function deleteSingleActivity(id) {
 
 function openReplaceRecur(id) {
   const s = window.SCH.find(x => x.id == id);
-  if(!s || !s._recId) return alert('פעילות זו אינה חלק מפעילות קבועה');
+  if(!s || !s._recId) return window.spAlert('פעילות זו אינה חלק מפעילות קבועה');
   const g = window.G(s.g);
   const allSups = window.getAllSup().filter(s2 => window.isActSupplier(s2.name));
   const spPair = window.gardenPair(s.g);
@@ -1453,7 +1453,7 @@ function saveReplaceRecur(id) {
     const sync = syncChk ? syncChk.checked : false;
     const partnerTime = document.getElementById('rr-time-partner') ? document.getElementById('rr-time-partner').value : time;
 
-    if(!from || !to || !days.length || !sup) return alert('יש למלא את כל השדות ולבחור ימים');
+    if(!from || !to || !days.length || !sup) return window.spAlert('יש למלא את כל השדות ולבחור ימים');
 
     if(!confirm('⚠️ פעולה זו תמחוק את כל השיבוצים העתידיים של הסדרה הקיימת ותיצור חדשים.\nהאם אתה בטוח?')) return;
 
@@ -1530,7 +1530,7 @@ function saveReplaceRecur(id) {
     window.showToast(`✅ הפעילות הקבועה הוחלפה בהצלחה. נוצרו ${count} שיבוצים חדשים.`);
   } catch(err) {
     console.error('[saveReplaceRecur]', err);
-    alert('שגיאה בביצוע ההחלפה: ' + err.message);
+    window.spAlert('שגיאה בביצוע ההחלפה: ' + err.message);
   }
 }
 
@@ -2032,7 +2032,7 @@ function openPostpone(id){
     
     document.getElementById('postm').classList.add('open');
   } catch(e) {
-    alert("שגיאה בפתיחת הזזה: " + e.message);
+    window.spAlert("שגיאה בפתיחת הזזה: " + e.message);
   }
 }
 
@@ -2076,7 +2076,7 @@ function doPostpone(){
     const reason = document.getElementById('post-reason') ? document.getElementById('post-reason').value : '';
     
     if (window._postMode === 'defer') {
-      if(!reason.trim()) { alert('יש להזין סיבה לדחייה'); return; }
+      if(!reason.trim()) { window.spAlert('יש להזין סיבה לדחייה'); return; }
       s.st = 'post';
       s.pd = ''; // No target date
       s.cn = s.cn ? s.cn + ` (דחייה: ${reason})` : `(דחייה: ${reason})`;
@@ -2102,7 +2102,7 @@ function doPostpone(){
       return;
     }
     
-    if(!newDate) { alert('יש לבחור תאריך'); return; }
+    if(!newDate) { window.spAlert('יש לבחור תאריך'); return; }
     
     const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('post') : [];
     const toProcess = [];
@@ -2170,7 +2170,7 @@ function doPostpone(){
     window.saveAndRefresh('postm');
     window.showToast(toastMsg);
   } catch(e) {
-    alert("שגיאה בביצוע הזזה: " + e.message);
+    window.spAlert("שגיאה בביצוע הזזה: " + e.message);
   }
 }
 
@@ -2180,7 +2180,7 @@ function doCopy(){
   if(!s) return;
   const newDate = document.getElementById('copy-date').value;
   const primaryTime = document.getElementById('copy-time').value;
-  if(!newDate) { alert('יש לבחור תאריך יעד'); return; }
+  if(!newDate) { window.spAlert('יש לבחור תאריך יעד'); return; }
   
   // Primary
   const newEv1 = {...s, id:Date.now(), d:newDate, t:primaryTime || s.t, st:'ok', pd:'', pt:'', cr:'', cn:''};
@@ -2590,7 +2590,7 @@ window.spSaveMakeup = function() {
   const time = document.getElementById('sp-mu-time').value;
   const supName = document.getElementById('sp-mu-sup').value || origEv.a;
   
-  if(!newDate || !time) { alert('בחר תאריך ושעה'); return; }
+  if(!newDate || !time) { window.spAlert('בחר תאריך ושעה'); return; }
   
   const targets = [{ g: origEv.g, t: time }, ...window.getSynergyData('sp-mu').map(tgt => ({ g: tgt.g, t: tgt.t || time, grp: tgt.grp }))];
   
@@ -2808,7 +2808,7 @@ window.saveCanQ = function() {
   const mainReason = sel ? sel.dataset.r : '';
   const extra = (document.getElementById('canq-note')||{}).value?.trim() || '';
   const fullReason = [mainReason, extra].filter(Boolean).join(' — ');
-  if (!mainReason && !extra) { alert('יש לבחור סיבת ביטול'); return; }
+  if (!mainReason && !extra) { window.spAlert('יש לבחור סיבת ביטול'); return; }
   
   const syncChk = document.getElementById('canq-sync-chk');
   const forPair = syncChk ? syncChk.checked : false;
@@ -2886,7 +2886,7 @@ window.saveCancelDay = function() {
   const mainReason = sel?.dataset.r || '';
   const extra = (document.getElementById('cancelday-note')||{}).value?.trim() || '';
   const fullReason = [mainReason, extra].filter(Boolean).join(' — ');
-  if (!fullReason) { alert('יש לבחור סיבה'); return; }
+  if (!fullReason) { window.spAlert('יש לבחור סיבה'); return; }
   if (!_cancelDayDs) return;
   
   const toCancel = window.SCH.filter(s => s.d === _cancelDayDs && s.st !== 'can');
@@ -2952,7 +2952,7 @@ window.saveNohapQ = function(){
   const mainReason = sel ? (sel.dataset.r || sel.textContent.replace(/^\S+ /,'').trim()) : '';
   const extra = (document.getElementById('nohapq-reason')||{}).value?.trim() || '';
   const fullReason=[mainReason,extra].filter(Boolean).join(' — ');
-  if(!mainReason&&!extra){alert('יש לבחור סיבה');return;}
+  if(!mainReason&&!extra){window.spAlert('יש לבחור סיבה');return;}
   
   const s = window.SCH.find(x => x.id == _nohapQId); if(!s) return;
   const doNohap = (evId) => {

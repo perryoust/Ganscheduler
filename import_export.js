@@ -294,12 +294,12 @@ window.importBulkSchedule = function(input) {
       // ═══ STEP 5: Show result ═══
       if (fbOk) {
         console.log('[Import v6] Firebase save CONFIRMED');
-        alert('✅ הייבוא הושלם בהצלחה!\n\n'
+        window.spAlert('✅ הייבוא הושלם בהצלחה!\n\n'
           + window.SCH.length + ' פעילויות נשמרו.\n'
           + 'המערכת תתרענן כעת.');
         location.reload();
       } else {
-        alert('⚠️ הנתונים נשמרו מקומית אך השמירה לענן נכשלה.\n'
+        window.spAlert('⚠️ הנתונים נשמרו מקומית אך השמירה לענן נכשלה.\n'
           + 'לחץ על כפתור הסנכרון ידנית, ואז רענן את הדף.');
         if (window._fbStartPolling) window._fbStartPolling();
         // Refresh UI without reload to show imported data
@@ -307,7 +307,7 @@ window.importBulkSchedule = function(input) {
       }
     } catch (err) {
       console.error('[Import v6] Error:', err);
-      alert('❌ שגיאה: ' + err.message);
+      window.spAlert('❌ שגיאה: ' + err.message);
       if (window._fbStartPolling) window._fbStartPolling();
     } finally {
       window._importInProgress = false;

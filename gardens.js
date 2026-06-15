@@ -372,7 +372,7 @@ function delPair(idx){
   if(!confirm('למחוק את הזוג "'+pair.name+'"?\nהפעילויות ישארו אך הצהרונים לא יהיו מקושרים יותר.')) return;
   window.pairs.splice(idx,1);
   window.save();window.refresh();
-  alert('✅ הזוג נמחק');
+  window.spAlert('✅ הזוג נמחק');
 }
 function openAddPair(idx){
   window.editPairIdx=idx;
@@ -404,7 +404,7 @@ function savePairModal(){
   const g1=parseInt(document.getElementById('apm-g1').value)||null;
   const g2=parseInt(document.getElementById('apm-g2').value)||null;
   const g3=parseInt(document.getElementById('apm-g3').value)||null;
-  if(!g1){alert('יש לבחור לפחות צהרון אחד');return;}
+  if(!g1){window.spAlert('יש לבחור לפחות צהרון אחד');return;}
   const ids=[g1,g2,g3].filter(Boolean);
   const warnEl=document.getElementById('apm-warn');
   const dupe=ids.map(gid=>{
@@ -434,7 +434,7 @@ function savePairModal(){
   }).filter(p => p.ids.length >= 2);
   window.save();window.CM('apm');window.refresh();
   if(window.currentTab==='managers') window.renderManagers();
-  alert('✅ '+(isEdit?'הזוג עודכן':'הזוג נשמר')+': '+nm);
+  window.spAlert('✅ '+(isEdit?'הזוג עודכן':'הזוג נשמר')+': '+nm);
 }
 
 const HOL_TYPES={
@@ -532,8 +532,8 @@ function saveHoliday(){
   const name=document.getElementById('hol-name').value.trim();
   const from=document.getElementById('hol-from').value;
   const to=document.getElementById('hol-to').value;
-  if(!name||!from||!to){alert('יש למלא שם ותאריכים');return;}
-  if(from>to){alert('תאריך התחלה חייב להיות לפני סיום');return;}
+  if(!name||!from||!to){window.spAlert('יש למלא שם ותאריכים');return;}
+  if(from>to){window.spAlert('תאריך התחלה חייב להיות לפני סיום');return;}
   const selCities=getHolCities();
   const cityList=Array.isArray(selCities)&&selCities.length?selCities:[''];
   const baseId=_editHolId||('h_'+Date.now());
@@ -825,7 +825,7 @@ function clFilterCity(){
 }
 function saveClusterModal(){
   const name=document.getElementById('cl-name').value.trim();
-  if(!name){alert('יש להזין שם אשכול');return;}
+  if(!name){window.spAlert('יש להזין שם אשכול');return;}
   const editId=document.getElementById('cl-name').dataset.editId;
   const gardenIds=[...document.querySelectorAll('#cl-gardens input:checked')].map(cb=>parseInt(cb.value));
   const id=editId||('cl_'+Date.now());
@@ -905,7 +905,7 @@ function saveClusterSchedule(){
   const date=document.getElementById('cls-date').value;
   const sup=document.getElementById('cls-sup').value;
   const ph=document.getElementById('cls-ph').value;
-  if(!date||!sup){alert('יש לבחור תאריך וספק');return;}
+  if(!date||!sup){window.spAlert('יש לבחור תאריך וספק');return;}
   const cl=clusters[_clsId];
   const gs=(cl.gardenIds||[]).map(id=>G(id)).filter(x=>x.id);
   const warns=[];let saved=0;
@@ -929,7 +929,7 @@ function saveClusterSchedule(){
   }
   save();
   if(saved>0){
-    alert(`✅ שובצו ${saved} פעילויות לתאריך ${fD(date)}`);
+    window.spAlert(`✅ שובצו ${saved} פעילויות לתאריך ${fD(date)}`);
     CM('clsm');refresh();
   }
 }
@@ -1099,7 +1099,7 @@ function genExport(){
   const to=document.getElementById('ex-d2').value||from;
   const fmt=document.getElementById('ex-fmt').value;
   const typeFlt=document.getElementById('ex-type-flt')?.value || 'all';
-  if(!from){alert('בחר תאריך');return;}
+  if(!from){window.spAlert('בחר תאריך');return;}
   const gids = (_exGids || f.gids) ? (_exGids || f.gids).map(Number) : null;
   // DON'T clear _exGids here so manual re-generation works
   const isM_flag = _exIsM;
@@ -1514,16 +1514,16 @@ function copyExport(){
   if(!t||t.startsWith('לחץ')) return;
   navigator.clipboard.writeText(t).then(()=>{
     if(typeof window.showToast==='function') window.showToast('✅ הועתק ללוח!');
-    else alert('✅ הועתק!');
+    else window.spAlert('✅ הועתק!');
   }).catch(()=>{
     const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
     if(typeof window.showToast==='function') window.showToast('✅ הועתק ללוח!');
-    else alert('✅ הועתק!');
+    else window.spAlert('✅ הועתק!');
   });
 }
 function printExport(){
   const t=document.getElementById('ex-prev').textContent;
-  if(!t||t.startsWith('לחץ')){alert('יש ליצור תצוגה מקדימה תחילה');return;}
+  if(!t||t.startsWith('לחץ')){window.spAlert('יש ליצור תצוגה מקדימה תחילה');return;}
   const w=window.open('','_blank','width=700,height=600');
   w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>לוח זמנים</title>
   <style>body{font-family:Arial,sans-serif;padding:20px;white-space:pre-wrap;font-size:14px;line-height:1.7}@media print{button{display:none}}</style></head>
@@ -1672,8 +1672,8 @@ window.doBulkUpdateRecurring = function(key, gid){
   const newWd = parseInt(document.getElementById('grm-wd').value);
   const primaryTime = document.getElementById('grm-time').value;
   
-  if(!d1 || !d2 || !newSup || !newAct) return alert('נא למלא תאריכים וספק');
-  if(d1 > d2) return alert('תאריך התחלה חייב להיות לפני תאריך סיום');
+  if(!d1 || !d2 || !newSup || !newAct) return window.spAlert('נא למלא תאריכים וספק');
+  if(d1 > d2) return window.spAlert('תאריך התחלה חייב להיות לפני תאריך סיום');
   
   if(!confirm('המערכת תסיר את כל המפגשים הקיימים בסדרה זו בטווח הנבחר (כולל מהגנים השותפים שסומנו), ותשבץ מחדש.\nהאם להתקדם?')) return;
   
@@ -2173,7 +2173,7 @@ window.exportSingleRecurringWA = function(sid) {
 
   navigator.clipboard.writeText(text).then(() => {
     if (typeof window.showToast === 'function') window.showToast('✅ ההודעה הועתקה ללוח!');
-    else alert('✅ ההודעה הועתקה ללוח:\n\n' + text);
+    else window.spAlert('✅ ההודעה הועתקה ללוח:\n\n' + text);
   }).catch(() => {
     const ta = document.createElement('textarea');
     ta.value = text;
@@ -2182,7 +2182,7 @@ window.exportSingleRecurringWA = function(sid) {
     document.execCommand('copy');
     document.body.removeChild(ta);
     if (typeof window.showToast === 'function') window.showToast('✅ ההודעה הועתקה ללוח!');
-    else alert('✅ ההודעה הועתקה ללוח:\n\n' + text);
+    else window.spAlert('✅ ההודעה הועתקה ללוח:\n\n' + text);
   });
 };
 
@@ -2206,7 +2206,7 @@ window.exportRecurringWA = function(key, gid) {
 
   const sr = seriesMap[key];
   if (!sr) {
-    alert('לא נמצא מידע על פעילות זו');
+    window.spAlert('לא נמצא מידע על פעילות זו');
     return;
   }
 
@@ -2258,7 +2258,7 @@ window.exportRecurringWA = function(key, gid) {
 
   navigator.clipboard.writeText(text).then(() => {
     if (typeof window.showToast === 'function') window.showToast('✅ ההודעה הועתקה ללוח!');
-    else alert('✅ ההודעה הועתקה ללוח:\n\n' + text);
+    else window.spAlert('✅ ההודעה הועתקה ללוח:\n\n' + text);
   }).catch(() => {
     const ta = document.createElement('textarea');
     ta.value = text;
@@ -2267,6 +2267,6 @@ window.exportRecurringWA = function(key, gid) {
     document.execCommand('copy');
     document.body.removeChild(ta);
     if (typeof window.showToast === 'function') window.showToast('✅ ההודעה הועתקה ללוח!');
-    else alert('✅ ההודעה הועתקה ללוח:\n\n' + text);
+    else window.spAlert('✅ ההודעה הועתקה ללוח:\n\n' + text);
   });
 };

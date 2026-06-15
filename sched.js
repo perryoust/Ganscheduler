@@ -360,7 +360,7 @@ function saveNewSched(){
     if(!Array.isArray(window.supEx[sup].acts)) window.supEx[sup].acts=window.getSupActs(sup);
     if(!window.supEx[sup].acts.includes(actType)) window.supEx[sup].acts.push(actType);
   }
-  if(!gid||!date||!sup){alert('יש למלא: גן, תאריך, ספק');return;}
+  if(!gid||!date||!sup){window.spAlert('יש למלא: גן, תאריך, ספק');return;}
   const g=window.G(gid);
   if(window.gcls(g)==='גנים'&&time){
     const h=parseInt(time.split(':')[0]);
@@ -379,7 +379,7 @@ function saveNewSched(){
     const recurTo=document.getElementById('ns-recur-to').value;
     const selDays=[...document.querySelectorAll('.ns-day-chk:checked')].map(c=>parseInt(c.value));
     const recurTime=time; // now using shared time field
-    if(!recurFrom||!recurTo||!selDays.length){alert('שיבוץ קבוע: יש לבחור תאריך התחלה, סיום, וימים');return;}
+    if(!recurFrom||!recurTo||!selDays.length){window.spAlert('שיבוץ קבוע: יש לבחור תאריך התחלה, סיום, וימים');return;}
     let count=0, cur=new Date(recurFrom.replace(/-/g,'/'));
     const endD=new Date(recurTo.replace(/-/g,'/'));
     const recurring_id=Date.now();
