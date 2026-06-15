@@ -189,8 +189,9 @@ window.renderWorkerTasksAdmin = function() {
           
           <!-- Left Actions -->
           <div style="margin-right:15px; padding-top:2px; z-index:10; display:flex; gap:8px;">
-            <button onclick="window.wtMoveTaskDate('\${t.id}')" style="background:transparent; color:#1565c0; border:none; cursor:pointer; font-size:1.1rem; opacity:0.7;" title="העבר תאריך">📅</button>
-            <button onclick="window.deleteWorkerTask('\${t.id}')" style="background:transparent; color:#ef5350; border:none; cursor:pointer; font-size:1.1rem; opacity:0.6;" title="מחק משימה">🗑️</button>
+            <button onclick="window.wtAddNote('${t.id}')" style="background:transparent; color:#f57c00; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="הוסף הערה">💬</button>
+            <button onclick="window.wtMoveTaskDate('${t.id}')" style="background:transparent; color:#1565c0; border:none; cursor:pointer; font-size:1.1rem; opacity:0.7;" title="העבר תאריך">📅</button>
+            <button onclick="window.deleteWorkerTask('${t.id}')" style="background:transparent; color:#ef5350; border:none; cursor:pointer; font-size:1.1rem; opacity:0.6;" title="מחק משימה">🗑️</button>
           </div>
         </div>
       \`;
@@ -342,16 +343,46 @@ window.wtMoveTaskDate = function(id) {
   }
 };
 
+window.wtAddNote = function(id) {
+  const task = (window.WORKER_TASKS || []).find(t => t.id === id);
+  if (!task) return;
+  const currentNote = task.workerNote || '';
+  const newNote = prompt("ערוך הערות למשימה (ניתן גם לכתוב פה ולמחוק אם רוצים להסיר):", currentNote);
+  if (newNote !== null) {
+    task.workerNote = newNote.trim();
+    if (window.save) window.save(true);
+    window.renderWorkerTasksAdmin();
+  }
+};
+
+window.wtSaveNote = function(id, val) {
+  const task = (window.WORKER_TASKS || []).find(t => t.id === id);
+  if (task && task.workerNote !== val) {
+    task.workerNote = val.trim();
+    if (window.save) window.save(true);
+  }
+};
+
 // ==========================================
 // WORKER APP UI (MOBILE)
 // ==========================================
 
 window.activateWorkerApp = function() {
-  // Hide main UI
-  const mainApp = document.getElementById('main-app') || document.querySelector('.main-app');
-  if (mainApp) mainApp.style.display = 'none';
-  const header = document.querySelector('header') || document.querySelector('.top-header');
-  if (header) header.style.display = 'none';
+  // SECURE DOM CLEARING: Remove everything except essential resources and the worker app
+  Array.from(document.body.children).forEach(el => {
+    const tag = el.tagName.toUpperCase();
+    if (tag !== 'SCRIPT' && tag !== 'STYLE' && tag !== 'LINK' && el.id !== 'worker-app-root') {
+      el.remove();
+    }
+  });
+  
+  // Create minimal stylesheet if main was destroyed
+  if (!document.getElementById('worker-styles')) {
+    const style = document.createElement('style');
+    style.id = 'worker-styles';
+    style.innerHTML = 'body { margin: 0; padding: 0; background: #f5f7ff; font-family: sans-serif; }';
+    document.head.appendChild(style);
+  }
   
   // Show Worker UI
   const workerApp = document.getElementById('worker-app-root');
@@ -397,38 +428,39 @@ window.renderWorkerTasksMobile = function() {
       
       html += \`
         <div style="background:#fff; border-radius:16px; padding:16px; margin-bottom:15px; box-shadow:0 4px 12px rgba(0,0,0,0.06); border-right:5px solid #ff9800; position:relative;">
-          <div style="font-size:0.8rem; color:#666; margin-bottom:5px;">📅 \${dateStr}</div>
-          <div style="font-size:1.1rem; font-weight:bold; color:#2c3e50; margin-bottom:4px;">\${city} - \${gardenName}</div>
-          \${address ? \`<div style="font-size:0.85rem; color:#7f8c8d; margin-bottom:10px;">📍 \${address}</div>\` : ''}
+          <div style="font-size:0.8rem; color:#666; margin-bottom:5px;">📅 ${dateStr}</div>
+          <div style="font-size:1.1rem; font-weight:bold; color:#2c3e50; margin-bottom:4px;">${city} - ${gardenName}</div>
+          ${address ? `<div style="font-size:0.85rem; color:#7f8c8d; margin-bottom:10px;">📍 ${address}</div>` : ''}
           
           <div style="background:#f8f9fa; padding:10px; border-radius:8px; font-size:0.95rem; color:#34495e; border:1px solid #eee; margin-bottom:15px;">
-            \${t.desc.replace(/\\n/g, '<br>')}
+            ${t.desc.replace(/\n/g, '<br>')}
           </div>
           
-          <textarea id="wt-note-\${t.id}" placeholder="הערות לביצוע (אופציונלי)..." style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; resize:vertical; font-family:inherit; margin-bottom:10px; font-size:0.9rem;"></textarea>
+          <textarea id="wt-note-${t.id}" onchange="window.wtSaveNote('${t.id}', this.value)" placeholder="הערות למשימה (אופציונלי)... נשמר אוטומטית" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; resize:vertical; font-family:inherit; margin-bottom:10px; font-size:0.9rem;">${t.workerNote || ''}</textarea>
 
-          <button onclick="window.markTaskDone('\${t.id}')" style="width:100%; background:linear-gradient(135deg, #4caf50, #2e7d32); color:white; border:none; border-radius:10px; padding:12px; font-size:1.1rem; font-weight:bold; cursor:pointer; box-shadow:0 4px 10px rgba(76,175,80,0.3); display:flex; justify-content:center; align-items:center; gap:8px;">
+          <button onclick="window.markTaskDone('${t.id}')" style="width:100%; background:linear-gradient(135deg, #4caf50, #2e7d32); color:white; border:none; border-radius:10px; padding:12px; font-size:1.1rem; font-weight:bold; cursor:pointer; box-shadow:0 4px 10px rgba(76,175,80,0.3); display:flex; justify-content:center; align-items:center; gap:8px;">
             <span>סיים משימה</span> <span style="font-size:1.2rem">✅</span>
           </button>
         </div>
-      \`;
+      `;
     });
   }
   
   if (done.length > 0) {
-    html += \`<div style="font-weight:bold; color:#7f8c8d; margin-top:30px; margin-bottom:10px; font-size:1rem;">משימות שהושלמו לאחרונה</div>\`;
+    html += `<div style="font-weight:bold; color:#7f8c8d; margin-top:30px; margin-bottom:10px; font-size:1rem;">משימות שהושלמו לאחרונה</div>`;
     // Only show last 10 done tasks
     done.slice(0, 10).forEach(t => {
       const gardenName = window.G ? (window.G(t.gardenId)?.name || '') : '';
       const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
-      html += \`
+      html += `
         <div style="background:#f8f9fa; border-radius:12px; padding:12px; margin-bottom:10px; opacity:0.8; border:1px solid #eee; border-right:4px solid #4caf50;">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div style="font-weight:bold; font-size:0.9rem; color:#2c3e50; text-decoration:line-through;">\${city} - \${gardenName}</div>
-            <div style="font-size:0.75rem; color:#4caf50; font-weight:bold;">\${t.doneAt ? t.doneAt.split(' ')[1] || t.doneAt : ''} ✅</div>
+            <div style="font-weight:bold; font-size:0.9rem; color:#2c3e50; text-decoration:line-through;">${city} - ${gardenName}</div>
+            <div style="font-size:0.75rem; color:#4caf50; font-weight:bold;">${t.doneAt ? t.doneAt.split(' ')[1] || t.doneAt : ''} ✅</div>
           </div>
+          ${t.workerNote ? `<div style="margin-top:8px; font-size:0.85rem; color:#1565c0; background:#e3f2fd; padding:6px 10px; border-radius:6px;">💬 ${t.workerNote.replace(/</g, '&lt;')}</div>` : ''}
         </div>
-      \`;
+      `;
     });
   }
   
