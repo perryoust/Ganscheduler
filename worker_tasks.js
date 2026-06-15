@@ -123,7 +123,7 @@ window.renderWorkerTasksAdmin = function() {
             <input type="text" placeholder="חיפוש משימות..." value="${window.wtSearchQuery}" onkeyup="window.wtDoSearch(this.value)" style="padding:8px 12px; padding-right:30px; border:1px solid #ccc; border-radius:20px; width:180px; font-size:0.9rem;">
             <span style="position:absolute; right:10px; top:8px; opacity:0.5;">🔍</span>
           </div>
-          <button onclick="window.openNewWorkerTaskModal()" style="background:#4caf50; color:white; border:none; border-radius:20px; padding:8px 18px; font-weight:bold; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.1);">+ משימה חדשה</button>
+          
         </div>
       </div>
 
@@ -138,7 +138,7 @@ window.renderWorkerTasksAdmin = function() {
       </div>
 
       <!-- Diary View -->
-      <div style="background-color:#fdf8e4; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.08); padding:20px 40px; min-height:400px; position:relative; border-right:2px solid #e57373;">
+      <div style="background-color:#fdf8e4; background-image: repeating-linear-gradient(transparent, transparent 39px, #e0e0e0 39px, #e0e0e0 40px); background-attachment: local; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.08); padding:20px 40px; min-height:400px; position:relative; border-right:2px solid #e57373; line-height: 40px;">
         <!-- Left red margin line -->
         <div style="position:absolute; left:40px; top:0; bottom:0; width:1px; background-color:#e57373; opacity:0.5;"></div>
         
@@ -575,3 +575,43 @@ document.addEventListener('DOMContentLoaded', () => {
     window.initWorkerTasks();
   }, 1000);
 });
+
+window.wtSearchGardenInline = function(q) {
+  const res = document.getElementById('wt-inline-garden-results');
+  if(!q) { res.style.display='none'; return; }
+  const gardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+  const list = gardens.filter(g => (g.name||'').includes(q) || (g.city||'').includes(q) || String(g.id).includes(q)).slice(0,10);
+  if(!list.length) { res.innerHTML='<div style="padding:5px; color:#999; font-size:0.8rem;">לא נמצא...</div>'; res.style.display='block'; return; }
+  res.innerHTML = list.map(g => `<div style="padding:5px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #eee;" onclick="document.getElementById('wt-inline-garden').value='${g.name.replace(/'/g, "\\'") }'; document.getElementById('wt-inline-garden-id').value='${g.id}'; document.getElementById('wt-inline-garden-results').style.display='none';">${g.name} (${g.city||'אחר'})</div>`).join('');
+  res.style.display='block';
+};
+
+window.wtAddInlineTask = function() {
+  const gardenId = document.getElementById('wt-inline-garden-id').value;
+  const gardenName = document.getElementById('wt-inline-garden').value;
+  const desc = document.getElementById('wt-inline-desc').value.trim();
+  const isAdminOnly = document.getElementById('wt-inline-admin').checked;
+  
+  if (!gardenId && gardenName) {
+     if(window.showToast) window.showToast('יש לבחור גן מתוך הרשימה', true);
+     return;
+  }
+  if (!gardenId || !desc) {
+     if(window.showToast) window.showToast('נא לבחור גן ולכתוב תיאור למשימה', true);
+     return;
+  }
+  
+  window.WORKER_TASKS.push({
+    id: 'wt_' + Date.now(),
+    date: window.wtCurrentDate,
+    gardenId: parseInt(gardenId),
+    desc: desc,
+    status: 'pending',
+    doneAt: null,
+    isAdminOnly: isAdminOnly
+  });
+  
+  if (window.save) window.save(true);
+  window.renderWorkerTasksAdmin();
+  if (window.showToast) window.showToast('המשימה נוספה בהצלחה ליומן');
+};
