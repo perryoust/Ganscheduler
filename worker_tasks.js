@@ -187,8 +187,9 @@ window.renderWorkerTasksAdmin = function() {
             \${t.workerNote ? \`<div style="margin-top:6px; font-size:0.85rem; color:#1565c0; background:rgba(227,242,253,0.5); padding:6px 10px; border-radius:6px; border-right:3px solid #64b5f6;">💬 פתק עובד: \${t.workerNote.replace(/</g, '&lt;')}</div>\` : ''}
           </div>
           
-          <!-- Left Delete -->
-          <div style="margin-right:15px; padding-top:2px; z-index:10;">
+          <!-- Left Actions -->
+          <div style="margin-right:15px; padding-top:2px; z-index:10; display:flex; gap:8px;">
+            <button onclick="window.wtMoveTaskDate('\${t.id}')" style="background:transparent; color:#1565c0; border:none; cursor:pointer; font-size:1.1rem; opacity:0.7;" title="העבר תאריך">📅</button>
             <button onclick="window.deleteWorkerTask('\${t.id}')" style="background:transparent; color:#ef5350; border:none; cursor:pointer; font-size:1.1rem; opacity:0.6;" title="מחק משימה">🗑️</button>
           </div>
         </div>
@@ -312,6 +313,32 @@ window.deleteWorkerTask = function(id) {
     window.WORKER_TASKS = window.WORKER_TASKS.filter(t => t.id !== id);
     if (window.save) window.save(true);
     window.renderWorkerTasksAdmin();
+  }
+};
+
+window.wtMoveTaskDate = function(id) {
+  const task = (window.WORKER_TASKS || []).find(t => t.id === id);
+  if (!task) return;
+  
+  if (window.spPromptDialog) {
+    const html = `<div style="margin-bottom:10px; font-size:0.9rem; color:#666;">בחר תאריך חדש למשימה:</div>
+                  <input type="date" id="wt-move-date" value="${task.date}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">`;
+    window.spPromptDialog('העברת משימה לתאריך אחר', html, 'שמור', () => {
+      const nd = document.getElementById('wt-move-date').value;
+      if (!nd) return false;
+      task.date = nd;
+      if (window.save) window.save(true);
+      window.renderWorkerTasksAdmin();
+      if (window.showToast) window.showToast('המשימה הועברה בהצלחה!');
+      return true;
+    });
+  } else {
+    const newDate = prompt("הזן תאריך חדש למשימה (YYYY-MM-DD):", task.date);
+    if (newDate && newDate !== task.date) {
+      task.date = newDate;
+      if (window.save) window.save(true);
+      window.renderWorkerTasksAdmin();
+    }
   }
 };
 
