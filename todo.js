@@ -189,7 +189,9 @@ window.todo = {
   },
 
   remove: async function(id) {
-    if (!(await window.spConfirm("\u05DC\u05DE\u05D7\u05D5\u05E7 \u05DE\u05E9\u05D9\u05DE\u05D4 \u05D6\u05D5?"))) return;
+    const item = this.items.find(i => i.id === id);
+    if (!item) return;
+    if (!(await window.spConfirm("\u05D4\u05D0\u05DD \u05DC\u05DE\u05D7\u05D5\u05E7 \u05D0\u05EA \"" + item.text + "\"?"))) return;
     this.items = this.items.filter(i => i.id !== id);
     this.save();
   },
