@@ -338,8 +338,9 @@ window.renderWorkerTasksMobile = function() {
   const container = document.getElementById('worker-tasks-mobile-list');
   if (!container) return;
   
-  // FILTER OUT ADMIN ONLY TASKS HERE
-  const tasks = (window.WORKER_TASKS || []).filter(t => !t.isAdminOnly);
+  // FILTER OUT ADMIN ONLY TASKS AND ONLY SHOW TODAY'S TASKS
+  const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
+  const tasks = (window.WORKER_TASKS || []).filter(t => !t.isAdminOnly && t.date === today);
   const pending = tasks.filter(t => t.status === 'pending');
   const done = tasks.filter(t => t.status === 'done');
   
