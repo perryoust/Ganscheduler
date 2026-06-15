@@ -111,7 +111,7 @@ window.renderWorkerTasksAdmin = function() {
 
   const dateDisp = window.fD ? window.fD(window.wtCurrentDate) : window.wtCurrentDate;
 
-  let html = \`
+  let html = `
     <div style="max-width:850px; margin:0 auto; padding:20px;">
       <!-- Header Area -->
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px; margin-bottom:20px;">
@@ -120,7 +120,7 @@ window.renderWorkerTasksAdmin = function() {
         </h2>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <div style="position:relative;">
-            <input type="text" placeholder="חיפוש משימות..." value="\${window.wtSearchQuery}" onkeyup="window.wtDoSearch(this.value)" style="padding:8px 12px; padding-right:30px; border:1px solid #ccc; border-radius:20px; width:180px; font-size:0.9rem;">
+            <input type="text" placeholder="חיפוש משימות..." value="${window.wtSearchQuery}" onkeyup="window.wtDoSearch(this.value)" style="padding:8px 12px; padding-right:30px; border:1px solid #ccc; border-radius:20px; width:180px; font-size:0.9rem;">
             <span style="position:absolute; right:10px; top:8px; opacity:0.5;">🔍</span>
           </div>
           <button onclick="window.openNewWorkerTaskModal()" style="background:#4caf50; color:white; border:none; border-radius:20px; padding:8px 18px; font-weight:bold; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.1);">+ משימה חדשה</button>
@@ -131,7 +131,7 @@ window.renderWorkerTasksAdmin = function() {
       <div style="background:#fff; border-radius:12px; padding:10px 15px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
         <button onclick="window.wtChangeDate(-1)" style="background:#f0f0f0; border:none; border-radius:50%; width:36px; height:36px; cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center;">&gt;</button>
         <div style="display:flex; align-items:center; gap:15px;">
-          <h3 style="margin:0; font-size:1.2rem; color:#333;">📅 יומן משימות: <span style="color:#1565c0;">\${dateDisp}</span></h3>
+          <h3 style="margin:0; font-size:1.2rem; color:#333;">📅 יומן משימות: <span style="color:#1565c0;">${dateDisp}</span></h3>
           <button onclick="window.wtSetToday()" style="background:#e3f2fd; color:#1565c0; border:1px solid #bbdefb; border-radius:6px; padding:4px 10px; font-size:0.8rem; cursor:pointer; font-weight:bold;">היום</button>
         </div>
         <button onclick="window.wtChangeDate(1)" style="background:#f0f0f0; border:none; border-radius:50%; width:36px; height:36px; cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center;">&lt;</button>
@@ -142,49 +142,49 @@ window.renderWorkerTasksAdmin = function() {
         <!-- Left red margin line -->
         <div style="position:absolute; left:40px; top:0; bottom:0; width:1px; background-color:#e57373; opacity:0.5;"></div>
         
-        \`;
+        `;
 
   if (isSearch) {
-    html += \`<div style="color:#666; margin-bottom:15px; font-weight:bold;">🔍 תוצאות חיפוש עבור: "\${window.wtSearchQuery}" (\${displayTasks.length} תוצאות)</div>\`;
+    html += `<div style="color:#666; margin-bottom:15px; font-weight:bold;">🔍 תוצאות חיפוש עבור: "${window.wtSearchQuery}" (${displayTasks.length} תוצאות)</div>`;
   }
 
   if (displayTasks.length === 0) {
-    html += \`
+    html += `
       <div style="text-align:center; padding:50px; color:#999; font-size:1.2rem; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-style:italic;">
-        דף חלק... אין משימות \${isSearch ? 'שתואמות לחיפוש' : 'ליום זה'}.
+        דף חלק... אין משימות ${isSearch ? 'שתואמות לחיפוש' : 'ליום זה'}.
       </div>
-    \`;
+    `;
   } else {
     displayTasks.forEach(t => {
       const gardenName = window.G ? (window.G(t.gardenId)?.name || 'גן לא ידוע') : 'גן לא ידוע';
       const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
-      const loc = city ? \`\${city} - \${gardenName}\` : gardenName;
+      const loc = city ? `${city} - ${gardenName}` : gardenName;
       
       const isDone = t.status === 'done';
       const isPriv = t.isAdminOnly;
       
-      html += \`
+      html += `
         <!-- Task Row -->
         <div style="display:flex; align-items:flex-start; padding:12px 0; border-bottom:1px solid #b3e5fc; position:relative;">
           <!-- Right Checkbox -->
           <div style="margin-left:15px; padding-top:2px;">
-            <div onclick="window.wtToggleTaskStatus('\${t.id}')" style="width:24px; height:24px; border:2px solid \${isDone ? '#4caf50' : '#999'}; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; background:\${isDone ? '#e8f5e9' : 'white'};">
-              \${isDone ? '<span style="color:#4caf50; font-weight:bold; font-size:1.1rem;">✓</span>' : ''}
+            <div onclick="window.wtToggleTaskStatus('${t.id}')" style="width:24px; height:24px; border:2px solid ${isDone ? '#4caf50' : '#999'}; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; background:${isDone ? '#e8f5e9' : 'white'};">
+              ${isDone ? '<span style="color:#4caf50; font-weight:bold; font-size:1.1rem;">✓</span>' : ''}
             </div>
           </div>
           
           <!-- Content -->
-          <div style="flex:1; \${isDone ? 'opacity:0.6; text-decoration:line-through;' : ''}">
-            \${isSearch ? \`<div style="font-size:0.75rem; color:#888; margin-bottom:2px;">\${window.fD ? window.fD(t.date) : t.date}</div>\` : ''}
+          <div style="flex:1; ${isDone ? 'opacity:0.6; text-decoration:line-through;' : ''}">
+            ${isSearch ? `<div style="font-size:0.75rem; color:#888; margin-bottom:2px;">${window.fD ? window.fD(t.date) : t.date}</div>` : ''}
             <div style="font-size:1.1rem; color:#333; font-family:sans-serif; margin-bottom:4px; line-height:1.4;">
-              \${t.desc}
+              ${t.desc}
             </div>
             <div style="display:flex; align-items:center; gap:10px; font-size:0.85rem; color:#555;">
-              <span style="background:rgba(255,255,255,0.6); padding:2px 8px; border-radius:4px; font-weight:bold;">📍 \${loc}</span>
-              \${isPriv ? '<span style="background:#ffe0b2; color:#e65100; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:0.75rem;">🔒 אישי למנהל</span>' : ''}
-              \${isDone && t.doneAt ? \`<span style="color:#4caf50;">(בוצע: \${t.doneAt})</span>\` : ''}
+              <span style="background:rgba(255,255,255,0.6); padding:2px 8px; border-radius:4px; font-weight:bold;">📍 ${loc}</span>
+              ${isPriv ? '<span style="background:#ffe0b2; color:#e65100; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:0.75rem;">🔒 אישי למנהל</span>' : ''}
+              ${isDone && t.doneAt ? `<span style="color:#4caf50;">(בוצע: ${t.doneAt})</span>` : ''}
             </div>
-            \${t.workerNote ? \`<div style="margin-top:6px; font-size:0.85rem; color:#1565c0; background:rgba(227,242,253,0.5); padding:6px 10px; border-radius:6px; border-right:3px solid #64b5f6;">💬 פתק עובד: \${t.workerNote.replace(/</g, '&lt;')}</div>\` : ''}
+            ${t.workerNote ? `<div style="margin-top:6px; font-size:0.85rem; color:#1565c0; background:rgba(227,242,253,0.5); padding:6px 10px; border-radius:6px; border-right:3px solid #64b5f6;">💬 פתק עובד: ${t.workerNote.replace(/</g, '&lt;')}</div>` : ''}
           </div>
           
           <!-- Left Actions -->
@@ -194,22 +194,22 @@ window.renderWorkerTasksAdmin = function() {
             <button onclick="window.deleteWorkerTask('${t.id}')" style="background:transparent; color:#ef5350; border:none; cursor:pointer; font-size:1.1rem; opacity:0.6;" title="מחק משימה">🗑️</button>
           </div>
         </div>
-      \`;
+      `;
     });
   }
 
-  html += \`
+  html += `
       </div>
     </div>
-  \`;
+  `;
   container.innerHTML = html;
 };
 
 window.openNewWorkerTaskModal = function() {
-  const modalHtml = \`
+  const modalHtml = `
     <div style="margin-bottom:15px;">
       <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:5px;">תאריך היעד</label>
-      <input type="date" id="wt-date" value="\${window.wtCurrentDate || (window.td ? window.td() : '')}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
+      <input type="date" id="wt-date" value="${window.wtCurrentDate || (window.td ? window.td() : '')}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
     </div>
     <div style="margin-bottom:15px;">
       <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:5px;">גן / בית ספר (הזן מספר או שם)</label>
@@ -227,7 +227,7 @@ window.openNewWorkerTaskModal = function() {
         <span style="font-weight:bold; color:#e65100;">משימה אישית שלי (לא מוצג לעובד השטח) 🔒</span>
       </label>
     </div>
-  \`;
+  `;
   
   if (window.spPromptDialog) {
     window.spPromptDialog('יצירת משימה חדשה ביומן', modalHtml, 'שמור משימה', () => {
@@ -299,12 +299,12 @@ window.wtSearchGarden = function(q) {
   if (results.length === 0) {
     resEl.innerHTML = '<div style="color:#999; font-size:0.8rem; text-align:center;">לא נמצאו גנים</div>';
   } else {
-    resEl.innerHTML = results.map(g => \`
-      <div onclick="document.getElementById('wt-garden-id').value='\${g.id}'; document.getElementById('wt-garden-search').value='\${g.city||''} - \${g.name}'; document.getElementById('wt-garden-results').style.display='none';" 
+    resEl.innerHTML = results.map(g => `
+      <div onclick="document.getElementById('wt-garden-id').value='${g.id}'; document.getElementById('wt-garden-search').value='${g.city||''} - ${g.name}'; document.getElementById('wt-garden-results').style.display='none';" 
            style="padding:6px; border-bottom:1px solid #eee; cursor:pointer; font-size:0.85rem;">
-        <b>\${g.id}</b> | \${g.city||''} - \${g.name}
+        <b>${g.id}</b> | ${g.city||''} - ${g.name}
       </div>
-    \`).join('');
+    `).join('');
   }
   resEl.style.display = 'block';
 };
@@ -410,15 +410,15 @@ window.renderWorkerTasksMobile = function() {
   let html = '';
   
   if (pending.length === 0) {
-    html += \`
+    html += `
       <div style="text-align:center; padding:40px 20px; background:#fff; border-radius:16px; box-shadow:0 4px 15px rgba(0,0,0,0.05); margin-bottom:20px;">
         <div style="font-size:3rem; margin-bottom:10px;">🎉</div>
         <div style="font-size:1.2rem; color:#1565c0; font-weight:bold;">אין משימות פתוחות!</div>
         <div style="color:#666; font-size:0.9rem; margin-top:5px;">כל המשימות שלך הושלמו.</div>
       </div>
-    \`;
+    `;
   } else {
-    html += \`<div style="font-weight:bold; color:#1565c0; margin-bottom:10px; font-size:1.1rem;">ממתין לביצוע (\${pending.length})</div>\`;
+    html += `<div style="font-weight:bold; color:#1565c0; margin-bottom:10px; font-size:1.1rem;">ממתין לביצוע (${pending.length})</div>`;
     pending.forEach(t => {
       const gardenName = window.G ? (window.G(t.gardenId)?.name || 'גן לא ידוע') : 'גן לא ידוע';
       const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
@@ -426,7 +426,7 @@ window.renderWorkerTasksMobile = function() {
       
       const dateStr = window.fD ? window.fD(t.date) : t.date;
       
-      html += \`
+      html += `
         <div style="background:#fff; border-radius:16px; padding:16px; margin-bottom:15px; box-shadow:0 4px 12px rgba(0,0,0,0.06); border-right:5px solid #ff9800; position:relative;">
           <div style="font-size:0.8rem; color:#666; margin-bottom:5px;">📅 ${dateStr}</div>
           <div style="font-size:1.1rem; font-weight:bold; color:#2c3e50; margin-bottom:4px;">${city} - ${gardenName}</div>
@@ -465,11 +465,11 @@ window.renderWorkerTasksMobile = function() {
   }
   
   // Logout button at bottom
-  html += \`
+  html += `
     <div style="margin-top:40px; text-align:center;">
       <button onclick="window.workerLogout()" style="background:transparent; color:#95a5a6; border:1px solid #ccc; border-radius:20px; padding:8px 20px; font-size:0.9rem;">התנתק מהמערכת</button>
     </div>
-  \`;
+  `;
   
   container.innerHTML = html;
 };
@@ -485,7 +485,7 @@ window.markTaskDone = function(id) {
     const now = new Date();
     const dStr = window.td ? window.td() : now.toISOString().split('T')[0];
     const tStr = now.toTimeString().split(' ')[0].substring(0, 5);
-    task.doneAt = \`\${dStr} \${tStr}\`;
+    task.doneAt = `${dStr} ${tStr}`;
     
     // Play sound or vibration if possible
     if (navigator.vibrate) navigator.vibrate(50);
