@@ -97,7 +97,7 @@ async function loadCloudBackups(){
 }
 
 async function restoreCloudBackup(dateKey){
-  if(!await _spConfirmDialog(`לשחזר גיבוי מ-${window.fD(dateKey)}?\nהנתונים הנוכחיים יישמרו תחילה כ-snapshot מקומי.`)) return;
+  if(!confirm(`לשחזר גיבוי מ-${window.fD(dateKey)}?\nהנתונים הנוכחיים יישמרו תחילה כ-snapshot מקומי.`)) return;
   const el=document.getElementById('cloud-backup-list');
   const prevHtml = el ? el.innerHTML : '';
   if(el) el.innerHTML='<span style="color:#e65100">משחזר... (אנא המתן, זה עשוי לקחת מספר שניות)</span>';
@@ -374,7 +374,7 @@ async function changeUserRole(uid, newRole){
 
 async function deleteUser(uid, name){
   if(!_isAdmin()) return;
-  if(!await _spConfirmDialog(`למחוק את המשתמש "${name}"?\nהם לא יוכלו להתחבר יותר לאפליקציה.`)) return;
+  if(!confirm(`למחוק את המשתמש "${name}"?\nהם לא יוכלו להתחבר יותר לאפליקציה.`)) return;
   try{
     showToast('⏳ מוחק משתמש...');
     // 1. Delete from Firebase Auth via Cloud Function
@@ -505,7 +505,7 @@ async function _pruneOldLogs(raw, tok){
 }
 
 function doLogout(){
-  if(!await _spConfirmDialog('להתנתק?')) return;
+  if(!confirm('להתנתק?')) return;
   if(typeof window._fbSignOut==='function') window._fbSignOut();
 }
 
@@ -523,7 +523,7 @@ async function updateUserPerm(uid, perm, value){
 
 async function changeUserPassword(uid, username){
   if(!_isAdmin()) return;
-  const newPass = await window.spPrompt(`סיסמה חדשה עבור "${username}" (לפחות 6 תווים):`);
+  const newPass = prompt(`סיסמה חדשה עבור "${username}" (לפחות 6 תווים):`);
   if(!newPass) return;
   if(newPass.length < 6){ showToast('❌ סיסמה קצרה מדי (לפחות 6 תווים)'); return; }
 
@@ -545,7 +545,7 @@ async function changeUserPassword(uid, username){
   } catch(e){ showToast('❌ שגיאה: '+e.message); }
 }
 async function fixData() {
-  if (!await _spConfirmDialog('🛠️ "סופר תיקון" נתונים:\n1. מחיקת מטמון מקומי.\n2. טעינה מחדש מהענן.\n3. איחוד כפילויות אגרסיבי.\n4. שמירה סופית לענן.\n\nלהמשיך?')) return;
+  if (!confirm('🛠️ "סופר תיקון" נתונים:\n1. מחיקת מטמון מקומי.\n2. טעינה מחדש מהענן.\n3. איחוד כפילויות אגרסיבי.\n4. שמירה סופית לענן.\n\nלהמשיך?')) return;
   
   try {
     window.showCopyToast('⏳ מנקה מטמון וטוען מהענן...');
@@ -576,8 +576,8 @@ async function fixData() {
   }
 }
 async function nuclearReset() {
-  if (!await _spConfirmDialog('☢️ מחיקה מוחלטת (Nuclear Reset):\nפעולה זו תמחק את כל השינויים, הייבואים והנתונים מהענן ותחזיר את המערכת למצב ברירת מחדל (SRAWS).\n\nהאם אתה בטוח לחלוטין?')) return;
-  if (!await _spConfirmDialog('⚠️ אזהרה אחרונה: כל המידע בענן יימחק!')) return;
+  if (!confirm('☢️ מחיקה מוחלטת (Nuclear Reset):\nפעולה זו תמחק את כל השינויים, הייבואים והנתונים מהענן ותחזיר את המערכת למצב ברירת מחדל (SRAWS).\n\nהאם אתה בטוח לחלוטין?')) return;
+  if (!confirm('⚠️ אזהרה אחרונה: כל המידע בענן יימחק!')) return;
   
   try {
     window.showCopyToast('⏳ מוחק נתונים מהענן...');
@@ -616,7 +616,7 @@ window.deleteYearPrompt = async function() {
   const currentId = meta.currentYear || 'tashpav';
   const availableYears = Object.entries(meta.years).map(([id, y]) => `${id}: ${y.name}`).join('\n');
   
-  const idToDelete = await window.spPrompt(`הזן את מזהה התקופה שברצונך למחוק (באנגלית, למשל tashpaz).\nהתקופה הנוכחית היא: ${currentId}\n\nתקופות קיימות:\n${availableYears}`);
+  const idToDelete = prompt(`הזן את מזהה התקופה שברצונך למחוק (באנגלית, למשל tashpaz).\nהתקופה הנוכחית היא: ${currentId}\n\nתקופות קיימות:\n${availableYears}`);
   
   if (!idToDelete) return;
   if (!meta.years[idToDelete]) {
@@ -624,9 +624,9 @@ window.deleteYearPrompt = async function() {
     return;
   }
   if (idToDelete === 'tashpav') {
-     if (!await _spConfirmDialog('אזהרה: אתה מנסה למחוק את שנת הלימודים הראשית "tashpav"! האם אתה בטוח שברצונך למחוק אותה?')) return;
+     if (!confirm('אזהרה: אתה מנסה למחוק את שנת הלימודים הראשית "tashpav"! האם אתה בטוח שברצונך למחוק אותה?')) return;
   } else {
-     if (!await _spConfirmDialog(`האם אתה בטוח לחלוטין שברצונך למחוק את התקופה "${meta.years[idToDelete].name}" (${idToDelete})?\nכל השיבוצים, הגנים, החופשות והזוגות של תקופה זו יימחקו מהענן! פעולה זו אינה הפיכה!`)) return;
+     if (!confirm(`האם אתה בטוח לחלוטין שברצונך למחוק את התקופה "${meta.years[idToDelete].name}" (${idToDelete})?\nכל השיבוצים, הגנים, החופשות והזוגות של תקופה זו יימחקו מהענן! פעולה זו אינה הפיכה!`)) return;
   }
   
   try {
@@ -794,7 +794,7 @@ window.executeNewYear = async function() {
     return;
   }
   
-  if (!await _spConfirmDialog(`האם ליצור את "${yearName}"?\n\nהגנים המסומנים יועברו לתקופה החדשה.\nהשיבוצים יתאפסו.\nהרכש נשאר גלובלי ולא מושפע.`)) return;
+  if (!confirm(`האם ליצור את "${yearName}"?\n\nהגנים המסומנים יועברו לתקופה החדשה.\nהשיבוצים יתאפסו.\nהרכש נשאר גלובלי ולא מושפע.`)) return;
   
   const execBtn = document.getElementById('nyw-exec-btn');
   if (execBtn) { execBtn.disabled = true; execBtn.textContent = '⏳ יוצר תקופה...'; }

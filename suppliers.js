@@ -491,7 +491,7 @@ function deleteSup() {
   const msg = schedCount > 0
     ? `לספק "${name}" יש ${schedCount} פעילויות פעילות.\nמחיקה תסיר את הספק מהמערכת אך לא תמחק את הפעילויות.\n\nלהמשיך?`
     : `למחוק את הספק "${name}"?`;
-  if (!await _spConfirmDialog(msg)) return;
+  if (!confirm(msg)) return;
 
   // Remove from supEx
   delete window.supEx[name];
@@ -519,7 +519,7 @@ function saveSup(){
   const origName=nameEl.dataset.orig;
   if(!name){_spAlertDialog('יש להזין שם');return;}
   if(origName&&origName!==name){
-    if(!await _spConfirmDialog(`לשנות את שם הספק מ-"${origName}" ל-"${name}"?
+    if(!confirm(`לשנות את שם הספק מ-"${origName}" ל-"${name}"?
 כל השיבוצים יעודכנו אוטומטית.`)) return;
     window.SCH.forEach(s=>{if(s.a===origName)s.a=name;});
     if(window.supEx[origName]) window.supEx[name]={...window.supEx[origName]};
@@ -669,7 +669,7 @@ function doMerge(){
   const checkedIdxs=[...document.querySelectorAll('#mrg-list input[type=checkbox]:checked')].map(c=>parseInt(c.dataset.idx));
   const toMrg=checkedIdxs.map(i=>_mergeSupList[i]?.name).filter(n=>n && n!==main);
   if(!toMrg.length){_spAlertDialog('בחר לפחות ספק אחד למיזוג');return;}
-  if(!await _spConfirmDialog(`לאחד ${toMrg.length} ספקים אל "${main}"?`)) return;
+  if(!confirm(`לאחד ${toMrg.length} ספקים אל "${main}"?`)) return;
 
   const mainBase = window.supBase(main);
   let changedSch=0, changedInv=0;

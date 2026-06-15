@@ -702,7 +702,7 @@ function deleteSupFromCard() {
     msg += `\nהספק קיים ב-${totalCount} פעילויות — הן יישמרו עם שמו.`;
   }
   msg += '\n\nהספק יוסר מרשימות הספקים אך לא מהפעילויות ההיסטוריות.';
-  if (!await _spConfirmDialog(msg)) return;
+  if (!confirm(msg)) return;
 
   // Remove from supEx
   delete supEx[name];
@@ -727,7 +727,7 @@ function sucSaveEdit(){
   if(!newBase){_spAlertDialog('יש להזין שם ספק');return;}
   if(origBase&&origBase!==newBase){
     const affected=SCH.filter(s=>supBase(s.a)===origBase).length;
-    if(!await _spConfirmDialog(`לשנות שם מ-"${origBase}" ל-"${newBase}"?\n${affected} שיבוצים יעודכנו.`)) return;
+    if(!confirm(`לשנות שם מ-"${origBase}" ל-"${newBase}"?\n${affected} שיבוצים יעודכנו.`)) return;
     SCH.forEach(s=>{
       if(supBase(s.a)===origBase){
         const act=supAct(s.a);
@@ -1069,7 +1069,7 @@ function gcellNewSched(){
 function gcellUnblock(){
   closeGcellPopup();
   _blockMode='garden';
-  if(!await _spConfirmDialog('להסיר חסימה זו?')) return;
+  if(!confirm('להסיר חסימה זו?')) return;
   delete gardenBlocks[`${_gcellGid}_${_gcellDs}`];
   save(); refresh(); showToast('✅ חסימה הוסרה');
 }
@@ -1167,7 +1167,7 @@ function saveBlock(){
 
 function deleteBlock(){
   const msg=_blockMode==='garden'?'להסיר את החסימה מגן זה?':'להסיר את החסימה מתאריך זה?';
-  if(!await _spConfirmDialog(msg)) return;
+  if(!confirm(msg)) return;
   if(_blockMode==='garden'){
     delete gardenBlocks[`${_gcellGid}_${_gcellDs}`];
     saveAndRefresh('block-m'); showToast('✅ חסימה הוסרה');
@@ -1440,7 +1440,7 @@ function saveMgr(){
 function deleteMgr(){
   const m=_editMgrId?managers[_editMgrId]:null;
   if(!m) return;
-  if(!await _spConfirmDialog(`למחוק את ${m.name}?`)) return;
+  if(!confirm(`למחוק את ${m.name}?`)) return;
   delete managers[_editMgrId];
   save(); CM('mgrm'); refresh();
   // Refresh all views that show manager/coordinator data
@@ -1813,7 +1813,7 @@ function importData(){
       try{
         const parsed=JSON.parse(ev.target.result);
         const data=parsed.data||parsed; // support both formats
-        if(!await _spConfirmDialog('⚠️ ייבוא יחליף את כל הנתונים הנוכחיים.\nהמשך?')) return;
+        if(!confirm('⚠️ ייבוא יחליף את כל הנתונים הנוכחיים.\nהמשך?')) return;
         _safeLS.setItem('ganv5',JSON.stringify(data));
         if(parsed.snaps) _safeLS.setItem('ganv5_snaps',JSON.stringify(parsed.snaps));
         showToast('✅ הנתונים יובאו. טוען מחדש...');

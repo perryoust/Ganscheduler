@@ -31,7 +31,7 @@ function psupNewInvoice(idx){ openNewInvoice(null, _psupCurrentList[idx]?.name||
 
 // Emergency: clear corrupt mergedAway and rebuild supplier list
 function emergencyFixSuppliers(){
-  if(!await _spConfirmDialog('זה יאפס את רשימת הספקים הממוזגים ויבנה מחדש את כל הספקים. להמשיך?')) return;
+  if(!confirm('זה יאפס את רשימת הספקים הממוזגים ויבנה מחדש את כל הספקים. להמשיך?')) return;
   supEx['__merged_away']=[];
   // Also clear __c to rebuild from scratch
   supEx['__c']=[];
@@ -497,7 +497,7 @@ function migratePairsFromAuto(){
   console.log('Seeded pairs from AUTOPAIRS: '+pairs.length);
 }
 function resetPairsFromAuto(){
-  if(!await _spConfirmDialog('האם לרענן את הזוגות מהרשימה המובנית?\nזה ימחק עריכות ידניות שביצעת.')) return;
+  if(!confirm('האם לרענן את הזוגות מהרשימה המובנית?\nזה ימחק עריכות ידניות שביצעת.')) return;
   initPairs();
   save();
   refresh();

@@ -14,7 +14,7 @@ window.startSharePointScanner = async function() {
   }
   try {
     const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
-    const baseUrl = await window.spPrompt('בחרת את התיקייה המקומית בהצלחה!\\n\\nכעת, אנא הדבק כאן את קישור האינטרנט של התיקייה הזו בדיוק כפי שהוא מופיע ב-SharePoint\\n(לדוגמה: https://tomshin.sharepoint.com/sites/docs/Shared%20Documents/...) :');
+    const baseUrl = prompt('בחרת את התיקייה המקומית בהצלחה!\\n\\nכעת, אנא הדבק כאן את קישור האינטרנט של התיקייה הזו בדיוק כפי שהוא מופיע ב-SharePoint\\n(לדוגמה: https://tomshin.sharepoint.com/sites/docs/Shared%20Documents/...) :');
     if (!baseUrl) return;
     const cleanBaseUrl = baseUrl.trim().replace(/\\/+$/, '');
     window.showToast('⏳ סורק קבצים במחשב... נא להמתין', 60000);

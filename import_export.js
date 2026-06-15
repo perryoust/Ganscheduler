@@ -188,7 +188,7 @@ window.importBulkSchedule = function(input) {
 
       msg += '🔴 פעולה זו תחליף את כל השיבוצים הקיימים!\nלהמשיך?';
 
-      if (!await _spConfirmDialog(msg)) {
+      if (!confirm(msg)) {
         if (window._fbStartPolling) window._fbStartPolling();
         window._importInProgress = false;
         input.value = '';

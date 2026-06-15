@@ -17,7 +17,7 @@ window.startSharePointScanner = async function() {
       }
       
       if (!baseUrl) {
-        baseUrl = await window.spPrompt('בחרת תיקייה בהצלחה!\n\nכעת, הדבק כאן את קישור האינטרנט של התיקייה הזו ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/...)');
+        baseUrl = prompt('בחרת תיקייה בהצלחה!\n\nכעת, הדבק כאן את קישור האינטרנט של התיקייה הזו ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/...)');
         if (baseUrl) {
           window.spScannerFolderLinks = window.spScannerFolderLinks || {};
           window.spScannerFolderLinks[dirHandle.name] = baseUrl.trim();
@@ -28,7 +28,7 @@ window.startSharePointScanner = async function() {
         selectedFolders.push({ handle: dirHandle, baseUrl: baseUrl.trim().replace(/\/+$/, '') });
       }
       
-      addAnother = await _spConfirmDialog('האם תרצה לסרוק תיקייה מקומית נוספת במקביל?');
+      addAnother = confirm('האם תרצה לסרוק תיקייה מקומית נוספת במקביל?');
     }
     
     if (selectedFolders.length === 0) return;

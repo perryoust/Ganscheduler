@@ -583,7 +583,7 @@ window.addClusterFromCal = async function(){
   if(!gids || gids.length < 2) return;
   
   const name = gids.map(id=>window.G(id).name||'').join(' + ');
-  const nm = await window.spPrompt('שם לאשכול:', name);
+  const nm = prompt('שם לאשכול:', name);
   if(nm === null) return;
   const finalName = nm.trim();
   if(!finalName) return;
@@ -627,7 +627,7 @@ async function checkDupePairAndSave(gids){
   const dupe=gids.map(gid=>{const p=window.gardenPair(gid);return p?`${window.G(gid).name} כבר בזוג "${p.name}"`:null}).filter(Boolean);
   if(dupe.length){if(!(await window.spConfirm(`⚠️ שים לב:\n${dupe.join('\n')}\n\nבכל זאת להמשיך?`))) return;}
   const name=gids.map(id=>window.G(id).name||'').join(' + ');
-  const nm=await window.spPrompt('שם לזוג:',name);
+  const nm=prompt('שם לזוג:',name);
   if(nm===null) return;
   const targetId = Date.now();
   window.pairs.push({id:targetId,ids:gids,name:nm||name});
