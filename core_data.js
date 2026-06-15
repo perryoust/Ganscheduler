@@ -1,8 +1,8 @@
-
+﻿
 // renderInvoices and refreshPurchDash moved to invoices.js
 
 
-// ── Purch Suppliers panel ──────────────────────────────
+// ג”€ג”€ Purch Suppliers panel ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 let _pSupTab='all', _pSupView='cards';
 function setPSupTab(t){
   _pSupTab=t;
@@ -18,7 +18,7 @@ function setPSupView(v){
   document.getElementById('psu-view-list')?.classList.toggle('active',v==='list');
   renderPurchSuppliers();
 }
-// ── Purch supplier panel helpers (use index to avoid HTML escaping) ──
+// ג”€ג”€ Purch supplier panel helpers (use index to avoid HTML escaping) ג”€ג”€
 let _psupCurrentList = []; // set by renderPurchSuppliers
 function psupOpen(idx){ const n=_psupCurrentList[idx]?.name||''; if(n) openSupCard(n); }
 function psupEdit(idx){ 
@@ -30,21 +30,21 @@ function psupEdit(idx){
 function psupNewInvoice(idx){ openNewInvoice(null, _psupCurrentList[idx]?.name||''); }
 
 // Emergency: clear corrupt mergedAway and rebuild supplier list
-function emergencyFixSuppliers(){
-  if(!confirm('זה יאפס את רשימת הספקים הממוזגים ויבנה מחדש את כל הספקים. להמשיך?')) return;
+async function emergencyFixSuppliers(){
+  if(!await window.spConfirm('׳–׳” ׳™׳׳₪׳¡ ׳׳× ׳¨׳©׳™׳׳× ׳”׳¡׳₪׳§׳™׳ ׳”׳׳׳•׳–׳’׳™׳ ׳•׳™׳‘׳ ׳” ׳׳—׳“׳© ׳׳× ׳›׳ ׳”׳¡׳₪׳§׳™׳. ׳׳”׳׳©׳™׳?')) return;
   supEx['__merged_away']=[];
   // Also clear __c to rebuild from scratch
   supEx['__c']=[];
   repairAllSuppliers();
   save();
-  setTimeout(()=>{ renderPurchSuppliers(); renderSup(); showToast('✅ ספקים אופסו ונבנו מחדש'); }, 200);
+  setTimeout(()=>{ renderPurchSuppliers(); renderSup(); showToast('ג… ׳¡׳₪׳§׳™׳ ׳׳•׳₪׳¡׳• ׳•׳ ׳‘׳ ׳• ׳׳—׳“׳©'); }, 200);
 }
 
 function renderPurchSuppliers(){
   const el = document.getElementById('psu-body');
   if(!el) return;
   if(typeof SUPBASE==='undefined'||!Array.isArray(SUPBASE)||SUPBASE.length===0){
-    el.innerHTML='<div style="color:#aaa;padding:20px;text-align:center">טוען נתונים...</div>';
+    el.innerHTML='<div style="color:#aaa;padding:20px;text-align:center">׳˜׳•׳¢׳ ׳ ׳×׳•׳ ׳™׳...</div>';
     setTimeout(renderPurchSuppliers, 500);
     return;
   }
@@ -65,23 +65,23 @@ function renderPurchSuppliers(){
 
   if(!list.length){
     // Show debug info to help diagnose the empty list
-    el.innerHTML='<div style="color:#aaa;padding:30px;text-align:center">אין ספקים להצגה.<br><button class="btn bg" style="margin-top:10px" onclick="emergencyFixSuppliers()">🔧 בנה מחדש</button></div>';
+    el.innerHTML='<div style="color:#aaa;padding:30px;text-align:center">׳׳™׳ ׳¡׳₪׳§׳™׳ ׳׳”׳¦׳’׳”.<br><button class="btn bg" style="margin-top:10px" onclick="emergencyFixSuppliers()">נ”§ ׳‘׳ ׳” ׳׳—׳“׳©</button></div>';
     return;
   }
 
   const MAX_RENDER = 150;
   const isCapped = list.length > MAX_RENDER;
   const renderList = isCapped ? list.slice(0, MAX_RENDER) : list;
-  const cappedMsg = isCapped ? `<div style="text-align:center;color:#888;padding:15px;font-size:0.8rem;grid-column:1/-1">מציג ${MAX_RENDER} ספקים מתוך ${list.length}. השתמש בחיפוש למיקוד...</div>` : '';
+  const cappedMsg = isCapped ? `<div style="text-align:center;color:#888;padding:15px;font-size:0.8rem;grid-column:1/-1">׳׳¦׳™׳’ ${MAX_RENDER} ׳¡׳₪׳§׳™׳ ׳׳×׳•׳ ${list.length}. ׳”׳©׳×׳׳© ׳‘׳—׳™׳₪׳•׳© ׳׳׳™׳§׳•׳“...</div>` : '';
 
   if(_pSupView==='list'){
     // List view
     let h='<table style="width:100%;border-collapse:collapse;font-size:.83rem">'
       +'<thead><tr style="background:#e8eaf6;position:sticky;top:0">'
-      +'<th style="padding:7px 10px;text-align:right">ספק</th>'
-      +'<th style="padding:7px 8px;text-align:center">פעילויות</th>'
-      +'<th style="padding:7px 8px;text-align:right">טלפון</th>'
-      +'<th style="padding:7px 8px;text-align:right">סוג</th>'
+      +'<th style="padding:7px 10px;text-align:right">׳¡׳₪׳§</th>'
+      +'<th style="padding:7px 8px;text-align:center">׳₪׳¢׳™׳׳•׳™׳•׳×</th>'
+      +'<th style="padding:7px 8px;text-align:right">׳˜׳׳₪׳•׳</th>'
+      +'<th style="padding:7px 8px;text-align:right">׳¡׳•׳’</th>'
       +'<th style="padding:7px 8px"></th>'
       +'</tr></thead><tbody>';
     renderList.forEach((s,idx)=>{
@@ -93,14 +93,14 @@ function renderPurchSuppliers(){
       const bg=idx%2===0?'#fff':'#f8f9ff';
       h+=`<tr style="background:${bg};cursor:pointer;border-bottom:2px solid #e8eaf6" onclick="psupOpen(${idx})">`
         +`<td style="padding:6px 10px;font-weight:700;color:#1a237e">${base}`
-        +`${isActSupplier(base)?' <span style="font-size:.65rem;color:#2e7d32">🎨</span>':''}`
+        +`${isActSupplier(base)?' <span style="font-size:.65rem;color:#2e7d32">נ¨</span>':''}`
         +`</td>`
-        +`<td style="padding:6px 8px;text-align:center;color:#1565c0;font-weight:700">${isActSupplier(base)?cnt:'—'}</td>`
-        +`<td style="padding:6px 8px;color:#2e7d32">${phone||'—'}</td>`
+        +`<td style="padding:6px 8px;text-align:center;color:#1565c0;font-weight:700">${isActSupplier(base)?cnt:'ג€”'}</td>`
+        +`<td style="padding:6px 8px;color:#2e7d32">${phone||'ג€”'}</td>`
         +`<td style="padding:6px 8px;font-size:.76rem;color:#546e7a">${ex.entityType||''}</td>`
         +`<td style="padding:6px 8px;white-space:nowrap" onclick="event.stopPropagation()">`
-        +`<button class="btn bp bsm" style="font-size:.65rem" onclick="psupNewInvoice(${idx})">📄 הזמנה</button> `
-        +`<button class="btn bo bsm" style="font-size:.65rem" onclick="psupEdit(${idx})">✏️</button>`
+        +`<button class="btn bp bsm" style="font-size:.65rem" onclick="psupNewInvoice(${idx})">נ“„ ׳”׳–׳׳ ׳”</button> `
+        +`<button class="btn bo bsm" style="font-size:.65rem" onclick="psupEdit(${idx})">גן¸</button>`
         +`</td></tr>`;
     });
     if(isCapped){
@@ -123,21 +123,21 @@ function renderPurchSuppliers(){
     return `<div class="sucard" style="cursor:pointer;display:flex;flex-direction:column;justify-content:space-between" onclick="psupOpen(${idx})">
       <div>
         <div class="font-800 text-primary text-base mb-2 break-word" style="line-height:1.35">
-          📚 ${base}
-          ${isAct?'<span class="text-xs text-success rounded-6" style="background:#e8f5e9;padding:1px 5px;margin-right:4px">🎨</span>':''}
+          נ“ ${base}
+          ${isAct?'<span class="text-xs text-success rounded-6" style="background:#e8f5e9;padding:1px 5px;margin-right:4px">נ¨</span>':''}
         </div>
-        ${phone?`<div class="text-success text-sm font-600 mb-2">📞 ${phone}</div>`:''}
+        ${phone?`<div class="text-success text-sm font-600 mb-2">נ“ ${phone}</div>`:''}
         ${acts.length&&isAct?`<div class="mb-2 flex-c flex-wrap gap-3">
-          ${acts.map(a=>`<span class="text-xs font-600 text-secondary rounded-10" style="background:#e3f2fd;padding:2px 8px">🎯 ${a}</span>`).join('')}
+          ${acts.map(a=>`<span class="text-xs font-600 text-secondary rounded-10" style="background:#e3f2fd;padding:2px 8px">נ¯ ${a}</span>`).join('')}
         </div>`:''}
-        ${ex.entityType?`<div class="text-xs mb-1" style="color:#6a1b9a">🏢 ${ex.entityType}</div>`:''}
-        ${ex.notes?`<div class="text-xs text-light mb-1">📝 ${ex.notes}</div>`:''}
+        ${ex.entityType?`<div class="text-xs mb-1" style="color:#6a1b9a">נ¢ ${ex.entityType}</div>`:''}
+        ${ex.notes?`<div class="text-xs text-light mb-1">נ“ ${ex.notes}</div>`:''}
       </div>
       <div class="flex-c justify-between mt-2 pt-2" style="border-top:1px solid #f0f0f0">
-        <span class="text-xs font-bold text-secondary">${isAct?`📅 ${cnt} פעילויות${cntDone?` · ✔️ ${cntDone}`:''}`:''}</span>
+        <span class="text-xs font-bold text-secondary">${isAct?`נ“… ${cnt} ׳₪׳¢׳™׳׳•׳™׳•׳×${cntDone?` ֲ· ג”ן¸ ${cntDone}`:''}`:''}</span>
         <div class="flex-c gap-2 flex-none" onclick="event.stopPropagation()">
-          <button class="btn bp bsm text-xs" onclick="psupNewInvoice(${idx})">📄 הזמנה</button>
-          <button class="btn bo bsm text-xs" onclick="psupEdit(${idx})">✏️</button>
+          <button class="btn bp bsm text-xs" onclick="psupNewInvoice(${idx})">נ“„ ׳”׳–׳׳ ׳”</button>
+          <button class="btn bo bsm text-xs" onclick="psupEdit(${idx})">גן¸</button>
         </div>
       </div>
     </div>`;
@@ -163,7 +163,7 @@ function _applyYearData(o){
   if(!o || !o.ch){
     window.SCH = SRAWS.map(s=>({...s,st:'ok',nt:s.n||'',grp:1}));
   } else if(o.useSraws === false) {
-    // ═══ DIRECT MODE: Excel import was used — SRAWS is irrelevant ═══
+    // ג•ג•ג• DIRECT MODE: Excel import was used ג€” SRAWS is irrelevant ג•ג•ג•
     // The ch array IS the complete schedule. No merging needed.
     console.log('[_applyYearData] Direct mode (useSraws=false): using ' + o.ch.length + ' records directly');
     window.useSraws = false;
@@ -192,13 +192,13 @@ function _applyYearData(o){
       _isImported: x._isImported || false
     }));
   } else {
-    // ═══ LEGACY MODE: Merge SRAWS with cloud changes ═══
+    // ג•ג•ג• LEGACY MODE: Merge SRAWS with cloud changes ג•ג•ג•
     // 1. Map SRAWS by fuzzy key and ID for merging
     const srawsFuzzy = {};
     const srawsFuzzyById = {};
     const nuclearClean = (val) => {
       if(!val) return '';
-      return String(val).replace(/\(.*\)/g, '').replace(/[^א-תa-zA-Z0-9]/g, '').toLowerCase();
+      return String(val).replace(/\(.*\)/g, '').replace(/[^׳-׳×a-zA-Z0-9]/g, '').toLowerCase();
     };
     const nuclearTime = (t) => {
       if(!t) return '00:00';
@@ -244,7 +244,7 @@ function _applyYearData(o){
       if (x) return {...s, ...x};
       
       // If this Date+Garden is already covered by the incoming data, 
-      // and this SRAWS record didn't match anything above, it's a "Zombie" — skip it.
+      // and this SRAWS record didn't match anything above, it's a "Zombie" ג€” skip it.
       if (coveredDateGardens.has(`${s.d}|${Number(s.g)}`)) {
         return null;
       }
@@ -270,7 +270,7 @@ function _applyYearData(o){
     if(window.DataManager.applyAutoMakeupMatching) window.DataManager.applyAutoMakeupMatching();
   }
 
-  // ─── FINAL DEDUPLICATION: Ensure no duplicate IDs or (garden|supplier|date|time) keys ───
+  // ג”€ג”€ג”€ FINAL DEDUPLICATION: Ensure no duplicate IDs or (garden|supplier|date|time) keys ג”€ג”€ג”€
   try {
     const seenIds = new Set();
     const seenKeys = new Set();
@@ -319,7 +319,7 @@ function _applyYearData(o){
 
   let loadedInvs = null;
   if (Array.isArray(o.invoices) && o.invoices.length > 0) {
-    loadedInvs = o.invoices; // Cloud/merged data — set by loadFromFirebase()
+    loadedInvs = o.invoices; // Cloud/merged data ג€” set by loadFromFirebase()
   } else {
     const localInvs = window._safeLS.getItem('ganv5_invoices');
     if (localInvs) try { loadedInvs = JSON.parse(localInvs); } catch(e){}
@@ -360,25 +360,25 @@ function _applyYearData(o){
     });
     window.INVOICES = Array.from(invMap.values()).concat(uniqueInvs);
 
-    // Auto-cancel invoices if "בוטל" is in the notes, date, or orderDesc
+    // Auto-cancel invoices if "׳‘׳•׳˜׳" is in the notes, date, or orderDesc
     window.INVOICES.forEach(inv => {
       if (inv.status !== 'cancelled') {
         const notesStr = String(inv.notes || '').toLowerCase();
         const dateStr = String(inv.date || '').toLowerCase();
         const descStr = String(inv.orderDesc || '').toLowerCase();
-        if (['בוטל', 'מבוטל'].some(w => notesStr.includes(w) || dateStr.includes(w) || descStr.includes(w))) {
+        if (['׳‘׳•׳˜׳', '׳׳‘׳•׳˜׳'].some(w => notesStr.includes(w) || dateStr.includes(w) || descStr.includes(w))) {
           inv.status = 'cancelled';
         }
       }
     });
 
-    // ── Migrate invoices with double-VAT bug ──
-    // Symptom: ordVatMode missing AND orderTotal ≈ orderAmt * (1 + vat/100)
+    // ג”€ג”€ Migrate invoices with double-VAT bug ג”€ג”€
+    // Symptom: ordVatMode missing AND orderTotal ג‰ˆ orderAmt * (1 + vat/100)
     // Fix: set ordVatMode='inc', recalculate orderAmt (base) and orderTotal (= entered).
     INVOICES.forEach(inv=>{
-      if(inv.ordVatMode) return; // already has mode — skip
+      if(inv.ordVatMode) return; // already has mode ג€” skip
       const vat = inv.vat||18;
-      if(vat===0) return; // exempt — skip
+      if(vat===0) return; // exempt ג€” skip
       // Check order section
       if(inv.orderAmt && inv.orderTotal){
         const expectedTotal = +(inv.orderAmt*(1+vat/100)).toFixed(2);
@@ -460,10 +460,10 @@ function load(){
     else { initPairs();window.clusters = JSON.parse(JSON.stringify(INIT_CLUSTERS));activeGardens = null; }
   }
 }
-// ── migratePairsFromAuto — seeds AUTOPAIRS only on first-ever load ──
+// ג”€ג”€ migratePairsFromAuto ג€” seeds AUTOPAIRS only on first-ever load ג”€ג”€
 
 function migrateGardenPhones(){
-  // Force-import all phones from xlsx — overwrite existing unless user manually edited
+  // Force-import all phones from xlsx ג€” overwrite existing unless user manually edited
   // Versioned: if GARDEN_PHONES_VER already applied, skip
   const VER='v2';
   if(supEx.__phonesVer===VER) return;
@@ -473,7 +473,7 @@ function migrateGardenPhones(){
     const key='g_'+gid;
     if(!supEx[key]) supEx[key]={};
     const ex=supEx[key];
-    if(ex._cophManual) return; // user manually edited — preserve
+    if(ex._cophManual) return; // user manually edited ג€” preserve
     if(ph.ph1){ ex.coph=ph.ph1; count++; }
     if(ph.ph2) ex.coph2=ph.ph2;
   });
@@ -491,19 +491,19 @@ function migratePairsFromAuto(){
       if(Array.isArray(o.pairs)&&o.pairs.length>0) return; // already has saved pairs, don't override
     }catch(e){}
   }
-  // No saved pairs — seed from AUTOPAIRS
+  // No saved pairs ג€” seed from AUTOPAIRS
   initPairs();
   save();
   console.log('Seeded pairs from AUTOPAIRS: '+pairs.length);
 }
-function resetPairsFromAuto(){
-  if(!confirm('האם לרענן את הזוגות מהרשימה המובנית?\nזה ימחק עריכות ידניות שביצעת.')) return;
+async function resetPairsFromAuto(){
+  if(!await window.spConfirm('׳”׳׳ ׳׳¨׳¢׳ ׳ ׳׳× ׳”׳–׳•׳’׳•׳× ׳׳”׳¨׳©׳™׳׳” ׳”׳׳•׳‘׳ ׳™׳×?\n׳–׳” ׳™׳׳—׳§ ׳¢׳¨׳™׳›׳•׳× ׳™׳“׳ ׳™׳•׳× ׳©׳‘׳™׳¦׳¢׳×.')) return;
   initPairs();
   save();
   refresh();
-  window.spAlert('✅ הזוגות עודכנו! '+pairs.length+' זוגות נטענו.');
+  window.spAlert('ג… ׳”׳–׳•׳’׳•׳× ׳¢׳•׳“׳›׳ ׳•! '+pairs.length+' ׳–׳•׳’׳•׳× ׳ ׳˜׳¢׳ ׳•.');
 }
-const HOLIDAYS_RESTORE = [{"canSched":false,"city":"","from":"2026-03-31","id":"h_1774174272522","name":"חופשת פסח","note":"","scope":"all","to":"2026-04-08","type":"vacation"},{"canSched":false,"city":"","from":"2026-04-22","id":"h_1775731003564","name":"יום הזכרון לחללי מערכות ישראל","note":"","scope":"all","to":"2026-04-22","type":"vacation"},{"canSched":false,"city":"","from":"2026-04-23","id":"h_1775731019768","name":"יום העצמאות","note":"","scope":"all","to":"2026-04-23","type":"vacation"},{"canSched":false,"city":"","from":"2026-05-21","id":"h_1775731118232","name":"שבועות","note":"","scope":"all","to":"2026-05-21","type":"vacation"},{"canSched":false,"city":"גבעתיים","from":"2026-05-05","id":"h_1775731199678","name":"ל\"ג בעומר","note":"","scope":"ביה\"ס","to":"2026-05-05","type":"vacation"},{"canSched":true,"city":"","from":"2026-05-05","id":"h_1775731246284","name":"קייטנת ל\"ג בעומר","note":"","scope":"all","to":"2026-05-05","type":"camp"},{"canSched":true,"city":"גבעתיים","from":"2026-05-05","id":"h_1775731264839","name":"קייטנת ל\"ג בעומר","note":"","scope":"גנים","to":"2026-05-05","type":"camp"}];
+const HOLIDAYS_RESTORE = [{"canSched":false,"city":"","from":"2026-03-31","id":"h_1774174272522","name":"׳—׳•׳₪׳©׳× ׳₪׳¡׳—","note":"","scope":"all","to":"2026-04-08","type":"vacation"},{"canSched":false,"city":"","from":"2026-04-22","id":"h_1775731003564","name":"׳™׳•׳ ׳”׳–׳›׳¨׳•׳ ׳׳—׳׳׳™ ׳׳¢׳¨׳›׳•׳× ׳™׳©׳¨׳׳","note":"","scope":"all","to":"2026-04-22","type":"vacation"},{"canSched":false,"city":"","from":"2026-04-23","id":"h_1775731019768","name":"׳™׳•׳ ׳”׳¢׳¦׳׳׳•׳×","note":"","scope":"all","to":"2026-04-23","type":"vacation"},{"canSched":false,"city":"","from":"2026-05-21","id":"h_1775731118232","name":"׳©׳‘׳•׳¢׳•׳×","note":"","scope":"all","to":"2026-05-21","type":"vacation"},{"canSched":false,"city":"׳’׳‘׳¢׳×׳™׳™׳","from":"2026-05-05","id":"h_1775731199678","name":"׳\"׳’ ׳‘׳¢׳•׳׳¨","note":"","scope":"׳‘׳™׳”\"׳¡","to":"2026-05-05","type":"vacation"},{"canSched":true,"city":"","from":"2026-05-05","id":"h_1775731246284","name":"׳§׳™׳™׳˜׳ ׳× ׳\"׳’ ׳‘׳¢׳•׳׳¨","note":"","scope":"all","to":"2026-05-05","type":"camp"},{"canSched":true,"city":"׳’׳‘׳¢׳×׳™׳™׳","from":"2026-05-05","id":"h_1775731264839","name":"׳§׳™׳™׳˜׳ ׳× ׳\"׳’ ׳‘׳¢׳•׳׳¨","note":"","scope":"׳’׳ ׳™׳","to":"2026-05-05","type":"camp"}];
 
 function restoreMissingHolidays() {
   if (window.holidays && window.holidays.length === 0) {
@@ -513,7 +513,7 @@ function restoreMissingHolidays() {
   return false;
 }
 function migrateSupActSplit(){
-  // Run on every load — SCHEDULES_JS source data has "supplier - activity" format
+  // Run on every load ג€” SCHEDULES_JS source data has "supplier - activity" format
   let changed=0;
   SCH.forEach(s=>{
     const act=supAct(s.a);
@@ -533,7 +533,7 @@ function migrateSupActSplit(){
   }
 }
 async function save(immediate){
-  if(false){ showToast('⚠️ מצב ארכיון — לא ניתן לשמור שינויים'); return; }
+  if(false){ showToast('ג ן¸ ׳׳¦׳‘ ׳׳¨׳›׳™׳•׳ ג€” ׳׳ ׳ ׳™׳×׳ ׳׳©׳׳•׳¨ ׳©׳™׳ ׳•׳™׳™׳'); return; }
   
   // CRITICAL: Block all saves (including localStorage) until the first Firebase load completes.
   // This prevents startup migrations from creating a "newer" local state that blocks the cloud load.
@@ -551,7 +551,7 @@ async function save(immediate){
     // if(window.DataManager && window.DataManager.applyAutoMakeupMatching) {
     //   window.DataManager.applyAutoMakeupMatching();
     // }
-    // Save ALL entries with ALL fields — works with or without SRAWS
+    // Save ALL entries with ALL fields ג€” works with or without SRAWS
     // Persist year-specific garden list into supEx before saving
     if (Array.isArray(window._GARDENS_ALL) && window._GARDENS_ALL.length > 0) {
       (window.supEx || {}).__gardens_all = window._GARDENS_ALL;
@@ -597,7 +597,7 @@ async function save(immediate){
       try{
         const snaps=JSON.parse(_safeLS.getItem('ganv5_snaps')||'[]');
         const d=_json;
-        snaps.unshift({ts:Date.now(),label:'אוטומטי',size:d.length,data:d});
+        snaps.unshift({ts:Date.now(),label:'׳׳•׳˜׳•׳׳˜׳™',size:d.length,data:d});
         if(snaps.length>5) snaps.length=5;
         _safeLS.setItem('ganv5_snaps',JSON.stringify(snaps));
       }catch(e2){}
@@ -617,14 +617,14 @@ function initPairs(){
     return {
       id: i + 1, 
       ids: ids, 
-      name: gs.length > 0 ? gs.map(g => g.name).join(' + ') : 'זוג ללא שם'
+      name: gs.length > 0 ? gs.map(g => g.name).join(' + ') : '׳–׳•׳’ ׳׳׳ ׳©׳'
     };
   }).filter(p => p.ids.length > 0);
 }
 
-// ══════════════════════════════════════════════════════════
-// Y1 — Year Management Functions
-// ══════════════════════════════════════════════════════════
+// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+// Y1 ג€” Year Management Functions
+// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
 
 
 function G(id){
@@ -633,16 +633,16 @@ function G(id){
   return gdns.find(g=>Number(g.id)===Number(id)) || extra.find(g=>Number(g.id)===Number(id)) || {};
 }
 function gcls(g){
-  if (!g || !g.cls) return 'גנים';
+  if (!g || !g.cls) return '׳’׳ ׳™׳';
   const c = g.cls.trim();
-  // Support both standard quotes (") and Hebrew Gershayim (״)
-  const isSchool = c.includes('בית') || c.includes('בי"ס') || c.includes('בי״ס') || 
-                   c.includes('ביה"ס') || c.includes('ביה״ס') || c.includes('ביהס') || 
-                   c.includes('ספר');
+  // Support both standard quotes (") and Hebrew Gershayim (׳´)
+  const isSchool = c.includes('׳‘׳™׳×') || c.includes('׳‘׳™"׳¡') || c.includes('׳‘׳™׳´׳¡') || 
+                   c.includes('׳‘׳™׳”"׳¡') || c.includes('׳‘׳™׳”׳´׳¡') || c.includes('׳‘׳™׳”׳¡') || 
+                   c.includes('׳¡׳₪׳¨');
   
-  if (c.includes('גן')) return 'גנים';
-  if (isSchool) return 'ביה"ס';
-  return 'גנים';
+  if (c.includes('׳’׳')) return '׳’׳ ׳™׳';
+  if (isSchool) return '׳‘׳™׳”"׳¡';
+  return '׳’׳ ׳™׳';
 }
 function gByCF(city,cls){return GARDENS.filter(g=>(!city||g.city===city)&&(!cls||gcls(g)===cls));}
 function d2s(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${dd}`}
@@ -652,7 +652,7 @@ function fT(t){return t?t.slice(0,5):''}
 function addD(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
 function addM(d,n){const x=new Date(d);x.setMonth(x.getMonth()+n);return x}
 function monStart(d){const x=new Date(d);x.setDate(x.getDate()-x.getDay());x.setHours(0,0,0,0);return x}
-function dayN(s){const[y,m,d]=s.split('-').map(Number);return['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(y,m-1,d).getDay()]}
+function dayN(s){const[y,m,d]=s.split('-').map(Number);return['׳¨׳׳©׳•׳','׳©׳ ׳™','׳©׳׳™׳©׳™','׳¨׳‘׳™׳¢׳™','׳—׳׳™׳©׳™','׳©׳™׳©׳™','׳©׳‘׳×'][new Date(y,m-1,d).getDay()]}
 function getNextWorkDays(start, count){
   let d = new Date(start);
   let days = [];
@@ -666,7 +666,7 @@ function getNextWorkDays(start, count){
 window.getNextWorkDays = getNextWorkDays;
 
 
-// ── Hebrew Date (via built-in Intl API) ─────────────────────
+// ג”€ג”€ Hebrew Date (via built-in Intl API) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 const _hebFmt = new Intl.DateTimeFormat('he-IL-u-ca-hebrew', {
   day: 'numeric', month: 'long', timeZone: 'UTC'
 });
@@ -677,7 +677,7 @@ function toHebDate(ds) {
   } catch(e) { return ''; }
 }
 
-function hebM(d){return['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'][d.getMonth()]+' '+d.getFullYear()}
+function hebM(d){return['׳™׳ ׳•׳׳¨','׳₪׳‘׳¨׳•׳׳¨','׳׳¨׳¥','׳׳₪׳¨׳™׳','׳׳׳™','׳™׳•׳ ׳™','׳™׳•׳׳™','׳׳•׳’׳•׳¡׳˜','׳¡׳₪׳˜׳׳‘׳¨','׳׳•׳§׳˜׳•׳‘׳¨','׳ ׳•׳‘׳׳‘׳¨','׳“׳¦׳׳‘׳¨'][d.getMonth()]+' '+d.getFullYear()}
 function td(){return d2s(new Date())}
 function cities(){return[...new Set(GARDENS.map(g=>g.city))].sort()}
 function gardenPair(gid){const n=parseInt(gid);return pairs.find(p=>p.ids.map(x=>parseInt(x)).includes(n))||null}
@@ -712,8 +712,8 @@ window.compareActivities = function(a, b) {
 };
 
 function stLabel(s){
-  if(s.st==='can') return'<span class="bdg br2">❌ בוטל</span>';
-  if(s.st==='done') return'<span class="bdg bg2">✔️ התקיים</span>';
+  if(s.st==='can') return'<span class="bdg br2">ג ׳‘׳•׳˜׳</span>';
+  if(s.st==='done') return'<span class="bdg bg2">ג”ן¸ ׳”׳×׳§׳™׳™׳</span>';
   if(s.st==='post') {
     let isAdv = false;
     if (s.pd && s.d) {
@@ -734,13 +734,13 @@ function stLabel(s){
         isAdv = pdObj < dObj;
       }
     }
-    return `<span class="bdg bor">${isAdv ? '⏪ הוקדם' : '⏩ נדחה'} ${s.pd?'ל-'+fD(s.pd):''}</span>`;
+    return `<span class="bdg bor">${isAdv ? 'ג× ׳”׳•׳§׳“׳' : 'ג© ׳ ׳“׳—׳”'} ${s.pd?'׳-'+fD(s.pd):''}</span>`;
   }
-  if(s.st==='nohap') return'<span class="bdg br2">⚠️ לא התקיים</span>';
-  return'<span class="bdg bg2">🏫 מתקיים</span>';
+  if(s.st==='nohap') return'<span class="bdg br2">ג ן¸ ׳׳ ׳”׳×׳§׳™׳™׳</span>';
+  return'<span class="bdg bg2">נ« ׳׳×׳§׳™׳™׳</span>';
 }
 
-// ── renderReadOnlyBanner (stub — no archive mode in this version) ──
+// ג”€ג”€ renderReadOnlyBanner (stub ג€” no archive mode in this version) ג”€ג”€
 function renderReadOnlyBanner() {
   const el = document.getElementById('readonly-banner');
   if (el) el.style.display = 'none';
@@ -755,7 +755,7 @@ function stClass(s){
 }
 
 
-// ── Dynamic scroll containers ──────────────────────────────────
+// ג”€ג”€ Dynamic scroll containers ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function _fitScrollAreas(){
   const BOTTOM_PAD = 16; // px from bottom of viewport
   document.querySelectorAll('.scroll-area').forEach(el=>{
@@ -772,7 +772,7 @@ function _fitScrollAreas(){
 // Run on load, resize, and tab switch
 window.addEventListener('resize', _fitScrollAreas);
 
-// ── Sync supplier __c list from all data sources ──────────────────
+// ג”€ג”€ Sync supplier __c list from all data sources ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 // Runs after every Firebase load to ensure supplier list is complete
 function syncSupplierList(){
   if(!supEx) window.supEx = {};
@@ -811,7 +811,7 @@ function syncSupplierList(){
   return added;
 }
 
-// ── One-time migration v2: restore acts for merged suppliers ────
+// ג”€ג”€ One-time migration v2: restore acts for merged suppliers ג”€ג”€ג”€ג”€
 function restoreSupplierActs(){
   if(supEx.__actsRestored_v2) return;
   let fixed=0;
@@ -851,6 +851,6 @@ function restoreSupplierActs(){
   });
 
   supEx.__actsRestored_v2 = true;
-  if(fixed>0){ save(true); showToast('✅ שוחזרו פעילויות ל-'+fixed+' ספקים'); }
+  if(fixed>0){ save(true); showToast('ג… ׳©׳•׳—׳–׳¨׳• ׳₪׳¢׳™׳׳•׳™׳•׳× ׳-'+fixed+' ׳¡׳₪׳§׳™׳'); }
   console.log('restoreSupplierActs v2: fixed',fixed,'suppliers');
 }
