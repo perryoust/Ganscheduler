@@ -188,21 +188,21 @@ window.todo = {
     }
   },
 
-  remove: function(id) {
-    if (!confirm('למחוק משימה זו?')) return;
+  remove: async function(id) {
+    if (!(await window.spConfirm('למחוק משימה זו?'))) return;
     this.items = this.items.filter(i => i.id !== id);
     this.save();
   },
 
-  clearArchive: function() {
-    if (!confirm('למחוק את כל ההיסטוריה? פעולה זו אינה ניתנת לביטול.')) return;
+  clearArchive: async function() {
+    if (!(await window.spConfirm('האם למחוק את כל המשימות שהושלמו?\nפעולה זו אינה ניתנת לביטול.'))) return;
     this.items = this.items.filter(i => !i.done);
     this.save();
   },
 
-  exportToExcel: function() {
+  exportToExcel: async function() {
     if (!this.items.length) {
-      alert('אין משימות לייצוא');
+      await window.spAlert('אין משימות לייצוא');
       return;
     }
     
