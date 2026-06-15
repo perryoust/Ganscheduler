@@ -45,7 +45,7 @@ function doSupExport(){
 
   const from=document.getElementById('supex-from').value;
   const to=document.getElementById('supex-to').value;
-  if(!from||!to){window.spAlert('בחר תאריכים');return;}
+  if(!from||!to){_spAlertDialog('בחר תאריכים');return;}
 
   const evs=window.SCH.filter(s=>{
     if(s.d<from||s.d>to) return false;
@@ -66,7 +66,7 @@ function doSupExport(){
     return (a.t||'99:99').localeCompare(b.t||'99:99');
   });
   
-  if(!evs.length){window.spAlert('אין פעילויות בטווח זה');return;}
+  if(!evs.length){_spAlertDialog('אין פעילויות בטווח זה');return;}
 
   const title = window._supExName ? `דו"ח פעילות לספק: ${window._supExName} (טווח: ${window.fD(from)} - ${window.fD(to)})` : `דו"ח פעילות ספקים (טווח: ${window.fD(from)} - ${window.fD(to)})`;
   
@@ -484,14 +484,14 @@ function removeSupAct(idx){
   }
   renderSupActsList(name);
 }
-async function deleteSup() {
+function deleteSup() {
   const name = document.getElementById('su-name').dataset.orig;
   if (!name) return;
   const schedCount = window.SCH.filter(s => s.a === name && s.st !== 'can').length;
   const msg = schedCount > 0
     ? `לספק "${name}" יש ${schedCount} פעילויות פעילות.\nמחיקה תסיר את הספק מהמערכת אך לא תמחק את הפעילויות.\n\nלהמשיך?`
     : `למחוק את הספק "${name}"?`;
-  if (!(await window.spConfirm(msg))) return;
+  if (!await _spConfirmDialog(msg)) return;
 
   // Remove from supEx
   delete window.supEx[name];
@@ -513,13 +513,14 @@ async function deleteSup() {
   window.showToast('🗑️ ספק "' + name + '" נמחק');
 }
 
-async function saveSup(){
+function saveSup(){
   const nameEl=document.getElementById('su-name');
   const name=nameEl.value.trim();
   const origName=nameEl.dataset.orig;
-  if(!name){window.spAlert('יש להזין שם');return;}
+  if(!name){_spAlertDialog('יש להזין שם');return;}
   if(origName&&origName!==name){
-    if(!(await window.spConfirm(`לשנות את שם הספק מ-"${origName}" ל-"${name}"?\nכל השיבוצים יעודכנו אוטומטית.`))) return;
+    if(!await _spConfirmDialog(`לשנות את שם הספק מ-"${origName}" ל-"${name}"?
+כל השיבוצים יעודכנו אוטומטית.`)) return;
     window.SCH.forEach(s=>{if(s.a===origName)s.a=name;});
     if(window.supEx[origName]) window.supEx[name]={...window.supEx[origName]};
     delete window.supEx[origName];
@@ -660,15 +661,15 @@ function auditMergedSuppliers(){
   return report;
 }
 
-async function doMerge(){
+function doMerge(){
   const mainIdx=document.getElementById('mrg-main').value;
-  if(mainIdx===''){window.spAlert('בחר ספק ראשי');return;}
+  if(mainIdx===''){_spAlertDialog('בחר ספק ראשי');return;}
   const main=_mergeSupList[parseInt(mainIdx)]?.name;
-  if(!main){window.spAlert('שגיאה: לא נמצא ספק ראשי');return;}
+  if(!main){_spAlertDialog('שגיאה: לא נמצא ספק ראשי');return;}
   const checkedIdxs=[...document.querySelectorAll('#mrg-list input[type=checkbox]:checked')].map(c=>parseInt(c.dataset.idx));
   const toMrg=checkedIdxs.map(i=>_mergeSupList[i]?.name).filter(n=>n && n!==main);
-  if(!toMrg.length){window.spAlert('בחר לפחות ספק אחד למיזוג');return;}
-  if(!(await window.spConfirm(`לאחד ${toMrg.length} ספקים אל "${main}"?`))) return;
+  if(!toMrg.length){_spAlertDialog('בחר לפחות ספק אחד למיזוג');return;}
+  if(!await _spConfirmDialog(`לאחד ${toMrg.length} ספקים אל "${main}"?`)) return;
 
   const mainBase = window.supBase(main);
   let changedSch=0, changedInv=0;

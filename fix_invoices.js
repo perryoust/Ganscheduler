@@ -9,12 +9,12 @@ if (splitIndex !== -1) {
 const newScannerCode = `\n\n// ── SharePoint Local Scanner ─────────────────────────────
 window.startSharePointScanner = async function() {
   if (!window.showDirectoryPicker) {
-    window.spAlert('הדפדפן שלך אינו תומך בסריקת תיקיות מקומית. אנא השתמש ב-Chrome או Edge עדכני.');
+    _spAlertDialog('הדפדפן שלך אינו תומך בסריקת תיקיות מקומית. אנא השתמש ב-Chrome או Edge עדכני.');
     return;
   }
   try {
     const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
-    const baseUrl = prompt('בחרת את התיקייה המקומית בהצלחה!\\n\\nכעת, אנא הדבק כאן את קישור האינטרנט של התיקייה הזו בדיוק כפי שהוא מופיע ב-SharePoint\\n(לדוגמה: https://tomshin.sharepoint.com/sites/docs/Shared%20Documents/...) :');
+    const baseUrl = await window.spPrompt('בחרת את התיקייה המקומית בהצלחה!\\n\\nכעת, אנא הדבק כאן את קישור האינטרנט של התיקייה הזו בדיוק כפי שהוא מופיע ב-SharePoint\\n(לדוגמה: https://tomshin.sharepoint.com/sites/docs/Shared%20Documents/...) :');
     if (!baseUrl) return;
     const cleanBaseUrl = baseUrl.trim().replace(/\\/+$/, '');
     window.showToast('⏳ סורק קבצים במחשב... נא להמתין', 60000);
@@ -68,9 +68,9 @@ window.startSharePointScanner = async function() {
       window.XLSX.utils.book_append_sheet(wb, ws, 'תוצאות סריקה');
       window.XLSX.writeFile(wb, 'תוצאות_סריקת_sharepoint.xlsx');
     }
-    window.spAlert(\`סיום! נסרקו \${filesFound.length} קבצים.\\nהותאמו ושודכו: \${matchCount}\\nדוח הופק וירד למחשב שלך.\`);
+    _spAlertDialog(\`סיום! נסרקו \${filesFound.length} קבצים.\\nהותאמו ושודכו: \${matchCount}\\nדוח הופק וירד למחשב שלך.\`);
   } catch (error) {
-    if (error.name !== 'AbortError') window.spAlert('שגיאה בסריקה: ' + error.message);
+    if (error.name !== 'AbortError') _spAlertDialog('שגיאה בסריקה: ' + error.message);
   }
 };
 `;

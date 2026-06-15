@@ -570,7 +570,7 @@ function clearCalPair(){
 }
 // Unified pair save — called from calendar, schedule, and garden modal
 function addPair(gids){
-  if(!gids||gids.length<2){window.spAlert('יש לבחור לפחות 2 צהרונים');return;}
+  if(!gids||gids.length<2){_spAlertDialog('יש לבחור לפחות 2 צהרונים');return;}
   checkDupePairAndSave(gids);
 }
 function addPairFromCal(){
@@ -583,7 +583,7 @@ window.addClusterFromCal = async function(){
   if(!gids || gids.length < 2) return;
   
   const name = gids.map(id=>window.G(id).name||'').join(' + ');
-  const nm = prompt('שם לאשכול:', name);
+  const nm = await window.spPrompt('שם לאשכול:', name);
   if(nm === null) return;
   const finalName = nm.trim();
   if(!finalName) return;
@@ -606,7 +606,7 @@ window.addClusterFromCal = async function(){
   };
   
   window.save(); window.refresh(); window.refreshClusterDrops();
-  window.spAlert(`✅ האשכול "${finalName}" נשמר!`);
+  _spAlertDialog(`✅ האשכול "${finalName}" נשמר!`);
 };
 window.addPairFromCal = addPairFromCal;
 window.saveCalPair = addPairFromCal;
@@ -619,7 +619,7 @@ function addPairFromSched(){
 function savePairFromGarden(){
   const g2=parseInt(document.getElementById('gm-pg2').value)||null;
   const g3=parseInt(document.getElementById('gm-pg3').value)||null;
-  if(!g2){window.spAlert('יש לבחור לפחות צהרון שני');return;}
+  if(!g2){_spAlertDialog('יש לבחור לפחות צהרון שני');return;}
   addPair([window.gmGid,g2,g3].filter(Boolean));
   window.openGM(window.gmGid);
 }
@@ -627,7 +627,7 @@ async function checkDupePairAndSave(gids){
   const dupe=gids.map(gid=>{const p=window.gardenPair(gid);return p?`${window.G(gid).name} כבר בזוג "${p.name}"`:null}).filter(Boolean);
   if(dupe.length){if(!(await window.spConfirm(`⚠️ שים לב:\n${dupe.join('\n')}\n\nבכל זאת להמשיך?`))) return;}
   const name=gids.map(id=>window.G(id).name||'').join(' + ');
-  const nm=prompt('שם לזוג:',name);
+  const nm=await window.spPrompt('שם לזוג:',name);
   if(nm===null) return;
   const targetId = Date.now();
   window.pairs.push({id:targetId,ids:gids,name:nm||name});
@@ -637,7 +637,7 @@ async function checkDupePairAndSave(gids){
     return { ...p, ids: p.ids.filter(id => !gids.map(Number).includes(Number(id))) };
   }).filter(p => p.ids.length >= 2);
   window.save(); window.refresh();
-  window.spAlert(`✅ הזוג "${nm||name}" נשמר!`);
+  _spAlertDialog(`✅ הזוג "${nm||name}" נשמר!`);
 }
 
 function renderCal(){

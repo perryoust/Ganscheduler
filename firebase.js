@@ -1,6 +1,6 @@
-﻿// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+// ══════════════════════════════════════════════
 // Firebase Realtime Database Sync - v3.0 (Robust)
-// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+// ══════════════════════════════════════════════
 function getFirebaseDbUrl() {
   const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
   if (window.CURRENT_YEAR && window.CURRENT_YEAR !== 'tashpav') {
@@ -24,7 +24,7 @@ let _fbLastError = null;
 window._fbSyncReady = false;
 window._importInProgress = false; // Global flag: blocks polling during import
 
-// ג”€ג”€ State Update ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ── State Update ─────────────────────────────
 function _setSyncState(seq, ts, error = null, isLoad = false) {
   if (seq) {
     _localSeq = seq;
@@ -46,48 +46,48 @@ function _setSyncState(seq, ts, error = null, isLoad = false) {
   _fbUpdateStatus();
 }
 
-// ג”€ג”€ Status UI ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ── Status UI ────────────────────────────────
 function _fbUpdateStatus() {
   const btn = document.getElementById('od-btn');
   if (!btn) return;
 
   if (_fbSyncing) {
-    btn.innerHTML = 'נ”„ ׳׳¡׳ ׳›׳¨׳...';
+    btn.innerHTML = '🔄 מסנכרן...';
     btn.style.background = '#e65100';
     return;
   }
 
   if (_fbLastError) {
-    btn.innerHTML = 'ג ׳©׳’׳™׳׳× ׳¡׳ ׳›׳¨׳•׳<br><span style="font-size:.6rem">' + _fbLastError + '</span>';
+    btn.innerHTML = '❌ שגיאת סנכרון<br><span style="font-size:.6rem">' + _fbLastError + '</span>';
     btn.style.background = '#c62828';
     return;
   }
 
   const ageSec = Math.floor((Date.now() - _lastSyncTs) / 1000);
   if (_lastSyncTs && ageSec < 120) {
-    btn.innerHTML = 'ג˜ן¸ ׳׳¢׳•׳“׳›׳ ג“<br><span style="font-size:.6rem">׳”׳¨׳’׳¢</span>';
+    btn.innerHTML = '☁️ מעודכן ✓<br><span style="font-size:.6rem">הרגע</span>';
     btn.style.background = '#2e7d32';
   } else if (_lastSyncTs) {
     const mins = Math.floor(ageSec / 60);
-    btn.innerHTML = `ג˜ן¸ ׳¡׳•׳ ׳›׳¨׳ ׳׳₪׳ ׳™ ${mins}׳“'<br><span style="font-size:.6rem">v${_localSeq}</span>`;
+    btn.innerHTML = `☁️ סונכרן לפני ${mins}ד'<br><span style="font-size:.6rem">v${_localSeq}</span>`;
     btn.style.background = mins > 10 ? '#e65100' : '#2e7d32';
   } else {
-    btn.innerHTML = 'ג˜ן¸ ׳׳×׳—׳‘׳¨...';
+    btn.innerHTML = '☁️ מתחבר...';
   }
 }
 
-// ג”€ג”€ Authentication ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ── Authentication ────────────────────────────
 async function doLogin() {
   const u = (document.getElementById('auth-username').value || '').trim().toLowerCase();
   const p = (document.getElementById('auth-password').value || '');
-  if (!u || !p) { window.spAlert('׳ ׳ ׳׳׳׳ ׳©׳ ׳׳©׳×׳׳© ׳•׳¡׳™׳¡׳׳”'); return; }
+  if (!u || !p) { _spAlertDialog('נא למלא שם משתמש וסיסמה'); return; }
 
   try {
     const btn = document.getElementById('auth-login-btn');
-    btn.disabled = true; btn.textContent = '׳׳×׳—׳‘׳¨...';
+    btn.disabled = true; btn.textContent = 'מתחבר...';
     await window._fbSignIn(u, p, document.getElementById('auth-remember').checked);
   } catch (e) {
-    window.spAlert('׳©׳’׳™׳׳× ׳”׳×׳—׳‘׳¨׳•׳×: ' + e.message);
+    _spAlertDialog('שגיאת התחברות: ' + e.message);
     location.reload();
   }
 }
@@ -174,7 +174,7 @@ window.cleanSupplierNamesBeforeSave = function () {
   }
 };
 
-// ג”€ג”€ Core Sync Logic ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ── Core Sync Logic ──────────────────────────
 async function saveToFirebase(silent = false, force = false) {
   if (_isLocked && !force) return false;
   _isLocked = true;
@@ -221,7 +221,7 @@ async function saveToFirebase(silent = false, force = false) {
             console.warn(`[Sync] BLOCKED: Dirty Write Detected. Local: ${_localSeq}, Cloud: ${cloudSeq}`);
             _fbSyncing = false;
             _isLocked = false;
-            await window.spAlert("\u26A0\uFE0F \u05D4\u05DE\u05E2\u05E8\u05DB\u05EA \u05D6\u05D9\u05D4\u05EA\u05D4 \u05E9\u05D1\u05D5\u05E6\u05E2 \u05E9\u05D9\u05E0\u05D5\u05D9 \u05DE\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D0\u05D7\u05E8!\n\u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D4\u05D7\u05D3\u05E9\u05D9\u05DD \u05E0\u05D8\u05E2\u05E0\u05D9\u05DD \u05DB\u05E2\u05EA \u05DB\u05D3\u05D9 \u05DC\u05DE\u05E0\u05D5\u05E2 \u05DE\u05D7\u05D9\u05E7\u05EA \u05DE\u05D9\u05D3\u05E2 \u05D7\u05E9\u05D5\u05D1.\n\n\u05D0\u05E0\u05D0 \u05D4\u05DE\u05EA\u05DF \u05E9\u05E0\u05D9\u05D9\u05D4 \u05D5\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D4\u05E4\u05E2\u05D5\u05DC\u05D4 \u05E9\u05E2\u05E9\u05D9\u05EA.");
+            await _spAlertDialog("\u26A0\uFE0F \u05D4\u05DE\u05E2\u05E8\u05DB\u05EA \u05D6\u05D9\u05D4\u05EA\u05D4 \u05E9\u05D1\u05D5\u05E6\u05E2 \u05E9\u05D9\u05E0\u05D5\u05D9 \u05DE\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D0\u05D7\u05E8!\n\u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D4\u05D7\u05D3\u05E9\u05D9\u05DD \u05E0\u05D8\u05E2\u05E0\u05D9\u05DD \u05DB\u05E2\u05EA \u05DB\u05D3\u05D9 \u05DC\u05DE\u05E0\u05D5\u05E2 \u05DE\u05D7\u05D9\u05E7\u05EA \u05DE\u05D9\u05D3\u05E2 \u05D7\u05E9\u05D5\u05D1.\n\n\u05D0\u05E0\u05D0 \u05D4\u05DE\u05EA\u05DF \u05E9\u05E0\u05D9\u05D9\u05D4 \u05D5\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D4\u05E4\u05E2\u05D5\u05DC\u05D4 \u05E9\u05E2\u05E9\u05D9\u05EA.");
             loadFromFirebase(true); // Force load
             return false;
           }
@@ -238,13 +238,13 @@ async function saveToFirebase(silent = false, force = false) {
 
     if (!r.ok) throw new Error('HTTP ' + r.status);
 
-    // Save Invoices Separately ג€” always save if we have invoice data (no _fbSyncReady gate)
+    // Save Invoices Separately — always save if we have invoice data (no _fbSyncReady gate)
     if (Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
       const invUrl = getFirebaseInvoicesUrl() + (tok ? '?auth=' + tok : '');
       const invResp = await fetch(invUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.INVOICES) });
       if (!invResp.ok) {
-        console.error('[Sync] ג Invoices save FAILED:', invResp.status, invResp.statusText);
-        window.showToast?.('ג ן¸ ׳©׳’׳™׳׳” ׳‘׳©׳׳™׳¨׳× ׳—׳©׳‘׳•׳ ׳™׳•׳× ׳׳¢׳ ׳! (' + invResp.status + ')');
+        console.error('[Sync] ❌ Invoices save FAILED:', invResp.status, invResp.statusText);
+        window.showToast?.('⚠️ שגיאה בשמירת חשבוניות לענן! (' + invResp.status + ')');
       } else {
         console.log('[Sync] Invoices saved:', window.INVOICES.length);
       }
@@ -271,9 +271,9 @@ async function saveToFirebase(silent = false, force = false) {
 }
 
 async function loadFromFirebase(silent = false, force = false) {
-  // CRITICAL: Never load from Firebase during an import ג€” it would overwrite the imported data
+  // CRITICAL: Never load from Firebase during an import — it would overwrite the imported data
   if (window._importInProgress) {
-    console.warn('[Sync] Load blocked ג€” import in progress');
+    console.warn('[Sync] Load blocked — import in progress');
     return true;
   }
   if (_isLocked && !force) return false;
@@ -295,7 +295,7 @@ async function loadFromFirebase(silent = false, force = false) {
       return true;
     }
 
-    // Load Invoices Separately ג€” merge file links from local copy to avoid losing them
+    // Load Invoices Separately — merge file links from local copy to avoid losing them
     const invUrl = getFirebaseInvoicesUrl() + (tok ? '?auth=' + tok : '');
     const ir = await fetch(invUrl);
     if (!ir.ok) throw new Error('Invoices HTTP ' + ir.status);
@@ -367,7 +367,7 @@ function _fbStopPolling() {
   console.log('[Sync] Polling stopped');
 }
 
-// ג”€ג”€ PUBLIC API ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ── PUBLIC API ───────────────────────────────
 // CRITICAL: ghAutoSave is called by core.js save() to push data to Firebase.
 // Without this alias, Firebase never gets updated!
 window.ghAutoSave = saveToFirebase;

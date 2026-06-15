@@ -1,6 +1,6 @@
 window.startSharePointScanner = async function() {
   if (!window.showDirectoryPicker) {
-    window.spAlert('הדפדפן שלך אינו תומך בסריקת תיקיות מקומית. אנא השתמש ב-Chrome או Edge עדכני.');
+    _spAlertDialog('הדפדפן שלך אינו תומך בסריקת תיקיות מקומית. אנא השתמש ב-Chrome או Edge עדכני.');
     return;
   }
   
@@ -17,7 +17,7 @@ window.startSharePointScanner = async function() {
       }
       
       if (!baseUrl) {
-        baseUrl = prompt('בחרת תיקייה בהצלחה!\n\nכעת, הדבק כאן את קישור האינטרנט של התיקייה הזו ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/...)');
+        baseUrl = await window.spPrompt('בחרת תיקייה בהצלחה!\n\nכעת, הדבק כאן את קישור האינטרנט של התיקייה הזו ב-SharePoint:\n(לדוגמה: https://tomashin1.sharepoint.com/...)');
         if (baseUrl) {
           window.spScannerFolderLinks = window.spScannerFolderLinks || {};
           window.spScannerFolderLinks[dirHandle.name] = baseUrl.trim();
@@ -28,7 +28,7 @@ window.startSharePointScanner = async function() {
         selectedFolders.push({ handle: dirHandle, baseUrl: baseUrl.trim().replace(/\/+$/, '') });
       }
       
-      addAnother = confirm('האם תרצה לסרוק תיקייה מקומית נוספת במקביל?');
+      addAnother = await _spConfirmDialog('האם תרצה לסרוק תיקייה מקומית נוספת במקביל?');
     }
     
     if (selectedFolders.length === 0) return;
@@ -112,8 +112,8 @@ window.startSharePointScanner = async function() {
       window.XLSX.writeFile(wb, 'תוצאות_סריקת_sharepoint.xlsx');
     }
     
-    window.spAlert(`סיום! נסרקו ${filesFound.length} קבצים.\nהותאמו ושודכו: ${matchCount}\nדוח הופק וירד למחשב שלך.`);
+    _spAlertDialog(`סיום! נסרקו ${filesFound.length} קבצים.\nהותאמו ושודכו: ${matchCount}\nדוח הופק וירד למחשב שלך.`);
   } catch (error) {
-    if (error.name !== 'AbortError') window.spAlert('שגיאה בסריקה: ' + error.message);
+    if (error.name !== 'AbortError') _spAlertDialog('שגיאה בסריקה: ' + error.message);
   }
 }

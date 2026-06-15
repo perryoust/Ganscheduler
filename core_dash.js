@@ -1,4 +1,4 @@
-﻿
+
 function td(){
   const d = new Date();
   const y = d.getFullYear();
@@ -19,7 +19,7 @@ window.refreshAppUI = refreshAppUI;
 
 function calculateStats() {
   const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
-  const cls = (tab === 'g' ? '׳’׳ ׳™׳' : '׳‘׳™׳”"׳¡');
+  const cls = (tab === 'g' ? 'גנים' : 'ביה"ס');
   const sch = window.SCH || [];
   const gdns = window.GARDENS || [];
 
@@ -34,11 +34,11 @@ function calculateStats() {
   // Helper logic for classification
   const getGcls = (g) => {
     if (typeof window.gcls === 'function') return window.gcls(g);
-    if (!g || !g.cls) return '׳’׳ ׳™׳';
+    if (!g || !g.cls) return 'גנים';
     const c = g.cls.trim();
-    if (c.includes('׳’׳')) return '׳’׳ ׳™׳';
-    if (c.includes('׳‘׳™׳×') || c.includes('׳‘׳™"׳¡') || c.includes('׳‘׳™׳”"׳¡') || c.includes('׳‘׳™׳”׳¡') || c.includes('׳¡׳₪׳¨')) return '׳‘׳™׳”"׳¡';
-    return '׳’׳ ׳™׳';
+    if (c.includes('גן')) return 'גנים';
+    if (c.includes('בית') || c.includes('בי"ס') || c.includes('ביה"ס') || c.includes('ביהס') || c.includes('ספר')) return 'ביה"ס';
+    return 'גנים';
   };
 
   const baseSch = sch.filter(s => {
@@ -58,8 +58,8 @@ function calculateStats() {
   // 2. Calculate Stats
   const today = td();
   const stats = baseSch.reduce((acc, s) => {
-    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false") || !!((s.nt && /׳”׳•׳§׳“׳ ׳|׳ ׳“׳—׳” ׳|׳”׳•׳–׳– ׳|׳”׳§׳“׳׳” ׳|׳“׳—׳™׳™׳” ׳|׳¢׳‘׳¨ ׳|׳¢׳•׳‘׳¨ ׳|׳”׳•׳¢׳‘׳¨ ׳/i.test(s.nt)) || (s.n && /׳”׳•׳§׳“׳ ׳|׳ ׳“׳—׳” ׳|׳”׳•׳–׳– ׳|׳”׳§׳“׳׳” ׳|׳“׳—׳™׳™׳” ׳|׳¢׳‘׳¨ ׳|׳¢׳•׳‘׳¨ ׳|׳”׳•׳¢׳‘׳¨ ׳/i.test(s.n)));
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /׳”׳©׳׳׳”|׳”׳•׳§׳“׳ ׳|׳ ׳“׳—׳” ׳|׳”׳•׳–׳– ׳|׳¢׳‘׳¨ ׳|׳¢׳•׳‘׳¨ ׳|׳”׳•׳¢׳‘׳¨ ׳/i.test(s.nt)) || (s.n && /׳”׳©׳׳׳”|׳”׳•׳§׳“׳ ׳|׳ ׳“׳—׳” ׳|׳”׳•׳–׳– ׳|׳¢׳‘׳¨ ׳|׳¢׳•׳‘׳¨ ׳|׳”׳•׳¢׳‘׳¨ ׳/i.test(s.n)) || (s.a && /׳”׳©׳׳׳”|׳”׳•׳§׳“׳ ׳|׳ ׳“׳—׳” ׳|׳”׳•׳–׳– ׳|׳¢׳‘׳¨ ׳|׳¢׳•׳‘׳¨ ׳|׳”׳•׳¢׳‘׳¨ ׳/i.test(s.a)));
+    const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false") || !!((s.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) || (s.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.n)));
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.n)) || (s.a && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.a)));
     const isException = (s.st === 'nohap' || s.st === 'post') && !isHandled;
     const isMakeupBacklog = isM && s.st !== 'can' && s.st !== 'done' && s.d >= today;
     
@@ -124,7 +124,7 @@ function updUIStats() {
   const hGardens = window.getEl('h-gardens');
   if(hGardens) {
     const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
-    const cls = (tab === 'g' ? '׳’׳ ׳™׳' : '׳‘׳™׳”"׳¡');
+    const cls = (tab === 'g' ? 'גנים' : 'ביה"ס');
     const gardenCount = (window.GARDENS || []).filter(g => window.gcls(g) === cls).length + (window._GARDENS_EXTRA || []).filter(g => window.gcls(g) === cls).length;
     hGardens.textContent = gardenCount;
   }
@@ -167,7 +167,7 @@ function initDrops(){
     const items = `<option value="">${first}</option>` + [...GARDENS].sort((a,b)=>{
       const cc=(a.city||'').localeCompare(b.city||'','he');
       return cc||((a.name||'').localeCompare(b.name||'','he'));
-    }).map(g=>`<option value='${g.id}'>${prefix?g.city+' ֲ· ':''} ${g.name}</option>`).join('');
+    }).map(g=>`<option value='${g.id}'>${prefix?g.city+' · ':''} ${g.name}</option>`).join('');
     
     ['', '-desktop', '-mobile'].forEach(suffix => {
       const el = document.getElementById(id + suffix);
@@ -175,7 +175,7 @@ function initDrops(){
     });
   }
   fC('dash-city');fC('s-city');fC('g-city');fC('apm-city');fC('pairs-city');fC('cl-city');
-  // Filter dropdowns (search/filter): show ONLY act suppliers in ׳—׳•׳’׳™׳ views
+  // Filter dropdowns (search/filter): show ONLY act suppliers in חוגים views
   ['dash-sup','s-sup'].forEach(id=>{
     ['', '-desktop', '-mobile'].forEach(suffix => {
       const el = document.getElementById(id + suffix);
@@ -209,17 +209,17 @@ function initDrops(){
     const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
     ['ns-sup','es-sup'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML+=`<option value='${s.name}'>${disp}</option>`;});
   });
-  fG('cal-g1','׳›׳ ׳”׳¦׳”׳¨׳•׳ ׳™׳',true);fG('cal-g2','ג€”',true);fG('cal-g3','ג€”',true);
-  fG('s-g1','׳›׳ ׳”׳¦׳”׳¨׳•׳ ׳™׳',true);fG('s-g2','ג€”',true);fG('s-g3','ג€”',true);
-  fG('apm-g1','׳‘׳—׳¨ ׳¦׳”׳¨׳•׳',true);fG('apm-g2','׳‘׳—׳¨ ׳¦׳”׳¨׳•׳',true);fG('apm-g3','ג€”',true);
+  fG('cal-g1','כל הצהרונים',true);fG('cal-g2','—',true);fG('cal-g3','—',true);
+  fG('s-g1','כל הצהרונים',true);fG('s-g2','—',true);fG('s-g3','—',true);
+  fG('apm-g1','בחר צהרון',true);fG('apm-g2','בחר צהרון',true);fG('apm-g3','—',true);
   ['', '-desktop', '-mobile'].forEach(suffix => {
     const el = document.getElementById('cal-dp' + suffix);
     if (el) el.value = td();
   });
-  // Default calendar to ׳’׳ ׳™׳ tab
+  // Default calendar to גנים tab
   ['', '-desktop', '-mobile'].forEach(suffix => {
     const el = document.getElementById('cal-cls' + suffix);
-    if (el) el.value = '׳’׳ ׳™׳';
+    if (el) el.value = 'גנים';
   });
   if (window.initCalFilters) window.initCalFilters();
 }
@@ -227,7 +227,7 @@ function initDrops(){
 window.TABS=['dash','cal','sched','gardens','pairs','holidays','clusters','sup','managers','admin'];
 window.currentTab='cal';
 
-// ג”€ג”€ג”€ GLOBAL NAVIGATION SEARCH ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── GLOBAL NAVIGATION SEARCH ────────────────────────────────────────────────
 function navSearchInput(val){
   const res=document.getElementById('nav-search-results');
   if(!res) return;
@@ -241,7 +241,7 @@ function navSearchInput(val){
   allG.forEach(g=>{
     if(!(g.name||'').toLowerCase().includes(q)&&!(g.city||'').toLowerCase().includes(q)) return;
     results.push({
-      icon: gcls(g)==='׳‘׳™׳”"׳¡'?'נ›ן¸':'נ«',
+      icon: gcls(g)==='ביה"ס'?'🏛️':'🏫',
       label: `${g.name}`,
       sub: g.city||'',
       action: `switchMode('act');ST('gardens');setTimeout(()=>openGM(${g.id}),200);navSearchClose();`
@@ -253,9 +253,9 @@ function navSearchInput(val){
     const base=supBase(s.name);
     if(!base.toLowerCase().includes(q)) return;
     results.push({
-      icon:'נ¢',
+      icon:'🏢',
       label: base,
-      sub: isActSupplier(base)?'׳¡׳₪׳§ ׳—׳•׳’׳™׳':'׳¡׳₪׳§',
+      sub: isActSupplier(base)?'ספק חוגים':'ספק',
       action: `switchMode('act');ST('sup');setTimeout(()=>openSupCard('${base.replace(/'/g,"\\'")}'),200);navSearchClose();`
     });
   });
@@ -269,8 +269,8 @@ function navSearchInput(val){
     evMatches.forEach(s=>{
       const g=G(s.g);
       results.push({
-        icon:'נ“…',
-        label:`${supBase(s.a)} ג€” ${g?.name||''}`,
+        icon:'📅',
+        label:`${supBase(s.a)} — ${g?.name||''}`,
         sub: `${fD(s.d)} ${s.t?fT(s.t):''}`,
         action: `switchMode('act');ST('cal');setTimeout(()=>{goDate('${s.d}');setTimeout(()=>openSP('${s.id}'),200);},150);navSearchClose();`
       });
@@ -278,7 +278,7 @@ function navSearchInput(val){
   }
 
   if(!results.length){
-    res.innerHTML='<div style="padding:10px 14px;color:#999;font-size:.82rem">׳׳ ׳ ׳׳¦׳׳• ׳×׳•׳¦׳׳•׳×</div>';
+    res.innerHTML='<div style="padding:10px 14px;color:#999;font-size:.82rem">לא נמצאו תוצאות</div>';
     res.style.display='block'; return;
   }
 
@@ -306,7 +306,7 @@ function navSearchClose(){
   const inp=document.getElementById('nav-search-input');
   if(inp) inp.value='';
 }
-// ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─────────────────────────────────────────────────────────────────────────────
 
 function ST(t){
   currentTab=t;
@@ -316,7 +316,7 @@ function ST(t){
   if(_spEl) _spEl.classList.remove('open');
   if(_bdEl) _bdEl.style.display='none';
   selEv=null;
-  // Find the correct tab button by matching onclick attribute ג€” not by index
+  // Find the correct tab button by matching onclick attribute — not by index
   // (TABS array has hidden tabs like 'pairs','clusters','managers' that have no button)
   document.querySelectorAll('#tabs-act .tab').forEach(btn=>{
     const fn = btn.getAttribute('onclick')||'';
@@ -378,16 +378,16 @@ function openAddGarden(){
   document.getElementById('addg-dfrom').value='';
   document.getElementById('addg-dto').value='';
   const cityEl=document.getElementById('addg-city');
-  cityEl.innerHTML='<option value="">׳‘׳—׳¨ ׳¢׳™׳¨...</option>';
+  cityEl.innerHTML='<option value="">בחר עיר...</option>';
   cities().forEach(c=>cityEl.innerHTML+=`<option value='${c}'>${c}</option>`);
   const fill=id=>{
     const el=document.getElementById(id);
-    el.innerHTML='<option value="">׳׳׳</option>';
-    GARDENS.sort((a,b)=>a.name.localeCompare(b.name,'he')).forEach(g=>el.innerHTML+=`<option value='${g.id}'>${g.city} ֲ· ${g.name}</option>`);
+    el.innerHTML='<option value="">ללא</option>';
+    GARDENS.sort((a,b)=>a.name.localeCompare(b.name,'he')).forEach(g=>el.innerHTML+=`<option value='${g.id}'>${g.city} · ${g.name}</option>`);
   };
   fill('addg-partner');fill('addg-partner3');
   const clEl=document.getElementById('addg-cluster');
-  clEl.innerHTML='<option value="">׳׳׳ ׳׳©׳›׳•׳</option><option value="__new__">ג• ׳׳©׳›׳•׳ ׳—׳“׳©...</option>';
+  clEl.innerHTML='<option value="">ללא אשכול</option><option value="__new__">➕ אשכול חדש...</option>';
   getClusters().forEach(cl=>clEl.innerHTML+=`<option value='${cl.id}'>${cl.name}</option>`);
   clEl.onchange=()=>{
     document.getElementById('addg-cluster-new-wrap').style.display=clEl.value==='__new__'?'block':'none';
@@ -398,7 +398,7 @@ function saveNewGarden(){
   const name=document.getElementById('addg-name').value.trim();
   const city=document.getElementById('addg-city').value;
   const cls=document.getElementById('addg-cls').value;
-  if(!name||!city){window.spAlert('׳™׳© ׳׳׳׳ ׳©׳ ׳•׳¢׳™׳¨');return;}
+  if(!name||!city){_spAlertDialog('יש למלא שם ועיר');return;}
   const newId=Date.now();
   const newG={id:newId,name,city,
     st:document.getElementById('addg-st').value.trim(),
@@ -434,10 +434,10 @@ function saveNewGarden(){
   if(!supEx['__gardens_extra']) supEx['__gardens_extra']=[];
   supEx['__gardens_extra'].push(newG);
   save();CM('addgm');refresh();refreshClusterDrops();
-  window.spAlert('ג… '+name+' ׳ ׳•׳¡׳£ ׳‘׳”׳¦׳׳—׳”!');
+  _spAlertDialog('✅ '+name+' נוסף בהצלחה!');
 }
 let _sucName=null;
-// ג”€ג”€ Supplier card: tab between activities and documents ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ── Supplier card: tab between activities and documents ─────────────
 let _sucTab = 'acts'; // 'acts' | 'docs'
 
 function setSucTab(tab){
@@ -446,7 +446,7 @@ function setSucTab(tab){
   document.getElementById('suc-tab-docs')?.classList.toggle('active', tab==='docs');
   document.getElementById('suc-acts-section').style.display = tab==='acts' ? '' : 'none';
   document.getElementById('suc-docs-section').style.display = tab==='docs' ? '' : 'none';
-  // suc-body holds the schedule table ג€” hide it when viewing docs
+  // suc-body holds the schedule table — hide it when viewing docs
   const sucBody = document.getElementById('suc-body');
   if(sucBody) sucBody.style.display = tab==='acts' ? '' : 'none';
   if(tab==='docs') renderSupDocs();
@@ -481,7 +481,7 @@ function initSucTabs(){
     _sucTab='docs';
     renderSupDocs();
   } else {
-    // Pure ׳—׳•׳’׳™׳: show only acts
+    // Pure חוגים: show only acts
     tabsDiv.style.display = 'none';
     actsDiv.style.display = '';
     docsDiv.style.display = 'none';
@@ -506,38 +506,38 @@ function renderSupDocs(){
   invs = [...invs].sort((a,b)=>(b.orderDate||b.txDate||b.date||'').localeCompare(a.orderDate||a.txDate||a.date||''));
 
   if(!invs.length){
-    el.innerHTML='<div style="color:#aaa;text-align:center;padding:16px;font-size:.8rem">׳׳™׳ ׳׳¡׳׳›׳™׳</div>';
+    el.innerHTML='<div style="color:#aaa;text-align:center;padding:16px;font-size:.8rem">אין מסמכים</div>';
     if(totalEl) totalEl.textContent='';
     return;
   }
-  const fmtSt = s=>{const m={order:'נ“‹',tx_invoice:'נ§¾',tax_invoice:'נ“‘',tax_receipt:'נ“‘נ§¾',receipt:'נ“„',cancelled:'ג'};return m[s]||m[_migrateInvStatus(s)]||'נ“„';};
+  const fmtSt = s=>{const m={order:'📋',tx_invoice:'🧾',tax_invoice:'📑',tax_receipt:'📑🧾',receipt:'📄',cancelled:'❌'};return m[s]||m[_migrateInvStatus(s)]||'📄';};
   const total = invs.reduce((s,i)=>s+(i.orderAmt||i.txAmt||i.amt||0),0);
   el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.78rem">
     <thead><tr style="background:#e8eaf6;position:sticky;top:0">
-      <th style="padding:5px 8px;text-align:right">׳×׳׳¨׳™׳</th>
-      <th style="padding:5px 8px;text-align:right">׳׳¡׳׳</th>
-      <th style="padding:5px 8px;text-align:right">׳₪׳™׳¨׳•׳˜</th>
-      <th style="padding:5px 8px;text-align:right;white-space:nowrap">׳¡׳›׳•׳</th>
-      <th style="padding:5px 8px;text-align:center">׳¡׳˜׳˜׳•׳¡</th>
+      <th style="padding:5px 8px;text-align:right">תאריך</th>
+      <th style="padding:5px 8px;text-align:right">מסמך</th>
+      <th style="padding:5px 8px;text-align:right">פירוט</th>
+      <th style="padding:5px 8px;text-align:right;white-space:nowrap">סכום</th>
+      <th style="padding:5px 8px;text-align:center">סטטוס</th>
       <th style="padding:5px 8px"></th>
     </tr></thead>
     <tbody>
     ${invs.map(inv=>{
       const d = inv.orderDate||inv.txDate||inv.date||'';
-      const docNum = inv.orderNum||inv.txNum||inv.num||'ג€”';
+      const docNum = inv.orderNum||inv.txNum||inv.num||'—';
       const amt = inv.orderAmt||inv.txAmt||inv.amt||0;
-      const amtStr = amt ? `ג‚×${withVat(amt,inv.vat||18).toLocaleString()}` : 'ג€”';
+      const amtStr = amt ? `₪${withVat(amt,inv.vat||18).toLocaleString()}` : '—';
       return `<tr style="border-bottom:1px solid #f0f0f0;cursor:pointer" onclick="CM('sucard-m');openNewInvoice(${inv.id})">
-        <td style="padding:5px 8px;white-space:nowrap">${d?fD(d):'ג€”'}</td>
+        <td style="padding:5px 8px;white-space:nowrap">${d?fD(d):'—'}</td>
         <td style="padding:5px 8px;font-weight:700;color:#1565c0">${docNum}</td>
         <td style="padding:5px 8px;color:#546e7a;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${inv.orderDesc||''}</td>
         <td style="padding:5px 8px;font-weight:700;color:#2e7d32;white-space:nowrap">${amtStr}</td>
         <td style="padding:5px 8px;text-align:center">${fmtSt(inv.status)}</td>
-        <td style="padding:5px 8px" onclick="event.stopPropagation()"><button class="btn bo bsm" style="font-size:.65rem" onclick="CM('sucard-m');openNewInvoice(${inv.id})">גן¸</button></td>
+        <td style="padding:5px 8px" onclick="event.stopPropagation()"><button class="btn bo bsm" style="font-size:.65rem" onclick="CM('sucard-m');openNewInvoice(${inv.id})">✏️</button></td>
       </tr>`;
     }).join('')}
     </tbody></table>`;
-  if(totalEl) totalEl.textContent = `${invs.length} ׳׳¡׳׳›׳™׳ ֲ· ׳¡׳”"׳›: ג‚×${total.toLocaleString()} ׳׳₪׳ ׳™ ׳׳¢"׳`;
+  if(totalEl) totalEl.textContent = `${invs.length} מסמכים · סה"כ: ₪${total.toLocaleString()} לפני מע"מ`;
 }
 
 function sucOpenNewDoc(){
@@ -547,7 +547,7 @@ function sucOpenNewDoc(){
 
 function sucExportDocs(){
   if(typeof exportSupPurchDocs==='function') exportSupPurchDocs(_sucName);
-  else showToast('ג ׳™׳¦׳•׳ ׳׳ ׳–׳׳™׳');
+  else showToast('❌ יצוא לא זמין');
 }
 
 function openSupCard(name){
@@ -572,7 +572,7 @@ function openSupCard(name){
   document.getElementById('sucard-m').classList.add('open');
 }
 function sucRefreshInfo(){
-  const name=_sucName; // always base name e.g. "׳—׳•׳’׳•׳×"
+  const name=_sucName; // always base name e.g. "חוגות"
   const ex=supBaseEx(name);
   const s=SUPBASE.find(x=>supBase(x.name)===name)||{};
   const acts=getSupActs(name);
@@ -583,32 +583,32 @@ function sucRefreshInfo(){
   const isPurch = isPurchSupplier(name);
   const isAct = isActSupplier(name);
   let sub = '';
-  if(isAct) sub += `${cnt} ׳₪׳¢׳™׳׳•׳™׳•׳× ֲ· ${acts2.length} ׳¡׳•׳’׳™׳`;
-  if(isPurch && invCnt>0) sub += (sub?' ֲ· ':'')+`${invCnt} ׳׳¡׳׳›׳™ ׳¨׳›׳©`;
+  if(isAct) sub += `${cnt} פעילויות · ${acts2.length} סוגים`;
+  if(isPurch && invCnt>0) sub += (sub?' · ':'')+`${invCnt} מסמכי רכש`;
   (document.getElementById('suc-sub')||{}).textContent = sub||name;
   const typeFlags = [
-    isActSupplier(name)?'<span class="sup-flag sup-flag-act">נ¨ ׳¡׳₪׳§ ׳—׳•׳’׳™׳</span>':'<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#fce4ec;color:#c62828">נ« ׳׳ ׳׳•׳₪׳™׳¢ ׳‘׳—׳•׳’׳™׳</span>',
-    isPurchSupplier(name)?'<span class="sup-flag sup-flag-purch">נ›’ ׳¡׳₪׳§ ׳¨׳›׳©</span>':'',
-    ex.entityType?`<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#f3e5f5;color:#6a1b9a">נ¢ ${ex.entityType}</span>`:''
+    isActSupplier(name)?'<span class="sup-flag sup-flag-act">🎨 ספק חוגים</span>':'<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#fce4ec;color:#c62828">🚫 לא מופיע בחוגים</span>',
+    isPurchSupplier(name)?'<span class="sup-flag sup-flag-purch">🛒 ספק רכש</span>':'',
+    ex.entityType?`<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#f3e5f5;color:#6a1b9a">🏢 ${ex.entityType}</span>`:''
   ].filter(Boolean).join(' ');
   const typeFlagsEl = document.getElementById('suc-type-flags');
   if(typeFlagsEl) typeFlagsEl.innerHTML = typeFlags;
   document.getElementById('suc-info').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:.81rem">
-      <div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">נ“ ׳˜׳׳₪׳•׳ ׳¨׳׳©׳™</div><div style="font-weight:700">${ex.ph1||s.phone||'ג€”'}</div></div>
-      ${ex.ph2?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">נ“ ׳˜׳׳₪׳•׳ ׳ ׳•׳¡׳£</div><div style="font-weight:700">${ex.ph2}</div></div>`:'<div></div>'}
-      ${ex.g1?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">נ›ן¸ ׳—.׳₪. / ׳¢׳•׳¡׳§</div><div style="font-weight:700">${ex.g1}</div></div>`:'<div></div>'}
-      ${ex.moeTax?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">נ“ ׳׳¡' ׳¡׳₪׳§ ׳—׳™׳ ׳•׳</div><div style="font-weight:700">${ex.moeTax}</div></div>`:''}
-      ${ex.contact?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">נ‘₪ ׳׳™׳© ׳§׳©׳¨</div><div style="font-weight:700">${ex.contact}</div></div>`:''}
-      ${ex.addr?`<div style="grid-column:1/-1"><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">נ“ ׳›׳×׳•׳‘׳×</div><div style="font-weight:700">${ex.addr}</div></div>`:''}
+      <div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">📞 טלפון ראשי</div><div style="font-weight:700">${ex.ph1||s.phone||'—'}</div></div>
+      ${ex.ph2?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">📞 טלפון נוסף</div><div style="font-weight:700">${ex.ph2}</div></div>`:'<div></div>'}
+      ${ex.g1?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">🏛️ ח.פ. / עוסק</div><div style="font-weight:700">${ex.g1}</div></div>`:'<div></div>'}
+      ${ex.moeTax?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">📚 מס' ספק חינוך</div><div style="font-weight:700">${ex.moeTax}</div></div>`:''}
+      ${ex.contact?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">👤 איש קשר</div><div style="font-weight:700">${ex.contact}</div></div>`:''}
+      ${ex.addr?`<div style="grid-column:1/-1"><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">📍 כתובת</div><div style="font-weight:700">${ex.addr}</div></div>`:''}
       <div style="grid-column:1/-1;display:${isActSupplier(name)?'block':'none'}">
-        <div style="color:#546e7a;font-size:.69rem;margin-bottom:4px">נ¯ ׳¡׳•׳’׳™ ׳₪׳¢׳™׳׳•׳™׳•׳×</div>
+        <div style="color:#546e7a;font-size:.69rem;margin-bottom:4px">🎯 סוגי פעילויות</div>
         ${acts.length
           ?acts.map(a=>`<span style="background:#e3f2fd;color:#1565c0;border-radius:12px;padding:2px 9px;font-size:.76rem;font-weight:600;margin-left:4px;margin-bottom:3px;display:inline-block">${a}</span>`).join('')
-          :'<span style="color:#999;font-size:.76rem">׳׳ ׳”׳•׳’׳“׳¨׳• ׳₪׳¢׳™׳׳•׳™׳•׳× ג€” ׳׳—׳¥ גן¸ ׳¢׳¨׳•׳ ׳׳”׳•׳¡׳₪׳”</span>'
+          :'<span style="color:#999;font-size:.76rem">לא הוגדרו פעילויות — לחץ ✏️ ערוך להוספה</span>'
         }
       </div>
-      ${ex.notes?`<div style="grid-column:1/-1"><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">נ“ ׳”׳¢׳¨׳•׳×</div><div>${ex.notes}</div></div>`:''}
+      ${ex.notes?`<div style="grid-column:1/-1"><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">📝 הערות</div><div>${ex.notes}</div></div>`:''}
     </div>
     `;  // docs shown in suc-docs-section tab
 }
@@ -616,14 +616,14 @@ function sucRefreshActFilt(){
   const acts=getSupActs(_sucName);
   const el=document.getElementById('suc-act-filt');
   if(!el) return;
-  el.innerHTML='<option value="">׳”׳›׳</option>'+acts.map(a=>`<option value='${a}'>${a}</option>`).join('');
+  el.innerHTML='<option value="">הכל</option>'+acts.map(a=>`<option value='${a}'>${a}</option>`).join('');
 }
 function sucToggleEdit(){
   const ep=document.getElementById('suc-edit-panel');
   const vp=document.getElementById('suc-view');
   const showing=ep.style.display!=='none';
   if(showing){ ep.style.display='none'; vp.style.display='block'; return; }
-  const name=_sucName; // base name, e.g. "׳—׳•׳’׳•׳×"
+  const name=_sucName; // base name, e.g. "חוגות"
   const ex=supBaseEx(name);
   const s=SUPBASE.find(x=>supBase(x.name)===name)||{};
   document.getElementById('suc-edit-name').value=name;
@@ -664,10 +664,10 @@ function sucRefreshActsList(){
   if(!el) return;
   el.innerHTML=acts.length
     ?acts.map((a,i)=>`<span class="suc-act-tag" data-act="${a.replace(/"/g,'&quot;')}" style="background:#e3f2fd;border-radius:12px;padding:3px 9px;font-size:.76rem;margin:2px;display:inline-flex;align-items:center;gap:5px">
-        נ¯ ${a}
-        <button onclick="sucRemoveAct(${i})" style="background:none;border:none;color:#e53935;cursor:pointer;font-size:.8rem;padding:0;line-height:1" title="׳”׳¡׳¨ ׳₪׳¢׳™׳׳•׳×">ג•</button>
+        🎯 ${a}
+        <button onclick="sucRemoveAct(${i})" style="background:none;border:none;color:#e53935;cursor:pointer;font-size:.8rem;padding:0;line-height:1" title="הסר פעילות">✕</button>
       </span>`).join('')
-    :'<span style="color:#999;font-size:.75rem">׳׳ ׳ ׳׳¦׳׳• ׳₪׳¢׳™׳׳•׳™׳•׳× ג€” ׳™׳×׳׳׳ ׳׳•׳˜׳•׳׳˜׳™׳× ׳׳”׳ ׳×׳•׳ ׳™׳</span>';
+    :'<span style="color:#999;font-size:.75rem">לא נמצאו פעילויות — יתמלא אוטומטית מהנתונים</span>';
 }
 function sucAddAct(){
   const inp=document.getElementById('suc-act-new-inp');
@@ -689,20 +689,20 @@ function sucRemoveAct(idx){
   }
   sucRefreshActsList(); save();
 }
-async function deleteSupFromCard() {
+function deleteSupFromCard() {
   // Use _sucName (set by openSupCard) as the reliable source
   const name = _sucName || (document.getElementById('suc-edit-name') && document.getElementById('suc-edit-name').dataset.orig);
-  if (!name) { window.spAlert('׳׳ ׳ ׳׳¦׳ ׳©׳ ׳¡׳₪׳§'); return; }
+  if (!name) { _spAlertDialog('לא נמצא שם ספק'); return; }
 
   const activeCount = SCH.filter(s => s.a === name && s.st !== 'can').length;
   const totalCount  = SCH.filter(s => s.a === name).length;
 
-  let msg = `׳׳׳—׳•׳§ ׳׳× ׳”׳¡׳₪׳§ "${name}"?\n`;
+  let msg = `למחוק את הספק "${name}"?\n`;
   if (totalCount > 0) {
-    msg += `\n׳”׳¡׳₪׳§ ׳§׳™׳™׳ ׳‘-${totalCount} ׳₪׳¢׳™׳׳•׳™׳•׳× ג€” ׳”׳ ׳™׳™׳©׳׳¨׳• ׳¢׳ ׳©׳׳•.`;
+    msg += `\nהספק קיים ב-${totalCount} פעילויות — הן יישמרו עם שמו.`;
   }
-  msg += '\n\n׳”׳¡׳₪׳§ ׳™׳•׳¡׳¨ ׳׳¨׳©׳™׳׳•׳× ׳”׳¡׳₪׳§׳™׳ ׳׳ ׳׳ ׳׳”׳₪׳¢׳™׳׳•׳™׳•׳× ׳”׳”׳™׳¡׳˜׳•׳¨׳™׳•׳×.';
-  if (!await window.spConfirm(msg)) return;
+  msg += '\n\nהספק יוסר מרשימות הספקים אך לא מהפעילויות ההיסטוריות.';
+  if (!await _spConfirmDialog(msg)) return;
 
   // Remove from supEx
   delete supEx[name];
@@ -718,16 +718,16 @@ async function deleteSupFromCard() {
   CM('sucard-m');
   if (typeof renderSup === 'function') renderSup();
   if (typeof renderPurchSuppliers === 'function') try { renderPurchSuppliers(); } catch(e) {}
-  showToast('נ—‘ן¸ ׳¡׳₪׳§ "' + name + '" ׳”׳•׳¡׳¨ ג€” ׳”׳₪׳¢׳™׳׳•׳™׳•׳× ׳ ׳©׳׳¨׳•');
+  showToast('🗑️ ספק "' + name + '" הוסר — הפעילויות נשמרו');
 }
 
-async function sucSaveEdit(){
+function sucSaveEdit(){
   const nameEl=document.getElementById('suc-edit-name');
   const newBase=nameEl.value.trim(); const origBase=nameEl.dataset.orig;
-  if(!newBase){window.spAlert('׳™׳© ׳׳”׳–׳™׳ ׳©׳ ׳¡׳₪׳§');return;}
+  if(!newBase){_spAlertDialog('יש להזין שם ספק');return;}
   if(origBase&&origBase!==newBase){
     const affected=SCH.filter(s=>supBase(s.a)===origBase).length;
-    if(!await window.spConfirm(`׳׳©׳ ׳•׳× ׳©׳ ׳-"${origBase}" ׳-"${newBase}"?\n${affected} ׳©׳™׳‘׳•׳¦׳™׳ ׳™׳¢׳•׳“׳›׳ ׳•.`)) return;
+    if(!await _spConfirmDialog(`לשנות שם מ-"${origBase}" ל-"${newBase}"?\n${affected} שיבוצים יעודכנו.`)) return;
     SCH.forEach(s=>{
       if(supBase(s.a)===origBase){
         const act=supAct(s.a);
@@ -762,7 +762,7 @@ async function sucSaveEdit(){
   ['dash-sup','cal-sup','s-sup','ns-sup','es-sup'].forEach(id=>{
     const el=document.getElementById(id); if(!el) return;
     const cur=el.value;
-    el.innerHTML=id==='es-sup'?'<option value="">-- ׳׳׳ ׳©׳™׳ ׳•׳™ --</option>':'<option value="">׳›׳ ׳”׳¡׳₪׳§׳™׳</option>';
+    el.innerHTML=id==='es-sup'?'<option value="">-- ללא שינוי --</option>':'<option value="">כל הספקים</option>';
     getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>{
       const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
       el.innerHTML+=`<option value='${s.name}'>${disp}</option>`;
@@ -770,7 +770,7 @@ async function sucSaveEdit(){
     el.value=cur;
   });
   sucToggleEdit(); sucRefreshInfo(); sucRefreshActFilt();
-  window.spAlert('ג… ׳₪׳¨׳˜׳™ ׳”׳¡׳₪׳§ ׳ ׳©׳׳¨׳•!');
+  _spAlertDialog('✅ פרטי הספק נשמרו!');
 }
 function clearSupCardFilter(){
   document.getElementById('suc-from').value='';
@@ -782,18 +782,18 @@ function renderSupPurchDocsSection(name){
   const invs = INVOICES.filter(i=>supBase(i.supName||'')===name);
   if(!invs.length) return '';
   const fmtStatus = (s)=>{
-    const m={order:'נ“‹ ׳”׳–׳׳ ׳”',tx_invoice:'נ§¾ ׳—׳©׳‘׳•׳ ׳™׳× ׳¢׳¡׳§׳”',tax_invoice:'נ“‘ ׳—׳©׳‘׳•׳ ׳™׳× ׳׳¡',tax_receipt:'נ“‘נ§¾ ׳—׳©׳‘׳•׳ ׳™׳× ׳׳¡ ׳§׳‘׳׳”',receipt:'נ“„ ׳§׳‘׳׳”',cancelled:'ג ׳׳‘׳•׳˜׳'};
-    return m[s]||m[_migrateInvStatus(s)]||s||'ג€”';
+    const m={order:'📋 הזמנה',tx_invoice:'🧾 חשבונית עסקה',tax_invoice:'📑 חשבונית מס',tax_receipt:'📑🧾 חשבונית מס קבלה',receipt:'📄 קבלה',cancelled:'❌ מבוטל'};
+    return m[s]||m[_migrateInvStatus(s)]||s||'—';
   };
   const rows = [...invs].sort((a,b)=>(b.orderDate||b.txDate||b.date||'').localeCompare(a.orderDate||a.txDate||a.date||'')).map(inv=>{
     const dateStr = inv.orderDate||inv.txDate||inv.date||'';
     const baseAmt = inv.orderAmt||inv.txAmt||inv.amt||0;
     const invVat = inv.vat||0;
-    const amtStr = baseAmt ? `ג‚×${(invVat>0?withVat(baseAmt,invVat):baseAmt).toLocaleString()}` : 'ג€”';
-    const docNums = [inv.orderNum&&`נ“‹ ${inv.orderNum}`, inv.txNum&&`נ§¾ ${inv.txNum}`, inv.num&&`נ“‘ ${inv.num}`].filter(Boolean).join(' ֲ· ');
+    const amtStr = baseAmt ? `₪${(invVat>0?withVat(baseAmt,invVat):baseAmt).toLocaleString()}` : '—';
+    const docNums = [inv.orderNum&&`📋 ${inv.orderNum}`, inv.txNum&&`🧾 ${inv.txNum}`, inv.num&&`📑 ${inv.num}`].filter(Boolean).join(' · ');
     return `<tr style="border-bottom:1px solid #f0f0f0;cursor:pointer" onclick="CM('sucard-m');openNewInvoice(${inv.id})">
-      <td style="padding:5px 8px;font-size:.76rem">${dateStr?fD(dateStr):'ג€”'}</td>
-      <td style="padding:5px 8px;font-size:.72rem;color:#546e7a">${docNums||'ג€”'}</td>
+      <td style="padding:5px 8px;font-size:.76rem">${dateStr?fD(dateStr):'—'}</td>
+      <td style="padding:5px 8px;font-size:.72rem;color:#546e7a">${docNums||'—'}</td>
       <td style="padding:5px 8px;font-size:.75rem;color:#37474f">${inv.orderDesc||''}</td>
       <td style="padding:5px 8px;font-size:.75rem;font-weight:700;color:#2e7d32;white-space:nowrap">${amtStr}</td>
       <td style="padding:5px 8px;font-size:.72rem">${fmtStatus(inv.status)}</td>
@@ -802,32 +802,32 @@ function renderSupPurchDocsSection(name){
   const total = invs.reduce((s,i)=>s+(i.orderAmt||i.txAmt||i.amt||0),0);
   return `<div style="margin-top:12px;border-top:1.5px solid #e8eaf6;padding-top:10px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="font-weight:700;color:#1565c0;font-size:.82rem">נ“„ ׳׳¡׳׳›׳™ ׳¨׳›׳© (${invs.length})</div>
+      <div style="font-weight:700;color:#1565c0;font-size:.82rem">📄 מסמכי רכש (${invs.length})</div>
       <div style="display:flex;gap:5px">
-        <button class="btn bp bsm" style="font-size:.7rem" onclick="openNewInvoice(null,'${name.replace(/'/g,'\'').replace(/"/g,'&quot;')}')">נ“„ ׳׳¡׳׳ ׳—׳“׳©</button>
-        <button class="btn bg bsm" style="font-size:.7rem" onclick="exportSupPurchDocs('${name.replace(/'/g,'\'').replace(/"/g,'&quot;')}')">נ“ ׳™׳¦׳•׳</button>
+        <button class="btn bp bsm" style="font-size:.7rem" onclick="openNewInvoice(null,'${name.replace(/'/g,'\'').replace(/"/g,'&quot;')}')">📄 מסמך חדש</button>
+        <button class="btn bg bsm" style="font-size:.7rem" onclick="exportSupPurchDocs('${name.replace(/'/g,'\'').replace(/"/g,'&quot;')}')">📊 יצוא</button>
       </div>
     </div>
     <!-- Search filter -->
     <div style="margin-bottom:6px">
-      <input type="text" id="suc-inv-srch" placeholder="׳—׳₪׳© ׳‘׳׳¡׳׳›׳™׳..." oninput="filterSupCardInvs()" style="width:100%;font-size:.78rem;padding:5px 9px;border-radius:5px;border:1.5px solid #c5cae9">
+      <input type="text" id="suc-inv-srch" placeholder="חפש במסמכים..." oninput="filterSupCardInvs()" style="width:100%;font-size:.78rem;padding:5px 9px;border-radius:5px;border:1.5px solid #c5cae9">
     </div>
     <div style="overflow-x:auto;max-height:280px;overflow-y:auto">
       <table style="width:100%;border-collapse:collapse;font-size:.8rem">
         <thead style="position:sticky;top:0;background:#e8eaf6">
           <tr>
-            <th style="padding:5px 8px;text-align:right">׳×׳׳¨׳™׳</th>
-            <th style="padding:5px 8px;text-align:right">׳׳¡׳׳›׳™׳</th>
-            <th style="padding:5px 8px;text-align:right">׳₪׳™׳¨׳•׳˜</th>
-            <th style="padding:5px 8px;text-align:right">׳¡׳›׳•׳</th>
-            <th style="padding:5px 8px;text-align:right">׳¡׳˜׳˜׳•׳¡</th>
+            <th style="padding:5px 8px;text-align:right">תאריך</th>
+            <th style="padding:5px 8px;text-align:right">מסמכים</th>
+            <th style="padding:5px 8px;text-align:right">פירוט</th>
+            <th style="padding:5px 8px;text-align:right">סכום</th>
+            <th style="padding:5px 8px;text-align:right">סטטוס</th>
           </tr>
         </thead>
         <tbody id="suc-inv-tbody">${rows}</tbody>
       </table>
     </div>
     <div style="margin-top:6px;font-size:.72rem;color:#546e7a;text-align:left">
-      ׳¡׳”"׳› (׳׳₪׳ ׳™ ׳׳¢"׳): <b style="color:#1565c0">ג‚×${total.toLocaleString()}</b>
+      סה"כ (לפני מע"מ): <b style="color:#1565c0">₪${total.toLocaleString()}</b>
     </div>
   </div>`;
 }
@@ -840,36 +840,36 @@ function filterSupCardInvs(){
 
 function exportSupPurchDocs(name){
   const invs = INVOICES.filter(i=>supBase(i.supName||'')===name && _migrateInvStatus(i.status)!=='cancelled');
-  if(!invs.length){ showToast('׳׳™׳ ׳׳¡׳׳›׳™׳ ׳׳™׳™׳¦׳•׳'); return; }
-  const fmtStatus = (s)=>{const m={order:'׳”׳–׳׳ ׳”',tx_invoice:'׳—׳©׳‘׳•׳ ׳™׳× ׳¢׳¡׳§׳”',tax_invoice:'׳—׳©׳‘׳•׳ ׳™׳× ׳׳¡',tax_receipt:'׳—׳©׳‘׳•׳ ׳™׳× ׳׳¡ ׳§׳‘׳׳”',receipt:'׳§׳‘׳׳”',cancelled:'׳׳‘׳•׳˜׳'};return m[s]||m[_migrateInvStatus(s)]||s||''};
+  if(!invs.length){ showToast('אין מסמכים לייצוא'); return; }
+  const fmtStatus = (s)=>{const m={order:'הזמנה',tx_invoice:'חשבונית עסקה',tax_invoice:'חשבונית מס',tax_receipt:'חשבונית מס קבלה',receipt:'קבלה',cancelled:'מבוטל'};return m[s]||m[_migrateInvStatus(s)]||s||''};
   const wb = XLSX.utils.book_new();
 
-  // ג”€ג”€ Sheet 1: All documents ג”€ג”€
+  // ── Sheet 1: All documents ──
   const rows = invs.map(inv=>({
-    '׳¡׳₪׳§': inv.supName||'',
-    '׳¢׳™׳¨': inv.locCity||'',
-    '׳×׳׳¨׳™׳': inv.orderDate||inv.txDate||inv.date||'',
-    '׳׳¡׳₪׳¨ ׳”׳–׳׳ ׳”': inv.orderNum||'',
-    '׳׳¡׳₪׳¨ ׳—׳©׳‘׳•׳ ׳™׳× ׳¢׳¡׳§׳”': inv.txNum||'',
-    '׳׳¡׳₪׳¨ ׳—׳©׳‘׳•׳ ׳™׳× ׳׳¡': inv.num||'',
-    '׳₪׳™׳¨׳•׳˜': inv.orderDesc||'',
-    '׳¡׳›׳•׳ ׳׳₪׳ ׳™ ׳׳¢׳': inv.orderAmt||inv.txAmt||inv.amt||0,
-    '׳׳¢׳ %': inv.vat||0,
-    '׳¡׳›׳•׳ ׳׳¢׳': inv.orderVat||inv.txVat||inv.vatAmt||0,
-    '׳¡׳›׳•׳ ׳›׳•׳׳ ׳׳¢׳': inv.orderTotal||inv.txTotal||inv.total||0,
-    '׳¡׳˜׳˜׳•׳¡': fmtStatus(inv.status),
-    '׳”׳¢׳¨׳•׳×': inv.notes||''
+    'ספק': inv.supName||'',
+    'עיר': inv.locCity||'',
+    'תאריך': inv.orderDate||inv.txDate||inv.date||'',
+    'מספר הזמנה': inv.orderNum||'',
+    'מספר חשבונית עסקה': inv.txNum||'',
+    'מספר חשבונית מס': inv.num||'',
+    'פירוט': inv.orderDesc||'',
+    'סכום לפני מעמ': inv.orderAmt||inv.txAmt||inv.amt||0,
+    'מעמ %': inv.vat||0,
+    'סכום מעמ': inv.orderVat||inv.txVat||inv.vatAmt||0,
+    'סכום כולל מעמ': inv.orderTotal||inv.txTotal||inv.total||0,
+    'סטטוס': fmtStatus(inv.status),
+    'הערות': inv.notes||''
   }));
   const ws = XLSX.utils.json_to_sheet(rows);
   // Auto column widths
   const cols = [{wch:20},{wch:12},{wch:12},{wch:14},{wch:16},{wch:14},{wch:25},{wch:14},{wch:8},{wch:12},{wch:14},{wch:16},{wch:20}];
   ws['!cols'] = cols;
-  XLSX.utils.book_append_sheet(wb, ws, '׳׳¡׳׳›׳™ ׳¨׳›׳©');
+  XLSX.utils.book_append_sheet(wb, ws, 'מסמכי רכש');
 
-  // ג”€ג”€ Sheet 2: Summary by city ג”€ג”€
+  // ── Sheet 2: Summary by city ──
   const cityMap = {};
   invs.forEach(inv=>{
-    const city = inv.locCity || '׳׳ ׳¦׳•׳™׳';
+    const city = inv.locCity || 'לא צוין';
     if(!cityMap[city]) cityMap[city]={count:0, base:0, vatAmt:0, total:0};
     cityMap[city].count++;
     cityMap[city].base  += inv.orderAmt||inv.txAmt||inv.amt||0;
@@ -879,29 +879,29 @@ function exportSupPurchDocs(name){
   const summaryRows = Object.entries(cityMap)
     .sort((a,b)=>a[0].localeCompare(b[0],'he'))
     .map(([city,d])=>({
-      '׳¢׳™׳¨': city,
-      '׳׳¡׳₪׳¨ ׳׳¡׳׳›׳™׳': d.count,
-      '׳¡׳”"׳› ׳׳₪׳ ׳™ ׳׳¢׳': +d.base.toFixed(2),
-      '׳¡׳”"׳› ׳׳¢׳': +d.vatAmt.toFixed(2),
-      '׳¡׳”"׳› ׳›׳•׳׳ ׳׳¢׳': +d.total.toFixed(2)
+      'עיר': city,
+      'מספר מסמכים': d.count,
+      'סה"כ לפני מעמ': +d.base.toFixed(2),
+      'סה"כ מעמ': +d.vatAmt.toFixed(2),
+      'סה"כ כולל מעמ': +d.total.toFixed(2)
     }));
   // Grand total row
   const grandBase  = invs.reduce((s,i)=>s+(i.orderAmt||i.txAmt||i.amt||0),0);
   const grandVat   = invs.reduce((s,i)=>s+(i.orderVat||i.txVat||i.vatAmt||0),0);
   const grandTotal = invs.reduce((s,i)=>s+(i.orderTotal||i.txTotal||i.total||0),0);
   summaryRows.push({
-    '׳¢׳™׳¨': 'ג… ׳¡׳”"׳› ׳›׳׳׳™',
-    '׳׳¡׳₪׳¨ ׳׳¡׳׳›׳™׳': invs.length,
-    '׳¡׳”"׳› ׳׳₪׳ ׳™ ׳׳¢׳': +grandBase.toFixed(2),
-    '׳¡׳”"׳› ׳׳¢׳': +grandVat.toFixed(2),
-    '׳¡׳”"׳› ׳›׳•׳׳ ׳׳¢׳': +grandTotal.toFixed(2)
+    'עיר': '✅ סה"כ כללי',
+    'מספר מסמכים': invs.length,
+    'סה"כ לפני מעמ': +grandBase.toFixed(2),
+    'סה"כ מעמ': +grandVat.toFixed(2),
+    'סה"כ כולל מעמ': +grandTotal.toFixed(2)
   });
   const wsSummary = XLSX.utils.json_to_sheet(summaryRows);
   wsSummary['!cols'] = [{wch:16},{wch:14},{wch:16},{wch:14},{wch:16}];
-  XLSX.utils.book_append_sheet(wb, wsSummary, '׳¡׳™׳›׳•׳ ׳׳₪׳™ ׳¢׳™׳¨');
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'סיכום לפי עיר');
 
-  XLSX.writeFile(wb, `${name}_׳׳¡׳׳›׳™_׳¨׳›׳©.xlsx`);
-  showToast(`נ“ ׳™׳•׳¦׳: ${invs.length} ׳׳¡׳׳›׳™׳`);
+  XLSX.writeFile(wb, `${name}_מסמכי_רכש.xlsx`);
+  showToast(`📊 יוצא: ${invs.length} מסמכים`);
 }
 
 function renderSupCard(){
@@ -926,7 +926,7 @@ function renderSupCard(){
     return true;
   }).sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'').localeCompare(b.t||''));
   const el=document.getElementById('suc-body');
-  if(!evs.length){el.innerHTML='<p style="color:#999;text-align:center;padding:20px">׳׳™׳ ׳₪׳¢׳™׳׳•׳™׳•׳× ׳‘׳˜׳•׳•׳— ׳•׳‘׳¡׳™׳ ׳•׳ ׳–׳”</p>';return;}
+  if(!evs.length){el.innerHTML='<p style="color:#999;text-align:center;padding:20px">אין פעילויות בטווח ובסינון זה</p>';return;}
   const cntDone=evs.filter(s=>s.st==='done').length;
   const cntCan=evs.filter(s=>s.st==='can' && !s._compByMakeup).length;
   const cntPost=evs.filter(s=>s.st==='post' && !s._compByMakeup).length;
@@ -935,38 +935,38 @@ function renderSupCard(){
 
   let h=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
     <div style="background:#e8f5e9;border-radius:7px;padding:5px 12px;text-align:center;min-width:70px">
-      <div style="font-weight:800;color:#2e7d32">${cntDone}</div><div style="font-size:.68rem;color:#546e7a">׳”׳×׳§׳™׳™׳</div>
+      <div style="font-weight:800;color:#2e7d32">${cntDone}</div><div style="font-size:.68rem;color:#546e7a">התקיים</div>
     </div>
     <div style="background:#fff3e0;border-radius:7px;padding:5px 12px;text-align:center;min-width:70px">
-      <div style="font-weight:800;color:#e65100">${cntActive+cntPost}</div><div style="font-size:.68rem;color:#546e7a">׳׳×׳§׳™׳™׳/׳ ׳“׳—׳”</div>
+      <div style="font-weight:800;color:#e65100">${cntActive+cntPost}</div><div style="font-size:.68rem;color:#546e7a">מתקיים/נדחה</div>
     </div>
     <div style="background:#ffebee;border-radius:7px;padding:5px 12px;text-align:center;min-width:70px">
-      <div style="font-weight:800;color:#c62828">${cntCan}</div><div style="font-size:.68rem;color:#546e7a">׳‘׳•׳˜׳</div>
+      <div style="font-weight:800;color:#c62828">${cntCan}</div><div style="font-size:.68rem;color:#546e7a">בוטל</div>
     </div>
     <div style="background:#fce4ec;border-radius:7px;padding:5px 12px;text-align:center;min-width:70px">
-      <div style="font-weight:800;color:#e91e63">${cntNohap}</div><div style="font-size:.68rem;color:#546e7a">׳׳ ׳”׳×׳§׳™׳™׳</div>
+      <div style="font-weight:800;color:#e91e63">${cntNohap}</div><div style="font-size:.68rem;color:#546e7a">לא התקיים</div>
     </div>
     <div style="background:#e3f2fd;border-radius:7px;padding:5px 12px;text-align:center;min-width:70px">
-      <div style="font-weight:800;color:#1565c0">${evs.length}</div><div style="font-size:.68rem;color:#546e7a">׳¡׳”"׳›</div>
+      <div style="font-weight:800;color:#1565c0">${evs.length}</div><div style="font-size:.68rem;color:#546e7a">סה"כ</div>
     </div>
   </div>`;
 
   h+=`<div class="tw"><table><thead><tr>
-    <th>׳×׳׳¨׳™׳</th><th>׳™׳•׳</th><th>׳¢׳™׳¨</th><th>׳¦׳”׳¨׳•׳</th><th>׳©׳¢׳”</th><th>׳₪׳¢׳™׳׳•׳×</th><th>׳§׳‘'</th><th>׳¡׳˜׳˜׳•׳¡</th><th>׳”׳¢׳¨׳•׳×</th><th></th>
+    <th>תאריך</th><th>יום</th><th>עיר</th><th>צהרון</th><th>שעה</th><th>פעילות</th><th>קב'</th><th>סטטוס</th><th>הערות</th><th></th>
   </tr></thead><tbody>`;
   evs.filter(s => !s._compByMakeup).forEach(s=>{
     const g=G(s.g);
     h+=`<tr class="${stClass(s)}">
       <td>${fD(s.d)}</td>
-      <td>׳™׳•׳ ${dayN(s.d)}</td>
+      <td>יום ${dayN(s.d)}</td>
       <td>${g.city||''}</td>
       <td><div style="font-weight:700">${g.name}</div>${g.st?`<div style="font-size:.67rem;color:#78909c">${g.st}</div>`:''}</td>
       <td>${fT(s.t)}</td>
-      <td><span style="background:#e3f2fd;color:#1565c0;border-radius:10px;padding:1px 7px;font-size:.73rem;font-weight:600">${s.act||'ג€”'}</span></td>
+      <td><span style="background:#e3f2fd;color:#1565c0;border-radius:10px;padding:1px 7px;font-size:.73rem;font-weight:600">${s.act||'—'}</span></td>
       <td style="text-align:center">${s.grp||1}</td>
       <td>${stLabel(s)}</td>
       <td style="max-width:100px;font-size:.71rem">${s.nt||''}</td>
-      <td><button class="btn bo bsm" style="font-size:.65rem" onclick="openSP('${s.id}')">גן¸</button></td>
+      <td><button class="btn bo bsm" style="font-size:.65rem" onclick="openSP('${s.id}')">✏️</button></td>
     </tr>`;
   });
   h+='</tbody></table></div>';
@@ -1008,23 +1008,23 @@ const MAX_SNAPSHOTS=20;
 document.querySelectorAll('.modal').forEach(m=>{m.onclick=e=>{if(e.target===m) m.classList.remove('open');};});
 
 
-// ג”€ג”€ Quick Cancel Popup ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ── Quick Cancel Popup ──────────────────────────────────
 // Nohap, Cancel, and Postpone modals moved to activity.js
 
 
-// ג”€ג”€ג”€ Blocked Dates ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Blocked Dates ────────────────────────────────────────────
 let _blockedEditDate=null;
 
-const BLOCKED_ICONS={'׳˜׳™׳•׳':'נ','׳׳¡׳™׳‘׳”':'נ‰','׳׳™׳¨׳•׳¢ ׳׳™׳•׳—׳“':'ג­','׳™׳•׳ ׳”׳•׳¨׳™׳':'נ‘¨ג€נ‘©ג€נ‘§','׳׳—׳¨':'נ«'};
+const BLOCKED_ICONS={'טיול':'🚌','מסיבה':'🎉','אירוע מיוחד':'⭐','יום הורים':'👨‍👩‍👧','אחר':'🚫'};
 
 function getBlockedIcon(reason){
   for(const[k,v] of Object.entries(BLOCKED_ICONS)) if(reason&&reason.includes(k)) return v;
-  return 'נ«';
+  return '🚫';
 }
 
 function getBlockedInfo(ds){return blockedDates[ds]||null;}
 
-// ג”€ג”€ג”€ Monthly Excel Export ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Monthly Excel Export ────────────────────────────────────
 function openGcellPopup(gid, ds, e){
   e.stopPropagation();
   _gcellGid=parseInt(gid);
@@ -1033,18 +1033,18 @@ function openGcellPopup(gid, ds, e){
   const key=`${_gcellGid}_${ds}`;
   const blk=gardenBlocks[key];
   const popup=document.getElementById('gcell-popup');
-  document.getElementById('gcell-popup-title').textContent=`${g.name} ֲ· ${fD(ds)} ׳™׳•׳ ${dayN(ds)}`;
+  document.getElementById('gcell-popup-title').textContent=`${g.name} · ${fD(ds)} יום ${dayN(ds)}`;
   const blkLbl=document.getElementById('gcell-popup-block-lbl');
   const blockBtn=document.getElementById('gcell-block-btn');
   const unblockBtn=document.getElementById('gcell-unblock-btn');
   if(blk){
-    blkLbl.textContent=`${blk.icon||'נ«'} ׳—׳¡׳•׳: ${blk.reason}`;
+    blkLbl.textContent=`${blk.icon||'🚫'} חסום: ${blk.reason}`;
     blkLbl.style.display='block';
-    blockBtn.textContent='נ« ׳¢׳¨׳•׳ ׳—׳¡׳™׳׳”';
+    blockBtn.textContent='🚫 ערוך חסימה';
     unblockBtn.style.display='block';
   } else {
     blkLbl.style.display='none';
-    blockBtn.textContent='נ« ׳—׳¡׳•׳ ׳×׳׳¨׳™׳ ׳׳¦׳”׳¨׳•׳ ׳–׳”';
+    blockBtn.textContent='🚫 חסום תאריך לצהרון זה';
     unblockBtn.style.display='none';
   }
   // Position near click
@@ -1066,17 +1066,17 @@ function gcellNewSched(){
   openNewSched(_gcellGid, {date:_gcellDs});
 }
 
-async function gcellUnblock(){
+function gcellUnblock(){
   closeGcellPopup();
   _blockMode='garden';
-  if(!await window.spConfirm('׳׳”׳¡׳™׳¨ ׳—׳¡׳™׳׳” ׳–׳•?')) return;
+  if(!await _spConfirmDialog('להסיר חסימה זו?')) return;
   delete gardenBlocks[`${_gcellGid}_${_gcellDs}`];
-  save(); refresh(); showToast('ג… ׳—׳¡׳™׳׳” ׳”׳•׳¡׳¨׳”');
+  save(); refresh(); showToast('✅ חסימה הוסרה');
 }
 
 function getGardenBlock(gid, ds){ return gardenBlocks[`${parseInt(gid)}_${ds}`]||null; }
 
-// ג”€ג”€ג”€ Unified Block Modal ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Unified Block Modal ─────────────────────────────────────
 // mode: 'date' = whole date block | 'garden' = specific garden+date
 let _blockMode='date'; // 'date' | 'garden'
 
@@ -1084,7 +1084,7 @@ function selBlockReason(btn, reason){
   document.querySelectorAll('.block-reason-btn').forEach(b=>b.classList.remove('sel'));
   btn.classList.add('sel');
   const inp=document.getElementById('block-m-reason');
-  if(reason!=='׳׳—׳¨') inp.value=reason; else inp.focus();
+  if(reason!=='אחר') inp.value=reason; else inp.focus();
 }
 
 function openBlockModal(mode, gid, ds){
@@ -1097,8 +1097,8 @@ function openBlockModal(mode, gid, ds){
     const g=G(_gcellGid);
     const key=`${_gcellGid}_${ds}`;
     const blk=gardenBlocks[key];
-    document.getElementById('block-m-title').textContent=`נ« ׳—׳¡׳•׳ ׳¦׳”׳¨׳•׳ ׳׳×׳׳¨׳™׳`;
-    document.getElementById('block-m-subtitle').textContent=`${g.name} ֲ· ${fD(ds)} ׳™׳•׳ ${dayN(ds)}`;
+    document.getElementById('block-m-title').textContent=`🚫 חסום צהרון לתאריך`;
+    document.getElementById('block-m-subtitle').textContent=`${g.name} · ${fD(ds)} יום ${dayN(ds)}`;
     document.getElementById('block-m-reason').value=blk?blk.reason:'';
     document.getElementById('block-m-note').value=blk?blk.note||'':'';
     document.getElementById('block-m-del').style.display=blk?'inline-flex':'none';
@@ -1109,8 +1109,8 @@ function openBlockModal(mode, gid, ds){
   } else {
     _blockedEditDate=ds;
     const blk=blockedDates[ds];
-    document.getElementById('block-m-title').textContent=`נ« ׳—׳¡׳•׳ / ׳‘׳™׳˜׳•׳ ׳×׳׳¨׳™׳`;
-    document.getElementById('block-m-subtitle').textContent=`נ“… ${fD(ds)} ג€” ׳™׳•׳ ${dayN(ds)}`;
+    document.getElementById('block-m-title').textContent=`🚫 חסום / ביטול תאריך`;
+    document.getElementById('block-m-subtitle').textContent=`📅 ${fD(ds)} — יום ${dayN(ds)}`;
     document.getElementById('block-m-reason').value=blk?blk.reason:'';
     document.getElementById('block-m-note').value=blk?blk.note||'':'';
     document.getElementById('block-m-del').style.display=blk?'inline-flex':'none';
@@ -1123,7 +1123,7 @@ function openBlockModal(mode, gid, ds){
       if(cancelChk) cancelChk.checked=false;
       const cnt=SCH.filter(s=>s.d===ds&&s.st!=='can').length;
       if(cancelCnt){
-        cancelCnt.textContent=cnt>0?`${cnt} ׳₪׳¢׳™׳׳•׳™׳•׳× ׳₪׳¢׳™׳׳•׳× ׳‘׳™׳•׳ ׳–׳”`:'׳׳™׳ ׳₪׳¢׳™׳׳•׳™׳•׳× ׳₪׳¢׳™׳׳•׳× ׳‘׳™׳•׳ ׳–׳”';
+        cancelCnt.textContent=cnt>0?`${cnt} פעילויות פעילות ביום זה`:'אין פעילויות פעילות ביום זה';
         cancelCnt.style.color=cnt>0?'#c62828':'#888';
       }
     }
@@ -1137,13 +1137,13 @@ function gcellBlock(){ openBlockModal('garden', _gcellGid, _gcellDs); }
 
 function saveBlock(){
   const reason=document.getElementById('block-m-reason').value.trim();
-  if(!reason){window.spAlert('׳™׳© ׳׳”׳–׳™׳ ׳¡׳™׳‘׳”');return;}
+  if(!reason){_spAlertDialog('יש להזין סיבה');return;}
   const note=document.getElementById('block-m-note').value.trim();
   const icon=getBlockedIcon(reason);
   if(_blockMode==='garden'){
     const key=`${_gcellGid}_${_gcellDs}`;
     gardenBlocks[key]={reason,note,icon,gid:_gcellGid,d:_gcellDs};
-    saveAndRefresh('block-m'); showToast('נ« ׳¦׳”׳¨׳•׳ ׳ ׳—׳¡׳ ׳׳×׳׳¨׳™׳ ׳–׳”');
+    saveAndRefresh('block-m'); showToast('🚫 צהרון נחסם לתאריך זה');
   } else {
     blockedDates[_blockedEditDate]={reason,note,icon};
     // Optionally cancel all activities
@@ -1153,40 +1153,40 @@ function saveBlock(){
       if(toCancel.length>0){
         toCancel.forEach(s=>{
           s.st='can'; s.cr=reason; s.cn=note;
-          const n='ג ׳‘׳•׳˜׳: '+reason+(note?' ג€” '+note:'');
+          const n='❌ בוטל: '+reason+(note?' — '+note:'');
           s.nt=s.nt?s.nt+' | '+n:n;
         });
         saveAndRefresh('block-m');
-        showToast(`נ« ׳×׳׳¨׳™׳ ׳ ׳—׳¡׳ + ׳‘׳•׳˜׳׳• ${toCancel.length} ׳₪׳¢׳™׳׳•׳™׳•׳×`);
+        showToast(`🚫 תאריך נחסם + בוטלו ${toCancel.length} פעילויות`);
         return;
       }
     }
-    saveAndRefresh('block-m'); showToast('נ« ׳×׳׳¨׳™׳ ׳¡׳•׳׳ ׳›׳—׳¡׳•׳');
+    saveAndRefresh('block-m'); showToast('🚫 תאריך סומן כחסום');
   }
 }
 
-async function deleteBlock(){
-  const msg=_blockMode==='garden'?'׳׳”׳¡׳™׳¨ ׳׳× ׳”׳—׳¡׳™׳׳” ׳׳’׳ ׳–׳”?':'׳׳”׳¡׳™׳¨ ׳׳× ׳”׳—׳¡׳™׳׳” ׳׳×׳׳¨׳™׳ ׳–׳”?';
-  if(!await window.spConfirm(msg)) return;
+function deleteBlock(){
+  const msg=_blockMode==='garden'?'להסיר את החסימה מגן זה?':'להסיר את החסימה מתאריך זה?';
+  if(!await _spConfirmDialog(msg)) return;
   if(_blockMode==='garden'){
     delete gardenBlocks[`${_gcellGid}_${_gcellDs}`];
-    saveAndRefresh('block-m'); showToast('ג… ׳—׳¡׳™׳׳” ׳”׳•׳¡׳¨׳”');
+    saveAndRefresh('block-m'); showToast('✅ חסימה הוסרה');
   } else {
     delete blockedDates[_blockedEditDate];
-    saveAndRefresh('block-m'); showToast('ג… ׳—׳¡׳™׳׳” ׳”׳•׳¡׳¨׳”');
+    saveAndRefresh('block-m'); showToast('✅ חסימה הוסרה');
   }
 }
 
 let _editMgrId=null;
 
-// ג”€ג”€ג”€ Auto-import contacts from garden co field ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Auto-import contacts from garden co field ────────
 function importContactsFromGardens(){
   if(Object.keys(managers).length>0) return; // already have managers
   const byContact={};
   [...GARDENS,...(_GARDENS_EXTRA||[])].forEach(g=>{
     if(!g.co) return;
-    // Parse "Name ג€“ 050-XXXXXXX" or "Name - 050-XXXXXXX" or just "Name"
-    const m=g.co.match(/^(.+?)\s*[ג€“\-]\s*(\d[\d\-\s]+)$/);
+    // Parse "Name – 050-XXXXXXX" or "Name - 050-XXXXXXX" or just "Name"
+    const m=g.co.match(/^(.+?)\s*[–\-]\s*(\d[\d\-\s]+)$/);
     const name=m?m[1].trim():g.co.trim();
     const phone=m?m[2].trim():'';
     const key=name.toLowerCase();
@@ -1205,7 +1205,7 @@ function importContactsFromGardens(){
   }
 }
 
-// ג”€ג”€ Garden contact helpers ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ── Garden contact helpers ─────────────────────────────────────
 // Resolves garden contact: splits old "name - phone" format OR uses separate fields
 function resolveGardenContact(g){
   // Only return data that was EXPLICITLY entered by the user in supEx
@@ -1239,16 +1239,16 @@ function openGardenEdit(gid){
   const ex=supEx['g_'+gid]||{};
   const resolved=resolveGardenContact(g);
 
-  (document.getElementById('gedit-title')||{}).textContent =`גן¸ ${g.name}`;
+  (document.getElementById('gedit-title')||{}).textContent =`✏️ ${g.name}`;
 
   // Badge
   const mgr=getGardenMgr(gid);
   const clr=CITY_COLORS(g.city);
   document.getElementById('gedit-badge').innerHTML=
-    `<span style="background:${clr.light};color:${clr.solid};border-radius:12px;padding:2px 10px;font-size:.75rem;font-weight:700">נ™ן¸ ${g.city}</span>`+
-    `<span style="background:#e8f5e9;color:#2e7d32;border-radius:12px;padding:2px 10px;font-size:.75rem">${gcls(g)==='׳‘׳™׳”"׳¡'?'נ›ן¸ ׳¦׳”׳¨׳•׳ ׳‘׳™׳× ׳¡׳₪׳¨':'נ« ׳¦׳”׳¨׳•׳ ׳’׳'}</span>`;
+    `<span style="background:${clr.light};color:${clr.solid};border-radius:12px;padding:2px 10px;font-size:.75rem;font-weight:700">🏙️ ${g.city}</span>`+
+    `<span style="background:#e8f5e9;color:#2e7d32;border-radius:12px;padding:2px 10px;font-size:.75rem">${gcls(g)==='ביה"ס'?'🏛️ צהרון בית ספר':'🏫 צהרון גן'}</span>`;
 
-  // Fields ג€” override from supEx if exists
+  // Fields — override from supEx if exists
   document.getElementById('gedit-name').value=ex.name||g.name||'';
   document.getElementById('gedit-st').value=ex.st!==undefined?ex.st:(g.st||'');
   document.getElementById('gedit-co').value=ex.co!==undefined?ex.co:resolved.name;
@@ -1260,7 +1260,7 @@ function openGardenEdit(gid){
   const mgrLbl=document.getElementById('gedit-mgr-lbl');
   if(mgr){
     mgrRow.style.display='block';
-    mgrLbl.textContent=`${mgr.role==='manager'?'נ›ן¸ ׳׳ ׳”׳':'נ‘₪ ׳¨׳›׳–'}: ${mgr.name}${mgr.phone?' נ“ '+mgr.phone:''}`;
+    mgrLbl.textContent=`${mgr.role==='manager'?'🏛️ מנהל':'👤 רכז'}: ${mgr.name}${mgr.phone?' 📞 '+mgr.phone:''}`;
   } else {
     mgrRow.style.display='none';
   }
@@ -1283,7 +1283,7 @@ function saveGardenCard(){
   renderGardens();
   // Refresh other views that show garden data
   if(currentTab==='managers') renderManagers();
-  showToast('ג… ׳›׳¨׳˜׳™׳¡ ׳”׳¦׳”׳¨׳•׳ ׳¢׳•׳“׳›׳');
+  showToast('✅ כרטיס הצהרון עודכן');
 }
 
 function renderManagers(){
@@ -1296,7 +1296,7 @@ function renderManagers(){
   }).sort((a,b)=>(a.role==='manager'?0:1)-(b.role==='manager'?0:1)||a.name.localeCompare(b.name,'he'));
 
   const el=document.getElementById('mgr-body');
-  if(!all.length){el.innerHTML='<p style="color:#999;text-align:center;padding:20px">׳׳™׳ ׳׳ ׳”׳׳™׳/׳¨׳›׳–׳™׳. ׳׳—׳¥ ג• ׳׳”׳•׳¡׳₪׳”.</p>';return;}
+  if(!all.length){el.innerHTML='<p style="color:#999;text-align:center;padding:20px">אין מנהלים/רכזים. לחץ ➕ להוספה.</p>';return;}
 
   let h='';
   all.forEach(m=>{
@@ -1305,7 +1305,7 @@ function renderManagers(){
     const isMgr=m.role==='manager';
     const roleClr=isMgr?'#1a237e':'#2e7d32';
     const roleBg=isMgr?'#e8eaf6':'#e8f5e9';
-    const roleLabel=isMgr?'נ›ן¸ ׳׳ ׳”׳':'נ‘₪ ׳¨׳›׳–';
+    const roleLabel=isMgr?'🏛️ מנהל':'👤 רכז';
 
     // Group gardens by city for display
     const gByCity={};
@@ -1316,34 +1316,34 @@ function renderManagers(){
       <div style="background:${roleClr};padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
         <div>
           <span style="font-weight:800;color:#fff;font-size:.9rem">${roleLabel} ${m.name}</span>
-          ${m.city?`<span style="font-size:.72rem;color:rgba(255,255,255,.8);margin-right:10px">נ™ן¸ ${m.city}</span>`:''}
+          ${m.city?`<span style="font-size:.72rem;color:rgba(255,255,255,.8);margin-right:10px">🏙️ ${m.city}</span>`:''}
         </div>
         <div style="display:flex;gap:5px">
-          <button onclick="openMgrModal('${m.id}')" style="background:rgba(255,255,255,.22);border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem">גן¸ ׳¢׳¨׳•׳</button>
-          <button onclick="exportMgrContact('${m.id}')" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem">נ“‹ ׳™׳™׳¦׳•׳</button>
+          <button onclick="openMgrModal('${m.id}')" style="background:rgba(255,255,255,.22);border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem">✏️ ערוך</button>
+          <button onclick="exportMgrContact('${m.id}')" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem">📋 ייצוא</button>
         </div>
       </div>
       <!-- Contact info -->
       <div style="padding:10px 14px;background:${roleBg};display:flex;gap:18px;flex-wrap:wrap">
-        ${m.phone?`<span style="font-size:.8rem">נ“ <a href="tel:${m.phone}" style="color:${roleClr};font-weight:700">${m.phone}</a></span>`:''}
-        ${m.phone2?`<span style="font-size:.8rem">נ“ <a href="tel:${m.phone2}" style="color:${roleClr}">${m.phone2}</a></span>`:''}
-        ${m.email?`<span style="font-size:.8rem">ג‰ן¸ <a href="mailto:${m.email}" style="color:${roleClr}">${m.email}</a></span>`:''}
-        ${m.notes?`<span style="font-size:.78rem;color:#546e7a;font-style:italic">נ’¬ ${m.notes}</span>`:''}
-        ${!m.phone&&!m.email&&!m.notes?'<span style="font-size:.77rem;color:#aaa">׳׳™׳ ׳₪׳¨׳˜׳™ ׳§׳©׳¨</span>':''}
+        ${m.phone?`<span style="font-size:.8rem">📞 <a href="tel:${m.phone}" style="color:${roleClr};font-weight:700">${m.phone}</a></span>`:''}
+        ${m.phone2?`<span style="font-size:.8rem">📞 <a href="tel:${m.phone2}" style="color:${roleClr}">${m.phone2}</a></span>`:''}
+        ${m.email?`<span style="font-size:.8rem">✉️ <a href="mailto:${m.email}" style="color:${roleClr}">${m.email}</a></span>`:''}
+        ${m.notes?`<span style="font-size:.78rem;color:#546e7a;font-style:italic">💬 ${m.notes}</span>`:''}
+        ${!m.phone&&!m.email&&!m.notes?'<span style="font-size:.77rem;color:#aaa">אין פרטי קשר</span>':''}
       </div>
       <!-- Gardens list -->
       <div style="padding:10px 14px">
-        <div style="font-size:.74rem;font-weight:700;color:#546e7a;margin-bottom:7px">׳׳—׳¨׳׳™ ׳¢׳ ${gs.length} ׳¦׳”׳¨׳•׳ ׳™׳:</div>
+        <div style="font-size:.74rem;font-weight:700;color:#546e7a;margin-bottom:7px">אחראי על ${gs.length} צהרונים:</div>
         ${gs.length?`<div>
           ${Object.keys(gByCity).sort().map(city=>`
             <div style="margin-bottom:6px">
-              <div style="font-size:.65rem;color:#78909c;font-weight:700;margin-bottom:3px">נ“ ${city}</div>
+              <div style="font-size:.65rem;color:#78909c;font-weight:700;margin-bottom:3px">📍 ${city}</div>
               <div style="display:flex;flex-wrap:wrap;gap:3px">
-                ${gByCity[city].map(g=>`<span style="background:#e8f5e9;color:#1b5e20;border-radius:12px;padding:2px 9px;font-size:.71rem;cursor:pointer" onclick="openGM(${g.id})">${gcls(g)==='׳‘׳™׳”"׳¡'?'נ›ן¸':'נ«'} ${g.name}</span>`).join('')}
+                ${gByCity[city].map(g=>`<span style="background:#e8f5e9;color:#1b5e20;border-radius:12px;padding:2px 9px;font-size:.71rem;cursor:pointer" onclick="openGM(${g.id})">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</span>`).join('')}
               </div>
             </div>`).join('')}
         </div>`:
-        `<span style="font-size:.76rem;color:#aaa">׳׳ ׳©׳•׳™׳›׳• ׳’׳ ׳™׳ ׳¢׳“׳™׳™׳</span>`}
+        `<span style="font-size:.76rem;color:#aaa">לא שויכו גנים עדיין</span>`}
       </div>
     </div>`;
   });
@@ -1353,7 +1353,7 @@ function renderManagers(){
 function openMgrModal(id){
   _editMgrId=id;
   const m=id?managers[id]:null;
-  (document.getElementById('mgrm-title')||{}).textContent =m?`גן¸ ׳¢׳¨׳™׳›׳× ${m.name}`:'ג• ׳”׳•׳¡׳£ ׳׳ ׳”׳/׳¨׳›׳–';
+  (document.getElementById('mgrm-title')||{}).textContent =m?`✏️ עריכת ${m.name}`:'➕ הוסף מנהל/רכז';
   document.getElementById('mgr-name').value=m?m.name:'';
   document.getElementById('mgr-role').value=m?(m.role||'coord'):'coord';
   document.getElementById('mgr-phone').value=m?m.phone||'':'';
@@ -1362,11 +1362,11 @@ function openMgrModal(id){
   document.getElementById('mgr-notes').value=m?m.notes||'':'';
 
   const mgrCityEl=document.getElementById('mgr-city');
-  mgrCityEl.innerHTML='<option value="">׳›׳ ׳”׳¢׳¨׳™׳</option>';
+  mgrCityEl.innerHTML='<option value="">כל הערים</option>';
   cities().forEach(c=>mgrCityEl.innerHTML+=`<option value='${c}'${m&&m.city===c?' selected':''}>${c}</option>`);
 
   const mgrGCityEl=document.getElementById('mgr-g-city');
-  mgrGCityEl.innerHTML='<option value="">׳›׳ ׳”׳¢׳¨׳™׳</option>';
+  mgrGCityEl.innerHTML='<option value="">כל הערים</option>';
   cities().forEach(c=>mgrGCityEl.innerHTML+=`<option value='${c}'>${c}</option>`);
   if(m&&m.city) mgrGCityEl.value=m.city;
 
@@ -1388,23 +1388,23 @@ function mgrFillGardens(){
 
   let h='';
   Object.keys(byCity).sort().forEach(c=>{
-    h+=`<div style="padding:4px 6px 2px;font-size:.68rem;font-weight:700;color:#78909c;background:#f5f5f5;border-radius:4px;margin-bottom:2px;margin-top:4px">נ™ן¸ ${c}</div>`;
+    h+=`<div style="padding:4px 6px 2px;font-size:.68rem;font-weight:700;color:#78909c;background:#f5f5f5;border-radius:4px;margin-bottom:2px;margin-top:4px">🏙️ ${c}</div>`;
     byCity[c].forEach(g=>{
       h+=`<label style="display:flex;gap:7px;padding:4px 6px;cursor:pointer;align-items:center;border-radius:5px;transition:background .1s" onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background=''" >
         <input type="checkbox" value="${g.id}" ${checked.has(g.id)?'checked':''} style="min-width:15px;accent-color:#1565c0" onchange="mgrUpdateCount()">
-        <span style="flex:1;font-size:.77rem">${gcls(g)==='׳‘׳™׳”"׳¡'?'נ›ן¸':'נ«'} ${g.name}</span>
+        <span style="flex:1;font-size:.77rem">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</span>
         ${g.st?`<span style="font-size:.65rem;color:#aaa">${g.st}</span>`:''}
       </label>`;
     });
   });
-  document.getElementById('mgr-gardens').innerHTML=h||'<p style="color:#aaa;font-size:.75rem;text-align:center;padding:10px">׳׳™׳ ׳’׳ ׳™׳</p>';
+  document.getElementById('mgr-gardens').innerHTML=h||'<p style="color:#aaa;font-size:.75rem;text-align:center;padding:10px">אין גנים</p>';
   mgrUpdateCount();
 }
 
 function mgrUpdateCount(){
   const n=document.querySelectorAll('#mgr-gardens input:checked').length;
   const el=document.getElementById('mgr-gardens-count');
-  if(el) el.textContent=n?`ג“ ׳ ׳‘׳—׳¨׳• ${n} ׳’׳ ׳™׳`:'';
+  if(el) el.textContent=n?`✓ נבחרו ${n} גנים`:'';
 }
 
 function mgrSelectAllGardens(sel){
@@ -1414,7 +1414,7 @@ function mgrSelectAllGardens(sel){
 
 function saveMgr(){
   const name=document.getElementById('mgr-name').value.trim();
-  if(!name){window.spAlert('׳™׳© ׳׳”׳–׳™׳ ׳©׳');return;}
+  if(!name){_spAlertDialog('יש להזין שם');return;}
   const id=_editMgrId||('mgr_'+Date.now());
   const gardenIds=[...document.querySelectorAll('#mgr-gardens input:checked')].map(cb=>parseInt(cb.value));
   managers[id]={
@@ -1434,13 +1434,13 @@ function saveMgr(){
   renderGardens();
   if(typeof renderPairs === 'function') renderPairs();
   updCounts();
-  showToast('ג… '+name+' ׳ ׳©׳׳¨ ג€” ׳”׳ ׳×׳•׳ ׳™׳ ׳¢׳•׳“׳›׳ ׳• ׳‘׳›׳ ׳”׳׳₪׳׳™׳§׳¦׳™׳”');
+  showToast('✅ '+name+' נשמר — הנתונים עודכנו בכל האפליקציה');
 }
 
-async function deleteMgr(){
+function deleteMgr(){
   const m=_editMgrId?managers[_editMgrId]:null;
   if(!m) return;
-  if(!await window.spConfirm(`׳׳׳—׳•׳§ ׳׳× ${m.name}?`)) return;
+  if(!await _spConfirmDialog(`למחוק את ${m.name}?`)) return;
   delete managers[_editMgrId];
   save(); CM('mgrm'); refresh();
   // Refresh all views that show manager/coordinator data
@@ -1449,7 +1449,7 @@ async function deleteMgr(){
   renderGardens();
   if(typeof renderPairs === 'function') renderPairs();
   updCounts();
-  showToast('ג… '+name+' ׳ ׳©׳׳¨ ג€” ׳”׳ ׳×׳•׳ ׳™׳ ׳¢׳•׳“׳›׳ ׳• ׳‘׳›׳ ׳”׳׳₪׳׳™׳§׳¦׳™׳”');
+  showToast('✅ '+name+' נשמר — הנתונים עודכנו בכל האפליקציה');
 }
 
 let _exportMgrId=null;
@@ -1458,26 +1458,26 @@ function exportMgrContact(id){
   const m=managers[id]; if(!m) return;
   const gs=(m.gardenIds||[]).map(id=>G(id)).filter(x=>x.id)
     .sort((a,b)=>a.city.localeCompare(b.city,'he')||a.name.localeCompare(b.name,'he'));
-  const roleLabel=m.role==='manager'?'׳׳ ׳”׳':'׳¨׳›׳–';
+  const roleLabel=m.role==='manager'?'מנהל':'רכז';
   let txt='';
-  txt+=`נ‘₪ ${roleLabel}: ${m.name}\n`;
-  if(m.phone) txt+=`נ“ ${m.phone}\n`;
-  if(m.phone2) txt+=`נ“ ${m.phone2}\n`;
-  if(m.email) txt+=`ג‰ן¸ ${m.email}\n`;
-  if(m.notes) txt+=`נ’¬ ${m.notes}\n`;
+  txt+=`👤 ${roleLabel}: ${m.name}\n`;
+  if(m.phone) txt+=`📞 ${m.phone}\n`;
+  if(m.phone2) txt+=`📞 ${m.phone2}\n`;
+  if(m.email) txt+=`✉️ ${m.email}\n`;
+  if(m.notes) txt+=`💬 ${m.notes}\n`;
   txt+='\n';
-  txt+=`נ« ׳¦׳”׳¨׳•׳ ׳™׳ ׳‘׳׳—׳¨׳™׳•׳×׳• (${gs.length}):\n`;
+  txt+=`🏫 צהרונים באחריותו (${gs.length}):\n`;
   // group by city
   const byCity={};
   gs.forEach(g=>{if(!byCity[g.city])byCity[g.city]=[];byCity[g.city].push(g);});
   Object.keys(byCity).sort().forEach(city=>{
-    txt+=`\nנ“ ${city}:\n`;
+    txt+=`\n📍 ${city}:\n`;
     byCity[city].forEach(g=>{
       const cr=resolveGardenContact(g);
-      txt+=`  ${gcls(g)==='׳‘׳™׳”"׳¡'?'נ›ן¸':'נ«'} ${g.name}` + '\n';
-      if(g.st) txt+='     נ“ ' + g.st + '\n';
-      if(cr.name) txt+='     נ‘₪ ' + cr.name + '\n';
-      if(cr.phone) txt+='     נ“ ' + cr.phone + '\n';
+      txt+=`  ${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}` + '\n';
+      if(g.st) txt+='     📍 ' + g.st + '\n';
+      if(cr.name) txt+='     👤 ' + cr.name + '\n';
+      if(cr.phone) txt+='     📞 ' + cr.phone + '\n';
     });
   });
   (document.getElementById('mgr-export-text')||{}).textContent =txt;
@@ -1486,8 +1486,8 @@ function exportMgrContact(id){
 
 function copyMgrExport(){
   const txt=document.getElementById('mgr-export-text').textContent;
-  navigator.clipboard.writeText(txt).then(()=>showToast('ג… ׳”׳•׳¢׳×׳§!')).catch(()=>{
-    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('ג… ׳”׳•׳¢׳×׳§!');
+  navigator.clipboard.writeText(txt).then(()=>showToast('✅ הועתק!')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('✅ הועתק!');
   });
 }
 
@@ -1498,9 +1498,9 @@ function shareMgrWhatsApp(){
 
 function refreshMgrDrops(){
   const mgrOptions=()=>{
-    let opts='<option value="">׳”׳›׳</option>';
+    let opts='<option value="">הכל</option>';
     Object.values(managers).sort((a,b)=>a.name.localeCompare(b.name,'he'))
-      .forEach(m=>opts+=`<option value="${m.id}">${m.role==='manager'?'נ›ן¸':'נ‘₪'} ${m.name}</option>`);
+      .forEach(m=>opts+=`<option value="${m.id}">${m.role==='manager'?'🏛️':'👤'} ${m.name}</option>`);
     return opts;
   };
   const el=document.getElementById('g-mgr');
@@ -1508,7 +1508,7 @@ function refreshMgrDrops(){
   const el2=document.getElementById('s-mgr');
   if(el2){const c=el2.value;el2.innerHTML=mgrOptions();el2.value=c;}
   const mf=document.getElementById('mgr-city-filt');
-  if(mf){const c=mf.value;mf.innerHTML='<option value="">׳›׳ ׳”׳¢׳¨׳™׳</option>';cities().forEach(city=>mf.innerHTML+=`<option value='${city}'>${city}</option>`);mf.value=c;}
+  if(mf){const c=mf.value;mf.innerHTML='<option value="">כל הערים</option>';cities().forEach(city=>mf.innerHTML+=`<option value='${city}'>${city}</option>`);mf.value=c;}
 }
 
 function getGardenMgr(gid){
@@ -1577,12 +1577,12 @@ function setGardensTab(t){
   // gan / sch
   gBody.className='ggrid scroll-area';
   const gClsEl = window.getEl ? window.getEl('g-cls') : document.getElementById('g-cls');
-  if (gClsEl) gClsEl.value=t==='gan'?'׳’׳ ׳™׳':'׳‘׳™׳”"׳¡';
+  if (gClsEl) gClsEl.value=t==='gan'?'גנים':'ביה"ס';
   renderGardens();
 }
 
-// ג”€ג”€ Fixed-schedule view ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-const HEB_DAYS_SHORT=['׳¨׳׳©׳•׳','׳©׳ ׳™','׳©׳׳™׳©׳™','׳¨׳‘׳™׳¢׳™','׳—׳׳™׳©׳™','׳©׳™׳©׳™','׳©׳‘׳×'];
+// ── Fixed-schedule view ──────────────────────────────────────────
+const HEB_DAYS_SHORT=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 
 function getGardenFixedSched(gardenId, fromDate, toDate){
   const gardenEvs = SCH.filter(s=>{
@@ -1627,13 +1627,13 @@ function renderGardensFixed(){
   const fixedFrom=fixedFromEl?fixedFromEl.value:'';
   const fixedTo=fixedToEl?fixedToEl.value:'';
   const allG=[...GARDENS,...(_GARDENS_EXTRA||[])].filter(g=>{
-    if(gcls(g)!=='׳’׳ ׳™׳') return false;
+    if(gcls(g)!=='גנים') return false;
     if(cityF&&g.city!==cityF) return false;
     if(srch&&![(g.name||''),(g.city||'')].some(x=>x.toLowerCase().includes(srch))) return false;
     return true;
   });
   const byCity={};
-  allG.forEach(g=>{ const c=g.city||'׳׳—׳¨'; if(!byCity[c]) byCity[c]=[]; byCity[c].push(g); });
+  allG.forEach(g=>{ const c=g.city||'אחר'; if(!byCity[c]) byCity[c]=[]; byCity[c].push(g); });
   const sortedCities=Object.keys(byCity).sort((a,b)=>a.localeCompare(b,'he'));
 
   let h='';
@@ -1651,15 +1651,15 @@ function renderGardensFixed(){
     h+=`<details class="city-accordion">
       <summary>
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-          <span style="font-weight:800; color:#2d3748;">נ™ן¸ ${city} (${gardens.length} ׳’׳ ׳™׳)</span>
-          <span style="font-size:0.8rem; color:#718096;">׳׳—׳¥ ׳׳₪׳™׳¨׳•׳˜</span>
+          <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${gardens.length} גנים)</span>
+          <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
         </div>
       </summary>
       <div class="city-accordion-content">`;
 
     groups.forEach(group=>{
       if(group.type==='pair'){
-        h+=`<div style="background:#f3e5f5;border-radius:6px;padding:3px 10px;margin-bottom:5px;font-size:.72rem;color:#6a1b9a;font-weight:700">נ”— ${group.gardens[0].name} + ${group.gardens[1].name}</div>`;
+        h+=`<div style="background:#f3e5f5;border-radius:6px;padding:3px 10px;margin-bottom:5px;font-size:.72rem;color:#6a1b9a;font-weight:700">🔗 ${group.gardens[0].name} + ${group.gardens[1].name}</div>`;
         group.gardens.forEach(g=>{ h+=_renderGardenFixedRow(g); });
       } else {
         h+=_renderGardenFixedRow(group.gardens[0]);
@@ -1668,7 +1668,7 @@ function renderGardensFixed(){
     h+='</div></details>';
   });
 
-  document.getElementById('g-body').innerHTML=h||'<p style="color:#999;padding:20px">׳׳ ׳ ׳׳¦׳׳• ׳¦׳”׳¨׳•׳ ׳™׳</p>';
+  document.getElementById('g-body').innerHTML=h||'<p style="color:#999;padding:20px">לא נמצאו צהרונים</p>';
 }
 
 function _renderGardenFixedRow(g){
@@ -1680,54 +1680,54 @@ function _renderGardenFixedRow(g){
   if(fixedEvs.length){
     fixedEvs.forEach(s=>{
       const dow=new Date(s.d).getDay();
-      const supN=supBase(s.a)||s.a||'׳׳׳ ׳©׳';
+      const supN=supBase(s.a)||s.a||'ללא שם';
       const actN=s.act||supAct(s.a)||'';
-      const time=s.t?s.t.slice(0,5):'ג€”';
+      const time=s.t?s.t.slice(0,5):'—';
       const key = s._recId || `${s.a}_${s.act}_${dow}`;
       
       // Look for partner info
-      let partnerInfo = '<span style="color:#90a4ae">ג€”</span>';
+      let partnerInfo = '<span style="color:#90a4ae">—</span>';
       const pair = window.gardenPair(gid);
       if (pair) {
         const partnerId = pair.ids.find(id => Number(id) !== Number(gid));
         if (partnerId) {
           const pg = window.G(partnerId);
           const pev = window.SCH.find(ps => Number(ps.g) === Number(partnerId) && ps.d === s.d && window.supBase(ps.a) === window.supBase(s.a));
-          partnerInfo = `<span style="font-weight:700;color:var(--c-secondary)">${pg.name}</span> ${pev ? '<span style="font-size:var(--fs-small);color:var(--c-text-light)">('+window.fT(pev.t)+')</span>' : '<span style="color:var(--c-error);font-size:var(--fs-small)">(׳׳ ׳׳©׳•׳‘׳¥)</span>'}`;
+          partnerInfo = `<span style="font-weight:700;color:var(--c-secondary)">${pg.name}</span> ${pev ? '<span style="font-size:var(--fs-small);color:var(--c-text-light)">('+window.fT(pev.t)+')</span>' : '<span style="color:var(--c-error);font-size:var(--fs-small)">(לא משובץ)</span>'}`;
         }
       }
 
       rows+=`<tr style="border-bottom:1px solid #eef0fb">
-        <td style="padding:3px 10px;font-weight:600;color:#1a237e;white-space:nowrap">׳™׳•׳ ${HEB_DAYS_SHORT[dow]}</td>
+        <td style="padding:3px 10px;font-weight:600;color:#1a237e;white-space:nowrap">יום ${HEB_DAYS_SHORT[dow]}</td>
         <td style="padding:3px 10px;color:#2e7d32;font-weight:600;white-space:nowrap">${time}</td>
-        <td style="padding:3px 10px;color:#222">${supN}${actN?' ג€” '+actN:''}</td>
-        <td style="padding:3px 10px;color:var(--c-secondary);font-size:var(--fs-small)">${s.tp||'׳—׳•׳’'}</td>
+        <td style="padding:3px 10px;color:#222">${supN}${actN?' — '+actN:''}</td>
+        <td style="padding:3px 10px;color:var(--c-secondary);font-size:var(--fs-small)">${s.tp||'חוג'}</td>
         <td style="padding:3px 10px;font-size:var(--fs-small)">${partnerInfo}</td>
         <td style="padding:2px 6px;white-space:nowrap">
-          <button onclick="event.stopPropagation();openGM(${gid});setTimeout(()=>window.openBulkUpdateRecurring('${key}',${gid}),100)" style="background:#e8eaf6;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#3949ab" title="׳¢׳¨׳•׳ ׳©׳™׳‘׳•׳¥ ׳§׳‘׳•׳¢ (׳¡׳“׳¨׳”)">גן¸</button>
-          <button onclick="event.stopPropagation();openSP('${s.id}')" style="background:#ffebee;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#c62828;margin-right:2px" title="׳‘׳™׳˜׳•׳/׳”׳—׳¨׳’׳” ׳—׳“ ׳₪׳¢׳׳™׳×">ג</button>
+          <button onclick="event.stopPropagation();openGM(${gid});setTimeout(()=>window.openBulkUpdateRecurring('${key}',${gid}),100)" style="background:#e8eaf6;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#3949ab" title="ערוך שיבוץ קבוע (סדרה)">✏️</button>
+          <button onclick="event.stopPropagation();openSP('${s.id}')" style="background:#ffebee;border:none;border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;color:#c62828;margin-right:2px" title="ביטול/החרגה חד פעמית">❌</button>
         </td>
       </tr>`;
     });
   } else {
-    rows=`<tr><td colspan="4" style="padding:5px 10px;color:#bbb;font-size:.72rem;font-style:italic">׳׳™׳ ׳©׳™׳‘׳•׳¥ ׳§׳‘׳•׳¢</td></tr>`;
+    rows=`<tr><td colspan="4" style="padding:5px 10px;color:#bbb;font-size:.72rem;font-style:italic">אין שיבוץ קבוע</td></tr>`;
   }
   return `<div style="display:flex;margin-bottom:7px;border:1px solid #e3e7f5;border-radius:8px;overflow:hidden">
     <div style="background:#f5f7ff;padding:8px 10px;min-width:120px;max-width:140px;display:flex;flex-direction:column;justify-content:space-between;border-left:1px solid #e3e7f5">
       <div style="font-weight:800;color:var(--c-primary);font-size:var(--fs-card-title);margin-bottom:6px">${g.name}</div>
       <div style="display:flex;flex-direction:column;gap:3px;margin-top:4px">
-        <button class="btn bp bsm" style="font-size:.62rem;padding:2px 5px" onclick="openGM(${gid})">נ“‚ ׳›׳¨׳˜׳™׳¡</button>
-        <button class="btn bo bsm" style="font-size:.62rem;padding:2px 5px" onclick="_goToGardenSched(${gid})">נ“… ׳©׳™׳‘׳•׳¦׳™׳</button>
+        <button class="btn bp bsm" style="font-size:.62rem;padding:2px 5px" onclick="openGM(${gid})">📂 כרטיס</button>
+        <button class="btn bo bsm" style="font-size:.62rem;padding:2px 5px" onclick="_goToGardenSched(${gid})">📅 שיבוצים</button>
       </div>
     </div>
     <div style="flex:1;overflow-x:auto">
       <table style="width:100%;border-collapse:collapse;font-size:.78rem">
         <thead><tr style="background:#eef2ff">
-          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">׳™׳•׳</th>
-          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">׳©׳¢׳”</th>
-          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">׳¡׳₪׳§ / ׳₪׳¢׳™׳׳•׳×</th>
-          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">׳¡׳•׳’</th>
-          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">׳’׳ ׳‘׳-׳–׳•׳’</th>
+          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">יום</th>
+          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">שעה</th>
+          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">ספק / פעילות</th>
+          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">סוג</th>
+          <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700">גן בן-זוג</th>
           <th style="padding:3px 10px;text-align:right;color:#3949ab;font-weight:700"></th>
         </tr></thead>
         <tbody>${rows}</tbody>
@@ -1744,24 +1744,24 @@ function _goToGardenSched(gardenId){
   },250);
 }
 var _gardensTab='gan';
-// ג”€ג”€ג”€ ADD PLACE ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── ADD PLACE ────────────────────────────────────────
 function openAddGardenModal(){
   document.getElementById('ap-name').value='';
   document.getElementById('ap-addr').value='';
   document.getElementById('ap-co').value='';
   document.getElementById('ap-coph').value='';
   document.getElementById('ap-notes').value='';
-  document.getElementById('ap-cls').value=_gardensTab==='sch'?'׳‘׳™׳”"׳¡':'׳’׳ ׳™׳';
+  document.getElementById('ap-cls').value=_gardensTab==='sch'?'ביה"ס':'גנים';
   const apCity=document.getElementById('ap-city');
-  apCity.innerHTML='<option value="">׳‘׳—׳¨ ׳¢׳™׳¨...</option>';
+  apCity.innerHTML='<option value="">בחר עיר...</option>';
   cities().forEach(c=>apCity.innerHTML+=`<option value='${c}'>${c}</option>`);
-  (document.getElementById('addplace-title')||{}).textContent ='ג• ׳”׳•׳¡׳£ '+(_gardensTab==='sch'?'׳‘׳™׳× ׳¡׳₪׳¨':'׳¦׳”׳¨׳•׳ / ׳’׳');
+  (document.getElementById('addplace-title')||{}).textContent ='➕ הוסף '+(_gardensTab==='sch'?'בית ספר':'צהרון / גן');
   document.getElementById('addplace-m').classList.add('open');
 }
 function saveNewPlace(){
   const name=document.getElementById('ap-name').value.trim();
   const city=document.getElementById('ap-city').value;
-  if(!name||!city){window.spAlert('׳™׳© ׳׳׳׳ ׳©׳ ׳•׳¢׳™׳¨');return;}
+  if(!name||!city){_spAlertDialog('יש למלא שם ועיר');return;}
   const newId=Math.max(...GARDENS.map(g=>g.id),0)+Date.now()%100000;
   const newG={
     id:newId,
@@ -1777,10 +1777,10 @@ function saveNewPlace(){
   if(!supEx['__gardens_extra']) supEx['__gardens_extra']=[];
   supEx['__gardens_extra']=_GARDENS_EXTRA;
   save();CM('addplace-m');refresh();
-  window.spAlert('ג… '+name+' ׳ ׳•׳¡׳£ ׳‘׳”׳¦׳׳—׳”!');
+  _spAlertDialog('✅ '+name+' נוסף בהצלחה!');
 }
 
-// ג”€ג”€ג”€ Mobile nav ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Mobile nav ───────────────────────────────────────
 function mobNav(btn){
   document.querySelectorAll('#mob-nav .mob-nav-btn').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
@@ -1790,7 +1790,7 @@ function mobNavPurch(btn){
   if(btn) btn.classList.add('active');
 }
 
-// ג”€ג”€ג”€ Data backup / restore ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Data backup / restore ────────────────────────────
 function exportData(){
   const data=_safeLS.getItem('ganv5')||'{}';
   const snaps=_safeLS.getItem('ganv5_snaps')||'[]';
@@ -1801,7 +1801,7 @@ function exportData(){
   a.download='kids_backup_'+new Date().toISOString().slice(0,10)+'.json';
   a.click();
   URL.revokeObjectURL(a.href);
-  showToast('ג… ׳’׳™׳‘׳•׳™ ׳”׳•׳¨׳“ ׳‘׳”׳¦׳׳—׳”');
+  showToast('✅ גיבוי הורד בהצלחה');
 }
 function importData(){
   const inp=document.createElement('input');
@@ -1809,16 +1809,16 @@ function importData(){
   inp.onchange=e=>{
     const file=e.target.files[0];if(!file) return;
     const reader=new FileReader();
-    reader.onload=async ev=>{
+    reader.onload=ev=>{
       try{
         const parsed=JSON.parse(ev.target.result);
         const data=parsed.data||parsed; // support both formats
-        if(!await window.spConfirm('ג ן¸ ׳™׳™׳‘׳•׳ ׳™׳—׳׳™׳£ ׳׳× ׳›׳ ׳”׳ ׳×׳•׳ ׳™׳ ׳”׳ ׳•׳›׳—׳™׳™׳.\n׳”׳׳©׳?')) return;
+        if(!await _spConfirmDialog('⚠️ ייבוא יחליף את כל הנתונים הנוכחיים.\nהמשך?')) return;
         _safeLS.setItem('ganv5',JSON.stringify(data));
         if(parsed.snaps) _safeLS.setItem('ganv5_snaps',JSON.stringify(parsed.snaps));
-        showToast('ג… ׳”׳ ׳×׳•׳ ׳™׳ ׳™׳•׳‘׳׳•. ׳˜׳•׳¢׳ ׳׳—׳“׳©...');
+        showToast('✅ הנתונים יובאו. טוען מחדש...');
         setTimeout(()=>location.reload(),1200);
-      }catch(err){window.spAlert('׳©׳’׳™׳׳” ׳‘׳§׳•׳‘׳¥ ׳”׳’׳™׳‘׳•׳™: '+err.message);}
+      }catch(err){_spAlertDialog('שגיאה בקובץ הגיבוי: '+err.message);}
     };
     reader.readAsText(file);
   };
@@ -1835,7 +1835,7 @@ function showToast(msg,ms=2500){
   clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',ms);
 }
 
-// ג”€ג”€ג”€ PWA Service Worker registration ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── PWA Service Worker registration ──────────────────
 if('serviceWorker' in navigator){
   const swCode=`
 const CACHE='kids-v1';
@@ -1859,7 +1859,7 @@ self.addEventListener('activate',e=>e.waitUntil(
 
 
 
-/* ג•ג• Universal filter toggle (desktop + mobile) ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג• */
+/* ══ Universal filter toggle (desktop + mobile) ══════════════════ */
 window.fltToggle = function(wrapId, btnId) {
   const wrap = document.getElementById(wrapId);
   const btn  = document.getElementById(btnId);
@@ -1914,27 +1914,27 @@ function togglePiFlt(){
 // Mobile: tap Firebase button = immediate sync + show modal
 async function mobileQuickSync(){
   const btn = document.getElementById('od-btn');
-  if(btn){ btn.textContent='נ”„ ׳׳¡׳ ׳›׳¨׳...'; btn.style.background='#e65100'; }
+  if(btn){ btn.textContent='🔄 מסנכרן...'; btn.style.background='#e65100'; }
   try{
-    // Force token refresh ג€” critical after Rules change
+    // Force token refresh — critical after Rules change
     if(window._fbUser){
       try{ window._cachedToken = await window._fbUser.getIdToken(true); }
       catch(te){ console.warn('Token refresh failed:', te.message); }
     }
     const ok = await loadFromFirebase(false, true);
     await saveToFirebase(false);
-    showToast(ok ? 'ג… ׳¡׳•׳ ׳›׳¨׳ ׳¢׳ Firebase' : 'ג ן¸ ׳˜׳¢׳™׳ ׳” ׳ ׳›׳©׳׳” ג€” ׳‘׳“׳•׳§ ׳—׳™׳‘׳•׳¨');
+    showToast(ok ? '✅ סונכרן עם Firebase' : '⚠️ טעינה נכשלה — בדוק חיבור');
   } catch(e){
-    showToast('ג ׳©׳’׳™׳׳× ׳¡׳ ׳›׳¨׳•׳: ' + e.message);
+    showToast('❌ שגיאת סנכרון: ' + e.message);
     console.error('Sync error:', e);
   }
   _fbUpdateStatus();
 }
 
-// ג”€ג”€ Invoice status multi-select filter ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ── Invoice status multi-select filter ────────────────────────
 const PI_ST_KEY = 'pi_status_filter';
 
-// ג”€ג”€ Memory error cleanup ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ── Memory error cleanup ────────────────────────
 function cleanupStaleLocalStorage() {
   const currentKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpav');
   let toDelete = [];
@@ -1957,10 +1957,10 @@ function cleanupStaleLocalStorage() {
   } catch(e) {}
 }
 
-// ג”€ג”€ Cross-tab sync listener ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ── Cross-tab sync listener ────────────────────────
 window.addEventListener('storage', (e) => {
   if (e.key && e.key.startsWith('ganv5_y_') && !window._isSaving) {
-    showToast('ג ן¸ ׳ ׳×׳•׳ ׳™׳ ׳©׳•׳ ׳• ׳‘׳׳©׳•׳ ׳™׳× ׳׳—׳¨׳× ג€” ׳¨׳¢׳ ׳ ׳׳× ׳”׳“׳£', 5000);
+    showToast('⚠️ נתונים שונו בלשונית אחרת — רענן את הדף', 5000);
   }
 });
 
@@ -1972,14 +1972,14 @@ function _setPiStLabel(){
   const sel = _getPiStSelected();
   const lbl = document.getElementById('pi-status-label');
   if(!lbl) return;
-  const names = {'order':'׳”׳–׳׳ ׳”','tx_invoice':'׳—׳©׳‘׳•׳ ׳™׳× ׳¢׳¡׳§׳”','tax_invoice':'׳—׳©׳‘׳•׳ ׳™׳× ׳׳¡','tax_receipt':'׳—׳©׳‘׳•׳ ׳™׳× ׳׳¡ ׳§׳‘׳׳”','receipt':'׳§׳‘׳׳”','cancelled':'׳׳‘׳•׳˜׳'};
-  if(!sel.length) lbl.textContent='׳”׳›׳';
+  const names = {'order':'הזמנה','tx_invoice':'חשבונית עסקה','tax_invoice':'חשבונית מס','tax_receipt':'חשבונית מס קבלה','receipt':'קבלה','cancelled':'מבוטל'};
+  if(!sel.length) lbl.textContent='הכל';
   else if(sel.length===1) lbl.textContent=names[sel[0]]||sel[0];
-  else lbl.textContent=`${sel.length} ׳¡׳˜׳˜׳•׳¡׳™׳`;
+  else lbl.textContent=`${sel.length} סטטוסים`;
 }
 
 function piStChange(){
-  // If all 6 checked ג†’ show "׳”׳›׳"
+  // If all 6 checked → show "הכל"
   const all = document.querySelectorAll('.pi-st-cb');
   const checked = document.querySelectorAll('.pi-st-cb:checked');
   const allCb = document.getElementById('pi-st-all');
@@ -2095,12 +2095,12 @@ function _tryOpenLocalFile(p){
   if(w){
     setTimeout(()=>{
       // If nothing happened (blocked), show instructions
-      showToast('נ“‚ ׳ ׳¡׳” ׳׳₪׳×׳•׳— ג€” ׳׳ ׳׳ ׳ ׳₪׳×׳—, ׳”׳¢׳×׳§ ׳׳× ׳”׳ ׳×׳™׳‘ ׳•׳₪׳×׳— ׳™׳“׳ ׳™׳×');
+      showToast('📂 נסה לפתוח — אם לא נפתח, העתק את הנתיב ופתח ידנית');
     }, 800);
   } else {
-    // Popup blocked ג€” copy path and instruct
+    // Popup blocked — copy path and instruct
     _copyToClipboard(p);
-    showToast('נ“‹ ׳”׳ ׳×׳™׳‘ ׳”׳•׳¢׳×׳§ ג€” ׳₪׳×׳— ׳¡׳™׳™׳¨ ׳§׳‘׳¦׳™׳ ׳•׳”׳“׳‘׳§');
+    showToast('📋 הנתיב הועתק — פתח סייר קבצים והדבק');
   }
 }
 
@@ -2137,7 +2137,7 @@ window.openSP = window.openSP || (()=>{});
 
 window.getGardenBlock = getGardenBlock;
 
-// ג”€ג”€ Year Management ג”€ג”€
+// ── Year Management ──
 window.initYearSelector = function() {
   const sel = document.getElementById('year-selector');
   if (!sel) return;
@@ -2174,17 +2174,17 @@ function _showArchiveBanner() {
     if (!metaStr) return;
     const meta = JSON.parse(metaStr);
     const yearKeys = Object.keys(meta.years || {});
-    if (yearKeys.length <= 1) return; // Only one year ג€” no banner needed
+    if (yearKeys.length <= 1) return; // Only one year — no banner needed
     
     // Find the "latest" year (last in the order)
     const latestYear = yearKeys[yearKeys.length - 1];
-    if (window.CURRENT_YEAR === latestYear) return; // We're on the latest ג€” no banner
+    if (window.CURRENT_YEAR === latestYear) return; // We're on the latest — no banner
     
     const yearName = (meta.years[window.CURRENT_YEAR] || {}).name || window.CURRENT_YEAR;
     const banner = document.createElement('div');
     banner.id = 'archive-year-banner';
     banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#fff3e0,#ffe0b2);border-bottom:3px solid #e65100;padding:8px 16px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:.82rem;font-weight:700;color:#bf360c;box-shadow:0 2px 8px rgba(0,0,0,.15)';
-    banner.innerHTML = `ג ן¸ ׳׳×׳” ׳¦׳•׳₪׳”/׳¢׳•׳¨׳ ׳׳× <span style="background:#e65100;color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem">${yearName}</span> ג€” ׳©׳ ׳” ׳׳¨׳›׳™׳•׳ ׳™׳×. ׳©׳™׳ ׳•׳™׳™׳ ׳™׳™׳©׳׳¨׳• ׳¨׳§ ׳׳©׳ ׳” ׳–׳•.`;
+    banner.innerHTML = `⚠️ אתה צופה/עורך את <span style="background:#e65100;color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem">${yearName}</span> — שנה ארכיונית. שינויים יישמרו רק לשנה זו.`;
     document.body.prepend(banner);
     // Push content down
     document.body.style.paddingTop = (banner.offsetHeight + 2) + 'px';

@@ -97,7 +97,7 @@ async function loadCloudBackups(){
 }
 
 async function restoreCloudBackup(dateKey){
-  if(!confirm(`לשחזר גיבוי מ-${window.fD(dateKey)}?\nהנתונים הנוכחיים יישמרו תחילה כ-snapshot מקומי.`)) return;
+  if(!await _spConfirmDialog(`לשחזר גיבוי מ-${window.fD(dateKey)}?\nהנתונים הנוכחיים יישמרו תחילה כ-snapshot מקומי.`)) return;
   const el=document.getElementById('cloud-backup-list');
   const prevHtml = el ? el.innerHTML : '';
   if(el) el.innerHTML='<span style="color:#e65100">משחזר... (אנא המתן, זה עשוי לקחת מספר שניות)</span>';
@@ -374,7 +374,7 @@ async function changeUserRole(uid, newRole){
 
 async function deleteUser(uid, name){
   if(!_isAdmin()) return;
-  if(!confirm(`למחוק את המשתמש "${name}"?\nהם לא יוכלו להתחבר יותר לאפליקציה.`)) return;
+  if(!await _spConfirmDialog(`למחוק את המשתמש "${name}"?\nהם לא יוכלו להתחבר יותר לאפליקציה.`)) return;
   try{
     showToast('⏳ מוחק משתמש...');
     // 1. Delete from Firebase Auth via Cloud Function
@@ -505,7 +505,7 @@ async function _pruneOldLogs(raw, tok){
 }
 
 function doLogout(){
-  if(!confirm('להתנתק?')) return;
+  if(!await _spConfirmDialog('להתנתק?')) return;
   if(typeof window._fbSignOut==='function') window._fbSignOut();
 }
 
@@ -523,7 +523,7 @@ async function updateUserPerm(uid, perm, value){
 
 async function changeUserPassword(uid, username){
   if(!_isAdmin()) return;
-  const newPass = prompt(`סיסמה חדשה עבור "${username}" (לפחות 6 תווים):`);
+  const newPass = await window.spPrompt(`סיסמה חדשה עבור "${username}" (לפחות 6 תווים):`);
   if(!newPass) return;
   if(newPass.length < 6){ showToast('❌ סיסמה קצרה מדי (לפחות 6 תווים)'); return; }
 
@@ -541,11 +541,11 @@ async function changeUserPassword(uid, username){
     });
     if(!passRes.ok){ const e=await passRes.json(); throw new Error(e.error||'שגיאה'); }
     showToast(`✅ סיסמה שונתה עבור "${username}"`);
-    window.spAlert(`✅ הסיסמה של "${username}" שונתה בהצלחה.\n\nסיסמה חדשה: ${newPass}`);
+    _spAlertDialog(`✅ הסיסמה של "${username}" שונתה בהצלחה.\n\nסיסמה חדשה: ${newPass}`);
   } catch(e){ showToast('❌ שגיאה: '+e.message); }
 }
 async function fixData() {
-  if (!confirm('🛠️ "סופר תיקון" נתונים:\n1. מחיקת מטמון מקומי.\n2. טעינה מחדש מהענן.\n3. איחוד כפילויות אגרסיבי.\n4. שמירה סופית לענן.\n\nלהמשיך?')) return;
+  if (!await _spConfirmDialog('🛠️ "סופר תיקון" נתונים:\n1. מחיקת מטמון מקומי.\n2. טעינה מחדש מהענן.\n3. איחוד כפילויות אגרסיבי.\n4. שמירה סופית לענן.\n\nלהמשיך?')) return;
   
   try {
     window.showCopyToast('⏳ מנקה מטמון וטוען מהענן...');
@@ -565,19 +565,19 @@ async function fixData() {
     const ok = await window.save(true, true);
     
     if (ok) {
-      window.spAlert('✅ הנתונים תוקנו וסונכרנו! המערכת תתרענן כעת.');
+      _spAlertDialog('✅ הנתונים תוקנו וסונכרנו! המערכת תתרענן כעת.');
       location.reload();
     } else {
-      window.spAlert('❌ השמירה נכשלה. נסה שוב מאוחר יותר.');
+      _spAlertDialog('❌ השמירה נכשלה. נסה שוב מאוחר יותר.');
     }
   } catch(e) {
     console.error(e);
-    window.spAlert('❌ שגיאה בתהליך התיקון: ' + e.message);
+    _spAlertDialog('❌ שגיאה בתהליך התיקון: ' + e.message);
   }
 }
 async function nuclearReset() {
-  if (!confirm('☢️ מחיקה מוחלטת (Nuclear Reset):\nפעולה זו תמחק את כל השינויים, הייבואים והנתונים מהענן ותחזיר את המערכת למצב ברירת מחדל (SRAWS).\n\nהאם אתה בטוח לחלוטין?')) return;
-  if (!confirm('⚠️ אזהרה אחרונה: כל המידע בענן יימחק!')) return;
+  if (!await _spConfirmDialog('☢️ מחיקה מוחלטת (Nuclear Reset):\nפעולה זו תמחק את כל השינויים, הייבואים והנתונים מהענן ותחזיר את המערכת למצב ברירת מחדל (SRAWS).\n\nהאם אתה בטוח לחלוטין?')) return;
+  if (!await _spConfirmDialog('⚠️ אזהרה אחרונה: כל המידע בענן יימחק!')) return;
   
   try {
     window.showCopyToast('⏳ מוחק נתונים מהענן...');
@@ -590,15 +590,15 @@ async function nuclearReset() {
     const ok = await window.save(true, true);
     
     if (ok) {
-      window.spAlert('✅ המערכת אופסה לחלוטין! המטמון המקומי יימחק כעת.');
+      _spAlertDialog('✅ המערכת אופסה לחלוטין! המטמון המקומי יימחק כעת.');
       localStorage.removeItem('ganv5');
       localStorage.removeItem('_fbSeq');
       location.reload();
     } else {
-      window.spAlert('❌ המחיקה נכשלה.');
+      _spAlertDialog('❌ המחיקה נכשלה.');
     }
   } catch(e) {
-    window.spAlert('❌ שגיאה: ' + e.message);
+    _spAlertDialog('❌ שגיאה: ' + e.message);
   }
 }
 window.nuclearReset = nuclearReset;
@@ -609,30 +609,30 @@ window.deleteYearPrompt = async function() {
   const metaStr = window._safeLS.getItem('ganv5_meta');
   let meta = metaStr ? JSON.parse(metaStr) : null;
   if (!meta || !meta.years || Object.keys(meta.years).length === 0) {
-    window.spAlert('אין תקופות זמינות למחיקה (חוץ מברירת המחדל).');
+    _spAlertDialog('אין תקופות זמינות למחיקה (חוץ מברירת המחדל).');
     return;
   }
   
   const currentId = meta.currentYear || 'tashpav';
   const availableYears = Object.entries(meta.years).map(([id, y]) => `${id}: ${y.name}`).join('\n');
   
-  const idToDelete = prompt(`הזן את מזהה התקופה שברצונך למחוק (באנגלית, למשל tashpaz).\nהתקופה הנוכחית היא: ${currentId}\n\nתקופות קיימות:\n${availableYears}`);
+  const idToDelete = await window.spPrompt(`הזן את מזהה התקופה שברצונך למחוק (באנגלית, למשל tashpaz).\nהתקופה הנוכחית היא: ${currentId}\n\nתקופות קיימות:\n${availableYears}`);
   
   if (!idToDelete) return;
   if (!meta.years[idToDelete]) {
-    window.spAlert(`שגיאה: תקופה עם מזהה "${idToDelete}" לא קיימת.`);
+    _spAlertDialog(`שגיאה: תקופה עם מזהה "${idToDelete}" לא קיימת.`);
     return;
   }
   if (idToDelete === 'tashpav') {
-     if (!confirm('אזהרה: אתה מנסה למחוק את שנת הלימודים הראשית "tashpav"! האם אתה בטוח שברצונך למחוק אותה?')) return;
+     if (!await _spConfirmDialog('אזהרה: אתה מנסה למחוק את שנת הלימודים הראשית "tashpav"! האם אתה בטוח שברצונך למחוק אותה?')) return;
   } else {
-     if (!confirm(`האם אתה בטוח לחלוטין שברצונך למחוק את התקופה "${meta.years[idToDelete].name}" (${idToDelete})?\nכל השיבוצים, הגנים, החופשות והזוגות של תקופה זו יימחקו מהענן! פעולה זו אינה הפיכה!`)) return;
+     if (!await _spConfirmDialog(`האם אתה בטוח לחלוטין שברצונך למחוק את התקופה "${meta.years[idToDelete].name}" (${idToDelete})?\nכל השיבוצים, הגנים, החופשות והזוגות של תקופה זו יימחקו מהענן! פעולה זו אינה הפיכה!`)) return;
   }
   
   try {
     let tok = null;
     if (window._fbUser) try { tok = await window._fbUser.getIdToken(true); } catch(e) {}
-    if (!tok) { window.spAlert('שגיאת אימות — יש להתחבר מחדש.'); return; }
+    if (!tok) { _spAlertDialog('שגיאת אימות — יש להתחבר מחדש.'); return; }
     
     if (window.showCopyToast) window.showCopyToast('⏳ מוחק את התקופה מהענן...');
     const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
@@ -670,9 +670,9 @@ window.deleteYearPrompt = async function() {
       location.reload();
     }
     
-    window.spAlert(`✅ התקופה ${idToDelete} נמחקה בהצלחה!`);
+    _spAlertDialog(`✅ התקופה ${idToDelete} נמחקה בהצלחה!`);
   } catch(e) {
-    window.spAlert('❌ שגיאה במחיקה: ' + e.message);
+    _spAlertDialog('❌ שגיאה במחיקה: ' + e.message);
   }
 };
 
@@ -713,7 +713,7 @@ window.openNewYearWizard = function() {
   const suggestedName = nextId ? (_HEBREW_YEARS[nextId] || '') : '';
   
   const m = document.getElementById('newyear-m');
-  if (!m) { window.spAlert('Modal not found'); return; }
+  if (!m) { _spAlertDialog('Modal not found'); return; }
   
   // Fill inputs
   const nameEl = document.getElementById('nyw-custom-name');
@@ -780,21 +780,21 @@ window.executeNewYear = async function() {
   const startDate = startInput?.value;
   const endDate = endInput?.value;
   
-  if (!yearId) { window.spAlert('שגיאה: יש להזין מזהה ייחודי באנגלית.'); return; }
-  if (!/^[a-z0-9_-]+$/.test(yearId)) { window.spAlert('שגיאה: המזהה יכול להכיל אותיות באנגלית, מספרים, מקף או קו תחתון בלבד.'); return; }
-  if (!yearName) { window.spAlert('שגיאה: יש להזין שם לתקופה/שנה.'); return; }
-  if (!startDate || !endDate) { window.spAlert('שגיאה: יש להזין תאריכי התחלה וסיום.'); return; }
-  if (new Date(startDate) > new Date(endDate)) { window.spAlert('שגיאה: תאריך ההתחלה לא יכול להיות אחרי תאריך הסיום.'); return; }
+  if (!yearId) { _spAlertDialog('שגיאה: יש להזין מזהה ייחודי באנגלית.'); return; }
+  if (!/^[a-z0-9_-]+$/.test(yearId)) { _spAlertDialog('שגיאה: המזהה יכול להכיל אותיות באנגלית, מספרים, מקף או קו תחתון בלבד.'); return; }
+  if (!yearName) { _spAlertDialog('שגיאה: יש להזין שם לתקופה/שנה.'); return; }
+  if (!startDate || !endDate) { _spAlertDialog('שגיאה: יש להזין תאריכי התחלה וסיום.'); return; }
+  if (new Date(startDate) > new Date(endDate)) { _spAlertDialog('שגיאה: תאריך ההתחלה לא יכול להיות אחרי תאריך הסיום.'); return; }
   
   // Check if already exists in metadata
   const metaStr = window._safeLS.getItem('ganv5_meta');
   let meta = metaStr ? JSON.parse(metaStr) : { currentYear: 'tashpav', years: { 'tashpav': { name: 'תשפ"ו (2025-2026)', start: '2025-09-01', end: '2026-08-21' } } };
   if (meta.years[yearId]) {
-    window.spAlert(`שגיאה: מזהה "${yearId}" כבר קיים במערכת.`);
+    _spAlertDialog(`שגיאה: מזהה "${yearId}" כבר קיים במערכת.`);
     return;
   }
   
-  if (!confirm(`האם ליצור את "${yearName}"?\n\nהגנים המסומנים יועברו לתקופה החדשה.\nהשיבוצים יתאפסו.\nהרכש נשאר גלובלי ולא מושפע.`)) return;
+  if (!await _spConfirmDialog(`האם ליצור את "${yearName}"?\n\nהגנים המסומנים יועברו לתקופה החדשה.\nהשיבוצים יתאפסו.\nהרכש נשאר גלובלי ולא מושפע.`)) return;
   
   const execBtn = document.getElementById('nyw-exec-btn');
   if (execBtn) { execBtn.disabled = true; execBtn.textContent = '⏳ יוצר תקופה...'; }
@@ -809,7 +809,7 @@ window.executeNewYear = async function() {
     const gardensForNewYear = allGardens.filter(g => selectedGardenIds.has(g.id));
     
     if (gardensForNewYear.length === 0) {
-      window.spAlert('יש לבחור לפחות גן אחד!');
+      _spAlertDialog('יש לבחור לפחות גן אחד!');
       if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח תקופה/קייטנה חדשה'; }
       return;
     }
@@ -850,7 +850,7 @@ window.executeNewYear = async function() {
     // 5. Save to Firebase
     let tok = null;
     if (window._fbUser) try { tok = await window._fbUser.getIdToken(true); } catch(e) {}
-    if (!tok) { window.spAlert('שגיאת אימות — יש להתחבר מחדש.'); if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח תקופה/קייטנה חדשה'; } return; }
+    if (!tok) { _spAlertDialog('שגיאת אימות — יש להתחבר מחדש.'); if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח תקופה/קייטנה חדשה'; } return; }
     
     const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
     const url = `${base}/years/${yearId}/data.json?auth=${tok}`;
@@ -890,12 +890,12 @@ window.executeNewYear = async function() {
     // 9. Refresh year selector
     if (window.initYearSelector) window.initYearSelector();
     
-    window.spAlert(`✅ התקופה/קייטנה "${yearName}" נוצרה בהצלחה!\n\n${gardensForNewYear.length} גנים הועברו.\n${newPairs.length} זוגות הועברו.\n\nכדי לעבור לתקופה החדשה, בחר אותה מתפריט השנה בראש המסך.`);
+    _spAlertDialog(`✅ התקופה/קייטנה "${yearName}" נוצרה בהצלחה!\n\n${gardensForNewYear.length} גנים הועברו.\n${newPairs.length} זוגות הועברו.\n\nכדי לעבור לתקופה החדשה, בחר אותה מתפריט השנה בראש המסך.`);
     showToast('✅ שנה/תקופה חדשה נוצרה — עבור דרך בורר השנה');
     
   } catch(e) {
     console.error('Creation failed:', e);
-    window.spAlert('❌ שגיאה ביצירת התקופה: ' + e.message);
+    _spAlertDialog('❌ שגיאה ביצירת התקופה: ' + e.message);
   } finally {
     if (execBtn) { execBtn.disabled = false; execBtn.textContent = '🚀 פתח תקופה/קייטנה חדשה'; }
   }

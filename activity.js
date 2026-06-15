@@ -297,7 +297,7 @@ window.dashBatchAction = async function(action) {
     stampPrefix = 'bulk_can_';
   }
 
-  const note = prompt(promptMsg);
+  const note = await window.spPrompt(promptMsg);
   if (note === null) return; // User cancelled prompt
 
   const stamp = stampPrefix + Date.now();
@@ -454,11 +454,11 @@ function cleanMakeupNote(orig, dateStr) {
 
 window.spBatchDelete = function() {
   const ids = window.spGetSelectedIds();
-  if(!ids.length) { window.spAlert('יש לסמן לפחות גן אחד למחיקה'); return; }
+  if(!ids.length) { _spAlertDialog('יש לסמן לפחות גן אחד למחיקה'); return; }
   
   const restoreMsg = window.SCH.some(x => ids.includes(String(x.id)) && x._isMakeup) ? '\n(פעילויות השלמה מסומנות יוחזרו למקוריות שלא התקיימו)' : '';
   
-  if(!confirm(`האם למחוק ${ids.length > 1 ? ids.length + ' שיבוצים מסומנים' : 'את השיבוץ המסומן'} מהלוח לצמיתות?` + restoreMsg)) return;
+  if(!await _spConfirmDialog(`האם למחוק ${ids.length > 1 ? ids.length + ' שיבוצים מסומנים' : 'את השיבוץ המסומן'} מהלוח לצמיתות?` + restoreMsg)) return;
   
   if (!window.supEx) window.supEx = {};
   if (!window.supEx['__deleted_sraws_ids']) window.supEx['__deleted_sraws_ids'] = [];
@@ -495,7 +495,7 @@ window.spBatchQSetSt = function(st) {
 
 window.spBatchAction = function(val) {
   const ids = window.spGetSelectedIds();
-  if(!ids.length) { window.spAlert('יש לסמן לפחות גן אחד בטבלה'); return; }
+  if(!ids.length) { _spAlertDialog('יש לסמן לפחות גן אחד בטבלה'); return; }
   
   console.log('[spBatchAction]', val, {ids});
   switch(val) {
@@ -530,7 +530,7 @@ window.spRowGrpChg = function(id, val) {
     if(pair) {
       const pGid = pair.ids.find(pid => Number(pid) !== Number(ev.g));
       const pG = window.G(pGid);
-      if(pG && confirm('האם לעדכן את מספר הקבוצות גם בצהרון המקביל (' + pG.name + ')?')) {
+      if(pG && await _spConfirmDialog('האם לעדכן את מספר הקבוצות גם בצהרון המקביל (' + pG.name + ')?')) {
         syncPartner = true;
       }
     }
@@ -558,7 +558,7 @@ window.spRowStatusChg = function(id, st) {
     // Only ask confirm for simple statuses (done/ok). 
     // Exceptions (nohap/can/post) have their own modals with sync options.
     if(st === 'done' || st === 'ok') {
-        if(confirm(`האם לעדכן את הסטטוס "${stText}" גם בגן בן-הזוג (${pG.name})?`)) {
+        if(await _spConfirmDialog(`האם לעדכן את הסטטוס "${stText}" גם בגן בן-הזוג (${pG.name})?`)) {
             syncPartner = true;
         }
     } else {
@@ -1143,7 +1143,7 @@ window.getSpMissedHtml = function(gid) {
 
 function deleteRecurSeries(id) {
   const s = window.SCH.find(x => x.id == id);
-  if(!s) return window.spAlert('שגיאה. רשומה לא קיימת');
+  if(!s) return _spAlertDialog('שגיאה. רשומה לא קיימת');
   const g = window.G(s.g);
   
   const affected = s._recId
@@ -1182,7 +1182,7 @@ function deleteRecurSeries(id) {
     confirmMsg = `האם אתה בטוח שברצונך למחוק ${affected.length} פעילויות של הספק מתאריך זה והלאה גם מהלוח של הגן ${gName} וגם מהלוח של הגן בן-הזוג (${pGname})?`;
   }
   
-  if(!confirm(confirmMsg)) return;
+  if(!await _spConfirmDialog(confirmMsg)) return;
 
   if (!window.supEx) window.supEx = {};
   if (!window.supEx['__deleted_sraws_ids']) window.supEx['__deleted_sraws_ids'] = [];
@@ -1220,7 +1220,7 @@ function deleteSingleActivity(id) {
   const g = window.G(s.g);
   
   const gName = g.name.startsWith('גן') ? g.name : `גן ${g.name}`;
-  if(!confirm(`האם למחוק את השיבוץ של ${gName} בתאריך ${window.fD(s.d)} לצמיתות?`)) return;
+  if(!await _spConfirmDialog(`האם למחוק את השיבוץ של ${gName} בתאריך ${window.fD(s.d)} לצמיתות?`)) return;
   
   if (!window.supEx) window.supEx = {};
   if (!window.supEx['__deleted_sraws_ids']) window.supEx['__deleted_sraws_ids'] = [];
@@ -1240,7 +1240,7 @@ function deleteSingleActivity(id) {
     if(pEv) {
       const pG = window.G(pEv.g);
       const pGname = pG.name.startsWith('גן') ? pG.name : `גן ${pG.name}`;
-      if (confirm(`האם למחוק גם את השיבוץ המקביל ב${pGname}?`)) {
+      if (await _spConfirmDialog(`האם למחוק גם את השיבוץ המקביל ב${pGname}?`)) {
         const isSrawsPartner = !String(pEv.id).startsWith('e_');
         if (isSrawsPartner && !window.supEx['__deleted_sraws_ids'].includes(pEv.id)) {
           window.supEx['__deleted_sraws_ids'].push(pEv.id);
@@ -1265,7 +1265,7 @@ function toggleSpRecurBox(isChecked) {
     // Unchecked -> ask if they want to delete series
     const s = window.SCH.find(x => x.id == window.selEv);
     if(s && s._recId) {
-      if(confirm('האם תרצה להסיר את הפעילות הקבועה ולבטל את כל השיבוצים העתידיים בסדרה זו?')) {
+      if(await _spConfirmDialog('האם תרצה להסיר את הפעילות הקבועה ולבטל את כל השיבוצים העתידיים בסדרה זו?')) {
         window.deleteRecurSeries(s.id);
       } else {
         document.getElementById('sp-is-rec-chk').checked = true; // revert
@@ -1319,7 +1319,7 @@ function deleteSingleActivity(id) {
   const origEvs = s._isMakeup ? window.SCH.filter(orig => String(orig._compByMakeup) === String(s.id)) : [];
   const restoreMsg = origEvs.length > 0 ? `\n\n(מחיקה זו גם תחזיר את הפעילות המקורית שלא התקיימה לרשימה)` : '';
 
-  if(!confirm(`האם למחוק את השיבוץ של גן ${g.name} בתאריך ${window.fD(s.d)} לצמיתות?` + restoreMsg)) return;
+  if(!await _spConfirmDialog(`האם למחוק את השיבוץ של גן ${g.name} בתאריך ${window.fD(s.d)} לצמיתות?` + restoreMsg)) return;
   
   const i = window.SCH.indexOf(s);
   if(i >= 0) window.SCH.splice(i, 1);
@@ -1338,7 +1338,7 @@ function deleteSingleActivity(id) {
     if(pEv) {
       const pOrigEvs = pEv._isMakeup ? window.SCH.filter(orig => String(orig._compByMakeup) === String(pEv.id)) : [];
       const pRestoreMsg = pOrigEvs.length > 0 ? `\n(פעילות זו היא השלמה ותחזיר את הפעילות המקורית)` : '';
-      if(confirm(`האם למחוק גם את השיבוץ המקביל בגן בן-הזוג (${window.G(pEv.g).name})?` + pRestoreMsg)) {
+      if(await _spConfirmDialog(`האם למחוק גם את השיבוץ המקביל בגן בן-הזוג (${window.G(pEv.g).name})?` + pRestoreMsg)) {
         const pi = window.SCH.indexOf(pEv);
         if(pi >= 0) window.SCH.splice(pi, 1);
         if (pOrigEvs.length > 0) {
@@ -1356,7 +1356,7 @@ function deleteSingleActivity(id) {
 
 function openReplaceRecur(id) {
   const s = window.SCH.find(x => x.id == id);
-  if(!s || !s._recId) return window.spAlert('פעילות זו אינה חלק מפעילות קבועה');
+  if(!s || !s._recId) return _spAlertDialog('פעילות זו אינה חלק מפעילות קבועה');
   const g = window.G(s.g);
   const allSups = window.getAllSup().filter(s2 => window.isActSupplier(s2.name));
   const spPair = window.gardenPair(s.g);
@@ -1453,9 +1453,9 @@ function saveReplaceRecur(id) {
     const sync = syncChk ? syncChk.checked : false;
     const partnerTime = document.getElementById('rr-time-partner') ? document.getElementById('rr-time-partner').value : time;
 
-    if(!from || !to || !days.length || !sup) return window.spAlert('יש למלא את כל השדות ולבחור ימים');
+    if(!from || !to || !days.length || !sup) return _spAlertDialog('יש למלא את כל השדות ולבחור ימים');
 
-    if(!confirm('⚠️ פעולה זו תמחוק את כל השיבוצים העתידיים של הסדרה הקיימת ותיצור חדשים.\nהאם אתה בטוח?')) return;
+    if(!await _spConfirmDialog('⚠️ פעולה זו תמחוק את כל השיבוצים העתידיים של הסדרה הקיימת ותיצור חדשים.\nהאם אתה בטוח?')) return;
 
     // 1. Collect all series IDs to remove
     const seriesIdsToRemove = new Set([s._recId]);
@@ -1530,7 +1530,7 @@ function saveReplaceRecur(id) {
     window.showToast(`✅ הפעילות הקבועה הוחלפה בהצלחה. נוצרו ${count} שיבוצים חדשים.`);
   } catch(err) {
     console.error('[saveReplaceRecur]', err);
-    window.spAlert('שגיאה בביצוע ההחלפה: ' + err.message);
+    _spAlertDialog('שגיאה בביצוע ההחלפה: ' + err.message);
   }
 }
 
@@ -1616,7 +1616,7 @@ function setStatus(idOrSt, maybeSt){
       if (main._compByMakeup && main._compByMakeup !== 'false') {
         const mkIdx = window.SCH.findIndex(x => x.id == main._compByMakeup);
         if (mkIdx > -1) {
-          if (confirm('פעילות זו קושרה להשלמה/דחייה שנוצרה בתאריך חלופי.\nהחזרתה למצב תקין מאפשרת למחוק גם את הפעילות החלופית.\nהאם למחוק את הפעילות החלופית שנוצרה?')) {
+          if (await _spConfirmDialog('פעילות זו קושרה להשלמה/דחייה שנוצרה בתאריך חלופי.\nהחזרתה למצב תקין מאפשרת למחוק גם את הפעילות החלופית.\nהאם למחוק את הפעילות החלופית שנוצרה?')) {
             window.SCH.splice(mkIdx, 1);
             userConfirmedDelete = true;
           } else {
@@ -1628,7 +1628,7 @@ function setStatus(idOrSt, maybeSt){
       if (!main._compByMakeup || main._compByMakeup === 'false') {
          const linkedMkIdx = window.SCH.findIndex(x => x._postFrom === main.d && x.g === main.g && window.supBase(x.a) === window.supBase(main.a) && x._isMakeup);
          if (linkedMkIdx > -1 && !userDeclinedDelete) {
-            if (userConfirmedDelete || confirm('פעילות זו קושרה להשלמה/דחייה שנוצרה בתאריך חלופי.\nהחזרתה למצב תקין מאפשרת למחוק גם את הפעילות החלופית.\nהאם למחוק את הפעילות החלופית שנוצרה?')) {
+            if (userConfirmedDelete || await _spConfirmDialog('פעילות זו קושרה להשלמה/דחייה שנוצרה בתאריך חלופי.\nהחזרתה למצב תקין מאפשרת למחוק גם את הפעילות החלופית.\nהאם למחוק את הפעילות החלופית שנוצרה?')) {
                window.SCH.splice(linkedMkIdx, 1);
                userConfirmedDelete = true;
             }
@@ -1835,7 +1835,7 @@ function markCompQuick(id){
     });
 
     if (partnersToUpdate.length > 0) {
-      if (confirm('זיהינו גנים מקבילים (זוג/אשכול) עם חריגות באותה פעילות. האם לסמן "טופל" גם עבורם?')) {
+      if (await _spConfirmDialog('זיהינו גנים מקבילים (זוג/אשכול) עם חריגות באותה פעילות. האם לסמן "טופל" גם עבורם?')) {
         partnersToUpdate.forEach(pev => pev._compByMakeup = stamp);
       }
     }
@@ -2032,7 +2032,7 @@ function openPostpone(id){
     
     document.getElementById('postm').classList.add('open');
   } catch(e) {
-    window.spAlert("שגיאה בפתיחת הזזה: " + e.message);
+    _spAlertDialog("שגיאה בפתיחת הזזה: " + e.message);
   }
 }
 
@@ -2076,7 +2076,7 @@ function doPostpone(){
     const reason = document.getElementById('post-reason') ? document.getElementById('post-reason').value : '';
     
     if (window._postMode === 'defer') {
-      if(!reason.trim()) { window.spAlert('יש להזין סיבה לדחייה'); return; }
+      if(!reason.trim()) { _spAlertDialog('יש להזין סיבה לדחייה'); return; }
       s.st = 'post';
       s.pd = ''; // No target date
       s.cn = s.cn ? s.cn + ` (דחייה: ${reason})` : `(דחייה: ${reason})`;
@@ -2102,7 +2102,7 @@ function doPostpone(){
       return;
     }
     
-    if(!newDate) { window.spAlert('יש לבחור תאריך'); return; }
+    if(!newDate) { _spAlertDialog('יש לבחור תאריך'); return; }
     
     const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('post') : [];
     const toProcess = [];
@@ -2113,7 +2113,7 @@ function doPostpone(){
       if(!pEv) {
         const gObj = window.G(syn.g);
         const msg = `⚠️ לצהרון ${gObj ? gObj.name : 'השותף'} לא נמצאה פעילות מקורית של ${s.a} בתאריך ${window.fD(s.d)}.\nהאם תרצה בכל זאת ליצור לו פעילות חדשה בתאריך החדש (${window.fD(newDate)})?`;
-        if(!confirm(msg)) continue;
+        if(!await _spConfirmDialog(msg)) continue;
       }
       toProcess.push({ syn, pEv });
     }
@@ -2170,7 +2170,7 @@ function doPostpone(){
     window.saveAndRefresh('postm');
     window.showToast(toastMsg);
   } catch(e) {
-    window.spAlert("שגיאה בביצוע הזזה: " + e.message);
+    _spAlertDialog("שגיאה בביצוע הזזה: " + e.message);
   }
 }
 
@@ -2180,7 +2180,7 @@ function doCopy(){
   if(!s) return;
   const newDate = document.getElementById('copy-date').value;
   const primaryTime = document.getElementById('copy-time').value;
-  if(!newDate) { window.spAlert('יש לבחור תאריך יעד'); return; }
+  if(!newDate) { _spAlertDialog('יש לבחור תאריך יעד'); return; }
   
   // Primary
   const newEv1 = {...s, id:Date.now(), d:newDate, t:primaryTime || s.t, st:'ok', pd:'', pt:'', cr:'', cn:''};
@@ -2590,7 +2590,7 @@ window.spSaveMakeup = function() {
   const time = document.getElementById('sp-mu-time').value;
   const supName = document.getElementById('sp-mu-sup').value || origEv.a;
   
-  if(!newDate || !time) { window.spAlert('בחר תאריך ושעה'); return; }
+  if(!newDate || !time) { _spAlertDialog('בחר תאריך ושעה'); return; }
   
   const targets = [{ g: origEv.g, t: time }, ...window.getSynergyData('sp-mu').map(tgt => ({ g: tgt.g, t: tgt.t || time, grp: tgt.grp }))];
   
@@ -2629,7 +2629,7 @@ window.spSaveMakeup = function() {
     ? `לבצע שיבוץ השלמה ל-${gardenName}${grpText} בתאריך ${window.fD(newDate)}?`
     : `לבצע שיבוץ השלמה ל-${targets.length} ${unitName}${grpText} בתאריך ${window.fD(newDate)}?`;
 
-  if(!confirm(confirmMsg)) return;
+  if(!await _spConfirmDialog(confirmMsg)) return;
 
   targets.forEach(tgt => {
     // Find the original activity for this specific target garden, or fallback to sid if not found
@@ -2808,7 +2808,7 @@ window.saveCanQ = function() {
   const mainReason = sel ? sel.dataset.r : '';
   const extra = (document.getElementById('canq-note')||{}).value?.trim() || '';
   const fullReason = [mainReason, extra].filter(Boolean).join(' — ');
-  if (!mainReason && !extra) { window.spAlert('יש לבחור סיבת ביטול'); return; }
+  if (!mainReason && !extra) { _spAlertDialog('יש לבחור סיבת ביטול'); return; }
   
   const syncChk = document.getElementById('canq-sync-chk');
   const forPair = syncChk ? syncChk.checked : false;
@@ -2840,7 +2840,7 @@ window.saveCanQ = function() {
 
   // Prompt for makeup
   setTimeout(() => {
-    if (confirm('🎨 האם ברצונך לקבוע שיעור השלמה כעת?')) {
+    if (await _spConfirmDialog('🎨 האם ברצונך לקבוע שיעור השלמה כעת?')) {
       window.openMakeupSched(_canQId);
     }
   }, 500);
@@ -2886,12 +2886,12 @@ window.saveCancelDay = function() {
   const mainReason = sel?.dataset.r || '';
   const extra = (document.getElementById('cancelday-note')||{}).value?.trim() || '';
   const fullReason = [mainReason, extra].filter(Boolean).join(' — ');
-  if (!fullReason) { window.spAlert('יש לבחור סיבה'); return; }
+  if (!fullReason) { _spAlertDialog('יש לבחור סיבה'); return; }
   if (!_cancelDayDs) return;
   
   const toCancel = window.SCH.filter(s => s.d === _cancelDayDs && s.st !== 'can');
   if (toCancel.length === 0) { window.showToast('אין פעילויות לביטול ביום זה'); window.CM('cancelday-m'); return; }
-  if (!confirm(`לבטל ${toCancel.length} פעילויות בתאריך ${window.fD(_cancelDayDs)}?\nסיבה: ${fullReason}`)) return;
+  if (!await _spConfirmDialog(`לבטל ${toCancel.length} פעילויות בתאריך ${window.fD(_cancelDayDs)}?\nסיבה: ${fullReason}`)) return;
   
   toCancel.forEach(s => {
     s.st = 'can'; s.cr = mainReason || 'בוטל'; s.cn = extra;
@@ -2952,7 +2952,7 @@ window.saveNohapQ = function(){
   const mainReason = sel ? (sel.dataset.r || sel.textContent.replace(/^\S+ /,'').trim()) : '';
   const extra = (document.getElementById('nohapq-reason')||{}).value?.trim() || '';
   const fullReason=[mainReason,extra].filter(Boolean).join(' — ');
-  if(!mainReason&&!extra){window.spAlert('יש לבחור סיבה');return;}
+  if(!mainReason&&!extra){_spAlertDialog('יש לבחור סיבה');return;}
   
   const s = window.SCH.find(x => x.id == _nohapQId); if(!s) return;
   const doNohap = (evId) => {
@@ -2989,7 +2989,7 @@ window.saveNohapQ = function(){
   
   // Prompt for makeup
   setTimeout(() => {
-    if (confirm('🎨 האם ברצונך לקבוע שיעור השלמה כעת?')) {
+    if (await _spConfirmDialog('🎨 האם ברצונך לקבוע שיעור השלמה כעת?')) {
       window.openMakeupSched(_nohapQId);
     }
   }, 500);
