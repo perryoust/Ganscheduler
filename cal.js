@@ -578,7 +578,7 @@ function addPairFromCal(){
 }
 window.addPairFromCal = addPairFromCal; // Export it
 
-window.addClusterFromCal = function(){
+window.addClusterFromCal = async function(){
   const gids = getCalGids();
   if(!gids || gids.length < 2) return;
   
@@ -592,7 +592,7 @@ window.addClusterFromCal = function(){
   let targetId = 'cl_' + Date.now();
   const existingCl = Object.values(window.clusters).find(c => c.name === finalName);
   if (existingCl) {
-    if(!confirm(`⚠️ האשכול "${finalName}" כבר קיים במערכת.\nהאם תרצה לדרוס אותו עם הרשימה החדשה?`)) {
+    if(!(await window.spConfirm(`⚠️ האשכול "${finalName}" כבר קיים במערכת.\nהאם תרצה לדרוס אותו עם הרשימה החדשה?`))) {
       return;
     }
     targetId = existingCl.id;
@@ -623,9 +623,9 @@ function savePairFromGarden(){
   addPair([window.gmGid,g2,g3].filter(Boolean));
   window.openGM(window.gmGid);
 }
-function checkDupePairAndSave(gids){
+async function checkDupePairAndSave(gids){
   const dupe=gids.map(gid=>{const p=window.gardenPair(gid);return p?`${window.G(gid).name} כבר בזוג "${p.name}"`:null}).filter(Boolean);
-  if(dupe.length){if(!confirm(`⚠️ שים לב:\n${dupe.join('\n')}\n\nבכל זאת להמשיך?`)) return;}
+  if(dupe.length){if(!(await window.spConfirm(`⚠️ שים לב:\n${dupe.join('\n')}\n\nבכל זאת להמשיך?`))) return;}
   const name=gids.map(id=>window.G(id).name||'').join(' + ');
   const nm=prompt('שם לזוג:',name);
   if(nm===null) return;

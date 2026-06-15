@@ -335,7 +335,7 @@ function nsActTypeChg(){
   const newInp=document.getElementById('ns-act-type-new');
   if(newInp) newInp.style.display=v==='__new__'?'inline-block':'none';
 }
-function saveNewSched(){
+async function saveNewSched(){
   const gid=parseInt(document.getElementById('ns-g').value)||null;
   const synPrefix = (_nsmTab === 'makeup') ? 'ns-mu' : 'ns';
   const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData(synPrefix) : [];
@@ -346,7 +346,7 @@ function saveNewSched(){
     const _g=G(gid);
     const _hol=getHolidayInfo(date,_g.city||null,gcls(_g)||null);
     if(_hol&&!_hol.canSched&&(_hol.type==='noact'||_hol.type==='vacation'||_hol.type==='camp')){
-      if(!confirm('⚠️ יש '+_hol.emoji+' '+_hol.name+' ביום זה.\nבכל זאת לשבץ?')) return;
+      if(!(await window.spConfirm('⚠️ יש '+_hol.emoji+' '+_hol.name+' ביום זה.\nבכל זאת לשבץ?'))) return;
     }
   }
   const ph=document.getElementById('ns-ph').value;
@@ -368,7 +368,7 @@ function saveNewSched(){
     const conflict=window.SCH.find(s=>s.g===gid&&s.d===date&&!['can','nohap','post'].includes(s.st)&&!s._compByMakeup&&s.t&&(parseInt(s.t.split(':')[0])<13?'morning':'afternoon')===period&&s.id!==undefined);
     if(conflict){
       const msg = `⚠️ כבר קיימת פעילות ב${period==='morning'?'בוקר':'אחה"צ'}: ${conflict.a} ב-${window.fT(conflict.t)}.\nהאם תרצה בכל זאת להוסיף את השיבוץ הנוכחי?`;
-      if(!confirm(msg)) return;
+      if(!(await window.spConfirm(msg))) return;
     }
   }
   const newId=Date.now();
