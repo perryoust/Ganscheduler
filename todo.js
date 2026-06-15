@@ -102,6 +102,8 @@ window.todo = {
 
     // Parse "DD/MM HH:MM" or "DD/MM HHMM" or "DD.MM HHMM"
     const regexDate = /^(\d{1,2})[\/\.](\d{1,2})\s+(\d{1,2}):?(\d{2})\s+(.*)$/;
+    // Parse "Day HH:MM"
+    const regexDay = /^(?:ביום\s+|יום\s+)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת|מחר|מחרתיים|היום)\s+(\d{1,2}):?(\d{2})\s+(.*)$/;
     // Parse "HH:MM" or "HHMM"
     const regexTime = /^(\d{1,2}):?(\d{2})\s+(.*)$/;
 
@@ -116,6 +118,35 @@ window.todo = {
       let targetDate = new Date(now.getFullYear(), month, day, hour, minute, 0, 0);
       if (targetDate.getTime() < now.getTime() - 86400000) {
         targetDate.setFullYear(now.getFullYear() + 1);
+      }
+      remindAt = targetDate.getTime();
+    } else if ((m = text.match(regexDay))) {
+      let dayName = m[1];
+      let hour = parseInt(m[2], 10);
+      let minute = parseInt(m[3], 10);
+      text = m[4];
+
+      let targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute, 0, 0);
+      
+      if (dayName === 'מחר') {
+        targetDate.setDate(targetDate.getDate() + 1);
+      } else if (dayName === 'מחרתיים') {
+        targetDate.setDate(targetDate.getDate() + 2);
+      } else if (dayName === 'היום') {
+        if (targetDate.getTime() <= now.getTime()) {
+          targetDate.setDate(targetDate.getDate() + 1); // fallback if past
+        }
+      } else {
+        const daysMap = { 'ראשון': 0, 'שני': 1, 'שלישי': 2, 'רביעי': 3, 'חמישי': 4, 'שישי': 5, 'שבת': 6 };
+        const targetDay = daysMap[dayName];
+        let diff = targetDay - targetDate.getDay();
+        
+        if (diff === 0 && targetDate.getTime() > now.getTime()) {
+          // Same day, future time -> keep it today
+        } else if (diff <= 0) {
+          diff += 7; // Next week
+        }
+        targetDate.setDate(targetDate.getDate() + diff);
       }
       remindAt = targetDate.getTime();
     } else if ((m = text.match(regexTime))) {
