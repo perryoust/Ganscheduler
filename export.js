@@ -1236,3 +1236,8 @@ setInterval(() => {
   if (typeof window.checkAutoExport === 'function') window.checkAutoExport();
 }, 60000);
 
+
+setTimeout(() => {
+  if (typeof window.checkAutoExport === 'function') window.checkAutoExport();
+}, 3000);
+
