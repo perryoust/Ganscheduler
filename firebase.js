@@ -329,6 +329,12 @@ async function loadFromFirebase(silent = false, force = false) {
     if (window._applyYearData) {
       window._applyYearData(cloud.data);
     }
+    
+    // Sync todos from cloud if available
+    if (cloud.data.todos && window.todo) {
+      window.todo.items = cloud.data.todos;
+      window.todo.render();
+    }
 
     _setSyncState(cloud.seq, Date.now(), null, true);
     
