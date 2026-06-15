@@ -715,9 +715,9 @@ async function exportToExcel(data, filename, opts = {}) {
             titleRow.font = { bold: true };
             titleRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
             titleRow.alignment = { horizontal: 'right' };
-            ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, 8);
+            ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, 9);
 
-            const headRow = ws.addRow(['תאריך', 'יום', 'גן/בי"ס', 'פעילות', 'שעה', 'קבוצות', 'סטטוס', 'הערות']);
+            const headRow = ws.addRow(['תאריך', 'יום', 'גן/בי"ס', 'שם ספק החוגים', 'פעילות', 'שעה', 'קבוצות', 'סטטוס', 'הערות']);
             headRow.font = { bold: true };
             headRow.eachCell(cell => {
                cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
@@ -776,7 +776,7 @@ async function exportToExcel(data, filename, opts = {}) {
               const formattedNote = typeof window.formatNoteWithTag === 'function' ? window.formatNoteWithTag(s) : (s.nt || '');
               const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
               const dayStr = 'יום ' + dayNames[new Date(s.d).getDay()];
-              const row = ws.addRow([window.fD(s.d), dayStr, g.name, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote]);
+              const row = ws.addRow([window.fD(s.d), dayStr, g.name, window.supBase ? window.supBase(s.a) : s.a, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote]);
               row.eachCell(cell => {
                  cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
                  cell.alignment = { horizontal: 'right' };
@@ -784,12 +784,12 @@ async function exportToExcel(data, filename, opts = {}) {
             });
 
             // Section Sub-Summary
-            const typeSum = ws.addRow([`📌 ${city} - ${type}: בוצעו ${typeGroups} פעילויות (כולל השלמות)`, '', '', '', '', '', '', '']);
+            const typeSum = ws.addRow([`📌 ${city} - ${type}: בוצעו ${typeGroups} פעילויות (כולל השלמות)`, '', '', '', '', '', '', '', '']);
             typeSum.font = { bold: true, size: 10, color: { argb: 'FF1A237E' } };
             typeSum.eachCell((cell) => {
               cell.alignment = { horizontal: 'right' };
             });
-            ws.mergeCells(typeSum.number, 1, typeSum.number, 8);
+            ws.mergeCells(typeSum.number, 1, typeSum.number, 9);
             ws.addRow([]);
             
             if (type === 'ביה"ס') {
@@ -808,10 +808,10 @@ async function exportToExcel(data, filename, opts = {}) {
 
         ws.addRow([]);
         const summaryTitleStr = opts.summaryTitle || '📊 ריכוז פעילות סופי';
-        const sumHead = ws.addRow([summaryTitleStr, '', '', '', '', '', '', '']);
+        const sumHead = ws.addRow([summaryTitleStr, '', '', '', '', '', '', '', '']);
         sumHead.font = { bold: true, size: 12 };
         sumHead.alignment = { horizontal: 'right' };
-        ws.mergeCells(sumHead.number, 1, sumHead.number, 8);
+        ws.mergeCells(sumHead.number, 1, sumHead.number, 9);
 
         summaryRows.forEach(sr => {
           const row = ws.addRow([sr.label, `בוצעו ${sr.grp} פעילויות`, '']);
