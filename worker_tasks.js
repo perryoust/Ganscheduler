@@ -178,10 +178,9 @@ window.renderWorkerTasksAdmin = function() {
           <div style="flex:1; ${isDone ? 'opacity:0.6; text-decoration:line-through;' : ''}">
             ${isSearch ? `<div style="font-size:0.75rem; color:#888; margin-bottom:2px;">${window.fD ? window.fD(t.date) : t.date}</div>` : ''}
             <div style="font-size:1.1rem; color:#333; font-family:sans-serif; margin-bottom:4px; line-height:1.4;">
-              ${t.desc}
+              <strong>${loc}</strong> - ${t.desc.replace(/\n/g, ' ')}
             </div>
             <div style="display:flex; align-items:center; gap:10px; font-size:0.85rem; color:#555;">
-              <span style="background:rgba(255,255,255,0.6); padding:2px 8px; border-radius:4px; font-weight:bold;">📍 ${loc}</span>
               ${isPriv ? '<span style="background:#ffe0b2; color:#e65100; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:0.75rem;">🔒 אישי למנהל</span>' : ''}
               ${isDone && t.doneAt ? `<span style="color:#4caf50;">(בוצע: ${t.doneAt})</span>` : ''}
             </div>
