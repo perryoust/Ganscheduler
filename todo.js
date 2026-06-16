@@ -410,22 +410,22 @@ window.todo = {
     
     container.appendChild(div);
     
-    document.getElementById('btn-remind-done-' + item.id).onclick = () => {
+    div.querySelector('#btn-remind-done-' + item.id).onclick = () => {
       this.toggleDone(item.id);
       div.remove();
     };
-    document.getElementById('btn-remind-close-' + item.id).onclick = () => {
+    div.querySelector('#btn-remind-close-' + item.id).onclick = () => {
       div.remove();
     };
-    document.getElementById('btn-remind-snooze-' + item.id).onclick = () => {
+    div.querySelector('#btn-remind-snooze-' + item.id).onclick = () => {
       // Add 15 minutes (900000 ms)
       item.remindAt = Date.now() + 900000;
       item.remindTriggered = false;
       this.save();
       div.remove();
     };
-    document.getElementById('btn-remind-reschedule-' + item.id).onclick = () => {
-      const val = document.getElementById('input-remind-reschedule-' + item.id).value;
+    div.querySelector('#btn-remind-reschedule-' + item.id).onclick = () => {
+      const val = div.querySelector('#input-remind-reschedule-' + item.id).value;
       if (val) {
         item.remindAt = new Date(val).getTime();
         item.remindTriggered = false;

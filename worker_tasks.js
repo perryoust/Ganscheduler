@@ -611,7 +611,7 @@ window.wtSearchGardenInline = function(q) {
   const gardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
   const list = gardens.filter(g => (g.name||'').includes(q) || (g.city||'').includes(q) || String(g.id).includes(q)).slice(0,10);
   if(!list.length) { res.innerHTML='<div style="padding:5px; color:#999; font-size:0.8rem;">לא נמצא...</div>'; res.style.display='block'; return; }
-  res.innerHTML = list.map(g => `<div style="padding:5px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #eee;" onclick="document.getElementById('wt-inline-garden').value='${g.name.replace(/'/g, "\\'") }'; document.getElementById('wt-inline-garden-id').value='${g.id}'; document.getElementById('wt-inline-garden-results').style.display='none';">${g.name} (${g.city||'אחר'})</div>`).join('');
+  res.innerHTML = list.map(g => `<div style="padding:5px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #eee;" onclick="document.getElementById('wt-inline-garden').value='${g.name.replace(/'/g, "\\'").replace(/"/g, '&quot;') }'; document.getElementById('wt-inline-garden-id').value='${g.id}'; document.getElementById('wt-inline-garden-results').style.display='none';">${g.name} (${g.city||'אחר'})</div>`).join('');
   res.style.display='block';
 };
 
