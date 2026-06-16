@@ -185,6 +185,24 @@ window.cleanSupplierNamesBeforeSave = function () {
 };
 
 // ── Core Sync Logic ──────────────────────────
+window.saveWorkerTasksToFirebase = async function() {
+  try {
+    let tok = await window._fbUser?.getIdToken(false);
+    if (!tok) return;
+    const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
+    const url = `${base}/global_worker_tasks.json?auth=${tok}`;
+    const r = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(window.WORKER_TASKS || [])
+    });
+    if (!r.ok) console.warn('[Sync] Failed to save worker tasks:', r.status);
+    else console.log('[Sync] Worker tasks saved successfully');
+  } catch (e) {
+    console.error('[Sync] Error saving worker tasks', e);
+  }
+};
+
 async function saveToFirebase(silent = false, force = false) {
   if (_isLocked && !force) return false;
   _isLocked = true;
@@ -207,7 +225,6 @@ async function saveToFirebase(silent = false, force = false) {
       gardenBlocks: window.gardenBlocks || {},
       vatRate: window.VAT_RATE || 18,
       activeGardens: window.activeGardens ? [...window.activeGardens] : null,
-      workerTasks: window.WORKER_TASKS || [],
       useSraws: typeof window.useSraws !== 'undefined' ? window.useSraws : true,
       spScannerAliases: window.spScannerAliases || {},
       spScannerFolderLinks: window.spScannerFolderLinks || {},
@@ -305,6 +322,24 @@ async function loadFromFirebase(silent = false, force = false) {
       _setSyncState(cloud.seq, Date.now(), null, true);
       return true;
     }
+
+    // Load Global Worker Tasks Separately
+    try {
+      const wtUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/global_worker_tasks.json' + (tok ? '?auth=' + tok : '');
+      const wtRes = await fetch(wtUrl + (wtUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now());
+      if (wtRes.ok) {
+        const wtData = await wtRes.json();
+        if (wtData) {
+            window.WORKER_TASKS = Array.isArray(wtData) ? wtData : Object.values(wtData || {});
+        } else if (cloud.data && cloud.data.workerTasks) {
+            window.WORKER_TASKS = cloud.data.workerTasks;
+            if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase();
+        } else {
+            window.WORKER_TASKS = [];
+        }
+        if (cloud.data && cloud.data.workerTasks) delete cloud.data.workerTasks; // Prevent overwrite from mega-blob
+      }
+    } catch(e) { console.warn('Failed to load global worker tasks', e); }
 
     // Load Invoices Separately — merge file links from local copy to avoid losing them
     const invUrl = getFirebaseInvoicesUrl() + (tok ? '?auth=' + tok : '');
