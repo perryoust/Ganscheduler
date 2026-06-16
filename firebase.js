@@ -190,7 +190,7 @@ window.saveWorkerTasksToFirebase = async function() {
     let tok = await window._fbUser?.getIdToken(false);
     if (!tok) return;
     const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
-    const url = `${base}/global_worker_tasks.json?auth=${tok}`;
+    const url = `${base}/data/global_worker_tasks.json?auth=${tok}`;
     const r = await fetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -325,7 +325,7 @@ async function loadFromFirebase(silent = false, force = false) {
 
     // Load Global Worker Tasks Separately
     try {
-      const wtUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/global_worker_tasks.json' + (tok ? '?auth=' + tok : '');
+      const wtUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/global_worker_tasks.json' + (tok ? '?auth=' + tok : '');
       const wtRes = await fetch(wtUrl + (wtUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now());
       if (wtRes.ok) {
         const wtData = await wtRes.json();
