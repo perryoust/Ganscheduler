@@ -467,9 +467,13 @@ window.renderWorkerTasksMobile = function() {
   const container = document.getElementById('worker-tasks-mobile-list');
   if (!container) return;
   
-  // FILTER OUT ADMIN ONLY TASKS AND ONLY SHOW TODAY'S TASKS
+  // FILTER OUT ADMIN ONLY TASKS AND ONLY SHOW TODAY'S TASKS (or older pending)
   const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
-  const tasks = (window.WORKER_TASKS || []).filter(t => !t.isAdminOnly && t.date === today);
+  const tasks = (window.WORKER_TASKS || []).filter(t => {
+    if (t.isAdminOnly) return false;
+    if (t.status === 'pending') return t.date <= today; // Show past pending tasks!
+    return t.date === today; // Only show today's completed tasks
+  });
   const pending = tasks.filter(t => t.status === 'pending');
   const done = tasks.filter(t => t.status === 'done');
   
@@ -482,6 +486,9 @@ window.renderWorkerTasksMobile = function() {
   
   if (pending.length === 0) {
     html += `
+      <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+        <button onclick="if(window.loadFromFirebase){ const b=this; b.innerText='מרענן...'; window.loadFromFirebase(false,true).then(()=>{b.innerText='🔄 רענן'; window.renderWorkerTasksMobile();}); }else location.reload();" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.5); border-radius:20px; padding:4px 12px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;">🔄 רענן</button>
+      </div>
       <div style="text-align:center; padding:40px 20px; background:#fff; border-radius:16px; box-shadow:0 4px 15px rgba(0,0,0,0.05); margin-bottom:20px;">
         <div style="font-size:3rem; margin-bottom:10px;">🎉</div>
         <div style="font-size:1.2rem; color:#1565c0; font-weight:bold;">אין משימות פתוחות!</div>
@@ -489,7 +496,12 @@ window.renderWorkerTasksMobile = function() {
       </div>
     `;
   } else {
-    html += `<div style="font-weight:bold; color:#fff; margin-bottom:10px; font-size:1.8rem; text-shadow:0 1px 2px rgba(0,0,0,0.2);">המשימות שלי</div>`;
+    html += `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div style="font-weight:bold; color:#fff; font-size:1.8rem; text-shadow:0 1px 2px rgba(0,0,0,0.2);">המשימות שלי</div>
+        <button onclick="if(window.loadFromFirebase){ const b=this; b.innerText='מרענן...'; window.loadFromFirebase(false,true).then(()=>{b.innerText='🔄 רענן'; window.renderWorkerTasksMobile();}); }else location.reload();" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.5); border-radius:20px; padding:4px 12px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;">🔄 רענן</button>
+      </div>
+    `;
     pending.forEach(t => {
       const gardenName = window.G ? (window.G(t.gardenId)?.name || 'גן לא ידוע') : 'גן לא ידוע';
       const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
