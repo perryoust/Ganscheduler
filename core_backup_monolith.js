@@ -21,6 +21,12 @@ window.addEventListener('resize', () => {
 // --- Global State Declarations ---
 window.SCH = window.SCH || [];
 window.GARDENS = window.GARDENS || [];
+  // Migrate PT
+  window.GARDENS.forEach(g => {
+    if(g.city === '\u05E4"\u05EA' || g.city === '\u05E4'\u05EA' || g.city === '\u05E4\u05EA\u05D7 \u05EA\u05E7\u05D5\u05D4') {
+      g.city = '\u05E4\u05EA\u05D7 \u05EA\u05E7\u05D5\u05D5\u05D4';
+    }
+  });
 window.INVOICES = window.INVOICES || [];
 window.supEx = window.supEx || {};
 window.pairs = window.pairs || [];

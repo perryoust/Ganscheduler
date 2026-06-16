@@ -206,7 +206,7 @@ window.renderWorkerTasksAdmin = function() {
     if (!isSearch) {
     html += `
       <!-- Chat Input Area (WhatsApp style) -->
-      <div class="wt-no-print" style="position:absolute; bottom:0; left:0; right:0; background:#f0f0f0; padding:10px; display:flex; align-items:center; gap:8px; border-radius:0 0 8px 8px; border-top:1px solid #e0e0e0;">
+      <div class="wt-no-print" style="position:relative; width:100%; background:#f0f0f0; padding:10px; display:flex; align-items:center; gap:8px; border-radius:0 0 8px 8px; border-top:1px solid #e0e0e0;">
         
         <div style="flex:1; background:#ffffff; border-radius:24px; display:flex; align-items:center; padding:4px 15px; gap:8px; box-shadow:0 1px 2px rgba(0,0,0,0.1);">
           <div style="position:relative; width:130px; border-left:1px solid #eee; padding-left:8px;">
@@ -616,7 +616,13 @@ window.wtSearchGardenInline = function(q) {
 };
 
 window.wtAddInlineTask = function() {
-  const gardenId = document.getElementById('wt-inline-garden-id').value;
+  let gardenId = document.getElementById('wt-inline-garden-id').value;
+  if (!gardenId && document.getElementById('wt-inline-garden').value) {
+    const gName = document.getElementById('wt-inline-garden').value.trim();
+    const gardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+    const match = gardens.find(g => g.name === gName);
+    if(match) gardenId = match.id;
+  }
   const gardenName = document.getElementById('wt-inline-garden').value;
   const desc = document.getElementById('wt-inline-desc').value.trim();
   const isAdminOnly = document.getElementById('wt-inline-admin').checked;
