@@ -331,11 +331,30 @@ async function loadFromFirebase(silent = false, force = false) {
         const wtData = await wtRes.json();
         if (wtData) {
             window.WORKER_TASKS = Array.isArray(wtData) ? wtData : Object.values(wtData || {});
-        } else if (cloud.data && cloud.data.workerTasks) {
+        } else if (cloud.data && cloud.data.workerTasks && cloud.data.workerTasks.length > 0) {
             window.WORKER_TASKS = cloud.data.workerTasks;
             if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase();
         } else {
-            window.WORKER_TASKS = [];
+            try {
+              let recovered = false;
+              const keys = [];
+              for(let i=0; i<localStorage.length; i++) keys.push(localStorage.key(i));
+              keys.sort().reverse(); // Newest first
+              for(const k of keys) {
+                if (k && k.startsWith('ganv5_backup_')) {
+                  const bkStr = localStorage.getItem(k);
+                  const bkObj = JSON.parse(bkStr);
+                  if (bkObj && bkObj.workerTasks && bkObj.workerTasks.length > 0) {
+                    window.WORKER_TASKS = bkObj.workerTasks;
+                    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase();
+                    recovered = true;
+                    console.log('[Recovery] Restored worker tasks from local backup ' + k);
+                    break;
+                  }
+                }
+              }
+              if (!recovered) window.WORKER_TASKS = [];
+            } catch(e) { window.WORKER_TASKS = []; }
         }
         if (cloud.data && cloud.data.workerTasks) delete cloud.data.workerTasks; // Prevent overwrite from mega-blob
       }

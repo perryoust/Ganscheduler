@@ -241,9 +241,8 @@ window.renderWorkerTasksAdmin = function() {
 
   html += `
       </div>
-    </div>
   `;
-    if (!isSearch) {
+  if (!isSearch) {
     html += `
       <!-- Chat Input Area (WhatsApp style) -->
       <div class="wt-no-print" style="position:relative; width:100%; background:#f0f0f0; padding:10px; display:flex; align-items:center; gap:8px; border-radius:0 0 8px 8px; border-top:1px solid #e0e0e0;">
@@ -271,6 +270,7 @@ window.renderWorkerTasksAdmin = function() {
     `;
   }
 
+  html += `</div>`; // Close max-width wrapper
   container.innerHTML = html;
 };
 
