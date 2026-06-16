@@ -102,7 +102,13 @@ window.renderWorkerTasksAdmin = function() {
     });
     displayTasks.sort((a,b) => b.date.localeCompare(a.date)); // Newest first for search
   } else {
-    displayTasks = tasks.filter(t => t.date === window.wtCurrentDate);
+    const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
+    displayTasks = tasks.filter(t => {
+      if (t.date === window.wtCurrentDate) return true;
+      // If we are looking at Today or the future, pull ALL past pending tasks forward!
+      if (window.wtCurrentDate >= today && t.status === 'pending' && t.date < window.wtCurrentDate) return true;
+      return false;
+    });
     // Sort: pending first, then by creation
     displayTasks.sort((a,b) => {
       if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
