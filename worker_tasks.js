@@ -183,7 +183,7 @@ window.renderWorkerTasksAdmin = function() {
             <div style="display:flex; align-items:center; gap:10px; font-size:0.85rem; color:#8e8e93;">
               ${isPriv ? '<span style="background:#ffe0b2; color:#e65100; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:0.75rem;">🔒 אישי למנהל</span>' : ''}
             </div>
-            ${t.workerNote ? `<div style="margin-top:6px; font-size:0.85rem; color:#1565c0; background:#e3f2fd; padding:6px 10px; border-radius:6px; border-right:3px solid #64b5f6;">💬 פתק עובד: ${t.workerNote.replace(/</g, '&lt;')}</div>` : ''}
+            ${t.workerNote ? `<div style="margin-top:6px; font-size:0.85rem; color:#1565c0; background:#e3f2fd; padding:6px 10px; border-radius:6px; border-right:3px solid #64b5f6;">💬 הערות ${t.workerName || 'עובד'}: ${t.workerNote.replace(/</g, '&lt;')}</div>` : ''}
           </div>
           
           <!-- Left Actions -->
@@ -226,7 +226,7 @@ window.renderWorkerTasksAdmin = function() {
                 ${isPriv ? '<span style="background:#ffe0b2; color:#e65100; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:0.75rem;">🔒 אישי למנהל</span>' : ''}
                 ${t.doneAt ? `<span>(בוצע: ${t.doneAt})</span>` : ''}
               </div>
-              ${t.workerNote ? `<div style="margin-top:6px; font-size:0.85rem; color:#1565c0; background:#e3f2fd; padding:6px 10px; border-radius:6px;">💬 פתק עובד: ${t.workerNote.replace(/</g, '&lt;')}</div>` : ''}
+              ${t.workerNote ? `<div style="margin-top:6px; font-size:0.85rem; color:#1565c0; background:#e3f2fd; padding:6px 10px; border-radius:6px;">💬 הערות ${t.workerName || 'עובד'}: ${t.workerNote.replace(/</g, '&lt;')}</div>` : ''}
             </div>
             
             <div style="margin-right:15px; padding-top:2px; z-index:10; display:flex; gap:8px;">
@@ -419,6 +419,7 @@ window.wtAddNote = function(id) {
   const newNote = prompt("ערוך הערות למשימה (ניתן גם לכתוב פה ולמחוק אם רוצים להסיר):", currentNote);
   if (newNote !== null) {
     task.workerNote = newNote.trim();
+    task.workerName = window._fbUser?.displayName || window._fbUser?.email?.replace('@ganmanager.app','') || 'עובד';
     if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
     window.renderWorkerTasksAdmin();
   }
@@ -428,6 +429,7 @@ window.wtSaveNote = function(id, val) {
   const task = (window.WORKER_TASKS || []).find(t => t.id === id);
   if (task && task.workerNote !== val) {
     task.workerNote = val.trim();
+    task.workerName = window._fbUser?.displayName || window._fbUser?.email?.replace('@ganmanager.app','') || 'עובד';
     if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
   }
 };
