@@ -5,7 +5,7 @@ function calRefG(){
   if(clsSel && typeof _calTab !== 'undefined') clsSel.value = (_calTab === 'g' ? 'גנים' : 'ביה"ס');
   const cities = window.getCalCity ? window.getCalCity() : [];
   const cls = (window.getEl('cal-cls')?.value || '');
-  const allGs = window.gByCF ? window.gByCF('', cls) : (window.GARDENS||[]).filter(g=>!cls||window.getGardenClass(g)===cls);
+  const allGs = window.gByCF ? window.gByCF('', cls) : (typeof AG === 'function' ? AG() : (window.GARDENS||[])).filter(g=>!cls||window.getGardenClass(g)===cls);
   const gs = cities.length > 0 
     ? allGs.filter(g => cities.includes(g.city))
     : allGs;
@@ -281,7 +281,7 @@ window.getCalSup = function() {
 };
 
 window.calRefCity = function() {
-  const cities = [...new Set((window.GARDENS||[]).map(g=>g.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+  const cities = [...new Set((typeof AG === 'function' ? AG() : (window.GARDENS||[])).map(g=>g.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
   window.initCalMultiSelect('city', cities, city => city);
 };
 

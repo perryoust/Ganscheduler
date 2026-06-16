@@ -377,7 +377,9 @@ window.todo = {
       container.style.padding = '10px';
       document.body.appendChild(container);
     }
+    if (document.getElementById('todo-popup-' + item.id)) return; // Prevent duplicates
     const div = document.createElement('div');
+    div.id = 'todo-popup-' + item.id;
     div.style.background = '#e65100';
     div.style.color = '#fff';
     div.style.padding = '24px';
@@ -411,7 +413,10 @@ window.todo = {
     container.appendChild(div);
     
     div.querySelector('#btn-remind-done-' + item.id).onclick = () => {
-      this.toggleDone(item.id);
+      const realItem = this.items.find(i => i.id === item.id) || item;
+      realItem.done = true;
+      realItem.remindTriggered = true;
+      this.save();
       div.remove();
     };
     div.querySelector('#btn-remind-close-' + item.id).onclick = () => {
@@ -419,16 +424,18 @@ window.todo = {
     };
     div.querySelector('#btn-remind-snooze-' + item.id).onclick = () => {
       // Add 15 minutes (900000 ms)
-      item.remindAt = Date.now() + 900000;
-      item.remindTriggered = false;
+      const realItem = this.items.find(i => i.id === item.id) || item;
+      realItem.remindAt = Date.now() + 900000;
+      realItem.remindTriggered = false;
       this.save();
       div.remove();
     };
     div.querySelector('#btn-remind-reschedule-' + item.id).onclick = () => {
       const val = div.querySelector('#input-remind-reschedule-' + item.id).value;
       if (val) {
-        item.remindAt = new Date(val).getTime();
-        item.remindTriggered = false;
+        const realItem = this.items.find(i => i.id === item.id) || item;
+        realItem.remindAt = new Date(val).getTime();
+        realItem.remindTriggered = false;
         this.save();
         div.remove();
       }

@@ -218,6 +218,11 @@ function AG(){
   const all = Array.isArray(window._GARDENS_ALL) && window._GARDENS_ALL.length > 0
     ? [...window._GARDENS_ALL]
     : [...window.GARDENS,...(window._GARDENS_EXTRA||[])];
+  
+  // Normalize Petah Tikva globally
+  all.forEach(g => {
+    if (g.city === 'פ"ת') g.city = 'פתח תקווה';
+  });
   if(!window.activeGardens) return all;
   return all.filter(g=>window.activeGardens.has(g.id));
 }
