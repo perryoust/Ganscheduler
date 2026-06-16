@@ -2683,10 +2683,10 @@ window.createMakeupActivity = function(data) {
     const origExt = window.SCH.find(x => String(x.id) === String(data.origId));
     if(origExt) {
        origExt._compByMakeup = loopId;
-       const noticeNote = `השלמה נקבעה ל-${window.fD(data.d)}`;
-       if(!origExt.nt || !origExt.nt.includes(noticeNote)) {
-          origExt.nt = (origExt.nt ? origExt.nt + ' | ' : '') + noticeNote;
-       }
+       // const noticeNote = `השלמה נקבעה ל-${window.fD(data.d)}`;
+       // if(!origExt.nt || !origExt.nt.includes(noticeNote)) {
+       //    origExt.nt = (origExt.nt ? origExt.nt + ' | ' : '') + noticeNote;
+       // }
        
        // Sync partner's completion status if applicable
        const pair = window.gardenPair(origExt.g);

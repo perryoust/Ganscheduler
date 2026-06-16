@@ -207,6 +207,7 @@ async function saveToFirebase(silent = false, force = false) {
       gardenBlocks: window.gardenBlocks || {},
       vatRate: window.VAT_RATE || 18,
       activeGardens: window.activeGardens ? [...window.activeGardens] : null,
+      workerTasks: window.WORKER_TASKS || [],
       useSraws: typeof window.useSraws !== 'undefined' ? window.useSraws : true,
       spScannerAliases: window.spScannerAliases || {},
       spScannerFolderLinks: window.spScannerFolderLinks || {},
@@ -344,6 +345,11 @@ async function loadFromFirebase(silent = false, force = false) {
     if (cloud.data.todos && window.todo) {
       window.todo.items = cloud.data.todos;
       window.todo.render();
+    }
+    
+    if (cloud.data.workerTasks && typeof window.WORKER_TASKS !== 'undefined') {
+      window.WORKER_TASKS = cloud.data.workerTasks;
+      if (typeof window.renderWorkerTasksAdmin === 'function') window.renderWorkerTasksAdmin();
     }
 
     _setSyncState(cloud.seq, Date.now(), null, true);

@@ -1769,7 +1769,32 @@
         line-height: 1 !important;
         height: 24px !important;
       }
-    </style>
+    
+    /* PRINT STYLES FOR DAILY NOTEBOOK */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #c-cal, #c-cal * {
+        visibility: visible;
+      }
+      #c-cal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+      .sidebar, header, nav, button, .top-bar, .filters, #cal-controls, .sp-modal-overlay, #sys-msg {
+        display: none !important;
+      }
+      #cal-body {
+        margin-top: 0 !important;
+      }
+      .qacts {
+         display: none !important; /* hide action buttons in print */
+      }
+    }
+</style>
     <div class="mb" style="max-width:680px">
       <h2 id="gm-title"></h2>
       <div id="gm-det" style="margin-bottom:9px;font-size:.8rem;color:#546e7a"></div>
@@ -2848,7 +2873,32 @@
           text-decoration: underline;
           padding: 0 4px
         }
-      </style>
+      
+    /* PRINT STYLES FOR DAILY NOTEBOOK */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #c-cal, #c-cal * {
+        visibility: visible;
+      }
+      #c-cal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+      .sidebar, header, nav, button, .top-bar, .filters, #cal-controls, .sp-modal-overlay, #sys-msg {
+        display: none !important;
+      }
+      #cal-body {
+        margin-top: 0 !important;
+      }
+      .qacts {
+         display: none !important; /* hide action buttons in print */
+      }
+    }
+</style>
 
       <!-- 1. הזמנה -->
       <div class="inv-section">
