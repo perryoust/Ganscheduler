@@ -1,17 +1,8 @@
 const fs = require('fs');
 let code = fs.readFileSync('worker_tasks.js', 'utf8');
 
-// I will look for the exact string:
-//   html += `
-//       </div>
-//     </div>
-//   `;
-//   container.innerHTML = html;
-
-// Using regex to handle newlines (CRLF or LF)
-const regex = /html \+= `[\r\n\s]*<\/div>[\r\n\s]*<\/div>[\r\n\s]*`;[\r\n\s]*container\.innerHTML = html;/g;
-
-const newEnd = `  if (!isSearch) {
+const targetStr = 'container.innerHTML = html;';
+const inputHtml = `  if (!isSearch) {
     html += \`
       <!-- Chat Input Area (WhatsApp style) -->
       <div class="wt-no-print" style="position:absolute; bottom:0; left:0; right:0; background:#f0f0f0; padding:10px; display:flex; align-items:center; gap:8px; border-radius:0 0 8px 8px; border-top:1px solid #e0e0e0;">
@@ -38,18 +29,25 @@ const newEnd = `  if (!isSearch) {
       </div>
     \`;
   }
-  html += \`
-      </div>
-    </div>
-  \`;
-  container.innerHTML = html;`;
+`;
 
 if (!code.includes('Chat Input Area (WhatsApp style)')) {
-  code = code.replace(regex, newEnd);
-  // Also add padding to bottom of notebook
-  code = code.replace(/padding:20px 20px 20px 20px;/g, 'padding:20px 20px 80px 20px;');
+  // Find the LAST occurrence of `container.innerHTML = html;` before the end of renderWorkerTasksAdmin
+  // Actually, we can just replace the first occurrence in the file (since it's only in renderWorkerTasksAdmin... wait, renderWorkerTasksMobile might have it too!)
+  // Let's replace the one in renderWorkerTasksAdmin.
+  
+  const parts = code.split('window.renderWorkerTasksMobile =');
+  let adminPart = parts[0];
+  
+  adminPart = adminPart.replace('container.innerHTML = html;', inputHtml + '\n  container.innerHTML = html;');
+  
+  // also fix the padding
+  adminPart = adminPart.replace(/padding:20px 20px 20px 20px;/g, 'padding:20px 20px 80px 20px;');
+  
+  code = adminPart + 'window.renderWorkerTasksMobile =' + parts[1];
+  
   fs.writeFileSync('worker_tasks.js', code);
-  console.log("Successfully replaced");
+  console.log("Successfully added input area");
 } else {
   console.log("Already exists");
 }
