@@ -1306,7 +1306,7 @@ function genExport(){
     
     if (origDate === today && currentCalDateStr === origDate) {
       const dNameTarget = typeof window.dayN === 'function' ? window.dayN(rel[0].d) : '';
-      headerTitle = `*לא יתקיים היום חוג*\n*נדחה ליום ${dNameTarget}*\n`;
+      headerTitle = `*לא יתקיים היום חוג*\n*השלמה נקבעה ליום ${dNameTarget}*\n`;
     } else {
       const formattedTarget = targetStr ? ' תתקיים ' + targetStr.replace('ליום', 'ביום') : '';
       headerTitle = refStr ? `*השלמה מ${refStr}${formattedTarget}*\n` : '*השלמה*\n';

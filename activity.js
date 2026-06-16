@@ -442,7 +442,7 @@ window.spBatchStatus = function(st) {
 };
 function cleanMakeupNote(orig, dateStr) {
   const formattedDate = typeof window.fD === 'function' ? window.fD(dateStr) : dateStr;
-  const targetStr = 'נדחה ל-' + formattedDate;
+  const targetStr = 'השלמה נקבעה ל-' + formattedDate;
   
   if (orig.nt) {
     orig.nt = orig.nt.split(' | ').filter(part => !part.includes(targetStr)).join(' | ').trim();
@@ -583,7 +583,7 @@ window.spRowStatusChg = function(id, st) {
         ev.nt = ev.nt.split(' | ').filter(part => 
           !part.includes('לא התקיים:') && 
           !part.includes('בוטל:') && 
-          !part.includes('נדחה ל-') && 
+          !part.includes('השלמה נקבעה ל-') && 
           !part.includes('הוקדם ל-') &&
           !part.includes('נדחה ל-') &&
           !part.includes('הוזז ל-') &&
@@ -607,7 +607,7 @@ window.spRowStatusChg = function(id, st) {
             pev.nt = pev.nt.split(' | ').filter(part => 
               !part.includes('לא התקיים:') && 
               !part.includes('בוטל:') && 
-              !part.includes('נדחה ל-') && 
+              !part.includes('השלמה נקבעה ל-') && 
               !part.includes('הוקדם ל-') &&
               !part.includes('נדחה ל-') &&
               !part.includes('הוזז ל-') &&
@@ -1640,7 +1640,7 @@ function setStatus(idOrSt, maybeSt){
         main.nt = main.nt.split(' | ').filter(part =>
           !part.includes('לא התקיים:') &&
           !part.includes('בוטל:') &&
-          !part.includes('נדחה ל-') &&
+          !part.includes('השלמה נקבעה ל-') &&
           !part.includes('הוקדם ל-') &&
           !part.includes('נדחה ל-') &&
           !part.includes('הוזז ל-') &&
@@ -1686,7 +1686,7 @@ function setStatus(idOrSt, maybeSt){
                 pev.nt = pev.nt.split(' | ').filter(part => 
                   !part.includes('לא התקיים:') && 
                   !part.includes('בוטל:') && 
-                  !part.includes('נדחה ל-') && 
+                  !part.includes('השלמה נקבעה ל-') && 
                   !part.includes('הוקדם ל-') &&
                   !part.includes('נדחה ל-') &&
                   !part.includes('הוזז ל-') &&
@@ -2660,8 +2660,7 @@ window.spSaveMakeup = function() {
 
 window.createMakeupActivity = function(data) {
   const loopId = Date.now() + Math.random();
-  const isSameDay = data.d === data.origD;
-  const makeupNote = isSameDay ? 'החלפת ספק' : `נדחה מ-${window.fD(data.origD)}`;
+  const makeupNote = `השלמה על ${window.fD(data.origD)}`;
   const fullNote = data.notes ? data.notes + ' | ' + makeupNote : makeupNote;
   
   const newEv = {
@@ -2684,8 +2683,7 @@ window.createMakeupActivity = function(data) {
     const origExt = window.SCH.find(x => String(x.id) === String(data.origId));
     if(origExt) {
        origExt._compByMakeup = loopId;
-       const isSameDay = data.d === data.origD;
-       const noticeNote = isSameDay ? 'הוחלף ספק' : `נדחה ל-${window.fD(data.d)}`;
+       const noticeNote = `השלמה נקבעה ל-${window.fD(data.d)}`;
        if(!origExt.nt || !origExt.nt.includes(noticeNote)) {
           origExt.nt = (origExt.nt ? origExt.nt + ' | ' : '') + noticeNote;
        }
