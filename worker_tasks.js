@@ -74,6 +74,7 @@ window.wtToggleTaskStatus = function(id) {
       const dStr = window.td ? window.td() : now.toISOString().split('T')[0];
       const tStr = now.toTimeString().split(' ')[0].substring(0, 5);
       task.doneAt = `${dStr} ${tStr}`;
+      task.doneBy = window._fbUser?.displayName || window._fbUser?.email?.replace('@ganmanager.app','') || 'עובד';
     }
     if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
     window.renderWorkerTasksAdmin();
@@ -119,7 +120,7 @@ window.renderWorkerTasksAdmin = function() {
           👷 ניהול משימות 
         </h2>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button onclick="if(window.loadFromFirebase) { const btn=this; btn.innerText='מרענן...'; window.loadFromFirebase(false, true).then(()=>{btn.innerText='🔄 רענן נתונים מול העובדים'; window.renderWorkerTasksAdmin();}); } else location.reload();" class="wt-no-print" style="background:#e3f2fd; border:1px solid #90caf9; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="משוך נתונים מהענן כדי לראות אם העובד סיים משימות">🔄 רענן נתונים מול העובדים</button>
+          <button onclick="if(window.loadFromFirebase) { const btn=this; btn.innerText='מסנכרן...'; window.loadFromFirebase(false, true).then(()=>{btn.innerText='🔄 סנכרן נתונים'; window.renderWorkerTasksAdmin();}); } else location.reload();" class="wt-no-print" style="background:#e3f2fd; border:1px solid #90caf9; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="משוך נתונים מהענן כדי לראות מי העובד שסיים את המשימות">🔄 סנכרן נתונים</button>
           <button onclick="window.wtPrintTasks(window.wtCurrentDate)" class="wt-no-print" style="background:#fff; border:1px solid #ccc; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="הדפס את דף המשימות">🖨️ הדפס משימות</button>
           <div style="position:relative;">
             <input type="text" placeholder="חיפוש משימות..." value="${window.wtSearchQuery}" onkeyup="window.wtDoSearch(this.value)" style="padding:8px 12px; padding-right:30px; border:1px solid #ccc; border-radius:20px; width:180px; font-size:0.9rem;">
@@ -224,7 +225,7 @@ window.renderWorkerTasksAdmin = function() {
               </div>
               <div style="display:flex; align-items:center; gap:10px; font-size:0.85rem; color:#8e8e93;">
                 ${isPriv ? '<span style="background:#ffe0b2; color:#e65100; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:0.75rem;">🔒 אישי למנהל</span>' : ''}
-                ${t.doneAt ? `<span>(בוצע: ${t.doneAt})</span>` : ''}
+                ${t.doneAt ? `<span style="font-size:0.85rem; color:#8e8e93; font-style:italic;">(סומן ע"י ${t.doneBy || 'עובד'} ב-${t.doneAt})</span>` : ''}
               </div>
               ${t.workerNote ? `<div style="margin-top:6px; font-size:0.85rem; color:#1565c0; background:#e3f2fd; padding:6px 10px; border-radius:6px;">💬 הערות ${t.workerName || 'עובד'}: ${t.workerNote.replace(/</g, '&lt;')}</div>` : ''}
             </div>
@@ -558,7 +559,7 @@ window.renderWorkerTasksMobile = function() {
               </div>
               <div style="font-size:0.85rem; color:#8e8e93; display:flex; gap:8px;">
                 <span>${city}</span>
-                <span>&#8226; ${t.doneAt ? t.doneAt.split(' ')[1] || t.doneAt : ''}</span>
+                <span>&#8226; ע"י ${t.doneBy || 'עובד'} (${t.doneAt ? t.doneAt.split(' ')[1] || t.doneAt : ''})</span>
               </div>
               ${t.workerNote ? `<div style="margin-top:4px; font-size:0.85rem; color:#1565c0;">💬 ${t.workerNote.replace(/</g, '&lt;')}</div>` : ''}
             </div>
@@ -588,6 +589,7 @@ window.markTaskDone = function(id) {
     const dStr = window.td ? window.td() : now.toISOString().split('T')[0];
     const tStr = now.toTimeString().split(' ')[0].substring(0, 5);
     task.doneAt = `${dStr} ${tStr}`;
+    task.doneBy = window._fbUser?.displayName || window._fbUser?.email?.replace('@ganmanager.app','') || 'עובד';
     
     // Play sound or vibration if possible
     if (navigator.vibrate) navigator.vibrate(50);
