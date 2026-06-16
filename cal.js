@@ -151,9 +151,10 @@ window.initCalMultiSelect = function(type, items, getLabelFn) {
     `;
     items.forEach(item => {
       const val = typeof item === 'object' ? item.id : item;
+      const safeVal = String(val).replace(/"/g, '&quot;');
       const lbl = getLabelFn(item);
       listEl.innerHTML += `<label class="custom-multi-item cal-${type}-multi-real-item" title="${lbl}">
-        <input type="checkbox" value="${val}" class="cal-${type}-multi-chk" onchange="window.calMultiChanged('${type}', '${plat}')">
+        <input type="checkbox" value="${safeVal}" class="cal-${type}-multi-chk" onchange="window.calMultiChanged('${type}', '${plat}')">
         <span>${lbl}</span>
       </label>`;
     });

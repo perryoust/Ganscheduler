@@ -1336,7 +1336,7 @@ function genExport(){
   const incCoord = document.getElementById('ex-inc-coord') && document.getElementById('ex-inc-coord').checked;
   const getCoordStr = (gid) => {
     if (!incCoord) return '';
-    const mgr = Object.values(window.managers || {}).find(m => (m.gardenIds||[]).includes(gid));
+    const gidNum = Number(gid); const mgr = Object.values(window.managers || {}).find(m => (m.gardenIds||[]).map(Number).includes(gidNum));
     if (mgr) return ` (רכז/ת: ${mgr.name} ${mgr.phone||''})`.trimEnd();
     return '';
   };
