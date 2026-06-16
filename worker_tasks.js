@@ -33,7 +33,7 @@ window.initWorkerTasks = function() {
     workerApp.innerHTML = `
       <div style="background:linear-gradient(135deg, #1565c0, #1a237e); color:white; padding:15px; text-align:center; position:sticky; top:0; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:10; display:flex; justify-content:space-between; align-items:center;">
         <div style="font-weight:bold; font-size:1.2rem;">👷 המשימות שלי</div>
-        <button onclick="location.reload()" style="background:rgba(255,255,255,0.2); border:none; border-radius:6px; color:white; padding:6px 12px; font-size:0.8rem; cursor:pointer;">רענן 🔄</button>
+        <button onclick="if(window.loadFromFirebase) { this.innerText='מרענן...'; window.loadFromFirebase(false, true).then(()=>window.renderWorkerTasksMobile()); } else location.reload();" style="background:rgba(255,255,255,0.2); border:none; border-radius:6px; color:white; padding:6px 12px; font-size:0.8rem; cursor:pointer;">רענן נתונים 🔄</button>
       </div>
       <div id="worker-tasks-mobile-list" style="padding:15px; padding-bottom:50px;">
         <!-- Worker list rendered here -->

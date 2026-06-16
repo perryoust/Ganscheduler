@@ -79,10 +79,12 @@ onAuthStateChanged(auth, async (user) => {
     const ADMIN_UID = 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03';
     let permPurch = false;
     let permAct = true;
+    let permWorker = false;
     let role = 'view';
     if (user.uid === ADMIN_UID) {
       permPurch = true;
       permAct = true;
+      permWorker = true;
       role = 'admin';
     } else {
       try {
@@ -93,6 +95,7 @@ onAuthStateChanged(auth, async (user) => {
           if (profile) {
             permPurch = !!profile.permPurch;
             permAct = profile.permAct !== false;
+            permWorker = !!profile.permWorker || profile.role === 'worker';
             role = profile.role || 'view';
           }
         }
@@ -102,7 +105,20 @@ onAuthStateChanged(auth, async (user) => {
     }
     window.permPurch = permPurch;
     window.permAct = permAct;
+    window.permWorker = permWorker;
     window.role = role;
+
+    // Strict Worker Isolation: If they ONLY have worker permissions, use the isolated mobile UI
+    const isStrictWorker = permWorker && (!permAct || role === 'worker') && !permPurch && role !== 'admin';
+    if (isStrictWorker) {
+      const authOverlay = document.getElementById('auth-overlay');
+      if (authOverlay) authOverlay.style.display = 'none';
+      if (typeof window.activateWorkerApp === 'function') {
+        window.activateWorkerApp();
+      }
+      if (typeof window._onAuthReady === 'function') window._onAuthReady();
+      return;
+    }
 
     const authOverlay = document.getElementById('auth-overlay');
     if (authOverlay) authOverlay.style.display = 'none';
