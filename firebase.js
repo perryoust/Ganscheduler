@@ -185,12 +185,68 @@ window.cleanSupplierNamesBeforeSave = function () {
 };
 
 // ── Core Sync Logic ──────────────────────────
-window.saveWorkerTasksToFirebase = async function() {
+window.mergeWorkerTasksLocally = function(cloudData) {
+  if (!cloudData) return;
+  const cloudTasks = Array.isArray(cloudData) ? cloudData : Object.values(cloudData || {});
+  if (cloudTasks.length === 0) return;
+  
+  const cloudMap = {};
+  cloudTasks.forEach(t => cloudMap[t.id] = t);
+  
+  let mergedTasks = [];
+  (window.WORKER_TASKS || []).forEach(t => {
+    const ct = cloudMap[t.id];
+    if (ct) {
+      // Merge Status
+      if (ct.status === 'done' && t.status === 'pending') {
+        t.status = 'done';
+        t.doneAt = ct.doneAt;
+        t.doneBy = ct.doneBy;
+      }
+      // Note: If both are done, we could compare doneAt, but keeping local is fine if local just did it.
+      
+      // Merge Notes
+      if (ct.workerNote && !t.workerNote) t.workerNote = ct.workerNote;
+      else if (ct.workerNote && t.workerNote && ct.workerNote.length > t.workerNote.length) t.workerNote = ct.workerNote;
+      
+      // Merge Names
+      if (ct.workerName && !t.workerName) t.workerName = ct.workerName;
+      if (ct.doneBy && !t.doneBy) t.doneBy = ct.doneBy;
+      
+      delete cloudMap[t.id];
+    }
+    mergedTasks.push(t);
+  });
+  
+  // Add any new tasks from cloud
+  Object.values(cloudMap).forEach(ct => {
+    mergedTasks.push(ct);
+  });
+  
+  window.WORKER_TASKS = mergedTasks;
+  if (window.renderWorkerTasksAdmin) window.renderWorkerTasksAdmin();
+  if (window.renderWorkerTasksMobile) window.renderWorkerTasksMobile();
+};
+
+window.saveWorkerTasksToFirebase = async function(skipMerge = false) {
   try {
     let tok = await window._fbUser?.getIdToken(false);
     if (!tok) return;
     const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
     const url = `${base}/data/global_worker_tasks.json?auth=${tok}`;
+    
+    if (!skipMerge) {
+      try {
+        const getRes = await fetch(url + '&cb=' + Date.now());
+        if (getRes.ok) {
+          const cloudData = await getRes.json();
+          window.mergeWorkerTasksLocally(cloudData);
+        }
+      } catch(e) {
+        console.warn('Merge fetch failed', e);
+      }
+    }
+
     const r = await fetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -202,6 +258,7 @@ window.saveWorkerTasksToFirebase = async function() {
     console.error('[Sync] Error saving worker tasks', e);
   }
 };
+
 
 async function saveToFirebase(silent = false, force = false) {
   if (_isLocked && !force) return false;
@@ -330,7 +387,11 @@ async function loadFromFirebase(silent = false, force = false) {
       if (wtRes.ok) {
         const wtData = await wtRes.json();
         if (wtData) {
-            window.WORKER_TASKS = Array.isArray(wtData) ? wtData : Object.values(wtData || {});
+            if (!window.WORKER_TASKS || window.WORKER_TASKS.length === 0) {
+              window.WORKER_TASKS = Array.isArray(wtData) ? wtData : Object.values(wtData || {});
+            } else {
+              window.mergeWorkerTasksLocally(wtData);
+            }
         } else if (cloud.data && cloud.data.workerTasks && cloud.data.workerTasks.length > 0) {
             window.WORKER_TASKS = cloud.data.workerTasks;
             if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase();
