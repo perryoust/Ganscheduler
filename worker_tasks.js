@@ -139,7 +139,7 @@ window.renderWorkerTasksAdmin = function() {
       </div>
 
       <!-- Diary View -->
-      <div style="background-color:#fdf8e4; background-image: repeating-linear-gradient(transparent, transparent 39px, #e0e0e0 39px, #e0e0e0 40px); background-attachment: local; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.08); padding:20px 20px 20px 20px; padding-right:60px; min-height:400px; position:relative; border-right:2px solid #e57373; line-height: 40px;">
+      <div style="background-color:#fdf8e4; background-image: repeating-linear-gradient(transparent, transparent 39px, #e0e0e0 39px, #e0e0e0 40px); background-attachment: local; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.08); padding:20px 20px 80px 20px; padding-right:60px; min-height:400px; position:relative; border-right:2px solid #e57373; line-height: 40px;">
         <!-- Left red margin line -->
         <div style="position:absolute; right:45px; top:0; bottom:0; width:1px; background-color:#e57373; opacity:0.5;"></div>
         
