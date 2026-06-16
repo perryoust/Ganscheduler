@@ -1414,3 +1414,4 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 .sp-sys-btn-danger { background: #e74c3c; color: white; }
 .sp-sys-btn-danger:hover { background: #c0392b; }
 
+\n@media print {\n  .top-bar, #mode-bar, #mob-nav, #mob-nav-purch, .tabs { display: none !important; }\n  body, html { margin: 0 !important; padding: 0 !important; background: #fff !important; }\n  #c-worker_tasks { display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }\n  .wt-no-print { display: none !important; }\n}\n
