@@ -209,6 +209,9 @@ window._initUsersUI = function _initUsersUI(){
   
   // Dynamic Purchase Mode Visibility
   const hasPurch = !!(window.permPurch || isAdm);
+    const workerModeBtn = document.getElementById('modeBtn-worker');
+  if(workerModeBtn) workerModeBtn.style.display = (window.permWorker || isAdm) ? '' : 'none';
+
   const purchModeBtn = document.getElementById('modeBtn-purch');
   if(purchModeBtn) purchModeBtn.style.display = hasPurch ? '' : 'none';
   const purchStatsGrp = document.getElementById('hdr-purch-stats-group');
@@ -319,6 +322,7 @@ async function createNewUser(){
   const password=document.getElementById('nu-password')?.value||'';
   const permAct=document.getElementById('nu-perm-act')?.checked!==false;
   const permPurch=document.getElementById('nu-perm-purch')?.checked||false;
+  const permWorker=document.getElementById('nu-perm-worker')?.checked||false;
   const role=document.querySelector('input[name="nu-access"]:checked')?.value||'view';
   const statusEl=document.getElementById('nu-status');
   const btn=document.getElementById('nu-create-btn');
@@ -345,7 +349,7 @@ async function createNewUser(){
     const r=await fetch(`${USERS_DB}/${uid}.json${q}`,{
       method:'PUT',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({uid,username,name:displayName,role,email,permAct,permPurch,createdAt:Date.now()})
+      body:JSON.stringify({uid,username,name:displayName,role,email,permAct,permPurch,permWorker,createdAt:Date.now()})
     });
     if(!r.ok) throw new Error('שמירה נכשלה: '+r.status);
 
