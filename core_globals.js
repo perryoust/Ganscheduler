@@ -95,6 +95,7 @@ window.ui = {
     if (s.st === 'can' || (s.nt && /ביטול|בוטל/i.test(s.nt))) tagText = 'ביטול';
     else if (s.nt && /הקדמה|הוקדם/i.test(s.nt)) tagText = 'הקדמה';
     else if (s.nt && /דחי?יה|נדחה/i.test(s.nt)) tagText = 'דחיה';
+    else if (s.nt && /החלפ/i.test(s.nt)) tagText = 'החלפה';
     else if (isM || (s.nt && /השלמה/i.test(s.nt))) tagText = 'השלמה';
     
     const tagMobile = tagText ? `<span style="background:#ffe082;color:#b71c1c;border-radius:4px;padding:1px 4px;font-size:0.65rem;font-weight:800;margin-left:4px;display:inline-block">${tagText}</span> ` : '';
