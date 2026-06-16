@@ -120,7 +120,7 @@ window.renderWorkerTasksAdmin = function() {
         </h2>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <button onclick="if(window.loadFromFirebase) { const btn=this; btn.innerText='מרענן...'; window.loadFromFirebase(false, true).then(()=>{btn.innerText='🔄 רענן נתונים מול העובדים'; window.renderWorkerTasksAdmin();}); } else location.reload();" class="wt-no-print" style="background:#e3f2fd; border:1px solid #90caf9; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="משוך נתונים מהענן כדי לראות אם העובד סיים משימות">🔄 רענן נתונים מול העובדים</button>
-          <button onclick="window.print()" class="wt-no-print" style="background:#fff; border:1px solid #ccc; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="הדפס את דף המשימות">🖨️ הדפס משימות</button>
+          <button onclick="window.wtPrintTasks(window.wtCurrentDate)" class="wt-no-print" style="background:#fff; border:1px solid #ccc; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="הדפס את דף המשימות">🖨️ הדפס משימות</button>
           <div style="position:relative;">
             <input type="text" placeholder="חיפוש משימות..." value="${window.wtSearchQuery}" onkeyup="window.wtDoSearch(this.value)" style="padding:8px 12px; padding-right:30px; border:1px solid #ccc; border-radius:20px; width:180px; font-size:0.9rem;">
             <span style="position:absolute; right:10px; top:8px; opacity:0.5;">🔍</span>
@@ -713,8 +713,17 @@ window.wtAddInlineTask = function() {
 };
 
 
+
+
 window.wtExportWord = function(ds) {
   const tasks = (window.WORKER_TASKS || []).filter(t => !t.isAdminOnly && t.date === ds);
+  
+  const dObj = new Date(ds);
+  const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+  const dayName = days[dObj.getDay()];
+  const dateDisp = window.fD ? window.fD(ds) : ds;
+  const titleStr = `יום ${dayName} | ${dateDisp}`;
+
   let htmlContent = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
   <head>
     <meta charset='utf-8'>
@@ -722,21 +731,29 @@ window.wtExportWord = function(ds) {
     <style>
       @page WordSection1 { size: 148.5mm 210mm; margin: 15mm; }
       div.WordSection1 { page: WordSection1; direction: rtl; font-family: Arial, sans-serif; }
-      h2 { color: #1565c0; text-align: center; }
-      .task { border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 10px; display: flex; align-items: center; }
-      .task-title { font-weight: bold; font-size: 14pt; margin-bottom: 5px; }
+      h1 { color: #1565c0; text-align: center; font-size: 20pt; margin-bottom: 5px; }
+      h2 { color: #555; text-align: center; font-size: 14pt; margin-top: 0; margin-bottom: 20px; font-weight: normal; }
+      .task { margin-bottom: 15px; font-size: 14pt; line-height: 1.5; }
+      .task-text { display: inline; }
+      .checkbox { font-family: 'Segoe UI Symbol', Arial; font-size: 16pt; margin-left: 8px; color: #333; }
+      .notes { margin-top: 4px; font-size: 11pt; color: #666; margin-right: 25px; font-style: italic; }
     </style>
   </head>
   <body>
     <div class='WordSection1'>
-      <h2>משימות שטח - ${window.fD ? window.fD(ds) : ds}</h2>`;
+      <h1>משימות שטח</h1>
+      <h2>${titleStr}</h2>`;
       
   tasks.forEach(t => {
     const gardenName = window.G ? (window.G(t.gardenId)?.name || '') : '';
+    const isDone = t.status === 'done';
+    const box = isDone ? '&#x2611;' : '&#x25A2;';
+    
     htmlContent += `
       <div class="task">
-        <div class="task-title">&#x25A2; ${gardenName} - ${t.desc.replace(/\n/g, ' ')}</div>
-        ${t.workerNote ? `<div style="margin-top:5px; color:#444; font-size:12pt;">הערות: ${t.workerNote}</div>` : ''}
+        <span class="checkbox">${box}</span>
+        <span class="task-text"><b>${gardenName}</b> - ${t.desc.replace(/\n/g, ' ')}</span>
+        ${t.workerNote ? `<div class="notes">הערות ${t.workerName || 'עובד'}: ${t.workerNote}</div>` : ''}
       </div>`;
   });
   
@@ -744,45 +761,70 @@ window.wtExportWord = function(ds) {
   
   const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `משימות_שטח_${ds}.doc`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `משימות_${ds}.doc`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 };
 
-window.renderWorkerTasksForCal = function(ds) {
+window.wtPrintTasks = function(ds) {
   const tasks = (window.WORKER_TASKS || []).filter(t => !t.isAdminOnly && t.date === ds);
-  if (tasks.length === 0) return '';
   
-  let html = `<div style="margin-top:20px; background-color:#e3f2fd; border:2px dashed #90caf9; border-radius:8px; padding:15px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,0.05);" class="no-print">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
-      <h3 style="color:#1565c0; margin:0; font-size:1.1rem;">👷 משימות שטח ליום זה (${tasks.length})</h3>
-      <div style="display:flex; gap:10px;">
-        <button onclick="if(window.loadFromFirebase) { this.innerText='מרענן...'; window.loadFromFirebase(false, true).then(()=>{this.innerText='🔄 רענן נתונים'; window.refresh();}); } else location.reload();" class="btn" style="background:#f0f0f0; color:#333; font-size:0.8rem; padding:4px 8px; border:1px solid #ccc; border-radius:4px; cursor:pointer;">🔄 רענן נתונים</button>
-        <button onclick="window.wtExportWord('${ds}')" class="btn" style="background:#2b579a; color:white; font-size:0.8rem; padding:4px 8px; border:none; border-radius:4px; cursor:pointer;">📥 הורד ל-Word (A5)</button>
-      </div>
-    </div>`;
-    
+  const dObj = new Date(ds);
+  const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+  const dayName = days[dObj.getDay()];
+  const dateDisp = window.fD ? window.fD(ds) : ds;
+  const titleStr = `יום ${dayName} | ${dateDisp}`;
+
+  let htmlContent = `
+  <!DOCTYPE html>
+  <html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8">
+    <title>הדפסת משימות</title>
+    <style>
+      @page { size: A5; margin: 15mm; }
+      body { font-family: Arial, sans-serif; direction: rtl; padding: 0; margin: 0; color: #000; }
+      h1 { text-align: center; font-size: 24px; margin-bottom: 5px; color: #000; }
+      h2 { text-align: center; font-size: 16px; margin-top: 0; margin-bottom: 25px; font-weight: normal; color: #444; }
+      .task { margin-bottom: 16px; font-size: 16px; line-height: 1.4; display: flex; align-items: flex-start; }
+      .checkbox { border: 1px solid #000; width: 16px; height: 16px; display: inline-block; margin-left: 10px; border-radius: 3px; margin-top: 3px; flex-shrink: 0; }
+      .task-content { flex: 1; }
+      .task-text { display: inline; }
+      .notes { margin-top: 4px; font-size: 13px; color: #555; font-style: italic; }
+      .done-check { text-align: center; line-height: 16px; font-size: 14px; font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <h1>משימות שטח</h1>
+    <h2>${titleStr}</h2>
+    <div>`;
+      
   tasks.forEach(t => {
     const gardenName = window.G ? (window.G(t.gardenId)?.name || '') : '';
     const isDone = t.status === 'done';
+    const checkHTML = isDone ? '&#10003;' : '';
     
-    html += `
-      <div style="background:#fff; border-radius:6px; padding:10px; margin-bottom:8px; border-right:4px solid ${isDone ? '#4caf50' : '#ff9800'}; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div style="font-size:0.95rem; color:#444; ${isDone?'text-decoration:line-through;opacity:0.7':''}">
-            <strong>${gardenName}</strong> - ${t.desc.replace(/\n/g, ' ')}
-          </div>
-          <span style="font-size:0.8rem; font-weight:bold; color:${isDone ? '#4caf50' : '#ff9800'}; margin-right:10px; white-space:nowrap;">${isDone ? '✅ בוצע' : '⏳ ממתין'}</span>
+    htmlContent += `
+      <div class="task">
+        <div class="checkbox"><div class="done-check">${checkHTML}</div></div>
+        <div class="task-content">
+          <div class="task-text"><b>${gardenName}</b> - ${t.desc.replace(/\n/g, ' ')}</div>
+          ${t.workerNote ? `<div class="notes">הערות ${t.workerName || 'עובד'}: ${t.workerNote}</div>` : ''}
         </div>
-        ${t.workerNote ? `<div style="margin-top:6px; font-size:0.8rem; background:#f5f7ff; color:#1565c0; padding:4px 8px; border-radius:4px;">💬 ${t.workerNote}</div>` : ''}
-      </div>
-    `;
+      </div>`;
   });
   
-  html += `</div>`;
-  return html;
+  htmlContent += `</div>
+    <script>
+      window.onload = function() { window.print(); window.close(); }
+    </script>
+  </body></html>`;
+
+  const printWin = window.open('', '_blank');
+  printWin.document.open();
+  printWin.document.write(htmlContent);
+  printWin.document.close();
 };
