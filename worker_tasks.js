@@ -119,6 +119,7 @@ window.renderWorkerTasksAdmin = function() {
           👷 ניהול משימות 
         </h2>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button onclick="window.print()" class="wt-no-print" style="background:#fff; border:1px solid #ccc; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="הדפס את דף המשימות">🖨️ הדפס משימות</button>
           <div style="position:relative;">
             <input type="text" placeholder="חיפוש משימות..." value="${window.wtSearchQuery}" onkeyup="window.wtDoSearch(this.value)" style="padding:8px 12px; padding-right:30px; border:1px solid #ccc; border-radius:20px; width:180px; font-size:0.9rem;">
             <span style="position:absolute; right:10px; top:8px; opacity:0.5;">🔍</span>
@@ -138,9 +139,9 @@ window.renderWorkerTasksAdmin = function() {
       </div>
 
       <!-- Diary View -->
-      <div style="background-color:#fdf8e4; background-image: repeating-linear-gradient(transparent, transparent 39px, #e0e0e0 39px, #e0e0e0 40px); background-attachment: local; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.08); padding:20px 40px; min-height:400px; position:relative; border-right:2px solid #e57373; line-height: 40px;">
+      <div style="background-color:#fdf8e4; background-image: repeating-linear-gradient(transparent, transparent 39px, #e0e0e0 39px, #e0e0e0 40px); background-attachment: local; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.08); padding:20px 20px 20px 20px; padding-right:60px; min-height:400px; position:relative; border-right:2px solid #e57373; line-height: 40px;">
         <!-- Left red margin line -->
-        <div style="position:absolute; left:40px; top:0; bottom:0; width:1px; background-color:#e57373; opacity:0.5;"></div>
+        <div style="position:absolute; right:45px; top:0; bottom:0; width:1px; background-color:#e57373; opacity:0.5;"></div>
         
         `;
 
