@@ -127,6 +127,7 @@ window.renderWorkerTasksAdmin = function() {
         </h2>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <button onclick="if(window.loadFromFirebase) { const btn=this; btn.innerText='מסנכרן...'; window.loadFromFirebase(false, true).then(()=>{btn.innerText='🔄 סנכרן נתונים'; window.renderWorkerTasksAdmin();}); } else location.reload();" class="wt-no-print" style="background:#e3f2fd; border:1px solid #90caf9; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="משוך נתונים מהענן כדי לראות מי העובד שסיים את המשימות">🔄 סנכרן נתונים</button>
+          <button onclick="window.wtHardRefresh()" class="wt-no-print" style="background:#ffebee; border:1px solid #ef9a9a; padding:6px 12px; border-radius:20px; cursor:pointer; color:#c62828; font-weight:bold; display:flex; align-items:center; gap:5px;" title="מחיקת הזיכרון המקומי ומשיכה מחדש (עוקף זכרון פנימי)">⚠️ רענון קשיח</button>
           <button onclick="window.wtPrintTasks(window.wtCurrentDate)" class="wt-no-print" style="background:#fff; border:1px solid #ccc; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="הדפס את דף המשימות">🖨️ הדפס משימות</button>
           <div style="position:relative;">
             <input type="text" placeholder="חיפוש משימות..." value="${window.wtSearchQuery}" onkeyup="window.wtDoSearch(this.value)" style="padding:8px 12px; padding-right:30px; border:1px solid #ccc; border-radius:20px; width:180px; font-size:0.9rem;">
@@ -495,6 +496,7 @@ window.renderWorkerTasksMobile = function() {
     html += `
       <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
         <button onclick="if(window.loadFromFirebase){ const b=this; b.innerText='מרענן...'; window.loadFromFirebase(false,true).then(()=>{b.innerText='🔄 רענן'; window.renderWorkerTasksMobile();}); }else location.reload();" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.5); border-radius:20px; padding:4px 12px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;">🔄 רענן</button>
+        <button onclick="window.wtHardRefresh()" style="background:rgba(255,0,0,0.2); border:1px solid rgba(255,100,100,0.5); border-radius:20px; padding:4px 12px; color:#ffcccc; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;" title="רענון קשיח">⚠️</button>
       </div>
       <div style="text-align:center; padding:40px 20px; background:#fff; border-radius:16px; box-shadow:0 4px 15px rgba(0,0,0,0.05); margin-bottom:20px;">
         <div style="font-size:3rem; margin-bottom:10px;">🎉</div>
@@ -507,6 +509,7 @@ window.renderWorkerTasksMobile = function() {
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <div style="font-weight:bold; color:#fff; font-size:1.8rem; text-shadow:0 1px 2px rgba(0,0,0,0.2);">המשימות שלי</div>
         <button onclick="if(window.loadFromFirebase){ const b=this; b.innerText='מרענן...'; window.loadFromFirebase(false,true).then(()=>{b.innerText='🔄 רענן'; window.renderWorkerTasksMobile();}); }else location.reload();" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.5); border-radius:20px; padding:4px 12px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;">🔄 רענן</button>
+        <button onclick="window.wtHardRefresh()" style="background:rgba(255,0,0,0.2); border:1px solid rgba(255,100,100,0.5); border-radius:20px; padding:4px 12px; color:#ffcccc; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;" title="רענון קשיח">⚠️</button>
       </div>
     `;
     pending.forEach(t => {
@@ -735,6 +738,25 @@ window.wtAddInlineTask = function() {
 
 
 
+
+window.wtHardRefresh = async function() {
+  if (confirm('האם אתה בטוח שברצונך לבצע רענון קשיח? זה ימחק כל שינוי מקומי שלא נשמר וימשוך מחדש הכל מהענן.')) {
+    // Clear local backups
+    for(let i=localStorage.length-1; i>=0; i--) {
+      const k = localStorage.key(i);
+      if(k && k.startsWith('ganv5_backup_')) localStorage.removeItem(k);
+    }
+    window.WORKER_TASKS = [];
+    if (window.loadFromFirebase) {
+      await window.loadFromFirebase(false, true);
+    } else {
+      location.reload(true);
+      return;
+    }
+    if (window.renderWorkerTasksAdmin) window.renderWorkerTasksAdmin();
+    if (window.renderWorkerTasksMobile) window.renderWorkerTasksMobile();
+  }
+};
 window.wtExportWord = function(ds) {
   const tasks = (window.WORKER_TASKS || []).filter(t => !t.isAdminOnly && t.date === ds);
   
