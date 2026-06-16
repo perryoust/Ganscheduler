@@ -738,6 +738,13 @@ function renderCal(){
       const evs=filterE(f,window.d2s(new Date(y,m,1)),window.d2s(new Date(y,m+1,0)));
       html=renderMonth(evs,calD,f);
     }
+    
+    if(calV === 'day' && typeof window.renderWorkerTasksForCal === 'function') {
+      try {
+        const ds=window.d2s(calD);
+        html += window.renderWorkerTasksForCal(ds);
+      } catch(e) { console.error('Error rendering worker tasks', e); }
+    }
     document.getElementById('cal-body').innerHTML=html;
   } catch (e) {
     console.error("renderCal error:", e);

@@ -611,7 +611,7 @@ window.wtSearchGardenInline = function(q) {
   const gardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
   const list = gardens.filter(g => (g.name||'').includes(q) || (g.city||'').includes(q) || String(g.id).includes(q)).slice(0,10);
   if(!list.length) { res.innerHTML='<div style="padding:5px; color:#999; font-size:0.8rem;">לא נמצא...</div>'; res.style.display='block'; return; }
-  res.innerHTML = list.map(g => `<div style="padding:5px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #eee;" onclick="document.getElementById('wt-inline-garden').value='${g.name.replace(/'/g, "\\'").replace(/"/g, '&quot;') }'; document.getElementById('wt-inline-garden-id').value='${g.id}'; document.getElementById('wt-inline-garden-results').style.display='none';">${g.name} (${g.city||'אחר'})</div>`).join('');
+  res.innerHTML = list.map(g => `<div style="padding:5px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #eee;" data-id="${g.id}" data-name="${(g.name||'').replace(/"/g, '&quot;')}" onclick="document.getElementById('wt-inline-garden').value=this.dataset.name; document.getElementById('wt-inline-garden-id').value=this.dataset.id; document.getElementById('wt-inline-garden-results').style.display='none';">${g.name} (${g.city||'אחר'})</div>`).join('');
   res.style.display='block';
 };
 
@@ -649,4 +649,33 @@ window.wtAddInlineTask = function() {
   if (window.save) window.save(true);
   window.renderWorkerTasksAdmin();
   if (window.showToast) window.showToast('המשימה נוספה בהצלחה ליומן');
+};
+
+
+window.renderWorkerTasksForCal = function(ds) {
+  const tasks = (window.WORKER_TASKS || []).filter(t => !t.isAdminOnly && t.date === ds);
+  if (tasks.length === 0) return '';
+  
+  let html = `<div style="margin-top:20px; background-color:#e3f2fd; border:2px dashed #90caf9; border-radius:8px; padding:15px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+    <h3 style="color:#1565c0; margin:0 0 10px 0; font-size:1.1rem;">👷 משימות שטח ליום זה (${tasks.length})</h3>`;
+    
+  tasks.forEach(t => {
+    const gardenName = window.G ? (window.G(t.gardenId)?.name || '') : '';
+    const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
+    const isDone = t.status === 'done';
+    
+    html += `
+      <div style="background:#fff; border-radius:6px; padding:10px; margin-bottom:8px; border-right:4px solid ${isDone ? '#4caf50' : '#ff9800'}; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <strong style="font-size:0.95rem; ${isDone?'text-decoration:line-through;color:#888':''}"><span style="font-size:0.8rem; background:#f0f0f0; padding:2px 6px; border-radius:4px; margin-left:5px;">${city}</span> ${gardenName}</strong>
+          <span style="font-size:0.8rem; font-weight:bold; color:${isDone ? '#4caf50' : '#ff9800'};">${isDone ? '✅ בוצע' : '⏳ ממתין'}</span>
+        </div>
+        <div style="font-size:0.9rem; color:#444; ${isDone?'text-decoration:line-through;opacity:0.7':''}">${t.desc.replace(/\n/g, '<br>')}</div>
+        ${t.workerNote ? `<div style="margin-top:6px; font-size:0.8rem; background:#f5f7ff; color:#1565c0; padding:4px 8px; border-radius:4px;">💬 ${t.workerNote}</div>` : ''}
+      </div>
+    `;
+  });
+  
+  html += `</div>`;
+  return html;
 };
