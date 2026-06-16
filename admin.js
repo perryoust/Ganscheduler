@@ -300,6 +300,9 @@ async function loadUsersList(){
             <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer">
               <input type="checkbox" ${u.permPurch?'checked':''} onchange="updateUserPerm('${uid}','permPurch',this.checked)"> 🛒 רכש
             </label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;margin-top:3px">
+              <input type="checkbox" ${u.permWorker?'checked':''} onchange="updateUserPerm('${uid}','permWorker',this.checked)"> 👷 משימות שטח
+            </label>
           </div>
           <div>
             <div style="font-size:.68rem;color:#546e7a;margin-bottom:4px;font-weight:700">רמת גישה:</div>
