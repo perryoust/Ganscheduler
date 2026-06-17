@@ -69,6 +69,12 @@ window.wtToggleTaskStatus = function(id) {
     if (task.status === 'done') {
       task.status = 'pending';
       task.doneAt = null;
+      // Jump to today so the un-completed task appears in the pending list
+      // (past pending tasks are only shown when viewing today or future)
+      const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
+      if (window.wtCurrentDate < today) {
+        window.wtCurrentDate = today;
+      }
     } else {
       task.status = 'done';
       const now = new Date();
