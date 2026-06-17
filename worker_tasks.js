@@ -807,7 +807,7 @@ window.wtExportWord = function(ds) {
 };
 
 window.wtPrintTasks = function(ds) {
-  const tasks = (window.WORKER_TASKS || []).filter(t => !t.isAdminOnly && t.date === ds);
+  const tasks = (window.WORKER_TASKS || []).filter(t => !t.isAdminOnly && t.date === ds && t.status !== 'done');
   
   const dObj = new Date(ds);
   const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
