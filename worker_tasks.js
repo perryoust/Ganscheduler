@@ -197,10 +197,16 @@ window.renderWorkerTasksAdmin = function() {
           </div>
           
           <!-- Left Actions -->
-          <div style="margin-right:15px; padding-top:2px; z-index:10; display:flex; gap:8px;">
-            <button onclick="window.wtAddNote('${t.id}')" style="background:transparent; color:#f57c00; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="הוסף הערה">💬</button>
-            <button onclick="window.wtMoveTaskDate('${t.id}')" style="background:transparent; color:#1565c0; border:none; cursor:pointer; font-size:1.1rem; opacity:0.7;" title="העבר תאריך">📅</button>
-            <button onclick="window.deleteWorkerTask('${t.id}')" style="background:transparent; color:#ef5350; border:none; cursor:pointer; font-size:1.1rem; opacity:0.6;" title="מחק משימה">🗑️</button>
+          <div style="margin-right:15px; padding-top:2px; z-index:10; display:flex; flex-direction:column; gap:4px;">
+            <div style="display:flex; gap:4px;">
+              <button onclick="window.wtMoveTaskUp('${t.id}')" style="background:#f0f0f0; border-radius:4px; border:1px solid #ccc; cursor:pointer; font-size:1.1rem; opacity:0.8; padding:2px 6px;" title="הזז למעלה (דחוף יותר)">⬆️</button>
+              <button onclick="window.wtMoveTaskDown('${t.id}')" style="background:#f0f0f0; border-radius:4px; border:1px solid #ccc; cursor:pointer; font-size:1.1rem; opacity:0.8; padding:2px 6px;" title="הזז למטה (פחות דחוף)">⬇️</button>
+            </div>
+            <div style="display:flex; gap:8px; justify-content:flex-end;">
+              <button onclick="window.wtAddNote('${t.id}')" style="background:transparent; color:#f57c00; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="הוסף הערה">💬</button>
+              <button onclick="window.wtMoveTaskDate('${t.id}')" style="background:transparent; color:#1565c0; border:none; cursor:pointer; font-size:1.1rem; opacity:0.7;" title="העבר תאריך">📅</button>
+              <button onclick="window.deleteWorkerTask('${t.id}')" style="background:transparent; color:#ef5350; border:none; cursor:pointer; font-size:1.1rem; opacity:0.6;" title="מחק משימה">🗑️</button>
+            </div>
           </div>
         </div>
       `;
@@ -417,6 +423,38 @@ window.wtMoveTaskDate = function(id) {
       if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
       window.renderWorkerTasksAdmin();
     }
+  }
+};
+
+window.wtMoveTaskUp = function(id) {
+  const pendingForDate = (window.WORKER_TASKS || []).filter(t => t.date === window.wtCurrentDate && t.status === 'pending');
+  const idx = pendingForDate.findIndex(t => t.id === id);
+  if (idx > 0) {
+    const taskA = pendingForDate[idx];
+    const taskB = pendingForDate[idx - 1];
+    const mainIdxA = window.WORKER_TASKS.findIndex(t => t.id === taskA.id);
+    const mainIdxB = window.WORKER_TASKS.findIndex(t => t.id === taskB.id);
+    const temp = window.WORKER_TASKS[mainIdxA];
+    window.WORKER_TASKS[mainIdxA] = window.WORKER_TASKS[mainIdxB];
+    window.WORKER_TASKS[mainIdxB] = temp;
+    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
+    window.renderWorkerTasksAdmin();
+  }
+};
+
+window.wtMoveTaskDown = function(id) {
+  const pendingForDate = (window.WORKER_TASKS || []).filter(t => t.date === window.wtCurrentDate && t.status === 'pending');
+  const idx = pendingForDate.findIndex(t => t.id === id);
+  if (idx >= 0 && idx < pendingForDate.length - 1) {
+    const taskA = pendingForDate[idx];
+    const taskB = pendingForDate[idx + 1];
+    const mainIdxA = window.WORKER_TASKS.findIndex(t => t.id === taskA.id);
+    const mainIdxB = window.WORKER_TASKS.findIndex(t => t.id === taskB.id);
+    const temp = window.WORKER_TASKS[mainIdxA];
+    window.WORKER_TASKS[mainIdxA] = window.WORKER_TASKS[mainIdxB];
+    window.WORKER_TASKS[mainIdxB] = temp;
+    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
+    window.renderWorkerTasksAdmin();
   }
 };
 
