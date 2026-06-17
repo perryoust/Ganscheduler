@@ -433,7 +433,13 @@ function _applyYearData(o){
   window.pairBreaks = o.pairBreaks||{};
   window.blockedDates = o.blockedDates||{};
   window.gardenBlocks = o.gardenBlocks||{};
-  window.managers = o.managers||{};
+  // Preserve auto-imported managers: don't overwrite if cloud is empty but memory has data
+  if (o.managers && Object.keys(o.managers).length > 0) {
+    window.managers = o.managers;
+  } else if (Object.keys(window.managers || {}).length === 0) {
+    window.managers = o.managers || {};
+  }
+  // else: keep existing window.managers (auto-imported from gardens)
   activeGardens = Array.isArray(o.activeGardens)?new Set(o.activeGardens):null;
   if(window.DataManager && window.DataManager.cleanupDuplicates) {
     window.DataManager.cleanupDuplicates();
