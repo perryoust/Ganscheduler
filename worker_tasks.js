@@ -777,6 +777,28 @@ window.wtAddInlineTask = function() {
   window.renderWorkerTasksAdmin();
 };
 
+window.wtWorkerAddFreeNote = async function() {
+  const note = await window.spPrompt("הקלד את ההודעה שלך מטה (תישמר כמשימה שבוצעה עם ההערה שלך):");
+  if (!note) return;
+  
+  window.WORKER_TASKS.push({
+    id: 'wt_note_' + Date.now(),
+    date: window.wtCurrentDate || (window.td ? window.td() : new Date().toISOString().split('T')[0]),
+    gardenId: 0,
+    desc: 'הודעה כללית מהעובד',
+    status: 'done',
+    workerNote: note.trim(),
+    workerName: window._fbUser?.displayName || window._fbUser?.email?.replace('@ganmanager.app','') || 'עובד',
+    doneAt: (window.td ? window.td() : new Date().toISOString().split('T')[0]) + ' ' + new Date().toTimeString().split(' ')[0].substring(0, 5),
+    doneBy: window._fbUser?.displayName || window._fbUser?.email?.replace('@ganmanager.app','') || 'עובד',
+    isAdminOnly: false
+  });
+  
+  if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
+  window.renderWorkerTasksMobile();
+  if (window.spAlert) window.spAlert("ההודעה נשלחה בהצלחה!");
+};
+
 
 
 
@@ -800,7 +822,13 @@ window.wtHardRefresh = async function() {
   }
 };
 window.wtExportWord = function(ds) {
-  const tasks = (window.WORKER_TASKS || []).filter(t => !t.isAdminOnly && t.date === ds);
+  const includeDone = confirm('האם לכלול משימות שכבר בוצעו בייצוא?');
+  const tasks = (window.WORKER_TASKS || []).filter(t => {
+    if (t.isAdminOnly) return false;
+    if (t.date !== ds) return false;
+    if (!includeDone && t.status === 'done') return false;
+    return true;
+  });
   
   const dObj = new Date(ds);
   const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
@@ -813,7 +841,7 @@ window.wtExportWord = function(ds) {
     <meta charset='utf-8'>
     <title>משימות שטח</title>
     <style>
-      @page WordSection1 { size: 148.5mm 210mm; margin: 15mm; }
+      @page WordSection1 { size: 210mm 297mm; margin: 15mm; }
       div.WordSection1 { page: WordSection1; direction: rtl; font-family: Arial, sans-serif; }
       h1 { color: #1565c0; text-align: center; font-size: 20pt; margin-bottom: 5px; }
       h2 { color: #555; text-align: center; font-size: 14pt; margin-top: 0; margin-bottom: 20px; font-weight: normal; }
@@ -821,6 +849,7 @@ window.wtExportWord = function(ds) {
       .task-text { display: inline; }
       .checkbox { font-family: 'Segoe UI Symbol', Arial; font-size: 16pt; margin-left: 8px; color: #333; }
       .notes { margin-top: 4px; font-size: 11pt; color: #666; margin-right: 25px; font-style: italic; }
+      .print-line { border-bottom: 1pt solid #aaa; margin-top: 25pt; width: 100%; }
     </style>
   </head>
   <body>
@@ -841,7 +870,15 @@ window.wtExportWord = function(ds) {
       </div>`;
   });
   
-  htmlContent += `</div></body></html>`;
+  htmlContent += `
+      <div style="margin-top:40pt; font-weight:bold; font-size:14pt; margin-bottom: 10pt;">הערות נוספות:</div>
+      <div class="print-line"></div>
+      <div class="print-line"></div>
+      <div class="print-line"></div>
+      <div class="print-line"></div>
+      <div class="print-line"></div>
+      <div class="print-line"></div>
+    </div></body></html>`;
   
   const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
   const url = URL.createObjectURL(blob);
@@ -854,7 +891,13 @@ window.wtExportWord = function(ds) {
 };
 
 window.wtPrintTasks = function(ds) {
-  const tasks = (window.WORKER_TASKS || []).filter(t => !t.isAdminOnly && t.date === ds && t.status !== 'done');
+  const includeDone = confirm('האם להדפיס גם משימות שכבר בוצעו?');
+  const tasks = (window.WORKER_TASKS || []).filter(t => {
+    if (t.isAdminOnly) return false;
+    if (t.date !== ds) return false;
+    if (!includeDone && t.status === 'done') return false;
+    return true;
+  });
   
   const dObj = new Date(ds);
   const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
