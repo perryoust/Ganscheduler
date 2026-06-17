@@ -1,0 +1,36 @@
+[debug] [2026-06-17T05:58:45.712Z] ----------------------------------------------------------------------
+[debug] [2026-06-17T05:58:45.714Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Perry\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting
+[debug] [2026-06-17T05:58:45.714Z] CLI Version:   15.11.0
+[debug] [2026-06-17T05:58:45.714Z] Platform:      win32
+[debug] [2026-06-17T05:58:45.715Z] Node Version:  v25.8.1
+[debug] [2026-06-17T05:58:45.715Z] Time:          Wed Jun 17 2026 08:58:45 GMT+0300 (שעון ישראל (קיץ))
+[debug] [2026-06-17T05:58:45.715Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-06-17T05:58:46.615Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-17T05:58:46.615Z] > authorizing via signed-in user (perryoust2@gmail.com)
+[debug] [2026-06-17T05:58:46.615Z] [iam] checking project ganmanage-free for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-06-17T05:58:46.616Z] Checked if tokens are valid: false, expires at: 1781676386520
+[debug] [2026-06-17T05:58:46.616Z] Checked if tokens are valid: false, expires at: 1781676386520
+[debug] [2026-06-17T05:58:46.616Z] > refreshing access token with scopes: []
+[debug] [2026-06-17T05:58:46.619Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-06-17T05:58:46.619Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-06-17T05:58:46.928Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-06-17T05:58:46.929Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-06-17T05:58:46.939Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/ganmanage-free:testIamPermissions [none]
+[debug] [2026-06-17T05:58:46.939Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/ganmanage-free:testIamPermissions  x-goog-user-project=ganmanage-free
+[debug] [2026-06-17T05:58:46.939Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/ganmanage-free:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-06-17T05:58:47.961Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/ganmanage-free:testIamPermissions 200
+[debug] [2026-06-17T05:58:47.961Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/ganmanage-free:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-06-17T05:58:47.962Z] Checked if tokens are valid: true, expires at: 1781679525929
+[debug] [2026-06-17T05:58:47.962Z] Checked if tokens are valid: true, expires at: 1781679525929
+[debug] [2026-06-17T05:58:47.962Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/ganmanage-free [none]
+[debug] [2026-06-17T05:58:48.863Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/ganmanage-free 200
+[debug] [2026-06-17T05:58:48.863Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/ganmanage-free {"projectId":"ganmanage-free","projectNumber":"242506763762","displayName":"ganmanage-free","name":"projects/ganmanage-free","resources":{"hostingSite":"ganmanage-free","realtimeDatabaseInstance":"ganmanage-free-default-rtdb"},"state":"ACTIVE","etag":"1_a9b14dc0-20e1-440b-983b-1ded03f595c6"}
+[info] 
+[info] === Deploying to 'ganmanage-free'...
+[info] 
+[info] i  deploying hosting 
+[debug] [2026-06-17T05:58:48.866Z] Checked if tokens are valid: true, expires at: 1781679525929
+[debug] [2026-06-17T05:58:48.866Z] Checked if tokens are valid: true, expires at: 1781679525929
+[debug] [2026-06-17T05:58:48.866Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/ganmanage-free/versions [none]
+[debug] [2026-06-17T05:58:48.866Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/ganmanage-free/versions {"status":"CREATED","labels":{"deployment-tool":"cli-firebase"}}

@@ -413,3 +413,36 @@ window.spConfirm = function(msg) {
     };
   });
 };
+window.spPrompt = function(msg, defaultText = '') {
+  return new Promise(resolve => {
+    const overlay = document.createElement("div");
+    overlay.className = "sp-sys-dialog-overlay";
+    overlay.innerHTML = `
+      <div class="sp-sys-dialog">
+        <div class="sp-sys-dialog-msg">${msg}</div>
+        <input type="text" id="sp-prompt-input" value="${defaultText}" style="width:100%; padding:8px; margin:10px 0; border:1px solid #ccc; border-radius:4px; font-size:1rem; box-sizing:border-box;">
+        <div class="sp-sys-dialog-btns">
+          <button class="sp-sys-btn sp-sys-btn-cancel" id="sp-prompt-cancel">ביטול</button>
+          <button class="sp-sys-btn sp-sys-btn-ok" id="sp-prompt-ok">אישור</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.classList.add("show"), 10);
+    
+    const input = document.getElementById("sp-prompt-input");
+    input.focus();
+    
+    const finish = (val) => {
+      overlay.classList.remove("show");
+      setTimeout(() => { overlay.remove(); resolve(val); }, 200);
+    };
+    
+    document.getElementById("sp-prompt-ok").onclick = () => finish(input.value);
+    document.getElementById("sp-prompt-cancel").onclick = () => finish(null);
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') finish(input.value);
+      if (e.key === 'Escape') finish(null);
+    };
+  });
+};

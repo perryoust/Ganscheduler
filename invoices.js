@@ -2824,7 +2824,7 @@ function _spFolderDialog(folderName, savedUrl, isSecond) {
       ov.remove();
       resolve({ url, overwrite, addSecond });
     });
-    setTimeout(() => { urlEl.focus(); urlEl.select(); }, 80);
+    setTimeout(async () => { urlEl.focus(); urlEl.select(); }, 80);
   });
 }
 
@@ -2884,7 +2884,8 @@ window.startSharePointScanner = async function() {
   async function scanDir(handle, currentPath, cleanBase) {
     for await (const entry of handle.values()) {
       if (entry.kind === 'file') {
-        if (!entry.name.startsWith('.') && !entry.name.startsWith('~')) {
+        const isOldYear = /\b(20[0-1][0-9]|2020|2021)\b/.test(entry.name);
+        if (!entry.name.startsWith('.') && !entry.name.startsWith('~') && !isOldYear) {
           filesFound.push({
             name: entry.name,
             link: cleanBase + currentPath + '/' + encodeURIComponent(entry.name) + '?web=1'
@@ -3070,11 +3071,11 @@ window.startSharePointScanner = async function() {
 
     // Prompt for new alias if match score indicates generic match but strong enough to be confident
     if (bestInvoice && bestScore > 0 && bestScore < 100) {
-      setTimeout(() => {
+      setTimeout(async () => {
         const chosenSup = bestInvoice.supName;
         const currentAliases = Object.values(window.spScannerAliases || {});
-        if (!currentAliases.includes(chosenSup) && confirm(`המערכת שייכה את הקובץ "${file.name}" לספק ${chosenSup}. תרצה לשמור מילת מפתח קבועה עבורו?`)) {
-           const aliasWord = prompt(`הקלד מילה מתוך שם הקובץ "${file.name}" שתזהה את הספק ${chosenSup}:`);
+        if (!currentAliases.includes(chosenSup) && await window.spConfirm(`המערכת שייכה את הקובץ "${file.name}" לספק ${chosenSup}. תרצה לשמור מילת מפתח קבועה עבורו?`)) {
+           const aliasWord = await window.spPrompt(`הקלד מילה מתוך שם הקובץ "${file.name}" שתזהה את הספק ${chosenSup}:`);
            if (aliasWord && aliasWord.trim().length > 1) {
               window.spScannerAliases = window.spScannerAliases || {};
               window.spScannerAliases[aliasWord.trim()] = chosenSup;
