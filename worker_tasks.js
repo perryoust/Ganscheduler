@@ -128,6 +128,7 @@ window.renderWorkerTasksAdmin = function() {
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <button onclick="if(window.loadFromFirebase) { const btn=this; btn.innerText='מסנכרן...'; window.loadFromFirebase(false, true).then(()=>{btn.innerText='🔄 סנכרן נתונים'; window.renderWorkerTasksAdmin();}); } else location.reload();" class="wt-no-print" style="background:#e3f2fd; border:1px solid #90caf9; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="משוך נתונים מהענן כדי לראות מי העובד שסיים את המשימות">🔄 סנכרן נתונים</button>
           <button onclick="window.wtHardRefresh()" class="wt-no-print" style="background:#ffebee; border:1px solid #ef9a9a; padding:6px 12px; border-radius:20px; cursor:pointer; color:#c62828; font-weight:bold; display:flex; align-items:center; gap:5px;" title="מחיקת הזיכרון המקומי ומשיכה מחדש (עוקף זכרון פנימי)">⚠️ רענון קשיח</button>
+          <button onclick="window.wtExportWord(window.wtCurrentDate)" class="wt-no-print" style="background:#fff; border:1px solid #ccc; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="ייצוא משימות לקובץ Word">📄 ייצוא ל-Word</button>
           <button onclick="window.wtPrintTasks(window.wtCurrentDate)" class="wt-no-print" style="background:#fff; border:1px solid #ccc; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="הדפס את דף המשימות">🖨️ הדפס משימות</button>
           <div style="position:relative;">
             <input type="text" placeholder="חיפוש משימות..." value="${window.wtSearchQuery}" onkeyup="window.wtDoSearch(this.value)" style="padding:8px 12px; padding-right:30px; border:1px solid #ccc; border-radius:20px; width:180px; font-size:0.9rem;">
@@ -740,7 +741,7 @@ window.wtAddInlineTask = function() {
 
 
 window.wtHardRefresh = async function() {
-  if (confirm('האם אתה בטוח שברצונך לבצע רענון קשיח? זה ימחק כל שינוי מקומי שלא נשמר וימשוך מחדש הכל מהענן.')) {
+  if (await window.spConfirm('האם אתה בטוח שברצונך לבצע רענון קשיח? זה ימחק כל שינוי מקומי שלא נשמר וימשוך מחדש הכל מהענן.')) {
     // Clear local backups
     for(let i=localStorage.length-1; i>=0; i--) {
       const k = localStorage.key(i);
