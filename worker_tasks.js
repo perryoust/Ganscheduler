@@ -822,13 +822,13 @@ window.wtPrintTasks = function(ds) {
     <meta charset="utf-8">
     <title>הדפסת משימות</title>
     <style>
-      @page { size: A5; margin: 15mm; }
-      body { font-family: Arial, sans-serif; direction: rtl; padding: 0; margin: 0; color: #000; }
+      @page { margin: 15mm; }
+      body { font-family: Arial, sans-serif; direction: rtl; padding: 0; margin: 0; color: #000; text-align: right; }
       h1 { text-align: center; font-size: 24px; margin-bottom: 5px; color: #000; }
       h2 { text-align: center; font-size: 16px; margin-top: 0; margin-bottom: 25px; font-weight: normal; color: #444; }
-      .task { margin-bottom: 16px; font-size: 16px; line-height: 1.4; display: flex; align-items: flex-start; }
-      .checkbox { border: 1px solid #000; width: 16px; height: 16px; display: inline-block; margin-left: 10px; border-radius: 3px; margin-top: 3px; flex-shrink: 0; }
-      .task-content { flex: 1; }
+      .task { margin-bottom: 16px; font-size: 16px; line-height: 1.4; overflow: hidden; }
+      .checkbox { border: 1px solid #000; width: 16px; height: 16px; float: right; margin-left: 10px; border-radius: 3px; margin-top: 3px; }
+      .task-content { display: block; margin-right: 30px; text-align: right; }
       .task-text { display: inline; }
       .notes { margin-top: 4px; font-size: 13px; color: #555; font-style: italic; }
       .done-check { text-align: center; line-height: 16px; font-size: 14px; font-weight: bold; }
