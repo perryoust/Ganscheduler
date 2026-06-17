@@ -171,7 +171,7 @@ window.renderWorkerTasksAdmin = function() {
     
     // Render Pending
     pending.forEach(t => {
-      const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || 'גן לא ידוע') : 'גן לא ידוע') : 'משימה כללית';
+      const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : '';
       const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
       const loc = city ? `${city} - ${gardenName}` : gardenName;
       const isPriv = t.isAdminOnly;
@@ -215,7 +215,7 @@ window.renderWorkerTasksAdmin = function() {
         <div id="wt-admin-completed" style="display:none;">
       `;
       doneTasks.forEach(t => {
-        const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || 'גן לא ידוע') : 'גן לא ידוע') : 'משימה כללית';
+        const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : '';
         const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
         const loc = city ? `${city} - ${gardenName}` : gardenName;
         const isPriv = t.isAdminOnly;
@@ -334,7 +334,6 @@ window.openNewWorkerTaskModal = function() {
       window.wtCurrentDate = date; // Jump to the date where task was added
       window.wtSearchQuery = '';
       window.renderWorkerTasksAdmin();
-      if (window.spAlert) window.spAlert('המשימה נוספה בהצלחה ליומן');
       return true; // Close dialog
     }, true); 
   } else {
@@ -513,7 +512,7 @@ window.renderWorkerTasksMobile = function() {
       </div>
     `;
     pending.forEach(t => {
-      const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || 'גן לא ידוע') : 'גן לא ידוע') : 'משימה כללית';
+      const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : '';
       const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
       const address = window.G ? (window.G(t.gardenId)?.address || '') : '';
       
@@ -554,7 +553,7 @@ window.renderWorkerTasksMobile = function() {
     `;
     // Only show last 20 done tasks
     done.slice(0, 20).forEach(t => {
-      const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : 'משימה כללית';
+      const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : '';
       const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
       html += `
         <div style="background:#fff; border-radius:8px; padding:12px; margin-bottom:8px; opacity:0.8; box-shadow:0 1px 2px rgba(0,0,0,0.1);">
@@ -729,7 +728,6 @@ window.wtAddInlineTask = function() {
   
   if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
   window.renderWorkerTasksAdmin();
-  if (window.spAlert) window.spAlert('המשימה נוספה בהצלחה ליומן');
 };
 
 
@@ -784,7 +782,7 @@ window.wtExportWord = function(ds) {
       <h2>${titleStr}</h2>`;
       
   tasks.forEach(t => {
-    const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : 'משימה כללית';
+    const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : '';
     const isDone = t.status === 'done';
     const box = isDone ? '&#x2611;' : '&#x25A2;';
     
@@ -842,7 +840,7 @@ window.wtPrintTasks = function(ds) {
     <div>`;
       
   tasks.forEach(t => {
-    const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : 'משימה כללית';
+    const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : '';
     const isDone = t.status === 'done';
     const checkHTML = isDone ? '&#10003;' : '';
     
