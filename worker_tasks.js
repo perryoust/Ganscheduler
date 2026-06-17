@@ -832,6 +832,8 @@ window.wtPrintTasks = function(ds) {
       .task-text { display: inline; }
       .notes { margin-top: 4px; font-size: 13px; color: #555; font-style: italic; }
       .done-check { text-align: center; line-height: 16px; font-size: 14px; font-weight: bold; }
+      .free-text-section { page-break-inside: avoid; }
+      .print-line { border-bottom: 1px solid #aaa; margin-top: 25px; width: 100%; }
     </style>
   </head>
   <body>
@@ -855,6 +857,15 @@ window.wtPrintTasks = function(ds) {
   });
   
   htmlContent += `</div>
+    <div class="free-text-section">
+      <div style="margin-top:40px; font-weight:bold; font-size:16px; margin-bottom: 10px;">הערות נוספות:</div>
+      <div class="print-line"></div>
+      <div class="print-line"></div>
+      <div class="print-line"></div>
+      <div class="print-line"></div>
+      <div class="print-line"></div>
+      <div class="print-line"></div>
+    </div>
     <script>
       window.onload = function() { window.print(); window.close(); }
     </script>
