@@ -187,7 +187,7 @@ window.cleanSupplierNamesBeforeSave = function () {
 // ── Core Sync Logic ──────────────────────────
 window.mergeWorkerTasksLocally = function(cloudData) {
   if (!cloudData) return;
-  const cloudTasks = Array.isArray(cloudData) ? cloudData : Object.values(cloudData || {});
+  const cloudTasks = (Array.isArray(cloudData) ? cloudData : Object.values(cloudData || {})).filter(Boolean);
   if (cloudTasks.length === 0) return;
   
   const cloudMap = {};
@@ -250,7 +250,7 @@ window.saveWorkerTasksToFirebase = async function(skipMerge = false) {
     const r = await fetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(window.WORKER_TASKS || [])
+      body: JSON.stringify((window.WORKER_TASKS || []).filter(Boolean))
     });
     if (!r.ok) console.warn('[Sync] Failed to save worker tasks:', r.status);
     else console.log('[Sync] Worker tasks saved successfully');
@@ -359,7 +359,7 @@ async function loadFromFirebase(silent = false, force = false) {
 
   // Worker Optimization: If user is ONLY a worker, DO NOT fetch the heavy database.
   // Instead, just sync global worker tasks and finish!
-  const isWorkerOnlyMode = document.querySelector('input[name="nu-access"]:checked')?.value === 'worker' || (window._fbUser && window._fbUser.email && window._fbUser.email.includes('worker'));
+  const isWorkerOnlyMode = window.role === 'worker' || (window.permWorker && !window.permPurch && !window.permAct && window.role !== 'admin');
   if (isWorkerOnlyMode) {
       console.log('[Sync] Worker mode detected. Skipping heavy db load.');
       _fbSyncing = false;
@@ -410,7 +410,7 @@ async function loadFromFirebase(silent = false, force = false) {
         const wtData = await wtRes.json();
         if (wtData) {
             if (!window.WORKER_TASKS || window.WORKER_TASKS.length === 0) {
-              window.WORKER_TASKS = Array.isArray(wtData) ? wtData : Object.values(wtData || {});
+              window.WORKER_TASKS = (Array.isArray(wtData) ? wtData : Object.values(wtData || {})).filter(Boolean);
             } else {
               window.mergeWorkerTasksLocally(wtData);
             }

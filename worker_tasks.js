@@ -5,6 +5,7 @@
 
 window.initWorkerTasks = function() {
   if (!window.WORKER_TASKS) window.WORKER_TASKS = [];
+  window.WORKER_TASKS = window.WORKER_TASKS.filter(Boolean);
   window.wtCurrentDate = window.wtCurrentDate || (window.td ? window.td() : new Date().toISOString().split('T')[0]);
   window.wtSearchQuery = window.wtSearchQuery || '';
 
@@ -315,7 +316,7 @@ window.openNewWorkerTaskModal = function() {
       const isAdminOnly = document.getElementById('wt-admin-only').checked;
       
       if (!date || !gardenId || !desc) {
-        if (window.showToast) window.showToast('נא למלא תאריך, גן ותיאור למשימה', true);
+        if (window.spAlert) window.spAlert('נא למלא תאריך, גן ותיאור למשימה', true);
         return false; // Prevent closing
       }
       
@@ -333,7 +334,7 @@ window.openNewWorkerTaskModal = function() {
       window.wtCurrentDate = date; // Jump to the date where task was added
       window.wtSearchQuery = '';
       window.renderWorkerTasksAdmin();
-      if (window.showToast) window.showToast('המשימה נוספה בהצלחה ליומן');
+      if (window.spAlert) window.spAlert('המשימה נוספה בהצלחה ליומן');
       return true; // Close dialog
     }, true); 
   } else {
@@ -408,7 +409,7 @@ window.wtMoveTaskDate = function(id) {
       task.date = nd;
       if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
       window.renderWorkerTasksAdmin();
-      if (window.showToast) window.showToast('המשימה הועברה בהצלחה!');
+      if (window.spAlert) window.spAlert('המשימה הועברה בהצלחה!');
       return true;
     });
   } else {
@@ -704,7 +705,8 @@ window.wtAddInlineTask = function() {
   if (!gardenId && document.getElementById('wt-inline-garden').value) {
     const gName = document.getElementById('wt-inline-garden').value.trim();
     const gardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
-    const match = gardens.find(g => g.name === gName);
+    let match = gardens.find(g => g.name === gName);
+    if (!match) match = gardens.find(g => g.name.includes(gName) || String(g.id) === gName);
     if(match) gardenId = match.id;
   }
   const gardenName = document.getElementById('wt-inline-garden').value;
@@ -712,11 +714,11 @@ window.wtAddInlineTask = function() {
   const isAdminOnly = document.getElementById('wt-inline-admin').checked;
   
   if (!gardenId && gardenName) {
-     if(window.showToast) window.showToast('יש לבחור גן מתוך הרשימה', true);
+     if(window.spAlert) window.spAlert('יש לבחור גן מתוך הרשימה', true);
      return;
   }
   if (!gardenId || !desc) {
-     if(window.showToast) window.showToast('נא לבחור גן ולכתוב תיאור למשימה', true);
+     if(window.spAlert) window.spAlert('נא לבחור גן ולכתוב תיאור למשימה', true);
      return;
   }
   
@@ -732,7 +734,7 @@ window.wtAddInlineTask = function() {
   
   if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
   window.renderWorkerTasksAdmin();
-  if (window.showToast) window.showToast('המשימה נוספה בהצלחה ליומן');
+  if (window.spAlert) window.spAlert('המשימה נוספה בהצלחה ליומן');
 };
 
 
