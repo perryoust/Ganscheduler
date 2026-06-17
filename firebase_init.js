@@ -5,6 +5,7 @@ import {
   createUserWithEmailAndPassword,
   setPersistence, browserLocalPersistence, browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDiUrCk_eOQ_bmAc1ZCXrSaelG-HpaTLfA",
@@ -18,6 +19,20 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getDatabase(app);
+
+// REALTIME LISTENER FOR WORKER TASKS
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    const tasksRef = ref(db, 'data/global_worker_tasks');
+    onValue(tasksRef, (snapshot) => {
+      const data = snapshot.val();
+      if (window.mergeWorkerTasksLocally && typeof window.mergeWorkerTasksLocally === 'function') {
+        window.mergeWorkerTasksLocally(data);
+      }
+    });
+  }
+});
 
 // Secondary app instance — used to create new users WITHOUT signing out admin
 const app2 = initializeApp(firebaseConfig, 'secondary');
