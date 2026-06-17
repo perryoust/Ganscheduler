@@ -76,13 +76,21 @@ window._fbCreateUser = async function (username, password) {
 
 // Listen for auth state — kick off app once signed in
 onAuthStateChanged(auth, async (user) => {
-  // Check for worker fast-track
-  if (window._safeLS && window._safeLS.getItem('ganv5_auth_user') === 'worker') {
+  // Check for worker fast-track — only if we have a Firebase user
+  if (user && window._safeLS && window._safeLS.getItem('ganv5_auth_user') === 'worker') {
+    window._fbUser = user;
+    try { window._cachedToken = await user.getIdToken(false); } catch (e) { window._cachedToken = null; }
+    window.role = 'worker';
+    window.permWorker = true;
+    window.permPurch = false;
+    window.permAct = false;
     const authOverlay = document.getElementById('auth-overlay');
     if (authOverlay) authOverlay.style.display = 'none';
     if (typeof window.activateWorkerApp === 'function') {
       window.activateWorkerApp();
     }
+    // Trigger data load for worker
+    if (typeof window._onAuthReady === 'function') window._onAuthReady();
     return;
   }
 
@@ -112,10 +120,22 @@ onAuthStateChanged(auth, async (user) => {
             permAct = profile.permAct !== false;
             permWorker = !!profile.permWorker || profile.role === 'worker';
             role = profile.role || 'view';
+          } else if (user.email && user.email.startsWith('worker@')) {
+            // Auto-detect worker from email — no profile exists yet
+            permWorker = true;
+            permAct = false;
+            role = 'worker';
+            console.log('[Auth] Auto-detected worker role from email:', user.email);
           }
         }
       } catch (e) {
         console.warn('Failed to load user permissions:', e);
+        // Fallback: detect worker from email
+        if (user.email && user.email.startsWith('worker@')) {
+          permWorker = true;
+          permAct = false;
+          role = 'worker';
+        }
       }
     }
     window.permPurch = permPurch;

@@ -167,7 +167,7 @@ function _applyYearData(o){
     // The ch array IS the complete schedule. No merging needed.
     console.log('[_applyYearData] Direct mode (useSraws=false): using ' + o.ch.length + ' records directly');
     window.useSraws = false;
-    window.WORKER_TASKS = Array.isArray(o.workerTasks) ? o.workerTasks : [];
+    // NOTE: workerTasks no longer loaded from main data blob — managed separately via global_worker_tasks
     window.SCH = o.ch.map(x => ({
       id: x.id,
       g: x.g,
@@ -572,7 +572,7 @@ async function save(immediate){
       useSraws: typeof window.useSraws!=='undefined'?window.useSraws:true,
       spScannerAliases: window.spScannerAliases || {},
       spScannerFolderLinks: window.spScannerFolderLinks || {},
-      workerTasks: window.WORKER_TASKS || []
+      // NOTE: workerTasks saved separately via saveWorkerTasksToFirebase — not included here
     };
     const _json=JSON.stringify(data);
     const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpav');

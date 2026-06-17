@@ -82,15 +82,46 @@ async function doLogin() {
   const p = (document.getElementById('auth-password').value || '');
   if (!u || !p) { _spAlertDialog('נא למלא שם משתמש וסיסמה'); return; }
 
-  // Worker Login Override
+  // Worker Login — authenticate through Firebase Auth (real token needed for DB access)
   if (u === 'worker' && p === 'worker123') {
-    document.getElementById('auth-overlay').style.display = 'none';
-    if (window._safeLS) window._safeLS.setItem('ganv5_auth_user', 'worker');
-    if (typeof window.activateWorkerApp === 'function') {
-      window.activateWorkerApp();
+    try {
+      const btn = document.getElementById('auth-login-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'מתחבר...'; }
+      if (window._safeLS) window._safeLS.setItem('ganv5_auth_user', 'worker');
+      // Sign in with real Firebase Auth — onAuthStateChanged in firebase_init.js
+      // will detect worker role and activate worker app automatically
+      await window._fbSignIn('worker', p, true);
+    } catch (e) {
+      // If the worker account doesn't exist yet, create it
+      if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
+        try {
+          await window._fbCreateUser('worker', p);
+          // Now set the user's role to 'worker' in the database
+          const tok = await window._fbGetToken();
+          if (tok) {
+            // We need the admin to set this, but for now just sign in
+            console.log('[Worker] Created worker account, signing in...');
+          }
+          await window._fbSignIn('worker', p, true);
+        } catch (e2) {
+          console.error('[Worker] Failed to create/login worker:', e2);
+          // Fallback: activate worker app without auth (limited functionality)
+          document.getElementById('auth-overlay').style.display = 'none';
+          if (typeof window.activateWorkerApp === 'function') {
+            window.activateWorkerApp();
+          }
+        }
+      } else {
+        console.error('[Worker] Login failed:', e);
+        document.getElementById('auth-overlay').style.display = 'none';
+        if (typeof window.activateWorkerApp === 'function') {
+          window.activateWorkerApp();
+        }
+      }
     }
     return;
   }
+
 
   try {
     const btn = document.getElementById('auth-login-btn');
@@ -484,10 +515,8 @@ async function loadFromFirebase(silent = false, force = false) {
       window.todo.render();
     }
     
-    if (cloud.data.workerTasks && typeof window.WORKER_TASKS !== 'undefined') {
-      window.WORKER_TASKS = cloud.data.workerTasks;
-      if (typeof window.renderWorkerTasksAdmin === 'function') window.renderWorkerTasksAdmin();
-    }
+    // NOTE: workerTasks are loaded from /data/global_worker_tasks.json (lines 405-443)
+    // Do NOT overwrite from cloud.data.workerTasks — that path is stale and causes sync conflicts
 
     _setSyncState(cloud.seq, Date.now(), null, true);
     
@@ -539,30 +568,6 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-window._onAuthReady = async function () {
-  // Sync years/periods metadata first
-  try {
-    let tok = await window._fbUser?.getIdToken(false);
-    const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
-    const r = await fetch(`${base}/years_meta.json${tok ? '?auth=' + tok : ''}`);
-    if (r.ok) {
-      const cloudMeta = await r.json();
-      if (cloudMeta && cloudMeta.years) {
-        const localMetaStr = window._safeLS.getItem('ganv5_meta');
-        let localMeta = localMetaStr ? JSON.parse(localMetaStr) : { currentYear: 'tashpav', years: {} };
-        // Merge cloud years into local
-        localMeta.years = { ...localMeta.years, ...cloudMeta.years };
-        if (cloudMeta.currentYear && !localMeta.years[localMeta.currentYear]) {
-          localMeta.currentYear = cloudMeta.currentYear;
-        }
-        window._safeLS.setItem('ganv5_meta', JSON.stringify(localMeta));
-        if (window.initYearSelector) window.initYearSelector();
-      }
-    }
-  } catch (e) {
-    console.warn('Failed to load years metadata from Firebase:', e);
-  }
-
-  await loadFromFirebase();
-  _fbStartPolling();
-};
+// _onAuthReady is defined in core_app.js — do NOT redefine here.
+// Just ensure loadFromFirebase and polling are accessible via window.
+// core_app.js calls loadFromFirebase() and _fbStartPolling() after years_meta sync.

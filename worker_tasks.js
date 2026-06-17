@@ -387,8 +387,8 @@ window.wtSearchGarden = function(q) {
   resEl.style.display = 'block';
 };
 
-window.deleteWorkerTask = function(id) {
-  if (confirm('האם אתה בטוח שברצונך למחוק משימה זו?')) {
+window.deleteWorkerTask = async function(id) {
+  if (await window.spConfirm('האם אתה בטוח שברצונך למחוק משימה זו?')) {
     window.WORKER_TASKS = window.WORKER_TASKS.filter(t => t.id !== id);
     if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
     window.renderWorkerTasksAdmin();
@@ -421,11 +421,11 @@ window.wtMoveTaskDate = function(id) {
   }
 };
 
-window.wtAddNote = function(id) {
+window.wtAddNote = async function(id) {
   const task = (window.WORKER_TASKS || []).find(t => t.id === id);
   if (!task) return;
   const currentNote = task.workerNote || '';
-  const newNote = prompt("ערוך הערות למשימה (ניתן גם לכתוב פה ולמחוק אם רוצים להסיר):", currentNote);
+  const newNote = await window.spPrompt("ערוך הערות למשימה (ניתן גם לכתוב פה ולמחוק אם רוצים להסיר):", currentNote);
   if (newNote !== null) {
     task.workerNote = newNote.trim();
     task.workerName = window._fbUser?.displayName || window._fbUser?.email?.replace('@ganmanager.app','') || 'עובד';
