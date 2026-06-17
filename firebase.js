@@ -356,6 +356,28 @@ async function saveToFirebase(silent = false, force = false) {
 }
 
 async function loadFromFirebase(silent = false, force = false) {
+
+  // Worker Optimization: If user is ONLY a worker, DO NOT fetch the heavy database.
+  // Instead, just sync global worker tasks and finish!
+  const isWorkerOnlyMode = document.querySelector('input[name="nu-access"]:checked')?.value === 'worker' || (window._fbUser && window._fbUser.email && window._fbUser.email.includes('worker'));
+  if (isWorkerOnlyMode) {
+      console.log('[Sync] Worker mode detected. Skipping heavy db load.');
+      _fbSyncing = false;
+      try {
+        let tok = await window._fbUser?.getIdToken(false);
+        const wtUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/global_worker_tasks.json' + (tok ? '?auth=' + tok : '');
+        const wtRes = await fetch(wtUrl + (wtUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now());
+        if (wtRes.ok) {
+           const wtData = await wtRes.json();
+           if (wtData && window.mergeWorkerTasksLocally) {
+               window.mergeWorkerTasksLocally(wtData);
+           }
+        }
+      } catch (e) {
+        console.error('[Sync] Worker tasks fetch error:', e);
+      }
+      return true;
+  }
   // CRITICAL: Never load from Firebase during an import — it would overwrite the imported data
   if (window._importInProgress) {
     console.warn('[Sync] Load blocked — import in progress');

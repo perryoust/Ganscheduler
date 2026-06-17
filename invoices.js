@@ -2906,6 +2906,8 @@ window.startSharePointScanner = async function() {
   }
 
   // ── Step 5: Match logic
+  const aliases = window.spScannerAliases || JSON.parse(localStorage.getItem('spScannerAliases') || '{}');
+  window.spScannerAliases = aliases;
   const globalOverwrite = selectedFolders.some(f => f.overwrite);
   let matchCount = 0;
   let skippedCount = 0;
@@ -2942,6 +2944,15 @@ window.startSharePointScanner = async function() {
         let score = 50;
         
         if (inv.supName) {
+          const cleanFileBase = file.name.replace(/[-_.]/g, ' ');
+          let aliasMatched = false;
+          for (const [aliasWord, supName] of Object.entries(aliases)) {
+             if (cleanFileBase.includes(aliasWord) && supName === inv.supName) {
+                score += 500; // Strongest match for alias
+                aliasMatched = true;
+                break;
+             }
+          }
           const supWords = String(inv.supName).split(/\s+/).filter(w => w.length > 2);
           for (const word of supWords) {
             if (file.name.includes(word)) score += 20;
@@ -3056,6 +3067,24 @@ window.startSharePointScanner = async function() {
       }
     }
 
+
+    // Prompt for new alias if match score indicates generic match but strong enough to be confident
+    if (bestInvoice && bestScore > 0 && bestScore < 100) {
+      setTimeout(() => {
+        const chosenSup = bestInvoice.supName;
+        const currentAliases = Object.values(window.spScannerAliases || {});
+        if (!currentAliases.includes(chosenSup) && confirm(`המערכת שייכה את הקובץ "${file.name}" לספק ${chosenSup}. תרצה לשמור מילת מפתח קבועה עבורו?`)) {
+           const aliasWord = prompt(`הקלד מילה מתוך שם הקובץ "${file.name}" שתזהה את הספק ${chosenSup}:`);
+           if (aliasWord && aliasWord.trim().length > 1) {
+              window.spScannerAliases = window.spScannerAliases || {};
+              window.spScannerAliases[aliasWord.trim()] = chosenSup;
+              localStorage.setItem('spScannerAliases', JSON.stringify(window.spScannerAliases));
+              if (window.saveToFirebase) window.saveToFirebase(true, true);
+              window.showToast(`✅ המילה "${aliasWord.trim()}" נשמרה כזיהוי לספק ${chosenSup}`);
+           }
+        }
+      }, 500 * matchCount);
+    }
     let matchedInvoice = bestScore > -200 ? bestInvoice : null;
     let matchedType = bestScore > -200 ? bestType : null;
 

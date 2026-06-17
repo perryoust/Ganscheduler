@@ -480,7 +480,7 @@ window.renderWorkerTasksMobile = function() {
   const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
   const tasks = (window.WORKER_TASKS || []).filter(t => {
     if (t.isAdminOnly) return false;
-    if (t.status === 'pending') return t.date <= today; // Show past pending tasks!
+    if (t.status === 'pending') return (!t.date || t.date <= today);
     return t.date === today; // Only show today's completed tasks
   });
   const pending = tasks.filter(t => t.status === 'pending');
@@ -495,9 +495,8 @@ window.renderWorkerTasksMobile = function() {
   
   if (pending.length === 0) {
     html += `
-      <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
-        <button onclick="if(window.loadFromFirebase){ const b=this; b.innerText='מרענן...'; window.loadFromFirebase(false,true).then(()=>{b.innerText='🔄 רענן'; window.renderWorkerTasksMobile();}); }else location.reload();" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.5); border-radius:20px; padding:4px 12px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;">🔄 רענן</button>
-        <button onclick="window.wtHardRefresh()" style="background:rgba(255,0,0,0.2); border:1px solid rgba(255,100,100,0.5); border-radius:20px; padding:4px 12px; color:#ffcccc; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;" title="רענון קשיח">⚠️</button>
+      <div style="display:flex; justify-content:center; margin-bottom:20px;">
+        <button onclick="if(window.loadFromFirebase){ const b=this; b.innerHTML='<span class=\'spin-icon\'>🔄</span> מסנכרן...'; window.loadFromFirebase(false,true).then(()=>{b.innerHTML='🔄 סנכרן נתונים'; window.renderWorkerTasksMobile();}); }else location.reload();" style="background:#1565c0; border:none; border-radius:20px; padding:10px 24px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:8px; font-weight:bold; font-size:1.1rem; box-shadow:0 4px 10px rgba(21,101,192,0.3);">🔄 סנכרן נתונים</button>
       </div>
       <div style="text-align:center; padding:40px 20px; background:#fff; border-radius:16px; box-shadow:0 4px 15px rgba(0,0,0,0.05); margin-bottom:20px;">
         <div style="font-size:3rem; margin-bottom:10px;">🎉</div>
