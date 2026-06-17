@@ -1388,7 +1388,7 @@ function genExport(){
             const isNohapFunc = (s) => s.st === 'can' || s.st === 'nohap';
             const allNohap = group.every(isNohapFunc);
             
-            const groupMgrs = [...new Set(group.map(s => getCoordStr(s.gd.id)).filter(Boolean))];
+            const groupMgrs = [...new Set(group.map(s => getCoordStr(s.g)).filter(Boolean))];
             const isPairWithSameMgr = group.length > 1 && groupMgrs.length === 1;
             const sharedMgrStr = isPairWithSameMgr ? groupMgrs[0] : '';
             
@@ -1417,7 +1417,7 @@ function genExport(){
                 const isNohapRow = isNohapFunc(s);
                 const stIcon = isNohapRow ? '❌ ' : '🏫 ';
                 const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
-                const coordText = isPairWithSameMgr ? '' : getCoordStr(s.gd.id);
+                const coordText = isPairWithSameMgr ? '' : getCoordStr(s.g);
                 text+=`     ${stIcon}${mTag}${s.gd.name}${coordText}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`; 
               });
             } else {
@@ -1427,7 +1427,7 @@ function genExport(){
                 const stIcon = isNohapRow ? '❌ ' : '🏫 ';
                 const addr=s.gd.st?`📍 ${s.gd.st} · `:'';
                 const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
-                const coordText = isPairWithSameMgr ? '' : getCoordStr(s.gd.id);
+                const coordText = isPairWithSameMgr ? '' : getCoordStr(s.g);
                 text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${coordText}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`;
               });
             }
@@ -1482,7 +1482,7 @@ function genExport(){
                 const isNohapRow = isNohapFunc(s);
                 const stIcon = isNohapRow ? '❌ ' : '🏫 ';
                 const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
-                const coordText = getCoordStr(s.gd.id);
+                const coordText = getCoordStr(s.g);
                 text+=`     ${stIcon}${mTag}${s.gd.name}${coordText}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`; 
               });
             } else {
@@ -1492,7 +1492,7 @@ function genExport(){
                 const stIcon = isNohapRow ? '❌ ' : '🏫 ';
                 const addr=s.gd.st?`📍 ${s.gd.st} · `:'';
                 const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
-                const coordText = getCoordStr(s.gd.id);
+                const coordText = getCoordStr(s.g);
                 text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${coordText}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`;
               });
             }
@@ -1506,7 +1506,7 @@ function genExport(){
           const isNohapRow = s.st === 'can' || s.st === 'nohap';
           const stIcon = isNohapRow ? '❌ ' : '🏫 ';
           const statusTag = (isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
-          const coordText = getCoordStr(s.gd.id);
+          const coordText = getCoordStr(s.g);
           text+=`${stIcon}${mTag}${s.gd.name}${coordText}${statusTag} - ${s.a}${s.t?' · ⏰ '+fT(s.t):''}\n`;
         });
       }
