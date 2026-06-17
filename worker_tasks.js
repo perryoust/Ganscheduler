@@ -505,10 +505,13 @@ window.renderWorkerTasksMobile = function() {
     `;
   } else {
     html += `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:5px;">
         <div style="font-weight:bold; color:#fff; font-size:1.8rem; text-shadow:0 1px 2px rgba(0,0,0,0.2);">המשימות שלי</div>
-        <button onclick="if(window.loadFromFirebase){ const b=this; b.innerText='מרענן...'; window.loadFromFirebase(false,true).then(()=>{b.innerText='🔄 רענן'; window.renderWorkerTasksMobile();}); }else location.reload();" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.5); border-radius:20px; padding:4px 12px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;">🔄 רענן</button>
-        <button onclick="window.wtHardRefresh()" style="background:rgba(255,0,0,0.2); border:1px solid rgba(255,100,100,0.5); border-radius:20px; padding:4px 12px; color:#ffcccc; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;" title="רענון קשיח">⚠️</button>
+        <div style="display:flex; gap:5px;">
+          <button onclick="window.wtWorkerAddFreeNote()" style="background:#4caf50; border:1px solid #388e3c; border-radius:20px; padding:4px 12px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;" title="הודעה חופשית">💬 הודעה</button>
+          <button onclick="if(window.loadFromFirebase){ const b=this; b.innerText='מרענן...'; window.loadFromFirebase(false,true).then(()=>{b.innerText='🔄 רענן'; window.renderWorkerTasksMobile();}); }else location.reload();" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.5); border-radius:20px; padding:4px 12px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;">🔄 רענן</button>
+          <button onclick="window.wtHardRefresh()" style="background:rgba(255,0,0,0.2); border:1px solid rgba(255,100,100,0.5); border-radius:20px; padding:4px 12px; color:#ffcccc; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;" title="רענון קשיח">⚠️</button>
+        </div>
       </div>
     `;
     pending.forEach(t => {
