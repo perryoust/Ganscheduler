@@ -83,7 +83,7 @@ window.wtToggleTaskStatus = function(id) {
       task.doneAt = `${dStr} ${tStr}`;
       task.doneBy = window._fbUser?.displayName || window._fbUser?.email?.replace('@ganmanager.app','') || 'עובד';
     }
-    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
+    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
     window.renderWorkerTasksAdmin();
     // Also re-render mobile if open
     if(document.getElementById('worker-app-root')?.style.display === 'block') {
@@ -342,7 +342,7 @@ window.openNewWorkerTaskModal = function() {
         isAdminOnly: isAdminOnly
       });
       
-      if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
+      if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
       window.wtCurrentDate = date; // Jump to the date where task was added
       window.wtSearchQuery = '';
       window.renderWorkerTasksAdmin();
@@ -366,7 +366,7 @@ window.openNewWorkerTaskModal = function() {
       isAdminOnly: false
     });
     
-    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
+    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
     window.renderWorkerTasksAdmin();
   }
 };
@@ -401,7 +401,7 @@ window.wtSearchGarden = function(q) {
 window.deleteWorkerTask = async function(id) {
   if (await window.spConfirm('האם אתה בטוח שברצונך למחוק משימה זו?')) {
     window.WORKER_TASKS = window.WORKER_TASKS.filter(t => t.id !== id);
-    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
+    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
     window.renderWorkerTasksAdmin();
   }
 };
@@ -417,7 +417,7 @@ window.wtMoveTaskDate = function(id) {
       const nd = document.getElementById('wt-move-date').value;
       if (!nd) return false;
       task.date = nd;
-      if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
+      if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
       window.renderWorkerTasksAdmin();
       if (window.spAlert) window.spAlert('המשימה הועברה בהצלחה!');
       return true;
@@ -426,7 +426,7 @@ window.wtMoveTaskDate = function(id) {
     const newDate = prompt("הזן תאריך חדש למשימה (YYYY-MM-DD):", task.date);
     if (newDate && newDate !== task.date) {
       task.date = newDate;
-      if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
+      if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
       window.renderWorkerTasksAdmin();
     }
   }
@@ -443,7 +443,7 @@ window.wtMoveTaskUp = function(id) {
     const temp = window.WORKER_TASKS[mainIdxA];
     window.WORKER_TASKS[mainIdxA] = window.WORKER_TASKS[mainIdxB];
     window.WORKER_TASKS[mainIdxB] = temp;
-    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
+    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
     window.renderWorkerTasksAdmin();
   }
 };
@@ -459,7 +459,7 @@ window.wtMoveTaskDown = function(id) {
     const temp = window.WORKER_TASKS[mainIdxA];
     window.WORKER_TASKS[mainIdxA] = window.WORKER_TASKS[mainIdxB];
     window.WORKER_TASKS[mainIdxB] = temp;
-    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
+    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
     window.renderWorkerTasksAdmin();
   }
 };
@@ -472,7 +472,7 @@ window.wtAddNote = async function(id) {
   if (newNote !== null) {
     task.workerNote = newNote.trim();
     task.workerName = window._fbUser?.displayName || window._fbUser?.email?.replace('@ganmanager.app','') || 'עובד';
-    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
+    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
     window.renderWorkerTasksAdmin();
   }
 };
@@ -482,7 +482,7 @@ window.wtSaveNote = function(id, val) {
   if (task && task.workerNote !== val) {
     task.workerNote = val.trim();
     task.workerName = window._fbUser?.displayName || window._fbUser?.email?.replace('@ganmanager.app','') || 'עובד';
-    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
+    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
   }
 };
 
@@ -651,7 +651,7 @@ window.markTaskDone = function(id) {
     
     // Save to Firebase immediately
     if (window.save) {
-      if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
+      if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
       // Wait a moment for save, then re-render
       setTimeout(() => {
         window.renderWorkerTasksMobile();
@@ -773,7 +773,7 @@ window.wtAddInlineTask = function() {
     isAdminOnly: isAdminOnly
   });
   
-  if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
+  if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
   window.renderWorkerTasksAdmin();
 };
 
@@ -794,7 +794,7 @@ window.wtWorkerAddFreeNote = async function() {
     isAdminOnly: false
   });
   
-  if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(); else window.save(true);
+  if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
   window.renderWorkerTasksMobile();
   if (window.spAlert) window.spAlert("ההודעה נשלחה בהצלחה!");
 };
