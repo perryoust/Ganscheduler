@@ -171,7 +171,7 @@ window.renderWorkerTasksAdmin = function() {
     
     // Render Pending
     pending.forEach(t => {
-      const gardenName = window.G ? (window.G(t.gardenId)?.name || 'גן לא ידוע') : 'גן לא ידוע';
+      const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || 'גן לא ידוע') : 'גן לא ידוע') : 'משימה כללית';
       const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
       const loc = city ? `${city} - ${gardenName}` : gardenName;
       const isPriv = t.isAdminOnly;
@@ -215,7 +215,7 @@ window.renderWorkerTasksAdmin = function() {
         <div id="wt-admin-completed" style="display:none;">
       `;
       doneTasks.forEach(t => {
-        const gardenName = window.G ? (window.G(t.gardenId)?.name || 'גן לא ידוע') : 'גן לא ידוע';
+        const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || 'גן לא ידוע') : 'גן לא ידוע') : 'משימה כללית';
         const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
         const loc = city ? `${city} - ${gardenName}` : gardenName;
         const isPriv = t.isAdminOnly;
@@ -323,7 +323,7 @@ window.openNewWorkerTaskModal = function() {
       window.WORKER_TASKS.push({
         id: 'wt_' + Date.now(),
         date: date,
-        gardenId: parseInt(gardenId),
+        gardenId: gardenId ? parseInt(gardenId) : 0,
         desc: desc,
         status: 'pending',
         doneAt: null,
@@ -341,15 +341,14 @@ window.openNewWorkerTaskModal = function() {
     // Fallback if spPromptDialog not available
     const date = prompt("תאריך (YYYY-MM-DD):", window.wtCurrentDate || (window.td ? window.td() : ''));
     if (!date) return;
-    const gardenId = prompt("מזהה הגן (מספר):");
-    if (!gardenId) return;
+    const gardenId = prompt("מזהה הגן (מספר, או השאר ריק למשימה כללית):");
     const desc = prompt("תיאור המשימה:");
     if (!desc) return;
     
     window.WORKER_TASKS.push({
       id: 'wt_' + Date.now(),
       date: date,
-      gardenId: parseInt(gardenId),
+      gardenId: gardenId ? parseInt(gardenId) : 0,
       desc: desc,
       status: 'pending',
       doneAt: null,
@@ -514,7 +513,7 @@ window.renderWorkerTasksMobile = function() {
       </div>
     `;
     pending.forEach(t => {
-      const gardenName = window.G ? (window.G(t.gardenId)?.name || 'גן לא ידוע') : 'גן לא ידוע';
+      const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || 'גן לא ידוע') : 'גן לא ידוע') : 'משימה כללית';
       const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
       const address = window.G ? (window.G(t.gardenId)?.address || '') : '';
       
@@ -555,7 +554,7 @@ window.renderWorkerTasksMobile = function() {
     `;
     // Only show last 20 done tasks
     done.slice(0, 20).forEach(t => {
-      const gardenName = window.G ? (window.G(t.gardenId)?.name || '') : '';
+      const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : 'משימה כללית';
       const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
       html += `
         <div style="background:#fff; border-radius:8px; padding:12px; margin-bottom:8px; opacity:0.8; box-shadow:0 1px 2px rgba(0,0,0,0.1);">
@@ -713,19 +712,15 @@ window.wtAddInlineTask = function() {
   const desc = document.getElementById('wt-inline-desc').value.trim();
   const isAdminOnly = document.getElementById('wt-inline-admin').checked;
   
-  if (!gardenId && gardenName) {
-     if(window.spAlert) window.spAlert('יש לבחור גן מתוך הרשימה', true);
-     return;
-  }
-  if (!gardenId || !desc) {
-     if(window.spAlert) window.spAlert('נא לבחור גן ולכתוב תיאור למשימה', true);
+  if (!desc) {
+     if(window.spAlert) window.spAlert('נא לכתוב תיאור למשימה', true);
      return;
   }
   
   window.WORKER_TASKS.push({
     id: 'wt_' + Date.now(),
     date: window.wtCurrentDate,
-    gardenId: parseInt(gardenId),
+    gardenId: gardenId ? parseInt(gardenId) : 0,
     desc: desc,
     status: 'pending',
     doneAt: null,
@@ -789,7 +784,7 @@ window.wtExportWord = function(ds) {
       <h2>${titleStr}</h2>`;
       
   tasks.forEach(t => {
-    const gardenName = window.G ? (window.G(t.gardenId)?.name || '') : '';
+    const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : 'משימה כללית';
     const isDone = t.status === 'done';
     const box = isDone ? '&#x2611;' : '&#x25A2;';
     
@@ -847,7 +842,7 @@ window.wtPrintTasks = function(ds) {
     <div>`;
       
   tasks.forEach(t => {
-    const gardenName = window.G ? (window.G(t.gardenId)?.name || '') : '';
+    const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : 'משימה כללית';
     const isDone = t.status === 'done';
     const checkHTML = isDone ? '&#10003;' : '';
     
