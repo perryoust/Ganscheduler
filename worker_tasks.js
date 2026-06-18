@@ -871,20 +871,7 @@ window.wtPrintTasks = async function(ds) {
     return;
   }
   
-  const hasDone = todayTasks.some(t => t.status === 'done');
-  let includeDone = false;
-  if (hasDone) {
-    if (window.spConfirm) {
-      includeDone = await window.spConfirm('יש משימות שכבר בוצעו ביום זה. האם לכלול גם אותן בהדפסה?');
-    } else {
-      includeDone = confirm('יש משימות שכבר בוצעו ביום זה. האם לכלול גם אותן בהדפסה?');
-    }
-  }
-
-  const tasks = todayTasks.filter(t => {
-    if (!includeDone && t.status === 'done') return false;
-    return true;
-  });
+  const tasks = todayTasks;
   
   const dObj = new Date(ds);
   const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
