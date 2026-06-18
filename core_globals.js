@@ -446,3 +446,43 @@ window.spPrompt = function(msg, defaultText = '') {
     };
   });
 };
+
+/**
+ * Custom dialog with arbitrary HTML content, a title, and OK/Cancel buttons.
+ * @param {string} title - Dialog title
+ * @param {string} htmlContent - Custom HTML to render inside the dialog body
+ * @param {string} okText - Text for the OK button (e.g. 'שמור')
+ * @param {function} onOk - Callback when OK is clicked. Return true to close, false to keep open.
+ * @param {boolean} wide - If true, make dialog wider
+ */
+window.spPromptDialog = function(title, htmlContent, okText, onOk, wide) {
+  const overlay = document.createElement("div");
+  overlay.className = "sp-sys-dialog-overlay";
+  overlay.innerHTML = `
+    <div class="sp-sys-dialog" style="${wide ? 'max-width:500px;' : ''}">
+      <div class="sp-sys-dialog-msg" style="font-weight:700; font-size:1.1rem; margin-bottom:12px;">${title}</div>
+      <div id="sp-prompt-dialog-body">${htmlContent}</div>
+      <div class="sp-sys-dialog-btns" style="margin-top:15px;">
+        <button class="sp-sys-btn sp-sys-btn-cancel" id="sp-pdlg-cancel">ביטול</button>
+        <button class="sp-sys-btn sp-sys-btn-ok" id="sp-pdlg-ok">${okText || 'אישור'}</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.classList.add("show"), 10);
+  
+  const close = () => {
+    overlay.classList.remove("show");
+    setTimeout(() => overlay.remove(), 200);
+  };
+  
+  document.getElementById("sp-pdlg-ok").onclick = () => {
+    if (onOk) {
+      const result = onOk();
+      if (result !== false) close();
+    } else {
+      close();
+    }
+  };
+  document.getElementById("sp-pdlg-cancel").onclick = close;
+};
