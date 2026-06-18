@@ -462,6 +462,17 @@ window.wtOnDropTask = function(draggedId, droppedOnId) {
   window.renderWorkerTasksAdmin();
 };
 
+window.wtEditTaskDesc = async function(id) {
+  const task = (window.WORKER_TASKS || []).find(t => t.id === id);
+  if (!task) return;
+  const newDesc = await window.spPrompt("ערוך תיאור משימה:", task.desc);
+  if (newDesc !== null && newDesc.trim() !== '') {
+    task.desc = newDesc.trim();
+    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) window.save(true);
+    window.renderWorkerTasksAdmin();
+  }
+};
+
 window.wtAddNote = async function(id) {
   const task = (window.WORKER_TASKS || []).find(t => t.id === id);
   if (!task) return;
