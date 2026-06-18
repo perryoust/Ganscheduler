@@ -182,7 +182,7 @@ window.renderWorkerTasksAdmin = function() {
       const isDone = t.status === 'done';
       const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : '';
       const city = t.gardenId ? (window.G ? (window.G(t.gardenId)?.city || '') : '') : (t.city || '');
-      const loc = t.gardenId ? (city ? `${city} - ${gardenName}` : gardenName) : (city || 'משימה כללית');
+      const loc = t.gardenId ? (city ? `${city} - ${gardenName}` : gardenName) : (city || '');
       const isPriv = t.isAdminOnly;
       
       html += `
@@ -211,7 +211,7 @@ window.renderWorkerTasksAdmin = function() {
           <div style="flex:1;">
             ${isSearch ? `<div style="font-size:0.75rem; color:#888; margin-bottom:2px;">${window.fD ? window.fD(t.date) : t.date}</div>` : ''}
             <div style="font-size:1.1rem; color:${isDone ? '#666' : '#1c1c1e'}; line-height:1.3; margin-bottom:4px;">
-              <strong>${loc}</strong> - ${t.desc.replace(/\n/g, ' ')}
+              ${loc ? `<strong>${loc}</strong> - ` : ''}${t.desc.replace(/\n/g, ' ')}
             </div>
             <div style="display:flex; align-items:center; gap:10px; font-size:0.85rem; color:#8e8e93;">
               ${isPriv ? '<span style="background:#ffe0b2; color:#e65100; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:0.75rem;">🔒 אישי למנהל</span>' : ''}
@@ -555,7 +555,7 @@ window.renderWorkerTasksMobile = function() {
     const allSortedTasks = [...pending, ...done];
     allSortedTasks.forEach(t => {
       const isDone = t.status === 'done';
-      const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : (t.city ? t.city : 'משימה כללית');
+      const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : (t.city || '');
       const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
       const address = window.G ? (window.G(t.gardenId)?.address || '') : '';
       
@@ -570,7 +570,7 @@ window.renderWorkerTasksMobile = function() {
             <!-- Task Text -->
             <div style="flex:1;">
               <div style="font-size:1.1rem; color:${isDone ? '#666' : '#1c1c1e'}; margin-bottom:2px; line-height:1.3;">
-                ${gardenName} - ${t.desc.replace(/\n/g, ' ')}
+                ${gardenName ? `${gardenName} - ` : ''}${t.desc.replace(/\n/g, ' ')}
               </div>
               <div style="font-size:0.85rem; color:#8e8e93; display:flex; flex-direction:column; gap:4px;">
                 <div style="display:flex; gap:8px;">
@@ -832,14 +832,14 @@ window.wtExportWord = function(ds) {
       <h2>${titleStr}</h2>`;
       
   tasks.forEach(t => {
-    const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : (t.city ? t.city : 'משימה כללית');
+    const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : (t.city || '');
     const isDone = t.status === 'done';
     const box = isDone ? '&#x2611;' : '&#x25A2;';
     
     htmlContent += `
       <div class="task">
         <span class="checkbox">${box}</span>
-        <span class="task-text"><b>${gardenName}</b> - ${t.desc.replace(/\n/g, ' ')}</span>
+        <span class="task-text">${gardenName ? `<b>${gardenName}</b> - ` : ''}${t.desc.replace(/\n/g, ' ')}</span>
         ${t.workerNote ? `<div class="notes">הערות ${t.workerName || 'עובד'}: ${t.workerNote}</div>` : ''}
       </div>`;
   });
@@ -907,7 +907,7 @@ window.wtPrintTasks = async function(ds) {
     <div>`;
       
   tasks.forEach(t => {
-    let gardenName = 'משימה כללית';
+    let gardenName = '';
     if (t.city && !t.gardenId) {
       gardenName = t.city;
     } else if (t.gardenId !== -1 && window.G) {
@@ -923,7 +923,7 @@ window.wtPrintTasks = async function(ds) {
       <div class="task">
         <div class="checkbox"><div class="done-check">${checkHTML}</div></div>
         <div class="task-content">
-          <div class="task-text"><b>${gardenName}</b> - ${t.desc.replace(/\n/g, ' ')}</div>
+          <div class="task-text">${gardenName ? `<b>${gardenName}</b> - ` : ''}${t.desc.replace(/\n/g, ' ')}</div>
           ${t.workerNote ? `<div class="notes">הערות ${t.workerName || 'עובד'}: ${t.workerNote}</div>` : ''}
         </div>
       </div>`;
