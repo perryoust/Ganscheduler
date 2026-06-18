@@ -217,6 +217,7 @@ window.renderWorkerTasksAdmin = function() {
           <!-- Left Actions -->
           <div style="margin-right:15px; padding-top:2px; z-index:10; display:flex; flex-direction:column; gap:4px; justify-content:flex-start;">
             <div style="display:flex; gap:8px; justify-content:flex-end;">
+              <button onclick="window.wtEditTaskDesc('${t.id}')" style="background:transparent; color:#8e24aa; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="ערוך משימה">✏️</button>
               <button onclick="window.wtAddNote('${t.id}')" style="background:transparent; color:#f57c00; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="הוסף הערה">💬</button>
               <button onclick="window.wtMoveTaskDate('${t.id}')" style="background:transparent; color:#1565c0; border:none; cursor:pointer; font-size:1.1rem; opacity:0.7;" title="העבר תאריך">📅</button>
               <button onclick="window.deleteWorkerTask('${t.id}')" style="background:transparent; color:#ef5350; border:none; cursor:pointer; font-size:1.1rem; opacity:0.6;" title="מחק משימה">🗑️</button>
@@ -260,6 +261,7 @@ window.renderWorkerTasksAdmin = function() {
             </div>
             
             <div style="margin-right:15px; padding-top:2px; z-index:10; display:flex; gap:8px;">
+              <button onclick="window.wtEditTaskDesc('${t.id}')" style="background:transparent; color:#8e24aa; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="ערוך משימה">✏️</button>
               <button onclick="window.deleteWorkerTask('${t.id}')" style="background:transparent; color:#ef5350; border:none; cursor:pointer; font-size:1.1rem; opacity:0.6;" title="מחק משימה">🗑️</button>
             </div>
           </div>
@@ -886,11 +888,25 @@ window.wtExportWord = function(ds) {
   document.body.removeChild(a);
 };
 
-window.wtPrintTasks = function(ds) {
-  const includeDone = confirm('האם להדפיס גם משימות שכבר בוצעו?');
-  const tasks = (window.WORKER_TASKS || []).filter(t => {
-    if (t.isAdminOnly) return false;
-    if (t.date !== ds) return false;
+window.wtPrintTasks = async function(ds) {
+  const todayTasks = (window.WORKER_TASKS || []).filter(t => !t.isAdminOnly && t.date === ds);
+  if (todayTasks.length === 0) {
+    if (window.spAlert) window.spAlert('אין משימות להדפסה ביום זה');
+    else alert('אין משימות להדפסה ביום זה');
+    return;
+  }
+  
+  const hasDone = todayTasks.some(t => t.status === 'done');
+  let includeDone = false;
+  if (hasDone) {
+    if (window.spConfirm) {
+      includeDone = await window.spConfirm('יש משימות שכבר בוצעו ביום זה. האם לכלול גם אותן בהדפסה?');
+    } else {
+      includeDone = confirm('יש משימות שכבר בוצעו ביום זה. האם לכלול גם אותן בהדפסה?');
+    }
+  }
+
+  const tasks = todayTasks.filter(t => {
     if (!includeDone && t.status === 'done') return false;
     return true;
   });
