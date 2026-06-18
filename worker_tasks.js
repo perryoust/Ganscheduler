@@ -890,8 +890,8 @@ window.wtPrintTasks = async function(ds) {
       body { font-family: Arial, sans-serif; direction: rtl; padding: 0; margin: 0; color: #000; text-align: right; }
       h1 { text-align: center; font-size: 22px; margin-top: 0; margin-bottom: 3px; color: #000; }
       h2 { text-align: center; font-size: 16px; margin-top: 0; margin-bottom: 25px; font-weight: normal; color: #444; }
-      .task { margin-bottom: 16px; font-size: 16px; line-height: 1.4; overflow: hidden; }
-      .checkbox { border: 1px solid #000; width: 16px; height: 16px; float: right; margin-left: 10px; border-radius: 3px; margin-top: 3px; }
+      .task { margin-bottom: 12px; font-size: 14px; line-height: 1.4; overflow: hidden; }
+      .checkbox { border: 1px solid #000; width: 14px; height: 14px; float: right; margin-left: 10px; border-radius: 3px; margin-top: 3px; }
       .task-content { display: block; margin-right: 30px; text-align: right; }
       .task-text { display: inline; }
       .notes { margin-top: 4px; font-size: 13px; color: #555; font-style: italic; }
@@ -906,7 +906,15 @@ window.wtPrintTasks = async function(ds) {
     <div>`;
       
   tasks.forEach(t => {
-    const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : (t.city ? t.city : 'משימה כללית');
+    let gardenName = 'משימה כללית';
+    if (t.city && !t.gardenId) {
+      gardenName = t.city;
+    } else if (t.gardenId !== -1 && window.G) {
+      const gObj = window.G(t.gardenId);
+      if (gObj) {
+        gardenName = (gObj.city ? gObj.city + ' - ' : '') + (gObj.name || '');
+      }
+    }
     const isDone = t.status === 'done';
     const checkHTML = isDone ? '&#10003;' : '';
     
