@@ -1851,6 +1851,49 @@ function markCompQuick(id){
 }
 window.markCompQuick = markCompQuick;
 
+function unmarkCompQuick(id){
+  try {
+    const s=window.SCH.find(x=>x.id==id); if(!s) return;
+    s._compByMakeup = ''; // Clear handled flag
+    
+    // Clear handled note if any
+    if(s.nt) {
+      s.nt = s.nt.split(' | ').filter(p => !p.includes('✅ סיום טיפול')).join(' | ').trim();
+    }
+
+    // Unmark partners automatically if they share the same timestamp (silent sync)
+    const pair = window.gardenPair(s.g);
+    const cluster = window.clusters ? Object.values(window.clusters).find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
+    
+    const allPartnerIds = new Set();
+    if(pair) pair.ids.forEach(i => allPartnerIds.add(Number(i)));
+    if(cluster) cluster.gids.forEach(i => allPartnerIds.add(Number(i)));
+    allPartnerIds.delete(Number(s.g));
+
+    allPartnerIds.forEach(ogid => {
+      const partnerEv = typeof window.findPartnerActivity === 'function' 
+        ? window.findPartnerActivity(ogid, s.d, s.a)
+        : window.SCH.find(p => p.d === s.d && window.supBase(p.a) === window.supBase(s.a) && Number(p.g) === Number(ogid));
+        
+      if (partnerEv && partnerEv._compByMakeup) {
+        partnerEv._compByMakeup = '';
+        if(partnerEv.nt) {
+          partnerEv.nt = partnerEv.nt.split(' | ').filter(p => !p.includes('✅ סיום טיפול')).join(' | ').trim();
+        }
+      }
+    });
+
+    window.save();
+    setTimeout(() => {
+      if(window.updCounts) window.updCounts();
+      if(window.renderDash) window.renderDash();
+      if(window.renderCal) window.renderCal();
+    }, 20);
+    if(window.showToast) window.showToast('↩️ הוחזר לרשימת לטיפול');
+  } catch(e){ console.error(e); }
+}
+window.unmarkCompQuick = unmarkCompQuick;
+
 function upd(id,fields){
   const i=window.SCH.findIndex(s=>s.id==id);
   if(i>=0) Object.assign(window.SCH[i],fields);

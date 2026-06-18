@@ -56,7 +56,8 @@ window.ui = {
     return `
       <div class="qacts flex-c justify-center gap-3 ${window.isMobileMode()?'mob-ver':''}" onclick="event.stopPropagation()">
         ${isDone ? '' : `<button title="╫ס╫ץ╫ª╫ó" class="qbtn q-done" onclick="window.qSetSt('${sid}','done')">Γ£פ∩╕ן ${window.isMobileMode()?'╫ס╫ץ╫ª╫ó':''}</button>`}
-        ${(isException && !isHandled) ? `<button title="╫í╫ש╫ץ╫¥ ╫ר╫ש╫ñ╫ץ╫£" class="qbtn q-handled" onclick="if(window.markCompQuick)window.markCompQuick('${sid}')">Γ£ו ${window.isMobileMode()?'╫ר╫ץ╫ñ╫£':''}</button>` : ''}
+        ${(isException && !isHandled) ? `<button title="סיום טיפול" class="qbtn q-handled" onclick="if(window.markCompQuick)window.markCompQuick('${sid}')">✅ ${window.isMobileMode()?'טופל':''}</button>` : ''}
+        ${(isException && isHandled) ? `<button title="ביטול טיפול (החזרה לרשימת לטיפול)" class="qbtn q-handled" style="background:#fff3e0;color:#e65100;border:1px solid #ffb74d" onclick="if(window.unmarkCompQuick)window.unmarkCompQuick('${sid}')">↩️ ${window.isMobileMode()?'לא טופל':''}</button>` : ''}
         ${isCan ? '' : `<button title="╫ס╫ש╫ר╫ץ╫£" class="qbtn q-can" onclick="window.openCanQ('${sid}')">Γ¥ל ${window.isMobileMode()?'╫ס╫ש╫ר╫ץ╫£':''}</button>`}
         ${isNohap ? '' : `<button title="╫£╫נ ╫פ╫¬╫º╫ש╫ש╫¥" class="qbtn q-nohap" onclick="window.qSetSt('${sid}','nohap')">Γתá∩╕ן ${window.isMobileMode()?'╫£╫נ ╫פ╫¬╫º╫ש╫ש╫¥':''}</button>`}
         <button title="╫פ╫צ╫צ╫פ (╫ף╫ק╫ש╫ש╫פ / ╫פ╫º╫ף╫₧╫פ)" class="qbtn q-post" onclick="window.openPostpone('${sid}')">Γן⌐ ${window.isMobileMode()?'╫פ╫צ╫צ╫פ':''}</button>
