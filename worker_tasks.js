@@ -968,9 +968,9 @@ window.wtPrintTasks = async function(ds) {
     <meta charset="utf-8">
     <title>הדפסת משימות</title>
     <style>
-      @page { margin: 15mm; }
+      @page { margin: 5mm 10mm; }
       body { font-family: Arial, sans-serif; direction: rtl; padding: 0; margin: 0; color: #000; text-align: right; }
-      h1 { text-align: center; font-size: 24px; margin-bottom: 5px; color: #000; }
+      h1 { text-align: center; font-size: 22px; margin-top: 0; margin-bottom: 3px; color: #000; }
       h2 { text-align: center; font-size: 16px; margin-top: 0; margin-bottom: 25px; font-weight: normal; color: #444; }
       .task { margin-bottom: 16px; font-size: 16px; line-height: 1.4; overflow: hidden; }
       .checkbox { border: 1px solid #000; width: 16px; height: 16px; float: right; margin-left: 10px; border-radius: 3px; margin-top: 3px; }
