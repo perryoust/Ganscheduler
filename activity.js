@@ -2697,6 +2697,7 @@ window.createMakeupActivity = function(data) {
        if(cluster) cluster.gids.forEach(id => allPartnerIds.add(Number(id)));
        allPartnerIds.delete(Number(origExt.g));
 
+       const partnerNoticeNote = `השלמה נקבעה ל-${window.fD(data.d)}`;
        allPartnerIds.forEach(partnerId => {
          const partnerEv = window.SCH.find(ps => 
            Number(ps.g)===Number(partnerId) && ps.d === origExt.d && 
@@ -2704,8 +2705,8 @@ window.createMakeupActivity = function(data) {
          );
            if(partnerEv) {
               partnerEv._compByMakeup = loopId;
-              if(!partnerEv.nt || !partnerEv.nt.includes(noticeNote)) {
-                 partnerEv.nt = (partnerEv.nt ? partnerEv.nt + ' | ' : '') + noticeNote;
+              if(!partnerEv.nt || !partnerEv.nt.includes(partnerNoticeNote)) {
+                 partnerEv.nt = (partnerEv.nt ? partnerEv.nt + ' | ' : '') + partnerNoticeNote;
               }
            }
          });
