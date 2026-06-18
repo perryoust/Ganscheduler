@@ -337,13 +337,13 @@ window.openNewWorkerTaskModal = function() {
       const gardenId = document.getElementById('wt-garden-id').value;
       const desc = document.getElementById('wt-desc').value.trim();
       const isAdminOnly = document.getElementById('wt-admin-only').checked;
+      const cityName = document.getElementById('wt-city-name') ? document.getElementById('wt-city-name').value : '';
       
-      if (!date || !gardenId || !desc) {
-        if (window.spAlert) window.spAlert('נא למלא תאריך, גן ותיאור למשימה', true);
+      if (!date || (!gardenId && !cityName) || !desc) {
+        if (window.spAlert) window.spAlert('נא למלא תאריך, גן/עיר ותיאור למשימה', true);
         return false; // Prevent closing
       }
       
-      const cityName = document.getElementById('wt-city-name') ? document.getElementById('wt-city-name').value : '';
       window.WORKER_TASKS.push({
         id: 'wt_' + Date.now(),
         date: date,
@@ -396,12 +396,12 @@ window.wtSearchGarden = function(q) {
     return;
   }
   
-  const gardens = window.GARDENS || [];
+  const gardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
   const results = gardens.filter(g => 
     String(g.id).includes(q) || 
     (g.name && g.name.includes(q)) || 
     (g.city && g.city.includes(q))
-  ).slice(0, 10); // Limit to 10
+  ).slice(0, 30); // Limit to 30
   
   let html = '';
   const matchingCities = [...new Set(gardens.filter(g => g.city && g.city.includes(q)).map(g => g.city))];
