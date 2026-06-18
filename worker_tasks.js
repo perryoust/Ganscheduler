@@ -184,7 +184,19 @@ window.renderWorkerTasksAdmin = function() {
       
       html += `
         <!-- Task Row -->
-        <div style="background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); margin-bottom:10px; display:flex; align-items:flex-start; padding:12px; position:relative;">
+        <div draggable="true" 
+             ondragstart="event.dataTransfer.setData('text/plain', '${t.id}'); this.style.opacity='0.4';" 
+             ondragend="this.style.opacity='1';"
+             ondragover="event.preventDefault(); this.style.borderTop='2px dashed #1565c0';" 
+             ondragleave="this.style.borderTop='none';" 
+             ondrop="event.preventDefault(); this.style.borderTop='none'; const draggedId=event.dataTransfer.getData('text/plain'); if(window.wtOnDropTask) window.wtOnDropTask(draggedId, '${t.id}');"
+             style="background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); margin-bottom:10px; display:flex; align-items:flex-start; padding:12px; position:relative; cursor:grab; transition: border 0.2s;">
+          
+          <!-- Drag Handle -->
+          <div style="margin-left:10px; padding-top:4px; color:#ccc; cursor:grab; font-size:1.2rem;" title="גרור כדי לשנות סדר">
+            ☰
+          </div>
+
           <!-- Right Checkbox -->
           <div style="margin-left:15px; padding-top:2px;">
             <div onclick="window.wtToggleTaskStatus('${t.id}')" style="width:26px; height:26px; border:2px solid #8e8e93; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; background:white; box-sizing:border-box;"></div>
@@ -203,11 +215,7 @@ window.renderWorkerTasksAdmin = function() {
           </div>
           
           <!-- Left Actions -->
-          <div style="margin-right:15px; padding-top:2px; z-index:10; display:flex; flex-direction:column; gap:4px;">
-            <div style="display:flex; gap:4px;">
-              <button onclick="window.wtMoveTaskUp('${t.id}')" style="background:#f0f0f0; border-radius:4px; border:1px solid #ccc; cursor:pointer; font-size:1.1rem; opacity:0.8; padding:2px 6px;" title="הזז למעלה (דחוף יותר)">⬆️</button>
-              <button onclick="window.wtMoveTaskDown('${t.id}')" style="background:#f0f0f0; border-radius:4px; border:1px solid #ccc; cursor:pointer; font-size:1.1rem; opacity:0.8; padding:2px 6px;" title="הזז למטה (פחות דחוף)">⬇️</button>
-            </div>
+          <div style="margin-right:15px; padding-top:2px; z-index:10; display:flex; flex-direction:column; gap:4px; justify-content:flex-start;">
             <div style="display:flex; gap:8px; justify-content:flex-end;">
               <button onclick="window.wtAddNote('${t.id}')" style="background:transparent; color:#f57c00; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="הוסף הערה">💬</button>
               <button onclick="window.wtMoveTaskDate('${t.id}')" style="background:transparent; color:#1565c0; border:none; cursor:pointer; font-size:1.1rem; opacity:0.7;" title="העבר תאריך">📅</button>
@@ -432,36 +440,24 @@ window.wtMoveTaskDate = function(id) {
   }
 };
 
-window.wtMoveTaskUp = function(id) {
-  const pendingForDate = (window.WORKER_TASKS || []).filter(t => t.date === window.wtCurrentDate && t.status === 'pending');
-  const idx = pendingForDate.findIndex(t => t.id === id);
-  if (idx > 0) {
-    const taskA = pendingForDate[idx];
-    const taskB = pendingForDate[idx - 1];
-    const mainIdxA = window.WORKER_TASKS.findIndex(t => t.id === taskA.id);
-    const mainIdxB = window.WORKER_TASKS.findIndex(t => t.id === taskB.id);
-    const temp = window.WORKER_TASKS[mainIdxA];
-    window.WORKER_TASKS[mainIdxA] = window.WORKER_TASKS[mainIdxB];
-    window.WORKER_TASKS[mainIdxB] = temp;
-    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
-    window.renderWorkerTasksAdmin();
-  }
-};
-
-window.wtMoveTaskDown = function(id) {
-  const pendingForDate = (window.WORKER_TASKS || []).filter(t => t.date === window.wtCurrentDate && t.status === 'pending');
-  const idx = pendingForDate.findIndex(t => t.id === id);
-  if (idx >= 0 && idx < pendingForDate.length - 1) {
-    const taskA = pendingForDate[idx];
-    const taskB = pendingForDate[idx + 1];
-    const mainIdxA = window.WORKER_TASKS.findIndex(t => t.id === taskA.id);
-    const mainIdxB = window.WORKER_TASKS.findIndex(t => t.id === taskB.id);
-    const temp = window.WORKER_TASKS[mainIdxA];
-    window.WORKER_TASKS[mainIdxA] = window.WORKER_TASKS[mainIdxB];
-    window.WORKER_TASKS[mainIdxB] = temp;
-    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
-    window.renderWorkerTasksAdmin();
-  }
+window.wtOnDropTask = function(draggedId, droppedOnId) {
+  if (draggedId === droppedOnId) return;
+  const tasks = window.WORKER_TASKS || [];
+  const dragIdx = tasks.findIndex(t => t.id === draggedId);
+  const dropIdx = tasks.findIndex(t => t.id === droppedOnId);
+  if (dragIdx === -1 || dropIdx === -1) return;
+  
+  const draggedTask = tasks[dragIdx];
+  tasks.splice(dragIdx, 1);
+  
+  // Re-find dropIdx after removal
+  const newDropIdx = tasks.findIndex(t => t.id === droppedOnId);
+  
+  // Insert before the dropped-on task
+  tasks.splice(newDropIdx, 0, draggedTask);
+  
+  if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) window.save(true);
+  window.renderWorkerTasksAdmin();
 };
 
 window.wtAddNote = async function(id) {
