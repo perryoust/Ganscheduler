@@ -175,8 +175,10 @@ window.renderWorkerTasksAdmin = function() {
     const pending = displayTasks.filter(t => t.status !== 'done');
     const doneTasks = displayTasks.filter(t => t.status === 'done');
     
-    // Render Pending
-    pending.forEach(t => {
+    // Render Pending then Done together
+    const allSortedTasks = [...pending, ...doneTasks];
+    allSortedTasks.forEach(t => {
+      const isDone = t.status === 'done';
       const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : '';
       const city = t.gardenId ? (window.G ? (window.G(t.gardenId)?.city || '') : '') : (t.city || '');
       const loc = t.gardenId ? (city ? `${city} - ${gardenName}` : gardenName) : (city || 'משימה כללית');
@@ -190,7 +192,7 @@ window.renderWorkerTasksAdmin = function() {
              ondragover="event.preventDefault(); this.style.borderTop='2px dashed #1565c0';" 
              ondragleave="this.style.borderTop='none';" 
              ondrop="event.preventDefault(); this.style.borderTop='none'; const draggedId=event.dataTransfer.getData('text/plain'); if(window.wtOnDropTask) window.wtOnDropTask(draggedId, '${t.id}');"
-             style="background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); margin-bottom:10px; display:flex; align-items:flex-start; padding:12px; position:relative; cursor:grab; transition: border 0.2s;">
+             style="background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); margin-bottom:10px; display:flex; align-items:flex-start; padding:12px; position:relative; cursor:grab; transition: border 0.2s; ${isDone ? 'opacity:0.85;' : ''}">
           
           <!-- Drag Handle -->
           <div style="margin-left:10px; padding-top:4px; color:#ccc; cursor:grab; font-size:1.2rem;" title="גרור כדי לשנות סדר">
@@ -199,17 +201,20 @@ window.renderWorkerTasksAdmin = function() {
 
           <!-- Right Checkbox -->
           <div style="margin-left:15px; padding-top:2px;">
-            <div onclick="window.wtToggleTaskStatus('${t.id}')" style="width:26px; height:26px; border:2px solid #8e8e93; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; background:white; box-sizing:border-box;"></div>
+            <div onclick="window.wtToggleTaskStatus('${t.id}')" style="width:26px; height:26px; border:2px solid ${isDone ? '#4caf50' : '#8e8e93'}; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; background:white; box-sizing:border-box;">
+              ${isDone ? '<span style="color:#4caf50; font-weight:bold; font-size:1.1rem;">✓</span>' : ''}
+            </div>
           </div>
           
           <!-- Content -->
           <div style="flex:1;">
             ${isSearch ? `<div style="font-size:0.75rem; color:#888; margin-bottom:2px;">${window.fD ? window.fD(t.date) : t.date}</div>` : ''}
-            <div style="font-size:1.1rem; color:#1c1c1e; line-height:1.3; margin-bottom:4px;">
+            <div style="font-size:1.1rem; color:${isDone ? '#666' : '#1c1c1e'}; line-height:1.3; margin-bottom:4px;">
               <strong>${loc}</strong> - ${t.desc.replace(/\n/g, ' ')}
             </div>
             <div style="display:flex; align-items:center; gap:10px; font-size:0.85rem; color:#8e8e93;">
               ${isPriv ? '<span style="background:#ffe0b2; color:#e65100; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:0.75rem;">🔒 אישי למנהל</span>' : ''}
+              ${isDone && t.doneAt ? `<span style="font-size:0.85rem; color:#4caf50; font-weight:bold;">(בוצע ע"י ${t.doneBy || 'עובד'} ב-${t.doneAt})</span>` : ''}
             </div>
             ${t.workerNote ? `<div style="margin-top:6px; font-size:0.85rem; color:#1565c0; background:#e3f2fd; padding:6px 10px; border-radius:6px; border-right:3px solid #64b5f6;">💬 הערות ${t.workerName || 'עובד'}: ${t.workerNote.replace(/</g, '&lt;')}</div>` : ''}
           </div>
@@ -226,49 +231,6 @@ window.renderWorkerTasksAdmin = function() {
         </div>
       `;
     });
-    
-    // Render Done
-    if (doneTasks.length > 0) {
-      html += `
-        <div style="margin-top:25px; margin-bottom:10px; display:inline-flex; align-items:center; background:#e0e0e0; padding:4px 12px; border-radius:12px; font-size:0.9rem; color:#555; font-weight:bold; cursor:pointer;" onclick="const d=document.getElementById('wt-admin-completed'); d.style.display=d.style.display==='none'?'block':'none';">
-          <span style="transform:rotate(90deg); margin-left:6px;">&#10095;</span> הושלמו (${doneTasks.length})
-        </div>
-        <div id="wt-admin-completed" style="display:none;">
-      `;
-      doneTasks.forEach(t => {
-        const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : (t.city ? t.city : 'משימה כללית');
-        const city = t.gardenId ? (window.G ? (window.G(t.gardenId)?.city || '') : '') : (t.city || '');
-        const loc = t.gardenId ? (city ? `${city} - ${gardenName}` : gardenName) : (city ? city : 'משימה כללית');
-        const isPriv = t.isAdminOnly;
-        html += `
-          <div style="background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.05); margin-bottom:10px; display:flex; align-items:flex-start; padding:12px; position:relative; opacity:0.7;">
-            <div style="margin-left:15px; padding-top:2px;">
-              <div onclick="window.wtToggleTaskStatus('${t.id}')" style="width:26px; height:26px; border:2px solid #1565c0; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; background:#1565c0; box-sizing:border-box;">
-                <span style="color:white; font-weight:bold; font-size:0.9rem;">✓</span>
-              </div>
-            </div>
-            
-            <div style="flex:1;">
-              ${isSearch ? `<div style="font-size:0.75rem; color:#888; margin-bottom:2px;">${window.fD ? window.fD(t.date) : t.date}</div>` : ''}
-              <div style="font-size:1.1rem; color:#8e8e93; text-decoration:line-through; line-height:1.3; margin-bottom:4px;">
-                <strong>${loc}</strong> - ${t.desc.replace(/\n/g, ' ')}
-              </div>
-              <div style="display:flex; align-items:center; gap:10px; font-size:0.85rem; color:#8e8e93;">
-                ${isPriv ? '<span style="background:#ffe0b2; color:#e65100; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:0.75rem;">🔒 אישי למנהל</span>' : ''}
-                ${t.doneAt ? `<span style="font-size:0.85rem; color:#8e8e93; font-style:italic;">(סומן ע"י ${t.doneBy || 'עובד'} ב-${t.doneAt})</span>` : ''}
-              </div>
-              ${t.workerNote ? `<div style="margin-top:6px; font-size:0.85rem; color:#1565c0; background:#e3f2fd; padding:6px 10px; border-radius:6px;">💬 הערות ${t.workerName || 'עובד'}: ${t.workerNote.replace(/</g, '&lt;')}</div>` : ''}
-            </div>
-            
-            <div style="margin-right:15px; padding-top:2px; z-index:10; display:flex; gap:8px;">
-              <button onclick="window.wtEditTaskDesc('${t.id}')" style="background:transparent; color:#8e24aa; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="ערוך משימה">✏️</button>
-              <button onclick="window.deleteWorkerTask('${t.id}')" style="background:transparent; color:#ef5350; border:none; cursor:pointer; font-size:1.1rem; opacity:0.6;" title="מחק משימה">🗑️</button>
-            </div>
-          </div>
-        `;
-      });
-      html += `</div>`;
-    }
   }
 
   html += `
@@ -589,25 +551,32 @@ window.renderWorkerTasksMobile = function() {
         </div>
       </div>
     `;
-    pending.forEach(t => {
+    const allSortedTasks = [...pending, ...done];
+    allSortedTasks.forEach(t => {
+      const isDone = t.status === 'done';
       const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : (t.city ? t.city : 'משימה כללית');
       const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
       const address = window.G ? (window.G(t.gardenId)?.address || '') : '';
       
       html += `
-        <div style="background:#fff; border-radius:8px; padding:12px; margin-bottom:8px; box-shadow:0 1px 3px rgba(0,0,0,0.15);">
+        <div style="background:#fff; border-radius:8px; padding:12px; margin-bottom:8px; box-shadow:0 1px 3px rgba(0,0,0,0.15); ${isDone ? 'opacity:0.85;' : ''}">
           <div style="display:flex; align-items:flex-start; gap:12px;">
             <!-- Circle Checkbox -->
-            <div onclick="window.markTaskDone('${t.id}')" style="width:26px; height:26px; margin-top:2px; border:2px solid #8e8e93; border-radius:50%; flex-shrink:0; cursor:pointer; box-sizing:border-box;"></div>
+            <div onclick="${isDone ? `window.wtToggleTaskStatus('${t.id}')` : `window.markTaskDone('${t.id}')`}" style="width:26px; height:26px; margin-top:2px; border:2px solid ${isDone ? '#4caf50' : '#8e8e93'}; border-radius:50%; flex-shrink:0; cursor:pointer; box-sizing:border-box; display:flex; align-items:center; justify-content:center; background:white;">
+               ${isDone ? '<span style="color:#4caf50; font-weight:bold; font-size:1.1rem;">✓</span>' : ''}
+            </div>
             
             <!-- Task Text -->
             <div style="flex:1;">
-              <div style="font-size:1.1rem; color:#1c1c1e; margin-bottom:2px; line-height:1.3;">
+              <div style="font-size:1.1rem; color:${isDone ? '#666' : '#1c1c1e'}; margin-bottom:2px; line-height:1.3;">
                 ${gardenName} - ${t.desc.replace(/\n/g, ' ')}
               </div>
-              <div style="font-size:0.85rem; color:#8e8e93; display:flex; gap:8px;">
-                <span>${city}</span>
-                ${address ? `<span>&#8226; 📍 ${address}</span>` : ''}
+              <div style="font-size:0.85rem; color:#8e8e93; display:flex; flex-direction:column; gap:4px;">
+                <div style="display:flex; gap:8px;">
+                  <span>${city}</span>
+                  ${address ? `<span>&#8226; 📍 ${address}</span>` : ''}
+                </div>
+                ${isDone && t.doneAt ? `<span style="color:#4caf50; font-weight:bold;">(בוצע ע"י ${t.doneBy || 'עובד'} ב-${t.doneAt.split(' ')[1] || t.doneAt})</span>` : ''}
               </div>
               <textarea id="wt-note-${t.id}" onchange="window.wtSaveNote('${t.id}', this.value)" placeholder="הוסף הערה..." style="width:100%; padding:4px 0; border:none; border-bottom:1px solid #f0f0f0; background:transparent; box-sizing:border-box; resize:none; font-family:inherit; margin-top:6px; font-size:0.9rem; color:#1565c0;">${t.workerNote || ''}</textarea>
             </div>
@@ -618,44 +587,6 @@ window.renderWorkerTasksMobile = function() {
         </div>
       `;
     });
-  }
-  
-  if (done.length > 0) {
-    html += `
-      <div style="margin-top:20px; margin-bottom:10px;">
-        <div style="display:inline-flex; align-items:center; background:rgba(255,255,255,0.2); padding:4px 10px; border-radius:6px; font-size:0.9rem; color:#fff; font-weight:bold; cursor:pointer;" onclick="const d=document.getElementById('wt-completed'); d.style.display=d.style.display==='none'?'block':'none';">
-          <span style="transform:rotate(90deg); margin-left:6px;">&#10095;</span> הושלמו (${done.length})
-        </div>
-      </div>
-      <div id="wt-completed" style="display:none;">
-    `;
-    // Only show last 20 done tasks
-    done.slice(0, 20).forEach(t => {
-      const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : (t.city ? t.city : 'משימה כללית');
-      const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
-      html += `
-        <div style="background:#fff; border-radius:8px; padding:12px; margin-bottom:8px; opacity:0.8; box-shadow:0 1px 2px rgba(0,0,0,0.1);">
-          <div style="display:flex; align-items:flex-start; gap:12px;">
-            <!-- Checked Circle -->
-            <div onclick="window.wtToggleTaskStatus('${t.id}')" style="width:26px; height:26px; margin-top:2px; background:#1565c0; border:2px solid #1565c0; border-radius:50%; flex-shrink:0; cursor:pointer; box-sizing:border-box; display:flex; justify-content:center; align-items:center; color:white; font-size:14px;">&#10003;</div>
-            
-            <div style="flex:1;">
-              <div style="font-size:1.1rem; color:#8e8e93; text-decoration:line-through; margin-bottom:2px; line-height:1.3;">
-                ${gardenName} - ${t.desc.replace(/\n/g, ' ')}
-              </div>
-              <div style="font-size:0.85rem; color:#8e8e93; display:flex; gap:8px;">
-                <span>${city}</span>
-                <span>&#8226; ע"י ${t.doneBy || 'עובד'} (${t.doneAt ? t.doneAt.split(' ')[1] || t.doneAt : ''})</span>
-              </div>
-              ${t.workerNote ? `<div style="margin-top:4px; font-size:0.85rem; color:#1565c0;">💬 ${t.workerNote.replace(/</g, '&lt;')}</div>` : ''}
-            </div>
-            
-            <div style="color:#d1d1d6; font-size:1.4rem; padding-top:2px;">&#9734;</div>
-          </div>
-        </div>
-      `;
-    });
-    html += `</div>`;
   }
   
 
