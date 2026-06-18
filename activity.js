@@ -297,6 +297,14 @@ window.dashBatchAction = async function(action) {
     stampPrefix = 'bulk_can_';
   }
 
+  if (action === 'unhandled') {
+    if(!confirm('האם להסיר את סטטוס "טופל" מהפריטים שנבחרו?')) return;
+    ids.forEach(id => { window.unmarkCompQuick(id); });
+    document.querySelectorAll('.dash-row-chk').forEach(cb => cb.checked = false);
+    window.dashUpdateBulkBar();
+    return;
+  }
+
   const note = prompt(promptMsg);
   if (note === null) return; // User cancelled prompt
 
