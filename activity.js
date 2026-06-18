@@ -2856,7 +2856,7 @@ window.selCanReason = function(btn, reason) {
   if (reason === 'אחר' && noteEl) noteEl.focus();
 };
 
-window.saveCanQ = function() {
+window.saveCanQ = async function() {
   const sel = document.querySelector('.can-reason-btn.sel');
   const mainReason = sel ? sel.dataset.r : '';
   const extra = (document.getElementById('canq-note')||{}).value?.trim() || '';
@@ -2889,14 +2889,14 @@ window.saveCanQ = function() {
     }
   }
   
-  window.saveAndRefresh('canqm', false);
+  await window.saveAndRefresh('canqm', false);
 
   // Prompt for makeup
   setTimeout(() => {
     if (confirm('🎨 האם ברצונך לקבוע שיעור השלמה כעת?')) {
       window.openMakeupSched(_canQId);
     }
-  }, 500);
+  }, 100);
 };
 
 let _cancelDayDs = null;
@@ -3000,7 +3000,7 @@ window.selNohapReason = function(btn, reason){
   else if(inp) inp.placeholder = reason;
 };
 
-window.saveNohapQ = function(){
+window.saveNohapQ = async function(){
   const sel = document.querySelector('.nohap-reason-btn.sel');
   const mainReason = sel ? (sel.dataset.r || sel.textContent.replace(/^\S+ /,'').trim()) : '';
   const extra = (document.getElementById('nohapq-reason')||{}).value?.trim() || '';
@@ -3040,14 +3040,14 @@ window.saveNohapQ = function(){
     });
   }
 
-  window.saveAndRefresh('nohapqm', false);
+  await window.saveAndRefresh('nohapqm', false);
   
   // Prompt for makeup
   setTimeout(() => {
     if (confirm('🎨 האם ברצונך לקבוע שיעור השלמה כעת?')) {
       window.openMakeupSched(_nohapQId);
     }
-  }, 500);
+  }, 100);
 };
 
 window.getSpFreeDaysHtml = function(gid) {
