@@ -284,10 +284,10 @@
           </div>
         </div>
         <div class="dash-view-pills">
-           <button id="dvp-todo-desktop" class="dash-view-pill active" onclick="setDashView('todo')"><span>🚀 לטיפול</span> <b class="badge" id="dvp-cnt-todo-desktop">0</b></button>
-           <button id="dvp-makeups-desktop" class="dash-view-pill" onclick="setDashView('makeups')"><span>📅 השלמות</span> <b class="badge" id="dvp-cnt-makeups-desktop">0</b></button>
-           <button id="dvp-all-desktop" class="dash-view-pill" onclick="setDashView('all')"><span>📋 הכל</span> <b class="badge" id="dvp-cnt-all-desktop">0</b></button>
-           <button id="dvp-handled-desktop" class="dash-view-pill" onclick="setDashView('handled')"><span>✅ טופלו</span> <b class="badge" id="dvp-cnt-handled-desktop">0</b></button>
+           <button id="dvp-todo-desktop" class="dash-view-pill active" onclick="setDashView('todo')" title="מציג גנים עם חריגות (כגון חוג שלא התקיים או נדחה) שעדיין לא קיבלו מענה ולא סומנו כ'טופל'."><span>🚀 לטיפול</span> <b class="badge" id="dvp-cnt-todo-desktop">0</b></button>
+           <button id="dvp-makeups-desktop" class="dash-view-pill" onclick="setDashView('makeups')" title="מציג השלמות או דחיות שנקבעו להיום או לעתיד כדי שתוכלו לעקוב ולוודא שהן מתקיימות."><span>📅 השלמות</span> <b class="badge" id="dvp-cnt-makeups-desktop">0</b></button>
+           <button id="dvp-all-desktop" class="dash-view-pill" onclick="setDashView('all')" title="מציג את כל הפעילויות והגנים שקיימים במערכת ביום הנבחר (כולל מה שבוצע ומה שטרם בוצע)."><span>📋 הכל</span> <b class="badge" id="dvp-cnt-all-desktop">0</b></button>
+           <button id="dvp-handled-desktop" class="dash-view-pill" onclick="setDashView('handled')" title="מציג חריגות עבר ופעילויות בעייתיות שכבר טיפלתם בהן וסימנתם כ'טופל'."><span>✅ טופלו</span> <b class="badge" id="dvp-cnt-handled-desktop">0</b></button>
         </div>
       </div>
 
@@ -312,10 +312,10 @@
          </div>
          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top: 8px;">
             <div class="dash-view-pills">
-               <button id="dvp-todo-mobile" class="dash-view-pill active bsm" onclick="setDashView('todo')">🚀 <b id="dvp-cnt-todo-mobile">0</b></button>
-               <button id="dvp-makeups-mobile" class="dash-view-pill bsm" onclick="setDashView('makeups')">📅 <b id="dvp-cnt-makeups-mobile">0</b></button>
-               <button id="dvp-all-mobile" class="dash-view-pill bsm" onclick="setDashView('all')">📋 <b id="dvp-cnt-all-mobile">0</b></button>
-               <button id="dvp-handled-mobile" class="dash-view-pill bsm" onclick="setDashView('handled')">✅ <b id="dvp-cnt-handled-mobile">0</b></button>
+               <button id="dvp-todo-mobile" class="dash-view-pill active bsm" onclick="setDashView('todo')" title="מציג גנים עם חריגות (כגון חוג שלא התקיים או נדחה) שעדיין לא קיבלו מענה ולא סומנו כ'טופל'.">🚀 <b id="dvp-cnt-todo-mobile">0</b></button>
+               <button id="dvp-makeups-mobile" class="dash-view-pill bsm" onclick="setDashView('makeups')" title="מציג השלמות או דחיות שנקבעו להיום או לעתיד כדי שתוכלו לעקוב ולוודא שהן מתקיימות.">📅 <b id="dvp-cnt-makeups-mobile">0</b></button>
+               <button id="dvp-all-mobile" class="dash-view-pill bsm" onclick="setDashView('all')" title="מציג את כל הפעילויות והגנים שקיימים במערכת ביום הנבחר (כולל מה שבוצע ומה שטרם בוצע).">📋 <b id="dvp-cnt-all-mobile">0</b></button>
+               <button id="dvp-handled-mobile" class="dash-view-pill bsm" onclick="setDashView('handled')" title="מציג חריגות עבר ופעילויות בעייתיות שכבר טיפלתם בהן וסימנתם כ'טופל'.">✅ <b id="dvp-cnt-handled-mobile">0</b></button>
             </div>
             <button class="btn bg bsm" onclick="exportShortagesToExcel()" title="ייצוא רשימת החוסרים לאקסל בהתאם לפורמט הדרוש">📥 דוח חוסרים</button>
          </div>
@@ -323,27 +323,27 @@
 
       <!-- Quick stats shared? We'll see -->
       <div id="dash-stat-boxes" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
-        <div class="card stat-box" onclick="setDashView('todo')" style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
+        <div class="card stat-box" onclick="setDashView('todo')" title="מציג גנים עם חריגות (כגון חוג שלא התקיים או נדחה) שעדיין לא קיבלו מענה ולא סומנו כ'טופל'." style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
           <div id="d-todo-cnt" class="card-val" style="font-size:1.2rem; font-weight:800;">0</div>
           <div style="font-size:0.75rem;">לטיפול</div>
         </div>
-        <div class="card stat-box" onclick="setDashView('makeups')" style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
+        <div class="card stat-box" onclick="setDashView('makeups')" title="מציג השלמות או דחיות שנקבעו להיום או לעתיד כדי שתוכלו לעקוב ולוודא שהן מתקיימות." style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
           <div id="d-makeups" class="card-val" style="font-size:1.2rem; font-weight:800;">0</div>
           <div style="font-size:0.75rem;">השלמות</div>
         </div>
-        <div class="card stat-box" onclick="setDashView('nohap')" style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
+        <div class="card stat-box" onclick="setDashView('nohap')" title="מציג פעילויות שסומנו במערכת כ'לא התקיים'." style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
           <div id="d-nohap" class="card-val" style="font-size:1.2rem; font-weight:800; color:var(--c-warning);">0</div>
           <div style="font-size:0.75rem;">לא התקיים</div>
         </div>
-        <div class="card stat-box" onclick="setDashView('post')" style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
+        <div class="card stat-box" onclick="setDashView('post')" title="מציג פעילויות שנדחו מהתאריך המקורי שלהן לתאריך אחר." style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
           <div id="d-post" class="card-val" style="font-size:1.2rem; font-weight:800; color:var(--c-secondary);">0</div>
           <div style="font-size:0.75rem;">נדחו</div>
         </div>
-        <div class="card stat-box" onclick="setDashView('can')" style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
+        <div class="card stat-box" onclick="setDashView('can')" title="מציג פעילויות שבוטלו לחלוטין (לא מתוכננת השלמה עבורן)." style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
           <div id="d-can" class="card-val" style="font-size:1.2rem; font-weight:800; color:var(--c-error);">0</div>
           <div style="font-size:0.75rem;">בוטלו</div>
         </div>
-        <div class="card stat-box" onclick="setDashView('handled')" style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
+        <div class="card stat-box" onclick="setDashView('handled')" title="מציג חריגות עבר ופעילויות בעייתיות שכבר טיפלתם בהן וסימנתם כ'טופל'." style="flex:1; min-width:80px; text-align:center; cursor:pointer;">
           <div id="d-handled" class="card-val" style="font-size:1.2rem; font-weight:800; color:var(--c-success);">0</div>
           <div style="font-size:0.75rem;">טופלו</div>
         </div>
