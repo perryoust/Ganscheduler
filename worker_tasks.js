@@ -177,9 +177,9 @@ window.renderWorkerTasksAdmin = function() {
     
     // Render Pending
     pending.forEach(t => {
-      const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : (t.city ? t.city : 'משימה כללית');
-      const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
-      const loc = city ? `${city} - ${gardenName}` : gardenName;
+      const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : '';
+      const city = t.gardenId ? (window.G ? (window.G(t.gardenId)?.city || '') : '') : (t.city || '');
+      const loc = t.gardenId ? (city ? `${city} - ${gardenName}` : gardenName) : (city || 'משימה כללית');
       const isPriv = t.isAdminOnly;
       
       html += `
@@ -284,6 +284,7 @@ window.renderWorkerTasksAdmin = function() {
             <input type="text" id="wt-inline-garden" placeholder="📍 חפש גן..." onkeyup="window.wtSearchGardenInline(this.value)" style="width:100%; border:none; background:transparent; outline:none; font-size:0.9rem; color:#075e54; font-weight:bold;">
             <div id="wt-inline-garden-results" style="position:absolute; bottom:110%; right:0; width:200px; max-height:150px; overflow-y:auto; background:#fff; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:100; display:none; line-height:1.2;"></div>
             <input type="hidden" id="wt-inline-garden-id">
+            <input type="hidden" id="wt-inline-city-name">
           </div>
           
           <input type="text" id="wt-inline-desc" placeholder="הקלד הודעה/משימה..." onkeydown="if(event.key==='Enter') window.wtAddInlineTask()" style="flex:1; border:none; background:transparent; outline:none; font-size:1rem; color:#333;">
@@ -769,15 +770,25 @@ window.wtSearchGardenInline = function(q) {
   const res = document.getElementById('wt-inline-garden-results');
   if(!q) { res.style.display='none'; return; }
   const gardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
-  const list = gardens.filter(g => (g.name||'').includes(q) || (g.city||'').includes(q) || String(g.id).includes(q)).slice(0,10);
-  if(!list.length) { res.innerHTML='<div style="padding:5px; color:#999; font-size:0.8rem;">לא נמצא...</div>'; res.style.display='block'; return; }
-  res.innerHTML = list.map(g => `<div style="padding:5px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #eee;" data-id="${g.id}" data-name="${(g.name||'').replace(/"/g, '&quot;')}" onclick="document.getElementById('wt-inline-garden').value=this.dataset.name; document.getElementById('wt-inline-garden-id').value=this.dataset.id; document.getElementById('wt-inline-garden-results').style.display='none';">${g.name} (${g.city||'אחר'})</div>`).join('');
+  const list = gardens.filter(g => (g.name||'').includes(q) || (g.city||'').includes(q) || String(g.id).includes(q)).slice(0,30);
+  
+  let html = '';
+  // City options first
+  const matchingCities = [...new Set(gardens.filter(g => g.city && g.city.includes(q)).map(g => g.city))];
+  matchingCities.slice(0, 3).forEach(c => {
+    html += `<div style="padding:5px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #eee; background:#e3f2fd; color:#1565c0; font-weight:bold;" onclick="document.getElementById('wt-inline-garden').value='${c}'; document.getElementById('wt-inline-garden-id').value=''; document.getElementById('wt-inline-city-name').value='${c}'; document.getElementById('wt-inline-garden-results').style.display='none';">🏙️ משימה לעיר: ${c}</div>`;
+  });
+  
+  if(!list.length && !matchingCities.length) { res.innerHTML='<div style="padding:5px; color:#999; font-size:0.8rem;">לא נמצא...</div>'; res.style.display='block'; return; }
+  html += list.map(g => `<div style="padding:5px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #eee;" data-id="${g.id}" data-name="${(g.name||'').replace(/"/g, '&quot;')}" onclick="document.getElementById('wt-inline-garden').value=this.dataset.name; document.getElementById('wt-inline-garden-id').value=this.dataset.id; document.getElementById('wt-inline-city-name').value=''; document.getElementById('wt-inline-garden-results').style.display='none';">${g.name} (${g.city||'אחר'})</div>`).join('');
+  res.innerHTML = html;
   res.style.display='block';
 };
 
 window.wtAddInlineTask = function() {
   let gardenId = document.getElementById('wt-inline-garden-id').value;
-  if (!gardenId && document.getElementById('wt-inline-garden').value) {
+  const cityName = document.getElementById('wt-inline-city-name') ? document.getElementById('wt-inline-city-name').value : '';
+  if (!gardenId && !cityName && document.getElementById('wt-inline-garden').value) {
     const gName = document.getElementById('wt-inline-garden').value.trim();
     const gardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
     let match = gardens.find(g => g.name === gName);
@@ -797,6 +808,7 @@ window.wtAddInlineTask = function() {
     id: 'wt_' + Date.now(),
     date: window.wtCurrentDate,
     gardenId: gardenId ? parseInt(gardenId) : 0,
+    city: cityName || '',
     desc: desc,
     status: 'pending',
     doneAt: null,
