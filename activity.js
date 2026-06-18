@@ -197,7 +197,7 @@ function renderDash() {
       });
 
       // Standalone within this date
-      dateEvs.filter(s => !dateUsedIds.has(s.id)).forEach(s => {
+      dateEvs.filter(s => !dateUsedIds.has(String(s.id))).forEach(s => {
         const g = window.G(s.g);
         dateCards.push({ type: 'solo', obj: { name: g.name, ids: [g.id] }, evs: [s] });
       });

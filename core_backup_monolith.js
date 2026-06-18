@@ -634,13 +634,13 @@ function _applyYearData(o){
       if (!s || !s.id) return;
       
       // Skip if this ID was already added
-      if (seenIds.has(s.id)) return;
+      if (seenIds.has(String(s.id))) return;
       
       // Skip if this (garden|supplier|date|time) combination was already added
       const fuzzyKey = `${s.g}|${s.a}|${s.d}|${s.t}`;
       if (seenKeys.has(fuzzyKey)) return;
       
-      seenIds.add(s.id);
+      seenIds.add(String(s.id));
       seenKeys.add(fuzzyKey);
       dedupSCH.push(s);
     });
