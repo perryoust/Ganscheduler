@@ -767,7 +767,7 @@ async function exportToExcel(data, filename, opts = {}) {
                 if(canWords.some(w => lower.includes(w)) || s.st === 'can') {
                   displayStatus = '❌ בוטל';
                 } else {
-                  displayStatus = '⚠️ לא התקיים';
+                  displayStatus = isPositive ? '⚠️ השלמה לא התקיימה' : '⚠️ לא התקיים';
                 }
               } else if (statusLabel === 'מתקיים' || s.st === 'ok' || s.st === 'done') {
                  displayStatus = ''; 
@@ -1106,7 +1106,7 @@ window.generateChangesExcelReport = async function(isAuto = false) {
       if (linkedDateStr) extraNotes = `הושלם ב-${linkedDateStr}`;
     }
     else if (s.st === 'nohap') {
-      changeType = '⚠️ לא התקיים';
+      changeType = isM ? '⚠️ השלמה לא התקיימה' : '⚠️ לא התקיים';
       if (linkedDateStr) extraNotes = `הושלם ב-${linkedDateStr}`;
     }
     else if (s.st === 'post') {

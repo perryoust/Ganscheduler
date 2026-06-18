@@ -553,7 +553,8 @@ window.spRowStatusChg = function(id, st) {
   if(pair) {
     const pGid = pair.ids.find(pid => Number(pid) !== Number(ev.g));
     const pG = window.G(pGid);
-    const stText = st === 'nohap' ? 'לא התקיים' : (st === 'can' ? 'ביטול' : (st === 'post' ? 'דחייה' : st));
+    const isM = !!(window.SCH.find(x => ids.includes(x.id.toString()))?._isMakeup);
+    const stText = st === 'nohap' ? (isM ? 'השלמה לא התקיימה' : 'לא התקיים') : (st === 'can' ? 'ביטול' : (st === 'post' ? 'דחייה' : st));
     
     // Only ask confirm for simple statuses (done/ok). 
     // Exceptions (nohap/can/post) have their own modals with sync options.
@@ -2961,7 +2962,9 @@ window.saveNohapQ = function(){
     ev.st = 'nohap';
     // Always clear any previous "handled" stamp — a new exception is NOT yet handled
     ev._compByMakeup = '';
-    const noteAdd = '⚠️ לא התקיים: ' + fullReason;
+    const isM = !!(ev._isMakeup || ev._makeupFrom || (ev.nt && /השלמה|במקום/i.test(ev.nt)) || (ev.n && /השלמה|במקום/i.test(ev.n)) || (ev.a && /השלמה|במקום/i.test(ev.a)));
+    const notePrefix = isM ? '⚠️ השלמה לא התקיימה: ' : '⚠️ לא התקיים: ';
+    const noteAdd = notePrefix + fullReason;
     if (!(ev.nt||'').includes(noteAdd)) {
       ev.nt = ev.nt ? ev.nt + ' | ' + noteAdd : noteAdd;
     }
