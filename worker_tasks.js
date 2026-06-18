@@ -123,7 +123,8 @@ window.renderWorkerTasksAdmin = function() {
     });
   }
 
-  const dateDisp = window.fD ? window.fD(window.wtCurrentDate) : window.wtCurrentDate;
+  const dayName = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(window.wtCurrentDate).getDay()];
+  const dateDisp = "יום " + dayName + " " + (window.fD ? window.fD(window.wtCurrentDate) : window.wtCurrentDate);
 
   let html = `
     <div style="max-width:850px; margin:0 auto; padding:20px;">
