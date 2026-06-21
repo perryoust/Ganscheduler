@@ -430,6 +430,7 @@ async function loadFromFirebase(silent = false, force = false) {
 
     if (!force && cloud.seq <= _localSeq && window._fbSyncReady) {
       _setSyncState(cloud.seq, Date.now(), null, true);
+      if (cloud.ts) window._fbLastSaveTs = cloud.ts;
       return true;
     }
 
@@ -519,6 +520,7 @@ async function loadFromFirebase(silent = false, force = false) {
     // Do NOT overwrite from cloud.data.workerTasks — that path is stale and causes sync conflicts
 
     _setSyncState(cloud.seq, Date.now(), null, true);
+    if (cloud.ts) window._fbLastSaveTs = cloud.ts;
     
     // Auto-refresh view after loading from cloud
     // Ensure we don't interrupt the user if they have a modal open
