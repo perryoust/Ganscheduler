@@ -1079,8 +1079,12 @@ function openExport(){
     }
     
     if (targetDate) {
-      d1Val = targetDate;
-      d2Val = targetDate;
+      // Only jump to targetDate if there are NO active events (like makeups) happening on todayStr
+      const hasActiveToday = todayEvents.some(s => s.st === 'ok' && s.d === todayStr);
+      if (!hasActiveToday) {
+        d1Val = targetDate;
+        d2Val = targetDate;
+      }
     }
   }
   
