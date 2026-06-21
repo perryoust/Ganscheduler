@@ -112,8 +112,9 @@ window.renderWorkerTasksAdmin = function() {
     const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
     displayTasks = tasks.filter(t => {
       if (t.date === window.wtCurrentDate) return true;
-      // If we are looking at Today or the future, pull ALL past pending tasks forward!
-      if (window.wtCurrentDate >= today && t.status === 'pending' && t.date < window.wtCurrentDate) return true;
+      // Only pull forward past pending tasks if we are viewing TODAY.
+      // This prevents future dates from being cluttered with today's tasks.
+      if (window.wtCurrentDate === today && t.status === 'pending' && t.date < today) return true;
       return false;
     });
     // Sort: pending first, then by creation
