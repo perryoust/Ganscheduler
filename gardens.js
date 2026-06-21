@@ -179,7 +179,8 @@ function renderGM(){
   evs.forEach(s=>{
     const g=window.G(s.g);
     const gblk=window.getGardenBlock(s.g,s.d);
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+    const isMText = (str) => str && /השלמה|במקום/i.test(str) && !str.includes('השלמה נקבעה ל-');
+    const isM = !!(s._isMakeup || s._makeupFrom || isMText(s.nt));
     let tagText = '';
     if (s.st === 'can' || (s.nt && /ביטול|בוטל/i.test(s.nt))) tagText = 'ביטול';
     else if (s.nt && /הקדמה|הוקדם/i.test(s.nt)) tagText = 'הקדמה';

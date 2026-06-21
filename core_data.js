@@ -746,7 +746,8 @@ function stLabel(s){
     return `<span class="bdg bor">${isAdv ? '⏪ הוקדם' : '⏩ נדחה'} ${s.pd?'ל-'+fD(s.pd):''}</span>`;
   }
   if(s.st==='nohap') {
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|במקום/i.test(s.nt)) || (s.n && /השלמה|במקום/i.test(s.n)) || (s.a && /השלמה|במקום/i.test(s.a)));
+    const isMText = (str) => str && /השלמה|במקום/i.test(str) && !str.includes('השלמה נקבעה ל-');
+    const isM = !!(s._isMakeup || s._makeupFrom || isMText(s.nt) || isMText(s.n) || isMText(s.a));
     return isM ? '<span class="bdg br2">⚠️ השלמה לא התקיימה</span>' : '<span class="bdg br2">⚠️ לא התקיים</span>';
   }
   return'<span class="bdg bg2">🏫 מתקיים</span>';

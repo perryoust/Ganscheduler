@@ -904,7 +904,8 @@ async function exportShortagesToExcel() {
   const shortages = (window.SCH || []).filter(s => {
     if (!s) return false;
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false") || !!((s.nt && /הושלם|במקום זה|במקום פעילות|השלמה עבור/i.test(s.nt)) || (s.n && /הושלם|במקום זה|במקום פעילות|השלמה עבור/i.test(s.n)));
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|במקום/i.test(s.nt)) || (s.n && /השלמה|במקום/i.test(s.n)) || (s.a && /השלמה|במקום/i.test(s.a)));
+    const isMText = (str) => str && /השלמה|במקום/i.test(str) && !str.includes('השלמה נקבעה ל-');
+    const isM = !!(s._isMakeup || s._makeupFrom || isMText(s.nt) || isMText(s.n) || isMText(s.a));
     
     if (s.st !== 'nohap' && s.st !== 'post') return false;
     if (s.st === 'can' || isM || isHandled) return false;
@@ -1029,7 +1030,8 @@ window.generateChangesExcelReport = async function(isAuto = false) {
     if (['nohap', 'can', 'post'].includes(s.st)) return true;
     
     // Is it a makeup / preponed?
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|במקום/i.test(s.nt)) || (s.n && /השלמה|במקום/i.test(s.n)) || (s.a && /השלמה|במקום/i.test(s.a)));
+    const isMText = (str) => str && /השלמה|במקום/i.test(str) && !str.includes('השלמה נקבעה ל-');
+    const isM = !!(s._isMakeup || s._makeupFrom || isMText(s.nt) || isMText(s.n) || isMText(s.a));
     if (isM) return true;
     
     return false;
@@ -1087,7 +1089,8 @@ window.generateChangesExcelReport = async function(isAuto = false) {
       }
     } catch(e){}
 
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|במקום/i.test(s.nt)) || (s.n && /השלמה|במקום/i.test(s.n)) || (s.a && /השלמה|במקום/i.test(s.a)));
+    const isMText = (str) => str && /השלמה|במקום/i.test(str) && !str.includes('השלמה נקבעה ל-');
+    const isM = !!(s._isMakeup || s._makeupFrom || isMText(s.nt) || isMText(s.n) || isMText(s.a));
     
     let changeType = '';
     let extraNotes = '';

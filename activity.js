@@ -2735,10 +2735,10 @@ window.createMakeupActivity = function(data) {
     const origExt = window.SCH.find(x => String(x.id) === String(data.origId));
     if(origExt) {
        origExt._compByMakeup = loopId;
-       // const noticeNote = `השלמה נקבעה ל-${window.fD(data.d)}`;
-       // if(!origExt.nt || !origExt.nt.includes(noticeNote)) {
-       //    origExt.nt = (origExt.nt ? origExt.nt + ' | ' : '') + noticeNote;
-       // }
+       const noticeNote = `השלמה נקבעה ל-${window.fD(data.d)}`;
+       if(!origExt.nt || !origExt.nt.includes(noticeNote)) {
+          origExt.nt = (origExt.nt ? origExt.nt + ' | ' : '') + noticeNote;
+       }
        
        // Sync partner's completion status if applicable
        const pair = window.gardenPair(origExt.g);
@@ -3013,7 +3013,8 @@ window.saveNohapQ = async function(){
     ev.st = 'nohap';
     // Always clear any previous "handled" stamp — a new exception is NOT yet handled
     ev._compByMakeup = '';
-    const isM = !!(ev._isMakeup || ev._makeupFrom || (ev.nt && /השלמה|במקום/i.test(ev.nt)) || (ev.n && /השלמה|במקום/i.test(ev.n)) || (ev.a && /השלמה|במקום/i.test(ev.a)));
+    const isMText = (str) => str && /השלמה|במקום/i.test(str) && !str.includes('השלמה נקבעה ל-');
+    const isM = !!(ev._isMakeup || ev._makeupFrom || isMText(ev.nt) || isMText(ev.n) || isMText(ev.a));
     const notePrefix = isM ? '⚠️ השלמה לא התקיימה: ' : '⚠️ לא התקיים: ';
     const noteAdd = notePrefix + fullReason;
     if (!(ev.nt||'').includes(noteAdd)) {
