@@ -1113,6 +1113,10 @@ function genExport(){
   const getEvType = (s) => {
     const noteText = (s.nt || '') + ' ' + (s.n || '') + ' ' + (s.a || '');
     if (s.st === 'can') return 'can';
+    if (s.st === 'post') {
+      if (s.pd && s.pd < s.d) return 'preponed_out';
+      return 'postponed_out';
+    }
     if (s.st === 'nohap') {
       if (/הוקדם ל/i.test(noteText)) return 'preponed_out';
       return 'nohap'; 
@@ -1156,7 +1160,7 @@ function genExport(){
 
   const getRefDateStr = (relArr, currentExportDate) => {
     for (let s of relArr) {
-      let refDate = s._postFrom || s._makeupFrom || null;
+      let refDate = s._postFrom || s._makeupFrom || s.pd || null;
       if (!refDate) {
          const txt = (s.nt || '') + ' ' + (s.n || '');
          const m1 = txt.match(/(\d{4})-(\d{2})-(\d{2})/);
@@ -1331,9 +1335,27 @@ function genExport(){
     const t = getEvType(s);
     if (isAllMakeup || isAllPreponed || isAllPostponed || isAllPreponedOut) return ''; // Already handled globally
     const sRef = getRefDateStr([s], s.d);
+    
+    const getOrigStr = (dateStr) => {
+      try {
+        const oDateObj = typeof window.s2d === 'function' ? window.s2d(dateStr) : new Date(dateStr.split('-')[0], dateStr.split('-')[1]-1, dateStr.split('-')[2]);
+        const dNameOriginal = typeof window.dayN === 'function' ? window.dayN(dateStr) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][oDateObj.getDay()];
+        return `יום ${dNameOriginal} ${oDateObj.getDate()}/${oDateObj.getMonth()+1}`;
+      } catch(e) { return ''; }
+    };
+
     if (t === 'preponed') return sRef ? `*הקדמה מ${sRef}* · ` : '*הקדמה* · ';
     if (t === 'postponed') return sRef ? `*נדחה מ${sRef}* · ` : '*נדחה* · ';
-    if (t === 'preponed_out') return sRef ? `*הוקדם ל${sRef}* · ` : '*הוקדם* · ';
+    if (t === 'preponed_out') {
+      const origStr = getOrigStr(s.d);
+      if (origStr && sRef) return `*הוקדם מ${origStr} ל${sRef}* · `;
+      return sRef ? `*הוקדם ל${sRef}* · ` : '*הוקדם* · ';
+    }
+    if (t === 'postponed_out') {
+      const origStr = getOrigStr(s.d);
+      if (origStr && sRef) return `*נדחה מ${origStr} ל${sRef}* · `;
+      return sRef ? `*נדחה ל-${sRef}* · ` : '*נדחה* · ';
+    }
     if (t === 'makeup') return sRef ? `*השלמה מ${sRef}* · ` : '*השלמה* · ';
     return '';
   };
@@ -1390,7 +1412,7 @@ function genExport(){
             const addrs=[...new Set(group.map(s=>s.gd.st||''))];
             const sameAddr=addrs.length===1&&addrs[0];
             
-            const isNohapFunc = (s) => s.st === 'can' || s.st === 'nohap';
+            const isNohapFunc = (s) => s.st === 'can' || s.st === 'nohap' || s.st === 'post';
             const allNohap = group.every(isNohapFunc);
             
             const groupMgrs = [...new Set(group.map(s => getCoordStr(s.g)).filter(Boolean))];
@@ -1401,15 +1423,14 @@ function genExport(){
             let skipInlineNohap = false;
             let skipInlineMTag = false;
             
-            if (allNohap && !isAllCan && !isAllNohap && !isAllPreponedOut) {
-              blockTitle = '*(לא התקיים)*\n';
-              skipInlineNohap = true;
-            } else {
-              const tags = group.map(s => getRowTag(s));
-              if (tags[0] && tags.every(t => t === tags[0])) {
-                blockTitle = `${tags[0].replace(' · ', '')}\n`;
-                skipInlineMTag = true;
-              }
+            const tags = group.map(s => getRowTag(s));
+            if (tags[0] && tags.every(t => t === tags[0])) {
+               blockTitle = `${tags[0].replace(' · ', '')}\n`;
+               skipInlineMTag = true;
+               skipInlineNohap = true; // We don't need "לא התקיים" if we have a specific tag like "נדחה"
+            } else if (allNohap && !isAllCan && !isAllNohap && !isAllPreponedOut) {
+               blockTitle = '*(לא התקיים)*\n';
+               skipInlineNohap = true;
             }
             
             if (blockTitle) text += blockTitle;
