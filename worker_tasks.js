@@ -301,10 +301,15 @@ window.openNewWorkerTaskModal = function() {
       const gardenId = document.getElementById('wt-garden-id').value;
       const desc = document.getElementById('wt-desc').value.trim();
       const isAdminOnly = document.getElementById('wt-admin-only').checked;
-      const cityName = document.getElementById('wt-city-name') ? document.getElementById('wt-city-name').value : '';
+      let cityName = document.getElementById('wt-city-name') ? document.getElementById('wt-city-name').value : '';
+      const gardenSearchText = document.getElementById('wt-garden-search') ? document.getElementById('wt-garden-search').value.trim() : '';
+      
+      if (!gardenId && !cityName && gardenSearchText) {
+        cityName = gardenSearchText;
+      }
       
       if (!date || (!gardenId && !cityName) || !desc) {
-        if (window.spAlert) window.spAlert('נא למלא תאריך, גן/עיר ותיאור למשימה', true);
+        if (window.spAlert) window.spAlert('נא למלא תאריך, גן/עיר/רכז ותיאור למשימה', true);
         return false; // Prevent closing
       }
       
@@ -719,15 +724,19 @@ window.wtSearchGardenInline = function(q) {
 
 window.wtAddInlineTask = function() {
   let gardenId = document.getElementById('wt-inline-garden-id').value;
-  const cityName = document.getElementById('wt-inline-city-name') ? document.getElementById('wt-inline-city-name').value : '';
-  if (!gardenId && !cityName && document.getElementById('wt-inline-garden').value) {
-    const gName = document.getElementById('wt-inline-garden').value.trim();
+  let cityName = document.getElementById('wt-inline-city-name') ? document.getElementById('wt-inline-city-name').value : '';
+  const gNameInput = document.getElementById('wt-inline-garden').value.trim();
+  
+  if (!gardenId && !cityName && gNameInput) {
     const gardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
-    let match = gardens.find(g => g.name === gName);
-    if (!match) match = gardens.find(g => g.name.includes(gName) || String(g.id) === gName);
-    if(match) gardenId = match.id;
+    let match = gardens.find(g => g.name === gNameInput);
+    if (!match) match = gardens.find(g => g.name.includes(gNameInput) || String(g.id) === gNameInput);
+    if (match) {
+      gardenId = match.id;
+    } else {
+      cityName = gNameInput;
+    }
   }
-  const gardenName = document.getElementById('wt-inline-garden').value;
   const desc = document.getElementById('wt-inline-desc').value.trim();
   const isAdminOnly = document.getElementById('wt-inline-admin').checked;
   
