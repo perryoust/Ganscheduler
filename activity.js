@@ -561,7 +561,7 @@ window.spRowStatusChg = function(id, st) {
   if(pair) {
     const pGid = pair.ids.find(pid => Number(pid) !== Number(ev.g));
     const pG = window.G(pGid);
-    const isM = !!(window.SCH.find(x => ids.includes(x.id.toString()))?._isMakeup);
+    const isM = !!ev._isMakeup;
     const stText = st === 'nohap' ? (isM ? 'השלמה לא התקיימה' : 'לא התקיים') : (st === 'can' ? 'ביטול' : (st === 'post' ? 'דחייה' : st));
     
     // Only ask confirm for simple statuses (done/ok). 
