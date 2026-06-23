@@ -1798,10 +1798,12 @@ function renderMonth(evs,mDate,f){
 
 function setListGroupMode(m){
   window._listGroupMode = m;
-  const elP = document.getElementById('vlb-group-pairs');
-  const elC = document.getElementById('vlb-group-clusters');
-  if(elP) elP.classList.toggle('active', m === 'window.pairs' || m === 'pairs');
-  if(elC) elC.classList.toggle('active', m === 'window.clusters' || m === 'clusters');
+  document.querySelectorAll('[id^="vlb-group-"]').forEach(btn => {
+    const btnV = btn.id.replace('vlb-group-', '').replace('-desktop', '').replace('-mobile', '');
+    if (['pairs', 'clusters'].includes(btnV)) {
+      btn.classList.toggle('active', btnV === m || `window.${btnV}` === m);
+    }
+  });
   renderCal();
 }
 
@@ -1887,25 +1889,31 @@ function renderRangeListView(evs, fromDs, toDs){
         
         clEvs.forEach(s => firstUsedGids.add(Number(s.g)));
         const clGids = cl.gardenIds || [];
-        h += `<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
-          <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
-            <span>🏘️ ${cl.name}</span>
-            <div style="display:flex;gap:4px;align-items:center">
+        h += `<div style="position:relative; margin-bottom:12px;">`;
+        h += `<div style="position:absolute; top:6px; left:120px; z-index:10; display:flex; gap:4px">
                <button class="btn bo bsm" style="font-size:0.62rem !important; height:20px !important; min-height:20px !important; line-height:18px !important; padding:0 4px !important; border:1px solid #1e88e5 !important; background:#fff !important; color:#1e88e5 !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important; margin:0 !important;" onclick="event.stopPropagation(); window.calJump('','week','','${cl.name}')">📅 שבוע</button>
                <button class="btn bo bsm" style="font-size:0.62rem !important; height:20px !important; min-height:20px !important; line-height:18px !important; padding:0 4px !important; border:1px solid #1e88e5 !important; background:#fff !important; color:#1e88e5 !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important; margin:0 !important;" onclick="event.stopPropagation(); window.calJump('','month','','${cl.name}')">📅 חודש</button>
-               <button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${cl.id}','${ds}')" style="font-size:.62rem; padding:1px 6px; height:20px !important; display:inline-flex; align-items:center; margin:0 !important">✏️ עריכה</button>
-               <button class="btn bg bsm" onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="font-size:.62rem; padding:1px 6px; height:20px !important; display:inline-flex; align-items:center; margin:0 !important; background:#25d366; color:#fff; border:none">📋 הודעה</button>
-            </div>
-          </div>`;
-          if (clEvs.length) {
-            h += `<table style="width:100%; border-collapse:collapse">
-              <tbody>
-                ${clEvs.map(s => window.ui.renderActivityRow(s, { ds, clr, context:'cal' })).join('')}
-              </tbody>
-            </table>`;
+               <button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${cl.id}','${ds}')" style="font-size:0.62rem; height:20px !important; line-height:18px !important; padding:0 6px !important; border-radius:4px !important; margin:0 !important; background:#1e88e5; color:#fff; border:none; display:inline-flex; align-items:center;">✏️ עריכה</button>
+        </div>`;
+
+        const clPair = { id: cl.id, name: cl.name, ids: clGids };
+        const gardenActivities = new Map();
+        clEvs.forEach(s => {
+          if(!gardenActivities.has(s.g)) gardenActivities.set(s.g, []);
+          gardenActivities.get(s.g).push(s);
+        });
+        
+        const finalEvs = [];
+        clPair.ids.forEach(gid => {
+          if(gardenActivities.has(gid)) {
+            finalEvs.push(...gardenActivities.get(gid));
           } else {
-            h += `<div style="padding:4px 8px; font-size:0.75rem; color:#999; background:#fff;">אין פעילויות באשכול זה היום</div>`;
+            finalEvs.push({ id: 'dummy_'+gid, g: gid, st: 'unassigned', d: ds, t: '', act: '' });
           }
+        });
+        const sorted = finalEvs.sort((a,b) => window.compareActivities(a, b));
+        h += window.ui.renderStandardPairCard(clPair, sorted, { ds, clr, context: 'cal' });
+        
         h += `</div>`;
       };
 
