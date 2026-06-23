@@ -1850,19 +1850,6 @@ function renderRangeListView(evs, fromDs, toDs){
     const isSingleDay = (fromDs === toDs);
     
     let allCitiesSet = new Set(dayEvsNonM.map(s => window.G(s.g).city || 'אחר'));
-    if (isSingleDay) {
-      if (_gmode === 'window.clusters') {
-        (typeof getClusters === 'function' ? getClusters() : []).forEach(cl => {
-          const city = cl.gardenIds && cl.gardenIds.length ? (window.G(cl.gardenIds[0])?.city || 'אחר') : 'אחר';
-          allCitiesSet.add(city);
-        });
-      } else if (_gmode === 'window.pairs') {
-        (window.pairs || []).forEach(pair => {
-          const city = pair.ids && pair.ids.length ? (window.G(pair.ids[0])?.city || 'אחר') : 'אחר';
-          allCitiesSet.add(city);
-        });
-      }
-    }
     const allCities = [...allCitiesSet].sort((a,b) => a.localeCompare(b, 'he'));
 
     allCities.forEach(city => {
@@ -1885,7 +1872,7 @@ function renderRangeListView(evs, fromDs, toDs){
         const clEvs = cityEvs.filter(s => (cl.gardenIds || []).map(Number).includes(Number(s.g)) && !firstUsedGids.has(Number(s.g)))
           .sort((a,b) => window.compareActivities(a, b));
         
-        if (!clEvs.length && (!isSingleDay || _gmode !== 'window.clusters')) return;
+        if (!clEvs.length) return;
         
         clEvs.forEach(s => firstUsedGids.add(Number(s.g)));
         const clGids = cl.gardenIds || [];
@@ -1929,7 +1916,7 @@ function renderRangeListView(evs, fromDs, toDs){
         if(isPairBroken && isPairBroken(pair.id, ds)) return;
         const pairEvs = cityEvs.filter(s => pair.ids.map(Number).includes(Number(s.g)) && !firstUsedGids.has(Number(s.g)));
         
-        if (!pairEvs.length && (!isSingleDay || _gmode !== 'window.pairs')) return;
+        if (!pairEvs.length) return;
         
         pairEvs.forEach(s => firstUsedGids.add(Number(s.g)));
         pairGroups.push({pair, pairEvs});
