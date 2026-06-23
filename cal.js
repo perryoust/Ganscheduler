@@ -1821,14 +1821,14 @@ function renderRangeListView(evs, fromDs, toDs){
     if(!byDate[dk]) byDate[dk] = [];
     byDate[dk].push(s);
   });
-1824:   const dates = Object.keys(byDate).sort();
-1825:   if(fromDs === toDs && !dates.includes(fromDs)) {
-1826:     dates.push(fromDs);
-1827:     byDate[fromDs] = [];
-1828:   }
-1829:   if(!dates.length) return '<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות בטווח זה</div>';
-1830: 
-1831:   let h = '<div class="card" style="padding:0;overflow:hidden">';
+  const dates = Object.keys(byDate).sort();
+  if(fromDs === toDs && !dates.includes(fromDs)) {
+    dates.push(fromDs);
+    byDate[fromDs] = [];
+  }
+  if(!dates.length) return '<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות בטווח זה</div>';
+
+  let h = '<div class="card" style="padding:0;overflow:hidden">';
   const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
   const f = getCalF();
   
