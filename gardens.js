@@ -1801,6 +1801,8 @@ function getClusterGlobalFieldsHtml() {
           <select id="clbulk-uni-tp" onchange="window.applyClBulkUniTp(this.value)" style="width: 100%; padding: 5px; border-radius: 5px; border: 1.5px solid #cfd8dc; font-size: 0.8rem;">
             <option value="">ללא שינוי</option>
             <option value="חוג">חוג</option>
+            <option value="חוג בוקר">חוג בוקר</option>
+            <option value="חוג צהרון">חוג צהרון</option>
             <option value="צהרון">צהרון</option>
             <option value="בוקר">בוקר</option>
             <option value="השלמה">השלמה</option>
@@ -1924,6 +1926,8 @@ window.openClusterBulkEdit = function(clId, ds) {
       <select id="clbulk-tp-${g.id}" style="font-size:.78rem;padding:4px;border-radius:4px;border:1px solid #cfd8dc">
         <option value="">-- סוג --</option>
         <option value="חוג">חוג</option>
+        <option value="חוג בוקר">חוג בוקר</option>
+        <option value="חוג צהרון">חוג צהרון</option>
         <option value="צהרון">צהרון</option>
         <option value="בוקר">בוקר</option>
         <option value="השלמה">השלמה</option>
