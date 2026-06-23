@@ -33,6 +33,7 @@ window.importBulkSchedule = function(input) {
       
       const allSups = (window.getAllSup ? window.getAllSup() : []);
       const allRecords = [];
+      const newClustersMap = {}; // Collect clusters from file
       const report = {
         sheets: [],
         totalRows: 0,
@@ -123,11 +124,16 @@ window.importBulkSchedule = function(input) {
 
           // 7. EXTRA FIELDS
           const actType = cols.actType !== -1 ? String(row[cols.actType] || '').trim() : '';
-          const cluster = cols.cluster !== -1 ? String(row[cols.cluster] || '').trim() : '';
+          const clusterName = cols.cluster !== -1 ? String(row[cols.cluster] || '').trim() : '';
           const coordinator = cols.coordinator !== -1 ? String(row[cols.coordinator] || '').trim() : '';
           const street = cols.street !== -1 ? String(row[cols.street] || '').trim() : '';
           const cls = cols.cls !== -1 ? String(row[cols.cls] || '').trim() : '';
           const phone = cols.phone !== -1 ? String(row[cols.phone] || '').trim() : '';
+
+          if (clusterName) {
+            if (!newClustersMap[clusterName]) newClustersMap[clusterName] = new Set();
+            newClustersMap[clusterName].add(Number(garden.id));
+          }
 
           // 8. BUILD RECORD
           const fId = window.utils.getEventId(d, Number(garden.id), sBase, sAct, t);
@@ -168,7 +174,11 @@ window.importBulkSchedule = function(input) {
       msg += '   • לא התקיים: ' + (report.statusBreakdown.nohap || 0) + '\n';
       msg += '   • בוטל: ' + (report.statusBreakdown.can || 0) + '\n';
       msg += '   • גנים שזוהו: ' + report.gardensFound.size + '\n';
-      msg += '   • ספקים שזוהו: ' + report.suppliersFound.size + '\n\n';
+      msg += '   • ספקים שזוהו: ' + report.suppliersFound.size + '\n';
+      if (Object.keys(newClustersMap).length > 0) {
+        msg += '   • אשכולות בקובץ: ' + Object.keys(newClustersMap).length + '\n';
+      }
+      msg += '\n';
 
       if (report.noGarden.length > 0) {
         msg += '⚠️ ' + report.noGarden.length + ' שורות עם גנים לא מזוהים:\n';
@@ -256,6 +266,20 @@ window.importBulkSchedule = function(input) {
       window.useSraws = false;
       window.SCH = finalRecords;
       console.log('[Import v6] SCH replaced with ' + window.SCH.length + ' records (merged manual events & states)');
+
+      // Replace clusters if any found in the file
+      if (Object.keys(newClustersMap).length > 0) {
+        window.clusters = {};
+        Object.entries(newClustersMap).forEach(([cName, gidsSet]) => {
+          const cid = 'c_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+          window.clusters[cid] = {
+            id: cid,
+            name: cName,
+            gardenIds: Array.from(gidsSet)
+          };
+        });
+        console.log('[Import v6] Replaced clusters with ' + Object.keys(window.clusters).length + ' new clusters from Excel');
+      }
 
       // Apply auto-makeup matching      // Auto-Makeup disabled by user request
       // if (window.DataManager && window.DataManager.applyAutoMakeupMatching) {
