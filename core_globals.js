@@ -212,6 +212,7 @@ window.ui = {
     const monthBtn = `<button class="btn bo bsm" style="font-size:0.65rem !important; height:24px !important; min-height:24px !important; line-height:22px !important; padding:0 6px !important; border:1px solid #1e88e5 !important; background:#fff !important; color:#1e88e5 !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important;" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','month','${isSolo ? gids[0] : ''}')">📅 חודש</button>`;
     const expBtn = `<button class="btn bg bsm" style="background:#25d366 !important; color:#fff !important; border:none !important; height:24px !important; min-height:24px !important; line-height:24px !important; padding:0 7px !important; font-size:0.65rem !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important;" onclick="event.stopPropagation(); window._exportPairWA(${JSON.stringify(gids)})">📱 הודעה</button>`;
     const jumpBtn = (context === 'dash' && evs.length > 0) ? `<button class="btn bo bsm" style="font-size:0.65rem !important; height:24px !important; min-height:24px !important; line-height:22px !important; padding:0 6px !important; border:1px solid #ff9800 !important; background:#fff !important; color:#ff9800 !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important;" onclick="event.stopPropagation(); window.jumpToCalendar('${isSolo ? '' : pair.id}','${isSolo ? gids[0] : ''}', '${ds}', '${evs[0].id}')">👁️ הצג בלוח השנה</button>` : '';
+    const editBtn = opts.isCluster ? `<button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${pair.id}','${ds}')" style="background:#1e88e5 !important; color:#fff !important; border:none !important; height:24px !important; min-height:24px !important; line-height:24px !important; padding:0 7px !important; font-size:0.65rem !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important; margin-left:4px;">✏️ עריכה</button>` : '';
 
     let tableRows = '';
     
@@ -295,12 +296,14 @@ window.ui = {
     return `
     <div class="card standard-pair-card" style="border-top:3px solid ${clr.solid}; padding:0; border-radius:6px; overflow:hidden; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,0.03); border:1px solid #e2e8f0; border-top-width:3px; margin-bottom:6px !important">
       <div class="flex-c gap-8" style="background:${clr.light}; border-bottom:1px solid #e2e8f0; padding:4px 8px !important; min-height:30px !important; align-items:center !important">
-        <div class="flex-c gap-6" style="align-items:center !important">
-          <span style="font-size:1.0rem; display:inline-flex; align-items:center">${isSolo ? '🏡' : '🔗'}</span>
-          <div class="font-800 text-primary" style="font-size:0.75rem !important; line-height:1.2">${pair.name}</div>
-        </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:24px; height:24px; border-radius:50%; background:${clr.solid}; color:#fff; display:flex; justify-content:center; align-items:center; font-size:0.8rem;">
+              <i class="fas ${opts.isCluster ? 'fa-layer-group' : 'fa-link'}"></i>
+            </div>
+            <h3 style="margin:0; font-size:0.85rem; font-weight:700; color:${clr.solid};">${pair.name || ''}</h3>
+          </div>
         <div class="flex-c gap-6 mr-auto" style="align-items:center !important">
-          ${weekBtn} ${monthBtn} ${expBtn}
+          ${editBtn} ${weekBtn} ${monthBtn} ${expBtn}
         </div>
       </div>
       <div class="tw overflow-auto">

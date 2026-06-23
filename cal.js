@@ -1876,12 +1876,6 @@ function renderRangeListView(evs, fromDs, toDs){
         
         clEvs.forEach(s => firstUsedGids.add(Number(s.g)));
         const clGids = cl.gardenIds || [];
-        h += `<div style="position:relative; margin-bottom:12px;">`;
-        h += `<div style="position:absolute; top:6px; left:120px; z-index:10; display:flex; gap:4px">
-               <button class="btn bo bsm" style="font-size:0.62rem !important; height:20px !important; min-height:20px !important; line-height:18px !important; padding:0 4px !important; border:1px solid #1e88e5 !important; background:#fff !important; color:#1e88e5 !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important; margin:0 !important;" onclick="event.stopPropagation(); window.calJump('','week','','${cl.name}')">📅 שבוע</button>
-               <button class="btn bo bsm" style="font-size:0.62rem !important; height:20px !important; min-height:20px !important; line-height:18px !important; padding:0 4px !important; border:1px solid #1e88e5 !important; background:#fff !important; color:#1e88e5 !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important; margin:0 !important;" onclick="event.stopPropagation(); window.calJump('','month','','${cl.name}')">📅 חודש</button>
-               <button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${cl.id}','${ds}')" style="font-size:0.62rem; height:20px !important; line-height:18px !important; padding:0 6px !important; border-radius:4px !important; margin:0 !important; background:#1e88e5; color:#fff; border:none; display:inline-flex; align-items:center;">✏️ עריכה</button>
-        </div>`;
 
         const clPair = { id: cl.id, name: cl.name, ids: clGids };
         const gardenActivities = new Map();
@@ -1899,47 +1893,45 @@ function renderRangeListView(evs, fromDs, toDs){
           }
         });
         const sorted = finalEvs.sort((a,b) => window.compareActivities(a, b));
-        h += window.ui.renderStandardPairCard(clPair, sorted, { ds, clr, context: 'cal' });
-        
-        h += `</div>`;
+        h += `<div style="margin-bottom:12px;">` + window.ui.renderStandardPairCard(clPair, sorted, { ds, clr, context: 'cal', isCluster: true }) + `</div>`;
       };
 
       if(_gmode === 'window.clusters'){
         (typeof getClusters === 'function' ? getClusters() : []).forEach(cl => _renderCl(cl));
+      } else {
+        const pairGroups = [];
+        window.pairs.forEach(pair => {
+          const pCity = pair.ids && pair.ids.length ? (window.G(pair.ids[0])?.city || 'אחר') : 'אחר';
+          if (pCity !== city) return;
+          
+          if(isPairBroken && isPairBroken(pair.id, ds)) return;
+          const pairEvs = cityEvs.filter(s => pair.ids.map(Number).includes(Number(s.g)) && !firstUsedGids.has(Number(s.g)));
+          
+          if (!pairEvs.length) return;
+          
+          pairEvs.forEach(s => firstUsedGids.add(Number(s.g)));
+          pairGroups.push({pair, pairEvs});
+        });
+        pairGroups.sort((a,b) => (a.pair.name||'').localeCompare(b.pair.name||'', 'he'));
+        pairGroups.forEach(({pair, pairEvs}) => {
+          const gardenActivities = new Map();
+          pairEvs.forEach(s => {
+            if(!gardenActivities.has(s.g)) gardenActivities.set(s.g, []);
+            gardenActivities.get(s.g).push(s);
+          });
+          
+          const finalEvs = [];
+          pair.ids.forEach(gid => {
+            if(gardenActivities.has(gid)) {
+              finalEvs.push(...gardenActivities.get(gid));
+            } else {
+              finalEvs.push({ id: 'dummy_'+gid, g: gid, st: 'unassigned', d: ds, t: '', act: '' });
+            }
+          });
+          const sorted = finalEvs.sort((a,b) => window.compareActivities(a, b));
+          h += window.ui.renderStandardPairCard(pair, sorted, { ds, clr, context: 'cal' });
+        });
       }
-
-      const pairGroups = [];
-      window.pairs.forEach(pair => {
-        const pCity = pair.ids && pair.ids.length ? (window.G(pair.ids[0])?.city || 'אחר') : 'אחר';
-        if (pCity !== city) return;
-        
-        if(isPairBroken && isPairBroken(pair.id, ds)) return;
-        const pairEvs = cityEvs.filter(s => pair.ids.map(Number).includes(Number(s.g)) && !firstUsedGids.has(Number(s.g)));
-        
-        if (!pairEvs.length) return;
-        
-        pairEvs.forEach(s => firstUsedGids.add(Number(s.g)));
-        pairGroups.push({pair, pairEvs});
-      });
-      pairGroups.sort((a,b) => (a.pair.name||'').localeCompare(b.pair.name||'', 'he'));
-      pairGroups.forEach(({pair, pairEvs}) => {
-        const gardenActivities = new Map();
-        pairEvs.forEach(s => {
-          if(!gardenActivities.has(s.g)) gardenActivities.set(s.g, []);
-          gardenActivities.get(s.g).push(s);
-        });
-        
-        const finalEvs = [];
-        pair.ids.forEach(gid => {
-          if(gardenActivities.has(gid)) {
-            finalEvs.push(...gardenActivities.get(gid));
-          } else {
-            finalEvs.push({ id: 'dummy_'+gid, g: gid, st: 'unassigned', d: ds, t: '', act: '' });
-          }
-        });
-        const sorted = finalEvs.sort((a,b) => window.compareActivities(a, b));
-        h += window.ui.renderStandardPairCard(pair, sorted, { ds, clr, context: 'cal' });
-      });
 
       if(_gmode === 'window.pairs'){
         const dayClusters = (typeof getClusters === 'function' ? getClusters() : []).filter(cl =>
