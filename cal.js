@@ -1821,10 +1821,14 @@ function renderRangeListView(evs, fromDs, toDs){
     if(!byDate[dk]) byDate[dk] = [];
     byDate[dk].push(s);
   });
-  const dates = Object.keys(byDate).sort();
-  if(!dates.length) return '<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות בטווח זה</div>';
-
-  let h = '<div class="card" style="padding:0;overflow:hidden">';
+1824:   const dates = Object.keys(byDate).sort();
+1825:   if(fromDs === toDs && !dates.includes(fromDs)) {
+1826:     dates.push(fromDs);
+1827:     byDate[fromDs] = [];
+1828:   }
+1829:   if(!dates.length) return '<div class="card" style="text-align:center;color:#999;padding:25px">אין פעילויות בטווח זה</div>';
+1830: 
+1831:   let h = '<div class="card" style="padding:0;overflow:hidden">';
   const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
   const f = getCalF();
   
@@ -1848,11 +1852,24 @@ function renderRangeListView(evs, fromDs, toDs){
     h += renderMakeupsTop(ds, f.city, f.cls, true);
 
     const dayEvsNonM = dayEvs.filter(s => !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n))));
-    const allCities = [...new Set(dayEvsNonM.map(s => window.G(s.g).city || 'אחר'))].sort((a,b) => a.localeCompare(b, 'he'));
+    const _gmode = _listGroupMode === 'clusters' ? 'window.clusters' : 'window.pairs';
+    
+    let allCitiesSet = new Set(dayEvsNonM.map(s => window.G(s.g).city || 'אחר'));
+    if (_gmode === 'window.clusters') {
+      (typeof getClusters === 'function' ? getClusters() : []).forEach(cl => {
+        const city = cl.gardenIds && cl.gardenIds.length ? (window.G(cl.gardenIds[0])?.city || 'אחר') : 'אחר';
+        allCitiesSet.add(city);
+      });
+    } else if (_gmode === 'window.pairs') {
+      (window.pairs || []).forEach(pair => {
+        const city = pair.ids && pair.ids.length ? (window.G(pair.ids[0])?.city || 'אחר') : 'אחר';
+        allCitiesSet.add(city);
+      });
+    }
+    const allCities = [...allCitiesSet].sort((a,b) => a.localeCompare(b, 'he'));
 
     allCities.forEach(city => {
       const cityEvs = dayEvsNonM.filter(s => (window.G(s.g).city || 'אחר') === city);
-      if(!cityEvs.length) return;
       const clr = window.CITY_COLORS(city);
 
       h += `<details class="city-accordion">
@@ -1863,16 +1880,17 @@ function renderRangeListView(evs, fromDs, toDs){
           </div>
         </summary>
         <div class="city-accordion-content">`;
-
-      const _gmode = _listGroupMode === 'clusters' ? 'window.clusters' : 'window.pairs';
       const firstUsedGids = new Set();
       
       const _renderCl = (cl) => {
+        const clCity = cl.gardenIds && cl.gardenIds.length ? (window.G(cl.gardenIds[0])?.city || 'אחר') : 'אחר';
+        if (clCity !== city) return;
+
         const clEvs = cityEvs.filter(s => (cl.gardenIds || []).map(Number).includes(Number(s.g)) && !firstUsedGids.has(Number(s.g)))
           .sort((a,b) => window.compareActivities(a, b));
-        if(!clEvs.length) return;
+        
         clEvs.forEach(s => firstUsedGids.add(Number(s.g)));
-        const clGids = clEvs.map(s => s.g);
+        const clGids = cl.gardenIds || [];
         h += `<div style="margin-bottom:4px;border:1px solid ${clr.border||clr.solid+'44'};border-radius:6px;overflow:hidden">
           <div style="background:${clr.solid}22;padding:2px 8px;font-size:.7rem;font-weight:700;color:${clr.solid};display:flex;align-items:center;justify-content:space-between">
             <span>🏘️ ${cl.name}</span>
@@ -1882,13 +1900,17 @@ function renderRangeListView(evs, fromDs, toDs){
                <button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${cl.id}','${ds}')" style="font-size:.62rem; padding:1px 6px; height:20px !important; display:inline-flex; align-items:center; margin:0 !important">✏️ עריכה</button>
                <button class="btn bg bsm" onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="font-size:.62rem; padding:1px 6px; height:20px !important; display:inline-flex; align-items:center; margin:0 !important; background:#25d366; color:#fff; border:none">📋 הודעה</button>
             </div>
-          </div>
-          <table style="width:100%; border-collapse:collapse">
-            <tbody>
-              ${clEvs.map(s => window.ui.renderActivityRow(s, { ds, clr, context:'cal' })).join('')}
-            </tbody>
-          </table>
-        </div>`;
+          </div>`;
+          if (clEvs.length) {
+            h += `<table style="width:100%; border-collapse:collapse">
+              <tbody>
+                ${clEvs.map(s => window.ui.renderActivityRow(s, { ds, clr, context:'cal' })).join('')}
+              </tbody>
+            </table>`;
+          } else {
+            h += `<div style="padding:4px 8px; font-size:0.75rem; color:#999; background:#fff;">אין פעילויות באשכול זה היום</div>`;
+          }
+        h += `</div>`;
       };
 
       if(_gmode === 'window.clusters'){
@@ -1897,9 +1919,12 @@ function renderRangeListView(evs, fromDs, toDs){
 
       const pairGroups = [];
       window.pairs.forEach(pair => {
+        const pCity = pair.ids && pair.ids.length ? (window.G(pair.ids[0])?.city || 'אחר') : 'אחר';
+        if (pCity !== city) return;
+        
         if(isPairBroken && isPairBroken(pair.id, ds)) return;
         const pairEvs = cityEvs.filter(s => pair.ids.map(Number).includes(Number(s.g)) && !firstUsedGids.has(Number(s.g)));
-        if(!pairEvs.length) return;
+        
         pairEvs.forEach(s => firstUsedGids.add(Number(s.g)));
         pairGroups.push({pair, pairEvs});
       });
