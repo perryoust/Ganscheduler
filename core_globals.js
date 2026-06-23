@@ -162,10 +162,15 @@ window.ui = {
         ${supBase} ${phone && context === 'dash' ? `<span class="text-xs text-success mr-2">📞 ${phone}</span>` : ''}
       </td>`;
 
-    // 5. Activity Type (פעילות)
+    // 5. Type (סוג)
+    rowHtml += `
+      <td class="p-8" style="color:#78909c; font-weight:500">
+        ${evType}
+      </td>`;
+
+    // 5.5 Activity (פעילות)
     rowHtml += `
       <td class="p-8" style="color:var(--c-info); font-weight:500">
-        <div style="font-size:0.75rem; color:#78909c; margin-bottom:2px">${evType}</div>
         ${supAct}
       </td>`;
 
@@ -314,6 +319,7 @@ window.ui = {
               <th style="text-align:right; padding:8px 10px">צהרון</th>
               <th style="text-align:center; padding:8px 10px">שעה</th>
               <th style="text-align:right; padding:8px 10px">ספק</th>
+              <th style="text-align:right; padding:8px 10px">סוג</th>
               <th style="text-align:right; padding:8px 10px">פעילות</th>
               <th style="text-align:center; padding:8px 10px">קבוצות</th>
               <th style="text-align:center; padding:8px 10px">סטטוס</th>

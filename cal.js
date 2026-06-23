@@ -1933,12 +1933,6 @@ function renderRangeListView(evs, fromDs, toDs){
         });
       }
 
-      if(_gmode === 'window.pairs'){
-        const dayClusters = (typeof getClusters === 'function' ? getClusters() : []).filter(cl =>
-          (cl.city === city || !cl.city) && (cl.gardenIds || []).some(gid => cityEvs.some(s => Number(s.g) === Number(gid) && !firstUsedGids.has(Number(s.g)))));
-        dayClusters.forEach(cl => _renderCl(cl));
-      }
-
       cityEvs.filter(s => !firstUsedGids.has(Number(s.g)))
         .sort((a,b) => window.compareActivities(a, b))
         .forEach(s => { 
