@@ -944,7 +944,6 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
             <summary>
               <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
                 <span style="font-weight:800; color:#2d3748;">${typeIcon} ${city} - ${typeName} (${typeEvs.length})</span>
-                <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
               </div>
             </summary>
             <div class="city-accordion-content">`;
@@ -975,7 +974,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
           // --- גנים בודדים ---
           const soloEvs=typeEvs.filter(s=>!pairedGids.has(s.g) && !pairedGids.has(String(s.g)) && !pairedGids.has(Number(s.g)))
             .sort((a,b)=>{
-              const na=window.G(a.g).name||'', nb=window.G(b.g).name||'';
+              const na=window.G(s.g).name||'', nb=window.G(b.g).name||'';
               return na.localeCompare(nb,'he')||(a.t||'99:99').localeCompare(b.t||'99:99');
             });
             
@@ -1023,7 +1022,7 @@ function renderClusterDay(evs, ds, clusterName){
   const calCls = window.getEl ? (window.getEl('cal-cls')?.value || '') : (document.getElementById('cal-cls')?.value || '');
   const calCity = window.getEl ? (window.getEl('cal-city')?.value || '') : (document.getElementById('cal-city')?.value || '');
   // Global Makeups at Top
-  html += renderMakeupsTop(ds, calCity, calCls);
+  html += renderMakeupsTop(ds, calCity, calCls, true);
 
   // Filter out makeups and cancellations from the regular section to avoid duplication
   const others = evs.filter(s => !(s.st === 'can' || s.st === 'nohap' || s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n))));
@@ -1046,7 +1045,6 @@ function renderClusterDay(evs, ds, clusterName){
             <summary>
               <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
                 <span style="font-weight:800; color:#2d3748;">${typeIcon} ${city} - ${typeName} (${typeEvs.length})</span>
-                <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
               </div>
             </summary>
             <div class="city-accordion-content">`;
@@ -1098,7 +1096,6 @@ function renderClusterDay(evs, ds, clusterName){
         <summary>
           <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
             <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cityEvs.length})</span>
-            <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
           </div>
         </summary>
         <div class="city-accordion-content">`;
@@ -1153,9 +1150,6 @@ function renderClusterWeek(evs, weekStart, clusterName){
       </div>`;
     if(blk) html+=`<div style="padding:5px 12px;background:#ffebee;font-size:.75rem;color:#c62828;font-weight:700">${blk.icon||'🚫'} ${blk.reason}</div>`;
 
-    // Global Makeups at Top
-    html += ''; // renderMakeupsTop removed as they are now in regular rows
-
     if(!dayEvs.length){
       html+=`<div style="padding:12px;text-align:center;color:#bbb;font-size:.76rem;background:#fff">אין פעילויות</div>`;
     } else if(isAll){
@@ -1170,7 +1164,6 @@ function renderClusterWeek(evs, weekStart, clusterName){
           <summary>
             <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
               <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cityEvs.length})</span>
-              <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
             </div>
           </summary>
           <div class="city-accordion-content">`;
@@ -1300,7 +1293,6 @@ function renderNormalDay(evs,ds){
         <summary>
           <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
             <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cards.length})</span>
-            <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
           </div>
         </summary>
         <div class="city-accordion-content">
@@ -1879,7 +1871,6 @@ function renderRangeListView(evs, fromDs, toDs){
         <summary>
           <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
             <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cityEvs.length} פעילויות)</span>
-            <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
           </div>
         </summary>
         <div class="city-accordion-content">`;
@@ -1892,7 +1883,7 @@ function renderRangeListView(evs, fromDs, toDs){
         const clEvs = cityEvs.filter(s => (cl.gardenIds || []).map(Number).includes(Number(s.g)) && !firstUsedGids.has(Number(s.g)))
           .sort((a,b) => window.compareActivities(a, b));
         
-        if(!isSingleDay && !clEvs.length) return;
+        if (!clEvs.length && (!isSingleDay || _gmode !== 'window.clusters')) return;
         
         clEvs.forEach(s => firstUsedGids.add(Number(s.g)));
         const clGids = cl.gardenIds || [];
@@ -1930,7 +1921,7 @@ function renderRangeListView(evs, fromDs, toDs){
         if(isPairBroken && isPairBroken(pair.id, ds)) return;
         const pairEvs = cityEvs.filter(s => pair.ids.map(Number).includes(Number(s.g)) && !firstUsedGids.has(Number(s.g)));
         
-        if(!isSingleDay && !pairEvs.length) return;
+        if (!pairEvs.length && (!isSingleDay || _gmode !== 'window.pairs')) return;
         
         pairEvs.forEach(s => firstUsedGids.add(Number(s.g)));
         pairGroups.push({pair, pairEvs});
