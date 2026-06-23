@@ -160,15 +160,16 @@ function openSupCardFromPurch(name){
 
 
 function _applyYearData(o){
-  if(!o || !o.ch){
+  if(!o || (!o.ch && o.useSraws !== false)){
     window.SCH = SRAWS.map(s=>({...s,st:'ok',nt:s.n||'',grp:1}));
   } else if(o.useSraws === false) {
     // ═══ DIRECT MODE: Excel import was used — SRAWS is irrelevant ═══
     // The ch array IS the complete schedule. No merging needed.
-    console.log('[_applyYearData] Direct mode (useSraws=false): using ' + o.ch.length + ' records directly');
+    const incomingCh = o.ch || [];
+    console.log('[_applyYearData] Direct mode (useSraws=false): using ' + incomingCh.length + ' records directly');
     window.useSraws = false;
     // NOTE: workerTasks no longer loaded from main data blob — managed separately via global_worker_tasks
-    window.SCH = o.ch.map(x => ({
+    window.SCH = incomingCh.map(x => ({
       id: x.id,
       g: x.g,
       d: x.d,
