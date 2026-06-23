@@ -761,20 +761,21 @@ window.spBatchSaveNt = function() {
   window.saveAndRefresh('sp', true);
 };
 
+window.spRowTimeChg = function(id, val) {
+  const s = window.SCH.find(x => x.id === id);
+  if(s) {
+    s.t = val;
+    window.saveAndRefresh('sp', true);
+  }
+};
+
 window.openSP = function(id) {
   window.selEv = id;
   const s = window.SCH.find(x => x.id == id);
   if(!s) return;
 
   const isClusterMode = (window._listGroupMode === 'clusters' || window._dashTab === 'clusters');
-  if (isClusterMode) {
-    const cls = window.gardenClusters ? window.gardenClusters(s.g) : [];
-    if (cls && cls.length > 0) {
-      if (window.openClusterBulkEdit) {
-        return window.openClusterBulkEdit(cls[0].id, s.d);
-      }
-    }
-  }
+  // We now use openSP for clusters directly, no redirect to openClusterBulkEdit
 
   try { // ← try-catch to prevent silent failures
   const g=window.G(s.g);
@@ -881,7 +882,9 @@ window.openSP = function(id) {
                   ${(curSt==='nohap'||curSt==='can') ? `<button class="btn br bsm" style="padding:1px 4px;margin-right:3px;border:1px solid #ef9a9a;background:#fff;color:#c62828" title="מחיקה מהלוח" onclick="window.deleteSingleActivity('${pev.id}')">🗑️</button>` : ''}
                 ` : '<span style="font-size:.7rem;color:#c62828;font-weight:700">לא משובץ</span>'}
               </td>
-              <td style="padding:6px;font-weight:700">${pev&&pev.t ? window.fT(pev.t) : '—'}</td>
+              <td style="padding:6px;font-weight:700">
+                ${pev ? `<input type="time" value="${pev.t||''}" onchange="window.spRowTimeChg('${pev.id}', this.value)" style="padding:2px 4px;font-size:0.75rem;border-radius:4px;border:1px solid #ccc;width:90px;text-align:center;font-family:inherit">` : '—'}
+              </td>
             </tr>`;
           }).join('')}
         </tbody>

@@ -1389,12 +1389,16 @@ function genExport(){
     });
     Object.keys(byCity).sort().forEach(c=>{
       if(fmt==='full'){
-        // ── Group by pairs first, then solos ──────────────────────────
+        // ── Group by pairs/clusters first, then solos ──────────────────────────
         const cityEvs=byCity[c];
         const usedIds=new Set();
-        // Pairs
-        pairs.forEach(pair=>{
-          const pairEvs=cityEvs.filter(s=>pair.ids.includes(s.g));
+        
+        const groupList = window._listGroupMode === 'clusters' ? 
+                          (typeof getClusters==='function' ? getClusters().map(cl => ({...cl, ids: cl.gardenIds})) : []) : 
+                          pairs;
+
+        groupList.forEach(pair=>{
+          const pairEvs=cityEvs.filter(s=>pair.ids && pair.ids.includes(s.g));
           if(!pairEvs.length) return;
           pairEvs.forEach(s=>usedIds.add(s.id));
           // Group same pair by supplier+activity key
@@ -1447,14 +1451,44 @@ function genExport(){
                 text+=`     ${stIcon}${mTag}${s.gd.name}${coordText}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`; 
               });
             } else {
-              group.forEach(s=>{
-                const mTag = skipInlineMTag ? '' : getRowTag(s);
-                const isNohapRow = isNohapFunc(s);
-                const stIcon = isNohapRow ? '❌ ' : '🏫 ';
-                const addr=s.gd.st?`📍 ${s.gd.st} · `:'';
-                const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
-                const coordText = isPairWithSameMgr ? '' : getCoordStr(s.g);
-                text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${coordText}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`;
+              const byAddr = {};
+              group.forEach(s => {
+                const addr = s.gd.st || '';
+                if (!byAddr[addr]) byAddr[addr] = [];
+                byAddr[addr].push(s);
+              });
+              Object.keys(byAddr).forEach(addr => {
+                if (addr) {
+                  if (byAddr[addr].length === 1) {
+                    const s = byAddr[addr][0];
+                    const mTag = skipInlineMTag ? '' : getRowTag(s);
+                    const isNohapRow = isNohapFunc(s);
+                    const stIcon = isNohapRow ? '❌ ' : '🏫 ';
+                    const addrStr = `📍 ${addr} · `;
+                    const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
+                    const coordText = isPairWithSameMgr ? '' : getCoordStr(s.g);
+                    text+=`  ${stIcon}${mTag}${addrStr}${s.gd.name}${coordText}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`;
+                  } else {
+                    text+=`  📍 ${addr}\n`;
+                    byAddr[addr].forEach(s => {
+                      const mTag = skipInlineMTag ? '' : getRowTag(s);
+                      const isNohapRow = isNohapFunc(s);
+                      const stIcon = isNohapRow ? '❌ ' : '🏫 ';
+                      const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
+                      const coordText = isPairWithSameMgr ? '' : getCoordStr(s.g);
+                      text+=`     ${stIcon}${mTag}${s.gd.name}${coordText}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`;
+                    });
+                  }
+                } else {
+                  byAddr[addr].forEach(s => {
+                    const mTag = skipInlineMTag ? '' : getRowTag(s);
+                    const isNohapRow = isNohapFunc(s);
+                    const stIcon = isNohapRow ? '❌ ' : '🏫 ';
+                    const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
+                    const coordText = isPairWithSameMgr ? '' : getCoordStr(s.g);
+                    text+=`  ${stIcon}${mTag}${s.gd.name}${coordText}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}\n`;
+                  });
+                }
               });
             }
             if (isPairWithSameMgr && sharedMgrStr) {
