@@ -1554,7 +1554,7 @@ function setGardensTab(t){
   if(t==='managers'){
     gBody.className='scroll-area';
     gBody.innerHTML='';
-    const src=document.querySelector('#p-managers .card');
+    const src=document.querySelector('#p-managers');
     if(src){ gBody.innerHTML=src.innerHTML; }
     renderManagers(); refreshMgrDrops();
     return;

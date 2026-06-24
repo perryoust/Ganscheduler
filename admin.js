@@ -843,7 +843,15 @@ window.executeNewYear = async function() {
         clusters: JSON.parse(JSON.stringify(window.clusters || {})),
         holidays: [],
         pairBreaks: {},
-        managers: JSON.parse(JSON.stringify(window.managers || {})),
+        managers: (() => {
+          const copied = JSON.parse(JSON.stringify(window.managers || {}));
+          Object.values(copied).forEach(m => {
+            if (m.gardenIds) {
+              m.gardenIds = m.gardenIds.filter(id => selectedGardenIds.has(parseInt(id)));
+            }
+          });
+          return copied;
+        })(),
         blockedDates: {},
         gardenBlocks: {},
         activeGardens: [...selectedGardenIds],
