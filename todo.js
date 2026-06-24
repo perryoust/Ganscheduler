@@ -48,17 +48,39 @@ window.todo = {
     let activeCount = 0;
     let archiveCount = 0;
 
-    this.items.forEach(item => {
+    // Sort active items: reminders by date (earliest first), then no-reminder items by creation date
+    const sortedItems = [...this.items].sort((a, b) => {
+      if (a.done !== b.done) return a.done ? 1 : -1; // active before done
+      if (!a.done && !b.done) {
+        const aHas = a.remindAt && !a.remindTriggered;
+        const bHas = b.remindAt && !b.remindTriggered;
+        // Triggered reminders (overdue) come first
+        const aTriggered = a.remindAt && a.remindTriggered;
+        const bTriggered = b.remindAt && b.remindTriggered;
+        if (aTriggered && !bTriggered) return -1;
+        if (!aTriggered && bTriggered) return 1;
+        // Then pending reminders sorted by date (earliest first)
+        if (aHas && !bHas) return -1;
+        if (!aHas && bHas) return 1;
+        if (aHas && bHas) return a.remindAt - b.remindAt;
+        // No reminders: newest first
+        return (b.ts || 0) - (a.ts || 0);
+      }
+      return 0;
+    });
+
+    sortedItems.forEach(item => {
       const remindTimeStr = item.remindAt ? new Date(item.remindAt).toLocaleString('he-IL', {dateStyle:'short', timeStyle:'short'}) : '';
+      const isOverdue = item.remindAt && item.remindAt <= Date.now() && !item.done;
       const bellColor = item.remindAt ? (item.remindTriggered ? '#9e9e9e' : '#1976d2') : '#9e9e9e';
       
       const html = `
-        <div class="todo-item ${item.done ? 'done' : ''}" style="display:flex; align-items:flex-start; gap:10px; padding:10px; background:#f9f9f9; border-radius:6px; transition:all 0.3s; ${item.done?'opacity:0.6; text-decoration:line-through':''}">
+        <div class="todo-item ${item.done ? 'done' : ''}" style="display:flex; align-items:flex-start; gap:10px; padding:10px; background:${isOverdue ? '#fff3e0' : '#f9f9f9'}; border-radius:6px; transition:all 0.3s; ${isOverdue ? 'border-right:3px solid #e65100;' : ''} ${item.done?'opacity:0.6; text-decoration:line-through':''}">
           <input type="checkbox" class="todo-checkbox" style="width:18px;height:18px;margin-top:2px;cursor:pointer;" 
             ${item.done ? 'checked' : ''} onchange="window.todo.toggleDone('${item.id}')">
           <div style="flex:1; display:flex; flex-direction:column;">
             <div class="todo-text" style="font-size:0.95rem;">${item.text}</div>
-            ${item.remindAt && !item.done ? `<div style="font-size:0.75rem; color:${item.remindTriggered?'#999':'#1976d2'}; margin-top:4px;">⏰ ${remindTimeStr}</div>` : ''}
+            ${item.remindAt && !item.done ? `<div style="font-size:0.75rem; color:${isOverdue ? '#e65100' : (item.remindTriggered?'#999':'#1976d2')}; margin-top:4px;">${isOverdue ? '🔴' : '⏰'} ${remindTimeStr}</div>` : ''}
           </div>
           ${!item.done ? `
             <div style="position:relative; display:inline-block; margin-top:2px;">
