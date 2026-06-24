@@ -79,8 +79,8 @@ window.todo = {
           <input type="checkbox" class="todo-checkbox" style="width:18px;height:18px;margin-top:2px;cursor:pointer;" 
             ${item.done ? 'checked' : ''} onchange="window.todo.toggleDone('${item.id}')">
           <div style="flex:1; display:flex; flex-direction:column;">
-            <div class="todo-text" style="font-size:0.95rem;">${item.text}</div>
-            ${item.remindAt && !item.done ? `<div style="font-size:0.75rem; color:${isOverdue ? '#e65100' : (item.remindTriggered?'#999':'#1976d2')}; margin-top:4px;">${isOverdue ? '🔴' : '⏰'} ${remindTimeStr}</div>` : ''}
+            ${item.remindAt && !item.done ? `<div style="font-size:0.85rem; font-weight:bold; color:${isOverdue ? '#e65100' : (item.remindTriggered?'#999':'#1976d2')}; margin-bottom:4px;">${isOverdue ? '🔴' : '⏰'} ${remindTimeStr}</div>` : ''}
+            <div class="todo-text" style="font-size:0.95rem; white-space:pre-wrap;">${item.text}</div>
           </div>
           ${!item.done ? `
             <div style="position:relative; display:inline-block; margin-top:2px;">
@@ -414,10 +414,12 @@ window.todo = {
     div.style.textAlign = 'center';
     div.style.border = '3px solid #fff';
     
+    const popupTimeStr = item.remindAt ? new Date(item.remindAt).toLocaleString('he-IL', {dateStyle:'short', timeStyle:'short'}) : '';
     div.innerHTML = `
       <div style="font-size:2rem;">⏰</div>
       <div style="font-size:1.4rem; font-weight:800;">תזכורת למשימה!</div>
-      <div style="font-size:1.2rem; font-weight:600; margin:10px 0; background:rgba(255,255,255,0.1); padding:10px; border-radius:6px;">${item.text}</div>
+      <div style="font-size:1.1rem; font-weight:bold; margin-top:5px;">${popupTimeStr}</div>
+      <div style="font-size:1.2rem; font-weight:600; margin:10px 0; background:rgba(255,255,255,0.1); padding:10px; border-radius:6px; white-space:pre-wrap;">${item.text}</div>
       <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
         <div style="display:flex; gap:10px; justify-content:center;">
           <button id="btn-remind-done-${item.id}" style="background:#fff; color:#e65100; border:none; padding:10px 20px; border-radius:6px; font-weight:bold; font-size:1rem; cursor:pointer;">סמן כבוצע</button>
