@@ -31,7 +31,15 @@ window.importBulkSchedule = function(input) {
       if (!window.XLSX) throw new Error('ספריית XLSX לא נטענה');
       const workbook = window.XLSX.read(data, { type: 'array', cellDates: true });
       
-      const allSups = (window.getAllSup ? window.getAllSup() : []);
+      const baseSups = window.getAllSup ? window.getAllSup() : [];
+      const allSups = [];
+      baseSups.forEach(s => {
+        if (s.fullNames && s.fullNames.length > 0) {
+          s.fullNames.forEach(fn => allSups.push({ name: fn }));
+        } else {
+          allSups.push({ name: s.name });
+        }
+      });
       const allRecords = [];
       const newClustersMap = {}; // Collect clusters from file
       const report = {
