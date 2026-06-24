@@ -108,7 +108,7 @@ var _SUP_ALIASES = {
 function supBase(fullName){
   if(!fullName) return '';
   const norm = _SUP_ALIASES[fullName]||fullName;
-  const match = norm.match(/^(.*?)\s*([-\u2013\u2014])\s*(.*)$/);
+  const match = norm.match(/^(.*?)\s*([-\u2010-\u2015\u2212\u05BE\uFE58\uFE63\uFF0D])\s*(.*)$/);
   const base = match ? match[1].trim() : norm.trim();
   
   // Resolve dynamic aliases from merged suppliers
@@ -138,14 +138,14 @@ function supAct(fullName){
   // AGGRESSIVE OVERRIDE: Tilitan always defaults to Sport unless explicitly changed to something else
   if(norm === 'תלתן' || norm === 'תלתן - כלבנות') return 'ספורט';
   
-  const match = norm.match(/^(.*?)\s*([-\u2013\u2014])\s*(.*)$/);
+  const match = norm.match(/^(.*?)\s*([-\u2010-\u2015\u2212\u05BE\uFE58\uFE63\uFF0D])\s*(.*)$/);
   if(match) return match[3].trim();
 
   // If no dash found, try to look up the activity from the master SUPBASE list by base name
   if(typeof SUPBASE !== 'undefined' && Array.isArray(SUPBASE)){
     const matches = SUPBASE.filter(s => supBase(s.name) === norm);
     if(matches.length === 1){
-      const m2 = matches[0].name.match(/^(.*?)\s*([-\u2013\u2014])\s*(.*)$/);
+      const m2 = matches[0].name.match(/^(.*?)\s*([-\u2010-\u2015\u2212\u05BE\uFE58\uFE63\uFF0D])\s*(.*)$/);
       if(m2) return m2[3].trim();
     }
   }

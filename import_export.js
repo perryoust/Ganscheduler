@@ -103,8 +103,14 @@ window.importBulkSchedule = function(input) {
               sheetReport.skipped++; report.skipped++;
               continue;
             }
-            // Use lenient match
-            var supplierName = lenient.name;
+            
+            // Check if user explicitly specified a new activity with a dash
+            if (rawSupplier.match(/[-\u2010-\u2015\u2212\u05BE\uFE58\uFE63\uFF0D\/]/)) {
+              var supplierName = rawSupplier.trim(); // keep the explicit activity!
+            } else {
+              // Use lenient match
+              var supplierName = lenient.name;
+            }
           } else {
             var supplierName = supplier.name;
           }

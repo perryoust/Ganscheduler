@@ -51,7 +51,7 @@ window.utils = {
       }
     }
     // 3. Strip anything after dash or slash for fuzzy matching
-    str = str.split(' - ')[0].split(' / ')[0].split('-')[0].trim();
+    str = str.split(/[-\u2010-\u2015\u2212\u05BE\uFE58\uFE63\uFF0D\/]/)[0].trim();
     return str;
   },
 
@@ -80,12 +80,17 @@ window.utils = {
         const act = window.supAct ? window.supAct(s.name) : '';
         return act && n.includes(this.norm(act));
       });
-      return bestMatch || matches[0];
+      if (bestMatch) return bestMatch;
+      // If the user explicitly provided a dash (meaning they specified a NEW activity), do not fallback to an existing wrong activity.
+      if (n.match(/[-\u2010-\u2015\u2212\u05BE\uFE58\uFE63\uFF0D\/]/)) return null;
+      return matches[0];
     }
     
     // 3. Try base match (if name contains " - ")
-    const base = name.split(/[-\u2013\u2014\/]/)[0].trim();
-    const nb = this.norm(base);
+    const baseMatch = name.match(/^(.*?)\s*([-\u2010-\u2015\u2212\u05BE\uFE58\uFE63\uFF0D\/])\s*(.*)$/);
+    if (baseMatch) return null; // It's an explicit new activity, don't fallback to base
+    
+    const nb = this.norm(name);
     return all.find(s => this.norm(s.name).startsWith(nb));
   },
 
