@@ -441,12 +441,19 @@ window.wtOnDropTask = function(draggedId, droppedOnId) {
   if (dragIdx === -1 || dropIdx === -1) return;
   
   const draggedTask = tasks[dragIdx];
+  const isDraggingDown = dragIdx < dropIdx;
+  
   tasks.splice(dragIdx, 1);
   
   // Re-find dropIdx after removal
-  const newDropIdx = tasks.findIndex(t => t.id === droppedOnId);
+  let newDropIdx = tasks.findIndex(t => t.id === droppedOnId);
   
-  // Insert before the dropped-on task
+  // If dragging down, insert AFTER the dropped-on task so it actually moves past it
+  if (isDraggingDown) {
+    newDropIdx++;
+  }
+  
+  // Insert the dropped task
   tasks.splice(newDropIdx, 0, draggedTask);
   
   if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) window.save(true);
