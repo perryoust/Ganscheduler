@@ -112,7 +112,11 @@ function renderMobileInvoiceCard(inv, opts = {}) {
       const name = (window._extractNameFromUrl ? window._extractNameFromUrl(meta.path) : '') || meta.name || 'פתח';
       return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${inv.id},'${sec}')" title="${name}">📎 ${name} ↗</span>`;
     }
-    if(/\d/.test(docNum)){
+    // Only show "עדכן קישור" if no file exists for ANY of the related document types to prevent clutter
+    const hasAnyFile = (inv.file_order && inv.file_order.path) || 
+                       (inv.file_tx && inv.file_tx.path) || 
+                       (inv.file_tax && inv.file_tax.path);
+    if(/\d/.test(docNum) && !hasAnyFile){
       return `<span style="display:inline-flex;align-items:center;gap:2px;background:#fff8e1;border:1px solid #ffe082;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice(${inv.id})" title="עדכן קישור">📎 עדכן קישור</span>`;
     }
     return '';
@@ -343,7 +347,10 @@ function renderInvoices(){
           const name = _extractNameFromUrl(meta.path)||meta.name||'פתח';
           return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${inv.id},'${sec}')" title="${name}">📎 ${name} ↗</span>`;
         }
-        if(/\d/.test(docNum)){
+        const hasAnyFile = (inv.file_order && inv.file_order.path) || 
+                           (inv.file_tx && inv.file_tx.path) || 
+                           (inv.file_tax && inv.file_tax.path);
+        if(/\d/.test(docNum) && !hasAnyFile){
           return `<span style="display:inline-flex;align-items:center;gap:2px;background:#fff8e1;border:1px solid #ffe082;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice(${inv.id})" title="עדכן קישור לקובץ">📎 עדכן קישור</span>`;
         }
         return '';
@@ -445,12 +452,15 @@ function refreshPurchDash(){
           if(!docNum) return '';
           const showBadge = !(sec==='order' && !/\d/.test(docNum));
           const meta = i['file_'+sec];
+          const hasAnyFile = (i.file_order && i.file_order.path) || 
+                             (i.file_tx && i.file_tx.path) || 
+                             (i.file_tax && i.file_tax.path);
           let badge = '';
           if(showBadge){
             if(meta && meta.path){
               const name = _extractNameFromUrl(meta.path)||meta.name||'פתח';
               badge = `<span style="display:inline-flex;align-items:center;gap:2px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:1px 5px;font-size:.63rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${i.id},'${sec}')" title="${name}">📎 ${name} ↗</span>`;
-            } else if(/\d/.test(docNum)){
+            } else if(/\d/.test(docNum) && !hasAnyFile){
               badge = `<span style="display:inline-flex;align-items:center;background:#fff8e1;border:1px solid #ffe082;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice(${i.id})">📎 עדכן קישור</span>`;
             }
           }
@@ -2256,8 +2266,8 @@ window.importInvoices = function(input) {
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
       
-      // Convert to 2D array to support robust header row detection
-      const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      // Convert to 2D array to support robust header row detection - using raw:false to preserve string values (like leading zeros)
+      const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false, defval: "" });
       if (rawRows.length === 0) {
         _spAlertDialog("הקובץ ריק או לא תקין.");
         return;
@@ -2369,11 +2379,26 @@ window.importInvoices = function(input) {
 
         if (!item.supName) continue; // Skip invalid rows
 
-        // Format dates if they are numeric (Excel serial format)
+        // Format dates if they are numeric (Excel serial format) or strings
         ["orderDate", "txDate", "date"].forEach(dk => {
-          if (typeof item[dk] === "number") {
-            const d = new Date(Math.round((item[dk] - 25569) * 86400 * 1000));
-            item[dk] = d.toISOString().slice(0, 10);
+          if (item[dk]) {
+            if (typeof item[dk] === "number" || (!isNaN(item[dk]) && String(item[dk]).trim().length < 6)) {
+              // Convert Excel serial date
+              const parsed = parseFloat(item[dk]);
+              if(!isNaN(parsed) && parsed > 20000) {
+                 const d = new Date(Math.round((parsed - 25569) * 86400 * 1000));
+                 item[dk] = d.toISOString().slice(0, 10);
+              }
+            } else if (typeof item[dk] === "string" && item[dk].includes('/')) {
+              // Handle "DD/MM/YYYY" format explicitly 
+              const parts = item[dk].split(/[-/]/);
+              if(parts.length === 3) {
+                 const y = parts[2].length === 2 ? '20'+parts[2] : parts[2];
+                 const m = parts[1].padStart(2, '0');
+                 const d = parts[0].padStart(2, '0');
+                 item[dk] = `${y}-${m}-${d}`;
+              }
+            }
           }
         });
 
@@ -2930,17 +2955,27 @@ window.startSharePointScanner = async function() {
       if (numStr.length < 3) continue;
       
       const cleanNumStr = numStr.replace(/\D/g, '').replace(/^0+/, '');
-      const potentialMatches = window.INVOICES.filter(inv => 
-        (inv.num && String(inv.num).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) ||
-        (inv.txNum && String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) ||
-        (inv.orderNum && String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr)
-      );
+      
+      const potentialMatches = window.INVOICES.filter(inv => {
+        const invTax = String(inv.num || '').replace(/\D/g, '').replace(/^0+/, '');
+        const invTx = String(inv.txNum || '').replace(/\D/g, '').replace(/^0+/, '');
+        const invOrder = String(inv.orderNum || '').replace(/\D/g, '').replace(/^0+/, '');
+        
+        // Flexible matching (allow substrings like missing year digits, as long as length >= 5)
+        return (invTax.length >= 5 && (invTax.includes(cleanNumStr) || cleanNumStr.includes(invTax))) ||
+               (invTx.length >= 5 && (invTx.includes(cleanNumStr) || cleanNumStr.includes(invTx))) ||
+               (invOrder.length >= 5 && (invOrder.includes(cleanNumStr) || cleanNumStr.includes(invOrder)));
+      });
 
       for (const inv of potentialMatches) {
+        const invTax = String(inv.num || '').replace(/\D/g, '').replace(/^0+/, '');
+        const invTx = String(inv.txNum || '').replace(/\D/g, '').replace(/^0+/, '');
+        const invOrder = String(inv.orderNum || '').replace(/\D/g, '').replace(/^0+/, '');
+
         let type = null;
-        if (inv.num && String(inv.num).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) type = 'tax';
-        else if (inv.txNum && String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) type = 'tx';
-        else if (inv.orderNum && String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) type = 'order';
+        if (invTax.length >= 5 && (invTax.includes(cleanNumStr) || cleanNumStr.includes(invTax))) type = 'tax';
+        else if (invTx.length >= 5 && (invTx.includes(cleanNumStr) || cleanNumStr.includes(invTx))) type = 'tx';
+        else if (invOrder.length >= 5 && (invOrder.includes(cleanNumStr) || cleanNumStr.includes(invOrder))) type = 'order';
 
         let score = 50;
         

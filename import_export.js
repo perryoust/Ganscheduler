@@ -90,10 +90,25 @@ window.importBulkSchedule = function(input) {
           const gardenName = String(row[cols.garden] || '').trim();
           const city = String(row[cols.city] || '').trim();
           if (!gardenName) continue;
-          const garden = window.utils.findGarden(gardenName, city);
+          let garden = window.utils.findGarden(gardenName, city);
           if (!garden) {
-            report.noGarden.push({ name: gardenName, city, row: i + 1, sheet: sheetName });
-            continue;
+            // Auto-create garden if not found
+            const allG = [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+            const newId = Math.max(...allG.map(g => g.id), 0) + Date.now() % 100000;
+            garden = {
+              id: newId,
+              name: gardenName,
+              city: city,
+              cls: 'גנים' // Default to kindergarten
+            };
+            window._GARDENS_EXTRA = window._GARDENS_EXTRA || [];
+            window._GARDENS_EXTRA.push(garden);
+            window.supEx = window.supEx || {};
+            window.supEx['__gardens_extra'] = window._GARDENS_EXTRA;
+            report.newGardensCreated = (report.newGardensCreated || 0) + 1;
+            if (!report.newGardensList) report.newGardensList = new Set();
+            report.newGardensList.add(`${gardenName} (${city})`);
+            console.log(`[Import] Auto-created new garden: ${gardenName} (${city})`);
           }
           report.gardensFound.add(garden.id);
 
@@ -194,7 +209,15 @@ window.importBulkSchedule = function(input) {
       }
       msg += '\n';
 
-      if (report.noGarden.length > 0) {
+      if (report.newGardensCreated > 0) {
+        msg += `✨ נוצרו אוטומטית ${report.newGardensCreated} גנים חדשים שלא היו במערכת:\n`;
+        const uniqueNew = [...report.newGardensList];
+        uniqueNew.slice(0, 10).forEach(g => { msg += '   • ' + g + '\n'; });
+        if (uniqueNew.length > 10) msg += '   • ...ועוד ' + (uniqueNew.length - 10) + '\n';
+        msg += '\n';
+      }
+
+      if (report.noGarden && report.noGarden.length > 0) {
         msg += '⚠️ ' + report.noGarden.length + ' שורות עם גנים לא מזוהים:\n';
         const uniqueGardens = [...new Set(report.noGarden.map(g => g.name + ' (' + g.city + ')'))];
         uniqueGardens.slice(0, 10).forEach(g => { msg += '   • ' + g + '\n'; });

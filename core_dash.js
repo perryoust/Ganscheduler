@@ -1417,6 +1417,16 @@ function saveMgr(){
   if(!name){_spAlertDialog('יש להזין שם');return;}
   const id=_editMgrId||('mgr_'+Date.now());
   const gardenIds=[...document.querySelectorAll('#mgr-gardens input:checked')].map(cb=>parseInt(cb.value));
+  
+  // Ensure that gardens assigned to this coordinator are removed from any other coordinators
+  for (const gid of gardenIds) {
+    for (const otherId in managers) {
+      if (otherId !== id && managers[otherId].gardenIds) {
+        managers[otherId].gardenIds = managers[otherId].gardenIds.filter(existingGid => existingGid !== gid);
+      }
+    }
+  }
+
   managers[id]={
     id,name,
     role:document.getElementById('mgr-role').value,
