@@ -1287,8 +1287,8 @@ function saveGardenCard(){
 }
 
 function renderManagers(){
-  const cityF=(document.getElementById('mgr-city-filt')||{}).value||'';
-  const roleF=(document.getElementById('mgr-role-filt')||{}).value||'';
+  const cityF=(window.getEl ? window.getEl('mgr-city-filt') : document.getElementById('mgr-city-filt'))?.value || '';
+  const roleF=(window.getEl ? window.getEl('mgr-role-filt') : document.getElementById('mgr-role-filt'))?.value || '';
   const all=Object.values(managers).filter(m=>{
     if(cityF&&m.city&&m.city!==cityF) return false;
     if(roleF&&m.role!==roleF) return false;
