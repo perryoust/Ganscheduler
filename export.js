@@ -1327,6 +1327,7 @@ window.exportBulkAnnualSchedule = async function() {
 
   const headers = ['סיווג', 'עיר', 'רחוב', 'שם הצהרון', 'גיל', 'תאריך', 'יום', 'חוג/הפעלה', 'שם החוג', 'טלפון', "קב'", 'שעה', 'הערות', "אשכול מס'", 'רכז'];
   ws.addRow(headers);
+  ws.getColumn(6).numFmt = 'dd/mm/yyyy';
   
   // Format Header
   const headerRow = ws.getRow(1);
@@ -1376,8 +1377,8 @@ window.exportBulkAnnualSchedule = async function() {
   // Iterate over every day in the year
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const dateStr = window.d2s(d);
-    // Format date as DD/MM/YY
-    const formattedDate = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;
+    // Format date as Excel Date object to enable hierarchical date filtering
+    const formattedDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0); 
     const dayName = `יום ${HEB_DAYS[d.getDay()]}`;
     const isWeekend = (d.getDay() === 5 || d.getDay() === 6);
     
