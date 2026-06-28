@@ -1386,15 +1386,29 @@ window.exportBulkAnnualSchedule = async function() {
       if (activeEvs.length > 0) {
         activeEvs.forEach(ev => {
            const supName = (typeof window.supBase === 'function' ? window.supBase(ev.a) : ev.a) || ev.a || '';
-           const phone = ev.p || (window.supEx && window.supEx[supName] ? window.supEx[supName].ph1 : '') || '';
+           
+           let phone = ev.p || '';
+           if (!phone && window.supEx && window.supEx[supName] && window.supEx[supName].ph1) {
+             phone = window.supEx[supName].ph1;
+           }
+           if (!phone && window.SUPPLIERS) {
+             const sObj = window.SUPPLIERS.find(s => s.name === supName || (typeof window.supBase === 'function' && window.supBase(s.name) === supName));
+             if (sObj && sObj.phone) phone = sObj.phone;
+           }
+
            const cName = clusterByGan[g.id] || g.cluster || '';
+           
+           let fullActName = ev.a || '';
+           if (ev.act && ev.act.trim()) {
+             fullActName += ' - ' + ev.act.trim();
+           }
            
            const r = ws.addRow([
              cls, g.city || '', g.address || '', g.name || '', g.age || '***',
-             formattedDate, dayName, ev.tp || 'חוג', ev.a || '', phone, ev.grp || 1, ev.t || '', ev.n || '',
+             formattedDate, dayName, ev.tp || 'חוג', fullActName, phone, ev.grp || 1, ev.t || '', ev.n || '',
              cName, mgrName
            ]);
-           _applyRowStyle(r, isWeekend, ev.tp || 'חוג', ev.a || '', cls);
+           _applyRowStyle(r, isWeekend, ev.tp || 'חוג', fullActName, cls);
         });
       } else {
         const cName = clusterByGan[g.id] || g.cluster || '';
