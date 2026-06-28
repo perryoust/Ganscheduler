@@ -1403,9 +1403,27 @@ window.exportBulkAnnualSchedule = async function() {
              fullActName += ' - ' + ev.act.trim();
            }
            
+           // Status logic mapping
+           let statusNote = '';
+           let finalGrp = parseInt(ev.grp) || 1;
+           if (ev.st === 'nohap') {
+             statusNote = 'לא התקיים';
+             finalGrp = 0;
+           } else if (ev.st === 'can') {
+             statusNote = 'בוטל';
+             finalGrp = 0;
+           } else if (ev.st === 'ok') {
+             statusNote = 'התקיים';
+           }
+
+           let finalNotes = ev.n ? String(ev.n).trim() : '';
+           if (statusNote) {
+             finalNotes = finalNotes ? `${statusNote} - ${finalNotes}` : statusNote;
+           }
+           
            const r = ws.addRow([
-             cls, g.city || '', g.address || '', g.name || '', g.age || '***',
-             formattedDate, dayName, ev.tp || 'חוג', fullActName, phone, ev.grp || 1, ev.t || '', ev.n || '',
+             cls, g.city || '', g.add || '', g.name || '', g.age || '***',
+             formattedDate, dayName, ev.tp || 'חוג', fullActName, phone, finalGrp, ev.t || '', finalNotes,
              cName, mgrName
            ]);
            _applyRowStyle(r, isWeekend, ev.tp || 'חוג', fullActName, cls);
