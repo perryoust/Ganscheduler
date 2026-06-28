@@ -1381,10 +1381,8 @@ window.exportBulkAnnualSchedule = async function() {
       const mgrName = mgrByGan[g.id] || '';
       const cls = g.cls || 'גנים';
       
-      const activeEvs = gEvs.filter(e => e.st !== 'can' && e.st !== 'nohap');
-      
-      if (activeEvs.length > 0) {
-        activeEvs.forEach(ev => {
+      if (gEvs.length > 0) {
+        gEvs.forEach(ev => {
            const supName = (typeof window.supBase === 'function' ? window.supBase(ev.a) : ev.a) || ev.a || '';
            
            let phone = ev.p || '';
@@ -1412,9 +1410,8 @@ window.exportBulkAnnualSchedule = async function() {
            } else if (ev.st === 'can') {
              statusNote = 'בוטל';
              finalGrp = 0;
-           } else if (ev.st === 'ok') {
-             statusNote = 'התקיים';
            }
+           // We intentionally do NOT add "התקיים" when st === 'ok'
 
            let finalNotes = ev.n ? String(ev.n).trim() : '';
            if (statusNote) {
