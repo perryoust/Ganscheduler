@@ -1335,14 +1335,14 @@ window.exportBulkAnnualSchedule = async function() {
   // Adjust column widths slightly
   ws.columns.forEach((col, i) => col.width = (i===3 || i===8 || i===12) ? 20 : 13);
 
-  function _applyRowStyle(row, isWeekend, tp, name, cls, finalGrp) {
+  function _applyRowStyle(row, isWeekend, tp, name, cls, finalGrp, holName) {
     let eventColor = 'FFD9E1F2'; // Light blue default
     
     const holidayWords = ['חופש', 'חג', 'ראש השנה', 'כיפור', 'סוכות', 'פסח', 'שבועות', 'פורים', 'חנוכה', 'זיכרון', 'עצמאות', 'תשעה באב', 'תענית', 'ל"ג בעומר'];
     const campWords = ['קייטנת', 'קייטנה', 'בוקרון', 'יום ארוך'];
     
-    const isHoliday = holidayWords.some(w => tp.includes(w) || name.includes(w));
-    const isCamp = campWords.some(w => tp.includes(w) || name.includes(w));
+    const isHoliday = holidayWords.some(w => tp.includes(w) || name.includes(w) || (holName && holName.includes(w)));
+    const isCamp = campWords.some(w => tp.includes(w) || name.includes(w) || (holName && holName.includes(w)));
 
     if (isWeekend) eventColor = 'FFFF0000'; // Red
     else if (isCamp) eventColor = 'FFF8CBAD'; // Orange
@@ -1381,6 +1381,9 @@ window.exportBulkAnnualSchedule = async function() {
       const mgrName = mgrByGan[g.id] || '';
       const cls = g.cls || 'גנים';
       
+      const hol = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(dateStr, g.city, window.getGardenClass ? window.getGardenClass(g) : cls) : null;
+      const holName = hol ? hol.name : '';
+
       if (gEvs.length > 0) {
         gEvs.forEach(ev => {
            const supName = (typeof window.supBase === 'function' ? window.supBase(ev.a) : ev.a) || ev.a || '';
@@ -1433,15 +1436,15 @@ window.exportBulkAnnualSchedule = async function() {
              formattedDate, dayName, finalTp, fullActName, phone, finalGrp, ev.t || '', finalNotes,
              cName, mgrName
            ]);
-           _applyRowStyle(r, isWeekend, finalTp, fullActName, cls, finalGrp);
+           _applyRowStyle(r, isWeekend, finalTp, fullActName, cls, finalGrp, holName);
         });
       } else {
         const cName = clusterByGan[g.id] || g.cluster || '';
         const r = ws.addRow([
           cls, g.city || '', (g.add || g.st) || '', g.name || '', g.age || '***',
-          formattedDate, dayName, '', '', '', '', '', '', cName, mgrName
+          formattedDate, dayName, holName || '', '', '', '', '', '', cName, mgrName
         ]);
-        _applyRowStyle(r, isWeekend, '', '', cls, 1);
+        _applyRowStyle(r, isWeekend, '', '', cls, 0, holName);
       }
     });
   }
