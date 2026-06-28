@@ -526,17 +526,19 @@ function _parseStatus(rawGr, notes) {
   
   let st = 'ok';
   let grp = 1;
+
+  const isMovedTo = notes && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(notes);
   
-  // Rule #1: Groups column is the absolute source of truth
-  if (grValue === '' || grNum === 0 || isNaN(grNum)) {
+  // Rule #1: Groups column is the absolute source of truth (UNLESS explicitly moved to another date)
+  if (isMovedTo || grValue === '' || grNum === 0 || isNaN(grNum)) {
     grp = 0;
-    st = 'nohap'; // Default for 0 groups is didn't happen (חוסר)
+    st = 'nohap'; // Default for 0 groups or moved to another day
     
     // Check if explicitly cancelled (and not just a makeup that was cancelled)
     if (notes) {
       const lnt = notes.toLowerCase();
       if (lnt.includes('בוטל') && !lnt.includes('נדחה')) {
-        st = 'can'; // Cancellation (doesn't require makeup)
+        st = 'can'; // Cancellation
       }
     }
   } else {
