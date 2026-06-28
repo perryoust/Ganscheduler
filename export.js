@@ -1460,21 +1460,27 @@ window.exportBulkAnnualSchedule = async function() {
     });
   }
 
-  // Auto-fit columns dynamically based on content length
+  // Exact column widths specified by user for perfect layout
+  const colWidths = [
+    5.75,   // 1. סיווג
+    8.25,   // 2. עיר
+    35,     // 3. רחוב
+    14.15,  // 4. שם הצהרון
+    4.5,    // 5. גיל
+    7.25,   // 6. תאריך
+    6.9,    // 7. יום
+    13.25,  // 8. חוג/הפעלה
+    27.25,  // 9. שם החוג
+    12,     // 10. טלפון
+    5,      // 11. קב'
+    8.5,    // 12. שעה
+    35,     // 13. הערות
+    10,     // 14. אשכול מס'
+    15      // 15. רכז
+  ];
+
   for (let i = 1; i <= headers.length; i++) {
-    const col = ws.getColumn(i);
-    let maxCharWidth = 0;
-    col.eachCell({ includeEmpty: true }, cell => {
-      let val = '';
-      if (cell.type === window.ExcelJS.ValueType.Date || cell.value instanceof Date) {
-        val = 'DD/MM/YY';
-      } else {
-        val = cell.text ? cell.text : (cell.value ? cell.value.toString() : '');
-      }
-      if (val.length > maxCharWidth) maxCharWidth = val.length;
-    });
-    // Add padding (4) for the auto-filter dropdown arrow
-    col.width = Math.min(Math.max(10, maxCharWidth + 4), 60);
+    ws.getColumn(i).width = colWidths[i - 1] || 15;
   }
 
   try {
