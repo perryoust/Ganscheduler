@@ -1465,15 +1465,16 @@ window.exportBulkAnnualSchedule = async function() {
     const col = ws.getColumn(i);
     let maxCharWidth = 0;
     col.eachCell({ includeEmpty: true }, cell => {
-      let val = cell.text ? cell.text : (cell.value ? cell.value.toString() : '');
-      let w = 0;
-      for (let j = 0; j < val.length; j++) {
-         w += (val.charCodeAt(j) > 255) ? 1.5 : 1.1; 
+      let val = '';
+      if (cell.type === window.ExcelJS.ValueType.Date || cell.value instanceof Date) {
+        val = 'DD/MM/YYYY';
+      } else {
+        val = cell.text ? cell.text : (cell.value ? cell.value.toString() : '');
       }
-      if (w > maxCharWidth) maxCharWidth = w;
+      if (val.length > maxCharWidth) maxCharWidth = val.length;
     });
-    // Ensure a reasonable width (min 14, max 60), adding padding for safety
-    col.width = Math.min(Math.max(14, maxCharWidth + 4), 60);
+    // Add padding (4) for the auto-filter dropdown arrow
+    col.width = Math.min(Math.max(10, maxCharWidth + 4), 60);
   }
 
   try {
