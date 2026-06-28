@@ -1327,7 +1327,7 @@ window.exportBulkAnnualSchedule = async function() {
 
   const headers = ['סיווג', 'עיר', 'רחוב', 'שם הצהרון', 'גיל', 'תאריך', 'יום', 'חוג/הפעלה', 'שם החוג', 'טלפון', "קב'", 'שעה', 'הערות', "אשכול מס'", 'רכז'];
   ws.addRow(headers);
-  ws.getColumn(6).numFmt = 'dd/mm/yyyy';
+  ws.getColumn(6).numFmt = 'dd/mm/yy';
   
   // Format Header
   const headerRow = ws.getRow(1);
@@ -1467,7 +1467,7 @@ window.exportBulkAnnualSchedule = async function() {
     col.eachCell({ includeEmpty: true }, cell => {
       let val = '';
       if (cell.type === window.ExcelJS.ValueType.Date || cell.value instanceof Date) {
-        val = 'DD/MM/YYYY';
+        val = 'DD/MM/YY';
       } else {
         val = cell.text ? cell.text : (cell.value ? cell.value.toString() : '');
       }
