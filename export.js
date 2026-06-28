@@ -1446,6 +1446,17 @@ window.exportBulkAnnualSchedule = async function() {
     });
   }
 
+  // Auto-fit columns dynamically based on content length
+  ws.columns.forEach(col => {
+    let maxLength = 0;
+    col.eachCell({ includeEmpty: true }, cell => {
+      let val = cell.value ? cell.value.toString() : '';
+      if (val.length > maxLength) maxLength = val.length;
+    });
+    // Ensure a reasonable width (min 12, max 50), with a slight multiplier for Hebrew text width
+    col.width = Math.min(Math.max(12, maxLength * 1.2), 50);
+  });
+
   try {
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
