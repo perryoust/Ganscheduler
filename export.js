@@ -1335,18 +1335,18 @@ window.exportBulkAnnualSchedule = async function() {
   // Adjust column widths slightly
   ws.columns.forEach((col, i) => col.width = (i===3 || i===8 || i===12) ? 20 : 13);
 
-  function _applyRowStyle(row, isWeekend, tp, name, cls) {
+  function _applyRowStyle(row, isWeekend, tp, name, cls, finalGrp) {
     let eventColor = 'FFD9E1F2'; // Light blue default
     
     const holidayWords = ['חופש', 'חג', 'ראש השנה', 'כיפור', 'סוכות', 'פסח', 'שבועות', 'פורים', 'חנוכה', 'זיכרון', 'עצמאות', 'תשעה באב', 'תענית', 'ל"ג בעומר'];
-    const campWords = ['קייטנת', 'קייטנה', 'בוקרון'];
+    const campWords = ['קייטנת', 'קייטנה', 'בוקרון', 'יום ארוך'];
     
     const isHoliday = holidayWords.some(w => tp.includes(w) || name.includes(w));
     const isCamp = campWords.some(w => tp.includes(w) || name.includes(w));
 
     if (isWeekend) eventColor = 'FFFF0000'; // Red
-    else if (isHoliday && !isCamp) eventColor = 'FFFFFF00'; // Yellow for holidays
     else if (isCamp) eventColor = 'FFF8CBAD'; // Orange
+    else if (isHoliday && finalGrp === 0) eventColor = 'FFFFFF00'; // Yellow ONLY for holidays without activity
 
     let idColor = 'FFFCE4D6'; // Light Orange for Schools
     if (cls && cls.includes('גנים')) {
@@ -1396,11 +1396,21 @@ window.exportBulkAnnualSchedule = async function() {
 
            const cName = clusterByGan[g.id] || g.cluster || '';
            
+           let finalTp = ev.tp || 'חוג';
            let fullActName = ev.a || '';
            if (ev.act && ev.act.trim()) {
              fullActName += ' - ' + ev.act.trim();
            }
+
+           // Extract 'יום ארוך' or 'קייטנה' if it was mashed into the supplier name
+           const mashedMatch = fullActName.match(/^(יום ארוך[\s\S]*?|קייטנת[\s\S]*?|קייטנה[\s\S]*?)(?=\s|-|מעשיותאטרון|פמיליסקיול|חוגות|תלתן|עליזה|חיים בתנועה|תל"ן|סל תרבות|$)/);
+           if (mashedMatch) {
+             finalTp = mashedMatch[1].trim();
+             fullActName = fullActName.replace(mashedMatch[1], '').replace(/^-/, '').trim();
+           }
            
+           if (!fullActName) fullActName = finalTp; // fallback if it was entirely just 'יום ארוך'
+
            // Status logic mapping
            let statusNote = '';
            let finalGrp = parseInt(ev.grp) || 1;
@@ -1420,10 +1430,10 @@ window.exportBulkAnnualSchedule = async function() {
            
            const r = ws.addRow([
              cls, g.city || '', (g.add || g.st) || '', g.name || '', g.age || '***',
-             formattedDate, dayName, ev.tp || 'חוג', fullActName, phone, finalGrp, ev.t || '', finalNotes,
+             formattedDate, dayName, finalTp, fullActName, phone, finalGrp, ev.t || '', finalNotes,
              cName, mgrName
            ]);
-           _applyRowStyle(r, isWeekend, ev.tp || 'חוג', fullActName, cls, finalGrp);
+           _applyRowStyle(r, isWeekend, finalTp, fullActName, cls, finalGrp);
         });
       } else {
         const cName = clusterByGan[g.id] || g.cluster || '';
