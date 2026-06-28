@@ -1419,7 +1419,7 @@ window.exportBulkAnnualSchedule = async function() {
            }
            
            const r = ws.addRow([
-             cls, g.city || '', g.add || '', g.name || '', g.age || '***',
+             cls, g.city || '', (g.add || g.st) || '', g.name || '', g.age || '***',
              formattedDate, dayName, ev.tp || 'חוג', fullActName, phone, finalGrp, ev.t || '', finalNotes,
              cName, mgrName
            ]);
