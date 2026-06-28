@@ -1306,15 +1306,21 @@ window.exportBulkAnnualSchedule = async function() {
   // Adjust column widths slightly
   ws.columns.forEach((col, i) => col.width = (i===3 || i===8 || i===12) ? 20 : 13);
 
-  function _applyRowStyle(row, isWeekend, tp) {
+  function _applyRowStyle(row, isWeekend, tp, name) {
     let fgColor = 'FFD9E1F2'; // Light blue default
+    
+    const isHoliday = (tp.includes('חופש') || tp.includes('חג') || name.includes('חופש') || name.includes('חג') || name.includes('ראש השנה') || name.includes('כיפור') || name.includes('סוכות') || name.includes('פסח') || name.includes('שבועות') || name.includes('פורים') || name.includes('חנוכה'));
+    const isCamp = (tp.includes('קייטנת') || tp.includes('קייטנה') || name.includes('בוקרון'));
+
     if (isWeekend) fgColor = 'FFFF0000'; // Red
-    else if (tp.includes('קייטנת')) fgColor = 'FFF8CBAD'; // Orange
+    else if (isHoliday && !isCamp) fgColor = 'FFFFFF00'; // Yellow for holidays
+    else if (isCamp) fgColor = 'FFF8CBAD'; // Orange
 
     row.eachCell((c, colNum) => {
       c.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-      if (colNum === 4) {
-         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE699' } }; // Yellow for שם הצהרון
+      if (colNum <= 5) {
+         // Columns 1-5 (סיווג, עיר, רחוב, שם הצהרון, גיל) are ALWAYS yellow in the user's template
+         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE699' } }; 
       } else {
          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fgColor } };
       }
@@ -1345,14 +1351,14 @@ window.exportBulkAnnualSchedule = async function() {
              formattedDate, dayName, ev.tp || 'חוג', ev.a || '', phone, ev.grp || 1, ev.t || '', ev.n || '',
              g.cluster || '', mgrName
            ]);
-           _applyRowStyle(r, isWeekend, ev.tp || 'חוג');
+           _applyRowStyle(r, isWeekend, ev.tp || 'חוג', ev.a || '');
         });
       } else {
         const r = ws.addRow([
           g.cls || 'גנים', g.city || '', g.address || '', g.name || '', g.age || '***',
           formattedDate, dayName, '', '', '', '', '', '', g.cluster || '', mgrName
         ]);
-        _applyRowStyle(r, isWeekend, '');
+        _applyRowStyle(r, isWeekend, '', '');
       }
     });
   }
