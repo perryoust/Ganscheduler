@@ -1294,6 +1294,16 @@ window.exportBulkAnnualSchedule = async function() {
     });
   }
 
+  // Pre-calculate cluster names for each garden
+  const clusterByGan = {};
+  if (window.clusters) {
+    Object.values(window.clusters).forEach(cl => {
+      if (cl.gardenIds) {
+        cl.gardenIds.forEach(gid => clusterByGan[gid] = cl.name);
+      }
+    });
+  }
+
   const HEB_DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 
   const wb = new window.ExcelJS.Workbook();
@@ -1366,18 +1376,20 @@ window.exportBulkAnnualSchedule = async function() {
         activeEvs.forEach(ev => {
            const supName = (typeof window.supBase === 'function' ? window.supBase(ev.a) : ev.a) || ev.a || '';
            const phone = ev.p || (window.supEx && window.supEx[supName] ? window.supEx[supName].ph1 : '') || '';
+           const cName = clusterByGan[g.id] || g.cluster || '';
            
            const r = ws.addRow([
              cls, g.city || '', g.address || '', g.name || '', g.age || '***',
              formattedDate, dayName, ev.tp || 'חוג', ev.a || '', phone, ev.grp || 1, ev.t || '', ev.n || '',
-             g.cluster || '', mgrName
+             cName, mgrName
            ]);
            _applyRowStyle(r, isWeekend, ev.tp || 'חוג', ev.a || '', cls);
         });
       } else {
+        const cName = clusterByGan[g.id] || g.cluster || '';
         const r = ws.addRow([
           cls, g.city || '', g.address || '', g.name || '', g.age || '***',
-          formattedDate, dayName, '', '', '', '', '', '', g.cluster || '', mgrName
+          formattedDate, dayName, '', '', '', '', '', '', cName, mgrName
         ]);
         _applyRowStyle(r, isWeekend, '', '', cls);
       }
