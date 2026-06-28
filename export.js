@@ -1398,8 +1398,9 @@ window.exportBulkAnnualSchedule = async function() {
            if (!phone && window.supEx && window.supEx[supName] && window.supEx[supName].ph1) {
              phone = window.supEx[supName].ph1;
            }
-           if (!phone && window.SUPPLIERS) {
-             const sObj = window.SUPPLIERS.find(s => s.name === supName || (typeof window.supBase === 'function' && window.supBase(s.name) === supName));
+           if (!phone && typeof window.getAllSup === 'function') {
+             const allSups = window.getAllSup();
+             const sObj = allSups.find(s => s.name === supName || (s.fullNames && s.fullNames.has(supName)));
              if (sObj && sObj.phone) phone = sObj.phone;
            }
 
@@ -1467,16 +1468,16 @@ window.exportBulkAnnualSchedule = async function() {
     35,     // 3. רחוב
     14.15,  // 4. שם הצהרון
     4.5,    // 5. גיל
-    7.25,   // 6. תאריך
+    7.3,    // 6. תאריך (updated)
     6.9,    // 7. יום
     13.25,  // 8. חוג/הפעלה
     27.25,  // 9. שם החוג
-    12,     // 10. טלפון
-    5,      // 11. קב'
-    8.5,    // 12. שעה
-    35,     // 13. הערות
-    10,     // 14. אשכול מס'
-    15      // 15. רכז
+    11,     // 10. טלפון (updated)
+    4.5,    // 11. קב' (updated)
+    5.9,    // 12. שעה (updated)
+    36,     // 13. הערות (updated)
+    12.5,   // 14. אשכול מס' (updated)
+    17.25   // 15. רכז (updated)
   ];
 
   for (let i = 1; i <= headers.length; i++) {
