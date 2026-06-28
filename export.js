@@ -1256,12 +1256,22 @@ window.exportBulkAnnualSchedule = async function() {
   window.showToast('מכין ייצוא מעוצב... פעולה זו עשויה לקחת כדקה, נא להמתין', 20000);
   await new Promise(r => setTimeout(r, 200));
 
-  let startYear = new Date().getFullYear();
   let currentYearStr = window.CURRENT_YEAR || 'tashpav';
+  
+  let startYear = new Date().getFullYear();
+  let startDate = null;
+  let endDate = null;
+
   if (window.meta && window.meta.years && window.meta.years[currentYearStr]) {
-    const yName = window.meta.years[currentYearStr].name || currentYearStr;
-    const match = yName.match(/\((\d{4})-(\d{4})\)/);
-    if (match) startYear = parseInt(match[1]);
+    const yObj = window.meta.years[currentYearStr];
+    if (yObj.start && yObj.end) {
+      startDate = new Date(yObj.start);
+      endDate = new Date(yObj.end);
+    } else {
+      const yName = yObj.name || currentYearStr;
+      const match = yName.match(/\((\d{4})-(\d{4})\)/);
+      if (match) startYear = parseInt(match[1]);
+    }
   } else {
     if (currentYearStr === 'tashpav') startYear = 2025;
     else if (currentYearStr === 'tashpaz') startYear = 2026;
@@ -1269,9 +1279,10 @@ window.exportBulkAnnualSchedule = async function() {
     else if (currentYearStr === 'tashpat') startYear = 2028;
   }
   
-  // September 1st of startYear to August 31st of startYear + 1
-  const startDate = new Date(startYear, 8, 1); // Sep 1
-  const endDate = new Date(startYear + 1, 7, 31); // Aug 31
+  if (!startDate || !endDate) {
+    startDate = new Date(startYear, 8, 1); // Sep 1
+    endDate = new Date(startYear + 1, 7, 31); // Aug 31
+  }
 
   const allGans = window.GARDENS.concat(window._GARDENS_EXTRA || []);
 
