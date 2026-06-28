@@ -1400,7 +1400,7 @@ window.exportBulkAnnualSchedule = async function() {
            }
            if (!phone && typeof window.getAllSup === 'function') {
              const allSups = window.getAllSup();
-             const sObj = allSups.find(s => s.name === supName || (s.fullNames && s.fullNames.has(supName)));
+             const sObj = allSups.find(s => s.name === supName || (s.fullNames && (s.fullNames.has ? s.fullNames.has(supName) : (s.fullNames.includes && s.fullNames.includes(supName)))));
              if (sObj && sObj.phone) phone = sObj.phone;
            }
 
