@@ -1438,10 +1438,10 @@ window.exportBulkAnnualSchedule = async function() {
       } else {
         const cName = clusterByGan[g.id] || g.cluster || '';
         const r = ws.addRow([
-          cls, g.city || '', g.address || '', g.name || '', g.age || '***',
+          cls, g.city || '', (g.add || g.st) || '', g.name || '', g.age || '***',
           formattedDate, dayName, '', '', '', '', '', '', cName, mgrName
         ]);
-        _applyRowStyle(r, isWeekend, '', '', cls);
+        _applyRowStyle(r, isWeekend, '', '', cls, 1);
       }
     });
   }
