@@ -359,6 +359,17 @@ window.importBulkSchedule = function(input) {
       //   window.DataManager.applyAutoMakeupMatching();
       // }
 
+      // CRITICAL SAFEGUARD: Prevent wiping out holidays if Firebase didn't load them in time before import
+      if (!window.holidays || window.holidays.length === 0) {
+        try {
+          const prevLs = JSON.parse(window._safeLS.getItem('ganv5') || '{}');
+          if (prevLs.holidays && prevLs.holidays.length > 0) {
+            window.holidays = prevLs.holidays;
+            console.warn('[Import v6] Recovered holidays from previous localStorage to prevent wipe.');
+          }
+        } catch(e) {}
+      }
+
       // ═══ STEP 3: Save to localStorage ═══
       const lsData = {
         ch: window.SCH,
