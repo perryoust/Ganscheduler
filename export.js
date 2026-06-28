@@ -1361,7 +1361,8 @@ window.exportBulkAnnualSchedule = async function() {
   ws['!views'].push({ rightToLeft: true });
 
   window.XLSX.utils.book_append_sheet(wb, ws, 'חוגים');
-  window.XLSX.writeFile(wb, `תוכנית_שנתית_מלאה_${startYear}-${startYear+1}.xlsx`);
+  const todayStr = window.d2s(new Date());
+  window.XLSX.writeFile(wb, `תוכנית_חוגים_${startYear}-${startYear+1}_${todayStr}.xlsx`);
   window.showToast('✅ קובץ התוכנית השנתית יוצא בהצלחה!', 3000);
 };
 
