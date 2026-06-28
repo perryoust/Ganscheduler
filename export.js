@@ -1423,7 +1423,7 @@ window.exportBulkAnnualSchedule = async function() {
              formattedDate, dayName, ev.tp || 'חוג', fullActName, phone, finalGrp, ev.t || '', finalNotes,
              cName, mgrName
            ]);
-           _applyRowStyle(r, isWeekend, ev.tp || 'חוג', fullActName, cls);
+           _applyRowStyle(r, isWeekend, ev.tp || 'חוג', fullActName, cls, finalGrp);
         });
       } else {
         const cName = clusterByGan[g.id] || g.cluster || '';
