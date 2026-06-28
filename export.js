@@ -1374,6 +1374,9 @@ window.exportBulkAnnualSchedule = async function() {
     });
   }
 
+  // Pre-compute all suppliers ONCE to prevent O(N^3) performance freeze inside the nested loops
+  const allSupsPrecomputed = typeof window.getAllSup === 'function' ? window.getAllSup() : [];
+
   // Iterate over every day in the year
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const dateStr = window.d2s(d);
@@ -1398,9 +1401,8 @@ window.exportBulkAnnualSchedule = async function() {
            if (!phone && window.supEx && window.supEx[supName] && window.supEx[supName].ph1) {
              phone = window.supEx[supName].ph1;
            }
-           if (!phone && typeof window.getAllSup === 'function') {
-             const allSups = window.getAllSup();
-             const sObj = allSups.find(s => s.name === supName || (s.fullNames && (s.fullNames.has ? s.fullNames.has(supName) : (s.fullNames.includes && s.fullNames.includes(supName)))));
+           if (!phone && allSupsPrecomputed.length > 0) {
+             const sObj = allSupsPrecomputed.find(s => s.name === supName || (s.fullNames && (s.fullNames.has ? s.fullNames.has(supName) : (s.fullNames.includes && s.fullNames.includes(supName)))));
              if (sObj && sObj.phone) phone = sObj.phone;
            }
 
