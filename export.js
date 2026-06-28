@@ -1514,8 +1514,8 @@ window.exportBulkAnnualSchedule = async function() {
   ];
 
   for (let i = 1; i <= headers.length; i++) {
-    // Adding 0.25 to each width per user request
-    ws.getColumn(i).width = (colWidths[i - 1] || 15) + 0.25;
+    // Adding 0.75 to each width per user request (Excel internal padding compensation)
+    ws.getColumn(i).width = (colWidths[i - 1] || 15) + 0.75;
   }
 
   try {
