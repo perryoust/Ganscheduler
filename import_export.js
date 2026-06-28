@@ -90,7 +90,16 @@ window.importBulkSchedule = function(input) {
           const gardenName = String(row[cols.garden] || '').trim();
           const city = String(row[cols.city] || '').trim();
           if (!gardenName) continue;
+          
           let garden = window.utils.findGarden(gardenName, city);
+          
+          const age = cols.age !== -1 ? String(row[cols.age] || '').trim() : '';
+          const street = cols.street !== -1 ? String(row[cols.street] || '').trim() : '';
+          const cls = cols.cls !== -1 ? String(row[cols.cls] || '').trim() : 'גנים';
+          const clusterName = cols.cluster !== -1 ? String(row[cols.cluster] || '').trim() : '';
+          
+          let modified = false;
+
           if (!garden) {
             // Auto-create garden if not found
             const allG = [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
@@ -99,17 +108,35 @@ window.importBulkSchedule = function(input) {
               id: newId,
               name: gardenName,
               city: city,
-              cls: 'גנים' // Default to kindergarten
+              cls: cls, // Real cls from excel or default 'גנים'
+              add: street,
+              age: age,
+              cluster: clusterName
             };
-            window._GARDENS_EXTRA = window._GARDENS_EXTRA || [];
-            window._GARDENS_EXTRA.push(garden);
-            window.supEx = window.supEx || {};
-            window.supEx['__gardens_extra'] = window._GARDENS_EXTRA;
+            modified = true;
             report.newGardensCreated = (report.newGardensCreated || 0) + 1;
             if (!report.newGardensList) report.newGardensList = new Set();
             report.newGardensList.add(`${gardenName} (${city})`);
             console.log(`[Import] Auto-created new garden: ${gardenName} (${city})`);
+          } else {
+            // Merge new properties if missing
+            if (street && !garden.add) { garden.add = street; modified = true; }
+            if (age && !garden.age) { garden.age = age; modified = true; }
+            if (cls && !garden.cls) { garden.cls = cls; modified = true; }
+            if (clusterName && !garden.cluster) { garden.cluster = clusterName; modified = true; }
           }
+          
+          if (modified) {
+            window._GARDENS_EXTRA = window._GARDENS_EXTRA || [];
+            // If already in extra, replace it. If not, push it.
+            const exIdx = window._GARDENS_EXTRA.findIndex(g => g.id === garden.id);
+            if (exIdx >= 0) window._GARDENS_EXTRA[exIdx] = garden;
+            else window._GARDENS_EXTRA.push(garden);
+            
+            window.supEx = window.supEx || {};
+            window.supEx['__gardens_extra'] = window._GARDENS_EXTRA;
+          }
+
           report.gardensFound.add(garden.id);
 
           // 3. SUPPLIER PARSING  
@@ -153,10 +180,7 @@ window.importBulkSchedule = function(input) {
 
           // 7. EXTRA FIELDS
           const actType = cols.actType !== -1 ? String(row[cols.actType] || '').trim() : '';
-          const clusterName = cols.cluster !== -1 ? String(row[cols.cluster] || '').trim() : '';
           const coordinator = cols.coordinator !== -1 ? String(row[cols.coordinator] || '').trim() : '';
-          const street = cols.street !== -1 ? String(row[cols.street] || '').trim() : '';
-          const cls = cols.cls !== -1 ? String(row[cols.cls] || '').trim() : '';
           const phone = cols.phone !== -1 ? String(row[cols.phone] || '').trim() : '';
 
           if (clusterName) {
@@ -206,6 +230,18 @@ window.importBulkSchedule = function(input) {
       msg += '   • ספקים שזוהו: ' + report.suppliersFound.size + '\n';
       if (Object.keys(newClustersMap).length > 0) {
         msg += '   • אשכולות בקובץ: ' + Object.keys(newClustersMap).length + '\n';
+        
+        window.clusters = window.clusters || {};
+        for (const [cName, gSet] of Object.entries(newClustersMap)) {
+           let existingCl = Object.values(window.clusters).find(c => c.name === cName);
+           if (!existingCl) {
+              const clId = 'c' + Date.now() + Math.floor(Math.random() * 1000);
+              window.clusters[clId] = { id: clId, name: cName, gardenIds: Array.from(gSet) };
+           } else {
+              const merged = new Set([...(existingCl.gardenIds||[]), ...Array.from(gSet)]);
+              existingCl.gardenIds = Array.from(merged);
+           }
+        }
       }
       msg += '\n';
 
@@ -393,7 +429,7 @@ function _detectHeaders(rows) {
     const cols = {
       date: -1, garden: -1, city: -1, supplier: -1, groups: -1,
       time: -1, notes: -1, actType: -1, cluster: -1, coordinator: -1,
-      street: -1, cls: -1, phone: -1
+      street: -1, cls: -1, phone: -1, age: -1
     };
     let score = 0;
 
@@ -427,6 +463,8 @@ function _detectHeaders(rows) {
       else if (/^סיווג$|^סוג$/.test(n)) { cols.cls = idx; score += 1; }
       // Phone
       else if (/טלפון|phone/.test(n)) { cols.phone = idx; score += 1; }
+      // Age
+      else if (/^גיל$|age/.test(n)) { cols.age = idx; score += 1; }
     });
 
     if (score > bestScore && cols.date !== -1 && cols.garden !== -1) {
