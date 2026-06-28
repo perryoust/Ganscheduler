@@ -1306,23 +1306,28 @@ window.exportBulkAnnualSchedule = async function() {
   // Adjust column widths slightly
   ws.columns.forEach((col, i) => col.width = (i===3 || i===8 || i===12) ? 20 : 13);
 
-  function _applyRowStyle(row, isWeekend, tp, name) {
-    let fgColor = 'FFD9E1F2'; // Light blue default
+  function _applyRowStyle(row, isWeekend, tp, name, cls) {
+    let eventColor = 'FFD9E1F2'; // Light blue default
     
     const isHoliday = (tp.includes('חופש') || tp.includes('חג') || name.includes('חופש') || name.includes('חג') || name.includes('ראש השנה') || name.includes('כיפור') || name.includes('סוכות') || name.includes('פסח') || name.includes('שבועות') || name.includes('פורים') || name.includes('חנוכה'));
     const isCamp = (tp.includes('קייטנת') || tp.includes('קייטנה') || name.includes('בוקרון'));
 
-    if (isWeekend) fgColor = 'FFFF0000'; // Red
-    else if (isHoliday && !isCamp) fgColor = 'FFFFFF00'; // Yellow for holidays
-    else if (isCamp) fgColor = 'FFF8CBAD'; // Orange
+    if (isWeekend) eventColor = 'FFFF0000'; // Red
+    else if (isHoliday && !isCamp) eventColor = 'FFFFFF00'; // Yellow for holidays
+    else if (isCamp) eventColor = 'FFF8CBAD'; // Orange
+
+    let idColor = 'FFFCE4D6'; // Light Orange for Schools
+    if (cls && cls.includes('גנים')) {
+       idColor = 'FFE2EFDA'; // Light Green for Kindergartens
+    }
 
     row.eachCell((c, colNum) => {
       c.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
       if (colNum <= 5) {
-         // Columns 1-5 (סיווג, עיר, רחוב, שם הצהרון, גיל) are ALWAYS yellow in the user's template
-         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE699' } }; 
+         // Columns 1-5 (סיווג, עיר, רחוב, שם הצהרון, גיל)
+         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: idColor } }; 
       } else {
-         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fgColor } };
+         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: eventColor } };
       }
     });
   }
@@ -1338,6 +1343,7 @@ window.exportBulkAnnualSchedule = async function() {
     allGans.forEach(g => {
       const gEvs = (schByDateAndGan[dateStr] && schByDateAndGan[dateStr][g.id]) || [];
       const mgrName = mgrByGan[g.id] || '';
+      const cls = g.cls || 'גנים';
       
       const activeEvs = gEvs.filter(e => e.st !== 'can' && e.st !== 'nohap');
       
@@ -1347,18 +1353,18 @@ window.exportBulkAnnualSchedule = async function() {
            const phone = ev.p || (window.supEx && window.supEx[supName] ? window.supEx[supName].ph1 : '') || '';
            
            const r = ws.addRow([
-             g.cls || 'גנים', g.city || '', g.address || '', g.name || '', g.age || '***',
+             cls, g.city || '', g.address || '', g.name || '', g.age || '***',
              formattedDate, dayName, ev.tp || 'חוג', ev.a || '', phone, ev.grp || 1, ev.t || '', ev.n || '',
              g.cluster || '', mgrName
            ]);
-           _applyRowStyle(r, isWeekend, ev.tp || 'חוג', ev.a || '');
+           _applyRowStyle(r, isWeekend, ev.tp || 'חוג', ev.a || '', cls);
         });
       } else {
         const r = ws.addRow([
-          g.cls || 'גנים', g.city || '', g.address || '', g.name || '', g.age || '***',
+          cls, g.city || '', g.address || '', g.name || '', g.age || '***',
           formattedDate, dayName, '', '', '', '', '', '', g.cluster || '', mgrName
         ]);
-        _applyRowStyle(r, isWeekend, '', '');
+        _applyRowStyle(r, isWeekend, '', '', cls);
       }
     });
   }
