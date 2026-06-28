@@ -1271,7 +1271,7 @@ window.exportBulkAnnualSchedule = async function() {
 
   // Headers (must match exactly the import expectations)
   const headers = [
-    'תאריך', 'שם הצהרון', 'עיר', 'סוג פעילות', 'שם החוג', 'קבוצות', 'שעה', 'אשכול', 'רכז', 'טלפון', 'סיווג', 'הערות'
+    'סיווג', 'עיר', 'רחוב', 'שם הצהרון', 'גיל', 'תאריך', 'יום', 'חוג/הפעלה', 'שם החוג', 'טלפון', "קב'", 'שעה', 'הערות', "אשכול מס'", 'רכז'
   ];
   flatData.push(headers);
 
@@ -1293,10 +1293,13 @@ window.exportBulkAnnualSchedule = async function() {
     });
   }
 
+  const HEB_DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+
   // Iterate over every day in the year
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const dateStr = window.d2s(d);
     const formattedDate = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    const dayName = `יום ${HEB_DAYS[d.getDay()]}`;
     
     allGans.forEach(g => {
       const gEvs = (schByDateAndGan[dateStr] && schByDateAndGan[dateStr][g.id]) || [];
@@ -1310,35 +1313,41 @@ window.exportBulkAnnualSchedule = async function() {
            const phone = ev.p || (window.supEx && window.supEx[supName] ? window.supEx[supName].ph1 : '') || '';
            
            flatData.push([
-             formattedDate,
-             g.name || '',
-             g.city || '',
-             ev.tp || 'חוג',
-             ev.a || '',
-             ev.grp || 1,
-             ev.t || '',
-             g.cluster || '',
-             mgrName,
-             phone,
-             g.cls || '',
-             ev.n || '' // notes
+             g.cls || 'גנים', // סיווג
+             g.city || '', // עיר
+             g.address || '', // רחוב
+             g.name || '', // שם הצהרון
+             g.age || '***', // גיל
+             formattedDate, // תאריך
+             dayName, // יום
+             ev.tp || 'חוג', // חוג/הפעלה
+             ev.a || '', // שם החוג
+             phone, // טלפון
+             ev.grp || 1, // קב'
+             ev.t || '', // שעה
+             ev.n || '', // הערות
+             g.cluster || '', // אשכול מס'
+             mgrName // רכז
            ]);
         });
       } else {
         // Empty day
         flatData.push([
-          formattedDate,
-          g.name || '',
-          g.city || '',
-          '', // actType
-          '', // supplier
-          '', // groups
-          '', // time
-          g.cluster || '',
-          mgrName,
-          '', // phone
-          g.cls || '',
-          ''  // notes
+          g.cls || 'גנים', // סיווג
+          g.city || '', // עיר
+          g.address || '', // רחוב
+          g.name || '', // שם הצהרון
+          g.age || '***', // גיל
+          formattedDate, // תאריך
+          dayName, // יום
+          '', // חוג/הפעלה
+          '', // שם החוג
+          '', // טלפון
+          '', // קב'
+          '', // שעה
+          '', // הערות
+          g.cluster || '', // אשכול מס'
+          mgrName // רכז
         ]);
       }
     });
@@ -1351,7 +1360,7 @@ window.exportBulkAnnualSchedule = async function() {
   if (!ws['!views']) ws['!views'] = [];
   ws['!views'].push({ rightToLeft: true });
 
-  window.XLSX.utils.book_append_sheet(wb, ws, 'תוכנית שנתית');
+  window.XLSX.utils.book_append_sheet(wb, ws, 'חוגים');
   window.XLSX.writeFile(wb, `תוכנית_שנתית_מלאה_${startYear}-${startYear+1}.xlsx`);
   window.showToast('✅ קובץ התוכנית השנתית יוצא בהצלחה!', 3000);
 };
