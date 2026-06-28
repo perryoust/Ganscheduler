@@ -1248,13 +1248,13 @@ setTimeout(() => {
 // BULK ANNUAL SCHEDULE EXPORT (IMPORT COMPATIBLE)
 // ═══════════════════════════════════════════════════
 window.exportBulkAnnualSchedule = async function() {
-  if (typeof window.XLSX === 'undefined') {
-    window.spAlert('XLSX library not loaded. Please wait or reload.');
+  if (typeof window.ExcelJS === 'undefined') {
+    window.spAlert('ExcelJS library not loaded. Please wait or reload.');
     return;
   }
 
-  window.showToast('מכין ייצוא נתונים... פעולה זו עשויה לקחת דקה, נא להמתין', 15000);
-  await new Promise(r => setTimeout(r, 200)); // allow UI to paint
+  window.showToast('מכין ייצוא מעוצב... פעולה זו עשויה לקחת כדקה, נא להמתין', 20000);
+  await new Promise(r => setTimeout(r, 200));
 
   let startYear = new Date().getFullYear();
   if (window.CURRENT_YEAR) {
@@ -1267,13 +1267,6 @@ window.exportBulkAnnualSchedule = async function() {
   const endDate = new Date(startYear + 1, 7, 31); // Aug 31
 
   const allGans = window.GARDENS.concat(window._GARDENS_EXTRA || []);
-  const flatData = [];
-
-  // Headers (must match exactly the import expectations)
-  const headers = [
-    'סיווג', 'עיר', 'רחוב', 'שם הצהרון', 'גיל', 'תאריך', 'יום', 'חוג/הפעלה', 'שם החוג', 'טלפון', "קב'", 'שעה', 'הערות', "אשכול מס'", 'רכז'
-  ];
-  flatData.push(headers);
 
   // Group events by date and garden for quick lookup
   const schByDateAndGan = {};
@@ -1295,11 +1288,46 @@ window.exportBulkAnnualSchedule = async function() {
 
   const HEB_DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 
+  const wb = new window.ExcelJS.Workbook();
+  const ws = wb.addWorksheet('חוגים', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
+
+  const headers = ['סיווג', 'עיר', 'רחוב', 'שם הצהרון', 'גיל', 'תאריך', 'יום', 'חוג/הפעלה', 'שם החוג', 'טלפון', "קב'", 'שעה', 'הערות', "אשכול מס'", 'רכז'];
+  ws.addRow(headers);
+  
+  // Format Header
+  const headerRow = ws.getRow(1);
+  headerRow.eachCell(c => {
+    c.font = { bold: true };
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6E0B4' } }; // Light green
+    c.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+  });
+  ws.autoFilter = 'A1:O1';
+  
+  // Adjust column widths slightly
+  ws.columns.forEach((col, i) => col.width = (i===3 || i===8 || i===12) ? 20 : 13);
+
+  function _applyRowStyle(row, isWeekend, tp) {
+    let fgColor = 'FFD9E1F2'; // Light blue default
+    if (isWeekend) fgColor = 'FFFF0000'; // Red
+    else if (tp.includes('קייטנת')) fgColor = 'FFF8CBAD'; // Orange
+
+    row.eachCell((c, colNum) => {
+      c.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+      if (colNum === 4) {
+         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE699' } }; // Yellow for שם הצהרון
+      } else {
+         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fgColor } };
+      }
+    });
+  }
+
   // Iterate over every day in the year
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const dateStr = window.d2s(d);
-    const formattedDate = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    // Format date as DD/MM/YY
+    const formattedDate = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;
     const dayName = `יום ${HEB_DAYS[d.getDay()]}`;
+    const isWeekend = (d.getDay() === 5 || d.getDay() === 6);
     
     allGans.forEach(g => {
       const gEvs = (schByDateAndGan[dateStr] && schByDateAndGan[dateStr][g.id]) || [];
@@ -1312,58 +1340,33 @@ window.exportBulkAnnualSchedule = async function() {
            const supName = (typeof window.supBase === 'function' ? window.supBase(ev.a) : ev.a) || ev.a || '';
            const phone = ev.p || (window.supEx && window.supEx[supName] ? window.supEx[supName].ph1 : '') || '';
            
-           flatData.push([
-             g.cls || 'גנים', // סיווג
-             g.city || '', // עיר
-             g.address || '', // רחוב
-             g.name || '', // שם הצהרון
-             g.age || '***', // גיל
-             formattedDate, // תאריך
-             dayName, // יום
-             ev.tp || 'חוג', // חוג/הפעלה
-             ev.a || '', // שם החוג
-             phone, // טלפון
-             ev.grp || 1, // קב'
-             ev.t || '', // שעה
-             ev.n || '', // הערות
-             g.cluster || '', // אשכול מס'
-             mgrName // רכז
+           const r = ws.addRow([
+             g.cls || 'גנים', g.city || '', g.address || '', g.name || '', g.age || '***',
+             formattedDate, dayName, ev.tp || 'חוג', ev.a || '', phone, ev.grp || 1, ev.t || '', ev.n || '',
+             g.cluster || '', mgrName
            ]);
+           _applyRowStyle(r, isWeekend, ev.tp || 'חוג');
         });
       } else {
-        // Empty day
-        flatData.push([
-          g.cls || 'גנים', // סיווג
-          g.city || '', // עיר
-          g.address || '', // רחוב
-          g.name || '', // שם הצהרון
-          g.age || '***', // גיל
-          formattedDate, // תאריך
-          dayName, // יום
-          '', // חוג/הפעלה
-          '', // שם החוג
-          '', // טלפון
-          '', // קב'
-          '', // שעה
-          '', // הערות
-          g.cluster || '', // אשכול מס'
-          mgrName // רכז
+        const r = ws.addRow([
+          g.cls || 'גנים', g.city || '', g.address || '', g.name || '', g.age || '***',
+          formattedDate, dayName, '', '', '', '', '', '', g.cluster || '', mgrName
         ]);
+        _applyRowStyle(r, isWeekend, '');
       }
     });
   }
 
-  const wb = window.XLSX.utils.book_new();
-  const ws = window.XLSX.utils.aoa_to_sheet(flatData);
-  
-  // Apply RTL
-  if (!ws['!views']) ws['!views'] = [];
-  ws['!views'].push({ rightToLeft: true });
-
-  window.XLSX.utils.book_append_sheet(wb, ws, 'חוגים');
-  const todayStr = window.d2s(new Date());
-  window.XLSX.writeFile(wb, `תוכנית_חוגים_${startYear}-${startYear+1}_${todayStr}.xlsx`);
-  window.showToast('✅ קובץ התוכנית השנתית יוצא בהצלחה!', 3000);
+  try {
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const todayStr = window.d2s(new Date());
+    window.saveAs(blob, `תוכנית_חוגים_${startYear}-${startYear+1}_${todayStr}.xlsx`);
+    window.showToast('✅ קובץ התוכנית השנתית יוצא בהצלחה!', 3000);
+  } catch(e) {
+    console.error(e);
+    window.spAlert('שגיאה ביצירת קובץ אקסל');
+  }
 };
 
 
