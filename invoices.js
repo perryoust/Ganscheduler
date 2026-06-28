@@ -2910,7 +2910,8 @@ window.startSharePointScanner = async function() {
     for await (const entry of handle.values()) {
       if (entry.kind === 'file') {
         const isOldYear = /\b(20[0-1][0-9]|2020|2021)\b/.test(entry.name);
-        if (!entry.name.startsWith('.') && !entry.name.startsWith('~') && !isOldYear) {
+        const isPdf = entry.name.toLowerCase().endsWith('.pdf');
+        if (isPdf && !entry.name.startsWith('.') && !entry.name.startsWith('~') && !isOldYear) {
           filesFound.push({
             name: entry.name,
             link: cleanBase + currentPath + '/' + encodeURIComponent(entry.name) + '?web=1'
@@ -3104,22 +3105,17 @@ window.startSharePointScanner = async function() {
     }
 
 
-    // Prompt for new alias if match score indicates generic match but strong enough to be confident
+    // Collect alias suggestions to show in a single batch form after scanning
     if (bestInvoice && bestScore > 0 && bestScore < 100) {
-      setTimeout(async () => {
-        const chosenSup = bestInvoice.supName;
-        const currentAliases = Object.values(window.spScannerAliases || {});
-        if (!currentAliases.includes(chosenSup) && await window.spConfirm(`המערכת שייכה את הקובץ "${file.name}" לספק ${chosenSup}. תרצה לשמור מילת מפתח קבועה עבורו?`)) {
-           const aliasWord = await window.spPrompt(`הקלד מילה מתוך שם הקובץ "${file.name}" שתזהה את הספק ${chosenSup}:`);
-           if (aliasWord && aliasWord.trim().length > 1) {
-              window.spScannerAliases = window.spScannerAliases || {};
-              window.spScannerAliases[aliasWord.trim()] = chosenSup;
-              localStorage.setItem('spScannerAliases', JSON.stringify(window.spScannerAliases));
-              if (window.saveToFirebase) window.saveToFirebase(true, true);
-              window.showToast(`✅ המילה "${aliasWord.trim()}" נשמרה כזיהוי לספק ${chosenSup}`);
-           }
+      const chosenSup = bestInvoice.supName;
+      const currentAliases = Object.values(window.spScannerAliases || {});
+      if (!currentAliases.includes(chosenSup)) {
+        if (!window._pendingAliasSuggestions) window._pendingAliasSuggestions = [];
+        // Avoid duplicate suggestions for the same supplier
+        if (!window._pendingAliasSuggestions.some(s => s.supName === chosenSup)) {
+          window._pendingAliasSuggestions.push({ fileName: file.name, supName: chosenSup });
         }
-      }, 500 * matchCount);
+      }
     }
     let matchedInvoice = bestScore > -200 ? bestInvoice : null;
     let matchedType = bestScore > -200 ? bestType : null;
@@ -3149,6 +3145,70 @@ window.startSharePointScanner = async function() {
     if (typeof window.renderAdminSpLinks === 'function') window.renderAdminSpLinks();
   } else {
     window.showToast(`סריקה הסתיימה — 0 התאמות למסמכים קיימים.`);
+  }
+
+  // ── Step 6.5: Batch alias suggestions — show a single form for all pending alias questions
+  const pending = window._pendingAliasSuggestions || [];
+  window._pendingAliasSuggestions = []; // Reset for next run
+  if (pending.length > 0) {
+    await new Promise(resolve => {
+      let rowsHtml = '';
+      pending.forEach((item, idx) => {
+        rowsHtml += `
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; padding:8px; background:#f5f5f5; border-radius:6px; direction:rtl;">
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:600; font-size:.9rem; color:#1565c0;">${item.supName}</div>
+              <div style="font-size:.75rem; color:#666; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.fileName}">📄 ${item.fileName}</div>
+            </div>
+            <input type="text" id="sp-alias-input-${idx}" placeholder="מילת זיהוי..." 
+              style="width:120px; padding:6px 8px; border:1px solid #ccc; border-radius:4px; font-size:.9rem; direction:rtl;">
+          </div>`;
+      });
+
+      const formHtml = `
+        <div style="direction:rtl; text-align:right; max-height:50vh; overflow-y:auto; padding:4px;">
+          <div style="margin-bottom:12px; font-size:.85rem; color:#555;">
+            המערכת שייכה קבצים לספקים הבאים. הקלד מילת זיהוי לכל ספק כדי לשפר סריקות עתידיות, או השאר ריק לדילוג.
+          </div>
+          ${rowsHtml}
+        </div>`;
+
+      window.spPromptDialog(
+        `🔑 שמירת מילות מפתח לזיהוי ספקים (${pending.length})`,
+        formHtml,
+        'שמור הכל',
+        () => {
+          let savedCount = 0;
+          pending.forEach((item, idx) => {
+            const input = document.getElementById(`sp-alias-input-${idx}`);
+            const val = input ? input.value.trim() : '';
+            if (val.length > 1) {
+              window.spScannerAliases = window.spScannerAliases || {};
+              window.spScannerAliases[val] = item.supName;
+              savedCount++;
+            }
+          });
+          if (savedCount > 0) {
+            localStorage.setItem('spScannerAliases', JSON.stringify(window.spScannerAliases));
+            if (window.saveToFirebase) window.saveToFirebase(true, true);
+            window.showToast(`✅ נשמרו ${savedCount} מילות זיהוי חדשות`);
+          }
+          resolve();
+          return true; // Close dialog
+        },
+        true // wide dialog
+      );
+      // Also resolve if user cancels
+      const checkClose = setInterval(() => {
+        if (!document.getElementById('sp-pdlg-cancel')) { clearInterval(checkClose); return; }
+        document.getElementById('sp-pdlg-cancel').onclick = () => {
+          const overlay = document.querySelector('.sp-sys-dialog-overlay');
+          if (overlay) { overlay.classList.remove('show'); setTimeout(() => overlay.remove(), 200); }
+          resolve();
+        };
+        clearInterval(checkClose);
+      }, 50);
+    });
   }
 
   // ── Step 7: Export results Excel
