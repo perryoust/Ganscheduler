@@ -1309,8 +1309,11 @@ window.exportBulkAnnualSchedule = async function() {
   function _applyRowStyle(row, isWeekend, tp, name, cls) {
     let eventColor = 'FFD9E1F2'; // Light blue default
     
-    const isHoliday = (tp.includes('חופש') || tp.includes('חג') || name.includes('חופש') || name.includes('חג') || name.includes('ראש השנה') || name.includes('כיפור') || name.includes('סוכות') || name.includes('פסח') || name.includes('שבועות') || name.includes('פורים') || name.includes('חנוכה'));
-    const isCamp = (tp.includes('קייטנת') || tp.includes('קייטנה') || name.includes('בוקרון'));
+    const holidayWords = ['חופש', 'חג', 'ראש השנה', 'כיפור', 'סוכות', 'פסח', 'שבועות', 'פורים', 'חנוכה', 'זיכרון', 'עצמאות', 'תשעה באב', 'תענית', 'ל"ג בעומר'];
+    const campWords = ['קייטנת', 'קייטנה', 'בוקרון'];
+    
+    const isHoliday = holidayWords.some(w => tp.includes(w) || name.includes(w));
+    const isCamp = campWords.some(w => tp.includes(w) || name.includes(w));
 
     if (isWeekend) eventColor = 'FFFF0000'; // Red
     else if (isHoliday && !isCamp) eventColor = 'FFFFFF00'; // Yellow for holidays
@@ -1323,10 +1326,14 @@ window.exportBulkAnnualSchedule = async function() {
 
     row.eachCell((c, colNum) => {
       c.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-      if (colNum <= 5) {
-         // Columns 1-5 (סיווג, עיר, רחוב, שם הצהרון, גיל)
+      if (colNum <= 3) {
+         // Columns 1-3 (סיווג, עיר, רחוב)
          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: idColor } }; 
+      } else if (colNum === 4 || colNum === 5) {
+         // Columns 4-5 (שם הצהרון, גיל) are ALWAYS light blue regardless of weekend/holiday
+         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
       } else {
+         // Columns 6+ change color based on day type (weekend, holiday, camp)
          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: eventColor } };
       }
     });
