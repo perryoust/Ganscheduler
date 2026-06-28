@@ -1380,7 +1380,14 @@ window.exportBulkAnnualSchedule = async function() {
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const todayStr = window.d2s(new Date());
-    window.saveAs(blob, `תוכנית_חוגים_${startYear}-${startYear+1}_${todayStr}.xlsx`);
+    
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `תוכנית_חוגים_${startYear}-${startYear+1}_${todayStr}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
     window.showToast('✅ קובץ התוכנית השנתית יוצא בהצלחה!', 3000);
   } catch(e) {
     console.error(e);
