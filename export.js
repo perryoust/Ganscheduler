@@ -1413,7 +1413,7 @@ window.exportBulkAnnualSchedule = async function() {
            }
            // We intentionally do NOT add "התקיים" when st === 'ok'
 
-           let finalNotes = ev.n ? String(ev.n).trim() : '';
+           let finalNotes = (ev.nt || ev.n) ? String(ev.nt || ev.n).trim() : '';
            if (statusNote) {
              finalNotes = finalNotes ? `${statusNote} - ${finalNotes}` : statusNote;
            }
