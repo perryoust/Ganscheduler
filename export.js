@@ -1284,7 +1284,12 @@ window.exportBulkAnnualSchedule = async function() {
     endDate = new Date(startYear + 1, 7, 31); // Aug 31
   }
 
-  const allGans = window.GARDENS.concat(window._GARDENS_EXTRA || []);
+  const rawAllGans = window.GARDENS.concat(window._GARDENS_EXTRA || []);
+  
+  // Deduplicate by ID, prioritizing _GARDENS_EXTRA (which come later in the array) to keep merged info like 'age'
+  const ganMap = new Map();
+  rawAllGans.forEach(g => ganMap.set(g.id, g));
+  const allGans = Array.from(ganMap.values());
 
   // Group events by date and garden for quick lookup
   const schByDateAndGan = {};
@@ -1341,7 +1346,7 @@ window.exportBulkAnnualSchedule = async function() {
     const holidayWords = ['חופש', 'חג', 'ראש השנה', 'כיפור', 'סוכות', 'פסח', 'שבועות', 'פורים', 'חנוכה', 'זיכרון', 'עצמאות', 'תשעה באב', 'תענית', 'ל"ג בעומר'];
     const campWords = ['קייטנת', 'קייטנה', 'בוקרון', 'יום ארוך'];
     
-    const isHoliday = holidayWords.some(w => tp.includes(w) || name.includes(w) || (holName && holName.includes(w)));
+    const isHoliday = holidayWords.some(w => tp.includes(w) || (holName && holName.includes(w)));
     const isCamp = campWords.some(w => tp.includes(w) || name.includes(w) || (holName && holName.includes(w)));
 
     if (isWeekend) eventColor = 'FFFF0000'; // Red
@@ -1413,6 +1418,11 @@ window.exportBulkAnnualSchedule = async function() {
            }
            
            if (!fullActName) fullActName = finalTp; // fallback if it was entirely just 'יום ארוך'
+
+           // User request: If it's a holiday and it was marked as 'חוג', override it to the holiday name
+           if (finalTp === 'חוג' && holName) {
+             finalTp = holName;
+           }
 
            // Status logic mapping
            let statusNote = '';
