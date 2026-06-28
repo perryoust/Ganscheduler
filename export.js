@@ -1483,7 +1483,8 @@ window.exportBulkAnnualSchedule = async function() {
   ];
 
   for (let i = 1; i <= headers.length; i++) {
-    ws.getColumn(i).width = colWidths[i - 1] || 15;
+    // Adding 0.25 to each width per user request
+    ws.getColumn(i).width = (colWidths[i - 1] || 15) + 0.25;
   }
 
   try {
