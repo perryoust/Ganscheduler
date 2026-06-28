@@ -1257,9 +1257,16 @@ window.exportBulkAnnualSchedule = async function() {
   await new Promise(r => setTimeout(r, 200));
 
   let startYear = new Date().getFullYear();
-  if (window.CURRENT_YEAR) {
-    const match = window.CURRENT_YEAR.match(/\((\d{4})-(\d{4})\)/);
+  let currentYearStr = window.CURRENT_YEAR || 'tashpav';
+  if (window.meta && window.meta.years && window.meta.years[currentYearStr]) {
+    const yName = window.meta.years[currentYearStr].name || currentYearStr;
+    const match = yName.match(/\((\d{4})-(\d{4})\)/);
     if (match) startYear = parseInt(match[1]);
+  } else {
+    if (currentYearStr === 'tashpav') startYear = 2025;
+    else if (currentYearStr === 'tashpaz') startYear = 2026;
+    else if (currentYearStr === 'tashpach') startYear = 2027;
+    else if (currentYearStr === 'tashpat') startYear = 2028;
   }
   
   // September 1st of startYear to August 31st of startYear + 1
@@ -1276,12 +1283,13 @@ window.exportBulkAnnualSchedule = async function() {
     schByDateAndGan[s.d][s.g].push(s);
   });
 
-  // Pre-calculate coordinator names for each garden
+  // Pre-calculate coordinator names (with phone) for each garden
   const mgrByGan = {};
   if (window.managers) {
     Object.values(window.managers).forEach(m => {
       if (m.gardenIds) {
-        m.gardenIds.forEach(gid => mgrByGan[gid] = m.name);
+        const mStr = m.name + (m.phone ? ' - ' + m.phone : '');
+        m.gardenIds.forEach(gid => mgrByGan[gid] = mStr);
       }
     });
   }
