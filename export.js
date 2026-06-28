@@ -1463,13 +1463,17 @@ window.exportBulkAnnualSchedule = async function() {
   // Auto-fit columns dynamically based on content length
   for (let i = 1; i <= headers.length; i++) {
     const col = ws.getColumn(i);
-    let maxLength = 0;
+    let maxCharWidth = 0;
     col.eachCell({ includeEmpty: true }, cell => {
-      let val = cell.value ? cell.value.toString() : '';
-      if (val.length > maxLength) maxLength = val.length;
+      let val = cell.text ? cell.text : (cell.value ? cell.value.toString() : '');
+      let w = 0;
+      for (let j = 0; j < val.length; j++) {
+         w += (val.charCodeAt(j) > 255) ? 1.5 : 1.1; 
+      }
+      if (w > maxCharWidth) maxCharWidth = w;
     });
-    // Ensure a reasonable width (min 12, max 50), with a slight multiplier for Hebrew text width
-    col.width = Math.min(Math.max(12, maxLength * 1.3), 50);
+    // Ensure a reasonable width (min 14, max 60), adding padding for safety
+    col.width = Math.min(Math.max(14, maxCharWidth + 4), 60);
   }
 
   try {
