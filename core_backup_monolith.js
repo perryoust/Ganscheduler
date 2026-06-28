@@ -3458,7 +3458,7 @@ function _showArchiveBanner() {
     const banner = document.createElement('div');
     banner.id = 'archive-year-banner';
     banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#fff3e0,#ffe0b2);border-bottom:3px solid #e65100;padding:8px 16px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:.82rem;font-weight:700;color:#bf360c;box-shadow:0 2px 8px rgba(0,0,0,.15)';
-    banner.innerHTML = `⚠️ אתה צופה/עורך את <span style="background:#e65100;color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem">${yearName}</span> — שנה ארכיונית. שינויים יישמרו רק לשנה זו.`;
+    banner.innerHTML = `⚠️ אתה צופה/עורך את <span style="background:#e65100;color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem">${yearName}</span>`;
     document.body.prepend(banner);
     // Push content down
     document.body.style.paddingTop = (banner.offsetHeight + 2) + 'px';

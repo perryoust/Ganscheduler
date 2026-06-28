@@ -2194,7 +2194,7 @@ function _showArchiveBanner() {
     const banner = document.createElement('div');
     banner.id = 'archive-year-banner';
     banner.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;background:linear-gradient(135deg,#fff3e0,#ffe0b2);border:2px solid #e65100;border-radius:20px;padding:8px 20px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:.85rem;font-weight:700;color:#bf360c;box-shadow:0 4px 15px rgba(0,0,0,.2);transition:opacity 0.6s ease-in-out, transform 0.6s ease-in-out;opacity:0;pointer-events:none;';
-    banner.innerHTML = `⚠️ אתה צופה/עורך את <span style="background:#e65100;color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem">${yearName}</span> — שנה ארכיונית`;
+    banner.innerHTML = `⚠️ אתה צופה/עורך את <span style="background:#e65100;color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem">${yearName}</span>`;
     document.body.appendChild(banner);
     
     // Animate in
