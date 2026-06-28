@@ -1377,6 +1377,8 @@ window.exportBulkAnnualSchedule = async function() {
   // Pre-compute all suppliers ONCE to prevent O(N^3) performance freeze inside the nested loops
   const allSupsPrecomputed = typeof window.getAllSup === 'function' ? window.getAllSup() : [];
 
+  const rowsData = []; // Array to collect all rows for sorting
+
   // Iterate over every day in the year
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const dateStr = window.d2s(d);
@@ -1438,30 +1440,59 @@ window.exportBulkAnnualSchedule = async function() {
              statusNote = 'בוטל';
              finalGrp = 0;
            }
-           // We intentionally do NOT add "התקיים" when st === 'ok'
 
            let finalNotes = (ev.nt || ev.n) ? String(ev.nt || ev.n).trim() : '';
            if (statusNote) {
              finalNotes = finalNotes ? `${statusNote} - ${finalNotes}` : statusNote;
            }
            
-           const r = ws.addRow([
-             cls, g.city || '', (g.add || g.st) || '', g.name || '', g.age || '***',
-             formattedDate, dayName, finalTp, fullActName, phone, finalGrp, ev.t || '', finalNotes,
-             cName, mgrName
-           ]);
-           _applyRowStyle(r, isWeekend, finalTp, fullActName, cls, finalGrp, holName);
+           rowsData.push({
+             rowValues: [
+               cls, g.city || '', (g.add || g.st) || '', g.name || '', g.age || '***',
+               formattedDate, dayName, finalTp, fullActName, phone, finalGrp, ev.t || '', finalNotes,
+               cName, mgrName
+             ],
+             dateObj: formattedDate,
+             city: g.city || '',
+             operator: fullActName,
+             street: (g.add || g.st) || '',
+             time: ev.t || '',
+             isWeekend, finalTp, cls, finalGrp, holName
+           });
         });
       } else {
         const cName = clusterByGan[g.id] || g.cluster || '';
-        const r = ws.addRow([
-          cls, g.city || '', (g.add || g.st) || '', g.name || '', g.age || '***',
-          formattedDate, dayName, holName || '', '', '', '', '', '', cName, mgrName
-        ]);
-        _applyRowStyle(r, isWeekend, '', '', cls, 0, holName);
+        rowsData.push({
+          rowValues: [
+            cls, g.city || '', (g.add || g.st) || '', g.name || '', g.age || '***',
+            formattedDate, dayName, holName || '', '', '', '', '', '', cName, mgrName
+          ],
+          dateObj: formattedDate,
+          city: g.city || '',
+          operator: '',
+          street: (g.add || g.st) || '',
+          time: '',
+          isWeekend, finalTp: '', cls, finalGrp: 0, holName
+        });
       }
     });
   }
+
+  // Sort rows per user requirement: Date -> City -> Operator -> Street -> Time
+  rowsData.sort((a, b) => {
+    if (a.dateObj.getTime() !== b.dateObj.getTime()) return a.dateObj.getTime() - b.dateObj.getTime();
+    if (a.city !== b.city) return a.city.localeCompare(b.city, 'he');
+    if (a.operator !== b.operator) return a.operator.localeCompare(b.operator, 'he');
+    if (a.street !== b.street) return a.street.localeCompare(b.street, 'he');
+    if (a.time !== b.time) return a.time.localeCompare(b.time, 'he');
+    return 0;
+  });
+
+  // Add all sorted rows to the worksheet
+  rowsData.forEach(data => {
+    const r = ws.addRow(data.rowValues);
+    _applyRowStyle(r, data.isWeekend, data.finalTp, data.operator, data.cls, data.finalGrp, data.holName);
+  });
 
   // Exact column widths specified by user for perfect layout
   const colWidths = [
