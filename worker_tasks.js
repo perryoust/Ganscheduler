@@ -373,9 +373,12 @@ window.wtSearchGarden = function(q) {
   const gardens = [];
   const seen = new Set();
   for (let g of allGardens) {
-    if (g.name && !seen.has(g.name)) {
-      seen.add(g.name);
-      gardens.push(g);
+    if (g.name) {
+      const normalizedKey = g.name.trim().replace(/\s+/g, ' ') + '|' + (g.city || '').trim();
+      if (!seen.has(normalizedKey)) {
+        seen.add(normalizedKey);
+        gardens.push(g);
+      }
     }
   }
 
@@ -751,9 +754,12 @@ window.wtSearchGardenInline = function(q) {
   const gardens = [];
   const seen = new Set();
   for (let g of allGardens) {
-    if (g.name && !seen.has(g.name)) {
-      seen.add(g.name);
-      gardens.push(g);
+    if (g.name) {
+      const normalizedKey = g.name.trim().replace(/\s+/g, ' ') + '|' + (g.city || '').trim();
+      if (!seen.has(normalizedKey)) {
+        seen.add(normalizedKey);
+        gardens.push(g);
+      }
     }
   }
 
