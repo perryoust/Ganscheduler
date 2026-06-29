@@ -1371,6 +1371,11 @@ window.exportBulkAnnualSchedule = async function() {
          // Columns 6+ change color based on day type (weekend, holiday, camp)
          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: eventColor } };
       }
+      
+      // Reduce font size for Date column (6) so it fits exactly in 7.6 width without ######
+      if (colNum === 6) {
+        c.font = { size: 9 };
+      }
     });
   }
 
@@ -1384,7 +1389,6 @@ window.exportBulkAnnualSchedule = async function() {
     const dateStr = window.d2s(d);
     // Format date as Excel Date object to enable hierarchical date filtering
     const formattedDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0); 
-    const formattedDateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
     const dayName = `יום ${HEB_DAYS[d.getDay()]}`;
     const isWeekend = (d.getDay() === 5 || d.getDay() === 6);
     
@@ -1450,7 +1454,7 @@ window.exportBulkAnnualSchedule = async function() {
            rowsData.push({
              rowValues: [
                cls, g.city || '', (g.add || g.st) || '', g.name || '', g.age || '***',
-               formattedDateStr, dayName, finalTp, fullActName, phone, finalGrp, ev.t || '', finalNotes,
+               formattedDate, dayName, finalTp, fullActName, phone, finalGrp, ev.t || '', finalNotes,
                cName, mgrName
              ],
              dateObj: formattedDate,
@@ -1466,7 +1470,7 @@ window.exportBulkAnnualSchedule = async function() {
         rowsData.push({
           rowValues: [
             cls, g.city || '', (g.add || g.st) || '', g.name || '', g.age || '***',
-            formattedDateStr, dayName, holName || '', '', '', '', '', '', cName, mgrName
+            formattedDate, dayName, holName || '', '', '', '', '', '', cName, mgrName
           ],
           dateObj: formattedDate,
           city: g.city || '',
