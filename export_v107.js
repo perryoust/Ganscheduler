@@ -1371,11 +1371,6 @@ window.exportBulkAnnualSchedule = async function() {
          // Columns 6+ change color based on day type (weekend, holiday, camp)
          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: eventColor } };
       }
-      
-      // Reduce font size for Date column (6) so it fits exactly in 7.6 width without ######
-      if (colNum === 6) {
-        c.font = { size: 9 };
-      }
     });
   }
 
@@ -1508,28 +1503,27 @@ window.exportBulkAnnualSchedule = async function() {
     _applyRowStyle(r, data.isWeekend, data.finalTp, data.operator, data.cls, data.finalGrp, data.holName);
   });
 
-  // Exact column widths specified by user for perfect layout
+  // Exact column widths extracted from user's provided Excel file
   const colWidths = [
-    5.75,   // 1. סיווג
-    8.25,   // 2. עיר
-    35,     // 3. רחוב
-    14.15,  // 4. שם הצהרון
-    4.5,    // 5. גיל
-    7.6,    // 6. תאריך (updated)
-    6.9,    // 7. יום
-    13.25,  // 8. חוג/הפעלה
-    27.25,  // 9. שם החוג
-    11,     // 10. טלפון
-    4.5,    // 11. קב'
-    5.9,    // 12. שעה
-    36,     // 13. הערות
-    12.5,   // 14. אשכול מס'
-    17.25   // 15. רכז
+    5.125,  // 1. סיווג
+    9,      // 2. עיר
+    31.125, // 3. רחוב
+    14.375, // 4. שם הצהרון
+    9.375,  // 5. גיל
+    12,     // 6. תאריך
+    9.25,   // 7. יום
+    15,     // 8. חוג/הפעלה
+    27.125, // 9. שם החוג
+    12.375, // 10. טלפון
+    5.125,  // 11. קב'
+    7.125,  // 12. שעה
+    30.25,  // 13. הערות
+    16,     // 14. אשכול מס'
+    16.75   // 15. רכז
   ];
 
   for (let i = 1; i <= headers.length; i++) {
-    // Adding 0.75 to each width per user request (Excel internal padding compensation)
-    ws.getColumn(i).width = (colWidths[i - 1] || 15) + 0.75;
+    ws.getColumn(i).width = colWidths[i - 1] || 15;
   }
 
   try {
