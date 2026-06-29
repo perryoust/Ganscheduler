@@ -1461,7 +1461,8 @@ window.exportBulkAnnualSchedule = async function() {
              operator: fullActName,
              street: (g.add || g.st) || '',
              time: ev.t || '',
-             isWeekend, finalTp, cls, finalGrp, holName
+             isWeekend, finalTp, cls, finalGrp, holName,
+             status: ev.st || ''
            });
         });
       } else {
@@ -1478,7 +1479,8 @@ window.exportBulkAnnualSchedule = async function() {
           operator: '',
           street: (g.add || g.st) || '',
           time: '',
-          isWeekend, finalTp: '', cls, finalGrp: 0, holName
+          isWeekend, finalTp: '', cls, finalGrp: 0, holName,
+          status: ''
         });
       }
     });
@@ -1504,34 +1506,46 @@ window.exportBulkAnnualSchedule = async function() {
     return 0;
   });
 
-  // Add all sorted rows to the worksheet
-  rowsData.forEach(data => {
-    const r = ws.addRow(data.rowValues);
-    _applyRowStyle(r, data.isWeekend, data.finalTp, data.operator, data.cls, data.finalGrp, data.holName);
-  });
+  // Helper to generate a sheet
+  function createSheet(sheetName, dataToRender) {
+    const ws = wb.addWorksheet(sheetName, { views: [{ rightToLeft: true }] });
 
-  // Exact column widths extracted from user's provided Excel file
-  const colWidths = [
-    5.125,  // 1. סיווג
-    9,      // 2. עיר
-    31.125, // 3. רחוב
-    14.375, // 4. שם הצהרון
-    9.375,  // 5. גיל
-    12,     // 6. תאריך
-    9.25,   // 7. יום
-    15,     // 8. חוג/הפעלה
-    27.125, // 9. שם החוג
-    12.375, // 10. טלפון
-    5.125,  // 11. קב'
-    7.125,  // 12. שעה
-    30.25,  // 13. הערות
-    16,     // 14. אשכול מס'
-    16.75   // 15. רכז
-  ];
+    // Add headers
+    ws.addRow(headers);
+    const headerRow = ws.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F81BD' } };
+    headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+    headerRow.height = 25;
 
-  for (let i = 1; i <= headers.length; i++) {
-    ws.getColumn(i).width = colWidths[i - 1] || 15;
+    // Add rows
+    dataToRender.forEach(data => {
+      const r = ws.addRow(data.rowValues);
+      _applyRowStyle(r, data.isWeekend, data.finalTp, data.operator, data.cls, data.finalGrp, data.holName);
+    });
+
+    // Exact column widths extracted from user's provided Excel file
+    const colWidths = [
+      5.125, 9, 31.125, 14.375, 9.375, 12, 9.25, 15, 27.125, 12.375, 5.125, 7.125, 30.25, 16, 16.75
+    ];
+
+    for (let i = 1; i <= headers.length; i++) {
+      ws.getColumn(i).width = colWidths[i - 1] || 15;
+    }
   }
+
+  // 1. Create Main Sheet
+  createSheet('תוכנית שנתית', rowsData);
+
+  // 2. Create Shortages Sheet
+  const shortagesData = rowsData.filter(d => {
+    if (d.status === 'nohap' || d.status === 'can') return true; // Canceled or Problem reported
+    if (d.operator) return false; // Has an operator and no problem reported
+    if (d.isWeekend) return false; // Weekends are naturally empty, not a shortage
+    if (d.holName && d.finalGrp === 0 && (!d.finalTp || !d.finalTp.includes('קייטנה'))) return false; // Holidays without camp are naturally empty
+    return true; // Empty regular day = shortage
+  });
+  createSheet('חוסרים להשלמה', shortagesData);
 
   try {
     const buffer = await wb.xlsx.writeBuffer();
