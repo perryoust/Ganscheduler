@@ -1384,6 +1384,7 @@ window.exportBulkAnnualSchedule = async function() {
     const dateStr = window.d2s(d);
     // Format date as Excel Date object to enable hierarchical date filtering
     const formattedDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0); 
+    const formattedDateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
     const dayName = `יום ${HEB_DAYS[d.getDay()]}`;
     const isWeekend = (d.getDay() === 5 || d.getDay() === 6);
     
@@ -1449,7 +1450,7 @@ window.exportBulkAnnualSchedule = async function() {
            rowsData.push({
              rowValues: [
                cls, g.city || '', (g.add || g.st) || '', g.name || '', g.age || '***',
-               formattedDate, dayName, finalTp, fullActName, phone, finalGrp, ev.t || '', finalNotes,
+               formattedDateStr, dayName, finalTp, fullActName, phone, finalGrp, ev.t || '', finalNotes,
                cName, mgrName
              ],
              dateObj: formattedDate,
@@ -1465,7 +1466,7 @@ window.exportBulkAnnualSchedule = async function() {
         rowsData.push({
           rowValues: [
             cls, g.city || '', (g.add || g.st) || '', g.name || '', g.age || '***',
-            formattedDate, dayName, holName || '', '', '', '', '', '', cName, mgrName
+            formattedDateStr, dayName, holName || '', '', '', '', '', '', cName, mgrName
           ],
           dateObj: formattedDate,
           city: g.city || '',
