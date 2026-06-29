@@ -1531,11 +1531,7 @@ window.exportBulkAnnualSchedule = async function() {
 
   // 2. Create Shortages Sheet
   const shortagesData = rowsData.filter(d => {
-    if (d.status === 'nohap' || d.status === 'can') return !d.isHandled; // Canceled or Problem reported - ONLY if not handled!
-    if (d.operator) return false; // Has an operator and no problem reported
-    if (d.isWeekend) return false; // Weekends are naturally empty, not a shortage
-    if (d.holName && d.finalGrp === 0 && (!d.finalTp || !d.finalTp.includes('קייטנה'))) return false; // Holidays without camp are naturally empty
-    return !d.isHandled; // Empty regular day = shortage (if somehow marked handled, exclude it)
+    return (d.status === 'nohap' || d.status === 'can') && !d.isHandled;
   });
   createSheet('חוסרים להשלמה', shortagesData);
 
