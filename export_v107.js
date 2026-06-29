@@ -1444,6 +1444,7 @@ window.exportBulkAnnualSchedule = async function() {
            }
 
            let finalNotes = (ev.nt || ev.n) ? String(ev.nt || ev.n).trim() : '';
+           const isHandled = !!(ev._compByMakeup && ev._compByMakeup !== "false") || !!((ev.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל|טופל/i.test(ev.nt)) || (ev.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל|טופל/i.test(ev.n)));
            if (statusNote) {
              finalNotes = finalNotes ? `${statusNote} - ${finalNotes}` : statusNote;
            }
@@ -1462,7 +1463,8 @@ window.exportBulkAnnualSchedule = async function() {
              street: (g.add || g.st) || '',
              time: ev.t || '',
              isWeekend, finalTp, cls, finalGrp, holName,
-             status: ev.st || ''
+             status: ev.st || '',
+             isHandled: isHandled
            });
         });
       } else {
@@ -1539,11 +1541,11 @@ window.exportBulkAnnualSchedule = async function() {
 
   // 2. Create Shortages Sheet
   const shortagesData = rowsData.filter(d => {
-    if (d.status === 'nohap' || d.status === 'can') return true; // Canceled or Problem reported
+    if (d.status === 'nohap' || d.status === 'can') return !d.isHandled; // Canceled or Problem reported - ONLY if not handled!
     if (d.operator) return false; // Has an operator and no problem reported
     if (d.isWeekend) return false; // Weekends are naturally empty, not a shortage
     if (d.holName && d.finalGrp === 0 && (!d.finalTp || !d.finalTp.includes('קייטנה'))) return false; // Holidays without camp are naturally empty
-    return true; // Empty regular day = shortage
+    return !d.isHandled; // Empty regular day = shortage (if somehow marked handled, exclude it)
   });
   createSheet('חוסרים להשלמה', shortagesData);
 
