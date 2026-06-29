@@ -1323,23 +1323,7 @@ window.exportBulkAnnualSchedule = async function() {
   const HEB_DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 
   const wb = new window.ExcelJS.Workbook();
-  const ws = wb.addWorksheet('חוגים', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
-
   const headers = ['סיווג', 'עיר', 'רחוב', 'שם הצהרון', 'גיל', 'תאריך', 'יום', 'חוג/הפעלה', 'שם החוג', 'טלפון', "קב'", 'שעה', 'הערות', "אשכול מס'", 'רכז'];
-  ws.addRow(headers);
-  ws.getColumn(6).numFmt = 'dd/mm/yy';
-  
-  // Format Header
-  const headerRow = ws.getRow(1);
-  headerRow.eachCell(c => {
-    c.font = { bold: true };
-    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6E0B4' } }; // Light green
-    c.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-  });
-  ws.autoFilter = 'A1:O1';
-  
-  // Adjust column widths slightly
-  ws.columns.forEach((col, i) => col.width = (i===3 || i===8 || i===12) ? 20 : 13);
 
   function _applyRowStyle(row, isWeekend, tp, name, cls, finalGrp, holName) {
     let eventColor = 'FFD9E1F2'; // Light blue default
@@ -1510,13 +1494,19 @@ window.exportBulkAnnualSchedule = async function() {
 
   // Helper to generate a sheet
   function createSheet(sheetName, dataToRender) {
-    const ws = wb.addWorksheet(sheetName, { views: [{ rightToLeft: true }] });
+    const ws = wb.addWorksheet(sheetName, { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
 
     // Add headers
     ws.addRow(headers);
+    ws.getColumn(6).numFmt = 'dd/mm/yy';
+
     const headerRow = ws.getRow(1);
-    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F81BD' } };
+    headerRow.eachCell(c => {
+      c.font = { bold: true };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6E0B4' } }; // Light green
+      c.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+    });
+    ws.autoFilter = 'A1:O1';
     headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
     headerRow.height = 25;
 
