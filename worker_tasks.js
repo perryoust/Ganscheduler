@@ -224,8 +224,8 @@ window.renderWorkerTasksAdmin = function() {
           <!-- Left Actions -->
           <div style="margin-right:15px; padding-top:2px; z-index:10; display:flex; flex-direction:column; gap:4px; justify-content:flex-start;">
             <div style="display:flex; gap:8px; justify-content:flex-end;">
-              <button onclick="window.wtShiftTaskDate('${t.id}', -1)" style="background:transparent; color:#1565c0; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="הקדם ליום הקודם">➡️</button>
-              <button onclick="window.wtShiftTaskDate('${t.id}', 1)" style="background:transparent; color:#1565c0; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="דחה ליום המחרת">⬅️</button>
+              <button onclick="window.wtShiftTaskDate('${t.id}', -1)" style="background:transparent; color:#1565c0; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="הקדם ליום הקודם">⏩</button>
+              <button onclick="window.wtShiftTaskDate('${t.id}', 1)" style="background:transparent; color:#1565c0; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="דחה ליום המחרת">⏪</button>
               <button onclick="window.wtEditTaskDesc('${t.id}')" style="background:transparent; color:#8e24aa; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="ערוך משימה">✏️</button>
               <button onclick="window.wtAddNote('${t.id}')" style="background:transparent; color:#f57c00; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="הוסף הערה">💬</button>
               <button onclick="window.wtMoveTaskDate('${t.id}')" style="background:transparent; color:#1565c0; border:none; cursor:pointer; font-size:1.1rem; opacity:0.7;" title="העבר תאריך">📅</button>
