@@ -958,7 +958,15 @@ function toHebDate(ds) {
 function hebM(d){return['╫ש╫á╫ץ╫נ╫¿','╫ñ╫ס╫¿╫ץ╫נ╫¿','╫₧╫¿╫Ñ','╫נ╫ñ╫¿╫ש╫£','╫₧╫נ╫ש','╫ש╫ץ╫á╫ש','╫ש╫ץ╫£╫ש','╫נ╫ץ╫ע╫ץ╫í╫ר','╫í╫ñ╫ר╫₧╫ס╫¿','╫נ╫ץ╫º╫ר╫ץ╫ס╫¿','╫á╫ץ╫ס╫₧╫ס╫¿','╫ף╫ª╫₧╫ס╫¿'][d.getMonth()]+' '+d.getFullYear()}
 function td(){return d2s(new Date())}
 function cities(){return[...new Set(GARDENS.map(g=>g.city))].sort()}
-function gardenPair(gid){const n=parseInt(gid);return pairs.find(p=>p.ids.map(x=>parseInt(x)).includes(n))||null}
+function gardenPair(gid){
+  const n=parseInt(gid);
+  if (window._listGroupMode === 'clusters' && typeof window.getClusters === 'function') {
+    const cls = window.getClusters();
+    const cl = cls.find(c => (c.gardenIds || []).map(x=>parseInt(x)).includes(n));
+    if (cl) return { id: cl.id, name: cl.name, ids: cl.gardenIds.map(x=>parseInt(x)) };
+  }
+  return pairs.find(p=>p.ids.map(x=>parseInt(x)).includes(n))||null;
+}
 window.getGardenGroup = function(gid) {
   const n = parseInt(gid);
   const pair = (window.pairs || []).find(p => p.ids.map(x => parseInt(x)).includes(n));

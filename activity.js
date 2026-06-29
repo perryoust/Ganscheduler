@@ -2835,15 +2835,21 @@ window.openCanQ = function(id) {
   const syncChk = document.getElementById('canq-sync-chk');
   
   if (pair && syncContainer && syncLabel && syncChk) {
-    const partnerId = pair.ids.find(gid => Number(gid) !== Number(s.g));
-    const partner = window.G(partnerId);
-    if (partner) {
-      const pName = partner.name.startsWith('גן') ? partner.name : `גן ${partner.name}`;
-      syncLabel.innerHTML = `סנכרן גם לגן בן הזוג (<b>${pName}</b>)`;
+    if (window._listGroupMode === 'clusters' && pair.name) {
+      syncLabel.innerHTML = `סנכרן גם לכל האשכול (<b>${pair.name}</b>)`;
       syncChk.checked = true;
       syncContainer.style.display = 'block';
     } else {
-      syncContainer.style.display = 'none';
+      const partnerId = pair.ids.find(gid => Number(gid) !== Number(s.g));
+      const partner = window.G(partnerId);
+      if (partner) {
+        const pName = partner.name.startsWith('גן') ? partner.name : `גן ${partner.name}`;
+        syncLabel.innerHTML = `סנכרן גם לגן בן הזוג (<b>${pName}</b>)`;
+        syncChk.checked = true;
+        syncContainer.style.display = 'block';
+      } else {
+        syncContainer.style.display = 'none';
+      }
     }
   } else if (syncContainer) {
     syncContainer.style.display = 'none';
@@ -2978,15 +2984,21 @@ window.openNohapQ = function(id){
   const syncChk = document.getElementById('nohapq-sync-chk');
   
   if(pair && syncContainer && syncLabel && syncChk){
-    const partnerId = pair.ids.find(gid => Number(gid) !== Number(s.g));
-    const partner = window.G(partnerId);
-    if (partner) {
-      const pName = partner.name.startsWith('גן') ? partner.name : `גן ${partner.name}`;
-      syncLabel.innerHTML = `סנכרן גם לגן בן הזוג (<b>${pName}</b>)`;
+    if (window._listGroupMode === 'clusters' && pair.name) {
+      syncLabel.innerHTML = `סנכרן גם לכל האשכול (<b>${pair.name}</b>)`;
       syncChk.checked = true;
       syncContainer.style.display = 'block';
     } else {
-      syncContainer.style.display = 'none';
+      const partnerId = pair.ids.find(gid => Number(gid) !== Number(s.g));
+      const partner = window.G(partnerId);
+      if (partner) {
+        const pName = partner.name.startsWith('גן') ? partner.name : `גן ${partner.name}`;
+        syncLabel.innerHTML = `סנכרן גם לגן בן הזוג (<b>${pName}</b>)`;
+        syncChk.checked = true;
+        syncContainer.style.display = 'block';
+      } else {
+        syncContainer.style.display = 'none';
+      }
     }
   } else if(syncContainer) {
     syncContainer.style.display='none';
