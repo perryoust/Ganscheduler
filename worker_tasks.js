@@ -368,7 +368,17 @@ window.wtSearchGarden = function(q) {
     return;
   }
   
-  const gardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+  const allGardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+  
+  const gardens = [];
+  const seen = new Set();
+  for (let g of allGardens) {
+    if (g.name && !seen.has(g.name)) {
+      seen.add(g.name);
+      gardens.push(g);
+    }
+  }
+
   const results = gardens.filter(g => 
     String(g.id).includes(q) || 
     (g.name && g.name.includes(q)) || 
@@ -736,7 +746,17 @@ document.addEventListener('DOMContentLoaded', () => {
 window.wtSearchGardenInline = function(q) {
   const res = document.getElementById('wt-inline-garden-results');
   if(!q) { res.style.display='none'; return; }
-  const gardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+  const allGardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+  
+  const gardens = [];
+  const seen = new Set();
+  for (let g of allGardens) {
+    if (g.name && !seen.has(g.name)) {
+      seen.add(g.name);
+      gardens.push(g);
+    }
+  }
+
   const list = gardens.filter(g => (g.name||'').includes(q) || (g.city||'').includes(q) || String(g.id).includes(q)).slice(0,30);
   
   let html = '';
