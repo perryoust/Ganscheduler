@@ -1359,7 +1359,7 @@ window.exportBulkAnnualSchedule = async function() {
        idColor = 'FFE2EFDA'; // Light Green for Kindergartens
     }
 
-    row.eachCell((c, colNum) => {
+    row.eachCell({ includeEmpty: true }, (c, colNum) => {
       c.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
       if (colNum <= 3) {
          // Columns 1-3 (סיווג, עיר, רחוב)
@@ -1369,7 +1369,9 @@ window.exportBulkAnnualSchedule = async function() {
          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
       } else {
          // Columns 6+ change color based on day type (weekend, holiday, camp)
-         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: eventColor } };
+         if (eventColor) {
+           c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: eventColor } };
+         }
       }
     });
   }
@@ -1490,14 +1492,15 @@ window.exportBulkAnnualSchedule = async function() {
     return valA.localeCompare(valB, 'he');
   };
 
-  // Sort rows per user requirement: Time -> Street -> Operator -> City -> Date
+  // Sort rows per user requirement: Date -> City -> Operator -> Street -> Time
   rowsData.sort((a, b) => {
-    let r = cmp(a.time, b.time); if (r !== 0) return r;
-    r = cmp(a.street, b.street); if (r !== 0) return r;
-    r = cmp(a.operator, b.operator); if (r !== 0) return r;
-    r = cmp(a.city, b.city); if (r !== 0) return r;
-    
     if (a.dateObj.getTime() !== b.dateObj.getTime()) return a.dateObj.getTime() - b.dateObj.getTime();
+    
+    let r = cmp(a.city, b.city); if (r !== 0) return r;
+    r = cmp(a.operator, b.operator); if (r !== 0) return r;
+    r = cmp(a.street, b.street); if (r !== 0) return r;
+    r = cmp(a.time, b.time); if (r !== 0) return r;
+    
     return 0;
   });
 
