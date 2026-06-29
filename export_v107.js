@@ -1483,12 +1483,21 @@ window.exportBulkAnnualSchedule = async function() {
     });
   }
 
+  // Helper to sort strings, pushing empty strings to the bottom
+  const cmp = (valA, valB) => {
+    if (valA === valB) return 0;
+    if (!valA) return 1;
+    if (!valB) return -1;
+    return valA.localeCompare(valB, 'he');
+  };
+
   // Sort rows per user requirement: Time -> Street -> Operator -> City -> Date
   rowsData.sort((a, b) => {
-    if (a.time !== b.time) return a.time.localeCompare(b.time, 'he');
-    if (a.street !== b.street) return a.street.localeCompare(b.street, 'he');
-    if (a.operator !== b.operator) return a.operator.localeCompare(b.operator, 'he');
-    if (a.city !== b.city) return a.city.localeCompare(b.city, 'he');
+    let r = cmp(a.time, b.time); if (r !== 0) return r;
+    r = cmp(a.street, b.street); if (r !== 0) return r;
+    r = cmp(a.operator, b.operator); if (r !== 0) return r;
+    r = cmp(a.city, b.city); if (r !== 0) return r;
+    
     if (a.dateObj.getTime() !== b.dateObj.getTime()) return a.dateObj.getTime() - b.dateObj.getTime();
     return 0;
   });
