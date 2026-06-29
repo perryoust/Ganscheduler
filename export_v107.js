@@ -1531,7 +1531,7 @@ window.exportBulkAnnualSchedule = async function() {
 
   // 2. Create Shortages Sheet
   const shortagesData = rowsData.filter(d => {
-    return (d.status === 'nohap' || d.status === 'can') && !d.isHandled;
+    return d.status === 'nohap' && !d.isHandled;
   });
   createSheet('חוסרים להשלמה', shortagesData);
 
