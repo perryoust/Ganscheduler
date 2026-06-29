@@ -1446,12 +1446,14 @@ window.exportBulkAnnualSchedule = async function() {
              finalNotes = finalNotes ? `${statusNote} - ${finalNotes}` : statusNote;
            }
            
-           rowsData.push({
-             rowValues: [
+           const rVals = [
                cls, g.city || '', (g.add || g.st) || '', g.name || '', g.age || '***',
                formattedDate, dayName, finalTp, fullActName, phone, finalGrp, ev.t || '', finalNotes,
                cName, mgrName
-             ],
+             ].map(v => v === '' ? null : v);
+             
+           rowsData.push({
+             rowValues: rVals,
              dateObj: formattedDate,
              city: g.city || '',
              operator: fullActName,
@@ -1462,11 +1464,13 @@ window.exportBulkAnnualSchedule = async function() {
         });
       } else {
         const cName = clusterByGan[g.id] || g.cluster || '';
-        rowsData.push({
-          rowValues: [
+        const rVals = [
             cls, g.city || '', (g.add || g.st) || '', g.name || '', g.age || '***',
             formattedDate, dayName, holName || '', '', '', '', '', '', cName, mgrName
-          ],
+          ].map(v => v === '' ? null : v);
+          
+        rowsData.push({
+          rowValues: rVals,
           dateObj: formattedDate,
           city: g.city || '',
           operator: '',
