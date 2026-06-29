@@ -1478,13 +1478,13 @@ window.exportBulkAnnualSchedule = async function() {
     });
   }
 
-  // Sort rows per user requirement: Date -> City -> Operator -> Street -> Time
+  // Sort rows per user requirement: Time -> Street -> Operator -> City -> Date
   rowsData.sort((a, b) => {
-    if (a.dateObj.getTime() !== b.dateObj.getTime()) return a.dateObj.getTime() - b.dateObj.getTime();
-    if (a.city !== b.city) return a.city.localeCompare(b.city, 'he');
-    if (a.operator !== b.operator) return a.operator.localeCompare(b.operator, 'he');
-    if (a.street !== b.street) return a.street.localeCompare(b.street, 'he');
     if (a.time !== b.time) return a.time.localeCompare(b.time, 'he');
+    if (a.street !== b.street) return a.street.localeCompare(b.street, 'he');
+    if (a.operator !== b.operator) return a.operator.localeCompare(b.operator, 'he');
+    if (a.city !== b.city) return a.city.localeCompare(b.city, 'he');
+    if (a.dateObj.getTime() !== b.dateObj.getTime()) return a.dateObj.getTime() - b.dateObj.getTime();
     return 0;
   });
 
@@ -1501,7 +1501,7 @@ window.exportBulkAnnualSchedule = async function() {
     35,     // 3. רחוב
     14.15,  // 4. שם הצהרון
     4.5,    // 5. גיל
-    11.0,   // 6. תאריך (Force 11.0 to prevent ######)
+    7.6,    // 6. תאריך (updated)
     6.9,    // 7. יום
     13.25,  // 8. חוג/הפעלה
     27.25,  // 9. שם החוג
