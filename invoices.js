@@ -254,25 +254,33 @@ function renderInvoices(){
       return stfArr.some(f=> f==='tax_receipt' ? i.status==='tax_receipt' : st===f);
     });
   }
-  if(from) list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')>=from);
-  if(to)   list = list.filter(i=>(i.orderDate||i.txDate||i.date||'')<=to);
+  
+  // Parse to timestamp for accurate chronological sorting
+  const parseSortDate = (dStr) => {
+    if (!dStr) return 0;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dStr)) return new Date(dStr).getTime();
+    const parts = dStr.split(/[\/\-.]/);
+    if (parts.length === 3) {
+      let d = parseInt(parts[0], 10), m = parseInt(parts[1], 10), y = parseInt(parts[2], 10);
+      if (y < 100) y += 2000;
+      if (d > 1000) { y = d; d = parseInt(parts[2], 10); } // Handle YYYY-MM-DD that split weirdly
+      if (m > 12) { const t = d; d = m; m = t; } // Handle MM/DD/YYYY format
+      return new Date(y, m - 1, d).getTime();
+    }
+    return new Date(dStr).getTime() || 0;
+  };
+
+  if(from) {
+    const fromTime = parseSortDate(from);
+    list = list.filter(i=>parseSortDate(i.orderDate||i.txDate||i.date||'')>=fromTime);
+  }
+  if(to) {
+    const toTime = parseSortDate(to);
+    list = list.filter(i=>parseSortDate(i.orderDate||i.txDate||i.date||'')<=toTime);
+  }
+  
   list.sort((a,b)=>{
     const da = a.orderDate||a.txDate||a.date||'', db = b.orderDate||b.txDate||b.date||'';
-    
-    // Parse to timestamp for accurate chronological sorting
-    const parseSortDate = (dStr) => {
-      if (!dStr) return 0;
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dStr)) return new Date(dStr).getTime();
-      const parts = dStr.split(/[\/\-.]/);
-      if (parts.length === 3) {
-        let d = parseInt(parts[0], 10), m = parseInt(parts[1], 10), y = parseInt(parts[2], 10);
-        if (y < 100) y += 2000;
-        if (d > 1000) { y = d; d = parseInt(parts[2], 10); } // Handle YYYY-MM-DD that split weirdly
-        return new Date(y, m - 1, d).getTime();
-      }
-      return new Date(dStr).getTime() || 0;
-    };
-    
     const timeA = parseSortDate(da);
     const timeB = parseSortDate(db);
     
