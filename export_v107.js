@@ -823,47 +823,39 @@ async function exportToExcel(data, filename, opts = {}) {
             }
           });
           
-          // Grand Summary for TYPE
+          // Print Summary Table for TYPE
           if (typeGlobalGroups > 0) {
-            const typeGrandSum = ws.addRow([`סה"כ ${type}: ${typeGlobalGroups} קבוצות`, '', '', '', '', '', '', '', '']);
-            typeGrandSum.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
-            typeGrandSum.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF43A047' } };
-            typeGrandSum.eachCell((cell) => { cell.alignment = { horizontal: 'right' }; });
-            ws.mergeCells(typeGrandSum.number, 1, typeGrandSum.number, 9);
             ws.addRow([]);
-            
-            // Add a divider in the summary table at the bottom too
-            summaryRows.push({ label: `--- סה"כ ${type} ---`, ok: 0, grp: typeGlobalGroups, isHeader: true });
+            const summaryTitleStr = opts.summaryTitle || '📊 ריכוז פעילות סופי';
+            // Try to add the Type name to the summary title if it doesn't have it
+            let finalTitleStr = summaryTitleStr;
+            if (!finalTitleStr.includes(type)) {
+               finalTitleStr = finalTitleStr.replace('סופי', `- ${type}`);
+            }
+            const sumHead = ws.addRow([finalTitleStr, '', '', '', '', '', '', '', '']);
+            sumHead.font = { bold: true, size: 12 };
+            sumHead.alignment = { horizontal: 'right' };
+            ws.mergeCells(sumHead.number, 1, sumHead.number, 9);
+
+            summaryRows.forEach(sr => {
+              const row = ws.addRow([sr.label, `בוצעו ${sr.grp} פעילויות`, '']);
+              row.eachCell(cell => {
+                cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
+                cell.alignment = { horizontal: 'right' };
+              });
+            });
+
+            const totalRow = ws.addRow(['₪ סה"כ קבוצות לתשלום (כללי)', '', typeGlobalGroups]);
+            totalRow.font = { bold: true };
+            totalRow.eachCell(cell => {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+              cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
+              cell.alignment = { horizontal: 'right' };
+            });
+            ws.mergeCells(totalRow.number, 1, totalRow.number, 2);
+            ws.addRow([]); // Blank row before the next type starts
           }
         });
-
-        ws.addRow([]);
-        const summaryTitleStr = opts.summaryTitle || '📊 ריכוז פעילות סופי';
-        const sumHead = ws.addRow([summaryTitleStr, '', '', '', '', '', '', '', '']);
-        sumHead.font = { bold: true, size: 12 };
-        sumHead.alignment = { horizontal: 'right' };
-        ws.mergeCells(sumHead.number, 1, sumHead.number, 9);
-
-        summaryRows.forEach(sr => {
-          const row = ws.addRow([sr.label, sr.isHeader ? '' : `בוצעו ${sr.grp} פעילויות`, '']);
-          if (sr.isHeader) {
-            row.font = { bold: true, color: { argb: 'FF1A237E' } };
-            row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
-          }
-          row.eachCell(cell => {
-            cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
-            cell.alignment = { horizontal: 'right' };
-          });
-        });
-
-        const totalRow = ws.addRow(['₪ סה"כ קבוצות לתשלום (כללי)', '', totalGroups]);
-        totalRow.font = { bold: true };
-        totalRow.eachCell(cell => {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
-          cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
-          cell.alignment = { horizontal: 'right' };
-        });
-        ws.mergeCells(totalRow.number, 1, totalRow.number, 2);
       } else {
         const keys = Object.keys(data[0]);
         ws.addRow(keys).font = { bold: true };
