@@ -110,8 +110,7 @@ function renderPurchSuppliers(){
     }
     h+='</tbody></table>';
     el.innerHTML=h;
-    return;
-  }
+  } else {
 
   // Cards view
   const _cardsHtml=renderList.map((s,idx)=>{
@@ -147,6 +146,7 @@ function renderPurchSuppliers(){
     </div>`;
   }).join('');
   el.innerHTML=`<div class="sugrid">${_cardsHtml}${cappedMsg}</div>`;
+  }
 
   // Add floating action bar if there are selected items
   if (window._selectedPsups && window._selectedPsups.size > 0) {
