@@ -608,7 +608,15 @@ function invOpenFile(invId, section){
 }
 
 function _invTryOpen(p, invId, section, meta){
-  const c = _classifyPath(p);
+  let fixedUrl = p || '';
+  try {
+    const decodedUrl = decodeURI(fixedUrl);
+    if (decodedUrl.includes('sharepoint.com') && decodedUrl.includes('צהרונים - מסמכים')) {
+      fixedUrl = decodedUrl.replace('צהרונים - מסמכים', 'Shared Documents');
+    }
+  } catch(e) {}
+  
+  const c = _classifyPath(fixedUrl);
 
   // ✅ Direct URL (SharePoint, OneDrive web) — opens immediately
   if(c.type==='url'){
