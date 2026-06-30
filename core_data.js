@@ -3,7 +3,7 @@
 
 
 // ── Purch Suppliers panel ──────────────────────────────
-let _pSupTab='all', _pSupView='cards';
+let _pSupTab='all', _pSupView='list';
 function setPSupTab(t){
   _pSupTab=t;
   ['all','act','purch'].forEach(x=>{
