@@ -2984,15 +2984,21 @@ window.startSharePointScanner = async function() {
       
       const cleanNumStr = numStr.replace(/\D/g, '').replace(/^0+/, '');
       
+      const isNumMatch = (dbN, fileN) => {
+         if (!dbN || !fileN) return false;
+         if (dbN === fileN) return true;
+         if (dbN.length >= 6 && fileN.length >= 5) {
+            if (dbN.includes(fileN) || fileN.includes(dbN)) return true;
+         }
+         return false;
+      };
+      
       const potentialMatches = window.INVOICES.filter(inv => {
         const invTax = String(inv.num || '').replace(/\D/g, '').replace(/^0+/, '');
         const invTx = String(inv.txNum || '').replace(/\D/g, '').replace(/^0+/, '');
         const invOrder = String(inv.orderNum || '').replace(/\D/g, '').replace(/^0+/, '');
         
-        // Flexible matching (allow substrings like missing year digits, as long as length >= 5)
-        return (invTax.length >= 5 && (invTax.includes(cleanNumStr) || cleanNumStr.includes(invTax))) ||
-               (invTx.length >= 5 && (invTx.includes(cleanNumStr) || cleanNumStr.includes(invTx))) ||
-               (invOrder.length >= 5 && (invOrder.includes(cleanNumStr) || cleanNumStr.includes(invOrder)));
+        return isNumMatch(invTax, cleanNumStr) || isNumMatch(invTx, cleanNumStr) || isNumMatch(invOrder, cleanNumStr);
       });
 
       for (const inv of potentialMatches) {
@@ -3001,9 +3007,9 @@ window.startSharePointScanner = async function() {
         const invOrder = String(inv.orderNum || '').replace(/\D/g, '').replace(/^0+/, '');
 
         let type = null;
-        if (invTax.length >= 5 && (invTax.includes(cleanNumStr) || cleanNumStr.includes(invTax))) type = 'tax';
-        else if (invTx.length >= 5 && (invTx.includes(cleanNumStr) || cleanNumStr.includes(invTx))) type = 'tx';
-        else if (invOrder.length >= 5 && (invOrder.includes(cleanNumStr) || cleanNumStr.includes(invOrder))) type = 'order';
+        if (isNumMatch(invTax, cleanNumStr)) type = 'tax';
+        else if (isNumMatch(invTx, cleanNumStr)) type = 'tx';
+        else if (isNumMatch(invOrder, cleanNumStr)) type = 'order';
 
         let score = 50;
         
