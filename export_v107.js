@@ -685,22 +685,31 @@ async function exportToExcel(data, filename, opts = {}) {
       let totalOk = 0, totalNo = 0, totalGroups = 0;
 
       if(isSupplierExport){
-        const byCity = {};
+        const byType = {};
         data.forEach(s => {
-          const c = window.G(s.g).city || 'אחר';
-          if(!byCity[c]) byCity[c] = [];
-          byCity[c].push(s);
+          const t = window.gcls(window.G(s.g));
+          if(!byType[t]) byType[t] = [];
+          byType[t].push(s);
         });
 
-        const cities = Object.keys(byCity).sort();
+        // Ensure "גנים" comes first, then everything else
+        const types = Object.keys(byType).sort((a,b) => a === 'גנים' ? -1 : (b === 'גנים' ? 1 : a.localeCompare(b)));
         const summaryRows = [];
-        cities.forEach(city => {
-          const cityEvs = byCity[city];
-          const types = [...new Set(cityEvs.map(s => window.gcls(window.G(s.g))))].sort();
-
-          types.forEach(type => {
+        types.forEach(type => {
+          let typeGlobalGroups = 0;
+          
+          const typeEvsAll = byType[type];
+          const byCity = {};
+          typeEvsAll.forEach(s => {
+            const c = window.G(s.g).city || 'אחר';
+            if(!byCity[c]) byCity[c] = [];
+            byCity[c].push(s);
+          });
+          
+          const cities = Object.keys(byCity).sort();
+          cities.forEach(city => {
             let typeOk = 0, typeNo = 0, typeGroups = 0;
-            const typeEvs = cityEvs.filter(s => window.gcls(window.G(s.g)) === type).sort((a,b) => {
+            const typeEvs = byCity[city].sort((a,b) => {
               const ds = a.d.localeCompare(b.d);
               if(ds !== 0) return ds;
               const pA = window.gardenPair(a.g), pB = window.gardenPair(b.g);
@@ -783,6 +792,8 @@ async function exportToExcel(data, filename, opts = {}) {
               });
             });
 
+            typeGlobalGroups += typeGroups;
+
             // Section Sub-Summary
             const typeSum = ws.addRow([`📌 ${city} - ${type}: בוצעו ${typeGroups} פעילויות (כולל השלמות)`, '', '', '', '', '', '', '', '']);
             typeSum.font = { bold: true, size: 10, color: { argb: 'FF1A237E' } };
@@ -792,7 +803,7 @@ async function exportToExcel(data, filename, opts = {}) {
             ws.mergeCells(typeSum.number, 1, typeSum.number, 9);
             ws.addRow([]);
             
-            if (type === 'ביה"ס') {
+            if (type === 'ביה"ס' || type === 'בתי ספר') {
               Object.keys(schoolStats).sort().forEach(sName => {
                 if (schoolStats[sName].grp > 0) {
                   summaryRows.push({ label: sName, ok: schoolStats[sName].ok, grp: schoolStats[sName].grp });
@@ -804,6 +815,19 @@ async function exportToExcel(data, filename, opts = {}) {
               }
             }
           });
+          
+          // Grand Summary for TYPE
+          if (typeGlobalGroups > 0) {
+            const typeGrandSum = ws.addRow([`סה"כ ${type}: ${typeGlobalGroups} קבוצות`, '', '', '', '', '', '', '', '']);
+            typeGrandSum.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
+            typeGrandSum.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF43A047' } };
+            typeGrandSum.eachCell((cell) => { cell.alignment = { horizontal: 'right' }; });
+            ws.mergeCells(typeGrandSum.number, 1, typeGrandSum.number, 9);
+            ws.addRow([]);
+            
+            // Add a divider in the summary table at the bottom too
+            summaryRows.push({ label: `--- סה"כ ${type} ---`, ok: 0, grp: typeGlobalGroups, isHeader: true });
+          }
         });
 
         ws.addRow([]);
@@ -814,7 +838,11 @@ async function exportToExcel(data, filename, opts = {}) {
         ws.mergeCells(sumHead.number, 1, sumHead.number, 9);
 
         summaryRows.forEach(sr => {
-          const row = ws.addRow([sr.label, `בוצעו ${sr.grp} פעילויות`, '']);
+          const row = ws.addRow([sr.label, sr.isHeader ? '' : `בוצעו ${sr.grp} פעילויות`, '']);
+          if (sr.isHeader) {
+            row.font = { bold: true, color: { argb: 'FF1A237E' } };
+            row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+          }
           row.eachCell(cell => {
             cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
             cell.alignment = { horizontal: 'right' };
