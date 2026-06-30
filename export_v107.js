@@ -672,7 +672,14 @@ async function exportToExcel(data, filename, opts = {}) {
       const ws = workbook.addWorksheet('Sheet1', { 
         views: [{ rightToLeft: true, state: 'frozen', xSplit: 0, ySplit: 1 }] 
       });
-      ws.pageSetup.margins = { left: 0.3/2.54, right: 0.3/2.54, top: 0.4/2.54, bottom: 0.4/2.54, header: 0.8/2.54, footer: 0.8/2.54 };
+      ws.pageSetup = {
+        paperSize: 9, // A4
+        orientation: 'portrait',
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0,
+        margins: { left: 0.3/2.54, right: 0.3/2.54, top: 0.4/2.54, bottom: 0.4/2.54, header: 0.8/2.54, footer: 0.8/2.54 }
+      };
       
       if(opts.title){
         const titleRow = ws.addRow([opts.title]);
@@ -788,7 +795,7 @@ async function exportToExcel(data, filename, opts = {}) {
               const row = ws.addRow([window.fD(s.d), dayStr, g.name, window.supBase ? window.supBase(s.a) : s.a, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote]);
               row.eachCell(cell => {
                  cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
-                 cell.alignment = { horizontal: 'right' };
+                 cell.alignment = { horizontal: 'right', vertical: 'middle', wrapText: true };
               });
             });
 
