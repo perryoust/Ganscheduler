@@ -701,8 +701,9 @@ async function exportToExcel(data, filename, opts = {}) {
 
         // Ensure "גנים" comes first, then everything else
         const types = Object.keys(byType).sort((a,b) => a === 'גנים' ? -1 : (b === 'גנים' ? 1 : a.localeCompare(b)));
-        const summaryRows = [];
+        
         types.forEach(type => {
+          const summaryRows = [];
           let typeGlobalGroups = 0;
           
           const typeEvsAll = byType[type];
