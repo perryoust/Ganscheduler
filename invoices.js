@@ -279,7 +279,8 @@ function renderInvoices(){
     if (timeA !== timeB) {
       return sortDir === 'asc' ? timeA - timeB : timeB - timeA;
     }
-    return sortDir === 'asc' ? da.localeCompare(db) : db.localeCompare(da);
+    // Fallback to insertion order (ID) if dates are exactly the same
+    return sortDir === 'asc' ? (a.id - b.id) : (b.id - a.id);
   });
   const fmtAmt = (n, vat, exempt)=>{
     if(!n) return '<span style="color:#ccc">—</span>';
@@ -731,11 +732,15 @@ function _showLocalPathHelp(p, invId, section, meta, pathType){
 }
 
 window.openInvoiceFile = function(url, invId) {
-  const c = _classifyPath(url);
+  let fixedUrl = url || '';
+  if (fixedUrl.includes('sharepoint.com') && fixedUrl.includes('צהרונים - מסמכים')) {
+    fixedUrl = fixedUrl.replace('צהרונים - מסמכים', 'Shared Documents');
+  }
+  const c = _classifyPath(fixedUrl);
   if (c.type === 'url') {
     window.open(c.url, '_blank');
   } else {
-    _showLocalPathHelp(url, invId, 'file', { name: _extractNameFromUrl(url) || 'קובץ סרוק' }, c.type);
+    _showLocalPathHelp(fixedUrl, invId, 'file', { name: _extractNameFromUrl(fixedUrl) || 'קובץ סרוק' }, c.type);
   }
 };
 
@@ -2730,13 +2735,14 @@ window.parseSharePointBaseUrl = (url) => {
     // Local synced path — map to web URL
     const libIndex = u.indexOf('צהרונים - מסמכים');
     if (libIndex !== -1) {
-      const relativePath = u.substring(libIndex);
-      return 'https://tomashin1.sharepoint.com/sites/zaharonim/' + relativePath.replace(/\/+$/, '');
+      const relativePath = u.substring(libIndex + 'צהרונים - מסמכים'.length);
+      return 'https://tomashin1.sharepoint.com/sites/zaharonim/Shared Documents' + relativePath.replace(/\/+$/, '');
     }
     const tomshinIndex = u.indexOf('רשת תיכוני טומשין בע מ');
     if (tomshinIndex !== -1) {
+      // If we find 'רשת תיכוני טומשין בע מ' but not 'צהרונים - מסמכים', we fallback to stripping the first folder
       const rest = u.substring(tomshinIndex).replace(/^[^/]+\//, '');
-      return 'https://tomashin1.sharepoint.com/sites/zaharonim/' + rest.replace(/\/+$/, '');
+      return 'https://tomashin1.sharepoint.com/sites/zaharonim/Shared Documents/' + rest.replace(/\/+$/, '');
     }
 
     if (!u.startsWith('http')) return u.replace(/\/+$/, '');
@@ -2924,11 +2930,11 @@ window.startSharePointScanner = async function() {
         if (isPdf && !entry.name.startsWith('.') && !entry.name.startsWith('~') && !isOldYear) {
           filesFound.push({
             name: entry.name,
-            link: cleanBase + currentPath + '/' + encodeURIComponent(entry.name) + '?web=1'
+            link: cleanBase + currentPath + '/' + entry.name + '?web=1'
           });
         }
       } else if (entry.kind === 'directory') {
-        await scanDir(entry, currentPath + '/' + encodeURIComponent(entry.name), cleanBase);
+        await scanDir(entry, currentPath + '/' + entry.name, cleanBase);
       }
     }
   }
