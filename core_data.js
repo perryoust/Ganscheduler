@@ -78,6 +78,7 @@ function renderPurchSuppliers(){
     // List view
     let h='<table style="width:100%;border-collapse:collapse;font-size:.83rem">'
       +'<thead><tr style="background:#e8eaf6;position:sticky;top:0">'
+      +'<th style="padding:7px 10px;text-align:right;width:30px"><input type="checkbox" onchange="window.psupToggleAll(this.checked)"></th>'
       +'<th style="padding:7px 10px;text-align:right">ספק</th>'
       +'<th style="padding:7px 8px;text-align:center">פעילויות</th>'
       +'<th style="padding:7px 8px;text-align:right">טלפון</th>'
@@ -89,9 +90,10 @@ function renderPurchSuppliers(){
       const ex=supBaseEx(base);
       const cnt=supBaseCnt(base);
       const phone=ex.ph1||s.phone||'';
-      // Use data-idx to avoid HTML attribute escaping issues with special chars
       const bg=idx%2===0?'#fff':'#f8f9ff';
+      const isChecked = window._selectedPsups && window._selectedPsups.has(base);
       h+=`<tr style="background:${bg};cursor:pointer;border-bottom:2px solid #e8eaf6" onclick="psupOpen(${idx})">`
+        +`<td style="padding:6px 10px;text-align:right" onclick="event.stopPropagation()"><input type="checkbox" class="psup-cb" onchange="window.psupCheckChanged('${base.replace(/'/g,"\\'").replace(/"/g,'&quot;')}', this.checked)" ${isChecked?'checked':''}></td>`
         +`<td style="padding:6px 10px;font-weight:700;color:#1a237e">${base}`
         +`${isActSupplier(base)?' <span style="font-size:.65rem;color:#2e7d32">🎨</span>':''}`
         +`</td>`
@@ -120,29 +122,46 @@ function renderPurchSuppliers(){
     const phone=ex.ph1||s.phone||'';
     const cntDone=SCH.filter(sc=>supBase(sc.a)===base&&sc.st==='done').length;
     const isAct = isActSupplier(base);
-    return `<div class="sucard" style="cursor:pointer;display:flex;flex-direction:column;justify-content:space-between" onclick="psupOpen(${idx})">
+    const isChecked = window._selectedPsups && window._selectedPsups.has(base);
+    return `<div class="sucard" style="position:relative;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between" onclick="psupOpen(${idx})">
+      <div style="position:absolute;top:10px;left:10px;" onclick="event.stopPropagation()"><input type="checkbox" class="psup-cb" onchange="window.psupCheckChanged('${base.replace(/'/g,"\\'").replace(/"/g,'&quot;')}', this.checked)" ${isChecked?'checked':''}></div>
       <div>
-        <div class="font-800 text-primary text-base mb-2 break-word" style="line-height:1.35">
+        <div class="font-800 text-primary text-base mb-2 break-word" style="line-height:1.35;padding-left:20px;">
           📚 ${base}
           ${isAct?'<span class="text-xs text-success rounded-6" style="background:#e8f5e9;padding:1px 5px;margin-right:4px">🎨</span>':''}
         </div>
         ${phone?`<div class="text-success text-sm font-600 mb-2">📞 ${phone}</div>`:''}
         ${acts.length&&isAct?`<div class="mb-2 flex-c flex-wrap gap-3">
-          ${acts.map(a=>`<span class="text-xs font-600 text-secondary rounded-10" style="background:#e3f2fd;padding:2px 8px">🎯 ${a}</span>`).join('')}
+          ${acts.slice(0,3).map(a=>`<span class="tag-label" style="background:#f3e5f5;color:#6a1b9a;border-color:#e1bee7">${a}</span>`).join('')}
+          ${acts.length>3?`<span class="text-xs text-gray">+${acts.length-3}</span>`:''}
         </div>`:''}
-        ${ex.entityType?`<div class="text-xs mb-1" style="color:#6a1b9a">🏢 ${ex.entityType}</div>`:''}
-        ${ex.notes?`<div class="text-xs text-light mb-1">📝 ${ex.notes}</div>`:''}
+        <div class="text-xs text-gray font-600 mb-2">${ex.entityType||''}</div>
       </div>
-      <div class="flex-c justify-between mt-2 pt-2" style="border-top:1px solid #f0f0f0">
-        <span class="text-xs font-bold text-secondary">${isAct?`📅 ${cnt} פעילויות${cntDone?` · ✔️ ${cntDone}`:''}`:''}</span>
-        <div class="flex-c gap-2 flex-none" onclick="event.stopPropagation()">
-          <button class="btn bp bsm text-xs" onclick="psupNewInvoice(${idx})">📄 הזמנה</button>
-          <button class="btn bo bsm text-xs" onclick="psupEdit(${idx})">✏️</button>
+      <div class="flex-c space-between mt-3" style="border-top:1px dashed #e0e0e0;padding-top:8px">
+        <div class="text-sm font-700 text-primary">${isAct?`${cnt} שיבוצים`:''}</div>
+        <div class="flex-c gap-3" onclick="event.stopPropagation()">
+          <button class="btn bp bsm" style="padding:2px 8px;font-size:.65rem" onclick="psupNewInvoice(${idx})">📄 הזמנה</button>
+          <button class="btn bo bsm" style="padding:2px 8px;font-size:.65rem" onclick="psupEdit(${idx})">✏️</button>
         </div>
       </div>
     </div>`;
   }).join('');
   el.innerHTML=`<div class="sugrid">${_cardsHtml}${cappedMsg}</div>`;
+
+  // Add floating action bar if there are selected items
+  if (window._selectedPsups && window._selectedPsups.size > 0) {
+    const selCount = window._selectedPsups.size;
+    const barHtml = `
+      <div style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:white;padding:12px 24px;border-radius:30px;box-shadow:0 10px 25px rgba(0,0,0,0.3);display:flex;align-items:center;gap:15px;z-index:9999;font-family:'Heebo',sans-serif;">
+        <div style="font-weight:700;font-size:1rem;">נבחרו ${selCount} ספקים</div>
+        <div style="width:1px;height:20px;background:rgba(255,255,255,0.3);"></div>
+        <button style="background:#e74c3c;color:white;border:none;padding:6px 14px;border-radius:20px;font-weight:600;cursor:pointer;font-family:'Heebo',sans-serif;transition:0.2s;" onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#e74c3c'" onclick="window.psupMultiDelete()">🗑️ מחיקה</button>
+        <button style="background:#3498db;color:white;border:none;padding:6px 14px;border-radius:20px;font-weight:600;cursor:pointer;font-family:'Heebo',sans-serif;transition:0.2s;" onmouseover="this.style.background='#2980b9'" onmouseout="this.style.background='#3498db'" onclick="window.psupMultiMerge()">🚀 איחוד ספקים</button>
+        <button style="background:transparent;color:#bdc3c7;border:1px solid #bdc3c7;padding:5px 12px;border-radius:20px;font-size:0.8rem;cursor:pointer;margin-right:10px;" onclick="window.psupToggleAll(false)">בטל</button>
+      </div>
+    `;
+    el.insertAdjacentHTML('beforeend', barHtml);
+  }
 }
 
 function openNewPurchSupplier(){

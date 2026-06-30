@@ -772,4 +772,132 @@ function doMerge(){
   window.showToast(`✅ אוחדו ${toMrg.length} ספקים → "${main}"${changedSch?` · ${changedSch} שיבוצים`:''}${changedInv?` · ${changedInv} חשבוניות`:''}`);
 }
 
+window._selectedPsups = new Set();
+
+window.psupToggleAll = function(checked) {
+  if (checked) {
+    if (window._psupCurrentList) {
+      window._psupCurrentList.forEach(s => window._selectedPsups.add(s.name));
+    }
+  } else {
+    window._selectedPsups.clear();
+  }
+  if(typeof window.renderPurchSuppliers === 'function') window.renderPurchSuppliers();
+};
+
+window.psupCheckChanged = function(name, checked) {
+  if (checked) window._selectedPsups.add(name);
+  else window._selectedPsups.delete(name);
+  if(typeof window.renderPurchSuppliers === 'function') window.renderPurchSuppliers();
+};
+
+window.psupMultiDelete = function() {
+  const arr = Array.from(window._selectedPsups);
+  if(!arr.length) return;
+  if(!confirm(`האם למחוק ${arr.length} ספקים נבחרים?`)) return;
+  arr.forEach(name => {
+    delete window.supEx[name];
+    if (window.supEx['__c']) window.supEx['__c'] = window.supEx['__c'].filter(s => s.name !== name);
+    if (!window.supEx['__merged_away']) window.supEx['__merged_away'] = [];
+    if (!window.supEx['__merged_away'].includes(name)) window.supEx['__merged_away'].push(name);
+  });
+  window._selectedPsups.clear();
+  window.save(true);
+  window.refresh();
+  if (typeof window.renderPurchSuppliers === 'function') try { window.renderPurchSuppliers(); } catch(e) {}
+  window.showToast(`🗑️ נמחקו ${arr.length} ספקים`);
+};
+
+window.psupMultiMerge = function() {
+  const arr = Array.from(window._selectedPsups);
+  if(!arr.length) return;
+  
+  const _mergeSupList = window.getAllSup();
+  let opts = '<option value="">בחר ספק ראשי לאיחוד...</option>';
+  _mergeSupList.forEach((s,i) => {
+    if(!arr.includes(s.name)) opts += `<option value="${i}">${s.name}</option>`;
+  });
+  
+  const formHtml = `
+    <div style="direction:rtl; padding:10px;">
+      <p style="margin-bottom:10px;">בחר ספק אחד שאליו יאוחדו <b>${arr.length}</b> הספקים שסימנת:</p>
+      <select id="multi-merge-target" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; font-size:1rem;">
+        ${opts}
+      </select>
+    </div>
+  `;
+  
+  if (window.spPromptDialog) {
+    window.spPromptDialog(
+      `🚀 איחוד ${arr.length} ספקים`,
+      formHtml,
+      'בצע איחוד',
+      () => {
+         const select = document.getElementById('multi-merge-target');
+         const mainIdx = select.value;
+         if(mainIdx === '') { window.showToast('יש לבחר ספק ראשי'); return false; }
+         const main = _mergeSupList[parseInt(mainIdx)]?.name;
+         if(!main) return false;
+         
+         if(!confirm(`האם לאחד ${arr.length} ספקים לתוך "${main}"?`)) return true;
+         
+         const mainBase = window.supBase(main);
+         let changedSch=0, changedInv=0;
+         const mergedAway = new Set(window.supEx['__merged_away']||[]);
+         const allActs = new Set(window.getSupActs(main));
+         let mergedIsAct = window.isActSupplier(main);
+         let mergedIsPurch = window.isPurchSupplier(main);
+
+         arr.forEach(old=>{
+           const oldBase = window.supBase(old);
+           window.getSupActs(old).forEach(a=>allActs.add(a));
+           if(window.isActSupplier(old)) mergedIsAct = true;
+           if(window.isPurchSupplier(old)) mergedIsPurch = true;
+
+           window.SCH.forEach(s=>{
+             if(window.supBase(s.a)===oldBase){ s.a=mainBase+' - '+window.actType(s.a); changedSch++; }
+           });
+           if(window.INVOICES){
+             window.INVOICES.forEach(i=>{
+               if(window.supBase(i.supName||'')===oldBase){ i.supName=main; changedInv++; }
+             });
+           }
+           mergedAway.add(oldBase);
+           if(old!==oldBase) mergedAway.add(old);
+         });
+
+         if(!window.supEx[mainBase]) window.supEx[mainBase]={};
+         window.supEx[mainBase].acts = Array.from(allActs);
+         window.supEx[mainBase].isAct = mergedIsAct;
+         window.supEx[mainBase].isPurch = mergedIsPurch;
+
+         if(main !== mainBase){
+           if(!window.supEx[main]) window.supEx[main]={};
+           window.supEx[main].isAct = mergedIsAct;
+           window.supEx[main].isPurch = mergedIsPurch;
+           window.supEx[main].acts = window.supEx[mainBase].acts;
+         }
+
+         const inSupbase = window.SUPBASE.some(s=>window.supBase(s.name)===mainBase);
+         if(!inSupbase){
+           if(!window.supEx['__c']) window.supEx['__c']=[];
+           if(!window.supEx['__c'].find(s=>window.supBase(s.name)===mainBase)){
+             window.supEx['__c'].push({id:Date.now(),name:mainBase,phone:window.supEx[mainBase]?.ph1||''});
+           }
+         }
+
+         window.supEx['__merged_away'] = [...mergedAway];
+         window._selectedPsups.clear();
+         window.save(true);
+         window.refresh();
+         try{ window.renderPurchSuppliers(); }catch(e){}
+         window.showToast(`✅ אוחדו ${arr.length} ספקים → "${main}"${changedSch?` · ${changedSch} שיבוצים`:''}${changedInv?` · ${changedInv} חשבוניות`:''}`);
+         return true;
+      }
+    );
+  } else {
+    alert('הפונקציה חסרה');
+  }
+};
+
 var _GARDENS_EXTRA=[]; // user-added gardens stored in localStorage
