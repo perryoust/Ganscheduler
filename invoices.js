@@ -3181,9 +3181,10 @@ window.startSharePointScanner = async function() {
     window.showToast(`סריקה הסתיימה — 0 התאמות למסמכים קיימים.`);
   }
 
-  // ── Step 6.5: Batch alias suggestions — show a single form for all pending alias questions
+  // ── Step 6.5: Batch alias suggestions — (DISABLED BY USER REQUEST)
   const pending = window._pendingAliasSuggestions || [];
   window._pendingAliasSuggestions = []; // Reset for next run
+  /*
   if (pending.length > 0) {
     await new Promise(resolve => {
       let rowsHtml = '';
@@ -3245,6 +3246,7 @@ window.startSharePointScanner = async function() {
       }, 50);
     });
   }
+  */
 
   // ── Step 7: Export results Excel
   if (window.XLSX) {
