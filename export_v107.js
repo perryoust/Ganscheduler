@@ -790,7 +790,10 @@ async function exportToExcel(data, filename, opts = {}) {
                  displayStatus = ''; 
               }
               
-              const formattedNote = typeof window.formatNoteWithTag === 'function' ? window.formatNoteWithTag(s) : (s.nt || '');
+              let formattedNote = typeof window.formatNoteWithTag === 'function' ? window.formatNoteWithTag(s) : (s.nt || '');
+              formattedNote = formattedNote.replace(/(✅|☑️)?\s*טופל:\s*טופל(\s*\|\s*)?/g, '').trim();
+              formattedNote = formattedNote.replace(/^\|\s*|\s*\|$/g, '').trim();
+              
               const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
               const dayStr = 'יום ' + dayNames[new Date(s.d).getDay()];
               const row = ws.addRow([window.fD(s.d), dayStr, g.name, window.supBase ? window.supBase(s.a) : s.a, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote]);
