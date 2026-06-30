@@ -733,9 +733,12 @@ function _showLocalPathHelp(p, invId, section, meta, pathType){
 
 window.openInvoiceFile = function(url, invId) {
   let fixedUrl = url || '';
-  if (fixedUrl.includes('sharepoint.com') && fixedUrl.includes('צהרונים - מסמכים')) {
-    fixedUrl = fixedUrl.replace('צהרונים - מסמכים', 'Shared Documents');
-  }
+  try {
+    const decodedUrl = decodeURI(fixedUrl);
+    if (decodedUrl.includes('sharepoint.com') && decodedUrl.includes('צהרונים - מסמכים')) {
+      fixedUrl = decodedUrl.replace('צהרונים - מסמכים', 'Shared Documents');
+    }
+  } catch(e) {}
   const c = _classifyPath(fixedUrl);
   if (c.type === 'url') {
     window.open(c.url, '_blank');
