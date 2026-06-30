@@ -2853,6 +2853,16 @@ function _spFolderDialog(folderName, savedUrl, isSecond) {
   });
 }
 
+window.spUndoMatch = function(invId, type, rowIdx) {
+  const inv = window.INVOICES.find(i => String(i.id) === String(invId));
+  if (inv) {
+    delete inv['file_' + type];
+    window.save(true);
+    const row = document.getElementById('sp-sug-row-' + rowIdx);
+    if (row) row.remove();
+    window.showToast('✅ שיוך בוטל. הקובץ כעת ללא שיוך.');
+  }
+};
 
 window.startSharePointScanner = async function() {
   if (!window.showDirectoryPicker) {
@@ -3047,10 +3057,6 @@ window.startSharePointScanner = async function() {
           if (inv.supName) {
              const baseName = window.supBase ? window.supBase(inv.supName) : inv.supName;
              if (file.name.includes(baseName) || file.name.includes(inv.supName)) supplierScore = 20;
-             else {
-               const firstWord = String(inv.supName).split(/\s+/).filter(w=>w.length>2)[0];
-               if (firstWord && file.name.includes(firstWord)) supplierScore = 10;
-             }
           }
           if (isPettyCash && supplierScore === 0) supplierScore = 10;
           if (isGett && supplierScore === 0) supplierScore = 10;
@@ -3113,7 +3119,12 @@ window.startSharePointScanner = async function() {
         if (!window._pendingAliasSuggestions) window._pendingAliasSuggestions = [];
         // Avoid duplicate suggestions for the same supplier
         if (!window._pendingAliasSuggestions.some(s => s.supName === chosenSup)) {
-          window._pendingAliasSuggestions.push({ fileName: file.name, supName: chosenSup });
+          window._pendingAliasSuggestions.push({ 
+            fileName: file.name, 
+            supName: chosenSup,
+            invId: bestInvoice.id,
+            type: bestType 
+          });
         }
       }
     }
@@ -3155,13 +3166,14 @@ window.startSharePointScanner = async function() {
       let rowsHtml = '';
       pending.forEach((item, idx) => {
         rowsHtml += `
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; padding:8px; background:#f5f5f5; border-radius:6px; direction:rtl;">
+          <div id="sp-sug-row-${idx}" style="display:flex; align-items:center; gap:8px; margin-bottom:10px; padding:8px; background:#f5f5f5; border-radius:6px; direction:rtl;">
             <div style="flex:1; min-width:0;">
               <div style="font-weight:600; font-size:.9rem; color:#1565c0;">${item.supName}</div>
               <div style="font-size:.75rem; color:#666; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.fileName}">📄 ${item.fileName}</div>
             </div>
             <input type="text" id="sp-alias-input-${idx}" placeholder="מילת זיהוי..." 
-              style="width:120px; padding:6px 8px; border:1px solid #ccc; border-radius:4px; font-size:.9rem; direction:rtl;">
+              style="width:90px; padding:6px 8px; border:1px solid #ccc; border-radius:4px; font-size:.85rem; direction:rtl;">
+            <button onclick="window.spUndoMatch('${item.invId}', '${item.type}', ${idx})" style="background:transparent;border:none;color:#d32f2f;cursor:pointer;font-size:1.1rem" title="בטל שיוך שגוי זה">❌</button>
           </div>`;
       });
 
