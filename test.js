@@ -1,0 +1,1 @@
+const fs = require('fs'); const txt = fs.readFileSync('data.js', 'utf8'); const rx = /"d":"(202[4-6]-[0-9]{2}-[0-9]{2})"/g; let m; let first, last; while((m=rx.exec(txt))!==null){ if(!first) first = m[1]; last = m[1]; } console.log('First:', first, 'Last:', last);

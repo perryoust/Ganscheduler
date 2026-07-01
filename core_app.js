@@ -121,9 +121,17 @@ window.onload = function(){
       window.DataManager.cleanupDuplicates();
       window.save(true); // Persist cleanup
     }
-    console.log('App fully ready: SCH = ',window.SCH.length,'INVOICES = ',_inv);
+    // ONE-TIME CLEANUP FOR מעשיותאטרון
+    if (window.supEx && window.supEx['__merged_away']) {
+      const oldLen = window.supEx['__merged_away'].length;
+      window.supEx['__merged_away'] = window.supEx['__merged_away'].filter(s => !s.includes('מעשיותאטרון'));
+      if (window.supEx['__merged_away'].length !== oldLen) {
+        window.save(true);
+      }
+    }
     
-    _fbStartPolling();
+    console.log('App fully ready: SCH = ',window.SCH.length,'INVOICES = ',_inv);
+    window.refresh(); _fbStartPolling();
   }; 
   if(window._fbUser) window._onAuthReady();
 };

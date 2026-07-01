@@ -1,7 +1,1 @@
-﻿const fs = require('fs');
-const lines = fs.readFileSync('activity.js', 'utf8').split('\n');
-for(let i=0; i<lines.length; i++) {
-  if(lines[i].includes('id="rr-time"')) {
-    console.log('Line ' + i + ': ' + lines[i]);
-  }
-}
+const fs = require('fs'); const txt = fs.readFileSync('data.js', 'utf8'); const rx = new RegExp('"d":"(202[4-6]-[0-9]{2}-[0-9]{2})"', 'g'); let m; let dates = new Set(); while((m=rx.exec(txt))!==null){ dates.add(m[1]); } console.log(Array.from(dates).sort().slice(0, 10)); console.log(Array.from(dates).sort().slice(-10));

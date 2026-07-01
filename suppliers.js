@@ -688,20 +688,7 @@ function doMerge(){
     if(window.isActSupplier(old)) mergedIsAct = true;
     if(window.isPurchSupplier(old)) mergedIsPurch = true;
 
-    // 1. Update SCH: preserve activity type in new name
-    window.SCH.forEach(s=>{
-      if(!s.a) return;
-      const sBase = window.supBase(s.a);
-      const sAct = window.supAct(s.a);
-      if(sBase === oldBase){
-        // Keep activity type: if main="חיים בתנועה" and sAct="ריקוד" → "חיים בתנועה - ריקוד"
-        // If main has its own act suffix: just use mainBase
-        s.a = sAct ? (mainBase + ' - ' + sAct) : mainBase;
-        changedSch++;
-      }
-    });
-
-    // 2. Update INVOICES
+    // 1. Update INVOICES
     if(typeof window.INVOICES!=='undefined') window.INVOICES.forEach(inv=>{
       if(window.supBase(inv.supName||'')===oldBase){
         inv.supName = main;
@@ -763,7 +750,7 @@ function doMerge(){
     }
   }
 
-  window.supEx['__merged_away'] = [...new Set([...(window.supEx['__merged_away']||[]), ...mergedAway])];
+  // Remove the __merged_away array push to NOT hide the suppliers
   window.save(true);
   window.CM('mrgm');
   window.refresh();
@@ -852,13 +839,6 @@ window.psupMultiMerge = function() {
            if(window.isActSupplier(old)) mergedIsAct = true;
            if(window.isPurchSupplier(old)) mergedIsPurch = true;
 
-           window.SCH.forEach(s=>{
-             if(s.a && window.supBase(s.a)===oldBase){
-               const sAct = window.supAct(s.a);
-               s.a = sAct ? (mainBase + ' - ' + sAct) : mainBase;
-               changedSch++; 
-             }
-           });
            if(window.INVOICES){
              window.INVOICES.forEach(i=>{
                if(window.supBase(i.supName||'')===oldBase){ i.supName=main; changedInv++; }
@@ -893,7 +873,6 @@ window.psupMultiMerge = function() {
            }
          }
 
-         window.supEx['__merged_away'] = [...new Set([...(window.supEx['__merged_away']||[]), ...mergedAway])];
          window._selectedPsups.clear();
          window.save(true);
          window.refresh();
