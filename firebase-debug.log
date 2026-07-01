@@ -1,0 +1,58 @@
+[debug] [2026-07-01T06:39:17.540Z] ----------------------------------------------------------------------
+[debug] [2026-07-01T06:39:17.541Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Perry\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2026-07-01T06:39:17.542Z] CLI Version:   15.22.2
+[debug] [2026-07-01T06:39:17.542Z] Platform:      win32
+[debug] [2026-07-01T06:39:17.542Z] Node Version:  v25.8.1
+[debug] [2026-07-01T06:39:17.542Z] Detected Agent: antigravity
+[debug] [2026-07-01T06:39:17.542Z] Time:          Wed Jul 01 2026 09:39:17 GMT+0300 (שעון ישראל (קיץ))
+[debug] [2026-07-01T06:39:17.542Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-01T06:39:17.543Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-07-01T06:39:18.453Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-01T06:39:18.453Z] > authorizing via signed-in user (perryoust2@gmail.com)
+[debug] [2026-07-01T06:39:18.453Z] [iam] checking project ganmanage-free for permissions ["firebase.projects.get","firebasedatabase.instances.update","firebasehosting.sites.update"]
+[debug] [2026-07-01T06:39:18.454Z] Checked if tokens are valid: true, expires at: 1782888929723
+[debug] [2026-07-01T06:39:18.454Z] Checked if tokens are valid: true, expires at: 1782888929723
+[debug] [2026-07-01T06:39:18.454Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/ganmanage-free:testIamPermissions [none]
+[debug] [2026-07-01T06:39:18.454Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/ganmanage-free:testIamPermissions  x-goog-user-project=ganmanage-free
+[debug] [2026-07-01T06:39:18.454Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/ganmanage-free:testIamPermissions {"permissions":["firebase.projects.get","firebasedatabase.instances.update","firebasehosting.sites.update"]}
+[debug] [2026-07-01T06:39:18.796Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/ganmanage-free:testIamPermissions 200
+[debug] [2026-07-01T06:39:18.796Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/ganmanage-free:testIamPermissions {"permissions":["firebase.projects.get","firebasedatabase.instances.update","firebasehosting.sites.update"]}
+[debug] [2026-07-01T06:39:18.797Z] Checked if tokens are valid: true, expires at: 1782888929723
+[debug] [2026-07-01T06:39:18.797Z] Checked if tokens are valid: true, expires at: 1782888929723
+[debug] [2026-07-01T06:39:18.797Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/ganmanage-free [none]
+[debug] [2026-07-01T06:39:18.864Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-07-01T06:39:18.865Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-07-01T06:39:19.306Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/ganmanage-free 200
+[debug] [2026-07-01T06:39:19.306Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/ganmanage-free {"projectId":"ganmanage-free","projectNumber":"242506763762","displayName":"ganmanage-free","name":"projects/ganmanage-free","resources":{"hostingSite":"ganmanage-free","realtimeDatabaseInstance":"ganmanage-free-default-rtdb"},"state":"ACTIVE","labels":{"firebase":"enabled"},"etag":"1_a9b14dc0-20e1-440b-983b-1ded03f595c6"}
+[debug] [2026-07-01T06:39:19.307Z] Checked if tokens are valid: true, expires at: 1782888929723
+[debug] [2026-07-01T06:39:19.307Z] Checked if tokens are valid: true, expires at: 1782888929723
+[debug] [2026-07-01T06:39:19.307Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/ganmanage-free [none]
+[debug] [2026-07-01T06:39:19.584Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/ganmanage-free 200
+[debug] [2026-07-01T06:39:19.584Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/ganmanage-free {"projectId":"ganmanage-free","projectNumber":"242506763762","displayName":"ganmanage-free","name":"projects/ganmanage-free","resources":{"hostingSite":"ganmanage-free","realtimeDatabaseInstance":"ganmanage-free-default-rtdb"},"state":"ACTIVE","labels":{"firebase":"enabled"},"etag":"1_a9b14dc0-20e1-440b-983b-1ded03f595c6"}
+[info] 
+[info] === Deploying to 'ganmanage-free'...
+[info] 
+[info] i  deploying database, hosting 
+[info] i  database: checking rules syntax... 
+[debug] [2026-07-01T06:39:19.590Z] Checked if tokens are valid: true, expires at: 1782888929723
+[debug] [2026-07-01T06:39:19.590Z] Checked if tokens are valid: true, expires at: 1782888929723
+[debug] [2026-07-01T06:39:19.590Z] >>> [apiv2][query] GET https://firebasedatabase.googleapis.com/v1beta/projects/ganmanage-free/locations/-/instances/ganmanage-free-default-rtdb [none]
+[debug] [2026-07-01T06:39:20.750Z] <<< [apiv2][status] GET https://firebasedatabase.googleapis.com/v1beta/projects/ganmanage-free/locations/-/instances/ganmanage-free-default-rtdb 200
+[debug] [2026-07-01T06:39:20.751Z] <<< [apiv2][body] GET https://firebasedatabase.googleapis.com/v1beta/projects/ganmanage-free/locations/-/instances/ganmanage-free-default-rtdb {"name":"projects/242506763762/locations/europe-west1/instances/ganmanage-free-default-rtdb","project":"projects/242506763762","databaseUrl":"https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app","type":"DEFAULT_DATABASE","state":"ACTIVE"}
+[debug] [2026-07-01T06:39:20.751Z] Checked if tokens are valid: true, expires at: 1782888929723
+[debug] [2026-07-01T06:39:20.751Z] Checked if tokens are valid: true, expires at: 1782888929723
+[debug] [2026-07-01T06:39:20.751Z] >>> [apiv2][query] PUT https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/.settings/rules.json dryRun=true
+[debug] [2026-07-01T06:39:20.752Z] >>> [apiv2][body] PUT https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/.settings/rules.json "{\r\n  \"rules\": {\r\n    \"data\": {\r\n      \".read\": \"auth != null\",\r\n      \".write\": \"auth != null\"\r\n    },\r\n    \"years\": {\r\n      \".read\": \"auth != null\",\r\n      \".write\": \"auth != null\"\r\n    },\r\n    \"users\": {\r\n      \".read\": \"auth != null\",\r\n      \"$uid\": {\r\n        \".write\": \"auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03'\"\r\n      }\r\n    },\r\n    \"activityLog\": {\r\n      \".read\": \"auth != null\",\r\n      \".write\": \"auth != null\"\r\n    },\r\n    \"years_meta\": {\r\n      \".read\": \"auth != null\",\r\n      \".write\": \"auth != null\"\r\n    },\r\n    \"backups\": {\r\n      \".read\": \"auth != null\",\r\n      \".write\": \"auth != null\"\r\n    }\r\n  }\r\n}\r\n"
+[debug] [2026-07-01T06:39:20.983Z] <<< [apiv2][status] PUT https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/.settings/rules.json 200
+[debug] [2026-07-01T06:39:20.983Z] <<< [apiv2][body] PUT https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/.settings/rules.json {"status":"ok"}
+[info] +  database: rules syntax for database ganmanage-free-default-rtdb is valid 
+[debug] [2026-07-01T06:39:20.984Z] Checked if tokens are valid: true, expires at: 1782888929723
+[debug] [2026-07-01T06:39:20.984Z] Checked if tokens are valid: true, expires at: 1782888929723
+[debug] [2026-07-01T06:39:20.984Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/ganmanage-free/sites/ganmanage-free [none]
+[debug] [2026-07-01T06:39:22.216Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/ganmanage-free/sites/ganmanage-free 200
+[debug] [2026-07-01T06:39:22.216Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/ganmanage-free/sites/ganmanage-free {"name":"projects/ganmanage-free/sites/ganmanage-free","defaultUrl":"https://ganmanage-free.web.app","type":"DEFAULT_SITE"}
+[debug] [2026-07-01T06:39:22.217Z] Checked if tokens are valid: true, expires at: 1782888929723
+[debug] [2026-07-01T06:39:22.218Z] Checked if tokens are valid: true, expires at: 1782888929723
+[debug] [2026-07-01T06:39:22.218Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/ganmanage-free/versions [none]
+[debug] [2026-07-01T06:39:22.218Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/ganmanage-free/versions {"status":"CREATED","labels":{"deployment-tool":"cli-firebase"}}

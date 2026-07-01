@@ -723,6 +723,14 @@ function deleteSupFromCard() {
   showToast('🗑️ ספק "' + name + '" הוסר — הפעילויות נשמרו');
 }
 
+window.sucSaveKeywordsAuto = function(val) {
+  if(!window._sucName) return;
+  if(!window.supEx[window._sucName]) window.supEx[window._sucName] = {};
+  window.supEx[window._sucName].keywords = val.trim();
+  window.save();
+  if(typeof window.showToast === 'function') window.showToast('✅ מילות מפתח נשמרו בהצלחה');
+};
+
 function sucSaveEdit(){
   const nameEl=document.getElementById('suc-edit-name');
   const newBase=nameEl.value.trim(); const origBase=nameEl.dataset.orig;
@@ -775,6 +783,7 @@ function sucSaveEdit(){
   });
   sucToggleEdit(); sucRefreshInfo(); sucRefreshActFilt();
   _spAlertDialog('✅ פרטי הספק נשמרו!');
+  if(typeof showToast === 'function') showToast('✅ נשמר בהצלחה');
 }
 function clearSupCardFilter(){
   document.getElementById('suc-from').value='';
