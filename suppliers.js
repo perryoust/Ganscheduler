@@ -841,19 +841,23 @@ window.psupMultiMerge = function() {
          const mainBase = window.supBase(main);
          let changedSch=0, changedInv=0;
          const mergedAway = new Set(window.supEx['__merged_away']||[]);
-         const allActs = new Set(window.getSupActs(main));
+         const allActs = new Set(getSupActs(main));
          let mergedIsAct = window.isActSupplier(main);
          let mergedIsPurch = window.isPurchSupplier(main);
 
          arr.forEach(old=>{
            if (old === main) return; // skip the main one
            const oldBase = window.supBase(old);
-           window.getSupActs(old).forEach(a=>allActs.add(a));
+           getSupActs(old).forEach(a=>allActs.add(a));
            if(window.isActSupplier(old)) mergedIsAct = true;
            if(window.isPurchSupplier(old)) mergedIsPurch = true;
 
            window.SCH.forEach(s=>{
-             if(window.supBase(s.a)===oldBase){ s.a=mainBase+' - '+window.actType(s.a); changedSch++; }
+             if(s.a && window.supBase(s.a)===oldBase){
+               const sAct = window.supAct(s.a);
+               s.a = sAct ? (mainBase + ' - ' + sAct) : mainBase;
+               changedSch++; 
+             }
            });
            if(window.INVOICES){
              window.INVOICES.forEach(i=>{
