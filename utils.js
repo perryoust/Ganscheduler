@@ -71,6 +71,17 @@ window.utils = {
     let found = all.find(s => this.norm(s.name) === n);
     if (found) return found;
     
+    // 1.5 Try keyword match
+    if (window.supEx) {
+      for (const s of all) {
+        const base = window.supBase ? window.supBase(s.name) : s.name;
+        if (window.supEx[base] && window.supEx[base].keywords) {
+          const kws = window.supEx[base].keywords.split(',').map(k => this.norm(k)).filter(Boolean);
+          if (kws.some(k => n.includes(k))) return s;
+        }
+      }
+    }
+    
     // 2. Try megaClean match with activity prioritization
     const matches = all.filter(s => this.megaClean(s.name) === m);
     if (matches.length > 0) {

@@ -1,0 +1,1 @@
+const arr = ['53 kay s p r\x22tz', '53 kay s p rtz']; let opts = '<option value=\x22\x22>Select...</option>'; arr.forEach(n => opts += '<option value=\x22' + n.replace(/\x22/g, '&quot;') + '\x22>' + n + '</option>'); console.log(opts);

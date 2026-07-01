@@ -40,7 +40,51 @@ function emergencyFixSuppliers(){
   setTimeout(()=>{ renderPurchSuppliers(); renderSup(); showToast('✅ ספקים אופסו ונבנו מחדש'); }, 200);
 }
 
+window.cleanupEmptyDuplicates = function() {
+  if(typeof window.getAllSup !== 'function') return;
+  const allSups = window.getAllSup();
+  let mergedCount = 0;
+  let mergedAwaySet = new Set(window.supEx['__merged_away'] || []);
+  
+  // Find suppliers with 0 activities
+  const emptySups = allSups.filter(s => window.getSupActs(s.name).length === 0);
+  
+  for (const empty of emptySups) {
+    const emptyBase = window.supBase(empty.name);
+    if (mergedAwaySet.has(emptyBase)) continue; // already merged away
+    
+    const m = window.utils.megaClean(emptyBase);
+    
+    // Find active suppliers with same megaClean
+    const activeMatch = allSups.find(s => 
+      s.name !== empty.name && 
+      window.utils.megaClean(window.supBase(s.name)) === m &&
+      window.getSupActs(s.name).length > 0
+    );
+    
+    if (activeMatch) {
+      console.log(`[Cleanup] Merging empty duplicate "${emptyBase}" -> "${window.supBase(activeMatch.name)}"`);
+      mergedAwaySet.add(emptyBase);
+      // Also add the full name if it's different
+      if(empty.name !== emptyBase) mergedAwaySet.add(empty.name);
+      mergedCount++;
+    }
+  }
+  
+  if (mergedCount > 0) {
+    window.supEx['__merged_away'] = Array.from(mergedAwaySet);
+    window.save();
+    console.log(`[Cleanup] Cleaned up ${mergedCount} empty duplicates`);
+    window.showToast(`✅ נוקו ${mergedCount} ספקים כפולים וריקים`);
+    setTimeout(()=>{ renderPurchSuppliers(); renderSup(); }, 500);
+  }
+};
+
 function renderPurchSuppliers(){
+  if (!window._didCleanupDups && typeof window.cleanupEmptyDuplicates === 'function') {
+    window._didCleanupDups = true;
+    setTimeout(window.cleanupEmptyDuplicates, 3000); // run once after 3 seconds
+  }
   const el = document.getElementById('psu-body');
   if(!el) return;
   if(typeof SUPBASE==='undefined'||!Array.isArray(SUPBASE)||SUPBASE.length===0){

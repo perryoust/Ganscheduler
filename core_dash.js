@@ -645,6 +645,8 @@ function sucToggleEdit(){
   document.getElementById('suc-edit-ph2').value=ex.ph2||'';
   document.getElementById('suc-edit-g1').value=ex.g1||'';
   document.getElementById('suc-edit-notes').value=ex.notes||'';
+  const kwEl=document.getElementById('suc-edit-keywords');
+  if(kwEl) kwEl.value=ex.keywords||'';
   // supplier type flags
   const editIsAct=document.getElementById('suc-edit-is-act');
   const editIsPurch=document.getElementById('suc-edit-is-purch');
@@ -742,6 +744,8 @@ function sucSaveEdit(){
   supEx[_sucName].ph2=document.getElementById('suc-edit-ph2').value.trim();
   supEx[_sucName].g1=document.getElementById('suc-edit-g1').value.trim();
   supEx[_sucName].notes=document.getElementById('suc-edit-notes').value.trim();
+  const kwInp=document.getElementById('suc-edit-keywords');
+  if(kwInp) supEx[_sucName].keywords=kwInp.value.trim();
   const aliasInp=document.getElementById('suc-edit-alias');
   if(aliasInp) supEx[_sucName].alias=aliasInp.value.trim();
   const schedPhInp=document.getElementById('suc-edit-sched-phone');

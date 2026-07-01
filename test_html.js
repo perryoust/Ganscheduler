@@ -1,0 +1,1 @@
+const jsdom = require('jsdom'); const { JSDOM } = jsdom; const dom = new JSDOM('<input onchange=\x22window.f(\'a&quot;b\')\x22>'); console.log(dom.window.document.querySelector('input').getAttribute('onchange'));
