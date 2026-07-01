@@ -792,7 +792,6 @@ function sucSaveEdit(isAuto = false){
     });
     el.value=cur;
   });
-  });
   sucRefreshInfo(); sucRefreshActFilt();
   if(!isAuto) {
     sucToggleEdit(); 

@@ -763,7 +763,7 @@ function doMerge(){
     }
   }
 
-  window.supEx['__merged_away'] = [...mergedAway];
+  window.supEx['__merged_away'] = [...new Set([...(window.supEx['__merged_away']||[]), ...mergedAway])];
   window.save(true);
   window.CM('mrgm');
   window.refresh();
@@ -880,6 +880,11 @@ window.psupMultiMerge = function() {
            window.supEx[main].acts = window.supEx[mainBase].acts;
          }
 
+         const prevMerged = window.supEx[mainBase]._mergedFrom || [];
+         const newMerged = arr.map(old => window.supBase(old)).filter(b => b !== mainBase);
+         window.supEx[mainBase]._mergedFrom = [...new Set([...prevMerged, ...newMerged])];
+         window._mergedAliasMap = null;
+
          const inSupbase = window.SUPBASE.some(s=>window.supBase(s.name)===mainBase);
          if(!inSupbase){
            if(!window.supEx['__c']) window.supEx['__c']=[];
@@ -888,7 +893,7 @@ window.psupMultiMerge = function() {
            }
          }
 
-         window.supEx['__merged_away'] = [...mergedAway];
+         window.supEx['__merged_away'] = [...new Set([...(window.supEx['__merged_away']||[]), ...mergedAway])];
          window._selectedPsups.clear();
          window.save(true);
          window.refresh();
