@@ -81,6 +81,7 @@ function renderPurchSuppliers(){
       +'<th style="padding:7px 10px;text-align:right;width:30px"><input type="checkbox" onchange="window.psupToggleAll(this.checked)"></th>'
       +'<th style="padding:7px 10px;text-align:right">ספק</th>'
       +'<th style="padding:7px 8px;text-align:center">פעילויות</th>'
+      +'<th style="padding:7px 8px;text-align:center">חשבוניות</th>'
       +'<th style="padding:7px 8px;text-align:right">טלפון</th>'
       +'<th style="padding:7px 8px;text-align:right">סוג</th>'
       +'<th style="padding:7px 8px"></th>'
@@ -89,6 +90,7 @@ function renderPurchSuppliers(){
       const base=s.name;
       const ex=supBaseEx(base);
       const cnt=supBaseCnt(base);
+      const invCnt=(window.INVOICES||[]).filter(i=>window.supBase(i.supName||'')===base).length;
       const phone=ex.ph1||s.phone||'';
       const bg=idx%2===0?'#fff':'#f8f9ff';
       const isChecked = window._selectedPsups && window._selectedPsups.has(base);
@@ -98,6 +100,7 @@ function renderPurchSuppliers(){
         +`${isActSupplier(base)?' <span style="font-size:.65rem;color:#2e7d32">🎨</span>':''}`
         +`</td>`
         +`<td style="padding:6px 8px;text-align:center;color:#1565c0;font-weight:700">${isActSupplier(base)?cnt:'—'}</td>`
+        +`<td style="padding:6px 8px;text-align:center;color:#e65100;font-weight:700">${invCnt>0?invCnt:'—'}</td>`
         +`<td style="padding:6px 8px;color:#2e7d32">${phone||'—'}</td>`
         +`<td style="padding:6px 8px;font-size:.76rem;color:#546e7a">${ex.entityType||''}</td>`
         +`<td style="padding:6px 8px;white-space:nowrap" onclick="event.stopPropagation()">`
@@ -106,7 +109,7 @@ function renderPurchSuppliers(){
         +`</td></tr>`;
     });
     if(isCapped){
-      h+=`<tr><td colspan="5">${cappedMsg.replace('grid-column:1/-1', '')}</td></tr>`;
+      h+=`<tr><td colspan="6">${cappedMsg.replace('grid-column:1/-1', '')}</td></tr>`;
     }
     h+='</tbody></table>';
     el.innerHTML=h;
@@ -119,6 +122,7 @@ function renderPurchSuppliers(){
     const cnt=supBaseCnt(base);
     const acts=getSupActs(base);
     const phone=ex.ph1||s.phone||'';
+    const invCnt=(window.INVOICES||[]).filter(i=>window.supBase(i.supName||'')===base).length;
     const cntDone=SCH.filter(sc=>supBase(sc.a)===base&&sc.st==='done').length;
     const isAct = isActSupplier(base);
     const isChecked = window._selectedPsups && window._selectedPsups.has(base);
@@ -137,7 +141,7 @@ function renderPurchSuppliers(){
         <div class="text-xs text-gray font-600 mb-2">${ex.entityType||''}</div>
       </div>
       <div class="flex-c space-between mt-3" style="border-top:1px dashed #e0e0e0;padding-top:8px">
-        <div class="text-sm font-700 text-primary">${isAct?`${cnt} שיבוצים`:''}</div>
+        <div class="text-sm font-700 text-primary">${isAct?`${cnt} שיבוצים`:''} ${invCnt>0?`<span style="color:#e65100;margin-right:5px">| ${invCnt} חשבוניות</span>`:''}</div>
         <div class="flex-c gap-3" onclick="event.stopPropagation()">
           <button class="btn bp bsm" style="padding:2px 8px;font-size:.65rem" onclick="psupNewInvoice(${idx})">📄 הזמנה</button>
           <button class="btn bo bsm" style="padding:2px 8px;font-size:.65rem" onclick="psupEdit(${idx})">✏️</button>
