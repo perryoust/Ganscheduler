@@ -676,7 +676,7 @@ function doMerge(){
   const mergedAway = new Set(window.supEx['__merged_away']||[]);
 
   // Collect all acts from main AND all merged suppliers BEFORE changing anything
-  const allActs = new Set(getSupActs(main));
+  const allActs = new Set(window.getSupActs(main));
   let mergedIsAct = window.isActSupplier(main);
   let mergedIsPurch = window.isPurchSupplier(main);
 
@@ -684,7 +684,7 @@ function doMerge(){
     const oldBase = window.supBase(old);
 
     // Collect acts from this merged supplier
-    getSupActs(old).forEach(a=>allActs.add(a));
+    window.getSupActs(old).forEach(a=>allActs.add(a));
     window.getSupActs(old).forEach(a=>allActs.add(a));
     if(window.isActSupplier(old)) mergedIsAct = true;
     if(window.isPurchSupplier(old)) mergedIsPurch = true;
