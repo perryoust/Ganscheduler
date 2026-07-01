@@ -738,21 +738,21 @@ function doMerge(){
   });
 
   // Save merged flags and acts on main
-  if(!supEx[mainBase]) supEx[mainBase]={};
+  if(!window.supEx[mainBase]) window.supEx[mainBase]={};
   // Store which bases were merged in (for act lookups later)
-  const prevMergedFrom = supEx[mainBase]._mergedFrom||[];
-  const newMergedBases = toMrg.map(o=>supBase(o)).filter(b=>b!==mainBase);
-  supEx[mainBase]._mergedFrom = [...new Set([...prevMergedFrom,...newMergedBases])];
+  const prevMergedFrom = window.supEx[mainBase]._mergedFrom||[];
+  const newMergedBases = toMrg.map(o=>window.supBase(o)).filter(b=>b!==mainBase);
+  window.supEx[mainBase]._mergedFrom = [...new Set([...prevMergedFrom,...newMergedBases])];
   window._mergedAliasMap = null;
-  supEx[mainBase].isAct = mergedIsAct;
-  supEx[mainBase].isPurch = mergedIsPurch;
-  supEx[mainBase].acts = [...allActs].sort((a,b)=>a.localeCompare(b,'he'));
+  window.supEx[mainBase].isAct = mergedIsAct;
+  window.supEx[mainBase].isPurch = mergedIsPurch;
+  window.supEx[mainBase].acts = [...allActs].sort((a,b)=>a.localeCompare(b,'he'));
   // Also store on exact main name if different from base
   if(main !== mainBase){
-    if(!supEx[main]) supEx[main]={};
-    supEx[main].isAct = mergedIsAct;
-    supEx[main].isPurch = mergedIsPurch;
-    supEx[main].acts = supEx[mainBase].acts;
+    if(!window.supEx[main]) window.supEx[main]={};
+    window.supEx[main].isAct = mergedIsAct;
+    window.supEx[main].isPurch = mergedIsPurch;
+    window.supEx[main].acts = window.supEx[mainBase].acts;
   }
 
   // Ensure main is in __c if not in SUPBASE
