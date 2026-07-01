@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>מערכת שיבוץ - גרסה 107.37</title>
+  <title>מערכת שיבוץ - גרסה 107.38</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="icon"
@@ -2330,26 +2330,26 @@
         style="display:none;background:#fff8e1;border-radius:8px;padding:12px;margin-bottom:10px;border:1.5px solid #ffe082">
         <div style="font-weight:700;color:#e65100;margin-bottom:9px">🚀 עריכת פרטי ספק</div>
         <div class="row" style="flex-wrap:wrap;gap:7px">
-          <div class="fg"><label>שם ספק *</label><input type="text" id="suc-edit-name" style="width:100%"></div>
+          <div class="fg"><label>שם ספק *</label><input type="text" id="suc-edit-name" style="width:100%" onchange="sucSaveEdit(true)"></div>
           <div class="fg"><label>🎭 כינוי (יוצג בשיבוץ)</label><input type="text" id="suc-edit-alias"
-              style="width:100%" placeholder="אם ריק — ישמש שם הספק"></div>
-          <div class="fg"><label>🚀 טלפון 1</label><input type="text" id="suc-edit-ph1" style="width:100%"></div>
-          <div class="fg"><label>🚀 טלפון 2</label><input type="text" id="suc-edit-ph2" style="width:100%"></div>
+              style="width:100%" placeholder="אם ריק — ישמש שם הספק" onchange="sucSaveEdit(true)"></div>
+          <div class="fg"><label>🚀 טלפון 1</label><input type="text" id="suc-edit-ph1" style="width:100%" onchange="sucSaveEdit(true)"></div>
+          <div class="fg"><label>🚀 טלפון 2</label><input type="text" id="suc-edit-ph2" style="width:100%" onchange="sucSaveEdit(true)"></div>
           <div class="fg"><label>🚀 טלפון לתצוגה בשיבוץ</label>
-            <select id="suc-edit-sched-phone" style="width:100%">
+            <select id="suc-edit-sched-phone" style="width:100%" onchange="sucSaveEdit(true)">
               <option value="ph1">טלפון ראשי (1)</option>
               <option value="ph2">טלפון שני (2)</option>
             </select>
           </div>
-          <div class="fg"><label>🆔 ח.פ. / מס' עוסק</label><input type="text" id="suc-edit-g1" style="width:100%"></div>
+          <div class="fg"><label>🆔 ח.פ. / מס' עוסק</label><input type="text" id="suc-edit-g1" style="width:100%" onchange="sucSaveEdit(true)"></div>
           <div class="fg"><label>🚀 מס' ספק משרד חינוך</label><input type="text" id="suc-edit-moe" style="width:100%"
-              placeholder="נוסף לח.פ."></div>
-          <div class="fg"><label>🚀 איש קשר</label><input type="text" id="suc-edit-contact" style="width:100%"></div>
-          <div class="fg"><label>🚀 כתובת</label><input type="text" id="suc-edit-addr" style="width:100%"></div>
+              placeholder="נוסף לח.פ." onchange="sucSaveEdit(true)"></div>
+          <div class="fg"><label>🚀 איש קשר</label><input type="text" id="suc-edit-contact" style="width:100%" onchange="sucSaveEdit(true)"></div>
+          <div class="fg"><label>🚀 כתובת</label><input type="text" id="suc-edit-addr" style="width:100%" onchange="sucSaveEdit(true)"></div>
           <div class="fg" style="flex:2"><label>🚀 הערות</label><input type="text" id="suc-edit-notes"
-              style="width:100%"></div>
+              style="width:100%" onchange="sucSaveEdit(true)"></div>
           <div class="fg" style="flex:2"><label>🚀 מילות מפתח לזיהוי חשבוניות</label><input type="text" id="suc-edit-keywords"
-              style="width:100%" placeholder="הפרד בפסיק (לדוגמא: טויס, הפתעות)" onchange="window.sucSaveKeywordsAuto(this.value)"></div>
+              style="width:100%" placeholder="הפרד בפסיק (לדוגמא: טויס, הפתעות)" onchange="sucSaveEdit(true)"></div>
         </div>
         <!-- Activity types — only shown if supplier is marked as חוגים -->
         <div id="suc-acts-wrap" style="margin-top:10px">
@@ -2367,12 +2367,12 @@
           <div style="display:flex;gap:18px;flex-wrap:wrap">
             <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.82rem">
               <input type="checkbox" id="suc-edit-is-act" style="accent-color:#1565c0;width:16px;height:16px"
-                onchange="sucTypeChg()">
+                onchange="sucTypeChg(); sucSaveEdit(true)">
               <span>🚀 <b>ספק חוגים</b> — מופיע בטאב שיבוץ חוגים</span>
             </label>
             <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.82rem">
               <input type="checkbox" id="suc-edit-is-purch" style="accent-color:#2e7d32;width:16px;height:16px"
-                onchange="sucTypeChg()">
+                onchange="sucTypeChg(); sucSaveEdit(true)">
               <span>🚀 <b>ספק רכש</b> — מופיע בטאב ניהול רכש</span>
             </label>
           </div>
@@ -3477,7 +3477,7 @@
     <script src="import_export.js?v=107.31"></script>
     <script src="core_globals.js?v=107.31"></script>
     <script src="core_data.js?v=107.31"></script>
-    <script src="core_dash.js?v=107.32"></script>
+    <script src="core_dash.js?v=107.38"></script>
     <script src="worker_tasks.js?v=107.31"></script>
     <script src="core_app.js?v=107.31"></script>
     <script src="qa_simulator.js?v=107.31"></script>

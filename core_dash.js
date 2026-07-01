@@ -732,13 +732,19 @@ window.sucSaveKeywordsAuto = function(val) {
   if(typeof window.showToast === 'function') window.showToast('✅ מילות מפתח נשמרו בהצלחה');
 };
 
-function sucSaveEdit(){
+function sucSaveEdit(isAuto = false){
   const nameEl=document.getElementById('suc-edit-name');
   const newBase=nameEl.value.trim(); const origBase=nameEl.dataset.orig;
-  if(!newBase){_spAlertDialog('יש להזין שם ספק');return;}
+  if(!newBase){ 
+    if(!isAuto) _spAlertDialog('יש להזין שם ספק');
+    return;
+  }
   if(origBase&&origBase!==newBase){
     const affected=SCH.filter(s=>supBase(s.a)===origBase).length;
-    if(!confirm(`לשנות שם מ-"${origBase}" ל-"${newBase}"?\n${affected} שיבוצים יעודכנו.`)) return;
+    if(!confirm(`לשנות שם מ-"${origBase}" ל-"${newBase}"?\n${affected} שיבוצים יעודכנו.`)) {
+      if(isAuto) nameEl.value = origBase; // Revert
+      return;
+    }
     SCH.forEach(s=>{
       if(supBase(s.a)===origBase){
         const act=supAct(s.a);
@@ -746,6 +752,10 @@ function sucSaveEdit(){
       }
     });
     if(supEx[origBase]){supEx[newBase]={...supEx[origBase]};delete supEx[origBase];}
+    if(!supEx[newBase]) supEx[newBase] = {};
+    if(!supEx[newBase]._mergedFrom) supEx[newBase]._mergedFrom = [];
+    if(!supEx[newBase]._mergedFrom.includes(origBase)) supEx[newBase]._mergedFrom.push(origBase);
+    window._mergedAliasMap = null; // Invalidate alias cache
     _sucName=newBase;
   }
   if(!supEx[_sucName]) supEx[_sucName]={};
@@ -782,8 +792,11 @@ function sucSaveEdit(){
     });
     el.value=cur;
   });
-  sucToggleEdit(); sucRefreshInfo(); sucRefreshActFilt();
-  _spAlertDialog('✅ פרטי הספק נשמרו!');
+  });
+  sucRefreshInfo(); sucRefreshActFilt();
+  if(!isAuto) {
+    sucToggleEdit(); 
+  }
   if(typeof showToast === 'function') showToast('✅ נשמר בהצלחה');
 }
 function clearSupCardFilter(){
