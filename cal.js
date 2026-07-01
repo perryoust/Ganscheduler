@@ -223,7 +223,7 @@ window.calMultiChanged = function(type, sourcePlat) {
     if(btn) {
       let typeLabel = 'כל הספקים';
       if(type==='city') typeLabel='כל הערים';
-      else if(type==='cluster') typeLabel='כל האשכולות';
+      else if(type==='cl') typeLabel='כל האשכולות';
       else if(type==='class') typeLabel='כל הכיתות';
       if(checked.length === 0) {
         btn.innerHTML = `<span>${typeLabel}</span> <span style="font-size:0.6rem">▼</span>`;
@@ -234,7 +234,7 @@ window.calMultiChanged = function(type, sourcePlat) {
       } else {
         let noun = 'ספקים';
         if(type==='city') noun='ערים';
-        else if(type==='cluster') noun='אשכולות';
+        else if(type==='cl') noun='אשכולות';
         else if(type==='class') noun='כיתות';
         btn.innerHTML = `<span>נבחרו ${checked.length} ${noun}</span> <span style="font-size:0.6rem">▼</span>`;
       }
