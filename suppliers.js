@@ -812,15 +812,14 @@ window.psupMultiMerge = function() {
   const arr = Array.from(window._selectedPsups);
   if(!arr.length) return;
   
-  const _mergeSupList = window.getAllSup();
   let opts = '<option value="">בחר ספק ראשי לאיחוד...</option>';
-  _mergeSupList.forEach((s,i) => {
-    if(!arr.includes(s.name)) opts += `<option value="${i}">${s.name}</option>`;
+  arr.forEach(name => {
+    opts += `<option value="${name.replace(/"/g,'&quot;')}">${name}</option>`;
   });
   
   const formHtml = `
     <div style="direction:rtl; padding:10px;">
-      <p style="margin-bottom:10px;">בחר ספק אחד שאליו יאוחדו <b>${arr.length}</b> הספקים שסימנת:</p>
+      <p style="margin-bottom:10px;">מבין הספקים שסימנת, בחר ספק ראשי אחד שאליו יאוחדו שאר הספקים:</p>
       <select id="multi-merge-target" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; font-size:1rem;">
         ${opts}
       </select>
@@ -834,12 +833,11 @@ window.psupMultiMerge = function() {
       'בצע איחוד',
       () => {
          const select = document.getElementById('multi-merge-target');
-         const mainIdx = select.value;
-         if(mainIdx === '') { window.showToast('יש לבחר ספק ראשי'); return false; }
-         const main = _mergeSupList[parseInt(mainIdx)]?.name;
-         if(!main) return false;
+         const main = select.value;
+         if(!main) { window.showToast('יש לבחר ספק ראשי'); return false; }
          
-         if(!confirm(`האם לאחד ${arr.length} ספקים לתוך "${main}"?`)) return true;
+         const otherCount = arr.length - 1;
+         if(!confirm(`האם לאחד ${otherCount} ספקים לתוך "${main}"?`)) return true;
          
          const mainBase = window.supBase(main);
          let changedSch=0, changedInv=0;
@@ -849,6 +847,7 @@ window.psupMultiMerge = function() {
          let mergedIsPurch = window.isPurchSupplier(main);
 
          arr.forEach(old=>{
+           if (old === main) return; // skip the main one
            const oldBase = window.supBase(old);
            window.getSupActs(old).forEach(a=>allActs.add(a));
            if(window.isActSupplier(old)) mergedIsAct = true;
