@@ -724,9 +724,10 @@ function deleteSupFromCard() {
 }
 
 window.sucSaveKeywordsAuto = function(val) {
-  if(!window._sucName) return;
-  if(!window.supEx[window._sucName]) window.supEx[window._sucName] = {};
-  window.supEx[window._sucName].keywords = val.trim();
+  const name = (typeof _sucName !== 'undefined' ? _sucName : null) || (document.getElementById('suc-edit-name') && document.getElementById('suc-edit-name').dataset.orig);
+  if(!name) return;
+  if(!window.supEx[name]) window.supEx[name] = {};
+  window.supEx[name].keywords = val.trim();
   window.save();
   if(typeof window.showToast === 'function') window.showToast('✅ מילות מפתח נשמרו בהצלחה');
 };
