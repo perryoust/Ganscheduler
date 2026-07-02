@@ -3564,10 +3564,14 @@ window.renderQuickAddRowHtml = function() {
     <tr style="background:#e3f2fd; border-bottom:2px solid #90caf9">
       <td style="padding:4px"><input type="text" id="qa-serialNum" placeholder='מס"ד' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
       <td style="padding:4px"><input type="text" id="qa-supName" list="inv-sup-datalist" placeholder='ספק...' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
-      <td style="padding:4px"><input type="text" id="qa-docNum" placeholder='מספר מסמך' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
-      <td style="padding:4px"><input type="text" id="qa-orderDesc" placeholder='פירוט' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
-      <td style="padding:4px"><input type="number" id="qa-amt" placeholder='סכום (כולל מע"מ)' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
-      <td style="padding:4px"><select id="qa-status" style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"><option value="order">הזמנה</option><option value="paid">שולם</option><option value="tax_wait">ממתין לחשבונית</option><option value="ok">תקין (הכל הושלם)</option></select></td>
+      <td style="padding:4px;vertical-align:top">
+        <input type="text" id="qa-orderNum" placeholder="הזמנה" style="width:100%;padding:2px 4px;margin-bottom:2px;box-sizing:border-box;font-size:0.75rem" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()">
+        <input type="text" id="qa-txNum" placeholder="ח. עסקה" style="width:100%;padding:2px 4px;margin-bottom:2px;box-sizing:border-box;font-size:0.75rem" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()">
+        <input type="text" id="qa-num" placeholder="חשבונית/קבלה" style="width:100%;padding:2px 4px;box-sizing:border-box;font-size:0.75rem" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()">
+      </td>
+      <td style="padding:4px;vertical-align:top"><input type="text" id="qa-orderDesc" placeholder='פירוט' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
+      <td style="padding:4px;vertical-align:top"><input type="number" id="qa-amt" placeholder='סכום (כולל מע"מ)' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
+      <td style="padding:4px;vertical-align:top"><select id="qa-status" style="width:100%;padding:4px;box-sizing:border-box;font-size:0.75rem" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"><option value="auto">אוטומטי (לפי מסמכים)</option><option value="paid">שולם</option><option value="ok">תקין (הכל הושלם)</option></select></td>
       <td style="padding:4px"><input type="text" id="qa-notes" placeholder='הערות' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
       <td style="padding:4px;text-align:center"><button class="btn bg bsm" onclick="window.saveQuickAddRow()" title="שמור והוסף" style="width:100%;padding:4px">➕ הוסף</button></td>
     </tr>
@@ -3577,14 +3581,23 @@ window.renderQuickAddRowHtml = function() {
 window.saveQuickAddRow = async function() {
   const serialNum = document.getElementById('qa-serialNum').value.trim();
   const supName = document.getElementById('qa-supName').value.trim();
-  const docNum = document.getElementById('qa-docNum').value.trim();
+  
+  const orderNum = document.getElementById('qa-orderNum').value.trim();
+  const txNum = document.getElementById('qa-txNum').value.trim();
+  const num = document.getElementById('qa-num').value.trim();
+  
   const orderDesc = document.getElementById('qa-orderDesc').value.trim();
   const amt = parseFloat(document.getElementById('qa-amt').value) || 0;
-  const status = document.getElementById('qa-status').value;
+  let status = document.getElementById('qa-status').value;
   const notes = document.getElementById('qa-notes').value.trim();
 
   if (!supName) {
     _spAlertDialog('יש להזין שם ספק בשורת ההוספה המהירה');
+    return;
+  }
+  
+  if (!orderNum && !txNum && !num) {
+    _spAlertDialog('יש להזין לפחות מספר מסמך אחד (הזמנה / ח. עסקה / חשבונית)');
     return;
   }
 
@@ -3592,13 +3605,28 @@ window.saveQuickAddRow = async function() {
   const defaultVat = (typeof getVatRate === 'function') ? getVatRate() : 17;
   const rawAmt = amt / (1 + defaultVat/100);
   const vatAmt = amt - rawAmt;
+  
+  const supInfo = window.supEx[supName] || {};
+  const isExempt = (defaultVat===0 || supInfo.entityType==='עוסק פטור' || supInfo.entityType==='עמותה');
+
+  if (status === 'auto') {
+    if (num) {
+      status = isExempt ? 'receipt' : (txNum ? 'tax_receipt' : 'tax_invoice');
+    } else if (txNum) {
+      status = 'tax_wait';
+    } else {
+      status = 'order';
+    }
+  }
 
   const inv = {
     id: Date.now(),
     ts: Date.now(),
     serialNum,
     supName,
-    orderNum: docNum, // Save docNum as orderNum by default for quick add
+    orderNum,
+    txNum,
+    num,
     orderDesc,
     orderAmt: rawAmt.toFixed(2),
     orderVat: vatAmt.toFixed(2),
