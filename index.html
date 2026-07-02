@@ -1465,12 +1465,24 @@
         <table id="pi-table">
           <thead>
             <tr>
-              <th onclick="window.setInvSort('serialNum')" style="cursor:pointer" title="מיין לפי מס' סידורי">מס"ד <span id="pi-sort-serialNum"></span></th>
-              <th onclick="window.setInvSort('supName')" style="cursor:pointer" title="מיין לפי ספק">ספק <span id="pi-sort-supName"></span></th>
-              <th onclick="window.setInvSort('docNum')" style="cursor:pointer" title="מיין לפי מספרי מסמכים">מספרי מסמכים <span id="pi-sort-docNum"></span></th>
-              <th onclick="window.setInvSort('orderDesc')" style="cursor:pointer" title="מיין לפי פירוט הזמנה">פירוט הזמנה <span id="pi-sort-orderDesc"></span></th>
-              <th onclick="window.setInvSort('sumBase')" style="cursor:pointer" title="מיין לפי סכומים">סכומים <span id="pi-sort-sumBase"></span></th>
-              <th onclick="window.setInvSort('status')" style="cursor:pointer" title="מיין לפי סטטוס">סטטוס <span id="pi-sort-status"></span></th>
+              <th onclick="window.setInvSort('serialNum')" style="cursor:pointer" title="מיין לפי מס' סידורי">
+                <div style="display:flex;align-items:center;justify-content:space-between">מס"ד <span id="pi-sort-serialNum"></span> <span class="col-filter-btn" onclick="event.stopPropagation(); window.openColFilter('serialNum', this)">🔽</span></div>
+              </th>
+              <th onclick="window.setInvSort('supName')" style="cursor:pointer" title="מיין לפי ספק">
+                <div style="display:flex;align-items:center;justify-content:space-between">ספק <span id="pi-sort-supName"></span> <span class="col-filter-btn" onclick="event.stopPropagation(); window.openColFilter('supName', this)">🔽</span></div>
+              </th>
+              <th onclick="window.setInvSort('docNum')" style="cursor:pointer" title="מיין לפי מספרי מסמכים">
+                <div style="display:flex;align-items:center;justify-content:space-between">מספרי מסמכים <span id="pi-sort-docNum"></span> <span class="col-filter-btn" onclick="event.stopPropagation(); window.openColFilter('docNum', this)">🔽</span></div>
+              </th>
+              <th onclick="window.setInvSort('orderDesc')" style="cursor:pointer" title="מיין לפי פירוט הזמנה">
+                <div style="display:flex;align-items:center;justify-content:space-between">פירוט הזמנה <span id="pi-sort-orderDesc"></span> <span class="col-filter-btn" onclick="event.stopPropagation(); window.openColFilter('orderDesc', this)">🔽</span></div>
+              </th>
+              <th onclick="window.setInvSort('sumBase')" style="cursor:pointer" title="מיין לפי סכומים">
+                <div style="display:flex;align-items:center;justify-content:space-between">סכומים <span id="pi-sort-sumBase"></span></div>
+              </th>
+              <th onclick="window.setInvSort('status')" style="cursor:pointer" title="מיין לפי סטטוס">
+                <div style="display:flex;align-items:center;justify-content:space-between">סטטוס <span id="pi-sort-status"></span> <span class="col-filter-btn" onclick="event.stopPropagation(); window.openColFilter('status', this)">🔽</span></div>
+              </th>
               <th>הערות</th>
               <th>פעולות</th>
             </tr>
@@ -1479,6 +1491,19 @@
         </table>
       </div>
       <div id="pi-mobile-list" class="mobile-only"></div>
+      
+      <!-- Excel-like Column Filter Menu -->
+      <div id="excel-col-filter" style="display:none;position:absolute;z-index:1000;background:#fff;border:1px solid #ccc;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:8px;min-width:200px;direction:rtl;font-size:0.8rem">
+        <input type="text" id="excel-col-search" placeholder="חיפוש..." style="width:100%;margin-bottom:8px;padding:4px;box-sizing:border-box" oninput="window.filterColChecklist()">
+        <label style="display:block;margin-bottom:6px;font-weight:bold;border-bottom:1px solid #eee;padding-bottom:4px">
+          <input type="checkbox" id="excel-col-select-all" onchange="window.toggleColSelectAll(this)" checked> (בחר הכל)
+        </label>
+        <div id="excel-col-list" style="max-height:200px;overflow-y:auto;margin-bottom:8px"></div>
+        <div style="display:flex;justify-content:flex-end;gap:5px;border-top:1px solid #eee;padding-top:6px">
+          <button class="btn bo bsm" onclick="window.closeColFilter()">ביטול</button>
+          <button class="btn bg bsm" onclick="window.applyColFilter()">אישור</button>
+        </div>
+      </div>
     </div>
 
     <div id="p-psup" class="panel" style="display:none">

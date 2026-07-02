@@ -436,6 +436,22 @@ function renderInvoices(){
     }
     if (mobList) mobList.innerHTML = '';
   }
+  
+  // --- Update header UI to show active filters ---
+  document.querySelectorAll('#pi-table th').forEach(th => {
+    const btn = th.querySelector('.col-filter-btn');
+    if (btn) { btn.style.color = '#7986cb'; btn.style.fontWeight = 'normal'; }
+  });
+  
+  if (window._invColFilters) {
+    for (const col of Object.keys(window._invColFilters)) {
+      const btn = document.querySelector(`th[onclick*="'${col}'"] .col-filter-btn`);
+      if (btn) {
+        btn.style.color = '#e65100'; // Highlight color for active filter
+        btn.style.fontWeight = 'bold';
+      }
+    }
+  }
 }
 
 function refreshPurchDash(){
@@ -3411,3 +3427,126 @@ window.startSharePointScanner = async function() {
   );
 };
 
+
+// ==========================================
+// EXCEL-LIKE COLUMN FILTERS
+// ==========================================
+window._invColFilters = window._invColFilters || {};
+window._currentFilterCol = null;
+
+window.openColFilter = function(colId, element) {
+  window._currentFilterCol = colId;
+  const menu = document.getElementById('excel-col-filter');
+  const searchInput = document.getElementById('excel-col-search');
+  
+  // Calculate distinct values
+  const distinctVals = new Set();
+  window.INVOICES.forEach(i => {
+    let val = '';
+    if (colId === 'docNum') val = String(i.orderNum || i.txNum || i.num || '');
+    else if (colId === 'sumBase') val = String(i.orderAmt || i.txAmt || i.amt || 0);
+    else val = String(i[colId] || '');
+    distinctVals.add(val);
+  });
+  
+  const sortedVals = Array.from(distinctVals).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+  
+  // Store them globally for rendering
+  window._currentFilterDistinctVals = sortedVals;
+  
+  // Render list
+  searchInput.value = '';
+  window.filterColChecklist(); // Renders the initial full list
+  
+  // Position the menu below the header element
+  const rect = element.parentElement.getBoundingClientRect();
+  menu.style.display = 'block';
+  menu.style.top = (rect.bottom + window.scrollY + 2) + 'px';
+  
+  // Try to align right of menu with right of header (RTL)
+  let rightPos = document.body.clientWidth - rect.right;
+  if (rightPos < 0) rightPos = 0;
+  menu.style.right = rightPos + 'px';
+  menu.style.left = 'auto';
+  
+  // Click outside to close
+  window._closeColFilterListener = function(e) {
+    if (!menu.contains(e.target) && !element.contains(e.target)) {
+      window.closeColFilter();
+    }
+  };
+  setTimeout(() => document.addEventListener('click', window._closeColFilterListener), 10);
+};
+
+window.closeColFilter = function() {
+  const menu = document.getElementById('excel-col-filter');
+  if (menu) menu.style.display = 'none';
+  if (window._closeColFilterListener) {
+    document.removeEventListener('click', window._closeColFilterListener);
+    window._closeColFilterListener = null;
+  }
+};
+
+window.filterColChecklist = function() {
+  const listEl = document.getElementById('excel-col-list');
+  const term = (document.getElementById('excel-col-search').value || '').toLowerCase();
+  
+  const allowed = window._invColFilters[window._currentFilterCol];
+  const isAllSelected = !allowed;
+  
+  let html = '';
+  window._currentFilterDistinctVals.forEach(val => {
+    if (val.toLowerCase().includes(term)) {
+      const isChecked = isAllSelected || allowed.includes(val);
+      const displayVal = val === '' ? '(ריק)' : val;
+      html += `
+        <label style="display:block; padding:2px 0; cursor:pointer">
+          <input type="checkbox" class="excel-col-cb" value="${val.replace(/"/g, '&quot;')}" ${isChecked ? 'checked' : ''}>
+          <span style="font-size:0.8rem">${displayVal}</span>
+        </label>
+      `;
+    }
+  });
+  
+  if (!html) html = '<div style="color:#aaa;text-align:center">לא נמצאו ערכים</div>';
+  listEl.innerHTML = html;
+  
+  // Update "Select All" checkbox state
+  document.getElementById('excel-col-select-all').checked = isAllSelected || (listEl.querySelectorAll('.excel-col-cb:not(:checked)').length === 0);
+};
+
+window.toggleColSelectAll = function(cb) {
+  const checkboxes = document.querySelectorAll('#excel-col-list .excel-col-cb');
+  checkboxes.forEach(c => c.checked = cb.checked);
+};
+
+window.applyColFilter = function() {
+  const checkboxes = document.querySelectorAll('#excel-col-list .excel-col-cb');
+  const allChecked = Array.from(checkboxes).every(c => c.checked);
+  
+  if (allChecked && !document.getElementById('excel-col-search').value) {
+    // Everything is selected, meaning no filter
+    delete window._invColFilters[window._currentFilterCol];
+  } else {
+    // Only save what's visible and checked
+    const selected = Array.from(checkboxes).filter(c => c.checked).map(c => c.value);
+    window._invColFilters[window._currentFilterCol] = selected;
+  }
+  
+  window.closeColFilter();
+  if (typeof window.renderInvoices === 'function') window.renderInvoices();
+  
+  // Update header UI to show active filter
+  document.querySelectorAll('#pi-table th').forEach(th => {
+    const btn = th.querySelector('.col-filter-btn');
+    if (btn) btn.style.color = '#7986cb'; // reset color
+  });
+  
+  for (const col of Object.keys(window._invColFilters)) {
+    const btn = document.querySelector(`th[onclick*="'${col}'"] .col-filter-btn`);
+    if (btn) {
+      btn.style.color = '#e65100'; // Highlight color for active filter
+      btn.style.fontWeight = 'bold';
+    }
+  }
+};
