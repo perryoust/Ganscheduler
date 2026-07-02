@@ -2529,10 +2529,25 @@ window.importInvoices = function(input) {
         if (typeof window.supBase === 'function') {
             sName = window.supBase(sName);
             if (window.supEx) {
+                let foundMatch = false;
                 for (const mainKey in window.supEx) {
                     if (window.supEx[mainKey]._mergedFrom && window.supEx[mainKey]._mergedFrom.includes(sName)) {
                         sName = mainKey;
+                        foundMatch = true;
                         break;
+                    }
+                }
+                if (!foundMatch) {
+                    const sNameLower = sName.toLowerCase();
+                    for (const mainKey in window.supEx) {
+                        const kwStr = window.supEx[mainKey].keywords;
+                        if (kwStr) {
+                            const kws = kwStr.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+                            if (kws.some(k => sNameLower.includes(k) || k.includes(sNameLower))) {
+                                sName = mainKey;
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -3128,6 +3143,13 @@ window.startSharePointScanner = async function() {
                 break;
              }
           }
+          if (!aliasMatched && window.supEx && window.supEx[inv.supName] && window.supEx[inv.supName].keywords) {
+            const kws = window.supEx[inv.supName].keywords.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+            if (kws.some(k => cleanFileBase.toLowerCase().includes(k))) {
+              score += 500; // Treat keyword same as alias
+              aliasMatched = true;
+            }
+          }
           const supWords = String(inv.supName).split(/\s+/).filter(w => w.length > 2);
           for (const word of supWords) {
             if (file.name.includes(word)) score += 20;
@@ -3184,7 +3206,15 @@ window.startSharePointScanner = async function() {
           let supplierScore = 0;
           if (inv.supName) {
              const baseName = window.supBase ? window.supBase(inv.supName) : inv.supName;
-             if (file.name.includes(baseName) || file.name.includes(inv.supName)) supplierScore = 20;
+             const cleanFileBase = file.name.replace(/[-_.]/g, ' ').toLowerCase();
+             if (cleanFileBase.includes(baseName.toLowerCase()) || cleanFileBase.includes(inv.supName.toLowerCase())) {
+                 supplierScore = 20;
+             } else if (window.supEx && window.supEx[inv.supName] && window.supEx[inv.supName].keywords) {
+                 const kws = window.supEx[inv.supName].keywords.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+                 if (kws.some(k => cleanFileBase.includes(k))) {
+                     supplierScore = 20;
+                 }
+             }
           }
           if (isPettyCash && supplierScore === 0) supplierScore = 10;
           if (isGett && supplierScore === 0) supplierScore = 10;
