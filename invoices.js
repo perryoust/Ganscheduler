@@ -416,7 +416,10 @@ function renderInvoices(){
           ${hasTax?`<div><span style="font-size:.63rem;color:#546e7a">מסמך: </span>${fmtAmt(inv.amt,vat,isExempt)}</div>`:''}
         </td>
         <td style="padding:8px">${statusStepper(inv.status||'active')}</td>
-        <td style="font-size:.72rem;color:#78909c;max-width:120px;padding:8px">${inv.notes||''}</td>
+        <td style="font-size:.72rem;color:#78909c;max-width:120px;padding:8px">
+          ${inv.serialNum ? `<div style="font-weight:600;color:#546e7a;margin-bottom:3px;">מס"ד: ${inv.serialNum}</div>` : ''}
+          ${inv.notes||''}
+        </td>
         <td style="padding:8px;white-space:nowrap" onclick="event.stopPropagation()">
           <button class="btn bsm bo" onclick="openNewInvoice(${inv.id})">✏️</button>
           <button class="btn bsm br" onclick="deleteInvoice(${inv.id})">🗑️</button>
@@ -1045,6 +1048,7 @@ function openNewInvoice(id, presetSup){
   const effectiveVatCalc = _getEffectiveVat();
   onVatChange();
   // Order section
+  document.getElementById('inv-serial-num').value  = inv ? (inv.serialNum||'')  : '';
   document.getElementById('inv-order-num').value   = inv ? (inv.orderNum||'')   : '';
   document.getElementById('inv-order-date').value  = inv ? (inv.orderDate||'')  : '';
   document.getElementById('inv-order-desc').value  = inv ? (inv.orderDesc||'')  : '';
@@ -1442,6 +1446,7 @@ async function saveInvoice(){
   const status = document.getElementById('inv-status')?.value||'order';
   const inv = {
     id:invId, supName, vat: effectiveVat,
+    serialNum:document.getElementById('inv-serial-num')?.value.trim()||'',
     orderNum, orderDate:document.getElementById('inv-order-date').value,
     orderDesc:document.getElementById('inv-order-desc').value.trim(),
     orderType:document.getElementById('inv-order-type')?.value||'',

@@ -1334,7 +1334,7 @@
             <div id="pi-status-btn" onclick="togglePiStatusMenu()"
               style="border:1.5px solid #c5cae9;border-radius:6px;padding:7px 10px;cursor:pointer;background:#fff;font-size:.82rem;display:flex;justify-content:space-between;align-items:center;min-width:160px;user-select:none">
               <span id="pi-status-label">הכל</span>
-              <span style="font-size:.7rem;color:#999">?</span>
+              <span style="font-size:.7rem;color:#999">▼</span>
             </div>
             <div id="pi-status-menu"
               style="display:none;position:absolute;top:calc(100% + 2px);right:0;z-index:999;background:#fff;border:1.5px solid #c5cae9;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.13);padding:6px 4px;min-width:190px;direction:rtl">
@@ -2913,6 +2913,7 @@
       <div class="inv-section">
         <div class="inv-section-title">🚀 פרטי הזמנה</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="fg"><label>מס"ד</label><input type="text" id="inv-serial-num" placeholder="מס' סידורי" style="width:100%"></div>
           <div class="fg"><label>מספר הזמנה</label><input type="text" id="inv-order-num" placeholder="מס' הזמנה"
               style="width:100%" oninput="autoUpdateInvStatus()"></div>
           <div class="fg"><label>תאריך הזמנה</label><input type="date" id="inv-order-date" style="width:100%"></div>
