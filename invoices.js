@@ -371,12 +371,13 @@ function renderInvoices(){
     }
     tbody.innerHTML = '';
   } else {
+    const quickAddHtml = window.renderQuickAddRowHtml ? window.renderQuickAddRowHtml() : '';
     if(!list.length){
-      tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:#aaa;padding:25px">אין חשבוניות תואמות לסינון</td></tr>';
+      tbody.innerHTML = quickAddHtml + '<tr><td colspan="8" style="text-align:center;color:#aaa;padding:25px">אין חשבוניות תואמות לסינון</td></tr>';
       if (mobList) mobList.innerHTML = '';
       return;
     }
-    tbody.innerHTML = renderList.map(inv=>{
+    tbody.innerHTML = quickAddHtml + renderList.map(inv=>{
       if(!inv.supName) return '';
       const vat = inv.vat||getVatRate();
       const isExempt = vat===0 || (supEx[inv.supName]||{}).entityType==='עוסק פטור'||(supEx[inv.supName]||{}).entityType==='עמותה';
@@ -400,17 +401,17 @@ function renderInvoices(){
       };
       const _isDup = (typeof _dupFilterActive !== 'undefined' && _dupFilterActive);
       return `<tr class="inv-row-clickable" style="${_isDup?'background:#fce4ec;border-right:3px solid #c62828;':''}" onclick="openNewInvoice(${inv.id})">
-        <td style="min-width:120px;padding:8px">
-          <div style="font-weight:700;color:#1a237e;font-size:.83rem">${inv.supName||''}</div>
-          <div style="font-size:.67rem;color:#999;margin-top:2px">${(supEx[inv.supName]||{}).entityType||''}</div>
+        <td style="font-size:.75rem;padding:8px;font-weight:600;color:#546e7a">
+          ${inv.serialNum||''}
+        </td>
+        <td style="min-width:120px;padding:8px;cursor:pointer" onclick="event.stopPropagation(); if(window.openSupCard) window.openSupCard('${(inv.supName||'').replace(/'/g,"\\'")}'); else if(window.openSupModal) window.openSupModal('${(inv.supName||'').replace(/'/g,"\\'")}');">
+          <div style="font-weight:700;color:#1a237e;font-size:.83rem;text-decoration:underline">${inv.supName||''}</div>
+          <div style="font-size:.67rem;color:#999;margin-top:2px;text-decoration:none">${(supEx[inv.supName]||{}).entityType||''}</div>
         </td>
         <td style="font-size:.75rem;line-height:2;padding:8px">
           ${hasOrder?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.orderNum}</b>${inv.orderDate?'<span style="color:#999"> · '+fD(inv.orderDate)+'</span>':''} ${mkFileBtn('order',inv.orderNum)}</div>`:''}
           ${hasTx?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.txNum}</b>${inv.txDate?'<span style="color:#999"> · '+fD(inv.txDate)+'</span>':''} ${mkFileBtn('tx',inv.txNum)}</div>`:''}
           ${hasTax?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">📑</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.num}</b>${inv.date?'<span style="color:#999"> · '+fD(inv.date)+'</span>':''} ${mkFileBtn('tax',inv.num)}</div>`:''}
-        </td>
-        <td style="font-size:.75rem;padding:8px;font-weight:600;color:#546e7a">
-          ${inv.serialNum||''}
         </td>
         <td style="font-size:.75rem;color:#37474f;padding:8px">
           ${inv.orderDesc||''}
@@ -3549,4 +3550,79 @@ window.applyColFilter = function() {
       btn.style.fontWeight = 'bold';
     }
   }
+};
+
+
+// ==========================================
+// QUICK-ADD INLINE ROW
+// ==========================================
+window.renderQuickAddRowHtml = function() {
+  // We use the exact same datalist 'inv-sup-datalist' that is populated for the main modal
+  return `
+    <tr style="background:#e3f2fd; border-bottom:2px solid #90caf9">
+      <td style="padding:4px"><input type="text" id="qa-serialNum" placeholder='מס"ד' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
+      <td style="padding:4px"><input type="text" id="qa-supName" list="inv-sup-datalist" placeholder='ספק...' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
+      <td style="padding:4px"><input type="text" id="qa-docNum" placeholder='מספר מסמך' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
+      <td style="padding:4px"><input type="text" id="qa-orderDesc" placeholder='פירוט' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
+      <td style="padding:4px"><input type="number" id="qa-amt" placeholder='סכום (כולל מע"מ)' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
+      <td style="padding:4px"><select id="qa-status" style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"><option value="order">הזמנה</option><option value="paid">שולם</option><option value="tax_wait">ממתין לחשבונית</option><option value="ok">תקין (הכל הושלם)</option></select></td>
+      <td style="padding:4px"><input type="text" id="qa-notes" placeholder='הערות' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
+      <td style="padding:4px;text-align:center"><button class="btn bg bsm" onclick="window.saveQuickAddRow()" title="שמור והוסף" style="width:100%;padding:4px">➕ הוסף</button></td>
+    </tr>
+  `;
+};
+
+window.saveQuickAddRow = async function() {
+  const serialNum = document.getElementById('qa-serialNum').value.trim();
+  const supName = document.getElementById('qa-supName').value.trim();
+  const docNum = document.getElementById('qa-docNum').value.trim();
+  const orderDesc = document.getElementById('qa-orderDesc').value.trim();
+  const amt = parseFloat(document.getElementById('qa-amt').value) || 0;
+  const status = document.getElementById('qa-status').value;
+  const notes = document.getElementById('qa-notes').value.trim();
+
+  if (!supName) {
+    _spAlertDialog('יש להזין שם ספק בשורת ההוספה המהירה');
+    return;
+  }
+
+  // Calculate VAT (defaulting to 17% included since this is quick add, or reading current default)
+  const defaultVat = (typeof getVatRate === 'function') ? getVatRate() : 17;
+  const rawAmt = amt / (1 + defaultVat/100);
+  const vatAmt = amt - rawAmt;
+
+  const inv = {
+    id: Date.now(),
+    ts: Date.now(),
+    serialNum,
+    supName,
+    orderNum: docNum, // Save docNum as orderNum by default for quick add
+    orderDesc,
+    orderAmt: rawAmt.toFixed(2),
+    orderVat: vatAmt.toFixed(2),
+    orderTotal: amt.toFixed(2),
+    ordVatMode: 'inc', // user typed total amount
+    status,
+    notes,
+    vat: defaultVat
+  };
+
+  window.INVOICES.push(inv);
+  
+  // Auto-create supplier if not exists
+  if(!window.supEx[supName]) window.supEx[supName] = { isPurch: true, isAct: false };
+
+  window.showToast('✅ נוסף בהצלחה (הזנה מהירה)');
+  
+  if(window._safeLS) window._safeLS.setItem('ganv5_invoices', JSON.stringify(window.INVOICES));
+  if(typeof window.saveToFirebase === 'function') await window.saveToFirebase(true, true);
+  else if(typeof window.save === 'function') await window.save(true);
+  
+  window.renderInvoices();
+  
+  // Keep focus on the serial number field of the new empty quick add row
+  setTimeout(() => {
+    const nextInput = document.getElementById('qa-serialNum');
+    if (nextInput) nextInput.focus();
+  }, 100);
 };
