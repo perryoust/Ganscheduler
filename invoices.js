@@ -3085,16 +3085,14 @@ window.startSharePointScanner = async function() {
   async function scanDir(handle, currentPath, cleanBase) {
     for await (const entry of handle.values()) {
       if (entry.kind === 'file') {
-        const isOldYear = /\b(20[0-1][0-9]|2020|2021)\b/.test(entry.name);
-        const isPdf = entry.name.toLowerCase().endsWith('.pdf');
-        if (isPdf && !entry.name.startsWith('.') && !entry.name.startsWith('~') && !isOldYear) {
+        if (!entry.name.startsWith('.') && !entry.name.startsWith('~')) {
           filesFound.push({
             name: entry.name,
-            link: cleanBase + currentPath + '/' + entry.name + '?web=1'
+            link: cleanBase + currentPath + '/' + encodeURIComponent(entry.name) + '?web=1'
           });
         }
       } else if (entry.kind === 'directory') {
-        await scanDir(entry, currentPath + '/' + entry.name, cleanBase);
+        await scanDir(entry, currentPath + '/' + encodeURIComponent(entry.name), cleanBase);
       }
     }
   }
@@ -3109,8 +3107,6 @@ window.startSharePointScanner = async function() {
   }
 
   // ── Step 5: Match logic
-  const aliases = window.spScannerAliases || JSON.parse(localStorage.getItem('spScannerAliases') || '{}');
-  window.spScannerAliases = aliases;
   const globalOverwrite = selectedFolders.some(f => f.overwrite);
   let matchCount = 0;
   let skippedCount = 0;
@@ -3132,57 +3128,34 @@ window.startSharePointScanner = async function() {
       if (numStr.length < 3) continue;
       
       const cleanNumStr = numStr.replace(/\D/g, '').replace(/^0+/, '');
-      
-      const isNumMatch = (dbN, fileN) => {
-         if (!dbN || !fileN) return false;
-         if (dbN === fileN) return true;
-         if (dbN.length >= 6 && fileN.length >= 5) {
-            if (dbN.includes(fileN) || fileN.includes(dbN)) return true;
-         }
-         return false;
-      };
-      
-      const potentialMatches = window.INVOICES.filter(inv => {
-        const invTax = String(inv.num || '').replace(/\D/g, '').replace(/^0+/, '');
-        const invTx = String(inv.txNum || '').replace(/\D/g, '').replace(/^0+/, '');
-        const invOrder = String(inv.orderNum || '').replace(/\D/g, '').replace(/^0+/, '');
-        
-        return isNumMatch(invTax, cleanNumStr) || isNumMatch(invTx, cleanNumStr) || isNumMatch(invOrder, cleanNumStr);
-      });
+      const potentialMatches = window.INVOICES.filter(inv => 
+        (inv.num && String(inv.num).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) ||
+        (inv.txNum && String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) ||
+        (inv.orderNum && String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr)
+      );
 
       for (const inv of potentialMatches) {
-        const invTax = String(inv.num || '').replace(/\D/g, '').replace(/^0+/, '');
-        const invTx = String(inv.txNum || '').replace(/\D/g, '').replace(/^0+/, '');
-        const invOrder = String(inv.orderNum || '').replace(/\D/g, '').replace(/^0+/, '');
-
         let type = null;
-        if (isNumMatch(invTax, cleanNumStr)) type = 'tax';
-        else if (isNumMatch(invTx, cleanNumStr)) type = 'tx';
-        else if (isNumMatch(invOrder, cleanNumStr)) type = 'order';
+        if (inv.num && String(inv.num).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) type = 'tax';
+        else if (inv.txNum && String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) type = 'tx';
+        else if (inv.orderNum && String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) type = 'order';
 
         let score = 50;
         
         if (inv.supName) {
-          const cleanFileBase = file.name.replace(/[-_.]/g, ' ');
-          let aliasMatched = false;
-          for (const [aliasWord, supName] of Object.entries(aliases)) {
-             if (cleanFileBase.includes(aliasWord) && supName === inv.supName) {
-                score += 500; // Strongest match for alias
-                aliasMatched = true;
-                break;
-             }
-          }
-          if (!aliasMatched && window.supEx && window.supEx[inv.supName] && window.supEx[inv.supName].keywords) {
-            const kws = window.supEx[inv.supName].keywords.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
-            if (kws.some(k => cleanFileBase.toLowerCase().includes(k))) {
-              score += 500; // Treat keyword same as alias
-              aliasMatched = true;
-            }
-          }
           const supWords = String(inv.supName).split(/\s+/).filter(w => w.length > 2);
           for (const word of supWords) {
             if (file.name.includes(word)) score += 20;
           }
+        }
+
+        // Override type if filename explicitly declares the document type (even if matched via order number)
+        if (file.name.includes('חשבונית') || file.name.includes('חשבונית מס') || file.name.toLowerCase().includes('tax')) {
+          type = 'tax';
+        } else if (file.name.includes('חשבון עסקה') || file.name.includes('קבלה') || file.name.toLowerCase().includes('tx')) {
+          type = 'tx';
+        } else if (file.name.includes('הזמנה') || file.name.includes('דרישה')) {
+          type = 'order';
         }
 
         if (type === 'tax' && (file.name.includes('מס') || file.name.toLowerCase().includes('tax'))) score += 5;
@@ -3235,14 +3208,10 @@ window.startSharePointScanner = async function() {
           let supplierScore = 0;
           if (inv.supName) {
              const baseName = window.supBase ? window.supBase(inv.supName) : inv.supName;
-             const cleanFileBase = file.name.replace(/[-_.]/g, ' ').toLowerCase();
-             if (cleanFileBase.includes(baseName.toLowerCase()) || cleanFileBase.includes(inv.supName.toLowerCase())) {
-                 supplierScore = 20;
-             } else if (window.supEx && window.supEx[inv.supName] && window.supEx[inv.supName].keywords) {
-                 const kws = window.supEx[inv.supName].keywords.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
-                 if (kws.some(k => cleanFileBase.includes(k))) {
-                     supplierScore = 20;
-                 }
+             if (file.name.includes(baseName) || file.name.includes(inv.supName)) supplierScore = 20;
+             else {
+               const firstWord = String(inv.supName).split(/\s+/).filter(w=>w.length>2)[0];
+               if (firstWord && file.name.includes(firstWord)) supplierScore = 10;
              }
           }
           if (isPettyCash && supplierScore === 0) supplierScore = 10;
@@ -3283,6 +3252,14 @@ window.startSharePointScanner = async function() {
             else if (inv.num) type = 'tax';
             else if (inv.txNum) type = 'tx';
             
+            if (file.name.includes('חשבונית') || file.name.includes('חשבונית מס') || file.name.toLowerCase().includes('tax')) {
+              type = 'tax';
+            } else if (file.name.includes('חשבון עסקה') || file.name.includes('קבלה') || file.name.toLowerCase().includes('tx')) {
+              type = 'tx';
+            } else if (file.name.includes('הזמנה') || file.name.includes('דרישה')) {
+              type = 'order';
+            }
+            
             const existing = inv['file_' + type];
             const hasPath = !!(existing && existing.path);
             if (hasPath && !globalOverwrite) score -= 500;
@@ -3297,24 +3274,6 @@ window.startSharePointScanner = async function() {
       }
     }
 
-
-    // Collect alias suggestions to show in a single batch form after scanning
-    if (bestInvoice && bestScore > 0 && bestScore < 100) {
-      const chosenSup = bestInvoice.supName;
-      const currentAliases = Object.values(window.spScannerAliases || {});
-      if (!currentAliases.includes(chosenSup)) {
-        if (!window._pendingAliasSuggestions) window._pendingAliasSuggestions = [];
-        // Avoid duplicate suggestions for the same supplier
-        if (!window._pendingAliasSuggestions.some(s => s.supName === chosenSup)) {
-          window._pendingAliasSuggestions.push({ 
-            fileName: file.name, 
-            supName: chosenSup,
-            invId: bestInvoice.id,
-            type: bestType 
-          });
-        }
-      }
-    }
     let matchedInvoice = bestScore > -200 ? bestInvoice : null;
     let matchedType = bestScore > -200 ? bestType : null;
 
@@ -3332,8 +3291,7 @@ window.startSharePointScanner = async function() {
     }
   }
 
-
-  // ── Step 6: Save & render
+\n  // ── Step 6: Save & render
   if (matchCount > 0) {
     window.showToast(`✅ שודכו ${matchCount} קבצים! שומר...`);
     if (window._safeLS) window._safeLS.setItem('ganv5_invoices', JSON.stringify(window.INVOICES || []));

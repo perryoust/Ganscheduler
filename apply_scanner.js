@@ -71,6 +71,15 @@ const replacementScanner = `  // ── Step 4: Scan all selected folders
           }
         }
 
+        // Override type if filename explicitly declares the document type (even if matched via order number)
+        if (file.name.includes('חשבונית') || file.name.includes('חשבונית מס') || file.name.toLowerCase().includes('tax')) {
+          type = 'tax';
+        } else if (file.name.includes('חשבון עסקה') || file.name.includes('קבלה') || file.name.toLowerCase().includes('tx')) {
+          type = 'tx';
+        } else if (file.name.includes('הזמנה') || file.name.includes('דרישה')) {
+          type = 'order';
+        }
+
         if (type === 'tax' && (file.name.includes('מס') || file.name.toLowerCase().includes('tax'))) score += 5;
         if (type === 'tx' && (file.name.includes('קבלה') || file.name.toLowerCase().includes('tx'))) score += 5;
         if (type === 'order' && (file.name.includes('הזמנה') || file.name.includes('דרישה'))) score += 5;
@@ -164,6 +173,14 @@ const replacementScanner = `  // ── Step 4: Scan all selected folders
             if (inv.orderNum) type = 'order';
             else if (inv.num) type = 'tax';
             else if (inv.txNum) type = 'tx';
+            
+            if (file.name.includes('חשבונית') || file.name.includes('חשבונית מס') || file.name.toLowerCase().includes('tax')) {
+              type = 'tax';
+            } else if (file.name.includes('חשבון עסקה') || file.name.includes('קבלה') || file.name.toLowerCase().includes('tx')) {
+              type = 'tx';
+            } else if (file.name.includes('הזמנה') || file.name.includes('דרישה')) {
+              type = 'order';
+            }
             
             const existing = inv['file_' + type];
             const hasPath = !!(existing && existing.path);
