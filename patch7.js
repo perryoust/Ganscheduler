@@ -1,0 +1,1 @@
+const fs = require('fs'); let code = fs.readFileSync('index.html', 'utf8'); code = code.replace(/v=107\.\d+/g, 'v=107.42'); fs.writeFileSync('index.html', code, 'utf8'); console.log('Versions bumped');

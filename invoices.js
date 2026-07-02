@@ -371,13 +371,13 @@ function renderInvoices(){
     }
     tbody.innerHTML = '';
   } else {
-    const quickAddHtml = window.renderQuickAddRowHtml ? window.renderQuickAddRowHtml() : '';
+    
     if(!list.length){
-      tbody.innerHTML = quickAddHtml + '<tr><td colspan="8" style="text-align:center;color:#aaa;padding:25px">אין חשבוניות תואמות לסינון</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#aaa;padding:25px">אין חשבוניות תואמות לסינון</td></tr>';
       if (mobList) mobList.innerHTML = '';
       return;
     }
-    tbody.innerHTML = quickAddHtml + renderList.map(inv=>{
+    tbody.innerHTML = renderList.map(inv=>{
       if(!inv.supName) return '';
       const vat = inv.vat||getVatRate();
       const isExempt = vat===0 || (supEx[inv.supName]||{}).entityType==='עוסק פטור'||(supEx[inv.supName]||{}).entityType==='עמותה';
@@ -3519,8 +3519,8 @@ window.applyColFilter = function() {
 window.renderQuickAddRowHtml = function() {
   // We use the exact same datalist 'inv-sup-datalist' that is populated for the main modal
   return `
-    <tr style="background:#e3f2fd; border-bottom:2px solid #90caf9">
-      <td style="padding:4px"><input type="text" id="qa-serialNum" placeholder='מס"ד' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
+    <tr id="qa-tr-row" style="background:#e3f2fd; border-bottom:2px solid #90caf9">
+      <td style="padding:4px; max-width: 60px; min-width: 40px;"><input type="text" id="qa-serialNum" placeholder='מס"ד' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
       <td style="padding:4px"><input type="text" id="qa-supName" list="inv-sup-datalist" placeholder='ספק...' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
       <td style="padding:4px;vertical-align:top">
         <input type="text" id="qa-orderNum" placeholder="הזמנה" style="width:100%;padding:2px 4px;margin-bottom:2px;box-sizing:border-box;font-size:0.75rem" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()">

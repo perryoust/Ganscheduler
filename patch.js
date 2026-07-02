@@ -1,13 +1,1 @@
-const fs = require('fs');
-let content = fs.readFileSync('index.html', 'utf8');
-
-const target = `<div class="tab" onclick="ST('sup')"
-      title="Χ Χ™Χ”Χ•Χ Χ¨Χ©Χ™ΧΧª Χ΅Χ¤Χ§Χ™ Χ”Χ—Χ•Χ’Χ™Χ, Χ¤Χ¨ΧΧ™ Χ§Χ©Χ¨, ΧªΧ—Χ•ΧΧ™ Χ¤ΧΆΧ™ΧΧ•Χª Χ•Χ”ΧΆΧ¨Χ•Χª">π‘¥ Χ΅Χ¤Χ§Χ™Χ</div>`;
-      
-const replacement = target + `
-    <div class="tab" onclick="ST('worker_tasks')"
-      title="Χ Χ™Χ”Χ•Χ ΧΧ©Χ™ΧΧ•Χª Χ©ΧΧ— ΧΧΆΧ•Χ‘Χ“Χ™Χ">π‘· ΧΧ©Χ™ΧΧ•Χª Χ©ΧΧ—</div>`;
-
-content = content.replace(target, replacement);
-fs.writeFileSync('index.html', content);
-console.log('patched index.html');
+const fs = require('fs'); let code = fs.readFileSync('invoices.js', 'utf8'); code = code.replace('<tr style=\"background:#e3f2fd; border-bottom:2px solid #90caf9\">', '<tr id=\"qa-tr-row\" style=\"background:#e3f2fd; border-bottom:2px solid #90caf9\">'); code = code.replace('<td style=\"padding:4px\"><input type=\"text\" id=\"qa-serialNum\"', '<td style=\"padding:4px; max-width: 60px; min-width: 40px;\"><input type=\"text\" id=\"qa-serialNum\"'); code = code.replace('<select id=\"qa-status\" style=\"width:100%;padding:4px;box-sizing:border-box;font-size:0.75rem\" onkeydown=\"if(event.key===\'Enter\') window.saveQuickAddRow()\"><option value=\"auto\">ΰεθεξθι (μτι ξρξλιν)</option><option value=\"paid\">ωεμν</option><option value=\"ok\">ϊχιο (δλμ δεωμν)</option></select>', '<select id=\"qa-status\" style=\"width:100%;padding:4px;box-sizing:border-box;font-size:0.75rem\" onkeydown=\"if(event.key===\'Enter\') window.saveQuickAddRow()\"><option value=\"auto\">ΰεθεξθι</option><option value=\"order\">?? δζξπδ</option><option value=\"tx_invoice\">?? ηωαεο ςρχδ</option><option value=\"tax_invoice\">?? ηωαεπιϊ ξρ ΰε χαμδ</option></select>'); fs.writeFileSync('invoices.js', code, 'utf8'); console.log('Done');
