@@ -437,6 +437,10 @@ function renderInvoices(){
     }
     if (mobList) mobList.innerHTML = '';
   }
+  let qaRow = document.getElementById('qa-tr-row') || document.getElementById('qa-tr-container');
+  if (qaRow && window.renderQuickAddRowHtml) {
+    qaRow.outerHTML = window.renderQuickAddRowHtml();
+  }
   
   // --- Update header UI to show active filters ---
   document.querySelectorAll('#pi-table th').forEach(th => {
@@ -3529,7 +3533,7 @@ window.renderQuickAddRowHtml = function() {
       </td>
       <td style="padding:4px;vertical-align:top"><input type="text" id="qa-orderDesc" placeholder='פירוט' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
       <td style="padding:4px;vertical-align:top"><input type="number" id="qa-amt" placeholder='סכום (כולל מע"מ)' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
-      <td style="padding:4px;vertical-align:top"><select id="qa-status" style="width:100%;padding:4px;box-sizing:border-box;font-size:0.75rem" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"><option value="auto">אוטומטי (לפי מסמכים)</option><option value="paid">שולם</option><option value="ok">תקין (הכל הושלם)</option></select></td>
+      <td style="padding:4px;vertical-align:top"><select id="qa-status" style="width:100%;padding:4px;box-sizing:border-box;font-size:0.75rem" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"><option value="auto">אוטומטי</option><option value="order">📋 הזמנה</option><option value="tx_invoice">🧾 חשבון עסקה</option><option value="tax_invoice">📑 חשבונית מס או קבלה</option></select></td>
       <td style="padding:4px"><input type="text" id="qa-notes" placeholder='הערות' style="width:100%;padding:4px;box-sizing:border-box" onkeydown="if(event.key==='Enter') window.saveQuickAddRow()"></td>
       <td style="padding:4px;text-align:center"><button class="btn bg bsm" onclick="window.saveQuickAddRow()" title="שמור והוסף" style="width:100%;padding:4px">➕ הוסף</button></td>
     </tr>
