@@ -1,0 +1,1 @@
+const fs = require('fs'); let code = fs.readFileSync('core_dash.js', 'utf8'); code = code.replace(/const CACHE='kids-v1';/, 'const CACHE=\\'kids-v2\\';'); fs.writeFileSync('core_dash.js', code, 'utf8'); console.log('SW updated');

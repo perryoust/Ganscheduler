@@ -1877,7 +1877,7 @@ function showToast(msg,ms=2500){
 // ─── PWA Service Worker registration ──────────────────
 if('serviceWorker' in navigator){
   const swCode=`
-const CACHE='kids-v1';
+const CACHE='kids-v2';
 const ASSETS=[location.pathname];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
 self.addEventListener('fetch',e=>e.respondWith(
