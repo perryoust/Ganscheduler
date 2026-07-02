@@ -404,7 +404,7 @@ function renderInvoices(){
         <td style="font-size:.75rem;padding:8px;font-weight:600;color:#546e7a">
           ${inv.serialNum||''}
         </td>
-        <td style="min-width:120px;padding:8px;cursor:pointer" onclick="event.stopPropagation(); if(window.openSupCard) window.openSupCard('${(inv.supName||'').replace(/'/g,"\\'")}'); else if(window.openSupModal) window.openSupModal('${(inv.supName||'').replace(/'/g,"\\'")}');">
+        <td style="min-width:120px;padding:8px;cursor:pointer" onclick="event.stopPropagation(); if(window.openSupCardFromPurch) window.openSupCardFromPurch('${(inv.supName||'').replace(/'/g,"\\'")}'); else if(window.openSupCard) window.openSupCard('${(inv.supName||'').replace(/'/g,"\\'")}'); else if(window.openSupModal) window.openSupModal('${(inv.supName||'').replace(/'/g,"\\'")}');">
           <div style="font-weight:700;color:#1a237e;font-size:.83rem;text-decoration:underline">${inv.supName||''}</div>
           <div style="font-size:.67rem;color:#999;margin-top:2px;text-decoration:none">${(supEx[inv.supName]||{}).entityType||''}</div>
         </td>
@@ -2462,7 +2462,9 @@ window.importInvoices = function(input) {
         "תאריך חשבונית": "date",
         "סכום חשבונית לפני מעמ": "amt",
         "סכום חשבונית כולל מעמ": "total",
-        "הערות": "notes"
+        "הערות": "notes",
+        "מס\"ד": "serialNum",
+        "מסד": "serialNum"
       };
 
       let added = 0;
@@ -2476,7 +2478,7 @@ window.importInvoices = function(input) {
         if (isComplexFormat) {
           // Precise index-based mapping for two-row Excel format to avoid identical name conflicts
           const colMapping = [
-            null, // 0: מס"ד
+            "serialNum", // 0: מס"ד
             "orderNum", // 1
             "orderDate", // 2
             "supName", // 3
