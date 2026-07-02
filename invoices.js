@@ -1676,7 +1676,7 @@ async function _doImportInvoices(ov){
     inv.recv = inv.recv || new Date().toISOString().slice(0,10);
 
     // Auto-fix/recalculate VAT for imported invoice based on supplier entity type
-    const vat = inv.vat || window.VAT_RATE || 17;
+    const vat = inv.vat || window.VAT_RATE || 18;
     const supName = inv.supName || '';
     const et = (window.supEx && window.supEx[supName]) ? window.supEx[supName].entityType : '';
     const isExempt = et==='עוסק פטור' || et==='עמותה';
@@ -2467,8 +2467,7 @@ window.importInvoices = function(input) {
         "סכום חשבונית לפני מעמ": "amt",
         "סכום חשבונית כולל מעמ": "total",
         "הערות": "notes",
-        "מס\"ד": "serialNum",
-        "מסד": "serialNum"
+        "מס\"ד": "serialNum", "מס''ד": "serialNum", "מס'ד": "serialNum", "מס׳׳ד": "serialNum", "מסד": "serialNum"
       };
 
       let added = 0;
@@ -3129,7 +3128,7 @@ window.startSharePointScanner = async function() {
     let bestScore = -1000;
 
     for (const numStr of numbersInName) {
-      if (numStr.length < 3) continue;
+      if (numStr.length < 2) continue;
       
       const cleanNumStr = numStr.replace(/\D/g, '').replace(/^0+/, '');
       const potentialMatches = window.INVOICES.filter(inv => 
@@ -3144,7 +3143,7 @@ window.startSharePointScanner = async function() {
         else if (inv.txNum && String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) type = 'tx';
         else if (inv.orderNum && String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) type = 'order';
 
-        let score = 50;
+        let score = (cleanNumStr.length < 3) ? 10 : 50;
         
         if (inv.supName) {
           const supWords = String(inv.supName).split(/\s+/).filter(w => w.length > 2);
@@ -3154,10 +3153,10 @@ window.startSharePointScanner = async function() {
         }
 
         // Override type if filename explicitly declares the document type (even if matched via order number)
-        if (file.name.includes('חשבונית') || file.name.includes('חשבונית מס') || file.name.toLowerCase().includes('tax')) {
-          type = 'tax';
-        } else if (file.name.includes('חשבון עסקה') || file.name.includes('קבלה') || file.name.toLowerCase().includes('tx')) {
+        if (file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה') || file.name.includes('קבלה') || file.name.toLowerCase().includes('tx')) {
           type = 'tx';
+        } else if (file.name.includes('חשבונית') || file.name.includes('חשבונית מס') || file.name.toLowerCase().includes('tax')) {
+          type = 'tax';
         } else if (file.name.includes('הזמנה') || file.name.includes('דרישה')) {
           type = 'order';
         }
@@ -3212,10 +3211,36 @@ window.startSharePointScanner = async function() {
           let supplierScore = 0;
           if (inv.supName) {
              const baseName = window.supBase ? window.supBase(inv.supName) : inv.supName;
-             if (file.name.includes(baseName) || file.name.includes(inv.supName)) supplierScore = 20;
-             else {
-               const firstWord = String(inv.supName).split(/\s+/).filter(w=>w.length>2)[0];
-               if (firstWord && file.name.includes(firstWord)) supplierScore = 10;
+             if (file.name.includes(baseName) || file.name.includes(inv.supName)) {
+               supplierScore = 20;
+             } else {
+               let foundAlias = false;
+               const spAliases = window.spScannerAliases || {};
+               for (const alias in spAliases) {
+                 if (spAliases[alias] === baseName || spAliases[alias] === inv.supName) {
+                   if (file.name.includes(alias)) {
+                     supplierScore = 20;
+                     foundAlias = true;
+                     break;
+                   }
+                 }
+               }
+               
+               if (!foundAlias && window.supEx) {
+                 const exData = window.supEx[baseName] || window.supEx[inv.supName];
+                 if (exData && exData.keywords) {
+                   const kws = exData.keywords.split(',').map(k => k.trim()).filter(Boolean);
+                   if (kws.some(k => file.name.includes(k))) {
+                     supplierScore = 20;
+                     foundAlias = true;
+                   }
+                 }
+               }
+               
+               if (!foundAlias) {
+                 const firstWord = String(inv.supName).split(/\s+/).filter(w=>w.length>2)[0];
+                 if (firstWord && file.name.includes(firstWord)) supplierScore = 10;
+               }
              }
           }
           if (isPettyCash && supplierScore === 0) supplierScore = 10;
@@ -3256,10 +3281,10 @@ window.startSharePointScanner = async function() {
             else if (inv.num) type = 'tax';
             else if (inv.txNum) type = 'tx';
             
-            if (file.name.includes('חשבונית') || file.name.includes('חשבונית מס') || file.name.toLowerCase().includes('tax')) {
-              type = 'tax';
-            } else if (file.name.includes('חשבון עסקה') || file.name.includes('קבלה') || file.name.toLowerCase().includes('tx')) {
+            if (file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה') || file.name.includes('קבלה') || file.name.toLowerCase().includes('tx')) {
               type = 'tx';
+            } else if (file.name.includes('חשבונית') || file.name.includes('חשבונית מס') || file.name.toLowerCase().includes('tax')) {
+              type = 'tax';
             } else if (file.name.includes('הזמנה') || file.name.includes('דרישה')) {
               type = 'order';
             }
@@ -3562,7 +3587,7 @@ window.saveQuickAddRow = async function() {
   }
 
   // Calculate VAT (defaulting to 17% included since this is quick add, or reading current default)
-  const defaultVat = (typeof getVatRate === 'function') ? getVatRate() : 17;
+  const defaultVat = (typeof getVatRate === 'function') ? getVatRate() : 18;
   const rawAmt = amt / (1 + defaultVat/100);
   const vatAmt = amt - rawAmt;
   
