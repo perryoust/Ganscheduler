@@ -1,1 +1,7 @@
-const fs = require('fs'); let code = fs.readFileSync('invoices.js', 'utf8'); const target = '    if (mobList) mobList.innerHTML = \x27\x27;\n  }'; const replacement = '    if (mobList) mobList.innerHTML = \x27\x27;\n  }\n  let qaRow = document.getElementById(\x27qa-tr-row\x27) || document.getElementById(\x27qa-tr-container\x27);\n  if (qaRow && window.renderQuickAddRowHtml) {\n    qaRow.outerHTML = window.renderQuickAddRowHtml();\n  }'; code = code.replace(target, replacement); fs.writeFileSync('invoices.js', code, 'utf8'); console.log('Done 6');
+﻿const fs = require('fs');
+let text = fs.readFileSync('invoices.js', 'utf8');
+text = text.replace(
+  '  // Sync the date dropdown if it was a date sort\n  const sel = document.getElementById(\'pi-sort\');\n  if(sel && col === \'date\') {\n    sel.value = window._invSortAsc ? \'asc\' : \'desc\';\n  } else if (sel && col !== \'date\') {\n    // maybe disable or just leave it\n  }',
+  '  // Sync the sort dropdown\n  const sel = document.getElementById(\'pi-sort\');\n  if (sel) {\n    sel.value = col + \',\' + (window._invSortAsc ? \'asc\' : \'desc\');\n  }'
+);
+fs.writeFileSync('invoices.js', text, 'utf8');

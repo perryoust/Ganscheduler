@@ -1380,9 +1380,14 @@
           <div class="fg"><label>מתאריך</label><input type="date" id="pi-from" onchange="renderInvoices()"></div>
           <div class="fg"><label>עד תאריך</label><input type="date" id="pi-to" onchange="renderInvoices()"></div>
           <div class="fg"><label>מיון</label>
-            <select id="pi-sort" onchange="window.setInvSort('date', this.value)">
-              <option value="desc">מהחדש לישן</option>
-              <option value="asc">מהישן לחדש</option>
+            <select id="pi-sort" onchange="const v=this.value.split(','); window.setInvSort(v[0], v[1])">
+              <option value="date,desc">תאריך: מהחדש לישן</option>
+              <option value="date,asc">תאריך: מהישן לחדש</option>
+              <option value="sumBase,desc">סכום: מהגבוה לנמוך</option>
+              <option value="sumBase,asc">סכום: מהנמוך לגבוה</option>
+              <option value="supName,asc">ספק: א-ת</option>
+              <option value="supName,desc">ספק: ת-א</option>
+              <option value="status,asc">סטטוס</option>
             </select>
           </div>
           <div class="mob-btn-row" style="align-items:flex-end;gap:5px">

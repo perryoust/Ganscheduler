@@ -1,1 +1,5 @@
-const fs = require('fs'); let html = fs.readFileSync('index.html', 'utf8'); html = html.replace('<thead>\r\n            <tr>\r\n              <th onclick=\"window.setInvSort(\'serialNum\')\"', '<thead id=\"pi-thead\">\r\n            <tr id=\"qa-tr-container\"></tr>\r\n            <tr>\r\n              <th onclick=\"window.setInvSort(\'serialNum\')\"'); fs.writeFileSync('index.html', html, 'utf8'); console.log('Done 4');
+﻿const fs = require('fs');
+let text = fs.readFileSync('invoices.js', 'utf8');
+let lines = text.split('\n');
+lines[2392] = '  if(await window.asyncConfirm(<b>שים לב:</b><br><br>האם למחוק קודם את כל החשבוניות (וכל הקבצים שקישרת אליהן עד כה) ולייבא את האקסל כרשימה חדשה לגמרי?<br><br>• בחר <b>אישור</b> כדי למחוק הכל לפני הייבוא (מומלץ כדי לנקות טעויות מהעבר, תצטרך לסרוק את התיקייה שוב).<br>• בחר <b>ביטול</b> כדי לעדכן חשבוניות קיימות ולשמור על קבצים מקושרים.)) { window.INVOICES = []; if(window.save) await window.save(true); }';
+fs.writeFileSync('invoices.js', lines.join('\n'), 'utf8');
