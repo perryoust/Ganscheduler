@@ -1379,7 +1379,7 @@
           <div class="fg"><label>מתאריך</label><input type="date" id="pi-from" onchange="renderInvoices()"></div>
           <div class="fg"><label>עד תאריך</label><input type="date" id="pi-to" onchange="renderInvoices()"></div>
           <div class="fg"><label>מיון</label>
-            <select id="pi-sort" onchange="renderInvoices()">
+            <select id="pi-sort" onchange="window.setInvSort('date', this.value)">
               <option value="desc">מהחדש לישן</option>
               <option value="asc">מהישן לחדש</option>
             </select>
@@ -1465,11 +1465,11 @@
         <table id="pi-table">
           <thead>
             <tr>
-              <th>ספק</th>
-              <th>מספרי מסמכים</th>
-              <th>פירוט הזמנה</th>
-              <th>סכומים</th>
-              <th>סטטוס</th>
+              <th onclick="window.setInvSort('supName')" style="cursor:pointer" title="מיין לפי ספק">ספק <span id="pi-sort-supName"></span></th>
+              <th onclick="window.setInvSort('docNum')" style="cursor:pointer" title="מיין לפי מספרי מסמכים">מספרי מסמכים <span id="pi-sort-docNum"></span></th>
+              <th onclick="window.setInvSort('orderDesc')" style="cursor:pointer" title="מיין לפי פירוט הזמנה">פירוט הזמנה <span id="pi-sort-orderDesc"></span></th>
+              <th onclick="window.setInvSort('sumBase')" style="cursor:pointer" title="מיין לפי סכומים">סכומים <span id="pi-sort-sumBase"></span></th>
+              <th onclick="window.setInvSort('status')" style="cursor:pointer" title="מיין לפי סטטוס">סטטוס <span id="pi-sort-status"></span></th>
               <th>הערות</th>
               <th>פעולות</th>
             </tr>

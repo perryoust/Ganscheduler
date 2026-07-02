@@ -227,7 +227,10 @@ function renderInvoices(){
   const stfArr = (typeof _getPiStSelected === 'function') ? _getPiStSelected() : [];
   const from = document.getElementById('pi-from')?.value||'';
   const to   = document.getElementById('pi-to')?.value||'';
-  const sortDir = document.getElementById('pi-sort')?.value||'desc';
+  
+  window._invSortCol = window._invSortCol || 'date';
+  window._invSortAsc = window._invSortAsc || false;
+
   let list = [...INVOICES];
   if(typeof _dupFilterActive !== 'undefined' && _dupFilterActive){ const _dids=_getDupIds(); list=list.filter(i=>_dids.has(i.id)); }
   if(srch) list = list.filter(i=>
@@ -279,16 +282,42 @@ function renderInvoices(){
     list = list.filter(i=>parseSortDate(i.orderDate||i.txDate||i.date||'')<=toTime);
   }
   
+  const sortCol = window._invSortCol || 'date';
+  const isAsc = window._invSortAsc;
+  
   list.sort((a,b)=>{
-    const da = a.orderDate||a.txDate||a.date||'', db = b.orderDate||b.txDate||b.date||'';
-    const timeA = parseSortDate(da);
-    const timeB = parseSortDate(db);
-    
-    if (timeA !== timeB) {
-      return sortDir === 'asc' ? timeA - timeB : timeB - timeA;
+    if (sortCol === 'date') {
+      const da = a.orderDate||a.txDate||a.date||'', db = b.orderDate||b.txDate||b.date||'';
+      const timeA = parseSortDate(da);
+      const timeB = parseSortDate(db);
+      if (timeA !== timeB) return isAsc ? timeA - timeB : timeB - timeA;
     }
-    // Fallback to insertion order (ID) if dates are exactly the same
-    return sortDir === 'asc' ? (a.id - b.id) : (b.id - a.id);
+    else if (sortCol === 'supName') {
+      const vA = (a.supName||'').toLowerCase();
+      const vB = (b.supName||'').toLowerCase();
+      if(vA!==vB) return isAsc ? vA.localeCompare(vB) : vB.localeCompare(vA);
+    }
+    else if (sortCol === 'docNum') {
+      const vA = String(a.orderNum||a.txNum||a.num||'');
+      const vB = String(b.orderNum||b.txNum||b.num||'');
+      if(vA!==vB) return isAsc ? vA.localeCompare(vB) : vB.localeCompare(vA);
+    }
+    else if (sortCol === 'sumBase') {
+      const vA = Number(a.orderAmt||a.txAmt||a.amt||0);
+      const vB = Number(b.orderAmt||b.txAmt||b.amt||0);
+      if(vA!==vB) return isAsc ? vA - vB : vB - vA;
+    }
+    else if (sortCol === 'status') {
+      const vA = _migrateInvStatus(a.status);
+      const vB = _migrateInvStatus(b.status);
+      if(vA!==vB) return isAsc ? vA.localeCompare(vB) : vB.localeCompare(vA);
+    }
+    else if (sortCol === 'orderDesc') {
+      const vA = (a.orderDesc||'').toLowerCase();
+      const vB = (b.orderDesc||'').toLowerCase();
+      if(vA!==vB) return isAsc ? vA.localeCompare(vB) : vB.localeCompare(vA);
+    }
+    return isAsc ? (a.id - b.id) : (b.id - a.id);
   });
   const fmtAmt = (n, vat, exempt)=>{
     if(!n) return '<span style="color:#ccc">—</span>';
@@ -2269,6 +2298,43 @@ async function _doExportInvXlsx(from='', to='', supF='', typeF='', assignF='', c
   a.click();
   window.showToast('✅ קובץ אקסל הורד בהצלחה');
 }
+
+window.setInvSort = function(col, dirForce) {
+  if (dirForce) {
+    window._invSortCol = col;
+    window._invSortAsc = (dirForce === 'asc');
+  } else {
+    if (window._invSortCol === col) {
+      window._invSortAsc = !window._invSortAsc;
+    } else {
+      window._invSortCol = col;
+      window._invSortAsc = (col === 'date' ? false : true);
+    }
+  }
+  
+  // Update header UI
+  const headers = ['supName', 'docNum', 'orderDesc', 'sumBase', 'status'];
+  headers.forEach(h => {
+    const el = document.getElementById('pi-sort-' + h);
+    if(el) el.innerHTML = '';
+  });
+  if (col !== 'date') {
+    const activeEl = document.getElementById('pi-sort-' + col);
+    if(activeEl) {
+      activeEl.innerHTML = window._invSortAsc ? ' ▲' : ' ▼';
+    }
+  }
+  
+  // Sync the date dropdown if it was a date sort
+  const sel = document.getElementById('pi-sort');
+  if(sel && col === 'date') {
+    sel.value = window._invSortAsc ? 'asc' : 'desc';
+  } else if (sel && col !== 'date') {
+    // maybe disable or just leave it
+  }
+  
+  window.renderInvoices();
+};
 
 window.openSavedSharePointFolder = function() {
   let links = {};
