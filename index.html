@@ -1372,7 +1372,7 @@
               <label
                 style="display:flex;align-items:center;gap:7px;padding:5px 10px;cursor:pointer;border-radius:5px;font-size:.82rem"
                 onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background=''">
-                <input type="checkbox" value="cancelled" class="pi-st-cb" onchange="piStChange()"> ? מבוטל
+                <input type="checkbox" value="cancelled" class="pi-st-cb" onchange="piStChange()"> ❌ מבוטל
               </label>
             </div>
           </div>
@@ -1380,8 +1380,8 @@
           <div class="fg"><label>עד תאריך</label><input type="date" id="pi-to" onchange="renderInvoices()"></div>
           <div class="fg"><label>מיון</label>
             <select id="pi-sort" onchange="renderInvoices()">
-              <option value="desc">חדש ? ישן</option>
-              <option value="asc">ישן ? חדש</option>
+              <option value="desc">מהחדש לישן</option>
+              <option value="asc">מהישן לחדש</option>
             </select>
           </div>
           <div class="mob-btn-row" style="align-items:flex-end;gap:5px">
