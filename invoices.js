@@ -2270,6 +2270,25 @@ async function _doExportInvXlsx(from='', to='', supF='', typeF='', assignF='', c
   window.showToast('✅ קובץ אקסל הורד בהצלחה');
 }
 
+window.openSavedSharePointFolder = function() {
+  let links = {};
+  try { links = JSON.parse(localStorage.getItem('spScannerFolderLinks') || '{}'); } catch(e) {}
+  const keys = Object.keys(links);
+  if (keys.length > 0) {
+    window.open(links[keys[0]], '_blank');
+  } else {
+    _spAlertDialog('לא נמצאה תיקיית SharePoint מקושרת. אנא הפעל את הסורק לפחות פעם אחת כדי לקשר תיקייה.');
+  }
+};
+
+window.runImportAndScan = function() {
+  const input = document.getElementById('pi-import-input-moved');
+  if (input) {
+    window._runScannerAfterImport = true;
+    input.click();
+  }
+};
+
 /**
  * Smart Invoice Importer (Merge/Update Logic)
  */
@@ -2579,10 +2598,20 @@ window.importInvoices = function(input) {
         }
       }
       
+      
       input.value = ""; // Reset input
+
+      if (window._runScannerAfterImport) {
+        window._runScannerAfterImport = false;
+        setTimeout(() => {
+          window.startSharePointScanner();
+        }, 1500);
+      }
+
     } catch (err) {
       console.error("Import error:", err);
       _spAlertDialog("שגיאה בתהליך הייבוא: " + err.message);
+      window._runScannerAfterImport = false;
     }
 };
   reader.readAsArrayBuffer(file);

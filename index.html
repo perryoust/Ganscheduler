@@ -1389,6 +1389,12 @@
             <button class="btn bo bsm" onclick="openInvExportModal()">🚀 יצוא אקסל</button>
             <button id="pi-dup-btn" class="btn" style="background:#7b1fa2;color:#fff" onclick="openDupModal()">🚀 כפילויות</button>
             <button class="btn bg" onclick="openNewInvoice()">🚀 מסמך חדש</button>
+            <div style="width:1px;height:24px;background:#ccc;margin:0 5px"></div>
+            <button class="btn" style="background:#0277bd;color:#fff" onclick="document.getElementById('pi-import-input-moved').click()" title="ייבוא אקסל">📊 ייבוא אקסל</button>
+            <input type="file" id="pi-import-input-moved" accept=".xlsx, .xls" style="display:none" onchange="window.importInvoices(this)">
+            <button class="btn" style="background:#ef6c00;color:#fff" onclick="window.startSharePointScanner()" title="סרוק וקשר קבצים">🔍 סרוק קבצים</button>
+            <button class="btn" style="background:#2e7d32;color:#fff" onclick="window.runImportAndScan()" title="ייבוא וסריקה מרוכזת">⚡ ייבוא + סריקה</button>
+            <button class="btn" style="background:#00838f;color:#fff" onclick="window.openSavedSharePointFolder()" title="פתח תיקיית SharePoint">📂 פתח SharePoint</button>
           </div>
         </div>
         <!-- Advanced filters (collapsed) -->
@@ -2686,18 +2692,6 @@
                   <input type="file" id="bulk-import-input" accept=".xlsx, .xls" style="display:none" onchange="importBulkSchedule(this)">
                 </div>
                 <div id="bulk-import-status" style="margin-top:5px;font-size:.7rem"></div>
-              </div>
-              <div style="background:#fff;padding:10px;border-radius:6px;border:1px solid #b2ebf2">
-                <b style="color:#1565c0">🛒 ייבוא נתוני רכש וחשבוניות (Excel)</b>
-                <div style="font-size:.7rem;margin-bottom:8px;color:#555">ייבוא מרוכז של חשבוניות מס, עסקאות וספקים מקובץ Excel למערכת.</div>
-                <button class="btn bs bsm" onclick="document.getElementById('pi-import-input-moved').click()" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9">📂 בחר קובץ העלאת רכש</button>
-                <input type="file" id="pi-import-input-moved" accept=".xlsx, .xls" style="display:none" onchange="window.importInvoices(this)">
-              </div>
-              <div style="background:#fff;padding:10px;border-radius:6px;border:1px solid #b2ebf2">
-                <b style="color:#e65100">🔗 סורק SharePoint (מקומי)</b>
-                <div style="font-size:.7rem;margin-bottom:8px;color:#555">סריקת תיקיית מחשב מקומית המחוברת ל-SharePoint כדי לשדך קבצי PDF לחשבוניות קיימות.</div>
-                <button class="btn bs bsm" onclick="window.startSharePointScanner()" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80">🔍 הפעל סורק</button>
-                <button class="btn bs bsm" onclick="window.clearScannerLinks()" style="margin-right:8px;background:#ffebee;color:#c62828;border:1px solid #ef9a9a">🧹 אפס חיבורים קיימים</button>
               </div>
             </div>
           </div>
