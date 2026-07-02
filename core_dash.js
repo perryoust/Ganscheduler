@@ -359,6 +359,8 @@ function ST(t){
   if(t==='sched') { if(window.renderSched) window.renderSched(); }
   if(t==='gardens'){ if(window.renderGardens) window.renderGardens(); if(window.refreshMgrDrops) window.refreshMgrDrops(); }
   if(t==='cal'){
+    if(window.setView) window.setView('list');
+    if(window.setListSubView) window.setListSubView('day');
     // Restore nav buttons in case they were hidden by range view
     if(window.calV!=='range'){
       document.querySelectorAll('[onclick*="navCal(-1)"],[onclick*="navCal(1)"]').forEach(b=>b.style.display='');
