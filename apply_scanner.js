@@ -222,7 +222,7 @@ const startIndex = content.indexOf(startStr);
 const endIndex = content.indexOf(endStr);
 
 if (startIndex !== -1 && endIndex !== -1) {
-  content = content.slice(0, startIndex) + replacementScanner + '\\n' + content.slice(endIndex);
+  content = content.slice(0, startIndex) + replacementScanner + '\n' + content.slice(endIndex);
   fs.writeFileSync('invoices.js', content, 'utf8');
   console.log('Successfully patched invoices.js!');
 } else {
