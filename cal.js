@@ -410,7 +410,7 @@ function setRangeSubView(v){
 function setView(v){
   calV=v;
   _rangeSubView='cal';
-  ['day','week','month','list','range'].forEach(x=>{
+  ['week','month','list','range'].forEach(x=>{
     document.querySelectorAll('#vb-' + x + '-desktop, #vb-' + x + '-mobile').forEach(el => {
       el.classList.toggle('active', x === v);
     });
@@ -680,13 +680,7 @@ function renderCal(){
     }
 
     let html='';
-    if(calV==='day'){
-      const ds=window.d2s(calD);
-      (document.getElementById('cal-title')||{}).textContent =`${window.fD(ds)} - יום ${window.dayN(ds)}`;
-      const evs=filterE(f,ds,ds).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
-      if(f.cluster) html=renderClusterDay(evs,ds,f.cluster);
-      else html=renderNormalDay(evs,ds,f);
-    } else if(calV==='week'){
+    if(calV==='week'){
       // Show rolling 5 working days from calD
       let ws=new Date(calD); ws.setHours(0,0,0,0);
       // If on Fri(5) or Sat(6), snap to next Sunday to find first work day
@@ -1421,16 +1415,20 @@ function renderNormalWeek(evs, ws, f){
       let inner='';
       if(de.length){
         de.forEach(ev=>{
+          const isM = !!(ev._isMakeup || ev._makeupFrom || (ev.nt && /השלמה/i.test(ev.nt)));
+          const imported = !!ev._isImported;
+          const bgCol = isM ? '#fff9c4' : imported ? '#f1f5f9' : '#fff';
+          const borderCol = isM ? '#fbc02d' : '#e2e8f0';
           const stC = ev.st==='can'?'st-can':ev.st==='done'?'st-done':ev.st==='nohap'?'st-nohap':ev.st==='post'?'st-post':'';
           inner+=`<div class="pslot ${stC}" style="border-radius:6px; padding:6px 8px; margin:3px 0; font-size:var(--fs-xs);
-            background:#fff; border:1px solid #e2e8f0; border-right:3px solid ${clrObj.solid}; box-shadow:0 1px 2px rgba(0,0,0,0.03); cursor:pointer"
+            background:${bgCol}; border:1px solid ${borderCol}; border-right:3px solid ${clrObj.solid}; box-shadow:0 1px 2px rgba(0,0,0,0.03); cursor:pointer"
             onclick="event.stopPropagation();window.openSP('${ev.id}')">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:4px">
               <div style="flex:1; min-width:0">
-                <div style="font-weight:800; color:var(--c-secondary); font-size:var(--fs-small); line-height:1.2">${window.supBase(ev.a)}</div>
+                <div style="font-weight:800; color:var(--c-secondary); font-size:var(--fs-small); line-height:1.2">${ev.n || window.supBase(ev.a)}</div>
                 ${ev.act ? `<div style="color:var(--c-info); font-size:var(--fs-xs); margin-top:1px">${ev.act}</div>` : ''}
                 ${ev.t ? `<div style="font-size:var(--fs-xs); color:#64748b; margin-top:2px">⏰ ${window.fT(ev.t)}</div>` : ''}
-                ${ev._makeupFrom?`<div style="display:inline-block; background:#e1f5fe; color:#0288d1; border-radius:4px; padding:1px 5px; font-size:0.6rem; font-weight:800; border:1px solid #b3e5fc; margin-top:3px">📅 השלמה</div>`:''}
+                ${isM ? `<div style="display:inline-block; background:#ffe082; color:#b71c1c; border-radius:4px; padding:1px 5px; font-size:0.6rem; font-weight:800; border:1px solid #ffca28; margin-top:3px">📅 השלמה</div>`:''}
               </div>
               <div style="display:flex; flex-direction:column; gap:3px; flex-shrink:0" onclick="event.stopPropagation()">
                 ${window.ui.renderQuickActionBtns(ev)}
@@ -1747,13 +1745,13 @@ function renderMonth(evs,mDate,f){
         // Detailed view
         cellContent = '<div style="margin-top:2px; display:flex; flex-direction:column; gap:1.5px;">';
         dayEvs.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s => {
-          const sup = window.supBase(s.a);
+          const sup = s.n || window.supBase(s.a);
           const act = s.act || (window.supAct ? window.supAct(s.a) : '') || '';
           
           let stColor = '#1565c0';
-          let stBg = 'rgba(0,0,0,0.03)';
+          let stBg = s._isImported ? '#f1f5f9' : 'rgba(0,0,0,0.03)';
           let isCan = false;
-          let isMakeup = !!(s._isMakeup || s._makeupFrom);
+          let isMakeup = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
 
           if (s.st === 'can') {
              stColor = '#c62828'; stBg = '#ffebee'; isCan = true;
@@ -1764,7 +1762,7 @@ function renderMonth(evs,mDate,f){
           } else if (s.st === 'done') {
              stColor = '#2e7d32'; stBg = '#e8f5e9';
           } else if (isMakeup) {
-             stColor = '#0288d1'; stBg = '#e1f5fe';
+             stColor = '#b71c1c'; stBg = '#fff9c4';
           }
 
           cellContent += `<div style="font-size:0.62rem; line-height:1.2; color:${stColor}; border-right:3px solid ${stColor}; padding:3px 5px; margin-bottom:3px; background:${stBg}; border-radius:4px; ${isCan?'text-decoration:line-through;opacity:0.7':''}">

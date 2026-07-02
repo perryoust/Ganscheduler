@@ -136,7 +136,7 @@ window.renderWorkerTasksAdmin = function() {
         </h2>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <button onclick="if(window.loadFromFirebase) { const btn=this; btn.innerText='מסנכרן...'; window.loadFromFirebase(false, true).then(()=>{btn.innerText='🔄 סנכרן נתונים'; window.renderWorkerTasksAdmin();}); } else location.reload();" class="wt-no-print" style="background:#e3f2fd; border:1px solid #90caf9; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="משוך נתונים מהענן כדי לראות מי העובד שסיים את המשימות">🔄 סנכרן נתונים</button>
-          <button onclick="window.wtHardRefresh()" class="wt-no-print" style="background:#ffebee; border:1px solid #ef9a9a; padding:6px 12px; border-radius:20px; cursor:pointer; color:#c62828; font-weight:bold; display:flex; align-items:center; gap:5px;" title="מחיקת הזיכרון המקומי ומשיכה מחדש (עוקף זכרון פנימי)">⚠️ רענון קשיח</button>
+
           <button onclick="window.wtExportWord(window.wtCurrentDate)" class="wt-no-print" style="background:#fff; border:1px solid #ccc; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="ייצוא משימות לקובץ Word">📄 ייצוא ל-Word</button>
           <button onclick="window.wtPrintTasks(window.wtCurrentDate)" class="wt-no-print" style="background:#fff; border:1px solid #ccc; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="הדפס את דף המשימות">🖨️ הדפס משימות</button>
           <div style="position:relative;">
@@ -596,7 +596,7 @@ window.renderWorkerTasksMobile = function() {
         <div style="display:flex; gap:5px;">
           <button onclick="window.wtWorkerAddFreeNote()" style="background:#4caf50; border:1px solid #388e3c; border-radius:20px; padding:4px 12px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;" title="הודעה חופשית">💬 הודעה</button>
           <button onclick="if(window.loadFromFirebase){ const b=this; b.innerText='מרענן...'; window.loadFromFirebase(false,true).then(()=>{b.innerText='🔄 רענן'; window.renderWorkerTasksMobile();}); }else location.reload();" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.5); border-radius:20px; padding:4px 12px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;">🔄 רענן</button>
-          <button onclick="window.wtHardRefresh()" style="background:rgba(255,0,0,0.2); border:1px solid rgba(255,100,100,0.5); border-radius:20px; padding:4px 12px; color:#ffcccc; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;" title="רענון קשיח">⚠️</button>
+
         </div>
       </div>
     `;

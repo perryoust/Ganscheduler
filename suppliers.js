@@ -448,6 +448,17 @@ function openSupModal(name){
   const delBtn = document.getElementById('sum-del-btn');
   if (delBtn) delBtn.style.display = name ? 'inline-flex' : 'none';
   document.getElementById('sum').classList.add('open');
+
+  // Attach auto-save listeners
+  const attachAutoSave = (id) => {
+    const el = document.getElementById(id);
+    if(el) {
+      el.removeEventListener('change', window._supAutoSaveHandler);
+      window._supAutoSaveHandler = () => saveSup(true);
+      el.addEventListener('change', window._supAutoSaveHandler);
+    }
+  };
+  ['su-ph1','su-ph2','su-gov1','su-gov2','su-notes','su-contact','su-email','su-addr','su-moe-tax','su-alias','su-sched-phone','su-is-act','su-is-purch','su-entity-type','su-entity-type-top'].forEach(attachAutoSave);
 }
 function renderSupActsList(name){
   const acts=name?getSupActs(name):[];
@@ -513,14 +524,14 @@ function deleteSup() {
   window.showToast('🗑️ ספק "' + name + '" נמחק');
 }
 
-function saveSup(){
+function saveSup(silent = false){
   const nameEl=document.getElementById('su-name');
   const name=nameEl.value.trim();
   const origName=nameEl.dataset.orig;
-  if(!name){_spAlertDialog('יש להזין שם');return;}
+  if(!name){ if(!silent) _spAlertDialog('יש להזין שם'); return; }
   if(origName&&origName!==name){
-    if(!confirm(`לשנות את שם הספק מ-"${origName}" ל-"${name}"?
-כל השיבוצים יעודכנו אוטומטית.`)) return;
+    if(silent) return; // Do not auto-save if name is being changed (requires prompt)
+    if(!confirm(`לשנות את שם הספק מ-"${origName}" ל-"${name}"?\nכל השיבוצים יעודכנו אוטומטית.`)) return;
     window.SCH.forEach(s=>{if(s.a===origName)s.a=name;});
     if(window.supEx[origName]) window.supEx[name]={...window.supEx[origName]};
     delete window.supEx[origName];
@@ -552,6 +563,10 @@ function saveSup(){
   window.save();window.CM('sum');window.refresh();
   try{ window.renderPurchSuppliers(); }catch(e){}
   try{ renderSup(); }catch(e){}
+  if(silent) {
+    window.showToast('✅ נשמר!');
+    return; // Don't close the modal if auto-saving
+  }
   // If opened from invoice modal, pre-fill the supplier field
   if(window._invPendingNewSup && name){
     window._invPendingNewSup=false;
