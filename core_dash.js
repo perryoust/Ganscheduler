@@ -121,6 +121,9 @@ function updUIStats() {
   const hPairs = window.getEl('h-pairs');
   if(hPairs) hPairs.textContent = (window.pairs || []).length;
   
+  const hSched = window.getEl('h-sched');
+  if(hSched) hSched.textContent = (window.SCH || []).length.toLocaleString();
+
   const hGardens = window.getEl('h-gardens');
   if(hGardens) {
     const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
