@@ -300,7 +300,12 @@ function renderInvoices(){
     else if (sortCol === 'docNum') {
       const vA = String(a.orderNum||a.txNum||a.num||'');
       const vB = String(b.orderNum||b.txNum||b.num||'');
-      if(vA!==vB) return isAsc ? vA.localeCompare(vB) : vB.localeCompare(vA);
+      if(vA!==vB) return isAsc ? vA.localeCompare(vB, undefined, {numeric: true}) : vB.localeCompare(vA, undefined, {numeric: true});
+    }
+    else if (sortCol === 'serialNum') {
+      const vA = String(a.serialNum||'');
+      const vB = String(b.serialNum||'');
+      if(vA!==vB) return isAsc ? vA.localeCompare(vB, undefined, {numeric: true}) : vB.localeCompare(vA, undefined, {numeric: true});
     }
     else if (sortCol === 'sumBase') {
       const vA = Number(a.orderAmt||a.txAmt||a.amt||0);
@@ -357,7 +362,7 @@ function renderInvoices(){
   if (window.isMobileMode()) {
     if(!renderList.length){
       if (mobList) mobList.innerHTML = '<div style="text-align:center;color:#aaa;padding:25px">אין חשבוניות תואמות לסינון</div>';
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#aaa;padding:25px">אין חשבוניות תואמות לסינון</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#aaa;padding:25px">אין חשבוניות תואמות לסינון</td></tr>';
       return;
     }
     if (mobList) {
@@ -367,7 +372,7 @@ function renderInvoices(){
     tbody.innerHTML = '';
   } else {
     if(!list.length){
-      tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:25px">אין חשבוניות תואמות לסינון</td></tr>';
+      tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:#aaa;padding:25px">אין חשבוניות תואמות לסינון</td></tr>';
       if (mobList) mobList.innerHTML = '';
       return;
     }
@@ -404,6 +409,9 @@ function renderInvoices(){
           ${hasTx?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.txNum}</b>${inv.txDate?'<span style="color:#999"> · '+fD(inv.txDate)+'</span>':''} ${mkFileBtn('tx',inv.txNum)}</div>`:''}
           ${hasTax?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">📑</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.num}</b>${inv.date?'<span style="color:#999"> · '+fD(inv.date)+'</span>':''} ${mkFileBtn('tax',inv.num)}</div>`:''}
         </td>
+        <td style="font-size:.75rem;padding:8px;font-weight:600;color:#546e7a">
+          ${inv.serialNum||''}
+        </td>
         <td style="font-size:.75rem;color:#37474f;padding:8px">
           ${inv.orderDesc||''}
           ${inv.orderType?`<div style="font-size:.65rem;color:#1565c0">${{enrichment:'🎨 העשרה',operations:'🔧 תפעול',breakfast:'🍞 ארוחות בוקר',transport:'🚌 נסיעות',other:'📦 אחר'}[inv.orderType]||''}</div>`:''}
@@ -416,10 +424,7 @@ function renderInvoices(){
           ${hasTax?`<div><span style="font-size:.63rem;color:#546e7a">מסמך: </span>${fmtAmt(inv.amt,vat,isExempt)}</div>`:''}
         </td>
         <td style="padding:8px">${statusStepper(inv.status||'active')}</td>
-        <td style="font-size:.72rem;color:#78909c;max-width:120px;padding:8px">
-          ${inv.serialNum ? `<div style="font-weight:600;color:#546e7a;margin-bottom:3px;">מס"ד: ${inv.serialNum}</div>` : ''}
-          ${inv.notes||''}
-        </td>
+        <td style="font-size:.72rem;color:#78909c;max-width:120px;padding:8px">${inv.notes||''}</td>
         <td style="padding:8px;white-space:nowrap" onclick="event.stopPropagation()">
           <button class="btn bsm bo" onclick="openNewInvoice(${inv.id})">✏️</button>
           <button class="btn bsm br" onclick="deleteInvoice(${inv.id})">🗑️</button>
@@ -427,7 +432,7 @@ function renderInvoices(){
       </tr>`;
     }).join('');
     if(isCapped){
-      tbody.innerHTML += `<tr><td colspan="7">${cappedMsg}</td></tr>`;
+      tbody.innerHTML += `<tr><td colspan="8">${cappedMsg}</td></tr>`;
     }
     if (mobList) mobList.innerHTML = '';
   }
