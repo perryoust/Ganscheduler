@@ -574,7 +574,8 @@ function openSupCard(name){
   // Only render activities if supplier has actual schedule entries
   const _hasSchEntries = SCH.some(s=>supBase(s.a)===_sucName);
   if(_hasSchEntries) renderSupCard();
-  document.getElementById('sucard-m').classList.add('open');
+  if (typeof window.OM === 'function') window.OM('sucard-m');
+  else document.getElementById('sucard-m').classList.add('open');
 }
 function sucRefreshInfo(){
   const name=_sucName; // always base name e.g. "חוגות"

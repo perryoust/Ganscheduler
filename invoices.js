@@ -51,8 +51,8 @@ function switchMode(mode){
   if(mode==='act'){
     // Hide all purch panels
     PURCH_TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el) el.style.display='none'; });
-    // If currentTab is 'admin' (ניהול משתמשים), always go to 'dash' — otherwise restore last tab
-    const _targetTab = (typeof window.currentTab!=='undefined' && window.currentTab!=='admin') ? window.currentTab : 'cal';
+    // Force to 'cal' when switching to 'act' mode
+    const _targetTab = 'cal';
     if(typeof window.ST === 'function') window.ST(_targetTab);
   } else {
     // Hide all act panels (use both class removal and display:none to be safe)
@@ -404,7 +404,7 @@ function renderInvoices(){
         <td style="font-size:.75rem;padding:8px;font-weight:600;color:#546e7a">
           ${inv.serialNum||''}
         </td>
-        <td style="min-width:120px;padding:8px;cursor:pointer" onclick="event.stopPropagation(); if(window.openSupCard) window.openSupCard('${(inv.supName||'').replace(/'/g,"\\'")}'); else if(window.openSupModal) window.openSupModal('${(inv.supName||'').replace(/'/g,"\\'")}');">
+        <td style="min-width:120px;padding:8px;cursor:pointer" onclick="event.stopPropagation(); if(window.openSupCard) window.openSupCard('${(inv.supName||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}'); else if(window.openSupModal) window.openSupModal('${(inv.supName||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}');">
           <div style="font-weight:700;color:#1a237e;font-size:.83rem;text-decoration:underline">${inv.supName||''}</div>
           <div style="font-size:.67rem;color:#999;margin-top:2px;text-decoration:none">${(supEx[inv.supName]||{}).entityType||''}</div>
         </td>
@@ -3310,7 +3310,6 @@ window.startSharePointScanner = async function() {
   // ── Step 6.5: Batch alias suggestions — (DISABLED BY USER REQUEST)
   const pending = window._pendingAliasSuggestions || [];
   window._pendingAliasSuggestions = []; // Reset for next run
-  /*
   if (pending.length > 0) {
     await new Promise(resolve => {
       let rowsHtml = '';
@@ -3372,7 +3371,6 @@ window.startSharePointScanner = async function() {
       }, 50);
     });
   }
-  */
 
   // ── Step 7: Export results Excel
   if (window.XLSX) {
