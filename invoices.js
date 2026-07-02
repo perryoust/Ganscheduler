@@ -2389,7 +2389,8 @@ window.runImportAndScan = function() {
 /**
  * Smart Invoice Importer (Merge/Update Logic)
  */
-window.importInvoices = function(input) {
+window.importInvoices = async function(input) {
+  if(await window.asyncConfirm(<b>שים לב:</b><br><br>האם למחוק קודם את כל החשבוניות (וכל הקבצים שקישרת אליהן עד כה) ולייבא את האקסל כרשימה חדשה לגמרי?<br><br>• בחר <b>אישור</b> כדי למחוק הכל לפני הייבוא (מומלץ כדי לנקות טעויות מהעבר, תצטרך לסרוק את התיקייה שוב).<br>• בחר <b>ביטול</b> כדי לעדכן חשבוניות קיימות ולשמור על קבצים מקושרים.)) { window.INVOICES = []; if(window.save) await window.save(true); }
   const file = input.files[0];
   if (!file) return;
 
@@ -2593,7 +2594,7 @@ window.importInvoices = function(input) {
         // 1. Try matching by unique document/order numbers within the same month.
         // 2. Fall back to description + amount + month if no document numbers match.
         const existingIdx = window.INVOICES.findIndex(inv => {
-          const sameSup = String(inv.supName).trim().toLowerCase() === sName.toLowerCase();
+          const sameSup = (window.supBase ? window.supBase(String(inv.supName).trim()) : String(inv.supName).trim()).toLowerCase() === (window.supBase ? window.supBase(sName) : sName).toLowerCase();
           if (!sameSup) return false;
           const sameMonth = String(inv.orderMonth || '').trim() === oMonth;
 
@@ -3208,6 +3209,9 @@ window.startSharePointScanner = async function() {
           const isInvPettyCash = inv.orderNum === 'קופה קטנה' || String(inv.notes||'').includes('קופה קטנה') || String(inv.txNum||'').includes('קופה קטנה') || String(inv.orderDesc||'').includes('קופה קטנה');
           if (isPettyCash && !isInvPettyCash) continue;
           
+          const isInvGett = String(inv.supName||'').toLowerCase().includes('gett') || String(inv.supName||'').includes('גט') || String(inv.notes||'').includes('גט') || String(inv.orderDesc||'').includes('גט');
+          if (isGett && !isInvGett) continue;
+          
           let supplierScore = 0;
           if (inv.supName) {
              const baseName = window.supBase ? window.supBase(inv.supName) : inv.supName;
@@ -3234,6 +3238,14 @@ window.startSharePointScanner = async function() {
                      supplierScore = 20;
                      foundAlias = true;
                    }
+                 }
+               }
+               
+               if (!foundAlias && inv.orderDesc) {
+                 const descWords = String(inv.orderDesc).split(/\s+/).filter(w=>w.length>2 && !['של','עם','על','את'].includes(w));
+                 if (descWords.some(w => file.name.includes(w))) {
+                   supplierScore = 15;
+                   foundAlias = true;
                  }
                }
                
@@ -3293,10 +3305,20 @@ window.startSharePointScanner = async function() {
             const hasPath = !!(existing && existing.path);
             if (hasPath && !globalOverwrite) score -= 500;
             
-            if (score > bestScore) {
-              bestScore = score;
-              bestInvoice = inv;
-              bestType = type;
+            if (isPettyCash) {
+              if (score > 0) {
+                if (!bestInvoice) bestInvoice = [];
+                if (!Array.isArray(bestInvoice)) bestInvoice = [bestInvoice];
+                bestInvoice.push(inv);
+                bestType = type;
+                if (score > bestScore) bestScore = score;
+              }
+            } else {
+              if (score > bestScore) {
+                bestScore = score;
+                bestInvoice = inv;
+                bestType = type;
+              }
             }
           }
         }
@@ -3307,13 +3329,30 @@ window.startSharePointScanner = async function() {
     let matchedType = bestScore > -200 ? bestType : null;
 
     if (matchedInvoice) {
-      if (bestScore < 0) {
-         resultsData.push([file.name, `${matchedInvoice.orderDesc || matchedInvoice.supName}`, bestScore, 'דלג (קישור קיים)']);
-         skippedCount++;
+      if (Array.isArray(matchedInvoice)) {
+         let linkedLines = 0;
+         matchedInvoice.forEach(inv => {
+           if (!inv['file_' + matchedType] || globalOverwrite) {
+             inv['file_' + matchedType] = { path: file.link, origin: 'sp' };
+             matchCount++;
+             linkedLines++;
+           }
+         });
+         if (linkedLines > 0) {
+           resultsData.push([file.name, `קופה קטנה (${matchedInvoice.length} שורות)`, bestScore, 'שויך']);
+         } else {
+           resultsData.push([file.name, `קופה קטנה`, bestScore, 'דלג (קישור קיים)']);
+           skippedCount++;
+         }
       } else {
-         matchedInvoice['file_' + matchedType] = { path: file.link, origin: 'sp' };
-         resultsData.push([file.name, `${matchedInvoice.orderDesc || matchedInvoice.supName} (${matchedType})`, bestScore, 'שויך']);
-         matchCount++;
+        if (bestScore < 0) {
+           resultsData.push([file.name, `${matchedInvoice.orderDesc || matchedInvoice.supName}`, bestScore, 'דלג (קישור קיים)']);
+           skippedCount++;
+        } else {
+           matchedInvoice['file_' + matchedType] = { path: file.link, origin: 'sp' };
+           resultsData.push([file.name, `${matchedInvoice.orderDesc || matchedInvoice.supName} (${matchedType})`, bestScore, 'שויך']);
+           matchCount++;
+        }
       }
     } else {
       resultsData.push([file.name, '---', bestScore, 'לא נמצאה התאמה']);

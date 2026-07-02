@@ -724,6 +724,12 @@ function doMerge(){
     if(!mex.moeTax && ex.moeTax) mex.moeTax=ex.moeTax;
     if(!mex.entityType && ex.entityType) mex.entityType=ex.entityType;
     if(!mex.notes && ex.notes) mex.notes=ex.notes;
+    
+    // Merge keywords and add the old base name as a keyword
+    let kws = new Set(mex.keywords ? mex.keywords.split(',').map(s=>s.trim()).filter(Boolean) : []);
+    if(ex.keywords) ex.keywords.split(',').forEach(k=>kws.add(k.trim()));
+    if(oldBase && oldBase !== mainBase) kws.add(oldBase);
+    mex.keywords = [...kws].filter(Boolean).join(', ');
 
     // 4. Remove old from __c and supEx
     delete window.supEx[old];
