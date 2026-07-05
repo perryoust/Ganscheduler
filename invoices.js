@@ -3179,75 +3179,11 @@ const filesFound = [];
 
         let score = (cleanNumStr.length < 3) ? 10 : 50;
         
-        let supplierMatched = false;
-        const decodedLink = decodeURIComponent(file.link);
         if (inv.supName) {
           const supWords = String(inv.supName).split(/\s+/).filter(w => w.length > 2);
           for (const word of supWords) {
-            if (file.name.includes(word) || decodedLink.includes(word)) {
-              score += 20;
-              supplierMatched = true;
-            }
+            if (file.name.includes(word)) score += 20;
           }
-        }
-        
-        // Month matching check
-        let monthMatched = false;
-        const matchHebName = file.name.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\s*(\d{4})?/) || 
-                             decodedLink.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\s*(\d{4})?/);
-                             
-        if (matchHebName) {
-          const targetMonth = hebMonths.indexOf(matchHebName[1]);
-          if (inv.orderMonth) {
-             const oMonthStr = String(inv.orderMonth);
-             const invMonthMatch = oMonthStr.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)/);
-             if (invMonthMatch) {
-               if (hebMonths.indexOf(invMonthMatch[1]) === targetMonth) {
-                 score += 30;
-                 monthMatched = true;
-               } else {
-                 score -= 30; // Conflicting Hebrew month
-               }
-             } else {
-               // Try numeric month match, looking for the month number anywhere in the date string
-               const mStr1 = "/" + (targetMonth + 1) + "/";
-               const mStr2 = "/" + String(targetMonth + 1).padStart(2, '0') + "/";
-               const mStr3 = (targetMonth + 1) + "/";
-               const mStr4 = String(targetMonth + 1).padStart(2, '0') + "/";
-               const mStr5 = "." + (targetMonth + 1) + ".";
-               const mStr6 = "." + String(targetMonth + 1).padStart(2, '0') + ".";
-               if (oMonthStr.includes(mStr1) || oMonthStr.includes(mStr2) || oMonthStr.startsWith(mStr3) || oMonthStr.startsWith(mStr4) || oMonthStr.includes(mStr5) || oMonthStr.includes(mStr6)) {
-                 score += 30;
-                 monthMatched = true;
-               } else if (oMonthStr.match(/\d/)) {
-                 // Has numbers but not the target month -> conflicting month!
-                 score -= 10; // Light penalty so it doesn't kill 6-digit matches completely, but hurts 5-digit
-               }
-             }
-          }
-        }
-        
-        let hasOtherSupplier = false;
-        if (!supplierMatched && inv.supName) {
-            const otherSups = Array.from(new Set(window.INVOICES.map(i => i.supName).filter(Boolean)));
-            for (const osup of otherSups) {
-                if (osup === inv.supName) continue;
-                const fullSupName = String(osup).trim();
-                if (fullSupName.length > 4 && (file.name.includes(fullSupName) || decodedLink.includes(fullSupName))) {
-                    hasOtherSupplier = true;
-                    break;
-                }
-            }
-        }
-        
-        if (hasOtherSupplier) {
-            score -= 200; // Definitely belongs to another supplier
-        } else if (!supplierMatched && !monthMatched) {
-            if (cleanNumStr.length <= 5) {
-                score -= 60; // Drops score below 0 for common 3-5 digit numbers
-            } else {
-                score -= 20; // 6+ digit numbers are very unique, penalize but keep positive
-            }
         }
         // Override type if filename explicitly declares the document type (even if matched via order number)
         if (file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה') || file.name.includes('קבלה') || file.name.toLowerCase().includes('tx')) {
