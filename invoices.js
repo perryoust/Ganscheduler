@@ -228,7 +228,7 @@ function renderInvoices(){
   const from = document.getElementById('pi-from')?.value||'';
   const to   = document.getElementById('pi-to')?.value||'';
   
-  window._invSortCol = window._invSortCol || 'date';
+  window._invSortCol = window._invSortCol || 'serialNum';
   window._invSortAsc = window._invSortAsc || false;
 
   let list = [...INVOICES];
@@ -282,7 +282,7 @@ function renderInvoices(){
     list = list.filter(i=>parseSortDate(i.orderDate||i.txDate||i.date||'')<=toTime);
   }
   
-  const sortCol = window._invSortCol || 'date';
+  const sortCol = window._invSortCol || 'serialNum';
   const isAsc = window._invSortAsc;
   
   list.sort((a,b)=>{
@@ -3129,6 +3129,7 @@ const filesFound = [];
           });
         }
       } else if (entry.kind === 'directory') {
+        if (/\b(201[0-9]|2020|2021|2022)\b/.test(entry.name)) continue;
         await scanDir(entry, currentPath + '/' + encodeURIComponent(entry.name), cleanBase);
       }
     }
