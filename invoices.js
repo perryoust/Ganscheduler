@@ -3197,15 +3197,9 @@ const filesFound = [];
       
       const potentialMatches = window.INVOICES.filter(inv => {
         let match = false;
-        if (inv.num && String(inv.num).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) {
-           if (numObj.context === 'tax' || numObj.context === 'any') match = true;
-        }
-        if (inv.txNum && String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) {
-           if (numObj.context === 'tx' || numObj.context === 'any') match = true;
-        }
-        if (inv.orderNum && String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) {
-           if (numObj.context === 'order' || numObj.context === 'any') match = true;
-        }
+        if (inv.num && String(inv.num).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) match = true;
+        if (inv.txNum && String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) match = true;
+        if (inv.orderNum && String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) match = true;
         return match;
       });
 
@@ -3213,13 +3207,13 @@ const filesFound = [];
         let type = null;
         let contextBonus = 0;
 
-        if (inv.num && String(inv.num).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr && (numObj.context === 'tax' || numObj.context === 'any')) {
+        if (inv.num && String(inv.num).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) {
            type = 'tax';
            if (numObj.context === 'tax') contextBonus = 100;
-        } else if (inv.txNum && String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr && (numObj.context === 'tx' || numObj.context === 'any')) {
+        } else if (inv.txNum && String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) {
            type = 'tx';
            if (numObj.context === 'tx') contextBonus = 100;
-        } else if (inv.orderNum && String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr && (numObj.context === 'order' || numObj.context === 'any')) {
+        } else if (inv.orderNum && String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) {
            type = 'order';
            if (numObj.context === 'order') contextBonus = 100;
         }
