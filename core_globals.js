@@ -383,14 +383,14 @@ window.spAlert = function(msg) {
       <div class="sp-sys-dialog">
         <div class="sp-sys-dialog-msg">${msg}</div>
         <div class="sp-sys-dialog-btns">
-          <button class="sp-sys-btn sp-sys-btn-ok" id="sp-alert-ok">אישור</button>
+          <button class="sp-sys-btn sp-sys-btn-ok" >אישור</button>
         </div>
       </div>
     `;
     document.body.appendChild(overlay);
     setTimeout(() => overlay.classList.add("show"), 10);
     
-    document.getElementById("sp-alert-ok").onclick = () => {
+    overlay.querySelector(".sp-sys-btn-ok").onclick = () => {
       overlay.classList.remove("show");
       setTimeout(() => { overlay.remove(); resolve(); }, 200);
     };

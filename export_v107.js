@@ -49,7 +49,7 @@ function doMonthlyExport(){
   let gList=window.GARDENS.concat(window._GARDENS_EXTRA||[]);
   if(mode==='city'&&cityFilter)   gList=gList.filter(g=>g.city===cityFilter);
   if(mode==='manager'&&mgrFilter){ const mgrObj=window.managers[mgrFilter]; if(mgrObj?.gardenIds) gList=gList.filter(g=>mgrObj.gardenIds.includes(g.id)); }
-  if(mode==='garden'&&gardenFilter){ gList=gList.filter(g=>g.id===gardenFilter); }
+  if(mode==='garden'){ if(!gardenFilter){ window.spAlert('יש לבחור צהרון מהרשימה'); return; } gList=gList.filter(g=>g.id===gardenFilter); }
 
   // For single-garden mode: always export as one file
   const effectiveSplit = (mode==='garden') ? 'garden' : splitBy;
