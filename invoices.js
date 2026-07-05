@@ -3823,7 +3823,7 @@ window.saveQuickAddRow = async function() {
   }, 100);
 };
 
-ן»¿
+
 // ==========================================
 // AUTO-REFRESH FUNCTIONALITY
 // ==========================================

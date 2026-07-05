@@ -189,7 +189,7 @@ function initDrops(){
       }
     });
   });
-  getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>{
+  getAllSup().filter(s=>window.isActSupplier(s.name)).forEach(s=>{
     const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
     ['dash-sup','s-sup'].forEach(id=>{
       ['', '-desktop', '-mobile'].forEach(suffix => {
@@ -208,7 +208,7 @@ function initDrops(){
       el.innerHTML = firstHtml;
     }
   });
-  getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>{
+  getAllSup().filter(s=>window.isActSupplier(s.name)).forEach(s=>{
     const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
     ['ns-sup','es-sup'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML+=`<option value='${s.name}'>${disp}</option>`;});
   });
@@ -792,7 +792,7 @@ function sucSaveEdit(isAuto = false){
     const el=document.getElementById(id); if(!el) return;
     const cur=el.value;
     el.innerHTML=id==='es-sup'?'<option value="">-- ללא שינוי --</option>':'<option value="">כל הספקים</option>';
-    getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>{
+    getAllSup().filter(s=>window.isActSupplier(s.name)).forEach(s=>{
       const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
       el.innerHTML+=`<option value='${s.name}'>${disp}</option>`;
     });
