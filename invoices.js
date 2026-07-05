@@ -3226,6 +3226,9 @@ const filesFound = [];
         
         let supplierMatched = false;
         let supplierWordsMatched = 0;
+        const supObj = window.SUPPLIERS ? window.SUPPLIERS.find(s => s.name === inv.supName) : null;
+        const keywords = supObj ? supObj.keywords : (inv.keywords || '');
+        
         if (inv.supName) {
           const supWords = String(inv.supName).split(/\s+/).filter(w => w.length > 2);
           for (const word of supWords) {
@@ -3234,6 +3237,19 @@ const filesFound = [];
               supplierMatched = true;
             }
           }
+          if (keywords) {
+             const kwds = keywords.split(',').map(k=>k.trim().toLowerCase()).filter(k=>k);
+             if (kwds.some(k => fullText.includes(k))) {
+                supplierMatched = true;
+                supplierWordsMatched += 2;
+             }
+          }
+          let cleanSup = inv.supName.replace(/["']/g,'').replace(/בעמ/g, '').trim().toLowerCase();
+          if (cleanSup.length > 2 && fullText.includes(cleanSup)) {
+             supplierMatched = true;
+             supplierWordsMatched += 2;
+          }
+          
           score += (supplierWordsMatched * 20);
         }
 
@@ -3248,8 +3264,8 @@ const filesFound = [];
                              
         if (matchHebName) {
           const targetMonth = hebMonths.indexOf(matchHebName[1]);
-          if (inv.orderMonth) {
-             const oMonthStr = String(inv.orderMonth);
+          if (inv.orderMonth || inv.actMonth) {
+             const oMonthStr = String(inv.orderMonth || inv.actMonth);
              const invMonthMatch = oMonthStr.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)/);
              if (invMonthMatch) {
                if (hebMonths.indexOf(invMonthMatch[1]) === targetMonth) {
@@ -3276,9 +3292,9 @@ const filesFound = [];
         }
 
         // Give a slight edge to the type of document mentioned explicitly in the filename
-        if (type === 'tax' && file.name.includes('חשבונית מס')) score += 150;
-        if (type === 'tx' && (file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה') || file.name.includes('דרישת תשלום') || file.name.includes('דרישה'))) score += 150;
-        if (type === 'tx' && file.name.includes('קבלה')) score += 150;
+        if (type === 'tax' && (file.name.includes('׳—׳©׳‘׳•׳ ׳™׳× ׳ž׳¡') || file.name.includes('׳—׳©׳‘׳•׳׳™׳× ׳ž׳¡') || file.name.includes('׳§׳‘׳œ׳”'))) score += 150;
+        if (type === 'tx' && (file.name.includes('׳—׳©׳‘׳•׳Ÿ ׳¢׳¡׳§׳”') || file.name.includes('׳—׳©׳‘׳•׳׳™׳× ׳¢׳¡׳§׳”') || file.name.includes('׳—׳©׳‘׳•׳ ׳™׳× ׳¢׳¡׳§׳”') || file.name.includes('׳“׳¨׳™׳©׳× ׳×׳©׳œ׳•׳ ') || file.name.includes('׳“׳¨׳™׳©׳”') || file.name.includes('׳§׳‘׳œ׳”'))) score += 150;
+
 
         const existing = inv['file_' + type];
         const hasPath = !!(existing && existing.path);
@@ -3379,14 +3395,24 @@ const filesFound = [];
           
           if (inv.date) {
             let invDate = new Date(inv.date);
-            const dStr = String(inv.date);
+            const dStr = String(inv.date).trim();
             if (dStr.includes('/')) {
               const parts = dStr.split('/');
-              if (parts.length === 3) invDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+              if (parts.length === 3) {
+                 if (parts[2].length === 4) {
+                     invDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                     invYear = parseInt(parts[2], 10);
+                 } else if (parts[0].length === 4) {
+                     invYear = parseInt(parts[0], 10);
+                 }
+              }
+            } else if (dStr.length >= 4) {
+               const parsedYear = parseInt(dStr.substring(0,4), 10);
+               if (!isNaN(parsedYear) && parsedYear > 2000) invYear = parsedYear;
             }
             if (!isNaN(invDate.getMonth())) {
               invMonth = invDate.getMonth();
-              invYear = invDate.getFullYear();
+              if (invYear === -1) invYear = invDate.getFullYear();
             }
           }
           if (invMonth === -1) {

@@ -429,11 +429,12 @@ window.spPrompt = function(msg, defaultText = '') {
   return new Promise(resolve => {
     const uid = ++window._spDialogUid;
     const overlay = document.createElement("div");
+    const safeDefault = String(defaultText || '').replace(/"/g, '&quot;');
     overlay.className = "sp-sys-dialog-overlay";
     overlay.innerHTML = `
       <div class="sp-sys-dialog">
         <div class="sp-sys-dialog-msg">${msg}</div>
-        <input type="text" id="sp-prompt-input-${uid}" value="${defaultText}" style="width:100%; padding:8px; margin:10px 0; border:1px solid #ccc; border-radius:4px; font-size:1rem; box-sizing:border-box;">
+        <input type="text" id="sp-prompt-input-${uid}" value="${safeDefault}" style="width:100%; padding:8px; margin:10px 0; border:1px solid #ccc; border-radius:4px; font-size:1rem; box-sizing:border-box;">
         <div class="sp-sys-dialog-btns">
           <button class="sp-sys-btn sp-sys-btn-cancel" id="sp-prompt-cancel-${uid}">ביטול</button>
           <button class="sp-sys-btn sp-sys-btn-ok" id="sp-prompt-ok-${uid}">אישור</button>
