@@ -759,7 +759,7 @@ function td(){return d2s(new Date())}
 function cities(){return[...new Set(GARDENS.map(g=>g.city))].sort()}
 function gardenPair(gid){
   const n=parseInt(gid);
-  if (window._listGroupMode === 'clusters' && typeof window.getClusters === 'function') {
+  if ((window._listGroupMode === 'clusters' || window._dashTab === 'clusters') && typeof window.getClusters === 'function') {
     const cls = window.getClusters();
     const cl = cls.find(c => (c.gardenIds || []).map(x=>parseInt(x)).includes(n));
     if (cl) return { id: cl.id, name: cl.name, ids: cl.gardenIds.map(x=>parseInt(x)) };
