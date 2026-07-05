@@ -3226,8 +3226,8 @@ const filesFound = [];
         
         let supplierMatched = false;
         let supplierWordsMatched = 0;
-        const supObj = window.SUPPLIERS ? window.SUPPLIERS.find(s => s.name === inv.supName) : null;
-        const keywords = supObj ? supObj.keywords : (inv.keywords || '');
+        const exData = window.supEx ? (window.supEx[inv.supName] || window.supEx[window.supBase ? window.supBase(inv.supName) : inv.supName]) : null;
+        const keywords = exData ? exData.keywords : (inv.keywords || '');
         
         if (inv.supName) {
           const supWords = String(inv.supName).split(/\s+/).filter(w => w.length > 2);
