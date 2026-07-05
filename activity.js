@@ -973,9 +973,13 @@ window.openSP = function(id) {
         <div style="display:grid;grid-template-columns:${spPair?'1fr 1fr':'1fr'};gap:8px">
           <div class="fg"><label style="font-size:.7rem;font-weight:700">קבוצות</label><input type="number" id="rr-grp" value="${s.grp||1}" min="1" max="10" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
           <div class="fg"><label style="font-size:.7rem;font-weight:700">⏰ שעה (${g.name})</label><input type="time" id="rr-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
-          ${spPair ? `<div class="fg"><label style="font-size:.7rem;font-weight:700">⏰ שעה (${window.G(spPair.ids.find(id=>Number(id)!==Number(s.g))).name})</label><input type="time" id="rr-time-partner" value="${(partnerInfo.length > 0 && partnerInfo[0].pev) ? partnerInfo[0].pev.t : (s.t||'')}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>` : ''}
+          ${spPair ? spPair.ids.filter(id=>Number(id)!==Number(s.g)).map((pid, idx) => {
+                 let pInfo = partnerInfo.find(pi => Number(pi.g) === Number(pid));
+                 let pTime = (pInfo && pInfo.pev) ? pInfo.pev.t : (s.t||'');
+                 return `<div class="fg"><label style="font-size:.7rem;font-weight:700;display:flex;align-items:center;gap:3px;cursor:pointer" title="הורד סימון כדי לא לשבץ פעילות בגן זה"><input type="checkbox" id="rr-sync-partner-${pid}" checked style="width:13px;height:13px;accent-color:#1a237e;margin:0"> שעה (${window.G(pid).name})</label><input type="time" id="rr-time-partner-${pid}" value="${pTime}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>`;
+            }).join('') : ''}
         </div>
-        ${spPair ? `<label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="rr-sync" style="width:14px;height:14px;accent-color:#1a237e" checked><span style="font-size:.75rem;font-weight:700;color:#1a237e">סנכרן עם גן בן-זוג באותם ימים ושעות</span></label>` : ''}
+        ${spPair ? `<label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="rr-sync" style="width:14px;height:14px;accent-color:#1a237e" checked><span style="font-size:.75rem;font-weight:700;color:#1a237e">${spPair.ids.length > 2 ? 'סנכרן לכל האשכול באותם ימים ושעות' : 'סנכרן עם גן בן-זוג באותם ימים ושעות'}</span></label>` : ''}
         <div style="display:flex;gap:6px;margin-top:6px">
           <button class="btn bp" style="flex:1;padding:8px;font-weight:800;font-size:.85rem" onclick="window.saveReplaceRecur('${s.id}')">💾 שמור שינויים והחל סדרה קבועה</button>
           <button class="btn br" style="flex:1;padding:8px;font-weight:800;font-size:.85rem;background:#ffebee;border:1px solid #ef9a9a;color:#c62828" onclick="window.deleteRecurSeries('${s.id}')">ביטול פעילות (עתידי) מתאריך זה והלאה</button>
@@ -1526,8 +1530,8 @@ function saveReplaceRecur(id) {
               pair.ids.forEach((pid, idx) => {
                 if (Number(pid) !== Number(s.g)) {
                   // Keep partner time if possible, otherwise use main time
-                  window.SCH.push({
-                    id: eid + (idx+1)*5000, g: pid, d: ds, a: sup, act: act, t: partnerTime, st: 'ok',
+                    let specificPartnerTime = partnerTime; const specificInput = document.getElementById('rr-time-partner-' + pid); if (specificInput) specificPartnerTime = specificInput.value; window.SCH.push({
+                      id: eid + (idx+1)*5000, g: pid, d: ds, a: sup, act: act, t: specificPartnerTime, st: 'ok',
                     nt: '', _recId: newRecId, grp: newGrp || s.grp || 1
                   });
                 }
