@@ -1530,7 +1530,13 @@ function saveReplaceRecur(id) {
               pair.ids.forEach((pid, idx) => {
                 if (Number(pid) !== Number(s.g)) {
                   // Keep partner time if possible, otherwise use main time
-                    let specificPartnerTime = partnerTime; const specificInput = document.getElementById('rr-time-partner-' + pid); if (specificInput) specificPartnerTime = specificInput.value; window.SCH.push({
+                    const syncBox = document.getElementById('rr-sync-partner-' + pid);
+                    if (syncBox && !syncBox.checked) return; // Skip this partner!
+                    let specificPartnerTime = partnerTime;
+                    const specificInput = document.getElementById('rr-time-partner-' + pid);
+                    if (specificInput) specificPartnerTime = specificInput.value;
+                    console.log('PID:', pid, 'SyncBox:', !!syncBox, 'InputFound:', !!specificInput, 'Time:', specificPartnerTime);
+                    window.SCH.push({
                       id: eid + (idx+1)*5000, g: pid, d: ds, a: sup, act: act, t: specificPartnerTime, st: 'ok',
                     nt: '', _recId: newRecId, grp: newGrp || s.grp || 1
                   });
