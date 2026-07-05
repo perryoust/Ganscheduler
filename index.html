@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html dir="rtl" lang="he">
 
 <head>
@@ -1396,10 +1396,10 @@
             <button id="pi-dup-btn" class="btn" style="background:#7b1fa2;color:#fff" onclick="openDupModal()">🚀 כפילויות</button>
             <button class="btn bg" onclick="openNewInvoice()">🚀 מסמך חדש</button>
             <div style="width:1px;height:24px;background:#ccc;margin:0 5px"></div>
-            <button class="btn" style="background:#0277bd;color:#fff" onclick="document.getElementById('pi-import-input-moved').click()" title="ייבוא אקסל">📊 ייבוא אקסל</button>
+            <button class="btn" style="background:#0277bd;color:#fff" onclick="window.importInvoices()" title="ייבוא אקסל">📊 ייבוא אקסל</button>
             <input type="file" id="pi-import-input-moved" accept=".xlsx, .xls" style="display:none" onchange="window.importInvoices(this)">
             <button class="btn" style="background:#ef6c00;color:#fff" onclick="window.startSharePointScanner()" title="סרוק וקשר קבצים">🔍 סרוק קבצים</button>
-            <button class="btn" style="background:#2e7d32;color:#fff" onclick="window.runImportAndScan()" title="ייבוא וסריקה מרוכזת">⚡ ייבוא + סריקה</button>
+            <button class="btn" style="background:#2e7d32;color:#fff" onclick="window.autoRefreshPurchasing()" title="רענון אוטומטי מלא (אקסל ותיקיות) על סמך שמירות קודמות">⚡ רענון אוטומטי</button>
             <button class="btn" style="background:#00838f;color:#fff" onclick="window.openSavedSharePointFolder()" title="פתח תיקיית SharePoint">📂 פתח SharePoint</button>
           </div>
         </div>
@@ -3547,4 +3547,5 @@
     </div>
 </body>
 </html>
+
 

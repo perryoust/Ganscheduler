@@ -2390,11 +2390,28 @@ window.runImportAndScan = function() {
  * Smart Invoice Importer (Merge/Update Logic)
  */
 window.importInvoices = async function(input) {
-  if(await window.asyncConfirm(`<b>שים לב:</b><br><br>האם למחוק קודם את כל החשבוניות (וכל הקבצים שקישרת אליהן עד כה) ולייבא את האקסל כרשימה חדשה לגמרי?<br><br>• בחר <b>אישור</b> כדי למחוק הכל לפני הייבוא (מומלץ כדי לנקות טעויות מהעבר, תצטרך לסרוק את התיקייה שוב).<br>• בחר <b>ביטול</b> כדי לעדכן חשבוניות קיימות ולשמור על קבצים מקושרים.`)) { window.INVOICES = []; if(window.save) await window.save(true); }
-  const file = input.files[0];
-  if (!file) return;
-
-  if (typeof window.XLSX === "undefined") {
+    if(await window.asyncConfirm(`<b>שים לב:</b><br><br>האם למחוק קודם את כל החשבוניות (וכל הקבצים שקישרת אליהן עד כה) ולייבא את האקסל כרשימה חדשה לגמרי?<br><br>• בחר <b>אישור</b> כדי למחוק הכל לפני הייבוא (מומלץ כדי לנקות טעויות מהעבר, תצטרך לסרוק את התיקייה שוב).<br>• בחר <b>ביטול</b> כדי לעדכן חשבוניות קיימות ולשמור על קבצים מקושרים.`)) { window.INVOICES = []; if(window.save) await window.save(true); }
+    
+    let file;
+    if (!input) {
+      if (window.showOpenFilePicker) {
+        try {
+          const [fileHandle] = await window.showOpenFilePicker({
+            types: [{ description: 'Excel Files', accept: {'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel': ['.xls']} }]
+          });
+          if (window._spIdbSet) await window._spIdbSet('invExcelFileHandle', fileHandle);
+          file = await fileHandle.getFile();
+        } catch(e) { return; }
+      } else {
+        document.getElementById('pi-import-input-moved').click();
+        return;
+      }
+    } else {
+      file = input.files ? input.files[0] : null;
+      if (!file) return;
+    }
+  
+    if (typeof window.XLSX === "undefined") {
     _spAlertDialog("שגיאה: ספריית XLSX לא נטענה. אנא רענן את הדף.");
     return;
   }
@@ -3050,6 +3067,7 @@ window.startSharePointScanner = async function() {
   let dirHandle;
   try {
     dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+      if (window._spIdbSet) await window._spIdbSet('invDirHandle1', dirHandle);
   } catch (e) {
     if (e.name !== 'AbortError') await _spAlertDialog('❌ שגיאה בבחירת תיקייה:\n' + e.message);
     return;
@@ -3084,7 +3102,11 @@ window.startSharePointScanner = async function() {
 
   // ── Step 4: Scan all selected folders
   window.showToast('⏳ סורק קבצים... נא להמתין', 60000);
-  const filesFound = [];
+  await window._runCoreScanner(selectedFolders);
+}
+
+window._runCoreScanner = async function(selectedFolders) {
+const filesFound = [];
 
   async function scanDir(handle, currentPath, cleanBase) {
     for await (const entry of handle.values()) {
@@ -3452,7 +3474,9 @@ window.startSharePointScanner = async function() {
     (skippedCount ? `⏭️ <b>דולגו</b> (קישור קיים ולא נדרס): ${skippedCount}\n` : '') +
     `\n<span style="color:#1565c0">כעת תוכל ללחוץ על סמל ה-📎 ליד כל מסמך כדי לפתוח אותו ישירות ב-SharePoint.</span>`
   );
-};
+}
+
+;
 
 
 // ==========================================
@@ -3680,3 +3704,5 @@ window.saveQuickAddRow = async function() {
     if (nextInput) nextInput.focus();
   }, 100);
 };
+
+﻿
