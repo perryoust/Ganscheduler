@@ -3199,7 +3199,8 @@ const filesFound = [];
         if (matchHebName) {
           const targetMonth = hebMonths.indexOf(matchHebName[1]);
           if (inv.orderMonth) {
-             const invMonthMatch = inv.orderMonth.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)/);
+             const oMonthStr = String(inv.orderMonth);
+             const invMonthMatch = oMonthStr.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)/);
              if (invMonthMatch) {
                if (hebMonths.indexOf(invMonthMatch[1]) === targetMonth) {
                  score += 30;
@@ -3215,10 +3216,10 @@ const filesFound = [];
                const mStr4 = String(targetMonth + 1).padStart(2, '0') + "/";
                const mStr5 = "." + (targetMonth + 1) + ".";
                const mStr6 = "." + String(targetMonth + 1).padStart(2, '0') + ".";
-               if (inv.orderMonth.includes(mStr1) || inv.orderMonth.includes(mStr2) || inv.orderMonth.startsWith(mStr3) || inv.orderMonth.startsWith(mStr4) || inv.orderMonth.includes(mStr5) || inv.orderMonth.includes(mStr6)) {
+               if (oMonthStr.includes(mStr1) || oMonthStr.includes(mStr2) || oMonthStr.startsWith(mStr3) || oMonthStr.startsWith(mStr4) || oMonthStr.includes(mStr5) || oMonthStr.includes(mStr6)) {
                  score += 30;
                  monthMatched = true;
-               } else if (inv.orderMonth.match(/\d/)) {
+               } else if (oMonthStr.match(/\d/)) {
                  // Has numbers but not the target month -> conflicting month!
                  score -= 10; // Light penalty so it doesn't kill 6-digit matches completely, but hurts 5-digit
                }
