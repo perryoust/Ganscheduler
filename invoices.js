@@ -2389,8 +2389,8 @@ window.runImportAndScan = function() {
 /**
  * Smart Invoice Importer (Merge/Update Logic)
  */
-window.importInvoices = async function(input) {
-    if(await window.asyncConfirm(`<b>שים לב:</b><br><br>האם למחוק קודם את כל החשבוניות (וכל הקבצים שקישרת אליהן עד כה) ולייבא את האקסל כרשימה חדשה לגמרי?<br><br>• בחר <b>אישור</b> כדי למחוק הכל לפני הייבוא (מומלץ כדי לנקות טעויות מהעבר, תצטרך לסרוק את התיקייה שוב).<br>• בחר <b>ביטול</b> כדי לעדכן חשבוניות קיימות ולשמור על קבצים מקושרים.`)) { window.INVOICES = []; if(window.save) await window.save(true); }
+window.importInvoices = async function(input, skipConfirm) {
+    if(!skipConfirm && await window.asyncConfirm(`<b>שים לב:</b><br><br>האם למחוק קודם את כל החשבוניות (וכל הקבצים שקישרת אליהן עד כה) ולייבא את האקסל כרשימה חדשה לגמרי?<br><br>• בחר <b>אישור</b> כדי למחוק הכל לפני הייבוא (מומלץ כדי לנקות טעויות מהעבר, תצטרך לסרוק את התיקייה שוב).<br>• בחר <b>ביטול</b> כדי לעדכן חשבוניות קיימות ולשמור על קבצים מקושרים.`)) { window.INVOICES = []; if(window.save) await window.save(true); }
     
     let file;
     if (!input) {
@@ -2434,6 +2434,7 @@ window.importInvoices = async function(input) {
       // Dynamically find the real header row
       let headerRowIndex = 0;
       let isComplexFormat = false;
+      let headerStrs = [];
       for (let i = 0; i < Math.min(10, rawRows.length); i++) {
         if (!rawRows[i]) continue;
         const rowCells = rawRows[i].filter(c => c !== null && c !== undefined && c !== '').length;
@@ -2444,7 +2445,7 @@ window.importInvoices = async function(input) {
         
         if (rowCells > 5 && hasSupplier && hasDate && hasDescOrNum) {
           headerRowIndex = i;
-          const headerStrs = rowStrs;
+          headerStrs = rowStrs;
           if (headerStrs.filter(x => x === 'הערות').length > 1 || headerStrs.filter(x => x.includes('מע"מ')).length > 2) {
             isComplexFormat = true;
           }
@@ -2491,44 +2492,47 @@ window.importInvoices = async function(input) {
       let added = 0;
       let updated = 0;
 
+      // Build colMapping once before the loop (for complex format)
+      let colMapping = null;
+      if (isComplexFormat) {
+        colMapping = [
+          "serialNum", // 0: מס"ד
+          "orderNum", // 1
+          "orderDate", // 2
+          "supName", // 3
+          "orderDesc", // 4
+          "orderType", // 5
+          "orderAssign", // 6
+          "orderMonth", // 7
+          "locCity", // 8
+          "locType", // 9
+          "locName", // 10
+          "orderTotal", // 11
+          "orderNotes", // 12
+          "txNum", // 13
+          "txDate", // 14
+          "txAmt", // 15
+          "txTotal", // 16
+          "num", // 17
+          "date", // 18
+          "amt", // 19
+          "total", // 20
+          "notes" // 21
+        ];
+        
+        const serialIdx = headerStrs.findIndex(x => x && (x.includes('מס"ד') || x.includes("מס''ד") || x.includes("מס'ד") || x.includes("מסד") || x.includes("מסד")));
+        if (serialIdx !== -1 && serialIdx !== 0) {
+           colMapping[0] = null;
+           colMapping[serialIdx] = "serialNum";
+        }
+      }
+
       for (let i = headerRowIndex + 1; i < rawRows.length; i++) {
         const row = rawRows[i];
         if (!row || row.length === 0) continue;
 
         const item = {};
-        if (isComplexFormat) {
-          // Precise index-based mapping for two-row Excel format to avoid identical name conflicts
-          const colMapping = [
-            "serialNum", // 0: מס"ד
-            "orderNum", // 1
-            "orderDate", // 2
-            "supName", // 3
-            "orderDesc", // 4
-            "orderType", // 5
-            "orderAssign", // 6
-            "orderMonth", // 7
-            "locCity", // 8
-            "locType", // 9
-            "locName", // 10
-            "orderTotal", // 11
-            "orderNotes", // 12
-            "txNum", // 13
-            "txDate", // 14
-            "txAmt", // 15
-            "txTotal", // 16
-            "num", // 17
-            "date", // 18
-            "amt", // 19
-            "total", // 20
-            "notes" // 21
-          ];
-          
-          const serialIdx = headerStrs.findIndex(x => x && (x.includes('מס"ד') || x.includes("מס''ד") || x.includes("מס'ד") || x.includes("מסד") || x.includes("מסד")));
-          if (serialIdx !== -1 && serialIdx !== 0) {
-             colMapping[0] = null;
-             colMapping[serialIdx] = "serialNum";
-          }
-
+        if (isComplexFormat && colMapping) {
           colMapping.forEach((key, colIdx) => {
             if (key) item[key] = row[colIdx];
           });
@@ -2737,7 +2741,7 @@ window.importInvoices = async function(input) {
       }
       
       
-      input.value = ""; // Reset input
+      if (input && input.value !== undefined) input.value = ""; // Reset input
 
       if (window._runScannerAfterImport) {
         window._runScannerAfterImport = false;
@@ -3792,7 +3796,7 @@ window.autoRefreshPurchasing = async function() {
   // We need to pass input=null to our hijacked importInvoices, but wait, our hijacked importInvoices 
   // reads input.files[0]. We can just invoke import logic directly or mock the input object.
   const mockInput = { files: [file] };
-  await window.importInvoices(mockInput);
+  await window.importInvoices(mockInput, true); // skipConfirm = true for auto-refresh
   
   // Wait for import to complete (importInvoices handles rendering and saving implicitly)
   // Give it a couple of seconds to process the excel file before starting the scanner.
