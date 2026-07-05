@@ -3721,6 +3721,7 @@ window.saveQuickAddRow = async function() {
 // AUTO-REFRESH FUNCTIONALITY
 // ==========================================
 
+
 window._spIdbSet = function(key, val) {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open('GanschedulerDB', 1);
@@ -3766,28 +3767,28 @@ window._spIdbGet = function(key) {
 
 window.autoRefreshPurchasing = async function() {
   if (!window.showOpenFilePicker || !window.showDirectoryPicker) {
-    _spAlertDialog('׳”׳“׳₪׳“׳₪׳ ׳©׳׳ ׳׳™׳ ׳• ׳×׳•׳׳ ׳‘׳’׳™׳©׳” ׳™׳©׳™׳¨׳” ׳׳§׳‘׳¦׳™׳ (File System Access API). ׳׳ ׳ ׳”׳©׳×׳׳© ׳‘׳™׳™׳‘׳•׳ ׳¨׳’׳™׳.');
+    _spAlertDialog('הדפדפן שלך אינו תומך בגישה ישירה לקבצים (File System Access API). אנא השתמש בייבוא רגיל.');
     return;
   }
 
-  window.showToast('ג³ ׳׳×׳—׳™׳ ׳¨׳¢׳ ׳•׳ ׳׳•׳˜׳•׳׳˜׳™. ׳׳׳×׳™׳ ׳׳׳™׳©׳•׳¨׳™ ׳”׳¨׳©׳׳•׳×...', 60000);
+  window.showToast('⏳ מתחיל רענון אוטומטי. ממתין לאישורי הרשאות...', 60000);
 
   // 1. Re-import Excel
   const fileHandle = await window._spIdbGet('invExcelFileHandle');
   if (!fileHandle) {
-    _spAlertDialog('׳׳ ׳ ׳׳¦׳ ׳§׳•׳‘׳¥ ׳׳§׳¡׳ ׳©׳׳•׳¨ ׳‘׳–׳™׳›׳¨׳•׳.\n׳׳ ׳ ׳‘׳¦׳¢ "׳™׳™׳‘׳•׳ ׳׳§׳¡׳" ׳₪׳¢׳ ׳׳—׳× ׳׳₪׳—׳•׳×, ׳‘׳—׳¨ ׳׳× ׳”׳§׳•׳‘׳¥ ׳•׳׳׳—׳¨ ׳׳›׳ ׳×׳•׳›׳ ׳׳¨׳¢׳ ׳ ׳׳•׳˜׳•׳׳˜׳™׳×.');
+    _spAlertDialog('לא נמצא קובץ אקסל שמור בזיכרון.\nאנא בצע "ייבוא אקסל" פעם אחת לפחות, בחר את הקובץ ולאחר מכן תוכל לרענן אוטומטית.');
     return;
   }
 
   // Request permission if needed
   if ((await fileHandle.queryPermission({ mode: 'read' })) !== 'granted') {
     if ((await fileHandle.requestPermission({ mode: 'read' })) !== 'granted') {
-      window.showToast('ג ׳׳™׳ ׳”׳¨׳©׳׳” ׳׳§׳¨׳•׳ ׳׳× ׳§׳•׳‘׳¥ ׳”׳׳§׳¡׳.');
+      window.showToast('❌ אין הרשאה לקרוא את קובץ האקסל.');
       return;
     }
   }
 
-  window.showToast('נ“ ׳׳™׳™׳‘׳ ׳׳§׳¡׳...', 60000);
+  window.showToast('📊 מייבא אקסל...', 60000);
   
   // Clean invoices to do a fresh import just like clicking OK on standard import
   window.INVOICES = [];
@@ -3806,7 +3807,7 @@ window.autoRefreshPurchasing = async function() {
     const dirHandle2 = await window._spIdbGet('invDirHandle2');
     
     if (!dirHandle1 && !dirHandle2) {
-      window.showToast('ג… ׳׳§׳¡׳ ׳™׳•׳‘׳ ׳‘׳”׳¦׳׳—׳”. ׳׳ ׳”׳•׳’׳“׳¨׳• ׳×׳™׳§׳™׳•׳× ׳׳¡׳¨׳™׳§׳” ׳‘׳–׳™׳›׳¨׳•׳, ׳”׳×׳”׳׳™׳ ׳”׳•׳©׳׳.', 5000);
+      window.showToast('✅ אקסל יובא בהצלחה. לא הוגדרו תיקיות לסריקה בזיכרון, התהליך הושלם.', 5000);
       return;
     }
 
@@ -3837,16 +3838,15 @@ window.autoRefreshPurchasing = async function() {
     }
 
     if (selectedFolders.length === 0) {
-      window.showToast('ג… ׳™׳™׳‘׳•׳ ׳׳§׳¡׳ ׳”׳¡׳×׳™׳™׳. ׳׳™׳ ׳”׳¨׳©׳׳•׳× ׳׳×׳™׳§׳™׳•׳×.');
+      window.showToast('✅ ייבוא אקסל הסתיים. אין הרשאות לתיקיות.');
       return;
     }
 
-    window.showToast('ג³ ׳¡׳•׳¨׳§ ׳×׳™׳§׳™׳•׳×...', 60000);
+    window.showToast('⏳ סורק תיקיות...', 60000);
     if (typeof window._runCoreScanner === 'function') {
       await window._runCoreScanner(selectedFolders);
     } else {
-      _spAlertDialog("׳©׳’׳™׳׳”: ׳₪׳•׳ ׳§׳¦׳™׳™׳× ׳”׳¡׳¨׳™׳§׳” ׳”׳₪׳ ׳™׳׳™׳× ׳׳ ׳§׳™׳™׳׳×.");
+      _spAlertDialog("שגיאה: פונקציית הסריקה הפנימית לא קיימת.");
     }
   }, 2000);
 };
-
