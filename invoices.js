@@ -3168,10 +3168,10 @@ const filesFound = [];
     const taxMatch = fullText.match(/(?:חשבונית\s*מס|חשבונית|tax)[^\d]*(\d{3,})/gi);
     if (taxMatch) taxMatch.forEach(m => { const d = m.match(/\d+/); if(d) addNum(d[0], 'tax'); });
 
-    const txMatch = fullText.match(/(?:חשבונית\s*עסקה|חשבון\s*עסקה|קבלה|tx)[^\d]*(\d{3,})/gi);
+    const txMatch = fullText.match(/(?:חשבונית\s*עסקה|חשבון\s*עסקה|דרישה|דרישת\s*תשלום|קבלה|tx)[^\d]*(\d{3,})/gi);
     if (txMatch) txMatch.forEach(m => { const d = m.match(/\d+/); if(d) addNum(d[0], 'tx'); });
 
-    const orderMatch = fullText.match(/(?:הזמנה|הזמנת\s*רכש|דרישה|דרישת\s*תשלום)[^\d]*(\d{3,})/gi);
+    const orderMatch = fullText.match(/(?:הזמנה|הזמנת\s*רכש)[^\d]*(\d{3,})/gi);
     if (orderMatch) orderMatch.forEach(m => { const d = m.match(/\d+/); if(d) addNum(d[0], 'order'); });
 
     const tenDigitMatch = fullText.match(/\b(\d{10})\b/g);
@@ -3276,7 +3276,7 @@ const filesFound = [];
 
         // Give a slight edge to the type of document mentioned explicitly in the filename
         if (type === 'tax' && file.name.includes('חשבונית מס')) score += 150;
-        if (type === 'tx' && (file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה'))) score += 150;
+        if (type === 'tx' && (file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה') || file.name.includes('דרישת תשלום') || file.name.includes('דרישה'))) score += 150;
         if (type === 'tx' && file.name.includes('קבלה')) score += 150;
 
         const existing = inv['file_' + type];
