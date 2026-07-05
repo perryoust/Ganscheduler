@@ -3166,10 +3166,10 @@ const filesFound = [];
       }
     };
 
-    const taxMatch = fullText.match(/(?:חשבונית\s*מס|חשבונית|tax)[^\d]*(\d{3,})/gi);
+    const taxMatch = fullText.match(/(?:חשבונית\s*מס|חשבונית|קבלה|tax)[^\d]*(\d{3,})/gi);
     if (taxMatch) taxMatch.forEach(m => { const d = m.match(/\d+/); if(d) addNum(d[0], 'tax'); });
 
-    const txMatch = fullText.match(/(?:חשבונית\s*עסקה|חשבון\s*עסקה|דרישה|דרישת\s*תשלום|קבלה|tx)[^\d]*(\d{3,})/gi);
+    const txMatch = fullText.match(/(?:חשבונית\s*עסקה|חשבון\s*עסקה|דרישה|דרישת\s*תשלום|tx)[^\d]*(\d{3,})/gi);
     if (txMatch) txMatch.forEach(m => { const d = m.match(/\d+/); if(d) addNum(d[0], 'tx'); });
 
     const orderMatch = fullText.match(/(?:הזמנה|הזמנת\s*רכש)[^\d]*(\d{3,})/gi);
@@ -3210,13 +3210,13 @@ const filesFound = [];
 
         if (inv.num && String(inv.num).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) {
            type = 'tax';
-           if (numObj.context === 'tax') contextBonus = 100;
+           if (numObj.context === 'tax') contextBonus = 50;
         } else if (inv.txNum && String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) {
            type = 'tx';
-           if (numObj.context === 'tx') contextBonus = 100;
+           if (numObj.context === 'tx') contextBonus = 50;
         } else if (inv.orderNum && String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) {
            type = 'order';
-           if (numObj.context === 'order') contextBonus = 100;
+           if (numObj.context === 'order') contextBonus = 50;
         }
 
         if (!type) continue;
@@ -3250,7 +3250,7 @@ const filesFound = [];
              supplierWordsMatched += 2;
           }
           
-          score += (supplierWordsMatched * 20);
+          score += (supplierWordsMatched * 100);
         }
 
         // If it is a generic number, penalize heavily if supplier doesn't match
@@ -3292,8 +3292,8 @@ const filesFound = [];
         }
 
         // Give a slight edge to the type of document mentioned explicitly in the filename
-        if (type === 'tax' && (file.name.includes('׳—׳©׳‘׳•׳ ׳™׳× ׳ž׳¡') || file.name.includes('׳—׳©׳‘׳•׳׳™׳× ׳ž׳¡') || file.name.includes('׳§׳‘׳œ׳”'))) score += 150;
-        if (type === 'tx' && (file.name.includes('׳—׳©׳‘׳•׳Ÿ ׳¢׳¡׳§׳”') || file.name.includes('׳—׳©׳‘׳•׳׳™׳× ׳¢׳¡׳§׳”') || file.name.includes('׳—׳©׳‘׳•׳ ׳™׳× ׳¢׳¡׳§׳”') || file.name.includes('׳“׳¨׳™׳©׳× ׳×׳©׳œ׳•׳ ') || file.name.includes('׳“׳¨׳™׳©׳”') || file.name.includes('׳§׳‘׳œ׳”'))) score += 150;
+        if (type === 'tax' && (file.name.includes('׳—׳©׳‘׳•׳ ׳™׳× ׳ž׳¡') || file.name.includes('׳—׳©׳‘׳•׳׳™׳× ׳ž׳¡') || file.name.includes('׳§׳‘׳œ׳”'))) score += 100;
+        if (type === 'tx' && (file.name.includes('׳—׳©׳‘׳•׳Ÿ ׳¢׳¡׳§׳”') || file.name.includes('׳—׳©׳‘׳•׳׳™׳× ׳¢׳¡׳§׳”') || file.name.includes('׳—׳©׳‘׳•׳ ׳™׳× ׳¢׳¡׳§׳”') || file.name.includes('׳“׳¨׳™׳©׳× ׳×׳©׳œ׳•׳ ') || file.name.includes('׳“׳¨׳™׳©׳”') || file.name.includes('׳§׳‘׳œ׳”'))) score += 100;
 
 
         const existing = inv['file_' + type];
