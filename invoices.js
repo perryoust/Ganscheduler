@@ -3153,50 +3153,137 @@ const filesFound = [];
   const isYear = (val) => { const num = parseInt(val, 10); return num >= 2020 && num <= 2030; };
 
   for (const file of filesFound) {
-    const numbersInName = file.name.match(/\d+/g) || [];
-    const hasOnlyYearNumbers = numbersInName.filter(n => !isYear(n)).length === 0;
-    const link = file.link;
+    const decodedLink = decodeURIComponent(file.link);
+    const fullText = file.name + ' ' + decodedLink;
+    
+    // Extract numbers with context based on nearby keywords
+    const extractedNumbers = [];
+    const addNum = (str, ctx) => {
+      const clean = str.replace(/\D/g, '').replace(/^0+/, '');
+      if (clean.length >= 2 && !extractedNumbers.some(n => n.clean === clean && n.context === ctx)) {
+        extractedNumbers.push({ raw: str, clean: clean, context: ctx });
+      }
+    };
+
+    const taxMatch = fullText.match(/(?:חשבונית\s*מס|חשבונית|tax)[^\d]*(\d{3,})/gi);
+    if (taxMatch) taxMatch.forEach(m => { const d = m.match(/\d+/); if(d) addNum(d[0], 'tax'); });
+
+    const txMatch = fullText.match(/(?:חשבונית\s*עסקה|חשבון\s*עסקה|קבלה|tx)[^\d]*(\d{3,})/gi);
+    if (txMatch) txMatch.forEach(m => { const d = m.match(/\d+/); if(d) addNum(d[0], 'tx'); });
+
+    const orderMatch = fullText.match(/(?:הזמנה|הזמנת\s*רכש|דרישה|דרישת\s*תשלום)[^\d]*(\d{3,})/gi);
+    if (orderMatch) orderMatch.forEach(m => { const d = m.match(/\d+/); if(d) addNum(d[0], 'order'); });
+
+    const tenDigitMatch = fullText.match(/\b(\d{10})\b/g);
+    if (tenDigitMatch) tenDigitMatch.forEach(m => addNum(m, 'order'));
+
+    const allNums = file.name.match(/\d+/g) || [];
+    allNums.forEach(num => {
+       const clean = num.replace(/\D/g, '').replace(/^0+/, '');
+       if (clean.length >= 2 && !extractedNumbers.some(n => n.clean === clean)) {
+         addNum(num, 'any');
+       }
+    });
+
+    const isYear = (val) => { const num = parseInt(val, 10); return num >= 2020 && num <= 2030; };
+    const hasOnlyYearNumbers = extractedNumbers.filter(n => !isYear(n.clean)).length === 0;
 
     let bestInvoice = null;
     let bestType = null;
     let bestScore = -1000;
 
-    for (const numStr of numbersInName) {
-      if (numStr.length < 2) continue;
+    for (const numObj of extractedNumbers) {
+      const cleanNumStr = numObj.clean;
       
-      const cleanNumStr = numStr.replace(/\D/g, '').replace(/^0+/, '');
-      const potentialMatches = window.INVOICES.filter(inv => 
-        (inv.num && String(inv.num).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) ||
-        (inv.txNum && String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) ||
-        (inv.orderNum && String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr)
-      );
+      const potentialMatches = window.INVOICES.filter(inv => {
+        let match = false;
+        if (inv.num && String(inv.num).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) {
+           if (numObj.context === 'tax' || numObj.context === 'any') match = true;
+        }
+        if (inv.txNum && String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) {
+           if (numObj.context === 'tx' || numObj.context === 'any') match = true;
+        }
+        if (inv.orderNum && String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) {
+           if (numObj.context === 'order' || numObj.context === 'any') match = true;
+        }
+        return match;
+      });
 
       for (const inv of potentialMatches) {
         let type = null;
-        if (inv.num && String(inv.num).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) type = 'tax';
-        else if (inv.txNum && String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) type = 'tx';
-        else if (inv.orderNum && String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) type = 'order';
+        let contextBonus = 0;
+
+        if (inv.num && String(inv.num).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr && (numObj.context === 'tax' || numObj.context === 'any')) {
+           type = 'tax';
+           if (numObj.context === 'tax') contextBonus = 100;
+        } else if (inv.txNum && String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr && (numObj.context === 'tx' || numObj.context === 'any')) {
+           type = 'tx';
+           if (numObj.context === 'tx') contextBonus = 100;
+        } else if (inv.orderNum && String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr && (numObj.context === 'order' || numObj.context === 'any')) {
+           type = 'order';
+           if (numObj.context === 'order') contextBonus = 100;
+        }
+
+        if (!type) continue;
 
         let score = (cleanNumStr.length < 3) ? 10 : 50;
+        score += contextBonus;
         
+        let supplierMatched = false;
+        let supplierWordsMatched = 0;
         if (inv.supName) {
           const supWords = String(inv.supName).split(/\s+/).filter(w => w.length > 2);
           for (const word of supWords) {
-            if (file.name.includes(word)) score += 20;
+            if (file.name.includes(word) || decodedLink.includes(word)) {
+              supplierWordsMatched++;
+              supplierMatched = true;
+            }
           }
-        }
-        // Override type if filename explicitly declares the document type (even if matched via order number)
-        if (file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה') || file.name.includes('קבלה') || file.name.toLowerCase().includes('tx')) {
-          type = 'tx';
-        } else if (file.name.includes('חשבונית') || file.name.includes('חשבונית מס') || file.name.toLowerCase().includes('tax')) {
-          type = 'tax';
-        } else if (file.name.includes('הזמנה') || file.name.includes('דרישה')) {
-          type = 'order';
+          score += (supplierWordsMatched * 20);
         }
 
-        if (type === 'tax' && (file.name.includes('מס') || file.name.toLowerCase().includes('tax'))) score += 5;
-        if (type === 'tx' && (file.name.includes('קבלה') || file.name.toLowerCase().includes('tx'))) score += 5;
-        if (type === 'order' && (file.name.includes('הזמנה') || file.name.includes('דרישה'))) score += 5;
+        // If it is a generic number, penalize heavily if supplier doesn't match
+        if (numObj.context === 'any' && cleanNumStr.length <= 5) {
+            if (!supplierMatched) score -= 200;
+        }
+
+        let monthMatched = false;
+        const hebMonths = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+        const matchHebName = fullText.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\s*(\d{4})?/);
+                             
+        if (matchHebName) {
+          const targetMonth = hebMonths.indexOf(matchHebName[1]);
+          if (inv.orderMonth) {
+             const oMonthStr = String(inv.orderMonth);
+             const invMonthMatch = oMonthStr.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)/);
+             if (invMonthMatch) {
+               if (hebMonths.indexOf(invMonthMatch[1]) === targetMonth) {
+                 score += 30;
+                 monthMatched = true;
+               } else {
+                 if (numObj.context === 'any') score -= 30;
+               }
+             } else {
+               const mStr1 = '/' + (targetMonth + 1) + '/';
+               const mStr2 = '/' + String(targetMonth + 1).padStart(2, '0') + '/';
+               const mStr3 = (targetMonth + 1) + '/';
+               const mStr4 = String(targetMonth + 1).padStart(2, '0') + '/';
+               const mStr5 = '.' + (targetMonth + 1) + '.';
+               const mStr6 = '.' + String(targetMonth + 1).padStart(2, '0') + '.';
+               if (oMonthStr.includes(mStr1) || oMonthStr.includes(mStr2) || oMonthStr.startsWith(mStr3) || oMonthStr.startsWith(mStr4) || oMonthStr.includes(mStr5) || oMonthStr.includes(mStr6)) {
+                 score += 30;
+                 monthMatched = true;
+               } else if (oMonthStr.match(/\d/) && numObj.context === 'any') {
+                 score -= 10;
+               }
+             }
+          }
+        }
+
+        // Give a slight edge to the type of document mentioned explicitly in the filename
+        if (type === 'tax' && file.name.includes('חשבונית מס')) score += 150;
+        if (type === 'tx' && (file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה'))) score += 150;
+        if (type === 'tx' && file.name.includes('קבלה')) score += 150;
 
         const existing = inv['file_' + type];
         const hasPath = !!(existing && existing.path);
