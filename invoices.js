@@ -3897,8 +3897,7 @@ window.autoRefreshPurchasing = async function() {
 
   window.showToast('📊 מייבא אקסל...', 60000);
   
-  // Clean invoices to do a fresh import just like clicking OK on standard import
-  window.INVOICES = [];
+  // Removed window.INVOICES = [] to prevent wiping existing manually attached files and SharePoint links
   
   const file = await fileHandle.getFile();
   // We need to pass input=null to our hijacked importInvoices, but wait, our hijacked importInvoices 
