@@ -3433,9 +3433,9 @@ const filesFound = [];
             else if (inv.num) type = 'tax';
             else if (inv.txNum) type = 'tx';
             
-            if (file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה') || file.name.includes('קבלה') || file.name.toLowerCase().includes('tx')) {
+            if (file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה') || file.name.toLowerCase().includes('tx')) {
               type = 'tx';
-            } else if (file.name.includes('חשבונית') || file.name.includes('חשבונית מס') || file.name.toLowerCase().includes('tax')) {
+            } else if (file.name.includes('חשבונית') || file.name.includes('חשבונית מס') || file.name.includes('קבלה') || file.name.toLowerCase().includes('tax')) {
               type = 'tax';
             } else if (file.name.includes('הזמנה') || file.name.includes('דרישה')) {
               type = 'order';
