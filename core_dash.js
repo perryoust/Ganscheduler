@@ -1,4 +1,4 @@
-﻿
+
 function td(){
   const d = new Date();
   const y = d.getFullYear();
@@ -258,7 +258,7 @@ function navSearchInput(val){
     results.push({
       icon:'🏢',
       label: base,
-      sub: isActSupplier(base)?'ספק חוגים':'ספק',
+      sub: window.isActSupplier(base)?'ספק חוגים':'ספק',
       action: `switchMode('act');ST('sup');setTimeout(()=>openSupCard('${base.replace(/'/g,"\\'")}'),200);navSearchClose();`
     });
   });
@@ -461,8 +461,8 @@ function setSucTab(tab){
 function initSucTabs(){
   const name = _sucName;
   // Determine supplier type based on explicit flags AND actual data
-  const isAct = isActSupplier(name);
-    const isPurch = isPurchSupplier(name);
+  const isAct = window.isActSupplier(name);
+    const isPurch = window.isPurchSupplier(name);
     const btnExpAct = document.getElementById('suc-btn-exp-act');
     const btnExpPurch = document.getElementById('suc-btn-exp-purch');
     if(btnExpAct) btnExpAct.style.display = isAct ? 'inline-flex' : 'none';
@@ -586,15 +586,15 @@ function sucRefreshInfo(){
   const acts2=getSupActs(name);
   (document.getElementById('suc-title')||{}).textContent =name;
   const invCnt = (typeof INVOICES!=='undefined') ? INVOICES.filter(i=>supBase(i.supName||'')===name).length : 0;
-  const isPurch = isPurchSupplier(name);
-  const isAct = isActSupplier(name);
+  const isPurch = window.isPurchSupplier(name);
+  const isAct = window.isActSupplier(name);
   let sub = '';
   if(isAct) sub += `${cnt} פעילויות · ${acts2.length} סוגים`;
   if(isPurch && invCnt>0) sub += (sub?' · ':'')+`${invCnt} מסמכי רכש`;
   (document.getElementById('suc-sub')||{}).textContent = sub||name;
   const typeFlags = [
-    isActSupplier(name)?'<span class="sup-flag sup-flag-act">🎨 ספק חוגים</span>':'<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#fce4ec;color:#c62828">🚫 לא מופיע בחוגים</span>',
-    isPurchSupplier(name)?'<span class="sup-flag sup-flag-purch">🛒 ספק רכש</span>':'',
+    window.isActSupplier(name)?'<span class="sup-flag sup-flag-act">🎨 ספק חוגים</span>':'<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#fce4ec;color:#c62828">🚫 לא מופיע בחוגים</span>',
+    window.isPurchSupplier(name)?'<span class="sup-flag sup-flag-purch">🛒 ספק רכש</span>':'',
     ex.entityType?`<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700;background:#f3e5f5;color:#6a1b9a">🏢 ${ex.entityType}</span>`:''
   ].filter(Boolean).join(' ');
   const typeFlagsEl = document.getElementById('suc-type-flags');
@@ -607,7 +607,7 @@ function sucRefreshInfo(){
       ${ex.moeTax?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">📚 מס' ספק חינוך</div><div style="font-weight:700">${ex.moeTax}</div></div>`:''}
       ${ex.contact?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">👤 איש קשר</div><div style="font-weight:700">${ex.contact}</div></div>`:''}
       ${ex.addr?`<div style="grid-column:1/-1"><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">📍 כתובת</div><div style="font-weight:700">${ex.addr}</div></div>`:''}
-      <div style="grid-column:1/-1;display:${isActSupplier(name)?'block':'none'}">
+      <div style="grid-column:1/-1;display:${window.isActSupplier(name)?'block':'none'}">
         <div style="color:#546e7a;font-size:.69rem;margin-bottom:4px">🎯 סוגי פעילויות</div>
         ${acts.length
           ?acts.map(a=>`<span style="background:#e3f2fd;color:#1565c0;border-radius:12px;padding:2px 9px;font-size:.76rem;font-weight:600;margin-left:4px;margin-bottom:3px;display:inline-block">${a}</span>`).join('')
