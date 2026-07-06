@@ -3336,7 +3336,7 @@ const filesFound = [];
         }
         
         for (const inv of window.INVOICES) {
-          const isInvPettyCash = inv.orderNum === 'קופה קטנה' || String(inv.notes||'').includes('קופה קטנה') || String(inv.txNum||'').includes('קופה קטנה') || String(inv.orderDesc||'').includes('קופה קטנה');
+          const supKws = (window.supEx && window.supEx[inv.supName]) ? window.supEx[inv.supName].keywords || '' : ''; const isInvPettyCash = inv.orderNum === 'קופה קטנה' || String(inv.notes||'').includes('קופה קטנה') || String(inv.txNum||'').includes('קופה קטנה') || String(inv.orderDesc||'').includes('קופה קטנה') || String(inv.supName||'').includes('קופה קטנה') || String(supKws).includes('קופה קטנה');
           if (isPettyCash && !isInvPettyCash) continue;
           
           const isInvGett = String(inv.supName||'').toLowerCase().includes('gett') || String(inv.supName||'').includes('גט') || String(inv.notes||'').includes('גט') || String(inv.orderDesc||'').includes('גט');
