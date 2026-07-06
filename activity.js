@@ -167,27 +167,7 @@ function renderDash() {
       (window.pairs || []).forEach(p => {
         const hasException = dateEvs.some(s => !dateUsedIds.has(String(s.id)) && p.ids.map(Number).includes(Number(s.g)));
         if (hasException) {
-          const allPairEvs = (window.SCH || []).filter(s => {
-            const g = window.G(s.g);
-            if (!g) return false;
-            if (s.d !== date) return false;
-            if (!p.ids.map(Number).includes(Number(s.g))) return false;
-            
-            const gClass = window.gcls ? window.gcls(g) : 'גנים';
-            if (tab === 'g' && gClass !== 'גנים') return false;
-            if (tab === 's' && gClass !== 'ביה"ס') return false;
-            
-            // In todo view: only exclude makeup (השלמה) activities that are NOT unhandled exceptions.
-            // Unhandled exceptions (nohap/post without _compByMakeup) must always appear.
-            if (view === 'todo') {
-              const isExceptionUnhandled = (s.st === 'nohap' || s.st === 'post') && !(s._compByMakeup && s._compByMakeup !== 'false');
-              if (isExceptionUnhandled) return true; // Always include unhandled exceptions
-              const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)));
-              if (isM) return false; // Exclude resolved makeup activities from context
-            }
-            
-            return true;
-          });
+          const allPairEvs = dateEvs.filter(s => !dateUsedIds.has(String(s.id)) && p.ids.map(Number).includes(Number(s.g)));
           
           if (allPairEvs.length) {
             dateCards.push({ type: 'pair', obj: p, evs: allPairEvs });

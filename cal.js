@@ -1324,7 +1324,11 @@ function renderNormalWeek(evs, ws, f){
   const byCity = {};
   function ensureCity(city){ if(!byCity[city]) byCity[city]={pairs:[],solos:[]}; }
 
-  window.pairs.forEach(pair=>{
+  const groupSource = window._listGroupMode === 'clusters' && window.getClusters 
+    ? window.getClusters().map(c => ({id: c.id, name: c.name, ids: c.gardenIds || []}))
+    : (window.pairs || []);
+
+  groupSource.forEach(pair=>{
     const myGids=pair.ids.filter(gid=>gids.map(Number).includes(Number(gid)));
     if(!myGids.length) return;
     const city=window.G(myGids[0]).city||'אחר';
@@ -1394,11 +1398,12 @@ function renderNormalWeek(evs, ws, f){
 
     // City header row - added toggle function for weekly table
     const cityId = `city-${city.replace(/\s+/g,'-')}`;
+    const groupLabel = window._listGroupMode === 'clusters' ? 'אשכולות' : 'זוגות';
     html+=`<tr onclick="toggleTableCity('${cityId}')" style="cursor:pointer" class="city-header-row">
       <td colspan="6" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;
         border-bottom:1px solid rgba(255,255,255,.2);position:sticky;right:0;z-index:9">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span>🏙️ ${city} <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} זוגות · ${byCity[city].solos.length} צהרונים בודדים</span></span>
+          <span>🏙️ ${city} <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} ${groupLabel} · ${byCity[city].solos.length} צהרונים בודדים</span></span>
           <span style="font-size:0.7rem; font-weight:400; opacity:0.8;">לחץ לכיווץ/הרחבה ↕️</span>
         </div>
       </td>
