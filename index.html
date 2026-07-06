@@ -322,7 +322,13 @@
                <button id="dvp-all-mobile" class="dash-view-pill bsm" onclick="setDashView('all')" title="מציג את כל הפעילויות והגנים שקיימים במערכת ביום הנבחר (כולל מה שבוצע ומה שטרם בוצע).">📋 <b id="dvp-cnt-all-mobile">0</b></button>
                <button id="dvp-handled-mobile" class="dash-view-pill bsm" onclick="setDashView('handled')" title="מציג חריגות עבר ופעילויות בעייתיות שכבר טיפלתם בהן וסימנתם כ'טופל'.">✅ <b id="dvp-cnt-handled-mobile">0</b></button>
             </div>
-            <button class="btn bg bsm" onclick="exportShortagesToExcel()" title="ייצוא רשימת החוסרים לאקסל בהתאם לפורמט הדרוש">📥 דוח חוסרים</button>
+            <div style="display:flex; align-items:center; gap:6px">
+               <div class="vbtns" style="margin-left:2px; display:inline-flex;">
+                 <button id="vlb-group-pairs-dash-mobile" class="vbtn active" onclick="setListGroupMode('pairs')" style="padding:0 6px; font-size:0.85rem; border-radius:6px 0 0 6px;">⚖️</button>
+                 <button id="vlb-group-clusters-dash-mobile" class="vbtn" onclick="setListGroupMode('clusters')" style="padding:0 6px; font-size:0.85rem; border-radius:0 6px 6px 0;">📦</button>
+               </div>
+               <button class="btn bg bsm" onclick="exportShortagesToExcel()" title="ייצוא רשימת החוסרים לאקסל בהתאם לפורמט הדרוש" style="white-space:nowrap; padding:4px 8px;">📥 חוסרים</button>
+            </div>
          </div>
       </div>
 
