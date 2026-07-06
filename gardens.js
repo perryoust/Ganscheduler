@@ -1449,7 +1449,12 @@ function genExport(){
                 const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
                 const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
                 const coordText = rawCoord ? `\n     ${rawCoord.trim()}` : '';
-                text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}${coordText}\n`; 
+                
+                const grpCount = s.grp ? parseInt(s.grp) : 1;
+                const grpStr = grpCount > 1 ? ` · ${grpCount} קב' ⏰ ` : ' · ⏰ ';
+                const timeStr = s.t ? grpStr + fT(s.t) : '';
+                
+                text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${timeStr}${coordText}\n`; 
               });
             } else {
               const byAddr = {};
@@ -1469,7 +1474,12 @@ function genExport(){
                     const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
                     const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
                     const coordText = rawCoord ? `\n  ${rawCoord.trim()}` : '';
-                    text+=`  ${stIcon}${mTag}${addrStr}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}${coordText}\n`;
+                    
+                    const grpCount = s.grp ? parseInt(s.grp) : 1;
+                    const grpStr = grpCount > 1 ? ` · ${grpCount} קב' ⏰ ` : ' · ⏰ ';
+                    const timeStr = s.t ? grpStr + fT(s.t) : '';
+                    
+                    text+=`  ${stIcon}${mTag}${addrStr}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
                   } else {
                     text+=`  📍 ${addr}\n`;
                     byAddr[addr].forEach(s => {
@@ -1479,7 +1489,12 @@ function genExport(){
                       const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
                       const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
                       const coordText = rawCoord ? `\n     ${rawCoord.trim()}` : '';
-                      text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}${coordText}\n`;
+                      
+                      const grpCount = s.grp ? parseInt(s.grp) : 1;
+                      const grpStr = grpCount > 1 ? ` · ${grpCount} קב' ⏰ ` : ' · ⏰ ';
+                      const timeStr = s.t ? grpStr + fT(s.t) : '';
+                      
+                      text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
                     });
                   }
                 } else {
@@ -1490,7 +1505,12 @@ function genExport(){
                     const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
                     const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
                     const coordText = rawCoord ? `\n  ${rawCoord.trim()}` : '';
-                    text+=`  ${stIcon}${mTag}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}${coordText}\n`;
+                    
+                    const grpCount = s.grp ? parseInt(s.grp) : 1;
+                    const grpStr = grpCount > 1 ? ` · ${grpCount} קב' ⏰ ` : ' · ⏰ ';
+                    const timeStr = s.t ? grpStr + fT(s.t) : '';
+                    
+                    text+=`  ${stIcon}${mTag}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
                   });
                 }
               });

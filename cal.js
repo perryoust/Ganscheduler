@@ -48,6 +48,7 @@ function calRefG(){
     if(window.calMultiGChanged) window.calMultiGChanged(plat); // Sync button state
   });
   renderCal();
+  if (window.currentTab === "dash" && typeof window.renderDash === "function") window.renderDash();
 }
 function getCalGids(){
   const plat = window.innerWidth > 768 ? 'desktop' : 'mobile';

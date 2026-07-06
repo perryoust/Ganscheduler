@@ -163,8 +163,9 @@ function renderDash() {
       const dateUsedIds = new Set();
       const dateCards = [];
 
-      // Pairs within this date
-      (window.pairs || []).forEach(p => {
+      // Groups within this date
+      const groupList = (window._listGroupMode === "clusters" && typeof window.getClusters === "function") ? window.getClusters().map(cl => ({...cl, ids: cl.gardenIds})) : (window.pairs || []);
+      groupList.forEach(p => {
         const hasException = dateEvs.some(s => !dateUsedIds.has(String(s.id)) && p.ids.map(Number).includes(Number(s.g)));
         if (hasException) {
           const allPairEvs = dateEvs.filter(s => !dateUsedIds.has(String(s.id)) && p.ids.map(Number).includes(Number(s.g)));
@@ -756,7 +757,7 @@ window.openSP = function(id) {
   const s = window.SCH.find(x => x.id == id);
   if(!s) return;
 
-  const isClusterMode = (window.currentTab !== 'dash') && (window._listGroupMode === 'clusters' || window._dashTab === 'clusters');
+  const isClusterMode = window._listGroupMode === 'clusters' || window._dashTab === 'clusters';
   // We now use openSP for clusters directly, no redirect to openClusterBulkEdit
 
   try { // ← try-catch to prevent silent failures

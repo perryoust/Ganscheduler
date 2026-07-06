@@ -285,6 +285,10 @@
           </div>
         </div>
         <div class="dash-view-pills">
+           <div class="vbtns" style="margin-right:0; margin-left:15px; display:inline-flex;">
+             <button id="vlb-group-pairs-dash-desktop" class="vbtn active" onclick="setListGroupMode('pairs')">⚖️ זוגות</button>
+             <button id="vlb-group-clusters-dash-desktop" class="vbtn" onclick="setListGroupMode('clusters')">📦 אשכולות</button>
+           </div>
            <button id="dvp-todo-desktop" class="dash-view-pill active" onclick="setDashView('todo')" title="מציג גנים עם חריגות (כגון חוג שלא התקיים או נדחה) שעדיין לא קיבלו מענה ולא סומנו כ'טופל'."><span>🚀 לטיפול</span> <b class="badge" id="dvp-cnt-todo-desktop">0</b></button>
            <button id="dvp-makeups-desktop" class="dash-view-pill" onclick="setDashView('makeups')" title="מציג השלמות או דחיות שנקבעו להיום או לעתיד כדי שתוכלו לעקוב ולוודא שהן מתקיימות."><span>📅 השלמות</span> <b class="badge" id="dvp-cnt-makeups-desktop">0</b></button>
            <button id="dvp-all-desktop" class="dash-view-pill" onclick="setDashView('all')" title="מציג את כל הפעילויות והגנים שקיימים במערכת ביום הנבחר (כולל מה שבוצע ומה שטרם בוצע)."><span>📋 הכל</span> <b class="badge" id="dvp-cnt-all-desktop">0</b></button>
@@ -553,9 +557,10 @@
               <option value="week-grid" selected>▦ שבועי (גריד)</option>
               <option value="month">🗓️ חודשי</option>
             </select>
-            <div class="vbtns" style="overflow-x:auto">
+            <div class="vbtns" style="overflow-x:auto; display:flex; align-items:center; flex:1;">
               <button id="vlb-group-pairs-mobile" class="vbtn active" onclick="setListGroupMode('pairs')">⚖️ זוגות</button>
               <button id="vlb-group-clusters-mobile" class="vbtn" onclick="setListGroupMode('clusters')">📦 אשכולות</button>
+              <button class="btn bp bsm" onclick="openNewSched()" style="margin-right:auto; white-space:nowrap; padding:4px 10px; font-size:0.8rem; border-radius:15px; box-shadow:0 1px 3px rgba(0,0,0,0.2);">➕ שיבוץ חדש</button>
             </div>
          </div>
       </div>

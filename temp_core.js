@@ -960,7 +960,7 @@ function td(){return d2s(new Date())}
 function cities(){return[...new Set(GARDENS.map(g=>g.city))].sort()}
 function gardenPair(gid){
   const n=parseInt(gid);
-  const isClusterMode = window.currentTab !== 'dash' && window._listGroupMode === 'clusters';
+  const isClusterMode = window._listGroupMode === 'clusters';
   if (isClusterMode && typeof window.getClusters === 'function') {
     const cls = window.getClusters();
     const cl = cls.find(c => (c.gardenIds || []).map(x=>parseInt(x)).includes(n));
