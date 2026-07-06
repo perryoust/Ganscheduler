@@ -2522,11 +2522,11 @@ window.spMuDateChg = function() {
 window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
   console.log('[updateMakeupPartnersTable]', {containerId, gid, date, aid});
   const pair = window.gardenPair(gid);
-  const cluster = window.CLUSTERS ? window.CLUSTERS.find(c => c.gids && c.gids.map(Number).includes(Number(gid))) : null;
+  const clusterArr = window.gardenClusters ? window.gardenClusters(gid) : [];
   
   const allPartnerIds = new Set();
   if(pair) pair.ids.forEach(id => allPartnerIds.add(Number(id)));
-  if(cluster) cluster.gids.forEach(id => allPartnerIds.add(Number(id)));
+  if(clusterArr.length > 0) clusterArr.forEach(c => (c.gardenIds||[]).forEach(id => allPartnerIds.add(Number(id))));
   allPartnerIds.delete(Number(gid));
   
   const container = document.getElementById(containerId);
@@ -2765,31 +2765,8 @@ window.createMakeupActivity = function(data) {
        if(!origExt.nt || !origExt.nt.includes(noticeNote)) {
           origExt.nt = (origExt.nt ? origExt.nt + ' | ' : '') + noticeNote;
        }
-       
-       // Sync partner's completion status if applicable
-       const pair = window.gardenPair(origExt.g);
-       const cluster = window.clusters ? Object.values(window.clusters).find(c => c.gids && c.gids.map(Number).includes(Number(origExt.g))) : null;
-       
-       const allPartnerIds = new Set();
-       if(pair) pair.ids.forEach(id => allPartnerIds.add(Number(id)));
-       if(cluster) cluster.gids.forEach(id => allPartnerIds.add(Number(id)));
-       allPartnerIds.delete(Number(origExt.g));
-
-       const partnerNoticeNote = `השלמה נקבעה ל-${window.fD(data.d)}`;
-       allPartnerIds.forEach(partnerId => {
-         const partnerEv = window.SCH.find(ps => 
-           Number(ps.g)===Number(partnerId) && ps.d === origExt.d && 
-           window.supBase(ps.a) === window.supBase(origExt.a) && !ps._compByMakeup
-         );
-           if(partnerEv) {
-              partnerEv._compByMakeup = loopId;
-              if(!partnerEv.nt || !partnerEv.nt.includes(partnerNoticeNote)) {
-                 partnerEv.nt = (partnerEv.nt ? partnerEv.nt + ' | ' : '') + partnerNoticeNote;
-              }
-           }
-         });
-       }
     }
+  }
   
   window.SCH.push(newEv);
   return loopId;
@@ -3072,8 +3049,17 @@ window.saveNohapQ = async function(){
   // Reset the preset so it doesn't bleed into next call
   window._spSyncPartnerNext = undefined;
   
-  if (pair && shouldSync) {
-    pair.ids.filter(gid => Number(gid) !== Number(s.g)).forEach(gid => {
+  if (shouldSync) {
+    const allPartnerIds = new Set();
+    if (window._listGroupMode === 'clusters' && window.gardenClusters) {
+      const clusterArr = window.gardenClusters(s.g);
+      clusterArr.forEach(c => (c.gardenIds||[]).forEach(id => allPartnerIds.add(Number(id))));
+    } else if (pair) {
+      pair.ids.forEach(id => allPartnerIds.add(Number(id)));
+    }
+    allPartnerIds.delete(Number(s.g));
+    
+    Array.from(allPartnerIds).forEach(gid => {
       const pEv = window.findPartnerActivity(gid, s.d, s.a);
       if (pEv && pEv.st !== 'nohap') doNohap(pEv.id);
     });
