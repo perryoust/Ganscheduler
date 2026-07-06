@@ -107,10 +107,26 @@ function renderMobileInvoiceCard(inv, opts = {}) {
 
   const mkFileBtn = (sec, docNum) => {
     if(!docNum || (sec==='order' && !/\d/.test(docNum) && !String(docNum).includes('קופה'))) return '';
-    const meta = inv['file_'+sec];
+    let meta = inv['file_'+sec];
+    let actualSec = sec;
+
+    // Fallback if the user attached the file to a different section and left its number blank
+    if (!meta || !meta.path) {
+      if (sec === 'order' && !inv.num && !inv.txNum) {
+        if (inv.file_tax && inv.file_tax.path) { meta = inv.file_tax; actualSec = 'tax'; }
+        else if (inv.file_tx && inv.file_tx.path) { meta = inv.file_tx; actualSec = 'tx'; }
+      } else if (sec === 'tx' && !inv.orderNum && !inv.num) {
+        if (inv.file_tax && inv.file_tax.path) { meta = inv.file_tax; actualSec = 'tax'; }
+        else if (inv.file_order && inv.file_order.path) { meta = inv.file_order; actualSec = 'order'; }
+      } else if (sec === 'tax' && !inv.orderNum && !inv.txNum) {
+        if (inv.file_order && inv.file_order.path) { meta = inv.file_order; actualSec = 'order'; }
+        else if (inv.file_tx && inv.file_tx.path) { meta = inv.file_tx; actualSec = 'tx'; }
+      }
+    }
+
     if(meta && meta.path){
       const name = (window._extractNameFromUrl ? window._extractNameFromUrl(meta.path) : '') || meta.name || 'פתח';
-      return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${inv.id},'${sec}')" title="${name}">📎 ${name} ↗</span>`;
+      return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${inv.id},'${actualSec}')" title="${name}">📎 ${name} ↗</span>`;
     }
     // Only show "עדכן קישור" if no file exists for ANY of the related document types to prevent clutter
     const hasAnyFile = (inv.file_order && inv.file_order.path) || 
@@ -386,10 +402,26 @@ function renderInvoices(){
       const hasTax   = inv.num;
       const mkFileBtn = (sec, docNum) => {
         if(!docNum || (sec==='order' && !/\d/.test(docNum) && !String(docNum).includes('קופה'))) return '';
-        const meta = inv['file_'+sec];
+        let meta = inv['file_'+sec];
+        let actualSec = sec;
+
+        // Fallback if the user attached the file to a different section and left its number blank
+        if (!meta || !meta.path) {
+          if (sec === 'order' && !inv.num && !inv.txNum) {
+            if (inv.file_tax && inv.file_tax.path) { meta = inv.file_tax; actualSec = 'tax'; }
+            else if (inv.file_tx && inv.file_tx.path) { meta = inv.file_tx; actualSec = 'tx'; }
+          } else if (sec === 'tx' && !inv.orderNum && !inv.num) {
+            if (inv.file_tax && inv.file_tax.path) { meta = inv.file_tax; actualSec = 'tax'; }
+            else if (inv.file_order && inv.file_order.path) { meta = inv.file_order; actualSec = 'order'; }
+          } else if (sec === 'tax' && !inv.orderNum && !inv.txNum) {
+            if (inv.file_order && inv.file_order.path) { meta = inv.file_order; actualSec = 'order'; }
+            else if (inv.file_tx && inv.file_tx.path) { meta = inv.file_tx; actualSec = 'tx'; }
+          }
+        }
+
         if(meta && meta.path){
           const name = _extractNameFromUrl(meta.path)||meta.name||'פתח';
-          return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${inv.id},'${sec}')" title="${name}">📎 ${name} ↗</span>`;
+          return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${inv.id},'${actualSec}')" title="${name}">📎 ${name} ↗</span>`;
         }
         const hasAnyFile = (inv.file_order && inv.file_order.path) || 
                            (inv.file_tx && inv.file_tx.path) || 
