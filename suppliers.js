@@ -29,6 +29,7 @@ function openSupExport(supName){
   document.getElementById('supex-to').value = to;
   
   document.getElementById('supex-prev').style.display='none';
+  if(document.getElementById('supex-garden-filter')) document.getElementById('supex-garden-filter').value = '';
   document.getElementById('supexm').classList.add('open');
 }
 function doSupExport(){
@@ -47,10 +48,23 @@ function doSupExport(){
   const to=document.getElementById('supex-to').value;
   if(!from||!to){_spAlertDialog('בחר תאריכים');return;}
 
+  const gardenFilter = (document.getElementById('supex-garden-filter')?.value || '').toLowerCase().trim();
+  const filterTerms = gardenFilter ? gardenFilter.split(',').map(x => x.trim()).filter(x => x) : [];
+
   const evs=window.SCH.filter(s=>{
     if(s.d<from||s.d>to) return false;
     if(window._supExName&&window.supBase(s.a)!==window.supBase(window._supExName)) return false;
     if(s.st === 'can') return false; // Match openSupExport logic
+    
+    if (filterTerms.length > 0) {
+       const gObj = window.G(s.g);
+       const gName = (gObj.name || '').toLowerCase();
+       const clsName = (window.gcls && window.gcls(gObj) === 'ביה"ס') ? 'בית ספר' : '';
+       
+       const match = filterTerms.some(term => gName.includes(term) || (clsName && clsName.includes(term)));
+       if (!match) return false;
+    }
+    
     return true;
   }).sort((a,b)=>{
     const ga=window.G(a.g),gb=window.G(b.g);
