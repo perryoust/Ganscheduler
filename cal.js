@@ -1023,8 +1023,8 @@ function renderClusterDay(evs, ds, clusterName){
   </div>`;
   const calCls = window.getEl ? (window.getEl('cal-cls')?.value || '') : (document.getElementById('cal-cls')?.value || '');
   const calCity = window.getEl ? (window.getEl('cal-city')?.value || '') : (document.getElementById('cal-city')?.value || '');
-  // Global Makeups at Top
-  html += renderMakeupsTop(ds, calCity, calCls, true);
+  // Global Makeups at Top (Removed here because the orchestrator already renders them)
+  // html += renderMakeupsTop(ds, calCity, calCls, true);
 
   // Filter out makeups and cancellations from the regular section to avoid duplication
   const others = evs.filter(s => !(s.st === 'can' || s.st === 'nohap' || s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n))));
@@ -1228,8 +1228,8 @@ function renderNormalDay(evs,ds){
     <span style="font-size:.85rem;font-weight:700;color:#c62828">${blk.icon||'🚫'} <b>${blk.reason}</b>${blk.note?' — '+blk.note:''}</span>
     <button onclick="window.openBlockedDate('${ds}')" style="background:none;border:1.5px solid #e91e63;color:#c62828;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:.72rem">✏️ ערוך</button>
   </div>`;
-  // Global Makeups at Top
-  topHtml += renderMakeupsTop(ds, calCity, calCls);
+  // Global Makeups at Top (Removed here because the orchestrator already renders them)
+  // topHtml += renderMakeupsTop(ds, calCity, calCls);
   
   const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
   // Filter out makeups from the regular section to avoid duplication
@@ -1356,26 +1356,7 @@ function renderNormalWeek(evs, ws, f){
     byCity[city].pairs.sort((a,b)=>a.pair.name.localeCompare(b.pair.name,'he'));
     byCity[city].solos.sort((a,b)=>(window.G(a).name||'').localeCompare(window.G(b).name||'','he'));
   });
-
-  // Universal Makeup Section at Top of Week
-  const calClsNW = window.getEl ? (window.getEl('cal-cls')?.value || '') : (document.getElementById('cal-cls')?.value || '');
-  const calCityNW = window.getEl ? (window.getEl('cal-city')?.value || '') : (document.getElementById('cal-city')?.value || '');
-  // We'll show a summary row for makeups of the week or individual days
-  let wkMakeupHtml = '<div style="margin-bottom:15px">';
-  days.forEach(d => {
-    const ds = window.d2s(d);
-    const m = window.renderMakeupsTop ? window.renderMakeupsTop(ds, calCityNW, calClsNW, true) : '';
-    if(m) {
-      wkMakeupHtml += `<div style="margin-bottom:10px;border-bottom:1px solid #ddd;padding-bottom:5px">
-        <div style="font-size:.72rem;font-weight:700;color:#1a237e;margin-bottom:4px">📅 ${window.dayN(ds)} ${window.fD(ds)}</div>
-        ${m}
-      </div>`;
-    }
-  });
-  wkMakeupHtml += '</div>';
-
-  // border-separate avoids border-collapse + sticky bug
-  let html = wkMakeupHtml + '<div class="tw-sticky">'
+  let html = '<div class="tw-sticky">'
           +'<table style="min-width:950px;width:100%"><thead><tr>';
 
   html+=`<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;
