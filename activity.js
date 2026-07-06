@@ -742,7 +742,7 @@ window.spBatchSaveNt = function() {
 };
 
 window.spRowTimeChg = function(id, val) {
-  const s = window.SCH.find(x => x.id === id);
+  const s = window.SCH.find(x => x.id == id);
   if(s) {
     s.t = val;
     // Save without forcing a re-render of the modal so it doesn't jump while typing
