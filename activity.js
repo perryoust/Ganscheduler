@@ -1924,9 +1924,11 @@ function closeSP(){
 }
 
 function refresh(){
-  if(window.updCounts) window.updCounts();
-  window.renderDash();
-  if(window.renderCal) window.renderCal();
+    if(window.updCounts) window.updCounts();
+    if(window.refreshAllDashTabs) window.refreshAllDashTabs();
+    else if(window.renderDash) window.renderDash();
+    
+    if(window.renderCal) window.renderCal();
   if(window.currentTab==='sched' && window.renderSched) window.renderSched();
   
   // Also refresh SP modal if it is open to keep details in sync!
