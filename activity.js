@@ -756,7 +756,7 @@ window.openSP = function(id) {
   const s = window.SCH.find(x => x.id == id);
   if(!s) return;
 
-  const isClusterMode = (window._listGroupMode === 'clusters' || window._dashTab === 'clusters');
+  const isClusterMode = (window.currentTab !== 'dash') && (window._listGroupMode === 'clusters' || window._dashTab === 'clusters');
   // We now use openSP for clusters directly, no redirect to openClusterBulkEdit
 
   try { // ← try-catch to prevent silent failures
@@ -2504,11 +2504,9 @@ window.spMuDateChg = function() {
 window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
   console.log('[updateMakeupPartnersTable]', {containerId, gid, date, aid});
   const pair = window.gardenPair(gid);
-  const clusterArr = window.gardenClusters ? window.gardenClusters(gid) : [];
   
   const allPartnerIds = new Set();
   if(pair) pair.ids.forEach(id => allPartnerIds.add(Number(id)));
-  if(clusterArr.length > 0) clusterArr.forEach(c => (c.gardenIds||[]).forEach(id => allPartnerIds.add(Number(id))));
   allPartnerIds.delete(Number(gid));
   
   const container = document.getElementById(containerId);
