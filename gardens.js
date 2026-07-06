@@ -2255,17 +2255,26 @@ window.exportSingleRecurringWA = function(sid) {
   const addrs = [...new Set(rel.map(x => window.G(x.g).st || ''))].filter(Boolean);
   const sameAddr = addrs.length === 1 && rel.every(x => window.G(x.g).st === addrs[0]);
 
-  if (sameAddr && addrs[0]) {
+    if (sameAddr && addrs[0]) {
     text += `  📍 ${addrs[0]}\n`;
     rel.forEach(x => {
-      const gardenName = window.G(x.g).name;
-      text += `     🏫 ${gardenName}${x.t ? ' · ⏰ ' + window.fT(x.t) : ''}\n`;
+      const gd = window.G(x.g);
+      const gardenName = gd.name;
+      const gC = window.ggr(gd) || 0;
+      const gS = gC > 0 ? ` · ${gC} קב'` : '';
+      let tS = x.t ? ' ⏰ ' + window.fT(x.t) : '';
+      if(!gS && tS) tS = ' ·' + tS;
+      text += `     🏫 ${gardenName}${gS}${tS}\n`;
     });
   } else {
     rel.forEach(x => {
       const gd = window.G(x.g);
       const addr = gd.st ? `📍 ${gd.st} · ` : '';
-      text += `  🏫 ${addr}${gd.name}${x.t ? ' · ⏰ ' + window.fT(x.t) : ''}\n`;
+      const gC = window.ggr(gd) || 0;
+      const gS = gC > 0 ? ` · ${gC} קב'` : '';
+      let tS = x.t ? ' ⏰ ' + window.fT(x.t) : '';
+      if(!gS && tS) tS = ' ·' + tS;
+      text += `  🏫 ${addr}${gd.name}${gS}${tS}\n`;
     });
   }
 
@@ -2342,15 +2351,23 @@ window.exportRecurringWA = function(key, gid) {
   const addrs = [...new Set(group.map(s => s.gd.st || ''))].filter(Boolean);
   const sameAddr = addrs.length === 1 && group.every(s => s.gd.st === addrs[0]);
 
-  if (sameAddr && addrs[0]) {
+    if (sameAddr && addrs[0]) {
     text += `  📍 ${addrs[0]}\n`;
     group.forEach(s => {
-      text += `     🏫 ${s.gd.name}${s.t ? ' · ⏰ ' + window.fT(s.t) : ''}\n`;
+      const gC = window.ggr(s.gd) || 0;
+      const gS = gC > 0 ? ` · ${gC} קב'` : '';
+      let tS = s.t ? ' ⏰ ' + window.fT(s.t) : '';
+      if(!gS && tS) tS = ' ·' + tS;
+      text += `     🏫 ${s.gd.name}${gS}${tS}\n`;
     });
   } else {
     group.forEach(s => {
       const addr = s.gd.st ? `📍 ${s.gd.st} · ` : '';
-      text += `  🏫 ${addr}${s.gd.name}${s.t ? ' · ⏰ ' + window.fT(s.t) : ''}\n`;
+      const gC = window.ggr(s.gd) || 0;
+      const gS = gC > 0 ? ` · ${gC} קב'` : '';
+      let tS = s.t ? ' ⏰ ' + window.fT(s.t) : '';
+      if(!gS && tS) tS = ' ·' + tS;
+      text += `  🏫 ${addr}${s.gd.name}${gS}${tS}\n`;
     });
   }
 
