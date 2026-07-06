@@ -691,7 +691,7 @@ function renderCal(){
       const wsS=window.d2s(days[0]), weS=window.d2s(days[4]);
       (document.getElementById('cal-title')||{}).textContent=`${window.fD(wsS)} – ${window.fD(weS)} (5 ימי עבודה)`;
       const evs=filterE(f,wsS,weS);
-      if(f.cluster) html=renderClusterWeek(evs,ws,f.cluster);
+      if(f.clusters && f.clusters.length === 1) html=renderClusterWeek(evs,ws,f.clusters[0]);
       else html=renderNormalWeek(evs,ws,f);
 
     } else if(calV==='range'){
