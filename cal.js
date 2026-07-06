@@ -388,18 +388,27 @@ function setCalTab(t){
 }
 
 window.updateCalNavButtons = function() {
-  const vbtns = document.querySelectorAll('#cal-vbtns-desktop .vbtn, #cal-vbtns-mobile .vbtn');
-  vbtns.forEach(el => el.classList.remove('active'));
-
   let activeId = '';
   if (calV === 'list' && _listSubView === 'day') activeId = 'day-list';
   else if (calV === 'list' && _listSubView === 'week') activeId = 'week-list';
   else if (calV === 'week') activeId = 'week-grid';
+  else if (calV === 'day') activeId = 'day-grid';
   else if (calV === 'month') activeId = 'month';
 
   if (activeId) {
-    document.querySelectorAll(`#vb-${activeId}-desktop, #vb-${activeId}-mobile`).forEach(el => el.classList.add('active'));
+    const desktopSel = document.getElementById('cal-view-select-desktop');
+    const mobileSel = document.getElementById('cal-view-select-mobile');
+    if (desktopSel) desktopSel.value = activeId;
+    if (mobileSel) mobileSel.value = activeId;
   }
+};
+
+window.handleViewSelect = function(val) {
+  if (val === 'day-list') { window.setView('list'); window.setListSubView('day'); }
+  else if (val === 'day-grid') { window.setView('day'); }
+  else if (val === 'week-list') { window.setView('list'); window.setListSubView('week'); }
+  else if (val === 'week-grid') { window.setView('week'); }
+  else if (val === 'month') { window.setView('month'); }
 };
 
 function setListSubView(v){
@@ -1459,10 +1468,10 @@ function renderNormalWeek(evs, ws, f){
         onclick="window.openGcellPopup(${gid},'${ds}',event)">${jumpBtn}${inner}</td>`;
     }
 
-    // window.pairs
+    // window.pairs or clusters
     byCity[city].pairs.forEach(({pair,gids:pGids})=>{
       const pairGidList = pGids.join(',');
-      html+=`<tr class="${cityRowClass}">
+      html+=`<tr class="${cityRowClass}" style="display:none;">
         <td colspan="6" style="background:${clr.solid};color:#fff;padding:5px 12px;
           font-size:.92rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2)">
           <div style="display:flex;align-items:center;gap:8px">
@@ -1475,7 +1484,7 @@ function renderNormalWeek(evs, ws, f){
       </tr>`;
       pGids.forEach(gid=>{
         const g=window.G(gid);
-        html+=`<tr class="${cityRowClass}"><td style="background:#fafbff; font-size:var(--fs-small); padding:6px 10px; color:var(--c-primary); font-weight:700;
+        html+=`<tr class="${cityRowClass}" style="display:none;"><td style="background:#fafbff; font-size:var(--fs-small); padding:6px 10px; color:var(--c-primary); font-weight:700;
           border-right:3px solid ${clr.solid}; border-bottom:1px solid #dde1f0; border-left:1px solid #dde1f0;
           position:sticky; right:0; z-index:1; white-space:nowrap; max-width:180px; overflow:hidden; text-overflow:ellipsis; line-height:1.2">
           ${g.name}<br><span style="font-size:var(--fs-xs); color:#64748b; font-weight:400">${g.st ? '📍 ' + g.st : g.city}</span>
@@ -1494,7 +1503,7 @@ function renderNormalWeek(evs, ws, f){
     // Solo GARDENS
     byCity[city].solos.forEach(gid=>{
       const g=window.G(gid);
-      html+=`<tr class="${cityRowClass}"><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
+      html+=`<tr class="${cityRowClass}" style="display:none;"><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
         border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
         position:sticky;right:0;z-index:1;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">
         ${g.name}<br><span style="font-size:12px;color:#78909c;font-weight:400">${g.city}</span>
