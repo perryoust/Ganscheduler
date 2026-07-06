@@ -1,4 +1,9 @@
 const fs = require('fs');
-let code = fs.readFileSync('invoices.js', 'utf8');
-code = code.replace('supplierScore = 0;\\n          if (isGett && supplierScore === 0) supplierScore = 10;', 'supplierScore = 0;\n          if (isGett && supplierScore === 0) supplierScore = 10;');
-fs.writeFileSync('invoices.js', code, 'utf8');
+let html = fs.readFileSync('index.html', 'utf8');
+
+// The HTML buttons look like: <button class="btn bg" onclick="navCal(-1)">◀</button>
+html = html.replace(/onclick="([^"]*?)\(-1\)"\s*>◀<\/button>/g, 'onclick="$1(-1)">▶</button>');
+html = html.replace(/onclick="([^"]*?)\(1\)"\s*>▶<\/button>/g, 'onclick="$1(1)">◀</button>');
+
+fs.writeFileSync('index.html', html);
+console.log('Fixed arrows in index.html');

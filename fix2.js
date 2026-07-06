@@ -1,6 +1,19 @@
 const fs = require('fs');
-let code = fs.readFileSync('invoices.js', 'utf8');
-const oldLine = /const isInvPettyCash = .*?;/g;
-const newLine = `const supKws = (window.supEx && window.supEx[inv.supName]) ? window.supEx[inv.supName].keywords || '' : ''; const isInvPettyCash = inv.orderNum === 'קופה קטנה' || String(inv.notes||'').includes('קופה קטנה') || String(inv.txNum||'').includes('קופה קטנה') || String(inv.orderDesc||'').includes('קופה קטנה') || String(inv.supName||'').includes('קופה קטנה') || String(supKws).includes('קופה קטנה');`;
-code = code.replace(oldLine, newLine);
-fs.writeFileSync('invoices.js', code, 'utf8');
+let html = fs.readFileSync('index.html', 'utf8');
+
+// We want to find ALL occurrences of:
+// onclick="...(-1)..." ... >◀</button>
+// and change ◀ to ▶
+html = html.replace(/(onclick="[^"]*\(-1\)[^"]*"[^>]*>)◀(<\/button>)/g, '$1▶$2');
+
+// And ALL occurrences of:
+// onclick="...(1)..." ... >▶</button>
+// and change ▶ to ◀
+// (Be careful not to match -1 with \b1\b, but the regex [^"]*\(1\) is pretty safe since -1 has a minus)
+html = html.replace(/(onclick="[^"]*[^-]\(1\)[^"]*"[^>]*>)▶(<\/button>)/g, '$1◀$2');
+// Also handle case where it's exactly "(1)"
+html = html.replace(/(onclick="[^"]*\(1\)[^"]*"[^>]*>)▶(<\/button>)/g, '$1◀$2');
+
+
+fs.writeFileSync('index.html', html);
+console.log('Fixed ALL arrows in index.html');
