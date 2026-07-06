@@ -1064,7 +1064,7 @@ window.openSP = function(id) {
   // --- STEP 9: Free Days Info ---
   h += `<div style="margin-top:10px;border:1px solid #c8e6c9;border-radius:10px;overflow:hidden">
     <div onclick="window.toggleSpAccordion('sp-acc-free')" style="background:#e8f5e9;padding:8px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-      <b style="font-size:0.8rem;color:#2e7d32">🗓️ ימים פנויים לצהרון (מידע בלבד)</b>
+      <b style="font-size:0.8rem;color:#2e7d32">🗓️ ימים פנויים לצהרון${isClusterMode ? ' ולכל האשכול' : ''} (מידע בלבד)</b>
       <span id="sp-acc-free-arrow" style="font-size:0.7rem;transition:0.3s;color:#2e7d32">▼</span>
     </div>
     <div id="sp-acc-free" style="display:none;padding:12px;background:#fff;border-top:1px solid #c8e6c9">
@@ -1072,11 +1072,21 @@ window.openSP = function(id) {
       <div style="display:flex;gap:5px;flex-wrap:wrap">
         ${window.getSpFreeDaysHtml(s.g)}
       </div>
-      ${spPair ? `
-      <div style="font-size:.72rem;color:#e65100;margin-top:12px;margin-bottom:8px;background:#fff9f0;padding:4px 8px;border-radius:4px;border:1px solid #ffe0b2;font-weight:700">תאריכים פנויים משותפים לזוג הגנים (מידע בלבד):</div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap">
-        ${window.getPairSharedFreeDaysHtml(spPair.ids)}
-      </div>` : ''}
+      ${(() => {
+        if (isClusterMode) {
+          const spCluster = window.CLUSTERS ? window.CLUSTERS.find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : (window.clusters ? Object.values(window.clusters).find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null);
+          if (spCluster && spCluster.gids) {
+            return '<div style="font-size:.72rem;color:#e65100;margin-top:12px;margin-bottom:8px;background:#fff9f0;padding:4px 8px;border-radius:4px;border:1px solid #ffe0b2;font-weight:700">תאריכים פנויים משותפים לכל האשכול (מידע בלבד):</div>' +
+                   '<div style="display:flex;gap:5px;flex-wrap:wrap">' +
+                   window.getPairSharedFreeDaysHtml(spCluster.gids) +
+                   '</div>';
+          }
+        }
+        return spPair ? '<div style="font-size:.72rem;color:#e65100;margin-top:12px;margin-bottom:8px;background:#fff9f0;padding:4px 8px;border-radius:4px;border:1px solid #ffe0b2;font-weight:700">תאריכים פנויים משותפים לזוג הגנים (מידע בלבד):</div>' +
+               '<div style="display:flex;gap:5px;flex-wrap:wrap">' +
+               window.getPairSharedFreeDaysHtml(spPair.ids) +
+               '</div>' : '';
+      })()}
     </div>
   </div>`;
 
