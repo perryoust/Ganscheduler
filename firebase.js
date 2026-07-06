@@ -513,6 +513,7 @@ async function loadFromFirebase(silent = false, force = false) {
     // Sync todos from cloud if available
     if (cloud.data.todos && window.todo) {
       window.todo.items = cloud.data.todos;
+      if (window._safeLS) window._safeLS.setItem('ganv5_todos', JSON.stringify(cloud.data.todos));
       window.todo.render();
     }
     
