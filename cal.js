@@ -387,14 +387,24 @@ function setCalTab(t){
   calRefG();
 }
 
+window.updateCalNavButtons = function() {
+  const vbtns = document.querySelectorAll('#cal-vbtns-desktop .vbtn, #cal-vbtns-mobile .vbtn');
+  vbtns.forEach(el => el.classList.remove('active'));
+
+  let activeId = '';
+  if (calV === 'list' && _listSubView === 'day') activeId = 'day-list';
+  else if (calV === 'list' && _listSubView === 'week') activeId = 'week-list';
+  else if (calV === 'week') activeId = 'week-grid';
+  else if (calV === 'month') activeId = 'month';
+
+  if (activeId) {
+    document.querySelectorAll(`#vb-${activeId}-desktop, #vb-${activeId}-mobile`).forEach(el => el.classList.add('active'));
+  }
+};
+
 function setListSubView(v){
   _listSubView=v;
-  document.querySelectorAll('[id^="vlb-"]').forEach(btn => {
-    const btnV = btn.id.replace('vlb-', '').replace('-desktop', '').replace('-mobile', '');
-    if (['day', 'week', 'month'].includes(btnV)) {
-      btn.classList.toggle('active', btnV === v);
-    }
-  });
+  window.updateCalNavButtons();
   renderCal();
 }
 
@@ -410,31 +420,20 @@ function setRangeSubView(v){
 function setView(v){
   calV=v;
   _rangeSubView='cal';
-  ['week','month','list','range'].forEach(x=>{
-    document.querySelectorAll('#vb-' + x + '-desktop, #vb-' + x + '-mobile').forEach(el => {
-      el.classList.toggle('active', x === v);
-    });
-  });
   const rangeRow = document.getElementById('cal-range-row');
-  const listRow  = document.getElementById('cal-list-row');
   const navBtns  = document.querySelectorAll('[onclick*="navCal(-1)"],[onclick*="navCal(1)"]');
   if(v==='range'){
     if(rangeRow) rangeRow.style.display='flex';
-    if(listRow)  listRow.style.display='none';
     navBtns.forEach(b=>b.style.display='none');
     const f=document.getElementById('cal-range-from');
     const t=document.getElementById('cal-range-to');
     if(f&&!f.value) f.value=window.d2s(window.monStart(window.calD));
     if(t&&!t.value) t.value=window.d2s(window.addD(window.monStart(window.calD),6));
-  } else if(v==='list'){
-    if(rangeRow) rangeRow.style.display='none';
-    if(listRow)  listRow.style.display='flex';
-    navBtns.forEach(b=>b.style.display='');
   } else {
     if(rangeRow) rangeRow.style.display='none';
-    if(listRow)  listRow.style.display='none';
     navBtns.forEach(b=>b.style.display='');
   }
+  window.updateCalNavButtons();
   renderCal();
 }
 function navCal(d){

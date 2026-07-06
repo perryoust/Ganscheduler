@@ -456,24 +456,18 @@
               </div>
            </div>
         </div>
-        <div class="flex-c justify-between">
-          <div class="vbtns">
-            <button class="vbtn active" id="vb-list-desktop" onclick="setView('list')">🚀 רשימה</button>
-            <button class="vbtn" id="vb-week-desktop" onclick="setView('week')">שבוע (גריד)</button>
-            <button class="vbtn" id="vb-month-desktop" onclick="setView('month')">חודש (גריד)</button>
+        <div class="flex-c justify-between" style="width:100%; flex-wrap:wrap; gap:8px; margin-bottom:8px">
+          <div class="vbtns" id="cal-vbtns-desktop">
+            <button class="vbtn active" id="vb-day-list-desktop" onclick="setView('list'); setListSubView('day')">📅 יומי (רשימה)</button>
+            <button class="vbtn" id="vb-week-list-desktop" onclick="setView('list'); setListSubView('week')">📆 שבועי (רשימה)</button>
+            <button class="vbtn" id="vb-week-grid-desktop" onclick="setView('week')">▦ שבועי (גריד)</button>
+            <button class="vbtn" id="vb-month-desktop" onclick="setView('month')">🗓️ חודשי</button>
           </div>
-          <div id="cal-list-row-desktop" class="flex-c gap-6">
-             <div class="vbtns">
-               <button id="vlb-day-desktop" class="vbtn active" onclick="setListSubView('day')">📅 יומי</button>
-               <button id="vlb-week-desktop" class="vbtn" onclick="setListSubView('week')">שבועי</button>
-               <button id="vlb-month-desktop" class="vbtn" onclick="setListSubView('month')">חודשי</button>
-             </div>
-             <div class="vbtns">
-               <button id="vlb-group-pairs-desktop" class="vbtn active" onclick="setListGroupMode('pairs')">⚖️ זוגות</button>
-               <button id="vlb-group-clusters-desktop" class="vbtn" onclick="setListGroupMode('clusters')">📦 אשכולות</button>
-              </div>
-           </div>
-         </div>
+          <div class="vbtns">
+            <button id="vlb-group-pairs-desktop" class="vbtn active" onclick="setListGroupMode('pairs')">⚖️ זוגות</button>
+            <button id="vlb-group-clusters-desktop" class="vbtn" onclick="setListGroupMode('clusters')">📦 אשכולות</button>
+          </div>
+        </div>
        </div>
       <div class="desktop-only">
         <div id="cal-pair-bar-desktop" class="card" style="display:none;background:#e3f2fd;margin-bottom:10px;padding:8px 12px;align-items:center;justify-content:space-between">
@@ -550,21 +544,17 @@
                </div>
              </div>
          </div>
-         <div class="vbtns w-full mt-2" style="overflow-x:auto">
-            <button class="vbtn active" id="vb-list-mobile" onclick="setView('list')">🚀 רשימה</button>
-            <button class="vbtn" id="vb-week-mobile" onclick="setView('week')">שבוע (גריד)</button>
-            <button class="vbtn" id="vb-month-mobile" onclick="setView('month')">חודש (גריד)</button>
-         </div>
-         <div id="cal-list-row-mobile" class="flex-c gap-4 mt-2" style="overflow-x:auto">
-             <div class="vbtns">
-               <button id="vlb-day-mobile" class="vbtn active" onclick="setListSubView('day')">📅 יומי</button>
-               <button id="vlb-week-mobile" class="vbtn" onclick="setListSubView('week')">שבועי</button>
-               <button id="vlb-month-mobile" class="vbtn" onclick="setListSubView('month')">חודשי</button>
-             </div>
-             <div class="vbtns">
-               <button id="vlb-group-pairs-mobile" class="vbtn active" onclick="setListGroupMode('pairs')">⚖️ זוגות</button>
-               <button id="vlb-group-clusters-mobile" class="vbtn" onclick="setListGroupMode('clusters')">📦 אשכולות</button>
-             </div>
+         <div class="flex-c justify-between w-full mt-2" style="flex-wrap:wrap; gap:8px;">
+            <div class="vbtns" style="overflow-x:auto" id="cal-vbtns-mobile">
+              <button class="vbtn active" id="vb-day-list-mobile" onclick="setView('list'); setListSubView('day')">📅 יומי (רשימה)</button>
+              <button class="vbtn" id="vb-week-list-mobile" onclick="setView('list'); setListSubView('week')">📆 שבועי (רשימה)</button>
+              <button class="vbtn" id="vb-week-grid-mobile" onclick="setView('week')">▦ שבועי (גריד)</button>
+              <button class="vbtn" id="vb-month-mobile" onclick="setView('month')">🗓️ חודשי</button>
+            </div>
+            <div class="vbtns" style="overflow-x:auto">
+              <button id="vlb-group-pairs-mobile" class="vbtn active" onclick="setListGroupMode('pairs')">⚖️ זוגות</button>
+              <button id="vlb-group-clusters-mobile" class="vbtn" onclick="setListGroupMode('clusters')">📦 אשכולות</button>
+            </div>
          </div>
       </div>
       <div class="mobile-only">
