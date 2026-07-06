@@ -3386,6 +3386,7 @@ const filesFound = [];
              }
           }
           
+          if (isPettyCash && supplierScore < 20) supplierScore = 0;
           if (isGett && supplierScore === 0) supplierScore = 10;
 
           if (supplierScore === 0) continue; 
