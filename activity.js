@@ -1074,11 +1074,12 @@ window.openSP = function(id) {
       </div>
       ${(() => {
         if (isClusterMode) {
-          const spCluster = window.CLUSTERS ? window.CLUSTERS.find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : (window.clusters ? Object.values(window.clusters).find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null);
-          if (spCluster && spCluster.gids) {
+          const clusterArr = window.gardenClusters ? window.gardenClusters(s.g) : [];
+          const spCluster = clusterArr.length ? clusterArr[0] : null;
+          if (spCluster && spCluster.gardenIds) {
             return '<div style="font-size:.72rem;color:#e65100;margin-top:12px;margin-bottom:8px;background:#fff9f0;padding:4px 8px;border-radius:4px;border:1px solid #ffe0b2;font-weight:700">תאריכים פנויים משותפים לכל האשכול (מידע בלבד):</div>' +
                    '<div style="display:flex;gap:5px;flex-wrap:wrap">' +
-                   window.getPairSharedFreeDaysHtml(spCluster.gids) +
+                   window.getPairSharedFreeDaysHtml(spCluster.gardenIds) +
                    '</div>';
           }
         }
