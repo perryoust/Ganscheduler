@@ -1324,7 +1324,7 @@ function renderNormalWeek(evs, ws, f){
   const byCity = {};
   function ensureCity(city){ if(!byCity[city]) byCity[city]={pairs:[],solos:[]}; }
 
-  const groupSource = window._listGroupMode === 'clusters' && window.getClusters 
+  const groupSource = window._listGroupMode === 'clusters' && typeof window.getClusters === 'function' 
     ? window.getClusters().map(c => ({id: c.id, name: c.name, ids: c.gardenIds || []}))
     : (window.pairs || []);
 

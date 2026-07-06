@@ -1,0 +1,1 @@
+const dateEvs = [{id: 1, g: 111}]; const dateUsedIds = new Set(); const p = {ids: [111, 222]}; const allPairEvs = dateEvs.filter(s => !dateUsedIds.has(String(s.id)) && p.ids.map(Number).includes(Number(s.g))); console.log(allPairEvs);
