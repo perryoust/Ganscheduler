@@ -1,0 +1,1 @@
+const fs = require('fs'); let html = fs.readFileSync('index.html', 'utf8'); html = html.replace('            </div>\r\n         </div>\r\n      </div>\r\n      <div class=\"mobile-only\">', '            </div>\r\n         </div>\r\n      <div class=\"mobile-only\">'); fs.writeFileSync('index.html', html);
