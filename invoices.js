@@ -2788,8 +2788,9 @@ reader.onload = async function(e) {
       _spAlertDialog("שגיאה בתהליך הייבוא: " + err.message);
       window._runScannerAfterImport = false;
     }
-};
+  };
   reader.readAsArrayBuffer(file);
+  });
 };
 
 window.clearScannerLinks = function() {
