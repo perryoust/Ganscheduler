@@ -59,9 +59,11 @@ function doSupExport(){
     if (filterTerms.length > 0) {
        const gObj = window.G(s.g);
        const gName = (gObj.name || '').toLowerCase();
+       const gCity = (gObj.city || '').toLowerCase();
        const clsName = (window.gcls && window.gcls(gObj) === 'ביה"ס') ? 'בית ספר' : '';
+       const fullStr = `${gName} ${gCity} ${clsName}`.trim();
        
-       const match = filterTerms.some(term => gName.includes(term) || (clsName && clsName.includes(term)));
+       const match = filterTerms.some(term => term.split(' ').every(w => fullStr.includes(w)));
        if (!match) return false;
     }
     
