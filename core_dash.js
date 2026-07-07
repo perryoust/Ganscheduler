@@ -1299,6 +1299,44 @@ function openGardenEdit(gid){
 
   document.getElementById('gedit-m').classList.add('open');
 }
+window.exportGardenWA = function() {
+  if (!window._geditGid) return;
+  const gid = window._geditGid;
+  const g = window.getAllGardens().find(x => x.id === gid) || {};
+  const ex = (window.supEx && window.supEx['g_' + gid]) || {};
+  
+  const name = (document.getElementById('gedit-name').value || '').trim() || ex.name || g.name || '';
+  const st = (document.getElementById('gedit-st').value || '').trim() || ex.st || g.st || '';
+  const city = g.city || '';
+  const mgr = typeof window.getGardenMgr === 'function' ? window.getGardenMgr(gid) : null;
+  
+  let txt = `📍 *פרטי צהרון/גן:*\n\n`;
+  if (name) txt += `*שם:* ${name}\n`;
+  if (city) txt += `*עיר:* ${city}\n`;
+  if (st) txt += `*כתובת:* ${st}\n`;
+  
+  if (mgr) {
+    txt += `\n👤 *${mgr.role === 'manager' ? 'מנהל' : 'רכז'}:* ${mgr.name}${mgr.phone ? (' - ' + mgr.phone) : ''}\n`;
+  }
+  
+  const fallback = () => {
+    const t = document.createElement('textarea');
+    t.value = txt;
+    document.body.appendChild(t);
+    t.select();
+    try { document.execCommand('copy'); } catch(e){}
+    document.body.removeChild(t);
+  };
+  
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(() => {
+      if (typeof window.showToast === 'function') window.showToast('✅ פרטי הגן הועתקו להודעה!');
+    }).catch(fallback);
+  } else {
+    fallback();
+    if (typeof window.showToast === 'function') window.showToast('✅ פרטי הגן הועתקו להודעה!');
+  }
+};
 
 function saveGardenCard(){
   if(!_geditGid) return;

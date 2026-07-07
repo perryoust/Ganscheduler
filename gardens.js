@@ -2262,8 +2262,13 @@ window.exportSingleRecurringWA = function(sid) {
     rel.forEach(x => {
       const gd = window.G(x.g);
       const gardenName = gd.name;
-      const gC = parseInt(x.grp, 10) || window.ggr(gd) || 0;
-      const gS = gC > 0 ? ` · ${gC} קב'` : '';
+      let gS = '';
+      if(x.grp){
+        gS = ` · קב' ${x.grp}`;
+      } else {
+        const gC = window.ggr(gd)||0;
+        if(gC>0) gS = ` · ${gC} קב'`;
+      }
       const tS = x.t ? ' · ⏰ ' + window.fT(x.t) : '';
       text += `     🏫 ${gardenName}${gS}${tS}\n`;
     });
@@ -2271,8 +2276,13 @@ window.exportSingleRecurringWA = function(sid) {
     rel.forEach(x => {
       const gd = window.G(x.g);
       const addr = gd.st ? `📍 ${gd.st} · ` : '';
-      const gC = parseInt(x.grp, 10) || window.ggr(gd) || 0;
-      const gS = gC > 0 ? ` · ${gC} קב'` : '';
+      let gS = '';
+      if(x.grp){
+        gS = ` · קב' ${x.grp}`;
+      } else {
+        const gC = window.ggr(gd)||0;
+        if(gC>0) gS = ` · ${gC} קב'`;
+      }
       const tS = x.t ? ' · ⏰ ' + window.fT(x.t) : '';
       text += `  🏫 ${addr}${gd.name}${gS}${tS}\n`;
     });
