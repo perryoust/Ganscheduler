@@ -14,7 +14,10 @@ function openMonthlyExport(){
   // Gardens
   const ganSel=document.getElementById('exp-garden');
   ganSel.innerHTML='<option value="">-- בחר צהרון --</option>';
-  const allGans=window.GARDENS.concat(window._GARDENS_EXTRA||[]).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
+  const rawGans = window.GARDENS.concat(window._GARDENS_EXTRA||[]);
+  const map = new Map();
+  rawGans.forEach(g => map.set(g.id, g));
+  const allGans = Array.from(map.values()).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
   allGans.forEach(g=>{ const o=document.createElement('option');o.value=g.id;o.textContent=`${g.name} (${g.city})`;ganSel.appendChild(o); });
   document.getElementById('export-m').classList.add('open');
 }
@@ -46,7 +49,10 @@ function doMonthlyExport(){
   const fromDate=`${fy}-${String(fm).padStart(2,'0')}-01`;
   const toDate=window.d2s(new Date(ty,tm,0));
   let evs=window.SCH.filter(s=>s.d>=fromDate&&s.d<=toDate); // include cancelled for export
-  let gList=window.GARDENS.concat(window._GARDENS_EXTRA||[]);
+  const rawList = window.GARDENS.concat(window._GARDENS_EXTRA||[]);
+  const gMap = new Map();
+  rawList.forEach(g => gMap.set(g.id, g));
+  let gList = Array.from(gMap.values());
   if(mode==='city'&&cityFilter)   gList=gList.filter(g=>g.city===cityFilter);
   if(mode==='manager'&&mgrFilter){ const mgrObj=window.managers[mgrFilter]; if(mgrObj?.gardenIds) gList=gList.filter(g=>mgrObj.gardenIds.includes(g.id)); }
   if(mode==='garden'){ if(!gardenFilter){ window.spAlert('יש לבחור צהרון מהרשימה'); return; } gList=gList.filter(g=>g.id===gardenFilter); }
