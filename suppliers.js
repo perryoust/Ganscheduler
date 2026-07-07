@@ -1,13 +1,27 @@
 function setSupExType(t){
   _supExType=t;
   document.getElementById('supex-type-act')?.classList.toggle('active',t==='act');
+  document.getElementById('supex-type-place')?.classList.toggle('active',t==='place');
   document.getElementById('supex-type-inv')?.classList.toggle('active',t==='inv');
   const actOpts=document.getElementById('supex-act-opts');
   const invOpts=document.getElementById('supex-inv-opts');
-  if(actOpts) actOpts.style.display=t==='act'?'':'none';
+  if(actOpts) actOpts.style.display=(t==='act' || t==='place')?'':'none';
   if(invOpts) invOpts.style.display=t==='inv'?'block':'none';
 }
 function openSupExport(supName){
+  const selWrap = document.getElementById('supex-supplier-wrap');
+  const sel = document.getElementById('supex-supplier-sel');
+  if(!supName) {
+    if(selWrap) selWrap.style.display = 'block';
+    if(sel) {
+      const sups = (typeof window.getAllSup === 'function' ? window.getAllSup() : []).filter(s => window.isActSupplier(s.name)).sort((a,b)=>a.name.localeCompare(b.name,'he'));
+      sel.innerHTML = '<option value="">-- בחר ספק / כל הספקים --</option>' + sups.map(s=>`<option value="${s.name}">${s.name}</option>`).join('');
+      sel.value = '';
+    }
+  } else {
+    if(selWrap) selWrap.style.display = 'none';
+    if(sel) sel.value = supName;
+  }
   _supExName=supName;
   _supExType='act';
   setSupExType('act');
@@ -44,6 +58,18 @@ function doSupExport(){
     return;
   }
 
+  
+  let actualSupName = window._supExName;
+  const selWrap = document.getElementById('supex-supplier-wrap');
+  if(selWrap && selWrap.style.display !== 'none') {
+    actualSupName = document.getElementById('supex-supplier-sel').value;
+  }
+  
+  if(_supExType==='place' && !actualSupName) {
+    window._spAlertDialog('לצורך הפקת דוח שיבוצים, חובה לבחור ספק ספציפי מהרשימה.');
+    return;
+  }
+
   const from=document.getElementById('supex-from').value;
   const to=document.getElementById('supex-to').value;
   if(!from||!to){_spAlertDialog('בחר תאריכים');return;}
@@ -52,7 +78,7 @@ function doSupExport(){
 
   const evs=window.SCH.filter(s=>{
     if(s.d<from||s.d>to) return false;
-    if(window._supExName&&window.supBase(s.a)!==window.supBase(window._supExName)) return false;
+    if(actualSupName&&window.supBase(s.a)!==window.supBase(actualSupName)) return false;
     if(s.st === 'can') return false; // Match openSupExport logic
     
     if (window._supexSelectedGardens && window._supexSelectedGardens.size > 0) {
@@ -77,12 +103,23 @@ function doSupExport(){
   
   if(!evs.length){_spAlertDialog('אין פעילויות בטווח זה');return;}
 
-  const title = window._supExName ? `דו"ח פעילות לספק: ${window._supExName} (טווח: ${window.fD(from)} - ${window.fD(to)})` : `דו"ח פעילות ספקים (טווח: ${window.fD(from)} - ${window.fD(to)})`;
   
-  window.exportToExcel(evs, `דו"ח_פעילויות_${window._supExName||'כל_הספקים'}_${from}_${to}`, {
-    type:'supplier',
+  let exportTypeStr = _supExType === 'place' ? 'supplier_placement' : 'supplier';
+  let title = '';
+  let sumTitle = '';
+  if (_supExType === 'place') {
+    title = `דו"ח שיבוץ לספק - ${actualSupName} (טווח: ${window.fD(from)} - ${window.fD(to)})`;
+    sumTitle = `סה"כ פעילויות בדו"ח (טווח: ${window.fD(from)} - ${window.fD(to)})`;
+  } else {
+    title = actualSupName ? `דו"ח פעילות לספק: ${actualSupName} (טווח: ${window.fD(from)} - ${window.fD(to)})` : `דו"ח פעילות ספקים (טווח: ${window.fD(from)} - ${window.fD(to)})`;
+    sumTitle = actualSupName ? `ריכוז פעילות לספק: ${actualSupName} (טווח: ${window.fD(from)} - ${window.fD(to)})` : `ריכוז פעילות כל הספקים (טווח: ${window.fD(from)} - ${window.fD(to)})`;
+  }
+  
+  
+  window.exportToExcel(evs, `דו"ח_${_supExType==='place'?'שיבוצים':'פעילויות'}_${actualSupName||'כל_הספקים'}_${from}_${to}`, {
+    type: exportTypeStr,
     title: title,
-    summaryTitle: window._supExName ? `ריכוז פעילות לספק: ${window._supExName} (טווח: ${window.fD(from)} - ${window.fD(to)})` : `ריכוז פעילות כל הספקים (טווח: ${window.fD(from)} - ${window.fD(to)})`
+    summaryTitle: sumTitle
   });
 
   window.CM('supexm');
