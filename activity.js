@@ -3131,7 +3131,7 @@ window.getSpFreeDaysHtml = function(gid) {
   if(!free.length) return '<span style="color:#777;font-size:0.75rem">לא נמצאו ימים פנויים ב-3 השבועות הקרובים</span>';
   
   return free.map(f => `
-    <span style="font-size:0.7rem;padding:4px 8px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;border-radius:4px;display:inline-block;margin:2px;font-weight:700;">
+    <span style="font-size:0.7rem;padding:4px 8px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;border-radius:4px;display:inline-block;margin:2px;font-weight:700;cursor:pointer;" onclick="const d=document.getElementById('sp-dup-date'); if(d){ d.value='${f.ds}'; d.scrollIntoView({behavior:'smooth', block:'center'}); setTimeout(()=>d.focus(), 300); }">
       ${f.lbl}
     </span>
   `).join('');
@@ -3230,7 +3230,7 @@ window.getPairSharedFreeDaysHtml = function(gids, nohapEvId = '') {
       `;
     } else {
       return `
-        <span style="font-size:0.68rem; padding:3px 9px; background:#f1fcf4; color:#1b5e20; border:1px solid #c8e6c9; border-radius:6px; font-weight:700; white-space:nowrap; display:inline-block; margin: 2px; line-height:1.2;">
+        <span style="font-size:0.68rem; padding:3px 9px; background:#f1fcf4; color:#1b5e20; border:1px solid #c8e6c9; border-radius:6px; font-weight:700; white-space:nowrap; display:inline-block; margin: 2px; line-height:1.2; cursor:pointer;" onclick="const d=document.getElementById('sp-dup-date'); if(d){ d.value='${f.ds}'; d.scrollIntoView({behavior:'smooth', block:'center'}); setTimeout(()=>d.focus(), 300); }">
           ${f.lbl}
         </span>
       `;
