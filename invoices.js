@@ -2448,8 +2448,9 @@ window.importInvoices = async function(input, skipConfirm) {
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = async function(e) {
+  return new Promise((resolve, reject) => {
+const reader = new FileReader();
+reader.onload = async function(e) {
     try {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: "array" });
@@ -3940,8 +3941,7 @@ window.autoRefreshPurchasing = async function() {
   
   // Wait for import to complete (importInvoices handles rendering and saving implicitly)
   // Give it a couple of seconds to process the excel file before starting the scanner.
-  setTimeout(async () => {
-    // 2. Scan folders
+  // 2. Scan folders
     const dirHandle1 = await window._spIdbGet('invDirHandle1');
     const dirHandle2 = await window._spIdbGet('invDirHandle2');
     
@@ -3987,5 +3987,5 @@ window.autoRefreshPurchasing = async function() {
     } else {
       _spAlertDialog("שגיאה: פונקציית הסריקה הפנימית לא קיימת.");
     }
-  }, 2000);
+  
 };

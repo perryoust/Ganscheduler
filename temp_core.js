@@ -1414,14 +1414,14 @@ function initDrops(){
     ['dash-sup','cal-sup','s-sup'].forEach(id=>{
       ['', '-desktop', '-mobile'].forEach(suffix => {
         const el = document.getElementById(id + suffix);
-        if (el) el.innerHTML += `<option value='${s.name}'>${disp}</option>`;
+        if (el) el.innerHTML += `<option value='${s.name.replace(/'/g, "&#39;")}'>${disp}</option>`;
       });
     });
   });
   // Scheduling dropdowns: show ONLY act suppliers (isAct=true)
   getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>{
     const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
-    ['ns-sup','es-sup'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML+=`<option value='${s.name}'>${disp}</option>`;});
+    ['ns-sup','es-sup'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML+=`<option value='${s.name.replace(/'/g, "&#39;")}'>${disp}</option>`;});
   });
   fG('cal-g1','╫¢╫£ ╫פ╫ª╫פ╫¿╫ץ╫á╫ש╫¥',true);fG('cal-g2','Γאפ',true);fG('cal-g3','Γאפ',true);
   fG('s-g1','╫¢╫£ ╫פ╫ª╫פ╫¿╫ץ╫á╫ש╫¥',true);fG('s-g2','Γאפ',true);fG('s-g3','Γאפ',true);
@@ -1979,7 +1979,7 @@ function sucSaveEdit(){
     el.innerHTML=id==='es-sup'?'<option value="">-- ╫£╫£╫נ ╫⌐╫ש╫á╫ץ╫ש --</option>':'<option value="">╫¢╫£ ╫פ╫í╫ñ╫º╫ש╫¥</option>';
     getAllSup().filter(s=>isActSupplier(s.name)).forEach(s=>{
       const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
-      el.innerHTML+=`<option value='${s.name}'>${disp}</option>`;
+      el.innerHTML+=`<option value='${s.name.replace(/'/g, "&#39;")}'>${disp}</option>`;
     });
     el.value=cur;
   });

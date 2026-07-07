@@ -15,7 +15,7 @@ function openSupExport(supName){
     if(selWrap) selWrap.style.display = 'block';
     if(sel) {
       const sups = (typeof window.getAllSup === 'function' ? window.getAllSup() : []).filter(s => window.isActSupplier(s.name)).sort((a,b)=>a.name.localeCompare(b.name,'he'));
-      sel.innerHTML = '<option value="">-- בחר ספק / כל הספקים --</option>' + sups.map(s=>`<option value="${s.name}">${s.name}</option>`).join('');
+      sel.innerHTML = '<option value="">-- בחר ספק / כל הספקים --</option>' + sups.map(s=>`<option value="${s.name.replace(/"/g, '&quot;')}">${s.name}</option>`).join('');
       sel.value = '';
     }
   } else {
@@ -640,7 +640,7 @@ function saveSup(silent = false){
     el.innerHTML='<option value="">כל הספקים</option>';
     getAllSup().filter(s=>window.isActSupplier(s.name)).forEach(s=>{
       const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
-      el.innerHTML+=`<option value='${s.name}'>${disp}</option>`;
+      el.innerHTML+=`<option value='${s.name.replace(/'/g, "&#39;")}'>${disp}</option>`;
     });
     el.value=cur;
   });

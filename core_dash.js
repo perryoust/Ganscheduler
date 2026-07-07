@@ -194,7 +194,7 @@ function initDrops(){
     ['dash-sup','s-sup'].forEach(id=>{
       ['', '-desktop', '-mobile'].forEach(suffix => {
         const el = document.getElementById(id + suffix);
-        if (el) el.innerHTML += `<option value='${s.name}'>${disp}</option>`;
+        if (el) el.innerHTML += `<option value='${s.name.replace(/'/g, "&#39;")}'>${disp}</option>`;
       });
     });
   });
@@ -210,7 +210,7 @@ function initDrops(){
   });
   getAllSup().filter(s=>window.isActSupplier(s.name)).forEach(s=>{
     const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
-    ['ns-sup','es-sup'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML+=`<option value='${s.name}'>${disp}</option>`;});
+    ['ns-sup','es-sup'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML+=`<option value='${s.name.replace(/'/g, "&#39;")}'>${disp}</option>`;});
   });
   fG('cal-g1','כל הצהרונים',true);fG('cal-g2','—',true);fG('cal-g3','—',true);
   fG('s-g1','כל הצהרונים',true);fG('s-g2','—',true);fG('s-g3','—',true);
@@ -794,7 +794,7 @@ function sucSaveEdit(isAuto = false){
     el.innerHTML=id==='es-sup'?'<option value="">-- ללא שינוי --</option>':'<option value="">כל הספקים</option>';
     getAllSup().filter(s=>window.isActSupplier(s.name)).forEach(s=>{
       const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
-      el.innerHTML+=`<option value='${s.name}'>${disp}</option>`;
+      el.innerHTML+=`<option value='${s.name.replace(/'/g, "&#39;")}'>${disp}</option>`;
     });
     el.value=cur;
   });

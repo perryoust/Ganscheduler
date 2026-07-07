@@ -1,4 +1,8 @@
-﻿const fs = require('fs');
-let content = fs.readFileSync('invoices.js', 'utf8');
-content = content.replace(/"מס\\\"ד": "serialNum",\s*"מסד": "serialNum"/g, '"מס\\\"ד": "serialNum", "מס\'\'ד": "serialNum", "מס\'ד": "serialNum", "מס׳׳ד": "serialNum", "מסד": "serialNum"');
-fs.writeFileSync('invoices.js', content, 'utf8');
+const fs = require('fs');
+let code = fs.readFileSync('invoices.js', 'utf8');
+
+// Replace the setTimeout wrapper for folder scanning
+code = code.replace(/setTimeout\(\s*async\s*\(\)\s*=>\s*\{\s*\/\/\s*2\.\s*Scan folders([\s\S]*?)\}\s*,\s*2000\s*\);/, '// 2. Scan folders$1');
+
+fs.writeFileSync('invoices.js', code);
+console.log('Replaced via regex successfully');

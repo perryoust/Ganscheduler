@@ -1451,7 +1451,7 @@ function genExport(){
                 const coordText = rawCoord ? `\n     ${rawCoord.trim()}` : '';
                 
                 const grpCount = s.grp ? parseInt(s.grp) : 1;
-                const grpStr = grpCount > 1 ? ` · ${grpCount} קב' ⏰ ` : ' · ⏰ ';
+                const grpStr = grpCount > 1 ? ` · ${grpCount}קב' ·⏰ ` : ' · ⏰ ';
                 const timeStr = s.t ? grpStr + fT(s.t) : '';
                 
                 text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${timeStr}${coordText}\n`; 
@@ -1476,7 +1476,7 @@ function genExport(){
                     const coordText = rawCoord ? `\n  ${rawCoord.trim()}` : '';
                     
                     const grpCount = s.grp ? parseInt(s.grp) : 1;
-                    const grpStr = grpCount > 1 ? ` · ${grpCount} קב' ⏰ ` : ' · ⏰ ';
+                    const grpStr = grpCount > 1 ? ` · ${grpCount}קב' ·⏰ ` : ' · ⏰ ';
                     const timeStr = s.t ? grpStr + fT(s.t) : '';
                     
                     text+=`  ${stIcon}${mTag}${addrStr}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
@@ -1491,7 +1491,7 @@ function genExport(){
                       const coordText = rawCoord ? `\n     ${rawCoord.trim()}` : '';
                       
                       const grpCount = s.grp ? parseInt(s.grp) : 1;
-                      const grpStr = grpCount > 1 ? ` · ${grpCount} קב' ⏰ ` : ' · ⏰ ';
+                      const grpStr = grpCount > 1 ? ` · ${grpCount}קב' ·⏰ ` : ' · ⏰ ';
                       const timeStr = s.t ? grpStr + fT(s.t) : '';
                       
                       text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
@@ -1507,7 +1507,7 @@ function genExport(){
                     const coordText = rawCoord ? `\n  ${rawCoord.trim()}` : '';
                     
                     const grpCount = s.grp ? parseInt(s.grp) : 1;
-                    const grpStr = grpCount > 1 ? ` · ${grpCount} קב' ⏰ ` : ' · ⏰ ';
+                    const grpStr = grpCount > 1 ? ` · ${grpCount}קב' ·⏰ ` : ' · ⏰ ';
                     const timeStr = s.t ? grpStr + fT(s.t) : '';
                     
                     text+=`  ${stIcon}${mTag}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
@@ -1601,7 +1601,9 @@ function genExport(){
     // Blank line between dates
     text+='\n';
   });
-  (document.getElementById('ex-prev')||{}).textContent =text;
+  const tA = document.createElement('textarea');
+  tA.innerHTML = text;
+  (document.getElementById('ex-prev')||{}).textContent = tA.value;
 }
 function copyExport(){
   const t=document.getElementById('ex-prev').textContent;
