@@ -2260,7 +2260,7 @@ window.exportSingleRecurringWA = function(sid) {
     rel.forEach(x => {
       const gd = window.G(x.g);
       const gardenName = gd.name;
-      const gC = window.ggr(gd) || 0;
+      const gC = parseInt(x.grp, 10) || window.ggr(gd) || 0;
       const gS = gC > 0 ? ` · ${gC} קב'` : '';
       const tS = x.t ? ' · ⏰ ' + window.fT(x.t) : '';
       text += `     🏫 ${gardenName}${gS}${tS}\n`;
@@ -2269,7 +2269,7 @@ window.exportSingleRecurringWA = function(sid) {
     rel.forEach(x => {
       const gd = window.G(x.g);
       const addr = gd.st ? `📍 ${gd.st} · ` : '';
-      const gC = window.ggr(gd) || 0;
+      const gC = parseInt(x.grp, 10) || window.ggr(gd) || 0;
       const gS = gC > 0 ? ` · ${gC} קב'` : '';
       const tS = x.t ? ' · ⏰ ' + window.fT(x.t) : '';
       text += `  🏫 ${addr}${gd.name}${gS}${tS}\n`;
@@ -2334,15 +2334,75 @@ window.exportRecurringWA = function(key, gid) {
     pEvs.forEach(ps => {
       let pwd = -1;
       try { const p=ps.d.split('-'); pwd=new Date(p[0],parseInt(p[1])-1,p[2]).getDay(); } catch(e){}
+  }
+
+  navigator.clipboard.writeText(text).then(() => {
+    if (typeof window.showToast === 'function') window.showToast('✅ ההודעה הועתקה ללוח!');
+    else _spAlertDialog('✅ ההודעה הועתקה ללוח:\n\n' + text);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (typeof window.showToast === 'function') window.showToast('✅ ההודעה הועתקה ללוח!');
+    else _spAlertDialog('✅ ההודעה הועתקה ללוח:\n\n' + text);
+  });
+};
+
+window.exportRecurringWA = function(key, gid) {
+  const g = window.G(gid);
+  const pair = window.gardenPair(gid);
+  const gids = pair ? pair.ids.map(Number) : [Number(gid)];
+
+  const evs = window.SCH.filter(s => Number(s.g) === Number(gid) && s.d >= window.td() && s.st !== 'can');
+  const seriesMap = {};
+  evs.forEach(s => {
+    if(s.st !== 'ok') return;
+    let wd = -1;
+    try { const p=s.d.split('-'); wd=new Date(p[0],parseInt(p[1])-1,p[2]).getDay(); } catch(e){}
+    if(wd === -1) return;
+    const k = s._recId || `${s.a}_${s.act}_${wd}`;
+    if (k === key) {
+      seriesMap[k] = { a: s.a, act: s.act, wd: wd, t: s.t, grp: s.grp };
+    }
+  });
+
+  const sr = seriesMap[key];
+  if (!sr) {
+    _spAlertDialog('לא נמצא מידע על פעילות זו');
+    return;
+  }
+
+  const daysHe = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  const dayName = daysHe[sr.wd];
+
+  let text = `🗓️ יום ${dayName}\n`;
+
+  const actLabel = sr.act || window.supAct(sr.a) || '';
+  const supPhone = (typeof window.getSupPhone === 'function' ? window.getSupPhone(sr.a) : '') || (SUPBASE.find(sb => sb.name === sr.a) || {}).phone || '';
+  const supLine = `📚 ${window.supDisplayName(window.supBase(sr.a))}${actLabel ? ' - ' + actLabel : ''}${supPhone ? ' · 📞 ' + supPhone : ''}`;
+  text += `${supLine}\n`;
+  text += `📍 ${g.city || ''}\n`;
+
+  const group = [];
+  gids.forEach(id => {
+    const garden = window.G(id);
+    const pEvs = window.SCH.filter(ps => Number(ps.g) === id && ps.st === 'ok' && ps.a === sr.a && ps.d >= window.td());
+    let matchEv = null;
+    pEvs.forEach(ps => {
+      let pwd = -1;
+      try { const p=ps.d.split('-'); pwd=new Date(p[0],parseInt(p[1])-1,p[2]).getDay(); } catch(e){}
       if (pwd === sr.wd) {
         matchEv = ps;
       }
     });
 
     if (matchEv) {
-      group.push({ gd: garden, t: matchEv.t });
+      group.push({ gd: garden, t: matchEv.t, grp: matchEv.grp });
     } else if (id === Number(gid)) {
-      group.push({ gd: g, t: sr.t });
+      group.push({ gd: g, t: sr.t, grp: sr.grp });
     }
   });
 
@@ -2352,7 +2412,7 @@ window.exportRecurringWA = function(key, gid) {
     if (sameAddr && addrs[0]) {
     text += `  📍 ${addrs[0]}\n`;
     group.forEach(s => {
-      const gC = window.ggr(s.gd) || 0;
+      const gC = parseInt(s.grp, 10) || window.ggr(s.gd) || 0;
       const gS = gC > 0 ? ` · ${gC} קב'` : '';
       const tS = s.t ? ' · ⏰ ' + window.fT(s.t) : '';
       text += `     🏫 ${s.gd.name}${gS}${tS}\n`;
@@ -2360,7 +2420,7 @@ window.exportRecurringWA = function(key, gid) {
   } else {
     group.forEach(s => {
       const addr = s.gd.st ? `📍 ${s.gd.st} · ` : '';
-      const gC = window.ggr(s.gd) || 0;
+      const gC = parseInt(s.grp, 10) || window.ggr(s.gd) || 0;
       const gS = gC > 0 ? ` · ${gC} קב'` : '';
       const tS = s.t ? ' · ⏰ ' + window.fT(s.t) : '';
       text += `  🏫 ${addr}${s.gd.name}${gS}${tS}\n`;
