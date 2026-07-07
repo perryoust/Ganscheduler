@@ -327,7 +327,7 @@ function nsSupChg(){
   if(!actSel) return;
   const acts=window.getSupActs(sup);
   actSel.innerHTML='<option value="">בחר סוג פעילות...</option>'+
-    acts.map(a=>`<option value='${a}'>${a}</option>`).join('')+
+    acts.map(a=>`<option value="${a}">${a}</option>`).join('')+
     '<option value="__new__">➕ הוסף פעילות חדשה...</option>';
 }
 function nsActTypeChg(){

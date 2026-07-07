@@ -1380,7 +1380,7 @@ function genExport(){
   const dates=Object.keys(byDate).sort();
   dates.forEach((date,di)=>{
     const dayIcon = '🗓️';
-    text+=`${dayIcon} ${fD(date)} - יום ${dayN(date)}\n`;
+    text+=`${dayIcon} *${fD(date)} - יום ${dayN(date)}*\n`;
     const byCity={};
     byDate[date].forEach(s=>{
       const g=G(s.g);const c=g.city||'';
@@ -1410,7 +1410,7 @@ function genExport(){
           });
           Object.values(bySup).forEach(group=>{
             const s0=group[0];
-            const actLabel=s0.act||supAct(s0.a)||'';
+            const actLabel=supAct(s0.a)||s0.act||'';
             const supPhone = s0.p || (typeof window.getSupPhone === 'function' ? window.getSupPhone(s0.a) : '') || (SUPBASE.find(sb => sb.name === s0.a) || {}).phone || '';
             const supLine=`📚 ${supDisplayName(supBase(s0.a))}${actLabel?' - '+actLabel:''}${supPhone?' · 📞 '+supPhone:''}`;
             const addrs=[...new Set(group.map(s=>s.gd.st||''))];
@@ -1450,8 +1450,11 @@ function genExport(){
                 const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
                 const coordText = rawCoord ? `\n     ${rawCoord.trim()}` : '';
                 
-                const grpCount = s.grp ? parseInt(s.grp) : 1;
-                const grpStr = grpCount > 1 ? ` · ${grpCount}קב' ·⏰ ` : ' · ⏰ ';
+                let grpStr = ' · ⏰ ';
+                if (s.grp && String(s.grp).trim() && String(s.grp).trim() !== '1') {
+                    const sg = String(s.grp).trim();
+                    grpStr = ` · ${sg.includes(',') ? "קב' " + sg : sg + " קב'"} · ⏰ `;
+                }
                 const timeStr = s.t ? grpStr + fT(s.t) : '';
                 
                 text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${timeStr}${coordText}\n`; 
@@ -1475,8 +1478,11 @@ function genExport(){
                     const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
                     const coordText = rawCoord ? `\n  ${rawCoord.trim()}` : '';
                     
-                    const grpCount = s.grp ? parseInt(s.grp) : 1;
-                    const grpStr = grpCount > 1 ? ` · ${grpCount}קב' ·⏰ ` : ' · ⏰ ';
+                    let grpStr = ' · ⏰ ';
+                if (s.grp && String(s.grp).trim() && String(s.grp).trim() !== '1') {
+                    const sg = String(s.grp).trim();
+                    grpStr = ` · ${sg.includes(',') ? "קב' " + sg : sg + " קב'"} · ⏰ `;
+                }
                     const timeStr = s.t ? grpStr + fT(s.t) : '';
                     
                     text+=`  ${stIcon}${mTag}${addrStr}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
@@ -1490,8 +1496,11 @@ function genExport(){
                       const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
                       const coordText = rawCoord ? `\n     ${rawCoord.trim()}` : '';
                       
-                      const grpCount = s.grp ? parseInt(s.grp) : 1;
-                      const grpStr = grpCount > 1 ? ` · ${grpCount}קב' ·⏰ ` : ' · ⏰ ';
+                      let grpStr = ' · ⏰ ';
+                if (s.grp && String(s.grp).trim() && String(s.grp).trim() !== '1') {
+                    const sg = String(s.grp).trim();
+                    grpStr = ` · ${sg.includes(',') ? "קב' " + sg : sg + " קב'"} · ⏰ `;
+                }
                       const timeStr = s.t ? grpStr + fT(s.t) : '';
                       
                       text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
@@ -1506,8 +1515,11 @@ function genExport(){
                     const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
                     const coordText = rawCoord ? `\n  ${rawCoord.trim()}` : '';
                     
-                    const grpCount = s.grp ? parseInt(s.grp) : 1;
-                    const grpStr = grpCount > 1 ? ` · ${grpCount}קב' ·⏰ ` : ' · ⏰ ';
+                    let grpStr = ' · ⏰ ';
+                if (s.grp && String(s.grp).trim() && String(s.grp).trim() !== '1') {
+                    const sg = String(s.grp).trim();
+                    grpStr = ` · ${sg.includes(',') ? "קב' " + sg : sg + " קב'"} · ⏰ `;
+                }
                     const timeStr = s.t ? grpStr + fT(s.t) : '';
                     
                     text+=`  ${stIcon}${mTag}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
@@ -1532,7 +1544,7 @@ function genExport(){
           });
           Object.values(bySup).forEach(group=>{
             const s0=group[0];
-            const actLabel=s0.act||supAct(s0.a)||'';
+            const actLabel=supAct(s0.a)||s0.act||'';
             const supPhone = s0.p || (typeof window.getSupPhone === 'function' ? window.getSupPhone(s0.a) : '') || (SUPBASE.find(sb => sb.name === s0.a) || {}).phone || '';
             const supLine=`📚 ${supDisplayName(supBase(s0.a))}${actLabel?' - '+actLabel:''}${supPhone?' · 📞 '+supPhone:''}`;
             const addrs=[...new Set(group.map(s=>s.gd.st||''))];
@@ -2246,9 +2258,9 @@ window.exportSingleRecurringWA = function(sid) {
   const daysHe = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
   const dayName = daysHe[dow] || window.dayN(s.d);
 
-  let text = `🗓️ יום ${dayName}\n`;
+  let text = `🗓️ *${window.fD(s.d)} - יום ${dayName}*\n`;
 
-  const actLabel = s.act || window.supAct(s.a) || '';
+  const actLabel = window.supAct(s.a) || s.act || '';
   const supPhone = (typeof window.getSupPhone === 'function' ? window.getSupPhone(s.a) : '') || (SUPBASE.find(sb => sb.name === s.a) || {}).phone || '';
   const supLine = `📚 ${window.supDisplayName(window.supBase(s.a))}${actLabel ? ' - ' + actLabel : ''}${supPhone ? ' · 📞 ' + supPhone : ''}`;
   text += `${supLine}\n`;
@@ -2263,11 +2275,12 @@ window.exportSingleRecurringWA = function(sid) {
       const gd = window.G(x.g);
       const gardenName = gd.name;
       let gS = '';
-      if(x.grp){
-        gS = ` · קב' ${x.grp}`;
+      if(x.grp && String(x.grp).trim() && String(x.grp).trim() !== '1'){
+        const sg = String(x.grp).trim();
+        gS = ` · ${sg.includes(',') ? "קב' " + sg : sg + " קב'"}`;
       } else {
         const gC = window.ggr(gd)||0;
-        if(gC>0) gS = ` · ${gC} קב'`;
+        if(gC>1) gS = ` · ${gC} קב'`;
       }
       const tS = x.t ? ' · ⏰ ' + window.fT(x.t) : '';
       text += `     🏫 ${gardenName}${gS}${tS}\n`;
@@ -2277,11 +2290,12 @@ window.exportSingleRecurringWA = function(sid) {
       const gd = window.G(x.g);
       const addr = gd.st ? `📍 ${gd.st} · ` : '';
       let gS = '';
-      if(x.grp){
-        gS = ` · קב' ${x.grp}`;
+      if(x.grp && String(x.grp).trim() && String(x.grp).trim() !== '1'){
+        const sg = String(x.grp).trim();
+        gS = ` · ${sg.includes(',') ? "קב' " + sg : sg + " קב'"}`;
       } else {
         const gC = window.ggr(gd)||0;
-        if(gC>0) gS = ` · ${gC} קב'`;
+        if(gC>1) gS = ` · ${gC} קב'`;
       }
       const tS = x.t ? ' · ⏰ ' + window.fT(x.t) : '';
       text += `  🏫 ${addr}${gd.name}${gS}${tS}\n`;
@@ -2331,7 +2345,7 @@ window.exportRecurringWA = function(key, gid) {
   const daysHe = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
   const dayName = daysHe[sr.wd];
 
-  let text = `🗓️ יום ${dayName}\n`;
+  let text = `🗓️ *${window.fD(s.d)} - יום ${dayName}*\n`;
 
   const actLabel = sr.act || window.supAct(sr.a) || '';
   const supPhone = (typeof window.getSupPhone === 'function' ? window.getSupPhone(sr.a) : '') || (SUPBASE.find(sb => sb.name === sr.a) || {}).phone || '';

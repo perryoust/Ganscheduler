@@ -735,7 +735,16 @@ async function exportToExcel(data, filename, opts = {}) {
               return (a.t || '99:99').localeCompare(b.t || '99:99');
             });
 
-            const actualName = opts.title && opts.title.includes('דו"ח שיבוץ לספק - ') ? opts.title.split('-')[1].split('(טווח')[0].trim() : (window._supExName || 'כל הספקים');
+            let actualName = window._supExName || 'כל הספקים';
+            if (opts.title) {
+                if (opts.title.includes('דו"ח פעילות לספק:')) {
+                    actualName = opts.title.split('דו"ח פעילות לספק:')[1].split('(טווח')[0].trim();
+                } else if (opts.title.includes('דו"ח שיבוצים לספק:')) {
+                    actualName = opts.title.split('דו"ח שיבוצים לספק:')[1].split('(טווח')[0].trim();
+                } else if (opts.title.includes('דו"ח שיבוץ לספק - ')) {
+                    actualName = opts.title.split('-')[1].split('(טווח')[0].trim();
+                }
+            }
             const titleRow = ws.addRow([`${actualName} - ${city} - ${type}`]);
             titleRow.font = { bold: true };
             titleRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
@@ -804,7 +813,7 @@ async function exportToExcel(data, filename, opts = {}) {
               
               const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
               const dayStr = 'יום ' + dayNames[new Date(s.d).getDay()];
-              const row = isPlacement ? ws.addRow([g.addr || '', g.name, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote]) : ws.addRow([window.fD(s.d), dayStr, g.name, window.supBase ? window.supBase(s.a) : s.a, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote]);
+              const row = isPlacement ? ws.addRow([g.addr || '', g.name, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote]) : ws.addRow([window.fD(s.d), dayStr, g.name, window.supBase ? window.supBase(s.a) : s.a, window.supAct(s.a) || s.act || '', s.t, grpCount, displayStatus, formattedNote]);
               row.eachCell(cell => {
                  cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
                  cell.alignment = { horizontal: 'right', vertical: 'middle', wrapText: true };
@@ -838,7 +847,10 @@ async function exportToExcel(data, filename, opts = {}) {
           // Print Summary Table for TYPE
           if (typeGlobalGroups > 0) {
             ws.addRow([]);
-            const summaryTitleStr = opts.summaryTitle || '📊 ריכוז פעילות סופי';
+            let summaryTitleStr = opts.summaryTitle || '📊 ריכוז פעילות סופי';
+            if (summaryTitleStr.includes('סה"כ פעילויות לביצוע:')) {
+                summaryTitleStr = summaryTitleStr.replace('סה"כ פעילויות לביצוע:', 'ריכוז פעילות לספק:');
+            }
             // Try to add the Type name to the summary title if it doesn't have it
             let finalTitleStr = summaryTitleStr;
             if (!finalTitleStr.includes(type)) {
@@ -857,7 +869,7 @@ async function exportToExcel(data, filename, opts = {}) {
               });
             });
 
-            const totalRow = isPlacement ? ws.addRow(['סה"כ קבוצות בדו"ח', typeGlobalGroups]) : ws.addRow(['₪ סה"כ קבוצות לתשלום (כללי)', '', typeGlobalGroups]);
+            const totalRow = isPlacement ? ws.addRow(['סה"כ קבוצות בדו"ח', typeGlobalGroups]) : ws.addRow(['סה"כ פעילויות לביצוע', '', typeGlobalGroups]);
             totalRow.font = { bold: true };
             totalRow.eachCell(cell => {
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
