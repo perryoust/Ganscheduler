@@ -926,9 +926,27 @@ window.toggleSupExGardenMulti = function() {
 
 window.filterSupExGardenMulti = function() {
   const q = document.getElementById('supex-garden-multi-search').value.toLowerCase();
-  const items = document.querySelectorAll('#supex-garden-multi-items > div');
-  items.forEach(el => {
-    el.style.display = el.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+  const cities = document.querySelectorAll('.supex-city-group');
+  cities.forEach(cityDiv => {
+    let cityMatch = cityDiv.querySelector('.supex-city-name').textContent.toLowerCase().includes(q);
+    let hasVisibleChild = false;
+    const items = cityDiv.querySelectorAll('.supex-garden-item');
+    items.forEach(el => {
+      const match = el.textContent.toLowerCase().includes(q);
+      el.style.display = match || cityMatch ? 'flex' : 'none';
+      if(match || cityMatch) hasVisibleChild = true;
+    });
+    cityDiv.style.display = hasVisibleChild || cityMatch ? 'block' : 'none';
+    
+    const itemsContainer = cityDiv.querySelector('.supex-city-items');
+    const toggleSpan = cityDiv.querySelector('.supex-city-toggle');
+    if(q) {
+       itemsContainer.style.display = 'block';
+       if(toggleSpan) toggleSpan.textContent = '➖';
+    } else {
+       itemsContainer.style.display = 'none';
+       if(toggleSpan) toggleSpan.textContent = '➕';
+    }
   });
 };
 
@@ -940,18 +958,84 @@ window.renderSupExGardenMultiItems = function() {
   rawList.forEach(g => gMap.set(g.id, g));
   const allGans = Array.from(gMap.values()).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
   
-  let html = '';
+  const cityGroups = {};
   allGans.forEach(g => {
-    const isChecked = window._supexSelectedGardens.has(g.id.toString());
-    html += `
-      <div style="display:flex;align-items:center;padding:5px 8px;cursor:pointer;border-bottom:1px solid #eee;" onclick="window.toggleSupExGardenItem('${g.id}', event)">
-        <input type="checkbox" style="margin-left:8px;" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); window.toggleSupExGardenItem('${g.id}', event)">
-        <span style="font-size:0.8rem">${g.name} (${g.city || ''})</span>
-      </div>
-    `;
+    const c = g.city || 'ללא עיר';
+    if(!cityGroups[c]) cityGroups[c] = [];
+    cityGroups[c].push(g);
   });
+  
+  // Re-apply open states
+  const openStates = {};
+  document.querySelectorAll('.supex-city-group').forEach(cg => {
+    const cNameMatch = cg.querySelector('.supex-city-name').textContent.match(/^(.*?)\s+\(\d+\)$/);
+    if(cNameMatch && cg.querySelector('.supex-city-items').style.display === 'block') {
+      openStates[cNameMatch[1].trim()] = true;
+    }
+  });
+  
+  let html = '';
+  Object.keys(cityGroups).sort((a,b)=>a.localeCompare(b,'he')).forEach(city => {
+    const gans = cityGroups[city];
+    const allChecked = gans.every(g => window._supexSelectedGardens.has(g.id.toString()));
+    const someChecked = gans.some(g => window._supexSelectedGardens.has(g.id.toString()));
+    const isOpen = openStates[city] ? 'block' : 'none';
+    const toggleChar = isOpen === 'block' ? '➖' : '➕';
+    
+    const cityIdStr = gans.map(g=>g.id).join(',');
+    
+    html += `
+      <div class="supex-city-group" style="border-bottom:1px solid #ddd;">
+        <div style="display:flex;align-items:center;padding:5px 8px;background:#f5f5f5;font-weight:bold;cursor:pointer;" onclick="window.toggleSupExCityItems(this)">
+          <span style="width:20px;text-align:center;font-size:0.8rem" class="supex-city-toggle">${toggleChar}</span>
+          <input type="checkbox" style="margin-left:8px;" class="supex-city-cb" ${allChecked?'checked':''} ${someChecked&&!allChecked?'data-indeterminate="true"':''} onclick="event.stopPropagation(); window.toggleSupExCity('${cityIdStr}', this)">
+          <span style="font-size:0.85rem;flex:1" class="supex-city-name">${city} (${gans.length})</span>
+        </div>
+        <div class="supex-city-items" style="display:${isOpen};background:#fafafa;">
+    `;
+    
+    gans.forEach(g => {
+      const isChecked = window._supexSelectedGardens.has(g.id.toString());
+      html += `
+          <div class="supex-garden-item" style="display:flex;align-items:center;padding:5px 8px 5px 24px;cursor:pointer;border-bottom:1px solid #eee;" onclick="window.toggleSupExGardenItem('${g.id}', event)">
+            <input type="checkbox" style="margin-left:8px;" class="supex-g-cb" data-id="${g.id}" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); window.toggleSupExGardenItem('${g.id}', event)">
+            <span style="font-size:0.8rem">${g.name}</span>
+          </div>
+      `;
+    });
+    
+    html += `</div></div>`;
+  });
+  
   container.innerHTML = html;
+  
+  container.querySelectorAll('.supex-city-cb').forEach(cb => {
+    if(cb.getAttribute('data-indeterminate')==='true') cb.indeterminate = true;
+  });
+  
   window.updateSupExGardenMultiLabel();
+};
+
+window.toggleSupExCityItems = function(el) {
+  const itemsContainer = el.nextElementSibling;
+  const toggleSpan = el.querySelector('.supex-city-toggle');
+  if(itemsContainer.style.display === 'none') {
+    itemsContainer.style.display = 'block';
+    if(toggleSpan) toggleSpan.textContent = '➖';
+  } else {
+    itemsContainer.style.display = 'none';
+    if(toggleSpan) toggleSpan.textContent = '➕';
+  }
+};
+
+window.toggleSupExCity = function(cityIdsStr, cbEl) {
+  const isChecked = cbEl.checked;
+  const ids = cityIdsStr.split(',');
+  ids.forEach(id => {
+    if(isChecked) window._supexSelectedGardens.add(id);
+    else window._supexSelectedGardens.delete(id);
+  });
+  window.renderSupExGardenMultiItems();
 };
 
 window.toggleSupExGardenItem = function(gid, e) {
@@ -965,7 +1049,7 @@ window.toggleSupExGardenItem = function(gid, e) {
   } else {
     window._supexSelectedGardens.add(gid);
   }
-  window.updateSupExGardenMultiLabel();
+  window.renderSupExGardenMultiItems();
 };
 
 window.updateSupExGardenMultiLabel = function() {
