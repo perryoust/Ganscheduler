@@ -680,7 +680,7 @@ async function exportToExcel(data, filename, opts = {}) {
       });
       ws.pageSetup = {
         paperSize: 9, // A4
-        orientation: 'portrait',
+        orientation: 'landscape',
         fitToPage: true,
         fitToWidth: 1,
         fitToHeight: 0,
@@ -848,7 +848,7 @@ async function exportToExcel(data, filename, opts = {}) {
           if (typeGlobalGroups > 0) {
             ws.addRow([]);
             let summaryTitleStr = opts.summaryTitle || '📊 ריכוז פעילות סופי';
-            if (summaryTitleStr.includes('סה"כ פעילויות לביצוע:')) {
+            if (isPlacement && summaryTitleStr.includes('סה"כ פעילויות לביצוע:')) {
                 summaryTitleStr = summaryTitleStr.replace('סה"כ פעילויות לביצוע:', 'ריכוז פעילות לספק:');
             }
             // Try to add the Type name to the summary title if it doesn't have it
@@ -869,7 +869,7 @@ async function exportToExcel(data, filename, opts = {}) {
               });
             });
 
-            const totalRow = isPlacement ? ws.addRow(['סה"כ קבוצות בדו"ח', typeGlobalGroups]) : ws.addRow(['סה"כ פעילויות לביצוע', '', typeGlobalGroups]);
+            const totalRow = isPlacement ? ws.addRow(['סה"כ קבוצות בדו"ח', typeGlobalGroups]) : ws.addRow(['₪ סה"כ קבוצות לתשלום (כללי)', '', typeGlobalGroups]);
             totalRow.font = { bold: true };
             totalRow.eachCell(cell => {
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };

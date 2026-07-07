@@ -1380,7 +1380,7 @@ function genExport(){
   const dates=Object.keys(byDate).sort();
   dates.forEach((date,di)=>{
     const dayIcon = '🗓️';
-    text+=`${dayIcon} *${fD(date)} - יום ${dayN(date)}*\n`;
+    text+=`${dayIcon} *${fD(date)} - ${dayN(date)}*\n`;
     const byCity={};
     byDate[date].forEach(s=>{
       const g=G(s.g);const c=g.city||'';
