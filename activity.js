@@ -1084,6 +1084,18 @@ window.openSP = function(id) {
     </div>
   </div>`;
 
+  // --- STEP 9.8: Duplicate Button ---
+  h += `<div id="sp-dup-wrap" style="margin-top:15px; text-align:center; background:#e3f2fd; border:1px solid #90caf9; padding:10px; border-radius:8px; display:none;">
+    <div style="font-size:0.8rem; font-weight:800; margin-bottom:8px; color:#1565c0;">בחר תאריך יעד לשכפול:</div>
+    <div style="display:flex; justify-content:center; gap:8px;">
+      <input type="date" id="sp-dup-date" style="padding:6px; border-radius:4px; border:1px solid #90caf9; width:140px;">
+      <button class="btn bg" onclick="window.spExecuteDuplicate()" style="padding:6px 12px; font-weight:800;">שכפל פעילות</button>
+    </div>
+  </div>
+  <div style="margin-top:15px; text-align:center;" id="sp-dup-btn-wrap">
+    <button class="btn bo" style="width:100%;padding:10px;font-weight:800;background:#e3f2fd;border:1px solid #90caf9;color:#1565c0;font-size:.85rem;border-radius:8px" onclick="document.getElementById('sp-dup-wrap').style.display='block'; document.getElementById('sp-dup-btn-wrap').style.display='none'; window.toggleSpAccordion('sp-acc-free', true);">📋 שכפל פעילות לתאריך אחר</button>
+  </div>`;
+
   // --- STEP 10: Delete Button ---
   const delBtnText = s._isMakeup ? '🗑️ מחק פעילות השלמה (והחזר מקורית)' : '🗑️ מחק פעילות זו מהלוח (לצמיתות)';
   h += `<div style="margin-top:15px; text-align:center;">
@@ -1102,6 +1114,38 @@ window.openSP = function(id) {
   }
 }
 window.openSP = openSP;
+
+window.spExecuteDuplicate = function() {
+  const newDate = document.getElementById('sp-dup-date').value;
+  if(!newDate) { alert('נא לבחור תאריך'); return; }
+  
+  const sels = Array.from(document.querySelectorAll('.sp-garden-sel:checked')).map(el => el.value);
+  if(!sels.length) { alert('נא לבחור לפחות צהרון אחד (בתיבות הסימון למעלה)'); return; }
+  
+  let duplicated = 0;
+  sels.forEach(pId => {
+    const orig = window.SCH.find(x => x.id == pId);
+    if(orig) {
+      const cloned = JSON.parse(JSON.stringify(orig));
+      cloned.id = Date.now().toString() + Math.floor(Math.random()*1000) + duplicated;
+      cloned.d = newDate;
+      cloned.st = 'ok';
+      delete cloned.nt;
+      delete cloned._recId;
+      delete cloned._makeupFrom;
+      delete cloned._isMakeup;
+      
+      window.SCH.push(cloned);
+      duplicated++;
+    }
+  });
+  
+  if(duplicated > 0) {
+    if(window.saveAndRefresh) window.saveAndRefresh('sp');
+    if(window.showToast) window.showToast('✅ הפעילות שוכפלה בהצלחה ל-' + window.fD(newDate));
+    if(window.CM) window.CM('sp-m'); // close modal
+  }
+};
 
 function toggleSpAccordion(id, forceState = null){
   const el = document.getElementById(id);
