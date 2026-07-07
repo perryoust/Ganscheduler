@@ -2237,11 +2237,18 @@
           חשבוניות / הזמנות</button>
       </div>
       <div id="supex-act-opts">
-        <div class="fg" style="margin-bottom:11px">
-          <label>סינון לפי גנים / בתי ספר (אופציונלי)</label>
-          <input type="text" id="supex-garden-filter" style="width:100%" placeholder="לדוגמא: אירוס נס ציונה, בן צבי נס ציונה...">
-          <div style="font-size:0.65rem;color:#78909c;margin-top:2px;">ניתן להזין מספר שמות מופרדים בפסיק.</div>
-        </div>
+          <div class="fg custom-multi-wrap" id="supex-garden-multi-wrap">
+            <label>סינון לפי גנים / בתי ספר (אופציונלי)</label>
+            <div class="custom-multi-select" onclick="window.toggleSupExGardenMulti()" id="supex-garden-multi-btn" style="border:1px solid #ccc;padding:8px;border-radius:4px;cursor:pointer;display:flex;justify-content:space-between;background:#fff;margin-top:2px;">
+              <span id="supex-garden-multi-label">כל הגנים (בחר כדי לסנן)</span> <span style="font-size:0.6rem;padding-top:4px;">▼</span>
+            </div>
+            <div class="custom-multi-dropdown" id="supex-garden-multi-list" style="width:100%">
+              <div style="display:flex;border-bottom:1px solid #ddd;">
+                <input type="text" class="custom-multi-search" id="supex-garden-multi-search" placeholder="🔍 חפש גן..." onkeyup="window.filterSupExGardenMulti()" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
+              </div>
+              <div id="supex-garden-multi-items" style="max-height:200px;overflow-y:auto;background:#fff;border:1px solid #ddd;border-top:none;"></div>
+            </div>
+          </div>
         <div class="row" style="margin-bottom:11px">
           <div class="fg"><label>מ-תאריך *</label><input type="date" id="supex-from" style="min-width:140px"></div>
           <div class="fg"><label>עד-תאריך *</label><input type="date" id="supex-to" style="min-width:140px"></div>

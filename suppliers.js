@@ -29,7 +29,7 @@ function openSupExport(supName){
   document.getElementById('supex-to').value = to;
   
   document.getElementById('supex-prev').style.display='none';
-  if(document.getElementById('supex-garden-filter')) document.getElementById('supex-garden-filter').value = '';
+  if(window._supexSelectedGardens) window._supexSelectedGardens.clear(); if(document.getElementById('supex-garden-multi-search')) document.getElementById('supex-garden-multi-search').value = ''; if(typeof window.renderSupExGardenMultiItems === 'function') window.renderSupExGardenMultiItems();
   document.getElementById('supexm').classList.add('open');
 }
 function doSupExport(){
@@ -48,23 +48,16 @@ function doSupExport(){
   const to=document.getElementById('supex-to').value;
   if(!from||!to){_spAlertDialog('בחר תאריכים');return;}
 
-  const gardenFilter = (document.getElementById('supex-garden-filter')?.value || '').toLowerCase().trim();
-  const filterTerms = gardenFilter ? gardenFilter.split(',').map(x => x.trim()).filter(x => x) : [];
+  
 
   const evs=window.SCH.filter(s=>{
     if(s.d<from||s.d>to) return false;
     if(window._supExName&&window.supBase(s.a)!==window.supBase(window._supExName)) return false;
     if(s.st === 'can') return false; // Match openSupExport logic
     
-    if (filterTerms.length > 0) {
-       const gObj = window.G(s.g);
-       const gName = (gObj.name || '').toLowerCase();
-       const gCity = (gObj.city || '').toLowerCase();
-       const clsName = (window.gcls && window.gcls(gObj) === 'ביה"ס') ? 'בית ספר' : '';
-       const fullStr = `${gName} ${gCity} ${clsName}`.trim();
-       
-       const match = filterTerms.some(term => term.split(' ').every(w => fullStr.includes(w)));
-       if (!match) return false;
+    if (window._supexSelectedGardens && window._supexSelectedGardens.size > 0) {
+       const gidStr = s.g.toString();
+       if (!window._supexSelectedGardens.has(gidStr)) return false;
     }
     
     return true;
@@ -924,3 +917,70 @@ window.psupMultiMerge = function() {
 };
 
 var _GARDENS_EXTRA=[]; // user-added gardens stored in localStorage
+
+
+window._supexSelectedGardens = new Set();
+window.toggleSupExGardenMulti = function() {
+  document.getElementById('supex-garden-multi-list').classList.toggle('open');
+};
+
+window.filterSupExGardenMulti = function() {
+  const q = document.getElementById('supex-garden-multi-search').value.toLowerCase();
+  const items = document.querySelectorAll('#supex-garden-multi-items > div');
+  items.forEach(el => {
+    el.style.display = el.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+  });
+};
+
+window.renderSupExGardenMultiItems = function() {
+  const container = document.getElementById('supex-garden-multi-items');
+  if(!container) return;
+  const rawList = window.GARDENS.concat(window._GARDENS_EXTRA||[]);
+  const gMap = new Map();
+  rawList.forEach(g => gMap.set(g.id, g));
+  const allGans = Array.from(gMap.values()).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
+  
+  let html = '';
+  allGans.forEach(g => {
+    const isChecked = window._supexSelectedGardens.has(g.id.toString());
+    html += `
+      <div style="display:flex;align-items:center;padding:5px 8px;cursor:pointer;border-bottom:1px solid #eee;" onclick="window.toggleSupExGardenItem('${g.id}', event)">
+        <input type="checkbox" style="margin-left:8px;" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); window.toggleSupExGardenItem('${g.id}', event)">
+        <span style="font-size:0.8rem">${g.name} (${g.city || ''})</span>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+  window.updateSupExGardenMultiLabel();
+};
+
+window.toggleSupExGardenItem = function(gid, e) {
+  if (e && e.target.tagName !== 'INPUT') {
+    const cb = e.currentTarget.querySelector('input[type="checkbox"]');
+    if(cb) cb.checked = !cb.checked;
+  }
+  gid = gid.toString();
+  if (window._supexSelectedGardens.has(gid)) {
+    window._supexSelectedGardens.delete(gid);
+  } else {
+    window._supexSelectedGardens.add(gid);
+  }
+  window.updateSupExGardenMultiLabel();
+};
+
+window.updateSupExGardenMultiLabel = function() {
+  const lbl = document.getElementById('supex-garden-multi-label');
+  if(!lbl) return;
+  if(window._supexSelectedGardens.size === 0) {
+    lbl.textContent = 'כל הגנים (בחר כדי לסנן)';
+  } else {
+    lbl.textContent = window._supexSelectedGardens.size + ' גנים נבחרו';
+  }
+};
+
+document.addEventListener('click', e => {
+  if(!e.target.closest('#supex-garden-multi-wrap')){
+    const list = document.getElementById('supex-garden-multi-list');
+    if(list) list.classList.remove('open');
+  }
+});
