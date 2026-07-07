@@ -2229,7 +2229,7 @@
 
   <!-- Supplier Export Modal -->
   <div id="supexm" class="modal">
-    <div class="mb" style="max-width:500px">
+    <div class="mb" style="max-width:650px; height:80vh; display:flex; flex-direction:column;">
       <h2 id="supexm-title">🚀 יצוא דוח ספק</h2>
       <!-- Export type selector -->
       <div style="display:flex;gap:6px;margin-bottom:12px">
@@ -2238,17 +2238,17 @@
         <button id="supex-type-inv" class="vbtn" onclick="setSupExType('inv')" style="flex:1;font-size:.8rem">📄
           חשבוניות / הזמנות</button>
       </div>
-      <div id="supex-act-opts">
-          <div class="fg custom-multi-wrap" id="supex-garden-multi-wrap">
+      <div id="supex-act-opts" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+          <div class="fg custom-multi-wrap" id="supex-garden-multi-wrap" style="flex:1; display:flex; flex-direction:column; min-height:0;">
             <label>סינון לפי גנים / בתי ספר (אופציונלי)</label>
             <div class="custom-multi-select" onclick="window.toggleSupExGardenMulti()" id="supex-garden-multi-btn" style="border:1px solid #ccc;padding:8px;border-radius:4px;cursor:pointer;display:flex;justify-content:space-between;background:#fff;margin-top:2px;">
               <span id="supex-garden-multi-label">כל הגנים (בחר כדי לסנן)</span> <span style="font-size:0.6rem;padding-top:4px;">▼</span>
             </div>
-            <div class="custom-multi-dropdown" id="supex-garden-multi-list" style="width:100%">
+            <div class="custom-multi-dropdown" id="supex-garden-multi-list" style="width:100%; display:flex; flex-direction:column; flex:1; position:relative; min-height:300px;">
               <div style="display:flex;border-bottom:1px solid #ddd;">
                 <input type="text" class="custom-multi-search" id="supex-garden-multi-search" placeholder="🔍 חפש גן..." onkeyup="window.filterSupExGardenMulti()" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
               </div>
-              <div id="supex-garden-multi-items" style="max-height:400px;overflow-y:auto;background:#fff;border:1px solid #ddd;border-top:none;"></div>
+              <div id="supex-garden-multi-items" style="flex:1; overflow-y:auto; background:#fff; border:1px solid #ddd; border-top:none;"></div>
             </div>
           </div>
         <div class="row" style="margin-bottom:11px">
