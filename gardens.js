@@ -1451,9 +1451,9 @@ function genExport(){
                 const coordText = rawCoord ? `\n     ${rawCoord.trim()}` : '';
                 
                 let grpStr = ' · ⏰ ';
-                if (s.grp && String(s.grp).trim() && String(s.grp).trim() !== '1') {
-                    const sg = String(s.grp).trim();
-                    grpStr = ` · ${sg.includes(',') ? "קב' " + sg : sg + " קב'"} · ⏰ `;
+                let actualGrp = s.grp ? String(s.grp).trim() : String(window.ggr ? window.ggr(s.gd) || '' : '');
+                if (actualGrp && actualGrp !== '1' && actualGrp !== '0') {
+                    grpStr = ` · ${actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'"} · ⏰ `;
                 }
                 const timeStr = s.t ? grpStr + fT(s.t) : '';
                 
@@ -1479,9 +1479,9 @@ function genExport(){
                     const coordText = rawCoord ? `\n  ${rawCoord.trim()}` : '';
                     
                     let grpStr = ' · ⏰ ';
-                if (s.grp && String(s.grp).trim() && String(s.grp).trim() !== '1') {
-                    const sg = String(s.grp).trim();
-                    grpStr = ` · ${sg.includes(',') ? "קב' " + sg : sg + " קב'"} · ⏰ `;
+                let actualGrp = s.grp ? String(s.grp).trim() : String(window.ggr ? window.ggr(s.gd) || '' : '');
+                if (actualGrp && actualGrp !== '1' && actualGrp !== '0') {
+                    grpStr = ` · ${actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'"} · ⏰ `;
                 }
                     const timeStr = s.t ? grpStr + fT(s.t) : '';
                     
@@ -1497,9 +1497,9 @@ function genExport(){
                       const coordText = rawCoord ? `\n     ${rawCoord.trim()}` : '';
                       
                       let grpStr = ' · ⏰ ';
-                if (s.grp && String(s.grp).trim() && String(s.grp).trim() !== '1') {
-                    const sg = String(s.grp).trim();
-                    grpStr = ` · ${sg.includes(',') ? "קב' " + sg : sg + " קב'"} · ⏰ `;
+                let actualGrp = s.grp ? String(s.grp).trim() : String(window.ggr ? window.ggr(s.gd) || '' : '');
+                if (actualGrp && actualGrp !== '1' && actualGrp !== '0') {
+                    grpStr = ` · ${actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'"} · ⏰ `;
                 }
                       const timeStr = s.t ? grpStr + fT(s.t) : '';
                       
@@ -1516,9 +1516,9 @@ function genExport(){
                     const coordText = rawCoord ? `\n  ${rawCoord.trim()}` : '';
                     
                     let grpStr = ' · ⏰ ';
-                if (s.grp && String(s.grp).trim() && String(s.grp).trim() !== '1') {
-                    const sg = String(s.grp).trim();
-                    grpStr = ` · ${sg.includes(',') ? "קב' " + sg : sg + " קב'"} · ⏰ `;
+                let actualGrp = s.grp ? String(s.grp).trim() : String(window.ggr ? window.ggr(s.gd) || '' : '');
+                if (actualGrp && actualGrp !== '1' && actualGrp !== '0') {
+                    grpStr = ` · ${actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'"} · ⏰ `;
                 }
                     const timeStr = s.t ? grpStr + fT(s.t) : '';
                     
@@ -1580,7 +1580,13 @@ function genExport(){
                 const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
                 const rawCoord = getCoordStr(s.g);
                 const coordText = rawCoord ? `\n     ${rawCoord.trim()}` : '';
-                text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}${coordText}\n`; 
+                let grpStr = ' · ⏰ ';
+let actualGrp = s.grp ? String(s.grp).trim() : String(window.ggr ? window.ggr(s.gd) || '' : '');
+if (actualGrp && actualGrp !== '1' && actualGrp !== '0') {
+    grpStr = ` · ${actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'"}` + ' · ⏰ ';
+}
+const timeStr = s.t ? grpStr + fT(s.t) : '';
+text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${timeStr}${coordText}\n`; 
               });
             } else {
               group.forEach(s=>{
@@ -1591,7 +1597,13 @@ function genExport(){
                 const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
                 const rawCoord = getCoordStr(s.g);
                 const coordText = rawCoord ? `\n  ${rawCoord.trim()}` : '';
-                text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${statusTag}${s.t?' · ⏰ '+fT(s.t):''}${coordText}\n`;
+                let grpStr = ' · ⏰ ';
+let actualGrp = s.grp ? String(s.grp).trim() : String(window.ggr ? window.ggr(s.gd) || '' : '');
+if (actualGrp && actualGrp !== '1' && actualGrp !== '0') {
+    grpStr = ` · ${actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'"}` + ' · ⏰ ';
+}
+const timeStr = s.t ? grpStr + fT(s.t) : '';
+text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
               });
             }
             text+='\n';
@@ -1606,7 +1618,13 @@ function genExport(){
           const statusTag = (isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
           const rawCoord = getCoordStr(s.g);
           const coordText = rawCoord ? `\n${rawCoord.trim()}` : '';
-          text+=`${stIcon}${mTag}${s.gd.name}${statusTag} - ${s.a}${s.t?' · ⏰ '+fT(s.t):''}${coordText}\n`;
+          let grpStr = ' · ⏰ ';
+let actualGrp = s.grp ? String(s.grp).trim() : String(window.ggr ? window.ggr(s.gd) || '' : '');
+if (actualGrp && actualGrp !== '1' && actualGrp !== '0') {
+    grpStr = ` · ${actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'"}` + ' · ⏰ ';
+}
+const timeStr = s.t ? grpStr + fT(s.t) : '';
+text+=`${stIcon}${mTag}${s.gd.name}${statusTag} - ${s.a}${timeStr}${coordText}\n`;
         });
       }
     });

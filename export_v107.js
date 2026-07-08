@@ -708,8 +708,9 @@ async function exportToExcel(data, filename, opts = {}) {
 
         // Ensure "גנים" comes first, then everything else
         const types = Object.keys(byType).sort((a,b) => a === 'גנים' ? -1 : (b === 'גנים' ? 1 : a.localeCompare(b)));
-        const summaryRows = [];
+        
         types.forEach(type => {
+          const summaryRows = [];
           let typeGlobalGroups = 0;
           
           const typeEvsAll = byType[type];
@@ -723,12 +724,14 @@ async function exportToExcel(data, filename, opts = {}) {
           const cities = Object.keys(byCity).sort();
           cities.forEach(city => {
             let typeOk = 0, typeNo = 0, typeGroups = 0;
-            const schoolStats = {};
             const typeEvs = byCity[city].sort((a,b) => {
               const ds = a.d.localeCompare(b.d);
               if(ds !== 0) return ds;
               const pA = window.gardenPair(a.g), pB = window.gardenPair(b.g);
-              if(pA !== pB) return pA.localeCompare(pB);
+              const nA = pA ? pA.name : window.G(a.g).name;
+              const nB = pB ? pB.name : window.G(b.g).name;
+              const ns = nA.localeCompare(nB, 'he');
+              if(ns !== 0) return ns;
               return (a.t || '99:99').localeCompare(b.t || '99:99');
             });
 
@@ -752,10 +755,13 @@ async function exportToExcel(data, filename, opts = {}) {
             headRow.font = { bold: true };
             headRow.eachCell(cell => {
                cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
+               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1D9E6' } };
                cell.alignment = { horizontal: 'right' };
             });
 
+            const schoolStats = {};
             typeEvs.forEach(s => {
+              const statusLabel = (window.stLabel ? window.stLabel(s) : s.st).replace(/<[^>]*>/g, '');
               const g = window.G(s.g);
               const isSchool = window.gcls(g) === 'ביה"ס';
               const note = (s.nt || '').toLowerCase();
@@ -838,52 +844,42 @@ async function exportToExcel(data, filename, opts = {}) {
             }
           });
           
-          // Grand Summary for TYPE
+          // Print Summary Table for TYPE
           if (typeGlobalGroups > 0) {
-            const typeGrandSum = isPlacement ? ws.addRow([`סה"כ ${type}: ${typeGlobalGroups} קבוצות`, '', '', '', '', '', '', '']) : ws.addRow([`סה"כ ${type}: ${typeGlobalGroups} קבוצות`, '', '', '', '', '', '', '', '']);
-            typeGrandSum.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
-            typeGrandSum.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF43A047' } };
-            typeGrandSum.eachCell((cell) => { cell.alignment = { horizontal: 'right' }; });
-            ws.mergeCells(typeGrandSum.number, 1, typeGrandSum.number, isPlacement ? 8 : 9);
             ws.addRow([]);
-            
-            // Add a divider in the summary table at the bottom too
-            summaryRows.push({ label: `--- סה"כ ${type} ---`, ok: 0, grp: typeGlobalGroups, isHeader: true });
+            let summaryTitleStr = opts.summaryTitle || '📊 ריכוז פעילות סופי';
+            if (isPlacement && summaryTitleStr.includes('סה"כ פעילויות לביצוע:')) {
+                summaryTitleStr = summaryTitleStr.replace('סה"כ פעילויות לביצוע:', 'ריכוז פעילות לספק:');
+            }
+            // Try to add the Type name to the summary title if it doesn't have it
+            let finalTitleStr = summaryTitleStr;
+            if (!finalTitleStr.includes(type)) {
+               finalTitleStr = finalTitleStr.replace('סופי', `- ${type}`);
+            }
+            const sumHead = isPlacement ? ws.addRow([finalTitleStr, '', '', '', '', '', '', '']) : ws.addRow([finalTitleStr, '', '', '', '', '', '', '', '']);
+            sumHead.font = { bold: true, size: 12 };
+            sumHead.alignment = { horizontal: 'right' };
+            ws.mergeCells(sumHead.number, 1, sumHead.number, isPlacement ? 8 : 9);
+
+            summaryRows.forEach(sr => {
+              const row = isPlacement ? ws.addRow([sr.label, `${sr.grp} פעילויות`]) : ws.addRow([sr.label, `בוצעו ${sr.grp} פעילויות`, '']);
+              row.eachCell(cell => {
+                cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
+                cell.alignment = { horizontal: 'right' };
+              });
+            });
+
+            const totalRow = isPlacement ? ws.addRow(['סה"כ קבוצות בדו"ח', typeGlobalGroups]) : ws.addRow(['₪ סה"כ קבוצות לתשלום (כללי)', '', typeGlobalGroups]);
+            totalRow.font = { bold: true };
+            totalRow.eachCell(cell => {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+              cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
+              cell.alignment = { horizontal: 'right' };
+            });
+            ws.mergeCells(totalRow.number, 1, totalRow.number, 2);
+            ws.addRow([]); // Blank row before the next type starts
           }
         });
-
-        ws.addRow([]);
-        let summaryTitleStr = opts.summaryTitle || '📊 ריכוז פעילות סופי';
-        if (isPlacement && summaryTitleStr.includes('סה"כ פעילויות לביצוע:')) {
-            summaryTitleStr = summaryTitleStr.replace('סה"כ פעילויות לביצוע:', 'ריכוז פעילות לספק:');
-        }
-        const sumHead = isPlacement ? ws.addRow([summaryTitleStr, '', '', '', '', '', '', '']) : ws.addRow([summaryTitleStr, '', '', '', '', '', '', '', '']);
-        sumHead.font = { bold: true, size: 12 };
-        sumHead.alignment = { horizontal: 'right' };
-        ws.mergeCells(sumHead.number, 1, sumHead.number, isPlacement ? 8 : 9);
-
-        summaryRows.forEach(sr => {
-          const row = isPlacement ? ws.addRow([sr.label, sr.isHeader ? '' : `${sr.grp} פעילויות`]) : ws.addRow([sr.label, sr.isHeader ? '' : `בוצעו ${sr.grp} פעילויות`, '']);
-          if (sr.isHeader) {
-            row.font = { bold: true, color: { argb: 'FF1A237E' } };
-            row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
-          }
-          row.eachCell(cell => {
-            cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
-            cell.alignment = { horizontal: 'right' };
-          });
-        });
-
-        const totalRow = isPlacement ? ws.addRow(['סה"כ קבוצות בדו"ח', totalGroups]) : ws.addRow(['₪ סה"כ קבוצות לתשלום (כללי)', '', totalGroups]);
-        totalRow.font = { bold: true };
-        totalRow.eachCell(cell => {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
-          cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
-          cell.alignment = { horizontal: 'right' };
-        });
-        ws.mergeCells(totalRow.number, 1, totalRow.number, isPlacement ? 2 : 2);
-        ws.addRow([]); // Blank row before the next type starts
-      
       } else {
         const keys = Object.keys(data[0]);
         ws.addRow(keys).font = { bold: true };
