@@ -387,11 +387,25 @@ async function deleteUser(uid, name){
     // 1. Delete from Firebase Auth via Cloud Function
     let tok=null;
     if(window._fbUser) try{ tok=await window._fbUser.getIdToken(false); }catch(e){}
-    const delRes = await fetch('https://deleteuser-graclk45jq-uc.a.run.app',{
-      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
-      body:JSON.stringify({uid})
-    });
-    if(!delRes.ok){ const e=await delRes.json(); throw new Error(e.error||'שגיאה'); }
+    try {
+      const delRes = await fetch('https://deleteuser-graclk45jq-uc.a.run.app',{
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+        body:JSON.stringify({uid})
+      });
+      if(!delRes.ok){ 
+        let e = {error: 'Unknown error'};
+        try { e = await delRes.json(); } catch(je){}
+        if(e.error && e.error.includes('user-not-found')){
+          console.warn('User not in auth, deleting from db');
+        } else {
+          throw new Error(e.error || 'שגיאה מהשרת');
+        }
+      }
+    } catch (err) {
+      if(!confirm('שגיאה במחיקת משתמש משרת ההזדהות: '+(err.message||'שגיאה')+'\nהאם למחוק ממסד הנתונים בכל זאת?')) {
+        throw new Error('בוטל על ידי המשתמש');
+      }
+    }
     // 2. Delete from RTDB regardless
     const q=await _authQ();
     await fetch(`${USERS_DB}/${uid}.json${q}`,{method:'DELETE'});
@@ -542,11 +556,19 @@ async function changeUserPassword(uid, username){
     showToast('⏳ משנה סיסמה...');
     let tok2=null;
     if(window._fbUser) try{ tok2=await window._fbUser.getIdToken(false); }catch(e){}
-    const passRes = await fetch('https://changepassword-graclk45jq-uc.a.run.app',{
-      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok2},
-      body:JSON.stringify({uid, newPassword:newPass})
-    });
-    if(!passRes.ok){ const e=await passRes.json(); throw new Error(e.error||'שגיאה'); }
+    try {
+      const passRes = await fetch('https://changepassword-graclk45jq-uc.a.run.app',{
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok2},
+        body:JSON.stringify({uid, newPassword:newPass})
+      });
+      if(!passRes.ok){ 
+        let e = {error: 'Unknown error'};
+        try { e = await passRes.json(); } catch(je) {}
+        throw new Error(e.error||'שגיאה מהשרת'); 
+      }
+    } catch(err) {
+       throw new Error('שגיאה בתקשורת עם שרת ההזדהות: ' + (err.message || 'שגיאה כללית'));
+    }
     showToast(`✅ סיסמה שונתה עבור "${username}"`);
     _spAlertDialog(`✅ הסיסמה של "${username}" שונתה בהצלחה.\n\nסיסמה חדשה: ${newPass}`);
   } catch(e){ showToast('❌ שגיאה: '+e.message); }
