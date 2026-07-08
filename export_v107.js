@@ -813,7 +813,7 @@ async function exportToExcel(data, filename, opts = {}) {
               
               const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
               const dayStr = 'יום ' + dayNames[new Date(s.d).getDay()];
-              const row = isPlacement ? ws.addRow([g.addr || '', g.name, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote]) : ws.addRow([window.fD(s.d), dayStr, g.name, window.supBase ? window.supBase(s.a) : s.a, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote]);
+              const row = isPlacement ? ws.addRow([(g.add || g.st) || '', g.name, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote]) : ws.addRow([window.fD(s.d), dayStr, g.name, window.supBase ? window.supBase(s.a) : s.a, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote]);
               row.eachCell(cell => {
                  cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
                  cell.alignment = { horizontal: 'right', vertical: 'middle', wrapText: true };
@@ -876,7 +876,7 @@ async function exportToExcel(data, filename, opts = {}) {
               cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
               cell.alignment = { horizontal: 'right' };
             });
-            ws.mergeCells(totalRow.number, 1, totalRow.number, 2);
+            if(!isPlacement) ws.mergeCells(totalRow.number, 1, totalRow.number, 2);
             ws.addRow([]); // Blank row before the next type starts
           }
         });
