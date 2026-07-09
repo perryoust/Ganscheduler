@@ -1,50 +1,67 @@
-// cal.js v101.3 - Compact UI & Default View Fix
+// cal.js v102 - Unified City+Garden Filter
 function calRefG(){
   // Ensure cal-cls matches the active tab
   const clsSel = window.getEl('cal-cls');
   if(clsSel && typeof _calTab !== 'undefined') clsSel.value = (_calTab === 'g' ? 'גנים' : 'ביה"ס');
-  const cities = window.getCalCity ? window.getCalCity() : [];
   const cls = (window.getEl('cal-cls')?.value || '');
   const allGs = window.gByCF ? window.gByCF('', cls) : (typeof AG === 'function' ? AG() : (window.GARDENS||[])).filter(g=>!cls||window.getGardenClass(g)===cls);
-  const gs = cities.length > 0 
-    ? allGs.filter(g => cities.includes(g.city))
-    : allGs;
+  // No longer filter by city - unified filter shows ALL gardens grouped by city
+  const gs = allGs;
   
   gs.sort((a,b)=>{
     const cc=(a.city||'').localeCompare(b.city||'','he');if(cc)return cc;
     return (a.name||'').localeCompare(b.name||'','he');
   });
+
+  // Group gardens by city
+  const cityMap = new Map();
+  gs.forEach(g => {
+    const city = g.city || 'ללא עיר';
+    if(!cityMap.has(city)) cityMap.set(city, []);
+    cityMap.get(city).push(g);
+  });
   
   ['desktop', 'mobile'].forEach(plat => {
     const listEl = document.getElementById('cal-g-multi-items-' + plat);
     if(!listEl) return;
-    listEl.innerHTML = `
+    let html = `
       <label class="custom-multi-item" style="font-weight:bold; border-bottom:1px solid #ccc; position:sticky; top:0; background:#fff; z-index:2;">
         <input type="checkbox" id="cal-g-multi-all-${plat}" onchange="window.toggleAllCalGMulti('${plat}')">
         <span>(בחר הכל / נקה הכל)</span>
       </label>
     `;
-    gs.forEach(g => {
-      const lbl = (cities.length === 1) ? g.name : (g.city + ' · ' + g.name);
-      let tooltip = lbl;
-      let partnerNote = '';
-      if(window.gardenPair) {
-        const pair = window.gardenPair(g.id);
-        if(pair) {
-          const otherIds = pair.ids.filter(id => Number(id) !== Number(g.id));
-          const otherNames = otherIds.map(id => window.G(id)?.name).filter(Boolean).join(' + ');
-          if(otherNames) {
-            tooltip = `${lbl}\n🔗 שותף לזוג: ${otherNames}`;
-            partnerNote = `<span style="font-size:0.65rem; color:#888; margin-right:auto;">(זוג: ${otherNames})</span>`;
+    cityMap.forEach((cityGs, city) => {
+      const safeCity = city.replace(/"/g, '&quot;');
+      const cityId = 'cal-city-grp-' + plat + '-' + safeCity.replace(/\s/g,'_');
+      // City header with count and select-all for city
+      html += `<div class="cal-city-group" data-city="${safeCity}">
+        <label class="custom-multi-item cal-city-header" style="font-weight:bold; background:#f0f7ff; border-bottom:1px solid #d0e0f0; padding:6px 8px; cursor:pointer; display:flex; align-items:center; gap:6px;">
+          <input type="checkbox" class="cal-city-chk" data-city="${safeCity}" id="${cityId}" onchange="window.toggleCityGardens('${plat}', this)">
+          <span style="flex:1;">📍 ${city} (${cityGs.length})</span>
+        </label>`;
+      cityGs.forEach(g => {
+        let tooltip = g.name;
+        let partnerNote = '';
+        if(window.gardenPair) {
+          const pair = window.gardenPair(g.id);
+          if(pair) {
+            const otherIds = pair.ids.filter(id => Number(id) !== Number(g.id));
+            const otherNames = otherIds.map(id => window.G(id)?.name).filter(Boolean).join(' + ');
+            if(otherNames) {
+              tooltip = `${g.name}\n🔗 שותף לזוג: ${otherNames}`;
+              partnerNote = `<span style="font-size:0.65rem; color:#888; margin-right:auto;">(זוג: ${otherNames})</span>`;
+            }
           }
         }
-      }
-      listEl.innerHTML += `<label class="custom-multi-item cal-g-multi-real-item" title="${tooltip}">
-        <input type="checkbox" value="${g.id}" class="cal-g-multi-chk" onchange="window.calMultiGChanged('${plat}')">
-        <span>${lbl}</span>
-        ${partnerNote}
-      </label>`;
+        html += `<label class="custom-multi-item cal-g-multi-real-item" data-city="${safeCity}" title="${tooltip}" style="padding-right:28px;">
+          <input type="checkbox" value="${g.id}" class="cal-g-multi-chk" onchange="window.calMultiGChanged('${plat}')">
+          <span>${g.name}</span>
+          ${partnerNote}
+        </label>`;
+      });
+      html += `</div>`;
     });
+    listEl.innerHTML = html;
     if(window.calMultiGChanged) window.calMultiGChanged(plat); // Sync button state
   });
   renderCal();
@@ -54,7 +71,7 @@ function getCalGids(){
   const plat = window.innerWidth > 768 ? 'desktop' : 'mobile';
   const listEl = document.getElementById('cal-g-multi-items-' + plat) || document.getElementById('cal-g-multi-items-desktop');
   if(!listEl) return [];
-  return Array.from(listEl.querySelectorAll('input:checked')).map(el => parseInt(el.value));
+  return Array.from(listEl.querySelectorAll('.cal-g-multi-chk:checked')).map(el => parseInt(el.value));
 }
 
 window.toggleCalGMulti = function(plat) {
@@ -62,15 +79,46 @@ window.toggleCalGMulti = function(plat) {
   if(list) list.classList.toggle('open');
 };
 
+// Toggle all gardens in a specific city
+window.toggleCityGardens = function(plat, cityChk) {
+  const city = cityChk.dataset.city;
+  const isChecked = cityChk.checked;
+  const list = document.getElementById('cal-g-multi-items-' + plat);
+  if(!list) return;
+  list.querySelectorAll('.cal-g-multi-real-item[data-city="' + city + '"] .cal-g-multi-chk').forEach(el => {
+    el.checked = isChecked;
+  });
+  window.calMultiGChanged(plat);
+};
+
 window.filterCalGMulti = function(plat) {
   const input = document.getElementById('cal-g-multi-search-' + plat);
   const filter = input.value.toLowerCase();
   const list = document.getElementById('cal-g-multi-items-' + plat);
-  const items = list.querySelectorAll('.custom-multi-item');
-  items.forEach(item => {
-    if(item.textContent.toLowerCase().includes(filter)) item.style.display = '';
-    else item.style.display = 'none';
-  });
+  if(!list) return;
+  // Show/hide both city headers and garden items
+  const cityGroups = list.querySelectorAll('.cal-city-group');
+  if(cityGroups.length > 0) {
+    cityGroups.forEach(grp => {
+      const items = grp.querySelectorAll('.cal-g-multi-real-item');
+      let anyVisible = false;
+      items.forEach(item => {
+        if(item.textContent.toLowerCase().includes(filter)) { item.style.display = ''; anyVisible = true; }
+        else item.style.display = 'none';
+      });
+      const header = grp.querySelector('.cal-city-header');
+      if(header) {
+        if(filter && !anyVisible) header.style.display = 'none';
+        else header.style.display = '';
+      }
+      grp.style.display = (filter && !anyVisible) ? 'none' : '';
+    });
+  } else {
+    list.querySelectorAll('.custom-multi-item').forEach(item => {
+      if(item.textContent.toLowerCase().includes(filter)) item.style.display = '';
+      else item.style.display = 'none';
+    });
+  }
 };
 
 window.toggleAllCalGMulti = function(plat) {
@@ -116,16 +164,29 @@ window.calMultiGChanged = function(sourcePlat) {
     }
   }
 
+  // Sync city-level checkboxes
   ['desktop', 'mobile'].forEach(plat => {
+    const listEl = document.getElementById('cal-g-multi-items-' + plat);
+    if(!listEl) return;
+    listEl.querySelectorAll('.cal-city-group').forEach(grp => {
+      const cityChk = grp.querySelector('.cal-city-chk');
+      if(!cityChk) return;
+      const gardenChks = Array.from(grp.querySelectorAll('.cal-g-multi-chk'));
+      const allChecked = gardenChks.length > 0 && gardenChks.every(el => el.checked);
+      const someChecked = gardenChks.some(el => el.checked);
+      cityChk.checked = allChecked;
+      cityChk.indeterminate = !allChecked && someChecked;
+    });
+
     const btn = document.getElementById('cal-g-multi-btn-' + plat);
     if(btn) {
       if(checked.length === 0) {
-        btn.innerHTML = '<span>כל הצהרונים</span> <span style="font-size:0.6rem">▼</span>';
+        btn.innerHTML = '<span>כל הגנים</span> <span style="font-size:0.6rem">▼</span>';
       } else if (checked.length === 1) {
         const gObj = window.G(checked[0]);
-        btn.innerHTML = `<span>${gObj?gObj.name:'צהרון'}</span> <span style="font-size:0.6rem">▼</span>`;
+        btn.innerHTML = `<span>${gObj?gObj.name:'גן'}</span> <span style="font-size:0.6rem">▼</span>`;
       } else {
-        btn.innerHTML = `<span>נבחרו ${checked.length} צהרונים</span> <span style="font-size:0.6rem">▼</span>`;
+        btn.innerHTML = `<span>נבחרו ${checked.length} גנים</span> <span style="font-size:0.6rem">▼</span>`;
       }
     }
   });

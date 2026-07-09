@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html dir="rtl" lang="he">
 
 <head>
@@ -398,32 +398,21 @@
                <button class="btn bg" onclick="navCal(1)">◀</button>
              </div>
            </div>
-           <div class="fg custom-multi-wrap" id="cal-city-multi-wrap-desktop">
-             <label>עיר</label>
-             <div class="custom-multi-select" onclick="window.toggleCalCityMulti('desktop')" id="cal-city-multi-btn-desktop">
-               <span>כל הערים</span> <span style="font-size:0.6rem">▼</span>
-             </div>
-             <div class="custom-multi-dropdown" id="cal-city-multi-list-desktop">
-               <div style="display:flex;align-items:center;border-bottom:1px solid #ccc;">
-                 <input type="text" class="custom-multi-search" id="cal-city-multi-search-desktop" placeholder="🔍 חפש עיר..." onkeyup="window.filterCalCityMulti('desktop')" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
-                 <button onclick="window.clearCalCityMulti('desktop');event.stopPropagation()" style="background:none;border:none;color:#d32f2f;cursor:pointer;padding:0 8px;font-size:0.75rem;white-space:nowrap;" title="נקה בחירה">🧹 נקה</button>
-               </div>
-               <div id="cal-city-multi-items-desktop" style="max-height:250px;overflow-y:auto;"></div>
-             </div>
-           </div>
-           <div class="fg custom-multi-wrap" id="cal-g-multi-wrap-desktop">
-             <label>צהרונים</label>
-             <div class="custom-multi-select" onclick="window.toggleCalGMulti('desktop')" id="cal-g-multi-btn-desktop">
-               <span>כל הצהרונים</span> <span style="font-size:0.6rem">▼</span>
-             </div>
-             <div class="custom-multi-dropdown" id="cal-g-multi-list-desktop">
-               <div style="display:flex;align-items:center;border-bottom:1px solid #ccc;">
-                 <input type="text" class="custom-multi-search" id="cal-g-multi-search-desktop" placeholder="🔍 חפש צהרון..." onkeyup="window.filterCalGMulti('desktop')" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
-                 <button onclick="window.clearCalGMulti('desktop');event.stopPropagation()" style="background:none;border:none;color:#d32f2f;cursor:pointer;padding:0 8px;font-size:0.75rem;white-space:nowrap;" title="נקה בחירה">🧹 נקה</button>
-               </div>
-               <div id="cal-g-multi-items-desktop" style="max-height:250px;overflow-y:auto;"></div>
-             </div>
-           </div>
+           <div class="fg custom-multi-wrap" id="cal-unified-multi-wrap-desktop">
+              <label>גנים</label>
+              <div class="custom-multi-select" onclick="window.toggleCalGMulti('desktop')" id="cal-g-multi-btn-desktop">
+                <span>כל הגנים</span> <span style="font-size:0.6rem">▼</span>
+              </div>
+              <div class="custom-multi-dropdown" id="cal-g-multi-list-desktop">
+                <div style="display:flex;align-items:center;border-bottom:1px solid #ccc;">
+                  <input type="text" class="custom-multi-search" id="cal-g-multi-search-desktop" placeholder="🔍 חפש גן או עיר..." onkeyup="window.filterCalGMulti('desktop')" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
+                  <button onclick="window.clearCalGMulti('desktop');event.stopPropagation()" style="background:none;border:none;color:#d32f2f;cursor:pointer;padding:0 8px;font-size:0.75rem;white-space:nowrap;" title="נקה בחירה">🧹 נקה</button>
+                </div>
+                <div id="cal-g-multi-items-desktop" style="max-height:300px;overflow-y:auto;"></div>
+              </div>
+              <!-- Hidden city container for backward compat -->
+              <div id="cal-city-multi-wrap-desktop" style="display:none;"><div id="cal-city-multi-list-desktop"><div id="cal-city-multi-items-desktop"></div></div></div>
+            </div>
            <div class="fg custom-multi-wrap" id="cal-sup-multi-wrap-desktop">
              <label>ספק</label>
              <div class="custom-multi-select" onclick="window.toggleCalSupMulti('desktop')" id="cal-sup-multi-btn-desktop">
@@ -504,32 +493,21 @@
             </div>
          </div>
          <div id="cal-flt-mobile" class="flt-wrap">
-            <div class="fg custom-multi-wrap" id="cal-city-multi-wrap-mobile">
-              <label>עיר</label>
-              <div class="custom-multi-select" onclick="window.toggleCalCityMulti('mobile')" id="cal-city-multi-btn-mobile" style="width:100%">
-                <span>כל הערים</span> <span style="font-size:0.6rem">▼</span>
-              </div>
-              <div class="custom-multi-dropdown" id="cal-city-multi-list-mobile" style="width:100%">
-                <div style="display:flex;align-items:center;border-bottom:1px solid #ccc;">
-                  <input type="text" class="custom-multi-search" id="cal-city-multi-search-mobile" placeholder="🔍 חפש עיר..." onkeyup="window.filterCalCityMulti('mobile')" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
-                  <button onclick="window.clearCalCityMulti('mobile');event.stopPropagation()" style="background:none;border:none;color:#d32f2f;cursor:pointer;padding:0 8px;font-size:0.75rem;white-space:nowrap;" title="נקה בחירה">🧹 נקה</button>
-                </div>
-                <div id="cal-city-multi-items-mobile" style="max-height:200px;overflow-y:auto;"></div>
-              </div>
-            </div>
-            <div class="fg custom-multi-wrap" id="cal-g-multi-wrap-mobile">
-              <label>צהרונים</label>
-              <div class="custom-multi-select" onclick="window.toggleCalGMulti('mobile')" id="cal-g-multi-btn-mobile" style="width:100%">
-                <span>כל הצהרונים</span> <span style="font-size:0.6rem">▼</span>
-              </div>
-              <div class="custom-multi-dropdown" id="cal-g-multi-list-mobile" style="width:100%">
-                <div style="display:flex;align-items:center;border-bottom:1px solid #ccc;">
-                  <input type="text" class="custom-multi-search" id="cal-g-multi-search-mobile" placeholder="🔍 חפש צהרון..." onkeyup="window.filterCalGMulti('mobile')" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
-                  <button onclick="window.clearCalGMulti('mobile');event.stopPropagation()" style="background:none;border:none;color:#d32f2f;cursor:pointer;padding:0 8px;font-size:0.75rem;white-space:nowrap;" title="נקה בחירה">🧹 נקה</button>
-                </div>
-                <div id="cal-g-multi-items-mobile" style="max-height:200px;overflow-y:auto;"></div>
-              </div>
-            </div>
+             <div class="fg custom-multi-wrap" id="cal-unified-multi-wrap-mobile">
+               <label>גנים</label>
+               <div class="custom-multi-select" onclick="window.toggleCalGMulti('mobile')" id="cal-g-multi-btn-mobile" style="width:100%">
+                 <span>כל הגנים</span> <span style="font-size:0.6rem">▼</span>
+               </div>
+               <div class="custom-multi-dropdown" id="cal-g-multi-list-mobile" style="width:100%">
+                 <div style="display:flex;align-items:center;border-bottom:1px solid #ccc;">
+                   <input type="text" class="custom-multi-search" id="cal-g-multi-search-mobile" placeholder="🔍 חפש גן או עיר..." onkeyup="window.filterCalGMulti('mobile')" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
+                   <button onclick="window.clearCalGMulti('mobile');event.stopPropagation()" style="background:none;border:none;color:#d32f2f;cursor:pointer;padding:0 8px;font-size:0.75rem;white-space:nowrap;" title="נקה בחירה">🧹 נקה</button>
+                 </div>
+                 <div id="cal-g-multi-items-mobile" style="max-height:300px;overflow-y:auto;"></div>
+               </div>
+               <!-- Hidden city container for backward compat -->
+               <div id="cal-city-multi-wrap-mobile" style="display:none;"><div id="cal-city-multi-list-mobile"><div id="cal-city-multi-items-mobile"></div></div></div>
+             </div>
              <div class="fg custom-multi-wrap" id="cal-sup-multi-wrap-mobile">
                <label>ספק</label>
                <div class="custom-multi-select" onclick="window.toggleCalSupMulti('mobile')" id="cal-sup-multi-btn-mobile" style="width:100%">
@@ -2229,54 +2207,72 @@
 
   <!-- Supplier Export Modal -->
   <div id="supexm" class="modal">
-    <div class="mb" style="max-width:650px; height:80vh; display:flex; flex-direction:column;">
-      <h2 id="supexm-title">🚀 יצוא דוח ספק</h2>
-      <!-- Export type selector -->
-      <div style="display:flex;gap:6px;margin-bottom:12px">
-        <button id="supex-type-act" class="vbtn active" onclick="setSupExType('act')" style="flex:1;font-size:.8rem">🚀
-          פעילויות</button>
-        <button id="supex-type-inv" class="vbtn" onclick="setSupExType('inv')" style="flex:1;font-size:.8rem">📄
-          חשבוניות / הזמנות</button>
-        <button id="supex-type-place" class="vbtn" onclick="setSupExType('place')" style="flex:1;font-size:.8rem">📅
-          שיבוצים</button>
+    <div class="mb" style="max-width:660px; height:auto; max-height:85vh; display:flex; flex-direction:column; padding:0; border-radius:12px; overflow:hidden;">
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#283593,#1565c0); color:#fff; padding:16px 24px; display:flex; align-items:center; justify-content:space-between;">
+        <h2 id="supexm-title" style="margin:0; font-size:1.1rem; font-weight:700; color:#fff;">📊 יצוא דוח ספקים</h2>
+        <button onclick="CM('supexm')" style="background:rgba(255,255,255,0.15); border:none; color:#fff; width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center;" title="סגור">✕</button>
       </div>
-      <!-- Supplier Selector -->
-      <div id="supex-supplier-wrap" style="display:none; margin-bottom:12px;">
-        <div class="fg">
-          <label>בחר ספק (חובה לדוח שיבוצים)</label>
-          <select id="supex-supplier-sel" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:0.9rem;">
-            <option value="">-- כל הספקים --</option>
-          </select>
+
+      <div style="padding:16px 20px; overflow-y:auto; flex:1;">
+        <!-- Export type tabs -->
+        <div style="display:flex; gap:0; margin-bottom:16px; border-radius:8px; overflow:hidden; border:1px solid #c5cae9;">
+          <button id="supex-type-act" class="vbtn active" onclick="setSupExType('act')" style="flex:1; font-size:.8rem; border-radius:0; border:none; padding:10px 8px; transition:all .2s;">🚀 פעילויות</button>
+          <button id="supex-type-inv" class="vbtn" onclick="setSupExType('inv')" style="flex:1; font-size:.8rem; border-radius:0; border:none; border-right:1px solid #c5cae9; border-left:1px solid #c5cae9; padding:10px 8px; transition:all .2s;">📄 חשבוניות / הזמנות</button>
+          <button id="supex-type-place" class="vbtn" onclick="setSupExType('place')" style="flex:1; font-size:.8rem; border-radius:0; border:none; padding:10px 8px; transition:all .2s;">📅 שיבוצים</button>
         </div>
-      </div>
-      <div id="supex-act-opts" style="flex:1; display:flex; flex-direction:column; min-height:0;">
-          <div class="fg custom-multi-wrap" id="supex-garden-multi-wrap" style="flex:1; display:flex; flex-direction:column; min-height:0;">
-            <label>סינון לפי גנים / בתי ספר (אופציונלי)</label>
-            <div class="custom-multi-select" onclick="window.toggleSupExGardenMulti()" id="supex-garden-multi-btn" style="border:1px solid #ccc;padding:8px;border-radius:4px;cursor:pointer;display:flex;justify-content:space-between;background:#fff;margin-top:2px;">
-              <span id="supex-garden-multi-label">כל הגנים (בחר כדי לסנן)</span> <span style="font-size:0.6rem;padding-top:4px;">▼</span>
+
+        <!-- Supplier Selector -->
+        <div id="supex-supplier-wrap" style="display:none; margin-bottom:14px;">
+          <div class="fg" style="background:#f8f9ff; border:1px solid #e8eaf6; border-radius:8px; padding:12px;">
+            <label style="font-weight:600; color:#283593; font-size:.82rem; margin-bottom:6px; display:block;">👤 בחר ספק <span style="color:#c62828; font-size:.7rem;">(חובה לדוח שיבוצים)</span></label>
+            <select id="supex-supplier-sel" style="width:100%; padding:9px 12px; border:1.5px solid #c5cae9; border-radius:6px; font-size:0.88rem; background:#fff;">
+              <option value="">-- כל הספקים --</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Date Range -->
+        <div id="supex-act-opts" style="display:flex; flex-direction:column; min-height:0;">
+          <div style="display:flex; gap:12px; margin-bottom:14px; background:#f1f8e9; border:1px solid #c5e1a5; border-radius:8px; padding:12px;">
+            <div class="fg" style="flex:1;">
+              <label style="font-weight:600; color:#33691e; font-size:.82rem; margin-bottom:6px; display:block;">📅 מ-תאריך</label>
+              <input type="date" id="supex-from" style="width:100%; padding:8px 10px; border:1.5px solid #aed581; border-radius:6px; font-size:.88rem;">
             </div>
-            <div class="custom-multi-dropdown" id="supex-garden-multi-list" style="width:100%; display:flex; flex-direction:column; flex:1; position:relative; min-height:300px;">
-              <div style="display:flex;border-bottom:1px solid #ddd;">
-                <input type="text" class="custom-multi-search" id="supex-garden-multi-search" placeholder="🔍 חפש גן..." onkeyup="window.filterSupExGardenMulti()" onclick="event.stopPropagation()" style="border-bottom:none;flex:1;">
-              </div>
-              <div id="supex-garden-multi-items" style="flex:1; overflow-y:auto; background:#fff; border:1px solid #ddd; border-top:none;"></div>
+            <div class="fg" style="flex:1;">
+              <label style="font-weight:600; color:#33691e; font-size:.82rem; margin-bottom:6px; display:block;">📅 עד-תאריך</label>
+              <input type="date" id="supex-to" style="width:100%; padding:8px 10px; border:1.5px solid #aed581; border-radius:6px; font-size:.88rem;">
             </div>
           </div>
-        <div class="row" style="margin-bottom:11px">
-          <div class="fg"><label>מ-תאריך *</label><input type="date" id="supex-from" style="min-width:140px"></div>
-          <div class="fg"><label>עד-תאריך *</label><input type="date" id="supex-to" style="min-width:140px"></div>
+
+          <!-- Garden Filter -->
+          <div class="fg custom-multi-wrap" id="supex-garden-multi-wrap" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+            <label style="font-weight:600; color:#546e7a; font-size:.82rem; margin-bottom:4px;">🏫 סינון לפי גנים / בתי ספר <span style="color:#90a4ae; font-weight:400;">(אופציונלי)</span></label>
+            <div class="custom-multi-select" onclick="window.toggleSupExGardenMulti()" id="supex-garden-multi-btn" style="border:1.5px solid #b0bec5;padding:9px 12px;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between;background:#fff;margin-top:2px; transition:border-color .2s;">
+              <span id="supex-garden-multi-label">כל הגנים (בחר כדי לסנן)</span> <span style="font-size:0.6rem;padding-top:4px;">▼</span>
+            </div>
+            <div class="custom-multi-dropdown" id="supex-garden-multi-list" style="width:100%; display:flex; flex-direction:column; flex:1; position:relative; min-height:250px;">
+              <div style="display:flex;border-bottom:1px solid #e0e0e0; background:#fafafa;">
+                <input type="text" class="custom-multi-search" id="supex-garden-multi-search" placeholder="🔍 חפש גן..." onkeyup="window.filterSupExGardenMulti()" onclick="event.stopPropagation()" style="border-bottom:none;flex:1; padding:8px 12px;">
+              </div>
+              <div id="supex-garden-multi-items" style="flex:1; overflow-y:auto; background:#fff; border:1px solid #e0e0e0; border-top:none; border-radius:0 0 6px 6px;"></div>
+            </div>
+          </div>
         </div>
+
+        <!-- Invoice info -->
+        <div id="supex-inv-opts" style="display:none;background:#e8eaf6;border-radius:8px;padding:12px;font-size:.82rem;margin-bottom:12px;color:#283593; border:1px solid #c5cae9;">
+          📤 ייצא את כל מסמכי הרכש של הספק (הזמנות, חשבוניות עסקה, חשבוניות מס, קבלות) כולל סיכום לפי עיר.
+        </div>
+
+        <!-- Preview -->
+        <div id="supex-prev" style="background:#f5f7ff;border-radius:8px;padding:10px;font-size:.78rem;max-height:180px;overflow-y:auto;margin-bottom:12px;display:none; border:1px solid #e8eaf6;"></div>
       </div>
-      <div id="supex-inv-opts"
-        style="display:none;background:#f5f7ff;border-radius:7px;padding:8px;font-size:.8rem;margin-bottom:10px;color:#546e7a">
-        📤 ייצא את כל מסמכי הרכש של הספק (הזמנות, חשבוניות עסקה, חשבוניות מס, קבלות) כולל סיכום לפי עיר.
-      </div>
-      <div id="supex-prev"
-        style="background:#f5f7ff;border-radius:7px;padding:9px;font-size:.78rem;max-height:200px;overflow-y:auto;margin-bottom:10px;display:none">
-      </div>
-      <div style="display:flex;gap:7px;justify-content:flex-end">
-        <button class="btn bg" onclick="doSupExport()">🚀 יצוא Excel</button>
-        <button class="btn bs" onclick="CM('supexm')">סגור</button>
+
+      <!-- Footer Actions -->
+      <div style="padding:12px 20px; background:#f5f5f5; border-top:1px solid #e0e0e0; display:flex; gap:8px; justify-content:flex-end;">
+        <button class="btn bs" onclick="CM('supexm')" style="padding:8px 20px; border-radius:6px;">סגור</button>
+        <button class="btn bg" onclick="doSupExport()" style="padding:8px 24px; border-radius:6px; font-weight:700; box-shadow:0 2px 6px rgba(25,118,210,0.3);">🚀 יצוא Excel</button>
       </div>
     </div>
   </div>
