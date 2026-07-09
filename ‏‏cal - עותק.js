@@ -231,7 +231,6 @@ window.toggleCalMulti = function(type, plat) {
 
 window.filterCalMulti = function(type, plat) {
   const input = document.getElementById(`cal-${type}-multi-search-${plat}`);
-  if(!input) return;
   const filter = input.value.toLowerCase();
   const list = document.getElementById(`cal-${type}-multi-items-${plat}`);
   if(!list) return;
