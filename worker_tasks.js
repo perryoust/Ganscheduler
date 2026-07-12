@@ -571,8 +571,7 @@ window.renderWorkerTasksMobile = function() {
   const pending = tasks.filter(t => t.status === 'pending');
   const done = tasks.filter(t => t.status === 'done');
   
-  // Sort pending by date
-  pending.sort((a,b) => a.date.localeCompare(b.date));
+  // Keep the pending tasks in the original array order (which respects drag-and-drop)
   // Sort done by completion time (newest first)
   done.sort((a,b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
   
@@ -862,11 +861,19 @@ window.wtHardRefresh = async function() {
 };
 window.wtExportWord = function(ds) {
   const includeDone = confirm('האם לכלול משימות שכבר בוצעו בייצוא?');
+  const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
   const tasks = (window.WORKER_TASKS || []).filter(t => {
     if (t.isAdminOnly) return false;
-    if (t.date !== ds) return false;
     if (!includeDone && t.status === 'done') return false;
-    return true;
+    if (t.date === ds) return true;
+    if (ds === today && t.status === 'pending' && t.date < today) return true;
+    return false;
+  });
+  
+  // Sort to match UI
+  tasks.sort((a,b) => {
+    if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
+    return 0;
   });
   
   const dObj = new Date(ds);
@@ -930,7 +937,20 @@ window.wtExportWord = function(ds) {
 };
 
 window.wtPrintTasks = async function(ds) {
-  const todayTasks = (window.WORKER_TASKS || []).filter(t => !t.isAdminOnly && t.date === ds);
+  const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
+  const todayTasks = (window.WORKER_TASKS || []).filter(t => {
+    if (t.isAdminOnly) return false;
+    if (t.date === ds) return true;
+    if (ds === today && t.status === 'pending' && t.date < today) return true;
+    return false;
+  });
+  
+  // Sort to match UI
+  todayTasks.sort((a,b) => {
+    if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
+    return 0;
+  });
+
   if (todayTasks.length === 0) {
     if (window.spAlert) window.spAlert('אין משימות להדפסה ביום זה');
     else alert('אין משימות להדפסה ביום זה');

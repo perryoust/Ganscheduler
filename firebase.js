@@ -221,37 +221,41 @@ window.mergeWorkerTasksLocally = function(cloudData) {
   const cloudTasks = (Array.isArray(cloudData) ? cloudData : Object.values(cloudData || {})).filter(Boolean);
   if (cloudTasks.length === 0) return;
   
-  const cloudMap = {};
-  cloudTasks.forEach(t => cloudMap[t.id] = t);
+  const localMap = {};
+  (window.WORKER_TASKS || []).forEach(t => localMap[t.id] = t);
   
   let mergedTasks = [];
-  (window.WORKER_TASKS || []).forEach(t => {
-    const ct = cloudMap[t.id];
-    if (ct) {
-      // Merge Status
-      if (ct.status === 'done' && t.status === 'pending') {
-        t.status = 'done';
-        t.doneAt = ct.doneAt;
-        t.doneBy = ct.doneBy;
+  cloudTasks.forEach(ct => {
+    const merged = { ...ct };
+    const t = localMap[ct.id];
+    
+    if (t) {
+      // Worker clicked done locally but cloud still says pending
+      if (t.status === 'done' && ct.status === 'pending') {
+        merged.status = 'done';
+        merged.doneAt = t.doneAt;
+        merged.doneBy = t.doneBy;
       }
-      // Note: If both are done, we could compare doneAt, but keeping local is fine if local just did it.
       
-      // Merge Notes
-      if (ct.workerNote && !t.workerNote) t.workerNote = ct.workerNote;
-      else if (ct.workerNote && t.workerNote && ct.workerNote.length > t.workerNote.length) t.workerNote = ct.workerNote;
+      // Worker typed a note locally that is longer/newer
+      if (t.workerNote && !ct.workerNote) {
+        merged.workerNote = t.workerNote;
+      } else if (t.workerNote && ct.workerNote && t.workerNote.length > ct.workerNote.length) {
+        merged.workerNote = t.workerNote;
+      }
       
-      // Merge Names
-      if (ct.workerName && !t.workerName) t.workerName = ct.workerName;
-      if (ct.doneBy && !t.doneBy) t.doneBy = ct.doneBy;
+      if (t.workerName && !ct.workerName) merged.workerName = t.workerName;
+      if (t.doneBy && !ct.doneBy) merged.doneBy = t.doneBy;
       
-      delete cloudMap[t.id];
+      delete localMap[ct.id];
     }
-    mergedTasks.push(t);
+    
+    mergedTasks.push(merged);
   });
   
-  // Add any new tasks from cloud
-  Object.values(cloudMap).forEach(ct => {
-    mergedTasks.push(ct);
+  // Add any local tasks not in cloud (e.g. worker just added a free note and it hasn't synced)
+  Object.values(localMap).forEach(t => {
+    mergedTasks.push(t);
   });
   
   window.WORKER_TASKS = mergedTasks;

@@ -33,12 +33,15 @@ function calRefG(){
     cityMap.forEach((cityGs, city) => {
       const safeCity = city.replace(/"/g, '&quot;');
       const cityId = 'cal-city-grp-' + plat + '-' + safeCity.replace(/\s/g,'_');
+      const gardensId = 'cal-city-gardens-' + plat + '-' + safeCity.replace(/\s/g,'_');
       // City header with count and select-all for city
       html += `<div class="cal-city-group" data-city="${safeCity}">
-        <label class="custom-multi-item cal-city-header" style="font-weight:bold; background:#f0f7ff; border-bottom:1px solid #d0e0f0; padding:6px 8px; cursor:pointer; display:flex; align-items:center; gap:6px;">
-          <input type="checkbox" class="cal-city-chk" data-city="${safeCity}" id="${cityId}" onchange="window.toggleCityGardens('${plat}', this)">
-          <span style="flex:1;">📍 ${city} (${cityGs.length})</span>
-        </label>`;
+        <div class="custom-multi-item cal-city-header" style="font-weight:bold; background:#fafafa; border-bottom:1px solid #e0e0e0; padding:8px 10px; display:flex; align-items:center; gap:8px;">
+          <span style="flex:1; cursor:pointer; font-size:0.95rem; color:#333;" onclick="window.toggleCityAccordion('${gardensId}', this)">${city} (${cityGs.length})</span>
+          <input type="checkbox" class="cal-city-chk" data-city="${safeCity}" id="${cityId}" onchange="window.toggleCityGardens('${plat}', this)" style="width:16px; height:16px; cursor:pointer; margin:0;">
+          <span class="city-toggle-icon" onclick="window.toggleCityAccordion('${gardensId}', this.parentElement.querySelector('span'))" style="cursor:pointer; display:flex; align-items:center; justify-content:center; width:20px; height:20px; font-size:1.2rem; font-weight:bold; color:#555;">➕</span>
+        </div>
+        <div id="${gardensId}" class="cal-city-gardens" style="display:none; padding-right:10px; background:#fff; border-bottom:1px solid #eee;">`;
       cityGs.forEach(g => {
         let tooltip = g.name;
         let partnerNote = '';
@@ -53,13 +56,13 @@ function calRefG(){
             }
           }
         }
-        html += `<label class="custom-multi-item cal-g-multi-real-item" data-city="${safeCity}" title="${tooltip}" style="padding-right:28px;">
-          <input type="checkbox" value="${g.id}" class="cal-g-multi-chk" onchange="window.calMultiGChanged('${plat}')">
+        html += `<label class="custom-multi-item cal-g-multi-real-item" data-city="${safeCity}" title="${tooltip}" style="padding:6px 8px; border-bottom:1px solid #f5f5f5;">
+          <input type="checkbox" value="${g.id}" class="cal-g-multi-chk" onchange="window.calMultiGChanged('${plat}')" style="margin:0;">
           <span>${g.name}</span>
           ${partnerNote}
         </label>`;
       });
-      html += `</div>`;
+      html += `</div></div>`;
     });
     listEl.innerHTML = html;
     if(window.calMultiGChanged) window.calMultiGChanged(plat); // Sync button state
@@ -79,6 +82,20 @@ window.toggleCalGMulti = function(plat) {
   if(list) list.classList.toggle('open');
 };
 
+window.toggleCityAccordion = function(gardensId, spanEl) {
+  const gardensDiv = document.getElementById(gardensId);
+  const iconEl = spanEl.parentElement.querySelector('.city-toggle-icon');
+  if(gardensDiv) {
+    if(gardensDiv.style.display === 'none') {
+      gardensDiv.style.display = 'block';
+      if(iconEl) iconEl.innerText = '➖';
+    } else {
+      gardensDiv.style.display = 'none';
+      if(iconEl) iconEl.innerText = '➕';
+    }
+  }
+};
+
 // Toggle all gardens in a specific city
 window.toggleCityGardens = function(plat, cityChk) {
   const city = cityChk.dataset.city;
@@ -93,6 +110,7 @@ window.toggleCityGardens = function(plat, cityChk) {
 
 window.filterCalGMulti = function(plat) {
   const input = document.getElementById('cal-g-multi-search-' + plat);
+  if(!input) return;
   const filter = input.value.toLowerCase();
   const list = document.getElementById('cal-g-multi-items-' + plat);
   if(!list) return;
@@ -103,7 +121,8 @@ window.filterCalGMulti = function(plat) {
       const items = grp.querySelectorAll('.cal-g-multi-real-item');
       let anyVisible = false;
       items.forEach(item => {
-        if(item.textContent.toLowerCase().includes(filter)) { item.style.display = ''; anyVisible = true; }
+        const text = item.textContent.trim().toLowerCase();
+        if(text.startsWith(filter) || text.includes(' ' + filter)) { item.style.display = ''; anyVisible = true; }
         else item.style.display = 'none';
       });
       const header = grp.querySelector('.cal-city-header');
@@ -115,14 +134,17 @@ window.filterCalGMulti = function(plat) {
     });
   } else {
     list.querySelectorAll('.custom-multi-item').forEach(item => {
-      if(item.textContent.toLowerCase().includes(filter)) item.style.display = '';
+      const text = item.textContent.trim().toLowerCase();
+      if(text.startsWith(filter) || text.includes(' ' + filter)) item.style.display = '';
       else item.style.display = 'none';
     });
   }
 };
 
 window.toggleAllCalGMulti = function(plat) {
-  const isChecked = document.getElementById('cal-g-multi-all-' + plat).checked;
+  const allChk = document.getElementById('cal-g-multi-all-' + plat);
+  if(!allChk) return;
+  const isChecked = allChk.checked;
   const list = document.getElementById('cal-g-multi-items-' + plat);
   if(list) {
     list.querySelectorAll('.cal-g-multi-chk').forEach(el => {
@@ -197,7 +219,8 @@ window.clearCalGMulti = function(plat) {
   const list = document.getElementById('cal-g-multi-items-' + plat);
   if(list) list.querySelectorAll('input').forEach(el => el.checked = false);
   if(window.calMultiGChanged) window.calMultiGChanged(plat);
-  document.getElementById('cal-g-multi-search-' + plat).value = '';
+  const input = document.getElementById('cal-g-multi-search-' + plat);
+  if(input) input.value = '';
   window.filterCalGMulti(plat);
 };
 
@@ -237,13 +260,16 @@ window.filterCalMulti = function(type, plat) {
   if(!list) return;
   const items = list.querySelectorAll('.custom-multi-item');
   items.forEach(item => {
-    if(item.textContent.toLowerCase().includes(filter)) item.style.display = '';
+    const text = item.textContent.trim().toLowerCase();
+    if(text.startsWith(filter) || text.includes(' ' + filter)) item.style.display = '';
     else item.style.display = 'none';
   });
 };
 
 window.toggleAllCalMulti = function(type, plat) {
-  const isChecked = document.getElementById(`cal-${type}-multi-all-${plat}`).checked;
+  const allChk = document.getElementById(`cal-${type}-multi-all-${plat}`);
+  if(!allChk) return;
+  const isChecked = allChk.checked;
   const list = document.getElementById(`cal-${type}-multi-items-${plat}`);
   if(list) {
     list.querySelectorAll(`.cal-${type}-multi-chk`).forEach(el => {
@@ -683,14 +709,14 @@ window.addClusterFromCal = async function(){
 window.addPairFromCal = addPairFromCal;
 window.saveCalPair = addPairFromCal;
 function addPairFromSched(){
-  const ids=[parseInt(document.getElementById('s-g1').value)||null,
-             parseInt(document.getElementById('s-g2').value)||null,
-             parseInt(document.getElementById('s-g3').value)||null].filter(Boolean);
+  const ids=[parseInt(document.getElementById('s-g1')?.value)||null,
+             parseInt(document.getElementById('s-g2')?.value)||null,
+             parseInt(document.getElementById('s-g3')?.value)||null].filter(Boolean);
   addPair(ids);
 }
 function savePairFromGarden(){
-  const g2=parseInt(document.getElementById('gm-pg2').value)||null;
-  const g3=parseInt(document.getElementById('gm-pg3').value)||null;
+  const g2=parseInt(document.getElementById('gm-pg2')?.value)||null;
+  const g3=parseInt(document.getElementById('gm-pg3')?.value)||null;
   if(!g2){_spAlertDialog('יש לבחור לפחות צהרון שני');return;}
   addPair([window.gmGid,g2,g3].filter(Boolean));
   window.openGM(window.gmGid);
