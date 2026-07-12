@@ -512,6 +512,21 @@ function _applyYearData(o){
   if(window.DataManager && window.DataManager.cleanupDuplicates) {
     window.DataManager.cleanupDuplicates();
   }
+
+  // --- Coordinator Filtering ---
+  if (window.role === 'coordinator' && window.coordManagerId && window.managers) {
+    const mgr = window.managers[window.coordManagerId];
+    if (mgr && mgr.gardenIds) {
+      // Ensure gardenIds is an array
+      let arr = mgr.gardenIds;
+      if (typeof arr === 'string') arr = arr.split(',');
+      else if (!Array.isArray(arr)) arr = Object.values(arr);
+      const allowedGids = new Set(arr.map(g => String(g).trim()));
+      window.SCH = (window.SCH || []).filter(s => allowedGids.has(String(s.g).trim()));
+    } else {
+      window.SCH = [];
+    }
+  }
 }
 
 function load(){

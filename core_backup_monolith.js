@@ -883,6 +883,7 @@ function migrateSupActSplit(){
   }
 }
 async function save(immediate){
+  if(window.isReadOnly) { console.warn('save: blocked (read-only mode)'); return false; }
   if(false){ showToast('⚠️ מצב ארכיון — לא ניתן לשמור שינויים'); return; }
   
   // CRITICAL: Block all saves (including localStorage) until the first Firebase load completes.

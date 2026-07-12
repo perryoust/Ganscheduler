@@ -859,7 +859,10 @@ window.wtHardRefresh = async function() {
     if (window.renderWorkerTasksMobile) window.renderWorkerTasksMobile();
   }
 };
-window.wtExportWord = function(ds) {
+window.wtExportWord = async function(ds) {
+  if (document.activeElement) document.activeElement.blur();
+  if (window.loadFromFirebase) await window.loadFromFirebase(false, true);
+
   const includeDone = confirm('האם לכלול משימות שכבר בוצעו בייצוא?');
   const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
   const tasks = (window.WORKER_TASKS || []).filter(t => {
@@ -937,6 +940,9 @@ window.wtExportWord = function(ds) {
 };
 
 window.wtPrintTasks = async function(ds) {
+  if (document.activeElement) document.activeElement.blur();
+  if (window.loadFromFirebase) await window.loadFromFirebase(false, true);
+
   const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
   const todayTasks = (window.WORKER_TASKS || []).filter(t => {
     if (t.isAdminOnly) return false;

@@ -2484,7 +2484,11 @@ function openGardenEdit(gid){
 
 
 
-window.exportGardenWA = function() {
+window.exportGardenWA = async function() {
+  if (window.loadFromFirebase) {
+    window.showToast('מסנכרן נתונים אחרונים מול השרת...', 3000);
+    await window.loadFromFirebase(true);
+  }
   if (!window._geditGid) return;
   const gid = window._geditGid;
   const g = window.getAllGardens().find(x => x.id === gid) || {};

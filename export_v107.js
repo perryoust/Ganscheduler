@@ -34,7 +34,11 @@ function gardenManager(gardenId){
   return Object.values(window.managers).find(m=>(m.gardenIds||[]).includes(gardenId))||null;
 }
 
-function doMonthlyExport(){
+async function doMonthlyExport(){
+  if (window.loadFromFirebase) {
+    window.showToast('מסנכרן נתונים אחרונים מול השרת...', 3000);
+    await window.loadFromFirebase(true);
+  }
   const fromM=document.getElementById('exp-from').value;
   const toM=document.getElementById('exp-to').value;
   if(!fromM||!toM){window.spAlert('יש לבחור תקופה');return;}
@@ -917,6 +921,10 @@ async function exportToExcel(data, filename, opts = {}) {
 }
 
 async function exportShortagesToExcel() {
+  if (window.loadFromFirebase) {
+    window.showToast('מסנכרן נתונים אחרונים מול השרת...', 3000);
+    await window.loadFromFirebase(true);
+  }
   if (typeof window.ExcelJS === 'undefined') {
     window.spAlert('ExcelJS is not loaded yet. Please wait a moment and try again.');
     return;
@@ -1299,6 +1307,10 @@ setTimeout(() => {
 // BULK ANNUAL SCHEDULE EXPORT (IMPORT COMPATIBLE)
 // ═══════════════════════════════════════════════════
 window.exportBulkAnnualSchedule = async function() {
+  if (window.loadFromFirebase) {
+    window.showToast('מסנכרן נתונים אחרונים מול השרת...', 3000);
+    await window.loadFromFirebase(true);
+  }
   if (typeof window.ExcelJS === 'undefined') {
     window.spAlert('ExcelJS library not loaded. Please wait or reload.');
     return;

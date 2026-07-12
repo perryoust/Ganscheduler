@@ -907,7 +907,19 @@
           <div id="mgr-gardens"
             style="max-height:220px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:8px;padding:4px;background:#fafafa">
           </div>
+          </div>
           <div id="mgr-gardens-count" style="font-size:.71rem;color:#78909c;margin-top:4px;text-align:left"></div>
+        </div>
+
+        <!-- Coordinator Auth Access -->
+        <div id="mgr-auth-wrap" style="margin-top:12px;padding:8px;background:#e8f5e9;border:1px solid #c8e6c9;border-radius:6px;display:none;">
+          <label style="font-weight:700;color:#2e7d32;display:block;margin-bottom:6px">🔑 גישת רכז למערכת</label>
+          <div style="font-size:.75rem;color:#388e3c;margin-bottom:8px">רכז זה אינו מחובר למערכת. יצירת חשבון תאפשר לו לצפות בלוח השיבוצים של הגנים שלו בלבד.</div>
+          <button class="btn bsm" style="background:#4caf50;color:#fff;border:none" onclick="createCoordinatorUser()">➕ צור חשבון משתמש</button>
+        </div>
+        <div id="mgr-auth-active" style="margin-top:12px;padding:8px;background:#e3f2fd;border:1px solid #bbdefb;border-radius:6px;display:none;">
+          <label style="font-weight:700;color:#1565c0;display:block;margin-bottom:6px">✅ גישת רכז פעילה</label>
+          <div style="font-size:.75rem;color:#1976d2;">לרכז זה יש חשבון מערכת פעיל: <b id="mgr-auth-email"></b></div>
         </div>
 
         <div
@@ -1115,11 +1127,11 @@
           </div>
         </div>
 
-        <!-- Assigned manager/coord (read-only display + link) -->
+        <!-- Assigned manager/coord (Dropdown) -->
         <div id="gedit-mgr-row"
-          style="background:#e3f2fd;border-radius:7px;padding:8px 11px;font-size:.78rem;color:#1565c0;margin-bottom:12px;display:none">
-          <span id="gedit-mgr-lbl"></span>
-          <span style="font-size:.7rem;color:#78909c;margin-right:8px">לשינוי — ערוך ברכז/מנהל הרלוונטי</span>
+          style="background:#e3f2fd;border-radius:7px;padding:8px 11px;font-size:.78rem;color:#1565c0;margin-bottom:12px;">
+          <label style="font-weight:bold;display:block;margin-bottom:5px">👤 מנהל / רכז שיוך לגן:</label>
+          <select id="gedit-mgr-sel" style="width:100%;padding:4px;border-radius:4px;border:1px solid #90caf9"></select>
         </div>
 
         <div style="display:flex;gap:7px;justify-content:flex-end;padding-top:10px;border-top:1px solid #e0e0e0; flex-wrap:wrap;">

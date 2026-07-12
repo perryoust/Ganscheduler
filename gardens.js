@@ -13,7 +13,7 @@ function renderGardens(){
   const srch = (window.getEl('g-srch')?.value || '').toLowerCase();
   const mgrF = window.getEl('g-mgr')?.value || '';
   
-  const f=[...window.GARDENS,...(window._GARDENS_EXTRA||[])].filter(g=>{
+  const f=Array.from(new Map([...window.GARDENS,...(window._GARDENS_EXTRA||[])].map(g=>[g.id, g])).values()).filter(g=>{
     if(city&&g.city!==city) return false;
     if(cls&&window.gcls(g)!==cls) return false;
     if(cl){const clObj=window.getClusters().find(c=>c.name===cl);if(!clObj||(!(clObj.gardenIds||[]).includes(g.id))) return false;}
@@ -75,7 +75,11 @@ function renderGardens(){
   setTimeout(window._fitScrollAreas,50);
 }
 
-function openGmExport(){
+async function openGmExport(){
+  if (window.loadFromFirebase) {
+    window.showToast('מסנכרן נתונים אחרונים מול השרת...', 3000);
+    await window.loadFromFirebase(true);
+  }
   if(!window.gmGid)return;
   const gids=window.gardenPair(window.gmGid)?window.gardenPair(window.gmGid).ids:[window.gmGid];
   window._exGids=gids;
@@ -529,7 +533,7 @@ function openAddHoliday(id){
   if(canSchedCb) canSchedCb.checked=hol?hol.canSched||false:false;
   document.getElementById('holm').classList.add('open');
 }
-function saveHoliday(){
+async function saveHoliday(){
   const name=document.getElementById('hol-name').value.trim();
   const from=document.getElementById('hol-from').value;
   const to=document.getElementById('hol-to').value;
@@ -571,13 +575,13 @@ function saveHoliday(){
     });
     if(removed>0) showToast(`⚠️ בוטלו ${removed} פעילויות קבועות בגלל החופשה`);
   }
-  save();CM('holm');refresh();
+  await save(true); CM('holm'); renderHolidays(); refresh();
   showToast(`✅ חופשה "${name}" נשמרה (${fD(from)} – ${fD(to)})`);
 }
-function deleteHoliday(id){
+async function deleteHoliday(id){
   if(!confirm('למחוק?')) return;
   holidays=holidays.filter(h=>h.id!==id);
-  save(); refresh();
+  await save(true); renderHolidays(); refresh();
 }
 function getClusters(){return Object.values(clusters||{}).sort((a,b)=>a.name.localeCompare(b.name,'he'));}
 function gardenClusters(gid){return getClusters().filter(cl=>(cl.gardenIds||[]).includes(gid));}
@@ -1371,7 +1375,7 @@ function genExport(){
         else if (!Array.isArray(arr)) arr = Object.values(arr);
         return arr.some(g => String(g).trim() === gidStr);
     });
-    if (mgr) return ` (רכז/ת: ${mgr.name} ${mgr.phone||''})`.trimEnd();
+    if (mgr) return ` (רכז/ת: ${mgr.name} - ${mgr.phone||''} )`.trimEnd();
     return '';
   };
 
@@ -1920,6 +1924,10 @@ function getClusterGlobalFieldsHtml() {
 }
 
 window.openClusterBulkEdit = function(clId, ds) {
+  if (window.isReadOnly) {
+    alert('משתמש זה מוגדר כמשתמש צפייה בלבד (רכז). אין אפשרות לבצע שינויים.');
+    return;
+  }
   console.log('openClusterBulkEdit called with:', clId, ds);
   window._clsId = clId;
   window._clBulkDate = ds;

@@ -46,6 +46,10 @@ function nsGChg(){
 }
 
 function openNewSched(gid, opts={}){
+  if (window.isReadOnly) {
+    alert('משתמש זה מוגדר כמשתמש צפייה בלבד (רכז). אין אפשרות לבצע שינויים.');
+    return;
+  }
   // opts: {date, tab, makeupFrom}
   newSchedForGarden=gid||null;
   _nsmTab='once';

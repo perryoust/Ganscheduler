@@ -46,7 +46,11 @@ function openSupExport(supName){
   if(window._supexSelectedGardens) window._supexSelectedGardens.clear(); if(document.getElementById('supex-garden-multi-search')) document.getElementById('supex-garden-multi-search').value = ''; if(typeof window.renderSupExGardenMultiItems === 'function') window.renderSupExGardenMultiItems();
   document.getElementById('supexm').classList.add('open');
 }
-function doSupExport(){
+async function doSupExport(){
+  if (window.loadFromFirebase) {
+    window.showToast('מסנכרן נתונים אחרונים מול השרת...', 3000);
+    await window.loadFromFirebase(true);
+  }
   if(_supExType==='inv'){
     // ── יצוא חשבוניות/הזמנות ──
     if(typeof window.exportSupPurchDocs==='function' && window._supExName){
@@ -131,7 +135,11 @@ function exportExcel(){
   const rel=window.SCH.filter(s=>s.d>=from&&s.d<=to&&(!f.gids||f.gids.includes(s.g))).sort((a,b)=>a.d.localeCompare(b.d));
   downloadCSV(rel,`פעילויות_${window.hebM(window.calD)}`);
 }
-function exportExcelSched(){
+async function exportExcelSched(){
+  if (window.loadFromFirebase) {
+    window.showToast('מסנכרן נתונים אחרונים מול השרת...', 3000);
+    await window.loadFromFirebase(true);
+  }
   const rel=window.getFiltSched();
   downloadCSV(rel,'לוח_זמנים');
 }

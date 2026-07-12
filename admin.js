@@ -235,6 +235,32 @@ window._initUsersUI = function _initUsersUI(){
   const settingsAdminYear = document.getElementById('settings-admin-year');
   if(settingsAdminYear) settingsAdminYear.style.display = isAdm ? '' : 'none';
 
+  // Coordinator specific UI restrictions
+  if (window.role === 'coordinator') {
+    window.isReadOnly = true;
+    const tabsAct = document.getElementById('tabs-act');
+    if (tabsAct) {
+      const tabs = tabsAct.querySelectorAll('.tab');
+      tabs.forEach(t => {
+        const oc = t.getAttribute('onclick') || '';
+        if (!oc.includes("'cal'") && !oc.includes("'dash'")) {
+          t.style.display = 'none';
+        }
+      });
+    }
+    const sysSetBtn = document.getElementById('sys-set-btn');
+    if(sysSetBtn) sysSetBtn.style.display = 'none';
+    
+    // Hide mob-nav buttons that aren't cal or dash
+    const mobNavBtns = document.querySelectorAll('.mob-nav-btn');
+    mobNavBtns.forEach(b => {
+      const tab = b.getAttribute('data-tab');
+      if (tab !== 'cal' && tab !== 'dash') {
+        b.style.display = 'none';
+      }
+    });
+  }
+
   // Show logged-in username in header
   if(window._fbUser){
     const uname = window._fbUser.email?.replace('@ganmanager.app','')||'';

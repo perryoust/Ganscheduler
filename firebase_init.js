@@ -120,6 +120,10 @@ onAuthStateChanged(auth, async (user) => {
             permAct = profile.permAct !== false;
             permWorker = !!profile.permWorker || profile.role === 'worker';
             role = profile.role || 'view';
+            if (role === 'coordinator') {
+              window.coordPhone = profile.phone;
+              window.coordManagerId = profile.managerId;
+            }
           } else if (user.email && user.email.startsWith('worker@')) {
             // Auto-detect worker from email — no profile exists yet
             permWorker = true;
@@ -135,6 +139,9 @@ onAuthStateChanged(auth, async (user) => {
           permWorker = true;
           permAct = false;
           role = 'worker';
+        } else if (user.email && user.email.startsWith('coord_')) {
+          role = 'coordinator';
+          permAct = true;
         }
       }
     }

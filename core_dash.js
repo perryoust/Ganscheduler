@@ -128,7 +128,8 @@ function updUIStats() {
   if(hGardens) {
     const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
     const cls = (tab === 'g' ? 'גנים' : 'ביה"ס');
-    const gardenCount = (window.GARDENS || []).filter(g => window.gcls(g) === cls).length + (window._GARDENS_EXTRA || []).filter(g => window.gcls(g) === cls).length;
+    const allGans = Array.from(new Map([...(window.GARDENS || []), ...(window._GARDENS_EXTRA || [])].map(g => [g.id, g])).values());
+    const gardenCount = allGans.filter(g => window.gcls(g) === cls).length;
     hGardens.textContent = gardenCount;
   }
 
@@ -1287,14 +1288,13 @@ function openGardenEdit(gid){
   document.getElementById('gedit-coph').value=ex.coph!==undefined?ex.coph:resolved.phone;
   document.getElementById('gedit-notes').value=ex.notes||g.notes||'';
 
-  // Manager row
-  const mgrRow=document.getElementById('gedit-mgr-row');
-  const mgrLbl=document.getElementById('gedit-mgr-lbl');
-  if(mgr){
-    mgrRow.style.display='block';
-    mgrLbl.textContent=`${mgr.role==='manager'?'🏛️ מנהל':'👤 רכז'}: ${mgr.name}${mgr.phone?' 📞 '+mgr.phone:''}`;
-  } else {
-    mgrRow.style.display='none';
+  // Manager dropdown
+  const mgrSel=document.getElementById('gedit-mgr-sel');
+  if(mgrSel) {
+    let opts='<option value="">ללא שיוך מנהל/רכז</option>';
+    Object.values(managers).sort((a,b)=>a.name.localeCompare(b.name,'he'))
+      .forEach(m=>opts+=`<option value="${m.id}" ${mgr && mgr.id === m.id ? 'selected' : ''}>${m.role==='manager'?'🏛️':'👤'} ${m.name}</option>`);
+    mgrSel.innerHTML = opts;
   }
 
   document.getElementById('gedit-m').classList.add('open');
@@ -1348,6 +1348,21 @@ function saveGardenCard(){
   ex.coph =document.getElementById('gedit-coph').value.trim();
   if(ex.coph) ex._cophManual=true; // mark as manually edited
   ex.notes=document.getElementById('gedit-notes').value.trim();
+
+  // update manager assignment
+  const selMgrId = document.getElementById('gedit-mgr-sel')?.value;
+  // Remove this garden from all managers first
+  Object.values(managers).forEach(m => {
+     if(m.gardenIds) {
+       m.gardenIds = m.gardenIds.filter(id => id !== _geditGid);
+     }
+  });
+  // Add to selected manager
+  if(selMgrId && managers[selMgrId]) {
+     if(!managers[selMgrId].gardenIds) managers[selMgrId].gardenIds = [];
+     managers[selMgrId].gardenIds.push(_geditGid);
+  }
+
   save();
   CM('gedit-m');
   renderGardens();
@@ -1442,8 +1457,88 @@ function openMgrModal(id){
 
   mgrFillGardens();
   document.getElementById('mgr-del-btn').style.display=id?'block':'none';
+
+  // Check auth status
+  const wrap = document.getElementById('mgr-auth-wrap');
+  const active = document.getElementById('mgr-auth-active');
+  const emailLabel = document.getElementById('mgr-auth-email');
+  if (wrap && active && emailLabel) {
+    if (!id || (m && m.role === 'manager')) {
+      wrap.style.display = 'none';
+      active.style.display = 'none';
+    } else {
+      // Check if we know their email or if they have a standard generated email
+      const cleanPhone = m && m.phone ? m.phone.replace(/\D/g, '') : '';
+      const email = `coord_${cleanPhone}@ganmanager.app`;
+      // For now, we just assume if they have a phone, we show the create button, 
+      // but without a full backend list we don't know if they are created unless we stored it.
+      // We will store it in m.hasAuth in the future.
+      if (m && m.hasAuth) {
+        wrap.style.display = 'none';
+        active.style.display = 'block';
+        emailLabel.textContent = email;
+      } else {
+        wrap.style.display = 'block';
+        active.style.display = 'none';
+      }
+    }
+  }
+
   document.getElementById('mgrm').classList.add('open');
 }
+
+window.createCoordinatorUser = async function() {
+  if (!_editMgrId) return;
+  const mgr = managers[_editMgrId];
+  if (!mgr || !mgr.phone) {
+    alert('לרכז זה אין מספר טלפון מוגדר. נא להזין טלפון תחילה ולשמור.');
+    return;
+  }
+  const cleanPhone = mgr.phone.replace(/\D/g, '');
+  if (cleanPhone.length < 9) {
+    alert('מספר טלפון לא תקין. (יש לוודא שהוא מכיל 10 ספרות, למשל 0501234567)');
+    return;
+  }
+  const email = `coord_${cleanPhone}@ganmanager.app`;
+  const pwd = cleanPhone.substring(0, 6);
+  
+  if (!confirm(`האם ליצור חשבון למערכת עבור הרכז?\nשם משתמש: ${email}\nסיסמה: ${pwd}\n\nלאחר היצירה, הרכז יוכל להיכנס למערכת ולראות רק את השיבוצים שלו.`)) return;
+  
+  try {
+    if (!window._fbCreateUser) throw new Error("פונקציית יצירת משתמש אינה זמינה כעת.");
+    const res = await window._fbCreateUser(email, pwd);
+    
+    // Write user role to Realtime DB
+    const token = await window._fbGetToken();
+    if (token) {
+      const payload = { role: 'coordinator', phone: cleanPhone, name: mgr.name, managerId: _editMgrId };
+      const dbUrl = window.getFirebaseDbUrl ? window.getFirebaseDbUrl().split('/data.json')[0] : 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
+      await fetch(`${dbUrl}/users/${res.uid}.json?auth=${token}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload)
+      });
+    }
+    
+    mgr.hasAuth = true;
+    if(typeof save === 'function') await save(true);
+    
+    document.getElementById('mgr-auth-wrap').style.display = 'none';
+    document.getElementById('mgr-auth-active').style.display = 'block';
+    document.getElementById('mgr-auth-email').textContent = email;
+    alert('החשבון נוצר בהצלחה! שלח לרכז את קישור המערכת עם המייל והסיסמה האלו.');
+  } catch(e) {
+    if (e.message.includes('email-already-in-use')) {
+      alert('חשבון עבור רכז זה (עם מספר הטלפון הזה) כבר קיים במערכת.');
+      mgr.hasAuth = true;
+      if(typeof save === 'function') await save(true);
+      document.getElementById('mgr-auth-wrap').style.display = 'none';
+      document.getElementById('mgr-auth-active').style.display = 'block';
+      document.getElementById('mgr-auth-email').textContent = email;
+    } else {
+      alert('שגיאה ביצירת חשבון: ' + e.message);
+    }
+  }
+};
 
 function mgrFillGardens(){
   const m=_editMgrId?managers[_editMgrId]:null;

@@ -753,6 +753,10 @@ window.spRowTimeChg = function(id, val) {
 };
 
 window.openSP = function(id) {
+  if (window.isReadOnly) {
+    alert('משתמש זה מוגדר כמשתמש צפייה בלבד (רכז). אין אפשרות לבצע שינויים.');
+    return;
+  }
   window.selEv = id;
   const s = window.SCH.find(x => x.id == id);
   if(!s) return;
@@ -762,7 +766,7 @@ window.openSP = function(id) {
 
   try { // ← try-catch to prevent silent failures
   const g=window.G(s.g);
-  const spPair=window.gardenPair(s.g);
+  const spPair = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
   const allSups = window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : [];
   var initialActs = window.getSupActs ? window.getSupActs(s.a) : [];
 
@@ -923,7 +927,8 @@ window.openSP = function(id) {
   // --- STEP 6: Series Management ---
   const _dObj = s.d ? new Date(s.d) : new Date();
   const _sY = _dObj.getMonth() >= 7 ? _dObj.getFullYear() : _dObj.getFullYear() - 1;
-  const defaultFrom = typeof window.td === 'function' ? window.td() : new Date().toISOString().split('T')[0];
+  const tdDate = typeof window.td === 'function' ? window.td() : new Date().toISOString().split('T')[0];
+  const defaultFrom = s.d; // Always default to the event's date
   const defaultTo = `${_sY + 1}-06-30`;
 
   h += `<div style="margin-top:10px;border:1px solid #ce93d8;border-radius:10px;overflow:hidden">
@@ -1051,7 +1056,7 @@ window.openSP = function(id) {
     <div id="sp-acc-free" style="display:none;padding:12px;background:#fff;border-top:1px solid #c8e6c9">
       <div style="font-size:.72rem;color:#78909c;margin-bottom:8px;background:#f9f9f9;padding:4px 8px;border-radius:4px">תאריכים פנויים לשלושת השבועות הקרובים לצהרון זה:</div>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
-        ${window.getSpFreeDaysHtml(s.g)}
+        ${window.getSpFreeDaysHtml(s.g, s.d)}
       </div>
       ${(() => {
         if (isClusterMode) {
@@ -1060,13 +1065,13 @@ window.openSP = function(id) {
           if (spCluster && spCluster.gardenIds) {
             return '<div style="font-size:.72rem;color:#e65100;margin-top:12px;margin-bottom:8px;background:#fff9f0;padding:4px 8px;border-radius:4px;border:1px solid #ffe0b2;font-weight:700">תאריכים פנויים משותפים לכל האשכול (מידע בלבד):</div>' +
                    '<div style="display:flex;gap:5px;flex-wrap:wrap">' +
-                   window.getPairSharedFreeDaysHtml(spCluster.gardenIds) +
+                   window.getPairSharedFreeDaysHtml(spCluster.gardenIds, '', s.d) +
                    '</div>';
           }
         }
         return spPair ? '<div style="font-size:.72rem;color:#e65100;margin-top:12px;margin-bottom:8px;background:#fff9f0;padding:4px 8px;border-radius:4px;border:1px solid #ffe0b2;font-weight:700">תאריכים פנויים משותפים לזוג הגנים (מידע בלבד):</div>' +
                '<div style="display:flex;gap:5px;flex-wrap:wrap">' +
-               window.getPairSharedFreeDaysHtml(spPair.ids) +
+               window.getPairSharedFreeDaysHtml(spPair.ids, '', s.d) +
                '</div>' : '';
       })()}
     </div>
@@ -1204,36 +1209,27 @@ function deleteRecurSeries(id) {
     ? window.SCH.filter(x => x._recId === s._recId && x.d >= s.d && x.g === s.g)
     : window.SCH.filter(x => window.supBase(x.a) === window.supBase(s.a) && x.d >= s.d && x.g === s.g);
   
-  const pair = window.gardenPair(s.g);
-  let pRecId = null;
-  let pGname = '';
-  let useFallbackPartner = false;
-  if (pair) {
-    const pGid = pair.ids.find(pid => Number(pid) !== Number(s.g));
-    const pG = window.G(pGid);
-    if (pG) {
-      pGname = pG.name.startsWith('גן') ? pG.name : `גן ${pG.name}`;
-      if (s._recId) {
-        const pEv = window.SCH.find(x => x._recId && x.d === s.d && Number(x.g) === Number(pGid) && window.supBase(x.a) === window.supBase(s.a));
-        if (pEv) pRecId = pEv._recId;
-      } else {
-        const pEv = window.SCH.find(x => x.d === s.d && Number(x.g) === Number(pGid) && window.supBase(x.a) === window.supBase(s.a));
-        if (pEv) useFallbackPartner = true;
-      }
-    }
-  }
+  const pair = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
 
   const syncChk = document.getElementById('rr-sync-pair') || document.getElementById('rr-sync');
   const sync = syncChk ? syncChk.checked : true;
-  if (!sync) {
-    pRecId = null;
-    useFallbackPartner = false;
+
+  const partnerGids = [];
+  if (sync && pair) {
+    pair.ids.forEach(pid => {
+      if (Number(pid) !== Number(s.g)) {
+        const syncBox = document.getElementById('rr-sync-partner-' + pid);
+        if (!syncBox || syncBox.checked) {
+          partnerGids.push(Number(pid));
+        }
+      }
+    });
   }
 
   const gName = g.name.startsWith('גן') ? g.name : `גן ${g.name}`;
   let confirmMsg = `האם אתה בטוח שברצונך למחוק ${affected.length} פעילויות של הספק מתאריך זה והלאה בגן ${gName} מהלוח?`;
-  if (pRecId || useFallbackPartner) {
-    confirmMsg = `האם אתה בטוח שברצונך למחוק ${affected.length} פעילויות של הספק מתאריך זה והלאה גם מהלוח של הגן ${gName} וגם מהלוח של הגן בן-הזוג (${pGname})?`;
+  if (partnerGids.length > 0) {
+    confirmMsg = `האם אתה בטוח שברצונך למחוק ${affected.length} פעילויות של הספק מתאריך זה והלאה גם מהלוח של הגן ${gName} וגם מהלוחות של הגנים השותפים?`;
   }
   
   if(!confirm(confirmMsg)) return;
@@ -1250,10 +1246,14 @@ function deleteRecurSeries(id) {
     if(i >= 0) window.SCH.splice(i, 1);
   });
 
-  if (pRecId || useFallbackPartner) {
-    const pAffected = pRecId
-      ? window.SCH.filter(x => x._recId === pRecId && x.d >= s.d && Number(x.g) !== Number(s.g))
-      : window.SCH.filter(x => window.supBase(x.a) === window.supBase(s.a) && x.d >= s.d && Number(x.g) === Number(pair.ids.find(pid => Number(pid) !== Number(s.g))));
+  if (partnerGids.length > 0) {
+    const pAffected = window.SCH.filter(x => {
+      const isTarget = partnerGids.includes(Number(x.g));
+      const isTimeMatch = x.d >= s.d;
+      const isRecMatch = s._recId ? x._recId === s._recId : false;
+      const isFallbackMatch = window.supBase(x.a) === window.supBase(s.a);
+      return isTarget && isTimeMatch && (isRecMatch || isFallbackMatch);
+    });
     
     pAffected.forEach(x => {
       const isSraws = !String(x.id).startsWith('e_');
@@ -1288,19 +1288,25 @@ function deleteSingleActivity(id) {
   if(i >= 0) window.SCH.splice(i, 1);
   
   // Also check for partner sync
-  const pair = window.gardenPair(s.g);
+  const pair = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
   if(pair) {
-    const pEv = window.findPartnerActivity ? window.findPartnerActivity(pair.ids.find(pid => Number(pid) !== Number(s.g)), s.d, s.a) : null;
-    if(pEv) {
-      const pG = window.G(pEv.g);
-      const pGname = pG.name.startsWith('גן') ? pG.name : `גן ${pG.name}`;
-      if (confirm(`האם למחוק גם את השיבוץ המקביל ב${pGname}?`)) {
-        const isSrawsPartner = !String(pEv.id).startsWith('e_');
-        if (isSrawsPartner && !window.supEx['__deleted_sraws_ids'].includes(pEv.id)) {
-          window.supEx['__deleted_sraws_ids'].push(pEv.id);
-        }
-        const pi = window.SCH.indexOf(pEv);
-        if(pi >= 0) window.SCH.splice(pi, 1);
+    const partnerGids = pair.ids.filter(pid => Number(pid) !== Number(s.g));
+    const partnerEvs = [];
+    partnerGids.forEach(pid => {
+      const pEv = window.findPartnerActivity ? window.findPartnerActivity(pid, s.d, s.a) : null;
+      if (pEv) partnerEvs.push(pEv);
+    });
+    
+    if(partnerEvs.length > 0) {
+      if (confirm(`האם למחוק גם את ${partnerEvs.length} השיבוצים המקבילים בגנים השותפים?`)) {
+        partnerEvs.forEach(pEv => {
+          const isSrawsPartner = !String(pEv.id).startsWith('e_');
+          if (isSrawsPartner && !window.supEx['__deleted_sraws_ids'].includes(pEv.id)) {
+            window.supEx['__deleted_sraws_ids'].push(pEv.id);
+          }
+          const pi = window.SCH.indexOf(pEv);
+          if(pi >= 0) window.SCH.splice(pi, 1);
+        });
       }
     }
   }
@@ -1515,8 +1521,19 @@ function saveReplaceRecur(id) {
     const seriesIdsToRemove = new Set([s._recId]);
     const partnerGids = [];
     if (sync) {
-      const pair = window.gardenPair(s.g);
-      if (pair) pair.ids.forEach(pid => partnerGids.push(Number(pid)));
+      const pair = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
+      if (pair) {
+        pair.ids.forEach(pid => {
+          if (Number(pid) !== Number(s.g)) {
+            const syncBox = document.getElementById('rr-sync-partner-' + pid);
+            if (!syncBox || syncBox.checked) {
+              partnerGids.push(Number(pid));
+            }
+          } else {
+            partnerGids.push(Number(pid));
+          }
+        });
+      }
     } else {
       partnerGids.push(Number(s.g));
     }
@@ -1561,7 +1578,7 @@ function saveReplaceRecur(id) {
           });
           // Add for partners if synced
           if (sync) {
-            const pair = window.gardenPair(s.g);
+            const pair = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
             if (pair) {
               pair.ids.forEach((pid, idx) => {
                 if (Number(pid) !== Number(s.g)) {
@@ -2120,7 +2137,7 @@ function openPostpone(id){
     // Set up Synergy UI
     const synWrap = document.getElementById('post-synergy-wrap');
     if(synWrap) {
-      const pair = window.gardenPair(s.g);
+      const pair = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
       const currentTimes = {};
       const currentGrps = {};
       currentTimes[s.g] = window.fT(s.t) || '';
@@ -2152,7 +2169,7 @@ function openCopy(id){
   // Set up Synergy UI
   const synWrap = document.getElementById('copy-synergy-wrap');
   if(synWrap) {
-    const pair = window.gardenPair(s.g);
+    const pair = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
     const currentTimes = {};
     const currentGrps = {};
     currentTimes[s.g] = window.fT(s.t) || '';
@@ -2312,7 +2329,7 @@ function doCopy(){
 
 // --- SYNERGY UI HELPER ---
 function renderPartnerSynergy(gid, prefix, currentTimes = {}, currentGrps = {}) {
-  const pair = window.gardenPair(gid);
+  const pair = window.getGardenGroup ? window.getGardenGroup(gid) : window.gardenPair(gid);
   if (!pair) return '';
   const partners = pair.ids;
   if (!partners.length) return '';
@@ -3100,7 +3117,7 @@ window.saveNohapQ = async function(){
   }, 100);
 };
 
-window.getSpFreeDaysHtml = function(gid) {
+window.getSpFreeDaysHtml = function(gid, refDate) {
   const DAY_HEB=['ראשון','שני','שלישי','רביעי','חמישי'];
   const g = window.G(gid);
   if(!g) return '';
@@ -3111,7 +3128,7 @@ window.getSpFreeDaysHtml = function(gid) {
     return true;
   }).map(x=>x.d));
   
-  const free = []; let d = new Date(); d.setHours(0,0,0,0);
+  const free = []; let d = new Date(refDate || window._calDate || window.td()); d.setHours(0,0,0,0);
   
   for(let i=0; i<21; i++) {
     const dow = d.getDay();
@@ -3168,7 +3185,7 @@ window.autoScheduleMakeupToDate = function(eventId, dateStr) {
   }
 };
 
-window.getPairSharedFreeDaysHtml = function(gids, nohapEvId = '') {
+window.getPairSharedFreeDaysHtml = function(gids, nohapEvId = '', refDate) {
   if (!gids || gids.length === 0) return '';
   const DAY_HEB = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'];
   
@@ -3184,7 +3201,7 @@ window.getPairSharedFreeDaysHtml = function(gids, nohapEvId = '') {
   });
 
   const free = [];
-  let d = new Date();
+  let d = new Date(refDate || window._calDate || window.td());
   d.setHours(0, 0, 0, 0);
 
   // Search up to 21 days, limit to 8 free days
