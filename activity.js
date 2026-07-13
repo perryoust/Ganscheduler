@@ -956,7 +956,7 @@ window.openSP = function(id) {
             <select id="rr-act" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"><option value="">— ללא שינוי —</option>${(window.getSupActs ? window.getSupActs(s.a) : []).map(a=>`<option value="${a}" ${a===s.act?'selected':''}>${a}</option>`).join('')}</select>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:${spPair?'1fr 1fr':'1fr'};gap:8px">
+        <div style="display:grid;grid-template-columns:1fr;gap:8px">
           <div class="fg"><label style="font-size:.7rem;font-weight:700">קבוצות</label><input type="number" id="rr-grp" value="${s.grp||1}" min="1" max="10" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
           <div class="fg"><label style="font-size:.7rem;font-weight:700">⏰ שעה (${g.name})</label><input type="time" id="rr-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
           ${spPair ? spPair.ids.filter(id=>Number(id)!==Number(s.g)).map((pid, idx) => {

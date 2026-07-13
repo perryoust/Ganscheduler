@@ -102,6 +102,13 @@ window.ui = {
     const tagMobile = tagText ? `<span style="background:#ffe082;color:#b71c1c;border-radius:4px;padding:1px 4px;font-size:0.65rem;font-weight:800;margin-left:4px;display:inline-block">${tagText}</span> ` : '';
     const tagDesktop = tagText ? `<b style="color:var(--c-warning)">[${tagText}]</b> ` : '';
 
+    const mgr = window.managers ? Object.values(window.managers).find(m => (m.gardenIds || []).includes(g.id)) : null;
+    const coName = mgr ? mgr.name : g.co;
+    const coDisplay = coName ? `
+            <div style="grid-column: span 2; font-size:0.7rem; color:#64748b; font-weight:normal;">
+              👤 רכז/ת: ${coName}
+            </div>` : '';
+
     if (window.isMobileMode()) {
       return `
         <div class="mob-act-card ${stCls}" onclick="window.openSP('${s.id}')">
@@ -117,10 +124,7 @@ window.ui = {
             <div style="grid-column: span 2">
               🎨 <b>${supAct}</b> ${evType ? `<span style="color:#78909c;font-size:0.75rem">(${evType})</span>` : ''} ${grpCount ? `<span style="background:#e8eaf6;color:#3f51b5;border-radius:4px;padding:1px 5px;font-size:0.68rem;margin-right:6px;font-weight:700;display:inline-block">${grpCount} קב'</span>` : ''}
             </div>
-            ${g.co ? `
-            <div style="grid-column: span 2; font-size:0.7rem; color:#64748b; font-weight:normal;">
-              👤 רכז/ת: ${g.co}
-            </div>` : ''}
+            ${coDisplay}
             ${(s.nt || tagText) ? `
               <div style="grid-column: span 2; color:var(--c-error)">
                 📝 ${tagMobile}${s.nt || ''}
@@ -147,7 +151,7 @@ window.ui = {
     rowHtml += `
       <td class="p-8 font-bold text-primary" style="line-height:1.2">
          ${gIcon} ${g.name}${g.st ? ` <span style="font-size:0.75rem; color:#64748b; font-weight:400; margin-right:6px; display:inline-block">📍 ${g.st}</span>` : ''}
-         ${g.co ? `<div style="font-size:0.72rem; color:#64748b; font-weight:normal; margin-top:3px;">👤 רכז/ת: ${g.co}</div>` : ''}
+         ${coName ? `<div style="font-size:0.72rem; color:#64748b; font-weight:normal; margin-top:3px;">👤 רכז/ת: ${coName}</div>` : ''}
       </td>`;
 
     // 3. Time (שעה)

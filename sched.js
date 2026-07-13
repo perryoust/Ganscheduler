@@ -712,6 +712,15 @@ function renderSched(){
       h+='</div></details>';
     });
   });
+
+  if (h) {
+    const btns = `<div style="display:flex; gap:10px; margin-bottom:10px;">
+      <button onclick="document.querySelectorAll('#s-body .city-accordion').forEach(el=>el.setAttribute('open',''))" style="flex:1; padding:8px; border-radius:6px; border:none; background:#1a237e; color:white; font-weight:bold; cursor:pointer;">פרוס הכל 🔽</button>
+      <button onclick="document.querySelectorAll('#s-body .city-accordion').forEach(el=>el.removeAttribute('open'))" style="flex:1; padding:8px; border-radius:6px; border:1px solid #1a237e; background:white; color:#1a237e; font-weight:bold; cursor:pointer;">כווץ הכל 🔼</button>
+    </div>`;
+    h = btns + h;
+  }
+
   if(!h) h='<p style="color:#999;text-align:center;padding:20px">אין פעילויות</p>';
   document.getElementById('s-body').innerHTML=h;
   setTimeout(window._fitScrollAreas,50);

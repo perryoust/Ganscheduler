@@ -139,8 +139,16 @@ window.utils = {
 
     // 3. Fallback to norm name + city fuzzy
     if(!g) {
-      const n = this.norm(rawName);
-      g = GARDENS.find(x => this.norm(x.name) === n && (!normC || this.megaClean(this.normCity(x.city)) === normC));
+      const n = this.megaClean(rawName);
+      g = GARDENS.find(x => this.megaClean(x.name) === n && (!normC || this.megaClean(this.normCity(x.city)) === normC));
+    }
+
+    // 3.5 Specific fallback for Sahar and Tzedef (Petah Tikva)
+    if(!g && rawName.includes('סהר') && (normC === 'פתח תקווה' || normC === 'פת')) {
+      g = GARDENS.find(x => x.id == 67);
+    }
+    if(!g && rawName.includes('צדף') && (normC === 'פתח תקווה' || normC === 'פת')) {
+      g = GARDENS.find(x => x.id == 94);
     }
 
     return g;

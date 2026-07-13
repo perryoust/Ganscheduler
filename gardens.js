@@ -13,7 +13,7 @@ function renderGardens(){
   const srch = (window.getEl('g-srch')?.value || '').toLowerCase();
   const mgrF = window.getEl('g-mgr')?.value || '';
   
-  const f=Array.from(new Map([...window.GARDENS,...(window._GARDENS_EXTRA||[])].map(g=>[g.id, g])).values()).filter(g=>{
+  const f=Array.from(new Map([...window.GARDENS,...(window._GARDENS_EXTRA||[])].map(g=>[Number(g.id), g])).values()).filter(g=>{
     if(city&&g.city!==city) return false;
     if(cls&&window.gcls(g)!==cls) return false;
     if(cl){const clObj=window.getClusters().find(c=>c.name===cl);if(!clObj||(!(clObj.gardenIds||[]).includes(g.id))) return false;}
@@ -71,6 +71,15 @@ function renderGardens(){
     });
     h+='</div></details>';
   });
+  
+  if (h) {
+    const btns = `<div style="display:flex; gap:10px; margin-bottom:10px;">
+      <button onclick="document.querySelectorAll('#g-body .city-accordion').forEach(el=>el.setAttribute('open',''))" style="flex:1; padding:8px; border-radius:6px; border:none; background:#1a237e; color:white; font-weight:bold; cursor:pointer;">פרוס הכל 🔽</button>
+      <button onclick="document.querySelectorAll('#g-body .city-accordion').forEach(el=>el.removeAttribute('open'))" style="flex:1; padding:8px; border-radius:6px; border:1px solid #1a237e; background:white; color:#1a237e; font-weight:bold; cursor:pointer;">כווץ הכל 🔼</button>
+    </div>`;
+    h = btns + h;
+  }
+  
   document.getElementById('g-body').innerHTML=h||'<p style="color:#999">לא נמצאו צהרונים</p>';
   setTimeout(window._fitScrollAreas,50);
 }

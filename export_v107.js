@@ -55,7 +55,7 @@ async function doMonthlyExport(){
   let evs=window.SCH.filter(s=>s.d>=fromDate&&s.d<=toDate); // include cancelled for export
   const rawList = window.GARDENS.concat(window._GARDENS_EXTRA||[]);
   const gMap = new Map();
-  rawList.forEach(g => gMap.set(g.id, g));
+  rawList.forEach(g => gMap.set(Number(g.id), g));
   let gList = Array.from(gMap.values());
   if(mode==='city'&&cityFilter)   gList=gList.filter(g=>g.city===cityFilter);
   if(mode==='manager'&&mgrFilter){ const mgrObj=window.managers[mgrFilter]; if(mgrObj?.gardenIds) gList=gList.filter(g=>mgrObj.gardenIds.includes(g.id)); }
@@ -1340,6 +1340,10 @@ window.exportBulkAnnualSchedule = async function() {
     else if (currentYearStr === 'tashpaz') startYear = 2026;
     else if (currentYearStr === 'tashpach') startYear = 2027;
     else if (currentYearStr === 'tashpat') startYear = 2028;
+    else {
+      startYear = new Date().getFullYear();
+      if (new Date().getMonth() < 8) startYear -= 1;
+    }
   }
   
   if (!startDate || !endDate) {
@@ -1351,7 +1355,7 @@ window.exportBulkAnnualSchedule = async function() {
   
   // Deduplicate by ID, prioritizing _GARDENS_EXTRA (which come later in the array) to keep merged info like 'age'
   const ganMap = new Map();
-  rawAllGans.forEach(g => ganMap.set(g.id, g));
+  rawAllGans.forEach(g => ganMap.set(Number(g.id), g));
   const allGans = Array.from(ganMap.values());
 
   // Group events by date and garden for quick lookup

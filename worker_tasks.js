@@ -296,6 +296,22 @@ window.openNewWorkerTaskModal = function() {
         <span style="font-weight:bold; color:#e65100;">משימה אישית שלי (לא מוצג לעובד השטח) 🔒</span>
       </label>
     </div>
+    <div style="margin-bottom:15px;">
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="checkbox" id="wt-is-recurring" style="width:18px; height:18px;" onchange="document.getElementById('wt-recur-container').style.display = this.checked ? 'block' : 'none';">
+        <span style="font-weight:bold; color:#1565c0;">הגדר כמשימה קבועה (חוזרת) 🔄</span>
+      </label>
+    </div>
+    <div id="wt-recur-container" style="margin-bottom:15px; display:none; padding:10px; border:1px solid #bbdefb; border-radius:6px; background:#e3f2fd;">
+      <label style="display:block; font-size:0.85rem; color:#1565c0; margin-bottom:5px; font-weight:bold;">תדירות:</label>
+      <select id="wt-recur" style="width:100%; padding:8px; border:1px solid #90caf9; border-radius:6px; box-sizing:border-box; margin-bottom:10px;">
+        <option value="daily">יומי</option>
+        <option value="weekly">שבועי</option>
+        <option value="monthly">חודשי</option>
+      </select>
+      <label style="display:block; font-size:0.85rem; color:#1565c0; margin-bottom:5px; font-weight:bold;">חזור עד תאריך (כולל):</label>
+      <input type="date" id="wt-recur-end" style="width:100%; padding:8px; border:1px solid #90caf9; border-radius:6px; box-sizing:border-box;">
+    </div>
   `;
   
   if (window.spPromptDialog) {
@@ -316,15 +332,56 @@ window.openNewWorkerTaskModal = function() {
         return false; // Prevent closing
       }
       
-      window.WORKER_TASKS.push({
-        id: 'wt_' + Date.now(),
-        date: date,
-        gardenId: gardenId ? parseInt(gardenId) : 0,
-        city: cityName || '',
-        desc: desc,
-        status: 'pending',
-        doneAt: null,
-        isAdminOnly: isAdminOnly
+      const isRecurring = document.getElementById('wt-is-recurring') ? document.getElementById('wt-is-recurring').checked : false;
+      const recur = document.getElementById('wt-recur') ? document.getElementById('wt-recur').value : 'daily';
+      const recurEnd = document.getElementById('wt-recur-end') ? document.getElementById('wt-recur-end').value : '';
+      
+      let datesToCreate = [date];
+      
+      if (isRecurring) {
+        if (!recurEnd) {
+          if (window.spAlert) window.spAlert('נא לבחור תאריך סיום למשימה הקבועה', true);
+          return false;
+        }
+        const startD = new Date(date);
+        const endD = new Date(recurEnd);
+        if (endD < startD) {
+          if (window.spAlert) window.spAlert('תאריך הסיום חייב להיות אחרי תאריך ההתחלה', true);
+          return false;
+        }
+        
+        datesToCreate = []; // Rebuild
+        let current = new Date(startD);
+        let failsafe = 0;
+        
+        while (current <= endD && failsafe < 365) {
+          datesToCreate.push(current.toISOString().split('T')[0]);
+          if (recur === 'daily') {
+            current.setDate(current.getDate() + 1);
+          } else if (recur === 'weekly') {
+            current.setDate(current.getDate() + 7);
+          } else if (recur === 'monthly') {
+            current.setMonth(current.getMonth() + 1);
+          }
+          failsafe++;
+        }
+        if (failsafe >= 365 && window.spAlert) {
+          window.spAlert('שים לב: המשימה הקבועה הוגבלה ל-365 מופעים כדי למנוע עומס על המערכת.');
+        }
+      }
+      
+      const baseId = Date.now();
+      datesToCreate.forEach((dStr, idx) => {
+        window.WORKER_TASKS.push({
+          id: 'wt_' + baseId + '_' + idx,
+          date: dStr,
+          gardenId: gardenId ? parseInt(gardenId) : 0,
+          city: cityName || '',
+          desc: desc,
+          status: 'pending',
+          doneAt: null,
+          isAdminOnly: isAdminOnly
+        });
       });
       
       if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
@@ -345,15 +402,43 @@ window.openNewWorkerTaskModal = function() {
     const desc = prompt("תיאור המשימה:");
     if (!desc) return;
     
-    window.WORKER_TASKS.push({
-      id: 'wt_' + Date.now(),
-      date: date,
-      gardenId: gardenId ? parseInt(gardenId) : 0,
-      city: cityName,
-      desc: desc,
-      status: 'pending',
-      doneAt: null,
-      isAdminOnly: false
+    let recur = prompt("תדירות: 0=חד פעמי, 1=יומי, 2=שבועי, 3=חודשי", "0");
+    let datesToCreate = [date];
+    
+    if (recur === "1" || recur === "2" || recur === "3") {
+      let recurMap = {"1":"daily", "2":"weekly", "3":"monthly"};
+      let recurType = recurMap[recur];
+      let recurEnd = prompt("חזור עד תאריך (YYYY-MM-DD):");
+      if (recurEnd) {
+        const startD = new Date(date);
+        const endD = new Date(recurEnd);
+        if (endD >= startD) {
+          datesToCreate = [];
+          let current = new Date(startD);
+          let failsafe = 0;
+          while (current <= endD && failsafe < 365) {
+            datesToCreate.push(current.toISOString().split('T')[0]);
+            if (recurType === 'daily') current.setDate(current.getDate() + 1);
+            else if (recurType === 'weekly') current.setDate(current.getDate() + 7);
+            else if (recurType === 'monthly') current.setMonth(current.getMonth() + 1);
+            failsafe++;
+          }
+        }
+      }
+    }
+    
+    const baseId = Date.now();
+    datesToCreate.forEach((dStr, idx) => {
+      window.WORKER_TASKS.push({
+        id: 'wt_' + baseId + '_' + idx,
+        date: dStr,
+        gardenId: gardenId ? parseInt(gardenId) : 0,
+        city: cityName,
+        desc: desc,
+        status: 'pending',
+        doneAt: null,
+        isAdminOnly: false
+      });
     });
     
     if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);

@@ -129,7 +129,8 @@ function updUIStats() {
     const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
     const cls = (tab === 'g' ? 'גנים' : 'ביה"ס');
     const allGans = Array.from(new Map([...(window.GARDENS || []), ...(window._GARDENS_EXTRA || [])].map(g => [g.id, g])).values());
-    const gardenCount = allGans.filter(g => window.gcls(g) === cls).length;
+    const activeGardenIds = new Set((window.SCH || []).map(s => String(s.g)));
+    const gardenCount = allGans.filter(g => window.gcls(g) === cls && activeGardenIds.has(String(g.id))).length;
     hGardens.textContent = gardenCount;
   }
 
@@ -1365,9 +1366,12 @@ function saveGardenCard(){
 
   save();
   CM('gedit-m');
-  renderGardens();
-  // Refresh other views that show garden data
-  if(currentTab==='managers') renderManagers();
+  if (typeof window.refreshAppUI === 'function') {
+    window.refreshAppUI();
+  } else {
+    renderGardens();
+    if(currentTab==='managers') renderManagers();
+  }
   showToast('✅ כרטיס הצהרון עודכן');
 }
 
