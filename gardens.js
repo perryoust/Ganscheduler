@@ -8,7 +8,7 @@ function renderGardens(){
   if(gClsEl && !gClsEl.value) gClsEl.value = _gardensTab === 'sch' ? 'ביה"ס' : 'גנים';
   
   const city = window.getEl('g-city')?.value || '';
-  const cls = window.getEl('g-cls')?.value || '';
+  const cls = gClsEl ? gClsEl.value : (_gardensTab === 'sch' ? 'ביה"ס' : 'גנים');
   const cl = window.getEl('g-cl')?.value || '';
   const srch = (window.getEl('g-srch')?.value || '').toLowerCase();
   const mgrF = window.getEl('g-mgr')?.value || '';
@@ -43,7 +43,7 @@ function renderGardens(){
     [{arr:byCity[cityKey].gan,lbl:'🏫 גני ילדים',cls:'gan'},{arr:byCity[cityKey].sch,lbl:'🏛️ בתי ספר',cls:'sch'}].forEach(sec=>{
       if(!sec.arr.length) return;
       h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;margin-top:${sec.cls==='sch'?'14px':'0'}"><div style="height:2px;flex:1;background:${sec.cls==='sch'?'#1565c0':'#2e7d32'};opacity:.25"></div><span class="dsh ${sec.cls}" style="font-size:.76rem;font-weight:800;padding:3px 12px;border-radius:10px">${sec.lbl} (${sec.arr.length})</span><div style="height:2px;flex:1;background:${sec.cls==='sch'?'#1565c0':'#2e7d32'};opacity:.25"></div></div>
-        <div class="evgrid" style="margin-bottom:8px">`;
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">`;
       sec.arr.forEach(g=>{
         const cnt=window.SCH.filter(s=>s.g===g.id).length;
         const pair=window.gardenPair(g.id);
@@ -73,9 +73,9 @@ function renderGardens(){
   });
   
   if (h) {
-    const btns = `<div style="display:flex; gap:10px; margin-bottom:10px;">
-      <button onclick="document.querySelectorAll('#g-body .city-accordion').forEach(el=>el.setAttribute('open',''))" style="flex:1; padding:8px; border-radius:6px; border:none; background:#1a237e; color:white; font-weight:bold; cursor:pointer;">פרוס הכל 🔽</button>
-      <button onclick="document.querySelectorAll('#g-body .city-accordion').forEach(el=>el.removeAttribute('open'))" style="flex:1; padding:8px; border-radius:6px; border:1px solid #1a237e; background:white; color:#1a237e; font-weight:bold; cursor:pointer;">כווץ הכל 🔼</button>
+    const btns = `<div style="display:flex; gap:8px; margin-bottom:12px; justify-content: flex-start; padding: 0 4px;">
+      <button class="btn bg" onclick="document.querySelectorAll('#g-body .city-accordion').forEach(el=>el.setAttribute('open',''))" style="font-size: 0.75rem; padding: 4px 10px; font-weight: 700;">🔽 פרוס הכל</button>
+      <button class="btn" onclick="document.querySelectorAll('#g-body .city-accordion').forEach(el=>el.removeAttribute('open'))" style="font-size: 0.75rem; padding: 4px 10px; font-weight: 700; background: #fff; border: 1px solid #ccc; color: #555;">🔼 כווץ הכל</button>
     </div>`;
     h = btns + h;
   }
@@ -592,7 +592,7 @@ async function deleteHoliday(id){
   holidays=holidays.filter(h=>h.id!==id);
   await save(true); renderHolidays(); refresh();
 }
-function getClusters(){return Object.values(clusters||{}).sort((a,b)=>a.name.localeCompare(b.name,'he'));}
+function getClusters(){return Object.values(window.clusters||{}).sort((a,b)=>a.name.localeCompare(b.name,'he'));}
 function gardenClusters(gid){return getClusters().filter(cl=>(cl.gardenIds||[]).includes(gid));}
 const PAIR_COLORS=['#1565c0','#2e7d32','#6a1b9a','#00695c','#c62828','#e65100','#37474f','#4527a0'];
 function pairColorIdx(pairId){
@@ -809,7 +809,7 @@ function renderClusters(){
 }
 
 function openEditCluster(clId,preSelectGid){
-  const cl=clId?clusters[clId]:null;
+  const cl=clId?(window.clusters||{})[clId]:null;
   (document.getElementById('clm-title')||{}).textContent =cl?`✏️ עריכת אשכול: ${cl.name}`:'➕ אשכול חדש';
   document.getElementById('cl-name').value=cl?cl.name:'';
   document.getElementById('cl-desc').value=cl?cl.desc||'':'';
@@ -829,12 +829,12 @@ function clFillGardens(cl){
   document.getElementById('cl-gardens').innerHTML=gs.map(g=>`<label style="display:flex;gap:6px;padding:5px 4px;cursor:pointer;align-items:center;border-bottom:1px solid #f5f5f5">
     <input type="checkbox" value="${g.id}" ${checked.has(g.id)?'checked':''} style="min-width:14px">
     <span style="flex:1">${g.city} · ${g.name}</span>
-    ${Object.values(clusters||{}).filter(c=>c.id!==cl?.id&&(c.gardenIds||[]).includes(g.id)).map(c=>`<span class="bdg bgray" style="font-size:.63rem">${c.name}</span>`).join('')}
+    ${Object.values(window.clusters||{}).filter(c=>c.id!==cl?.id&&(c.gardenIds||[]).includes(g.id)).map(c=>`<span class="bdg bgray" style="font-size:.63rem">${c.name}</span>`).join('')}
   </label>`).join('');
 }
 function clFilterCity(){
   const clId=document.getElementById('cl-name').dataset.editId;
-  const cl=clId?clusters[clId]:null;
+  const cl=clId?(window.clusters||{})[clId]:null;
   clFillGardens(cl);
 }
 function saveClusterModal(){
@@ -843,19 +843,19 @@ function saveClusterModal(){
   const editId=document.getElementById('cl-name').dataset.editId;
   const gardenIds=[...document.querySelectorAll('#cl-gardens input:checked')].map(cb=>parseInt(cb.value));
   const id=editId||('cl_'+Date.now());
-  clusters[id]={id,name,desc:document.getElementById('cl-desc').value.trim(),gardenIds};
+  window.clusters[id]={id,name,desc:document.getElementById('cl-desc').value.trim(),gardenIds};
   save();CM('clm');refresh();refreshClusterDrops();
 }
 function deleteCluster(clId){
   if(!confirm('למחוק אשכול זה?')) return;
-  delete clusters[clId];
+  delete window.clusters[clId];
   save(); refresh();
 }
 
 let _clsId=null;
 function openClusterSchedule(clId){
   _clsId=clId;
-  const cl=clusters[clId];
+  const cl=(window.clusters||{})[clId];
   if(!cl){return;}
   (document.getElementById('clsm-title')||{}).textContent =`📅 שיבוץ לאשכול: ${cl.name}`;
   document.getElementById('cls-date').value=d2s(calD);
@@ -908,7 +908,7 @@ function clsAutoTime(){
 function applyUniTime(){
   const t=document.getElementById('cls-uni-time').value;
   if(!t) return;
-  const cl=clusters[_clsId];
+  const cl=(window.clusters||{})[_clsId];
   (cl.gardenIds||[]).forEach(gid=>{
     const el=document.getElementById(`cls-t-${gid}`);
     if(el) el.value=t;
@@ -920,7 +920,7 @@ function saveClusterSchedule(){
   const sup=document.getElementById('cls-sup').value;
   const ph=document.getElementById('cls-ph').value;
   if(!date||!sup){_spAlertDialog('יש לבחור תאריך וספק');return;}
-  const cl=clusters[_clsId];
+  const cl=(window.clusters||{})[_clsId];
   const gs=(cl.gardenIds||[]).map(id=>G(id)).filter(x=>x.id);
   const warns=[];let saved=0;
   gs.forEach(g=>{
@@ -2258,7 +2258,7 @@ window.saveClusterBulkEdit = function() {
 };
 
 window.deleteClusterDay = function() {
-  const cl = clusters[window._clsId];
+  const cl = (window.clusters||{})[window._clsId];
   const ds = window._clBulkDate;
   if(!cl || !ds) return;
 

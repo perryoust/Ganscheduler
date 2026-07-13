@@ -1754,10 +1754,13 @@ function setGardensTab(t){
     return;
   }
   // gan / sch
-  gBody.className='ggrid scroll-area';
+  gBody.className='scroll-area';
   const gClsEl = window.getEl ? window.getEl('g-cls') : document.getElementById('g-cls');
-  if (gClsEl) gClsEl.value=t==='gan'?'גנים':'ביה"ס';
-  renderGardens();
+  if (gClsEl) {
+    if (t === 'gan') gClsEl.value = 'גנים';
+    else if (t === 'sch') gClsEl.value = 'ביה"ס';
+  }
+  if(typeof renderGardens === 'function') renderGardens();
 }
 
 // ── Fixed-schedule view ──────────────────────────────────────────

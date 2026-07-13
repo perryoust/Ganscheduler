@@ -1325,8 +1325,10 @@ window.exportBulkAnnualSchedule = async function() {
   let startDate = null;
   let endDate = null;
 
-  if (window.meta && window.meta.years && window.meta.years[currentYearStr]) {
-    const yObj = window.meta.years[currentYearStr];
+  const meta = window.meta || {};
+
+  if (meta && meta.years && meta.years[currentYearStr]) {
+    const yObj = meta.years[currentYearStr];
     if (yObj.start && yObj.end) {
       startDate = new Date(yObj.start);
       endDate = new Date(yObj.end);
