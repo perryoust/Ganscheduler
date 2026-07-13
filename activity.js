@@ -537,7 +537,7 @@ window.spRowStatusChg = function(id, st) {
   const ev = window.SCH.find(x => x.id == id);
   if(!ev) return;
   
-  const pair = window.gardenPair(ev.g);
+  const pair = window.getGardenGroup ? window.getGardenGroup(ev.g) : window.gardenPair(ev.g);
   let syncPartner = false;
   if(pair) {
     const pGid = pair.ids.find(pid => Number(pid) !== Number(ev.g));
@@ -548,7 +548,9 @@ window.spRowStatusChg = function(id, st) {
     // Only ask confirm for simple statuses (done/ok). 
     // Exceptions (nohap/can/post) have their own modals with sync options.
     if(st === 'done' || st === 'ok') {
-        if(confirm(`האם לעדכן את הסטטוס "${stText}" גם בגן בן-הזוג (${pG.name})?`)) {
+        const otherNames = pair.ids.filter(id=>Number(id)!==Number(ev.g)).map(id=>(window.G(id)||{}).name).join(', ');
+        const targetType = pair.ids.length > 2 ? 'האשכול' : 'גן בן-הזוג';
+        if(confirm(`האם לעדכן את הסטטוס "${stText}" גם ב${targetType} (${otherNames})?`)) {
             syncPartner = true;
         }
     } else {
@@ -919,7 +921,7 @@ window.openSP = function(id) {
       <div style="font-size:0.8rem;color:#e65100;font-weight:800;margin-bottom:6px">🛠️ טיפול בחריג</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <input type="text" id="sp-handle-nt" style="flex:1;min-width:200px;padding:6px;border-radius:6px;border:1px solid #ffe082;font-size:0.8rem" placeholder="הערת סיום טיפול (לדוגמה: בוצע ידנית ב-20/4...)" value="${s.st==='post'?'נדחה':''}">
-        ${spPair ? `<label for="sp-sync-pair" style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="sp-sync-pair" style="width:14px;height:14px;accent-color:#e65100" checked><span style="font-size:0.75rem;font-weight:700;color:#bf360c">סנכרן לזוג</span></label>` : ''}
+        ${spPair ? `<label for="sp-sync-pair" style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="sp-sync-pair" style="width:14px;height:14px;accent-color:#e65100" checked><span style="font-size:0.75rem;font-weight:700;color:#bf360c">${spPair.ids.length > 2 ? 'סנכרן לאשכול' : 'סנכרן לזוג'}</span></label>` : ''}
         <button class="btn borange bsm" style="padding:6px 12px;font-weight:800;border-radius:6px" onclick="window.spBatchMarkCompManual()">סיום טיפול לכל המסומנים</button>
       </div>
     </div>`;
@@ -1069,7 +1071,7 @@ window.openSP = function(id) {
                    '</div>';
           }
         }
-        return spPair ? '<div style="font-size:.72rem;color:#e65100;margin-top:12px;margin-bottom:8px;background:#fff9f0;padding:4px 8px;border-radius:4px;border:1px solid #ffe0b2;font-weight:700">תאריכים פנויים משותפים לזוג הגנים (מידע בלבד):</div>' +
+        return spPair ? '<div style="font-size:.72rem;color:#e65100;margin-top:12px;margin-bottom:8px;background:#fff9f0;padding:4px 8px;border-radius:4px;border:1px solid #ffe0b2;font-weight:700">תאריכים פנויים משותפים ל' + (spPair.ids.length > 2 ? 'אשכול' : 'זוג הגנים') + ' (מידע בלבד):</div>' +
                '<div style="display:flex;gap:5px;flex-wrap:wrap">' +
                window.getPairSharedFreeDaysHtml(spPair.ids, '', s.d) +
                '</div>' : '';
@@ -1110,6 +1112,11 @@ window.openSP = function(id) {
   document.getElementById('sp-m-body').innerHTML = h;
   window.spUpdateExVisibility(); // Initial check
   window.spMuDateChg(); // Pre-populate partners table and free days!
+  
+  // Reset modal title
+  const titleEl = document.getElementById('sp-m-title');
+  if (titleEl) titleEl.textContent = 'פרטי פעילות';
+  
   window.OM('sp-m');
   } catch(err) {
     console.error('[openSP] Error building panel:', err);
@@ -1392,17 +1399,21 @@ function deleteSingleActivity(id) {
   }
   
   // Also check for partner sync
-  const pair = window.gardenPair(s.g);
+  const pair = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
   if(pair) {
-    const pEv = window.findPartnerActivity ? window.findPartnerActivity(pair.ids.find(pid => Number(pid) !== Number(s.g)), s.d, s.a) : null;
-    if(pEv) {
-      const pOrigEvs = pEv._isMakeup ? window.SCH.filter(orig => String(orig._compByMakeup) === String(pEv.id)) : [];
-      const pRestoreMsg = pOrigEvs.length > 0 ? `\n(פעילות זו היא השלמה ותחזיר את הפעילות המקורית)` : '';
-      if(confirm(`האם למחוק גם את השיבוץ המקביל בגן בן-הזוג (${window.G(pEv.g).name})?` + pRestoreMsg)) {
-        const pi = window.SCH.indexOf(pEv);
-        if(pi >= 0) window.SCH.splice(pi, 1);
-        if (pOrigEvs.length > 0) {
-          pOrigEvs.forEach(orig => {
+    const pEvs = pair.ids.filter(pid => Number(pid) !== Number(s.g)).map(pid => window.findPartnerActivity ? window.findPartnerActivity(pid, s.d, s.a) : null).filter(Boolean);
+    if(pEvs.length > 0) {
+      let hasMakeup = pEvs.some(pe => pe._isMakeup);
+      const pRestoreMsg = hasMakeup ? `\n(יש פעילויות השלמה שיחזירו את הפעילות המקורית)` : '';
+      const otherNames = pEvs.map(pe => window.G(pe.g).name).join(', ');
+      const targetType = pair.ids.length > 2 ? 'באשכול' : 'בגן בן-הזוג';
+      if(confirm(`האם למחוק גם את השיבוצים המקבילים ${targetType} (${otherNames})?` + pRestoreMsg)) {
+        pEvs.forEach(pEv => {
+          const pOrigEvs = pEv._isMakeup ? window.SCH.filter(orig => String(orig._compByMakeup) === String(pEv.id)) : [];
+          const pi = window.SCH.indexOf(pEv);
+          if(pi >= 0) window.SCH.splice(pi, 1);
+          if (pOrigEvs.length > 0) {
+            pOrigEvs.forEach(orig => {
             orig._compByMakeup = '';
             cleanMakeupNote(orig, pEv.d);
           });
@@ -1469,11 +1480,11 @@ function openReplaceRecur(id) {
     ${spPair ? `
       <div class="info-notice">
         <span class="icon">🔗</span>
-        <div><b>גן בן-זוג:</b> שינוי זה יוחל גם על <b>${window.G(spPair.ids.find(id=>Number(id)!==Number(s.g))).name}</b> אם תיבת הסימון למטה מסומנת.</div>
+        <div><b>${spPair.ids.length > 2 ? 'אשכול' : 'גן בן-זוג'}:</b> שינוי זה יוחל גם על <b>${spPair.ids.filter(id=>Number(id)!==Number(s.g)).map(id=>(window.G(id)||{}).name||'לא ידוע').join(', ')}</b> אם תיבת הסימון למטה מסומנת.</div>
       </div>
       <label style="display:flex;align-items:center;gap:8px;background:#e8eaf6;padding:8px 10px;border-radius:8px;border:1px solid #c5cae9;cursor:pointer">
         <input type="checkbox" id="rr-sync-pair" checked style="width:18px;height:18px">
-        <span style="font-size:.82rem;font-weight:700;color:#1a237e">🔗 החל גם על גן בן-הזוג</span>
+        <span style="font-size:.82rem;font-weight:700;color:#1a237e">🔗 החל גם על ${spPair.ids.length > 2 ? 'האשכול' : 'גן בן-הזוג'}</span>
       </label>
     ` : ''}
   </div>

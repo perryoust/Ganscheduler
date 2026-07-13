@@ -261,6 +261,10 @@ window.renderWorkerTasksAdmin = function() {
           </label>
         </div>
         
+        <button onclick="window.openNewWorkerTaskModal()" style="background:#e3f2fd; color:#1565c0; border:1px solid #90caf9; border-radius:50%; width:44px; height:44px; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.1); flex-shrink:0;" title="משימה קבועה / אפשרויות נוספות">
+          <span style="font-size:1.3rem;">🔄</span>
+        </button>
+
         <button onclick="window.wtAddInlineTask()" style="background:#00a884; color:white; border:none; border-radius:50%; width:44px; height:44px; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.2); flex-shrink:0;" title="שלח משימה">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" style="transform:translateX(-2px) rotate(180deg);"><path d="M1.101,21.757L23.8,12.028L1.101,2.3l0.011,7.912l13.623,1.816L1.112,13.845 L1.101,21.757z"></path></svg>
         </button>
@@ -274,6 +278,16 @@ window.renderWorkerTasksAdmin = function() {
 };
 
 window.openNewWorkerTaskModal = function() {
+  let inlineDesc = '';
+  let inlineGardenName = '';
+  let inlineAdmin = false;
+  
+  if (document.getElementById('wt-inline-desc')) {
+    inlineDesc = document.getElementById('wt-inline-desc').value.replace(/"/g, '&quot;');
+    inlineGardenName = document.getElementById('wt-inline-garden').value.replace(/"/g, '&quot;');
+    inlineAdmin = document.getElementById('wt-inline-admin').checked;
+  }
+
   const modalHtml = `
     <div style="margin-bottom:15px;">
       <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:5px;">תאריך היעד</label>
@@ -281,18 +295,18 @@ window.openNewWorkerTaskModal = function() {
     </div>
     <div style="margin-bottom:15px;">
       <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:5px;">גן / בית ספר (הזן מספר או שם)</label>
-      <input type="text" id="wt-garden-search" placeholder="חפש גן..." onkeyup="window.wtSearchGarden(this.value)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; margin-bottom:5px;">
+      <input type="text" id="wt-garden-search" value="${inlineGardenName}" placeholder="חפש גן..." onkeyup="window.wtSearchGarden(this.value)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; margin-bottom:5px;">
       <div id="wt-garden-results" style="max-height:120px; overflow-y:auto; border:1px solid #eee; border-radius:4px; background:#fafafa; padding:5px; display:none;"></div>
       <input type="hidden" id="wt-garden-id" value="">
       <input type="hidden" id="wt-city-name" value="">
     </div>
     <div style="margin-bottom:15px;">
       <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:5px;">תיאור המשימה (מה לעשות?)</label>
-      <textarea id="wt-desc" rows="3" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; resize:vertical; font-family:inherit;"></textarea>
+      <textarea id="wt-desc" rows="3" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; resize:vertical; font-family:inherit;">${inlineDesc}</textarea>
     </div>
     <div style="margin-bottom:15px; padding:10px; background:#fff8e1; border:1px solid #ffe082; border-radius:6px;">
       <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-        <input type="checkbox" id="wt-admin-only" style="width:18px; height:18px;">
+        <input type="checkbox" id="wt-admin-only" style="width:18px; height:18px;" ${inlineAdmin ? 'checked' : ''}>
         <span style="font-weight:bold; color:#e65100;">משימה אישית שלי (לא מוצג לעובד השטח) 🔒</span>
       </label>
     </div>

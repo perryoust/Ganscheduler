@@ -1,4 +1,7 @@
 function renderGardens(){
+  const gBody = document.getElementById('g-body');
+  if (gBody) gBody.classList.remove('ggrid');
+
   if(window.showInfoNotice) {
     window.showInfoNotice('gardens-info-wrap', '<b>ניהול צהרונים:</b> כאן ניתן לראות את כל הגנים, הזוגות והאשכולות. שינויים בזוגות ישפיעו על הסנכרון בלוח הבקרה ובשיבוץ.', 'info', '🏡');
   }

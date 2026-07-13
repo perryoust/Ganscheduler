@@ -783,15 +783,31 @@ function gardenPair(gid){
 }
 window.getGardenGroup = function(gid) {
   const n = parseInt(gid);
-  const pair = (window.pairs || []).find(p => p.ids.map(x => parseInt(x)).includes(n));
-  if (pair) return { type: 'pair', ...pair };
-  const clusters = window.clusters || {};
-  for (const cid in clusters) {
-    const cl = clusters[cid];
-    if ((cl.gardenIds || []).map(x => parseInt(x)).includes(n)) {
-      return { type: 'cluster', id: cid, ids: cl.gardenIds.map(x => parseInt(x)), name: cl.name };
+  const isClusterMode = window._listGroupMode === 'clusters' || window._dashTab === 'clusters';
+  
+  if (isClusterMode) {
+    const clusters = window.clusters || {};
+    for (const cid in clusters) {
+      const cl = clusters[cid];
+      if ((cl.gardenIds || []).map(x => parseInt(x)).includes(n)) {
+        return { type: 'cluster', id: cid, ids: cl.gardenIds.map(x => parseInt(x)), name: cl.name };
+      }
     }
   }
+
+  const pair = (window.pairs || []).find(p => p.ids.map(x => parseInt(x)).includes(n));
+  if (pair) return { type: 'pair', ...pair };
+  
+  if (!isClusterMode) {
+    const clusters = window.clusters || {};
+    for (const cid in clusters) {
+      const cl = clusters[cid];
+      if ((cl.gardenIds || []).map(x => parseInt(x)).includes(n)) {
+        return { type: 'cluster', id: cid, ids: cl.gardenIds.map(x => parseInt(x)), name: cl.name };
+      }
+    }
+  }
+  
   return null;
 };
 window.compareActivities = function(a, b) {
