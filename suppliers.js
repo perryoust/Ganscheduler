@@ -742,6 +742,7 @@ function doMerge(){
 
   const mainBase = window.supBase(main);
   let changedSch=0, changedInv=0;
+  const doRename = document.getElementById('mrg-rename') ? document.getElementById('mrg-rename').checked : false;
   const mergedAway = new Set(window.supEx['__merged_away']||[]);
 
   // Collect all acts from main AND all merged suppliers BEFORE changing anything
@@ -764,6 +765,15 @@ function doMerge(){
         changedInv++;
       }
     });
+
+    // 2. Update SCH if requested
+    if(doRename && typeof window.SCH!=='undefined') window.SCH.forEach(s=>{
+      if(window.supBase(s.a||'')===oldBase){
+        s.a = main;
+        changedSch++;
+      }
+    });
+
 
     // 3. Merge supEx metadata
     const ex = window.supEx[old] || window.supEx[oldBase] || {};
@@ -881,9 +891,13 @@ window.psupMultiMerge = function() {
   const formHtml = `
     <div style="direction:rtl; padding:10px;">
       <p style="margin-bottom:10px;">מבין הספקים שסימנת, בחר ספק ראשי אחד שאליו יאוחדו שאר הספקים:</p>
-      <select id="multi-merge-target" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; font-size:1rem;">
+      <select id="multi-merge-target" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; font-size:1rem; margin-bottom:12px;">
         ${opts}
       </select>
+      <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;background:#fff8e1;padding:6px;border-radius:4px;border:1px solid #ffe082">
+        <input type="checkbox" id="mrg-multi-rename" checked style="width:16px;height:16px">
+        החלף גם את שם הפעילות בלוח השנה עצמו (לשנה הנוכחית)
+      </label>
     </div>
   `;
   
@@ -902,6 +916,7 @@ window.psupMultiMerge = function() {
          
          const mainBase = window.supBase(main);
          let changedSch=0, changedInv=0;
+         const doRename = document.getElementById('mrg-multi-rename') ? document.getElementById('mrg-multi-rename').checked : false;
          const mergedAway = new Set(window.supEx['__merged_away']||[]);
          const allActs = new Set(getSupActs(main));
          let mergedIsAct = window.isActSupplier(main);
@@ -917,6 +932,11 @@ window.psupMultiMerge = function() {
            if(window.INVOICES){
              window.INVOICES.forEach(i=>{
                if(window.supBase(i.supName||'')===oldBase){ i.supName=main; changedInv++; }
+             });
+           }
+           if(doRename && window.SCH){
+             window.SCH.forEach(s=>{
+               if(window.supBase(s.a||'')===oldBase){ s.a=main; changedSch++; }
              });
            }
            mergedAway.add(oldBase);

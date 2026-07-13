@@ -79,7 +79,7 @@ window.ui = {
    */
   renderActivityRow: function(s, opts = {}) {
     const g = window.G(s.g) || {};
-    const supBase = window.supBase(s.a);
+    const supBase = window.supNameLabel ? window.supNameLabel(s.a) : window.supBase(s.a);
     const supAct = s.act || window.supAct(s.a) || '—';
     const timeStr = window.fT ? window.fT(s.t) : s.t;
     const stLbl = window.stLabel ? window.stLabel(s) : s.st;
@@ -163,7 +163,7 @@ window.ui = {
     // 4. Supplier (ספק)
     rowHtml += `
       <td class="p-8 font-600 text-secondary">
-        ${supBase} ${phone && context === 'dash' ? `<span class="text-xs text-success mr-2">📞 ${phone}</span>` : ''}
+        ${supBase} ${phone ? `<span class="text-xs text-success mr-2">📞 ${phone}</span>` : ''}
       </td>`;
 
     // 5. Type (סוג)
