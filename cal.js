@@ -1880,12 +1880,13 @@ function renderMonth(evs,mDate,f){
 function setListGroupMode(m){
   window._listGroupMode = m;
   document.querySelectorAll('[id^="vlb-group-"]').forEach(btn => {
-    const btnV = btn.id.replace('vlb-group-', '').replace('-desktop', '').replace('-mobile', '');
+    const btnV = btn.id.replace('vlb-group-', '').replace('-desktop', '').replace('-mobile', '').replace('-dash', '');
     if (['pairs', 'clusters'].includes(btnV)) {
       btn.classList.toggle('active', btnV === m || `window.${btnV}` === m);
     }
   });
-  renderCal();
+  if (typeof renderCal === 'function') renderCal();
+  if (typeof window.renderDash === 'function') window.renderDash();
 }
 
 function renderRangeListView(evs, fromDs, toDs){

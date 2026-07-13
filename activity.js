@@ -1414,10 +1414,11 @@ function deleteSingleActivity(id) {
           if(pi >= 0) window.SCH.splice(pi, 1);
           if (pOrigEvs.length > 0) {
             pOrigEvs.forEach(orig => {
-            orig._compByMakeup = '';
-            cleanMakeupNote(orig, pEv.d);
-          });
-        }
+              orig._compByMakeup = '';
+              cleanMakeupNote(orig, pEv.d);
+            });
+          }
+        });
       }
     }
   }
