@@ -1368,6 +1368,11 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   z-index: 8000;
   transition: transform 0.2s;
 }
+@media (max-width: 768px) {
+  #todo-fab {
+    bottom: 85px; /* Above bottom nav */
+  }
+}
 #todo-fab:hover { transform: scale(1.05); }
 .todo-badge {
   position: absolute;

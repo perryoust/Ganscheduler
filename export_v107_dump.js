@@ -1493,7 +1493,7 @@ window.exportBulkAnnualSchedule = async function () {
             }
             let verb = "נדחה";
               if (linkedNext && linkedNext.d && ev.d && linkedNext.d < ev.d) verb = "הוקדם";
-              statusNote = toDateStr ? `${verb} ל-${toDateStr}` : verb;
+              statusNote = toDateStr ? ${verb} ל- : verb;
             finalGrp = 0;
           }
 

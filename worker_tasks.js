@@ -194,7 +194,7 @@ window.renderWorkerTasksAdmin = function() {
              ondragover="event.preventDefault(); this.style.borderTop='2px dashed #1565c0';" 
              ondragleave="this.style.borderTop='none';" 
              ondrop="event.preventDefault(); this.style.borderTop='none'; const draggedId=event.dataTransfer.getData('text/plain'); if(window.wtOnDropTask) window.wtOnDropTask(draggedId, '${t.id}');"
-             style="background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); margin-bottom:10px; display:flex; align-items:flex-start; padding:12px; position:relative; cursor:grab; transition: border 0.2s; ${isDone ? 'opacity:0.85;' : ''}">
+             style="background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); margin-bottom:10px; display:flex; align-items:flex-start; flex-wrap:wrap; padding:12px; position:relative; cursor:grab; transition: border 0.2s; ${isDone ? 'opacity:0.85;' : ''}">
           
           <!-- Drag Handle -->
           <div style="margin-left:10px; padding-top:4px; color:#ccc; cursor:grab; font-size:1.2rem;" title="גרור כדי לשנות סדר">
@@ -209,12 +209,12 @@ window.renderWorkerTasksAdmin = function() {
           </div>
           
           <!-- Content -->
-          <div style="flex:1;">
+          <div style="flex: 1 1 150px; min-width: 120px;">
             ${isSearch ? `<div style="font-size:0.75rem; color:#888; margin-bottom:2px;">${window.fD ? window.fD(t.date) : t.date}</div>` : ''}
             <div style="font-size:1.1rem; color:${isDone ? '#666' : '#1c1c1e'}; line-height:1.3; margin-bottom:4px;">
               ${loc ? `<strong>${loc}</strong> - ` : ''}${t.desc.replace(/\n/g, ' ')}
             </div>
-            <div style="display:flex; align-items:center; gap:10px; font-size:0.85rem; color:#8e8e93;">
+            <div style="display:flex; align-items:center; gap:10px; font-size:0.85rem; color:#8e8e93; flex-wrap:wrap;">
               ${isPriv ? '<span style="background:#ffe0b2; color:#e65100; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:0.75rem;">🔒 אישי למנהל</span>' : ''}
               ${isDone && t.doneAt ? `<span style="font-size:0.85rem; color:#4caf50; font-weight:bold;">(בוצע ע"י ${t.doneBy || 'עובד'} ב-${t.doneAt})</span>` : ''}
             </div>
@@ -222,8 +222,8 @@ window.renderWorkerTasksAdmin = function() {
           </div>
           
           <!-- Left Actions -->
-          <div style="margin-right:15px; padding-top:2px; z-index:10; display:flex; flex-direction:column; gap:4px; justify-content:flex-start;">
-            <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <div style="flex: 0 1 auto; margin-right:auto; padding-top:6px; z-index:10; display:flex; flex-direction:column; gap:4px; justify-content:flex-end; align-items:flex-end;">
+            <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
               <button onclick="window.wtShiftTaskDate('${t.id}', -1)" style="background:transparent; color:#1565c0; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="הקדם ליום הקודם">⏩</button>
               <button onclick="window.wtShiftTaskDate('${t.id}', 1)" style="background:transparent; color:#1565c0; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="דחה ליום המחרת">⏪</button>
               <button onclick="window.wtEditTaskDesc('${t.id}')" style="background:transparent; color:#8e24aa; border:none; cursor:pointer; font-size:1.1rem; opacity:0.8;" title="ערוך משימה">✏️</button>
