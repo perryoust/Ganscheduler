@@ -401,7 +401,7 @@ window.initCalFilters = function() {
 document.addEventListener('click', function(e) {
   ['desktop', 'mobile'].forEach(plat => {
     ['g', 'city', 'sup', 'cl'].forEach(type => {
-      const wrap = document.getElementById(`cal-${type}-multi-wrap-${plat}`);
+      const wrap = document.getElementById(`cal-${type}-multi-wrap-${plat}`) || document.getElementById(`cal-unified-multi-wrap-${plat}`);
       const list = document.getElementById(`cal-${type}-multi-list-${plat}`);
       if(wrap && list && !wrap.contains(e.target)) list.classList.remove('open');
     });
@@ -925,11 +925,13 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter='', collapseAll=false){
       </summary>
       <div class="city-accordion-content" style="padding:8px">`;
 
-    // --- זוגות: מיון לפי שם ואז לפי שעה ---
+    // --- Pairs/Clusters: Only intact groups ---
     const pairedGids=new Set();
     const pairBlocks=[];
-    window.pairs.forEach(pair=>{
-      if(window.isPairBroken(pair.id,ds)) return;
+    const groupList = (window._listGroupMode === "clusters" && typeof window.getClusters === "function") ? window.getClusters().map(cl => ({...cl, ids: cl.gardenIds})) : (window.pairs || []);
+    const isClusterMode = (window._listGroupMode === "clusters");
+    groupList.forEach(pair=>{
+      if(!isClusterMode && window.isPairBroken(pair.id,ds)) return;
       const pairEvs=cityEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g)));
       if(!pairEvs.length) return;
       pairEvs.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
@@ -942,7 +944,7 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter='', collapseAll=false){
     if(pairBlocks.length){
       h+=`<div class="pairs-list-layout" style="margin-bottom:8px">`;
       pairBlocks.forEach(({pair,pairEvs})=>{
-        h+=window.ui.renderStandardPairCard(pair,pairEvs,{ds,clr,context:'cal'});
+        h+=window.ui.renderStandardPairCard(pair,pairEvs,{ds,clr,context:'cal', isCluster: isClusterMode});
       });
       h+=`</div>`;
     }
@@ -1541,10 +1543,12 @@ function renderNormalWeek(evs, ws, f){
     // window.pairs or clusters
     byCity[city].pairs.forEach(({pair,gids:pGids})=>{
       const pairGidList = pGids.join(',');
-      html+=`<tr class="${cityRowClass}" style="display:none;">
+      const pIdStr = `pair-${pair.id}`;
+      html+=`<tr class="${cityRowClass} pair-hdr-${cityId}" onclick="window.toggleTableCluster('${pIdStr}')" style="display:none;cursor:pointer">
         <td colspan="6" style="background:${clr.solid};color:#fff;padding:5px 12px;
           font-size:.92rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2)">
           <div style="display:flex;align-items:center;gap:8px">
+            <span id="icon-${pIdStr}" style="width:18px;text-align:center;font-size:1.1rem;user-select:none">➖</span>
             <button onclick="event.stopPropagation();window._exportPairWA([${pairGidList}])"
               style="background:rgba(255,255,255,.22);border:none;border-radius:5px;color:#fff;
                 font-size:.72rem;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">📋 הודעה</button>
@@ -1554,7 +1558,7 @@ function renderNormalWeek(evs, ws, f){
       </tr>`;
       pGids.forEach(gid=>{
         const g=window.G(gid);
-        html+=`<tr class="${cityRowClass}" style="display:none;"><td style="background:#fafbff; font-size:var(--fs-small); padding:6px 10px; color:var(--c-primary); font-weight:700;
+        html+=`<tr class="${cityRowClass} pair-row-${pIdStr} pair-child-${cityId}" style="display:none;"><td style="background:#fafbff; font-size:var(--fs-small); padding:6px 10px; color:var(--c-primary); font-weight:700;
           border-right:3px solid ${clr.solid}; border-bottom:1px solid #dde1f0; border-left:1px solid #dde1f0;
           position:sticky; right:0; z-index:1; white-space:nowrap; max-width:180px; overflow:hidden; text-overflow:ellipsis; line-height:1.2">
           ${g.name}<br><span style="font-size:var(--fs-xs); color:#64748b; font-weight:400">${g.st ? '📍 ' + g.st : g.city}</span>
@@ -2086,11 +2090,34 @@ function jumpToPairMonthlySchedule(pairId, ds, soloGid){
   window.showToast('🗓️ עובר ללוח חודשי של ' + (pair ? pair.name : window.G(soloGid).name));
 }
 window.jumpToPairMonthlySchedule = jumpToPairMonthlySchedule;
-function toggleTableCity(cityId) {
-  const rows = document.querySelectorAll('.city-row-' + cityId);
-  rows.forEach(r => {
-    r.style.display = (r.style.display === 'none') ? '' : 'none';
+window.toggleTableCluster = function(pIdStr) {
+  const isHidden = document.querySelector(`.pair-row-${pIdStr}`)?.style.display === 'none';
+  document.querySelectorAll(`.pair-row-${pIdStr}`).forEach(el => {
+    el.style.display = isHidden ? 'table-row' : 'none';
   });
+  const icon = document.getElementById(`icon-${pIdStr}`);
+  if (icon) icon.textContent = isHidden ? '➖' : '➕';
+};
+
+function toggleTableCity(cityId) {
+  const isCityHidden = document.querySelector(`.city-row-${cityId}`)?.style.display === 'none';
+  if (isCityHidden) {
+    document.querySelectorAll(`.city-row-${cityId}:not(.pair-hdr-${cityId}):not(.pair-child-${cityId})`).forEach(r => r.style.display = 'table-row');
+    document.querySelectorAll(`.pair-hdr-${cityId}`).forEach(r => r.style.display = 'table-row');
+    document.querySelectorAll(`.pair-hdr-${cityId}`).forEach(h => {
+       const onclickAttr = h.getAttribute('onclick') || '';
+       const match = onclickAttr.match(/'(pair-[^']+)'/);
+       if (match) {
+         const pIdStr = match[1];
+         const icon = document.getElementById(`icon-${pIdStr}`);
+         if (icon && icon.textContent === '➖') {
+            document.querySelectorAll(`.pair-row-${pIdStr}`).forEach(r => r.style.display = 'table-row');
+         }
+       }
+    });
+  } else {
+    document.querySelectorAll(`.city-row-${cityId}`).forEach(r => r.style.display = 'none');
+  }
 }
 window.toggleTableCity = toggleTableCity;
 

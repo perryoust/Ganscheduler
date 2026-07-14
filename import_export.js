@@ -12,8 +12,7 @@
  * 7. Show import report → user clicks reload
  */
 
-window.importBulkSchedule = function(input) {
-  const file = input.files[0];
+window._processExcelFile = function(file) {
   if (!file) return;
 
   const statusEl = document.getElementById('bulk-import-status');
@@ -419,11 +418,99 @@ window.importBulkSchedule = function(input) {
       if (window._fbStartPolling) window._fbStartPolling();
     } finally {
       window._importInProgress = false;
-      input.value = '';
+      if (input) input.value = '';
     }
   };
   reader.readAsArrayBuffer(file);
 };
+
+window.importBulkSchedule = function(input) {
+  window._processExcelFile(input.files[0]);
+  
+  // Save handle if possible
+  if (window.showOpenFilePicker && input.files && input.files.length > 0 && input.files[0].handle) {
+      _saveSchHandle(input.files[0].handle);
+  }
+};
+
+// ==============================================
+// QUICK SCAN FUNCTIONALITY
+// ==============================================
+const SCH_DB_NAME = "GanFileHandleDB";
+function _getSchDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(SCH_DB_NAME, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore("handles");
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+async function _saveSchHandle(handle) {
+  try {
+    const db = await _getSchDb();
+    const tx = db.transaction("handles", "readwrite");
+    tx.objectStore("handles").put(handle, "schExcel");
+  } catch (e) {
+    console.error("Could not save file handle", e);
+  }
+}
+async function _getSchHandle() {
+  try {
+    const db = await _getSchDb();
+    const tx = db.transaction("handles", "readonly");
+    return new Promise(resolve => {
+      const req = tx.objectStore("handles").get("schExcel");
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
+window.quickScanSchedule = async function() {
+  if (!window.showOpenFilePicker) {
+    alert("הדפדפן שלך אינו תומך בסריקה מהירה. אנא השתמש בכפתור העלאת קובץ רגיל.");
+    return;
+  }
+  
+  let handle = await _getSchHandle();
+  
+  try {
+    if (!handle) {
+      const handles = await window.showOpenFilePicker({
+        types: [{ description: 'Excel Files', accept: {'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel': ['.xls']} }],
+        multiple: false
+      });
+      handle = handles[0];
+      await _saveSchHandle(handle);
+    }
+    
+    // Verify permission
+    if ((await handle.queryPermission({ mode: 'read' })) !== 'granted') {
+      if ((await handle.requestPermission({ mode: 'read' })) !== 'granted') {
+         alert("לא ניתנה הרשאת גישה לקובץ.");
+         return;
+      }
+    }
+    
+    const file = await handle.getFile();
+    // Re-use import logic (this also saves the handle if successful)
+    window._processExcelFile(file);
+
+  } catch(e) {
+     console.error(e);
+     if (e.name !== 'AbortError') {
+       alert("שגיאה בסריקה המהירה: " + e.message + "\n\n(אם הקובץ זז או נמחק, יש לבחור אותו מחדש דרך הכפתור הרגיל)");
+       // Clear saved handle so user can try again
+       try {
+           const db = await _getSchDb();
+           db.transaction("handles", "readwrite").objectStore("handles").delete("schExcel");
+       } catch(err){}
+     }
+  }
+};
+
 
 // ═══════════════════════════════════════════════════
 // HEADER DETECTION — Smart column mapping

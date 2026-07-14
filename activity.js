@@ -537,6 +537,13 @@ window.spRowStatusChg = function(id, st) {
   const ev = window.SCH.find(x => x.id == id);
   if(!ev) return;
   
+  if (st === 'delete') {
+      const origSel = document.querySelector(`select[onchange="window.spRowStatusChg('${id}', this.value)"]`);
+      if (origSel) origSel.value = ev.st || 'ok';
+      window.deleteSingleActivity(id);
+      return;
+  }
+  
   const pair = window.getGardenGroup ? window.getGardenGroup(ev.g) : window.gardenPair(ev.g);
   let syncPartner = false;
   if(pair) {
@@ -774,19 +781,26 @@ window.openSP = function(id) {
 
   // Build partner info array and currentTimesSP for later use
   const currentTimesSP = {};
-    const currentGrpsSP = {};
-    currentTimesSP[s.g] = window.fT(s.t);
-    currentGrpsSP[s.g] = s.grp || 1;
-    const partnerInfo = [];
-  if (spPair) {
-    const otherIds = spPair.ids.map(Number).filter(oid => oid !== Number(s.g));
-    otherIds.forEach(oid => {
-      const pg = window.G(oid);
-      const pev = window.findPartnerActivity(oid, s.d, s.a);
-      if(pev) { currentTimesSP[oid] = window.fT(pev.t || s.t); currentGrpsSP[oid] = pev.grp || 1; }
-      partnerInfo.push({ pg, pev });
-    });
+  const currentGrpsSP = {};
+  currentTimesSP[s.g] = window.fT(s.t);
+  currentGrpsSP[s.g] = s.grp || 1;
+  const partnerInfo = [];
+
+  let combinedIds = new Set();
+  if (window._currentCustomGroup && window._currentCustomGroup.includes(Number(s.g))) {
+      window._currentCustomGroup.forEach(gid => combinedIds.add(Number(gid)));
+  } else {
+      if (spPair) spPair.ids.forEach(gid => combinedIds.add(Number(gid)));
   }
+  
+  combinedIds.delete(Number(s.g));
+  
+  combinedIds.forEach(oid => {
+    const pg = window.G(oid);
+    const pev = window.findPartnerActivity(oid, s.d, s.a);
+    if(pev) { currentTimesSP[oid] = window.fT(pev.t || s.t); currentGrpsSP[oid] = pev.grp || 1; }
+    partnerInfo.push({ pg, pev });
+  });
 
   // --- Activity type detection ---
   const _dow = new Date(s.d).getDay();
@@ -867,6 +881,7 @@ window.openSP = function(id) {
                     <option value="nohap" ${curSt==='nohap'?'selected':''}>⚠️ לא התקיים</option>
                     <option value="can" ${curSt==='can'?'selected':''}>❌ בוטל</option>
                     <option value="post" ${curSt==='post'?'selected':''}>⏩ נדחה</option>
+                    <option value="delete" style="color:#c62828;font-weight:700">לא משובץ</option>
                   </select>
                   ${(curSt==='nohap'||curSt==='can') ? `<button class="btn br bsm" style="padding:1px 4px;margin-right:3px;border:1px solid #ef9a9a;background:#fff;color:#c62828" title="מחיקה מהלוח" onclick="window.deleteSingleActivity('${pev.id}')">🗑️</button>` : ''}
                 ` : '<span style="font-size:.7rem;color:#c62828;font-weight:700">לא משובץ</span>'}
@@ -3266,3 +3281,90 @@ window.getPairSharedFreeDaysHtml = function(gids, nohapEvId = '', refDate) {
     }
   }).join(' ');
 };
+
+// --- CUSTOM DAILY GROUP LOGIC ---
+window.openCustomDailyGroupModal = function() {
+    window.OM('custom-group-setup-m');
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('cgm-date').value = today;
+    
+    // Populate suppliers dropdown
+    const sups = window.getAllSup ? window.getAllSup().filter(s => window.isActSupplier(s.name)) : [];
+    sups.sort((a,b) => a.name.localeCompare(b.name, 'he'));
+    let supOpts = '<option value="">בחר ספק...</option>';
+    sups.forEach(s => {
+        supOpts += '<option value="' + s.name + '">' + s.name + '</option>';
+    });
+    document.getElementById('cgm-sup').innerHTML = supOpts;
+    
+    window.cgmUpdateOptions();
+};
+
+window.cgmUpdateOptions = function() {
+    const d = document.getElementById('cgm-date').value;
+    const sup = document.getElementById('cgm-sup').value;
+    const container = document.getElementById('cgm-gids-container');
+    container.innerHTML = '';
+    
+    if (!d || !sup) return;
+    
+    // Find all gardens that have an activity for this supplier on this date
+    const acts = window.SCH.filter(x => x.d === d && window.supBase(x.a) === window.supBase(sup) && x.st !== 'can' && x.st !== 'nohap');
+    if (acts.length === 0) {
+        container.innerHTML = '<div style="color:#757575;font-size:0.8rem">לא נמצאו גנים משובצים לספק זה ביום הנבחר.</div>';
+        return;
+    }
+    
+    let gids = new Set();
+    acts.forEach(x => gids.add(Number(x.g)));
+    
+    const gardenArray = Array.from(gids).map(id => window.G(id)).filter(Boolean);
+    gardenArray.sort((a,b) => (a.name||'').localeCompare(b.name||'','he'));
+    
+    let h = '';
+    gardenArray.forEach(g => {
+        h += '<label style="display:flex;align-items:center;gap:8px;padding:4px;cursor:pointer;border-bottom:1px solid #f0f0f0">' +
+                '<input type="checkbox" class="cgm-garden-cb" value="' + g.id + '" checked>' +
+                '<span>' + g.name + ' (' + g.city + ')</span>' +
+              '</label>';
+    });
+    container.innerHTML = h;
+};
+
+window.cgmOpenGroup = function() {
+    const d = document.getElementById('cgm-date').value;
+    const sup = document.getElementById('cgm-sup').value;
+    if (!d || !sup) {
+        alert('אנא בחר תאריך וספק');
+        return;
+    }
+    
+    const cbs = document.querySelectorAll('.cgm-garden-cb:checked');
+    if (cbs.length === 0) {
+        alert('יש לבחור לפחות גן אחד');
+        return;
+    }
+    
+    const selectedGids = Array.from(cbs).map(cb => Number(cb.value));
+    
+    // We need to find ONE "main activity" to pass to openSP
+    // We will use the first one we find for these gardens on that date
+    let mainAct = null;
+    for (let gid of selectedGids) {
+        mainAct = window.SCH.find(x => x.d === d && window.supBase(x.a) === window.supBase(sup) && Number(x.g) === gid);
+        if (mainAct) break;
+    }
+    
+    if (!mainAct) {
+        alert('שגיאה: לא נמצאה פעילות');
+        return;
+    }
+    
+    // Set global flag
+    window._currentCustomGroup = selectedGids;
+    
+    window.CM('custom-group-setup-m');
+    window.openSP(mainAct.id);
+};
+
+

@@ -1213,7 +1213,7 @@ window.generateChangesExcelReport = async function(isAuto = false) {
 };
 
 window.initAutoExportSettingsModal = function() {
-  const confStr = localStorage.getItem('autoExportChangesConf');
+  const confStr = window._safeLS.getItem('autoExportChangesConf');
   if(confStr) {
     try {
       const conf = JSON.parse(confStr);
@@ -1233,14 +1233,14 @@ window.saveAutoExportSettings = function() {
     day: document.getElementById('auto-exc-day').value,
     time: document.getElementById('auto-exc-time').value
   };
-  localStorage.setItem('autoExportChangesConf', JSON.stringify(conf));
+  window._safeLS.setItem('autoExportChangesConf', JSON.stringify(conf));
   window.CM('auto-export-changes-m');
   if (window.showToast) window.showToast('✅ הגדרות ייצוא אוטומטי נשמרו!');
   window.checkAutoExport();
 };
 
 window.checkAutoExport = function() {
-  const confStr = localStorage.getItem('autoExportChangesConf');
+  const confStr = window._safeLS.getItem('autoExportChangesConf');
   if(!confStr) return;
   try {
     const conf = JSON.parse(confStr);
@@ -1266,11 +1266,11 @@ window.checkAutoExport = function() {
       targetTime.setDate(targetTime.getDate() - diff);
     }
     
-    const lastExportStr = localStorage.getItem('lastAutoExportTime');
+    const lastExportStr = window._safeLS.getItem('lastAutoExportTime');
     const targetTimeStr = targetTime.getTime().toString();
     
     if (lastExportStr !== targetTimeStr) {
-      localStorage.setItem('lastAutoExportTime', targetTimeStr);
+      window._safeLS.setItem('lastAutoExportTime', targetTimeStr);
       
       if (conf.freq === 'daily') {
         const td = window.d2s(targetTime);
@@ -1332,6 +1332,7 @@ window.exportBulkAnnualSchedule = async function() {
     if (yObj.start && yObj.end) {
       startDate = new Date(yObj.start);
       endDate = new Date(yObj.end);
+      startYear = startDate.getFullYear();
     } else {
       const yName = yObj.name || currentYearStr;
       const match = yName.match(/\((\d{4})-(\d{4})\)/);
