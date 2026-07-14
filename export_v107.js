@@ -1325,7 +1325,8 @@ window.exportBulkAnnualSchedule = async function() {
   let startDate = null;
   let endDate = null;
 
-  const meta = window.meta || {};
+  const metaStr = window._safeLS.getItem('ganv5_meta');
+  const meta = metaStr ? JSON.parse(metaStr) : {};
 
   if (meta && meta.years && meta.years[currentYearStr]) {
     const yObj = meta.years[currentYearStr];
@@ -1349,6 +1350,16 @@ window.exportBulkAnnualSchedule = async function() {
     }
   }
   
+  if (currentYearStr === 'tashpav' && startYear !== 2025) {
+    startYear = 2025; startDate = new Date(2025, 8, 1); endDate = new Date(2026, 7, 31);
+  } else if (currentYearStr === 'tashpaz' && startYear !== 2026) {
+    startYear = 2026; startDate = new Date(2026, 8, 1); endDate = new Date(2027, 7, 31);
+  } else if (currentYearStr === 'tashpach' && startYear !== 2027) {
+    startYear = 2027; startDate = new Date(2027, 8, 1); endDate = new Date(2028, 7, 31);
+  } else if (currentYearStr === 'tashpat' && startYear !== 2028) {
+    startYear = 2028; startDate = new Date(2028, 8, 1); endDate = new Date(2029, 7, 31);
+  }
+
   if (!startDate || !endDate) {
     startDate = new Date(startYear, 8, 1); // Sep 1
     endDate = new Date(startYear + 1, 7, 31); // Aug 31
@@ -1495,12 +1506,28 @@ window.exportBulkAnnualSchedule = async function() {
            } else if (ev.st === 'can') {
              statusNote = 'בוטל';
              finalGrp = 0;
+           } else if (ev.st === 'post') {
+             const linkedNext = (window.SCH || []).find(x => x.g === ev.g && x.a === ev.a && (x._postFrom === ev.d || x._makeupFrom === ev.d));
+             let toDateStr = '';
+             if (linkedNext && linkedNext.d) {
+               const pts = linkedNext.d.split('-');
+               if (pts.length === 3) toDateStr = `${pts[2]}/${pts[1]}/${pts[0]}`;
+             }
+             let verb = "נדחה";
+              if (linkedNext && linkedNext.d && ev.d && linkedNext.d < ev.d) verb = "הוקדם";
+              statusNote = toDateStr ? `${verb} ל-${toDateStr}` : verb;
+             finalGrp = 0;
            }
 
            let finalNotes = (ev.nt || ev.n) ? String(ev.nt || ev.n).trim() : '';
            const isHandled = !!(ev._compByMakeup && ev._compByMakeup !== "false") || !!((ev.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל|טופל/i.test(ev.nt)) || (ev.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל|טופל/i.test(ev.n)));
            if (statusNote) {
-             finalNotes = finalNotes ? `${statusNote} - ${finalNotes}` : statusNote;
+             // Avoid doubling the status note if the manual note already starts with a similar phrase
+             if (finalNotes.includes('לא התקיים') || finalNotes.includes('בוטל')) {
+               // Do not prepend statusNote if finalNotes already has the emoji/text from activity.js
+             } else {
+               finalNotes = finalNotes ? `${statusNote} - ${finalNotes}` : statusNote;
+             }
            }
            
            const rVals = [
@@ -1623,5 +1650,6 @@ window.exportBulkAnnualSchedule = async function() {
     window.spAlert('שגיאה ביצירת קובץ אקסל');
   }
 };
+
 
 

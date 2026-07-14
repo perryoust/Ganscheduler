@@ -1313,7 +1313,8 @@ window.exportBulkAnnualSchedule = async function () {
   let startDate = null;
   let endDate = null;
 
-  const meta = window.meta || {};
+  const metaStr = window._safeLS.getItem('ganv5_meta');
+  const meta = metaStr ? JSON.parse(metaStr) : {};
 
   if (meta && meta.years && meta.years[currentYearStr]) {
     const yObj = meta.years[currentYearStr];
@@ -1483,12 +1484,27 @@ window.exportBulkAnnualSchedule = async function () {
           } else if (ev.st === 'can') {
             statusNote = 'בוטל';
             finalGrp = 0;
+          } else if (ev.st === 'post') {
+            const linkedNext = (window.SCH || []).find(x => x.g === ev.g && x.a === ev.a && (x._postFrom === ev.d || x._makeupFrom === ev.d));
+            let toDateStr = '';
+            if (linkedNext && linkedNext.d) {
+              const pts = linkedNext.d.split('-');
+              if (pts.length === 3) toDateStr = `${pts[2]}/${pts[1]}/${pts[0]}`;
+            }
+            let verb = "נדחה";
+              if (linkedNext && linkedNext.d && ev.d && linkedNext.d < ev.d) verb = "הוקדם";
+              statusNote = toDateStr ? `${verb} ל-${toDateStr}` : verb;
+            finalGrp = 0;
           }
 
           let finalNotes = (ev.nt || ev.n) ? String(ev.nt || ev.n).trim() : '';
           const isHandled = !!(ev._compByMakeup && ev._compByMakeup !== "false") || !!((ev.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל|טופל/i.test(ev.nt)) || (ev.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל|טופל/i.test(ev.n)));
           if (statusNote) {
-            finalNotes = finalNotes ? `${statusNote} - ${finalNotes}` : statusNote;
+            if (finalNotes.includes('לא התקיים') || finalNotes.includes('בוטל')) {
+              // Do not prepend statusNote
+            } else {
+              finalNotes = finalNotes ? `${statusNote} - ${finalNotes}` : statusNote;
+            }
           }
 
           const rVals = [
@@ -1611,5 +1627,6 @@ window.exportBulkAnnualSchedule = async function () {
     window.spAlert('שגיאה ביצירת קובץ אקסל');
   }
 };
+
 
 
