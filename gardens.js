@@ -53,20 +53,15 @@ function renderGardens(){
         const mgr=window.getGardenMgr(g.id);
         const gd=window.getGardenData(g.id);
         h+=`<div class="gc" onclick="window.openGM(${g.id})">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div style="font-weight:800;color:var(--c-primary);margin-bottom:3px;flex:1;font-size:var(--fs-card-title)">${gd.name||g.name}</div>
-            <button onclick="event.stopPropagation();openGardenEdit(${g.id})" style="background:none;border:none;cursor:pointer;font-size:var(--fs-small);color:#90a4ae;padding:0 2px" title="ערוך כרטיס גן">✏️</button>
-          </div>
-          ${(gd.st||g.st)?`<div style="font-size:var(--fs-body);color:var(--c-text-light)" onclick="event.stopPropagation()">📍 <a href="https://maps.google.com/?q=${encodeURIComponent((gd.st||g.st)+' '+g.city)}" target="_blank" style="color:var(--c-secondary);text-decoration:underline">${gd.st||g.st}</a></div>`:''}
-          ${ gd.phone?`<div style="font-size:var(--fs-body);color:var(--c-success);font-weight:600">📞 ${gd.phone}</div>`:''}
-          ${mgr?`<div style="font-size:var(--fs-small);color:var(--c-secondary);border-top:1px solid #e8eaf6;margin-top:4px;padding-top:3px">${mgr.role==='manager'?'🏛️':'👤'} ${mgr.name}${mgr.phone?' · 📞 '+mgr.phone:''}</div>`:''}
-          ${window.gardenClusters(g.id).length?`<div style="font-size:var(--fs-small);color:#6a1b9a">🔢 ${window.gardenClusters(g.id).map(c=>c.name).join(', ')}</div>`:''}
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:5px">
-            ${pair
-              ?`<span style="font-size:var(--fs-small);color:var(--c-success);font-weight:700">🔗 ${pair.name}</span>`
-              :`<button class="btn bg bsm" style="font-size:var(--fs-xs);padding:1px 6px" onclick="event.stopPropagation();quickAddPartner(${g.id})">➕ בן זוג</button>`
-            }
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;line-height:1.4">
+            <span style="font-weight:800;color:var(--c-primary);font-size:var(--fs-card-title)">${gd.name||g.name}</span>
+            ${(gd.st||g.st)?`<span style="font-size:var(--fs-small);color:var(--c-text-light)" onclick="event.stopPropagation()">📍 <a href="https://maps.google.com/?q=${encodeURIComponent((gd.st||g.st)+' '+g.city)}" target="_blank" style="color:var(--c-secondary);text-decoration:underline">${gd.st||g.st}</a></span>`:''}
+            ${gd.phone?`<span style="font-size:var(--fs-small);color:var(--c-success);font-weight:600">📞 ${gd.phone}</span>`:''}
+            ${mgr?`<span style="font-size:var(--fs-small);color:var(--c-secondary)">${mgr.role==='manager'?'🏛️':'👤'} ${mgr.name}${mgr.phone?' · 📞 '+mgr.phone:''}</span>`:''}
+            ${window.gardenClusters(g.id).length?`<span style="font-size:var(--fs-small);color:#6a1b9a">🔢 ${window.gardenClusters(g.id).map(c=>c.name).join(', ')}</span>`:''}
+            ${pair?`<span style="font-size:var(--fs-small);color:var(--c-success);font-weight:700">🔗 ${pair.name}</span>`:`<button class="btn bg bsm" style="font-size:var(--fs-xs);padding:1px 6px;margin:0" onclick="event.stopPropagation();quickAddPartner(${g.id})">➕ בן זוג</button>`}
             <span style="font-size:var(--fs-small);color:var(--c-secondary)">📅 ${cnt}</span>
+            <button onclick="event.stopPropagation();openGardenEdit(${g.id})" style="background:none;border:none;cursor:pointer;font-size:var(--fs-small);color:#90a4ae;padding:0 2px;margin-right:auto" title="ערוך כרטיס גן">✏️</button>
           </div>
         </div>`;
       });
