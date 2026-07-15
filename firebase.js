@@ -533,6 +533,9 @@ async function loadFromFirebase(silent = false, force = false) {
        if (typeof window.refresh === 'function') {
          setTimeout(() => window.refresh(), 100);
        }
+       if (typeof window.renderCoordinatorView === 'function') {
+         setTimeout(() => window.renderCoordinatorView(), 100);
+       }
     }
     
     window._fbSyncReady = true;

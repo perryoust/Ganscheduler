@@ -469,6 +469,7 @@ window.editCoordPermissions = async function(uid) {
     const coordCities = u.coordCities || [];
     const coordGardenIds = u.coordGardenIds || [];
     const coordTimeScope = u.coordTimeScope || 'month';
+    const coordClsScope = u.coordClsScope || 'all';
     
     // Create modal
     const mod = document.createElement('div');
@@ -494,8 +495,18 @@ window.editCoordPermissions = async function(uid) {
           <label style="font-weight:700;font-size:0.9rem;color:#37474f">טווח זמן מותר לצפייה:</label>
           <select id="edit-coord-timescope" style="width:100%;margin-top:6px;padding:8px;border-radius:6px;border:1px solid #b0bec5">
             <option value="day" ${coordTimeScope==='day'?'selected':''}>יום (יכול לצפות רק ביום הנוכחי)</option>
+            <option value="week" ${coordTimeScope==='week'?'selected':''}>שבוע (יכול לצפות בשבוע הנוכחי)</option>
             <option value="month" ${coordTimeScope==='month'?'selected':''}>חודש (יכול לצפות בחודש הנוכחי)</option>
             <option value="year" ${coordTimeScope==='year'?'selected':''}>שנה (יכול לצפות בכל השנה)</option>
+          </select>
+        </div>
+        
+        <div style="margin-bottom:20px">
+          <label style="font-weight:700;font-size:0.9rem;color:#37474f">סוג מסגרת מורשית:</label>
+          <select id="edit-coord-clsscope" style="width:100%;margin-top:6px;padding:8px;border-radius:6px;border:1px solid #b0bec5">
+            <option value="all" ${coordClsScope==='all'?'selected':''}>גם גנים וגם בתי ספר (הכל)</option>
+            <option value="גן" ${coordClsScope==='גן'?'selected':''}>גנים בלבד</option>
+            <option value="ביהס" ${coordClsScope==='ביהס' || coordClsScope==='ביה"ס' ?'selected':''}>בתי ספר בלבד</option>
           </select>
         </div>
         
@@ -528,6 +539,7 @@ window.saveCoordPermissions = async function(uid) {
     const coordCities = Array.from(document.querySelectorAll('#edit-coord-cities input:checked')).map(cb => cb.value);
     const coordGardenIds = Array.from(document.querySelectorAll('#edit-coord-g-sel [data-gid]')).map(el => Number(el.dataset.gid));
     const coordTimeScope = document.getElementById('edit-coord-timescope')?.value || 'month';
+    const coordClsScope = document.getElementById('edit-coord-clsscope')?.value || 'all';
     
     const q=await _authQ();
     
@@ -535,7 +547,7 @@ window.saveCoordPermissions = async function(uid) {
     await fetch(`${USERS_DB}/${uid}.json${q}`, {
       method: 'PATCH',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ coordCities, coordGardenIds, coordTimeScope, permCoord: true })
+      body: JSON.stringify({ coordCities, coordGardenIds, coordTimeScope, coordClsScope, permCoord: true })
     });
     
     showToast('✅ הרשאות נשמרו בהצלחה');

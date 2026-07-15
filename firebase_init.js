@@ -126,6 +126,7 @@ onAuthStateChanged(auth, async (user) => {
               window.coordCities = profile.coordCities || [];
               window.coordGardenIds = profile.coordGardenIds || [];
               window.coordTimeScope = profile.coordTimeScope || 'month';
+              window.coordClsScope = profile.coordClsScope || 'all';
               window.permCoord = !!profile.permCoord;
             }
           } else if (user.email && user.email.startsWith('worker@')) {

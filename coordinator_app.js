@@ -36,12 +36,13 @@ window.initCoordinatorApp = function() {
         <div id="coord-month-label" style="font-weight:800;font-size:1.15rem;min-width:180px;text-align:center"></div>
         <button onclick="window.coordNavMonth(1)" style="background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center">◀</button>
       </div>
-      <!-- Group Mode Toggle -->
-      <div id="coord-group-toggle" style="display:flex;justify-content:center;gap:6px;padding:0 20px 12px">
-        <button class="coord-grp-btn active" data-mode="pairs" onclick="window.coordSetGroupMode('pairs',this)" style="background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.4);border-radius:20px;padding:5px 16px;color:#fff;cursor:pointer;font-size:0.8rem;font-weight:600">👫 זוגות</button>
-        <button class="coord-grp-btn" data-mode="triplets" onclick="window.coordSetGroupMode('triplets',this)" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:5px 16px;color:rgba(255,255,255,0.7);cursor:pointer;font-size:0.8rem;font-weight:600">👥 שלישיות</button>
-        <button class="coord-grp-btn" data-mode="clusters" onclick="window.coordSetGroupMode('clusters',this)" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:5px 16px;color:rgba(255,255,255,0.7);cursor:pointer;font-size:0.8rem;font-weight:600">🏘️ אשכולות</button>
+      <!-- Time View Toggle -->
+      <div id="coord-time-view-toggle" style="display:flex;justify-content:center;gap:6px;padding:0 20px 8px">
+        <button class="coord-time-btn" data-view="day" onclick="window.coordSetTimeView('day',this)" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:6px 14px;color:rgba(255,255,255,0.7);cursor:pointer;font-size:0.8rem;font-weight:600;flex:1">יומי</button>
+        <button class="coord-time-btn" data-view="week" onclick="window.coordSetTimeView('week',this)" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:6px 14px;color:rgba(255,255,255,0.7);cursor:pointer;font-size:0.8rem;font-weight:600;flex:1">שבועי</button>
+        <button class="coord-time-btn active" data-view="month" onclick="window.coordSetTimeView('month',this)" style="background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.4);border-radius:8px;padding:6px 14px;color:#fff;cursor:pointer;font-size:0.8rem;font-weight:600;flex:1">חודשי</button>
       </div>
+      <!-- Group Mode Toggle Removed -->
       <!-- City Filter (if multiple cities) -->
       <div id="coord-city-filter" style="display:none;padding:0 20px 8px">
         <select id="coord-city-select" onchange="window.renderCoordinatorView()" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.12);color:#fff;font-size:0.85rem;font-weight:600">
@@ -58,7 +59,8 @@ window.initCoordinatorApp = function() {
 };
 
 // ── Coordinator state ──────────────────────────────────
-window._coordMonth = null; // will be set on activation
+window._coordCurrentDate = null; // will be set on activation (defaults to today)
+window._coordTimeView = 'day'; // default to day view
 window._coordGroupMode = 'pairs';
 
 // ── Secure Activation ──────────────────────────────────
@@ -126,13 +128,18 @@ window.activateCoordinatorApp = function() {
         border-color: rgba(255,255,255,0.4) !important;
         color: #fff !important;
       }
+      .coord-time-btn.active {
+        background: rgba(255,255,255,0.25) !important;
+        border-color: rgba(255,255,255,0.4) !important;
+        color: #fff !important;
+      }
     `;
     document.head.appendChild(style);
   }
 
-  // Init month to current
+  // Init current date to today (ignoring hours/mins)
   const now = new Date();
-  window._coordMonth = { year: now.getFullYear(), month: now.getMonth() };
+  window._coordCurrentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   // Show Coordinator UI
   const coordApp = document.getElementById('coordinator-app-root');
@@ -151,50 +158,10 @@ window.activateCoordinatorApp = function() {
   }
 };
 
-// ── Month Navigation ──────────────────────────────────
-window.coordNavMonth = function(dir) {
-  if (!window._coordMonth) return;
-  const now = new Date();
-  const curYear = now.getFullYear();
-  const curMonth = now.getMonth();
-
-  let newMonth = window._coordMonth.month + dir;
-  let newYear = window._coordMonth.year;
-  if (newMonth < 0) { newMonth = 11; newYear--; }
-  if (newMonth > 11) { newMonth = 0; newYear++; }
-
-  const scope = window.coordTimeScope || 'month';
-  if (scope === 'day' || scope === 'month') {
-    if (newYear !== curYear || newMonth !== curMonth) {
-      if(typeof showToast === 'function') showToast('אין לך הרשאה לצפות במועדים אחרים');
-      return;
-    }
-  } else if (scope === 'year') {
-    if (window.SCH && window.SCH.length > 0) {
-      const allowed = window.getCoordAllowedGardenIds();
-      const mySch = window.SCH.filter(s => allowed.has(Number(s.g)) && s.d).map(s => s.d).sort();
-      if (mySch.length > 0) {
-        const firstDate = new Date(mySch[0]);
-        const lastDate = new Date(mySch[mySch.length - 1]);
-        const targetAbs = newYear * 12 + newMonth;
-        const minAbs = firstDate.getFullYear() * 12 + firstDate.getMonth();
-        const maxAbs = lastDate.getFullYear() * 12 + lastDate.getMonth();
-        if (targetAbs < minAbs || targetAbs > maxAbs) {
-          if(typeof showToast === 'function') showToast('אין פעילויות מעבר לשנת הפעילות הנוכחית');
-          return;
-        }
-      }
-    }
-  }
-
-  window._coordMonth = { year: newYear, month: newMonth };
-  window.renderCoordinatorView();
-};
-
-// ── Group Mode ──────────────────────────────────────────
-window.coordSetGroupMode = function(mode, btn) {
-  window._coordGroupMode = mode;
-  document.querySelectorAll('.coord-grp-btn').forEach(b => {
+// ── Time View Mode ──────────────────────────────────────
+window.coordSetTimeView = function(view, btn) {
+  window._coordTimeView = view;
+  document.querySelectorAll('.coord-time-btn').forEach(b => {
     b.classList.remove('active');
     b.style.background = 'rgba(255,255,255,0.08)';
     b.style.borderColor = 'rgba(255,255,255,0.2)';
@@ -209,17 +176,84 @@ window.coordSetGroupMode = function(mode, btn) {
   window.renderCoordinatorView();
 };
 
+// ── Navigation ─────────────────────────────────────────
+window.coordNavMonth = function(dir) {
+  if (!window._coordCurrentDate) return;
+  const view = window._coordTimeView || 'day';
+  
+  let newDate = new Date(window._coordCurrentDate.getTime());
+  
+  if (view === 'day') {
+    newDate.setDate(newDate.getDate() + dir);
+  } else if (view === 'week') {
+    newDate.setDate(newDate.getDate() + (dir * 7));
+  } else if (view === 'month') {
+    newDate.setMonth(newDate.getMonth() + dir);
+  }
+  
+  // Apply permission restrictions
+  const scope = window.coordTimeScope || 'month';
+  const now = new Date();
+  
+  if (scope === 'day') {
+    if(typeof showToast === 'function') showToast('הרשאתך מוגבלת ליום הנוכחי בלבד');
+    return;
+  }
+
+  const curMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const curMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  if (scope === 'month') {
+    if (newDate < curMonthStart || newDate > curMonthEnd) {
+      if(typeof showToast === 'function') showToast('אין לך הרשאה לצפות במועדים אחרים');
+      return;
+    }
+  } else if (scope === 'year') {
+    if (window.SCH && window.SCH.length > 0) {
+      const allowed = window.getCoordAllowedGardenIds();
+      const mySch = window.SCH.filter(s => allowed.has(Number(s.g)) && s.d).map(s => s.d).sort();
+      if (mySch.length > 0) {
+        const firstDate = new Date(mySch[0]);
+        const lastDate = new Date(mySch[mySch.length - 1]);
+        if (newDate < new Date(firstDate.getFullYear(), firstDate.getMonth(), 1) || newDate > new Date(lastDate.getFullYear(), lastDate.getMonth() + 1, 0)) {
+          if(typeof showToast === 'function') showToast('אין פעילויות מעבר לשנת הפעילות הנוכחית');
+          return;
+        }
+      }
+    }
+  }
+
+  window._coordCurrentDate = newDate;
+  window.renderCoordinatorView();
+};
+
+// ── Group Mode (Removed) ──────────────────────────────────────────
+// window.coordSetGroupMode is obsolete, we show both naturally.
+window.coordSetGroupMode = function(mode, btn) {};
+
 // ── Data Filtering ──────────────────────────────────────
 window.getCoordAllowedGardenIds = function() {
   const allowed = new Set();
   const gardens = [...(window.GARDENS || []), ...(window._GARDENS_EXTRA || [])];
 
-  // 1. Add all gardens from allowed cities
+  const clsScope = window.coordClsScope || 'all';
+
+  // 1. Add all gardens from allowed cities, filtering by clsScope
   (window.coordCities || []).forEach(city => {
-    gardens.filter(g => g.city === city).forEach(g => allowed.add(Number(g.id)));
+    const cityClean = (city || '').trim();
+    gardens.filter(g => (g.city || '').trim() === cityClean).forEach(g => {
+      const cls = (g.cls || '').trim();
+      if (clsScope === 'all') {
+        allowed.add(Number(g.id));
+      } else if (clsScope === 'גן' && (cls === 'גן' || cls === 'גנים' || !cls.includes('ספר'))) {
+        allowed.add(Number(g.id));
+      } else if ((clsScope === 'ביהס' || clsScope === 'ביה"ס') && (cls.includes('ספר') || cls.includes('ביה'))) {
+        allowed.add(Number(g.id));
+      }
+    });
   });
 
-  // 2. Add specific garden IDs
+  // 2. Add specific garden IDs (assume these override the clsScope as they were specifically picked)
   (window.coordGardenIds || []).forEach(id => allowed.add(Number(id)));
 
   return allowed;
@@ -229,50 +263,66 @@ window.getCoordFilteredSCH = function() {
   const allowed = window.getCoordAllowedGardenIds();
   if (!allowed.size) return [];
 
-  const m = window._coordMonth;
-  if (!m) return [];
+  const baseDate = window._coordCurrentDate;
+  if (!baseDate) return [];
 
-  // Build date range for the selected month
-  const monthStart = `${m.year}-${String(m.month + 1).padStart(2, '0')}-01`;
-  const nextMonth = new Date(m.year, m.month + 1, 1);
-  const monthEnd = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}-01`;
+  const view = window._coordTimeView || 'day';
+  
+  let startStr, endStr;
+  
+  if (view === 'day') {
+    startStr = `${baseDate.getFullYear()}-${String(baseDate.getMonth() + 1).padStart(2, '0')}-${String(baseDate.getDate()).padStart(2, '0')}`;
+    endStr = startStr;
+  } else if (view === 'week') {
+    // Week starts on Sunday
+    const startOfWeek = new Date(baseDate);
+    startOfWeek.setDate(baseDate.getDate() - baseDate.getDay());
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    
+    startStr = `${startOfWeek.getFullYear()}-${String(startOfWeek.getMonth() + 1).padStart(2, '0')}-${String(startOfWeek.getDate()).padStart(2, '0')}`;
+    endStr = `${endOfWeek.getFullYear()}-${String(endOfWeek.getMonth() + 1).padStart(2, '0')}-${String(endOfWeek.getDate()).padStart(2, '0')}`;
+  } else if (view === 'month') {
+    startStr = `${baseDate.getFullYear()}-${String(baseDate.getMonth() + 1).padStart(2, '0')}-01`;
+    const nextMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 1);
+    const lastDay = new Date(nextMonth.getTime() - 86400000);
+    endStr = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
+  }
 
   const scope = window.coordTimeScope || 'month';
-  let todayStr = null;
+  let allowedTodayStr = null;
   if (scope === 'day') {
     const d = new Date();
-    todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    allowedTodayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   return (window.SCH || []).filter(s => {
     if (!allowed.has(Number(s.g))) return false;
-    // Date filtering for selected month
-    if (s.d && (s.d < monthStart || s.d >= monthEnd)) return false;
-    if (scope === 'day' && s.d !== todayStr) return false;
+    if (!s.d) return false;
+    // Filter by the selected view range
+    if (s.d < startStr || s.d > endStr) return false;
+    // If strict daily permission is enforced from backend
+    if (scope === 'day' && s.d !== allowedTodayStr) return false;
     return true;
   });
 };
 
-// ── Get groups for current mode ────────────────────────
+// ── Get groups naturally ────────────────────────
 window._getCoordGroups = function() {
-  const mode = window._coordGroupMode || 'pairs';
   const allowed = window.getCoordAllowedGardenIds();
 
-  if (mode === 'clusters' && typeof window.getClusters === 'function') {
-    return window.getClusters()
-      .map(cl => ({ id: cl.id || cl.name, name: cl.name, ids: (cl.gardenIds || []).map(Number) }))
-      .filter(g => g.ids.some(id => allowed.has(id)));
-  }
+  const clusters = (typeof window.getClusters === 'function' ? window.getClusters() : [])
+    .map(cl => ({ id: cl.id || cl.name, name: cl.name, ids: (cl.gardenIds || []).map(Number), type: 'cluster' }))
+    .filter(g => g.ids.some(id => allowed.has(id)));
 
-  // pairs or triplets - filter pairs that have at least one allowed garden
-  const pairs = (window.pairs || []);
-  if (mode === 'triplets') {
-    return pairs.filter(p => p.ids.length >= 3 && p.ids.some(id => allowed.has(Number(id))))
-      .map(p => ({ ...p, ids: p.ids.map(Number) }));
-  }
+  const clusterIds = new Set();
+  clusters.forEach(c => c.ids.forEach(id => clusterIds.add(id)));
 
-  return pairs.filter(p => p.ids.some(id => allowed.has(Number(id))))
-    .map(p => ({ ...p, ids: p.ids.map(Number) }));
+  const pairs = (window.pairs || [])
+    .map(p => ({ ...p, ids: p.ids.map(Number), type: 'pair' }))
+    .filter(p => p.ids.some(id => allowed.has(id) && !clusterIds.has(id)));
+
+  return [...clusters, ...pairs];
 };
 
 // ── Day names helper ──────────────────────────────────
@@ -315,24 +365,32 @@ window.renderCoordinatorView = function() {
       const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
       
       if (todayStr < allSch[0]) {
-        window._coordMonth = { year: firstDate.getFullYear(), month: firstDate.getMonth() };
+        window._coordCurrentDate = new Date(firstDate.getFullYear(), firstDate.getMonth(), firstDate.getDate());
       } else if (todayStr > allSch[allSch.length - 1]) {
-        window._coordMonth = { year: lastDate.getFullYear(), month: lastDate.getMonth() };
+        window._coordCurrentDate = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+      } else {
+        // We are within range, stick to today's date
+        window._coordCurrentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       }
       window._coordMonthInitJumpDone = true;
     }
   }
 
-  const m = window._coordMonth;
-  if (!m) return;
+  const m = { year: window._coordCurrentDate.getFullYear(), month: window._coordCurrentDate.getMonth() };
 
   // Update month label
   const monthLabel = document.getElementById('coord-month-label');
   if (monthLabel) {
-    const scope = window.coordTimeScope || 'month';
-    if (scope === 'day') {
-      const d = new Date();
-      monthLabel.textContent = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    const view = window._coordTimeView || 'day';
+    const cd = window._coordCurrentDate;
+    if (view === 'day') {
+      monthLabel.textContent = `${String(cd.getDate()).padStart(2,'0')}/${String(cd.getMonth()+1).padStart(2,'0')}/${cd.getFullYear()}`;
+    } else if (view === 'week') {
+      const startOfWeek = new Date(cd);
+      startOfWeek.setDate(cd.getDate() - cd.getDay());
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      monthLabel.textContent = `${startOfWeek.getDate()}/${startOfWeek.getMonth()+1} - ${endOfWeek.getDate()}/${endOfWeek.getMonth()+1}`;
     } else {
       monthLabel.textContent = `${_COORD_MONTHS[m.month]} ${m.year}`;
     }
@@ -363,9 +421,9 @@ window.renderCoordinatorView = function() {
 
   // Build stats
   const totalActivities = filtered.length;
-  const okCount = filtered.filter(s => s.st === 'ok').length;
-  const cancelledCount = filtered.filter(s => s.st === 'can' || s.st === 'cancelled').length;
-  const gardenCount = new Set(filtered.map(s => s.g)).size;
+  const makeupCount = filtered.filter(s => s.st === 'makeup').length;
+  const postCount = filtered.filter(s => s.st === 'postponed' || s.st === 'post').length;
+  const gardenCount = window.getCoordAllowedGardenIds().size;
 
   // Get groups
   const groups = window._getCoordGroups();
@@ -415,8 +473,8 @@ window.renderCoordinatorView = function() {
   html += `<div class="coord-stats-bar">
     <div class="coord-stat"><div class="coord-stat-num">${gardenCount}</div><div class="coord-stat-label">צהרונים</div></div>
     <div class="coord-stat"><div class="coord-stat-num">${totalActivities}</div><div class="coord-stat-label">חוגים</div></div>
-    <div class="coord-stat"><div class="coord-stat-num" style="color:#2ecc71">${okCount}</div><div class="coord-stat-label">תקינים</div></div>
-    <div class="coord-stat"><div class="coord-stat-num" style="color:#e74c3c">${cancelledCount}</div><div class="coord-stat-label">בוטלו</div></div>
+    <div class="coord-stat"><div class="coord-stat-num" style="color:#2ecc71">${makeupCount}</div><div class="coord-stat-label">השלמות</div></div>
+    <div class="coord-stat"><div class="coord-stat-num" style="color:#f39c12">${postCount}</div><div class="coord-stat-label">שינויים</div></div>
   </div>`;
 
   const sortedDates = Object.keys(byDate).sort();
@@ -464,35 +522,43 @@ window.renderCoordinatorView = function() {
         .map(g => g.name)
         .join(' + ');
 
-      html += `<div class="coord-group-card" style="margin-bottom:12px; border-right:4px solid #3498db;">
-        <div class="coord-group-header" style="background:#f0f4f8;color:#2c3e50;border-bottom:1px solid #e0e6ed;">
-          <span>📍 ${city} | 🏡 ${gardenNames || group.name}</span>
-          <span style="font-size:0.75rem;background:#3498db;color:#fff;padding:2px 8px;border-radius:10px;">${events.length} חוגים</span>
+      // To render "Supplier -> Gardens" like the admin UI, we take the primary supplier of the group
+      // (assuming all events in a pair share the same supplier, which is GanScheduler standard)
+      const firstEv = events[0] || {};
+      const supName = typeof window.supNameLabel === 'function' ? window.supNameLabel(firstEv.a) : (typeof window.supBase === 'function' ? window.supBase(firstEv.a) : (firstEv.p || firstEv.a || 'ספק לא ידוע'));
+      const phone = typeof window.getSupPhone === 'function' ? window.getSupPhone(firstEv.a) : '';
+      const activityName = firstEv.act || (typeof window.supAct === 'function' ? window.supAct(firstEv.a) : '') || 'פעילות';
+
+      html += `<div class="coord-group-card" style="margin-bottom:12px; border-right:4px solid #3498db; background:#fff; border-radius:6px; box-shadow:0 2px 4px rgba(0,0,0,0.05); overflow:hidden;">
+        <div class="coord-group-header" style="background:linear-gradient(to right, #f8fafc, #eff6ff);color:#1e293b;border-bottom:2px solid #e2e8f0;padding:10px 14px;display:flex;flex-direction:column;gap:4px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+             <span style="font-weight:800;font-size:1rem;color:#0f172a;">🧑‍🏫 ${supName} ${firstEv.n ? `(${firstEv.n})` : ''} - ${activityName}</span>
+             <span style="font-size:0.75rem;background:#3b82f6;color:#fff;padding:2px 8px;border-radius:10px;">${events.length} פ'</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:#475569;">
+             <span>📍 ${city} | 🏡 ${group.type === 'cluster' ? 'אשכול: ' + group.name : 'זוג: ' + group.name}</span>
+             ${phone ? `<a href="tel:${phone}" style="color:#2563eb;text-decoration:none;font-weight:600;">📞 ${phone}</a>` : ''}
+          </div>
         </div>
-        <div class="coord-group-events">`;
+        <div class="coord-group-events" style="padding:0;">`;
 
       events.sort((a,b) => (a.t||'').localeCompare(b.t||'')).forEach(ev => {
         const statusIcon = _coordStatusIcon(ev.st);
         const statusColor = _coordStatusColor(ev.st);
         const gardenObj = allGardens.find(g => Number(g.id) === Number(ev.g));
-        const gardenName = gardenObj ? gardenObj.name : '';
-        const showGardenTag = group.ids.length > 1;
+        const gardenName = gardenObj ? gardenObj.name : 'גן לא ידוע';
+        
+        // Is it a standalone event or pair?
+        const isStandalone = group.ids.length === 1;
 
-        const activityName = ev.act || (typeof window.supAct === 'function' ? window.supAct(ev.a) : '') || 'פעילות';
-        const supName = typeof window.supNameLabel === 'function' ? window.supNameLabel(ev.a) : (typeof window.supBase === 'function' ? window.supBase(ev.a) : (ev.p || ev.a));
-        const phone = typeof window.getSupPhone === 'function' ? window.getSupPhone(ev.a) : '';
-
-        html += `<div class="coord-activity-row">
-          <div class="coord-act-time">${ev.t || '--:--'}</div>
-          <div class="coord-act-name">
-            <div style="font-weight:700">${activityName}</div>
-            ${showGardenTag ? `<span style="font-size:0.68rem;color:#7f8c8d;display:block">${gardenName}</span>` : ''}
-            <span class="coord-act-supplier" style="display:block;margin-top:2px;">
-              ${supName} ${ev.n ? `(${ev.n})` : ''}
-              ${phone ? `&nbsp; 📞 <a href="tel:${phone}" style="color:#3498db;text-decoration:none">${phone}</a>` : ''}
-            </span>
+        html += `<div class="coord-activity-row" style="display:flex; align-items:center; padding:10px 14px; border-bottom:1px solid #f1f5f9; gap:12px;">
+          <div class="coord-act-time" style="font-weight:700; font-size:0.9rem; color:#334155; min-width:45px;">${ev.t || '--:--'}</div>
+          <div class="coord-act-name" style="flex:1;">
+            <div style="font-weight:700; color:#0f172a; font-size:0.95rem;">🏡 ${gardenName}</div>
+            ${isStandalone && ev.act && ev.act !== activityName ? `<span style="font-size:0.75rem;color:#64748b;display:block;">${ev.act}</span>` : ''}
+            ${(ev.n && (ev.st === 'makeup' || ev.st === 'postponed' || ev.st === 'post')) ? `<div style="font-size:0.75rem;color:#e67e22;margin-top:2px;font-weight:600">📝 ${ev.n}</div>` : ''}
           </div>
-          <div class="coord-act-status" style="color:${statusColor}">${statusIcon}</div>
+          <div class="coord-act-status" style="color:${statusColor}; font-size:1.1rem; background:rgba(255,255,255,0.5); width:28px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:50%; border:1px solid ${statusColor}40;">${statusIcon}</div>
         </div>`;
       });
       html += `</div></div>`; // close group events & group card

@@ -16,8 +16,12 @@ window.onload = function(){
           const localMetaStr = window._safeLS.getItem('ganv5_meta');
           let localMeta = localMetaStr ? JSON.parse(localMetaStr) : { currentYear: 'tashpav', years: {} };
           localMeta.years = { ...localMeta.years, ...cloudMeta.years };
-          if (cloudMeta.currentYear && !localMeta.years[localMeta.currentYear]) {
-            localMeta.currentYear = cloudMeta.currentYear;
+          if (cloudMeta.currentYear) {
+            const isNonAdmin = window.role === 'coordinator' || window.role === 'worker' || window.role === 'view';
+            if (isNonAdmin || !localMeta.years[localMeta.currentYear]) {
+              localMeta.currentYear = cloudMeta.currentYear;
+              window.CURRENT_YEAR = cloudMeta.currentYear;
+            }
           }
           window._safeLS.setItem('ganv5_meta', JSON.stringify(localMeta));
           if (window.initYearSelector) window.initYearSelector();
