@@ -125,6 +125,7 @@ onAuthStateChanged(auth, async (user) => {
               window.coordManagerId = profile.managerId;
               window.coordCities = profile.coordCities || [];
               window.coordGardenIds = profile.coordGardenIds || [];
+              window.coordTimeScope = profile.coordTimeScope || 'month';
               window.permCoord = !!profile.permCoord;
             }
           } else if (user.email && user.email.startsWith('worker@')) {
@@ -161,6 +162,8 @@ onAuthStateChanged(auth, async (user) => {
       if (typeof window.activateWorkerApp === 'function') {
         window.activateWorkerApp();
       }
+      const sysLoad = document.getElementById('system-loading-overlay');
+      if (sysLoad) { sysLoad.style.opacity = '0'; setTimeout(()=>sysLoad.style.display='none',300); }
       if (typeof window._onAuthReady === 'function') window._onAuthReady();
       return;
     }
@@ -177,6 +180,8 @@ onAuthStateChanged(auth, async (user) => {
         if (typeof window.activateCoordinatorApp === 'function') {
           window.activateCoordinatorApp();
         }
+        const sysLoad = document.getElementById('system-loading-overlay');
+        if (sysLoad) { sysLoad.style.opacity = '0'; setTimeout(()=>sysLoad.style.display='none',300); }
       }, 1500);
       return;
     }
@@ -188,6 +193,8 @@ onAuthStateChanged(auth, async (user) => {
     // Show admin UI immediately after login
     if (typeof window._initUsersUI === 'function') window._initUsersUI();
     if (typeof window._onAuthReady === 'function') window._onAuthReady();
+    const sysLoad = document.getElementById('system-loading-overlay');
+    if (sysLoad) { sysLoad.style.opacity = '0'; setTimeout(()=>sysLoad.style.display='none',300); }
   } else {
     window._fbUser = null;
     window._cachedToken = null;
@@ -196,5 +203,7 @@ onAuthStateChanged(auth, async (user) => {
     window.role = null;
     const authOverlay = document.getElementById('auth-overlay');
     if (authOverlay) authOverlay.style.display = 'flex';
+    const sysLoad = document.getElementById('system-loading-overlay');
+    if (sysLoad) sysLoad.style.display = 'none';
   }
 });

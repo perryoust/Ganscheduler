@@ -363,9 +363,11 @@ async function createNewUser(){
   const permCoord = isCoord;
   let coordCities = [];
   let coordGardenIds = [];
+  let coordTimeScope = 'month';
   if (isCoord) {
     coordCities = Array.from(document.querySelectorAll('#nu-coord-cities input:checked')).map(cb => cb.value);
     coordGardenIds = Array.from(document.querySelectorAll('#nu-coord-selected-gardens [data-gid]')).map(el => Number(el.dataset.gid));
+    coordTimeScope = document.getElementById('nu-coord-timescope')?.value || 'month';
   }
   const statusEl=document.getElementById('nu-status');
   const btn=document.getElementById('nu-create-btn');
@@ -392,7 +394,7 @@ async function createNewUser(){
     const r=await fetch(`${USERS_DB}/${uid}.json${q}`,{
       method:'PUT',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({uid,username,name:displayName,role,email,permAct,permPurch,permWorker,permCoord,coordCities,coordGardenIds,createdAt:Date.now()})
+      body:JSON.stringify({uid,username,name:displayName,role,email,permAct,permPurch,permWorker,permCoord,coordCities,coordGardenIds,coordTimeScope,createdAt:Date.now()})
     });
     if(!r.ok) throw new Error('שמירה נכשלה: '+r.status);
 
@@ -466,6 +468,7 @@ window.editCoordPermissions = async function(uid) {
     
     const coordCities = u.coordCities || [];
     const coordGardenIds = u.coordGardenIds || [];
+    const coordTimeScope = u.coordTimeScope || 'month';
     
     // Create modal
     const mod = document.createElement('div');
@@ -485,6 +488,15 @@ window.editCoordPermissions = async function(uid) {
           <input type="text" id="edit-coord-g-srch" placeholder="חיפוש גן..." oninput="window.searchCoordGardens(this.value, 'edit-coord-g-res', 'edit-coord-g-sel')" style="width:100%;margin-top:6px;padding:8px;border-radius:6px;border:1px solid #b0bec5">
           <div id="edit-coord-g-res" style="display:none;max-height:120px;overflow-y:auto;background:#fff;border-radius:6px;margin-top:4px;border:1px solid #b0bec5"></div>
           <div id="edit-coord-g-sel" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+        </div>
+        
+        <div style="margin-bottom:20px">
+          <label style="font-weight:700;font-size:0.9rem;color:#37474f">טווח זמן מותר לצפייה:</label>
+          <select id="edit-coord-timescope" style="width:100%;margin-top:6px;padding:8px;border-radius:6px;border:1px solid #b0bec5">
+            <option value="day" ${coordTimeScope==='day'?'selected':''}>יום (יכול לצפות רק ביום הנוכחי)</option>
+            <option value="month" ${coordTimeScope==='month'?'selected':''}>חודש (יכול לצפות בחודש הנוכחי)</option>
+            <option value="year" ${coordTimeScope==='year'?'selected':''}>שנה (יכול לצפות בכל השנה)</option>
+          </select>
         </div>
         
         <div style="display:flex;justify-content:flex-end;gap:10px">
@@ -515,6 +527,7 @@ window.saveCoordPermissions = async function(uid) {
   try {
     const coordCities = Array.from(document.querySelectorAll('#edit-coord-cities input:checked')).map(cb => cb.value);
     const coordGardenIds = Array.from(document.querySelectorAll('#edit-coord-g-sel [data-gid]')).map(el => Number(el.dataset.gid));
+    const coordTimeScope = document.getElementById('edit-coord-timescope')?.value || 'month';
     
     const q=await _authQ();
     
@@ -522,7 +535,7 @@ window.saveCoordPermissions = async function(uid) {
     await fetch(`${USERS_DB}/${uid}.json${q}`, {
       method: 'PATCH',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ coordCities, coordGardenIds, permCoord: true })
+      body: JSON.stringify({ coordCities, coordGardenIds, coordTimeScope, permCoord: true })
     });
     
     showToast('✅ הרשאות נשמרו בהצלחה');

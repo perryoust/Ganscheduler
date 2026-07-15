@@ -145,7 +145,9 @@ window.activateCoordinatorApp = function() {
       nameEl.textContent = uname;
     }
     // Wait for data to load, then render
-    setTimeout(() => window.renderCoordinatorView(), 500);
+    setTimeout(() => {
+      window.renderCoordinatorView();
+    }, 500);
   }
 };
 
@@ -161,8 +163,30 @@ window.coordNavMonth = function(dir) {
   if (newMonth < 0) { newMonth = 11; newYear--; }
   if (newMonth > 11) { newMonth = 0; newYear++; }
 
-  // Allow only current month (restrict navigation)
-  // Actually let's allow prev/next month for flexibility
+  const scope = window.coordTimeScope || 'month';
+  if (scope === 'day' || scope === 'month') {
+    if (newYear !== curYear || newMonth !== curMonth) {
+      if(typeof showToast === 'function') showToast('אין לך הרשאה לצפות במועדים אחרים');
+      return;
+    }
+  } else if (scope === 'year') {
+    if (window.SCH && window.SCH.length > 0) {
+      const allowed = window.getCoordAllowedGardenIds();
+      const mySch = window.SCH.filter(s => allowed.has(Number(s.g)) && s.d).map(s => s.d).sort();
+      if (mySch.length > 0) {
+        const firstDate = new Date(mySch[0]);
+        const lastDate = new Date(mySch[mySch.length - 1]);
+        const targetAbs = newYear * 12 + newMonth;
+        const minAbs = firstDate.getFullYear() * 12 + firstDate.getMonth();
+        const maxAbs = lastDate.getFullYear() * 12 + lastDate.getMonth();
+        if (targetAbs < minAbs || targetAbs > maxAbs) {
+          if(typeof showToast === 'function') showToast('אין פעילויות מעבר לשנת הפעילות הנוכחית');
+          return;
+        }
+      }
+    }
+  }
+
   window._coordMonth = { year: newYear, month: newMonth };
   window.renderCoordinatorView();
 };
@@ -213,10 +237,18 @@ window.getCoordFilteredSCH = function() {
   const nextMonth = new Date(m.year, m.month + 1, 1);
   const monthEnd = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}-01`;
 
+  const scope = window.coordTimeScope || 'month';
+  let todayStr = null;
+  if (scope === 'day') {
+    const d = new Date();
+    todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
   return (window.SCH || []).filter(s => {
     if (!allowed.has(Number(s.g))) return false;
     // Date filtering for selected month
     if (s.d && (s.d < monthStart || s.d >= monthEnd)) return false;
+    if (scope === 'day' && s.d !== todayStr) return false;
     return true;
   });
 };
@@ -273,13 +305,37 @@ window.renderCoordinatorView = function() {
   const container = document.getElementById('coord-activities-list');
   if (!container) return;
 
+  // Auto-jump logic: runs once when data is loaded
+  if (!window._coordMonthInitJumpDone && window.SCH && window.SCH.length > 0) {
+    const allSch = window.SCH.filter(s => s.d).map(s => s.d).sort();
+    if (allSch.length > 0) {
+      const now = new Date();
+      const firstDate = new Date(allSch[0]);
+      const lastDate = new Date(allSch[allSch.length - 1]);
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      
+      if (todayStr < allSch[0]) {
+        window._coordMonth = { year: firstDate.getFullYear(), month: firstDate.getMonth() };
+      } else if (todayStr > allSch[allSch.length - 1]) {
+        window._coordMonth = { year: lastDate.getFullYear(), month: lastDate.getMonth() };
+      }
+      window._coordMonthInitJumpDone = true;
+    }
+  }
+
   const m = window._coordMonth;
   if (!m) return;
 
   // Update month label
   const monthLabel = document.getElementById('coord-month-label');
   if (monthLabel) {
-    monthLabel.textContent = `${_COORD_MONTHS[m.month]} ${m.year}`;
+    const scope = window.coordTimeScope || 'month';
+    if (scope === 'day') {
+      const d = new Date();
+      monthLabel.textContent = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    } else {
+      monthLabel.textContent = `${_COORD_MONTHS[m.month]} ${m.year}`;
+    }
   }
 
   // Get filtered data
@@ -321,31 +377,35 @@ window.renderCoordinatorView = function() {
   // Find ungrouped gardens (gardens that aren't in any pair/cluster)
   const ungroupedGardens = myGardens.filter(g => !groupedGardenIds.has(Number(g.id)));
 
-  // Organize by city
-  const byCity = {};
-  const addToCity = (cityName, group, events) => {
-    if (selectedCity && cityName !== selectedCity) return;
-    if (!byCity[cityName]) byCity[cityName] = [];
-    byCity[cityName].push({ group, events });
-  };
+  // Organize by Date -> Group
+  const byDate = {};
 
-  // Process grouped gardens
-  groups.forEach(group => {
-    const groupEvs = filtered.filter(s => group.ids.includes(Number(s.g)));
-    if (!groupEvs.length) return;
-
-    // Determine city from first garden
-    const firstGarden = allGardens.find(g => group.ids.includes(Number(g.id)));
-    const city = firstGarden?.city || 'אחר';
-    addToCity(city, group, groupEvs);
-  });
-
-  // Process ungrouped gardens as individual "groups"
-  ungroupedGardens.forEach(g => {
-    const gardenEvs = filtered.filter(s => Number(s.g) === Number(g.id));
-    if (!gardenEvs.length) return;
-    const soloGroup = { id: `solo_${g.id}`, name: g.name, ids: [Number(g.id)] };
-    addToCity(g.city || 'אחר', soloGroup, gardenEvs);
+  filtered.forEach(ev => {
+    let targetGroup = null;
+    let targetCity = 'אחר';
+    
+    // Check if in grouped gardens
+    const gId = Number(ev.g);
+    const grp = groups.find(g => g.ids.includes(gId));
+    if (grp) {
+      targetGroup = grp;
+      const firstGarden = allGardens.find(g => grp.ids.includes(Number(g.id)));
+      if (firstGarden && firstGarden.city) targetCity = firstGarden.city;
+    } else {
+      const gObj = myGardens.find(g => Number(g.id) === gId);
+      if (gObj) {
+        targetGroup = { id: `solo_${gObj.id}`, name: gObj.name, ids: [Number(gObj.id)] };
+        if (gObj.city) targetCity = gObj.city;
+      }
+    }
+    
+    if (!targetGroup) return; // shouldn't happen if filtered properly
+    if (selectedCity && targetCity !== selectedCity) return;
+    
+    const dateKey = ev.d || 'ללא תאריך';
+    if (!byDate[dateKey]) byDate[dateKey] = {};
+    if (!byDate[dateKey][targetGroup.id]) byDate[dateKey][targetGroup.id] = { group: targetGroup, city: targetCity, events: [] };
+    byDate[dateKey][targetGroup.id].events.push(ev);
   });
 
   // Render
@@ -359,7 +419,9 @@ window.renderCoordinatorView = function() {
     <div class="coord-stat"><div class="coord-stat-num" style="color:#e74c3c">${cancelledCount}</div><div class="coord-stat-label">בוטלו</div></div>
   </div>`;
 
-  if (Object.keys(byCity).length === 0) {
+  const sortedDates = Object.keys(byDate).sort();
+
+  if (sortedDates.length === 0) {
     html += `<div class="coord-empty">
       <div class="coord-empty-icon">📋</div>
       <div class="coord-empty-text">אין חוגים להצגה בחודש זה</div>
@@ -369,88 +431,73 @@ window.renderCoordinatorView = function() {
     return;
   }
 
-  // Render by city
-  Object.keys(byCity).sort().forEach(city => {
-    const cityGroups = byCity[city];
-    const cityEvCount = cityGroups.reduce((sum, g) => sum + g.events.length, 0);
+  // Render by Date -> Group
+  sortedDates.forEach(ds => {
+    let dayLabel = ds;
+    if (ds !== 'ללא תאריך') {
+      const d = new Date(ds);
+      const dayIdx = d.getDay();
+      const dayName = _COORD_DAYS[dayIdx] || ds;
+      const dateStr = `${d.getDate()}/${d.getMonth() + 1}`;
+      dayLabel = `${dayName} ${dateStr}`;
+    }
 
-    html += `<div class="coord-city-section">
-      <div class="coord-city-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-        <span>📍 ${city} (${cityGroups.length} קבוצות)</span>
-        <span style="font-size:0.75rem;opacity:0.7">${cityEvCount} חוגים</span>
-      </div>
-      <div class="coord-city-content">`;
+    html += `<div class="coord-date-section" style="margin-bottom:20px;">
+      <div class="coord-day-header" style="background:rgba(255,255,255,0.15);color:#fff;font-size:1.05rem;padding:10px 14px;border-radius:10px;margin-bottom:10px;display:flex;justify-content:space-between;border:1px solid rgba(255,255,255,0.2);">
+        <span>📅 ${dayLabel}</span>
+      </div>`;
 
-    cityGroups.forEach(({ group, events }) => {
-      // Group header - show garden names
+    const dateGroupsObj = byDate[ds];
+    // Sort groups by city, then by name
+    const sortedGroupKeys = Object.keys(dateGroupsObj).sort((a,b) => {
+      const gA = dateGroupsObj[a];
+      const gB = dateGroupsObj[b];
+      if (gA.city !== gB.city) return gA.city.localeCompare(gB.city);
+      return gA.group.name.localeCompare(gB.group.name);
+    });
+
+    sortedGroupKeys.forEach(gk => {
+      const { group, city, events } = dateGroupsObj[gk];
       const gardenNames = group.ids
         .map(id => allGardens.find(g => Number(g.id) === id))
         .filter(Boolean)
         .map(g => g.name)
         .join(' + ');
 
-      html += `<div class="coord-group-card">
-        <div class="coord-group-header">
-          <span>🏡 ${gardenNames || group.name}</span>
-          <span style="font-size:0.72rem;opacity:0.8">${events.length} חוגים</span>
+      html += `<div class="coord-group-card" style="margin-bottom:12px; border-right:4px solid #3498db;">
+        <div class="coord-group-header" style="background:#f0f4f8;color:#2c3e50;border-bottom:1px solid #e0e6ed;">
+          <span>📍 ${city} | 🏡 ${gardenNames || group.name}</span>
+          <span style="font-size:0.75rem;background:#3498db;color:#fff;padding:2px 8px;border-radius:10px;">${events.length} חוגים</span>
+        </div>
+        <div class="coord-group-events">`;
+
+      events.sort((a,b) => (a.t||'').localeCompare(b.t||'')).forEach(ev => {
+        const statusIcon = _coordStatusIcon(ev.st);
+        const statusColor = _coordStatusColor(ev.st);
+        const gardenObj = allGardens.find(g => Number(g.id) === Number(ev.g));
+        const gardenName = gardenObj ? gardenObj.name : '';
+        const showGardenTag = group.ids.length > 1;
+
+        const activityName = ev.act || (typeof window.supAct === 'function' ? window.supAct(ev.a) : '') || 'פעילות';
+        const supName = typeof window.supNameLabel === 'function' ? window.supNameLabel(ev.a) : (typeof window.supBase === 'function' ? window.supBase(ev.a) : (ev.p || ev.a));
+        const phone = typeof window.getSupPhone === 'function' ? window.getSupPhone(ev.a) : '';
+
+        html += `<div class="coord-activity-row">
+          <div class="coord-act-time">${ev.t || '--:--'}</div>
+          <div class="coord-act-name">
+            <div style="font-weight:700">${activityName}</div>
+            ${showGardenTag ? `<span style="font-size:0.68rem;color:#7f8c8d;display:block">${gardenName}</span>` : ''}
+            <span class="coord-act-supplier" style="display:block;margin-top:2px;">
+              ${supName} ${ev.n ? `(${ev.n})` : ''}
+              ${phone ? `&nbsp; 📞 <a href="tel:${phone}" style="color:#3498db;text-decoration:none">${phone}</a>` : ''}
+            </span>
+          </div>
+          <div class="coord-act-status" style="color:${statusColor}">${statusIcon}</div>
         </div>`;
-
-      // Group events by day-of-week for recurring display, or by date
-      const byDate = {};
-      events.forEach(ev => {
-        const dateKey = ev.d || 'ללא תאריך';
-        if (!byDate[dateKey]) byDate[dateKey] = [];
-        byDate[dateKey].push(ev);
       });
-
-      // Sort dates
-      const sortedDates = Object.keys(byDate).sort();
-
-      // Group consecutive dates by day name for cleaner display
-      const byDayName = {};
-      sortedDates.forEach(ds => {
-        const d = new Date(ds);
-        const dayIdx = d.getDay();
-        const dayName = _COORD_DAYS[dayIdx] || ds;
-        const dateStr = `${d.getDate()}/${d.getMonth() + 1}`;
-        const key = `${dayName} ${dateStr}`;
-        if (!byDayName[key]) byDayName[key] = [];
-        byDayName[key].push(...byDate[ds]);
-      });
-
-      Object.entries(byDayName).forEach(([dayLabel, dayEvs]) => {
-        // Sort by time
-        dayEvs.sort((a, b) => (a.t || '').localeCompare(b.t || ''));
-
-        html += `<div class="coord-day-header">
-          <span>📅</span> <span>${dayLabel}</span>
-        </div>`;
-
-        dayEvs.forEach(ev => {
-          const statusIcon = _coordStatusIcon(ev.st);
-          const statusColor = _coordStatusColor(ev.st);
-          const gardenObj = allGardens.find(g => Number(g.id) === Number(ev.g));
-          const gardenName = gardenObj ? gardenObj.name : '';
-
-          // If group has multiple gardens, show which garden this activity is in
-          const showGardenTag = group.ids.length > 1;
-
-          html += `<div class="coord-activity-row">
-            <div class="coord-act-time">${ev.t || '--:--'}</div>
-            <div class="coord-act-name">
-              ${ev.a || 'פעילות'}
-              ${showGardenTag ? `<span style="font-size:0.68rem;color:#7f8c8d;display:block">${gardenName}</span>` : ''}
-              ${ev.p ? `<span class="coord-act-supplier">${ev.p} ${ev.n ? ' ('+ev.n+')' : ''}</span>` : ''}
-            </div>
-            <div class="coord-act-status" style="color:${statusColor}">${statusIcon}</div>
-          </div>`;
-        });
-      });
-
-      html += `</div>`; // close group card
+      html += `</div></div>`; // close group events & group card
     });
-
-    html += `</div></div>`; // close city content + section
+    html += `</div>`; // close date section
   });
 
   container.innerHTML = html;

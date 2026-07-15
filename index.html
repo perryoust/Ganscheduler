@@ -42,6 +42,14 @@
 </head>
 
 <body>
+  <div id="system-loading-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#1a237e;z-index:9999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;transition:opacity 0.3s ease;">
+    <div style="font-size:4rem;margin-bottom:20px;animation:pulse 1.5s infinite">📅</div>
+    <div style="font-size:1.4rem;font-weight:700;font-family:'Assistant',sans-serif">טוען מערכת...</div>
+  </div>
+  <style>
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+  </style>
+
   <div id="backup-ind">✅ נשמר</div>
 
   <!-- 📊 MAIN HEADER — dashboard 📊 -->
@@ -251,6 +259,8 @@
                         name="nu-access" value="worker"> עובד שטח (משימות בלבד)</label>
                     <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio"
                         name="nu-access" value="coordinator" onchange="document.getElementById('nu-coord-fields').style.display=this.checked?'block':'none'"> 👀 רכז שטח (צפייה בחוגים)</label>
+                </div>
+              </div>
             </div>
             <!-- Coordinator fields (hidden by default) -->
             <div id="nu-coord-fields" style="display:none;margin-top:10px;padding:10px;background:#e8f4fd;border-radius:8px;border:1.5px solid #81d4fa">
@@ -260,6 +270,14 @@
                 <div id="nu-coord-cities" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;max-height:120px;overflow-y:auto;background:#fff;border-radius:6px;padding:6px;border:1px solid #b0bec5">
                   <!-- Populated dynamically by loadCoordCityCheckboxes() -->
                 </div>
+              </div>
+              <div style="margin-bottom:8px">
+                <label style="font-size:.75rem;font-weight:600;color:#37474f">טווח זמן מותר לצפייה:</label>
+                <select id="nu-coord-timescope" style="width:100%;padding:5px;border-radius:5px;border:1px solid #b0bec5;font-size:.8rem;margin-top:4px">
+                  <option value="day">יום (יכול לצפות רק ביום הנוכחי)</option>
+                  <option value="month" selected>חודש (יכול לצפות בחודש הנוכחי)</option>
+                  <option value="year">שנה (יכול לצפות בכל השנה)</option>
+                </select>
               </div>
               <div>
                 <label style="font-size:.75rem;font-weight:600;color:#37474f">גנים ספציפיים נוספים (אופציונלי):</label>
