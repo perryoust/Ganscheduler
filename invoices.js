@@ -2782,11 +2782,13 @@ reader.onload = async function(e) {
           window.startSharePointScanner();
         }, 1500);
       }
+      resolve();
 
     } catch (err) {
       console.error("Import error:", err);
       _spAlertDialog("שגיאה בתהליך הייבוא: " + err.message);
       window._runScannerAfterImport = false;
+      reject(err);
     }
   };
   reader.readAsArrayBuffer(file);
@@ -3134,6 +3136,7 @@ window.startSharePointScanner = async function() {
   if (cfg1.addSecond) {
     try {
       const dir2 = await window.showDirectoryPicker({ mode: 'read' });
+      if (window._spIdbSet) await window._spIdbSet('invDirHandle2', dir2);
       const saved2 = window.spScannerFolderLinks[dir2.name] || '';
       const cfg2 = await _spFolderDialog(dir2.name, saved2, true);
       if (cfg2) {

@@ -340,23 +340,36 @@ function ST(t){
   });
 
   // purch panels are managed by switchMode, not ST
-  if(t==='admin'){
+  if(t==='admin' || t==='worker_tasks'){
     document.getElementById('mode-bar').scrollIntoView();
-    // Refresh log stats periodically while admin is open
-    if(window._admInt) clearInterval(window._admInt);
-    window._admInt=setInterval(()=>{if(currentTab==='admin'&&typeof updateLogStats==='function')updateLogStats()},3000);
-    // Switch mode visuals to 'admin' mode styling
+    // Switch mode visuals to clear mode styling
     document.body.classList.remove('mode-purch');
     document.getElementById('tabs-act').style.display='none';
     document.getElementById('tabs-purch').style.display='none';
     document.getElementById('modeBtn-act').classList.remove('active');
     document.getElementById('modeBtn-purch').classList.remove('active');
-    const adminBtn = document.getElementById('modeBtn-admin');
-    if(adminBtn) adminBtn.classList.add('active');
     
-    // Load admin data
-    if(typeof loadUsersList==='function') setTimeout(loadUsersList,300);
-    if(typeof loadActivityLog==='function') setTimeout(()=>loadActivityLog(document.getElementById('log-filter')?.value||'week'),500);
+    if(t==='admin') {
+      const adminBtn = document.getElementById('modeBtn-admin');
+      if(adminBtn) adminBtn.classList.add('active');
+      const workerBtn = document.getElementById('modeBtn-worker');
+      if(workerBtn) workerBtn.classList.remove('active');
+      // Refresh log stats periodically while admin is open
+      if(window._admInt) clearInterval(window._admInt);
+      window._admInt=setInterval(()=>{if(currentTab==='admin'&&typeof updateLogStats==='function')updateLogStats()},3000);
+      // Load admin data
+      if(typeof loadUsersList==='function') setTimeout(loadUsersList,300);
+      if(typeof loadActivityLog==='function') setTimeout(()=>loadActivityLog(document.getElementById('log-filter')?.value||'week'),500);
+    } else {
+      const adminBtn = document.getElementById('modeBtn-admin');
+      if(adminBtn) adminBtn.classList.remove('active');
+      const workerBtn = document.getElementById('modeBtn-worker');
+      if(workerBtn) workerBtn.classList.add('active');
+    }
+    
+    // Hide mobile nav purch if open
+    const mnPurch = document.getElementById('mob-nav-purch');
+    if (mnPurch) mnPurch.style.display = 'none';
   }
   if(t==='sched') { if(window.renderSched) window.renderSched(); }
   if(t==='gardens'){ if(window.renderGardens) window.renderGardens(); if(window.refreshMgrDrops) window.refreshMgrDrops(); }

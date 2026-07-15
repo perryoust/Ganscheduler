@@ -243,30 +243,30 @@ window.renderWorkerTasksAdmin = function() {
   if (!isSearch) {
     html += `
       <!-- Chat Input Area (WhatsApp style) -->
-      <div class="wt-no-print" style="position:relative; width:100%; background:#f0f0f0; padding:10px; display:flex; align-items:center; gap:8px; border-radius:0 0 8px 8px; border-top:1px solid #e0e0e0;">
+      <div class="wt-no-print" style="position:relative; width:100%; background:#f0f0f0; padding:8px; display:flex; align-items:center; gap:6px; border-radius:0 0 8px 8px; border-top:1px solid #e0e0e0;">
         
-        <div style="flex:1; background:#ffffff; border-radius:24px; display:flex; align-items:center; padding:4px 15px; gap:8px; box-shadow:0 1px 2px rgba(0,0,0,0.1);">
-          <div style="position:relative; width:130px; border-left:1px solid #eee; padding-left:8px;">
-            <input type="text" id="wt-inline-garden" placeholder="📍 חפש גן..." onkeyup="window.wtSearchGardenInline(this.value)" style="width:100%; border:none; background:transparent; outline:none; font-size:0.9rem; color:#075e54; font-weight:bold;">
+        <div style="flex:1; background:#ffffff; border-radius:24px; display:flex; align-items:center; padding:4px 8px; gap:4px; box-shadow:0 1px 2px rgba(0,0,0,0.1);">
+          <div style="position:relative; width:30%; max-width:130px; min-width:65px; border-left:1px solid #eee; padding-left:4px;">
+            <input type="text" id="wt-inline-garden" placeholder="📍 חפש גן..." onkeyup="window.wtSearchGardenInline(this.value)" style="width:100%; border:none; background:transparent; outline:none; font-size:0.9rem; color:#075e54; font-weight:bold; text-overflow: ellipsis;">
             <div id="wt-inline-garden-results" style="position:absolute; bottom:110%; right:0; width:200px; max-height:150px; overflow-y:auto; background:#fff; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:100; display:none; line-height:1.2;"></div>
             <input type="hidden" id="wt-inline-garden-id">
             <input type="hidden" id="wt-inline-city-name">
           </div>
           
-          <input type="text" id="wt-inline-desc" placeholder="הקלד הודעה/משימה..." onkeydown="if(event.key==='Enter') window.wtAddInlineTask()" style="flex:1; border:none; background:transparent; outline:none; font-size:1rem; color:#333;">
+          <input type="text" id="wt-inline-desc" placeholder="הקלד משימה..." onkeydown="if(event.key==='Enter') window.wtAddInlineTask()" style="flex:1; border:none; background:transparent; outline:none; font-size:1rem; color:#333; min-width:50px;">
           
           <label style="display:flex; align-items:center; cursor:pointer;" title="משימה אישית (לא תיראה לעובד)">
-            <input type="checkbox" id="wt-inline-admin" style="margin:0;">
-            <span style="font-size:1.1rem; margin-right:4px; opacity:0.8;">🔒</span>
+            <input type="checkbox" id="wt-inline-admin" style="margin:0; width:16px; height:16px;">
+            <span style="font-size:1.1rem; margin-right:2px; opacity:0.8;">🔒</span>
           </label>
         </div>
         
-        <button onclick="window.openNewWorkerTaskModal()" style="background:#e3f2fd; color:#1565c0; border:1px solid #90caf9; border-radius:50%; width:44px; height:44px; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.1); flex-shrink:0;" title="משימה קבועה / אפשרויות נוספות">
-          <span style="font-size:1.3rem;">🔄</span>
+        <button onclick="window.openNewWorkerTaskModal()" style="background:#e3f2fd; color:#1565c0; border:1px solid #90caf9; border-radius:50%; width:40px; height:40px; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.1); flex-shrink:0;" title="משימה קבועה / אפשרויות נוספות">
+          <span style="font-size:1.2rem;">🔄</span>
         </button>
 
-        <button onclick="window.wtAddInlineTask()" style="background:#00a884; color:white; border:none; border-radius:50%; width:44px; height:44px; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.2); flex-shrink:0;" title="שלח משימה">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" style="transform:translateX(-2px) rotate(180deg);"><path d="M1.101,21.757L23.8,12.028L1.101,2.3l0.011,7.912l13.623,1.816L1.112,13.845 L1.101,21.757z"></path></svg>
+        <button onclick="window.wtAddInlineTask()" style="background:#00a884; color:white; border:none; border-radius:50%; width:40px; height:40px; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.2); flex-shrink:0;" title="שלח משימה">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="transform:translateX(-2px) rotate(180deg);"><path d="M1.101,21.757L23.8,12.028L1.101,2.3l0.011,7.912l13.623,1.816L1.112,13.845 L1.101,21.757z"></path></svg>
         </button>
         
       </div>
@@ -801,6 +801,17 @@ window.ST = function(tab) {
     
     const workerBtn = document.getElementById('modeBtn-worker');
     if (workerBtn) workerBtn.classList.add('active');
+    
+    // Explicitly hide all panels just in case
+    document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
+    
+    // Clear mode-purch class to fix backgrounds and mobile nav
+    document.body.classList.remove('mode-purch');
+    const mnPurch = document.getElementById('mob-nav-purch');
+    if(mnPurch) mnPurch.style.display = 'none';
+    const mnAct = document.getElementById('mob-nav');
+    if(mnAct) mnAct.style.display = ''; // let CSS show it on mobile
+
     
     window.renderWorkerTasksAdmin();
     return;
