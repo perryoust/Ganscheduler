@@ -123,6 +123,9 @@ onAuthStateChanged(auth, async (user) => {
             if (role === 'coordinator') {
               window.coordPhone = profile.phone;
               window.coordManagerId = profile.managerId;
+              window.coordCities = profile.coordCities || [];
+              window.coordGardenIds = profile.coordGardenIds || [];
+              window.permCoord = !!profile.permCoord;
             }
           } else if (user.email && user.email.startsWith('worker@')) {
             // Auto-detect worker from email — no profile exists yet
@@ -159,6 +162,22 @@ onAuthStateChanged(auth, async (user) => {
         window.activateWorkerApp();
       }
       if (typeof window._onAuthReady === 'function') window._onAuthReady();
+      return;
+    }
+
+    // Strict Coordinator Isolation: read-only view of their assigned gardens
+    const isStrictCoordinator = role === 'coordinator' && window.permCoord && !permPurch && role !== 'admin';
+    if (isStrictCoordinator) {
+      const authOverlay = document.getElementById('auth-overlay');
+      if (authOverlay) authOverlay.style.display = 'none';
+      // Data must load first, then activate
+      if (typeof window._onAuthReady === 'function') window._onAuthReady();
+      // Give data a moment to load, then activate coordinator app
+      setTimeout(() => {
+        if (typeof window.activateCoordinatorApp === 'function') {
+          window.activateCoordinatorApp();
+        }
+      }, 1500);
       return;
     }
 

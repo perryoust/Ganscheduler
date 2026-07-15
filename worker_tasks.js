@@ -243,22 +243,25 @@ window.renderWorkerTasksAdmin = function() {
   if (!isSearch) {
     html += `
       <!-- Chat Input Area (WhatsApp style) -->
-      <div class="wt-no-print" style="position:relative; width:100%; background:#f0f0f0; padding:8px; display:flex; align-items:center; gap:6px; border-radius:0 0 8px 8px; border-top:1px solid #e0e0e0;">
+      <div class="wt-no-print" style="position:relative; width:100%; background:#f0f0f0; padding:8px; display:flex; align-items:flex-end; gap:6px; border-radius:0 0 8px 8px; border-top:1px solid #e0e0e0;">
         
-        <div style="flex:1; background:#ffffff; border-radius:24px; display:flex; align-items:center; padding:4px 8px; gap:4px; box-shadow:0 1px 2px rgba(0,0,0,0.1);">
-          <div style="position:relative; width:30%; max-width:130px; min-width:65px; border-left:1px solid #eee; padding-left:4px;">
-            <input type="text" id="wt-inline-garden" placeholder="📍 חפש גן..." onkeyup="window.wtSearchGardenInline(this.value)" style="width:100%; border:none; background:transparent; outline:none; font-size:0.9rem; color:#075e54; font-weight:bold; text-overflow: ellipsis;">
-            <div id="wt-inline-garden-results" style="position:absolute; bottom:110%; right:0; width:200px; max-height:150px; overflow-y:auto; background:#fff; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:100; display:none; line-height:1.2;"></div>
-            <input type="hidden" id="wt-inline-garden-id">
-            <input type="hidden" id="wt-inline-city-name">
+        <div style="flex:1; background:#ffffff; border-radius:12px; display:flex; flex-direction:column; padding:6px 10px; gap:4px; box-shadow:0 1px 2px rgba(0,0,0,0.1);">
+          <div style="display:flex; align-items:center; border-bottom:1px solid #f0f0f0; padding-bottom:4px;">
+            <div style="position:relative; flex:1;">
+              <input type="text" id="wt-inline-garden" placeholder="📍 שיוך לגן (אופציונלי)..." onkeyup="window.wtSearchGardenInline(this.value)" style="width:100%; border:none; background:transparent; outline:none; font-size:0.85rem; color:#075e54; font-weight:bold; text-overflow: ellipsis;">
+              <div id="wt-inline-garden-results" style="position:absolute; bottom:110%; right:0; width:220px; max-height:150px; overflow-y:auto; background:#fff; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:100; display:none; line-height:1.2;"></div>
+              <input type="hidden" id="wt-inline-garden-id">
+              <input type="hidden" id="wt-inline-city-name">
+            </div>
+            <label style="display:flex; align-items:center; cursor:pointer; margin-right:8px; padding-right:8px; border-right:1px solid #f0f0f0;" title="משימה אישית (לא תיראה לעובד)">
+              <input type="checkbox" id="wt-inline-admin" style="margin:0 0 0 4px; width:16px; height:16px;">
+              <span style="font-size:0.85rem; opacity:0.8; font-weight:bold; color:#e65100">🔒 אישי למנהל</span>
+            </label>
           </div>
           
-          <input type="text" id="wt-inline-desc" placeholder="הקלד משימה..." onkeydown="if(event.key==='Enter') window.wtAddInlineTask()" style="flex:1; border:none; background:transparent; outline:none; font-size:1rem; color:#333; min-width:50px;">
-          
-          <label style="display:flex; align-items:center; cursor:pointer;" title="משימה אישית (לא תיראה לעובד)">
-            <input type="checkbox" id="wt-inline-admin" style="margin:0; width:16px; height:16px;">
-            <span style="font-size:1.1rem; margin-right:2px; opacity:0.8;">🔒</span>
-          </label>
+          <div style="display:flex; align-items:center;">
+            <input type="text" id="wt-inline-desc" placeholder="הקלד משימה חדשה..." onkeydown="if(event.key==='Enter') window.wtAddInlineTask()" style="flex:1; border:none; background:transparent; outline:none; font-size:1rem; color:#333; padding:4px 0;">
+          </div>
         </div>
         
         <button onclick="window.openNewWorkerTaskModal()" style="background:#e3f2fd; color:#1565c0; border:1px solid #90caf9; border-radius:50%; width:40px; height:40px; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.1); flex-shrink:0;" title="משימה קבועה / אפשרויות נוספות">

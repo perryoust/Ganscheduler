@@ -249,7 +249,23 @@
                       name="nu-access" value="edit"> ✏️ עריכה</label>
                     <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio"
                         name="nu-access" value="worker"> עובד שטח (משימות בלבד)</label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio"
+                        name="nu-access" value="coordinator" onchange="document.getElementById('nu-coord-fields').style.display=this.checked?'block':'none'"> 👀 רכז שטח (צפייה בחוגים)</label>
+            </div>
+            <!-- Coordinator fields (hidden by default) -->
+            <div id="nu-coord-fields" style="display:none;margin-top:10px;padding:10px;background:#e8f4fd;border-radius:8px;border:1.5px solid #81d4fa">
+              <div style="font-weight:700;font-size:.78rem;color:#0277bd;margin-bottom:8px">🏙️ הגדר ערים וגנים לרכז:</div>
+              <div style="margin-bottom:8px">
+                <label style="font-size:.75rem;font-weight:600;color:#37474f">ערים (בחר ערים שהרכז יכול לראות):</label>
+                <div id="nu-coord-cities" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;max-height:120px;overflow-y:auto;background:#fff;border-radius:6px;padding:6px;border:1px solid #b0bec5">
+                  <!-- Populated dynamically by loadCoordCityCheckboxes() -->
                 </div>
+              </div>
+              <div>
+                <label style="font-size:.75rem;font-weight:600;color:#37474f">גנים ספציפיים נוספים (אופציונלי):</label>
+                <input type="text" id="nu-coord-garden-search" placeholder="חיפוש גן לפי שם..." oninput="window.searchCoordGardens(this.value)" style="width:100%;margin-top:4px;padding:5px 8px;border-radius:5px;border:1px solid #b0bec5;font-size:.8rem">
+                <div id="nu-coord-garden-results" style="display:none;max-height:120px;overflow-y:auto;background:#fff;border-radius:6px;margin-top:4px;border:1px solid #b0bec5"></div>
+                <div id="nu-coord-selected-gardens" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px"></div>
               </div>
             </div>
             <button class="btn bg" onclick="createNewUser()" id="nu-create-btn"
@@ -3550,6 +3566,7 @@
     <script src="core_data.js?v=107.86"></script>
     <script src="core_dash.js?v=107.86"></script>
     <script src="worker_tasks.js?v=107.86"></script>
+    <script src="coordinator_app.js?v=107.86"></script>
     <script src="core_app.js?v=107.86"></script>
     <script src="qa_simulator.js?v=107.86"></script>
     <script src="todo.js?v=107.86"></script>

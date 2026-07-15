@@ -3918,14 +3918,17 @@ window.autoRefreshPurchasing = async function() {
 
   window.showToast('⏳ מתחיל רענון אוטומטי. ממתין לאישורי הרשאות...', 60000);
 
-  // 1. Re-import Excel
+  // 1. Get handles
   const fileHandle = await window._spIdbGet('invExcelFileHandle');
   if (!fileHandle) {
     _spAlertDialog('לא נמצא קובץ אקסל שמור בזיכרון.\nאנא בצע "ייבוא אקסל" פעם אחת לפחות, בחר את הקובץ ולאחר מכן תוכל לרענן אוטומטית.');
     return;
   }
 
-  // Request permission if needed
+  const dirHandle1 = await window._spIdbGet('invDirHandle1');
+  const dirHandle2 = await window._spIdbGet('invDirHandle2');
+
+  // Request all permissions immediately while we still have the user gesture!
   if ((await fileHandle.queryPermission({ mode: 'read' })) !== 'granted') {
     if ((await fileHandle.requestPermission({ mode: 'read' })) !== 'granted') {
       window.showToast('❌ אין הרשאה לקרוא את קובץ האקסל.');
@@ -3933,63 +3936,49 @@ window.autoRefreshPurchasing = async function() {
     }
   }
 
-  window.showToast('📊 מייבא אקסל...', 60000);
-  
-  // Removed window.INVOICES = [] to prevent wiping existing manually attached files and SharePoint links
-  
-  const file = await fileHandle.getFile();
-  // We need to pass input=null to our hijacked importInvoices, but wait, our hijacked importInvoices 
-  // reads input.files[0]. We can just invoke import logic directly or mock the input object.
-  const mockInput = { files: [file] };
-  await window.importInvoices(mockInput, true); // skipConfirm = true for auto-refresh
-  
-  // Wait for import to complete (importInvoices handles rendering and saving implicitly)
-  // Give it a couple of seconds to process the excel file before starting the scanner.
-  // 2. Scan folders
-    const dirHandle1 = await window._spIdbGet('invDirHandle1');
-    const dirHandle2 = await window._spIdbGet('invDirHandle2');
-    
-    if (!dirHandle1 && !dirHandle2) {
-      window.showToast('✅ אקסל יובא בהצלחה. לא הוגדרו תיקיות לסריקה בזיכרון, התהליך הושלם.', 5000);
-      return;
-    }
+  const selectedFolders = [];
+  window.spScannerFolderLinks = window.spScannerFolderLinks || {};
+  try { window.spScannerFolderLinks = JSON.parse(localStorage.getItem('spScannerFolderLinks') || '{}'); } catch(e) {}
 
-    const selectedFolders = [];
-    
-    if (dirHandle1) {
-      if ((await dirHandle1.queryPermission({ mode: 'read' })) !== 'granted') {
-        if ((await dirHandle1.requestPermission({ mode: 'read' })) === 'granted') {
-           const saved = window.spScannerFolderLinks ? (window.spScannerFolderLinks[dirHandle1.name] || '') : '';
-           selectedFolders.push({ handle: dirHandle1, cleanBase: window.parseSharePointBaseUrl(saved), overwrite: false });
-        }
-      } else {
-         const saved = window.spScannerFolderLinks ? (window.spScannerFolderLinks[dirHandle1.name] || '') : '';
+  if (dirHandle1) {
+    if ((await dirHandle1.queryPermission({ mode: 'read' })) !== 'granted') {
+      if ((await dirHandle1.requestPermission({ mode: 'read' })) === 'granted') {
+         const saved = window.spScannerFolderLinks[dirHandle1.name] || '';
          selectedFolders.push({ handle: dirHandle1, cleanBase: window.parseSharePointBaseUrl(saved), overwrite: false });
       }
+    } else {
+       const saved = window.spScannerFolderLinks[dirHandle1.name] || '';
+       selectedFolders.push({ handle: dirHandle1, cleanBase: window.parseSharePointBaseUrl(saved), overwrite: false });
     }
+  }
 
-    if (dirHandle2) {
-      if ((await dirHandle2.queryPermission({ mode: 'read' })) !== 'granted') {
-        if ((await dirHandle2.requestPermission({ mode: 'read' })) === 'granted') {
-           const saved = window.spScannerFolderLinks ? (window.spScannerFolderLinks[dirHandle2.name] || '') : '';
-           selectedFolders.push({ handle: dirHandle2, cleanBase: window.parseSharePointBaseUrl(saved), overwrite: false });
-        }
-      } else {
-         const saved = window.spScannerFolderLinks ? (window.spScannerFolderLinks[dirHandle2.name] || '') : '';
+  if (dirHandle2) {
+    if ((await dirHandle2.queryPermission({ mode: 'read' })) !== 'granted') {
+      if ((await dirHandle2.requestPermission({ mode: 'read' })) === 'granted') {
+         const saved = window.spScannerFolderLinks[dirHandle2.name] || '';
          selectedFolders.push({ handle: dirHandle2, cleanBase: window.parseSharePointBaseUrl(saved), overwrite: false });
       }
-    }
-
-    if (selectedFolders.length === 0) {
-      window.showToast('✅ ייבוא אקסל הסתיים. אין הרשאות לתיקיות.');
-      return;
-    }
-
-    window.showToast('⏳ סורק תיקיות...', 60000);
-    if (typeof window._runCoreScanner === 'function') {
-      await window._runCoreScanner(selectedFolders);
     } else {
-      _spAlertDialog("שגיאה: פונקציית הסריקה הפנימית לא קיימת.");
+       const saved = window.spScannerFolderLinks[dirHandle2.name] || '';
+       selectedFolders.push({ handle: dirHandle2, cleanBase: window.parseSharePointBaseUrl(saved), overwrite: false });
     }
+  }
+
+  window.showToast('📊 מייבא אקסל ומרענן שורות...', 60000);
   
+  const file = await fileHandle.getFile();
+  const mockInput = { files: [file] };
+  await window.importInvoices(mockInput, true); // skipConfirm = true
+  
+  if (selectedFolders.length === 0) {
+    window.showToast('✅ אקסל יובא בהצלחה. לא הוגדרו תיקיות לסריקה או אין הרשאות.');
+    return;
+  }
+
+  window.showToast('⏳ סורק תיקיות מול שורות חדשות...', 60000);
+  if (typeof window._runCoreScanner === 'function') {
+    await window._runCoreScanner(selectedFolders);
+  } else {
+    _spAlertDialog("שגיאה: פונקציית הסריקה הפנימית לא קיימת.");
+  }
 };

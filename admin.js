@@ -333,10 +333,14 @@ async function loadUsersList(){
           <div>
             <div style="font-size:.68rem;color:#546e7a;margin-bottom:4px;font-weight:700">רמת גישה:</div>
             <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;margin-bottom:3px">
-              <input type="radio" name="role_${uid}" value="view" ${u.role!=='edit'?'checked':''} onchange="changeUserRole('${uid}','view')"> 👁️ צפייה בלבד
+              <input type="radio" name="role_${uid}" value="view" ${u.role==='view'?'checked':''} onchange="changeUserRole('${uid}','view')"> 👁️ צפייה בלבד
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;margin-bottom:3px">
+              <input type="radio" name="role_${uid}" value="edit" ${u.role==='edit'?'checked':''} onchange="changeUserRole('${uid}','edit')"> ✏️ עריכה
             </label>
             <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer">
-              <input type="radio" name="role_${uid}" value="edit" ${u.role==='edit'?'checked':''} onchange="changeUserRole('${uid}','edit')"> ✏️ עריכה
+              <input type="radio" name="role_${uid}" value="coordinator" ${u.role==='coordinator'?'checked':''} onchange="changeUserRole('${uid}','coordinator')"> 👀 רכז שטח 
+              ${u.role==='coordinator' ? `<button onclick="window.editCoordPermissions('${uid}')" style="margin-right:8px;font-size:0.7rem;padding:2px 6px;background:#e1f5fe;border:1px solid #81d4fa;border-radius:4px;cursor:pointer;color:#0277bd">✏️ ערוך ערים/גנים</button>` : ''}
             </label>
           </div>
         </div>`:''}
@@ -353,6 +357,16 @@ async function createNewUser(){
   const permPurch=document.getElementById('nu-perm-purch')?.checked||false;
   const permWorker=document.getElementById('nu-perm-worker')?.checked||false;
   const role=document.querySelector('input[name="nu-access"]:checked')?.value||'view';
+  
+  // Coordinator specific
+  const isCoord = role === 'coordinator';
+  const permCoord = isCoord;
+  let coordCities = [];
+  let coordGardenIds = [];
+  if (isCoord) {
+    coordCities = Array.from(document.querySelectorAll('#nu-coord-cities input:checked')).map(cb => cb.value);
+    coordGardenIds = Array.from(document.querySelectorAll('#nu-coord-selected-gardens [data-gid]')).map(el => Number(el.dataset.gid));
+  }
   const statusEl=document.getElementById('nu-status');
   const btn=document.getElementById('nu-create-btn');
 
@@ -378,7 +392,7 @@ async function createNewUser(){
     const r=await fetch(`${USERS_DB}/${uid}.json${q}`,{
       method:'PUT',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({uid,username,name:displayName,role,email,permAct,permPurch,permWorker,createdAt:Date.now()})
+      body:JSON.stringify({uid,username,name:displayName,role,email,permAct,permPurch,permWorker,permCoord,coordCities,coordGardenIds,createdAt:Date.now()})
     });
     if(!r.ok) throw new Error('שמירה נכשלה: '+r.status);
 
@@ -392,6 +406,141 @@ async function createNewUser(){
   }
   btn.disabled=false;
 }
+
+// ── Coordinator UI Helpers ──
+window.loadCoordCityCheckboxes = function(containerId = 'nu-coord-cities', selected = []) {
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  const cities = [...new Set((window.GARDENS||[]).map(g=>g.city||'אחר'))].sort();
+  container.innerHTML = cities.map(c => `
+    <label style="display:flex;align-items:center;gap:4px;font-size:0.8rem;padding:2px 6px;background:#f5f5f5;border-radius:4px;cursor:pointer">
+      <input type="checkbox" value="${c}" ${selected.includes(c) ? 'checked' : ''}> ${c}
+    </label>
+  `).join('');
+};
+
+window.searchCoordGardens = function(q, resultsId = 'nu-coord-garden-results', selectedId = 'nu-coord-selected-gardens') {
+  const res = document.getElementById(resultsId);
+  if(!res) return;
+  if(!q || q.length < 2) { res.style.display = 'none'; return; }
+  
+  const qLow = q.toLowerCase();
+  const gdns = (window.GARDENS||[]).filter(g => g.name.toLowerCase().includes(qLow) || String(g.id).includes(qLow)).slice(0, 8);
+  
+  if(!gdns.length) {
+    res.innerHTML = '<div style="padding:8px;font-size:0.8rem;color:#7f8c8d">לא נמצאו גנים</div>';
+  } else {
+    res.innerHTML = gdns.map(g => `
+      <div style="padding:6px 8px;font-size:0.8rem;cursor:pointer;border-bottom:1px solid #eee" onclick="window.addCoordGarden(${g.id}, '${g.name}', '${selectedId}'); document.getElementById('${resultsId}').style.display='none'; document.getElementById('nu-coord-garden-search').value=''">
+        ${g.name} <span style="color:#7f8c8d">(${g.id})</span>
+      </div>
+    `).join('');
+  }
+  res.style.display = 'block';
+};
+
+window.addCoordGarden = function(id, name, selectedId = 'nu-coord-selected-gardens') {
+  const container = document.getElementById(selectedId);
+  if(!container) return;
+  
+  // check if exists
+  if(container.querySelector(`[data-gid="${id}"]`)) return;
+  
+  const tag = document.createElement('div');
+  tag.dataset.gid = id;
+  tag.style.cssText = 'background:#e1f5fe;color:#0277bd;font-size:0.75rem;padding:3px 8px;border-radius:12px;display:flex;align-items:center;gap:4px';
+  tag.innerHTML = `
+    ${name} <span style="color:#0288d1">(${id})</span>
+    <span onclick="this.parentElement.remove()" style="cursor:pointer;font-weight:bold;margin-right:4px">✕</span>
+  `;
+  container.appendChild(tag);
+};
+
+window.editCoordPermissions = async function(uid) {
+  try {
+    showToast('⏳ טוען נתוני רכז...');
+    const q=await _authQ();
+    const r=await fetch(`${USERS_DB}/${uid}.json${q}`);
+    if(!r.ok) throw new Error('שגיאה בטעינת המשתמש');
+    const u=await r.json();
+    
+    const coordCities = u.coordCities || [];
+    const coordGardenIds = u.coordGardenIds || [];
+    
+    // Create modal
+    const mod = document.createElement('div');
+    mod.id = 'coord-perm-modal';
+    mod.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center;direction:rtl';
+    mod.innerHTML = `
+      <div style="background:#fff;padding:20px;border-radius:12px;width:95%;max-width:500px;box-shadow:0 10px 25px rgba(0,0,0,0.2)">
+        <h3 style="margin:0 0 15px 0;color:#0277bd">✏️ עריכת הרשאות רכז — ${u.name || u.username}</h3>
+        
+        <div style="margin-bottom:15px">
+          <label style="font-weight:700;font-size:0.9rem;color:#37474f">ערים מורשות:</label>
+          <div id="edit-coord-cities" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;max-height:150px;overflow-y:auto;background:#f5f7ff;border-radius:8px;padding:10px;border:1px solid #cfd8dc"></div>
+        </div>
+        
+        <div style="margin-bottom:20px">
+          <label style="font-weight:700;font-size:0.9rem;color:#37474f">גנים ספציפיים:</label>
+          <input type="text" id="edit-coord-g-srch" placeholder="חיפוש גן..." oninput="window.searchCoordGardens(this.value, 'edit-coord-g-res', 'edit-coord-g-sel')" style="width:100%;margin-top:6px;padding:8px;border-radius:6px;border:1px solid #b0bec5">
+          <div id="edit-coord-g-res" style="display:none;max-height:120px;overflow-y:auto;background:#fff;border-radius:6px;margin-top:4px;border:1px solid #b0bec5"></div>
+          <div id="edit-coord-g-sel" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+        </div>
+        
+        <div style="display:flex;justify-content:flex-end;gap:10px">
+          <button class="btn bo" onclick="document.getElementById('coord-perm-modal').remove()">ביטול</button>
+          <button class="btn bg" onclick="window.saveCoordPermissions('${uid}')" style="background:#0277bd;border-color:#0277bd">💾 שמור</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(mod);
+    
+    // Populate
+    window.loadCoordCityCheckboxes('edit-coord-cities', coordCities);
+    const selG = document.getElementById('edit-coord-g-sel');
+    coordGardenIds.forEach(gid => {
+      const gObj = window.G(gid);
+      if(gObj && gObj.id) window.addCoordGarden(gObj.id, gObj.name, 'edit-coord-g-sel');
+    });
+    
+  } catch(e) {
+    showToast('❌ ' + e.message);
+  }
+};
+
+window.saveCoordPermissions = async function(uid) {
+  const btn = document.querySelector('#coord-perm-modal .bg');
+  if(btn) { btn.disabled=true; btn.textContent='שומר...'; }
+  
+  try {
+    const coordCities = Array.from(document.querySelectorAll('#edit-coord-cities input:checked')).map(cb => cb.value);
+    const coordGardenIds = Array.from(document.querySelectorAll('#edit-coord-g-sel [data-gid]')).map(el => Number(el.dataset.gid));
+    
+    const q=await _authQ();
+    
+    // Also explicitly ensure permCoord=true since they are a coordinator
+    await fetch(`${USERS_DB}/${uid}.json${q}`, {
+      method: 'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ coordCities, coordGardenIds, permCoord: true })
+    });
+    
+    showToast('✅ הרשאות נשמרו בהצלחה');
+    document.getElementById('coord-perm-modal').remove();
+    await loadUsersList();
+  } catch(e) {
+    showToast('❌ שגיאה בשמירה: ' + e.message);
+    if(btn) { btn.disabled=false; btn.textContent='💾 שמור'; }
+  }
+};
+
+// Also call loadCoordCityCheckboxes when admin UI is shown
+const originalInitUsersUI = window._initUsersUI;
+window._initUsersUI = function() {
+  if(originalInitUsersUI) originalInitUsersUI();
+  window.loadCoordCityCheckboxes();
+};
+
 
 async function changeUserRole(uid, newRole){
   if(!_isAdmin()) return;
