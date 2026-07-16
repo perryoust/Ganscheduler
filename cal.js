@@ -2121,7 +2121,6 @@ function toggleTableCity(cityId) {
 }
 window.toggleTableCity = toggleTableCity;
 
-// Global Exports for HTML event handlers
 window.setListSubView = setListSubView;
 window.setRangeSubView = setRangeSubView;
 window.setView = setView;
@@ -2132,3 +2131,19 @@ window.goDate = goDate;
 window.jumpToDay = jumpToDay;
 window.clearCal = clearCal;
 window.renderCal = renderCal;
+
+// Expose internal render functions for coordinator_app.js
+window.calRenderMakeupsTop  = renderMakeupsTop;
+window.calRenderRangeView   = renderRangeView;
+window.calRenderNormalWeek  = renderNormalWeek;
+window.calRenderMonth       = renderMonth;
+window.calRenderNormalDay   = renderNormalDay;
+window.calFilterEvs         = (f, fromDs, toDs) => {
+  // Minimal re-implementation of filterE for coordinator use
+  return (window.SCH||[]).filter(s=>{
+    if(!s.d||!s.g) return false;
+    if(s.d < fromDs || s.d > toDs) return false;
+    if(f && f.gids && f.gids.length && !f.gids.map(Number).includes(Number(s.g))) return false;
+    return true;
+  });
+};

@@ -176,14 +176,21 @@ onAuthStateChanged(auth, async (user) => {
       if (authOverlay) authOverlay.style.display = 'none';
       // Data must load first, then activate
       if (typeof window._onAuthReady === 'function') window._onAuthReady();
-      // Give data a moment to load, then activate coordinator app
-      setTimeout(() => {
-        if (typeof window.activateCoordinatorApp === 'function') {
-          window.activateCoordinatorApp();
+      // Poll until GARDENS and SCH are loaded, then activate coordinator app
+      let _coordPollCount = 0;
+      const _coordPoll = setInterval(() => {
+        _coordPollCount++;
+        const gardensReady = window.GARDENS && window.GARDENS.length > 0;
+        const schReady = window.SCH !== undefined;
+        if (gardensReady && schReady || _coordPollCount >= 20) {
+          clearInterval(_coordPoll);
+          if (typeof window.activateCoordinatorApp === 'function') {
+            window.activateCoordinatorApp();
+          }
+          const sysLoad = document.getElementById('system-loading-overlay');
+          if (sysLoad) { sysLoad.style.opacity = '0'; setTimeout(()=>sysLoad.style.display='none',300); }
         }
-        const sysLoad = document.getElementById('system-loading-overlay');
-        if (sysLoad) { sysLoad.style.opacity = '0'; setTimeout(()=>sysLoad.style.display='none',300); }
-      }, 1500);
+      }, 300);
       return;
     }
 

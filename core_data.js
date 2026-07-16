@@ -513,8 +513,9 @@ function _applyYearData(o){
     window.DataManager.cleanupDuplicates();
   }
 
-  // --- Coordinator Filtering ---
-  if (window.role === 'coordinator' && window.coordManagerId && window.managers) {
+  // --- Coordinator Filtering (OLD SYSTEM only) ---
+  // permCoord coordinators use the new city-based system in coordinator_app.js
+  if (window.role === 'coordinator' && window.coordManagerId && window.managers && !window.permCoord) {
     const mgr = window.managers[window.coordManagerId];
     if (mgr && mgr.gardenIds) {
       // Ensure gardenIds is an array
