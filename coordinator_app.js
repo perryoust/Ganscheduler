@@ -385,7 +385,7 @@ window.renderCoordinatorView = function() {
         let ws = new Date(cd); ws.setHours(0,0,0,0);
         if (ws.getDay()===5) ws.setDate(ws.getDate()+2);
         else if (ws.getDay()===6) ws.setDate(ws.getDate()+1);
-        html = window.calRenderNormalWeek(coordEvs, ws, {});
+        html = window.calRenderNormalWeek(coordEvs, ws, { gids: Array.from(allowed) });
       } else {
         html = _coordFallbackWeek(coordEvs, cd);
       }
@@ -405,6 +405,31 @@ window.renderCoordinatorView = function() {
 
   // Post-render: ensure action buttons are hidden (safety net in addition to CSS)
   _coordHideActionButtons(container);
+
+  // Auto-expand logic specifically for the coordinator based on group mode
+  if (v === 'week' || v === 'month') {
+    setTimeout(() => {
+      // Always open city blocks to see the pairs/clusters list
+      container.querySelectorAll('.city-header-row').forEach(tr => tr.click());
+      
+      // If we are NOT in clusters mode (e.g., pairs), also open the individual pair rows by default
+      if (window._listGroupMode !== 'clusters') {
+        container.querySelectorAll('[class*="pair-hdr-"]').forEach(tr => tr.click());
+      }
+    }, 50);
+  } else if (v === 'day') {
+    setTimeout(() => {
+      // If we ARE in clusters mode, close the cluster blocks by default in daily view
+      if (window._listGroupMode === 'clusters') {
+        container.querySelectorAll('.standard-pair-card button[title="פתח/סגור תצוגה"]').forEach(btn => {
+           const span = btn.querySelector('span');
+           if (span && span.textContent.trim() === '-') {
+             btn.click();
+           }
+        });
+      }
+    }, 50);
+  }
 };
 
 // ─────────────────────────────────────────────────────────
@@ -422,6 +447,39 @@ function _coordHideActionButtons(container) {
   // Also hide WhatsApp/export/edit rows
   container.querySelectorAll('.cal-pair-bar').forEach(el => el.style.setProperty('display','none','important'));
 }
+
+// ─────────────────────────────────────────────────────────
+// Override jumpToDay for Coordinator View
+// ─────────────────────────────────────────────────────────
+const _origJumpToDay = window.jumpToDay;
+window.jumpToDay = function(ds) {
+  // If we are in the coordinator dashboard, handle navigation internally
+  const coordDash = document.getElementById('coordinator-dashboard');
+  if (coordDash && coordDash.style.display !== 'none' && window.coordState) {
+    window.coordState.cd = _cs2d(ds);
+    window.coordState.v = 'day';
+    // Update view buttons visually
+    document.querySelectorAll('.coord-view-btn').forEach(b => {
+      if (b.dataset.v === 'day') {
+        b.style.background = '#1565c0';
+        b.style.color = '#fff';
+      } else {
+        b.style.background = '#e3f2fd';
+        b.style.color = '#1565c0';
+      }
+    });
+    window.renderCoordinatorView();
+  } else {
+    // Admin dashboard fallback
+    if (typeof _origJumpToDay === 'function') {
+      _origJumpToDay(ds);
+    } else if (typeof window.setCalView === 'function') {
+      window.calD = _cs2d(ds);
+      window.setCalView('day');
+      if (window.renderCal) window.renderCal();
+    }
+  }
+};
 
 function _coordFallbackDay(evs, ds) {
   const dayEvs = evs.filter(s => s.d === ds);
@@ -462,16 +520,30 @@ function _coordRenderByCity(evs, ds) {
     const cityEvs = byCity[city];
     const pairedGids = new Set();
     const pairBlocks = [];
-    (window.pairs||[]).forEach(pair => {
-      if (window.isPairBroken && window.isPairBroken(pair.id, ds)) return;
+    
+    const isClusterMode = window._listGroupMode === 'clusters';
+    let groupSource = window.pairs || [];
+    if (isClusterMode) {
+      if (typeof window.getClusters === 'function') {
+        groupSource = window.getClusters().map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
+      } else if (typeof getClusters === 'function') {
+        groupSource = getClusters().map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
+      } else if (window.clusters) {
+        groupSource = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name,'he')).map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
+      }
+    }
+
+    groupSource.forEach(pair => {
+      if (!isClusterMode && window.isPairBroken && window.isPairBroken(pair.id, ds)) return;
       const pe = cityEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g)));
       if (!pe.length) return;
       pair.ids.forEach(id=>pairedGids.add(Number(id)));
       pairBlocks.push({pair, pe});
     });
+    
     let html = `<details class="city-accordion" open><summary style="background:${clr.solid};color:#fff;padding:8px 12px;font-weight:800">📍 ${city} (${cityEvs.length})</summary><div style="padding:8px;background:#f8fafc">`;
     if (window.ui && typeof window.ui.renderStandardPairCard === 'function') {
-      pairBlocks.forEach(({pair,pe}) => { html += window.ui.renderStandardPairCard(pair,pe,{ds,clr,context:'cal'}); });
+      pairBlocks.forEach(({pair,pe}) => { html += window.ui.renderStandardPairCard(pair,pe,{ds,clr,context:'cal',isCluster:isClusterMode}); });
       cityEvs.filter(s=>!pairedGids.has(Number(s.g))).forEach(s => {
         const g = typeof window.G==='function'?window.G(s.g):null;
         if (!g) return;

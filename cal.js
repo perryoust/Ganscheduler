@@ -928,8 +928,17 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter='', collapseAll=false){
     // --- Pairs/Clusters: Only intact groups ---
     const pairedGids=new Set();
     const pairBlocks=[];
-    const groupList = (window._listGroupMode === "clusters" && typeof window.getClusters === "function") ? window.getClusters().map(cl => ({...cl, ids: cl.gardenIds})) : (window.pairs || []);
     const isClusterMode = (window._listGroupMode === "clusters");
+    let groupList = window.pairs || [];
+    if (isClusterMode) {
+      if (typeof window.getClusters === 'function') {
+        groupList = window.getClusters().map(cl => ({...cl, ids: cl.gardenIds}));
+      } else if (typeof getClusters === 'function') {
+        groupList = getClusters().map(cl => ({...cl, ids: cl.gardenIds}));
+      } else if (window.clusters) {
+        groupList = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name,'he')).map(cl => ({...cl, ids: cl.gardenIds}));
+      }
+    }
     groupList.forEach(pair=>{
       if(!isClusterMode && window.isPairBroken(pair.id,ds)) return;
       const pairEvs=cityEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g)));
@@ -1044,8 +1053,21 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
           // --- זוגות: מיון לפי שם ואז לפי שעה ---
           const pairedGids=new Set();
           const pairBlocks=[];
-          window.pairs.forEach(pair=>{
-            if(window.isPairBroken(pair.id,ds)) return;
+
+          const isClusterMode = (window._listGroupMode === "clusters");
+          let groupList = window.pairs || [];
+          if (isClusterMode) {
+            if (typeof window.getClusters === 'function') {
+              groupList = window.getClusters().map(cl => ({...cl, ids: cl.gardenIds}));
+            } else if (typeof getClusters === 'function') {
+              groupList = getClusters().map(cl => ({...cl, ids: cl.gardenIds}));
+            } else if (window.clusters) {
+              groupList = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name,'he')).map(cl => ({...cl, ids: cl.gardenIds}));
+            }
+          }
+
+          groupList.forEach(pair=>{
+            if(!isClusterMode && window.isPairBroken(pair.id,ds)) return;
             const pairEvs=typeEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g)));
             if(!pairEvs.length) return;
             pairEvs.forEach(s => dateUsedIds.add(String(s.id)));
@@ -1059,7 +1081,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
           if(pairBlocks.length){
             html+=`<div class="pairs-list-layout" style="margin-bottom:8px">`;
             pairBlocks.forEach(({pair,pairEvs})=>{
-              html+=window.ui.renderStandardPairCard(pair,pairEvs,{ds,clr,context:'cal'});
+              html+=window.ui.renderStandardPairCard(pair,pairEvs,{ds,clr,context:'cal', isCluster: isClusterMode});
             });
             html+=`</div>`;
           }
@@ -1328,8 +1350,20 @@ function renderNormalDay(evs,ds){
   const pairedGids=new Set();
   const pairsByCity={};
 
-  window.pairs.forEach(pair=>{
-    if(window.isPairBroken(pair.id,ds)) return;
+  const isClusterMode = (window._listGroupMode === "clusters");
+  let groupList = window.pairs || [];
+  if (isClusterMode) {
+    if (typeof window.getClusters === 'function') {
+      groupList = window.getClusters().map(cl => ({...cl, ids: cl.gardenIds}));
+    } else if (typeof getClusters === 'function') {
+      groupList = getClusters().map(cl => ({...cl, ids: cl.gardenIds}));
+    } else if (window.clusters) {
+      groupList = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name,'he')).map(cl => ({...cl, ids: cl.gardenIds}));
+    }
+  }
+
+  groupList.forEach(pair=>{
+    if(!isClusterMode && window.isPairBroken(pair.id,ds)) return;
     const pairEvs=others.filter(s => pair.ids.map(Number).includes(Number(s.g)));
     if(!pairEvs.length) return;
     
@@ -1344,8 +1378,8 @@ function renderNormalDay(evs,ds){
 
   const allSoloEvs = others.filter(s => !pairedGids.has(Number(s.g)));
 
-  window.pairs.forEach(pair=>{
-    if(!window.isPairBroken(pair.id,ds)) return;
+  groupList.forEach(pair=>{
+    if(!isClusterMode && window.isPairBroken(pair.id,ds)) return;
     const pairEvs=others.filter(s=>pair.ids.map(Number).includes(Number(s.g)));
     if(!pairEvs.length) return;
     pairEvs.forEach(s=>{
@@ -1365,7 +1399,7 @@ function renderNormalDay(evs,ds){
       if(!cityCards[city]) cityCards[city]=[];
       pairsByCity[city].forEach(({pair,pairEvs})=>{
         pairEvs.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
-        const ch = window.ui.renderStandardPairCard(pair,pairEvs,{ds,clr,context:'cal'});
+        const ch = window.ui.renderStandardPairCard(pair,pairEvs,{ds,clr,context:'cal', isCluster: isClusterMode});
         cityCards[city].push({name:pair.name, html:ch});
       });
     });
@@ -1424,9 +1458,17 @@ function renderNormalWeek(evs, ws, f){
   const byCity = {};
   function ensureCity(city){ if(!byCity[city]) byCity[city]={pairs:[],solos:[]}; }
 
-  const groupSource = window._listGroupMode === 'clusters' && typeof window.getClusters === 'function' 
-    ? window.getClusters().map(c => ({id: c.id, name: c.name, ids: c.gardenIds || []}))
-    : (window.pairs || []);
+  const isClusterMode = window._listGroupMode === 'clusters';
+  let groupSource = window.pairs || [];
+  if (isClusterMode) {
+    if (typeof window.getClusters === 'function') {
+      groupSource = window.getClusters().map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
+    } else if (typeof getClusters === 'function') {
+      groupSource = getClusters().map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
+    } else if (window.clusters) {
+      groupSource = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name,'he')).map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
+    }
+  }
 
   groupSource.forEach(pair=>{
     const myGids=pair.ids.filter(gid=>gids.map(Number).includes(Number(gid)));
@@ -1750,8 +1792,20 @@ function renderCalList(evs, mDate){
 
       // window.pairs (skip already-clustered if window.clusters-first mode)
       const pairGroups=[];
-      window.pairs.forEach(pair=>{
-        if(isPairBroken&&isPairBroken(pair.id,ds)) return;
+      const isClusterMode2 = (_gmode2 === 'clusters' || _gmode2 === 'window.clusters');
+      let groupListMonth = window.pairs || [];
+      if (isClusterMode2) {
+        if (typeof window.getClusters === 'function') {
+          groupListMonth = window.getClusters().map(cl => ({...cl, ids: cl.gardenIds}));
+        } else if (typeof getClusters === 'function') {
+          groupListMonth = getClusters().map(cl => ({...cl, ids: cl.gardenIds}));
+        } else if (window.clusters) {
+          groupListMonth = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name,'he')).map(cl => ({...cl, ids: cl.gardenIds}));
+        }
+      }
+
+      groupListMonth.forEach(pair=>{
+        if(!isClusterMode2 && isPairBroken&&isPairBroken(pair.id,ds)) return;
         const isM = s => !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
         const pairEvs=cityEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g))&&!clusteredGidsC.has(Number(s.g)));
         if(!pairEvs.length) return;
@@ -1772,7 +1826,8 @@ function renderCalList(evs, mDate){
         h += window.ui.renderStandardPairCard(pair, pairEvs, {
           ds: ds,
           clr: clr,
-          context: 'cal'
+          context: 'cal',
+          isCluster: isClusterMode2
         });
       });
 

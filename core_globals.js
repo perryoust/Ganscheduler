@@ -218,7 +218,11 @@ window.ui = {
 
     // Header Buttons
     const toggleId = 'pair-toggle-' + Math.random().toString(36).substr(2, 9);
-    const collapseBtn = `<button class="btn bo bsm" onclick="event.stopPropagation(); const t = document.getElementById('${toggleId}'); const icon = this.querySelector('span'); if(t.style.display==='none'){t.style.display='block';icon.textContent='-';}else{t.style.display='none';icon.textContent='+';}" style="font-size:1.1rem !important; height:24px !important; min-height:24px !important; width:24px !important; padding:0 !important; border:1px solid ${clr.solid} !important; background:#fff !important; color:${clr.solid} !important; font-weight:700 !important; border-radius:4px !important; display:inline-flex !important; align-items:center !important; justify-content:center !important;" title="פתח/סגור תצוגה"><span style="font-family:monospace;font-weight:bold;line-height:1;margin-top:-2px">-</span></button>`;
+    const isCoord = window._userRole !== 'admin';
+    const defaultClosed = isCoord && opts.isCluster;
+    const defaultIcon = defaultClosed ? '+' : '-';
+    const defaultDisplay = defaultClosed ? 'none' : 'block';
+    const collapseBtn = `<button class="btn bo bsm" onclick="event.stopPropagation(); const t = document.getElementById('${toggleId}'); const icon = this.querySelector('span'); if(t.style.display==='none'){t.style.display='block';icon.textContent='-';}else{t.style.display='none';icon.textContent='+';}" style="font-size:1.1rem !important; height:24px !important; min-height:24px !important; width:24px !important; padding:0 !important; border:1px solid ${clr.solid} !important; background:#fff !important; color:${clr.solid} !important; font-weight:700 !important; border-radius:4px !important; display:inline-flex !important; align-items:center !important; justify-content:center !important;" title="פתח/סגור תצוגה"><span style="font-family:monospace;font-weight:bold;line-height:1;margin-top:-2px">${defaultIcon}</span></button>`;
     
     const weekBtn = `<button class="btn bo bsm" style="font-size:0.65rem !important; height:24px !important; min-height:24px !important; line-height:22px !important; padding:0 6px !important; border:1px solid #1e88e5 !important; background:#fff !important; color:#1e88e5 !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important;" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','week','${isSolo ? gids[0] : ''}')">📅 שבוע</button>`;
     const monthBtn = `<button class="btn bo bsm" style="font-size:0.65rem !important; height:24px !important; min-height:24px !important; line-height:22px !important; padding:0 6px !important; border:1px solid #1e88e5 !important; background:#fff !important; color:#1e88e5 !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important;" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','month','${isSolo ? gids[0] : ''}')">📅 חודש</button>`;
@@ -320,7 +324,7 @@ window.ui = {
           ${editBtn} ${weekBtn} ${monthBtn} ${expBtn}
         </div>
       </div>
-      <div id="${toggleId}" class="tw overflow-auto">
+      <div id="${toggleId}" class="tw overflow-auto" style="display:${defaultDisplay}">
         <table class="w-full" style="border-collapse:collapse; font-size:var(--fs-small)">
           <thead>
           <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0; color:#64748b; font-weight:700; font-size:var(--fs-small)">
