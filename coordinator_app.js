@@ -400,12 +400,8 @@ window.renderCoordinatorView = function() {
     }
   });
 
-  // Show debug panel if no allowed gardens OR no events at all
-  if (!_dbgAllowed.size || !_dbgEvs.length) {
-    container.innerHTML = _coordDebugPanel(_dbgAllowed, _dbgEvs);
-  } else {
-    container.innerHTML = html;
-  }
+  // Ensure we output the rendered HTML
+  container.innerHTML = html;
 
   // Post-render: ensure action buttons are hidden (safety net in addition to CSS)
   _coordHideActionButtons(container);
@@ -425,42 +421,6 @@ function _coordHideActionButtons(container) {
   });
   // Also hide WhatsApp/export/edit rows
   container.querySelectorAll('.cal-pair-bar').forEach(el => el.style.setProperty('display','none','important'));
-}
-
-// ─────────────────────────────────────────────────────────
-// DEBUG PANEL — shown when no events found
-// ─────────────────────────────────────────────────────────
-function _coordDebugPanel(allowed, coordEvs) {
-  allowed = allowed || new Set();
-  coordEvs = coordEvs || [];
-  const sch       = window.SCH || [];
-  const gardens   = [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
-  const cities    = window.coordCities || [];
-  const scope     = window.coordClsScope || 'all';
-  const gids      = window.coordGardenIds || [];
-  const today     = _cd2s(new Date());
-  const todayEvs  = sch.filter(s => s.d === today);
-  const allowedEvs = sch.filter(s => allowed.has(Number(s.g)));
-  const sample    = sch.slice(0,3).map(s => `d=${s.d} g=${s.g}`).join(' | ');
-  const allowedGardens = gardens.filter(g => allowed.has(Number(g.id))).map(g=>g.name).slice(0,8);
-  
-  return `<div style="background:#fff;border-radius:8px;margin:12px;padding:16px;font-family:monospace;font-size:0.75rem;border:2px solid #e53e3e;color:#2d3748">
-    <div style="font-weight:800;color:#e53e3e;font-size:0.85rem;margin-bottom:10px">⚠️ אין שיבוצים — מידע אבחוני:</div>
-    <table style="width:100%;border-collapse:collapse">
-      <tr style="background:#f7fafc"><td style="padding:4px 8px;font-weight:700">coordCities</td><td style="padding:4px 8px">${JSON.stringify(cities)}</td></tr>
-      <tr><td style="padding:4px 8px;font-weight:700">coordClsScope</td><td style="padding:4px 8px">${scope}</td></tr>
-      <tr style="background:#f7fafc"><td style="padding:4px 8px;font-weight:700">coordGardenIds</td><td style="padding:4px 8px">${JSON.stringify(gids)}</td></tr>
-      <tr><td style="padding:4px 8px;font-weight:700">GARDENS loaded</td><td style="padding:4px 8px">${gardens.length}</td></tr>
-      <tr style="background:#f7fafc"><td style="padding:4px 8px;font-weight:700">SCH total</td><td style="padding:4px 8px">${sch.length}</td></tr>
-      <tr><td style="padding:4px 8px;font-weight:700">Allowed gardens</td><td style="padding:4px 8px;color:${allowed.size?'green':'red'}">${allowed.size} → [${allowedGardens.join(', ')}${allowed.size>8?'...':''}]</td></tr>
-      <tr style="background:#f7fafc"><td style="padding:4px 8px;font-weight:700">Events today (${today})</td><td style="padding:4px 8px">${todayEvs.length}</td></tr>
-      <tr><td style="padding:4px 8px;font-weight:700">Events for allowed gardens</td><td style="padding:4px 8px;color:${allowedEvs.length?'green':'red'}">${allowedEvs.length}</td></tr>
-      <tr style="background:#f7fafc"><td style="padding:4px 8px;font-weight:700">coordEvs passed to render</td><td style="padding:4px 8px;color:${coordEvs.length?'green':'red'}">${coordEvs.length}</td></tr>
-      <tr><td style="padding:4px 8px;font-weight:700">SCH sample (first 3)</td><td style="padding:4px 8px">${sample || 'ריק'}</td></tr>
-      <tr style="background:#f7fafc"><td style="padding:4px 8px;font-weight:700">calRenderRangeView</td><td style="padding:4px 8px">${typeof window.calRenderRangeView}</td></tr>
-      <tr><td style="padding:4px 8px;font-weight:700">window.gcls</td><td style="padding:4px 8px">${typeof window.gcls}</td></tr>
-    </table>
-  </div>`;
 }
 
 function _coordFallbackDay(evs, ds) {

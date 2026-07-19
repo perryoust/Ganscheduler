@@ -191,9 +191,14 @@ function _isAdmin(){
   return window._fbUser?.uid === ADMIN_UID || email === 'perry@ganmanager.app' || dn === 'perry';
 }
 
-// Show users button only for admin
 window._initUsersUI = function _initUsersUI(){
   const isAdm = _isAdmin();
+  
+  // Init Global Year Selector for admins
+  if (isAdm && window._initGlobalYearSelector) {
+    window._initGlobalYearSelector();
+  }
+  
   // Admin button in mode bar
   const adminModeBtn = document.getElementById('modeBtn-admin');
   if(adminModeBtn) adminModeBtn.style.display = isAdm ? '' : 'none';
@@ -902,6 +907,77 @@ window.deleteYearPrompt = async function() {
     _spAlertDialog(`✅ התקופה ${idToDelete} נמחקה בהצלחה!`);
   } catch(e) {
     _spAlertDialog('❌ שגיאה במחיקה: ' + e.message);
+  }
+};
+
+// ══════════════════════════════════════════════════════
+// Set Global Active Year for Non-Admins
+// ══════════════════════════════════════════════════════
+window._initGlobalYearSelector = async function() {
+  const sel = document.getElementById('global-year-selector');
+  if (!sel) return;
+  try {
+    const metaStr = window._safeLS.getItem('ganv5_meta');
+    if (!metaStr) return;
+    const meta = JSON.parse(metaStr);
+    const yearKeys = Object.keys(meta.years || {});
+    sel.innerHTML = '';
+    yearKeys.forEach(k => {
+      const v = meta.years[k];
+      const opt = document.createElement('option');
+      opt.value = k;
+      opt.textContent = v.name || k;
+      sel.appendChild(opt);
+    });
+    
+    // Fetch current global year
+    const user = window._fbUser;
+    if (user) {
+      const token = await user.getIdToken(false);
+      const url = `https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/years_meta/currentYear.json?auth=${token}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const globalYear = await res.json();
+        if (globalYear) sel.value = globalYear;
+      }
+    }
+  } catch(e) {}
+};
+
+window.setGlobalActiveYear = async function() {
+  const sel = document.getElementById('global-year-selector');
+  if (!sel) return;
+  const targetYear = sel.value;
+  if (!targetYear) return;
+  
+  if (!confirm(`האם אתה בטוח שברצונך להגדיר את ${sel.options[sel.selectedIndex].text} כשנה הפעילה עבור כל הרכזים ועובדי השטח במערכת?`)) return;
+  
+  try {
+    const user = window._fbUser;
+    if (!user) throw new Error('משתמש לא מחובר');
+    const token = await user.getIdToken(false);
+    
+    // Update years_meta/currentYear
+    const url = `https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/years_meta/currentYear.json?auth=${token}`;
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(targetYear)
+    });
+    
+    if (res.ok) {
+      const statusEl = document.getElementById('global-year-status');
+      if (statusEl) {
+        statusEl.innerHTML = '✅ נשמר בהצלחה!';
+        setTimeout(() => statusEl.innerHTML = '', 3000);
+      }
+      _spAlertDialog(`✅ השנה הגלובלית עודכנה בהצלחה ל-${sel.options[sel.selectedIndex].text}! כל הרכזים והעובדים יראו כעת שנה זו כברירת מחדל.`);
+    } else {
+      const err = await res.text();
+      throw new Error(`שגיאת הרשאות או שרת: ${res.status} ${err}`);
+    }
+  } catch(e) {
+    _spAlertDialog('❌ שגיאה בעדכון השנה הגלובלית: ' + e.message);
   }
 };
 

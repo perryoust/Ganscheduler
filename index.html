@@ -18,7 +18,7 @@
   <!-- CSS standard variables and design system -->
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
-  <link rel="stylesheet" href="styles.css?v=107.88" />
+  <link rel="stylesheet" href="styles.css?v=107.90" />
   <script>
     window.APP_VERSION = '107.88';
   </script>
@@ -289,6 +289,17 @@
             <button class="btn bg" onclick="createNewUser()" id="nu-create-btn"
               style="background:#6a1b9a;border-color:#6a1b9a">👤 צור משתמש</button>
             <div id="nu-status" style="font-size:.78rem;margin-top:8px"></div>
+          </div>
+
+          <!-- Global Year Setting for Non-Admins -->
+          <div style="background:#e3f2fd; border: 1px solid #90caf9; border-radius:8px; padding:12px; margin-bottom:16px;">
+             <div style="font-weight:bold; color:#1565c0; margin-bottom:8px;">🌍 שנת לימודים גלובלית (רכזים ועובדים)</div>
+             <div style="font-size:0.85rem; color:#455a64; margin-bottom:10px;">בחר את השנה שתהיה פעילה כברירת מחדל עבור כל רכזי ועובדי השטח.</div>
+             <div style="display:flex; align-items:center; gap:8px;">
+               <select id="global-year-selector" class="inp" style="min-width:200px; border-color:#1565c0; background:#fff; padding:6px; border-radius:6px;"></select>
+               <button class="btn bg bsm" onclick="window.setGlobalActiveYear()" style="background:#1565c0; border:none; padding:6px 12px;">שמור בחירה</button>
+             </div>
+             <div id="global-year-status" style="font-size:0.75rem; color:#1565c0; margin-top:6px; font-weight:bold;"></div>
           </div>
 
           <!-- Users list -->
@@ -3566,28 +3577,28 @@
     </div>
 
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-     <script src="utils.js?v=107.86"></script>
-    <script src="data_manager.js?v=107.86"></script>
-    <script src="data.js?v=107.86"></script>
-    <script src="firebase.js?v=107.86"></script>
-    <script src="invoices.js?v=107.86"></script>
-    <script src="suppliers.js?v=107.86"></script>
-    <script src="cal.js?v=107.86"></script>
-    <script src="activity.js?v=107.86"></script>
-    <script src="sched.js?v=107.86"></script>
-    <script src="gardens.js?v=107.86"></script>
-    <script src="export_v107.js?v=107.86"></script>
-    <script src="backup.js?v=107.86"></script>
-    <script src="admin.js?v=107.86"></script>
-    <script src="import_export.js?v=107.86"></script>
-    <script src="core_globals.js?v=107.86"></script>
-    <script src="core_data.js?v=107.86"></script>
-    <script src="core_dash.js?v=107.86"></script>
-    <script src="worker_tasks.js?v=107.86"></script>
-    <script src="coordinator_app.js?v=107.86"></script>
-    <script src="core_app.js?v=107.86"></script>
-    <script src="qa_simulator.js?v=107.86"></script>
-    <script src="todo.js?v=107.86"></script>
+     <script src="utils.js?v=107.90"></script>
+    <script src="data_manager.js?v=107.90"></script>
+    <script src="data.js?v=107.90"></script>
+    <script src="firebase.js?v=107.90"></script>
+    <script src="invoices.js?v=107.90"></script>
+    <script src="suppliers.js?v=107.90"></script>
+    <script src="cal.js?v=107.90"></script>
+    <script src="activity.js?v=107.90"></script>
+    <script src="sched.js?v=107.90"></script>
+    <script src="gardens.js?v=107.90"></script>
+    <script src="export_v107.js?v=107.90"></script>
+    <script src="backup.js?v=107.90"></script>
+    <script src="admin.js?v=107.90"></script>
+    <script src="import_export.js?v=107.90"></script>
+    <script src="core_globals.js?v=107.90"></script>
+    <script src="core_data.js?v=107.90"></script>
+    <script src="core_dash.js?v=107.90"></script>
+    <script src="worker_tasks.js?v=107.90"></script>
+    <script src="coordinator_app.js?v=107.90"></script>
+    <script src="core_app.js?v=107.90"></script>
+    <script src="qa_simulator.js?v=107.90"></script>
+    <script src="todo.js?v=107.90"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
       console.log('Ganscheduler Architecture: v' + (window.APP_VERSION || '103.82') + ' Ready');
