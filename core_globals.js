@@ -78,6 +78,7 @@ window.ui = {
    * Renders a standardized activity row for tables (8 columns).
    */
   renderActivityRow: function(s, opts = {}) {
+    const isCoord = window._userRole !== 'admin';
     const g = window.G(s.g) || {};
     const supBase = window.supNameLabel ? window.supNameLabel(s.a) : window.supBase(s.a);
     const supAct = s.act || window.supAct(s.a) || '—';
@@ -197,10 +198,12 @@ window.ui = {
       </td>`;
 
     // 9. Actions (פעולות)
-    rowHtml += `
-      <td class="p-8 text-center" onclick="event.stopPropagation()">
-        ${window.ui.renderQuickActionBtns(s)}
-      </td>`;
+    if (!isCoord) {
+      rowHtml += `
+        <td class="p-8 text-center" onclick="event.stopPropagation()">
+          ${window.ui.renderQuickActionBtns(s)}
+        </td>`;
+    }
 
     rowHtml += `</tr>`;
     return rowHtml;
