@@ -18,7 +18,7 @@
   <!-- CSS standard variables and design system -->
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
-  <link rel="stylesheet" href="styles.css?v=107.98" />
+  <link rel="stylesheet" href="styles.css?v=108.13" />
   <script>
     window.APP_VERSION = '107.88';
   </script>
@@ -1620,32 +1620,38 @@
       <!-- Content Body -->
       <div style="padding: 20px; max-height: 80vh; overflow-y: auto;">
 
-      <!-- City Selection Row -->
-      <div style="display:grid;grid-template-columns:1fr;gap:9px;margin-bottom:10px">
-        <div class="fg"><label>עיר *</label><select id="ns-city" onchange="nsRefG()" style="width:100%">
+      <!-- City & Preset Selection Row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
+        <div class="fg" id="ns-city-wrap"><label>עיר *</label><select id="ns-city" onchange="nsRefG()" style="width:100%">
             <option value="">בחר עיר</option>
+          </select></div>
+        <div class="fg"><label>בחר אשכול / זוג</label><select id="ns-grp-preset" onchange="nsLoadGrpPreset()" style="width:100%">
+            <option value="">בחר קבוצה (אשכול או זוג)</option>
           </select></div>
       </div>
 
-      <!-- Primary Garden & Time Row -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
+      <!-- Primary Garden Row (Visible only when no cluster selected) -->
+      <div id="ns-primary-g-wrap" style="display:grid;grid-template-columns:1fr;gap:9px;margin-bottom:10px">
         <div class="fg"><label>גן *</label><select id="ns-g" onchange="nsGChg()" style="width:100%">
             <option value="">בחר צהרון</option>
           </select></div>
-        <div class="fg"><label>שעה</label>
-          <input type="time" id="ns-time" style="width:100%">
-          <div id="ns-partner-time-hint"
-            style="font-size:.67rem;color:#e65100;margin-top:2px;display:none;font-weight:700"></div>
-        </div>
+      </div>
+      <!-- Hidden backward-compatible inputs -->
+      <div style="display:none;">
+        <input type="time" id="ns-time" style="width:100%">
       </div>
 
       <!-- Synergy Partners Table Wrapper -->
       <div id="ns-g2-choice-wrap" style="display:none;margin-bottom:10px">
         <div id="ns-g2-choice-container"></div>
       </div>
+      <div id="ns-partner-time-hint" style="font-size:.67rem;color:#e65100;margin-bottom:10px;display:none;font-weight:700"></div>
       
-      <!-- Hidden backward-compatible inputs to prevent JS exceptions -->
-      <input type="hidden" id="ns-time-g2" value="">
+      <!-- Hidden backward-compatible inputs -->
+      <div style="display:none;">
+        <input type="time" id="ns-time" style="width:100%">
+        <input type="hidden" id="ns-time-g2" value="">
+      </div>
 
 
       <!-- Schedule type tabs -->
@@ -2611,6 +2617,10 @@
           style="width:100%" placeholder="לדוג': חנוכה, פורים, ראש השנה..."></div>
       <div class="fg" style="margin-bottom:8px"><label>תיאור (אופציונלי)</label><input type="text" id="cl-desc"
           style="width:100%" placeholder="תיאור קצר..."></div>
+      <div style="display:flex; gap:10px; margin-bottom:8px">
+        <div class="fg" style="flex:1"><label>תקף מ- (אופציונלי, לזמני)</label><input type="date" id="cl-valid-from" style="width:100%"></div>
+        <div class="fg" style="flex:1"><label>תקף עד- (אופציונלי)</label><input type="date" id="cl-valid-to" style="width:100%"></div>
+      </div>
       <div class="row" style="margin-bottom:6px;align-items:center">
         <b style="font-size:.8rem;color:#1a237e;flex:1">צהרונים באשכול</b>
         <div class="fg"><label>סנן עיר</label><select id="cl-city" onchange="clFilterCity()" style="min-width:110px">
@@ -3577,28 +3587,28 @@
     </div>
 
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-     <script src="utils.js?v=107.98"></script>
-    <script src="data_manager.js?v=107.98"></script>
-    <script src="data.js?v=107.98"></script>
-    <script src="firebase.js?v=107.98"></script>
-    <script src="invoices.js?v=107.98"></script>
-    <script src="suppliers.js?v=107.98"></script>
-    <script src="cal.js?v=107.98"></script>
-    <script src="activity.js?v=107.98"></script>
-    <script src="sched.js?v=107.98"></script>
-    <script src="gardens.js?v=107.98"></script>
-    <script src="export_v107.js?v=107.98"></script>
-    <script src="backup.js?v=107.98"></script>
-    <script src="admin.js?v=107.98"></script>
-    <script src="import_export.js?v=107.98"></script>
-    <script src="core_globals.js?v=107.98"></script>
-    <script src="core_data.js?v=107.98"></script>
-    <script src="core_dash.js?v=107.98"></script>
-    <script src="worker_tasks.js?v=107.98"></script>
-    <script src="coordinator_app.js?v=107.98"></script>
-    <script src="core_app.js?v=107.98"></script>
-    <script src="qa_simulator.js?v=107.98"></script>
-    <script src="todo.js?v=107.98"></script>
+     <script src="utils.js?v=108.13"></script>
+    <script src="data_manager.js?v=108.13"></script>
+    <script src="data.js?v=108.13"></script>
+    <script src="firebase.js?v=108.13"></script>
+    <script src="invoices.js?v=108.13"></script>
+    <script src="suppliers.js?v=108.13"></script>
+    <script src="cal.js?v=108.13"></script>
+    <script src="activity.js?v=108.13"></script>
+    <script src="sched.js?v=108.13"></script>
+    <script src="gardens.js?v=108.13"></script>
+    <script src="export_v107.js?v=108.13"></script>
+    <script src="backup.js?v=108.13"></script>
+    <script src="admin.js?v=108.13"></script>
+    <script src="import_export.js?v=108.13"></script>
+    <script src="core_globals.js?v=108.13"></script>
+    <script src="core_data.js?v=108.13"></script>
+    <script src="core_dash.js?v=108.13"></script>
+    <script src="worker_tasks.js?v=108.13"></script>
+    <script src="coordinator_app.js?v=108.13"></script>
+    <script src="core_app.js?v=108.13"></script>
+    <script src="qa_simulator.js?v=108.13"></script>
+    <script src="todo.js?v=108.13"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
       console.log('Ganscheduler Architecture: v' + (window.APP_VERSION || '103.82') + ' Ready');

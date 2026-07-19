@@ -544,7 +544,7 @@ window.spRowStatusChg = function(id, st) {
       return;
   }
   
-  const pair = window.getGardenGroup ? window.getGardenGroup(ev.g) : window.gardenPair(ev.g);
+  const pair = window.getGardenGroup ? window.getGardenGroup(ev.g, ev.d) : window.gardenPair(ev.g, ev.d);
   let syncPartner = false;
   if(pair) {
     const pGid = pair.ids.find(pid => Number(pid) !== Number(ev.g));
@@ -775,7 +775,7 @@ window.openSP = function(id) {
 
   try { // ← try-catch to prevent silent failures
   const g=window.G(s.g);
-  const spPair = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
+  const spPair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
   const allSups = window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : [];
   var initialActs = window.getSupActs ? window.getSupActs(s.a) : [];
 
@@ -1231,7 +1231,7 @@ function deleteRecurSeries(id) {
     ? window.SCH.filter(x => x._recId === s._recId && x.d >= s.d && x.g === s.g)
     : window.SCH.filter(x => window.supBase(x.a) === window.supBase(s.a) && x.d >= s.d && x.g === s.g);
   
-  const pair = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
+  const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
 
   const syncChk = document.getElementById('rr-sync-pair') || document.getElementById('rr-sync');
   const sync = syncChk ? syncChk.checked : true;
@@ -1310,7 +1310,7 @@ function deleteSingleActivity(id) {
   if(i >= 0) window.SCH.splice(i, 1);
   
   // Also check for partner sync
-  const pair = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
+  const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
   if(pair) {
     const partnerGids = pair.ids.filter(pid => Number(pid) !== Number(s.g));
     const partnerEvs = [];
@@ -1414,7 +1414,7 @@ function deleteSingleActivity(id) {
   }
   
   // Also check for partner sync
-  const pair = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
+  const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
   if(pair) {
     const pEvs = pair.ids.filter(pid => Number(pid) !== Number(s.g)).map(pid => window.findPartnerActivity ? window.findPartnerActivity(pid, s.d, s.a) : null).filter(Boolean);
     if(pEvs.length > 0) {
@@ -1548,7 +1548,7 @@ function saveReplaceRecur(id) {
     const seriesIdsToRemove = new Set([s._recId]);
     const partnerGids = [];
     if (sync) {
-      const pair = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
+      const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
       if (pair) {
         pair.ids.forEach(pid => {
           if (Number(pid) !== Number(s.g)) {
@@ -1605,7 +1605,7 @@ function saveReplaceRecur(id) {
           });
           // Add for partners if synced
           if (sync) {
-            const pair = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
+            const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
             if (pair) {
               pair.ids.forEach((pid, idx) => {
                 if (Number(pid) !== Number(s.g)) {
@@ -2164,7 +2164,7 @@ function openPostpone(id){
     // Set up Synergy UI
     const synWrap = document.getElementById('post-synergy-wrap');
     if(synWrap) {
-      const pair = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
+      const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
       const currentTimes = {};
       const currentGrps = {};
       currentTimes[s.g] = window.fT(s.t) || '';
@@ -2175,8 +2175,8 @@ function openPostpone(id){
           const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === pId && ps.st!=='can' && window.supBase(ps.a)===window.supBase(s.a));
           if(pEv) { currentTimes[pId] = window.fT(pEv.t||s.t); currentGrps[pId] = pEv.grp || 1; }
         });
+        synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'post', currentTimes, currentGrps, s.d);
       }
-      synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'post', currentTimes, currentGrps);
     }
     
     document.getElementById('postm').classList.add('open');
@@ -2196,7 +2196,7 @@ function openCopy(id){
   // Set up Synergy UI
   const synWrap = document.getElementById('copy-synergy-wrap');
   if(synWrap) {
-    const pair = window.getGardenGroup ? window.getGardenGroup(s.g) : window.gardenPair(s.g);
+    const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
     const currentTimes = {};
     const currentGrps = {};
     currentTimes[s.g] = window.fT(s.t) || '';
@@ -2208,7 +2208,7 @@ function openCopy(id){
         if(pEv) { currentTimes[pId] = window.fT(pEv.t||s.t); currentGrps[pId] = pEv.grp || 1; }
       });
     }
-    synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'copy', currentTimes, currentGrps);
+    synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'copy', currentTimes, currentGrps, s.d);
   }
   
   document.getElementById('copym').style.display='flex';

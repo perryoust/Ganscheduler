@@ -380,7 +380,7 @@ window.calRefSup = function() {
 };
 
 window.calRefCl = function() {
-  const clsItems = [{id: '__all__', name: '— הכל (גנים באשכולות) —'}, ...window.getClusters().map(c => ({id: c.name, name: c.name}))].sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  const clsItems = [{id: '__all__', name: '— הכל (גנים באשכולות) —'}, ...window.getClusters().map(c => ({id: c.name, name: c.name}))].sort((a,b)=>a.name.localeCompare(b.name, 'he', { numeric: true }));
   window.initCalMultiSelect('cl', clsItems, item => item.name);
 };
 
@@ -929,14 +929,14 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter='', collapseAll=false){
     const pairedGids=new Set();
     const pairBlocks=[];
     const isClusterMode = (window._listGroupMode === "clusters");
-    let groupList = window.pairs || [];
+    let groupList = typeof window.getPairs === 'function' ? window.getPairs(ds, ds) : (window.pairs || []);
     if (isClusterMode) {
       if (typeof window.getClusters === 'function') {
-        groupList = window.getClusters().map(cl => ({...cl, ids: cl.gardenIds}));
+        groupList = window.getClusters(ds, ds).map(cl => ({...cl, ids: cl.gardenIds}));
       } else if (typeof getClusters === 'function') {
-        groupList = getClusters().map(cl => ({...cl, ids: cl.gardenIds}));
+        groupList = getClusters(ds, ds).map(cl => ({...cl, ids: cl.gardenIds}));
       } else if (window.clusters) {
-        groupList = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name,'he')).map(cl => ({...cl, ids: cl.gardenIds}));
+        groupList = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name, 'he', { numeric: true })).map(cl => ({...cl, ids: cl.gardenIds}));
       }
     }
     groupList.forEach(pair=>{
@@ -949,7 +949,7 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter='', collapseAll=false){
       pairBlocks.push({pair,pairEvs,earliest});
     });
     // sort pair blocks by name alphabetically
-    pairBlocks.sort((a,b)=>a.pair.name.localeCompare(b.pair.name,'he'));
+    pairBlocks.sort((a,b)=>a.pair.name.localeCompare(b.pair.name, 'he', { numeric: true }));
     if(pairBlocks.length){
       h+=`<div class="pairs-list-layout" style="margin-bottom:8px">`;
       pairBlocks.forEach(({pair,pairEvs})=>{
@@ -1055,29 +1055,30 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
           const pairBlocks=[];
 
           const isClusterMode = (window._listGroupMode === "clusters");
-          let groupList = window.pairs || [];
-          if (isClusterMode) {
-            if (typeof window.getClusters === 'function') {
-              groupList = window.getClusters().map(cl => ({...cl, ids: cl.gardenIds}));
-            } else if (typeof getClusters === 'function') {
-              groupList = getClusters().map(cl => ({...cl, ids: cl.gardenIds}));
-            } else if (window.clusters) {
-              groupList = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name,'he')).map(cl => ({...cl, ids: cl.gardenIds}));
+          if(!window._disableGrouping){
+            let groupList = (typeof window.getPairs === 'function' ? window.getPairs(ds, ds) : (window.pairs||[]));
+            if (isClusterMode) {
+              if (typeof window.getClusters === 'function') {
+                groupList = window.getClusters(ds, ds).map(cl => ({...cl, ids: cl.gardenIds}));
+              } else if (typeof getClusters === 'function') {
+                groupList = getClusters(ds, ds).map(cl => ({...cl, ids: cl.gardenIds}));
+              } else if (window.clusters) {
+                groupList = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name, 'he', { numeric: true })).map(cl => ({...cl, ids: cl.gardenIds}));
+              }
             }
+            groupList.forEach(pair=>{
+              if(!isClusterMode && window.isPairBroken(pair.id,ds)) return;
+              const pairEvs=typeEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g)));
+              if(!pairEvs.length) return;
+              pairEvs.forEach(s => dateUsedIds.add(String(s.id)));
+              pairEvs.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+              pair.ids.forEach(id=>pairedGids.add(id));
+              const earliest=pairEvs.map(s=>s.t||'99:99').sort()[0];
+              pairBlocks.push({pair,pairEvs,earliest});
+            });
           }
-
-          groupList.forEach(pair=>{
-            if(!isClusterMode && window.isPairBroken(pair.id,ds)) return;
-            const pairEvs=typeEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g)));
-            if(!pairEvs.length) return;
-            pairEvs.forEach(s => dateUsedIds.add(String(s.id)));
-            pairEvs.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
-            pair.ids.forEach(id=>pairedGids.add(id));
-            const earliest=pairEvs.map(s=>s.t||'99:99').sort()[0];
-            pairBlocks.push({pair,pairEvs,earliest});
-          });
           // sort pair blocks by name alphabetically
-          pairBlocks.sort((a,b)=>a.pair.name.localeCompare(b.pair.name,'he'));
+          pairBlocks.sort((a,b)=>a.pair.name.localeCompare(b.pair.name, 'he', { numeric: true }));
           if(pairBlocks.length){
             html+=`<div class="pairs-list-layout" style="margin-bottom:8px">`;
             pairBlocks.forEach(({pair,pairEvs})=>{
@@ -1170,7 +1171,7 @@ function renderClusterDay(evs, ds, clusterName){
           const clKey=gClusters.length?gClusters[0].name:'ללא אשכול';
           (clusterMap[clKey]=clusterMap[clKey]||[]).push(s);
         });
-        Object.entries(clusterMap).sort((a,b)=>a[0].localeCompare(b[0],'he')).forEach(([clName,clEvs])=>{
+        Object.entries(clusterMap).sort((a,b)=>a[0].localeCompare(b[0], 'he', { numeric: true })).forEach(([clName,clEvs])=>{
           const sorted=[...clEvs].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
           const clObj = clName !== 'ללא אשכול' ? window.getClusters().find(c => c.name.trim() === clName.trim()) : null;
           const clGids = clEvs.map(s => s.g);
@@ -1287,7 +1288,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
           const clKey=(window.gardenClusters(s.g)[0]||{}).name||'ללא אשכול';
           (clusterMap[clKey]=clusterMap[clKey]||[]).push(s);
         });
-        Object.entries(clusterMap).sort((a,b)=>a[0].localeCompare(b[0],'he')).forEach(([clName,clEvs])=>{
+        Object.entries(clusterMap).sort((a,b)=>a[0].localeCompare(b[0], 'he', { numeric: true })).forEach(([clName,clEvs])=>{
           const clObj = clName !== 'ללא אשכול' ? window.getClusters().find(c => c.name.trim() === clName.trim()) : null;
           const clGids = clEvs.map(s => s.g);
           
@@ -1351,14 +1352,14 @@ function renderNormalDay(evs,ds){
   const pairsByCity={};
 
   const isClusterMode = (window._listGroupMode === "clusters");
-  let groupList = window.pairs || [];
+  let groupList = (typeof window.getPairs === 'function' ? window.getPairs(ds, ds) : (window.pairs||[]));
   if (isClusterMode) {
     if (typeof window.getClusters === 'function') {
-      groupList = window.getClusters().map(cl => ({...cl, ids: cl.gardenIds}));
+      groupList = window.getClusters(ds, ds).map(cl => ({...cl, ids: cl.gardenIds}));
     } else if (typeof getClusters === 'function') {
-      groupList = getClusters().map(cl => ({...cl, ids: cl.gardenIds}));
+      groupList = getClusters(ds, ds).map(cl => ({...cl, ids: cl.gardenIds}));
     } else if (window.clusters) {
-      groupList = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name,'he')).map(cl => ({...cl, ids: cl.gardenIds}));
+      groupList = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name, 'he', { numeric: true })).map(cl => ({...cl, ids: cl.gardenIds}));
     }
   }
 
@@ -1413,7 +1414,7 @@ function renderNormalDay(evs,ds){
     });
 
     Object.keys(cityCards).sort().forEach(city=>{
-      cityCards[city].sort((a,b)=>a.name.localeCompare(b.name,'he'));
+      cityCards[city].sort((a,b)=>a.name.localeCompare(b.name, 'he', { numeric: true }));
       const cards = cityCards[city].map(c=>c.html);
       if(!cards || !cards.length) return;
       html += `<details class="city-accordion">
@@ -1459,14 +1460,14 @@ function renderNormalWeek(evs, ws, f){
   function ensureCity(city){ if(!byCity[city]) byCity[city]={pairs:[],solos:[]}; }
 
   const isClusterMode = window._listGroupMode === 'clusters';
-  let groupSource = window.pairs || [];
+  let groupSource = (typeof window.getPairs === 'function' ? window.getPairs(window.d2s(ws), window.d2s(we)) : (window.pairs||[]));
   if (isClusterMode) {
     if (typeof window.getClusters === 'function') {
-      groupSource = window.getClusters().map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
+      groupSource = window.getClusters(window.d2s(ws), window.d2s(we)).map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
     } else if (typeof getClusters === 'function') {
-      groupSource = getClusters().map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
+      groupSource = getClusters(window.d2s(ws), window.d2s(we)).map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
     } else if (window.clusters) {
-      groupSource = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name,'he')).map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
+      groupSource = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name, 'he', { numeric: true })).map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
     }
   }
 
@@ -1486,7 +1487,7 @@ function renderNormalWeek(evs, ws, f){
 
   const sortedCities=Object.keys(byCity).sort((a,b)=>a.localeCompare(b,'he'));
   sortedCities.forEach(city=>{
-    byCity[city].pairs.sort((a,b)=>a.pair.name.localeCompare(b.pair.name,'he'));
+    byCity[city].pairs.sort((a,b)=>a.pair.name.localeCompare(b.pair.name, 'he', { numeric: true }));
     byCity[city].solos.sort((a,b)=>(window.G(a).name||'').localeCompare(window.G(b).name||'','he'));
   });
   let html = '<div class="tw-sticky">'
@@ -1793,14 +1794,14 @@ function renderCalList(evs, mDate){
       // window.pairs (skip already-clustered if window.clusters-first mode)
       const pairGroups=[];
       const isClusterMode2 = (_gmode2 === 'clusters' || _gmode2 === 'window.clusters');
-      let groupListMonth = window.pairs || [];
+      let groupListMonth = (typeof window.getPairs === 'function' ? window.getPairs(window.d2s(ws), window.d2s(we)) : (window.pairs||[]));
       if (isClusterMode2) {
         if (typeof window.getClusters === 'function') {
-          groupListMonth = window.getClusters().map(cl => ({...cl, ids: cl.gardenIds}));
+          groupListMonth = window.getClusters(window.d2s(ws), window.d2s(we)).map(cl => ({...cl, ids: cl.gardenIds}));
         } else if (typeof getClusters === 'function') {
-          groupListMonth = getClusters().map(cl => ({...cl, ids: cl.gardenIds}));
+          groupListMonth = getClusters(window.d2s(ws), window.d2s(we)).map(cl => ({...cl, ids: cl.gardenIds}));
         } else if (window.clusters) {
-          groupListMonth = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name,'he')).map(cl => ({...cl, ids: cl.gardenIds}));
+          groupListMonth = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name, 'he', { numeric: true })).map(cl => ({...cl, ids: cl.gardenIds}));
         }
       }
 
@@ -2201,4 +2202,4 @@ window.calFilterEvs         = (f, fromDs, toDs) => {
     if(f && f.gids && f.gids.length && !f.gids.map(Number).includes(Number(s.g))) return false;
     return true;
   });
-};
+};

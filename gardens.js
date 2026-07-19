@@ -590,7 +590,44 @@ async function deleteHoliday(id){
   holidays=holidays.filter(h=>h.id!==id);
   await save(true); renderHolidays(); refresh();
 }
-function getClusters(){return Object.values(window.clusters||{}).sort((a,b)=>a.name.localeCompare(b.name,'he'));}
+function getClusters(rangeStart = null, rangeEnd = null){
+  let arr = Object.values(window.clusters||{});
+  if(rangeStart){
+    const rStart = rangeStart;
+    const rEnd = rangeEnd || rangeStart;
+    arr = arr.filter(cl => {
+      if(cl.validFrom && rEnd < cl.validFrom) return false;
+      if(cl.validTo && rStart > cl.validTo) return false;
+      return true;
+    });
+  }
+  return arr.sort((a,b)=> {
+    const aTemp = a.validFrom ? 1 : 0;
+    const bTemp = b.validFrom ? 1 : 0;
+    if (aTemp !== bTemp) return bTemp - aTemp; // Temporary first
+    return (a.name||'').localeCompare(b.name||'', 'he', { numeric: true });
+  });
+}
+
+window.getPairs = function(rangeStart = null, rangeEnd = null) {
+  let arr = window.pairs || [];
+  if(rangeStart){
+    const rStart = rangeStart;
+    const rEnd = rangeEnd || rangeStart;
+    arr = arr.filter(p => {
+      if(p.validFrom && rEnd < p.validFrom) return false;
+      if(p.validTo && rStart > p.validTo) return false;
+      return true;
+    });
+  }
+  return arr.sort((a,b)=> {
+    const aTemp = a.validFrom ? 1 : 0;
+    const bTemp = b.validFrom ? 1 : 0;
+    if (aTemp !== bTemp) return bTemp - aTemp; // Temporary first
+    return (a.name||'').localeCompare(b.name||'', 'he', { numeric: true });
+  });
+};
+
 function gardenClusters(gid){return getClusters().filter(cl=>(cl.gardenIds||[]).includes(gid));}
 const PAIR_COLORS=['#1565c0','#2e7d32','#6a1b9a','#00695c','#c62828','#e65100','#37474f','#4527a0'];
 function pairColorIdx(pairId){
@@ -806,11 +843,13 @@ function renderClusters(){
   body.innerHTML=h;
 }
 
-function openEditCluster(clId,preSelectGid){
-  const cl=clId?(window.clusters||{})[clId]:null;
+function openEditCluster(clId,preSelectGid,fakeCl=null){
+  const cl=fakeCl || (clId?(window.clusters||{})[clId]:null);
   (document.getElementById('clm-title')||{}).textContent =cl?`✏️ עריכת אשכול: ${cl.name}`:'➕ אשכול חדש';
   document.getElementById('cl-name').value=cl?cl.name:'';
   document.getElementById('cl-desc').value=cl?cl.desc||'':'';
+  document.getElementById('cl-valid-from').value=cl?cl.validFrom||'':'';
+  document.getElementById('cl-valid-to').value=cl?cl.validTo||'':'';
   document.getElementById('cl-name').dataset.editId=clId||'';
   const cityEl=document.getElementById('cl-city');
   cityEl.innerHTML='<option value="">כל הערים</option>';
@@ -818,6 +857,11 @@ function openEditCluster(clId,preSelectGid){
   clFillGardens(cl);
   if(preSelectGid){const cb=document.querySelector('#cl-gardens input[value="'+preSelectGid+'"]');if(cb)cb.checked=true;}
   document.getElementById('clm').classList.add('open');
+}
+function openClusterSchedule(clId) {
+  if (window.openNewSched) {
+    window.openNewSched({ grpId: 'cl_' + clId, tab: 'once' });
+  }
 }
 function clFillGardens(cl){
   const city=document.getElementById('cl-city').value;
@@ -841,7 +885,9 @@ function saveClusterModal(){
   const editId=document.getElementById('cl-name').dataset.editId;
   const gardenIds=[...document.querySelectorAll('#cl-gardens input:checked')].map(cb=>parseInt(cb.value));
   const id=editId||('cl_'+Date.now());
-  window.clusters[id]={id,name,desc:document.getElementById('cl-desc').value.trim(),gardenIds};
+  const validFrom = document.getElementById('cl-valid-from').value;
+  const validTo = document.getElementById('cl-valid-to').value;
+  window.clusters[id]={id,name,desc:document.getElementById('cl-desc').value.trim(),gardenIds,validFrom,validTo};
   save();CM('clm');refresh();refreshClusterDrops();
 }
 function deleteCluster(clId){

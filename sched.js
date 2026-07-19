@@ -56,6 +56,7 @@ function openNewSched(gid, opts={}){
   (document.getElementById('nsm-title')||{}).textContent='➕ שיבוץ חדש';
 
   // Reset all fields
+  window.nsCustomPartners = new Set();
   const ns_date=document.getElementById('ns-date');
   if(ns_date) ns_date.value=opts.date||window.d2s(window.calD);
   const ns_time=document.getElementById('ns-time');
@@ -116,6 +117,16 @@ function openNewSched(gid, opts={}){
     document.getElementById('ns-g').innerHTML='<option value="">בחר עיר תחילה</option>';
   }
 
+  // Populate Group/Cluster preset initially
+  window.nsUpdateGrpPreset(opts.date || window.d2s(new Date()));
+  if (opts.grpId) {
+    const grpSel = document.getElementById('ns-grp-preset');
+    if (grpSel) {
+      grpSel.value = opts.grpId;
+      setTimeout(() => window.nsLoadGrpPreset(), 50);
+    }
+  }
+
   // Set tab and times
   nsSetTab(opts.tab||'once');
   if(opts.time) document.getElementById('ns-time').value = window.fT(opts.time);
@@ -165,9 +176,10 @@ function nsRefG(){
 }
 function nsCheckPair(gid){
   if(!gid) return;
+  const date = document.getElementById('ns-date')?.value || window.d2s(new Date());
   const g=window.G(gid);
   document.getElementById('ns-grp-wrap').style.display='block';
-  const pair=window.gardenPair(gid);
+  const pair=window.gardenPair(gid, date);
   const choiceWrap = document.getElementById('ns-g2-choice-wrap');
   
   if(pair && pair.ids.length >= 2){
@@ -198,44 +210,71 @@ function nsCheckPair(gid){
 function renderPartnerTable(){
   const gid=parseInt(document.getElementById('ns-g').value);
   const date=document.getElementById('ns-date').value;
-  const pair=window.gardenPair(gid);
+  const pair=window.gardenPair(gid, date);
   const g2ChoiceContainer = document.getElementById('ns-g2-choice-container');
   if(!g2ChoiceContainer) return;
 
-  if(!pair || pair.ids.length < 2){
-    g2ChoiceContainer.innerHTML = '';
-    return;
-  }
+  const allIdsSet = new Set();
+  if (gid) allIdsSet.add(Number(gid));
 
-  const otherIds = pair.ids.map(Number).filter(oid => oid !== Number(gid));
+  const infoDiv = document.getElementById('ns-pair-info-notice');
+
+  if (window.nsCustomPartners && window.nsCustomPartners.size > 0) {
+    window.nsCustomPartners.forEach(id => {
+      allIdsSet.add(Number(id));
+    });
+    if (infoDiv) infoDiv.style.display = 'none';
+  } else {
+    if(pair && pair.ids) {
+      pair.ids.map(Number).forEach(id => allIdsSet.add(id));
+    }
+    if (infoDiv) infoDiv.style.display = 'block';
+  }
+  
+  const allIds = Array.from(allIdsSet);
+
   let rowsHtml = '';
   
-  otherIds.forEach(pId => {
-    const pG = window.G(pId);
-    if(!pG) return;
-    const ev = window.SCH.find(s => s.g === pId && s.d === date && s.st !== 'can');
-    
-    const stLabel = ev ? (window.stLabel ? window.stLabel(ev) : ev.st) : '—';
-    const stClass = ev ? (window.stClass ? window.stClass(ev) : '') : '';
-    const sup = ev ? window.supBase(ev.a) : '—';
-    const act = ev ? (window.supAct(ev.a) || ev.act || '—') : '—';
-    const time = ev ? (window.fT ? window.fT(ev.t) : ev.t) : '—';
-    const type = ev ? (ev.tp || 'חוג') : '—';
+  if(!allIds.length){
+    rowsHtml = '<tr><td colspan="7" style="text-align:center;padding:12px;color:#777">אין גנים שותפים כרגע</td></tr>';
+  } else {
+    allIds.forEach(pId => {
+      const isPrimary = Number(pId) === Number(gid);
+      const pG = window.G(pId);
+      if(!pG) return;
+      const ev = window.SCH.find(s => s.g === pId && s.d === date && s.st !== 'can');
+      
+      const stLabel = ev ? (window.stLabel ? window.stLabel(ev) : ev.st) : '—';
+      const stClass = ev ? (window.stClass ? window.stClass(ev) : '') : '';
+      const sup = ev ? window.supBase(ev.a) : '—';
+      const act = ev ? (window.supAct(ev.a) || ev.act || '—') : '—';
+      const type = ev ? (ev.tp || 'חוג') : '—';
+      
+      const timeVal = ev ? (window.fT ? window.fT(ev.t) : ev.t) : (document.getElementById('ns-time')?.value || '');
+      
+      let timeDisplay;
+      let chkDisplay;
+      
+      if (isPrimary) {
+        timeDisplay = ev ? `<span style="font-weight:600">${timeVal}</span>` : `<input type="time" id="ns-primary-time-table" class="ns-syn-time" data-gid="${pId}" value="${timeVal}" style="width:70px;font-size:.7rem;padding:2px" onchange="document.getElementById('ns-time').value = this.value">`;
+        chkDisplay = `<input type="checkbox" checked disabled style="width:18px;height:18px;accent-color:#1565c0" title="גן ראשי - תמיד נכלל">`;
+      } else {
+        timeDisplay = ev ? `<span style="font-weight:600">${timeVal}</span>` : `<input type="time" class="ns-syn-time" data-gid="${pId}" value="${timeVal}" style="width:70px;font-size:.7rem;padding:2px">`;
+        chkDisplay = `<input type="checkbox" id="ns-syn-chk-${pId}" class="ns-syn-chk" value="${pId}" style="width:18px;height:18px;accent-color:#1565c0" checked>`;
+      }
 
-    const timeVal = ev ? (window.fT ? window.fT(ev.t) : ev.t) : (document.getElementById('ns-time')?.value || '');
-    const timeDisplay = ev ? `<span style="font-weight:600">${timeVal}</span>` : `<input type="time" class="ns-syn-time" data-gid="${pId}" value="${timeVal}" style="width:70px;font-size:.7rem;padding:2px">`;
-
-    rowsHtml += `
-      <tr class="${stClass}">
-        <td style="text-align:center"><input type="checkbox" id="ns-syn-chk-${pId}" class="ns-syn-chk" value="${pId}" style="width:18px;height:18px;accent-color:#1565c0" checked></td>
-        <td style="font-weight:800;color:#1a237e">${pG.name}</td>
-        <td>${timeDisplay}</td>
-        <td style="font-weight:600">${sup}</td>
-        <td>${act}</td>
-        <td>${type}</td>
-        <td>${stLabel}</td>
-      </tr>`;
-  });
+      rowsHtml += `
+        <tr class="${stClass}">
+          <td style="text-align:center">${chkDisplay}</td>
+          <td style="font-weight:800;color:#1a237e">${pG.name}</td>
+          <td>${timeDisplay}</td>
+          <td style="font-weight:600">${sup}</td>
+          <td>${act}</td>
+          <td>${type}</td>
+          <td>${stLabel}</td>
+        </tr>`;
+    });
+  }
 
   g2ChoiceContainer.innerHTML = `
     <div style="font-size:0.75rem;font-weight:700;color:#546e7a;margin-bottom:8px">🔗 גנים שותפים לסנכרון (בחר לשיבוץ מקביל):</div>
@@ -256,8 +295,168 @@ function renderPartnerTable(){
           ${rowsHtml}
         </tbody>
       </table>
+      <div style="padding:8px; border-top:1px solid #e0e0e0; background:#fff">
+        <div style="font-size:0.7rem; color:#546e7a; margin-bottom:4px; font-weight:bold">➕ הוסף גנים/בתי ספר נוספים לסנכרון:</div>
+        <div style="display:flex; flex-direction:column; gap:4px; position:relative;">
+          <div onclick="document.getElementById('ns-custom-cb-wrap').style.display=document.getElementById('ns-custom-cb-wrap').style.display==='none'?'block':'none'" style="font-size:0.75rem; padding:4px; border:1px solid #ccc; border-radius:4px; background:#fff; cursor:pointer; display:flex; justify-content:space-between">
+            <span>בחר גנים (לחץ לפתיחה)...</span>
+            <span>▼</span>
+          </div>
+          <div id="ns-custom-cb-wrap" style="display:none; background:#fff; border:1px solid #ccc; max-height:200px; overflow-y:auto; margin-top:4px; border-radius:4px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.1)">
+            <div style="position:sticky; top:0; z-index:10; background:#eee; padding:6px; display:flex; justify-content:space-between; border-bottom:1px solid #ccc">
+               <button type="button" onclick="window.nsAddCustomGardens()" style="background:#1565c0; color:#fff; border:none; border-radius:4px; padding:4px 12px; font-size:0.75rem; cursor:pointer; font-weight:bold; box-shadow:0 1px 3px rgba(0,0,0,0.3)">➕ הוסף מסומנים</button>
+               <button type="button" onclick="document.getElementById('ns-custom-cb-wrap').style.display='none'" style="cursor:pointer; font-size:0.8rem; border:none; background:transparent">❌ סגור</button>
+            </div>
+            ${window.nsGenerateAllGardensCheckboxes ? window.nsGenerateAllGardensCheckboxes() : ''}
+          </div>
+        </div>
+      </div>
+      <div style="padding:8px; border-top:1px solid #e0e0e0; background:#f9fbe7">
+        <label style="font-size:0.75rem; color:#33691e; margin-bottom:4px; font-weight:bold; display:block">🔗 שמירת סנכרון זה לתצוגה מקובצת ביומן:</label>
+        <select id="ns-save-group-type" onchange="document.getElementById('ns-save-group-name').style.display=this.value==='none'?'none':'block'" style="width:100%; font-size:0.75rem; padding:4px; border:1px solid #ccc; border-radius:4px">
+          <option value="none">אל תשמור כקבוצה (סנכרון פעילות בלבד)</option>
+          <option value="pair_temp">זוג חד-פעמי (לתאריך זה בלבד)</option>
+          <option value="pair_perm">זוג קבוע</option>
+          <option value="cluster_temp">אשכול חד-פעמי (לתאריך זה בלבד)</option>
+          <option value="cluster_perm">אשכול קבוע</option>
+        </select>
+        <input type="text" id="ns-save-group-name" placeholder="שם הקבוצה (אופציונלי)" style="display:none; width:100%; margin-top:6px; font-size:0.75rem; padding:4px; border:1px solid #ccc; border-radius:4px;">
+      </div>
     </div>`;
 }
+
+window.nsGenerateAllGardensCheckboxes = function() {
+  const allGardens = [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+  let h = '';
+  const byCity = {};
+  const seenIds = new Set();
+  
+  allGardens.forEach(g => {
+    if(!g || !g.id || seenIds.has(g.id)) return;
+    seenIds.add(g.id);
+    const c = g.city || 'ללא עיר';
+    if(!byCity[c]) byCity[c]=[];
+    byCity[c].push(g);
+  });
+  
+  const mainGid = parseInt(document.getElementById('ns-g')?.value) || 0;
+  
+  Object.keys(byCity).sort().forEach(c => {
+    byCity[c].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
+    h += `<div style="font-weight:bold; font-size:0.75rem; background:#e0e0e0; padding:4px; margin-top:2px; color:#333; position:sticky; top:32px">${c}</div>`;
+    byCity[c].forEach(g => {
+      const isMain = mainGid === parseInt(g.id);
+      h += `
+        <label style="display:flex; align-items:center; padding:4px 6px; font-size:0.75rem; cursor:${isMain?'not-allowed':'pointer'}; gap:6px; border-bottom:1px solid #f0f0f0; background:${isMain?'#f9f9f9':'#fff'}">
+          <input type="checkbox" value="${g.id}" class="ns-add-custom-cb" style="cursor:${isMain?'not-allowed':'pointer'}; width:16px; height:16px" ${isMain ? 'disabled' : ''}>
+          <span style="${isMain?'color:#999':''}">${g.name}</span>
+        </label>
+      `;
+    });
+  });
+  return h;
+};
+
+window.nsAddCustomGardens = function() {
+  const cbs = document.querySelectorAll('.ns-add-custom-cb:checked:not(:disabled)');
+  if(!cbs.length) return window.spAlert('לא נבחרו גנים להוספה. אנא סמן גנים ברשימה ואז לחץ הוסף.');
+  const mainGid = parseInt(document.getElementById('ns-g').value);
+  if(!window.nsCustomPartners) window.nsCustomPartners = new Set();
+  
+  cbs.forEach(cb => {
+    const newGid = Number(cb.value);
+    if(newGid !== mainGid) window.nsCustomPartners.add(newGid);
+    cb.checked = false; 
+  });
+  
+  const wrap = document.getElementById('ns-custom-cb-wrap');
+  if(wrap) wrap.style.display='none';
+  window.renderPartnerTable();
+};
+
+// Initial render once module loads
+setTimeout(() => {
+  if(document.getElementById('nsm')) {
+    // Other event listeners if needed
+  }
+}, 500);
+
+window.nsLoadGrpPreset = function() {
+  const val = document.getElementById('ns-grp-preset').value;
+  const primaryWrap = document.getElementById('ns-primary-g-wrap');
+  const cityWrap = document.getElementById('ns-city-wrap');
+
+  if (val) {
+    if (primaryWrap) primaryWrap.style.display = 'none';
+    if (cityWrap) cityWrap.style.display = 'none';
+  } else {
+    if (primaryWrap) primaryWrap.style.display = 'grid';
+    if (cityWrap) cityWrap.style.display = 'block';
+    window.nsCustomPartners = new Set();
+    window.nsCheckPair(document.getElementById('ns-g').value);
+    return;
+  }
+  
+  const parts = val.split('_');
+  let gardenIds = [];
+  const d = document.getElementById('ns-date')?.value || window.d2s(new Date());
+  
+  if (parts[0] === 'pair') {
+     const idx = parseInt(parts[1]);
+     const ps = typeof window.getPairs === 'function' ? window.getPairs(d, d) : (window.pairs || []);
+     const p = ps[idx];
+     if (p) gardenIds = p.ids.map(Number);
+  } else if (parts[0] === 'cl') {
+     const clId = parts.slice(1).join('_');
+     const cls = typeof window.getClusters === 'function' ? window.getClusters(d, d) : [];
+     const cl = cls.find(c => c.id === clId);
+     if (cl) gardenIds = cl.gardenIds.map(Number);
+  }
+  
+  if (gardenIds.length > 0) {
+     const mainGid = gardenIds[0];
+     const g = window.G(mainGid);
+     if (g) {
+       document.getElementById('ns-city').value = g.city;
+       window.nsRefG();
+       setTimeout(() => {
+         document.getElementById('ns-g').value = mainGid;
+         window.nsCustomPartners = new Set(gardenIds);
+         window.nsCheckPair(mainGid);
+       }, 50);
+     }
+  }
+};
+
+window.nsUpdateGrpPreset = function(d) {
+  const grpSel = document.getElementById('ns-grp-preset');
+  if (!grpSel) return;
+  const currentVal = grpSel.value;
+  grpSel.innerHTML = '<option value="">בחר קבוצה (אשכול או זוג)</option>';
+  
+  // Add clusters (valid for this date)
+  const cls = typeof window.getClusters === 'function' ? window.getClusters(d, d) : [];
+  if (cls.length > 0) {
+    const gOpt = document.createElement('optgroup');
+    gOpt.label = 'אשכולות';
+    cls.forEach(c => gOpt.innerHTML += `<option value="cl_${c.id}">${c.name}</option>`);
+    grpSel.appendChild(gOpt);
+  }
+  
+  // Add pairs
+  const ps = typeof window.getPairs === 'function' ? window.getPairs(d, d) : (window.pairs || []);
+  if (ps.length > 0) {
+    const gOpt = document.createElement('optgroup');
+    gOpt.label = 'זוגות גנים';
+    ps.forEach((p, idx) => gOpt.innerHTML += `<option value="pair_${idx}">${p.name || 'זוג '+(idx+1)}</option>`);
+    grpSel.appendChild(gOpt);
+  }
+  
+  // Restore value if it still exists
+  if (currentVal && Array.from(grpSel.options).some(o => o.value === currentVal)) {
+    grpSel.value = currentVal;
+  }
+};
 
 function nsShowFreeDays(gid){
   window.showFreeDaysForMakeup('ns-free-wrap', gid, (ds) => {
@@ -269,12 +468,12 @@ function nsShowFreeDays(gid){
   });
 }
 
-
-
 function nsDateChg(){
   const gid=parseInt(document.getElementById('ns-g').value);
   const date=document.getElementById('ns-date').value;
   
+  if (date) window.nsUpdateGrpPreset(date);
+
   // Re-render partner table to show their status on the new date
   renderPartnerTable();
   
@@ -446,6 +645,35 @@ async function saveNewSched(){
         window.SCH.push({...newSched,id:loopId+(idx+1)*10,g:syn.g,t:syn.t||time,nt:notes});
       });
       totalScheduled++;
+    }
+  }
+
+  const groupType = document.getElementById('ns-save-group-type')?.value;
+  if(groupType && groupType !== 'none') {
+    const mainGid = parseInt(document.getElementById('ns-g').value);
+    const chks = document.querySelectorAll('.ns-syn-chk:checked');
+    const gids = [mainGid];
+    chks.forEach(c => gids.push(parseInt(c.value)));
+    
+    if (groupType.startsWith('pair') && gids.length !== 2) {
+      window.spAlert('בחרת לשמור כזוג, אבל יש ' + gids.length + ' גנים מסומנים. הקבוצה לא נשמרה ביומן. (השיבוץ עצמו כן נשמר)');
+    } else if (gids.length >= 2) {
+      const isTemp = groupType.endsWith('temp');
+      const isCluster = groupType.startsWith('cluster');
+      const validDate = isTemp ? date : '';
+      const customName = document.getElementById('ns-save-group-name')?.value.trim();
+      const defaultName = isCluster ? 'אשכול' : 'זוג';
+      const finalName = customName || (defaultName + (isTemp ? (' (' + window.fD(date) + ')') : ''));
+      
+      if (isCluster) {
+        const id = 'cl_' + Date.now();
+        window.clusters = window.clusters || {};
+        window.clusters[id] = { id, name: finalName, desc: '', gardenIds: gids, validFrom: validDate, validTo: validDate };
+      } else {
+        const id = 'p_' + Date.now();
+        window.pairs = window.pairs || [];
+        window.pairs.push({ id, name: finalName, ids: gids, validFrom: validDate, validTo: validDate });
+      }
     }
   }
 

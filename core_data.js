@@ -773,40 +773,34 @@ function toHebDate(ds) {
 function hebM(d){return['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'][d.getMonth()]+' '+d.getFullYear()}
 function td(){return d2s(new Date())}
 function cities(){return[...new Set(GARDENS.map(g=>g.city))].sort()}
-function gardenPair(gid){
+function gardenPair(gid, targetDate){
   const n=parseInt(gid);
   if ((window._listGroupMode === 'clusters' || window._dashTab === 'clusters') && typeof window.getClusters === 'function') {
-    const cls = window.getClusters();
+    const cls = targetDate ? window.getClusters(targetDate, targetDate) : window.getClusters();
     const cl = cls.find(c => (c.gardenIds || []).map(x=>parseInt(x)).includes(n));
     if (cl) return { id: cl.id, name: cl.name, ids: cl.gardenIds.map(x=>parseInt(x)) };
   }
-  return pairs.find(p=>p.ids.map(x=>parseInt(x)).includes(n))||null;
+  const pairsList = (targetDate && typeof window.getPairs === 'function') ? window.getPairs(targetDate, targetDate) : (window.pairs || []);
+  return pairsList.find(p=>p.ids.map(x=>parseInt(x)).includes(n))||null;
 }
-window.getGardenGroup = function(gid) {
+window.getGardenGroup = function(gid, targetDate = null) {
   const n = parseInt(gid);
   const isClusterMode = window._listGroupMode === 'clusters' || window._dashTab === 'clusters';
   
+  const cls = (targetDate && typeof window.getClusters === 'function') ? window.getClusters(targetDate, targetDate) : Object.values(window.clusters || {});
+  const pairsList = (targetDate && typeof window.getPairs === 'function') ? window.getPairs(targetDate, targetDate) : (window.pairs || []);
+
   if (isClusterMode) {
-    const clusters = window.clusters || {};
-    for (const cid in clusters) {
-      const cl = clusters[cid];
-      if ((cl.gardenIds || []).map(x => parseInt(x)).includes(n)) {
-        return { type: 'cluster', id: cid, ids: cl.gardenIds.map(x => parseInt(x)), name: cl.name };
-      }
-    }
+    const cl = cls.find(c => (c.gardenIds || []).map(x=>parseInt(x)).includes(n));
+    if (cl) return { type: 'cluster', id: cl.id || cl.name, ids: cl.gardenIds.map(x=>parseInt(x)), name: cl.name };
   }
 
-  const pair = (window.pairs || []).find(p => p.ids.map(x => parseInt(x)).includes(n));
+  const pair = pairsList.find(p => p.ids.map(x => parseInt(x)).includes(n));
   if (pair) return { type: 'pair', ...pair };
   
   if (!isClusterMode) {
-    const clusters = window.clusters || {};
-    for (const cid in clusters) {
-      const cl = clusters[cid];
-      if ((cl.gardenIds || []).map(x => parseInt(x)).includes(n)) {
-        return { type: 'cluster', id: cid, ids: cl.gardenIds.map(x => parseInt(x)), name: cl.name };
-      }
-    }
+    const cl = cls.find(c => (c.gardenIds || []).map(x=>parseInt(x)).includes(n));
+    if (cl) return { type: 'cluster', id: cl.id || cl.name, ids: cl.gardenIds.map(x=>parseInt(x)), name: cl.name };
   }
   
   return null;
