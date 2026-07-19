@@ -80,7 +80,7 @@ function _withCoordSCH(fn) {
   window.SCH           = filteredSCH;
   window._listGroupMode = window._coordGroupMode || 'pairs';
   try {
-    return fn(filteredSCH, allowed);
+    return fn(filteredSCH, gidFilter || allowed);
   } finally {
     window.SCH           = origSCH;
     window._listGroupMode = origMode;
@@ -146,7 +146,7 @@ window.initCoordinatorApp = function() {
             <div style="padding:8px 10px;display:flex;gap:8px;border-top:1px solid rgba(255,255,255,0.1)">
               <button onclick="window.coordSelectAll()" style="flex:1;background:rgba(255,255,255,0.2);border:none;border-radius:6px;color:#fff;padding:5px;font-size:0.75rem;cursor:pointer">בחר הכל</button>
               <button onclick="window.coordClearFilter()" style="flex:1;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:#fff;padding:5px;font-size:0.75rem;cursor:pointer">נקה</button>
-              <button onclick="window.renderCoordinatorView()" style="flex:1;background:rgba(100,200,100,0.3);border:none;border-radius:6px;color:#fff;padding:5px;font-size:0.75rem;cursor:pointer;font-weight:700">הצג</button>
+              <button onclick="window.renderCoordinatorView(); document.getElementById('coord-garden-panel').removeAttribute('open');" style="flex:1;background:rgba(100,200,100,0.3);border:none;border-radius:6px;color:#fff;padding:5px;font-size:0.75rem;cursor:pointer;font-weight:700">הצג</button>
             </div>
           </details>
         </div>
@@ -258,7 +258,7 @@ window.coordUpdateGardenLabel = function() {
 };
 
 window.coordSelectAll = function() {
-  document.querySelectorAll('.coord-g-cb').forEach(cb => cb.checked = false);
+  document.querySelectorAll('.coord-g-cb').forEach(cb => cb.checked = true);
   window.coordUpdateGardenLabel();
 };
 window.coordClearFilter = function() {
