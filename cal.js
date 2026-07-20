@@ -1167,7 +1167,7 @@ function renderClusterDay(evs, ds, clusterName){
         // Group by cluster within city type
         const clusterMap={};
         typeEvs.forEach(s=>{
-          const gClusters=window.gardenClusters(s.g);
+          const gClusters=window.gardenClusters(s.g, ds);
           const clKey=gClusters.length?gClusters[0].name:'ללא אשכול';
           (clusterMap[clKey]=clusterMap[clKey]||[]).push(s);
         });
@@ -1285,7 +1285,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
           <div class="city-accordion-content">`;
         const clusterMap={};
         cityEvs.forEach(s=>{
-          const clKey=(window.gardenClusters(s.g)[0]||{}).name||'ללא אשכול';
+          const clKey=(window.gardenClusters(s.g, ws)[0]||{}).name||'ללא אשכול';
           (clusterMap[clKey]=clusterMap[clKey]||[]).push(s);
         });
         Object.entries(clusterMap).sort((a,b)=>a[0].localeCompare(b[0], 'he', { numeric: true })).forEach(([clName,clEvs])=>{
@@ -1783,7 +1783,7 @@ function renderCalList(evs, mDate){
           context: 'cal'
         });
       };
-      const clAll=(typeof getClusters==='function'?getClusters():[]).filter(cl=>
+      const clAll=(typeof getClusters==='function'?getClusters(ds, ds):[]).filter(cl=>
         (cl.gardenIds||[]).some(gid=>cityEvs.some(s=>s.g===parseInt(gid))));
 
       if(_gmode2==='window.clusters'){
@@ -1794,12 +1794,12 @@ function renderCalList(evs, mDate){
       // window.pairs (skip already-clustered if window.clusters-first mode)
       const pairGroups=[];
       const isClusterMode2 = (_gmode2 === 'clusters' || _gmode2 === 'window.clusters');
-      let groupListMonth = (typeof window.getPairs === 'function' ? window.getPairs(window.d2s(ws), window.d2s(we)) : (window.pairs||[]));
+      let groupListMonth = (typeof window.getPairs === 'function' ? window.getPairs(ds, ds) : (window.pairs||[]));
       if (isClusterMode2) {
         if (typeof window.getClusters === 'function') {
-          groupListMonth = window.getClusters(window.d2s(ws), window.d2s(we)).map(cl => ({...cl, ids: cl.gardenIds}));
+          groupListMonth = window.getClusters(ds, ds).map(cl => ({...cl, ids: cl.gardenIds}));
         } else if (typeof getClusters === 'function') {
-          groupListMonth = getClusters(window.d2s(ws), window.d2s(we)).map(cl => ({...cl, ids: cl.gardenIds}));
+          groupListMonth = getClusters(ds, ds).map(cl => ({...cl, ids: cl.gardenIds}));
         } else if (window.clusters) {
           groupListMonth = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name, 'he', { numeric: true })).map(cl => ({...cl, ids: cl.gardenIds}));
         }
@@ -2039,7 +2039,7 @@ function renderRangeListView(evs, fromDs, toDs){
       };
 
       if(_gmode === 'window.clusters'){
-        (typeof getClusters === 'function' ? getClusters() : []).forEach(cl => _renderCl(cl));
+        (typeof getClusters === 'function' ? getClusters(ds, ds) : []).forEach(cl => _renderCl(cl));
       } else {
         const pairGroups = [];
         window.pairs.forEach(pair => {

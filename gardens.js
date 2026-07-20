@@ -628,7 +628,7 @@ window.getPairs = function(rangeStart = null, rangeEnd = null) {
   });
 };
 
-function gardenClusters(gid){return getClusters().filter(cl=>(cl.gardenIds||[]).includes(gid));}
+function gardenClusters(gid, ds = null){return getClusters(ds, ds).filter(cl=>(cl.gardenIds||[]).includes(gid));}
 const PAIR_COLORS=['#1565c0','#2e7d32','#6a1b9a','#00695c','#c62828','#e65100','#37474f','#4527a0'];
 function pairColorIdx(pairId){
   const idx=pairs.findIndex(p=>p.id===pairId);
@@ -1451,7 +1451,7 @@ function genExport(){
         const usedIds=new Set();
         
         const groupList = window._listGroupMode === 'clusters' ? 
-                          (typeof getClusters==='function' ? getClusters().map(cl => ({...cl, ids: cl.gardenIds})) : []) : 
+                          (typeof getClusters==='function' ? getClusters(date, date).map(cl => ({...cl, ids: cl.gardenIds})) : []) : 
                           pairs;
 
         groupList.forEach(pair=>{

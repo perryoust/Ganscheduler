@@ -305,7 +305,7 @@ window.dashBatchAction = async function(action) {
       
       // Sync to partners
       const pair = window.gardenPair(s.g);
-      const clusterArr = window.gardenClusters ? window.gardenClusters(s.g) : [];
+      const clusterArr = window.gardenClusters ? window.gardenClusters(s.g, s.d) : [];
       
       const allPartnerIds = new Set();
       if(pair) pair.ids.forEach(pid => allPartnerIds.add(Number(pid)));
@@ -1077,7 +1077,7 @@ window.openSP = function(id) {
       </div>
       ${(() => {
         if (isClusterMode) {
-          const clusterArr = window.gardenClusters ? window.gardenClusters(s.g) : [];
+          const clusterArr = window.gardenClusters ? window.gardenClusters(s.g, s.d) : [];
           const spCluster = clusterArr.length ? clusterArr[0] : null;
           if (spCluster && spCluster.gardenIds) {
             return '<div style="font-size:.72rem;color:#e65100;margin-top:12px;margin-bottom:8px;background:#fff9f0;padding:4px 8px;border-radius:4px;border:1px solid #ffe0b2;font-weight:700">תאריכים פנויים משותפים לכל האשכול (מידע בלבד):</div>' +
@@ -3121,7 +3121,7 @@ window.saveNohapQ = async function(){
   if (shouldSync) {
     const allPartnerIds = new Set();
     if (window._listGroupMode === 'clusters' && window.gardenClusters) {
-      const clusterArr = window.gardenClusters(s.g);
+      const clusterArr = window.gardenClusters(s.g, s.d);
       clusterArr.forEach(c => (c.gardenIds||[]).forEach(id => allPartnerIds.add(Number(id))));
     } else if (pair) {
       pair.ids.forEach(id => allPartnerIds.add(Number(id)));

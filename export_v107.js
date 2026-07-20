@@ -309,7 +309,12 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
           else if (holType)               fill = CLR.YELLOW;
 
           const supName = ev ? ((typeof window.supBase==='function'?window.supBase(ev.a):ev.a)||ev.a||'') : '';
-          const evTpLabel = ev ? (ev.tp||'חוג') : '';
+          let evTpLabel = ev ? (ev.tp||'חוג') : '';
+          if (evTpLabel === 'חוג') {
+            const rawCls = gObj.cls || '';
+            if (rawCls.includes('צהרון')) evTpLabel = 'חוג צהרון';
+            else evTpLabel = 'חוג בוקר';
+          }
           const actName  = ev ? (ev.act||(typeof window.supAct==='function'?window.supAct(ev.a):'')||'') : '';
           const colF     = ev ? (actName?supName+' - '+actName:supName) : '';
           const phone    = ev ? (ev.p||(typeof window.supEx!=='undefined'&&window.supEx[supName]?.ph1)||'') : '';
@@ -588,7 +593,12 @@ function buildStyledSheet(gardens, allEvs, year, month) {
         }
         if (ev) {
           const supName = window.supBase(ev.a) || ev.a || '';
-          const actType = ev.tp || 'חוג';
+          let actType = ev.tp || 'חוג';
+          if (actType === 'חוג') {
+            const rawCls = garden.cls || '';
+            if (rawCls.includes('צהרון')) actType = 'חוג צהרון';
+            else actType = 'חוג בוקר';
+          }
           const supData = window.SUPBASE ? window.SUPBASE.find(s=>(typeof window.supBase==='function'?window.supBase(s.name):s.name)===supName) : null;
           const phone   = ev.p || (supData&&supData.phone) || (window.supEx&&window.supEx[supName]&&window.supEx[supName].ph1) || '';
           const holObj = hol || null;
@@ -1478,6 +1488,10 @@ window.exportBulkAnnualSchedule = async function() {
            const cName = clusterByGan[g.id] || g.cluster || '';
            
            let finalTp = ev.tp || 'חוג';
+           if (finalTp === 'חוג') {
+             if (cls && cls.includes('צהרון')) finalTp = 'חוג צהרון';
+             else finalTp = 'חוג בוקר';
+           }
            let fullActName = ev.a || '';
            if (ev.act && ev.act.trim()) {
              fullActName += ' - ' + ev.act.trim();
