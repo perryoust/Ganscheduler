@@ -8,19 +8,77 @@ function setSupExType(t){
   if(actOpts) actOpts.style.display=(t==='act' || t==='place')?'':'none';
   if(invOpts) invOpts.style.display=t==='inv'?'block':'none';
 }
+window.updateSupExportDropdown = function() {
+  const sel = document.getElementById('supex-supplier-sel');
+  if (!sel) return;
+  const from = document.getElementById('supex-from')?.value;
+  const to = document.getElementById('supex-to')?.value;
+  
+  const parseYMD = (ymd) => {
+      if(!ymd) return 0;
+      const [y,m,d] = ymd.split('-');
+      return new Date(y, m-1, d).getTime();
+  };
+  
+  const parseDDMMYY = (dmy) => {
+      if(!dmy) return 0;
+      const parts = dmy.split('/');
+      if (parts.length === 3) return new Date('20' + parts[2], parts[1]-1, parts[0]).getTime();
+      return 0;
+  };
+
+  let supPlacements = {};
+  if (from && to && window.SCH) {
+     const fromTime = parseYMD(from);
+     const toTime = parseYMD(to);
+     window.SCH.forEach(e => {
+        const pd = e._isPostponed ? e.pd : e.d;
+        if (!pd) return;
+        const dTime = parseYMD(pd);
+        if (dTime >= fromTime && dTime <= toTime && e.a) {
+           const baseSup = window.supBase(e.a);
+           supPlacements[baseSup] = (supPlacements[baseSup] || 0) + 1;
+        }
+     });
+  }
+
+  const sups = (typeof window.getAllSup === 'function' ? window.getAllSup() : [])
+       .filter(s => window.isActSupplier(s.name))
+       .sort((a,b) => {
+           const countA = supPlacements[window.supBase(a.name)] || 0;
+           const countB = supPlacements[window.supBase(b.name)] || 0;
+           if (countA > 0 && countB === 0) return -1;
+           if (countB > 0 && countA === 0) return 1;
+           return a.name.localeCompare(b.name,'he');
+       });
+       
+  const currentVal = sel.value;
+  
+  sel.innerHTML = '<option value="">-- בחר ספק / כל הספקים --</option>' + sups.map(s => {
+      const baseName = window.supBase(s.name);
+      const count = supPlacements[baseName] || 0;
+      let label = s.name;
+      if (count > 0) {
+         label = `🟢 ${s.name} (${count} שיבוצים)`;
+      } else if (from && to) {
+         label = `⚪ ${s.name} (אין שיבוצים)`;
+      }
+      return `<option value="${s.name.replace(/"/g, '&quot;')}">${label}</option>`;
+  }).join('');
+  
+  // if currentVal exists in the options, set it back
+  const exists = Array.from(sel.options).find(o => o.value === currentVal);
+  if (exists) sel.value = currentVal;
+  else sel.value = '';
+};
+
 function openSupExport(supName){
   const selWrap = document.getElementById('supex-supplier-wrap');
   const sel = document.getElementById('supex-supplier-sel');
   if(!supName) {
     if(selWrap) selWrap.style.display = 'block';
-    if(sel) {
-      const sups = (typeof window.getAllSup === 'function' ? window.getAllSup() : []).filter(s => window.isActSupplier(s.name)).sort((a,b)=>a.name.localeCompare(b.name,'he'));
-      sel.innerHTML = '<option value="">-- בחר ספק / כל הספקים --</option>' + sups.map(s=>`<option value="${s.name.replace(/"/g, '&quot;')}">${s.name}</option>`).join('');
-      sel.value = '';
-    }
   } else {
     if(selWrap) selWrap.style.display = 'none';
-    if(sel) sel.value = supName;
   }
   _supExName=supName;
   _supExType='act';
@@ -41,6 +99,9 @@ function openSupExport(supName){
   
   document.getElementById('supex-from').value = from;
   document.getElementById('supex-to').value = to;
+  
+  window.updateSupExportDropdown();
+  if (supName && sel) sel.value = supName;
   
   document.getElementById('supex-prev').style.display='none';
   if(window._supexSelectedGardens) window._supexSelectedGardens.clear(); if(document.getElementById('supex-garden-multi-search')) document.getElementById('supex-garden-multi-search').value = ''; if(typeof window.renderSupExGardenMultiItems === 'function') window.renderSupExGardenMultiItems();
@@ -63,14 +124,19 @@ async function doSupExport(){
   }
 
   
-  let actualSupName = window._supExName;
   const selWrap = document.getElementById('supex-supplier-wrap');
+  let selectedSups = [];
   if(selWrap && selWrap.style.display !== 'none') {
-    actualSupName = document.getElementById('supex-supplier-sel').value;
+    const selElement = document.getElementById('supex-supplier-sel');
+    if(selElement) {
+      selectedSups = Array.from(selElement.selectedOptions).map(o => o.value).filter(v => v);
+    }
+  } else if (window._supExName) {
+    selectedSups = [window._supExName];
   }
   
-  if(_supExType==='place' && !actualSupName) {
-    window._spAlertDialog('לצורך הפקת דוח שיבוצים, חובה לבחור ספק ספציפי מהרשימה.');
+  if(_supExType==='place' && selectedSups.length === 0) {
+    window._spAlertDialog('לצורך הפקת דוח שיבוצים, חובה לבחור לפחות ספק אחד מהרשימה.');
     return;
   }
 
@@ -78,12 +144,16 @@ async function doSupExport(){
   const to=document.getElementById('supex-to').value;
   if(!from||!to){_spAlertDialog('בחר תאריכים');return;}
 
-  
+  if (selectedSups.length === 0) {
+    selectedSups = [null]; // null means "all suppliers" if not required
+  }
 
-  const evs=window.SCH.filter(s=>{
-    if(s.d<from||s.d>to) return false;
-    if(actualSupName&&window.supBase(s.a)!==window.supBase(actualSupName)) return false;
-    if(s.st === 'can') return false; // Match openSupExport logic
+  for (let i = 0; i < selectedSups.length; i++) {
+    const actualSupName = selectedSups[i];
+    const evs=window.SCH.filter(s=>{
+      if(s.d<from||s.d>to) return false;
+      if(actualSupName&&window.supBase(s.a)!==window.supBase(actualSupName)) return false;
+      if(s.st === 'can') return false; // Match openSupExport logic
     
     if (window._supexSelectedGardens && window._supexSelectedGardens.size > 0) {
        const gidStr = s.g.toString();
@@ -105,7 +175,10 @@ async function doSupExport(){
     return (a.t||'99:99').localeCompare(b.t||'99:99');
   });
   
-  if(!evs.length){_spAlertDialog('אין פעילויות בטווח זה');return;}
+  if(!evs.length){
+    if (selectedSups.length === 1) _spAlertDialog(`אין פעילויות בטווח זה עבור ${actualSupName || 'הספקים'}`);
+    continue;
+  }
 
   
   let exportTypeStr = _supExType === 'place' ? 'supplier_placement' : 'supplier';
@@ -125,6 +198,11 @@ async function doSupExport(){
     title: title,
     summaryTitle: sumTitle
   });
+
+  if (i < selectedSups.length - 1) {
+    await new Promise(r => setTimeout(r, 1000));
+  }
+  }
 
   window.CM('supexm');
 }

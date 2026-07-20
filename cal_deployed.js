@@ -691,13 +691,32 @@ window.addPairFromCal = addPairFromCal; // Export it
 window.addClusterFromCal = async function(){
   const gids = getCalGids();
   if(!gids || gids.length < 2) return;
+  
+  const name = gids.map(id=>window.G(id).name||'').join(' + ');
+  const nm = prompt('שם לאשכול:', name);
+  if(nm === null) return;
+  const finalName = nm.trim();
+  if(!finalName) return;
 
-  if (typeof window.ST === 'function') window.ST('gardens');
-  if (typeof window.setGardensTab === 'function') window.setGardensTab('clusters');
-  if (typeof window.openEditCluster === 'function') window.openEditCluster(null, null, { gardenIds: gids });
-
-  const calModal = document.getElementById('cal-modal-mng');
-  if(calModal) calModal.classList.remove('open');
+  // Check if cluster exists
+  let targetId = 'cl_' + Date.now();
+  const existingCl = Object.values(window.clusters).find(c => c.name === finalName);
+  if (existingCl) {
+    if(!(await window.spConfirm(`⚠️ האשכול "${finalName}" כבר קיים במערכת.\nהאם תרצה לדרוס אותו עם הרשימה החדשה?`))) {
+      return;
+    }
+    targetId = existingCl.id;
+  }
+  
+  window.clusters[targetId] = {
+    id: targetId,
+    name: finalName,
+    desc: existingCl ? existingCl.desc : '',
+    gardenIds: gids
+  };
+  
+  window.save(); window.refresh(); window.refreshClusterDrops();
+  _spAlertDialog(`✅ האשכול "${finalName}" נשמר!`);
 };
 window.addPairFromCal = addPairFromCal;
 window.saveCalPair = addPairFromCal;
@@ -1802,11 +1821,11 @@ function renderCalList(evs, mDate){
       let groupListMonth = (typeof window.getPairs === 'function' ? window.getPairs(ds, ds) : (window.pairs||[]));
       if (isClusterMode2) {
         if (typeof window.getClusters === 'function') {
-          groupListMonth = window.getClusters(ds, ds).map(cl => ({...cl, ids: cl.gardenIds}));
-        } else if (typeof getClusters === 'function') {
-          groupListMonth = getClusters(ds, ds).map(cl => ({...cl, ids: cl.gardenIds}));
-        } else if (window.clusters) {
-          groupListMonth = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name, 'he', { numeric: true })).map(cl => ({...cl, ids: cl.gardenIds}));
+          const myCls = window.gardenClusters(s.g, ds);
+          if (myCls && myCls.length > 0) return myCls[0].id === cl.id;
+        }
+        return true;
+      })
         }
       }
 

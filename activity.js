@@ -977,7 +977,7 @@ window.openSP = function(id) {
           <div class="fg"><label style="font-size:.7rem;font-weight:700">קבוצות</label><input type="number" id="rr-grp" value="${s.grp||1}" min="1" max="10" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
           <div class="fg"><label style="font-size:.7rem;font-weight:700">⏰ שעה (${g.name})</label><input type="time" id="rr-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
           ${spPair ? spPair.ids.filter(id=>Number(id)!==Number(s.g)).map((pid, idx) => {
-                 let pInfo = partnerInfo.find(pi => Number(pi.g) === Number(pid));
+                 let pInfo = partnerInfo.find(pi => Number(pi.pg.id) === Number(pid));
                  let pTime = (pInfo && pInfo.pev) ? pInfo.pev.t : (s.t||'');
                  return `<div class="fg"><label style="font-size:.7rem;font-weight:700;display:flex;align-items:center;gap:3px;cursor:pointer" title="הורד סימון כדי לא לשבץ פעילות בגן זה"><input type="checkbox" id="rr-sync-partner-${pid}" checked style="width:13px;height:13px;accent-color:#1a237e;margin:0"> שעה (${window.G(pid).name})</label><input type="time" id="rr-time-partner-${pid}" value="${pTime}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>`;
             }).join('') : ''}

@@ -37,6 +37,13 @@ window.VAT_RATE = window.VAT_RATE || 18;
 // or better yet, use window variables directly in functions.
 
 // --- Utilities ---
+window.extractGardenAge = function(garden) {
+  if (!garden) return '***';
+  if (garden.age && garden.age.trim()) return garden.age.trim();
+  const m = (garden.name||'').match(/(?:גילאי|גיל|כיתה|כיתות|שכבת)\s*([א-ת0-9\-\.\s]+?)(?=\)|$)/);
+  return m ? m[1].trim() : '***';
+};
+
 window.debounce = function(func, wait) {
   let timeout;
   return function(...args) {
@@ -78,7 +85,7 @@ window.ui = {
    * Renders a standardized activity row for tables (8 columns).
    */
   renderActivityRow: function(s, opts = {}) {
-    const isCoord = window._userRole !== 'admin';
+    const isCoord = window.role === 'coordinator';
     const g = window.G(s.g) || {};
     const supBase = window.supNameLabel ? window.supNameLabel(s.a) : window.supBase(s.a);
     const supAct = s.act || window.supAct(s.a) || '—';
@@ -221,7 +228,7 @@ window.ui = {
 
     // Header Buttons
     const toggleId = 'pair-toggle-' + Math.random().toString(36).substr(2, 9);
-    const isCoord = window._userRole !== 'admin';
+    const isCoord = window.role === 'coordinator';
     const defaultClosed = isCoord && opts.isCluster;
     const defaultIcon = defaultClosed ? '+' : '-';
     const defaultDisplay = defaultClosed ? 'none' : 'block';

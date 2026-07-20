@@ -760,7 +760,9 @@ async function exportToExcel(data, filename, opts = {}) {
                 }
             }
             const titleRow = ws.addRow([`${actualName} - ${city} - ${type}`]);
-            titleRow.font = { bold: true };
+            titleRow.eachCell({ includeEmpty: true }, cell => {
+                cell.font = { name: 'Arial', bold: true, size: 14 };
+            });
             titleRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
             titleRow.alignment = { horizontal: 'right' };
             ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, isPlacement ? 8 : 9);
@@ -1012,7 +1014,7 @@ async function exportShortagesToExcel() {
       city: city,
       street: g.address || '',
       name: g.name || '',
-      age: g.age || g.type || '',
+      age: window.extractGardenAge(g),
       date: dateStr,
       day: dayStr,
       actType: 'חוג',
@@ -1545,7 +1547,7 @@ window.exportBulkAnnualSchedule = async function() {
            }
            
            const rVals = [
-               cls, g.city || '', (g.add || g.st) || '', g.name || '', g.age || '***',
+               cls, g.city || '', (g.add || g.st) || '', g.name || '', window.extractGardenAge(g),
                formattedDate, dayName, finalTp, fullActName, phone, finalGrp, ev.t || '', finalNotes,
                cName, mgrName
              ].map(v => v === '' ? null : v);
@@ -1565,7 +1567,7 @@ window.exportBulkAnnualSchedule = async function() {
       } else {
         const cName = clusterByGan[g.id] || g.cluster || '';
         const rVals = [
-            cls, g.city || '', (g.add || g.st) || '', g.name || '', g.age || '***',
+            cls, g.city || '', (g.add || g.st) || '', g.name || '', window.extractGardenAge(g),
             formattedDate, dayName, holName || '', '', '', '', '', '', cName, mgrName
           ].map(v => v === '' ? null : v);
           
