@@ -16,9 +16,10 @@
   <title>מערכת שיבוץ - גרסה 108.37</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
-  <link rel="icon"
-    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
-  <link rel="stylesheet" href="styles.css?v=108.37" />
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="logo.png">
+  <link rel="stylesheet" href="styles.css?v=108.39" />
   <script>
     window.APP_VERSION = '108.37';
   </script>
@@ -43,7 +44,7 @@
 
 <body>
   <div id="system-loading-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#1a237e;z-index:9999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;transition:opacity 0.3s ease;">
-    <div style="font-size:4rem;margin-bottom:20px;animation:pulse 1.5s infinite">📅</div>
+    <img src="logo.png" style="height:100px;margin-bottom:20px;animation:pulse 1.5s infinite" alt="טומשין קידס">
     <div style="font-size:1.4rem;font-weight:700;font-family:'Assistant',sans-serif">טוען מערכת...</div>
   </div>
   <style>
@@ -55,8 +56,7 @@
   <!-- 📊 MAIN HEADER — dashboard 📊 -->
   <div class="hdr">
     <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-      <span style="font-size:1.3rem">📅</span>
-      <h1>טומשין קידס <span id="app-version-label" style="font-size:.6rem;opacity:.5;font-weight:400;vertical-align:middle">v108.37</span></h1>
+      <h1 style="display:flex;align-items:center;margin:0;"><img src="logo_wide.png" style="height:38px;vertical-align:middle;" alt="טומשין קידס"><span id="app-version-label" style="font-size:.6rem;opacity:.5;font-weight:400;margin-right:10px;line-height:1;">v108.39</span></h1>
       <select id="year-selector" onchange="window.changeCurrentYear(this.value)" style="margin-right:15px; font-size:0.8rem; border-radius:4px; border:1px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.15); color:white; padding:3px 8px; outline:none; font-weight:600; cursor:pointer;" title="בחר שנת לימודים">
         <!-- options will be injected here, but we apply a global style in index.html to fix option text color -->
         <!-- populated by JS -->
@@ -2693,7 +2693,7 @@
     <div
       style="background:#fff;border-radius:20px;padding:36px 40px;text-align:center;max-width:360px;width:90%;box-shadow:0 12px 50px rgba(0,0,0,.45)">
       <div style="font-size:2.8rem;margin-bottom:6px">🔒</div>
-      <h2 style="color:#1a237e;margin:0 0 4px;font-size:1.25rem">טומשין קידס</h2>
+      <h2 style="color:#1a237e;margin:0 0 4px;font-size:1.25rem;display:flex;align-items:center;justify-content:center;"><img src="logo_wide.png" style="height:32px;" alt="טומשין קידס"></h2>
       <p style="color:#78909c;font-size:.82rem;margin-bottom:24px">מנהל גנים</p>
 
       <div style="margin-bottom:14px;text-align:right">

@@ -1,0 +1,17 @@
+{
+  "name": "טומשין קידס - מערכת שיבוץ",
+  "short_name": "טומשין קידס",
+  "description": "Ganscheduler - מערכת לניהול ושיבוץ צהרונים",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#1a237e",
+  "theme_color": "#1a237e",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
