@@ -70,11 +70,8 @@ window.onload = function(){
     try{ renderPurchSuppliers(); }catch(e){}
     try{ renderInvoices(); }catch(e){}
 
-    // Restore last active mode if permitted, otherwise cleanly default to 'act'
-    const savedMode = (typeof _safeLS !== 'undefined' ? _safeLS.getItem('activeAppMode') : null) || 'act';
-    if (savedMode === 'purch' && window.permPurch && typeof window.switchMode === 'function') {
-      window.switchMode('purch');
-    } else if (typeof window.switchMode === 'function') {
+    // Always default to 'act' mode on load per user request
+    if (typeof window.switchMode === 'function') {
       window.switchMode('act');
     }
 

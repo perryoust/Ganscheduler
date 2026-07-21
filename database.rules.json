@@ -4,6 +4,18 @@
       ".read": "auth != null",
       ".write": "auth != null"
     },
+    "invoices": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "orders": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "deliveries": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
     "years": {
       ".read": "auth != null",
       ".write": "auth != null"

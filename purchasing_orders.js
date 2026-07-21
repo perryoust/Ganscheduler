@@ -539,7 +539,7 @@ www.tomashin.co.il  www.tomashin-kids.co.il`;
         th, td { border: 1px solid #ccc; padding: 10px; text-align: right; }
         th { background: #f5f5f5; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2e7d32; padding-bottom: 20px; margin-bottom: 20px;}
-        @page { size: A4 portrait; margin: 10mm; }
+        @page { size: A5 landscape; margin: 5mm; }
         @media print {
           .no-print { display: none !important; }
           body { background: #fff; }

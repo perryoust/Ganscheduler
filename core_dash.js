@@ -621,6 +621,7 @@ function sucRefreshInfo(){
       ${ex.g1?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">🏛️ ח.פ. / עוסק</div><div style="font-weight:700">${ex.g1}</div></div>`:'<div></div>'}
       ${ex.moeTax?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">📚 מס' ספק חינוך</div><div style="font-weight:700">${ex.moeTax}</div></div>`:''}
       ${ex.contact?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">👤 איש קשר</div><div style="font-weight:700">${ex.contact}</div></div>`:''}
+      ${ex.email?`<div><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">📧 אימייל</div><div style="font-weight:700">${ex.email}</div></div>`:''}
       ${ex.addr?`<div style="grid-column:1/-1"><div style="color:#546e7a;font-size:.69rem;margin-bottom:2px">📍 כתובת</div><div style="font-weight:700">${ex.addr}</div></div>`:''}
       <div style="grid-column:1/-1;display:${window.isActSupplier(name)?'block':'none'}">
         <div style="color:#546e7a;font-size:.69rem;margin-bottom:4px">🎯 סוגי פעילויות</div>
@@ -658,6 +659,8 @@ function sucToggleEdit(){
   if(moeEl) moeEl.value=ex.moeTax||'';
   const contactEl2=document.getElementById('suc-edit-contact');
   if(contactEl2) contactEl2.value=ex.contact||'';
+  const emailEl=document.getElementById('suc-edit-email');
+  if(emailEl) emailEl.value=ex.email||'';
   const addrEl2=document.getElementById('suc-edit-addr');
   if(addrEl2) addrEl2.value=ex.addr||'';
   // Show/hide acts section based on isAct flag
@@ -794,6 +797,8 @@ function sucSaveEdit(isAuto = false){
   if(moeInp) supEx[_sucName].moeTax=moeInp.value.trim();
   const contactInp2=document.getElementById('suc-edit-contact');
   if(contactInp2) supEx[_sucName].contact=contactInp2.value.trim();
+  const emailInp=document.getElementById('suc-edit-email');
+  if(emailInp) supEx[_sucName].email=emailInp.value.trim();
   const addrInp2=document.getElementById('suc-edit-addr');
   if(addrInp2) supEx[_sucName].addr=addrInp2.value.trim();
   supEx[_sucName].isAct = document.getElementById('suc-edit-is-act')?.checked !== false;

@@ -17,10 +17,16 @@ window.debouncedRenderPurchSuppliers = window.debounce ? window.debounce(() => {
 }, 250) : () => { if(typeof window.renderPurchSuppliers === 'function') window.renderPurchSuppliers(); };
 
 // ── Mode switcher ──────────────────────────────────────
-function switchMode(mode){
+async function switchMode(mode){
   _appMode = mode;
   window._appMode = mode;
   if (typeof _safeLS !== 'undefined') _safeLS.setItem('activeAppMode', mode);
+
+  // Lazy load purchasing data if switching to purch mode
+  if (mode === 'purch' && !window._purchasingDataLoaded && typeof window.loadPurchasingDataFromFirebase === 'function') {
+    if (window.showToast) window.showToast('טוען נתוני רכש...');
+    await window.loadPurchasingDataFromFirebase();
+  }
 
   // Always close side panel + backdrop when switching modes (critical for mobile)
   const _spEl=document.getElementById('sp');

@@ -529,51 +529,6 @@ async function loadFromFirebase(silent = false, force = false) {
     }
     // --------------------------------------------------
 
-    // Load Invoices
-    const invUrl = getFirebaseInvoicesUrl() + (tok ? '?auth=' + tok : '');
-    try {
-      const ir = await fetch(invUrl + (invUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now());
-      if (ir.ok) {
-        let cloudInvs = await ir.json();
-        cloudInvs = Array.isArray(cloudInvs) ? cloudInvs : Object.values(cloudInvs || {});
-        if (Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
-          const localById = {};
-          window.INVOICES.forEach(inv => { if (inv.id) localById[inv.id] = inv; });
-          cloudInvs = cloudInvs.map(ci => {
-            const local = localById[ci.id];
-            if (!local) return ci;
-            ['file_order', 'file_tx', 'file_tax'].forEach(fk => {
-              if (local[fk] && local[fk].path && (!ci[fk] || !ci[fk].path)) {
-                ci[fk] = local[fk];
-              }
-            });
-            return ci;
-          });
-        }
-        cloud.data.invoices = cloudInvs;
-      }
-    } catch(e) { console.warn('Failed to load invoices', e); }
-
-    // Load Orders
-    const ordUrl = getFirebaseOrdersUrl() + (tok ? '?auth=' + tok : '');
-    try {
-      const or = await fetch(ordUrl + (ordUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now());
-      if (or.ok) {
-        let cloudOrd = await or.json();
-        cloud.data.orders = Array.isArray(cloudOrd) ? cloudOrd : Object.values(cloudOrd || {});
-      }
-    } catch(e) { console.warn('Failed to load orders', e); }
-
-    // Load Deliveries
-    const delUrl = getFirebaseDeliveriesUrl() + (tok ? '?auth=' + tok : '');
-    try {
-      const dr = await fetch(delUrl + (delUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now());
-      if (dr.ok) {
-        let cloudDel = await dr.json();
-        cloud.data.deliveries = Array.isArray(cloudDel) ? cloudDel : Object.values(cloudDel || {});
-      }
-    } catch(e) { console.warn('Failed to load deliveries', e); }
-
     window._fbAppData = cloud.data;
 
     // Restore scanner metadata
@@ -624,7 +579,14 @@ async function loadFromFirebase(silent = false, force = false) {
 
 function _fbStartPolling() {
   if (_syncTimer) clearInterval(_syncTimer);
-  _syncTimer = setInterval(() => loadFromFirebase(true), FIREBASE_POLL_INTERVAL);
+  _syncTimer = setInterval(() => {
+    // DO NOT SYNC IF A MODAL IS OPEN (prevents UI resets/re-renders while user is typing)
+    if (document.querySelector('.modal.open, .sp-popup, .sp-modal-content')) return;
+    const orderModal = document.getElementById('order-modal');
+    if (orderModal && orderModal.style.display !== 'none' && orderModal.style.display !== '') return;
+    
+    loadFromFirebase(true);
+  }, FIREBASE_POLL_INTERVAL);
 }
 
 function _fbStopPolling() {
@@ -654,3 +616,64 @@ document.addEventListener('visibilitychange', () => {
 // _onAuthReady is defined in core_app.js — do NOT redefine here.
 // Just ensure loadFromFirebase and polling are accessible via window.
 // core_app.js calls loadFromFirebase() and _fbStartPolling() after years_meta sync.
+
+// --- Lazy Load Purchasing Data ---
+window.loadPurchasingDataFromFirebase = async function() {
+  if (window._purchasingDataLoaded) return;
+  
+  let tok = window._cachedToken || null;
+  if (window._fbUser) {
+    try { tok = await window._fbUser.getIdToken(); }
+    catch(e) { console.warn('Failed to get token for purchasing data', e); }
+  }
+  
+  if (!tok) return;
+
+  const invUrl = getFirebaseInvoicesUrl() + '?auth=' + tok + '&cb=' + Date.now();
+  const ordUrl = getFirebaseOrdersUrl() + '?auth=' + tok + '&cb=' + Date.now();
+  const delUrl = getFirebaseDeliveriesUrl() + '?auth=' + tok + '&cb=' + Date.now();
+
+  try {
+    const [ir, or, dr] = await Promise.all([
+      fetch(invUrl).catch(() => ({ok: false})),
+      fetch(ordUrl).catch(() => ({ok: false})),
+      fetch(delUrl).catch(() => ({ok: false}))
+    ]);
+
+    if (ir.ok) {
+      let cloudInvs = await ir.json();
+      cloudInvs = Array.isArray(cloudInvs) ? cloudInvs : Object.values(cloudInvs || {});
+      if (Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
+        const localById = {};
+        window.INVOICES.forEach(inv => { if (inv.id) localById[inv.id] = inv; });
+        cloudInvs = cloudInvs.map(ci => {
+          const local = localById[ci.id];
+          if (!local) return ci;
+          ['file_order', 'file_tx', 'file_tax'].forEach(fk => {
+            if (local[fk] && local[fk].path && (!ci[fk] || !ci[fk].path)) {
+              ci[fk] = local[fk];
+            }
+          });
+          return ci;
+        });
+      }
+      window.INVOICES = cloudInvs;
+    }
+
+    if (or.ok) {
+      let cloudOrd = await or.json();
+      window.ORDERS = Array.isArray(cloudOrd) ? cloudOrd : Object.values(cloudOrd || {});
+    }
+
+    if (dr.ok) {
+      let cloudDel = await dr.json();
+      window.DELIVERIES = Array.isArray(cloudDel) ? cloudDel : Object.values(cloudDel || {});
+    }
+
+    window._purchasingDataLoaded = true;
+    console.log('[Purchasing] Data loaded successfully from root nodes');
+  } catch(e) {
+    console.error('Failed to lazy load purchasing data', e);
+  }
+};
+
