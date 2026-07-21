@@ -1,8 +1,7 @@
 function setSupExType(t){
   _supExType=t;
-  document.getElementById('supex-type-act')?.classList.toggle('active',t==='act');
-  document.getElementById('supex-type-place')?.classList.toggle('active',t==='place');
-  document.getElementById('supex-type-inv')?.classList.toggle('active',t==='inv');
+  const typeSel = document.getElementById('supex-type-select');
+  if (typeSel) typeSel.value = t;
   const actOpts=document.getElementById('supex-act-opts');
   const invOpts=document.getElementById('supex-inv-opts');
   if(actOpts) actOpts.style.display=(t==='act' || t==='place')?'':'none';
@@ -52,7 +51,7 @@ window.updateSupExportDropdown = function() {
            return a.name.localeCompare(b.name,'he');
        });
        
-  const currentVal = sel.value;
+  const selectedVals = Array.from(sel.selectedOptions).map(o => o.value);
   
   sel.innerHTML = '<option value="">-- בחר ספק / כל הספקים --</option>' + sups.map(s => {
       const baseName = window.supBase(s.name);
@@ -66,10 +65,9 @@ window.updateSupExportDropdown = function() {
       return `<option value="${s.name.replace(/"/g, '&quot;')}">${label}</option>`;
   }).join('');
   
-  // if currentVal exists in the options, set it back
-  const exists = Array.from(sel.options).find(o => o.value === currentVal);
-  if (exists) sel.value = currentVal;
-  else sel.value = '';
+  Array.from(sel.options).forEach(o => {
+    if (selectedVals.includes(o.value)) o.selected = true;
+  });
 };
 
 function openSupExport(supName){
@@ -81,8 +79,8 @@ function openSupExport(supName){
     if(selWrap) selWrap.style.display = 'none';
   }
   _supExName=supName;
-  _supExType='act';
-  setSupExType('act');
+  _supExType='';
+  setSupExType('');
   (document.getElementById('supexm-title')||{}).textContent=supName?`📊 יצוא: ${supName}`:'📊 יצוא דוח ספקים';
   
   const now=new Date();
@@ -111,6 +109,11 @@ async function doSupExport(){
   if (window.loadFromFirebase) {
     window.showToast('מסנכרן נתונים אחרונים מול השרת...', 3000);
     await window.loadFromFirebase(true);
+  }
+  
+  if (!_supExType) {
+    window._spAlertDialog('חובה לבחור איזה סוג דוח ברצונך לייצא (פעילות / שיבוצים / חשבוניות).');
+    return;
   }
   if(_supExType==='inv'){
     // ── יצוא חשבוניות/הזמנות ──

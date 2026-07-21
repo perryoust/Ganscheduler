@@ -67,6 +67,12 @@ window.wtToggleTaskStatus = function(id) {
   const task = (window.WORKER_TASKS || []).find(t => t.id === id);
   if (task) {
     if (task.status === 'done') {
+      const doneDate = task.doneAt ? task.doneAt.split(' ')[0] : task.date;
+      if (window.wtCurrentDate !== doneDate && window.wtCurrentDate === task.date) {
+         if(window._spAlertDialog) window._spAlertDialog(`משימה זו סומנה שבוצעה ב-${window.fD ? window.fD(doneDate) : doneDate}. כדי לבטל ביצוע, יש לעבור לתאריך הביצוע.`);
+         else alert(`משימה זו סומנה שבוצעה ב-${doneDate}.`);
+         return;
+      }
       task.status = 'pending';
       task.doneAt = null;
       // Jump to today so the un-completed task appears in the pending list
@@ -110,13 +116,31 @@ window.renderWorkerTasksAdmin = function() {
     displayTasks.sort((a,b) => b.date.localeCompare(a.date)); // Newest first for search
   } else {
     const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
-    displayTasks = tasks.filter(t => {
-      if (t.date === window.wtCurrentDate) return true;
-      // Only pull forward past pending tasks if we are viewing TODAY.
-      // This prevents future dates from being cluttered with today's tasks.
-      if (window.wtCurrentDate === today && t.status === 'pending' && t.date < today) return true;
-      return false;
-    });
+    displayTasks = tasks.reduce((acc, t) => {
+      // 1. Logic for original date
+      if (t.date === window.wtCurrentDate) {
+        if (t.status === 'done' && t.doneAt && t.doneAt.split(' ')[0] !== t.date) {
+           acc.push({ ...t, status: 'pending', doneAt: null, doneBy: null, _isGhost: true });
+        } else {
+           acc.push(t);
+        }
+      }
+      
+      // 2. Logic for pulling forward to today
+      if (window.wtCurrentDate === today && t.status === 'pending' && t.date < today) {
+        acc.push(t);
+      }
+      
+      // 3. Logic for the done date (if done on a different date)
+      if (t.status === 'done' && t.doneAt) {
+        const doneDate = t.doneAt.split(' ')[0];
+        if (window.wtCurrentDate === doneDate && doneDate !== t.date) {
+           acc.push(t);
+        }
+      }
+      
+      return acc;
+    }, []);
     // Sort: pending first, then by creation
     displayTasks.sort((a,b) => {
       if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
@@ -665,11 +689,16 @@ window.renderWorkerTasksMobile = function() {
   
   // FILTER OUT ADMIN ONLY TASKS AND ONLY SHOW TODAY'S TASKS (or older pending)
   const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
-  const tasks = (window.WORKER_TASKS || []).filter(t => {
-    if (t.isAdminOnly) return false;
-    if (t.status === 'pending') return (!t.date || t.date <= today);
-    return t.date === today; // Only show today's completed tasks
-  });
+  const tasks = (window.WORKER_TASKS || []).reduce((acc, t) => {
+    if (t.isAdminOnly) return acc;
+    if (t.status === 'pending' && (!t.date || t.date <= today)) {
+       acc.push(t);
+    } else if (t.status === 'done') {
+       const doneDate = t.doneAt ? t.doneAt.split(' ')[0] : t.date;
+       if (doneDate === today) acc.push(t);
+    }
+    return acc;
+  }, []);
   const pending = tasks.filter(t => t.status === 'pending');
   const done = tasks.filter(t => t.status === 'done');
   

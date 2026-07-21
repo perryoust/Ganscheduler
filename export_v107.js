@@ -741,12 +741,12 @@ async function exportToExcel(data, filename, opts = {}) {
             const typeEvs = byCity[city].sort((a,b) => {
               const ds = a.d.localeCompare(b.d);
               if(ds !== 0) return ds;
+              const ts = (a.t || '99:99').localeCompare(b.t || '99:99');
+              if(ts !== 0) return ts;
               const pA = window.gardenPair(a.g), pB = window.gardenPair(b.g);
               const nA = pA ? pA.name : window.G(a.g).name;
               const nB = pB ? pB.name : window.G(b.g).name;
-              const ns = nA.localeCompare(nB, 'he');
-              if(ns !== 0) return ns;
-              return (a.t || '99:99').localeCompare(b.t || '99:99');
+              return nA.localeCompare(nB, 'he');
             });
 
             let actualName = window._supExName || 'כל הספקים';
@@ -760,10 +760,12 @@ async function exportToExcel(data, filename, opts = {}) {
                 }
             }
             const titleRow = ws.addRow([`${actualName} - ${city} - ${type}`]);
-            titleRow.eachCell({ includeEmpty: true }, cell => {
+            titleRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
                 cell.font = { name: 'Arial', bold: true, size: 14 };
+                if (colNumber <= (isPlacement ? 8 : 9)) {
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+                }
             });
-            titleRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
             titleRow.alignment = { horizontal: 'right' };
             ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, isPlacement ? 8 : 9);
 
@@ -839,7 +841,7 @@ async function exportToExcel(data, filename, opts = {}) {
             typeGlobalGroups += typeGroups;
 
             // Section Sub-Summary
-            const typeSum = isPlacement ? ws.addRow([`📌 ${city} - ${type}: בוצעו ${typeGroups} פעילויות (כולל השלמות)`, '', '', '', '', '', '', '']) : ws.addRow([`📌 ${city} - ${type}: בוצעו ${typeGroups} פעילויות (כולל השלמות)`, '', '', '', '', '', '', '', '']);
+            const typeSum = isPlacement ? ws.addRow([`📌 ${city} - ${type}: ${typeGroups} פעילויות לביצוע (כולל השלמות)`, '', '', '', '', '', '', '']) : ws.addRow([`📌 ${city} - ${type}: בוצעו ${typeGroups} פעילויות (כולל השלמות)`, '', '', '', '', '', '', '', '']);
             typeSum.font = { bold: true, size: 10, color: { argb: 'FF1A237E' } };
             typeSum.eachCell((cell) => {
               cell.alignment = { horizontal: 'right' };
@@ -1403,15 +1405,7 @@ window.exportBulkAnnualSchedule = async function() {
     });
   }
 
-  // Pre-calculate cluster names for each garden
-  const clusterByGan = {};
-  if (window.clusters) {
-    Object.values(window.clusters).forEach(cl => {
-      if (cl.gardenIds) {
-        cl.gardenIds.forEach(gid => clusterByGan[gid] = cl.name);
-      }
-    });
-  }
+  // Removed static clusterByGan pre-calculation here to support temporary clusters per date
 
   const HEB_DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 
@@ -1461,6 +1455,19 @@ window.exportBulkAnnualSchedule = async function() {
   // Iterate over every day in the year
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const dateStr = window.d2s(d);
+    
+    const clusterByGanForDate = {};
+    const dayClusters = typeof window.getClusters === 'function' ? window.getClusters(dateStr, dateStr) : Object.values(window.clusters || {});
+    dayClusters.forEach(cl => {
+      if (cl.gardenIds) {
+        cl.gardenIds.forEach(gid => {
+          if (!clusterByGanForDate[gid]) {
+            clusterByGanForDate[gid] = cl.name;
+          }
+        });
+      }
+    });
+
     // Format date as Excel Date object to enable hierarchical date filtering
     const formattedDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0); 
     const dayName = `יום ${HEB_DAYS[d.getDay()]}`;
@@ -1487,7 +1494,7 @@ window.exportBulkAnnualSchedule = async function() {
              if (sObj && sObj.phone) phone = sObj.phone;
            }
 
-           const cName = clusterByGan[g.id] || g.cluster || '';
+           const cName = clusterByGanForDate[g.id] || g.cluster || '';
            
            let finalTp = ev.tp || 'חוג';
            if (finalTp === 'חוג') {
@@ -1565,7 +1572,7 @@ window.exportBulkAnnualSchedule = async function() {
            });
         });
       } else {
-        const cName = clusterByGan[g.id] || g.cluster || '';
+        const cName = clusterByGanForDate[g.id] || g.cluster || '';
         const rVals = [
             cls, g.city || '', (g.add || g.st) || '', g.name || '', window.extractGardenAge(g),
             formattedDate, dayName, holName || '', '', '', '', '', '', cName, mgrName
