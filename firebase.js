@@ -11,7 +11,15 @@ function getFirebaseDbUrl() {
 
 function getFirebaseInvoicesUrl() {
   const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
-  return `${base}/data/invoices.json`;
+  return `${base}/invoices.json`;
+}
+function getFirebaseOrdersUrl() {
+  const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
+  return `${base}/orders.json`;
+}
+function getFirebaseDeliveriesUrl() {
+  const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
+  return `${base}/deliveries.json`;
 }
 const FIREBASE_POLL_INTERVAL = 30000;
 
@@ -316,6 +324,9 @@ async function saveToFirebase(silent = false, force = false) {
       blockedDates: window.blockedDates || {},
       gardenBlocks: window.gardenBlocks || {},
       vatRate: window.VAT_RATE || 18,
+      purchNotes: window.PURCH_NOTES || null,
+      purchOrderers: window.PURCH_ORDERERS || null,
+      purchFooter: window.PURCH_FOOTER || null,
       activeGardens: window.activeGardens ? [...window.activeGardens] : null,
       useSraws: typeof window.useSraws !== 'undefined' ? window.useSraws : true,
       spScannerAliases: window.spScannerAliases || {},
@@ -368,6 +379,18 @@ async function saveToFirebase(silent = false, force = false) {
       } else {
         console.log('[Sync] Invoices saved:', window.INVOICES.length);
       }
+    }
+    
+    // Save Orders Separately
+    if (Array.isArray(window.ORDERS) && window.ORDERS.length > 0) {
+      const ordUrl = getFirebaseOrdersUrl() + (tok ? '?auth=' + tok : '');
+      await fetch(ordUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.ORDERS) });
+    }
+    
+    // Save Deliveries Separately
+    if (Array.isArray(window.DELIVERIES) && window.DELIVERIES.length > 0) {
+      const delUrl = getFirebaseDeliveriesUrl() + (tok ? '?auth=' + tok : '');
+      await fetch(delUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.DELIVERIES) });
     }
 
     _setSyncState(newSeq, Date.now(), null, false);
@@ -479,36 +502,86 @@ async function loadFromFirebase(silent = false, force = false) {
       }
     } catch(e) { console.warn('Failed to load global worker tasks', e); }
 
-    // Load Invoices Separately — merge file links from local copy to avoid losing them
-    const invUrl = getFirebaseInvoicesUrl() + (tok ? '?auth=' + tok : '');
-    const ir = await fetch(invUrl);
-    if (!ir.ok) throw new Error('Invoices HTTP ' + ir.status);
-    const invs = await ir.json();
-    let cloudInvs = Array.isArray(invs) ? invs : Object.values(invs || {});
-
-    // Merge: preserve local file links (file_order, file_tx, file_tax) that may not be in cloud yet
-    if (Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
-      const localById = {};
-      window.INVOICES.forEach(inv => { if (inv.id) localById[inv.id] = inv; });
-      cloudInvs = cloudInvs.map(ci => {
-        const local = localById[ci.id];
-        if (!local) return ci;
-        // Preserve file links from local if cloud doesn't have them
-        ['file_order', 'file_tx', 'file_tax'].forEach(fk => {
-          if (local[fk] && local[fk].path && (!ci[fk] || !ci[fk].path)) {
-            ci[fk] = local[fk];
-          }
-        });
-        return ci;
-      });
+    // --- AUTO MIGRATION: Flatten Database Structure ---
+    if (cloud.data && cloud.data.invoices) {
+      console.log('[Migration] Moving invoices to root...');
+      const invUrl = getFirebaseInvoicesUrl() + (tok ? '?auth=' + tok : '');
+      await fetch(invUrl, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cloud.data.invoices) });
+      const oldUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json' + (tok ? '?auth=' + tok : '');
+      await fetch(oldUrl, { method: 'DELETE' });
+      delete cloud.data.invoices; // Remove from memory to save space
     }
-    cloud.data.invoices = cloudInvs;
+    if (cloud.data && cloud.data.orders) {
+      console.log('[Migration] Moving orders to root...');
+      const ordUrl = getFirebaseOrdersUrl() + (tok ? '?auth=' + tok : '');
+      await fetch(ordUrl, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cloud.data.orders) });
+      const oldUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/orders.json' + (tok ? '?auth=' + tok : '');
+      await fetch(oldUrl, { method: 'DELETE' });
+      delete cloud.data.orders;
+    }
+    if (cloud.data && cloud.data.deliveries) {
+      console.log('[Migration] Moving deliveries to root...');
+      const delUrl = getFirebaseDeliveriesUrl() + (tok ? '?auth=' + tok : '');
+      await fetch(delUrl, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cloud.data.deliveries) });
+      const oldUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/deliveries.json' + (tok ? '?auth=' + tok : '');
+      await fetch(oldUrl, { method: 'DELETE' });
+      delete cloud.data.deliveries;
+    }
+    // --------------------------------------------------
+
+    // Load Invoices
+    const invUrl = getFirebaseInvoicesUrl() + (tok ? '?auth=' + tok : '');
+    try {
+      const ir = await fetch(invUrl + (invUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now());
+      if (ir.ok) {
+        let cloudInvs = await ir.json();
+        cloudInvs = Array.isArray(cloudInvs) ? cloudInvs : Object.values(cloudInvs || {});
+        if (Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
+          const localById = {};
+          window.INVOICES.forEach(inv => { if (inv.id) localById[inv.id] = inv; });
+          cloudInvs = cloudInvs.map(ci => {
+            const local = localById[ci.id];
+            if (!local) return ci;
+            ['file_order', 'file_tx', 'file_tax'].forEach(fk => {
+              if (local[fk] && local[fk].path && (!ci[fk] || !ci[fk].path)) {
+                ci[fk] = local[fk];
+              }
+            });
+            return ci;
+          });
+        }
+        cloud.data.invoices = cloudInvs;
+      }
+    } catch(e) { console.warn('Failed to load invoices', e); }
+
+    // Load Orders
+    const ordUrl = getFirebaseOrdersUrl() + (tok ? '?auth=' + tok : '');
+    try {
+      const or = await fetch(ordUrl + (ordUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now());
+      if (or.ok) {
+        let cloudOrd = await or.json();
+        cloud.data.orders = Array.isArray(cloudOrd) ? cloudOrd : Object.values(cloudOrd || {});
+      }
+    } catch(e) { console.warn('Failed to load orders', e); }
+
+    // Load Deliveries
+    const delUrl = getFirebaseDeliveriesUrl() + (tok ? '?auth=' + tok : '');
+    try {
+      const dr = await fetch(delUrl + (delUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now());
+      if (dr.ok) {
+        let cloudDel = await dr.json();
+        cloud.data.deliveries = Array.isArray(cloudDel) ? cloudDel : Object.values(cloudDel || {});
+      }
+    } catch(e) { console.warn('Failed to load deliveries', e); }
 
     window._fbAppData = cloud.data;
 
     // Restore scanner metadata
     window.spScannerAliases = cloud.data.spScannerAliases || {};
     window.spScannerFolderLinks = cloud.data.spScannerFolderLinks || {};
+    window.PURCH_NOTES = cloud.data.purchNotes || null;
+    window.PURCH_ORDERERS = cloud.data.purchOrderers || null;
+    window.PURCH_FOOTER = cloud.data.purchFooter || null;
 
     if (window._applyYearData) {
       window._applyYearData(cloud.data);

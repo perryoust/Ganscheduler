@@ -490,7 +490,16 @@ function _applyYearData(o){
         }
       }
     });
+  } else {
+    window.INVOICES = [];
   }
+  
+  if (Array.isArray(o.orders)) window.ORDERS = o.orders;
+  else window.ORDERS = [];
+  
+  if (Array.isArray(o.deliveries)) window.DELIVERIES = o.deliveries;
+  else window.DELIVERIES = [];
+
   if(typeof o.vatRate==='number') VAT_RATE=o.vatRate;
   // Sync settings from Firebase to localStorage
   if(o.autoBackupCfg){ _safeLS.setItem('autoBackupCfg',JSON.stringify(o.autoBackupCfg)); if(window._fbAppData) window._fbAppData.autoBackupCfg=o.autoBackupCfg; }

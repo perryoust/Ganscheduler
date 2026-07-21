@@ -18,7 +18,7 @@
   <!-- CSS standard variables and design system -->
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
-  <link rel="stylesheet" href="styles.css?v=108.19" />
+  <link rel="stylesheet" href="styles.css?v=108.64" />
   <script>
     window.APP_VERSION = '108.01';
   </script>
@@ -39,6 +39,10 @@
       }
     })();
   </script>
+  <style>
+    #year-selector option { color: #333; background: #fff; }
+    #global-year-selector option { color: #333; background: #fff; }
+  </style>
 </head>
 
 <body>
@@ -148,7 +152,11 @@
     <div class="tab active" onclick="SPT('pdash')"
       title="לוח בקרה פיננסי לרכש, סיכומי מע&quot;מ, יתרות פתוחות וחשבוניות אחרונות">📊 לוח בקרה רכש</div>
     <div class="tab" onclick="SPT('pinvoices')"
-      title="ניהול ומעקב אחר הזמנות רכש, חשבוניות עסקה, חשבוניות מס וקבלות">📄 דוח הזמנות רכש וחשבוניות</div>
+      title="ניהול ומעקב אחר חשבוניות עסקה, חשבוניות מס וקבלות">📄 דוח חשבוניות</div>
+    <div class="tab" onclick="SPT('porders')"
+      title="ניהול והפקת הזמנות רכש (Purchase Orders) לספקים">📦 הפקת הזמנות</div>
+    <div class="tab" onclick="SPT('pdeliveries')"
+      title="ניהול והפקת תעודות משלוח (Delivery Notes) לשטח">🚚 תעודות משלוח</div>
     <div class="tab" onclick="SPT('psup')"
       title="ניהול ספקי הרכש, הגדרת סוג ישות (חברה/עוסק), טלפונים ואישורי ניהול ספרים">👥 ניהול ספקים</div>
   </div>
@@ -1345,8 +1353,9 @@
           <b style="color:#2e7d32;font-size:.9rem">📄 חשבוניות אחרונות</b>
           <div class="mob-btn-row" style="flex-wrap:nowrap">
             <button class="btn bg bsm" onclick="openNewInvoice()">🚀 מסמך חדש</button>
-            <button class="btn bp bsm" onclick="showToast('📦 יצירת הזמנה — בקרוב')" title="בקרוב">🚀 יצירת
+            <button class="btn bp bsm" onclick="SPT('porders'); setTimeout(openNewOrder, 100)" title="צור הזמנה חדשה">🚀 יצירת
               הזמנה</button>
+            <button class="btn bw bsm" onclick="SPT('pdeliveries'); setTimeout(openNewDelivery, 100)" title="צור תעודת משלוח חדשה">🚚 תעודת משלוח</button>
           </div>
         </div>
         <div id="pdash-recent-invoices">
@@ -1581,6 +1590,31 @@
         </div>
       </div>
       <div id="psu-body"></div>
+    </div>
+
+    <!-- NEW PROCUREMENT PANELS: Orders & Deliveries -->
+    <div id="p-porders" class="panel" style="display:none">
+      <div class="card" style="margin-bottom:11px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0 8px">
+          <span style="font-weight:700;font-size:.85rem;color:#1a237e;">📦 ניהול הזמנות רכש</span>
+          <button class="btn bp bsm" onclick="openNewOrder()">🚀 יצירת הזמנה חדשה</button>
+        </div>
+        <div id="porders-list" class="tw" style="margin-top:10px">
+          <div style="color:#aaa;font-size:.8rem;text-align:center;padding:20px">טוען הזמנות...</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="p-pdeliveries" class="panel" style="display:none">
+      <div class="card" style="margin-bottom:11px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0 8px">
+          <span style="font-weight:700;font-size:.85rem;color:#1a237e;">🚚 ניהול תעודות משלוח</span>
+          <button class="btn bw bsm" onclick="openNewDelivery()">🚚 תעודת משלוח חדשה</button>
+        </div>
+        <div id="pdeliveries-list" class="tw" style="margin-top:10px">
+          <div style="color:#aaa;font-size:.8rem;text-align:center;padding:20px">טוען תעודות משלוח...</div>
+        </div>
+      </div>
     </div>
 
   </div><!-- /content -->
@@ -3587,28 +3621,29 @@
     </div>
 
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-     <script src="utils.js?v=108.19"></script>
-    <script src="data_manager.js?v=108.19"></script>
-    <script src="data.js?v=108.19"></script>
-    <script src="firebase.js?v=108.19"></script>
-    <script src="invoices.js?v=108.19"></script>
-    <script src="suppliers.js?v=108.19"></script>
-    <script src="cal.js?v=108.19"></script>
-    <script src="activity.js?v=108.19"></script>
-    <script src="sched.js?v=108.19"></script>
-    <script src="gardens.js?v=108.19"></script>
-    <script src="export_v107.js?v=108.19"></script>
-    <script src="backup.js?v=108.19"></script>
-    <script src="admin.js?v=108.19"></script>
-    <script src="import_export.js?v=108.19"></script>
-    <script src="core_globals.js?v=108.19"></script>
-    <script src="core_data.js?v=108.19"></script>
-    <script src="core_dash.js?v=108.19"></script>
-    <script src="worker_tasks.js?v=108.19"></script>
-    <script src="coordinator_app.js?v=108.19"></script>
-    <script src="core_app.js?v=108.19"></script>
-    <script src="qa_simulator.js?v=108.19"></script>
-    <script src="todo.js?v=108.19"></script>
+     <script src="utils.js?v=108.64"></script>
+    <script src="data_manager.js?v=108.64"></script>
+    <script src="data.js?v=108.64"></script>
+    <script src="firebase.js?v=108.64"></script>
+    <script src="invoices.js?v=108.64"></script>
+    <script src="suppliers.js?v=108.64"></script>
+    <script src="cal.js?v=108.64"></script>
+    <script src="activity.js?v=108.64"></script>
+    <script src="sched.js?v=108.64"></script>
+    <script src="gardens.js?v=108.64"></script>
+    <script src="export_v107.js?v=108.64"></script>
+    <script src="backup.js?v=108.64"></script>
+    <script src="admin.js?v=108.64"></script>
+    <script src="import_export.js?v=108.64"></script>
+    <script src="core_globals.js?v=108.64"></script>
+    <script src="core_data.js?v=108.64"></script>
+    <script src="core_dash.js?v=108.64"></script>
+    <script src="worker_tasks.js?v=108.64"></script>
+    <script src="coordinator_app.js?v=108.64"></script>
+    <script src="purchasing_orders.js?v=108.64"></script>
+    <script src="core_app.js?v=108.64"></script>
+    <script src="qa_simulator.js?v=108.64"></script>
+    <script src="todo.js?v=108.64"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
       console.log('Ganscheduler Architecture: v' + (window.APP_VERSION || '103.82') + ' Ready');
