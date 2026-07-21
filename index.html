@@ -19,7 +19,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=108.39" />
+  <link rel="stylesheet" href="styles.css?v=108.44" />
   <script>
     window.APP_VERSION = '108.37';
   </script>
@@ -56,7 +56,7 @@
   <!-- 📊 MAIN HEADER — dashboard 📊 -->
   <div class="hdr">
     <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-      <h1 style="display:flex;align-items:center;margin:0;"><img src="logo_wide.png" style="height:38px;vertical-align:middle;" alt="טומשין קידס"><span id="app-version-label" style="font-size:.6rem;opacity:.5;font-weight:400;margin-right:10px;line-height:1;">v108.39</span></h1>
+      <h1 style="display:flex;align-items:center;margin:0;"><img src="logo_wide.png" style="height:38px;vertical-align:middle;" alt="טומשין קידס"><span id="app-version-label" style="font-size:.6rem;opacity:.5;font-weight:400;margin-right:10px;line-height:1;">v108.44</span></h1>
       <select id="year-selector" onchange="window.changeCurrentYear(this.value)" style="margin-right:15px; font-size:0.8rem; border-radius:4px; border:1px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.15); color:white; padding:3px 8px; outline:none; font-weight:600; cursor:pointer;" title="בחר שנת לימודים">
         <!-- options will be injected here, but we apply a global style in index.html to fix option text color -->
         <!-- populated by JS -->
@@ -2723,6 +2723,9 @@
         style="width:100%;padding:12px;background:#1565c0;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;transition:background .2s">
         כניסה
       </button>
+      <div style="margin-top:20px;font-size:0.75rem;color:#90a4ae;">
+        &copy; 2026 טומשין-עושים חינוך אחרת בע"מ(חל"צ). כל הזכויות שמורות.
+      </div>
     </div>
   </div>
 
@@ -3650,7 +3653,8 @@
           </div>
         </div>
     </div>
+  <div class="wt-no-print" style="position:fixed; bottom:5px; left:10px; font-size:0.7rem; color:#90a4ae; z-index:9999; pointer-events:none; background:rgba(255,255,255,0.6); padding:2px 6px; border-radius:4px;">
+    &copy; 2026 טומשין-עושים חינוך אחרת בע"מ(חל"צ). כל הזכויות שמורות.
+  </div>
 </body>
 </html>
-
-

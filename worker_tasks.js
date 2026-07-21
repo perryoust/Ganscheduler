@@ -33,11 +33,17 @@ window.initWorkerTasks = function() {
     workerApp.style.overflowY = 'auto';
     workerApp.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; padding:20px 20px 0 20px;">
-        <button onclick="if(window.loadFromFirebase) { this.innerText='מרענן...'; window.loadFromFirebase(false, true).then(()=>{this.innerText='רענן נתונים 🔄'; window.renderWorkerTasksMobile();}); } else location.reload();" style="background:rgba(255,255,255,0.2); border:none; border-radius:8px; color:white; padding:6px 12px; font-size:0.8rem; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.1);">רענן נתונים 🔄</button>
-        <button onclick="window.workerLogout()" style="background:transparent; color:#fff; border:none; font-size:1.5rem; cursor:pointer; opacity:0.8;" title="התנתק">🚪</button>
+        <img src="logo_wide.png" style="height:32px; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3));" alt="Logo">
+        <div style="display:flex; gap:10px;">
+          <button onclick="if(window.loadFromFirebase) { this.innerText='מרענן...'; window.loadFromFirebase(false, true).then(()=>{this.innerText='רענן נתונים 🔄'; window.renderWorkerTasksMobile();}); } else location.reload();" style="background:rgba(255,255,255,0.2); border:none; border-radius:8px; color:white; padding:6px 12px; font-size:0.8rem; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.1);">רענן 🔄</button>
+          <button onclick="window.workerLogout()" style="background:transparent; color:#fff; border:none; font-size:1.5rem; cursor:pointer; opacity:0.8;" title="התנתק">🚪</button>
+        </div>
       </div>
-      <div id="worker-tasks-mobile-list" style="padding:15px; padding-bottom:50px;">
+      <div id="worker-tasks-mobile-list" style="padding:15px; padding-bottom:20px;">
         <!-- Worker list rendered here -->
+      </div>
+      <div style="text-align:center; padding:10px 15px 30px; font-size:0.75rem; color:rgba(255,255,255,0.6);">
+        &copy; 2026 טומשין-עושים חינוך אחרת בע"מ(חל"צ). כל הזכויות שמורות.
       </div>
     `;
     document.body.appendChild(workerApp);

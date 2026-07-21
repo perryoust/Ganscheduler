@@ -108,7 +108,7 @@ window.initCoordinatorApp = function() {
       <div id="coord-header" style="background:linear-gradient(135deg,#1a5276,#154360);padding:10px 16px 0;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.2)">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding-bottom:8px">
           <div style="display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.3rem">📋</span>
+            <img src="logo_wide.png" style="height:26px; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3));" alt="Logo">
             <span id="coord-user-name" style="color:#fff;font-weight:700;font-size:0.95rem"></span>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
@@ -152,6 +152,9 @@ window.initCoordinatorApp = function() {
         </div>
       </div>
       <div id="coord-activities-list" style="padding:12px"></div>
+      <div style="text-align:center; padding:20px; font-size:0.75rem; color:#90a4ae; opacity:0.9;">
+        &copy; 2026 טומשין-עושים חינוך אחרת בע"מ(חל"צ). כל הזכויות שמורות.
+      </div>
     `;
     document.body.appendChild(div);
   }

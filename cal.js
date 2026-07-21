@@ -733,6 +733,7 @@ async function checkDupePairAndSave(gids){
 
 function renderCal(){
   try {
+    if (!document.getElementById('cal-body')) return;
     const gids=getCalGids();
     const bar = window.getEl('cal-pair-bar');
     if (bar) {
