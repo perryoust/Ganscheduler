@@ -1,5 +1,26 @@
 // purchasing_orders.js - Handles Purchase Orders (הזמנות רכש) and Delivery Notes (תעודות משלוח)
 
+window.poSearchQuery = '';
+window.pdSearchQuery = '';
+
+let _poSearchTimer = null;
+window.poDoSearch = function(val) {
+  window.poSearchQuery = (val || '').trim().toLowerCase();
+  clearTimeout(_poSearchTimer);
+  _poSearchTimer = setTimeout(() => {
+    renderPurchOrders();
+  }, 200);
+};
+
+let _pdSearchTimer = null;
+window.pdDoSearch = function(val) {
+  window.pdSearchQuery = (val || '').trim().toLowerCase();
+  clearTimeout(_pdSearchTimer);
+  _pdSearchTimer = setTimeout(() => {
+    renderPurchDeliveries();
+  }, 200);
+};
+
 function renderPurchOrders() {
   const container = document.getElementById('porders-list');
   if (!container) return;
@@ -10,8 +31,22 @@ function renderPurchOrders() {
     return;
   }
 
-  // Sort newest first
-  const sorted = [...orders].sort((a, b) => b.ts - a.ts);
+  let sorted = [...orders];
+  if (window.poSearchQuery) {
+    const q = window.poSearchQuery;
+    sorted = sorted.filter(o => {
+      const itemsStr = (o.items || []).map(i => i.desc || '').join(' ');
+      const txt = `${o.orderId || ''} ${o.supplier || ''} ${o.orderDesc || ''} ${o.notes || ''} ${itemsStr}`.toLowerCase();
+      return txt.includes(q);
+    });
+  }
+
+  sorted.sort((a, b) => b.ts - a.ts);
+
+  if (sorted.length === 0) {
+    container.innerHTML = '<div style="color:#aaa;font-size:.8rem;text-align:center;padding:20px">אין הזמנות התואמות לחיפוש</div>';
+    return;
+  }
 
   let html = '<table class="stable" style="width:100%"><thead><tr>' +
     '<th>תאריך</th>' +
@@ -52,12 +87,28 @@ function renderPurchDeliveries() {
     return;
   }
 
-  const sorted = [...deliveries].sort((a, b) => b.ts - a.ts);
+  let sorted = [...deliveries];
+  if (window.pdSearchQuery) {
+    const q = window.pdSearchQuery;
+    sorted = sorted.filter(d => {
+      const itemsStr = (d.items || []).map(i => i.desc || '').join(' ');
+      const txt = `${d.deliveryId || ''} ${d.destination || ''} ${d.deliveryDesc || ''} ${d.driver || ''} ${d.recipient || ''} ${d.notes || ''} ${itemsStr}`.toLowerCase();
+      return txt.includes(q);
+    });
+  }
+
+  sorted.sort((a, b) => b.ts - a.ts);
+
+  if (sorted.length === 0) {
+    container.innerHTML = '<div style="color:#aaa;font-size:.8rem;text-align:center;padding:20px">אין תעודות משלוח התואמות לחיפוש</div>';
+    return;
+  }
 
   let html = '<table class="stable" style="width:100%"><thead><tr>' +
     '<th>תאריך</th>' +
     '<th>מספר תעודה</th>' +
     '<th>יעד (רכז/שטח)</th>' +
+    '<th>תיאור</th>' +
     '<th>נהג/מוביל</th>' +
     '<th>פעולות</th>' +
     '</tr></thead><tbody>';
@@ -68,10 +119,14 @@ function renderPurchDeliveries() {
       <td>${dStr}</td>
       <td style="font-weight:bold">${d.deliveryId}</td>
       <td>${d.destination}</td>
-      <td>${d.driver}</td>
+      <td>${d.deliveryDesc || ''}</td>
+      <td>${d.driver || ''}</td>
       <td>
         <button class="btn bo bsm" onclick="editDelivery('${d.id}')">✏️ ערוך</button>
+        <button class="btn bo bsm" onclick="duplicateDelivery('${d.id}')">📋 שכפל</button>
         <button class="btn bo bsm" onclick="printDelivery('${d.id}')">🖨️ הדפס</button>
+        <button class="btn bo bsm" onclick="downloadDelivery('${d.id}')">📄 הורד</button>
+        <button class="btn br bsm" onclick="deletePurchDelivery('${d.id}')" style="background:#e53935;color:white;border:none;">🗑️ מחק</button>
       </td>
     </tr>`;
   });
@@ -97,8 +152,18 @@ function generateOrderId() {
 }
 
 function generateDeliveryId() {
-  // Format: DLV + timestamp
-  return 'DLV-' + Date.now().toString().slice(-6);
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, '0');
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const year = String(today.getFullYear());
+
+  const deliveriesToday = (window.DELIVERIES || []).filter(d => {
+    const dt = new Date(d.ts);
+    return dt.getDate() === today.getDate() && dt.getMonth() === today.getMonth() && dt.getFullYear() === today.getFullYear();
+  });
+
+  const seq = String(deliveriesToday.length + 1).padStart(2, '0');
+  return `DLV-${seq}${day}${month}${year}`;
 }
 
 function openNewOrder() {
@@ -122,6 +187,14 @@ function openNewOrder() {
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
         <h2 style="margin:0;color:#1a237e">📦 יצירת הזמנת רכש חדשה</h2>
         <button class="btn bo" onclick="closeOrderModal()">X</button>
+      </div>
+
+      <div style="margin-bottom:12px; background:#f5f5f5; padding:8px 12px; border-radius:6px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <span style="font-size:0.85rem; font-weight:bold; color:#3f51b5; white-space:nowrap;">📋 טען מתוך הזמנה קודמת / תבנית:</span>
+        <select id="om-template-select" style="padding:4px 8px; border-radius:4px; border:1px solid #ccc; width:100%; max-width:400px; font-size:0.85rem;" onchange="loadOrderTemplate(this.value)">
+          <option value="">-- בחר הזמנה לשכפול נתונים --</option>
+          ${(window.ORDERS || []).map(o => `<option value="${o.id}">${o.orderId} - ${o.supplier} (${new Date(o.ts).toLocaleDateString('he-IL')}) - &#8362;${o.totalPrice ? o.totalPrice.toFixed(0) : 0}</option>`).join('')}
+        </select>
       </div>
       
       <div class="row" style="margin-bottom:10px">
@@ -188,13 +261,23 @@ function openNewOrder() {
           </div>
         </div>
         <div style="flex:1;background:#f1f8e9;padding:15px;border-radius:8px;margin-right:15px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;background:#e8f5e9;padding:6px 8px;border-radius:6px;border:1px solid #c8e6c9;">
+            <b style="color:#2e7d32;font-size:0.95rem;">כמות ערכות:</b>
+            <input type="number" id="om-kits-count" value="1" min="1" step="1" style="width:70px;text-align:center;font-weight:bold;font-size:1rem;" onchange="omCalc()" oninput="omCalc()">
+          </div>
           <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-            <span>סה"כ ביניים:</span>
+            <span>סה"כ ביניים (לערכה):</span>
             <span id="om-subtotal" style="font-weight:bold">0.00 ₪</span>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-            <b>הנחה (₪):</b>
-            <input type="number" id="om-discount" value="0" min="0" step="0.01" style="width:80px;text-align:center" onchange="omCalc()">
+            <span>הנחה לערכה (₪):</span>
+            <input type="number" id="om-discount" value="0" min="0" step="0.01" style="width:80px;text-align:center" onchange="omCalc()" oninput="omCalc()">
+          </div>
+          <div id="om-kits-summary-row" style="display:none;flex-direction:column;gap:3px;margin-top:5px;margin-bottom:5px;padding:6px;background:#ffffff;border-radius:6px;border:1px solid #ded;font-size:0.85rem;color:#333;">
+            <div style="display:flex;justify-content:space-between;font-weight:bold;color:#2e7d32;">
+              <span>סה"כ לפני מע"מ (<span id="om-kits-lbl">1</span> ערכות):</span>
+              <span id="om-kits-total">0.00 ₪</span>
+            </div>
           </div>
           <div style="display:flex;justify-content:space-between;margin-bottom:5px;color:#e65100;align-items:center;">
             <span>מע"מ (<input type="number" id="om-vat-rate" value="${window.VAT_RATE || 18}" style="width:45px;padding:2px;border:1px solid #ccc;border-radius:4px;text-align:center;" onchange="omCalc()" oninput="omCalc()">%):</span>
@@ -305,7 +388,7 @@ function omAddItemRow(desc='', qty=1, price=0) {
 
 function omCalc() {
   const tbody = document.getElementById('om-items-body');
-  let subtotal = 0;
+  let subtotalPerKit = 0;
   
   Array.from(tbody.children).forEach((tr, index) => {
     const numEl = tr.querySelector('.om-row-num');
@@ -315,21 +398,40 @@ function omCalc() {
     const price = parseFloat(tr.querySelector('.om-price').value) || 0;
     const rowTot = qty * price;
     tr.querySelector('.om-row-total').innerText = rowTot.toFixed(2) + ' ₪';
-    subtotal += rowTot;
+    subtotalPerKit += rowTot;
   });
   
   const discountInput = document.getElementById('om-discount');
-  const discount = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
+  const discountPerKit = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
   
-  let taxable = subtotal - discount;
-  if (taxable < 0) taxable = 0;
+  let taxablePerKit = subtotalPerKit - discountPerKit;
+  if (taxablePerKit < 0) taxablePerKit = 0;
+
+  const kitsInput = document.getElementById('om-kits-count');
+  const kitsCount = kitsInput ? (parseInt(kitsInput.value) || 1) : 1;
+
+  let grandTaxable = taxablePerKit * kitsCount;
 
   const vatInput = document.getElementById('om-vat-rate');
   const vatRate = vatInput ? (parseFloat(vatInput.value) || 0) : (window.VAT_RATE || 18);
-  const vat = taxable * (vatRate / 100);
-  const total = taxable + vat;
+  const vat = grandTaxable * (vatRate / 100);
+  const total = grandTaxable + vat;
   
-  document.getElementById('om-subtotal').innerText = subtotal.toFixed(2) + ' ₪';
+  document.getElementById('om-subtotal').innerText = subtotalPerKit.toFixed(2) + ' ₪';
+  
+  const kitsSummaryRow = document.getElementById('om-kits-summary-row');
+  if (kitsSummaryRow) {
+    if (kitsCount > 1) {
+      kitsSummaryRow.style.display = 'flex';
+      const lblEl = document.getElementById('om-kits-lbl');
+      if (lblEl) lblEl.innerText = kitsCount;
+      const totEl = document.getElementById('om-kits-total');
+      if (totEl) totEl.innerText = grandTaxable.toFixed(2) + ' ₪';
+    } else {
+      kitsSummaryRow.style.display = 'none';
+    }
+  }
+
   document.getElementById('om-vat').innerText = vat.toFixed(2) + ' ₪';
   document.getElementById('om-total').innerText = total.toFixed(2) + ' ₪';
 }
@@ -369,9 +471,14 @@ async function saveOrder(id) {
   let taxable = subtotal - discount;
   if (taxable < 0) taxable = 0;
 
+  const kitsInput = document.getElementById('om-kits-count');
+  const kitsCount = kitsInput ? (parseInt(kitsInput.value) || 1) : 1;
+
+  let grandTaxable = taxable * kitsCount;
+
   let vatRate = parseFloat(document.getElementById('om-vat-rate').value) || (window.VAT_RATE || 18);
-  let vat = taxable * (vatRate / 100);
-  let total = taxable + vat;
+  let vat = grandTaxable * (vatRate / 100);
+  let total = grandTaxable + vat;
   
   const orderDateStr = document.getElementById('om-date').value;
   const ts = orderDateStr ? new Date(orderDateStr).getTime() : Date.now();
@@ -391,6 +498,8 @@ async function saveOrder(id) {
     items: items,
     subtotal: subtotal,
     discount: discount,
+    kitsCount: kitsCount,
+    vatRate: vatRate,
     vat: vat,
     totalPrice: total
   };
@@ -475,35 +584,125 @@ async function saveOrder(id) {
   showToast('✅ ההזמנה נשמרה בהצלחה!');
 }
 
+window.loadOrderTemplate = function(id) {
+  if (!id) return;
+  const order = (window.ORDERS || []).find(o => o.id === id);
+  if (!order) return;
+  
+  if (confirm(`האם לטעון את פרטי הזמנה ${order.orderId} (${order.supplier}) לתוך ההזמנה הנוכחית?`)) {
+    document.getElementById('om-supplier').value = order.supplier || '';
+    const ordererEl = document.getElementById('om-orderer');
+    if(ordererEl) ordererEl.value = order.orderer || '';
+    const descEl = document.getElementById('om-orderdesc');
+    if(descEl) descEl.value = order.orderDesc || '';
+    const suffixEl = document.getElementById('om-titlesuffix');
+    if(suffixEl) suffixEl.value = order.titleSuffix || '';
+    document.getElementById('om-notes').value = order.notes || '';
+    if (order.discount !== undefined) {
+      const discEl = document.getElementById('om-discount');
+      if (discEl) discEl.value = order.discount;
+    }
+    if (order.vatRate !== undefined) {
+      const vatEl = document.getElementById('om-vat-rate');
+      if (vatEl) vatEl.value = order.vatRate;
+    }
+    
+    const tbody = document.getElementById('om-items-body');
+    tbody.innerHTML = '';
+    if (order.items && order.items.length > 0) {
+      order.items.forEach(item => {
+        omAddItemRow(item.desc, item.qty, item.price);
+      });
+    } else {
+      omAddItemRow();
+    }
+    omCalc();
+    showToast(`📋 נתוני הזמנה ${order.orderId} נטענו בהצלחה!`);
+  }
+  document.getElementById('om-template-select').value = '';
+};
+
+window.duplicateCurrentOrder = function() {
+  const newId = 'ord_' + Date.now();
+  const newOrderId = generateOrderId();
+  
+  document.getElementById('om-orderid').value = newOrderId;
+  document.getElementById('om-date').value = new Date().toISOString().split('T')[0];
+  
+  const titleEl = document.querySelector('#order-modal h2');
+  if (titleEl) titleEl.innerHTML = `📦 שכפול הזמנה - הזמנה חדשה ${newOrderId}`;
+
+  const saveBtn = document.querySelector('#order-modal .btn.bp');
+  if (saveBtn) saveBtn.setAttribute('onclick', `saveOrder('${newId}')`);
+  
+  const dupBtn = document.getElementById('btn-dup-current');
+  if (dupBtn) dupBtn.remove();
+  
+  showToast(`📋 ההזמנה שוכפלה בהצלחה! נוצר מספר הזמנה חדש: ${newOrderId}. לחץ על שמור להשלמה.`);
+};
+
 function editOrder(id) {
   const order = (window.ORDERS || []).find(o => o.id === id);
   if (!order) return;
   
   openNewOrder();
   
+  const titleEl = document.querySelector('#order-modal h2');
+  if (titleEl) titleEl.innerHTML = `✏️ עריכת הזמנה ${order.orderId}`;
+  
   // Override fields with existing data
   document.getElementById('om-orderid').value = order.orderId;
   document.getElementById('om-date').value = new Date(order.ts).toISOString().split('T')[0];
-  document.getElementById('om-supplier').value = order.supplier;
+  document.getElementById('om-supplier').value = order.supplier || '';
   
   const ordererEl = document.getElementById('om-orderer');
   if(ordererEl) ordererEl.value = order.orderer || '';
   
   const descEl = document.getElementById('om-orderdesc');
   if(descEl) descEl.value = order.orderDesc || '';
+
+  const suffixEl = document.getElementById('om-titlesuffix');
+  if(suffixEl) suffixEl.value = order.titleSuffix || '';
   
   document.getElementById('om-notes').value = order.notes || '';
+
+  if (order.discount !== undefined) {
+    const discEl = document.getElementById('om-discount');
+    if (discEl) discEl.value = order.discount;
+  }
+  if (order.vatRate !== undefined) {
+    const vatEl = document.getElementById('om-vat-rate');
+    if (vatEl) vatEl.value = order.vatRate;
+  }
   
   // Clear items and add existing
   const tbody = document.getElementById('om-items-body');
   tbody.innerHTML = '';
-  order.items.forEach(item => {
-    omAddItemRow(item.desc, item.qty, item.price);
-  });
+  if (order.items && order.items.length > 0) {
+    order.items.forEach(item => {
+      omAddItemRow(item.desc, item.qty, item.price);
+    });
+  } else {
+    omAddItemRow();
+  }
   
+  // Add "📋 שכפל להזמנה חדשה" button to modal action container
+  const actionDiv = document.querySelector('#order-modal .modal-box > div:last-child > div:last-child');
+  if (actionDiv && !document.getElementById('btn-dup-current')) {
+    const dupBtn = document.createElement('button');
+    dupBtn.id = 'btn-dup-current';
+    dupBtn.className = 'btn bw';
+    dupBtn.style.background = '#e8eaf6';
+    dupBtn.style.color = '#1a237e';
+    dupBtn.style.borderColor = '#3f51b5';
+    dupBtn.innerHTML = '📋 שכפל להזמנה חדשה';
+    dupBtn.onclick = function() { duplicateCurrentOrder(); };
+    actionDiv.insertBefore(dupBtn, actionDiv.lastElementChild);
+  }
+
   // Change save button to use existing ID
   const saveBtn = document.querySelector('#order-modal .btn.bp');
-  saveBtn.setAttribute('onclick', `saveOrder('${id}')`);
+  if (saveBtn) saveBtn.setAttribute('onclick', `saveOrder('${id}')`);
   
   omCalc();
 }
@@ -514,7 +713,14 @@ function duplicateOrder(id) {
   
   openNewOrder();
   
-  // Date is already today, orderId is newly generated
+  const newId = 'ord_' + Date.now();
+  const newOrderId = generateOrderId();
+
+  const titleEl = document.querySelector('#order-modal h2');
+  if (titleEl) titleEl.innerHTML = `📦 שכפול הזמנה - הזמנה חדשה ${newOrderId}`;
+  
+  document.getElementById('om-orderid').value = newOrderId;
+  document.getElementById('om-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('om-supplier').value = order.supplier || '';
   
   const ordererEl = document.getElementById('om-orderer');
@@ -522,18 +728,37 @@ function duplicateOrder(id) {
   
   const descEl = document.getElementById('om-orderdesc');
   if(descEl) descEl.value = order.orderDesc || '';
+
+  const suffixEl = document.getElementById('om-titlesuffix');
+  if(suffixEl) suffixEl.value = order.titleSuffix || '';
   
   document.getElementById('om-notes').value = order.notes || '';
+
+  if (order.discount !== undefined) {
+    const discEl = document.getElementById('om-discount');
+    if (discEl) discEl.value = order.discount;
+  }
+  if (order.vatRate !== undefined) {
+    const vatEl = document.getElementById('om-vat-rate');
+    if (vatEl) vatEl.value = order.vatRate;
+  }
   
   // Clear items and add existing
   const tbody = document.getElementById('om-items-body');
   tbody.innerHTML = '';
-  order.items.forEach(item => {
-    omAddItemRow(item.desc, item.qty, item.price);
-  });
+  if (order.items && order.items.length > 0) {
+    order.items.forEach(item => {
+      omAddItemRow(item.desc, item.qty, item.price);
+    });
+  } else {
+    omAddItemRow();
+  }
+
+  const saveBtn = document.querySelector('#order-modal .btn.bp');
+  if (saveBtn) saveBtn.setAttribute('onclick', `saveOrder('${newId}')`);
   
   omCalc();
-  showToast('הפרטים שוכפלו להזמנה חדשה (מספר חדש). לחץ על שמירה כדי לשמור אותה.');
+  showToast(`📋 הפרטים שוכפלו בהצלחה להזמנה חדשה (מספר ${newOrderId}). לחץ על "שמור הזמנה" כדי לשמור אותה.`);
 }
 
 function printOrder(id) {
@@ -576,14 +801,20 @@ function previewOrder() {
   const discount = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
   let taxable = subtotal - discount;
   if (taxable < 0) taxable = 0;
+
+  const kitsInput = document.getElementById('om-kits-count');
+  const kitsCount = kitsInput ? (parseInt(kitsInput.value) || 1) : 1;
+  let grandTaxable = taxable * kitsCount;
+
   const vatInput = document.getElementById('om-vat-rate');
   const vatRate = vatInput ? (parseFloat(vatInput.value) || 0) : (window.VAT_RATE || 18);
-  let vat = taxable * (vatRate / 100);
-  let total = taxable + vat;
+  let vat = grandTaxable * (vatRate / 100);
+  let total = grandTaxable + vat;
   
   const orderDateStr = document.getElementById('om-date').value;
   const ts = orderDateStr ? new Date(orderDateStr).getTime() : Date.now();
   const orderDesc = document.getElementById('om-orderdesc') ? document.getElementById('om-orderdesc').value.trim() : '';
+  const titleSuffix = document.getElementById('om-titlesuffix') ? document.getElementById('om-titlesuffix').value.trim() : '';
   const orderer = document.getElementById('om-orderer') ? document.getElementById('om-orderer').value.trim() : '';
 
   const order = {
@@ -592,10 +823,13 @@ function previewOrder() {
     supplier: supplier,
     orderer: orderer,
     orderDesc: orderDesc,
+    titleSuffix: titleSuffix,
     notes: document.getElementById('om-notes').value,
     items: items,
     subtotal: subtotal,
     discount: discount,
+    kitsCount: kitsCount,
+    vatRate: vatRate,
     vat: vat,
     totalPrice: total
   };
@@ -608,21 +842,22 @@ function openOrderPrintPreview(order, autoDownload = false) {
   
   const rtlFix = (str) => {
     if (!str) return '';
-    let fixed = String(str).replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
-    fixed = fixed.replace(/ /g, '&nbsp;');
-    return fixed;
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   };
 
   const footerLines = (window.PURCH_FOOTER || defaultFooter).split('\n').map(l => rtlFix(l.trim())).filter(l => l);
   let footerHtml = '';
   if (footerLines.length > 0) {
     footerHtml += `<b style="color: #2e7d32; font-size: 1.1em;">${footerLines[0]}</b><br>`;
-    for(let i=1; i<footerLines.length; i++){
-      footerHtml += `${footerLines[i]}<br>`;
+    if (footerLines.length > 1) {
+      footerHtml += footerLines.slice(1).join(' | ');
     }
   }
 
-  let rawTitle = `${order.supplier || ''} - ${order.orderDesc ? order.orderDesc + ' - ' : ''}${order.orderId}`;
+  let rawTitle = 'הזמנת רכש ' + (order.orderId || '') + ' - ' + (order.supplier || '');
   rawTitle = rawTitle.replace(/"/g, '').replace(/_/g, ' ').replace(/\s+/g, ' ');
   const titleText = rawTitle.replace(/&/g, '&amp;');
 
@@ -754,12 +989,36 @@ function openOrderPrintPreview(order, autoDownload = false) {
 
     let footerContentHtml = '';
     if (isLastPage) {
+      const kitsCount = order.kitsCount || 1;
+      const subtotalPerKit = order.subtotal || 0;
+      const discountPerKit = order.discount || 0;
+      const taxablePerKit = Math.max(0, subtotalPerKit - discountPerKit);
+      const totalTaxable = taxablePerKit * kitsCount;
+
+      let kitsBreakdownHtml = '';
+      if (kitsCount > 1) {
+        kitsBreakdownHtml = `
+          <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ לערכה בודדת:&rlm;</span><span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span></p>
+          ${discountPerKit ? `<p style="margin:4px 0; color:#d32f2f; text-align:center;"><span style="font-weight:bold; margin-left:5px;">הנחה לערכה:&rlm;</span><span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span></p>` : ''}
+          <p style="margin:6px 0; background:#f1f8e9; padding:4px 12px; border-radius:4px; display:inline-block; border:1px solid #c8e6c9; text-align:center;">
+            <span style="font-weight:bold; margin-left:5px; color:#2e7d32;">כמות ערכות:&rlm;</span><span style="font-weight:bold; font-size:1.1em; color:#2e7d32;">${kitsCount}</span>
+          </p>
+          <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ (${kitsCount} ערכות):&rlm;</span><span dir="ltr" style="font-weight:bold;">&#8362; ${totalTaxable.toFixed(2)}</span></p>
+        `;
+      } else {
+        kitsBreakdownHtml = `
+          <p style="margin:5px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ:&rlm;</span><span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span></p>
+          ${discountPerKit ? `<p style="margin:5px 0; color:#d32f2f; text-align:center;"><span style="font-weight:bold; margin-left:5px;">הנחה:&rlm;</span><span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span></p>` : ''}
+        `;
+      }
+
       footerContentHtml = `
-        <div style="margin-top: 20px; text-align: left; font-size:0.95em;">
-          <p style="margin:5px 0;"><span style="font-weight:bold; margin-left:5px;">סה"כ:&rlm;</span><span dir="ltr">&#8362; ${order.subtotal.toFixed(2)}</span></p>
-          ${order.discount ? `<p style="margin:5px 0; color:#d32f2f;"><span style="font-weight:bold; margin-left:5px;">הנחה:&rlm;</span><span dir="ltr">- &#8362; ${order.discount.toFixed(2)}</span></p>` : ''}
-          <p style="margin:5px 0;"><span style="font-weight:bold; margin-left:5px;">${Math.round((order.vat/(order.subtotal - (order.discount || 0)))*100) || 17}% מע"מ:</span><span dir="ltr">&#8362; ${order.vat.toFixed(2)}</span></p>
-          <h3 style="color:#2e7d32; margin:10px 0 0 0;"><span style="font-weight:bold; margin-left:5px;">סה"כ לתשלום:&rlm;</span><span dir="ltr">&#8362; ${order.totalPrice.toFixed(2)}</span></h3>
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+          <div style="display: flex; flex-direction: column; align-items: center; text-align: center; font-size:0.95em; min-width:220px; background:#fafafa; padding:12px 18px; border-radius:8px; border:1px solid #eee;">
+            ${kitsBreakdownHtml}
+            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">${Math.round((order.vat/(totalTaxable || 1))*100) || 18}% מע"מ:</span><span dir="ltr">&#8362; ${order.vat.toFixed(2)}</span></p>
+            <h3 style="color:#2e7d32; margin:8px 0 0 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ לתשלום:&rlm;</span><span dir="ltr">&#8362; ${order.totalPrice.toFixed(2)}</span></h3>
+          </div>
         </div>
         
         ${order.notes ? `<div style="margin-top:20px"><b>הערות:&rlm;</b><br>${rtlFix(order.notes).replace(/\n/g, '<br>')}</div>` : ''}
@@ -840,8 +1099,6 @@ function openOrderPrintPreview(order, autoDownload = false) {
         function doPrint() { window.print(); }
         function doPDF() {
           const element = document.getElementById('pdf-content');
-          
-          // Temporarily remove spacing that causes blank pages in html2pdf
           element.style.padding = '0';
           const pages = element.querySelectorAll('.page');
           pages.forEach(p => {
@@ -857,7 +1114,6 @@ function openOrderPrintPreview(order, autoDownload = false) {
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
           };
           html2pdf().set(opt).from(element).save().then(() => {
-            // Restore spacing after PDF generation
             element.style.padding = '';
             pages.forEach(p => {
               p.style.marginBottom = '';
@@ -882,7 +1138,6 @@ function openOrderPrintPreview(order, autoDownload = false) {
   `);
 }
 
-
 function openNewDelivery() {
   const newId = 'dlv_' + Date.now();
   const deliveryId = generateDeliveryId();
@@ -901,11 +1156,19 @@ function openNewDelivery() {
         <h2 style="margin:0;color:#1a237e">🚚 יצירת תעודת משלוח חדשה</h2>
         <button class="btn bo" onclick="closeDeliveryModal()">X</button>
       </div>
+
+      <div style="margin-bottom:12px; background:#f5f5f5; padding:8px 12px; border-radius:6px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <span style="font-size:0.85rem; font-weight:bold; color:#3f51b5; white-space:nowrap;">📋 טען מתוך תעודה קודמת / תבנית:</span>
+        <select id="dm-template-select" style="padding:4px 8px; border-radius:4px; border:1px solid #ccc; width:100%; max-width:400px; font-size:0.85rem;" onchange="loadDeliveryTemplate(this.value)">
+          <option value="">-- בחר תעודת משלוח לשכפול נתונים --</option>
+          ${(window.DELIVERIES || []).map(d => `<option value="${d.id}">${d.deliveryId} - ${d.destination} (${new Date(d.ts).toLocaleDateString('he-IL')})</option>`).join('')}
+        </select>
+      </div>
       
       <div class="row" style="margin-bottom:10px">
         <div style="flex:1">
           <label>מספר תעודה:</label>
-          <input type="text" id="dm-deliveryid" value="${deliveryId}" class="in-date" readonly style="background:#f5f5f5;font-weight:bold">
+          <input type="text" id="dm-deliveryid" value="${deliveryId}" class="in-date" style="font-weight:bold">
         </div>
         <div style="flex:1">
           <label>תאריך:</label>
@@ -915,8 +1178,19 @@ function openNewDelivery() {
       
       <div class="row" style="margin-bottom:10px">
         <div style="flex:1">
-          <label>יעד (רכז/שטח):</label>
+          <label>יעד (רכז/שטח/ספק):</label>
           <input type="text" id="dm-destination" class="in-date" placeholder="למשל: רכזת ראש העין">
+        </div>
+        <div style="flex:1">
+          <label>תיאור התעודה:</label>
+          <input type="text" id="dm-desc" class="in-date" placeholder="למשל: ערכת מדעים / ציוד חוגים">
+        </div>
+      </div>
+      
+      <div class="row" style="margin-bottom:10px">
+        <div style="flex:1">
+          <label>שם המקבל (אופציונלי):</label>
+          <input type="text" id="dm-recipient" class="in-date" placeholder="שם המקבל בשטח...">
         </div>
         <div style="flex:1">
           <label>נהג/מוביל:</label>
@@ -925,22 +1199,30 @@ function openNewDelivery() {
       </div>
 
       <div style="margin-top:20px;border-top:2px solid #eee;padding-top:15px">
-        <h3 style="margin:0 0 10px 0;color:#1a237e">📦 ציוד למשלוח</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h3 style="margin:0;color:#1a237e">📦 ציוד למשלוח</h3>
+          <div style="font-size:0.85rem; color:#666;">
+            💡 טיפ: אפשר להעתיק שורות באקסל ולהדביק (Ctrl+V) ישר לתוך תיאור השורה הראשונה
+          </div>
+        </div>
         
-        <table class="stable" style="width:100%" id="dm-items-table">
-          <thead>
-            <tr>
-              <th>תיאור ציוד</th>
-              <th style="width:80px">כמות</th>
-              <th style="width:150px">הערות / ברקוד</th>
-              <th style="width:50px"></th>
-            </tr>
-          </thead>
-          <tbody id="dm-items-body">
-          </tbody>
-        </table>
+        <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; margin-bottom:10px;">
+          <table class="stable" style="width:100%; margin:0;" id="dm-items-table">
+            <thead style="position: sticky; top: 0; background: #fff; z-index: 10;">
+              <tr>
+                <th style="width:35px; text-align:center;">#</th>
+                <th>תיאור ציוד</th>
+                <th style="width:80px">כמות</th>
+                <th style="width:180px">הערות / ברקוד</th>
+                <th style="width:50px"></th>
+              </tr>
+            </thead>
+            <tbody id="dm-items-body" onpaste="handleDeliveryTablePaste(event)">
+            </tbody>
+          </table>
+        </div>
         
-        <button class="btn bw bsm" style="margin-top:10px" onclick="dmAddItemRow()">➕ הוסף שורת ציוד</button>
+        <button class="btn bg bsm" style="margin-top:10px" onclick="dmAddItemRow()">➕ הוסף שורת ציוד</button>
       </div>
 
       <div style="margin-top:20px">
@@ -948,9 +1230,13 @@ function openNewDelivery() {
         <textarea id="dm-notes" rows="3" style="width:100%;border:1px solid #ccc;border-radius:5px;padding:8px"></textarea>
       </div>
 
-      <div style="display:flex;justify-content:flex-end;margin-top:20px;gap:10px">
-        <button class="btn bo" onclick="closeDeliveryModal()">ביטול</button>
-        <button class="btn bp" onclick="saveDelivery('${newId}')">💾 שמור תעודת משלוח</button>
+      <div style="display:flex;justify-content:space-between;margin-top:20px;align-items:center;">
+        <button class="btn bw bsm" onclick="editPurchFooter()">✏️ ערוך כותרת תחתונה בהדפסה</button>
+        <div style="display:flex;gap:10px">
+          <button class="btn bw" onclick="previewDelivery()">👁️ הצג לפני שמירה</button>
+          <button class="btn bo" onclick="closeDeliveryModal()">ביטול</button>
+          <button class="btn bp" onclick="saveDelivery('${newId}')">💾 שמור תעודת משלוח</button>
+        </div>
       </div>
     </div>
   `;
@@ -959,6 +1245,63 @@ function openNewDelivery() {
   dmAddItemRow(); // Add first empty row
 }
 
+window.handleDeliveryTablePaste = function(e) {
+  if (!e.target.classList.contains('dm-desc')) return;
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  if (!text) return;
+  
+  if (text.indexOf('\n') === -1 && text.indexOf('\t') === -1) return;
+  
+  e.preventDefault();
+  const rows = text.split(/\r?\n/).filter(r => r.trim());
+  const currentRow = e.target.closest('tr');
+  let firstRow = true;
+  
+  rows.forEach(row => {
+    const cols = row.split(/\t/);
+    let desc = cols[0] ? cols[0].trim() : '';
+    let qty = 1;
+    let note = '';
+    
+    if (cols.length >= 3) {
+      qty = parseFloat((cols[1] || '').replace(/[^\d.-]/g, '')) || 1;
+      note = cols[2] ? cols[2].trim() : '';
+    } else if (cols.length === 2) {
+      qty = parseFloat((cols[1] || '').replace(/[^\d.-]/g, '')) || 1;
+    }
+    
+    if (desc) {
+      if (firstRow && currentRow) {
+        currentRow.querySelector('.dm-desc').value = desc;
+        currentRow.querySelector('.dm-qty').value = qty;
+        currentRow.querySelector('.dm-note').value = note;
+        firstRow = false;
+      } else {
+        dmAddItemRow(desc, qty, note);
+      }
+    }
+  });
+  dmCalcRowNums();
+};
+
+window.dmCalcRowNums = function() {
+  const tbody = document.getElementById('dm-items-body');
+  if (!tbody) return;
+  Array.from(tbody.children).forEach((tr, index) => {
+    const numEl = tr.querySelector('.dm-row-num');
+    if (numEl) numEl.innerText = index + 1;
+  });
+};
+
+window.dmDuplicateItemRow = function(rowId) {
+  const tr = document.getElementById(rowId);
+  if (!tr) return;
+  const desc = tr.querySelector('.dm-desc').value;
+  const qty = parseFloat(tr.querySelector('.dm-qty').value) || 1;
+  const note = tr.querySelector('.dm-note').value;
+  dmAddItemRow(desc, qty, note);
+};
+
 function dmAddItemRow(desc='', qty=1, note='') {
   const tbody = document.getElementById('dm-items-body');
   const tr = document.createElement('tr');
@@ -966,18 +1309,68 @@ function dmAddItemRow(desc='', qty=1, note='') {
   tr.id = rowId;
   
   tr.innerHTML = `
-    <td><input type="text" class="dm-desc in-date" value="${desc}" style="width:100%" placeholder="שם הציוד..."></td>
+    <td class="dm-row-num" style="text-align:center; font-weight:bold; color:#777; vertical-align:middle;"></td>
+    <td><input type="text" class="dm-desc in-date" value="${desc.replace(/"/g, '&quot;')}" style="width:100%" placeholder="שם הציוד/פריט..."></td>
     <td><input type="number" class="dm-qty in-date" value="${qty}" min="1" style="width:100%"></td>
-    <td><input type="text" class="dm-note in-date" value="${note}" style="width:100%" placeholder="הערות"></td>
-    <td><button class="btn bo bsm" onclick="document.getElementById('${rowId}').remove();">X</button></td>
+    <td><input type="text" class="dm-note in-date" value="${note.replace(/"/g, '&quot;')}" style="width:100%" placeholder="הערות / ברקוד"></td>
+    <td style="white-space:nowrap;">
+      <button type="button" class="btn bw bsm" onclick="dmDuplicateItemRow('${rowId}')" title="שכפל שורה">+</button>
+      <button type="button" class="btn bo bsm" onclick="document.getElementById('${rowId}').remove(); dmCalcRowNums();" title="מחק שורה">🗑️</button>
+    </td>
   `;
   tbody.appendChild(tr);
+  dmCalcRowNums();
 }
 
 function closeDeliveryModal() {
   const modal = document.getElementById('delivery-modal');
   if (modal) modal.style.display = 'none';
 }
+
+window.loadDeliveryTemplate = function(id) {
+  if (!id) return;
+  const dlv = (window.DELIVERIES || []).find(d => d.id === id);
+  if (!dlv) return;
+  
+  if (confirm(`האם לטעון את פרטי תעודת משלוח ${dlv.deliveryId} (${dlv.destination}) לתוך התעודה הנוכחית?`)) {
+    document.getElementById('dm-destination').value = dlv.destination || '';
+    document.getElementById('dm-desc').value = dlv.deliveryDesc || '';
+    document.getElementById('dm-recipient').value = dlv.recipient || '';
+    document.getElementById('dm-driver').value = dlv.driver || '';
+    document.getElementById('dm-notes').value = dlv.notes || '';
+    
+    const tbody = document.getElementById('dm-items-body');
+    tbody.innerHTML = '';
+    if (dlv.items && dlv.items.length > 0) {
+      dlv.items.forEach(item => {
+        dmAddItemRow(item.desc, item.qty, item.note);
+      });
+    } else {
+      dmAddItemRow();
+    }
+    showToast(`📋 נתוני תעודה ${dlv.deliveryId} נטענו בהצלחה!`);
+  }
+  document.getElementById('dm-template-select').value = '';
+};
+
+window.duplicateCurrentDelivery = function() {
+  const newId = 'dlv_' + Date.now();
+  const newDeliveryId = generateDeliveryId();
+  
+  document.getElementById('dm-deliveryid').value = newDeliveryId;
+  document.getElementById('dm-date').value = new Date().toISOString().split('T')[0];
+  
+  const titleEl = document.querySelector('#delivery-modal h2');
+  if (titleEl) titleEl.innerHTML = `🚚 שכפול תעודה - תעודה חדשה ${newDeliveryId}`;
+
+  const saveBtn = document.querySelector('#delivery-modal .btn.bp');
+  if (saveBtn) saveBtn.setAttribute('onclick', `saveDelivery('${newId}')`);
+  
+  const dupBtn = document.getElementById('btn-dup-current-dlv');
+  if (dupBtn) dupBtn.remove();
+  
+  showToast(`📋 תעודת המשלוח שוכפלה בהצלחה! נוצר מספר תעודה חדש: ${newDeliveryId}. לחץ על שמור להשלמה.`);
+};
 
 async function saveDelivery(id) {
   const destination = document.getElementById('dm-destination').value.trim();
@@ -1010,6 +1403,8 @@ async function saveDelivery(id) {
     deliveryId: document.getElementById('dm-deliveryid').value,
     ts: ts,
     destination: destination,
+    deliveryDesc: document.getElementById('dm-desc').value.trim(),
+    recipient: document.getElementById('dm-recipient').value.trim(),
     driver: document.getElementById('dm-driver').value.trim(),
     notes: document.getElementById('dm-notes').value,
     items: items
@@ -1039,102 +1434,418 @@ function editDelivery(id) {
   
   openNewDelivery();
   
+  const titleEl = document.querySelector('#delivery-modal h2');
+  if (titleEl) titleEl.innerHTML = `✏️ עריכת תעודת משלוח ${delivery.deliveryId}`;
+
   document.getElementById('dm-deliveryid').value = delivery.deliveryId;
   document.getElementById('dm-date').value = new Date(delivery.ts).toISOString().split('T')[0];
   document.getElementById('dm-destination').value = delivery.destination;
+  document.getElementById('dm-desc').value = delivery.deliveryDesc || '';
+  document.getElementById('dm-recipient').value = delivery.recipient || '';
   document.getElementById('dm-driver').value = delivery.driver || '';
   document.getElementById('dm-notes').value = delivery.notes || '';
   
   const tbody = document.getElementById('dm-items-body');
   tbody.innerHTML = '';
-  delivery.items.forEach(item => {
-    dmAddItemRow(item.desc, item.qty, item.note);
-  });
-  
-  const saveBtn = document.querySelector('#delivery-modal .btn.bp');
-  saveBtn.setAttribute('onclick', `saveDelivery('${id}')`);
-}
+  if (delivery.items && delivery.items.length > 0) {
+    delivery.items.forEach(item => {
+      dmAddItemRow(item.desc, item.qty, item.note);
+    });
+  } else {
+    dmAddItemRow();
+  }
 
-window.deletePurchOrder = async function(id) {
-  if (!confirm('האם אתה בטוח שברצונך למחוק הזמנה זו? המחיקה תמחק גם את החשבונית המקושרת להזמנה זו מחלון חשבוניות.')) return;
-  
-  const order = (window.ORDERS || []).find(o => o.id === id);
-  if (!order) return;
-  
-  // Remove from ORDERS
-  window.ORDERS = window.ORDERS.filter(o => o.id !== id);
-  
-  // Sync with INVOICES
-  if (typeof window.INVOICES !== 'undefined') {
-    window.INVOICES = window.INVOICES.filter(i => i.orderNum !== order.orderId);
-    if (typeof window.renderInvoices === 'function') window.renderInvoices();
+  const actionDiv = document.querySelector('#delivery-modal .modal-box > div:last-child > div:last-child');
+  if (actionDiv && !document.getElementById('btn-dup-current-dlv')) {
+    const dupBtn = document.createElement('button');
+    dupBtn.id = 'btn-dup-current-dlv';
+    dupBtn.className = 'btn bw';
+    dupBtn.style.background = '#e8eaf6';
+    dupBtn.style.color = '#1a237e';
+    dupBtn.style.borderColor = '#3f51b5';
+    dupBtn.innerHTML = '📋 שכפל לתעודה חדשה';
+    dupBtn.onclick = function() { duplicateCurrentDelivery(); };
+    actionDiv.insertBefore(dupBtn, actionDiv.lastElementChild);
   }
   
-  renderPurchOrders();
+  const saveBtn = document.querySelector('#delivery-modal .btn.bp');
+  if (saveBtn) saveBtn.setAttribute('onclick', `saveDelivery('${id}')`);
+}
+
+function duplicateDelivery(id) {
+  const dlv = (window.DELIVERIES || []).find(d => d.id === id);
+  if (!dlv) return;
   
-  // Save to Firebase
+  openNewDelivery();
+  
+  const newId = 'dlv_' + Date.now();
+  const newDeliveryId = generateDeliveryId();
+
+  const titleEl = document.querySelector('#delivery-modal h2');
+  if (titleEl) titleEl.innerHTML = `🚚 שכפול תעודה - תעודה חדשה ${newDeliveryId}`;
+  
+  document.getElementById('dm-deliveryid').value = newDeliveryId;
+  document.getElementById('dm-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('dm-destination').value = dlv.destination || '';
+  document.getElementById('dm-desc').value = dlv.deliveryDesc || '';
+  document.getElementById('dm-recipient').value = dlv.recipient || '';
+  document.getElementById('dm-driver').value = dlv.driver || '';
+  document.getElementById('dm-notes').value = dlv.notes || '';
+  
+  const tbody = document.getElementById('dm-items-body');
+  tbody.innerHTML = '';
+  if (dlv.items && dlv.items.length > 0) {
+    dlv.items.forEach(item => {
+      dmAddItemRow(item.desc, item.qty, item.note);
+    });
+  } else {
+    dmAddItemRow();
+  }
+
+  const saveBtn = document.querySelector('#delivery-modal .btn.bp');
+  if (saveBtn) saveBtn.setAttribute('onclick', `saveDelivery('${newId}')`);
+  
+  showToast(`📋 הפרטים שוכפלו בהצלחה לתעודה חדשה (מספר ${newDeliveryId}). לחץ על "שמור תעודת משלוח" כדי לשמור.`);
+}
+
+window.deletePurchDelivery = async function(id) {
+  if (!confirm('האם אתה בטוח שברצונך למחוק תעודת משלוח זו?')) return;
+  
+  window.DELIVERIES = (window.DELIVERIES || []).filter(d => d.id !== id);
+  renderPurchDeliveries();
+  
   if (typeof window.ghAutoSave === 'function') {
     await window.ghAutoSave(true);
   }
-  showToast('🗑️ ההזמנה נמחקה בהצלחה!');
+  showToast('🗑️ תעודת המשלוח נמחקה בהצלחה!');
 };
 
 function printDelivery(id) {
   const dlv = (window.DELIVERIES || []).find(d => d.id === id);
   if (!dlv) return;
+  openDeliveryPrintPreview(dlv, false);
+}
+
+window.downloadDelivery = function(id) {
+  const dlv = (window.DELIVERIES || []).find(d => d.id === id);
+  if (!dlv) return;
+  openDeliveryPrintPreview(dlv, true);
+};
+
+window.previewDelivery = function() {
+  const destination = document.getElementById('dm-destination').value.trim();
+  if (!destination) {
+    alert('חובה לציין יעד כדי להציג את תעודת המשלוח');
+    return;
+  }
   
+  const tbody = document.getElementById('dm-items-body');
+  const items = [];
+  Array.from(tbody.children).forEach(tr => {
+    const desc = tr.querySelector('.dm-desc').value.trim();
+    const qty = parseFloat(tr.querySelector('.dm-qty').value) || 0;
+    const note = tr.querySelector('.dm-note').value.trim();
+    if (desc && qty > 0) {
+      items.push({ desc, qty, note });
+    }
+  });
+  
+  if (items.length === 0) {
+    alert('חובה להוסיף לפחות פריט אחד למשלוח');
+    return;
+  }
+  
+  const dateStr = document.getElementById('dm-date').value;
+  const ts = dateStr ? new Date(dateStr).getTime() : Date.now();
+  
+  const dlv = {
+    deliveryId: document.getElementById('dm-deliveryid').value,
+    ts: ts,
+    destination: destination,
+    deliveryDesc: document.getElementById('dm-desc').value.trim(),
+    recipient: document.getElementById('dm-recipient').value.trim(),
+    driver: document.getElementById('dm-driver').value.trim(),
+    notes: document.getElementById('dm-notes').value,
+    items: items
+  };
+  
+  openDeliveryPrintPreview(dlv);
+};
+
+function openDeliveryPrintPreview(dlv, autoDownload = false) {
+  const defaultFooter = `טומשין-עושים חינוך אחרת בע"מ (חל"צ) – רשת צהרונים\nהנהלה ראשית: רח' איינשטיין 18 קומה ב', נס ציונה, ת.ד. 2318, מיקוד 7403622, טל: 03-9689119 פקס: 039689120\nwww.tomashin.co.il  www.tomashin-kids.co.il`;
+  
+  const rtlFix = (str) => {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  };
+
+  const footerLines = (window.PURCH_FOOTER || defaultFooter).split('\n').map(l => rtlFix(l.trim())).filter(l => l);
+  let footerHtml = '';
+  if (footerLines.length > 0) {
+    footerHtml += `<b style="color: #2e7d32; font-size: 1.1em;">${footerLines[0]}</b><br>`;
+    if (footerLines.length > 1) {
+      footerHtml += footerLines.slice(1).join(' | ');
+    }
+  }
+
+  let descPart = '';
+  if (dlv.notes && dlv.notes.trim()) {
+    descPart = dlv.notes.trim().split('\n')[0];
+  } else if (dlv.items && dlv.items.length > 0 && dlv.items[0].desc) {
+    descPart = dlv.items[0].desc.trim().split('\n')[0];
+  }
+  if (descPart.length > 30) descPart = descPart.substring(0, 30);
+
+  let titleParts = ['תעודת משלוח'];
+  if (dlv.destination) titleParts.push(dlv.destination);
+  if (descPart) titleParts.push(descPart);
+  if (dlv.deliveryId) titleParts.push(dlv.deliveryId);
+  let rawTitle = titleParts.join(' - ');
+  rawTitle = rawTitle.replace(/["'\\/]/g, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+  const titleText = rawTitle.replace(/&/g, '&amp;');
+
+  const getItemLines = (it) => {
+    if (!it || !it.desc) return 1;
+    const lines = String(it.desc).split('\n').reduce((acc, l) => acc + Math.max(1, Math.ceil(l.length / 42)), 0);
+    return Math.max(1, lines);
+  };
+
+  const totalLines = dlv.items ? dlv.items.reduce((acc, it) => acc + getItemLines(it), 0) : 0;
+
+  let compactClass = '';
+  let MAX_LINES_PER_PAGE = 26;
+  let MAX_LINES_PER_PAGE_WITH_TOTALS = 18;
+
+  if (totalLines > 28) {
+    compactClass = 'super-compact';
+    MAX_LINES_PER_PAGE = 50;
+    MAX_LINES_PER_PAGE_WITH_TOTALS = 36;
+  } else if (totalLines > 18) {
+    compactClass = 'compact';
+    MAX_LINES_PER_PAGE = 36;
+    MAX_LINES_PER_PAGE_WITH_TOTALS = 26;
+  }
+
+  const pages = [];
+  let remaining = dlv.items ? [...dlv.items] : [];
+  while (remaining.length > 0) {
+    let remainingLines = remaining.reduce((acc, it) => acc + getItemLines(it), 0);
+    if (remainingLines <= MAX_LINES_PER_PAGE_WITH_TOTALS) {
+      pages.push({ items: remaining.splice(0, remaining.length), hasTotals: true });
+      break;
+    }
+
+    let pageItems = [];
+    let pageLines = 0;
+    while (remaining.length > 0) {
+      let nextLines = getItemLines(remaining[0]);
+      if (pageItems.length > 0 && (pageLines + nextLines > MAX_LINES_PER_PAGE)) {
+        break;
+      }
+      pageLines += nextLines;
+      pageItems.push(remaining.shift());
+    }
+
+    if (remaining.length === 0) {
+      if (pageLines > MAX_LINES_PER_PAGE_WITH_TOTALS) {
+        pages.push({ items: pageItems, hasTotals: false });
+        pages.push({ items: [], hasTotals: true });
+      } else {
+        pages.push({ items: pageItems, hasTotals: true });
+      }
+    } else {
+      pages.push({ items: pageItems, hasTotals: false });
+    }
+  }
+  if (pages.length === 0) pages.push({ items: [], hasTotals: true });
+
+  const totalPages = pages.length;
+  let pagesHtml = '';
+  const copies = ['מקור', 'עותק'];
+  const totalOverallPages = totalPages * 2;
+  let pageCounter = 0;
+
+  copies.forEach((copyType) => {
+    pages.forEach((pageObj, pageIndex) => {
+      pageCounter++;
+      const isLastPage = pageObj.hasTotals;
+      const isAbsoluteLastPage = pageCounter === totalOverallPages;
+
+      let headerHtml = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div style="text-align:right; font-size:1.1em; font-weight:bold; margin-top:25px; color:#555;">
+            ${totalPages > 1 ? `עמוד ${pageIndex + 1} מתוך ${totalPages}` : ''}
+          </div>
+          <div style="text-align: left; margin-bottom: 10px;">
+            <img src="לוגו לאורך - עושים חינוך אחרת (3000 x 750 פיקסל).png" style="max-height:75px; width:auto; object-fit:contain;">
+          </div>
+        </div>
+        <div class="header" style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h3 style="margin-top:0; margin-bottom:5px; font-size:1.3em;">תעודת&nbsp;משלוח&nbsp;ציוד</h3>
+            <h4 style="margin-top:0; margin-bottom:5px;"><b style="color:#1a237e;">מספר&nbsp;תעודה:&nbsp;</b><span>${rtlFix(dlv.deliveryId)}</span></h4>
+          </div>
+          <div style="text-align:center;">
+            <span style="display:inline-block; padding:4px 18px; border-radius:6px; font-size:1.35em; font-weight:900; letter-spacing:1px; ${copyType === 'מקור' ? 'background:#e8f5e9; color:#1b5e20; border:2px solid #2e7d32;' : 'background:#fff3e0; color:#e65100; border:2px solid #ef6c00;'}">${copyType}</span>
+          </div>
+          <div style="text-align: left;">
+            <p style="margin:0; font-size:1.05em;"><b style="color:#1a237e;">תאריך:&nbsp;</b><span>${new Date(dlv.ts).toLocaleDateString('he-IL')}</span></p>
+          </div>
+        </div>
+        <div style="margin-bottom: 15px; display:flex; justify-content:space-between; font-size:1.05em; background:#f9f9f9; padding:10px 14px; border-radius:6px; border:1px solid #eee; gap:15px; word-spacing:2px;">
+          <div><b style="color:#1a237e;">יעד&nbsp;המשלוח:&nbsp;</b><span style="font-weight:600;">${rtlFix(dlv.destination)}</span></div>
+          ${dlv.deliveryDesc ? `<div><b style="color:#1a237e;">תיאור:&nbsp;</b><span style="font-weight:600;">${rtlFix(dlv.deliveryDesc)}</span></div>` : ''}
+          <div><b style="color:#1a237e;">שם&nbsp;הנהג/מוביל:&nbsp;</b><span style="font-weight:600;">${rtlFix(dlv.driver) || '_________________'}</span></div>
+        </div>
+      `;
+
+      let tableHtml = '';
+      if (pageObj.items.length > 0) {
+        tableHtml = `
+          <table>
+            <tr>
+              <th style="width:35px; text-align:center;">#</th>
+              <th style="width:auto;">תיאור הציוד</th>
+              <th style="width:75px;">כמות</th>
+              <th style="width:200px;">הערות / ברקוד</th>
+            </tr>
+            ${pageObj.items.map((item, idx) => {
+              let prevItems = 0;
+              for(let i=0; i<pageIndex; i++) prevItems += pages[i].items.length;
+              return `
+              <tr>
+                <td style="text-align:center; vertical-align:top;">${prevItems + idx + 1}</td>
+                <td style="word-break:break-word; white-space:pre-wrap; vertical-align:top;">${rtlFix(item.desc).replace(/\n/g, '<br>')}</td>
+                <td style="vertical-align:top; text-align:center;">${item.qty}</td>
+                <td style="vertical-align:top;">${rtlFix(item.note || '')}</td>
+              </tr>
+              `;
+            }).join('')}
+          </table>
+        `;
+      }
+
+      let footerContentHtml = '';
+      if (isLastPage) {
+        footerContentHtml = `
+          ${dlv.notes ? `<div style="margin-top:20px"><b>הערות כלליות למשלוח:&rlm;</b><br>${rtlFix(dlv.notes).replace(/\n/g, '<br>')}</div>` : ''}
+          
+          <div style="margin-top: 40px; display: flex; justify-content: flex-end; padding-left: 20px;">
+            <div style="display: flex; flex-direction: column; gap: 40px; width: 240px;">
+              <div style="border-top: 1px solid #000; text-align: center; padding-top: 5px; font-weight:bold;">
+                ${dlv.recipient ? `שם המקבל: ${rtlFix(dlv.recipient)}` : 'שם מלא של המקבל'}
+              </div>
+              <div style="border-top: 1px solid #000; text-align: center; padding-top: 5px; font-weight:bold;">חתימת המקבל</div>
+            </div>
+          </div>
+        `;
+      }
+
+      pagesHtml += `
+        <div class="page ${compactClass}" style="${!isAbsoluteLastPage ? 'page-break-after: always;' : ''}">
+          ${headerHtml}
+          ${tableHtml}
+          ${footerContentHtml}
+          
+          <div style="flex:1;"></div>
+          
+          <div style="margin-top:20px; text-align:center; font-size:0.85em; color:#555; border-top:1px solid #ccc; padding-top:10px;">
+            ${footerHtml}
+          </div>
+        </div>
+      `;
+    });
+  });
+
   const w = window.open('', '_blank');
   w.document.write(`
     <html dir="rtl">
     <head>
-      <title>תעודת משלוח ${dlv.deliveryId}</title>
+      <title>${titleText}</title>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
       <style>
-        body { font-family: Arial, sans-serif; padding: 40px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ccc; padding: 10px; text-align: right; }
+        body { font-family: Arial, sans-serif; padding: 0; margin: 0; background: #e0e0e0; }
+        .no-print { background: #333; padding: 15px; text-align: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .no-print button { padding: 10px 20px; margin: 0 10px; font-size: 16px; font-weight: bold; cursor: pointer; border: none; border-radius: 5px; color: #fff; }
+        .btn-print { background: #2196f3; }
+        .btn-pdf { background: #f44336; }
+        .page-container { padding: 40px; display: flex; justify-content: center; flex-direction: column; align-items: center; }
+        .page { 
+          background: #fff; 
+          padding: 40px; 
+          width: 794px; 
+          min-height: 1115px;
+          height: auto;
+          box-sizing: border-box; 
+          box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+          display: flex;
+          flex-direction: column;
+          position: relative;
+          margin-bottom: 20px;
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; table-layout: fixed; }
+        th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
         th { background: #f5f5f5; }
-        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #546e7a; padding-bottom: 20px; margin-bottom: 20px;}
-        .signature { margin-top: 80px; display: flex; justify-content: space-around; }
-        .sig-line { border-top: 1px solid #000; width: 200px; text-align: center; padding-top: 5px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2e7d32; padding-bottom: 10px; margin-bottom: 10px;}
+        
+        .compact table { font-size: 0.85em; margin-top: 5px; }
+        .compact th, .compact td { padding: 3px 5px; }
+        .compact .header { padding-bottom: 5px; margin-bottom: 5px; }
+        
+        .super-compact table { font-size: 0.75em; margin-top: 2px; }
+        .super-compact th, .super-compact td { padding: 2px 3px; }
+        .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
+        .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
+
+        @page { size: A4 portrait; margin: 0; }
+        @media print {
+          .no-print { display: none !important; }
+          body { background: #fff; }
+          .page-container { padding: 0; }
+          .page { box-shadow: none; padding: 0; width: 100%; min-height: 100%; margin-bottom: 0; }
+        }
       </style>
+      <script>
+        function doPrint() { window.print(); }
+        function doPDF() {
+          const element = document.getElementById('pdf-content');
+          element.style.padding = '0';
+          const pages = element.querySelectorAll('.page');
+          pages.forEach(p => {
+            p.style.marginBottom = '0';
+            p.style.boxShadow = 'none';
+          });
+          
+          const opt = {
+            margin:       0,
+            filename:     '${rawTitle}' + '.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          };
+          html2pdf().set(opt).from(element).save().then(() => {
+            element.style.padding = '';
+            pages.forEach(p => {
+              p.style.marginBottom = '';
+              p.style.boxShadow = '';
+            });
+            ${autoDownload ? 'setTimeout(() => window.close(), 1500);' : ''}
+          });
+        }
+        ${autoDownload ? 'window.onload = doPDF;' : ''}
+      </script>
     </head>
-    <body onload="window.print(); window.close();">
-      <div class="header">
-        <div>
-          <h1>תעודת משלוח ציוד</h1>
-          <h2>מספר תעודה: ${dlv.deliveryId}</h2>
-          <p>תאריך: ${new Date(dlv.ts).toLocaleDateString('he-IL')}</p>
-        </div>
-        <img src="לוגו קוביה - עושים חינוך אחרת.png" style="max-height: 100px;">
+    <body>
+      <div class="no-print">
+        <button class="btn-print" onclick="doPrint()">🖨️ הדפס</button>
+        <button class="btn-pdf" onclick="doPDF()">📄 הורד כ-PDF</button>
       </div>
-      
-      <div style="display:flex; justify-content: space-between; font-size:1.1rem; margin-bottom: 30px;">
-        <div><b>יעד המשלוח:</b> ${dlv.destination}</div>
-        <div><b>שם הנהג/מוביל:</b> ${dlv.driver || '_________________'}</div>
-      </div>
-      
-      <table>
-        <tr>
-          <th style="width:50px">#</th>
-          <th>תיאור הציוד</th>
-          <th style="width:100px">כמות</th>
-          <th>הערות / ברקוד</th>
-        </tr>
-        ${dlv.items.map((item, idx) => `
-          <tr>
-            <td>${idx + 1}</td>
-            <td>${item.desc}</td>
-            <td>${item.qty}</td>
-            <td>${item.note || ''}</td>
-          </tr>
-        `).join('')}
-      </table>
-      
-      ${dlv.notes ? `<div style="margin-top:30px"><b>הערות כלליות:</b><br>${dlv.notes.replace(/\\n/g, '<br>')}</div>` : ''}
-      
-      <div class="signature">
-        <div class="sig-line">חתימת הנהג</div>
-        <div class="sig-line">חתימת המקבל</div>
+      <div class="page-container" id="pdf-content">
+        ${pagesHtml}
       </div>
     </body>
     </html>
@@ -1166,10 +1877,9 @@ function renderPurchNotesButtons() {
   const notes = window.PURCH_NOTES || ['נא לצרף חשבונית מס מקורית', 'נא לתאם הגעה מראש עם איש הקשר', 'המחיר כולל משלוח עד לכתובת', 'תנאי תשלום: שוטף + 30'];
   let html = '';
   notes.forEach((n, i) => {
-    // Avoid quotes issues by using text content directly in HTML
-    const safeText = n.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    const safeText = encodeURIComponent(n);
     const shortText = n.length > 20 ? n.substring(0,20)+'...' : n;
-    html += `<button class="btn bo bsm" onclick="addNoteToOrder('${safeText}')">➕ ${shortText}</button>`;
+    html += `<button class="btn bo bsm" onclick="addNoteToOrder(decodeURIComponent('${safeText}'))">➕ ${shortText}</button>`;
   });
   html += `<button class="btn bw bsm" onclick="editPurchNotes()" title="ערוך הערות נפוצות">✏️ ערוך</button>`;
   container.innerHTML = html;

@@ -64,9 +64,13 @@ window.wtSetToday = function() {
   window.renderWorkerTasksAdmin();
 };
 
+let _wtSearchTimer = null;
 window.wtDoSearch = function(val) {
-  window.wtSearchQuery = val.trim().toLowerCase();
-  window.renderWorkerTasksAdmin();
+  window.wtSearchQuery = (val || '').trim().toLowerCase();
+  clearTimeout(_wtSearchTimer);
+  _wtSearchTimer = setTimeout(() => {
+    window.renderWorkerTasksAdmin();
+  }, 250);
 };
 
 window.wtToggleTaskStatus = function(id) {
@@ -107,6 +111,10 @@ window.wtToggleTaskStatus = function(id) {
 window.renderWorkerTasksAdmin = function() {
   const container = document.getElementById('c-worker_tasks');
   if (!container) return;
+
+  const searchInputBefore = document.getElementById('wt-tasks-search-input');
+  const isSearchFocused = searchInputBefore && document.activeElement === searchInputBefore;
+  const cursorPos = isSearchFocused ? searchInputBefore.selectionStart : null;
   
   const tasks = window.WORKER_TASKS || [];
   const isSearch = window.wtSearchQuery.length > 0;
@@ -170,7 +178,7 @@ window.renderWorkerTasksAdmin = function() {
           <button onclick="window.wtExportWord(window.wtCurrentDate)" class="wt-no-print" style="background:#fff; border:1px solid #ccc; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="ייצוא משימות לקובץ Word">📄 ייצוא ל-Word</button>
           <button onclick="window.wtPrintTasks(window.wtCurrentDate)" class="wt-no-print" style="background:#fff; border:1px solid #ccc; padding:6px 12px; border-radius:20px; cursor:pointer; color:#1565c0; font-weight:bold; display:flex; align-items:center; gap:5px;" title="הדפס את דף המשימות">🖨️ הדפס משימות</button>
           <div style="position:relative;">
-            <input type="text" placeholder="חיפוש משימות..." value="${window.wtSearchQuery}" onkeyup="window.wtDoSearch(this.value)" style="padding:8px 12px; padding-right:30px; border:1px solid #ccc; border-radius:20px; width:180px; font-size:0.9rem;">
+            <input type="text" id="wt-tasks-search-input" placeholder="חיפוש משימות..." value="${window.wtSearchQuery}" oninput="window.wtDoSearch(this.value)" style="padding:8px 12px; padding-right:30px; border:1px solid #ccc; border-radius:20px; width:180px; font-size:0.9rem;">
             <span style="position:absolute; right:10px; top:8px; opacity:0.5;">🔍</span>
           </div>
           
@@ -308,6 +316,16 @@ window.renderWorkerTasksAdmin = function() {
 
   html += `</div>`; // Close max-width wrapper
   container.innerHTML = html;
+
+  if (isSearchFocused) {
+    const searchInputAfter = document.getElementById('wt-tasks-search-input');
+    if (searchInputAfter) {
+      searchInputAfter.focus();
+      if (cursorPos !== null) {
+        searchInputAfter.setSelectionRange(cursorPos, cursorPos);
+      }
+    }
+  }
 };
 
 window.openNewWorkerTaskModal = function() {
