@@ -16,7 +16,7 @@ function renderPurchOrders() {
   let html = '<table class="stable" style="width:100%"><thead><tr>' +
     '<th>תאריך</th>' +
     '<th>מספר הזמנה</th>' +
-    '<th>ספק</th>' +
+    '<th>לכבוד</th>' +
     '<th>סה"כ (₪)</th>' +
     '<th>פעולות</th>' +
     '</tr></thead><tbody>';
@@ -32,6 +32,8 @@ function renderPurchOrders() {
         <button class="btn bo bsm" onclick="editOrder('${o.id}')">✏️ ערוך</button>
         <button class="btn bo bsm" onclick="duplicateOrder('${o.id}')">📋 שכפל</button>
         <button class="btn bo bsm" onclick="printOrder('${o.id}')">🖨️ הדפס</button>
+        <button class="btn bo bsm" onclick="downloadOrder('${o.id}')">📄 הורד</button>
+        <button class="btn br bsm" onclick="deletePurchOrder('${o.id}')" style="background:#e53935;color:white;border:none;">🗑️ מחק</button>
       </td>
     </tr>`;
   });
@@ -125,7 +127,7 @@ function openNewOrder() {
       <div class="row" style="margin-bottom:10px">
         <div style="flex:1">
           <label>מספר הזמנה:</label>
-          <input type="text" id="om-orderid" value="${orderId}" class="in-date" readonly style="background:#f5f5f5;font-weight:bold">
+          <input type="text" id="om-orderid" value="${orderId}" class="in-date" style="font-weight:bold">
         </div>
         <div style="flex:1">
           <label>תאריך:</label>
@@ -135,32 +137,44 @@ function openNewOrder() {
       
       <div class="row" style="margin-bottom:10px">
         <div style="flex:1">
-          <label>ספק:</label>
-          <input type="text" id="om-supplier" list="om-sup-list" class="in-date" placeholder="בחר או הקלד ספק...">
+          <label>לכבוד:</label>
+          <input type="text" id="om-supplier" list="om-sup-list" class="in-date" placeholder="בחר או הקלד...">
           <datalist id="om-sup-list">${supOptions}</datalist>
         </div>
         <div style="flex:1">
           <label>תיאור ההזמנה (כללי):</label>
           <input type="text" id="om-orderdesc" class="in-date" placeholder="למשל: ציוד יצירה...">
         </div>
+        <div style="flex:1">
+          <label>תוספת לכותרת ההזמנה:</label>
+          <input type="text" id="om-titlesuffix" class="in-date" placeholder='למשל: הנה"ח'>
+        </div>
       </div>
 
       <div style="margin-top:20px;border-top:2px solid #eee;padding-top:15px">
-        <h3 style="margin:0 0 10px 0;color:#1a237e">🛒 פריטים בהזמנה</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h3 style="margin:0;color:#1a237e">🛒 פריטים בהזמנה</h3>
+          <div style="font-size:0.85rem; color:#666;">
+            💡 טיפ: אפשר להעתיק שורות באקסל ולהדביק (Ctrl+V) ישר לתוך התיאור של השורה הראשונה
+          </div>
+        </div>
         
-        <table class="stable" style="width:100%" id="om-items-table">
-          <thead>
-            <tr>
-              <th>תיאור פריט</th>
-              <th style="width:80px">כמות</th>
-              <th style="width:100px">מחיר יחידה</th>
-              <th style="width:100px">סה"כ</th>
-              <th style="width:50px"></th>
-            </tr>
-          </thead>
-          <tbody id="om-items-body">
-          </tbody>
-        </table>
+        <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; margin-bottom:10px;">
+          <table class="stable" style="width:100%; margin:0;" id="om-items-table">
+            <thead style="position: sticky; top: 0; background: #fff; z-index: 10;">
+              <tr>
+                <th style="width:30px; text-align:center;">#</th>
+                <th>תיאור פריט</th>
+                <th style="width:80px">כמות</th>
+                <th style="width:100px">מחיר יחידה</th>
+                <th style="width:100px">סה"כ</th>
+                <th style="width:50px"></th>
+              </tr>
+            </thead>
+            <tbody id="om-items-body" onpaste="handleTablePaste(event)">
+            </tbody>
+          </table>
+        </div>
         
         <button class="btn bg bsm" style="margin-top:10px" onclick="omAddItemRow()">➕ הוסף שורה</button>
       </div>
@@ -177,6 +191,10 @@ function openNewOrder() {
           <div style="display:flex;justify-content:space-between;margin-bottom:5px">
             <span>סה"כ ביניים:</span>
             <span id="om-subtotal" style="font-weight:bold">0.00 ₪</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+            <b>הנחה (₪):</b>
+            <input type="number" id="om-discount" value="0" min="0" step="0.01" style="width:80px;text-align:center" onchange="omCalc()">
           </div>
           <div style="display:flex;justify-content:space-between;margin-bottom:5px;color:#e65100;align-items:center;">
             <span>מע"מ (<input type="number" id="om-vat-rate" value="${window.VAT_RATE || 18}" style="width:45px;padding:2px;border:1px solid #ccc;border-radius:4px;text-align:center;" onchange="omCalc()" oninput="omCalc()">%):</span>
@@ -211,6 +229,54 @@ function openNewOrder() {
   omAddItemRow(); // Add first empty row
 }
 
+window.handleTablePaste = function(e) {
+  if (!e.target.classList.contains('om-desc')) return;
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  if (!text) return;
+  
+  if (text.indexOf('\n') === -1 && text.indexOf('\t') === -1) return; // normal single paste
+  
+  e.preventDefault();
+  const rows = text.split(/\r?\n/).filter(r => r.trim());
+  const currentRow = e.target.closest('tr');
+  let firstRow = true;
+  
+  rows.forEach(row => {
+    const cols = row.split(/\t/);
+    let desc = cols[0] ? cols[0].trim() : '';
+    let price = 0;
+    let qty = 1;
+    
+    if (cols.length >= 3) {
+      price = parseFloat((cols[1] || '').replace(/[^\d.-]/g, '')) || 0;
+      qty = parseFloat((cols[2] || '').replace(/[^\d.-]/g, '')) || 1;
+    } else if (cols.length === 2) {
+      price = parseFloat((cols[1] || '').replace(/[^\d.-]/g, '')) || 0;
+    }
+    
+    if (desc || price > 0) {
+      if (firstRow && currentRow) {
+        currentRow.querySelector('.om-desc').value = desc;
+        currentRow.querySelector('.om-qty').value = qty;
+        currentRow.querySelector('.om-price').value = price;
+        firstRow = false;
+      } else {
+        omAddItemRow(desc, qty, price);
+      }
+    }
+  });
+  omCalc();
+};
+
+window.omDuplicateItemRow = function(rowId) {
+  const tr = document.getElementById(rowId);
+  if (!tr) return;
+  const desc = tr.querySelector('.om-desc').value;
+  const qty = parseFloat(tr.querySelector('.om-qty').value) || 1;
+  const price = parseFloat(tr.querySelector('.om-price').value) || 0;
+  omAddItemRow(desc, qty, price);
+};
+
 function omAddItemRow(desc='', qty=1, price=0) {
   const tbody = document.getElementById('om-items-body');
   const tr = document.createElement('tr');
@@ -218,13 +284,22 @@ function omAddItemRow(desc='', qty=1, price=0) {
   tr.id = rowId;
   
   tr.innerHTML = `
-    <td><input type="text" class="om-desc in-date" value="${desc}" style="width:100%" placeholder="שם הפריט..."></td>
-    <td><input type="number" class="om-qty in-date" value="${qty}" min="1" onchange="omCalc()" style="width:100%"></td>
-    <td><input type="number" class="om-price in-date" value="${price}" min="0" step="0.01" onchange="omCalc()" style="width:100%"></td>
+    <td class="om-row-num" style="text-align:center; font-weight:bold; color:#777; vertical-align:middle;"></td>
+    <td><input type="text" class="om-desc in-date" style="width:100%" placeholder="שם הפריט..."></td>
+    <td><input type="number" class="om-qty in-date" min="1" onchange="omCalc()" style="width:100%"></td>
+    <td><input type="number" class="om-price in-date" min="0" step="0.01" onchange="omCalc()" style="width:100%"></td>
     <td class="om-row-total" style="font-weight:bold;vertical-align:middle">0.00 ₪</td>
-    <td><button class="btn bo bsm" onclick="document.getElementById('${rowId}').remove(); omCalc();">X</button></td>
+    <td style="white-space:nowrap;">
+      <button type="button" class="btn bw bsm" onclick="omDuplicateItemRow('${rowId}')" title="שכפל שורה">+</button>
+      <button type="button" class="btn bo bsm" onclick="document.getElementById('${rowId}').remove(); omCalc();" title="מחק שורה">🗑️</button>
+    </td>
   `;
   tbody.appendChild(tr);
+  
+  tr.querySelector('.om-desc').value = desc;
+  tr.querySelector('.om-qty').value = qty;
+  tr.querySelector('.om-price').value = price;
+  
   omCalc();
 }
 
@@ -232,7 +307,10 @@ function omCalc() {
   const tbody = document.getElementById('om-items-body');
   let subtotal = 0;
   
-  Array.from(tbody.children).forEach(tr => {
+  Array.from(tbody.children).forEach((tr, index) => {
+    const numEl = tr.querySelector('.om-row-num');
+    if (numEl) numEl.innerText = index + 1;
+    
     const qty = parseFloat(tr.querySelector('.om-qty').value) || 0;
     const price = parseFloat(tr.querySelector('.om-price').value) || 0;
     const rowTot = qty * price;
@@ -240,10 +318,16 @@ function omCalc() {
     subtotal += rowTot;
   });
   
+  const discountInput = document.getElementById('om-discount');
+  const discount = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
+  
+  let taxable = subtotal - discount;
+  if (taxable < 0) taxable = 0;
+
   const vatInput = document.getElementById('om-vat-rate');
   const vatRate = vatInput ? (parseFloat(vatInput.value) || 0) : (window.VAT_RATE || 18);
-  const vat = subtotal * (vatRate / 100);
-  const total = subtotal + vat;
+  const vat = taxable * (vatRate / 100);
+  const total = taxable + vat;
   
   document.getElementById('om-subtotal').innerText = subtotal.toFixed(2) + ' ₪';
   document.getElementById('om-vat').innerText = vat.toFixed(2) + ' ₪';
@@ -279,13 +363,20 @@ async function saveOrder(id) {
   }
   
   let subtotal = items.reduce((sum, item) => sum + item.total, 0);
+  
+  const discountInput = document.getElementById('om-discount');
+  const discount = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
+  let taxable = subtotal - discount;
+  if (taxable < 0) taxable = 0;
+
   let vatRate = parseFloat(document.getElementById('om-vat-rate').value) || (window.VAT_RATE || 18);
-  let vat = subtotal * (vatRate / 100);
-  let total = subtotal + vat;
+  let vat = taxable * (vatRate / 100);
+  let total = taxable + vat;
   
   const orderDateStr = document.getElementById('om-date').value;
   const ts = orderDateStr ? new Date(orderDateStr).getTime() : Date.now();
   const orderDesc = document.getElementById('om-orderdesc') ? document.getElementById('om-orderdesc').value.trim() : '';
+  const titleSuffix = document.getElementById('om-titlesuffix') ? document.getElementById('om-titlesuffix').value.trim() : '';
   const orderer = document.getElementById('om-orderer') ? document.getElementById('om-orderer').value.trim() : '';
 
   const newOrder = {
@@ -293,10 +384,13 @@ async function saveOrder(id) {
     orderId: document.getElementById('om-orderid').value,
     ts: ts,
     supplier: supplier,
+    orderer: orderer,
     orderDesc: orderDesc,
+    titleSuffix: titleSuffix,
     notes: document.getElementById('om-notes').value,
     items: items,
     subtotal: subtotal,
+    discount: discount,
     vat: vat,
     totalPrice: total
   };
@@ -445,8 +539,14 @@ function duplicateOrder(id) {
 function printOrder(id) {
   const order = (window.ORDERS || []).find(o => o.id === id);
   if (!order) return;
-  openOrderPrintPreview(order);
+  openOrderPrintPreview(order, false);
 }
+
+window.downloadOrder = function(id) {
+  const order = (window.ORDERS || []).find(o => o.id === id);
+  if (!order) return;
+  openOrderPrintPreview(order, true);
+};
 
 function previewOrder() {
   const supplier = document.getElementById('om-supplier').value.trim();
@@ -472,10 +572,14 @@ function previewOrder() {
   }
   
   let subtotal = items.reduce((sum, item) => sum + item.total, 0);
+  const discountInput = document.getElementById('om-discount');
+  const discount = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
+  let taxable = subtotal - discount;
+  if (taxable < 0) taxable = 0;
   const vatInput = document.getElementById('om-vat-rate');
   const vatRate = vatInput ? (parseFloat(vatInput.value) || 0) : (window.VAT_RATE || 18);
-  let vat = subtotal * (vatRate / 100);
-  let total = subtotal + vat;
+  let vat = taxable * (vatRate / 100);
+  let total = taxable + vat;
   
   const orderDateStr = document.getElementById('om-date').value;
   const ts = orderDateStr ? new Date(orderDateStr).getTime() : Date.now();
@@ -491,18 +595,25 @@ function previewOrder() {
     notes: document.getElementById('om-notes').value,
     items: items,
     subtotal: subtotal,
+    discount: discount,
     vat: vat,
     totalPrice: total
   };
-
+  
   openOrderPrintPreview(order);
 }
 
-function openOrderPrintPreview(order) {
-  const defaultFooter = `טומשין-עושים חינוך אחרת בע"מ (חל"צ) – רשת צהרונים
-הנהלה ראשית: רח' איינשטיין 18 קומה ב', נס ציונה, ת.ד. 2318, מיקוד 7403622, טל: 03-9689119 פקס: 039689120
-www.tomashin.co.il  www.tomashin-kids.co.il`;
-  const footerLines = (window.PURCH_FOOTER || defaultFooter).split('\n').map(l => l.trim()).filter(l => l);
+function openOrderPrintPreview(order, autoDownload = false) {
+  const defaultFooter = `טומשין-עושים חינוך אחרת בע"מ (חל"צ) – רשת צהרונים\nהנהלה ראשית: רח' איינשטיין 18 קומה ב', נס ציונה, ת.ד. 2318, מיקוד 7403622, טל: 03-9689119 פקס: 039689120\nwww.tomashin.co.il  www.tomashin-kids.co.il`;
+  
+  const rtlFix = (str) => {
+    if (!str) return '';
+    let fixed = String(str).replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
+    fixed = fixed.replace(/ /g, '&nbsp;');
+    return fixed;
+  };
+
+  const footerLines = (window.PURCH_FOOTER || defaultFooter).split('\n').map(l => rtlFix(l.trim())).filter(l => l);
   let footerHtml = '';
   if (footerLines.length > 0) {
     footerHtml += `<b style="color: #2e7d32; font-size: 1.1em;">${footerLines[0]}</b><br>`;
@@ -511,11 +622,177 @@ www.tomashin.co.il  www.tomashin-kids.co.il`;
     }
   }
 
+  let rawTitle = `${order.supplier || ''} - ${order.orderDesc ? order.orderDesc + ' - ' : ''}${order.orderId}`;
+  rawTitle = rawTitle.replace(/"/g, '').replace(/_/g, ' ').replace(/\s+/g, ' ');
+  const titleText = rawTitle.replace(/&/g, '&amp;');
+
+  const getItemLines = (it) => {
+    if (!it || !it.desc) return 1;
+    const lines = String(it.desc).split('\n').reduce((acc, l) => acc + Math.max(1, Math.ceil(l.length / 42)), 0);
+    return Math.max(1, lines);
+  };
+
+  const totalLines = order.items ? order.items.reduce((acc, it) => acc + getItemLines(it), 0) : 0;
+
+  let compactClass = '';
+  let MAX_LINES_PER_PAGE = 22;
+  let MAX_LINES_PER_PAGE_WITH_TOTALS = 14;
+
+  if (totalLines > 25) {
+    compactClass = 'super-compact';
+    MAX_LINES_PER_PAGE = 45;
+    MAX_LINES_PER_PAGE_WITH_TOTALS = 30;
+  } else if (totalLines > 14) {
+    compactClass = 'compact';
+    MAX_LINES_PER_PAGE = 32;
+    MAX_LINES_PER_PAGE_WITH_TOTALS = 22;
+  }
+  
+  const pages = [];
+  let remaining = order.items ? [...order.items] : [];
+  while (remaining.length > 0) {
+    let remainingLines = remaining.reduce((acc, it) => acc + getItemLines(it), 0);
+    if (remainingLines <= MAX_LINES_PER_PAGE_WITH_TOTALS) {
+      pages.push({ items: remaining.splice(0, remaining.length), hasTotals: true });
+      break;
+    }
+
+    let pageItems = [];
+    let pageLines = 0;
+    while (remaining.length > 0) {
+      let nextLines = getItemLines(remaining[0]);
+      if (pageItems.length > 0 && (pageLines + nextLines > MAX_LINES_PER_PAGE)) {
+        break;
+      }
+      pageLines += nextLines;
+      pageItems.push(remaining.shift());
+    }
+
+    if (remaining.length === 0) {
+      if (pageLines > MAX_LINES_PER_PAGE_WITH_TOTALS) {
+        pages.push({ items: pageItems, hasTotals: false });
+        pages.push({ items: [], hasTotals: true });
+      } else {
+        pages.push({ items: pageItems, hasTotals: true });
+      }
+    } else {
+      pages.push({ items: pageItems, hasTotals: false });
+    }
+  }
+  if (pages.length === 0) pages.push({ items: [], hasTotals: true });
+  
+  const totalPages = pages.length;
+  let pagesHtml = '';
+
+  pages.forEach((pageObj, pageIndex) => {
+    const isLastPage = pageObj.hasTotals;
+    
+    let headerHtml = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div style="text-align:right; font-size:1.1em; font-weight:bold; margin-top:25px; color:#555;">
+          ${totalPages > 1 ? `עמוד ${pageIndex + 1} מתוך ${totalPages}` : ''}
+        </div>
+        <div style="text-align: left; margin-bottom: 10px;">
+          <img src="לוגו לאורך - עושים חינוך אחרת (3000 x 750 פיקסל).png" style="max-height:75px; width:auto; object-fit:contain;">
+        </div>
+      </div>
+      <div class="header">
+        <div>
+          <h3 style="margin-top:0; margin-bottom:5px;">הזמנת&nbsp;רכש${order.titleSuffix ? '&nbsp;:&nbsp;' + rtlFix(order.titleSuffix) : ''}</h3>
+          <h4 style="margin-top:0; margin-bottom:10px;"><span style="font-weight:bold; margin-left:5px;">מספר&nbsp;הזמנה:&rlm;</span><span>${rtlFix(order.orderId)}</span></h4>
+        </div>
+        <div style="text-align: left;">
+          <p style="margin:0;"><span style="font-weight:bold; margin-left:5px;">תאריך:&rlm;</span><span>${new Date(order.ts).toLocaleDateString('he-IL')}</span></p>
+        </div>
+      </div>
+      <div style="margin-bottom: 5px;">
+        <p style="margin:5px 0;"><span style="font-weight:bold; margin-left:5px;">לכבוד:&rlm;</span><span>${rtlFix(order.supplier)}</span></p>
+        ${(() => {
+          if (typeof window.supEx === 'undefined') return '';
+          const ex = window.supEx[order.supplier] || {};
+          const base = (typeof window.SUPBASE !== 'undefined' ? window.SUPBASE.find(s => s.name === order.supplier) : null) || {};
+          const contact = ex.contact || '';
+          const phone = ex.ph1 || base.phone || '';
+          if (!contact && !phone) return '';
+          let str = '';
+          if (contact) str += rtlFix(contact);
+          if (contact && phone) str += ' ';
+          if (phone) str += rtlFix(phone);
+          return `<p style="margin:5px 0; padding-right:45px;"><span>${str}</span></p>`;
+        })()}
+        ${order.orderDesc ? `<p style="margin:5px 0; margin-top:15px; text-align:center;"><span style="font-weight:bold;">${rtlFix(order.orderDesc)}</span></p>` : ''}
+      </div>
+    `;
+
+    let tableHtml = '';
+    if (pageObj.items.length > 0) {
+      tableHtml = `
+        <table>
+          <tr>
+            <th style="width:35px; text-align:center;">#</th>
+            <th style="width:auto;">תיאור</th>
+            <th style="width:65px;">כמות</th>
+            <th style="width:95px;">מחיר&nbsp;יחידה</th>
+            <th style="width:95px;">סה"כ</th>
+          </tr>
+          ${pageObj.items.map((item, idx) => {
+            let prevItems = 0;
+            for(let i=0; i<pageIndex; i++) prevItems += pages[i].items.length;
+            return `
+            <tr>
+              <td style="text-align:center; vertical-align:top;">${prevItems + idx + 1}</td>
+              <td style="word-break:break-word; white-space:pre-wrap; vertical-align:top;">${rtlFix(item.desc).replace(/\n/g, '<br>')}</td>
+              <td style="vertical-align:top;">${item.qty}</td>
+              <td style="vertical-align:top;"><span dir="ltr">&#8362; ${item.price.toFixed(2)}</span></td>
+              <td style="vertical-align:top;"><span dir="ltr">&#8362; ${item.total.toFixed(2)}</span></td>
+            </tr>
+            `;
+          }).join('')}
+        </table>
+      `;
+    }
+
+    let footerContentHtml = '';
+    if (isLastPage) {
+      footerContentHtml = `
+        <div style="margin-top: 20px; text-align: left; font-size:0.95em;">
+          <p style="margin:5px 0;"><span style="font-weight:bold; margin-left:5px;">סה"כ:&rlm;</span><span dir="ltr">&#8362; ${order.subtotal.toFixed(2)}</span></p>
+          ${order.discount ? `<p style="margin:5px 0; color:#d32f2f;"><span style="font-weight:bold; margin-left:5px;">הנחה:&rlm;</span><span dir="ltr">- &#8362; ${order.discount.toFixed(2)}</span></p>` : ''}
+          <p style="margin:5px 0;"><span style="font-weight:bold; margin-left:5px;">${Math.round((order.vat/(order.subtotal - (order.discount || 0)))*100) || 17}% מע"מ:</span><span dir="ltr">&#8362; ${order.vat.toFixed(2)}</span></p>
+          <h3 style="color:#2e7d32; margin:10px 0 0 0;"><span style="font-weight:bold; margin-left:5px;">סה"כ לתשלום:&rlm;</span><span dir="ltr">&#8362; ${order.totalPrice.toFixed(2)}</span></h3>
+        </div>
+        
+        ${order.notes ? `<div style="margin-top:20px"><b>הערות:&rlm;</b><br>${rtlFix(order.notes).replace(/\n/g, '<br>')}</div>` : ''}
+        
+        <div style="margin-top: 40px; display: flex; justify-content: flex-end;">
+          <div style="display: flex; flex-direction: column; align-items: center; width: 200px;">
+            ${order.orderer ? order.orderer.split('\n').map(l => `<div style="margin-bottom:5px; font-weight:bold;">${rtlFix(l)}</div>`).join('') : ''}
+            <div style="border-top: 1px solid #000; width: 100%; margin-top: 35px; text-align: center; padding-top: 5px;">חתימה</div>
+          </div>
+        </div>
+      `;
+    }
+
+    pagesHtml += `
+      <div class="page ${compactClass}" style="${pageIndex < totalPages - 1 ? 'page-break-after: always;' : ''}">
+        ${headerHtml}
+        ${tableHtml}
+        ${footerContentHtml}
+        
+        <div style="flex:1;"></div>
+        
+        <div style="margin-top:20px; text-align:center; font-size:0.85em; color:#555; border-top:1px solid #ccc; padding-top:10px;">
+          ${footerHtml}
+        </div>
+      </div>
+    `;
+  });
+
   const w = window.open('', '_blank');
   w.document.write(`
     <html dir="rtl">
     <head>
-      <title>הזמנת רכש ${order.orderId}</title>
+      <title>${titleText}</title>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
       <style>
         body { font-family: Arial, sans-serif; padding: 0; margin: 0; background: #e0e0e0; }
@@ -523,43 +800,73 @@ www.tomashin.co.il  www.tomashin-kids.co.il`;
         .no-print button { padding: 10px 20px; margin: 0 10px; font-size: 16px; font-weight: bold; cursor: pointer; border: none; border-radius: 5px; color: #fff; }
         .btn-print { background: #2196f3; }
         .btn-pdf { background: #f44336; }
-        .page-container { padding: 40px; display: flex; justify-content: center; }
-        /* A4 proportions at 96 DPI: 794px x 1122px */
+        .page-container { padding: 40px; display: flex; justify-content: center; flex-direction: column; align-items: center; }
         .page { 
           background: #fff; 
-          padding: 50px; 
+          padding: 40px; 
           width: 794px; 
-          min-height: 1122px; 
+          min-height: 1115px;
+          height: auto;
           box-sizing: border-box; 
           box-shadow: 0 0 10px rgba(0,0,0,0.1); 
           display: flex;
           flex-direction: column;
+          position: relative;
+          margin-bottom: 20px;
         }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ccc; padding: 10px; text-align: right; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; table-layout: fixed; }
+        th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
         th { background: #f5f5f5; }
-        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2e7d32; padding-bottom: 20px; margin-bottom: 20px;}
-        @page { size: A5 landscape; margin: 5mm; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2e7d32; padding-bottom: 10px; margin-bottom: 10px;}
+        
+        .compact table { font-size: 0.85em; margin-top: 5px; }
+        .compact th, .compact td { padding: 2px 4px; }
+        .compact .header { padding-bottom: 5px; margin-bottom: 5px; }
+        
+        .super-compact table { font-size: 0.75em; margin-top: 2px; }
+        .super-compact th, .super-compact td { padding: 1px 2px; }
+        .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
+        .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
+
+        @page { size: A4 portrait; margin: 0; }
         @media print {
           .no-print { display: none !important; }
           body { background: #fff; }
           .page-container { padding: 0; }
-          .page { box-shadow: none; padding: 0; width: 100%; min-height: 100%; }
+          .page { box-shadow: none; padding: 0; width: 100%; min-height: 100%; margin-bottom: 0; }
         }
       </style>
       <script>
         function doPrint() { window.print(); }
         function doPDF() {
           const element = document.getElementById('pdf-content');
+          
+          // Temporarily remove spacing that causes blank pages in html2pdf
+          element.style.padding = '0';
+          const pages = element.querySelectorAll('.page');
+          pages.forEach(p => {
+            p.style.marginBottom = '0';
+            p.style.boxShadow = 'none';
+          });
+          
           const opt = {
             margin:       0,
-            filename:     'הזמנת_רכש_${order.orderId}.pdf',
+            filename:     '${rawTitle}' + '.pdf',
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, useCORS: true },
-            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
           };
-          html2pdf().set(opt).from(element).save();
+          html2pdf().set(opt).from(element).save().then(() => {
+            // Restore spacing after PDF generation
+            element.style.padding = '';
+            pages.forEach(p => {
+              p.style.marginBottom = '';
+              p.style.boxShadow = '';
+            });
+            ${autoDownload ? 'setTimeout(() => window.close(), 1500);' : ''}
+          });
         }
+        ${autoDownload ? 'window.onload = doPDF;' : ''}
       </script>
     </head>
     <body>
@@ -567,55 +874,8 @@ www.tomashin.co.il  www.tomashin-kids.co.il`;
         <button class="btn-print" onclick="doPrint()">🖨️ הדפס</button>
         <button class="btn-pdf" onclick="doPDF()">📄 הורד כ-PDF</button>
       </div>
-      <div class="page-container">
-        <div class="page" id="pdf-content">
-          <div class="header">
-            <div>
-              <h1>הזמנת&nbsp;רכש</h1>
-              <h2>מספר הזמנה:&rlm; ${order.orderId}</h2>
-              <p>תאריך:&rlm; ${new Date(order.ts).toLocaleDateString('he-IL')}</p>
-            </div>
-            <img src="לוגו לאורך - עושים חינוך אחרת (3000 x 750 פיקסל).png" height="80" style="max-height:80px; width:auto; object-fit:contain;">
-          </div>
-          
-          <p><b>ספק:</b>&rlm; ${order.supplier}</p>
-          ${order.orderDesc ? `<p><b>תיאור:</b>&rlm; ${order.orderDesc}</p>` : ''}
-          
-          <table>
-            <tr>
-              <th>תיאור</th>
-              <th>כמות</th>
-              <th>מחיר יחידה</th>
-              <th>סה"כ</th>
-            </tr>
-            ${order.items.map(item => `
-              <tr>
-                <td>${item.desc}</td>
-                <td>${item.qty}</td>
-                <td>${item.price.toFixed(2)} ₪</td>
-                <td>${item.total.toFixed(2)} ₪</td>
-              </tr>
-            `).join('')}
-          </table>
-          
-          <div style="margin-top: 20px; text-align: left;">
-            <p>סה"כ ביניים: ${order.subtotal.toFixed(2)} ₪</p>
-            <p>מע"מ: ${order.vat.toFixed(2)} ₪</p>
-            <h3 style="color:#2e7d32">סה"כ לתשלום: ${order.totalPrice.toFixed(2)} ₪</h3>
-          </div>
-          
-          ${order.notes ? `<div style="margin-top:30px"><b>הערות:</b><br>${order.notes.replace(/\n/g, '<br>')}</div>` : ''}
-          
-          <div style="margin-top: 60px; display: flex; justify-content: flex-end;">
-            <div style="text-align: center; width: 200px;">
-              ${order.orderer ? order.orderer.split('\n').map(l => `<span style="display:inline-block;margin-bottom:5px;font-weight:bold">${l}</span>`).join('<br>') : ''}
-            </div>
-          </div>
-          
-          <div style="margin-top: auto; text-align: center; border-top: 1px solid #ccc; padding-top: 20px; font-size: 0.9em; color: #555;">
-            ${footerHtml}
-          </div>
-        </div>
+      <div class="page-container" id="pdf-content">
+        ${pagesHtml}
       </div>
     </body>
     </html>
@@ -794,6 +1054,30 @@ function editDelivery(id) {
   const saveBtn = document.querySelector('#delivery-modal .btn.bp');
   saveBtn.setAttribute('onclick', `saveDelivery('${id}')`);
 }
+
+window.deletePurchOrder = async function(id) {
+  if (!confirm('האם אתה בטוח שברצונך למחוק הזמנה זו? המחיקה תמחק גם את החשבונית המקושרת להזמנה זו מחלון חשבוניות.')) return;
+  
+  const order = (window.ORDERS || []).find(o => o.id === id);
+  if (!order) return;
+  
+  // Remove from ORDERS
+  window.ORDERS = window.ORDERS.filter(o => o.id !== id);
+  
+  // Sync with INVOICES
+  if (typeof window.INVOICES !== 'undefined') {
+    window.INVOICES = window.INVOICES.filter(i => i.orderNum !== order.orderId);
+    if (typeof window.renderInvoices === 'function') window.renderInvoices();
+  }
+  
+  renderPurchOrders();
+  
+  // Save to Firebase
+  if (typeof window.ghAutoSave === 'function') {
+    await window.ghAutoSave(true);
+  }
+  showToast('🗑️ ההזמנה נמחקה בהצלחה!');
+};
 
 function printDelivery(id) {
   const dlv = (window.DELIVERIES || []).find(d => d.id === id);

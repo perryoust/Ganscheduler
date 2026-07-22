@@ -2037,24 +2037,11 @@ function showToast(msg,ms=2500){
 
 // ─── PWA Service Worker registration ──────────────────
 if('serviceWorker' in navigator){
-  const swCode=`
-const CACHE='kids-v2';
-const ASSETS=[location.pathname];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
-self.addEventListener('fetch',e=>e.respondWith(
-  caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{
-    if(res.ok){const c=res.clone();caches.open(CACHE).then(ca=>ca.put(e.request,c));}
-    return res;
-  }).catch(()=>caches.match(e.request)))
-));
-self.addEventListener('activate',e=>e.waitUntil(
-  caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k))))
-));`;
-  try{
-    const blob=new Blob([swCode],{type:'application/javascript'});
-    const swUrl=URL.createObjectURL(blob);
-    navigator.serviceWorker.register(swUrl).catch(()=>{});
-  }catch(e){}
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    for(let registration of registrations) {
+      registration.unregister();
+    }
+  });
 }
 
 
