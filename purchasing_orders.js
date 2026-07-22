@@ -847,12 +847,18 @@ function openOrderPrintPreview(order, autoDownload = false) {
   
   const rtlFix = (str) => {
     if (!str) return '';
-    return String(str)
+    let escaped = String(str)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '״')
-      .replace(/'/g, '׳');
+      .replace(/>/g, '&gt;');
+      
+    // Fix punctuation at the end of Hebrew words so Bidi algorithm doesn't move them
+    escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
+    
+    // To prevent html2canvas from swallowing spaces in RTL, and to prevent 
+    // word-break from tearing numbers apart, we wrap each word in an inline-block.
+    let words = escaped.split(' ');
+    return words.map(w => `<span style="display:inline-block; margin-left:4px; max-width:100%;">${w}</span>`).join('');
   };
 
   const footerLines = (window.PURCH_FOOTER || defaultFooter).split('\n').map(l => rtlFix(l.trim())).filter(l => l);
@@ -1610,12 +1616,18 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
   
   const rtlFix = (str) => {
     if (!str) return '';
-    return String(str)
+    let escaped = String(str)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '״')
-      .replace(/'/g, '׳');
+      .replace(/>/g, '&gt;');
+      
+    // Fix punctuation at the end of Hebrew words so Bidi algorithm doesn't move them
+    escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
+    
+    // To prevent html2canvas from swallowing spaces in RTL, and to prevent 
+    // word-break from tearing numbers apart, we wrap each word in an inline-block.
+    let words = escaped.split(' ');
+    return words.map(w => `<span style="display:inline-block; margin-left:4px; max-width:100%;">${w}</span>`).join('');
   };
 
   const footerLines = (window.PURCH_FOOTER || defaultFooter).split('\n').map(l => rtlFix(l.trim())).filter(l => l);
@@ -2175,7 +2187,7 @@ window.openDeliverySpModal = async function() {
 
   ov.querySelector('#dsp-cancel').addEventListener('click', () => { ov.remove(); });
   ov.querySelector('#dsp-ok').addEventListener('click', async () => {
-    const url = ov.querySelector('#dsp-url').value.trim().replace(/\\/+$/, '');
+    const url = ov.querySelector('#dsp-url').value.trim().replace(/\/+$/, '');
     if (!url) { alert('יש להזין קישור SharePoint'); return; }
     if (window._spIdbSet) await window._spIdbSet('deliverySpUrl', url);
     ov.remove();
@@ -2198,6 +2210,34 @@ window.scanDeliveriesSharePoint = async function(baseUrl) {
   
   if (typeof window.showToast === 'function') window.showToast('⏳ סורק קבצי תעודות משלוח...', 60000);
   
+  await performDeliverySharePointScan(baseUrl, dirHandle);
+};
+
+window.quickScanDeliveriesSharePoint = async function() {
+  if (!window._spIdbGet) return;
+  const dirHandle = await window._spIdbGet('deliverySpDir');
+  const baseUrl = await window._spIdbGet('deliverySpUrl');
+  
+  if (!dirHandle || !baseUrl) {
+    alert('לא קיימת תיקייה שחוברה בעבר. אנא השתמש בכפתור "סריקת תיקיית SharePoint" כדי לחבר אותה בפעם הראשונה.');
+    return;
+  }
+
+  if (typeof window.showToast === 'function') window.showToast('⏳ מתחיל רענון אוטומטי. ממתין לאישור גישה...', 60000);
+  
+  if ((await dirHandle.queryPermission({ mode: 'read' })) !== 'granted') {
+    if ((await dirHandle.requestPermission({ mode: 'read' })) !== 'granted') {
+      if (typeof window.showToast === 'function') window.showToast('❌ אין הרשאה לסרוק את התיקייה.');
+      return;
+    }
+  }
+  
+  if (typeof window.showToast === 'function') window.showToast('⏳ סורק קבצי תעודות משלוח...', 60000);
+  
+  await performDeliverySharePointScan(baseUrl, dirHandle);
+};
+
+async function performDeliverySharePointScan(baseUrl, dirHandle) {
   let matchCount = 0;
   let filesFound = [];
 
@@ -2216,7 +2256,7 @@ window.scanDeliveriesSharePoint = async function(baseUrl) {
   }
   
   for (const file of filesFound) {
-    const numMatch = file.name.match(/\\d+/g);
+    const numMatch = file.name.match(/\d+/g);
     if (!numMatch) continue;
     
     for (const num of numMatch) {
@@ -2224,7 +2264,7 @@ window.scanDeliveriesSharePoint = async function(baseUrl) {
       if (cleanNum.length < 2) continue;
       
       const matchedDeliveries = (window.DELIVERIES || []).filter(dlv => {
-        if (dlv.deliveryId && String(dlv.deliveryId).replace(/\\D/g, '').replace(/^0+/, '') === cleanNum) return true;
+        if (dlv.deliveryId && String(dlv.deliveryId).replace(/\D/g, '').replace(/^0+/, '') === cleanNum) return true;
         return false;
       });
       
@@ -2240,8 +2280,12 @@ window.scanDeliveriesSharePoint = async function(baseUrl) {
   if (typeof window.ghAutoSave === 'function') await window.ghAutoSave(true);
   if (typeof window.renderPurchDeliveries === 'function') window.renderPurchDeliveries();
   
-  alert(\`✅ סריקה הסתיימה בהצלחה!\\n\\n📁 נסרקו: \${filesFound.length} קבצים\\n🔗 שודכו: \${matchCount} תעודות משלוח.\`);
-};
+  if (typeof window.showToast === 'function') {
+    window.showToast(`✅ סריקה הסתיימה! נסרקו ${filesFound.length} קבצים, שודכו ${matchCount} מסמכים.`);
+  } else {
+    alert(`✅ סריקה הסתיימה בהצלחה!\n\n📁 נסרקו: ${filesFound.length} קבצים\n🔗 שודכו: ${matchCount} תעודות משלוח.`);
+  }
+}
 
 window.spUndoDeliveryMatch = function(dlvId) {
   const dlv = (window.DELIVERIES || []).find(d => String(d.id) === String(dlvId));
