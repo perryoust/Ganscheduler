@@ -663,7 +663,8 @@ function clearCal(){
   if (bar) bar.style.display = 'none';
   
   if (window.setView) {
-    window.setView('day');
+    if (window.setListSubView) window.setListSubView('day');
+    window.setView('list');
   } else {
     renderCal();
   }

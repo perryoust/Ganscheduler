@@ -1508,6 +1508,18 @@ function duplicateDelivery(id) {
   showToast(`📋 הפרטים שוכפלו בהצלחה לתעודה חדשה (מספר ${newDeliveryId}). לחץ על "שמור תעודת משלוח" כדי לשמור.`);
 }
 
+window.deletePurchOrder = async function(id) {
+  if (!confirm('האם אתה בטוח שברצונך למחוק הזמנת רכש זו?')) return;
+  
+  window.ORDERS = (window.ORDERS || []).filter(o => o.id !== id);
+  renderPurchOrders();
+  
+  if (typeof window.ghAutoSave === 'function') {
+    await window.ghAutoSave(true);
+  }
+  showToast('🗑️ הזמנת הרכש נמחקה בהצלחה!');
+};
+
 window.deletePurchDelivery = async function(id) {
   if (!confirm('האם אתה בטוח שברצונך למחוק תעודת משלוח זו?')) return;
   
