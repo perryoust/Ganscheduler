@@ -52,6 +52,7 @@ function renderPurchOrders() {
     '<th>תאריך</th>' +
     '<th>מספר הזמנה</th>' +
     '<th>לכבוד</th>' +
+    '<th>תיאור</th>' +
     '<th>סה"כ (₪)</th>' +
     '<th>פעולות</th>' +
     '</tr></thead><tbody>';
@@ -62,12 +63,14 @@ function renderPurchOrders() {
       <td>${dStr}</td>
       <td style="font-weight:bold">${o.orderId}</td>
       <td>${o.supplier}</td>
+      <td>${(o.orderDesc || (o.items && o.items.length > 0 ? o.items[0].desc.split('\n')[0] : '')).replace(/</g, '&lt;')}</td>
       <td style="color:#2e7d32;font-weight:bold">${o.totalPrice.toFixed(2)}</td>
       <td>
         <button class="btn bo bsm" onclick="editOrder('${o.id}')">✏️ ערוך</button>
         <button class="btn bo bsm" onclick="duplicateOrder('${o.id}')">📋 שכפל</button>
         <button class="btn bo bsm" onclick="printOrder('${o.id}')">🖨️ הדפס</button>
         <button class="btn bo bsm" onclick="downloadOrder('${o.id}')">📄 הורד</button>
+        <button class="btn bo bsm" onclick="approveOrderToInvoice('${o.id}')" style="background:#4caf50;color:white;border:none;">✅ הפק למעקב</button>
         <button class="btn br bsm" onclick="deletePurchOrder('${o.id}')" style="background:#e53935;color:white;border:none;">🗑️ מחק</button>
       </td>
     </tr>`;
@@ -122,6 +125,8 @@ function renderPurchDeliveries() {
       <td>${d.deliveryDesc || ''}</td>
       <td>${d.driver || ''}</td>
       <td>
+        ${d.spLink ? `<a href="${d.spLink}" target="_blank" class="btn bo bsm" style="text-decoration:none;background:#e3f2fd;color:#1565c0;border-color:#1565c0" title="פתח מסמך מקורי">📂 פתח מסמך</a>
+        <button class="btn bo bsm" onclick="spUndoDeliveryMatch('${d.id}')" style="color:red;border:none;background:transparent;font-size:0.8rem;padding:0;min-width:auto;margin-left:5px" title="בטל שיוך">✖</button>` : ''}
         <button class="btn bo bsm" onclick="editDelivery('${d.id}')">✏️ ערוך</button>
         <button class="btn bo bsm" onclick="duplicateDelivery('${d.id}')">📋 שכפל</button>
         <button class="btn bo bsm" onclick="printDelivery('${d.id}')">🖨️ הדפס</button>
@@ -845,7 +850,9 @@ function openOrderPrintPreview(order, autoDownload = false) {
     return String(str)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '״')
+      .replace(/'/g, '׳');
   };
 
   const footerLines = (window.PURCH_FOOTER || defaultFooter).split('\n').map(l => rtlFix(l.trim())).filter(l => l);
@@ -857,8 +864,22 @@ function openOrderPrintPreview(order, autoDownload = false) {
     }
   }
 
-  let rawTitle = 'הזמנת רכש ' + (order.orderId || '') + ' - ' + (order.supplier || '');
-  rawTitle = rawTitle.replace(/"/g, '').replace(/_/g, ' ').replace(/\s+/g, ' ');
+  let descPart = '';
+  if (order.orderDesc && order.orderDesc.trim()) {
+    descPart = order.orderDesc.trim();
+  } else if (order.items && order.items.length > 0 && order.items[0].desc) {
+    descPart = order.items[0].desc.trim().split('\n')[0];
+  }
+  if (descPart.length > 30) descPart = descPart.substring(0, 30);
+
+  let titleParts = [];
+  if (order.supplier) titleParts.push(order.supplier);
+  if (descPart) titleParts.push(descPart);
+  if (order.orderId) titleParts.push(order.orderId);
+  if (titleParts.length === 0) titleParts.push('הזמנת רכש');
+
+  let rawTitle = titleParts.join(' - ');
+  rawTitle = rawTitle.replace(/["'\\/]/g, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
   const titleText = rawTitle.replace(/&/g, '&amp;');
 
   const getItemLines = (it) => {
@@ -1592,7 +1613,9 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
     return String(str)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '״')
+      .replace(/'/g, '׳');
   };
 
   const footerLines = (window.PURCH_FOOTER || defaultFooter).split('\n').map(l => rtlFix(l.trim())).filter(l => l);
@@ -1872,7 +1895,7 @@ window.SPT = function(t) {
   if (t === 'pdeliveries') renderPurchDeliveries();
 }
 
-function addNoteToOrder(text) {
+window.addNoteToOrder = function(text) {
   const notes = document.getElementById('om-notes');
   if (notes) {
     if (notes.value.trim() !== '') {
@@ -1881,23 +1904,31 @@ function addNoteToOrder(text) {
       notes.value = text;
     }
   }
-}
+};
 
-function renderPurchNotesButtons() {
+window.addNoteToOrderByIndex = function(idx) {
+  const notes = window.PURCH_NOTES || ['נא לצרף חשבונית מס מקורית', 'נא לתאם הגעה מראש עם איש הקשר', 'המחיר כולל משלוח עד לכתובת', 'תנאי תשלום: שוטף + 30'];
+  const text = notes[idx];
+  if (text) {
+    window.addNoteToOrder(text);
+  }
+};
+
+window.renderPurchNotesButtons = function() {
   const container = document.getElementById('om-notes-buttons');
   if (!container) return;
   const notes = window.PURCH_NOTES || ['נא לצרף חשבונית מס מקורית', 'נא לתאם הגעה מראש עם איש הקשר', 'המחיר כולל משלוח עד לכתובת', 'תנאי תשלום: שוטף + 30'];
   let html = '';
   notes.forEach((n, i) => {
-    const safeText = encodeURIComponent(n);
-    const shortText = n.length > 20 ? n.substring(0,20)+'...' : n;
-    html += `<button class="btn bo bsm" onclick="addNoteToOrder(decodeURIComponent('${safeText}'))">➕ ${shortText}</button>`;
+    const cleanText = n.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const shortText = cleanText.length > 20 ? cleanText.substring(0,20)+'...' : cleanText;
+    html += `<button type="button" class="btn bo bsm" onclick="window.addNoteToOrderByIndex(${i})">➕ ${shortText}</button>`;
   });
-  html += `<button class="btn bw bsm" onclick="editPurchNotes()" title="ערוך הערות נפוצות">✏️ ערוך</button>`;
+  html += `<button type="button" class="btn bw bsm" onclick="window.editPurchNotes()" title="ערוך הערות נפוצות">✏️ ערוך</button>`;
   container.innerHTML = html;
-}
+};
 
-function editPurchNotes() {
+window.editPurchNotes = function() {
   const notes = window.PURCH_NOTES || ['נא לצרף חשבונית מס מקורית', 'נא לתאם הגעה מראש עם איש הקשר', 'המחיר כולל משלוח עד לכתובת', 'תנאי תשלום: שוטף + 30'];
   
   let modal = document.getElementById('purch-notes-modal');
@@ -1925,15 +1956,15 @@ function editPurchNotes() {
         ${notesHtml}
       </div>
       
-      <button class="btn bg bsm" onclick="addPurchNoteInput()">➕ הוסף הערה חדשה</button>
+      <button class="btn bg bsm" onclick="window.addPurchNoteInput()">➕ הוסף הערה חדשה</button>
       
       <div style="display:flex;justify-content:flex-end;margin-top:25px;gap:10px;border-top:1px solid #eee;padding-top:15px;">
         <button class="btn bo" onclick="document.getElementById('purch-notes-modal').style.display='none'">ביטול</button>
-        <button class="btn bp" onclick="savePurchNotes()">שמור שינויים</button>
+        <button class="btn bp" onclick="window.savePurchNotes()">שמור שינויים</button>
       </div>
     </div>
   `;
-}
+};
 
 window.addPurchNoteInput = function() {
   const container = document.getElementById('pn-list-container');
@@ -1948,7 +1979,7 @@ window.addPurchNoteInput = function() {
   div.querySelector('input').focus();
 };
 
-function savePurchNotes() {
+window.savePurchNotes = function() {
   const inputs = document.querySelectorAll('.pn-input');
   const textArray = [];
   inputs.forEach(inp => {
@@ -1956,28 +1987,28 @@ function savePurchNotes() {
   });
   window.PURCH_NOTES = textArray;
   document.getElementById('purch-notes-modal').style.display='none';
-  renderPurchNotesButtons();
+  window.renderPurchNotesButtons();
   if (typeof window.ghAutoSave === 'function') window.ghAutoSave(true);
-}
+};
 
-function renderPurchOrderersButtons() {
+window.renderPurchOrderersButtons = function() {
   const container = document.getElementById('om-orderer-buttons');
   if (!container) return;
   const orderers = window.PURCH_ORDERERS || ['פרי', 'שרית', 'קארין'];
   let html = '';
   orderers.forEach(o => {
-    html += `<button class="btn bg bsm" onclick="setPurchOrderer(this)" data-val="${o.replace(/"/g, '&quot;')}" title="הוסף מזמין">➕ ${o.split('\n')[0]}</button>`;
+    html += `<button type="button" class="btn bg bsm" onclick="window.setPurchOrderer(this)" data-val="${o.replace(/"/g, '&quot;')}" title="הוסף מזמין">➕ ${o.split('\n')[0]}</button>`;
   });
-  html += `<button class="btn bw bsm" onclick="editPurchOrderers()" title="ערוך מזמינים נפוצים">✏️ ערוך</button>`;
+  html += `<button type="button" class="btn bw bsm" onclick="window.editPurchOrderers()" title="ערוך מזמינים נפוצים">✏️ ערוך</button>`;
   container.innerHTML = html;
-}
+};
 
 window.setPurchOrderer = function(btn) {
   const el = document.getElementById('om-orderer');
   if (el) el.value = btn.getAttribute('data-val') || '';
 };
 
-function editPurchOrderers() {
+window.editPurchOrderers = function() {
   const orderers = window.PURCH_ORDERERS || ['פרי', 'שרית', 'קארין'];
   
   let modal = document.getElementById('purch-orderers-modal');
@@ -2005,15 +2036,15 @@ function editPurchOrderers() {
         ${listHtml}
       </div>
       
-      <button class="btn bg bsm" onclick="addPurchOrdererInput()">➕ הוסף מזמין חדש</button>
+      <button class="btn bg bsm" onclick="window.addPurchOrdererInput()">➕ הוסף מזמין חדש</button>
       
       <div style="display:flex;justify-content:flex-end;margin-top:25px;gap:10px;border-top:1px solid #eee;padding-top:15px;">
         <button class="btn bo" onclick="document.getElementById('purch-orderers-modal').style.display='none'">ביטול</button>
-        <button class="btn bp" onclick="savePurchOrderers()">שמור שינויים</button>
+        <button class="btn bp" onclick="window.savePurchOrderers()">שמור שינויים</button>
       </div>
     </div>
   `;
-}
+};
 
 window.addPurchOrdererInput = function() {
   const container = document.getElementById('po-list-container');
@@ -2028,7 +2059,7 @@ window.addPurchOrdererInput = function() {
   div.querySelector('textarea').focus();
 };
 
-function savePurchOrderers() {
+window.savePurchOrderers = function() {
   const inputs = document.querySelectorAll('.po-input');
   const textArray = [];
   inputs.forEach(inp => {
@@ -2036,11 +2067,11 @@ function savePurchOrderers() {
   });
   window.PURCH_ORDERERS = textArray;
   document.getElementById('purch-orderers-modal').style.display='none';
-  renderPurchOrderersButtons();
+  window.renderPurchOrderersButtons();
   if (typeof window.ghAutoSave === 'function') window.ghAutoSave(true);
-}
+};
 
-function editPurchFooter() {
+window.editPurchFooter = function() {
   const defaultFooter = `טומשין-עושים חינוך אחרת בע"מ (חל"צ) – רשת צהרונים
 הנהלה ראשית: רח' איינשטיין 18 קומה ב', נס ציונה, ת.ד. 2318, מיקוד 7403622, טל: 03-9689119 פקס: 039689120
 www.tomashin.co.il  www.tomashin-kids.co.il`;
@@ -2064,15 +2095,203 @@ www.tomashin.co.il  www.tomashin-kids.co.il`;
       
       <div style="display:flex;justify-content:flex-end;margin-top:25px;gap:10px;border-top:1px solid #eee;padding-top:15px;">
         <button class="btn bo" onclick="document.getElementById('purch-footer-modal').style.display='none'">ביטול</button>
-        <button class="btn bp" onclick="savePurchFooter()">שמור שינויים</button>
+        <button class="btn bp" onclick="window.savePurchFooter()">שמור שינויים</button>
       </div>
     </div>
   `;
-}
+};
 
-function savePurchFooter() {
+window.savePurchFooter = function() {
   const text = document.getElementById('pf-edit-text').value;
   window.PURCH_FOOTER = text.trim() || null;
   document.getElementById('purch-footer-modal').style.display='none';
   if (typeof window.ghAutoSave === 'function') window.ghAutoSave(true);
-}
+};
+
+window.approveOrderToInvoice = function(id) {
+  const order = (window.ORDERS || []).find(o => o.id === id);
+  if (!order) return;
+  
+  if (confirm(`האם אתה בטוח שברצונך לאשר את הזמנה ${order.orderId} ולהעביר אותה למעקב חשבוניות?`)) {
+    if (!window.INVOICES) window.INVOICES = [];
+    
+    if (window.INVOICES.some(inv => inv.linkedOrderId === id)) {
+      alert('הזמנה זו כבר הועברה למעקב חשבוניות בעבר.');
+      return;
+    }
+
+    let descPart = '';
+    if (order.orderDesc && order.orderDesc.trim()) {
+      descPart = order.orderDesc.trim();
+    } else if (order.items && order.items.length > 0 && order.items[0].desc) {
+      descPart = order.items[0].desc.trim().split('\n')[0];
+    }
+    
+    const amt = parseFloat(order.totalPrice) || 0;
+    const vat = parseFloat(order.vat) || 0;
+    const rawAmt = amt - vat;
+    
+    const inv = {
+      id: Date.now(),
+      ts: Date.now(),
+      supName: order.supplier,
+      orderNum: order.orderId,
+      txNum: '',
+      num: '',
+      orderDesc: descPart,
+      orderAmt: rawAmt.toFixed(2),
+      orderVat: vat.toFixed(2),
+      orderTot: amt.toFixed(2),
+      status: 'order',
+      linkedOrderId: id,
+      orderMonth: new Date(order.ts).toISOString().substring(0, 7)
+    };
+    
+    window.INVOICES.push(inv);
+    if (typeof window.ghAutoSave === 'function') window.ghAutoSave(true);
+    alert('ההזמנה הועברה בהצלחה למעקב חשבוניות!');
+  }
+};
+
+window.openDeliverySpModal = async function() {
+  const savedUrl = window._spIdbGet ? await window._spIdbGet('deliverySpUrl') : '';
+  const ov = document.createElement('div');
+  ov.id = 'del-sp-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  ov.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:22px;max-width:480px;width:96%;box-shadow:0 8px 32px rgba(0,0,0,.25);direction:rtl">
+      <div style="font-weight:800;color:#1a237e;font-size:.95rem;margin-bottom:14px">🔗 סריקת תיקיית תעודות משלוח</div>
+      <div style="margin-bottom:12px;font-size:.85rem;color:#444">
+        הזן את הקישור הכללי לתיקיית תעודות המשלוח ב-SharePoint:
+      </div>
+      <input type="text" id="dsp-url" value="${savedUrl || ''}" placeholder="https://tomashin.sharepoint.com/..." style="width:100%;margin-bottom:15px;text-align:left;direction:ltr">
+      
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="dsp-cancel" class="btn bs bsm">ביטול</button>
+        <button id="dsp-ok" class="btn bg">📁 בחר תיקייה מקומית וסרוק</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  ov.querySelector('#dsp-cancel').addEventListener('click', () => { ov.remove(); });
+  ov.querySelector('#dsp-ok').addEventListener('click', async () => {
+    const url = ov.querySelector('#dsp-url').value.trim().replace(/\\/+$/, '');
+    if (!url) { alert('יש להזין קישור SharePoint'); return; }
+    if (window._spIdbSet) await window._spIdbSet('deliverySpUrl', url);
+    ov.remove();
+    await window.scanDeliveriesSharePoint(url);
+  });
+};
+
+window.scanDeliveriesSharePoint = async function(baseUrl) {
+  if (!window.showDirectoryPicker) {
+    alert('הדפדפן שלך אינו תומך בבחירת תיקיות. אנא השתמש ב-Chrome/Edge.');
+    return;
+  }
+  let dirHandle;
+  try {
+    dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+    if (window._spIdbSet) await window._spIdbSet('deliverySpDir', dirHandle);
+  } catch (e) {
+    return;
+  }
+  
+  if (typeof window.showToast === 'function') window.showToast('⏳ סורק קבצי תעודות משלוח...', 60000);
+  
+  let matchCount = 0;
+  let filesFound = [];
+
+  const cleanBaseUrl = window.parseSharePointBaseUrl ? window.parseSharePointBaseUrl(baseUrl) : baseUrl;
+
+  for await (const entry of dirHandle.values()) {
+    if (entry.kind === 'file') {
+      const ext = entry.name.split('.').pop().toLowerCase();
+      if (['pdf', 'png', 'jpg', 'jpeg'].includes(ext)) {
+        filesFound.push({
+          name: entry.name,
+          link: cleanBaseUrl + '/' + encodeURIComponent(entry.name)
+        });
+      }
+    }
+  }
+  
+  for (const file of filesFound) {
+    const numMatch = file.name.match(/\\d+/g);
+    if (!numMatch) continue;
+    
+    for (const num of numMatch) {
+      const cleanNum = num.replace(/^0+/, '');
+      if (cleanNum.length < 2) continue;
+      
+      const matchedDeliveries = (window.DELIVERIES || []).filter(dlv => {
+        if (dlv.deliveryId && String(dlv.deliveryId).replace(/\\D/g, '').replace(/^0+/, '') === cleanNum) return true;
+        return false;
+      });
+      
+      for (const dlv of matchedDeliveries) {
+        if (!dlv.spLink) {
+          dlv.spLink = file.link;
+          matchCount++;
+        }
+      }
+    }
+  }
+  
+  if (typeof window.ghAutoSave === 'function') await window.ghAutoSave(true);
+  if (typeof window.renderPurchDeliveries === 'function') window.renderPurchDeliveries();
+  
+  alert(\`✅ סריקה הסתיימה בהצלחה!\\n\\n📁 נסרקו: \${filesFound.length} קבצים\\n🔗 שודכו: \${matchCount} תעודות משלוח.\`);
+};
+
+window.spUndoDeliveryMatch = function(dlvId) {
+  const dlv = (window.DELIVERIES || []).find(d => String(d.id) === String(dlvId));
+  if (dlv) {
+    delete dlv.spLink;
+    if (typeof window.ghAutoSave === 'function') window.ghAutoSave(true);
+    if (typeof window.renderPurchDeliveries === 'function') window.renderPurchDeliveries();
+    if (typeof window.showToast === 'function') window.showToast('✅ שיוך בוטל בהצלחה.');
+  }
+};
+
+window.exportDeliveriesToExcel = async function() {
+  if (typeof window.XLSX === "undefined") {
+    if (typeof window.showToast === 'function') window.showToast('⏳ טוען ספריות ייצוא...');
+    try {
+      await window.loadScriptAsync('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+    } catch(e) {
+      alert("שגיאה: ספריית XLSX לא נטענה. אנא רענן את הדף ונסה שוב.");
+      return;
+    }
+  }
+
+  const exportData = [];
+  const headers = ['תאריך', 'מספר תעודה', 'תיאור כללי', 'שם הנהג', 'שם המקבל', 'קישור למסמך'];
+  exportData.push(headers);
+
+  const sorted = [...(window.DELIVERIES || [])].sort((a,b) => b.ts - a.ts);
+  
+  for (const dlv of sorted) {
+    const dStr = new Date(dlv.ts).toLocaleDateString('he-IL');
+    const dlvId = dlv.deliveryId || '';
+    const desc = dlv.deliveryDesc || '';
+    const driver = dlv.driver || '';
+    const recipient = dlv.recipient || '';
+    const link = dlv.spLink || '';
+    
+    exportData.push([
+      dStr, dlvId, desc, driver, recipient, link
+    ]);
+  }
+
+  const wb = window.XLSX.utils.book_new();
+  const ws = window.XLSX.utils.aoa_to_sheet(exportData);
+  
+  ws['!cols'] = [
+    {wch: 12}, {wch: 15}, {wch: 35}, {wch: 20}, {wch: 20}, {wch: 50}
+  ];
+  
+  window.XLSX.utils.book_append_sheet(wb, ws, 'תעודות משלוח');
+  window.XLSX.writeFile(wb, 'תעודות_משלוח.xlsx');
+  
+  if (typeof window.showToast === 'function') window.showToast('✅ קובץ אקסל נוצר בהצלחה!');
+};

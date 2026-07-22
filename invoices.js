@@ -2292,9 +2292,13 @@ async function _doExportInvXlsx(from='', to='', supF='', typeF='', assignF='', c
 
   // Wait for ExcelJS to load if needed
   if(typeof ExcelJS === 'undefined'){
-    window.showToast('⏳ טוען ExcelJS...');
-    await new Promise(r=>setTimeout(r,1500));
-    if(typeof ExcelJS === 'undefined'){ window.showToast('⚠️ ExcelJS לא נטען, נסה שוב'); return; }
+    window.showToast('⏳ טוען ספריות אקסל...');
+    try {
+      await window.loadScriptAsync('https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js');
+    } catch(e) {
+      window.showToast('⚠️ שגיאה בטעינת ExcelJS');
+      return;
+    }
   }
 
   const dataKeys = Object.keys(rows[0]);
@@ -2427,6 +2431,61 @@ window.runImportAndScan = function() {
 /**
  * Smart Invoice Importer (Merge/Update Logic)
  */
+window.promptDuplicateResolution = function(newItem, existingItem) {
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;direction:rtl;font-family:"Assistant",sans-serif;';
+    
+    const box = document.createElement('div');
+    box.style.cssText = 'background:#fff;padding:25px;border-radius:12px;width:90%;max-width:500px;box-shadow:0 10px 30px rgba(0,0,0,0.2);display:flex;flex-direction:column;gap:15px;';
+    
+    const sup = newItem.supName || existingItem.supName || 'לא ידוע';
+    const num = newItem.orderNum || newItem.txNum || newItem.num || existingItem.orderNum || existingItem.txNum || existingItem.num || 'ללא מספר';
+    const total = newItem.orderTotal || newItem.total || existingItem.orderTotal || existingItem.total || 0;
+    
+    box.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;color:#d32f2f;font-size:1.2rem;font-weight:bold;margin-bottom:10px;">
+        <span style="font-size:1.5rem">⚠️</span> זוהתה כפילות!
+      </div>
+      <div style="font-size:0.95rem;color:#444;line-height:1.5;">
+        המערכת מצאה רשומה שעלולה להיות כפולה עבור:
+        <br><br>
+        <div style="background:#f5f7fa;padding:12px;border-radius:8px;border:1px solid #e0e0e0;">
+          <b>ספק:</b> ${sup}<br>
+          <b>מספר מסמך (הזמנה/תעודה):</b> ${num}<br>
+          <b>סכום:</b> ₪${parseFloat(total).toFixed(2)}<br>
+        </div>
+        <br>
+        כיצד תרצה להמשיך?
+      </div>
+      
+      <div style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:0.9rem;color:#555;">
+        <input type="checkbox" id="dup-apply-all" style="width:16px;height:16px;cursor:pointer;">
+        <label for="dup-apply-all" style="cursor:pointer;user-select:none;">החל את בחירתי על כל הכפילויות הבאות (לא אשאל שוב)</label>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:15px;">
+        <button id="btn-dup-merge" style="background:#0288d1;color:#fff;border:none;padding:10px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:1rem;transition:background 0.2s;">🔄 מיזוג ועדכון (עדכן נתונים קיימים)</button>
+        <button id="btn-dup-keep" style="background:#ed6c02;color:#fff;border:none;padding:10px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:1rem;transition:background 0.2s;">➕ השאר כפול (צור רשומה חדשה בכל זאת)</button>
+        <button id="btn-dup-skip" style="background:#e0e0e0;color:#333;border:none;padding:10px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:1rem;transition:background 0.2s;">⏭️ דלג (אל תייבא רשומה זו)</button>
+      </div>
+    `;
+    
+    ov.appendChild(box);
+    document.body.appendChild(ov);
+    
+    const closeAndResolve = (action) => {
+      const applyToAll = document.getElementById('dup-apply-all').checked;
+      document.body.removeChild(ov);
+      resolve({ action, applyToAll });
+    };
+    
+    document.getElementById('btn-dup-merge').onclick = () => closeAndResolve('merge');
+    document.getElementById('btn-dup-keep').onclick = () => closeAndResolve('keep');
+    document.getElementById('btn-dup-skip').onclick = () => closeAndResolve('skip');
+  });
+};
+
 window.importInvoices = async function(input, skipConfirm) {
     if(!skipConfirm && await window.asyncConfirm(`<b>שים לב:</b><br><br>האם למחוק קודם את כל החשבוניות (וכל הקבצים שקישרת אליהן עד כה) ולייבא את האקסל כרשימה חדשה לגמרי?<br><br>• בחר <b>אישור</b> כדי למחוק הכל לפני הייבוא (מומלץ כדי לנקות טעויות מהעבר, תצטרך לסרוק את התיקייה שוב).<br>• בחר <b>ביטול</b> כדי לעדכן חשבוניות קיימות ולשמור על קבצים מקושרים.`)) { window.INVOICES = []; if(window.save) await window.save(true); }
     
@@ -2450,8 +2509,13 @@ window.importInvoices = async function(input, skipConfirm) {
     }
   
     if (typeof window.XLSX === "undefined") {
-    _spAlertDialog("שגיאה: ספריית XLSX לא נטענה. אנא רענן את הדף.");
-    return;
+    window.showToast('⏳ טוען ספריות ייבוא...');
+    try {
+      await window.loadScriptAsync('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+    } catch(e) {
+      _spAlertDialog("שגיאה: ספריית XLSX לא נטענה. אנא רענן את הדף ונסה שוב.");
+      return;
+    }
   }
 
   return new Promise((resolve, reject) => {
@@ -2530,6 +2594,8 @@ reader.onload = async function(e) {
 
       let added = 0;
       let updated = 0;
+      let skipped = 0;
+      let applyToAllAction = null;
 
       // Build colMapping once before the loop (for complex format)
       let colMapping = null;
@@ -2715,16 +2781,33 @@ reader.onload = async function(e) {
         item.status = status;
 
         if (existingIdx !== -1) {
-          // Update existing — merge safely, preserving database-only fields (fileUrl, recv, customNote, etc.)
-          // Clean empty, undefined or null values from item to prevent overwriting existing data
-          const cleanItem = {};
-          Object.keys(item).forEach(k => {
-            if (item[k] !== undefined && item[k] !== null && item[k] !== '') {
-              cleanItem[k] = item[k];
+          let action = applyToAllAction;
+          if (!action) {
+            const res = await window.promptDuplicateResolution(item, window.INVOICES[existingIdx]);
+            action = res.action;
+            if (res.applyToAll) {
+              applyToAllAction = action;
             }
-          });
-          window.INVOICES[existingIdx] = { ...window.INVOICES[existingIdx], ...cleanItem };
-          updated++;
+          }
+          
+          if (action === 'skip') {
+            skipped++;
+            continue; // Skip this row entirely
+          } else if (action === 'keep') {
+            item.id = Date.now() + Math.floor(Math.random() * 10000);
+            window.INVOICES.push(item);
+            added++;
+          } else {
+            // 'merge' action
+            const cleanItem = {};
+            Object.keys(item).forEach(k => {
+              if (item[k] !== undefined && item[k] !== null && item[k] !== '') {
+                cleanItem[k] = item[k];
+              }
+            });
+            window.INVOICES[existingIdx] = { ...window.INVOICES[existingIdx], ...cleanItem };
+            updated++;
+          }
         } else {
           // Add new record
           item.id = Date.now() + Math.floor(Math.random() * 10000);
@@ -2758,7 +2841,7 @@ reader.onload = async function(e) {
         }
       }
 
-      _spAlertDialog(`✅ סיום ייבוא: נוספו ${added} רשומות חדשות, עודכנו ${updated} קיימות.`);
+      _spAlertDialog(`✅ סיום ייבוא: נוספו ${added} חדשות, עודכנו ${updated} קיימות. ${skipped > 0 ? `(דולגו ${skipped} כפילויות)` : ''}`);
       if (typeof renderInvoices === "function") renderInvoices();
       if (typeof renderPurchSuppliers === "function") renderPurchSuppliers();
       if (typeof refreshPurchDash === "function") refreshPurchDash();
@@ -3621,6 +3704,9 @@ const filesFound = [];
   }
 
   // ── Step 7: Export results Excel
+  if (typeof window.XLSX === "undefined") {
+     try { await window.loadScriptAsync('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'); } catch(e){}
+  }
   if (window.XLSX) {
     const wb = window.XLSX.utils.book_new();
     const ws = window.XLSX.utils.aoa_to_sheet(resultsData);

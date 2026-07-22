@@ -212,3 +212,17 @@ window.utils.decompressData = async function(base64Str) {
     return null;
   }
 };
+
+window.loadScriptAsync = function(url) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${url}"]`)) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = url;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+};
