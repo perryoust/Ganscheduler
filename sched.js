@@ -559,9 +559,10 @@ async function saveNewSched(){
   if(actType === '__new__') { actType = document.getElementById('ns-act-type-new')?.value.trim(); }
   const evTp = (document.getElementById('ns-ev-type') || {}).value || '';
   if(actType&&actType!=='__new__'){
-    if(!window.supEx[sup]) window.supEx[sup]={};
-    if(!Array.isArray(window.supEx[sup].acts)) window.supEx[sup].acts=window.getSupActs(sup);
-    if(!window.supEx[sup].acts.includes(actType)) window.supEx[sup].acts.push(actType);
+    const baseSup = window.supBase ? window.supBase(sup) : sup;
+    if(!window.supEx[baseSup]) window.supEx[baseSup]={};
+    if(!Array.isArray(window.supEx[baseSup].acts)) window.supEx[baseSup].acts=window.getSupActs(baseSup);
+    if(!window.supEx[baseSup].acts.includes(actType)) window.supEx[baseSup].acts.push(actType);
   }
   if(!gid||!date||!sup){window.spAlert('יש למלא: גן, תאריך, ספק');return;}
   const g=window.G(gid);

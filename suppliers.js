@@ -291,7 +291,9 @@ function getAllSup(){
 function getSupActs(name){
   if(!name) return[];
   const base=supBase(name);
-  const ex=supEx[base]||supEx[name]||{};
+  const exBase=supEx[base]||{};
+  const exName=supEx[name]||{};
+  const ex = Object.keys(exBase).length ? exBase : exName;
   const fromSch=new Set();
 
   // 1. From SCH entries (always scan — never skip)
@@ -316,10 +318,12 @@ function getSupActs(name){
     });
     SUPBASE.forEach(s=>{ if(supBase(s.name)===oldBase){const a=supAct(s.name);if(a)fromSch.add(a);} });
   });
-  const hidden = new Set(ex.hiddenActs || []);
+  
   // 5. Merge with explicitly saved acts (manual additions not in SCH)
-  if(Array.isArray(ex.acts)) ex.acts.forEach(a=>{ if(a) fromSch.add(a); });
+  if(Array.isArray(exBase.acts)) exBase.acts.forEach(a=>{ if(a) fromSch.add(a); });
+  if(Array.isArray(exName.acts)) exName.acts.forEach(a=>{ if(a) fromSch.add(a); });
 
+  const hidden = new Set([...(exBase.hiddenActs || []), ...(exName.hiddenActs || [])]);
   return [...fromSch].filter(a => !hidden.has(a)).sort((a,b)=>a.localeCompare(b,'he'));
 }
 // Supplier list index helpers — avoid HTML attribute escaping issues

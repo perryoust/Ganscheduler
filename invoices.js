@@ -131,7 +131,8 @@ function renderMobileInvoiceCard(inv, opts = {}) {
       } else if (sec === 'tx' && !inv.orderNum && !inv.num) {
         if (inv.file_tax && inv.file_tax.path) { meta = inv.file_tax; actualSec = 'tax'; }
         else if (inv.file_order && inv.file_order.path) { meta = inv.file_order; actualSec = 'order'; }
-      } else if (sec === 'tax' && !inv.orderNum && !inv.txNum) {
+      } else if (sec === 'tax') {
+        // Always fall back to any available file when no file_tax exists
         if (inv.file_order && inv.file_order.path) { meta = inv.file_order; actualSec = 'order'; }
         else if (inv.file_tx && inv.file_tx.path) { meta = inv.file_tx; actualSec = 'tx'; }
       }
@@ -230,8 +231,8 @@ function renderMobileInvoiceCard(inv, opts = {}) {
       </div>
       ${!opts.compact ? `
         <div class="mob-inv-footer" onclick="event.stopPropagation()">
-          <div class="mob-inv-notes" title="${inv.notes||''}">
-            ${inv.notes ? `📝 ${inv.notes}` : ''}
+          <div class="mob-inv-notes" title="${inv.notes||'אין הערות'}">
+            📝 ${inv.notes || 'אין הערות'}
           </div>
           <div class="mob-inv-btns">
             <button class="btn bsm bo" onclick="openNewInvoice(${inv.id})">✏️ ערוך</button>
@@ -426,7 +427,8 @@ function renderInvoices(){
           } else if (sec === 'tx' && !inv.orderNum && !inv.num) {
             if (inv.file_tax && inv.file_tax.path) { meta = inv.file_tax; actualSec = 'tax'; }
             else if (inv.file_order && inv.file_order.path) { meta = inv.file_order; actualSec = 'order'; }
-          } else if (sec === 'tax' && !inv.orderNum && !inv.txNum) {
+          } else if (sec === 'tax') {
+            // Always fall back to any available file when no file_tax exists
             if (inv.file_order && inv.file_order.path) { meta = inv.file_order; actualSec = 'order'; }
             else if (inv.file_tx && inv.file_tx.path) { meta = inv.file_tx; actualSec = 'tx'; }
           }
@@ -470,7 +472,7 @@ function renderInvoices(){
           ${hasTax?`<div><span style="font-size:.63rem;color:#546e7a">מסמך: </span>${fmtAmt(inv.amt,vat,isExempt)}</div>`:''}
         </td>
         <td style="padding:8px">${statusStepper(inv.status||'active')}</td>
-        <td style="font-size:.72rem;color:#78909c;max-width:120px;padding:8px">${inv.notes||''}</td>
+        <td style="font-size:.72rem;color:#78909c;max-width:120px;padding:8px">${inv.notes||'אין הערות'}</td>
         <td style="padding:8px;white-space:nowrap" onclick="event.stopPropagation()">
           <button class="btn bsm bo" onclick="openNewInvoice(${inv.id})">✏️</button>
           <button class="btn bsm br" onclick="deleteInvoice(${inv.id})">🗑️</button>
@@ -530,7 +532,7 @@ function refreshPurchDash(){
   const ACTIVE_ST = new Set(['order','tx_invoice']);
   const rec = [...invs]
     .filter(i=>ACTIVE_ST.has(_migrateInvStatus(i.status)))
-    .sort((a,b)=>(b.ts||0)-(a.ts||0))
+    .sort((a,b)=> (a.id||0) - (b.id||0)) // Sort oldest to newest
     .slice(0,10);
   const el = document.getElementById('pdash-recent-invoices');
   if(!el) return;
@@ -563,7 +565,18 @@ function refreshPurchDash(){
         const mkDashDoc = (icon, docNum, sec) => {
           if(!docNum) return '';
           const showBadge = !(sec==='order' && !/\d/.test(docNum));
-          const meta = i['file_'+sec];
+          let meta = i['file_'+sec];
+          let actualSec = sec;
+          // Fallback: if no file in this section, use any available file
+          if (!meta || !meta.path) {
+            if (sec === 'tax') {
+              if (i.file_order && i.file_order.path) { meta = i.file_order; actualSec = 'order'; }
+              else if (i.file_tx && i.file_tx.path) { meta = i.file_tx; actualSec = 'tx'; }
+            } else if (sec === 'order' && !i.num && !i.txNum) {
+              if (i.file_tax && i.file_tax.path) { meta = i.file_tax; actualSec = 'tax'; }
+              else if (i.file_tx && i.file_tx.path) { meta = i.file_tx; actualSec = 'tx'; }
+            }
+          }
           const hasAnyFile = (i.file_order && i.file_order.path) || 
                              (i.file_tx && i.file_tx.path) || 
                              (i.file_tax && i.file_tax.path);
@@ -571,7 +584,7 @@ function refreshPurchDash(){
           if(showBadge){
             if(meta && meta.path){
               const name = _extractNameFromUrl(meta.path)||meta.name||'פתח';
-              badge = `<span style="display:inline-flex;align-items:center;gap:2px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:1px 5px;font-size:.63rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${i.id},'${sec}')" title="${name}">📎 ${name} ↗</span>`;
+              badge = `<span style="display:inline-flex;align-items:center;gap:2px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:1px 5px;font-size:.63rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${i.id},'${actualSec}')" title="${name}">📎 ${name} ↗</span>`;
             } else if(/\d/.test(docNum) && !hasAnyFile){
               badge = `<span style="display:inline-flex;align-items:center;background:#fff8e1;border:1px solid #ffe082;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice(${i.id})">📎 עדכן קישור</span>`;
             }
@@ -589,7 +602,7 @@ function refreshPurchDash(){
           '<td style="padding:5px 8px;max-width:130px;font-size:.72rem;color:#444">'+(i.orderDesc||'').slice(0,35)+'</td>'+
           '<td style="padding:5px 8px;white-space:nowrap">'+fmtAmt2(base,total,i.vat||0)+'</td>'+
           '<td style="padding:5px 8px"><span style="font-size:.72rem">'+(stLabel[st]||st)+'</span></td>'+
-          '<td style="padding:5px 8px;font-size:.7rem;color:#666;max-width:110px">'+(i.notes||'').slice(0,25)+'</td>'+
+          '<td style="padding:5px 8px;font-size:.7rem;color:#666;max-width:110px">'+(i.notes ? i.notes.slice(0,25) : 'אין הערות')+'</td>'+
           '</tr>';
       }).join('')}</tbody>
     </table>`;
@@ -2684,6 +2697,14 @@ reader.onload = async function(e) {
           }
         });
 
+        // Capture raw presence of tax/tx fields BEFORE numeric coercion turns empty cells into 0
+        const _rawHasTax = !!(item.num || item.date ||
+          (item.total !== undefined && item.total !== null && item.total !== '' && item.total !== 0) ||
+          (item.amt !== undefined && item.amt !== null && item.amt !== '' && item.amt !== 0));
+        const _rawHasTx = !!(item.txNum || item.txDate ||
+          (item.txTotal !== undefined && item.txTotal !== null && item.txTotal !== '' && item.txTotal !== 0) ||
+          (item.txAmt !== undefined && item.txAmt !== null && item.txAmt !== '' && item.txAmt !== 0));
+
         // Ensure numeric fields are correctly typed
         ["orderTotal", "txAmt", "txTotal", "amt", "total"].forEach(nk => {
           if (item[nk] !== undefined && item[nk] !== null) {
@@ -2766,10 +2787,10 @@ reader.onload = async function(e) {
           return sameDesc && sameTotal && sameMonth;
         });
 
-        // Auto-infer invoice status
+        // Auto-infer invoice status (use pre-coercion flags to avoid 0-amount false negatives)
         let status = 'order';
-        const hasTaxDetails = !!(item.num || item.date || item.total || item.amt);
-        const hasTxDetails = !!(item.txNum || item.txDate || item.txTotal || item.txAmt);
+        const hasTaxDetails = _rawHasTax || !!(item.num || item.date || item.total > 0 || item.amt > 0);
+        const hasTxDetails  = _rawHasTx  || !!(item.txNum || item.txDate || item.txTotal > 0 || item.txAmt > 0);
         
         if (hasTaxDetails) {
           const isExempt = (window.supEx && window.supEx[sName] && (window.supEx[sName].entityType==='עוסק פטור'||window.supEx[sName].entityType==='עמותה'));
@@ -2788,9 +2809,25 @@ reader.onload = async function(e) {
         item.status = status;
 
         if (existingIdx !== -1) {
+          const inv = window.INVOICES[existingIdx];
+          
+          // Check if the excel row is practically identical to the existing record
+          // This happens when the user uploads the same Excel file again.
+          const isIdentical = 
+            (String(item.orderNum||'').trim() === String(inv.orderNum||'').trim()) &&
+            (String(item.txNum||'').trim() === String(inv.txNum||'').trim()) &&
+            (String(item.num||'').trim() === String(inv.num||'').trim()) &&
+            (String(item.orderDesc||'').trim() === String(inv.orderDesc||'').trim()) &&
+            (parseFloat(item.orderTotal||0).toFixed(2) === parseFloat(inv.orderTotal||0).toFixed(2));
+
           let action = applyToAllAction;
+          
+          if (!action && isIdentical) {
+            action = 'merge'; // Silently merge (update) without bothering the user
+          }
+          
           if (!action) {
-            const res = await window.promptDuplicateResolution(item, window.INVOICES[existingIdx]);
+            const res = await window.promptDuplicateResolution(item, inv);
             action = res.action;
             if (res.applyToAll) {
               applyToAllAction = action;

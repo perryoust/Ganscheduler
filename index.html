@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html dir="rtl" lang="he">
 
 <head>
@@ -19,7 +19,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=108.93" />
+  <link rel="stylesheet" href="styles.css?v=109.01" />
   <script>
     window.APP_VERSION = '108.93';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
@@ -33,8 +33,8 @@
       }, 3500);
     });
   </script>
-  <script type="module" src="firebase_init.js?v=108.93"></script>
-  <script src="assets.js?v=108.93"></script>
+  <script type="module" src="firebase_init.js?v=109.01"></script>
+  <script src="assets.js?v=109.01"></script>
   <script>
     // Load JSZip separately to avoid conflicts if needed
     (function () {
@@ -510,6 +510,7 @@
                 <div id="export-menu" style="display:none; position:absolute; top:100%; right:0; background:#fff; border:1px solid #cfd8dc; border-radius:6px; padding:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:9999; min-width:180px; margin-top:6px;">
                   <button class="btn bo" style="width:100%; justify-content:flex-start; margin-bottom:6px; background:#e0f2f1; color:#00695c; border-color:#80cbc4; font-size:0.8rem" onclick="OM('export-changes-m'); closeExportMenu();">📋 דוח שינויים וחריגים</button>
                   <button class="btn bo" style="width:100%; justify-content:flex-start; margin-bottom:6px; background:#fff; color:#333; font-size:0.8rem" onclick="window.openMonthlyExport(); closeExportMenu();">📑 ייצוא לוח חודשי</button>
+                  <button class="btn bo" style="width:100%; justify-content:flex-start; margin-bottom:6px; background:#e8f5e9; color:#2e7d32; border-color:#81c784; font-size:0.8rem" onclick="window.openMonthlyReportModal(); closeExportMenu();">📊 דוח שיבוצים חודשי מסכם</button>
                   <button class="btn bo" style="width:100%; justify-content:flex-start; margin-bottom:6px; background:#fff; color:#333; font-size:0.8rem" onclick="exportBulkAnnualSchedule(); closeExportMenu();">📅 ייצוא תוכנית שנתית</button>
                   <button class="btn bo" style="width:100%; justify-content:flex-start; background:#fff; color:#333; font-size:0.8rem" onclick="exportShortagesToExcel(); closeExportMenu();">📥 דוח חוסרים</button>
                   <div style="height:1px; background:#e0e0e0; margin:4px 0;"></div>
@@ -3652,34 +3653,86 @@
     </div>
 
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-     <script src="utils.js?v=108.93"></script>
-    <script src="data_manager.js?v=108.93"></script>
-    <script src="data.js?v=108.93"></script>
-    <script src="firebase.js?v=108.93"></script>
-    <script src="invoices.js?v=108.93"></script>
-    <script src="suppliers.js?v=108.93"></script>
-    <script src="cal.js?v=108.93"></script>
-    <script src="activity.js?v=108.93"></script>
-    <script src="sched.js?v=108.93"></script>
-    <script src="gardens.js?v=108.93"></script>
-    <script src="export_v107.js?v=108.93"></script>
-    <script src="backup.js?v=108.93"></script>
-    <script src="admin.js?v=108.93"></script>
-    <script src="import_export.js?v=108.93"></script>
-    <script src="core_globals.js?v=108.93"></script>
-    <script src="core_data.js?v=108.93"></script>
-    <script src="core_dash.js?v=108.93"></script>
-    <script src="worker_tasks.js?v=108.93"></script>
-    <script src="coordinator_app.js?v=108.93"></script>
-    <script src="purchasing_orders.js?v=108.93"></script>
-    <script src="core_app.js?v=108.93"></script>
-    <script src="qa_simulator.js?v=108.93"></script>
-    <script src="todo.js?v=108.93"></script>
+     <script src="utils.js?v=109.01"></script>
+    <script src="data_manager.js?v=109.01"></script>
+    <script src="data.js?v=109.01"></script>
+    <script src="firebase.js?v=109.01"></script>
+    <script src="invoices.js?v=109.01"></script>
+    <script src="suppliers.js?v=109.01"></script>
+    <script src="cal.js?v=109.01"></script>
+    <script src="activity.js?v=109.01"></script>
+    <script src="sched.js?v=109.01"></script>
+    <script src="gardens.js?v=109.01"></script>
+    <script src="export_v107.js?v=109.01"></script>
+    <script src="backup.js?v=109.01"></script>
+    <script src="admin.js?v=109.01"></script>
+    <script src="import_export.js?v=109.01"></script>
+    <script src="core_globals.js?v=109.01"></script>
+    <script src="core_data.js?v=109.01"></script>
+    <script src="core_dash.js?v=109.01"></script>
+    <script src="worker_tasks.js?v=109.01"></script>
+    <script src="coordinator_app.js?v=109.01"></script>
+    <script src="purchasing_orders.js?v=109.01"></script>
+    <script src="core_app.js?v=109.01"></script>
+    <script src="qa_simulator.js?v=109.01"></script>
+    <script src="todo.js?v=109.01"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
       console.log('Ganscheduler Architecture: v' + (window.APP_VERSION || '103.82') + ' Ready');
     </script>
     
+    <!-- MONTHLY REPORT MODAL -->
+    <div id="mr-m" class="modal" style="z-index:1000;">
+      <div class="mb" style="max-width:650px;width:95%;overflow:visible;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h2 style="margin:0;color:#2e7d32;font-size:1.25rem;display:flex;align-items:center;gap:8px">📊 דוח סיכום שיבוצים חודשי</h2>
+          <button onclick="CM('mr-m')" class="close-btn">✕</button>
+        </div>
+        
+        <div style="background:#e8f5e9;color:#1b5e20;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:0.85rem;line-height:1.4">
+          הפק דוח סיכום חודשי המציג את סה"כ השיבוצים לכל גן בכל חודש, עם אפשרות לפירוט כמות הפעילויות לפי ספקים.
+        </div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div>
+            <label style="display:block;font-size:0.85rem;color:#2e7d32;font-weight:bold;margin-bottom:4px">מתאריך:</label>
+            <input type="date" id="mr-from" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem">
+          </div>
+          <div>
+            <label style="display:block;font-size:0.85rem;color:#2e7d32;font-weight:bold;margin-bottom:4px">עד תאריך:</label>
+            <input type="date" id="mr-to" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem">
+          </div>
+        </div>
+        
+        <div class="fg custom-multi-wrap" id="mr-garden-multi-wrap" style="margin-bottom:16px;position:relative">
+          <label style="display:block;font-size:0.85rem;color:#333;font-weight:bold;margin-bottom:4px">בחר גנים / ערים (לחץ לבחירת ערים וגנים, השאר ריק עבור הכל):</label>
+          <div class="custom-multi-select" onclick="window.toggleMrGardenMulti()" id="mr-garden-multi-btn" style="width:100%;padding:10px 14px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:0.9rem">
+            <span id="mr-garden-multi-label" style="color:#333;font-weight:600">כל הגנים (השאר ריק עבור הכל)</span>
+            <span style="font-size:0.75rem;color:#666">▼</span>
+          </div>
+          <div class="custom-multi-dropdown" id="mr-garden-multi-list" style="width:100%;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #ccc;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,0.18);z-index:10000;display:none;margin-top:2px">
+            <div style="display:flex;align-items:center;border-bottom:1px solid #ccc;padding:8px;gap:8px;background:#f5f5f5">
+              <input type="text" class="custom-multi-search" id="mr-garden-multi-search" placeholder="🔍 חפש גן או עיר..." onkeyup="window.filterMrGardenMulti()" onclick="event.stopPropagation()" style="border:1px solid #ccc;border-radius:6px;padding:6px 10px;flex:1;font-size:0.85rem">
+              <button onclick="window.clearMrGardenMulti();event.stopPropagation()" style="background:none;border:none;color:#d32f2f;cursor:pointer;padding:4px 8px;font-size:0.8rem;white-space:nowrap;font-weight:bold" title="נקה בחירה">🧹 נקה</button>
+            </div>
+            <div id="mr-garden-multi-items" style="max-height:280px;overflow-y:auto"></div>
+          </div>
+        </div>
+        
+        <div style="margin-bottom:18px">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:#f9f9f9;padding:10px 14px;border:1px solid #e0e0e0;border-radius:6px">
+            <input type="checkbox" id="mr-inc-sup" style="width:18px;height:18px;accent-color:#2e7d32"> 
+            <span style="font-size:0.85rem;color:#333"><strong>כלול שמות ספקים</strong> <span style="color:#666;font-weight:normal">(לדוגמא: '12 חיים בתנועה')</span></span>
+          </label>
+        </div>
+        
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;border-top:1px solid #eee;padding-top:16px">
+          <button class="btn bo" onclick="window.CM('mr-m')" style="padding:8px 20px;font-size:0.9rem">ביטול</button>
+          <button class="btn bg" onclick="window.generateMonthlyReport()" style="background:#2e7d32;border-color:#2e7d32;color:#fff;padding:8px 22px;font-size:0.9rem;font-weight:bold">📥 הפק דוח</button>
+        </div>
+      </div>
+    </div>
+
     <!-- TODO FAB and MODAL -->
     <div id="todo-fab" onclick="window.todo && window.todo.openModal()">
       <span style="font-size: 24px;">📝</span>
@@ -3713,6 +3766,6 @@
   <div class="wt-no-print copyright-fixed" style="position:fixed; bottom:5px; left:10px; font-size:0.7rem; color:#90a4ae; z-index:9999; pointer-events:none; background:rgba(255,255,255,0.6); padding:2px 6px; border-radius:4px;">
     &copy; 2026 טומשין-עושים חינוך אחרת בע"מ(חל"צ). כל הזכויות שמורות.
   </div>
-  <style>@media (max-width: 768px) { .copyright-fixed { display: none !important; } }</style>
+  <style>@media (max-width: 1024px) { .copyright-fixed { display: none !important; } }</style>
 </body>
 </html>

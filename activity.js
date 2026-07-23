@@ -884,7 +884,7 @@ window.openSP = function(id) {
                     <option value="delete" style="color:#c62828;font-weight:700">לא משובץ</option>
                   </select>
                   ${(curSt==='nohap'||curSt==='can') ? `<button class="btn br bsm" style="padding:1px 4px;margin-right:3px;border:1px solid #ef9a9a;background:#fff;color:#c62828" title="מחיקה מהלוח" onclick="window.deleteSingleActivity('${pev.id}')">🗑️</button>` : ''}
-                ` : '<span style="font-size:.7rem;color:#c62828;font-weight:700">לא משובץ</span>'}
+                ` : `<span style="font-size:.7rem;color:#c62828;font-weight:700">לא משובץ</span> <button class="btn bp bsm" style="padding:1px 5px;font-size:0.65rem;margin-right:5px;border-radius:4px" onclick="window.spAddActivityToPartner('${rowG.id}')" title="הוסף שיבוץ לגן זה בהתבסס על הפעילות הנוכחית">➕ הוסף</button>`}
               </td>
               <td style="padding:6px;font-weight:700">
                 ${pev ? `<input type="time" value="${pev.t||''}" onchange="window.spRowTimeChg('${pev.id}', this.value)" style="padding:2px 4px;font-size:0.75rem;border-radius:4px;border:1px solid #ccc;width:90px;text-align:center;font-family:inherit">` : '—'}
@@ -1141,6 +1141,33 @@ window.openSP = function(id) {
   }
 }
 window.openSP = openSP;
+
+window.spAddActivityToPartner = function(targetGid) {
+  const s = window.SCH.find(x => x.id == window.selEv);
+  if(!s) return;
+  const newEv = {
+    id: 's_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+    g: parseInt(targetGid),
+    d: s.d,
+    a: s.a,
+    t: s.t,
+    p: s.p,
+    n: s.n,
+    st: 'ok',
+    cr: 'הוסף מחלון פרטי פעילות',
+    cn: s.cn,
+    nt: s.nt,
+    pd: s.pd,
+    pt: s.pt,
+    grp: s.grp,
+    act: s.act
+  };
+  window.SCH.push(newEv);
+  window.saveAndRefresh(null, true).then(() => {
+    window.openSP(s.id); // Refresh modal
+    if(window.showToast) window.showToast('✅ הפעילות נוספה בהצלחה לגן');
+  });
+};
 
 window.spExecuteDuplicate = function() {
   const newDate = document.getElementById('sp-dup-date').value;
@@ -2019,6 +2046,7 @@ function refresh(){
     
     if(window.renderCal) window.renderCal();
   if(window.currentTab==='sched' && window.renderSched) window.renderSched();
+  if((window.currentTab==='gardens' || window.currentTab==='clusters' || window._dashTab==='clusters') && window.renderClusters) window.renderClusters();
   
   // Also refresh SP modal if it is open to keep details in sync!
   const spm = document.getElementById('sp-m');
@@ -2026,6 +2054,7 @@ function refresh(){
     window.openSP(window.selEv);
   }
 }
+window.refresh = refresh;
 
 async function saveAndRefresh(modalId, stayOpen = false, immediate = true){
   if(!stayOpen) {

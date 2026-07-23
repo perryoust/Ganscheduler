@@ -1674,5 +1674,335 @@ window.exportBulkAnnualSchedule = async function() {
   }
 };
 
+window._mrSelectedGardens = new Set();
 
+window.toggleMrGardenMulti = function() {
+  const list = document.getElementById('mr-garden-multi-list');
+  if(!list) return;
+  if(list.style.display === 'none' || !list.style.display) {
+    list.style.display = 'block';
+    window.renderMrGardenMultiItems();
+  } else {
+    list.style.display = 'none';
+  }
+};
 
+window.renderMrGardenMultiItems = function() {
+  const container = document.getElementById('mr-garden-multi-items');
+  if(!container) return;
+  const rawList = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+  const gMap = new Map();
+  rawList.forEach(g => gMap.set(String(g.id), g));
+  const allGans = Array.from(gMap.values()).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he') || (a.name||'').localeCompare(b.name||'','he'));
+  
+  const q = (document.getElementById('mr-garden-multi-search')?.value || '').trim().toLowerCase();
+  
+  const cityGroups = {};
+  allGans.forEach(g => {
+    const c = g.city || 'ללא עיר';
+    const gName = (g.name||'').toLowerCase();
+    const cName = c.toLowerCase();
+    if(q && !gName.includes(q) && !cName.includes(q)) return;
+    
+    if(!cityGroups[c]) cityGroups[c] = [];
+    cityGroups[c].push(g);
+  });
+  
+  let html = '';
+  Object.keys(cityGroups).sort((a,b)=>a.localeCompare(b,'he')).forEach(city => {
+    const gans = cityGroups[city];
+    const allChecked = gans.every(g => window._mrSelectedGardens.has(String(g.id)));
+    const someChecked = gans.some(g => window._mrSelectedGardens.has(String(g.id)));
+    const cityIdStr = gans.map(g=>g.id).join(',');
+    
+    html += `
+      <div class="mr-city-group" style="border-bottom:1px solid #e0e0e0;">
+        <div style="display:flex;align-items:center;padding:6px 10px;background:#f0f4c3;font-weight:bold;cursor:pointer;" onclick="window.toggleMrCityItems(this)">
+          <span style="width:20px;text-align:center;font-size:0.8rem" class="mr-city-toggle">➖</span>
+          <input type="checkbox" style="margin-left:8px;width:16px;height:16px;accent-color:#2e7d32" class="mr-city-cb" ${allChecked?'checked':''} ${someChecked&&!allChecked?'data-indeterminate="true"':''} onclick="event.stopPropagation(); window.toggleMrCity('${cityIdStr}', this)">
+          <span style="font-size:0.85rem;flex:1;color:#1b5e20" class="mr-city-name">${city} (${gans.length})</span>
+        </div>
+        <div class="mr-city-items" style="display:block;background:#fff;">
+    `;
+    
+    gans.forEach(g => {
+      const gId = String(g.id);
+      const isChecked = window._mrSelectedGardens.has(gId);
+      html += `
+          <div class="mr-garden-item" style="display:flex;align-items:center;padding:5px 10px 5px 28px;cursor:pointer;border-bottom:1px solid #f5f5f5;" onclick="window.toggleMrGardenItem('${gId}', event)">
+            <input type="checkbox" style="margin-left:8px;width:15px;height:15px;accent-color:#2e7d32" class="mr-g-cb" data-id="${gId}" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); window.toggleMrGardenItem('${gId}', event)">
+            <span style="font-size:0.82rem;color:#333">${g.name}</span>
+          </div>
+      `;
+    });
+    
+    html += `</div></div>`;
+  });
+  
+  if(!html) html = '<div style="padding:12px;text-align:center;color:#888;font-size:0.8rem">לא נמצאו גנים</div>';
+  
+  container.innerHTML = html;
+  
+  container.querySelectorAll('.mr-city-cb').forEach(cb => {
+    if(cb.getAttribute('data-indeterminate')==='true') cb.indeterminate = true;
+  });
+  
+  window.updateMrGardenMultiLabel();
+};
+
+window.toggleMrCityItems = function(el) {
+  const itemsContainer = el.nextElementSibling;
+  const toggleSpan = el.querySelector('.mr-city-toggle');
+  if(itemsContainer.style.display === 'none') {
+    itemsContainer.style.display = 'block';
+    if(toggleSpan) toggleSpan.textContent = '➖';
+  } else {
+    itemsContainer.style.display = 'none';
+    if(toggleSpan) toggleSpan.textContent = '➕';
+  }
+};
+
+window.toggleMrCity = function(cityIdsStr, cbEl) {
+  const isChecked = cbEl.checked;
+  const ids = cityIdsStr.split(',');
+  ids.forEach(id => {
+    if(isChecked) window._mrSelectedGardens.add(String(id));
+    else window._mrSelectedGardens.delete(String(id));
+  });
+  window.renderMrGardenMultiItems();
+};
+
+window.toggleMrGardenItem = function(gid, e) {
+  if (e && e.target.tagName !== 'INPUT') {
+    const cb = e.currentTarget.querySelector('input[type="checkbox"]');
+    if(cb) cb.checked = !cb.checked;
+  }
+  gid = String(gid);
+  if (window._mrSelectedGardens.has(gid)) {
+    window._mrSelectedGardens.delete(gid);
+  } else {
+    window._mrSelectedGardens.add(gid);
+  }
+  window.renderMrGardenMultiItems();
+};
+
+window.filterMrGardenMulti = function() {
+  window.renderMrGardenMultiItems();
+};
+
+window.clearMrGardenMulti = function() {
+  window._mrSelectedGardens.clear();
+  if(document.getElementById('mr-garden-multi-search')) {
+    document.getElementById('mr-garden-multi-search').value = '';
+  }
+  window.renderMrGardenMultiItems();
+};
+
+window.updateMrGardenMultiLabel = function() {
+  const lbl = document.getElementById('mr-garden-multi-label');
+  if(!lbl) return;
+  if(window._mrSelectedGardens.size === 0) {
+    lbl.textContent = 'כל הגנים (השאר ריק עבור הכל)';
+  } else {
+    lbl.textContent = window._mrSelectedGardens.size + ' גנים נבחרו';
+  }
+};
+
+document.addEventListener('click', e => {
+  if(!e.target.closest('#mr-garden-multi-wrap')){
+    const list = document.getElementById('mr-garden-multi-list');
+    if(list) list.style.display = 'none';
+  }
+});
+
+window.openMonthlyReportModal = function() {
+  window._mrSelectedGardens.clear();
+  if(document.getElementById('mr-garden-multi-search')) {
+    document.getElementById('mr-garden-multi-search').value = '';
+  }
+  window.updateMrGardenMultiLabel();
+  
+  const today = new Date();
+  const fst = new Date(today.getFullYear(), today.getMonth(), 1);
+  const lst = new Date(today.getFullYear(), today.getMonth()+1, 0);
+  if(document.getElementById('mr-from')) document.getElementById('mr-from').value = window.d2s(fst).replace(/\//g,'-');
+  if(document.getElementById('mr-to')) document.getElementById('mr-to').value = window.d2s(lst).replace(/\//g,'-');
+  
+  window.OM('mr-m');
+};
+
+window.generateMonthlyReport = async function() {
+  try {
+    const fromEl = document.getElementById('mr-from');
+    const toEl = document.getElementById('mr-to');
+    if(!fromEl || !toEl || !fromEl.value || !toEl.value) {
+      window.spAlert('יש לבחור טווח תאריכים');
+      return;
+    }
+    
+    const normD = (val) => {
+      if (!val) return '';
+      let v = String(val).trim();
+      if (v.includes('T')) v = v.split('T')[0];
+      const parts = v.split(/[\/\-\.]/);
+      if (parts.length === 3) {
+        if (parts[0].length === 4) { // YYYY-MM-DD
+          return `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+        } else if (parts[2].length === 4) { // DD/MM/YYYY
+          return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+        }
+      }
+      return v;
+    };
+    
+    const fromStr = normD(fromEl.value);
+    const toStr = normD(toEl.value);
+    const selG = Array.from(window._mrSelectedGardens || []).map(String);
+    const incSup = document.getElementById('mr-inc-sup')?.checked || false;
+    
+    if(!fromStr || !toStr || fromStr > toStr) {
+      window.spAlert('טווח תאריכים לא חוקי');
+      return;
+    }
+    
+    const evs = (window.SCH || []).filter(s => {
+      if(selG.length > 0 && !selG.includes(String(s.g))) return false;
+      if(!s.d) return false;
+      const sd = normD(s.d);
+      return sd >= fromStr && sd <= toStr;
+    });
+    
+    if(!evs.length) {
+      window.spAlert('לא נמצאו שיבוצים בטווח תאריכים זה במערכת');
+      return;
+    }
+    
+    const agg = {};
+    evs.forEach(s => {
+      const sd = normD(s.d);
+      const parts = sd.split('-');
+      const mKey = parts[0] + '-' + parts[1];
+      const gKey = String(s.g) + '_' + mKey;
+      if(!agg[gKey]) {
+        let gName = String(s.g);
+        let gCity = '';
+        if(typeof window.G === 'function') {
+          const gObj = window.G(s.g);
+          if(gObj) {
+            gName = gObj.name || gName;
+            gCity = gObj.city || '';
+          }
+        }
+        if(!gCity && window.GARDENS) {
+          const found = window.GARDENS.find(g => String(g.id) === String(s.g));
+          if(found) {
+            gName = found.name || gName;
+            gCity = found.city || '';
+          }
+        }
+        agg[gKey] = {
+          gId: s.g,
+          gName: gName,
+          city: gCity,
+          month: mKey,
+          count: 0,
+          sups: {}
+        };
+      }
+      
+      agg[gKey].count++;
+      
+      if(incSup && s.a) {
+        const supB = typeof window.supBase === 'function' ? window.supBase(s.a) : s.a;
+        if(!agg[gKey].sups[supB]) agg[gKey].sups[supB] = 0;
+        agg[gKey].sups[supB]++;
+      }
+    });
+    
+    const res = Object.values(agg).sort((a,b) => {
+      if(a.city !== b.city) return (a.city||'').localeCompare(b.city||'', 'he');
+      if(a.gName !== b.gName) return (a.gName||'').localeCompare(b.gName||'', 'he');
+      return a.month.localeCompare(b.month);
+    });
+    
+    const formatMonth = (mStr) => {
+      const [y, m] = mStr.split('-');
+      const hNames = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+      return `${hNames[parseInt(m,10)-1]} ${y}`;
+    };
+    
+    const excelLoaded = await (window.ensureExcelJSLoaded ? window.ensureExcelJSLoaded() : Promise.resolve(typeof window.ExcelJS !== 'undefined'));
+    const fileNameBase = `דוח_סיכום_חודשי_${(window.d2s?window.d2s(new Date()):new Date().toISOString().slice(0,10)).replace(/\//g,'-')}`;
+    
+    const headers = ['עיר', 'גן', 'חודש', 'סה"כ שיבוצים'];
+    if(incSup) headers.push('פירוט ספקים ופעילויות');
+    
+    if (excelLoaded && typeof window.ExcelJS !== 'undefined') {
+      const workbook = new window.ExcelJS.Workbook();
+      const ws = workbook.addWorksheet('דוח חודשי', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
+      
+      ws.addRow(headers);
+      ws.getRow(1).font = { bold: true };
+      
+      res.forEach(r => {
+        const row = [r.city, r.gName, formatMonth(r.month), r.count];
+        if(incSup) {
+          const supStrs = Object.keys(r.sups).map(k => `${r.sups[k]} ${k}`);
+          row.push(supStrs.join(', ') || 'ללא ספק');
+        }
+        ws.addRow(row);
+      });
+      
+      ws.columns.forEach((c, idx) => c.width = (idx === 3 && incSup) ? 50 : 18);
+      
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${fileNameBase}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } else {
+      // Automatic CSV Fallback with UTF-8 BOM for Microsoft Excel Hebrew support
+      let csv = '\uFEFF';
+      csv += headers.map(h => `"${h}"`).join(',') + '\n';
+      res.forEach(r => {
+        const row = [r.city, r.gName, formatMonth(r.month), r.count];
+        if(incSup) {
+          const supStrs = Object.keys(r.sups).map(k => `${r.sups[k]} ${k}`);
+          row.push(supStrs.join(', ') || 'ללא ספק');
+        }
+        csv += row.map(v => `"${String(v||'').replace(/"/g, '""')}"`).join(',') + '\n';
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${fileNameBase}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+    window.CM('mr-m');
+  } catch(e) {
+    console.error('Monthly report generation failed:', e);
+    window.spAlert('שגיאה בהפקת הדוח: ' + e.message);
+  }
+};
+
+window.ensureExcelJSLoaded = function() {
+  if (typeof window.ExcelJS !== 'undefined') return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js';
+    s.onload = () => resolve(typeof window.ExcelJS !== 'undefined');
+    s.onerror = () => {
+      const s2 = document.createElement('script');
+      s2.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js';
+      s2.onload = () => resolve(typeof window.ExcelJS !== 'undefined');
+      s2.onerror = () => resolve(false);
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(s);
+  });
+};
