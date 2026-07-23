@@ -92,10 +92,20 @@ window.wtToggleTaskStatus = function(id) {
         window.wtCurrentDate = today;
       }
     } else {
+      const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
+      let dStr = today;
+      let tStr = new Date().toTimeString().split(' ')[0].substring(0, 5);
+      
+      // If the task was originally scheduled for a past date, ask the user when it was done (Admins only)
+      if (task.date && task.date < today && window.role === 'admin') {
+        const dispDate = window.fD ? window.fD(task.date) : task.date;
+        if (confirm(`המשימה הייתה מתוכננת ל-${dispDate}. האם בוצעה בתאריך המקורי?\n\n[אישור] = בוצעה ב-${dispDate}\n[ביטול] = בוצעה היום (${window.fD ? window.fD(today) : today})`)) {
+          dStr = task.date;
+          tStr = "23:59"; // Just a default time for past completions
+        }
+      }
+
       task.status = 'done';
-      const now = new Date();
-      const dStr = window.td ? window.td() : now.toISOString().split('T')[0];
-      const tStr = now.toTimeString().split(' ')[0].substring(0, 5);
       task.doneAt = `${dStr} ${tStr}`;
       task.doneBy = window._fbUser?.displayName || window._fbUser?.email?.replace('@ganmanager.app','') || 'עובד';
     }
@@ -683,6 +693,11 @@ window.wtSaveNote = function(id, val) {
 // ==========================================
 
 window.activateWorkerApp = function() {
+  // First ensure the worker app container exists (initWorkerTasks creates it)
+  if (typeof window.initWorkerTasks === 'function') {
+    window.initWorkerTasks();
+  }
+
   // SECURE DOM CLEARING: Remove everything except essential resources and the worker app
   Array.from(document.body.children).forEach(el => {
     const tag = el.tagName.toUpperCase();
@@ -805,9 +820,19 @@ window.markTaskDone = function(id) {
     if (noteEl) {
       task.workerNote = noteEl.value.trim();
     }
-    const now = new Date();
-    const dStr = window.td ? window.td() : now.toISOString().split('T')[0];
-    const tStr = now.toTimeString().split(' ')[0].substring(0, 5);
+    
+    const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
+    let dStr = today;
+    let tStr = new Date().toTimeString().split(' ')[0].substring(0, 5);
+    
+    if (task.date && task.date < today && window.role === 'admin') {
+      const dispDate = window.fD ? window.fD(task.date) : task.date;
+      if (confirm(`המשימה הייתה מתוכננת ל-${dispDate}. האם בוצעה בתאריך המקורי?\n\n[אישור] = בוצעה ב-${dispDate}\n[ביטול] = בוצעה היום (${window.fD ? window.fD(today) : today})`)) {
+        dStr = task.date;
+        tStr = "23:59";
+      }
+    }
+    
     task.doneAt = `${dStr} ${tStr}`;
     task.doneBy = window._fbUser?.displayName || window._fbUser?.email?.replace('@ganmanager.app','') || 'עובד';
     

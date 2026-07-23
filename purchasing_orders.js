@@ -2178,6 +2178,11 @@ window.openDeliverySpModal = async function() {
       </div>
       <input type="text" id="dsp-url" value="${savedUrl || ''}" placeholder="https://tomashin.sharepoint.com/..." style="width:100%;margin-bottom:15px;text-align:left;direction:ltr">
       
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;margin-bottom:18px;padding:8px 10px;background:#fff8e1;border-radius:7px;border:1px solid #ffe082">
+        <input type="checkbox" id="dsp-overwrite" checked style="width:16px;height:16px;cursor:pointer">
+        <span><b>דרוס קישורים קיימים</b> (כדי לתקן קישורים ישנים)</span>
+      </label>
+
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button id="dsp-cancel" class="btn bs bsm">ביטול</button>
         <button id="dsp-ok" class="btn bg">📁 בחר תיקייה מקומית וסרוק</button>
@@ -2189,13 +2194,14 @@ window.openDeliverySpModal = async function() {
   ov.querySelector('#dsp-ok').addEventListener('click', async () => {
     const url = ov.querySelector('#dsp-url').value.trim().replace(/\/+$/, '');
     if (!url) { alert('יש להזין קישור SharePoint'); return; }
+    const overwrite = ov.querySelector('#dsp-overwrite').checked;
     if (window._spIdbSet) await window._spIdbSet('deliverySpUrl', url);
     ov.remove();
-    await window.scanDeliveriesSharePoint(url);
+    await window.scanDeliveriesSharePoint(url, overwrite);
   });
 };
 
-window.scanDeliveriesSharePoint = async function(baseUrl) {
+window.scanDeliveriesSharePoint = async function(baseUrl, overwrite = true) {
   if (!window.showDirectoryPicker) {
     alert('הדפדפן שלך אינו תומך בבחירת תיקיות. אנא השתמש ב-Chrome/Edge.');
     return;
@@ -2210,7 +2216,7 @@ window.scanDeliveriesSharePoint = async function(baseUrl) {
   
   if (typeof window.showToast === 'function') window.showToast('⏳ סורק קבצי תעודות משלוח...', 60000);
   
-  await performDeliverySharePointScan(baseUrl, dirHandle);
+  await performDeliverySharePointScan(baseUrl, dirHandle, overwrite);
 };
 
 window.quickScanDeliveriesSharePoint = async function() {
@@ -2234,26 +2240,33 @@ window.quickScanDeliveriesSharePoint = async function() {
   
   if (typeof window.showToast === 'function') window.showToast('⏳ סורק קבצי תעודות משלוח...', 60000);
   
-  await performDeliverySharePointScan(baseUrl, dirHandle);
+  await performDeliverySharePointScan(baseUrl, dirHandle, true);
 };
 
-async function performDeliverySharePointScan(baseUrl, dirHandle) {
+async function performDeliverySharePointScan(baseUrl, dirHandle, overwrite = true) {
   let matchCount = 0;
   let filesFound = [];
 
   const cleanBaseUrl = window.parseSharePointBaseUrl ? window.parseSharePointBaseUrl(baseUrl) : baseUrl;
 
-  for await (const entry of dirHandle.values()) {
-    if (entry.kind === 'file') {
-      const ext = entry.name.split('.').pop().toLowerCase();
-      if (['pdf', 'png', 'jpg', 'jpeg'].includes(ext)) {
-        filesFound.push({
-          name: entry.name,
-          link: cleanBaseUrl + '/' + encodeURIComponent(entry.name)
-        });
+  // Recursive scan — also looks inside subdirectories (e.g. 2026/07 יולי 2026/)
+  async function scanDir(handle, subPath) {
+    for await (const entry of handle.values()) {
+      if (entry.kind === 'directory') {
+        await scanDir(entry, subPath + encodeURIComponent(entry.name) + '/');
+      } else if (entry.kind === 'file') {
+        const ext = entry.name.split('.').pop().toLowerCase();
+        if (['pdf', 'png', 'jpg', 'jpeg'].includes(ext)) {
+          filesFound.push({
+            name: entry.name,
+            link: cleanBaseUrl + '/' + subPath + encodeURIComponent(entry.name) + '?web=1'
+          });
+        }
       }
     }
   }
+
+  await scanDir(dirHandle, '');
   
   for (const file of filesFound) {
     const numMatch = file.name.match(/\d+/g);
@@ -2269,9 +2282,11 @@ async function performDeliverySharePointScan(baseUrl, dirHandle) {
       });
       
       for (const dlv of matchedDeliveries) {
-        if (!dlv.spLink) {
-          dlv.spLink = file.link;
-          matchCount++;
+        if (!dlv.spLink || overwrite) {
+          if (dlv.spLink !== file.link) {
+            dlv.spLink = file.link;
+            matchCount++;
+          }
         }
       }
     }
@@ -2281,9 +2296,9 @@ async function performDeliverySharePointScan(baseUrl, dirHandle) {
   if (typeof window.renderPurchDeliveries === 'function') window.renderPurchDeliveries();
   
   if (typeof window.showToast === 'function') {
-    window.showToast(`✅ סריקה הסתיימה! נסרקו ${filesFound.length} קבצים, שודכו ${matchCount} מסמכים.`);
+    window.showToast(`✅ סריקה הסתיימה! נסרקו ${filesFound.length} קבצים, שודכו / עודכנו ${matchCount} מסמכים.`);
   } else {
-    alert(`✅ סריקה הסתיימה בהצלחה!\n\n📁 נסרקו: ${filesFound.length} קבצים\n🔗 שודכו: ${matchCount} תעודות משלוח.`);
+    alert(`✅ סריקה הסתיימה בהצלחה!\n\n📁 נסרקו: ${filesFound.length} קבצים\n🔗 שודכו / עודכנו: ${matchCount} תעודות משלוח.`);
   }
 }
 

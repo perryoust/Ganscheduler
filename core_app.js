@@ -33,50 +33,54 @@ window.onload = function(){
 
     // 1. Load local data immediately to show UI fast
     load();
-    restoreMissingHolidays();
-    syncSupplierList(); // supEx is now populated from load()
-    migratePairsFromAuto();
-    migrateSupActSplit();
-    importContactsFromGardens();
-    migrateGardenPhones();
-    initDrops();
-    initHolDrops();
-    refreshClusterDrops();
-    refreshMgrDrops();
-    // dash-date now defaults to empty (All Dates)
-    const dashDateEl=document.getElementById('dash-date'); 
-    if(dashDateEl) dashDateEl.value='';
-    ['dash-srch','s-srch','g-srch','su-srch'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-    const sfrom=document.getElementById('s-from');if(sfrom&&!sfrom.value) sfrom.value=td();
-    const sto=document.getElementById('s-to');if(sto&&!sto.value) sto.value=td();
-    const calClsEl=document.getElementById('cal-cls');
-    if(calClsEl) calClsEl.value='גנים';
-    const gClsEl=document.getElementById('g-cls');
-    if(gClsEl) gClsEl.value='גנים';
-    renderReadOnlyBanner();
-    // Always run supplier repair on load to ensure cards exist
-    repairAllSuppliers();
-    syncSupplierList(); // re-sync after repair
 
-    // Initial render with local data
-    try{ renderDash(); }catch(e){}
-    try{ renderCal(); }catch(e){}
-    try{ renderClusters(); }catch(e){}
-    try{ renderSup(); }catch(e){}
-    try{ renderManagers(); }catch(e){}
-    try{ updCounts(); }catch(e){}
-    try{ odUpdateUI(); }catch(e){}
-    try{ refreshPurchDash(); }catch(e){}
-    try{ renderPurchSuppliers(); }catch(e){}
-    try{ renderInvoices(); }catch(e){}
+    // Skip all admin UI setup for strict workers - they have their own isolated mobile UI
+    if (window.role !== 'worker') {
+      restoreMissingHolidays();
+      syncSupplierList();
+      migratePairsFromAuto();
+      migrateSupActSplit();
+      importContactsFromGardens();
+      migrateGardenPhones();
+      initDrops();
+      initHolDrops();
+      refreshClusterDrops();
+      refreshMgrDrops();
+      // dash-date now defaults to empty (All Dates)
+      const dashDateEl=document.getElementById('dash-date'); 
+      if(dashDateEl) dashDateEl.value='';
+      ['dash-srch','s-srch','g-srch','su-srch'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+      const sfrom=document.getElementById('s-from');if(sfrom&&!sfrom.value) sfrom.value=td();
+      const sto=document.getElementById('s-to');if(sto&&!sto.value) sto.value=td();
+      const calClsEl=document.getElementById('cal-cls');
+      if(calClsEl) calClsEl.value='גנים';
+      const gClsEl=document.getElementById('g-cls');
+      if(gClsEl) gClsEl.value='גנים';
+      renderReadOnlyBanner();
+      repairAllSuppliers();
+      syncSupplierList();
 
-    // Always default to 'act' mode on load per user request
-    if (typeof window.switchMode === 'function') {
-      window.switchMode('act');
+      // Initial render with local data
+      try{ renderDash(); }catch(e){}
+      try{ renderCal(); }catch(e){}
+      try{ renderClusters(); }catch(e){}
+      try{ renderSup(); }catch(e){}
+      try{ renderManagers(); }catch(e){}
+      try{ updCounts(); }catch(e){}
+      try{ odUpdateUI(); }catch(e){}
+      try{ refreshPurchDash(); }catch(e){}
+      try{ renderPurchSuppliers(); }catch(e){}
+      try{ renderInvoices(); }catch(e){}
+
+      // Always default to 'act' mode on load per user request (skip for strict workers - they have isolated UI)
+      if (typeof window.switchMode === 'function') {
+        window.switchMode('act');
+      }
+
+      setTimeout(_fitScrollAreas, 100);
+      try{ _ensureAdminProfile(); }catch(e){}
     }
 
-    setTimeout(_fitScrollAreas, 100);
-    try{ _ensureAdminProfile(); }catch(e){}
 
     // 2. Fetch Firebase data in the background
     try{
@@ -92,8 +96,8 @@ window.onload = function(){
 
       // Invoices are loaded by loadFromFirebase() (firebase.js L292-L314) — no separate fetch needed
 
-      // If Firebase load was successful, update the data and re-render
-      if (fbOk) {
+      // If Firebase load was successful, update the data and re-render (skip for workers - they have isolated UI)
+      if (fbOk && window.role !== 'worker') {
         load();
         syncSupplierList();
         initDrops();
@@ -110,6 +114,10 @@ window.onload = function(){
         try{ refreshPurchDash(); }catch(e){}
         try{ renderPurchSuppliers(); }catch(e){}
         try{ renderInvoices(); }catch(e){}
+      } else if (fbOk && window.role === 'worker') {
+        // For workers: just re-render the mobile task list with fresh data
+        load();
+        if (typeof window.renderWorkerTasksMobile === 'function') window.renderWorkerTasksMobile();
       }
 
     }catch(initErr){ console.warn('Init error:', initErr); }

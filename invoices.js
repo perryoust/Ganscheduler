@@ -37,11 +37,18 @@ async function switchMode(mode){
   // Toggle body class for CSS theming
   document.body.classList.toggle('mode-purch', mode==='purch');
   // Show/hide tab bars
-  document.getElementById('tabs-act').style.display = mode==='act' ? '' : 'none';
-  document.getElementById('tabs-purch').style.display = mode==='purch' ? '' : 'none';
+  const tAct = document.getElementById('tabs-act');
+  if(tAct) tAct.style.display = mode==='act' ? '' : 'none';
+  
+  const tPurch = document.getElementById('tabs-purch');
+  if(tPurch) tPurch.style.display = mode==='purch' ? '' : 'none';
+  
   // Toggle mode buttons
-  document.getElementById('modeBtn-act').classList.toggle('active', mode==='act');
-  document.getElementById('modeBtn-purch').classList.toggle('active', mode==='purch');
+  const mAct = document.getElementById('modeBtn-act');
+  if(mAct) mAct.classList.toggle('active', mode==='act');
+  
+  const mPurch = document.getElementById('modeBtn-purch');
+  if(mPurch) mPurch.classList.toggle('active', mode==='purch');
   // Mobile nav: show correct bar
   // Mobile nav — only manipulate on mobile screens (CSS handles desktop hide)
   const mnPurch = document.getElementById('mob-nav-purch');

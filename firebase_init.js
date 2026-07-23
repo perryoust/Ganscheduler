@@ -160,12 +160,24 @@ onAuthStateChanged(auth, async (user) => {
     if (isStrictWorker) {
       const authOverlay = document.getElementById('auth-overlay');
       if (authOverlay) authOverlay.style.display = 'none';
-      if (typeof window.activateWorkerApp === 'function') {
-        window.activateWorkerApp();
-      }
-      const sysLoad = document.getElementById('system-loading-overlay');
-      if (sysLoad) { sysLoad.style.opacity = '0'; setTimeout(()=>sysLoad.style.display='none',300); }
+
+      // Load data first (like coordinator flow), then activate worker UI
       if (typeof window._onAuthReady === 'function') window._onAuthReady();
+
+      // Poll until data is loaded, then activate worker app
+      let _workerPollCount = 0;
+      const _workerPoll = setInterval(() => {
+        _workerPollCount++;
+        const dataReady = window.WORKER_TASKS !== undefined;
+        if (dataReady || _workerPollCount >= 20) {
+          clearInterval(_workerPoll);
+          if (typeof window.activateWorkerApp === 'function') {
+            window.activateWorkerApp();
+          }
+          const sysLoad = document.getElementById('system-loading-overlay');
+          if (sysLoad) { sysLoad.style.opacity = '0'; setTimeout(()=>sysLoad.style.display='none',300); }
+        }
+      }, 300);
       return;
     }
 

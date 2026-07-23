@@ -469,6 +469,7 @@ function getHolidayInfo(ds,city,scope){
 
 function initHolDrops(){
   const filtCity=document.getElementById('hol-filt-city');
+  if(!filtCity) return;
   filtCity.innerHTML='<option value="">כל הערים</option>';
   cities().forEach(c=>filtCity.innerHTML+=`<option value='${c}'>${c}</option>`);
   const wrap=document.getElementById('hol-city-checks');
