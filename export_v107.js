@@ -1697,6 +1697,17 @@ window.renderMrGardenMultiItems = function() {
   
   const q = (document.getElementById('mr-garden-multi-search')?.value || '').trim().toLowerCase();
   
+  // Preserve open states of cities before re-rendering
+  const openStates = {};
+  document.querySelectorAll('.mr-city-group').forEach(cg => {
+    const cNameEl = cg.querySelector('.mr-city-name');
+    const itemsEl = cg.querySelector('.mr-city-items');
+    if(cNameEl && itemsEl && itemsEl.style.display === 'block') {
+      const cityText = cNameEl.textContent.replace(/\s*\(\d+\)$/, '').trim();
+      openStates[cityText] = true;
+    }
+  });
+  
   const cityGroups = {};
   allGans.forEach(g => {
     const c = g.city || 'ללא עיר';
@@ -1715,14 +1726,18 @@ window.renderMrGardenMultiItems = function() {
     const someChecked = gans.some(g => window._mrSelectedGardens.has(String(g.id)));
     const cityIdStr = gans.map(g=>g.id).join(',');
     
+    const isOpen = q ? true : !!openStates[city];
+    const displayStyle = isOpen ? 'block' : 'none';
+    const toggleChar = isOpen ? '➖' : '➕';
+    
     html += `
       <div class="mr-city-group" style="border-bottom:1px solid #e0e0e0;">
         <div style="display:flex;align-items:center;padding:6px 10px;background:#f0f4c3;font-weight:bold;cursor:pointer;" onclick="window.toggleMrCityItems(this)">
-          <span style="width:20px;text-align:center;font-size:0.8rem" class="mr-city-toggle">➖</span>
+          <span style="width:20px;text-align:center;font-size:0.8rem" class="mr-city-toggle">${toggleChar}</span>
           <input type="checkbox" style="margin-left:8px;width:16px;height:16px;accent-color:#2e7d32" class="mr-city-cb" ${allChecked?'checked':''} ${someChecked&&!allChecked?'data-indeterminate="true"':''} onclick="event.stopPropagation(); window.toggleMrCity('${cityIdStr}', this)">
           <span style="font-size:0.85rem;flex:1;color:#1b5e20" class="mr-city-name">${city} (${gans.length})</span>
         </div>
-        <div class="mr-city-items" style="display:block;background:#fff;">
+        <div class="mr-city-items" style="display:${displayStyle};background:#fff;">
     `;
     
     gans.forEach(g => {
@@ -1905,12 +1920,19 @@ window.generateMonthlyReport = async function() {
           gName: gName,
           city: gCity,
           month: mKey,
-          count: 0,
+          ok: 0,
+          no: 0,
           sups: {}
         };
       }
       
-      agg[gKey].count++;
+      const st = s.st || 'ok';
+      const isOk = st === 'ok' || st === 'done';
+      if(isOk) {
+        agg[gKey].ok++;
+      } else {
+        agg[gKey].no++;
+      }
       
       if(incSup && s.a) {
         const supB = typeof window.supBase === 'function' ? window.supBase(s.a) : s.a;
@@ -1931,21 +1953,46 @@ window.generateMonthlyReport = async function() {
       return `${hNames[parseInt(m,10)-1]} ${y}`;
     };
     
-    const excelLoaded = await (window.ensureExcelJSLoaded ? window.ensureExcelJSLoaded() : Promise.resolve(typeof window.ExcelJS !== 'undefined'));
-    const fileNameBase = `דוח_סיכום_חודשי_${(window.d2s?window.d2s(new Date()):new Date().toISOString().slice(0,10)).replace(/\//g,'-')}`;
+    const formatFDate = (str) => {
+      const parts = normD(str).split('-');
+      if(parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      return String(str||'').replace(/[\/\.]/g,'-');
+    };
     
-    const headers = ['עיר', 'גן', 'חודש', 'סה"כ שיבוצים'];
+    const dFrom = formatFDate(fromEl.value);
+    const dTo = formatFDate(toEl.value);
+    const excelLoaded = await (window.ensureExcelJSLoaded ? window.ensureExcelJSLoaded() : Promise.resolve(typeof window.ExcelJS !== 'undefined'));
+    const fileNameBase = `דוח_סיכום_חודשי_${dFrom}_עד_${dTo}`;
+    const reportTitle = `דו"ח סיכום פעילויות לתקופה ${dFrom.replace(/-/g,'/')} - ${dTo.replace(/-/g,'/')} עבור הגנים/בתי הספר`;
+    
+    const headers = ['עיר', 'גן', 'חודש', 'התקיים', 'לא התקיים', 'סה"כ שיבוצים'];
     if(incSup) headers.push('פירוט ספקים ופעילויות');
     
     if (excelLoaded && typeof window.ExcelJS !== 'undefined') {
       const workbook = new window.ExcelJS.Workbook();
-      const ws = workbook.addWorksheet('דוח חודשי', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
+      const ws = workbook.addWorksheet('דוח חודשי', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 3 }] });
       
-      ws.addRow(headers);
-      ws.getRow(1).font = { bold: true };
+      // Title row
+      const titleRow = ws.addRow([reportTitle]);
+      titleRow.font = { bold: true, size: 14, color: { argb: 'FF1B5E20' } };
+      ws.mergeCells(1, 1, 1, incSup ? 7 : 6);
+      titleRow.height = 30;
+      titleRow.alignment = { vertical: 'middle', horizontal: 'center' };
+      
+      // Empty spacer row
+      ws.addRow([]);
+      
+      // Table headers row
+      const headerRow = ws.addRow(headers);
+      headerRow.font = { bold: true, size: 11 };
+      headerRow.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+      });
+      headerRow.height = 24;
       
       res.forEach(r => {
-        const row = [r.city, r.gName, formatMonth(r.month), r.count];
+        const row = [r.city, r.gName, formatMonth(r.month), r.ok, r.no, r.ok + r.no];
         if(incSup) {
           const supStrs = Object.keys(r.sups).map(k => `${r.sups[k]} ${k}`);
           row.push(supStrs.join(', ') || 'ללא ספק');
@@ -1953,7 +2000,7 @@ window.generateMonthlyReport = async function() {
         ws.addRow(row);
       });
       
-      ws.columns.forEach((c, idx) => c.width = (idx === 3 && incSup) ? 50 : 18);
+      ws.columns.forEach((c, idx) => c.width = (idx === 5 && incSup) ? 50 : 18);
       
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -1966,9 +2013,10 @@ window.generateMonthlyReport = async function() {
     } else {
       // Automatic CSV Fallback with UTF-8 BOM for Microsoft Excel Hebrew support
       let csv = '\uFEFF';
+      csv += `"${reportTitle.replace(/"/g, '""')}"\n\n`;
       csv += headers.map(h => `"${h}"`).join(',') + '\n';
       res.forEach(r => {
-        const row = [r.city, r.gName, formatMonth(r.month), r.count];
+        const row = [r.city, r.gName, formatMonth(r.month), r.ok, r.no, r.ok + r.no];
         if(incSup) {
           const supStrs = Object.keys(r.sups).map(k => `${r.sups[k]} ${k}`);
           row.push(supStrs.join(', ') || 'ללא ספק');

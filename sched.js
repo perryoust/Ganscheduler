@@ -247,7 +247,7 @@ function renderPartnerTable(){
       const stLabel = ev ? (window.stLabel ? window.stLabel(ev) : ev.st) : '—';
       const stClass = ev ? (window.stClass ? window.stClass(ev) : '') : '';
       const sup = ev ? window.supBase(ev.a) : '—';
-      const act = ev ? (window.supAct(ev.a) || ev.act || '—') : '—';
+      const act = ev ? (ev.act || (typeof window.supAct === 'function' ? window.supAct(ev.a) : '') || '—') : '—';
       const type = ev ? (ev.tp || 'חוג') : '—';
       
       const timeVal = ev ? (window.fT ? window.fT(ev.t) : ev.t) : (document.getElementById('ns-time')?.value || '');

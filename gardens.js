@@ -1469,13 +1469,13 @@ function genExport(){
           // Group same pair by supplier+activity key
           const bySup={};
           pairEvs.forEach(s=>{
-            const key=`${s.a}||${s.act||supAct(s.a)||''}||${s.p||''}`;
+            const key=`${s.a}||${s.act||(typeof supAct==='function'?supAct(s.a):'')||''}||${s.p||''}`;
             if(!bySup[key])bySup[key]=[];
             bySup[key].push(s);
           });
           Object.values(bySup).forEach(group=>{
             const s0=group[0];
-            const actLabel=supAct(s0.a)||s0.act||'';
+            const actLabel=s0.act||(typeof supAct==='function'?supAct(s0.a):'')||'';
             const supPhone = s0.p || (typeof window.getSupPhone === 'function' ? window.getSupPhone(s0.a) : '') || (SUPBASE.find(sb => sb.name === s0.a) || {}).phone || '';
             const supLine=`📚 ${supDisplayName(supBase(s0.a))}${actLabel?' - '+actLabel:''}${supPhone?' · 📞 '+supPhone:''}`;
             const addrs=[...new Set(group.map(s=>s.gd.st||''))];
@@ -1603,13 +1603,13 @@ function genExport(){
         if(soloEvs.length){
           const bySup={};
           soloEvs.forEach(s=>{
-            const key=`${s.a}||${s.act||supAct(s.a)||''}||${s.p||''}`;
+            const key=`${s.a}||${s.act||(typeof supAct==='function'?supAct(s.a):'')||''}||${s.p||''}`;
             if(!bySup[key])bySup[key]=[];
             bySup[key].push(s);
           });
           Object.values(bySup).forEach(group=>{
             const s0=group[0];
-            const actLabel=supAct(s0.a)||s0.act||'';
+            const actLabel=s0.act||(typeof supAct==='function'?supAct(s0.a):'')||'';
             const supPhone = s0.p || (typeof window.getSupPhone === 'function' ? window.getSupPhone(s0.a) : '') || (SUPBASE.find(sb => sb.name === s0.a) || {}).phone || '';
             const supLine=`📚 ${supDisplayName(supBase(s0.a))}${actLabel?' - '+actLabel:''}${supPhone?' · 📞 '+supPhone:''}`;
             const addrs=[...new Set(group.map(s=>s.gd.st||''))];
@@ -2347,7 +2347,7 @@ window.exportSingleRecurringWA = function(sid) {
 
   let text = `🗓️ *${window.fD(s.d)} - יום ${dayName}*\n`;
 
-  const actLabel = window.supAct(s.a) || s.act || '';
+  const actLabel = s.act || (typeof window.supAct === 'function' ? window.supAct(s.a) : '') || '';
   const supPhone = (typeof window.getSupPhone === 'function' ? window.getSupPhone(s.a) : '') || (SUPBASE.find(sb => sb.name === s.a) || {}).phone || '';
   const supLine = `📚 ${window.supDisplayName(window.supBase(s.a))}${actLabel ? ' - ' + actLabel : ''}${supPhone ? ' · 📞 ' + supPhone : ''}`;
   text += `${supLine}\n`;
