@@ -64,16 +64,19 @@ try {
   const metaStr = window._safeLS.getItem('ganv5_meta');
   if (metaStr) {
     const meta = JSON.parse(metaStr);
-    window.CURRENT_YEAR = meta.currentYear || 'tashpav';
+    window.CURRENT_YEAR = meta.currentYear || 'tashpazsummer';
   } else {
-    window.CURRENT_YEAR = 'tashpav';
+    window.CURRENT_YEAR = 'tashpazsummer';
     window._safeLS.setItem('ganv5_meta', JSON.stringify({
-      currentYear: 'tashpav',
-      years: { 'tashpav': { name: 'תשפ"ו (2025-2026)', start: '2025-09-01', end: '2026-08-21' } }
+      currentYear: 'tashpazsummer',
+      years: { 
+        'tashpav': { name: 'תשפ"ו (2025-2026)', start: '2025-09-01', end: '2026-08-21' },
+        'tashpazsummer': { name: 'קייטנות קיץ תשפ"ו', start: '2026-07-01', end: '2026-08-31' }
+      }
     }));
   }
 } catch(e) {
-  window.CURRENT_YEAR = 'tashpav';
+  window.CURRENT_YEAR = 'tashpazsummer';
 }
 
 // GARDENS, SUPBASE, SRAWS, AUTOPAIRS
