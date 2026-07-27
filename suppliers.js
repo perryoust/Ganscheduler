@@ -196,7 +196,7 @@ async function doSupExport(){
   }
   
   
-  window.exportToExcel(evs, `דו"ח_${_supExType==='place'?'שיבוצים':'פעילויות'}_${actualSupName||'כל_הספקים'}_${from}_${to}`, {
+  await window.exportToExcel(evs, `דו"ח_${_supExType==='place'?'שיבוצים':'פעילויות'}_${actualSupName||'כל_הספקים'}_${from}_${to}`, {
     type: exportTypeStr,
     title: title,
     summaryTitle: sumTitle
@@ -418,7 +418,6 @@ function repairAllSuppliers(){
   });
 
   // 4. Clear stale/incomplete acts arrays — force re-derive from SCH on next getSupActs call
-  // Only clear if SCH has MORE activities than what's saved (i.e. acts array is outdated)
   let clearedActs=0;
   Object.keys(window.supEx).forEach(k=>{
     if(k==='__c'||k==='__merged_away'||k==='__gardens_extra') return;
@@ -435,10 +434,11 @@ function repairAllSuppliers(){
     });
     window.SUPBASE.forEach(s=>{ if(window.supBase(s.name)===base){const a=window.supAct(s.name);if(a)schActs.add(a);} });
     const savedActs = new Set(window.supEx[k].acts);
-    // If SCH has acts that the saved array is missing → clear saved array so it auto-derives fully
+    // If SCH has acts that the saved array is missing → merge them instead of deleting
     const missingFromSaved = [...schActs].filter(a=>!savedActs.has(a));
-    if(missingFromSaved.length > 0 || window.supEx[k].acts.length === 0){
-      delete window.supEx[k].acts; clearedActs++;
+    if(missingFromSaved.length > 0){
+      window.supEx[k].acts = [...new Set([...window.supEx[k].acts, ...schActs])];
+      clearedActs++;
     }
   });
 

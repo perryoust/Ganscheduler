@@ -102,7 +102,7 @@ function buildGardenWB(garden, evs, fromDate, toDate){
   return {sheets:[{garden, evs}], city:garden.city};
 }
 
-function downloadWB(wb, filename, fromM) {
+async function downloadWB(wb, filename, fromM) {
   const safeFile = filename.replace(/[^\u0590-\u05FF\w\-_.]/gu, '_');
   const gardens = wb.sheets.map(s => s.garden);
   const allEvs  = wb.sheets.reduce((acc, s) => acc.concat(s.evs), []);
@@ -117,6 +117,7 @@ function downloadWB(wb, filename, fromM) {
   }
 
   // Try ExcelJS first (supports images + RTL)
+  try { await window.ensureExcelJSLoaded(); } catch(e) {}
   if (typeof window.ExcelJS !== 'undefined' && !window._excelJSFailed) {
     console.log('📊 Using ExcelJS for export:', safeFile, 'year:', fy, 'month:', fm);
     _downloadWBExcelJS(gardens, allEvs, fy, fm - 1, safeFile);
@@ -311,7 +312,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
           const supName = ev ? ((typeof window.supBase==='function'?window.supBase(ev.a):ev.a)||ev.a||'') : '';
           let evTpLabel = ev ? (ev.tp||'חוג') : '';
           if (evTpLabel === 'חוג') {
-            const rawCls = gObj.cls || '';
+            const rawCls = garden.cls || '';
             if (rawCls.includes('צהרון')) evTpLabel = 'חוג צהרון';
             else evTpLabel = 'חוג בוקר';
           }
@@ -686,7 +687,8 @@ async function exportToExcel(data, filename, opts = {}) {
   console.log('Export Engine v97.8');
   if (!data || !data.length) { window.spAlert('אין נתונים לייצוא'); return; }
   
-  if (typeof window.ExcelJS !== 'undefined') {
+  const excelLoaded = await (window.ensureExcelJSLoaded ? window.ensureExcelJSLoaded() : Promise.resolve(typeof window.ExcelJS !== 'undefined'));
+  if (excelLoaded && typeof window.ExcelJS !== 'undefined') {
     try {
       const workbook = new window.ExcelJS.Workbook();
       const ws = workbook.addWorksheet('Sheet1', { 
@@ -928,10 +930,22 @@ async function exportToExcel(data, filename, opts = {}) {
     }
   }
 
-  const ws = window.XLSX.utils.json_to_sheet(data);
-  const wb = window.XLSX.utils.book_new();
-  window.XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-  window.XLSX.writeFile(wb, (filename || 'export') + ".xlsx");
+  // CSV fallback with UTF-8 BOM if ExcelJS is not available
+  if (data && data.length) {
+    let csv = '\uFEFF';
+    const keys = Object.keys(data[0]);
+    csv += keys.map(k => `"${k}"`).join(',') + '\n';
+    data.forEach(item => {
+      csv += keys.map(k => `"${String(item[k] || '').replace(/"/g, '""')}"`).join(',') + '\n';
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (filename || 'export') + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
 }
 
 async function exportShortagesToExcel() {
@@ -939,6 +953,7 @@ async function exportShortagesToExcel() {
     window.showToast('מסנכרן נתונים אחרונים מול השרת...', 3000);
     await window.loadFromFirebase(true);
   }
+  await (window.ensureExcelJSLoaded ? window.ensureExcelJSLoaded() : Promise.resolve());
   if (typeof window.ExcelJS === 'undefined') {
     window.spAlert('ExcelJS is not loaded yet. Please wait a moment and try again.');
     return;
@@ -1053,6 +1068,7 @@ window.downloadWB = downloadWB;
 window.buildCityWB = buildCityWB;
 window.buildGardenWB = buildGardenWB;
 window.generateChangesExcelReport = async function(isAuto = false) {
+  await (window.ensureExcelJSLoaded ? window.ensureExcelJSLoaded() : Promise.resolve());
   if (typeof window.ExcelJS === 'undefined') {
     if (!isAuto) window.spAlert('ExcelJS is not loaded yet. Please wait a moment and try again.');
     return;
@@ -1325,6 +1341,7 @@ window.exportBulkAnnualSchedule = async function() {
     window.showToast('מסנכרן נתונים אחרונים מול השרת...', 3000);
     await window.loadFromFirebase(true);
   }
+  await (window.ensureExcelJSLoaded ? window.ensureExcelJSLoaded() : Promise.resolve());
   if (typeof window.ExcelJS === 'undefined') {
     window.spAlert('ExcelJS library not loaded. Please wait or reload.');
     return;

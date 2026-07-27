@@ -70,10 +70,9 @@ function openNewSched(gid, opts={}){
   if(choiceWrap) choiceWrap.style.display='none';
   if(partnerWrap) partnerWrap.style.display='none';
   
-  const atSel=document.getElementById('ns-act-type');
-  if(atSel){atSel.innerHTML='<option value="">בחר סוג פעילות...</option>';atSel.value='';}
-  const atNew=document.getElementById('ns-act-type-new');
-  if(atNew){atNew.style.display='none';atNew.value='';}
+  const ns_sup=document.getElementById('ns-sup');
+  if(ns_sup) ns_sup.value=opts.sup||'';
+  nsSupChg();
   document.getElementById('ns-warn').style.display='none';
 
   // Recur fields
@@ -511,8 +510,16 @@ function nsDateChg(){
 }
 
 function nsSupChg(){
-  const sup=document.getElementById('ns-sup').value;
-  if(!sup) return;
+  const sup=document.getElementById('ns-sup')?.value || '';
+  const actSel=document.getElementById('ns-act-type');
+  const actNew=document.getElementById('ns-act-type-new');
+  if(actNew){actNew.style.display='none';actNew.value='';}
+  if(!sup){
+    if(actSel) actSel.innerHTML='<option value="">בחר סוג פעילות...</option>';
+    const phEl=document.getElementById('ns-ph');
+    if(phEl) phEl.value='';
+    return;
+  }
   const base=window.supBase(sup);
   const ex=window.supEx[base]||window.supEx[sup]||{};
   const ph=ex.ph1||(SUPBASE.find(s=>supBase(s.name)===base&&s.phone)||SUPBASE.find(s=>s.name===sup)||{}).phone||'';
@@ -526,7 +533,6 @@ function nsSupChg(){
   }
   const grpWrap = document.getElementById('ns-grp-wrap');
   if(grpWrap) grpWrap.style.display='block';
-  const actSel=document.getElementById('ns-act-type');
   if(!actSel) return;
   const acts=window.getSupActs(sup);
   actSel.innerHTML='<option value="">בחר סוג פעילות...</option>'+
