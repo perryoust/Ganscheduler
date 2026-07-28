@@ -1,37 +1,42 @@
 {
   "rules": {
-    ".read": "auth != null",
     "data": {
-      ".write": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'edit' || root.child('users').child(auth.uid).child('role').val() === 'coordinator')",
-      "global_worker_tasks": {
-        ".write": "auth != null"
-      }
+      ".read": "auth != null",
+      ".write": "auth != null"
     },
     "invoices": {
-      ".write": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'edit')"
+      ".read": "auth != null",
+      ".write": "auth != null"
     },
     "orders": {
-      ".write": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'edit')"
+      ".read": "auth != null",
+      ".write": "auth != null"
     },
     "deliveries": {
-      ".write": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'edit')"
+      ".read": "auth != null",
+      ".write": "auth != null"
     },
     "years": {
-      ".write": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'edit' || root.child('users').child(auth.uid).child('role').val() === 'coordinator')"
+      ".read": "auth != null",
+      ".write": "auth != null"
     },
     "users": {
+      ".read": "auth != null",
       "$uid": {
-        ".write": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).child('role').val() === 'admin')"
+        ".write": "auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03'"
       }
     },
     "activityLog": {
+      ".read": "auth != null",
       ".write": "auth != null"
     },
     "years_meta": {
-      ".write": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).child('role').val() === 'admin')"
+      ".read": "auth != null",
+      ".write": "auth != null"
     },
     "backups": {
-      ".write": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).child('role').val() === 'admin')"
+      ".read": "auth != null",
+      ".write": "auth != null"
     }
   }
 }
