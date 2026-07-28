@@ -352,9 +352,26 @@ async function saveToFirebase(silent = false, force = false) {
             console.warn(`[Sync] BLOCKED: Dirty Write Detected. Local: ${_localSeq}, Cloud: ${cloudSeq}`);
             _fbSyncing = false;
             _isLocked = false;
-            await _spAlertDialog("\u26A0\uFE0F \u05D4\u05DE\u05E2\u05E8\u05DB\u05EA \u05D6\u05D9\u05D4\u05EA\u05D4 \u05E9\u05D1\u05D5\u05E6\u05E2 \u05E9\u05D9\u05E0\u05D5\u05D9 \u05DE\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D0\u05D7\u05E8!\n\u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D4\u05D7\u05D3\u05E9\u05D9\u05DD \u05E0\u05D8\u05E2\u05E0\u05D9\u05DD \u05DB\u05E2\u05EA \u05DB\u05D3\u05D9 \u05DC\u05DE\u05E0\u05D5\u05E2 \u05DE\u05D7\u05D9\u05E7\u05EA \u05DE\u05D9\u05D3\u05E2 \u05D7\u05E9\u05D5\u05D1.\n\n\u05D0\u05E0\u05D0 \u05D4\u05DE\u05EA\u05DF \u05E9\u05E0\u05D9\u05D9\u05D4 \u05D5\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D4\u05E4\u05E2\u05D5\u05DC\u05D4 \u05E9\u05E2\u05E9\u05D9\u05EA.");
-            loadFromFirebase(true); // Force load
-            return false;
+            
+            // Smart Merge fallback: Provide the user with a choice to overwrite or reload.
+            const userWantsToReload = confirm(
+              "⚠️ המערכת זיהתה שבוצע שינוי בענן על ידי משתמש אחר!\n\n" +
+              "האם תרצה למשוך את הנתונים החדשים מהענן, או לדרוס את הענן עם הנתונים שלך (השינויים של המשתמש השני יאבדו)?\n\n" +
+              "[אישור / OK] = משוך נתונים מהענן (מומלץ, השינויים האחרונים שלך יאבדו)\n" +
+              "[ביטול / Cancel] = אני רוצה לדרוס את הענן (Force Save)"
+            );
+            
+            if (userWantsToReload) {
+              loadFromFirebase(true); // Force load
+              return false;
+            } else {
+              if (confirm("האם אתה בטוח שברצונך לדרוס את הנתונים בענן? פעולה זו תמחק את עבודתו של המשתמש השני!")) {
+                console.warn("[Sync] User opted for FORCE SAVE.");
+                return await saveToFirebase(silent, true); // Recursive call with force=true
+              } else {
+                return false; // User cancelled both options, do nothing.
+              }
+            }
           }
         }
       } catch(e) { console.warn('[Sync] Failed to verify sequence before save:', e); }
@@ -567,6 +584,23 @@ async function loadFromFirebase(silent = false, force = false) {
     }
     
     window._fbSyncReady = true;
+    
+    // Silent Daily Auto-Backup to Google Drive for Managers/Admins
+    try {
+      if (window.role !== 'worker' && typeof window.backupToGoogleDrive === 'function') {
+        const today = new Date().toDateString();
+        const lastBackup = window._safeLS.getItem('lastGDriveBackupDate');
+        if (lastBackup !== today) {
+          console.log('[AutoBackup] Triggering daily silent backup to Google Drive...');
+          window._safeLS.setItem('lastGDriveBackupDate', today);
+          // Wait 3 seconds after loading finishes to not block UI startup threads
+          setTimeout(() => {
+            window.backupToGoogleDrive(true);
+          }, 3000);
+        }
+      }
+    } catch(e) { console.warn('[AutoBackup] Failed to trigger auto backup:', e); }
+
     return true;
   } catch (e) {
     _setSyncState(null, null, e.message, true);

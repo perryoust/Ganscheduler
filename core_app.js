@@ -14,11 +14,12 @@ window.onload = function(){
         const cloudMeta = await r.json();
         if (cloudMeta && cloudMeta.years) {
           const localMetaStr = window._safeLS.getItem('ganv5_meta');
-          let localMeta = localMetaStr ? JSON.parse(localMetaStr) : { currentYear: 'tashpav', years: {} };
+          const isFirstLoad = !localMetaStr;
+          let localMeta = localMetaStr ? JSON.parse(localMetaStr) : { currentYear: 'tashpazsummer', years: {} };
           localMeta.years = { ...localMeta.years, ...cloudMeta.years };
           if (cloudMeta.currentYear) {
             const isNonAdmin = window.role === 'coordinator' || window.role === 'worker' || window.role === 'view';
-            if (isNonAdmin || !localMeta.years[localMeta.currentYear]) {
+            if (isFirstLoad || isNonAdmin || !localMeta.years[localMeta.currentYear]) {
               localMeta.currentYear = cloudMeta.currentYear;
               window.CURRENT_YEAR = cloudMeta.currentYear;
             }

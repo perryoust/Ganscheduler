@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html dir="rtl" lang="he">
 
 <head>
@@ -19,7 +19,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=109.09" />
+  <link rel="stylesheet" href="styles.css?v=109.11" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script>
     window.APP_VERSION = '108.93';
@@ -34,8 +34,8 @@
       }, 3500);
     });
   </script>
-  <script type="module" src="firebase_init.js?v=109.09"></script>
-  <script src="assets.js?v=109.09"></script>
+  <script type="module" src="firebase_init.js?v=109.11"></script>
+  <script src="assets.js?v=109.11"></script>
   <script>
     // Load JSZip separately to avoid conflicts if needed
     (function () {
@@ -68,7 +68,7 @@
 
   <!-- 📊 MAIN HEADER — dashboard 📊 -->
   <div class="hdr">
-    <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
       <h1 style="display:flex;align-items:center;margin:0;"><img src="logo_wide.png" style="height:38px;vertical-align:middle;" alt="טומשין קידס"><span id="app-version-label" style="font-size:.6rem;opacity:.5;font-weight:400;margin-right:10px;line-height:1;">v108.93</span></h1>
       <select id="year-selector" onchange="window.changeCurrentYear(this.value)" style="margin-right:15px; font-size:0.8rem; border-radius:4px; border:1px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.15); color:white; padding:3px 8px; outline:none; font-weight:600; cursor:pointer;" title="בחר שנת לימודים">
         <!-- options will be injected here, but we apply a global style in index.html to fix option text color -->
@@ -3654,29 +3654,29 @@
     </div>
 
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-     <script src="utils.js?v=109.09"></script>
-    <script src="data_manager.js?v=109.09"></script>
-    <script src="data.js?v=109.09"></script>
-    <script src="firebase.js?v=109.09"></script>
-    <script src="invoices.js?v=109.09"></script>
-    <script src="suppliers.js?v=109.09"></script>
-    <script src="cal.js?v=109.09"></script>
-    <script src="activity.js?v=109.09"></script>
-    <script src="sched.js?v=109.09"></script>
-    <script src="gardens.js?v=109.09"></script>
-    <script src="export_v107.js?v=109.09"></script>
-    <script src="backup.js?v=109.09"></script>
-    <script src="admin.js?v=109.09"></script>
-    <script src="import_export.js?v=109.09"></script>
-    <script src="core_globals.js?v=109.09"></script>
-    <script src="core_data.js?v=109.09"></script>
-    <script src="core_dash.js?v=109.09"></script>
-    <script src="worker_tasks.js?v=109.09"></script>
-    <script src="coordinator_app.js?v=109.09"></script>
-    <script src="purchasing_orders.js?v=109.09"></script>
-    <script src="core_app.js?v=109.09"></script>
-    <script src="qa_simulator.js?v=109.09"></script>
-    <script src="todo.js?v=109.09"></script>
+     <script src="utils.js?v=109.11"></script>
+    <script src="data_manager.js?v=109.11"></script>
+    <script src="data.js?v=109.11"></script>
+    <script src="firebase.js?v=109.11"></script>
+    <script src="invoices.js?v=109.11"></script>
+    <script src="suppliers.js?v=109.11"></script>
+    <script src="cal.js?v=109.11"></script>
+    <script src="activity.js?v=109.11"></script>
+    <script src="sched.js?v=109.11"></script>
+    <script src="gardens.js?v=109.11"></script>
+    <script src="export_v107.js?v=109.11"></script>
+    <script src="backup.js?v=109.11"></script>
+    <script src="admin.js?v=109.11"></script>
+    <script src="import_export.js?v=109.11"></script>
+    <script src="core_globals.js?v=109.11"></script>
+    <script src="core_data.js?v=109.11"></script>
+    <script src="core_dash.js?v=109.11"></script>
+    <script src="worker_tasks.js?v=109.11"></script>
+    <script src="coordinator_app.js?v=109.11"></script>
+    <script src="purchasing_orders.js?v=109.11"></script>
+    <script src="core_app.js?v=109.11"></script>
+    <script src="qa_simulator.js?v=109.11"></script>
+    <script src="todo.js?v=109.11"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
       console.log('Ganscheduler Architecture: v' + (window.APP_VERSION || '103.82') + ' Ready');
