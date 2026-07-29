@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>מערכת שיבוץ - גרסה 108.94</title>
+  <title>מערכת שיבוץ - גרסה 108.95</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="manifest" href="manifest.json">
@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="styles.css?v=109.12" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script>
-    window.APP_VERSION = '108.94';
+    window.APP_VERSION = '108.95';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -2350,7 +2350,7 @@
           <label style="font-weight:600; color:#283593; font-size:.85rem; margin-bottom:8px; display:block;">📋 בחר סוג דוח להפקה</label>
           <select id="supex-type-select" onchange="setSupExType(this.value)" style="width:100%; padding:10px 12px; border:1.5px solid #c5cae9; border-radius:8px; font-size:0.95rem; background:#f8f9ff; color:#283593; font-weight:600; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
             <option value="" disabled selected>-- חובה לבחור סוג דוח --</option>
-            <option value="act">🚀 דוח פעילות (אחרי ביצוע - לחיוב ובקרה)</option>
+            <option value="act">🚀 דו"ח סיכום פעילות (אחרי ביצוע - לחיוב ובקרה)</option>
             <option value="place">📅 דוח שיבוצים (לפני ביצוע - סידור עבודה לספק)</option>
             <option value="inv">📄 דוח חשבוניות / הזמנות רכש</option>
           </select>
@@ -2511,7 +2511,7 @@
         </div>
         <div style="display:flex;gap:5px">
           <button id="suc-btn-exp-purch" class="btn bg bsm" onclick="sucExportDocs()" style="display:none">🚀 יצוא דוח רכש</button>
-          <button id="suc-btn-exp-act" class="btn bp bsm" onclick="openSupExportFromCard()" style="display:none">🚀 יצוא דוח פעילות</button>
+          <button id="suc-btn-exp-act" class="btn bp bsm" onclick="openSupExportFromCard()" style="display:none">🚀 יצוא דו"ח סיכום פעילות</button>
           <button class="btn bo bsm" onclick="sucToggleEdit()">✏️ ערוך</button>
           <button class="btn bs bsm" onclick="CM('sucard-m')">✖</button>
         </div>
