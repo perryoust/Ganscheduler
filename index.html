@@ -33,10 +33,11 @@
         }
       }, 3500);
 
-      // Auto-resize PWA window on desktop if opened too small
-      if (window.matchMedia('(display-mode: standalone)').matches) {
+      // Auto-resize PWA window on desktop if opened too small (Only once per session)
+      if (window.matchMedia('(display-mode: standalone)').matches && !sessionStorage.getItem('pwaResized')) {
         if (window.innerWidth < 1400) {
           window.resizeTo(1400, 900);
+          sessionStorage.setItem('pwaResized', 'true');
         }
       }
     });
