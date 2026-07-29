@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Bulk Import/Export Schedule Logic
  * v6.0.0 - Complete Overwrite Import (No SRAWS)
  * 
@@ -270,7 +270,7 @@ window._processExcelFile = function(file) {
 
       msg += '🔴 פעולה זו תחליף את כל השיבוצים הקיימים!\nלהמשיך?';
 
-      if (!confirm(msg)) {
+      if (!await window.spConfirm(msg)) {
         if (window._fbStartPolling) window._fbStartPolling();
         window._importInProgress = false;
         input.value = '';

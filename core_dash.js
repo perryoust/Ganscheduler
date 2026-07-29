@@ -1,4 +1,4 @@
-
+﻿
 function td(){
   const d = new Date();
   const y = d.getFullYear();
@@ -728,7 +728,7 @@ function deleteSupFromCard() {
     msg += `\nהספק קיים ב-${totalCount} פעילויות — הן יישמרו עם שמו.`;
   }
   msg += '\n\nהספק יוסר מרשימות הספקים אך לא מהפעילויות ההיסטוריות.';
-  if (!confirm(msg)) return;
+  if (!await window.spConfirm(msg)) return;
 
   // Remove from supEx
   delete supEx[name];
@@ -765,7 +765,7 @@ function sucSaveEdit(isAuto = false){
   }
   if(origBase&&origBase!==newBase){
     const affected=SCH.filter(s=>supBase(s.a)===origBase).length;
-    if(!confirm(`לשנות שם מ-"${origBase}" ל-"${newBase}"?\n${affected} שיבוצים יעודכנו.`)) {
+    if(!await window.spConfirm(`לשנות שם מ-"${origBase}" ל-"${newBase}"?\n${affected} שיבוצים יעודכנו.`)) {
       if(isAuto) nameEl.value = origBase; // Revert
       return;
     }
@@ -1121,7 +1121,7 @@ function gcellNewSched(){
 function gcellUnblock(){
   closeGcellPopup();
   _blockMode='garden';
-  if(!confirm('להסיר חסימה זו?')) return;
+  if(!await window.spConfirm('להסיר חסימה זו?')) return;
   delete gardenBlocks[`${_gcellGid}_${_gcellDs}`];
   save(); refresh(); showToast('✅ חסימה הוסרה');
 }
@@ -1219,7 +1219,7 @@ function saveBlock(){
 
 function deleteBlock(){
   const msg=_blockMode==='garden'?'להסיר את החסימה מגן זה?':'להסיר את החסימה מתאריך זה?';
-  if(!confirm(msg)) return;
+  if(!await window.spConfirm(msg)) return;
   if(_blockMode==='garden'){
     delete gardenBlocks[`${_gcellGid}_${_gcellDs}`];
     saveAndRefresh('block-m'); showToast('✅ חסימה הוסרה');
@@ -1524,7 +1524,7 @@ window.createCoordinatorUser = async function() {
   const email = `coord_${cleanPhone}@ganmanager.app`;
   const pwd = cleanPhone.substring(0, 6);
   
-  if (!confirm(`האם ליצור חשבון למערכת עבור הרכז?\nשם משתמש: ${email}\nסיסמה: ${pwd}\n\nלאחר היצירה, הרכז יוכל להיכנס למערכת ולראות רק את השיבוצים שלו.`)) return;
+  if (!await window.spConfirm(`האם ליצור חשבון למערכת עבור הרכז?\nשם משתמש: ${email}\nסיסמה: ${pwd}\n\nלאחר היצירה, הרכז יוכל להיכנס למערכת ולראות רק את השיבוצים שלו.`)) return;
   
   try {
     if (!window._fbCreateUser) throw new Error("פונקציית יצירת משתמש אינה זמינה כעת.");
@@ -1637,7 +1637,7 @@ function saveMgr(){
 function deleteMgr(){
   const m=_editMgrId?managers[_editMgrId]:null;
   if(!m) return;
-  if(!confirm(`למחוק את ${m.name}?`)) return;
+  if(!await window.spConfirm(`למחוק את ${m.name}?`)) return;
   delete managers[_editMgrId];
   save(); CM('mgrm'); refresh();
   // Refresh all views that show manager/coordinator data
@@ -2013,7 +2013,7 @@ function importData(){
       try{
         const parsed=JSON.parse(ev.target.result);
         const data=parsed.data||parsed; // support both formats
-        if(!confirm('⚠️ ייבוא יחליף את כל הנתונים הנוכחיים.\nהמשך?')) return;
+        if(!await window.spConfirm('⚠️ ייבוא יחליף את כל הנתונים הנוכחיים.\nהמשך?')) return;
         _safeLS.setItem('ganv5',JSON.stringify(data));
         if(parsed.snaps) _safeLS.setItem('ganv5_snaps',JSON.stringify(parsed.snaps));
         showToast('✅ הנתונים יובאו. טוען מחדש...');

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Field Worker Tasks Module (worker_tasks.js)
  * Handles both Admin UI (managing tasks) and Worker UI (viewing/completing tasks)
  */
@@ -99,7 +99,7 @@ window.wtToggleTaskStatus = function(id) {
       // If the task was originally scheduled for a past date, ask the user when it was done (Admins only)
       if (task.date && task.date < today && window.role === 'admin') {
         const dispDate = window.fD ? window.fD(task.date) : task.date;
-        if (confirm(`המשימה הייתה מתוכננת ל-${dispDate}. האם בוצעה בתאריך המקורי?\n\n[אישור] = בוצעה ב-${dispDate}\n[ביטול] = בוצעה היום (${window.fD ? window.fD(today) : today})`)) {
+        if(await window.spConfirm(`המשימה הייתה מתוכננת ל-${dispDate}. האם בוצעה בתאריך המקורי?\n\n[אישור] = בוצעה ב-${dispDate}\n[ביטול] = בוצעה היום (${window.fD ? window.fD(today) : today})`)) {
           dStr = task.date;
           tStr = "23:59"; // Just a default time for past completions
         }
@@ -827,7 +827,7 @@ window.markTaskDone = function(id) {
     
     if (task.date && task.date < today && window.role === 'admin') {
       const dispDate = window.fD ? window.fD(task.date) : task.date;
-      if (confirm(`המשימה הייתה מתוכננת ל-${dispDate}. האם בוצעה בתאריך המקורי?\n\n[אישור] = בוצעה ב-${dispDate}\n[ביטול] = בוצעה היום (${window.fD ? window.fD(today) : today})`)) {
+      if(await window.spConfirm(`המשימה הייתה מתוכננת ל-${dispDate}. האם בוצעה בתאריך המקורי?\n\n[אישור] = בוצעה ב-${dispDate}\n[ביטול] = בוצעה היום (${window.fD ? window.fD(today) : today})`)) {
         dStr = task.date;
         tStr = "23:59";
       }
@@ -1054,7 +1054,7 @@ window.wtExportWord = async function(ds) {
   if (document.activeElement) document.activeElement.blur();
   if (window.loadFromFirebase) await window.loadFromFirebase(false, true);
 
-  const includeDone = confirm('האם לכלול משימות שכבר בוצעו בייצוא?');
+  const includeDone = await window.spConfirm('האם לכלול משימות שכבר בוצעו בייצוא?');
   const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
   const tasks = (window.WORKER_TASKS || []).filter(t => {
     if (t.isAdminOnly) return false;

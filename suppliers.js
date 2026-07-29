@@ -1,4 +1,4 @@
-function setSupExType(t){
+﻿function setSupExType(t){
   _supExType=t;
   const typeSel = document.getElementById('supex-type-select');
   if (typeSel) typeSel.value = t;
@@ -641,7 +641,7 @@ function deleteSup() {
   const msg = schedCount > 0
     ? `לספק "${name}" יש ${schedCount} פעילויות פעילות.\nמחיקה תסיר את הספק מהמערכת אך לא תמחק את הפעילויות.\n\nלהמשיך?`
     : `למחוק את הספק "${name}"?`;
-  if (!confirm(msg)) return;
+  if (!await window.spConfirm(msg)) return;
 
   // Remove from supEx
   delete window.supEx[name];
@@ -670,7 +670,7 @@ function saveSup(silent = false){
   if(!name){ if(!silent) _spAlertDialog('יש להזין שם'); return; }
   if(origName&&origName!==name){
     if(silent) return; // Do not auto-save if name is being changed (requires prompt)
-    if(!confirm(`לשנות את שם הספק מ-"${origName}" ל-"${name}"?\nכל השיבוצים יעודכנו אוטומטית.`)) return;
+    if(!await window.spConfirm(`לשנות את שם הספק מ-"${origName}" ל-"${name}"?\nכל השיבוצים יעודכנו אוטומטית.`)) return;
     window.SCH.forEach(s=>{if(s.a===origName)s.a=name;});
     if(window.supEx[origName]) window.supEx[name]={...window.supEx[origName]};
     delete window.supEx[origName];
@@ -823,7 +823,7 @@ function doMerge(){
   const checkedIdxs=[...document.querySelectorAll('#mrg-list input[type=checkbox]:checked')].map(c=>parseInt(c.dataset.idx));
   const toMrg=checkedIdxs.map(i=>_mergeSupList[i]?.name).filter(n=>n && n!==main);
   if(!toMrg.length){_spAlertDialog('בחר לפחות ספק אחד למיזוג');return;}
-  if(!confirm(`לאחד ${toMrg.length} ספקים אל "${main}"?`)) return;
+  if(!await window.spConfirm(`לאחד ${toMrg.length} ספקים אל "${main}"?`)) return;
 
   const mainBase = window.supBase(main);
   let changedSch=0, changedInv=0;
@@ -950,7 +950,7 @@ window.psupCheckChanged = function(name, checked) {
 window.psupMultiDelete = function() {
   const arr = Array.from(window._selectedPsups);
   if(!arr.length) return;
-  if(!confirm(`האם למחוק ${arr.length} ספקים נבחרים?`)) return;
+  if(!await window.spConfirm(`האם למחוק ${arr.length} ספקים נבחרים?`)) return;
   arr.forEach(name => {
     delete window.supEx[name];
     if (window.supEx['__c']) window.supEx['__c'] = window.supEx['__c'].filter(s => s.name !== name);
@@ -997,7 +997,7 @@ window.psupMultiMerge = function() {
          if(!main) { window.showToast('יש לבחר ספק ראשי'); return false; }
          
          const otherCount = arr.length - 1;
-         if(!confirm(`האם לאחד ${otherCount} ספקים לתוך "${main}"?`)) return true;
+         if(!await window.spConfirm(`האם לאחד ${otherCount} ספקים לתוך "${main}"?`)) return true;
          
          const mainBase = window.supBase(main);
          let changedSch=0, changedInv=0;

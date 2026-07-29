@@ -437,7 +437,7 @@ window.spConfirm = function(msg) {
       <div class="sp-sys-dialog">
         <div class="sp-sys-dialog-msg">${msg}</div>
         <div class="sp-sys-dialog-btns">
-          <button class="sp-sys-btn sp-sys-btn-cancel" id="sp-conf-no-${uid}">ביטול</button>
+          <button class="sp-sys-btn sp-sys-btn-cancel" id="sp-conf-no-${uid}">לא</button>
           <button class="sp-sys-btn sp-sys-btn-ok" id="sp-conf-yes-${uid}">אישור</button>
         </div>
       </div>

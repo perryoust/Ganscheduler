@@ -1,4 +1,4 @@
-function renderGardens(){
+﻿function renderGardens(){
   const gBody = document.getElementById('g-body');
   if (gBody) gBody.classList.remove('ggrid');
 
@@ -124,7 +124,7 @@ function openGM(gid){
 function delPairFromGarden(){
   const pair=window.gardenPair(window.gmGid);
   if(!pair) return;
-  if(!confirm(`למחוק את הזוג "${pair.name}"?`)) return;
+  if(!await window.spConfirm(`למחוק את הזוג "${pair.name}"?`)) return;
   const idx=window.pairs.findIndex(p=>p.id===pair.id);
   if(idx>=0) window.pairs.splice(idx,1);
   window.save(); window.refresh();
@@ -251,7 +251,7 @@ function pqmEdit(){
 function pqmBreakToday(){
   const pair=window.pairs.find(p=>String(p.id)===String(_pqmId));
   if(!pair) return;
-  if(!confirm(`לפרק את הזוג "${pair.name}" רק להיום (${window.fD(_pqmDs)})?
+  if(!await window.spConfirm(`לפרק את הזוג "${pair.name}" רק להיום (${window.fD(_pqmDs)})?
 הצהרונים יוצגו בנפרד ביום זה בלבד.`)) return;
   window.setPairBreak(_pqmId,_pqmDs,true);
   window.CM('pqm');
@@ -267,7 +267,7 @@ function pqmRestoreToday(){
 function pqmBreakPermanent(){
   const pair=window.pairs.find(p=>String(p.id)===String(_pqmId));
   if(!pair) return;
-  if(!confirm(`למחוק לצמיתות את הזוג "${pair.name}"?
+  if(!await window.spConfirm(`למחוק לצמיתות את הזוג "${pair.name}"?
 הצהרונים יוצגו בנפרד בכל הלוח. פעולה זו אינה ניתנת לביטול.`)) return;
   const idx=window.pairs.findIndex(p=>String(p.id)===String(_pqmId));
   if(idx>=0) window.pairs.splice(idx,1);
@@ -381,7 +381,7 @@ function exportPairNow(idx){_exGids=pairs[idx].ids;openExport();}
 function delPair(idx){
   const pair=window.pairs[idx];
   if(!pair) return;
-  if(!confirm('למחוק את הזוג "'+pair.name+'"?\nהפעילויות ישארו אך הצהרונים לא יהיו מקושרים יותר.')) return;
+  if(!await window.spConfirm('למחוק את הזוג "'+pair.name+'"?\nהפעילויות ישארו אך הצהרונים לא יהיו מקושרים יותר.')) return;
   window.pairs.splice(idx,1);
   window.save();window.refresh();
   _spAlertDialog('✅ הזוג נמחק');
@@ -427,7 +427,7 @@ function savePairModal(){
   if(dupe.length){
     warnEl.style.display='block';
     warnEl.textContent='⚠️ '+dupe.join(' | ');
-    if(!confirm('צהרונים כבר בזוגות אחרים. בכל זאת להמשיך?')) return;
+    if(!await window.spConfirm('צהרונים כבר בזוגות אחרים. בכל זאת להמשיך?')) return;
   }
   const nm=document.getElementById('apm-name').value||ids.map(id=>window.G(id).name||'').join(' + ');
   const isEdit=window.editPairIdx!==null&&window.editPairIdx!==undefined;
@@ -587,7 +587,7 @@ async function saveHoliday(){
   showToast(`✅ חופשה "${name}" נשמרה (${fD(from)} – ${fD(to)})`);
 }
 async function deleteHoliday(id){
-  if(!confirm('למחוק?')) return;
+  if(!await window.spConfirm('למחוק?')) return;
   holidays=holidays.filter(h=>h.id!==id);
   await save(true); renderHolidays(); refresh();
 }
@@ -892,7 +892,7 @@ function saveClusterModal(){
   save();CM('clm');refresh();refreshClusterDrops();
 }
 function deleteCluster(clId){
-  if(!confirm('למחוק אשכול זה?')) return;
+  if(!await window.spConfirm('למחוק אשכול זה?')) return;
   delete window.clusters[clId];
   save(); refresh();
 }
@@ -1866,7 +1866,7 @@ window.doBulkUpdateRecurring = function(key, gid){
   if(!d1 || !d2 || !newSup || !newAct) return _spAlertDialog('נא למלא תאריכים וספק');
   if(d1 > d2) return _spAlertDialog('תאריך התחלה חייב להיות לפני תאריך סיום');
   
-  if(!confirm('המערכת תסיר את כל המפגשים הקיימים בסדרה זו בטווח הנבחר (כולל מהגנים השותפים שסומנו), ותשבץ מחדש.\nהאם להתקדם?')) return;
+  if(!await window.spConfirm('המערכת תסיר את כל המפגשים הקיימים בסדרה זו בטווח הנבחר (כולל מהגנים השותפים שסומנו), ותשבץ מחדש.\nהאם להתקדם?')) return;
   
   const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('grm') : [];
   const targets = [{g: gid, t: primaryTime}];
@@ -2314,7 +2314,7 @@ window.deleteClusterDay = function() {
   const ds = window._clBulkDate;
   if(!cl || !ds) return;
 
-  if(!confirm(`למחוק את כל הפעילויות של אשכול "${cl.name}" בתאריך ${window.fD(ds)}?`)) return;
+  if(!await window.spConfirm(`למחוק את כל הפעילויות של אשכול "${cl.name}" בתאריך ${window.fD(ds)}?`)) return;
 
   let deleted = 0;
   for(let i = window.SCH.length-1; i >= 0; i--) {

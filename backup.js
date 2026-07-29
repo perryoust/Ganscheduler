@@ -1,4 +1,4 @@
-function getSnapshots(){try{return JSON.parse(window._safeLS.getItem('ganv5_snaps')||'[]');}catch{return [];}}
+﻿function getSnapshots(){try{return JSON.parse(window._safeLS.getItem('ganv5_snaps')||'[]');}catch{return [];}}
 function saveSnapshots(snaps){try{window._safeLS.setItem('ganv5_snaps',JSON.stringify(snaps));}catch(e){}}
 function createSnapshot(label){
   const snaps=getSnapshots();
@@ -29,7 +29,7 @@ function renderBackupList(){
 }
 function restoreSnapshot(i){
   const snaps=getSnapshots();const snap=snaps[i];if(!snap)return;
-  if(!confirm('לשחזר לגרסה מ-'+new Date(snap.ts).toLocaleString('he-IL')+'?\nהנתונים הנוכחיים יישמרו אוטומטית לפני שחזור.')) return;
+  if(!await window.spConfirm('לשחזר לגרסה מ-'+new Date(snap.ts).toLocaleString('he-IL')+'?\nהנתונים הנוכחיים יישמרו אוטומטית לפני שחזור.')) return;
   createSnapshot('לפני שחזור');
   window._safeLS.setItem('ganv5',snap.data);
   window.showCopyToast('✅ שוחזר! טוען מחדש...');
@@ -38,7 +38,7 @@ function restoreSnapshot(i){
 function deleteSnapshot(i){const snaps=getSnapshots();snaps.splice(i,1);saveSnapshots(snaps);renderBackupList();}
 function updateAppFromHTML(input){
   const file=input.files[0]; if(!file) return;
-  if(!confirm('האפליקציה תתעדכן לגרסה החדשה. הנתונים הקיימים יישמרו. להמשיך?')) return;
+  if(!await window.spConfirm('האפליקציה תתעדכן לגרסה החדשה. הנתונים הקיימים יישמרו. להמשיך?')) return;
   // Save current data first
   const currentData=window._safeLS.getItem('ganv5');
   const currentCfg=window._safeLS.getItem('autoBackupCfg');
@@ -166,7 +166,7 @@ function startAutoBackup(){
 }
 function triggerAutoBackup(){
   const cfg=loadAutoBackupSettings()||{};
-  if(confirm("💾 הגיע הזמן לגיבוי אוטומטי של המערכת. האם ברצונך להוריד את קובץ הגיבוי למחשב כעת?")) {
+  if(await window.spConfirm("💾 הגיע הזמן לגיבוי אוטומטי של המערכת. האם ברצונך להוריד את קובץ הגיבוי למחשב כעת?")) {
     exportFullBackup();
     cfg.lastBackup=new Date().toISOString();
     saveAutoBackupSettings(cfg);
@@ -289,7 +289,7 @@ window.setGDriveWebhookUrl = function() {
 window.backupToGoogleDrive = async function(isSilent) {
   const url = window._safeLS.getItem('gdriveWebhookUrl') || 'https://script.google.com/macros/s/AKfycbzntHOkWy1JHRn1XclcSS7l-MlY-TaurQvi8h53u8qzDTQ8LW4CgAUmEqnlD6qFfEhW/exec';
   if (!url) {
-    if (!isSilent && confirm('לא הוגדרה כתובת לגיבוי דרייב.\nהאם תרצה להגדיר כעת?')) {
+    if (!isSilent && (await window.spConfirm('לא הוגדרה כתובת לגיבוי דרייב.\nהאם תרצה להגדיר כעת?')) {
       window.setGDriveWebhookUrl();
     }
     return;

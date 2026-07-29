@@ -1,4 +1,4 @@
-window._dashTab = window._dashTab || 'g'; // 'g' for Gardens, 's' for Schools
+﻿window._dashTab = window._dashTab || 'g'; // 'g' for Gardens, 's' for Schools
 window._dashView = window._dashView || 'todo'; // 'todo', 'handled', 'all', 'can'
 window.setDashTab = setDashTab;
 window.setDashView = setDashView;
@@ -279,7 +279,7 @@ window.dashBatchAction = async function(action) {
   }
 
   if (action === 'unhandled') {
-    if(!confirm('האם להסיר את סטטוס "טופל" מהפריטים שנבחרו?')) return;
+    if(!await window.spConfirm('האם להסיר את סטטוס "טופל" מהפריטים שנבחרו?')) return;
     ids.forEach(id => { window.unmarkCompQuick(id); });
     document.querySelectorAll('.dash-row-chk').forEach(cb => cb.checked = false);
     window.dashUpdateBulkBar();
@@ -447,7 +447,7 @@ window.spBatchDelete = function() {
   
   const restoreMsg = window.SCH.some(x => ids.includes(String(x.id)) && x._isMakeup) ? '\n(פעילויות השלמה מסומנות יוחזרו למקוריות שלא התקיימו)' : '';
   
-  if(!confirm(`האם למחוק ${ids.length > 1 ? ids.length + ' שיבוצים מסומנים' : 'את השיבוץ המסומן'} מהלוח לצמיתות?` + restoreMsg)) return;
+  if(!await window.spConfirm(`האם למחוק ${ids.length > 1 ? ids.length + ' שיבוצים מסומנים' : 'את השיבוץ המסומן'} מהלוח לצמיתות?` + restoreMsg)) return;
   
   if (!window.supEx) window.supEx = {};
   if (!window.supEx['__deleted_sraws_ids']) window.supEx['__deleted_sraws_ids'] = [];
@@ -519,7 +519,7 @@ window.spRowGrpChg = function(id, val) {
     if(pair) {
       const pGid = pair.ids.find(pid => Number(pid) !== Number(ev.g));
       const pG = window.G(pGid);
-      if(pG && confirm('האם לעדכן את מספר הקבוצות גם בצהרון המקביל (' + pG.name + ')?')) {
+      if(pG && (await window.spConfirm('האם לעדכן את מספר הקבוצות גם בצהרון המקביל (' + pG.name + ')?'))) {
         syncPartner = true;
       }
     }
@@ -557,7 +557,7 @@ window.spRowStatusChg = function(id, st) {
     if(st === 'done' || st === 'ok') {
         const otherNames = pair.ids.filter(id=>Number(id)!==Number(ev.g)).map(id=>(window.G(id)||{}).name).join(', ');
         const targetType = pair.ids.length > 2 ? 'האשכול' : 'גן בן-הזוג';
-        if(confirm(`האם לעדכן את הסטטוס "${stText}" גם ב${targetType} (${otherNames})?`)) {
+        if(await window.spConfirm(`האם לעדכן את הסטטוס "${stText}" גם ב${targetType} (${otherNames})?`)) {
             syncPartner = true;
         }
     } else {
@@ -1281,7 +1281,7 @@ function deleteRecurSeries(id) {
     confirmMsg = `האם אתה בטוח שברצונך למחוק ${affected.length} פעילויות של הספק מתאריך זה והלאה גם מהלוח של הגן ${gName} וגם מהלוחות של הגנים השותפים?`;
   }
   
-  if(!confirm(confirmMsg)) return;
+  if(!await window.spConfirm(confirmMsg)) return;
 
   if (!window.supEx) window.supEx = {};
   if (!window.supEx['__deleted_sraws_ids']) window.supEx['__deleted_sraws_ids'] = [];
@@ -1323,7 +1323,7 @@ function deleteSingleActivity(id) {
   const g = window.G(s.g);
   
   const gName = g.name.startsWith('גן') ? g.name : `גן ${g.name}`;
-  if(!confirm(`האם למחוק את השיבוץ של ${gName} בתאריך ${window.fD(s.d)} לצמיתות?`)) return;
+  if(!await window.spConfirm(`האם למחוק את השיבוץ של ${gName} בתאריך ${window.fD(s.d)} לצמיתות?`)) return;
   
   if (!window.supEx) window.supEx = {};
   if (!window.supEx['__deleted_sraws_ids']) window.supEx['__deleted_sraws_ids'] = [];
@@ -1347,7 +1347,7 @@ function deleteSingleActivity(id) {
     });
     
     if(partnerEvs.length > 0) {
-      if (confirm(`האם למחוק גם את ${partnerEvs.length} השיבוצים המקבילים בגנים השותפים?`)) {
+      if(await window.spConfirm(`האם למחוק גם את ${partnerEvs.length} השיבוצים המקבילים בגנים השותפים?`)) {
         partnerEvs.forEach(pEv => {
           const isSrawsPartner = !String(pEv.id).startsWith('e_');
           if (isSrawsPartner && !window.supEx['__deleted_sraws_ids'].includes(pEv.id)) {
@@ -1374,7 +1374,7 @@ function toggleSpRecurBox(isChecked) {
     // Unchecked -> ask if they want to delete series
     const s = window.SCH.find(x => x.id == window.selEv);
     if(s && s._recId) {
-      if(confirm('האם תרצה להסיר את הפעילות הקבועה ולבטל את כל השיבוצים העתידיים בסדרה זו?')) {
+      if(await window.spConfirm('האם תרצה להסיר את הפעילות הקבועה ולבטל את כל השיבוצים העתידיים בסדרה זו?')) {
         window.deleteRecurSeries(s.id);
       } else {
         document.getElementById('sp-is-rec-chk').checked = true; // revert
@@ -1428,7 +1428,7 @@ function deleteSingleActivity(id) {
   const origEvs = s._isMakeup ? window.SCH.filter(orig => String(orig._compByMakeup) === String(s.id)) : [];
   const restoreMsg = origEvs.length > 0 ? `\n\n(מחיקה זו גם תחזיר את הפעילות המקורית שלא התקיימה לרשימה)` : '';
 
-  if(!confirm(`האם למחוק את השיבוץ של גן ${g.name} בתאריך ${window.fD(s.d)} לצמיתות?` + restoreMsg)) return;
+  if(!await window.spConfirm(`האם למחוק את השיבוץ של גן ${g.name} בתאריך ${window.fD(s.d)} לצמיתות?` + restoreMsg)) return;
   
   const i = window.SCH.indexOf(s);
   if(i >= 0) window.SCH.splice(i, 1);
@@ -1449,7 +1449,7 @@ function deleteSingleActivity(id) {
       const pRestoreMsg = hasMakeup ? `\n(יש פעילויות השלמה שיחזירו את הפעילות המקורית)` : '';
       const otherNames = pEvs.map(pe => window.G(pe.g).name).join(', ');
       const targetType = pair.ids.length > 2 ? 'באשכול' : 'בגן בן-הזוג';
-      if(confirm(`האם למחוק גם את השיבוצים המקבילים ${targetType} (${otherNames})?` + pRestoreMsg)) {
+      if(await window.spConfirm(`האם למחוק גם את השיבוצים המקבילים ${targetType} (${otherNames})?` + pRestoreMsg)) {
         pEvs.forEach(pEv => {
           const pOrigEvs = pEv._isMakeup ? window.SCH.filter(orig => String(orig._compByMakeup) === String(pEv.id)) : [];
           const pi = window.SCH.indexOf(pEv);
@@ -1569,7 +1569,7 @@ function saveReplaceRecur(id) {
 
     if(!from || !to || !days.length || !sup) return _spAlertDialog('יש למלא את כל השדות ולבחור ימים');
 
-    if(!confirm('⚠️ פעולה זו תמחוק את כל השיבוצים העתידיים של הסדרה הקיימת ותיצור חדשים.\nהאם אתה בטוח?')) return;
+    if(!await window.spConfirm('⚠️ פעולה זו תמחוק את כל השיבוצים העתידיים של הסדרה הקיימת ותיצור חדשים.\nהאם אתה בטוח?')) return;
 
     // 1. Collect all series IDs to remove
     const seriesIdsToRemove = new Set([s._recId]);
@@ -1747,7 +1747,7 @@ function setStatus(idOrSt, maybeSt){
       if (main._compByMakeup && main._compByMakeup !== 'false') {
         const mkIdx = window.SCH.findIndex(x => x.id == main._compByMakeup);
         if (mkIdx > -1) {
-          if (confirm('פעילות זו קושרה להשלמה/דחייה שנוצרה בתאריך חלופי.\nהחזרתה למצב תקין מאפשרת למחוק גם את הפעילות החלופית.\nהאם למחוק את הפעילות החלופית שנוצרה?')) {
+          if(await window.spConfirm('פעילות זו קושרה להשלמה/דחייה שנוצרה בתאריך חלופי.\nהחזרתה למצב תקין מאפשרת למחוק גם את הפעילות החלופית.\nהאם למחוק את הפעילות החלופית שנוצרה?')) {
             window.SCH.splice(mkIdx, 1);
             userConfirmedDelete = true;
           } else {
@@ -1759,7 +1759,7 @@ function setStatus(idOrSt, maybeSt){
       if (!main._compByMakeup || main._compByMakeup === 'false') {
          const linkedMkIdx = window.SCH.findIndex(x => x._postFrom === main.d && x.g === main.g && window.supBase(x.a) === window.supBase(main.a) && x._isMakeup);
          if (linkedMkIdx > -1 && !userDeclinedDelete) {
-            if (userConfirmedDelete || confirm('פעילות זו קושרה להשלמה/דחייה שנוצרה בתאריך חלופי.\nהחזרתה למצב תקין מאפשרת למחוק גם את הפעילות החלופית.\nהאם למחוק את הפעילות החלופית שנוצרה?')) {
+            if (userConfirmedDelete || await window.spConfirm('פעילות זו קושרה להשלמה/דחייה שנוצרה בתאריך חלופי.\nהחזרתה למצב תקין מאפשרת למחוק גם את הפעילות החלופית.\nהאם למחוק את הפעילות החלופית שנוצרה?')) {
                window.SCH.splice(linkedMkIdx, 1);
                userConfirmedDelete = true;
             }
@@ -1966,7 +1966,7 @@ function markCompQuick(id){
     });
 
     if (partnersToUpdate.length > 0) {
-      if (confirm('זיהינו גנים מקבילים (זוג/אשכול) עם חריגות באותה פעילות. האם לסמן "טופל" גם עבורם?')) {
+      if(await window.spConfirm('זיהינו גנים מקבילים (זוג/אשכול) עם חריגות באותה פעילות. האם לסמן "טופל" גם עבורם?')) {
         partnersToUpdate.forEach(pev => pev._compByMakeup = stamp);
       }
     }
@@ -2291,7 +2291,7 @@ function doPostpone(){
       if(!pEv) {
         const gObj = window.G(syn.g);
         const msg = `⚠️ לצהרון ${gObj ? gObj.name : 'השותף'} לא נמצאה פעילות מקורית של ${s.a} בתאריך ${window.fD(s.d)}.\nהאם תרצה בכל זאת ליצור לו פעילות חדשה בתאריך החדש (${window.fD(newDate)})?`;
-        if(!confirm(msg)) continue;
+        if(!await window.spConfirm(msg)) continue;
       }
       toProcess.push({ syn, pEv });
     }
@@ -2805,7 +2805,7 @@ window.spSaveMakeup = function() {
     ? `לבצע שיבוץ השלמה ל-${gardenName}${grpText} בתאריך ${window.fD(newDate)}?`
     : `לבצע שיבוץ השלמה ל-${targets.length} ${unitName}${grpText} בתאריך ${window.fD(newDate)}?`;
 
-  if(!confirm(confirmMsg)) return;
+  if(!await window.spConfirm(confirmMsg)) return;
 
   targets.forEach(tgt => {
     // Find the original activity for this specific target garden, or fallback to sid if not found
@@ -3000,7 +3000,7 @@ window.saveCanQ = async function() {
 
   // Prompt for makeup
   setTimeout(() => {
-    if (confirm('🎨 האם ברצונך לקבוע שיעור השלמה כעת?')) {
+    if(await window.spConfirm('🎨 האם ברצונך לקבוע שיעור השלמה כעת?')) {
       window.openMakeupSched(_canQId);
     }
   }, 100);
@@ -3051,7 +3051,7 @@ window.saveCancelDay = function() {
   
   const toCancel = window.SCH.filter(s => s.d === _cancelDayDs && s.st !== 'can');
   if (toCancel.length === 0) { window.showToast('אין פעילויות לביטול ביום זה'); window.CM('cancelday-m'); return; }
-  if (!confirm(`לבטל ${toCancel.length} פעילויות בתאריך ${window.fD(_cancelDayDs)}?\nסיבה: ${fullReason}`)) return;
+  if (!await window.spConfirm(`לבטל ${toCancel.length} פעילויות בתאריך ${window.fD(_cancelDayDs)}?\nסיבה: ${fullReason}`)) return;
   
   toCancel.forEach(s => {
     s.st = 'can'; s.cr = mainReason || 'בוטל'; s.cn = extra;
@@ -3167,7 +3167,7 @@ window.saveNohapQ = async function(){
   
   // Prompt for makeup
   setTimeout(() => {
-    if (confirm('🎨 האם ברצונך לקבוע שיעור השלמה כעת?')) {
+    if(await window.spConfirm('🎨 האם ברצונך לקבוע שיעור השלמה כעת?')) {
       window.openMakeupSched(_nohapQId);
     }
   }, 100);

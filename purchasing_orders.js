@@ -1,4 +1,4 @@
-// purchasing_orders.js - Handles Purchase Orders (הזמנות רכש) and Delivery Notes (תעודות משלוח)
+﻿// purchasing_orders.js - Handles Purchase Orders (הזמנות רכש) and Delivery Notes (תעודות משלוח)
 
 window.poSearchQuery = '';
 window.pdSearchQuery = '';
@@ -594,7 +594,7 @@ window.loadOrderTemplate = function(id) {
   const order = (window.ORDERS || []).find(o => o.id === id);
   if (!order) return;
   
-  if (confirm(`האם לטעון את פרטי הזמנה ${order.orderId} (${order.supplier}) לתוך ההזמנה הנוכחית?`)) {
+  if(await window.spConfirm(`האם לטעון את פרטי הזמנה ${order.orderId} (${order.supplier}) לתוך ההזמנה הנוכחית?`)) {
     document.getElementById('om-supplier').value = order.supplier || '';
     const ordererEl = document.getElementById('om-orderer');
     if(ordererEl) ordererEl.value = order.orderer || '';
@@ -1359,7 +1359,7 @@ window.loadDeliveryTemplate = function(id) {
   const dlv = (window.DELIVERIES || []).find(d => d.id === id);
   if (!dlv) return;
   
-  if (confirm(`האם לטעון את פרטי תעודת משלוח ${dlv.deliveryId} (${dlv.destination}) לתוך התעודה הנוכחית?`)) {
+  if(await window.spConfirm(`האם לטעון את פרטי תעודת משלוח ${dlv.deliveryId} (${dlv.destination}) לתוך התעודה הנוכחית?`)) {
     document.getElementById('dm-destination').value = dlv.destination || '';
     document.getElementById('dm-desc').value = dlv.deliveryDesc || '';
     document.getElementById('dm-recipient').value = dlv.recipient || '';
@@ -1536,7 +1536,7 @@ function duplicateDelivery(id) {
 }
 
 window.deletePurchOrder = async function(id) {
-  if (!confirm('האם אתה בטוח שברצונך למחוק הזמנת רכש זו?')) return;
+  if (!await window.spConfirm('האם אתה בטוח שברצונך למחוק הזמנת רכש זו?')) return;
   
   window.ORDERS = (window.ORDERS || []).filter(o => o.id !== id);
   renderPurchOrders();
@@ -1548,7 +1548,7 @@ window.deletePurchOrder = async function(id) {
 };
 
 window.deletePurchDelivery = async function(id) {
-  if (!confirm('האם אתה בטוח שברצונך למחוק תעודת משלוח זו?')) return;
+  if (!await window.spConfirm('האם אתה בטוח שברצונך למחוק תעודת משלוח זו?')) return;
   
   window.DELIVERIES = (window.DELIVERIES || []).filter(d => d.id !== id);
   renderPurchDeliveries();
@@ -2124,7 +2124,7 @@ window.approveOrderToInvoice = function(id) {
   const order = (window.ORDERS || []).find(o => o.id === id);
   if (!order) return;
   
-  if (confirm(`האם אתה בטוח שברצונך לאשר את הזמנה ${order.orderId} ולהעביר אותה למעקב חשבוניות?`)) {
+  if(await window.spConfirm(`האם אתה בטוח שברצונך לאשר את הזמנה ${order.orderId} ולהעביר אותה למעקב חשבוניות?`)) {
     if (!window.INVOICES) window.INVOICES = [];
     
     if (window.INVOICES.some(inv => inv.linkedOrderId === id)) {
