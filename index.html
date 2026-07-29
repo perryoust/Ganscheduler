@@ -32,6 +32,13 @@
           setTimeout(function() { sysLoad.style.display = 'none'; }, 300);
         }
       }, 3500);
+
+      // Auto-resize PWA window on desktop if opened too small
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        if (window.innerWidth < 1400) {
+          window.resizeTo(1400, 900);
+        }
+      }
     });
   </script>
   <script type="module" src="firebase_init.js?v=109.11"></script>
