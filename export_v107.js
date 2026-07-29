@@ -739,7 +739,7 @@ async function exportToExcel(data, filename, opts = {}) {
           
           const cities = Object.keys(byCity).sort();
           cities.forEach(city => {
-            let typeOk = 0, typeNo = 0, typeGroups = 0;
+            let typeOk = 0, typeNo = 0, typeGroups = 0, typeGroupsNo = 0;
             const typeEvs = byCity[city].sort((a,b) => {
               const ds = a.d.localeCompare(b.d);
               if(ds !== 0) return ds;
@@ -808,7 +808,7 @@ async function exportToExcel(data, filename, opts = {}) {
               // Always show real group count from data, default to 1 if ok
               let grpCount = isOk ? (s.grp || 1) : 0;
               
-              if(isOk) { typeOk++; totalOk++; schoolStats[g.name].ok++; } else { typeNo++; totalNo++; }
+              if(isOk) { typeOk++; totalOk++; schoolStats[g.name].ok++; } else { typeNo++; totalNo++; typeGroupsNo += (s.grp || 1); }
               typeGroups += grpCount;
               totalGroups += grpCount;
               schoolStats[g.name].grp += grpCount;
@@ -849,6 +849,13 @@ async function exportToExcel(data, filename, opts = {}) {
               cell.alignment = { horizontal: 'right' };
             });
             ws.mergeCells(typeSum.number, 1, typeSum.number, isPlacement ? 8 : 9);
+
+            if (typeGroupsNo > 0 && !isPlacement) {
+              const typeSumNo = ws.addRow([`❌ ${city} - ${type}: לא בוצעו ${typeGroupsNo} פעילויות (כולל השלמות)`, '', '', '', '', '', '', '', '']);
+              typeSumNo.font = { bold: true, size: 10, color: { argb: 'FFD32F2F' } };
+              typeSumNo.eachCell((cell) => { cell.alignment = { horizontal: 'right' }; });
+              ws.mergeCells(typeSumNo.number, 1, typeSumNo.number, 9);
+            }
             ws.addRow([]);
             
             if (type === 'ביה"ס' || type === 'בתי ספר') {
