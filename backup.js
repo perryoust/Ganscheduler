@@ -1,4 +1,4 @@
-﻿function getSnapshots(){try{return JSON.parse(window._safeLS.getItem('ganv5_snaps')||'[]');}catch{return [];}}
+function getSnapshots(){try{return JSON.parse(window._safeLS.getItem('ganv5_snaps')||'[]');}catch{return [];}}
 function saveSnapshots(snaps){try{window._safeLS.setItem('ganv5_snaps',JSON.stringify(snaps));}catch(e){}}
 function createSnapshot(label){
   const snaps=getSnapshots();
@@ -27,7 +27,7 @@ function renderBackupList(){
         <button class="btn br bsm" onclick="deleteSnapshot(${i})">🗑️</button>
       </div></div>`).join('')+'</div>';
 }
-function restoreSnapshot(i){
+async function restoreSnapshot(i){
   const snaps=getSnapshots();const snap=snaps[i];if(!snap)return;
   if(!await window.spConfirm('לשחזר לגרסה מ-'+new Date(snap.ts).toLocaleString('he-IL')+'?\nהנתונים הנוכחיים יישמרו אוטומטית לפני שחזור.')) return;
   createSnapshot('לפני שחזור');
@@ -36,7 +36,7 @@ function restoreSnapshot(i){
   setTimeout(()=>location.reload(),1200);
 }
 function deleteSnapshot(i){const snaps=getSnapshots();snaps.splice(i,1);saveSnapshots(snaps);renderBackupList();}
-function updateAppFromHTML(input){
+async function updateAppFromHTML(input){
   const file=input.files[0]; if(!file) return;
   if(!await window.spConfirm('האפליקציה תתעדכן לגרסה החדשה. הנתונים הקיימים יישמרו. להמשיך?')) return;
   // Save current data first
@@ -164,7 +164,7 @@ function startAutoBackup(){
     if(diff>ms) triggerAutoBackup();
   }
 }
-function triggerAutoBackup(){
+async function triggerAutoBackup(){
   const cfg=loadAutoBackupSettings()||{};
   if(await window.spConfirm("💾 הגיע הזמן לגיבוי אוטומטי של המערכת. האם ברצונך להוריד את קובץ הגיבוי למחשב כעת?")) {
     exportFullBackup();
@@ -289,7 +289,7 @@ window.setGDriveWebhookUrl = function() {
 window.backupToGoogleDrive = async function(isSilent) {
   const url = window._safeLS.getItem('gdriveWebhookUrl') || 'https://script.google.com/macros/s/AKfycbzntHOkWy1JHRn1XclcSS7l-MlY-TaurQvi8h53u8qzDTQ8LW4CgAUmEqnlD6qFfEhW/exec';
   if (!url) {
-    if (!isSilent && (await window.spConfirm('לא הוגדרה כתובת לגיבוי דרייב.\nהאם תרצה להגדיר כעת?')) {
+    if (!isSilent && await window.spConfirm('לא הוגדרה כתובת לגיבוי דרייב.\nהאם תרצה להגדיר כעת?')) {
       window.setGDriveWebhookUrl();
     }
     return;

@@ -1,4 +1,4 @@
-﻿
+
 function td(){
   const d = new Date();
   const y = d.getFullYear();
@@ -715,7 +715,7 @@ function sucRemoveAct(idx){
   }
   sucRefreshActsList(); save();
 }
-function deleteSupFromCard() {
+async function deleteSupFromCard() {
   // Use _sucName (set by openSupCard) as the reliable source
   const name = _sucName || (document.getElementById('suc-edit-name') && document.getElementById('suc-edit-name').dataset.orig);
   if (!name) { _spAlertDialog('לא נמצא שם ספק'); return; }
@@ -756,7 +756,7 @@ window.sucSaveKeywordsAuto = function(val) {
   if(typeof window.showToast === 'function') window.showToast('✅ מילות מפתח נשמרו בהצלחה');
 };
 
-function sucSaveEdit(isAuto = false){
+async function sucSaveEdit(isAuto = false){
   const nameEl=document.getElementById('suc-edit-name');
   const newBase=nameEl.value.trim(); const origBase=nameEl.dataset.orig;
   if(!newBase){ 
@@ -1118,7 +1118,7 @@ function gcellNewSched(){
   openNewSched(_gcellGid, {date:_gcellDs});
 }
 
-function gcellUnblock(){
+async function gcellUnblock(){
   closeGcellPopup();
   _blockMode='garden';
   if(!await window.spConfirm('להסיר חסימה זו?')) return;
@@ -1217,7 +1217,7 @@ function saveBlock(){
   }
 }
 
-function deleteBlock(){
+async function deleteBlock(){
   const msg=_blockMode==='garden'?'להסיר את החסימה מגן זה?':'להסיר את החסימה מתאריך זה?';
   if(!await window.spConfirm(msg)) return;
   if(_blockMode==='garden'){
@@ -1634,7 +1634,7 @@ function saveMgr(){
   showToast('✅ '+name+' נשמר — הנתונים עודכנו בכל האפליקציה');
 }
 
-function deleteMgr(){
+async function deleteMgr(){
   const m=_editMgrId?managers[_editMgrId]:null;
   if(!m) return;
   if(!await window.spConfirm(`למחוק את ${m.name}?`)) return;
@@ -2009,7 +2009,7 @@ function importData(){
   inp.onchange=e=>{
     const file=e.target.files[0];if(!file) return;
     const reader=new FileReader();
-    reader.onload=ev=>{
+    reader.onload = async ev=>{
       try{
         const parsed=JSON.parse(ev.target.result);
         const data=parsed.data||parsed; // support both formats

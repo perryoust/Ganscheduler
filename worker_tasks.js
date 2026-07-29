@@ -73,7 +73,7 @@ window.wtDoSearch = function(val) {
   }, 250);
 };
 
-window.wtToggleTaskStatus = function(id) {
+window.wtToggleTaskStatus = async function(id) {
   const task = (window.WORKER_TASKS || []).find(t => t.id === id);
   if (task) {
     if (task.status === 'done') {
@@ -812,7 +812,7 @@ window.renderWorkerTasksMobile = function() {
   container.innerHTML = html;
 };
 
-window.markTaskDone = function(id) {
+window.markTaskDone = async function(id) {
   const task = (window.WORKER_TASKS || []).find(t => t.id === id);
   if (task) {
     task.status = 'done';

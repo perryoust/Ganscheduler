@@ -589,7 +589,7 @@ async function saveOrder(id) {
   showToast('✅ ההזמנה נשמרה בהצלחה!');
 }
 
-window.loadOrderTemplate = function(id) {
+window.loadOrderTemplate = async function(id) {
   if (!id) return;
   const order = (window.ORDERS || []).find(o => o.id === id);
   if (!order) return;
@@ -1354,7 +1354,7 @@ function closeDeliveryModal() {
   if (modal) modal.style.display = 'none';
 }
 
-window.loadDeliveryTemplate = function(id) {
+window.loadDeliveryTemplate = async function(id) {
   if (!id) return;
   const dlv = (window.DELIVERIES || []).find(d => d.id === id);
   if (!dlv) return;
@@ -2120,7 +2120,7 @@ window.savePurchFooter = function() {
   if (typeof window.ghAutoSave === 'function') window.ghAutoSave(true);
 };
 
-window.approveOrderToInvoice = function(id) {
+window.approveOrderToInvoice = async function(id) {
   const order = (window.ORDERS || []).find(o => o.id === id);
   if (!order) return;
   

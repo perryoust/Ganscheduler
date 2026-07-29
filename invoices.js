@@ -1,4 +1,4 @@
-﻿// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
 
 
 // ── PROCUREMENT MODULE - v9.0 ────────────────────────────────
@@ -1080,7 +1080,7 @@ function invClearFile(sec){
   }
   _pendingFiles[sec]=null;
 }
-function deleteInvoiceFromModal(){
+async function deleteInvoiceFromModal(){
   if(!_editInvId) return;
   if(!await window.spConfirm('למחוק מסמך זה לגמרי?')) return;
   window.INVOICES = window.INVOICES.filter(i=>i.id!==_editInvId);
@@ -1618,7 +1618,7 @@ function createMissingSupCards(){
 
   if(created>0){ window.save(); console.log(`✅ נוצרו ${created} כרטיסי ספק חסרים`); }
 }
-function deleteInvoice(id){
+async function deleteInvoice(id){
   if(!await window.spConfirm('למחוק חשבונית זו?')) return;
   window.INVOICES=window.INVOICES.filter(i=>i.id!==id);
   window.save(true); renderInvoices(); refreshPurchDash(); // immediate=true → saves to Firebase now
@@ -1972,7 +1972,7 @@ function _strSimilar(a,b){
   return dp[b.length]<=2;
 }
 
-function _runDupSearch(ov){
+async function _runDupSearch(ov){
   const byOrder = ov.querySelector('#dup-by-order').checked;
   const byTx    = ov.querySelector('#dup-by-tx').checked;
   const byTax   = ov.querySelector('#dup-by-tax').checked;
@@ -2049,7 +2049,7 @@ function _runDupSearch(ov){
       </div>`).join('');
 
   // Event delegation for edit / delete / merge
-  res.addEventListener('click', e=>{
+  res.addEventListener('click', async e=>{
     const editBtn  = e.target.closest('.dup-edit-btn');
     const delBtn   = e.target.closest('.dup-del-btn');
     const mergeBtn = e.target.closest('.dup-merge-btn');
@@ -2928,7 +2928,7 @@ reader.onload = async function(e) {
   });
 };
 
-window.clearScannerLinks = function() {
+window.clearScannerLinks = async function() {
   if (!await window.spConfirm('האם אתה בטוח שברצונך לנתק את כל קבצי ה-PDF והתמונות ששודכו לחשבוניות עד כה?\n(החשבוניות עצמן לא יימחקו, רק הקבצים ינותקו).')) return;
   let count = 0;
   window.INVOICES.forEach(inv => {

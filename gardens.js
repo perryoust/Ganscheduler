@@ -121,7 +121,7 @@ function openGM(gid){
   renderGM();
   document.getElementById('gm').classList.add('open');
 }
-function delPairFromGarden(){
+async function delPairFromGarden(){
   const pair=window.gardenPair(window.gmGid);
   if(!pair) return;
   if(!await window.spConfirm(`למחוק את הזוג "${pair.name}"?`)) return;
@@ -248,7 +248,7 @@ function pqmEdit(){
   if(idx>=0) window.openAddPair(idx);
 }
 
-function pqmBreakToday(){
+async function pqmBreakToday(){
   const pair=window.pairs.find(p=>String(p.id)===String(_pqmId));
   if(!pair) return;
   if(!await window.spConfirm(`לפרק את הזוג "${pair.name}" רק להיום (${window.fD(_pqmDs)})?
@@ -264,7 +264,7 @@ function pqmRestoreToday(){
   window.CM('pqm');
 }
 
-function pqmBreakPermanent(){
+async function pqmBreakPermanent(){
   const pair=window.pairs.find(p=>String(p.id)===String(_pqmId));
   if(!pair) return;
   if(!await window.spConfirm(`למחוק לצמיתות את הזוג "${pair.name}"?
@@ -378,7 +378,7 @@ function _goToPairSched(idx){
 }
 
 function exportPairNow(idx){_exGids=pairs[idx].ids;openExport();}
-function delPair(idx){
+async function delPair(idx){
   const pair=window.pairs[idx];
   if(!pair) return;
   if(!await window.spConfirm('למחוק את הזוג "'+pair.name+'"?\nהפעילויות ישארו אך הצהרונים לא יהיו מקושרים יותר.')) return;
@@ -412,7 +412,7 @@ function apmCity(){
     if(cur) sel.value=cur;
   });
 }
-function savePairModal(){
+async function savePairModal(){
   const g1=parseInt(document.getElementById('apm-g1').value)||null;
   const g2=parseInt(document.getElementById('apm-g2').value)||null;
   const g3=parseInt(document.getElementById('apm-g3').value)||null;
@@ -891,7 +891,7 @@ function saveClusterModal(){
   window.clusters[id]={id,name,desc:document.getElementById('cl-desc').value.trim(),gardenIds,validFrom,validTo};
   save();CM('clm');refresh();refreshClusterDrops();
 }
-function deleteCluster(clId){
+async function deleteCluster(clId){
   if(!await window.spConfirm('למחוק אשכול זה?')) return;
   delete window.clusters[clId];
   save(); refresh();
@@ -1855,7 +1855,7 @@ window.grmSupChg = function() {
   actSel.innerHTML = window.getSupActs(sup).map(a=>`<option value="${a}">${a}</option>`).join('');
 };
 
-window.doBulkUpdateRecurring = function(key, gid){
+window.doBulkUpdateRecurring = async function(key, gid){
   const d1 = document.getElementById('grm-d1').value;
   const d2 = document.getElementById('grm-d2').value;
   const newSup = document.getElementById('grm-sup').value;
@@ -2309,7 +2309,7 @@ window.saveClusterBulkEdit = function() {
   console.log('--- saveClusterBulkEdit Execution Finished ---');
 };
 
-window.deleteClusterDay = function() {
+window.deleteClusterDay = async function() {
   const cl = (window.clusters||{})[window._clsId];
   const ds = window._clBulkDate;
   if(!cl || !ds) return;

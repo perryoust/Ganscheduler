@@ -1,4 +1,4 @@
-﻿function setSupExType(t){
+function setSupExType(t){
   _supExType=t;
   const typeSel = document.getElementById('supex-type-select');
   if (typeSel) typeSel.value = t;
@@ -634,7 +634,7 @@ function removeSupAct(idx){
   }
   renderSupActsList(name);
 }
-function deleteSup() {
+async function deleteSup() {
   const name = document.getElementById('su-name').dataset.orig;
   if (!name) return;
   const schedCount = window.SCH.filter(s => s.a === name && s.st !== 'can').length;
@@ -663,7 +663,7 @@ function deleteSup() {
   window.showToast('🗑️ ספק "' + name + '" נמחק');
 }
 
-function saveSup(silent = false){
+async function saveSup(silent = false){
   const nameEl=document.getElementById('su-name');
   const name=nameEl.value.trim();
   const origName=nameEl.dataset.orig;
@@ -815,7 +815,7 @@ function auditMergedSuppliers(){
   return report;
 }
 
-function doMerge(){
+async function doMerge(){
   const mainIdx=document.getElementById('mrg-main').value;
   if(mainIdx===''){_spAlertDialog('בחר ספק ראשי');return;}
   const main=_mergeSupList[parseInt(mainIdx)]?.name;
@@ -947,7 +947,7 @@ window.psupCheckChanged = function(name, checked) {
   if(typeof window.renderPurchSuppliers === 'function') window.renderPurchSuppliers();
 };
 
-window.psupMultiDelete = function() {
+window.psupMultiDelete = async function() {
   const arr = Array.from(window._selectedPsups);
   if(!arr.length) return;
   if(!await window.spConfirm(`האם למחוק ${arr.length} ספקים נבחרים?`)) return;
@@ -964,7 +964,7 @@ window.psupMultiDelete = function() {
   window.showToast(`🗑️ נמחקו ${arr.length} ספקים`);
 };
 
-window.psupMultiMerge = function() {
+window.psupMultiMerge = async function() {
   const arr = Array.from(window._selectedPsups);
   if(!arr.length) return;
   
@@ -991,7 +991,7 @@ window.psupMultiMerge = function() {
       `🚀 איחוד ${arr.length} ספקים`,
       formHtml,
       'בצע איחוד',
-      () => {
+      async () => {
          const select = document.getElementById('multi-merge-target');
          const main = select.value;
          if(!main) { window.showToast('יש לבחר ספק ראשי'); return false; }

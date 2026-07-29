@@ -1,4 +1,4 @@
-﻿window._dashTab = window._dashTab || 'g'; // 'g' for Gardens, 's' for Schools
+window._dashTab = window._dashTab || 'g'; // 'g' for Gardens, 's' for Schools
 window._dashView = window._dashView || 'todo'; // 'todo', 'handled', 'all', 'can'
 window.setDashTab = setDashTab;
 window.setDashView = setDashView;
@@ -441,7 +441,7 @@ function cleanMakeupNote(orig, dateStr) {
   }
 }
 
-window.spBatchDelete = function() {
+window.spBatchDelete = async function() {
   const ids = window.spGetSelectedIds();
   if(!ids.length) { _spAlertDialog('יש לסמן לפחות גן אחד למחיקה'); return; }
   
@@ -508,7 +508,7 @@ window.spBatchAction = function(val) {
 };
 
 
-window.spRowGrpChg = function(id, val) {
+window.spRowGrpChg = async function(id, val) {
   const ev = window.SCH.find(x => x.id == id);
   if(!ev) return;
   const v = parseInt(val, 10);
@@ -533,7 +533,7 @@ window.spRowGrpChg = function(id, val) {
   }
 };
 
-window.spRowStatusChg = function(id, st) {
+window.spRowStatusChg = async function(id, st) {
   const ev = window.SCH.find(x => x.id == id);
   if(!ev) return;
   
@@ -1249,7 +1249,7 @@ window.getSpMissedHtml = function(gid) {
   return h;
 };
 
-function deleteRecurSeries(id) {
+async function deleteRecurSeries(id) {
   const s = window.SCH.find(x => x.id == id);
   if(!s) return _spAlertDialog('שגיאה. רשומה לא קיימת');
   const g = window.G(s.g);
@@ -1317,7 +1317,7 @@ function deleteRecurSeries(id) {
   window.saveAndRefresh('sp');
 }
 
-function deleteSingleActivity(id) {
+async function deleteSingleActivity(id) {
   const s = window.SCH.find(x => x.id == id);
   if(!s) return;
   const g = window.G(s.g);
@@ -1363,7 +1363,7 @@ function deleteSingleActivity(id) {
   window.saveAndRefresh('sp');
 }
 
-function toggleSpRecurBox(isChecked) {
+async function toggleSpRecurBox(isChecked) {
   const el = document.getElementById('sp-acc-series');
   const arrow = document.getElementById('sp-acc-series-arrow');
   if(isChecked) {
@@ -1420,7 +1420,7 @@ function spEditActChg(){
 
 
 
-function deleteSingleActivity(id) {
+async function deleteSingleActivity(id) {
   const s = window.SCH.find(x => x.id == id);
   if(!s) return;
   const g = window.G(s.g);
@@ -1549,7 +1549,7 @@ function rrSupChg() {
     window.getSupActs(sup).map(a => `<option value="${a}">${a}</option>`).join('');
 }
 
-function saveReplaceRecur(id) {
+async function saveReplaceRecur(id) {
   try {
     const s = window.SCH.find(x => x.id == id);
     if(!s) return;
@@ -1729,7 +1729,7 @@ function markNoHap(id){
 }
 window.markNoHap = markNoHap;
 
-function setStatus(idOrSt, maybeSt){
+async function setStatus(idOrSt, maybeSt){
   try {
     let id, st;
     if (maybeSt) { id = idOrSt; st = maybeSt; } 
@@ -1939,7 +1939,7 @@ function markCompManual(id){
   } catch(err) { console.error('[markCompManual]', err); window.saveAndRefresh('sp', true); }
 }
 
-function markCompQuick(id){
+async function markCompQuick(id){
   try {
     const s=window.SCH.find(x=>x.id==id); if(!s) return;
     const stamp = 'quick_' + Date.now();
@@ -2243,7 +2243,7 @@ function openCopy(id){
   document.getElementById('copym').style.display='flex';
 }
 
-function doPostpone(){
+async function doPostpone(){
   try {
     const sid = window.selEvPost;
     const s = window.SCH.find(x => x.id == sid);
@@ -2757,7 +2757,7 @@ window.showFreeDaysForMakeup = function(containerId, gid, onSelect) {
   }
 };
 
-window.spSaveMakeup = function() {
+window.spSaveMakeup = async function() {
   const sid = window.selEv;
   const origEv = window.SCH.find(x => x.id == sid);
   if(!origEv) return;
@@ -2974,7 +2974,7 @@ window.saveCanQ = async function() {
   const forPair = syncChk ? syncChk.checked : false;
   
   const s = window.SCH.find(x => x.id == _canQId); if (!s) return;
-  const doCancel = (evId) => {
+  const doCancel = async (evId) => {
     const ev = window.SCH.find(x => x.id == evId); if (!ev) return;
     ev.st = 'can'; ev.cr = mainReason || 'בוטל'; ev.cn = extra;
     // Always clear any previous "handled" stamp — a new cancellation is NOT yet handled
@@ -2999,7 +2999,7 @@ window.saveCanQ = async function() {
   await window.saveAndRefresh('canqm', false);
 
   // Prompt for makeup
-  setTimeout(() => {
+  setTimeout(async () => {
     if(await window.spConfirm('🎨 האם ברצונך לקבוע שיעור השלמה כעת?')) {
       window.openMakeupSched(_canQId);
     }
@@ -3041,7 +3041,7 @@ window.selCancelDayReason = function(btn) {
   }
 };
 
-window.saveCancelDay = function() {
+window.saveCancelDay = async function() {
   const sel = document.querySelector('.cancelday-reason-btn.sel');
   const mainReason = sel?.dataset.r || '';
   const extra = (document.getElementById('cancelday-note')||{}).value?.trim() || '';
@@ -3166,7 +3166,7 @@ window.saveNohapQ = async function(){
   await window.saveAndRefresh('nohapqm', false);
   
   // Prompt for makeup
-  setTimeout(() => {
+  setTimeout(async () => {
     if(await window.spConfirm('🎨 האם ברצונך לקבוע שיעור השלמה כעת?')) {
       window.openMakeupSched(_nohapQId);
     }
