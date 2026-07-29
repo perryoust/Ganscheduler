@@ -33,3 +33,7 @@ backup.json
 firebase-key.json
 google-credentials.json
 service-account.json
+
+package.json
+package-lock.json
+node_modules/
