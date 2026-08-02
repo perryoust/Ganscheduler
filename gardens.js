@@ -1,4 +1,4 @@
-﻿function renderGardens(){
+function renderGardens(){
   const gBody = document.getElementById('g-body');
   if (gBody) gBody.classList.remove('ggrid');
 
@@ -629,7 +629,7 @@ window.getPairs = function(rangeStart = null, rangeEnd = null) {
   });
 };
 
-function gardenClusters(gid, ds = null){return getClusters(ds, ds).filter(cl=>(cl.gardenIds||[]).includes(gid));}
+function gardenClusters(gid, ds = null){return getClusters(ds, ds).filter(cl=>(cl.gardenIds||[]).map(Number).includes(Number(gid)));}
 const PAIR_COLORS=['#1565c0','#2e7d32','#6a1b9a','#00695c','#c62828','#e65100','#37474f','#4527a0'];
 function pairColorIdx(pairId){
   const idx=pairs.findIndex(p=>p.id===pairId);

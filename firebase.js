@@ -1,4 +1,4 @@
-// ══════════════════════════════════════════════
+הכג// ══════════════════════════════════════════════
 // Firebase Realtime Database Sync - v3.0 (Robust)
 // ══════════════════════════════════════════════
 function getFirebaseDbUrl() {
@@ -224,19 +224,19 @@ window.cleanSupplierNamesBeforeSave = function () {
 };
 
 // ── Core Sync Logic ──────────────────────────
-window.mergeWorkerTasksLocally = function(cloudData) {
+window.mergeWorkerTasksLocally = function (cloudData) {
   if (!cloudData) return;
   const cloudTasks = (Array.isArray(cloudData) ? cloudData : Object.values(cloudData || {})).filter(Boolean);
   if (cloudTasks.length === 0) return;
-  
+
   const localMap = {};
   (window.WORKER_TASKS || []).forEach(t => localMap[t.id] = t);
-  
+
   let mergedTasks = [];
   cloudTasks.forEach(ct => {
     const merged = { ...ct };
     const t = localMap[ct.id];
-    
+
     if (t) {
       // Worker clicked done locally but cloud still says pending
       if (t.status === 'done' && ct.status === 'pending') {
@@ -244,40 +244,40 @@ window.mergeWorkerTasksLocally = function(cloudData) {
         merged.doneAt = t.doneAt;
         merged.doneBy = t.doneBy;
       }
-      
+
       // Worker typed a note locally that is longer/newer
       if (t.workerNote && !ct.workerNote) {
         merged.workerNote = t.workerNote;
       } else if (t.workerNote && ct.workerNote && t.workerNote.length > ct.workerNote.length) {
         merged.workerNote = t.workerNote;
       }
-      
+
       if (t.workerName && !ct.workerName) merged.workerName = t.workerName;
       if (t.doneBy && !ct.doneBy) merged.doneBy = t.doneBy;
-      
+
       delete localMap[ct.id];
     }
-    
+
     mergedTasks.push(merged);
   });
-  
+
   // Add any local tasks not in cloud (e.g. worker just added a free note and it hasn't synced)
   Object.values(localMap).forEach(t => {
     mergedTasks.push(t);
   });
-  
+
   window.WORKER_TASKS = mergedTasks;
   if (window.renderWorkerTasksAdmin) window.renderWorkerTasksAdmin();
   if (window.renderWorkerTasksMobile) window.renderWorkerTasksMobile();
 };
 
-window.saveWorkerTasksToFirebase = async function(skipMerge = false) {
+window.saveWorkerTasksToFirebase = async function (skipMerge = false) {
   try {
     let tok = await window._fbUser?.getIdToken(false);
     if (!tok) return;
     const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
     const url = `${base}/data/global_worker_tasks.json?auth=${tok}`;
-    
+
     if (!skipMerge) {
       try {
         const getRes = await fetch(url + '&cb=' + Date.now());
@@ -285,7 +285,7 @@ window.saveWorkerTasksToFirebase = async function(skipMerge = false) {
           const cloudData = await getRes.json();
           window.mergeWorkerTasksLocally(cloudData);
         }
-      } catch(e) {
+      } catch (e) {
         console.warn('Merge fetch failed', e);
       }
     }
@@ -352,7 +352,7 @@ async function saveToFirebase(silent = false, force = false) {
             console.warn(`[Sync] BLOCKED: Dirty Write Detected. Local: ${_localSeq}, Cloud: ${cloudSeq}`);
             _fbSyncing = false;
             _isLocked = false;
-            
+
             // Smart Merge fallback: Provide the user with a choice to overwrite or reload.
             const userWantsToReload = confirm(
               "⚠️ המערכת זיהתה שבוצע שינוי בענן על ידי משתמש אחר!\n\n" +
@@ -360,7 +360,7 @@ async function saveToFirebase(silent = false, force = false) {
               "[אישור / OK] = משוך נתונים מהענן (מומלץ, השינויים האחרונים שלך יאבדו)\n" +
               "[ביטול / Cancel] = אני רוצה לדרוס את הענן (Force Save)"
             );
-            
+
             if (userWantsToReload) {
               loadFromFirebase(true); // Force load
               return false;
@@ -374,7 +374,7 @@ async function saveToFirebase(silent = false, force = false) {
             }
           }
         }
-      } catch(e) { console.warn('[Sync] Failed to verify sequence before save:', e); }
+      } catch (e) { console.warn('[Sync] Failed to verify sequence before save:', e); }
     }
 
     // CRITICAL: Use PATCH instead of PUT to prevent deleting sibling paths under /data (like invoices)
@@ -397,13 +397,13 @@ async function saveToFirebase(silent = false, force = false) {
         console.log('[Sync] Invoices saved:', window.INVOICES.length);
       }
     }
-    
+
     // Save Orders Separately
     if (Array.isArray(window.ORDERS) && window.ORDERS.length > 0) {
       const ordUrl = getFirebaseOrdersUrl() + (tok ? '?auth=' + tok : '');
       await fetch(ordUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.ORDERS) });
     }
-    
+
     // Save Deliveries Separately
     if (Array.isArray(window.DELIVERIES) && window.DELIVERIES.length > 0) {
       const delUrl = getFirebaseDeliveriesUrl() + (tok ? '?auth=' + tok : '');
@@ -436,22 +436,22 @@ async function loadFromFirebase(silent = false, force = false) {
   // Instead, just sync global worker tasks and finish!
   const isWorkerOnlyMode = window.role === 'worker' || (window.permWorker && !window.permPurch && !window.permAct && window.role !== 'admin');
   if (isWorkerOnlyMode) {
-      console.log('[Sync] Worker mode detected. Skipping heavy db load.');
-      _fbSyncing = false;
-      try {
-        let tok = await window._fbUser?.getIdToken(false);
-        const wtUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/global_worker_tasks.json' + (tok ? '?auth=' + tok : '');
-        const wtRes = await fetch(wtUrl + (wtUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now());
-        if (wtRes.ok) {
-           const wtData = await wtRes.json();
-           if (wtData && window.mergeWorkerTasksLocally) {
-               window.mergeWorkerTasksLocally(wtData);
-           }
+    console.log('[Sync] Worker mode detected. Skipping heavy db load.');
+    _fbSyncing = false;
+    try {
+      let tok = await window._fbUser?.getIdToken(false);
+      const wtUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/global_worker_tasks.json' + (tok ? '?auth=' + tok : '');
+      const wtRes = await fetch(wtUrl + (wtUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now());
+      if (wtRes.ok) {
+        const wtData = await wtRes.json();
+        if (wtData && window.mergeWorkerTasksLocally) {
+          window.mergeWorkerTasksLocally(wtData);
         }
-      } catch (e) {
-        console.error('[Sync] Worker tasks fetch error:', e);
       }
-      return true;
+    } catch (e) {
+      console.error('[Sync] Worker tasks fetch error:', e);
+    }
+    return true;
   }
   // CRITICAL: Never load from Firebase during an import — it would overwrite the imported data
   if (window._importInProgress) {
@@ -485,45 +485,45 @@ async function loadFromFirebase(silent = false, force = false) {
       if (wtRes.ok) {
         const wtData = await wtRes.json();
         if (wtData) {
-            if (!window.WORKER_TASKS || window.WORKER_TASKS.length === 0) {
-              window.WORKER_TASKS = (Array.isArray(wtData) ? wtData : Object.values(wtData || {})).filter(Boolean);
-            } else {
-              window.mergeWorkerTasksLocally(wtData);
-            }
+          if (!window.WORKER_TASKS || window.WORKER_TASKS.length === 0) {
+            window.WORKER_TASKS = (Array.isArray(wtData) ? wtData : Object.values(wtData || {})).filter(Boolean);
+          } else {
+            window.mergeWorkerTasksLocally(wtData);
+          }
         } else if (cloud.data && cloud.data.workerTasks && cloud.data.workerTasks.length > 0) {
-            window.WORKER_TASKS = cloud.data.workerTasks;
-            if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase();
+          window.WORKER_TASKS = cloud.data.workerTasks;
+          if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase();
         } else {
-            try {
-              let recovered = false;
-              const keys = [];
-              for(let i=0; i<localStorage.length; i++) keys.push(localStorage.key(i));
-              keys.sort().reverse(); // Newest first
-              for(const k of keys) {
-                if (k && k.startsWith('ganv5_backup_')) {
-                  const bkStr = localStorage.getItem(k);
-                  const bkObj = JSON.parse(bkStr);
-                  if (bkObj && bkObj.workerTasks && bkObj.workerTasks.length > 0) {
-                    window.WORKER_TASKS = bkObj.workerTasks;
-                    if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase();
-                    recovered = true;
-                    console.log('[Recovery] Restored worker tasks from local backup ' + k);
-                    break;
-                  }
+          try {
+            let recovered = false;
+            const keys = [];
+            for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+            keys.sort().reverse(); // Newest first
+            for (const k of keys) {
+              if (k && k.startsWith('ganv5_backup_')) {
+                const bkStr = localStorage.getItem(k);
+                const bkObj = JSON.parse(bkStr);
+                if (bkObj && bkObj.workerTasks && bkObj.workerTasks.length > 0) {
+                  window.WORKER_TASKS = bkObj.workerTasks;
+                  if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase();
+                  recovered = true;
+                  console.log('[Recovery] Restored worker tasks from local backup ' + k);
+                  break;
                 }
               }
-              if (!recovered) window.WORKER_TASKS = [];
-            } catch(e) { window.WORKER_TASKS = []; }
+            }
+            if (!recovered) window.WORKER_TASKS = [];
+          } catch (e) { window.WORKER_TASKS = []; }
         }
         if (cloud.data && cloud.data.workerTasks) delete cloud.data.workerTasks; // Prevent overwrite from mega-blob
       }
-    } catch(e) { console.warn('Failed to load global worker tasks', e); }
+    } catch (e) { console.warn('Failed to load global worker tasks', e); }
 
     // --- AUTO MIGRATION: Flatten Database Structure ---
     if (cloud.data && cloud.data.invoices) {
       console.log('[Migration] Moving invoices to root...');
       const invUrl = getFirebaseInvoicesUrl() + (tok ? '?auth=' + tok : '');
-      await fetch(invUrl, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cloud.data.invoices) });
+      await fetch(invUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud.data.invoices) });
       const oldUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json' + (tok ? '?auth=' + tok : '');
       await fetch(oldUrl, { method: 'DELETE' });
       delete cloud.data.invoices; // Remove from memory to save space
@@ -531,7 +531,7 @@ async function loadFromFirebase(silent = false, force = false) {
     if (cloud.data && cloud.data.orders) {
       console.log('[Migration] Moving orders to root...');
       const ordUrl = getFirebaseOrdersUrl() + (tok ? '?auth=' + tok : '');
-      await fetch(ordUrl, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cloud.data.orders) });
+      await fetch(ordUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud.data.orders) });
       const oldUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/orders.json' + (tok ? '?auth=' + tok : '');
       await fetch(oldUrl, { method: 'DELETE' });
       delete cloud.data.orders;
@@ -539,7 +539,7 @@ async function loadFromFirebase(silent = false, force = false) {
     if (cloud.data && cloud.data.deliveries) {
       console.log('[Migration] Moving deliveries to root...');
       const delUrl = getFirebaseDeliveriesUrl() + (tok ? '?auth=' + tok : '');
-      await fetch(delUrl, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cloud.data.deliveries) });
+      await fetch(delUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud.data.deliveries) });
       const oldUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/deliveries.json' + (tok ? '?auth=' + tok : '');
       await fetch(oldUrl, { method: 'DELETE' });
       delete cloud.data.deliveries;
@@ -558,33 +558,33 @@ async function loadFromFirebase(silent = false, force = false) {
     if (window._applyYearData) {
       window._applyYearData(cloud.data);
     }
-    
+
     // Sync todos from cloud if available
     if (cloud.data.todos && window.todo) {
       window.todo.items = cloud.data.todos;
       if (window._safeLS) window._safeLS.setItem('ganv5_todos', JSON.stringify(cloud.data.todos));
       window.todo.render();
     }
-    
+
     // NOTE: workerTasks are loaded from /data/global_worker_tasks.json (lines 405-443)
     // Do NOT overwrite from cloud.data.workerTasks — that path is stale and causes sync conflicts
 
     _setSyncState(cloud.seq, Date.now(), null, true);
     if (cloud.ts) window._fbLastSaveTs = cloud.ts;
-    
+
     // Auto-refresh view after loading from cloud
     // Ensure we don't interrupt the user if they have a modal open
     if (!window._fbSyncReady || !document.querySelector('.sp-modal-content, .modal.open, .sp-popup')) {
-       if (typeof window.refresh === 'function') {
-         setTimeout(() => window.refresh(), 100);
-       }
-       if (typeof window.renderCoordinatorView === 'function') {
-         setTimeout(() => window.renderCoordinatorView(), 100);
-       }
+      if (typeof window.refresh === 'function') {
+        setTimeout(() => window.refresh(), 100);
+      }
+      if (typeof window.renderCoordinatorView === 'function') {
+        setTimeout(() => window.renderCoordinatorView(), 100);
+      }
     }
-    
+
     window._fbSyncReady = true;
-    
+
     // Silent Daily Auto-Backup to Google Drive for Managers/Admins
     try {
       if (window.role !== 'worker' && typeof window.backupToGoogleDrive === 'function') {
@@ -599,7 +599,7 @@ async function loadFromFirebase(silent = false, force = false) {
           }, 3000);
         }
       }
-    } catch(e) { console.warn('[AutoBackup] Failed to trigger auto backup:', e); }
+    } catch (e) { console.warn('[AutoBackup] Failed to trigger auto backup:', e); }
 
     return true;
   } catch (e) {
@@ -618,7 +618,7 @@ function _fbStartPolling() {
     if (document.querySelector('.modal.open, .sp-popup, .sp-modal-content')) return;
     const orderModal = document.getElementById('order-modal');
     if (orderModal && orderModal.style.display !== 'none' && orderModal.style.display !== '') return;
-    
+
     loadFromFirebase(true);
   }, FIREBASE_POLL_INTERVAL);
 }
@@ -652,15 +652,15 @@ document.addEventListener('visibilitychange', () => {
 // core_app.js calls loadFromFirebase() and _fbStartPolling() after years_meta sync.
 
 // --- Lazy Load Purchasing Data ---
-window.loadPurchasingDataFromFirebase = async function() {
+window.loadPurchasingDataFromFirebase = async function () {
   if (window._purchasingDataLoaded) return;
-  
+
   let tok = window._cachedToken || null;
   if (window._fbUser) {
     try { tok = await window._fbUser.getIdToken(); }
-    catch(e) { console.warn('Failed to get token for purchasing data', e); }
+    catch (e) { console.warn('Failed to get token for purchasing data', e); }
   }
-  
+
   if (!tok) return;
 
   const invUrl = getFirebaseInvoicesUrl() + '?auth=' + tok + '&cb=' + Date.now();
@@ -669,9 +669,9 @@ window.loadPurchasingDataFromFirebase = async function() {
 
   try {
     const [ir, or, dr] = await Promise.all([
-      fetch(invUrl).catch(() => ({ok: false})),
-      fetch(ordUrl).catch(() => ({ok: false})),
-      fetch(delUrl).catch(() => ({ok: false}))
+      fetch(invUrl).catch(() => ({ ok: false })),
+      fetch(ordUrl).catch(() => ({ ok: false })),
+      fetch(delUrl).catch(() => ({ ok: false }))
     ]);
 
     if (ir.ok) {
@@ -706,7 +706,7 @@ window.loadPurchasingDataFromFirebase = async function() {
 
     window._purchasingDataLoaded = true;
     console.log('[Purchasing] Data loaded successfully from root nodes');
-  } catch(e) {
+  } catch (e) {
     console.error('Failed to lazy load purchasing data', e);
   }
 };
