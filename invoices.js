@@ -2826,6 +2826,10 @@ reader.onload = async function(e) {
             action = 'merge'; // Silently merge (update) without bothering the user
           }
           
+          if (!action && skipConfirm) {
+            action = 'merge'; // Auto-refresh mode: always merge without prompting
+          }
+          
           if (!action) {
             const res = await window.promptDuplicateResolution(item, inv);
             action = res.action;
@@ -3359,6 +3363,7 @@ const filesFound = [];
     const isYear = (val) => { const num = parseInt(val, 10); return num >= 2020 && num <= 2030; };
     const hasOnlyYearNumbers = extractedNumbers.filter(n => !isYear(n.clean)).length === 0;
 
+
     let bestInvoice = null;
     let bestType = null;
     let bestScore = -1000;
@@ -3470,7 +3475,14 @@ const filesFound = [];
         const hasPath = !!(existing && existing.path);
         
         if (hasPath && !globalOverwrite) {
-          score -= 500;
+          // If existing was a strong match (high matchScore), heavily penalize to protect it.
+          // If existing was a weak/fallback match (no matchScore or low score), allow overwrite.
+          const existingScore = (existing && existing.matchScore) || 0;
+          if (existingScore >= 100) {
+            score -= 500; // Strong existing match — protect it
+          } else {
+            score -= 10;  // Weak existing match — allow better match to overwrite
+          }
         }
 
         if (score > bestScore) {
@@ -3542,8 +3554,9 @@ const filesFound = [];
                }
                
                if (!foundAlias && inv.orderDesc) {
-                 const descWords = String(inv.orderDesc).split(/\s+/).filter(w=>w.length>2 && !['של','עם','על','את'].includes(w));
-                 if (descWords.some(w => file.name.includes(w))) {
+                 const descWords = String(inv.orderDesc).split(/\s+/).filter(w=>w.length>2 && !['של','עם','על','את','עבור','לקוח','טופס'].includes(w));
+                 const matchedWords = descWords.filter(w => file.name.includes(w));
+                 if (matchedWords.length >= 2 || (matchedWords.length === 1 && matchedWords[0].length >= 6 && file.name.includes(matchedWords[0]))) {
                    supplierScore = 15;
                    foundAlias = true;
                  }
@@ -3614,7 +3627,14 @@ const filesFound = [];
             
             const existing = inv['file_' + type];
             const hasPath = !!(existing && existing.path);
-            if (hasPath && !globalOverwrite) score -= 500;
+            if (hasPath && !globalOverwrite) {
+              const existingScore = (existing && existing.matchScore) || 0;
+              if (existingScore >= 100) {
+                score -= 500;
+              } else {
+                score -= 10;
+              }
+            }
             
             if (isPettyCash) {
               if (score > 0) {
@@ -3639,12 +3659,14 @@ const filesFound = [];
     let matchedInvoice = bestScore > -200 ? bestInvoice : null;
     let matchedType = bestScore > -200 ? bestType : null;
 
+
     if (matchedInvoice) {
       if (Array.isArray(matchedInvoice)) {
          let linkedLines = 0;
          matchedInvoice.forEach(inv => {
-           if (!inv['file_' + matchedType] || globalOverwrite) {
-             inv['file_' + matchedType] = { path: file.link, origin: 'sp' };
+           const existing = inv['file_' + matchedType];
+           if (!existing || globalOverwrite || (existing.matchScore !== undefined && bestScore > existing.matchScore)) {
+             inv['file_' + matchedType] = { path: file.link, origin: 'sp', matchScore: bestScore };
              matchCount++;
              linkedLines++;
            }
@@ -3660,9 +3682,15 @@ const filesFound = [];
            resultsData.push([file.name, `${matchedInvoice.orderDesc || matchedInvoice.supName}`, bestScore, 'דלג (קישור קיים)']);
            skippedCount++;
         } else {
-           matchedInvoice['file_' + matchedType] = { path: file.link, origin: 'sp' };
-           resultsData.push([file.name, `${matchedInvoice.orderDesc || matchedInvoice.supName} (${matchedType})`, bestScore, 'שויך']);
-           matchCount++;
+           const existing = matchedInvoice['file_' + matchedType];
+           if (!existing || globalOverwrite || (existing.matchScore !== undefined && bestScore > existing.matchScore)) {
+             matchedInvoice['file_' + matchedType] = { path: file.link, origin: 'sp', matchScore: bestScore };
+             resultsData.push([file.name, `${matchedInvoice.orderDesc || matchedInvoice.supName} (${matchedType})`, bestScore, 'שויך']);
+             matchCount++;
+           } else {
+             resultsData.push([file.name, `${matchedInvoice.orderDesc || matchedInvoice.supName}`, bestScore, 'דלג (קישור קיים/ציון נמוך יותר)']);
+             skippedCount++;
+           }
         }
       }
     } else {
