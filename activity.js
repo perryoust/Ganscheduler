@@ -827,6 +827,12 @@ window.openSP = function(id) {
 
   // --- STEP 1 & 2: Garden Details (Table) ---
   const allGardens = [{pg: g, pev: s}, ...partnerInfo];
+  allGardens.sort((a, b) => {
+    const tA = (a.pev && a.pev.t) ? a.pev.t : '99:99';
+    const tB = (b.pev && b.pev.t) ? b.pev.t : '99:99';
+    if (tA !== tB) return tA.localeCompare(tB);
+    return (a.pg?.name || '').localeCompare(b.pg?.name || '', 'he');
+  });
   
   let h = `<div style="background:#fff;border-radius:10px;padding:12px;border:1px solid #e0e0e0;margin-bottom:12px;box-shadow:0 2px 4px rgba(0,0,0,0.02)">
     <div style="font-size:0.85rem;font-weight:800;color:#1a237e;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
@@ -863,12 +869,13 @@ window.openSP = function(id) {
             const pId = pev ? pev.id : '';
             const rowG = info.pg;
             const curSt = pev ? pev.st : '';
+            const isMain = Number(rowG.id) === Number(g.id);
             return `
-            <tr style="border-bottom:1px solid #f0f0f0;background:${idx===0?'#fff':'#fafafa'}">
+            <tr style="border-bottom:1px solid #f0f0f0;background:${isMain?'#fff':'#fafafa'}">
               <td style="padding:6px;text-align:center">
                 ${pId ? `<input type="checkbox" class="sp-garden-sel" value="${pId}" checked onchange="window.spUpdateExVisibility()" style="width:16px;height:16px;accent-color:#5c6bc0">` : '-'}
               </td>
-              <td style="padding:6px;font-weight:800;color:#1a237e">${idx===0?'':'🔗 '}${rowG.name} <span style="font-size:0.65rem;color:#78909c">(${rowG.city})</span></td>
+              <td style="padding:6px;font-weight:800;color:#1a237e">${isMain?'':'🔗 '}${rowG.name} <span style="font-size:0.65rem;color:#78909c">(${rowG.city})</span></td>
               <td style="padding:6px">${pev ? window.supBase(pev.a) : '—'}</td>
               <td style="padding:6px">${pev ? (pev.act||'—') : '—'}</td>
               <td style="padding:6px">${pev ? (pev.tp || (window.gcls(rowG)==='גנים'?'חוג':'—')) : '—'}</td>
@@ -2193,15 +2200,23 @@ function openPostpone(id){
     // Set up Synergy UI
     const synWrap = document.getElementById('post-synergy-wrap');
     if(synWrap) {
-      const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
+      let pIds = [];
+      if (window._currentCustomGroup && window._currentCustomGroup.includes(Number(s.g))) {
+        pIds = Array.from(new Set(window._currentCustomGroup.map(Number)));
+      } else {
+        const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
+        if(pair && pair.ids) pIds = pair.ids.map(Number);
+      }
+
       const currentTimes = {};
       const currentGrps = {};
       currentTimes[s.g] = window.fT(s.t) || '';
       currentGrps[s.g] = s.grp || 1;
-      if(pair) {
-        pair.ids.forEach(pId => {
-          if(pId === s.g) return;
-          const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === pId && ps.st!=='can' && window.supBase(ps.a)===window.supBase(s.a));
+
+      if(pIds.length) {
+        pIds.forEach(pId => {
+          if(Number(pId) === Number(s.g)) return;
+          const pEv = window.SCH.find(ps => ps.d === s.d && Number(ps.g) === Number(pId) && ps.st!=='can' && window.supBase(ps.a)===window.supBase(s.a));
           if(pEv) { currentTimes[pId] = window.fT(pEv.t||s.t); currentGrps[pId] = pEv.grp || 1; }
         });
         synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'post', currentTimes, currentGrps, s.d);
@@ -2225,15 +2240,23 @@ function openCopy(id){
   // Set up Synergy UI
   const synWrap = document.getElementById('copy-synergy-wrap');
   if(synWrap) {
-    const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
+    let pIds = [];
+    if (window._currentCustomGroup && window._currentCustomGroup.includes(Number(s.g))) {
+      pIds = Array.from(new Set(window._currentCustomGroup.map(Number)));
+    } else {
+      const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
+      if(pair && pair.ids) pIds = pair.ids.map(Number);
+    }
+
     const currentTimes = {};
     const currentGrps = {};
     currentTimes[s.g] = window.fT(s.t) || '';
     currentGrps[s.g] = s.grp || 1;
-    if(pair) {
-      pair.ids.forEach(pId => {
-        if(pId === s.g) return;
-        const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === pId && ps.st!=='can' && window.supBase(ps.a)===window.supBase(s.a));
+
+    if(pIds.length) {
+      pIds.forEach(pId => {
+        if(Number(pId) === Number(s.g)) return;
+        const pEv = window.SCH.find(ps => ps.d === s.d && Number(ps.g) === Number(pId) && ps.st!=='can' && window.supBase(ps.a)===window.supBase(s.a));
         if(pEv) { currentTimes[pId] = window.fT(pEv.t||s.t); currentGrps[pId] = pEv.grp || 1; }
       });
     }
@@ -2384,11 +2407,27 @@ function doCopy(){
 
 
 // --- SYNERGY UI HELPER ---
-function renderPartnerSynergy(gid, prefix, currentTimes = {}, currentGrps = {}) {
-  const pair = window.getGardenGroup ? window.getGardenGroup(gid) : window.gardenPair(gid);
-  if (!pair) return '';
-  const partners = pair.ids;
-  if (!partners.length) return '';
+function renderPartnerSynergy(gid, prefix, currentTimes = {}, currentGrps = {}, targetDate = null) {
+  let partnerIds = [];
+  if (window._currentCustomGroup && window._currentCustomGroup.includes(Number(gid))) {
+    partnerIds = Array.from(new Set(window._currentCustomGroup.map(Number)));
+  } else {
+    const pair = window.getGardenGroup ? window.getGardenGroup(gid, targetDate) : window.gardenPair(gid, targetDate);
+    if (pair && pair.ids) {
+      partnerIds = pair.ids.map(Number);
+    }
+  }
+  if (!partnerIds.length) return '';
+
+  // Sort partners chronologically by time
+  partnerIds.sort((a, b) => {
+    const tA = currentTimes[a] || '99:99';
+    const tB = currentTimes[b] || '99:99';
+    if (tA !== tB) return tA.localeCompare(tB);
+    const gA = window.G(a)?.name || '';
+    const gB = window.G(b)?.name || '';
+    return gA.localeCompare(gB, 'he');
+  });
   
   let html = `<div style="background:#f0f4f8;border:1px solid #d1d9e6;border-radius:7px;padding:9px;margin-bottom:10px">`;
   html += `<div style="font-size:.78rem;font-weight:700;color:#1a237e;margin-bottom:6px">📌 סינרגיה: גנים מקושרים</div>`;
@@ -2398,8 +2437,8 @@ function renderPartnerSynergy(gid, prefix, currentTimes = {}, currentGrps = {}) 
   </div>`;
   html += `<div style="display:flex;flex-direction:column;gap:8px">`;
   
-  partners.forEach(pId => {
-    const isCurrent = (pId === gid);
+  partnerIds.forEach(pId => {
+    const isCurrent = (Number(pId) === Number(gid));
     const pG = window.G(pId);
     if (!pG) return;
     const timeVal = currentTimes[pId] || '';
