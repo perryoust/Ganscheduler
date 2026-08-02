@@ -1,4 +1,4 @@
-﻿// purchasing_orders.js - Handles Purchase Orders (הזמנות רכש) and Delivery Notes (תעודות משלוח)
+// purchasing_orders.js - Handles Purchase Orders (הזמנות רכש) and Delivery Notes (תעודות משלוח)
 
 window.poSearchQuery = '';
 window.pdSearchQuery = '';
@@ -373,7 +373,7 @@ function omAddItemRow(desc='', qty=1, price=0) {
   
   tr.innerHTML = `
     <td class="om-row-num" style="text-align:center; font-weight:bold; color:#777; vertical-align:middle;"></td>
-    <td><input type="text" class="om-desc in-date" style="width:100%" placeholder="שם הפריט..."></td>
+    <td><textarea class="om-desc in-date" style="width:100%; resize:vertical; min-height:36px; overflow-y:hidden; padding:4px;" rows="1" oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" placeholder="שם הפריט..."></textarea></td>
     <td><input type="number" class="om-qty in-date" min="1" onchange="omCalc()" style="width:100%"></td>
     <td><input type="number" class="om-price in-date" min="0" step="0.01" onchange="omCalc()" style="width:100%"></td>
     <td class="om-row-total" style="font-weight:bold;vertical-align:middle">0.00 ₪</td>
@@ -384,7 +384,10 @@ function omAddItemRow(desc='', qty=1, price=0) {
   `;
   tbody.appendChild(tr);
   
-  tr.querySelector('.om-desc').value = desc;
+  const descEl = tr.querySelector('.om-desc');
+  descEl.value = desc;
+  if(desc) { descEl.style.height=''; descEl.style.height=descEl.scrollHeight+'px'; }
+  
   tr.querySelector('.om-qty').value = qty;
   tr.querySelector('.om-price').value = price;
   
