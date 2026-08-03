@@ -3475,14 +3475,7 @@ const filesFound = [];
         const hasPath = !!(existing && existing.path);
         
         if (hasPath && !globalOverwrite) {
-          // If existing was a strong match (high matchScore), heavily penalize to protect it.
-          // If existing was a weak/fallback match (no matchScore or low score), allow overwrite.
-          const existingScore = (existing && existing.matchScore) || 0;
-          if (existingScore >= 100) {
-            score -= 500; // Strong existing match — protect it
-          } else {
-            score -= 10;  // Weak existing match — allow better match to overwrite
-          }
+          score -= 500;
         }
 
         if (score > bestScore) {
@@ -3554,9 +3547,8 @@ const filesFound = [];
                }
                
                if (!foundAlias && inv.orderDesc) {
-                 const descWords = String(inv.orderDesc).split(/\s+/).filter(w=>w.length>2 && !['של','עם','על','את','עבור','לקוח','טופס'].includes(w));
-                 const matchedWords = descWords.filter(w => file.name.includes(w));
-                 if (matchedWords.length >= 2 || (matchedWords.length === 1 && matchedWords[0].length >= 6 && file.name.includes(matchedWords[0]))) {
+                 const descWords = String(inv.orderDesc).split(/\s+/).filter(w=>w.length>2 && !['של','עם','על','את'].includes(w));
+                 if (descWords.some(w => file.name.includes(w))) {
                    supplierScore = 15;
                    foundAlias = true;
                  }
@@ -3627,14 +3619,7 @@ const filesFound = [];
             
             const existing = inv['file_' + type];
             const hasPath = !!(existing && existing.path);
-            if (hasPath && !globalOverwrite) {
-              const existingScore = (existing && existing.matchScore) || 0;
-              if (existingScore >= 100) {
-                score -= 500;
-              } else {
-                score -= 10;
-              }
-            }
+            if (hasPath && !globalOverwrite) score -= 500;
             
             if (isPettyCash) {
               if (score > 0) {
@@ -3664,9 +3649,8 @@ const filesFound = [];
       if (Array.isArray(matchedInvoice)) {
          let linkedLines = 0;
          matchedInvoice.forEach(inv => {
-           const existing = inv['file_' + matchedType];
-           if (!existing || globalOverwrite || (existing.matchScore !== undefined && bestScore > existing.matchScore)) {
-             inv['file_' + matchedType] = { path: file.link, origin: 'sp', matchScore: bestScore };
+           if (!inv['file_' + matchedType] || globalOverwrite) {
+              inv['file_' + matchedType] = { path: file.link, origin: 'sp' };
              matchCount++;
              linkedLines++;
            }
@@ -3682,9 +3666,8 @@ const filesFound = [];
            resultsData.push([file.name, `${matchedInvoice.orderDesc || matchedInvoice.supName}`, bestScore, 'דלג (קישור קיים)']);
            skippedCount++;
         } else {
-           const existing = matchedInvoice['file_' + matchedType];
-           if (!existing || globalOverwrite || (existing.matchScore !== undefined && bestScore > existing.matchScore)) {
-             matchedInvoice['file_' + matchedType] = { path: file.link, origin: 'sp', matchScore: bestScore };
+           if (!matchedInvoice['file_' + matchedType] || globalOverwrite) {
+              matchedInvoice['file_' + matchedType] = { path: file.link, origin: 'sp' };
              resultsData.push([file.name, `${matchedInvoice.orderDesc || matchedInvoice.supName} (${matchedType})`, bestScore, 'שויך']);
              matchCount++;
            } else {

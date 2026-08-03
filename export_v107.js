@@ -844,7 +844,7 @@ async function exportToExcel(data, filename, opts = {}) {
 
             // Section Sub-Summary
             const typeSum = isPlacement ? ws.addRow([`📌 ${city} - ${type}: ${typeGroups} פעילויות לביצוע (כולל השלמות)`, '', '', '', '', '', '', '']) : ws.addRow([`📌 ${city} - ${type}: בוצעו ${typeGroups} פעילויות (כולל השלמות)`, '', '', '', '', '', '', '', '']);
-            typeSum.font = { bold: true, size: 10, color: { argb: 'FF1A237E' } };
+            typeSum.font = { bold: true, size: 12, color: { argb: 'FF1A237E' } };
             typeSum.eachCell((cell) => {
               cell.alignment = { horizontal: 'right' };
             });
@@ -852,7 +852,7 @@ async function exportToExcel(data, filename, opts = {}) {
 
             if (typeGroupsNo > 0 && !isPlacement) {
               const typeSumNo = ws.addRow([`❌ ${city} - ${type}: לא בוצעו ${typeGroupsNo} פעילויות (כולל השלמות)`, '', '', '', '', '', '', '', '']);
-              typeSumNo.font = { bold: true, size: 10, color: { argb: 'FFD32F2F' } };
+              typeSumNo.font = { bold: true, size: 12, color: { argb: 'FFD32F2F' } };
               typeSumNo.eachCell((cell) => { cell.alignment = { horizontal: 'right' }; });
               ws.mergeCells(typeSumNo.number, 1, typeSumNo.number, 9);
             }
