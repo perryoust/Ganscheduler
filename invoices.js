@@ -2788,6 +2788,8 @@ reader.onload = async function(e) {
         });
 
         // Auto-infer invoice status (use pre-coercion flags to avoid 0-amount false negatives)
+        const isValidStr = (val) => val !== undefined && val !== null && String(val).trim() !== '' && String(val).trim() !== '-' && String(val).trim() !== '0' && String(val).trim() !== '0.0' && String(val).trim() !== '0.00';
+        const isNonZeroRaw = (val) => isValidStr(val) && val !== 0;
         let status = 'order';
         const hasTaxDetails = !!(isValidStr(item.num) || isValidStr(item.date) || isNonZeroRaw(item.total) || isNonZeroRaw(item.amt));
         const hasTxDetails  = !!(isValidStr(item.txNum) || isValidStr(item.txDate) || isNonZeroRaw(item.txTotal) || isNonZeroRaw(item.txAmt));
