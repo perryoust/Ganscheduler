@@ -906,7 +906,7 @@ window.openSP = function(id) {
   // --- STEP 3: Quick Actions (Compact Dropdown) ---
   h += `<div style="background:#f8f9fa;border-radius:10px;padding:12px;border:1px solid #e0e0e0;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
     <div style="display:flex;flex-direction:column">
-      <div style="font-size:.75rem;font-weight:800;color:#1a237e">🌐 פעולות גלובליות (על המסומנים)</div>
+      <div style="font-size:.75rem;font-weight:800;color:#1a237e">🌐 פעולות גלובליות (למסומנים ב-V)</div>
       <div style="font-size:0.65rem;color:#546e7a">הפעולות יחולו רק על הגנים המסומנים בטבלה</div>
     </div>
     <div style="display:flex;gap:8px">
@@ -934,7 +934,7 @@ window.openSP = function(id) {
       <textarea id="sp-n" rows="2" style="width:100%;font-size:.8rem;border-radius:6px;border:1px solid #ccc;padding:6px;resize:none;font-family:inherit" placeholder="מעודכן לכל הפעילויות הבאות...">${s.n||''}</textarea>
     </div>
     <div style="grid-column:1/-1">
-      <button class="btn bp bsm" style="width:100%;padding:8px;font-weight:700;border-radius:6px" onclick="window.spBatchSaveNt()">💾 שמור הערות לכל המסומנים</button>
+      <button class="btn bp bsm" style="width:100%;padding:8px;font-weight:700;border-radius:6px" onclick="window.spBatchSaveNt()">💾 שמור הערות לגנים המסומנים ב-V בטבלה למעלה</button>
     </div>
   </div>`;
 
@@ -944,7 +944,7 @@ window.openSP = function(id) {
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <input type="text" id="sp-handle-nt" style="flex:1;min-width:200px;padding:6px;border-radius:6px;border:1px solid #ffe082;font-size:0.8rem" placeholder="הערת סיום טיפול (לדוגמה: בוצע ידנית ב-20/4...)" value="${s.st==='post'?'נדחה':''}">
         ${spPair ? `<label for="sp-sync-pair" style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="sp-sync-pair" style="width:14px;height:14px;accent-color:#e65100" checked><span style="font-size:0.75rem;font-weight:700;color:#bf360c">${spPair.ids.length > 2 ? 'סנכרן לאשכול' : 'סנכרן לזוג'}</span></label>` : ''}
-        <button class="btn borange bsm" style="padding:6px 12px;font-weight:800;border-radius:6px" onclick="window.spBatchMarkCompManual()">סיום טיפול לכל המסומנים</button>
+        <button class="btn borange bsm" style="padding:6px 12px;font-weight:800;border-radius:6px" onclick="window.spBatchMarkCompManual()">סיום טיפול לגנים המסומנים ב-V</button>
       </div>
     </div>`;
 
