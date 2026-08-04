@@ -596,14 +596,26 @@ function getClusters(rangeStart = null, rangeEnd = null){
   if(rangeStart){
     const rStart = rangeStart;
     const rEnd = rangeEnd || rangeStart;
+    arr = arr.map(c => ({...c, gardenIds: c.gardenIds ? [...c.gardenIds] : []}));
+
     arr = arr.filter(cl => {
       if(cl.validFrom && rEnd < cl.validFrom) return false;
       if(cl.validTo && rStart > cl.validTo) return false;
       return true;
     });
     
-    if (arr.some(c => c.validFrom)) {
-      arr = arr.filter(c => c.validFrom);
+    const tempGids = new Set();
+    arr.filter(c => c.validFrom).forEach(c => {
+      c.gardenIds.forEach(id => tempGids.add(String(id)));
+    });
+
+    if (tempGids.size > 0) {
+      arr.forEach(c => {
+        if (!c.validFrom) {
+          c.gardenIds = c.gardenIds.filter(id => !tempGids.has(String(id)));
+        }
+      });
+      arr = arr.filter(c => c.validFrom || c.gardenIds.length > 0);
     }
   }
   return arr.sort((a,b)=> {
