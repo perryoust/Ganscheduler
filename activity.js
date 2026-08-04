@@ -955,15 +955,6 @@ window.openSP = function(id) {
   const defaultFrom = s.d; // Always default to the event's date
   const defaultTo = `${_sY + 1}-06-30`;
 
-  let activeDays = new Set([new Date(s.d).getDay()]);
-  if (s._recId) {
-    window.SCH.forEach(x => {
-      if (x._recId === s._recId && Number(x.g) === Number(s.g) && x.d >= s.d) {
-        activeDays.add(new Date(x.d).getDay());
-      }
-    });
-  }
-
   h += `<div style="margin-top:10px;border:1px solid #ce93d8;border-radius:10px;overflow:hidden">
     <div style="background:#f3e5f5;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="window.toggleSpAccordion('sp-acc-series')">
       <b style="font-size:0.8rem;color:#6a1b9a">🔄 הגדרות פעילות קבועה (סדרה)</b>
@@ -978,7 +969,7 @@ window.openSP = function(id) {
         </div>
         <div class="fg"><label style="font-size:.7rem;font-weight:700">🗓️ ימים בשבוע</label>
           <div style="display:flex;justify-content:space-between;background:#fff;padding:6px;border-radius:4px;border:1px solid #ccc">
-            ${['א','ב','ג','ד','ה'].map((d,i)=>`<label style="display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer"><span style="font-size:.65rem;font-weight:700">${d}</span><input type="checkbox" class="rr-day" value="${i}" ${activeDays.has(i)?'checked':''} style="width:14px;height:14px;accent-color:#6a1b9a"></label>`).join('')}
+            ${['א','ב','ג','ד','ה'].map((d,i)=>`<label style="display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer"><span style="font-size:.65rem;font-weight:700">${d}</span><input type="checkbox" class="rr-day" value="${i}" ${new Date(s.d).getDay()===i?'checked':''} style="width:14px;height:14px;accent-color:#6a1b9a"></label>`).join('')}
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -1645,7 +1636,7 @@ async function saveReplaceRecur(id) {
           // Add for primary garden
           window.SCH.push({
             id: eid, g: s.g, d: ds, a: sup, act: act, t: time, st: 'ok', 
-            nt: '', _recId: newRecId, grp: newGrp || s.grp || 1
+            nt: '', _recId: newRecId + '_' + cur.getDay(), grp: newGrp || s.grp || 1
           });
           // Add for partners if synced
           if (sync) {
@@ -1662,7 +1653,7 @@ async function saveReplaceRecur(id) {
                     console.log('PID:', pid, 'SyncBox:', !!syncBox, 'InputFound:', !!specificInput, 'Time:', specificPartnerTime);
                     window.SCH.push({
                       id: eid + (idx+1)*5000, g: pid, d: ds, a: sup, act: act, t: specificPartnerTime, st: 'ok',
-                    nt: '', _recId: newRecId, grp: newGrp || s.grp || 1
+                    nt: '', _recId: newRecId + '_' + cur.getDay(), grp: newGrp || s.grp || 1
                   });
                 }
               });

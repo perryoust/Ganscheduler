@@ -599,7 +599,7 @@ async function saveNewSched(){
         const _hol2=window.getHolidayInfo(ds,window.G(gid).city||null,window.gcls(window.G(gid))||null);
         if(!_hol2||_hol2.type==='info'||_hol2.canSched){
           const eid=recurring_id+count;
-          const ev={id:eid,g:gid,d:ds,a:sup,act:actType,tp:evTp||'חוג',t:recurTime,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp,_recId:recurring_id};
+          const ev={id:eid,g:gid,d:ds,a:sup,act:actType,tp:evTp||'חוג',t:recurTime,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp,_recId:recurring_id + '_' + cur.getDay()};
           window.SCH.push(ev);
           synergyPartners.forEach((syn, idx) => {
             window.SCH.push({...ev,id:eid+(idx+1)*2000,g:syn.g,t:syn.t||recurTime});
