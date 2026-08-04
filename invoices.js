@@ -2789,8 +2789,8 @@ reader.onload = async function(e) {
 
         // Auto-infer invoice status (use pre-coercion flags to avoid 0-amount false negatives)
         let status = 'order';
-        const hasTaxDetails = _rawHasTax || !!(item.num || item.date || item.total > 0 || item.amt > 0);
-        const hasTxDetails  = _rawHasTx  || !!(item.txNum || item.txDate || item.txTotal > 0 || item.txAmt > 0);
+        const hasTaxDetails = !!(isValidStr(item.num) || isValidStr(item.date) || isNonZeroRaw(item.total) || isNonZeroRaw(item.amt));
+        const hasTxDetails  = !!(isValidStr(item.txNum) || isValidStr(item.txDate) || isNonZeroRaw(item.txTotal) || isNonZeroRaw(item.txAmt));
         
         if (hasTaxDetails) {
           const isExempt = (window.supEx && window.supEx[sName] && (window.supEx[sName].entityType==='עוסק פטור'||window.supEx[sName].entityType==='עמותה'));
@@ -3651,6 +3651,12 @@ const filesFound = [];
          matchedInvoice.forEach(inv => {
            if (!inv['file_' + matchedType] || globalOverwrite) {
               inv['file_' + matchedType] = { path: file.link, origin: 'sp' };
+              const fName = String(file.name || '');
+              if (fName.includes('חשבונית מס')) {
+                  inv.status = 'tax_invoice';
+              } else if (fName.includes('חשבון עסקה') && inv.status !== 'receipt') {
+                  inv.status = 'tx_invoice';
+              }
              matchCount++;
              linkedLines++;
            }
@@ -3668,6 +3674,12 @@ const filesFound = [];
         } else {
            if (!matchedInvoice['file_' + matchedType] || globalOverwrite) {
               matchedInvoice['file_' + matchedType] = { path: file.link, origin: 'sp' };
+              const fName = String(file.name || '');
+              if (fName.includes('חשבונית מס')) {
+                  matchedInvoice.status = 'tax_invoice';
+              } else if (fName.includes('חשבון עסקה') && matchedInvoice.status !== 'receipt') {
+                  matchedInvoice.status = 'tx_invoice';
+              }
              resultsData.push([file.name, `${matchedInvoice.orderDesc || matchedInvoice.supName} (${matchedType})`, bestScore, 'שויך']);
              matchCount++;
            } else {
@@ -4129,3 +4141,5 @@ window.autoRefreshPurchasing = async function() {
     _spAlertDialog("שגיאה: פונקציית הסריקה הפנימית לא קיימת.");
   }
 };
+
+/* force deploy */
