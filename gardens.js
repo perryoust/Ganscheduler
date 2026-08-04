@@ -601,6 +601,10 @@ function getClusters(rangeStart = null, rangeEnd = null){
       if(cl.validTo && rStart > cl.validTo) return false;
       return true;
     });
+    
+    if (arr.some(c => c.validFrom)) {
+      arr = arr.filter(c => c.validFrom);
+    }
   }
   return arr.sort((a,b)=> {
     const aTemp = a.validFrom ? 1 : 0;
