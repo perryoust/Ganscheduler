@@ -3476,8 +3476,8 @@ const filesFound = [];
         const existing = inv['file_' + type];
         const hasPath = !!(existing && existing.path);
         
-        if (hasPath && !globalOverwrite) {
-          score -= 500;
+        if (hasPath && !globalOverwrite) { if (existing.score !== undefined && score > existing.score) { score -= 5; } else { score -= 500; } } // patched
+
         }
 
         if (score > bestScore) {
@@ -3621,7 +3621,7 @@ const filesFound = [];
             
             const existing = inv['file_' + type];
             const hasPath = !!(existing && existing.path);
-            if (hasPath && !globalOverwrite) score -= 500;
+            if (hasPath && !globalOverwrite) { if (existing.score !== undefined && score > existing.score) { score -= 5; } else { score -= 500; } } // patched
             
             if (isPettyCash) {
               if (score > 0) {
@@ -3651,8 +3651,8 @@ const filesFound = [];
       if (Array.isArray(matchedInvoice)) {
          let linkedLines = 0;
          matchedInvoice.forEach(inv => {
-           if (!inv['file_' + matchedType] || globalOverwrite) {
-              inv['file_' + matchedType] = { path: file.link, origin: 'sp' };
+           if (!inv['file_' + matchedType] || globalOverwrite || (inv['file_' + matchedType].score !== undefined && bestScore > inv['file_' + matchedType].score)) {
+              inv['file_' + matchedType] = { path: file.link, origin: 'sp', score: bestScore };
               const fName = String(file.name || '');
               if (fName.includes('חשבונית מס')) {
                   inv.status = 'tax_invoice';
@@ -3674,8 +3674,8 @@ const filesFound = [];
            resultsData.push([file.name, `${matchedInvoice.orderDesc || matchedInvoice.supName}`, bestScore, 'דלג (קישור קיים)']);
            skippedCount++;
         } else {
-           if (!matchedInvoice['file_' + matchedType] || globalOverwrite) {
-              matchedInvoice['file_' + matchedType] = { path: file.link, origin: 'sp' };
+           if (!matchedInvoice['file_' + matchedType] || globalOverwrite || (matchedInvoice['file_' + matchedType].score !== undefined && bestScore > matchedInvoice['file_' + matchedType].score)) {
+              matchedInvoice['file_' + matchedType] = { path: file.link, origin: 'sp', score: bestScore };
               const fName = String(file.name || '');
               if (fName.includes('חשבונית מס')) {
                   matchedInvoice.status = 'tax_invoice';
