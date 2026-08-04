@@ -982,7 +982,7 @@ window.openSP = function(id) {
         </div>
         <div style="display:grid;grid-template-columns:1fr;gap:8px">
           <div class="fg"><label style="font-size:.7rem;font-weight:700">קבוצות</label><input type="number" id="rr-grp" value="${s.grp||1}" min="1" max="10" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
-          <div class="fg"><label style="font-size:.7rem;font-weight:700">⏰ שעה (${g.name})</label><input type="time" id="rr-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
+          <div class="fg"><label style="font-size:.7rem;font-weight:700;display:flex;align-items:center;gap:3px;cursor:pointer" title="הורד סימון כדי לא לשבץ פעילות בגן זה"><input type="checkbox" id="rr-sync-partner-${s.g}" checked style="width:13px;height:13px;accent-color:#1a237e;margin:0"> שעה (${g.name})</label><input type="time" id="rr-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
           ${spPair ? spPair.ids.filter(id=>Number(id)!==Number(s.g)).map((pid, idx) => {
                  let pInfo = partnerInfo.find(pi => Number(pi.pg.id) === Number(pid));
                  let pTime = (pInfo && pInfo.pev) ? pInfo.pev.t : (s.t||'');
@@ -1585,19 +1585,20 @@ async function saveReplaceRecur(id) {
       const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
       if (pair) {
         pair.ids.forEach(pid => {
-          if (Number(pid) !== Number(s.g)) {
-            const syncBox = document.getElementById('rr-sync-partner-' + pid);
-            if (!syncBox || syncBox.checked) {
-              partnerGids.push(Number(pid));
-            }
-          } else {
+          const syncBox = document.getElementById('rr-sync-partner-' + pid);
+          if (!syncBox || syncBox.checked) {
             partnerGids.push(Number(pid));
           }
         });
       }
     } else {
-      partnerGids.push(Number(s.g));
+      const syncBox = document.getElementById('rr-sync-partner-' + s.g);
+      if (!syncBox || syncBox.checked) {
+        partnerGids.push(Number(s.g));
+      }
     }
+
+    if (!partnerGids.length) return window._spAlertDialog('יש לסמן לפחות גן אחד אליו תוחל הפעילות');
 
     // 2. Remove future occurrences from SCH
     if (!window.supEx) window.supEx = {};
