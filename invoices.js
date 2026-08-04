@@ -3478,7 +3478,7 @@ const filesFound = [];
         
         if (hasPath && !globalOverwrite) { if (existing.score !== undefined && score > existing.score) { score -= 5; } else { score -= 500; } } // patched
 
-        }
+
 
         if (score > bestScore) {
           bestScore = score;
