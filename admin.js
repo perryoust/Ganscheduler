@@ -1138,7 +1138,19 @@ window.executeNewYear = async function() {
         ch: [],  // Empty schedule
         pairs: newPairs,
         supEx: newSupEx,
-        clusters: JSON.parse(JSON.stringify(window.clusters || {})),
+        clusters: (() => {
+          const filtered = {};
+          Object.entries(window.clusters || {}).forEach(([key, cl]) => {
+            // Skip temporary clusters (those with validFrom/validTo)
+            if (cl.validFrom || cl.validTo) return;
+            // Only keep gardens that the user selected
+            const filteredGids = (cl.gardenIds || []).filter(id => selectedGardenIds.has(parseInt(id)));
+            if (filteredGids.length >= 2) {
+              filtered[key] = { ...cl, gardenIds: filteredGids };
+            }
+          });
+          return filtered;
+        })(),
         holidays: [],
         pairBreaks: {},
         managers: (() => {
