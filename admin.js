@@ -1165,7 +1165,9 @@ window.executeNewYear = async function() {
         blockedDates: {},
         gardenBlocks: {},
         activeGardens: [...selectedGardenIds],
-        useSraws: false  // New periods always use direct mode
+        useSraws: false,  // New periods always use direct mode
+        spScannerAliases: JSON.parse(JSON.stringify(window.spScannerAliases || {})),
+        spScannerFolderLinks: JSON.parse(JSON.stringify(window.spScannerFolderLinks || {}))
       },
       ts: Date.now(),
       seq: 1,
