@@ -1607,11 +1607,13 @@ async function saveReplaceRecur(id) {
     window.SCH = window.SCH.filter(ev => {
       const isFuture = ev.d >= from;
       const isTargetGarden = partnerGids.includes(Number(ev.g));
-      const isOldSeries = ev._recId && seriesIdsToRemove.has(ev._recId);
+      
+      const isSameDayOfWeek = new Date(ev.d).getDay() === new Date(s.d).getDay();
+      
+      // Even if they share the same _recId (legacy series), only delete the same day of the week
+      const isOldSeries = ev._recId && seriesIdsToRemove.has(ev._recId) && isSameDayOfWeek;
       
       // Extra safety for legacy events: also match by supplier if _recId is missing but it's clearly part of the same thing.
-      // CRITICAL: Only match the exact same day of the week to prevent deleting other days in a separated series!
-      const isSameDayOfWeek = new Date(ev.d).getDay() === new Date(s.d).getDay();
       const isOldMatch = !ev._recId && isTargetGarden && window.supBase(ev.a) === window.supBase(s.a) && ev.d >= from && ev.st !== 'can' && isSameDayOfWeek;
       
       const shouldRemove = isFuture && (isOldSeries || isOldMatch);
