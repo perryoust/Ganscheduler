@@ -1,4 +1,4 @@
-﻿# Ganscheduler Workspace Rules
+# Ganscheduler Workspace Rules
 
 ## Purchasing Management (ניהול רכש - חשבוניות)
 When working on the invoices module (`invoices.js`), adhere to the following business logic for classification:
@@ -12,7 +12,7 @@ When working on the invoices module (`invoices.js`), adhere to the following bus
 ## Deployment Workflow
 At the conclusion of every development session (once a feature is built or a bug is successfully resolved):
 1. Execute `git add .` and `git commit -m "..."` followed by `git push`.
-2. Always deploy the web application to Firebase using `firebase deploy --only hosting`.
+2. Always deploy the web application to Firebase using `firebase deploy --only hosting` (use the **global** firebase from npm, NOT `.\node_modules\.bin\firebase.cmd`).
 3. Do not forget to bump the version number in `index.html` before deploying.
 
 ## Tool Usage and Minimizing Prompts
