@@ -608,8 +608,11 @@ const HOLIDAYS_RESTORE = [{"canSched":false,"city":"","from":"2026-03-31","id":"
 
 function restoreMissingHolidays() {
   if (window.holidays && window.holidays.length === 0) {
-    window.holidays = HOLIDAYS_RESTORE;
-    return true;
+    // Only restore these specific 2026 holidays if we are in the original tashpav year
+    if (!window.CURRENT_YEAR || window.CURRENT_YEAR === 'tashpav') {
+      window.holidays = HOLIDAYS_RESTORE;
+      return true;
+    }
   }
   return false;
 }
