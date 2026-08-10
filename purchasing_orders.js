@@ -1132,6 +1132,8 @@ function openOrderPrintPreview(order, autoDownload = false) {
         .ultra-compact table { font-size: 0.68em; margin-top: 2px; line-height: 1.15; }
         .ultra-compact th, .ultra-compact td { padding: 1px 3px; line-height: 1.15; }
         .ultra-compact .header { padding-bottom: 2px; margin-bottom: 3px; border-bottom-width: 1px; }
+        .ultra-compact .header h1 { font-size: 1.4em !important; margin: 0 !important; }
+        .ultra-compact .header h3 { font-size: 0.9em !important; margin: 2px 0 0 0 !important; }
         .ultra-compact h3, .ultra-compact h4, .ultra-compact p { margin-bottom: 1px !important; margin-top: 1px !important; }
         .ultra-compact .footer-info-wrapper { margin-top: 5px !important; }
         .ultra-compact .order-totals { font-size: 0.75em !important; padding: 4px 10px !important; min-width: 140px !important; }
@@ -1139,8 +1141,9 @@ function openOrderPrintPreview(order, autoDownload = false) {
         .ultra-compact .order-totals p { margin: 2px 0 !important; }
         .ultra-compact .order-notes { font-size: 0.75em !important; line-height: 1.15; }
         .ultra-compact .logo-wrapper { margin-bottom: 1px !important; }
+        .ultra-compact .logo-wrapper div { font-size: 0.85em !important; margin-top: 1px !important; }
         .ultra-compact .page-num-wrapper { margin-top: 1px !important; }
-        .ultra-compact .logo-wrapper img { max-height: 50px !important; }
+        .ultra-compact .logo-wrapper img { max-height: 40px !important; }
         .ultra-compact .signature-wrapper { margin-top: 3px !important; width: 100% !important; }
         .ultra-compact .signature-wrapper > div { width: 160px !important; }
         .ultra-compact .signature-wrapper div { font-size: 0.75em !important; margin-bottom: 2px !important; }
