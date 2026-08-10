@@ -185,7 +185,7 @@ function openNewOrder() {
   }
 
   const suppliers = (typeof getPurchSuppliers === 'function' ? getPurchSuppliers().map(s => s.name) : Object.keys(window.supEx || {})).sort();
-  const supOptions = suppliers.map(s => `<option value="${s}">${s}</option>`).join('');
+  const supOptions = suppliers.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s.replace(/</g, '&lt;')}</option>`).join('');
 
   modal.innerHTML = `
     <div class="modal-box" style="max-width:800px; background:#fff; border-radius:12px; padding:20px; box-shadow:0 10px 40px rgba(0,0,0,0.2); max-height:90vh; overflow-y:auto; -webkit-overflow-scrolling:touch">
