@@ -1202,7 +1202,7 @@ function openOrderPrintPreview(order, autoDownload = false) {
       </div>
     </body>
     </html>
-  \`;
+  `;
 
   if (autoDownload) {
     const iframe = document.createElement('iframe');
