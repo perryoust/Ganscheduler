@@ -906,7 +906,11 @@ function openOrderPrintPreview(order, autoDownload = false) {
   let MAX_LINES_PER_PAGE = 22;
   let MAX_LINES_PER_PAGE_WITH_TOTALS = 14;
 
-  if (totalLines > 25) {
+  if (totalLines > 30) {
+    compactClass = 'ultra-compact';
+    MAX_LINES_PER_PAGE = 70;
+    MAX_LINES_PER_PAGE_WITH_TOTALS = 55;
+  } else if (totalLines > 25) {
     compactClass = 'super-compact';
     MAX_LINES_PER_PAGE = 45;
     MAX_LINES_PER_PAGE_WITH_TOTALS = 30;
@@ -1119,6 +1123,12 @@ function openOrderPrintPreview(order, autoDownload = false) {
         .super-compact th, .super-compact td { padding: 1px 2px; }
         .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
         .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
+        
+        .ultra-compact table { font-size: 0.65em; margin-top: 1px; }
+        .ultra-compact th, .ultra-compact td { padding: 0px 2px; }
+        .ultra-compact .header { padding-bottom: 1px; margin-bottom: 2px; border-bottom-width: 1px; }
+        .ultra-compact h3, .ultra-compact h4, .ultra-compact p { margin-bottom: 0px !important; margin-top: 0px !important; }
+        .ultra-compact .page { padding: 15px 30px; }
 
         @page { size: A4 portrait; margin: 0; }
         @media print {
