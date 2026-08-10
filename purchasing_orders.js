@@ -845,6 +845,112 @@ function previewOrder() {
   openOrderPrintPreview(order);
 }
 
+function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
+  if (window.showToast) window.showToast('⏳ מייצר קובץ PDF להורדה...', 4000);
+  
+  const doDownload = () => {
+    const container = document.createElement('div');
+    container.id = 'direct-pdf-export-container';
+    container.style.position = 'fixed';
+    container.style.top = '0';
+    container.style.left = '0';
+    container.style.width = '794px';
+    container.style.zIndex = '-99999';
+    container.style.opacity = '0';
+    container.style.pointerEvents = 'none';
+    
+    container.innerHTML = `
+      <style>
+        #direct-pdf-export-container { font-family: Arial, sans-serif; padding: 0; margin: 0; background: #fff; direction: rtl; }
+        #direct-pdf-export-container .page { 
+          background: #fff; 
+          padding: 40px; 
+          width: 794px; 
+          min-height: 1115px;
+          height: auto;
+          box-sizing: border-box; 
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          margin-bottom: 0;
+          box-shadow: none;
+        }
+        #direct-pdf-export-container table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; table-layout: fixed; }
+        #direct-pdf-export-container th, #direct-pdf-export-container td { border: 1px solid #ccc; padding: 4px 6px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
+        #direct-pdf-export-container th { background: #f5f5f5; }
+        #direct-pdf-export-container .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2e7d32; padding-bottom: 10px; margin-bottom: 10px;}
+        
+        #direct-pdf-export-container .compact table { font-size: 0.85em; margin-top: 5px; }
+        #direct-pdf-export-container .compact th, #direct-pdf-export-container .compact td { padding: 2px 4px; }
+        #direct-pdf-export-container .compact .header { padding-bottom: 5px; margin-bottom: 5px; }
+        #direct-pdf-export-container .compact .signature-wrapper { margin-top: 25px !important; }
+        
+        #direct-pdf-export-container .super-compact table { font-size: 0.75em; margin-top: 2px; }
+        #direct-pdf-export-container .super-compact th, #direct-pdf-export-container .super-compact td { padding: 1px 2px; }
+        #direct-pdf-export-container .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
+        #direct-pdf-export-container .super-compact h3, #direct-pdf-export-container .super-compact h4, #direct-pdf-export-container .super-compact p { margin-bottom: 1px !important; }
+        #direct-pdf-export-container .super-compact .signature-wrapper { margin-top: 15px !important; }
+        
+        #direct-pdf-export-container .page.ultra-compact { padding: 10px 25px 6px !important; min-height: 1115px !important; }
+        #direct-pdf-export-container .ultra-compact table { font-size: 0.68em; margin-top: 2px; line-height: 1.15; }
+        #direct-pdf-export-container .ultra-compact th, #direct-pdf-export-container .ultra-compact td { padding: 1px 3px; line-height: 1.15; }
+        #direct-pdf-export-container .ultra-compact .header { padding-bottom: 2px; margin-bottom: 3px; border-bottom-width: 1px; }
+        #direct-pdf-export-container .ultra-compact .header h1 { font-size: 1.4em !important; margin: 0 !important; }
+        #direct-pdf-export-container .ultra-compact .header h3 { font-size: 0.9em !important; margin: 2px 0 0 0 !important; }
+        #direct-pdf-export-container .ultra-compact h3, #direct-pdf-export-container .ultra-compact h4, #direct-pdf-export-container .ultra-compact p { margin-bottom: 1px !important; margin-top: 1px !important; }
+        #direct-pdf-export-container .ultra-compact .footer-info-wrapper { margin-top: 5px !important; }
+        #direct-pdf-export-container .ultra-compact .order-totals { font-size: 0.75em !important; padding: 4px 10px !important; min-width: 140px !important; }
+        #direct-pdf-export-container .ultra-compact .order-totals h3 { font-size: 1.1em !important; margin-top: 3px !important; }
+        #direct-pdf-export-container .ultra-compact .order-totals p { margin: 2px 0 !important; }
+        #direct-pdf-export-container .ultra-compact .order-notes { font-size: 0.75em !important; line-height: 1.15; }
+        #direct-pdf-export-container .ultra-compact .logo-wrapper { margin-bottom: 1px !important; }
+        #direct-pdf-export-container .ultra-compact .logo-wrapper div { font-size: 0.85em !important; margin-top: 1px !important; }
+        #direct-pdf-export-container .ultra-compact .page-num-wrapper { margin-top: 1px !important; }
+        #direct-pdf-export-container .ultra-compact .logo-wrapper img { max-height: 40px !important; }
+        #direct-pdf-export-container .ultra-compact .signature-wrapper { margin-top: 3px !important; width: 100% !important; }
+        #direct-pdf-export-container .ultra-compact .signature-wrapper > div { width: 160px !important; }
+        #direct-pdf-export-container .ultra-compact .signature-wrapper div { font-size: 0.75em !important; margin-bottom: 2px !important; }
+        #direct-pdf-export-container .ultra-compact .signature-line { margin-top: 12px !important; }
+        #direct-pdf-export-container .ultra-compact .page-footer-bottom { margin-top: 5px !important; padding-top: 3px !important; font-size: 0.70em !important; }
+        ${extraCss}
+      </style>
+      ${pagesHtml}
+    `;
+    
+    document.body.appendChild(container);
+    
+    const cleanFilename = filename.endsWith('.pdf') ? filename : filename + '.pdf';
+    const opt = {
+      margin:       0,
+      filename:     cleanFilename,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    
+    html2pdf().set(opt).from(container).save().then(() => {
+      if (container.parentNode) container.parentNode.removeChild(container);
+      if (window.showToast) window.showToast('✅ הקובץ הורד בהצלחה!', 3000);
+    }).catch(err => {
+      console.error('PDF generation error:', err);
+      if (container.parentNode) container.parentNode.removeChild(container);
+      if (window.showToast) window.showToast('❌ שגיאה בהורדת הקובץ', 4000);
+    });
+  };
+
+  if (typeof html2pdf === 'undefined') {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    s.onload = doDownload;
+    s.onerror = () => {
+      if (window.showToast) window.showToast('❌ שגיאה בטעינת ספריית PDF', 4000);
+    };
+    document.head.appendChild(s);
+  } else {
+    doDownload();
+  }
+}
+
 function openOrderPrintPreview(order, autoDownload = false) {
   const defaultFooter = `טומשין-עושים חינוך אחרת בע"מ (חל"צ) – רשת צהרונים\nהנהלה ראשית: רח' איינשטיין 18 קומה ב', נס ציונה, ת.ד. 2318, מיקוד 7403622, טל: 03-9689119 פקס: 039689120\nwww.tomashin.co.il  www.tomashin-kids.co.il`;
   
@@ -1084,7 +1190,13 @@ function openOrderPrintPreview(order, autoDownload = false) {
     `;
   });
 
-  const htmlContent = `
+  if (autoDownload) {
+    downloadHtmlAsPdf(rawTitle, pagesHtml);
+    return;
+  }
+
+  const w = window.open('', '_blank');
+  w.document.write(`
     <html dir="rtl">
     <head>
       <title>${titleText}</title>
@@ -1179,48 +1291,21 @@ function openOrderPrintPreview(order, autoDownload = false) {
               p.style.marginBottom = '';
               p.style.boxShadow = '';
             });
-            ${autoDownload ? `
-               if (window.frameElement) {
-                 window.parent.document.body.removeChild(window.frameElement);
-               } else {
-                 setTimeout(() => window.close(), 1500);
-               }
-            ` : ''}
           });
         }
-        ${autoDownload ? 'window.onload = doPDF;' : ''}
       </script>
     </head>
     <body>
-      ${!autoDownload ? `
       <div class="no-print">
         <button class="btn-print" onclick="doPrint()">🖨️ הדפס</button>
         <button class="btn-pdf" onclick="doPDF()">📄 הורד כ-PDF</button>
-      </div>` : ''}
+      </div>
       <div class="page-container" id="pdf-content">
         ${pagesHtml}
       </div>
     </body>
     </html>
-  `;
-
-  if (autoDownload) {
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.top = '-9999px';
-    iframe.style.left = '-9999px';
-    iframe.style.width = '1000px';
-    iframe.style.height = '1500px';
-    document.body.appendChild(iframe);
-    const w = iframe.contentWindow;
-    w.document.open();
-    w.document.write(htmlContent);
-    w.document.close();
-  } else {
-    const w = window.open('', '_blank');
-    w.document.write(htmlContent);
-    w.document.close();
-  }
+  `);
 }
 
 function openNewDelivery() {
@@ -1865,6 +1950,11 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
     });
   });
 
+  if (autoDownload) {
+    downloadHtmlAsPdf(rawTitle, pagesHtml);
+    return;
+  }
+
   const w = window.open('', '_blank');
   w.document.write(`
     <html dir="rtl">
@@ -1937,10 +2027,8 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
               p.style.marginBottom = '';
               p.style.boxShadow = '';
             });
-            ${autoDownload ? 'setTimeout(() => window.close(), 1500);' : ''}
           });
         }
-        ${autoDownload ? 'window.onload = doPDF;' : ''}
       </script>
     </head>
     <body>
