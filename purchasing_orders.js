@@ -1055,17 +1055,10 @@ function openOrderPrintPreview(order, autoDownload = false) {
             ${order.notes ? `<div class="order-notes"><b>הערות:&rlm;</b><br>${rtlFix(order.notes).replace(/\n/g, '<br>')}</div>` : ''}
           </div>
           
-          <div style="display: flex; flex-direction: column; align-items: center;">
-            <div class="order-totals" style="display: flex; flex-direction: column; align-items: center; text-align: center; font-size:0.95em; min-width:220px; background:#fafafa; padding:12px 18px; border-radius:8px; border:1px solid #eee;">
-              ${kitsBreakdownHtml}
-              <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">${Math.round((order.vat/(totalTaxable || 1))*100) || 18}% מע"מ:&rlm;</span><span dir="ltr">&#8362; ${order.vat.toFixed(2)}</span></p>
-              <h3 style="color:#2e7d32; margin:8px 0 0 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ לתשלום:&rlm;</span><span dir="ltr">&#8362; ${order.totalPrice.toFixed(2)}</span></h3>
-            </div>
-            
-            <div class="signature-wrapper" style="margin-top: 20px; display: flex; flex-direction: column; align-items: center; width: 180px;">
-              ${order.orderer ? order.orderer.split('\n').map(l => `<div style="margin-bottom:3px; font-weight:bold; font-size:0.9em;">${rtlFix(l)}</div>`).join('') : ''}
-              <div class="signature-line" style="border-top: 1px solid #000; width: 100%; margin-top: 20px; text-align: center; padding-top: 3px;"></div>
-            </div>
+          <div class="order-totals" style="display: flex; flex-direction: column; align-items: center; text-align: center; font-size:0.95em; min-width:220px; background:#fafafa; padding:12px 18px; border-radius:8px; border:1px solid #eee;">
+            ${kitsBreakdownHtml}
+            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">מע"מ ${Math.round((order.vat/(totalTaxable || 1))*100) || 18}%:</span><span dir="ltr">&#8362; ${order.vat.toFixed(2)}</span></p>
+            <h3 style="color:#2e7d32; margin:8px 0 0 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ לתשלום:&rlm;</span><span dir="ltr">&#8362; ${order.totalPrice.toFixed(2)}</span></h3>
           </div>
         </div>
       `;
@@ -1079,7 +1072,16 @@ function openOrderPrintPreview(order, autoDownload = false) {
         
         <div class="page-spacer" style="flex:1;"></div>
         
-        <div class="page-footer-bottom" style="margin-top:20px; text-align:center; font-size:0.85em; color:#555; border-top:1px solid #ccc; padding-top:10px;">
+        ${isLastPage ? `
+        <div class="signature-wrapper" style="margin-top: 10px; display: flex; justify-content: flex-end; width: 100%;">
+          <div style="display: flex; flex-direction: column; align-items: center; width: 200px;">
+            ${order.orderer ? order.orderer.split('\n').map(l => `<div style="margin-bottom:3px; font-weight:bold; font-size:0.9em;">${rtlFix(l)}</div>`).join('') : ''}
+            <div class="signature-line" style="border-top: 1px solid #000; width: 100%; margin-top: 20px; text-align: center; padding-top: 3px;"></div>
+          </div>
+        </div>
+        ` : ''}
+        
+        <div class="page-footer-bottom" style="margin-top:15px; text-align:center; font-size:0.85em; color:#555; border-top:1px solid #ccc; padding-top:10px;">
           ${footerHtml}
         </div>
       </div>
@@ -1126,7 +1128,7 @@ function openOrderPrintPreview(order, autoDownload = false) {
         .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
         .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
         
-        .page.ultra-compact { padding: 6px 20px 4px !important; min-height: 1000px !important; }
+        .page.ultra-compact { padding: 6px 20px 4px !important; min-height: 1115px !important; }
         .ultra-compact table { font-size: 0.64em; margin-top: 1px; line-height: 1.05; }
         .ultra-compact th, .ultra-compact td { padding: 0px 2px; line-height: 1.05; }
         .ultra-compact .header { padding-bottom: 0px; margin-bottom: 1px; border-bottom-width: 1px; }
@@ -1139,10 +1141,10 @@ function openOrderPrintPreview(order, autoDownload = false) {
         .ultra-compact .logo-wrapper { margin-bottom: 0px !important; }
         .ultra-compact .page-num-wrapper { margin-top: 0px !important; }
         .ultra-compact .logo-wrapper img { max-height: 45px !important; }
-        .ultra-compact .signature-wrapper { margin-top: 4px !important; width: 140px !important; }
+        .ultra-compact .signature-wrapper { margin-top: 2px !important; width: 100% !important; }
+        .ultra-compact .signature-wrapper > div { width: 140px !important; }
         .ultra-compact .signature-wrapper div { font-size: 0.70em !important; margin-bottom: 1px !important; }
         .ultra-compact .signature-line { margin-top: 8px !important; }
-        .ultra-compact .page-spacer { display: none !important; }
         .ultra-compact .page-footer-bottom { margin-top: 3px !important; padding-top: 2px !important; font-size: 0.68em !important; }
 
         @page { size: A4 portrait; margin: 0; }
