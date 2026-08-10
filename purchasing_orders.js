@@ -860,8 +860,11 @@ function openOrderPrintPreview(order, autoDownload = false) {
     
     // To prevent html2canvas from swallowing spaces in RTL, and to prevent 
     // word-break from tearing numbers apart, we wrap each word in an inline-block.
-    let words = escaped.split(' ');
-    return words.map(w => `<span style="display:inline-block; margin-left:4px; max-width:100%;">${w}</span>`).join('');
+    // We split by newline first so line breaks aren't trapped inside inline-blocks.
+    let lines = escaped.split('\n');
+    return lines.map(line => {
+      return line.split(' ').map(w => `<span style="display:inline-block; margin-left:4px; max-width:100%;">${w}</span>`).join('');
+    }).join('<br>');
   };
 
   const footerLines = (window.PURCH_FOOTER || defaultFooter).split('\n').map(l => rtlFix(l.trim())).filter(l => l);
@@ -1629,8 +1632,11 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
     
     // To prevent html2canvas from swallowing spaces in RTL, and to prevent 
     // word-break from tearing numbers apart, we wrap each word in an inline-block.
-    let words = escaped.split(' ');
-    return words.map(w => `<span style="display:inline-block; margin-left:4px; max-width:100%;">${w}</span>`).join('');
+    // We split by newline first so line breaks aren't trapped inside inline-blocks.
+    let lines = escaped.split('\n');
+    return lines.map(line => {
+      return line.split(' ').map(w => `<span style="display:inline-block; margin-left:4px; max-width:100%;">${w}</span>`).join('');
+    }).join('<br>');
   };
 
   const footerLines = (window.PURCH_FOOTER || defaultFooter).split('\n').map(l => rtlFix(l.trim())).filter(l => l);
