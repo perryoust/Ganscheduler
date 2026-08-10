@@ -188,7 +188,7 @@ function openNewOrder() {
   const supOptions = suppliers.map(s => `<option value="${s}">${s}</option>`).join('');
 
   modal.innerHTML = `
-    <div class="modal-box" style="max-width:800px; background:#fff; border-radius:12px; padding:20px; box-shadow:0 10px 40px rgba(0,0,0,0.2)">
+    <div class="modal-box" style="max-width:800px; background:#fff; border-radius:12px; padding:20px; box-shadow:0 10px 40px rgba(0,0,0,0.2); max-height:90vh; overflow-y:auto; -webkit-overflow-scrolling:touch">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
         <h2 style="margin:0;color:#1a237e">📦 יצירת הזמנת רכש חדשה</h2>
         <button class="btn bo" onclick="closeOrderModal()">X</button>
@@ -301,7 +301,7 @@ function openNewOrder() {
         </div>
       </div>
 
-      <div style="display:flex;justify-content:space-between;margin-top:20px;align-items:center;">
+      <div style="display:flex;justify-content:space-between;margin-top:20px;align-items:center;position:sticky;bottom:-20px;background:#fff;padding:15px 0 5px;border-top:2px solid #e8eaf6;z-index:10">
         <button class="btn bw bsm" onclick="editPurchFooter()">✏️ ערוך כותרת תחתונה בהדפסה</button>
         <div style="display:flex;gap:10px">
           <button class="btn bw" onclick="previewOrder()">👁️ הצג לפני שמירה</button>
