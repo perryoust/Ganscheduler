@@ -1057,7 +1057,7 @@ function openOrderPrintPreview(order, autoDownload = false) {
           
           <div class="order-totals" style="display: flex; flex-direction: column; align-items: center; text-align: center; font-size:0.95em; min-width:220px; background:#fafafa; padding:12px 18px; border-radius:8px; border:1px solid #eee;">
             ${kitsBreakdownHtml}
-            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">${Math.round((order.vat/(totalTaxable || 1))*100) || 18}% מע"מ:</span><span dir="ltr">&#8362; ${order.vat.toFixed(2)}</span></p>
+            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">${Math.round((order.vat/(totalTaxable || 1))*100) || 18}% מע"מ:&rlm;</span><span dir="ltr">&#8362; ${order.vat.toFixed(2)}</span></p>
             <h3 style="color:#2e7d32; margin:8px 0 0 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ לתשלום:&rlm;</span><span dir="ltr">&#8362; ${order.totalPrice.toFixed(2)}</span></h3>
           </div>
         </div>
