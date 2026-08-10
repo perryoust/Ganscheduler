@@ -846,77 +846,87 @@ function previewOrder() {
 }
 
 function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
-  if (window.showToast) window.showToast('⏳ מייצר קובץ PDF להורדה...', 4000);
-  
+  let overlay = document.getElementById('pdf-loading-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'pdf-loading-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:Arial,sans-serif;backdrop-filter:blur(3px);';
+    overlay.innerHTML = `
+      <div style="background:#fff;color:#333;padding:25px 35px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.3);text-align:center;max-width:350px;">
+        <div style="font-size:36px;margin-bottom:12px;animation:spin 1s linear infinite;">⏳</div>
+        <h3 style="margin:0 0 8px;font-size:18px;color:#1a237e;">מייצר קובץ PDF</h3>
+        <p style="margin:0;font-size:14px;color:#666;">ההורדה תתחיל בעוד רגע...</p>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  } else {
+    overlay.style.display = 'flex';
+  }
+
   const doDownload = () => {
     const container = document.createElement('div');
     container.id = 'direct-pdf-export-container';
-    container.style.position = 'fixed';
-    container.style.top = '0';
-    container.style.left = '0';
-    container.style.width = '794px';
-    container.style.zIndex = '-99999';
-    container.style.opacity = '0';
-    container.style.pointerEvents = 'none';
+    container.style.cssText = 'position:fixed;top:0;left:0;width:794px;z-index:999998;background:#fff;pointer-events:none;';
     
-    container.innerHTML = `
-      <style>
-        #direct-pdf-export-container { font-family: Arial, sans-serif; padding: 0; margin: 0; background: #fff; direction: rtl; }
-        #direct-pdf-export-container .page { 
-          background: #fff; 
-          padding: 40px; 
-          width: 794px; 
-          min-height: 1115px;
-          height: auto;
-          box-sizing: border-box; 
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          margin-bottom: 0;
-          box-shadow: none;
-        }
-        #direct-pdf-export-container table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; table-layout: fixed; }
-        #direct-pdf-export-container th, #direct-pdf-export-container td { border: 1px solid #ccc; padding: 4px 6px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
-        #direct-pdf-export-container th { background: #f5f5f5; }
-        #direct-pdf-export-container .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2e7d32; padding-bottom: 10px; margin-bottom: 10px;}
-        
-        #direct-pdf-export-container .compact table { font-size: 0.85em; margin-top: 5px; }
-        #direct-pdf-export-container .compact th, #direct-pdf-export-container .compact td { padding: 2px 4px; }
-        #direct-pdf-export-container .compact .header { padding-bottom: 5px; margin-bottom: 5px; }
-        #direct-pdf-export-container .compact .signature-wrapper { margin-top: 25px !important; }
-        
-        #direct-pdf-export-container .super-compact table { font-size: 0.75em; margin-top: 2px; }
-        #direct-pdf-export-container .super-compact th, #direct-pdf-export-container .super-compact td { padding: 1px 2px; }
-        #direct-pdf-export-container .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
-        #direct-pdf-export-container .super-compact h3, #direct-pdf-export-container .super-compact h4, #direct-pdf-export-container .super-compact p { margin-bottom: 1px !important; }
-        #direct-pdf-export-container .super-compact .signature-wrapper { margin-top: 15px !important; }
-        
-        #direct-pdf-export-container .page.ultra-compact { padding: 10px 25px 6px !important; min-height: 1115px !important; }
-        #direct-pdf-export-container .ultra-compact table { font-size: 0.68em; margin-top: 2px; line-height: 1.15; }
-        #direct-pdf-export-container .ultra-compact th, #direct-pdf-export-container .ultra-compact td { padding: 1px 3px; line-height: 1.15; }
-        #direct-pdf-export-container .ultra-compact .header { padding-bottom: 2px; margin-bottom: 3px; border-bottom-width: 1px; }
-        #direct-pdf-export-container .ultra-compact .header h1 { font-size: 1.4em !important; margin: 0 !important; }
-        #direct-pdf-export-container .ultra-compact .header h3 { font-size: 0.9em !important; margin: 2px 0 0 0 !important; }
-        #direct-pdf-export-container .ultra-compact h3, #direct-pdf-export-container .ultra-compact h4, #direct-pdf-export-container .ultra-compact p { margin-bottom: 1px !important; margin-top: 1px !important; }
-        #direct-pdf-export-container .ultra-compact .footer-info-wrapper { margin-top: 5px !important; }
-        #direct-pdf-export-container .ultra-compact .order-totals { font-size: 0.75em !important; padding: 4px 10px !important; min-width: 140px !important; }
-        #direct-pdf-export-container .ultra-compact .order-totals h3 { font-size: 1.1em !important; margin-top: 3px !important; }
-        #direct-pdf-export-container .ultra-compact .order-totals p { margin: 2px 0 !important; }
-        #direct-pdf-export-container .ultra-compact .order-notes { font-size: 0.75em !important; line-height: 1.15; }
-        #direct-pdf-export-container .ultra-compact .logo-wrapper { margin-bottom: 1px !important; }
-        #direct-pdf-export-container .ultra-compact .logo-wrapper div { font-size: 0.85em !important; margin-top: 1px !important; }
-        #direct-pdf-export-container .ultra-compact .page-num-wrapper { margin-top: 1px !important; }
-        #direct-pdf-export-container .ultra-compact .logo-wrapper img { max-height: 40px !important; }
-        #direct-pdf-export-container .ultra-compact .signature-wrapper { margin-top: 3px !important; width: 100% !important; }
-        #direct-pdf-export-container .ultra-compact .signature-wrapper > div { width: 160px !important; }
-        #direct-pdf-export-container .ultra-compact .signature-wrapper div { font-size: 0.75em !important; margin-bottom: 2px !important; }
-        #direct-pdf-export-container .ultra-compact .signature-line { margin-top: 12px !important; }
-        #direct-pdf-export-container .ultra-compact .page-footer-bottom { margin-top: 5px !important; padding-top: 3px !important; font-size: 0.70em !important; }
-        ${extraCss}
-      </style>
-      ${pagesHtml}
+    const styleEl = document.createElement('style');
+    styleEl.id = 'direct-pdf-export-style';
+    styleEl.textContent = `
+      #direct-pdf-export-container { font-family: Arial, sans-serif; padding: 0; margin: 0; background: #fff; direction: rtl; }
+      #direct-pdf-export-container .page { 
+        background: #fff; 
+        padding: 40px; 
+        width: 794px; 
+        min-height: 1115px;
+        height: auto;
+        box-sizing: border-box; 
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 0;
+        box-shadow: none;
+      }
+      #direct-pdf-export-container table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; table-layout: fixed; }
+      #direct-pdf-export-container th, #direct-pdf-export-container td { border: 1px solid #ccc; padding: 4px 6px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
+      #direct-pdf-export-container th { background: #f5f5f5; }
+      #direct-pdf-export-container .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2e7d32; padding-bottom: 10px; margin-bottom: 10px;}
+      
+      #direct-pdf-export-container .compact table { font-size: 0.85em; margin-top: 5px; }
+      #direct-pdf-export-container .compact th, #direct-pdf-export-container .compact td { padding: 2px 4px; }
+      #direct-pdf-export-container .compact .header { padding-bottom: 5px; margin-bottom: 5px; }
+      #direct-pdf-export-container .compact .signature-wrapper { margin-top: 25px !important; }
+      
+      #direct-pdf-export-container .super-compact table { font-size: 0.75em; margin-top: 2px; }
+      #direct-pdf-export-container .super-compact th, #direct-pdf-export-container .super-compact td { padding: 1px 2px; }
+      #direct-pdf-export-container .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
+      #direct-pdf-export-container .super-compact h3, #direct-pdf-export-container .super-compact h4, #direct-pdf-export-container .super-compact p { margin-bottom: 1px !important; }
+      #direct-pdf-export-container .super-compact .signature-wrapper { margin-top: 15px !important; }
+      
+      #direct-pdf-export-container .page.ultra-compact { padding: 10px 25px 6px !important; min-height: 1115px !important; }
+      #direct-pdf-export-container .ultra-compact table { font-size: 0.68em; margin-top: 2px; line-height: 1.15; }
+      #direct-pdf-export-container .ultra-compact th, #direct-pdf-export-container .ultra-compact td { padding: 1px 3px; line-height: 1.15; }
+      #direct-pdf-export-container .ultra-compact .header { padding-bottom: 2px; margin-bottom: 3px; border-bottom-width: 1px; }
+      #direct-pdf-export-container .ultra-compact .header h1 { font-size: 1.4em !important; margin: 0 !important; }
+      #direct-pdf-export-container .ultra-compact .header h3 { font-size: 0.9em !important; margin: 2px 0 0 0 !important; }
+      #direct-pdf-export-container .ultra-compact h3, #direct-pdf-export-container .ultra-compact h4, #direct-pdf-export-container .ultra-compact p { margin-bottom: 1px !important; margin-top: 1px !important; }
+      #direct-pdf-export-container .ultra-compact .footer-info-wrapper { margin-top: 5px !important; }
+      #direct-pdf-export-container .ultra-compact .order-totals { font-size: 0.75em !important; padding: 4px 10px !important; min-width: 140px !important; }
+      #direct-pdf-export-container .ultra-compact .order-totals h3 { font-size: 1.1em !important; margin-top: 3px !important; }
+      #direct-pdf-export-container .ultra-compact .order-totals p { margin: 2px 0 !important; }
+      #direct-pdf-export-container .ultra-compact .order-notes { font-size: 0.75em !important; line-height: 1.15; }
+      #direct-pdf-export-container .ultra-compact .logo-wrapper { margin-bottom: 1px !important; }
+      #direct-pdf-export-container .ultra-compact .logo-wrapper div { font-size: 0.85em !important; margin-top: 1px !important; }
+      #direct-pdf-export-container .ultra-compact .page-num-wrapper { margin-top: 1px !important; }
+      #direct-pdf-export-container .ultra-compact .logo-wrapper img { max-height: 40px !important; }
+      #direct-pdf-export-container .ultra-compact .signature-wrapper { margin-top: 3px !important; width: 100% !important; }
+      #direct-pdf-export-container .ultra-compact .signature-wrapper > div { width: 160px !important; }
+      #direct-pdf-export-container .ultra-compact .signature-wrapper div { font-size: 0.75em !important; margin-bottom: 2px !important; }
+      #direct-pdf-export-container .ultra-compact .signature-line { margin-top: 12px !important; }
+      #direct-pdf-export-container .ultra-compact .page-footer-bottom { margin-top: 5px !important; padding-top: 3px !important; font-size: 0.70em !important; }
+      ${extraCss}
     `;
     
+    document.head.appendChild(styleEl);
+    container.innerHTML = pagesHtml;
     document.body.appendChild(container);
     
     const cleanFilename = filename.endsWith('.pdf') ? filename : filename + '.pdf';
@@ -924,18 +934,26 @@ function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
       margin:       0,
       filename:     cleanFilename,
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
+      html2canvas:  { scale: 2, useCORS: true, scrollX: 0, scrollY: 0, logging: false },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     
-    html2pdf().set(opt).from(container).save().then(() => {
+    const cleanup = () => {
       if (container.parentNode) container.parentNode.removeChild(container);
-      if (window.showToast) window.showToast('✅ הקובץ הורד בהצלחה!', 3000);
-    }).catch(err => {
-      console.error('PDF generation error:', err);
-      if (container.parentNode) container.parentNode.removeChild(container);
-      if (window.showToast) window.showToast('❌ שגיאה בהורדת הקובץ', 4000);
-    });
+      if (styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
+      if (overlay) overlay.style.display = 'none';
+    };
+
+    setTimeout(() => {
+      html2pdf().set(opt).from(container).save().then(() => {
+        cleanup();
+        if (window.showToast) window.showToast('✅ הקובץ הורד בהצלחה!', 3000);
+      }).catch(err => {
+        console.error('PDF generation error:', err);
+        cleanup();
+        if (window.showToast) window.showToast('❌ שגיאה בהורדת הקובץ', 4000);
+      });
+    }, 150);
   };
 
   if (typeof html2pdf === 'undefined') {
@@ -943,6 +961,7 @@ function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
     s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
     s.onload = doDownload;
     s.onerror = () => {
+      if (overlay) overlay.style.display = 'none';
       if (window.showToast) window.showToast('❌ שגיאה בטעינת ספריית PDF', 4000);
     };
     document.head.appendChild(s);
