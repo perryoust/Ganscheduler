@@ -1655,7 +1655,7 @@ function _fillPiCityFilter(){
 function fillPiSupFilter(){
   const dl = document.getElementById('pi-sup-list');
   if(!dl) return;
-  dl.innerHTML = getPurchSuppliers().map(s=>`<option value="${s.name}">`).join('');
+  dl.innerHTML = getPurchSuppliers().map(s=>`<option value='${s.name.replace(/'/g, '&#39;')}'>`).join('');
 }
 
 function getSupName(supRef){

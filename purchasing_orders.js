@@ -185,7 +185,7 @@ function openNewOrder() {
   }
 
   const suppliers = (typeof getPurchSuppliers === 'function' ? getPurchSuppliers().map(s => s.name) : Object.keys(window.supEx || {})).sort();
-  const supOptions = suppliers.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s.replace(/</g, '&lt;')}</option>`).join('');
+  const supOptions = suppliers.map(s => `<option value='${s.replace(/'/g, '&#39;')}'>${s.replace(/</g, '&lt;')}</option>`).join('');
 
   modal.innerHTML = `
     <div class="modal-box" style="max-width:800px; background:#fff; border-radius:12px; padding:20px; box-shadow:0 10px 40px rgba(0,0,0,0.2); max-height:90vh; overflow-y:auto; -webkit-overflow-scrolling:touch">
@@ -1056,7 +1056,7 @@ function openOrderPrintPreview(order, autoDownload = false) {
         <div style="margin-top: 40px; display: flex; justify-content: flex-end;">
           <div style="display: flex; flex-direction: column; align-items: center; width: 200px;">
             ${order.orderer ? order.orderer.split('\n').map(l => `<div style="margin-bottom:5px; font-weight:bold;">${rtlFix(l)}</div>`).join('') : ''}
-            <div style="border-top: 1px solid #000; width: 100%; margin-top: 35px; text-align: center; padding-top: 5px;">חתימה</div>
+            <div style="border-top: 1px solid #000; width: 100%; margin-top: 35px; text-align: center; padding-top: 5px;"></div>
           </div>
         </div>
       `;
