@@ -857,14 +857,10 @@ function openOrderPrintPreview(order, autoDownload = false) {
       
     // Fix punctuation at the end of Hebrew words so Bidi algorithm doesn't move them
     escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
-    
-    // To prevent html2canvas from swallowing spaces in RTL, and to prevent 
-    // word-break from tearing numbers apart, we wrap each word in an inline-block.
-    // We split by newline first so line breaks aren't trapped inside inline-blocks.
-    let lines = escaped.split('\n');
-    return lines.map(line => {
-      return line.split(' ').map(w => `<span style="display:inline-block; margin-left:4px; max-width:100%;">${w}</span>`).join('');
-    }).join('<br>');
+    // We just return the string. We rely on white-space: pre-wrap to preserve spaces.
+    // Also, inject an RLM mark after numbers and parentheses to enforce RTL directionality.
+    escaped = escaped.replace(/([0-9()]+)/g, '$1&rlm;');
+    return escaped.replace(/\n/g, '<br>');
   };
 
   const footerLines = (window.PURCH_FOOTER || defaultFooter).split('\n').map(l => rtlFix(l.trim())).filter(l => l);
@@ -1088,8 +1084,7 @@ function openOrderPrintPreview(order, autoDownload = false) {
     `;
   });
 
-  const w = window.open('', '_blank');
-  w.document.write(`
+  const htmlContent = `
     <html dir="rtl">
     <head>
       <title>${titleText}</title>
@@ -1184,23 +1179,48 @@ function openOrderPrintPreview(order, autoDownload = false) {
               p.style.marginBottom = '';
               p.style.boxShadow = '';
             });
-            ${autoDownload ? 'setTimeout(() => window.close(), 1500);' : ''}
+            ${autoDownload ? `
+               if (window.frameElement) {
+                 window.parent.document.body.removeChild(window.frameElement);
+               } else {
+                 setTimeout(() => window.close(), 1500);
+               }
+            ` : ''}
           });
         }
         ${autoDownload ? 'window.onload = doPDF;' : ''}
       </script>
     </head>
     <body>
+      ${!autoDownload ? `
       <div class="no-print">
         <button class="btn-print" onclick="doPrint()">🖨️ הדפס</button>
         <button class="btn-pdf" onclick="doPDF()">📄 הורד כ-PDF</button>
-      </div>
+      </div>` : ''}
       <div class="page-container" id="pdf-content">
         ${pagesHtml}
       </div>
     </body>
     </html>
-  `);
+  \`;
+
+  if (autoDownload) {
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.top = '-9999px';
+    iframe.style.left = '-9999px';
+    iframe.style.width = '1000px';
+    iframe.style.height = '1500px';
+    document.body.appendChild(iframe);
+    const w = iframe.contentWindow;
+    w.document.open();
+    w.document.write(htmlContent);
+    w.document.close();
+  } else {
+    const w = window.open('', '_blank');
+    w.document.write(htmlContent);
+    w.document.close();
+  }
 }
 
 function openNewDelivery() {
@@ -1661,14 +1681,10 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
       
     // Fix punctuation at the end of Hebrew words so Bidi algorithm doesn't move them
     escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
-    
-    // To prevent html2canvas from swallowing spaces in RTL, and to prevent 
-    // word-break from tearing numbers apart, we wrap each word in an inline-block.
-    // We split by newline first so line breaks aren't trapped inside inline-blocks.
-    let lines = escaped.split('\n');
-    return lines.map(line => {
-      return line.split(' ').map(w => `<span style="display:inline-block; margin-left:4px; max-width:100%;">${w}</span>`).join('');
-    }).join('<br>');
+    // We just return the string. We rely on white-space: pre-wrap to preserve spaces.
+    // Also, inject an RLM mark after numbers and parentheses to enforce RTL directionality.
+    escaped = escaped.replace(/([0-9()]+)/g, '$1&rlm;');
+    return escaped.replace(/\n/g, '<br>');
   };
 
   const footerLines = (window.PURCH_FOOTER || defaultFooter).split('\n').map(l => rtlFix(l.trim())).filter(l => l);
