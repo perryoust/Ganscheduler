@@ -882,7 +882,7 @@ function openOrderPrintPreview(order, autoDownload = false) {
   } else if (order.items && order.items.length > 0 && order.items[0].desc) {
     descPart = order.items[0].desc.trim().split('\n')[0];
   }
-  if (descPart.length > 30) descPart = descPart.substring(0, 30);
+  if (descPart.length > 120) descPart = descPart.substring(0, 120);
 
   let titleParts = [];
   if (order.supplier) titleParts.push(order.supplier);
@@ -1679,7 +1679,7 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
   } else if (dlv.items && dlv.items.length > 0 && dlv.items[0].desc) {
     descPart = dlv.items[0].desc.trim().split('\n')[0];
   }
-  if (descPart.length > 30) descPart = descPart.substring(0, 30);
+  if (descPart.length > 120) descPart = descPart.substring(0, 120);
 
   let titleParts = ['תעודת משלוח'];
   if (dlv.destination) titleParts.push(dlv.destination);
