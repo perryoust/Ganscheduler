@@ -1071,7 +1071,7 @@ function openOrderPrintPreview(order, autoDownload = false) {
         ${footerContentHtml}
         
         ${isLastPage ? `
-        <div class="signature-wrapper" style="margin-top: 20px; display: flex; justify-content: flex-end; width: 100%;">
+        <div class="signature-wrapper" style="margin-top: 60px; display: flex; justify-content: flex-end; width: 100%;">
           <div style="display: flex; flex-direction: column; align-items: center; width: 200px;">
             ${order.orderer ? order.orderer.split('\n').map(l => `<div style="margin-bottom:3px; font-weight:bold; font-size:0.9em;">${rtlFix(l)}</div>`).join('') : ''}
             <div class="signature-line" style="border-top: 1px solid #000; width: 100%; margin-top: 20px; text-align: center; padding-top: 3px;"></div>
@@ -1122,11 +1122,13 @@ function openOrderPrintPreview(order, autoDownload = false) {
         .compact table { font-size: 0.85em; margin-top: 5px; }
         .compact th, .compact td { padding: 2px 4px; }
         .compact .header { padding-bottom: 5px; margin-bottom: 5px; }
+        .compact .signature-wrapper { margin-top: 25px !important; }
         
         .super-compact table { font-size: 0.75em; margin-top: 2px; }
         .super-compact th, .super-compact td { padding: 1px 2px; }
         .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
         .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
+        .super-compact .signature-wrapper { margin-top: 15px !important; }
         
         .page.ultra-compact { padding: 10px 25px 6px !important; min-height: 1115px !important; }
         .ultra-compact table { font-size: 0.68em; margin-top: 2px; line-height: 1.15; }
