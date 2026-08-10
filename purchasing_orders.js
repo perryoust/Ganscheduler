@@ -1128,24 +1128,24 @@ function openOrderPrintPreview(order, autoDownload = false) {
         .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
         .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
         
-        .page.ultra-compact { padding: 6px 20px 4px !important; min-height: 1115px !important; }
-        .ultra-compact table { font-size: 0.64em; margin-top: 1px; line-height: 1.05; }
-        .ultra-compact th, .ultra-compact td { padding: 0px 2px; line-height: 1.05; }
-        .ultra-compact .header { padding-bottom: 0px; margin-bottom: 1px; border-bottom-width: 1px; }
-        .ultra-compact h3, .ultra-compact h4, .ultra-compact p { margin-bottom: 0px !important; margin-top: 0px !important; }
-        .ultra-compact .footer-info-wrapper { margin-top: 2px !important; }
-        .ultra-compact .order-totals { font-size: 0.70em !important; padding: 2px 8px !important; min-width: 130px !important; }
-        .ultra-compact .order-totals h3 { font-size: 1.05em !important; margin-top: 2px !important; }
-        .ultra-compact .order-totals p { margin: 1px 0 !important; }
-        .ultra-compact .order-notes { font-size: 0.70em !important; line-height: 1.1; }
-        .ultra-compact .logo-wrapper { margin-bottom: 0px !important; }
-        .ultra-compact .page-num-wrapper { margin-top: 0px !important; }
-        .ultra-compact .logo-wrapper img { max-height: 45px !important; }
-        .ultra-compact .signature-wrapper { margin-top: 2px !important; width: 100% !important; }
-        .ultra-compact .signature-wrapper > div { width: 140px !important; }
-        .ultra-compact .signature-wrapper div { font-size: 0.70em !important; margin-bottom: 1px !important; }
-        .ultra-compact .signature-line { margin-top: 8px !important; }
-        .ultra-compact .page-footer-bottom { margin-top: 3px !important; padding-top: 2px !important; font-size: 0.68em !important; }
+        .page.ultra-compact { padding: 15px 30px 10px !important; min-height: 1115px !important; }
+        .ultra-compact table { font-size: 0.75em; margin-top: 5px; line-height: 1.2; }
+        .ultra-compact th, .ultra-compact td { padding: 2px 4px; line-height: 1.2; }
+        .ultra-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
+        .ultra-compact h3, .ultra-compact h4, .ultra-compact p { margin-bottom: 1px !important; margin-top: 1px !important; }
+        .ultra-compact .footer-info-wrapper { margin-top: 8px !important; }
+        .ultra-compact .order-totals { font-size: 0.85em !important; padding: 6px 12px !important; min-width: 160px !important; }
+        .ultra-compact .order-totals h3 { font-size: 1.1em !important; margin-top: 4px !important; }
+        .ultra-compact .order-totals p { margin: 2px 0 !important; }
+        .ultra-compact .order-notes { font-size: 0.85em !important; line-height: 1.2; }
+        .ultra-compact .logo-wrapper { margin-bottom: 2px !important; }
+        .ultra-compact .page-num-wrapper { margin-top: 2px !important; }
+        .ultra-compact .logo-wrapper img { max-height: 55px !important; }
+        .ultra-compact .signature-wrapper { margin-top: 5px !important; width: 100% !important; }
+        .ultra-compact .signature-wrapper > div { width: 180px !important; }
+        .ultra-compact .signature-wrapper div { font-size: 0.85em !important; margin-bottom: 2px !important; }
+        .ultra-compact .signature-line { margin-top: 15px !important; }
+        .ultra-compact .page-footer-bottom { margin-top: 8px !important; padding-top: 4px !important; font-size: 0.75em !important; }
 
         @page { size: A4 portrait; margin: 0; }
         @media print {
