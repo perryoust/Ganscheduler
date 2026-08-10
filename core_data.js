@@ -494,11 +494,14 @@ function _applyYearData(o){
     window.INVOICES = [];
   }
   
-  if (Array.isArray(o.orders)) window.ORDERS = o.orders;
-  else window.ORDERS = [];
+  // Orders and Deliveries are stored at root level (not inside data object) after migration.
+  // Only overwrite if the data object explicitly contains them (legacy pre-migration path).
+  // Never reset to [] if already loaded from root nodes by loadPurchasingDataFromFirebase.
+  if (Array.isArray(o.orders) && o.orders.length > 0) window.ORDERS = o.orders;
+  else if (!window._purchasingDataLoaded && (!Array.isArray(window.ORDERS) || window.ORDERS.length === 0)) window.ORDERS = [];
   
-  if (Array.isArray(o.deliveries)) window.DELIVERIES = o.deliveries;
-  else window.DELIVERIES = [];
+  if (Array.isArray(o.deliveries) && o.deliveries.length > 0) window.DELIVERIES = o.deliveries;
+  else if (!window._purchasingDataLoaded && (!Array.isArray(window.DELIVERIES) || window.DELIVERIES.length === 0)) window.DELIVERIES = [];
 
   if(typeof o.vatRate==='number') VAT_RATE=o.vatRate;
   // Sync settings from Firebase to localStorage

@@ -115,6 +115,11 @@ window.onload = function(){
         try{ refreshPurchDash(); }catch(e){}
         try{ renderPurchSuppliers(); }catch(e){}
         try{ renderInvoices(); }catch(e){}
+
+        // Pre-load purchasing data in the background so it's ready when user switches to purch mode
+        if (typeof window.loadPurchasingDataFromFirebase === 'function') {
+          window.loadPurchasingDataFromFirebase().catch(e => console.warn('[Core] Background purchasing data pre-load failed:', e));
+        }
       } else if (fbOk && window.role === 'worker') {
         // For workers: just re-render the mobile task list with fresh data
         load();

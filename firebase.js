@@ -652,8 +652,8 @@ document.addEventListener('visibilitychange', () => {
 // core_app.js calls loadFromFirebase() and _fbStartPolling() after years_meta sync.
 
 // --- Lazy Load Purchasing Data ---
-window.loadPurchasingDataFromFirebase = async function () {
-  if (window._purchasingDataLoaded) return;
+window.loadPurchasingDataFromFirebase = async function (forceReload) {
+  if (window._purchasingDataLoaded && !forceReload) return;
 
   let tok = window._cachedToken || null;
   if (window._fbUser) {
@@ -661,12 +661,16 @@ window.loadPurchasingDataFromFirebase = async function () {
     catch (e) { console.warn('Failed to get token for purchasing data', e); }
   }
 
-  if (!tok) return;
+  if (!tok) {
+    console.warn('[Purchasing] No auth token available — will retry on next switchMode');
+    return;
+  }
 
   const invUrl = getFirebaseInvoicesUrl() + '?auth=' + tok + '&cb=' + Date.now();
   const ordUrl = getFirebaseOrdersUrl() + '?auth=' + tok + '&cb=' + Date.now();
   const delUrl = getFirebaseDeliveriesUrl() + '?auth=' + tok + '&cb=' + Date.now();
 
+  let anySuccess = false;
   try {
     const [ir, or, dr] = await Promise.all([
       fetch(invUrl).catch(() => ({ ok: false })),
@@ -692,22 +696,34 @@ window.loadPurchasingDataFromFirebase = async function () {
         });
       }
       window.INVOICES = cloudInvs;
+      anySuccess = true;
     }
 
     if (or.ok) {
       let cloudOrd = await or.json();
       window.ORDERS = Array.isArray(cloudOrd) ? cloudOrd : Object.values(cloudOrd || {});
+      anySuccess = true;
+      console.log('[Purchasing] Orders loaded:', window.ORDERS.length);
+    } else {
+      console.warn('[Purchasing] Failed to load orders — response not OK');
     }
 
     if (dr.ok) {
       let cloudDel = await dr.json();
       window.DELIVERIES = Array.isArray(cloudDel) ? cloudDel : Object.values(cloudDel || {});
+      anySuccess = true;
     }
 
-    window._purchasingDataLoaded = true;
-    console.log('[Purchasing] Data loaded successfully from root nodes');
+    // Only mark as loaded if at least one endpoint succeeded (network is working)
+    if (anySuccess) {
+      window._purchasingDataLoaded = true;
+      console.log('[Purchasing] Data loaded successfully from root nodes');
+    } else {
+      console.warn('[Purchasing] All fetches failed — will retry on next attempt');
+    }
   } catch (e) {
     console.error('Failed to lazy load purchasing data', e);
+    // Do NOT set _purchasingDataLoaded = true on error, so it retries
   }
 };
 
