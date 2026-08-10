@@ -961,10 +961,10 @@ function openOrderPrintPreview(order, autoDownload = false) {
     
     let headerHtml = `
       <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-        <div style="text-align:right; font-size:1.1em; font-weight:bold; margin-top:25px; color:#555;">
+        <div class="page-num-wrapper" style="text-align:right; font-size:1.1em; font-weight:bold; margin-top:25px; color:#555;">
           ${totalPages > 1 ? `עמוד ${pageIndex + 1} מתוך ${totalPages}` : ''}
         </div>
-        <div style="text-align: left; margin-bottom: 10px;">
+        <div class="logo-wrapper" style="text-align: left; margin-bottom: 10px;">
           <img src="לוגו לאורך - עושים חינוך אחרת (3000 x 750 פיקסל).png" style="max-height:75px; width:auto; object-fit:contain;">
         </div>
       </div>
@@ -1050,15 +1050,17 @@ function openOrderPrintPreview(order, autoDownload = false) {
       }
 
       footerContentHtml = `
-        <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
-          <div style="display: flex; flex-direction: column; align-items: center; text-align: center; font-size:0.95em; min-width:220px; background:#fafafa; padding:12px 18px; border-radius:8px; border:1px solid #eee;">
+        <div class="footer-info-wrapper" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: flex-start;">
+          <div class="notes-wrapper" style="flex: 1; margin-left: 20px;">
+            ${order.notes ? `<div class="order-notes"><b>הערות:&rlm;</b><br>${rtlFix(order.notes).replace(/\n/g, '<br>')}</div>` : ''}
+          </div>
+          
+          <div class="order-totals" style="display: flex; flex-direction: column; align-items: center; text-align: center; font-size:0.95em; min-width:220px; background:#fafafa; padding:12px 18px; border-radius:8px; border:1px solid #eee;">
             ${kitsBreakdownHtml}
             <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">${Math.round((order.vat/(totalTaxable || 1))*100) || 18}% מע"מ:</span><span dir="ltr">&#8362; ${order.vat.toFixed(2)}</span></p>
             <h3 style="color:#2e7d32; margin:8px 0 0 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ לתשלום:&rlm;</span><span dir="ltr">&#8362; ${order.totalPrice.toFixed(2)}</span></h3>
           </div>
         </div>
-        
-        ${order.notes ? `<div style="margin-top:20px"><b>הערות:&rlm;</b><br>${rtlFix(order.notes).replace(/\n/g, '<br>')}</div>` : ''}
         
         <div style="margin-top: 40px; display: flex; justify-content: flex-end;">
           <div style="display: flex; flex-direction: column; align-items: center; width: 200px;">
@@ -1124,11 +1126,17 @@ function openOrderPrintPreview(order, autoDownload = false) {
         .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
         .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
         
-        .ultra-compact table { font-size: 0.65em; margin-top: 1px; }
+        .ultra-compact table { font-size: 0.70em; margin-top: 1px; }
         .ultra-compact th, .ultra-compact td { padding: 0px 2px; }
         .ultra-compact .header { padding-bottom: 1px; margin-bottom: 2px; border-bottom-width: 1px; }
         .ultra-compact h3, .ultra-compact h4, .ultra-compact p { margin-bottom: 0px !important; margin-top: 0px !important; }
-        .ultra-compact .page { padding: 15px 30px; }
+        .ultra-compact .page { padding: 15px 30px; padding-top: 5px; }
+        .ultra-compact .footer-info-wrapper { margin-top: 5px !important; }
+        .ultra-compact .order-totals { font-size: 0.75em !important; padding: 6px 12px !important; min-width: 150px !important; }
+        .ultra-compact .order-notes { font-size: 0.75em !important; }
+        .ultra-compact .logo-wrapper { margin-bottom: 2px !important; }
+        .ultra-compact .page-num-wrapper { margin-top: 5px !important; }
+        .ultra-compact .logo-wrapper img { max-height: 55px !important; }
 
         @page { size: A4 portrait; margin: 0; }
         @media print {
