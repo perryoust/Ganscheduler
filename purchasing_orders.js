@@ -881,8 +881,10 @@ function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
           background: #fff; 
           padding: 40px; 
           width: 794px; 
-          min-height: 1115px;
-          height: auto;
+          height: 1122px;
+          max-height: 1122px;
+          min-height: 1122px;
+          overflow: hidden;
           box-sizing: border-box; 
           position: relative;
           display: flex;
@@ -906,7 +908,7 @@ function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
         .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
         .super-compact .signature-wrapper { margin-top: 20px !important; }
         
-        .page.ultra-compact { padding: 10px 25px 6px !important; min-height: 1115px !important; }
+        .page.ultra-compact { padding: 10px 25px 6px !important; height: 1122px !important; min-height: 1122px !important; }
         .ultra-compact table { font-size: 0.68em; margin-top: 2px; line-height: 1.15; }
         .ultra-compact th, .ultra-compact td { padding: 1px 3px; line-height: 1.15; }
         .ultra-compact .header { padding-bottom: 2px; margin-bottom: 3px; border-bottom-width: 1px; }
@@ -1004,6 +1006,12 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
     // Wrap numbers and parentheses in an LTR inline-block. 
     // This perfectly bypasses html2canvas's buggy RTL string reversal and bracket mirroring.
     escaped = escaped.replace(/([0-9()]+)/g, '<span dir="ltr" style="display:inline-block;">$1</span>');
+    
+    // Replace standard space with NBSP + standard space.
+    // NBSP ensures html2canvas renders the gap (bypassing its RTL space-eating bug),
+    // and the standard space preserves natural word wrapping in table cells.
+    escaped = escaped.replace(/ /g, '&nbsp; ');
+    
     return escaped.replace(/\n/g, '<br>');
   };
 
@@ -1043,21 +1051,21 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
   const totalLines = order.items ? order.items.reduce((acc, it) => acc + getItemLines(it), 0) : 0;
 
   let compactClass = '';
-  let MAX_LINES_PER_PAGE = 22;
-  let MAX_LINES_PER_PAGE_WITH_TOTALS = 14;
+  let MAX_LINES_PER_PAGE = 20;
+  let MAX_LINES_PER_PAGE_WITH_TOTALS = 13;
 
   if (totalLines > 30) {
     compactClass = 'ultra-compact';
-    MAX_LINES_PER_PAGE = 70;
-    MAX_LINES_PER_PAGE_WITH_TOTALS = 55;
+    MAX_LINES_PER_PAGE = 55;
+    MAX_LINES_PER_PAGE_WITH_TOTALS = 45;
   } else if (totalLines > 25) {
     compactClass = 'super-compact';
-    MAX_LINES_PER_PAGE = 45;
-    MAX_LINES_PER_PAGE_WITH_TOTALS = 30;
+    MAX_LINES_PER_PAGE = 40;
+    MAX_LINES_PER_PAGE_WITH_TOTALS = 28;
   } else if (totalLines > 14) {
     compactClass = 'compact';
-    MAX_LINES_PER_PAGE = 32;
-    MAX_LINES_PER_PAGE_WITH_TOTALS = 22;
+    MAX_LINES_PER_PAGE = 30;
+    MAX_LINES_PER_PAGE_WITH_TOTALS = 20;
   }
   
   const pages = [];
