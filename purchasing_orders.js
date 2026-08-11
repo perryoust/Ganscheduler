@@ -1149,6 +1149,7 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
             `;
           }).join('')}
         </table>
+        ${!isLastPage ? `<p style="text-align:center; font-weight:bold; margin-top:15px; color:#555;">ההזמנה ממשיכה בעמוד הבא...</p>` : ''}
       `;
     }
 
