@@ -851,119 +851,7 @@ function previewOrder() {
   openOrderPrintPreview(order);
 }
 
-function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
-  let overlay = document.getElementById('pdf-loading-overlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'pdf-loading-overlay';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:Arial,sans-serif;backdrop-filter:blur(3px);';
-    overlay.innerHTML = `
-      <div style="background:#fff;color:#333;padding:25px 35px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.3);text-align:center;max-width:350px;">
-        <div style="font-size:36px;margin-bottom:12px;">⏳</div>
-        <h3 style="margin:0 0 8px;font-size:18px;color:#1a237e;">מייצר קובץ PDF</h3>
-        <p style="margin:0;font-size:14px;color:#666;">ההורדה תתחיל בעוד רגע...</p>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-  } else {
-    overlay.style.display = 'flex';
-  }
 
-  const doDownload = () => {
-    const container = document.createElement('div');
-    container.id = 'pdf-export-container';
-    container.style.cssText = 'position:absolute; top:-99999px; left:-99999px; width:850px; background:#fff; direction:rtl; font-family:"Assistant", Arial, sans-serif;';
-    
-    container.innerHTML = `
-      <style>
-        .page-container { padding: 0; margin: 0; display: flex; flex-direction: column; align-items: center; word-spacing: 0.1em; }
-        .page { 
-          background: #fff; 
-          padding: 40px; 
-          width: 794px; 
-          min-height: 1115px;
-          height: auto;
-          box-sizing: border-box; 
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          margin-bottom: 0;
-          box-shadow: none;
-        }
-        .page table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; table-layout: fixed; }
-        .page th, .page td { border: 1px solid #ccc; padding: 4px 6px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
-        .page th { background: #f5f5f5; }
-        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2e7d32; padding-bottom: 10px; margin-bottom: 10px;}
-        
-        .compact table { font-size: 0.85em; margin-top: 5px; }
-        .compact th, .compact td { padding: 2px 4px; }
-        .compact .header { padding-bottom: 5px; margin-bottom: 5px; }
-        .compact .signature-wrapper { margin-top: 25px !important; }
-        
-        .super-compact table { font-size: 0.75em; margin-top: 2px; }
-        .super-compact th, .super-compact td { padding: 1px 2px; }
-        .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
-        .super-compact .signature-wrapper { margin-top: 20px !important; }
-        
-        ${extraCss}
-      </style>
-      <div id="pdf-render-target" class="page-container">
-        ${pagesHtml}
-      </div>
-    `;
-    
-    document.body.appendChild(container);
-
-    const cleanFilename = filename.endsWith('.pdf') ? filename : filename + '.pdf';
-    const opt = {
-      margin:       0,
-      filename:     cleanFilename,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak:    { mode: ['css', 'legacy'] }
-    };
-    
-    const cleanup = () => {
-      if (container.parentNode) container.parentNode.removeChild(container);
-      if (overlay) overlay.style.display = 'none';
-    };
-
-    setTimeout(() => {
-      const target = document.getElementById('pdf-render-target');
-      if (!target) {
-        cleanup();
-        if (window.showToast) window.showToast('❌ שגיאה בהפקת המסמך', 4000);
-        return;
-      }
-
-      // Removed TreeWalker because it completely broke html2canvas table layouts.
-      // Reverting to just relying on the Assistant font which natively worked before v109.70.
-
-      html2pdf().set(opt).from(target).save().then(() => {
-        cleanup();
-        if (window.showToast) window.showToast('✅ הקובץ הורד בהצלחה!', 3000);
-      }).catch(err => {
-        console.error('PDF generation error:', err);
-        cleanup();
-        if (window.showToast) window.showToast('❌ שגיאה בהורדת הקובץ', 4000);
-      });
-    }, 300);
-  };
-
-  if (typeof html2pdf === 'undefined') {
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-    s.onload = doDownload;
-    s.onerror = () => {
-      if (overlay) overlay.style.display = 'none';
-      if (window.showToast) window.showToast('❌ שגיאה בטעינת ספריית PDF', 4000);
-    };
-    document.head.appendChild(s);
-  } else {
-    doDownload();
-  }
-}
 
 function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = false) {
   const defaultFooter = `טומשין-עושים חינוך אחרת בע"מ (חל"צ) – רשת צהרונים\nהנהלה ראשית: רח' איינשטיין 18 קומה ב', נס ציונה, ת.ד. 2318, מיקוד 7403622, טל: 03-9689119 פקס: 039689120\nwww.tomashin.co.il  www.tomashin-kids.co.il`;
@@ -1291,39 +1179,7 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
         .ultra-compact .page-footer-bottom { margin-top: 5px !important; padding-top: 3px !important; font-size: 0.70em !important; }
 
         @page { size: A4 portrait; margin: 0; }
-        @media print {
-          .no-print { display: none !important; }
-          body { background: #fff; }
-          .page-container { padding: 0; }
-          .page { box-shadow: none; padding: 0; width: 100%; min-height: 100%; margin-bottom: 0; }
-        }
-      </style>
-      <script>
         function doPrint() { window.print(); }
-        function doPDF() {
-          const element = document.getElementById('pdf-content');
-          element.style.padding = '0';
-          const pages = element.querySelectorAll('.page');
-          pages.forEach(p => {
-            p.style.marginBottom = '0';
-            p.style.boxShadow = 'none';
-          });
-          
-          const opt = {
-            margin:       0,
-            filename:     '${rawTitle}' + '.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-          };
-          html2pdf().set(opt).from(element).save().then(() => {
-            element.style.padding = '';
-            pages.forEach(p => {
-              p.style.marginBottom = '';
-              p.style.boxShadow = '';
-            });
-          });
-        }
       </script>
     </head>
     <body>
@@ -2554,28 +2410,102 @@ window.updateBulkPOButton = function() {
   }
 };
 
-window.downloadBulkPO = function() {
+window.printBulkPO = function() {
   const checkboxes = document.querySelectorAll('.bulk-po-checkbox:checked');
   if (checkboxes.length === 0) return;
-
-  if (typeof window.showToast === 'function') window.showToast('⏳ מכין קובץ PDF מרוכז...');
 
   const selectedIds = Array.from(checkboxes).map(cb => cb.value);
   let combinedPagesHtml = '';
 
   const orders = window.ORDERS || [];
   
-  for (const id of selectedIds) {
+  for (let i = 0; i < selectedIds.length; i++) {
+    const id = selectedIds[i];
     const order = orders.find(o => o.id === id);
     if (order) {
       // Use the refactored openOrderPrintPreview to get just the HTML
       const orderHtml = openOrderPrintPreview(order, false, true);
       combinedPagesHtml += orderHtml;
+      // Add page break between orders, except after the last one
+      if (i < selectedIds.length - 1) {
+        combinedPagesHtml += '<div style="page-break-before: always; margin-top: 40px; border-top: 1px dashed #ccc; padding-top: 40px;" class="no-print"></div>';
+      }
     }
   }
 
   if (combinedPagesHtml) {
-    // Re-use downloadHtmlAsPdf with a generic title
-    downloadHtmlAsPdf('הזמנות_רכש_מרוכז', combinedPagesHtml);
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("נא לאפשר חלונות קופצים (Popups) כדי להדפיס");
+      return;
+    }
+    
+    printWindow.document.write(`
+      <html dir="rtl" lang="he">
+      <head>
+        <meta charset="utf-8">
+        <title>הזמנות רכש מרוכזות</title>
+        <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+        <style>
+          body { font-family: 'Assistant', sans-serif; background: #e0e0e0; margin: 0; padding: 20px; }
+          .no-print { display: flex; justify-content: center; margin-bottom: 20px; }
+          .btn-print { background: #2e7d32; color: white; border: none; padding: 10px 20px; border-radius: 4px; font-family: 'Assistant', sans-serif; font-size: 16px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+          .btn-print:hover { background: #1b5e20; }
+          
+          .page-container { padding: 40px; display: flex; justify-content: center; flex-direction: column; align-items: center; }
+          .page { 
+            background: #fff; 
+            padding: 40px; 
+            width: 794px; 
+            min-height: 1115px;
+            height: auto;
+            box-sizing: border-box; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            margin-bottom: 20px;
+          }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; table-layout: fixed; }
+          th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
+          th { background: #f5f5f5; }
+          .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2e7d32; padding-bottom: 10px; margin-bottom: 10px;}
+          
+          .compact table { font-size: 0.85em; margin-top: 5px; }
+          .compact th, .compact td { padding: 2px 4px; }
+          .compact .header { padding-bottom: 5px; margin-bottom: 5px; }
+          .compact .signature-wrapper { margin-top: 25px !important; }
+          
+          .super-compact table { font-size: 0.75em; margin-top: 2px; }
+          .super-compact th, .super-compact td { padding: 1px 2px; }
+          .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
+          .super-compact .signature-wrapper { margin-top: 20px !important; }
+
+          @page { size: A4 portrait; margin: 0; }
+          @media print {
+            .no-print { display: none !important; }
+            body { background: #fff; padding: 0; margin: 0; }
+            .page-container { padding: 0; }
+            .page { box-shadow: none; padding: 0; width: 100%; min-height: 100%; margin-bottom: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print">
+          <button class="btn-print" onclick="window.print()">🖨️ הדפס / שמור הכל כ-PDF</button>
+        </div>
+        <div class="page-container">
+          ${combinedPagesHtml}
+        </div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    
+    // Give browser a moment to load font before opening print dialog
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 500);
   }
 };
