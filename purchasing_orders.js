@@ -1006,10 +1006,10 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
     // This perfectly bypasses html2canvas's buggy RTL string reversal and bracket mirroring.
     escaped = escaped.replace(/([0-9()]+)/g, '<span dir="ltr" style="display:inline-block;">$1</span>');
     
-    // Replace standard space with NBSP + standard space.
-    // NBSP ensures html2canvas renders the gap (bypassing its RTL space-eating bug),
-    // and the standard space preserves natural word wrapping in table cells.
-    escaped = escaped.replace(/ /g, '&nbsp; ');
+    // Replace standard space with ZWNJ + standard space + ZWNJ.
+    // This perfectly bypasses html2canvas's bug where it trims leading/trailing spaces
+    // of RTL text nodes, while maintaining exact 1-space width and native word wrapping!
+    escaped = escaped.replace(/ /g, '&zwnj; &zwnj;');
     
     return escaped.replace(/\n/g, '<br>');
   };
