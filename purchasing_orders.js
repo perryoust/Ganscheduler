@@ -1037,7 +1037,6 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
             `;
           }).join('')}
         </table>
-        ${!isLastPage ? `<p style="text-align:center; font-weight:bold; margin-top:15px; color:#555;">ההזמנה ממשיכה בעמוד הבא...</p>` : ''}
       `;
     }
 
@@ -1099,6 +1098,7 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
         <div class="page-spacer" style="flex:1;"></div>
         
         <div class="page-footer-bottom" style="margin-top:10px; text-align:center; font-size:0.85em; color:#555; border-top:1px solid #ccc; padding-top:10px;">
+          <div style="font-weight:bold; margin-bottom:5px;">דף ${pageIndex + 1}/${totalPages}</div>
           ${footerHtml}
         </div>
       </div>
@@ -1109,17 +1109,11 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
     return pagesHtml;
   }
 
-  if (autoDownload) {
-    downloadHtmlAsPdf(rawTitle, pagesHtml);
-    return;
-  }
-
   const w = window.open('', '_blank');
   w.document.write(`
     <html dir="rtl">
     <head>
       <title>${titleText}</title>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
       <style>
         body { font-family: Arial, sans-serif; padding: 0; margin: 0; background: #e0e0e0; }
         .no-print { background: #333; padding: 15px; text-align: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
@@ -1895,36 +1889,11 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
       </style>
       <script>
         function doPrint() { window.print(); }
-        function doPDF() {
-          const element = document.getElementById('pdf-content');
-          element.style.padding = '0';
-          const pages = element.querySelectorAll('.page');
-          pages.forEach(p => {
-            p.style.marginBottom = '0';
-            p.style.boxShadow = 'none';
-          });
-          
-          const opt = {
-            margin:       0,
-            filename:     '${rawTitle}' + '.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-          };
-          html2pdf().set(opt).from(element).save().then(() => {
-            element.style.padding = '';
-            pages.forEach(p => {
-              p.style.marginBottom = '';
-              p.style.boxShadow = '';
-            });
-          });
-        }
       </script>
     </head>
     <body>
       <div class="no-print">
-        <button class="btn-print" onclick="doPrint()">🖨️ הדפס</button>
-        <button class="btn-pdf" onclick="doPDF()">📄 הורד כ-PDF</button>
+        <button class="btn-print" onclick="doPrint()">🖨️ הדפס / שמור כ-PDF</button>
       </div>
       <div class="page-container" id="pdf-content">
         ${pagesHtml}
