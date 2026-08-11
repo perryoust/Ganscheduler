@@ -13,17 +13,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>מערכת שיבוץ - גרסה 109.72</title>
+  <title>מערכת שיבוץ - גרסה 109.73</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=109.72" />
+  <link rel="stylesheet" href="styles.css?v=109.73" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '109.72';
+    window.APP_VERSION = '109.73';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -1622,6 +1622,7 @@
             <input type="text" id="porders-search-input" placeholder="🔍 חפש הזמנה (מספר / ספק / תיאור)..." oninput="window.poDoSearch(this.value)" style="width:100%;padding:6px 12px;padding-right:28px;border:1px solid #ccc;border-radius:20px;font-size:0.85rem;">
             <span style="position:absolute;right:10px;opacity:0.5;">🔍</span>
           </div>
+          <button class="btn bo bsm" id="bulk-download-po-btn" style="display:none;" onclick="downloadBulkPO()">📄 הורד נבחרים</button>
           <button class="btn bp bsm" onclick="openNewOrder()">🚀 יצירת הזמנה חדשה</button>
         </div>
         <div id="porders-list" class="tw" style="margin-top:10px">

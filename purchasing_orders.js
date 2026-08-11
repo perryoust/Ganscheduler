@@ -49,6 +49,7 @@ function renderPurchOrders() {
   }
 
   let html = '<table class="stable" style="width:100%"><thead><tr>' +
+    '<th style="width:30px;"><input type="checkbox" id="bulk-po-select-all" onclick="toggleBulkPO(this)"></th>' +
     '<th>תאריך</th>' +
     '<th>מספר הזמנה</th>' +
     '<th>לכבוד</th>' +
@@ -60,6 +61,7 @@ function renderPurchOrders() {
   sorted.forEach(o => {
     const dStr = new Date(o.ts).toLocaleDateString('he-IL');
     html += `<tr>
+      <td><input type="checkbox" class="bulk-po-checkbox" value="${o.id}" onclick="updateBulkPOButton()"></td>
       <td>${dStr}</td>
       <td style="font-weight:bold">${o.orderId}</td>
       <td>${o.supplier}</td>
@@ -920,9 +922,9 @@ function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
         .ultra-compact .logo-wrapper div { font-size: 0.85em !important; margin-top: 1px !important; }
         .ultra-compact .page-num-wrapper { margin-top: 1px !important; }
         .ultra-compact .logo-wrapper img { max-height: 40px !important; }
-        .ultra-compact .signature-wrapper { margin-top: 15px !important; width: 100% !important; }
+        .ultra-compact .signature-wrapper { margin-top: 5px !important; width: 100% !important; }
         .ultra-compact .signature-wrapper > div { width: 160px !important; }
-        .ultra-compact .signature-wrapper div { font-size: 0.75em !important; margin-bottom: 2px !important; }
+        .ultra-compact .signature-wrapper div { font-size: 0.85em !important; margin-bottom: 2px !important; }
         .ultra-compact .signature-line { margin-top: 12px !important; }
         .ultra-compact .page-footer-bottom { margin-top: 5px !important; padding-top: 3px !important; font-size: 0.70em !important; }
         ${extraCss}
@@ -981,7 +983,7 @@ function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
   }
 }
 
-function openOrderPrintPreview(order, autoDownload = false) {
+function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = false) {
   const defaultFooter = `טומשין-עושים חינוך אחרת בע"מ (חל"צ) – רשת צהרונים\nהנהלה ראשית: רח' איינשטיין 18 קומה ב', נס ציונה, ת.ד. 2318, מיקוד 7403622, טל: 03-9689119 פקס: 039689120\nwww.tomashin.co.il  www.tomashin-kids.co.il`;
   
   const rtlFix = (str) => {
@@ -1223,6 +1225,10 @@ function openOrderPrintPreview(order, autoDownload = false) {
     `;
   });
 
+  if (returnHtmlOnly) {
+    return pagesHtml;
+  }
+
   if (autoDownload) {
     downloadHtmlAsPdf(rawTitle, pagesHtml);
     return;
@@ -1286,9 +1292,9 @@ function openOrderPrintPreview(order, autoDownload = false) {
         .ultra-compact .logo-wrapper div { font-size: 0.85em !important; margin-top: 1px !important; }
         .ultra-compact .page-num-wrapper { margin-top: 1px !important; }
         .ultra-compact .logo-wrapper img { max-height: 40px !important; }
-        .ultra-compact .signature-wrapper { margin-top: 15px !important; width: 100% !important; }
+        .ultra-compact .signature-wrapper { margin-top: 5px !important; width: 100% !important; }
         .ultra-compact .signature-wrapper > div { width: 160px !important; }
-        .ultra-compact .signature-wrapper div { font-size: 0.75em !important; margin-bottom: 2px !important; }
+        .ultra-compact .signature-wrapper div { font-size: 0.85em !important; margin-bottom: 2px !important; }
         .ultra-compact .signature-line { margin-top: 12px !important; }
         .ultra-compact .page-footer-bottom { margin-top: 5px !important; padding-top: 3px !important; font-size: 0.70em !important; }
 
@@ -2534,4 +2540,50 @@ window.exportDeliveriesToExcel = async function() {
   window.XLSX.writeFile(wb, 'תעודות_משלוח.xlsx');
   
   if (typeof window.showToast === 'function') window.showToast('✅ קובץ אקסל נוצר בהצלחה!');
+};
+
+// --- BULK DOWNLOAD FOR PURCHASING ORDERS ---
+window.toggleBulkPO = function(src) {
+  const checkboxes = document.querySelectorAll('.bulk-po-checkbox');
+  checkboxes.forEach(cb => cb.checked = src.checked);
+  window.updateBulkPOButton();
+};
+
+window.updateBulkPOButton = function() {
+  const checkboxes = document.querySelectorAll('.bulk-po-checkbox:checked');
+  const btn = document.getElementById('bulk-download-po-btn');
+  if (btn) {
+    if (checkboxes.length > 0) {
+      btn.style.display = 'inline-block';
+      btn.innerText = `📄 הורד נבחרים (${checkboxes.length})`;
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+};
+
+window.downloadBulkPO = function() {
+  const checkboxes = document.querySelectorAll('.bulk-po-checkbox:checked');
+  if (checkboxes.length === 0) return;
+
+  if (typeof window.showToast === 'function') window.showToast('⏳ מכין קובץ PDF מרוכז...');
+
+  const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+  let combinedPagesHtml = '';
+
+  const orders = window.ORDERS || [];
+  
+  for (const id of selectedIds) {
+    const order = orders.find(o => o.id === id);
+    if (order) {
+      // Use the refactored openOrderPrintPreview to get just the HTML
+      const orderHtml = openOrderPrintPreview(order, false, true);
+      combinedPagesHtml += orderHtml;
+    }
+  }
+
+  if (combinedPagesHtml) {
+    // Re-use downloadHtmlAsPdf with a generic title
+    downloadHtmlAsPdf('הזמנות_רכש_מרוכז', combinedPagesHtml);
+  }
 };
