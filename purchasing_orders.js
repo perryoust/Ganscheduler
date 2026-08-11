@@ -872,7 +872,7 @@ function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
   const doDownload = () => {
     const container = document.createElement('div');
     container.id = 'pdf-export-container';
-    container.style.cssText = 'position:absolute; top:-99999px; left:-99999px; width:850px; background:#fff; direction:rtl; font-family:Arial, sans-serif;';
+    container.style.cssText = 'position:absolute; top:-99999px; left:-99999px; width:850px; background:#fff; direction:rtl; font-family:"Assistant", Arial, sans-serif;';
     
     container.innerHTML = `
       <style>
@@ -956,6 +956,15 @@ function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
         cleanup();
         if (window.showToast) window.showToast('❌ שגיאה בהפקת המסמך', 4000);
         return;
+      }
+
+      // Fix html2canvas Bidi parenthesis bug by flipping them in text nodes
+      const walk = document.createTreeWalker(target, NodeFilter.SHOW_TEXT, null, false);
+      let node;
+      while(node = walk.nextNode()) {
+        if (node.nodeValue.includes('(') || node.nodeValue.includes(')')) {
+          node.nodeValue = node.nodeValue.replace(/\(/g, '###L###').replace(/\)/g, '(').replace(/###L###/g, ')');
+        }
       }
 
       html2pdf().set(opt).from(target).save().then(() => {
