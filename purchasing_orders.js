@@ -902,31 +902,9 @@ function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
         
         .super-compact table { font-size: 0.75em; margin-top: 2px; }
         .super-compact th, .super-compact td { padding: 1px 2px; }
-        .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
         .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
         .super-compact .signature-wrapper { margin-top: 20px !important; }
         
-        .page.ultra-compact { padding: 10px 25px 6px !important; min-height: 1115px !important; }
-        .ultra-compact table { font-size: 0.68em; margin-top: 2px; line-height: 1.15; }
-        .ultra-compact th, .ultra-compact td { padding: 1px 3px; line-height: 1.15; }
-        .ultra-compact .header { padding-bottom: 2px; margin-bottom: 3px; border-bottom-width: 1px; }
-        .ultra-compact .header h1 { font-size: 1.4em !important; margin: 0 !important; }
-        .ultra-compact .header h3 { font-size: 0.9em !important; margin: 2px 0 0 0 !important; }
-        .ultra-compact h3, .ultra-compact h4, .ultra-compact p { margin-bottom: 1px !important; margin-top: 1px !important; }
-        .ultra-compact .footer-info-wrapper { margin-top: 5px !important; }
-        .ultra-compact .order-totals { font-size: 0.75em !important; padding: 4px 10px !important; min-width: 140px !important; }
-        .ultra-compact .order-totals h3 { font-size: 1.1em !important; margin-top: 3px !important; }
-        .ultra-compact .order-totals p { margin: 2px 0 !important; }
-        .ultra-compact .order-notes { font-size: 0.75em !important; line-height: 1.15; }
-        .ultra-compact .logo-wrapper { margin-bottom: 1px !important; }
-        .ultra-compact .logo-wrapper div { font-size: 0.85em !important; margin-top: 1px !important; }
-        .ultra-compact .page-num-wrapper { margin-top: 1px !important; }
-        .ultra-compact .logo-wrapper img { max-height: 40px !important; }
-        .ultra-compact .signature-wrapper { margin-top: 5px !important; width: 100% !important; }
-        .ultra-compact .signature-wrapper > div { width: 160px !important; }
-        .ultra-compact .signature-wrapper div { font-size: 0.85em !important; margin-bottom: 2px !important; }
-        .ultra-compact .signature-line { margin-top: 12px !important; }
-        .ultra-compact .page-footer-bottom { margin-top: 5px !important; padding-top: 3px !important; font-size: 0.70em !important; }
         ${extraCss}
       </style>
       <div id="pdf-render-target" class="page-container">
@@ -1002,14 +980,14 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
       
     // Fix punctuation at the end of Hebrew words so Bidi algorithm doesn't move them
     escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
-    // Wrap numbers and parentheses in an LTR inline-block. 
-    // This perfectly bypasses html2canvas's buggy RTL string reversal and bracket mirroring.
-    escaped = escaped.replace(/([0-9()]+)/g, '<span dir="ltr" style="display:inline-block;">$1</span>');
     
-    // Replace standard space with ZWNJ + standard space + ZWNJ.
-    // This perfectly bypasses html2canvas's bug where it trims leading/trailing spaces
-    // of RTL text nodes, while maintaining exact 1-space width and native word wrapping!
-    escaped = escaped.replace(/ /g, '&zwnj; &zwnj;');
+    // Force brackets to be RTL so html2canvas mirrors them consistently, even when next to numbers
+    escaped = escaped.replace(/\(/g, '&rlm;(&rlm;').replace(/\)/g, '&rlm;)&rlm;');
+    
+    // Bypass html2canvas space-eating bug.
+    // We use NBSP (which it respects) + ZWSP (which allows browser word-wrapping!)
+    // This gives exactly 1 space gap, avoids trimming, and supports wrapping.
+    escaped = escaped.replace(/ /g, '&nbsp;&#8203;');
     
     return escaped.replace(/\n/g, '<br>');
   };
@@ -1050,21 +1028,17 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
   const totalLines = order.items ? order.items.reduce((acc, it) => acc + getItemLines(it), 0) : 0;
 
   let compactClass = '';
-  let MAX_LINES_PER_PAGE = 22;
-  let MAX_LINES_PER_PAGE_WITH_TOTALS = 14;
+  let MAX_LINES_PER_PAGE = 26;
+  let MAX_LINES_PER_PAGE_WITH_TOTALS = 18;
 
-  if (totalLines > 30) {
-    compactClass = 'ultra-compact';
-    MAX_LINES_PER_PAGE = 70;
-    MAX_LINES_PER_PAGE_WITH_TOTALS = 55;
-  } else if (totalLines > 25) {
+  if (totalLines > 28) {
     compactClass = 'super-compact';
-    MAX_LINES_PER_PAGE = 45;
-    MAX_LINES_PER_PAGE_WITH_TOTALS = 30;
-  } else if (totalLines > 14) {
+    MAX_LINES_PER_PAGE = 50;
+    MAX_LINES_PER_PAGE_WITH_TOTALS = 36;
+  } else if (totalLines > 18) {
     compactClass = 'compact';
-    MAX_LINES_PER_PAGE = 32;
-    MAX_LINES_PER_PAGE_WITH_TOTALS = 22;
+    MAX_LINES_PER_PAGE = 36;
+    MAX_LINES_PER_PAGE_WITH_TOTALS = 26;
   }
   
   const pages = [];
