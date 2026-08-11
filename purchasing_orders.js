@@ -981,13 +981,12 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
     // Fix punctuation at the end of Hebrew words so Bidi algorithm doesn't move them
     escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
     
-    // Force brackets to be RTL so html2canvas mirrors them consistently, even when next to numbers
-    escaped = escaped.replace(/\(/g, '&rlm;(&rlm;').replace(/\)/g, '&rlm;)&rlm;');
+    // Force correct bracket glyphs using Small Parentheses (so html2canvas doesn't try to mirror them and fail)
+    escaped = escaped.replace(/\(/g, '&#xFE5A;').replace(/\)/g, '&#xFE59;');
     
     // Bypass html2canvas space-eating bug.
-    // We use NBSP (which it respects) + ZWSP (which allows browser word-wrapping!)
-    // This gives exactly 1 space gap, avoids trimming, and supports wrapping.
-    escaped = escaped.replace(/ /g, '&nbsp;&#8203;');
+    // We use NBSP (which it respects and renders) + <wbr> (which allows browser word-wrapping!)
+    escaped = escaped.replace(/ /g, '<wbr>&nbsp;<wbr>');
     
     return escaped.replace(/\n/g, '<br>');
   };
@@ -1063,8 +1062,16 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
 
     if (remaining.length === 0) {
       if (pageLines > MAX_LINES_PER_PAGE_WITH_TOTALS) {
+        // Move some items to the next page so it's not totally empty with just totals
+        let stolenItems = [];
+        let stolenLines = 0;
+        while (pageItems.length > 0 && stolenLines < 15 && (pageLines - stolenLines) > 15) {
+          let it = pageItems.pop();
+          stolenItems.unshift(it);
+          stolenLines += getItemLines(it);
+        }
         pages.push({ items: pageItems, hasTotals: false });
-        pages.push({ items: [], hasTotals: true });
+        pages.push({ items: stolenItems, hasTotals: true });
       } else {
         pages.push({ items: pageItems, hasTotals: true });
       }
