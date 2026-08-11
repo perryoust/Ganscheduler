@@ -864,82 +864,71 @@ function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
   }
 
   const doDownload = () => {
-    const iframe = document.createElement('iframe');
-    iframe.id = 'pdf-export-iframe';
-    iframe.style.cssText = 'position:fixed;top:0;left:0;width:850px;height:1200px;z-index:999998;border:none;background:#fff;pointer-events:none;';
-    document.body.appendChild(iframe);
-
-    const ifrDoc = iframe.contentDocument || iframe.contentWindow.document;
-    ifrDoc.open();
-    ifrDoc.write(`
-      <!DOCTYPE html>
-      <html dir="rtl">
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          body { font-family: Arial, sans-serif; padding: 0; margin: 0; background: #fff; direction: rtl; }
-          .page-container { padding: 0; margin: 0; display: flex; flex-direction: column; align-items: center; }
-          .page { 
-            background: #fff; 
-            padding: 40px; 
-            width: 794px; 
-            min-height: 1115px;
-            height: auto;
-            box-sizing: border-box; 
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            margin-bottom: 0;
-            box-shadow: none;
-          }
-          table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; table-layout: fixed; }
-          th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
-          th { background: #f5f5f5; }
-          .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2e7d32; padding-bottom: 10px; margin-bottom: 10px;}
-          
-          .compact table { font-size: 0.85em; margin-top: 5px; }
-          .compact th, .compact td { padding: 2px 4px; }
-          .compact .header { padding-bottom: 5px; margin-bottom: 5px; }
-          .compact .signature-wrapper { margin-top: 25px !important; }
-          
-          .super-compact table { font-size: 0.75em; margin-top: 2px; }
-          .super-compact th, .super-compact td { padding: 1px 2px; }
-          .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
-          .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
-          .super-compact .signature-wrapper { margin-top: 15px !important; }
-          
-          .page.ultra-compact { padding: 10px 25px 6px !important; min-height: 1115px !important; }
-          .ultra-compact table { font-size: 0.68em; margin-top: 2px; line-height: 1.15; }
-          .ultra-compact th, .ultra-compact td { padding: 1px 3px; line-height: 1.15; }
-          .ultra-compact .header { padding-bottom: 2px; margin-bottom: 3px; border-bottom-width: 1px; }
-          .ultra-compact .header h1 { font-size: 1.4em !important; margin: 0 !important; }
-          .ultra-compact .header h3 { font-size: 0.9em !important; margin: 2px 0 0 0 !important; }
-          .ultra-compact h3, .ultra-compact h4, .ultra-compact p { margin-bottom: 1px !important; margin-top: 1px !important; }
-          .ultra-compact .footer-info-wrapper { margin-top: 5px !important; }
-          .ultra-compact .order-totals { font-size: 0.75em !important; padding: 4px 10px !important; min-width: 140px !important; }
-          .ultra-compact .order-totals h3 { font-size: 1.1em !important; margin-top: 3px !important; }
-          .ultra-compact .order-totals p { margin: 2px 0 !important; }
-          .ultra-compact .order-notes { font-size: 0.75em !important; line-height: 1.15; }
-          .ultra-compact .logo-wrapper { margin-bottom: 1px !important; }
-          .ultra-compact .logo-wrapper div { font-size: 0.85em !important; margin-top: 1px !important; }
-          .ultra-compact .page-num-wrapper { margin-top: 1px !important; }
-          .ultra-compact .logo-wrapper img { max-height: 40px !important; }
-          .ultra-compact .signature-wrapper { margin-top: 3px !important; width: 100% !important; }
-          .ultra-compact .signature-wrapper > div { width: 160px !important; }
-          .ultra-compact .signature-wrapper div { font-size: 0.75em !important; margin-bottom: 2px !important; }
-          .ultra-compact .signature-line { margin-top: 12px !important; }
-          .ultra-compact .page-footer-bottom { margin-top: 5px !important; padding-top: 3px !important; font-size: 0.70em !important; }
-          ${extraCss}
-        </style>
-      </head>
-      <body>
-        <div id="pdf-render-target" class="page-container">
-          ${pagesHtml}
-        </div>
-      </body>
-      </html>
-    `);
-    ifrDoc.close();
+    const container = document.createElement('div');
+    container.id = 'pdf-export-container';
+    container.style.cssText = 'position:absolute; top:-99999px; left:-99999px; width:850px; background:#fff; direction:rtl; font-family:Arial, sans-serif;';
+    
+    container.innerHTML = `
+      <style>
+        .page-container { padding: 0; margin: 0; display: flex; flex-direction: column; align-items: center; }
+        .page { 
+          background: #fff; 
+          padding: 40px; 
+          width: 794px; 
+          min-height: 1115px;
+          height: auto;
+          box-sizing: border-box; 
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          margin-bottom: 0;
+          box-shadow: none;
+        }
+        .page table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; table-layout: fixed; }
+        .page th, .page td { border: 1px solid #ccc; padding: 4px 6px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
+        .page th { background: #f5f5f5; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2e7d32; padding-bottom: 10px; margin-bottom: 10px;}
+        
+        .compact table { font-size: 0.85em; margin-top: 5px; }
+        .compact th, .compact td { padding: 2px 4px; }
+        .compact .header { padding-bottom: 5px; margin-bottom: 5px; }
+        .compact .signature-wrapper { margin-top: 25px !important; }
+        
+        .super-compact table { font-size: 0.75em; margin-top: 2px; }
+        .super-compact th, .super-compact td { padding: 1px 2px; }
+        .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
+        .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
+        .super-compact .signature-wrapper { margin-top: 15px !important; }
+        
+        .page.ultra-compact { padding: 10px 25px 6px !important; min-height: 1115px !important; }
+        .ultra-compact table { font-size: 0.68em; margin-top: 2px; line-height: 1.15; }
+        .ultra-compact th, .ultra-compact td { padding: 1px 3px; line-height: 1.15; }
+        .ultra-compact .header { padding-bottom: 2px; margin-bottom: 3px; border-bottom-width: 1px; }
+        .ultra-compact .header h1 { font-size: 1.4em !important; margin: 0 !important; }
+        .ultra-compact .header h3 { font-size: 0.9em !important; margin: 2px 0 0 0 !important; }
+        .ultra-compact h3, .ultra-compact h4, .ultra-compact p { margin-bottom: 1px !important; margin-top: 1px !important; }
+        .ultra-compact .footer-info-wrapper { margin-top: 5px !important; }
+        .ultra-compact .order-totals { font-size: 0.75em !important; padding: 4px 10px !important; min-width: 140px !important; }
+        .ultra-compact .order-totals h3 { font-size: 1.1em !important; margin-top: 3px !important; }
+        .ultra-compact .order-totals p { margin: 2px 0 !important; }
+        .ultra-compact .order-notes { font-size: 0.75em !important; line-height: 1.15; }
+        .ultra-compact .logo-wrapper { margin-bottom: 1px !important; }
+        .ultra-compact .logo-wrapper div { font-size: 0.85em !important; margin-top: 1px !important; }
+        .ultra-compact .page-num-wrapper { margin-top: 1px !important; }
+        .ultra-compact .logo-wrapper img { max-height: 40px !important; }
+        .ultra-compact .signature-wrapper { margin-top: 3px !important; width: 100% !important; }
+        .ultra-compact .signature-wrapper > div { width: 160px !important; }
+        .ultra-compact .signature-wrapper div { font-size: 0.75em !important; margin-bottom: 2px !important; }
+        .ultra-compact .signature-line { margin-top: 12px !important; }
+        .ultra-compact .page-footer-bottom { margin-top: 5px !important; padding-top: 3px !important; font-size: 0.70em !important; }
+        ${extraCss}
+      </style>
+      <div id="pdf-render-target" class="page-container">
+        ${pagesHtml}
+      </div>
+    `;
+    
+    document.body.appendChild(container);
 
     const cleanFilename = filename.endsWith('.pdf') ? filename : filename + '.pdf';
     const opt = {
@@ -951,12 +940,12 @@ function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
     };
     
     const cleanup = () => {
-      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      if (container.parentNode) container.parentNode.removeChild(container);
       if (overlay) overlay.style.display = 'none';
     };
 
     setTimeout(() => {
-      const target = ifrDoc.getElementById('pdf-render-target');
+      const target = document.getElementById('pdf-render-target');
       if (!target) {
         cleanup();
         if (window.showToast) window.showToast('❌ שגיאה בהפקת המסמך', 4000);
@@ -997,6 +986,9 @@ function openOrderPrintPreview(order, autoDownload = false) {
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
+      
+    // Fix missing space before בע"מ
+    escaped = escaped.replace(/([\u0590-\u05FF])(בע"מ|בעמ)/g, '$1 $2');
       
     // Fix punctuation at the end of Hebrew words so Bidi algorithm doesn't move them
     escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
@@ -1210,7 +1202,7 @@ function openOrderPrintPreview(order, autoDownload = false) {
         ${footerContentHtml}
         
         ${isLastPage ? `
-        <div class="signature-wrapper" style="margin-top: 60px; display: flex; justify-content: flex-end; width: 100%;">
+        <div class="signature-wrapper" style="margin-top: 80px; display: flex; justify-content: flex-end; width: 100%;">
           <div style="display: flex; flex-direction: column; align-items: center; width: 200px;">
             ${order.orderer ? order.orderer.split('\n').map(l => `<div style="margin-bottom:3px; font-weight:bold; font-size:0.9em;">${rtlFix(l)}</div>`).join('') : ''}
             <div class="signature-line" style="border-top: 1px solid #000; width: 100%; margin-top: 20px; text-align: center; padding-top: 3px;"></div>
@@ -1800,6 +1792,9 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
+      
+    // Fix missing space before בע"מ
+    escaped = escaped.replace(/([\u0590-\u05FF])(בע"מ|בעמ)/g, '$1 $2');
       
     // Fix punctuation at the end of Hebrew words so Bidi algorithm doesn't move them
     escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
