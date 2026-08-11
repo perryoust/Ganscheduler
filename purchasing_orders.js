@@ -1173,13 +1173,20 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
         .ultra-compact .page-footer-bottom { margin-top: 5px !important; padding-top: 3px !important; font-size: 0.70em !important; }
 
         @page { size: A4 portrait; margin: 0; }
+        @media print {
+          .no-print { display: none !important; }
+          body { background: #fff; }
+          .page-container { padding: 0; }
+          .page { box-shadow: none; padding: 0; width: 100%; min-height: 100%; margin-bottom: 0; }
+        }
+      </style>
+      <script>
         function doPrint() { window.print(); }
       </script>
     </head>
     <body>
       <div class="no-print">
-        <button class="btn-print" onclick="doPrint()">🖨️ הדפס</button>
-        <button class="btn-pdf" onclick="doPDF()">📄 הורד כ-PDF</button>
+        <button class="btn-print" onclick="doPrint()">🖨️ הדפס / שמור כ-PDF</button>
       </div>
       <div class="page-container" id="pdf-content">
         ${pagesHtml}
@@ -1187,6 +1194,7 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
     </body>
     </html>
   `);
+  w.document.close();
 }
 
 function openNewDelivery() {
@@ -1901,6 +1909,7 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
     </body>
     </html>
   `);
+  w.document.close();
 }
 
 // Attach renderer to SPT
