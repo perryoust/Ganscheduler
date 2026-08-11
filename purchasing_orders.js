@@ -958,14 +958,32 @@ function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
         return;
       }
 
-      // Fix html2canvas Bidi parenthesis bug by flipping them in text nodes
+      // Fix html2canvas bugs for Hebrew (RTL)
       const walk = document.createTreeWalker(target, NodeFilter.SHOW_TEXT, null, false);
       let node;
+      const textNodes = [];
       while(node = walk.nextNode()) {
-        if (node.nodeValue.includes('(') || node.nodeValue.includes(')')) {
-          node.nodeValue = node.nodeValue.replace(/\(/g, '###L###').replace(/\)/g, '(').replace(/###L###/g, ')');
-        }
+        textNodes.push(node);
       }
+      
+      textNodes.forEach(n => {
+        let val = n.nodeValue;
+        
+        // Remove zero-width directional marks that confuse html2canvas
+        val = val.replace(/[\u200E\u200F]/g, '');
+        
+        // Fix missing spaces in RTL: replace standard space with NBSP + Zero-Width Space
+        if (val.includes(' ')) {
+          val = val.replace(/ /g, '\u00A0\u200B');
+        }
+
+        // Fix parenthesis Bidi mirroring
+        if (val.includes('(') || val.includes(')')) {
+          val = val.replace(/\(/g, '###L###').replace(/\)/g, '(').replace(/###L###/g, ')');
+        }
+
+        n.nodeValue = val;
+      });
 
       html2pdf().set(opt).from(target).save().then(() => {
         cleanup();
