@@ -902,7 +902,7 @@ function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
         .super-compact th, .super-compact td { padding: 1px 2px; }
         .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
         .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
-        .super-compact .signature-wrapper { margin-top: 30px !important; }
+        .super-compact .signature-wrapper { margin-top: 20px !important; }
         
         .page.ultra-compact { padding: 10px 25px 6px !important; min-height: 1115px !important; }
         .ultra-compact table { font-size: 0.68em; margin-top: 2px; line-height: 1.15; }
@@ -920,7 +920,7 @@ function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
         .ultra-compact .logo-wrapper div { font-size: 0.85em !important; margin-top: 1px !important; }
         .ultra-compact .page-num-wrapper { margin-top: 1px !important; }
         .ultra-compact .logo-wrapper img { max-height: 40px !important; }
-        .ultra-compact .signature-wrapper { margin-top: 30px !important; width: 100% !important; }
+        .ultra-compact .signature-wrapper { margin-top: 15px !important; width: 100% !important; }
         .ultra-compact .signature-wrapper > div { width: 160px !important; }
         .ultra-compact .signature-wrapper div { font-size: 0.75em !important; margin-bottom: 2px !important; }
         .ultra-compact .signature-line { margin-top: 12px !important; }
@@ -1208,7 +1208,7 @@ function openOrderPrintPreview(order, autoDownload = false) {
         <div class="page-spacer" style="flex:1;"></div>
         
         ${isLastPage ? `
-        <div class="signature-wrapper" style="margin-top: 20px; margin-bottom: 20px; display: flex; justify-content: flex-end; width: 100%;">
+        <div class="signature-wrapper" style="margin-top: 50px; margin-bottom: 5px; display: flex; justify-content: flex-end; width: 100%;">
           <div style="display: flex; flex-direction: column; align-items: center; width: 200px;">
             ${order.orderer ? order.orderer.split('\n').map(l => `<div style="margin-bottom:3px; font-weight:bold; font-size:0.9em;">${rtlFix(l)}</div>`).join('') : ''}
             <div class="signature-line" style="border-top: 1px solid #000; width: 100%; margin-top: 20px; text-align: center; padding-top: 3px;"></div>
@@ -1268,7 +1268,7 @@ function openOrderPrintPreview(order, autoDownload = false) {
         .super-compact th, .super-compact td { padding: 1px 2px; }
         .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
         .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
-        .super-compact .signature-wrapper { margin-top: 30px !important; }
+        .super-compact .signature-wrapper { margin-top: 20px !important; }
         
         .page.ultra-compact { padding: 10px 25px 6px !important; min-height: 1115px !important; }
         .ultra-compact table { font-size: 0.68em; margin-top: 2px; line-height: 1.15; }
@@ -1286,7 +1286,7 @@ function openOrderPrintPreview(order, autoDownload = false) {
         .ultra-compact .logo-wrapper div { font-size: 0.85em !important; margin-top: 1px !important; }
         .ultra-compact .page-num-wrapper { margin-top: 1px !important; }
         .ultra-compact .logo-wrapper img { max-height: 40px !important; }
-        .ultra-compact .signature-wrapper { margin-top: 30px !important; width: 100% !important; }
+        .ultra-compact .signature-wrapper { margin-top: 15px !important; width: 100% !important; }
         .ultra-compact .signature-wrapper > div { width: 160px !important; }
         .ultra-compact .signature-wrapper div { font-size: 0.75em !important; margin-bottom: 2px !important; }
         .ultra-compact .signature-line { margin-top: 12px !important; }
