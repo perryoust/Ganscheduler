@@ -1205,8 +1205,10 @@ function openOrderPrintPreview(order, autoDownload = false) {
         ${tableHtml}
         ${footerContentHtml}
         
+        <div class="page-spacer" style="flex:1;"></div>
+        
         ${isLastPage ? `
-        <div class="signature-wrapper" style="margin-top: 80px; display: flex; justify-content: flex-end; width: 100%;">
+        <div class="signature-wrapper" style="margin-top: 20px; margin-bottom: 20px; display: flex; justify-content: flex-end; width: 100%;">
           <div style="display: flex; flex-direction: column; align-items: center; width: 200px;">
             ${order.orderer ? order.orderer.split('\n').map(l => `<div style="margin-bottom:3px; font-weight:bold; font-size:0.9em;">${rtlFix(l)}</div>`).join('') : ''}
             <div class="signature-line" style="border-top: 1px solid #000; width: 100%; margin-top: 20px; text-align: center; padding-top: 3px;"></div>
@@ -1214,9 +1216,7 @@ function openOrderPrintPreview(order, autoDownload = false) {
         </div>
         ` : ''}
         
-        <div class="page-spacer" style="flex:1;"></div>
-        
-        <div class="page-footer-bottom" style="margin-top:15px; text-align:center; font-size:0.85em; color:#555; border-top:1px solid #ccc; padding-top:10px;">
+        <div class="page-footer-bottom" style="margin-top:10px; text-align:center; font-size:0.85em; color:#555; border-top:1px solid #ccc; padding-top:10px;">
           ${footerHtml}
         </div>
       </div>
