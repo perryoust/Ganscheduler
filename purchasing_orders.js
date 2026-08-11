@@ -876,7 +876,7 @@ function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
     
     container.innerHTML = `
       <style>
-        .page-container { padding: 0; margin: 0; display: flex; flex-direction: column; align-items: center; }
+        .page-container { padding: 0; margin: 0; display: flex; flex-direction: column; align-items: center; word-spacing: 0.1em; }
         .page { 
           background: #fff; 
           padding: 40px; 
@@ -958,32 +958,8 @@ function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
         return;
       }
 
-      // Fix html2canvas bugs for Hebrew (RTL)
-      const walk = document.createTreeWalker(target, NodeFilter.SHOW_TEXT, null, false);
-      let node;
-      const textNodes = [];
-      while(node = walk.nextNode()) {
-        textNodes.push(node);
-      }
-      
-      textNodes.forEach(n => {
-        let val = n.nodeValue;
-        
-        // Remove zero-width directional marks that confuse html2canvas
-        val = val.replace(/[\u200E\u200F]/g, '');
-        
-        // Fix missing spaces in RTL: replace standard space with NBSP + Zero-Width Space
-        if (val.includes(' ')) {
-          val = val.replace(/ /g, '\u00A0\u200B');
-        }
-
-        // Fix parenthesis Bidi mirroring
-        if (val.includes('(') || val.includes(')')) {
-          val = val.replace(/\(/g, '###L###').replace(/\)/g, '(').replace(/###L###/g, ')');
-        }
-
-        n.nodeValue = val;
-      });
+      // Removed TreeWalker because it completely broke html2canvas table layouts.
+      // Reverting to just relying on the Assistant font which natively worked before v109.70.
 
       html2pdf().set(opt).from(target).save().then(() => {
         cleanup();
@@ -1025,9 +1001,9 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
       
     // Fix punctuation at the end of Hebrew words so Bidi algorithm doesn't move them
     escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
-    // We just return the string. We rely on white-space: pre-wrap to preserve spaces.
-    // Also, inject an RLM mark after numbers and parentheses to enforce RTL directionality.
-    escaped = escaped.replace(/([0-9()]+)/g, '$1&rlm;');
+    // Wrap numbers and parentheses in an LTR inline-block. 
+    // This perfectly bypasses html2canvas's buggy RTL string reversal and bracket mirroring.
+    escaped = escaped.replace(/([0-9()]+)/g, '<span dir="ltr" style="display:inline-block;">$1</span>');
     return escaped.replace(/\n/g, '<br>');
   };
 
@@ -1199,10 +1175,10 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
       let kitsBreakdownHtml = '';
       if (kitsCount > 1) {
         kitsBreakdownHtml = `
-          <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ לערכה בודדת:&rlm;</span><span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span></p>
+          <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ לערכה&nbsp;בודדת:&rlm;</span><span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span></p>
           ${discountPerKit ? `<p style="margin:4px 0; color:#d32f2f; text-align:center;"><span style="font-weight:bold; margin-left:5px;">הנחה לערכה:&rlm;</span><span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span></p>` : ''}
           <p style="margin:6px 0; background:#f1f8e9; padding:4px 12px; border-radius:4px; display:inline-block; border:1px solid #c8e6c9; text-align:center;">
-            <span style="font-weight:bold; margin-left:5px; color:#2e7d32;">כמות ערכות:&rlm;</span><span style="font-weight:bold; font-size:1.1em; color:#2e7d32;">${kitsCount}</span>
+            <span style="font-weight:bold; margin-left:5px; color:#2e7d32;">כמות&nbsp;ערכות:&rlm;</span><span style="font-weight:bold; font-size:1.1em; color:#2e7d32;">${kitsCount}</span>
           </p>
           <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ (${kitsCount} ערכות):&rlm;</span><span dir="ltr" style="font-weight:bold;">&#8362; ${totalTaxable.toFixed(2)}</span></p>
         `;
@@ -1239,7 +1215,7 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
         ${isLastPage ? `
         <div class="signature-wrapper" style="margin-top: 50px; margin-bottom: 5px; display: flex; justify-content: flex-end; width: 100%;">
           <div style="display: flex; flex-direction: column; align-items: center; width: 200px;">
-            ${order.orderer ? order.orderer.split('\n').map(l => `<div style="margin-bottom:3px; font-weight:bold; font-size:0.9em;">${rtlFix(l)}</div>`).join('') : ''}
+            ${order.orderer ? order.orderer.split('\n').map(l => `<div style="margin-bottom:3px; font-weight:bold; font-size:0.9em;">${rtlFix(l).replace(/ /g, '&nbsp;')}</div>`).join('') : ''}
             <div class="signature-line" style="border-top: 1px solid #000; width: 100%; margin-top: 20px; text-align: center; padding-top: 3px;"></div>
           </div>
         </div>
