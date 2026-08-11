@@ -750,6 +750,10 @@ function duplicateOrder(id) {
     const vatEl = document.getElementById('om-vat-rate');
     if (vatEl) vatEl.value = order.vatRate;
   }
+  if (order.kitsCount !== undefined) {
+    const kitsEl = document.getElementById('om-kits-count');
+    if (kitsEl) kitsEl.value = order.kitsCount;
+  }
   
   // Clear items and add existing
   const tbody = document.getElementById('om-items-body');
