@@ -1265,7 +1265,7 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
           .no-print { display: none !important; }
           body { background: #fff; }
           .page-container { padding: 0; }
-          .page { box-shadow: none; padding: 25px 30px; width: 100%; min-height: 100%; margin-bottom: 0; }
+          .page { box-shadow: none; padding: 25px 30px; width: 100%; min-height: 100vh; margin-bottom: 0; }
         }
       </style>
       <script>
