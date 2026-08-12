@@ -853,6 +853,116 @@ function previewOrder() {
 
 
 
+function downloadHtmlAsPdf(filename, pagesHtml, extraCss = '') {
+  let overlay = document.getElementById('pdf-loading-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'pdf-loading-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:Arial,sans-serif;backdrop-filter:blur(3px);';
+    overlay.innerHTML = `
+      <div style="background:#fff;color:#333;padding:25px 35px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.3);text-align:center;max-width:350px;">
+        <div style="font-size:36px;margin-bottom:12px;">⏳</div>
+        <h3 style="margin:0 0 8px;font-size:18px;color:#1a237e;">מייצר קובץ PDF</h3>
+        <p style="margin:0;font-size:14px;color:#666;">ההורדה תתחיל בעוד רגע...</p>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  } else {
+    overlay.style.display = 'flex';
+  }
+
+  const doDownload = () => {
+    const container = document.createElement('div');
+    container.id = 'pdf-export-container';
+    container.style.cssText = 'position:absolute; top:-99999px; left:-99999px; width:850px; background:#fff; direction:rtl; font-family:Arial, sans-serif;';
+    
+    container.innerHTML = `
+      <style>
+        .page-container { padding: 0; margin: 0; display: flex; flex-direction: column; align-items: center; }
+        .page { 
+          background: #fff; 
+          padding: 40px; 
+          width: 794px; 
+          min-height: 1115px;
+          height: auto;
+          box-sizing: border-box; 
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          margin-bottom: 0;
+          box-shadow: none;
+        }
+        .page table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; table-layout: fixed; }
+        .page th, .page td { border: 1px solid #ccc; padding: 4px 6px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
+        .page th { background: #f5f5f5; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2e7d32; padding-bottom: 10px; margin-bottom: 10px;}
+        
+        .compact table { font-size: 0.85em; margin-top: 5px; }
+        .compact th, .compact td { padding: 2px 4px; }
+        .compact .header { padding-bottom: 5px; margin-bottom: 5px; }
+        .compact .signature-wrapper { margin-top: 25px !important; }
+        
+        .super-compact table { font-size: 0.75em; margin-top: 2px; }
+        .super-compact th, .super-compact td { padding: 1px 2px; }
+        .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
+        .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
+        .super-compact .signature-wrapper { margin-top: 30px !important; }
+        ${extraCss}
+      </style>
+      <div id="pdf-render-target" class="page-container">
+        ${pagesHtml}
+      </div>
+    `;
+    
+    document.body.appendChild(container);
+
+    const cleanFilename = filename.endsWith('.pdf') ? filename : filename + '.pdf';
+    const opt = {
+      margin:       0,
+      filename:     cleanFilename,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    
+    const cleanup = () => {
+      if (container.parentNode) container.parentNode.removeChild(container);
+      if (overlay) overlay.style.display = 'none';
+    };
+
+    setTimeout(() => {
+      const target = document.getElementById('pdf-render-target');
+      if (!target) {
+        cleanup();
+        if (window.showToast) window.showToast('❌ שגיאה בהפקת המסמך', 4000);
+        return;
+      }
+
+      html2pdf().set(opt).from(target).save().then(() => {
+        cleanup();
+        if (window.showToast) window.showToast('✅ הקובץ הורד בהצלחה!', 3000);
+      }).catch(err => {
+        console.error('PDF generation error:', err);
+        cleanup();
+        if (window.showToast) window.showToast('❌ שגיאה בהורדת הקובץ', 4000);
+      });
+    }, 300);
+  };
+
+  if (typeof html2pdf === 'undefined') {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    s.onload = doDownload;
+    s.onerror = () => {
+      if (overlay) overlay.style.display = 'none';
+      if (window.showToast) window.showToast('❌ שגיאה בטעינת ספריית PDF', 4000);
+    };
+    document.head.appendChild(s);
+  } else {
+    doDownload();
+  }
+}
+
 function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = false) {
   const defaultFooter = `טומשין-עושים חינוך אחרת בע"מ (חל"צ) – רשת צהרונים\nהנהלה ראשית: רח' איינשטיין 18 קומה ב', נס ציונה, ת.ד. 2318, מיקוד 7403622, טל: 03-9689119 פקס: 039689120\nwww.tomashin.co.il  www.tomashin-kids.co.il`;
   
@@ -868,14 +978,8 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
       
     // Fix punctuation at the end of Hebrew words so Bidi algorithm doesn't move them
     escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
-    
-    // Force correct bracket glyphs using Small Parentheses (so html2canvas doesn't try to mirror them and fail)
-    escaped = escaped.replace(/\(/g, '&#xFE5A;').replace(/\)/g, '&#xFE59;');
-    
-    // Bypass html2canvas space-eating bug.
-    // We use NBSP (which it respects and renders) + <wbr> (which allows browser word-wrapping!)
-    escaped = escaped.replace(/ /g, '<wbr>&nbsp;<wbr>');
-    
+    // RLM after numbers and parentheses to enforce RTL directionality
+    escaped = escaped.replace(/([0-9()]+)/g, '$1&rlm;');
     return escaped.replace(/\n/g, '<br>');
   };
 
@@ -1109,6 +1213,11 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
     return pagesHtml;
   }
 
+  if (autoDownload) {
+    downloadHtmlAsPdf(rawTitle, pagesHtml);
+    return;
+  }
+
   const w = window.open('', '_blank');
   w.document.write(`
     <html dir="rtl">
@@ -1149,35 +1258,14 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
         .super-compact .header { padding-bottom: 2px; margin-bottom: 5px; border-bottom-width: 1px; }
         .super-compact h3, .super-compact h4, .super-compact p { margin-bottom: 1px !important; }
         .super-compact .signature-wrapper { margin-top: 20px !important; }
-        
-        .page.ultra-compact { padding: 10px 25px 6px !important; min-height: 1115px !important; }
-        .ultra-compact table { font-size: 0.68em; margin-top: 2px; line-height: 1.15; }
-        .ultra-compact th, .ultra-compact td { padding: 1px 3px; line-height: 1.15; }
-        .ultra-compact .header { padding-bottom: 2px; margin-bottom: 3px; border-bottom-width: 1px; }
-        .ultra-compact .header h1 { font-size: 1.4em !important; margin: 0 !important; }
-        .ultra-compact .header h3 { font-size: 0.9em !important; margin: 2px 0 0 0 !important; }
-        .ultra-compact h3, .ultra-compact h4, .ultra-compact p { margin-bottom: 1px !important; margin-top: 1px !important; }
-        .ultra-compact .footer-info-wrapper { margin-top: 5px !important; }
-        .ultra-compact .order-totals { font-size: 0.75em !important; padding: 4px 10px !important; min-width: 140px !important; }
-        .ultra-compact .order-totals h3 { font-size: 1.1em !important; margin-top: 3px !important; }
-        .ultra-compact .order-totals p { margin: 2px 0 !important; }
-        .ultra-compact .order-notes { font-size: 0.75em !important; line-height: 1.15; }
-        .ultra-compact .logo-wrapper { margin-bottom: 1px !important; }
-        .ultra-compact .logo-wrapper div { font-size: 0.85em !important; margin-top: 1px !important; }
-        .ultra-compact .page-num-wrapper { margin-top: 1px !important; }
-        .ultra-compact .logo-wrapper img { max-height: 40px !important; }
-        .ultra-compact .signature-wrapper { margin-top: 5px !important; width: 100% !important; }
-        .ultra-compact .signature-wrapper > div { width: 160px !important; }
-        .ultra-compact .signature-wrapper div { font-size: 0.85em !important; margin-bottom: 2px !important; }
-        .ultra-compact .signature-line { margin-top: 12px !important; }
-        .ultra-compact .page-footer-bottom { margin-top: 5px !important; padding-top: 3px !important; font-size: 0.70em !important; }
+
 
         @page { size: A4 portrait; margin: 0; }
         @media print {
           .no-print { display: none !important; }
           body { background: #fff; }
           .page-container { padding: 0; }
-          .page { box-shadow: none; padding: 0; width: 100%; min-height: 100%; margin-bottom: 0; }
+          .page { box-shadow: none; padding: 25px 30px; width: 100%; min-height: 100%; margin-bottom: 0; }
         }
       </style>
       <script>
