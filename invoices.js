@@ -3439,39 +3439,7 @@ const filesFound = [];
         const hebMonths = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
         const matchHebName = fullText.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\s*(\d{4})?/);
                              
-        let strictMonthMismatch = false;
         if (matchHebName) {
-          const targetMonth = hebMonths.indexOf(matchHebName[1]);
-          if (inv.orderMonth || inv.actMonth) {
-             const oMonthStr = String(inv.orderMonth || inv.actMonth);
-             let isSameMonth = false;
-             const invMonthMatch = oMonthStr.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)/);
-             if (invMonthMatch) {
-               if (hebMonths.indexOf(invMonthMatch[1]) === targetMonth) {
-                 isSameMonth = true;
-               }
-             } else {
-               const mStr1 = '/' + (targetMonth + 1) + '/';
-               const mStr2 = '/' + String(targetMonth + 1).padStart(2, '0') + '/';
-               const mStr3 = (targetMonth + 1) + '/';
-               const mStr4 = String(targetMonth + 1).padStart(2, '0') + '/';
-               const mStr5 = '.' + (targetMonth + 1) + '.';
-               const mStr6 = '.' + String(targetMonth + 1).padStart(2, '0') + '.';
-               if (oMonthStr.includes(mStr1) || oMonthStr.includes(mStr2) || oMonthStr.startsWith(mStr3) || oMonthStr.startsWith(mStr4) || oMonthStr.includes(mStr5) || oMonthStr.includes(mStr6)) {
-                 isSameMonth = true;
-               }
-             }
-             if (isSameMonth) {
-                 score += 30;
-                 monthMatched = true;
-             } else {
-                 strictMonthMismatch = true;
-             }
-          }
-        }
-        if (strictMonthMismatch) continue;
-        
-        if (false) {
           const targetMonth = hebMonths.indexOf(matchHebName[1]);
           if (inv.orderMonth || inv.actMonth) {
              const oMonthStr = String(inv.orderMonth || inv.actMonth);
