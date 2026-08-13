@@ -3342,8 +3342,8 @@ const filesFound = [];
       }
     };
 
-    const taxMatch = fullText.match(/(?:חשבונית\s*מס|חשבונית|קבלה|tax)[^\d]*(\d{3,})/gi);
-    if (taxMatch) taxMatch.forEach(m => { const d = m.match(/\d+/); if(d) addNum(d[0], 'tax'); });
+    const taxMatch = fullText.match(/(?:חשבונית\s*מס|חשבונית|קבלה|tax)[^\d]*([\d][\d\-]{2,})/gi);
+    if (taxMatch) taxMatch.forEach(m => { const d = m.match(/[\d][\d\-]+/); if(d) addNum(d[0], 'tax'); });
 
     const txMatch = fullText.match(/(?:חשבונית\s*עסקה|חשבון\s*עסקה|דרישה|דרישת\s*תשלום|tx)[^\d]*(\d{3,})/gi);
     if (txMatch) txMatch.forEach(m => { const d = m.match(/\d+/); if(d) addNum(d[0], 'tx'); });
@@ -3356,6 +3356,15 @@ const filesFound = [];
 
     const allNums = file.name.match(/\d+/g) || [];
     allNums.forEach(num => {
+       const clean = num.replace(/\D/g, '').replace(/^0+/, '');
+       if (clean.length >= 2 && !extractedNumbers.some(n => n.clean === clean)) {
+         addNum(num, 'any');
+       }
+    });
+
+    // Also capture hyphenated numbers as single units (e.g. "01-162265", "3970-04")
+    const hyphenatedNums = file.name.match(/\d+\-\d+/g) || [];
+    hyphenatedNums.forEach(num => {
        const clean = num.replace(/\D/g, '').replace(/^0+/, '');
        if (clean.length >= 2 && !extractedNumbers.some(n => n.clean === clean)) {
          addNum(num, 'any');
