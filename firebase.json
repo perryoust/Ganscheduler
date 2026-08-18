@@ -15,6 +15,22 @@
         ]
       }
     ],
+    "rewrites": [
+      {
+        "source": "/api/changePassword",
+        "run": {
+          "serviceId": "changepassword",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/deleteUser",
+        "run": {
+          "serviceId": "deleteuser",
+          "region": "us-central1"
+        }
+      }
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",

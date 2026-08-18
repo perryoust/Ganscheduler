@@ -593,10 +593,22 @@ async function deleteUser(uid, name){
     let tok=null;
     if(window._fbUser) try{ tok=await window._fbUser.getIdToken(false); }catch(e){}
     try {
-      const delRes = await fetch('https://deleteuser-graclk45jq-uc.a.run.app',{
-        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
-        body:JSON.stringify({uid})
-      });
+      const endpoints = ['/api/deleteUser', 'https://deleteuser-graclk45jq-uc.a.run.app'];
+      let delRes = null;
+      let lastErr = null;
+      for (const url of endpoints) {
+        try {
+          const r = await fetch(url, {
+            method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+            body:JSON.stringify({uid})
+          });
+          delRes = r;
+          break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      if (!delRes) throw lastErr || new Error('שגיאה בתקשורת עם השרת');
       if(!delRes.ok){ 
         let e = {error: 'Unknown error'};
         try { e = await delRes.json(); } catch(je){}
@@ -762,10 +774,22 @@ async function changeUserPassword(uid, username){
     let tok2=null;
     if(window._fbUser) try{ tok2=await window._fbUser.getIdToken(false); }catch(e){}
     try {
-      const passRes = await fetch('https://changepassword-graclk45jq-uc.a.run.app',{
-        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok2},
-        body:JSON.stringify({uid, newPassword:newPass})
-      });
+      const endpoints = ['/api/changePassword', 'https://changepassword-graclk45jq-uc.a.run.app'];
+      let passRes = null;
+      let lastErr = null;
+      for (const url of endpoints) {
+        try {
+          const r = await fetch(url, {
+            method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok2},
+            body:JSON.stringify({uid, newPassword:newPass})
+          });
+          passRes = r;
+          break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      if (!passRes) throw lastErr || new Error('שגיאה בתקשורת עם השרת');
       if(!passRes.ok){ 
         let e = {error: 'Unknown error'};
         try { e = await passRes.json(); } catch(je) {}
