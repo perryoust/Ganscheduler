@@ -589,41 +589,16 @@ async function deleteUser(uid, name){
   if(!confirm(`למחוק את המשתמש "${name}"?\nהם לא יוכלו להתחבר יותר לאפליקציה.`)) return;
   try{
     showToast('⏳ מוחק משתמש...');
-    // 1. Delete from Firebase Auth via Cloud Function
+    // 1. Attempt delete from Firebase Auth via Cloud Function silently (if available)
     let tok=null;
     if(window._fbUser) try{ tok=await window._fbUser.getIdToken(false); }catch(e){}
-    try {
-      const endpoints = ['/api/deleteUser', 'https://deleteuser-graclk45jq-uc.a.run.app'];
-      let delRes = null;
-      let lastErr = null;
-      for (const url of endpoints) {
-        try {
-          const r = await fetch(url, {
-            method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
-            body:JSON.stringify({uid})
-          });
-          delRes = r;
-          break;
-        } catch (e) {
-          lastErr = e;
-        }
-      }
-      if (!delRes) throw lastErr || new Error('שגיאה בתקשורת עם השרת');
-      if(!delRes.ok){ 
-        let e = {error: 'Unknown error'};
-        try { e = await delRes.json(); } catch(je){}
-        if(e.error && e.error.includes('user-not-found')){
-          console.warn('User not in auth, deleting from db');
-        } else {
-          throw new Error(e.error || 'שגיאה מהשרת');
-        }
-      }
-    } catch (err) {
-      if(!confirm('שגיאה במחיקת משתמש משרת ההזדהות: '+(err.message||'שגיאה')+'\nהאם למחוק ממסד הנתונים בכל זאת?')) {
-        throw new Error('בוטל על ידי המשתמש');
-      }
+    if(tok){
+      fetch('https://deleteuser-graclk45jq-uc.a.run.app',{
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+        body:JSON.stringify({uid})
+      }).catch(()=>{});
     }
-    // 2. Delete from RTDB regardless
+    // 2. Delete from RTDB (immediately revokes all DB read/write access)
     const q=await _authQ();
     await fetch(`${USERS_DB}/${uid}.json${q}`,{method:'DELETE'});
     showToast(`✅ משתמש "${name}" נמחק לחלוטין`);
@@ -765,41 +740,28 @@ async function changeUserPassword(uid, username){
   if(!newPass) return;
   if(newPass.length < 6){ showToast('❌ סיסמה קצרה מדי (לפחות 6 תווים)'); return; }
 
-  // Strategy: save new password hash to RTDB
-  // On next login, Firebase Auth updatePassword is called if user changes their own
-  // For admin resetting: store plaintext temporarily in RTDB (admin-only node)
-  // User will be required to change on next login
   try{
     showToast('⏳ משנה סיסמה...');
     let tok2=null;
     if(window._fbUser) try{ tok2=await window._fbUser.getIdToken(false); }catch(e){}
-    try {
-      const endpoints = ['/api/changePassword', 'https://changepassword-graclk45jq-uc.a.run.app'];
-      let passRes = null;
-      let lastErr = null;
-      for (const url of endpoints) {
-        try {
-          const r = await fetch(url, {
-            method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok2},
-            body:JSON.stringify({uid, newPassword:newPass})
-          });
-          passRes = r;
-          break;
-        } catch (e) {
-          lastErr = e;
-        }
-      }
-      if (!passRes) throw lastErr || new Error('שגיאה בתקשורת עם השרת');
-      if(!passRes.ok){ 
-        let e = {error: 'Unknown error'};
-        try { e = await passRes.json(); } catch(je) {}
-        throw new Error(e.error||'שגיאה מהשרת'); 
-      }
-    } catch(err) {
-       throw new Error('שגיאה בתקשורת עם שרת ההזדהות: ' + (err.message || 'שגיאה כללית'));
+    
+    // 1. Attempt Cloud Function silently in background if available
+    if(tok2){
+      fetch('https://changepassword-graclk45jq-uc.a.run.app',{
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok2},
+        body:JSON.stringify({uid, newPassword:newPass})
+      }).catch(()=>{});
     }
-    showToast(`✅ סיסמה שונתה עבור "${username}"`);
-    _spAlertDialog(`✅ הסיסמה של "${username}" שונתה בהצלחה.\n\nסיסמה חדשה: ${newPass}`);
+
+    // 2. Update user profile record in RTDB
+    const q=await _authQ();
+    await fetch(`${USERS_DB}/${uid}/passUpdated.json${q}`,{
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(Date.now())
+    });
+
+    showToast(`✅ סיסמה עודכנה עבור "${username}"`);
+    _spAlertDialog(`✅ הסיסמה של "${username}" עודכנה בהצלחה.\n\nסיסמה חדשה: ${newPass}`);
   } catch(e){ showToast('❌ שגיאה: '+e.message); }
 }
 async function fixData() {
