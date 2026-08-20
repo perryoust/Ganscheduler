@@ -982,9 +982,8 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
     escaped = escaped.replace(/([0-9()]+)/g, '$1&rlm;');
     
     // HTML2Canvas/RTL bug workaround: standard spaces often disappear in the PDF rendering.
-    // We replace them with a non-breaking space (&nbsp;) to force the space to render, 
-    // and append a zero-width space (&#8203;) to still allow word-wrapping at the end of lines.
-    escaped = escaped.replace(/ /g, '&nbsp;&#8203;');
+    // We replace them with a non-breaking space (&nbsp;) to force the space to render.
+    escaped = escaped.replace(/ /g, '&nbsp;');
     
     return escaped.replace(/\n/g, '<br>');
   };
