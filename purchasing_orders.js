@@ -980,6 +980,12 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
     escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
     // RLM after numbers and parentheses to enforce RTL directionality
     escaped = escaped.replace(/([0-9()]+)/g, '$1&rlm;');
+    
+    // HTML2Canvas/RTL bug workaround: standard spaces often disappear in the PDF rendering.
+    // We replace them with a non-breaking space (&nbsp;) to force the space to render, 
+    // and append a zero-width space (&#8203;) to still allow word-wrapping at the end of lines.
+    escaped = escaped.replace(/ /g, '&nbsp;&#8203;');
+    
     return escaped.replace(/\n/g, '<br>');
   };
 
@@ -1177,8 +1183,8 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
           
           <div class="order-totals" style="display: flex; flex-direction: column; align-items: center; text-align: center; font-size:0.95em; min-width:220px; background:#fafafa; padding:12px 18px; border-radius:8px; border:1px solid #eee;">
             ${kitsBreakdownHtml}
-            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">מע"מ ${Math.round((order.vat/(totalTaxable || 1))*100) || 18}%:</span><span dir="ltr">&#8362; ${order.vat.toFixed(2)}</span></p>
-            <h3 style="color:#2e7d32; margin:8px 0 0 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ לתשלום:&rlm;</span><span dir="ltr">&#8362; ${order.totalPrice.toFixed(2)}</span></h3>
+            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">מע"מ&nbsp;${Math.round((order.vat/(totalTaxable || 1))*100) || 18}%:</span><span dir="ltr">&#8362; ${order.vat.toFixed(2)}</span></p>
+            <h3 style="color:#2e7d32; margin:8px 0 0 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ&nbsp;לתשלום:&rlm;</span><span dir="ltr">&#8362; ${order.totalPrice.toFixed(2)}</span></h3>
           </div>
         </div>
       `;
@@ -1191,9 +1197,9 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
         ${footerContentHtml}
         
         ${isLastPage ? `
-        <div class="signature-wrapper" style="margin-top: 80px; margin-bottom: 5px; display: flex; justify-content: center; width: 100%;">
+        <div class="signature-wrapper" style="margin-top: 80px; margin-bottom: 5px; display: flex; justify-content: flex-end; width: 100%;">
           <div style="display: flex; flex-direction: column; align-items: center; width: 200px;">
-            ${order.orderer ? order.orderer.split('\n').map(l => `<div style="margin-bottom:3px; font-weight:bold; font-size:0.9em;">${rtlFix(l).replace(/ /g, '&nbsp;')}</div>`).join('') : ''}
+            ${order.orderer ? order.orderer.split('\n').map(l => `<div style="margin-bottom:3px; font-weight:bold; font-size:0.9em;">${rtlFix(l)}</div>`).join('') : ''}
             <div class="signature-line" style="border-top: 1px solid #000; width: 100%; margin-top: 20px; text-align: center; padding-top: 3px;"></div>
           </div>
         </div>
