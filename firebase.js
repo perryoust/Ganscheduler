@@ -1,26 +1,34 @@
 // ══════════════════════════════════════════════
-// Firebase Realtime Database Sync - v3.0 (Robust)
+// Firebase Realtime Database Sync - v4.0 (Split Architecture)
 // ══════════════════════════════════════════════
-function getFirebaseDbUrl() {
-  const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
+const FB_ROOT = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
+
+// Returns the root URL (without .json) for the current year context
+function getFirebaseRootUrl() {
   if (window.CURRENT_YEAR && window.CURRENT_YEAR !== 'tashpav') {
-    return `${base}/years/${window.CURRENT_YEAR}/data.json`;
+    return `${FB_ROOT}/years/${window.CURRENT_YEAR}`;
   }
-  return `${base}/data.json`;
+  return FB_ROOT;
 }
 
-function getFirebaseInvoicesUrl() {
-  const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
-  return `${base}/invoices.json`;
+// ── Split-path URL helpers (v4.0) ───────────────
+function getFirebaseSchedulesUrl() { return `${getFirebaseRootUrl()}/schedules.json`; }
+function getFirebaseSuppliersUrl() { return `${getFirebaseRootUrl()}/suppliers.json`; }
+function getFirebaseConfigUrl()    { return `${getFirebaseRootUrl()}/config.json`; }
+function getFirebaseMetaUrl()      { return `${getFirebaseRootUrl()}/meta.json`; }
+function getFirebaseSeqUrl()       { return `${getFirebaseRootUrl()}/meta/seq.json`; }
+
+// ── Legacy URL helpers (kept for backward compat) ─
+function getFirebaseDbUrl() {
+  if (window.CURRENT_YEAR && window.CURRENT_YEAR !== 'tashpav') {
+    return `${FB_ROOT}/years/${window.CURRENT_YEAR}/data.json`;
+  }
+  return `${FB_ROOT}/data.json`;
 }
-function getFirebaseOrdersUrl() {
-  const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
-  return `${base}/orders.json`;
-}
-function getFirebaseDeliveriesUrl() {
-  const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
-  return `${base}/deliveries.json`;
-}
+function getFirebaseInvoicesUrl()   { return `${FB_ROOT}/invoices.json`; }
+function getFirebaseOrdersUrl()     { return `${FB_ROOT}/orders.json`; }
+function getFirebaseDeliveriesUrl() { return `${FB_ROOT}/deliveries.json`; }
+
 const FIREBASE_POLL_INTERVAL = 30000;
 
 let _localSeq = parseInt(window._safeLS.getItem('_fbSeq') || '0');
@@ -275,8 +283,7 @@ window.saveWorkerTasksToFirebase = async function (skipMerge = false) {
   try {
     let tok = await window._fbUser?.getIdToken(false);
     if (!tok) return;
-    const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
-    const url = `${base}/data/global_worker_tasks.json?auth=${tok}`;
+    const url = `${FB_ROOT}/data/global_worker_tasks.json?auth=${tok}`;
 
     if (!skipMerge) {
       try {
@@ -313,10 +320,11 @@ async function saveToFirebase(silent = false, force = false) {
     // Sanitize supplier names before save to prevent PUT 400 Bad Request
     window.cleanSupplierNamesBeforeSave();
 
-    const liveData = {
-      ch: window.SCH || [],
+    // ── Build split data payloads ──────────────────
+    const schedulesData = window.SCH || [];
+    const suppliersData = window.supEx || {};
+    const configData = {
       pairs: window.pairs || [],
-      supEx: window.supEx || {},
       clusters: window.clusters || {},
       holidays: window.holidays || [],
       pairBreaks: window.pairBreaks || {},
@@ -336,16 +344,16 @@ async function saveToFirebase(silent = false, force = false) {
 
     // Increment Sequence
     const newSeq = _localSeq + 1;
-    const payload = { data: liveData, ts: Date.now(), seq: newSeq, version: '3.0' };
+    const metaData = { seq: newSeq, ts: Date.now(), version: '4.0' };
 
     let tok = await window._fbUser?.getIdToken(false);
-    const url = getFirebaseDbUrl() + (tok ? '?auth=' + tok : '');
+    const authQ = tok ? '?auth=' + tok : '';
 
     // Quick check: has the cloud advanced while we were asleep?
     if (window._fbSyncReady && _localSeq > 0) {
       try {
-        const seqUrl = getFirebaseDbUrl().replace('.json', '/seq.json') + (tok ? '?auth=' + tok : '');
-        const seqRes = await fetch(seqUrl + (seqUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now());
+        const seqUrl = getFirebaseSeqUrl() + authQ + (authQ ? '&' : '?') + 'cb=' + Date.now();
+        const seqRes = await fetch(seqUrl);
         if (seqRes.ok) {
           const cloudSeq = await seqRes.json();
           if (cloudSeq > _localSeq && !force) {
@@ -353,7 +361,6 @@ async function saveToFirebase(silent = false, force = false) {
             _fbSyncing = false;
             _isLocked = false;
 
-            // Smart Merge fallback: Provide the user with a choice to overwrite or reload.
             const userWantsToReload = confirm(
               "⚠️ המערכת זיהתה שבוצע שינוי בענן על ידי משתמש אחר!\n\n" +
               "האם תרצה למשוך את הנתונים החדשים מהענן, או לדרוס את הענן עם הנתונים שלך (השינויים של המשתמש השני יאבדו)?\n\n" +
@@ -362,14 +369,14 @@ async function saveToFirebase(silent = false, force = false) {
             );
 
             if (userWantsToReload) {
-              loadFromFirebase(true); // Force load
+              loadFromFirebase(true);
               return false;
             } else {
               if (confirm("האם אתה בטוח שברצונך לדרוס את הנתונים בענן? פעולה זו תמחק את עבודתו של המשתמש השני!")) {
                 console.warn("[Sync] User opted for FORCE SAVE.");
-                return await saveToFirebase(silent, true); // Recursive call with force=true
+                return await saveToFirebase(silent, true);
               } else {
-                return false; // User cancelled both options, do nothing.
+                return false;
               }
             }
           }
@@ -377,18 +384,33 @@ async function saveToFirebase(silent = false, force = false) {
       } catch (e) { console.warn('[Sync] Failed to verify sequence before save:', e); }
     }
 
-    // CRITICAL: Use PATCH instead of PUT to prevent deleting sibling paths under /data (like invoices)
-    const r = await fetch(url, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    // ── Save split paths in parallel ──────────────
+    const saves = [
+      fetch(getFirebaseSchedulesUrl() + authQ, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(schedulesData)
+      }),
+      fetch(getFirebaseSuppliersUrl() + authQ, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(suppliersData)
+      }),
+      fetch(getFirebaseConfigUrl() + authQ, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(configData)
+      }),
+      fetch(getFirebaseMetaUrl() + authQ, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(metaData)
+      })
+    ];
+    const results = await Promise.all(saves);
+    for (const r of results) {
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' on ' + r.url);
+    }
 
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-
-    // Save Invoices Separately — always save if we have invoice data (no _fbSyncReady gate)
+    // Save Invoices Separately
     if (Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
-      const invUrl = getFirebaseInvoicesUrl() + (tok ? '?auth=' + tok : '');
+      const invUrl = getFirebaseInvoicesUrl() + authQ;
       const invResp = await fetch(invUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.INVOICES) });
       if (!invResp.ok) {
         console.error('[Sync] ❌ Invoices save FAILED:', invResp.status, invResp.statusText);
@@ -400,21 +422,22 @@ async function saveToFirebase(silent = false, force = false) {
 
     // Save Orders Separately
     if (Array.isArray(window.ORDERS) && window.ORDERS.length > 0) {
-      const ordUrl = getFirebaseOrdersUrl() + (tok ? '?auth=' + tok : '');
+      const ordUrl = getFirebaseOrdersUrl() + authQ;
       await fetch(ordUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.ORDERS) });
     }
 
     // Save Deliveries Separately
     if (Array.isArray(window.DELIVERIES) && window.DELIVERIES.length > 0) {
-      const delUrl = getFirebaseDeliveriesUrl() + (tok ? '?auth=' + tok : '');
+      const delUrl = getFirebaseDeliveriesUrl() + authQ;
       await fetch(delUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.DELIVERIES) });
     }
 
     _setSyncState(newSeq, Date.now(), null, false);
-    console.log('[Sync] Saved v' + newSeq + ' (' + (liveData.ch?.length || 0) + ' records)');
+    console.log('[Sync] Saved v' + newSeq + ' (split: ' + schedulesData.length + ' schedules, ' + Object.keys(suppliersData).length + ' suppliers)');
 
     // Trigger daily backup automatically on first save of the day
     if (typeof window._runDailyBackupIfNeeded === 'function') {
+      const liveData = { ch: schedulesData, ...configData, supEx: suppliersData };
       window._runDailyBackupIfNeeded(liveData, tok).catch(e => console.warn('Auto daily backup error:', e));
     }
 
@@ -433,14 +456,13 @@ async function saveToFirebase(silent = false, force = false) {
 async function loadFromFirebase(silent = false, force = false) {
 
   // Worker Optimization: If user is ONLY a worker, DO NOT fetch the heavy database.
-  // Instead, just sync global worker tasks and finish!
   const isWorkerOnlyMode = window.role === 'worker' || (window.permWorker && !window.permPurch && !window.permAct && window.role !== 'admin');
   if (isWorkerOnlyMode) {
     console.log('[Sync] Worker mode detected. Skipping heavy db load.');
     _fbSyncing = false;
     try {
       let tok = await window._fbUser?.getIdToken(false);
-      const wtUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/global_worker_tasks.json' + (tok ? '?auth=' + tok : '');
+      const wtUrl = FB_ROOT + '/data/global_worker_tasks.json' + (tok ? '?auth=' + tok : '');
       const wtRes = await fetch(wtUrl + (wtUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now());
       if (wtRes.ok) {
         const wtData = await wtRes.json();
@@ -464,123 +486,174 @@ async function loadFromFirebase(silent = false, force = false) {
 
   try {
     let tok = await window._fbUser?.getIdToken(false);
-    const url = getFirebaseDbUrl() + (tok ? '?auth=' + tok : '');
+    const authQ = tok ? '?auth=' + tok : '';
+    const cb = '&cb=' + Date.now();
 
-    const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'cb=' + Date.now());
-    if (!r.ok) throw new Error('HTTP ' + r.status);
+    // ── Step 1: Check meta/seq to see if we need to load ──
+    let cloudMeta = null;
+    try {
+      const metaRes = await fetch(getFirebaseMetaUrl() + authQ + (authQ ? cb : '?cb=' + Date.now()));
+      if (metaRes.ok) cloudMeta = await metaRes.json();
+    } catch (e) { console.warn('[Sync] Meta fetch failed:', e); }
 
-    const cloud = await r.json();
-    if (!cloud || !cloud.seq) return true;
+    // ── Step 2: If meta exists → new split architecture ──
+    if (cloudMeta && cloudMeta.seq) {
+      // Skip if already up-to-date
+      if (!force && cloudMeta.seq <= _localSeq && window._fbSyncReady) {
+        _setSyncState(cloudMeta.seq, Date.now(), null, true);
+        if (cloudMeta.ts) window._fbLastSaveTs = cloudMeta.ts;
+        return true;
+      }
 
-    if (!force && cloud.seq <= _localSeq && window._fbSyncReady) {
+      // Load split data in parallel
+      console.log('[Sync] Loading split data (v4.0)...');
+      const [schRes, supRes, cfgRes] = await Promise.all([
+        fetch(getFirebaseSchedulesUrl() + authQ + (authQ ? cb : '?cb=' + Date.now())),
+        fetch(getFirebaseSuppliersUrl() + authQ + (authQ ? cb : '?cb=' + Date.now())),
+        fetch(getFirebaseConfigUrl() + authQ + (authQ ? cb : '?cb=' + Date.now()))
+      ]);
+
+      let cloudSchedules = schRes.ok ? await schRes.json() : null;
+      let cloudSuppliers = supRes.ok ? await supRes.json() : null;
+      let cloudConfig = cfgRes.ok ? await cfgRes.json() : null;
+
+      // Normalize arrays (Firebase converts sparse arrays to objects)
+      if (cloudSchedules && !Array.isArray(cloudSchedules)) {
+        cloudSchedules = Object.values(cloudSchedules);
+      }
+
+      // Reconstruct the unified data object that _applyYearData expects
+      const data = {
+        ch: cloudSchedules || [],
+        supEx: cloudSuppliers || {},
+        ...(cloudConfig || {})
+      };
+
+      // Load Worker Tasks separately
+      await _loadWorkerTasks(tok, data);
+
+      // Set app data
+      window._fbAppData = data;
+      window.spScannerAliases = data.spScannerAliases || {};
+      window.spScannerFolderLinks = data.spScannerFolderLinks || {};
+      window.PURCH_NOTES = data.purchNotes || null;
+      window.PURCH_ORDERERS = data.purchOrderers || null;
+      window.PURCH_FOOTER = data.purchFooter || null;
+
+      if (window._applyYearData) window._applyYearData(data);
+
+      // Sync todos
+      if (data.todos && window.todo) {
+        window.todo.items = data.todos;
+        if (window._safeLS) window._safeLS.setItem('ganv5_todos', JSON.stringify(data.todos));
+        window.todo.render();
+      }
+
+      _setSyncState(cloudMeta.seq, Date.now(), null, true);
+      if (cloudMeta.ts) window._fbLastSaveTs = cloudMeta.ts;
+
+      console.log('[Sync] Loaded v' + cloudMeta.seq + ' (split: ' + (cloudSchedules?.length || 0) + ' schedules)');
+
+    } else {
+      // ── Step 3: Fallback to old monolithic data.json (pre-v4.0) ──
+      console.log('[Sync] No split meta found, trying legacy data.json...');
+      const url = getFirebaseDbUrl() + authQ + (authQ ? cb : '?cb=' + Date.now());
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+
+      const cloud = await r.json();
+      if (!cloud || !cloud.seq) return true;
+
+      if (!force && cloud.seq <= _localSeq && window._fbSyncReady) {
+        _setSyncState(cloud.seq, Date.now(), null, true);
+        if (cloud.ts) window._fbLastSaveTs = cloud.ts;
+        return true;
+      }
+
+      // Load Worker Tasks
+      await _loadWorkerTasks(tok, cloud.data || {});
+
+      // Legacy invoice/order/delivery migration (move out of data blob)
+      if (cloud.data && cloud.data.invoices) {
+        console.log('[Migration] Moving invoices to root...');
+        await fetch(getFirebaseInvoicesUrl() + authQ, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud.data.invoices) });
+        await fetch(FB_ROOT + '/data/invoices.json' + authQ, { method: 'DELETE' });
+        delete cloud.data.invoices;
+      }
+      if (cloud.data && cloud.data.orders) {
+        console.log('[Migration] Moving orders to root...');
+        await fetch(getFirebaseOrdersUrl() + authQ, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud.data.orders) });
+        await fetch(FB_ROOT + '/data/orders.json' + authQ, { method: 'DELETE' });
+        delete cloud.data.orders;
+      }
+      if (cloud.data && cloud.data.deliveries) {
+        console.log('[Migration] Moving deliveries to root...');
+        await fetch(getFirebaseDeliveriesUrl() + authQ, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud.data.deliveries) });
+        await fetch(FB_ROOT + '/data/deliveries.json' + authQ, { method: 'DELETE' });
+        delete cloud.data.deliveries;
+      }
+
+      window._fbAppData = cloud.data;
+      window.spScannerAliases = cloud.data.spScannerAliases || {};
+      window.spScannerFolderLinks = cloud.data.spScannerFolderLinks || {};
+      window.PURCH_NOTES = cloud.data.purchNotes || null;
+      window.PURCH_ORDERERS = cloud.data.purchOrderers || null;
+      window.PURCH_FOOTER = cloud.data.purchFooter || null;
+
+      if (window._applyYearData) window._applyYearData(cloud.data);
+
+      if (cloud.data.todos && window.todo) {
+        window.todo.items = cloud.data.todos;
+        if (window._safeLS) window._safeLS.setItem('ganv5_todos', JSON.stringify(cloud.data.todos));
+        window.todo.render();
+      }
+
       _setSyncState(cloud.seq, Date.now(), null, true);
       if (cloud.ts) window._fbLastSaveTs = cloud.ts;
-      return true;
-    }
 
-    // Load Global Worker Tasks Separately
-    try {
-      const wtUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/global_worker_tasks.json' + (tok ? '?auth=' + tok : '');
-      const wtRes = await fetch(wtUrl + (wtUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now());
-      if (wtRes.ok) {
-        const wtData = await wtRes.json();
-        if (wtData) {
-          if (!window.WORKER_TASKS || window.WORKER_TASKS.length === 0) {
-            window.WORKER_TASKS = (Array.isArray(wtData) ? wtData : Object.values(wtData || {})).filter(Boolean);
-          } else {
-            window.mergeWorkerTasksLocally(wtData);
+      // ── AUTO MIGRATION: Split old blob into new paths ──
+      console.log('[Migration] Migrating monolithic data.json → split architecture...');
+      try {
+        const schData = cloud.data.ch || [];
+        const supData = cloud.data.supEx || {};
+        const cfgData = {};
+        // Copy all config fields except ch, supEx, workerTasks (already split)
+        for (const key of Object.keys(cloud.data)) {
+          if (!['ch', 'supEx', 'workerTasks', 'invoices', 'orders', 'deliveries', 'spScannerAliases', 'spScannerFolderLinks'].includes(key)) {
+            cfgData[key] = cloud.data[key];
           }
-        } else if (cloud.data && cloud.data.workerTasks && cloud.data.workerTasks.length > 0) {
-          window.WORKER_TASKS = cloud.data.workerTasks;
-          if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase();
-        } else {
-          try {
-            let recovered = false;
-            const keys = [];
-            for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
-            keys.sort().reverse(); // Newest first
-            for (const k of keys) {
-              if (k && k.startsWith('ganv5_backup_')) {
-                const bkStr = localStorage.getItem(k);
-                const bkObj = JSON.parse(bkStr);
-                if (bkObj && bkObj.workerTasks && bkObj.workerTasks.length > 0) {
-                  window.WORKER_TASKS = bkObj.workerTasks;
-                  if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase();
-                  recovered = true;
-                  console.log('[Recovery] Restored worker tasks from local backup ' + k);
-                  break;
-                }
-              }
-            }
-            if (!recovered) window.WORKER_TASKS = [];
-          } catch (e) { window.WORKER_TASKS = []; }
         }
-        if (cloud.data && cloud.data.workerTasks) delete cloud.data.workerTasks; // Prevent overwrite from mega-blob
+        // Include scanner data in config
+        cfgData.spScannerAliases = cloud.data.spScannerAliases || {};
+        cfgData.spScannerFolderLinks = cloud.data.spScannerFolderLinks || {};
+
+        const metaPayload = { seq: cloud.seq, ts: cloud.ts || Date.now(), version: '4.0' };
+
+        await Promise.all([
+          fetch(getFirebaseSchedulesUrl() + authQ, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(schData) }),
+          fetch(getFirebaseSuppliersUrl() + authQ, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(supData) }),
+          fetch(getFirebaseConfigUrl() + authQ, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfgData) }),
+          fetch(getFirebaseMetaUrl() + authQ, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(metaPayload) })
+        ]);
+
+        // Delete the old monolithic blob (but keep sibling paths like global_worker_tasks under /data/)
+        await fetch(FB_ROOT + '/data/data.json' + authQ, { method: 'DELETE' });
+        // Clean old seq/ts/version from /data/ root
+        await Promise.all([
+          fetch(FB_ROOT + '/data/seq.json' + authQ, { method: 'DELETE' }),
+          fetch(FB_ROOT + '/data/ts.json' + authQ, { method: 'DELETE' }),
+          fetch(FB_ROOT + '/data/version.json' + authQ, { method: 'DELETE' })
+        ]);
+        console.log('[Migration] ✅ Successfully migrated to split architecture!');
+      } catch (migErr) {
+        console.error('[Migration] ❌ Migration failed (will retry next load):', migErr);
       }
-    } catch (e) { console.warn('Failed to load global worker tasks', e); }
-
-    // --- AUTO MIGRATION: Flatten Database Structure ---
-    if (cloud.data && cloud.data.invoices) {
-      console.log('[Migration] Moving invoices to root...');
-      const invUrl = getFirebaseInvoicesUrl() + (tok ? '?auth=' + tok : '');
-      await fetch(invUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud.data.invoices) });
-      const oldUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/invoices.json' + (tok ? '?auth=' + tok : '');
-      await fetch(oldUrl, { method: 'DELETE' });
-      delete cloud.data.invoices; // Remove from memory to save space
     }
-    if (cloud.data && cloud.data.orders) {
-      console.log('[Migration] Moving orders to root...');
-      const ordUrl = getFirebaseOrdersUrl() + (tok ? '?auth=' + tok : '');
-      await fetch(ordUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud.data.orders) });
-      const oldUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/orders.json' + (tok ? '?auth=' + tok : '');
-      await fetch(oldUrl, { method: 'DELETE' });
-      delete cloud.data.orders;
-    }
-    if (cloud.data && cloud.data.deliveries) {
-      console.log('[Migration] Moving deliveries to root...');
-      const delUrl = getFirebaseDeliveriesUrl() + (tok ? '?auth=' + tok : '');
-      await fetch(delUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud.data.deliveries) });
-      const oldUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/deliveries.json' + (tok ? '?auth=' + tok : '');
-      await fetch(oldUrl, { method: 'DELETE' });
-      delete cloud.data.deliveries;
-    }
-    // --------------------------------------------------
-
-    window._fbAppData = cloud.data;
-
-    // Restore scanner metadata
-    window.spScannerAliases = cloud.data.spScannerAliases || {};
-    window.spScannerFolderLinks = cloud.data.spScannerFolderLinks || {};
-    window.PURCH_NOTES = cloud.data.purchNotes || null;
-    window.PURCH_ORDERERS = cloud.data.purchOrderers || null;
-    window.PURCH_FOOTER = cloud.data.purchFooter || null;
-
-    if (window._applyYearData) {
-      window._applyYearData(cloud.data);
-    }
-
-    // Sync todos from cloud if available
-    if (cloud.data.todos && window.todo) {
-      window.todo.items = cloud.data.todos;
-      if (window._safeLS) window._safeLS.setItem('ganv5_todos', JSON.stringify(cloud.data.todos));
-      window.todo.render();
-    }
-
-    // NOTE: workerTasks are loaded from /data/global_worker_tasks.json (lines 405-443)
-    // Do NOT overwrite from cloud.data.workerTasks — that path is stale and causes sync conflicts
-
-    _setSyncState(cloud.seq, Date.now(), null, true);
-    if (cloud.ts) window._fbLastSaveTs = cloud.ts;
 
     // Auto-refresh view after loading from cloud
-    // Ensure we don't interrupt the user if they have a modal open
     if (!window._fbSyncReady || !document.querySelector('.sp-modal-content, .modal.open, .sp-popup')) {
-      if (typeof window.refresh === 'function') {
-        setTimeout(() => window.refresh(), 100);
-      }
-      if (typeof window.renderCoordinatorView === 'function') {
-        setTimeout(() => window.renderCoordinatorView(), 100);
-      }
+      if (typeof window.refresh === 'function') setTimeout(() => window.refresh(), 100);
+      if (typeof window.renderCoordinatorView === 'function') setTimeout(() => window.renderCoordinatorView(), 100);
     }
 
     window._fbSyncReady = true;
@@ -593,10 +666,7 @@ async function loadFromFirebase(silent = false, force = false) {
         if (lastBackup !== today) {
           console.log('[AutoBackup] Triggering daily silent backup to Google Drive...');
           window._safeLS.setItem('lastGDriveBackupDate', today);
-          // Wait 3 seconds after loading finishes to not block UI startup threads
-          setTimeout(() => {
-            window.backupToGoogleDrive(true);
-          }, 3000);
+          setTimeout(() => window.backupToGoogleDrive(true), 3000);
         }
       }
     } catch (e) { console.warn('[AutoBackup] Failed to trigger auto backup:', e); }
@@ -611,15 +681,80 @@ async function loadFromFirebase(silent = false, force = false) {
   }
 }
 
+// ── Helper: Load worker tasks from dedicated path ──
+async function _loadWorkerTasks(tok, data) {
+  try {
+    const authQ = tok ? '?auth=' + tok : '';
+    const wtUrl = FB_ROOT + '/data/global_worker_tasks.json' + authQ + (authQ ? '&' : '?') + 'cb=' + Date.now();
+    const wtRes = await fetch(wtUrl);
+    if (wtRes.ok) {
+      const wtData = await wtRes.json();
+      if (wtData) {
+        if (!window.WORKER_TASKS || window.WORKER_TASKS.length === 0) {
+          window.WORKER_TASKS = (Array.isArray(wtData) ? wtData : Object.values(wtData || {})).filter(Boolean);
+        } else {
+          window.mergeWorkerTasksLocally(wtData);
+        }
+      } else if (data && data.workerTasks && data.workerTasks.length > 0) {
+        window.WORKER_TASKS = data.workerTasks;
+        if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase();
+      } else {
+        try {
+          let recovered = false;
+          const keys = [];
+          for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+          keys.sort().reverse();
+          for (const k of keys) {
+            if (k && k.startsWith('ganv5_backup_')) {
+              const bkObj = JSON.parse(localStorage.getItem(k));
+              if (bkObj && bkObj.workerTasks && bkObj.workerTasks.length > 0) {
+                window.WORKER_TASKS = bkObj.workerTasks;
+                if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase();
+                recovered = true;
+                console.log('[Recovery] Restored worker tasks from local backup ' + k);
+                break;
+              }
+            }
+          }
+          if (!recovered) window.WORKER_TASKS = [];
+        } catch (e) { window.WORKER_TASKS = []; }
+      }
+      if (data && data.workerTasks) delete data.workerTasks;
+    }
+  } catch (e) { console.warn('Failed to load global worker tasks', e); }
+}
+
+
 function _fbStartPolling() {
   if (_syncTimer) clearInterval(_syncTimer);
-  _syncTimer = setInterval(() => {
+  _syncTimer = setInterval(async () => {
     // DO NOT SYNC IF A MODAL IS OPEN (prevents UI resets/re-renders while user is typing)
     if (document.querySelector('.modal.open, .sp-popup, .sp-modal-content')) return;
     const orderModal = document.getElementById('order-modal');
     if (orderModal && orderModal.style.display !== 'none' && orderModal.style.display !== '') return;
+    if (_fbSyncing || _isLocked || window._importInProgress) return;
 
-    loadFromFirebase(true);
+    // ── Smart Polling: Check only seq, not the full database ──
+    try {
+      let tok = window._cachedToken || null;
+      if (window._fbUser) {
+        try { tok = await window._fbUser.getIdToken(false); } catch(e) {}
+      }
+      const authQ = tok ? '?auth=' + tok : '';
+      const seqUrl = getFirebaseSeqUrl() + authQ + (authQ ? '&' : '?') + 'cb=' + Date.now();
+      const seqRes = await fetch(seqUrl);
+      if (!seqRes.ok) return;
+      const cloudSeq = await seqRes.json();
+
+      if (cloudSeq && cloudSeq > _localSeq) {
+        console.log(`[Sync] Polling detected change: local=${_localSeq}, cloud=${cloudSeq}`);
+        loadFromFirebase(true);
+      }
+    } catch (e) {
+      // Fallback: if seq check fails, try full load
+      console.warn('[Sync] Smart poll failed, falling back to full load:', e.message);
+      loadFromFirebase(true);
+    }
   }, FIREBASE_POLL_INTERVAL);
 }
 
@@ -638,6 +773,8 @@ window.saveToFirebase = saveToFirebase;
 window.loadFromFirebase = loadFromFirebase;
 window._fbStartPolling = _fbStartPolling;
 window._fbStopPolling = _fbStopPolling;
+window.getFirebaseDbUrl = getFirebaseDbUrl;
+window.getFirebaseRootUrl = getFirebaseRootUrl;
 
 // Sync immediately when app comes to foreground (Crucial for Mobile/PWAs)
 document.addEventListener('visibilitychange', () => {

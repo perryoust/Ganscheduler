@@ -8,7 +8,7 @@ window.onload = function(){
     // 0. Sync years/periods metadata from Firebase (must run before loadFromFirebase)
     try {
       let tok = await window._fbUser?.getIdToken(false);
-      const base = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
+      const base = typeof FB_ROOT !== 'undefined' ? FB_ROOT : 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
       const r = await fetch(`${base}/years_meta.json${tok ? '?auth=' + tok : ''}`);
       if (r.ok) {
         const cloudMeta = await r.json();

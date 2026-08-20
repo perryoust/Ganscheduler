@@ -1534,7 +1534,7 @@ window.createCoordinatorUser = async function() {
     const token = await window._fbGetToken();
     if (token) {
       const payload = { role: 'coordinator', phone: cleanPhone, name: mgr.name, managerId: _editMgrId };
-      const dbUrl = window.getFirebaseDbUrl ? window.getFirebaseDbUrl().split('/data.json')[0] : 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
+      const dbUrl = window.getFirebaseRootUrl ? window.getFirebaseRootUrl() : 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
       await fetch(`${dbUrl}/users/${res.uid}.json?auth=${token}`, {
         method: 'PUT',
         body: JSON.stringify(payload)
