@@ -41,7 +41,17 @@ function renderPurchOrders() {
     });
   }
 
-  sorted.sort((a, b) => b.ts - a.ts);
+  sorted.sort((a, b) => {
+    const dateA = new Date(a.ts).setHours(0,0,0,0);
+    const dateB = new Date(b.ts).setHours(0,0,0,0);
+    if (dateB !== dateA) return dateB - dateA;
+
+    const timeA = a.createdAt || (typeof a.id === 'string' && a.id.startsWith('ord_') ? parseInt(a.id.replace('ord_', '')) : 0) || a.ts || 0;
+    const timeB = b.createdAt || (typeof b.id === 'string' && b.id.startsWith('ord_') ? parseInt(b.id.replace('ord_', '')) : 0) || b.ts || 0;
+    if (timeB !== timeA) return timeB - timeA;
+
+    return String(b.orderId || '').localeCompare(String(a.orderId || ''), undefined, { numeric: true });
+  });
 
   if (sorted.length === 0) {
     container.innerHTML = '<div style="color:#aaa;font-size:.8rem;text-align:center;padding:20px">אין הזמנות התואמות לחיפוש</div>';
@@ -103,7 +113,17 @@ function renderPurchDeliveries() {
     });
   }
 
-  sorted.sort((a, b) => b.ts - a.ts);
+  sorted.sort((a, b) => {
+    const dateA = new Date(a.ts).setHours(0,0,0,0);
+    const dateB = new Date(b.ts).setHours(0,0,0,0);
+    if (dateB !== dateA) return dateB - dateA;
+
+    const timeA = a.createdAt || (typeof a.id === 'string' && a.id.startsWith('dlv_') ? parseInt(a.id.replace('dlv_', '')) : 0) || a.ts || 0;
+    const timeB = b.createdAt || (typeof b.id === 'string' && b.id.startsWith('dlv_') ? parseInt(b.id.replace('dlv_', '')) : 0) || b.ts || 0;
+    if (timeB !== timeA) return timeB - timeA;
+
+    return String(b.deliveryId || '').localeCompare(String(a.deliveryId || ''), undefined, { numeric: true });
+  });
 
   if (sorted.length === 0) {
     container.innerHTML = '<div style="color:#aaa;font-size:.8rem;text-align:center;padding:20px">אין תעודות משלוח התואמות לחיפוש</div>';
@@ -206,7 +226,15 @@ function openNewOrder() {
         <span style="font-size:0.85rem; font-weight:bold; color:#3f51b5; white-space:nowrap;">📋 טען מתוך הזמנה קודמת / תבנית:</span>
         <select id="om-template-select" style="padding:4px 8px; border-radius:4px; border:1px solid #ccc; width:100%; max-width:400px; font-size:0.85rem;" onchange="loadOrderTemplate(this.value)">
           <option value="">-- בחר הזמנה לשכפול נתונים --</option>
-          ${(window.ORDERS || []).map(o => `<option value="${o.id}">${o.orderId} - ${o.supplier} (${new Date(o.ts).toLocaleDateString('he-IL')}) - &#8362;${o.totalPrice ? o.totalPrice.toFixed(0) : 0}</option>`).join('')}
+          ${[...(window.ORDERS || [])].sort((a, b) => {
+            const dateA = new Date(a.ts).setHours(0,0,0,0);
+            const dateB = new Date(b.ts).setHours(0,0,0,0);
+            if (dateB !== dateA) return dateB - dateA;
+            const timeA = a.createdAt || (typeof a.id === 'string' && a.id.startsWith('ord_') ? parseInt(a.id.replace('ord_', '')) : 0) || a.ts || 0;
+            const timeB = b.createdAt || (typeof b.id === 'string' && b.id.startsWith('ord_') ? parseInt(b.id.replace('ord_', '')) : 0) || b.ts || 0;
+            if (timeB !== timeA) return timeB - timeA;
+            return String(b.orderId || '').localeCompare(String(a.orderId || ''), undefined, { numeric: true });
+          }).map(o => `<option value="${o.id}">${o.orderId} - ${o.supplier} (${new Date(o.ts).toLocaleDateString('he-IL')}) - &#8362;${o.totalPrice ? o.totalPrice.toFixed(0) : 0}</option>`).join('')}
         </select>
       </div>
       
@@ -596,10 +624,15 @@ async function saveOrder(id) {
     }
   }
 
+  const existingOrder = existingIdx >= 0 ? window.ORDERS[existingIdx] : null;
+  const createdAt = existingOrder?.createdAt || (typeof id === 'string' && id.startsWith('ord_') ? parseInt(id.replace('ord_', '')) : Date.now());
+
   const newOrder = {
     id: id || ('ord_' + Date.now()),
     orderId: currentOrderId,
     ts: ts,
+    createdAt: createdAt,
+    updatedAt: Date.now(),
     supplier: supplier,
     orderer: orderer,
     orderDesc: orderDesc,
