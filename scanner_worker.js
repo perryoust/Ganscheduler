@@ -13,10 +13,8 @@ onmessage = function(e) {
     return String(str)
       .toLowerCase()
       .replace(/["'״׳`]/g, '')
-      .replace(/\bבעמ\b/g, '')
-      .replace(/\bבע"מ\b/g, '')
-      .replace(/בעמ/g, '')
-      .replace(/בע"מ/g, '')
+      .replace(/\s*\(?\s*בע[\s.]*מ\s*\)?\s*/gi, ' ')
+      .replace(/\s*\(?\s*ltd\.?\s*\)?\s*/gi, ' ')
       .replace(/[-_.,()]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
@@ -269,15 +267,18 @@ onmessage = function(e) {
           
           let supplierScore = 0;
           if (inv.supName) {
-             if (file.name.includes(baseName) || file.name.includes(inv.supName)) {
-               supplierScore = 20;
+             const cleanSup = cleanSupText(inv.supName);
+             if (cleanSup.length >= 2 && cleanFull.includes(cleanSup)) {
+               supplierScore = 30;
              } else {
                let foundAlias = false;
                const spAliases = spScannerAliases || {};
                for (const alias in spAliases) {
-                 if (spAliases[alias] === baseName || spAliases[alias] === inv.supName) {
-                   if (file.name.includes(alias)) {
-                     supplierScore = 20;
+                 const aliasClean = cleanSupText(alias);
+                 const targetClean = cleanSupText(spAliases[alias]);
+                 if (targetClean === cleanSup || spAliases[alias] === inv.supName || spAliases[alias] === baseName) {
+                   if (cleanFull.includes(aliasClean)) {
+                     supplierScore = 25;
                      foundAlias = true;
                      break;
                    }
@@ -287,8 +288,8 @@ onmessage = function(e) {
                if (!foundAlias && supEx) {
                  const exData = supEx[baseName] || supEx[inv.supName];
                  if (exData && exData.keywords) {
-                   const kws = exData.keywords.split(',').map(k => k.trim()).filter(Boolean);
-                   if (kws.some(k => file.name.includes(k))) {
+                   const kws = exData.keywords.split(',').map(k => cleanSupText(k)).filter(Boolean);
+                   if (kws.some(k => cleanFull.includes(k))) {
                      supplierScore = 20;
                      foundAlias = true;
                    }
@@ -296,17 +297,17 @@ onmessage = function(e) {
                }
                
                if (!foundAlias && inv.orderDesc) {
-                 const descWords = String(inv.orderDesc).split(/\s+/).filter(w=>w.length>2 && !['של','עם','על','את'].includes(w));
-                 if (descWords.some(w => file.name.includes(w))) {
+                 const descWords = cleanSupText(inv.orderDesc).split(/\s+/).filter(w => w.length >= 2 && !['של','עם','על','את'].includes(w));
+                 if (descWords.some(w => cleanFull.includes(w))) {
                    supplierScore = 15;
                    foundAlias = true;
                  }
                }
                
                if (!foundAlias) {
-                 const firstWord = String(inv.supName).split(/\s+/).filter(w=>w.length>2)[0];
-                 if (firstWord && file.name.includes(firstWord)) supplierScore = 10;
-               }
+                  const firstWord = cleanSup.split(/\s+/).filter(w => w.length >= 2)[0];
+                  if (firstWord && cleanFull.includes(firstWord)) supplierScore = 10;
+                }
              }
           }
           
