@@ -205,7 +205,8 @@ const filesFound = [];
   async function scanDir(handle, currentPath, cleanBase) {
     for await (const entry of handle.values()) {
       if (entry.kind === 'file') {
-        if (!entry.name.startsWith('.') && !entry.name.startsWith('~')) {
+        const n = entry.name.toLowerCase();
+        if (!n.startsWith('.') && !n.startsWith('~') && (n.endsWith('.pdf') || n.endsWith('.jpg') || n.endsWith('.jpeg') || n.endsWith('.png'))) {
           filesFound.push({
             name: entry.name,
             link: cleanBase + currentPath + '/' + encodeURIComponent(entry.name) + '?web=1'
