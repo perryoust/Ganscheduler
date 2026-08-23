@@ -508,12 +508,23 @@ reader.onload = async function(e) {
         // 2. Fall back to description + amount + month if no document numbers match.
         const cleanSupText = (s) => String(s || '').toLowerCase().replace(/["'״׳`]/g, '').replace(/\bבעמ\b/g, '').replace(/\bבע"מ\b/g, '').replace(/בעמ/g, '').replace(/בע"מ/g, '').replace(/[-_.,()]/g, ' ').replace(/\s+/g, ' ').trim();
 
+        const cleanDoc = (d) => String(d || '').replace(/\D/g, '').replace(/^0+/, '');
+
         const existingIdx = window.INVOICES.findIndex(inv => {
+          // 1. Exact serialNum match (מס"ד)
+          if (item.serialNum && inv.serialNum && String(item.serialNum).trim() === String(inv.serialNum).trim()) {
+            return true;
+          }
+
+          // 2. Unique 10-digit order number match
+          if (item.orderNum && inv.orderNum && cleanDoc(item.orderNum).length >= 6 && cleanDoc(item.orderNum) === cleanDoc(inv.orderNum)) {
+            return true;
+          }
+
           const sameSup = cleanSupText(inv.supName) === cleanSupText(sName) || (window.supBase ? cleanSupText(window.supBase(inv.supName)) === cleanSupText(window.supBase(sName)) : false);
           if (!sameSup) return false;
           
           const sameMonth = String(inv.orderMonth || '').trim() === oMonth;
-          const cleanDoc = (d) => String(d || '').replace(/\D/g, '').replace(/^0+/, '');
 
           // Match by Tax Invoice Number if present
           if (item.num && inv.num && (String(item.num).trim() === String(inv.num).trim() || (cleanDoc(item.num).length >= 2 && cleanDoc(item.num) === cleanDoc(inv.num)))) {
@@ -531,7 +542,7 @@ reader.onload = async function(e) {
           if (item.txNum && inv.num && (String(item.txNum).trim() === String(inv.num).trim() || (cleanDoc(item.txNum).length >= 2 && cleanDoc(item.txNum) === cleanDoc(inv.num)))) {
             return true;
           }
-          if (item.num && inv.txNum && (String(item.num).trim() === String(inv.txNum).trim() || (cleanDoc(item.num).length >= 2 && cleanDoc(item.num) === cleanDoc(inv.txNum)))) {
+          if (item.num && inv.txNum && (String(item.num).trim() === String(inv.num).trim() || (cleanDoc(item.num).length >= 2 && cleanDoc(item.num) === cleanDoc(inv.txNum)))) {
             return true;
           }
 
@@ -607,6 +618,19 @@ reader.onload = async function(e) {
                 cleanItem[k] = item[k];
               }
             });
+            // Preserve file attachments if not present in new import
+            ['file_order', 'file_tx', 'file_tax'].forEach(fKey => {
+              if (window.INVOICES[existingIdx][fKey] && !cleanItem[fKey]) {
+                cleanItem[fKey] = window.INVOICES[existingIdx][fKey];
+              }
+            });
+            // Preserve higher classified status
+            const existingSt = window.INVOICES[existingIdx].status;
+            if (existingSt && ['tax_invoice', 'tax_receipt', 'tx_invoice'].includes(existingSt)) {
+              if (cleanItem.status === 'order') {
+                cleanItem.status = existingSt;
+              }
+            }
             window.INVOICES[existingIdx] = { ...window.INVOICES[existingIdx], ...cleanItem };
             updated++;
           }

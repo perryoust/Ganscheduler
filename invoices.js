@@ -296,6 +296,74 @@ function renderMobileInvoiceCard(inv, opts = {}) {
 }
 window.renderMobileInvoiceCard = renderMobileInvoiceCard;
 
+window._recoverInvoiceFilesAndDeduplicate = function() {
+  if (!Array.isArray(window.INVOICES)) return;
+  const cleanDoc = (d) => String(d || '').replace(/\D/g, '').replace(/^0+/, '');
+  const cleanSup = (s) => String(s || '').toLowerCase().replace(/["'״׳`]/g, '').replace(/\s*\(?\s*בע[\s.]*מ\s*\)?\s*/gi, ' ').replace(/\s*\(?\s*ltd\.?\s*\)?\s*/gi, ' ').replace(/[-_.,()]/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // 1. Build a pool of all known file attachments by doc number & supplier
+  const filePool = {
+    order: new Map(), // cleanOrderNum -> fileObj
+    tx: new Map(),    // cleanSup|cleanTxNum -> fileObj
+    tax: new Map()    // cleanSup|cleanTaxNum -> fileObj
+  };
+
+  window.INVOICES.forEach(inv => {
+    const s = cleanSup(inv.supName);
+    const o = cleanDoc(inv.orderNum);
+    const tx = cleanDoc(inv.txNum);
+    const tax = cleanDoc(inv.num);
+
+    if (inv.file_order && inv.file_order.path && o && o.length >= 4) {
+      filePool.order.set(o, inv.file_order);
+    }
+    if (inv.file_tx && inv.file_tx.path && tx && tx.length >= 2 && s) {
+      filePool.tx.set(s + '|' + tx, inv.file_tx);
+      filePool.tx.set(tx, inv.file_tx);
+    }
+    if (inv.file_tax && inv.file_tax.path && tax && tax.length >= 2 && s) {
+      filePool.tax.set(s + '|' + tax, inv.file_tax);
+      filePool.tax.set(tax, inv.file_tax);
+    }
+  });
+
+  // 2. Attach any missing files to invoices that share the same doc numbers
+  let recoveredCount = 0;
+  window.INVOICES.forEach(inv => {
+    const s = cleanSup(inv.supName);
+    const o = cleanDoc(inv.orderNum);
+    const tx = cleanDoc(inv.txNum);
+    const tax = cleanDoc(inv.num);
+
+    if ((!inv.file_order || !inv.file_order.path) && o && filePool.order.has(o)) {
+      inv.file_order = filePool.order.get(o);
+      recoveredCount++;
+    }
+    if ((!inv.file_tx || !inv.file_tx.path) && tx) {
+      if (s && filePool.tx.has(s + '|' + tx)) {
+        inv.file_tx = filePool.tx.get(s + '|' + tx);
+        recoveredCount++;
+      } else if (tx.length >= 4 && filePool.tx.has(tx)) {
+        inv.file_tx = filePool.tx.get(tx);
+        recoveredCount++;
+      }
+    }
+    if ((!inv.file_tax || !inv.file_tax.path) && tax) {
+      if (s && filePool.tax.has(s + '|' + tax)) {
+        inv.file_tax = filePool.tax.get(s + '|' + tax);
+        recoveredCount++;
+      } else if (tax.length >= 4 && filePool.tax.has(tax)) {
+        inv.file_tax = filePool.tax.get(tax);
+        recoveredCount++;
+      }
+    }
+  });
+
+  if (recoveredCount > 0) {
+    console.log(`[InvoiceLinkRecovery] Recovered ${recoveredCount} file attachments from existing database records.`);
+  }
+};
+
 function renderInvoices(){
   if(window.showInfoNotice) {
     window.showInfoNotice('invoices-info-wrap', '<b>ניהול רכש וחשבוניות:</b> כאן ניתן לעקוב אחר סטטוס התשלומים והמסמכים מול הספקים.', 'info', '📄');
@@ -306,6 +374,9 @@ function renderInvoices(){
         inv.id = inv.serialNum ? String(inv.serialNum) : ('inv_' + (Date.now() + idx));
       }
     });
+    if (typeof window._recoverInvoiceFilesAndDeduplicate === 'function') {
+      window._recoverInvoiceFilesAndDeduplicate();
+    }
   }
   const tbody = document.getElementById('pi-tbody');
   const mobList = document.getElementById('pi-mobile-list');
