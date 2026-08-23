@@ -200,6 +200,16 @@ window.startSharePointScanner = async function() {
 }
 
 window._runCoreScanner = async function(selectedFolders) {
+  // Ensure all invoices are loaded for scanning
+  if (window._invoicesPartialLoad && window.loadAllInvoices) {
+    window.showToast?.('טוען את כל החשבוניות לצורך סריקה...');
+    const all = await window.loadAllInvoices();
+    if (all && all.length > 0) {
+      window.INVOICES = all;
+      window._invoicesPartialLoad = false;
+    }
+  }
+
 const filesFound = [];
 
   async function scanDir(handle, currentPath, cleanBase) {

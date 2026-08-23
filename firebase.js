@@ -409,7 +409,7 @@ async function saveToFirebase(silent = false, force = false) {
     }
 
     // Save Invoices Separately
-    if (Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
+    if (!window._invoicesKeyedMode && Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
       const invUrl = getFirebaseInvoicesUrl() + authQ;
       const invResp = await fetch(invUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.INVOICES) });
       if (!invResp.ok) {
@@ -803,7 +803,8 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
     return;
   }
 
-  const invUrl = getFirebaseInvoicesUrl() + '?auth=' + tok + '&cb=' + Date.now();
+  const invUrl = `${FB_ROOT}/invoices.json?auth=${tok}&orderBy="$key"&limitToLast=150&cb=${Date.now()}`;
+  window._invoicesPartialLoad = true;
   const ordUrl = getFirebaseOrdersUrl() + '?auth=' + tok + '&cb=' + Date.now();
   const delUrl = getFirebaseDeliveriesUrl() + '?auth=' + tok + '&cb=' + Date.now();
 
@@ -834,6 +835,12 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
       }
       window.INVOICES = cloudInvs;
       anySuccess = true;
+      
+      // One-time migration to keyed format
+      if (!window._invoicesMigrated) {
+        window._invoicesMigrated = true;
+        window._migrateInvoicesToKeyed?.();
+      }
     }
 
     if (or.ok) {
@@ -864,3 +871,107 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
   }
 };
 
+// One-time migration: convert /invoices from array to keyed object
+window._migrateInvoicesToKeyed = async function() {
+  const tok = await window._fbUser?.getIdToken(false);
+  if (!tok) return;
+  const url = getFirebaseInvoicesUrl() + '?auth=' + tok + '&cb=' + Date.now();
+  const r = await fetch(url);
+  if (!r.ok) return;
+  const data = await r.json();
+  if (!data) return;
+  
+  // Check if already keyed (first key is NOT a number)
+  const keys = Object.keys(data);
+  if (keys.length > 0 && isNaN(keys[0])) {
+    console.log('[Migration] Invoices already keyed. Skipping.');
+    return;
+  }
+  
+  // Convert array to keyed object
+  const keyed = {};
+  const arr = Array.isArray(data) ? data : Object.values(data);
+  arr.forEach(inv => {
+    if (inv && inv.id) keyed[inv.id] = inv;
+  });
+  
+  // Write back as keyed object
+  const putUrl = getFirebaseInvoicesUrl() + '?auth=' + tok;
+  const resp = await fetch(putUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(keyed)
+  });
+  
+  if (resp.ok) {
+    console.log('[Migration] ✅ Invoices migrated to keyed format:', Object.keys(keyed).length, 'records');
+  } else {
+    console.error('[Migration] ❌ Failed to migrate invoices');
+  }
+};
+
+// Save a single invoice to Firebase (keyed by id)
+window.saveInvoiceToFirebase = async function(inv) {
+  if (!inv || !inv.id) return false;
+  const tok = await window._fbUser?.getIdToken(false);
+  if (!tok) return false;
+  const url = `${FB_ROOT}/invoices/${inv.id}.json?auth=${tok}`;
+  try {
+    const r = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(inv)
+    });
+    if (r.ok) console.log('[Sync] Invoice saved:', inv.id);
+    return r.ok;
+  } catch (e) {
+    console.error('[Sync] Failed to save invoice:', e);
+    return false;
+  }
+};
+
+// Delete a single invoice from Firebase
+window.deleteInvoiceFromFirebase = async function(invId) {
+  const tok = await window._fbUser?.getIdToken(false);
+  if (!tok) return false;
+  const url = `${FB_ROOT}/invoices/${invId}.json?auth=${tok}`;
+  try {
+    const r = await fetch(url, { method: 'DELETE' });
+    return r.ok;
+  } catch (e) {
+    console.error('[Sync] Failed to delete invoice:', e);
+    return false;
+  }
+};
+
+// Load recent invoices (last N by key, which is the id/timestamp)
+window.loadRecentInvoices = async function(limit = 150) {
+  const tok = await window._fbUser?.getIdToken(false);
+  if (!tok) return [];
+  const url = `${FB_ROOT}/invoices.json?auth=${tok}&orderBy="$key"&limitToLast=${limit}&cb=${Date.now()}`;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return [];
+    const data = await r.json();
+    return data ? Object.values(data) : [];
+  } catch (e) {
+    console.error('[Sync] Failed to load recent invoices:', e);
+    return [];
+  }
+};
+
+// Load ALL invoices (for scanner/export only)
+window.loadAllInvoices = async function() {
+  const tok = await window._fbUser?.getIdToken(false);
+  if (!tok) return [];
+  const url = getFirebaseInvoicesUrl() + '?auth=' + tok + '&cb=' + Date.now();
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return [];
+    const data = await r.json();
+    return data ? Object.values(data) : [];
+  } catch (e) {
+    console.error('[Sync] Failed to load all invoices:', e);
+    return [];
+  }
+};

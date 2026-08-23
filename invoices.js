@@ -1,4 +1,4 @@
-﻿// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
 
 
 // ── PROCUREMENT MODULE - v9.0 ────────────────────────────────
@@ -387,7 +387,15 @@ function renderInvoices(){
   const MAX_RENDER = 150;
   const isCapped = list.length > MAX_RENDER;
   const renderList = isCapped ? list.slice(0, MAX_RENDER) : list;
-  const cappedMsg = isCapped ? `<div style="text-align:center;color:#888;padding:15px;font-size:0.8rem">מציג ${MAX_RENDER} תוצאות מתוך ${list.length}. השתמש בחיפוש למיקוד...</div>` : '';
+  let cappedMsg = isCapped ? `<div style="text-align:center;color:#888;padding:15px;font-size:0.8rem">מציג ${MAX_RENDER} תוצאות מתוך ${list.length}. השתמש בחיפוש למיקוד...</div>` : '';
+  
+  if (window._invoicesPartialLoad) {
+    cappedMsg += `<div style="text-align:center;padding:12px">
+       <button class="btn bo" onclick="loadMoreInvoices()" style="font-size:0.8rem;padding:6px 18px">
+         📥 טען את כל החשבוניות (${INVOICES.length} נטענו מתוך הכל)
+       </button>
+     </div>`;
+  }
 
   if (window.isMobileMode()) {
     if(!renderList.length){
@@ -506,8 +514,27 @@ function renderInvoices(){
   }
 }
 
+window.loadMoreInvoices = async function() {
+  if (window.showToast) window.showToast('טוען חשבוניות נוספות...');
+  const all = await window.loadAllInvoices();
+  if (all && all.length > 0) {
+    window.INVOICES = all;
+    window._invoicesPartialLoad = false;
+    renderInvoices();
+    refreshPurchDash();
+    if (window.showToast) window.showToast(`נטענו ${all.length} חשבוניות`);
+  }
+};
+
 function refreshPurchDash(){
   const invs = INVOICES;
+  const partialEl = document.getElementById('ps-partial-note');
+  if (partialEl) {
+    partialEl.style.display = window._invoicesPartialLoad ? 'block' : 'none';
+    partialEl.innerHTML = window._invoicesPartialLoad 
+      ? `<span style="font-size:.7rem;color:#e65100">⚠️ מציג ${invs.length} חשבוניות אחרונות בלבד. <a href="#" onclick="loadMoreInvoices();return false" style="color:#1565c0">טען הכל</a></span>` 
+      : '';
+  }
   const byStatus = st => invs.filter(i=>_migrateInvStatus(i.status)===st).length;
   const totalOrders = byStatus('order');
   const totalTx = byStatus('tx_invoice');
@@ -1084,6 +1111,7 @@ async function deleteInvoiceFromModal(){
   if(!_editInvId) return;
   if(!await window.spConfirm('למחוק מסמך זה לגמרי?')) return;
   window.INVOICES = window.INVOICES.filter(i=>i.id!==_editInvId);
+  window.deleteInvoiceFromFirebase(_editInvId);
   window.save(true); window.CM('invoice-m'); renderInvoices(); refreshPurchDash();
   window.showToast('🗑️ המסמך נמחק');
 }
@@ -1577,6 +1605,7 @@ async function saveInvoice(){
       if(window.supEx[supName].isAct===undefined) window.supEx[supName].isAct=false;
     }
   }
+  window.saveInvoiceToFirebase(inv);
   window.save();
   try { await invSaveFiles(invId); } catch(e){ window.showToast('⚠️ שגיאה בשמירת קובץ: '+e.message); }
   window.CM('invoice-m');
@@ -1621,6 +1650,7 @@ function createMissingSupCards(){
 async function deleteInvoice(id){
   if(!await window.spConfirm('למחוק חשבונית זו?')) return;
   window.INVOICES=window.INVOICES.filter(i=>i.id!==id);
+  window.deleteInvoiceFromFirebase(id);
   window.save(true); renderInvoices(); refreshPurchDash(); // immediate=true → saves to Firebase now
 }
 

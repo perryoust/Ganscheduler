@@ -12,7 +12,8 @@
     },
     "invoices": {
       ".read": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).exists())",
-      ".write": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).child('permPurch').val() === true)"
+      ".write": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).child('permPurch').val() === true)",
+      ".indexOn": ["actMonth", "supName", "status"]
     },
     "orders": {
       ".read": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).exists())",
