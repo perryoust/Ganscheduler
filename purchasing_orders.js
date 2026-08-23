@@ -784,7 +784,12 @@ function printOrder(id) {
 window.downloadOrder = function(id) {
   const order = (window.ORDERS || []).find(o => o.id === id);
   if (!order) return;
-  openOrderPrintPreview(order, true);
+  // Use pdfmake for native Hebrew PDF
+  if (typeof window.downloadOrderPdfNative === 'function' && typeof pdfMake !== 'undefined') {
+    window.downloadOrderPdfNative(order);
+  } else {
+    openOrderPrintPreview(order, true);
+  }
 };
 
 function previewOrder() {
@@ -1693,7 +1698,12 @@ function printDelivery(id) {
 window.downloadDelivery = function(id) {
   const dlv = (window.DELIVERIES || []).find(d => d.id === id);
   if (!dlv) return;
-  openDeliveryPrintPreview(dlv, true);
+  // Use pdfmake for native Hebrew PDF
+  if (typeof window.downloadDeliveryPdfNative === 'function' && typeof pdfMake !== 'undefined') {
+    window.downloadDeliveryPdfNative(dlv);
+  } else {
+    openDeliveryPrintPreview(dlv, true);
+  }
 };
 
 window.previewDelivery = function() {

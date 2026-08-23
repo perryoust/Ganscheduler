@@ -314,7 +314,8 @@
       defaultStyle: {
         font: 'Assistant',
         fontSize: 10,
-        alignment: 'right'
+        alignment: 'right',
+        textDirection: 'rtl'
       },
       styles: {
         h3: { fontSize: 16, bold: true },
@@ -535,7 +536,8 @@
       defaultStyle: {
         font: 'Assistant',
         fontSize: 10,
-        alignment: 'right'
+        alignment: 'right',
+        textDirection: 'rtl'
       },
       styles: {
         h3: { fontSize: 16, bold: true },
