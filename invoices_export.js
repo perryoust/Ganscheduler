@@ -504,39 +504,40 @@ reader.onload = async function(e) {
         const oMonth = String(item.orderMonth || "").trim();
 
         // Duplicate checking — smart matching:
-        // 1. Try matching by unique document/order numbers within the same month.
+        // 1. Try matching by unique document/order numbers for the same supplier.
         // 2. Fall back to description + amount + month if no document numbers match.
+        const cleanSupText = (s) => String(s || '').toLowerCase().replace(/["'״׳`]/g, '').replace(/\bבעמ\b/g, '').replace(/\bבע"מ\b/g, '').replace(/בעמ/g, '').replace(/בע"מ/g, '').replace(/[-_.,()]/g, ' ').replace(/\s+/g, ' ').trim();
+
         const existingIdx = window.INVOICES.findIndex(inv => {
-          const sameSup = (window.supBase ? window.supBase(String(inv.supName).trim()) : String(inv.supName).trim()).toLowerCase() === (window.supBase ? window.supBase(sName) : sName).toLowerCase();
+          const sameSup = cleanSupText(inv.supName) === cleanSupText(sName) || (window.supBase ? cleanSupText(window.supBase(inv.supName)) === cleanSupText(window.supBase(sName)) : false);
           if (!sameSup) return false;
+          
           const sameMonth = String(inv.orderMonth || '').trim() === oMonth;
 
-          if (sameMonth) {
-            // Match by Tax Invoice Number if present
-            if (item.num && inv.num && String(item.num).trim() === String(inv.num).trim()) {
-              return true;
-            }
-            // Match by Transaction Invoice Number if present
-            if (item.txNum && inv.txNum && String(item.txNum).trim() === String(inv.txNum).trim()) {
-              return true;
-            }
-            // Match by Order Number if present and contains digits
-            if (item.orderNum && inv.orderNum && /\d/.test(item.orderNum) && String(item.orderNum).trim() === String(inv.orderNum).trim()) {
-              return true;
-            }
-            // Cross-match between Transaction Invoice and Tax Invoice numbers
-            if (item.txNum && inv.num && String(item.txNum).trim() === String(inv.num).trim()) {
-              return true;
-            }
-            if (item.num && inv.txNum && String(item.num).trim() === String(inv.txNum).trim()) {
-              return true;
-            }
+          // Match by Tax Invoice Number if present
+          if (item.num && inv.num && String(item.num).trim() === String(inv.num).trim()) {
+            return true;
+          }
+          // Match by Transaction Invoice Number if present
+          if (item.txNum && inv.txNum && String(item.txNum).trim() === String(inv.txNum).trim()) {
+            return true;
+          }
+          // Match by Order Number if present and contains digits
+          if (item.orderNum && inv.orderNum && /\d{3,}/.test(item.orderNum) && String(item.orderNum).trim() === String(inv.orderNum).trim()) {
+            return true;
+          }
+          // Cross-match between Transaction Invoice and Tax Invoice numbers
+          if (item.txNum && inv.num && String(item.txNum).trim() === String(inv.num).trim()) {
+            return true;
+          }
+          if (item.num && inv.txNum && String(item.num).trim() === String(inv.txNum).trim()) {
+            return true;
           }
 
           // Fallback to conservative match (supplier + description + amount + month)
           const sameDesc = String(inv.orderDesc || '').trim() === oDesc;
           const sameTotal = parseFloat(inv.orderTotal || 0).toFixed(2) === oTotal;
-          return sameDesc && sameTotal && sameMonth;
+          return sameDesc && sameTotal && (sameMonth || !oMonth || !inv.orderMonth);
         });
 
         // Auto-infer invoice status according to AGENTS.md business rules

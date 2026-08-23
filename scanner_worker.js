@@ -8,6 +8,20 @@ onmessage = function(e) {
 
   const hebMonths = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
 
+  const cleanSupText = (str) => {
+    if (!str) return '';
+    return String(str)
+      .toLowerCase()
+      .replace(/["'״׳`]/g, '')
+      .replace(/\bבעמ\b/g, '')
+      .replace(/\bבע"מ\b/g, '')
+      .replace(/בעמ/g, '')
+      .replace(/בע"מ/g, '')
+      .replace(/[-_.,()]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
   for (let i = 0; i < filesFound.length; i++) {
     const file = filesFound[i];
     
@@ -18,6 +32,7 @@ onmessage = function(e) {
     
     const decodedLink = decodeURIComponent(file.link);
     const fullText = file.name + ' ' + decodedLink;
+    const cleanFull = cleanSupText(fullText);
     
     const extractedNumbers = [];
     const addNum = (str, ctx) => {
@@ -36,7 +51,8 @@ onmessage = function(e) {
     const orderMatch = fullText.match(/(?:הזמנה|הזמנת\s*רכש)[^\d]*(\d{3,})/gi);
     if (orderMatch) orderMatch.forEach(m => { const d = m.match(/\d+/); if(d) addNum(d[0], 'order'); });
 
-    const tenDigitMatch = fullText.match(/\b(\d{10})\b/g);
+    // Match 10-digit numbers (like 0123082026, 1054052305) even without ascii word boundary
+    const tenDigitMatch = fullText.match(/\d{10}/g);
     if (tenDigitMatch) tenDigitMatch.forEach(m => addNum(m, 'order'));
 
     const allNums = file.name.match(/\d+/g) || [];
@@ -47,7 +63,7 @@ onmessage = function(e) {
        }
     });
 
-    const hyphenatedNums = file.name.match(/\d+\-\d+/g) || [];
+    const hyphenatedNums = file.name.match(/[\d]+(?:[-/][\d]+)+/g) || [];
     hyphenatedNums.forEach(num => {
        const clean = num.replace(/\D/g, '').replace(/^0+/, '');
        if (clean.length >= 2 && !extractedNumbers.some(n => n.clean === clean)) {
@@ -64,26 +80,34 @@ onmessage = function(e) {
 
     for (const numObj of extractedNumbers) {
       const cleanNumStr = numObj.clean;
+      if (!cleanNumStr || cleanNumStr.length < 2) continue;
       
       const potentialMatches = invoices.filter(inv => {
-        let match = false;
-        if (inv.num && String(inv.num).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) match = true;
-        if (inv.txNum && String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) match = true;
-        if (inv.orderNum && String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) match = true;
-        return match;
+        const cleanInvNum = inv.num ? String(inv.num).replace(/\D/g, '').replace(/^0+/, '') : '';
+        const cleanInvTx = inv.txNum ? String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') : '';
+        const cleanInvOrder = inv.orderNum ? String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') : '';
+
+        if (cleanInvNum && cleanInvNum.length >= 2 && cleanInvNum === cleanNumStr) return true;
+        if (cleanInvTx && cleanInvTx.length >= 2 && cleanInvTx === cleanNumStr) return true;
+        if (cleanInvOrder && cleanInvOrder.length >= 2 && cleanInvOrder === cleanNumStr) return true;
+        return false;
       });
 
       for (const inv of potentialMatches) {
         let type = null;
         let contextBonus = 0;
 
-        if (inv.num && String(inv.num).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) {
+        const cleanInvNum = inv.num ? String(inv.num).replace(/\D/g, '').replace(/^0+/, '') : '';
+        const cleanInvTx = inv.txNum ? String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') : '';
+        const cleanInvOrder = inv.orderNum ? String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') : '';
+
+        if (cleanInvNum && cleanInvNum === cleanNumStr) {
            type = 'tax';
            if (numObj.context === 'tax') contextBonus = 50;
-        } else if (inv.txNum && String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) {
+        } else if (cleanInvTx && cleanInvTx === cleanNumStr) {
            type = 'tx';
            if (numObj.context === 'tx') contextBonus = 50;
-        } else if (inv.orderNum && String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') === cleanNumStr) {
+        } else if (cleanInvOrder && cleanInvOrder === cleanNumStr) {
            type = 'order';
            if (numObj.context === 'order') contextBonus = 50;
         }
@@ -91,10 +115,10 @@ onmessage = function(e) {
         if (!type) continue;
         
         if (type === 'order') {
-            if (file.name.includes('חשבונית מס') || file.name.includes('קבלה')) {
+            if (file.name.includes('חשבונית מס') || file.name.includes('קבלה') || file.name.toLowerCase().includes('tax')) {
                 type = 'tax';
                 contextBonus += 50;
-            } else if (file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה')) {
+            } else if (file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה') || file.name.toLowerCase().includes('tx')) {
                 type = 'tx';
                 contextBonus += 50;
             }
@@ -110,30 +134,46 @@ onmessage = function(e) {
         const keywords = exData ? exData.keywords : (inv.keywords || '');
         
         if (inv.supName) {
-          const supWords = String(inv.supName).split(/\s+/).filter(w => w.length > 2);
+          const cleanSup = cleanSupText(inv.supName);
+          if (cleanSup.length >= 2 && cleanFull.includes(cleanSup)) {
+             supplierMatched = true;
+             supplierWordsMatched += 3;
+          }
+
+          const supWords = cleanSup.split(/\s+/).filter(w => w.length >= 2 && !['של','עם','על','את','אל','מן','זה','או','כי','אם','גן','צהרון'].includes(w));
           for (const word of supWords) {
-            if (file.name.includes(word) || decodedLink.includes(word)) {
+            if (cleanFull.includes(word)) {
               supplierWordsMatched++;
               supplierMatched = true;
             }
           }
+
+          // Check Aliases
+          const spAliases = spScannerAliases || {};
+          for (const alias in spAliases) {
+            const aliasClean = cleanSupText(alias);
+            const targetClean = cleanSupText(spAliases[alias]);
+            if (targetClean === cleanSup || spAliases[alias] === inv.supName || spAliases[alias] === baseName) {
+              if (cleanFull.includes(aliasClean)) {
+                supplierMatched = true;
+                supplierWordsMatched += 2;
+                break;
+              }
+            }
+          }
+
           if (keywords) {
-             const kwds = keywords.split(',').map(k=>k.trim().toLowerCase()).filter(k=>k);
-             if (kwds.some(k => fullText.includes(k))) {
+             const kwds = keywords.split(',').map(k => cleanSupText(k)).filter(Boolean);
+             if (kwds.some(k => cleanFull.includes(k))) {
                 supplierMatched = true;
                 supplierWordsMatched += 2;
              }
-          }
-          let cleanSup = String(inv.supName).replace(/["']/g,'').replace(/בעמ/g, '').trim().toLowerCase();
-          if (cleanSup.length > 2 && fullText.includes(cleanSup)) {
-             supplierMatched = true;
-             supplierWordsMatched += 2;
           }
           score += (supplierWordsMatched * 100);
         }
 
         if (numObj.context === 'any' && cleanNumStr.length <= 5) {
-            if (!supplierMatched) score -= 200;
+            if (!supplierMatched) score -= 150;
         }
 
         let monthMatched = false;
@@ -175,11 +215,16 @@ onmessage = function(e) {
         const hasPath = !!(existing && existing.path);
         
         if (hasPath && !globalOverwrite) { 
-            if (existing.origin !== 'manual' && (existing.score === undefined || score > existing.score)) { 
-                score -= 5; 
-            } else { 
+            if (existing.path === file.link) {
+                // Exact same file: reaffirm match
+                score += 10;
+            } else if (existing.origin === 'manual') { 
                 score -= 500; 
-            } 
+            } else if (existing.score !== undefined && score <= existing.score) {
+                score -= 100;
+            } else {
+                score -= 5;
+            }
         }
 
         if (score > bestScore) {
