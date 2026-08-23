@@ -1,4 +1,4 @@
-﻿// ── SharePoint URL Parser ─────────────────────────────
+// ── SharePoint URL Parser ─────────────────────────────
 window.parseSharePointBaseUrl = (url) => {
   let u = url.trim();
 
@@ -392,7 +392,7 @@ const filesFound = [];
         const existing = inv['file_' + type];
         const hasPath = !!(existing && existing.path);
         
-        if (hasPath && !globalOverwrite) { if (existing.score !== undefined && score > existing.score) { score -= 5; } else { score -= 500; } } // patched
+        if (hasPath && !globalOverwrite) { if (existing.origin !== 'manual' && (existing.score === undefined || score > existing.score)) { score -= 5; } else { score -= 500; } } // patched overwrite
 
 
 
@@ -537,7 +537,7 @@ const filesFound = [];
             
             const existing = inv['file_' + type];
             const hasPath = !!(existing && existing.path);
-            if (hasPath && !globalOverwrite) { if (existing.score !== undefined && score > existing.score) { score -= 5; } else { score -= 500; } } // patched
+            if (hasPath && !globalOverwrite) { if (existing.origin !== 'manual' && (existing.score === undefined || score > existing.score)) { score -= 5; } else { score -= 500; } } // patched overwrite
             
             if (isPettyCash) {
               if (score > 0) {
