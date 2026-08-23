@@ -978,14 +978,25 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
       
     // Fix punctuation at the end of Hebrew words so Bidi algorithm doesn't move them
     escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
-    // RLM after numbers and parentheses to enforce RTL directionality, but ONLY if they are standalone or next to Hebrew/spaces (fixes Mx560c bug)
-    escaped = escaped.replace(/(^|[\s\u0590-\u05FF])([0-9()]+)(?=[\s\u0590-\u05FF]|$)/g, '$1$2&rlm;');
     
-    // HTML2Canvas/RTL bug workaround: standard spaces often disappear in the PDF rendering.
-    // We replace them with a non-breaking space (&nbsp;) to force the space to render.
-    escaped = escaped.replace(/ /g, '&nbsp;');
+    // Replace newlines with <br> to safely split by spaces
+    escaped = escaped.replace(/\n/g, ' <br> ');
     
-    return escaped.replace(/\n/g, '<br>');
+    // Process words to isolate LTR runs (English/Numbers) so html2canvas doesn't overlap them
+    const tokens = escaped.split(' ');
+    const fixedTokens = tokens.map(token => {
+      // Ignore HTML entities and tags we injected
+      if (!token.includes('&') && !token.includes('<') && !token.includes('>')) {
+        // If it consists entirely of English letters, digits, and basic punctuation
+        if (/[a-zA-Z0-9]/.test(token) && /^[a-zA-Z0-9\-_.,:;/'"()]+$/.test(token)) {
+          return `<span style="display:inline-block;direction:ltr;">${token}</span>`;
+        }
+      }
+      return token;
+    });
+    
+    // Join with non-breaking spaces to force html2canvas to render the spaces
+    return fixedTokens.join('&nbsp;').replace(/&nbsp;<br>&nbsp;/g, '<br>');
   };
 
   const footerLines = (window.PURCH_FOOTER || defaultFooter).split('\n').map(l => rtlFix(l.trim())).filter(l => l);
@@ -1751,10 +1762,22 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
       
     // Fix punctuation at the end of Hebrew words so Bidi algorithm doesn't move them
     escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
-    // We just return the string. We rely on white-space: pre-wrap to preserve spaces.
-    // Also, inject an RLM mark after numbers and parentheses to enforce RTL directionality (only if standalone or next to Hebrew/spaces)
-    escaped = escaped.replace(/(^|[\s\u0590-\u05FF])([0-9()]+)(?=[\s\u0590-\u05FF]|$)/g, '$1$2&rlm;');
-    return escaped.replace(/\n/g, '<br>');
+    
+    // Replace newlines with <br>
+    escaped = escaped.replace(/\n/g, ' <br> ');
+    
+    // Isolate LTR text to avoid html2canvas overlap
+    const tokens = escaped.split(' ');
+    const fixedTokens = tokens.map(token => {
+      if (!token.includes('&') && !token.includes('<') && !token.includes('>')) {
+        if (/[a-zA-Z0-9]/.test(token) && /^[a-zA-Z0-9\-_.,:;/'"()]+$/.test(token)) {
+          return `<span style="display:inline-block;direction:ltr;">${token}</span>`;
+        }
+      }
+      return token;
+    });
+    
+    return fixedTokens.join('&nbsp;').replace(/&nbsp;<br>&nbsp;/g, '<br>');
   };
 
   const footerLines = (window.PURCH_FOOTER || defaultFooter).split('\n').map(l => rtlFix(l.trim())).filter(l => l);
