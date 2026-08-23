@@ -978,8 +978,8 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
       
     // Fix punctuation at the end of Hebrew words so Bidi algorithm doesn't move them
     escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
-    // RLM after numbers and parentheses to enforce RTL directionality, but ONLY if they are not part of an English word (like Mx560c)
-    escaped = escaped.replace(/(^|[^a-zA-Z])([0-9()]+)(?![a-zA-Z])/g, '$1$2&rlm;');
+    // RLM after numbers and parentheses to enforce RTL directionality, but ONLY if they are standalone or next to Hebrew/spaces (fixes Mx560c bug)
+    escaped = escaped.replace(/(^|[\s\u0590-\u05FF])([0-9()]+)(?=[\s\u0590-\u05FF]|$)/g, '$1$2&rlm;');
     
     // HTML2Canvas/RTL bug workaround: standard spaces often disappear in the PDF rendering.
     // We replace them with a non-breaking space (&nbsp;) to force the space to render.
@@ -1752,8 +1752,8 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
     // Fix punctuation at the end of Hebrew words so Bidi algorithm doesn't move them
     escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
     // We just return the string. We rely on white-space: pre-wrap to preserve spaces.
-    // Also, inject an RLM mark after numbers and parentheses to enforce RTL directionality (only if not part of an English word).
-    escaped = escaped.replace(/(^|[^a-zA-Z])([0-9()]+)(?![a-zA-Z])/g, '$1$2&rlm;');
+    // Also, inject an RLM mark after numbers and parentheses to enforce RTL directionality (only if standalone or next to Hebrew/spaces)
+    escaped = escaped.replace(/(^|[\s\u0590-\u05FF])([0-9()]+)(?=[\s\u0590-\u05FF]|$)/g, '$1$2&rlm;');
     return escaped.replace(/\n/g, '<br>');
   };
 
