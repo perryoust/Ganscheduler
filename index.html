@@ -13,18 +13,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>מערכת שיבוץ - גרסה 110.29</title>
+  <title>מערכת שיבוץ - גרסה 110.30</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=110.29" />
+  <link rel="stylesheet" href="styles.css?v=110.30" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '110.29';
+    window.APP_VERSION = '110.30';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -1463,8 +1463,17 @@
               <option value="status,asc">סטטוס</option>
             </select>
           </div>
+          <div class="fg">
+            <label>קישור קובץ</label>
+            <select id="pi-file-filter" onchange="renderInvoices()" style="border:1.5px solid #c5cae9;border-radius:6px;padding:7px 10px;background:#fff;font-size:.82rem;min-width:145px">
+              <option value="">הכל</option>
+              <option value="missing">📎❌ חסר קובץ (לא מקושר)</option>
+              <option value="has_file">📎✅ מקושר לקובץ</option>
+            </select>
+          </div>
           <div class="mob-btn-row" style="align-items:flex-end;gap:5px">
             <button class="btn bs bsm" onclick="resetInvFilter()" title="נקה סינון">🚀 נקה</button>
+            <button id="pi-unlinked-btn" class="btn bsm" style="background:#fff8e1;border:1px solid #ffe082;color:#e65100;font-weight:700" onclick="toggleUnlinkedFilter()" title="הצג רק מסמכים ללא קבצים מקושרים">📎 חסרי קבצים</button>
             <button class="btn bo bsm" onclick="openInvExportModal()">🚀 יצוא אקסל</button>
             <button id="pi-dup-btn" class="btn" style="background:#7b1fa2;color:#fff" onclick="openDupModal()">🚀 כפילויות</button>
             <button class="btn bg" onclick="openNewInvoice()">🚀 מסמך חדש</button>

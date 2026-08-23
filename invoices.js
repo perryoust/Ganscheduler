@@ -405,11 +405,26 @@ function renderInvoices(){
   const advMonth  = document.getElementById('pi-month')?.value||'';
   const advCity   = document.getElementById('pi-city')?.value||'';
   const advLocType= document.getElementById('pi-loctype')?.value||'';
+  const fileFilter= document.getElementById('pi-file-filter')?.value||'';
+
   if(advType)    list = list.filter(i=>i.orderType===advType);
   if(advAssign)  list = list.filter(i=>i.assignment===advAssign);
   if(advMonth)   list = list.filter(i=>i.actMonth===advMonth);
   if(advCity)    list = list.filter(i=>(i.locCity||'').toLowerCase()===advCity.toLowerCase());
   if(advLocType) list = list.filter(i=>i.locType===advLocType);
+
+  if (fileFilter === 'missing') {
+    list = list.filter(i => {
+      const hasAnyFile = (i.file_order && i.file_order.path) || (i.file_tx && i.file_tx.path) || (i.file_tax && i.file_tax.path);
+      return !hasAnyFile;
+    });
+  } else if (fileFilter === 'has_file') {
+    list = list.filter(i => {
+      const hasAnyFile = (i.file_order && i.file_order.path) || (i.file_tx && i.file_tx.path) || (i.file_tax && i.file_tax.path);
+      return hasAnyFile;
+    });
+  }
+
   if(stfArr.length){
     list = list.filter(i=>{
       const st = _migrateInvStatus(i.status);
@@ -1246,15 +1261,33 @@ async function deleteInvoiceFromModal(){
   window.showToast('🗑️ המסמך נמחק');
 }
 function resetInvFilter(){
-  const ids = ['pi-srch','pi-from','pi-to','pi-type','pi-assign','pi-month','pi-city','pi-loctype'];
+  const ids = ['pi-srch','pi-from','pi-to','pi-type','pi-assign','pi-month','pi-city','pi-loctype','pi-file-filter'];
   ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.querySelectorAll('.pi-st-cb').forEach(cb=>cb.checked=false);
   const allCb=document.getElementById('pi-st-all'); if(allCb) allCb.checked=false;
   _setPiStLabel();
+  const unlinkedBtn = document.getElementById('pi-unlinked-btn');
+  if(unlinkedBtn){ unlinkedBtn.style.background='#fff8e1'; unlinkedBtn.style.color='#e65100'; }
   try{ window._safeLS.removeItem(window.PI_ST_KEY); }catch(e){}
   const sortEl=document.getElementById('pi-sort'); if(sortEl) sortEl.value='desc';
   renderInvoices();
 }
+
+window.toggleUnlinkedFilter = function() {
+  const el = document.getElementById('pi-file-filter');
+  if (!el) return;
+  if (el.value === 'missing') {
+    el.value = '';
+  } else {
+    el.value = 'missing';
+  }
+  const btn = document.getElementById('pi-unlinked-btn');
+  if (btn) {
+    btn.style.background = (el.value === 'missing') ? '#e65100' : '#fff8e1';
+    btn.style.color = (el.value === 'missing') ? '#fff' : '#e65100';
+  }
+  renderInvoices();
+};
 function openNewInvoice(id, presetSup){
   _editInvId = (id !== null && id !== undefined && id !== '') ? id : null;
   const inv = _editInvId ? window.INVOICES.find(i => String(i.id) === String(_editInvId) || (i.serialNum && String(i.serialNum) === String(_editInvId))) : null;
