@@ -191,14 +191,14 @@ function renderMobileInvoiceCard(inv, opts = {}) {
 
     if(meta && meta.path){
       const name = (window._extractNameFromUrl ? window._extractNameFromUrl(meta.path) : '') || meta.name || 'פתח';
-      return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${inv.id},'${actualSec}')" title="${name}">📎 ${name} ↗</span>`;
+      return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile('${inv.id || inv.serialNum}','${actualSec}')" title="${name}">📎 ${name} ↗</span>`;
     }
     // Only show "עדכן קישור" if no file exists for ANY of the related document types to prevent clutter
     const hasAnyFile = (inv.file_order && inv.file_order.path) || 
                        (inv.file_tx && inv.file_tx.path) || 
                        (inv.file_tax && inv.file_tax.path);
     if(/\d/.test(docNum) && !hasAnyFile){
-      return `<span style="display:inline-flex;align-items:center;gap:2px;background:#fff8e1;border:1px solid #ffe082;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice(${inv.id})" title="עדכן קישור">📎 עדכן קישור</span>`;
+      return `<span style="display:inline-flex;align-items:center;gap:2px;background:#fff8e1;border:1px solid #ffe082;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')" title="עדכן קישור">📎 עדכן קישור</span>`;
     }
     return '';
   };
@@ -226,13 +226,13 @@ function renderMobileInvoiceCard(inv, opts = {}) {
 
   let docsHtml = '';
   if (hasOrder) {
-    docsHtml += `<div class="mob-inv-doc-row"><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b>הזמנה:</b> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.orderNum}</b> ${inv.orderDate?`<span style="color:#888">(${window.fD ? window.fD(inv.orderDate) : inv.orderDate})</span>`:''} ${mkFileBtn('order',inv.orderNum)}</div>`;
+    docsHtml += `<div class="mob-inv-doc-row"><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b>הזמנה:</b> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')">${inv.orderNum}</b> ${inv.orderDate?`<span style="color:#888">(${window.fD ? window.fD(inv.orderDate) : inv.orderDate})</span>`:''} ${mkFileBtn('order',inv.orderNum)}</div>`;
   }
   if (hasTx) {
-    docsHtml += `<div class="mob-inv-doc-row"><span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b>עסקה:</b> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.txNum}</b> ${inv.txDate?`<span style="color:#888">(${window.fD ? window.fD(inv.txDate) : inv.txDate})</span>`:''} ${mkFileBtn('tx',inv.txNum)}</div>`;
+    docsHtml += `<div class="mob-inv-doc-row"><span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b>עסקה:</b> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')">${inv.txNum}</b> ${inv.txDate?`<span style="color:#888">(${window.fD ? window.fD(inv.txDate) : inv.txDate})</span>`:''} ${mkFileBtn('tx',inv.txNum)}</div>`;
   }
   if (hasTax) {
-    docsHtml += `<div class="mob-inv-doc-row"><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">📑</span> <b>מסמך:</b> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.num}</b> ${inv.date?`<span style="color:#888">(${window.fD ? window.fD(inv.date) : inv.date})</span>`:''} ${mkFileBtn('tax',inv.num)}</div>`;
+    docsHtml += `<div class="mob-inv-doc-row"><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">📑</span> <b>מסמך:</b> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')">${inv.num}</b> ${inv.date?`<span style="color:#888">(${window.fD ? window.fD(inv.date) : inv.date})</span>`:''} ${mkFileBtn('tax',inv.num)}</div>`;
   }
 
   let amountsHtml = '';
@@ -250,7 +250,7 @@ function renderMobileInvoiceCard(inv, opts = {}) {
   const cityLoc = [inv.locCity, inv.locName].filter(Boolean).join(' · ');
 
   return `
-    <div class="mob-inv-card ${stClass}" onclick="openNewInvoice(${inv.id})">
+    <div class="mob-inv-card ${stClass}" onclick="openNewInvoice('${inv.id || inv.serialNum}')">
       <div class="mob-inv-hdr">
         <div>
           <div class="mob-inv-sup">${inv.supName}</div>
@@ -286,8 +286,8 @@ function renderMobileInvoiceCard(inv, opts = {}) {
             📝 ${inv.notes || 'אין הערות'}
           </div>
           <div class="mob-inv-btns">
-            <button class="btn bsm bo" onclick="openNewInvoice(${inv.id})">✏️ ערוך</button>
-            <button class="btn bsm br" onclick="deleteInvoice(${inv.id})">🗑️ מחק</button>
+            <button class="btn bsm bo" onclick="openNewInvoice('${inv.id || inv.serialNum}')">✏️ ערוך</button>
+            <button class="btn bsm br" onclick="deleteInvoice('${inv.id || inv.serialNum}')">🗑️ מחק</button>
           </div>
         </div>
       ` : ''}
@@ -299,6 +299,13 @@ window.renderMobileInvoiceCard = renderMobileInvoiceCard;
 function renderInvoices(){
   if(window.showInfoNotice) {
     window.showInfoNotice('invoices-info-wrap', '<b>ניהול רכש וחשבוניות:</b> כאן ניתן לעקוב אחר סטטוס התשלומים והמסמכים מול הספקים.', 'info', '📄');
+  }
+  if (Array.isArray(window.INVOICES)) {
+    window.INVOICES.forEach((inv, idx) => {
+      if (!inv.id && inv.id !== 0) {
+        inv.id = inv.serialNum ? String(inv.serialNum) : ('inv_' + (Date.now() + idx));
+      }
+    });
   }
   const tbody = document.getElementById('pi-tbody');
   const mobList = document.getElementById('pi-mobile-list');
@@ -496,18 +503,18 @@ function renderInvoices(){
 
         if(meta && meta.path){
           const name = _extractNameFromUrl(meta.path)||meta.name||'פתח';
-          return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${inv.id},'${actualSec}')" title="${name}">📎 ${name} ↗</span>`;
+          return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile('${inv.id || inv.serialNum}','${actualSec}')" title="${name}">📎 ${name} ↗</span>`;
         }
         const hasAnyFile = (inv.file_order && inv.file_order.path) || 
                            (inv.file_tx && inv.file_tx.path) || 
                            (inv.file_tax && inv.file_tax.path);
         if(/\d/.test(docNum) && !hasAnyFile){
-          return `<span style="display:inline-flex;align-items:center;gap:2px;background:#fff8e1;border:1px solid #ffe082;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice(${inv.id})" title="עדכן קישור לקובץ">📎 עדכן קישור</span>`;
+          return `<span style="display:inline-flex;align-items:center;gap:2px;background:#fff8e1;border:1px solid #ffe082;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')" title="עדכן קישור לקובץ">📎 עדכן קישור</span>`;
         }
         return '';
       };
       const _isDup = (typeof _dupFilterActive !== 'undefined' && _dupFilterActive);
-      return `<tr class="inv-row-clickable" style="${_isDup?'background:#fce4ec;border-right:3px solid #c62828;':''}" onclick="openNewInvoice(${inv.id})">
+      return `<tr class="inv-row-clickable" style="${_isDup?'background:#fce4ec;border-right:3px solid #c62828;':''}" onclick="openNewInvoice('${inv.id || inv.serialNum}')">
         <td style="font-size:.75rem;padding:8px;font-weight:600;color:#546e7a">
           ${inv.serialNum||''}
         </td>
@@ -516,9 +523,9 @@ function renderInvoices(){
           <div style="font-size:.67rem;color:#999;margin-top:2px;text-decoration:none">${(supEx[inv.supName]||{}).entityType||''}</div>
         </td>
         <td style="font-size:.75rem;line-height:2;padding:8px">
-          ${hasOrder?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.orderNum}</b>${inv.orderDate?'<span style="color:#999"> · '+fD(inv.orderDate)+'</span>':''} ${mkFileBtn('order',inv.orderNum)}</div>`:''}
-          ${hasTx?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.txNum}</b>${inv.txDate?'<span style="color:#999"> · '+fD(inv.txDate)+'</span>':''} ${mkFileBtn('tx',inv.txNum)}</div>`:''}
-          ${hasTax?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">📑</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice(${inv.id})">${inv.num}</b>${inv.date?'<span style="color:#999"> · '+fD(inv.date)+'</span>':''} ${mkFileBtn('tax',inv.num)}</div>`:''}
+          ${hasOrder?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')">${inv.orderNum}</b>${inv.orderDate?'<span style="color:#999"> · '+fD(inv.orderDate)+'</span>':''} ${mkFileBtn('order',inv.orderNum)}</div>`:''}
+          ${hasTx?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')">${inv.txNum}</b>${inv.txDate?'<span style="color:#999"> · '+fD(inv.txDate)+'</span>':''} ${mkFileBtn('tx',inv.txNum)}</div>`:''}
+          ${hasTax?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">📑</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')">${inv.num}</b>${inv.date?'<span style="color:#999"> · '+fD(inv.date)+'</span>':''} ${mkFileBtn('tax',inv.num)}</div>`:''}
         </td>
         <td style="font-size:.75rem;color:#37474f;padding:8px">
           ${inv.orderDesc||''}
@@ -534,8 +541,8 @@ function renderInvoices(){
         <td style="padding:8px">${statusStepper(inv)}</td>
         <td style="font-size:.72rem;color:#78909c;max-width:120px;padding:8px">${inv.notes||'אין הערות'}</td>
         <td style="padding:8px;white-space:nowrap" onclick="event.stopPropagation()">
-          <button class="btn bsm bo" onclick="openNewInvoice(${inv.id})">✏️</button>
-          <button class="btn bsm br" onclick="deleteInvoice(${inv.id})">🗑️</button>
+          <button class="btn bsm bo" onclick="openNewInvoice('${inv.id || inv.serialNum}')">✏️</button>
+          <button class="btn bsm br" onclick="deleteInvoice('${inv.id || inv.serialNum}')">🗑️</button>
         </td>
       </tr>`;
     }).join('');
@@ -1178,9 +1185,10 @@ function resetInvFilter(){
   renderInvoices();
 }
 function openNewInvoice(id, presetSup){
-  _editInvId = id || null;
-  const inv = id ? window.INVOICES.find(i=>i.id===id) : null;
-  document.getElementById('inv-m-title').textContent = id ? '✏️ עריכת מסמך' : '📄 מסמך חדש';
+  _editInvId = (id !== null && id !== undefined && id !== '') ? id : null;
+  const inv = _editInvId ? window.INVOICES.find(i => String(i.id) === String(_editInvId) || (i.serialNum && String(i.serialNum) === String(_editInvId))) : null;
+  if (inv) _editInvId = inv.id;
+  document.getElementById('inv-m-title').textContent = inv ? '✏️ עריכת מסמך' : '📄 מסמך חדש';
   // Supplier autocomplete datalist
   const dl = document.getElementById('inv-sup-datalist');
   if(dl){
