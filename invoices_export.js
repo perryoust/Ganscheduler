@@ -512,6 +512,7 @@ reader.onload = async function(e) {
           const sameSup = cleanSupText(inv.supName) === cleanSupText(sName) || (window.supBase ? cleanSupText(window.supBase(inv.supName)) === cleanSupText(window.supBase(sName)) : false);
           if (!sameSup) return false;
           
+          const sameMonth = String(inv.orderMonth || '').trim() === oMonth;
           const cleanDoc = (d) => String(d || '').replace(/\D/g, '').replace(/^0+/, '');
 
           // Match by Tax Invoice Number if present
