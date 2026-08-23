@@ -13,17 +13,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>מערכת שיבוץ - גרסה 110.2</title>
+  <title>מערכת שיבוץ - גרסה 110.3</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=110.2" />
+  <link rel="stylesheet" href="styles.css?v=110.3" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '110.2';
+    window.APP_VERSION = '110.3';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -3686,7 +3687,8 @@
     <script src="core_dash.js?v=109.46"></script>
     <script src="worker_tasks.js?v=109.46"></script>
     <script src="coordinator_app.js?v=109.46"></script>
-    <script src="purchasing_orders.js?v=109.46"></script>
+    <script src="purchasing_orders.js?v=110.2"></script>
+    <script src="pdfmake_orders.js?v=110.2"></script>
     <script src="core_app.js?v=109.46"></script>
     <script src="qa_simulator.js?v=109.46"></script>
     <script src="todo.js?v=109.46"></script>
