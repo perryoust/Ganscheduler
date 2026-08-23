@@ -1097,8 +1097,8 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
       
-    // Fix missing space before בע"מ
-    escaped = escaped.replace(/([\u0590-\u05FF])(בע"מ|בעמ)/g, '$1 $2');
+    // Fix missing space before מע"מ and בע"מ
+    escaped = escaped.replace(/([\u0590-\u05FF])(מע"מ|מעמ|בע"מ|בעמ)/g, '$1 $2');
       
     // Fix punctuation at the end of Hebrew words so Bidi algorithm doesn't move them
     escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
@@ -1303,32 +1303,32 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
         if (kitsCount > 1) {
           kitsBreakdownHtml = `
             <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px;">
-              <span>סה"כ לערכה (כולל מע"מ):</span>
+              <span>${rtlFix('סה"כ לערכה (כולל מע"מ):')}</span>
               <span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span>
             </div>
             ${discountPerKit ? `
             <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px; color:#d32f2f;">
-              <span>הנחה לערכה:</span>
+              <span>${rtlFix('הנחה לערכה:')}</span>
               <span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span>
             </div>` : ''}
             <div style="display:flex; justify-content:space-between; align-items:center; margin:5px 0; background:#f1f8e9; padding:4px 8px; border-radius:4px; border:1px solid #c8e6c9;">
-              <span style="font-weight:bold; color:#2e7d32;">כמות ערכות:</span>
+              <span style="font-weight:bold; color:#2e7d32;">${rtlFix('כמות ערכות:')}</span>
               <span style="font-weight:bold; font-size:1.1em; color:#2e7d32;">${kitsCount}</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px;">
-              <span style="font-weight:bold;">סכום לפני מע"מ:</span>
+              <span style="font-weight:bold;">${rtlFix('סכום לפני מע"מ:')}</span>
               <span dir="ltr" style="font-weight:bold;">&#8362; ${netBase.toFixed(2)}</span>
             </div>
           `;
         } else {
           kitsBreakdownHtml = `
             <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px;">
-              <span style="font-weight:bold;">סכום לפני מע"מ:</span>
+              <span style="font-weight:bold;">${rtlFix('סכום לפני מע"מ:')}</span>
               <span dir="ltr" style="font-weight:bold;">&#8362; ${netBase.toFixed(2)}</span>
             </div>
             ${discountPerKit ? `
             <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px; color:#d32f2f;">
-              <span>הנחה:</span>
+              <span>${rtlFix('הנחה:')}</span>
               <span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span>
             </div>` : ''}
           `;
@@ -1340,32 +1340,32 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
         if (kitsCount > 1) {
           kitsBreakdownHtml = `
             <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px;">
-              <span>סה"כ לערכה בודדת:</span>
+              <span>${rtlFix('סה"כ לערכה בודדת:')}</span>
               <span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span>
             </div>
             ${discountPerKit ? `
             <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px; color:#d32f2f;">
-              <span>הנחה לערכה:</span>
+              <span>${rtlFix('הנחה לערכה:')}</span>
               <span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span>
             </div>` : ''}
             <div style="display:flex; justify-content:space-between; align-items:center; margin:5px 0; background:#f1f8e9; padding:4px 8px; border-radius:4px; border:1px solid #c8e6c9;">
-              <span style="font-weight:bold; color:#2e7d32;">כמות ערכות:</span>
+              <span style="font-weight:bold; color:#2e7d32;">${rtlFix('כמות ערכות:')}</span>
               <span style="font-weight:bold; font-size:1.1em; color:#2e7d32;">${kitsCount}</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px;">
-              <span style="font-weight:bold;">סה"כ (${kitsCount} ערכות):</span>
+              <span style="font-weight:bold;">${rtlFix('סה"כ')} (${kitsCount} ${rtlFix('ערכות')}):</span>
               <span dir="ltr" style="font-weight:bold;">&#8362; ${totalTaxable.toFixed(2)}</span>
             </div>
           `;
         } else {
           kitsBreakdownHtml = `
             <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px;">
-              <span style="font-weight:bold;">סה"כ:</span>
+              <span style="font-weight:bold;">${rtlFix('סה"כ:')}</span>
               <span dir="ltr" style="font-weight:bold;">&#8362; ${subtotalPerKit.toFixed(2)}</span>
             </div>
             ${discountPerKit ? `
             <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px; color:#d32f2f;">
-              <span>הנחה:</span>
+              <span>${rtlFix('הנחה:')}</span>
               <span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span>
             </div>` : ''}
           `;
@@ -1375,20 +1375,20 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
       footerContentHtml = `
         <div class="footer-info-wrapper" style="margin-top: 15px; display: flex; justify-content: space-between; align-items: flex-start;">
           <div class="notes-wrapper" style="flex: 1; margin-left: 20px;">
-            ${order.notes ? `<div class="order-notes"><b>הערות:</b><br>${rtlFix(order.notes).replace(/\n/g, '<br>')}</div>` : ''}
+            ${order.notes ? `<div class="order-notes"><b>${rtlFix('הערות:')}</b><br>${rtlFix(order.notes).replace(/\n/g, '<br>')}</div>` : ''}
           </div>
           
           <div class="order-totals" style="display: flex; flex-direction: column; min-width:240px; background:#fafafa; padding:12px 18px; border-radius:8px; border:1px solid #eee;">
             ${kitsBreakdownHtml}
             <div style="display:flex; justify-content:space-between; align-items:center; margin:4px 0; gap:12px;">
-              <span style="font-weight:bold; font-size:0.95em;">${isInc ? 'מתוכם מע"מ' : 'מע"מ'} (${vatRate}%):</span>
+              <span style="font-weight:bold; font-size:0.95em;">${isInc ? rtlFix('מתוכם מע"מ') : rtlFix('מע"מ')} (${vatRate}%):</span>
               <span dir="ltr" style="font-size:0.95em;">&#8362; ${order.vat.toFixed(2)}</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:6px; border-top:1px solid #ddd; gap:12px;">
-              <span style="font-weight:bold; color:#2e7d32; font-size:1.1em;">סה"כ לתשלום:</span>
+              <span style="font-weight:bold; color:#2e7d32; font-size:1.1em;">${rtlFix('סה"כ לתשלום:')}</span>
               <span dir="ltr" style="font-weight:bold; color:#2e7d32; font-size:1.15em;">&#8362; ${order.totalPrice.toFixed(2)}</span>
             </div>
-            ${isInc ? `<div style="font-size:0.75em; color:#666; margin-top:6px; text-align:center;">* המחירים כוללים מע"מ</div>` : ''}
+            ${isInc ? `<div style="font-size:0.75em; color:#666; margin-top:6px; text-align:center;">${rtlFix('* המחירים כוללים מע"מ')}</div>` : ''}
           </div>
         </div>
       `;
