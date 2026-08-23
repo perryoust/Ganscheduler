@@ -506,7 +506,7 @@ reader.onload = async function(e) {
         // Duplicate checking — smart matching:
         // 1. Try matching by unique document/order numbers for the same supplier.
         // 2. Fall back to description + amount + month if no document numbers match.
-        const cleanSupText = (s) => String(s || '').toLowerCase().replace(/["'״׳`]/g, '').replace(/\bבעמ\b/g, '').replace(/\bבע"מ\b/g, '').replace(/בעמ/g, '').replace(/בע"מ/g, '').replace(/[-_.,()]/g, ' ').replace(/\s+/g, ' ').trim();
+        const cleanSupText = (s) => String(s || '').toLowerCase().replace(/["'״׳`]/g, '').replace(/\s*\(?\s*בע[\s.]*מ\s*\)?\s*/gi, ' ').replace(/\s*\(?\s*ltd\.?\s*\)?\s*/gi, ' ').replace(/[-_.,()]/g, ' ').replace(/\s+/g, ' ').trim();
 
         const cleanDoc = (d) => String(d || '').replace(/\D/g, '').replace(/^0+/, '');
 

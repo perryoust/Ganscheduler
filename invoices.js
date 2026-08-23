@@ -317,11 +317,11 @@ window._recoverInvoiceFilesAndDeduplicate = function() {
     if (inv.file_order && inv.file_order.path && o && o.length >= 4) {
       filePool.order.set(o, inv.file_order);
     }
-    if (inv.file_tx && inv.file_tx.path && tx && tx.length >= 2 && s) {
+    if (inv.file_tx && inv.file_tx.path && tx && tx.length >= 1 && s) {
       filePool.tx.set(s + '|' + tx, inv.file_tx);
       filePool.tx.set(tx, inv.file_tx);
     }
-    if (inv.file_tax && inv.file_tax.path && tax && tax.length >= 2 && s) {
+    if (inv.file_tax && inv.file_tax.path && tax && tax.length >= 1 && s) {
       filePool.tax.set(s + '|' + tax, inv.file_tax);
       filePool.tax.set(tax, inv.file_tax);
     }

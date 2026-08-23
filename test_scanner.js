@@ -1,4 +1,4 @@
-onmessage = function(e) {
+function runScanner(e) {
   const { filesFound, invoices, supEx, globalOverwrite, spScannerAliases, currentYear } = e.data;
 
   let matchCount = 0;
@@ -9,7 +9,9 @@ onmessage = function(e) {
   const hebMonths = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
 
   const cleanSupText = (str) => {
-    return String(str || '').toLowerCase()
+    if (!str) return '';
+    return String(str)
+      .toLowerCase()
       .replace(/["'״׳`]/g, '')
       .replace(/\s*\(?\s*בע[\s.]*מ\s*\)?\s*/gi, ' ')
       .replace(/\s*\(?\s*ltd\.?\s*\)?\s*/gi, ' ')
@@ -485,3 +487,6 @@ onmessage = function(e) {
 
   postMessage({ type: 'done', matchCount, skippedCount, resultsData, matchedInvoicesToUpdate });
 };
+
+
+const invoices = [{ id: 2074, num: '0253702035989', supName: 'אלה זינו' }, { id: 2014, num: '001', supName: 'אמנות' }]; const filesFound = [{ name: 'אלה זינו חשבונית 0253702035989 28 07 2026.pdf', link: 'test_link_1' }, { name: 'אמנות 001.pdf', link: 'test_link_2' }]; const mockEvent = { data: { invoices: invoices, filesFound: filesFound, supEx: {}, spScannerAliases: {} } }; const selfObj = { postMessage: function(msg) { console.log(JSON.stringify(msg, null, 2)); } }; global.postMessage = selfObj.postMessage; runScanner(mockEvent);
