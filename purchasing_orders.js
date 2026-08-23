@@ -210,6 +210,8 @@ function openNewOrder() {
         </select>
       </div>
       
+      <input type="hidden" id="om-order-internal-id" value="${newId}">
+      
       <div class="row" style="margin-bottom:10px">
         <div style="flex:1">
           <label>מספר הזמנה:</label>
@@ -242,7 +244,7 @@ function openNewOrder() {
           <div style="display:flex; align-items:center; gap:12px;">
             <h3 style="margin:0;color:#1a237e">🛒 פריטים בהזמנה</h3>
             <div style="display:flex; background:#e8eaf6; padding:2px; border-radius:8px; border:1px solid #c5cae9;">
-              <button type="button" id="om-vat-mode-ex" class="btn bsm bp" style="border-radius:6px; padding:3px 10px; font-size:0.78rem; font-weight:bold; cursor:pointer;" onclick="setOrderVatMode('ex')">לפני מע"מ</button>
+              <button type="button" id="om-vat-mode-ex" class="btn bsm" style="border-radius:6px; padding:3px 10px; font-size:0.78rem; font-weight:bold; cursor:pointer; background:#1a237e; color:#fff; border:none;" onclick="setOrderVatMode('ex')">לפני מע"מ</button>
               <button type="button" id="om-vat-mode-inc" class="btn bsm" style="border-radius:6px; padding:3px 10px; font-size:0.78rem; font-weight:bold; cursor:pointer; background:transparent; color:#3f51b5; border:none;" onclick="setOrderVatMode('inc')">כולל מע"מ</button>
             </div>
           </div>
@@ -320,7 +322,7 @@ function openNewOrder() {
         <div style="display:flex;gap:10px">
           <button class="btn bw" onclick="previewOrder()">👁️ הצג לפני שמירה</button>
           <button class="btn bo" onclick="closeOrderModal()">ביטול</button>
-          <button class="btn bp" onclick="saveOrder('${newId}')">💾 שמור הזמנה</button>
+          <button class="btn bp" id="om-save-btn" onclick="saveOrder('${newId}')">💾 שמור הזמנה</button>
         </div>
       </div>
     </div>
@@ -521,6 +523,9 @@ function closeOrderModal() {
 }
 
 async function saveOrder(id) {
+  id = id || document.getElementById('om-order-internal-id')?.value;
+  const currentOrderId = document.getElementById('om-orderid')?.value.trim();
+
   const supplier = document.getElementById('om-supplier').value.trim();
   if (!supplier) {
     alert('חובה לבחור ספק');
@@ -580,9 +585,20 @@ async function saveOrder(id) {
   const titleSuffix = document.getElementById('om-titlesuffix') ? document.getElementById('om-titlesuffix').value.trim() : '';
   const orderer = document.getElementById('om-orderer') ? document.getElementById('om-orderer').value.trim() : '';
 
+  window.ORDERS = window.ORDERS || [];
+  
+  // Find if already exists by id OR by orderId
+  let existingIdx = window.ORDERS.findIndex(o => o.id === id);
+  if (existingIdx < 0 && currentOrderId) {
+    existingIdx = window.ORDERS.findIndex(o => o.orderId === currentOrderId);
+    if (existingIdx >= 0) {
+      id = window.ORDERS[existingIdx].id;
+    }
+  }
+
   const newOrder = {
-    id: id,
-    orderId: document.getElementById('om-orderid').value,
+    id: id || ('ord_' + Date.now()),
+    orderId: currentOrderId,
     ts: ts,
     supplier: supplier,
     orderer: orderer,
@@ -599,9 +615,6 @@ async function saveOrder(id) {
     vatMode: vatMode
   };
   
-  window.ORDERS = window.ORDERS || [];
-  
-  const existingIdx = window.ORDERS.findIndex(o => o.id === id);
   if (existingIdx >= 0) {
     window.ORDERS[existingIdx] = newOrder;
   } else {
@@ -725,11 +738,13 @@ window.duplicateCurrentOrder = function() {
   
   document.getElementById('om-orderid').value = newOrderId;
   document.getElementById('om-date').value = new Date().toISOString().split('T')[0];
-  
+  const internalIdEl = document.getElementById('om-order-internal-id');
+  if (internalIdEl) internalIdEl.value = newId;
+
   const titleEl = document.querySelector('#order-modal h2');
   if (titleEl) titleEl.innerHTML = `📦 שכפול הזמנה - הזמנה חדשה ${newOrderId}`;
 
-  const saveBtn = document.querySelector('#order-modal .btn.bp');
+  const saveBtn = document.getElementById('om-save-btn');
   if (saveBtn) saveBtn.setAttribute('onclick', `saveOrder('${newId}')`);
   
   const dupBtn = document.getElementById('btn-dup-current');
@@ -744,6 +759,9 @@ function editOrder(id) {
   
   openNewOrder();
   
+  const internalIdEl = document.getElementById('om-order-internal-id');
+  if (internalIdEl) internalIdEl.value = id;
+
   const titleEl = document.querySelector('#order-modal h2');
   if (titleEl) titleEl.innerHTML = `✏️ עריכת הזמנה ${order.orderId}`;
   
@@ -799,7 +817,7 @@ function editOrder(id) {
   }
 
   // Change save button to use existing ID
-  const saveBtn = document.querySelector('#order-modal .btn.bp');
+  const saveBtn = document.getElementById('om-save-btn');
   if (saveBtn) saveBtn.setAttribute('onclick', `saveOrder('${id}')`);
   
   omCalc();
@@ -813,6 +831,9 @@ function duplicateOrder(id) {
   
   const newId = 'ord_' + Date.now();
   const newOrderId = generateOrderId();
+
+  const internalIdEl = document.getElementById('om-order-internal-id');
+  if (internalIdEl) internalIdEl.value = newId;
 
   const titleEl = document.querySelector('#order-modal h2');
   if (titleEl) titleEl.innerHTML = `📦 שכפול הזמנה - הזמנה חדשה ${newOrderId}`;
@@ -857,7 +878,7 @@ function duplicateOrder(id) {
     omAddItemRow();
   }
 
-  const saveBtn = document.querySelector('#order-modal .btn.bp');
+  const saveBtn = document.getElementById('om-save-btn');
   if (saveBtn) saveBtn.setAttribute('onclick', `saveOrder('${newId}')`);
   
   omCalc();
