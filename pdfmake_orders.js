@@ -202,13 +202,15 @@
 
     // --- Items table ---
     const tableBody = [];
+    const isInc = order.vatMode === 'inc';
+
     // Header row
     tableBody.push([
       { text: '#', style: 'th', alignment: 'center' },
       { text: 'תיאור', style: 'th' },
       { text: 'כמות', style: 'th', alignment: 'center' },
-      { text: 'מחיר יחידה', style: 'th', alignment: 'center' },
-      { text: 'סה"כ', style: 'th', alignment: 'center' }
+      { text: isInc ? 'מחיר יחידה (כולל)' : 'מחיר יחידה', style: 'th', alignment: 'center' },
+      { text: isInc ? 'סה"כ (כולל)' : 'סה"כ', style: 'th', alignment: 'center' }
     ]);
 
     // Data rows
@@ -244,31 +246,59 @@
     const kitsCount = order.kitsCount || 1;
     const subtotalPerKit = order.subtotal || 0;
     const discountPerKit = order.discount || 0;
-    const taxablePerKit = Math.max(0, subtotalPerKit - discountPerKit);
-    const totalTaxable = taxablePerKit * kitsCount;
-    const vatPercent = Math.round((order.vat / (totalTaxable || 1)) * 100) || 18;
+    const vatPercent = order.vatRate || 18;
 
     const totalsStack = [];
 
-    if (kitsCount > 1) {
-      totalsStack.push({ text: [{ text: 'סה"כ לערכה בודדת: ', bold: true }, shekel(subtotalPerKit)], fontSize: 10, alignment: 'center', margin: [0, 2, 0, 2] });
-      if (discountPerKit) {
-        totalsStack.push({ text: [{ text: 'הנחה לערכה: ', bold: true }, '- ' + shekel(discountPerKit)], fontSize: 10, color: '#d32f2f', alignment: 'center', margin: [0, 2, 0, 2] });
-      }
-      totalsStack.push({ text: [{ text: 'כמות ערכות: ', bold: true, color: GREEN }, { text: String(kitsCount), bold: true, color: GREEN, fontSize: 12 }], fontSize: 10, alignment: 'center', margin: [0, 4, 0, 4] });
-      totalsStack.push({ text: [{ text: 'סה"כ (' + kitsCount + ' ערכות): ', bold: true }, shekel(totalTaxable)], fontSize: 10, alignment: 'center', margin: [0, 2, 0, 2] });
-    } else {
-      totalsStack.push({ text: [{ text: 'סה"כ: ', bold: true }, shekel(subtotalPerKit)], fontSize: 10, alignment: 'center', margin: [0, 2, 0, 2] });
-      if (discountPerKit) {
-        totalsStack.push({ text: [{ text: 'הנחה: ', bold: true }, '- ' + shekel(discountPerKit)], fontSize: 10, color: '#d32f2f', alignment: 'center', margin: [0, 2, 0, 2] });
-      }
-    }
+    if (isInc) {
+      const grossPerKit = Math.max(0, subtotalPerKit - discountPerKit);
+      const grandGross = grossPerKit * kitsCount;
+      const netBase = grandGross - (order.vat || 0);
 
-    totalsStack.push({ text: [{ text: 'מע"מ ' + vatPercent + '%: ', bold: true }, shekel(order.vat)], fontSize: 10, alignment: 'center', margin: [0, 2, 0, 2] });
-    totalsStack.push({
-      text: [{ text: 'סה"כ לתשלום: ', bold: true, color: GREEN }, { text: shekel(order.totalPrice), bold: true, color: GREEN, fontSize: 14 }],
-      fontSize: 12, alignment: 'center', margin: [0, 6, 0, 4]
-    });
+      if (kitsCount > 1) {
+        totalsStack.push({ text: [{ text: 'סה"כ לערכה (כולל מע"מ): ', bold: true }, shekel(subtotalPerKit)], fontSize: 10, alignment: 'center', margin: [0, 2, 0, 2] });
+        if (discountPerKit) {
+          totalsStack.push({ text: [{ text: 'הנחה לערכה: ', bold: true }, '- ' + shekel(discountPerKit)], fontSize: 10, color: '#d32f2f', alignment: 'center', margin: [0, 2, 0, 2] });
+        }
+        totalsStack.push({ text: [{ text: 'כמות ערכות: ', bold: true, color: GREEN }, { text: String(kitsCount), bold: true, color: GREEN, fontSize: 12 }], fontSize: 10, alignment: 'center', margin: [0, 4, 0, 4] });
+        totalsStack.push({ text: [{ text: 'סכום לפני מע"מ: ', bold: true }, shekel(netBase)], fontSize: 10, alignment: 'center', margin: [0, 2, 0, 2] });
+      } else {
+        totalsStack.push({ text: [{ text: 'סכום לפני מע"מ: ', bold: true }, shekel(netBase)], fontSize: 10, alignment: 'center', margin: [0, 2, 0, 2] });
+        if (discountPerKit) {
+          totalsStack.push({ text: [{ text: 'הנחה: ', bold: true }, '- ' + shekel(discountPerKit)], fontSize: 10, color: '#d32f2f', alignment: 'center', margin: [0, 2, 0, 2] });
+        }
+      }
+
+      totalsStack.push({ text: [{ text: 'מתוכם מע"מ ' + vatPercent + '%: ', bold: true }, shekel(order.vat)], fontSize: 10, alignment: 'center', margin: [0, 2, 0, 2] });
+      totalsStack.push({
+        text: [{ text: 'סה"כ לתשלום: ', bold: true, color: GREEN }, { text: shekel(order.totalPrice), bold: true, color: GREEN, fontSize: 14 }],
+        fontSize: 12, alignment: 'center', margin: [0, 6, 0, 2]
+      });
+      totalsStack.push({ text: '(המחירים כוללים מע"מ)', fontSize: 8, color: '#666', alignment: 'center', margin: [0, 2, 0, 2] });
+    } else {
+      const taxablePerKit = Math.max(0, subtotalPerKit - discountPerKit);
+      const totalTaxable = taxablePerKit * kitsCount;
+
+      if (kitsCount > 1) {
+        totalsStack.push({ text: [{ text: 'סה"כ לערכה בודדת: ', bold: true }, shekel(subtotalPerKit)], fontSize: 10, alignment: 'center', margin: [0, 2, 0, 2] });
+        if (discountPerKit) {
+          totalsStack.push({ text: [{ text: 'הנחה לערכה: ', bold: true }, '- ' + shekel(discountPerKit)], fontSize: 10, color: '#d32f2f', alignment: 'center', margin: [0, 2, 0, 2] });
+        }
+        totalsStack.push({ text: [{ text: 'כמות ערכות: ', bold: true, color: GREEN }, { text: String(kitsCount), bold: true, color: GREEN, fontSize: 12 }], fontSize: 10, alignment: 'center', margin: [0, 4, 0, 4] });
+        totalsStack.push({ text: [{ text: 'סה"כ (' + kitsCount + ' ערכות): ', bold: true }, shekel(totalTaxable)], fontSize: 10, alignment: 'center', margin: [0, 2, 0, 2] });
+      } else {
+        totalsStack.push({ text: [{ text: 'סה"כ: ', bold: true }, shekel(subtotalPerKit)], fontSize: 10, alignment: 'center', margin: [0, 2, 0, 2] });
+        if (discountPerKit) {
+          totalsStack.push({ text: [{ text: 'הנחה: ', bold: true }, '- ' + shekel(discountPerKit)], fontSize: 10, color: '#d32f2f', alignment: 'center', margin: [0, 2, 0, 2] });
+        }
+      }
+
+      totalsStack.push({ text: [{ text: 'מע"מ ' + vatPercent + '%: ', bold: true }, shekel(order.vat)], fontSize: 10, alignment: 'center', margin: [0, 2, 0, 2] });
+      totalsStack.push({
+        text: [{ text: 'סה"כ לתשלום: ', bold: true, color: GREEN }, { text: shekel(order.totalPrice), bold: true, color: GREEN, fontSize: 14 }],
+        fontSize: 12, alignment: 'center', margin: [0, 6, 0, 4]
+      });
+    }
 
     // Notes + Totals side by side
     const footerColumns = [];

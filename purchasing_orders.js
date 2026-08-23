@@ -238,8 +238,14 @@ function openNewOrder() {
       </div>
 
       <div style="margin-top:20px;border-top:2px solid #eee;padding-top:15px">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <h3 style="margin:0;color:#1a237e">🛒 פריטים בהזמנה</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <h3 style="margin:0;color:#1a237e">🛒 פריטים בהזמנה</h3>
+            <div style="display:flex; background:#e8eaf6; padding:2px; border-radius:8px; border:1px solid #c5cae9;">
+              <button type="button" id="om-vat-mode-ex" class="btn bsm bp" style="border-radius:6px; padding:3px 10px; font-size:0.78rem; font-weight:bold; cursor:pointer;" onclick="setOrderVatMode('ex')">לפני מע"מ</button>
+              <button type="button" id="om-vat-mode-inc" class="btn bsm" style="border-radius:6px; padding:3px 10px; font-size:0.78rem; font-weight:bold; cursor:pointer; background:transparent; color:#3f51b5; border:none;" onclick="setOrderVatMode('inc')">כולל מע"מ</button>
+            </div>
+          </div>
           <div style="font-size:0.85rem; color:#666;">
             💡 טיפ: אפשר להעתיק שורות באקסל ולהדביק (Ctrl+V) ישר לתוך התיאור של השורה הראשונה
           </div>
@@ -252,8 +258,8 @@ function openNewOrder() {
                 <th style="width:30px; text-align:center;">#</th>
                 <th>תיאור פריט</th>
                 <th style="width:80px">כמות</th>
-                <th style="width:100px">מחיר יחידה</th>
-                <th style="width:100px">סה"כ</th>
+                <th style="width:110px" id="om-th-price">מחיר יחידה</th>
+                <th style="width:110px" id="om-th-total">סה"כ</th>
                 <th style="width:50px"></th>
               </tr>
             </thead>
@@ -279,7 +285,7 @@ function openNewOrder() {
             <input type="number" id="om-kits-count" value="1" min="1" step="1" style="width:70px;text-align:center;font-weight:bold;font-size:1rem;" onchange="omCalc()" oninput="omCalc()">
           </div>
           <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-            <span>סה"כ ביניים (לערכה):</span>
+            <span id="om-lbl-subtotal">סה"כ ביניים (לערכה):</span>
             <span id="om-subtotal" style="font-weight:bold">0.00 ₪</span>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
@@ -288,12 +294,12 @@ function openNewOrder() {
           </div>
           <div id="om-kits-summary-row" style="display:none;flex-direction:column;gap:3px;margin-top:5px;margin-bottom:5px;padding:6px;background:#ffffff;border-radius:6px;border:1px solid #ded;font-size:0.85rem;color:#333;">
             <div style="display:flex;justify-content:space-between;font-weight:bold;color:#2e7d32;">
-              <span>סה"כ לפני מע"מ (<span id="om-kits-lbl">1</span> ערכות):</span>
+              <span id="om-kits-sum-lbl">סה"כ לפני מע"מ (<span id="om-kits-lbl">1</span> ערכות):</span>
               <span id="om-kits-total">0.00 ₪</span>
             </div>
           </div>
           <div style="display:flex;justify-content:space-between;margin-bottom:5px;color:#e65100;align-items:center;">
-            <span>מע"מ (<input type="number" id="om-vat-rate" value="${window.VAT_RATE || 18}" style="width:45px;padding:2px;border:1px solid #ccc;border-radius:4px;text-align:center;" onchange="omCalc()" oninput="omCalc()">%):</span>
+            <span><span id="om-lbl-vat">מע"מ</span> (<input type="number" id="om-vat-rate" value="${window.VAT_RATE || 18}" style="width:45px;padding:2px;border:1px solid #ccc;border-radius:4px;text-align:center;" onchange="omCalc()" oninput="omCalc()">%):</span>
             <span id="om-vat">0.00 ₪</span>
           </div>
           <div style="display:flex;justify-content:space-between;border-top:1px solid #ccc;padding-top:5px;margin-top:5px;font-size:1.1rem">
@@ -402,9 +408,32 @@ function omAddItemRow(desc='', qty=1, price=0) {
   omCalc();
 }
 
+window.setOrderVatMode = function(mode) {
+  const btnEx = document.getElementById('om-vat-mode-ex');
+  const btnInc = document.getElementById('om-vat-mode-inc');
+  const thPrice = document.getElementById('om-th-price');
+  const thTotal = document.getElementById('om-th-total');
+  const lblSubtotal = document.getElementById('om-lbl-subtotal');
+  
+  if (mode === 'inc') {
+    if (btnEx) { btnEx.classList.remove('active', 'bp'); btnEx.style.background = 'transparent'; btnEx.style.color = '#3f51b5'; btnEx.style.border = 'none'; }
+    if (btnInc) { btnInc.classList.add('active', 'bp'); btnInc.style.background = '#1a237e'; btnInc.style.color = '#fff'; btnInc.style.border = 'none'; }
+    if (thPrice) thPrice.innerText = 'מחיר יחידה (כולל)';
+    if (thTotal) thTotal.innerText = 'סה"כ (כולל)';
+    if (lblSubtotal) lblSubtotal.innerText = 'סה"כ כולל מע"מ (לערכה):';
+  } else {
+    if (btnEx) { btnEx.classList.add('active', 'bp'); btnEx.style.background = '#1a237e'; btnEx.style.color = '#fff'; btnEx.style.border = 'none'; }
+    if (btnInc) { btnInc.classList.remove('active', 'bp'); btnInc.style.background = 'transparent'; btnInc.style.color = '#3f51b5'; btnInc.style.border = 'none'; }
+    if (thPrice) thPrice.innerText = 'מחיר יחידה';
+    if (thTotal) thTotal.innerText = 'סה"כ';
+    if (lblSubtotal) lblSubtotal.innerText = 'סה"כ ביניים (לערכה):';
+  }
+  omCalc();
+};
+
 function omCalc() {
   const tbody = document.getElementById('om-items-body');
-  let subtotalPerKit = 0;
+  let rowSumPerKit = 0;
   
   Array.from(tbody.children).forEach((tr, index) => {
     const numEl = tr.querySelector('.om-row-num');
@@ -414,26 +443,51 @@ function omCalc() {
     const price = parseFloat(tr.querySelector('.om-price').value) || 0;
     const rowTot = qty * price;
     tr.querySelector('.om-row-total').innerText = rowTot.toFixed(2) + ' ₪';
-    subtotalPerKit += rowTot;
+    rowSumPerKit += rowTot;
   });
   
   const discountInput = document.getElementById('om-discount');
   const discountPerKit = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
   
-  let taxablePerKit = subtotalPerKit - discountPerKit;
-  if (taxablePerKit < 0) taxablePerKit = 0;
-
   const kitsInput = document.getElementById('om-kits-count');
   const kitsCount = kitsInput ? (parseInt(kitsInput.value) || 1) : 1;
 
-  let grandTaxable = taxablePerKit * kitsCount;
-
   const vatInput = document.getElementById('om-vat-rate');
   const vatRate = vatInput ? (parseFloat(vatInput.value) || 0) : (window.VAT_RATE || 18);
-  const vat = grandTaxable * (vatRate / 100);
-  const total = grandTaxable + vat;
+
+  const isIncVat = document.getElementById('om-vat-mode-inc')?.classList.contains('active');
+
+  let subtotalPerKit = rowSumPerKit;
+  let grandTaxable = 0;
+  let vat = 0;
+  let total = 0;
+
+  if (isIncVat) {
+    // Input prices already include VAT
+    const grossPerKit = Math.max(0, rowSumPerKit - discountPerKit);
+    const grandGross = grossPerKit * kitsCount;
+    total = grandGross;
+    
+    const grandBase = vatRate > 0 ? (grandGross / (1 + vatRate / 100)) : grandGross;
+    vat = grandGross - grandBase;
+    grandTaxable = grandBase;
+
+    const lblVat = document.getElementById('om-lbl-vat');
+    if (lblVat) lblVat.innerText = 'מתוכו מע"מ';
+  } else {
+    // Normal input prices (excluding VAT)
+    let taxablePerKit = rowSumPerKit - discountPerKit;
+    if (taxablePerKit < 0) taxablePerKit = 0;
+    grandTaxable = taxablePerKit * kitsCount;
+    vat = grandTaxable * (vatRate / 100);
+    total = grandTaxable + vat;
+
+    const lblVat = document.getElementById('om-lbl-vat');
+    if (lblVat) lblVat.innerText = 'מע"מ';
+  }
   
-  document.getElementById('om-subtotal').innerText = subtotalPerKit.toFixed(2) + ' ₪';
+  const subtotalEl = document.getElementById('om-subtotal');
+  if (subtotalEl) subtotalEl.innerText = subtotalPerKit.toFixed(2) + ' ₪';
   
   const kitsSummaryRow = document.getElementById('om-kits-summary-row');
   if (kitsSummaryRow) {
@@ -442,14 +496,23 @@ function omCalc() {
       const lblEl = document.getElementById('om-kits-lbl');
       if (lblEl) lblEl.innerText = kitsCount;
       const totEl = document.getElementById('om-kits-total');
-      if (totEl) totEl.innerText = grandTaxable.toFixed(2) + ' ₪';
+      const kitsLabel = document.getElementById('om-kits-sum-lbl');
+      if (isIncVat) {
+        if (kitsLabel) kitsLabel.innerText = `סה"כ כולל מע"מ (${kitsCount} ערכות):`;
+        if (totEl) totEl.innerText = total.toFixed(2) + ' ₪';
+      } else {
+        if (kitsLabel) kitsLabel.innerText = `סה"כ לפני מע"מ (${kitsCount} ערכות):`;
+        if (totEl) totEl.innerText = grandTaxable.toFixed(2) + ' ₪';
+      }
     } else {
       kitsSummaryRow.style.display = 'none';
     }
   }
 
-  document.getElementById('om-vat').innerText = vat.toFixed(2) + ' ₪';
-  document.getElementById('om-total').innerText = total.toFixed(2) + ' ₪';
+  const vatEl = document.getElementById('om-vat');
+  if (vatEl) vatEl.innerText = vat.toFixed(2) + ' ₪';
+  const totalEl = document.getElementById('om-total');
+  if (totalEl) totalEl.innerText = total.toFixed(2) + ' ₪';
 }
 
 function closeOrderModal() {
@@ -480,21 +543,36 @@ async function saveOrder(id) {
     return;
   }
   
+  const isIncVat = document.getElementById('om-vat-mode-inc')?.classList.contains('active');
+  const vatMode = isIncVat ? 'inc' : 'ex';
+
   let subtotal = items.reduce((sum, item) => sum + item.total, 0);
   
   const discountInput = document.getElementById('om-discount');
   const discount = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
-  let taxable = subtotal - discount;
-  if (taxable < 0) taxable = 0;
 
   const kitsInput = document.getElementById('om-kits-count');
   const kitsCount = kitsInput ? (parseInt(kitsInput.value) || 1) : 1;
 
-  let grandTaxable = taxable * kitsCount;
-
   let vatRate = parseFloat(document.getElementById('om-vat-rate').value) || (window.VAT_RATE || 18);
-  let vat = grandTaxable * (vatRate / 100);
-  let total = grandTaxable + vat;
+  let grandTaxable = 0;
+  let vat = 0;
+  let total = 0;
+
+  if (isIncVat) {
+    const grossPerKit = Math.max(0, subtotal - discount);
+    const grandGross = grossPerKit * kitsCount;
+    total = grandGross;
+    const grandBase = vatRate > 0 ? (grandGross / (1 + vatRate / 100)) : grandGross;
+    vat = grandGross - grandBase;
+    grandTaxable = grandBase;
+  } else {
+    let taxable = subtotal - discount;
+    if (taxable < 0) taxable = 0;
+    grandTaxable = taxable * kitsCount;
+    vat = grandTaxable * (vatRate / 100);
+    total = grandTaxable + vat;
+  }
   
   const orderDateStr = document.getElementById('om-date').value;
   const ts = orderDateStr ? new Date(orderDateStr).getTime() : Date.now();
@@ -517,7 +595,8 @@ async function saveOrder(id) {
     kitsCount: kitsCount,
     vatRate: vatRate,
     vat: vat,
-    totalPrice: total
+    totalPrice: total,
+    vatMode: vatMode
   };
   
   window.ORDERS = window.ORDERS || [];
@@ -538,9 +617,10 @@ async function saveOrder(id) {
         supName: supplier,
         orderDate: document.getElementById('om-date').value,
         orderDesc: orderDesc,
-        orderAmt: subtotal,
+        orderAmt: isIncVat ? grandTaxable : subtotal,
         orderVat: vat,
         orderTotal: total,
+        ordVatMode: vatMode,
         orderNotes: newOrder.notes,
         vat: vatRate
       };
@@ -556,10 +636,10 @@ async function saveOrder(id) {
         orderType: '',
         assignment: '',
         actMonth: '',
-        orderAmt: subtotal,
+        orderAmt: isIncVat ? grandTaxable : subtotal,
         orderVat: vat,
         orderTotal: total,
-        ordVatMode: 'ex',
+        ordVatMode: vatMode,
         orderNotes: newOrder.notes,
         locCity: '',
         locType: '',
@@ -622,6 +702,7 @@ window.loadOrderTemplate = async function(id) {
       const vatEl = document.getElementById('om-vat-rate');
       if (vatEl) vatEl.value = order.vatRate;
     }
+    setOrderVatMode(order.vatMode === 'inc' ? 'inc' : 'ex');
     
     const tbody = document.getElementById('om-items-body');
     tbody.innerHTML = '';
@@ -690,6 +771,7 @@ function editOrder(id) {
     const vatEl = document.getElementById('om-vat-rate');
     if (vatEl) vatEl.value = order.vatRate;
   }
+  setOrderVatMode(order.vatMode === 'inc' ? 'inc' : 'ex');
   
   // Clear items and add existing
   const tbody = document.getElementById('om-items-body');
@@ -762,6 +844,7 @@ function duplicateOrder(id) {
     const kitsEl = document.getElementById('om-kits-count');
     if (kitsEl) kitsEl.value = order.kitsCount;
   }
+  setOrderVatMode(order.vatMode === 'inc' ? 'inc' : 'ex');
   
   // Clear items and add existing
   const tbody = document.getElementById('om-items-body');
@@ -822,14 +905,27 @@ function previewOrder() {
   let taxable = subtotal - discount;
   if (taxable < 0) taxable = 0;
 
-  const kitsInput = document.getElementById('om-kits-count');
-  const kitsCount = kitsInput ? (parseInt(kitsInput.value) || 1) : 1;
-  let grandTaxable = taxable * kitsCount;
+  const isIncVat = document.getElementById('om-vat-mode-inc')?.classList.contains('active');
+  const vatMode = isIncVat ? 'inc' : 'ex';
 
-  const vatInput = document.getElementById('om-vat-rate');
-  const vatRate = vatInput ? (parseFloat(vatInput.value) || 0) : (window.VAT_RATE || 18);
-  let vat = grandTaxable * (vatRate / 100);
-  let total = grandTaxable + vat;
+  let grandTaxable = 0;
+  let vat = 0;
+  let total = 0;
+
+  if (isIncVat) {
+    const grossPerKit = Math.max(0, subtotal - discount);
+    const grandGross = grossPerKit * kitsCount;
+    total = grandGross;
+    const grandBase = vatRate > 0 ? (grandGross / (1 + vatRate / 100)) : grandGross;
+    vat = grandGross - grandBase;
+    grandTaxable = grandBase;
+  } else {
+    let taxable = subtotal - discount;
+    if (taxable < 0) taxable = 0;
+    grandTaxable = taxable * kitsCount;
+    vat = grandTaxable * (vatRate / 100);
+    total = grandTaxable + vat;
+  }
   
   const orderDateStr = document.getElementById('om-date').value;
   const ts = orderDateStr ? new Date(orderDateStr).getTime() : Date.now();
@@ -851,7 +947,8 @@ function previewOrder() {
     kitsCount: kitsCount,
     vatRate: vatRate,
     vat: vat,
-    totalPrice: total
+    totalPrice: total,
+    vatMode: vatMode
   };
   
   openOrderPrintPreview(order);
@@ -1148,8 +1245,8 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
             <th style="width:35px; text-align:center;">#</th>
             <th style="width:auto;">תיאור</th>
             <th style="width:65px;">כמות</th>
-            <th style="width:95px;">מחיר&nbsp;יחידה</th>
-            <th style="width:95px;">סה"כ</th>
+            <th style="width:95px;">${order.vatMode === 'inc' ? 'מחיר&nbsp;יחידה&nbsp;(כולל)' : 'מחיר&nbsp;יחידה'}</th>
+            <th style="width:95px;">${order.vatMode === 'inc' ? 'סה"כ&nbsp;(כולל)' : 'סה"כ'}</th>
           </tr>
           ${pageObj.items.map((item, idx) => {
             let prevItems = 0;
@@ -1170,27 +1267,52 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
 
     let footerContentHtml = '';
     if (isLastPage) {
+      const isInc = order.vatMode === 'inc';
       const kitsCount = order.kitsCount || 1;
       const subtotalPerKit = order.subtotal || 0;
       const discountPerKit = order.discount || 0;
-      const taxablePerKit = Math.max(0, subtotalPerKit - discountPerKit);
-      const totalTaxable = taxablePerKit * kitsCount;
-
+      const vatRate = order.vatRate || 18;
+      
       let kitsBreakdownHtml = '';
-      if (kitsCount > 1) {
-        kitsBreakdownHtml = `
-          <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ לערכה&nbsp;בודדת:&rlm;</span><span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span></p>
-          ${discountPerKit ? `<p style="margin:4px 0; color:#d32f2f; text-align:center;"><span style="font-weight:bold; margin-left:5px;">הנחה לערכה:&rlm;</span><span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span></p>` : ''}
-          <p style="margin:6px 0; background:#f1f8e9; padding:4px 12px; border-radius:4px; display:inline-block; border:1px solid #c8e6c9; text-align:center;">
-            <span style="font-weight:bold; margin-left:5px; color:#2e7d32;">כמות&nbsp;ערכות:&rlm;</span><span style="font-weight:bold; font-size:1.1em; color:#2e7d32;">${kitsCount}</span>
-          </p>
-          <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ (${kitsCount} ערכות):&rlm;</span><span dir="ltr" style="font-weight:bold;">&#8362; ${totalTaxable.toFixed(2)}</span></p>
-        `;
+      if (isInc) {
+        const grossPerKit = Math.max(0, subtotalPerKit - discountPerKit);
+        const grandGross = grossPerKit * kitsCount;
+        const netBase = grandGross - (order.vat || 0);
+
+        if (kitsCount > 1) {
+          kitsBreakdownHtml = `
+            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ לערכה (כולל מע"מ):&rlm;</span><span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span></p>
+            ${discountPerKit ? `<p style="margin:4px 0; color:#d32f2f; text-align:center;"><span style="font-weight:bold; margin-left:5px;">הנחה לערכה:&rlm;</span><span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span></p>` : ''}
+            <p style="margin:6px 0; background:#f1f8e9; padding:4px 12px; border-radius:4px; display:inline-block; border:1px solid #c8e6c9; text-align:center;">
+              <span style="font-weight:bold; margin-left:5px; color:#2e7d32;">כמות&nbsp;ערכות:&rlm;</span><span style="font-weight:bold; font-size:1.1em; color:#2e7d32;">${kitsCount}</span>
+            </p>
+            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סכום לפני מע"מ:&rlm;</span><span dir="ltr" style="font-weight:bold;">&#8362; ${netBase.toFixed(2)}</span></p>
+          `;
+        } else {
+          kitsBreakdownHtml = `
+            <p style="margin:5px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סכום לפני מע"מ:&rlm;</span><span dir="ltr">&#8362; ${netBase.toFixed(2)}</span></p>
+            ${discountPerKit ? `<p style="margin:5px 0; color:#d32f2f; text-align:center;"><span style="font-weight:bold; margin-left:5px;">הנחה:&rlm;</span><span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span></p>` : ''}
+          `;
+        }
       } else {
-        kitsBreakdownHtml = `
-          <p style="margin:5px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ:&rlm;</span><span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span></p>
-          ${discountPerKit ? `<p style="margin:5px 0; color:#d32f2f; text-align:center;"><span style="font-weight:bold; margin-left:5px;">הנחה:&rlm;</span><span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span></p>` : ''}
-        `;
+        const taxablePerKit = Math.max(0, subtotalPerKit - discountPerKit);
+        const totalTaxable = taxablePerKit * kitsCount;
+
+        if (kitsCount > 1) {
+          kitsBreakdownHtml = `
+            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ לערכה&nbsp;בודדת:&rlm;</span><span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span></p>
+            ${discountPerKit ? `<p style="margin:4px 0; color:#d32f2f; text-align:center;"><span style="font-weight:bold; margin-left:5px;">הנחה לערכה:&rlm;</span><span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span></p>` : ''}
+            <p style="margin:6px 0; background:#f1f8e9; padding:4px 12px; border-radius:4px; display:inline-block; border:1px solid #c8e6c9; text-align:center;">
+              <span style="font-weight:bold; margin-left:5px; color:#2e7d32;">כמות&nbsp;ערכות:&rlm;</span><span style="font-weight:bold; font-size:1.1em; color:#2e7d32;">${kitsCount}</span>
+            </p>
+            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ (${kitsCount} ערכות):&rlm;</span><span dir="ltr" style="font-weight:bold;">&#8362; ${totalTaxable.toFixed(2)}</span></p>
+          `;
+        } else {
+          kitsBreakdownHtml = `
+            <p style="margin:5px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ:&rlm;</span><span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span></p>
+            ${discountPerKit ? `<p style="margin:5px 0; color:#d32f2f; text-align:center;"><span style="font-weight:bold; margin-left:5px;">הנחה:&rlm;</span><span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span></p>` : ''}
+          `;
+        }
       }
 
       footerContentHtml = `
@@ -1201,8 +1323,9 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
           
           <div class="order-totals" style="display: flex; flex-direction: column; align-items: center; text-align: center; font-size:0.95em; min-width:220px; background:#fafafa; padding:12px 18px; border-radius:8px; border:1px solid #eee;">
             ${kitsBreakdownHtml}
-            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">מע"מ&nbsp;${Math.round((order.vat/(totalTaxable || 1))*100) || 18}%:</span><span dir="ltr">&#8362; ${order.vat.toFixed(2)}</span></p>
+            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">${isInc ? 'מתוכם מע"מ' : 'מע"מ'}&nbsp;${vatRate}%:</span><span dir="ltr">&#8362; ${order.vat.toFixed(2)}</span></p>
             <h3 style="color:#2e7d32; margin:8px 0 0 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ&nbsp;לתשלום:&rlm;</span><span dir="ltr">&#8362; ${order.totalPrice.toFixed(2)}</span></h3>
+            ${isInc ? `<div style="font-size:0.75em; color:#666; margin-top:4px; text-align:center;">(המחירים כוללים מע"מ)</div>` : ''}
           </div>
         </div>
       `;
@@ -2294,12 +2417,15 @@ window.approveOrderToInvoice = async function(id) {
       orderAmt: rawAmt.toFixed(2),
       orderVat: vat.toFixed(2),
       orderTot: amt.toFixed(2),
+      ordVatMode: order.vatMode || 'ex',
+      vat: order.vatRate || (window.VAT_RATE || 18),
       status: 'order',
       linkedOrderId: id,
       orderMonth: new Date(order.ts).toISOString().substring(0, 7)
     };
     
     window.INVOICES.push(inv);
+    if (typeof window.renderInvoices === 'function') window.renderInvoices();
     if (typeof window.ghAutoSave === 'function') window.ghAutoSave(true);
     alert('ההזמנה הועברה בהצלחה למעקב חשבוניות!');
   }
