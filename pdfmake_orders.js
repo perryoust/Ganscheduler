@@ -269,12 +269,12 @@
         }
       }
 
-      totalsStack.push({ text: [{ text: 'מתוכם מע"מ ' + vatPercent + '%: ', bold: true }, shekel(order.vat)], fontSize: 10, alignment: 'center', margin: [0, 2, 0, 2] });
+      totalsStack.push({ text: [{ text: 'מתוכם מע"מ (' + vatPercent + '%): ', bold: true }, shekel(order.vat)], fontSize: 10, alignment: 'center', margin: [0, 2, 0, 2] });
       totalsStack.push({
         text: [{ text: 'סה"כ לתשלום: ', bold: true, color: GREEN }, { text: shekel(order.totalPrice), bold: true, color: GREEN, fontSize: 14 }],
         fontSize: 12, alignment: 'center', margin: [0, 6, 0, 2]
       });
-      totalsStack.push({ text: '(המחירים כוללים מע"מ)', fontSize: 8, color: '#666', alignment: 'center', margin: [0, 2, 0, 2] });
+      totalsStack.push({ text: '* המחירים כוללים מע"מ', fontSize: 8, color: '#666', alignment: 'center', margin: [0, 2, 0, 2] });
     } else {
       const taxablePerKit = Math.max(0, subtotalPerKit - discountPerKit);
       const totalTaxable = taxablePerKit * kitsCount;

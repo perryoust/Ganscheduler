@@ -1243,10 +1243,10 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
         <table>
           <tr>
             <th style="width:35px; text-align:center;">#</th>
-            <th style="width:auto;">תיאור</th>
-            <th style="width:65px;">כמות</th>
-            <th style="width:95px;">${order.vatMode === 'inc' ? 'מחיר&nbsp;יחידה&nbsp;(כולל)' : 'מחיר&nbsp;יחידה'}</th>
-            <th style="width:95px;">${order.vatMode === 'inc' ? 'סה"כ&nbsp;(כולל)' : 'סה"כ'}</th>
+            <th style="width:auto; text-align:right;">תיאור</th>
+            <th style="width:65px; text-align:center;">כמות</th>
+            <th style="width:115px; text-align:center;">${order.vatMode === 'inc' ? 'מחיר יחידה (כולל)' : 'מחיר יחידה'}</th>
+            <th style="width:105px; text-align:center;">${order.vatMode === 'inc' ? 'סה"כ (כולל)' : 'סה"כ'}</th>
           </tr>
           ${pageObj.items.map((item, idx) => {
             let prevItems = 0;
@@ -1254,10 +1254,10 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
             return `
             <tr>
               <td style="text-align:center; vertical-align:top;">${prevItems + idx + 1}</td>
-              <td style="word-break:break-word; white-space:pre-wrap; vertical-align:top;">${rtlFix(item.desc).replace(/\n/g, '<br>')}</td>
-              <td style="vertical-align:top;">${item.qty}</td>
-              <td style="vertical-align:top;"><span dir="ltr">&#8362; ${item.price.toFixed(2)}</span></td>
-              <td style="vertical-align:top;"><span dir="ltr">&#8362; ${item.total.toFixed(2)}</span></td>
+              <td style="word-break:break-word; white-space:pre-wrap; vertical-align:top; text-align:right;">${rtlFix(item.desc).replace(/\n/g, '<br>')}</td>
+              <td style="vertical-align:top; text-align:center;">${item.qty}</td>
+              <td style="vertical-align:top; text-align:center;"><span dir="ltr">&#8362; ${item.price.toFixed(2)}</span></td>
+              <td style="vertical-align:top; text-align:center;"><span dir="ltr">&#8362; ${item.total.toFixed(2)}</span></td>
             </tr>
             `;
           }).join('')}
@@ -1281,17 +1281,35 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
 
         if (kitsCount > 1) {
           kitsBreakdownHtml = `
-            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ לערכה (כולל מע"מ):&rlm;</span><span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span></p>
-            ${discountPerKit ? `<p style="margin:4px 0; color:#d32f2f; text-align:center;"><span style="font-weight:bold; margin-left:5px;">הנחה לערכה:&rlm;</span><span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span></p>` : ''}
-            <p style="margin:6px 0; background:#f1f8e9; padding:4px 12px; border-radius:4px; display:inline-block; border:1px solid #c8e6c9; text-align:center;">
-              <span style="font-weight:bold; margin-left:5px; color:#2e7d32;">כמות&nbsp;ערכות:&rlm;</span><span style="font-weight:bold; font-size:1.1em; color:#2e7d32;">${kitsCount}</span>
-            </p>
-            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סכום לפני מע"מ:&rlm;</span><span dir="ltr" style="font-weight:bold;">&#8362; ${netBase.toFixed(2)}</span></p>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px;">
+              <span>סה"כ לערכה (כולל מע"מ):</span>
+              <span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span>
+            </div>
+            ${discountPerKit ? `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px; color:#d32f2f;">
+              <span>הנחה לערכה:</span>
+              <span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span>
+            </div>` : ''}
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:5px 0; background:#f1f8e9; padding:4px 8px; border-radius:4px; border:1px solid #c8e6c9;">
+              <span style="font-weight:bold; color:#2e7d32;">כמות ערכות:</span>
+              <span style="font-weight:bold; font-size:1.1em; color:#2e7d32;">${kitsCount}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px;">
+              <span style="font-weight:bold;">סכום לפני מע"מ:</span>
+              <span dir="ltr" style="font-weight:bold;">&#8362; ${netBase.toFixed(2)}</span>
+            </div>
           `;
         } else {
           kitsBreakdownHtml = `
-            <p style="margin:5px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סכום לפני מע"מ:&rlm;</span><span dir="ltr">&#8362; ${netBase.toFixed(2)}</span></p>
-            ${discountPerKit ? `<p style="margin:5px 0; color:#d32f2f; text-align:center;"><span style="font-weight:bold; margin-left:5px;">הנחה:&rlm;</span><span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span></p>` : ''}
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px;">
+              <span style="font-weight:bold;">סכום לפני מע"מ:</span>
+              <span dir="ltr" style="font-weight:bold;">&#8362; ${netBase.toFixed(2)}</span>
+            </div>
+            ${discountPerKit ? `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px; color:#d32f2f;">
+              <span>הנחה:</span>
+              <span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span>
+            </div>` : ''}
           `;
         }
       } else {
@@ -1300,17 +1318,35 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
 
         if (kitsCount > 1) {
           kitsBreakdownHtml = `
-            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ לערכה&nbsp;בודדת:&rlm;</span><span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span></p>
-            ${discountPerKit ? `<p style="margin:4px 0; color:#d32f2f; text-align:center;"><span style="font-weight:bold; margin-left:5px;">הנחה לערכה:&rlm;</span><span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span></p>` : ''}
-            <p style="margin:6px 0; background:#f1f8e9; padding:4px 12px; border-radius:4px; display:inline-block; border:1px solid #c8e6c9; text-align:center;">
-              <span style="font-weight:bold; margin-left:5px; color:#2e7d32;">כמות&nbsp;ערכות:&rlm;</span><span style="font-weight:bold; font-size:1.1em; color:#2e7d32;">${kitsCount}</span>
-            </p>
-            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ (${kitsCount} ערכות):&rlm;</span><span dir="ltr" style="font-weight:bold;">&#8362; ${totalTaxable.toFixed(2)}</span></p>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px;">
+              <span>סה"כ לערכה בודדת:</span>
+              <span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span>
+            </div>
+            ${discountPerKit ? `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px; color:#d32f2f;">
+              <span>הנחה לערכה:</span>
+              <span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span>
+            </div>` : ''}
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:5px 0; background:#f1f8e9; padding:4px 8px; border-radius:4px; border:1px solid #c8e6c9;">
+              <span style="font-weight:bold; color:#2e7d32;">כמות ערכות:</span>
+              <span style="font-weight:bold; font-size:1.1em; color:#2e7d32;">${kitsCount}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px;">
+              <span style="font-weight:bold;">סה"כ (${kitsCount} ערכות):</span>
+              <span dir="ltr" style="font-weight:bold;">&#8362; ${totalTaxable.toFixed(2)}</span>
+            </div>
           `;
         } else {
           kitsBreakdownHtml = `
-            <p style="margin:5px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ:&rlm;</span><span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span></p>
-            ${discountPerKit ? `<p style="margin:5px 0; color:#d32f2f; text-align:center;"><span style="font-weight:bold; margin-left:5px;">הנחה:&rlm;</span><span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span></p>` : ''}
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px;">
+              <span style="font-weight:bold;">סה"כ:</span>
+              <span dir="ltr" style="font-weight:bold;">&#8362; ${subtotalPerKit.toFixed(2)}</span>
+            </div>
+            ${discountPerKit ? `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px; color:#d32f2f;">
+              <span>הנחה:</span>
+              <span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span>
+            </div>` : ''}
           `;
         }
       }
@@ -1318,14 +1354,20 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
       footerContentHtml = `
         <div class="footer-info-wrapper" style="margin-top: 15px; display: flex; justify-content: space-between; align-items: flex-start;">
           <div class="notes-wrapper" style="flex: 1; margin-left: 20px;">
-            ${order.notes ? `<div class="order-notes"><b>הערות:&rlm;</b><br>${rtlFix(order.notes).replace(/\n/g, '<br>')}</div>` : ''}
+            ${order.notes ? `<div class="order-notes"><b>הערות:</b><br>${rtlFix(order.notes).replace(/\n/g, '<br>')}</div>` : ''}
           </div>
           
-          <div class="order-totals" style="display: flex; flex-direction: column; align-items: center; text-align: center; font-size:0.95em; min-width:220px; background:#fafafa; padding:12px 18px; border-radius:8px; border:1px solid #eee;">
+          <div class="order-totals" style="display: flex; flex-direction: column; min-width:240px; background:#fafafa; padding:12px 18px; border-radius:8px; border:1px solid #eee;">
             ${kitsBreakdownHtml}
-            <p style="margin:4px 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">${isInc ? 'מתוכם מע"מ' : 'מע"מ'}&nbsp;${vatRate}%:</span><span dir="ltr">&#8362; ${order.vat.toFixed(2)}</span></p>
-            <h3 style="color:#2e7d32; margin:8px 0 0 0; text-align:center;"><span style="font-weight:bold; margin-left:5px;">סה"כ&nbsp;לתשלום:&rlm;</span><span dir="ltr">&#8362; ${order.totalPrice.toFixed(2)}</span></h3>
-            ${isInc ? `<div style="font-size:0.75em; color:#666; margin-top:4px; text-align:center;">(המחירים כוללים מע"מ)</div>` : ''}
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:4px 0; gap:12px;">
+              <span style="font-weight:bold; font-size:0.95em;">${isInc ? 'מתוכם מע"מ' : 'מע"מ'} (${vatRate}%):</span>
+              <span dir="ltr" style="font-size:0.95em;">&#8362; ${order.vat.toFixed(2)}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:6px; border-top:1px solid #ddd; gap:12px;">
+              <span style="font-weight:bold; color:#2e7d32; font-size:1.1em;">סה"כ לתשלום:</span>
+              <span dir="ltr" style="font-weight:bold; color:#2e7d32; font-size:1.15em;">&#8362; ${order.totalPrice.toFixed(2)}</span>
+            </div>
+            ${isInc ? `<div style="font-size:0.75em; color:#666; margin-top:6px; text-align:center;">* המחירים כוללים מע"מ</div>` : ''}
           </div>
         </div>
       `;
