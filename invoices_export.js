@@ -438,13 +438,24 @@ reader.onload = async function(e) {
           }
         });
 
+        // Helper to check if a numeric value is strictly positive (ignores 0, 0.0, ₪0, etc.)
+        const isPositiveNum = (val) => {
+          if (val === undefined || val === null) return false;
+          const clean = String(val).replace(/[^\d.-]/g, '').trim();
+          if (clean === '' || clean === '-' || clean === '.' || isNaN(parseFloat(clean))) return false;
+          return parseFloat(clean) > 0;
+        };
+        // Helper to check if a text field has real content (ignores empty, -, 0, ₪0, etc.)
+        const isValidTextField = (val) => {
+          if (val === undefined || val === null) return false;
+          const s = String(val).trim();
+          if (s === '' || s === '-' || s === '0' || s === '0.0' || s === '0.00' || s === '₪ 0.0' || s === '₪ 0.00' || s === '₪ 0' || s === '₪0' || s === '₪0.0' || s === '₪0.00') return false;
+          return true;
+        };
+
         // Capture raw presence of tax/tx fields BEFORE numeric coercion turns empty cells into 0
-        const _rawHasTax = !!(item.num || item.date ||
-          (item.total !== undefined && item.total !== null && item.total !== '' && item.total !== 0) ||
-          (item.amt !== undefined && item.amt !== null && item.amt !== '' && item.amt !== 0));
-        const _rawHasTx = !!(item.txNum || item.txDate ||
-          (item.txTotal !== undefined && item.txTotal !== null && item.txTotal !== '' && item.txTotal !== 0) ||
-          (item.txAmt !== undefined && item.txAmt !== null && item.txAmt !== '' && item.txAmt !== 0));
+        const _rawHasTax = !!(isValidTextField(item.num) || isValidTextField(item.date) || isPositiveNum(item.total) || isPositiveNum(item.amt));
+        const _rawHasTx = !!(isValidTextField(item.txNum) || isValidTextField(item.txDate) || isPositiveNum(item.txTotal) || isPositiveNum(item.txAmt));
 
         // Ensure numeric fields are correctly typed
         ["orderTotal", "txAmt", "txTotal", "amt", "total"].forEach(nk => {
@@ -528,12 +539,10 @@ reader.onload = async function(e) {
           return sameDesc && sameTotal && sameMonth;
         });
 
-        // Auto-infer invoice status (use pre-coercion flags to avoid 0-amount false negatives)
-        const isValidStr = (val) => val !== undefined && val !== null && String(val).trim() !== '' && String(val).trim() !== '-' && String(val).trim() !== '0' && String(val).trim() !== '0.0' && String(val).trim() !== '0.00';
-        const isNonZeroRaw = (val) => isValidStr(val) && val !== 0;
+        // Auto-infer invoice status according to AGENTS.md business rules
         let status = 'order';
-        const hasTaxDetails = !!(isValidStr(item.num) || isValidStr(item.date) || isNonZeroRaw(item.total) || isNonZeroRaw(item.amt));
-        const hasTxDetails  = !!(isValidStr(item.txNum) || isValidStr(item.txDate) || isNonZeroRaw(item.txTotal) || isNonZeroRaw(item.txAmt));
+        const hasTaxDetails = _rawHasTax || isValidTextField(item.num) || isValidTextField(item.date) || isPositiveNum(item.total) || isPositiveNum(item.amt);
+        const hasTxDetails  = _rawHasTx || isValidTextField(item.txNum) || isValidTextField(item.txDate) || isPositiveNum(item.txTotal) || isPositiveNum(item.txAmt);
         
         if (hasTaxDetails) {
           const isExempt = (window.supEx && window.supEx[sName] && (window.supEx[sName].entityType==='עוסק פטור'||window.supEx[sName].entityType==='עמותה'));

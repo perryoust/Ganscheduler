@@ -102,6 +102,54 @@ function SPT(t){
   if(t==='pdash') refreshPurchDash();
 }
 
+// --- Helper to normalize and accurately classify invoice status based on workspace business rules ---
+window.normalizeInvoiceStatus = function(inv) {
+  if (!inv) return 'order';
+  const rawSt = typeof inv === 'string' ? _migrateInvStatus(inv) : _migrateInvStatus(inv.status);
+  if (rawSt === 'cancelled') return 'cancelled';
+  if (typeof inv === 'string') return rawSt;
+
+  // 1. File Name Priorities: 'חשבונית מס' wins, followed by 'חשבון עסקה'
+  const fTax = String(inv.file_tax?.name || inv.file_tax?.path || '');
+  const fTx = String(inv.file_tx?.name || inv.file_tx?.path || '');
+  const fOrder = String(inv.file_order?.name || inv.file_order?.path || '');
+  const allFiles = fTax + ' ' + fTx + ' ' + fOrder;
+
+  if (allFiles.includes('חשבונית מס')) {
+    return 'tax_invoice';
+  }
+  if (allFiles.includes('חשבון עסקה') && rawSt !== 'receipt') {
+    return 'tx_invoice';
+  }
+
+  // 2. Details Parsing (strictly treating 0, 0.0, 0.00, ₪0 etc as empty/invalid)
+  const isPosNum = (val) => {
+    if (val === undefined || val === null) return false;
+    const clean = String(val).replace(/[^\d.-]/g, '').trim();
+    if (clean === '' || clean === '-' || clean === '.' || isNaN(parseFloat(clean))) return false;
+    return parseFloat(clean) > 0;
+  };
+  const isValTxt = (val) => {
+    if (val === undefined || val === null) return false;
+    const s = String(val).trim();
+    if (s === '' || s === '-' || s === '0' || s === '0.0' || s === '0.00' || s.startsWith('₪ 0') || s.startsWith('₪0')) return false;
+    return true;
+  };
+
+  const hasTaxDetails = !!(isValTxt(inv.num) || isValTxt(inv.date) || isPosNum(inv.total) || isPosNum(inv.amt) || (inv.file_tax && inv.file_tax.path));
+  const hasTxDetails = !!(isValTxt(inv.txNum) || isValTxt(inv.txDate) || isPosNum(inv.txTotal) || isPosNum(inv.txAmt) || (inv.file_tx && inv.file_tx.path));
+
+  // 3. Classification
+  if (hasTaxDetails) {
+    const isExempt = (window.supEx && window.supEx[inv.supName] && (window.supEx[inv.supName].entityType==='עוסק פטור'||window.supEx[inv.supName].entityType==='עמותה'));
+    return isExempt ? 'receipt' : (hasTxDetails ? 'tax_receipt' : 'tax_invoice');
+  }
+  if (hasTxDetails) {
+    return 'tx_invoice';
+  }
+  return 'order';
+};
+
 function renderMobileInvoiceCard(inv, opts = {}) {
   if(!inv || !inv.supName) return '';
   const vat = inv.vat !== undefined ? inv.vat : (window.getVatRate ? window.getVatRate() : 18);
@@ -109,7 +157,7 @@ function renderMobileInvoiceCard(inv, opts = {}) {
   const hasOrder = inv.orderNum;
   const hasTx    = inv.txNum;
   const hasTax   = inv.num;
-  const st = window._migrateInvStatus ? window._migrateInvStatus(inv.status) : (inv.status || 'active');
+  const st = window.normalizeInvoiceStatus ? window.normalizeInvoiceStatus(inv) : _migrateInvStatus(inv.status);
 
   // Status badge class
   let stClass = 'active';
@@ -343,8 +391,8 @@ function renderInvoices(){
       if(vA!==vB) return isAsc ? vA - vB : vB - vA;
     }
     else if (sortCol === 'status') {
-      const vA = _migrateInvStatus(a.status);
-      const vB = _migrateInvStatus(b.status);
+      const vA = window.normalizeInvoiceStatus ? window.normalizeInvoiceStatus(a) : _migrateInvStatus(a.status);
+      const vB = window.normalizeInvoiceStatus ? window.normalizeInvoiceStatus(b) : _migrateInvStatus(b.status);
       if(vA!==vB) return isAsc ? vA.localeCompare(vB) : vB.localeCompare(vA);
     }
     else if (sortCol === 'orderDesc') {
@@ -363,8 +411,9 @@ function renderInvoices(){
            `<span style="font-size:.65rem;color:#e65100;margin:0 2px">+מע"מ ₪${vatA.toLocaleString()}</span>`+
            `<b style="color:#2e7d32"> = ₪${tot.toLocaleString()}</b>`;
   };
-  const statusStepper = (stRaw)=>{
-    const st = _migrateInvStatus(stRaw);
+  const statusStepper = (stRaw, invRef)=>{
+    const invObj = (typeof stRaw === 'object' && stRaw !== null) ? stRaw : invRef;
+    const st = invObj ? (window.normalizeInvoiceStatus ? window.normalizeInvoiceStatus(invObj) : _migrateInvStatus(invObj.status)) : _migrateInvStatus(stRaw);
     if(st==='tax_receipt') return `<span style="background:#1b5e20;color:#fff;border-radius:10px;padding:2px 8px;font-size:.63rem;font-weight:700">📑🧾 חשבונית מס קבלה</span>`;
     const stages = [
       {k:'order',l:'הזמנה',c:'#1565c0'},
@@ -479,7 +528,7 @@ function renderInvoices(){
           ${hasTx?`<div style="margin-bottom:3px"><span style="font-size:.63rem;color:#546e7a">עסקה: </span>${fmtAmt(inv.txAmt,vat,isExempt)}</div>`:''}
           ${hasTax?`<div><span style="font-size:.63rem;color:#546e7a">מסמך: </span>${fmtAmt(inv.amt,vat,isExempt)}</div>`:''}
         </td>
-        <td style="padding:8px">${statusStepper(inv.status||'active')}</td>
+        <td style="padding:8px">${statusStepper(inv)}</td>
         <td style="font-size:.72rem;color:#78909c;max-width:120px;padding:8px">${inv.notes||'אין הערות'}</td>
         <td style="padding:8px;white-space:nowrap" onclick="event.stopPropagation()">
           <button class="btn bsm bo" onclick="openNewInvoice(${inv.id})">✏️</button>
@@ -535,17 +584,17 @@ function refreshPurchDash(){
       ? `<span style="font-size:.7rem;color:#e65100">⚠️ מציג ${invs.length} חשבוניות אחרונות בלבד. <a href="#" onclick="loadMoreInvoices();return false" style="color:#1565c0">טען הכל</a></span>` 
       : '';
   }
-  const byStatus = st => invs.filter(i=>_migrateInvStatus(i.status)===st).length;
+  const byStatus = st => invs.filter(i=>(window.normalizeInvoiceStatus ? window.normalizeInvoiceStatus(i) : _migrateInvStatus(i.status))===st).length;
   const totalOrders = byStatus('order');
   const totalTx = byStatus('tx_invoice');
-  const totalTax = byStatus('tax_invoice') + byStatus('receipt') + invs.filter(i=>i.status==='tax_receipt').length;
+  const totalTax = byStatus('tax_invoice') + byStatus('receipt') + invs.filter(i=>(window.normalizeInvoiceStatus ? window.normalizeInvoiceStatus(i) : i.status)==='tax_receipt').length;
   const totalCancelled = byStatus('cancelled');
   const invEl = document.getElementById('ps-invoices'); if(invEl) invEl.textContent = invs.length;
   const supEl = document.getElementById('ps-suppliers'); if(supEl) supEl.textContent = getPurchSuppliers().length;
   const openEl = document.getElementById('ps-open'); if(openEl) openEl.textContent = totalOrders + totalTx;
   const issEl = document.getElementById('ps-issues'); if(issEl) issEl.textContent = totalTax;
   
-  const activeInvs = invs.filter(i=>_migrateInvStatus(i.status)!=='cancelled');
+  const activeInvs = invs.filter(i=>(window.normalizeInvoiceStatus ? window.normalizeInvoiceStatus(i) : _migrateInvStatus(i.status))!=='cancelled');
   const sumBase  = activeInvs.reduce((s,i)=>s+(i.orderAmt||i.txAmt||i.amt||0),0);
   const sumTotal = activeInvs.reduce((s,i)=>s+(i.orderTotal||i.txTotal||i.total||0),0);
   const vatSumEl = document.getElementById('ps-vat-summary');
@@ -558,7 +607,7 @@ function refreshPurchDash(){
   
   const ACTIVE_ST = new Set(['order','tx_invoice']);
   const rec = [...invs]
-    .filter(i=>ACTIVE_ST.has(_migrateInvStatus(i.status)))
+    .filter(i=>ACTIVE_ST.has(window.normalizeInvoiceStatus ? window.normalizeInvoiceStatus(i) : _migrateInvStatus(i.status)))
     .sort((a,b)=> (a.id||0) - (b.id||0)) // Sort oldest to newest
     .slice(0,10);
   const el = document.getElementById('pdash-recent-invoices');
@@ -585,7 +634,7 @@ function refreshPurchDash(){
         <th style="padding:5px 8px;text-align:right">הערות</th>
       </tr></thead>
       <tbody>${rec.map(i=>{
-        const st=_migrateInvStatus(i.status);
+        const st=window.normalizeInvoiceStatus ? window.normalizeInvoiceStatus(i) : _migrateInvStatus(i.status);
         const base=i.orderAmt||i.txAmt||i.amt||0;
         const total=i.orderTotal||i.txTotal||i.total||0;
         const dateStr=i.orderDate||i.txDate||i.date||'';
