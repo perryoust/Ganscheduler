@@ -156,7 +156,7 @@
 
     // Left side: date
     headerColumns.push({
-      width: 'auto',
+      width: 130,
       alignment: 'left',
       stack: [
         { text: [{ text: 'תאריך: ', bold: true }, heDate(order.ts)], fontSize: 11, margin: [0, 8, 0, 0] }
@@ -169,7 +169,7 @@
       logoSection.push({
         columns: [
           { width: '*', text: '' },
-          { width: 'auto', image: _logoDataUrl, height: 50, alignment: 'left' }
+          { width: 200, image: _logoDataUrl, fit: [200, 50], alignment: 'left' }
         ],
         margin: [0, 0, 0, 5]
       });
@@ -375,7 +375,7 @@
         sections.push({
           columns: [
             { width: '*', text: '' },
-            { width: 'auto', image: _logoDataUrl, height: 50, alignment: 'left' }
+            { width: 200, image: _logoDataUrl, fit: [200, 50], alignment: 'left' }
           ],
           margin: [0, 0, 0, 5]
         });
@@ -395,7 +395,7 @@
             ]
           },
           {
-            width: 'auto',
+            width: 70,
             stack: [
               {
                 text: copyType,
@@ -409,7 +409,7 @@
             margin: [15, 5, 15, 0]
           },
           {
-            width: 'auto',
+            width: 130,
             alignment: 'left',
             stack: [
               { text: [{ text: 'תאריך: ', bold: true, color: DARK_BLUE }, heDate(dlv.ts)], fontSize: 11, margin: [0, 8, 0, 0] }
