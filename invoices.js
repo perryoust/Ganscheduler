@@ -100,7 +100,10 @@ function SPT(t){
     setTimeout(renderPurchSuppliers, 50);
   }
   if(t==='pdash') refreshPurchDash();
+  if(t==='porders' && typeof window.renderPurchOrders === 'function') window.renderPurchOrders();
+  if(t==='pdeliveries' && typeof window.renderPurchDeliveries === 'function') window.renderPurchDeliveries();
 }
+window.SPT = SPT;
 
 // --- Helper to normalize and accurately classify invoice status based on workspace business rules ---
 window.normalizeInvoiceStatus = function(inv) {

@@ -845,7 +845,25 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
 
     if (or.ok) {
       let cloudOrd = await or.json();
-      window.ORDERS = Array.isArray(cloudOrd) ? cloudOrd : Object.values(cloudOrd || {});
+      let loadedOrd = Array.isArray(cloudOrd) ? cloudOrd : Object.values(cloudOrd || {});
+      
+      // Fallback: If root /orders.json is empty, check legacy year/data locations
+      if (loadedOrd.length === 0 && window.CURRENT_YEAR && window.CURRENT_YEAR !== 'tashpav') {
+        try {
+          const yearOrdUrl = `${FB_ROOT}/years/${window.CURRENT_YEAR}/orders.json?auth=${tok}&cb=${Date.now()}`;
+          const yor = await fetch(yearOrdUrl);
+          if (yor.ok) {
+            const yData = await yor.json();
+            const yOrd = Array.isArray(yData) ? yData : Object.values(yData || {});
+            if (yOrd.length > 0) loadedOrd = yOrd;
+          }
+        } catch (e) {}
+      }
+      
+      if (loadedOrd.length > 0 || !window.ORDERS || window.ORDERS.length === 0) {
+        window.ORDERS = loadedOrd;
+        if (window._safeLS) window._safeLS.setItem('ganv5_orders', JSON.stringify(window.ORDERS));
+      }
       anySuccess = true;
       console.log('[Purchasing] Orders loaded:', window.ORDERS.length);
     } else {
@@ -854,7 +872,11 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
 
     if (dr.ok) {
       let cloudDel = await dr.json();
-      window.DELIVERIES = Array.isArray(cloudDel) ? cloudDel : Object.values(cloudDel || {});
+      let loadedDel = Array.isArray(cloudDel) ? cloudDel : Object.values(cloudDel || {});
+      if (loadedDel.length > 0 || !window.DELIVERIES || window.DELIVERIES.length === 0) {
+        window.DELIVERIES = loadedDel;
+        if (window._safeLS) window._safeLS.setItem('ganv5_deliveries', JSON.stringify(window.DELIVERIES));
+      }
       anySuccess = true;
     }
 
@@ -862,6 +884,10 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
     if (anySuccess) {
       window._purchasingDataLoaded = true;
       console.log('[Purchasing] Data loaded successfully from root nodes');
+      if (typeof window.renderPurchOrders === 'function') window.renderPurchOrders();
+      if (typeof window.renderPurchDeliveries === 'function') window.renderPurchDeliveries();
+      if (typeof window.renderInvoices === 'function') window.renderInvoices();
+      if (typeof window.refreshPurchDash === 'function') window.refreshPurchDash();
     } else {
       console.warn('[Purchasing] All fetches failed — will retry on next attempt');
     }

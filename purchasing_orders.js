@@ -81,6 +81,7 @@ function renderPurchOrders() {
   html += '</tbody></table>';
   container.innerHTML = html;
 }
+window.renderPurchOrders = renderPurchOrders;
 
 function renderPurchDeliveries() {
   const container = document.getElementById('pdeliveries-list');
@@ -110,22 +111,26 @@ function renderPurchDeliveries() {
   }
 
   let html = '<table class="stable" style="width:100%"><thead><tr>' +
+    '<th style="width:30px;"><input type="checkbox" id="bulk-pd-select-all" onclick="toggleBulkPD(this)"></th>' +
     '<th>תאריך</th>' +
     '<th>מספר תעודה</th>' +
-    '<th>יעד (רכז/שטח)</th>' +
+    '<th>יעד / גן</th>' +
     '<th>תיאור</th>' +
-    '<th>נהג/מוביל</th>' +
+    '<th>נהג</th>' +
+    '<th>מקבל</th>' +
     '<th>פעולות</th>' +
     '</tr></thead><tbody>';
 
   sorted.forEach(d => {
     const dStr = new Date(d.ts).toLocaleDateString('he-IL');
     html += `<tr>
+      <td><input type="checkbox" class="bulk-pd-checkbox" value="${d.id}" onclick="updateBulkPDButton()"></td>
       <td>${dStr}</td>
       <td style="font-weight:bold">${d.deliveryId}</td>
       <td>${d.destination}</td>
-      <td>${d.deliveryDesc || ''}</td>
-      <td>${d.driver || ''}</td>
+      <td>${(d.deliveryDesc || (d.items && d.items.length > 0 ? d.items[0].desc.split('\n')[0] : '')).replace(/</g, '&lt;')}</td>
+      <td>${d.driver || '-'}</td>
+      <td>${d.recipient || '-'}</td>
       <td>
         ${d.spLink ? `<a href="${d.spLink}" target="_blank" class="btn bo bsm" style="text-decoration:none;background:#e3f2fd;color:#1565c0;border-color:#1565c0" title="פתח מסמך מקורי">📂 פתח מסמך</a>
         <button class="btn bo bsm" onclick="spUndoDeliveryMatch('${d.id}')" style="color:red;border:none;background:transparent;font-size:0.8rem;padding:0;min-width:auto;margin-left:5px" title="בטל שיוך">✖</button>` : ''}
@@ -141,6 +146,7 @@ function renderPurchDeliveries() {
   html += '</tbody></table>';
   container.innerHTML = html;
 }
+window.renderPurchDeliveries = renderPurchDeliveries;
 
 function generateOrderId() {
   // Format: sequence (2 digits) + day + month + year

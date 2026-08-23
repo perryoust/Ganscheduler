@@ -495,13 +495,25 @@ function _applyYearData(o){
   }
   
   // Orders and Deliveries are stored at root level (not inside data object) after migration.
-  // Only overwrite if the data object explicitly contains them (legacy pre-migration path).
-  // Never reset to [] if already loaded from root nodes by loadPurchasingDataFromFirebase.
-  if (Array.isArray(o.orders) && o.orders.length > 0) window.ORDERS = o.orders;
-  else if (!window._purchasingDataLoaded && (!Array.isArray(window.ORDERS) || window.ORDERS.length === 0)) window.ORDERS = [];
+  if (Array.isArray(o.orders) && o.orders.length > 0) {
+    window.ORDERS = o.orders;
+  } else if (!window._purchasingDataLoaded && (!Array.isArray(window.ORDERS) || window.ORDERS.length === 0)) {
+    try {
+      const localOrd = JSON.parse(_safeLS.getItem('ganv5_orders') || '[]');
+      if (Array.isArray(localOrd) && localOrd.length > 0) window.ORDERS = localOrd;
+      else window.ORDERS = [];
+    } catch(e) { window.ORDERS = []; }
+  }
   
-  if (Array.isArray(o.deliveries) && o.deliveries.length > 0) window.DELIVERIES = o.deliveries;
-  else if (!window._purchasingDataLoaded && (!Array.isArray(window.DELIVERIES) || window.DELIVERIES.length === 0)) window.DELIVERIES = [];
+  if (Array.isArray(o.deliveries) && o.deliveries.length > 0) {
+    window.DELIVERIES = o.deliveries;
+  } else if (!window._purchasingDataLoaded && (!Array.isArray(window.DELIVERIES) || window.DELIVERIES.length === 0)) {
+    try {
+      const localDel = JSON.parse(_safeLS.getItem('ganv5_deliveries') || '[]');
+      if (Array.isArray(localDel) && localDel.length > 0) window.DELIVERIES = localDel;
+      else window.DELIVERIES = [];
+    } catch(e) { window.DELIVERIES = []; }
+  }
 
   if(typeof o.vatRate==='number') VAT_RATE=o.vatRate;
   // Sync settings from Firebase to localStorage
@@ -683,8 +695,10 @@ async function save(immediate){
     const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpav');
     _safeLS.setItem(yearKey, _json);
     
-    // Save invoices globally
+    // Save invoices, orders and deliveries globally
     _safeLS.setItem('ganv5_invoices', JSON.stringify(window.INVOICES||[]));
+    _safeLS.setItem('ganv5_orders', JSON.stringify(window.ORDERS||[]));
+    _safeLS.setItem('ganv5_deliveries', JSON.stringify(window.DELIVERIES||[]));
     _safeLS.setItem('ganv5_vat', JSON.stringify(window.VAT_RATE||18));
     
     if (!window.CURRENT_YEAR || window.CURRENT_YEAR === 'tashpav') {
