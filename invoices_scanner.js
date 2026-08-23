@@ -257,7 +257,7 @@ const filesFound = [];
         
         // Update local INVOICES state
         matchedInvoicesToUpdate.forEach(update => {
-          const inv = window.INVOICES.find(i => String(i.id) === String(update.id));
+          const inv = window.INVOICES.find(i => String(i.id) === String(update.id) || (i.serialNum && String(i.serialNum) === String(update.id)));
           if (inv) {
             inv['file_' + update.type] = { path: update.path, origin: 'sp', score: update.score };
             const fName = String(update.filename || '');

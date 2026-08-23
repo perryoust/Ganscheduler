@@ -34,70 +34,71 @@ onmessage = function(e) {
     
     const extractedNumbers = [];
     const addNum = (str, ctx) => {
-      const clean = str.replace(/\D/g, '').replace(/^0+/, '');
-      if (clean.length >= 2 && !extractedNumbers.some(n => n.clean === clean && n.context === ctx)) {
+      if (!str) return;
+      const clean = str.replace(/\D/g, '').replace(/^0+/, '') || '0';
+      if (!extractedNumbers.some(n => n.clean === clean && n.context === ctx)) {
         extractedNumbers.push({ raw: str, clean: clean, context: ctx });
       }
     };
 
-    const taxMatch = fullText.match(/(?:חשבונית\s*מס|חשבונית|קבלה|tax)[^\d]*([\d][\d\-_/]{1,})/gi);
+    const taxMatch = fullText.match(/(?:חשבונית\s*מס|חשבונית|קבלה|tax)[^\d]*([\d][\d\-_/]*)/gi);
     if (taxMatch) taxMatch.forEach(m => { 
       const d = m.match(/[\d][\d\-_/]*/); 
       if(d) {
         addNum(d[0], 'tax');
         const parts = d[0].split(/[\-_/]/);
         if (parts.length > 1) {
-          parts.forEach(p => { if (p.length >= 2) addNum(p, 'tax'); });
+          parts.forEach(p => { if (p) addNum(p, 'tax'); });
         }
       } 
     });
 
-    const txMatch = fullText.match(/(?:חשבונית\s*עסקה|חשבון\s*עסקה|דרישה|דרישת\s*תשלום|tx)[^\d]*([\d][\d\-_/]{1,})/gi);
+    const txMatch = fullText.match(/(?:חשבונית\s*עסקה|חשבון\s*עסקה|דרישה|דרישת\s*תשלום|tx)[^\d]*([\d][\d\-_/]*)/gi);
     if (txMatch) txMatch.forEach(m => { 
       const d = m.match(/[\d][\d\-_/]*/); 
       if(d) {
         addNum(d[0], 'tx');
         const parts = d[0].split(/[\-_/]/);
         if (parts.length > 1) {
-          parts.forEach(p => { if (p.length >= 2) addNum(p, 'tx'); });
+          parts.forEach(p => { if (p) addNum(p, 'tx'); });
         }
       } 
     });
 
-    const orderMatch = fullText.match(/(?:הזמנה|הזמנת\s*רכש|הזמנת\s*עבודה)[^\d]*([\d][\d\-_/]{1,})/gi);
+    const orderMatch = fullText.match(/(?:הזמנה|הזמנת\s*רכש|הזמנת\s*עבודה)[^\d]*([\d][\d\-_/]*)/gi);
     if (orderMatch) orderMatch.forEach(m => { 
       const d = m.match(/[\d][\d\-_/]*/); 
       if(d) {
         addNum(d[0], 'order');
         const parts = d[0].split(/[\-_/]/);
         if (parts.length > 1) {
-          parts.forEach(p => { if (p.length >= 2) addNum(p, 'order'); });
+          parts.forEach(p => { if (p) addNum(p, 'order'); });
         }
       } 
     });
 
-    // Match 10-digit numbers (like 0123082026, 1054052305) even without ascii word boundary
-    const tenDigitMatch = fullText.match(/\d{10}/g);
-    if (tenDigitMatch) tenDigitMatch.forEach(m => addNum(m, 'order'));
+    // Match continuous long numbers (6-15 digits like 0123082026, 10030071960, 0410306007453)
+    const longDigitMatch = fullText.match(/\d{6,15}/g);
+    if (longDigitMatch) longDigitMatch.forEach(m => addNum(m, 'order'));
 
     const allNums = file.name.match(/\d+/g) || [];
     allNums.forEach(num => {
-       const clean = num.replace(/\D/g, '').replace(/^0+/, '');
-       if (clean.length >= 2 && !extractedNumbers.some(n => n.clean === clean)) {
+       const clean = num.replace(/\D/g, '').replace(/^0+/, '') || '0';
+       if (!extractedNumbers.some(n => n.clean === clean)) {
          addNum(num, 'any');
        }
     });
 
     const hyphenatedNums = file.name.match(/[\d]+(?:[-/][\d]+)+/g) || [];
     hyphenatedNums.forEach(num => {
-       const clean = num.replace(/\D/g, '').replace(/^0+/, '');
-       if (clean.length >= 2 && !extractedNumbers.some(n => n.clean === clean)) {
+       const clean = num.replace(/\D/g, '').replace(/^0+/, '') || '0';
+       if (!extractedNumbers.some(n => n.clean === clean)) {
          addNum(num, 'any');
        }
        const parts = num.split(/[-/]/);
        parts.forEach(p => {
-         const pClean = p.replace(/\D/g, '').replace(/^0+/, '');
-         if (pClean.length >= 2 && !extractedNumbers.some(n => n.clean === pClean)) {
+         const pClean = p.replace(/\D/g, '').replace(/^0+/, '') || '0';
+         if (!extractedNumbers.some(n => n.clean === pClean)) {
            addNum(p, 'any');
          }
        });
@@ -112,17 +113,17 @@ onmessage = function(e) {
 
     for (const numObj of extractedNumbers) {
       const cleanNumStr = numObj.clean;
-      if (!cleanNumStr || cleanNumStr.length < 2) continue;
+      if (!cleanNumStr) continue;
       
       const potentialMatches = invoices.filter(inv => {
-        const cleanInvNum = inv.num ? String(inv.num).replace(/\D/g, '').replace(/^0+/, '') : '';
-        const cleanInvTx = inv.txNum ? String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') : '';
-        const cleanInvOrder = inv.orderNum ? String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') : '';
+        const cleanInvNum = inv.num ? (String(inv.num).replace(/\D/g, '').replace(/^0+/, '') || '0') : '';
+        const cleanInvTx = inv.txNum ? (String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') || '0') : '';
+        const cleanInvOrder = inv.orderNum ? (String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') || '0') : '';
 
         // Exact match
-        if (cleanInvNum && cleanInvNum.length >= 2 && cleanInvNum === cleanNumStr) return true;
-        if (cleanInvTx && cleanInvTx.length >= 2 && cleanInvTx === cleanNumStr) return true;
-        if (cleanInvOrder && cleanInvOrder.length >= 2 && cleanInvOrder === cleanNumStr) return true;
+        if (cleanInvNum && cleanInvNum === cleanNumStr) return true;
+        if (cleanInvTx && cleanInvTx === cleanNumStr) return true;
+        if (cleanInvOrder && cleanInvOrder === cleanNumStr) return true;
 
         // Suffix/prefix match for branch codes (e.g. 08-800028 vs 800028)
         if (cleanNumStr.length >= 4) {
@@ -137,9 +138,9 @@ onmessage = function(e) {
         let type = null;
         let contextBonus = 0;
 
-        const cleanInvNum = inv.num ? String(inv.num).replace(/\D/g, '').replace(/^0+/, '') : '';
-        const cleanInvTx = inv.txNum ? String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') : '';
-        const cleanInvOrder = inv.orderNum ? String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') : '';
+        const cleanInvNum = inv.num ? (String(inv.num).replace(/\D/g, '').replace(/^0+/, '') || '0') : '';
+        const cleanInvTx = inv.txNum ? (String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') || '0') : '';
+        const cleanInvOrder = inv.orderNum ? (String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') || '0') : '';
 
         if (cleanInvNum && (cleanInvNum === cleanNumStr || (cleanNumStr.length >= 4 && cleanInvNum.endsWith(cleanNumStr)))) {
            type = 'tax';
