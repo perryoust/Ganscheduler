@@ -40,14 +40,41 @@ onmessage = function(e) {
       }
     };
 
-    const taxMatch = fullText.match(/(?:חשבונית\s*מס|חשבונית|קבלה|tax)[^\d]*([\d][\d\-]{2,})/gi);
-    if (taxMatch) taxMatch.forEach(m => { const d = m.match(/[\d][\d\-]+/); if(d) addNum(d[0], 'tax'); });
+    const taxMatch = fullText.match(/(?:חשבונית\s*מס|חשבונית|קבלה|tax)[^\d]*([\d][\d\-_/]{1,})/gi);
+    if (taxMatch) taxMatch.forEach(m => { 
+      const d = m.match(/[\d][\d\-_/]*/); 
+      if(d) {
+        addNum(d[0], 'tax');
+        const parts = d[0].split(/[\-_/]/);
+        if (parts.length > 1) {
+          parts.forEach(p => { if (p.length >= 2) addNum(p, 'tax'); });
+        }
+      } 
+    });
 
-    const txMatch = fullText.match(/(?:חשבונית\s*עסקה|חשבון\s*עסקה|דרישה|דרישת\s*תשלום|tx)[^\d]*(\d{3,})/gi);
-    if (txMatch) txMatch.forEach(m => { const d = m.match(/\d+/); if(d) addNum(d[0], 'tx'); });
+    const txMatch = fullText.match(/(?:חשבונית\s*עסקה|חשבון\s*עסקה|דרישה|דרישת\s*תשלום|tx)[^\d]*([\d][\d\-_/]{1,})/gi);
+    if (txMatch) txMatch.forEach(m => { 
+      const d = m.match(/[\d][\d\-_/]*/); 
+      if(d) {
+        addNum(d[0], 'tx');
+        const parts = d[0].split(/[\-_/]/);
+        if (parts.length > 1) {
+          parts.forEach(p => { if (p.length >= 2) addNum(p, 'tx'); });
+        }
+      } 
+    });
 
-    const orderMatch = fullText.match(/(?:הזמנה|הזמנת\s*רכש)[^\d]*(\d{3,})/gi);
-    if (orderMatch) orderMatch.forEach(m => { const d = m.match(/\d+/); if(d) addNum(d[0], 'order'); });
+    const orderMatch = fullText.match(/(?:הזמנה|הזמנת\s*רכש|הזמנת\s*עבודה)[^\d]*([\d][\d\-_/]{1,})/gi);
+    if (orderMatch) orderMatch.forEach(m => { 
+      const d = m.match(/[\d][\d\-_/]*/); 
+      if(d) {
+        addNum(d[0], 'order');
+        const parts = d[0].split(/[\-_/]/);
+        if (parts.length > 1) {
+          parts.forEach(p => { if (p.length >= 2) addNum(p, 'order'); });
+        }
+      } 
+    });
 
     // Match 10-digit numbers (like 0123082026, 1054052305) even without ascii word boundary
     const tenDigitMatch = fullText.match(/\d{10}/g);
@@ -67,6 +94,13 @@ onmessage = function(e) {
        if (clean.length >= 2 && !extractedNumbers.some(n => n.clean === clean)) {
          addNum(num, 'any');
        }
+       const parts = num.split(/[-/]/);
+       parts.forEach(p => {
+         const pClean = p.replace(/\D/g, '').replace(/^0+/, '');
+         if (pClean.length >= 2 && !extractedNumbers.some(n => n.clean === pClean)) {
+           addNum(p, 'any');
+         }
+       });
     });
 
     const isYear = (val) => { const num = parseInt(val, 10); return num >= 2020 && num <= 2030; };
@@ -85,9 +119,17 @@ onmessage = function(e) {
         const cleanInvTx = inv.txNum ? String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') : '';
         const cleanInvOrder = inv.orderNum ? String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') : '';
 
+        // Exact match
         if (cleanInvNum && cleanInvNum.length >= 2 && cleanInvNum === cleanNumStr) return true;
         if (cleanInvTx && cleanInvTx.length >= 2 && cleanInvTx === cleanNumStr) return true;
         if (cleanInvOrder && cleanInvOrder.length >= 2 && cleanInvOrder === cleanNumStr) return true;
+
+        // Suffix/prefix match for branch codes (e.g. 08-800028 vs 800028)
+        if (cleanNumStr.length >= 4) {
+          if (cleanInvNum && cleanInvNum.length >= 4 && (cleanInvNum.endsWith(cleanNumStr) || cleanNumStr.endsWith(cleanInvNum))) return true;
+          if (cleanInvTx && cleanInvTx.length >= 4 && (cleanInvTx.endsWith(cleanNumStr) || cleanNumStr.endsWith(cleanInvTx))) return true;
+          if (cleanInvOrder && cleanInvOrder.length >= 4 && (cleanInvOrder.endsWith(cleanNumStr) || cleanNumStr.endsWith(cleanInvOrder))) return true;
+        }
         return false;
       });
 
@@ -99,13 +141,13 @@ onmessage = function(e) {
         const cleanInvTx = inv.txNum ? String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') : '';
         const cleanInvOrder = inv.orderNum ? String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') : '';
 
-        if (cleanInvNum && cleanInvNum === cleanNumStr) {
+        if (cleanInvNum && (cleanInvNum === cleanNumStr || (cleanNumStr.length >= 4 && cleanInvNum.endsWith(cleanNumStr)))) {
            type = 'tax';
            if (numObj.context === 'tax') contextBonus = 50;
-        } else if (cleanInvTx && cleanInvTx === cleanNumStr) {
+        } else if (cleanInvTx && (cleanInvTx === cleanNumStr || (cleanNumStr.length >= 4 && cleanInvTx.endsWith(cleanNumStr)))) {
            type = 'tx';
            if (numObj.context === 'tx') contextBonus = 50;
-        } else if (cleanInvOrder && cleanInvOrder === cleanNumStr) {
+        } else if (cleanInvOrder && (cleanInvOrder === cleanNumStr || (cleanNumStr.length >= 4 && cleanInvOrder.endsWith(cleanNumStr)))) {
            type = 'order';
            if (numObj.context === 'order') contextBonus = 50;
         }

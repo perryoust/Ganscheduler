@@ -512,25 +512,25 @@ reader.onload = async function(e) {
           const sameSup = cleanSupText(inv.supName) === cleanSupText(sName) || (window.supBase ? cleanSupText(window.supBase(inv.supName)) === cleanSupText(window.supBase(sName)) : false);
           if (!sameSup) return false;
           
-          const sameMonth = String(inv.orderMonth || '').trim() === oMonth;
+          const cleanDoc = (d) => String(d || '').replace(/\D/g, '').replace(/^0+/, '');
 
           // Match by Tax Invoice Number if present
-          if (item.num && inv.num && String(item.num).trim() === String(inv.num).trim()) {
+          if (item.num && inv.num && (String(item.num).trim() === String(inv.num).trim() || (cleanDoc(item.num).length >= 2 && cleanDoc(item.num) === cleanDoc(inv.num)))) {
             return true;
           }
           // Match by Transaction Invoice Number if present
-          if (item.txNum && inv.txNum && String(item.txNum).trim() === String(inv.txNum).trim()) {
+          if (item.txNum && inv.txNum && (String(item.txNum).trim() === String(inv.txNum).trim() || (cleanDoc(item.txNum).length >= 2 && cleanDoc(item.txNum) === cleanDoc(inv.txNum)))) {
             return true;
           }
           // Match by Order Number if present and contains digits
-          if (item.orderNum && inv.orderNum && /\d{3,}/.test(item.orderNum) && String(item.orderNum).trim() === String(inv.orderNum).trim()) {
+          if (item.orderNum && inv.orderNum && /\d{3,}/.test(item.orderNum) && (String(item.orderNum).trim() === String(inv.orderNum).trim() || (cleanDoc(item.orderNum).length >= 3 && cleanDoc(item.orderNum) === cleanDoc(inv.orderNum)))) {
             return true;
           }
           // Cross-match between Transaction Invoice and Tax Invoice numbers
-          if (item.txNum && inv.num && String(item.txNum).trim() === String(inv.num).trim()) {
+          if (item.txNum && inv.num && (String(item.txNum).trim() === String(inv.num).trim() || (cleanDoc(item.txNum).length >= 2 && cleanDoc(item.txNum) === cleanDoc(inv.num)))) {
             return true;
           }
-          if (item.num && inv.txNum && String(item.num).trim() === String(inv.txNum).trim()) {
+          if (item.num && inv.txNum && (String(item.num).trim() === String(inv.txNum).trim() || (cleanDoc(item.num).length >= 2 && cleanDoc(item.num) === cleanDoc(inv.txNum)))) {
             return true;
           }
 
