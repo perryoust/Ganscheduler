@@ -995,8 +995,10 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
       return token;
     });
     
-    // Join with non-breaking spaces to force html2canvas to render the spaces
-    return fixedTokens.join('&nbsp;').replace(/&nbsp;<br>&nbsp;/g, '<br>');
+    // Join with physical inline-block spaces to force html2canvas to render them (it often drops &nbsp; next to inline-blocks)
+    return fixedTokens.join('___SPACE___')
+      .replace(/___SPACE___<br>___SPACE___/g, '<br>')
+      .replace(/___SPACE___/g, '<span style="display:inline-block; width:0.25em;"> </span>');
   };
 
   const footerLines = (window.PURCH_FOOTER || defaultFooter).split('\n').map(l => rtlFix(l.trim())).filter(l => l);
@@ -1777,7 +1779,10 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
       return token;
     });
     
-    return fixedTokens.join('&nbsp;').replace(/&nbsp;<br>&nbsp;/g, '<br>');
+    // Join with physical inline-block spaces
+    return fixedTokens.join('___SPACE___')
+      .replace(/___SPACE___<br>___SPACE___/g, '<br>')
+      .replace(/___SPACE___/g, '<span style="display:inline-block; width:0.25em;"> </span>');
   };
 
   const footerLines = (window.PURCH_FOOTER || defaultFooter).split('\n').map(l => rtlFix(l.trim())).filter(l => l);
