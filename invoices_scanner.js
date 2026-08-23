@@ -314,6 +314,17 @@ const filesFound = [];
         }
 
         if (!type) continue;
+        
+        // Override type based on explicit filename keywords (smart fallback)
+        if (type === 'order') {
+            if (file.name.includes('חשבונית מס') || file.name.includes('קבלה')) {
+                type = 'tax';
+                contextBonus += 50;
+            } else if (file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה')) {
+                type = 'tx';
+                contextBonus += 50;
+            }
+        }
 
         let score = (cleanNumStr.length < 3) ? 10 : 50;
         score += contextBonus;
