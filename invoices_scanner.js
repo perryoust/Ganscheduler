@@ -213,19 +213,27 @@ window._runCoreScanner = async function(selectedFolders) {
 const filesFound = [];
 
   async function scanDir(handle, currentPath, cleanBase) {
-    for await (const entry of handle.values()) {
-      if (entry.kind === 'file') {
-        const n = entry.name.toLowerCase();
-        if (!n.startsWith('.') && !n.startsWith('~') && (n.endsWith('.pdf') || n.endsWith('.jpg') || n.endsWith('.jpeg') || n.endsWith('.png'))) {
-          filesFound.push({
-            name: entry.name,
-            link: cleanBase + currentPath + '/' + encodeURIComponent(entry.name) + '?web=1'
-          });
+    try {
+      for await (const entry of handle.values()) {
+        try {
+          if (entry.kind === 'file') {
+            const n = entry.name.toLowerCase();
+            if (!n.startsWith('.') && !n.startsWith('~') && (n.endsWith('.pdf') || n.endsWith('.jpg') || n.endsWith('.jpeg') || n.endsWith('.png'))) {
+              filesFound.push({
+                name: entry.name,
+                link: cleanBase + currentPath + '/' + encodeURIComponent(entry.name) + '?web=1'
+              });
+            }
+          } else if (entry.kind === 'directory') {
+            if (entry.name.startsWith('.')) continue;
+            await scanDir(entry, currentPath + '/' + encodeURIComponent(entry.name), cleanBase);
+          }
+        } catch (itemErr) {
+          console.warn('Skipping unreadable entry in scanDir:', entry?.name, itemErr);
         }
-      } else if (entry.kind === 'directory') {
-        if (entry.name.startsWith('.')) continue;
-        await scanDir(entry, currentPath + '/' + encodeURIComponent(entry.name), cleanBase);
       }
+    } catch (dirErr) {
+      console.warn('Error reading directory handle:', currentPath, dirErr);
     }
   }
 
@@ -257,7 +265,11 @@ const filesFound = [];
         
         // Update local INVOICES state
         matchedInvoicesToUpdate.forEach(update => {
-          const inv = window.INVOICES.find(i => String(i.id) === String(update.id) || (i.serialNum && String(i.serialNum) === String(update.id)));
+          const inv = window.INVOICES.find(i => 
+            (update.id && String(i.id) === String(update.id)) || 
+            (update.serialNum && i.serialNum && String(i.serialNum) === String(update.serialNum)) ||
+            (update.orderNum && i.orderNum && String(i.orderNum).trim() === String(update.orderNum).trim() && (update.supName ? String(i.supName).trim() === String(update.supName).trim() : true))
+          );
           if (inv) {
             inv['file_' + update.type] = { path: update.path, origin: 'sp', score: update.score };
             const fName = String(update.filename || '');

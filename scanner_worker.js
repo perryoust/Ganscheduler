@@ -484,6 +484,9 @@ onmessage = function(e) {
              if (!inv['file_' + t] || globalOverwrite || (inv['file_' + t].score !== undefined && bestScore > inv['file_' + t].score)) {
                 matchedInvoicesToUpdate.push({
                     id: inv.id,
+                    serialNum: inv.serialNum,
+                    orderNum: inv.orderNum,
+                    supName: inv.supName,
                     type: t,
                     path: file.link,
                     score: bestScore,
@@ -508,6 +511,9 @@ onmessage = function(e) {
            if (!matchedInvoice['file_' + matchedType] || globalOverwrite || (matchedInvoice['file_' + matchedType].score !== undefined && bestScore > matchedInvoice['file_' + matchedType].score)) {
               matchedInvoicesToUpdate.push({
                   id: matchedInvoice.id,
+                  serialNum: matchedInvoice.serialNum,
+                  orderNum: matchedInvoice.orderNum,
+                  supName: matchedInvoice.supName,
                   type: matchedType,
                   path: file.link,
                   score: bestScore,
