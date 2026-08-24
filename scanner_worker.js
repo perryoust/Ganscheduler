@@ -429,10 +429,11 @@ onmessage = function(e) {
             else if (monthDiff <= 1) score += 10;
             else score -= 20;
             
-            let type = 'order';
-            if (inv.orderNum) type = 'order';
-            else if (inv.num) type = 'tax';
+            let type = 'tax';
+            if (inv.num) type = 'tax';
             else if (inv.txNum) type = 'tx';
+            else if (inv.orderNum && inv.orderNum !== 'קופה קטנה') type = 'order';
+            else type = 'tax';
             
             if (file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה') || file.name.toLowerCase().includes('tx')) {
               type = 'tx';
@@ -473,17 +474,24 @@ onmessage = function(e) {
       if (Array.isArray(matchedInvoice)) {
          let linkedLines = 0;
          matchedInvoice.forEach(inv => {
-           if (!inv['file_' + matchedType] || globalOverwrite || (inv['file_' + matchedType].score !== undefined && bestScore > inv['file_' + matchedType].score)) {
-              matchedInvoicesToUpdate.push({
-                  id: inv.id,
-                  type: matchedType,
-                  path: file.link,
-                  score: bestScore,
-                  filename: file.name
-              });
-             matchCount++;
-             linkedLines++;
-           }
+           const typesToLink = [];
+           if (inv.num) typesToLink.push('tax');
+           if (inv.txNum) typesToLink.push('tx');
+           if (inv.orderNum || typesToLink.length === 0) typesToLink.push('order');
+
+           typesToLink.forEach(t => {
+             if (!inv['file_' + t] || globalOverwrite || (inv['file_' + t].score !== undefined && bestScore > inv['file_' + t].score)) {
+                matchedInvoicesToUpdate.push({
+                    id: inv.id,
+                    type: t,
+                    path: file.link,
+                    score: bestScore,
+                    filename: file.name
+                });
+                linkedLines++;
+             }
+           });
+           if (typesToLink.length > 0) matchCount++;
          });
          if (linkedLines > 0) {
            resultsData.push([file.name, `קופה קטנה (${matchedInvoice.length} שורות)`, bestScore, 'שויך']);
