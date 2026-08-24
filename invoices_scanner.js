@@ -223,7 +223,7 @@ const filesFound = [];
           });
         }
       } else if (entry.kind === 'directory') {
-        if (/\b(201[0-9]|2020|2021|2022)\b/.test(entry.name)) continue;
+        if (entry.name.startsWith('.')) continue;
         await scanDir(entry, currentPath + '/' + encodeURIComponent(entry.name), cleanBase);
       }
     }
