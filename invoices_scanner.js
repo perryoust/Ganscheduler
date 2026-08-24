@@ -278,9 +278,9 @@ const filesFound = [];
         window.showToast(`סריקה הסתיימה — 0 התאמות למסמכים קיימים.`);
       }
       
-      // Call render results table at the end
+      // Call render results table and download summary Excel at the end
       if (typeof window._renderScannerResults === 'function') {
-        window._renderScannerResults(resultsData, matchCount, skippedCount);
+        await window._renderScannerResults(resultsData, matchCount, skippedCount, filesFound.length);
       }
       
       worker.terminate();
@@ -301,94 +301,33 @@ const filesFound = [];
     spScannerAliases: window.spScannerAliases || {},
     currentYear
   });
+};
 
-  return; // We don't render results immediately anymore, worker does it via callback
-
-  // ── Step 6.5: Batch alias suggestions — (DISABLED BY USER REQUEST)
-  const pending = window._pendingAliasSuggestions || [];
-  window._pendingAliasSuggestions = []; // Reset for next run
-  if (pending.length > 0) {
-    await new Promise(resolve => {
-      let rowsHtml = '';
-      pending.forEach((item, idx) => {
-        rowsHtml += `
-          <div id="sp-sug-row-${idx}" style="display:flex; align-items:center; gap:8px; margin-bottom:10px; padding:8px; background:#f5f5f5; border-radius:6px; direction:rtl;">
-            <div style="flex:1; min-width:0;">
-              <div style="font-weight:600; font-size:.9rem; color:#1565c0;">${item.supName}</div>
-              <div style="font-size:.75rem; color:#666; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.fileName}">📄 ${item.fileName}</div>
-            </div>
-            <input type="text" id="sp-alias-input-${idx}" placeholder="מילת זיהוי..." 
-              style="width:90px; padding:6px 8px; border:1px solid #ccc; border-radius:4px; font-size:.85rem; direction:rtl;">
-            <button onclick="window.spUndoMatch('${item.invId}', '${item.type}', ${idx})" style="background:transparent;border:none;color:#d32f2f;cursor:pointer;font-size:1.1rem" title="בטל שיוך שגוי זה">❌</button>
-          </div>`;
-      });
-
-      const formHtml = `
-        <div style="direction:rtl; text-align:right; max-height:50vh; overflow-y:auto; padding:4px;">
-          <div style="margin-bottom:12px; font-size:.85rem; color:#555;">
-            המערכת שייכה קבצים לספקים הבאים. הקלד מילת זיהוי לכל ספק כדי לשפר סריקות עתידיות, או השאר ריק לדילוג.
-          </div>
-          ${rowsHtml}
-        </div>`;
-
-      window.spPromptDialog(
-        `🔑 שמירת מילות מפתח לזיהוי ספקים (${pending.length})`,
-        formHtml,
-        'שמור הכל',
-        () => {
-          let savedCount = 0;
-          pending.forEach((item, idx) => {
-            const input = document.getElementById(`sp-alias-input-${idx}`);
-            const val = input ? input.value.trim() : '';
-            if (val.length > 1) {
-              window.spScannerAliases = window.spScannerAliases || {};
-              window.spScannerAliases[val] = item.supName;
-              savedCount++;
-            }
-          });
-          if (savedCount > 0) {
-            localStorage.setItem('spScannerAliases', JSON.stringify(window.spScannerAliases));
-            if (window.saveToFirebase) window.saveToFirebase(true, true);
-            window.showToast(`✅ נשמרו ${savedCount} מילות זיהוי חדשות`);
-          }
-          resolve();
-          return true; // Close dialog
-        },
-        true // wide dialog
-      );
-      // Also resolve if user cancels
-      const checkClose = setInterval(() => {
-        if (!document.getElementById('sp-pdlg-cancel')) { clearInterval(checkClose); return; }
-        document.getElementById('sp-pdlg-cancel').onclick = () => {
-          const overlay = document.querySelector('.sp-sys-dialog-overlay');
-          if (overlay) { overlay.classList.remove('show'); setTimeout(() => overlay.remove(), 200); }
-          resolve();
-        };
-        clearInterval(checkClose);
-      }, 50);
-    });
-  }
-
-  // ── Step 7: Export results Excel
+window._renderScannerResults = async function(resultsData, matchCount, skippedCount, totalFiles) {
+  // ── Step 7: Export results Excel ──
   if (typeof window.XLSX === "undefined") {
      try { await window.loadScriptAsync('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'); } catch(e){}
   }
-  if (window.XLSX) {
-    const wb = window.XLSX.utils.book_new();
-    const ws = window.XLSX.utils.aoa_to_sheet(resultsData);
-    ws['!cols'] = [{wch: 40}, {wch: 15}, {wch: 35}, {wch: 80}];
-    window.XLSX.utils.book_append_sheet(wb, ws, 'תוצאות סריקה');
-    window.XLSX.writeFile(wb, 'תוצאות_סריקת_sharepoint.xlsx');
+  if (window.XLSX && resultsData && resultsData.length > 1) {
+    try {
+      const wb = window.XLSX.utils.book_new();
+      const ws = window.XLSX.utils.aoa_to_sheet(resultsData);
+      ws['!cols'] = [{wch: 45}, {wch: 25}, {wch: 15}, {wch: 25}];
+      window.XLSX.utils.book_append_sheet(wb, ws, 'תוצאות סריקה');
+      window.XLSX.writeFile(wb, 'תוצאות_סריקת_sharepoint.xlsx');
+    } catch(err) {
+      console.warn('Failed to export scanner results Excel:', err);
+    }
   }
 
   await _spAlertDialog(
     `<b style="color:#1b5e20;font-size:1.1rem">✅ סריקה הסתיימה בהצלחה!</b>\n\n` +
-    `📁 <b>נסרקו:</b> ${filesFound.length} קבצים\n` +
+    (totalFiles !== undefined ? `📁 <b>נסרקו:</b> ${totalFiles} קבצים\n` : '') +
     `🔗 <b>שודכו / עודכנו:</b> ${matchCount} למסמכים\n` +
     (skippedCount ? `⏭️ <b>דולגו</b> (קישור קיים ולא נדרס): ${skippedCount}\n` : '') +
-    `\n<span style="color:#1565c0">כעת תוכל ללחוץ על סמל ה-📎 ליד כל מסמך כדי לפתוח אותו ישירות ב-SharePoint.</span>`
+    `\n<span style="color:#1565c0">קובץ אקסל עם פירוט תוצאות הסריקה הורד למחשבך. כעת תוכל ללחוץ על סמל ה-📎 ליד כל מסמך כדי לפתוח אותו ישירות.</span>`
   );
-}
+};
 
 ;
 
