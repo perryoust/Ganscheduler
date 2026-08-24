@@ -325,7 +325,7 @@ onmessage = function(e) {
       const isPettyCash = file.name.includes('קופה קטנה');
       const isGett = file.name.includes('גט') && file.name.includes('טקסי');
       
-      if (isPettyCash || isGett || (hasOnlyYearNumbers && explicitMonthFound)) {
+      if (true) {
         if (targetYear === -1) {
           const yearMatch = file.name.match(/\b(202\d)\b/) || decodedLink.match(/\b(202\d)\b/);
           targetYear = yearMatch ? parseInt(yearMatch[1]) : (currentYear || new Date().getFullYear());
