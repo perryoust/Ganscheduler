@@ -833,6 +833,15 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
           return ci;
         });
       }
+      cloudInvs.forEach((inv, idx) => {
+        if (inv.serialNum) {
+          inv.id = String(inv.serialNum);
+        } else if (!inv.id && inv.id !== 0) {
+          inv.id = 'inv_' + (Date.now() + idx);
+        } else {
+          inv.id = String(inv.id);
+        }
+      });
       window.INVOICES = cloudInvs;
       anySuccess = true;
       
@@ -995,7 +1004,17 @@ window.loadAllInvoices = async function() {
     const r = await fetch(url);
     if (!r.ok) return [];
     const data = await r.json();
-    return data ? Object.values(data) : [];
+    const list = data ? Object.values(data) : [];
+    list.forEach((inv, idx) => {
+      if (inv.serialNum) {
+        inv.id = String(inv.serialNum);
+      } else if (!inv.id && inv.id !== 0) {
+        inv.id = 'inv_' + (Date.now() + idx);
+      } else {
+        inv.id = String(inv.id);
+      }
+    });
+    return list;
   } catch (e) {
     console.error('[Sync] Failed to load all invoices:', e);
     return [];
