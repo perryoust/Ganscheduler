@@ -370,8 +370,12 @@ function renderInvoices(){
   }
   if (Array.isArray(window.INVOICES)) {
     window.INVOICES.forEach((inv, idx) => {
-      if (!inv.id && inv.id !== 0) {
-        inv.id = inv.serialNum ? String(inv.serialNum) : ('inv_' + (Date.now() + idx));
+      if (inv.serialNum) {
+        inv.id = String(inv.serialNum);
+      } else if (!inv.id && inv.id !== 0) {
+        inv.id = 'inv_' + (Date.now() + idx);
+      } else {
+        inv.id = String(inv.id);
       }
     });
     if (typeof window._recoverInvoiceFilesAndDeduplicate === 'function') {
@@ -892,15 +896,16 @@ function invPathChange(section){
 
 // Main open function
 function invOpenFile(invId, section){
-  const inv = window.INVOICES.find(i=>i.id===invId);
+  const sId = String(invId);
+  const inv = window.INVOICES.find(i => String(i.id) === sId || (i.serialNum && String(i.serialNum) === sId));
   if(!inv) return;
   const meta = inv['file_'+section];
   if(!meta){ window.showToast('❌ לא צורף קובץ לסעיף זה'); return; }
   if(!meta.path){
-    _showPathDialog(invId, section, meta);
+    _showPathDialog(inv.id, section, meta);
     return;
   }
-  _invTryOpen(meta.path, invId, section, meta);
+  _invTryOpen(meta.path, inv.id, section, meta);
 }
 
 function _invTryOpen(p, invId, section, meta){
@@ -1813,8 +1818,9 @@ function createMissingSupCards(){
 }
 async function deleteInvoice(id){
   if(!await window.spConfirm('למחוק חשבונית זו?')) return;
-  window.INVOICES=window.INVOICES.filter(i=>i.id!==id);
-  window.deleteInvoiceFromFirebase(id);
+  const sId = String(id);
+  window.INVOICES = window.INVOICES.filter(i => String(i.id) !== sId && (!i.serialNum || String(i.serialNum) !== sId));
+  window.deleteInvoiceFromFirebase(sId);
   window.save(true); renderInvoices(); refreshPurchDash(); // immediate=true → saves to Firebase now
 }
 
