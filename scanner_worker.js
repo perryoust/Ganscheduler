@@ -208,11 +208,45 @@ onmessage = function(e) {
                 supplierWordsMatched += 2;
              }
           }
+
+          // Match words from order description (e.g. "שופרסל", "שקלנד", "גלידוש", "מקס סטוק")
+          if (inv.orderDesc) {
+            const cleanDesc = cleanSupText(inv.orderDesc);
+            const descWords = cleanDesc.split(/\s+/).filter(w => w.length >= 3 && !['של','עם','על','את','אל','מן','זה','או','כי','אם','גן','צהרון','ביהס','חופש','גדול','קייטנת'].includes(w));
+            for (const word of descWords) {
+              if (cleanFull.includes(word)) {
+                supplierWordsMatched++;
+                supplierMatched = true;
+              }
+            }
+          }
+
+          // Match words from location / notes
+          if (inv.locName) {
+            const cleanLoc = cleanSupText(inv.locName);
+            if (cleanLoc.length >= 3 && cleanFull.includes(cleanLoc)) {
+              supplierWordsMatched++;
+              supplierMatched = true;
+            }
+          }
+          if (inv.locCity) {
+            const cleanCity = cleanSupText(inv.locCity);
+            if (cleanCity.length >= 3 && cleanFull.includes(cleanCity)) {
+              supplierWordsMatched++;
+              supplierMatched = true;
+            }
+          }
+
           score += (supplierWordsMatched * 100);
         }
 
-        if (numObj.context === 'any' && cleanNumStr.length <= 5) {
-            if (!supplierMatched) score -= 150;
+        // Long document numbers (6+ digits like receipts/invoices) are virtually unique
+        if (cleanNumStr.length >= 6) {
+          score += 150;
+        }
+
+        if (numObj.context === 'any' && cleanNumStr.length <= 4) {
+            if (!supplierMatched) score -= 60;
         }
 
         let monthMatched = false;
