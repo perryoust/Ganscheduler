@@ -322,8 +322,8 @@ onmessage = function(e) {
         explicitMonthFound = true;
       }
       
-      const isPettyCash = file.name.includes('קופה קטנה');
-      const isGett = file.name.includes('גט') && file.name.includes('טקסי');
+      const isPettyCash = cleanFull.includes('קופה קטנה');
+      const isGett = cleanFull.includes('גט') || cleanFull.includes('טאקסי') || cleanFull.includes('טקסי') || cleanFull.includes('gett') || cleanFull.includes('הסעות');
       
       if (true) {
         if (targetYear === -1) {
@@ -337,14 +337,15 @@ onmessage = function(e) {
           const isInvPettyCash = inv.orderNum === 'קופה קטנה' || inv.orderType === 'petty' || String(inv.notes||'').includes('קופה קטנה') || String(inv.txNum||'').includes('קופה קטנה') || String(inv.orderDesc||'').includes('קופה קטנה') || String(inv.supName||'').includes('קופה קטנה') || String(supKws).includes('קופה קטנה');
           if (isPettyCash && !isInvPettyCash) continue;
           
-          const isInvGett = String(inv.supName||'').toLowerCase().includes('gett') || String(inv.supName||'').includes('גט') || String(inv.notes||'').includes('גט') || String(inv.orderDesc||'').includes('גט');
+          const isInvGett = String(inv.supName||'').toLowerCase().includes('gett') || String(inv.supName||'').includes('גט') || String(inv.supName||'').includes('טאקסי') || String(inv.supName||'').includes('טקסי') || String(inv.orderNum||'').includes('הסעות') || String(inv.notes||'').includes('גט') || String(inv.orderDesc||'').includes('גט') || String(inv.orderDesc||'').includes('הסעות');
           if (isGett && !isInvGett) continue;
           
           let supplierScore = 0;
+          if (isGett && isInvGett) supplierScore = 35;
           if (inv.supName) {
              const cleanSup = cleanSupText(inv.supName);
              if (cleanSup.length >= 2 && cleanFull.includes(cleanSup)) {
-               supplierScore = 30;
+               supplierScore = Math.max(supplierScore, 30);
              } else {
                let foundAlias = false;
                const spAliases = spScannerAliases || {};
@@ -353,7 +354,7 @@ onmessage = function(e) {
                  const targetClean = cleanSupText(spAliases[alias]);
                  if (targetClean === cleanSup || spAliases[alias] === inv.supName || spAliases[alias] === baseName) {
                    if (cleanFull.includes(aliasClean)) {
-                     supplierScore = 25;
+                     supplierScore = Math.max(supplierScore, 25);
                      foundAlias = true;
                      break;
                    }
@@ -365,7 +366,7 @@ onmessage = function(e) {
                  if (exData && exData.keywords) {
                    const kws = exData.keywords.split(',').map(k => cleanSupText(k)).filter(Boolean);
                    if (kws.some(k => cleanFull.includes(k))) {
-                     supplierScore = 20;
+                     supplierScore = Math.max(supplierScore, 20);
                      foundAlias = true;
                    }
                  }
@@ -374,12 +375,12 @@ onmessage = function(e) {
                if (!foundAlias && inv.orderDesc) {
                  const descWords = cleanSupText(inv.orderDesc).split(/\s+/).filter(w => w.length >= 2 && !['של','עם','על','את'].includes(w));
                  if (descWords.some(w => cleanFull.includes(w))) {
-                   supplierScore = 15;
+                   supplierScore = Math.max(supplierScore, 15);
                    foundAlias = true;
                  }
                }
                
-               if (!foundAlias) {
+               if (!foundAlias && supplierScore === 0) {
                   const firstWord = cleanSup.split(/\s+/).filter(w => w.length >= 2)[0];
                   if (firstWord && cleanFull.includes(firstWord)) supplierScore = 10;
                 }
@@ -387,7 +388,7 @@ onmessage = function(e) {
           }
           
           if (isPettyCash && supplierScore === 0) supplierScore = 20;
-          if (isGett && supplierScore === 0) supplierScore = 10;
+          if (isGett && isInvGett && supplierScore === 0) supplierScore = 35;
 
           if (supplierScore === 0) continue; 
           
