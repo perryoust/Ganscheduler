@@ -334,7 +334,7 @@ onmessage = function(e) {
         for (const inv of invoices) {
           const baseName = inv.supName ? String(inv.supName).trim().replace(/[.$#[\]/]/g, '') : '';
           const supKws = (supEx && (supEx[inv.supName] || supEx[baseName])) ? (supEx[inv.supName] || supEx[baseName]).keywords || '' : ''; 
-          const isInvPettyCash = inv.orderNum === 'קופה קטנה' || String(inv.notes||'').includes('קופה קטנה') || String(inv.txNum||'').includes('קופה קטנה') || String(inv.orderDesc||'').includes('קופה קטנה') || String(inv.supName||'').includes('קופה קטנה') || String(supKws).includes('קופה קטנה');
+          const isInvPettyCash = inv.orderNum === 'קופה קטנה' || inv.orderType === 'petty' || String(inv.notes||'').includes('קופה קטנה') || String(inv.txNum||'').includes('קופה קטנה') || String(inv.orderDesc||'').includes('קופה קטנה') || String(inv.supName||'').includes('קופה קטנה') || String(supKws).includes('קופה קטנה');
           if (isPettyCash && !isInvPettyCash) continue;
           
           const isInvGett = String(inv.supName||'').toLowerCase().includes('gett') || String(inv.supName||'').includes('גט') || String(inv.notes||'').includes('גט') || String(inv.orderDesc||'').includes('גט');
@@ -386,7 +386,7 @@ onmessage = function(e) {
              }
           }
           
-          if (isPettyCash && supplierScore < 20) supplierScore = 0;
+          if (isPettyCash && supplierScore === 0) supplierScore = 20;
           if (isGett && supplierScore === 0) supplierScore = 10;
 
           if (supplierScore === 0) continue; 
