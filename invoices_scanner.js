@@ -268,6 +268,8 @@ const filesFound = [];
           const inv = window.INVOICES.find(i => 
             (update.id && String(i.id) === String(update.id)) || 
             (update.serialNum && i.serialNum && String(i.serialNum) === String(update.serialNum)) ||
+            (update.txNum && i.txNum && String(i.txNum).trim() === String(update.txNum).trim() && (update.supName ? String(i.supName).trim() === String(update.supName).trim() : true)) ||
+            (update.num && i.num && String(i.num).trim() === String(update.num).trim() && (update.supName ? String(i.supName).trim() === String(update.supName).trim() : true)) ||
             (update.orderNum && i.orderNum && String(i.orderNum).trim() === String(update.orderNum).trim() && (update.supName ? String(i.supName).trim() === String(update.supName).trim() : true))
           );
           if (inv) {
