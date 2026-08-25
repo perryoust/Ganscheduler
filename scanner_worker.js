@@ -478,6 +478,8 @@ onmessage = function(e) {
                 matchedInvoicesToUpdate.push({
                     id: inv.id,
                     serialNum: inv.serialNum,
+                    txNum: inv.txNum,
+                    num: inv.num,
                     orderNum: inv.orderNum,
                     supName: inv.supName,
                     type: t,
