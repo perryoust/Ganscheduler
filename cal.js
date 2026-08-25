@@ -1463,7 +1463,7 @@ function renderPairDay(evs,gids){
 function renderNormalWeek(evs, ws, f){
   const tday=window.td();
   const days=window.getNextWorkDays(ws, 5);
-
+  const we = days[days.length - 1];
 
   let gids=[...new Set(evs.map(s=>s.g))];
   if(f.gids&&f.gids.length) gids=f.gids;
