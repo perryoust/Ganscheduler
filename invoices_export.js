@@ -248,6 +248,31 @@ window.promptDuplicateResolution = function(newItem, existingItem) {
 };
 
 window.importInvoices = async function(input, skipConfirm) {
+    // Ensure all invoices are in memory
+    if (window._invoicesPartialLoad && window.loadAllInvoices) {
+      window.showToast?.('טוען את כל החשבוניות מהענן...');
+      const all = await window.loadAllInvoices();
+      if (all && all.length > 0) {
+        window.INVOICES = all;
+        window._invoicesPartialLoad = false;
+      }
+    }
+
+    // Sanitize any corrupt/unrelated files from previous versions (stickers, address lists)
+    if (Array.isArray(window.INVOICES)) {
+      const badStrs = ['רשימת כתובות', 'מדבקות', 'מדבקת', 'לוגו', 'מערכת שעות', 'סידור עבודה', 'נוכחות'];
+      window.INVOICES.forEach(inv => {
+        ['file_order', 'file_tx', 'file_tax'].forEach(fk => {
+          if (inv[fk] && inv[fk].path) {
+            const p = decodeURIComponent(inv[fk].path).toLowerCase();
+            if (badStrs.some(b => p.includes(b)) && !p.includes('חשבונית') && !p.includes('עסקה') && !p.includes('קבלה') && !p.includes('הזמנ')) {
+              delete inv[fk];
+            }
+          }
+        });
+      });
+    }
+
     if(!skipConfirm && await window.asyncConfirm(`<b>שים לב:</b><br><br>האם למחוק קודם את כל החשבוניות (וכל הקבצים שקישרת אליהן עד כה) ולייבא את האקסל כרשימה חדשה לגמרי?<br><br>• בחר <b>אישור</b> כדי למחוק הכל לפני הייבוא (מומלץ כדי לנקות טעויות מהעבר, תצטרך לסרוק את התיקייה שוב).<br>• בחר <b>ביטול</b> כדי לעדכן חשבוניות קיימות ולשמור על קבצים מקושרים.`)) { window.INVOICES = []; if(window.save) await window.save(true); }
     
     let file;
