@@ -1019,8 +1019,9 @@ window.openNewYearWizard = function() {
   const toEl = document.getElementById('nyw-custom-end');
   if (toEl) toEl.value = dates.end || '';
   
-  // Build garden checkbox list grouped by city
-  const allGardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+  // Build garden checkbox list grouped by city (deduplicated by ID)
+  const rawGardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+  const allGardens = Array.from(new Map(rawGardens.map(g => [Number(g.id), g])).values());
   const byCity = {};
   allGardens.forEach(g => {
     const city = g.city || 'אחר';
@@ -1095,8 +1096,9 @@ window.executeNewYear = async function() {
     const checks = document.querySelectorAll('#nyw-garden-list input[name="nyw-garden"]:checked');
     const selectedGardenIds = new Set([...checks].map(c => parseInt(c.value)));
     
-    // Build full garden objects from current gardens
-    const allGardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+    // Build full garden objects from current gardens (deduplicated)
+    const rawAll = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+    const allGardens = Array.from(new Map(rawAll.map(g => [Number(g.id), g])).values());
     const gardensForNewYear = allGardens.filter(g => selectedGardenIds.has(g.id));
     
     if (gardensForNewYear.length === 0) {
