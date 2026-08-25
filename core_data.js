@@ -386,10 +386,18 @@ function _applyYearData(o){
   window.spScannerAliases = o.spScannerAliases || {};
   window.spScannerFolderLinks = o.spScannerFolderLinks || window.spScannerFolderLinks || {};
 
-  if(Array.isArray(o.pairs)&&o.pairs.length>0){
-    window.pairs = o.pairs.map(p=>({...p,ids:p.ids.map(id=>parseInt(id)).filter(id=>G(id).id)}));
-    window.pairs = pairs.filter(p=>p.ids.length>=2);
-  } else { initPairs(); }
+  const rawPairs = Array.isArray(o.pairs) ? o.pairs : (o.pairs && typeof o.pairs === 'object' ? Object.values(o.pairs) : null);
+  if (rawPairs !== null) {
+    window.pairs = rawPairs.map(p => ({
+      ...p,
+      ids: (p.ids || []).map(id => parseInt(id)).filter(id => G(id).id)
+    }));
+    window.pairs = window.pairs.filter(p => p.ids.length >= 2);
+  } else if (!window.CURRENT_YEAR || window.CURRENT_YEAR === 'tashpav') {
+    initPairs();
+  } else {
+    window.pairs = [];
+  }
   const localVat = window._safeLS.getItem('ganv5_vat');
   if (localVat) try { window.VAT_RATE = JSON.parse(localVat); } catch(e){}
   else window.VAT_RATE = o.vatRate || 18;
@@ -757,9 +765,14 @@ function initPairs(){
 
 
 function G(id){
+  const numId = Number(id);
+  if (Array.isArray(window._GARDENS_ALL)) {
+    const found = window._GARDENS_ALL.find(g => Number(g.id) === numId);
+    if (found) return found;
+  }
   const gdns = window.GARDENS || [];
   const extra = window._GARDENS_EXTRA || [];
-  return gdns.find(g=>Number(g.id)===Number(id)) || extra.find(g=>Number(g.id)===Number(id)) || {};
+  return gdns.find(g => Number(g.id) === numId) || extra.find(g => Number(g.id) === numId) || {};
 }
 function gcls(g){
   if (!g || !g.cls) return 'גנים';
