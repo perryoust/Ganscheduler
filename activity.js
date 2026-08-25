@@ -974,14 +974,25 @@ window.openSP = function(id) {
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div class="fg"><label style="font-size:.7rem;font-weight:700">📚 ספק</label>
-            <select id="rr-sup" onchange="window.rrSupChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">${(window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : []).map(s2=>{ const disp = window.supNameLabel(s2.name) !== s2.name ? window.supNameLabel(s2.name) + ' (' + s2.name + ')' : s2.name; return `<option value="${s2.name}" ${s2.name===s.a?'selected':''}>${disp}</option>`; }).join('')}</select>
+            <select id="rr-sup" onchange="window.rrSupChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">${(window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : []).map(s2=>{ const disp = window.supNameLabel(s2.name) !== s2.name ? window.supNameLabel(s2.name) + ' (' + s2.name + ')' : s2.name; return `<option value="${s2.name}" ${(s2.name||'').trim()===(s.a||'').trim()?'selected':''}>${disp}</option>`; }).join('')}</select>
           </div>
           <div class="fg"><label style="font-size:.7rem;font-weight:700">🎯 פעילות</label>
             <select id="rr-act" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"><option value="">— ללא שינוי —</option>${(window.getSupActs ? window.getSupActs(s.a) : []).map(a=>`<option value="${a}" ${a===s.act?'selected':''}>${a}</option>`).join('')}</select>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr;gap:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div class="fg"><label style="font-size:.7rem;font-weight:700">קבוצות</label><input type="number" id="rr-grp" value="${s.grp||1}" min="1" max="10" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
+          <div class="fg"><label style="font-size:.7rem;font-weight:700">סוג פעילות</label>
+            <select id="rr-tp" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">
+              <option value="חוג" ${!s.tp||s.tp==='חוג'?'selected':''}>חוג</option>
+              <option value="חוג צהרון" ${s.tp==='חוג צהרון'?'selected':''}>חוג צהרון</option>
+              <option value="חוג בוקר" ${s.tp==='חוג בוקר'?'selected':''}>חוג בוקר</option>
+              <option value="חופשה" ${s.tp==='חופשה'?'selected':''}>חופשה</option>
+              <option value="קייטנה" ${s.tp==='קייטנה'?'selected':''}>קייטנה</option>
+              <option value="גיבוי" ${s.tp==='גיבוי'?'selected':''}>גיבוי</option>
+            </select>
+          </div>
+        </div>
           <div class="fg"><label style="font-size:.7rem;font-weight:700;display:flex;align-items:center;gap:3px;cursor:pointer" title="הורד סימון כדי לא לשבץ פעילות בגן זה"><input type="checkbox" id="rr-sync-partner-${s.g}" checked style="width:13px;height:13px;accent-color:#1a237e;margin:0"> שעה (${g.name})</label><input type="time" id="rr-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
           ${spPair ? spPair.ids.filter(id=>Number(id)!==Number(s.g)).map((pid, idx) => {
                  let pInfo = partnerInfo.find(pi => Number(pi.pg.id) === Number(pid));
@@ -1567,6 +1578,8 @@ async function saveReplaceRecur(id) {
     const sup = document.getElementById('rr-sup').value;
     let act = document.getElementById('rr-act').value;
     if (!act && sup === s.a) act = s.act;
+    const tpEl = document.getElementById('rr-tp');
+    const newTp = tpEl ? tpEl.value : (s.tp || 'חוג');
     const time = document.getElementById('rr-time').value;
       const grpInput = document.getElementById('rr-grp');
       const newGrp = grpInput ? parseInt(grpInput.value, 10) : null;
@@ -1640,7 +1653,7 @@ async function saveReplaceRecur(id) {
           const eid = newRecId + count;
           // Add for primary garden
           window.SCH.push({
-            id: eid, g: s.g, d: ds, a: sup, act: act, t: time, st: 'ok', 
+            id: eid, g: s.g, d: ds, a: sup, act: act, t: time, st: 'ok', tp: newTp,
             nt: '', _recId: newRecId + '_' + cur.getDay(), grp: newGrp || s.grp || 1
           });
           // Add for partners if synced
@@ -1657,7 +1670,7 @@ async function saveReplaceRecur(id) {
                     if (specificInput) specificPartnerTime = specificInput.value;
                     console.log('PID:', pid, 'SyncBox:', !!syncBox, 'InputFound:', !!specificInput, 'Time:', specificPartnerTime);
                     window.SCH.push({
-                      id: eid + (idx+1)*5000, g: pid, d: ds, a: sup, act: act, t: specificPartnerTime, st: 'ok',
+                      id: eid + (idx+1)*5000, g: pid, d: ds, a: sup, act: act, t: specificPartnerTime, st: 'ok', tp: newTp,
                     nt: '', _recId: newRecId + '_' + cur.getDay(), grp: newGrp || s.grp || 1
                   });
                 }
