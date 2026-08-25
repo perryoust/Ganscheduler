@@ -631,8 +631,7 @@ async function saveNewSched(){
       if(selDays.includes(cur.getDay())){
         const ds=window.d2s(cur);
         const _hol2=window.getHolidayInfo(ds,window.G(gid).city||null,window.gcls(window.G(gid))||null);
-        const isCamp = _hol2 && (_hol2.type === 'camp' || String(_hol2.name||'').includes('קייטנ'));
-        if(!_hol2||_hol2.type==='info'||(_hol2.canSched && !isCamp)){
+        if(!_hol2||_hol2.type==='info'){
           const eid=recurring_id+count;
           const ev={id:eid,g:gid,d:ds,a:sup,act:actType,tp:evTp||'חוג',t:recurTime,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp,_recId:recurring_id + '_' + cur.getDay()};
           window.SCH.push(ev);

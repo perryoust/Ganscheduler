@@ -646,9 +646,8 @@ async function saveHoliday(){
     }
   });
 
-  // Retroactive: if holiday blocks scheduling (or is a camp), cancel matching fixed-schedule events for selected cities
-  const isCampHoliday = (holType === 'camp' || String(name||'').includes('קייטנ'));
-  if((!canSched || isCampHoliday) && (holType==='vacation'||holType==='noact'||holType==='camp'||holType==='event')){
+  // Retroactive: fixed schedules should always skip holidays regardless of canSched
+  if(holType==='vacation'||holType==='noact'||holType==='camp'||holType==='event'){
     let removed=0;
     SCH.forEach(ev=>{
       if(ev.d<from||ev.d>to) return;
