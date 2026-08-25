@@ -577,34 +577,43 @@ reader.onload = async function(e) {
         const cleanDoc = (d) => String(d || '').replace(/\D/g, '').replace(/^0+/, '');
 
         const existingIdx = window.INVOICES.findIndex(inv => {
-          // 1. Exact serialNum match (מס"ד)
+          const sameSup = cleanSupText(inv.supName) === cleanSupText(sName) || (window.supBase ? cleanSupText(window.supBase(inv.supName)) === cleanSupText(window.supBase(sName)) : false);
+
+          // 1. TOP PRIORITY: Match by Transaction Invoice Number (מס' חשבון עסקה) + Supplier Name!
+          if (sameSup && item.txNum && inv.txNum) {
+            const cleanItemTx = cleanDoc(item.txNum);
+            const cleanInvTx = cleanDoc(inv.txNum);
+            if (String(item.txNum).trim() === String(inv.txNum).trim() || (cleanItemTx.length >= 2 && cleanItemTx === cleanInvTx)) {
+              return true;
+            }
+          }
+
+          // 2. TOP PRIORITY: Match by Tax Invoice Number (מס' חשבונית מס / קבלה) + Supplier Name!
+          if (sameSup && item.num && inv.num) {
+            const cleanItemNum = cleanDoc(item.num);
+            const cleanInvNum = cleanDoc(inv.num);
+            if (String(item.num).trim() === String(inv.num).trim() || (cleanItemNum.length >= 2 && cleanItemNum === cleanInvNum)) {
+              return true;
+            }
+          }
+
+          // 3. Exact serialNum match (מס"ד)
           if (item.serialNum && inv.serialNum && String(item.serialNum).trim() === String(inv.serialNum).trim()) {
             return true;
           }
 
-          // 2. Unique 10-digit order number match
-          if (item.orderNum && inv.orderNum && cleanDoc(item.orderNum).length >= 6 && cleanDoc(item.orderNum) === cleanDoc(inv.orderNum)) {
-            return true;
+          // 4. Unique order number (containing digits)
+          if (sameSup && item.orderNum && inv.orderNum && /\d{4,}/.test(item.orderNum)) {
+            const cleanItemOrder = cleanDoc(item.orderNum);
+            const cleanInvOrder = cleanDoc(inv.orderNum);
+            if (String(item.orderNum).trim() === String(inv.orderNum).trim() || (cleanItemOrder.length >= 4 && cleanItemOrder === cleanInvOrder)) {
+              return true;
+            }
           }
 
-          const sameSup = cleanSupText(inv.supName) === cleanSupText(sName) || (window.supBase ? cleanSupText(window.supBase(inv.supName)) === cleanSupText(window.supBase(sName)) : false);
           if (!sameSup) return false;
-          
-          const sameMonth = String(inv.orderMonth || '').trim() === oMonth;
 
-          // Match by Tax Invoice Number if present
-          if (item.num && inv.num && (String(item.num).trim() === String(inv.num).trim() || (cleanDoc(item.num).length >= 2 && cleanDoc(item.num) === cleanDoc(inv.num)))) {
-            return true;
-          }
-          // Match by Transaction Invoice Number if present
-          if (item.txNum && inv.txNum && (String(item.txNum).trim() === String(inv.txNum).trim() || (cleanDoc(item.txNum).length >= 2 && cleanDoc(item.txNum) === cleanDoc(inv.txNum)))) {
-            return true;
-          }
-          // Match by Order Number if present and contains digits
-          if (item.orderNum && inv.orderNum && /\d{3,}/.test(item.orderNum) && (String(item.orderNum).trim() === String(inv.orderNum).trim() || (cleanDoc(item.orderNum).length >= 3 && cleanDoc(item.orderNum) === cleanDoc(inv.orderNum)))) {
-            return true;
-          }
-          // Cross-match between Transaction Invoice and Tax Invoice numbers
+          // 5. Cross-match between Transaction Invoice and Tax Invoice numbers
           if (item.txNum && inv.num && (String(item.txNum).trim() === String(inv.num).trim() || (cleanDoc(item.txNum).length >= 2 && cleanDoc(item.txNum) === cleanDoc(inv.num)))) {
             return true;
           }
@@ -612,7 +621,8 @@ reader.onload = async function(e) {
             return true;
           }
 
-          // Fallback to conservative match (supplier + description + amount + month)
+          // 6. Fallback match (supplier + description + amount + month)
+          const sameMonth = (String(inv.orderMonth || '').trim() === oMonth) || (inv.actMonth && item.actMonth && inv.actMonth === item.actMonth);
           const sameDesc = String(inv.orderDesc || '').trim() === oDesc;
           const sameTotal = parseFloat(inv.orderTotal || 0).toFixed(2) === oTotal;
           return sameDesc && sameTotal && (sameMonth || !oMonth || !inv.orderMonth);
