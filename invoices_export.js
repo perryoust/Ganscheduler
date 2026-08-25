@@ -297,7 +297,6 @@ reader.onload = async function(e) {
 
       // Dynamically find the real header row
       let headerRowIndex = 0;
-      let isComplexFormat = false;
       let headerStrs = [];
       for (let i = 0; i < Math.min(10, rawRows.length); i++) {
         if (!rawRows[i]) continue;
@@ -305,14 +304,16 @@ reader.onload = async function(e) {
         const rowStrs = rawRows[i].map(c => String(c || '').trim());
         const hasSupplier = rowStrs.some(c => c.includes('ספק'));
         const hasDate = rowStrs.some(c => c.includes('תאריך') || c.includes('חודש'));
-        const hasDescOrNum = rowStrs.some(c => c.includes('פירוט') || c.includes('מספר') || c.includes('מס\''));
+        const hasDescOrNum = rowStrs.some(c => c.includes('פירוט') || c.includes('הזמנ') || c.includes('מספר') || c.includes('מס\''));
         
-        if (rowCells > 5 && hasSupplier && hasDate && hasDescOrNum) {
+        if (rowCells > 4 && hasSupplier && (hasDate || hasDescOrNum)) {
           headerRowIndex = i;
-          headerStrs = rowStrs;
-          if (headerStrs.filter(x => x === 'הערות').length > 1 || headerStrs.filter(x => x.includes('מע"מ')).length > 2) {
-            isComplexFormat = true;
-          }
+          // Also merge with previous row if previous row had category banners (e.g. "הזמנות רכש", "חשבון עיסקה")
+          const prevRow = i > 0 ? rawRows[i-1] : null;
+          headerStrs = rowStrs.map((s, cIdx) => {
+            const prev = prevRow && prevRow[cIdx] ? String(prevRow[cIdx]).trim() : '';
+            return ((prev && prev !== s) ? prev + ' ' : '') + s;
+          });
           break;
         }
       }
@@ -321,6 +322,7 @@ reader.onload = async function(e) {
       const map = {
         "מס' הזמנת רכש (רץ)": "orderNum",
         "תאריך הזמנה מדוייק": "orderDate",
+        "תאריך הזמנה": "orderDate",
         "שם הספק (שרשום ע\"ג החשבונית)": "supName",
         "פירוט הרכישה": "orderDesc",
         "סיווג הרכישה(העשרה/תפעול/ארוחות בוקר/נסיעות/אחר)": "orderType",
@@ -338,7 +340,6 @@ reader.onload = async function(e) {
         "מס' חשבונית/קבלה": "num",
         "תאריך החשבונית": "date",
         "מספר הזמנה": "orderNum",
-        "תאריך הזמנה": "orderDate",
         "שם הספק": "supName",
         "פירוט": "orderDesc",
         "סהכ הזמנה כולל מעמ": "orderTotal",
@@ -366,7 +367,7 @@ reader.onload = async function(e) {
         
         if (h.includes('מס"ד') || h.includes("מס''ד") || h.includes("מס'ד") || h.includes("מסד") || h.includes("מס׳׳ד")) return 'serialNum';
         if (h.includes('הזמנ') && (h.includes('מס') || h.includes('רץ'))) return 'orderNum';
-        if (h.includes('תאריך') && h.includes('הזמנ')) return 'orderDate';
+        if (h.includes('תאריך') && (h.includes('הזמנ') || colIdx <= 3)) return 'orderDate';
         if (h.includes('סיווג') || (h.includes('סוג') && !h.includes('מוסד'))) return 'orderType';
         if (h.includes('ספק')) return 'supName';
         if (h.includes('פירוט')) return 'orderDesc';
@@ -401,6 +402,64 @@ reader.onload = async function(e) {
         colMapping = headerStrs.map((h, idx) => mapHeaderToKey(h, idx));
       }
 
+      const parseDateToISO = (val) => {
+        if (!val) return '';
+        if (val instanceof Date) return !isNaN(val.getTime()) ? val.toISOString().slice(0, 10) : '';
+        if (typeof val === 'number' || (!isNaN(val) && String(val).trim().length >= 4 && String(val).trim().length <= 5)) {
+          const parsed = parseFloat(val);
+          if (!isNaN(parsed) && parsed > 20000 && parsed < 60000) {
+            const d = new Date(Math.round((parsed - 25569) * 86400 * 1000));
+            if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+          }
+        }
+        const s = String(val).trim();
+        if (!s) return '';
+        if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) {
+          const p = s.split('-');
+          return `${p[0]}-${p[1].padStart(2,'0')}-${p[2].padStart(2,'0')}`;
+        }
+        const parts = s.split(/[-/.]/);
+        if (parts.length === 3) {
+          let d = parseInt(parts[0], 10);
+          let m = parseInt(parts[1], 10);
+          let y = parseInt(parts[2], 10);
+          if (y < 100) y += 2000;
+          if (m > 12 && d <= 12) { const tmp = d; d = m; m = tmp; }
+          if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2000 && y <= 2100) {
+            return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          }
+        }
+        return '';
+      };
+
+      const parseMonthCode = (val) => {
+        if (!val) return '';
+        const s = String(val).trim().toLowerCase();
+        const mHeb = {
+          'ינו': '01', 'jan': '01',
+          'פבר': '02', 'feb': '02',
+          'מרץ': '03', 'מרס': '03', 'mar': '03',
+          'אפר': '04', 'apr': '04',
+          'מאי': '05', 'may': '05',
+          'יונ': '06', 'jun': '06',
+          'יול': '07', 'jul': '07',
+          'אוג': '08', 'aug': '08',
+          'ספט': '09', 'sep': '09',
+          'אוק': '10', 'oct': '10',
+          'נוב': '11', 'nov': '11',
+          'דצמ': '12', 'dec': '12'
+        };
+        for (const [k, code] of Object.entries(mHeb)) {
+          if (s.includes(k)) return code;
+        }
+        const digits = s.replace(/\D/g, '');
+        if (digits.length === 1 || digits.length === 2) {
+          const num = parseInt(digits, 10);
+          if (num >= 1 && num <= 12) return String(num).padStart(2, '0');
+        }
+        return '';
+      };
+
       for (let i = headerRowIndex + 1; i < rawRows.length; i++) {
         const row = rawRows[i];
         if (!row || row.length === 0) continue;
@@ -423,38 +482,27 @@ reader.onload = async function(e) {
           });
         }
 
+        // Format dates
+        ["orderDate", "txDate", "date"].forEach(dk => {
+          if (item[dk]) {
+            const parsedIso = parseDateToISO(item[dk]);
+            if (parsedIso) item[dk] = parsedIso;
+          }
+        });
+
         // Normalize cross-referenced field names
         if (item.orderAssign && !item.assignment) item.assignment = item.orderAssign;
         if (item.assignment && !item.orderAssign) item.orderAssign = item.assignment;
-        if (item.orderMonth && !item.actMonth) item.actMonth = item.orderMonth;
+        
+        const mCode = parseMonthCode(item.orderMonth || item.actMonth);
+        if (mCode) item.actMonth = mCode;
+        if (item.orderMonth && !item.actMonth && mCode) item.actMonth = mCode;
         if (item.actMonth && !item.orderMonth) item.orderMonth = item.actMonth;
+
         if (item.orderNotes && !item.notes) item.notes = item.orderNotes;
         if (item.notes && !item.orderNotes) item.orderNotes = item.notes;
 
         if (!item.supName) continue; // Skip invalid rows
-
-        // Format dates if they are numeric (Excel serial format) or strings
-        ["orderDate", "txDate", "date"].forEach(dk => {
-          if (item[dk]) {
-            if (typeof item[dk] === "number" || (!isNaN(item[dk]) && String(item[dk]).trim().length < 6)) {
-              // Convert Excel serial date
-              const parsed = parseFloat(item[dk]);
-              if(!isNaN(parsed) && parsed > 20000) {
-                 const d = new Date(Math.round((parsed - 25569) * 86400 * 1000));
-                 item[dk] = d.toISOString().slice(0, 10);
-              }
-            } else if (typeof item[dk] === "string" && item[dk].includes('/')) {
-              // Handle "DD/MM/YYYY" format explicitly 
-              const parts = item[dk].split(/[-/]/);
-              if(parts.length === 3) {
-                 const y = parts[2].length === 2 ? '20'+parts[2] : parts[2];
-                 const m = parts[1].padStart(2, '0');
-                 const d = parts[0].padStart(2, '0');
-                 item[dk] = `${y}-${m}-${d}`;
-              }
-            }
-          }
-        });
 
         // Helper to check if a numeric value is strictly positive (ignores 0, 0.0, ₪0, etc.)
         const isPositiveNum = (val) => {
