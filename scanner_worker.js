@@ -29,6 +29,12 @@ onmessage = function(e) {
     const decodedLink = decodeURIComponent(file.link);
     const fullText = file.name + ' ' + decodedLink;
     const cleanFull = cleanSupText(fullText);
+
+    // Ignore non-invoice generic files (stickers, address lists, logo sheets, etc.)
+    const isGenericNonInvoice = ['רשימת כתובות', 'מדבקות', 'מדבקת', 'לוגו', 'מערכת שעות', 'סידור עבודה', 'נוכחות'].some(ign => cleanFull.includes(ign));
+    if (isGenericNonInvoice && !cleanFull.includes('חשבונית') && !cleanFull.includes('עסקה') && !cleanFull.includes('קבלה') && !cleanFull.includes('הזמנ')) {
+      continue;
+    }
     
     const extractedNumbers = [];
     const addNum = (str, ctx) => {
@@ -344,8 +350,8 @@ onmessage = function(e) {
           if (isGett && isInvGett) supplierScore = 35;
           if (inv.supName) {
              const cleanSup = cleanSupText(inv.supName);
-             if (cleanSup.length >= 2 && cleanFull.includes(cleanSup)) {
-               supplierScore = Math.max(supplierScore, 30);
+             if (cleanSup.length >= 3 && cleanFull.includes(cleanSup)) {
+               supplierScore = Math.max(supplierScore, 40);
              } else {
                let foundAlias = false;
                const spAliases = spScannerAliases || {};
@@ -354,7 +360,7 @@ onmessage = function(e) {
                  const targetClean = cleanSupText(spAliases[alias]);
                  if (targetClean === cleanSup || spAliases[alias] === inv.supName || spAliases[alias] === baseName) {
                    if (cleanFull.includes(aliasClean)) {
-                     supplierScore = Math.max(supplierScore, 25);
+                     supplierScore = Math.max(supplierScore, 35);
                      foundAlias = true;
                      break;
                    }
@@ -365,25 +371,12 @@ onmessage = function(e) {
                  const exData = supEx[baseName] || supEx[inv.supName];
                  if (exData && exData.keywords) {
                    const kws = exData.keywords.split(',').map(k => cleanSupText(k)).filter(Boolean);
-                   if (kws.some(k => cleanFull.includes(k))) {
-                     supplierScore = Math.max(supplierScore, 20);
+                   if (kws.some(k => k.length >= 3 && cleanFull.includes(k))) {
+                     supplierScore = Math.max(supplierScore, 30);
                      foundAlias = true;
                    }
                  }
                }
-               
-               if (!foundAlias && inv.orderDesc) {
-                 const descWords = cleanSupText(inv.orderDesc).split(/\s+/).filter(w => w.length >= 2 && !['של','עם','על','את'].includes(w));
-                 if (descWords.some(w => cleanFull.includes(w))) {
-                   supplierScore = Math.max(supplierScore, 15);
-                   foundAlias = true;
-                 }
-               }
-               
-               if (!foundAlias && supplierScore === 0) {
-                  const firstWord = cleanSup.split(/\s+/).filter(w => w.length >= 2)[0];
-                  if (firstWord && cleanFull.includes(firstWord)) supplierScore = 10;
-                }
              }
           }
           
