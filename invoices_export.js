@@ -651,10 +651,14 @@ reader.onload = async function(e) {
           }
 
           // 6. Fallback match (supplier + description + amount + month)
-          const sameMonth = (String(inv.orderMonth || '').trim() === oMonth) || (inv.actMonth && item.actMonth && inv.actMonth === item.actMonth);
-          const sameDesc = String(inv.orderDesc || '').trim() === oDesc;
+          const sameMonth = (String(inv.orderMonth || '').trim() === oMonth) || (inv.actMonth && item.actMonth && inv.actMonth === item.actMonth) || (!oMonth && !inv.orderMonth);
+          const sameDesc = String(inv.orderDesc || '').trim() === oDesc || oDesc === '' || String(inv.orderDesc || '').trim() === '';
           const sameTotal = parseFloat(inv.orderTotal || 0).toFixed(2) === oTotal;
-          return sameDesc && sameTotal && (sameMonth || !oMonth || !inv.orderMonth);
+          
+          // If total matches perfectly and is > 0, it's highly likely the same invoice
+          if (sameTotal && parseFloat(oTotal) > 0 && sameMonth) return true;
+          
+          return sameDesc && sameTotal && sameMonth;
         });
 
         // Auto-infer invoice status according to AGENTS.md business rules
