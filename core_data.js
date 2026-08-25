@@ -376,6 +376,13 @@ function _applyYearData(o){
   } else {
     window._GARDENS_ALL = null; // Fall back to GARDENS + _GARDENS_EXTRA
   }
+  if (Array.isArray(o.activeGardens) && o.activeGardens.length > 0) {
+    window.activeGardens = new Set(o.activeGardens.map(Number));
+  } else if (Array.isArray(window._GARDENS_ALL) && window._GARDENS_ALL.length > 0) {
+    window.activeGardens = new Set(window._GARDENS_ALL.map(g => Number(g.id)));
+  } else {
+    window.activeGardens = null;
+  }
   window.spScannerAliases = o.spScannerAliases || {};
   window.spScannerFolderLinks = o.spScannerFolderLinks || window.spScannerFolderLinks || {};
 

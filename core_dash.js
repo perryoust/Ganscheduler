@@ -390,7 +390,7 @@ function ST(t){
   setTimeout(window._fitScrollAreas, 120);
 }
 
-function getAllGardens(){return [...GARDENS,..._GARDENS_EXTRA];}
+function getAllGardens(){ return typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])]; }
 function openAddGarden(){
   document.getElementById('addg-name').value='';
   document.getElementById('addg-st').value='';
