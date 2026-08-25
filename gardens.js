@@ -646,8 +646,9 @@ async function saveHoliday(){
     }
   });
 
-  // Retroactive: if holiday blocks scheduling, cancel matching fixed-schedule events for selected cities
-  if(!canSched&&(holType==='vacation'||holType==='noact'||holType==='camp'||holType==='event')){
+  // Retroactive: if holiday blocks scheduling (or is a camp), cancel matching fixed-schedule events for selected cities
+  const isCampHoliday = (holType === 'camp' || String(name||'').includes('קייטנ'));
+  if((!canSched || isCampHoliday) && (holType==='vacation'||holType==='noact'||holType==='camp'||holType==='event')){
     let removed=0;
     SCH.forEach(ev=>{
       if(ev.d<from||ev.d>to) return;
