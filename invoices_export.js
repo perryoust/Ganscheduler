@@ -631,8 +631,8 @@ reader.onload = async function(e) {
             return true;
           }
 
-          // 4. Unique order number (containing digits)
-          if (sameSup && item.orderNum && inv.orderNum && /\d{4,}/.test(item.orderNum)) {
+          // 4. Unique order number (must not be empty, handles text like חוגים or digits)
+          if (sameSup && item.orderNum && inv.orderNum && String(item.orderNum).trim() !== '') {
             const cleanItemOrder = cleanDoc(item.orderNum);
             const cleanInvOrder = cleanDoc(inv.orderNum);
             if (String(item.orderNum).trim() === String(inv.orderNum).trim() || (cleanItemOrder.length >= 4 && cleanItemOrder === cleanInvOrder)) {
