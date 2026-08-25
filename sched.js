@@ -266,6 +266,18 @@ function renderPartnerTable(){
   
   const allIds = Array.from(allIdsSet);
 
+  // Preserve existing inputs from DOM before re-rendering
+  const existingTimes = {};
+  document.querySelectorAll('.ns-syn-time').forEach(inp => {
+    const pGid = inp.getAttribute('data-gid');
+    if (pGid && inp.value) existingTimes[Number(pGid)] = inp.value;
+  });
+  const existingChecks = {};
+  document.querySelectorAll('.ns-syn-chk').forEach(chk => {
+    const pGid = chk.value;
+    if (pGid) existingChecks[Number(pGid)] = chk.checked;
+  });
+
   let rowsHtml = '';
   
   if(!allIds.length){
@@ -275,7 +287,7 @@ function renderPartnerTable(){
       const isPrimary = Number(pId) === Number(gid);
       const pG = window.G(pId);
       if(!pG) return;
-      const ev = window.SCH.find(s => s.g === pId && s.d === date && s.st !== 'can');
+      const ev = window.SCH.find(s => Number(s.g) === Number(pId) && s.d === date && s.st !== 'can');
       
       const stLabel = ev ? (window.stLabel ? window.stLabel(ev) : ev.st) : '—';
       const stClass = ev ? (window.stClass ? window.stClass(ev) : '') : '';
@@ -283,7 +295,9 @@ function renderPartnerTable(){
       const act = ev ? (ev.act || (typeof window.supAct === 'function' ? window.supAct(ev.a) : '') || '—') : '—';
       const type = ev ? (ev.tp || 'חוג') : '—';
       
-      const timeVal = ev ? (window.fT ? window.fT(ev.t) : ev.t) : (document.getElementById('ns-time')?.value || '');
+      const savedInputTime = existingTimes[Number(pId)];
+      const defaultTime = document.getElementById('ns-time')?.value || '';
+      const timeVal = ev ? (window.fT ? window.fT(ev.t) : ev.t) : (savedInputTime || defaultTime);
       
       let timeDisplay;
       let chkDisplay;
@@ -292,8 +306,9 @@ function renderPartnerTable(){
         timeDisplay = ev ? `<span style="font-weight:600">${timeVal}</span>` : `<input type="time" id="ns-primary-time-table" class="ns-syn-time" data-gid="${pId}" value="${timeVal}" style="width:70px;font-size:.7rem;padding:2px" onchange="document.getElementById('ns-time').value = this.value">`;
         chkDisplay = `<input type="checkbox" checked disabled style="width:18px;height:18px;accent-color:#1565c0" title="גן ראשי - תמיד נכלל">`;
       } else {
+        const isChecked = existingChecks[Number(pId)] !== undefined ? existingChecks[Number(pId)] : true;
         timeDisplay = ev ? `<span style="font-weight:600">${timeVal}</span>` : `<input type="time" class="ns-syn-time" data-gid="${pId}" value="${timeVal}" style="width:70px;font-size:.7rem;padding:2px">`;
-        chkDisplay = `<input type="checkbox" id="ns-syn-chk-${pId}" class="ns-syn-chk" value="${pId}" style="width:18px;height:18px;accent-color:#1565c0" checked>`;
+        chkDisplay = `<input type="checkbox" id="ns-syn-chk-${pId}" class="ns-syn-chk" value="${pId}" style="width:18px;height:18px;accent-color:#1565c0" ${isChecked ? 'checked' : ''}>`;
       }
 
       rowsHtml += `

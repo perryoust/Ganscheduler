@@ -1773,14 +1773,28 @@ function setGardensTab(t){
   }
   if(t==='fixed'){
     gBody.className='scroll-area';
-    const now=new Date();
     const mFrom=document.getElementById('g-fixed-from');
     const mTo=document.getElementById('g-fixed-to');
-    if(mFrom&&!mFrom.value)
-      mFrom.value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
-    if(mTo&&!mTo.value){
-      const lastDay=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-      mTo.value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+    
+    // Determine active academic year dates
+    let yearStart = '';
+    let yearEnd = '';
+    try {
+      const metaStr = window._safeLS.getItem('ganv5_meta');
+      const meta = metaStr ? JSON.parse(metaStr) : null;
+      const curY = window.CURRENT_YEAR || (meta ? meta.currentYear : 'tashpav');
+      const yInfo = meta && meta.years ? meta.years[curY] : null;
+      if (yInfo && yInfo.start && yInfo.end) {
+        yearStart = yInfo.start;
+        yearEnd = yInfo.end;
+      }
+    } catch(e){}
+
+    if(mFrom && !mFrom.value){
+      mFrom.value = yearStart || '';
+    }
+    if(mTo && !mTo.value){
+      mTo.value = yearEnd || '';
     }
     renderGardensFixed();
     setTimeout(_fitScrollAreas,50);
@@ -1800,9 +1814,9 @@ function setGardensTab(t){
 const HEB_DAYS_SHORT=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 
 function getGardenFixedSched(gardenId, fromDate, toDate){
-  const gardenEvs = SCH.filter(s=>{
-    if(s.g!==gardenId) return false;
-    if(s.st&&s.st!=='ok') return false;
+  const gardenEvs = (window.SCH || []).filter(s=>{
+    if(Number(s.g) !== Number(gardenId)) return false;
+    if(s.st && s.st !== 'ok') return false;
     if(fromDate && s.d < fromDate) return false;
     if(toDate   && s.d > toDate)   return false;
     return true;
