@@ -391,7 +391,11 @@ reader.onload = async function(e) {
         const h = String(headerText).trim().replace(/\s+/g, ' ');
         
         if (h.includes('מס"ד') || h.includes("מס''ד") || h.includes("מס'ד") || h.includes("מסד") || h.includes("מס׳׳ד")) return 'serialNum';
-        if (h.includes('הזמנ') && (h.includes('מס') || h.includes('רץ'))) return 'orderNum';
+        
+        // Per user request: "מס' הזמנת רכש (רץ)" contains the Order Date, not the Order Number!
+        if (h.includes('הזמנ') && h.includes('רץ')) return 'orderDate';
+        
+        if (h.includes('הזמנ') && h.includes('מס') && !h.includes('רץ')) return 'orderNum';
         if (h.includes('תאריך') && (h.includes('הזמנ') || colIdx <= 3)) return 'orderDate';
         if (h.includes('סיווג') || (h.includes('סוג') && !h.includes('מוסד'))) return 'orderType';
         if (h.includes('ספק')) return 'supName';
