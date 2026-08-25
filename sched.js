@@ -57,8 +57,40 @@ function openNewSched(gid, opts={}){
 
   // Reset all fields
   window.nsCustomPartners = new Set();
+
+  // Smart date defaults based on active academic year/period
+  const today = window.td();
+  let yearStart = '';
+  let yearEnd = '';
+  let recurEnd = '';
+  
+  try {
+    const metaStr = window._safeLS.getItem('ganv5_meta');
+    const meta = metaStr ? JSON.parse(metaStr) : null;
+    const curY = window.CURRENT_YEAR || (meta ? meta.currentYear : 'tashpav');
+    const yInfo = meta && meta.years ? meta.years[curY] : null;
+    
+    if (yInfo && yInfo.start && yInfo.end) {
+      yearStart = yInfo.start;
+      yearEnd = yInfo.end;
+      const startParts = yInfo.start.split('-').map(Number);
+      const startY = startParts[0];
+      const startM = startParts[1];
+      
+      // If year starts in Sep-Dec, regular class activities end June 30th of the following year
+      if (startM >= 8) {
+        recurEnd = `${startY + 1}-06-30`;
+      } else {
+        // Summer camp or custom period
+        recurEnd = yInfo.end;
+      }
+    }
+  } catch(e) { console.warn('Error reading year meta in openNewSched:', e); }
+
+  const defaultStartDate = opts.date || (yearStart && (today < yearStart || (yearEnd && today > yearEnd)) ? yearStart : today);
+
   const ns_date=document.getElementById('ns-date');
-  if(ns_date) ns_date.value=opts.date||window.d2s(window.calD);
+  if(ns_date) ns_date.value = defaultStartDate;
   const ns_time=document.getElementById('ns-time');
   if(ns_time) ns_time.value=opts.time||'';
   document.getElementById('ns-time-g2').value='';
@@ -76,15 +108,17 @@ function openNewSched(gid, opts={}){
   document.getElementById('ns-warn').style.display='none';
 
   // Recur fields
-  const today=window.td();
   const recurFrom=document.getElementById('ns-recur-from');
   const recurTo=document.getElementById('ns-recur-to');
-  if(recurFrom) recurFrom.value=opts.date||today;
-  if(recurTo){
-    // Default end: end of current school year
-    const y=new Date().getFullYear();
-    const m=new Date().getMonth();
-    recurTo.value=`${m>=8?y+1:y}-06-30`;
+  if(recurFrom) recurFrom.value = defaultStartDate;
+  if(recurTo) {
+    if (recurEnd) {
+      recurTo.value = recurEnd;
+    } else {
+      const y = new Date().getFullYear();
+      const m = new Date().getMonth();
+      recurTo.value = `${m >= 8 ? y + 1 : y}-06-30`;
+    }
   }
   document.querySelectorAll('.ns-day-chk').forEach(c=>c.checked=false);
   // Pre-check day of selected date
