@@ -745,18 +745,19 @@ async function save(immediate){
 }
 function initPairs(){
   // Initialize pairs from AUTOPAIRS constant
-  const gdns = window.GARDENS || [];
-  if(!gdns.length) return;
+  const activeGdns = typeof window.AG === 'function' ? window.AG() : (window.GARDENS || []);
+  if(!activeGdns.length) return;
+  const activeIds = new Set(activeGdns.map(g => Number(g.id)));
 
   window.pairs = AUTOPAIRS.map((arr,i)=>{
-    const ids = arr.map(id => Number(id));
+    const ids = arr.map(id => Number(id)).filter(id => activeIds.has(id));
     const gs = ids.map(id => window.G(id)).filter(x => x && x.id);
     return {
       id: i + 1, 
       ids: ids, 
       name: gs.length > 0 ? gs.map(g => g.name).join(' + ') : 'זוג ללא שם'
     };
-  }).filter(p => p.ids.length > 0);
+  }).filter(p => p.ids.length >= 2);
 }
 
 // ══════════════════════════════════════════════════════════

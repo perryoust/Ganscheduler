@@ -436,6 +436,8 @@ async function savePairModal(){
   const warnEl=document.getElementById('apm-warn');
   const dupe=ids.map(gid=>{
     const p=window.gardenPair(gid);
+    // Ignore temporary pairs in duplicate validation since they are hidden in the UI
+    if (p && (p.validFrom || p.validTo)) return null;
     const isCurrentPair=window.editPairIdx!==null&&p&&p.id===window.pairs[window.editPairIdx]?.id;
     return p&&!isCurrentPair?`${window.G(gid).name} כבר בזוג "${p.name}"`:null;
   }).filter(Boolean);
