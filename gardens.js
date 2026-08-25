@@ -55,7 +55,7 @@ function renderGardens(){
         h+=`<div class="gc" onclick="window.openGM(${g.id})">
           <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;line-height:1.4">
             <span style="font-weight:800;color:var(--c-primary);font-size:var(--fs-card-title)">${gd.name||g.name}</span>
-            ${(gd.st||g.st)?`<span style="font-size:var(--fs-small);color:var(--c-text-light)" onclick="event.stopPropagation()">📍 <a href="https://maps.google.com/?q=${encodeURIComponent((gd.st||g.st)+' '+g.city)}" target="_blank" style="color:var(--c-secondary);text-decoration:underline">${gd.st||g.st}</a></span>`:''}
+            ${(gd.st||g.st)?`<span style="font-size:var(--fs-small);color:var(--c-text-light)" onclick="event.stopPropagation()">📍 <a href="${typeof window.getGardenMapsUrl==='function'?window.getGardenMapsUrl(gd.st||g.st, g.city):('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent((gd.st||g.st)+', '+(g.city||'')+', ישראל'))}" target="_blank" style="color:var(--c-secondary);text-decoration:underline" title="פתח בגוגל מפות">${gd.st||g.st}</a></span>`:''}
             ${gd.phone?`<span style="font-size:var(--fs-small);color:var(--c-success);font-weight:600">📞 ${gd.phone}</span>`:''}
             ${mgr?`<span style="font-size:var(--fs-small);color:var(--c-secondary)">${mgr.role==='manager'?'🏛️':'👤'} ${mgr.name}${mgr.phone?' · 📞 '+mgr.phone:''}</span>`:''}
             ${window.gardenClusters(g.id).length?`<span style="font-size:var(--fs-small);color:#6a1b9a">🔢 ${window.gardenClusters(g.id).map(c=>c.name).join(', ')}</span>`:''}
@@ -106,8 +106,16 @@ async function openGmExport(){
 function openGM(gid){
   window.gmGid=gid;window.gmV='week';window.gmD=new Date();
   const g=(typeof AG === 'function' ? AG() : window.GARDENS).find(x=>x.id===gid)||{};
-  (document.getElementById('gm-title')||{}).textContent =`${g.city} · ${g.name}`;
-  document.getElementById('gm-det').innerHTML=[g.st?`🏠 ${g.st}`:'',g.co?`👤 ${g.co}`:'',window.gardenClusters(gid).length?`🔢 ${window.gardenClusters(gid).map(c=>c.name).join(', ')}`:''].filter(Boolean).join(' | ');
+  const gd = typeof window.getGardenData === 'function' ? window.getGardenData(gid) : g;
+  (document.getElementById('gm-title')||{}).textContent =`${g.city} · ${gd.name||g.name}`;
+  
+  const mapsUrl = typeof window.getGardenMapsUrl === 'function' ? window.getGardenMapsUrl(gd.st||g.st, g.city) : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((gd.st||g.st)+', '+(g.city||'')+', ישראל')}`;
+  const addrHtml = (gd.st||g.st) ? `🏠 <a href="${mapsUrl}" target="_blank" style="color:#1565c0;text-decoration:underline" title="פתח בגוגל מפות">${gd.st||g.st}</a>` : '';
+  const coHtml = (gd.coName||g.co) ? `👤 ${gd.coName||g.co}` : '';
+  const phoneHtml = gd.phone ? `📞 <a href="tel:${gd.phone}" style="color:#2e7d32;text-decoration:none">${gd.phone}</a>` : '';
+  const clHtml = window.gardenClusters(gid).length ? `🔢 ${window.gardenClusters(gid).map(c=>c.name).join(', ')}` : '';
+  
+  document.getElementById('gm-det').innerHTML=[addrHtml, coHtml, phoneHtml, clHtml].filter(Boolean).join(' | ');
   const pair=window.gardenPair(gid);
   document.getElementById('gm-pair-current').innerHTML=pair?`<span class="bdg bg2">🔗 כרגע: ${pair.name}</span>`:'<span style="color:#999">לא משויך לזוג</span>';
   document.getElementById('gm-del-pair-btn').style.display=pair?'inline-block':'none';

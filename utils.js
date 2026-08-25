@@ -9,13 +9,22 @@ window.getEl = function(id) {
   }
   return document.getElementById(id + '-desktop') || document.getElementById(id + '-mobile') || document.getElementById(id);
 };
-// Fallback for legacy calls from cached files
-window._listRow = function(s, clr, ds) {
-  console.warn('Legacy _listRow called. Please refresh (Ctrl+F5).');
-  if (window.ui && window.ui.renderActivityRow) {
-    return window.ui.renderActivityRow(s, { ds, clr, context: 'legacy' });
-  }
-  return '';
+window.getGardenMapsUrl = function(address, city) {
+  if (!address && !city) return '#';
+  let cleanAddr = (address || '').trim();
+  // Strip parenthetical directions like "(מאחורי בית כנסת...)" or "(מעל החניון)"
+  cleanAddr = cleanAddr.replace(/\s*\([^)]*\)/g, '').trim();
+  // Strip WAZE prefix if any
+  cleanAddr = cleanAddr.replace(/ב?WAZE\s*/i, '').trim();
+  // Strip 'רח' prefix for cleaner geocoding
+  cleanAddr = cleanAddr.replace(/^רח['׳]?\s*/, '').trim();
+  
+  // Normalize city
+  let cleanCity = (city || '').trim();
+  if (cleanCity === 'פ"ת' || cleanCity === 'פת') cleanCity = 'פתח תקווה';
+  
+  const query = [cleanAddr, cleanCity, 'ישראל'].filter(Boolean).join(', ');
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 };
 
 window.utils = {
