@@ -127,7 +127,10 @@ async function delPairFromGarden(){
   if(!await window.spConfirm(`למחוק את הזוג "${pair.name}"?`)) return;
   const idx=window.pairs.findIndex(p=>p.id===pair.id);
   if(idx>=0) window.pairs.splice(idx,1);
-  window.save(); window.refresh();
+  window.save();
+  if (typeof window.renderPairs === 'function') window.renderPairs();
+  if (typeof window.renderGardens === 'function') window.renderGardens();
+  window.refresh();
   openGM(window.gmGid);
 }
 function setGmView(v){
@@ -384,7 +387,10 @@ async function delPair(idx){
   if(!pair) return;
   if(!await window.spConfirm('למחוק את הזוג "'+pair.name+'"?\nהפעילויות ישארו אך הצהרונים לא יהיו מקושרים יותר.')) return;
   window.pairs.splice(idx,1);
-  window.save();window.refresh();
+  window.save();
+  if (typeof window.renderPairs === 'function') window.renderPairs();
+  if (typeof window.renderGardens === 'function') window.renderGardens();
+  window.refresh();
   _spAlertDialog('✅ הזוג נמחק');
 }
 function openAddPair(idx){
@@ -445,7 +451,11 @@ async function savePairModal(){
     if (p.id === targetPairId) return p;
     return { ...p, ids: p.ids.filter(id => !ids.map(Number).includes(Number(id))) };
   }).filter(p => p.ids.length >= 2);
-  window.save();window.CM('apm');window.refresh();
+  window.save();
+  if (typeof window.renderPairs === 'function') window.renderPairs();
+  if (typeof window.renderGardens === 'function') window.renderGardens();
+  window.CM('apm');
+  window.refresh();
   if(window.currentTab==='managers') window.renderManagers();
   _spAlertDialog('✅ '+(isEdit?'הזוג עודכן':'הזוג נשמר')+': '+nm);
 }

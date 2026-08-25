@@ -2053,13 +2053,21 @@ function closeSP(){
 }
 
 function refresh(){
-    if(window.updCounts) window.updCounts();
-    if(window.refreshAllDashTabs) window.refreshAllDashTabs();
-    else if(window.renderDash) window.renderDash();
-    
-    if(window.renderCal) window.renderCal();
+  if(window.updCounts) window.updCounts();
+  if(window.refreshAllDashTabs) window.refreshAllDashTabs();
+  else if(window.renderDash) window.renderDash();
+  
+  if(window.renderCal) window.renderCal();
   if(window.currentTab==='sched' && window.renderSched) window.renderSched();
-  if((window.currentTab==='gardens' || window.currentTab==='clusters' || window._dashTab==='clusters') && window.renderClusters) window.renderClusters();
+  
+  if(window.currentTab==='gardens' || window.currentTab==='clusters' || window._dashTab==='clusters') {
+    if(window._gardensTab==='pairs' && typeof window.renderPairs === 'function') {
+      window.renderPairs();
+    } else if(typeof window.renderGardens === 'function') {
+      window.renderGardens();
+    }
+    if(typeof window.renderClusters === 'function') window.renderClusters();
+  }
   
   // Also refresh SP modal if it is open to keep details in sync!
   const spm = document.getElementById('sp-m');
