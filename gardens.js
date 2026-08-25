@@ -492,13 +492,38 @@ function initHolDrops(){
   filtCity.innerHTML='<option value="">כל הערים</option>';
   cities().forEach(c=>filtCity.innerHTML+=`<option value='${c}'>${c}</option>`);
   const wrap=document.getElementById('hol-city-checks');
-  if(wrap) wrap.innerHTML=cities().map(c=>`<label style="display:flex;gap:5px;align-items:center;padding:2px 4px;cursor:pointer"><input type="checkbox" class="hol-city-cb" value='${c}'> ${c}</label>`).join('');
+  if(wrap) {
+    wrap.innerHTML=cities().map(c=>`
+      <label style="display:flex;gap:5px;align-items:center;padding:2px 4px;cursor:pointer">
+        <input type="checkbox" class="hol-city-cb" value='${c}' onchange="holCityChanged(this)"> ${c}
+      </label>
+    `).join('');
+  }
 }
-function holToggleAll(cb){document.querySelectorAll('.hol-city-cb').forEach(x=>x.checked=cb.checked);}
+function holToggleAll(cb){
+  document.querySelectorAll('.hol-city-cb').forEach(x=>x.checked=cb.checked);
+}
+function holCityChanged(cb){
+  const allCb=document.getElementById('hol-city-all');
+  const cbs=[...document.querySelectorAll('.hol-city-cb')];
+  if(allCb){
+    allCb.checked = cbs.length > 0 && cbs.every(x=>x.checked);
+  }
+}
 function getHolCities(){
   const allCb=document.getElementById('hol-city-all');
-  if(allCb&&allCb.checked) return '';
-  return [...document.querySelectorAll('.hol-city-cb:checked')].map(x=>x.value);
+  const cityCbs=[...document.querySelectorAll('.hol-city-cb')];
+  const checkedCbs=cityCbs.filter(x=>x.checked);
+  
+  // If "All cities" is checked AND all individual checkboxes are checked
+  if(allCb && allCb.checked && checkedCbs.length === cityCbs.length){
+    return '';
+  }
+  // If specific cities are checked, return them
+  if(checkedCbs.length > 0 && checkedCbs.length < cityCbs.length){
+    return checkedCbs.map(x=>x.value);
+  }
+  return '';
 }
 
 function renderHolidays(){
@@ -540,20 +565,30 @@ let _editHolId=null;
 function openAddHoliday(id){
   _editHolId=id;
   const hol=id?holidays.find(h=>h.id===id):null;
+  const relatedHols = id ? holidays.filter(h => h.name === (hol?.name) && h.from === (hol?.from) && h.to === (hol?.to)) : [];
+  const holCities = relatedHols.map(h => h.city).filter(Boolean);
+  const hasEmptyCity = relatedHols.some(h => !h.city);
+
   (document.getElementById('holm-title')||{}).textContent =hol?'✏️ עריכת חופשה':'➕ הוסף חופשה/אירוע';
   document.getElementById('hol-name').value=hol?hol.name:'';
   document.getElementById('hol-from').value=hol?hol.from:d2s(calD);
   document.getElementById('hol-to').value=hol?hol.to:d2s(calD);
   document.getElementById('hol-type').value=hol?hol.type:'vacation';
+  
   const allCb=document.getElementById('hol-city-all');
   const cbs=document.querySelectorAll('.hol-city-cb');
-  if(hol&&hol.city){
+  
+  if(hol && !hasEmptyCity && holCities.length > 0){
+    if(allCb) allCb.checked=false;
+    cbs.forEach(cb=>cb.checked=holCities.includes(cb.value));
+  } else if(hol && hol.city){
     if(allCb) allCb.checked=false;
     cbs.forEach(cb=>cb.checked=cb.value===hol.city);
   } else {
     if(allCb) allCb.checked=true;
-    cbs.forEach(cb=>cb.checked=false);
+    cbs.forEach(cb=>cb.checked=true);
   }
+  
   document.getElementById('hol-scope').value=hol?hol.scope||'all':'all';
   document.getElementById('hol-note').value=hol?hol.note||'':'';
   const canSchedCb=document.getElementById('hol-can-sched');
@@ -568,30 +603,56 @@ async function saveHoliday(){
   if(from>to){_spAlertDialog('תאריך התחלה חייב להיות לפני סיום');return;}
   const selCities=getHolCities();
   const cityList=Array.isArray(selCities)&&selCities.length?selCities:[''];
+  
   const baseId=_editHolId||('h_'+Date.now());
-  if(_editHolId) holidays=holidays.filter(h=>h.id!==_editHolId&&!h.id.startsWith(_editHolId+'_'));
+  if(_editHolId) {
+    const origHol = holidays.find(h => h.id === _editHolId);
+    if (origHol) {
+      holidays = holidays.filter(h => !(h.name === origHol.name && h.from === origHol.from && h.to === origHol.to));
+    } else {
+      holidays = holidays.filter(h => h.id !== _editHolId && !h.id.startsWith(_editHolId + '_'));
+    }
+  }
+
   const canSched=document.getElementById('hol-can-sched')?.checked||false;
   const holType=document.getElementById('hol-type').value;
+  const scope=document.getElementById('hol-scope').value;
+  const note=document.getElementById('hol-note').value.trim();
+
   cityList.forEach((city,idx)=>{
     const hol={
       id:cityList.length>1?baseId+'_'+idx:baseId,
       name,from,to,
       type:holType,
       city:city,
-      scope:document.getElementById('hol-scope').value,
-      note:document.getElementById('hol-note').value.trim(),
+      scope:scope,
+      note:note,
       canSched:canSched
     };
     holidays.push(hol);
   });
-  // Retroactive: if holiday blocks scheduling, cancel matching fixed-schedule events
+
+  // Restore any previously cancelled events for cities that are no longer part of this holiday
+  SCH.forEach(ev => {
+    if(ev.d >= from && ev.d <= to && ev.cr === 'חופשה: ' + name) {
+      const g = G(ev.g);
+      if(g && g.id) {
+        const isInHoliday = cityList.length === 1 && cityList[0] === '' ? true : cityList.includes(g.city);
+        if(!isInHoliday) {
+          ev.st = 'sched';
+          ev.cr = '';
+        }
+      }
+    }
+  });
+
+  // Retroactive: if holiday blocks scheduling, cancel matching fixed-schedule events for selected cities
   if(!canSched&&(holType==='vacation'||holType==='noact'||holType==='camp'||holType==='event')){
-    const scope=document.getElementById('hol-scope').value;
     let removed=0;
     SCH.forEach(ev=>{
       if(ev.d<from||ev.d>to) return;
       if(!ev._recId) return; // only fixed/recurring
-      if(ev.st==='can') return;
+      if(ev.st==='can' && ev.cr!=='חופשה: '+name) return;
       const g=G(ev.g);
       if(!g||!g.id) return;
       if(cityList.length&&cityList[0]!==''&&!cityList.includes(g.city)) return;
@@ -600,7 +661,7 @@ async function saveHoliday(){
       ev.st='can';ev.cr='חופשה: '+name;
       removed++;
     });
-    if(removed>0) showToast(`⚠️ בוטלו ${removed} פעילויות קבועות בגלל החופשה`);
+    if(removed>0) showToast(`⚠️ עודכנו ${removed} פעילויות קבועות בהתאם לחופשה`);
   }
   await save(true); CM('holm'); renderHolidays(); refresh();
   showToast(`✅ חופשה "${name}" נשמרה (${fD(from)} – ${fD(to)})`);
