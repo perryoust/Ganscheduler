@@ -358,39 +358,47 @@ reader.onload = async function(e) {
       let skipped = 0;
       let applyToAllAction = null;
 
-      // Build colMapping once before the loop (for complex format)
-      let colMapping = null;
-      if (isComplexFormat) {
-        colMapping = [
-          "serialNum", // 0: מס"ד
-          "orderNum", // 1
-          "orderDate", // 2
-          "supName", // 3
-          "orderDesc", // 4
-          "orderType", // 5
-          "orderAssign", // 6
-          "orderMonth", // 7
-          "locCity", // 8
-          "locType", // 9
-          "locName", // 10
-          "orderTotal", // 11
-          "orderNotes", // 12
-          "txNum", // 13
-          "txDate", // 14
-          "txAmt", // 15
-          "txTotal", // 16
-          "num", // 17
-          "date", // 18
-          "amt", // 19
-          "total", // 20
-          "notes" // 21
-        ];
+      // Build dynamic colMapping by inspecting header row strings
+      let colMapping = [];
+      const mapHeaderToKey = (headerText, colIdx) => {
+        if (!headerText) return null;
+        const h = String(headerText).trim().replace(/\s+/g, ' ');
         
-        const serialIdx = headerStrs.findIndex(x => x && (x.includes('מס"ד') || x.includes("מס''ד") || x.includes("מס'ד") || x.includes("מסד") || x.includes("מסד")));
-        if (serialIdx !== -1 && serialIdx !== 0) {
-           colMapping[0] = null;
-           colMapping[serialIdx] = "serialNum";
+        if (h.includes('מס"ד') || h.includes("מס''ד") || h.includes("מס'ד") || h.includes("מסד") || h.includes("מס׳׳ד")) return 'serialNum';
+        if (h.includes('הזמנ') && (h.includes('מס') || h.includes('רץ'))) return 'orderNum';
+        if (h.includes('תאריך') && h.includes('הזמנ')) return 'orderDate';
+        if (h.includes('סיווג') || (h.includes('סוג') && !h.includes('מוסד'))) return 'orderType';
+        if (h.includes('ספק')) return 'supName';
+        if (h.includes('פירוט')) return 'orderDesc';
+        if (h.includes('שיוך')) return 'orderAssign';
+        if (h.includes('חודש')) return 'orderMonth';
+        if (h.includes('עיר')) return 'locCity';
+        if (h.includes('מוסד') || (h.includes('גן') && h.includes('ספר') && h.includes('משרד')) || (h.includes('גן') && h.includes('ביה"ס') && !h.includes('שם'))) return 'locType';
+        if (h.includes('שם') && (h.includes('גן') || h.includes('ספר') || h.includes('ביה"ס') || h.includes('מוסד'))) return 'locName';
+        if (h.includes('סכום') && h.includes('הזמנ')) return 'orderTotal';
+        if (h.includes('הערות') && (h.includes('הזמנ') || colIdx < 13)) return 'orderNotes';
+        
+        // Transaction invoice (חשבון עסקה)
+        if (h.includes('עסק') || h.includes('עיסק')) {
+          if (h.includes('מס')) return 'txNum';
+          if (h.includes('תאריך')) return 'txDate';
+          if (h.includes('לפני') || (h.includes('סכום') && !h.includes('כולל'))) return 'txAmt';
+          if (h.includes('כולל') || h.includes('סה"כ') || h.includes('סהכ')) return 'txTotal';
         }
+        // Tax invoice / Receipt (חשבונית מס / קבלה)
+        if (h.includes('חשבונית') || h.includes('קבלה')) {
+          if (h.includes('מס')) return 'num';
+          if (h.includes('תאריך')) return 'date';
+          if (h.includes('לפני') || (h.includes('סכום') && !h.includes('כולל'))) return 'amt';
+          if (h.includes('כולל') || h.includes('סה"כ') || h.includes('סהכ')) return 'total';
+        }
+        if (h.includes('הערות')) return 'notes';
+
+        return map[h] || null;
+      };
+
+      if (headerStrs && headerStrs.length > 0) {
+        colMapping = headerStrs.map((h, idx) => mapHeaderToKey(h, idx));
       }
 
       for (let i = headerRowIndex + 1; i < rawRows.length; i++) {
@@ -398,20 +406,30 @@ reader.onload = async function(e) {
         if (!row || row.length === 0) continue;
 
         const item = {};
-        if (isComplexFormat && colMapping) {
+        if (colMapping && colMapping.some(Boolean)) {
           colMapping.forEach((key, colIdx) => {
-            if (key) item[key] = row[colIdx];
+            if (key && row[colIdx] !== undefined && row[colIdx] !== null) {
+              item[key] = row[colIdx];
+            }
           });
         } else {
-          // Standard key-based mapping
+          // Standard key-based mapping fallback
           const headers = rawRows[headerRowIndex].map(h => String(h || '').trim());
           headers.forEach((h, colIdx) => {
-            if (h) {
-              const key = map[h] || h;
+            if (h && row[colIdx] !== undefined && row[colIdx] !== null) {
+              const key = mapHeaderToKey(h, colIdx) || map[h] || h;
               item[key] = row[colIdx];
             }
           });
         }
+
+        // Normalize cross-referenced field names
+        if (item.orderAssign && !item.assignment) item.assignment = item.orderAssign;
+        if (item.assignment && !item.orderAssign) item.orderAssign = item.assignment;
+        if (item.orderMonth && !item.actMonth) item.actMonth = item.orderMonth;
+        if (item.actMonth && !item.orderMonth) item.orderMonth = item.actMonth;
+        if (item.orderNotes && !item.notes) item.notes = item.orderNotes;
+        if (item.notes && !item.orderNotes) item.orderNotes = item.notes;
 
         if (!item.supName) continue; // Skip invalid rows
 

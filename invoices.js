@@ -1334,32 +1334,104 @@ function openNewInvoice(id, presetSup){
   document.getElementById('inv-order-date').value  = inv ? (inv.orderDate||'')  : '';
   document.getElementById('inv-order-desc').value  = inv ? (inv.orderDesc||'')  : '';
   // Restore order VAT mode (so editing doesn't recalculate wrong)
-  const ordVatModeR = inv ? (inv.ordVatMode||'ex') : 'ex';
+  const ordVatModeR = inv ? (inv.ordVatMode || (inv.orderTotal && !inv.orderAmt ? 'inc' : 'ex')) : 'ex';
   window._ordVatMode = ordVatModeR;
   document.getElementById('vat-ord-ex')?.classList.toggle('active', ordVatModeR==='ex');
   document.getElementById('vat-ord-inc')?.classList.toggle('active', ordVatModeR==='inc');
-  document.getElementById('inv-order-amt').value   = inv ? (ordVatModeR==='inc' && inv.orderAmt ? withVat(inv.orderAmt, effectiveVatCalc) : (inv.orderAmt||''))   : '';
-  document.getElementById('inv-order-notes').value = inv ? (inv.orderNotes||'') : '';
-  const ordType = document.getElementById('inv-order-type'); if(ordType) ordType.value=inv?(inv.orderType||''):'';
-  // Load assignment — handle free text case
+  const rawOrdVal = inv ? (inv.orderAmt !== undefined && inv.orderAmt !== null && inv.orderAmt !== '' ? inv.orderAmt : (inv.orderTotal || '')) : '';
+  document.getElementById('inv-order-amt').value   = inv ? (ordVatModeR==='inc' && rawOrdVal ? withVat(rawOrdVal, effectiveVatCalc) : rawOrdVal) : '';
+  document.getElementById('inv-order-notes').value = inv ? (inv.orderNotes || inv.notes || '') : '';
+  
+  // Order Type mapping
+  const ordType = document.getElementById('inv-order-type');
+  if(ordType) {
+    const rawOt = inv ? String(inv.orderType || '').trim() : '';
+    const otMap = {
+      'העשרה': 'enrichment', 'חוגים': 'enrichment', 'חוג': 'enrichment', 'enrichment': 'enrichment',
+      'תפעול': 'operations', 'operations': 'operations',
+      'ארוחות בוקר': 'breakfast', 'אוכל': 'breakfast', 'breakfast': 'breakfast',
+      'נסיעות': 'transport', 'הסעות': 'transport', 'transport': 'transport',
+      'אחר': 'other', 'other': 'other'
+    };
+    ordType.value = otMap[rawOt] || otMap[rawOt.toLowerCase()] || rawOt || '';
+  }
+
+  // Load assignment — handle both known categories and custom text
   const assignEl = document.getElementById('inv-assignment');
   const assignOther = document.getElementById('inv-assignment-other');
   if(assignEl){
-    const knownAssign = ['shared','daycare','chanuka','pesach','longday','summer','general',''];
-    const savedAssign = inv?(inv.assignment||''):'';
-    if(knownAssign.includes(savedAssign)){
-      assignEl.value = savedAssign;
+    const assignMap = {
+      'משותף': 'shared', 'shared': 'shared',
+      'צהרונים': 'daycare', 'צהרון': 'daycare', 'גנים': 'daycare', 'daycare': 'daycare',
+      'חנוכה': 'chanuka', 'chanuka': 'chanuka',
+      'פסח': 'pesach', 'pesach': 'pesach',
+      'יום ארוך': 'longday', 'longday': 'longday',
+      'קייטנת קיץ': 'summer', 'קיץ': 'summer', 'summer': 'summer',
+      'כללי': 'general', 'general': 'general'
+    };
+    const savedAssign = inv ? String(inv.assignment || inv.orderAssign || '').trim() : '';
+    const mappedAssign = assignMap[savedAssign] || assignMap[savedAssign.toLowerCase()];
+    if(mappedAssign){
+      assignEl.value = mappedAssign;
       if(assignOther){ assignOther.style.display='none'; assignOther.value=''; }
-    } else {
+    } else if(savedAssign){
       assignEl.value = '__other__';
       if(assignOther){ assignOther.style.display='block'; assignOther.value=savedAssign; }
+    } else {
+      assignEl.value = '';
+      if(assignOther){ assignOther.style.display='none'; assignOther.value=''; }
     }
   }
-  const actMonthEl = document.getElementById('inv-act-month'); if(actMonthEl) actMonthEl.value=inv?(inv.actMonth||''):'';
-  // Location fields (25)
+
+  // Activity Month mapping (handles 01-12, 'אוג-26', '26-אוג', 'אוגוסט', etc.)
+  const actMonthEl = document.getElementById('inv-act-month');
+  if(actMonthEl){
+    const rawM = inv ? String(inv.actMonth || inv.orderMonth || '').trim() : '';
+    const monthHebMap = {
+      'ינו': '01', 'jan': '01',
+      'פבר': '02', 'feb': '02',
+      'מרץ': '03', 'מרס': '03', 'mar': '03',
+      'אפר': '04', 'apr': '04',
+      'מאי': '05', 'may': '05',
+      'יונ': '06', 'jun': '06',
+      'יול': '07', 'jul': '07',
+      'אוג': '08', 'aug': '08',
+      'ספט': '09', 'sep': '09',
+      'אוק': '10', 'oct': '10',
+      'נוב': '11', 'nov': '11',
+      'דצמ': '12', 'dec': '12'
+    };
+    let mappedM = '';
+    for (const [k, v] of Object.entries(monthHebMap)) {
+      if (rawM.includes(k)) {
+        mappedM = v;
+        break;
+      }
+    }
+    if (!mappedM) {
+      const digits = rawM.replace(/\D/g, '');
+      if (digits.length === 1 || digits.length === 2) {
+        mappedM = digits.padStart(2, '0');
+      }
+    }
+    actMonthEl.value = mappedM || (rawM.length === 2 ? rawM : '');
+  }
+
+  // Location fields (עיר, סוג מוסד, שם מוסד)
   _fillInvCityDropdown(inv ? (inv.locCity||'') : '');
-  const locType=document.getElementById('inv-loc-type'); if(locType) locType.value=inv?(inv.locType||''):'';
-  const locName=document.getElementById('inv-loc-name'); if(locName) locName.value=inv?(inv.locName||''):'';
+  const locType = document.getElementById('inv-loc-type');
+  if(locType) {
+    const rawLt = inv ? String(inv.locType || '').trim() : '';
+    const ltMap = {
+      'גנים': 'garden', 'גן': 'garden', 'garden': 'garden',
+      'בתי ספר': 'school', 'בית ספר': 'school', 'ביה"ס': 'school', 'ביה״ס': 'school', 'school': 'school',
+      'משותף': 'joint', 'joint': 'joint',
+      'משרדים': 'office', 'משרד': 'office', 'office': 'office'
+    };
+    locType.value = ltMap[rawLt] || ltMap[rawLt.toLowerCase()] || rawLt || '';
+  }
+  const locName = document.getElementById('inv-loc-name');
+  if(locName) locName.value = inv ? (inv.locName || '') : '';
   calcOrderVat();
   // TX section
   document.getElementById('inv-tx-num').value  = inv ? (inv.txNum||'')  : '';
