@@ -5,7 +5,10 @@ function renderGardens(){
   if(window.showInfoNotice) {
     window.showInfoNotice('gardens-info-wrap', '<b>ניהול צהרונים:</b> כאן ניתן לראות את כל הגנים, הזוגות והאשכולות. שינויים בזוגות ישפיעו על הסנכרון בלוח הבקרה ובשיבוץ.', 'info', '🏡');
   }
-  if(_gardensTab==='fixed'){ renderGardensFixed(); return; }
+  if(_gardensTab==='fixed'){ if(typeof renderGardensFixed==='function') renderGardensFixed(); return; }
+  if(_gardensTab==='pairs'){ if(typeof renderPairs==='function') renderPairs(); return; }
+  if(_gardensTab==='clusters'){ if(typeof renderClusters==='function') renderClusters(); return; }
+  if(_gardensTab==='managers'){ if(typeof renderManagers==='function') renderManagers(); return; }
   
   const gClsEl = window.getEl('g-cls');
   if(gClsEl && !gClsEl.value) gClsEl.value = _gardensTab === 'sch' ? 'ביה"ס' : 'גנים';
@@ -288,9 +291,17 @@ async function pqmBreakPermanent(){
 
 function renderPairs(){
   const cityFilt = window.getEl('pairs-city')?.value || '';
+  const activeIds = new Set((typeof AG === 'function' ? AG() : window.GARDENS).map(g => Number(g.id)));
+  
   const f=window.pairs.filter(p=>{
+    if(!p||!p.ids||p.ids.length<2) return false;
+    
+    // Only count active gardens in this pair
+    const activeInPair = p.ids.filter(id => activeIds.has(Number(id)));
+    if(activeInPair.length < 2) return false;
+    
     if(!cityFilt) return true;
-    return p.ids.some(id=>window.G(id).city===cityFilt);
+    return activeInPair.some(id=>window.G(id).city===cityFilt);
   });
   const el=document.getElementById('pairs-count');
   if(el) el.textContent='('+f.length+')';
@@ -805,7 +816,10 @@ function setClustersView(v){
 }
 
 function renderClusters(){
-  const all=getClusters();
+  let all=getClusters();
+  const activeIds = new Set((typeof AG === 'function' ? AG() : window.GARDENS).map(g => Number(g.id)));
+  all = all.filter(c => (c.gardenIds || []).some(id => activeIds.has(Number(id))));
+  
   const body=document.getElementById('clusters-body');
   const byCity={};
   all.forEach(cl=>{
