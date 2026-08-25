@@ -306,8 +306,12 @@ function renderPairs(){
   const el=document.getElementById('pairs-count');
   if(el) el.textContent='('+f.length+')';
 
-  // ── Sidebar: gardens with no pair ───────────────────────
-  const pairedGids=new Set(window.pairs.flatMap(p=>p.ids));
+  // 📝 Sidebar: gardens with no pair 📝
+  const pairedGids=new Set(window.pairs.filter(p => {
+    if(!p||!p.ids||p.ids.length<2) return false;
+    const activeInPair = p.ids.filter(id => activeIds.has(Number(id)));
+    return activeInPair.length >= 2;
+  }).flatMap(p=>p.ids));
   const activeGList = typeof AG === 'function' ? AG() : window.GARDENS;
   const soloGardens=activeGList.filter(g=>!pairedGids.has(g.id)&&window.gcls(g)==='גנים')
     .sort((a,b)=>a.city.localeCompare(b.city,'he')||a.name.localeCompare(b.name,'he'));
