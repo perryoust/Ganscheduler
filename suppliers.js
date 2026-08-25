@@ -1102,8 +1102,7 @@ window.filterSupExGardenMulti = function() {
 
 window.renderSupExGardenMultiItems = function() {
   const container = document.getElementById('supex-garden-multi-items');
-  if(!container) return;
-  const rawList = window.GARDENS.concat(window._GARDENS_EXTRA||[]);
+  const rawList = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
   const gMap = new Map();
   rawList.forEach(g => gMap.set(g.id, g));
   const allGans = Array.from(gMap.values()).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));

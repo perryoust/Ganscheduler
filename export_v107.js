@@ -14,7 +14,7 @@ function openMonthlyExport(){
   // Gardens
   const ganSel=document.getElementById('exp-garden');
   ganSel.innerHTML='<option value="">-- בחר צהרון --</option>';
-  const rawGans = window.GARDENS.concat(window._GARDENS_EXTRA||[]);
+  const rawGans = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
   const map = new Map();
   rawGans.forEach(g => map.set(g.id, g));
   const allGans = Array.from(map.values()).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
@@ -53,7 +53,7 @@ async function doMonthlyExport(){
   const fromDate=`${fy}-${String(fm).padStart(2,'0')}-01`;
   const toDate=window.d2s(new Date(ty,tm,0));
   let evs=window.SCH.filter(s=>s.d>=fromDate&&s.d<=toDate); // include cancelled for export
-  const rawList = window.GARDENS.concat(window._GARDENS_EXTRA||[]);
+  const rawList = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
   const gMap = new Map();
   rawList.forEach(g => gMap.set(Number(g.id), g));
   let gList = Array.from(gMap.values());
@@ -1403,7 +1403,7 @@ window.exportBulkAnnualSchedule = async function() {
     endDate = new Date(startYear + 1, 7, 31); // Aug 31
   }
 
-  const rawAllGans = window.GARDENS.concat(window._GARDENS_EXTRA || []);
+  const rawAllGans = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
   
   // Deduplicate by ID, prioritizing _GARDENS_EXTRA (which come later in the array) to keep merged info like 'age'
   const ganMap = new Map();
@@ -1932,9 +1932,9 @@ window.generateMonthlyReport = async function() {
             gCity = gObj.city || '';
           }
         }
-        if(!gCity && window.GARDENS) {
-          const found = window.GARDENS.find(g => String(g.id) === String(s.g));
-          if(found) {
+        if(!gCity) {
+          const found = window.G(s.g);
+          if(found && found.id) {
             gName = found.name || gName;
             gCity = found.city || '';
           }

@@ -128,7 +128,7 @@ function updUIStats() {
   if(hGardens) {
     const tab = (typeof window._dashTab !== 'undefined' ? window._dashTab : 'g');
     const cls = (tab === 'g' ? 'גנים' : 'ביה"ס');
-    const allGans = Array.from(new Map([...(window.GARDENS || []), ...(window._GARDENS_EXTRA || [])].map(g => [g.id, g])).values());
+    const allGans = typeof AG === 'function' ? AG() : Array.from(new Map([...(window.GARDENS || []), ...(window._GARDENS_EXTRA || [])].map(g => [g.id, g])).values());
     const activeGardenIds = new Set((window.SCH || []).map(s => String(s.g)));
     const gardenCount = allGans.filter(g => window.gcls(g) === cls && activeGardenIds.has(String(g.id))).length;
     hGardens.textContent = gardenCount;
@@ -412,7 +412,8 @@ function openAddGarden(){
   const fill=id=>{
     const el=document.getElementById(id);
     el.innerHTML='<option value="">ללא</option>';
-    GARDENS.sort((a,b)=>a.name.localeCompare(b.name,'he')).forEach(g=>el.innerHTML+=`<option value='${g.id}'>${g.city} · ${g.name}</option>`);
+    const availG = typeof AG === 'function' ? AG() : (window.GARDENS || []);
+    availG.sort((a,b)=>a.name.localeCompare(b.name,'he')).forEach(g=>el.innerHTML+=`<option value='${g.id}'>${g.city} · ${g.name}</option>`);
   };
   fill('addg-partner');fill('addg-partner3');
   const clEl=document.getElementById('addg-cluster');
@@ -437,11 +438,15 @@ function saveNewGarden(){
     dto:document.getElementById('addg-dto').value
   };
   _GARDENS_EXTRA.push(newG);
+  if (Array.isArray(window._GARDENS_ALL)) {
+    window._GARDENS_ALL.push(newG);
+    if (window.activeGardens) window.activeGardens.add(newId);
+  }
   const partnerId=parseInt(document.getElementById('addg-partner').value)||null;
   const partner3Id=parseInt(document.getElementById('addg-partner3').value)||null;
   if(partnerId){
     const ids=[newId,partnerId,partner3Id].filter(Boolean);
-    const pName=ids.map(id=>{const g=GARDENS.find(x=>x.id===id)||_GARDENS_EXTRA.find(x=>x.id===id);return g?g.name:'';}).join(' + ');
+    const pName=ids.map(id=>window.G(id)?.name||'').filter(Boolean).join(' + ');
     const targetId = Date.now()+1;
     pairs.push({id:targetId,ids,name:pName});
     // Cleanup duplicates from other pairs
@@ -1574,7 +1579,8 @@ window.createCoordinatorUser = async function() {
 function mgrFillGardens(){
   const m=_editMgrId?managers[_editMgrId]:null;
   const city=document.getElementById('mgr-g-city').value;
-  const gs=GARDENS.filter(g=>!city||g.city===city)
+  const activeGs = typeof AG === 'function' ? AG() : (window.GARDENS || []);
+  const gs=activeGs.filter(g=>!city||g.city===city)
     .sort((a,b)=>a.city.localeCompare(b.city,'he')||a.name.localeCompare(b.name,'he'));
   const checked=new Set(m?m.gardenIds||[]:[]);
 
@@ -2008,6 +2014,10 @@ function saveNewPlace(){
     cls:document.getElementById('ap-cls').value
   };
   _GARDENS_EXTRA.push(newG);
+  if (Array.isArray(window._GARDENS_ALL)) {
+    window._GARDENS_ALL.push(newG);
+    if (window.activeGardens) window.activeGardens.add(newId);
+  }
   if(!supEx['__gardens_extra']) supEx['__gardens_extra']=[];
   supEx['__gardens_extra']=_GARDENS_EXTRA;
   save();CM('addplace-m');refresh();

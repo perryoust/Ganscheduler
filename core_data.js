@@ -786,7 +786,10 @@ function gcls(g){
   if (isSchool) return 'ביה"ס';
   return 'גנים';
 }
-function gByCF(city,cls){return GARDENS.filter(g=>(!city||g.city===city)&&(!cls||gcls(g)===cls));}
+function gByCF(city,cls){
+  const gs = typeof AG === 'function' ? AG() : (window.GARDENS || []);
+  return gs.filter(g=>(!city||g.city===city)&&(!cls||gcls(g)===cls));
+}
 function d2s(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${dd}`}
 function s2d(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
 function fD(s){if(!s)return '';if(typeof s !== 'string')return s;if(s.includes('/') && !s.includes('-'))return s;const parts=s.split('-');if(parts.length===3){const[y,m,d]=parts;return`${d}/${m}/${y}`}return s}
@@ -821,7 +824,10 @@ function toHebDate(ds) {
 
 function hebM(d){return['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'][d.getMonth()]+' '+d.getFullYear()}
 function td(){return d2s(new Date())}
-function cities(){return[...new Set(GARDENS.map(g=>g.city))].sort()}
+function cities(){
+  const gs = typeof AG === 'function' ? AG() : (window.GARDENS || []);
+  return [...new Set(gs.map(g=>g.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+}
 function gardenPair(gid, targetDate){
   const n=parseInt(gid);
   if ((window._listGroupMode === 'clusters' || window._dashTab === 'clusters') && typeof window.getClusters === 'function') {

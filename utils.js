@@ -116,8 +116,7 @@ window.utils = {
 
   findGarden: function(rawName, city) {
     if (!rawName) return null;
-    let g = null;
-    const GARDENS = window.GARDENS || [];
+    const GARDENS = typeof AG === 'function' ? AG() : (window.GARDENS || []);
     
     // Normalize city if provided
     const normC = city ? this.megaClean(this.normCity(city)) : null;

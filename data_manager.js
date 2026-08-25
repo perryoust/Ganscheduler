@@ -150,8 +150,8 @@ window.DataManager = {
       if (!gid) return;
 
       if (!balanceMap[gid]) {
-        const garden = (window.GARDENS || []).find(g => Number(g.id) === gid) || { name: 'גן #' + gid };
-        balanceMap[gid] = { id: gid, name: garden.name, debt: 0, credit: 0, balance: 0 };
+        const garden = window.G(gid) || { name: 'גן #' + gid };
+        balanceMap[gid] = { id: gid, name: garden.name || ('גן #' + gid), debt: 0, credit: 0, balance: 0 };
       }
 
       // 1. Debt: Not Occurred or Postponed (and not handled)

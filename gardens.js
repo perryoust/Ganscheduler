@@ -817,7 +817,8 @@ function renderClusters(){
     if(hasGan&&hasSch) byCity[city].gan.push(cl); // mixed
   });
   const allClusterGids=new Set(all.flatMap(cl=>cl.gardenIds||[]));
-  const noCluster=GARDENS.filter(g=>!allClusterGids.has(g.id)&&gcls(g)==='גנים');
+  const activeGs = typeof AG === 'function' ? AG() : (window.GARDENS || []);
+  const noCluster=activeGs.filter(g=>!allClusterGids.has(g.id)&&gcls(g)==='גנים');
 
   const isGrid=_clustersView!=='list';
   let h='';
@@ -963,7 +964,8 @@ function openClusterSchedule(clId) {
 function clFillGardens(cl){
   const city=document.getElementById('cl-city').value;
   // Schools don't need clusters
-  const gs=GARDENS.filter(g=>(!city||g.city===city)&&gcls(g)==='גנים').sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  const activeGs = typeof AG === 'function' ? AG() : (window.GARDENS || []);
+  const gs=activeGs.filter(g=>(!city||g.city===city)&&gcls(g)==='גנים').sort((a,b)=>a.name.localeCompare(b.name,'he'));
   const checked=new Set(cl?cl.gardenIds||[]:[]);
   document.getElementById('cl-gardens').innerHTML=gs.map(g=>`<label style="display:flex;gap:6px;padding:5px 4px;cursor:pointer;align-items:center;border-bottom:1px solid #f5f5f5">
     <input type="checkbox" value="${g.id}" ${checked.has(g.id)?'checked':''} style="min-width:14px">

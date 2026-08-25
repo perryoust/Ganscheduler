@@ -359,7 +359,7 @@ function renderPartnerTable(){
 }
 
 window.nsGenerateAllGardensCheckboxes = function() {
-  const allGardens = [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+  const allGardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
   let h = '';
   const byCity = {};
   const seenIds = new Set();

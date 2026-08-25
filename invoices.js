@@ -1187,8 +1187,8 @@ function setTxVatMode(m){
 function _fillInvCityDropdown(currentCity){
   const sel = document.getElementById('inv-loc-city');
   const otherInp = document.getElementById('inv-loc-city-other');
-  if(!sel) return;
-  const cities = [...new Set(window.GARDENS.map(g=>g.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+  const activeGs = typeof AG === 'function' ? AG() : (window.GARDENS || []);
+  const cities = [...new Set(activeGs.map(g=>g.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
   sel.innerHTML = '<option value="">-- בחר עיר --</option>' +
     cities.map(c=>`<option value="${c}">${c}</option>`).join('') +
     '<option value="__other__">אחר (הכנס ידנית)</option>';

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Bulk Import/Export Schedule Logic
  * v6.0.0 - Complete Overwrite Import (No SRAWS)
  * 
@@ -101,7 +101,7 @@ window._processExcelFile = function(file) {
 
           if (!garden) {
             // Auto-create garden if not found
-            const allG = [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+            const allG = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
             const newId = Math.max(...allG.map(g => g.id), 0) + Date.now() % 100000;
             garden = {
               id: newId,
@@ -131,6 +131,13 @@ window._processExcelFile = function(file) {
             const exIdx = window._GARDENS_EXTRA.findIndex(g => g.id === garden.id);
             if (exIdx >= 0) window._GARDENS_EXTRA[exIdx] = garden;
             else window._GARDENS_EXTRA.push(garden);
+
+            if (Array.isArray(window._GARDENS_ALL)) {
+              const allIdx = window._GARDENS_ALL.findIndex(g => g.id === garden.id);
+              if (allIdx >= 0) window._GARDENS_ALL[allIdx] = garden;
+              else window._GARDENS_ALL.push(garden);
+              if (window.activeGardens) window.activeGardens.add(garden.id);
+            }
             
             window.supEx = window.supEx || {};
             window.supEx['__gardens_extra'] = window._GARDENS_EXTRA;
