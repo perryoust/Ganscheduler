@@ -169,7 +169,13 @@ function initDrops(){
     });
   }
   function fG(id,first,prefix){
-    const items = `<option value="">${first}</option>` + [...GARDENS].sort((a,b)=>{
+    const availG = typeof AG === 'function' ? AG() : (window.GARDENS || []);
+    const seenIds = new Set();
+    const items = `<option value="">${first}</option>` + [...availG].filter(g => {
+      if(!g || !g.id || seenIds.has(g.id)) return false;
+      seenIds.add(g.id);
+      return true;
+    }).sort((a,b)=>{
       const cc=(a.city||'').localeCompare(b.city||'','he');
       return cc||((a.name||'').localeCompare(b.name||'','he'));
     }).map(g=>`<option value='${g.id}'>${prefix?g.city+' · ':''} ${g.name}</option>`).join('');
@@ -242,8 +248,11 @@ function navSearchInput(val){
   const results=[];
 
   // Search gardens
-  const allG=[...GARDENS,...(_GARDENS_EXTRA||[])];
+  const allG = typeof AG === 'function' ? AG() : (typeof getAllGardens === 'function' ? getAllGardens() : window.GARDENS || []);
+  const seenIds = new Set();
   allG.forEach(g=>{
+    if(!g || !g.id || seenIds.has(g.id)) return;
+    seenIds.add(g.id);
     if(!(g.name||'').toLowerCase().includes(q)&&!(g.city||'').toLowerCase().includes(q)) return;
     results.push({
       icon: gcls(g)==='ביה"ס'?'🏛️':'🏫',
@@ -1826,12 +1835,18 @@ function renderGardensFixed(){
   const fixedToEl=document.getElementById('g-fixed-to');
   const fixedFrom=fixedFromEl?fixedFromEl.value:'';
   const fixedTo=fixedToEl?fixedToEl.value:'';
-  const allG=[...GARDENS,...(_GARDENS_EXTRA||[])].filter(g=>{
-    if(gcls(g)!=='גנים') return false;
-    if(cityF&&g.city!==cityF) return false;
-    if(srch&&![(g.name||''),(g.city||'')].some(x=>x.toLowerCase().includes(srch))) return false;
+
+  const allGardensSource = typeof AG === 'function' ? AG() : (typeof getAllGardens === 'function' ? getAllGardens() : window.GARDENS || []);
+  const seenIds = new Set();
+  const allG = allGardensSource.filter(g => {
+    if (!g || !g.id || seenIds.has(g.id)) return false;
+    seenIds.add(g.id);
+    if (gcls(g) !== 'גנים') return false;
+    if (cityF && g.city !== cityF) return false;
+    if (srch && ![(g.name||''), (g.city||'')].some(x => x.toLowerCase().includes(srch))) return false;
     return true;
   });
+
   const byCity={};
   allG.forEach(g=>{ const c=g.city||'אחר'; if(!byCity[c]) byCity[c]=[]; byCity[c].push(g); });
   const sortedCities=Object.keys(byCity).sort((a,b)=>a.localeCompare(b,'he'));
@@ -1842,13 +1857,24 @@ function renderGardensFixed(){
     const paired=new Set(), groups=[];
     [...gardens].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he')).forEach(g=>{
       if(paired.has(g.id)) return;
-      const pid=gardenPair(g.id);
-      const partner=pid?allG.find(x=>x.id===pid):null;
-      if(partner){ paired.add(g.id); paired.add(partner.id); groups.push({type:'pair',gardens:[g,partner]}); }
-      else groups.push({type:'solo',gardens:[g]});
+      const pair = typeof window.gardenPair === 'function' ? window.gardenPair(g.id) : null;
+      let partner = null;
+      if (pair && pair.ids && pair.ids.length >= 2) {
+        const partnerId = pair.ids.find(id => Number(id) !== Number(g.id));
+        if (partnerId) {
+          partner = allG.find(x => Number(x.id) === Number(partnerId));
+        }
+      }
+      if(partner){ 
+        paired.add(g.id); 
+        paired.add(partner.id); 
+        groups.push({type:'pair', pairName: pair.name, gardens:[g, partner]}); 
+      } else { 
+        groups.push({type:'solo', gardens:[g]}); 
+      }
     });
 
-    h+=`<details class="city-accordion">
+    h+=`<details class="city-accordion" open>
       <summary>
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
           <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${gardens.length} גנים)</span>
@@ -1859,7 +1885,7 @@ function renderGardensFixed(){
 
     groups.forEach(group=>{
       if(group.type==='pair'){
-        h+=`<div style="background:#f3e5f5;border-radius:6px;padding:3px 10px;margin-bottom:5px;font-size:.72rem;color:#6a1b9a;font-weight:700">🔗 ${group.gardens[0].name} + ${group.gardens[1].name}</div>`;
+        h+=`<div style="background:#f3e5f5;border-radius:6px;padding:3px 10px;margin-bottom:5px;font-size:.72rem;color:#6a1b9a;font-weight:700">🔗 ${group.pairName || (group.gardens[0].name + ' + ' + group.gardens[1].name)}</div>`;
         group.gardens.forEach(g=>{ h+=_renderGardenFixedRow(g); });
       } else {
         h+=_renderGardenFixedRow(group.gardens[0]);
@@ -1867,6 +1893,14 @@ function renderGardensFixed(){
     });
     h+='</div></details>';
   });
+
+  if (h) {
+    const btns = `<div style="display:flex; gap:8px; margin-bottom:12px; justify-content: flex-start; padding: 0 4px;">
+      <button class="btn bg" onclick="document.querySelectorAll('#g-body .city-accordion').forEach(el=>el.setAttribute('open',''))" style="font-size: 0.75rem; padding: 4px 10px; font-weight: 700;">🔽 פרוס הכל</button>
+      <button class="btn" onclick="document.querySelectorAll('#g-body .city-accordion').forEach(el=>el.removeAttribute('open'))" style="font-size: 0.75rem; padding: 4px 10px; font-weight: 700; background: #fff; border: 1px solid #ccc; color: #555;">🔼 כווץ הכל</button>
+    </div>`;
+    h = btns + h;
+  }
 
   document.getElementById('g-body').innerHTML=h||'<p style="color:#999;padding:20px">לא נמצאו צהרונים</p>';
 }
