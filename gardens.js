@@ -81,8 +81,16 @@ function renderGardens(){
     h = btns + h;
   }
   
-  document.getElementById('g-body').innerHTML=h||'<p style="color:#999">לא נמצאו צהרונים</p>';
-  setTimeout(window._fitScrollAreas,50);
+    const gb = document.getElementById('g-body');
+    const openCities = gb ? Array.from(gb.querySelectorAll('details[open] summary')).map(s => s.textContent.trim()) : [];
+    
+    if (gb) {
+      gb.innerHTML = h || '<p style="color:#999">אין תוצאות לחיפוש</p>';
+      gb.querySelectorAll('details summary').forEach(s => {
+        if (openCities.includes(s.textContent.trim())) s.parentElement.setAttribute('open', '');
+      });
+    }
+    setTimeout(window._fitScrollAreas,50);
 }
 
 async function openGmExport(){
@@ -391,10 +399,18 @@ function renderPairs(){
       if(gs.length<3) h+=`<div style="background:#fafafa;border-right:1px solid #e8eaf6;display:flex;align-items:center;justify-content:center"><span style="color:#d0d0d0;font-size:.8rem">—</span></div>`;
       h+='</div></div>';
     });
-    h+='</div></details>';
-  });
-  document.getElementById('pairs-main').innerHTML=h;
-}
+      h+='</div></details>';
+    });
+    
+    const pm = document.getElementById('pairs-main');
+    const openCities = pm ? Array.from(pm.querySelectorAll('details[open] summary')).map(s => s.textContent.trim()) : [];
+    if (pm) {
+      pm.innerHTML = h;
+      pm.querySelectorAll('details summary').forEach(s => {
+        if (openCities.includes(s.textContent.trim())) s.parentElement.setAttribute('open', '');
+      });
+    }
+  }
 
 
 function _goToPairSched(idx){
@@ -957,8 +973,14 @@ function renderClusters(){
     }
   } // end else grid
 
-  if(!h) h='<p style="color:#999">אין אשכולות.</p>';
-  body.innerHTML=h;
+  if(!h) h='<p style="color:#999">אין אשכולות עדיין.</p>';
+  const openCities = body ? Array.from(body.querySelectorAll('details[open] summary')).map(s => s.textContent.trim()) : [];
+  if (body) {
+    body.innerHTML=h;
+    body.querySelectorAll('details summary').forEach(s => {
+      if (openCities.includes(s.textContent.trim())) s.parentElement.setAttribute('open', '');
+    });
+  }
 }
 
 function openEditCluster(clId,preSelectGid,fakeCl=null){

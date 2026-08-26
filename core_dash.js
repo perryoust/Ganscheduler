@@ -1922,7 +1922,14 @@ function renderGardensFixed(){
     h = btns + h;
   }
 
-  document.getElementById('g-body').innerHTML=h||'<p style="color:#999;padding:20px">לא נמצאו צהרונים</p>';
+  const gb = document.getElementById('g-body');
+  const openCities = gb ? Array.from(gb.querySelectorAll('details[open] summary')).map(s => s.textContent.trim()) : [];
+  if (gb) {
+    gb.innerHTML = h || '<p style="color:#999;padding:20px">אין צהרונים תואמים לסינון</p>';
+    gb.querySelectorAll('details summary').forEach(s => {
+      if (openCities.includes(s.textContent.trim())) s.parentElement.setAttribute('open', '');
+    });
+  }
 }
 
 function _renderGardenFixedRow(g){

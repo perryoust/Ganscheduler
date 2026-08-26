@@ -593,7 +593,7 @@ function nsActTypeChg(){
   const newInp=document.getElementById('ns-act-type-new');
   if(newInp) newInp.style.display=v==='__new__'?'inline-block':'none';
 }
-async function saveNewSched(){
+async function saveNewSched(closeModal = true){
   const gid=parseInt(document.getElementById('ns-g').value)||null;
   const synPrefix = (_nsmTab === 'makeup') ? 'ns-mu' : 'ns';
   const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData(synPrefix) : [];
@@ -658,7 +658,7 @@ async function saveNewSched(){
       }
       cur.setDate(cur.getDate()+1);
     }
-    saveAndRefresh('nsm');
+    saveAndRefresh(closeModal ? 'nsm' : null);
     showToast(`✅ נוצרו ${count} פעילויות קבועות`);
     return;
   }
@@ -735,7 +735,7 @@ async function saveNewSched(){
 
   window._makeupOrigId = null; // Clear at the end
   window._nsSelectedDates = []; // Clear selection
-  saveAndRefresh('nsm');
+  saveAndRefresh(closeModal ? 'nsm' : null);
   showToast(`✅ נשמרו ${totalScheduled} שיבוצים בהצלחה`);
 }
 
