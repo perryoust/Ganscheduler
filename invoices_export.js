@@ -632,7 +632,7 @@ reader.onload = async function(e) {
           }
 
           // 4. Unique order number (must not be empty, handles text like חוגים or digits)
-          if (sameSup && item.orderNum && inv.orderNum && String(item.orderNum).trim() !== '' && !isNaN(parseInt(item.orderNum))) {
+          if (sameSup && item.orderNum && inv.orderNum && String(item.orderNum).trim() !== '') {
             const cleanItemOrder = cleanDoc(item.orderNum);
             const cleanInvOrder = cleanDoc(inv.orderNum);
             if (String(item.orderNum).trim() === String(inv.orderNum).trim() || (cleanItemOrder.length >= 4 && cleanItemOrder === cleanInvOrder)) {
