@@ -631,11 +631,14 @@ reader.onload = async function(e) {
             return true;
           }
 
-          // 4. Unique order number (must not be empty, handles text like חוגים or digits)
-          if (sameSup && item.orderNum && inv.orderNum && String(item.orderNum).trim() !== '') {
+          // 4. Unique order number — ONLY if it is a real numeric document number (>=4 digits).
+          // IMPORTANT: Textual order numbers like "חוגים" or "הסעות" are NOT unique — they are
+          // category labels shared by many different invoices. Never use them for deduplication.
+          if (sameSup && item.orderNum && inv.orderNum) {
             const cleanItemOrder = cleanDoc(item.orderNum);
             const cleanInvOrder = cleanDoc(inv.orderNum);
-            if (String(item.orderNum).trim() === String(inv.orderNum).trim() || (cleanItemOrder.length >= 4 && cleanItemOrder === cleanInvOrder)) {
+            // Only match if both sides have 4+ digit numeric ID
+            if (cleanItemOrder.length >= 4 && cleanInvOrder.length >= 4 && cleanItemOrder === cleanInvOrder) {
               return true;
             }
           }
@@ -650,15 +653,17 @@ reader.onload = async function(e) {
             return true;
           }
 
-          // 6. Fallback match (supplier + description + amount + month)
+          // 6. Last-resort fallback: supplier + description + amount + month.
+          // All three conditions must match AND description must be non-empty.
+          // This prevents collapsing different invoices with the same supplier+month+amount.
           const sameMonth = (String(inv.orderMonth || '').trim() === oMonth) || (inv.actMonth && item.actMonth && inv.actMonth === item.actMonth) || (!oMonth && !inv.orderMonth);
-          const sameDesc = String(inv.orderDesc || '').trim() === oDesc || oDesc === '' || String(inv.orderDesc || '').trim() === '';
+          const sameDesc = oDesc !== '' && String(inv.orderDesc || '').trim() === oDesc;
           const sameTotal = parseFloat(inv.orderTotal || 0).toFixed(2) === oTotal;
+
+          // Only use amount+month as a match when the total is significant (>500) and description also matches
+          if (sameTotal && parseFloat(oTotal) > 500 && sameMonth && sameDesc) return true;
           
-          // If total matches perfectly and is > 0, it's highly likely the same invoice
-          if (sameTotal && parseFloat(oTotal) > 0 && sameMonth) return true;
-          
-          return sameDesc && sameTotal && sameMonth;
+          return false;
         });
 
         // Auto-infer invoice status according to AGENTS.md business rules
