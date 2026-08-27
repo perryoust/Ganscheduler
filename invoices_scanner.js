@@ -270,7 +270,7 @@ const filesFound = [];
             (update.serialNum && i.serialNum && String(i.serialNum) === String(update.serialNum)) ||
             (update.txNum && i.txNum && String(i.txNum).trim() === String(update.txNum).trim() && (update.supName ? String(i.supName).trim() === String(update.supName).trim() : true)) ||
             (update.num && i.num && String(i.num).trim() === String(update.num).trim() && (update.supName ? String(i.supName).trim() === String(update.supName).trim() : true)) ||
-            (update.orderNum && i.orderNum && String(i.orderNum).trim() === String(update.orderNum).trim() && (update.supName ? String(i.supName).trim() === String(update.supName).trim() : true))
+            (update.orderNum && i.orderNum && String(i.orderNum).trim() === String(update.orderNum).trim() && !isNaN(parseInt(update.orderNum)) && (update.supName ? String(i.supName).trim() === String(update.supName).trim() : true))
           );
           if (inv) {
             inv['file_' + update.type] = { path: update.path, origin: 'sp', score: update.score };
