@@ -836,7 +836,15 @@ function _extractNameFromUrl(url){
     const last = decodeURIComponent(parts[parts.length-1]||'');
     // Strip query-like suffixes and known share tokens
     if(last && !/^[A-Za-z0-9_-]{20,}$/.test(last)) return last;
-  } catch(e){}
+  } catch(e){
+    // Fallback for relative URLs (e.g. /folder/file.pdf?web=1)
+    try {
+      const pathPart = url.split('?')[0];
+      const parts = pathPart.split('/').filter(Boolean);
+      const last = decodeURIComponent(parts[parts.length-1]||'');
+      if(last && !/^[A-Za-z0-9_-]{20,}$/.test(last)) return last;
+    } catch(err){}
+  }
   return '';
 }
 // Show the link pill (hides the input row)
