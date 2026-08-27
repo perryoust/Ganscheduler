@@ -572,7 +572,7 @@ function renderInvoices(){
       const hasTx    = inv.txNum;
       const hasTax   = inv.num;
       const mkFileBtn = (sec, docNum) => {
-        if(!docNum || (sec==='order' && !/\d/.test(docNum) && !String(docNum).includes('קופה'))) return '';
+        if(!docNum) return '';
         let meta = inv['file_'+sec];
         let actualSec = sec;
 
@@ -598,7 +598,7 @@ function renderInvoices(){
         const hasAnyFile = (inv.file_order && inv.file_order.path) || 
                            (inv.file_tx && inv.file_tx.path) || 
                            (inv.file_tax && inv.file_tax.path);
-        if(/\d/.test(docNum) && !hasAnyFile){
+        if(!hasAnyFile){
           return `<span style="display:inline-flex;align-items:center;gap:2px;background:#fff8e1;border:1px solid #ffe082;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')" title="עדכן קישור לקובץ">📎 עדכן קישור</span>`;
         }
         return '';
