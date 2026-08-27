@@ -291,6 +291,7 @@ onmessage = function(e) {
         if (type === 'tx' && (file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה') || file.name.includes('דרישת תשלום') || file.name.includes('דרישה') || file.name.includes('קבלה'))) score += 100;
 
         const existing = inv['file_' + type];
+        // Treat null, undefined, or objects without .path as "no file"
         const hasPath = !!(existing && existing.path);
         
         if (hasPath && !globalOverwrite) { 
@@ -503,7 +504,9 @@ onmessage = function(e) {
            resultsData.push([file.name, `${matchedInvoice.orderDesc || matchedInvoice.supName}`, bestScore, 'דלג (קישור קיים)']);
            skippedCount++;
         } else {
-           if (!matchedInvoice['file_' + matchedType] || globalOverwrite || (matchedInvoice['file_' + matchedType].score !== undefined && bestScore > matchedInvoice['file_' + matchedType].score)) {
+           const existFile = matchedInvoice['file_' + matchedType];
+           const existHasPath = !!(existFile && existFile.path);
+           if (!existHasPath || globalOverwrite || (existFile && existFile.score !== undefined && bestScore > existFile.score)) {
               matchedInvoicesToUpdate.push({
                   id: matchedInvoice.id,
                   serialNum: matchedInvoice.serialNum,
