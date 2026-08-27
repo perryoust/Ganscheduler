@@ -767,13 +767,26 @@ function initPairs(){
 
 function G(id){
   const numId = Number(id);
+  let found = null;
   if (Array.isArray(window._GARDENS_ALL)) {
-    const found = window._GARDENS_ALL.find(g => Number(g.id) === numId);
-    if (found) return found;
+    found = window._GARDENS_ALL.find(g => Number(g.id) === numId);
   }
-  const gdns = window.GARDENS || [];
-  const extra = window._GARDENS_EXTRA || [];
-  return gdns.find(g => Number(g.id) === numId) || extra.find(g => Number(g.id) === numId) || {};
+  if (!found) {
+    const gdns = window.GARDENS || [];
+    const extra = window._GARDENS_EXTRA || [];
+    found = gdns.find(g => Number(g.id) === numId) || extra.find(g => Number(g.id) === numId);
+  }
+  
+  if (found) {
+    const ex = window.supEx && window.supEx['g_' + found.id];
+    if (ex) {
+      if (ex.name) found.name = ex.name;
+      if (ex.st) found.st = ex.st;
+      if (ex.co) found.co = ex.co;
+    }
+    return found;
+  }
+  return {};
 }
 function gcls(g){
   if (!g || !g.cls) return 'גנים';

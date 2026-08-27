@@ -222,9 +222,15 @@ function AG(){
     ? [...window._GARDENS_ALL]
     : [...window.GARDENS,...(window._GARDENS_EXTRA||[])];
   
-  // Normalize Petah Tikva globally
+  // Normalize Petah Tikva globally and apply supEx overrides
   all.forEach(g => {
     if (g.city === 'פ"ת') g.city = 'פתח תקווה';
+    const ex = window.supEx && window.supEx['g_' + g.id];
+    if (ex) {
+      if (ex.name) g.name = ex.name;
+      if (ex.st) g.st = ex.st;
+      if (ex.co) g.co = ex.co;
+    }
   });
   if(!window.activeGardens) return all;
   return all.filter(g=>window.activeGardens.has(g.id));
