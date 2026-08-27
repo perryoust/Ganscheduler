@@ -910,7 +910,17 @@ function invOpenFile(invId, section){
 }
 
 function _invTryOpen(p, invId, section, meta){
-  let fixedUrl = p || '';
+  let fixedUrl = (p || '').trim();
+  
+  if (fixedUrl.startsWith('/')) {
+    fixedUrl = 'https://tomashin1.sharepoint.com/sites/zaharonim/Shared Documents' + fixedUrl;
+    const inv = window.INVOICES.find(i => String(i.id) === String(invId));
+    if (inv && inv['file_'+section]) {
+      inv['file_'+section].path = fixedUrl;
+      if (typeof window.save === 'function') window.save();
+      else if (window._safeLS) window._safeLS.setItem('ganv5_invoices', JSON.stringify(window.INVOICES));
+    }
+  }
   try {
     const decodedUrl = decodeURI(fixedUrl);
     if (decodedUrl.includes('sharepoint.com') && decodedUrl.includes('צהרונים - מסמכים')) {

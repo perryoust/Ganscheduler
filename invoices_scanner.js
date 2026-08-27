@@ -1,6 +1,11 @@
 // ── SharePoint URL Parser ─────────────────────────────
-window.parseSharePointBaseUrl = (url) => {
-  let u = url.trim();
+window.parseSharePointBaseUrl = (url, fallbackDirName) => {
+  let u = (url || '').trim();
+
+  if (!u && fallbackDirName) {
+      return 'https://tomashin1.sharepoint.com/sites/zaharonim/Shared Documents/' + encodeURIComponent(fallbackDirName);
+  }
+  if (!u) return '';
 
   try {
     // 1. Normalize backslashes
@@ -172,7 +177,7 @@ window.startSharePointScanner = async function() {
   if (!cfg1) return;
 
   // Parse the pasted URL into a clean base path (strips AllItems.aspx?id=... etc.)
-  const cleanBase1 = window.parseSharePointBaseUrl(cfg1.url);
+  const cleanBase1 = window.parseSharePointBaseUrl(cfg1.url, dirHandle.name);
   window.spScannerFolderLinks[dirHandle.name] = cfg1.url; // save original URL for next time
   try { localStorage.setItem('spScannerFolderLinks', JSON.stringify(window.spScannerFolderLinks)); } catch(e) {}
 
@@ -187,7 +192,7 @@ window.startSharePointScanner = async function() {
       const cfg2 = await _spFolderDialog(dir2.name, saved2, true);
       if (cfg2) {
         window.spScannerFolderLinks[dir2.name] = cfg2.url;
-        const cleanBase2 = window.parseSharePointBaseUrl(cfg2.url);
+        const cleanBase2 = window.parseSharePointBaseUrl(cfg2.url, dir2.name);
         selectedFolders.push({ handle: dir2, cleanBase: cleanBase2, overwrite: cfg2.overwrite });
         try { localStorage.setItem('spScannerFolderLinks', JSON.stringify(window.spScannerFolderLinks)); } catch(e) {}
       }
@@ -273,7 +278,7 @@ const filesFound = [];
             (update.orderNum && i.orderNum && String(i.orderNum).trim() === String(update.orderNum).trim() && (update.supName ? String(i.supName).trim() === String(update.supName).trim() : true))
           );
           if (inv) {
-            inv['file_' + update.type] = { path: update.path, origin: 'sp', score: update.score };
+            inv['file_' + update.type] = { path: update.path, origin: 'sp', score: update.score, name: update.filename };
             const fName = String(update.filename || '');
             if (fName.includes('חשבונית מס')) {
                 inv.status = 'tax_invoice';
@@ -428,11 +433,11 @@ window.autoRefreshPurchasing = async function() {
     if ((await dirHandle1.queryPermission({ mode: 'read' })) !== 'granted') {
       if ((await dirHandle1.requestPermission({ mode: 'read' })) === 'granted') {
          const saved = window.spScannerFolderLinks[dirHandle1.name] || '';
-         selectedFolders.push({ handle: dirHandle1, cleanBase: window.parseSharePointBaseUrl(saved), overwrite: false });
+         selectedFolders.push({ handle: dirHandle1, cleanBase: window.parseSharePointBaseUrl(saved, dirHandle1.name), overwrite: false });
       }
     } else {
        const saved = window.spScannerFolderLinks[dirHandle1.name] || '';
-       selectedFolders.push({ handle: dirHandle1, cleanBase: window.parseSharePointBaseUrl(saved), overwrite: false });
+       selectedFolders.push({ handle: dirHandle1, cleanBase: window.parseSharePointBaseUrl(saved, dirHandle1.name), overwrite: false });
     }
   }
 
@@ -440,11 +445,11 @@ window.autoRefreshPurchasing = async function() {
     if ((await dirHandle2.queryPermission({ mode: 'read' })) !== 'granted') {
       if ((await dirHandle2.requestPermission({ mode: 'read' })) === 'granted') {
          const saved = window.spScannerFolderLinks[dirHandle2.name] || '';
-         selectedFolders.push({ handle: dirHandle2, cleanBase: window.parseSharePointBaseUrl(saved), overwrite: false });
+         selectedFolders.push({ handle: dirHandle2, cleanBase: window.parseSharePointBaseUrl(saved, dirHandle2.name), overwrite: false });
       }
     } else {
        const saved = window.spScannerFolderLinks[dirHandle2.name] || '';
-       selectedFolders.push({ handle: dirHandle2, cleanBase: window.parseSharePointBaseUrl(saved), overwrite: false });
+       selectedFolders.push({ handle: dirHandle2, cleanBase: window.parseSharePointBaseUrl(saved, dirHandle2.name), overwrite: false });
     }
   }
 
