@@ -209,6 +209,9 @@ function openInfoModal(){
   const lEl = document.getElementById('info-fb-load');
   if (lEl) lEl.textContent = window._fbLastLoadTs ? new Date(window._fbLastLoadTs).toLocaleTimeString('he-IL') : '—';
 
+  const bscEl = document.getElementById('bulk-sch-count');
+  if (bscEl) bscEl.textContent = (Array.isArray(window.SCH) ? window.SCH.length : (Array.isArray(SCH) ? SCH.length : 0)).toLocaleString();
+
   document.getElementById('infom').classList.add('open');
 }
 function exportFullBackup(){

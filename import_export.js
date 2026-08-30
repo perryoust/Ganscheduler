@@ -440,6 +440,167 @@ window.importBulkSchedule = function(input) {
   }
 };
 
+window.exportBulkSchedule = async function() {
+  try {
+    const list = Array.isArray(window.SCH) ? window.SCH : [];
+    if (!list.length) {
+      if (window.spAlert) window.spAlert('אין שיבוצים במערכת להורדה');
+      else alert('אין שיבוצים במערכת להורדה');
+      return;
+    }
+
+    if (window.showToast) window.showToast('📊 מכין קובץ אקסל להורדה...');
+
+    // Ensure ExcelJS is loaded
+    if (window.ensureExcelJSLoaded) {
+      await window.ensureExcelJSLoaded();
+    }
+
+    const rawGans = typeof AG === 'function' ? AG() : (window.getAllGardens ? window.getAllGardens() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])]);
+    const gMap = new Map();
+    rawGans.forEach(g => gMap.set(Number(g.id), g));
+
+    // Sort list by Date, then City, Garden Name, Time
+    const sorted = [...list].sort((a, b) => {
+      if (a.d !== b.d) return a.d.localeCompare(b.d);
+      const ga = gMap.get(Number(a.g)) || {};
+      const gb = gMap.get(Number(b.g)) || {};
+      const ca = ga.city || '';
+      const cb = gb.city || '';
+      if (ca !== cb) return ca.localeCompare(cb, 'he');
+      const na = ga.name || '';
+      const nb = gb.name || '';
+      if (na !== nb) return na.localeCompare(nb, 'he');
+      return (a.t || '').localeCompare(b.t || '');
+    });
+
+    const headers = [
+      'תאריך',
+      'שם הצהרון',
+      'עיר',
+      'שם החוג',
+      'קב\'',
+      'שעה',
+      'סוג פעילות',
+      'אשכול',
+      'סיווג',
+      'כתובת',
+      'הערות',
+      'סטטוס'
+    ];
+
+    const rowsData = sorted.map(s => {
+      const g = gMap.get(Number(s.g)) || { name: 'גן לא ידוע (' + s.g + ')', city: '' };
+      const supFull = s.a ? (s.a + (s.act ? ' - ' + s.act : '')) : '';
+      const grpVal = (s.st === 'nohap' || s.st === 'can') ? 0 : (s.grp !== undefined ? s.grp : 1);
+      const stHeb = s.st === 'can' ? 'בוטל' : (s.st === 'nohap' ? 'לא התקיים' : 'מתקיים');
+      const notes = s.nt || '';
+      return [
+        s.d || '',
+        g.name || '',
+        g.city || '',
+        supFull,
+        grpVal,
+        s.t || '14:00',
+        s.tp || 'חוג',
+        g.cluster || '',
+        g.cls || 'גנים',
+        g.add || '',
+        notes,
+        stHeb
+      ];
+    });
+
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    const yrStr = (window.CUR_YEAR || 'שנתי').replace(/[^\u0590-\u05FF\w\-_.]/gu, '_');
+    const filename = `לוח_חוגים_שנתי_${yrStr}_${dateStr}.xlsx`;
+
+    // Try ExcelJS first
+    if (typeof window.ExcelJS !== 'undefined') {
+      const wb = new window.ExcelJS.Workbook();
+      const ws = wb.addWorksheet('שיבוצי חוגים');
+      ws.views = [{ rightToLeft: true, state: 'frozen', ySplit: 1 }];
+
+      // Header row
+      const headerRow = ws.addRow(headers);
+      headerRow.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E7D32' } };
+      headerRow.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rightToLeft' };
+      headerRow.height = 26;
+
+      // Data rows
+      rowsData.forEach((r, idx) => {
+        const row = ws.addRow(r);
+        row.font = { name: 'Arial', size: 10 };
+        row.alignment = { horizontal: 'right', vertical: 'middle', readingOrder: 'rightToLeft' };
+        if (idx % 2 === 1) {
+          row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FBE7' } };
+        }
+        // Center alignment for Date, Time, Groups, Status
+        [1, 5, 6, 12].forEach(colIdx => {
+          const cell = row.getCell(colIdx);
+          cell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rightToLeft' };
+        });
+      });
+
+      // Set auto column widths
+      ws.columns.forEach((col, i) => {
+        let maxLen = headers[i] ? headers[i].length : 10;
+        rowsData.forEach(r => {
+          const len = String(r[i] || '').length;
+          if (len > maxLen) maxLen = len;
+        });
+        col.width = Math.max(maxLen + 4, 12);
+      });
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
+      if (window.showToast) window.showToast(`✅ לוח החוגים הורד בהצלחה! (${sorted.length} פעילויות)`);
+      return;
+    }
+
+    // Fallback: SheetJS (XLSX)
+    if (typeof window.XLSX !== 'undefined') {
+      const wb = window.XLSX.utils.book_new();
+      const ws = window.XLSX.utils.aoa_to_sheet([headers, ...rowsData]);
+      window.XLSX.utils.book_append_sheet(wb, ws, 'שיבוצי חוגים');
+      window.XLSX.writeFile(wb, filename);
+      if (window.showToast) window.showToast(`✅ לוח החוגים הורד בהצלחה! (${sorted.length} פעילויות)`);
+      return;
+    }
+
+    // Fallback: CSV
+    const bom = '\uFEFF';
+    const csvContent = bom + [headers, ...rowsData].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename.replace('.xlsx', '.csv');
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
+    if (window.showToast) window.showToast(`✅ לוח החוגים הורד בהצלחה! (${sorted.length} פעילויות)`);
+
+  } catch(err) {
+    console.error('exportBulkSchedule error:', err);
+    if (window.spAlert) window.spAlert('שגיאה בהורדת לוח החוגים: ' + err.message);
+    else alert('שגיאה בהורדת לוח החוגים: ' + err.message);
+  }
+};
+
+function exportBulkSchedule() {
+  if (window.exportBulkSchedule) window.exportBulkSchedule();
+}
+
 // ==============================================
 // QUICK SCAN FUNCTIONALITY
 // ==============================================
