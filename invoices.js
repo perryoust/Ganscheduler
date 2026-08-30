@@ -625,9 +625,9 @@ function renderInvoices(){
           ${inv.cancelReason?`<div style="font-size:.64rem;color:#c62828">❌ ${inv.cancelReason}</div>`:''}
         </td>
         <td style="font-size:.75rem;padding:8px;white-space:nowrap">
-          ${hasOrder?`<div style="margin-bottom:3px"><span style="font-size:.63rem;color:#546e7a">הזמנה: </span>${fmtAmt(inv.orderAmt,vat,isExempt)}</div>`:''}
-          ${hasTx?`<div style="margin-bottom:3px"><span style="font-size:.63rem;color:#546e7a">עסקה: </span>${fmtAmt(inv.txAmt,vat,isExempt)}</div>`:''}
-          ${hasTax?`<div><span style="font-size:.63rem;color:#546e7a">מסמך: </span>${fmtAmt(inv.amt,vat,isExempt)}</div>`:''}
+          ${hasOrder?`<div style="margin-bottom:3px"><span style="font-size:.63rem;color:#546e7a">הזמנה: </span>${fmtAmt(inv.orderAmt || (inv.orderTotal ? (isExempt ? inv.orderTotal : +(inv.orderTotal / (1 + vat/100)).toFixed(2)) : 0),vat,isExempt)}</div>`:''}
+          ${hasTx?`<div style="margin-bottom:3px"><span style="font-size:.63rem;color:#546e7a">עסקה: </span>${fmtAmt(inv.txAmt || (inv.txTotal ? (isExempt ? inv.txTotal : +(inv.txTotal / (1 + vat/100)).toFixed(2)) : 0),vat,isExempt)}</div>`:''}
+          ${hasTax?`<div><span style="font-size:.63rem;color:#546e7a">מסמך: </span>${fmtAmt(inv.amt || (inv.total ? (isExempt ? inv.total : +(inv.total / (1 + vat/100)).toFixed(2)) : 0),vat,isExempt)}</div>`:''}
         </td>
         <td style="padding:8px">${statusStepper(inv)}</td>
         <td style="font-size:.72rem;color:#78909c;max-width:120px;padding:8px">${inv.notes||'אין הערות'}</td>

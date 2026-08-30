@@ -392,11 +392,12 @@ reader.onload = async function(e) {
         
         if (h.includes('מס"ד') || h.includes("מס''ד") || h.includes("מס'ד") || h.includes("מסד") || h.includes("מס׳׳ד")) return 'serialNum';
         
-        // Per user request: "מס' הזמנת רכש (רץ)" contains the Order Date, not the Order Number!
-        if (h.includes('הזמנ') && h.includes('רץ')) return 'orderDate';
-        
-        if (h.includes('הזמנ') && h.includes('מס') && !h.includes('רץ')) return 'orderNum';
+        // Order Date (must explicitly mention date or be in the first 4 columns when specifying date)
         if (h.includes('תאריך') && (h.includes('הזמנ') || colIdx <= 3)) return 'orderDate';
+
+        // Order Number (e.g. מס' הזמנת רכש (רץ), מס' הזמנה, הזמנת רכש)
+        if (h.includes('הזמנ') && (h.includes('מס') || h.includes('רץ') || colIdx <= 2) && !h.includes('תאריך')) return 'orderNum';
+        
         if (h.includes('סיווג') || (h.includes('סוג') && !h.includes('מוסד'))) return 'orderType';
         if (h.includes('ספק')) return 'supName';
         if (h.includes('פירוט')) return 'orderDesc';
@@ -405,7 +406,7 @@ reader.onload = async function(e) {
         if (h.includes('עיר')) return 'locCity';
         if (h.includes('מוסד') || (h.includes('גן') && h.includes('ספר') && h.includes('משרד')) || (h.includes('גן') && h.includes('ביה"ס') && !h.includes('שם'))) return 'locType';
         if (h.includes('שם') && (h.includes('גן') || h.includes('ספר') || h.includes('ביה"ס') || h.includes('מוסד'))) return 'locName';
-        if (h.includes('סכום') && h.includes('הזמנ')) return 'orderTotal';
+        if ((h.includes('סכום') || h.includes('סה"כ') || h.includes('סהכ')) && (h.includes('הזמנ') || colIdx < 13) && !h.includes('עסק') && !h.includes('חשבונית')) return 'orderTotal';
         if (h.includes('הערות') && (h.includes('הזמנ') || colIdx < 13)) return 'orderNotes';
         
         // Transaction invoice (חשבון עסקה)
@@ -565,6 +566,12 @@ reader.onload = async function(e) {
             item[nk] = 0;
           }
         });
+
+        if (item.orderTotal && !item.orderAmt) {
+          const vatRate = (typeof getVatRate === 'function' ? getVatRate() : (window.VAT_RATE || 18));
+          const isExempt = (window.supEx && window.supEx[item.supName] && (window.supEx[item.supName].entityType==='עוסק פטור'||window.supEx[item.supName].entityType==='עמותה'));
+          item.orderAmt = isExempt ? item.orderTotal : +(item.orderTotal / (1 + vatRate/100)).toFixed(2);
+        }
 
         let sName = String(item.supName || "").trim().replace(/[.$#[\]/]/g, '');
         if (typeof window.supBase === 'function') {
