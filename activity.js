@@ -164,7 +164,9 @@ function renderDash() {
       const dateCards = [];
 
       // Groups within this date
-      const groupList = (window._listGroupMode === "clusters" && typeof window.getClusters === "function") ? window.getClusters().map(cl => ({...cl, ids: cl.gardenIds})) : (window.pairs || []);
+      const rawGroups = (window._listGroupMode === "clusters" && typeof window.getClusters === "function") ? window.getClusters().map(cl => ({...cl, ids: cl.gardenIds})) : (window.pairs || []);
+      const groupList = [...rawGroups].sort((a,b) => (a.name||'').localeCompare(b.name||'','he'));
+      
       groupList.forEach(p => {
         const hasException = dateEvs.some(s => !dateUsedIds.has(String(s.id)) && p.ids.map(Number).includes(Number(s.g)));
         if (hasException) {
