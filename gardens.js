@@ -839,6 +839,7 @@ function renderClusters(){
   let all=getClusters();
   const activeIds = new Set((typeof AG === 'function' ? AG() : window.GARDENS).map(g => Number(g.id)));
   all = all.filter(c => (c.gardenIds || []).some(id => activeIds.has(Number(id))));
+  all.sort((a,b) => (a.name||'').localeCompare(b.name||'','he'));
   
   const body=document.getElementById('clusters-body');
   const byCity={};
