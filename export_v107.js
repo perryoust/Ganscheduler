@@ -142,7 +142,7 @@ async function downloadWB(wb, filename, fromM, singleSheet = false) {
   _csvFallback(wb, safeFile);
 }
 
-async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
+async function _downloadWBExcelJS(gardens, allEvs, year, month, filename, singleSheet) {
   try {
     const workbook = new window.ExcelJS.Workbook();
 
