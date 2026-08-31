@@ -485,18 +485,20 @@ window.nsUpdateGrpPreset = function(d) {
   // Add clusters (valid for this date)
   const cls = typeof window.getClusters === 'function' ? window.getClusters(d, d) : [];
   if (cls.length > 0) {
+    const sortedCls = [...cls].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
     const gOpt = document.createElement('optgroup');
     gOpt.label = 'אשכולות';
-    cls.forEach(c => gOpt.innerHTML += `<option value="cl_${c.id}">${c.name}</option>`);
+    sortedCls.forEach(c => gOpt.innerHTML += `<option value="cl_${c.id}">${c.name}</option>`);
     grpSel.appendChild(gOpt);
   }
   
   // Add pairs
   const ps = typeof window.getPairs === 'function' ? window.getPairs(d, d) : (window.pairs || []);
   if (ps.length > 0) {
+    const sortedPs = ps.map((p, idx) => ({p, idx})).sort((a,b)=>(a.p.name||'').localeCompare(b.p.name||'','he'));
     const gOpt = document.createElement('optgroup');
     gOpt.label = 'זוגות גנים';
-    ps.forEach((p, idx) => gOpt.innerHTML += `<option value="pair_${idx}">${p.name || 'זוג '+(idx+1)}</option>`);
+    sortedPs.forEach(item => gOpt.innerHTML += `<option value="pair_${item.idx}">${item.p.name || 'זוג '+(item.idx+1)}</option>`);
     grpSel.appendChild(gOpt);
   }
   
