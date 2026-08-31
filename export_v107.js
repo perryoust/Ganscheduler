@@ -79,7 +79,8 @@ async function doMonthlyExport(){
     Object.entries(byCity).forEach(([city,gardens])=>{
       const cityGardens=gardens.filter(g=>evs.some(s=>s.g===g.id));
       if(!cityGardens.length) return;
-      downloadWB(buildCityWB(city, cityGardens, evs, fromDate, toDate), `לוח_חוגים_${city}_${fromM}.xlsx`, fromM);
+      const singleSheet = (effectiveSplit === 'city_single');
+      downloadWB(buildCityWB(city, cityGardens, evs, fromDate, toDate), `לוח_חוגים_${city}_${fromM}.xlsx`, fromM, singleSheet);
       filesExported++;
     });
   }
@@ -102,7 +103,7 @@ function buildGardenWB(garden, evs, fromDate, toDate){
   return {sheets:[{garden, evs}], city:garden.city};
 }
 
-async function downloadWB(wb, filename, fromM) {
+async function downloadWB(wb, filename, fromM, singleSheet = false) {
   const safeFile = filename.replace(/[^\u0590-\u05FF\w\-_.]/gu, '_');
   const gardens = wb.sheets.map(s => s.garden);
   const allEvs  = wb.sheets.reduce((acc, s) => acc.concat(s.evs), []);
@@ -120,7 +121,7 @@ async function downloadWB(wb, filename, fromM) {
   try { await window.ensureExcelJSLoaded(); } catch(e) {}
   if (typeof window.ExcelJS !== 'undefined' && !window._excelJSFailed) {
     console.log('📊 Using ExcelJS for export:', safeFile, 'year:', fy, 'month:', fm);
-    _downloadWBExcelJS(gardens, allEvs, fy, fm - 1, safeFile);
+    _downloadWBExcelJS(gardens, allEvs, fy, fm - 1, safeFile, singleSheet);
     return;
   }
   // Fallback: SheetJS (no images)
@@ -190,11 +191,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       }
     }
 
-    // ── one worksheet per garden ─────────────────────────────
-    gardens.forEach((garden) => {
-      const sheetName = garden.name.replace(/[*?:\[\]\/\\]/g,'').slice(0,31) || `גן${garden.id}`;
-      const ws = workbook.addWorksheet(sheetName);
-
+    function setupWorksheet(ws, title) {
       ws.views = [{ state:'pageLayout', rightToLeft:true, showGridLines:true }];
       ws.pageSetup = {
         paperSize: 9, orientation: 'portrait',
@@ -206,6 +203,13 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         {width:14.4},{width:3.6},{width:8.75},{width:9.25},
         {width:8.9},{width:24.6},{width:12.4},{width:4.25},{width:6.1}
       ];
+      const headerRight = `&"Arial,Bold"&18${title}`;
+      ws.headerFooter.differentOddEven = false;
+      ws.headerFooter.oddHeader  = `&R${headerRight}`;
+      ws.headerFooter.evenHeader = `&R${headerRight}`;
+    }
+
+    function _appendGardenToSheet(ws, r, garden, allEvs, year, month, daysInMonth, HEB_DAYS, CLR, applyStyle, styleDataRow) {
       const mgr = typeof window.managers !== 'undefined'
         ? Object.values(window.managers).find(m => (m.gardenIds||[]).includes(garden.id))
         : null;
@@ -219,16 +223,6 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
       });
       const byDate = {};
       gardenEvs.forEach(s => { if(!byDate[s.d]) byDate[s.d]=[]; byDate[s.d].push(s); });
-
-      let r = 0;
-
-      // ── Excel Page Header: month+year top-right ─────────
-      {
-        const headerRight = `&"Arial,Bold"&18${monthTitle}`;
-        ws.headerFooter.differentOddEven = false;
-        ws.headerFooter.oddHeader  = `&R${headerRight}`;
-        ws.headerFooter.evenHeader = `&R${headerRight}`;
-      }
 
       // ── Row 1: blank spacer ───────────────────────────────
       { const row=ws.addRow([]); row.height=8; r++; }
@@ -295,7 +289,6 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         const dateStr = `${day}/${month+1}/${String(year).slice(-2)}`;
 
         const dayEvs  = (byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
-        const specialNote = '';
         const rowCount = dayEvs.length || 1;
 
         for (let ei=0; ei<rowCount; ei++) {
@@ -377,7 +370,29 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename) {
         ws.mergeCells(r+1,1,r+1,9);
         r++;
       }
-    }); // end gardens.forEach
+      return r;
+    }
+
+    if (singleSheet) {
+      const sheetName = (gardens.length > 0 && gardens[0].city) ? gardens[0].city.replace(/[*?:\[\]\/\\]/g,'').slice(0,31) : 'כל הגנים';
+      const ws = workbook.addWorksheet(sheetName);
+      setupWorksheet(ws, monthTitle);
+      let r = 0;
+      gardens.forEach((garden, gIdx) => {
+        if (gIdx > 0) {
+          const spacer = ws.addRow([]); spacer.height = 30; r++;
+        }
+        r = _appendGardenToSheet(ws, r, garden, allEvs, year, month, daysInMonth, HEB_DAYS, CLR, applyStyle, styleDataRow);
+      });
+    } else {
+      gardens.forEach((garden) => {
+        const sheetName = garden.name.replace(/[*?:\[\]\/\\]/g,'').slice(0,31) || `גן${garden.id}`;
+        const ws = workbook.addWorksheet(sheetName);
+        setupWorksheet(ws, monthTitle);
+        let r = 0;
+        r = _appendGardenToSheet(ws, r, garden, allEvs, year, month, daysInMonth, HEB_DAYS, CLR, applyStyle, styleDataRow);
+      });
+    }
 
     const buffer = await workbook.xlsx.writeBuffer();
 
