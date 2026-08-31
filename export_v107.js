@@ -743,12 +743,16 @@ async function exportToExcel(data, filename, opts = {}) {
             const typeEvs = byCity[city].sort((a,b) => {
               const ds = a.d.localeCompare(b.d);
               if(ds !== 0) return ds;
-              const ts = (a.t || '99:99').localeCompare(b.t || '99:99');
-              if(ts !== 0) return ts;
+              
+              // Sort by Pair Name BEFORE Time so pairs stay together
               const pA = window.gardenPair(a.g), pB = window.gardenPair(b.g);
               const nA = pA ? pA.name : window.G(a.g).name;
               const nB = pB ? pB.name : window.G(b.g).name;
-              return nA.localeCompare(nB, 'he');
+              const ns = nA.localeCompare(nB, 'he');
+              if(ns !== 0) return ns;
+              
+              // Fallback to Time if same pair
+              return (a.t || '99:99').localeCompare(b.t || '99:99');
             });
 
             let actualName = window._supExName || 'כל הספקים';
