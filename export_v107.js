@@ -161,7 +161,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename, single
 
     const CLR = {
       BLUE:   'FFB8CCE4', RED:  'FFFF0000',
-      YELLOW: 'FFFFC7CE', GOLD: 'FFFF9999', PINK: 'FFE6B8B7',
+      YELLOW: 'FFFFFF00', ORANGE: 'FFF8CBAD', GOLD: 'FFF8CBAD', PINK: 'FFE6B8B7',
     };
 
     let logoImgId = null;
@@ -180,8 +180,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename, single
       if (Object.keys(brd).length) cell.border = brd;
     }
     function styleDataRow(row, fill, fillABC) {
-      // fillABC: override for cols A,B,C (name/age/date) — always BLUE unless Fri/Sat
-      const colABCfill = fillABC !== undefined ? fillABC : (fill===CLR.RED ? CLR.RED : CLR.BLUE);
+      const colABCfill = fillABC !== undefined ? fillABC : fill;
       for (let i=1; i<=9; i++) {
         const cellFill = i<=3 ? colABCfill : fill;
         applyStyle(row.getCell(i), {
@@ -297,10 +296,12 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename, single
           const isCan   = ev && (ev.st==='can'||ev.st==='nohap');
 
           const holType = hol ? (hol.type||'vacation') : null;
+          const isCamp = holType === 'camp' || (ev && ev.tp && ev.tp.includes('קייטנ')) || (hol && hol.name && hol.name.includes('קייטנ'));
+          const isHoliday = hol && !isCamp;
           let fill = CLR.BLUE;
           if (isFri||isSat)               fill = CLR.RED;
-          else if (holType==='camp')       fill = CLR.GOLD;
-          else if (holType)               fill = CLR.YELLOW;
+          else if (isCamp)                fill = CLR.ORANGE;
+          else if (isHoliday)             fill = CLR.YELLOW;
 
           const supName = ev ? ((typeof window.supBase==='function'?window.supBase(ev.a):ev.a)||ev.a||'') : '';
           let evTpLabel = ev ? (ev.tp||'חוג') : '';
@@ -587,7 +588,9 @@ function buildStyledSheet(gardens, allEvs, year, month) {
       const blk    = window.blockedDates ? window.blockedDates[ds] : null;
       const hol    = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(ds) : null;
       const holType2 = hol ? (hol.type||'vacation') : null;
-      const fillRgb = (isFri||isSat) ? 'FFFF0000' : holType2==='camp' ? 'FFFF9999' : holType2 ? 'FFFFFF00' : null;
+      const isCamp2 = holType2 === 'camp' || (hol && hol.name && hol.name.includes('קייטנ'));
+      const isHol2 = hol && !isCamp2;
+      const fillRgb = (isFri||isSat) ? 'FFFF0000' : isCamp2 ? 'FFF8CBAD' : isHol2 ? 'FFFFFF00' : 'FFB8CCE4';
       const dayName = `יום\u00a0${HEB_DAYS[dow]}`;
       const dayEvs  = (byDate[ds]||[]).sort((a,b)=>(a.t||'').localeCompare(b.t||''));
       const specialNote = '';
