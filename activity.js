@@ -2332,6 +2332,50 @@ async function doPostpone(){
       return;
     }
     
+    if (window._postMode === 'fix') {
+      if(!newDate) { _spAlertDialog('יש לבחור תאריך חדש'); return; }
+      
+      const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('post') : [];
+      
+      const oldDate = s.d;
+      
+      // Update original
+      s.d = newDate;
+      if (newSup) s.a = newSup;
+      if (newAct) s.act = newAct;
+      if (reason) s.nt = (s.nt ? s.nt + ' | ' : '') + 'תיקון: ' + reason;
+      
+      // Update synergy partners
+      for (let syn of synergyPartners) {
+        const pEv = window.SCH.find(ps => ps.d === oldDate && ps.g === syn.g && ps.st !== 'can' && window.supBase(ps.a) === window.supBase(s.a));
+        if(pEv) {
+          pEv.d = newDate;
+          if (syn.t) pEv.t = syn.t;
+          if (newSup) pEv.a = newSup;
+          if (newAct) pEv.act = newAct;
+          if (reason) pEv.nt = (pEv.nt ? pEv.nt + ' | ' : '') + 'תיקון: ' + reason;
+        } else {
+          // If no existing event found, create one on the new date
+          const ptEv = {...s, g: syn.g, id: Date.now() + Math.random()};
+          ptEv.d = newDate;
+          if (syn.t) ptEv.t = syn.t;
+          if (newSup) ptEv.a = newSup;
+          if (newAct) ptEv.act = newAct;
+          delete ptEv._recId;
+          if (reason) ptEv.nt = 'תיקון: ' + reason;
+          window.SCH.push(ptEv);
+        }
+      }
+      
+      const spModal = document.getElementById('sp');
+      if (spModal && spModal.style.display !== 'none' && window.selEv) {
+        window.openSP(window.selEv);
+      }
+      window.saveAndRefresh('postm');
+      showToast('השיבוץ תוקן והועבר בהצלחה');
+      return;
+    }
+    
     if(!newDate) { _spAlertDialog('יש לבחור תאריך'); return; }
     
     const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('post') : [];
@@ -2602,6 +2646,7 @@ window.setPostMode = function(mode) {
   window._postMode = mode;
   const btnMove = document.getElementById('postm-mode-move');
   const btnDefer = document.getElementById('postm-mode-defer');
+  const btnFix = document.getElementById('postm-mode-fix');
   const dateRow = document.getElementById('post-date').parentElement;
   const timeRow = document.getElementById('post-time').parentElement;
   const synWrap = document.getElementById('post-synergy-wrap');
@@ -2609,9 +2654,31 @@ window.setPostMode = function(mode) {
   const reasonLbl = document.getElementById('post-reason-lbl');
   const freeWrap = document.getElementById('post-free-wrap');
 
-  if(mode === 'move') {
+  if(btnMove) btnMove.classList.remove('active');
+  if(btnDefer) btnDefer.classList.remove('active');
+  if(btnFix) {
+    btnFix.classList.remove('active');
+    btnFix.style.background = '';
+    btnFix.style.color = '';
+    btnFix.style.border = '';
+  }
+
+  if (mode === 'fix') {
+    if(btnFix) {
+      btnFix.classList.add('active');
+      btnFix.style.background = '#fff9c4';
+      btnFix.style.color = '#f57f17';
+      btnFix.style.border = '1px solid #fbc02d';
+    }
+    if(dateRow) dateRow.style.display = 'block';
+    if(timeRow) timeRow.style.display = 'block';
+    if(synWrap) synWrap.style.display = 'block';
+    if(freeWrap) freeWrap.style.display = 'block';
+    if(typeof window.postDateChg === 'function') window.postDateChg();
+    if(saveBtn) { saveBtn.textContent = '🛠️ תוקן, שמור'; saveBtn.className = 'btn borange'; }
+    if(reasonLbl) reasonLbl.textContent = 'הערה (אופציונלי)';
+  } else if(mode === 'move') {
     if(btnMove) btnMove.classList.add('active');
-    if(btnDefer) btnDefer.classList.remove('active');
     if(dateRow) dateRow.style.display = 'block';
     if(timeRow) timeRow.style.display = 'block';
     if(synWrap) synWrap.style.display = 'block';
@@ -2631,7 +2698,6 @@ window.setPostMode = function(mode) {
     }
     if(reasonLbl) reasonLbl.textContent = 'סיבה (אופציונלי)';
   } else {
-    if(btnMove) btnMove.classList.remove('active');
     if(btnDefer) btnDefer.classList.add('active');
     if(dateRow) dateRow.style.display = 'none';
     if(timeRow) timeRow.style.display = 'none';

@@ -13,18 +13,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 110.93</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 110.95</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=110.93" />
+  <link rel="stylesheet" href="styles.css?v=110.95" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '110.93';
+    window.APP_VERSION = '110.95';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -2132,9 +2132,11 @@
       <!-- Mode toggle -->
       <div style="display:flex;gap:6px;margin-bottom:12px;background:#edf2f7;padding:4px;border-radius:10px">
         <button id="postm-mode-move" class="vbtn active" onclick="setPostMode('move')"
-          style="flex:1;font-size:.78rem;border-radius:8px">🚀 הזזה לתאריך אחר</button>
+          style="flex:1;font-size:.78rem;border-radius:8px">🚀 הזזה (דחייה)</button>
+        <button id="postm-mode-fix" class="vbtn" onclick="setPostMode('fix')"
+          style="flex:1;font-size:.78rem;border-radius:8px;background:#fff9c4;color:#f57f17;border:1px solid #fbc02d">🛠️ תיקון טעות</button>
         <button id="postm-mode-defer" class="vbtn" onclick="setPostMode('defer')"
-          style="flex:1;font-size:.78rem;border-radius:8px">⏱️ דחייה (ללא תאריך)</button>
+          style="flex:1;font-size:.78rem;border-radius:8px">⏱️ ללא תאריך</button>
       </div>
       <div id="post-ev-info"
         style="background:#f5f7ff;border-radius:7px;padding:8px 11px;font-size:.8rem;margin-bottom:10px"></div>
