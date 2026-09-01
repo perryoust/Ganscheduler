@@ -270,10 +270,19 @@ window.getSupPhone = getSupPhone;
 
 function cleanHolName(rawName) {
   if (!rawName) return '';
-  return String(rawName)
+  let s = String(rawName)
     .replace(/\s*[\(\[][^\)\]]*[\)\]]/g, '')
-    .replace(/\s*-\s*(גבעתיים|פתח תקווה|פ"ת|ראש העין|באר יעקב|נס ציונה)\s*$/g, '')
     .trim();
+  if (typeof window !== 'undefined' && typeof window.cities === 'function') {
+    try {
+      const cList = window.cities();
+      if (Array.isArray(cList) && cList.length > 0) {
+        const escaped = cList.map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+        s = s.replace(new RegExp(`\\s*-\\s*(${escaped}|כל הערים)\\s*$`, 'g'), '').trim();
+      }
+    } catch(e) {}
+  }
+  return s;
 }
 window.cleanHolName = cleanHolName;
 
