@@ -311,7 +311,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename, single
           }
           const actName  = ev ? (ev.act||(typeof window.supAct==='function'?window.supAct(ev.a):'')||'') : '';
           const colF     = ev ? (actName?supName+' - '+actName:supName) : '';
-          const phone    = ev ? (ev.p||(typeof window.supEx!=='undefined'&&window.supEx[supName]?.ph1)||'') : '';
+          const phone    = ev ? (typeof window.getSupPhone === 'function' ? window.getSupPhone(ev.a, ev) : (ev.p||(typeof window.supEx!=='undefined'&&window.supEx[supName]?.ph1)||'')) : '';
           const grp      = ev ? (isCan ? 0 : (ev.grp||1)) : '';
 
           const vals = [
@@ -616,7 +616,7 @@ function buildStyledSheet(gardens, allEvs, year, month) {
             else actType = 'חוג בוקר';
           }
           const supData = window.SUPBASE ? window.SUPBASE.find(s=>(typeof window.supBase==='function'?window.supBase(s.name):s.name)===supName) : null;
-          const phone   = ev.p || (supData&&supData.phone) || (window.supEx&&window.supEx[supName]&&window.supEx[supName].ph1) || '';
+          const phone   = typeof window.getSupPhone === 'function' ? window.getSupPhone(ev.a, ev) : (ev.p || (supData&&supData.phone) || (window.supEx&&window.supEx[supName]&&window.supEx[supName].ph1) || '');
           const holObj = hol || null;
           sc(r+ei, 4, holObj ? (holObj.name||actType) : actType, null);
           sc(r+ei, 5, supName,         null);
@@ -1582,7 +1582,7 @@ window.exportBulkAnnualSchedule = async function() {
         gEvs.forEach(ev => {
            const supName = (typeof window.supBase === 'function' ? window.supBase(ev.a) : ev.a) || ev.a || '';
            
-           let phone = ev.p || '';
+           let phone = typeof window.getSupPhone === 'function' ? window.getSupPhone(ev.a, ev) : (ev.p || '');
            if (!phone && window.supEx && window.supEx[supName] && window.supEx[supName].ph1) {
              phone = window.supEx[supName].ph1;
            }

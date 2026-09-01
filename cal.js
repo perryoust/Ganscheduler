@@ -2143,7 +2143,7 @@ window.renderMonthTable = function(evs, mDate, f) {
           else bg = '#ffffff';
 
           const fullActName = ev.act ? (ev.a + ' - ' + ev.act) : (ev.a || '');
-          let phone = ev.p || '';
+          let phone = typeof window.getSupPhone === 'function' ? window.getSupPhone(ev.a, ev) : (ev.p || '');
           const supName = window.supBase ? window.supBase(ev.a) : (ev.a || '');
           if (!phone && window.supEx && window.supEx[supName] && window.supEx[supName].ph1) {
             phone = window.supEx[supName].ph1;

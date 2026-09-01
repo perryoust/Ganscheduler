@@ -212,6 +212,62 @@ window.supNameLabel = function(name) {
   return supDisplayName(base);
 };
 
+function getSupPhone(nameOrFullName, ev) {
+  if (ev && ev.p && String(ev.p).trim()) return String(ev.p).trim();
+  if (!nameOrFullName) return '';
+  
+  const raw = String(nameOrFullName).trim();
+  const base = typeof supBase === 'function' ? supBase(raw) : raw;
+  
+  // 1. Direct match in supEx (base or raw)
+  const ex = (typeof supEx !== 'undefined' && supEx && (supEx[base] || supEx[raw])) || {};
+  const schedPhKey = ex.schedPhone || 'ph1';
+  if (schedPhKey === 'ph2' && ex.ph2 && String(ex.ph2).trim()) return String(ex.ph2).trim();
+  if (ex.ph1 && String(ex.ph1).trim()) return String(ex.ph1).trim();
+  if (ex.ph2 && String(ex.ph2).trim()) return String(ex.ph2).trim();
+  
+  // 2. supBaseEx (which bridges base and full names in supEx)
+  if (typeof supBaseEx === 'function') {
+    const bEx = supBaseEx(base) || {};
+    if (bEx.ph1 && String(bEx.ph1).trim()) return String(bEx.ph1).trim();
+    if (bEx.ph2 && String(bEx.ph2).trim()) return String(bEx.ph2).trim();
+  }
+  
+  // 3. Match in SUPBASE
+  if (typeof SUPBASE !== 'undefined' && Array.isArray(SUPBASE)) {
+    const s = SUPBASE.find(x => {
+      const xBase = typeof supBase === 'function' ? supBase(x.name) : x.name;
+      return x.name === raw || x.name === base || xBase === base || xBase === raw;
+    });
+    if (s && s.phone && String(s.phone).trim()) return String(s.phone).trim();
+  }
+  
+  // 4. Match in getAllSup
+  if (typeof window !== 'undefined' && typeof window.getAllSup === 'function') {
+    try {
+      const all = window.getAllSup();
+      const found = all.find(s => s.name === base || s.name === raw || (s.fullNames && (s.fullNames.has ? (s.fullNames.has(raw) || s.fullNames.has(base)) : (s.fullNames.includes && (s.fullNames.includes(raw) || s.fullNames.includes(base))))));
+      if (found && found.phone && String(found.phone).trim()) return String(found.phone).trim();
+    } catch(e) {}
+  }
+  
+  // 5. Look for any key in supEx that contains or is contained in base / raw
+  if (typeof supEx !== 'undefined' && supEx) {
+    for (const k of Object.keys(supEx)) {
+      if (k.startsWith('__') || k.startsWith('g_')) continue;
+      if ((base && (k.includes(base) || base.includes(k))) || (raw && (k.includes(raw) || raw.includes(k)))) {
+        const item = supEx[k];
+        if (item && item.ph1 && String(item.ph1).trim()) return String(item.ph1).trim();
+        if (item && item.ph2 && String(item.ph2).trim()) return String(item.ph2).trim();
+        if (item && item.phone && String(item.phone).trim()) return String(item.phone).trim();
+      }
+    }
+  }
+  
+  return '';
+}
+window.getSupPhone = getSupPhone;
+
 var AUTOPAIRS=[[73, 104], [117, 60], [51, 121], [63, 70], [52, 88], [44, 97], [9, 21], [68, 87], [20, 85], [38, 114], [100, 125], [40, 61], [12, 76], [17, 79, 115], [69, 101], [43, 46], [54, 66], [122, 22], [62, 64], [72, 19, 16], [120, 35], [78, 92], [8, 39], [47, 91], [80, 116], [57, 74], [112, 11], [18, 14], [30, 83], [95, 25], [26, 33], [15, 23], [34, 86], [32, 42], [36, 55], [119, 123], [31, 28], [118, 82], [106, 108], [45, 65], [29, 124], [56, 89], [96, 103], [7, 58], [93, 105], [50, 98], [71, 99], [10, 81], [48, 67], [13, 113], [24, 90, 111], [107, 110], [27, 37], [109, 53], [49, 59], [41, 84], [77, 94]];
 var INIT_CLUSTERS = {};
 var _GARDENS_EXTRA = []; 
