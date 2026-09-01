@@ -296,8 +296,8 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename, single
           const isFirst = ei===0;
           const isCan   = ev && (ev.st==='can'||ev.st==='nohap');
 
-          const holType = hol ? (hol.type||'vacation') : null;
-          const isCamp = holType === 'camp' || (ev && ev.tp && ev.tp.includes('קייטנ')) || (hol && hol.name && hol.name.includes('קייטנ'));
+          const holType = hol ? (hol.type || (hol.label === 'קייטנה' ? 'camp' : 'vacation')) : null;
+          const isCamp = holType === 'camp' || (hol && (hol.label === 'קייטנה' || hol.type === 'camp' || hol.canSched)) || (ev && ev.tp && ev.tp.includes('קייטנ')) || (hol && hol.name && (hol.name.includes('קייטנ') || hol.name.includes('גשר')));
           const isHoliday = hol && !isCamp;
           let fill = CLR.BLUE;
           if (isFri||isSat)               fill = CLR.RED;
@@ -589,8 +589,8 @@ function buildStyledSheet(gardens, allEvs, year, month) {
       const isSat  = dow === 6;
       const blk    = window.blockedDates ? window.blockedDates[ds] : null;
       const hol    = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(ds) : null;
-      const holType2 = hol ? (hol.type||'vacation') : null;
-      const isCamp2 = holType2 === 'camp' || (hol && hol.name && hol.name.includes('קייטנ'));
+      const holType2 = hol ? (hol.type || (hol.label === 'קייטנה' ? 'camp' : 'vacation')) : null;
+      const isCamp2 = holType2 === 'camp' || (hol && (hol.label === 'קייטנה' || hol.type === 'camp' || hol.canSched)) || (hol && hol.name && (hol.name.includes('קייטנ') || hol.name.includes('גשר')));
       const isHol2 = hol && !isCamp2;
       const fillRgb = (isFri||isSat) ? 'FFFF0000' : isCamp2 ? 'FFF8CBAD' : isHol2 ? 'FFFFFF00' : 'FFB8CCE4';
       const dayName = `יום\u00a0${HEB_DAYS[dow]}`;
@@ -1518,10 +1518,10 @@ window.exportBulkAnnualSchedule = async function() {
     let eventColor = 'FFD9E1F2'; // Light blue default
     
     const holidayWords = ['חופש', 'חג', 'ראש השנה', 'כיפור', 'סוכות', 'פסח', 'שבועות', 'פורים', 'חנוכה', 'זיכרון', 'עצמאות', 'תשעה באב', 'תענית', 'ל"ג בעומר'];
-    const campWords = ['קייטנת', 'קייטנה', 'בוקרון', 'יום ארוך'];
+    const campWords = ['קייטנת', 'קייטנה', 'בוקרון', 'יום ארוך', 'גשר'];
     
-    const isHoliday = holidayWords.some(w => tp.includes(w) || (holName && holName.includes(w)));
     const isCamp = campWords.some(w => tp.includes(w) || name.includes(w) || (holName && holName.includes(w)));
+    const isHoliday = !isCamp && holidayWords.some(w => tp.includes(w) || (holName && holName.includes(w)));
 
     if (isWeekend) eventColor = 'FFFF0000'; // Red
     else if (isCamp) eventColor = 'FFF8CBAD'; // Orange

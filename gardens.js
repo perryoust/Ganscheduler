@@ -516,7 +516,7 @@ function getHolidayInfo(ds,city,scope){
   });
   if(!h) return null;
   const t=HOL_TYPES[h.type]||HOL_TYPES.vacation;
-  return{...t,name:h.name,note:h.note,id:h.id,canSched:h.canSched||false};
+  return{...t,type:h.type||'vacation',name:h.name,note:h.note,id:h.id,canSched:h.canSched||false};
 }
 
 function initHolDrops(){
