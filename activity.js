@@ -493,8 +493,11 @@ window.spBatchAction = function(val) {
     case 'makeup':
       window.spTriggerMakeupUI();
       break;
+    case 'fix':
+      window.openPostpone(ids[0], 'fix');
+      break;
     case 'post': 
-      window.openPostpone(ids[0]); 
+      window.openPostpone(ids[0], 'move'); 
       break;
     case 'nohap': 
       window.qSetSt(ids[0], 'nohap'); 
@@ -919,6 +922,7 @@ window.openSP = function(id) {
         <option value="can">❌ בטל פעילות</option>
         <option value="ok">🔄 שחזור לתקין</option>
         <option value="post">⏩ דחייה למועד אחר</option>
+        <option value="fix">🛠️ העברה (תיקון טעות בתאריך)</option>
         <option value="makeup">📅 קביעת השלמה</option>
         <option value="delete">🗑️ מחיקה מהלוח</option>
       </select>
@@ -2191,7 +2195,7 @@ window.postShowFreeDays = function(gid) {
   }
 };
 
-function openPostpone(id){
+function openPostpone(id, defaultMode = 'move'){
   try {
     window.selEvPost=id;
     const s=window.SCH.find(x=>x.id==id); if(!s) return;
@@ -2219,7 +2223,7 @@ function openPostpone(id){
     const warn = document.getElementById('post-conflict-warn');
     if(warn) warn.style.display = 'none';
 
-    if(typeof window.setPostMode === 'function') window.setPostMode('move');
+    if(typeof window.setPostMode === 'function') window.setPostMode(defaultMode);
     
     // Populate Free Days
     if(typeof window.postShowFreeDays === 'function') {
