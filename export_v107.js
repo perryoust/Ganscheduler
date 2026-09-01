@@ -56,7 +56,7 @@ async function doMonthlyExport(){
   const rawList = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
   const gMap = new Map();
   rawList.forEach(g => gMap.set(Number(g.id), g));
-  let gList = Array.from(gMap.values());
+  let gList = Array.from(gMap.values()).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
   if(mode==='city'&&cityFilter)   gList=gList.filter(g=>g.city===cityFilter);
   if(mode==='manager'&&mgrFilter){ const mgrObj=window.managers[mgrFilter]; if(mgrObj?.gardenIds) gList=gList.filter(g=>mgrObj.gardenIds.includes(g.id)); }
   if(mode==='garden'){ if(!gardenFilter){ window.spAlert('יש לבחור צהרון מהרשימה'); return; } gList=gList.filter(g=>g.id===gardenFilter); }
@@ -66,6 +66,7 @@ async function doMonthlyExport(){
 
   const byCity={};
   gList.forEach(g=>{ if(!byCity[g.city]) byCity[g.city]=[]; byCity[g.city].push(g); });
+  Object.values(byCity).forEach(arr => arr.sort((a,b)=>(a.name||'').localeCompare(b.name||'','he')));
 
   let filesExported=0;
   if(effectiveSplit==='garden'){
@@ -90,7 +91,8 @@ async function doMonthlyExport(){
 }
 
 function buildCityWB(city, gardens, allEvs, fromDate, toDate){
-  // Build workbook with one sheet per garden
+  // Build workbook with one sheet per garden, sorted alphabetically
+  gardens = [...gardens].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
   const wb={sheets:[], city};
   gardens.forEach(g=>{
     const gEvs=allEvs.filter(s=>s.g===g.id);
@@ -144,6 +146,7 @@ async function downloadWB(wb, filename, fromM, singleSheet = false) {
 
 async function _downloadWBExcelJS(gardens, allEvs, year, month, filename, singleSheet) {
   try {
+    gardens = [...gardens].sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
     const workbook = new window.ExcelJS.Workbook();
 
     const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -466,6 +469,7 @@ function _csvFallback(wb, filename) {
 
 
 function buildStyledSheet(gardens, allEvs, year, month) {
+  gardens = [...gardens].sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
   const ws = {};
   const merges = [];
   const rowBreaks = [];
