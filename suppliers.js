@@ -103,6 +103,8 @@ function openSupExport(supName){
   
   document.getElementById('supex-prev').style.display='none';
   if(window._supexSelectedGardens) window._supexSelectedGardens.clear(); if(document.getElementById('supex-garden-multi-search')) document.getElementById('supex-garden-multi-search').value = ''; if(typeof window.renderSupExGardenMultiItems === 'function') window.renderSupExGardenMultiItems();
+  const pairRadio = document.querySelector('input[name="supex-group-by"][value="pairs"]');
+  if (pairRadio) pairRadio.checked = true;
   document.getElementById('supexm').classList.add('open');
 }
 async function doSupExport(){
@@ -145,6 +147,7 @@ async function doSupExport(){
 
   const from=document.getElementById('supex-from').value;
   const to=document.getElementById('supex-to').value;
+  const groupBy = (document.querySelector('input[name="supex-group-by"]:checked')?.value) || 'pairs';
   if(!from||!to){_spAlertDialog('בחר תאריכים');return;}
 
   if (selectedSups.length === 0) {
@@ -170,6 +173,22 @@ async function doSupExport(){
     if(cs !== 0) return cs;
     const ds = a.d.localeCompare(b.d);
     if(ds !== 0) return ds;
+    
+    if (groupBy === 'clusters') {
+      const getClName = (ev) => {
+        const gCls = window.gardenClusters ? window.gardenClusters(ev.g, ev.d) : [];
+        return (gCls && gCls.length > 0) ? (gCls[0].name || '') : '';
+      };
+      const clA = getClName(a);
+      const clB = getClName(b);
+      if (clA || clB) {
+        if (!clA) return 1;
+        if (!clB) return -1;
+        const clsCmp = clA.localeCompare(clB, 'he', { numeric: true });
+        if (clsCmp !== 0) return clsCmp;
+      }
+    }
+    
     const pA = window.gardenPair(a.g), pB = window.gardenPair(b.g);
     const nA = pA ? pA.name : ga.name;
     const nB = pB ? pB.name : gb.name;
@@ -199,7 +218,8 @@ async function doSupExport(){
   await window.exportToExcel(evs, `דו"ח_${_supExType==='place'?'שיבוצים':'פעילויות'}_${actualSupName||'כל_הספקים'}_${from}_${to}`, {
     type: exportTypeStr,
     title: title,
-    summaryTitle: sumTitle
+    summaryTitle: sumTitle,
+    groupBy: groupBy
   });
 
   if (i < selectedSups.length - 1) {

@@ -719,14 +719,21 @@ async function exportToExcel(data, filename, opts = {}) {
       };
       
       if(opts.title){
+        const isPlacementOpts = opts.type === 'supplier_placement';
+        const groupByOpts = opts.groupBy || 'pairs';
+        const isClusterGroupOpts = (groupByOpts === 'clusters');
+        const colCountOpts = isPlacementOpts ? (isClusterGroupOpts ? 9 : 8) : (isClusterGroupOpts ? 10 : 9);
         const titleRow = ws.addRow([opts.title]);
         titleRow.font = { name: 'Arial', size: 16, bold: true };
-        ws.mergeCells(1, 1, 1, opts.type === 'supplier_placement' ? 8 : 9);
+        ws.mergeCells(1, 1, 1, colCountOpts);
         ws.pageSetup.printTitlesRow = '1:1';
       }
 
       const isSupplierExport = opts.type === 'supplier' || opts.type === 'supplier_placement';
       const isPlacement = opts.type === 'supplier_placement';
+      const groupBy = opts.groupBy || 'pairs';
+      const isClusterGroup = (groupBy === 'clusters');
+      const colCount = isPlacement ? (isClusterGroup ? 9 : 8) : (isClusterGroup ? 10 : 9);
       let totalOk = 0, totalNo = 0, totalGroups = 0;
 
       if(isSupplierExport){
@@ -759,6 +766,21 @@ async function exportToExcel(data, filename, opts = {}) {
               const ds = a.d.localeCompare(b.d);
               if(ds !== 0) return ds;
               
+              if (isClusterGroup) {
+                const getClName = (ev) => {
+                  const gCls = window.gardenClusters ? window.gardenClusters(ev.g, ev.d) : [];
+                  return (gCls && gCls.length > 0) ? (gCls[0].name || '') : '';
+                };
+                const clA = getClName(a);
+                const clB = getClName(b);
+                if (clA || clB) {
+                  if (!clA) return 1;
+                  if (!clB) return -1;
+                  const clsCmp = clA.localeCompare(clB, 'he', { numeric: true });
+                  if (clsCmp !== 0) return clsCmp;
+                }
+              }
+              
               // Sort by Pair Name BEFORE Time so pairs stay together
               const pA = window.gardenPair(a.g), pB = window.gardenPair(b.g);
               const nA = pA ? pA.name : window.G(a.g).name;
@@ -783,14 +805,24 @@ async function exportToExcel(data, filename, opts = {}) {
             const titleRow = ws.addRow([`${actualName} - ${city} - ${type}`]);
             titleRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
                 cell.font = { name: 'Arial', bold: true, size: 14 };
-                if (colNumber <= (isPlacement ? 8 : 9)) {
+                if (colNumber <= colCount) {
                     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
                 }
             });
             titleRow.alignment = { horizontal: 'right' };
-            ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, isPlacement ? 8 : 9);
+            ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, colCount);
 
-            const headRow = isPlacement ? ws.addRow(['רחוב', 'גן/בי"ס', 'תאריך', 'יום', 'שעה', 'קבוצות', 'סטטוס', 'הערות']) : ws.addRow(['תאריך', 'יום', 'גן/בי"ס', 'שם ספק החוגים', 'פעילות', 'שעה', 'קבוצות', 'סטטוס', 'הערות']);
+            let headRowData;
+            if (isPlacement) {
+              headRowData = isClusterGroup 
+                ? ['אשכול', 'רחוב', 'גן/בי"ס', 'תאריך', 'יום', 'שעה', 'קבוצות', 'סטטוס', 'הערות']
+                : ['רחוב', 'גן/בי"ס', 'תאריך', 'יום', 'שעה', 'קבוצות', 'סטטוס', 'הערות'];
+            } else {
+              headRowData = isClusterGroup
+                ? ['תאריך', 'יום', 'אשכול', 'גן/בי"ס', 'שם ספק החוגים', 'פעילות', 'שעה', 'קבוצות', 'סטטוס', 'הערות']
+                : ['תאריך', 'יום', 'גן/בי"ס', 'שם ספק החוגים', 'פעילות', 'שעה', 'קבוצות', 'סטטוס', 'הערות'];
+            }
+            const headRow = ws.addRow(headRowData);
             headRow.font = { bold: true };
             headRow.eachCell(cell => {
                cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
@@ -852,7 +884,25 @@ async function exportToExcel(data, filename, opts = {}) {
               
               const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
               const dayStr = 'יום ' + dayNames[new Date(s.d).getDay()];
-              const row = isPlacement ? ws.addRow([(g.add || g.st) || '', g.name, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote]) : ws.addRow([window.fD(s.d), dayStr, g.name, window.supBase ? window.supBase(s.a) : s.a, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote]);
+              
+              const gCls = window.gardenClusters ? window.gardenClusters(s.g, s.d) : [];
+              const clusterName = (gCls && gCls.length > 0) ? (gCls[0].name || '') : '';
+              
+              let rowData;
+              if (isPlacement) {
+                if (isClusterGroup) {
+                  rowData = [clusterName, (g.add || g.st) || '', g.name, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote];
+                } else {
+                  rowData = [(g.add || g.st) || '', g.name, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote];
+                }
+              } else {
+                if (isClusterGroup) {
+                  rowData = [window.fD(s.d), dayStr, clusterName, g.name, window.supBase ? window.supBase(s.a) : s.a, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote];
+                } else {
+                  rowData = [window.fD(s.d), dayStr, g.name, window.supBase ? window.supBase(s.a) : s.a, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote];
+                }
+              }
+              const row = ws.addRow(rowData);
               row.eachCell(cell => {
                  cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
                  cell.alignment = { horizontal: 'right', vertical: 'middle', wrapText: true };
@@ -862,18 +912,19 @@ async function exportToExcel(data, filename, opts = {}) {
             typeGlobalGroups += typeGroups;
 
             // Section Sub-Summary
-            const typeSum = isPlacement ? ws.addRow([`📌 ${city} - ${type}: ${typeGroups} פעילויות לביצוע (כולל השלמות)`, '', '', '', '', '', '', '']) : ws.addRow([`📌 ${city} - ${type}: בוצעו ${typeGroups} פעילויות (כולל השלמות)`, '', '', '', '', '', '', '', '']);
+            const typeSumText = isPlacement ? `📌 ${city} - ${type}: ${typeGroups} פעילויות לביצוע (כולל השלמות)` : `📌 ${city} - ${type}: בוצעו ${typeGroups} פעילויות (כולל השלמות)`;
+            const typeSum = ws.addRow([typeSumText]);
             typeSum.font = { bold: true, size: 12, color: { argb: 'FF1A237E' } };
             typeSum.eachCell((cell) => {
               cell.alignment = { horizontal: 'right' };
             });
-            ws.mergeCells(typeSum.number, 1, typeSum.number, isPlacement ? 8 : 9);
+            ws.mergeCells(typeSum.number, 1, typeSum.number, colCount);
 
             if (typeGroupsNo > 0 && !isPlacement) {
-              const typeSumNo = ws.addRow([`❌ ${city} - ${type}: לא בוצעו ${typeGroupsNo} פעילויות (כולל השלמות)`, '', '', '', '', '', '', '', '']);
+              const typeSumNo = ws.addRow([`❌ ${city} - ${type}: לא בוצעו ${typeGroupsNo} פעילויות (כולל השלמות)`]);
               typeSumNo.font = { bold: true, size: 12, color: { argb: 'FFD32F2F' } };
               typeSumNo.eachCell((cell) => { cell.alignment = { horizontal: 'right' }; });
-              ws.mergeCells(typeSumNo.number, 1, typeSumNo.number, 9);
+              ws.mergeCells(typeSumNo.number, 1, typeSumNo.number, colCount);
             }
             ws.addRow([]);
             
@@ -902,10 +953,10 @@ async function exportToExcel(data, filename, opts = {}) {
             if (!finalTitleStr.includes(type)) {
                finalTitleStr = finalTitleStr.replace('סופי', `- ${type}`);
             }
-            const sumHead = isPlacement ? ws.addRow([finalTitleStr, '', '', '', '', '', '', '']) : ws.addRow([finalTitleStr, '', '', '', '', '', '', '', '']);
+            const sumHead = ws.addRow([finalTitleStr]);
             sumHead.font = { bold: true, size: 12 };
             sumHead.alignment = { horizontal: 'right' };
-            ws.mergeCells(sumHead.number, 1, sumHead.number, isPlacement ? 8 : 9);
+            ws.mergeCells(sumHead.number, 1, sumHead.number, colCount);
 
             summaryRows.forEach(sr => {
               const row = isPlacement ? ws.addRow([sr.label, `${sr.grp} פעילויות`]) : ws.addRow([sr.label, `בוצעו ${sr.grp} פעילויות`, '']);
@@ -922,7 +973,7 @@ async function exportToExcel(data, filename, opts = {}) {
               cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
               cell.alignment = { horizontal: 'right' };
             });
-            if(!isPlacement) ws.mergeCells(totalRow.number, 1, totalRow.number, 2);
+            if(!isPlacement) ws.mergeCells(totalRow.number, 1, totalRow.number, isClusterGroup ? 3 : 2);
             ws.addRow([]); // Blank row before the next type starts
           }
         });

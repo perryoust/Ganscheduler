@@ -13,18 +13,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 110.91</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 110.92</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=110.91" />
+  <link rel="stylesheet" href="styles.css?v=110.92" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '110.87';
+    window.APP_VERSION = '110.92';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -2394,6 +2394,23 @@
             <div class="fg" style="flex:1;">
               <label style="font-weight:600; color:#33691e; font-size:.82rem; margin-bottom:6px; display:block;">📅 עד-תאריך</label>
               <input type="date" id="supex-to" onchange="if(typeof window.updateSupExportDropdown === 'function') window.updateSupExportDropdown()" style="width:100%; padding:8px 10px; border:1.5px solid #aed581; border-radius:6px; font-size:.88rem;">
+            </div>
+          </div>
+
+          <!-- Group / Sort Order Option -->
+          <div class="fg" id="supex-group-wrap" style="margin-bottom:14px; background:#f8f9ff; border:1.5px solid #c5cae9; border-radius:8px; padding:12px;">
+            <label style="font-weight:700; color:#283593; font-size:.84rem; margin-bottom:8px; display:block;">
+              🗂️ סידור וקיבוץ גנים בדוח
+            </label>
+            <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+              <label style="display:flex; align-items:center; gap:6px; font-size:.85rem; font-weight:600; color:#283593; cursor:pointer;">
+                <input type="radio" name="supex-group-by" value="pairs" checked style="cursor:pointer; accent-color:#283593;">
+                לפי צמדי גנים (זוגות)
+              </label>
+              <label style="display:flex; align-items:center; gap:6px; font-size:.85rem; font-weight:600; color:#283593; cursor:pointer;">
+                <input type="radio" name="supex-group-by" value="clusters" style="cursor:pointer; accent-color:#283593;">
+                לפי אשכולות (קייטנות) + עמודת אשכול
+              </label>
             </div>
           </div>
 
