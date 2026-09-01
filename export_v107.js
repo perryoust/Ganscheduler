@@ -1492,7 +1492,7 @@ window.exportBulkAnnualSchedule = async function() {
   // Deduplicate by ID, prioritizing _GARDENS_EXTRA (which come later in the array) to keep merged info like 'age'
   const ganMap = new Map();
   rawAllGans.forEach(g => ganMap.set(Number(g.id), g));
-  const allGans = Array.from(ganMap.values());
+  const allGans = Array.from(ganMap.values()).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
 
   // Group events by date and garden for quick lookup
   const schByDateAndGan = {};
