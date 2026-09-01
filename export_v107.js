@@ -180,7 +180,8 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename, single
       if (Object.keys(brd).length) cell.border = brd;
     }
     function styleDataRow(row, fill, fillABC) {
-      const colABCfill = fillABC !== undefined ? fillABC : fill;
+      // Columns A, B, C (שם הצהרון, גיל, תאריך) always remain BLUE unless Fri/Sat (RED)
+      const colABCfill = fillABC !== undefined ? fillABC : (fill === CLR.RED ? CLR.RED : CLR.BLUE);
       for (let i=1; i<=9; i++) {
         const cellFill = i<=3 ? colABCfill : fill;
         applyStyle(row.getCell(i), {
@@ -522,9 +523,10 @@ function buildStyledSheet(gardens, allEvs, year, month) {
     for (let c = 0; c < 9; c++) {
       const addr = window.XLSX.utils.encode_cell({r: row, c});
       if (!ws[addr]) ws[addr] = {v: '', t: 's', s: {}};
+      const colCellFill = c <= 2 ? (fillRgb === 'FFFF0000' ? 'FFFF0000' : 'FFB8CCE4') : fillRgb;
       ws[addr].s = {
         ...ws[addr].s,
-        fill: fill(fillRgb),
+        fill: fill(colCellFill),
         font: font(c === 5 || c === 6 ? 10 : 11, true),
         border: border('thin','thin', c===0?'medium':'thin', c===8?'medium':'thin'),
         alignment: align(c===0?'right':'center')
