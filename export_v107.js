@@ -316,11 +316,12 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename, single
           const phone    = ev ? (typeof window.getSupPhone === 'function' ? window.getSupPhone(ev.a, ev) : (ev.p||(typeof window.supEx!=='undefined'&&window.supEx[supName]?.ph1)||'')) : '';
           const grp      = ev ? (isCan ? 0 : (ev.grp||1)) : '';
 
+          const holDisplayName = hol ? (typeof window.cleanHolName === 'function' ? window.cleanHolName(hol.name) : hol.name) : '';
           const vals = [
             garden.name, '',
             isFirst ? dateStr : '',
             isFirst ? dayName : '',
-            ev ? (hol ? hol.name : evTpLabel) : (isFirst&&hol ? hol.name : ''),
+            ev ? (hol ? holDisplayName : evTpLabel) : (isFirst&&hol ? holDisplayName : ''),
             ev ? colF : '',
             ev ? phone    : '',
             ev ? grp      : '',
@@ -623,7 +624,8 @@ function buildStyledSheet(gardens, allEvs, year, month) {
           const supData = window.SUPBASE ? window.SUPBASE.find(s=>(typeof window.supBase==='function'?window.supBase(s.name):s.name)===supName) : null;
           const phone   = typeof window.getSupPhone === 'function' ? window.getSupPhone(ev.a, ev) : (ev.p || (supData&&supData.phone) || (window.supEx&&window.supEx[supName]&&window.supEx[supName].ph1) || '');
           const holObj = hol || null;
-          sc(r+ei, 4, holObj ? (holObj.name||actType) : actType, null);
+          const holDisplayName = holObj ? (typeof window.cleanHolName === 'function' ? window.cleanHolName(holObj.name) : holObj.name) : '';
+          sc(r+ei, 4, holObj ? (holDisplayName||actType) : actType, null);
           sc(r+ei, 5, supName,         null);
           sc(r+ei, 6, phone,           null);
           sc(r+ei, 7, isCan ? 0 : (ev.grp||1), null);
@@ -1581,7 +1583,7 @@ window.exportBulkAnnualSchedule = async function() {
       const cls = g.cls || 'גנים';
       
       const hol = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(dateStr, g.city, window.getGardenClass ? window.getGardenClass(g) : cls) : null;
-      const holName = hol ? hol.name : '';
+      const holName = hol ? (typeof window.cleanHolName === 'function' ? window.cleanHolName(hol.name) : hol.name) : '';
 
       if (gEvs.length > 0) {
         gEvs.forEach(ev => {
