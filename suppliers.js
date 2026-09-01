@@ -187,6 +187,9 @@ async function doSupExport(){
         const clsCmp = clA.localeCompare(clB, 'he', { numeric: true });
         if (clsCmp !== 0) return clsCmp;
       }
+      const ts = (a.t || '99:99').localeCompare(b.t || '99:99');
+      if (ts !== 0) return ts;
+      return ga.name.localeCompare(gb.name, 'he');
     }
     
     const pA = window.gardenPair(a.g), pB = window.gardenPair(b.g);

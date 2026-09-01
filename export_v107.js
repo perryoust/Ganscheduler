@@ -779,6 +779,9 @@ async function exportToExcel(data, filename, opts = {}) {
                   const clsCmp = clA.localeCompare(clB, 'he', { numeric: true });
                   if (clsCmp !== 0) return clsCmp;
                 }
+                const ts = (a.t || '99:99').localeCompare(b.t || '99:99');
+                if (ts !== 0) return ts;
+                return window.G(a.g).name.localeCompare(window.G(b.g).name, 'he');
               }
               
               // Sort by Pair Name BEFORE Time so pairs stay together
@@ -815,11 +818,11 @@ async function exportToExcel(data, filename, opts = {}) {
             let headRowData;
             if (isPlacement) {
               headRowData = isClusterGroup 
-                ? ['אשכול', 'רחוב', 'גן/בי"ס', 'תאריך', 'יום', 'שעה', 'קבוצות', 'סטטוס', 'הערות']
+                ? ['רחוב', 'גן/בי"ס', 'תאריך', 'יום', 'שעה', 'קבוצות', 'סטטוס', 'הערות', 'אשכול']
                 : ['רחוב', 'גן/בי"ס', 'תאריך', 'יום', 'שעה', 'קבוצות', 'סטטוס', 'הערות'];
             } else {
               headRowData = isClusterGroup
-                ? ['תאריך', 'יום', 'אשכול', 'גן/בי"ס', 'שם ספק החוגים', 'פעילות', 'שעה', 'קבוצות', 'סטטוס', 'הערות']
+                ? ['תאריך', 'יום', 'גן/בי"ס', 'שם ספק החוגים', 'פעילות', 'שעה', 'קבוצות', 'סטטוס', 'הערות', 'אשכול']
                 : ['תאריך', 'יום', 'גן/בי"ס', 'שם ספק החוגים', 'פעילות', 'שעה', 'קבוצות', 'סטטוס', 'הערות'];
             }
             const headRow = ws.addRow(headRowData);
@@ -891,13 +894,13 @@ async function exportToExcel(data, filename, opts = {}) {
               let rowData;
               if (isPlacement) {
                 if (isClusterGroup) {
-                  rowData = [clusterName, (g.add || g.st) || '', g.name, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote];
+                  rowData = [(g.add || g.st) || '', g.name, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote, clusterName];
                 } else {
                   rowData = [(g.add || g.st) || '', g.name, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote];
                 }
               } else {
                 if (isClusterGroup) {
-                  rowData = [window.fD(s.d), dayStr, clusterName, g.name, window.supBase ? window.supBase(s.a) : s.a, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote];
+                  rowData = [window.fD(s.d), dayStr, g.name, window.supBase ? window.supBase(s.a) : s.a, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote, clusterName];
                 } else {
                   rowData = [window.fD(s.d), dayStr, g.name, window.supBase ? window.supBase(s.a) : s.a, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote];
                 }
