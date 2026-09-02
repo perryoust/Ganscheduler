@@ -197,74 +197,79 @@ function nsRefG(){
   sel.innerHTML='<option value="">בחר צהרון</option>';
   gs.forEach(g=>sel.innerHTML+=`<option value="${g.id}">${g.name}</option>`);
   
-  const choiceWrap = document.getElementById('ns-g2-choice-wrap');
-  const partnerWrap = document.getElementById('ns-g2-partner-wrap');
-  if(choiceWrap) choiceWrap.style.display='none';
-  if(partnerWrap) partnerWrap.style.display='none';
-  
-  const grpWrap = document.getElementById('ns-grp-wrap');
-  if(grpWrap) grpWrap.style.display='none';
+  // Only hide choiceWrap if no custom partners (cluster/preset) are active
+  if (!window.nsCustomPartners || window.nsCustomPartners.size === 0) {
+    const choiceWrap = document.getElementById('ns-g2-choice-wrap');
+    const partnerWrap = document.getElementById('ns-g2-partner-wrap');
+    if(choiceWrap) choiceWrap.style.display='none';
+    if(partnerWrap) partnerWrap.style.display='none';
+    const grpWrap = document.getElementById('ns-grp-wrap');
+    if(grpWrap) grpWrap.style.display='none';
+  }
   
   sel.onchange=function(){nsCheckPair(parseInt(this.value)||null);};
 }
 function nsCheckPair(gid){
-  if(!gid) return;
   const date = document.getElementById('ns-date')?.value || window.d2s(new Date());
-  const g=window.G(gid);
-  document.getElementById('ns-grp-wrap').style.display='block';
-  const pair=window.gardenPair(gid, date);
   const choiceWrap = document.getElementById('ns-g2-choice-wrap');
-  
-  if(pair && pair.ids.length >= 2){
+  const grpWrap = document.getElementById('ns-grp-wrap');
+  if (grpWrap) grpWrap.style.display = 'block';
+
+  const pair = gid ? window.gardenPair(gid, date) : null;
+  const hasCustom = window.nsCustomPartners && window.nsCustomPartners.size > 0;
+  const hasPair = pair && pair.ids && pair.ids.length >= 2;
+
+  if (hasCustom || hasPair) {
     renderPartnerTable();
-    
-    // Add Dynamic Explanation (if not already there)
+    if (choiceWrap) choiceWrap.style.display = 'block';
+
     const infoDivId = 'ns-pair-info-notice';
     let infoDiv = document.getElementById(infoDivId);
-    if(!infoDiv && choiceWrap){
+    if (!infoDiv && choiceWrap) {
       infoDiv = document.createElement('div');
       infoDiv.id = infoDivId;
       infoDiv.className = 'info-notice';
       choiceWrap.insertBefore(infoDiv, choiceWrap.firstChild);
     }
-    if(infoDiv){
-      const otherIds = pair.ids.map(Number).filter(oid => oid !== Number(gid));
-      const partNames = otherIds.map(id => window.G(id).name).join(', ');
-      infoDiv.innerHTML = `<span class="icon">🔗</span><div><b>שים לב:</b> גן זה מקושר ל-<b>${partNames}</b>. מומלץ לשבץ אותם יחד.</div>`;
+    if (infoDiv) {
+      if (hasCustom) {
+        infoDiv.style.display = 'none';
+      } else if (hasPair) {
+        const otherIds = pair.ids.map(Number).filter(oid => oid !== Number(gid));
+        const partNames = otherIds.map(id => (window.G(id)||{}).name || id).join(', ');
+        infoDiv.innerHTML = `<span class="icon">🔗</span><div><b>שים לב:</b> גן זה מקושר ל-<b>${partNames}</b>. מומלץ לשבץ אותם יחד.</div>`;
+        infoDiv.style.display = 'block';
+      }
     }
-
-    if(choiceWrap) choiceWrap.style.display = 'block';
   } else {
-    if(choiceWrap) choiceWrap.style.display = 'none';
+    if (choiceWrap) choiceWrap.style.display = 'none';
   }
-  nsDateChg();
 }
 
 function renderPartnerTable(){
-  const gid=parseInt(document.getElementById('ns-g').value);
-  const date=document.getElementById('ns-date').value;
-  const pair=window.gardenPair(gid, date);
+  const gid=parseInt(document.getElementById('ns-g')?.value) || null;
+  const date=document.getElementById('ns-date')?.value || window.d2s(new Date());
+  const pair=gid ? window.gardenPair(gid, date) : null;
   const g2ChoiceContainer = document.getElementById('ns-g2-choice-container');
+  const choiceWrap = document.getElementById('ns-g2-choice-wrap');
   if(!g2ChoiceContainer) return;
 
   const allIdsSet = new Set();
-  if (gid) allIdsSet.add(Number(gid));
-
-  const infoDiv = document.getElementById('ns-pair-info-notice');
-
   if (window.nsCustomPartners && window.nsCustomPartners.size > 0) {
     window.nsCustomPartners.forEach(id => {
       allIdsSet.add(Number(id));
     });
-    if (infoDiv) infoDiv.style.display = 'none';
-  } else {
-    if(pair && pair.ids) {
-      pair.ids.map(Number).forEach(id => allIdsSet.add(id));
-    }
-    if (infoDiv) infoDiv.style.display = 'block';
+  } else if(pair && pair.ids) {
+    pair.ids.map(Number).forEach(id => allIdsSet.add(id));
+  } else if (gid) {
+    allIdsSet.add(Number(gid));
   }
   
   const allIds = Array.from(allIdsSet);
+
+  if (allIds.length >= 2 || (window.nsCustomPartners && window.nsCustomPartners.size > 0)) {
+    if (choiceWrap) choiceWrap.style.display = 'block';
+  }
 
   // Preserve existing inputs from DOM before re-rendering
   const existingTimes = {};
@@ -284,7 +289,6 @@ function renderPartnerTable(){
     rowsHtml = '<tr><td colspan="7" style="text-align:center;padding:12px;color:#777">אין גנים שותפים כרגע</td></tr>';
   } else {
     allIds.forEach(pId => {
-      const isPrimary = Number(pId) === Number(gid);
       const pG = window.G(pId);
       if(!pG) return;
       const ev = window.SCH.find(s => Number(s.g) === Number(pId) && s.d === date && s.st !== 'can');
@@ -296,20 +300,12 @@ function renderPartnerTable(){
       const type = ev ? (ev.tp || 'חוג') : '—';
       
       const savedInputTime = existingTimes[Number(pId)];
-      const defaultTime = document.getElementById('ns-time')?.value || '';
+      const defaultTime = document.getElementById('ns-time')?.value || '10:00';
       const timeVal = ev ? (window.fT ? window.fT(ev.t) : ev.t) : (savedInputTime || defaultTime);
       
-      let timeDisplay;
-      let chkDisplay;
-      
-      if (isPrimary) {
-        timeDisplay = ev ? `<span style="font-weight:600">${timeVal}</span>` : `<input type="time" id="ns-primary-time-table" class="ns-syn-time" data-gid="${pId}" value="${timeVal}" style="width:70px;font-size:.7rem;padding:2px" onchange="document.getElementById('ns-time').value = this.value">`;
-        chkDisplay = `<input type="checkbox" checked disabled style="width:18px;height:18px;accent-color:#1565c0" title="גן ראשי - תמיד נכלל">`;
-      } else {
-        const isChecked = existingChecks[Number(pId)] !== undefined ? existingChecks[Number(pId)] : true;
-        timeDisplay = ev ? `<span style="font-weight:600">${timeVal}</span>` : `<input type="time" class="ns-syn-time" data-gid="${pId}" value="${timeVal}" style="width:70px;font-size:.7rem;padding:2px">`;
-        chkDisplay = `<input type="checkbox" id="ns-syn-chk-${pId}" class="ns-syn-chk" value="${pId}" style="width:18px;height:18px;accent-color:#1565c0" ${isChecked ? 'checked' : ''}>`;
-      }
+      const isChecked = existingChecks[Number(pId)] !== undefined ? existingChecks[Number(pId)] : true;
+      const timeDisplay = ev ? `<span style="font-weight:600">${timeVal}</span>` : `<input type="time" class="ns-syn-time" data-gid="${pId}" value="${timeVal}" style="width:70px;font-size:.7rem;padding:2px">`;
+      const chkDisplay = `<input type="checkbox" id="ns-syn-chk-${pId}" class="ns-syn-chk" data-gid="${pId}" value="${pId}" style="width:18px;height:18px;accent-color:#1565c0;cursor:pointer" ${isChecked ? 'checked' : ''}>`;
 
       rowsHtml += `
         <tr class="${stClass}">
@@ -433,6 +429,7 @@ window.nsLoadGrpPreset = function() {
   const val = document.getElementById('ns-grp-preset').value;
   const primaryWrap = document.getElementById('ns-primary-g-wrap');
   const cityWrap = document.getElementById('ns-city-wrap');
+  const choiceWrap = document.getElementById('ns-g2-choice-wrap');
 
   if (val) {
     if (primaryWrap) primaryWrap.style.display = 'none';
@@ -441,7 +438,9 @@ window.nsLoadGrpPreset = function() {
     if (primaryWrap) primaryWrap.style.display = 'grid';
     if (cityWrap) cityWrap.style.display = 'block';
     window.nsCustomPartners = new Set();
-    window.nsCheckPair(document.getElementById('ns-g').value);
+    const gVal = document.getElementById('ns-g')?.value;
+    if (gVal) window.nsCheckPair(gVal);
+    else if (choiceWrap) choiceWrap.style.display = 'none';
     return;
   }
   
@@ -466,13 +465,19 @@ window.nsLoadGrpPreset = function() {
      const g = window.G(mainGid);
      if (g) {
        document.getElementById('ns-city').value = g.city;
-       window.nsRefG();
-       setTimeout(() => {
-         document.getElementById('ns-g').value = mainGid;
-         window.nsCustomPartners = new Set(gardenIds);
-         window.nsCheckPair(mainGid);
-       }, 50);
+       const gs=window.gByCF(g.city,'').sort((a,b)=>a.name.localeCompare(b.name,'he'));
+       const sel=document.getElementById('ns-g');
+       if(sel) {
+         sel.innerHTML='<option value="">בחר צהרון</option>';
+         gs.forEach(item=>sel.innerHTML+=`<option value="${item.id}">${item.name}</option>`);
+         sel.value = mainGid;
+       }
      }
+     window.nsCustomPartners = new Set(gardenIds);
+     renderPartnerTable();
+     if (choiceWrap) choiceWrap.style.display = 'block';
+     const grpWrap = document.getElementById('ns-grp-wrap');
+     if(grpWrap) grpWrap.style.display = 'block';
   }
 };
 
@@ -519,10 +524,17 @@ function nsShowFreeDays(gid){
 }
 
 function nsDateChg(){
-  const gid=parseInt(document.getElementById('ns-g').value);
-  const date=document.getElementById('ns-date').value;
+  const gid=parseInt(document.getElementById('ns-g')?.value) || null;
+  const date=document.getElementById('ns-date')?.value;
   
-  if (date) window.nsUpdateGrpPreset(date);
+  if (date) {
+    const grpSel = document.getElementById('ns-grp-preset');
+    const currentPreset = grpSel ? grpSel.value : '';
+    window.nsUpdateGrpPreset(date);
+    if (currentPreset && grpSel && grpSel.value === currentPreset) {
+      window.nsLoadGrpPreset();
+    }
+  }
 
   // Re-render partner table to show their status on the new date
   renderPartnerTable();
@@ -535,7 +547,7 @@ function nsDateChg(){
   if(!hintEl) return;
   if(!gid||!date){ hintEl.style.display='none'; return; }
   
-  const pair=gardenPair(gid);
+  const pair=gardenPair(gid, date);
   if(!pair){ hintEl.style.display='none'; return; }
   
   const pId=pair.ids.find(id=>Number(id)!==Number(gid));
@@ -596,21 +608,35 @@ function nsActTypeChg(){
   if(newInp) newInp.style.display=v==='__new__'?'inline-block':'none';
 }
 async function saveNewSched(closeModal = true){
-  const gid=parseInt(document.getElementById('ns-g').value)||null;
-  const synPrefix = (_nsmTab === 'makeup') ? 'ns-mu' : 'ns';
-  const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData(synPrefix) : [];
-  const date=document.getElementById('ns-date').value;
-  const time=document.getElementById('ns-time').value;
-  const sup=document.getElementById('ns-sup').value;
-  if(date&&gid){
-    const _g=G(gid);
-    const _hol=getHolidayInfo(date,_g.city||null,gcls(_g)||null);
-    if(_hol&&!_hol.canSched&&(_hol.type==='noact'||_hol.type==='vacation'||_hol.type==='camp')){
-      if(!(await window.spConfirm('⚠️ יש '+_hol.emoji+' '+_hol.name+' ביום זה.\nבכל זאת לשבץ?'))) return;
+  const gid=parseInt(document.getElementById('ns-g')?.value)||null;
+  const date=document.getElementById('ns-date')?.value;
+  const time=document.getElementById('ns-time')?.value || '10:00';
+  const sup=document.getElementById('ns-sup')?.value;
+  
+  if(!date||!sup){window.spAlert('יש למלא: תאריך וספק');return;}
+
+  const chkElements = document.querySelectorAll('.ns-syn-chk');
+  let targets = [];
+  if (chkElements.length > 0) {
+    chkElements.forEach(chk => {
+      if (chk.checked) {
+        const pId = Number(chk.value);
+        const timeInput = document.querySelector(`.ns-syn-time[data-gid="${pId}"]`);
+        const itemTime = timeInput ? timeInput.value : time;
+        targets.push({ g: pId, t: itemTime });
+      }
+    });
+    if (targets.length === 0) {
+      window.spAlert('יש לסמן לפחות גן אחד לשיבוץ ברשימה.');
+      return;
     }
+  } else {
+    if (!gid) { window.spAlert('יש לבחור גן לשיבוץ'); return; }
+    targets = [{ g: gid, t: time }];
   }
-  const ph=document.getElementById('ns-ph').value;
-  const notes=document.getElementById('ns-notes').value;
+
+  const ph=document.getElementById('ns-ph')?.value || '';
+  const notes=document.getElementById('ns-notes')?.value || '';
   const grp = parseInt(document.getElementById('ns-grp')?.value) || 1;
   let actType = document.getElementById('ns-act-type')?.value;
   if(actType === '__new__') { actType = document.getElementById('ns-act-type-new')?.value.trim(); }
@@ -621,25 +647,12 @@ async function saveNewSched(closeModal = true){
     if(!Array.isArray(window.supEx[baseSup].acts)) window.supEx[baseSup].acts=window.getSupActs(baseSup);
     if(!window.supEx[baseSup].acts.includes(actType)) window.supEx[baseSup].acts.push(actType);
   }
-  if(!gid||!date||!sup){window.spAlert('יש למלא: גן, תאריך, ספק');return;}
-  const g=window.G(gid);
-  if(window.gcls(g)==='גנים'&&time){
-    const h=parseInt(time.split(':')[0]);
-    const period=h<13?'morning':'afternoon';
-    const conflict=window.SCH.find(s=>s.g===gid&&s.d===date&&!['can','nohap','post'].includes(s.st)&&!s._compByMakeup&&s.t&&(parseInt(s.t.split(':')[0])<13?'morning':'afternoon')===period&&s.id!==undefined);
-    if(conflict){
-      const msg = `⚠️ כבר קיימת פעילות ב${period==='morning'?'בוקר':'אחה"צ'}: ${conflict.a} ב-${window.fT(conflict.t)}.\nהאם תרצה בכל זאת להוסיף את השיבוץ הנוכחי?`;
-      if(!(await window.spConfirm(msg))) return;
-    }
-  }
-  const newId=Date.now();
 
   if(_nsmTab==='recur'){
     // Recurring schedule — generate all matching dates
     const recurFrom=document.getElementById('ns-recur-from').value;
     const recurTo=document.getElementById('ns-recur-to').value;
     const selDays=[...document.querySelectorAll('.ns-day-chk:checked')].map(c=>parseInt(c.value));
-    const recurTime=time; // now using shared time field
     if(!recurFrom||!recurTo||!selDays.length){window.spAlert('שיבוץ קבוע: יש לבחור תאריך התחלה, סיום, וימים');return;}
     let count=0, cur=new Date(recurFrom.replace(/-/g,'/'));
     const endD=new Date(recurTo.replace(/-/g,'/'));
@@ -647,21 +660,39 @@ async function saveNewSched(closeModal = true){
     while(cur<=endD&&count<365){
       if(selDays.includes(cur.getDay())){
         const ds=window.d2s(cur);
-        const _hol2=window.getHolidayInfo(ds,window.G(gid).city||null,window.gcls(window.G(gid))||null);
-        if(!_hol2||_hol2.type==='info'){
-          const eid=recurring_id+count;
-          const ev={id:eid,g:gid,d:ds,a:sup,act:actType,tp:evTp||'חוג',t:recurTime,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp,_recId:recurring_id + '_' + cur.getDay()};
-          window.SCH.push(ev);
-          synergyPartners.forEach((syn, idx) => {
-            window.SCH.push({...ev,id:eid+(idx+1)*2000,g:syn.g,t:syn.t||recurTime});
-          });
-          count++;
-        }
+        targets.forEach((tgt, tIdx) => {
+          const _g = window.G(tgt.g);
+          const _hol2 = _g ? window.getHolidayInfo(ds, _g.city||null, window.gcls(_g)||null) : null;
+          if(!_hol2 || _hol2.type==='info' || _hol2.canSched){
+            const eid = recurring_id + count * 100 + tIdx;
+            const ev = {
+              id: eid,
+              g: tgt.g,
+              d: ds,
+              a: sup,
+              act: actType,
+              tp: evTp||'חוג',
+              t: tgt.t || time,
+              p: ph,
+              n: notes,
+              st: 'ok',
+              cr: '',
+              cn: '',
+              nt: notes,
+              pd: '',
+              pt: '',
+              grp,
+              _recId: recurring_id + '_' + cur.getDay()
+            };
+            window.SCH.push(ev);
+          }
+        });
+        count++;
       }
       cur.setDate(cur.getDate()+1);
     }
     saveAndRefresh(closeModal ? 'nsm' : null);
-    showToast(`✅ נוצרו ${count} פעילויות קבועות`);
+    showToast(`✅ נוצרו ${count * targets.length} פעילויות קבועות`);
     return;
   }
 
@@ -672,47 +703,54 @@ async function saveNewSched(closeModal = true){
   let totalScheduled = 0;
   
   for (const d of datesToSchedule) {
-    const loopId = Date.now() + totalScheduled;
-    
-    if(_nsmTab==='makeup'){
-      // Makeup schedule
-      const makeupOrig=document.getElementById('ns-makeup-orig').value;
-      const loopId = window.createMakeupActivity({
-        g: gid,
-        d: d,
-        t: time,
-        a: sup,
-        act: actType,
-        tp: evTp || 'חוג',
-        origD: makeupOrig || '',
-        origId: window._makeupOrigId || null,
-        notes: notes,
-        grp: grp
-      });
-
-      synergyPartners.forEach((syn, idx) => {
-        const baseEv = window.SCH.find(x=>x.id===loopId);
-        if(baseEv) window.SCH.push({...baseEv, id: loopId+(idx+1)*10, g: syn.g, t: syn.t||time});
-      });
-      totalScheduled++;
-    } else {
-      // One-time
-      const newSched={id:loopId,g:gid,d:d,a:sup,act:actType,tp:evTp||'חוג',t:time,p:ph,n:notes,st:'ok',cr:'',cn:'',nt:notes,pd:'',pt:'',grp};
-      window.SCH.push(newSched);
-      synergyPartners.forEach((syn, idx) => {
-        window.SCH.push({...newSched,id:loopId+(idx+1)*10,g:syn.g,t:syn.t||time,nt:notes});
-      });
-      totalScheduled++;
-    }
+    targets.forEach((tgt, idx) => {
+      const loopId = Date.now() + totalScheduled + idx * 10;
+      const tgtTime = tgt.t || time;
+      
+      if(_nsmTab==='makeup'){
+        // Makeup schedule
+        const makeupOrig=document.getElementById('ns-makeup-orig')?.value;
+        window.createMakeupActivity({
+          g: tgt.g,
+          d: d,
+          t: tgtTime,
+          a: sup,
+          act: actType,
+          tp: evTp || 'חוג',
+          origD: makeupOrig || '',
+          origId: window._makeupOrigId || null,
+          notes: notes,
+          grp: grp
+        });
+      } else {
+        // One-time
+        const newSched={
+          id: loopId,
+          g: tgt.g,
+          d: d,
+          a: sup,
+          act: actType,
+          tp: evTp||'חוג',
+          t: tgtTime,
+          p: ph,
+          n: notes,
+          st: 'ok',
+          cr: '',
+          cn: '',
+          nt: notes,
+          pd: '',
+          pt: '',
+          grp
+        };
+        window.SCH.push(newSched);
+      }
+    });
+    totalScheduled += targets.length;
   }
 
   const groupType = document.getElementById('ns-save-group-type')?.value;
   if(groupType && groupType !== 'none') {
-    const mainGid = parseInt(document.getElementById('ns-g').value);
-    const chks = document.querySelectorAll('.ns-syn-chk:checked');
-    const gids = [mainGid];
-    chks.forEach(c => gids.push(parseInt(c.value)));
-    
+    const gids = targets.map(t => t.g);
     if (groupType.startsWith('pair') && gids.length !== 2) {
       window.spAlert('בחרת לשמור כזוג, אבל יש ' + gids.length + ' גנים מסומנים. הקבוצה לא נשמרה ביומן. (השיבוץ עצמו כן נשמר)');
     } else if (gids.length >= 2) {
@@ -728,9 +766,8 @@ async function saveNewSched(closeModal = true){
         window.clusters = window.clusters || {};
         window.clusters[id] = { id, name: finalName, desc: '', gardenIds: gids, validFrom: validDate, validTo: validDate };
       } else {
-        const id = 'p_' + Date.now();
         window.pairs = window.pairs || [];
-        window.pairs.push({ id, name: finalName, ids: gids, validFrom: validDate, validTo: validDate });
+        window.pairs.push({ id: 'p_' + Date.now(), name: finalName, ids: gids, validFrom: validDate, validTo: validDate });
       }
     }
   }
