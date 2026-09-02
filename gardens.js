@@ -2011,8 +2011,16 @@ window.doBulkUpdateRecurring = async function(key, gid){
   if(!await window.spConfirm('המערכת תסיר את כל המפגשים הקיימים בסדרה זו בטווח הנבחר (כולל מהגנים השותפים שסומנו), ותשבץ מחדש.\nהאם להתקדם?')) return;
   
   const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('grm') : [];
-  const targets = [{g: gid, t: primaryTime}];
-  synergyPartners.forEach(syn => targets.push({g: syn.g, t: syn.t || primaryTime}));
+  const isPrimaryChecked = document.getElementById(`grm-syn-chk-${gid}`) ? document.getElementById(`grm-syn-chk-${gid}`).checked : true;
+  const targets = [];
+  if (isPrimaryChecked) {
+    targets.push({g: gid, t: primaryTime});
+  }
+  synergyPartners.forEach(syn => {
+    if (Number(syn.g) === Number(gid)) return;
+    targets.push({g: syn.g, t: syn.t || primaryTime});
+  });
+  if (!targets.length) return _spAlertDialog('יש לסמן לפחות גן אחד');
 
   let cRemoved = 0;
   let cAdded = 0;

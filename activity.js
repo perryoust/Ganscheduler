@@ -1701,27 +1701,35 @@ function spEditSave(){
   const s=window.SCH.find(x=>x.id==window.selEv); if(!s) return;
   const origDate = s.d;
   const origSup = s.a;
+  const isPrimaryChecked = document.getElementById(`sped-syn-chk-${s.g}`) ? document.getElementById(`sped-syn-chk-${s.g}`).checked : true;
   
   const newDate=document.getElementById('sp-edit-date').value;
   const newSup=document.getElementById('sp-edit-sup').value;
   const actVal=document.getElementById('sp-edit-act').value;
   const newAct=actVal==='__new__' ? (document.getElementById('sp-edit-act-new')||{}).value||'' : actVal;
   const newTime=document.getElementById('sp-edit-time').value;
-    const grpInput=document.getElementById('sp-edit-grp');
-    const newGrp=grpInput ? parseInt(grpInput.value, 10) : null;
+  const grpInput=document.getElementById('sp-edit-grp');
+  const newGrp=grpInput ? parseInt(grpInput.value, 10) : null;
   
-  if(newDate) s.d=newDate; 
-  if(newSup) s.a=newSup; 
-  if(newAct) { s.act=newAct; } else if (newSup && newSup !== origSup) { s.act=''; }
-  if(newTime) s.t=newTime;
-    if(newGrp && newGrp > 0) s.grp=newGrp;
+  if (isPrimaryChecked) {
+    const primaryTimeInp = document.querySelector(`.sped-syn-time[data-gid="${s.g}"]`);
+    const finalTime = primaryTimeInp ? primaryTimeInp.value : newTime;
+    const primaryGrpInp = document.querySelector(`.sped-syn-grp[data-gid="${s.g}"]`);
+    const finalGrp = primaryGrpInp ? parseInt(primaryGrpInp.value, 10) : newGrp;
+    if(newDate) s.d=newDate; 
+    if(newSup) s.a=newSup; 
+    if(newAct) { s.act=newAct; } else if (newSup && newSup !== origSup) { s.act=''; }
+    if(finalTime) s.t=finalTime;
+    if(finalGrp && finalGrp > 0) s.grp=finalGrp;
+  }
   
   const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('sped') : [];
   synergyPartners.forEach(syn => {
+    if (Number(syn.g) === Number(s.g)) return;
     const pEv = window.findPartnerActivity(syn.g, origDate, origSup);
     if(pEv) {
       if(newDate) pEv.d=newDate;
-        if(syn.grp) pEv.grp = syn.grp; else if(newGrp && newGrp > 0) pEv.grp = newGrp; 
+      if(syn.grp) pEv.grp = syn.grp; else if(newGrp && newGrp > 0) pEv.grp = newGrp; 
       if(newSup) pEv.a=newSup; 
       if(newAct) pEv.act=newAct; 
       if(syn.t || newTime) pEv.t=syn.t || newTime;
@@ -2249,7 +2257,7 @@ function openPostpone(id, defaultMode = 'move'){
       if(pIds.length) {
         pIds.forEach(pId => {
           if(Number(pId) === Number(s.g)) return;
-          const pEv = window.SCH.find(ps => ps.d === s.d && Number(ps.g) === Number(pId) && ps.st!=='can' && window.supBase(ps.a)===window.supBase(s.a));
+          const pEv = window.SCH.find(ps => ps.d === s.d && Number(ps.g) === Number(pId) && ps.st!=='can' && window.supBase(ps.a) === window.supBase(s.a));
           if(pEv) { currentTimes[pId] = window.fT(pEv.t||s.t); currentGrps[pId] = pEv.grp || 1; }
         });
         synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'post', currentTimes, currentGrps, s.d);
@@ -2308,16 +2316,20 @@ async function doPostpone(){
     const newSup = document.getElementById('post-sup') ? document.getElementById('post-sup').value : '';
     const newAct = document.getElementById('post-act') ? document.getElementById('post-act').value : '';
     const reason = document.getElementById('post-reason') ? document.getElementById('post-reason').value : '';
+    const isPrimaryChecked = document.getElementById(`post-syn-chk-${s.g}`) ? document.getElementById(`post-syn-chk-${s.g}`).checked : true;
     
     if (window._postMode === 'defer') {
       if(!reason.trim()) { _spAlertDialog('יש להזין סיבה לדחייה'); return; }
-      s.st = 'post';
-      s.pd = ''; // No target date
-      s.cn = s.cn ? s.cn + ` (דחייה: ${reason})` : `(דחייה: ${reason})`;
+      if (isPrimaryChecked) {
+        s.st = 'post';
+        s.pd = ''; // No target date
+        s.cn = s.cn ? s.cn + ` (דחייה: ${reason})` : `(דחייה: ${reason})`;
+      }
       
       // Process Synergy Partners for defer
       const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('post') : [];
       for(let syn of synergyPartners) {
+        if (Number(syn.g) === Number(s.g)) continue;
         const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === syn.g && ps.st !== 'can' && window.supBase(ps.a) === window.supBase(s.a));
         if(pEv) {
           pEv.st = 'post';
@@ -2396,25 +2408,34 @@ async function doPostpone(){
       toProcess.push({ syn, pEv });
     }
 
+    if (!isPrimaryChecked && toProcess.length === 0) {
+      _spAlertDialog('יש לסמן לפחות גן אחד לביצוע הפעולה.');
+      return;
+    }
+
     // Primary
-    const newId1 = Date.now();
-    s.st = 'post';
-    s.pd = newDate;
-    s.pt = window.fT(s.t);
-    s.cn += reason ? ` (דחייה: ${reason})` : '';
-    s._compByMakeup = newId1; // Mark original as handled
+    if (isPrimaryChecked) {
+      const primaryTimeInp = document.querySelector(`.post-syn-time[data-gid="${s.g}"]`);
+      const primaryTime = primaryTimeInp ? primaryTimeInp.value : (document.getElementById('post-time')?.value || s.t);
+      const newId1 = Date.now();
+      s.st = 'post';
+      s.pd = newDate;
+      s.pt = window.fT(s.t);
+      s.cn += reason ? ` (דחייה: ${reason})` : '';
+      s._compByMakeup = newId1; // Mark original as handled
 
-    const isPostpone = newDate > s.d;
-    const labelText = isPostpone ? 'נדחה' : 'הקדמה';
+      const isPostpone = newDate > s.d;
+      const labelText = isPostpone ? 'נדחה' : 'הקדמה';
 
-    const newEv1 = {
-      ...s, id:newId1, d:newDate, t:s.t, a:newSup||s.a, act:newAct||s.act, st:'ok', 
-      pd:'', pt:'', _postFrom: s.d, _isMakeup: true,
-      nt: (s.nt ? s.nt + ' | ' : '') + `${labelText} מיום ` + window.fD(s.d)
-    };
-    delete newEv1._recId;
-    if(reason) newEv1.n = s.n ? s.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
-    window.SCH.push(newEv1);
+      const newEv1 = {
+        ...s, id:newId1, d:newDate, t:primaryTime || s.t, a:newSup||s.a, act:newAct||s.act, st:'ok', 
+        pd:'', pt:'', _postFrom: s.d, _isMakeup: true,
+        nt: (s.nt ? s.nt + ' | ' : '') + `${labelText} מיום ` + window.fD(s.d)
+      };
+      delete newEv1._recId;
+      if(reason) newEv1.n = s.n ? s.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
+      window.SCH.push(newEv1);
+    }
     
     // Synergy Execution
     toProcess.forEach((conf, idx) => {
@@ -2522,7 +2543,7 @@ function renderPartnerSynergy(gid, prefix, currentTimes = {}, currentGrps = {}, 
     html += `
       <div style="display:flex;align-items:center;gap:8px;background:#fff;padding:6px;border-radius:5px;border:1px solid #e0e0e0">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1">
-          <input type="checkbox" id="${prefix}-syn-chk-${pId}" class="${prefix}-syn-chk" value="${pId}" checked ${isCurrent ? 'disabled' : ''} style="accent-color:#1565c0;width:15px;height:15px">
+          <input type="checkbox" id="${prefix}-syn-chk-${pId}" class="${prefix}-syn-chk" value="${pId}" checked style="accent-color:#1565c0;width:15px;height:15px;cursor:pointer">
           <span style="font-size:.8rem;font-weight:600">${pG.name}${isCurrent ? ' (ראשי)' : ''}</span>
         </label>
         <div style="display:flex;align-items:center;gap:5px">
@@ -2544,10 +2565,10 @@ function getSynergyData(prefix) {
   const data = [];
   const chks = document.querySelectorAll(`.${prefix}-syn-chk`);
   chks.forEach(chk => {
-    if (chk.checked && !chk.disabled) {
+    if (chk.checked) {
       const pId = chk.value;
       const timeInput = document.querySelector(`.${prefix}-syn-time[data-gid="${pId}"]`);
-        const grpInput = document.querySelector(`.${prefix}-syn-grp[data-gid="${pId}"]`);
+      const grpInput = document.querySelector(`.${prefix}-syn-grp[data-gid="${pId}"]`);
       data.push({ g: Number(pId), t: timeInput ? timeInput.value : '', grp: grpInput ? parseInt(grpInput.value, 10) : null });
     }
   });
