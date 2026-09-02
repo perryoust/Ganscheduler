@@ -733,9 +733,6 @@ function getClusters(rangeStart = null, rangeEnd = null){
     }
   }
   return arr.sort((a,b)=> {
-    const aTemp = a.validFrom ? 1 : 0;
-    const bTemp = b.validFrom ? 1 : 0;
-    if (aTemp !== bTemp) return bTemp - aTemp; // Temporary first
     return (a.name||'').localeCompare(b.name||'', 'he', { numeric: true });
   });
 }
@@ -752,9 +749,6 @@ window.getPairs = function(rangeStart = null, rangeEnd = null) {
     });
   }
   return arr.sort((a,b)=> {
-    const aTemp = a.validFrom ? 1 : 0;
-    const bTemp = b.validFrom ? 1 : 0;
-    if (aTemp !== bTemp) return bTemp - aTemp; // Temporary first
     return (a.name||'').localeCompare(b.name||'', 'he', { numeric: true });
   });
 };
@@ -840,7 +834,7 @@ function renderClusters(){
   let all=getClusters();
   const activeIds = new Set((typeof AG === 'function' ? AG() : window.GARDENS).map(g => Number(g.id)));
   all = all.filter(c => (c.gardenIds || []).some(id => activeIds.has(Number(id))));
-  all.sort((a,b) => (a.name||'').localeCompare(b.name||'','he'));
+  all.sort((a,b) => (a.name||'').localeCompare(b.name||'','he', { numeric: true }));
   
   const body=document.getElementById('clusters-body');
   const byCity={};

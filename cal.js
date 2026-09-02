@@ -1827,7 +1827,7 @@ function renderCalList(evs, mDate){
         pairEvs.forEach(s=>pairedGids.add(Number(s.g)));
         pairGroups.push({pair,pairEvs});
       });
-      pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he'));
+      pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he', { numeric: true }));
 
       if(_gmode2==='window.pairs'){
         // window.clusters second (skip paired)
@@ -1835,7 +1835,7 @@ function renderCalList(evs, mDate){
       }
 
       // ── Render window.pairs ──
-      pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he'));
+      pairGroups.sort((a,b)=>(a.pair.name||'').localeCompare(b.pair.name||'','he', { numeric: true }));
 
       pairGroups.forEach(({pair,pairEvs})=>{
         h += window.ui.renderStandardPairCard(pair, pairEvs, {
@@ -2520,7 +2520,7 @@ function renderRangeListView(evs, fromDs, toDs){
           pairEvs.forEach(s => firstUsedGids.add(Number(s.g)));
           pairGroups.push({pair, pairEvs});
         });
-        pairGroups.sort((a,b) => (a.pair.name||'').localeCompare(b.pair.name||'', 'he'));
+        pairGroups.sort((a,b) => (a.pair.name||'').localeCompare(b.pair.name||'', 'he', { numeric: true }));
         pairGroups.forEach(({pair, pairEvs}) => {
           const gardenActivities = new Map();
           pairEvs.forEach(s => {

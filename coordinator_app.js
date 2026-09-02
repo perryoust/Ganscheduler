@@ -532,7 +532,7 @@ function _coordRenderByCity(evs, ds) {
       } else if (typeof getClusters === 'function') {
         groupSource = getClusters().map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
       } else if (window.clusters) {
-        groupSource = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name,'he')).map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
+        groupSource = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name,'he', { numeric: true })).map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
       }
     }
 
@@ -543,6 +543,7 @@ function _coordRenderByCity(evs, ds) {
       pair.ids.forEach(id=>pairedGids.add(Number(id)));
       pairBlocks.push({pair, pe});
     });
+    pairBlocks.sort((a,b) => (a.pair.name||'').localeCompare(b.pair.name||'', 'he', { numeric: true }));
     
     let html = `<details class="city-accordion" open><summary style="background:${clr.solid};color:#fff;padding:8px 12px;font-weight:800">📍 ${city} (${cityEvs.length})</summary><div style="padding:8px;background:#f8fafc">`;
     if (window.ui && typeof window.ui.renderStandardPairCard === 'function') {

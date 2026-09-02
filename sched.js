@@ -490,7 +490,7 @@ window.nsUpdateGrpPreset = function(d) {
   // Add clusters (valid for this date)
   const cls = typeof window.getClusters === 'function' ? window.getClusters(d, d) : [];
   if (cls.length > 0) {
-    const sortedCls = [...cls].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
+    const sortedCls = [...cls].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he', { numeric: true }));
     const gOpt = document.createElement('optgroup');
     gOpt.label = 'אשכולות';
     sortedCls.forEach(c => gOpt.innerHTML += `<option value="cl_${c.id}">${c.name}</option>`);
@@ -500,7 +500,7 @@ window.nsUpdateGrpPreset = function(d) {
   // Add pairs
   const ps = typeof window.getPairs === 'function' ? window.getPairs(d, d) : (window.pairs || []);
   if (ps.length > 0) {
-    const sortedPs = ps.map((p, idx) => ({p, idx})).sort((a,b)=>(a.p.name||'').localeCompare(b.p.name||'','he'));
+    const sortedPs = ps.map((p, idx) => ({p, idx})).sort((a,b)=>(a.p.name||'').localeCompare(b.p.name||'','he', { numeric: true }));
     const gOpt = document.createElement('optgroup');
     gOpt.label = 'זוגות גנים';
     sortedPs.forEach(item => gOpt.innerHTML += `<option value="pair_${item.idx}">${item.p.name || 'זוג '+(item.idx+1)}</option>`);
@@ -1011,7 +1011,7 @@ function renderSched(){
         });
 
         // Render Pairs using central UI function
-        Object.values(pairsMap).sort((a,b)=>a.pair.name.localeCompare(b.pair.name,'he')).forEach(({pair,evs})=>{
+        Object.values(pairsMap).sort((a,b)=>a.pair.name.localeCompare(b.pair.name,'he', { numeric: true })).forEach(({pair,evs})=>{
           const clr=window.CITY_COLORS ? window.CITY_COLORS(city) : {solid:'#1a237e', light:'#f8fafc', border:'#e2e8f0'};
           h+=window.ui.renderStandardPairCard(pair, evs, {
             ds: evs[0].d,
@@ -1022,7 +1022,7 @@ function renderSched(){
 
         // Render Solo Gardens using central UI function
         if(soloList.length){
-          soloList.sort((a,b)=>a.gd.name.localeCompare(b.gd.name,'he')).forEach(s=>{
+          soloList.sort((a,b)=>a.gd.name.localeCompare(b.gd.name,'he', { numeric: true })).forEach(s=>{
             h+=window.ui.renderStandardPairCard({id:'solo_'+s.id, name:s.gd.name, ids:[s.g]}, [s], {
               ds: s.d,
               clr: window.CITY_COLORS ? window.CITY_COLORS(city) : {solid:'#1a237e', light:'#f8fafc', border:'#e2e8f0'},
