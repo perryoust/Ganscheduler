@@ -108,16 +108,38 @@ onmessage = function(e) {
        });
     });
 
-    const isYear = (val) => { const num = parseInt(val, 10); return num >= 2020 && num <= 2030; };
+    const isYear = (val) => { const num = parseInt(val, 10); return num >= 2020 && num <= 2035; };
     const hasOnlyYearNumbers = extractedNumbers.filter(n => !isYear(n.clean)).length === 0;
 
     let bestInvoice = null;
     let bestType = null;
     let bestScore = -1000;
 
+    const BUILTIN_ALIASES = {
+      'חנה בית הלחמי': 'חוגות',
+      'בית הלחמי': 'חוגות',
+      'עדי קייטרינג': 'עדי מ קייטרינג בע"מ',
+      'עדי קייטרינג בע"מ': 'עדי מ קייטרינג בע"מ',
+      'גטאקסי': 'ג\'יט גטאקסי סרוויסס ישראל בע"מ',
+      'גט טקסי': 'ג\'יט גטאקסי סרוויסס ישראל בע"מ',
+      'גט': 'ג\'יט גטאקסי סרוויסס ישראל בע"מ',
+      'gett': 'ג\'יט גטאקסי סרוויסס ישראל בע"מ',
+      'שחר חוויות': 'שחר חוויות חינוכיות בע"מ',
+      'שחר': 'שחר חוויות חינוכיות בע"מ',
+      'רוזי עמית': 'קידו התעמלות רוזי עמית',
+      'קידו': 'קידו התעמלות רוזי עמית',
+      'קידו התעמלות': 'קידו התעמלות רוזי עמית',
+      'מקס סטוק': 'קרנית רייזל',
+      'זול סטוק': 'דנית שאול',
+      'עולם הגלידה': 'קרנית רייזל',
+      'טל עולם הגלידה': 'דנית שאול'
+    };
+
     for (const numObj of extractedNumbers) {
       const cleanNumStr = numObj.clean;
       if (!cleanNumStr) continue;
+      // Critical fix: NEVER match calendar years (2020..2035) as document or order numbers!
+      if (isYear(cleanNumStr)) continue;
       
       const potentialMatches = invoices.filter(inv => {
         const cleanInvNum = inv.num ? (String(inv.num).replace(/\D/g, '').replace(/^0+/, '') || '0') : '';
@@ -127,13 +149,13 @@ onmessage = function(e) {
         // Exact match
         if (cleanInvNum && cleanInvNum === cleanNumStr) return true;
         if (cleanInvTx && cleanInvTx === cleanNumStr) return true;
-        if (cleanInvOrder && cleanInvOrder === cleanNumStr) return true;
+        if (cleanInvOrder && cleanInvOrder.length >= 4 && cleanInvOrder === cleanNumStr) return true;
 
         // Suffix/prefix match for branch codes (e.g. 08-800028 vs 800028)
-        if (cleanNumStr.length >= 4) {
-          if (cleanInvNum && cleanInvNum.length >= 4 && (cleanInvNum.endsWith(cleanNumStr) || cleanNumStr.endsWith(cleanInvNum))) return true;
-          if (cleanInvTx && cleanInvTx.length >= 4 && (cleanInvTx.endsWith(cleanNumStr) || cleanNumStr.endsWith(cleanInvTx))) return true;
-          if (cleanInvOrder && cleanInvOrder.length >= 4 && (cleanInvOrder.endsWith(cleanNumStr) || cleanNumStr.endsWith(cleanInvOrder))) return true;
+        if (cleanNumStr.length >= 5) {
+          if (cleanInvNum && cleanInvNum.length >= 5 && (cleanInvNum.endsWith(cleanNumStr) || cleanNumStr.endsWith(cleanInvNum))) return true;
+          if (cleanInvTx && cleanInvTx.length >= 5 && (cleanInvTx.endsWith(cleanNumStr) || cleanNumStr.endsWith(cleanInvTx))) return true;
+          if (cleanInvOrder && cleanInvOrder.length >= 5 && (cleanInvOrder.endsWith(cleanNumStr) || cleanInvOrder.endsWith(cleanInvOrder))) return true;
         }
         return false;
       });
@@ -146,13 +168,13 @@ onmessage = function(e) {
         const cleanInvTx = inv.txNum ? (String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') || '0') : '';
         const cleanInvOrder = inv.orderNum ? (String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') || '0') : '';
 
-        if (cleanInvNum && (cleanInvNum === cleanNumStr || (cleanNumStr.length >= 4 && cleanInvNum.endsWith(cleanNumStr)))) {
+        if (cleanInvNum && (cleanInvNum === cleanNumStr || (cleanNumStr.length >= 5 && cleanInvNum.endsWith(cleanNumStr)))) {
            type = 'tax';
            if (numObj.context === 'tax') contextBonus = 50;
-        } else if (cleanInvTx && (cleanInvTx === cleanNumStr || (cleanNumStr.length >= 4 && cleanInvTx.endsWith(cleanNumStr)))) {
+        } else if (cleanInvTx && (cleanInvTx === cleanNumStr || (cleanNumStr.length >= 5 && cleanInvTx.endsWith(cleanNumStr)))) {
            type = 'tx';
            if (numObj.context === 'tx') contextBonus = 50;
-        } else if (cleanInvOrder && (cleanInvOrder === cleanNumStr || (cleanNumStr.length >= 4 && cleanInvOrder.endsWith(cleanNumStr)))) {
+        } else if (cleanInvOrder && cleanInvOrder.length >= 4 && (cleanInvOrder === cleanNumStr || (cleanNumStr.length >= 5 && cleanInvOrder.endsWith(cleanNumStr)))) {
            type = 'order';
            if (numObj.context === 'order') contextBonus = 50;
         }
@@ -171,6 +193,13 @@ onmessage = function(e) {
 
         let score = (cleanNumStr.length < 3) ? 10 : 50;
         score += contextBonus;
+
+        // Exact document number match gets huge bonus!
+        if ((type === 'tax' && cleanInvNum === cleanNumStr) ||
+            (type === 'tx' && cleanInvTx === cleanNumStr) ||
+            (type === 'order' && cleanInvOrder === cleanNumStr)) {
+          score += 250;
+        }
         
         let supplierMatched = false;
         let supplierWordsMatched = 0;
@@ -193,15 +222,15 @@ onmessage = function(e) {
             }
           }
 
-          // Check Aliases
-          const spAliases = spScannerAliases || {};
-          for (const alias in spAliases) {
+          // Check Aliases (built-in + dynamic)
+          const allAliases = { ...BUILTIN_ALIASES, ...(spScannerAliases || {}) };
+          for (const alias in allAliases) {
             const aliasClean = cleanSupText(alias);
-            const targetClean = cleanSupText(spAliases[alias]);
-            if (targetClean === cleanSup || spAliases[alias] === inv.supName || spAliases[alias] === baseName) {
+            const targetClean = cleanSupText(allAliases[alias]);
+            if (targetClean === cleanSup || allAliases[alias] === inv.supName || allAliases[alias] === baseName) {
               if (cleanFull.includes(aliasClean)) {
                 supplierMatched = true;
-                supplierWordsMatched += 2;
+                supplierWordsMatched += 3;
                 break;
               }
             }
@@ -354,19 +383,19 @@ onmessage = function(e) {
              if (cleanSup.length >= 3 && cleanFull.includes(cleanSup)) {
                supplierScore = Math.max(supplierScore, 40);
              } else {
-               let foundAlias = false;
-               const spAliases = spScannerAliases || {};
-               for (const alias in spAliases) {
-                 const aliasClean = cleanSupText(alias);
-                 const targetClean = cleanSupText(spAliases[alias]);
-                 if (targetClean === cleanSup || spAliases[alias] === inv.supName || spAliases[alias] === baseName) {
-                   if (cleanFull.includes(aliasClean)) {
-                     supplierScore = Math.max(supplierScore, 35);
-                     foundAlias = true;
-                     break;
-                   }
-                 }
-               }
+                let foundAlias = false;
+                const allAliases = { ...BUILTIN_ALIASES, ...(spScannerAliases || {}) };
+                for (const alias in allAliases) {
+                  const aliasClean = cleanSupText(alias);
+                  const targetClean = cleanSupText(allAliases[alias]);
+                  if (targetClean === cleanSup || allAliases[alias] === inv.supName || allAliases[alias] === baseName) {
+                    if (cleanFull.includes(aliasClean)) {
+                      supplierScore = Math.max(supplierScore, 35);
+                      foundAlias = true;
+                      break;
+                    }
+                  }
+                }
                
                if (!foundAlias && supEx) {
                  const exData = supEx[baseName] || supEx[inv.supName];

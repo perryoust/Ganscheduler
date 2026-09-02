@@ -319,11 +319,9 @@ window._recoverInvoiceFilesAndDeduplicate = function() {
     }
     if (inv.file_tx && inv.file_tx.path && tx && tx.length >= 1 && s) {
       filePool.tx.set(s + '|' + tx, inv.file_tx);
-      filePool.tx.set(tx, inv.file_tx);
     }
     if (inv.file_tax && inv.file_tax.path && tax && tax.length >= 1 && s) {
       filePool.tax.set(s + '|' + tax, inv.file_tax);
-      filePool.tax.set(tax, inv.file_tax);
     }
   });
 
@@ -335,27 +333,17 @@ window._recoverInvoiceFilesAndDeduplicate = function() {
     const tx = cleanDoc(inv.txNum);
     const tax = cleanDoc(inv.num);
 
-    if ((!inv.file_order || !inv.file_order.path) && o && filePool.order.has(o)) {
+    if ((!inv.file_order || !inv.file_order.path) && o && o.length >= 4 && filePool.order.has(o)) {
       inv.file_order = filePool.order.get(o);
       recoveredCount++;
     }
-    if ((!inv.file_tx || !inv.file_tx.path) && tx) {
-      if (s && filePool.tx.has(s + '|' + tx)) {
-        inv.file_tx = filePool.tx.get(s + '|' + tx);
-        recoveredCount++;
-      } else if (tx.length >= 4 && filePool.tx.has(tx)) {
-        inv.file_tx = filePool.tx.get(tx);
-        recoveredCount++;
-      }
+    if ((!inv.file_tx || !inv.file_tx.path) && tx && s && filePool.tx.has(s + '|' + tx)) {
+      inv.file_tx = filePool.tx.get(s + '|' + tx);
+      recoveredCount++;
     }
-    if ((!inv.file_tax || !inv.file_tax.path) && tax) {
-      if (s && filePool.tax.has(s + '|' + tax)) {
-        inv.file_tax = filePool.tax.get(s + '|' + tax);
-        recoveredCount++;
-      } else if (tax.length >= 4 && filePool.tax.has(tax)) {
-        inv.file_tax = filePool.tax.get(tax);
-        recoveredCount++;
-      }
+    if ((!inv.file_tax || !inv.file_tax.path) && tax && s && filePool.tax.has(s + '|' + tax)) {
+      inv.file_tax = filePool.tax.get(s + '|' + tax);
+      recoveredCount++;
     }
   });
 

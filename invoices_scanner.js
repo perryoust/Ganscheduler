@@ -269,14 +269,28 @@ const filesFound = [];
         window.showToast(`✅ שודכו ${matchCount} קבצים! מעדכן מסד נתונים...`);
         
         // Update local INVOICES state
+        const cleanDoc = (d) => String(d || '').replace(/\D/g, '').replace(/^0+/, '');
+        const cleanSup = (s) => String(s || '').toLowerCase().replace(/["'״׳`]/g, '').replace(/\s*\(?\s*בע[\s.]*מ\s*\)?\s*/gi, ' ').replace(/\s*\(?\s*ltd\.?\s*\)?\s*/gi, ' ').replace(/[-_.,()]/g, ' ').replace(/\s+/g, ' ').trim();
+
         matchedInvoicesToUpdate.forEach(update => {
-          const inv = window.INVOICES.find(i => 
-            (update.id && String(i.id) === String(update.id)) || 
-            (update.serialNum && i.serialNum && String(i.serialNum) === String(update.serialNum)) ||
-            (update.txNum && i.txNum && String(i.txNum).trim() === String(update.txNum).trim() && (update.supName ? String(i.supName).trim() === String(update.supName).trim() : true)) ||
-            (update.num && i.num && String(i.num).trim() === String(update.num).trim() && (update.supName ? String(i.supName).trim() === String(update.supName).trim() : true)) ||
-            (update.orderNum && i.orderNum && String(i.orderNum).trim() === String(update.orderNum).trim() && (update.supName ? String(i.supName).trim() === String(update.supName).trim() : true))
-          );
+          const inv = window.INVOICES.find(i => {
+            // 1. Direct ID match
+            if (update.id && String(i.id) === String(update.id)) return true;
+            // 2. Direct Serial Number match (מס"ד)
+            if (update.serialNum && i.serialNum && String(i.serialNum).trim() === String(update.serialNum).trim()) return true;
+
+            const sameSupplier = !update.supName || cleanSup(i.supName) === cleanSup(update.supName);
+            if (!sameSupplier) return false;
+
+            // 3. Exact Transaction Invoice Number (מס' חשבון עסקה)
+            if (update.txNum && i.txNum && cleanDoc(i.txNum) === cleanDoc(update.txNum)) return true;
+            // 4. Exact Tax Invoice Number (מס' חשבונית מס / קבלה)
+            if (update.num && i.num && cleanDoc(i.num) === cleanDoc(update.num)) return true;
+            // 5. Numeric Order Number ONLY (4+ digits, never match generic labels like "חוגים" or "הסעות")
+            if (update.orderNum && i.orderNum && cleanDoc(i.orderNum).length >= 4 && cleanDoc(i.orderNum) === cleanDoc(update.orderNum)) return true;
+
+            return false;
+          });
           if (inv) {
             inv['file_' + update.type] = { path: update.path, origin: 'sp', score: update.score, name: update.filename };
             const fName = String(update.filename || '');
