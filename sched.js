@@ -300,7 +300,7 @@ function renderPartnerTable(){
       const type = ev ? (ev.tp || 'חוג') : '—';
       
       const savedInputTime = existingTimes[Number(pId)];
-      const defaultTime = document.getElementById('ns-time')?.value || '10:00';
+      const defaultTime = document.getElementById('ns-time')?.value || '';
       const timeVal = ev ? (window.fT ? window.fT(ev.t) : ev.t) : (savedInputTime || defaultTime);
       
       const isChecked = existingChecks[Number(pId)] !== undefined ? existingChecks[Number(pId)] : true;
@@ -610,7 +610,7 @@ function nsActTypeChg(){
 async function saveNewSched(closeModal = true){
   const gid=parseInt(document.getElementById('ns-g')?.value)||null;
   const date=document.getElementById('ns-date')?.value;
-  const time=document.getElementById('ns-time')?.value || '10:00';
+  const time=document.getElementById('ns-time')?.value || '';
   const sup=document.getElementById('ns-sup')?.value;
   
   if(!date||!sup){window.spAlert('יש למלא: תאריך וספק');return;}
