@@ -733,7 +733,7 @@ async function exportToExcel(data, filename, opts = {}) {
         const isPlacementOpts = opts.type === 'supplier_placement';
         const groupByOpts = opts.groupBy || 'pairs';
         const isClusterGroupOpts = (groupByOpts === 'clusters');
-        const colCountOpts = isPlacementOpts ? (isClusterGroupOpts ? 9 : 8) : (isClusterGroupOpts ? 10 : 9);
+        const colCountOpts = isPlacementOpts ? (isClusterGroupOpts ? 10 : 9) : (isClusterGroupOpts ? 10 : 9);
         const titleRow = ws.addRow([opts.title]);
         titleRow.font = { name: 'Arial', size: 16, bold: true };
         ws.mergeCells(1, 1, 1, colCountOpts);
@@ -744,7 +744,7 @@ async function exportToExcel(data, filename, opts = {}) {
       const isPlacement = opts.type === 'supplier_placement';
       const groupBy = opts.groupBy || 'pairs';
       const isClusterGroup = (groupBy === 'clusters');
-      const colCount = isPlacement ? (isClusterGroup ? 9 : 8) : (isClusterGroup ? 10 : 9);
+      const colCount = isPlacement ? (isClusterGroup ? 10 : 9) : (isClusterGroup ? 10 : 9);
       let totalOk = 0, totalNo = 0, totalGroups = 0;
 
       if(isSupplierExport){
@@ -829,8 +829,8 @@ async function exportToExcel(data, filename, opts = {}) {
             let headRowData;
             if (isPlacement) {
               headRowData = isClusterGroup 
-                ? ['רחוב', 'גן/בי"ס', 'תאריך', 'יום', 'שעה', 'קבוצות', 'סטטוס', 'הערות', 'אשכול']
-                : ['רחוב', 'גן/בי"ס', 'תאריך', 'יום', 'שעה', 'קבוצות', 'סטטוס', 'הערות'];
+                ? ['רחוב', 'גן/בי"ס', 'גיל', 'תאריך', 'יום', 'שעה', 'קבוצות', 'סטטוס', 'הערות', 'אשכול']
+                : ['רחוב', 'גן/בי"ס', 'גיל', 'תאריך', 'יום', 'שעה', 'קבוצות', 'סטטוס', 'הערות'];
             } else {
               headRowData = isClusterGroup
                 ? ['תאריך', 'יום', 'גן/בי"ס', 'שם ספק החוגים', 'פעילות', 'שעה', 'קבוצות', 'סטטוס', 'הערות', 'אשכול']
@@ -838,10 +838,14 @@ async function exportToExcel(data, filename, opts = {}) {
             }
             const headRow = ws.addRow(headRowData);
             headRow.font = { bold: true };
-            headRow.eachCell(cell => {
+            headRow.eachCell((cell, colNumber) => {
                cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1D9E6' } };
-               cell.alignment = { horizontal: 'right' };
+               if (isPlacement && colNumber === 3) {
+                 cell.alignment = { horizontal: 'center', vertical: 'middle' };
+               } else {
+                 cell.alignment = { horizontal: 'right', vertical: 'middle' };
+               }
             });
 
             const schoolStats = {};
@@ -901,13 +905,16 @@ async function exportToExcel(data, filename, opts = {}) {
               
               const gCls = window.gardenClusters ? window.gardenClusters(s.g, s.d) : [];
               const clusterName = (gCls && gCls.length > 0) ? (gCls[0].name || '') : '';
+
+              const gAge = typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g.age || '');
+              const ageVal = (gAge && gAge !== '***') ? gAge : '—';
               
               let rowData;
               if (isPlacement) {
                 if (isClusterGroup) {
-                  rowData = [(g.add || g.st) || '', g.name, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote, clusterName];
+                  rowData = [(g.add || g.st) || '', g.name, ageVal, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote, clusterName];
                 } else {
-                  rowData = [(g.add || g.st) || '', g.name, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote];
+                  rowData = [(g.add || g.st) || '', g.name, ageVal, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote];
                 }
               } else {
                 if (isClusterGroup) {
@@ -917,9 +924,13 @@ async function exportToExcel(data, filename, opts = {}) {
                 }
               }
               const row = ws.addRow(rowData);
-              row.eachCell(cell => {
+              row.eachCell((cell, colNumber) => {
                  cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
-                 cell.alignment = { horizontal: 'right', vertical: 'middle', wrapText: true };
+                 if (isPlacement && colNumber === 3) {
+                   cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                 } else {
+                   cell.alignment = { horizontal: 'right', vertical: 'middle', wrapText: true };
+                 }
               });
             });
 
