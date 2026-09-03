@@ -793,7 +793,7 @@ window.activateWorkerApp = function() {
   }
 };
 
-window.wtWorkerActiveTab = window.wtWorkerActiveTab || 'all'; // 'all', 'today', 'tomorrow'
+window.wtWorkerActiveTab = window.wtWorkerActiveTab || 'today'; // 'today', 'tomorrow'
 
 window.wtSetWorkerTab = function(tab) {
   window.wtWorkerActiveTab = tab;
@@ -840,8 +840,7 @@ window.renderWorkerTasksMobile = function() {
   tomorrowDone.sort((a,b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
   const tomorrowAll = [...tomorrowPending, ...tomorrowDone];
 
-  const totalPending = todayPending.length + tomorrowPending.length;
-  const activeTab = window.wtWorkerActiveTab || 'all';
+  const activeTab = (window.wtWorkerActiveTab === 'tomorrow') ? 'tomorrow' : 'today';
 
   let html = '';
 
@@ -855,31 +854,16 @@ window.renderWorkerTasksMobile = function() {
       </div>
     </div>
 
-    <!-- Day Filter Tabs: הכל / היום / מחר -->
-    <div style="display:flex; gap:6px; margin-bottom:14px; background:rgba(0,0,0,0.2); padding:4px; border-radius:24px;">
-      <button onclick="window.wtSetWorkerTab('all')" style="flex:1; padding:7px 4px; border:none; border-radius:20px; font-weight:bold; font-size:0.82rem; cursor:pointer; background:${activeTab==='all'?'#fff':'transparent'}; color:${activeTab==='all'?'#1565c0':'#fff'}; box-shadow:${activeTab==='all'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s;">
-        📋 הכל (${totalPending})
-      </button>
-      <button onclick="window.wtSetWorkerTab('today')" style="flex:1; padding:7px 4px; border:none; border-radius:20px; font-weight:bold; font-size:0.82rem; cursor:pointer; background:${activeTab==='today'?'#fff':'transparent'}; color:${activeTab==='today'?'#1565c0':'#fff'}; box-shadow:${activeTab==='today'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s;">
+    <!-- Day Filter Tabs: היום / מחר -->
+    <div style="display:flex; gap:8px; margin-bottom:14px; background:rgba(0,0,0,0.2); padding:4px; border-radius:24px;">
+      <button onclick="window.wtSetWorkerTab('today')" style="flex:1; padding:8px 6px; border:none; border-radius:20px; font-weight:bold; font-size:0.95rem; cursor:pointer; background:${activeTab==='today'?'#fff':'transparent'}; color:${activeTab==='today'?'#1565c0':'#fff'}; box-shadow:${activeTab==='today'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s;">
         📅 היום (${todayPending.length})
       </button>
-      <button onclick="window.wtSetWorkerTab('tomorrow')" style="flex:1; padding:7px 4px; border:none; border-radius:20px; font-weight:bold; font-size:0.82rem; cursor:pointer; background:${activeTab==='tomorrow'?'#fff':'transparent'}; color:${activeTab==='tomorrow'?'#1565c0':'#fff'}; box-shadow:${activeTab==='tomorrow'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s;">
+      <button onclick="window.wtSetWorkerTab('tomorrow')" style="flex:1; padding:8px 6px; border:none; border-radius:20px; font-weight:bold; font-size:0.95rem; cursor:pointer; background:${activeTab==='tomorrow'?'#fff':'transparent'}; color:${activeTab==='tomorrow'?'#1565c0':'#fff'}; box-shadow:${activeTab==='tomorrow'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s;">
         🌅 מחר (${tomorrowPending.length})
       </button>
     </div>
   `;
-
-  if (totalPending === 0 && todayAll.length === 0 && tomorrowAll.length === 0) {
-    html += `
-      <div style="text-align:center; padding:40px 20px; background:#fff; border-radius:16px; box-shadow:0 4px 15px rgba(0,0,0,0.05); margin-bottom:20px;">
-        <div style="font-size:3rem; margin-bottom:10px;">🎉</div>
-        <div style="font-size:1.2rem; color:#1565c0; font-weight:bold;">אין משימות פתוחות להיום או למחר!</div>
-        <div style="color:#666; font-size:0.9rem; margin-top:5px;">כל המשימות שלך הושלמו.</div>
-      </div>
-    `;
-    container.innerHTML = html;
-    return;
-  }
 
   function renderCard(t, isTomorrow) {
     const isDone = t.status === 'done';
@@ -933,20 +917,19 @@ window.renderWorkerTasksMobile = function() {
     `;
   }
 
-  // Render sections based on active tab
-  if (activeTab === 'all' || activeTab === 'today') {
-    if (activeTab === 'all') {
-      html += `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin:10px 0 8px 0; padding:6px 12px; background:rgba(255,255,255,0.2); border-radius:8px; backdrop-filter:blur(5px); color:#fff;">
-          <div style="font-weight:bold; font-size:1.02rem;">📅 משימות להיום (יום ${todayDayName} ${todayDisp})</div>
-          <span style="background:#1565c0; color:#fff; font-size:0.75rem; padding:2px 8px; border-radius:12px; font-weight:bold;">${todayPending.length} פתוחות</span>
-        </div>
-      `;
-    }
+  // Render content based on active tab: 'today' or 'tomorrow'
+  if (activeTab === 'today') {
+    html += `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin:8px 0 8px 0; padding:6px 12px; background:rgba(255,255,255,0.2); border-radius:8px; backdrop-filter:blur(5px); color:#fff;">
+        <div style="font-weight:bold; font-size:1.02rem;">📅 משימות להיום (יום ${todayDayName} ${todayDisp})</div>
+        <span style="background:#1565c0; color:#fff; font-size:0.75rem; padding:2px 8px; border-radius:12px; font-weight:bold;">${todayPending.length} פתוחות</span>
+      </div>
+    `;
     if (todayAll.length === 0) {
       html += `
-        <div style="text-align:center; padding:20px; background:rgba(255,255,255,0.9); border-radius:8px; color:#666; margin-bottom:12px; font-size:0.9rem;">
-          אין משימות פתוחות להיום.
+        <div style="text-align:center; padding:30px 20px; background:rgba(255,255,255,0.95); border-radius:12px; color:#555; margin-bottom:12px; font-size:0.95rem; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+          <div style="font-size:2rem; margin-bottom:6px;">🎉</div>
+          <strong>אין משימות פתוחות להיום!</strong>
         </div>
       `;
     } else {
@@ -954,21 +937,18 @@ window.renderWorkerTasksMobile = function() {
         html += renderCard(t, false);
       });
     }
-  }
-
-  if (activeTab === 'all' || activeTab === 'tomorrow') {
-    if (activeTab === 'all') {
-      html += `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin:18px 0 8px 0; padding:6px 12px; background:rgba(255,255,255,0.2); border-radius:8px; backdrop-filter:blur(5px); color:#fff;">
-          <div style="font-weight:bold; font-size:1.02rem;">🌅 משימות למחר (יום ${tomorrowDayName} ${tomorrowDisp})</div>
-          <span style="background:#e65100; color:#fff; font-size:0.75rem; padding:2px 8px; border-radius:12px; font-weight:bold;">${tomorrowPending.length} למחר</span>
-        </div>
-      `;
-    }
+  } else if (activeTab === 'tomorrow') {
+    html += `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin:8px 0 8px 0; padding:6px 12px; background:rgba(255,255,255,0.2); border-radius:8px; backdrop-filter:blur(5px); color:#fff;">
+        <div style="font-weight:bold; font-size:1.02rem;">🌅 משימות למחר (יום ${tomorrowDayName} ${tomorrowDisp})</div>
+        <span style="background:#e65100; color:#fff; font-size:0.75rem; padding:2px 8px; border-radius:12px; font-weight:bold;">${tomorrowPending.length} למחר</span>
+      </div>
+    `;
     if (tomorrowAll.length === 0) {
       html += `
-        <div style="text-align:center; padding:20px; background:rgba(255,255,255,0.9); border-radius:8px; color:#666; margin-bottom:12px; font-size:0.9rem;">
-          אין משימות מתוכננות למחר.
+        <div style="text-align:center; padding:30px 20px; background:rgba(255,255,255,0.95); border-radius:12px; color:#555; margin-bottom:12px; font-size:0.95rem; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+          <div style="font-size:2rem; margin-bottom:6px;">🌴</div>
+          <strong>אין משימות מתוכננות למחר.</strong>
         </div>
       `;
     } else {
@@ -980,6 +960,7 @@ window.renderWorkerTasksMobile = function() {
 
   container.innerHTML = html;
 };
+
 
 window.markTaskDone = async function(id) {
   const task = (window.WORKER_TASKS || []).find(t => t.id === id);
