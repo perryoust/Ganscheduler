@@ -3050,6 +3050,15 @@ function saveNewPlace(){
   if(!supEx['__gardens_extra']) supEx['__gardens_extra']=[];
   supEx['__gardens_extra']=_GARDENS_EXTRA;
   save();CM('addplace-m');refresh();
+  if (window._fbUser) {
+    window._fbUser.getIdToken(false).then(tok => {
+      const authQ = tok ? '?auth=' + tok : '';
+      fetch(FB_ROOT + '/data/custom_gardens.json' + authQ, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(_GARDENS_EXTRA)
+      }).catch(e => console.warn('Save custom gardens error:', e));
+    }).catch(e => console.warn('Token error:', e));
+  }
   _spAlertDialog('✅ '+name+' נוסף בהצלחה!');
 }
 

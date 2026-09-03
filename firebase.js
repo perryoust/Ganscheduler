@@ -281,6 +281,7 @@ window.mergeWorkerTasksLocally = function (cloudData) {
 
 window.saveWorkerTasksToFirebase = async function (skipMerge = false) {
   try {
+    if (window.enrichWorkerTasks) window.enrichWorkerTasks();
     let tok = await window._fbUser?.getIdToken(false);
     if (!tok) return;
     const url = `${FB_ROOT}/data/global_worker_tasks.json?auth=${tok}`;
@@ -403,6 +404,14 @@ async function saveToFirebase(silent = false, force = false) {
         body: JSON.stringify(metaData)
       })
     ];
+    if (Array.isArray(window._GARDENS_EXTRA) && window._GARDENS_EXTRA.length > 0) {
+      saves.push(
+        fetch(FB_ROOT + '/data/custom_gardens.json' + authQ, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(window._GARDENS_EXTRA)
+        })
+      );
+    }
     const results = await Promise.all(saves);
     for (const r of results) {
       if (!r.ok) throw new Error('HTTP ' + r.status + ' on ' + r.url);
@@ -462,14 +471,43 @@ async function loadFromFirebase(silent = false, force = false) {
     _fbSyncing = false;
     try {
       let tok = await window._fbUser?.getIdToken(false);
-      const wtUrl = FB_ROOT + '/data/global_worker_tasks.json' + (tok ? '?auth=' + tok : '');
-      const wtRes = await fetch(wtUrl + (wtUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now());
+      const authQ = tok ? '?auth=' + tok : '';
+      const wtUrl = FB_ROOT + '/data/global_worker_tasks.json' + authQ + (authQ ? '&' : '?') + 'cb=' + Date.now();
+      const wtRes = await fetch(wtUrl);
       if (wtRes.ok) {
         const wtData = await wtRes.json();
         if (wtData && window.mergeWorkerTasksLocally) {
           window.mergeWorkerTasksLocally(wtData);
         }
       }
+
+      // Fetch custom gardens so worker has newly created gardens
+      try {
+        let extraG = null;
+        const cgUrl = FB_ROOT + '/data/custom_gardens.json' + authQ + (authQ ? '&' : '?') + 'cb=' + Date.now();
+        const cgRes = await fetch(cgUrl);
+        if (cgRes.ok) {
+          extraG = await cgRes.json();
+        }
+        if (!extraG || !Array.isArray(extraG) || extraG.length === 0) {
+          const supExtraUrl = `${getFirebaseRootUrl()}/suppliers/__gardens_extra.json` + authQ + (authQ ? '&' : '?') + 'cb=' + Date.now();
+          const supExtraRes = await fetch(supExtraUrl);
+          if (supExtraRes.ok) extraG = await supExtraRes.json();
+        }
+        if (Array.isArray(extraG) && extraG.length > 0) {
+          window._GARDENS_EXTRA = extraG;
+          if (Array.isArray(window._GARDENS_ALL)) {
+            extraG.forEach(g => {
+              if (!window._GARDENS_ALL.some(x => Number(x.id) === Number(g.id))) {
+                window._GARDENS_ALL.push(g);
+              }
+            });
+          }
+        }
+      } catch (cgErr) { console.warn('Worker custom gardens fetch error:', cgErr); }
+
+      if (window.enrichWorkerTasks) window.enrichWorkerTasks();
+      if (window.renderWorkerTasksMobile) window.renderWorkerTasksMobile();
     } catch (e) {
       console.error('[Sync] Worker tasks fetch error:', e);
     }
@@ -695,8 +733,15 @@ async function _loadWorkerTasks(tok, data) {
         } else {
           window.mergeWorkerTasksLocally(wtData);
         }
+        if (window.enrichWorkerTasks) {
+          const changed = window.enrichWorkerTasks();
+          if (changed && window.role === 'admin' && window.saveWorkerTasksToFirebase) {
+            window.saveWorkerTasksToFirebase(true);
+          }
+        }
       } else if (data && data.workerTasks && data.workerTasks.length > 0) {
         window.WORKER_TASKS = data.workerTasks;
+        if (window.enrichWorkerTasks) window.enrichWorkerTasks();
         if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase();
       } else {
         try {

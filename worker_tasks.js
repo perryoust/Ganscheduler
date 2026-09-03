@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Field Worker Tasks Module (worker_tasks.js)
  * Handles both Admin UI (managing tasks) and Worker UI (viewing/completing tasks)
  */
@@ -48,6 +48,66 @@ window.initWorkerTasks = function() {
     `;
     document.body.appendChild(workerApp);
   }
+};
+
+window.wtGetTaskGardenInfo = function(t) {
+  if (!t) return { gardenName: '', city: '', address: '', loc: '', phone: '' };
+  let gObj = null;
+  if (t.gardenId && window.G) {
+    const g = window.G(t.gardenId);
+    if (g && (g.name || g.city)) gObj = g;
+  }
+  if (!gObj && t.gardenId && Array.isArray(window._GARDENS_EXTRA)) {
+    gObj = window._GARDENS_EXTRA.find(g => Number(g.id) === Number(t.gardenId));
+  }
+  if (!gObj && t.gardenId && Array.isArray(window.GARDENS)) {
+    gObj = window.GARDENS.find(g => Number(g.id) === Number(t.gardenId));
+  }
+  if (!gObj && t.gardenId && window.supEx && Array.isArray(window.supEx['__gardens_extra'])) {
+    gObj = window.supEx['__gardens_extra'].find(g => Number(g.id) === Number(t.gardenId));
+  }
+
+  const gardenName = t.gardenName || gObj?.name || '';
+  const city = t.city || gObj?.city || '';
+  const address = t.address || gObj?.st || gObj?.address || '';
+  const phone = t.phone || gObj?.coph || gObj?.phone || '';
+
+  let loc = '';
+  if (city && gardenName) {
+    loc = `${city} - ${gardenName}`;
+  } else {
+    loc = gardenName || city || '';
+  }
+  return { gardenName, city, address, loc, phone };
+};
+
+window.enrichWorkerTasks = function() {
+  if (!Array.isArray(window.WORKER_TASKS)) return false;
+  let changed = false;
+  window.WORKER_TASKS.forEach(t => {
+    if (t.gardenId) {
+      const info = window.wtGetTaskGardenInfo(t);
+      if (info.gardenName && !t.gardenName) {
+        t.gardenName = info.gardenName;
+        changed = true;
+      }
+      if (info.city && !t.city) {
+        t.city = info.city;
+        changed = true;
+      }
+      const st = info.address;
+      if (st && !t.address) {
+        t.address = st;
+        changed = true;
+      }
+      const ph = info.phone;
+      if (ph && !t.phone) {
+        t.phone = ph;
+        changed = true;
+      }
+    }
+  });
+  return changed;
 };
 
 window.wtChangeDate = function(days) {
@@ -132,8 +192,9 @@ window.renderWorkerTasksAdmin = function() {
   let displayTasks = [];
   if (isSearch) {
     displayTasks = tasks.filter(t => {
-      const gName = window.G ? (window.G(t.gardenId)?.name || '') : '';
-      const cName = window.G ? (window.G(t.gardenId)?.city || '') : '';
+      const info = window.wtGetTaskGardenInfo ? window.wtGetTaskGardenInfo(t) : { gardenName: '', city: '' };
+      const gName = info.gardenName || '';
+      const cName = info.city || '';
       const txt = (t.desc + ' ' + gName + ' ' + cName).toLowerCase();
       return txt.includes(window.wtSearchQuery);
     });
@@ -229,9 +290,8 @@ window.renderWorkerTasksAdmin = function() {
     const allSortedTasks = [...pending, ...doneTasks];
     allSortedTasks.forEach(t => {
       const isDone = t.status === 'done';
-      const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : '';
-      const city = t.gardenId ? (window.G ? (window.G(t.gardenId)?.city || '') : '') : (t.city || '');
-      const loc = t.gardenId ? (city ? `${city} - ${gardenName}` : gardenName) : (city || '');
+      const info = window.wtGetTaskGardenInfo ? window.wtGetTaskGardenInfo(t) : { gardenName: '', city: '', address: '', loc: '', phone: '' };
+      const loc = info.loc || (info.city ? `${info.city} - ${info.gardenName}` : info.gardenName) || info.city || '';
       const isPriv = t.isAdminOnly;
       
       html += `
@@ -446,12 +506,23 @@ window.openNewWorkerTaskModal = function() {
       }
       
       const baseId = Date.now();
+      let g = null;
+      if (gardenId && window.G) g = window.G(gardenId);
+      if (!g && gardenId && Array.isArray(window._GARDENS_EXTRA)) g = window._GARDENS_EXTRA.find(x => Number(x.id) === Number(gardenId));
+      const tGardenName = (g && g.name) ? g.name : '';
+      const tCity = (g && g.city) ? g.city : (cityName || '');
+      const tAddress = (g && (g.st || g.address)) ? (g.st || g.address) : '';
+      const tPhone = (g && (g.coph || g.phone)) ? (g.coph || g.phone) : '';
+
       datesToCreate.forEach((dStr, idx) => {
         window.WORKER_TASKS.push({
           id: 'wt_' + baseId + '_' + idx,
           date: dStr,
           gardenId: gardenId ? parseInt(gardenId) : 0,
-          city: cityName || '',
+          gardenName: tGardenName,
+          city: tCity,
+          address: tAddress,
+          phone: tPhone,
           desc: desc,
           status: 'pending',
           doneAt: null,
@@ -722,93 +793,191 @@ window.activateWorkerApp = function() {
   }
 };
 
+window.wtWorkerActiveTab = window.wtWorkerActiveTab || 'all'; // 'all', 'today', 'tomorrow'
+
+window.wtSetWorkerTab = function(tab) {
+  window.wtWorkerActiveTab = tab;
+  window.renderWorkerTasksMobile();
+};
+
 window.renderWorkerTasksMobile = function() {
   const container = document.getElementById('worker-tasks-mobile-list');
   if (!container) return;
   
-  // FILTER OUT ADMIN ONLY TASKS AND ONLY SHOW TODAY'S TASKS (or older pending)
+  // Calculate today and tomorrow dates
   const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
-  const tasks = (window.WORKER_TASKS || []).reduce((acc, t) => {
-    if (t.isAdminOnly) return acc;
-    if (t.status === 'pending' && (!t.date || t.date <= today)) {
-       acc.push(t);
-    } else if (t.status === 'done') {
-       const doneDate = t.doneAt ? t.doneAt.split(' ')[0] : t.date;
-       if (doneDate === today) acc.push(t);
-    }
-    return acc;
-  }, []);
-  const pending = tasks.filter(t => t.status === 'pending');
-  const done = tasks.filter(t => t.status === 'done');
+  const dToday = new Date(today);
+  const dTomorrow = new Date(dToday);
+  dTomorrow.setDate(dTomorrow.getDate() + 1);
+  const tomorrow = dTomorrow.toISOString().split('T')[0];
   
-  // Keep the pending tasks in the original array order (which respects drag-and-drop)
-  // Sort done by completion time (newest first)
-  done.sort((a,b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
-  
+  const dayNames = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  const todayDayName = dayNames[new Date(today).getDay()];
+  const tomorrowDayName = dayNames[new Date(tomorrow).getDay()];
+  const todayDisp = window.fD ? window.fD(today) : today;
+  const tomorrowDisp = window.fD ? window.fD(tomorrow) : tomorrow;
+
+  // Filter out admin-only tasks
+  const validTasks = (window.WORKER_TASKS || []).filter(t => !t.isAdminOnly);
+
+  // Today's tasks: pending tasks with date <= today (or no date), plus tasks done today
+  const todayPending = validTasks.filter(t => t.status === 'pending' && (!t.date || t.date <= today));
+  const todayDone = validTasks.filter(t => {
+    if (t.status !== 'done') return false;
+    const dDate = t.doneAt ? t.doneAt.split(' ')[0] : t.date;
+    return dDate === today;
+  });
+  todayDone.sort((a,b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
+  const todayAll = [...todayPending, ...todayDone];
+
+  // Tomorrow's tasks: pending tasks with date === tomorrow, plus tasks done on tomorrow
+  const tomorrowPending = validTasks.filter(t => t.status === 'pending' && t.date === tomorrow);
+  const tomorrowDone = validTasks.filter(t => {
+    if (t.status !== 'done') return false;
+    const dDate = t.doneAt ? t.doneAt.split(' ')[0] : t.date;
+    return dDate === tomorrow;
+  });
+  tomorrowDone.sort((a,b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
+  const tomorrowAll = [...tomorrowPending, ...tomorrowDone];
+
+  const totalPending = todayPending.length + tomorrowPending.length;
+  const activeTab = window.wtWorkerActiveTab || 'all';
+
   let html = '';
-  
-  if (pending.length === 0) {
-    html += `
-      <div style="display:flex; justify-content:center; margin-bottom:20px;">
-        <button onclick="if(window.loadFromFirebase){ const b=this; b.innerHTML='<span class=\'spin-icon\'>🔄</span> מסנכרן...'; window.loadFromFirebase(false,true).then(()=>{b.innerHTML='🔄 סנכרן נתונים'; window.renderWorkerTasksMobile();}); }else location.reload();" style="background:#1565c0; border:none; border-radius:20px; padding:10px 24px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:8px; font-weight:bold; font-size:1.1rem; box-shadow:0 4px 10px rgba(21,101,192,0.3);">🔄 סנכרן נתונים</button>
+
+  // Top header with actions
+  html += `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+      <div style="font-weight:bold; color:#fff; font-size:1.7rem; text-shadow:0 1px 2px rgba(0,0,0,0.2);">המשימות שלי</div>
+      <div style="display:flex; gap:6px;">
+        <button onclick="window.wtWorkerAddFreeNote()" style="background:#4caf50; border:1px solid #388e3c; border-radius:20px; padding:5px 12px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold; font-size:0.85rem;" title="הודעה חופשית">💬 הודעה</button>
+        <button onclick="if(window.loadFromFirebase){ const b=this; b.innerText='מרענן...'; window.loadFromFirebase(false,true).then(()=>{b.innerText='🔄 רענן'; window.renderWorkerTasksMobile();}); }else location.reload();" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.5); border-radius:20px; padding:5px 12px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold; font-size:0.85rem;">🔄 רענן</button>
       </div>
+    </div>
+
+    <!-- Day Filter Tabs: הכל / היום / מחר -->
+    <div style="display:flex; gap:6px; margin-bottom:14px; background:rgba(0,0,0,0.2); padding:4px; border-radius:24px;">
+      <button onclick="window.wtSetWorkerTab('all')" style="flex:1; padding:7px 4px; border:none; border-radius:20px; font-weight:bold; font-size:0.82rem; cursor:pointer; background:${activeTab==='all'?'#fff':'transparent'}; color:${activeTab==='all'?'#1565c0':'#fff'}; box-shadow:${activeTab==='all'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s;">
+        📋 הכל (${totalPending})
+      </button>
+      <button onclick="window.wtSetWorkerTab('today')" style="flex:1; padding:7px 4px; border:none; border-radius:20px; font-weight:bold; font-size:0.82rem; cursor:pointer; background:${activeTab==='today'?'#fff':'transparent'}; color:${activeTab==='today'?'#1565c0':'#fff'}; box-shadow:${activeTab==='today'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s;">
+        📅 היום (${todayPending.length})
+      </button>
+      <button onclick="window.wtSetWorkerTab('tomorrow')" style="flex:1; padding:7px 4px; border:none; border-radius:20px; font-weight:bold; font-size:0.82rem; cursor:pointer; background:${activeTab==='tomorrow'?'#fff':'transparent'}; color:${activeTab==='tomorrow'?'#1565c0':'#fff'}; box-shadow:${activeTab==='tomorrow'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s;">
+        🌅 מחר (${tomorrowPending.length})
+      </button>
+    </div>
+  `;
+
+  if (totalPending === 0 && todayAll.length === 0 && tomorrowAll.length === 0) {
+    html += `
       <div style="text-align:center; padding:40px 20px; background:#fff; border-radius:16px; box-shadow:0 4px 15px rgba(0,0,0,0.05); margin-bottom:20px;">
         <div style="font-size:3rem; margin-bottom:10px;">🎉</div>
-        <div style="font-size:1.2rem; color:#1565c0; font-weight:bold;">אין משימות פתוחות!</div>
+        <div style="font-size:1.2rem; color:#1565c0; font-weight:bold;">אין משימות פתוחות להיום או למחר!</div>
         <div style="color:#666; font-size:0.9rem; margin-top:5px;">כל המשימות שלך הושלמו.</div>
       </div>
     `;
-  } else {
-    html += `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:5px;">
-        <div style="font-weight:bold; color:#fff; font-size:1.8rem; text-shadow:0 1px 2px rgba(0,0,0,0.2);">המשימות שלי</div>
-        <div style="display:flex; gap:5px;">
-          <button onclick="window.wtWorkerAddFreeNote()" style="background:#4caf50; border:1px solid #388e3c; border-radius:20px; padding:4px 12px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;" title="הודעה חופשית">💬 הודעה</button>
-          <button onclick="if(window.loadFromFirebase){ const b=this; b.innerText='מרענן...'; window.loadFromFirebase(false,true).then(()=>{b.innerText='🔄 רענן'; window.renderWorkerTasksMobile();}); }else location.reload();" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.5); border-radius:20px; padding:4px 12px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold;">🔄 רענן</button>
+    container.innerHTML = html;
+    return;
+  }
 
+  function renderCard(t, isTomorrow) {
+    const isDone = t.status === 'done';
+    const info = window.wtGetTaskGardenInfo ? window.wtGetTaskGardenInfo(t) : { gardenName: '', city: '', address: '', loc: '', phone: '' };
+    const displayName = info.loc || (info.city && info.gardenName ? `${info.city} - ${info.gardenName}` : (info.gardenName || info.city || ''));
+    
+    const mapsUrl = info.address ? 
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(info.address + (info.city ? ', ' + info.city : '') + ', ישראל')}` :
+      (info.gardenName && info.city ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(info.gardenName + ', ' + info.city + ', ישראל')}` : '');
+    
+    const wazeUrl = info.address ?
+      `https://waze.com/ul?q=${encodeURIComponent(info.address + (info.city ? ', ' + info.city : ''))}&navigate=yes` :
+      (info.gardenName && info.city ? `https://waze.com/ul?q=${encodeURIComponent(info.gardenName + ', ' + info.city)}&navigate=yes` : '');
+
+    const isOverdue = t.status === 'pending' && t.date && t.date < today;
+
+    return `
+      <div style="background:#fff; border-radius:10px; padding:12px; margin-bottom:10px; box-shadow:0 2px 5px rgba(0,0,0,0.08); ${isDone ? 'opacity:0.85; background:#f9fafb;' : ''}">
+        <div style="display:flex; align-items:flex-start; gap:12px;">
+          <!-- Circle Checkbox -->
+          <div onclick="${isDone ? `window.wtToggleTaskStatus('${t.id}')` : `window.markTaskDone('${t.id}')`}" style="width:28px; height:28px; margin-top:2px; border:2px solid ${isDone ? '#4caf50' : '#8e8e93'}; border-radius:50%; flex-shrink:0; cursor:pointer; box-sizing:border-box; display:flex; align-items:center; justify-content:center; background:white;">
+             ${isDone ? '<span style="color:#4caf50; font-weight:bold; font-size:1.15rem;">✓</span>' : ''}
+          </div>
+          
+          <!-- Task Text -->
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px; flex-wrap:wrap;">
+              ${isTomorrow ? `<span style="background:#fff3e0; color:#e65100; font-size:0.72rem; padding:1px 6px; border-radius:4px; font-weight:bold;">🌅 למחר</span>` : ''}
+              ${isOverdue ? `<span style="background:#ffebee; color:#c62828; font-size:0.72rem; padding:1px 6px; border-radius:4px; font-weight:bold;">⚠️ מיום ${window.fD ? window.fD(t.date) : t.date}</span>` : ''}
+            </div>
+            <div style="font-size:1.05rem; color:${isDone ? '#666' : '#1c1c1e'}; margin-bottom:4px; line-height:1.35;">
+              ${displayName ? `<strong style="color:${isDone ? '#555' : '#1565c0'};">${displayName}</strong> - ` : ''}${t.desc.replace(/\n/g, ' ')}
+            </div>
+            <div style="font-size:0.85rem; color:#64748b; display:flex; flex-direction:column; gap:4px;">
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                ${info.city ? `<span>🏙️ ${info.city}</span>` : ''}
+                ${info.address ? `<span>📍 ${info.address}</span>` : ''}
+                ${wazeUrl ? `<a href="${wazeUrl}" target="_blank" style="color:#0288d1; text-decoration:none; font-weight:700; font-size:0.78rem; background:#e1f5fe; padding:2px 7px; border-radius:4px; display:inline-flex; align-items:center; gap:2px;" onclick="event.stopPropagation()">🚗 Waze</a>` : ''}
+                ${mapsUrl ? `<a href="${mapsUrl}" target="_blank" style="color:#2e7d32; text-decoration:none; font-weight:700; font-size:0.78rem; background:#e8f5e9; padding:2px 7px; border-radius:4px; display:inline-flex; align-items:center; gap:2px;" onclick="event.stopPropagation()">🗺️ מפה</a>` : ''}
+                ${info.phone ? `<a href="tel:${info.phone}" style="color:#e65100; text-decoration:none; font-weight:700; font-size:0.78rem; background:#fff3e0; padding:2px 7px; border-radius:4px; display:inline-flex; align-items:center; gap:2px;" onclick="event.stopPropagation()">📞 ${info.phone}</a>` : ''}
+              </div>
+              ${isDone && t.doneAt ? `<span style="color:#4caf50; font-weight:bold;">(בוצע ע"י ${t.doneBy || 'עובד'} ב-${t.doneAt.split(' ')[1] || t.doneAt})</span>` : ''}
+            </div>
+            <textarea id="wt-note-${t.id}" onchange="window.wtSaveNote('${t.id}', this.value)" placeholder="הוסף הערה..." style="width:100%; padding:4px 0; border:none; border-bottom:1px solid #e2e8f0; background:transparent; box-sizing:border-box; resize:none; font-family:inherit; margin-top:6px; font-size:0.9rem; color:#1565c0;">${t.workerNote || ''}</textarea>
+          </div>
+          
+          <!-- Star Icon -->
+          <div style="color:#d1d1d6; font-size:1.4rem; padding-top:2px;">&#9734;</div>
         </div>
       </div>
     `;
-    const allSortedTasks = [...pending, ...done];
-    allSortedTasks.forEach(t => {
-      const isDone = t.status === 'done';
-      const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : (t.city || '');
-      const city = window.G ? (window.G(t.gardenId)?.city || '') : '';
-      const address = window.G ? (window.G(t.gardenId)?.address || '') : '';
-      
+  }
+
+  // Render sections based on active tab
+  if (activeTab === 'all' || activeTab === 'today') {
+    if (activeTab === 'all') {
       html += `
-        <div style="background:#fff; border-radius:8px; padding:12px; margin-bottom:8px; box-shadow:0 1px 3px rgba(0,0,0,0.15); ${isDone ? 'opacity:0.85;' : ''}">
-          <div style="display:flex; align-items:flex-start; gap:12px;">
-            <!-- Circle Checkbox -->
-            <div onclick="${isDone ? `window.wtToggleTaskStatus('${t.id}')` : `window.markTaskDone('${t.id}')`}" style="width:26px; height:26px; margin-top:2px; border:2px solid ${isDone ? '#4caf50' : '#8e8e93'}; border-radius:50%; flex-shrink:0; cursor:pointer; box-sizing:border-box; display:flex; align-items:center; justify-content:center; background:white;">
-               ${isDone ? '<span style="color:#4caf50; font-weight:bold; font-size:1.1rem;">✓</span>' : ''}
-            </div>
-            
-            <!-- Task Text -->
-            <div style="flex:1;">
-              <div style="font-size:1.1rem; color:${isDone ? '#666' : '#1c1c1e'}; margin-bottom:2px; line-height:1.3;">
-                ${gardenName ? `${gardenName} - ` : ''}${t.desc.replace(/\n/g, ' ')}
-              </div>
-              <div style="font-size:0.85rem; color:#8e8e93; display:flex; flex-direction:column; gap:4px;">
-                <div style="display:flex; gap:8px;">
-                  <span>${city}</span>
-                  ${address ? `<span>&#8226; 📍 ${address}</span>` : ''}
-                </div>
-                ${isDone && t.doneAt ? `<span style="color:#4caf50; font-weight:bold;">(בוצע ע"י ${t.doneBy || 'עובד'} ב-${t.doneAt.split(' ')[1] || t.doneAt})</span>` : ''}
-              </div>
-              <textarea id="wt-note-${t.id}" onchange="window.wtSaveNote('${t.id}', this.value)" placeholder="הוסף הערה..." style="width:100%; padding:4px 0; border:none; border-bottom:1px solid #f0f0f0; background:transparent; box-sizing:border-box; resize:none; font-family:inherit; margin-top:6px; font-size:0.9rem; color:#1565c0;">${t.workerNote || ''}</textarea>
-            </div>
-            
-            <!-- Star Icon -->
-            <div style="color:#d1d1d6; font-size:1.4rem; padding-top:2px;">&#9734;</div>
-          </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:10px 0 8px 0; padding:6px 12px; background:rgba(255,255,255,0.2); border-radius:8px; backdrop-filter:blur(5px); color:#fff;">
+          <div style="font-weight:bold; font-size:1.02rem;">📅 משימות להיום (יום ${todayDayName} ${todayDisp})</div>
+          <span style="background:#1565c0; color:#fff; font-size:0.75rem; padding:2px 8px; border-radius:12px; font-weight:bold;">${todayPending.length} פתוחות</span>
         </div>
       `;
-    });
+    }
+    if (todayAll.length === 0) {
+      html += `
+        <div style="text-align:center; padding:20px; background:rgba(255,255,255,0.9); border-radius:8px; color:#666; margin-bottom:12px; font-size:0.9rem;">
+          אין משימות פתוחות להיום.
+        </div>
+      `;
+    } else {
+      todayAll.forEach(t => {
+        html += renderCard(t, false);
+      });
+    }
   }
-  
 
-  
+  if (activeTab === 'all' || activeTab === 'tomorrow') {
+    if (activeTab === 'all') {
+      html += `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:18px 0 8px 0; padding:6px 12px; background:rgba(255,255,255,0.2); border-radius:8px; backdrop-filter:blur(5px); color:#fff;">
+          <div style="font-weight:bold; font-size:1.02rem;">🌅 משימות למחר (יום ${tomorrowDayName} ${tomorrowDisp})</div>
+          <span style="background:#e65100; color:#fff; font-size:0.75rem; padding:2px 8px; border-radius:12px; font-weight:bold;">${tomorrowPending.length} למחר</span>
+        </div>
+      `;
+    }
+    if (tomorrowAll.length === 0) {
+      html += `
+        <div style="text-align:center; padding:20px; background:rgba(255,255,255,0.9); border-radius:8px; color:#666; margin-bottom:12px; font-size:0.9rem;">
+          אין משימות מתוכננות למחר.
+        </div>
+      `;
+    } else {
+      tomorrowAll.forEach(t => {
+        html += renderCard(t, true);
+      });
+    }
+  }
+
   container.innerHTML = html;
 };
 
@@ -991,11 +1160,22 @@ window.wtAddInlineTask = function() {
      return;
   }
   
+  let g = null;
+  if (gardenId && window.G) g = window.G(gardenId);
+  if (!g && gardenId && Array.isArray(window._GARDENS_EXTRA)) g = window._GARDENS_EXTRA.find(x => Number(x.id) === Number(gardenId));
+  const tGardenName = (g && g.name) ? g.name : (gNameInput || '');
+  const tCity = (g && g.city) ? g.city : (cityName || '');
+  const tAddress = (g && (g.st || g.address)) ? (g.st || g.address) : '';
+  const tPhone = (g && (g.coph || g.phone)) ? (g.coph || g.phone) : '';
+
   window.WORKER_TASKS.push({
     id: 'wt_' + Date.now(),
     date: window.wtCurrentDate,
     gardenId: gardenId ? parseInt(gardenId) : 0,
-    city: cityName || '',
+    gardenName: tGardenName,
+    city: tCity,
+    address: tAddress,
+    phone: tPhone,
     desc: desc,
     status: 'pending',
     doneAt: null,
@@ -1098,7 +1278,8 @@ window.wtExportWord = async function(ds) {
       <h2>${titleStr}</h2>`;
       
   tasks.forEach(t => {
-    const gardenName = t.gardenId ? (window.G ? (window.G(t.gardenId)?.name || '') : '') : (t.city || '');
+    const info = window.wtGetTaskGardenInfo ? window.wtGetTaskGardenInfo(t) : { gardenName: '', city: '', loc: '' };
+    const gardenName = info.loc || info.gardenName || info.city || '';
     const isDone = t.status === 'done';
     const box = isDone ? '&#x2611;' : '&#x25A2;';
     
@@ -1189,15 +1370,8 @@ window.wtPrintTasks = async function(ds) {
     <div>`;
       
   tasks.forEach(t => {
-    let gardenName = '';
-    if (t.city && !t.gardenId) {
-      gardenName = t.city;
-    } else if (t.gardenId !== -1 && window.G) {
-      const gObj = window.G(t.gardenId);
-      if (gObj) {
-        gardenName = (gObj.city ? gObj.city + ' - ' : '') + (gObj.name || '');
-      }
-    }
+    const info = window.wtGetTaskGardenInfo ? window.wtGetTaskGardenInfo(t) : { gardenName: '', city: '', loc: '' };
+    const gardenName = info.loc || info.gardenName || info.city || '';
     const isDone = t.status === 'done';
     const checkHTML = isDone ? '&#10003;' : '';
     
