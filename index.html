@@ -13,18 +13,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.12</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.13</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=111.12" />
+  <link rel="stylesheet" href="styles.css?v=111.13" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '111.12';
+    window.APP_VERSION = '111.13';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -800,7 +800,7 @@
                <button id="g-tab-fixed-desktop" class="vbtn" onclick="setGardensTab('fixed')">🚀 שיבוץ קבוע</button>
             </div>
             <div style="display:flex;gap:8px">
-              <button class="btn bg" onclick="window.openGardenAgeBatchModal()" style="background:#00796b;border-color:#00796b;font-weight:700">📋 עריכת גילאים בטבלה</button>
+              <button class="btn bg" onclick="window.openGardenAgeBatchModal()" style="background:#00796b;border-color:#00796b;font-weight:700">📋 עריכת גנים בטבלה</button>
               <button class="btn bp" onclick="openAddGardenModal()">➕ הוסף מקום חדש</button>
             </div>
          </div>
@@ -816,7 +816,7 @@
       <div id="gardens-tools-mobile" class="card mobile-only" style="margin-bottom:8px">
          <div class="flex-c justify-between mb-2">
             <div style="display:flex;gap:6px">
-              <button class="btn bg bsm" onclick="window.openGardenAgeBatchModal()" style="background:#00796b;border-color:#00796b;font-weight:700">📋 טבלת גילאים</button>
+              <button class="btn bg bsm" onclick="window.openGardenAgeBatchModal()" style="background:#00796b;border-color:#00796b;font-weight:700">📋 עריכת גנים בטבלה</button>
               <button class="btn bp bsm" onclick="openAddGardenModal()">➕ הוסף</button>
             </div>
             <button class="flt-toggle bsm" id="g-flt-btn-mobile" onclick="fltToggle('g-flt-mobile','g-flt-btn-mobile')">🔍 סינון</button>
@@ -939,9 +939,9 @@
           <button onclick="CM('mgr-export-m')" class="close-btn">✕</button>
         </div>
         <div style="margin-bottom:10px;background:#e8eaf6;padding:8px 10px;border-radius:6px">
-          <label style="font-size:0.75rem;font-weight:700;color:#1a237e;display:block;margin-bottom:4px">🎭 סינון לפי מפעיל / ספק:</label>
+          <label style="font-size:0.75rem;font-weight:700;color:#1a237e;display:block;margin-bottom:4px">🎭 סינון לפי ספק חוגים:</label>
           <select id="mgr-export-sup-sel" onchange="window.onMgrExportSupChange()" style="width:100%;padding:4px 8px;border-radius:4px;border:1px solid #9fa8da;font-size:0.82rem">
-            <option value="">כל המפעילים (כל הגנים)</option>
+            <option value="">כל ספקי החוגים (כל הגנים)</option>
           </select>
         </div>
         <pre id="mgr-export-text"
@@ -970,11 +970,11 @@
             </select>
           </div>
           <div class="fg">
-            <label style="font-weight:700;color:#1a237e">🎭 סנן לפי מפעיל / ספק:</label>
+            <label style="font-weight:700;color:#1a237e">🎭 סנן לפי ספק חוגים:</label>
             <select id="mexp-sup-sel" style="width:100%;padding:6px;border-radius:6px;border:1px solid #cbd5e1">
-              <option value="">כל המפעילים (הכל)</option>
+              <option value="">כל ספקי החוגים (הכל)</option>
             </select>
-            <div style="font-size:0.7rem;color:#64748b;margin-top:2px">אם נבחר מפעיל, הדוח יכיל רק את הגנים שבהם פועל מפעיל זה</div>
+            <div style="font-size:0.7rem;color:#64748b;margin-top:2px">אם נבחר ספק חוגים, הדוח יכיל רק את הגנים שבהם פועל חוג של ספק זה</div>
           </div>
           <div class="fg">
             <label style="font-weight:700;color:#1a237e">🏙️ סנן לפי עיר:</label>
@@ -1279,17 +1279,17 @@
       </div>
     </div>
 
-    <!-- Modal: טבלת עריכת גילאי גנים מרוכזת לפי עיר -->
+    <!-- Modal: טבלת עריכת גנים מרוכזת לפי עיר -->
     <div id="garden-age-batch-m" class="modal">
-      <div class="mb" style="max-width:880px;width:95%;max-height:92vh;display:flex;flex-direction:column">
+      <div class="mb" style="max-width:1150px;width:96%;max-height:92vh;display:flex;flex-direction:column">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1.5px solid #e2e8f0;padding-bottom:10px">
           <div>
-            <h2 style="margin:0;color:#1a237e;font-size:1.15rem;display:flex;align-items:center;gap:6px">
-              📋 טבלת צהרונים ועריכת גילאים לפי עיר
+            <h2 style="margin:0;color:#1a237e;font-size:1.2rem;display:flex;align-items:center;gap:6px">
+              📋 טבלת עריכת גנים מרוכזת לפי עיר
             </h2>
-            <span style="font-size:0.75rem;color:#546e7a">הזנת גיל מהירה לכל הגנים במרוכז — השינויים נשמרים אוטומטית בעת מעבר שורה (Enter / Tab)</span>
+            <span style="font-size:0.78rem;color:#546e7a">עריכה ישירה של רכז/ת, כתובת, טלפון ישיר בגן וגילאים — כל שינוי נשמר מיידית מקומית וב-Firebase ומסומן ב-✓</span>
           </div>
-          <button onclick="CM('garden-age-batch-m'); if(typeof renderGardens==='function') renderGardens();" class="close-btn">✕</button>
+          <button onclick="CM('garden-age-batch-m'); if(typeof renderGardens==='function') renderGardens(); if(typeof renderManagers==='function') renderManagers();" class="close-btn">✕</button>
         </div>
 
         <!-- Filter / Controls Bar -->
@@ -1310,10 +1310,10 @@
           </div>
           <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:150px">
             <label style="font-size:0.75rem;font-weight:700;color:#1a237e">חיפוש מהיר:</label>
-            <input type="text" id="gab-srch" placeholder="חפש לפי שם גן או כתובת..." oninput="renderGardenAgeBatchTable()" style="padding:5px 10px;border-radius:6px;border:1px solid #cbd5e1;font-size:0.85rem">
+            <input type="text" id="gab-srch" placeholder="חפש לפי שם גן, כתובת או רכז..." oninput="renderGardenAgeBatchTable()" style="padding:5px 10px;border-radius:6px;border:1px solid #cbd5e1;font-size:0.85rem">
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
-            <label style="font-size:0.72rem;color:#64748b">הזנה מהירה (העתק לגן הפעיל):</label>
+            <label style="font-size:0.72rem;color:#64748b">צ'יפים מהירים לגיל (לשדה גיל פעיל):</label>
             <div style="display:flex;gap:4px">
               <button type="button" class="btn bsm" onclick="applyQuickAgePreset('3-4')" style="padding:2px 7px;font-size:0.73rem;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd">3-4</button>
               <button type="button" class="btn bsm" onclick="applyQuickAgePreset('4-5')" style="padding:2px 7px;font-size:0.73rem;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd">4-5</button>
@@ -1325,7 +1325,7 @@
         </div>
 
         <!-- Table Container -->
-        <div id="gab-table-container" style="flex:1;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;background:#fff;max-height:55vh">
+        <div id="gab-table-container" style="flex:1;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;background:#fff;max-height:58vh">
           <!-- Populated dynamically -->
         </div>
 
@@ -1333,8 +1333,8 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1.5px solid #e2e8f0;flex-wrap:wrap;gap:8px">
           <div id="gab-status-text" style="font-size:0.8rem;color:#475569;font-weight:600"></div>
           <div style="display:flex;gap:8px">
-            <button class="btn bg" onclick="saveAllBatchGardenAges()" style="background:#00796b;border-color:#00796b;font-weight:700">💾 שמור את כל השינויים</button>
-            <button class="btn bs" onclick="CM('garden-age-batch-m'); if(typeof renderGardens==='function') renderGardens();">סגור</button>
+            <button class="btn bg" onclick="saveAllBatchGardens()" style="background:#00796b;border-color:#00796b;font-weight:700">💾 שמור את כל השינויים</button>
+            <button class="btn bs" onclick="CM('garden-age-batch-m'); if(typeof renderGardens==='function') renderGardens(); if(typeof renderManagers==='function') renderManagers();">סגור</button>
           </div>
         </div>
       </div>

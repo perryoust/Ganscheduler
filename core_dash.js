@@ -1742,20 +1742,42 @@ window.getGardensForCoordinator = function(m) {
 
 window.getActiveSupplierNames = function() {
   const sups = new Set();
+  
+  // 1. Scan activities in schedule (SCH)
   (window.SCH || []).forEach(s => {
     if (s && s.a && s.st !== 'can') {
       const base = window.supBase ? window.supBase(s.a) : s.a;
-      if (base && typeof base === 'string') sups.add(base.trim());
+      if (base && typeof base === 'string') {
+        const clean = base.trim();
+        if (typeof window.isActSupplier !== 'function' || window.isActSupplier(clean)) {
+          sups.add(clean);
+        }
+      }
     }
   });
+
+  // 2. Scan all suppliers defined in system, strictly filtering for activity suppliers
   if (typeof window.getAllSup === 'function') {
     window.getAllSup().forEach(s => {
       if (s && s.name) {
         const base = window.supBase ? window.supBase(s.name) : s.name;
-        if (base && typeof base === 'string') sups.add(base.trim());
+        if (base && typeof base === 'string') {
+          const clean = base.trim();
+          if (typeof window.isActSupplier === 'function' && !window.isActSupplier(clean)) {
+            return; // Explicitly marked as not an activity supplier (e.g. taxi, food, vendor)
+          }
+          const ex = (window.supEx && (window.supEx[clean] || window.supEx[s.name])) || {};
+          const inSupbase = Array.isArray(window.SUPBASE) && window.SUPBASE.some(sb => (window.supBase ? window.supBase(sb.name) : sb.name) === clean);
+          const hasSch = (window.SCH || []).some(ev => ev && ev.st !== 'can' && (window.supBase ? window.supBase(ev.a) : ev.a) === clean);
+          
+          if (ex.isAct === true || inSupbase || hasSch) {
+            sups.add(clean);
+          }
+        }
       }
     });
   }
+
   return Array.from(sups).filter(Boolean).sort((a,b) => a.localeCompare(b, 'he'));
 };
 
@@ -2179,21 +2201,37 @@ window.exportMgrExcel = async function(mgrId = null, filterSup = null, filterCit
     });
 
     if (!isSingle) {
+      // Sort Master Table by City (עיר הגן), then by Coordinator Name, then by Garden Name
+      allRowsMaster.sort((a,b) => 
+        (a.city || '').localeCompare(b.city || '', 'he', { numeric: true }) ||
+        (a.mgrName || '').localeCompare(b.mgrName || '', 'he', { numeric: true }) ||
+        (a.name || '').localeCompare(b.name || '', 'he', { numeric: true })
+      );
+      allRowsMaster.forEach((r, i) => r.idx = i + 1);
+
       const wsMaster = wb.addWorksheet('כל הרכזים והגנים');
       const totalGardens = allRowsMaster.length;
-      const subMaster = `${selectedSup ? 'מפעיל: ' + selectedSup + ' | ' : ''}סה"כ רכזים: ${targetManagers.length} | סה"כ גנים: ${totalGardens} | תאריך הפקה: ${new Date().toLocaleDateString('he-IL')}`;
+      const subMaster = `${selectedSup ? 'ספק חוגים: ' + selectedSup + ' | ' : ''}סה"כ רכזים: ${targetManagers.length} | סה"כ גנים: ${totalGardens} | תאריך הפקה: ${new Date().toLocaleDateString('he-IL')}`;
       const titleMaster = selectedSup
-        ? `טומשין - דוח רכזים וגנים למפעיל: ${selectedSup}`
+        ? `טומשין - דוח רכזים וגנים לספק חוגים: ${selectedSup}`
         : 'טומשין - דוח רכזים וגנים מרוכז';
       buildSheet(wsMaster, titleMaster, subMaster, allRowsMaster, true);
 
       if (targetManagers.length <= 25) {
-        targetManagers.forEach(m => {
+        const sortedMgrs = [...targetManagers].sort((a,b) => 
+          (a.city || '').localeCompare(b.city || '', 'he', { numeric: true }) ||
+          (a.name || '').localeCompare(b.name || '', 'he', { numeric: true })
+        );
+        sortedMgrs.forEach(m => {
           let gs = window.getGardensForCoordinator(m);
           if (selectedSup) {
             gs = gs.filter(g => window.isSupplierInGarden(g.id, selectedSup));
           }
           if (!gs.length) return;
+          gs.sort((a,b) => 
+            (a.city || '').localeCompare(b.city || '', 'he', { numeric: true }) ||
+            (a.name || '').localeCompare(b.name || '', 'he', { numeric: true })
+          );
           const sheetName = (m.name || 'רכז').replace(/[\\/?*[\]]/g, '').slice(0, 30);
           let finalSheetName = sheetName;
           let counter = 1;
@@ -2221,7 +2259,7 @@ window.exportMgrExcel = async function(mgrId = null, filterSup = null, filterCit
               notes: supActInfo || (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || ''
             });
           });
-          const sub = `רכז/ת: ${m.name} | טלפון: ${m.phone || '—'}${selectedSup ? ' | מפעיל: ' + selectedSup : ''} | סה"כ גנים: ${gs.length}`;
+          const sub = `רכז/ת: ${m.name} | טלפון: ${m.phone || '—'}${selectedSup ? ' | ספק חוגים: ' + selectedSup : ''} | סה"כ גנים: ${gs.length}`;
           buildSheet(wsInd, `רשימת גנים - ${m.name}`, sub, mRows, false);
         });
       }
@@ -2297,6 +2335,17 @@ window.exportMgrExcel = async function(mgrId = null, filterSup = null, filterCit
     });
   });
 
+  if (!isSingle && csvRows.length > 1) {
+    const dataRows = csvRows.slice(1);
+    dataRows.sort((a,b) => 
+      (a[4] || '').localeCompare(b[4] || '', 'he', { numeric: true }) ||
+      (a[1] || '').localeCompare(b[1] || '', 'he', { numeric: true }) ||
+      (a[7] || '').localeCompare(b[7] || '', 'he', { numeric: true })
+    );
+    dataRows.forEach((r, i) => r[0] = i + 1);
+    csvRows.splice(1, csvRows.length - 1, ...dataRows);
+  }
+
   const csvContent = bom + csvRows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -2320,7 +2369,7 @@ window.openMgrExportOptionsModal = function() {
   }
   const supSel = document.getElementById('mexp-sup-sel');
   if (supSel) {
-    let opts = '<option value="">כל המפעילים (כל הגנים)</option>';
+    let opts = '<option value="">כל ספקי החוגים (כל הגנים)</option>';
     window.getActiveSupplierNames().forEach(s => opts += `<option value="${s}">🎭 ${s}</option>`);
     supSel.innerHTML = opts;
   }
@@ -2341,7 +2390,7 @@ window.submitMgrExcelExport = function() {
   window.exportMgrExcel(mgrId, supName, cityName);
 };
 
-// ── Batch Garden Age Editing Table ─────────────────────────────
+// ── Batch Garden Editing Table (עריכת גנים בטבלה: רכז, כתובת, טלפון בגן, גילאים) ──
 let _activeGabGid = null;
 
 window.openGardenAgeBatchModal = function(cityToSelect = null) {
@@ -2366,14 +2415,20 @@ window.openGardenAgeBatchModal = function(cityToSelect = null) {
   window.renderGardenAgeBatchTable();
   document.getElementById('garden-age-batch-m').classList.add('open');
 };
+window.openGardenBatchModal = window.openGardenAgeBatchModal;
 
 window.applyQuickAgePreset = function(presetAge) {
   if (_activeGabGid) {
     const inp = document.getElementById('gab-age-' + _activeGabGid);
     if (inp) {
       inp.value = presetAge;
-      window.quickSaveSingleAge(_activeGabGid, presetAge);
-      window.focusNextGabAgeInput(_activeGabGid);
+      window.quickSaveBatchGardenField(_activeGabGid, 'age', presetAge);
+      const allAgeInputs = Array.from(document.querySelectorAll('.gab-age-input'));
+      const idx = allAgeInputs.findIndex(i => Number(i.getAttribute('data-gid')) === Number(_activeGabGid));
+      if (idx >= 0 && idx < allAgeInputs.length - 1) {
+        allAgeInputs[idx + 1].focus();
+        allAgeInputs[idx + 1].select();
+      }
       return;
     }
   }
@@ -2382,11 +2437,40 @@ window.applyQuickAgePreset = function(presetAge) {
   }
 };
 
-window.quickSaveSingleAge = function(gid, val) {
-  const ageStr = (val || '').trim();
+window.quickSaveBatchGardenField = function(gid, field, val) {
   if (!window.supEx) window.supEx = {};
   if (!window.supEx['g_' + gid]) window.supEx['g_' + gid] = {};
-  window.supEx['g_' + gid].age = ageStr;
+  const ex = window.supEx['g_' + gid];
+  const g = typeof window.G === 'function' ? window.G(gid) : null;
+  const cleanVal = (val || '').trim();
+
+  if (field === 'age') {
+    ex.age = cleanVal;
+    if (g) g.age = cleanVal;
+  } else if (field === 'st') {
+    ex.st = cleanVal;
+    if (g) g.st = cleanVal;
+  } else if (field === 'coph') {
+    ex.coph = cleanVal;
+    if (cleanVal) ex._cophManual = true;
+    if (g) g.coph = cleanVal;
+  } else if (field === 'mgr') {
+    const selMgrId = cleanVal;
+    Object.values(window.managers || {}).forEach(m => {
+      if (m.gardenIds) {
+        m.gardenIds = m.gardenIds.filter(id => Number(id) !== Number(gid));
+      }
+    });
+    if (selMgrId && window.managers && window.managers[selMgrId]) {
+      if (!window.managers[selMgrId].gardenIds) window.managers[selMgrId].gardenIds = [];
+      window.managers[selMgrId].gardenIds.push(Number(gid));
+      ex.co = window.managers[selMgrId].name;
+      if (g) g.co = window.managers[selMgrId].name;
+    } else {
+      ex.co = '';
+      if (g) g.co = '';
+    }
+  }
 
   if (typeof window.save === 'function') window.save();
 
@@ -2396,24 +2480,23 @@ window.quickSaveSingleAge = function(gid, val) {
     setTimeout(() => { indicator.style.opacity = '0'; }, 2000);
   }
 };
-
-window.focusNextGabAgeInput = function(currentGid) {
-  const allInputs = Array.from(document.querySelectorAll('.gab-age-input'));
-  const idx = allInputs.findIndex(inp => Number(inp.getAttribute('data-gid')) === Number(currentGid));
-  if (idx >= 0 && idx < allInputs.length - 1) {
-    allInputs[idx + 1].focus();
-    allInputs[idx + 1].select();
-  }
+window.quickSaveSingleAge = function(gid, val) {
+  window.quickSaveBatchGardenField(gid, 'age', val);
 };
 
-window.handleGabKey = function(e, gid) {
+window.handleGabCellKey = function(e, gid, colKey) {
   if (e.key === 'Enter' || e.key === 'ArrowDown') {
     e.preventDefault();
-    window.quickSaveSingleAge(gid, e.target.value);
-    window.focusNextGabAgeInput(gid);
+    window.quickSaveBatchGardenField(gid, colKey, e.target.value);
+    const allInputs = Array.from(document.querySelectorAll(`.gab-${colKey}-input`));
+    const idx = allInputs.findIndex(inp => Number(inp.getAttribute('data-gid')) === Number(gid));
+    if (idx >= 0 && idx < allInputs.length - 1) {
+      allInputs[idx + 1].focus();
+      allInputs[idx + 1].select();
+    }
   } else if (e.key === 'ArrowUp') {
     e.preventDefault();
-    const allInputs = Array.from(document.querySelectorAll('.gab-age-input'));
+    const allInputs = Array.from(document.querySelectorAll(`.gab-${colKey}-input`));
     const idx = allInputs.findIndex(inp => Number(inp.getAttribute('data-gid')) === Number(gid));
     if (idx > 0) {
       allInputs[idx - 1].focus();
@@ -2421,25 +2504,65 @@ window.handleGabKey = function(e, gid) {
     }
   }
 };
+window.handleGabKey = function(e, gid) {
+  window.handleGabCellKey(e, gid, 'age');
+};
 
-window.saveAllBatchGardenAges = function() {
-  const inputs = document.querySelectorAll('.gab-age-input');
+window.saveAllBatchGardens = function() {
+  const rows = document.querySelectorAll('#gab-table-container tbody tr');
   let count = 0;
-  inputs.forEach(inp => {
-    const gid = inp.getAttribute('data-gid');
-    const val = inp.value.trim();
-    if (gid) {
-      if (!window.supEx) window.supEx = {};
-      if (!window.supEx['g_' + gid]) window.supEx['g_' + gid] = {};
-      window.supEx['g_' + gid].age = val;
-      count++;
+  rows.forEach(tr => {
+    const ageInp = tr.querySelector('.gab-age-input');
+    const stInp = tr.querySelector('.gab-st-input');
+    const cophInp = tr.querySelector('.gab-coph-input');
+    const mgrSel = tr.querySelector('.gab-mgr-select');
+    const gid = ageInp?.getAttribute('data-gid') || stInp?.getAttribute('data-gid');
+    if (!gid) return;
+
+    if (!window.supEx) window.supEx = {};
+    if (!window.supEx['g_' + gid]) window.supEx['g_' + gid] = {};
+    const ex = window.supEx['g_' + gid];
+    const g = typeof window.G === 'function' ? window.G(gid) : null;
+
+    if (ageInp) {
+      ex.age = ageInp.value.trim();
+      if (g) g.age = ex.age;
     }
+    if (stInp) {
+      ex.st = stInp.value.trim();
+      if (g) g.st = ex.st;
+    }
+    if (cophInp) {
+      ex.coph = cophInp.value.trim();
+      if (ex.coph) ex._cophManual = true;
+      if (g) g.coph = ex.coph;
+    }
+    if (mgrSel) {
+      const selMgrId = mgrSel.value;
+      Object.values(window.managers || {}).forEach(m => {
+        if (m.gardenIds) {
+          m.gardenIds = m.gardenIds.filter(id => Number(id) !== Number(gid));
+        }
+      });
+      if (selMgrId && window.managers && window.managers[selMgrId]) {
+        if (!window.managers[selMgrId].gardenIds) window.managers[selMgrId].gardenIds = [];
+        window.managers[selMgrId].gardenIds.push(Number(gid));
+        ex.co = window.managers[selMgrId].name;
+        if (g) g.co = window.managers[selMgrId].name;
+      } else {
+        ex.co = '';
+        if (g) g.co = '';
+      }
+    }
+    count++;
   });
 
   if (typeof window.save === 'function') window.save();
-  if (typeof window.showToast === 'function') window.showToast(`✅ נשמרו ${count} גנים בהצלחה!`);
+  if (typeof window.showToast === 'function') window.showToast(`✅ נשמרו בהצלחה נתוני ${count} גנים (רכז, כתובת, טלפון וגיל)!`);
   if (typeof renderGardens === 'function') renderGardens();
+  if (typeof renderManagers === 'function') renderManagers();
 };
+window.saveAllBatchGardenAges = window.saveAllBatchGardens;
 
 window.renderGardenAgeBatchTable = function() {
   const cityF = document.getElementById('gab-city-sel')?.value || '';
@@ -2447,6 +2570,8 @@ window.renderGardenAgeBatchTable = function() {
   const srchF = (document.getElementById('gab-srch')?.value || '').trim().toLowerCase();
 
   const allGs = typeof AG === 'function' ? AG() : (window.GARDENS || []);
+  const allMgrs = Object.values(window.managers || {}).sort((a,b) => a.name.localeCompare(b.name, 'he'));
+
   const filtered = allGs.filter(g => {
     if (cityF && g.city !== cityF) return false;
     if (clsF && (typeof window.gcls === 'function' ? window.gcls(g) : g.cls) !== clsF) return false;
@@ -2471,16 +2596,17 @@ window.renderGardenAgeBatchTable = function() {
   }
 
   let html = `
-    <table style="width:100%;border-collapse:collapse;font-size:0.85rem;text-align:right;direction:rtl">
+    <table style="width:100%;border-collapse:collapse;font-size:0.84rem;text-align:right;direction:rtl">
       <thead>
         <tr style="background:#1e293b;color:#fff;position:sticky;top:0;z-index:10">
-          <th style="padding:8px 10px;text-align:center;width:40px">#</th>
-          <th style="padding:8px 10px;width:120px">עיר</th>
-          <th style="padding:8px 10px;width:180px">שם הצהרון / מוסד</th>
-          <th style="padding:8px 10px;width:180px">כתובת</th>
-          <th style="padding:8px 10px;width:160px;text-align:center;background:#0f172a;color:#38bdf8">👶 גיל הגן (הזנה ישירה)</th>
-          <th style="padding:8px 10px;width:140px">טלפון בגן</th>
-          <th style="padding:8px 10px;width:120px">רכז/ת</th>
+          <th style="padding:8px 8px;text-align:center;width:35px">#</th>
+          <th style="padding:8px 8px;width:100px">עיר</th>
+          <th style="padding:8px 8px;width:160px">שם הצהרון / מוסד</th>
+          <th style="padding:8px 8px;width:160px;background:#0f172a;color:#38bdf8">👤 רכז/ת אחראי/ת</th>
+          <th style="padding:8px 8px;width:180px;background:#0f172a;color:#38bdf8">📍 כתובת הגן</th>
+          <th style="padding:8px 8px;width:130px;background:#0f172a;color:#38bdf8">📞 טלפון בגן</th>
+          <th style="padding:8px 8px;width:115px;text-align:center;background:#0f172a;color:#38bdf8">👶 גיל הגן</th>
+          <th style="padding:8px 6px;width:35px;text-align:center">שמור</th>
         </tr>
       </thead>
       <tbody>
@@ -2490,36 +2616,75 @@ window.renderGardenAgeBatchTable = function() {
     const rawAge = window.extractGardenAge(g);
     const ageVal = (rawAge && rawAge !== '***') ? rawAge : '';
     const info = window.getGardenPhoneInfo(g);
-    const mgr = typeof window.getGardenMgr === 'function' ? window.getGardenMgr(g.id) : null;
+    const curPhone = (window.supEx && window.supEx['g_' + g.id]?.coph) || info.gardenPhone || '';
+    const curSt = (window.supEx && window.supEx['g_' + g.id]?.st) || g.st || '';
+    const curMgr = typeof window.getGardenMgr === 'function' ? window.getGardenMgr(g.id) : null;
+    const curMgrId = curMgr ? curMgr.id : '';
     const bgClr = (idx % 2 === 0) ? '#ffffff' : '#f8fafc';
+
+    let mgrOptions = '<option value="">-- ללא רכז --</option>';
+    allMgrs.forEach(m => {
+      const isSel = (curMgrId === m.id) ? 'selected' : '';
+      mgrOptions += `<option value="${m.id}" ${isSel}>${m.role === 'manager' ? '🏛️' : '👤'} ${m.name}</option>`;
+    });
 
     html += `
       <tr style="background:${bgClr};border-bottom:1px solid #e2e8f0;transition:background .15s" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='${bgClr}'">
-        <td style="padding:6px 10px;text-align:center;color:#64748b;font-size:0.78rem">${idx + 1}</td>
-        <td style="padding:6px 10px;font-weight:700;color:#1e293b">🏙️ ${g.city}</td>
-        <td style="padding:6px 10px;font-weight:800;color:#0369a1">
-          <span style="cursor:pointer" onclick="openGM(${g.id})" title="פתח כרטיס גן">${(typeof window.gcls === 'function' && window.gcls(g)==='ביה"ס')?'🏛️':'🏫'} ${g.name}</span>
+        <td style="padding:6px 6px;text-align:center;color:#64748b;font-size:0.75rem">${idx + 1}</td>
+        <td style="padding:6px 6px;font-weight:700;color:#1e293b;white-space:nowrap">${g.city}</td>
+        <td style="padding:6px 6px;font-weight:800;color:#0369a1">
+          <span style="cursor:pointer" onclick="openGM(${g.id})" title="לחץ לפתיחת כרטיס גן מלא">${(typeof window.gcls === 'function' && window.gcls(g)==='ביה"ס')?'🏛️':'🏫'} ${g.name}</span>
         </td>
-        <td style="padding:6px 10px;color:#64748b;font-size:0.8rem">${g.st || '—'}</td>
-        <td style="padding:6px 10px;text-align:center;position:relative">
-          <div style="display:flex;align-items:center;justify-content:center;gap:6px">
-            <input type="text"
-              id="gab-age-${g.id}"
-              class="gab-age-input"
-              data-gid="${g.id}"
-              value="${ageVal}"
-              placeholder="3-4 / בוגרים..."
-              onfocus="_activeGabGid = ${g.id}; this.select(); this.style.borderColor='#0284c7'; this.style.boxShadow='0 0 0 2px rgba(2,132,199,0.2)'"
-              onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none'"
-              onchange="quickSaveSingleAge(${g.id}, this.value)"
-              onkeydown="handleGabKey(event, ${g.id})"
-              style="width:110px;padding:5px 8px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:0.85rem;font-weight:700;text-align:center;color:#0f172a;background:#fff"
-            />
-            <span id="gab-saved-${g.id}" style="color:#16a34a;font-size:0.85rem;font-weight:800;opacity:0;transition:opacity .3s" title="נשמר!">✓</span>
-          </div>
+        <td style="padding:5px 6px">
+          <select id="gab-mgr-${g.id}" class="gab-mgr-select" data-gid="${g.id}" onchange="quickSaveBatchGardenField(${g.id}, 'mgr', this.value)" style="width:100%;padding:4px 6px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:0.8rem;background:#fff;color:#1e293b;font-weight:600">
+            ${mgrOptions}
+          </select>
         </td>
-        <td style="padding:6px 10px;font-size:0.8rem;color:#334155">${info.gardenPhone || '—'}</td>
-        <td style="padding:6px 10px;font-size:0.8rem;color:#475569">${mgr ? mgr.name : '—'}</td>
+        <td style="padding:5px 6px">
+          <input type="text"
+            id="gab-st-${g.id}"
+            class="gab-st-input"
+            data-gid="${g.id}"
+            value="${curSt}"
+            placeholder="רחוב ומספר..."
+            onfocus="this.select(); this.style.borderColor='#0284c7'; this.style.boxShadow='0 0 0 2px rgba(2,132,199,0.2)'"
+            onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none'"
+            onchange="quickSaveBatchGardenField(${g.id}, 'st', this.value)"
+            onkeydown="handleGabCellKey(event, ${g.id}, 'st')"
+            style="width:100%;padding:4px 7px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:0.82rem;background:#fff;color:#0f172a"
+          />
+        </td>
+        <td style="padding:5px 6px">
+          <input type="text"
+            id="gab-coph-${g.id}"
+            class="gab-coph-input"
+            data-gid="${g.id}"
+            value="${curPhone}"
+            placeholder="050-0000000"
+            onfocus="this.select(); this.style.borderColor='#0284c7'; this.style.boxShadow='0 0 0 2px rgba(2,132,199,0.2)'"
+            onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none'"
+            onchange="quickSaveBatchGardenField(${g.id}, 'coph', this.value)"
+            onkeydown="handleGabCellKey(event, ${g.id}, 'coph')"
+            style="width:100%;padding:4px 7px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:0.82rem;background:#fff;color:#0f172a;direction:ltr;text-align:right"
+          />
+        </td>
+        <td style="padding:5px 6px;text-align:center">
+          <input type="text"
+            id="gab-age-${g.id}"
+            class="gab-age-input"
+            data-gid="${g.id}"
+            value="${ageVal}"
+            placeholder="3-4..."
+            onfocus="_activeGabGid = ${g.id}; this.select(); this.style.borderColor='#0284c7'; this.style.boxShadow='0 0 0 2px rgba(2,132,199,0.2)'"
+            onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none'"
+            onchange="quickSaveBatchGardenField(${g.id}, 'age', this.value)"
+            onkeydown="handleGabCellKey(event, ${g.id}, 'age')"
+            style="width:100%;padding:4px 6px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:0.83rem;font-weight:700;text-align:center;background:#fff;color:#0f172a"
+          />
+        </td>
+        <td style="padding:5px 4px;text-align:center">
+          <span id="gab-saved-${g.id}" style="color:#16a34a;font-size:0.95rem;font-weight:800;opacity:0;transition:opacity .3s" title="נשמר בהצלחה!">✓</span>
+        </td>
       </tr>
     `;
   });
@@ -2527,6 +2692,7 @@ window.renderGardenAgeBatchTable = function() {
   html += '</tbody></table>';
   container.innerHTML = html;
 };
+window.renderGardenBatchTable = window.renderGardenAgeBatchTable;
 
 function refreshMgrDrops(){
   const mgrOptions=()=>{
@@ -2551,8 +2717,8 @@ function refreshMgrDrops(){
     }
   });
 
-  // Suppliers dropdowns
-  const supOpts = '<option value="">כל המפעילים (הכל)</option>' + 
+  // Suppliers dropdowns (ספקי חוגים בלבד)
+  const supOpts = '<option value="">כל ספקי החוגים</option>' + 
     window.getActiveSupplierNames().map(s => `<option value="${s}">🎭 ${s}</option>`).join('');
 
   ['mgr-sup-filt-desktop', 'mgr-sup-filt-mobile', 'mgr-sup-filt'].forEach(id => {

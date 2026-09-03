@@ -43,7 +43,7 @@ function renderGardens(){
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
           <span style="font-weight:800; color:#2d3748;">🏙️ ${cityKey}</span>
           <div style="display:flex; align-items:center; gap:8px">
-            <button class="btn bg bsm" onclick="event.stopPropagation(); window.openGardenAgeBatchModal('${cityKey}')" style="font-size:0.72rem;padding:2px 8px;background:#00796b;border-color:#00796b;font-weight:700" title="ערוך גילאים בטבלה עבור ${cityKey}">📋 ערוך גילאים בטבלה</button>
+            <button class="btn bg bsm" onclick="event.stopPropagation(); window.openGardenAgeBatchModal('${cityKey}')" style="font-size:0.72rem;padding:2px 8px;background:#00796b;border-color:#00796b;font-weight:700" title="ערוך גנים בטבלה עבור ${cityKey}">📋 ערוך גנים בטבלה</button>
             <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
           </div>
         </div>
@@ -83,7 +83,7 @@ function renderGardens(){
     const btns = `<div style="display:flex; gap:8px; margin-bottom:12px; justify-content: flex-start; padding: 0 4px; flex-wrap: wrap;">
       <button class="btn bg" onclick="document.querySelectorAll('#g-body .city-accordion').forEach(el=>el.setAttribute('open',''))" style="font-size: 0.75rem; padding: 4px 10px; font-weight: 700;">🔽 פרוס הכל</button>
       <button class="btn" onclick="document.querySelectorAll('#g-body .city-accordion').forEach(el=>el.removeAttribute('open'))" style="font-size: 0.75rem; padding: 4px 10px; font-weight: 700; background: #fff; border: 1px solid #ccc; color: #555;">🔼 כווץ הכל</button>
-      <button class="btn bg" onclick="window.openGardenAgeBatchModal()" style="font-size: 0.75rem; padding: 4px 10px; font-weight: 700; background: #00796b; border-color: #00796b;">📋 טבלת עריכת גילאים לפי עיר</button>
+      <button class="btn bg" onclick="window.openGardenAgeBatchModal()" style="font-size: 0.75rem; padding: 4px 10px; font-weight: 700; background: #00796b; border-color: #00796b;">📋 טבלת עריכת גנים לפי עיר</button>
     </div>`;
     h = btns + h;
   }
