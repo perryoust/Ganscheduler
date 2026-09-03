@@ -635,6 +635,14 @@ async function saveNewSched(closeModal = true){
     targets = [{ g: gid, t: time }];
   }
 
+  // Deduplicate targets by garden ID safeguard
+  const _seenTgts = new Set();
+  targets = targets.filter(tgt => {
+    if (_seenTgts.has(Number(tgt.g))) return false;
+    _seenTgts.add(Number(tgt.g));
+    return true;
+  });
+
   const ph=document.getElementById('ns-ph')?.value || '';
   const notes=document.getElementById('ns-notes')?.value || '';
   const grp = parseInt(document.getElementById('ns-grp')?.value) || 1;

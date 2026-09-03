@@ -2112,6 +2112,10 @@ async function saveAndRefresh(modalId, stayOpen = false, immediate = true){
   
   // Yield to browser to let UI update (like closing modals)
   await new Promise(r => setTimeout(r, 20));
+
+  if (window.DataManager && window.DataManager.cleanupDuplicates) {
+    window.DataManager.cleanupDuplicates();
+  }
   
   const ok = await window.save(immediate);
   
@@ -2270,43 +2274,6 @@ function openPostpone(id, defaultMode = 'move'){
   }
 }
 
-function openCopy(id){
-  window._copySrcId=id;
-  const s=window.SCH.find(x=>x.id==id); if(!s) return;
-  const g=window.G(s.g);
-  document.getElementById('copy-ev-info').innerHTML=`<b>${g.name}</b> · ${g.city} · ${s.a}`;
-  document.getElementById('copy-date').value='';
-  document.getElementById('copy-time').value = window.fT(s.t) || '';
-  
-  // Set up Synergy UI
-  const synWrap = document.getElementById('copy-synergy-wrap');
-  if(synWrap) {
-    let pIds = [];
-    if (window._currentCustomGroup && window._currentCustomGroup.includes(Number(s.g))) {
-      pIds = Array.from(new Set(window._currentCustomGroup.map(Number)));
-    } else {
-      const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
-      if(pair && pair.ids) pIds = pair.ids.map(Number);
-    }
-
-    const currentTimes = {};
-    const currentGrps = {};
-    currentTimes[s.g] = window.fT(s.t) || '';
-    currentGrps[s.g] = s.grp || 1;
-
-    if(pIds.length) {
-      pIds.forEach(pId => {
-        if(Number(pId) === Number(s.g)) return;
-        const pEv = window.SCH.find(ps => ps.d === s.d && Number(ps.g) === Number(pId) && ps.st!=='can' && window.supBase(ps.a)===window.supBase(s.a));
-        if(pEv) { currentTimes[pId] = window.fT(pEv.t||s.t); currentGrps[pId] = pEv.grp || 1; }
-      });
-    }
-    synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'copy', currentTimes, currentGrps, s.d);
-  }
-  
-  document.getElementById('copym').style.display='flex';
-}
-
 async function doPostpone(){
   try {
     const sid = window.selEvPost;
@@ -2356,13 +2323,16 @@ async function doPostpone(){
       const oldDate = s.d;
       
       // Update original
-      s.d = newDate;
-      if (newSup) s.a = newSup;
-      if (newAct) s.act = newAct;
-      if (reason) s.nt = (s.nt ? s.nt + ' | ' : '') + 'תיקון: ' + reason;
+      if (isPrimaryChecked) {
+        s.d = newDate;
+        if (newSup) s.a = newSup;
+        if (newAct) s.act = newAct;
+        if (reason) s.nt = (s.nt ? s.nt + ' | ' : '') + 'תיקון: ' + reason;
+      }
       
       // Update synergy partners
       for (let syn of synergyPartners) {
+        if (Number(syn.g) === Number(s.g)) continue;
         const pEv = window.SCH.find(ps => ps.d === oldDate && ps.g === syn.g && ps.st !== 'can' && window.supBase(ps.a) === window.supBase(s.a));
         if(pEv) {
           pEv.d = newDate;
@@ -2399,6 +2369,7 @@ async function doPostpone(){
     
     // Conflict Alert Phase
     for(let syn of synergyPartners) {
+      if (Number(syn.g) === Number(s.g)) continue;
       const pEv = window.SCH.find(ps => ps.d === s.d && ps.g === syn.g && ps.st !== 'can' && window.supBase(ps.a) === window.supBase(s.a));
       if(!pEv) {
         const gObj = window.G(syn.g);
@@ -2473,6 +2444,42 @@ async function doPostpone(){
   }
 }
 
+function openCopy(sid){
+  const s=window.SCH.find(x=>x.id==sid); if(!s) return;
+  const g=window.G(s.g);
+  document.getElementById('copy-ev-info').innerHTML=`<b>${g.name}</b> · ${g.city} · ${s.a}`;
+  document.getElementById('copy-date').value='';
+  document.getElementById('copy-time').value = window.fT(s.t) || '';
+  
+  // Set up Synergy UI
+  const synWrap = document.getElementById('copy-synergy-wrap');
+  if(synWrap) {
+    let pIds = [];
+    if (window._currentCustomGroup && window._currentCustomGroup.includes(Number(s.g))) {
+      pIds = Array.from(new Set(window._currentCustomGroup.map(Number)));
+    } else {
+      const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
+      if(pair && pair.ids) pIds = pair.ids.map(Number);
+    }
+
+    const currentTimes = {};
+    const currentGrps = {};
+    currentTimes[s.g] = window.fT(s.t) || '';
+    currentGrps[s.g] = s.grp || 1;
+
+    if(pIds.length) {
+      pIds.forEach(pId => {
+        if(Number(pId) === Number(s.g)) return;
+        const pEv = window.SCH.find(ps => ps.d === s.d && Number(ps.g) === Number(pId) && ps.st!=='can' && window.supBase(ps.a) === window.supBase(s.a));
+        if(pEv) { currentTimes[pId] = window.fT(pEv.t||s.t); currentGrps[pId] = pEv.grp || 1; }
+      });
+    }
+    synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'copy', currentTimes, currentGrps, s.d);
+  }
+  
+  document.getElementById('copym').classList.add('open');
+}
+
 function doCopy(){
   const sid = window._copySrcId;
   const s = window.SCH.find(x => x.id == sid);
@@ -2489,6 +2496,7 @@ function doCopy(){
   // Synergy
   const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('copy') : [];
   synergyPartners.forEach((syn, idx) => {
+    if (Number(syn.g) === Number(s.g)) return;
     const newPtEv = {...s, id:Date.now() + idx + 1, g:syn.g, d:newDate, t:syn.t || primaryTime || s.t, st:'ok', pd:'', pt:'', cr:'', cn:'', grp: syn.grp || s.grp || 1};
     delete newPtEv._recId;
     window.SCH.push(newPtEv);
@@ -2561,15 +2569,16 @@ function renderPartnerSynergy(gid, prefix, currentTimes = {}, currentGrps = {}, 
   return html;
 }
 
-function getSynergyData(prefix) {
+function getSynergyData(prefix, excludeGid = null) {
   const data = [];
   const chks = document.querySelectorAll(`.${prefix}-syn-chk`);
   chks.forEach(chk => {
     if (chk.checked) {
-      const pId = chk.value;
+      const pId = Number(chk.value);
+      if (excludeGid !== null && Number(excludeGid) === pId) return;
       const timeInput = document.querySelector(`.${prefix}-syn-time[data-gid="${pId}"]`);
       const grpInput = document.querySelector(`.${prefix}-syn-grp[data-gid="${pId}"]`);
-      data.push({ g: Number(pId), t: timeInput ? timeInput.value : '', grp: grpInput ? parseInt(grpInput.value, 10) : null });
+      data.push({ g: pId, t: timeInput ? timeInput.value : '', grp: grpInput ? parseInt(grpInput.value, 10) : null });
     }
   });
   return data;
@@ -2927,7 +2936,15 @@ window.spSaveMakeup = async function() {
   
   if(!newDate || !time) { _spAlertDialog('בחר תאריך ושעה'); return; }
   
-  const targets = [{ g: origEv.g, t: time }, ...window.getSynergyData('sp-mu').map(tgt => ({ g: tgt.g, t: tgt.t || time, grp: tgt.grp }))];
+  const synData = window.getSynergyData('sp-mu');
+  const partners = synData.filter(tgt => Number(tgt.g) !== Number(origEv.g));
+  const mainSyn = synData.find(tgt => Number(tgt.g) === Number(origEv.g));
+  const mainTime = (mainSyn && mainSyn.t) ? mainSyn.t : time;
+  const mainGrp = (mainSyn && mainSyn.grp) ? mainSyn.grp : null;
+  const targets = [
+    { g: origEv.g, t: mainTime, grp: mainGrp },
+    ...partners.map(tgt => ({ g: tgt.g, t: tgt.t || time, grp: tgt.grp }))
+  ];
   
   const actVal = document.getElementById('sp-mu-act').value;
   const actName = actVal === '__new__' ? (document.getElementById('sp-mu-act-new')||{}).value : 
