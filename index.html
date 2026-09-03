@@ -13,18 +13,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.09</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.10</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=111.09" />
+  <link rel="stylesheet" href="styles.css?v=111.10" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '111.09';
+    window.APP_VERSION = '111.10';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -525,7 +525,8 @@
                   <button class="btn bo" style="width:100%; justify-content:flex-start; margin-bottom:6px; background:#fff; color:#333; font-size:0.8rem" onclick="exportBulkAnnualSchedule(); closeExportMenu();">📅 ייצוא תוכנית שנתית</button>
                   <button class="btn bo" style="width:100%; justify-content:flex-start; background:#fff; color:#333; font-size:0.8rem" onclick="exportShortagesToExcel(); closeExportMenu();">📥 דוח חוסרים</button>
                   <div style="height:1px; background:#e0e0e0; margin:4px 0;"></div>
-                  <button class="btn bo" style="width:100%; justify-content:flex-start; background:#f5f7ff; color:#283593; border-color:#c5cae9; font-size:0.8rem" onclick="if(typeof openSupExport === 'function'){openSupExport(null);}else{window.spAlert('שגיאה: חסר קובץ ספקים');} closeExportMenu();">📊 יצוא דוח ספק</button>
+                  <button class="btn bo" style="width:100%; justify-content:flex-start; margin-bottom:4px; background:#f5f7ff; color:#283593; border-color:#c5cae9; font-size:0.8rem" onclick="if(typeof openSupExport === 'function'){openSupExport(null);}else{window.spAlert('שגיאה: חסר קובץ ספקים');} closeExportMenu();">📊 יצוא דוח ספק</button>
+                  <button class="btn bo" style="width:100%; justify-content:flex-start; background:#e8f5e9; color:#1b5e20; border-color:#81c784; font-size:0.8rem" onclick="window.exportMgrExcel(null); closeExportMenu();">👤 יצוא רכזים וגנים (Excel)</button>
                 </div>
               </div>
            </div>
@@ -855,7 +856,10 @@
       <div id="mgr-tools-desktop" class="card desktop-only" style="margin-bottom:10px">
          <div class="flex-c justify-between mb-4">
             <b style="font-size:.9rem;color:#1a237e">🚀 מנהלים ורכזים</b>
-            <button class="btn bp" onclick="openMgrModal(null)">➕ הוסף מנהל/רכז</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn bg" onclick="window.exportMgrExcel(null)" style="background:#2e7d32;border-color:#2e7d32;font-weight:700">📊 יצוא רכזים לאקסל</button>
+              <button class="btn bp" onclick="openMgrModal(null)">➕ הוסף מנהל/רכז</button>
+            </div>
          </div>
          <div class="row">
             <div class="fg"><label>סנן עיר</label><select id="mgr-city-filt-desktop" onchange="renderManagers()"><option value="">כל הערים</option></select></div>
@@ -867,7 +871,10 @@
       <div id="mgr-tools-mobile" class="card mobile-only" style="margin-bottom:8px">
          <div class="flex-c justify-between mb-2">
             <b style="font-size:.85rem;color:#1a237e">🚀 מנהלים</b>
-            <button class="btn bp bsm" onclick="openMgrModal(null)">➕ הוסף</button>
+            <div style="display:flex;gap:6px">
+              <button class="btn bg bsm" onclick="window.exportMgrExcel(null)" style="background:#2e7d32;border-color:#2e7d32;font-weight:700">📊 אקסל</button>
+              <button class="btn bp bsm" onclick="openMgrModal(null)">➕ הוסף</button>
+            </div>
          </div>
          <div class="flex-c gap-2">
             <div class="fg flex-1"><label>סנן עיר</label><select id="mgr-city-filt-mobile" onchange="renderManagers()"><option value="">כל הערים</option></select></div>
@@ -925,9 +932,10 @@
         </div>
         <pre id="mgr-export-text"
           style="background:#f5f7ff;border-radius:8px;padding:12px;font-family:Arial,sans-serif;font-size:.82rem;white-space:pre-wrap;direction:rtl;text-align:right;max-height:420px;overflow-y:auto;border:1px solid #e0e0e0;line-height:1.7"></pre>
-        <div style="display:flex;gap:7px;justify-content:space-between;margin-top:12px">
-          <button class="btn bp" onclick="copyMgrExport()">🚀 העתק ללוח</button>
-          <button class="btn bg" onclick="shareMgrWhatsApp()">🚀 שלח בוואטסאפ</button>
+        <div style="display:flex;gap:7px;justify-content:space-between;margin-top:12px;flex-wrap:wrap">
+          <button class="btn bp" onclick="copyMgrExport()">📋 העתק ללוח</button>
+          <button class="btn bg" onclick="shareMgrWhatsApp()">📱 שלח בוואטסאפ</button>
+          <button class="btn bg" style="background:#2e7d32;border-color:#2e7d32;font-weight:700" onclick="window.exportMgrExcel(_exportMgrId)">📊 הורד Excel</button>
           <button class="btn bs" onclick="CM('mgr-export-m')">סגור</button>
         </div>
       </div>

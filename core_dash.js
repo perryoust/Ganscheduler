@@ -1441,7 +1441,8 @@ function renderManagers(){
         </div>
         <div style="display:flex;gap:5px">
           <button onclick="openMgrModal('${m.id}')" style="background:rgba(255,255,255,.22);border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem">✏️ ערוך</button>
-          <button onclick="exportMgrContact('${m.id}')" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem">📋 ייצוא</button>
+          <button onclick="exportMgrContact('${m.id}')" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem">📋 הודעה</button>
+          <button onclick="window.exportMgrExcel('${m.id}')" style="background:#2e7d32;border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem;font-weight:700">📊 Excel</button>
         </div>
       </div>
       <!-- Contact info -->
@@ -1664,49 +1665,425 @@ async function deleteMgr(){
   showToast('✅ '+name+' נשמר — הנתונים עודכנו בכל האפליקציה');
 }
 
-let _exportMgrId=null;
+// ── Coordinator / Manager Export Logic ─────────────────────────
+window.getGardenPhoneInfo = function(g) {
+  if (!g) return { gardenPhone: '', contactName: '' };
+  const ex = (window.supEx && window.supEx['g_' + g.id]) || {};
+  const gardenPhone = ex.coph || ex.phone || g.coph || g.phone || '';
+  const contactName = ex.co || '';
+  return { gardenPhone, contactName };
+};
+
+window.getGardensForCoordinator = function(m) {
+  if (!m) return [];
+  const allGs = typeof AG === 'function' ? AG() : (window.GARDENS || []);
+  const mGardenIds = new Set((m.gardenIds || []).map(Number));
+  
+  const cleanName = (m.name || '').trim().toLowerCase();
+  const cleanPhone = (m.phone || '').replace(/\D/g, '');
+
+  return allGs.filter(g => {
+    if (mGardenIds.has(Number(g.id))) return true;
+    const hasOtherMgr = Object.values(window.managers || {}).some(other => 
+      other.id !== m.id && (other.gardenIds || []).map(Number).includes(Number(g.id))
+    );
+    if (hasOtherMgr) return false;
+
+    if (g.co) {
+      const coStr = String(g.co).toLowerCase();
+      if (cleanName && coStr.includes(cleanName)) return true;
+      if (cleanPhone && cleanPhone.length >= 7 && coStr.replace(/\D/g, '').includes(cleanPhone)) return true;
+    }
+    return false;
+  }).sort((a,b) => (a.city||'').localeCompare(b.city||'','he', { numeric: true }) || (a.name||'').localeCompare(b.name||'','he', { numeric: true }));
+};
+
+let _exportMgrId = null;
 function exportMgrContact(id){
-  _exportMgrId=id;
-  const m=managers[id]; if(!m) return;
-  const gs=(m.gardenIds||[]).map(id=>G(id)).filter(x=>x.id)
-    .sort((a,b)=>a.city.localeCompare(b.city,'he')||a.name.localeCompare(b.name,'he'));
-  const roleLabel=m.role==='manager'?'מנהל':'רכז';
-  let txt='';
-  txt+=`👤 ${roleLabel}: ${m.name}\n`;
-  if(m.phone) txt+=`📞 ${m.phone}\n`;
-  if(m.phone2) txt+=`📞 ${m.phone2}\n`;
-  if(m.email) txt+=`✉️ ${m.email}\n`;
-  if(m.notes) txt+=`💬 ${m.notes}\n`;
-  txt+='\n';
-  txt+=`🏫 צהרונים באחריותו (${gs.length}):\n`;
+  _exportMgrId = id;
+  const m = managers[id]; if(!m) return;
+  const gs = window.getGardensForCoordinator(m);
+  const roleLabel = m.role === 'manager' ? 'מנהל' : 'רכז';
+  let txt = '';
+  txt += `👤 ${roleLabel}: ${m.name}\n`;
+  if(m.phone)  txt += `📞 טלפון: ${m.phone}\n`;
+  if(m.phone2) txt += `📞 טלפון נוסף: ${m.phone2}\n`;
+  if(m.email)  txt += `✉️ ${m.email}\n`;
+  if(m.city)   txt += `🏙️ עיר: ${m.city}\n`;
+  if(m.notes)  txt += `💬 הערות: ${m.notes}\n`;
+  txt += '\n';
+  txt += `🏫 צהרונים וגנים באחריותו (${gs.length}):\n`;
+
   // group by city
-  const byCity={};
-  gs.forEach(g=>{if(!byCity[g.city])byCity[g.city]=[];byCity[g.city].push(g);});
-  Object.keys(byCity).sort().forEach(city=>{
-    txt+=`\n📍 ${city}:\n`;
-    byCity[city].forEach(g=>{
-      const cr=resolveGardenContact(g);
-      txt+=`  ${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}` + '\n';
-      if(g.st) txt+='     📍 ' + g.st + '\n';
-      if(cr.name) txt+='     👤 ' + cr.name + '\n';
-      if(cr.phone) txt+='     📞 ' + cr.phone + '\n';
+  const byCity = {};
+  gs.forEach(g => {
+    const c = g.city || 'אחר';
+    if(!byCity[c]) byCity[c] = [];
+    byCity[c].push(g);
+  });
+
+  Object.keys(byCity).sort((a,b) => a.localeCompare(b, 'he', { numeric: true })).forEach(city => {
+    txt += `\n📍 ${city} (${byCity[city].length}):\n`;
+    byCity[city].forEach(g => {
+      const info = window.getGardenPhoneInfo(g);
+      txt += `  ${gcls(g) === 'ביה"ס' ? '🏛️' : '🏫'} ${g.name}\n`;
+      if(g.st) txt += '     📍 כתובת: ' + g.st + '\n';
+      if(info.gardenPhone) txt += '     📞 טלפון בגן: ' + info.gardenPhone + '\n';
+      if(info.contactName) txt += '     👤 איש קשר בגן: ' + info.contactName + '\n';
     });
   });
-  (document.getElementById('mgr-export-text')||{}).textContent =txt;
+
+  (document.getElementById('mgr-export-text')||{}).textContent = txt;
   document.getElementById('mgr-export-m').classList.add('open');
 }
 
 function copyMgrExport(){
-  const txt=document.getElementById('mgr-export-text').textContent;
-  navigator.clipboard.writeText(txt).then(()=>showToast('✅ הועתק!')).catch(()=>{
-    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('✅ הועתק!');
+  const txt = document.getElementById('mgr-export-text').textContent;
+  navigator.clipboard.writeText(txt).then(() => showToast('✅ הועתק ללוח!')).catch(() => {
+    const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast('✅ הועתק ללוח!');
   });
 }
 
 function shareMgrWhatsApp(){
-  const txt=document.getElementById('mgr-export-text').textContent;
-  window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+  const txt = document.getElementById('mgr-export-text').textContent;
+  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
 }
+
+window.exportMgrExcel = async function(mgrId = null) {
+  try {
+    if (typeof window.ensureExcelJSLoaded === 'function') {
+      await window.ensureExcelJSLoaded();
+    }
+  } catch(e) {}
+
+  const allManagers = Object.values(window.managers || {});
+  let targetManagers = [];
+
+  if (mgrId && window.managers && window.managers[mgrId]) {
+    targetManagers = [window.managers[mgrId]];
+  } else {
+    const cityFilter = (window.getEl ? window.getEl('mgr-city-filt') : document.getElementById('mgr-city-filt'))?.value || '';
+    const roleFilter = (window.getEl ? window.getEl('mgr-role-filt') : document.getElementById('mgr-role-filt'))?.value || '';
+    targetManagers = allManagers.filter(m => {
+      if (cityFilter && m.city && m.city !== cityFilter) return false;
+      if (roleFilter && m.role !== roleFilter) return false;
+      return true;
+    }).sort((a,b) => (a.role === 'manager' ? 0 : 1) - (b.role === 'manager' ? 0 : 1) || (a.name||'').localeCompare(b.name||'', 'he', { numeric: true }));
+  }
+
+  if (!targetManagers.length) {
+    if (typeof window.showToast === 'function') window.showToast('⚠️ לא נמצאו רכזים לייצוא');
+    return;
+  }
+
+  const isSingle = targetManagers.length === 1;
+  const singleM = isSingle ? targetManagers[0] : null;
+  const safeFilename = isSingle 
+    ? `רשימת_גנים_רכז_${(singleM.name || 'ללא_שם').replace(/[\\/:*?"<>|\s]+/g, '_')}.xlsx`
+    : `דוח_רכזים_וגנים_טומשין_${new Date().toISOString().slice(0,10)}.xlsx`;
+
+  if (typeof window.ExcelJS !== 'undefined') {
+    const wb = new window.ExcelJS.Workbook();
+    wb.creator = 'Ganscheduler';
+    wb.created = new Date();
+
+    const buildSheet = (ws, title, subTitle, rowsData, isMaster = false) => {
+      ws.views = [{ rightToLeft: true, state: 'frozen', ySplit: 4 }];
+
+      if (isMaster) {
+        ws.columns = [
+          { key: 'idx', width: 7 },
+          { key: 'mgrName', width: 20 },
+          { key: 'mgrPhone', width: 16 },
+          { key: 'mgrCity', width: 15 },
+          { key: 'city', width: 16 },
+          { key: 'cls', width: 11 },
+          { key: 'name', width: 28 },
+          { key: 'st', width: 28 },
+          { key: 'gPhone', width: 18 },
+          { key: 'gContact', width: 18 },
+          { key: 'cluster', width: 16 },
+          { key: 'notes', width: 25 }
+        ];
+      } else {
+        ws.columns = [
+          { key: 'idx', width: 7 },
+          { key: 'city', width: 16 },
+          { key: 'cls', width: 11 },
+          { key: 'name', width: 28 },
+          { key: 'st', width: 28 },
+          { key: 'gPhone', width: 18 },
+          { key: 'gContact', width: 18 },
+          { key: 'cluster', width: 16 },
+          { key: 'notes', width: 25 }
+        ];
+      }
+
+      const colCount = ws.columns.length;
+
+      // Row 1: Title Header Banner
+      const r1 = ws.getRow(1);
+      r1.height = 32;
+      ws.mergeCells(1, 1, 1, colCount);
+      const c1 = ws.getCell(1, 1);
+      c1.value = title;
+      c1.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+      c1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
+      c1.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rightToLeft' };
+
+      // Row 2: Subtitle Banner
+      const r2 = ws.getRow(2);
+      r2.height = 24;
+      ws.mergeCells(2, 1, 2, colCount);
+      const c2 = ws.getCell(2, 1);
+      c2.value = subTitle;
+      c2.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF1A237E' } };
+      c2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+      c2.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rightToLeft' };
+
+      // Row 3: Spacing
+      const r3 = ws.getRow(3);
+      r3.height = 8;
+
+      // Row 4: Column Headers
+      const headers = isMaster ? [
+        'מס"ד', 'שם הרכז/ת', 'טלפון רכז', 'עיר רכז', 'עיר הגן', 'סוג מוסד', 'שם הצהרון / גן', 'כתובת / רחוב', 'טלפון בגן', 'איש קשר בגן', 'אשכול', 'הערות'
+      ] : [
+        'מס"ד', 'עיר', 'סוג מוסד', 'שם הצהרון / גן', 'כתובת / רחוב', 'טלפון בגן', 'איש קשר בגן', 'אשכול', 'הערות'
+      ];
+
+      const r4 = ws.getRow(4);
+      r4.height = 26;
+      headers.forEach((h, i) => {
+        const cell = r4.getCell(i + 1);
+        cell.value = h;
+        cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF283593' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rightToLeft' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFC5CAE9' } },
+          bottom: { style: 'medium', color: { argb: 'FF1A237E' } },
+          left: { style: 'thin', color: { argb: 'FFC5CAE9' } },
+          right: { style: 'thin', color: { argb: 'FFC5CAE9' } }
+        };
+      });
+
+      // Data rows
+      let rowIdx = 5;
+      rowsData.forEach(row => {
+        const r = ws.getRow(rowIdx);
+        r.height = 22;
+        const isEven = (rowIdx % 2 === 0);
+        const bgArgb = isEven ? 'FFF8FAFC' : 'FFFFFFFF';
+
+        const vals = isMaster ? [
+          row.idx,
+          row.mgrName,
+          row.mgrPhone || '—',
+          row.mgrCity || '—',
+          row.city,
+          row.cls,
+          row.name,
+          row.st || '—',
+          row.gPhone || '—',
+          row.gContact || '—',
+          row.cluster || '—',
+          row.notes || ''
+        ] : [
+          row.idx,
+          row.city,
+          row.cls,
+          row.name,
+          row.st || '—',
+          row.gPhone || '—',
+          row.gContact || '—',
+          row.cluster || '—',
+          row.notes || ''
+        ];
+
+        vals.forEach((val, i) => {
+          const cell = r.getCell(i + 1);
+          cell.value = val;
+          cell.font = { name: 'Arial', size: 9.5, color: { argb: 'FF2D3748' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+          };
+
+          const colKey = ws.columns[i].key;
+          if (colKey === 'idx') {
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          } else if (colKey === 'mgrPhone' || colKey === 'gPhone') {
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            if (val && val !== '—') {
+              cell.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FF1565C0' } };
+            }
+          } else if (colKey === 'cls') {
+            cell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rightToLeft' };
+          } else {
+            cell.alignment = { horizontal: 'right', vertical: 'middle', readingOrder: 'rightToLeft' };
+          }
+        });
+
+        rowIdx++;
+      });
+    };
+
+    const allRowsMaster = [];
+    let masterCounter = 1;
+
+    targetManagers.forEach(m => {
+      const gs = window.getGardensForCoordinator(m);
+      const mRows = [];
+
+      gs.forEach((g, idx) => {
+        const info = window.getGardenPhoneInfo(g);
+        const clObj = (typeof window.gardenClusters === 'function' ? window.gardenClusters(g.id) : [])[0] || 
+                      (typeof window.getClusters === 'function' ? window.getClusters().find(c => (c.gardenIds||[]).map(Number).includes(Number(g.id))) : null);
+        const clusterName = clObj ? clObj.name : (g.cl || '');
+
+        const rowItem = {
+          idx: idx + 1,
+          mgrName: m.name,
+          mgrPhone: m.phone || '',
+          mgrCity: m.city || '',
+          city: g.city || '',
+          cls: (typeof window.gcls === 'function' ? window.gcls(g) : (g.cls || 'גנים')),
+          name: g.name || '',
+          st: g.st || '',
+          gPhone: info.gardenPhone || '',
+          gContact: info.contactName || '',
+          cluster: clusterName,
+          notes: (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || ''
+        };
+
+        mRows.push(rowItem);
+        allRowsMaster.push({
+          ...rowItem,
+          idx: masterCounter++
+        });
+      });
+
+      if (isSingle) {
+        const ws = wb.addWorksheet((m.name || 'רכז').slice(0, 30));
+        const sub = `רכז/ת: ${m.name} | טלפון: ${m.phone || '—'}${m.phone2 ? ' / ' + m.phone2 : ''} | אימייל: ${m.email || '—'} | סה"כ גנים: ${gs.length} | תאריך הפקה: ${new Date().toLocaleDateString('he-IL')}`;
+        buildSheet(ws, `טומשין - רשימת גנים לרכז/ת: ${m.name}`, sub, mRows, false);
+      }
+    });
+
+    if (!isSingle) {
+      const wsMaster = wb.addWorksheet('כל הרכזים והגנים');
+      const totalGardens = allRowsMaster.length;
+      const subMaster = `דוח רכזים וגנים כולל טלפונים | סה"כ רכזים: ${targetManagers.length} | סה"כ גנים: ${totalGardens} | תאריך הפקה: ${new Date().toLocaleDateString('he-IL')}`;
+      buildSheet(wsMaster, 'טומשין - דוח רכזים וגנים מרוכז', subMaster, allRowsMaster, true);
+
+      if (targetManagers.length <= 25) {
+        targetManagers.forEach(m => {
+          const gs = window.getGardensForCoordinator(m);
+          if (!gs.length) return;
+          const sheetName = (m.name || 'רכז').replace(/[\\/?*[\]]/g, '').slice(0, 30);
+          let finalSheetName = sheetName;
+          let counter = 1;
+          while (wb.getWorksheet(finalSheetName)) {
+            finalSheetName = sheetName.slice(0, 27) + ` (${counter++})`;
+          }
+          const wsInd = wb.addWorksheet(finalSheetName);
+          const mRows = [];
+          gs.forEach((g, idx) => {
+            const info = window.getGardenPhoneInfo(g);
+            const clObj = (typeof window.gardenClusters === 'function' ? window.gardenClusters(g.id) : [])[0];
+            mRows.push({
+              idx: idx + 1,
+              city: g.city || '',
+              cls: (typeof window.gcls === 'function' ? window.gcls(g) : (g.cls || 'גנים')),
+              name: g.name || '',
+              st: g.st || '',
+              gPhone: info.gardenPhone || '',
+              gContact: info.contactName || '',
+              cluster: clObj ? clObj.name : (g.cl || ''),
+              notes: (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || ''
+            });
+          });
+          const sub = `רכז/ת: ${m.name} | טלפון: ${m.phone || '—'} | סה"כ גנים: ${gs.length}`;
+          buildSheet(wsInd, `רשימת גנים - ${m.name}`, sub, mRows, false);
+        });
+      }
+    }
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = safeFilename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    if (typeof window.showToast === 'function') window.showToast(`📊 קובץ Excel נוצר בהצלחה: ${safeFilename}`);
+    return;
+  }
+
+  // Fallback to CSV
+  const bom = '\uFEFF';
+  const csvHeaders = isSingle 
+    ? ['מס"ד', 'עיר', 'סוג מוסד', 'שם הצהרון / גן', 'כתובת', 'טלפון בגן', 'איש קשר בגן', 'אשכול', 'הערות']
+    : ['מס"ד', 'שם הרכז/ת', 'טלפון רכז', 'עיר רכז', 'עיר הגן', 'סוג מוסד', 'שם הצהרון / גן', 'כתובת', 'טלפון בגן', 'איש קשר בגן', 'אשכול', 'הערות'];
+
+  const csvRows = [csvHeaders];
+  let counter = 1;
+
+  targetManagers.forEach(m => {
+    const gs = window.getGardensForCoordinator(m);
+    gs.forEach(g => {
+      const info = window.getGardenPhoneInfo(g);
+      const clObj = (typeof window.gardenClusters === 'function' ? window.gardenClusters(g.id) : [])[0];
+      if (isSingle) {
+        csvRows.push([
+          counter++,
+          g.city || '',
+          (typeof window.gcls === 'function' ? window.gcls(g) : (g.cls || 'גנים')),
+          g.name || '',
+          g.st || '',
+          info.gardenPhone || '',
+          info.contactName || '',
+          clObj ? clObj.name : (g.cl || ''),
+          (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || ''
+        ]);
+      } else {
+        csvRows.push([
+          counter++,
+          m.name || '',
+          m.phone || '',
+          m.city || '',
+          g.city || '',
+          (typeof window.gcls === 'function' ? window.gcls(g) : (g.cls || 'גנים')),
+          g.name || '',
+          g.st || '',
+          info.gardenPhone || '',
+          info.contactName || '',
+          clObj ? clObj.name : (g.cl || ''),
+          (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || ''
+        ]);
+      }
+    });
+  });
+
+  const csvContent = bom + csvRows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = safeFilename.replace('.xlsx', '.csv');
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  if (typeof window.showToast === 'function') window.showToast('📊 קובץ CSV הופק בהצלחה!');
+};
 
 function refreshMgrDrops(){
   const mgrOptions=()=>{
