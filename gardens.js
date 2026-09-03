@@ -42,7 +42,10 @@ function renderGardens(){
       <summary>
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
           <span style="font-weight:800; color:#2d3748;">🏙️ ${cityKey}</span>
-          <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
+          <div style="display:flex; align-items:center; gap:8px">
+            <button class="btn bg bsm" onclick="event.stopPropagation(); window.openGardenAgeBatchModal('${cityKey}')" style="font-size:0.72rem;padding:2px 8px;background:#00796b;border-color:#00796b;font-weight:700" title="ערוך גילאים בטבלה עבור ${cityKey}">📋 ערוך גילאים בטבלה</button>
+            <span style="font-size:0.8rem; color:#718096;">לחץ לפירוט</span>
+          </div>
         </div>
       </summary>
       <div class="city-accordion-content">`;
@@ -55,9 +58,12 @@ function renderGardens(){
         const pair=window.gardenPair(g.id);
         const mgr=window.getGardenMgr(g.id);
         const gd=window.getGardenData(g.id);
+        const age=typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : '';
+        const ageBadge=(age && age !== '***') ? `<span style="font-size:var(--fs-small);background:#e0f2f1;color:#00796b;padding:1px 6px;border-radius:4px;font-weight:700" title="גיל הגן">👶 ${age}</span>` : '';
         h+=`<div class="gc" onclick="window.openGM(${g.id})">
           <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;line-height:1.4">
             <span style="font-weight:800;color:var(--c-primary);font-size:var(--fs-card-title)">${gd.name||g.name}</span>
+            ${ageBadge}
             ${(gd.st||g.st)?`<span style="font-size:var(--fs-small);color:var(--c-text-light)" onclick="event.stopPropagation()">📍 <a href="${typeof window.getGardenMapsUrl==='function'?window.getGardenMapsUrl(gd.st||g.st, g.city):('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent((gd.st||g.st)+', '+(g.city||'')+', ישראל'))}" target="_blank" style="color:var(--c-secondary);text-decoration:underline" title="פתח בגוגל מפות">${gd.st||g.st}</a></span>`:''}
             ${gd.phone?`<span style="font-size:var(--fs-small);color:var(--c-success);font-weight:600">📞 ${gd.phone}</span>`:''}
             ${mgr?`<span style="font-size:var(--fs-small);color:var(--c-secondary)">${mgr.role==='manager'?'🏛️':'👤'} ${mgr.name}${mgr.phone?' · 📞 '+mgr.phone:''}</span>`:''}
@@ -74,9 +80,10 @@ function renderGardens(){
   });
   
   if (h) {
-    const btns = `<div style="display:flex; gap:8px; margin-bottom:12px; justify-content: flex-start; padding: 0 4px;">
+    const btns = `<div style="display:flex; gap:8px; margin-bottom:12px; justify-content: flex-start; padding: 0 4px; flex-wrap: wrap;">
       <button class="btn bg" onclick="document.querySelectorAll('#g-body .city-accordion').forEach(el=>el.setAttribute('open',''))" style="font-size: 0.75rem; padding: 4px 10px; font-weight: 700;">🔽 פרוס הכל</button>
       <button class="btn" onclick="document.querySelectorAll('#g-body .city-accordion').forEach(el=>el.removeAttribute('open'))" style="font-size: 0.75rem; padding: 4px 10px; font-weight: 700; background: #fff; border: 1px solid #ccc; color: #555;">🔼 כווץ הכל</button>
+      <button class="btn bg" onclick="window.openGardenAgeBatchModal()" style="font-size: 0.75rem; padding: 4px 10px; font-weight: 700; background: #00796b; border-color: #00796b;">📋 טבלת עריכת גילאים לפי עיר</button>
     </div>`;
     h = btns + h;
   }
@@ -122,11 +129,13 @@ function openGM(gid){
   
   const mapsUrl = typeof window.getGardenMapsUrl === 'function' ? window.getGardenMapsUrl(gd.st||g.st, g.city) : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((gd.st||g.st)+', '+(g.city||'')+', ישראל')}`;
   const addrHtml = (gd.st||g.st) ? `🏠 <a href="${mapsUrl}" target="_blank" style="color:#1565c0;text-decoration:underline" title="פתח בגוגל מפות">${gd.st||g.st}</a>` : '';
+  const age = typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : '';
+  const ageHtml = (age && age !== '***') ? `👶 גיל: <b style="color:#00796b">${age}</b>` : '';
   const coHtml = (gd.coName||g.co) ? `👤 ${gd.coName||g.co}` : '';
   const phoneHtml = gd.phone ? `📞 <a href="tel:${gd.phone}" style="color:#2e7d32;text-decoration:none">${gd.phone}</a>` : '';
   const clHtml = window.gardenClusters(gid).length ? `🔢 ${window.gardenClusters(gid).map(c=>c.name).join(', ')}` : '';
   
-  document.getElementById('gm-det').innerHTML=[addrHtml, coHtml, phoneHtml, clHtml].filter(Boolean).join(' | ');
+  document.getElementById('gm-det').innerHTML=[addrHtml, ageHtml, coHtml, phoneHtml, clHtml].filter(Boolean).join(' | ');
   const pair=window.gardenPair(gid);
   document.getElementById('gm-pair-current').innerHTML=pair?`<span class="bdg bg2">🔗 כרגע: ${pair.name}</span>`:'<span style="color:#999">לא משויך לזוג</span>';
   document.getElementById('gm-del-pair-btn').style.display=pair?'inline-block':'none';

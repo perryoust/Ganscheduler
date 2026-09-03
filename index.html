@@ -13,18 +13,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.10</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.11</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=111.10" />
+  <link rel="stylesheet" href="styles.css?v=111.11" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '111.10';
+    window.APP_VERSION = '111.11';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -526,7 +526,7 @@
                   <button class="btn bo" style="width:100%; justify-content:flex-start; background:#fff; color:#333; font-size:0.8rem" onclick="exportShortagesToExcel(); closeExportMenu();">📥 דוח חוסרים</button>
                   <div style="height:1px; background:#e0e0e0; margin:4px 0;"></div>
                   <button class="btn bo" style="width:100%; justify-content:flex-start; margin-bottom:4px; background:#f5f7ff; color:#283593; border-color:#c5cae9; font-size:0.8rem" onclick="if(typeof openSupExport === 'function'){openSupExport(null);}else{window.spAlert('שגיאה: חסר קובץ ספקים');} closeExportMenu();">📊 יצוא דוח ספק</button>
-                  <button class="btn bo" style="width:100%; justify-content:flex-start; background:#e8f5e9; color:#1b5e20; border-color:#81c784; font-size:0.8rem" onclick="window.exportMgrExcel(null); closeExportMenu();">👤 יצוא רכזים וגנים (Excel)</button>
+                  <button class="btn bo" style="width:100%; justify-content:flex-start; background:#e8f5e9; color:#1b5e20; border-color:#81c784; font-size:0.8rem" onclick="window.openMgrExportOptionsModal(); closeExportMenu();">👤 יצוא רכזים וגנים (Excel)</button>
                 </div>
               </div>
            </div>
@@ -799,7 +799,10 @@
                <button id="g-tab-managers-desktop" class="vbtn" onclick="setGardensTab('managers')">🚀 מנהלים</button>
                <button id="g-tab-fixed-desktop" class="vbtn" onclick="setGardensTab('fixed')">🚀 שיבוץ קבוע</button>
             </div>
-            <button class="btn bp" onclick="openAddGardenModal()">➕ הוסף מקום חדש</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn bg" onclick="window.openGardenAgeBatchModal()" style="background:#00796b;border-color:#00796b;font-weight:700">📋 עריכת גילאים בטבלה</button>
+              <button class="btn bp" onclick="openAddGardenModal()">➕ הוסף מקום חדש</button>
+            </div>
          </div>
          <div class="row">
             <div class="fg"><label>עיר</label><select id="g-city-desktop" onchange="renderGardens()"><option value="">כל הערים</option></select></div>
@@ -812,7 +815,10 @@
       <!-- 📱 MOBILE GARDENS TOOLS 📱 -->
       <div id="gardens-tools-mobile" class="card mobile-only" style="margin-bottom:8px">
          <div class="flex-c justify-between mb-2">
-            <button class="btn bp bsm" onclick="openAddGardenModal()">➕ הוסף</button>
+            <div style="display:flex;gap:6px">
+              <button class="btn bg bsm" onclick="window.openGardenAgeBatchModal()" style="background:#00796b;border-color:#00796b;font-weight:700">📋 טבלת גילאים</button>
+              <button class="btn bp bsm" onclick="openAddGardenModal()">➕ הוסף</button>
+            </div>
             <button class="flt-toggle bsm" id="g-flt-btn-mobile" onclick="fltToggle('g-flt-mobile','g-flt-btn-mobile')">🔍 סינון</button>
          </div>
          <div class="vbtns w-full mb-3" style="overflow-x:auto">
@@ -864,6 +870,7 @@
          <div class="row">
             <div class="fg"><label>סנן עיר</label><select id="mgr-city-filt-desktop" onchange="renderManagers()"><option value="">כל הערים</option></select></div>
             <div class="fg"><label>תפקיד</label><select id="mgr-role-filt-desktop" onchange="renderManagers()"><option value="">הכל</option><option value="manager">👥 מנהל</option><option value="coord">🚀 רכז</option></select></div>
+            <div class="fg"><label>סנן מפעיל/ספק</label><select id="mgr-sup-filt-desktop" onchange="renderManagers()"><option value="">כל המפעילים (הכל)</option></select></div>
          </div>
       </div>
 
@@ -876,9 +883,10 @@
               <button class="btn bp bsm" onclick="openMgrModal(null)">➕ הוסף</button>
             </div>
          </div>
-         <div class="flex-c gap-2">
+         <div class="flex-c gap-2" style="flex-wrap:wrap">
             <div class="fg flex-1"><label>סנן עיר</label><select id="mgr-city-filt-mobile" onchange="renderManagers()"><option value="">כל הערים</option></select></div>
             <div class="fg flex-1"><label>תפקיד</label><select id="mgr-role-filt-mobile" onchange="renderManagers()"><option value="">הכל</option></select></div>
+            <div class="fg flex-1"><label>סנן מפעיל</label><select id="mgr-sup-filt-mobile" onchange="renderManagers()"><option value="">כל המפעילים</option></select></div>
          </div>
       </div>
         <div id="mgr-info-wrap" style="margin-bottom:10px; display:none;"></div>
@@ -925,18 +933,59 @@
 
     <!-- Manager export modal -->
     <div id="mgr-export-m" class="modal">
-      <div class="mb" style="max-width:460px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <h2 style="margin:0">🚀 פרטי איש קשר</h2>
+      <div class="mb" style="max-width:480px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <h2 style="margin:0">🚀 פרטי איש קשר ורשימת גנים</h2>
           <button onclick="CM('mgr-export-m')" class="close-btn">✕</button>
+        </div>
+        <div style="margin-bottom:10px;background:#e8eaf6;padding:8px 10px;border-radius:6px">
+          <label style="font-size:0.75rem;font-weight:700;color:#1a237e;display:block;margin-bottom:4px">🎭 סינון לפי מפעיל / ספק:</label>
+          <select id="mgr-export-sup-sel" onchange="window.onMgrExportSupChange()" style="width:100%;padding:4px 8px;border-radius:4px;border:1px solid #9fa8da;font-size:0.82rem">
+            <option value="">כל המפעילים (כל הגנים)</option>
+          </select>
         </div>
         <pre id="mgr-export-text"
           style="background:#f5f7ff;border-radius:8px;padding:12px;font-family:Arial,sans-serif;font-size:.82rem;white-space:pre-wrap;direction:rtl;text-align:right;max-height:420px;overflow-y:auto;border:1px solid #e0e0e0;line-height:1.7"></pre>
         <div style="display:flex;gap:7px;justify-content:space-between;margin-top:12px;flex-wrap:wrap">
           <button class="btn bp" onclick="copyMgrExport()">📋 העתק ללוח</button>
           <button class="btn bg" onclick="shareMgrWhatsApp()">📱 שלח בוואטסאפ</button>
-          <button class="btn bg" style="background:#2e7d32;border-color:#2e7d32;font-weight:700" onclick="window.exportMgrExcel(_exportMgrId)">📊 הורד Excel</button>
+          <button class="btn bg" style="background:#2e7d32;border-color:#2e7d32;font-weight:700" onclick="window.exportMgrExcel(_exportMgrId, _exportMgrSup)">📊 הורד Excel</button>
           <button class="btn bs" onclick="CM('mgr-export-m')">סגור</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manager Excel Export Options Modal -->
+    <div id="mgr-export-options-m" class="modal">
+      <div class="mb" style="max-width:440px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h2 style="margin:0;color:#1a237e;font-size:1.1rem">📊 אפשרויות יצוא רכזים וגנים</h2>
+          <button onclick="CM('mgr-export-options-m')" class="close-btn">✕</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+          <div class="fg">
+            <label style="font-weight:700;color:#1a237e">👤 בחר רכז / מנהל:</label>
+            <select id="mexp-mgr-sel" style="width:100%;padding:6px;border-radius:6px;border:1px solid #cbd5e1">
+              <option value="">כל הרכזים והמנהלים</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label style="font-weight:700;color:#1a237e">🎭 סנן לפי מפעיל / ספק:</label>
+            <select id="mexp-sup-sel" style="width:100%;padding:6px;border-radius:6px;border:1px solid #cbd5e1">
+              <option value="">כל המפעילים (הכל)</option>
+            </select>
+            <div style="font-size:0.7rem;color:#64748b;margin-top:2px">אם נבחר מפעיל, הדוח יכיל רק את הגנים שבהם פועל מפעיל זה</div>
+          </div>
+          <div class="fg">
+            <label style="font-weight:700;color:#1a237e">🏙️ סנן לפי עיר:</label>
+            <select id="mexp-city-sel" style="width:100%;padding:6px;border-radius:6px;border:1px solid #cbd5e1">
+              <option value="">כל הערים</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px">
+          <button class="btn bg" onclick="submitMgrExcelExport()" style="background:#2e7d32;border-color:#2e7d32;font-weight:700">📊 הפק דוח Excel</button>
+          <button class="btn bs" onclick="CM('mgr-export-options-m')">ביטול</button>
         </div>
       </div>
     </div>
@@ -1206,6 +1255,10 @@
             <input type="tel" id="gedit-coph" placeholder="050-..." style="width:100%">
             <div style="font-size:.68rem;color:#78909c;margin-top:2px">ישמש בייצוא פרטי הצהרון ופרטי הרכז</div>
           </div>
+          <div class="fg" style="grid-column:1/-1"><label>👶 גיל הגן / שכבת גיל</label>
+            <input type="text" id="gedit-age" placeholder="למשל: 3-4, 4-5, בוגרים, צעירים..." style="width:100%">
+            <div style="font-size:.68rem;color:#78909c;margin-top:2px">יופיע בדוחות רכזים וספקים ובכרטיס הצהרון</div>
+          </div>
           <div class="fg" style="grid-column:1/-1"><label>🚀 הערות</label>
             <input type="text" id="gedit-notes" placeholder="הערות כלשהן..." style="width:100%">
           </div>
@@ -1222,6 +1275,67 @@
           <button class="btn bsm" style="background:#25d366;color:#fff;margin-right:auto;border:none;border-radius:4px;padding:6px 12px;font-size:0.8rem;cursor:pointer;" onclick="exportGardenWA()">📋 העתק פרטים</button>
           <button class="btn bp" onclick="saveGardenCard()">💾 שמור</button>
           <button class="btn bs" onclick="CM('gedit-m')">ביטול</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: טבלת עריכת גילאי גנים מרוכזת לפי עיר -->
+    <div id="garden-age-batch-m" class="modal">
+      <div class="mb" style="max-width:880px;width:95%;max-height:92vh;display:flex;flex-direction:column">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1.5px solid #e2e8f0;padding-bottom:10px">
+          <div>
+            <h2 style="margin:0;color:#1a237e;font-size:1.15rem;display:flex;align-items:center;gap:6px">
+              📋 טבלת צהרונים ועריכת גילאים לפי עיר
+            </h2>
+            <span style="font-size:0.75rem;color:#546e7a">הזנת גיל מהירה לכל הגנים במרוכז — השינויים נשמרים אוטומטית בעת מעבר שורה (Enter / Tab)</span>
+          </div>
+          <button onclick="CM('garden-age-batch-m'); if(typeof renderGardens==='function') renderGardens();" class="close-btn">✕</button>
+        </div>
+
+        <!-- Filter / Controls Bar -->
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;background:#f8fafc;padding:10px 12px;border-radius:8px;border:1px solid #e2e8f0">
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:0.75rem;font-weight:700;color:#1a237e">סנן עיר:</label>
+            <select id="gab-city-sel" onchange="renderGardenAgeBatchTable()" style="padding:5px 10px;border-radius:6px;border:1px solid #cbd5e1;font-size:0.85rem;font-weight:600;min-width:140px">
+              <option value="">כל הערים</option>
+            </select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:0.75rem;font-weight:700;color:#1a237e">סוג:</label>
+            <select id="gab-cls-sel" onchange="renderGardenAgeBatchTable()" style="padding:5px 10px;border-radius:6px;border:1px solid #cbd5e1;font-size:0.85rem;min-width:110px">
+              <option value="">הכל</option>
+              <option value="גנים" selected>🏫 גנים</option>
+              <option value='ביה"ס'>🏛️ בתי ספר</option>
+            </select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:150px">
+            <label style="font-size:0.75rem;font-weight:700;color:#1a237e">חיפוש מהיר:</label>
+            <input type="text" id="gab-srch" placeholder="חפש לפי שם גן או כתובת..." oninput="renderGardenAgeBatchTable()" style="padding:5px 10px;border-radius:6px;border:1px solid #cbd5e1;font-size:0.85rem">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:0.72rem;color:#64748b">הזנה מהירה (העתק לגן הפעיל):</label>
+            <div style="display:flex;gap:4px">
+              <button type="button" class="btn bsm" onclick="applyQuickAgePreset('3-4')" style="padding:2px 7px;font-size:0.73rem;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd">3-4</button>
+              <button type="button" class="btn bsm" onclick="applyQuickAgePreset('4-5')" style="padding:2px 7px;font-size:0.73rem;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd">4-5</button>
+              <button type="button" class="btn bsm" onclick="applyQuickAgePreset('3-5')" style="padding:2px 7px;font-size:0.73rem;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd">3-5</button>
+              <button type="button" class="btn bsm" onclick="applyQuickAgePreset('בוגרים')" style="padding:2px 7px;font-size:0.73rem;background:#fef3c7;color:#b45309;border:1px solid #fde68a">בוגרים</button>
+              <button type="button" class="btn bsm" onclick="applyQuickAgePreset('צעירים')" style="padding:2px 7px;font-size:0.73rem;background:#fef3c7;color:#b45309;border:1px solid #fde68a">צעירים</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div id="gab-table-container" style="flex:1;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;background:#fff;max-height:55vh">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- Footer -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1.5px solid #e2e8f0;flex-wrap:wrap;gap:8px">
+          <div id="gab-status-text" style="font-size:0.8rem;color:#475569;font-weight:600"></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn bg" onclick="saveAllBatchGardenAges()" style="background:#00796b;border-color:#00796b;font-weight:700">💾 שמור את כל השינויים</button>
+            <button class="btn bs" onclick="CM('garden-age-batch-m'); if(typeof renderGardens==='function') renderGardens();">סגור</button>
+          </div>
         </div>
       </div>
     </div>

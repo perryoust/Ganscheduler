@@ -1319,6 +1319,9 @@ function openGardenEdit(gid){
   document.getElementById('gedit-st').value=ex.st!==undefined?ex.st:(g.st||'');
   document.getElementById('gedit-co').value=ex.co!==undefined?ex.co:resolved.name;
   document.getElementById('gedit-coph').value=ex.coph!==undefined?ex.coph:resolved.phone;
+  const rawAge = ex.age !== undefined ? ex.age : (g.age || window.extractGardenAge(g));
+  const ageEl = document.getElementById('gedit-age');
+  if (ageEl) ageEl.value = (rawAge && rawAge !== '***') ? rawAge : '';
   document.getElementById('gedit-notes').value=ex.notes||g.notes||'';
 
   // Manager dropdown
@@ -1341,12 +1344,14 @@ window.exportGardenWA = function() {
   const name = (document.getElementById('gedit-name').value || '').trim() || ex.name || g.name || '';
   const st = (document.getElementById('gedit-st').value || '').trim() || ex.st || g.st || '';
   const city = g.city || '';
+  const age = (document.getElementById('gedit-age')?.value || '').trim() || ex.age || window.extractGardenAge(g);
   const mgr = typeof window.getGardenMgr === 'function' ? window.getGardenMgr(gid) : null;
   
   let txt = `📍 *פרטי צהרון/גן:*\n\n`;
   if (name) txt += `*שם:* ${name}\n`;
   if (city) txt += `*עיר:* ${city}\n`;
   if (st) txt += `*כתובת:* ${st}\n`;
+  if (age && age !== '***') txt += `*גיל:* ${age}\n`;
   
   if (mgr) {
     txt += `\n👤 *${mgr.role === 'manager' ? 'מנהל' : 'רכז'}:* ${mgr.name}${mgr.phone ? (' - ' + mgr.phone) : ''}\n`;
@@ -1380,6 +1385,8 @@ function saveGardenCard(){
   ex.co   =document.getElementById('gedit-co').value.trim();
   ex.coph =document.getElementById('gedit-coph').value.trim();
   if(ex.coph) ex._cophManual=true; // mark as manually edited
+  const ageEl = document.getElementById('gedit-age');
+  if(ageEl) ex.age = ageEl.value.trim();
   ex.notes=document.getElementById('gedit-notes').value.trim();
 
   // update manager assignment
@@ -1408,68 +1415,103 @@ function saveGardenCard(){
 }
 
 function renderManagers(){
-  const cityF=(window.getEl ? window.getEl('mgr-city-filt') : document.getElementById('mgr-city-filt'))?.value || '';
-  const roleF=(window.getEl ? window.getEl('mgr-role-filt') : document.getElementById('mgr-role-filt'))?.value || '';
-  const all=Object.values(managers).filter(m=>{
-    if(cityF&&m.city&&m.city!==cityF) return false;
-    if(roleF&&m.role!==roleF) return false;
+  const cityF = (window.getEl ? window.getEl('mgr-city-filt') : (document.getElementById('mgr-city-filt-desktop') || document.getElementById('mgr-city-filt-mobile') || document.getElementById('mgr-city-filt')))?.value || '';
+  const roleF = (window.getEl ? window.getEl('mgr-role-filt') : (document.getElementById('mgr-role-filt-desktop') || document.getElementById('mgr-role-filt-mobile') || document.getElementById('mgr-role-filt')))?.value || '';
+  const supF  = (window.getEl ? window.getEl('mgr-sup-filt')  : (document.getElementById('mgr-sup-filt-desktop') || document.getElementById('mgr-sup-filt-mobile') || document.getElementById('mgr-sup-filt')))?.value || '';
+
+  const all = Object.values(managers).filter(m => {
+    if(cityF && m.city && m.city !== cityF) return false;
+    if(roleF && m.role !== roleF) return false;
+    if(supF) {
+      const mGardens = window.getGardensForCoordinator(m);
+      const hasSupGarden = mGardens.some(g => window.isSupplierInGarden(g.id, supF));
+      if (!hasSupGarden) return false;
+    }
     return true;
   }).sort((a,b)=>(a.role==='manager'?0:1)-(b.role==='manager'?0:1)||a.name.localeCompare(b.name,'he'));
 
-  const el=document.getElementById('mgr-body');
-  if(!all.length){el.innerHTML='<p style="color:#999;text-align:center;padding:20px">אין מנהלים/רכזים. לחץ ➕ להוספה.</p>';return;}
+  const el = document.getElementById('mgr-body');
+  if(!el) return;
+  if(!all.length){
+    el.innerHTML = `<p style="color:#999;text-align:center;padding:24px">
+      ${supF ? `⚠️ לא נמצאו רכזים עם צהרונים שבהם פועל המפעיל <b>"${supF}"</b>` : 'אין מנהלים/רכזים מתאימים להצגה.'}
+    </p>`;
+    return;
+  }
 
-  let h='';
-  all.forEach(m=>{
-    const gs=(m.gardenIds||[]).map(id=>G(id)).filter(x=>x.id)
-      .sort((a,b)=>a.city.localeCompare(b.city,'he')||a.name.localeCompare(b.name,'he'));
-    const isMgr=m.role==='manager';
-    const roleClr=isMgr?'#1a237e':'#2e7d32';
-    const roleBg=isMgr?'#e8eaf6':'#e8f5e9';
-    const roleLabel=isMgr?'🏛️ מנהל':'👤 רכז';
+  let h = '';
+  if (supF) {
+    h += `<div style="background:#e8f5e9;border:1px solid #81c784;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:0.85rem;color:#1b5e20;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span>🎭 מוצגים רק צהרונים שבהם פועל המפעיל: <b style="font-size:.95rem">${supF}</b></span>
+      <button class="btn bg bsm" style="background:#2e7d32;font-weight:700" onclick="window.exportMgrExcel(null, '${supF.replace(/'/g, "\\'")}')">📊 ייצוא דוח גנים למפעיל "${supF}" (Excel)</button>
+    </div>`;
+  }
+
+  all.forEach(m => {
+    let gs = window.getGardensForCoordinator(m);
+    if(supF) {
+      gs = gs.filter(g => window.isSupplierInGarden(g.id, supF));
+    }
+    const isMgr = m.role === 'manager';
+    const roleClr = isMgr ? '#1a237e' : '#2e7d32';
+    const roleBg = isMgr ? '#e8eaf6' : '#e8f5e9';
+    const roleLabel = isMgr ? '🏛️ מנהל' : '👤 רכז';
 
     // Group gardens by city for display
-    const gByCity={};
-    gs.forEach(g=>{if(!gByCity[g.city])gByCity[g.city]=[];gByCity[g.city].push(g);});
+    const gByCity = {};
+    gs.forEach(g => { if(!gByCity[g.city]) gByCity[g.city] = []; gByCity[g.city].push(g); });
 
-    h+=`<div class="card" style="padding:0;margin-bottom:12px;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden">
+    h += `<div class="card" style="padding:0;margin-bottom:12px;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden">
       <!-- Header -->
       <div style="background:${roleClr};padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
         <div>
           <span style="font-weight:800;color:#fff;font-size:.9rem">${roleLabel} ${m.name}</span>
-          ${m.city?`<span style="font-size:.72rem;color:rgba(255,255,255,.8);margin-right:10px">🏙️ ${m.city}</span>`:''}
+          ${m.city ? `<span style="font-size:.72rem;color:rgba(255,255,255,.8);margin-right:10px">🏙️ ${m.city}</span>` : ''}
+          ${supF ? `<span style="font-size:.72rem;background:rgba(255,255,255,.2);padding:2px 7px;border-radius:10px;color:#fff;margin-right:8px">🎭 מפעיל: ${supF}</span>` : ''}
         </div>
         <div style="display:flex;gap:5px">
           <button onclick="openMgrModal('${m.id}')" style="background:rgba(255,255,255,.22);border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem">✏️ ערוך</button>
-          <button onclick="exportMgrContact('${m.id}')" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem">📋 הודעה</button>
-          <button onclick="window.exportMgrExcel('${m.id}')" style="background:#2e7d32;border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem;font-weight:700">📊 Excel</button>
+          <button onclick="exportMgrContact('${m.id}', '${supF ? supF.replace(/'/g, "\\'") : ''}')" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem">📋 הודעה</button>
+          <button onclick="window.exportMgrExcel('${m.id}', '${supF ? supF.replace(/'/g, "\\'") : ''}')" style="background:#2e7d32;border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem;font-weight:700">📊 Excel</button>
         </div>
       </div>
       <!-- Contact info -->
       <div style="padding:10px 14px;background:${roleBg};display:flex;gap:18px;flex-wrap:wrap">
-        ${m.phone?`<span style="font-size:.8rem">📞 <a href="tel:${m.phone}" style="color:${roleClr};font-weight:700">${m.phone}</a></span>`:''}
-        ${m.phone2?`<span style="font-size:.8rem">📞 <a href="tel:${m.phone2}" style="color:${roleClr}">${m.phone2}</a></span>`:''}
-        ${m.email?`<span style="font-size:.8rem">✉️ <a href="mailto:${m.email}" style="color:${roleClr}">${m.email}</a></span>`:''}
-        ${m.notes?`<span style="font-size:.78rem;color:#546e7a;font-style:italic">💬 ${m.notes}</span>`:''}
-        ${!m.phone&&!m.email&&!m.notes?'<span style="font-size:.77rem;color:#aaa">אין פרטי קשר</span>':''}
+        ${m.phone ? `<span style="font-size:.8rem">📞 <a href="tel:${m.phone}" style="color:${roleClr};font-weight:700">${m.phone}</a></span>` : ''}
+        ${m.phone2 ? `<span style="font-size:.8rem">📞 <a href="tel:${m.phone2}" style="color:${roleClr}">${m.phone2}</a></span>` : ''}
+        ${m.email ? `<span style="font-size:.8rem">✉️ <a href="mailto:${m.email}" style="color:${roleClr}">${m.email}</a></span>` : ''}
+        ${m.notes ? `<span style="font-size:.78rem;color:#546e7a;font-style:italic">💬 ${m.notes}</span>` : ''}
+        ${!m.phone && !m.email && !m.notes ? '<span style="font-size:.77rem;color:#aaa">אין פרטי קשר</span>' : ''}
       </div>
       <!-- Gardens list -->
       <div style="padding:10px 14px">
-        <div style="font-size:.74rem;font-weight:700;color:#546e7a;margin-bottom:7px">אחראי על ${gs.length} צהרונים:</div>
-        ${gs.length?`<div>
-          ${Object.keys(gByCity).sort().map(city=>`
+        <div style="font-size:.74rem;font-weight:700;color:#546e7a;margin-bottom:7px">
+          ${supF ? `אחראי על ${gs.length} צהרונים שבהם פועל המפעיל "${supF}":` : `אחראי על ${gs.length} צהרונים:`}
+        </div>
+        ${gs.length ? `<div>
+          ${Object.keys(gByCity).sort().map(city => `
             <div style="margin-bottom:6px">
-              <div style="font-size:.65rem;color:#78909c;font-weight:700;margin-bottom:3px">📍 ${city}</div>
-              <div style="display:flex;flex-wrap:wrap;gap:3px">
-                ${gByCity[city].map(g=>`<span style="background:#e8f5e9;color:#1b5e20;border-radius:12px;padding:2px 9px;font-size:.71rem;cursor:pointer" onclick="openGM(${g.id})">${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}</span>`).join('')}
+              <div style="font-size:.68rem;color:#1a237e;font-weight:700;margin-bottom:3px">📍 ${city} (${gByCity[city].length})</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px">
+                ${gByCity[city].map(g => {
+                  const age = (typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g.age || ''));
+                  const ageStr = (age && age !== '***') ? ` (${age})` : '';
+                  const info = window.getGardenPhoneInfo(g);
+                  const phTag = info.gardenPhone ? ` <span title="טלפון בגן: ${info.gardenPhone}" style="color:#2e7d32;font-size:0.75rem">📞</span>` : '';
+                  const supActInfo = supF ? window.getSupplierGardenActivityInfo(g.id, supF) : '';
+                  const actTag = supActInfo ? `<span style="font-size:0.68rem;background:#fff8e1;color:#b26a00;padding:1px 5px;border-radius:4px;margin-right:4px">${supActInfo}</span>` : '';
+                  return `<span style="background:#f5f5f5;color:#263238;border:1px solid #e0e0e0;border-radius:6px;padding:3px 8px;font-size:.74rem;cursor:pointer;display:inline-flex;align-items:center" onclick="openGM(${g.id})">
+                    ${gcls(g)==='ביה"ס'?'🏛️':'🏫'} ${g.name}${ageStr}${phTag}${actTag ? ' ' + actTag : ''}
+                  </span>`;
+                }).join('')}
               </div>
             </div>`).join('')}
-        </div>`:
-        `<span style="font-size:.76rem;color:#aaa">לא שויכו גנים עדיין</span>`}
+        </div>` :
+        `<span style="font-size:.76rem;color:#aaa">${supF ? 'אין צהרונים עם מפעיל זה' : 'לא שויכו גנים עדיין'}</span>`}
       </div>
     </div>`;
   });
-  el.innerHTML=h;
+  el.innerHTML = h;
 }
 
 function openMgrModal(id){
@@ -1698,11 +1740,119 @@ window.getGardensForCoordinator = function(m) {
   }).sort((a,b) => (a.city||'').localeCompare(b.city||'','he', { numeric: true }) || (a.name||'').localeCompare(b.name||'','he', { numeric: true }));
 };
 
+window.getActiveSupplierNames = function() {
+  const sups = new Set();
+  (window.SCH || []).forEach(s => {
+    if (s && s.a && s.st !== 'can') {
+      const base = window.supBase ? window.supBase(s.a) : s.a;
+      if (base && typeof base === 'string') sups.add(base.trim());
+    }
+  });
+  if (typeof window.getAllSup === 'function') {
+    window.getAllSup().forEach(s => {
+      if (s && s.name) {
+        const base = window.supBase ? window.supBase(s.name) : s.name;
+        if (base && typeof base === 'string') sups.add(base.trim());
+      }
+    });
+  }
+  return Array.from(sups).filter(Boolean).sort((a,b) => a.localeCompare(b, 'he'));
+};
+
+window.isSupplierInGarden = function(gid, supName) {
+  if (!supName) return true;
+  const cleanSup = (window.supBase ? window.supBase(supName) : supName).trim().toLowerCase();
+  const numGid = Number(gid);
+
+  // 1. Check SCH activities
+  const hasSch = (window.SCH || []).some(s => {
+    if (Number(s.g) !== numGid) return false;
+    if (s.st === 'can') return false;
+    const aBase = (window.supBase ? window.supBase(s.a) : s.a || '').trim().toLowerCase();
+    return aBase === cleanSup || (s.a && s.a.toLowerCase().includes(cleanSup));
+  });
+  if (hasSch) return true;
+
+  // 2. Check supEx assigned gardens
+  if (window.supEx) {
+    const ex = window.supEx[supName] || window.supEx[cleanSup];
+    if (ex && Array.isArray(ex.gardens) && ex.gardens.map(Number).includes(numGid)) return true;
+  }
+
+  // 3. Check direct garden properties
+  const g = typeof G === 'function' ? G(numGid) : null;
+  if (g && (g.sup === supName || (g.sups && g.sups.includes(supName)))) return true;
+
+  return false;
+};
+
+window.getSupplierGardenActivityInfo = function(gid, supName) {
+  if (!supName) return '';
+  const cleanSup = (window.supBase ? window.supBase(supName) : supName).trim().toLowerCase();
+  const numGid = Number(gid);
+  const evs = (window.SCH || []).filter(s => {
+    if (Number(s.g) !== numGid) return false;
+    if (s.st === 'can') return false;
+    const aBase = (window.supBase ? window.supBase(s.a) : s.a || '').trim().toLowerCase();
+    return aBase === cleanSup || (s.a && s.a.toLowerCase().includes(cleanSup));
+  });
+  if (!evs.length) return '';
+
+  const HEB_DAYS = ['א\'','ב\'','ג\'','ד\'','ה\'','ו\'','שבת'];
+  const descs = new Set();
+  evs.slice(0, 5).forEach(s => {
+    let dStr = '';
+    if (s.d) {
+      const dt = new Date(s.d);
+      if (!isNaN(dt.getDay())) dStr = 'ימי ' + HEB_DAYS[dt.getDay()];
+    }
+    const tStr = s.t ? s.t.slice(0, 5) : '';
+    const actStr = s.act || (window.supAct ? window.supAct(s.a) : '') || '';
+    let item = '';
+    if (actStr) item += actStr;
+    if (dStr) item += (item ? ' · ' : '') + dStr;
+    if (tStr) item += ' ' + tStr;
+    if (item) descs.add(item);
+  });
+  return Array.from(descs).join(' ; ');
+};
+
 let _exportMgrId = null;
-function exportMgrContact(id){
+let _exportMgrSup = '';
+
+function exportMgrContact(id, filterSup = '') {
   _exportMgrId = id;
+  _exportMgrSup = filterSup || '';
   const m = managers[id]; if(!m) return;
-  const gs = window.getGardensForCoordinator(m);
+
+  // Populate supplier selector in modal
+  const supSel = document.getElementById('mgr-export-sup-sel');
+  if (supSel) {
+    const allSups = window.getActiveSupplierNames();
+    let opts = '<option value="">כל המפעילים (כל הגנים)</option>';
+    allSups.forEach(s => {
+      opts += `<option value="${s}" ${s === _exportMgrSup ? 'selected' : ''}>🎭 ${s}</option>`;
+    });
+    supSel.innerHTML = opts;
+    supSel.value = _exportMgrSup;
+  }
+
+  renderMgrExportText();
+  document.getElementById('mgr-export-m').classList.add('open');
+}
+
+window.onMgrExportSupChange = function() {
+  const supSel = document.getElementById('mgr-export-sup-sel');
+  _exportMgrSup = supSel ? supSel.value : '';
+  renderMgrExportText();
+};
+
+function renderMgrExportText() {
+  const m = managers[_exportMgrId]; if(!m) return;
+  let gs = window.getGardensForCoordinator(m);
+  if (_exportMgrSup) {
+    gs = gs.filter(g => window.isSupplierInGarden(g.id, _exportMgrSup));
+  }
   const roleLabel = m.role === 'manager' ? 'מנהל' : 'רכז';
   let txt = '';
   txt += `👤 ${roleLabel}: ${m.name}\n`;
@@ -1711,10 +1861,10 @@ function exportMgrContact(id){
   if(m.email)  txt += `✉️ ${m.email}\n`;
   if(m.city)   txt += `🏙️ עיר: ${m.city}\n`;
   if(m.notes)  txt += `💬 הערות: ${m.notes}\n`;
+  if(_exportMgrSup) txt += `🎭 סינון לפי מפעיל: ${_exportMgrSup}\n`;
   txt += '\n';
   txt += `🏫 צהרונים וגנים באחריותו (${gs.length}):\n`;
 
-  // group by city
   const byCity = {};
   gs.forEach(g => {
     const c = g.city || 'אחר';
@@ -1725,16 +1875,24 @@ function exportMgrContact(id){
   Object.keys(byCity).sort((a,b) => a.localeCompare(b, 'he', { numeric: true })).forEach(city => {
     txt += `\n📍 ${city} (${byCity[city].length}):\n`;
     byCity[city].forEach(g => {
+      const age = (typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g.age || ''));
+      const ageStr = (age && age !== '***') ? ` (גיל: ${age})` : '';
       const info = window.getGardenPhoneInfo(g);
-      txt += `  ${gcls(g) === 'ביה"ס' ? '🏛️' : '🏫'} ${g.name}\n`;
+      const actInfo = _exportMgrSup ? window.getSupplierGardenActivityInfo(g.id, _exportMgrSup) : '';
+
+      txt += `  ${gcls(g) === 'ביה"ס' ? '🏛️' : '🏫'} ${g.name}${ageStr}\n`;
       if(g.st) txt += '     📍 כתובת: ' + g.st + '\n';
       if(info.gardenPhone) txt += '     📞 טלפון בגן: ' + info.gardenPhone + '\n';
       if(info.contactName) txt += '     👤 איש קשר בגן: ' + info.contactName + '\n';
+      if(actInfo) txt += '     🎭 פעילות מפעיל: ' + actInfo + '\n';
     });
   });
 
+  if(!gs.length) {
+    txt += _exportMgrSup ? `\n(לא נמצאו גנים שבהם פועל המפעיל "${_exportMgrSup}")` : '\n(אין גנים משויכים)';
+  }
+
   (document.getElementById('mgr-export-text')||{}).textContent = txt;
-  document.getElementById('mgr-export-m').classList.add('open');
 }
 
 function copyMgrExport(){
@@ -1749,12 +1907,26 @@ function shareMgrWhatsApp(){
   window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
 }
 
-window.exportMgrExcel = async function(mgrId = null) {
+window.exportMgrExcel = async function(mgrId = null, filterSup = null, filterCity = null) {
   try {
     if (typeof window.ensureExcelJSLoaded === 'function') {
       await window.ensureExcelJSLoaded();
     }
   } catch(e) {}
+
+  // Determine supplier filter
+  let selectedSup = (filterSup !== null && filterSup !== undefined) ? filterSup : '';
+  if (!selectedSup) {
+    selectedSup = (document.getElementById('mgr-sup-filt-desktop') || 
+                   document.getElementById('mgr-sup-filt-mobile') || 
+                   document.getElementById('mgr-sup-filt'))?.value || '';
+  }
+
+  // Determine city filter
+  let selectedCity = (filterCity !== null && filterCity !== undefined) ? filterCity : '';
+  if (!selectedCity) {
+    selectedCity = (window.getEl ? window.getEl('mgr-city-filt') : (document.getElementById('mgr-city-filt-desktop') || document.getElementById('mgr-city-filt-mobile') || document.getElementById('mgr-city-filt')))?.value || '';
+  }
 
   const allManagers = Object.values(window.managers || {});
   let targetManagers = [];
@@ -1762,25 +1934,39 @@ window.exportMgrExcel = async function(mgrId = null) {
   if (mgrId && window.managers && window.managers[mgrId]) {
     targetManagers = [window.managers[mgrId]];
   } else {
-    const cityFilter = (window.getEl ? window.getEl('mgr-city-filt') : document.getElementById('mgr-city-filt'))?.value || '';
-    const roleFilter = (window.getEl ? window.getEl('mgr-role-filt') : document.getElementById('mgr-role-filt'))?.value || '';
+    const roleFilter = (document.getElementById('mgr-role-filt-desktop') || document.getElementById('mgr-role-filt-mobile') || document.getElementById('mgr-role-filt'))?.value || '';
     targetManagers = allManagers.filter(m => {
-      if (cityFilter && m.city && m.city !== cityFilter) return false;
+      if (selectedCity && m.city && m.city !== selectedCity) return false;
       if (roleFilter && m.role !== roleFilter) return false;
+      if (selectedSup) {
+        const mGardens = window.getGardensForCoordinator(m);
+        const hasSupGarden = mGardens.some(g => window.isSupplierInGarden(g.id, selectedSup));
+        if (!hasSupGarden) return false;
+      }
       return true;
     }).sort((a,b) => (a.role === 'manager' ? 0 : 1) - (b.role === 'manager' ? 0 : 1) || (a.name||'').localeCompare(b.name||'', 'he', { numeric: true }));
   }
 
   if (!targetManagers.length) {
-    if (typeof window.showToast === 'function') window.showToast('⚠️ לא נמצאו רכזים לייצוא');
+    if (typeof window.showToast === 'function') {
+      window.showToast(selectedSup ? `⚠️ לא נמצאו גנים שבהם פועל המפעיל "${selectedSup}"` : '⚠️ לא נמצאו רכזים לייצוא');
+    }
     return;
   }
 
   const isSingle = targetManagers.length === 1;
   const singleM = isSingle ? targetManagers[0] : null;
-  const safeFilename = isSingle 
-    ? `רשימת_גנים_רכז_${(singleM.name || 'ללא_שם').replace(/[\\/:*?"<>|\s]+/g, '_')}.xlsx`
-    : `דוח_רכזים_וגנים_טומשין_${new Date().toISOString().slice(0,10)}.xlsx`;
+
+  let safeFilename = '';
+  if (selectedSup) {
+    safeFilename = isSingle
+      ? `רשימת_גנים_רכז_${(singleM.name || 'ללא_שם').replace(/[\\/:*?"<>|\s]+/g, '_')}_מפעיל_${selectedSup.replace(/[\\/:*?"<>|\s]+/g, '_')}.xlsx`
+      : `דוח_רכזים_וגנים_מפעיל_${selectedSup.replace(/[\\/:*?"<>|\s]+/g, '_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
+  } else {
+    safeFilename = isSingle 
+      ? `רשימת_גנים_רכז_${(singleM.name || 'ללא_שם').replace(/[\\/:*?"<>|\s]+/g, '_')}.xlsx`
+      : `דוח_רכזים_וגנים_טומשין_${new Date().toISOString().slice(0,10)}.xlsx`;
+  }
 
   if (typeof window.ExcelJS !== 'undefined') {
     const wb = new window.ExcelJS.Workbook();
@@ -1798,24 +1984,26 @@ window.exportMgrExcel = async function(mgrId = null) {
           { key: 'mgrCity', width: 15 },
           { key: 'city', width: 16 },
           { key: 'cls', width: 11 },
+          { key: 'age', width: 12 },
           { key: 'name', width: 28 },
           { key: 'st', width: 28 },
           { key: 'gPhone', width: 18 },
           { key: 'gContact', width: 18 },
           { key: 'cluster', width: 16 },
-          { key: 'notes', width: 25 }
+          { key: 'notes', width: 26 }
         ];
       } else {
         ws.columns = [
           { key: 'idx', width: 7 },
           { key: 'city', width: 16 },
           { key: 'cls', width: 11 },
+          { key: 'age', width: 12 },
           { key: 'name', width: 28 },
           { key: 'st', width: 28 },
           { key: 'gPhone', width: 18 },
           { key: 'gContact', width: 18 },
           { key: 'cluster', width: 16 },
-          { key: 'notes', width: 25 }
+          { key: 'notes', width: 26 }
         ];
       }
 
@@ -1846,10 +2034,11 @@ window.exportMgrExcel = async function(mgrId = null) {
       r3.height = 8;
 
       // Row 4: Column Headers
+      const lastColHeader = selectedSup ? `חוג / פעילות (${selectedSup})` : 'הערות';
       const headers = isMaster ? [
-        'מס"ד', 'שם הרכז/ת', 'טלפון רכז', 'עיר רכז', 'עיר הגן', 'סוג מוסד', 'שם הצהרון / גן', 'כתובת / רחוב', 'טלפון בגן', 'איש קשר בגן', 'אשכול', 'הערות'
+        'מס"ד', 'שם הרכז/ת', 'טלפון רכז', 'עיר רכז', 'עיר הגן', 'סוג מוסד', 'גיל הגן', 'שם הצהרון / גן', 'כתובת / רחוב', 'טלפון בגן', 'איש קשר בגן', 'אשכול', lastColHeader
       ] : [
-        'מס"ד', 'עיר', 'סוג מוסד', 'שם הצהרון / גן', 'כתובת / רחוב', 'טלפון בגן', 'איש קשר בגן', 'אשכול', 'הערות'
+        'מס"ד', 'עיר', 'סוג מוסד', 'גיל הגן', 'שם הצהרון / גן', 'כתובת / רחוב', 'טלפון בגן', 'איש קשר בגן', 'אשכול', lastColHeader
       ];
 
       const r4 = ws.getRow(4);
@@ -1883,6 +2072,7 @@ window.exportMgrExcel = async function(mgrId = null) {
           row.mgrCity || '—',
           row.city,
           row.cls,
+          row.age || '—',
           row.name,
           row.st || '—',
           row.gPhone || '—',
@@ -1893,6 +2083,7 @@ window.exportMgrExcel = async function(mgrId = null) {
           row.idx,
           row.city,
           row.cls,
+          row.age || '—',
           row.name,
           row.st || '—',
           row.gPhone || '—',
@@ -1914,7 +2105,7 @@ window.exportMgrExcel = async function(mgrId = null) {
           };
 
           const colKey = ws.columns[i].key;
-          if (colKey === 'idx') {
+          if (colKey === 'idx' || colKey === 'age') {
             cell.alignment = { horizontal: 'center', vertical: 'middle' };
           } else if (colKey === 'mgrPhone' || colKey === 'gPhone') {
             cell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -1936,14 +2127,23 @@ window.exportMgrExcel = async function(mgrId = null) {
     let masterCounter = 1;
 
     targetManagers.forEach(m => {
-      const gs = window.getGardensForCoordinator(m);
+      let gs = window.getGardensForCoordinator(m);
+      if (selectedSup) {
+        gs = gs.filter(g => window.isSupplierInGarden(g.id, selectedSup));
+      }
+      if (!gs.length) return;
+
       const mRows = [];
 
       gs.forEach((g, idx) => {
         const info = window.getGardenPhoneInfo(g);
+        const age = (typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g.age || ''));
+        const ageVal = (age && age !== '***') ? age : '—';
         const clObj = (typeof window.gardenClusters === 'function' ? window.gardenClusters(g.id) : [])[0] || 
                       (typeof window.getClusters === 'function' ? window.getClusters().find(c => (c.gardenIds||[]).map(Number).includes(Number(g.id))) : null);
         const clusterName = clObj ? clObj.name : (g.cl || '');
+        const supActInfo = selectedSup ? window.getSupplierGardenActivityInfo(g.id, selectedSup) : '';
+        const notesVal = supActInfo || (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || '';
 
         const rowItem = {
           idx: idx + 1,
@@ -1952,12 +2152,13 @@ window.exportMgrExcel = async function(mgrId = null) {
           mgrCity: m.city || '',
           city: g.city || '',
           cls: (typeof window.gcls === 'function' ? window.gcls(g) : (g.cls || 'גנים')),
+          age: ageVal,
           name: g.name || '',
           st: g.st || '',
           gPhone: info.gardenPhone || '',
           gContact: info.contactName || '',
           cluster: clusterName,
-          notes: (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || ''
+          notes: notesVal
         };
 
         mRows.push(rowItem);
@@ -1969,20 +2170,29 @@ window.exportMgrExcel = async function(mgrId = null) {
 
       if (isSingle) {
         const ws = wb.addWorksheet((m.name || 'רכז').slice(0, 30));
-        const sub = `רכז/ת: ${m.name} | טלפון: ${m.phone || '—'}${m.phone2 ? ' / ' + m.phone2 : ''} | אימייל: ${m.email || '—'} | סה"כ גנים: ${gs.length} | תאריך הפקה: ${new Date().toLocaleDateString('he-IL')}`;
-        buildSheet(ws, `טומשין - רשימת גנים לרכז/ת: ${m.name}`, sub, mRows, false);
+        const sub = `רכז/ת: ${m.name} | טלפון: ${m.phone || '—'}${m.phone2 ? ' / ' + m.phone2 : ''}${selectedSup ? ' | מפעיל: ' + selectedSup : ''} | סה"כ גנים: ${gs.length} | תאריך הפקה: ${new Date().toLocaleDateString('he-IL')}`;
+        const titleText = selectedSup 
+          ? `טומשין - רשימת גנים לרכז/ת: ${m.name} (מפעיל: ${selectedSup})`
+          : `טומשין - רשימת גנים לרכז/ת: ${m.name}`;
+        buildSheet(ws, titleText, sub, mRows, false);
       }
     });
 
     if (!isSingle) {
       const wsMaster = wb.addWorksheet('כל הרכזים והגנים');
       const totalGardens = allRowsMaster.length;
-      const subMaster = `דוח רכזים וגנים כולל טלפונים | סה"כ רכזים: ${targetManagers.length} | סה"כ גנים: ${totalGardens} | תאריך הפקה: ${new Date().toLocaleDateString('he-IL')}`;
-      buildSheet(wsMaster, 'טומשין - דוח רכזים וגנים מרוכז', subMaster, allRowsMaster, true);
+      const subMaster = `${selectedSup ? 'מפעיל: ' + selectedSup + ' | ' : ''}סה"כ רכזים: ${targetManagers.length} | סה"כ גנים: ${totalGardens} | תאריך הפקה: ${new Date().toLocaleDateString('he-IL')}`;
+      const titleMaster = selectedSup
+        ? `טומשין - דוח רכזים וגנים למפעיל: ${selectedSup}`
+        : 'טומשין - דוח רכזים וגנים מרוכז';
+      buildSheet(wsMaster, titleMaster, subMaster, allRowsMaster, true);
 
       if (targetManagers.length <= 25) {
         targetManagers.forEach(m => {
-          const gs = window.getGardensForCoordinator(m);
+          let gs = window.getGardensForCoordinator(m);
+          if (selectedSup) {
+            gs = gs.filter(g => window.isSupplierInGarden(g.id, selectedSup));
+          }
           if (!gs.length) return;
           const sheetName = (m.name || 'רכז').replace(/[\\/?*[\]]/g, '').slice(0, 30);
           let finalSheetName = sheetName;
@@ -1994,20 +2204,24 @@ window.exportMgrExcel = async function(mgrId = null) {
           const mRows = [];
           gs.forEach((g, idx) => {
             const info = window.getGardenPhoneInfo(g);
+            const age = (typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g.age || ''));
+            const ageVal = (age && age !== '***') ? age : '—';
             const clObj = (typeof window.gardenClusters === 'function' ? window.gardenClusters(g.id) : [])[0];
+            const supActInfo = selectedSup ? window.getSupplierGardenActivityInfo(g.id, selectedSup) : '';
             mRows.push({
               idx: idx + 1,
               city: g.city || '',
               cls: (typeof window.gcls === 'function' ? window.gcls(g) : (g.cls || 'גנים')),
+              age: ageVal,
               name: g.name || '',
               st: g.st || '',
               gPhone: info.gardenPhone || '',
               gContact: info.contactName || '',
               cluster: clObj ? clObj.name : (g.cl || ''),
-              notes: (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || ''
+              notes: supActInfo || (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || ''
             });
           });
-          const sub = `רכז/ת: ${m.name} | טלפון: ${m.phone || '—'} | סה"כ גנים: ${gs.length}`;
+          const sub = `רכז/ת: ${m.name} | טלפון: ${m.phone || '—'}${selectedSup ? ' | מפעיל: ' + selectedSup : ''} | סה"כ גנים: ${gs.length}`;
           buildSheet(wsInd, `רשימת גנים - ${m.name}`, sub, mRows, false);
         });
       }
@@ -2029,29 +2243,39 @@ window.exportMgrExcel = async function(mgrId = null) {
 
   // Fallback to CSV
   const bom = '\uFEFF';
+  const lastColHeader = selectedSup ? `חוג_פעילות_${selectedSup}` : 'הערות';
   const csvHeaders = isSingle 
-    ? ['מס"ד', 'עיר', 'סוג מוסד', 'שם הצהרון / גן', 'כתובת', 'טלפון בגן', 'איש קשר בגן', 'אשכול', 'הערות']
-    : ['מס"ד', 'שם הרכז/ת', 'טלפון רכז', 'עיר רכז', 'עיר הגן', 'סוג מוסד', 'שם הצהרון / גן', 'כתובת', 'טלפון בגן', 'איש קשר בגן', 'אשכול', 'הערות'];
+    ? ['מס"ד', 'עיר', 'סוג מוסד', 'גיל הגן', 'שם הצהרון / גן', 'כתובת', 'טלפון בגן', 'איש קשר בגן', 'אשכול', lastColHeader]
+    : ['מס"ד', 'שם הרכז/ת', 'טלפון רכז', 'עיר רכז', 'עיר הגן', 'סוג מוסד', 'גיל הגן', 'שם הצהרון / גן', 'כתובת', 'טלפון בגן', 'איש קשר בגן', 'אשכול', lastColHeader];
 
   const csvRows = [csvHeaders];
   let counter = 1;
 
   targetManagers.forEach(m => {
-    const gs = window.getGardensForCoordinator(m);
+    let gs = window.getGardensForCoordinator(m);
+    if (selectedSup) {
+      gs = gs.filter(g => window.isSupplierInGarden(g.id, selectedSup));
+    }
     gs.forEach(g => {
       const info = window.getGardenPhoneInfo(g);
+      const age = (typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g.age || ''));
+      const ageVal = (age && age !== '***') ? age : '—';
       const clObj = (typeof window.gardenClusters === 'function' ? window.gardenClusters(g.id) : [])[0];
+      const supActInfo = selectedSup ? window.getSupplierGardenActivityInfo(g.id, selectedSup) : '';
+      const notesVal = supActInfo || (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || '';
+
       if (isSingle) {
         csvRows.push([
           counter++,
           g.city || '',
           (typeof window.gcls === 'function' ? window.gcls(g) : (g.cls || 'גנים')),
+          ageVal,
           g.name || '',
           g.st || '',
           info.gardenPhone || '',
           info.contactName || '',
           clObj ? clObj.name : (g.cl || ''),
-          (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || ''
+          notesVal
         ]);
       } else {
         csvRows.push([
@@ -2061,12 +2285,13 @@ window.exportMgrExcel = async function(mgrId = null) {
           m.city || '',
           g.city || '',
           (typeof window.gcls === 'function' ? window.gcls(g) : (g.cls || 'גנים')),
+          ageVal,
           g.name || '',
           g.st || '',
           info.gardenPhone || '',
           info.contactName || '',
           clObj ? clObj.name : (g.cl || ''),
-          (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || ''
+          notesVal
         ]);
       }
     });
@@ -2085,6 +2310,224 @@ window.exportMgrExcel = async function(mgrId = null) {
   if (typeof window.showToast === 'function') window.showToast('📊 קובץ CSV הופק בהצלחה!');
 };
 
+window.openMgrExportOptionsModal = function() {
+  const mgrSel = document.getElementById('mexp-mgr-sel');
+  if (mgrSel) {
+    let opts = '<option value="">כל הרכזים והמנהלים</option>';
+    Object.values(window.managers || {}).sort((a,b) => a.name.localeCompare(b.name, 'he'))
+      .forEach(m => opts += `<option value="${m.id}">${m.role === 'manager' ? '🏛️' : '👤'} ${m.name}</option>`);
+    mgrSel.innerHTML = opts;
+  }
+  const supSel = document.getElementById('mexp-sup-sel');
+  if (supSel) {
+    let opts = '<option value="">כל המפעילים (כל הגנים)</option>';
+    window.getActiveSupplierNames().forEach(s => opts += `<option value="${s}">🎭 ${s}</option>`);
+    supSel.innerHTML = opts;
+  }
+  const citySel = document.getElementById('mexp-city-sel');
+  if (citySel) {
+    let opts = '<option value="">כל הערים</option>';
+    (typeof cities === 'function' ? cities() : []).forEach(c => opts += `<option value="${c}">${c}</option>`);
+    citySel.innerHTML = opts;
+  }
+  document.getElementById('mgr-export-options-m').classList.add('open');
+};
+
+window.submitMgrExcelExport = function() {
+  const mgrId = document.getElementById('mexp-mgr-sel')?.value || null;
+  const supName = document.getElementById('mexp-sup-sel')?.value || null;
+  const cityName = document.getElementById('mexp-city-sel')?.value || null;
+  CM('mgr-export-options-m');
+  window.exportMgrExcel(mgrId, supName, cityName);
+};
+
+// ── Batch Garden Age Editing Table ─────────────────────────────
+let _activeGabGid = null;
+
+window.openGardenAgeBatchModal = function(cityToSelect = null) {
+  const citySel = document.getElementById('gab-city-sel');
+  if (citySel) {
+    const allCities = typeof cities === 'function' ? cities() : [];
+    let opts = '<option value="">כל הערים</option>';
+    allCities.forEach(c => opts += `<option value="${c}">${c}</option>`);
+    citySel.innerHTML = opts;
+
+    if (cityToSelect) {
+      citySel.value = cityToSelect;
+    } else {
+      const activeFilter = window.getEl('g-city')?.value || '';
+      citySel.value = activeFilter || '';
+    }
+  }
+
+  const srch = document.getElementById('gab-srch');
+  if (srch) srch.value = '';
+
+  window.renderGardenAgeBatchTable();
+  document.getElementById('garden-age-batch-m').classList.add('open');
+};
+
+window.applyQuickAgePreset = function(presetAge) {
+  if (_activeGabGid) {
+    const inp = document.getElementById('gab-age-' + _activeGabGid);
+    if (inp) {
+      inp.value = presetAge;
+      window.quickSaveSingleAge(_activeGabGid, presetAge);
+      window.focusNextGabAgeInput(_activeGabGid);
+      return;
+    }
+  }
+  if (typeof window.showToast === 'function') {
+    window.showToast(`לחץ על שדה גיל של גן ואז לחץ על "${presetAge}"`);
+  }
+};
+
+window.quickSaveSingleAge = function(gid, val) {
+  const ageStr = (val || '').trim();
+  if (!window.supEx) window.supEx = {};
+  if (!window.supEx['g_' + gid]) window.supEx['g_' + gid] = {};
+  window.supEx['g_' + gid].age = ageStr;
+
+  if (typeof window.save === 'function') window.save();
+
+  const indicator = document.getElementById('gab-saved-' + gid);
+  if (indicator) {
+    indicator.style.opacity = '1';
+    setTimeout(() => { indicator.style.opacity = '0'; }, 2000);
+  }
+};
+
+window.focusNextGabAgeInput = function(currentGid) {
+  const allInputs = Array.from(document.querySelectorAll('.gab-age-input'));
+  const idx = allInputs.findIndex(inp => Number(inp.getAttribute('data-gid')) === Number(currentGid));
+  if (idx >= 0 && idx < allInputs.length - 1) {
+    allInputs[idx + 1].focus();
+    allInputs[idx + 1].select();
+  }
+};
+
+window.handleGabKey = function(e, gid) {
+  if (e.key === 'Enter' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    window.quickSaveSingleAge(gid, e.target.value);
+    window.focusNextGabAgeInput(gid);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    const allInputs = Array.from(document.querySelectorAll('.gab-age-input'));
+    const idx = allInputs.findIndex(inp => Number(inp.getAttribute('data-gid')) === Number(gid));
+    if (idx > 0) {
+      allInputs[idx - 1].focus();
+      allInputs[idx - 1].select();
+    }
+  }
+};
+
+window.saveAllBatchGardenAges = function() {
+  const inputs = document.querySelectorAll('.gab-age-input');
+  let count = 0;
+  inputs.forEach(inp => {
+    const gid = inp.getAttribute('data-gid');
+    const val = inp.value.trim();
+    if (gid) {
+      if (!window.supEx) window.supEx = {};
+      if (!window.supEx['g_' + gid]) window.supEx['g_' + gid] = {};
+      window.supEx['g_' + gid].age = val;
+      count++;
+    }
+  });
+
+  if (typeof window.save === 'function') window.save();
+  if (typeof window.showToast === 'function') window.showToast(`✅ נשמרו ${count} גנים בהצלחה!`);
+  if (typeof renderGardens === 'function') renderGardens();
+};
+
+window.renderGardenAgeBatchTable = function() {
+  const cityF = document.getElementById('gab-city-sel')?.value || '';
+  const clsF  = document.getElementById('gab-cls-sel')?.value || '';
+  const srchF = (document.getElementById('gab-srch')?.value || '').trim().toLowerCase();
+
+  const allGs = typeof AG === 'function' ? AG() : (window.GARDENS || []);
+  const filtered = allGs.filter(g => {
+    if (cityF && g.city !== cityF) return false;
+    if (clsF && (typeof window.gcls === 'function' ? window.gcls(g) : g.cls) !== clsF) return false;
+    if (srchF) {
+      const txt = `${g.name || ''} ${g.city || ''} ${g.st || ''} ${g.co || ''}`.toLowerCase();
+      if (!txt.includes(srchF)) return false;
+    }
+    return true;
+  }).sort((a,b) => (a.city||'').localeCompare(b.city||'','he', { numeric: true }) || (a.name||'').localeCompare(b.name||'','he', { numeric: true }));
+
+  const statusText = document.getElementById('gab-status-text');
+  if (statusText) {
+    statusText.textContent = `מוצגים ${filtered.length} צהרונים ${cityF ? `בעיר ${cityF}` : 'בכל הערים'}`;
+  }
+
+  const container = document.getElementById('gab-table-container');
+  if (!container) return;
+
+  if (!filtered.length) {
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8">לא נמצאו גנים העונים לסינון</div>';
+    return;
+  }
+
+  let html = `
+    <table style="width:100%;border-collapse:collapse;font-size:0.85rem;text-align:right;direction:rtl">
+      <thead>
+        <tr style="background:#1e293b;color:#fff;position:sticky;top:0;z-index:10">
+          <th style="padding:8px 10px;text-align:center;width:40px">#</th>
+          <th style="padding:8px 10px;width:120px">עיר</th>
+          <th style="padding:8px 10px;width:180px">שם הצהרון / מוסד</th>
+          <th style="padding:8px 10px;width:180px">כתובת</th>
+          <th style="padding:8px 10px;width:160px;text-align:center;background:#0f172a;color:#38bdf8">👶 גיל הגן (הזנה ישירה)</th>
+          <th style="padding:8px 10px;width:140px">טלפון בגן</th>
+          <th style="padding:8px 10px;width:120px">רכז/ת</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  filtered.forEach((g, idx) => {
+    const rawAge = window.extractGardenAge(g);
+    const ageVal = (rawAge && rawAge !== '***') ? rawAge : '';
+    const info = window.getGardenPhoneInfo(g);
+    const mgr = typeof window.getGardenMgr === 'function' ? window.getGardenMgr(g.id) : null;
+    const bgClr = (idx % 2 === 0) ? '#ffffff' : '#f8fafc';
+
+    html += `
+      <tr style="background:${bgClr};border-bottom:1px solid #e2e8f0;transition:background .15s" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='${bgClr}'">
+        <td style="padding:6px 10px;text-align:center;color:#64748b;font-size:0.78rem">${idx + 1}</td>
+        <td style="padding:6px 10px;font-weight:700;color:#1e293b">🏙️ ${g.city}</td>
+        <td style="padding:6px 10px;font-weight:800;color:#0369a1">
+          <span style="cursor:pointer" onclick="openGM(${g.id})" title="פתח כרטיס גן">${(typeof window.gcls === 'function' && window.gcls(g)==='ביה"ס')?'🏛️':'🏫'} ${g.name}</span>
+        </td>
+        <td style="padding:6px 10px;color:#64748b;font-size:0.8rem">${g.st || '—'}</td>
+        <td style="padding:6px 10px;text-align:center;position:relative">
+          <div style="display:flex;align-items:center;justify-content:center;gap:6px">
+            <input type="text"
+              id="gab-age-${g.id}"
+              class="gab-age-input"
+              data-gid="${g.id}"
+              value="${ageVal}"
+              placeholder="3-4 / בוגרים..."
+              onfocus="_activeGabGid = ${g.id}; this.select(); this.style.borderColor='#0284c7'; this.style.boxShadow='0 0 0 2px rgba(2,132,199,0.2)'"
+              onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none'"
+              onchange="quickSaveSingleAge(${g.id}, this.value)"
+              onkeydown="handleGabKey(event, ${g.id})"
+              style="width:110px;padding:5px 8px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:0.85rem;font-weight:700;text-align:center;color:#0f172a;background:#fff"
+            />
+            <span id="gab-saved-${g.id}" style="color:#16a34a;font-size:0.85rem;font-weight:800;opacity:0;transition:opacity .3s" title="נשמר!">✓</span>
+          </div>
+        </td>
+        <td style="padding:6px 10px;font-size:0.8rem;color:#334155">${info.gardenPhone || '—'}</td>
+        <td style="padding:6px 10px;font-size:0.8rem;color:#475569">${mgr ? mgr.name : '—'}</td>
+      </tr>
+    `;
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+};
+
 function refreshMgrDrops(){
   const mgrOptions=()=>{
     let opts='<option value="">הכל</option>';
@@ -2096,8 +2539,30 @@ function refreshMgrDrops(){
   if(el){const c=el.value;el.innerHTML=mgrOptions();el.value=c;}
   const el2=document.getElementById('s-mgr');
   if(el2){const c=el2.value;el2.innerHTML=mgrOptions();el2.value=c;}
-  const mf=document.getElementById('mgr-city-filt');
-  if(mf){const c=mf.value;mf.innerHTML='<option value="">כל הערים</option>';cities().forEach(city=>mf.innerHTML+=`<option value='${city}'>${city}</option>`);mf.value=c;}
+
+  // Cities dropdowns
+  ['mgr-city-filt-desktop', 'mgr-city-filt-mobile', 'mgr-city-filt'].forEach(id => {
+    const mf = document.getElementById(id);
+    if(mf) {
+      const c = mf.value;
+      mf.innerHTML = '<option value="">כל הערים</option>';
+      cities().forEach(city => mf.innerHTML += `<option value="${city}">${city}</option>`);
+      mf.value = c;
+    }
+  });
+
+  // Suppliers dropdowns
+  const supOpts = '<option value="">כל המפעילים (הכל)</option>' + 
+    window.getActiveSupplierNames().map(s => `<option value="${s}">🎭 ${s}</option>`).join('');
+
+  ['mgr-sup-filt-desktop', 'mgr-sup-filt-mobile', 'mgr-sup-filt'].forEach(id => {
+    const sf = document.getElementById(id);
+    if(sf) {
+      const c = sf.value;
+      sf.innerHTML = supOpts;
+      sf.value = c;
+    }
+  });
 }
 
 function getGardenMgr(gid){

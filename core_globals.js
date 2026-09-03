@@ -41,10 +41,13 @@ window.VAT_RATE = window.VAT_RATE || 18;
 // --- Utilities ---
 window.extractGardenAge = function(garden) {
   if (!garden) return '***';
-  if (garden.age && garden.age.trim()) return garden.age.trim();
+  const ex = (window.supEx && window.supEx['g_' + garden.id]) || {};
+  if (ex.age && String(ex.age).trim()) return String(ex.age).trim();
+  if (garden.age && String(garden.age).trim()) return String(garden.age).trim();
   const m = (garden.name||'').match(/(?:גילאי|גיל|כיתה|כיתות|שכבת)\s*([א-ת0-9\-\.\s]+?)(?=\)|$)/);
   return m ? m[1].trim() : '***';
 };
+
 
 window.debounce = function(func, wait) {
   let timeout;
