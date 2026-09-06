@@ -7,9 +7,20 @@ window.initWorkerTasks = function() {
   window.wtCleanDesc = function(desc, prefix) {
     let d = (desc || '').replace(/\n/g, ' ').trim();
     if (!prefix) return d;
-    if (d.startsWith(prefix)) {
-      d = d.substring(prefix.length).trim();
-      if (d.startsWith('-')) d = d.substring(1).trim();
+    let pParts = prefix.split('-').map(x => x.trim()).filter(Boolean);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      if (d.startsWith(prefix)) {
+        d = d.substring(prefix.length).replace(/^[\s-:]+/, '');
+        changed = true;
+      }
+      for (let p of pParts) {
+        if (d.startsWith(p)) {
+          d = d.substring(p.length).replace(/^[\s-:]+/, '');
+          changed = true;
+        }
+      }
     }
     return d;
   };
@@ -82,7 +93,7 @@ window.wtGetTaskGardenInfo = function(t) {
   const phone = t.phone || gObj?.coph || gObj?.phone || '';
 
   let loc = '';
-  if (city && gardenName) {
+  if (city && gardenName && city !== gardenName) {
     loc = `${city} - ${gardenName}`;
   } else {
     loc = gardenName || city || '';
@@ -300,7 +311,7 @@ window.renderWorkerTasksAdmin = function() {
     allSortedTasks.forEach(t => {
       const isDone = t.status === 'done';
       const info = window.wtGetTaskGardenInfo ? window.wtGetTaskGardenInfo(t) : { gardenName: '', city: '', address: '', loc: '', phone: '' };
-      const loc = info.loc || (info.city ? `${info.city} - ${info.gardenName}` : info.gardenName) || info.city || '';
+      const loc = info.loc || (info.city && info.gardenName && info.city !== info.gardenName ? `${info.city} - ${info.gardenName}` : info.gardenName) || info.city || '';
       const isPriv = t.isAdminOnly;
       
       html += `
@@ -877,7 +888,7 @@ window.renderWorkerTasksMobile = function() {
   function renderCard(t, isTomorrow) {
     const isDone = t.status === 'done';
     const info = window.wtGetTaskGardenInfo ? window.wtGetTaskGardenInfo(t) : { gardenName: '', city: '', address: '', loc: '', phone: '' };
-    const displayName = info.loc || (info.city && info.gardenName ? `${info.city} - ${info.gardenName}` : (info.gardenName || info.city || ''));
+    const displayName = info.loc || (info.city && info.gardenName && info.city !== info.gardenName ? `${info.city} - ${info.gardenName}` : (info.gardenName || info.city || ''));
     
     const mapsUrl = info.address ? 
       `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(info.address + (info.city ? ', ' + info.city : '') + ', ישראל')}` :
