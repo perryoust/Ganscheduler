@@ -4,6 +4,15 @@
  */
 
 window.initWorkerTasks = function() {
+  window.wtCleanDesc = function(desc, prefix) {
+    let d = (desc || '').replace(/\n/g, ' ').trim();
+    if (!prefix) return d;
+    if (d.startsWith(prefix)) {
+      d = d.substring(prefix.length).trim();
+      if (d.startsWith('-')) d = d.substring(1).trim();
+    }
+    return d;
+  };
   if (!window.WORKER_TASKS) window.WORKER_TASKS = [];
   window.WORKER_TASKS = window.WORKER_TASKS.filter(Boolean);
   window.wtCurrentDate = window.wtCurrentDate || (window.td ? window.td() : new Date().toISOString().split('T')[0]);
@@ -320,7 +329,7 @@ window.renderWorkerTasksAdmin = function() {
           <div style="flex: 1 1 150px; min-width: 120px;">
             ${isSearch ? `<div style="font-size:0.75rem; color:#888; margin-bottom:2px;">${window.fD ? window.fD(t.date) : t.date}</div>` : ''}
             <div style="font-size:1.1rem; color:${isDone ? '#666' : '#1c1c1e'}; line-height:1.3; margin-bottom:4px;">
-              ${loc ? `<strong>${loc}</strong> - ` : ''}${t.desc.replace(/\n/g, ' ')}
+              ${loc ? `<strong>${loc}</strong> - ` : ''}${window.wtCleanDesc(t.desc, loc)}
             </div>
             <div style="display:flex; align-items:center; gap:10px; font-size:0.85rem; color:#8e8e93; flex-wrap:wrap;">
               ${isPriv ? '<span style="background:#ffe0b2; color:#e65100; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:0.75rem;">🔒 אישי למנהל</span>' : ''}
@@ -895,7 +904,7 @@ window.renderWorkerTasksMobile = function() {
               ${isOverdue ? `<span style="background:#ffebee; color:#c62828; font-size:0.72rem; padding:1px 6px; border-radius:4px; font-weight:bold;">⚠️ מיום ${window.fD ? window.fD(t.date) : t.date}</span>` : ''}
             </div>
             <div style="font-size:1.05rem; color:${isDone ? '#666' : '#1c1c1e'}; margin-bottom:4px; line-height:1.35;">
-              ${displayName ? `<strong style="color:${isDone ? '#555' : '#1565c0'};">${displayName}</strong> - ` : ''}${t.desc.replace(/\n/g, ' ')}
+              ${displayName ? `<strong style="color:${isDone ? '#555' : '#1565c0'};">${displayName}</strong> - ` : ''}${window.wtCleanDesc(t.desc, displayName)}
             </div>
             <div style="font-size:0.85rem; color:#64748b; display:flex; flex-direction:column; gap:4px;">
               <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -1267,7 +1276,7 @@ window.wtExportWord = async function(ds) {
     htmlContent += `
       <div class="task">
         <span class="checkbox">${box}</span>
-        <span class="task-text">${gardenName ? `<b>${gardenName}</b> - ` : ''}${t.desc.replace(/\n/g, ' ')}</span>
+        <span class="task-text">${gardenName ? `<b>${gardenName}</b> - ` : ''}${window.wtCleanDesc(t.desc, gardenName)}</span>
         ${t.workerNote ? `<div class="notes">הערות ${t.workerName || 'עובד'}: ${t.workerNote}</div>` : ''}
       </div>`;
   });
@@ -1360,7 +1369,7 @@ window.wtPrintTasks = async function(ds) {
       <div class="task">
         <div class="checkbox"><div class="done-check">${checkHTML}</div></div>
         <div class="task-content">
-          <div class="task-text">${gardenName ? `<b>${gardenName}</b> - ` : ''}${t.desc.replace(/\n/g, ' ')}</div>
+          <div class="task-text">${gardenName ? `<b>${gardenName}</b> - ` : ''}${window.wtCleanDesc(t.desc, gardenName)}</div>
           ${t.workerNote ? `<div class="notes">הערות ${t.workerName || 'עובד'}: ${t.workerNote}</div>` : ''}
         </div>
       </div>`;
