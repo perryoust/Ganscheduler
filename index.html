@@ -13,18 +13,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.18</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.19</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=111.18" />
+  <link rel="stylesheet" href="styles.css?v=111.19" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '111.18';
+    window.APP_VERSION = '111.19';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -1839,10 +1839,6 @@
             <option value="">בחר צהרון</option>
           </select></div>
       </div>
-      <!-- Hidden backward-compatible inputs -->
-      <div style="display:none;">
-        <input type="time" id="ns-time" style="width:100%">
-      </div>
 
       <!-- Synergy Partners Table Wrapper -->
       <div id="ns-g2-choice-wrap" style="display:none;margin-bottom:10px">
@@ -1850,11 +1846,6 @@
       </div>
       <div id="ns-partner-time-hint" style="font-size:.67rem;color:#e65100;margin-bottom:10px;display:none;font-weight:700"></div>
       
-      <!-- Hidden backward-compatible inputs -->
-      <div style="display:none;">
-        <input type="time" id="ns-time" style="width:100%">
-        <input type="hidden" id="ns-time-g2" value="">
-      </div>
 
 
       <!-- Schedule type tabs -->
@@ -1920,6 +1911,10 @@
 
       <!-- Common fields -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:8px">
+        <div class="fg" style="grid-column:1/-1">
+          <label>שעת הפעילות</label>
+          <input type="time" id="ns-time" style="width:100%" onchange="window.nsTimeChg ? window.nsTimeChg() : null">
+        </div>
         <div class="fg" style="grid-column:1/-1">
           <label>ספק *</label>
           <select id="ns-sup" style="width:100%" onchange="nsSupChg()">

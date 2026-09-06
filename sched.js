@@ -93,7 +93,6 @@ function openNewSched(gid, opts={}){
   if(ns_date) ns_date.value = defaultStartDate;
   const ns_time=document.getElementById('ns-time');
   if(ns_time) ns_time.value=opts.time||'';
-  document.getElementById('ns-time-g2').value='';
   document.getElementById('ns-ph').value='';
   document.getElementById('ns-notes').value='';
   document.getElementById('ns-grp').value='1';
@@ -368,6 +367,11 @@ function renderPartnerTable(){
       </div>
     </div>`;
 }
+
+window.nsTimeChg = function() {
+  const v = document.getElementById('ns-time').value;
+  document.querySelectorAll('.ns-syn-time').forEach(el => el.value = v);
+};
 
 window.nsGenerateAllGardensCheckboxes = function() {
   const allGardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
