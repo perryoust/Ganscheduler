@@ -1675,7 +1675,9 @@ function renderPairWeek(evs,ws,gids){
     cols.forEach((gid,ci)=>{
       if(!gid){html+=`<td style="background:#f5f5f5"></td>`;return;}
       const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
-      const cellBg=hol?hol.bg:'#fff';
+      const gObj = window.G(gid);
+      const cellHol = getHolidayInfo(ds, gObj.city, typeof window.gcls === 'function' ? window.gcls(gObj) : gObj.cls);
+      const cellBg = cellHol ? cellHol.bg : '#fff';
       const pwBlk=window.getGardenBlock(gid,ds);
       // Deduplicate by supplier
       const supMap = {};

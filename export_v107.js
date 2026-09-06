@@ -290,7 +290,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename, single
         const ds      = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
         const isFri   = dow===5, isSat=dow===6;
         const blk     = typeof window.blockedDates!=='undefined' ? window.blockedDates[ds] : null;
-        const hol     = typeof window.getHolidayInfo==='function' ? window.getHolidayInfo(ds) : null;
+        const hol     = typeof window.getHolidayInfo==='function' ? window.getHolidayInfo(ds, garden.city, typeof window.getGardenClass === 'function' ? window.getGardenClass(garden) : garden.cls) : null;
         const dayName = `יום\u00a0${HEB_DAYS[dow]}`;
         const dateStr = `${day}/${month+1}/${String(year).slice(-2)}`;
 
@@ -599,7 +599,7 @@ function buildStyledSheet(gardens, allEvs, year, month) {
       const isFri  = dow === 5;
       const isSat  = dow === 6;
       const blk    = window.blockedDates ? window.blockedDates[ds] : null;
-      const hol    = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(ds) : null;
+      const hol    = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(ds, garden.city, typeof window.getGardenClass === 'function' ? window.getGardenClass(garden) : garden.cls) : null;
       const holType2 = hol ? (hol.type || (hol.label === 'קייטנה' ? 'camp' : 'vacation')) : null;
       const isCamp2 = holType2 === 'camp' || (hol && (hol.label === 'קייטנה' || hol.type === 'camp' || hol.canSched)) || (hol && hol.name && (hol.name.includes('קייטנ') || hol.name.includes('גשר')));
       const isHol2 = hol && !isCamp2;
