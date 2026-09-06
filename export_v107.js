@@ -226,6 +226,9 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename, single
       });
       const byDate = {};
       gardenEvs.forEach(s => { if(!byDate[s.d]) byDate[s.d]=[]; byDate[s.d].push(s); });
+      
+      const gAge = typeof window.extractGardenAge === 'function' ? window.extractGardenAge(garden) : (garden.age || '');
+      const gardenAgeStr = (gAge && gAge !== '***') ? gAge : '';
 
       // ── Row 1: blank spacer ───────────────────────────────
       { const row=ws.addRow([]); row.height=8; r++; }
@@ -321,7 +324,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename, single
 
           const holDisplayName = hol ? (typeof window.cleanHolName === 'function' ? window.cleanHolName(hol.name) : hol.name) : '';
           const vals = [
-            garden.name, '',
+            garden.name, gardenAgeStr,
             isFirst ? dateStr : '',
             isFirst ? dayName : '',
             ev ? (hol ? holDisplayName : evTpLabel) : (isFirst&&hol ? holDisplayName : ''),
@@ -586,6 +589,9 @@ function buildStyledSheet(gardens, allEvs, year, month) {
       byDate[s.d].push(s);
     });
 
+    const gAge = typeof window.extractGardenAge === 'function' ? window.extractGardenAge(garden) : (garden.age || '');
+    const gardenAgeStr = (gAge && gAge !== '***') ? gAge : '';
+
     for (let day = 1; day <= daysInMonth; day++) {
       const date   = new Date(year, month, day);
       const dow    = date.getDay();
@@ -614,6 +620,7 @@ function buildStyledSheet(gardens, allEvs, year, month) {
         // Then fill values
         if (isFirst) {
           sc(r+ei, 0, garden.name, null); // always show garden name
+          sc(r+ei, 1, gardenAgeStr, null);
           sc(r+ei, 2, ds,          null);
           sc(r+ei, 3, dayName,     null);
         }
