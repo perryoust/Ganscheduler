@@ -266,9 +266,7 @@ function renderPartnerTable(){
   
   const allIds = Array.from(allIdsSet);
 
-  if (allIds.length >= 2 || (window.nsCustomPartners && window.nsCustomPartners.size > 0)) {
-    if (choiceWrap) choiceWrap.style.display = 'block';
-  }
+  if (choiceWrap) choiceWrap.style.display = 'block';
 
   // Preserve existing inputs from DOM before re-rendering
   const existingTimes = {};
@@ -300,10 +298,14 @@ function renderPartnerTable(){
       
       const savedInputTime = existingTimes[Number(pId)];
       const defaultTime = document.getElementById('ns-time')?.value || '';
-      const timeVal = ev ? (window.fT ? window.fT(ev.t) : ev.t) : (savedInputTime || defaultTime);
+      const existingTimeStr = ev ? (window.fT ? window.fT(ev.t) : ev.t) : '';
+      const timeVal = savedInputTime || defaultTime;
       
       const isChecked = existingChecks[Number(pId)] !== undefined ? existingChecks[Number(pId)] : true;
-      const timeDisplay = ev ? `<span style="font-weight:600">${timeVal}</span>` : `<input type="time" class="ns-syn-time" data-gid="${pId}" value="${timeVal}" style="width:70px;font-size:.7rem;padding:2px">`;
+      const timeDisplay = `<div style="display:flex;flex-direction:column;gap:2px;align-items:center;">
+          <input type="time" class="ns-syn-time" data-gid="${pId}" value="${timeVal}" style="width:70px;font-size:.7rem;padding:2px;border:1px solid #ccc;border-radius:3px">
+          ${ev ? `<span style="font-size:0.6rem;color:#e65100;font-weight:600" title="פעילות קיימת">קיים: ${existingTimeStr}</span>` : ''}
+        </div>`;
       const chkDisplay = `<input type="checkbox" id="ns-syn-chk-${pId}" class="ns-syn-chk" data-gid="${pId}" value="${pId}" style="width:18px;height:18px;accent-color:#1565c0;cursor:pointer" ${isChecked ? 'checked' : ''}>`;
 
       rowsHtml += `
