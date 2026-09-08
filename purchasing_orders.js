@@ -307,30 +307,30 @@ function openNewOrder() {
           <div id="om-notes-buttons" style="display:flex;flex-wrap:wrap;gap:6px">
           </div>
         </div>
-        <div style="flex:1;background:#f1f8e9;padding:15px;border-radius:8px;margin-right:15px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;background:#e8f5e9;padding:6px 8px;border-radius:6px;border:1px solid #c8e6c9;">
-            <b style="color:#2e7d32;font-size:0.95rem;">כמות ערכות:</b>
-            <input type="number" id="om-kits-count" value="1" min="1" step="1" style="width:70px;text-align:center;font-weight:bold;font-size:1rem;" onchange="omCalc()" oninput="omCalc()">
+        <div style="flex:1;background:#f1f8e9;padding:12px;border-radius:8px;margin-right:12px;font-size:0.9rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;background:#e8f5e9;padding:4px 8px;border-radius:6px;border:1px solid #c8e6c9;">
+            <b style="color:#2e7d32;font-size:0.9rem;">כמות ערכות:</b>
+            <input type="number" id="om-kits-count" value="1" min="1" step="1" style="width:65px;text-align:center;font-weight:bold;font-size:0.95rem;padding:2px;" onchange="omCalc()" oninput="omCalc()">
           </div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
             <span id="om-lbl-subtotal">סה"כ ביניים (לערכה):</span>
             <span id="om-subtotal" style="font-weight:bold">0.00 ₪</span>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <span>הנחה לערכה (₪):</span>
-            <input type="number" id="om-discount" value="0" min="0" step="0.01" style="width:80px;text-align:center" onchange="omCalc()" oninput="omCalc()">
+            <input type="number" id="om-discount" value="0" min="0" step="0.01" style="width:75px;text-align:center;padding:2px;" onchange="omCalc()" oninput="omCalc()">
           </div>
-          <div id="om-kits-summary-row" style="display:none;flex-direction:column;gap:3px;margin-top:5px;margin-bottom:5px;padding:6px;background:#ffffff;border-radius:6px;border:1px solid #ded;font-size:0.85rem;color:#333;">
+          <div id="om-kits-summary-row" style="display:none;flex-direction:column;gap:2px;margin-top:4px;margin-bottom:4px;padding:4px 6px;background:#ffffff;border-radius:6px;border:1px solid #ded;font-size:0.82rem;color:#333;">
             <div style="display:flex;justify-content:space-between;font-weight:bold;color:#2e7d32;">
               <span id="om-kits-sum-lbl">סה"כ לפני מע"מ (<span id="om-kits-lbl">1</span> ערכות):</span>
               <span id="om-kits-total">0.00 ₪</span>
             </div>
           </div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:5px;color:#e65100;align-items:center;">
-            <span><span id="om-lbl-vat">מע"מ</span> (<input type="number" id="om-vat-rate" value="${window.VAT_RATE || 18}" style="width:45px;padding:2px;border:1px solid #ccc;border-radius:4px;text-align:center;" onchange="omCalc()" oninput="omCalc()">%):</span>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;color:#e65100;align-items:center;">
+            <span><span id="om-lbl-vat">מע"מ</span> (<input type="number" id="om-vat-rate" value="${window.VAT_RATE || 18}" style="width:40px;padding:1px;border:1px solid #ccc;border-radius:4px;text-align:center;" onchange="omCalc()" oninput="omCalc()">%):</span>
             <span id="om-vat">0.00 ₪</span>
           </div>
-          <div style="display:flex;justify-content:space-between;border-top:1px solid #ccc;padding-top:5px;margin-top:5px;font-size:1.1rem">
+          <div style="display:flex;justify-content:space-between;border-top:1px solid #ccc;padding-top:4px;margin-top:4px;font-size:1.02rem">
             <b>סה"כ לתשלום:</b>
             <b id="om-total" style="color:#2e7d32">0.00 ₪</b>
           </div>
@@ -964,6 +964,11 @@ function previewOrder() {
   let vat = 0;
   let total = 0;
 
+  const kitsInput = document.getElementById('om-kits-count');
+  const kitsCount = kitsInput ? (parseInt(kitsInput.value) || 1) : 1;
+
+  let vatRate = parseFloat(document.getElementById('om-vat-rate')?.value) || (window.VAT_RATE || 18);
+
   if (isIncVat) {
     const grossPerKit = Math.max(0, subtotal - discount);
     const grandGross = grossPerKit * kitsCount;
@@ -1005,6 +1010,7 @@ function previewOrder() {
   
   openOrderPrintPreview(order);
 }
+window.previewOrder = previewOrder;
 
 
 
@@ -1370,32 +1376,32 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
 
         if (kitsCount > 1) {
           kitsBreakdownHtml = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:2px 0; gap:8px;">
               <span>${rtlFix('סה"כ לערכה בודדת:')}</span>
               <span dir="ltr">&#8362; ${subtotalPerKit.toFixed(2)}</span>
             </div>
             ${discountPerKit ? `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px; color:#d32f2f;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:2px 0; gap:8px; color:#d32f2f;">
               <span>${rtlFix('הנחה לערכה:')}</span>
               <span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span>
             </div>` : ''}
-            <div style="display:flex; justify-content:space-between; align-items:center; margin:5px 0; background:#f1f8e9; padding:4px 8px; border-radius:4px; border:1px solid #c8e6c9;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; background:#f1f8e9; padding:3px 6px; border-radius:4px; border:1px solid #c8e6c9;">
               <span style="font-weight:bold; color:#2e7d32;">${rtlFix('כמות ערכות:')}</span>
-              <span style="font-weight:bold; font-size:1.1em; color:#2e7d32;">${kitsCount}</span>
+              <span style="font-weight:bold; font-size:1em; color:#2e7d32;">${kitsCount}</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:2px 0; gap:8px;">
               <span style="font-weight:bold;">${rtlFix('סה"כ')} (${kitsCount} ${rtlFix('ערכות')}):</span>
               <span dir="ltr" style="font-weight:bold;">&#8362; ${totalTaxable.toFixed(2)}</span>
             </div>
           `;
         } else {
           kitsBreakdownHtml = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:2px 0; gap:8px;">
               <span style="font-weight:bold;">${rtlFix('סה"כ:')}</span>
               <span dir="ltr" style="font-weight:bold;">&#8362; ${subtotalPerKit.toFixed(2)}</span>
             </div>
             ${discountPerKit ? `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin:3px 0; gap:12px; color:#d32f2f;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:2px 0; gap:8px; color:#d32f2f;">
               <span>${rtlFix('הנחה:')}</span>
               <span dir="ltr">- &#8362; ${discountPerKit.toFixed(2)}</span>
             </div>` : ''}
@@ -1409,17 +1415,17 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
             ${order.notes ? `<div class="order-notes"><b>${rtlFix('הערות:')}</b><br>${rtlFix(order.notes).replace(/\n/g, '<br>')}</div>` : ''}
           </div>
           
-          <div class="order-totals" style="display: flex; flex-direction: column; min-width:240px; background:#fafafa; padding:12px 18px; border-radius:8px; border:1px solid #eee;">
+          <div class="order-totals" style="display: flex; flex-direction: column; min-width:190px; max-width:220px; background:#fafafa; padding:6px 10px; border-radius:6px; border:1px solid #eee; font-size:0.82rem;">
             ${kitsBreakdownHtml}
-            <div style="display:flex; justify-content:space-between; align-items:center; margin:4px 0; gap:12px;">
-              <span style="font-weight:bold; font-size:0.95em;">${isInc ? rtlFix('מתוכם מע"מ') : rtlFix('מע"מ')} (${vatRate}%):</span>
-              <span dir="ltr" style="font-size:0.95em;">&#8362; ${order.vat.toFixed(2)}</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:2px 0; gap:8px;">
+              <span style="font-weight:bold; font-size:0.92em;">${isInc ? rtlFix('מתוכם מע"מ') : rtlFix('מע"מ')} (${vatRate}%):</span>
+              <span dir="ltr" style="font-size:0.92em;">&#8362; ${order.vat.toFixed(2)}</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:6px; border-top:1px solid #ddd; gap:12px;">
-              <span style="font-weight:bold; color:#2e7d32; font-size:1.1em;">${rtlFix('סה"כ לתשלום:')}</span>
-              <span dir="ltr" style="font-weight:bold; color:#2e7d32; font-size:1.15em;">&#8362; ${order.totalPrice.toFixed(2)}</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; padding-top:3px; border-top:1px solid #ddd; gap:8px;">
+              <span style="font-weight:bold; color:#2e7d32; font-size:1em;">${rtlFix('סה"כ לתשלום:')}</span>
+              <span dir="ltr" style="font-weight:bold; color:#2e7d32; font-size:1.02em;">&#8362; ${order.totalPrice.toFixed(2)}</span>
             </div>
-            ${isInc ? `<div style="font-size:0.75em; color:#666; margin-top:6px; text-align:center;">${rtlFix('* המחירים כוללים מע"מ')}</div>` : ''}
+            ${isInc ? `<div style="font-size:0.7em; color:#666; margin-top:3px; text-align:center;">${rtlFix('* המחירים כוללים מע"מ')}</div>` : ''}
           </div>
         </div>
       `;
