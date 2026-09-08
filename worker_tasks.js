@@ -1163,17 +1163,33 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.wtGetStaffList = function() {
-  const staff = [];
-  const seen = new Set();
+  const staffMap = new Map();
 
-  const addStaff = (name, role, city = '', phone = '') => {
-    if (!name || !name.trim()) return;
-    const cleanName = name.trim();
-    const cleanRole = (role || '').trim();
-    const cleanCity = (city || '').trim();
-    const cleanPhone = (phone || '').trim();
+  const normalizeCity = (c) => {
+    if (!c) return '';
+    c = String(c).trim();
+    if (c === 'פ"ת' || c === 'פתח תקוה') return 'פתח תקווה';
+    if (c === 'ראשל"צ' || c === 'ראשון לציון') return 'ראשון לציון';
+    if (c === 'ת"א' || c === 'תל אביב - יפו') return 'תל אביב';
+    return c;
+  };
+
+  const addStaff = (name, rawRole, city = '', phone = '', priority = 1) => {
+    if (!name || typeof name !== 'string') return;
+    const cleanName = name.trim().replace(/^[\s👤👥\-_]+/, '');
+    if (!cleanName || cleanName.length < 2) return;
     
-    // Format display string, e.g. "ריקי (מנהלת אזור גבעתיים)" or "ורדה (רכזת גבעתיים)"
+    const cleanCity = normalizeCity(city);
+    const cleanPhone = (phone || '').trim();
+
+    let cleanRole = (rawRole || '').trim();
+    if (!cleanRole || cleanRole === 'coord') {
+      cleanRole = cleanCity ? `רכז/ת ${cleanCity}` : 'רכז/ת';
+    } else if (cleanRole === 'manager') {
+      cleanRole = cleanCity ? `מנהל/ת אזור ${cleanCity}` : 'מנהל/ת אזור';
+    }
+
+    // Format display string, e.g. "ריקי (מנהלת אזור גבעתיים)" or "אבי (רכז/ת פתח תקווה)"
     let display = cleanName;
     if (cleanRole) {
       if (cleanRole.includes(cleanName)) {
@@ -1182,70 +1198,83 @@ window.wtGetStaffList = function() {
         display = `${cleanName} (${cleanRole})`;
       }
     }
-    
-    const key = display.toLowerCase();
-    if (!seen.has(key)) {
-      seen.add(key);
-      staff.push({
+
+    const key = `${cleanName.toLowerCase()}|${cleanCity.toLowerCase()}`;
+    const altKey = cleanName.toLowerCase();
+
+    if (staffMap.has(key)) {
+      const existing = staffMap.get(key);
+      if (!existing.phone && cleanPhone) existing.phone = cleanPhone;
+      if (priority > existing.priority) {
+        existing.role = cleanRole;
+        existing.display = display;
+        existing.priority = priority;
+      }
+    } else if (staffMap.has(altKey) && (!cleanCity || !staffMap.get(altKey).city)) {
+      const existing = staffMap.get(altKey);
+      if (cleanCity) {
+        existing.city = cleanCity;
+        existing.role = cleanRole;
+        existing.display = display;
+        staffMap.delete(altKey);
+        staffMap.set(key, existing);
+      }
+      if (!existing.phone && cleanPhone) existing.phone = cleanPhone;
+    } else {
+      const entry = {
         name: cleanName,
         role: cleanRole,
         display: display,
         city: cleanCity,
-        phone: cleanPhone
-      });
+        phone: cleanPhone,
+        priority: priority
+      };
+      staffMap.set(key, entry);
     }
   };
 
-  // 1. Predefined standard managers and area coordinators
-  const defaults = [
-    { name: 'ריקי', role: 'מנהלת אזור גבעתיים', city: 'גבעתיים', phone: '' },
-    { name: 'ורדה', role: 'רכזת גבעתיים', city: 'גבעתיים', phone: '052-4765312' },
-    { name: 'הילה', role: 'רכזת גבעתיים', city: 'גבעתיים', phone: '054-8283444' },
-    { name: 'יוסי', role: 'רכז גבעתיים', city: 'גבעתיים', phone: '050-6898983' },
-    { name: 'ירון', role: 'רכז גבעתיים', city: 'גבעתיים', phone: '054-2398933' },
-    { name: 'אבי', role: 'רכז פתח תקווה', city: 'פ"ת', phone: '054-9052207' },
-    { name: 'גל', role: 'רכז פתח תקווה', city: 'פ"ת', phone: '054-4733717' },
-    { name: 'קרנית', role: 'רכזת פתח תקווה', city: 'פ"ת', phone: '054-7825065' },
-    { name: 'בתאל', role: 'רכזת ראש העין', city: 'ראש העין', phone: '054-5714464' },
-    { name: 'מיקה', role: 'רכזת ראש העין', city: 'ראש העין', phone: '054-3018445' },
-    { name: 'דנית', role: 'רכזת ראש העין', city: 'ראש העין', phone: '050-6909070' },
-    { name: 'מירב', role: 'רכזת ראש העין', city: 'ראש העין', phone: '050-7161716' },
-    { name: 'נוי', role: 'רכזת באר יעקב', city: 'באר יעקב', phone: '054-279-9313' },
-    { name: 'שחר', role: 'רכז נס ציונה', city: 'נס ציונה', phone: '054-5768087' },
-    { name: 'שרית', role: 'רכזת נס ציונה', city: 'נס ציונה', phone: '054-505-6335' }
-  ];
-  defaults.forEach(d => addStaff(d.name, d.role, d.city, d.phone));
-
-  // 2. Extract from custom staff stored in window.supEx
-  if (window.supEx && Array.isArray(window.supEx['__staff_members'])) {
-    window.supEx['__staff_members'].forEach(s => addStaff(s.name, s.role, s.city, s.phone));
-  }
-
-  // 3. Extract from window.managers
+  // 1. Primary Source: Official Managers and Coordinators from window.managers (Priority 3)
   if (window.managers && typeof window.managers === 'object') {
     Object.values(window.managers).forEach(m => {
       if (m && m.name) {
-        addStaff(m.name, m.role || 'מנהל/ת', m.city || '', m.phone || '');
+        addStaff(m.name, m.role, m.city || '', m.phone || '', 3);
       }
     });
   }
 
-  // 4. Extract from GARDENS co field
-  const allGardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
-  allGardens.forEach(g => {
-    if (g.co) {
-      const parts = g.co.split(/[-–—]/);
+  // 2. Custom staff members in supEx (Priority 2)
+  if (window.supEx && Array.isArray(window.supEx['__staff_members'])) {
+    window.supEx['__staff_members'].forEach(s => {
+      if (s && s.name) addStaff(s.name, s.role, s.city || '', s.phone || '', 2);
+    });
+  }
+
+  // 3. Active gardens in current year database (Priority 1)
+  const activeGardens = typeof AG === 'function' ? AG() : (window.GARDENS || []);
+  activeGardens.forEach(g => {
+    if (g && g.co) {
+      const parts = String(g.co).split(/[-–—]/);
       const name = parts[0] ? parts[0].trim() : '';
-      const phone = parts[1] ? parts.slice(1).join('-').trim() : '';
+      const phone = parts[1] ? parts.slice(1).join('-').trim() : (g.coph || '');
       if (name) {
-        const city = g.city || '';
-        const role = city ? `רכז/ת ${city}` : 'רכז/ת';
-        addStaff(name, role, city, phone);
+        addStaff(name, '', g.city || '', phone, 1);
       }
     }
   });
 
-  return staff;
+  // 4. Common orderers list (window.PURCH_ORDERERS)
+  if (Array.isArray(window.PURCH_ORDERERS)) {
+    window.PURCH_ORDERERS.forEach(item => {
+      if (typeof item === 'string' && item.trim()) {
+        const lines = item.trim().split('\n');
+        const name = lines[0]?.trim();
+        const role = lines[1]?.trim() || '';
+        if (name) addStaff(name, role, '', '', 2);
+      }
+    });
+  }
+
+  return Array.from(staffMap.values()).sort((a, b) => a.name.localeCompare(b.name, 'he'));
 };
 
 window.wtSearchGardenInline = function(q) {
