@@ -934,15 +934,20 @@ function duplicateOrder(id) {
   document.getElementById('om-supplier').value = order.supplier || '';
   
   const ordererEl = document.getElementById('om-orderer');
-  if(ordererEl) ordererEl.value = order.orderer || '';
+  if (ordererEl) {
+    ordererEl.value = order.orderer || '';
+  }
   
   const descEl = document.getElementById('om-orderdesc');
-  if(descEl) descEl.value = order.orderDesc || '';
+  if (descEl) descEl.value = order.orderDesc || '';
 
   const suffixEl = document.getElementById('om-titlesuffix');
-  if(suffixEl) suffixEl.value = order.titleSuffix || '';
+  if (suffixEl) suffixEl.value = order.titleSuffix || '';
   
-  document.getElementById('om-notes').value = order.notes || '';
+  const notesEl = document.getElementById('om-notes');
+  if (notesEl) {
+    notesEl.value = order.notes || '';
+  }
 
   if (order.discount !== undefined) {
     const discEl = document.getElementById('om-discount');
@@ -973,7 +978,7 @@ function duplicateOrder(id) {
   if (saveBtn) saveBtn.setAttribute('onclick', `saveOrder('${newId}')`);
   
   omCalc();
-  showToast(`📋 הפרטים שוכפלו בהצלחה להזמנה חדשה (מספר ${newOrderId}). לחץ על "שמור הזמנה" כדי לשמור אותה.`);
+  showToast(`📋 הפרטים (כולל חותם והערות) שוכפלו בהצלחה להזמנה חדשה (${newOrderId}). לחץ על "שמור הזמנה" כדי לשמור אותה.`);
 }
 
 function printOrder(id) {
