@@ -897,21 +897,18 @@ window.saveDeliveriesToFirebase = async function() {
 window.loadPurchasingDataFromFirebase = async function (forceReload) {
   if (window._purchasingDataLoaded && !forceReload) return;
 
-  let tok = window._cachedToken || null;
+  let tok = null;
   if (window._fbUser) {
-    try { tok = await window._fbUser.getIdToken(); }
+    try { tok = await window._fbUser.getIdToken(false); }
     catch (e) { console.warn('Failed to get token for purchasing data', e); }
   }
+  if (!tok && window._cachedToken) tok = window._cachedToken;
 
-  if (!tok) {
-    console.warn('[Purchasing] No auth token available — will retry on next switchMode');
-    return;
-  }
-
-  const invUrl = `${FB_ROOT}/invoices.json?auth=${tok}&orderBy="$key"&limitToLast=150&cb=${Date.now()}`;
+  const authQ = tok ? '?auth=' + tok : '';
+  const invUrl = `${FB_ROOT}/invoices.json${authQ}${authQ ? '&' : '?'}orderBy="$key"&limitToLast=150&cb=${Date.now()}`;
   window._invoicesPartialLoad = true;
-  const ordUrl = getFirebaseOrdersUrl() + '?auth=' + tok + '&cb=' + Date.now();
-  const delUrl = getFirebaseDeliveriesUrl() + '?auth=' + tok + '&cb=' + Date.now();
+  const ordUrl = getFirebaseOrdersUrl() + authQ + (authQ ? '&' : '?') + 'cb=' + Date.now();
+  const delUrl = getFirebaseDeliveriesUrl() + authQ + (authQ ? '&' : '?') + 'cb=' + Date.now();
 
   let anySuccess = false;
   try {
@@ -965,7 +962,7 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
       // Fallback: If root /orders.json is empty, check legacy year/data locations
       if (loadedOrd.length === 0 && window.CURRENT_YEAR && window.CURRENT_YEAR !== 'tashpav') {
         try {
-          const yearOrdUrl = `${FB_ROOT}/years/${window.CURRENT_YEAR}/orders.json?auth=${tok}&cb=${Date.now()}`;
+          const yearOrdUrl = `${FB_ROOT}/years/${window.CURRENT_YEAR}/orders.json${authQ}${authQ ? '&' : '?'}cb=${Date.now()}`;
           const yor = await fetch(yearOrdUrl);
           if (yor.ok) {
             const yData = await yor.json();
@@ -977,7 +974,7 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
       
       if (loadedOrd.length === 0) {
         try {
-          const tashpazOrdUrl = `${FB_ROOT}/years/tashpaz/orders.json?auth=${tok}&cb=${Date.now()}`;
+          const tashpazOrdUrl = `${FB_ROOT}/years/tashpaz/orders.json${authQ}${authQ ? '&' : '?'}cb=${Date.now()}`;
           const tor = await fetch(tashpazOrdUrl);
           if (tor.ok) {
             const tData = await tor.json();
@@ -1012,7 +1009,7 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
       let loadedDel = Array.isArray(cloudDel) ? cloudDel : Object.values(cloudDel || {});
       if (loadedDel.length === 0 && window.CURRENT_YEAR && window.CURRENT_YEAR !== 'tashpav') {
         try {
-          const yearDelUrl = `${FB_ROOT}/years/${window.CURRENT_YEAR}/deliveries.json?auth=${tok}&cb=${Date.now()}`;
+          const yearDelUrl = `${FB_ROOT}/years/${window.CURRENT_YEAR}/deliveries.json${authQ}${authQ ? '&' : '?'}cb=${Date.now()}`;
           const ydr = await fetch(yearDelUrl);
           if (ydr.ok) {
             const yData = await ydr.json();

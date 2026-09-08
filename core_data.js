@@ -511,12 +511,16 @@ function _applyYearData(o){
   
   // Orders and Deliveries are stored at root level / dedicated localStorage keys.
   if (Array.isArray(o.orders) && o.orders.length > 0) {
-    window.ORDERS = o.orders;
+    if (!Array.isArray(window.ORDERS) || window.ORDERS.length < o.orders.length) {
+      window.ORDERS = o.orders;
+    }
   } else {
     try {
       const localOrd = JSON.parse(_safeLS.getItem('ganv5_orders') || '[]');
       if (Array.isArray(localOrd) && localOrd.length > 0) {
-        window.ORDERS = localOrd;
+        if (!Array.isArray(window.ORDERS) || window.ORDERS.length === 0) {
+          window.ORDERS = localOrd;
+        }
       } else if (!Array.isArray(window.ORDERS)) {
         window.ORDERS = [];
       }

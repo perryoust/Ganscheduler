@@ -101,8 +101,12 @@ function SPT(t){
   }
   if(t==='pdash') refreshPurchDash();
   if(t==='porders') {
-    if (typeof window.loadPurchasingDataFromFirebase === 'function') {
-      window.loadPurchasingDataFromFirebase();
+    if (typeof window.forceReloadPurchasingOrders === 'function') {
+      window.forceReloadPurchasingOrders();
+    } else if (typeof window.loadPurchasingDataFromFirebase === 'function') {
+      window.loadPurchasingDataFromFirebase(true).then(() => {
+        if (typeof window.renderPurchOrders === 'function') window.renderPurchOrders();
+      });
     }
     if (typeof window.renderPurchOrders === 'function') window.renderPurchOrders();
   }

@@ -21,6 +21,47 @@ window.pdDoSearch = function(val) {
   }, 200);
 };
 
+window.forceReloadPurchasingOrders = async function(btn) {
+  if (btn) { btn.disabled = true; btn.innerText = 'מרענן...'; }
+  try {
+    let tok = null;
+    if (window._fbUser) {
+      try { tok = await window._fbUser.getIdToken(false); } catch(e) {}
+    }
+    if (!tok && window._cachedToken) tok = window._cachedToken;
+
+    const authQ = tok ? '?auth=' + tok : '';
+    const ordUrl = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/orders.json' + authQ + (authQ ? '&' : '?') + 'cb=' + Date.now();
+    const resp = await fetch(ordUrl);
+    if (resp.ok) {
+      const data = await resp.json();
+      const loaded = Array.isArray(data) ? data : Object.values(data || {});
+      if (loaded.length > 0) {
+        window.ORDERS = loaded;
+        if (window._safeLS) window._safeLS.setItem('ganv5_orders', JSON.stringify(window.ORDERS));
+        window._purchasingDataLoaded = true;
+        renderPurchOrders();
+        if (typeof window.showToast === 'function') {
+          window.showToast(`✅ רענון הושלם: נטענו ${loaded.length} הזמנות מהענן!`);
+        }
+        return;
+      }
+    }
+    if (typeof window.loadPurchasingDataFromFirebase === 'function') {
+      await window.loadPurchasingDataFromFirebase(true);
+    }
+    renderPurchOrders();
+    if (typeof window.showToast === 'function') {
+      window.showToast(`✅ רענון הושלם: נטענו ${(window.ORDERS || []).length} הזמנות!`);
+    }
+  } catch(e) {
+    console.error('forceReloadPurchasingOrders error:', e);
+    if (typeof window.showToast === 'function') window.showToast('⚠️ שגיאה ברענון מהענן');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerText = '🔄 רענן מהענן'; }
+  }
+};
+
 function renderPurchOrders() {
   const container = document.getElementById('porders-list');
   if (!container) return;
