@@ -746,6 +746,10 @@ window.loadOrderTemplate = async function(id) {
       const vatEl = document.getElementById('om-vat-rate');
       if (vatEl) vatEl.value = order.vatRate;
     }
+    if (order.kitsCount !== undefined) {
+      const kitsEl = document.getElementById('om-kits-count');
+      if (kitsEl) kitsEl.value = order.kitsCount;
+    }
     setOrderVatMode(order.vatMode === 'inc' ? 'inc' : 'ex');
     
     const tbody = document.getElementById('om-items-body');
@@ -819,6 +823,10 @@ function editOrder(id) {
   if (order.vatRate !== undefined) {
     const vatEl = document.getElementById('om-vat-rate');
     if (vatEl) vatEl.value = order.vatRate;
+  }
+  if (order.kitsCount !== undefined) {
+    const kitsEl = document.getElementById('om-kits-count');
+    if (kitsEl) kitsEl.value = order.kitsCount;
   }
   setOrderVatMode(order.vatMode === 'inc' ? 'inc' : 'ex');
   
