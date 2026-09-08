@@ -658,7 +658,14 @@ function sucToggleEdit(){
   const ep=document.getElementById('suc-edit-panel');
   const vp=document.getElementById('suc-view');
   const showing=ep.style.display!=='none';
-  if(showing){ ep.style.display='none'; vp.style.display='block'; return; }
+  if(showing){
+    try {
+      if (typeof window.sucSaveEdit === 'function') {
+        window.sucSaveEdit(true);
+      }
+    } catch(e) {}
+    ep.style.display='none'; vp.style.display='block'; return; 
+  }
   const name=_sucName; // base name, e.g. "חוגות"
   const ex=supBaseEx(name);
   const s=SUPBASE.find(x=>supBase(x.name)===name)||{};
@@ -772,72 +779,81 @@ window.sucSaveKeywordsAuto = function(val) {
 
 async function sucSaveEdit(isAuto = false){
   const nameEl=document.getElementById('suc-edit-name');
+  if(!nameEl) return;
   const newBase=nameEl.value.trim(); const origBase=nameEl.dataset.orig;
   if(!newBase){ 
     if(!isAuto) _spAlertDialog('יש להזין שם ספק');
     return;
   }
   if(origBase&&origBase!==newBase){
-    const affected=SCH.filter(s=>supBase(s.a)===origBase).length;
-    if(!await window.spConfirm(`לשנות שם מ-"${origBase}" ל-"${newBase}"?\n${affected} שיבוצים יעודכנו.`)) {
-      if(isAuto) nameEl.value = origBase; // Revert
-      return;
-    }
-    SCH.forEach(s=>{
-      if(supBase(s.a)===origBase){
-        const act=supAct(s.a);
-        s.a=act?(newBase+' - '+act):newBase;
+    if(isAuto) {
+      nameEl.value = origBase; // Keep original name on silent auto-save
+    } else {
+      const affected=SCH.filter(s=>supBase(s.a)===origBase).length;
+      if(!await window.spConfirm(`לשנות שם מ-"${origBase}" ל-"${newBase}"?\n${affected} שיבוצים יעודכנו.`)) {
+        return;
       }
-    });
-    if(supEx[origBase]){supEx[newBase]={...supEx[origBase]};delete supEx[origBase];}
-    if(!supEx[newBase]) supEx[newBase] = {};
-    if(!supEx[newBase]._mergedFrom) supEx[newBase]._mergedFrom = [];
-    if(!supEx[newBase]._mergedFrom.includes(origBase)) supEx[newBase]._mergedFrom.push(origBase);
-    window._mergedAliasMap = null; // Invalidate alias cache
-    _sucName=newBase;
+      SCH.forEach(s=>{
+        if(supBase(s.a)===origBase){
+          const act=supAct(s.a);
+          s.a=act?(newBase+' - '+act):newBase;
+        }
+      });
+      if(supEx[origBase]){supEx[newBase]={...supEx[origBase]};delete supEx[origBase];}
+      if(!supEx[newBase]) supEx[newBase] = {};
+      if(!supEx[newBase]._mergedFrom) supEx[newBase]._mergedFrom = [];
+      if(!supEx[newBase]._mergedFrom.includes(origBase)) supEx[newBase]._mergedFrom.push(origBase);
+      window._mergedAliasMap = null; // Invalidate alias cache
+      _sucName=newBase;
+    }
   }
-  if(!supEx[_sucName]) supEx[_sucName]={};
-  supEx[_sucName].ph1=document.getElementById('suc-edit-ph1').value.trim();
-  supEx[_sucName].ph2=document.getElementById('suc-edit-ph2').value.trim();
-  supEx[_sucName].g1=document.getElementById('suc-edit-g1').value.trim();
-  supEx[_sucName].notes=document.getElementById('suc-edit-notes').value.trim();
+  const targetName = _sucName || origBase || newBase;
+  if(!supEx[targetName]) supEx[targetName]={};
+  supEx[targetName].ph1=document.getElementById('suc-edit-ph1')?.value.trim()||'';
+  supEx[targetName].ph2=document.getElementById('suc-edit-ph2')?.value.trim()||'';
+  supEx[targetName].g1=document.getElementById('suc-edit-g1')?.value.trim()||'';
+  supEx[targetName].notes=document.getElementById('suc-edit-notes')?.value.trim()||'';
   const kwInp=document.getElementById('suc-edit-keywords');
-  if(kwInp) supEx[_sucName].keywords=kwInp.value.trim();
+  if(kwInp) supEx[targetName].keywords=kwInp.value.trim();
   const aliasInp=document.getElementById('suc-edit-alias');
-  if(aliasInp) supEx[_sucName].alias=aliasInp.value.trim();
+  if(aliasInp) supEx[targetName].alias=aliasInp.value.trim();
   const schedPhInp=document.getElementById('suc-edit-sched-phone');
-  if(schedPhInp) supEx[_sucName].schedPhone=schedPhInp.value;
+  if(schedPhInp) supEx[targetName].schedPhone=schedPhInp.value;
   const moeInp=document.getElementById('suc-edit-moe');
-  if(moeInp) supEx[_sucName].moeTax=moeInp.value.trim();
+  if(moeInp) supEx[targetName].moeTax=moeInp.value.trim();
   const contactInp2=document.getElementById('suc-edit-contact');
-  if(contactInp2) supEx[_sucName].contact=contactInp2.value.trim();
+  if(contactInp2) supEx[targetName].contact=contactInp2.value.trim();
   const emailInp=document.getElementById('suc-edit-email');
-  if(emailInp) supEx[_sucName].email=emailInp.value.trim();
+  if(emailInp) supEx[targetName].email=emailInp.value.trim();
   const addrInp2=document.getElementById('suc-edit-addr');
-  if(addrInp2) supEx[_sucName].addr=addrInp2.value.trim();
-  supEx[_sucName].isAct = document.getElementById('suc-edit-is-act')?.checked !== false;
-  supEx[_sucName].isPurch = !!document.getElementById('suc-edit-is-purch')?.checked;
+  if(addrInp2) supEx[targetName].addr=addrInp2.value.trim();
+  supEx[targetName].isAct = document.getElementById('suc-edit-is-act')?.checked !== false;
+  supEx[targetName].isPurch = !!document.getElementById('suc-edit-is-purch')?.checked;
   const actTags=document.querySelectorAll('#suc-acts-list .suc-act-tag');
   const savedActs=[...actTags].map(el=>el.dataset.act).filter(Boolean);
-  if(savedActs.length) supEx[_sucName].acts=savedActs;
-  save(); renderDash(); renderCal(); updCounts();
-  if(_appMode==='purch') renderPurchSuppliers();
-  ['dash-sup','cal-sup','s-sup','ns-sup','es-sup'].forEach(id=>{
-    const el=document.getElementById(id); if(!el) return;
-    const cur=el.value;
-    el.innerHTML=id==='es-sup'?'<option value="">-- ללא שינוי --</option>':'<option value="">כל הספקים</option>';
-    getAllSup().filter(s=>window.isActSupplier(s.name)).forEach(s=>{
-      const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
-      el.innerHTML+=`<option value='${s.name.replace(/'/g, "&#39;")}'>${disp}</option>`;
-    });
-    el.value=cur;
-  });
-  sucRefreshInfo(); sucRefreshActFilt();
+  if(savedActs.length) supEx[targetName].acts=savedActs;
+  save(true);
   if(!isAuto) {
+    renderDash(); renderCal(); updCounts();
+    if(_appMode==='purch') renderPurchSuppliers();
+    ['dash-sup','cal-sup','s-sup','ns-sup','es-sup'].forEach(id=>{
+      const el=document.getElementById(id); if(!el) return;
+      const cur=el.value;
+      el.innerHTML=id==='es-sup'?'<option value="">-- ללא שינוי --</option>':'<option value="">כל הספקים</option>';
+      getAllSup().filter(s=>window.isActSupplier(s.name)).forEach(s=>{
+        const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name;
+        el.innerHTML+=`<option value='${s.name.replace(/'/g, "&#39;")}'>${disp}</option>`;
+      });
+      el.value=cur;
+    });
+    sucRefreshInfo(); sucRefreshActFilt();
     sucToggleEdit(); 
+    if(typeof showToast === 'function') showToast('✅ נשמר בהצלחה');
+  } else {
+    if(typeof showToast === 'function') showToast('💾 פרטי הספק נשמרו');
   }
-  if(typeof showToast === 'function') showToast('✅ נשמר בהצלחה');
 }
+window.sucSaveEdit = sucSaveEdit;
 function clearSupCardFilter(){
   document.getElementById('suc-from').value='';
   document.getElementById('suc-to').value='';
@@ -1071,7 +1087,7 @@ function goToTodayActivities(){
 }
 
 const MAX_SNAPSHOTS=20;
-document.querySelectorAll('.modal').forEach(m=>{m.onclick=e=>{if(e.target===m) m.classList.remove('open');};});
+document.querySelectorAll('.modal').forEach(m=>{m.onclick=e=>{if(e.target===m) { if(m.id && window.CM) window.CM(m.id); else m.classList.remove('open'); };}});
 
 
 // ── Quick Cancel Popup ──────────────────────────────────

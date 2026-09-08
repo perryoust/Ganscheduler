@@ -374,6 +374,22 @@ window.OM = function(id) {
 };
 window.CM = function(id) {
   if (id === 'spm') window._currentCustomGroup = null;
+  if (id === 'sum') {
+    try {
+      const name = document.getElementById('su-name')?.value?.trim();
+      if (name && typeof window.saveSup === 'function') {
+        window.saveSup(true);
+      }
+    } catch(e) { console.error('Error auto-saving supplier on exit:', e); }
+  }
+  if (id === 'sucard-m') {
+    try {
+      const ep = document.getElementById('suc-edit-panel');
+      if (ep && ep.style.display !== 'none' && typeof window.sucSaveEdit === 'function') {
+        window.sucSaveEdit(true);
+      }
+    } catch(e) { console.error('Error auto-saving supplier card on exit:', e); }
+  }
   const el = document.getElementById(id);
   if (el) {
     if (el._fromDup) { el.style.zIndex = ''; el._fromDup = false; }

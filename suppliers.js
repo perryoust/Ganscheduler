@@ -610,19 +610,6 @@ function openSupModal(name){
   const delBtn = document.getElementById('sum-del-btn');
   if (delBtn) delBtn.style.display = name ? 'inline-flex' : 'none';
   document.getElementById('sum').classList.add('open');
-
-  // Attach auto-save listeners ONLY when editing an existing supplier
-  const attachAutoSave = (id) => {
-    const el = document.getElementById(id);
-    if(el) {
-      if (window._supAutoSaveHandler) el.removeEventListener('change', window._supAutoSaveHandler);
-      if (name) {
-        window._supAutoSaveHandler = () => saveSup(true);
-        el.addEventListener('change', window._supAutoSaveHandler);
-      }
-    }
-  };
-  ['su-ph1','su-ph2','su-gov1','su-gov2','su-notes','su-contact','su-email','su-addr','su-moe-tax','su-alias','su-sched-phone','su-is-act','su-is-purch','su-entity-type','su-entity-type-top'].forEach(attachAutoSave);
 }
 function renderSupActsList(name){
   const acts=name?getSupActs(name):[];
@@ -690,20 +677,50 @@ async function deleteSup() {
 
 async function saveSup(silent = false){
   const nameEl=document.getElementById('su-name');
+  if(!nameEl) return;
   const name=nameEl.value.trim();
   const origName=nameEl.dataset.orig;
 
-  // If silent auto-save:
-  // 1. Do not auto-save if brand new unsaved supplier
-  // 2. Do not auto-save if name is empty or being changed
+  // If silent auto-save (e.g. called on exit/closing modal):
   if (silent) {
-    if (!origName) return;
-    if (!name || origName !== name) return;
+    if (!name) return; // Do not auto-save if no supplier name was entered
+    const targetName = (origName && origName !== name) ? origName : name;
+    const existActs = Array.isArray((window.supEx[targetName]||{}).acts) ? (window.supEx[targetName].acts) : getSupActs(targetName);
+    const entityVal = document.getElementById('su-entity-type-top')?.value || document.getElementById('su-entity-type')?.value || '';
+    window.supEx[targetName] = {
+      ...(window.supEx[targetName]||{}),
+      ph1: document.getElementById('su-ph1')?.value.trim()||'',
+      ph2: document.getElementById('su-ph2')?.value.trim()||'',
+      g1: document.getElementById('su-gov1')?.value.trim()||'',
+      g2: document.getElementById('su-gov2')?.value.trim()||'',
+      notes: document.getElementById('su-notes')?.value.trim()||'',
+      contact: document.getElementById('su-contact')?.value.trim()||'',
+      email: document.getElementById('su-email')?.value.trim()||'',
+      addr: document.getElementById('su-addr')?.value.trim()||'',
+      moeTax: document.getElementById('su-moe-tax')?.value.trim()||'',
+      alias: document.getElementById('su-alias')?.value.trim()||'',
+      schedPhone: document.getElementById('su-sched-phone')?.value||'ph1',
+      acts: existActs,
+      isAct: !!document.getElementById('su-is-act')?.checked,
+      isPurch: !!document.getElementById('su-is-purch')?.checked,
+      entityType: entityVal
+    };
+    if (!origName && !window.SUPBASE.find(s=>s.name===targetName)) {
+      if (!window.supEx['__c']) window.supEx['__c']=[];
+      if (!window.supEx['__c'].find(s=>s.name===targetName)) {
+        window.supEx['__c'].push({id:Date.now(), name:targetName, phone:window.supEx[targetName].ph1});
+      }
+    }
+    window.save(true);
+    try { if (typeof window.renderPurchSuppliers === 'function') window.renderPurchSuppliers(); } catch(e) {}
+    try { if (typeof renderSup === 'function') renderSup(); } catch(e) {}
+    window.showToast?.('💾 פרטי הספק נשמרו');
+    return; // DO NOT CLOSE MODAL OR CALL FULL REFRESH ON SILENT EXIT SAVE
   }
 
-  if(!name){ if(!silent) _spAlertDialog('יש להזין שם'); return; }
+  // Explicit Save (Clicking "💾 שמור"):
+  if(!name){ _spAlertDialog('יש להזין שם'); return; }
   if(origName&&origName!==name){
-    if(silent) return; // Do not auto-save if name is being changed (requires prompt)
     if(!await window.spConfirm(`לשנות את שם הספק מ-"${origName}" ל-"${name}"?\nכל השיבוצים יעודכנו אוטומטית.`)) return;
     window.SCH.forEach(s=>{if(s.a===origName)s.a=name;});
     if(window.supEx[origName]) window.supEx[name]={...window.supEx[origName]};
@@ -738,11 +755,6 @@ async function saveSup(silent = false){
   
   window.save(true);
   
-  if(silent) {
-    window.showToast?.('✅ נשמר!');
-    return; // DO NOT CLOSE MODAL OR REFRESH ON SILENT AUTO-SAVE
-  }
-
   window.CM('sum');
   window.refresh();
   try{ window.renderPurchSuppliers(); }catch(e){}
@@ -781,6 +793,7 @@ async function saveSup(silent = false){
     el.value=cur;
   });
 }
+window.saveSup = saveSup;
 // Global supplier list used by merge dialog (avoids HTML attribute escaping issues)
 let _mergeSupList = [];
 function openMerge(){
