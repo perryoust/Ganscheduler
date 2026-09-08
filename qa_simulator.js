@@ -425,6 +425,40 @@
     if (!blk || blk.reason !== 'שיפוץ בצהרון') throw new Error('חסימה ידנית לא זוהתה');
   });
 
+  // --- Test 14: Day Camp vs Vacation Scheduling Rules ---
+  QA.addTest('חוקי שיבוץ: קייטנות (שיבוץ נקודתי בלבד) וחופשות (חסימה)', async function(setupDOM) {
+    window.holidays = [
+      { id: 'h_camp', name: 'גשר כיפור סוכות', from: '2026-09-22', to: '2026-09-24', city: '', type: 'camp', scope: 'all' },
+      { id: 'h_vac', name: 'חופשת סוכות', from: '2026-09-25', to: '2026-09-30', city: '', type: 'vacation', scope: 'all' }
+    ];
+    const campHol = window.getHolidayInfo('2026-09-22');
+    const vacHol = window.getHolidayInfo('2026-09-25');
+    if (!window.isCampHoliday(campHol)) throw new Error('זיהוי קייטנה נכשל');
+    if (!window.isBlockingHoliday(vacHol)) throw new Error('זיהוי חופשה חוסמת נכשל');
+
+    // Test Series Scheduling skips camp & vacation
+    window.SCH = [];
+    window._nsmTab = 'recur';
+    setupDOM({
+      'ns-g': '1',
+      'ns-date': '2026-09-20',
+      'ns-recur-from': '2026-09-20',
+      'ns-recur-to': '2026-09-26',
+      'ns-day-chk': [0, 2, 5], // Sun 20th (ok), Tue 22nd (camp), Fri 25th (vacation)
+      'ns-sup': 'עליזה',
+      'ns-act-type': 'מוסיקה'
+    });
+    // Add checkboxes for days
+    document.querySelectorAll('.ns-day-chk').forEach(cb => {
+      cb.checked = ['0', '2', '5'].includes(cb.value);
+    });
+    await window.saveNewSched(false);
+    const scheduledDates = window.SCH.map(x => x.d);
+    if (scheduledDates.includes('2026-09-22')) throw new Error('סדרה קבועה שובצה בטעות ביום קייטנה');
+    if (scheduledDates.includes('2026-09-25')) throw new Error('סדרה קבועה שובצה בטעות ביום חופשה');
+    if (!scheduledDates.includes('2026-09-20')) throw new Error('סדרה קבועה לא שובצה ביום חול רגיל');
+  });
+
   // Register on window
   window.QA_SIMULATOR = QA;
 })();

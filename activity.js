@@ -1199,6 +1199,19 @@ window.spExecuteDuplicate = function() {
   
   const sels = Array.from(document.querySelectorAll('.sp-garden-sel:checked')).map(el => el.value);
   if(!sels.length) { alert('נא לבחור לפחות צהרון אחד (בתיבות הסימון למעלה)'); return; }
+
+  // Validate blocking holidays (vacation / noact)
+  for (const pId of sels) {
+    const orig = window.SCH.find(x => x.id == pId);
+    if(orig) {
+      const g = window.G(orig.g);
+      const hol = g && window.getHolidayInfo ? window.getHolidayInfo(newDate, g.city||null, window.gcls ? window.gcls(g) : g.cls) : null;
+      if (hol && (hol.type === 'vacation' || hol.type === 'noact')) {
+        alert(`❌ לא ניתן לשכפל לתאריך ${window.fD(newDate)} (${g ? g.name : 'גן'}): מוגדר יום ${hol.label || 'חופשה'} (${hol.name}).`);
+        return;
+      }
+    }
+  }
   
   let duplicated = 0;
   sels.forEach(pId => {
@@ -1654,8 +1667,11 @@ async function saveReplaceRecur(id) {
     while(cur <= endD && count < 500) {
       if(days.includes(cur.getDay())) {
         const ds = window.d2s(cur);
-        const hol = window.getHolidayInfo ? window.getHolidayInfo(ds, window.G(s.g).city) : null;
-        if(!hol || hol.canSched || hol.type === 'info') {
+        const mainG = window.G(s.g);
+        const hol = mainG && window.getHolidayInfo ? window.getHolidayInfo(ds, mainG.city||null, window.gcls ? window.gcls(mainG) : mainG.cls) : null;
+        const isMainBlocked = hol && (hol.type === 'vacation' || hol.type === 'noact' || hol.type === 'camp');
+        
+        if(!isMainBlocked) {
           const eid = newRecId + count;
           // Add for primary garden
           window.SCH.push({
@@ -1668,15 +1684,17 @@ async function saveReplaceRecur(id) {
             if (pair) {
               pair.ids.forEach((pid, idx) => {
                 if (Number(pid) !== Number(s.g)) {
-                  // Keep partner time if possible, otherwise use main time
-                    const syncBox = document.getElementById('rr-sync-partner-' + pid);
-                    if (syncBox && !syncBox.checked) return; // Skip this partner!
-                    let specificPartnerTime = partnerTime;
-                    const specificInput = document.getElementById('rr-time-partner-' + pid);
-                    if (specificInput) specificPartnerTime = specificInput.value;
-                    console.log('PID:', pid, 'SyncBox:', !!syncBox, 'InputFound:', !!specificInput, 'Time:', specificPartnerTime);
-                    window.SCH.push({
-                      id: eid + (idx+1)*5000, g: pid, d: ds, a: sup, act: act, t: specificPartnerTime, st: 'ok', tp: newTp,
+                  const syncBox = document.getElementById('rr-sync-partner-' + pid);
+                  if (syncBox && !syncBox.checked) return; // Skip this partner!
+                  const partG = window.G(pid);
+                  const partHol = partG && window.getHolidayInfo ? window.getHolidayInfo(ds, partG.city||null, window.gcls ? window.gcls(partG) : partG.cls) : null;
+                  if (partHol && (partHol.type === 'vacation' || partHol.type === 'noact' || partHol.type === 'camp')) return; // Skip partner if in holiday/camp
+                  
+                  let specificPartnerTime = partnerTime;
+                  const specificInput = document.getElementById('rr-time-partner-' + pid);
+                  if (specificInput) specificPartnerTime = specificInput.value;
+                  window.SCH.push({
+                    id: eid + (idx+1)*5000, g: pid, d: ds, a: sup, act: act, t: specificPartnerTime, st: 'ok', tp: newTp,
                     nt: '', _recId: newRecId + '_' + cur.getDay(), grp: newGrp || s.grp || 1
                   });
                 }
@@ -1710,6 +1728,15 @@ function spEditSave(){
   const newTime=document.getElementById('sp-edit-time').value;
   const grpInput=document.getElementById('sp-edit-grp');
   const newGrp=grpInput ? parseInt(grpInput.value, 10) : null;
+
+  if (newDate && newDate !== origDate) {
+    const mainG = window.G(s.g);
+    const hol = mainG && window.getHolidayInfo ? window.getHolidayInfo(newDate, mainG.city||null, window.gcls ? window.gcls(mainG) : mainG.cls) : null;
+    if (hol && (hol.type === 'vacation' || hol.type === 'noact')) {
+      _spAlertDialog(`❌ לא ניתן להעביר פעילות לתאריך ${window.fD(newDate)}: מוגדר יום ${hol.label || 'חופשה'} (${hol.name}).`);
+      return;
+    }
+  }
   
   if (isPrimaryChecked) {
     const primaryTimeInp = document.querySelector(`.sped-syn-time[data-gid="${s.g}"]`);
@@ -2313,6 +2340,15 @@ async function doPostpone(){
       document.getElementById('postm').classList.remove('open');
       showToast('הפעילות נדחתה');
       return;
+    }
+
+    if (newDate) {
+      const g = window.G(s.g);
+      const hol = g && window.getHolidayInfo ? window.getHolidayInfo(newDate, g.city||null, window.gcls ? window.gcls(g) : g.cls) : null;
+      if (hol && (hol.type === 'vacation' || hol.type === 'noact')) {
+        _spAlertDialog(`❌ לא ניתן להעביר פעילות לתאריך ${window.fD(newDate)}: מוגדר יום ${hol.label || 'חופשה'} (${hol.name}).`);
+        return;
+      }
     }
     
     if (window._postMode === 'fix') {
@@ -2945,6 +2981,16 @@ window.spSaveMakeup = async function() {
     { g: origEv.g, t: mainTime, grp: mainGrp },
     ...partners.map(tgt => ({ g: tgt.g, t: tgt.t || time, grp: tgt.grp }))
   ];
+
+  // Validate blocking holidays (vacation / noact)
+  for (const tgt of targets) {
+    const _g = window.G(tgt.g);
+    const hol = _g && window.getHolidayInfo ? window.getHolidayInfo(newDate, _g.city||null, window.gcls ? window.gcls(_g) : _g.cls) : null;
+    if (hol && (hol.type === 'vacation' || hol.type === 'noact')) {
+      _spAlertDialog(`❌ לא ניתן לשבץ השלמה בתאריך ${window.fD(newDate)} (${_g ? _g.name : 'גן'}): מוגדר יום ${hol.label || 'חופשה'} (${hol.name}).`);
+      return;
+    }
+  }
   
   const actVal = document.getElementById('sp-mu-act').value;
   const actName = actVal === '__new__' ? (document.getElementById('sp-mu-act-new')||{}).value : 

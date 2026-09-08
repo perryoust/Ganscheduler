@@ -528,6 +528,14 @@ function getHolidayInfo(ds,city,scope){
   const cleanedName = typeof window.cleanHolName === 'function' ? window.cleanHolName(h.name) : (h.name ? String(h.name).replace(/\s*[\(\[][^\)\]]*[\)\]]/g, '').trim() : '');
   return{...t,type:h.type||'vacation',rawName:h.name,name:cleanedName||h.name,note:h.note,id:h.id,canSched:h.canSched||false};
 }
+window.getHolidayInfo = getHolidayInfo;
+
+window.isCampHoliday = function(hol) {
+  return !!(hol && hol.type === 'camp');
+};
+window.isBlockingHoliday = function(hol) {
+  return !!(hol && (hol.type === 'vacation' || hol.type === 'noact'));
+};
 
 function initHolDrops(){
   const filtCity=document.getElementById('hol-filt-city');
@@ -2060,8 +2068,12 @@ window.doBulkUpdateRecurring = async function(key, gid){
          let dd = cur.getDate(); if(dd<10) dd='0'+dd;
          const ds = `${cur.getFullYear()}-${mm}-${dd}`;
          
+         const gObj = window.G(tgt.g);
+         const hol = window.getHolidayInfo ? window.getHolidayInfo(ds, gObj ? gObj.city : null, window.gcls ? window.gcls(gObj) : (gObj ? gObj.cls : null)) : null;
+         const isHolBlocked = hol && (hol.type === 'vacation' || hol.type === 'noact' || hol.type === 'camp');
          const gblk = window.getGardenBlock ? window.getGardenBlock(tgt.g, ds) : null;
-         if(!gblk) {
+         
+         if(!isHolBlocked && !gblk) {
            window.SCH.push({
              id: Date.now() + Math.floor(Math.random()*10000) + tIdx + cAdded,
              g: tgt.g,

@@ -676,8 +676,9 @@ async function saveNewSched(closeModal = true){
         const ds=window.d2s(cur);
         targets.forEach((tgt, tIdx) => {
           const _g = window.G(tgt.g);
-          const _hol2 = _g ? window.getHolidayInfo(ds, _g.city||null, window.gcls(_g)||null) : null;
-          if(!_hol2 || _hol2.type==='info' || _hol2.canSched){
+          const _hol2 = _g && window.getHolidayInfo ? window.getHolidayInfo(ds, _g.city||null, window.gcls ? window.gcls(_g) : _g.cls) : null;
+          const isBlocked = _hol2 && (_hol2.type === 'vacation' || _hol2.type === 'noact' || _hol2.type === 'camp');
+          if(!isBlocked){
             const eid = recurring_id + count * 100 + tIdx;
             const ev = {
               id: eid,
@@ -713,6 +714,19 @@ async function saveNewSched(closeModal = true){
   const datesToSchedule = (window._nsSelectedDates && window._nsSelectedDates.length > 0) 
     ? window._nsSelectedDates 
     : [date];
+
+  // Validation: Check if any selected date is a vacation / no-activity blocking holiday
+  for (const d of datesToSchedule) {
+    for (const tgt of targets) {
+      const _g = window.G(tgt.g);
+      const hol = _g && window.getHolidayInfo ? window.getHolidayInfo(d, _g.city||null, window.gcls ? window.gcls(_g) : _g.cls) : null;
+      if (hol && (hol.type === 'vacation' || hol.type === 'noact')) {
+        const gName = _g ? _g.name : 'גן';
+        window.spAlert(`❌ לא ניתן לשבץ פעילות ב-${window.fD(d)} (${gName}): מוגדר יום ${hol.label || 'חופשה'} (${hol.name}).`);
+        return;
+      }
+    }
+  }
 
   let totalScheduled = 0;
   
