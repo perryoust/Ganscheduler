@@ -459,6 +459,13 @@
     if (!scheduledDates.includes('2026-09-20')) throw new Error('סדרה קבועה לא שובצה ביום חול רגיל');
   });
 
+  // --- Test 15: Mobile Logout Handlers ---
+  QA.addTest('פונקציות התנתקות במובייל (Coordinator & Worker Logout)', async function(setupDOM) {
+    if (typeof window.doLogout !== 'function') throw new Error('window.doLogout חסרה');
+    if (typeof window.coordLogout !== 'function') throw new Error('window.coordLogout חסרה');
+    if (typeof window.workerLogout !== 'function') throw new Error('window.workerLogout חסרה');
+  });
+
   // Register on window
   window.QA_SIMULATOR = QA;
 })();

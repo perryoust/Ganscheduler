@@ -56,7 +56,7 @@ window.initWorkerTasks = function() {
         <img src="logo_wide.png" style="height:32px; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3));" alt="Logo">
         <div style="display:flex; gap:10px;">
           <button onclick="if(window.loadFromFirebase) { this.innerText='מרענן...'; window.loadFromFirebase(false, true).then(()=>{this.innerText='רענן נתונים 🔄'; window.renderWorkerTasksMobile();}); } else location.reload();" style="background:rgba(255,255,255,0.2); border:none; border-radius:8px; color:white; padding:6px 12px; font-size:0.8rem; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.1);">רענן 🔄</button>
-          <button onclick="window.workerLogout()" style="background:transparent; color:#fff; border:none; font-size:1.5rem; cursor:pointer; opacity:0.8;" title="התנתק">🚪</button>
+          <button onclick="window.workerLogout()" style="background:rgba(255,255,255,0.2); border:none; border-radius:8px; color:#fff; font-size:1.3rem; cursor:pointer; padding:6px 12px; display:inline-flex; align-items:center; justify-content:center; min-width:38px; min-height:34px;" title="התנתק">🚪</button>
         </div>
       </div>
       <div id="worker-tasks-mobile-list" style="padding:15px; padding-bottom:20px;">
@@ -1025,9 +1025,13 @@ window.markTaskDone = async function(id) {
 };
 
 window.workerLogout = function() {
-  // Clear remember me
-  if (window._safeLS) window._safeLS.removeItem('ganv5_auth_user');
-  location.reload();
+  if (typeof window.doLogout === 'function') {
+    window.doLogout(false);
+  } else {
+    if (window._safeLS) window._safeLS.removeItem('ganv5_auth_user');
+    if (window._fbSignOut) window._fbSignOut();
+    location.reload();
+  }
 };
 
 // Hook into ST (Switch Tab) globally

@@ -111,9 +111,8 @@ window.initCoordinatorApp = function() {
             <img src="logo_wide.png" style="height:26px; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3));" alt="Logo">
             <span id="coord-user-name" style="color:#fff;font-weight:700;font-size:0.95rem"></span>
           </div>
-          <div style="display:flex;gap:8px;align-items:center">
             <button onclick="window.coordRefreshData()" style="background:rgba(255,255,255,0.15);border:none;border-radius:8px;color:white;padding:5px 11px;font-size:0.78rem;cursor:pointer">🔄 רענן</button>
-            <button onclick="window.coordLogout()" style="background:transparent;color:#fff;border:none;font-size:1.2rem;cursor:pointer;opacity:0.8" title="התנתק">🚪</button>
+            <button onclick="window.coordLogout()" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;color:#fff;font-size:1.2rem;cursor:pointer;padding:4px 10px;display:inline-flex;align-items:center;justify-content:center" title="התנתק">🚪</button>
           </div>
         </div>
         <!-- Navigation -->
@@ -576,8 +575,13 @@ window.coordRefreshData = function() {
 };
 
 window.coordLogout = function() {
-  if (window._safeLS) window._safeLS.removeItem('ganv5_auth_user');
-  location.reload();
+  if (typeof window.doLogout === 'function') {
+    window.doLogout(false);
+  } else {
+    if (window._safeLS) window._safeLS.removeItem('ganv5_auth_user');
+    if (window._fbSignOut) window._fbSignOut();
+    location.reload();
+  }
 };
 
 function _coordToast(msg) {

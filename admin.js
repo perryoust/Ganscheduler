@@ -717,9 +717,33 @@ async function _pruneOldLogs(raw, tok){
   }
 }
 
-function doLogout(){
-  if(!confirm('להתנתק?')) return;
-  if(typeof window._fbSignOut==='function') window._fbSignOut();
+window.doLogout = async function(skipConfirm = false){
+  if(!skipConfirm && !confirm('להתנתק מהמערכת?')) return;
+  try {
+    if (window._safeLS) {
+      window._safeLS.removeItem('ganv5_auth_user');
+      window._safeLS.removeItem('ganv5_auth_token');
+      window._safeLS.removeItem('ganv5_cached_token');
+    }
+    try { localStorage.removeItem('ganv5_auth_user'); } catch(e){}
+    try { sessionStorage.clear(); } catch(e){}
+
+    if(typeof window._fbSignOut === 'function') {
+      await window._fbSignOut();
+    }
+  } catch(e) {
+    console.error('[doLogout]', e);
+  } finally {
+    const coordRoot = document.getElementById('coordinator-app-root');
+    if (coordRoot) coordRoot.remove();
+    const workerRoot = document.getElementById('worker-tasks-mobile-app');
+    if (workerRoot) workerRoot.remove();
+    window.location.href = window.location.origin + window.location.pathname;
+  }
+};
+
+function doLogout(skipConfirm = false){
+  return window.doLogout(skipConfirm);
 }
 
 async function updateUserPerm(uid, perm, value){
