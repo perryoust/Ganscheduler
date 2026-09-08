@@ -240,31 +240,29 @@ function openNewOrder() {
       
       <input type="hidden" id="om-order-internal-id" value="${newId}">
       
-      <div class="row" style="margin-bottom:10px">
-        <div style="flex:1">
-          <label>מספר הזמנה:</label>
-          <input type="text" id="om-orderid" value="${orderId}" class="in-date" style="font-weight:bold">
+      <div class="row" style="margin-bottom:10px; display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+        <div style="flex:1; min-width:130px;">
+          <label style="font-weight:600; color:#37474f;">מספר הזמנה:</label>
+          <input type="text" id="om-orderid" value="${orderId}" class="in-date" style="font-weight:bold; width:100%; box-sizing:border-box">
         </div>
-        <div style="flex:1">
-          <label>תאריך:</label>
-          <input type="date" id="om-date" value="${new Date().toISOString().split('T')[0]}" class="in-date">
+        <div style="flex:1; min-width:130px;">
+          <label style="font-weight:600; color:#37474f;">תאריך:</label>
+          <input type="date" id="om-date" value="${new Date().toISOString().split('T')[0]}" class="in-date" style="width:100%; box-sizing:border-box">
+        </div>
+        <div style="flex:2; min-width:180px;">
+          <label style="font-weight:600; color:#37474f;">לכבוד:</label>
+          <input type="text" id="om-supplier" list="om-sup-list" class="in-date" placeholder="בחר או הקלד..." style="width:100%; box-sizing:border-box">
+          <datalist id="om-sup-list">${supOptions}</datalist>
+        </div>
+        <div style="flex:1; min-width:140px;">
+          <label style="font-weight:600; color:#37474f;">תוספת לכותרת:</label>
+          <input type="text" id="om-titlesuffix" class="in-date" placeholder='למשל: הנה"ח' style="width:100%; box-sizing:border-box">
         </div>
       </div>
       
-      <div class="row" style="margin-bottom:10px">
-        <div style="flex:1">
-          <label>לכבוד:</label>
-          <input type="text" id="om-supplier" list="om-sup-list" class="in-date" placeholder="בחר או הקלד...">
-          <datalist id="om-sup-list">${supOptions}</datalist>
-        </div>
-        <div style="flex:1">
-          <label>תיאור ההזמנה (כללי):</label>
-          <input type="text" id="om-orderdesc" class="in-date" placeholder="למשל: ציוד יצירה...">
-        </div>
-        <div style="flex:1">
-          <label>תוספת לכותרת ההזמנה:</label>
-          <input type="text" id="om-titlesuffix" class="in-date" placeholder='למשל: הנה"ח'>
-        </div>
+      <div style="margin-bottom:12px">
+        <label style="font-weight:700; color:#1a237e; display:block; margin-bottom:4px">תיאור ההזמנה (כללי):</label>
+        <input type="text" id="om-orderdesc" class="in-date" placeholder="למשל: עבור : חומרי יצירה - גני ילדים..." style="width:100%; font-size:0.92rem; font-weight:600; padding:7px 10px; border:1.5px solid #c5cae9; border-radius:6px; box-sizing:border-box">
       </div>
 
       <div style="margin-top:20px;border-top:2px solid #eee;padding-top:15px">
