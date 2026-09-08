@@ -55,7 +55,7 @@ window.initWorkerTasks = function() {
       <div style="display:flex; justify-content:space-between; align-items:center; padding:20px 20px 0 20px;">
         <img src="logo_wide.png" style="height:32px; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3));" alt="Logo">
         <div style="display:flex; gap:10px;">
-          <button onclick="if(window.loadFromFirebase) { this.innerText='מרענן...'; window.loadFromFirebase(false, true).then(()=>{this.innerText='רענן נתונים 🔄'; window.renderWorkerTasksMobile();}); } else location.reload();" style="background:rgba(255,255,255,0.2); border:none; border-radius:8px; color:white; padding:6px 12px; font-size:0.8rem; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.1);">רענן 🔄</button>
+          <button onclick="if(window.loadFromFirebase) { this.innerText='מרענן...'; window.loadFromFirebase(false, true).then(()=>{this.innerText='🔄 רענן'; window.renderWorkerTasksMobile();}); } else location.reload();" style="background:rgba(255,255,255,0.2); border:none; border-radius:8px; color:white; padding:6px 12px; font-size:0.8rem; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.1);">🔄 רענן</button>
           <button onclick="window.workerLogout()" style="background:rgba(255,255,255,0.2); border:none; border-radius:8px; color:#fff; font-size:1.3rem; cursor:pointer; padding:6px 12px; display:inline-flex; align-items:center; justify-content:center; min-width:38px; min-height:34px;" title="התנתק">🚪</button>
         </div>
       </div>
@@ -868,9 +868,8 @@ window.renderWorkerTasksMobile = function() {
   html += `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
       <div style="font-weight:bold; color:#fff; font-size:1.7rem; text-shadow:0 1px 2px rgba(0,0,0,0.2);">המשימות שלי</div>
-      <div style="display:flex; gap:6px;">
-        <button onclick="window.wtWorkerAddFreeNote()" style="background:#4caf50; border:1px solid #388e3c; border-radius:20px; padding:5px 12px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold; font-size:0.85rem;" title="הודעה חופשית">💬 הודעה</button>
-        <button onclick="if(window.loadFromFirebase){ const b=this; b.innerText='מרענן...'; window.loadFromFirebase(false,true).then(()=>{b.innerText='🔄 רענן'; window.renderWorkerTasksMobile();}); }else location.reload();" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.5); border-radius:20px; padding:5px 12px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold; font-size:0.85rem;">🔄 רענן</button>
+      <div>
+        <button onclick="window.wtWorkerAddFreeNote()" style="background:#4caf50; border:1px solid #388e3c; border-radius:20px; padding:6px 14px; color:#fff; cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold; font-size:0.85rem; box-shadow:0 2px 4px rgba(0,0,0,0.15);" title="הודעה חופשית">💬 הודעה</button>
       </div>
     </div>
 
