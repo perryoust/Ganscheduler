@@ -577,9 +577,9 @@ function load(){
     }
     // Support migration from old Y1 system (ganv5_y_ keys)
     let st = null;
-    const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpav');
+    const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpaz');
     st = _safeLS.getItem(yearKey);
-    if(!st && (!window.CURRENT_YEAR || window.CURRENT_YEAR === 'tashpav')) {
+    if(!st && (!window.CURRENT_YEAR || window.CURRENT_YEAR === 'tashpaz')) {
       st = _safeLS.getItem('ganv5');
     }
     if(!st && window._fbAppData) { _applyYearData(window._fbAppData); return; }
@@ -707,7 +707,7 @@ async function save(immediate){
       // NOTE: workerTasks saved separately via saveWorkerTasksToFirebase — not included here
     };
     const _json=JSON.stringify(data);
-    const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpav');
+    const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpaz');
     _safeLS.setItem(yearKey, _json);
     
     // Save invoices, orders and deliveries globally

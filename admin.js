@@ -399,7 +399,7 @@ async function createNewUser(){
     const r=await fetch(`${USERS_DB}/${uid}.json${q}`,{
       method:'PUT',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({uid,username,name:displayName,role,email,permAct,permPurch,permWorker,permCoord,coordCities,coordGardenIds,coordTimeScope,createdAt:Date.now()})
+      body:JSON.stringify({uid,username,name:displayName,role,email,permAct,permPurch,permWorker,permCoord,coordCities,coordGardenIds,coordTimeScope,currentYear:'tashpaz',createdAt:Date.now()})
     });
     if(!r.ok) throw new Error('שמירה נכשלה: '+r.status);
 
@@ -724,8 +724,11 @@ window.doLogout = async function(skipConfirm = false){
       window._safeLS.removeItem('ganv5_auth_user');
       window._safeLS.removeItem('ganv5_auth_token');
       window._safeLS.removeItem('ganv5_cached_token');
+      window._safeLS.removeItem('_user_custom_year_selected');
+      window._safeLS.removeItem('ganv5_meta');
     }
     try { localStorage.removeItem('ganv5_auth_user'); } catch(e){}
+    try { localStorage.removeItem('_user_custom_year_selected'); } catch(e){}
     try { sessionStorage.clear(); } catch(e){}
 
     if(typeof window._fbSignOut === 'function') {
@@ -857,7 +860,7 @@ window.deleteYearPrompt = async function() {
     return;
   }
   
-  const currentId = meta.currentYear || 'tashpav';
+  const currentId = meta.currentYear || 'tashpaz';
   const availableYears = Object.entries(meta.years).map(([id, y]) => `${id}: ${y.name}`).join('\n');
   
   const idToDelete = prompt(`הזן את מזהה התקופה שברצונך למחוק (באנגלית, למשל tashpaz).\nהתקופה הנוכחית היא: ${currentId}\n\nתקופות קיימות:\n${availableYears}`);
@@ -890,7 +893,7 @@ window.deleteYearPrompt = async function() {
     // 2. Remove from local meta
     delete meta.years[idToDelete];
     if (meta.currentYear === idToDelete) {
-       meta.currentYear = Object.keys(meta.years)[0] || 'tashpav';
+       meta.currentYear = Object.keys(meta.years)[0] || 'tashpaz';
     }
     window._safeLS.setItem('ganv5_meta', JSON.stringify(meta));
     window._safeLS.removeItem('ganv5_y_' + idToDelete);
@@ -1006,7 +1009,7 @@ const _HEBREW_YEARS = {
 
 function _getNextYearId() {
   const order = ['tashpav','tashpaz','tashpach','tashpat','tashtzain'];
-  const curIdx = order.indexOf(window.CURRENT_YEAR || 'tashpav');
+  const curIdx = order.indexOf(window.CURRENT_YEAR || 'tashpaz');
   return curIdx >= 0 && curIdx < order.length - 1 ? order[curIdx + 1] : null;
 }
 

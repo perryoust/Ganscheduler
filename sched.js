@@ -67,7 +67,7 @@ function openNewSched(gid, opts={}){
   try {
     const metaStr = window._safeLS.getItem('ganv5_meta');
     const meta = metaStr ? JSON.parse(metaStr) : null;
-    const curY = window.CURRENT_YEAR || (meta ? meta.currentYear : 'tashpav');
+    const curY = window.CURRENT_YEAR || (meta ? meta.currentYear : 'tashpaz');
     const yInfo = meta && meta.years ? meta.years[curY] : null;
     
     if (yInfo && yInfo.start && yInfo.end) {

@@ -14,15 +14,15 @@ window.onload = function(){
         const cloudMeta = await r.json();
         if (cloudMeta && cloudMeta.years) {
           const localMetaStr = window._safeLS.getItem('ganv5_meta');
-          const isFirstLoad = !localMetaStr;
-          let localMeta = localMetaStr ? JSON.parse(localMetaStr) : { currentYear: 'tashpazsummer', years: {} };
+          let localMeta = localMetaStr ? JSON.parse(localMetaStr) : { currentYear: 'tashpaz', years: {} };
           localMeta.years = { ...localMeta.years, ...cloudMeta.years };
-          if (cloudMeta.currentYear) {
-            const isNonAdmin = window.role === 'coordinator' || window.role === 'worker' || window.role === 'view';
-            if (isFirstLoad || isNonAdmin || !localMeta.years[localMeta.currentYear]) {
-              localMeta.currentYear = cloudMeta.currentYear;
-              window.CURRENT_YEAR = cloudMeta.currentYear;
-            }
+          const effectiveTargetYear = cloudMeta.currentYear || 'tashpaz';
+          const isNonAdmin = window.role === 'coordinator' || window.role === 'worker' || window.role === 'view';
+          const hasUserCustomChoice = window._safeLS.getItem('_user_custom_year_selected');
+
+          if (!hasUserCustomChoice || isNonAdmin || !localMeta.currentYear || !localMeta.years[localMeta.currentYear]) {
+            localMeta.currentYear = effectiveTargetYear;
+            window.CURRENT_YEAR = effectiveTargetYear;
           }
           window._safeLS.setItem('ganv5_meta', JSON.stringify(localMeta));
           if (window.initYearSelector) window.initYearSelector();

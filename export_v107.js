@@ -1459,7 +1459,7 @@ window.exportBulkAnnualSchedule = async function() {
   window.showToast('מכין ייצוא מעוצב... פעולה זו עשויה לקחת כדקה, נא להמתין', 20000);
   await new Promise(r => setTimeout(r, 200));
 
-  let currentYearStr = window.CURRENT_YEAR || 'tashpav';
+  let currentYearStr = window.CURRENT_YEAR || 'tashpaz';
   
   let startYear = new Date().getFullYear();
   let startDate = null;

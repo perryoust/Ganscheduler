@@ -2790,7 +2790,7 @@ function setGardensTab(t){
     try {
       const metaStr = window._safeLS.getItem('ganv5_meta');
       const meta = metaStr ? JSON.parse(metaStr) : null;
-      const curY = window.CURRENT_YEAR || (meta ? meta.currentYear : 'tashpav');
+      const curY = window.CURRENT_YEAR || (meta ? meta.currentYear : 'tashpaz');
       const yInfo = meta && meta.years ? meta.years[curY] : null;
       if (yInfo && yInfo.start && yInfo.end) {
         yearStart = yInfo.start;
@@ -3479,6 +3479,8 @@ window.changeCurrentYear = function(year) {
       const meta = JSON.parse(metaStr);
       meta.currentYear = year;
       window._safeLS.setItem('ganv5_meta', JSON.stringify(meta));
+      window._safeLS.setItem('_user_custom_year_selected', year);
+      window.CURRENT_YEAR = year;
       window.location.reload();
     }
   } catch(e) {}
