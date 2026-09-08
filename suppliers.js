@@ -611,13 +611,15 @@ function openSupModal(name){
   if (delBtn) delBtn.style.display = name ? 'inline-flex' : 'none';
   document.getElementById('sum').classList.add('open');
 
-  // Attach auto-save listeners
+  // Attach auto-save listeners ONLY when editing an existing supplier
   const attachAutoSave = (id) => {
     const el = document.getElementById(id);
     if(el) {
-      el.removeEventListener('change', window._supAutoSaveHandler);
-      window._supAutoSaveHandler = () => saveSup(true);
-      el.addEventListener('change', window._supAutoSaveHandler);
+      if (window._supAutoSaveHandler) el.removeEventListener('change', window._supAutoSaveHandler);
+      if (name) {
+        window._supAutoSaveHandler = () => saveSup(true);
+        el.addEventListener('change', window._supAutoSaveHandler);
+      }
     }
   };
   ['su-ph1','su-ph2','su-gov1','su-gov2','su-notes','su-contact','su-email','su-addr','su-moe-tax','su-alias','su-sched-phone','su-is-act','su-is-purch','su-entity-type','su-entity-type-top'].forEach(attachAutoSave);
@@ -690,6 +692,15 @@ async function saveSup(silent = false){
   const nameEl=document.getElementById('su-name');
   const name=nameEl.value.trim();
   const origName=nameEl.dataset.orig;
+
+  // If silent auto-save:
+  // 1. Do not auto-save if brand new unsaved supplier
+  // 2. Do not auto-save if name is empty or being changed
+  if (silent) {
+    if (!origName) return;
+    if (!name || origName !== name) return;
+  }
+
   if(!name){ if(!silent) _spAlertDialog('יש להזין שם'); return; }
   if(origName&&origName!==name){
     if(silent) return; // Do not auto-save if name is being changed (requires prompt)
@@ -698,15 +709,17 @@ async function saveSup(silent = false){
     if(window.supEx[origName]) window.supEx[name]={...window.supEx[origName]};
     delete window.supEx[origName];
     if(window.supEx['__c']) window.supEx['__c']=window.supEx['__c'].map(s=>s.name===origName?{...s,name}:s);
+    nameEl.dataset.orig = name;
   }
   const existActs=Array.isArray((window.supEx[name]||{}).acts)?(window.supEx[name].acts):getSupActs(name);
+  const entityVal = document.getElementById('su-entity-type-top')?.value || document.getElementById('su-entity-type')?.value || '';
   window.supEx[name]={
     ...(window.supEx[name]||{}),
-    ph1:document.getElementById('su-ph1').value.trim(),
-    ph2:document.getElementById('su-ph2').value.trim(),
-    g1:document.getElementById('su-gov1').value.trim(),
-    g2:document.getElementById('su-gov2').value.trim(),
-    notes:document.getElementById('su-notes').value.trim(),
+    ph1:document.getElementById('su-ph1')?.value.trim()||'',
+    ph2:document.getElementById('su-ph2')?.value.trim()||'',
+    g1:document.getElementById('su-gov1')?.value.trim()||'',
+    g2:document.getElementById('su-gov2')?.value.trim()||'',
+    notes:document.getElementById('su-notes')?.value.trim()||'',
     contact:document.getElementById('su-contact')?.value.trim()||'',
     email:document.getElementById('su-email')?.value.trim()||'',
     addr:document.getElementById('su-addr')?.value.trim()||'',
@@ -716,19 +729,26 @@ async function saveSup(silent = false){
     acts:existActs,
     isAct: !!document.getElementById('su-is-act')?.checked,
     isPurch: !!document.getElementById('su-is-purch')?.checked,
-    entityType: document.getElementById('su-entity-type')?.value||''
+    entityType: entityVal
   };
   if(!origName&&!window.SUPBASE.find(s=>s.name===name)){
     if(!window.supEx['__c']) window.supEx['__c']=[];
     if(!window.supEx['__c'].find(s=>s.name===name)) window.supEx['__c'].push({id:Date.now(),name,phone:window.supEx[name].ph1});
   }
-  window.save();window.CM('sum');window.refresh();
+  
+  window.save(true);
+  
+  if(silent) {
+    window.showToast?.('✅ נשמר!');
+    return; // DO NOT CLOSE MODAL OR REFRESH ON SILENT AUTO-SAVE
+  }
+
+  window.CM('sum');
+  window.refresh();
   try{ window.renderPurchSuppliers(); }catch(e){}
   try{ renderSup(); }catch(e){}
-  if(silent) {
-    window.showToast('✅ נשמר!');
-    return; // Don't close the modal if auto-saving
-  }
+  window.showToast('✅ ספק נשמר בהצלחה!');
+
   // If opened from invoice modal, pre-fill the supplier field
   if(window._invPendingNewSup && name){
     window._invPendingNewSup=false;
