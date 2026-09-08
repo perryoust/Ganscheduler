@@ -5,7 +5,7 @@ const _INV_ASSIGN_LABELS = {
 };
 const _INV_TYPE_LABELS = {
   enrichment:'העשרה', operations:'תפעול', breakfast:'ארוחות בוקר',
-  transport:'נסיעות', other:'אחר'
+  transport:'נסיעות', fixed:'הוצאות קבועות', cleaning:'ניקיון', other:'אחר'
 };
 const _INV_LOC_LABELS = {
   garden:'גנים', school:'בתי ספר', joint:'משותף', office:'משרדים'
@@ -37,6 +37,8 @@ function openInvExportModal(){
             <option value="operations">תפעול</option>
             <option value="breakfast">ארוחות בוקר</option>
             <option value="transport">נסיעות</option>
+            <option value="fixed">הוצאות קבועות</option>
+            <option value="cleaning">ניקיון</option>
             <option value="other">אחר</option>
           </select></div>
         <div><label style="font-size:.75rem;color:#546e7a;display:block;margin-bottom:3px">שיוך</label>
@@ -350,6 +352,7 @@ reader.onload = async function(e) {
         "תאריך הזמנה": "orderDate",
         "שם הספק (שרשום ע\"ג החשבונית)": "supName",
         "פירוט הרכישה": "orderDesc",
+        "סיווג הרכישה(העשרה/תפעול/ארוחות בוקר/נסיעות/הוצאות קבועות/ניקיון/אחר)": "orderType",
         "סיווג הרכישה(העשרה/תפעול/ארוחות בוקר/נסיעות/אחר)": "orderType",
         "סיווג הרכישה": "orderType",
         "שיוך הרכישה (משותף/צהרונים/חנוכה/פסח/יום ארוך/קייטנת קיץ/כללי)": "orderAssign",

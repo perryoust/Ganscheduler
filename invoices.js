@@ -246,7 +246,7 @@ function renderMobileInvoiceCard(inv, opts = {}) {
     amountsHtml += `<div class="mob-inv-amt-row"><span style="font-size:.65rem;color:#546e7a">מסמך:</span> <span>${fmtAmt(inv.amt,vat,isExempt)}</span></div>`;
   }
 
-  const categoryName = {enrichment:'🎨 העשרה',operations:'🔧 תפעול',breakfast:'🍞 ארוחות בוקר',transport:'🚌 נסיעות',other:'📦 אחר'}[inv.orderType] || '';
+  const categoryName = {enrichment:'🎨 העשרה',operations:'🔧 תפעול',breakfast:'🍞 ארוחות בוקר',transport:'🚌 נסיעות',fixed:'🏢 הוצאות קבועות',cleaning:'🧹 ניקיון',other:'📦 אחר'}[inv.orderType] || '';
   const cityLoc = [inv.locCity, inv.locName].filter(Boolean).join(' · ');
 
   return `
@@ -608,7 +608,7 @@ function renderInvoices(){
         </td>
         <td style="font-size:.75rem;color:#37474f;padding:8px">
           ${inv.orderDesc||''}
-          ${inv.orderType?`<div style="font-size:.65rem;color:#1565c0">${{enrichment:'🎨 העשרה',operations:'🔧 תפעול',breakfast:'🍞 ארוחות בוקר',transport:'🚌 נסיעות',other:'📦 אחר'}[inv.orderType]||''}</div>`:''}
+          ${inv.orderType?`<div style="font-size:.65rem;color:#1565c0">${{enrichment:'🎨 העשרה',operations:'🔧 תפעול',breakfast:'🍞 ארוחות בוקר',transport:'🚌 נסיעות',fixed:'🏢 הוצאות קבועות',cleaning:'🧹 ניקיון',other:'📦 אחר'}[inv.orderType]||''}</div>`:''}
           ${inv.locCity||inv.locName?`<div style="font-size:.65rem;color:#546e7a">📍 ${[inv.locCity,inv.locName].filter(Boolean).join(' · ')}</div>`:''}
           ${inv.cancelReason?`<div style="font-size:.64rem;color:#c62828">❌ ${inv.cancelReason}</div>`:''}
         </td>
@@ -1358,6 +1358,8 @@ function openNewInvoice(id, presetSup){
       'תפעול': 'operations', 'operations': 'operations',
       'ארוחות בוקר': 'breakfast', 'אוכל': 'breakfast', 'breakfast': 'breakfast',
       'נסיעות': 'transport', 'הסעות': 'transport', 'transport': 'transport',
+      'הוצאות קבועות': 'fixed', 'קבועות': 'fixed', 'הוצאה קבועה': 'fixed', 'fixed': 'fixed',
+      'ניקיון': 'cleaning', 'נקיון': 'cleaning', 'cleaning': 'cleaning',
       'אחר': 'other', 'other': 'other'
     };
     ordType.value = otMap[rawOt] || otMap[rawOt.toLowerCase()] || rawOt || '';

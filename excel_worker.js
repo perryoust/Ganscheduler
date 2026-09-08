@@ -18,7 +18,7 @@ onmessage = async function(e) {
   };
   const _INV_TYPE_LABELS = {
     enrichment:'העשרה', operations:'תפעול', breakfast:'ארוחות בוקר',
-    transport:'נסיעות', other:'אחר'
+    transport:'נסיעות', fixed:'הוצאות קבועות', cleaning:'ניקיון', other:'אחר'
   };
   const _INV_LOC_LABELS = {
     garden:'גנים', school:'בתי ספר', joint:'משותף', office:'משרדים'
