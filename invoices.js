@@ -100,7 +100,12 @@ function SPT(t){
     setTimeout(renderPurchSuppliers, 50);
   }
   if(t==='pdash') refreshPurchDash();
-  if(t==='porders' && typeof window.renderPurchOrders === 'function') window.renderPurchOrders();
+  if(t==='porders') {
+    if (typeof window.loadPurchasingDataFromFirebase === 'function') {
+      window.loadPurchasingDataFromFirebase();
+    }
+    if (typeof window.renderPurchOrders === 'function') window.renderPurchOrders();
+  }
   if(t==='pdeliveries' && typeof window.renderPurchDeliveries === 'function') window.renderPurchDeliveries();
 }
 window.SPT = SPT;
