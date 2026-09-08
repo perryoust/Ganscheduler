@@ -509,25 +509,31 @@ function _applyYearData(o){
     window.INVOICES = [];
   }
   
-  // Orders and Deliveries are stored at root level (not inside data object) after migration.
+  // Orders and Deliveries are stored at root level / dedicated localStorage keys.
   if (Array.isArray(o.orders) && o.orders.length > 0) {
     window.ORDERS = o.orders;
-  } else if (!window._purchasingDataLoaded && (!Array.isArray(window.ORDERS) || window.ORDERS.length === 0)) {
+  } else {
     try {
       const localOrd = JSON.parse(_safeLS.getItem('ganv5_orders') || '[]');
-      if (Array.isArray(localOrd) && localOrd.length > 0) window.ORDERS = localOrd;
-      else window.ORDERS = [];
-    } catch(e) { window.ORDERS = []; }
+      if (Array.isArray(localOrd) && localOrd.length > 0) {
+        window.ORDERS = localOrd;
+      } else if (!Array.isArray(window.ORDERS)) {
+        window.ORDERS = [];
+      }
+    } catch(e) { if (!Array.isArray(window.ORDERS)) window.ORDERS = []; }
   }
   
   if (Array.isArray(o.deliveries) && o.deliveries.length > 0) {
     window.DELIVERIES = o.deliveries;
-  } else if (!window._purchasingDataLoaded && (!Array.isArray(window.DELIVERIES) || window.DELIVERIES.length === 0)) {
+  } else {
     try {
       const localDel = JSON.parse(_safeLS.getItem('ganv5_deliveries') || '[]');
-      if (Array.isArray(localDel) && localDel.length > 0) window.DELIVERIES = localDel;
-      else window.DELIVERIES = [];
-    } catch(e) { window.DELIVERIES = []; }
+      if (Array.isArray(localDel) && localDel.length > 0) {
+        window.DELIVERIES = localDel;
+      } else if (!Array.isArray(window.DELIVERIES)) {
+        window.DELIVERIES = [];
+      }
+    } catch(e) { if (!Array.isArray(window.DELIVERIES)) window.DELIVERIES = []; }
   }
 
   if(typeof o.vatRate==='number') VAT_RATE=o.vatRate;

@@ -652,6 +652,11 @@ async function saveOrder(id) {
     window.ORDERS.push(newOrder);
   }
   
+  // Persist ORDERS immediately to LocalStorage
+  if (window._safeLS) {
+    window._safeLS.setItem('ganv5_orders', JSON.stringify(window.ORDERS));
+  }
+
   // Sync with INVOICES report
   if (typeof window.INVOICES !== 'undefined') {
     const existingInvIdx = window.INVOICES.findIndex(i => i.orderNum === newOrder.orderId);
@@ -711,15 +716,21 @@ async function saveOrder(id) {
         ts: Date.now() + 1
       });
     }
+    if (window._safeLS) {
+      window._safeLS.setItem('ganv5_invoices', JSON.stringify(window.INVOICES));
+    }
     if (typeof window.renderInvoices === 'function') window.renderInvoices();
   }
   
   closeOrderModal();
   renderPurchOrders();
   
-  // Save to Firebase
+  // Save to Firebase immediately (Direct + Background Full Save)
+  if (typeof window.saveOrdersToFirebase === 'function') {
+    await window.saveOrdersToFirebase();
+  }
   if (typeof window.ghAutoSave === 'function') {
-    await window.ghAutoSave(true);
+    window.ghAutoSave(true).catch(e => console.warn('ghAutoSave background error:', e));
   }
   showToast('✅ ההזמנה נשמרה בהצלחה!');
 }
@@ -1821,11 +1832,20 @@ async function saveDelivery(id) {
     window.DELIVERIES.push(newDelivery);
   }
   
+  // Persist DELIVERIES immediately to LocalStorage
+  if (window._safeLS) {
+    window._safeLS.setItem('ganv5_deliveries', JSON.stringify(window.DELIVERIES));
+  }
+
   closeDeliveryModal();
   renderPurchDeliveries();
   
+  // Save to Firebase immediately (Direct + Background Full Save)
+  if (typeof window.saveDeliveriesToFirebase === 'function') {
+    await window.saveDeliveriesToFirebase();
+  }
   if (typeof window.ghAutoSave === 'function') {
-    await window.ghAutoSave(true);
+    window.ghAutoSave(true).catch(e => console.warn('ghAutoSave background error:', e));
   }
   showToast('✅ תעודת המשלוח נשמרה!');
 }
@@ -1914,10 +1934,16 @@ window.deletePurchOrder = async function(id) {
   if (!await window.spConfirm('האם אתה בטוח שברצונך למחוק הזמנת רכש זו?')) return;
   
   window.ORDERS = (window.ORDERS || []).filter(o => o.id !== id);
+  if (window._safeLS) {
+    window._safeLS.setItem('ganv5_orders', JSON.stringify(window.ORDERS));
+  }
   renderPurchOrders();
   
+  if (typeof window.saveOrdersToFirebase === 'function') {
+    await window.saveOrdersToFirebase();
+  }
   if (typeof window.ghAutoSave === 'function') {
-    await window.ghAutoSave(true);
+    window.ghAutoSave(true).catch(e => console.warn('ghAutoSave background error:', e));
   }
   showToast('🗑️ הזמנת הרכש נמחקה בהצלחה!');
 };
@@ -1926,10 +1952,16 @@ window.deletePurchDelivery = async function(id) {
   if (!await window.spConfirm('האם אתה בטוח שברצונך למחוק תעודת משלוח זו?')) return;
   
   window.DELIVERIES = (window.DELIVERIES || []).filter(d => d.id !== id);
+  if (window._safeLS) {
+    window._safeLS.setItem('ganv5_deliveries', JSON.stringify(window.DELIVERIES));
+  }
   renderPurchDeliveries();
   
+  if (typeof window.saveDeliveriesToFirebase === 'function') {
+    await window.saveDeliveriesToFirebase();
+  }
   if (typeof window.ghAutoSave === 'function') {
-    await window.ghAutoSave(true);
+    window.ghAutoSave(true).catch(e => console.warn('ghAutoSave background error:', e));
   }
   showToast('🗑️ תעודת המשלוח נמחקה בהצלחה!');
 };

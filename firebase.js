@@ -430,15 +430,23 @@ async function saveToFirebase(silent = false, force = false) {
     }
 
     // Save Orders Separately
-    if (Array.isArray(window.ORDERS) && window.ORDERS.length > 0) {
-      const ordUrl = getFirebaseOrdersUrl() + authQ;
-      await fetch(ordUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.ORDERS) });
+    if (Array.isArray(window.ORDERS)) {
+      try {
+        const ordUrl = getFirebaseOrdersUrl() + authQ;
+        const ordResp = await fetch(ordUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.ORDERS) });
+        if (!ordResp.ok) console.warn('[Sync] Orders save warning HTTP ' + ordResp.status);
+        else console.log('[Sync] Orders saved to Firebase:', window.ORDERS.length);
+      } catch(ordErr) { console.warn('[Sync] Failed saving orders:', ordErr); }
     }
 
     // Save Deliveries Separately
-    if (Array.isArray(window.DELIVERIES) && window.DELIVERIES.length > 0) {
-      const delUrl = getFirebaseDeliveriesUrl() + authQ;
-      await fetch(delUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.DELIVERIES) });
+    if (Array.isArray(window.DELIVERIES)) {
+      try {
+        const delUrl = getFirebaseDeliveriesUrl() + authQ;
+        const delResp = await fetch(delUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.DELIVERIES) });
+        if (!delResp.ok) console.warn('[Sync] Deliveries save warning HTTP ' + delResp.status);
+        else console.log('[Sync] Deliveries saved to Firebase:', window.DELIVERIES.length);
+      } catch(delErr) { console.warn('[Sync] Failed saving deliveries:', delErr); }
     }
 
     _setSyncState(newSeq, Date.now(), null, false);
@@ -694,6 +702,11 @@ async function loadFromFirebase(silent = false, force = false) {
       if (typeof window.renderCoordinatorView === 'function') setTimeout(() => window.renderCoordinatorView(), 100);
     }
 
+    // Always fetch purchasing data in parallel with general sync
+    if (typeof window.loadPurchasingDataFromFirebase === 'function') {
+      window.loadPurchasingDataFromFirebase(force).catch(e => console.warn('[Sync] Purchasing data auto-load error:', e));
+    }
+
     window._fbSyncReady = true;
 
     // Silent Daily Auto-Backup to Google Drive for Managers/Admins
@@ -833,6 +846,53 @@ document.addEventListener('visibilitychange', () => {
 // Just ensure loadFromFirebase and polling are accessible via window.
 // core_app.js calls loadFromFirebase() and _fbStartPolling() after years_meta sync.
 
+// Direct helpers to save purchasing orders & deliveries immediately to Firebase
+window.saveOrdersToFirebase = async function() {
+  let tok = window._cachedToken || null;
+  if (window._fbUser) {
+    try { tok = await window._fbUser.getIdToken(); }
+    catch (e) { console.warn('Failed to get token for saving orders', e); }
+  }
+  const authQ = tok ? '?auth=' + tok : '';
+  const ordUrl = getFirebaseOrdersUrl() + authQ;
+  try {
+    const resp = await fetch(ordUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(window.ORDERS || [])
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    console.log('[Sync] Orders directly saved to Firebase:', (window.ORDERS || []).length);
+    return true;
+  } catch(e) {
+    console.error('[Sync] Direct orders save failed:', e);
+    return false;
+  }
+};
+
+window.saveDeliveriesToFirebase = async function() {
+  let tok = window._cachedToken || null;
+  if (window._fbUser) {
+    try { tok = await window._fbUser.getIdToken(); }
+    catch (e) { console.warn('Failed to get token for saving deliveries', e); }
+  }
+  const authQ = tok ? '?auth=' + tok : '';
+  const delUrl = getFirebaseDeliveriesUrl() + authQ;
+  try {
+    const resp = await fetch(delUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(window.DELIVERIES || [])
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    console.log('[Sync] Deliveries directly saved to Firebase:', (window.DELIVERIES || []).length);
+    return true;
+  } catch(e) {
+    console.error('[Sync] Direct deliveries save failed:', e);
+    return false;
+  }
+};
+
 // --- Lazy Load Purchasing Data ---
 window.loadPurchasingDataFromFirebase = async function (forceReload) {
   if (window._purchasingDataLoaded && !forceReload) return;
@@ -888,6 +948,7 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
         }
       });
       window.INVOICES = cloudInvs;
+      if (window._safeLS) window._safeLS.setItem('ganv5_invoices', JSON.stringify(window.INVOICES));
       anySuccess = true;
       
       // One-time migration to keyed format
@@ -914,12 +975,34 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
         } catch (e) {}
       }
       
-      if (loadedOrd.length > 0 || !window.ORDERS || window.ORDERS.length === 0) {
+      if (loadedOrd.length === 0) {
+        try {
+          const tashpazOrdUrl = `${FB_ROOT}/years/tashpaz/orders.json?auth=${tok}&cb=${Date.now()}`;
+          const tor = await fetch(tashpazOrdUrl);
+          if (tor.ok) {
+            const tData = await tor.json();
+            const tOrd = Array.isArray(tData) ? tData : Object.values(tData || {});
+            if (tOrd.length > 0) loadedOrd = tOrd;
+          }
+        } catch (e) {}
+      }
+
+      if (loadedOrd.length > 0) {
         window.ORDERS = loadedOrd;
         if (window._safeLS) window._safeLS.setItem('ganv5_orders', JSON.stringify(window.ORDERS));
+      } else {
+        // If cloud returned empty, check if we have local orders in localStorage
+        const localOrd = JSON.parse(window._safeLS?.getItem('ganv5_orders') || '[]');
+        if (Array.isArray(localOrd) && localOrd.length > 0) {
+          window.ORDERS = localOrd;
+          console.log('[Purchasing] Restored orders from local storage, syncing to cloud:', window.ORDERS.length);
+          window.saveOrdersToFirebase?.();
+        } else if (!Array.isArray(window.ORDERS)) {
+          window.ORDERS = [];
+        }
       }
       anySuccess = true;
-      console.log('[Purchasing] Orders loaded:', window.ORDERS.length);
+      console.log('[Purchasing] Orders loaded:', (window.ORDERS || []).length);
     } else {
       console.warn('[Purchasing] Failed to load orders — response not OK');
     }
@@ -927,9 +1010,28 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
     if (dr.ok) {
       let cloudDel = await dr.json();
       let loadedDel = Array.isArray(cloudDel) ? cloudDel : Object.values(cloudDel || {});
-      if (loadedDel.length > 0 || !window.DELIVERIES || window.DELIVERIES.length === 0) {
+      if (loadedDel.length === 0 && window.CURRENT_YEAR && window.CURRENT_YEAR !== 'tashpav') {
+        try {
+          const yearDelUrl = `${FB_ROOT}/years/${window.CURRENT_YEAR}/deliveries.json?auth=${tok}&cb=${Date.now()}`;
+          const ydr = await fetch(yearDelUrl);
+          if (ydr.ok) {
+            const yData = await ydr.json();
+            const yDel = Array.isArray(yData) ? yData : Object.values(yData || {});
+            if (yDel.length > 0) loadedDel = yDel;
+          }
+        } catch (e) {}
+      }
+      if (loadedDel.length > 0) {
         window.DELIVERIES = loadedDel;
         if (window._safeLS) window._safeLS.setItem('ganv5_deliveries', JSON.stringify(window.DELIVERIES));
+      } else {
+        const localDel = JSON.parse(window._safeLS?.getItem('ganv5_deliveries') || '[]');
+        if (Array.isArray(localDel) && localDel.length > 0) {
+          window.DELIVERIES = localDel;
+          window.saveDeliveriesToFirebase?.();
+        } else if (!Array.isArray(window.DELIVERIES)) {
+          window.DELIVERIES = [];
+        }
       }
       anySuccess = true;
     }
@@ -947,7 +1049,6 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
     }
   } catch (e) {
     console.error('Failed to lazy load purchasing data', e);
-    // Do NOT set _purchasingDataLoaded = true on error, so it retries
   }
 };
 
