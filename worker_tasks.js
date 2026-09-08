@@ -376,8 +376,8 @@ window.renderWorkerTasksAdmin = function() {
         <div style="flex:1; background:#ffffff; border-radius:12px; display:flex; flex-direction:column; padding:6px 10px; gap:4px; box-shadow:0 1px 2px rgba(0,0,0,0.1);">
           <div style="display:flex; align-items:center; border-bottom:1px solid #f0f0f0; padding-bottom:4px;">
             <div style="position:relative; flex:1;">
-              <input type="text" id="wt-inline-garden" placeholder="📍 שיוך לגן (אופציונלי)..." onkeyup="window.wtSearchGardenInline(this.value)" style="width:100%; border:none; background:transparent; outline:none; font-size:0.85rem; color:#075e54; font-weight:bold; text-overflow: ellipsis;">
-              <div id="wt-inline-garden-results" style="position:absolute; bottom:110%; right:0; width:220px; max-height:150px; overflow-y:auto; background:#fff; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:100; display:none; line-height:1.2;"></div>
+              <input type="text" id="wt-inline-garden" placeholder="📍 שיוך לגן / רכז / מנהל (אופציונלי)..." onkeyup="window.wtSearchGardenInline(this.value)" onfocus="if(this.value) window.wtSearchGardenInline(this.value)" style="width:100%; border:none; background:transparent; outline:none; font-size:0.85rem; color:#075e54; font-weight:bold; text-overflow: ellipsis;">
+              <div id="wt-inline-garden-results" style="position:absolute; bottom:110%; right:0; width:280px; max-height:220px; overflow-y:auto; background:#fff; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.25); z-index:100; display:none; line-height:1.2; border:1px solid #ddd;"></div>
               <input type="hidden" id="wt-inline-garden-id">
               <input type="hidden" id="wt-inline-city-name">
             </div>
@@ -435,9 +435,9 @@ window.openNewWorkerTaskModal = function() {
       <input type="date" id="wt-date" value="${window.wtCurrentDate || (window.td ? window.td() : '')}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
     </div>
     <div style="margin-bottom:15px;">
-      <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:5px;">גן / בית ספר (הזן מספר או שם)</label>
-      <input type="text" id="wt-garden-search" value="${inlineGardenName}" placeholder="חפש גן..." onkeyup="window.wtSearchGarden(this.value)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; margin-bottom:5px;">
-      <div id="wt-garden-results" style="max-height:120px; overflow-y:auto; border:1px solid #eee; border-radius:4px; background:#fafafa; padding:5px; display:none;"></div>
+      <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:5px;">שיוך למשימה: גן / בית ספר / רכז / מנהל / עיר</label>
+      <input type="text" id="wt-garden-search" value="${inlineGardenName}" placeholder="חפש גן, רכז, מנהל או עיר..." onkeyup="window.wtSearchGarden(this.value)" onfocus="if(this.value) window.wtSearchGarden(this.value)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; margin-bottom:5px;">
+      <div id="wt-garden-results" style="max-height:160px; overflow-y:auto; border:1px solid #eee; border-radius:6px; background:#fafafa; padding:5px; display:none;"></div>
       <input type="hidden" id="wt-garden-id" value="">
       <input type="hidden" id="wt-city-name" value="">
     </div>
@@ -529,10 +529,15 @@ window.openNewWorkerTaskModal = function() {
       let g = null;
       if (gardenId && window.G) g = window.G(gardenId);
       if (!g && gardenId && Array.isArray(window._GARDENS_EXTRA)) g = window._GARDENS_EXTRA.find(x => Number(x.id) === Number(gardenId));
+      const staffList = window.wtGetStaffList ? window.wtGetStaffList() : [];
+      const staffMatch = staffList.find(s => s.display === cityName || s.name === cityName || s.display === gardenSearchText || s.name === gardenSearchText);
       const tGardenName = (g && g.name) ? g.name : '';
-      const tCity = (g && g.city) ? g.city : (cityName || '');
+      const tCity = (g && g.city) ? g.city : (cityName || (staffMatch ? staffMatch.display : ''));
       const tAddress = (g && (g.st || g.address)) ? (g.st || g.address) : '';
-      const tPhone = (g && (g.coph || g.phone)) ? (g.coph || g.phone) : '';
+      let tPhone = (g && (g.coph || g.phone)) ? (g.coph || g.phone) : '';
+      if (!tPhone && staffMatch && staffMatch.phone) {
+        tPhone = staffMatch.phone;
+      }
 
       datesToCreate.forEach((dStr, idx) => {
         window.WORKER_TASKS.push({
@@ -614,10 +619,12 @@ window.openNewWorkerTaskModal = function() {
 
 window.wtSearchGarden = function(q) {
   const resEl = document.getElementById('wt-garden-results');
-  if (!q || q.length < 2) {
+  if (!q || !q.trim()) {
     resEl.style.display = 'none';
     return;
   }
+  const qClean = q.trim();
+  const qLow = qClean.toLowerCase();
   
   const allGardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
   
@@ -634,26 +641,55 @@ window.wtSearchGarden = function(q) {
   }
 
   const results = gardens.filter(g => 
-    String(g.id).includes(q) || 
-    (g.name && g.name.includes(q)) || 
-    (g.city && g.city.includes(q))
+    String(g.id).includes(qClean) || 
+    (g.name && g.name.toLowerCase().includes(qLow)) || 
+    (g.city && g.city.toLowerCase().includes(qLow))
   ).slice(0, 30); // Limit to 30
   
   let html = '';
-  const matchingCities = [...new Set(gardens.filter(g => g.city && g.city.includes(q)).map(g => g.city))];
-  
-  matchingCities.slice(0, 3).forEach(c => {
-    html += `
-      <div onclick="document.getElementById('wt-garden-id').value=''; if(document.getElementById('wt-city-name')) document.getElementById('wt-city-name').value='${c}'; document.getElementById('wt-garden-search').value='${c}'; document.getElementById('wt-garden-results').style.display='none';" 
-           style="padding:6px; border-bottom:1px solid #eee; cursor:pointer; font-size:0.85rem; background:#e3f2fd; color:#1565c0; font-weight:bold;">
-        🏙️ משימה לעיר: ${c}
-      </div>
-    `;
-  });
 
-  if (results.length === 0 && matchingCities.length === 0) {
-    html = '<div style="color:#999; font-size:0.8rem; text-align:center;">לא נמצאו תוצאות</div>';
-  } else {
+  // 1. Matching Coordinators and Managers
+  const staffList = (window.wtGetStaffList ? window.wtGetStaffList() : []).filter(s => 
+    s.name.toLowerCase().includes(qLow) ||
+    s.role.toLowerCase().includes(qLow) ||
+    s.display.toLowerCase().includes(qLow) ||
+    (s.city && s.city.toLowerCase().includes(qLow))
+  ).slice(0, 8);
+
+  if (staffList.length > 0) {
+    html += '<div style="padding:4px 8px; font-size:0.75rem; color:#6a1b9a; background:#f3e5f5; font-weight:bold; border-bottom:1px solid #e1bee7;">👤 רכזים ומנהלים:</div>';
+    staffList.forEach(s => {
+      const escapedDisplay = s.display.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      html += `
+        <div onclick="document.getElementById('wt-garden-id').value=''; if(document.getElementById('wt-city-name')) document.getElementById('wt-city-name').value='${escapedDisplay}'; document.getElementById('wt-garden-search').value='${escapedDisplay}'; document.getElementById('wt-garden-results').style.display='none';" 
+             style="padding:6px 8px; border-bottom:1px solid #ede7f6; cursor:pointer; font-size:0.85rem; background:#faf5fb; color:#4a148c; display:flex; justify-content:space-between; align-items:center;">
+          <div><b style="color:#6a1b9a;">👤 ${s.display}</b></div>
+          ${s.phone ? `<span style="font-size:0.75rem; color:#7b1fa2; background:rgba(255,255,255,0.8); padding:1px 6px; border-radius:10px;">📞 ${s.phone}</span>` : ''}
+        </div>
+      `;
+    });
+  }
+
+  // 2. Matching Cities
+  const matchingCities = [...new Set(gardens.filter(g => g.city && g.city.toLowerCase().includes(qLow)).map(g => g.city))];
+  if (matchingCities.length > 0) {
+    matchingCities.slice(0, 3).forEach(c => {
+      html += `
+        <div onclick="document.getElementById('wt-garden-id').value=''; if(document.getElementById('wt-city-name')) document.getElementById('wt-city-name').value='${c}'; document.getElementById('wt-garden-search').value='${c}'; document.getElementById('wt-garden-results').style.display='none';" 
+             style="padding:6px; border-bottom:1px solid #eee; cursor:pointer; font-size:0.85rem; background:#e3f2fd; color:#1565c0; font-weight:bold;">
+          🏙️ משימה לעיר: ${c}
+        </div>
+      `;
+    });
+  }
+
+  // 3. Matching Gardens / Schools
+  if (results.length === 0 && matchingCities.length === 0 && staffList.length === 0) {
+    html = '<div style="color:#999; font-size:0.8rem; text-align:center; padding:8px;">לא נמצאו תוצאות</div>';
+  } else if (results.length > 0) {
+    if (staffList.length > 0 || matchingCities.length > 0) {
+      html += '<div style="padding:4px 8px; font-size:0.75rem; color:#555; background:#f0f0f0; font-weight:bold; border-bottom:1px solid #ddd;">🏫 גנים ובתי ספר:</div>';
+    }
     html += results.map(g => `
       <div onclick="document.getElementById('wt-garden-id').value='${g.id}'; if(document.getElementById('wt-city-name')) document.getElementById('wt-city-name').value=''; document.getElementById('wt-garden-search').value='${g.city||''} - ${g.name}'; document.getElementById('wt-garden-results').style.display='none';" 
            style="padding:6px; border-bottom:1px solid #eee; cursor:pointer; font-size:0.85rem;">
@@ -1107,11 +1143,117 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     window.initWorkerTasks();
   }, 1000);
+
+  document.addEventListener('click', (e) => {
+    const inlineRes = document.getElementById('wt-inline-garden-results');
+    const inlineInput = document.getElementById('wt-inline-garden');
+    if (inlineRes && inlineRes.style.display !== 'none') {
+      if (!inlineRes.contains(e.target) && e.target !== inlineInput) {
+        inlineRes.style.display = 'none';
+      }
+    }
+    const modalRes = document.getElementById('wt-garden-results');
+    const modalInput = document.getElementById('wt-garden-search');
+    if (modalRes && modalRes.style.display !== 'none') {
+      if (!modalRes.contains(e.target) && e.target !== modalInput) {
+        modalRes.style.display = 'none';
+      }
+    }
+  });
 });
+
+window.wtGetStaffList = function() {
+  const staff = [];
+  const seen = new Set();
+
+  const addStaff = (name, role, city = '', phone = '') => {
+    if (!name || !name.trim()) return;
+    const cleanName = name.trim();
+    const cleanRole = (role || '').trim();
+    const cleanCity = (city || '').trim();
+    const cleanPhone = (phone || '').trim();
+    
+    // Format display string, e.g. "ריקי (מנהלת אזור גבעתיים)" or "ורדה (רכזת גבעתיים)"
+    let display = cleanName;
+    if (cleanRole) {
+      if (cleanRole.includes(cleanName)) {
+        display = cleanRole;
+      } else {
+        display = `${cleanName} (${cleanRole})`;
+      }
+    }
+    
+    const key = display.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      staff.push({
+        name: cleanName,
+        role: cleanRole,
+        display: display,
+        city: cleanCity,
+        phone: cleanPhone
+      });
+    }
+  };
+
+  // 1. Predefined standard managers and area coordinators
+  const defaults = [
+    { name: 'ריקי', role: 'מנהלת אזור גבעתיים', city: 'גבעתיים', phone: '' },
+    { name: 'ורדה', role: 'רכזת גבעתיים', city: 'גבעתיים', phone: '052-4765312' },
+    { name: 'הילה', role: 'רכזת גבעתיים', city: 'גבעתיים', phone: '054-8283444' },
+    { name: 'יוסי', role: 'רכז גבעתיים', city: 'גבעתיים', phone: '050-6898983' },
+    { name: 'ירון', role: 'רכז גבעתיים', city: 'גבעתיים', phone: '054-2398933' },
+    { name: 'אבי', role: 'רכז פתח תקווה', city: 'פ"ת', phone: '054-9052207' },
+    { name: 'גל', role: 'רכז פתח תקווה', city: 'פ"ת', phone: '054-4733717' },
+    { name: 'קרנית', role: 'רכזת פתח תקווה', city: 'פ"ת', phone: '054-7825065' },
+    { name: 'בתאל', role: 'רכזת ראש העין', city: 'ראש העין', phone: '054-5714464' },
+    { name: 'מיקה', role: 'רכזת ראש העין', city: 'ראש העין', phone: '054-3018445' },
+    { name: 'דנית', role: 'רכזת ראש העין', city: 'ראש העין', phone: '050-6909070' },
+    { name: 'מירב', role: 'רכזת ראש העין', city: 'ראש העין', phone: '050-7161716' },
+    { name: 'נוי', role: 'רכזת באר יעקב', city: 'באר יעקב', phone: '054-279-9313' },
+    { name: 'שחר', role: 'רכז נס ציונה', city: 'נס ציונה', phone: '054-5768087' },
+    { name: 'שרית', role: 'רכזת נס ציונה', city: 'נס ציונה', phone: '054-505-6335' }
+  ];
+  defaults.forEach(d => addStaff(d.name, d.role, d.city, d.phone));
+
+  // 2. Extract from custom staff stored in window.supEx
+  if (window.supEx && Array.isArray(window.supEx['__staff_members'])) {
+    window.supEx['__staff_members'].forEach(s => addStaff(s.name, s.role, s.city, s.phone));
+  }
+
+  // 3. Extract from window.managers
+  if (window.managers && typeof window.managers === 'object') {
+    Object.values(window.managers).forEach(m => {
+      if (m && m.name) {
+        addStaff(m.name, m.role || 'מנהל/ת', m.city || '', m.phone || '');
+      }
+    });
+  }
+
+  // 4. Extract from GARDENS co field
+  const allGardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+  allGardens.forEach(g => {
+    if (g.co) {
+      const parts = g.co.split(/[-–—]/);
+      const name = parts[0] ? parts[0].trim() : '';
+      const phone = parts[1] ? parts.slice(1).join('-').trim() : '';
+      if (name) {
+        const city = g.city || '';
+        const role = city ? `רכז/ת ${city}` : 'רכז/ת';
+        addStaff(name, role, city, phone);
+      }
+    }
+  });
+
+  return staff;
+};
 
 window.wtSearchGardenInline = function(q) {
   const res = document.getElementById('wt-inline-garden-results');
-  if(!q) { res.style.display='none'; return; }
+  if(!q || !q.trim()) { res.style.display='none'; return; }
+  const qClean = q.trim();
+  const qLow = qClean.toLowerCase();
+  
   const allGardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
   
   const gardens = [];
@@ -1126,17 +1268,51 @@ window.wtSearchGardenInline = function(q) {
     }
   }
 
-  const list = gardens.filter(g => (g.name||'').includes(q) || (g.city||'').includes(q) || String(g.id).includes(q)).slice(0,30);
+  const list = gardens.filter(g => (g.name||'').toLowerCase().includes(qLow) || (g.city||'').toLowerCase().includes(qLow) || String(g.id).includes(qClean)).slice(0,25);
   
   let html = '';
-  // City options first
-  const matchingCities = [...new Set(gardens.filter(g => g.city && g.city.includes(q)).map(g => g.city))];
+
+  // 1. Matching Coordinators and Managers
+  const staffList = (window.wtGetStaffList ? window.wtGetStaffList() : []).filter(s => 
+    s.name.toLowerCase().includes(qLow) ||
+    s.role.toLowerCase().includes(qLow) ||
+    s.display.toLowerCase().includes(qLow) ||
+    (s.city && s.city.toLowerCase().includes(qLow))
+  ).slice(0, 8);
+
+  if (staffList.length > 0) {
+    html += '<div style="padding:4px 8px; font-size:0.75rem; color:#6a1b9a; background:#f3e5f5; font-weight:bold; border-bottom:1px solid #e1bee7;">👤 רכזים ומנהלים:</div>';
+    staffList.forEach(s => {
+      const escapedDisplay = s.display.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      html += `
+        <div style="padding:6px 8px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #ede7f6; background:#faf5fb; color:#4a148c; display:flex; justify-content:space-between; align-items:center;" 
+             onclick="document.getElementById('wt-inline-garden').value='${escapedDisplay}'; document.getElementById('wt-inline-garden-id').value=''; document.getElementById('wt-inline-city-name').value='${escapedDisplay}'; document.getElementById('wt-inline-garden-results').style.display='none';">
+          <div><b style="color:#6a1b9a;">👤 ${s.display}</b></div>
+          ${s.phone ? `<span style="font-size:0.72rem; color:#7b1fa2; font-weight:normal;">📞 ${s.phone}</span>` : ''}
+        </div>
+      `;
+    });
+  }
+
+  // 2. Matching Cities
+  const matchingCities = [...new Set(gardens.filter(g => g.city && g.city.toLowerCase().includes(qLow)).map(g => g.city))];
   matchingCities.slice(0, 3).forEach(c => {
-    html += `<div style="padding:5px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #eee; background:#e3f2fd; color:#1565c0; font-weight:bold;" onclick="document.getElementById('wt-inline-garden').value='${c}'; document.getElementById('wt-inline-garden-id').value=''; document.getElementById('wt-inline-city-name').value='${c}'; document.getElementById('wt-inline-garden-results').style.display='none';">🏙️ משימה לעיר: ${c}</div>`;
+    html += `<div style="padding:5px 8px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #eee; background:#e3f2fd; color:#1565c0; font-weight:bold;" onclick="document.getElementById('wt-inline-garden').value='${c}'; document.getElementById('wt-inline-garden-id').value=''; document.getElementById('wt-inline-city-name').value='${c}'; document.getElementById('wt-inline-garden-results').style.display='none';">🏙️ משימה לעיר: ${c}</div>`;
   });
   
-  if(!list.length && !matchingCities.length) { res.innerHTML='<div style="padding:5px; color:#999; font-size:0.8rem;">לא נמצא...</div>'; res.style.display='block'; return; }
-  html += list.map(g => `<div style="padding:5px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #eee;" data-id="${g.id}" data-name="${(g.name||'').replace(/"/g, '&quot;')}" onclick="document.getElementById('wt-inline-garden').value=this.dataset.name; document.getElementById('wt-inline-garden-id').value=this.dataset.id; document.getElementById('wt-inline-city-name').value=''; document.getElementById('wt-inline-garden-results').style.display='none';">${g.name} (${g.city||'אחר'})</div>`).join('');
+  // 3. Matching Gardens
+  if(!list.length && !matchingCities.length && !staffList.length) {
+    res.innerHTML='<div style="padding:8px; color:#999; font-size:0.8rem; text-align:center;">לא נמצא...</div>'; 
+    res.style.display='block'; 
+    return; 
+  }
+  
+  if (list.length > 0) {
+    if (staffList.length > 0 || matchingCities.length > 0) {
+      html += '<div style="padding:4px 8px; font-size:0.75rem; color:#555; background:#f0f0f0; font-weight:bold; border-bottom:1px solid #ddd;">🏫 גנים ובתי ספר:</div>';
+    }
+    html += list.map(g => `<div style="padding:5px 8px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #eee;" data-id="${g.id}" data-name="${(g.name||'').replace(/"/g, '&quot;')}" onclick="document.getElementById('wt-inline-garden').value=this.dataset.name; document.getElementById('wt-inline-garden-id').value=this.dataset.id; document.getElementById('wt-inline-city-name').value=''; document.getElementById('wt-inline-garden-results').style.display='none';">${g.name} (${g.city||'אחר'})</div>`).join('');
+  }
   res.innerHTML = html;
   res.style.display='block';
 };
@@ -1146,14 +1322,21 @@ window.wtAddInlineTask = function() {
   let cityName = document.getElementById('wt-inline-city-name') ? document.getElementById('wt-inline-city-name').value : '';
   const gNameInput = document.getElementById('wt-inline-garden').value.trim();
   
+  const staffList = window.wtGetStaffList ? window.wtGetStaffList() : [];
+  const staffMatch = staffList.find(s => s.display === gNameInput || s.name === gNameInput || s.display === cityName || s.name === cityName);
+
   if (!gardenId && !cityName && gNameInput) {
-    const gardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
-    let match = gardens.find(g => g.name === gNameInput);
-    if (!match) match = gardens.find(g => g.name.includes(gNameInput) || String(g.id) === gNameInput);
-    if (match) {
-      gardenId = match.id;
+    if (staffMatch) {
+      cityName = staffMatch.display;
     } else {
-      cityName = gNameInput;
+      const gardens = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+      let match = gardens.find(g => g.name === gNameInput);
+      if (!match) match = gardens.find(g => g.name.includes(gNameInput) || String(g.id) === gNameInput);
+      if (match) {
+        gardenId = match.id;
+      } else {
+        cityName = gNameInput;
+      }
     }
   }
   const desc = document.getElementById('wt-inline-desc').value.trim();
@@ -1167,10 +1350,13 @@ window.wtAddInlineTask = function() {
   let g = null;
   if (gardenId && window.G) g = window.G(gardenId);
   if (!g && gardenId && Array.isArray(window._GARDENS_EXTRA)) g = window._GARDENS_EXTRA.find(x => Number(x.id) === Number(gardenId));
-  const tGardenName = (g && g.name) ? g.name : (gNameInput || '');
-  const tCity = (g && g.city) ? g.city : (cityName || '');
+  const tGardenName = (g && g.name) ? g.name : '';
+  const tCity = (g && g.city) ? g.city : (cityName || (staffMatch ? staffMatch.display : ''));
   const tAddress = (g && (g.st || g.address)) ? (g.st || g.address) : '';
-  const tPhone = (g && (g.coph || g.phone)) ? (g.coph || g.phone) : '';
+  let tPhone = (g && (g.coph || g.phone)) ? (g.coph || g.phone) : '';
+  if (!tPhone && staffMatch && staffMatch.phone) {
+    tPhone = staffMatch.phone;
+  }
 
   window.WORKER_TASKS.push({
     id: 'wt_' + Date.now(),
