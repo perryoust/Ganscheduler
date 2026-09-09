@@ -18,10 +18,109 @@ onmessage = function(e) {
       .trim();
   };
 
+  const cleanDocNum = (val) => {
+    if (val === undefined || val === null) return '';
+    return String(val).replace(/\D/g, '').replace(/^0+/, '') || '0';
+  };
+
+  const isYear = (val) => { const num = parseInt(val, 10); return num >= 2020 && num <= 2035; };
+
+  const BUILTIN_ALIASES = {
+    'חנה בית הלחמי': 'חוגות',
+    'בית הלחמי': 'חוגות',
+    'עדי קייטרינג': 'עדי מ קייטרינג בע"מ',
+    'עדי קייטרינג בע"מ': 'עדי מ קייטרינג בע"מ',
+    'גטאקסי': 'ג\'יט גטאקסי סרוויסס ישראל בע"מ',
+    'גט טקסי': 'ג\'יט גטאקסי סרוויסס ישראל בע"מ',
+    'גט': 'ג\'יט גטאקסי סרוויסס ישראל בע"מ',
+    'gett': 'ג\'יט גטאקסי סרוויסס ישראל בע"מ',
+    'שחר חוויות': 'שחר חוויות חינוכיות בע"מ',
+    'שחר': 'שחר חוויות חינוכיות בע"מ',
+    'רוזי עמית': 'קידו התעמלות רוזי עמית',
+    'קידו': 'קידו התעמלות רוזי עמית',
+    'קידו התעמלות': 'קידו התעמלות רוזי עמית',
+    'מקס סטוק': 'קרנית רייזל',
+    'זול סטוק': 'דנית שאול',
+    'עולם הגלידה': 'קרנית רייזל',
+    'טל עולם הגלידה': 'דנית שאול'
+  };
+  const allAliases = { ...BUILTIN_ALIASES, ...(spScannerAliases || {}) };
+
+  // ═══════════════════════════════════════════════════════════════
+  // PHASE 0: PRE-COMPUTE — build index maps ONCE (O(I)) instead
+  //          of cleaning / filtering inside every file iteration
+  // ═══════════════════════════════════════════════════════════════
+
+  // Pre-clean all invoice numbers once
+  const invPrep = invoices.map(inv => {
+    const cleanNum   = inv.num      ? cleanDocNum(inv.num)      : '';
+    const cleanTx    = inv.txNum    ? cleanDocNum(inv.txNum)    : '';
+    const cleanOrder = inv.orderNum ? cleanDocNum(inv.orderNum) : '';
+    const baseName   = inv.supName ? String(inv.supName).trim().replace(/[.$#[\]/]/g, '') : '';
+    const cleanSup   = cleanSupText(inv.supName || '');
+    const exData     = supEx ? (supEx[inv.supName] || supEx[baseName]) : null;
+    const keywords   = exData ? exData.keywords : (inv.keywords || '');
+
+    return {
+      inv,
+      cleanNum,
+      cleanTx,
+      cleanOrder,
+      baseName,
+      cleanSup,
+      exData,
+      keywords
+    };
+  });
+
+  // Build hash maps: cleanNumber -> [{ prepIdx, field: 'num'|'tx'|'order' }]
+  // This allows O(1) exact-match lookup instead of scanning all invoices
+  const exactMap = new Map();   // cleanNum -> array of { idx, field }
+
+  // For suffix matching we also store all suffixes of length 5+
+  const suffixMap = new Map();  // suffix (last 5..N chars) -> array of { idx, field }
+
+  const addToMap = (map, key, idx, field) => {
+    if (!key || key === '0') return;
+    let arr = map.get(key);
+    if (!arr) { arr = []; map.set(key, arr); }
+    arr.push({ idx, field });
+  };
+
+  invPrep.forEach((p, idx) => {
+    // Exact map
+    if (p.cleanNum) addToMap(exactMap, p.cleanNum, idx, 'num');
+    if (p.cleanTx) addToMap(exactMap, p.cleanTx, idx, 'tx');
+    if (p.cleanOrder && p.cleanOrder.length >= 4) addToMap(exactMap, p.cleanOrder, idx, 'order');
+
+    // Suffix map — store suffixes of length 5 up to full length for each number
+    const addSuffixes = (val, field) => {
+      if (!val || val.length < 5) return;
+      for (let len = 5; len <= val.length; len++) {
+        const suffix = val.substring(val.length - len);
+        addToMap(suffixMap, suffix, idx, field);
+      }
+    };
+    if (p.cleanNum && p.cleanNum.length >= 5) addSuffixes(p.cleanNum, 'num');
+    if (p.cleanTx && p.cleanTx.length >= 5) addSuffixes(p.cleanTx, 'tx');
+    if (p.cleanOrder && p.cleanOrder.length >= 5) addSuffixes(p.cleanOrder, 'order');
+  });
+
+  // Pre-clean alias keys for supplier matching
+  const aliasEntries = Object.entries(allAliases).map(([alias, target]) => ({
+    aliasClean: cleanSupText(alias),
+    targetClean: cleanSupText(target),
+    targetRaw: target
+  }));
+
+  // ═══════════════════════════════════════════════════════════════
+  // PHASE 1: MAIN FILE LOOP — now uses O(1) lookups from indexes
+  // ═══════════════════════════════════════════════════════════════
+
   for (let i = 0; i < filesFound.length; i++) {
     const file = filesFound[i];
     
-    // Post progress
+    // Post progress every 5 files
     if (i % 5 === 0) {
       postMessage({ type: 'progress', percent: Math.round((i / filesFound.length) * 100) });
     }
@@ -108,73 +207,63 @@ onmessage = function(e) {
        });
     });
 
-    const isYear = (val) => { const num = parseInt(val, 10); return num >= 2020 && num <= 2035; };
     const hasOnlyYearNumbers = extractedNumbers.filter(n => !isYear(n.clean)).length === 0;
 
     let bestInvoice = null;
     let bestType = null;
     let bestScore = -1000;
 
-    const BUILTIN_ALIASES = {
-      'חנה בית הלחמי': 'חוגות',
-      'בית הלחמי': 'חוגות',
-      'עדי קייטרינג': 'עדי מ קייטרינג בע"מ',
-      'עדי קייטרינג בע"מ': 'עדי מ קייטרינג בע"מ',
-      'גטאקסי': 'ג\'יט גטאקסי סרוויסס ישראל בע"מ',
-      'גט טקסי': 'ג\'יט גטאקסי סרוויסס ישראל בע"מ',
-      'גט': 'ג\'יט גטאקסי סרוויסס ישראל בע"מ',
-      'gett': 'ג\'יט גטאקסי סרוויסס ישראל בע"מ',
-      'שחר חוויות': 'שחר חוויות חינוכיות בע"מ',
-      'שחר': 'שחר חוויות חינוכיות בע"מ',
-      'רוזי עמית': 'קידו התעמלות רוזי עמית',
-      'קידו': 'קידו התעמלות רוזי עמית',
-      'קידו התעמלות': 'קידו התעמלות רוזי עמית',
-      'מקס סטוק': 'קרנית רייזל',
-      'זול סטוק': 'דנית שאול',
-      'עולם הגלידה': 'קרנית רייזל',
-      'טל עולם הגלידה': 'דנית שאול'
-    };
-
+    // ── Number-based matching (using index maps instead of filter) ──
     for (const numObj of extractedNumbers) {
       const cleanNumStr = numObj.clean;
       if (!cleanNumStr) continue;
       // Critical fix: NEVER match calendar years (2020..2035) as document or order numbers!
       if (isYear(cleanNumStr)) continue;
       
-      const potentialMatches = invoices.filter(inv => {
-        const cleanInvNum = inv.num ? (String(inv.num).replace(/\D/g, '').replace(/^0+/, '') || '0') : '';
-        const cleanInvTx = inv.txNum ? (String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') || '0') : '';
-        const cleanInvOrder = inv.orderNum ? (String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') || '0') : '';
+      // Collect candidate indices via hash maps (O(1) per lookup)
+      const candidateSet = new Set();  // Set of invPrep indices
 
-        // Exact match
-        if (cleanInvNum && cleanInvNum === cleanNumStr) return true;
-        if (cleanInvTx && cleanInvTx === cleanNumStr) return true;
-        if (cleanInvOrder && cleanInvOrder.length >= 4 && cleanInvOrder === cleanNumStr) return true;
+      // 1. Exact match lookup
+      const exactHits = exactMap.get(cleanNumStr);
+      if (exactHits) exactHits.forEach(h => candidateSet.add(h.idx));
 
-        // Suffix/prefix match for branch codes (e.g. 08-800028 vs 800028)
-        if (cleanNumStr.length >= 5) {
-          if (cleanInvNum && cleanInvNum.length >= 5 && (cleanInvNum.endsWith(cleanNumStr) || cleanNumStr.endsWith(cleanInvNum))) return true;
-          if (cleanInvTx && cleanInvTx.length >= 5 && (cleanInvTx.endsWith(cleanNumStr) || cleanNumStr.endsWith(cleanInvTx))) return true;
-          if (cleanInvOrder && cleanInvOrder.length >= 5 && (cleanInvOrder.endsWith(cleanNumStr) || cleanInvOrder.endsWith(cleanInvOrder))) return true;
+      // 2. Suffix/prefix match: file number is suffix of invoice number
+      if (cleanNumStr.length >= 5) {
+        const suffHits = suffixMap.get(cleanNumStr);
+        if (suffHits) suffHits.forEach(h => candidateSet.add(h.idx));
+      }
+
+      // 3. Reverse: file number contains invoice number as suffix
+      //    We need to check if any invoice number is a suffix of cleanNumStr
+      if (cleanNumStr.length >= 5) {
+        // Check all suffixes of cleanNumStr against exactMap
+        for (let len = 5; len < cleanNumStr.length; len++) {
+          const tail = cleanNumStr.substring(cleanNumStr.length - len);
+          const hits = exactMap.get(tail);
+          if (hits) hits.forEach(h => {
+            // Verify the field value length is >= 5
+            const p = invPrep[h.idx];
+            const fieldVal = h.field === 'num' ? p.cleanNum : h.field === 'tx' ? p.cleanTx : p.cleanOrder;
+            if (fieldVal && fieldVal.length >= 5) candidateSet.add(h.idx);
+          });
         }
-        return false;
-      });
+      }
 
-      for (const inv of potentialMatches) {
+      // Now score each candidate (small set, typically 0-3 items)
+      for (const prepIdx of candidateSet) {
+        const p = invPrep[prepIdx];
+        const inv = p.inv;
+
         let type = null;
         let contextBonus = 0;
 
-        const cleanInvNum = inv.num ? (String(inv.num).replace(/\D/g, '').replace(/^0+/, '') || '0') : '';
-        const cleanInvTx = inv.txNum ? (String(inv.txNum).replace(/\D/g, '').replace(/^0+/, '') || '0') : '';
-        const cleanInvOrder = inv.orderNum ? (String(inv.orderNum).replace(/\D/g, '').replace(/^0+/, '') || '0') : '';
-
-        if (cleanInvNum && (cleanInvNum === cleanNumStr || (cleanNumStr.length >= 5 && cleanInvNum.endsWith(cleanNumStr)))) {
+        if (p.cleanNum && (p.cleanNum === cleanNumStr || (cleanNumStr.length >= 5 && p.cleanNum.endsWith(cleanNumStr)))) {
            type = 'tax';
            if (numObj.context === 'tax') contextBonus = 50;
-        } else if (cleanInvTx && (cleanInvTx === cleanNumStr || (cleanNumStr.length >= 5 && cleanInvTx.endsWith(cleanNumStr)))) {
+        } else if (p.cleanTx && (p.cleanTx === cleanNumStr || (cleanNumStr.length >= 5 && p.cleanTx.endsWith(cleanNumStr)))) {
            type = 'tx';
            if (numObj.context === 'tx') contextBonus = 50;
-        } else if (cleanInvOrder && cleanInvOrder.length >= 4 && (cleanInvOrder === cleanNumStr || (cleanNumStr.length >= 5 && cleanInvOrder.endsWith(cleanNumStr)))) {
+        } else if (p.cleanOrder && p.cleanOrder.length >= 4 && (p.cleanOrder === cleanNumStr || (cleanNumStr.length >= 5 && p.cleanOrder.endsWith(cleanNumStr)))) {
            type = 'order';
            if (numObj.context === 'order') contextBonus = 50;
         }
@@ -195,26 +284,22 @@ onmessage = function(e) {
         score += contextBonus;
 
         // Exact document number match gets huge bonus!
-        if ((type === 'tax' && cleanInvNum === cleanNumStr) ||
-            (type === 'tx' && cleanInvTx === cleanNumStr) ||
-            (type === 'order' && cleanInvOrder === cleanNumStr)) {
+        if ((type === 'tax' && p.cleanNum === cleanNumStr) ||
+            (type === 'tx' && p.cleanTx === cleanNumStr) ||
+            (type === 'order' && p.cleanOrder === cleanNumStr)) {
           score += 250;
         }
         
         let supplierMatched = false;
         let supplierWordsMatched = 0;
-        const baseName = inv.supName ? String(inv.supName).trim().replace(/[.$#[\]/]/g, '') : '';
-        const exData = supEx ? (supEx[inv.supName] || supEx[baseName]) : null;
-        const keywords = exData ? exData.keywords : (inv.keywords || '');
         
         if (inv.supName) {
-          const cleanSup = cleanSupText(inv.supName);
-          if (cleanSup.length >= 2 && cleanFull.includes(cleanSup)) {
+          if (p.cleanSup.length >= 2 && cleanFull.includes(p.cleanSup)) {
              supplierMatched = true;
              supplierWordsMatched += 3;
           }
 
-          const supWords = cleanSup.split(/\s+/).filter(w => w.length >= 2 && !['של','עם','על','את','אל','מן','זה','או','כי','אם','גן','צהרון'].includes(w));
+          const supWords = p.cleanSup.split(/\s+/).filter(w => w.length >= 2 && !['של','עם','על','את','אל','מן','זה','או','כי','אם','גן','צהרון'].includes(w));
           for (const word of supWords) {
             if (cleanFull.includes(word)) {
               supplierWordsMatched++;
@@ -222,13 +307,10 @@ onmessage = function(e) {
             }
           }
 
-          // Check Aliases (built-in + dynamic)
-          const allAliases = { ...BUILTIN_ALIASES, ...(spScannerAliases || {}) };
-          for (const alias in allAliases) {
-            const aliasClean = cleanSupText(alias);
-            const targetClean = cleanSupText(allAliases[alias]);
-            if (targetClean === cleanSup || allAliases[alias] === inv.supName || allAliases[alias] === baseName) {
-              if (cleanFull.includes(aliasClean)) {
+          // Check Aliases
+          for (const ae of aliasEntries) {
+            if (ae.targetClean === p.cleanSup || ae.targetRaw === inv.supName || ae.targetRaw === p.baseName) {
+              if (cleanFull.includes(ae.aliasClean)) {
                 supplierMatched = true;
                 supplierWordsMatched += 3;
                 break;
@@ -236,15 +318,15 @@ onmessage = function(e) {
             }
           }
 
-          if (keywords) {
-             const kwds = keywords.split(',').map(k => cleanSupText(k)).filter(Boolean);
+          if (p.keywords) {
+             const kwds = p.keywords.split(',').map(k => cleanSupText(k)).filter(Boolean);
              if (kwds.some(k => cleanFull.includes(k))) {
                 supplierMatched = true;
                 supplierWordsMatched += 2;
              }
           }
 
-          // Match words from order description (e.g. "שופרסל", "שקלנד", "גלידוש", "מקס סטוק")
+          // Match words from order description
           if (inv.orderDesc) {
             const cleanDesc = cleanSupText(inv.orderDesc);
             const descWords = cleanDesc.split(/\s+/).filter(w => w.length >= 3 && !['של','עם','על','את','אל','מן','זה','או','כי','אם','גן','צהרון','ביהס','חופש','גדול','קייטנת'].includes(w));
@@ -344,6 +426,7 @@ onmessage = function(e) {
       }
     }
 
+    // ── Fallback: supplier+month fuzzy match (when no number matched) ──
     if (bestScore < 0) {
       let explicitMonthFound = false;
       let targetMonth = -1;
@@ -367,9 +450,9 @@ onmessage = function(e) {
           targetYear = yearMatch ? parseInt(yearMatch[1]) : (currentYear || new Date().getFullYear());
         }
         
-        for (const inv of invoices) {
-          const baseName = inv.supName ? String(inv.supName).trim().replace(/[.$#[\]/]/g, '') : '';
-          const supKws = (supEx && (supEx[inv.supName] || supEx[baseName])) ? (supEx[inv.supName] || supEx[baseName]).keywords || '' : ''; 
+        for (const p of invPrep) {
+          const inv = p.inv;
+          const supKws = p.exData ? (p.exData.keywords || '') : '';
           const isInvPettyCash = inv.orderNum === 'קופה קטנה' || inv.orderType === 'petty' || String(inv.notes||'').includes('קופה קטנה') || String(inv.txNum||'').includes('קופה קטנה') || String(inv.orderDesc||'').includes('קופה קטנה') || String(inv.supName||'').includes('קופה קטנה') || String(supKws).includes('קופה קטנה');
           if (isPettyCash && !isInvPettyCash) continue;
           
@@ -379,17 +462,13 @@ onmessage = function(e) {
           let supplierScore = 0;
           if (isGett && isInvGett) supplierScore = 35;
           if (inv.supName) {
-             const cleanSup = cleanSupText(inv.supName);
-             if (cleanSup.length >= 3 && cleanFull.includes(cleanSup)) {
+             if (p.cleanSup.length >= 3 && cleanFull.includes(p.cleanSup)) {
                supplierScore = Math.max(supplierScore, 40);
              } else {
                 let foundAlias = false;
-                const allAliases = { ...BUILTIN_ALIASES, ...(spScannerAliases || {}) };
-                for (const alias in allAliases) {
-                  const aliasClean = cleanSupText(alias);
-                  const targetClean = cleanSupText(allAliases[alias]);
-                  if (targetClean === cleanSup || allAliases[alias] === inv.supName || allAliases[alias] === baseName) {
-                    if (cleanFull.includes(aliasClean)) {
+                for (const ae of aliasEntries) {
+                  if (ae.targetClean === p.cleanSup || ae.targetRaw === inv.supName || ae.targetRaw === p.baseName) {
+                    if (cleanFull.includes(ae.aliasClean)) {
                       supplierScore = Math.max(supplierScore, 35);
                       foundAlias = true;
                       break;
@@ -398,9 +477,8 @@ onmessage = function(e) {
                 }
                
                if (!foundAlias && supEx) {
-                 const exData = supEx[baseName] || supEx[inv.supName];
-                 if (exData && exData.keywords) {
-                   const kws = exData.keywords.split(',').map(k => cleanSupText(k)).filter(Boolean);
+                 if (p.exData && p.exData.keywords) {
+                   const kws = p.exData.keywords.split(',').map(k => cleanSupText(k)).filter(Boolean);
                    if (kws.some(k => k.length >= 3 && cleanFull.includes(k))) {
                      supplierScore = Math.max(supplierScore, 30);
                      foundAlias = true;
@@ -491,6 +569,7 @@ onmessage = function(e) {
       }
     }
 
+    // ── Record results ──
     let matchedInvoice = bestScore > -200 ? bestInvoice : null;
     let matchedType = bestScore > -200 ? bestType : null;
 
