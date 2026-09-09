@@ -80,8 +80,8 @@
 
   const GREEN = '#2e7d32';
   const DARK_BLUE = '#1a237e';
-  const LIGHT_GRAY = '#f5f5f5';
-  const BORDER_COLOR = '#cccccc';
+  const LIGHT_GRAY = '#e0e0e0';
+  const BORDER_COLOR = '#000000';
 
   /**
    * Safe text helper — ensures no null/undefined values
@@ -231,13 +231,15 @@
         body: tableBody
       },
       layout: {
+        hLineWidth: (i, node) => (i === 0 || i === 1 || i === node.table.body.length) ? 1.5 : 1,
+        vLineWidth: () => 1,
         hLineColor: () => BORDER_COLOR,
         vLineColor: () => BORDER_COLOR,
         fillColor: (rowIndex) => rowIndex === 0 ? LIGHT_GRAY : null,
         paddingLeft: () => 5,
         paddingRight: () => 5,
-        paddingTop: () => 3,
-        paddingBottom: () => 3
+        paddingTop: () => 4,
+        paddingBottom: () => 4
       },
       margin: [0, 8, 0, 10]
     };
@@ -470,9 +472,11 @@
           }]]
         },
         layout: {
-          hLineColor: () => '#eee',
-          vLineColor: () => '#eee',
-          fillColor: () => '#f9f9f9',
+          hLineWidth: () => 1,
+          vLineWidth: () => 1,
+          hLineColor: () => '#444444',
+          vLineColor: () => '#444444',
+          fillColor: () => '#f5f5f5',
           paddingLeft: () => 8,
           paddingRight: () => 8,
           paddingTop: () => 6,
@@ -507,6 +511,8 @@
             body: tableBody
           },
           layout: {
+            hLineWidth: (i, node) => (i === 0 || i === 1 || i === node.table.body.length) ? 1.5 : 1,
+            vLineWidth: () => 1,
             hLineColor: () => BORDER_COLOR,
             vLineColor: () => BORDER_COLOR,
             fillColor: (rowIndex) => rowIndex === 0 ? LIGHT_GRAY : null,

@@ -1480,13 +1480,13 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
             ${order.notes ? `<div class="order-notes"><b>${rtlFix('הערות:')}</b><br>${rtlFix(order.notes).replace(/\n/g, '<br>')}</div>` : ''}
           </div>
           
-          <div class="order-totals" style="display: flex; flex-direction: column; min-width:190px; max-width:220px; background:#fafafa; padding:6px 10px; border-radius:6px; border:1px solid #eee; font-size:0.82rem;">
+          <div class="order-totals" style="display: flex; flex-direction: column; min-width:190px; max-width:220px; background:#fafafa; padding:6px 10px; border-radius:6px; border:1.5px solid #333; font-size:0.82rem;">
             ${kitsBreakdownHtml}
             <div style="display:flex; justify-content:space-between; align-items:center; margin:2px 0; gap:8px;">
               <span style="font-weight:bold; font-size:0.92em;">${isInc ? rtlFix('מתוכם מע"מ') : rtlFix('מע"מ')} (${vatRate}%):</span>
               <span dir="ltr" style="font-size:0.92em;">&#8362; ${order.vat.toFixed(2)}</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; padding-top:3px; border-top:1px solid #ddd; gap:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; padding-top:3px; border-top:1.5px solid #222; gap:8px;">
               <span style="font-weight:bold; color:#2e7d32; font-size:1em;">${rtlFix('סה"כ לתשלום:')}</span>
               <span dir="ltr" style="font-weight:bold; color:#2e7d32; font-size:1.02em;">&#8362; ${order.totalPrice.toFixed(2)}</span>
             </div>
@@ -1556,8 +1556,8 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
           margin-bottom: 20px;
         }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; table-layout: fixed; }
-        th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
-        th { background: #f5f5f5; }
+        th, td { border: 1.5px solid #000; padding: 5px 6px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
+        th { background: #e0e0e0; font-weight: bold; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2e7d32; padding-bottom: 10px; margin-bottom: 10px;}
         
         .compact table { font-size: 0.85em; margin-top: 5px; }
@@ -2213,7 +2213,7 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
             <p style="margin:0; font-size:1.05em;"><b style="color:#1a237e;">תאריך:&nbsp;</b><span>${new Date(dlv.ts).toLocaleDateString('he-IL')}</span></p>
           </div>
         </div>
-        <div style="margin-bottom: 15px; display:flex; justify-content:space-between; font-size:1.05em; background:#f9f9f9; padding:10px 14px; border-radius:6px; border:1px solid #eee; gap:15px; word-spacing:2px;">
+        <div style="margin-bottom: 15px; display:flex; justify-content:space-between; font-size:1.05em; background:#f9f9f9; padding:10px 14px; border-radius:6px; border:1.5px solid #444; gap:15px; word-spacing:2px;">
           <div><b style="color:#1a237e;">יעד&nbsp;המשלוח:&nbsp;</b><span style="font-weight:600;">${rtlFix(dlv.destination)}</span></div>
           ${dlv.deliveryDesc ? `<div><b style="color:#1a237e;">תיאור:&nbsp;</b><span style="font-weight:600;">${rtlFix(dlv.deliveryDesc)}</span></div>` : ''}
           <div><b style="color:#1a237e;">שם&nbsp;הנהג/מוביל:&nbsp;</b><span style="font-weight:600;">${rtlFix(dlv.driver) || '_________________'}</span></div>
@@ -2310,8 +2310,8 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
           margin-bottom: 20px;
         }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; table-layout: fixed; }
-        th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
-        th { background: #f5f5f5; }
+        th, td { border: 1.5px solid #000; padding: 5px 8px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
+        th { background: #e0e0e0; font-weight: bold; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2e7d32; padding-bottom: 10px; margin-bottom: 10px;}
         
         .compact table { font-size: 0.85em; margin-top: 5px; }
@@ -2884,8 +2884,8 @@ window.printBulkPO = function() {
             margin-bottom: 20px;
           }
           table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; table-layout: fixed; }
-          th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
-          th { background: #f5f5f5; }
+          th, td { border: 1.5px solid #000; padding: 5px 6px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
+          th { background: #e0e0e0; font-weight: bold; }
           .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2e7d32; padding-bottom: 10px; margin-bottom: 10px;}
           
           .compact table { font-size: 0.85em; margin-top: 5px; }
