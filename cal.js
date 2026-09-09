@@ -33,14 +33,16 @@ function calRefG(){
     cityMap.forEach((cityGs, city) => {
       const safeCity = city.replace(/"/g, '&quot;');
       const cityId = 'cal-city-grp-' + plat + '-' + safeCity.replace(/\s/g,'_');
+      const gardensId = 'cal-city-gardens-' + plat + '-' + safeCity.replace(/\s/g,'_');
       
-      // Excel-like flat section header
+      // Excel-like flat section header with accordion
       html += `<div class="cal-city-group" data-city="${safeCity}" style="margin-bottom:2px;">
-        <label class="custom-multi-item cal-city-header" style="font-weight:bold; background:#f1f5f9; border-bottom:1px solid #e2e8f0; border-top:1px solid #e2e8f0; padding:6px 8px; color:#334155;">
-          <input type="checkbox" class="cal-city-chk" data-city="${safeCity}" id="${cityId}" onchange="window.toggleCityGardens('${plat}', this)" style="margin:0;">
-          <span style="font-size:0.85rem;">${city} (${cityGs.length})</span>
-        </label>
-        <div class="cal-city-gardens" style="padding-right:12px;">`;
+        <div class="custom-multi-item cal-city-header" style="font-weight:bold; background:#f1f5f9; border-bottom:1px solid #e2e8f0; border-top:1px solid #e2e8f0; padding:6px 8px; display:flex; align-items:center; gap:8px;">
+          <span style="flex:1; cursor:pointer; font-size:0.85rem; color:#334155;" onclick="window.toggleCityAccordion('${gardensId}', this)">${city} (${cityGs.length})</span>
+          <input type="checkbox" class="cal-city-chk" data-city="${safeCity}" id="${cityId}" onchange="window.toggleCityGardens('${plat}', this)" style="margin:0; width:16px; height:16px; cursor:pointer;">
+          <span class="city-toggle-icon" onclick="window.toggleCityAccordion('${gardensId}', this.parentElement.querySelector('span'))" style="cursor:pointer; display:flex; align-items:center; justify-content:center; width:22px; height:22px; font-size:1.1rem; color:#64748b; font-weight:bold;">+</span>
+        </div>
+        <div id="${gardensId}" class="cal-city-gardens" style="display:none; padding-right:12px;">`;
       
       cityGs.forEach(g => {
         let tooltip = g.name;
@@ -82,7 +84,20 @@ window.toggleCalGMulti = function(plat) {
   if(list) list.classList.toggle('open');
 };
 
-// toggleCityAccordion removed - UI is now flat
+// Toggle accordion
+window.toggleCityAccordion = function(gardensId, spanEl) {
+  const gardensDiv = document.getElementById(gardensId);
+  const iconEl = spanEl.parentElement.querySelector('.city-toggle-icon');
+  if(gardensDiv) {
+    if(gardensDiv.style.display === 'none') {
+      gardensDiv.style.display = 'block';
+      if(iconEl) iconEl.innerText = '-';
+    } else {
+      gardensDiv.style.display = 'none';
+      if(iconEl) iconEl.innerText = '+';
+    }
+  }
+};
 
 // Toggle all gardens in a specific city
 window.toggleCityGardens = function(plat, cityChk) {
@@ -119,6 +134,19 @@ window.filterCalGMulti = function(plat) {
         else header.style.display = '';
       }
       grp.style.display = (filter && !anyVisible) ? 'none' : '';
+      
+      // Auto-expand during search, collapse when cleared
+      const gardensDiv = grp.querySelector('.cal-city-gardens');
+      const iconEl = grp.querySelector('.city-toggle-icon');
+      if (gardensDiv) {
+        if (filter && anyVisible) {
+           gardensDiv.style.display = 'block';
+           if (iconEl) iconEl.innerText = '-';
+        } else if (!filter) {
+           gardensDiv.style.display = 'none';
+           if (iconEl) iconEl.innerText = '+';
+        }
+      }
     });
   } else {
     list.querySelectorAll('.custom-multi-item').forEach(item => {
