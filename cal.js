@@ -33,15 +33,15 @@ function calRefG(){
     cityMap.forEach((cityGs, city) => {
       const safeCity = city.replace(/"/g, '&quot;');
       const cityId = 'cal-city-grp-' + plat + '-' + safeCity.replace(/\s/g,'_');
-      const gardensId = 'cal-city-gardens-' + plat + '-' + safeCity.replace(/\s/g,'_');
-      // City header with count and select-all for city
-      html += `<div class="cal-city-group" data-city="${safeCity}">
-        <div class="custom-multi-item cal-city-header" style="font-weight:bold; background:#fafafa; border-bottom:1px solid #e0e0e0; padding:8px 10px; display:flex; align-items:center; gap:8px;">
-          <span style="flex:1; cursor:pointer; font-size:0.95rem; color:#333;" onclick="window.toggleCityAccordion('${gardensId}', this)">${city} (${cityGs.length})</span>
-          <input type="checkbox" class="cal-city-chk" data-city="${safeCity}" id="${cityId}" onchange="window.toggleCityGardens('${plat}', this)" style="width:16px; height:16px; cursor:pointer; margin:0;">
-          <span class="city-toggle-icon" onclick="window.toggleCityAccordion('${gardensId}', this.parentElement.querySelector('span'))" style="cursor:pointer; display:flex; align-items:center; justify-content:center; width:20px; height:20px; font-size:1.2rem; font-weight:bold; color:#555;">➕</span>
-        </div>
-        <div id="${gardensId}" class="cal-city-gardens" style="display:none; padding-right:10px; background:#fff; border-bottom:1px solid #eee;">`;
+      
+      // Excel-like flat section header
+      html += `<div class="cal-city-group" data-city="${safeCity}" style="margin-bottom:2px;">
+        <label class="custom-multi-item cal-city-header" style="font-weight:bold; background:#f1f5f9; border-bottom:1px solid #e2e8f0; border-top:1px solid #e2e8f0; padding:6px 8px; color:#334155;">
+          <input type="checkbox" class="cal-city-chk" data-city="${safeCity}" id="${cityId}" onchange="window.toggleCityGardens('${plat}', this)" style="margin:0;">
+          <span style="font-size:0.85rem;">${city} (${cityGs.length})</span>
+        </label>
+        <div class="cal-city-gardens" style="padding-right:12px;">`;
+      
       cityGs.forEach(g => {
         let tooltip = g.name;
         let partnerNote = '';
@@ -52,13 +52,13 @@ function calRefG(){
             const otherNames = otherIds.map(id => window.G(id)?.name).filter(Boolean).join(' + ');
             if(otherNames) {
               tooltip = `${g.name}\n🔗 שותף לזוג: ${otherNames}`;
-              partnerNote = `<span style="font-size:0.65rem; color:#888; margin-right:auto;">(זוג: ${otherNames})</span>`;
+              partnerNote = `<span style="font-size:0.65rem; color:#64748b; margin-right:auto;">(זוג: ${otherNames})</span>`;
             }
           }
         }
-        html += `<label class="custom-multi-item cal-g-multi-real-item" data-city="${safeCity}" title="${tooltip}" style="padding:6px 8px; border-bottom:1px solid #f5f5f5;">
+        html += `<label class="custom-multi-item cal-g-multi-real-item" data-city="${safeCity}" title="${tooltip}" style="padding:4px 8px;">
           <input type="checkbox" value="${g.id}" class="cal-g-multi-chk" onchange="window.calMultiGChanged('${plat}')" style="margin:0;">
-          <span>${g.name}</span>
+          <span style="font-size:0.85rem; color:#0f172a;">${g.name}</span>
           ${partnerNote}
         </label>`;
       });
@@ -82,19 +82,7 @@ window.toggleCalGMulti = function(plat) {
   if(list) list.classList.toggle('open');
 };
 
-window.toggleCityAccordion = function(gardensId, spanEl) {
-  const gardensDiv = document.getElementById(gardensId);
-  const iconEl = spanEl.parentElement.querySelector('.city-toggle-icon');
-  if(gardensDiv) {
-    if(gardensDiv.style.display === 'none') {
-      gardensDiv.style.display = 'block';
-      if(iconEl) iconEl.innerText = '➖';
-    } else {
-      gardensDiv.style.display = 'none';
-      if(iconEl) iconEl.innerText = '➕';
-    }
-  }
-};
+// toggleCityAccordion removed - UI is now flat
 
 // Toggle all gardens in a specific city
 window.toggleCityGardens = function(plat, cityChk) {
