@@ -212,7 +212,7 @@ function nsCheckPair(gid){
   const date = document.getElementById('ns-date')?.value || window.d2s(new Date());
   const choiceWrap = document.getElementById('ns-g2-choice-wrap');
   const grpWrap = document.getElementById('ns-grp-wrap');
-  if (grpWrap) grpWrap.style.display = 'block';
+  if (grpWrap) grpWrap.style.display = 'none';
 
   const pair = gid ? window.gardenPair(gid, date) : null;
   const hasCustom = window.nsCustomPartners && window.nsCustomPartners.size > 0;
@@ -281,6 +281,11 @@ function renderPartnerTable(){
     const pGid = inp.getAttribute('data-gid');
     if (pGid && inp.value) existingTimes[Number(pGid)] = inp.value;
   });
+  const existingGrps = {};
+  document.querySelectorAll('.ns-syn-grp').forEach(inp => {
+    const pGid = inp.getAttribute('data-gid');
+    if (pGid && inp.value) existingGrps[Number(pGid)] = inp.value;
+  });
   const existingChecks = {};
   document.querySelectorAll('.ns-syn-chk').forEach(chk => {
     const pGid = chk.value;
@@ -290,7 +295,7 @@ function renderPartnerTable(){
   let rowsHtml = '';
   
   if(!allIds.length){
-    rowsHtml = '<tr><td colspan="7" style="text-align:center;padding:12px;color:#777">אין גנים שותפים כרגע</td></tr>';
+    rowsHtml = '<tr><td colspan="8" style="text-align:center;padding:12px;color:#777">אין גנים שותפים כרגע</td></tr>';
   } else {
     allIds.forEach(pId => {
       const pG = window.G(pId);
@@ -307,6 +312,9 @@ function renderPartnerTable(){
       const defaultTime = document.getElementById('ns-time')?.value || '';
       const existingTimeStr = ev ? (window.fT ? window.fT(ev.t) : ev.t) : '';
       const timeVal = savedInputTime || defaultTime;
+
+      const savedInputGrp = existingGrps[Number(pId)] !== undefined ? existingGrps[Number(pId)] : (ev && ev.grp ? ev.grp : 1);
+      const grpDisplay = `<input type="number" class="ns-syn-grp" data-gid="${pId}" min="1" max="10" value="${savedInputGrp}" style="width:44px;text-align:center;font-size:.75rem;padding:2px 4px;border:1px solid #ccc;border-radius:4px;font-weight:600">`;
       
       const isChecked = existingChecks[Number(pId)] !== undefined ? existingChecks[Number(pId)] : true;
       const timeDisplay = `<div style="display:flex;flex-direction:column;gap:2px;align-items:center;">
@@ -328,6 +336,7 @@ function renderPartnerTable(){
           <td style="text-align:center">${chkDisplay}</td>
           <td style="font-weight:800;color:#1a237e">${pG.name} ${customBadge}${removeBtn}</td>
           <td>${timeDisplay}</td>
+          <td style="text-align:center">${grpDisplay}</td>
           <td style="font-weight:600">${sup}</td>
           <td>${act}</td>
           <td>${type}</td>
@@ -345,6 +354,7 @@ function renderPartnerTable(){
             <th style="width:40px;text-align:center;padding:8px">סמן</th>
             <th style="padding:8px">שם הצהרון</th>
             <th style="padding:8px">שעה</th>
+            <th style="padding:8px;text-align:center;width:55px">קבוצות</th>
             <th style="padding:8px">ספק</th>
             <th style="padding:8px">פעילות</th>
             <th style="padding:8px">סוג</th>
@@ -604,7 +614,7 @@ window.nsLoadGrpPreset = function() {
      renderPartnerTable();
      if (choiceWrap) choiceWrap.style.display = 'block';
      const grpWrap = document.getElementById('ns-grp-wrap');
-     if(grpWrap) grpWrap.style.display = 'block';
+     if(grpWrap) grpWrap.style.display = 'none';
   }
 };
 
@@ -722,7 +732,7 @@ function nsSupChg(){
     else{aliasHint.textContent='';aliasWrap.style.display='none';}
   }
   const grpWrap = document.getElementById('ns-grp-wrap');
-  if(grpWrap) grpWrap.style.display='block';
+  if(grpWrap) grpWrap.style.display='none';
   if(!actSel) return;
   const acts=window.getSupActs(sup);
   actSel.innerHTML='<option value="">בחר סוג פעילות...</option>'+
@@ -749,8 +759,10 @@ async function saveNewSched(closeModal = true){
       if (chk.checked) {
         const pId = Number(chk.value);
         const timeInput = document.querySelector(`.ns-syn-time[data-gid="${pId}"]`);
+        const grpInput = document.querySelector(`.ns-syn-grp[data-gid="${pId}"]`);
         const itemTime = timeInput ? timeInput.value : time;
-        targets.push({ g: pId, t: itemTime });
+        const itemGrp = grpInput ? (parseInt(grpInput.value) || 1) : 1;
+        targets.push({ g: pId, t: itemTime, grp: itemGrp });
       }
     });
     if (targets.length === 0) {
@@ -759,7 +771,9 @@ async function saveNewSched(closeModal = true){
     }
   } else {
     if (!gid) { window.spAlert('יש לבחור גן לשיבוץ'); return; }
-    targets = [{ g: gid, t: time }];
+    const grpInput = document.querySelector(`.ns-syn-grp[data-gid="${gid}"]`);
+    const itemGrp = grpInput ? (parseInt(grpInput.value) || 1) : (parseInt(document.getElementById('ns-grp')?.value) || 1);
+    targets = [{ g: gid, t: time, grp: itemGrp }];
   }
 
   // Deduplicate targets by garden ID safeguard
@@ -822,7 +836,7 @@ async function saveNewSched(closeModal = true){
               nt: notes,
               pd: '',
               pt: '',
-              grp,
+              grp: tgt.grp || grp || 1,
               _recId: recurring_id + '_' + cur.getDay()
             };
             window.SCH.push(ev);
@@ -874,7 +888,7 @@ async function saveNewSched(closeModal = true){
           origD: makeupOrig || '',
           origId: window._makeupOrigId || null,
           notes: notes,
-          grp: grp
+          grp: tgt.grp || grp || 1
         });
       } else {
         // One-time
@@ -894,7 +908,7 @@ async function saveNewSched(closeModal = true){
           nt: notes,
           pd: '',
           pt: '',
-          grp
+          grp: tgt.grp || grp || 1
         };
         window.SCH.push(newSched);
       }

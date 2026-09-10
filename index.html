@@ -13,18 +13,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.53</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.54</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=111.53" />
+  <link rel="stylesheet" href="styles.css?v=111.54" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '111.53';
+    window.APP_VERSION = '111.54';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -1967,8 +1967,8 @@
         </div>
         <div class="fg"><label>טלפון</label><input type="text" id="ns-ph" style="width:100%" placeholder="050-...">
         </div>
-        <div class="fg" id="ns-grp-wrap"><label>קבוצות</label><input type="number" id="ns-grp" min="1" max="10"
-            value="1" style="width:100%"></div>
+        <div class="fg" id="ns-grp-wrap" style="display:none !important;"><label>קבוצות</label><input type="hidden" id="ns-grp" min="1" max="10"
+            value="1"></div>
         <div class="fg" style="grid-column:1/-1"><label>הערות</label><textarea id="ns-notes" rows="2"
             style="width:100%"></textarea></div>
       </div>
