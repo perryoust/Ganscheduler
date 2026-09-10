@@ -3067,13 +3067,19 @@ window.updateApMgrOptions = function() {
 
 window.onApMgrSelectChange = function() {
   const selId = document.getElementById('ap-mgr-sel')?.value;
-  if (!selId) return;
+  const prevEl = document.getElementById('ap-mgr-phone-preview');
+  const valEl = document.getElementById('ap-mgr-phone-val');
+  if (!selId) {
+    if (prevEl) prevEl.style.display = 'none';
+    return;
+  }
   const m = (window.managers || {})[selId];
   if (m) {
-    const coEl = document.getElementById('ap-co');
-    const cophEl = document.getElementById('ap-coph');
-    if (coEl) coEl.value = m.name || '';
-    if (cophEl) cophEl.value = m.phone || m.phone2 || '';
+    const ph = m.phone || m.phone2 || '';
+    if (valEl) valEl.textContent = ph ? ph : 'ללא טלפון במערכת';
+    if (prevEl) prevEl.style.display = 'block';
+  } else {
+    if (prevEl) prevEl.style.display = 'none';
   }
 };
 
@@ -3090,6 +3096,9 @@ function openAddGardenModal(){
 
   const gFiltCity = document.getElementById('g-city')?.value || '';
   if (gFiltCity) apCity.value = gFiltCity;
+
+  const prevEl = document.getElementById('ap-mgr-phone-preview');
+  if (prevEl) prevEl.style.display = 'none';
 
   if (typeof window.updateApMgrOptions === 'function') {
     window.updateApMgrOptions();
