@@ -101,6 +101,28 @@ window.wtGetTaskGardenInfo = function(t) {
   return { gardenName, city, address, loc, phone };
 };
 
+window.wtNavBadgesHtml = function(info) {
+  if (!info) return '';
+  const addr = info.address || '';
+  const city = info.city || '';
+  const gName = info.gardenName || '';
+  
+  const wazeQuery = addr ? (addr + (city ? ', ' + city : '')) : (gName && city ? (gName + ', ' + city) : '');
+  const wazeUrl = wazeQuery ? `https://waze.com/ul?q=${encodeURIComponent(wazeQuery)}&navigate=yes` : '';
+  
+  const mapsQuery = addr ? (addr + (city ? ', ' + city : '') + ', ישראל') : (gName && city ? (gName + ', ' + city + ', ישראל') : '');
+  const mapsUrl = mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}` : '';
+  
+  let h = '';
+  if (wazeUrl) {
+    h += `<a href="${wazeUrl}" target="_blank" title="נווט ב-Waze" style="text-decoration:none; display:inline-flex; align-items:center; gap:3px; background:linear-gradient(135deg,#33ccff,#00b0ff); color:#fff; font-weight:700; font-size:0.7rem; padding:2px 7px; border-radius:10px; vertical-align:middle; margin-right:5px; box-shadow:0 1px 3px rgba(0,176,255,0.3);" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" width="13" height="13" fill="#fff" style="vertical-align:middle; flex-shrink:0;"><path d="M20.54 6.63c-1.2-3.74-4.7-5.64-8.26-5.64a9.1 9.1 0 0 0-4.7 1.28C5.28 3.77 3.5 6.18 3.05 9c-.45 2.76.3 5.6 2.22 7.6.86.9 1.34 2.08 1.34 3.3v.6c0 .84.68 1.5 1.5 1.5h.38c.83 0 1.5-.67 1.5-1.5 0-.6.12-1.2.35-1.74.24-.55.6-1.05 1.06-1.45 1.24-1.1 2.67-1.63 4.1-1.63 1.96 0 3.83-.95 4.95-2.55a5.97 5.97 0 0 0 .1-6.5zm-11.04 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm5 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg><span>Waze</span></a>`;
+  }
+  if (mapsUrl) {
+    h += `<a href="${mapsUrl}" target="_blank" title="נווט ב-Google Maps" style="text-decoration:none; display:inline-flex; align-items:center; gap:3px; background:#fff; color:#3c4043; border:1px solid #dadce0; font-weight:700; font-size:0.7rem; padding:2px 7px; border-radius:10px; vertical-align:middle; margin-right:4px; box-shadow:0 1px 2px rgba(0,0,0,0.06);" onclick="event.stopPropagation()"><svg viewBox="0 0 92 132" width="11" height="15" style="vertical-align:middle; flex-shrink:0;"><path fill="#4285f4" d="M46 0C20.6 0 0 20.6 0 46c0 10.7 3.8 20.6 10.1 28.3L46 132l35.9-57.7C88.2 66.6 92 56.7 92 46c0-25.4-20.6-46-46-46z"/><path fill="#34a853" d="M46 132l35.9-57.7C88.2 66.6 92 56.7 92 46c0-9.2-2.7-17.7-7.4-24.8L46 132z"/><path fill="#fbbc05" d="M10.1 74.3L46 132V0C20.6 0 0 20.6 0 46c0 10.7 3.8 20.6 10.1 28.3z"/><path fill="#ea4335" d="M46 0v46l38.6-24.8C76.9 8.7 62.5 0 46 0z"/><circle fill="#ffffff" cx="46" cy="46" r="18"/><circle fill="#4285f4" cx="46" cy="46" r="9"/></svg><span>Maps</span></a>`;
+  }
+  return h;
+};
+
 window.enrichWorkerTasks = function() {
   if (!Array.isArray(window.WORKER_TASKS)) return false;
   let changed = false;
@@ -339,19 +361,14 @@ window.renderWorkerTasksAdmin = function() {
           <!-- Content -->
           <div style="flex: 1 1 150px; min-width: 120px;">
             ${isSearch ? `<div style="font-size:0.75rem; color:#888; margin-bottom:2px;">${window.fD ? window.fD(t.date) : t.date}</div>` : ''}
-            <div style="font-size:1.1rem; color:${isDone ? '#666' : '#1c1c1e'}; line-height:1.3; margin-bottom:4px;">
-              ${loc ? `<strong>${loc}</strong> - ` : ''}${window.wtCleanDesc(t.desc, loc)}
+            <div style="font-size:1.05rem; color:${isDone ? '#666' : '#1c1c1e'}; line-height:1.35; margin-bottom:4px;">
+              ${loc ? `<strong>${loc}</strong> - ` : ''}${window.wtCleanDesc(t.desc, loc)}${window.wtNavBadgesHtml ? window.wtNavBadgesHtml(info) : ''}
             </div>
-            <div style="display:flex; align-items:center; gap:10px; font-size:0.85rem; color:#8e8e93; flex-wrap:wrap;">
-              ${isPriv ? '<span style="background:#ffe0b2; color:#e65100; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:0.75rem;">🔒 אישי למנהל</span>' : ''}
-              ${isDone && t.doneAt ? `<span style="font-size:0.85rem; color:#4caf50; font-weight:bold;">(בוצע ע"י ${t.doneBy || 'עובד'} ב-${t.doneAt})</span>` : ''}
-              ${(() => {
-                const _aInfo = window.wtGetTaskGardenInfo ? window.wtGetTaskGardenInfo(t) : { address: '', city: '', gardenName: '' };
-                const _wUrl = _aInfo.address ? 'https://waze.com/ul?q=' + encodeURIComponent(_aInfo.address + (_aInfo.city ? ', ' + _aInfo.city : '')) + '&navigate=yes' : (_aInfo.gardenName && _aInfo.city ? 'https://waze.com/ul?q=' + encodeURIComponent(_aInfo.gardenName + ', ' + _aInfo.city) + '&navigate=yes' : '');
-                const _mUrl = _aInfo.address ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(_aInfo.address + (_aInfo.city ? ', ' + _aInfo.city : '') + ', ישראל') : (_aInfo.gardenName && _aInfo.city ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(_aInfo.gardenName + ', ' + _aInfo.city + ', ישראל') : '');
-                return (_wUrl ? '<a href="' + _wUrl + '" target="_blank" style="text-decoration:none; display:inline-flex; align-items:center; gap:3px; background:linear-gradient(135deg,#33ccff,#00b0ff); color:#fff; font-weight:700; font-size:0.72rem; padding:3px 8px; border-radius:12px; box-shadow:0 1px 3px rgba(0,176,255,0.25);" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" width="13" height="13" fill="#fff"><path d="M20.54 6.63c-1.2-3.74-4.7-5.64-8.26-5.64a9.1 9.1 0 0 0-4.7 1.28C5.28 3.77 3.5 6.18 3.05 9c-.45 2.76.3 5.6 2.22 7.6.86.9 1.34 2.08 1.34 3.3v.6c0 .84.68 1.5 1.5 1.5h.38c.83 0 1.5-.67 1.5-1.5 0-.6.12-1.2.35-1.74.24-.55.6-1.05 1.06-1.45 1.24-1.1 2.67-1.63 4.1-1.63 1.96 0 3.83-.95 4.95-2.55a5.97 5.97 0 0 0 .1-6.5zm-11.04 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm5 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg> Waze</a>' : '') + (_mUrl ? ' <a href="' + _mUrl + '" target="_blank" style="text-decoration:none; display:inline-flex; align-items:center; gap:2px; background:#e8f5e9; color:#2e7d32; font-weight:700; font-size:0.72rem; padding:3px 8px; border-radius:12px;" onclick="event.stopPropagation()">🗺️</a>' : '');
-              })()}
-            </div>
+            ${(isPriv || (isDone && t.doneAt)) ? `
+              <div style="display:flex; align-items:center; gap:10px; font-size:0.85rem; color:#8e8e93; flex-wrap:wrap; margin-bottom:2px;">
+                ${isPriv ? '<span style="background:#ffe0b2; color:#e65100; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:0.75rem;">🔒 אישי למנהל</span>' : ''}
+                ${isDone && t.doneAt ? `<span style="font-size:0.85rem; color:#4caf50; font-weight:bold;">(בוצע ע"י ${t.doneBy || 'עובד'} ב-${t.doneAt})</span>` : ''}
+              </div>` : ''}
             ${t.workerNote ? `<div style="margin-top:6px; font-size:0.85rem; color:#1565c0; background:#e3f2fd; padding:6px 10px; border-radius:6px; border-right:3px solid #64b5f6;">💬 הערות ${t.workerName || 'עובד'}: ${t.workerNote.replace(/</g, '&lt;')}</div>` : ''}
           </div>
           
@@ -930,14 +947,6 @@ window.renderWorkerTasksMobile = function() {
     const isDone = t.status === 'done';
     const info = window.wtGetTaskGardenInfo ? window.wtGetTaskGardenInfo(t) : { gardenName: '', city: '', address: '', loc: '', phone: '' };
     const displayName = info.loc || (info.city && info.gardenName && info.city !== info.gardenName ? `${info.city} - ${info.gardenName}` : (info.gardenName || info.city || ''));
-    
-    const mapsUrl = info.address ? 
-      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(info.address + (info.city ? ', ' + info.city : '') + ', ישראל')}` :
-      (info.gardenName && info.city ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(info.gardenName + ', ' + info.city + ', ישראל')}` : '');
-    
-    const wazeUrl = info.address ?
-      `https://waze.com/ul?q=${encodeURIComponent(info.address + (info.city ? ', ' + info.city : ''))}&navigate=yes` :
-      (info.gardenName && info.city ? `https://waze.com/ul?q=${encodeURIComponent(info.gardenName + ', ' + info.city)}&navigate=yes` : '');
 
     const isOverdue = t.status === 'pending' && t.date && t.date < today;
 
@@ -956,26 +965,20 @@ window.renderWorkerTasksMobile = function() {
               ${isOverdue ? `<span style="background:#ffebee; color:#c62828; font-size:0.72rem; padding:1px 6px; border-radius:4px; font-weight:bold;">⚠️ מיום ${window.fD ? window.fD(t.date) : t.date}</span>` : ''}
             </div>
             <div style="font-size:1.05rem; color:${isDone ? '#666' : '#1c1c1e'}; margin-bottom:4px; line-height:1.35;">
-              ${displayName ? `<strong style="color:${isDone ? '#555' : '#1565c0'};">${displayName}</strong> - ` : ''}${window.wtCleanDesc(t.desc, displayName)}
+              ${displayName ? `<strong style="color:${isDone ? '#555' : '#1565c0'};">${displayName}</strong> - ` : ''}${window.wtCleanDesc(t.desc, displayName)}${window.wtNavBadgesHtml ? window.wtNavBadgesHtml(info) : ''}
+              ${info.phone ? ` <a href="tel:${info.phone}" style="text-decoration:none; display:inline-flex; align-items:center; gap:2px; background:#fff3e0; color:#e65100; font-weight:700; font-size:0.7rem; padding:2px 7px; border-radius:10px; border:1px solid #ffe0b2; vertical-align:middle; margin-right:4px;" onclick="event.stopPropagation()">📞</a>` : ''}
             </div>
-            <div style="font-size:0.85rem; color:#64748b; display:flex; flex-direction:column; gap:6px;">
-              ${info.city || info.address ? `<div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-size:0.82rem;">
+            ${info.city || info.address ? `
+              <div style="font-size:0.8rem; color:#64748b; margin-bottom:4px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                 ${info.city ? `<span>🏙️ ${info.city}</span>` : ''}
                 ${info.address ? `<span>📍 ${info.address}</span>` : ''}
               </div>` : ''}
-              <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                ${wazeUrl ? `<a href="${wazeUrl}" target="_blank" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; background:linear-gradient(135deg,#33ccff,#00b0ff); color:#fff; font-weight:800; font-size:0.82rem; padding:6px 12px; border-radius:20px; box-shadow:0 2px 6px rgba(0,176,255,0.3); letter-spacing:0.3px;" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M20.54 6.63c-1.2-3.74-4.7-5.64-8.26-5.64a9.1 9.1 0 0 0-4.7 1.28C5.28 3.77 3.5 6.18 3.05 9c-.45 2.76.3 5.6 2.22 7.6.86.9 1.34 2.08 1.34 3.3v.6c0 .84.68 1.5 1.5 1.5h.38c.83 0 1.5-.67 1.5-1.5 0-.6.12-1.2.35-1.74.24-.55.6-1.05 1.06-1.45 1.24-1.1 2.67-1.63 4.1-1.63 1.96 0 3.83-.95 4.95-2.55a5.97 5.97 0 0 0 .1-6.5zm-11.04 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm5 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg> נווט ב-Waze</a>` : ''}
-                ${mapsUrl ? `<a href="${mapsUrl}" target="_blank" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px; background:#e8f5e9; color:#2e7d32; font-weight:700; font-size:0.82rem; padding:6px 12px; border-radius:20px; border:1px solid #c8e6c9; box-shadow:0 1px 3px rgba(0,0,0,0.08);" onclick="event.stopPropagation()">🗺️ מפה</a>` : ''}
-                ${info.phone ? `<a href="tel:${info.phone}" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px; background:#fff3e0; color:#e65100; font-weight:700; font-size:0.82rem; padding:6px 12px; border-radius:20px; border:1px solid #ffe0b2; box-shadow:0 1px 3px rgba(0,0,0,0.08);" onclick="event.stopPropagation()">📞 ${info.phone}</a>` : ''}
-              </div>
-              </div>
-              ${isDone && t.doneAt ? `<span style="color:#4caf50; font-weight:bold;">(בוצע ע"י ${t.doneBy || 'עובד'} ב-${t.doneAt.split(' ')[1] || t.doneAt})</span>` : ''}
-            </div>
-            <textarea id="wt-note-${t.id}" onchange="window.wtSaveNote('${t.id}', this.value)" placeholder="הוסף הערה..." style="width:100%; padding:4px 0; border:none; border-bottom:1px solid #e2e8f0; background:transparent; box-sizing:border-box; resize:none; font-family:inherit; margin-top:6px; font-size:0.9rem; color:#1565c0;">${t.workerNote || ''}</textarea>
+            ${isDone && t.doneAt ? `<div style="font-size:0.8rem; color:#4caf50; font-weight:bold; margin-bottom:4px;">(בוצע ע"י ${t.doneBy || 'עובד'} ב-${t.doneAt.split(' ')[1] || t.doneAt})</div>` : ''}
+            <textarea id="wt-note-${t.id}" onchange="window.wtSaveNote('${t.id}', this.value)" placeholder="הוסף הערה..." style="width:100%; padding:6px 8px; border:1px solid #e2e8f0; border-radius:6px; background:#f8fafc; box-sizing:border-box; resize:none; font-family:inherit; margin-top:6px; font-size:0.85rem; color:#1565c0;">${t.workerNote || ''}</textarea>
           </div>
           
           <!-- Star Icon -->
-          <div style="color:#d1d1d6; font-size:1.4rem; padding-top:2px;">&#9734;</div>
+          <div style="color:#d1d1d6; font-size:1.4rem; padding-top:2px; flex-shrink:0;">&#9734;</div>
         </div>
       </div>
     `;
