@@ -347,12 +347,17 @@ function renderPartnerTable(){
             <span>בחר גנים (לחץ לפתיחה)...</span>
             <span>▼</span>
           </div>
-          <div id="ns-custom-cb-wrap" style="display:none; background:#fff; border:1px solid #ccc; max-height:200px; overflow-y:auto; margin-top:4px; border-radius:4px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.1)">
-            <div style="position:sticky; top:0; z-index:10; background:#eee; padding:6px; display:flex; justify-content:space-between; border-bottom:1px solid #ccc">
-               <button type="button" onclick="window.nsAddCustomGardens()" style="background:#1565c0; color:#fff; border:none; border-radius:4px; padding:4px 12px; font-size:0.75rem; cursor:pointer; font-weight:bold; box-shadow:0 1px 3px rgba(0,0,0,0.3)">➕ הוסף מסומנים</button>
-               <button type="button" onclick="document.getElementById('ns-custom-cb-wrap').style.display='none'" style="cursor:pointer; font-size:0.8rem; border:none; background:transparent">❌ סגור</button>
+          <div id="ns-custom-cb-wrap" style="display:none; background:#fff; border:1px solid #ccc; max-height:260px; overflow-y:auto; margin-top:4px; border-radius:6px; box-shadow:0 4px 14px rgba(0,0,0,0.15)">
+            <div style="position:sticky; top:0; z-index:10; background:#f8fafc; padding:6px 8px; display:flex; flex-direction:column; gap:6px; border-bottom:1px solid #e2e8f0">
+               <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <button type="button" onclick="window.nsAddCustomGardens()" style="background:#1565c0; color:#fff; border:none; border-radius:4px; padding:4px 12px; font-size:0.75rem; cursor:pointer; font-weight:bold; box-shadow:0 1px 3px rgba(0,0,0,0.2)">➕ הוסף מסומנים</button>
+                  <button type="button" onclick="document.getElementById('ns-custom-cb-wrap').style.display='none'" style="cursor:pointer; font-size:0.8rem; border:none; background:transparent; color:#64748b; font-weight:bold;">❌ סגור</button>
+               </div>
+               <input type="text" id="ns-custom-search" placeholder="🔍 חיפוש גן או בית ספר..." oninput="window.nsFilterCustomGardens(this.value)" style="width:100%; padding:5px 8px; font-size:0.75rem; border:1px solid #cbd5e1; border-radius:4px; box-sizing:border-box; outline:none;">
             </div>
-            ${window.nsGenerateAllGardensCheckboxes ? window.nsGenerateAllGardensCheckboxes() : ''}
+            <div id="ns-custom-accordion-list">
+              ${window.nsGenerateAllGardensCheckboxes ? window.nsGenerateAllGardensCheckboxes() : ''}
+            </div>
           </div>
         </div>
       </div>
@@ -390,21 +395,108 @@ window.nsGenerateAllGardensCheckboxes = function() {
   });
   
   const mainGid = parseInt(document.getElementById('ns-g')?.value) || 0;
-  
-  Object.keys(byCity).sort().forEach(c => {
+  const customPartners = window.nsCustomPartners || new Set();
+
+  Object.keys(byCity).sort((a,b)=>a.localeCompare(b,'he')).forEach((c, idx) => {
     byCity[c].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
-    h += `<div style="font-weight:bold; font-size:0.75rem; background:#e0e0e0; padding:4px; margin-top:2px; color:#333; position:sticky; top:32px">${c}</div>`;
+    const safeCityId = 'ns-custom-city-' + idx;
+    
+    h += `
+      <div class="ns-custom-city-group" data-city="${c.replace(/"/g, '&quot;')}">
+        <div class="ns-custom-city-hdr" onclick="window.nsToggleCityAccordion('${safeCityId}', this)" style="cursor:pointer; background:#f1f5f9; border-top:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0; padding:6px 8px; display:flex; align-items:center; gap:8px; font-weight:bold; font-size:0.78rem; user-select:none;">
+          <span style="flex:1; color:#1e293b;">${c} (${byCity[c].length})</span>
+          <label onclick="event.stopPropagation()" style="margin:0; display:flex; align-items:center; cursor:pointer;" title="סמן / בטל הכל בעיר זו">
+            <input type="checkbox" class="ns-custom-city-chk" data-target="${safeCityId}" onchange="window.nsToggleCityAll('${safeCityId}', this)" style="margin:0; width:15px; height:15px; cursor:pointer;">
+          </label>
+          <span class="ns-city-toggle-icon" style="font-size:1.1rem; color:#64748b; font-weight:bold; width:20px; text-align:center; transition:transform 0.15s ease;">+</span>
+        </div>
+        <div id="${safeCityId}" class="ns-custom-city-items" style="display:none; padding:2px 8px 6px 8px; background:#fff;">
+    `;
+    
     byCity[c].forEach(g => {
       const isMain = mainGid === parseInt(g.id);
+      const isAlreadyInSync = customPartners.has(Number(g.id));
+      const isDisabled = isMain || isAlreadyInSync;
+      const isSch = (window.gcls ? window.gcls(g) : g.cls) === 'ביה"ס';
+      const icon = isSch ? '🏛️' : '🏫';
+      let note = '';
+      if (isMain) note = '<span style="font-size:0.65rem; color:#94a3b8; margin-right:auto;">(צהרון ראשי)</span>';
+      else if (isAlreadyInSync) note = '<span style="font-size:0.65rem; color:#1565c0; margin-right:auto;">(כבר בסנכרון)</span>';
+      else if (isSch) note = '<span style="font-size:0.65rem; color:#64748b; margin-right:auto; background:#f1f5f9; padding:1px 4px; border-radius:3px">ביה"ס</span>';
+
       h += `
-        <label style="display:flex; align-items:center; padding:4px 6px; font-size:0.75rem; cursor:${isMain?'not-allowed':'pointer'}; gap:6px; border-bottom:1px solid #f0f0f0; background:${isMain?'#f9f9f9':'#fff'}">
-          <input type="checkbox" value="${g.id}" class="ns-add-custom-cb" style="cursor:${isMain?'not-allowed':'pointer'}; width:16px; height:16px" ${isMain ? 'disabled' : ''}>
-          <span style="${isMain?'color:#999':''}">${g.name}</span>
+        <label class="ns-custom-g-label" data-name="${(g.name||'').toLowerCase()}" style="display:flex; align-items:center; padding:5px 6px; font-size:0.75rem; cursor:${isDisabled?'not-allowed':'pointer'}; gap:6px; border-bottom:1px solid #f1f5f9; background:${isDisabled?'#f8fafc':'#fff'}; border-radius:4px; margin-bottom:1px;">
+          <input type="checkbox" value="${g.id}" class="ns-add-custom-cb" style="cursor:${isDisabled?'not-allowed':'pointer'}; width:15px; height:15px; margin:0;" ${isDisabled ? 'disabled' : ''}>
+          <span style="font-size:0.75rem;">${icon}</span>
+          <span style="${isDisabled?'color:#94a3b8':''}">${g.name}</span>
+          ${note}
         </label>
       `;
     });
+    
+    h += `</div></div>`;
   });
   return h;
+};
+
+window.nsToggleCityAccordion = function(cityId, hdrEl) {
+  const contentEl = document.getElementById(cityId);
+  if (!contentEl) return;
+  const icon = hdrEl.querySelector('.ns-city-toggle-icon');
+  if (contentEl.style.display === 'none') {
+    contentEl.style.display = 'block';
+    if (icon) icon.textContent = '-';
+  } else {
+    contentEl.style.display = 'none';
+    if (icon) icon.textContent = '+';
+  }
+};
+
+window.nsToggleCityAll = function(cityId, chkEl) {
+  const contentEl = document.getElementById(cityId);
+  if (!contentEl) return;
+  if (chkEl.checked && contentEl.style.display === 'none') {
+    contentEl.style.display = 'block';
+    const hdrEl = contentEl.previousElementSibling;
+    const icon = hdrEl?.querySelector('.ns-city-toggle-icon');
+    if (icon) icon.textContent = '-';
+  }
+  contentEl.querySelectorAll('.ns-add-custom-cb:not(:disabled)').forEach(cb => {
+    cb.checked = chkEl.checked;
+  });
+};
+
+window.nsFilterCustomGardens = function(q) {
+  const term = (q || '').trim().toLowerCase();
+  const groups = document.querySelectorAll('#ns-custom-accordion-list .ns-custom-city-group');
+  groups.forEach(grp => {
+    let matchCount = 0;
+    const items = grp.querySelectorAll('.ns-custom-g-label');
+    items.forEach(item => {
+      const name = item.dataset.name || '';
+      const city = (grp.dataset.city || '').toLowerCase();
+      const match = !term || name.includes(term) || city.includes(term);
+      item.style.display = match ? 'flex' : 'none';
+      if (match) matchCount++;
+    });
+    
+    const container = grp.querySelector('.ns-custom-city-items');
+    const icon = grp.querySelector('.ns-city-toggle-icon');
+    
+    if (!term) {
+      grp.style.display = 'block';
+      if (container) container.style.display = 'none';
+      if (icon) icon.textContent = '+';
+    } else {
+      if (matchCount > 0) {
+        grp.style.display = 'block';
+        if (container) container.style.display = 'block';
+        if (icon) icon.textContent = '-';
+      } else {
+        grp.style.display = 'none';
+      }
+    }
+  });
 };
 
 window.nsAddCustomGardens = function() {
@@ -419,6 +511,7 @@ window.nsAddCustomGardens = function() {
     cb.checked = false; 
   });
   
+  document.querySelectorAll('.ns-custom-city-chk').forEach(c => c.checked = false);
   const wrap = document.getElementById('ns-custom-cb-wrap');
   if(wrap) wrap.style.display='none';
   window.renderPartnerTable();
@@ -668,6 +761,11 @@ async function saveNewSched(closeModal = true){
     const recurTo=document.getElementById('ns-recur-to').value;
     const selDays=[...document.querySelectorAll('.ns-day-chk:checked')].map(c=>parseInt(c.value));
     if(!recurFrom||!recurTo||!selDays.length){window.spAlert('שיבוץ קבוע: יש לבחור תאריך התחלה, סיום, וימים');return;}
+    const fromYear = parseInt((recurFrom || '').split('-')[0]);
+    if(fromYear < 2025 || fromYear > 2035) {
+      window.spAlert(`⚠️ שנת התחלה אינה תקינה (${fromYear || 'ריק'}). אנא ודא שנבחר תאריך בשנת הלימודים הנוכחית.`);
+      return;
+    }
     let count=0, cur=new Date(recurFrom.replace(/-/g,'/'));
     const endD=new Date(recurTo.replace(/-/g,'/'));
     const recurring_id=Date.now();
