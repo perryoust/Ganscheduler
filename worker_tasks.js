@@ -103,24 +103,21 @@ window.wtGetTaskGardenInfo = function(t) {
 
 window.wtNavBadgesHtml = function(info) {
   if (!info) return '';
-  const addr = info.address || '';
-  const city = info.city || '';
-  const gName = info.gardenName || '';
+  const addr = (info.address || '').trim();
+  const city = (info.city || '').trim();
   
-  const wazeQuery = addr ? (addr + (city ? ', ' + city : '')) : (gName && city ? (gName + ', ' + city) : '');
-  const wazeUrl = wazeQuery ? `https://waze.com/ul?q=${encodeURIComponent(wazeQuery)}&navigate=yes` : '';
-  
-  const mapsQuery = addr ? (addr + (city ? ', ' + city : '') + ', ישראל') : (gName && city ? (gName + ', ' + city + ', ישראל') : '');
-  const mapsUrl = mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}` : '';
-  
-  let h = '';
-  if (wazeUrl) {
-    h += `<a href="${wazeUrl}" target="_blank" title="נווט ב-Waze" style="text-decoration:none; display:inline-flex; align-items:center; gap:3px; background:linear-gradient(135deg,#33ccff,#00b0ff); color:#fff; font-weight:700; font-size:0.7rem; padding:2px 7px; border-radius:10px; vertical-align:middle; margin-right:5px; box-shadow:0 1px 3px rgba(0,176,255,0.3);" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" width="13" height="13" fill="#fff" style="vertical-align:middle; flex-shrink:0;"><path d="M20.54 6.63c-1.2-3.74-4.7-5.64-8.26-5.64a9.1 9.1 0 0 0-4.7 1.28C5.28 3.77 3.5 6.18 3.05 9c-.45 2.76.3 5.6 2.22 7.6.86.9 1.34 2.08 1.34 3.3v.6c0 .84.68 1.5 1.5 1.5h.38c.83 0 1.5-.67 1.5-1.5 0-.6.12-1.2.35-1.74.24-.55.6-1.05 1.06-1.45 1.24-1.1 2.67-1.63 4.1-1.63 1.96 0 3.83-.95 4.95-2.55a5.97 5.97 0 0 0 .1-6.5zm-11.04 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm5 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg><span>Waze</span></a>`;
+  // Only show navigation icons if there is an actual physical street address!
+  // If there's no address, or if it's just a city name or placeholder, do NOT show navigation.
+  if (!addr || addr === '-' || addr === '--' || addr.length < 3 || (city && addr.toLowerCase() === city.toLowerCase())) {
+    return '';
   }
-  if (mapsUrl) {
-    h += `<a href="${mapsUrl}" target="_blank" title="נווט ב-Google Maps" style="text-decoration:none; display:inline-flex; align-items:center; gap:3px; background:#fff; color:#3c4043; border:1px solid #dadce0; font-weight:700; font-size:0.7rem; padding:2px 7px; border-radius:10px; vertical-align:middle; margin-right:4px; box-shadow:0 1px 2px rgba(0,0,0,0.06);" onclick="event.stopPropagation()"><svg viewBox="0 0 92 132" width="11" height="15" style="vertical-align:middle; flex-shrink:0;"><path fill="#4285f4" d="M46 0C20.6 0 0 20.6 0 46c0 10.7 3.8 20.6 10.1 28.3L46 132l35.9-57.7C88.2 66.6 92 56.7 92 46c0-25.4-20.6-46-46-46z"/><path fill="#34a853" d="M46 132l35.9-57.7C88.2 66.6 92 56.7 92 46c0-9.2-2.7-17.7-7.4-24.8L46 132z"/><path fill="#fbbc05" d="M10.1 74.3L46 132V0C20.6 0 0 20.6 0 46c0 10.7 3.8 20.6 10.1 28.3z"/><path fill="#ea4335" d="M46 0v46l38.6-24.8C76.9 8.7 62.5 0 46 0z"/><circle fill="#ffffff" cx="46" cy="46" r="18"/><circle fill="#4285f4" cx="46" cy="46" r="9"/></svg><span>Maps</span></a>`;
-  }
-  return h;
+  
+  const wazeQuery = addr + (city ? ', ' + city : '');
+  const wazeUrl = `https://waze.com/ul?q=${encodeURIComponent(wazeQuery)}&navigate=yes`;
+  const mapsQuery = addr + (city ? ', ' + city : '') + ', ישראל';
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
+  
+  return `<a href="${wazeUrl}" target="_blank" title="נווט ב-Waze" style="text-decoration:none; display:inline-flex; align-items:center; gap:3px; background:linear-gradient(135deg,#33ccff,#00b0ff); color:#fff; font-weight:700; font-size:0.7rem; padding:2px 7px; border-radius:10px; vertical-align:middle; margin-right:5px; box-shadow:0 1px 3px rgba(0,176,255,0.3);" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" width="13" height="13" fill="#fff" style="vertical-align:middle; flex-shrink:0;"><path d="M20.54 6.63c-1.2-3.74-4.7-5.64-8.26-5.64a9.1 9.1 0 0 0-4.7 1.28C5.28 3.77 3.5 6.18 3.05 9c-.45 2.76.3 5.6 2.22 7.6.86.9 1.34 2.08 1.34 3.3v.6c0 .84.68 1.5 1.5 1.5h.38c.83 0 1.5-.67 1.5-1.5 0-.6.12-1.2.35-1.74.24-.55.6-1.05 1.06-1.45 1.24-1.1 2.67-1.63 4.1-1.63 1.96 0 3.83-.95 4.95-2.55a5.97 5.97 0 0 0 .1-6.5zm-11.04 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm5 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg><span>Waze</span></a><a href="${mapsUrl}" target="_blank" title="נווט ב-Google Maps" style="text-decoration:none; display:inline-flex; align-items:center; gap:3px; background:#fff; color:#3c4043; border:1px solid #dadce0; font-weight:700; font-size:0.7rem; padding:2px 7px; border-radius:10px; vertical-align:middle; margin-right:4px; box-shadow:0 1px 2px rgba(0,0,0,0.06);" onclick="event.stopPropagation()"><svg viewBox="0 0 92 132" width="11" height="15" style="vertical-align:middle; flex-shrink:0;"><path fill="#4285f4" d="M46 0C20.6 0 0 20.6 0 46c0 10.7 3.8 20.6 10.1 28.3L46 132l35.9-57.7C88.2 66.6 92 56.7 92 46c0-25.4-20.6-46-46-46z"/><path fill="#34a853" d="M46 132l35.9-57.7C88.2 66.6 92 56.7 92 46c0-9.2-2.7-17.7-7.4-24.8L46 132z"/><path fill="#fbbc05" d="M10.1 74.3L46 132V0C20.6 0 0 20.6 0 46c0 10.7 3.8 20.6 10.1 28.3z"/><path fill="#ea4335" d="M46 0v46l38.6-24.8C76.9 8.7 62.5 0 46 0z"/><circle fill="#ffffff" cx="46" cy="46" r="18"/><circle fill="#4285f4" cx="46" cy="46" r="9"/></svg><span>Maps</span></a>`;
 };
 
 window.enrichWorkerTasks = function() {
