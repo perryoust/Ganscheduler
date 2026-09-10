@@ -218,7 +218,7 @@ function nsCheckPair(gid){
   const hasCustom = window.nsCustomPartners && window.nsCustomPartners.size > 0;
   const hasPair = pair && pair.ids && pair.ids.length >= 2;
 
-  if (hasCustom || hasPair) {
+  if (gid || hasCustom || hasPair) {
     renderPartnerTable();
     if (choiceWrap) choiceWrap.style.display = 'block';
 
@@ -238,6 +238,8 @@ function nsCheckPair(gid){
         const partNames = otherIds.map(id => (window.G(id)||{}).name || id).join(', ');
         infoDiv.innerHTML = `<span class="icon">🔗</span><div><b>שים לב:</b> גן זה מקושר ל-<b>${partNames}</b>. מומלץ לשבץ אותם יחד.</div>`;
         infoDiv.style.display = 'block';
+      } else {
+        infoDiv.style.display = 'none';
       }
     }
   } else {
@@ -254,14 +256,19 @@ function renderPartnerTable(){
   if(!g2ChoiceContainer) return;
 
   const allIdsSet = new Set();
+  // 1. Always include the primary selected garden
+  if (gid) {
+    allIdsSet.add(Number(gid));
+  }
+  // 2. Include natural pair partners if available
+  if (pair && pair.ids) {
+    pair.ids.map(Number).forEach(id => allIdsSet.add(id));
+  }
+  // 3. Include any additional custom partners added by user
   if (window.nsCustomPartners && window.nsCustomPartners.size > 0) {
     window.nsCustomPartners.forEach(id => {
       allIdsSet.add(Number(id));
     });
-  } else if(pair && pair.ids) {
-    pair.ids.map(Number).forEach(id => allIdsSet.add(id));
-  } else if (gid) {
-    allIdsSet.add(Number(gid));
   }
   
   const allIds = Array.from(allIdsSet);
@@ -287,7 +294,7 @@ function renderPartnerTable(){
   } else {
     allIds.forEach(pId => {
       const pG = window.G(pId);
-      if(!pG) return;
+      if(!pG || !pG.name) return;
       const ev = window.SCH.find(s => Number(s.g) === Number(pId) && s.d === date && s.st !== 'can');
       
       const stLabel = ev ? (window.stLabel ? window.stLabel(ev) : ev.st) : '—';
@@ -308,10 +315,18 @@ function renderPartnerTable(){
         </div>`;
       const chkDisplay = `<input type="checkbox" id="ns-syn-chk-${pId}" class="ns-syn-chk" data-gid="${pId}" value="${pId}" style="width:18px;height:18px;accent-color:#1565c0;cursor:pointer" ${isChecked ? 'checked' : ''}>`;
 
+      const isCustom = window.nsCustomPartners && window.nsCustomPartners.has(Number(pId)) && Number(pId) !== Number(gid);
+      const removeBtn = isCustom 
+        ? `<button type="button" onclick="window.nsRemoveCustomPartner(${pId})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-weight:bold;font-size:0.8rem;padding:0 4px;margin-right:6px;" title="הסר מסנכרון">✕</button>` 
+        : '';
+      const customBadge = isCustom 
+        ? `<span style="font-size:0.65rem; color:#1565c0; background:#e0f2fe; padding:1px 5px; border-radius:4px; margin-right:4px; font-weight:normal;">(נוסף)</span>` 
+        : '';
+
       rowsHtml += `
         <tr class="${stClass}">
           <td style="text-align:center">${chkDisplay}</td>
-          <td style="font-weight:800;color:#1a237e">${pG.name}</td>
+          <td style="font-weight:800;color:#1a237e">${pG.name} ${customBadge}${removeBtn}</td>
           <td>${timeDisplay}</td>
           <td style="font-weight:600">${sup}</td>
           <td>${act}</td>
@@ -396,6 +411,9 @@ window.nsGenerateAllGardensCheckboxes = function() {
   
   const mainGid = parseInt(document.getElementById('ns-g')?.value) || 0;
   const customPartners = window.nsCustomPartners || new Set();
+  const date = document.getElementById('ns-date')?.value || window.d2s(new Date());
+  const pair = mainGid ? window.gardenPair(mainGid, date) : null;
+  const pairIds = new Set((pair && pair.ids) ? pair.ids.map(Number) : []);
 
   Object.keys(byCity).sort((a,b)=>a.localeCompare(b,'he')).forEach((c, idx) => {
     byCity[c].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
@@ -414,8 +432,9 @@ window.nsGenerateAllGardensCheckboxes = function() {
     `;
     
     byCity[c].forEach(g => {
-      const isMain = mainGid === parseInt(g.id);
-      const isAlreadyInSync = customPartners.has(Number(g.id));
+      const gIdNum = Number(g.id);
+      const isMain = mainGid === gIdNum;
+      const isAlreadyInSync = customPartners.has(gIdNum) || pairIds.has(gIdNum);
       const isDisabled = isMain || isAlreadyInSync;
       const isSch = (window.gcls ? window.gcls(g) : g.cls) === 'ביה"ס';
       const icon = isSch ? '🏛️' : '🏫';
@@ -502,20 +521,29 @@ window.nsFilterCustomGardens = function(q) {
 window.nsAddCustomGardens = function() {
   const cbs = document.querySelectorAll('.ns-add-custom-cb:checked:not(:disabled)');
   if(!cbs.length) return window.spAlert('לא נבחרו גנים להוספה. אנא סמן גנים ברשימה ואז לחץ הוסף.');
-  const mainGid = parseInt(document.getElementById('ns-g').value);
+  const mainGid = parseInt(document.getElementById('ns-g')?.value) || 0;
   if(!window.nsCustomPartners) window.nsCustomPartners = new Set();
   
   cbs.forEach(cb => {
     const newGid = Number(cb.value);
-    if(newGid !== mainGid) window.nsCustomPartners.add(newGid);
+    if(newGid && newGid !== mainGid) window.nsCustomPartners.add(newGid);
     cb.checked = false; 
   });
   
   document.querySelectorAll('.ns-custom-city-chk').forEach(c => c.checked = false);
   const wrap = document.getElementById('ns-custom-cb-wrap');
   if(wrap) wrap.style.display='none';
-  window.renderPartnerTable();
+  renderPartnerTable();
 };
+
+window.nsRemoveCustomPartner = function(id) {
+  if (window.nsCustomPartners) {
+    window.nsCustomPartners.delete(Number(id));
+  }
+  renderPartnerTable();
+};
+
+window.renderPartnerTable = renderPartnerTable;
 
 // Initial render once module loads
 setTimeout(() => {
@@ -1209,6 +1237,8 @@ window.sRefG = sRefG;
 window.openNewSched = openNewSched;
 window.searchAct = searchAct;
 window.clearSched = clearSched;
+window.renderPartnerTable = renderPartnerTable;
+window.nsRemoveCustomPartner = nsRemoveCustomPartner;
 
 // Initial render once module loads
 setTimeout(() => {
