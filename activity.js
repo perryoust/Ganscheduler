@@ -986,8 +986,8 @@ window.openSP = function(id) {
             <select id="rr-act" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"><option value="">— ללא שינוי —</option>${(window.getSupActs ? window.getSupActs(s.a) : []).map(a=>`<option value="${a}" ${a===s.act?'selected':''}>${a}</option>`).join('')}</select>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div class="fg"><label style="font-size:.7rem;font-weight:700">קבוצות</label><input type="number" id="rr-grp" value="${s.grp||1}" min="1" max="10" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
+        <div style="display:grid;grid-template-columns:${spPair ? '1fr' : '1fr 1fr'};gap:8px">
+          <div class="fg" id="rr-grp-wrap" style="${spPair ? 'display:none;' : ''}"><label style="font-size:.7rem;font-weight:700">קבוצות</label><input type="number" id="rr-grp" value="${s.grp||1}" min="1" max="10" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
           <div class="fg"><label style="font-size:.7rem;font-weight:700">סוג פעילות</label>
             <select id="rr-tp" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">
               <option value="חוג" ${!s.tp||s.tp==='חוג'?'selected':''}>חוג</option>
@@ -999,12 +999,43 @@ window.openSP = function(id) {
             </select>
           </div>
         </div>
-          <div class="fg"><label style="font-size:.7rem;font-weight:700;display:flex;align-items:center;gap:3px;cursor:pointer" title="הורד סימון כדי לא לשבץ פעילות בגן זה"><input type="checkbox" id="rr-sync-partner-${s.g}" checked style="width:13px;height:13px;accent-color:#1a237e;margin:0"> שעה (${g.name})</label><input type="time" id="rr-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
-          ${spPair ? spPair.ids.filter(id=>Number(id)!==Number(s.g)).map((pid, idx) => {
+        <div style="background:#f8f9fa;border:1px solid #e0e0e0;border-radius:6px;padding:8px;margin-bottom:8px">
+          <div style="font-size:0.75rem;font-weight:700;color:#546e7a;margin-bottom:6px">🔗 גנים שותפים לסנכרון סדרה:</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:8px;background:#fff;padding:6px;border-radius:4px;border:1px solid #ddd">
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;flex:1;font-size:.75rem;font-weight:700;color:#1a237e">
+                <input type="checkbox" id="rr-sync-partner-${s.g}" checked style="width:14px;height:14px;accent-color:#1a237e">
+                ${g.name} (ראשי)
+              </label>
+              <div style="display:flex;align-items:center;gap:4px">
+                <label style="font-size:.7rem;color:#546e7a">שעה:</label>
+                <input type="time" id="rr-time" value="${s.t||''}" style="padding:2px 4px;font-size:.75rem;border:1px solid #ccc;border-radius:4px;width:95px">
+              </div>
+              <div style="display:flex;align-items:center;gap:4px">
+                <label style="font-size:.7rem;color:#546e7a">קבוצות:</label>
+                <input type="number" id="rr-grp-partner-${s.g}" value="${s.grp||1}" min="1" max="10" style="padding:2px 4px;font-size:.75rem;border:1px solid #ccc;border-radius:4px;width:45px;text-align:center">
+              </div>
+            </div>
+            ${spPair ? spPair.ids.filter(id=>Number(id)!==Number(s.g)).map(pid => {
                  let pInfo = partnerInfo.find(pi => Number(pi.pg.id) === Number(pid));
                  let pTime = (pInfo && pInfo.pev) ? pInfo.pev.t : (s.t||'');
-                 return `<div class="fg"><label style="font-size:.7rem;font-weight:700;display:flex;align-items:center;gap:3px;cursor:pointer" title="הורד סימון כדי לא לשבץ פעילות בגן זה"><input type="checkbox" id="rr-sync-partner-${pid}" checked style="width:13px;height:13px;accent-color:#1a237e;margin:0"> שעה (${window.G(pid).name})</label><input type="time" id="rr-time-partner-${pid}" value="${pTime}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>`;
+                 let pGrp = (pInfo && pInfo.pev && pInfo.pev.grp) ? pInfo.pev.grp : (s.grp||1);
+                 return `<div style="display:flex;align-items:center;gap:8px;background:#fff;padding:6px;border-radius:4px;border:1px solid #ddd">
+                   <label style="display:flex;align-items:center;gap:4px;cursor:pointer;flex:1;font-size:.75rem;font-weight:700">
+                     <input type="checkbox" id="rr-sync-partner-${pid}" checked style="width:14px;height:14px;accent-color:#1a237e">
+                     ${window.G(pid).name}
+                   </label>
+                   <div style="display:flex;align-items:center;gap:4px">
+                     <label style="font-size:.7rem;color:#546e7a">שעה:</label>
+                     <input type="time" id="rr-time-partner-${pid}" value="${pTime}" style="padding:2px 4px;font-size:.75rem;border:1px solid #ccc;border-radius:4px;width:95px">
+                   </div>
+                   <div style="display:flex;align-items:center;gap:4px">
+                     <label style="font-size:.7rem;color:#546e7a">קבוצות:</label>
+                     <input type="number" id="rr-grp-partner-${pid}" value="${pGrp}" min="1" max="10" style="padding:2px 4px;font-size:.75rem;border:1px solid #ccc;border-radius:4px;width:45px;text-align:center">
+                   </div>
+                 </div>`;
             }).join('') : ''}
+          </div>
         </div>
         ${spPair ? `<label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="rr-sync" style="width:14px;height:14px;accent-color:#1a237e" checked><span style="font-size:.75rem;font-weight:700;color:#1a237e">${spPair.ids.length > 2 ? 'החל סדרה קבועה על הגנים המסומנים' : 'החל סדרה קבועה על הגנים המסומנים'}</span></label>` : ''}
         <div style="display:flex;gap:6px;margin-top:6px">
@@ -1032,7 +1063,7 @@ window.openSP = function(id) {
                 <div class="fg"><label style="font-size:.7rem;font-weight:700">מפצה על תאריך</label><input type="date" id="sp-mu-orig" value="${s.d}" readonly style="width:100%;background:#f5f5f5;color:#666;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
                 <div class="fg"><label style="font-size:.7rem;font-weight:700">תאריך השלמה *</label><input type="date" id="sp-mu-date" value="${window.td()}" style="width:100%;border:1px solid #ffb74d;padding:4px;border-radius:4px" onchange="window.spMuDateChg()"></div>
              </div>
-                           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                  <div class="fg"><label style="font-size:.7rem;font-weight:700">שעה *</label><input type="time" id="sp-mu-time" value="${s.t||''}" oninput="const tblInp = document.querySelector('.sp-mu-syn-time[data-gid=\'${s.g}\']'); if(tblInp) tblInp.value = this.value" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
                  <div class="fg">
                    <label style="font-size:.7rem;font-weight:700">בחר פעילות *</label>
@@ -1043,7 +1074,7 @@ window.openSP = function(id) {
                    </select>
                  </div>
               </div>
-              <div style="display:${(window.gcls(g) === 'ביה&quot;ס' || window.gcls(g) === 'ביה\"ס') ? 'grid' : 'none'};grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+              <div style="${spPair ? 'display:none !important;' : 'display:grid;'}grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
                  <div class="fg">
                    <label style="font-size:.7rem;font-weight:700;color:#e65100">מספר קבוצות</label>
                    <input type="number" id="sp-mu-grp" min="1" max="10" value="${s.grp||1}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ffb74d">
@@ -1079,7 +1110,7 @@ window.openSP = function(id) {
         <div class="fg"><label for="sp-edit-date" style="font-size:.7rem;font-weight:700">תאריך</label><input type="date" id="sp-edit-date" value="${s.d}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
         <div class="fg"><label for="sp-edit-time" style="font-size:.7rem;font-weight:700">שעה (${g.name})</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
         <div class="fg"><label for="sp-edit-sup" style="font-size:.7rem;font-weight:700">ספק</label><select id="sp-edit-sup" onchange="window.spEditSupChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">${allSups.map(sup => { const disp = window.supNameLabel(sup.name) !== sup.name ? window.supNameLabel(sup.name) + ' (' + sup.name + ')' : sup.name; return `<option value="${sup.name}" ${sup.name===s.a ? 'selected':''}>${disp}</option>`; }).join('')}</select></div>
-        <div class="fg"><label for="sp-edit-grp" style="font-size:.7rem;font-weight:700">קבוצות</label><input type="number" id="sp-edit-grp" value="${s.grp||1}" min="1" max="10" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
+        <div class="fg" id="sp-edit-grp-wrap" style="${spPair ? 'display:none;' : ''}"><label for="sp-edit-grp" style="font-size:.7rem;font-weight:700">קבוצות</label><input type="number" id="sp-edit-grp" value="${s.grp||1}" min="1" max="10" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
         <div class="fg"><label for="sp-edit-act" style="font-size:.7rem;font-weight:700">פעילות</label><select id="sp-edit-act" onchange="window.spEditActChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"><option value="">— ללא שינוי —</option>${initialActs.map(a => `<option value="${a}" ${a===s.act ? 'selected':''}>${a}</option>`).join('')}<option value="__new__">➕ פעילות חדשה...</option></select></div>
       </div>
       <div class="fg" id="sp-edit-act-new-wrap" style="display:none;margin-top:8px"><label for="sp-edit-act-new" style="font-size:.7rem;font-weight:700">שם הפעילות החדשה</label><input type="text" id="sp-edit-act-new" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
@@ -1673,10 +1704,11 @@ async function saveReplaceRecur(id) {
         
         if(!isMainBlocked) {
           const eid = newRecId + count;
-          // Add for primary garden
+          const pGrpInp = document.getElementById('rr-grp-partner-' + s.g);
+          const pGrpVal = pGrpInp ? (parseInt(pGrpInp.value, 10) || 1) : (newGrp || s.grp || 1);
           window.SCH.push({
             id: eid, g: s.g, d: ds, a: sup, act: act, t: time, st: 'ok', tp: newTp,
-            nt: '', _recId: newRecId + '_' + cur.getDay(), grp: newGrp || s.grp || 1
+            nt: '', _recId: newRecId + '_' + cur.getDay(), grp: pGrpVal
           });
           // Add for partners if synced
           if (sync) {
@@ -1693,9 +1725,11 @@ async function saveReplaceRecur(id) {
                   let specificPartnerTime = partnerTime;
                   const specificInput = document.getElementById('rr-time-partner-' + pid);
                   if (specificInput) specificPartnerTime = specificInput.value;
+                  const specGrpInp = document.getElementById('rr-grp-partner-' + pid);
+                  const specGrpVal = specGrpInp ? (parseInt(specGrpInp.value, 10) || 1) : (newGrp || s.grp || 1);
                   window.SCH.push({
                     id: eid + (idx+1)*5000, g: pid, d: ds, a: sup, act: act, t: specificPartnerTime, st: 'ok', tp: newTp,
-                    nt: '', _recId: newRecId + '_' + cur.getDay(), grp: newGrp || s.grp || 1
+                    nt: '', _recId: newRecId + '_' + cur.getDay(), grp: specGrpVal
                   });
                 }
               });
@@ -2424,6 +2458,8 @@ async function doPostpone(){
     if (isPrimaryChecked) {
       const primaryTimeInp = document.querySelector(`.post-syn-time[data-gid="${s.g}"]`);
       const primaryTime = primaryTimeInp ? primaryTimeInp.value : (document.getElementById('post-time')?.value || s.t);
+      const primaryGrpInp = document.querySelector(`.post-syn-grp[data-gid="${s.g}"]`);
+      const primaryGrp = primaryGrpInp ? parseInt(primaryGrpInp.value, 10) : s.grp;
       const newId1 = Date.now();
       s.st = 'post';
       s.pd = newDate;
@@ -2436,7 +2472,7 @@ async function doPostpone(){
 
       const newEv1 = {
         ...s, id:newId1, d:newDate, t:primaryTime || s.t, a:newSup||s.a, act:newAct||s.act, st:'ok', 
-        pd:'', pt:'', _postFrom: s.d, _isMakeup: true,
+        pd:'', pt:'', _postFrom: s.d, _isMakeup: true, grp: primaryGrp || s.grp || 1,
         nt: (s.nt ? s.nt + ' | ' : '') + `${labelText} מיום ` + window.fD(s.d)
       };
       delete newEv1._recId;
@@ -2459,7 +2495,7 @@ async function doPostpone(){
       const partnerLabelText = isPostponePartner ? 'נדחה' : 'הקדמה';
       const newPtEv = {
         ...ptEv, id:newSynId, d:newDate, t:conf.syn.t || ptEv.t, a:newSup||s.a, act:newAct||s.act, st:'ok', 
-        pd:'', pt:'', _postFrom: ptEv.d, _isMakeup: true,
+        pd:'', pt:'', _postFrom: ptEv.d, _isMakeup: true, grp: conf.syn.grp || ptEv.grp || 1,
         nt: (ptEv.nt ? ptEv.nt + ' | ' : '') + `${partnerLabelText} מיום ` + window.fD(ptEv.d)
       };
       delete newPtEv._recId;
@@ -2524,8 +2560,10 @@ function doCopy(){
   const primaryTime = document.getElementById('copy-time').value;
   if(!newDate) { _spAlertDialog('יש לבחור תאריך יעד'); return; }
   
+  const primaryGrpInp = document.querySelector(`.copy-syn-grp[data-gid="${s.g}"]`);
+  const primaryGrp = primaryGrpInp ? parseInt(primaryGrpInp.value, 10) : s.grp;
   // Primary
-  const newEv1 = {...s, id:Date.now(), d:newDate, t:primaryTime || s.t, st:'ok', pd:'', pt:'', cr:'', cn:''};
+  const newEv1 = {...s, id:Date.now(), d:newDate, t:primaryTime || s.t, st:'ok', pd:'', pt:'', cr:'', cn:'', grp: primaryGrp || s.grp || 1};
   delete newEv1._recId;
   window.SCH.push(newEv1);
   
@@ -2591,12 +2629,12 @@ function renderPartnerSynergy(gid, prefix, currentTimes = {}, currentGrps = {}, 
           <span style="font-size:.8rem;font-weight:600">${pG.name}${isCurrent ? ' (ראשי)' : ''}</span>
         </label>
         <div style="display:flex;align-items:center;gap:5px">
-          <label style="font-size:.7rem;color:#546e7a">קבוצות:</label>
-          <input type="number" id="${prefix}-syn-grp-${pId}" class="${prefix}-syn-grp" data-gid="${pId}" value="${currentGrps[pId] || 1}" min="1" max="10" style="padding:2px 4px;font-size:.8rem;border:1px solid #ccc;border-radius:4px;width:40px">
-        </div>
-        <div style="display:flex;align-items:center;gap:5px">
           <label style="font-size:.7rem;color:#546e7a">שעה:</label>
           <input type="time" id="${prefix}-syn-time-${pId}" class="${prefix}-syn-time" data-gid="${pId}" value="${timeVal}" style="padding:2px 4px;font-size:.8rem;border:1px solid #ccc;border-radius:4px;width:110px">
+        </div>
+        <div style="display:flex;align-items:center;gap:5px">
+          <label style="font-size:.7rem;color:#546e7a">קבוצות:</label>
+          <input type="number" id="${prefix}-syn-grp-${pId}" class="${prefix}-syn-grp" data-gid="${pId}" value="${currentGrps[pId] || 1}" min="1" max="10" style="padding:2px 4px;font-size:.8rem;border:1px solid #ccc;border-radius:4px;width:45px;text-align:center">
         </div>
       </div>
     `;
@@ -2866,6 +2904,10 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
           oninput="const mainTimeInp = document.getElementById('${prefix.startsWith('sp') ? 'sp-mu-time' : 'ns-mu-time'}'); if(mainTimeInp) mainTimeInp.value = this.value"
           style="width:75px;padding:2px;border:1px solid #ffb74d;border-radius:4px;font-size:0.7rem;font-weight:bold;background:#fffde7">
       </td>
+      <td style="padding:6px;text-align:center">
+        <input type="number" class="${prefix}-syn-grp" data-gid="${gid}" value="${origEv ? (origEv.grp || 1) : 1}" min="1" max="10"
+          style="width:45px;padding:2px;text-align:center;border:1px solid #ffb74d;border-radius:4px;font-size:0.7rem;font-weight:bold;background:#fffde7">
+      </td>
       <td style="padding:6px">${sup}</td>
       <td style="padding:6px">${act}</td>
       <td style="padding:6px;text-align:center"><span class="badge ${stClass}">${stLabel}</span></td>
@@ -2889,6 +2931,9 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
       <td style="padding:6px">
         <input type="time" class="${prefix}-syn-time" data-gid="${pId}" value="${makeupTime}" style="width:75px;padding:2px;border:1px solid #ccc;border-radius:4px;font-size:0.7rem">
       </td>
+      <td style="padding:6px;text-align:center">
+        <input type="number" class="${prefix}-syn-grp" data-gid="${pId}" value="${(origPartnerEv && origPartnerEv.grp) ? origPartnerEv.grp : ((ev && ev.grp) ? ev.grp : 1)}" min="1" max="10" style="width:45px;padding:2px;text-align:center;border:1px solid #ccc;border-radius:4px;font-size:0.7rem">
+      </td>
       <td style="padding:6px">${sup}</td>
       <td style="padding:6px">${act}</td>
       <td style="padding:6px;text-align:center"><span class="badge ${stClass}">${stLabel}</span></td>
@@ -2900,7 +2945,7 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
     <div class="tw" style="border:1px solid #ffcc80;border-radius:6px;overflow:hidden">
       <table style="width:100%;border-collapse:collapse;text-align:right">
         <thead style="background:#fff3e0;color:#bf360c">
-          <tr><th style="padding:6px;width:30px"><input type="checkbox" checked onclick="const cbs=document.querySelectorAll('.${prefix}-syn-chk'); cbs.forEach(cb=>cb.checked=this.checked)"></th><th style="padding:6px">צהרון</th><th style="padding:6px">שעה</th><th style="padding:6px">ספק</th><th style="padding:6px">פעילות</th><th style="padding:6px">סטטוס</th></tr>
+          <tr><th style="padding:6px;width:30px"><input type="checkbox" checked onclick="const cbs=document.querySelectorAll('.${prefix}-syn-chk'); cbs.forEach(cb=>cb.checked=this.checked)"></th><th style="padding:6px">צהרון</th><th style="padding:6px">שעה</th><th style="padding:6px;width:55px;text-align:center">קבוצות</th><th style="padding:6px">ספק</th><th style="padding:6px">פעילות</th><th style="padding:6px">סטטוס</th></tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
       </table>
@@ -2976,10 +3021,10 @@ window.spSaveMakeup = async function() {
   const partners = synData.filter(tgt => Number(tgt.g) !== Number(origEv.g));
   const mainSyn = synData.find(tgt => Number(tgt.g) === Number(origEv.g));
   const mainTime = (mainSyn && mainSyn.t) ? mainSyn.t : time;
-  const mainGrp = (mainSyn && mainSyn.grp) ? mainSyn.grp : null;
+  const mainGrp = (mainSyn && mainSyn.grp) ? mainSyn.grp : (origEv.grp || 1);
   const targets = [
     { g: origEv.g, t: mainTime, grp: mainGrp },
-    ...partners.map(tgt => ({ g: tgt.g, t: tgt.t || time, grp: tgt.grp }))
+    ...partners.map(tgt => ({ g: tgt.g, t: tgt.t || time, grp: tgt.grp || 1 }))
   ];
 
   // Validate blocking holidays (vacation / noact)
@@ -3015,7 +3060,7 @@ window.spSaveMakeup = async function() {
       x.d === origEv.d && 
       window.supBase(x.a) === window.supBase(origEv.a)
     );
-    const grpCount = customGrp || tgt.grp || (targetOrigEv ? targetOrigEv.grp : origEv.grp) || 1;
+    const grpCount = tgt.grp || (targetOrigEv ? targetOrigEv.grp : origEv.grp) || customGrp || 1;
     totalGrps += grpCount;
   });
 
@@ -3037,7 +3082,7 @@ window.spSaveMakeup = async function() {
       window.supBase(x.a) === window.supBase(origEv.a)
     );
     const correctOrigId = targetOrigEv ? targetOrigEv.id : sid;
-    const grpCount = customGrp || tgt.grp || (targetOrigEv ? targetOrigEv.grp : origEv.grp) || 1;
+    const grpCount = tgt.grp || (targetOrigEv ? targetOrigEv.grp : origEv.grp) || customGrp || 1;
 
     window.createMakeupActivity({
       g: tgt.g,

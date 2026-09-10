@@ -1953,12 +1953,20 @@ window.openBulkUpdateRecurring = function(key, gid) {
   const toDate = (new Date() < new Date(y, 6, 1)) ? `${y}-06-30` : `${y+1}-06-30`;
   
   const currentTimes = {};
+  const currentGrps = {};
+  currentTimes[gid] = window.fT(srExample.t);
+  currentGrps[gid] = srExample.grp || 1;
   const pair = window.gardenPair(gid);
   if(pair) {
      pair.ids.forEach(pId => {
        if(Number(pId) === Number(gid)) return;
        const pEv = window.SCH.find(ps => Number(ps.g) === Number(pId) && ps.st === 'ok' && ps.a === srExample.a && ps.act === srExample.act && ps.d >= window.td());
-       if(pEv) currentTimes[pId] = window.fT(pEv.t || srExample.t);
+       if(pEv) {
+         currentTimes[pId] = window.fT(pEv.t || srExample.t);
+         currentGrps[pId] = pEv.grp || srExample.grp || 1;
+       } else {
+         currentGrps[pId] = 1;
+       }
      });
   }
   
@@ -1991,7 +1999,7 @@ window.openBulkUpdateRecurring = function(key, gid) {
         <input type="time" id="grm-time" value="${window.fT(srExample.t)||''}" style="width:100%;max-width:150px">
       </div>
       <div style="margin-top:15px">
-        ${window.renderPartnerSynergy ? window.renderPartnerSynergy(gid, 'grm', currentTimes) : ''}
+        ${window.renderPartnerSynergy ? window.renderPartnerSynergy(gid, 'grm', currentTimes, currentGrps) : ''}
       </div>
     </div>
     <div style="background:#fff3cd;color:#856404;padding:8px 12px;border-radius:5px;font-size:0.78rem;margin-bottom:12px;text-align:center">
@@ -2023,13 +2031,15 @@ window.doBulkUpdateRecurring = async function(key, gid){
   
   const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('grm') : [];
   const isPrimaryChecked = document.getElementById(`grm-syn-chk-${gid}`) ? document.getElementById(`grm-syn-chk-${gid}`).checked : true;
+  const primaryGrpInput = document.querySelector(`.grm-syn-grp[data-gid="${gid}"]`);
+  const primaryGrp = primaryGrpInput ? (parseInt(primaryGrpInput.value, 10) || 1) : 1;
   const targets = [];
   if (isPrimaryChecked) {
-    targets.push({g: gid, t: primaryTime});
+    targets.push({g: gid, t: primaryTime, grp: primaryGrp});
   }
   synergyPartners.forEach(syn => {
     if (Number(syn.g) === Number(gid)) return;
-    targets.push({g: syn.g, t: syn.t || primaryTime});
+    targets.push({g: syn.g, t: syn.t || primaryTime, grp: syn.grp || 1});
   });
   if (!targets.length) return _spAlertDialog('יש לסמן לפחות גן אחד');
 
@@ -2082,6 +2092,7 @@ window.doBulkUpdateRecurring = async function(key, gid){
              t: tgt.t,
              d: ds,
              st: 'ok',
+             grp: tgt.grp || 1,
              _recId: newRecoups[tIdx]
            });
            cAdded++;
@@ -2179,7 +2190,7 @@ window.openClusterBulkEdit = function(clId, ds) {
         </div>
       </div>
       
-      <div id="clbulk-list-header" style="display:grid; grid-template-columns: 30px 1fr 100px 100px 70px 80px 65px; gap: 6px; padding: 6px 10px; background: #eceff1; border-radius: 6px 6px 0 0; font-size: 0.68rem; font-weight: 800; color: #455a64; border: 1px solid #cfd8dc; border-bottom: none;">
+      <div id="clbulk-list-header" style="display:grid; grid-template-columns: 30px 1fr 100px 100px 70px 80px 65px 45px; gap: 6px; padding: 6px 10px; background: #eceff1; border-radius: 6px 6px 0 0; font-size: 0.68rem; font-weight: 800; color: #455a64; border: 1px solid #cfd8dc; border-bottom: none;">
         <span></span>
         <span>שם הצהרון</span>
         <span>ספק</span>
@@ -2187,6 +2198,7 @@ window.openClusterBulkEdit = function(clId, ds) {
         <span>סוג</span>
         <span>סטטוס</span>
         <span>שעה</span>
+        <span style="text-align:center">קבוצות</span>
       </div>
       <div id="clbulk-list" style="max-height: 350px; overflow-y: auto; overflow-x: hidden; border: 1px solid #cfd8dc; border-top: none; border-radius: 0 0 6px 6px; background: #fff;"></div>
 
@@ -2239,7 +2251,7 @@ window.openClusterBulkEdit = function(clId, ds) {
   let h = '';
   gs.forEach(g => {
     const ev = window.SCH.find(s => s.g === g.id && s.d === ds && s.st !== 'can');
-    h += `<div style="display:grid;grid-template-columns:30px 1fr 100px 100px 70px 80px 65px;gap:6px;align-items:center;padding:5px 10px;border-bottom:1px solid #f0f0f0;font-size:.8rem; transition: background 0.2s;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
+    h += `<div style="display:grid;grid-template-columns:30px 1fr 100px 100px 70px 80px 65px 45px;gap:6px;align-items:center;padding:5px 10px;border-bottom:1px solid #f0f0f0;font-size:.8rem; transition: background 0.2s;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
       <label style="display:flex;align-items:center;justify-content:center;cursor:pointer">
         <input type="checkbox" id="clbulk-inc-${g.id}" checked style="width:15px;height:15px;accent-color:#1565c0">
       </label>
@@ -2265,6 +2277,7 @@ window.openClusterBulkEdit = function(clId, ds) {
         <option value="nohap">⚠️ לא התקיים</option>
       </select>
       <input type="time" id="clbulk-t-${g.id}" value="${ev?window.fT(ev.t):''}" style="padding:3px;font-size:.78rem;border-radius:4px;border:1px solid #cfd8dc">
+      <input type="number" id="clbulk-grp-${g.id}" value="${(ev && ev.grp) ? ev.grp : 1}" min="1" max="10" style="padding:3px;font-size:.78rem;border-radius:4px;border:1px solid #cfd8dc;width:40px;text-align:center">
     </div>`;
   });
   document.getElementById('clbulk-list').innerHTML = h || '<p style="color:#999;padding:20px;text-align:center">אין גנים באשכול זה</p>';
@@ -2280,6 +2293,7 @@ window.openClusterBulkEdit = function(clId, ds) {
        }
        if(document.getElementById(`clbulk-tp-${g.id}`)) document.getElementById(`clbulk-tp-${g.id}`).value = ev.tp || 'חוג';
        if(document.getElementById(`clbulk-st-${g.id}`)) document.getElementById(`clbulk-st-${g.id}`).value = ev.st || 'ok';
+       if(document.getElementById(`clbulk-grp-${g.id}`)) document.getElementById(`clbulk-grp-${g.id}`).value = ev.grp || 1;
     }
   });
 
@@ -2426,6 +2440,7 @@ window.saveClusterBulkEdit = function() {
     const rowTp = document.getElementById(`clbulk-tp-${gid}`).value || (document.getElementById('clbulk-uni-tp') ? document.getElementById('clbulk-uni-tp').value : '');
     const rowSt = document.getElementById(`clbulk-st-${gid}`).value;
     const t = document.getElementById(`clbulk-t-${gid}`)?.value || '';
+    const rowGrp = parseInt(document.getElementById(`clbulk-grp-${gid}`)?.value, 10) || 1;
     
     if(!rowSup) {
       console.warn(`Skipping garden ${gid}: No Supplier selected.`);
@@ -2444,12 +2459,13 @@ window.saveClusterBulkEdit = function() {
       if(globalPh) ev.p = globalPh;
       if(globalNt) ev.nt = (ev.nt ? ev.nt + ' | ' : '') + globalNt;
       if(t) ev.t = t;
+      ev.grp = rowGrp;
       updated++;
     } else {
       console.log(`Creating NEW event for garden ${gid}`);
       window.SCH.push({
         id: `IMP_${Date.now()}_${gid}_${Math.floor(Math.random()*100)}`,
-        g: gid, d: newDate || ds, a: rowSup, act: rowAct, tp: rowTp, st: rowSt || 'ok', t: t, p: globalPh, nt: globalNt, grp: 1
+        g: gid, d: newDate || ds, a: rowSup, act: rowAct, tp: rowTp, st: rowSt || 'ok', t: t, p: globalPh, nt: globalNt, grp: rowGrp
       });
       added++;
     }
