@@ -13,18 +13,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.51</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.52</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=111.51" />
+  <link rel="stylesheet" href="styles.css?v=111.52" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '111.51';
+    window.APP_VERSION = '111.52';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -1352,7 +1352,7 @@
               <option value='ביה"ס'>🏫 בית ספר</option>
             </select>
           </div>
-          <div class="fg"><label>עיר *</label><select id="ap-city" style="width:100%">
+          <div class="fg"><label>עיר *</label><select id="ap-city" style="width:100%" onchange="if(window.updateApMgrOptions) window.updateApMgrOptions();">
               <option value="">בחר עיר...</option>
             </select></div>
         </div>
@@ -1360,9 +1360,18 @@
             placeholder="שם הצהרון/בית הספר" style="width:100%"></div>
         <div class="fg" style="margin-bottom:8px"><label>כתובת</label><input type="text" id="ap-addr"
             placeholder="רח' ..." style="width:100%"></div>
-        <div class="fg" style="margin-bottom:8px"><label>איש קשר / רכז</label><input type="text" id="ap-co"
+        <div class="fg" style="margin-bottom:8px;background:#f0f7ff;border:1px solid #bbdefb;padding:9px;border-radius:8px;">
+          <label style="display:flex;justify-content:space-between;align-items:center;color:#1565c0;font-weight:700;margin-bottom:5px;">
+            <span>👤 רכז / מנהל אחראי (לבחירה מרשימת הרכזים)</span>
+            <span style="font-size:0.72rem;color:#0d47a1;font-weight:normal;">מונע כפילויות וממלא טלפון</span>
+          </label>
+          <select id="ap-mgr-sel" style="width:100%;padding:6px;border-radius:6px;border:1px solid #90caf9;background:#fff;font-size:0.85rem;" onchange="if(window.onApMgrSelectChange) window.onApMgrSelectChange();">
+            <option value="">-- בחר רכז מהרשימה (או הזן ידנית למטה) --</option>
+          </select>
+        </div>
+        <div class="fg" style="margin-bottom:8px"><label>איש קשר / גננת (או שם הרכז)</label><input type="text" id="ap-co"
             placeholder="שם איש קשר" style="width:100%"></div>
-        <div class="fg" style="margin-bottom:8px"><label>טלפון איש קשר</label><input type="tel" id="ap-coph"
+        <div class="fg" style="margin-bottom:8px"><label>טלפון איש קשר / רכז</label><input type="tel" id="ap-coph"
             placeholder="050-..." style="width:100%"></div>
         <div class="fg" style="margin-bottom:12px"><label>הערות</label><input type="text" id="ap-notes"
             placeholder="הערות כלשהן..." style="width:100%"></div>

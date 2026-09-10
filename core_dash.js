@@ -3030,6 +3030,53 @@ function _goToGardenSched(gardenId){
 }
 var _gardensTab='gan';
 // ─── ADD PLACE ────────────────────────────────────────
+window.updateApMgrOptions = function() {
+  const selEl = document.getElementById('ap-mgr-sel');
+  if (!selEl) return;
+  const selCity = (document.getElementById('ap-city')?.value || '').trim();
+  const allMgrs = Object.values(window.managers || {}).sort((a,b) => (a.name||'').localeCompare(b.name||'', 'he'));
+  
+  let html = '<option value="">-- בחר רכז מהרשימה (או הזן ידנית למטה) --</option>';
+  
+  if (selCity) {
+    const cityMgrs = allMgrs.filter(m => (m.city || '').trim() === selCity);
+    const otherMgrs = allMgrs.filter(m => (m.city || '').trim() !== selCity);
+    
+    if (cityMgrs.length > 0) {
+      html += `<optgroup label="📍 רכזי ${selCity}">`;
+      cityMgrs.forEach(m => {
+        html += `<option value="${m.id}">${m.role === 'manager' ? '🏛️' : '👤'} ${m.name}${m.phone ? ' (' + m.phone + ')' : ''}</option>`;
+      });
+      html += `</optgroup>`;
+    }
+    if (otherMgrs.length > 0) {
+      html += `<optgroup label="🌐 רכזים מערים נוספות">`;
+      otherMgrs.forEach(m => {
+        html += `<option value="${m.id}">${m.role === 'manager' ? '🏛️' : '👤'} ${m.name} (${m.city || 'ללא עיר'})${m.phone ? ' (' + m.phone + ')' : ''}</option>`;
+      });
+      html += `</optgroup>`;
+    }
+  } else {
+    allMgrs.forEach(m => {
+      html += `<option value="${m.id}">${m.role === 'manager' ? '🏛️' : '👤'} ${m.name}${m.city ? ' - ' + m.city : ''}${m.phone ? ' (' + m.phone + ')' : ''}</option>`;
+    });
+  }
+  
+  selEl.innerHTML = html;
+};
+
+window.onApMgrSelectChange = function() {
+  const selId = document.getElementById('ap-mgr-sel')?.value;
+  if (!selId) return;
+  const m = (window.managers || {})[selId];
+  if (m) {
+    const coEl = document.getElementById('ap-co');
+    const cophEl = document.getElementById('ap-coph');
+    if (coEl) coEl.value = m.name || '';
+    if (cophEl) cophEl.value = m.phone || m.phone2 || '';
+  }
+};
+
 function openAddGardenModal(){
   document.getElementById('ap-name').value='';
   document.getElementById('ap-addr').value='';
@@ -3040,6 +3087,14 @@ function openAddGardenModal(){
   const apCity=document.getElementById('ap-city');
   apCity.innerHTML='<option value="">בחר עיר...</option>';
   cities().forEach(c=>apCity.innerHTML+=`<option value='${c}'>${c}</option>`);
+
+  const gFiltCity = document.getElementById('g-city')?.value || '';
+  if (gFiltCity) apCity.value = gFiltCity;
+
+  if (typeof window.updateApMgrOptions === 'function') {
+    window.updateApMgrOptions();
+  }
+
   (document.getElementById('addplace-title')||{}).textContent ='➕ הוסף '+(_gardensTab==='sch'?'בית ספר':'צהרון / גן');
   document.getElementById('addplace-m').classList.add('open');
 }
@@ -3065,7 +3120,22 @@ function saveNewPlace(){
   }
   if(!supEx['__gardens_extra']) supEx['__gardens_extra']=[];
   supEx['__gardens_extra']=_GARDENS_EXTRA;
-  save();CM('addplace-m');refresh();
+
+  // Link to selected manager if chosen
+  const selMgrId = document.getElementById('ap-mgr-sel')?.value;
+  if (selMgrId && window.managers && window.managers[selMgrId]) {
+    if (!window.managers[selMgrId].gardenIds) window.managers[selMgrId].gardenIds = [];
+    if (!window.managers[selMgrId].gardenIds.includes(newId)) {
+      window.managers[selMgrId].gardenIds.push(newId);
+    }
+  }
+
+  save();
+  CM('addplace-m');
+  refresh();
+  if (typeof renderManagers === 'function') renderManagers();
+  if (typeof refreshMgrDrops === 'function') refreshMgrDrops();
+
   if (window._fbUser) {
     window._fbUser.getIdToken(false).then(tok => {
       const authQ = tok ? '?auth=' + tok : '';
