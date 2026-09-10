@@ -1551,7 +1551,7 @@ function openMgrModal(id){
   if(m&&m.city) mgrGCityEl.value=m.city;
 
   mgrFillGardens();
-  document.getElementById('mgr-del-btn').style.display=id?'block':'none';
+  document.getElementById('mgr-del-btn').style.display=id?'inline-flex':'none';
 
   // Check auth status
   const wrap = document.getElementById('mgr-auth-wrap');
