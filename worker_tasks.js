@@ -1249,18 +1249,9 @@ window.wtGetStaffList = function() {
     });
   }
 
-  // 3. Active gardens in current year database (Priority 1)
-  const activeGardens = typeof AG === 'function' ? AG() : (window.GARDENS || []);
-  activeGardens.forEach(g => {
-    if (g && g.co) {
-      const parts = String(g.co).split(/[-–—]/);
-      const name = parts[0] ? parts[0].trim() : '';
-      const phone = parts[1] ? parts.slice(1).join('-').trim() : (g.coph || '');
-      if (name) {
-        addStaff(name, '', g.city || '', phone, 1);
-      }
-    }
-  });
+  // 3. (REMOVED) We no longer pull from g.co directly because it resurrects deleted
+  // coordinators (like Avi) who are hardcoded in the old data.js snapshot.
+  // The user manages staff via the Managers (מנהלים) tab now.
 
   // 4. Common orderers list (window.PURCH_ORDERERS)
   if (Array.isArray(window.PURCH_ORDERERS)) {
