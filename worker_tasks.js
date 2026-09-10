@@ -965,10 +965,9 @@ window.renderWorkerTasksMobile = function() {
               ${displayName ? `<strong style="color:${isDone ? '#555' : '#1565c0'};">${displayName}</strong> - ` : ''}${window.wtCleanDesc(t.desc, displayName)}${window.wtNavBadgesHtml ? window.wtNavBadgesHtml(info) : ''}
               ${info.phone ? ` <a href="tel:${info.phone}" style="text-decoration:none; display:inline-flex; align-items:center; gap:2px; background:#fff3e0; color:#e65100; font-weight:700; font-size:0.7rem; padding:2px 7px; border-radius:10px; border:1px solid #ffe0b2; vertical-align:middle; margin-right:4px;" onclick="event.stopPropagation()">📞</a>` : ''}
             </div>
-            ${info.city || info.address ? `
+            ${info.address && info.address.trim() && info.address.trim() !== (info.city || '').trim() ? `
               <div style="font-size:0.8rem; color:#64748b; margin-bottom:4px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                ${info.city ? `<span>🏙️ ${info.city}</span>` : ''}
-                ${info.address ? `<span>📍 ${info.address}</span>` : ''}
+                <span>📍 ${info.address}</span>
               </div>` : ''}
             ${isDone && t.doneAt ? `<div style="font-size:0.8rem; color:#4caf50; font-weight:bold; margin-bottom:4px;">(בוצע ע"י ${t.doneBy || 'עובד'} ב-${t.doneAt.split(' ')[1] || t.doneAt})</div>` : ''}
             <textarea id="wt-note-${t.id}" onchange="window.wtSaveNote('${t.id}', this.value)" placeholder="הוסף הערה..." style="width:100%; padding:6px 8px; border:1px solid #e2e8f0; border-radius:6px; background:#f8fafc; box-sizing:border-box; resize:none; font-family:inherit; margin-top:6px; font-size:0.85rem; color:#1565c0;">${t.workerNote || ''}</textarea>
