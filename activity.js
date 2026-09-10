@@ -1063,8 +1063,8 @@ window.openSP = function(id) {
                 <div class="fg"><label style="font-size:.7rem;font-weight:700">מפצה על תאריך</label><input type="date" id="sp-mu-orig" value="${s.d}" readonly style="width:100%;background:#f5f5f5;color:#666;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
                 <div class="fg"><label style="font-size:.7rem;font-weight:700">תאריך השלמה *</label><input type="date" id="sp-mu-date" value="${window.td()}" style="width:100%;border:1px solid #ffb74d;padding:4px;border-radius:4px" onchange="window.spMuDateChg()"></div>
              </div>
-             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                 <div class="fg"><label style="font-size:.7rem;font-weight:700">שעה *</label><input type="time" id="sp-mu-time" value="${s.t||''}" oninput="const tblInp = document.querySelector('.sp-mu-syn-time[data-gid=\'${s.g}\']'); if(tblInp) tblInp.value = this.value" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
+             <div style="display:grid;grid-template-columns:${spPair ? '1fr' : '1fr 1fr'};gap:10px">
+                 <div class="fg" id="sp-mu-time-wrap" style="${spPair ? 'display:none;' : ''}"><label style="font-size:.7rem;font-weight:700">שעה *</label><input type="time" id="sp-mu-time" value="${s.t||''}" oninput="const tblInp = document.querySelector('.sp-mu-syn-time[data-gid=\'${s.g}\']'); if(tblInp) tblInp.value = this.value" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
                  <div class="fg">
                    <label style="font-size:.7rem;font-weight:700">בחר פעילות *</label>
                    <select id="sp-mu-act" onchange="window.spMuActChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">
@@ -3026,13 +3026,13 @@ window.spSaveMakeup = async function() {
   const time = document.getElementById('sp-mu-time').value;
   const supName = document.getElementById('sp-mu-sup').value || origEv.a;
   
-  if(!newDate || !time) { _spAlertDialog('בחר תאריך ושעה'); return; }
-  
   const synData = window.getSynergyData('sp-mu');
   const partners = synData.filter(tgt => Number(tgt.g) !== Number(origEv.g));
   const mainSyn = synData.find(tgt => Number(tgt.g) === Number(origEv.g));
-  const mainTime = (mainSyn && mainSyn.t) ? mainSyn.t : time;
-  const mainGrp = (mainSyn && mainSyn.grp) ? mainSyn.grp : (origEv.grp || 1);
+  const mainTime = (mainSyn && mainSyn.t) ? mainSyn.t : (time || origEv.t);
+  const mainGrp = (mainSyn && mainSyn.grp) ? mainSyn.grp : (parseInt(document.getElementById('sp-mu-grp')?.value) || origEv.grp || 1);
+  
+  if(!newDate || !mainTime) { _spAlertDialog('בחר תאריך ושעה'); return; }
   const targets = [
     { g: origEv.g, t: mainTime, grp: mainGrp },
     ...partners.map(tgt => ({ g: tgt.g, t: tgt.t || time, grp: tgt.grp || 1 }))
