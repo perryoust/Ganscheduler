@@ -345,6 +345,12 @@ window.renderWorkerTasksAdmin = function() {
             <div style="display:flex; align-items:center; gap:10px; font-size:0.85rem; color:#8e8e93; flex-wrap:wrap;">
               ${isPriv ? '<span style="background:#ffe0b2; color:#e65100; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:0.75rem;">🔒 אישי למנהל</span>' : ''}
               ${isDone && t.doneAt ? `<span style="font-size:0.85rem; color:#4caf50; font-weight:bold;">(בוצע ע"י ${t.doneBy || 'עובד'} ב-${t.doneAt})</span>` : ''}
+              ${(() => {
+                const _aInfo = window.wtGetTaskGardenInfo ? window.wtGetTaskGardenInfo(t) : { address: '', city: '', gardenName: '' };
+                const _wUrl = _aInfo.address ? 'https://waze.com/ul?q=' + encodeURIComponent(_aInfo.address + (_aInfo.city ? ', ' + _aInfo.city : '')) + '&navigate=yes' : (_aInfo.gardenName && _aInfo.city ? 'https://waze.com/ul?q=' + encodeURIComponent(_aInfo.gardenName + ', ' + _aInfo.city) + '&navigate=yes' : '');
+                const _mUrl = _aInfo.address ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(_aInfo.address + (_aInfo.city ? ', ' + _aInfo.city : '') + ', ישראל') : (_aInfo.gardenName && _aInfo.city ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(_aInfo.gardenName + ', ' + _aInfo.city + ', ישראל') : '');
+                return (_wUrl ? '<a href="' + _wUrl + '" target="_blank" style="text-decoration:none; display:inline-flex; align-items:center; gap:3px; background:linear-gradient(135deg,#33ccff,#00b0ff); color:#fff; font-weight:700; font-size:0.72rem; padding:3px 8px; border-radius:12px; box-shadow:0 1px 3px rgba(0,176,255,0.25);" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" width="13" height="13" fill="#fff"><path d="M20.54 6.63c-1.2-3.74-4.7-5.64-8.26-5.64a9.1 9.1 0 0 0-4.7 1.28C5.28 3.77 3.5 6.18 3.05 9c-.45 2.76.3 5.6 2.22 7.6.86.9 1.34 2.08 1.34 3.3v.6c0 .84.68 1.5 1.5 1.5h.38c.83 0 1.5-.67 1.5-1.5 0-.6.12-1.2.35-1.74.24-.55.6-1.05 1.06-1.45 1.24-1.1 2.67-1.63 4.1-1.63 1.96 0 3.83-.95 4.95-2.55a5.97 5.97 0 0 0 .1-6.5zm-11.04 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm5 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg> Waze</a>' : '') + (_mUrl ? ' <a href="' + _mUrl + '" target="_blank" style="text-decoration:none; display:inline-flex; align-items:center; gap:2px; background:#e8f5e9; color:#2e7d32; font-weight:700; font-size:0.72rem; padding:3px 8px; border-radius:12px;" onclick="event.stopPropagation()">🗺️</a>' : '');
+              })()}
             </div>
             ${t.workerNote ? `<div style="margin-top:6px; font-size:0.85rem; color:#1565c0; background:#e3f2fd; padding:6px 10px; border-radius:6px; border-right:3px solid #64b5f6;">💬 הערות ${t.workerName || 'עובד'}: ${t.workerNote.replace(/</g, '&lt;')}</div>` : ''}
           </div>
@@ -952,13 +958,16 @@ window.renderWorkerTasksMobile = function() {
             <div style="font-size:1.05rem; color:${isDone ? '#666' : '#1c1c1e'}; margin-bottom:4px; line-height:1.35;">
               ${displayName ? `<strong style="color:${isDone ? '#555' : '#1565c0'};">${displayName}</strong> - ` : ''}${window.wtCleanDesc(t.desc, displayName)}
             </div>
-            <div style="font-size:0.85rem; color:#64748b; display:flex; flex-direction:column; gap:4px;">
-              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <div style="font-size:0.85rem; color:#64748b; display:flex; flex-direction:column; gap:6px;">
+              ${info.city || info.address ? `<div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-size:0.82rem;">
                 ${info.city ? `<span>🏙️ ${info.city}</span>` : ''}
                 ${info.address ? `<span>📍 ${info.address}</span>` : ''}
-                ${wazeUrl ? `<a href="${wazeUrl}" target="_blank" style="color:#0288d1; text-decoration:none; font-weight:700; font-size:0.78rem; background:#e1f5fe; padding:2px 7px; border-radius:4px; display:inline-flex; align-items:center; gap:2px;" onclick="event.stopPropagation()">🚗 Waze</a>` : ''}
-                ${mapsUrl ? `<a href="${mapsUrl}" target="_blank" style="color:#2e7d32; text-decoration:none; font-weight:700; font-size:0.78rem; background:#e8f5e9; padding:2px 7px; border-radius:4px; display:inline-flex; align-items:center; gap:2px;" onclick="event.stopPropagation()">🗺️ מפה</a>` : ''}
-                ${info.phone ? `<a href="tel:${info.phone}" style="color:#e65100; text-decoration:none; font-weight:700; font-size:0.78rem; background:#fff3e0; padding:2px 7px; border-radius:4px; display:inline-flex; align-items:center; gap:2px;" onclick="event.stopPropagation()">📞 ${info.phone}</a>` : ''}
+              </div>` : ''}
+              <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                ${wazeUrl ? `<a href="${wazeUrl}" target="_blank" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; background:linear-gradient(135deg,#33ccff,#00b0ff); color:#fff; font-weight:800; font-size:0.82rem; padding:6px 12px; border-radius:20px; box-shadow:0 2px 6px rgba(0,176,255,0.3); letter-spacing:0.3px;" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M20.54 6.63c-1.2-3.74-4.7-5.64-8.26-5.64a9.1 9.1 0 0 0-4.7 1.28C5.28 3.77 3.5 6.18 3.05 9c-.45 2.76.3 5.6 2.22 7.6.86.9 1.34 2.08 1.34 3.3v.6c0 .84.68 1.5 1.5 1.5h.38c.83 0 1.5-.67 1.5-1.5 0-.6.12-1.2.35-1.74.24-.55.6-1.05 1.06-1.45 1.24-1.1 2.67-1.63 4.1-1.63 1.96 0 3.83-.95 4.95-2.55a5.97 5.97 0 0 0 .1-6.5zm-11.04 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm5 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg> נווט ב-Waze</a>` : ''}
+                ${mapsUrl ? `<a href="${mapsUrl}" target="_blank" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px; background:#e8f5e9; color:#2e7d32; font-weight:700; font-size:0.82rem; padding:6px 12px; border-radius:20px; border:1px solid #c8e6c9; box-shadow:0 1px 3px rgba(0,0,0,0.08);" onclick="event.stopPropagation()">🗺️ מפה</a>` : ''}
+                ${info.phone ? `<a href="tel:${info.phone}" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px; background:#fff3e0; color:#e65100; font-weight:700; font-size:0.82rem; padding:6px 12px; border-radius:20px; border:1px solid #ffe0b2; box-shadow:0 1px 3px rgba(0,0,0,0.08);" onclick="event.stopPropagation()">📞 ${info.phone}</a>` : ''}
+              </div>
               </div>
               ${isDone && t.doneAt ? `<span style="color:#4caf50; font-weight:bold;">(בוצע ע"י ${t.doneBy || 'עובד'} ב-${t.doneAt.split(' ')[1] || t.doneAt})</span>` : ''}
             </div>
