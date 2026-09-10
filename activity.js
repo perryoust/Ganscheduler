@@ -1108,7 +1108,7 @@ window.openSP = function(id) {
       <div style="font-size:.72rem;color:#78909c;margin-bottom:8px;background:#f9f9f9;padding:4px 8px;border-radius:4px">שינוי תאריך, ספק, פעילות או שעה <b>רק לפעילות זו</b></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div class="fg"><label for="sp-edit-date" style="font-size:.7rem;font-weight:700">תאריך</label><input type="date" id="sp-edit-date" value="${s.d}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
-        <div class="fg"><label for="sp-edit-time" style="font-size:.7rem;font-weight:700">שעה (${g.name})</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
+        <div class="fg" id="sp-edit-time-wrap" style="${spPair ? 'display:none;' : ''}"><label for="sp-edit-time" style="font-size:.7rem;font-weight:700">שעה (${g.name})</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
         <div class="fg"><label for="sp-edit-sup" style="font-size:.7rem;font-weight:700">ספק</label><select id="sp-edit-sup" onchange="window.spEditSupChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">${allSups.map(sup => { const disp = window.supNameLabel(sup.name) !== sup.name ? window.supNameLabel(sup.name) + ' (' + sup.name + ')' : sup.name; return `<option value="${sup.name}" ${sup.name===s.a ? 'selected':''}>${disp}</option>`; }).join('')}</select></div>
         <div class="fg" id="sp-edit-grp-wrap" style="${spPair ? 'display:none;' : ''}"><label for="sp-edit-grp" style="font-size:.7rem;font-weight:700">קבוצות</label><input type="number" id="sp-edit-grp" value="${s.grp||1}" min="1" max="10" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
         <div class="fg"><label for="sp-edit-act" style="font-size:.7rem;font-weight:700">פעילות</label><select id="sp-edit-act" onchange="window.spEditActChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"><option value="">— ללא שינוי —</option>${initialActs.map(a => `<option value="${a}" ${a===s.act ? 'selected':''}>${a}</option>`).join('')}<option value="__new__">➕ פעילות חדשה...</option></select></div>
@@ -2319,13 +2319,18 @@ function openPostpone(id, defaultMode = 'move'){
       currentTimes[s.g] = window.fT(s.t) || '';
       currentGrps[s.g] = s.grp || 1;
 
+      const timeWrap = document.getElementById('post-time-wrap') || document.getElementById('post-time')?.parentElement;
       if(pIds.length) {
+        if(timeWrap) timeWrap.style.display = 'none';
         pIds.forEach(pId => {
           if(Number(pId) === Number(s.g)) return;
           const pEv = window.SCH.find(ps => ps.d === s.d && Number(ps.g) === Number(pId) && ps.st!=='can' && window.supBase(ps.a) === window.supBase(s.a));
           if(pEv) { currentTimes[pId] = window.fT(pEv.t||s.t); currentGrps[pId] = pEv.grp || 1; }
         });
         synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'post', currentTimes, currentGrps, s.d);
+      } else {
+        if(timeWrap) timeWrap.style.display = '';
+        synWrap.innerHTML = '';
       }
     }
     
@@ -2539,14 +2544,19 @@ function openCopy(sid){
     currentTimes[s.g] = window.fT(s.t) || '';
     currentGrps[s.g] = s.grp || 1;
 
+    const timeWrap = document.getElementById('copy-time-wrap') || document.getElementById('copy-time')?.parentElement;
     if(pIds.length) {
+      if(timeWrap) timeWrap.style.display = 'none';
       pIds.forEach(pId => {
         if(Number(pId) === Number(s.g)) return;
         const pEv = window.SCH.find(ps => ps.d === s.d && Number(ps.g) === Number(pId) && ps.st!=='can' && window.supBase(ps.a) === window.supBase(s.a));
         if(pEv) { currentTimes[pId] = window.fT(pEv.t||s.t); currentGrps[pId] = pEv.grp || 1; }
       });
+      synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'copy', currentTimes, currentGrps, s.d);
+    } else {
+      if(timeWrap) timeWrap.style.display = '';
+      synWrap.innerHTML = '';
     }
-    synWrap.innerHTML = window.renderPartnerSynergy(s.g, 'copy', currentTimes, currentGrps, s.d);
   }
   
   document.getElementById('copym').classList.add('open');
@@ -2557,7 +2567,8 @@ function doCopy(){
   const s = window.SCH.find(x => x.id == sid);
   if(!s) return;
   const newDate = document.getElementById('copy-date').value;
-  const primaryTime = document.getElementById('copy-time').value;
+  const primaryTimeInp = document.querySelector(`.copy-syn-time[data-gid="${s.g}"]`);
+  const primaryTime = primaryTimeInp ? primaryTimeInp.value : (document.getElementById('copy-time')?.value || s.t);
   if(!newDate) { _spAlertDialog('יש לבחור תאריך יעד'); return; }
   
   const primaryGrpInp = document.querySelector(`.copy-syn-grp[data-gid="${s.g}"]`);

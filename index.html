@@ -13,18 +13,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.55</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.56</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=111.55" />
+  <link rel="stylesheet" href="styles.css?v=111.56" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '111.55';
+    window.APP_VERSION = '111.56';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -1932,7 +1932,7 @@
 
       <!-- Common fields -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:8px">
-        <div class="fg" style="grid-column:1/-1">
+        <div class="fg" id="ns-time-wrap" style="grid-column:1/-1;display:none !important;">
           <label>שעת הפעילות</label>
           <input type="time" id="ns-time" style="width:100%" onchange="window.nsTimeChg ? window.nsTimeChg() : null">
         </div>
@@ -2288,7 +2288,7 @@
           style="width:100%" onchange="postDateChg()"></div>
 
       <!-- Row 2: Time & Synergy -->
-      <div class="fg" style="margin-bottom:10px"><label>שעה חדשה (ראשי)</label><input type="time" id="post-time"
+      <div class="fg" id="post-time-wrap" style="margin-bottom:10px"><label>שעה חדשה (ראשי)</label><input type="time" id="post-time"
           style="width:100%"></div>
       <div id="post-synergy-wrap"></div>
 
@@ -2327,7 +2327,7 @@
         style="background:#f5f7ff;border-radius:7px;padding:8px 11px;font-size:.8rem;margin-bottom:10px"></div>
       <div class="fg" style="margin-bottom:10px"><label>תאריך יעד *</label><input type="date" id="copy-date"
           style="width:100%" onchange="copyDateChg()"></div>
-      <div class="fg" style="margin-bottom:10px"><label>שעה (ראשי)</label><input type="time" id="copy-time"
+      <div class="fg" id="copy-time-wrap" style="margin-bottom:10px"><label>שעה (ראשי)</label><input type="time" id="copy-time"
           style="width:100%"></div>
       <div id="copy-synergy-wrap"></div>
       <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:10px">

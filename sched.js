@@ -318,7 +318,9 @@ function renderPartnerTable(){
       
       const isChecked = existingChecks[Number(pId)] !== undefined ? existingChecks[Number(pId)] : true;
       const timeDisplay = `<div style="display:flex;flex-direction:column;gap:2px;align-items:center;">
-          <input type="time" class="ns-syn-time" data-gid="${pId}" value="${timeVal}" style="width:70px;font-size:.7rem;padding:2px;border:1px solid #ccc;border-radius:3px">
+          <input type="time" class="ns-syn-time" data-gid="${pId}" value="${timeVal}" 
+            oninput="if(Number('${pId}') === Number(document.getElementById('ns-g')?.value)) { const mainT = document.getElementById('ns-time'); if(mainT) mainT.value = this.value; }"
+            style="width:70px;font-size:.7rem;padding:2px;border:1px solid #ccc;border-radius:3px">
           ${ev ? `<span style="font-size:0.6rem;color:#e65100;font-weight:600" title="פעילות קיימת">קיים: ${existingTimeStr}</span>` : ''}
         </div>`;
       const chkDisplay = `<input type="checkbox" id="ns-syn-chk-${pId}" class="ns-syn-chk" data-gid="${pId}" value="${pId}" style="width:18px;height:18px;accent-color:#1565c0;cursor:pointer" ${isChecked ? 'checked' : ''}>`;
