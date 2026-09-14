@@ -658,6 +658,46 @@ window.calJump = function(pairId, view, gardenId, clusterName) {
   // 5. Refresh
   if (window.renderCal) window.renderCal();
 };
+
+window.calJumpToGardens = function(gardenIds, targetDate = null, view = 'week') {
+  if (!gardenIds || !gardenIds.length) return;
+  const gids = (Array.isArray(gardenIds) ? gardenIds : [gardenIds]).map(Number);
+  
+  // 1. Switch to Calendar Mode
+  if (window.switchMode) window.switchMode('act');
+  if (window.ST) window.ST('cal');
+  else if (window.setMode) window.setMode('cal');
+
+  // 2. Clear previous filters
+  if (window.clearCal) window.clearCal();
+
+  // 3. Apply target date if provided
+  if (targetDate) {
+    if (window.goDate) window.goDate(targetDate);
+    else {
+      const parts = targetDate.split('-');
+      if (parts.length === 3) window.calD = new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+  }
+
+  // 4. Select only the specified gardens in multi-select
+  ['desktop', 'mobile'].forEach(plat => {
+    const list = document.getElementById('cal-g-multi-items-' + plat);
+    if(list) {
+      list.querySelectorAll('input').forEach(el => {
+        el.checked = gids.includes(Number(el.value));
+      });
+    }
+    if(window.calMultiGChanged) window.calMultiGChanged(plat);
+  });
+
+  // 5. Set View
+  if (view && window.setView) window.setView(view);
+
+  // 6. Refresh calendar
+  if (window.renderCal) window.renderCal();
+};
+
 function clearCal(){
   ['desktop', 'mobile'].forEach(plat => {
     if (window.clearCalCityMulti) window.clearCalCityMulti(plat);

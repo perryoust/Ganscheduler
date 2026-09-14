@@ -293,6 +293,23 @@ window.dashBatchAction = async function(action) {
     return;
   }
 
+  if (action === 'calendar') {
+    const acts = ids.map(id => window.SCH.find(x => String(x.id) === String(id))).filter(Boolean);
+    const selectedGids = Array.from(new Set(acts.map(x => Number(x.g))));
+    if (selectedGids.length === 0) return;
+    
+    let targetDate = (acts.length > 0 && acts[0].d) ? acts[0].d : null;
+    if (!targetDate) {
+      const el = window.getEl ? window.getEl('dash-date') : document.getElementById('dash-date');
+      targetDate = el ? el.value : null;
+    }
+    
+    if (window.calJumpToGardens) {
+      window.calJumpToGardens(selectedGids, targetDate, 'week');
+    }
+    return;
+  }
+
   let promptMsg = '';
   let notePrefix = '';
   let status = '';
