@@ -1219,8 +1219,16 @@ window.openSP = function(id) {
       <span id="sp-acc-fixed-arrow" style="font-size:0.7rem;transition:0.3s;color:#1565c0">▼</span>
     </div>
     <div id="sp-acc-fixed" style="display:none;padding:12px;background:#fff;border-top:1px solid #90caf9">
-      <div style="font-size:.72rem;color:#546e7a;margin-bottom:8px;background:#f8fafc;padding:4px 8px;border-radius:4px;border:1px solid #e2e8f0">חוגים שבועיים קבועים עתידיים ב-${g.name}:</div>
-      ${window.getSpGardenFixedHtml ? window.getSpGardenFixedHtml(s.g) : ''}
+      <div style="font-size:.72rem;color:#546e7a;margin-bottom:8px;background:#f8fafc;padding:6px 8px;border-radius:4px;border:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+        <span style="font-weight:700">חוגים שבועיים עתידיים ב-${g.name}:</span>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;background:#fff;padding:2px 8px;border-radius:4px;border:1px solid #ffd8a8;color:#d9480f;font-weight:700;font-size:0.72rem" title="הצג גם פעילויות קייטנה ובוקרונים במידה וקיימות">
+          <input type="checkbox" id="sp-fixed-include-camp" onchange="window.spToggleFixedCamp(this.checked, ${s.g})">
+          <span>🏕️ הצג גם קייטנות</span>
+        </label>
+      </div>
+      <div id="sp-fixed-list-wrap">
+        ${window.getSpGardenFixedHtml ? window.getSpGardenFixedHtml(s.g, false) : ''}
+      </div>
     </div>
   </div>`;
 
@@ -1380,7 +1388,14 @@ window.getSpMissedHtml = function(gid) {
   return h;
 };
 
-window.getSpGardenFixedHtml = function(gid) {
+window.spToggleFixedCamp = function(includeCamp, gid) {
+  const wrap = document.getElementById('sp-fixed-list-wrap');
+  if (wrap && window.getSpGardenFixedHtml) {
+    wrap.innerHTML = window.getSpGardenFixedHtml(gid, includeCamp);
+  }
+};
+
+window.getSpGardenFixedHtml = function(gid, includeCamp = false) {
   const g = window.G(gid);
   if (!g) return '<div style="font-size:.75rem;color:#78909c">לא נמצא מידע על צהרון זה.</div>';
   
@@ -1389,37 +1404,39 @@ window.getSpGardenFixedHtml = function(gid) {
   // Filter exclusively future/active events: s.d >= today and not cancelled
   const futureEvs = (window.SCH || []).filter(s => Number(s.g) === Number(gid) && s.st !== 'can' && s.d >= today);
   if (!futureEvs.length) {
-    return '<div style="font-size:.75rem;color:#78909c;padding:6px;text-align:center">לא נמצאו חוגים קבועים עתידיים לצהרון זה.</div>';
+    return '<div style="font-size:.75rem;color:#78909c;padding:6px;text-align:center">לא נמצאו פעילויות עתידיות לצהרון זה.</div>';
   }
 
-  // Strictly filter out camps, morning events, makeups, and non-afterschool activities
-  const fixedEvs = futureEvs.filter(s => {
-    // 1. Skip makeups and one-time movements
-    if (s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt))) return false;
-    if (s.n && /השלמה|הוקדם מ/i.test(s.n)) return false;
-    if (s.cn && /השלמה|makeup/i.test(s.cn)) return false;
-    if (s.a && /השלמה|makeup/i.test(s.a)) return false;
-    if (s.act && /השלמה|makeup/i.test(s.act)) return false;
+  // Filter events according to whether camps are included or excluded
+  const fixedEvs = [];
+  futureEvs.forEach(s => {
+    // 1. Always skip makeups and one-time movements
+    if (s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt))) return;
+    if (s.n && /השלמה|הוקדם מ/i.test(s.n)) return;
+    if (s.cn && /השלמה|makeup/i.test(s.cn)) return;
+    if (s.a && /השלמה|makeup/i.test(s.a)) return;
+    if (s.act && /השלמה|makeup/i.test(s.act)) return;
 
-    // 2. Filter out camps by event type or text
-    if (s.tp === 'camp' || (s.tp && /קייטנ|בוקרון|יום ארוך/i.test(s.tp))) return false;
-    if (/קייטנ|בוקרון|יום ארוך/i.test((s.nt || '') + ' ' + (s.act || '') + ' ' + (s.a || '') + ' ' + (s.n || '') + ' ' + (s.cr || ''))) return false;
-
-    // 3. Time check: Regular צהרון activities are in the afternoon (13:00 or later).
-    // Morning hours (e.g. 09:00, 09:45, 11:20) are morning kindergarten / camps.
-    if (s.t && s.t < '13:00') return false;
-
-    // 4. Holiday check on the event date (camps/bridge days)
+    // Detect if this event is a camp/morning activity
+    let isCamp = false;
+    if (s.tp === 'camp' || (s.tp && /קייטנ|בוקרון|יום ארוך/i.test(s.tp))) isCamp = true;
+    if (/קייטנ|בוקרון|יום ארוך/i.test((s.nt || '') + ' ' + (s.act || '') + ' ' + (s.a || '') + ' ' + (s.n || '') + ' ' + (s.cr || ''))) isCamp = true;
+    if (s.t && s.t < '13:00') isCamp = true;
     if (g && window.getHolidayInfo) {
       const hol = window.getHolidayInfo(s.d, g.city || null, window.gcls ? window.gcls(g) : g.cls);
-      if (hol && (hol.type === 'camp' || hol.label === 'קייטנה' || (hol.name && /קייטנ|בוקרון|יום ארוך/i.test(hol.name)))) return false;
+      if (hol && (hol.type === 'camp' || hol.label === 'קייטנה' || (hol.name && /קייטנ|בוקרון|יום ארוך/i.test(hol.name)))) isCamp = true;
     }
 
-    return true;
+    if (isCamp && !includeCamp) return; // Exclude if not checked
+
+    fixedEvs.push({ ...s, _isCampDetected: isCamp });
   });
 
   if (!fixedEvs.length) {
-    return '<div style="font-size:.75rem;color:#78909c;padding:6px;text-align:center">לא נמצאו חוגים קבועים עתידיים לצהרון זה.</div>';
+    const emptyMsg = includeCamp 
+      ? 'לא נמצאו חוגים קבועים או פעילויות קייטנה עתידיות לצהרון זה.' 
+      : 'לא נמצאו חוגים קבועים עתידיים לצהרון זה.';
+    return `<div style="font-size:.75rem;color:#78909c;padding:6px;text-align:center">${emptyMsg}</div>`;
   }
 
   const seriesMap = {};
@@ -1434,7 +1451,10 @@ window.getSpGardenFixedHtml = function(gid) {
     const baseSup = window.supBase(s.a) || s.a;
     const actName = s.act || '—';
     const timeKey = (s.t || '').slice(0, 5);
-    const key = s._recId || `${wd}_${baseSup}_${actName}_${timeKey}`;
+    const isCamp = !!s._isCampDetected;
+    const key = isCamp 
+      ? `camp_${wd}_${baseSup}_${actName}_${timeKey}`
+      : (s._recId || `${wd}_${baseSup}_${actName}_${timeKey}`);
 
     if (!seriesMap[key]) {
       seriesMap[key] = {
@@ -1445,6 +1465,7 @@ window.getSpGardenFixedHtml = function(gid) {
         act: actName,
         grp: s.grp || 1,
         count: 0,
+        isCamp: isCamp,
         hasRecId: !!s._recId,
         firstD: s.d,
         lastD: s.d
@@ -1458,10 +1479,9 @@ window.getSpGardenFixedHtml = function(gid) {
     if (s.d > item.lastD) item.lastD = s.d;
   });
 
-  // Filter to ensure true recurring regular series:
-  // Must either have a recurring ID (_recId), or at least 2 occurrences in future schedule,
-  // or at least 2 total occurrences throughout the year for this garden, supplier, time & day of week.
+  // Filter to ensure true recurring regular series (or camp activities if includeCamp is true)
   const list = Object.values(seriesMap).filter(sr => {
+    if (sr.isCamp) return true; // Always allow camp events when includeCamp is on
     if (sr.hasRecId) return true;
     if (sr.count >= 2) return true;
     const totalOccurrences = (window.SCH || []).filter(x => {
@@ -1478,12 +1498,17 @@ window.getSpGardenFixedHtml = function(gid) {
     }).length;
     return totalOccurrences >= 2;
   }).sort((a, b) => {
+    // Regular first, then camps, then by day and time
+    if (a.isCamp !== b.isCamp) return a.isCamp ? 1 : -1;
     if (a.wd !== b.wd) return a.wd - b.wd;
     return (a.t || '').localeCompare(b.t || '');
   });
 
   if (!list.length) {
-    return '<div style="font-size:.75rem;color:#78909c;padding:6px;text-align:center">לא נמצאו חוגים קבועים עתידיים לצהרון זה.</div>';
+    const emptyMsg = includeCamp 
+      ? 'לא נמצאו חוגים קבועים או פעילויות קייטנה עתידיות לצהרון זה.' 
+      : 'לא נמצאו חוגים קבועים עתידיים לצהרון זה.';
+    return `<div style="font-size:.75rem;color:#78909c;padding:6px;text-align:center">${emptyMsg}</div>`;
   }
 
   const daysHe = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
@@ -1493,20 +1518,34 @@ window.getSpGardenFixedHtml = function(gid) {
     const dName = daysHe[sr.wd] || '';
     const timeFormatted = sr.t ? window.fT(sr.t) : '—';
     const supDisplay = window.supDisplayName ? window.supDisplayName(window.supBase(sr.a)) : sr.a;
-    const meetingsLabel = sr.count === 1 ? 'מפגש עתידי 1' : `${sr.count} מפגשים עתידיים`;
+    const isCamp = !!sr.isCamp;
+    const rowBg = isCamp ? '#fff9db' : '#f0f7ff';
+    const rowBorder = isCamp ? '#ffe066' : '#bbdefb';
+    const dayBg = isCamp ? '#e67700' : '#1565c0';
+    const timeColor = isCamp ? '#d9480f' : '#0d47a1';
+    const badgeColor = isCamp ? '#d9480f' : '#1565c0';
+    const badgeBorder = isCamp ? '#ffd8a8' : '#bbdefb';
+    
+    let meetingsLabel = '';
+    if (isCamp) {
+      meetingsLabel = sr.count === 1 ? `קייטנה (${window.fD(sr.firstD)})` : `${sr.count} מפגשי קייטנה`;
+    } else {
+      meetingsLabel = sr.count === 1 ? 'מפגש עתידי 1' : `${sr.count} מפגשים עתידיים`;
+    }
     const tooltip = `מפגש ראשון קרוב: ${window.fD(sr.firstD)} | מפגש סיום: ${window.fD(sr.lastD)}`;
     
-    h += `<div style="display:flex;align-items:center;justify-content:space-between;background:#f0f7ff;border:1px solid #bbdefb;border-radius:6px;padding:7px 10px;font-size:0.75rem">
+    h += `<div style="display:flex;align-items:center;justify-content:space-between;background:${rowBg};border:1px solid ${rowBorder};border-radius:6px;padding:7px 10px;font-size:0.75rem">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span style="background:#1565c0;color:#fff;font-weight:700;padding:2px 7px;border-radius:4px;font-size:0.72rem">יום ${dName}</span>
-        <span style="font-weight:700;color:#0d47a1">⏰ ${timeFormatted}</span>
+        <span style="background:${dayBg};color:#fff;font-weight:700;padding:2px 7px;border-radius:4px;font-size:0.72rem">יום ${dName}</span>
+        <span style="font-weight:700;color:${timeColor}">⏰ ${timeFormatted}</span>
         <span style="color:#90a4ae">|</span>
         <span style="font-weight:700;color:#1e293b">🎭 ${sr.act}</span>
         <span style="color:#546e7a">(${supDisplay})</span>
+        ${isCamp ? `<span style="background:#fff3bf;color:#d9480f;padding:1px 6px;border-radius:4px;font-size:0.68rem;font-weight:700;border:1px solid #ffd43b">🏕️ קייטנה</span>` : ''}
       </div>
       <div style="display:flex;align-items:center;gap:6px">
         ${sr.grp > 1 ? `<span style="background:#fff3e0;color:#e65100;font-size:0.68rem;padding:2px 6px;border-radius:4px;font-weight:700;border:1px solid #ffe0b2">${sr.grp} קבוצות</span>` : ''}
-        <span style="font-size:0.68rem;color:#1565c0;background:#fff;padding:2px 6px;border-radius:4px;border:1px solid #bbdefb;font-weight:700" title="${tooltip}">${meetingsLabel}</span>
+        <span style="font-size:0.68rem;color:${badgeColor};background:#fff;padding:2px 6px;border-radius:4px;border:1px solid ${badgeBorder};font-weight:700" title="${tooltip}">${meetingsLabel}</span>
       </div>
     </div>`;
   });
