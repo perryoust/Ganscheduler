@@ -259,6 +259,28 @@ window.dashBatchAction = async function(action) {
     return;
   }
 
+  if (action === 'makeup') {
+    const acts = ids.map(id => window.SCH.find(x => String(x.id) === String(id))).filter(Boolean);
+    const selectedGids = Array.from(new Set(acts.map(x => Number(x.g))));
+    if (selectedGids.length === 0) return;
+    
+    // Set custom group
+    window._currentCustomGroup = selectedGids;
+    
+    // Clear selection
+    document.querySelectorAll('.dash-row-chk').forEach(cb => cb.checked = false);
+    window.dashUpdateBulkBar();
+    
+    // Open SP for the first item and trigger makeup UI
+    if (window.openMakeupSched) {
+      window.openMakeupSched(acts[0].id);
+    } else {
+      window.openSP(acts[0].id);
+      setTimeout(() => { if (window.spTriggerMakeupUI) window.spTriggerMakeupUI(); }, 200);
+    }
+    return;
+  }
+
   let promptMsg = '';
   let notePrefix = '';
   let status = '';
