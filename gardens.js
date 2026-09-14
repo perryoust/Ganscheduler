@@ -1171,10 +1171,50 @@ function _exportGardenWA(gids, ds, isM){
 }
 
 function _exportPairWA(gids, isM){
+  window._exEventIds = null;
   _exGids = (Array.isArray(gids)?gids:JSON.parse(gids)).map(Number);
   _exIsM = isM;
   openExport();
 }
+window._exportPairWA = _exportPairWA;
+
+function openExportForEvents(eventIds) {
+  if (!eventIds || eventIds.length === 0) return;
+  const acts = eventIds.map(id => window.SCH.find(x => String(x.id) === String(id))).filter(Boolean);
+  if (acts.length === 0) return;
+  
+  const gids = Array.from(new Set(acts.map(x => Number(x.g))));
+  const dates = Array.from(new Set(acts.map(x => x.d))).sort();
+  const fromDate = dates[0];
+  const toDate = dates[dates.length - 1];
+  
+  _exGids = gids;
+  window._exEventIds = eventIds.map(String);
+  _exIsM = false;
+  
+  if (fromDate) {
+    const parts = fromDate.split('-');
+    if (parts.length === 3) window.calD = new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+  
+  const d1 = document.getElementById('ex-d1');
+  const d2 = document.getElementById('ex-d2');
+  if (d1 && fromDate) d1.value = fromDate;
+  if (d2 && toDate) d2.value = toDate;
+  
+  let ctx = fromDate === toDate ? `תאריך: ${fD(fromDate)}` : `${fD(fromDate)} – ${fD(toDate)}`;
+  ctx += ` | גנים מסומנים: ${gids.map(id => (G(id)||{}).name || '').filter(Boolean).join(' + ')}`;
+  const ctxEl = document.getElementById('ex-ctx');
+  if (ctxEl) ctxEl.textContent = ctx;
+  
+  const exm = document.getElementById('exm');
+  if (exm) exm.classList.add('open');
+  
+  setTimeout(() => {
+    genExport();
+  }, 80);
+}
+window.openExportForEvents = openExportForEvents;
 
 function toggleExportMenu(){
   const m=document.getElementById('export-menu');
@@ -1217,6 +1257,7 @@ function openCalPrint(){
   }, 150);
 }
 function openExport(){
+  window._exEventIds = null;
   let _ws = new Date(calD); _ws.setHours(0,0,0,0);
   if(_ws.getDay()===5) _ws.setDate(_ws.getDate()+2);
   else if(_ws.getDay()===6) _ws.setDate(_ws.getDate()+1);
@@ -1342,8 +1383,18 @@ function genExport(){
     return 'normal';
   };
 
-  let rel=SCH.filter(s=>s.d>=from&&s.d<=to&&(!gids||gids.includes(Number(s.g))))
-    .sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'99').localeCompare(b.t||'99'));
+  if (window._exEventIds && window._exEventIds.length) {
+    const eventDates = window._exEventIds.map(id => (SCH.find(x => String(x.id) === String(id))||{}).d).filter(Boolean);
+    const allInDateRange = eventDates.every(d => d >= from && d <= to);
+    if (!allInDateRange) {
+      window._exEventIds = null;
+    }
+  }
+
+  let rel = (window._exEventIds && window._exEventIds.length)
+    ? SCH.filter(s => window._exEventIds.includes(String(s.id)))
+    : SCH.filter(s => s.d >= from && s.d <= to && (!gids || gids.includes(Number(s.g))));
+  rel.sort((a,b)=>a.d.localeCompare(b.d)||(a.t||'99').localeCompare(b.t||'99'));
     
   // Apply type filter if not 'all'
   if (typeFlt === 'missed') {

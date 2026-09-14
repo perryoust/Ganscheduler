@@ -282,6 +282,17 @@ window.dashBatchAction = async function(action) {
     return;
   }
 
+  if (action === 'export') {
+    if (window.openExportForEvents) {
+      window.openExportForEvents(ids);
+    } else {
+      const acts = ids.map(id => window.SCH.find(x => String(x.id) === String(id))).filter(Boolean);
+      const selectedGids = Array.from(new Set(acts.map(x => Number(x.g))));
+      if (window._exportPairWA) window._exportPairWA(selectedGids);
+    }
+    return;
+  }
+
   let promptMsg = '';
   let notePrefix = '';
   let status = '';
