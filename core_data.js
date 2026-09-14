@@ -676,6 +676,31 @@ function migrateSupActSplit(){
     }
   }
 }
+let _saveDebounceTimer = null;
+let _isUploadingToFirebase = false;
+let _needsAnotherUpload = false;
+
+async function triggerFirebaseUpload(silent) {
+  if (_isUploadingToFirebase) {
+    _needsAnotherUpload = true;
+    return;
+  }
+  _isUploadingToFirebase = true;
+  _needsAnotherUpload = false;
+  try {
+    if (typeof window.ghAutoSave === 'function') {
+      await window.ghAutoSave(silent);
+    }
+  } catch(e) {
+    console.error('Firebase upload failed:', e);
+  } finally {
+    _isUploadingToFirebase = false;
+    if (_needsAnotherUpload) {
+      triggerFirebaseUpload(silent);
+    }
+  }
+}
+
 async function save(immediate){
   if(false){ showToast('⚠️ מצב ארכיון — לא ניתן לשמור שינויים'); return; }
   
@@ -733,10 +758,11 @@ async function save(immediate){
     
     let res = true;
     if (typeof ghAutoSave === 'function') {
-      try {
-        // CRITICAL: await the Firebase sync if immediate=true
-        res = await ghAutoSave(immediate === true);
-      } catch(e) { console.error('Firebase save failed', e); res = false; }
+      if (_saveDebounceTimer) clearTimeout(_saveDebounceTimer);
+      // Wait 300ms to batch multiple rapid synchronous saves before hitting Firebase
+      _saveDebounceTimer = setTimeout(() => {
+        triggerFirebaseUpload(immediate === true);
+      }, 300);
     }
     
     save._cnt=(save._cnt||0)+1;

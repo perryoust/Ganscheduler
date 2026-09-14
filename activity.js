@@ -766,6 +766,35 @@ window.spRowTimeChg = function(id, val) {
   }
 };
 
+window.getGardenRegularDaysHtml = function(gid) {
+  const dowMap = new Map();
+  const DAY_HEB = ['א','ב','ג','ד','ה','ו','ש'];
+  const evs = (window.SCH || []).filter(x => Number(x.g) === Number(gid) && x.st !== 'can' && !x._isMakeup && !x._makeupFrom && !x._postFrom);
+  
+  evs.forEach(x => {
+    const dow = new Date(x.d).getDay();
+    if(dow >= 0 && dow <= 6) {
+      if (!dowMap.has(dow)) dowMap.set(dow, new Set());
+      const timeStr = x.t ? (window.fT ? window.fT(x.t) : x.t) : 'ללא שעה';
+      const sup = window.supBase ? window.supBase(x.a) : (x.a || 'ללא ספק');
+      const act = x.act ? ` (${x.act})` : '';
+      dowMap.get(dow).add(`${timeStr} ${sup}${act}`);
+    }
+  });
+  
+  if (dowMap.size === 0) return '';
+  const activeDays = Array.from(dowMap.keys()).sort((a,b) => a-b);
+  
+  const details = activeDays.map(d => {
+    const infoList = Array.from(dowMap.get(d));
+    return `יום ${DAY_HEB[d]}' - ${infoList.join(' | ')}`;
+  });
+
+  return `<div style="margin-top:4px; display:flex; flex-direction:column; gap:3px;">
+    ${details.map(det => `<span style="background:#e8eaf6; padding:2px 6px; border-radius:4px; font-size:0.65rem; color:#3949ab; border:1px solid #c5cae9;" title="פעילות קבועה בלוח השנה">📅 ${det}</span>`).join('')}
+  </div>`;
+};
+
 window.openSP = function(id) {
   if (window.isReadOnly) {
     alert('משתמש זה מוגדר כמשתמש צפייה בלבד (רכז). אין אפשרות לבצע שינויים.');
@@ -880,7 +909,12 @@ window.openSP = function(id) {
               <td style="padding:6px;text-align:center">
                 ${pId ? `<input type="checkbox" class="sp-garden-sel" value="${pId}" checked onchange="window.spUpdateExVisibility()" style="width:16px;height:16px;accent-color:#5c6bc0">` : '-'}
               </td>
-              <td style="padding:6px;font-weight:800;color:#1a237e">${isMain?'':'🔗 '}${rowG.name} <span style="font-size:0.65rem;color:#78909c">(${rowG.city})</span></td>
+              <td style="padding:6px;font-weight:800;color:#1a237e">
+                 <div style="display:flex; flex-direction:column; gap:1px">
+                   <div>${isMain?'':'🔗 '}${rowG.name} <span style="font-size:0.65rem;color:#78909c">(${rowG.city})</span></div>
+                   <div>${window.getGardenRegularDaysHtml(rowG.id)}</div>
+                 </div>
+              </td>
               <td style="padding:6px">${pev ? window.supBase(pev.a) : '—'}</td>
               <td style="padding:6px">${pev ? (pev.act||'—') : '—'}</td>
               <td style="padding:6px">${pev ? (pev.tp || (window.gcls(rowG)==='גנים'?'חוג':'—')) : '—'}</td>
@@ -2171,21 +2205,9 @@ async function saveAndRefresh(modalId, stayOpen = false, immediate = true){
     if(modalId === 'sp' || modalId === 'sp-m') closeSP();
   }
   
-  // Yield to browser to let UI update (like closing modals)
-  await new Promise(r => setTimeout(r, 20));
-
-  if (window.DataManager && window.DataManager.cleanupDuplicates) {
-    window.DataManager.cleanupDuplicates();
-  }
-  
-  const ok = await window.save(immediate);
-  
-  // Yield again before the heavy refresh
-  await new Promise(r => setTimeout(r, 20));
-  
+  // Refresh the UI instantly for the user
   window.refresh();
-  // If SP panel is open and we're closing a different modal (e.g. nohapqm, canqm),
-  // re-render the SP panel so it reflects the updated data immediately.
+  
   const spEl = document.getElementById('sp');
   const spIsOpen = spEl && spEl.classList.contains('open');
   if (stayOpen && (modalId === 'sp' || modalId === 'sp-m') && window.selEv) {
@@ -2193,6 +2215,13 @@ async function saveAndRefresh(modalId, stayOpen = false, immediate = true){
   } else if (spIsOpen && window.selEv && modalId !== 'sp' && modalId !== 'sp-m') {
     window.openSP(window.selEv);
   }
+
+  // Yield to browser to let UI update
+  await new Promise(r => setTimeout(r, 20));
+
+  // The save is now non-blocking (debounced background upload)
+  const ok = await window.save(immediate);
+  
   return ok;
 }
 
