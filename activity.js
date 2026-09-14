@@ -266,6 +266,7 @@ window.dashBatchAction = async function(action) {
     
     // Set custom group
     window._currentCustomGroup = selectedGids;
+    window._currentCustomGroupEvents = ids; // Save exact selected events
     
     // Clear selection
     document.querySelectorAll('.dash-row-chk').forEach(cb => cb.checked = false);
@@ -2950,7 +2951,13 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
     const pG = window.G(pId);
     if(!pG) return;
     const ev = window.SCH.find(s => s.g === pId && s.d === date && s.st !== 'can');
-    const origPartnerEv = origEv ? window.SCH.find(s => Number(s.g) === Number(pId) && s.d === origEv.d && window.supBase(s.a) === window.supBase(origEv.a)) : null;
+    let origPartnerEv = null;
+    if (window._currentCustomGroupEvents && window._currentCustomGroupEvents.length > 0) {
+        origPartnerEv = window.SCH.find(s => window._currentCustomGroupEvents.includes(String(s.id)) && Number(s.g) === Number(pId));
+    }
+    if (!origPartnerEv && origEv) {
+        origPartnerEv = window.SCH.find(s => Number(s.g) === Number(pId) && s.d === origEv.d && window.supBase(s.a) === window.supBase(origEv.a));
+    }
     const stLabel = ev ? (window.stLabel ? window.stLabel(ev) : ev.st) : '—';
     const stClass = ev ? (window.stClass ? window.stClass(ev) : '') : '';
     const sup = ev ? window.supBase(ev.a) : (origPartnerEv ? window.supBase(origPartnerEv.a) : '—');
