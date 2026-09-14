@@ -417,8 +417,8 @@ async function saveToFirebase(silent = false, force = false) {
       if (!r.ok) throw new Error('HTTP ' + r.status + ' on ' + r.url);
     }
 
-    // Save Invoices Separately
-    if (!window._invoicesKeyedMode && Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
+    // Save Invoices Separately (never overwrite if only partially loaded!)
+    if (!window._invoicesPartialLoad && !window._invoicesKeyedMode && Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
       const invUrl = getFirebaseInvoicesUrl() + authQ;
       const invResp = await fetch(invUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.INVOICES) });
       if (!invResp.ok) {
@@ -1138,7 +1138,7 @@ window.loadRecentInvoices = async function(limit = 150) {
   }
 };
 
-// Load ALL invoices (for scanner/export only)
+// Load ALL invoices (for scanner/export/full view)
 window.loadAllInvoices = async function() {
   const tok = await window._fbUser?.getIdToken(false);
   if (!tok) return [];
@@ -1147,7 +1147,26 @@ window.loadAllInvoices = async function() {
     const r = await fetch(url);
     if (!r.ok) return [];
     const data = await r.json();
-    const list = data ? Object.values(data) : [];
+    let list = data ? Object.values(data) : [];
+
+    // Fallback recovery: if root /invoices only has a partial slice (< 500 items) and legacy /data/invoices has more, recover from /data/invoices
+    if (list.length < 500) {
+      try {
+        const legacyUrl = `${FB_ROOT}/data/invoices.json?auth=${tok}&cb=${Date.now()}`;
+        const lr = await fetch(legacyUrl);
+        if (lr.ok) {
+          const lData = await lr.json();
+          const lList = lData ? Object.values(lData) : [];
+          if (lList.length > list.length) {
+            console.log(`[Sync] Recovered ${lList.length} invoices from /data/invoices fallback`);
+            list = lList;
+          }
+        }
+      } catch(e) {
+        console.warn('[Sync] Fallback recovery check failed:', e);
+      }
+    }
+
     list.forEach((inv, idx) => {
       if (inv.serialNum) {
         inv.id = String(inv.serialNum);

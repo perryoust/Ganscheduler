@@ -417,10 +417,13 @@ function _applyYearData(o){
     const uniqueInvs = [];
     const invMap = new Map();
     window.INVOICES.forEach(inv => {
-      // Create a unique key based on supplier name and whatever number is present
-      const numKey = inv.num || inv.txNum || inv.orderNum || '';
+      // Create a unique key based on supplier name and whatever document number is present.
+      // IMPORTANT: Category labels like "חוגים", "ניקיון", "הוצאות קבועות" in orderNum are NOT unique!
+      const orderDoc = String(inv.orderNum || '').replace(/\D/g, '');
+      const validOrderNum = orderDoc.length >= 4 ? inv.orderNum : '';
+      const numKey = inv.num || inv.txNum || validOrderNum || '';
       if (!numKey) {
-        uniqueInvs.push(inv); // Keep invoices without any numbers
+        uniqueInvs.push(inv); // Keep invoices without document numbers as unique entries
         return;
       }
       const key = `${window.supBase ? window.supBase(inv.supName) : inv.supName}_${numKey}`;
