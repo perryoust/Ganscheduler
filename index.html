@@ -13,18 +13,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.69</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.70</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=111.69" />
+  <link rel="stylesheet" href="styles.css?v=111.70" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '111.69';
+    window.APP_VERSION = '111.70';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -189,6 +189,9 @@
       </button>
       <button class="mob-nav-btn" onclick="ST('gardens');mobNav(this)" data-tab="gardens">
         <span class="mnb-ico">🏡</span><span>צהרונים</span>
+      </button>
+      <button class="mob-nav-btn" onclick="ST('holidays');mobNav(this)" data-tab="holidays">
+        <span class="mnb-ico">🏖️</span><span>חופשות</span>
       </button>
       <button class="mob-nav-btn" onclick="ST('sup');mobNav(this)" data-tab="sup">
         <span class="mnb-ico">👨‍🏫</span><span>ספקים</span>
@@ -1425,7 +1428,7 @@
       <div class="card">
         <div class="row" style="margin-bottom:8px;align-items:center">
           <b style="font-size:.9rem;color:#1a237e;flex:1">🏖️ לוח חופשות ואירועים מיוחדים</b>
-          <button class="btn bp bsm" onclick="openAddHoliday(null)">? הוסף</button>
+          <button class="btn bp bsm" onclick="openAddHoliday(null)">➕ הוסף</button>
           <button class="flt-toggle" id="hol-flt-btn" onclick="fltToggle('hol-flt','hol-flt-btn')">🔍 סינון <span
               class="flt-arrow">▼</span></button>
         </div>

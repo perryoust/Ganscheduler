@@ -905,8 +905,8 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
   if (!tok && window._cachedToken) tok = window._cachedToken;
 
   const authQ = tok ? '?auth=' + tok : '';
-  const invUrl = `${FB_ROOT}/invoices.json${authQ}${authQ ? '&' : '?'}orderBy="$key"&limitToLast=150&cb=${Date.now()}`;
-  window._invoicesPartialLoad = true;
+  const invUrl = getFirebaseInvoicesUrl() + authQ + (authQ ? '&' : '?') + 'cb=' + Date.now();
+  window._invoicesPartialLoad = false;
   const ordUrl = getFirebaseOrdersUrl() + authQ + (authQ ? '&' : '?') + 'cb=' + Date.now();
   const delUrl = getFirebaseDeliveriesUrl() + authQ + (authQ ? '&' : '?') + 'cb=' + Date.now();
 
@@ -920,7 +920,26 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
 
     if (ir.ok) {
       let cloudInvs = await ir.json();
-      cloudInvs = Array.isArray(cloudInvs) ? cloudInvs : Object.values(cloudInvs || {});
+      cloudInvs = (Array.isArray(cloudInvs) ? cloudInvs : Object.values(cloudInvs || {})).filter(Boolean);
+
+      // Fallback recovery: if root /invoices only has a partial slice (< 500 items) and legacy /data/invoices has more, recover from /data/invoices
+      if (cloudInvs.length < 500) {
+        try {
+          const legacyUrl = `${FB_ROOT}/data/invoices.json${authQ}${authQ ? '&' : '?'}cb=${Date.now()}`;
+          const lr = await fetch(legacyUrl);
+          if (lr.ok) {
+            const lData = await lr.json();
+            const lList = (Array.isArray(lData) ? lData : Object.values(lData || {})).filter(Boolean);
+            if (lList.length > cloudInvs.length) {
+              console.log(`[Sync] Recovered ${lList.length} invoices from /data/invoices fallback`);
+              cloudInvs = lList;
+            }
+          }
+        } catch(e) {
+          console.warn('[Sync] Fallback recovery check failed:', e);
+        }
+      }
+
       if (Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
         const localById = {};
         window.INVOICES.forEach(inv => { if (inv.id) localById[inv.id] = inv; });
@@ -945,6 +964,7 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
         }
       });
       window.INVOICES = cloudInvs;
+      window._invoicesPartialLoad = false;
       if (window._safeLS) window._safeLS.setItem('ganv5_invoices', JSON.stringify(window.INVOICES));
       anySuccess = true;
       
@@ -1140,9 +1160,13 @@ window.loadRecentInvoices = async function(limit = 150) {
 
 // Load ALL invoices (for scanner/export/full view)
 window.loadAllInvoices = async function() {
-  const tok = await window._fbUser?.getIdToken(false);
-  if (!tok) return [];
-  const url = getFirebaseInvoicesUrl() + '?auth=' + tok + '&cb=' + Date.now();
+  let tok = null;
+  if (window._fbUser) {
+    try { tok = await window._fbUser.getIdToken(false); } catch (e) {}
+  }
+  if (!tok && window._cachedToken) tok = window._cachedToken;
+  const authQ = tok ? '?auth=' + tok : '';
+  const url = getFirebaseInvoicesUrl() + authQ + (authQ ? '&' : '?') + 'cb=' + Date.now();
   try {
     const r = await fetch(url);
     if (!r.ok) return [];

@@ -530,15 +530,36 @@ function renderInvoices(){
       }).join('') + `</div>`;
   };
 
-  const MAX_RENDER = 150;
-  const isCapped = list.length > MAX_RENDER;
-  const renderList = isCapped ? list.slice(0, MAX_RENDER) : list;
-  let cappedMsg = isCapped ? `<div style="text-align:center;color:#888;padding:15px;font-size:0.8rem">מציג ${MAX_RENDER} תוצאות מתוך ${list.length}. השתמש בחיפוש למיקוד...</div>` : '';
+  const renderLimit = window._invoicesRenderLimit || 300;
+  const isCapped = list.length > renderLimit;
+  const renderList = isCapped ? list.slice(0, renderLimit) : list;
+  let cappedMsg = '';
+  if (isCapped) {
+    cappedMsg = `
+      <div style="text-align:center;padding:14px;background:#f8f9fa;border:1px dashed #b0bec5;border-radius:8px;margin:10px 0">
+        <div style="font-size:0.85rem;color:#37474f;margin-bottom:8px">
+          מציג <b>${renderList.length}</b> מתוך <b>${list.length}</b> רשומות (מתוך ${INVOICES.length} סה"כ בדוח)
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center">
+          <button class="btn bo" onclick="window.expandInvoicesRender(300)" style="font-size:0.8rem;padding:6px 16px;font-weight:600">
+            ➕ הצג עוד 300 שורות
+          </button>
+          <button class="btn bp" onclick="window.expandInvoicesRender(Infinity)" style="font-size:0.8rem;padding:6px 16px;font-weight:700">
+            👁️ הצג את כל ${list.length} הרשומות
+          </button>
+        </div>
+      </div>`;
+  } else if (list.length > 300) {
+    cappedMsg = `
+      <div style="text-align:center;padding:10px;background:#e8f5e9;border:1px solid #c8e6c9;border-radius:8px;margin:10px 0;color:#2e7d32;font-size:0.82rem;font-weight:600">
+        ✅ מוצגות כל <b>${list.length}</b> הרשומות בדוח (ללא הגבלה)
+      </div>`;
+  }
   
   if (window._invoicesPartialLoad) {
-    cappedMsg += `<div style="text-align:center;padding:12px">
+    cappedMsg += `<div style="text-align:center;padding:10px">
        <button class="btn bo" onclick="loadMoreInvoices()" style="font-size:0.8rem;padding:6px 18px">
-         📥 טען את כל החשבוניות (${INVOICES.length} נטענו מתוך הכל)
+         📥 טען את כל החשבוניות מהענן (${INVOICES.length} נטענו)
        </button>
      </div>`;
   }
@@ -551,7 +572,7 @@ function renderInvoices(){
     }
     if (mobList) {
       mobList.innerHTML = renderList.map(inv => renderMobileInvoiceCard(inv)).join('');
-      if(isCapped) mobList.innerHTML += cappedMsg;
+      if(cappedMsg) mobList.innerHTML += cappedMsg;
     }
     tbody.innerHTML = '';
   } else {
@@ -611,7 +632,7 @@ function renderInvoices(){
         </td>
         <td style="font-size:.75rem;line-height:2;padding:8px">
           ${hasOrder?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')">${inv.orderNum}</b>${inv.orderDate?'<span style="color:#999"> · '+fD(inv.orderDate)+'</span>':''} ${mkFileBtn('order',inv.orderNum)}</div>`:''}
-          ${hasTx?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')">${inv.txNum}</b>${inv.txDate?'<span style="color:#999"> · '+fD(inv.txDate)+'</span>':''} ${mkFileBtn('tx',inv.txNum)}</div>`:''}
+          ${hasTx?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8eaf6;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')">${inv.txNum}</b>${inv.txDate?'<span style="color:#999"> · '+fD(inv.txDate)+'</span>':''} ${mkFileBtn('tx',inv.txNum)}</div>`:''}
           ${hasTax?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">📑</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')">${inv.num}</b>${inv.date?'<span style="color:#999"> · '+fD(inv.date)+'</span>':''} ${mkFileBtn('tax',inv.num)}</div>`:''}
           ${(!hasOrder && !hasTx && !hasTax) ? `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${((inv.file_order && inv.file_order.path) || (inv.file_tx && inv.file_tx.path) || (inv.file_tax && inv.file_tax.path)) ? (() => { const sec = inv.file_tax&&inv.file_tax.path?'tax':inv.file_tx&&inv.file_tx.path?'tx':'order'; const meta = inv['file_'+sec]; const name = _extractNameFromUrl(meta.path) || meta.name || 'קובץ מצורף'; return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile('${inv.id || inv.serialNum}','${sec}')" title="${name}">📎 ${name} ↗</span>`; })() : `<span style="display:inline-flex;align-items:center;gap:2px;background:#fff8e1;border:1px solid #ffe082;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')" title="עדכן קישור לקובץ">📎 עדכן קישור</span>`}</div>` : ''}
         </td>
@@ -632,9 +653,8 @@ function renderInvoices(){
           <button class="btn bsm bo" onclick="openNewInvoice('${inv.id || inv.serialNum}')">✏️</button>
           <button class="btn bsm br" onclick="deleteInvoice('${inv.id || inv.serialNum}')">🗑️</button>
         </td>
-      </tr>`;
     }).join('');
-    if(isCapped){
+    if (cappedMsg) {
       tbody.innerHTML += `<tr><td colspan="8">${cappedMsg}</td></tr>`;
     }
     if (mobList) mobList.innerHTML = '';
@@ -660,6 +680,15 @@ function renderInvoices(){
     }
   }
 }
+
+window.expandInvoicesRender = function(amount) {
+  if (amount === Infinity) {
+    window._invoicesRenderLimit = Infinity;
+  } else {
+    window._invoicesRenderLimit = (window._invoicesRenderLimit || 300) + amount;
+  }
+  if (typeof renderInvoices === 'function') renderInvoices();
+};
 
 window.loadMoreInvoices = async function() {
   if (window.showToast) window.showToast('טוען חשבוניות נוספות...');
