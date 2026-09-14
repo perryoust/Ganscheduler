@@ -1084,7 +1084,7 @@ window.openSP = function(id) {
              <div id="sp-mu-free-wrap" style="margin-top:4px"></div>
              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div class="fg"><label style="font-size:.7rem;font-weight:700">מפצה על תאריך</label><input type="date" id="sp-mu-orig" value="${s.d}" readonly style="width:100%;background:#f5f5f5;color:#666;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
-                <div class="fg"><label style="font-size:.7rem;font-weight:700">תאריך השלמה *</label><input type="date" id="sp-mu-date" value="${window.td()}" style="width:100%;border:1px solid #ffb74d;padding:4px;border-radius:4px" onchange="window.spMuDateChg()"></div>
+                <div class="fg"><label style="font-size:.7rem;font-weight:700">תאריך השלמה *</label><input type="date" id="sp-mu-date" value="${window.td()}" style="width:100%;border:1px solid #ffb74d;padding:4px;border-radius:4px" onchange="window.spMuDateChg()" oninput="window.spMuDateChg()"></div>
              </div>
              <div style="display:grid;grid-template-columns:${spPair ? '1fr' : '1fr 1fr'};gap:10px">
                  <div class="fg" id="sp-mu-time-wrap" style="${spPair ? 'display:none;' : ''}"><label style="font-size:.7rem;font-weight:700">שעה *</label><input type="time" id="sp-mu-time" value="${s.t||''}" oninput="const tblInp = document.querySelector('.sp-mu-syn-time[data-gid=\'${s.g}\']'); if(tblInp) tblInp.value = this.value" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
@@ -2920,10 +2920,11 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
   // Add the main garden row first
   const mainG = window.G(gid);
   if (mainG) {
-    const ev = window.SCH.find(s => s.g === gid && s.d === date && s.st !== 'can');
-    const sup = origEv ? window.supBase(origEv.a) : '—';
-    const act = origEv ? (origEv.act || '—') : '—';
-    const makeupTime = primaryMainTime;
+    const ev = window.SCH.find(s => Number(s.g) === Number(gid) && s.d === date && s.st !== 'can' && s.st !== 'nohap' && s.st !== 'post');
+    const sup = ev ? window.supBase(ev.a) : '—';
+    const act = ev ? (ev.act || '—') : '—';
+    const makeupTime = (origEv && Number(origEv.g) === Number(gid) && origEv.t) ? origEv.t : primaryMainTime;
+    const makeupGrp = (origEv && Number(origEv.g) === Number(gid) && origEv.grp) ? origEv.grp : 1;
     
     let stLabel = '—';
     let stClass = '';
@@ -2932,7 +2933,7 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
         stClass = 'can';
     }
     
-    rowsHtml += `<tr style="border-bottom:1px solid #eee;font-size:0.75rem;background:#f5f7ff;font-weight:bold">
+    rowsHtml += `<tr style="border-bottom:1px solid #eee;font-size:0.75rem;background:${ev ? '#fff9f9' : '#f5f7ff'};font-weight:bold">
       <td style="padding:6px;text-align:center">
         <input type="checkbox" class="${prefix}-syn-chk" value="${gid}" checked disabled style="width:16px;height:16px;accent-color:#e65100">
       </td>
@@ -2943,7 +2944,7 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
           style="width:75px;padding:2px;border:1px solid #ffb74d;border-radius:4px;font-size:0.7rem;font-weight:bold;background:#fffde7">
       </td>
       <td style="padding:6px;text-align:center">
-        <input type="number" class="${prefix}-syn-grp" data-gid="${gid}" value="${origEv ? (origEv.grp || 1) : 1}" min="1" max="10"
+        <input type="number" class="${prefix}-syn-grp" data-gid="${gid}" value="${makeupGrp}" min="1" max="10"
           style="width:45px;padding:2px;text-align:center;border:1px solid #ffb74d;border-radius:4px;font-size:0.7rem;font-weight:bold;background:#fffde7">
       </td>
       <td style="padding:6px">${sup}</td>
@@ -2955,7 +2956,7 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
   otherIds.forEach(pId => {
     const pG = window.G(pId);
     if(!pG) return;
-    const ev = window.SCH.find(s => s.g === pId && s.d === date && s.st !== 'can');
+    const ev = window.SCH.find(s => Number(s.g) === Number(pId) && s.d === date && s.st !== 'can' && s.st !== 'nohap' && s.st !== 'post');
     let origPartnerEv = null;
     if (window._currentCustomGroupEvents && window._currentCustomGroupEvents.length > 0) {
         origPartnerEv = window.SCH.find(s => window._currentCustomGroupEvents.includes(String(s.id)) && Number(s.g) === Number(pId));
@@ -2963,9 +2964,10 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
     if (!origPartnerEv && origEv) {
         origPartnerEv = window.SCH.find(s => Number(s.g) === Number(pId) && s.d === origEv.d && window.supBase(s.a) === window.supBase(origEv.a));
     }
-    const sup = origPartnerEv ? window.supBase(origPartnerEv.a) : (origEv ? window.supBase(origEv.a) : '—');
-    const act = origPartnerEv ? (origPartnerEv.act || '—') : (origEv ? (origEv.act || '—') : '—');
+    const sup = ev ? window.supBase(ev.a) : '—';
+    const act = ev ? (ev.act || '—') : '—';
     const makeupTime = (origPartnerEv && origPartnerEv.t) ? origPartnerEv.t : primaryMainTime;
+    const makeupGrp = (origPartnerEv && origPartnerEv.grp) ? origPartnerEv.grp : 1;
     
     let stLabel = '—';
     let stClass = '';
@@ -2974,14 +2976,14 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
       stClass = 'can';
     }
     
-    rowsHtml += `<tr style="border-bottom:1px solid #eee;font-size:0.75rem;background:${stClass==='busy'?'#fff9f9':'#fff'}">
+    rowsHtml += `<tr style="border-bottom:1px solid #eee;font-size:0.75rem;background:${ev ? '#fff9f9' : '#fff'}">
       <td style="padding:6px;text-align:center"><input type="checkbox" class="${prefix}-syn-chk" value="${pId}" checked style="width:16px;height:16px;accent-color:#e65100"></td>
       <td style="padding:6px;font-weight:700">${pG.name}</td>
       <td style="padding:6px">
         <input type="time" class="${prefix}-syn-time" data-gid="${pId}" value="${makeupTime}" style="width:75px;padding:2px;border:1px solid #ccc;border-radius:4px;font-size:0.7rem">
       </td>
       <td style="padding:6px;text-align:center">
-        <input type="number" class="${prefix}-syn-grp" data-gid="${pId}" value="${(origPartnerEv && origPartnerEv.grp) ? origPartnerEv.grp : ((ev && ev.grp) ? ev.grp : 1)}" min="1" max="10" style="width:45px;padding:2px;text-align:center;border:1px solid #ccc;border-radius:4px;font-size:0.7rem">
+        <input type="number" class="${prefix}-syn-grp" data-gid="${pId}" value="${makeupGrp}" min="1" max="10" style="width:45px;padding:2px;text-align:center;border:1px solid #ccc;border-radius:4px;font-size:0.7rem">
       </td>
       <td style="padding:6px">${sup}</td>
       <td style="padding:6px">${act}</td>
@@ -3104,11 +3106,17 @@ window.spSaveMakeup = async function() {
 
   let totalGrps = 0;
   targets.forEach(tgt => {
-    const targetOrigEv = window.SCH.find(x => 
-      Number(x.g) === Number(tgt.g) && 
-      x.d === origEv.d && 
-      window.supBase(x.a) === window.supBase(origEv.a)
-    );
+    let targetOrigEv = null;
+    if (window._currentCustomGroupEvents && window._currentCustomGroupEvents.length > 0) {
+      targetOrigEv = window.SCH.find(x => window._currentCustomGroupEvents.includes(String(x.id)) && Number(x.g) === Number(tgt.g));
+    }
+    if (!targetOrigEv) {
+      targetOrigEv = window.SCH.find(x => 
+        Number(x.g) === Number(tgt.g) && 
+        x.d === origEv.d && 
+        window.supBase(x.a) === window.supBase(origEv.a)
+      );
+    }
     const grpCount = tgt.grp || (targetOrigEv ? targetOrigEv.grp : origEv.grp) || customGrp || 1;
     totalGrps += grpCount;
   });
@@ -3125,11 +3133,17 @@ window.spSaveMakeup = async function() {
 
   targets.forEach(tgt => {
     // Find the original activity for this specific target garden, or fallback to sid if not found
-    const targetOrigEv = window.SCH.find(x => 
-      Number(x.g) === Number(tgt.g) && 
-      x.d === origEv.d && 
-      window.supBase(x.a) === window.supBase(origEv.a)
-    );
+    let targetOrigEv = null;
+    if (window._currentCustomGroupEvents && window._currentCustomGroupEvents.length > 0) {
+      targetOrigEv = window.SCH.find(x => window._currentCustomGroupEvents.includes(String(x.id)) && Number(x.g) === Number(tgt.g));
+    }
+    if (!targetOrigEv) {
+      targetOrigEv = window.SCH.find(x => 
+        Number(x.g) === Number(tgt.g) && 
+        x.d === origEv.d && 
+        window.supBase(x.a) === window.supBase(origEv.a)
+      );
+    }
     const correctOrigId = targetOrigEv ? targetOrigEv.id : sid;
     const grpCount = tgt.grp || (targetOrigEv ? targetOrigEv.grp : origEv.grp) || customGrp || 1;
 
@@ -3139,8 +3153,8 @@ window.spSaveMakeup = async function() {
       t: tgt.t,
       a: supName,
       act: actName,
-      tp: origEv.tp || 'חוג',
-      origD: origEv.d,
+      tp: (targetOrigEv && targetOrigEv.tp) ? targetOrigEv.tp : (origEv.tp || 'חוג'),
+      origD: (targetOrigEv && targetOrigEv.d) ? targetOrigEv.d : origEv.d,
       origId: correctOrigId,
       grp: grpCount
     });
