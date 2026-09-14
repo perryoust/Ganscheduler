@@ -1195,6 +1195,18 @@ window.openSP = function(id) {
     </div>
   </div>`;
 
+  // --- STEP 9.6: Garden Fixed Activities ---
+  h += `<div style="margin-top:10px;border:1px solid #90caf9;border-radius:10px;overflow:hidden">
+    <div onclick="window.toggleSpAccordion('sp-acc-fixed')" style="background:#e3f2fd;padding:8px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+      <b style="font-size:0.8rem;color:#1565c0">🎭 חוגים קבועים לצהרון (מידע בלבד)</b>
+      <span id="sp-acc-fixed-arrow" style="font-size:0.7rem;transition:0.3s;color:#1565c0">▼</span>
+    </div>
+    <div id="sp-acc-fixed" style="display:none;padding:12px;background:#fff;border-top:1px solid #90caf9">
+      <div style="font-size:.72rem;color:#546e7a;margin-bottom:8px;background:#f8fafc;padding:4px 8px;border-radius:4px;border:1px solid #e2e8f0">חוגים שבועיים קבועים ב-${g.name}:</div>
+      ${window.getSpGardenFixedHtml ? window.getSpGardenFixedHtml(s.g) : ''}
+    </div>
+  </div>`;
+
   // --- STEP 9.8: Duplicate Button ---
   h += `<div id="sp-dup-wrap" style="margin-top:15px; text-align:center; background:#e3f2fd; border:1px solid #90caf9; padding:10px; border-radius:8px; display:none;">
     <div style="font-size:0.8rem; font-weight:800; margin-bottom:8px; color:#1565c0;">בחר תאריך יעד לשכפול:</div>
@@ -1347,6 +1359,88 @@ window.getSpMissedHtml = function(gid) {
       ${ntStr ? `<div style="font-size:.7rem;color:#d32f2f">📝 ${ntStr}</div>` : ''}
     </div>`;
   });
+  h += '</div>';
+  return h;
+};
+
+window.getSpGardenFixedHtml = function(gid) {
+  const g = window.G(gid);
+  if (!g) return '<div style="font-size:.75rem;color:#78909c">לא נמצא מידע על צהרון זה.</div>';
+  
+  const evs = (window.SCH || []).filter(s => Number(s.g) === Number(gid) && s.st !== 'can');
+  if (!evs.length) {
+    return '<div style="font-size:.75rem;color:#78909c;padding:6px;text-align:center">אין פעילויות משובצות לצהרון זה.</div>';
+  }
+
+  const seriesMap = {};
+  evs.forEach(s => {
+    // Skip makeups and one-time movements
+    if (s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ/i.test(s.nt))) return;
+
+    let wd = -1;
+    try {
+      const p = s.d.split('-');
+      wd = new Date(p[0], parseInt(p[1]) - 1, p[2]).getDay();
+    } catch(e) {}
+    if (wd < 0 || wd > 4) return; // Sunday - Thursday
+
+    const baseSup = window.supBase(s.a) || s.a;
+    const actName = s.act || '—';
+    const timeKey = (s.t || '').slice(0, 5);
+    const key = s._recId || `${wd}_${baseSup}_${actName}_${timeKey}`;
+
+    if (!seriesMap[key]) {
+      seriesMap[key] = {
+        key,
+        wd,
+        t: s.t || '',
+        a: s.a,
+        act: actName,
+        grp: s.grp || 1,
+        count: 0,
+        firstD: s.d,
+        lastD: s.d
+      };
+    }
+    const item = seriesMap[key];
+    item.count++;
+    if (s.t && !item.t) item.t = s.t;
+    if (s.grp && item.grp === 1) item.grp = s.grp;
+    if (s.d < item.firstD) item.firstD = s.d;
+    if (s.d > item.lastD) item.lastD = s.d;
+  });
+
+  const list = Object.values(seriesMap).sort((a, b) => {
+    if (a.wd !== b.wd) return a.wd - b.wd;
+    return (a.t || '').localeCompare(b.t || '');
+  });
+
+  if (!list.length) {
+    return '<div style="font-size:.75rem;color:#78909c;padding:6px;text-align:center">לא נמצאו חוגים קבועים לצהרון זה.</div>';
+  }
+
+  const daysHe = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+  let h = '<div style="display:flex;flex-direction:column;gap:6px">';
+  
+  list.forEach(sr => {
+    const dName = daysHe[sr.wd] || '';
+    const timeFormatted = sr.t ? window.fT(sr.t) : '—';
+    const supDisplay = window.supDisplayName ? window.supDisplayName(window.supBase(sr.a)) : sr.a;
+    h += `<div style="display:flex;align-items:center;justify-content:space-between;background:#f0f7ff;border:1px solid #bbdefb;border-radius:6px;padding:7px 10px;font-size:0.75rem">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="background:#1565c0;color:#fff;font-weight:700;padding:2px 7px;border-radius:4px;font-size:0.72rem">יום ${dName}</span>
+        <span style="font-weight:700;color:#0d47a1">⏰ ${timeFormatted}</span>
+        <span style="color:#90a4ae">|</span>
+        <span style="font-weight:700;color:#1e293b">🎭 ${sr.act}</span>
+        <span style="color:#546e7a">(${supDisplay})</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        ${sr.grp > 1 ? `<span style="background:#fff3e0;color:#e65100;font-size:0.68rem;padding:2px 6px;border-radius:4px;font-weight:700;border:1px solid #ffe0b2">${sr.grp} קבוצות</span>` : ''}
+        <span style="font-size:0.68rem;color:#78909c;background:#fff;padding:2px 5px;border-radius:4px;border:1px solid #e2e8f0">${sr.count} מפגשים</span>
+      </div>
+    </div>`;
+  });
+  
   h += '</div>';
   return h;
 };
