@@ -2921,11 +2921,16 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
   const mainG = window.G(gid);
   if (mainG) {
     const ev = window.SCH.find(s => s.g === gid && s.d === date && s.st !== 'can');
-    const stLabel = ev ? (window.stLabel ? window.stLabel(ev) : ev.st) : '—';
-    const stClass = ev ? (window.stClass ? window.stClass(ev) : '') : '';
-    const sup = ev ? window.supBase(ev.a) : (origEv ? window.supBase(origEv.a) : '—');
-    const act = ev ? (ev.act || '—') : (origEv ? (origEv.act || '—') : '—');
+    const sup = origEv ? window.supBase(origEv.a) : '—';
+    const act = origEv ? (origEv.act || '—') : '—';
     const makeupTime = primaryMainTime;
+    
+    let stLabel = '—';
+    let stClass = '';
+    if (ev) {
+        stLabel = '⚠️ תפוס (' + (ev.act || window.supBase(ev.a)) + ')';
+        stClass = 'can';
+    }
     
     rowsHtml += `<tr style="border-bottom:1px solid #eee;font-size:0.75rem;background:#f5f7ff;font-weight:bold">
       <td style="padding:6px;text-align:center">
@@ -2958,11 +2963,16 @@ window.updateMakeupPartnersTable = function(containerId, gid, date, aid) {
     if (!origPartnerEv && origEv) {
         origPartnerEv = window.SCH.find(s => Number(s.g) === Number(pId) && s.d === origEv.d && window.supBase(s.a) === window.supBase(origEv.a));
     }
-    const stLabel = ev ? (window.stLabel ? window.stLabel(ev) : ev.st) : '—';
-    const stClass = ev ? (window.stClass ? window.stClass(ev) : '') : '';
-    const sup = ev ? window.supBase(ev.a) : (origPartnerEv ? window.supBase(origPartnerEv.a) : '—');
-    const act = ev ? (ev.act || '—') : (origPartnerEv ? (origPartnerEv.act || '—') : '—');
-    const makeupTime = (ev && ev.t) ? ev.t : (origPartnerEv && origPartnerEv.t) ? origPartnerEv.t : primaryMainTime;
+    const sup = origPartnerEv ? window.supBase(origPartnerEv.a) : (origEv ? window.supBase(origEv.a) : '—');
+    const act = origPartnerEv ? (origPartnerEv.act || '—') : (origEv ? (origEv.act || '—') : '—');
+    const makeupTime = (origPartnerEv && origPartnerEv.t) ? origPartnerEv.t : primaryMainTime;
+    
+    let stLabel = '—';
+    let stClass = '';
+    if (ev) {
+      stLabel = '⚠️ תפוס (' + (ev.act || window.supBase(ev.a)) + ')';
+      stClass = 'can';
+    }
     
     rowsHtml += `<tr style="border-bottom:1px solid #eee;font-size:0.75rem;background:${stClass==='busy'?'#fff9f9':'#fff'}">
       <td style="padding:6px;text-align:center"><input type="checkbox" class="${prefix}-syn-chk" value="${pId}" checked style="width:16px;height:16px;accent-color:#e65100"></td>
