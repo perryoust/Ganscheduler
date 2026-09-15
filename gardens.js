@@ -2032,8 +2032,9 @@ window.openBulkUpdateRecurring = function(key, gid) {
     
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
       <div class="fg"><label for="grm-sup">ספק חדש</label><select id="grm-sup" onchange="window.grmSupChg()" title="בחר ספק" style="width:100%">${allSups.map(s=>{ const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name; return `<option value="${s.name}" ${(window.supBase ? window.supBase(s.name) : s.name) === (window.supBase ? window.supBase(srExample.a) : srExample.a) ? 'selected':''}>${disp}</option>`; }).join('')}</select></div>
-      <div class="fg"><label for="grm-act">פעילות חדשה</label><select id="grm-act" title="בחר פעילות" style="width:100%">${acts.map(a=>`<option value="${a}" ${a===srExample.act?'selected':''}>${a}</option>`).join('')}</select></div>
+      <div class="fg"><label for="grm-act">פעילות חדשה</label><select id="grm-act" onchange="window.grmActChg && window.grmActChg()" title="בחר פעילות" style="width:100%">${acts.map(a=>`<option value="${a}" ${a===srExample.act?'selected':''}>${a}</option>`).join('')}<option value="__new__">➕ הוסף פעילות חדשה...</option></select></div>
     </div>
+    <div class="fg" id="grm-act-new-wrap" style="display:none;margin-bottom:8px"><label for="grm-act-new" style="font-size:.7rem;font-weight:700">שם הפעילות החדשה</label><input type="text" id="grm-act-new" placeholder="הכנס שם פעילות חדשה..." style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
     
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px;background:#f5f7ff;padding:10px;border-radius:8px">
       <div class="fg"><label for="grm-d1">מ-תאריך</label><input type="date" id="grm-d1" value="${fromDate}" style="width:100%"></div>
@@ -2064,14 +2065,37 @@ window.openBulkUpdateRecurring = function(key, gid) {
 window.grmSupChg = function() {
   const sup = document.getElementById('grm-sup').value;
   const actSel = document.getElementById('grm-act');
-  actSel.innerHTML = window.getSupActs(sup).map(a=>`<option value="${a}">${a}</option>`).join('');
+  const wrap = document.getElementById('grm-act-new-wrap');
+  if (wrap) wrap.style.display = 'none';
+  const inp = document.getElementById('grm-act-new');
+  if (inp) inp.value = '';
+  if (actSel) {
+    actSel.innerHTML = window.getSupActs(sup).map(a=>`<option value="${a}">${a}</option>`).join('') +
+      '<option value="__new__">➕ הוסף פעילות חדשה...</option>';
+  }
+};
+
+window.grmActChg = function() {
+  const v = document.getElementById('grm-act')?.value;
+  const wrap = document.getElementById('grm-act-new-wrap');
+  if (wrap) wrap.style.display = (v === '__new__') ? 'block' : 'none';
 };
 
 window.doBulkUpdateRecurring = async function(key, gid){
   const d1 = document.getElementById('grm-d1').value;
   const d2 = document.getElementById('grm-d2').value;
   const newSup = document.getElementById('grm-sup').value;
-  const newAct = document.getElementById('grm-act').value;
+  let newAct = document.getElementById('grm-act').value;
+  if (newAct === '__new__') {
+    const newInp = document.getElementById('grm-act-new');
+    newAct = (newInp && newInp.value) ? newInp.value.trim() : '';
+  }
+  if (newAct) {
+    const baseSup = window.supBase ? window.supBase(newSup) : newSup;
+    if (!window.supEx[baseSup]) window.supEx[baseSup] = {};
+    if (!Array.isArray(window.supEx[baseSup].acts)) window.supEx[baseSup].acts = window.getSupActs ? window.getSupActs(baseSup) : [];
+    if (!window.supEx[baseSup].acts.includes(newAct)) window.supEx[baseSup].acts.push(newAct);
+  }
   const newWd = parseInt(document.getElementById('grm-wd').value);
   const primaryTime = document.getElementById('grm-time').value;
   

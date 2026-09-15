@@ -1034,8 +1034,12 @@ window.openSP = function(id) {
             <select id="rr-sup" onchange="window.rrSupChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">${(window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : []).map(s2=>{ const disp = window.supNameLabel(s2.name) !== s2.name ? window.supNameLabel(s2.name) + ' (' + s2.name + ')' : s2.name; return `<option value="${s2.name}" ${(window.supBase ? window.supBase(s2.name) : (s2.name||'').trim()) === (window.supBase ? window.supBase(s.a) : (s.a||'').trim()) ? 'selected' : ''}>${disp}</option>`; }).join('')}</select>
           </div>
           <div class="fg"><label style="font-size:.7rem;font-weight:700">🎯 פעילות</label>
-            <select id="rr-act" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"><option value="">— ללא שינוי —</option>${(window.getSupActs ? window.getSupActs(s.a) : []).map(a=>`<option value="${a}" ${a===s.act?'selected':''}>${a}</option>`).join('')}</select>
+            <select id="rr-act" onchange="window.rrActChg && window.rrActChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"><option value="">— ללא שינוי —</option>${(window.getSupActs ? window.getSupActs(s.a) : []).map(a=>`<option value="${a}" ${a===s.act?'selected':''}>${a}</option>`).join('')}<option value="__new__">➕ הוסף פעילות חדשה...</option></select>
           </div>
+        </div>
+        <div class="fg" id="rr-act-new-wrap" style="display:none;margin-top:2px">
+          <label style="font-size:.7rem;font-weight:700;color:#6a1b9a">שם הפעילות החדשה</label>
+          <input type="text" id="rr-act-new" placeholder="הכנס שם פעילות חדשה..." style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">
         </div>
         <div style="display:grid;grid-template-columns:${spPair ? '1fr' : '1fr 1fr'};gap:8px">
           <div class="fg" id="rr-grp-wrap" style="${spPair ? 'display:none;' : ''}"><label style="font-size:.7rem;font-weight:700">קבוצות</label><input type="number" id="rr-grp" value="${s.grp||1}" min="1" max="10" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
@@ -1814,11 +1818,16 @@ function openReplaceRecur(id) {
         </select>
       </div>
       <div class="fg"><label style="font-size:.75rem;font-weight:700">🎯 פעילות</label>
-        <select id="rr-act" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
+        <select id="rr-act" onchange="window.rrActChg && window.rrActChg()" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
           <option value="">— ללא שינוי —</option>
           ${window.getSupActs(s.a).map(a=>`<option value="${a}" ${a===s.act?'selected':''}>${a}</option>`).join('')}
+          <option value="__new__">➕ הוסף פעילות חדשה...</option>
         </select>
       </div>
+    </div>
+    <div class="fg" id="rr-act-new-wrap" style="display:none;margin-top:4px">
+      <label style="font-size:.75rem;font-weight:700;color:#6a1b9a">שם הפעילות החדשה</label>
+      <input type="text" id="rr-act-new" placeholder="הכנס שם פעילות חדשה..." style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
     </div>
     
     <div class="fg"><label style="font-size:.75rem;font-weight:700">⏰ שעה (${g.name})</label>
@@ -1847,12 +1856,25 @@ function openReplaceRecur(id) {
 }
 
 function rrSupChg() {
-  const sup = document.getElementById('rr-sup').value;
+  const sup = document.getElementById('rr-sup')?.value;
   const actSel = document.getElementById('rr-act');
+  const newWrap = document.getElementById('rr-act-new-wrap');
+  if (newWrap) newWrap.style.display = 'none';
+  const newInp = document.getElementById('rr-act-new');
+  if (newInp) newInp.value = '';
   if(!actSel) return;
   actSel.innerHTML = '<option value="">— ללא שינוי —</option>' +
-    window.getSupActs(sup).map(a => `<option value="${a}">${a}</option>`).join('');
+    window.getSupActs(sup).map(a => `<option value="${a}">${a}</option>`).join('') +
+    '<option value="__new__">➕ הוסף פעילות חדשה...</option>';
 }
+
+function rrActChg() {
+  const v = document.getElementById('rr-act')?.value;
+  const wrap = document.getElementById('rr-act-new-wrap');
+  if (wrap) wrap.style.display = (v === '__new__') ? 'block' : 'none';
+}
+window.rrActChg = rrActChg;
+window.rrSupChg = rrSupChg;
 
 async function saveReplaceRecur(id) {
   try {
@@ -1863,8 +1885,20 @@ async function saveReplaceRecur(id) {
     const to = document.getElementById('rr-to').value;
     const days = [...document.querySelectorAll('.rr-day:checked')].map(c => parseInt(c.value));
     const sup = document.getElementById('rr-sup').value;
-    let act = document.getElementById('rr-act').value;
+    let act = document.getElementById('rr-act') ? document.getElementById('rr-act').value : '';
+    if (act === '__new__') {
+      const newInp = document.getElementById('rr-act-new');
+      act = (newInp && newInp.value) ? newInp.value.trim() : '';
+      if (!act) return _spAlertDialog('נא להזין שם עבור הפעילות החדשה');
+    }
     if (!act && (window.supBase ? window.supBase(sup) : sup) === (window.supBase ? window.supBase(s.a) : s.a)) act = s.act;
+
+    if (act) {
+      const baseSup = window.supBase ? window.supBase(sup) : sup;
+      if (!window.supEx[baseSup]) window.supEx[baseSup] = {};
+      if (!Array.isArray(window.supEx[baseSup].acts)) window.supEx[baseSup].acts = window.getSupActs ? window.getSupActs(baseSup) : [];
+      if (!window.supEx[baseSup].acts.includes(act)) window.supEx[baseSup].acts.push(act);
+    }
     const tpEl = document.getElementById('rr-tp');
     const newTp = tpEl ? tpEl.value : (s.tp || 'חוג');
     const time = document.getElementById('rr-time').value;
@@ -1943,8 +1977,9 @@ async function saveReplaceRecur(id) {
           const eid = newRecId + count;
           const pGrpInp = document.getElementById('rr-grp-partner-' + s.g);
           const pGrpVal = pGrpInp ? (parseInt(pGrpInp.value, 10) || 1) : (newGrp || s.grp || 1);
+          const finalA = act ? (sup + ' - ' + act) : sup;
           window.SCH.push({
-            id: eid, g: s.g, d: ds, a: sup, act: act, t: time, st: 'ok', tp: newTp,
+            id: eid, g: s.g, d: ds, a: finalA, act: act, t: time, st: 'ok', tp: newTp,
             nt: '', _recId: newRecId + '_' + cur.getDay(), grp: pGrpVal
           });
           // Add for partners if synced
@@ -1965,7 +2000,7 @@ async function saveReplaceRecur(id) {
                   const specGrpInp = document.getElementById('rr-grp-partner-' + pid);
                   const specGrpVal = specGrpInp ? (parseInt(specGrpInp.value, 10) || 1) : (newGrp || s.grp || 1);
                   window.SCH.push({
-                    id: eid + (idx+1)*5000, g: pid, d: ds, a: sup, act: act, t: specificPartnerTime, st: 'ok', tp: newTp,
+                    id: eid + (idx+1)*5000, g: pid, d: ds, a: finalA, act: act, t: specificPartnerTime, st: 'ok', tp: newTp,
                     nt: '', _recId: newRecId + '_' + cur.getDay(), grp: specGrpVal
                   });
                 }
@@ -2019,6 +2054,10 @@ function spEditSave(){
     if(newAct) { 
       s.act=newAct; 
       s.a = newSup ? (newAct ? (newSup + ' - ' + newAct) : newSup) : s.a;
+      const baseSup = window.supBase ? window.supBase(newSup) : newSup;
+      if (!window.supEx[baseSup]) window.supEx[baseSup] = {};
+      if (!Array.isArray(window.supEx[baseSup].acts)) window.supEx[baseSup].acts = window.getSupActs ? window.getSupActs(baseSup) : [];
+      if (!window.supEx[baseSup].acts.includes(newAct)) window.supEx[baseSup].acts.push(newAct);
     } else if (newSup && !isSameSup) { 
       s.act=''; 
       s.a = newSup;
