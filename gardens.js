@@ -2031,7 +2031,7 @@ window.openBulkUpdateRecurring = function(key, gid) {
     <div style="font-size:1rem;font-weight:900;color:#1a237e;margin-bottom:15px;text-align:center">🛠️ שינוי שיבוץ קבוע (מרחבי)</div>
     
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-      <div class="fg"><label for="grm-sup">ספק חדש</label><select id="grm-sup" onchange="window.grmSupChg()" title="בחר ספק" style="width:100%">${allSups.map(s=>{ const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name; return `<option value="${s.name}" ${s.name===srExample.a?'selected':''}>${disp}</option>`; }).join('')}</select></div>
+      <div class="fg"><label for="grm-sup">ספק חדש</label><select id="grm-sup" onchange="window.grmSupChg()" title="בחר ספק" style="width:100%">${allSups.map(s=>{ const disp = window.supNameLabel(s.name) !== s.name ? window.supNameLabel(s.name) + ' (' + s.name + ')' : s.name; return `<option value="${s.name}" ${(window.supBase ? window.supBase(s.name) : s.name) === (window.supBase ? window.supBase(srExample.a) : srExample.a) ? 'selected':''}>${disp}</option>`; }).join('')}</select></div>
       <div class="fg"><label for="grm-act">פעילות חדשה</label><select id="grm-act" title="בחר פעילות" style="width:100%">${acts.map(a=>`<option value="${a}" ${a===srExample.act?'selected':''}>${a}</option>`).join('')}</select></div>
     </div>
     

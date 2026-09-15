@@ -1031,7 +1031,7 @@ window.openSP = function(id) {
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div class="fg"><label style="font-size:.7rem;font-weight:700">📚 ספק</label>
-            <select id="rr-sup" onchange="window.rrSupChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">${(window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : []).map(s2=>{ const disp = window.supNameLabel(s2.name) !== s2.name ? window.supNameLabel(s2.name) + ' (' + s2.name + ')' : s2.name; return `<option value="${s2.name}" ${(s2.name||'').trim()===(s.a||'').trim()?'selected':''}>${disp}</option>`; }).join('')}</select>
+            <select id="rr-sup" onchange="window.rrSupChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">${(window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : []).map(s2=>{ const disp = window.supNameLabel(s2.name) !== s2.name ? window.supNameLabel(s2.name) + ' (' + s2.name + ')' : s2.name; return `<option value="${s2.name}" ${(window.supBase ? window.supBase(s2.name) : (s2.name||'').trim()) === (window.supBase ? window.supBase(s.a) : (s.a||'').trim()) ? 'selected' : ''}>${disp}</option>`; }).join('')}</select>
           </div>
           <div class="fg"><label style="font-size:.7rem;font-weight:700">🎯 פעילות</label>
             <select id="rr-act" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"><option value="">— ללא שינוי —</option>${(window.getSupActs ? window.getSupActs(s.a) : []).map(a=>`<option value="${a}" ${a===s.act?'selected':''}>${a}</option>`).join('')}</select>
@@ -1160,7 +1160,7 @@ window.openSP = function(id) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div class="fg"><label for="sp-edit-date" style="font-size:.7rem;font-weight:700">תאריך</label><input type="date" id="sp-edit-date" value="${s.d}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
         <div class="fg" id="sp-edit-time-wrap" style="${spPair ? 'display:none;' : ''}"><label for="sp-edit-time" style="font-size:.7rem;font-weight:700">שעה (${g.name})</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
-        <div class="fg"><label for="sp-edit-sup" style="font-size:.7rem;font-weight:700">ספק</label><select id="sp-edit-sup" onchange="window.spEditSupChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">${allSups.map(sup => { const disp = window.supNameLabel(sup.name) !== sup.name ? window.supNameLabel(sup.name) + ' (' + sup.name + ')' : sup.name; return `<option value="${sup.name}" ${sup.name===s.a ? 'selected':''}>${disp}</option>`; }).join('')}</select></div>
+        <div class="fg"><label for="sp-edit-sup" style="font-size:.7rem;font-weight:700">ספק</label><select id="sp-edit-sup" onchange="window.spEditSupChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">${allSups.map(sup => { const disp = window.supNameLabel(sup.name) !== sup.name ? window.supNameLabel(sup.name) + ' (' + sup.name + ')' : sup.name; return `<option value="${sup.name}" ${(window.supBase ? window.supBase(sup.name) : sup.name) === (window.supBase ? window.supBase(s.a) : s.a) ? 'selected':''}>${disp}</option>`; }).join('')}</select></div>
         <div class="fg" id="sp-edit-grp-wrap" style="${spPair ? 'display:none;' : ''}"><label for="sp-edit-grp" style="font-size:.7rem;font-weight:700">קבוצות</label><input type="number" id="sp-edit-grp" value="${s.grp||1}" min="1" max="10" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
         <div class="fg"><label for="sp-edit-act" style="font-size:.7rem;font-weight:700">פעילות</label><select id="sp-edit-act" onchange="window.spEditActChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"><option value="">— ללא שינוי —</option>${initialActs.map(a => `<option value="${a}" ${a===s.act ? 'selected':''}>${a}</option>`).join('')}<option value="__new__">➕ פעילות חדשה...</option></select></div>
       </div>
@@ -1810,7 +1810,7 @@ function openReplaceRecur(id) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="fg"><label style="font-size:.75rem;font-weight:700">📚 ספק</label>
         <select id="rr-sup" onchange="window.rrSupChg()" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc">
-          ${allSups.map(s2=>`<option value="${s2.name}" ${s2.name===s.a?'selected':''}>${s2.name}</option>`).join('')}
+          ${allSups.map(s2=>`<option value="${s2.name}" ${(window.supBase ? window.supBase(s2.name) : s2.name) === (window.supBase ? window.supBase(s.a) : s.a) ? 'selected' : ''}>${s2.name}</option>`).join('')}
         </select>
       </div>
       <div class="fg"><label style="font-size:.75rem;font-weight:700">🎯 פעילות</label>
@@ -1864,7 +1864,7 @@ async function saveReplaceRecur(id) {
     const days = [...document.querySelectorAll('.rr-day:checked')].map(c => parseInt(c.value));
     const sup = document.getElementById('rr-sup').value;
     let act = document.getElementById('rr-act').value;
-    if (!act && sup === s.a) act = s.act;
+    if (!act && (window.supBase ? window.supBase(sup) : sup) === (window.supBase ? window.supBase(s.a) : s.a)) act = s.act;
     const tpEl = document.getElementById('rr-tp');
     const newTp = tpEl ? tpEl.value : (s.tp || 'חוג');
     const time = document.getElementById('rr-time').value;
@@ -2014,9 +2014,17 @@ function spEditSave(){
     const finalTime = primaryTimeInp ? primaryTimeInp.value : newTime;
     const primaryGrpInp = document.querySelector(`.sped-syn-grp[data-gid="${s.g}"]`);
     const finalGrp = primaryGrpInp ? parseInt(primaryGrpInp.value, 10) : newGrp;
+    const isSameSup = (window.supBase ? window.supBase(newSup) : newSup) === (window.supBase ? window.supBase(origSup) : origSup);
     if(newDate) s.d=newDate; 
-    if(newSup) s.a=newSup; 
-    if(newAct) { s.act=newAct; } else if (newSup && newSup !== origSup) { s.act=''; }
+    if(newAct) { 
+      s.act=newAct; 
+      s.a = newSup ? (newAct ? (newSup + ' - ' + newAct) : newSup) : s.a;
+    } else if (newSup && !isSameSup) { 
+      s.act=''; 
+      s.a = newSup;
+    } else if (newSup) {
+      s.a = s.act ? (newSup + ' - ' + s.act) : newSup;
+    }
     if(finalTime) s.t=finalTime;
     if(finalGrp && finalGrp > 0) s.grp=finalGrp;
   }
@@ -2028,8 +2036,15 @@ function spEditSave(){
     if(pEv) {
       if(newDate) pEv.d=newDate;
       if(syn.grp) pEv.grp = syn.grp; else if(newGrp && newGrp > 0) pEv.grp = newGrp; 
-      if(newSup) pEv.a=newSup; 
-      if(newAct) pEv.act=newAct; 
+      if(newAct) {
+        pEv.act=newAct;
+        pEv.a = newSup ? (newAct ? (newSup + ' - ' + newAct) : newSup) : pEv.a;
+      } else if (newSup && !isSameSup) {
+        pEv.act='';
+        pEv.a=newSup;
+      } else if (newSup) {
+        pEv.a = pEv.act ? (newSup + ' - ' + pEv.act) : newSup;
+      }
       if(syn.t || newTime) pEv.t=syn.t || newTime;
     }
   });

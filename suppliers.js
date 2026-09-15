@@ -314,33 +314,49 @@ function getAllSup(){
 function getSupActs(name){
   if(!name) return[];
   const base=supBase(name);
-  const exBase=supEx[base]||{};
-  const exName=supEx[name]||{};
+  const exBase=(typeof supEx !== 'undefined' && supEx) ? (supEx[base]||{}) : {};
+  const exName=(typeof supEx !== 'undefined' && supEx) ? (supEx[name]||{}) : {};
   const ex = Object.keys(exBase).length ? exBase : exName;
   const fromSch=new Set();
 
   // 1. From SCH entries (always scan — never skip)
-  window.SCH.forEach(s=>{ 
-    if(window.supBase(s.a)===base){
-      const a=window.supAct(s.a);
-      if(a)fromSch.add(a);
-      if(s.act)fromSch.add(s.act);
-    } 
-  });
-  // 2. From SUPBASE (current base)
-  window.SUPBASE.forEach(s=>{ if(window.supBase(s.name)===base){const a=window.supAct(s.name);if(a)fromSch.add(a);} });
-  // 3. From merged-from history (_mergedFrom stores old bases that were merged into this one)
-  const mergedFromBases = ex._mergedFrom||[];
-  mergedFromBases.forEach(oldBase=>{
-    SCH.forEach(s=>{ 
-      if(supBase(s.a)===oldBase){
-        const a=supAct(s.a);
+  if (Array.isArray(window.SCH)) {
+    window.SCH.forEach(s=>{ 
+      if(window.supBase(s.a)===base){
+        const a=window.supAct(s.a);
         if(a)fromSch.add(a);
         if(s.act)fromSch.add(s.act);
       } 
     });
-    SUPBASE.forEach(s=>{ if(supBase(s.name)===oldBase){const a=supAct(s.name);if(a)fromSch.add(a);} });
+  }
+  // 2. From SUPBASE (current base)
+  if (Array.isArray(window.SUPBASE)) {
+    window.SUPBASE.forEach(s=>{ if(window.supBase(s.name)===base){const a=window.supAct(s.name);if(a)fromSch.add(a);} });
+  }
+  // 3. From merged-from history (_mergedFrom stores old bases that were merged into this one)
+  const mergedFromBases = Array.isArray(ex._mergedFrom) ? ex._mergedFrom : [];
+  mergedFromBases.forEach(oldBase=>{
+    if (Array.isArray(window.SCH)) {
+      window.SCH.forEach(s=>{ 
+        if(window.supBase(s.a)===oldBase || window.supBase(s.a)===window.supBase(oldBase)){
+          const a=window.supAct(s.a);
+          if(a)fromSch.add(a);
+          if(s.act)fromSch.add(s.act);
+        } 
+      });
+    }
+    if (Array.isArray(window.SUPBASE)) {
+      window.SUPBASE.forEach(s=>{ if(window.supBase(s.name)===oldBase || window.supBase(s.name)===window.supBase(oldBase)){const a=window.supAct(s.name);if(a)fromSch.add(a);} });
+    }
+    if (typeof supEx !== 'undefined' && supEx && supEx[oldBase] && Array.isArray(supEx[oldBase].acts)) {
+      supEx[oldBase].acts.forEach(a => { if (a) fromSch.add(a); });
+    }
   });
+
+  // 4. From alias if exists
+  if (ex.alias && typeof supEx !== 'undefined' && supEx && supEx[ex.alias] && Array.isArray(supEx[ex.alias].acts)) {
+    supEx[ex.alias].acts.forEach(a => { if (a) fromSch.add(a); });
+  }
   
   // 5. Merge with explicitly saved acts (manual additions not in SCH)
   if(Array.isArray(exBase.acts)) exBase.acts.forEach(a=>{ if(a) fromSch.add(a); });
@@ -760,6 +776,10 @@ async function saveSup(silent = false){
       if (window.supEx[origName]) {
         window.supEx[name] = { ...window.supEx[origName] };
       }
+      if (!window.supEx[name]) window.supEx[name] = {};
+      if (!window.supEx[name]._mergedFrom) window.supEx[name]._mergedFrom = [];
+      if (!window.supEx[name]._mergedFrom.includes(origName)) window.supEx[name]._mergedFrom.push(origName);
+      window._mergedAliasMap = null;
       if (window.supEx['__c']) {
         if (!window.supEx['__c'].find(s => s.name === name)) {
           window.supEx['__c'].push({ id: Date.now(), name, phone: (window.supEx[name] || {}).ph1 || '' });
@@ -793,11 +813,19 @@ async function saveSup(silent = false){
       if (window.supEx[origName]) {
         window.supEx[name] = { ...window.supEx[origName] };
       }
+      if (!window.supEx[name]) window.supEx[name] = {};
+      if (!window.supEx[name]._mergedFrom) window.supEx[name]._mergedFrom = [];
+      if (!window.supEx[name]._mergedFrom.includes(origName)) window.supEx[name]._mergedFrom.push(origName);
+      window._mergedAliasMap = null;
       nameEl.dataset.orig = name;
       renameFeedback = `✅ פרטי כרטיס הספק "${name}" נשמרו ללא שינוי שיבוצים.`;
     }
   }
-  const existActs=Array.isArray((window.supEx[name]||{}).acts)?(window.supEx[name].acts):getSupActs(name);
+  const existActs = (Array.isArray((window.supEx[name]||{}).acts) && window.supEx[name].acts.length > 0)
+    ? window.supEx[name].acts
+    : (origName && Array.isArray((window.supEx[origName]||{}).acts) && window.supEx[origName].acts.length > 0)
+      ? window.supEx[origName].acts
+      : (origName ? getSupActs(origName) : getSupActs(name));
   const entityVal = document.getElementById('su-entity-type-top')?.value || document.getElementById('su-entity-type')?.value || '';
   window.supEx[name]={
     ...(window.supEx[name]||{}),

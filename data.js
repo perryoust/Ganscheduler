@@ -115,20 +115,45 @@ function supBase(fullName){
   const match = norm.match(/^(.*?)\s*([-\u2010-\u2015\u2212\u05BE\uFE58\uFE63\uFF0D])\s*(.*)$/);
   const base = match ? match[1].trim() : norm.trim();
   
-  // Resolve dynamic aliases from merged suppliers
+  // Resolve dynamic aliases from merged suppliers & aliases
   if (typeof window !== 'undefined' && window.supEx) {
     if (!window._mergedAliasMap) {
       window._mergedAliasMap = {};
       for (const mainName in window.supEx) {
-        if (window.supEx[mainName] && Array.isArray(window.supEx[mainName]._mergedFrom)) {
-          window.supEx[mainName]._mergedFrom.forEach(alias => {
-            window._mergedAliasMap[alias] = mainName;
+        const item = window.supEx[mainName];
+        if (!item) continue;
+        if (Array.isArray(item._mergedFrom)) {
+          item._mergedFrom.forEach(alias => {
+            if (alias && typeof alias === 'string') {
+              const aTrim = alias.trim();
+              window._mergedAliasMap[aTrim] = mainName;
+              const aBase = aTrim.replace(/^(.*?)\s*([-\u2010-\u2015\u2212\u05BE\uFE58\uFE63\uFF0D])\s*(.*)$/, '$1').trim();
+              if (aBase) window._mergedAliasMap[aBase] = mainName;
+            }
           });
+        }
+        if (item.alias && typeof item.alias === 'string') {
+          const aTrim = item.alias.trim();
+          if (aTrim) {
+            window._mergedAliasMap[aTrim] = mainName;
+            const aBase = aTrim.replace(/^(.*?)\s*([-\u2010-\u2015\u2212\u05BE\uFE58\uFE63\uFF0D])\s*(.*)$/, '$1').trim();
+            if (aBase) window._mergedAliasMap[aBase] = mainName;
+          }
         }
       }
     }
     if (window._mergedAliasMap[base]) {
       return window._mergedAliasMap[base];
+    }
+    if (window._mergedAliasMap[norm.trim()]) {
+      return window._mergedAliasMap[norm.trim()];
+    }
+    // Flexible Hebrew spelling match (e.g. קיריבושי vs קריבושי)
+    const baseClean = base.replace(/י/g, '');
+    for (const [k, v] of Object.entries(window._mergedAliasMap)) {
+      if (k.replace(/י/g, '') === baseClean) {
+        return v;
+      }
     }
   }
   return base;

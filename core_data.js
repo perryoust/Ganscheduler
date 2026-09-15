@@ -369,6 +369,8 @@ function _applyYearData(o){
 
   // REST OF THE FUNCTION (Pairs, Invoices, etc.)
   window.supEx = o.supEx || {};
+  window._mergedAliasMap = null;
+  window._supStats = null;
   if(window.supEx['__gardens_extra']) window._GARDENS_EXTRA = window.supEx['__gardens_extra'];
   // For new years: load the full garden list from the year's data
   if(Array.isArray(window.supEx['__gardens_all']) && window.supEx['__gardens_all'].length > 0) {
