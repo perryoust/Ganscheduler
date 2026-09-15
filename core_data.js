@@ -936,25 +936,85 @@ function stLabel(s){
   if(s.st==='unassigned' || String(s.id).startsWith('dummy_')) {
     return '<span class="bdg" style="background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1">⚪ ללא פעילות</span>';
   }
-  if(s.st==='can') {
+
+  // Helper to extract makeup details for cancelled or not-happened activities
+  const _resolveMakeup = (s) => {
     let linkedMk = null;
     if (s._compByMakeup && s._compByMakeup !== 'false' && typeof window !== 'undefined' && window.SCH) {
       linkedMk = window.SCH.find(x => String(x.id) === String(s._compByMakeup));
     }
-    if (linkedMk) {
-      const mkDateStr = window.fD ? window.fD(linkedMk.d) : linkedMk.d;
-      if (linkedMk.st === 'done') {
-        return `<span class="bdg bg2" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7">✔️ השלמה התקיימה ב-${mkDateStr}</span>`;
-      }
-      return `<span class="bdg bor" style="background:#fff3e0;color:#e65100;border:1px solid #ffb74d">❌ בוטל (השלמה נקבעה ל-${mkDateStr})</span>`;
+    if (!linkedMk && typeof window !== 'undefined' && window.SCH) {
+      linkedMk = window.SCH.find(x => x._isMakeup && x.g == s.g && x._makeupFrom === s.d && (typeof window.supBase === 'function' ? window.supBase(x.a) === window.supBase(s.a) : x.a === s.a));
     }
-    if (s.nt && s.nt.includes('השלמה נקבעה ל-')) {
+
+    let mkDateStr = '';
+    let mkIsoDate = '';
+    let mkId = linkedMk ? (linkedMk.id || '') : '';
+
+    if (linkedMk) {
+      mkIsoDate = linkedMk.d;
+      mkDateStr = window.fD ? window.fD(linkedMk.d) : linkedMk.d;
+    } else if (s.nt && s.nt.includes('השלמה נקבעה ל-')) {
       const match = s.nt.match(/השלמה נקבעה ל-([0-9/.-]+)/);
-      const muDate = match ? match[1] : '';
-      return `<span class="bdg bor" style="background:#fff3e0;color:#e65100;border:1px solid #ffb74d">❌ בוטל ${muDate ? `(השלמה נקבעה ל-${muDate})` : ''}</span>`;
+      if (match && match[1]) {
+        const raw = match[1].trim();
+        if (raw.includes('/')) {
+          const parts = raw.split('/');
+          if (parts.length === 3) {
+            if (parts[2].length === 4) {
+              mkIsoDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+              mkDateStr = raw;
+            } else if (parts[0].length === 4) {
+              mkIsoDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+              mkDateStr = window.fD ? window.fD(mkIsoDate) : raw;
+            }
+          }
+        } else if (raw.includes('-')) {
+          const parts = raw.split('-');
+          if (parts.length === 3 && parts[0].length === 4) {
+            mkIsoDate = raw;
+            mkDateStr = window.fD ? window.fD(raw) : raw;
+          }
+        } else {
+          mkDateStr = raw;
+        }
+
+        if (mkIsoDate && typeof window !== 'undefined' && window.SCH) {
+          linkedMk = window.SCH.find(x => x.g == s.g && x.d === mkIsoDate && (x._isMakeup || (typeof window.supBase === 'function' ? window.supBase(x.a) === window.supBase(s.a) : x.a === s.a)));
+          if (linkedMk) mkId = linkedMk.id || '';
+        }
+      }
+    }
+
+    return { linkedMk, mkDateStr, mkIsoDate, mkId };
+  };
+
+  const todayDs = (typeof window.td === 'function') ? window.td() : (function(){
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
+
+  if(s.st==='can') {
+    const { linkedMk, mkDateStr, mkIsoDate, mkId } = _resolveMakeup(s);
+    if (mkDateStr) {
+      const isPassed = !!(mkIsoDate && mkIsoDate < todayDs);
+      const isFailed = !!(linkedMk && (linkedMk.st === 'can' || linkedMk.st === 'nohap'));
+      const isExplicitDone = !!(linkedMk && linkedMk.st === 'done');
+      const isCompleted = isExplicitDone || (isPassed && !isFailed);
+
+      const clickAttr = mkIsoDate ? `onclick="event.stopPropagation(); if(typeof window.calJumpToDate==='function') window.calJumpToDate('${mkIsoDate}','${mkId}');" style="cursor:pointer;" title="לחץ למעבר לתאריך ההשלמה בלוח השנה"` : '';
+
+      if (isCompleted) {
+        return `<span class="bdg bg2" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;${mkIsoDate ? 'cursor:pointer;' : ''}" ${clickAttr}>✔️ השלמה התקיימה ב-${mkDateStr}</span>`;
+      }
+      if (isFailed) {
+        return `<span class="bdg br2" style="${mkIsoDate ? 'cursor:pointer;' : ''}" ${clickAttr}>❌ בוטל (השלמה לא התקיימה ב-${mkDateStr})</span>`;
+      }
+      return `<span class="bdg bor" style="background:#fff3e0;color:#e65100;border:1px solid #ffb74d;${mkIsoDate ? 'cursor:pointer;' : ''}" ${clickAttr}>❌ בוטל (השלמה נקבעה ל-${mkDateStr})</span>`;
     }
     return '<span class="bdg br2">❌ בוטל</span>';
   }
+
   if(s.st==='done') return'<span class="bdg bg2">✔️ התקיים</span>';
   if(s.st==='post') {
     let isAdv = false;
@@ -978,30 +1038,24 @@ function stLabel(s){
     }
     return `<span class="bdg bor">${isAdv ? '⏪ הוקדם' : '⏩ נדחה'} ${s.pd?'ל-'+fD(s.pd):''}</span>`;
   }
+
   if(s.st==='nohap') {
-    let linkedMk = null;
-    if (s._compByMakeup && s._compByMakeup !== 'false' && typeof window !== 'undefined' && window.SCH) {
-      linkedMk = window.SCH.find(x => String(x.id) === String(s._compByMakeup));
-    }
-    if (!linkedMk && typeof window !== 'undefined' && window.SCH) {
-      linkedMk = window.SCH.find(x => x._isMakeup && x.g == s.g && x._makeupFrom === s.d && (typeof window.supBase === 'function' ? window.supBase(x.a) === window.supBase(s.a) : x.a === s.a));
-    }
+    const { linkedMk, mkDateStr, mkIsoDate, mkId } = _resolveMakeup(s);
+    if (mkDateStr) {
+      const isPassed = !!(mkIsoDate && mkIsoDate < todayDs);
+      const isFailed = !!(linkedMk && (linkedMk.st === 'can' || linkedMk.st === 'nohap'));
+      const isExplicitDone = !!(linkedMk && linkedMk.st === 'done');
+      const isCompleted = isExplicitDone || (isPassed && !isFailed);
 
-    if (linkedMk) {
-      const mkDateStr = window.fD ? window.fD(linkedMk.d) : linkedMk.d;
-      if (linkedMk.st === 'done') {
-        return `<span class="bdg bg2" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7">✔️ השלמה התקיימה ב-${mkDateStr}</span>`;
-      }
-      if (linkedMk.st === 'can' || linkedMk.st === 'nohap') {
-        return `<span class="bdg br2">⚠️ השלמה לא התקיימה (${mkDateStr})</span>`;
-      }
-      return `<span class="bdg bor" style="background:#fff3e0;color:#e65100;border:1px solid #ffb74d">⚠️ לא התקיים (השלמה נקבעה ל-${mkDateStr})</span>`;
-    }
+      const clickAttr = mkIsoDate ? `onclick="event.stopPropagation(); if(typeof window.calJumpToDate==='function') window.calJumpToDate('${mkIsoDate}','${mkId}');" style="cursor:pointer;" title="לחץ למעבר לתאריך ההשלמה בלוח השנה"` : '';
 
-    if (s.nt && s.nt.includes('השלמה נקבעה ל-')) {
-      const match = s.nt.match(/השלמה נקבעה ל-([0-9/.-]+)/);
-      const muDate = match ? match[1] : '';
-      return `<span class="bdg bor" style="background:#fff3e0;color:#e65100;border:1px solid #ffb74d">⚠️ לא התקיים ${muDate ? `(השלמה נקבעה ל-${muDate})` : '(נקבעה השלמה)'}</span>`;
+      if (isCompleted) {
+        return `<span class="bdg bg2" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;${mkIsoDate ? 'cursor:pointer;' : ''}" ${clickAttr}>✔️ השלמה התקיימה ב-${mkDateStr}</span>`;
+      }
+      if (isFailed) {
+        return `<span class="bdg br2" style="${mkIsoDate ? 'cursor:pointer;' : ''}" ${clickAttr}>⚠️ השלמה לא התקיימה (${mkDateStr})</span>`;
+      }
+      return `<span class="bdg bor" style="background:#fff3e0;color:#e65100;border:1px solid #ffb74d;${mkIsoDate ? 'cursor:pointer;' : ''}" ${clickAttr}>⚠️ לא התקיים (השלמה נקבעה ל-${mkDateStr})</span>`;
     }
 
     const isMText = (str) => str && /השלמה|במקום/i.test(str) && !str.includes('השלמה נקבעה ל-');

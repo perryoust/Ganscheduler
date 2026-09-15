@@ -610,6 +610,25 @@ function jumpToDay(ds){
   setListSubView('day');
   setView('list');
 }
+window.calJumpToDate = function(ds, evId) {
+  if (!ds) return;
+  if (typeof window.ST === 'function') window.ST('cal');
+  else if (typeof window.setMode === 'function') window.setMode('cal');
+
+  jumpToDay(ds);
+
+  if (typeof window.showToast === 'function') {
+    window.showToast('📅 עובר לתאריך ' + (window.fD ? window.fD(ds) : ds));
+  }
+
+  if (evId && typeof window.openSP === 'function') {
+    setTimeout(() => {
+      window.openSP(evId);
+    }, 300);
+  } else if (typeof window.closeSP === 'function') {
+    window.closeSP();
+  }
+};
 window.calJump = function(pairId, view, gardenId, clusterName) {
   // 1. Switch to Calendar Mode
   if (window.ST) window.ST('cal');
