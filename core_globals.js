@@ -66,6 +66,9 @@ window.ui = {
    * Renders the 5 quick action buttons (V, X, !, Postpone, Calendar).
    */
   renderQuickActionBtns: function(s) {
+    if (s.st === 'unassigned' || String(s.id).startsWith('dummy_')) {
+      return '';
+    }
     const sid = s.id;
     const isDone = s.st === 'done';
     const isCan = s.st === 'can';
@@ -92,25 +95,25 @@ window.ui = {
   renderActivityRow: function(s, opts = {}) {
     const isCoord = window.role === 'coordinator';
     const g = window.G(s.g) || {};
-    const supBase = window.supNameLabel ? window.supNameLabel(s.a) : window.supBase(s.a);
-    const supAct = s.act || window.supAct(s.a) || '—';
-    const timeStr = window.fT ? window.fT(s.t) : s.t;
+    const supBase = s.st === 'unassigned' ? '—' : (window.supNameLabel ? window.supNameLabel(s.a) : window.supBase(s.a));
+    const supAct = s.st === 'unassigned' ? '—' : (s.act || window.supAct(s.a) || '—');
+    const timeStr = (s.st === 'unassigned' || !s.t) ? '—' : (window.fT ? window.fT(s.t) : s.t);
     const stLbl = window.stLabel ? window.stLabel(s) : s.st;
     const stCls = window.stClass ? window.stClass(s) : '';
-    const phone = (typeof window.getSupPhone === 'function') ? window.getSupPhone(s.a) : '';
-    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+    const phone = (s.st !== 'unassigned' && typeof window.getSupPhone === 'function') ? window.getSupPhone(s.a) : '';
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && !s.nt.includes('השלמה נקבעה ל-') && /השלמה/i.test(s.nt)));
     const context = opts.context || 'dash'; // dash, cal, sched
     const gClass = window.gcls(g);
     const gIcon = gClass === 'ביה"ס' ? '🏛️' : '🏫';
-    const evType = s.tp || (gClass === 'גנים' ? 'חוג' : '');
-    const grpCount = s.grp || (gClass === 'גנים' ? 1 : '');
+    const evType = s.st === 'unassigned' ? '—' : (s.tp || (gClass === 'גנים' ? 'חוג' : ''));
+    const grpCount = s.st === 'unassigned' ? '—' : (s.grp || (gClass === 'גנים' ? 1 : ''));
 
     let tagText = '';
     if (s.st === 'can' || (s.nt && /ביטול|בוטל/i.test(s.nt))) tagText = 'ביטול';
     else if (s.st === 'nohap') tagText = ''; // Ensure 'nohap' activities do not get the 'השלמה' tag
     else if (s.nt && /הקדמה|הוקדם/i.test(s.nt)) tagText = 'הקדמה';
     else if (s.nt && /דחי?יה|נדחה/i.test(s.nt)) tagText = 'דחיה';
-    else if (isM || (s.nt && /השלמה/i.test(s.nt))) tagText = 'השלמה';
+    else if (isM) tagText = 'השלמה';
     
     const tagMobile = tagText ? `<span style="background:#ffe082;color:#b71c1c;border-radius:4px;padding:1px 4px;font-size:0.65rem;font-weight:800;margin-left:4px;display:inline-block">${tagText}</span> ` : '';
     const tagDesktop = tagText ? `<b style="color:var(--c-warning)">[${tagText}]</b> ` : '';

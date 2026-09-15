@@ -1816,7 +1816,16 @@ function renderCalList(evs, mDate){
     h += renderMakeupsTop(ds, f.city, f.cls, true);
 
     // Group by city → sort cities
-    const dayEvsNonM = dayEvs.filter(s => !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n))));
+    const isMakeupActivity = s => {
+      if (s._isMakeup) return true;
+      if (s._makeupFrom && s._makeupFrom !== s.d) return true;
+      if (s.nt && s.nt.includes('השלמה נקבעה ל-')) return false;
+      if (s.nt && /השלמה על|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) return true;
+      if (s.n && /השלמה על|הוקדם מ/i.test(s.n)) return true;
+      if (s.nt && !s.nt.includes('השלמה נקבעה ל-') && /השלמה/i.test(s.nt)) return true;
+      return false;
+    };
+    const dayEvsNonM = dayEvs.filter(s => !isMakeupActivity(s));
     const allCities=[...new Set(dayEvsNonM.map(s=>window.G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
 
     allCities.forEach(city=>{
@@ -2504,7 +2513,16 @@ function renderRangeListView(evs, fromDs, toDs){
     h += '<div style="padding:6px 8px">';
     h += renderMakeupsTop(ds, f.city, f.cls, true);
 
-    const dayEvsNonM = dayEvs.filter(s => !(s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n))));
+    const isMakeupActivity = s => {
+      if (s._isMakeup) return true;
+      if (s._makeupFrom && s._makeupFrom !== s.d) return true;
+      if (s.nt && s.nt.includes('השלמה נקבעה ל-')) return false;
+      if (s.nt && /השלמה על|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) return true;
+      if (s.n && /השלמה על|הוקדם מ/i.test(s.n)) return true;
+      if (s.nt && !s.nt.includes('השלמה נקבעה ל-') && /השלמה/i.test(s.nt)) return true;
+      return false;
+    };
+    const dayEvsNonM = dayEvs.filter(s => !isMakeupActivity(s));
     const _gmode = _listGroupMode === 'clusters' ? 'window.clusters' : 'window.pairs';
     const isSingleDay = (fromDs === toDs);
     
