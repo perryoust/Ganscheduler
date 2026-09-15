@@ -92,6 +92,8 @@ window.onload = function(){
       }
       // Step 2: Wait for static data (SRAWS) and Firebase data in parallel
       await _srawsReady;
+      // Tell firebase.js NOT to auto-refresh after load — we handle rendering here
+      window._skipAutoRefresh = true;
       const fbOk = await loadFromFirebase(false, true); // force=true to always load
       if(!fbOk) console.warn('Firebase load returned false, using local data');
 
@@ -127,6 +129,7 @@ window.onload = function(){
       }
 
     }catch(initErr){ console.warn('Init error:', initErr); }
+    finally { window._skipAutoRefresh = false; }
 
     const _inv = typeof INVOICES!=='undefined'?INVOICES.length:0;
     const _sch = typeof SCH!=='undefined'?SCH.length:0;
@@ -146,7 +149,7 @@ window.onload = function(){
     }
     
     console.log('App fully ready: SCH = ',window.SCH.length,'INVOICES = ',_inv);
-    window.refresh(); _fbStartPolling();
+    _fbStartPolling(); // No redundant refresh() — rendering already done above
   }; 
   if(window._fbUser) window._onAuthReady();
 };

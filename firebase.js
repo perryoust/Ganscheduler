@@ -696,8 +696,8 @@ async function loadFromFirebase(silent = false, force = false) {
       }
     }
 
-    // Auto-refresh view after loading from cloud
-    if (!window._fbSyncReady || !document.querySelector('.sp-modal-content, .modal.open, .sp-popup')) {
+    // Auto-refresh view after loading from cloud (skip during initial _onAuthReady — core_app.js handles rendering)
+    if (!window._skipAutoRefresh && (!window._fbSyncReady || !document.querySelector('.sp-modal-content, .modal.open, .sp-popup'))) {
       if (typeof window.refresh === 'function') setTimeout(() => window.refresh(), 100);
       if (typeof window.renderCoordinatorView === 'function') setTimeout(() => window.renderCoordinatorView(), 100);
     }
