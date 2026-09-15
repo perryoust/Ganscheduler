@@ -1002,7 +1002,7 @@ function stLabel(s){
       const isExplicitDone = !!(linkedMk && linkedMk.st === 'done');
       const isCompleted = isExplicitDone || (isPassed && !isFailed);
 
-      const clickAttr = mkIsoDate ? `onclick="event.stopPropagation(); if(typeof window.calJumpToDate==='function') window.calJumpToDate('${mkIsoDate}','${mkId}');" style="cursor:pointer;" title="לחץ למעבר לתאריך ההשלמה בלוח השנה"` : '';
+      const clickAttr = mkIsoDate ? `onclick="event.stopPropagation(); if(typeof window.calJumpToDate==='function') window.calJumpToDate('${mkIsoDate}','${s.p || ''}','${s.g || ''}');" style="cursor:pointer;" title="לחץ למעבר לתאריך ההשלמה בלוח השנה"` : '';
 
       if (isCompleted) {
         return `<span class="bdg bg2" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;${mkIsoDate ? 'cursor:pointer;' : ''}" ${clickAttr}>✔️ השלמה התקיימה ב-${mkDateStr}</span>`;
@@ -1047,7 +1047,7 @@ function stLabel(s){
       const isExplicitDone = !!(linkedMk && linkedMk.st === 'done');
       const isCompleted = isExplicitDone || (isPassed && !isFailed);
 
-      const clickAttr = mkIsoDate ? `onclick="event.stopPropagation(); if(typeof window.calJumpToDate==='function') window.calJumpToDate('${mkIsoDate}','${mkId}');" style="cursor:pointer;" title="לחץ למעבר לתאריך ההשלמה בלוח השנה"` : '';
+      const clickAttr = mkIsoDate ? `onclick="event.stopPropagation(); if(typeof window.calJumpToDate==='function') window.calJumpToDate('${mkIsoDate}','${s.p || ''}','${s.g || ''}');" style="cursor:pointer;" title="לחץ למעבר לתאריך ההשלמה בלוח השנה"` : '';
 
       if (isCompleted) {
         return `<span class="bdg bg2" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;${mkIsoDate ? 'cursor:pointer;' : ''}" ${clickAttr}>✔️ השלמה התקיימה ב-${mkDateStr}</span>`;

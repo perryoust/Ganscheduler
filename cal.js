@@ -610,10 +610,39 @@ function jumpToDay(ds){
   setListSubView('day');
   setView('list');
 }
-window.calJumpToDate = function(ds, evId) {
+window.calJumpToDate = function(ds, pairId, gardenId) {
   if (!ds) return;
   if (typeof window.ST === 'function') window.ST('cal');
   else if (typeof window.setMode === 'function') window.setMode('cal');
+
+  if (typeof window.clearCal === 'function') window.clearCal();
+  
+  if (pairId || gardenId) {
+    if (pairId) {
+      const pair = (window.pairs || []).find(p => Number(p.id) === Number(pairId));
+      if (pair) {
+        ['desktop', 'mobile'].forEach(plat => {
+          const list = document.getElementById('cal-g-multi-items-' + plat);
+          if(list) {
+            list.querySelectorAll('input').forEach(el => {
+              el.checked = pair.ids.map(Number).includes(Number(el.value));
+            });
+          }
+          if(window.calMultiGChanged) window.calMultiGChanged(plat);
+        });
+      }
+    } else if (gardenId) {
+      ['desktop', 'mobile'].forEach(plat => {
+        const list = document.getElementById('cal-g-multi-items-' + plat);
+        if(list) {
+          list.querySelectorAll('input').forEach(el => {
+            el.checked = (Number(el.value) === Number(gardenId));
+          });
+        }
+        if(window.calMultiGChanged) window.calMultiGChanged(plat);
+      });
+    }
+  }
 
   jumpToDay(ds);
 
@@ -621,11 +650,7 @@ window.calJumpToDate = function(ds, evId) {
     window.showToast('📅 עובר לתאריך ' + (window.fD ? window.fD(ds) : ds));
   }
 
-  if (evId && typeof window.openSP === 'function') {
-    setTimeout(() => {
-      window.openSP(evId);
-    }, 300);
-  } else if (typeof window.closeSP === 'function') {
+  if (typeof window.closeSP === 'function') {
     window.closeSP();
   }
 };
