@@ -119,26 +119,27 @@ function supBase(fullName){
   if (typeof window !== 'undefined' && window.supEx) {
     if (!window._mergedAliasMap) {
       window._mergedAliasMap = {};
+      window._mergedAliasMapFuzzy = {}; // Pre-computed yod-stripped lookup
+      const _addAlias = (alias, mainName) => {
+        if (!alias || typeof alias !== 'string') return;
+        const aTrim = alias.trim();
+        window._mergedAliasMap[aTrim] = mainName;
+        const aBase = aTrim.replace(/^(.*?)\s*([-\u2010-\u2015\u2212\u05BE\uFE58\uFE63\uFF0D])\s*(.*)$/, '$1').trim();
+        if (aBase) window._mergedAliasMap[aBase] = mainName;
+        // Pre-compute fuzzy keys (yod-stripped) at build time
+        const fuzzyFull = aTrim.replace(/י/g, '');
+        const fuzzyBase = aBase ? aBase.replace(/י/g, '') : '';
+        if (fuzzyFull) window._mergedAliasMapFuzzy[fuzzyFull] = mainName;
+        if (fuzzyBase) window._mergedAliasMapFuzzy[fuzzyBase] = mainName;
+      };
       for (const mainName in window.supEx) {
         const item = window.supEx[mainName];
         if (!item) continue;
         if (Array.isArray(item._mergedFrom)) {
-          item._mergedFrom.forEach(alias => {
-            if (alias && typeof alias === 'string') {
-              const aTrim = alias.trim();
-              window._mergedAliasMap[aTrim] = mainName;
-              const aBase = aTrim.replace(/^(.*?)\s*([-\u2010-\u2015\u2212\u05BE\uFE58\uFE63\uFF0D])\s*(.*)$/, '$1').trim();
-              if (aBase) window._mergedAliasMap[aBase] = mainName;
-            }
-          });
+          item._mergedFrom.forEach(alias => _addAlias(alias, mainName));
         }
         if (item.alias && typeof item.alias === 'string') {
-          const aTrim = item.alias.trim();
-          if (aTrim) {
-            window._mergedAliasMap[aTrim] = mainName;
-            const aBase = aTrim.replace(/^(.*?)\s*([-\u2010-\u2015\u2212\u05BE\uFE58\uFE63\uFF0D])\s*(.*)$/, '$1').trim();
-            if (aBase) window._mergedAliasMap[aBase] = mainName;
-          }
+          _addAlias(item.alias, mainName);
         }
       }
     }
@@ -148,12 +149,10 @@ function supBase(fullName){
     if (window._mergedAliasMap[norm.trim()]) {
       return window._mergedAliasMap[norm.trim()];
     }
-    // Flexible Hebrew spelling match (e.g. קיריבושי vs קריבושי)
-    const baseClean = base.replace(/י/g, '');
-    for (const [k, v] of Object.entries(window._mergedAliasMap)) {
-      if (k.replace(/י/g, '') === baseClean) {
-        return v;
-      }
+    // Flexible Hebrew spelling match — O(1) pre-computed lookup
+    const fuzzyKey = base.replace(/י/g, '');
+    if (fuzzyKey && window._mergedAliasMapFuzzy[fuzzyKey]) {
+      return window._mergedAliasMapFuzzy[fuzzyKey];
     }
   }
   return base;

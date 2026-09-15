@@ -846,7 +846,7 @@ async function sucSaveEdit(isAuto = false){
         if (!supEx[newBase]) supEx[newBase] = {};
         if (!supEx[newBase]._mergedFrom) supEx[newBase]._mergedFrom = [];
         if (!supEx[newBase]._mergedFrom.includes(origBase)) supEx[newBase]._mergedFrom.push(origBase);
-        window._mergedAliasMap = null; // Invalidate alias cache
+        window._mergedAliasMap = null; window._mergedAliasMapFuzzy = null; // Invalidate alias cache
         _sucName = newBase;
         nameEl.dataset.orig = newBase;
         renameFeedback = `✅ כל השיבוצים (${updatedCount}) עודכנו עבור "${newBase}".`;

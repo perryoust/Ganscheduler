@@ -779,7 +779,7 @@ async function saveSup(silent = false){
       if (!window.supEx[name]) window.supEx[name] = {};
       if (!window.supEx[name]._mergedFrom) window.supEx[name]._mergedFrom = [];
       if (!window.supEx[name]._mergedFrom.includes(origName)) window.supEx[name]._mergedFrom.push(origName);
-      window._mergedAliasMap = null;
+      window._mergedAliasMap = null; window._mergedAliasMapFuzzy = null;
       if (window.supEx['__c']) {
         if (!window.supEx['__c'].find(s => s.name === name)) {
           window.supEx['__c'].push({ id: Date.now(), name, phone: (window.supEx[name] || {}).ph1 || '' });
@@ -803,7 +803,7 @@ async function saveSup(silent = false){
       if (!window.supEx[name]) window.supEx[name] = {};
       if (!window.supEx[name]._mergedFrom) window.supEx[name]._mergedFrom = [];
       if (!window.supEx[name]._mergedFrom.includes(origName)) window.supEx[name]._mergedFrom.push(origName);
-      window._mergedAliasMap = null;
+      window._mergedAliasMap = null; window._mergedAliasMapFuzzy = null;
       if (window.supEx['__c']) {
         window.supEx['__c'] = window.supEx['__c'].map(s => s.name === origName ? { ...s, name } : s);
       }
@@ -816,7 +816,7 @@ async function saveSup(silent = false){
       if (!window.supEx[name]) window.supEx[name] = {};
       if (!window.supEx[name]._mergedFrom) window.supEx[name]._mergedFrom = [];
       if (!window.supEx[name]._mergedFrom.includes(origName)) window.supEx[name]._mergedFrom.push(origName);
-      window._mergedAliasMap = null;
+      window._mergedAliasMap = null; window._mergedAliasMapFuzzy = null;
       nameEl.dataset.orig = name;
       renameFeedback = `✅ פרטי כרטיס הספק "${name}" נשמרו ללא שינוי שיבוצים.`;
     }
@@ -1052,7 +1052,7 @@ async function doMerge(){
   const prevMergedFrom = window.supEx[mainBase]._mergedFrom||[];
   const newMergedBases = toMrg.map(o=>window.supBase(o)).filter(b=>b!==mainBase);
   window.supEx[mainBase]._mergedFrom = [...new Set([...prevMergedFrom,...newMergedBases])];
-  window._mergedAliasMap = null;
+  window._mergedAliasMap = null; window._mergedAliasMapFuzzy = null;
   window.supEx[mainBase].isAct = mergedIsAct;
   window.supEx[mainBase].isPurch = mergedIsPurch;
   window.supEx[mainBase].acts = [...allActs].sort((a,b)=>a.localeCompare(b,'he'));
@@ -1196,7 +1196,7 @@ window.psupMultiMerge = async function() {
          const prevMerged = window.supEx[mainBase]._mergedFrom || [];
          const newMerged = arr.map(old => window.supBase(old)).filter(b => b !== mainBase);
          window.supEx[mainBase]._mergedFrom = [...new Set([...prevMerged, ...newMerged])];
-         window._mergedAliasMap = null;
+         window._mergedAliasMap = null; window._mergedAliasMapFuzzy = null;
 
          const inSupbase = window.SUPBASE.some(s=>window.supBase(s.name)===mainBase);
          if(!inSupbase){
