@@ -653,6 +653,7 @@ function renderInvoices(){
           <button class="btn bsm bo" onclick="openNewInvoice('${inv.id || inv.serialNum}')">✏️</button>
           <button class="btn bsm br" onclick="deleteInvoice('${inv.id || inv.serialNum}')">🗑️</button>
         </td>
+      </tr>`;
     }).join('');
     if (cappedMsg) {
       tbody.innerHTML += `<tr><td colspan="8">${cappedMsg}</td></tr>`;
