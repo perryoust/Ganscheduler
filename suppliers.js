@@ -720,13 +720,82 @@ async function saveSup(silent = false){
 
   // Explicit Save (Clicking "💾 שמור"):
   if(!name){ _spAlertDialog('יש להזין שם'); return; }
+  let renameFeedback = '';
   if(origName&&origName!==name){
-    if(!await window.spConfirm(`לשנות את שם הספק מ-"${origName}" ל-"${name}"?\nכל השיבוצים יעודכנו אוטומטית.`)) return;
-    window.SCH.forEach(s=>{if(s.a===origName)s.a=name;});
-    if(window.supEx[origName]) window.supEx[name]={...window.supEx[origName]};
-    delete window.supEx[origName];
-    if(window.supEx['__c']) window.supEx['__c']=window.supEx['__c'].map(s=>s.name===origName?{...s,name}:s);
-    nameEl.dataset.orig = name;
+    const isMatch = (s) => {
+      if (!s || !s.a) return false;
+      const base = typeof window.supBase === 'function' ? window.supBase(s.a) : s.a;
+      return base === origName || s.a === origName;
+    };
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    const getEffectiveDate = (s) => (s._isPostponed && s.pd) ? s.pd : (s.d || '');
+    
+    const matching = (window.SCH || []).filter(isMatch);
+    let renameScope = 'none';
+
+    if (matching.length > 0 && typeof window.promptSupplierRenameScope === 'function') {
+      const futureMatches = matching.filter(s => getEffectiveDate(s) >= todayStr);
+      const pastMatches = matching.filter(s => getEffectiveDate(s) < todayStr);
+      renameScope = await window.promptSupplierRenameScope(origName, name, {
+        total: matching.length,
+        future: futureMatches.length,
+        past: pastMatches.length
+      });
+      if (!renameScope) return; // User clicked Cancel
+    } else if (matching.length > 0) {
+      if(!await window.spConfirm(`לשנות את שם הספק מ-"${origName}" ל-"${name}"?\n${matching.length} שיבוצים יעודכנו אוטומטית.`)) return;
+      renameScope = 'all';
+    }
+
+    if (renameScope === 'future') {
+      let updatedCount = 0;
+      window.SCH.forEach(s => {
+        if (isMatch(s) && getEffectiveDate(s) >= todayStr) {
+          const act = typeof window.supAct === 'function' ? window.supAct(s.a) : '';
+          s.a = act ? (name + ' - ' + act) : name;
+          updatedCount++;
+        }
+      });
+      if (window.supEx[origName]) {
+        window.supEx[name] = { ...window.supEx[origName] };
+      }
+      if (window.supEx['__c']) {
+        if (!window.supEx['__c'].find(s => s.name === name)) {
+          window.supEx['__c'].push({ id: Date.now(), name, phone: (window.supEx[name] || {}).ph1 || '' });
+        }
+      }
+      nameEl.dataset.orig = name;
+      renameFeedback = `✅ עודכנו ${updatedCount} שיבוצים עתידיים עבור "${name}". שיבוצי עבר נשמרו תחת "${origName}".`;
+    } else if (renameScope === 'all') {
+      let updatedCount = 0;
+      window.SCH.forEach(s => {
+        if (isMatch(s)) {
+          const act = typeof window.supAct === 'function' ? window.supAct(s.a) : '';
+          s.a = act ? (name + ' - ' + act) : name;
+          updatedCount++;
+        }
+      });
+      if (window.supEx[origName]) {
+        window.supEx[name] = { ...window.supEx[origName] };
+        delete window.supEx[origName];
+      }
+      if (!window.supEx[name]) window.supEx[name] = {};
+      if (!window.supEx[name]._mergedFrom) window.supEx[name]._mergedFrom = [];
+      if (!window.supEx[name]._mergedFrom.includes(origName)) window.supEx[name]._mergedFrom.push(origName);
+      window._mergedAliasMap = null;
+      if (window.supEx['__c']) {
+        window.supEx['__c'] = window.supEx['__c'].map(s => s.name === origName ? { ...s, name } : s);
+      }
+      nameEl.dataset.orig = name;
+      renameFeedback = `✅ כל השיבוצים (${updatedCount}) עודכנו עבור "${name}".`;
+    } else if (renameScope === 'none') {
+      if (window.supEx[origName]) {
+        window.supEx[name] = { ...window.supEx[origName] };
+      }
+      nameEl.dataset.orig = name;
+      renameFeedback = `✅ פרטי כרטיס הספק "${name}" נשמרו ללא שינוי שיבוצים.`;
+    }
   }
   const existActs=Array.isArray((window.supEx[name]||{}).acts)?(window.supEx[name].acts):getSupActs(name);
   const entityVal = document.getElementById('su-entity-type-top')?.value || document.getElementById('su-entity-type')?.value || '';
@@ -759,7 +828,7 @@ async function saveSup(silent = false){
   window.refresh();
   try{ window.renderPurchSuppliers(); }catch(e){}
   try{ renderSup(); }catch(e){}
-  window.showToast('✅ ספק נשמר בהצלחה!');
+  window.showToast(renameFeedback || '✅ ספק נשמר בהצלחה!');
 
   // If opened from invoice modal, pre-fill the supplier field
   if(window._invPendingNewSup && name){

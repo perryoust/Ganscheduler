@@ -785,26 +785,78 @@ async function sucSaveEdit(isAuto = false){
     if(!isAuto) _spAlertDialog('יש להזין שם ספק');
     return;
   }
+  let renameFeedback = '';
   if(origBase&&origBase!==newBase){
     if(isAuto) {
       nameEl.value = origBase; // Keep original name on silent auto-save
     } else {
-      const affected=SCH.filter(s=>supBase(s.a)===origBase).length;
-      if(!await window.spConfirm(`לשנות שם מ-"${origBase}" ל-"${newBase}"?\n${affected} שיבוצים יעודכנו.`)) {
-        return;
-      }
-      SCH.forEach(s=>{
-        if(supBase(s.a)===origBase){
-          const act=supAct(s.a);
-          s.a=act?(newBase+' - '+act):newBase;
+      const isMatch = (s) => {
+        if (!s || !s.a) return false;
+        const base = typeof supBase === 'function' ? supBase(s.a) : s.a;
+        return base === origBase || s.a === origBase;
+      };
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      const getEffectiveDate = (s) => (s._isPostponed && s.pd) ? s.pd : (s.d || '');
+
+      const matching = (window.SCH || []).filter(isMatch);
+      let renameScope = 'none';
+
+      if (matching.length > 0 && typeof window.promptSupplierRenameScope === 'function') {
+        const futureMatches = matching.filter(s => getEffectiveDate(s) >= todayStr);
+        const pastMatches = matching.filter(s => getEffectiveDate(s) < todayStr);
+        renameScope = await window.promptSupplierRenameScope(origBase, newBase, {
+          total: matching.length,
+          future: futureMatches.length,
+          past: pastMatches.length
+        });
+        if (!renameScope) return; // User clicked Cancel
+      } else if (matching.length > 0) {
+        if (!await window.spConfirm(`לשנות שם מ-"${origBase}" ל-"${newBase}"?\n${matching.length} שיבוצים יעודכנו.`)) {
+          return;
         }
-      });
-      if(supEx[origBase]){supEx[newBase]={...supEx[origBase]};delete supEx[origBase];}
-      if(!supEx[newBase]) supEx[newBase] = {};
-      if(!supEx[newBase]._mergedFrom) supEx[newBase]._mergedFrom = [];
-      if(!supEx[newBase]._mergedFrom.includes(origBase)) supEx[newBase]._mergedFrom.push(origBase);
-      window._mergedAliasMap = null; // Invalidate alias cache
-      _sucName=newBase;
+        renameScope = 'all';
+      }
+
+      if (renameScope === 'future') {
+        let updatedCount = 0;
+        SCH.forEach(s => {
+          if (isMatch(s) && getEffectiveDate(s) >= todayStr) {
+            const act = typeof supAct === 'function' ? supAct(s.a) : '';
+            s.a = act ? (newBase + ' - ' + act) : newBase;
+            updatedCount++;
+          }
+        });
+        // Copy to newBase, keep origBase for historical integrity
+        if (supEx[origBase]) supEx[newBase] = { ...supEx[origBase] };
+        if (!supEx[newBase]) supEx[newBase] = {};
+        _sucName = newBase;
+        nameEl.dataset.orig = newBase;
+        renameFeedback = `✅ עודכנו ${updatedCount} שיבוצים עתידיים עבור "${newBase}". שיבוצי עבר נשמרו תחת "${origBase}".`;
+      } else if (renameScope === 'all') {
+        let updatedCount = 0;
+        SCH.forEach(s => {
+          if (isMatch(s)) {
+            const act = typeof supAct === 'function' ? supAct(s.a) : '';
+            s.a = act ? (newBase + ' - ' + act) : newBase;
+            updatedCount++;
+          }
+        });
+        if (supEx[origBase]) { supEx[newBase] = { ...supEx[origBase] }; delete supEx[origBase]; }
+        if (!supEx[newBase]) supEx[newBase] = {};
+        if (!supEx[newBase]._mergedFrom) supEx[newBase]._mergedFrom = [];
+        if (!supEx[newBase]._mergedFrom.includes(origBase)) supEx[newBase]._mergedFrom.push(origBase);
+        window._mergedAliasMap = null; // Invalidate alias cache
+        _sucName = newBase;
+        nameEl.dataset.orig = newBase;
+        renameFeedback = `✅ כל השיבוצים (${updatedCount}) עודכנו עבור "${newBase}".`;
+      } else if (renameScope === 'none') {
+        if (supEx[origBase]) supEx[newBase] = { ...supEx[origBase] };
+        if (!supEx[newBase]) supEx[newBase] = {};
+        _sucName = newBase;
+        nameEl.dataset.orig = newBase;
+        renameFeedback = `✅ פרטי כרטיס הספק "${newBase}" נשמרו ללא שינוי שיבוצים.`;
+      }
     }
   }
   const targetName = _sucName || origBase || newBase;
@@ -848,7 +900,7 @@ async function sucSaveEdit(isAuto = false){
     });
     sucRefreshInfo(); sucRefreshActFilt();
     sucToggleEdit(); 
-    if(typeof showToast === 'function') showToast('✅ נשמר בהצלחה');
+    if(typeof showToast === 'function') showToast(renameFeedback || '✅ נשמר בהצלחה');
   } else {
     if(typeof showToast === 'function') showToast('💾 פרטי הספק נשמרו');
   }

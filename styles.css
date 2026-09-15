@@ -1421,7 +1421,33 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 .sp-sys-btn-danger { background: #e74c3c; color: white; }
 .sp-sys-btn-danger:hover { background: #c0392b; }
 
-\n@media print {\n  .top-bar, #mode-bar, #mob-nav, #mob-nav-purch, .tabs { display: none !important; }\n  body, html { margin: 0 !important; padding: 0 !important; background: #fff !important; }\n  #c-worker_tasks { display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }\n  .wt-no-print { display: none !important; }\n}\n
+/* Supplier Rename Scope Dialog */
+.sp-rename-opt-btn {
+  width: 100%;
+  box-sizing: border-box;
+  text-align: right;
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+}
+.sp-rename-opt-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+}
+.sp-rename-opt-btn:active {
+  transform: translateY(0);
+}
+
+@media print {
+  .top-bar, #mode-bar, #mob-nav, #mob-nav-purch, .tabs { display: none !important; }
+  body, html { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  #c-worker_tasks { display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+  .wt-no-print { display: none !important; }
+}
 #year-selector option { background-color: #ffffff; color: #333333; }
 
 /* 💻 Responsive adjustments for medium screens (Laptops / 16 inch) to prevent header wrapping */

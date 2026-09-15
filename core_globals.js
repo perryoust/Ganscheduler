@@ -549,3 +549,117 @@ window.spPromptDialog = function(title, htmlContent, okText, onOk, wide) {
   };
   document.getElementById("sp-pdlg-cancel").onclick = close;
 };
+
+/**
+ * Smart supplier rename confirmation dialog.
+ * Asks the user whether to update future schedules only, all schedules, or none.
+ * @param {string} origName - Original supplier name
+ * @param {string} newName - New supplier name
+ * @param {object} counts - { total, future, past }
+ * @returns {Promise<'future'|'all'|'none'|null>}
+ */
+window.promptSupplierRenameScope = function(origName, newName, counts) {
+  return new Promise(resolve => {
+    const uid = ++window._spDialogUid;
+    const overlay = document.createElement("div");
+    overlay.className = "sp-sys-dialog-overlay";
+    overlay.style.zIndex = "10050";
+
+    const safeOrig = String(origName || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeNew = String(newName || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const total = counts ? (counts.total || 0) : 0;
+    const future = counts ? (counts.future || 0) : 0;
+    const past = counts ? (counts.past || 0) : 0;
+
+    overlay.innerHTML = `
+      <div class="sp-sys-dialog" style="max-width: 520px; width: 92%; padding: 22px; text-align: right; direction: rtl; gap: 14px;">
+        <div style="display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
+          <div style="font-size: 2rem; line-height: 1;">🔄</div>
+          <div>
+            <div style="font-weight: 700; font-size: 1.15rem; color: #1e293b;">שינוי שם ספק בלוח</div>
+            <div style="font-size: 0.88rem; color: #64748b; margin-top: 2px;">
+              מעבר מ-<strong>${safeOrig}</strong> ל-<strong>${safeNew}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; font-size: 0.88rem; line-height: 1.5; color: #334155;">
+          <div style="font-weight: 600; margin-bottom: 6px;">נמצאו <strong>${total}</strong> שיבוצים עבור ספק זה בשנת הלימודים הנוכחית:</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-top: 4px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #2563eb;"></span>
+              <span>שיבוצים עתידיים (מהיום והלאה): <strong>${future}</strong></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #94a3b8;"></span>
+              <span>שיבוצים בעבר (היסטוריה): <strong>${past}</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-weight: 600; font-size: 0.95rem; color: #1e293b;">
+          כיצד תרצה לעדכן את השיבוצים בלוח?
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button type="button" id="sp-rename-future-${uid}" class="sp-rename-opt-btn" style="
+            background: #eff6ff; border: 2px solid #3b82f6; color: #1e3a8a;
+          ">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 700; font-size: 0.98rem; color: #1d4ed8;">📅 עדכן שיבוצים עתידיים בלבד</span>
+              <span style="background: #2563eb; color: #fff; font-size: 0.78rem; font-weight: 700; padding: 2px 8px; border-radius: 999px;">${future} שיבוצים</span>
+            </div>
+            <div style="font-size: 0.82rem; color: #475569; margin-top: 5px; line-height: 1.4;">
+              <strong>מומלץ להחלפת ספק באמצע שנה:</strong> כל השיבוצים שהתקיימו בעבר יישמרו בהיסטוריה ע"ש <strong>${safeOrig}</strong>, ורק השיבוצים מהיום והלאה יועברו ל-<strong>${safeNew}</strong>.
+            </div>
+          </button>
+
+          <button type="button" id="sp-rename-all-${uid}" class="sp-rename-opt-btn" style="
+            background: #faf5ff; border: 1.5px solid #a855f7; color: #581c87;
+          ">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 700; font-size: 0.98rem; color: #7e22ce;">🔄 עדכן את כל השיבוצים בשנה זו</span>
+              <span style="background: #9333ea; color: #fff; font-size: 0.78rem; font-weight: 700; padding: 2px 8px; border-radius: 999px;">כל ${total} השיבוצים</span>
+            </div>
+            <div style="font-size: 0.82rem; color: #475569; margin-top: 5px; line-height: 1.4;">
+              <strong>מתאים לתיקון כתיב / שינוי שם גורף:</strong> יעדכן את כל השיבוצים (עבר ועתיד) בשנת הלימודים הנוכחית לשם החדש.
+            </div>
+          </button>
+
+          <button type="button" id="sp-rename-none-${uid}" class="sp-rename-opt-btn" style="
+            background: #f8fafc; border: 1px solid #cbd5e1; color: #334155;
+          ">
+            <div style="font-weight: 600; font-size: 0.92rem; color: #334155;">
+              📝 שמור פרטי כרטיס ספק בלבד (ללא שינוי שיבוצים)
+            </div>
+            <div style="font-size: 0.8rem; color: #64748b; margin-top: 3px; line-height: 1.35;">
+              ישנה את פרטי הכרטיס בלבד. אף שיבוץ בלוח לא יושפע.
+            </div>
+          </button>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+          <button type="button" class="sp-sys-btn sp-sys-btn-cancel" id="sp-rename-cancel-${uid}" style="font-size: 0.9rem; padding: 7px 18px;">ביטול</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.classList.add("show"), 10);
+
+    const finish = (choice) => {
+      overlay.classList.remove("show");
+      setTimeout(() => { overlay.remove(); resolve(choice); }, 200);
+    };
+
+    document.getElementById(`sp-rename-future-${uid}`).onclick = () => finish('future');
+    document.getElementById(`sp-rename-all-${uid}`).onclick = () => finish('all');
+    document.getElementById(`sp-rename-none-${uid}`).onclick = () => finish('none');
+    document.getElementById(`sp-rename-cancel-${uid}`).onclick = () => finish(null);
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) finish(null);
+    });
+  });
+};
+
