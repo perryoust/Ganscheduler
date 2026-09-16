@@ -5,7 +5,7 @@
 
 let _appMode = 'act'; // 'act' | 'purch'
 let _purchTab = 'pdash';
-const PURCH_TABS = ['pdash','pinvoices','porders','pdeliveries','psup'];
+const PURCH_TABS = ['pdash','pinvoices','porders','pdeliveries','psup','pbudget'];
 
 // --- Debounced rendering for performance ---
 window.debouncedRenderInvoices = window.debounce ? window.debounce(() => {
