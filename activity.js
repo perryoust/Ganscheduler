@@ -2725,6 +2725,7 @@ async function doPostpone(){
     
     if(!newDate) { _spAlertDialog('יש לבחור תאריך'); return; }
     
+    const isPostpone = newDate > s.d;
     const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('post') : [];
     const toProcess = [];
     
@@ -2758,7 +2759,6 @@ async function doPostpone(){
       s.cn += reason ? ` (דחייה: ${reason})` : '';
       s._compByMakeup = newId1; // Mark original as handled
 
-      const isPostpone = newDate > s.d;
       const labelText = isPostpone ? 'נדחה' : 'הקדמה';
 
       const newEv1 = {
