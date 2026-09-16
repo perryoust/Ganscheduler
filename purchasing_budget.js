@@ -310,12 +310,16 @@ window.budgetApp = {
       const rem = data.budget - total;
       
       const headerRow = ws.addRow([schoolName, `תקציב: ₪${data.budget}`, `יתרה: ₪${rem}`, '']);
-      headerRow.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
-      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
+      for(let i=1; i<=4; i++) {
+        headerRow.getCell(i).font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+        headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
+      }
       
       const subHeader = ws.addRow(['תאריך', 'שם ספק / תיאור', 'מספר חשבונית', 'סכום']);
-      subHeader.font = { bold: true };
-      subHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+      for(let i=1; i<=4; i++) {
+        subHeader.getCell(i).font = { bold: true };
+        subHeader.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+      }
       
       if(data.expenses.length === 0) {
         ws.addRow(['אין הוצאות רשומות']);
@@ -356,12 +360,16 @@ window.budgetApp = {
     ws.getColumn(4).width = 15;
     
     const headerRow = ws.addRow([schoolName, `תקציב: ₪${data.budget}`, `יתרה: ₪${rem}`, '']);
-    headerRow.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
-    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
+    for(let i=1; i<=4; i++) {
+      headerRow.getCell(i).font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
+    }
     
     const subHeader = ws.addRow(['תאריך', 'שם ספק / תיאור', 'מספר חשבונית', 'סכום']);
-    subHeader.font = { bold: true };
-    subHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+    for(let i=1; i<=4; i++) {
+      subHeader.getCell(i).font = { bold: true };
+      subHeader.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+    }
     
     if(data.expenses.length === 0) {
       ws.addRow(['אין הוצאות רשומות']);
