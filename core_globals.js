@@ -12,6 +12,21 @@ window.addEventListener('resize', () => {
     if (window.refresh) window.refresh();
   }
 });
+// ── Data Lookup Helpers ──
+window.getSchById = function(id) {
+  if (!window._idxSchById) return (window.SCH||[]).find(x => String(x.id) === String(id));
+  return window._idxSchById.get(String(id));
+};
+window.getSchByGardenDate = function(gid, date, excludeCanceled = false) {
+  if (!window._idxSchByGardenDate) {
+    let evs = (window.SCH||[]).filter(s => String(s.g) === String(gid) && s.d === date);
+    if (excludeCanceled) evs = evs.filter(s => s.st !== 'can');
+    return evs;
+  }
+  const key = String(gid) + '_' + date;
+  const evs = window._idxSchByGardenDate.get(key) || [];
+  return excludeCanceled ? evs.filter(s => s.st !== 'can') : evs;
+};
 
 // ── core.js — globals, data layer, utilities, init ──────────────
 // Load order: firebase.js → invoices.js → suppliers.js → cal.js

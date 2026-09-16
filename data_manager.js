@@ -3,6 +3,24 @@
  * Centralized logic for all schedule manipulations.
  */
 window.DataManager = {
+  buildIndexes: function() {
+    window._idxSchById = new Map();
+    window._idxSchByGardenDate = new Map();
+    
+    const sch = window.SCH || [];
+    for (let i = 0; i < sch.length; i++) {
+      const s = sch[i];
+      if (s.id) window._idxSchById.set(String(s.id), s);
+      if (s.g && s.d) {
+        const key = String(s.g) + '_' + s.d;
+        if (!window._idxSchByGardenDate.has(key)) {
+          window._idxSchByGardenDate.set(key, []);
+        }
+        window._idxSchByGardenDate.get(key).push(s);
+      }
+    }
+  },
+
   /**
    * Upsert a single record into the global schedule.
    * Uses fuzzy matching to find existing records and update them.

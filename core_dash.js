@@ -9,6 +9,7 @@ function td(){
 window.td = td;
 
 function refreshAppUI(){
+  try { if (window.DataManager && window.DataManager.buildIndexes) window.DataManager.buildIndexes(); } catch(e) { console.error("Index build failed", e); }
   try { if(typeof window.updCounts === 'function') window.updCounts(); } catch(e){ console.error("updCounts failed", e); }
   try { if(typeof window.renderDash === 'function') window.renderDash(); } catch(e){ console.error("renderDash failed", e); }
   try { if(typeof window.renderSched === 'function') window.renderSched(); } catch(e){ console.error("renderSched failed", e); }

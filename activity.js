@@ -345,7 +345,7 @@ window.dashBatchAction = async function(action) {
   const stamp = stampPrefix + Date.now();
   
   ids.forEach(id => {
-    const s = window.SCH.find(x => x.id == id);
+    const s = window.getSchById(id);
     if (s) {
       if (status) s.st = status;
       if (action === 'handled') {
@@ -506,7 +506,7 @@ window.spBatchDelete = async function() {
   if (!window.supEx['__deleted_sraws_ids']) window.supEx['__deleted_sraws_ids'] = [];
   
   ids.forEach(id => {
-    const s = window.SCH.find(x => x.id == id);
+    const s = window.getSchById(id);
     if(!s) return;
     
     // Check for makeup restoration
@@ -565,7 +565,7 @@ window.spBatchAction = function(val) {
 
 
 window.spRowGrpChg = async function(id, val) {
-  const ev = window.SCH.find(x => x.id == id);
+  const ev = window.getSchById(id);
   if(!ev) return;
   const v = parseInt(val, 10);
   if(v > 0) {
@@ -590,7 +590,7 @@ window.spRowGrpChg = async function(id, val) {
 };
 
 window.spRowStatusChg = async function(id, st) {
-  const ev = window.SCH.find(x => x.id == id);
+  const ev = window.getSchById(id);
   if(!ev) return;
   
   if (st === 'delete') {
@@ -688,7 +688,7 @@ window.spUpdateExVisibility = function() {
   if(!box) return;
   
   const hasExc = ids.some(id => {
-    const ev = window.SCH.find(x => x.id == id);
+    const ev = window.getSchById(id);
     if(!ev) return false;
     const isM = !!(ev._isMakeup || ev._makeupFrom || (ev.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(ev.nt)) || (ev.a && /השלמה|הוקדם מ/i.test(ev.a)));
     const isExc = (ev.st === 'nohap' || ev.st === 'post' || ev.st === 'can') && !ev._compByMakeup;
@@ -705,7 +705,7 @@ window.updateActivities = function(ids, fields, options = {}) {
   const autoStatus = options.autoStatus !== false;
 
   ids.forEach(id => {
-    const ev = window.SCH.find(x => x.id == id);
+    const ev = window.getSchById(id);
     if(!ev) return;
 
     // Apply fields
@@ -789,7 +789,7 @@ window.spBatchSaveNt = function() {
   const n = document.getElementById('sp-n')?.value;
   
   ids.forEach(id => {
-    const ev = window.SCH.find(x => x.id == id);
+    const ev = window.getSchById(id);
     if(!ev) return;
     if(nt !== undefined) ev.nt = nt;
     if(n !== undefined) {
@@ -808,7 +808,7 @@ window.spBatchSaveNt = function() {
 };
 
 window.spRowTimeChg = function(id, val) {
-  const s = window.SCH.find(x => x.id == id);
+  const s = window.getSchById(id);
   if(s) {
     s.t = val;
     // Save without forcing a re-render of the modal so it doesn't jump while typing
@@ -823,7 +823,7 @@ window.openSP = function(id) {
     return;
   }
   window.selEv = id;
-  const s = window.SCH.find(x => x.id == id);
+  const s = window.getSchById(id);
   if(!s) return;
 
   const isClusterMode = window._listGroupMode === 'clusters' || window._dashTab === 'clusters';
@@ -1559,7 +1559,7 @@ window.getSpGardenFixedHtml = function(gid, includeCamp = false) {
 };
 
 async function deleteRecurSeries(id) {
-  const s = window.SCH.find(x => x.id == id);
+  const s = window.getSchById(id);
   if(!s) return _spAlertDialog('שגיאה. רשומה לא קיימת');
   const g = window.G(s.g);
   
@@ -1627,7 +1627,7 @@ async function deleteRecurSeries(id) {
 }
 
 async function deleteSingleActivity(id) {
-  const s = window.SCH.find(x => x.id == id);
+  const s = window.getSchById(id);
   if(!s) return;
   const g = window.G(s.g);
   
@@ -1730,7 +1730,7 @@ function spEditActChg(){
 
 
 async function deleteSingleActivity(id) {
-  const s = window.SCH.find(x => x.id == id);
+  const s = window.getSchById(id);
   if(!s) return;
   const g = window.G(s.g);
   
@@ -1778,7 +1778,7 @@ async function deleteSingleActivity(id) {
 }
 
 function openReplaceRecur(id) {
-  const s = window.SCH.find(x => x.id == id);
+  const s = window.getSchById(id);
   if(!s || !s._recId) return _spAlertDialog('פעילות זו אינה חלק מפעילות קבועה');
   const g = window.G(s.g);
   const allSups = window.getAllSup().filter(s2 => window.isActSupplier(s2.name));
@@ -1878,7 +1878,7 @@ window.rrSupChg = rrSupChg;
 
 async function saveReplaceRecur(id) {
   try {
-    const s = window.SCH.find(x => x.id == id);
+    const s = window.getSchById(id);
     if(!s) return;
     
     const from = document.getElementById('rr-from').value;
@@ -2126,7 +2126,7 @@ async function setStatus(idOrSt, maybeSt){
     let id, st;
     if (maybeSt) { id = idOrSt; st = maybeSt; } 
     else { id = window.selEv; st = idOrSt; }
-    const main=window.SCH.find(x=>x.id==id);
+    const main=window.getSchById(id);
     if(!main) return;
     main.st=st;
     let userConfirmedDelete = false;
@@ -2293,7 +2293,7 @@ function saveNt(){
 
 function markCompManual(id){
   try {
-  const s=window.SCH.find(x=>x.id==id); if(!s) return;
+  const s=window.getSchById(id); if(!s) return;
   const syncCheck = document.getElementById('sp-sync-global') || document.getElementById('sp-sync-pair');
   const handleNtEl = document.getElementById('sp-handle-nt');
   const doSync = syncCheck && syncCheck.checked;
@@ -2333,7 +2333,7 @@ function markCompManual(id){
 
 async function markCompQuick(id){
   try {
-    const s=window.SCH.find(x=>x.id==id); if(!s) return;
+    const s=window.getSchById(id); if(!s) return;
     const stamp = 'quick_' + Date.now();
     s._compByMakeup = stamp;
     
@@ -2375,7 +2375,7 @@ window.markCompQuick = markCompQuick;
 
 function unmarkCompQuick(id){
   try {
-    const s=window.SCH.find(x=>x.id==id); if(!s) return;
+    const s=window.getSchById(id); if(!s) return;
     s._compByMakeup = ''; // Clear handled flag
     
     // Clear handled note if any
@@ -2557,7 +2557,7 @@ window.postShowFreeDays = function(gid) {
 function openPostpone(id, defaultMode = 'move'){
   try {
     window.selEvPost=id;
-    const s=window.SCH.find(x=>x.id==id); if(!s) return;
+    const s=window.getSchById(id); if(!s) return;
     const g=window.G(s.g);
     document.getElementById('post-ev-info').innerHTML=`<b>${g.name}</b> · ${g.city} · ${s.a}`;
     // Ensure the input has a label associated with it in index.html (verified later)
@@ -3517,7 +3517,7 @@ window.renderDash = renderDash;
 let _canQId = null;
 window.openCanQ = function(id) {
   _canQId = id;
-  const s = window.SCH.find(x => x.id == id); if (!s) return;
+  const s = window.getSchById(id); if (!s) return;
   const g = window.G(s.g);
   const infoEl = document.getElementById('canq-info');
   if(infoEl) infoEl.innerHTML = `<b>${g.name}</b> · ${g.city} · ${s.a}${s.act?' · '+s.act:''}<br>📅 ${window.fD(s.d)} ${s.t?'⏰ '+window.fT(s.t):''}`;
@@ -3666,7 +3666,7 @@ window.saveCancelDay = async function() {
 let _nohapQId=null;
 window.openNohapQ = function(id){
   _nohapQId=id;
-  const s=window.SCH.find(x=>x.id==id); if(!s) return;
+  const s=window.getSchById(id); if(!s) return;
   const g=window.G(s.g);
   const infoEl = document.getElementById('nohapq-info');
   if(infoEl) infoEl.innerHTML = `<b>${g.name}</b> מ-${g.city} | ${s.a}${s.act?' - '+s.act:''}<br>בתאריך ${window.fD(s.d)} ${s.t?'בשעה '+window.fT(s.t):''}`;

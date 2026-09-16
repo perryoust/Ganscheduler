@@ -299,7 +299,8 @@ function renderPartnerTable(){
     allIds.forEach(pId => {
       const pG = window.G(pId);
       if(!pG || !pG.name) return;
-      const ev = window.SCH.find(s => Number(s.g) === Number(pId) && s.d === date && s.st !== 'can');
+      const evs = window.getSchByGardenDate(pId, date, true);
+      const ev = evs.length ? evs[0] : null;
       
       const stLabel = ev ? (window.stLabel ? window.stLabel(ev) : ev.st) : '—';
       const stClass = ev ? (window.stClass ? window.stClass(ev) : '') : '';
@@ -688,7 +689,8 @@ function nsDateChg(){
   if(!pId){ hintEl.style.display='none'; return; }
   
   const partnerG=window.G(pId);
-  const partnerEv=window.SCH.find(x=>Number(x.g)===Number(pId) && x.d===date && x.st!=='can');
+  const partnerEvs = window.getSchByGardenDate(pId, date, true);
+  const partnerEv = partnerEvs.length ? partnerEvs[0] : null;
   
   if(partnerEv && partnerEv.t){
     const pTime = window.fT ? window.fT(partnerEv.t) : partnerEv.t;
