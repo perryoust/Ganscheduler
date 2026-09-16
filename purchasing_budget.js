@@ -224,7 +224,7 @@ window.budgetApp = {
             <td style="padding:6px">${e.inv||''}</td>
             <td style="padding:6px;font-weight:bold;color:#d32f2f">₪${(e.amt||0).toLocaleString('he-IL', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
             <td style="padding:6px;text-align:center">
-              <span style="cursor:pointer;margin-left:8px" title="ערוך" onclick="window.budgetApp.editExpense('${escSchool}', '${e.id}')">✏️</span>
+              <span style="cursor:pointer;margin-left:8px" title="ערוך" onclick="window.budgetApp.openExpenseModal('${escSchool}', '${e.id}')">✏️</span>
               <span style="cursor:pointer" title="מחק" onclick="window.budgetApp.deleteExpense('${escSchool}', '${e.id}')">🗑️</span>
             </td>
           </tr>`;
@@ -263,7 +263,7 @@ window.budgetApp = {
           ${expHtml}
           
           <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
-             <button class="btn bo bsm" onclick="window.budgetApp.addExpense('${escSchool}')">➕ רישום הוצאה</button>
+             <button class="btn bo bsm" onclick="window.budgetApp.openExpenseModal('${escSchool}')">➕ רישום הוצאה</button>
              <button class="btn bw bsm" onclick="window.budgetApp.exportSchoolToPDF('${escSchool}')" ${data.expenses.length===0?'disabled style="opacity:0.5"':''}>🖨️ הדפס דוח (PDF)</button>
           </div>
         </div>
