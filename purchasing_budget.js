@@ -210,6 +210,112 @@ window.budgetApp = {
     }
   },
 
+  openCoordinatorModal(schoolName) {
+    let div = document.getElementById('budget-coord-modal');
+    if (!div) {
+      div = document.createElement('div');
+      div.id = 'budget-coord-modal';
+      div.className = 'modal';
+      div.innerHTML = `
+        <div class="modal-box" style="max-width:400px; padding:0; border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+          <div style="background:#1a237e; color:#fff; padding:12px 15px; display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin:0; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
+              <span>👤</span> פרטי רכז וחשבון בנק
+            </h3>
+            <button onclick="document.getElementById('budget-coord-modal').classList.remove('open')" style="background:none; border:none; color:#fff; cursor:pointer; font-size:1.2rem;">✕</button>
+          </div>
+          <div style="padding:15px; display:flex; flex-direction:column; gap:12px;">
+            <input type="hidden" id="bcm-school">
+            <div>
+              <label style="font-size:0.8rem; color:#666; font-weight:600;">שם הרכז/ת</label>
+              <input type="text" id="bcm-name" placeholder="למשל: קרנית רייזל" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit;">
+            </div>
+            <div>
+              <label style="font-size:0.8rem; color:#666; font-weight:600;">שם הבנק ומספר</label>
+              <input type="text" id="bcm-bank" placeholder="למשל: הבינלאומי (31)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit;">
+            </div>
+            <div style="display:flex; gap:10px;">
+              <div style="flex:1;">
+                <label style="font-size:0.8rem; color:#666; font-weight:600;">מס' סניף</label>
+                <input type="text" id="bcm-branch" placeholder="למשל: 124" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit;">
+              </div>
+              <div style="flex:2;">
+                <label style="font-size:0.8rem; color:#666; font-weight:600;">מס' חשבון</label>
+                <input type="text" id="bcm-account" placeholder="למשל: 306881" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit;">
+              </div>
+            </div>
+            <div style="font-size:0.75rem; color:#888; background:#f5f5f5; padding:8px; border-radius:4px; margin-top:5px;">
+              ℹ️ הפרטים יישמרו אוטומטית גם לחודשים הבאים.
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:10px;">
+              <button class="btn bw" onclick="document.getElementById('budget-coord-modal').classList.remove('open')">ביטול</button>
+              <button class="btn bp" onclick="window.budgetApp.saveCoordinatorModal()">שמור פרטים</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(div);
+    }
+    
+    document.getElementById('bcm-school').value = schoolName;
+    const data = this.getSchoolData(schoolName);
+    const coord = data.coordinator || {};
+    
+    document.getElementById('bcm-name').value = coord.name || '';
+    document.getElementById('bcm-bank').value = coord.bankName || '';
+    document.getElementById('bcm-branch').value = coord.branch || '';
+    document.getElementById('bcm-account').value = coord.account || '';
+    
+    div.classList.add('open');
+    setTimeout(() => document.getElementById('bcm-name').focus(), 100);
+  },
+
+  saveCoordinatorModal() {
+    const schoolName = document.getElementById('bcm-school').value;
+    const nameVal = document.getElementById('bcm-name').value.trim();
+    const bankVal = document.getElementById('bcm-bank').value.trim();
+    const branchVal = document.getElementById('bcm-branch').value.trim();
+    const accountVal = document.getElementById('bcm-account').value.trim();
+    
+    const coordData = {
+      name: nameVal,
+      bankName: bankVal,
+      branch: branchVal,
+      account: accountVal
+    };
+    
+    // Save to current month
+    const currentData = this.getSchoolData(schoolName);
+    currentData.coordinator = coordData;
+    
+    // Forward propagation: save to all subsequent months that already exist
+    if (window.schoolBudgets && window.schoolBudgets[schoolName]) {
+      Object.keys(window.schoolBudgets[schoolName]).forEach(monthStr => {
+        if (monthStr > this.currentMonth) {
+           window.schoolBudgets[schoolName][monthStr].coordinator = { ...coordData };
+        }
+      });
+    }
+    
+    this.saveToCloud();
+    this.render();
+    document.getElementById('budget-coord-modal').classList.remove('open');
+  },
+
+  toggleAllExpenses(schoolName, isChecked) {
+    const cls = 'exp-chk-' + schoolName.replace(/[^a-zA-Z0-9]/g,'_');
+    document.querySelectorAll('.' + cls).forEach(cb => cb.checked = isChecked);
+  },
+
+  getSelectedExpenseIds(schoolName) {
+    const cls = 'exp-chk-' + schoolName.replace(/[^a-zA-Z0-9]/g,'_');
+    const checkboxes = document.querySelectorAll('.' + cls);
+    if (!checkboxes || checkboxes.length === 0) return null;
+    const selected = [];
+    checkboxes.forEach(cb => { if (cb.checked) selected.push(cb.value); });
+    return selected;
+  },
+
   render() {
     const container = document.getElementById('pbudget-list');
     if (!container) return;
@@ -237,9 +343,13 @@ window.budgetApp = {
       
       let expHtml = '';
       if(data.expenses.length > 0) {
+        const clsName = 'exp-chk-' + schoolName.replace(/[^a-zA-Z0-9]/g,'_');
         expHtml += `<table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:0.8rem; background:#fff; border-radius:4px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.1)">
           <thead>
             <tr style="background:#e8eaf6; color:#1a237e; text-align:right;">
+              <th style="padding:6px;border-bottom:1px solid #ccc;width:30px;text-align:center">
+                <input type="checkbox" checked onchange="window.budgetApp.toggleAllExpenses('${escSchool}', this.checked)" style="cursor:pointer;accent-color:#1a237e;">
+              </th>
               <th style="padding:6px;border-bottom:1px solid #ccc">תאריך</th>
               <th style="padding:6px;border-bottom:1px solid #ccc">ספק / תיאור</th>
               <th style="padding:6px;border-bottom:1px solid #ccc">חשבונית</th>
@@ -250,6 +360,9 @@ window.budgetApp = {
           <tbody>`;
         data.expenses.forEach(e => {
           expHtml += `<tr style="border-bottom:1px solid #eee">
+            <td style="padding:6px;text-align:center">
+              <input type="checkbox" checked class="${clsName}" value="${e.id}" style="cursor:pointer;accent-color:#1a237e;">
+            </td>
             <td style="padding:6px">${e.date||''}</td>
             <td style="padding:6px">${e.sup||''}</td>
             <td style="padding:6px">${e.inv||''}</td>
@@ -264,11 +377,16 @@ window.budgetApp = {
       } else {
         expHtml = `<div style="font-size:0.8rem; color:#888; padding:8px 0;">אין הוצאות רשומות לחודש זה.</div>`;
       }
-      
+      const coordName = data.coordinator && data.coordinator.name ? data.coordinator.name : 'הגדר רכז';
       html += `
         <div class="card" style="margin-bottom:15px; border-right: 4px solid ${barColor}; padding:15px;">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <div style="font-weight:700; font-size:1.05rem; color:#1a237e;">🏫 ${schoolName}</div>
+            <div style="font-weight:700; font-size:1.05rem; color:#1a237e; display:flex; align-items:center; gap:10px;">
+              <span>🏫 ${schoolName}</span>
+              <button onclick="window.budgetApp.openCoordinatorModal('${escSchool}')" style="background:#e8eaf6; color:#1a237e; border:1px solid #c5cae9; border-radius:12px; padding:3px 10px; font-size:0.8rem; cursor:pointer; font-weight:600;">
+                👤 ${coordName}
+              </button>
+            </div>
             
             <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
               <div style="font-size:0.85rem;">
@@ -362,8 +480,11 @@ window.budgetApp = {
   
   async exportSchoolToExcel(schoolName) {
     if (!window.ExcelJS) { alert('ExcelJS לא נטען.'); return; }
+    const selectedIds = this.getSelectedExpenseIds(schoolName);
     const data = this.getSchoolData(schoolName);
-    const total = data.expenses.reduce((s, e) => s + (Number(e.amt)||0), 0);
+    const expensesToExport = selectedIds ? data.expenses.filter(e => selectedIds.includes(e.id)) : data.expenses;
+    
+    const total = expensesToExport.reduce((s, e) => s + (Number(e.amt)||0), 0);
     const rem = data.budget - total;
     
     const wb = new ExcelJS.Workbook();
@@ -387,10 +508,10 @@ window.budgetApp = {
       subHeader.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
     }
     
-    if(data.expenses.length === 0) {
+    if(expensesToExport.length === 0) {
       ws.addRow(['אין הוצאות רשומות']);
     } else {
-      data.expenses.forEach(e => {
+      expensesToExport.forEach(e => {
         ws.addRow([e.date||'', e.sup||'', e.inv||'', e.amt||0]);
       });
     }
@@ -412,8 +533,11 @@ window.budgetApp = {
       return String(str).trim().split(/\s+/).reverse().join(' ');
     };
     
+    const selectedIds = this.getSelectedExpenseIds(schoolName);
     const data = this.getSchoolData(schoolName);
-    const total = data.expenses.reduce((s, e) => s + (Number(e.amt)||0), 0);
+    const expensesToExport = selectedIds ? data.expenses.filter(e => selectedIds.includes(e.id)) : data.expenses;
+    
+    const total = expensesToExport.reduce((s, e) => s + (Number(e.amt)||0), 0);
     const rem = data.budget - total;
     
     const tableBody = [
@@ -425,7 +549,7 @@ window.budgetApp = {
       ]
     ];
     
-    data.expenses.forEach(e => {
+    expensesToExport.forEach(e => {
       tableBody.push([
         {text: rev('₪ ' + (e.amt||0).toLocaleString('he-IL', {minimumFractionDigits:2})), alignment: 'center'},
         {text: rev(e.inv||''), alignment: 'center'},
@@ -434,30 +558,61 @@ window.budgetApp = {
       ]);
     });
     
+    const coord = data.coordinator || {};
+    const content = [];
+    
+    // Header
+    const [year, month] = this.currentMonth.split('-');
+    const monthNames = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+    const monthName = monthNames[parseInt(month, 10) - 1] || month;
+    content.push({text: rev(`תקציב ${monthName} ${year}`), style: 'header'});
+    
+    if (coord.name) {
+      content.push({text: rev(`שולם ע"י - ${coord.name}`), style: 'subheader'});
+    }
+    
+    content.push({text: rev(`בית ספר ${schoolName}`), style: 'subheader'});
+    
+    // Subtext budget info
+    content.push({text: rev(`תקציב מוקצה : ${data.budget.toLocaleString('he-IL')} | יתרה : ${rem.toLocaleString('he-IL')}`), style: 'subtext', margin: [0,0,0,15]});
+    
+    // Table
+    if (expensesToExport.length > 0) {
+      content.push({
+        table: {
+          headerRows: 1,
+          widths: ['auto', 'auto', 'auto', '*'],
+          body: tableBody
+        },
+        layout: 'lightHorizontalLines'
+      });
+    } else {
+      content.push({text: rev('אין הוצאות'), alignment: 'center'});
+    }
+    
+    // Total / Bank details
+    if (coord.bankName || coord.account) {
+      content.push({text: rev(coord.bankName || ''), style: 'bankDetails', margin: [0, 25, 0, 5]});
+      if (coord.branch) content.push({text: rev(`סניף ${coord.branch}`), style: 'bankDetails', margin: [0, 0, 0, 5]});
+      content.push({text: rev(`מס' חשבון:`), style: 'bankDetails'});
+      content.push({text: rev(coord.account || ''), style: 'bankDetails', margin: [0, 0, 0, 5]});
+      content.push({text: rev(coord.name || ''), style: 'bankDetails', margin: [0, 0, 0, 10]});
+      content.push({text: rev(`סה"כ להעברה - ${total.toLocaleString('he-IL')} ש"ח`), style: 'totalTransfer'});
+    } else {
+      content.push({text: rev(`סה"כ הוצאות : ₪ ${total.toLocaleString('he-IL', {minimumFractionDigits:2})}`), style: 'total', margin: [0,20,0,0]});
+    }
+    
     const docDefinition = {
       defaultStyle: { font: 'Assistant', alignment: 'right' },
-      content: [
-        {text: rev(`תקציב ${this.currentMonth.split('-').reverse().join('/')}`), style: 'header'},
-        {text: rev(`בית הספר : ${schoolName}`), style: 'subheader'},
-        {text: rev(`תקציב מוקצה : ${data.budget.toLocaleString('he-IL')} | יתרה : ${rem.toLocaleString('he-IL')}`), style: 'subtext', margin: [0,0,0,15]},
-        
-        {
-          table: {
-            headerRows: 1,
-            widths: ['auto', 'auto', 'auto', '*'],
-            body: tableBody
-          },
-          layout: 'lightHorizontalLines'
-        },
-        
-        {text: rev(`סה"כ הוצאות : ₪ ${total.toLocaleString('he-IL', {minimumFractionDigits:2})}`), style: 'total', margin: [0,20,0,0]}
-      ],
+      content: content,
       styles: {
-        header: { fontSize: 22, bold: true, alignment: 'center', margin: [0, 0, 0, 5] },
+        header: { fontSize: 18, bold: true, alignment: 'center', margin: [0, 0, 0, 5] },
         subheader: { fontSize: 16, bold: true, alignment: 'center', margin: [0, 0, 0, 5] },
         subtext: { fontSize: 12, alignment: 'center' },
         th: { bold: true, fillColor: '#eeeeee', alignment: 'center' },
-        total: { fontSize: 18, bold: true, alignment: 'center' }
+        total: { fontSize: 16, bold: true, alignment: 'center' },
+        bankDetails: { fontSize: 16, bold: true, alignment: 'center' },
+        totalTransfer: { fontSize: 18, bold: true, alignment: 'center' }
       }
     };
     
