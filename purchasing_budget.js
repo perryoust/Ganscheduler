@@ -53,55 +53,122 @@ window.budgetApp = {
     this.render();
   },
 
-  addExpense(schoolName) {
-    const data = this.getSchoolData(schoolName);
-    const dateInput = prompt('תאריך הוצאה (לדוגמה: 01/06/2026):', '');
-    if (dateInput === null) return;
-    const supInput = prompt('שם הספק (או תיאור הוצאה פנימית):', '');
-    if (supInput === null) return;
-    const invInput = prompt('מספר חשבונית (השאר ריק אם אין):', '');
-    if (invInput === null) return;
-    const amtInput = prompt('סכום ההוצאה (₪):', '');
-    if (amtInput === null) return;
-    const amt = parseFloat(amtInput);
-    if (isNaN(amt)) {
-      alert('סכום לא תקין');
-      return;
+  openExpenseModal(schoolName, expId = null) {
+    let div = document.getElementById('budget-exp-modal');
+    if (!div) {
+      div = document.createElement('div');
+      div.id = 'budget-exp-modal';
+      div.className = 'modal';
+      div.innerHTML = `
+        <div class="modal-box" style="max-width:400px; padding:0; border-radius:8px; overflow:hidden;">
+          <div style="background:#1a237e; color:#fff; padding:12px 15px; display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin:0; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
+              <span>💰</span> <span id="bem-title">רישום הוצאה</span>
+            </h3>
+            <button onclick="document.getElementById('budget-exp-modal').classList.remove('open')" style="background:none; border:none; color:#fff; cursor:pointer; font-size:1.2rem;">✕</button>
+          </div>
+          <div style="padding:15px; display:flex; flex-direction:column; gap:12px;">
+            <input type="hidden" id="bem-school">
+            <input type="hidden" id="bem-id">
+            <div>
+              <label style="font-size:0.8rem; color:#666; font-weight:600;">תאריך ההוצאה / החשבונית</label>
+              <input type="date" id="bem-date" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit;">
+            </div>
+            <div>
+              <label style="font-size:0.8rem; color:#666; font-weight:600;">שם הספק / תיאור פעילות</label>
+              <input type="text" id="bem-sup" placeholder="למשל: יגאל חוגים בע&quot;מ" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit;">
+            </div>
+            <div>
+              <label style="font-size:0.8rem; color:#666; font-weight:600;">מספר חשבונית (אופציונלי)</label>
+              <input type="text" id="bem-inv" placeholder="למשל: 30405" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit;">
+            </div>
+            <div>
+              <label style="font-size:0.8rem; color:#666; font-weight:600;">סכום כולל מע"מ (₪)</label>
+              <input type="number" id="bem-amt" step="0.01" placeholder="למשל: 1500" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit;">
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+              <button class="btn bw" onclick="document.getElementById('budget-exp-modal').classList.remove('open')">ביטול</button>
+              <button class="btn bp" onclick="window.budgetApp.saveExpenseModal()">שמור נתונים</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(div);
     }
     
-    data.expenses.push({
-      id: Date.now().toString(),
-      date: dateInput.trim(),
-      sup: supInput.trim(),
-      inv: invInput.trim(),
-      amt: amt
-    });
+    // Set default today's date if new
+    let dStr = new Date().toISOString().slice(0,10);
+    let sVal = '', iVal = '', aVal = '';
     
-    this.saveToCloud();
-    this.render();
+    document.getElementById('bem-title').innerText = expId ? 'עריכת הוצאה' : 'רישום הוצאה חדשה';
+    document.getElementById('bem-school').value = schoolName;
+    document.getElementById('bem-id').value = expId || '';
+    
+    if (expId) {
+      const data = this.getSchoolData(schoolName);
+      const exp = data.expenses.find(e => e.id === expId);
+      if (exp) {
+        // Convert typical DD/MM/YYYY back to YYYY-MM-DD for <input type="date">
+        if (exp.date && exp.date.includes('/')) {
+          const parts = exp.date.split('/');
+          if (parts.length === 3) dStr = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+        } else {
+          dStr = exp.date || dStr;
+        }
+        sVal = exp.sup || '';
+        iVal = exp.inv || '';
+        aVal = exp.amt || '';
+      }
+    }
+    
+    document.getElementById('bem-date').value = dStr;
+    document.getElementById('bem-sup').value = sVal;
+    document.getElementById('bem-inv').value = iVal;
+    document.getElementById('bem-amt').value = aVal;
+    
+    div.classList.add('open');
+    setTimeout(() => document.getElementById('bem-sup').focus(), 100);
   },
 
-  deleteExpense(schoolName, expId) {
-    if(!confirm('האם למחוק הוצאה זו?')) return;
+  saveExpenseModal() {
+    const schoolName = document.getElementById('bem-school').value;
+    const expId = document.getElementById('bem-id').value;
+    const dateVal = document.getElementById('bem-date').value;
+    const supVal = document.getElementById('bem-sup').value.trim();
+    const invVal = document.getElementById('bem-inv').value.trim();
+    const amtVal = parseFloat(document.getElementById('bem-amt').value);
+    
+    if (!supVal) return alert('חובה להזין שם ספק או תיאור');
+    if (isNaN(amtVal)) return alert('סכום לא תקין');
+    
+    // Convert YYYY-MM-DD to DD/MM/YYYY for UI
+    let displayDate = dateVal;
+    if (dateVal && dateVal.includes('-')) {
+      const parts = dateVal.split('-');
+      if (parts.length===3) displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    
     const data = this.getSchoolData(schoolName);
-    data.expenses = data.expenses.filter(e => e.id !== expId);
-    this.saveToCloud();
-    this.render();
-  },
-
-  editExpense(schoolName, expId) {
-    const data = this.getSchoolData(schoolName);
-    const exp = data.expenses.find(e => e.id === expId);
-    if(!exp) return;
     
-    const newAmt = prompt('עדכן סכום חדש (₪):', exp.amt);
-    if(newAmt === null) return;
-    const amt = parseFloat(newAmt);
-    if(!isNaN(amt)) exp.amt = amt;
+    if (expId) {
+      const exp = data.expenses.find(e => e.id === expId);
+      if (exp) {
+        exp.date = displayDate;
+        exp.sup = supVal;
+        exp.inv = invVal;
+        exp.amt = amtVal;
+      }
+    } else {
+      data.expenses.push({
+        id: Date.now().toString(),
+        date: displayDate,
+        sup: supVal,
+        inv: invVal,
+        amt: amtVal
+      });
+    }
     
-    const newSup = prompt('עדכן שם ספק/תיאור:', exp.sup);
-    if(newSup !== null) exp.sup = newSup.trim();
-    
+    document.getElementById('budget-exp-modal').classList.remove('open');
     this.saveToCloud();
     this.render();
   },
