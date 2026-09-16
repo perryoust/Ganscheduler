@@ -391,45 +391,50 @@ window.budgetApp = {
     if (!window.pdfMake) { alert('pdfMake not loaded'); return; }
     if (window.initPdfMake) await window.initPdfMake();
     
+    const rev = (str) => {
+      if (str == null) return '';
+      return String(str).split(' ').reverse().join(' ');
+    };
+    
     const data = this.getSchoolData(schoolName);
     const total = data.expenses.reduce((s, e) => s + (Number(e.amt)||0), 0);
     const rem = data.budget - total;
     
     const tableBody = [
       [
-        {text: 'ספק', style: 'th'},
-        {text: 'תאריך', style: 'th'},
-        {text: 'חשבונית', style: 'th'},
-        {text: 'סכום', style: 'th'}
+        {text: rev('סכום'), style: 'th'},
+        {text: rev('חשבונית'), style: 'th'},
+        {text: rev('תאריך'), style: 'th'},
+        {text: rev('ספק'), style: 'th'}
       ]
     ];
     
     data.expenses.forEach(e => {
       tableBody.push([
-        {text: e.sup||'', alignment: 'right'},
-        {text: e.date||'', alignment: 'center'},
-        {text: e.inv||'', alignment: 'center'},
-        {text: '₪' + (e.amt||0).toLocaleString('he-IL', {minimumFractionDigits:2}), alignment: 'center'}
+        {text: rev('₪ ' + (e.amt||0).toLocaleString('he-IL', {minimumFractionDigits:2})), alignment: 'center'},
+        {text: rev(e.inv||''), alignment: 'center'},
+        {text: rev(e.date||''), alignment: 'center'},
+        {text: rev(e.sup||''), alignment: 'right'}
       ]);
     });
     
     const docDefinition = {
-      defaultStyle: { font: 'Assistant', textDirection: 'rtl', alignment: 'right' },
+      defaultStyle: { font: 'Assistant', alignment: 'right' },
       content: [
-        {text: `תקציב ${this.currentMonth.split('-').reverse().join('/')}`, style: 'header'},
-        {text: `בית ספר: ${schoolName}`, style: 'subheader'},
-        {text: `תקציב מוקצה: ₪${data.budget.toLocaleString('he-IL')}  |  יתרה: ₪${rem.toLocaleString('he-IL')}`, style: 'subtext', margin: [0,0,0,15]},
+        {text: rev(`תקציב ${this.currentMonth.split('-').reverse().join('/')}`), style: 'header'},
+        {text: rev(`בית הספר : ${schoolName}`), style: 'subheader'},
+        {text: rev(`תקציב מוקצה : ${data.budget.toLocaleString('he-IL')} | יתרה : ${rem.toLocaleString('he-IL')}`), style: 'subtext', margin: [0,0,0,15]},
         
         {
           table: {
             headerRows: 1,
-            widths: ['*', 'auto', 'auto', 'auto'],
+            widths: ['auto', 'auto', 'auto', '*'],
             body: tableBody
           },
           layout: 'lightHorizontalLines'
         },
         
-        {text: `סה"כ הוצאות: ₪${total.toLocaleString('he-IL', {minimumFractionDigits:2})}`, style: 'total', margin: [0,20,0,0]}
+        {text: rev(`סה"כ הוצאות : ₪ ${total.toLocaleString('he-IL', {minimumFractionDigits:2})}`), style: 'total', margin: [0,20,0,0]}
       ],
       styles: {
         header: { fontSize: 22, bold: true, alignment: 'center', margin: [0, 0, 0, 5] },
