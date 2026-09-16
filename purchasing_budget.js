@@ -124,6 +124,7 @@ window.budgetApp = {
     let html = '';
     
     schools.forEach(schoolName => {
+      const escSchool = schoolName.replace(/'/g, "\\'").replace(/"/g, "&quot;");
       const data = this.getSchoolData(schoolName);
       const totalExpenses = data.expenses.reduce((sum, e) => sum + (Number(e.amt) || 0), 0);
       const remaining = data.budget - totalExpenses;
@@ -156,8 +157,8 @@ window.budgetApp = {
             <td style="padding:6px">${e.inv||''}</td>
             <td style="padding:6px;font-weight:bold;color:#d32f2f">₪${(e.amt||0).toLocaleString('he-IL', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
             <td style="padding:6px;text-align:center">
-              <span style="cursor:pointer;margin-left:8px" title="ערוך" onclick="window.budgetApp.editExpense('${schoolName}', '${e.id}')">✏️</span>
-              <span style="cursor:pointer" title="מחק" onclick="window.budgetApp.deleteExpense('${schoolName}', '${e.id}')">🗑️</span>
+              <span style="cursor:pointer;margin-left:8px" title="ערוך" onclick="window.budgetApp.editExpense('${escSchool}', '${e.id}')">✏️</span>
+              <span style="cursor:pointer" title="מחק" onclick="window.budgetApp.deleteExpense('${escSchool}', '${e.id}')">🗑️</span>
             </td>
           </tr>`;
         });
@@ -174,7 +175,7 @@ window.budgetApp = {
             <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
               <div style="font-size:0.85rem;">
                 <span style="color:#546e7a;">תקציב:</span>
-                <input type="number" value="${data.budget}" onchange="window.budgetApp.updateBudget('${schoolName}', this.value)" style="width:80px; padding:3px; border:1px solid #ccc; border-radius:4px; text-align:center;"> ₪
+                <input type="number" value="${data.budget}" onchange="window.budgetApp.updateBudget('${escSchool}', this.value)" style="width:80px; padding:3px; border:1px solid #ccc; border-radius:4px; text-align:center;"> ₪
               </div>
               <div style="font-size:0.85rem;">
                 <span style="color:#546e7a;">נוצל:</span>
@@ -195,8 +196,8 @@ window.budgetApp = {
           ${expHtml}
           
           <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
-             <button class="btn bo bsm" onclick="window.budgetApp.addExpense('${schoolName}')">➕ רישום הוצאה</button>
-             <button class="btn bw bsm" onclick="window.budgetApp.exportSchoolToPDF('${schoolName}')" ${data.expenses.length===0?'disabled style="opacity:0.5"':''}>🖨️ הדפס דוח (PDF)</button>
+             <button class="btn bo bsm" onclick="window.budgetApp.addExpense('${escSchool}')">➕ רישום הוצאה</button>
+             <button class="btn bw bsm" onclick="window.budgetApp.exportSchoolToPDF('${escSchool}')" ${data.expenses.length===0?'disabled style="opacity:0.5"':''}>🖨️ הדפס דוח (PDF)</button>
           </div>
         </div>
       `;
