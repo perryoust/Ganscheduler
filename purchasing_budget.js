@@ -279,7 +279,10 @@ window.budgetApp = {
           
           <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
              <button class="btn bo bsm" onclick="window.budgetApp.openExpenseModal('${escSchool}')">➕ רישום הוצאה</button>
-             <button class="btn bw bsm" onclick="window.budgetApp.exportSchoolToPDF('${escSchool}')" ${data.expenses.length===0?'disabled style="opacity:0.5"':''}>🖨️ הדפס דוח (PDF)</button>
+             <div style="display:flex; gap:10px;">
+                <button class="btn bw bsm" onclick="window.budgetApp.exportSchoolToExcel('${escSchool}')" ${data.expenses.length===0?'disabled style="opacity:0.5"':''}>📊 אקסל</button>
+                <button class="btn bw bsm" onclick="window.budgetApp.exportSchoolToPDF('${escSchool}')" ${data.expenses.length===0?'disabled style="opacity:0.5"':''}>🖨️ PDF</button>
+             </div>
           </div>
         </div>
       `;
@@ -289,23 +292,16 @@ window.budgetApp = {
   },
 
   async exportMonthToExcel() {
-    if (!window.ExcelJS) { alert('ExcelJS not loaded'); return; }
+    if (!window.ExcelJS) { alert('ExcelJS לא נטען.'); return; }
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('תקציב ' + this.currentMonth, {views:[{rightToLeft:true}]});
+    const ws = wb.addWorksheet('תקציבים ' + this.currentMonth);
+    ws.views = [{ rightToLeft: true }];
     
-    ws.columns = [
-      { header: 'בית ספר', key: 'school', width: 25 },
-      { header: 'חודש', key: 'month', width: 12 },
-      { header: 'יתרת תקציב', key: 'remaining', width: 15 },
-      { header: 'ספק', key: 'sup', width: 25 },
-      { header: 'מס חשבונית', key: 'inv', width: 15 },
-      { header: 'תאריך', key: 'date', width: 15 },
-      { header: 'סכום', key: 'amt', width: 15 }
-    ];
-    
-    // Style headers
-    ws.getRow(1).font = { bold: true };
-    ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+    // Set column widths
+    ws.getColumn(1).width = 15;
+    ws.getColumn(2).width = 30;
+    ws.getColumn(3).width = 15;
+    ws.getColumn(4).width = 15;
     
     const schools = this.getSchools();
     schools.forEach(schoolName => {
@@ -313,22 +309,24 @@ window.budgetApp = {
       const total = data.expenses.reduce((s, e) => s + (Number(e.amt)||0), 0);
       const rem = data.budget - total;
       
+      const headerRow = ws.addRow([schoolName, `תקציב: ₪${data.budget}`, `יתרה: ₪${rem}`, '']);
+      headerRow.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
+      
+      const subHeader = ws.addRow(['תאריך', 'שם ספק / תיאור', 'מספר חשבונית', 'סכום']);
+      subHeader.font = { bold: true };
+      subHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+      
       if(data.expenses.length === 0) {
-        ws.addRow({
-          school: schoolName, month: this.currentMonth, remaining: rem,
-          sup: '', inv: '', date: '', amt: ''
-        });
+        ws.addRow(['אין הוצאות רשומות']);
       } else {
-        data.expenses.forEach((e, idx) => {
-          ws.addRow({
-            school: idx===0 ? schoolName : '',
-            month: idx===0 ? this.currentMonth : '',
-            remaining: idx===0 ? rem : '',
-            sup: e.sup||'',
-            inv: e.inv||'',
-            date: e.date||'',
-            amt: e.amt||0
-          });
+        data.expenses.forEach(e => {
+          ws.addRow([
+            e.date||'',
+            e.sup||'',
+            e.inv||'',
+            e.amt||0
+          ]);
         });
       }
       ws.addRow([]); // empty row between schools
@@ -338,12 +336,52 @@ window.budgetApp = {
     const blob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `דוח_תקציב_${this.currentMonth}.xlsx`;
+    a.download = `דוח_תקציב_חודשי_${this.currentMonth}.xlsx`;
     a.click();
   },
   
-  exportSchoolToPDF(schoolName) {
+  async exportSchoolToExcel(schoolName) {
+    if (!window.ExcelJS) { alert('ExcelJS לא נטען.'); return; }
+    const data = this.getSchoolData(schoolName);
+    const total = data.expenses.reduce((s, e) => s + (Number(e.amt)||0), 0);
+    const rem = data.budget - total;
+    
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('תקציב ' + schoolName.substring(0, 20));
+    ws.views = [{ rightToLeft: true }];
+    
+    ws.getColumn(1).width = 15;
+    ws.getColumn(2).width = 30;
+    ws.getColumn(3).width = 15;
+    ws.getColumn(4).width = 15;
+    
+    const headerRow = ws.addRow([schoolName, `תקציב: ₪${data.budget}`, `יתרה: ₪${rem}`, '']);
+    headerRow.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
+    
+    const subHeader = ws.addRow(['תאריך', 'שם ספק / תיאור', 'מספר חשבונית', 'סכום']);
+    subHeader.font = { bold: true };
+    subHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+    
+    if(data.expenses.length === 0) {
+      ws.addRow(['אין הוצאות רשומות']);
+    } else {
+      data.expenses.forEach(e => {
+        ws.addRow([e.date||'', e.sup||'', e.inv||'', e.amt||0]);
+      });
+    }
+    
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `דוח_תקציב_${schoolName}_${this.currentMonth}.xlsx`;
+    a.click();
+  },
+  
+  async exportSchoolToPDF(schoolName) {
     if (!window.pdfMake) { alert('pdfMake not loaded'); return; }
+    if (window.initPdfMake) await window.initPdfMake();
     
     const data = this.getSchoolData(schoolName);
     const total = data.expenses.reduce((s, e) => s + (Number(e.amt)||0), 0);

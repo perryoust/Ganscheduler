@@ -686,5 +686,8 @@
       if (window.showToast) window.showToast('❌ שגיאה בהפקת המסמך: ' + e.message, 5000);
     }
   };
+  
+  // Export for other modules (like budget PDF)
+  window.initPdfMake = initPdfMake;
 
 })();
