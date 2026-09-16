@@ -539,15 +539,6 @@ window.budgetApp = {
     if (!window.pdfMake) { alert('pdfMake not loaded'); return; }
     if (window.initPdfMake) await window.initPdfMake();
     
-    // pdfMake requires word-order reversal for correct Hebrew RTL rendering.
-    // We join with non-breaking space (\u00A0) so pdfMake/pdfKit never collapses or drops spaces in Hebrew strings.
-    // We also mirror parentheses so (31) renders correctly in RTL without breaking direction.
-    const rev = (str) => {
-      if (str == null) return '';
-      const mirrored = String(str).replace(/[()]/g, m => m === '(' ? ')' : '(');
-      return mirrored.trim().split(/\s+/).reverse().join('\u00A0');
-    };
-    
     const selectedIds = this.getSelectedExpenseIds(schoolName);
     const data = this.getSchoolData(schoolName);
     const expensesToExport = selectedIds ? data.expenses.filter(e => selectedIds.includes(e.id)) : data.expenses;
@@ -557,19 +548,19 @@ window.budgetApp = {
     
     const tableBody = [
       [
-        {text: rev('סכום'), style: 'th'},
-        {text: rev('חשבונית'), style: 'th'},
-        {text: rev('תאריך'), style: 'th'},
-        {text: rev('ספק'), style: 'th'}
+        {text: 'ספק', style: 'th'},
+        {text: 'תאריך', style: 'th'},
+        {text: 'חשבונית', style: 'th'},
+        {text: 'סכום', style: 'th'}
       ]
     ];
     
     expensesToExport.forEach(e => {
       tableBody.push([
-        {text: (e.amt||0).toLocaleString('he-IL', {minimumFractionDigits:2}) + ' ₪', alignment: 'center'},
-        {text: e.inv||'', alignment: 'center'},
+        {text: e.sup||'', alignment: 'right'},
         {text: e.date||'', alignment: 'center'},
-        {text: rev(e.sup||''), alignment: 'right'}
+        {text: e.inv||'', alignment: 'center'},
+        {text: (e.amt||0).toLocaleString('he-IL', {minimumFractionDigits:2}) + ' ₪', alignment: 'center'}
       ]);
     });
     
@@ -580,15 +571,15 @@ window.budgetApp = {
     const [year, month] = this.currentMonth.split('-');
     const monthNames = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
     const monthName = monthNames[parseInt(month, 10) - 1] || month;
-    content.push({text: rev(`תקציב ${monthName} ${year}`), style: 'header'});
-    content.push({text: rev(`בית ספר ${schoolName}`), style: 'subheader'});
+    content.push({text: `תקציב ${monthName} ${year}`, style: 'header'});
+    content.push({text: `בית ספר ${schoolName}`, style: 'subheader'});
     
     // Subtext budget info
     content.push({text: [
-      {text: `${rem.toLocaleString('he-IL')} :`},
-      {text: `\u00A0${rev('יתרה')}`, color: rem >= 0 ? '#2e7d32' : '#c62828'},
-      {text: `\u00A0\u00A0\u00A0\u00A0${data.budget.toLocaleString('he-IL')} :`},
-      {text: `\u00A0${rev('תקציב מוקצה')}`}
+      {text: `תקציב מוקצה `},
+      {text: `: ${data.budget.toLocaleString('he-IL')}    `},
+      {text: `יתרה `, color: rem >= 0 ? '#2e7d32' : '#c62828'},
+      {text: `: ${rem.toLocaleString('he-IL')}`}
     ], alignment: 'center', fontSize: 12, margin: [0,0,0,15]});
     
     // Table
@@ -596,20 +587,20 @@ window.budgetApp = {
       content.push({
         table: {
           headerRows: 1,
-          widths: ['auto', 'auto', 'auto', '*'],
+          widths: ['*', 'auto', 'auto', 'auto'],
           body: tableBody
         },
         layout: 'lightHorizontalLines'
       });
     } else {
-      content.push({text: rev('אין הוצאות'), alignment: 'center'});
+      content.push({text: 'אין הוצאות', alignment: 'center'});
     }
     
     // Total line
     content.push({
       text: [
-        {text: `${total.toLocaleString('he-IL', {minimumFractionDigits:2})} ₪`},
-        {text: `\u00A0\u00A0${rev('סה"כ הוצאות:')}`, bold: true}
+        {text: `סה"כ הוצאות: `, bold: true},
+        {text: `${total.toLocaleString('he-IL', {minimumFractionDigits:2})} ₪`}
       ],
       style: 'total',
       margin: [0,15,0,0]
@@ -624,19 +615,19 @@ window.budgetApp = {
       // 1. שולם ע"י - [שם]
       const payerName = coord.name || coord.accName;
       if (payerName) {
-        detailLines.push(rev(`שולם ע"י - ${payerName}`));
+        detailLines.push(`שולם ע"י - ${payerName}`);
       }
       
       // 2. שם חשבון
       const accName = coord.accName || coord.name;
       if (accName) {
-        detailLines.push(rev(`שם חשבון - ${accName}`));
+        detailLines.push(`שם חשבון - ${accName}`);
       }
       
       // 3. שם בנק
       if (coord.bankName) {
         const bName = coord.bankName.includes('בנק') ? coord.bankName : `בנק ${coord.bankName}`;
-        detailLines.push(rev(bName));
+        detailLines.push(bName);
       }
       
       // 4. סניף + מספר חשבון
@@ -644,7 +635,7 @@ window.budgetApp = {
         const bPart = coord.branch ? `סניף ${coord.branch}` : '';
         const aPart = coord.account ? `חשבון ${coord.account}` : '';
         const combined = [bPart, aPart].filter(Boolean).join(' | ');
-        detailLines.push(rev(combined));
+        detailLines.push(combined);
       }
       
       detailLines.forEach(line => {
@@ -653,7 +644,7 @@ window.budgetApp = {
     }
     
     const docDefinition = {
-      defaultStyle: { font: 'Assistant', alignment: 'right' },
+      defaultStyle: { font: 'Assistant', alignment: 'right', textDirection: 'rtl' },
       content: content,
       styles: {
         header: { fontSize: 18, bold: true, alignment: 'center', margin: [0, 0, 0, 5] },
