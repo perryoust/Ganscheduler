@@ -539,16 +539,11 @@ window.budgetApp = {
     if (!window.pdfMake) { alert('pdfMake not loaded'); return; }
     if (window.initPdfMake) await window.initPdfMake();
     
-    // pdfMake requires word-order reversal for correct Hebrew RTL rendering
+    // pdfMake requires word-order reversal for correct Hebrew RTL rendering.
+    // We join with non-breaking space (\u00A0) so pdfMake/pdfKit never collapses or drops spaces in Hebrew strings.
     const rev = (str) => {
       if (str == null) return '';
-      return String(str).trim().split(/\s+/).reverse().join(' ');
-    };
-    // For strings that contain numbers mixed with Hebrew, split carefully
-    const revHe = (str) => {
-      if (str == null) return '';
-      // Only reverse the Hebrew words, keep numbers/symbols in place
-      return String(str).trim().split(/\s+/).reverse().join(' ');
+      return String(str).trim().split(/\s+/).reverse().join('\u00A0');
     };
     
     const selectedIds = this.getSelectedExpenseIds(schoolName);
@@ -589,9 +584,9 @@ window.budgetApp = {
     // Subtext budget info
     content.push({text: [
       {text: `${rem.toLocaleString('he-IL')} :`},
-      {text: rev(' יתרה'), color: rem >= 0 ? '#2e7d32' : '#c62828'},
-      {text: `  ${data.budget.toLocaleString('he-IL')} :`},
-      {text: rev(' תקציב מוקצה')}
+      {text: `\u00A0${rev('יתרה')}`, color: rem >= 0 ? '#2e7d32' : '#c62828'},
+      {text: `\u00A0\u00A0\u00A0\u00A0${data.budget.toLocaleString('he-IL')} :`},
+      {text: `\u00A0${rev('תקציב מוקצה')}`}
     ], alignment: 'center', fontSize: 12, margin: [0,0,0,15]});
     
     // Table
@@ -612,7 +607,7 @@ window.budgetApp = {
     content.push({
       text: [
         {text: `${total.toLocaleString('he-IL', {minimumFractionDigits:2})} ₪`},
-        {text: rev(' :סה"כ הוצאות'), bold: true}
+        {text: `\u00A0\u00A0${rev('סה"כ הוצאות:')}`, bold: true}
       ],
       style: 'total',
       margin: [0,15,0,0]
