@@ -3536,11 +3536,18 @@ window.openCanQ = function(id) {
       syncChk.checked = true;
       syncContainer.style.display = 'block';
     } else {
-      const partnerId = pair.ids.find(gid => Number(gid) !== Number(s.g));
-      const partner = window.G(partnerId);
-      if (partner) {
-        const pName = partner.name.startsWith('גן') ? partner.name : `גן ${partner.name}`;
-        syncLabel.innerHTML = `סנכרן גם לגן בן הזוג (<b>${pName}</b>)`;
+      const partnerIds = pair.ids.filter(gid => Number(gid) !== Number(s.g));
+      const pNames = partnerIds.map(pid => {
+         const p = window.G(pid);
+         return p ? (p.name.startsWith('גן') ? p.name : `גן ${p.name}`) : '';
+      }).filter(Boolean).join(', ');
+      
+      if (pNames) {
+        if (partnerIds.length > 1) {
+            syncLabel.innerHTML = `סנכרן גם לשאר הקבוצה (<b>${pNames}</b>)`;
+        } else {
+            syncLabel.innerHTML = `סנכרן גם לגן בן הזוג (<b>${pNames}</b>)`;
+        }
         syncChk.checked = true;
         syncContainer.style.display = 'block';
       } else {
@@ -3684,11 +3691,18 @@ window.openNohapQ = function(id){
       syncChk.checked = true;
       syncContainer.style.display = 'block';
     } else {
-      const partnerId = pair.ids.find(gid => Number(gid) !== Number(s.g));
-      const partner = window.G(partnerId);
-      if (partner) {
-        const pName = partner.name.startsWith('גן') ? partner.name : `גן ${partner.name}`;
-        syncLabel.innerHTML = `סנכרן גם לגן בן הזוג (<b>${pName}</b>)`;
+      const partnerIds = pair.ids.filter(gid => Number(gid) !== Number(s.g));
+      const pNames = partnerIds.map(pid => {
+         const p = window.G(pid);
+         return p ? (p.name.startsWith('גן') ? p.name : `גן ${p.name}`) : '';
+      }).filter(Boolean).join(', ');
+      
+      if (pNames) {
+        if (partnerIds.length > 1) {
+            syncLabel.innerHTML = `סנכרן גם לשאר הקבוצה (<b>${pNames}</b>)`;
+        } else {
+            syncLabel.innerHTML = `סנכרן גם לגן בן הזוג (<b>${pNames}</b>)`;
+        }
         syncChk.checked = true;
         syncContainer.style.display = 'block';
       } else {
