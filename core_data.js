@@ -387,6 +387,7 @@ function _applyYearData(o){
   }
   window.spScannerAliases = o.spScannerAliases || {};
   window.spScannerFolderLinks = o.spScannerFolderLinks || window.spScannerFolderLinks || {};
+  window.schoolBudgets = o.schoolBudgets || {};
 
   const rawPairs = Array.isArray(o.pairs) ? o.pairs : (o.pairs && typeof o.pairs === 'object' ? Object.values(o.pairs) : null);
   if (rawPairs !== null) {

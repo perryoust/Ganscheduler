@@ -13,18 +13,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.81</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 111.82</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=111.81" />
+  <link rel="stylesheet" href="styles.css?v=111.82" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '111.81';
+    window.APP_VERSION = '111.82';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -178,6 +178,8 @@
       title="ניהול והפקת תעודות משלוח (Delivery Notes) לשטח">🚚 תעודות משלוח</div>
     <div class="tab" onclick="SPT('psup')"
       title="ניהול ספקי הרכש, הגדרת סוג ישות (חברה/עוסק), טלפונים ואישורי ניהול ספרים">👥 ניהול ספקים</div>
+    <div class="tab" onclick="SPT('pbudget')"
+      title="פנקס מעקב תקציב פרטני לבתי ספר וצהרונים">💰 ניהול תקציב</div>
   </div>
   <div id="mob-nav">
     <div class="mob-nav-inner">
@@ -1809,6 +1811,22 @@
         </div>
         <div id="pdeliveries-list" class="tw" style="margin-top:10px">
           <div style="color:#aaa;font-size:.8rem;text-align:center;padding:20px">טוען תעודות משלוח...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEW PROCUREMENT PANEL: Budget Management -->
+    <div id="p-pbudget" class="panel" style="display:none; padding-bottom: 20px;">
+      <div class="card" style="margin-bottom:11px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0 8px;gap:15px;flex-wrap:wrap;">
+          <span style="font-weight:700;font-size:.85rem;color:#1a237e;">💰 פנקס מעקב תקציב פרטני</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="month" id="budget-month-picker" onchange="window.budgetApp.loadMonth(this.value)" style="border-radius:5px;border:1.5px solid #c5cae9;padding:5px;font-size:.85rem">
+            <button class="btn bp bsm" onclick="window.budgetApp.exportMonthToExcel()">🚀 אקסל לחודש נוכחי</button>
+          </div>
+        </div>
+        <div id="pbudget-list" class="tw" style="margin-top:10px">
+          <div style="color:#aaa;font-size:.8rem;text-align:center;padding:20px">טוען פנקס תקציבים...</div>
         </div>
       </div>
     </div>
@@ -3837,33 +3855,34 @@
     </div>
 
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <script src="utils.js?v=111.81"></script>
-    <script src="data_manager.js?v=111.81"></script>
-    <script src="data.js?v=111.81"></script>
-    <script src="firebase.js?v=111.81"></script>
-    <script src="invoices.js?v=111.81"></script>
-    <script src="invoices_import.js?v=111.81"></script>
-    <script src="invoices_export.js?v=111.81"></script>
-    <script src="invoices_scanner.js?v=111.81"></script>
-    <script src="suppliers.js?v=111.81"></script>
-    <script src="cal.js?v=111.81"></script>
-    <script src="activity.js?v=111.81"></script>
-    <script src="sched.js?v=111.81"></script>
-    <script src="gardens.js?v=111.81"></script>
-    <script src="export_v107.js?v=111.81"></script>
-    <script src="backup.js?v=111.81"></script>
-    <script src="admin.js?v=111.81"></script>
-    <script src="import_export.js?v=111.81"></script>
-    <script src="core_globals.js?v=111.81"></script>
-    <script src="core_data.js?v=111.81"></script>
-    <script src="core_dash.js?v=111.81"></script>
-    <script src="worker_tasks.js?v=111.81"></script>
-    <script src="coordinator_app.js?v=111.81"></script>
-    <script src="purchasing_orders.js?v=111.81"></script>
-    <script src="pdfmake_orders.js?v=111.81"></script>
-    <script src="core_app.js?v=111.81"></script>
-    <script src="qa_simulator.js?v=111.81"></script>
-    <script src="todo.js?v=111.81"></script>
+    <script src="utils.js?v=111.82"></script>
+    <script src="data_manager.js?v=111.82"></script>
+    <script src="data.js?v=111.82"></script>
+    <script src="firebase.js?v=111.82"></script>
+    <script src="invoices.js?v=111.82"></script>
+    <script src="invoices_import.js?v=111.82"></script>
+    <script src="invoices_export.js?v=111.82"></script>
+    <script src="invoices_scanner.js?v=111.82"></script>
+    <script src="suppliers.js?v=111.82"></script>
+    <script src="cal.js?v=111.82"></script>
+    <script src="activity.js?v=111.82"></script>
+    <script src="sched.js?v=111.82"></script>
+    <script src="gardens.js?v=111.82"></script>
+    <script src="export_v107.js?v=111.82"></script>
+    <script src="backup.js?v=111.82"></script>
+    <script src="admin.js?v=111.82"></script>
+    <script src="import_export.js?v=111.82"></script>
+    <script src="core_globals.js?v=111.82"></script>
+    <script src="core_data.js?v=111.82"></script>
+    <script src="core_dash.js?v=111.82"></script>
+    <script src="worker_tasks.js?v=111.82"></script>
+    <script src="coordinator_app.js?v=111.82"></script>
+    <script src="purchasing_orders.js?v=111.82"></script>
+    <script src="purchasing_budget.js?v=111.82"></script>
+    <script src="pdfmake_orders.js?v=111.82"></script>
+    <script src="core_app.js?v=111.82"></script>
+    <script src="qa_simulator.js?v=111.82"></script>
+    <script src="todo.js?v=111.82"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
       console.log('Ganscheduler Architecture: v' + (window.APP_VERSION || '103.82') + ' Ready');

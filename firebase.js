@@ -340,7 +340,8 @@ async function saveToFirebase(silent = false, force = false) {
       useSraws: typeof window.useSraws !== 'undefined' ? window.useSraws : true,
       spScannerAliases: window.spScannerAliases || {},
       spScannerFolderLinks: window.spScannerFolderLinks || {},
-      todos: window.todo ? window.todo.items : []
+      todos: window.todo ? window.todo.items : [],
+      schoolBudgets: window.schoolBudgets || {}
     };
 
     // Increment Sequence
