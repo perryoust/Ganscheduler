@@ -1669,7 +1669,7 @@ function genExport(){
         groupList.forEach(pair=>{
           const pairEvs=cityEvs.filter(s=>{
             if(!pair.ids || !pair.ids.includes(s.g)) return false;
-            if(window._listGroupMode === 'clusters' && typeof window.gardenClusters === 'function') {
+            if(!splitPairs && window._listGroupMode === 'clusters' && typeof window.gardenClusters === 'function') {
                 const myCls = window.gardenClusters(s.g, date);
                 if(myCls && myCls.length > 0) return myCls[0].id === pair.id;
             }
