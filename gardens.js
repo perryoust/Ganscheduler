@@ -1637,12 +1637,14 @@ function genExport(){
     return '';
   };
 
+  const splitPairs = document.getElementById('ex-split-msg') && document.getElementById('ex-split-msg').checked;
   const byDate={};rel.forEach(s=>{if(!byDate[s.d])byDate[s.d]=[];byDate[s.d].push(s);});
   let text = headerTitle;
   const dates=Object.keys(byDate).sort();
   dates.forEach((date,di)=>{
     const dayIcon = '🗓️';
-    text+=`${dayIcon} *${fD(date)} - יום ${dayN(date)}*\n`;
+    const dateHeader = `${dayIcon} *${fD(date)} - יום ${dayN(date)}*\n`;
+    if (!splitPairs) text += dateHeader;
     const byCity={};
     byDate[date].forEach(s=>{
       const g=G(s.g);const c=g.city||'';
@@ -1655,9 +1657,14 @@ function genExport(){
         const cityEvs=byCity[c];
         const usedIds=new Set();
         
-        const groupList = window._listGroupMode === 'clusters' ? 
+        let groupList = window._listGroupMode === 'clusters' ? 
                           (typeof getClusters==='function' ? getClusters(date, date).map(cl => ({...cl, ids: cl.gardenIds})) : []) : 
                           pairs;
+                          
+        if (splitPairs) {
+           const uniqueGids = [...new Set(cityEvs.map(s=>s.g))];
+           groupList = uniqueGids.map(g => ({id: 'sg_'+g, ids: [g]}));
+        }
 
         groupList.forEach(pair=>{
           const pairEvs=cityEvs.filter(s=>{
@@ -1678,6 +1685,8 @@ function genExport(){
             bySup[key].push(s);
           });
           Object.values(bySup).forEach(group=>{
+            if (splitPairs) text += (text.trim() && !text.endsWith('\n\n') && text !== headerTitle ? '\n' : '') + dateHeader;
+            
             const s0=group[0];
             const actLabel=s0.act||(typeof supAct==='function'?supAct(s0.a):'')||'';
             const supPhone = s0.p || (typeof window.getSupPhone === 'function' ? window.getSupPhone(s0.a) : '') || (SUPBASE.find(sb => sb.name === s0.a) || {}).phone || '';
