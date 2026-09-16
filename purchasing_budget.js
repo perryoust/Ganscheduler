@@ -397,24 +397,24 @@ window.budgetApp = {
     
     const tableBody = [
       [
-        {text: 'סכום', style: 'th'},
-        {text: 'חשבונית', style: 'th'},
+        {text: 'ספק', style: 'th'},
         {text: 'תאריך', style: 'th'},
-        {text: 'ספק', style: 'th'}
+        {text: 'חשבונית', style: 'th'},
+        {text: 'סכום', style: 'th'}
       ]
     ];
     
     data.expenses.forEach(e => {
       tableBody.push([
-        {text: '₪' + (e.amt||0).toLocaleString('he-IL', {minimumFractionDigits:2}), alignment: 'center'},
-        {text: e.inv||'', alignment: 'center'},
+        {text: e.sup||'', alignment: 'right'},
         {text: e.date||'', alignment: 'center'},
-        {text: e.sup||'', alignment: 'right'}
+        {text: e.inv||'', alignment: 'center'},
+        {text: '₪' + (e.amt||0).toLocaleString('he-IL', {minimumFractionDigits:2}), alignment: 'center'}
       ]);
     });
     
     const docDefinition = {
-      defaultStyle: { font: 'Assistant' },
+      defaultStyle: { font: 'Assistant', textDirection: 'rtl', alignment: 'right' },
       content: [
         {text: `תקציב ${this.currentMonth.split('-').reverse().join('/')}`, style: 'header'},
         {text: `בית ספר: ${schoolName}`, style: 'subheader'},
@@ -423,7 +423,7 @@ window.budgetApp = {
         {
           table: {
             headerRows: 1,
-            widths: ['auto', 'auto', 'auto', '*'],
+            widths: ['*', 'auto', 'auto', 'auto'],
             body: tableBody
           },
           layout: 'lightHorizontalLines'
