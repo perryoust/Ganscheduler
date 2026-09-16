@@ -393,7 +393,7 @@ window.budgetApp = {
     
     const rev = (str) => {
       if (str == null) return '';
-      return String(str).split(' ').reverse().join(' ');
+      return String(str).trim().split(/\s+/).reverse().join(' ');
     };
     
     const data = this.getSchoolData(schoolName);
