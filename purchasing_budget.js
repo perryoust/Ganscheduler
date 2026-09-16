@@ -229,12 +229,12 @@ window.budgetApp = {
         <div style="padding:15px; display:flex; flex-direction:column; gap:12px;">
           <input type="hidden" id="bcm-school">
           <div>
-            <label style="font-size:0.85rem; color:#333; font-weight:600; display:block; margin-bottom:4px;">שם חשבון</label>
-            <input type="text" id="bcm-acc-name" placeholder="שם בעל החשבון (למשל: דליה שאול)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit; box-sizing:border-box;">
+            <label style="font-size:0.85rem; color:#333; font-weight:600; display:block; margin-bottom:4px;">שולם ע"י</label>
+            <input type="text" id="bcm-name" placeholder="שם המשלם/ת (למשל: קרנית רייזל)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit; box-sizing:border-box;">
           </div>
           <div>
-            <label style="font-size:0.85rem; color:#333; font-weight:600; display:block; margin-bottom:4px;">שולם ע"י</label>
-            <input type="text" id="bcm-name" placeholder="שם המשלם/ת (למשל: דליה שאול)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit; box-sizing:border-box;">
+            <label style="font-size:0.85rem; color:#333; font-weight:600; display:block; margin-bottom:4px;">שם חשבון</label>
+            <input type="text" id="bcm-acc-name" placeholder="שם בעל/ת החשבון (למשל: קרנית רייזל)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit; box-sizing:border-box;">
           </div>
           <div>
             <label style="font-size:0.85rem; color:#333; font-weight:600; display:block; margin-bottom:4px;">שם בנק</label>
@@ -266,15 +266,15 @@ window.budgetApp = {
     const data = this.getSchoolData(schoolName);
     const coord = data.coordinator || {};
     
-    document.getElementById('bcm-acc-name').value = coord.accName || '';
     document.getElementById('bcm-name').value = coord.name || '';
+    document.getElementById('bcm-acc-name').value = coord.accName || '';
     document.getElementById('bcm-bank').value = coord.bankName || '';
     document.getElementById('bcm-branch').value = coord.branch || '';
     document.getElementById('bcm-account').value = coord.account || '';
     
     div.classList.add('open');
     setTimeout(() => {
-      const firstInput = document.getElementById('bcm-acc-name');
+      const firstInput = document.getElementById('bcm-name');
       if (firstInput) firstInput.focus();
     }, 100);
   },
@@ -541,9 +541,11 @@ window.budgetApp = {
     
     // pdfMake requires word-order reversal for correct Hebrew RTL rendering.
     // We join with non-breaking space (\u00A0) so pdfMake/pdfKit never collapses or drops spaces in Hebrew strings.
+    // We also mirror parentheses so (31) renders correctly in RTL without breaking direction.
     const rev = (str) => {
       if (str == null) return '';
-      return String(str).trim().split(/\s+/).reverse().join('\u00A0');
+      const mirrored = String(str).replace(/[()]/g, m => m === '(' ? ')' : '(');
+      return mirrored.trim().split(/\s+/).reverse().join('\u00A0');
     };
     
     const selectedIds = this.getSelectedExpenseIds(schoolName);
@@ -619,16 +621,16 @@ window.budgetApp = {
       
       const detailLines = [];
       
-      // 1. שם חשבון
-      const accName = coord.accName || coord.name;
-      if (accName) {
-        detailLines.push(rev(`שם חשבון - ${accName}`));
-      }
-      
-      // 2. שולם ע"י - [שם]
+      // 1. שולם ע"י - [שם]
       const payerName = coord.name || coord.accName;
       if (payerName) {
         detailLines.push(rev(`שולם ע"י - ${payerName}`));
+      }
+      
+      // 2. שם חשבון
+      const accName = coord.accName || coord.name;
+      if (accName) {
+        detailLines.push(rev(`שם חשבון - ${accName}`));
       }
       
       // 3. שם בנק
