@@ -60,7 +60,7 @@ window.budgetApp = {
       div.id = 'budget-exp-modal';
       div.className = 'modal';
       div.innerHTML = `
-        <div class="modal-box" style="max-width:400px; padding:0; border-radius:8px; overflow:hidden;">
+        <div class="modal-box" style="max-width:400px; padding:0; border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
           <div style="background:#1a237e; color:#fff; padding:12px 15px; display:flex; justify-content:space-between; align-items:center;">
             <h3 style="margin:0; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
               <span>💰</span> <span id="bem-title">רישום הוצאה</span>
@@ -86,9 +86,12 @@ window.budgetApp = {
               <label style="font-size:0.8rem; color:#666; font-weight:600;">סכום כולל מע"מ (₪)</label>
               <input type="number" id="bem-amt" step="0.01" placeholder="למשל: 1500" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit;">
             </div>
-            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+            <div style="display:flex; justify-content:space-between; margin-top:10px;">
               <button class="btn bw" onclick="document.getElementById('budget-exp-modal').classList.remove('open')">ביטול</button>
-              <button class="btn bp" onclick="window.budgetApp.saveExpenseModal()">שמור נתונים</button>
+              <div style="display:flex; gap:10px;">
+                <button class="btn bo" id="bem-btn-more" onclick="window.budgetApp.saveExpenseModal(true)">שמור והוסף עוד</button>
+                <button class="btn bp" onclick="window.budgetApp.saveExpenseModal(false)">שמור נתונים</button>
+              </div>
             </div>
           </div>
         </div>
@@ -103,6 +106,9 @@ window.budgetApp = {
     document.getElementById('bem-title').innerText = expId ? 'עריכת הוצאה' : 'רישום הוצאה חדשה';
     document.getElementById('bem-school').value = schoolName;
     document.getElementById('bem-id').value = expId || '';
+    
+    // Hide 'Save & Add Another' if editing
+    document.getElementById('bem-btn-more').style.display = expId ? 'none' : 'block';
     
     if (expId) {
       const data = this.getSchoolData(schoolName);
@@ -130,7 +136,7 @@ window.budgetApp = {
     setTimeout(() => document.getElementById('bem-sup').focus(), 100);
   },
 
-  saveExpenseModal() {
+  saveExpenseModal(keepOpen = false) {
     const schoolName = document.getElementById('bem-school').value;
     const expId = document.getElementById('bem-id').value;
     const dateVal = document.getElementById('bem-date').value;
@@ -168,9 +174,18 @@ window.budgetApp = {
       });
     }
     
-    document.getElementById('budget-exp-modal').classList.remove('open');
     this.saveToCloud();
     this.render();
+    
+    if (keepOpen) {
+      // Clear inputs for the next entry
+      document.getElementById('bem-sup').value = '';
+      document.getElementById('bem-inv').value = '';
+      document.getElementById('bem-amt').value = '';
+      document.getElementById('bem-sup').focus();
+    } else {
+      document.getElementById('budget-exp-modal').classList.remove('open');
+    }
   },
 
   saveToCloud() {
