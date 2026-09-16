@@ -212,83 +212,87 @@ window.budgetApp = {
 
   openCoordinatorModal(schoolName) {
     let div = document.getElementById('budget-coord-modal');
-    if (!div) {
-      div = document.createElement('div');
-      div.id = 'budget-coord-modal';
-      div.className = 'modal';
-      div.innerHTML = `
-        <div class="modal-box" style="max-width:400px; padding:0; border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
-          <div style="background:#1a237e; color:#fff; padding:12px 15px; display:flex; justify-content:space-between; align-items:center;">
-            <h3 style="margin:0; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
-              <span>👤</span> פרטי רכז וחשבון בנק
-            </h3>
-            <button onclick="document.getElementById('budget-coord-modal').classList.remove('open')" style="background:none; border:none; color:#fff; cursor:pointer; font-size:1.2rem;">✕</button>
+    if (div) {
+      div.remove();
+    }
+    div = document.createElement('div');
+    div.id = 'budget-coord-modal';
+    div.className = 'modal';
+    div.innerHTML = `
+      <div class="modal-box" style="max-width:420px; padding:0; border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+        <div style="background:#1a237e; color:#fff; padding:12px 15px; display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="margin:0; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
+            <span>👤</span> פרטי רכז וחשבון לתשלום
+          </h3>
+          <button onclick="document.getElementById('budget-coord-modal').classList.remove('open')" style="background:none; border:none; color:#fff; cursor:pointer; font-size:1.2rem;">✕</button>
+        </div>
+        <div style="padding:15px; display:flex; flex-direction:column; gap:12px;">
+          <input type="hidden" id="bcm-school">
+          <div>
+            <label style="font-size:0.85rem; color:#333; font-weight:600; display:block; margin-bottom:4px;">שם חשבון</label>
+            <input type="text" id="bcm-acc-name" placeholder="שם בעל החשבון (למשל: דליה שאול)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit; box-sizing:border-box;">
           </div>
-          <div style="padding:15px; display:flex; flex-direction:column; gap:12px;">
-            <input type="hidden" id="bcm-school">
-            <div>
-              <label style="font-size:0.8rem; color:#666; font-weight:600;">שם הרכז/ת</label>
-              <input type="text" id="bcm-name" placeholder="למשל: קרנית רייזל" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit;">
+          <div>
+            <label style="font-size:0.85rem; color:#333; font-weight:600; display:block; margin-bottom:4px;">שולם ע"י</label>
+            <input type="text" id="bcm-name" placeholder="שם המשלם/ת (למשל: דליה שאול)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit; box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:0.85rem; color:#333; font-weight:600; display:block; margin-bottom:4px;">שם בנק</label>
+            <input type="text" id="bcm-bank" placeholder="למשל: הבינלאומי (31) / הפועלים (12)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit; box-sizing:border-box;">
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:1;">
+              <label style="font-size:0.85rem; color:#333; font-weight:600; display:block; margin-bottom:4px;">סניף</label>
+              <input type="text" id="bcm-branch" placeholder="מס' סניף" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit; box-sizing:border-box;">
             </div>
-            <div>
-              <label style="font-size:0.8rem; color:#666; font-weight:600;">שם הבנק ומספר</label>
-              <input type="text" id="bcm-bank" placeholder="למשל: הבינלאומי (31)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit;">
+            <div style="flex:1.5;">
+              <label style="font-size:0.85rem; color:#333; font-weight:600; display:block; margin-bottom:4px;">מספר חשבון</label>
+              <input type="text" id="bcm-account" placeholder="מספר חשבון" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit; box-sizing:border-box;">
             </div>
-            <div style="display:flex; gap:10px;">
-              <div style="flex:1;">
-                <label style="font-size:0.8rem; color:#666; font-weight:600;">מס' סניף</label>
-                <input type="text" id="bcm-branch" placeholder="למשל: 124" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit;">
-              </div>
-              <div style="flex:2;">
-                <label style="font-size:0.8rem; color:#666; font-weight:600;">מס' חשבון</label>
-                <input type="text" id="bcm-account" placeholder="למשל: 306881" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit;">
-              </div>
-            </div>
-            <div>
-              <label style="font-size:0.8rem; color:#666; font-weight:600;">שם בעל החשבון</label>
-              <input type="text" id="bcm-acc-name" placeholder="למשל: ישראל ישראלי" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit;">
-            </div>
-            <div style="font-size:0.75rem; color:#888; background:#f5f5f5; padding:8px; border-radius:4px; margin-top:5px;">
-              ℹ️ הפרטים יישמרו אוטומטית גם לחודשים הבאים.
-            </div>
-            <div style="display:flex; justify-content:space-between; margin-top:10px;">
-              <button class="btn bw" onclick="document.getElementById('budget-coord-modal').classList.remove('open')">ביטול</button>
-              <button class="btn bp" onclick="window.budgetApp.saveCoordinatorModal()">שמור פרטים</button>
-            </div>
+          </div>
+          <div style="font-size:0.75rem; color:#888; background:#f5f5f5; padding:8px; border-radius:4px; margin-top:5px;">
+            ℹ️ הפרטים יישמרו אוטומטית גם לחודשים הבאים.
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top:10px;">
+            <button class="btn bw" onclick="document.getElementById('budget-coord-modal').classList.remove('open')">ביטול</button>
+            <button class="btn bp" onclick="window.budgetApp.saveCoordinatorModal()">שמור פרטים</button>
           </div>
         </div>
-      `;
-      document.body.appendChild(div);
-    }
+      </div>
+    `;
+    document.body.appendChild(div);
     
     document.getElementById('bcm-school').value = schoolName;
     const data = this.getSchoolData(schoolName);
     const coord = data.coordinator || {};
     
+    document.getElementById('bcm-acc-name').value = coord.accName || '';
     document.getElementById('bcm-name').value = coord.name || '';
     document.getElementById('bcm-bank').value = coord.bankName || '';
     document.getElementById('bcm-branch').value = coord.branch || '';
     document.getElementById('bcm-account').value = coord.account || '';
-    document.getElementById('bcm-acc-name').value = coord.accName || '';
     
     div.classList.add('open');
-    setTimeout(() => document.getElementById('bcm-name').focus(), 100);
+    setTimeout(() => {
+      const firstInput = document.getElementById('bcm-acc-name');
+      if (firstInput) firstInput.focus();
+    }, 100);
   },
 
   saveCoordinatorModal() {
     const schoolName = document.getElementById('bcm-school').value;
+    const accNameVal = document.getElementById('bcm-acc-name').value.trim();
     const nameVal = document.getElementById('bcm-name').value.trim();
     const bankVal = document.getElementById('bcm-bank').value.trim();
     const branchVal = document.getElementById('bcm-branch').value.trim();
     const accountVal = document.getElementById('bcm-account').value.trim();
-    const accNameVal = document.getElementById('bcm-acc-name').value.trim();
     
     const coordData = {
+      accName: accNameVal,
       name: nameVal,
       bankName: bankVal,
       branch: branchVal,
-      account: accountVal,
-      accName: accNameVal
+      account: accountVal
     };
     
     // Save to current month
@@ -384,7 +388,7 @@ window.budgetApp = {
       } else {
         expHtml = `<div style="font-size:0.8rem; color:#888; padding:8px 0;">אין הוצאות רשומות לחודש זה.</div>`;
       }
-      const coordName = data.coordinator && data.coordinator.name ? data.coordinator.name : 'הגדר רכז';
+      const coordName = data.coordinator && (data.coordinator.name || data.coordinator.accName) ? (data.coordinator.name || data.coordinator.accName) : 'הגדר רכז/תשלום';
       html += `
         <div class="card" style="margin-bottom:15px; border-right: 4px solid ${barColor}; padding:15px;">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
@@ -615,15 +619,36 @@ window.budgetApp = {
     });
     
     // Coordinator / bank details at bottom (smaller)
-    if (coord.bankName || coord.account || coord.name) {
+    if (coord.bankName || coord.account || coord.name || coord.accName || coord.branch) {
       content.push({canvas: [{type:'line', x1:0, y1:0, x2:515, y2:0, lineWidth:0.5, lineColor:'#cccccc'}], margin:[0,20,0,15]});
       
       const detailLines = [];
-      if (coord.name) detailLines.push(rev(`שולם ע"י - ${coord.name}`));
-      if (coord.accName && coord.accName !== coord.name) detailLines.push(rev(`${coord.accName} :שם בעל החשבון`));
-      if (coord.bankName) detailLines.push(rev(coord.bankName));
-      if (coord.branch) detailLines.push(rev(`${coord.branch} :סניף`));
-      if (coord.account) detailLines.push(rev(`${coord.account} :מס' חשבון`));
+      
+      // 1. שם חשבון
+      const accName = coord.accName || coord.name;
+      if (accName) {
+        detailLines.push(rev(`שם חשבון - ${accName}`));
+      }
+      
+      // 2. שולם ע"י - [שם]
+      const payerName = coord.name || coord.accName;
+      if (payerName) {
+        detailLines.push(rev(`שולם ע"י - ${payerName}`));
+      }
+      
+      // 3. שם בנק
+      if (coord.bankName) {
+        const bName = coord.bankName.includes('בנק') ? coord.bankName : `בנק ${coord.bankName}`;
+        detailLines.push(rev(bName));
+      }
+      
+      // 4. סניף + מספר חשבון
+      if (coord.branch || coord.account) {
+        const bPart = coord.branch ? `סניף ${coord.branch}` : '';
+        const aPart = coord.account ? `חשבון ${coord.account}` : '';
+        const combined = [bPart, aPart].filter(Boolean).join(' | ');
+        detailLines.push(rev(combined));
+      }
       
       detailLines.forEach(line => {
         content.push({text: line, style: 'coordDetails'});
