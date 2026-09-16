@@ -189,12 +189,19 @@ window.budgetApp = {
   },
 
   deleteExpense(schoolName, expId) {
-    if(!confirm('האם אתה בטוח שברצונך למחוק הוצאה זו?')) return;
-    const data = this.getSchoolData(schoolName);
-    if (!data) return;
-    data.expenses = data.expenses.filter(e => e.id !== expId);
-    this.saveToCloud();
-    this.render();
+    const doDelete = () => {
+      const data = this.getSchoolData(schoolName);
+      if (!data) return;
+      data.expenses = data.expenses.filter(e => e.id !== expId);
+      this.saveToCloud();
+      this.render();
+    };
+
+    if (window.askYesNo) {
+      window.askYesNo('האם אתה בטוח שברצונך למחוק הוצאה זו?', doDelete);
+    } else {
+      if(confirm('האם אתה בטוח שברצונך למחוק הוצאה זו?')) doDelete();
+    }
   },
 
   saveToCloud() {
