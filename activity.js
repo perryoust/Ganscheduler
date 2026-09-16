@@ -2263,7 +2263,7 @@ function saveNt(){
   
   // Synergy Sync: Copy note and status to partner garden if synced
   if(syncChk && syncChk.checked) {
-    const pair = window.gardenPair(s.g);
+    const pair = window.gardenPair(s.g, s.d);
     if(pair) {
       pair.ids.forEach(pId => {
         if(pId === s.g) return;
@@ -2307,7 +2307,7 @@ function markCompManual(id){
   }
 
   if (doSync) {
-    const pair = window.gardenPair(s.g);
+    const pair = window.gardenPair(s.g, s.d);
     const cluster = window.clusters ? Object.values(window.clusters).find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
     
     const allPartnerIds = new Set();
@@ -2338,7 +2338,7 @@ async function markCompQuick(id){
     s._compByMakeup = stamp;
     
     // Sync with partners automatically if it's a pair/cluster (silent sync)
-    const pair = window.gardenPair(s.g);
+    const pair = window.gardenPair(s.g, s.d);
     const cluster = window.clusters ? Object.values(window.clusters).find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
     
     const allPartnerIds = new Set();
@@ -2384,7 +2384,7 @@ function unmarkCompQuick(id){
     }
 
     // Unmark partners automatically if they share the same timestamp (silent sync)
-    const pair = window.gardenPair(s.g);
+    const pair = window.gardenPair(s.g, s.d);
     const cluster = window.clusters ? Object.values(window.clusters).find(c => c.gids && c.gids.map(Number).includes(Number(s.g))) : null;
     
     const allPartnerIds = new Set();
@@ -3525,7 +3525,7 @@ window.openCanQ = function(id) {
   if(noteEl) noteEl.value = '';
   document.querySelectorAll('.can-reason-btn').forEach(b => b.classList.remove('sel'));
   
-  const pair = window.gardenPair(s.g);
+  const pair = window.gardenPair(s.g, s.d);
   const syncContainer = document.getElementById('canq-sync-container');
   const syncLabel = document.getElementById('canq-sync-label');
   const syncChk = document.getElementById('canq-sync-chk');
@@ -3585,7 +3585,7 @@ window.saveCanQ = async function() {
   
   doCancel(_canQId);
   if (forPair) {
-    const pair = window.gardenPair(s.g);
+    const pair = window.gardenPair(s.g, s.d);
     if (pair) {
       pair.ids.filter(gid => Number(gid) !== Number(s.g)).forEach(gid => {
         const pEv = window.findPartnerActivity(gid, s.d, s.a);
@@ -3673,8 +3673,7 @@ window.openNohapQ = function(id){
   const reasonEl = document.getElementById('nohapq-reason');
   if(reasonEl) reasonEl.value='';
   document.querySelectorAll('.nohap-reason-btn').forEach(b=>b.classList.remove('sel'));
-
-  const pair=window.gardenPair(s.g);
+  const pair=window.gardenPair(s.g, s.d);
   const syncContainer = document.getElementById('nohapq-sync-container');
   const syncLabel = document.getElementById('nohapq-sync-label');
   const syncChk = document.getElementById('nohapq-sync-chk');
@@ -3737,7 +3736,7 @@ window.saveNohapQ = async function(){
   doNohap(_nohapQId);
   
   // Sync pair if exists and checkbox is checked (also check _spSyncPartnerNext from spRowStatusChg)
-  const pair = window.gardenPair(s.g);
+  const pair = window.gardenPair(s.g, s.d);
   const syncChk = document.getElementById('nohapq-sync-chk');
   // _spSyncPartnerNext is set by spRowStatusChg before opening this modal
   const presetSync = (typeof window._spSyncPartnerNext !== 'undefined') ? window._spSyncPartnerNext : true;
