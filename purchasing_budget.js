@@ -244,6 +244,10 @@ window.budgetApp = {
                 <input type="text" id="bcm-account" placeholder="למשל: 306881" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit;">
               </div>
             </div>
+            <div>
+              <label style="font-size:0.8rem; color:#666; font-weight:600;">שם בעל החשבון</label>
+              <input type="text" id="bcm-acc-name" placeholder="למשל: ישראל ישראלי" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:inherit;">
+            </div>
             <div style="font-size:0.75rem; color:#888; background:#f5f5f5; padding:8px; border-radius:4px; margin-top:5px;">
               ℹ️ הפרטים יישמרו אוטומטית גם לחודשים הבאים.
             </div>
@@ -265,6 +269,7 @@ window.budgetApp = {
     document.getElementById('bcm-bank').value = coord.bankName || '';
     document.getElementById('bcm-branch').value = coord.branch || '';
     document.getElementById('bcm-account').value = coord.account || '';
+    document.getElementById('bcm-acc-name').value = coord.accName || '';
     
     div.classList.add('open');
     setTimeout(() => document.getElementById('bcm-name').focus(), 100);
@@ -276,12 +281,14 @@ window.budgetApp = {
     const bankVal = document.getElementById('bcm-bank').value.trim();
     const branchVal = document.getElementById('bcm-branch').value.trim();
     const accountVal = document.getElementById('bcm-account').value.trim();
+    const accNameVal = document.getElementById('bcm-acc-name').value.trim();
     
     const coordData = {
       name: nameVal,
       bankName: bankVal,
       branch: branchVal,
-      account: accountVal
+      account: accountVal,
+      accName: accNameVal
     };
     
     // Save to current month
@@ -596,7 +603,7 @@ window.budgetApp = {
       if (coord.branch) content.push({text: rev(`סניף ${coord.branch}`), style: 'bankDetails', margin: [0, 0, 0, 5]});
       content.push({text: rev(`מס' חשבון:`), style: 'bankDetails'});
       content.push({text: rev(coord.account || ''), style: 'bankDetails', margin: [0, 0, 0, 5]});
-      content.push({text: rev(coord.name || ''), style: 'bankDetails', margin: [0, 0, 0, 10]});
+      content.push({text: rev(coord.accName || coord.name || ''), style: 'bankDetails', margin: [0, 0, 0, 10]});
       content.push({text: rev(`סה"כ להעברה - ${total.toLocaleString('he-IL')} ש"ח`), style: 'totalTransfer'});
     } else {
       content.push({text: rev(`סה"כ הוצאות : ₪ ${total.toLocaleString('he-IL', {minimumFractionDigits:2})}`), style: 'total', margin: [0,20,0,0]});
