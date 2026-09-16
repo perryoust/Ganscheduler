@@ -188,6 +188,15 @@ window.budgetApp = {
     }
   },
 
+  deleteExpense(schoolName, expId) {
+    if(!confirm('האם אתה בטוח שברצונך למחוק הוצאה זו?')) return;
+    const data = this.getSchoolData(schoolName);
+    if (!data) return;
+    data.expenses = data.expenses.filter(e => e.id !== expId);
+    this.saveToCloud();
+    this.render();
+  },
+
   saveToCloud() {
     if(window.saveToFirebase) {
       window.saveToFirebase(true); // silent save
