@@ -1138,7 +1138,7 @@ function goToTodayActivities(){
   },50);
 }
 
-const MAX_SNAPSHOTS=20;
+const MAX_SNAPSHOTS=5;
 document.querySelectorAll('.modal').forEach(m=>{m.onclick=e=>{if(e.target===m) { if(m.id && window.CM) window.CM(m.id); else m.classList.remove('open'); };}});
 
 

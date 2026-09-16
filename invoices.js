@@ -2201,6 +2201,7 @@ window.saveQuickAddRow = async function() {
   window.showToast('✅ נוסף בהצלחה (הזנה מהירה)');
   
   if(window._safeLS) window._safeLS.setItem('ganv5_invoices', JSON.stringify(window.INVOICES));
+  if (window.saveInvoiceToFirebase) window.saveInvoiceToFirebase(inv).catch(e => console.warn('[Invoices] Quick add auto-save failed:', e));
   if(typeof window.saveToFirebase === 'function') await window.saveToFirebase(true, true);
   else if(typeof window.save === 'function') await window.save(true);
   

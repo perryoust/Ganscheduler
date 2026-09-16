@@ -418,9 +418,14 @@ async function saveToFirebase(silent = false, force = false) {
     }
 
     // Save Invoices Separately (never overwrite if only partially loaded!)
-    if (!window._invoicesPartialLoad && !window._invoicesKeyedMode && Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
+    if (!window._invoicesPartialLoad && Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
       const invUrl = getFirebaseInvoicesUrl() + authQ;
-      const invResp = await fetch(invUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.INVOICES) });
+      let bodyData = window.INVOICES;
+      if (window._invoicesKeyedMode) {
+        bodyData = {};
+        window.INVOICES.forEach(inv => { if(inv && inv.id) bodyData[inv.id] = inv; });
+      }
+      const invResp = await fetch(invUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bodyData) });
       if (!invResp.ok) {
         console.error('[Sync] ❌ Invoices save FAILED:', invResp.status, invResp.statusText);
         window.showToast?.('⚠️ שגיאה בשמירת חשבוניות לענן! (' + invResp.status + ')');
@@ -1103,6 +1108,8 @@ window._migrateInvoicesToKeyed = async function() {
   
   if (resp.ok) {
     console.log('[Migration] ✅ Invoices migrated to keyed format:', Object.keys(keyed).length, 'records');
+    window._invoicesKeyedMode = true;
+    if (window._safeLS) window._safeLS.setItem('_invoicesKeyedMode', '1');
   } else {
     console.error('[Migration] ❌ Failed to migrate invoices');
   }

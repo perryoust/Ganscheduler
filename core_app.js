@@ -3,6 +3,9 @@ window.onload = function(){
   // Auth is handled by onAuthStateChanged in index.html (Firebase module)
   // _onAuthReady is called once user is authenticated
   window._onAuthReady = async function(){
+    if (window._safeLS && window._safeLS.getItem('_invoicesKeyedMode') === '1') {
+      window._invoicesKeyedMode = true;
+    }
     cleanupStaleLocalStorage();
 
     // 0. Sync years/periods metadata from Firebase (must run before loadFromFirebase)

@@ -3,9 +3,16 @@ function saveSnapshots(snaps){try{window._safeLS.setItem('ganv5_snaps',JSON.stri
 function createSnapshot(label){
   const snaps=getSnapshots();
   const data=window._safeLS.getItem('ganv5')||'{}';
+  const isAuto = (label==='שעתי'||label==='סגירה');
+  if (isAuto && data.length > 500000) {
+    console.log('[Backup] Skipping auto snapshot — data too large (' + Math.round(data.length/1024) + 'KB)');
+    return;
+  }
   snaps.unshift({ts:Date.now(),label:label||'ידני',size:data.length,data});
-  if(snaps.length>MAX_SNAPSHOTS) snaps.length=MAX_SNAPSHOTS;
-  saveSnapshots(snaps);
+  const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  const filtered = snaps.filter(s => s.ts > sevenDaysAgo || s.label === 'ידני');
+  if(filtered.length>MAX_SNAPSHOTS) filtered.length=MAX_SNAPSHOTS;
+  saveSnapshots(filtered);
   const quiet=label==='שעתי'||label==='סגירה';
   if(!quiet) window.showCopyToast('✅ גרסה נשמרה: '+new Date().toLocaleTimeString('he-IL'));
   if(document.getElementById('backup-list')&&document.getElementById('backup-list').innerHTML) renderBackupList();
@@ -219,7 +226,7 @@ function exportFullBackup(){
   const data={
     version:2,
     exported:new Date().toISOString(),
-    ch:SCH.map(s=>({id:s.id,g:s.g,d:s.d,a:s.a,t:s.t,p:s.p,n:s.n,st:s.st,cr:s.cr,cn:s.cn,nt:s.nt,pd:s.pd,pt:s.pt,grp:s.grp,act:s.act||''})),
+    ch:SCH.map(s=>{const o={id:s.id,g:s.g,d:s.d,a:s.a,t:s.t,st:s.st,grp:s.grp||1};if(s.p)o.p=s.p;if(s.n)o.n=s.n;if(s.cr)o.cr=s.cr;if(s.cn)o.cn=s.cn;if(s.nt)o.nt=s.nt;if(s.pd)o.pd=s.pd;if(s.pt)o.pt=s.pt;if(s.act)o.act=s.act;if(s._isMakeup)o._isMakeup=s._isMakeup;if(s._makeupFrom)o._makeupFrom=s._makeupFrom;if(s._compByMakeup)o._compByMakeup=s._compByMakeup;return o;}),
     pairs,supEx,clusters,holidays,pairBreaks,
     managers:typeof managers!=='undefined'?managers:{},
     blockedDates:typeof blockedDates!=='undefined'?blockedDates:{},
