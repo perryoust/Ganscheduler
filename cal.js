@@ -2592,7 +2592,6 @@ function renderRangeListView(evs, fromDs, toDs){
 
         const clEvs = cityEvs.filter(s => {
           if (!(cl.gardenIds || []).map(Number).includes(Number(s.g))) return false;
-          if (firstUsedGids.has(Number(s.g))) return false;
           if (typeof window.gardenClusters === 'function') {
              const myCls = window.gardenClusters(s.g, ds);
              if (myCls && myCls.length > 0) return myCls[0].id === cl.id;
@@ -2633,7 +2632,7 @@ function renderRangeListView(evs, fromDs, toDs){
           if (pCity !== city) return;
           
           if(isPairBroken && isPairBroken(pair.id, ds)) return;
-          const pairEvs = cityEvs.filter(s => pair.ids.map(Number).includes(Number(s.g)) && !firstUsedGids.has(Number(s.g)));
+          const pairEvs = cityEvs.filter(s => pair.ids.map(Number).includes(Number(s.g)));
           
           if (!pairEvs.length) return;
           
