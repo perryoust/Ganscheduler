@@ -809,12 +809,14 @@ window.spBatchSaveNt = function() {
 
 window.spRowTimeChg = function(id, val) {
   const s = window.getSchById(id);
-  if(s) {
-    s.t = val;
-    // Save without forcing a re-render of the modal so it doesn't jump while typing
-    window.saveAndRefresh(null, true);
-    if(window.showToast) window.showToast('✅ השעה נשמרה');
-  }
+  if(!s) return;
+  s.t = val || '';
+  // Save without re-rendering the open modal so user typing/focus is never interrupted
+  if(typeof window.save === 'function') window.save();
+  if(typeof window.renderCal === 'function') window.renderCal();
+  if(typeof window.updCounts === 'function') window.updCounts();
+  if(window.currentTab === 'sched' && typeof window.renderSched === 'function') window.renderSched();
+  if(window.showToast) window.showToast('✅ השעה נשמרה');
 };
 
 window.openSP = function(id) {
