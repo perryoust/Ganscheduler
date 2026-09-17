@@ -536,20 +536,17 @@ window.budgetApp = {
   },
   
   async exportSchoolToPDF(schoolName) {
-    if (!window.pdfMake) { alert('pdfMake not loaded'); return; }
-    if (window.initPdfMake) await window.initPdfMake();
-    
-    // Character-level visual RTL reversing that preserves numbers, dates, and English.
-    const rev = (str) => {
-      if (str == null) return '';
-      // 1. Reverse all characters
-      const reversedStr = String(str).split('').reverse().join('');
-      // 2. Fix blocks of numbers, English letters, and standard punctuation (dates, decimals)
-      const fixedNums = reversedStr.replace(/([0-9a-zA-Z.,:/\\-]+)/g, match => match.split('').reverse().join(''));
-      // 3. Swap parentheses since visual RTL flips their opening/closing direction
-      return fixedNums.replace(/[()]/g, m => m === '(' ? ')' : '(');
-    };
-    
+    if (typeof html2pdf === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+      s.onload = () => this.exportSchoolToPDF(schoolName);
+      s.onerror = () => { if (window.showToast) window.showToast('❌ שגיאה בטעינת ספריית PDF', 4000); };
+      document.head.appendChild(s);
+      return;
+    }
+
+    if (window.showLoading) window.showLoading('מפיק דו"ח PDF...');
+
     const selectedIds = this.getSelectedExpenseIds(schoolName);
     const data = this.getSchoolData(schoolName);
     const expensesToExport = selectedIds ? data.expenses.filter(e => selectedIds.includes(e.id)) : data.expenses;
@@ -557,117 +554,111 @@ window.budgetApp = {
     const total = expensesToExport.reduce((s, e) => s + (Number(e.amt)||0), 0);
     const rem = data.budget - total;
     
-    // Table is drawn LTR, so index 0 is left (סכום), index 3 is right (ספק).
-    const tableBody = [
-      [
-        {text: rev('סכום'), style: 'th'},
-        {text: rev('חשבונית'), style: 'th'},
-        {text: rev('תאריך'), style: 'th'},
-        {text: rev('ספק'), style: 'th'}
-      ]
-    ];
-    
-    expensesToExport.forEach(e => {
-      tableBody.push([
-        {text: rev((e.amt||0).toLocaleString('he-IL', {minimumFractionDigits:2}) + ' ₪'), alignment: 'center'},
-        {text: rev(e.inv||''), alignment: 'center'},
-        {text: rev(e.date||''), alignment: 'center'},
-        {text: rev(e.sup||''), alignment: 'right'}
-      ]);
-    });
-    
-    const coord = data.coordinator || {};
-    const content = [];
-    
-    // Header
     const [year, month] = this.currentMonth.split('-');
     const monthNames = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
     const monthName = monthNames[parseInt(month, 10) - 1] || month;
-    content.push({text: rev(`תקציב ${monthName} ${year}`), style: 'header'});
-    content.push({text: rev(`בית ספר ${schoolName}`), style: 'subheader'});
-    
-    // Subtext budget info (Visual LTR: Rem value, Rem label, Budget value, Budget label)
-    content.push({text: [
-      {text: rem.toLocaleString('he-IL'), color: rem >= 0 ? '#2e7d32' : '#c62828'},
-      {text: rev(' :יתרה    ')},
-      {text: data.budget.toLocaleString('he-IL')},
-      {text: rev(' :תקציב מוקצה')}
-    ], alignment: 'center', fontSize: 12, margin: [0,0,0,15]});
-    
-    // Table
-    if (expensesToExport.length > 0) {
-      content.push({
-        table: {
-          headerRows: 1,
-          widths: ['auto', 'auto', 'auto', '*'],
-          body: tableBody
-        },
-        layout: 'lightHorizontalLines'
-      });
+
+    let rowsHtml = '';
+    if (expensesToExport.length === 0) {
+      rowsHtml = `<tr><td colspan="4" style="text-align:center; padding: 20px;">אין הוצאות</td></tr>`;
     } else {
-      content.push({text: rev('אין הוצאות'), alignment: 'center'});
+      expensesToExport.forEach(e => {
+        rowsHtml += `
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #eee;">${e.sup || ''}</td>
+            <td style="text-align:center; padding: 10px; border-bottom: 1px solid #eee;">${e.date || ''}</td>
+            <td style="text-align:center; padding: 10px; border-bottom: 1px solid #eee;">${e.inv || ''}</td>
+            <td style="text-align:center; padding: 10px; border-bottom: 1px solid #eee;">${(e.amt||0).toLocaleString('he-IL', {minimumFractionDigits:2})} ₪</td>
+          </tr>
+        `;
+      });
     }
-    
-    // Total line (Visual LTR: Amount, Label)
-    content.push({
-      text: [
-        {text: rev(`${total.toLocaleString('he-IL', {minimumFractionDigits:2})} ₪`)},
-        {text: `  ${rev('סה"כ הוצאות:')}`, bold: true}
-      ],
-      style: 'total',
-      margin: [0,15,0,0]
-    });
-    
-    // Coordinator / bank details at bottom (smaller)
+
+    const coord = data.coordinator || {};
+    let footerHtml = '';
     if (coord.bankName || coord.account || coord.name || coord.accName || coord.branch) {
-      content.push({canvas: [{type:'line', x1:0, y1:0, x2:515, y2:0, lineWidth:0.5, lineColor:'#cccccc'}], margin:[0,20,0,15]});
-      
       const detailLines = [];
-      
-      // 1. שולם ע"י - [שם]
       const payerName = coord.name || coord.accName;
-      if (payerName) {
-        detailLines.push(rev(`שולם ע"י - ${payerName}`));
-      }
+      if (payerName) detailLines.push(`שולם ע"י - ${payerName}`);
       
-      // 2. שם חשבון
       const accName = coord.accName || coord.name;
-      if (accName) {
-        detailLines.push(rev(`שם חשבון - ${accName}`));
-      }
+      if (accName) detailLines.push(`שם חשבון - ${accName}`);
       
-      // 3. שם בנק
       if (coord.bankName) {
-        const bName = coord.bankName.includes('בנק') ? coord.bankName : `בנק ${coord.bankName}`;
-        detailLines.push(rev(bName));
+        detailLines.push(coord.bankName.includes('בנק') ? coord.bankName : `בנק ${coord.bankName}`);
       }
       
-      // 4. סניף + מספר חשבון
       if (coord.branch || coord.account) {
         const bPart = coord.branch ? `סניף ${coord.branch}` : '';
         const aPart = coord.account ? `חשבון ${coord.account}` : '';
-        const combined = [bPart, aPart].filter(Boolean).join(' | ');
-        detailLines.push(rev(combined));
+        detailLines.push([bPart, aPart].filter(Boolean).join(' | '));
       }
       
-      detailLines.forEach(line => {
-        content.push({text: line, style: 'coordDetails'});
-      });
+      footerHtml = `
+        <div style="margin-top: 40px; border-top: 1px solid #ccc; padding-top: 20px; font-size: 11pt; color: #555; text-align: center;">
+          ${detailLines.map(line => `<div>${line}</div>`).join('')}
+        </div>
+      `;
     }
-    
-    const docDefinition = {
-      defaultStyle: { font: 'Assistant', alignment: 'right' },
-      content: content,
-      styles: {
-        header: { fontSize: 18, bold: true, alignment: 'center', margin: [0, 0, 0, 5] },
-        subheader: { fontSize: 15, bold: true, alignment: 'center', margin: [0, 0, 0, 5] },
-        th: { bold: true, fillColor: '#eeeeee', alignment: 'center' },
-        total: { fontSize: 15, bold: true, alignment: 'center' },
-        coordDetails: { fontSize: 10, alignment: 'center', color: '#555', margin: [0, 2, 0, 2] }
-      }
+
+    const html = `
+      <div id="pdf-export-content" style="padding: 40px; font-family: Assistant, Arial, sans-serif; direction: rtl; background: #fff; color: #333; width: 794px; box-sizing: border-box;">
+        <h1 style="text-align: center; margin: 0 0 5px 0; font-size: 24pt;">תקציב ${monthName} ${year}</h1>
+        <h2 style="text-align: center; margin: 0 0 15px 0; font-size: 16pt; font-weight: normal;">בית ספר ${schoolName}</h2>
+        
+        <div style="text-align: center; margin-bottom: 25px; font-size: 14pt;">
+          <span>תקציב מוקצה: <strong>${data.budget.toLocaleString('he-IL')}</strong></span>
+          <span style="margin: 0 15px;">|</span>
+          <span>יתרה: <strong style="color: ${rem >= 0 ? '#2e7d32' : '#c62828'};">${rem.toLocaleString('he-IL')}</strong></span>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12pt;">
+          <thead>
+            <tr style="background-color: #f5f5f5; border-bottom: 2px solid #ddd; border-top: 1px solid #ddd;">
+              <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">ספק</th>
+              <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd; width: 120px;">תאריך</th>
+              <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd; width: 120px;">חשבונית</th>
+              <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd; width: 120px;">סכום</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+
+        <div style="margin-top: 20px; font-size: 14pt; font-weight: bold; text-align: right;">
+          סה"כ הוצאות: ${total.toLocaleString('he-IL', {minimumFractionDigits:2})} ₪
+        </div>
+
+        ${footerHtml}
+      </div>
+    `;
+
+    const container = document.createElement('div');
+    container.style.cssText = 'position:absolute; top:-99999px; left:-99999px;';
+    container.innerHTML = html;
+    document.body.appendChild(container);
+
+    const target = container.firstElementChild;
+    const opt = {
+      margin:       0,
+      filename:     `תקציב_${schoolName.replace(/["'/\\:]/g, '_')}_${year}_${month}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
-    
-    pdfMake.createPdf(docDefinition).download(`תקציב_${schoolName}_${this.currentMonth}.pdf`);
+
+    try {
+      await html2pdf().set(opt).from(target).save();
+      if (window.hideLoading) window.hideLoading();
+      if (window.showToast) window.showToast('✅ הקובץ הורד בהצלחה!', 3000);
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      if (window.hideLoading) window.hideLoading();
+      if (window.showToast) window.showToast('❌ שגיאה בהורדת הקובץ', 4000);
+    } finally {
+      if (container.parentNode) container.parentNode.removeChild(container);
+    }
   }
 };
 
