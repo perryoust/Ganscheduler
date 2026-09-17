@@ -558,17 +558,42 @@ window.budgetApp = {
     const monthNames = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
     const monthName = monthNames[parseInt(month, 10) - 1] || month;
 
+    const rtlFix = (str) => {
+      if (!str) return '';
+      let escaped = String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+        
+      escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
+      escaped = escaped.replace(/\n/g, ' <br> ');
+      
+      const tokens = escaped.split(' ');
+      const fixedTokens = tokens.map(token => {
+        if (!token.includes('&') && !token.includes('<') && !token.includes('>')) {
+          if (/[a-zA-Z0-9]/.test(token) && /^[a-zA-Z0-9\-_.,:;/'"()]+$/.test(token)) {
+            return `<span style="display:inline-block;direction:ltr;">${token}</span>`;
+          }
+        }
+        return token;
+      });
+      
+      return fixedTokens.join('___SPACE___')
+        .replace(/___SPACE___<br>___SPACE___/g, '<br>')
+        .replace(/___SPACE___/g, '<span style="display:inline-block; width:0.25em;"> </span>');
+    };
+
     let rowsHtml = '';
     if (expensesToExport.length === 0) {
-      rowsHtml = `<tr><td colspan="4" style="text-align:center; padding: 20px;">אין הוצאות</td></tr>`;
+      rowsHtml = `<tr><td colspan="4" style="text-align:center; padding: 20px;">${rtlFix("אין הוצאות")}</td></tr>`;
     } else {
       expensesToExport.forEach(e => {
         rowsHtml += `
           <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;">${e.sup || ''}</td>
-            <td style="text-align:center; padding: 10px; border-bottom: 1px solid #eee;">${e.date || ''}</td>
-            <td style="text-align:center; padding: 10px; border-bottom: 1px solid #eee;">${e.inv || ''}</td>
-            <td style="text-align:center; padding: 10px; border-bottom: 1px solid #eee;">${(e.amt||0).toLocaleString('he-IL', {minimumFractionDigits:2})} ₪</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee;">${rtlFix(e.sup || '')}</td>
+            <td style="text-align:center; padding: 10px; border-bottom: 1px solid #eee;">${rtlFix(e.date || '')}</td>
+            <td style="text-align:center; padding: 10px; border-bottom: 1px solid #eee;">${rtlFix(e.inv || '')}</td>
+            <td style="text-align:center; padding: 10px; border-bottom: 1px solid #eee;">${rtlFix((e.amt||0).toLocaleString('he-IL', {minimumFractionDigits:2}) + ' ₪')}</td>
           </tr>
         `;
       });
@@ -596,20 +621,20 @@ window.budgetApp = {
       
       footerHtml = `
         <div style="margin-top: 40px; border-top: 1px solid #ccc; padding-top: 20px; font-size: 11pt; color: #555; text-align: center;">
-          ${detailLines.map(line => `<div>${line}</div>`).join('')}
+          ${detailLines.map(line => `<div>${rtlFix(line)}</div>`).join('')}
         </div>
       `;
     }
 
     const html = `
       <div id="pdf-export-content" style="padding: 40px; font-family: Assistant, Arial, sans-serif; direction: rtl; background: #fff; color: #333; width: 794px; box-sizing: border-box;">
-        <h1 style="text-align: center; margin: 0 0 5px 0; font-size: 24pt;">תקציב ${monthName} ${year}</h1>
-        <h2 style="text-align: center; margin: 0 0 15px 0; font-size: 16pt; font-weight: normal;">בית ספר ${schoolName}</h2>
+        <h1 style="text-align: center; margin: 0 0 5px 0; font-size: 24pt;">${rtlFix('תקציב ' + monthName + ' ' + year)}</h1>
+        <h2 style="text-align: center; margin: 0 0 15px 0; font-size: 16pt; font-weight: normal;">${rtlFix('בית ספר ' + schoolName)}</h2>
         
         <div style="text-align: center; margin-bottom: 25px; font-size: 14pt;">
-          <span>תקציב מוקצה: <strong>${data.budget.toLocaleString('he-IL')}</strong></span>
+          <span>${rtlFix('תקציב מוקצה: ')}${rtlFix(data.budget.toLocaleString('he-IL'))}</span>
           <span style="margin: 0 15px;">|</span>
-          <span>יתרה: <strong style="color: ${rem >= 0 ? '#2e7d32' : '#c62828'};">${rem.toLocaleString('he-IL')}</strong></span>
+          <span>${rtlFix('יתרה: ')}<strong style="color: ${rem >= 0 ? '#2e7d32' : '#c62828'};">${rtlFix(rem.toLocaleString('he-IL'))}</strong></span>
         </div>
 
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12pt;">
@@ -627,22 +652,16 @@ window.budgetApp = {
         </table>
 
         <div style="margin-top: 20px; font-size: 14pt; font-weight: bold; text-align: right;">
-          סה"כ הוצאות: ${total.toLocaleString('he-IL', {minimumFractionDigits:2})} ₪
+          ${rtlFix('סה"כ הוצאות: ' + total.toLocaleString('he-IL', {minimumFractionDigits:2}) + ' ₪')}
         </div>
 
         ${footerHtml}
       </div>
     `;
 
-    // Fix html2canvas RTL bug that swallows spaces between words and numbers.
-    // Replace all regular spaces inside text nodes with non-breaking spaces (&nbsp;)
-    const processedHtml = html.replace(/>([^<]+)</g, (match, text) => {
-      return '>' + text.replace(/ /g, '&nbsp;') + '<';
-    });
-
     const container = document.createElement('div');
     container.style.cssText = 'position:absolute; top:-99999px; left:-99999px;';
-    container.innerHTML = processedHtml;
+    container.innerHTML = html;
     document.body.appendChild(container);
 
     const target = container.firstElementChild;
