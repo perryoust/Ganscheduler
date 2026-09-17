@@ -907,6 +907,21 @@ async function exportToExcel(data, filename, opts = {}) {
               formattedNote = formattedNote.replace(/(✅|☑️)?\s*טופל:\s*טופל(\s*\|\s*)?/g, '').trim();
               formattedNote = formattedNote.replace(/^\|\s*|\s*\|$/g, '').trim();
               
+              // בדוחות ספקים (דוח שיבוצים ודוח סיכום פעילות): ספק לא צריך לדעת על איזה תאריך או ספק אחר הוא משלים
+              if (formattedNote) {
+                const parts = formattedNote.split('|').map(part => {
+                  let p = part.trim();
+                  if (/השלמה/i.test(p)) {
+                    if (/^השלמה/i.test(p)) {
+                      return 'השלמה';
+                    }
+                    p = p.replace(/(?:כ)?השלמה\s*(על|מיום|מ|עבור|במקום|ל|[-:—–])\s*[^|,)]*/gi, 'השלמה').trim();
+                  }
+                  return p;
+                }).filter(Boolean);
+                formattedNote = Array.from(new Set(parts)).join(' | ');
+              }
+              
               const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
               const dayStr = 'יום ' + dayNames[new Date(s.d).getDay()];
               

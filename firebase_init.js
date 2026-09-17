@@ -5,7 +5,7 @@ import {
   createUserWithEmailAndPassword,
   setPersistence, browserLocalPersistence, browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, onValue, goOnline, goOffline } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDiUrCk_eOQ_bmAc1ZCXrSaelG-HpaTLfA",
@@ -20,6 +20,35 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
+
+window._fbGoOnline = () => {
+  try {
+    goOnline(db);
+    console.log('[Firebase] Connection restored via goOnline');
+  } catch (e) {
+    console.warn('[Firebase] goOnline error:', e);
+  }
+};
+
+// Handle Back-Forward Cache (bfcache) restoration
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) {
+    console.log('[Firebase] Page restored from Back-Forward Cache (bfcache). Reconnecting...');
+    window._fbGoOnline();
+  }
+});
+
+// Handle tab visibility change (user returns to tab)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    window._fbGoOnline();
+  }
+});
+
+// Handle device coming back online
+window.addEventListener('online', () => {
+  window._fbGoOnline();
+});
 
 // REALTIME LISTENER FOR WORKER TASKS
 onAuthStateChanged(auth, (user) => {

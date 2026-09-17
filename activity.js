@@ -2756,7 +2756,7 @@ async function doPostpone(){
       s.st = 'post';
       s.pd = newDate;
       s.pt = window.fT(s.t);
-      s.cn += reason ? ` (דחייה: ${reason})` : '';
+      s.cn = (s.cn || '') + (reason ? ` (דחייה: ${reason})` : '');
       s._compByMakeup = newId1; // Mark original as handled
 
       const labelText = isPostpone ? 'נדחה' : 'הקדמה';
@@ -2767,6 +2767,7 @@ async function doPostpone(){
         nt: (s.nt ? s.nt + ' | ' : '') + `${labelText} מיום ` + window.fD(s.d)
       };
       delete newEv1._recId;
+      delete newEv1._compByMakeup;
       if(reason) newEv1.n = s.n ? s.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
       window.SCH.push(newEv1);
     }
@@ -2778,7 +2779,7 @@ async function doPostpone(){
         conf.pEv.st = 'post';
         conf.pEv.pd = newDate;
         conf.pEv.pt = conf.syn.t || conf.pEv.t;
-        if(reason) conf.pEv.cn += ` (דחייה: ${reason})`;
+        if(reason) conf.pEv.cn = (conf.pEv.cn || '') + ` (דחייה: ${reason})`;
         conf.pEv._compByMakeup = newSynId;
       }
       const ptEv = conf.pEv || {...s, g: conf.syn.g};
@@ -2790,6 +2791,7 @@ async function doPostpone(){
         nt: (ptEv.nt ? ptEv.nt + ' | ' : '') + `${partnerLabelText} מיום ` + window.fD(ptEv.d)
       };
       delete newPtEv._recId;
+      delete newPtEv._compByMakeup;
       if(!conf.pEv && reason) newPtEv.n = ptEv.n ? ptEv.n + ' | נוצר מדחייה: ' + reason : 'נוצר מדחייה: ' + reason;
       else if(reason) newPtEv.n = ptEv.n ? ptEv.n + ' | נדחה: ' + reason : 'נדחה: ' + reason;
       window.SCH.push(newPtEv);
@@ -2800,7 +2802,7 @@ async function doPostpone(){
     if (spModal && spModal.style.display !== 'none' && window.selEv) {
       window.openSP(window.selEv);
     }
-    window.saveAndRefresh('postm');
+    await window.saveAndRefresh('postm');
     window.showToast(toastMsg);
   } catch(e) {
     _spAlertDialog("שגיאה בביצוע הזזה: " + e.message);
