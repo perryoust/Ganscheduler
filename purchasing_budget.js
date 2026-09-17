@@ -634,9 +634,15 @@ window.budgetApp = {
       </div>
     `;
 
+    // Fix html2canvas RTL bug that swallows spaces between words and numbers.
+    // Replace all regular spaces inside text nodes with non-breaking spaces (&nbsp;)
+    const processedHtml = html.replace(/>([^<]+)</g, (match, text) => {
+      return '>' + text.replace(/ /g, '&nbsp;') + '<';
+    });
+
     const container = document.createElement('div');
     container.style.cssText = 'position:absolute; top:-99999px; left:-99999px;';
-    container.innerHTML = html;
+    container.innerHTML = processedHtml;
     document.body.appendChild(container);
 
     const target = container.firstElementChild;
