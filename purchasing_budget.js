@@ -539,6 +539,17 @@ window.budgetApp = {
     if (!window.pdfMake) { alert('pdfMake not loaded'); return; }
     if (window.initPdfMake) await window.initPdfMake();
     
+    // Character-level visual RTL reversing that preserves numbers, dates, and English.
+    const rev = (str) => {
+      if (str == null) return '';
+      // 1. Reverse all characters
+      const reversedStr = String(str).split('').reverse().join('');
+      // 2. Fix blocks of numbers, English letters, and standard punctuation (dates, decimals)
+      const fixedNums = reversedStr.replace(/([0-9a-zA-Z.,:/\\-]+)/g, match => match.split('').reverse().join(''));
+      // 3. Swap parentheses since visual RTL flips their opening/closing direction
+      return fixedNums.replace(/[()]/g, m => m === '(' ? ')' : '(');
+    };
+    
     const selectedIds = this.getSelectedExpenseIds(schoolName);
     const data = this.getSchoolData(schoolName);
     const expensesToExport = selectedIds ? data.expenses.filter(e => selectedIds.includes(e.id)) : data.expenses;
@@ -546,24 +557,22 @@ window.budgetApp = {
     const total = expensesToExport.reduce((s, e) => s + (Number(e.amt)||0), 0);
     const rem = data.budget - total;
     
-    // With textDirection:'rtl' in defaultStyle, pdfMake handles Hebrew natively.
-    // Table columns are in logical order: rightmost column first (ספק), leftmost last (סכום).
-    // This matches the pattern used in pdfmake_orders.js.
+    // Table is drawn LTR, so index 0 is left (סכום), index 3 is right (ספק).
     const tableBody = [
       [
-        {text: 'ספק', style: 'th'},
-        {text: 'תאריך', style: 'th'},
-        {text: 'חשבונית', style: 'th'},
-        {text: 'סכום', style: 'th'}
+        {text: rev('סכום'), style: 'th'},
+        {text: rev('חשבונית'), style: 'th'},
+        {text: rev('תאריך'), style: 'th'},
+        {text: rev('ספק'), style: 'th'}
       ]
     ];
     
     expensesToExport.forEach(e => {
       tableBody.push([
-        {text: e.sup || '', alignment: 'right'},
-        {text: e.date || '', alignment: 'center'},
-        {text: e.inv || '', alignment: 'center'},
-        {text: (e.amt||0).toLocaleString('he-IL', {minimumFractionDigits:2}) + ' ₪', alignment: 'center'}
+        {text: rev((e.amt||0).toLocaleString('he-IL', {minimumFractionDigits:2}) + ' ₪'), alignment: 'center'},
+        {text: rev(e.inv||''), alignment: 'center'},
+        {text: rev(e.date||''), alignment: 'center'},
+        {text: rev(e.sup||''), alignment: 'right'}
       ]);
     });
     
@@ -574,15 +583,15 @@ window.budgetApp = {
     const [year, month] = this.currentMonth.split('-');
     const monthNames = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
     const monthName = monthNames[parseInt(month, 10) - 1] || month;
-    content.push({text: `תקציב ${monthName} ${year}`, style: 'header'});
-    content.push({text: `בית ספר ${schoolName}`, style: 'subheader'});
+    content.push({text: rev(`תקציב ${monthName} ${year}`), style: 'header'});
+    content.push({text: rev(`בית ספר ${schoolName}`), style: 'subheader'});
     
-    // Budget info line
+    // Subtext budget info (Visual LTR: Rem value, Rem label, Budget value, Budget label)
     content.push({text: [
-      {text: 'תקציב מוקצה: '},
+      {text: rem.toLocaleString('he-IL'), color: rem >= 0 ? '#2e7d32' : '#c62828'},
+      {text: rev(' :יתרה    ')},
       {text: data.budget.toLocaleString('he-IL')},
-      {text: '    יתרה: '},
-      {text: rem.toLocaleString('he-IL'), color: rem >= 0 ? '#2e7d32' : '#c62828'}
+      {text: rev(' :תקציב מוקצה')}
     ], alignment: 'center', fontSize: 12, margin: [0,0,0,15]});
     
     // Table
@@ -590,20 +599,20 @@ window.budgetApp = {
       content.push({
         table: {
           headerRows: 1,
-          widths: ['*', 'auto', 'auto', 'auto'],
+          widths: ['auto', 'auto', 'auto', '*'],
           body: tableBody
         },
         layout: 'lightHorizontalLines'
       });
     } else {
-      content.push({text: 'אין הוצאות', alignment: 'center'});
+      content.push({text: rev('אין הוצאות'), alignment: 'center'});
     }
     
-    // Total line
+    // Total line (Visual LTR: Amount, Label)
     content.push({
       text: [
-        {text: 'סה"כ הוצאות: ', bold: true},
-        {text: `${total.toLocaleString('he-IL', {minimumFractionDigits:2})} ₪`}
+        {text: rev(`${total.toLocaleString('he-IL', {minimumFractionDigits:2})} ₪`)},
+        {text: `  ${rev('סה"כ הוצאות:')}`, bold: true}
       ],
       style: 'total',
       margin: [0,15,0,0]
@@ -618,19 +627,19 @@ window.budgetApp = {
       // 1. שולם ע"י - [שם]
       const payerName = coord.name || coord.accName;
       if (payerName) {
-        detailLines.push(`שולם ע"י - ${payerName}`);
+        detailLines.push(rev(`שולם ע"י - ${payerName}`));
       }
       
       // 2. שם חשבון
       const accName = coord.accName || coord.name;
       if (accName) {
-        detailLines.push(`שם חשבון - ${accName}`);
+        detailLines.push(rev(`שם חשבון - ${accName}`));
       }
       
       // 3. שם בנק
       if (coord.bankName) {
         const bName = coord.bankName.includes('בנק') ? coord.bankName : `בנק ${coord.bankName}`;
-        detailLines.push(bName);
+        detailLines.push(rev(bName));
       }
       
       // 4. סניף + מספר חשבון
@@ -638,7 +647,7 @@ window.budgetApp = {
         const bPart = coord.branch ? `סניף ${coord.branch}` : '';
         const aPart = coord.account ? `חשבון ${coord.account}` : '';
         const combined = [bPart, aPart].filter(Boolean).join(' | ');
-        detailLines.push(combined);
+        detailLines.push(rev(combined));
       }
       
       detailLines.forEach(line => {
@@ -647,7 +656,7 @@ window.budgetApp = {
     }
     
     const docDefinition = {
-      defaultStyle: { font: 'Assistant', alignment: 'right', textDirection: 'rtl' },
+      defaultStyle: { font: 'Assistant', alignment: 'right' },
       content: content,
       styles: {
         header: { fontSize: 18, bold: true, alignment: 'center', margin: [0, 0, 0, 5] },
