@@ -71,11 +71,12 @@ window.doVisualExcelExport = async function() {
         const gEvs = allEvs.filter(s => s.g === g.id);
         if (!gEvs.length) continue;
         const html = _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones);
-        await _exportPDF(html, `לוח_מעוצב_${g.name}_${fromM}.pdf`);
+        await _exportPDF(html, `לוח_מעוצב_${g.name}_${fromM}.pdf`, month);
         filesExported++;
+        // short delay to allow browser to handle multiple popups
+        await new Promise(r => setTimeout(r, 800));
       }
-      if (filesExported > 0) window.showToast(`📊 ${filesExported} קבצי PDF מעוצבים נוצרו בהצלחה!`);
-      else window.spAlert('⚠️ לא נמצאו פעילויות בטווח התאריכים שנבחר.');
+      if (filesExported === 0) window.spAlert('לא נמצאו פעילויות לייצוא');
     } else {
       // Group by city
       const byCity = gList.reduce((acc, g) => { (acc[g.city||''] = acc[g.city||'']||[]).push(g); return acc; }, {});
@@ -89,7 +90,7 @@ window.doVisualExcelExport = async function() {
           const gEvs = allEvs.filter(s => s.g === g.id);
           pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones);
         }
-        await _exportPDF(pagesHtml, `לוח_מעוצב_${city||'כל_הגנים'}_${fromM}.pdf`);
+        await _exportPDF(pagesHtml, `לוח_מעוצב_${city||'כל_הגנים'}_${fromM}.pdf`, month);
         filesExported++;
       }
       if (filesExported > 0) window.showToast(`📊 ${filesExported} קבצי PDF מעוצבים נוצרו בהצלחה!`);
@@ -330,7 +331,7 @@ function _esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-async function _exportPDF(htmlContent, filename) {
+async function _exportPDF(htmlContent, filename, month) {
   // Open print window with the rendered content
   const printWindow = window.open('', '_blank', 'width=850,height=1100');
   if (!printWindow) {
@@ -347,7 +348,7 @@ async function _exportPDF(htmlContent, filename) {
   <base href="${baseUrl}">
   <title>${filename}</title>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  ${_getStyles()}
+  ${_getStyles(month)}
   <style>
     @media print {
       body { margin: 0; padding: 0; background: #fff; }
@@ -385,7 +386,12 @@ async function _exportPDF(htmlContent, filename) {
   printWindow.document.close();
 }
 
-function _getStyles() {
+function _getStyles(month) {
+  let seasonEmoji = '☀️'; // Summer by default (6, 7, 8)
+  if (month >= 9 && month <= 11) seasonEmoji = '🍂'; // Autumn
+  else if (month === 12 || month <= 2) seasonEmoji = '⛄'; // Winter
+  else if (month >= 3 && month <= 5) seasonEmoji = '🌸'; // Spring
+
   return `<style>
     .vp-page {
       display: flex;
@@ -400,6 +406,20 @@ function _getStyles() {
       direction: rtl;
       page-break-after: always;
       color: #1e293b;
+      position: relative;
+    }
+    
+    .vp-page::before {
+      content: "${seasonEmoji}";
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 380px;
+      opacity: 0.05;
+      pointer-events: none;
+      z-index: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
 
     /* Header */
