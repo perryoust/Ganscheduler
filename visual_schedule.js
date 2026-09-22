@@ -124,13 +124,16 @@ function generatePrintableHTML(gardens, allEvs, year, month, showPhones) {
       }
     });
 
+    const regularClubs = clubs.filter(c => c.events.length >= 2);
+    const oneOffClubs = clubs.filter(c => c.events.length < 2);
+
     // Coordinator
     const mgr = window.gardenManager ? window.gardenManager(g.id) : null;
     const coordinatorStr = mgr ? `${mgr.name} • ${mgr.phone || ''}` : 'מוקד צהרונים';
 
-    // Build Cards HTML
+    // Build Cards HTML (Only for regular clubs)
     let cardsHtml = '';
-    clubs.forEach(club => {
+    regularClubs.forEach(club => {
       const shortName = club.name.includes('-') ? club.name.split('-')[1].trim() : club.name.split(' ')[0];
       const phoneHtml = (showPhones && club.phone) 
         ? `<a href="tel:${club.phone.replace(/[^0-9]/g, '')}"><i class="fa-solid fa-phone"></i> ${club.phone}</a>`
@@ -205,7 +208,7 @@ function generatePrintableHTML(gardens, allEvs, year, month, showPhones) {
     });
 
     let legendsHtml = '';
-    clubs.forEach(club => {
+    regularClubs.forEach(club => {
       const shortName = club.name.includes('-') ? club.name.split('-')[1].trim() : club.name.split(' ')[0];
       legendsHtml += `
         <div class="legend-item">
@@ -217,8 +220,8 @@ function generatePrintableHTML(gardens, allEvs, year, month, showPhones) {
 
     // Handle variable grid columns
     let gridCols = '1fr';
-    if (clubs.length === 2) gridCols = '1fr 1fr';
-    if (clubs.length >= 3) gridCols = '1fr 1fr 1fr';
+    if (regularClubs.length === 2) gridCols = '1fr 1fr';
+    if (regularClubs.length >= 3) gridCols = '1fr 1fr 1fr';
 
     pagesHtml += `
       <div class="schedule-canvas">
@@ -252,14 +255,14 @@ function generatePrintableHTML(gardens, allEvs, year, month, showPhones) {
             </div>
           </div>
 
-          ${clubs.length > 0 ? `
+          ${regularClubs.length > 0 ? `
           <div class="section-headline">
-            <i class="fa-solid fa-star" style="color: #FFB703;"></i> החוגים שלנו החודש
+            <i class="fa-solid fa-star" style="color: #FFB703;"></i> החוגים הקבועים שלנו החודש
           </div>
           <div class="activities-grid" style="grid-template-columns: ${gridCols};">
             ${cardsHtml}
           </div>
-          ` : '<div style="margin-bottom: 24px;">לא שובצו חוגים קבועים לחודש זה.</div>'}
+          ` : ''}
 
           <div class="calendar-wrapper">
             <div class="cal-header-row">
@@ -286,6 +289,25 @@ function generatePrintableHTML(gardens, allEvs, year, month, showPhones) {
               </tbody>
             </table>
           </div>
+
+          ${oneOffClubs.length > 0 ? `
+          <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px;">
+            <div class="section-headline" style="margin-bottom: 10px; font-size: 15px;">
+              <i class="fa-solid fa-bolt" style="color: #F59E0B;"></i> פירוט ימי שיא והפעלות קייטנה החודש
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              ${oneOffClubs.map(c => `
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+                  <span style="background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 6px; padding: 3px 8px; font-weight: 700; color: #475569;">
+                    ${c.events[0].d.split('-').reverse().join('/')}
+                  </span>
+                  <strong style="color: #1F2937;">${c.name}</strong>
+                  ${showPhones && c.phone ? `<span style="color: #64748B; margin-right: 4px;">(מפעיל: ${c.phone})</span>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          ` : ''}
 
           <div class="schedule-footer">
             <div class="contact-bubble">
