@@ -508,7 +508,7 @@ function _getStyles() {
       flex: 1;
       display: flex;
       flex-direction: column;
-      border: 2px solid #475569;
+      border: 2px solid #000;
       border-radius: 12px;
       overflow: hidden;
     }
@@ -521,13 +521,13 @@ function _getStyles() {
       font-size: 14px;
       color: #000;
       padding: 8px 0;
-      border-bottom: 2px solid #475569;
+      border-bottom: 2px solid #000;
     }
     .vp-calendar-body {
       flex: 1;
       display: flex;
       flex-direction: column;
-      background: #64748b; /* acts as grid lines */
+      background: #000; /* Acts as dark grid lines */
     }
     .vp-calendar-row {
       flex: 1;
@@ -536,7 +536,7 @@ function _getStyles() {
       gap: 2px;
     }
     .vp-calendar-row + .vp-calendar-row {
-      border-top: 2px solid #64748b;
+      border-top: 2px solid #000;
     }
     .vp-day-cell {
       background: #ffffff;
