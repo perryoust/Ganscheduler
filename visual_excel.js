@@ -442,6 +442,11 @@ function _getStyles(month) {
       position: relative;
     }
     
+    .vp-page > * {
+      position: relative;
+      z-index: 10;
+    }
+    
     .vp-page::before {
       content: "${seasonEmoji}";
       position: absolute;
@@ -449,6 +454,7 @@ function _getStyles(month) {
       transform: translate(-50%, -50%);
       font-size: 380px;
       opacity: 0.05;
+      filter: grayscale(100%) opacity(5%);
       pointer-events: none;
       z-index: 0;
       -webkit-print-color-adjust: exact;
@@ -693,6 +699,10 @@ function _getStyles(month) {
       * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+      }
+      .vp-page::before {
+        opacity: 0.05 !important;
+        filter: grayscale(100%) opacity(5%) !important;
       }
       /* Print B&W Overrides */
       .vp-header { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; }
