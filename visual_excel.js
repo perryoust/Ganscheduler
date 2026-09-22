@@ -119,11 +119,15 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
     
     let phone = '';
     let supName = '';
-    if (s.a && window.SUPPLIERS) {
-      const sup = window.SUPPLIERS.find(x => String(x.id) === String(s.a) || x.name === s.a);
+    if (s.a && window.SUPBASE) {
+      const sup = window.SUPBASE.find(x => String(x.id) === String(s.a) || x.name === s.a || (typeof window.supBase === 'function' && window.supBase(x.name) === window.supBase(s.a)));
       if (sup) {
           if (sup.phone) phone = sup.phone;
           if (sup.name) supName = sup.name;
+          
+          if (!phone && window.supBaseEx && window.supBaseEx(sup.name).ph1) {
+             phone = window.supBaseEx(sup.name).ph1;
+          }
       }
     }
     
@@ -229,11 +233,15 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
 
           let supName = '';
           let supPhone = '';
-          if (ev.a && window.SUPPLIERS) {
-            const sup = window.SUPPLIERS.find(s => String(s.id) === String(ev.a) || s.name === ev.a);
+          if (ev.a && window.SUPBASE) {
+            const sup = window.SUPBASE.find(s => String(s.id) === String(ev.a) || s.name === ev.a || (typeof window.supBase === 'function' && window.supBase(s.name) === window.supBase(ev.a)));
             if (sup) {
                 if (sup.name) supName = sup.name;
                 if (sup.phone) supPhone = sup.phone;
+                
+                if (!supPhone && window.supBaseEx && window.supBaseEx(sup.name).ph1) {
+                   supPhone = window.supBaseEx(sup.name).ph1;
+                }
             }
           }
           
