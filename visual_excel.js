@@ -104,17 +104,22 @@ window.doVisualExcelExport = async function() {
   }
 };
 
+function _cleanStr(str) {
+  if (!str) return '';
+  // Remove ASCII control characters that break XML
+  return String(str).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+}
+
 function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthName, showPhones) {
   const ws = wb.addWorksheet(sheetName, {
-    views: [{ rightToLeft: true, showGridLines: false }],
-    pageSetup: {
-      paperSize: 9, // A4
-      orientation: 'portrait',
-      fitToWidth: 1,
-      fitToHeight: 1,
-      margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4 }
-    }
+    views: [{ rightToLeft: true, showGridLines: false }]
   });
+  ws.pageSetup.paperSize = 9; // A4
+  ws.pageSetup.orientation = 'portrait';
+  ws.pageSetup.fitToPage = true;
+  ws.pageSetup.fitToWidth = 1;
+  ws.pageSetup.fitToHeight = 1;
+  ws.pageSetup.margins = { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4 };
 
   // 5 columns (Sun-Thu)
   for (let c=1; c<=5; c++) {
@@ -184,11 +189,9 @@ function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthNam
     // Row 1 & 2: Header
     ws.getRow(r).height = 28;
     ws.getRow(r+1).height = 20;
-    ws.mergeCells(`A${r}:E${r}`);
-    ws.mergeCells(`A${r+1}:E${r+1}`);
 
     const cellH1 = ws.getCell(`A${r}`);
-    cellH1.value = `Kids טומשין • לוח חוגים חודשי - ${g.name || ''}`;
+    cellH1.value = _cleanStr(`Kids טומשין • לוח חוגים חודשי - ${g.name || ''}`);
     cellH1.font = FONT_HEADING;
     cellH1.fill = FILL_PRIMARY;
     cellH1.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -198,10 +201,13 @@ function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthNam
     const mgr = typeof window.gardenManager === 'function' ? window.gardenManager(g.id) : null;
     const mgrStr = mgr ? `${mgr.name} ${mgr.phone||''}` : '';
     
-    cellH2.value = `חודש: ${monthName} ${year} | גילאים: ${ageLabel} | עיר: ${g.city || ''} ${mgrStr ? '| רכז/ת: '+mgrStr : ''}`;
+    cellH2.value = _cleanStr(`חודש: ${monthName} ${year} | גילאים: ${ageLabel} | עיר: ${g.city || ''} ${mgrStr ? '| רכז/ת: '+mgrStr : ''}`);
     cellH2.font = FONT_SUB;
     cellH2.fill = FILL_PRIMARY;
     cellH2.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    ws.mergeCells(`A${r}:E${r}`);
+    ws.mergeCells(`A${r+1}:E${r+1}`);
 
     r += 2;
     ws.getRow(r).height = 8; // Spacer
@@ -214,17 +220,15 @@ function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthNam
       ws.getRow(r+2).height = 18;
 
       const c1 = regularClubs[0];
-      ws.mergeCells(`A${r}:B${r}`); ws.mergeCells(`A${r+1}:B${r+1}`); ws.mergeCells(`A${r+2}:B${r+2}`);
-      ws.getCell(`A${r}`).value = ` חוג 1: ${c1.name}`; ws.getCell(`A${r}`).font = FONT_TITLE;
-      ws.getCell(`A${r+1}`).value = `${c1.dayStr} בשעה ${c1.timeStr}`; ws.getCell(`A${r+1}`).font = FONT_REGULAR;
-      ws.getCell(`A${r+2}`).value = showPhones ? `מפעיל/טלפון: ${c1.phone}` : ''; ws.getCell(`A${r+2}`).font = FONT_REGULAR;
+      ws.getCell(`A${r}`).value = _cleanStr(` חוג 1: ${c1.name}`); ws.getCell(`A${r}`).font = FONT_TITLE;
+      ws.getCell(`A${r+1}`).value = _cleanStr(`${c1.dayStr} בשעה ${c1.timeStr}`); ws.getCell(`A${r+1}`).font = FONT_REGULAR;
+      ws.getCell(`A${r+2}`).value = showPhones ? _cleanStr(`מפעיל/טלפון: ${c1.phone}`) : ''; ws.getCell(`A${r+2}`).font = FONT_REGULAR;
 
       if (regularClubs.length > 1) {
         const c2 = regularClubs[1];
-        ws.mergeCells(`D${r}:E${r}`); ws.mergeCells(`D${r+1}:E${r+1}`); ws.mergeCells(`D${r+2}:E${r+2}`);
-        ws.getCell(`D${r}`).value = ` חוג 2: ${c2.name}`; ws.getCell(`D${r}`).font = FONT_TITLE;
-        ws.getCell(`D${r+1}`).value = `${c2.dayStr} בשעה ${c2.timeStr}`; ws.getCell(`D${r+1}`).font = FONT_REGULAR;
-        ws.getCell(`D${r+2}`).value = showPhones ? `מפעיל/טלפון: ${c2.phone}` : ''; ws.getCell(`D${r+2}`).font = FONT_REGULAR;
+        ws.getCell(`D${r}`).value = _cleanStr(` חוג 2: ${c2.name}`); ws.getCell(`D${r}`).font = FONT_TITLE;
+        ws.getCell(`D${r+1}`).value = _cleanStr(`${c2.dayStr} בשעה ${c2.timeStr}`); ws.getCell(`D${r+1}`).font = FONT_REGULAR;
+        ws.getCell(`D${r+2}`).value = showPhones ? _cleanStr(`מפעיל/טלפון: ${c2.phone}`) : ''; ws.getCell(`D${r+2}`).font = FONT_REGULAR;
       }
 
       for (let rx = r; rx <= r+2; rx++) {
@@ -240,6 +244,12 @@ function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthNam
           cCell2.alignment = { horizontal: 'right', vertical: 'middle' };
         }
       }
+
+      ws.mergeCells(`A${r}:B${r}`); ws.mergeCells(`A${r+1}:B${r+1}`); ws.mergeCells(`A${r+2}:B${r+2}`);
+      if (regularClubs.length > 1) {
+        ws.mergeCells(`D${r}:E${r}`); ws.mergeCells(`D${r+1}:E${r+1}`); ws.mergeCells(`D${r+2}:E${r+2}`);
+      }
+
       r += 3;
     }
     
@@ -299,7 +309,7 @@ function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthNam
           dayEvs.sort((a,b)=>(a.t||'').localeCompare(b.t||''));
 
           if (isHoliday) {
-            c2.value = hol.name || hol.label;
+            c2.value = _cleanStr(hol.name || hol.label);
             c2.fill = FILL_VACATION;
             c2.font = FONT_REGULAR;
             c2.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
@@ -318,7 +328,7 @@ function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthNam
                 if (sup && sup.phone) extraInfo = `\n📞 ${sup.phone}`;
               }
 
-              cellText.push(`${ev.t||''} ${actName}${extraInfo}`);
+              cellText.push(_cleanStr(`${ev.t||''} ${actName}${extraInfo}`));
             });
             c2.value = cellText.join('\n\n');
             c2.fill = FILL_EVENT;
@@ -341,11 +351,13 @@ function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthNam
     // Footer note
     ws.getRow(r).height = 8; r++; // Spacer
     ws.getRow(r).height = 20;
-    ws.mergeCells(`A${r}:E${r}`);
+    
     const noteCell = ws.getCell(`A${r}`);
-    noteCell.value = "* שימו לב: ייתכנו שינויים בתוכנית החוגים. הלוח מיועד להורים וילדי הצהרון.";
+    noteCell.value = _cleanStr("* שימו לב: ייתכנו שינויים בתוכנית החוגים. הלוח מיועד להורים וילדי הצהרון.");
     noteCell.font = FONT_NOTE;
     noteCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    ws.mergeCells(`A${r}:E${r}`);
     r++;
   });
 }
