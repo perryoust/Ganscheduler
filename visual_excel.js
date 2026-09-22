@@ -269,8 +269,8 @@ function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthNam
     }
 
     weeks.forEach(week => {
-      ws.getRow(r).height = 18;
-      ws.getRow(r+1).height = 42;
+      ws.getRow(r).height = 20;
+      ws.getRow(r+1).height = 75;
 
       week.forEach((dayNum, idx) => {
         const c1 = ws.getCell(r, idx + 1);
@@ -278,9 +278,9 @@ function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthNam
         c1.border = BOX_BORDER; c2.border = BOX_BORDER;
 
         if (dayNum) {
-          c1.value = `${dayNum}/${month}`;
+          c1.value = dayNum;
           c1.font = FONT_BOLD;
-          c1.alignment = { horizontal: 'left', vertical: 'middle' };
+          c1.alignment = { horizontal: 'center', vertical: 'middle' };
 
           const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
           
@@ -346,29 +346,7 @@ function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthNam
 
 async function _saveExcel(workbook, filename) {
   const buffer = await workbook.xlsx.writeBuffer();
-  let finalBlob;
-  try {
-    const JZ = window._SafeJSZip;
-    if (JZ) {
-      const zip = await JZ.loadAsync(buffer);
-      const sheetKeys = Object.keys(zip.files).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
-      for (const sk of sheetKeys) {
-        let xml = await zip.files[sk].async('text');
-        xml = xml.replace(/<sheetView\b([^>]*?)(\/?>)/g, (m, attrs, close) => {
-          const a2 = attrs.includes('view=') ? attrs.replace(/view="[^"]*"/, 'view="pageLayout"') : attrs + ' view="pageLayout"';
-          return `<sheetView${a2}${close}`;
-        });
-        zip.file(sk, xml);
-      }
-      const patched = await zip.generateAsync({ type:'arraybuffer', compression:'STORE' });
-      finalBlob = new Blob([patched], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    } else {
-      finalBlob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    }
-  } catch(e) {
-    console.warn('pageLayout patch failed', e);
-    finalBlob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  }
+  const finalBlob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
 
   const a = document.createElement('a');
   a.href = URL.createObjectURL(finalBlob);
