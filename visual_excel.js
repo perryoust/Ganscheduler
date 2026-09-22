@@ -16,9 +16,18 @@ window.doVisualExcelExport = async function() {
   const cityFilter = document.getElementById('exp-city').value;
   const mgrFilter = document.getElementById('exp-mgr').value;
   const gardenFilter = parseInt(document.getElementById('exp-garden').value) || 0;
-
-  let gList = window.GARDENS.filter(g => g.active !== false && (!g.st || g.st === 'ok'));
   
+  const allGardensSource = typeof AG === 'function' ? AG() : (typeof getAllGardens === 'function' ? getAllGardens() : window.GARDENS || []);
+  
+  let gList = allGardensSource.filter(g => {
+    if (!g || !g.id) return false;
+    if (g.active === false) return false;
+    if (g.st && g.st !== 'ok') return false;
+    const cls = typeof window.getGardenClass === 'function' ? window.getGardenClass(g) : (typeof gcls === 'function' ? gcls(g) : g.cls);
+    if (cls && cls !== 'גנים' && cls !== 'צהרונים') return false;
+    return true;
+  });
+
   if (mode === 'city') {
     if (cityFilter !== 'all') gList = gList.filter(g => g.city === cityFilter);
   } else if (mode === 'manager') {
