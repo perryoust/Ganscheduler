@@ -13,18 +13,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 112.17</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 112.18</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
+  <link rel="icon" type="image/x-icon" href="https://tome-k.co.il/wp-content/uploads/2023/10/favicon-150x150.png" />
+  <link rel="apple-touch-icon" href="https://tome-k.co.il/wp-content/uploads/2023/10/favicon-150x150.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="https://tome-k.co.il/wp-content/uploads/2023/10/favicon-150x150.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="https://tome-k.co.il/wp-content/uploads/2023/10/favicon-150x150.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="logo.png" type="image/png">
-  <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=112.17" />
+  <link rel="stylesheet" href="styles.css?v=112.18" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '112.17';
+    window.APP_VERSION = '112.18';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -1136,7 +1138,7 @@
         </div>
 
         <div class="fg" style="margin-bottom:14px">
-          <label>🚀 צורת חלוקה / שמירה</label>
+          <label>🚀 צורת חלוקה / שמירה (Excel)</label>
           <select id="exp-split" style="width:100%">
             <option value="city">עיר (כל עיר בקובץ אחד, גיליון נפרד לכל גן)</option>
             <option value="city_single">עיר רצוף (כל הגנים בגיליון אחד, זה תחת זה)</option>
@@ -1144,14 +1146,24 @@
           </select>
         </div>
 
+        <div class="fg" style="margin-bottom:14px; background:#f9f9f9; padding:10px; border-radius:8px;">
+          <label style="margin-bottom:6px">🎨 אפשרויות ללוח המעוצב</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer">
+            <input type="checkbox" id="exp-phones" checked> הצג מספרי טלפון של מפעילים בלוח המעוצב
+          </label>
+        </div>
+
         <div
           style="background:#e8f5e9;border-radius:7px;padding:8px 12px;font-size:.75rem;color:#2e7d32;margin-bottom:12px">
           📝 כל עיר = קובץ Excel אחד עם דף נפרד לכל גן, בפורמט לוח חוגים חודשי לצהרון
         </div>
 
-        <div style="display:flex;gap:7px">
-          <button class="btn bg" style="flex:1" onclick="doMonthlyExport()">🚀 ייצא Excel</button>
-          <button class="btn bs" onclick="CM('export-m')">ביטול</button>
+        <div style="display:flex;gap:7px; flex-direction:column;">
+          <div style="display:flex;gap:7px">
+            <button class="btn bg" style="flex:1" onclick="doMonthlyExport()">🚀 ייצא Excel</button>
+            <button class="btn bs" onclick="CM('export-m')">ביטול</button>
+          </div>
+          <button class="btn bo" style="width:100%; justify-content:center; background:#f0f7ff; color:#1e40af; border:1px solid #bfdbfe; font-weight:bold" onclick="doVisualExport()">🎨 הפקת לוח מעוצב להדפסה / PDF</button>
         </div>
       </div>
     </div>
@@ -3868,12 +3880,13 @@
     <script src="invoices_export.js?v=112.15"></script>
     <script src="invoices_scanner.js?v=112.15"></script>
     <script src="suppliers.js?v=112.15"></script>
-    <script src="cal.js?v=112.15"></script>
-    <script src="activity.js?v=112.17"></script>
-    <script src="sched.js?v=112.15"></script>
-    <script src="gardens.js?v=112.15"></script>
-    <script src="export_v107.js?v=112.15"></script>
-    <script src="backup.js?v=112.15"></script>
+    <script src="cal.js?v=112.18"></script>
+    <script src="activity.js?v=112.18"></script>
+    <script src="sched.js?v=112.18"></script>
+    <script src="gardens.js?v=112.18"></script>
+    <script src="export_v107.js?v=112.18"></script>
+    <script src="visual_schedule.js?v=112.18"></script>
+    <script src="backup.js?v=112.18"></script>
     <script src="admin.js?v=112.15"></script>
     <script src="import_export.js?v=112.15"></script>
     <script src="core_globals.js?v=112.15"></script>
