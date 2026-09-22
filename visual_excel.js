@@ -131,9 +131,14 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       }
     }
     
+    let cleanSupName = supName;
+    if (cleanSupName && typeof window.supBase === 'function') {
+        cleanSupName = window.supBase(cleanSupName);
+    }
+    
     regularClubs.push({
       name: actName,
-      supName: supName,
+      supName: cleanSupName !== actName ? cleanSupName : '',
       dayStr: 'יום ' + daysHe[dow],
       timeStr: s.t ? s.t.slice(0,5) : '',
       phone: phone,
@@ -244,8 +249,12 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
                 }
             }
           }
+          let cleanSupName = supName;
+          if (cleanSupName && typeof window.supBase === 'function') {
+              cleanSupName = window.supBase(cleanSupName);
+          }
           
-          let pillText = `${ev.t ? '(' + ev.t + ') ' : ''}${supName ? _esc(supName) + ' - ' : ''}${_esc(actName)}`;
+          let pillText = `${ev.t ? '(' + ev.t + ') ' : ''}${cleanSupName && cleanSupName !== actName ? _esc(cleanSupName) + ' - ' : ''}${_esc(actName)}`;
           if (showPhones && supPhone) {
               pillText += `<br><span style="font-size:10px; font-weight:700;">📞 ${_esc(supPhone)}</span>`;
           }
