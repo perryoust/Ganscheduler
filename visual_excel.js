@@ -22,7 +22,6 @@ window.doVisualExcelExport = async function() {
   let gList = allGardensSource.filter(g => {
     if (!g || !g.id) return false;
     if (g.active === false) return false;
-    if (g.st && g.st !== 'ok') return false;
     const cls = typeof window.getGardenClass === 'function' ? window.getGardenClass(g) : (typeof gcls === 'function' ? gcls(g) : g.cls);
     if (cls && cls !== 'גנים' && cls !== 'צהרונים') return false;
     return true;
