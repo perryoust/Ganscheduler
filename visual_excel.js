@@ -292,9 +292,18 @@ function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthNam
               let actName = ev.act;
               if (!actName && typeof window.supAct === 'function') actName = window.supAct(ev.a);
               if (!actName) actName = 'פעילות';
-              cellText.push(`${ev.t||''} ${actName}`);
+
+              let isRegular = regularClubs.some(rc => rc.name === actName);
+              let extraInfo = '';
+              
+              if (!isRegular && showPhones && ev.a && window.SUPPLIERS) {
+                const sup = window.SUPPLIERS.find(s => String(s.id) === String(ev.a) || s.name === ev.a);
+                if (sup && sup.phone) extraInfo = `\n📞 ${sup.phone}`;
+              }
+
+              cellText.push(`${ev.t||''} ${actName}${extraInfo}`);
             });
-            c2.value = cellText.join('\n');
+            c2.value = cellText.join('\n\n');
             c2.fill = FILL_EVENT;
             c2.font = FONT_BOLD;
             c2.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
@@ -311,35 +320,6 @@ function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthNam
       });
       r += 2;
     });
-
-    const oneOffClubs = clubs.filter(c => !regularClubs.includes(c));
-    if (oneOffClubs.length > 0) {
-      ws.getRow(r).height = 8; r++; // Spacer
-      
-      ws.getRow(r).height = 20;
-      ws.mergeCells(`A${r}:E${r}`);
-      const oHeader = ws.getCell(`A${r}`);
-      oHeader.value = "פעילויות מיוחדות / קייטנות";
-      oHeader.font = FONT_TITLE;
-      oHeader.fill = FILL_DAY_HEAD;
-      oHeader.alignment = { horizontal: 'right', vertical: 'middle' };
-      r++;
-
-      oneOffClubs.forEach(c => {
-         ws.getRow(r).height = 18;
-         ws.mergeCells(`A${r}:E${r}`);
-         const oCell = ws.getCell(`A${r}`);
-         const datesStr = c.events.map(e => {
-            const dp = e.d.split('-');
-            return `${dp[2]}/${dp[1]}`;
-         }).join(', ');
-         
-         oCell.value = `• ${c.name} | תאריכים: ${datesStr} | שעה: ${c.timeStr}${showPhones && c.phone ? ' | טלפון: '+c.phone : ''}`;
-         oCell.font = FONT_REGULAR;
-         oCell.alignment = { horizontal: 'right', vertical: 'middle' };
-         r++;
-      });
-    }
 
     // Footer note
     ws.getRow(r).height = 8; r++; // Spacer
