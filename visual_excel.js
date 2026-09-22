@@ -687,6 +687,10 @@ function _getStyles(month) {
     }
 
     @media print {
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
       /* Print B&W Overrides */
       .vp-header { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; }
       .vp-header-sub, .vp-month-badge { color: #000 !important; border: 2px solid #000 !important; background: #fff !important; }
@@ -701,8 +705,12 @@ function _getStyles(month) {
       .vp-legend { color: #000 !important; font-weight: 800 !important; }
       
       .vp-calendar-container, .vp-days-header, .vp-calendar-row + .vp-calendar-row { border-color: #000 !important; }
-      .vp-days-header { background: #f1f5f9 !important; color: #000 !important; border-bottom: 2px solid #000 !important; }
-      .vp-calendar-body { background: #000 !important; } /* dark grid lines */
+      .vp-days-header { background: #fff !important; color: #000 !important; border-bottom: 2px solid #000 !important; }
+      .vp-calendar-body { 
+        background: #000 !important; 
+        -webkit-print-color-adjust: exact !important; 
+        print-color-adjust: exact !important; 
+      } /* dark grid lines */
       
       .vp-day-empty { background: #f8fafc !important; }
       .vp-day-holiday { background: #f1f5f9 !important; }
