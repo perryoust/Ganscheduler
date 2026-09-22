@@ -291,7 +291,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       <!-- Header Banner -->
       <div class="vp-header">
         <div class="vp-header-right" style="display:flex; align-items:center; gap:12px;">
-          <img src="logo_wide.png" style="height:56px;" alt="Kids טומשין">
+          <img src="logo_wide.png" style="height:80px;" alt="Kids טומשין">
           <div class="vp-header-sub">רשת צהרונים וקייטנות ארצית</div>
         </div>
         <div class="vp-header-left">
@@ -653,11 +653,11 @@ function _getStyles(month) {
     /* Footer */
     .vp-footer {
       text-align: center;
-      font-size: 18px;
+      font-size: 26px;
       font-weight: 800;
       color: #ef4444; /* prominent red */
-      margin-top: 12px;
-      padding-top: 10px;
+      margin-top: 16px;
+      padding-top: 14px;
       border-top: 2px solid #e2e8f0;
     }
 
