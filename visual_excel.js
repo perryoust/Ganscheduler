@@ -17,7 +17,7 @@ window.doVisualExcelExport = async function() {
   const mgrFilter = document.getElementById('exp-mgr').value;
   const gardenFilter = parseInt(document.getElementById('exp-garden').value) || 0;
 
-  let gList = window.GARDENS.filter(g => g.active !== false);
+  let gList = window.GARDENS.filter(g => g.active !== false && (!g.st || g.st === 'ok'));
   
   if (mode === 'city') {
     if (cityFilter !== 'all') gList = gList.filter(g => g.city === cityFilter);
@@ -34,7 +34,7 @@ window.doVisualExcelExport = async function() {
 
   if (gList.length === 0) { window.spAlert("לא נבחרו גנים לייצוא"); return; }
   
-  const allEvs = window.SCH.filter(s => s.d >= fromDate && s.d <= toDate);
+  const allEvs = window.SCH.filter(s => s.d >= fromDate && s.d <= toDate && (!s.st || s.st === 'ok'));
   const showPhones = document.getElementById('exp-phones') ? document.getElementById('exp-phones').checked : true;
   const splitMode = document.getElementById('exp-split').value;
   
@@ -95,35 +95,37 @@ window.doVisualExcelExport = async function() {
 };
 
 function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones) {
-  // Compute clubs
-  const clubsMap = new Map();
-  gEvs.forEach(ev => {
-    if (ev.desc && (ev.desc.includes('חופש') || ev.desc.includes('חג') || ev.desc.includes('מועד'))) return;
-    let actName = ev.act;
-    if (!actName && typeof window.supAct === 'function') actName = window.supAct(ev.a);
+  // Compute regular clubs using fixed schedule (from core_dash.js)
+  const fixedSched = typeof window.getGardenFixedSched === 'function' ? window.getGardenFixedSched(g.id) : [];
+  const regularClubs = [];
+  
+  fixedSched.forEach(s => {
+    let actName = s.act || (typeof window.supAct === 'function' ? window.supAct(s.a) : '');
     if (!actName) actName = 'פעילות';
-    if (!clubsMap.has(actName)) {
-      clubsMap.set(actName, { name: actName, events: [], phone: '', supplierId: ev.a || '' });
+    
+    // Prevent duplicates
+    if (regularClubs.some(c => c.name === actName)) return;
+    
+    const dow = new Date(s.d).getDay();
+    const daysHe = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+    
+    let phone = '';
+    if (s.a && window.SUPPLIERS) {
+      const sup = window.SUPPLIERS.find(x => String(x.id) === String(s.a) || x.name === s.a);
+      if (sup && sup.phone) phone = sup.phone;
     }
-    clubsMap.get(actName).events.push(ev);
+    
+    regularClubs.push({
+      name: actName,
+      dayStr: 'יום ' + daysHe[dow],
+      timeStr: s.t ? s.t.slice(0,5) : '',
+      phone: phone,
+      supplierId: s.a || ''
+    });
   });
 
-  const clubs = Array.from(clubsMap.values());
-  clubs.forEach(club => {
-    if (club.supplierId && window.SUPPLIERS) {
-      const sup = window.SUPPLIERS.find(s => String(s.id) === String(club.supplierId) || s.name === club.supplierId);
-      if (sup && sup.phone) club.phone = sup.phone;
-    }
-    if (club.events.length > 0) {
-      const firstEv = club.events[0];
-      const dObj = new Date(firstEv.d);
-      const daysHe = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
-      club.dayStr = 'יום ' + daysHe[dObj.getDay()];
-      club.timeStr = firstEv.t || '';
-    }
-  });
-
-  const regularClubs = clubs.filter(c => c.events.length >= 2).slice(0, 2);
+  // Limit to max 2 regular clubs for the UI cards
+  const regularClubsList = regularClubs.slice(0, 2);
   
   // Garden metadata
   const ageLabel = typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g.age || '3-4');
@@ -150,9 +152,9 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
 
   // Build cards HTML
   let cardsHtml = '';
-  if (regularClubs.length > 0) {
+  if (regularClubsList.length > 0) {
     cardsHtml = '<div class="vp-cards-grid">';
-    regularClubs.forEach((club, i) => {
+    regularClubsList.forEach((club, i) => {
       const color = CARD_COLORS[i] || CARD_COLORS[0];
       const bg = CARD_BG[i] || CARD_BG[0];
       const border = CARD_BORDER[i] || CARD_BORDER[0];
@@ -169,7 +171,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
 
   // Build legend
   let legendHtml = '<div class="vp-legend">';
-  regularClubs.forEach((club, i) => {
+  regularClubsList.forEach((club, i) => {
     const color = CARD_COLORS[i] || CARD_COLORS[0];
     legendHtml += `<span class="vp-legend-item"><span class="vp-legend-dot" style="background:${color};"></span>${_esc(club.name)}</span>`;
   });
@@ -193,7 +195,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       const isCamp = hol && (hol.type === 'camp' || hol.label === 'קייטנה' || hol.canSched);
       const isHoliday = hol && !isCamp;
 
-      const dayEvs = gEvs.filter(e => e.d === dateStr).sort((a,b) => (a.t||'').localeCompare(b.t||''));
+      const dayEvs = gEvs.filter(e => e.d === dateStr && (!e.st || e.st === 'ok')).sort((a,b) => (a.t||'').localeCompare(b.t||''));
 
       let cellContent = '';
       let cellClass = 'vp-day-cell';
@@ -207,7 +209,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
           if (!actName && typeof window.supAct === 'function') actName = window.supAct(ev.a);
           if (!actName) actName = 'פעילות';
 
-          const clubIdx = regularClubs.findIndex(rc => rc.name === actName);
+          const clubIdx = regularClubsList.findIndex(rc => rc.name === actName);
           const isRegular = clubIdx >= 0;
           const pillColor = isRegular ? CARD_COLORS[clubIdx] : '#6366f1';
           const pillBg = isRegular ? CARD_BG[clubIdx] : '#eef2ff';
@@ -255,7 +257,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       ${mgrStr ? `<div class="vp-mgr-line">👩‍💼 רכז/ת: ${_esc(mgrStr)}</div>` : ''}
 
       <!-- Club Cards -->
-      ${regularClubs.length > 0 ? `
+      ${regularClubsList.length > 0 ? `
         <div class="vp-section-title">⭐ החוגים הקבועים שלנו החודש</div>
         ${cardsHtml}
       ` : ''}
