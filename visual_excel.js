@@ -361,7 +361,20 @@ function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthNam
 
 async function _saveExcel(workbook, filename) {
   const buffer = await workbook.xlsx.writeBuffer();
-  const finalBlob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+
+  let finalBlob;
+  try {
+    // Use _SafeJSZip (saved at page load before ExcelJS could overwrite window.JSZip)
+    const JZ = window._SafeJSZip;
+    if (!JZ) throw new Error('_SafeJSZip not available');
+    const zip = await JZ.loadAsync(buffer);
+    // Re-generate with STORE compression (DEFLATE corrupts binary parts of xlsx)
+    const patched = await zip.generateAsync({ type: 'arraybuffer', compression: 'STORE' });
+    finalBlob = new Blob([patched], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  } catch (e) {
+    console.warn('JSZip round-trip failed, using raw buffer:', e);
+    finalBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  }
 
   const a = document.createElement('a');
   a.href = URL.createObjectURL(finalBlob);
