@@ -118,13 +118,18 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
     const daysHe = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
     
     let phone = '';
+    let supName = '';
     if (s.a && window.SUPPLIERS) {
       const sup = window.SUPPLIERS.find(x => String(x.id) === String(s.a) || x.name === s.a);
-      if (sup && sup.phone) phone = sup.phone;
+      if (sup) {
+          if (sup.phone) phone = sup.phone;
+          if (sup.name) supName = sup.name;
+      }
     }
     
     regularClubs.push({
       name: actName,
+      supName: supName,
       dayStr: 'יום ' + daysHe[dow],
       timeStr: s.t ? s.t.slice(0,5) : '',
       phone: phone,
@@ -169,9 +174,9 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       cardsHtml += `
         <div class="vp-activity-card" style="border-right-color:${color}; background:${bg}; border-color:${border}; border-right-color:${color};">
           <div class="vp-card-badge" style="background:${color};">חוג צהרון</div>
-          <h3>${_esc(club.name)}</h3>
+          <h3>${club.supName ? _esc(club.supName) + ' - ' : ''}${_esc(club.name)}</h3>
           <p>📅 ${_esc(club.dayStr)} &nbsp; 🕐 ${_esc(club.timeStr)}</p>
-          ${showPhones && club.phone ? `<p>📞 מפעיל / פרטים: ${_esc(club.phone)}</p>` : ''}
+          ${showPhones && club.phone ? `<p style="font-weight:700;">📞 ${_esc(club.phone)}</p>` : ''}
         </div>`;
     });
     cardsHtml += '</div>';
@@ -219,14 +224,22 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
 
           const clubIdx = regularClubsList.findIndex(rc => rc.name === actName);
           const isRegular = clubIdx >= 0;
-          const pillColor = isRegular ? CARD_COLORS[clubIdx] : '#6366f1';
+          const pillColor = isRegular ? CARD_BORDER[clubIdx] : '#312e81';
           const pillBg = isRegular ? CARD_BG[clubIdx] : '#eef2ff';
 
-          let pillText = `${ev.t ? '(' + ev.t + ')' : ''}<br>${_esc(actName)}`;
-          
-          if (!isRegular && showPhones && ev.a && window.SUPPLIERS) {
+          let supName = '';
+          let supPhone = '';
+          if (ev.a && window.SUPPLIERS) {
             const sup = window.SUPPLIERS.find(s => String(s.id) === String(ev.a) || s.name === ev.a);
-            if (sup && sup.phone) pillText += `<br><small>📞 ${_esc(sup.phone)}</small>`;
+            if (sup) {
+                if (sup.name) supName = sup.name;
+                if (sup.phone) supPhone = sup.phone;
+            }
+          }
+          
+          let pillText = `${ev.t ? '(' + ev.t + ') ' : ''}${supName ? _esc(supName) + ' - ' : ''}${_esc(actName)}`;
+          if (showPhones && supPhone) {
+              pillText += `<br><span style="font-size:10px; font-weight:700;">📞 ${_esc(supPhone)}</span>`;
           }
 
           cellContent += `<div class="vp-event-pill" style="background:${pillBg}; color:${pillColor}; border:1px solid ${pillColor}20;">${pillText}</div>`;
@@ -247,8 +260,8 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       <!-- Header Banner -->
       <div class="vp-header">
         <div class="vp-header-right" style="display:flex; align-items:center; gap:12px;">
-          <img src="logo_wide.png" style="height:32px;" alt="Kids טומשין">
-          <div class="vp-header-sub">רשת צהרונים וקייטנות ארצית · עיר: ${_esc(g.city || '')}</div>
+          <img src="logo_wide.png" style="height:56px;" alt="Kids טומשין">
+          <div class="vp-header-sub">רשת צהרונים וקייטנות ארצית</div>
         </div>
         <div class="vp-header-left">
           <div class="vp-month-badge">📅 ${_esc(monthName)} ${year} · ${hebYearStr}</div>
@@ -257,7 +270,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
 
       <!-- Garden Name Bar -->
       <div class="vp-garden-bar">
-        <div class="vp-garden-name">🏠 ${_esc(g.name || 'גן')}</div>
+        <div class="vp-garden-name">🏠 ${_esc(g.name || 'גן')} ${g.city ? '- ' + _esc(g.city) : ''}</div>
       </div>
 
       ${mgrStr ? `<div class="vp-mgr-line">👩‍💼 רכז/ת: ${_esc(mgrStr)}</div>` : ''}
@@ -313,10 +326,20 @@ async function _exportPDF(htmlContent, filename) {
   ${_getStyles()}
   <style>
     @media print {
-      body { margin: 0; padding: 0; }
-      .vp-page { page-break-after: always; margin: 0; padding: 10mm 12mm; }
-      .vp-page:last-child { page-break-after: auto; }
+      body { margin: 0; padding: 0; background: #fff; }
+      .vp-page { 
+        break-after: page; 
+        page-break-after: always; 
+        margin: 0; 
+        padding: 10mm 12mm; 
+        height: 100vh;
+      }
+      .vp-page:last-child { 
+        break-after: auto; 
+        page-break-after: auto; 
+      }
       .vp-no-print { display: none !important; }
+      .vp-footer { margin-top: auto; }
     }
     @page { size: A4 portrait; margin: 0; }
     body { margin: 0; padding: 0; background: #e5e7eb; }
@@ -555,12 +578,12 @@ function _getStyles() {
     /* Footer */
     .vp-footer {
       text-align: center;
-      font-size: 14px;
-      font-weight: 700;
+      font-size: 18px;
+      font-weight: 800;
       color: #ef4444; /* prominent red */
-      margin-top: 10px;
-      padding-top: 8px;
-      border-top: 1px solid #e2e8f0;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 2px solid #e2e8f0;
     }
   </style>`;
 }
