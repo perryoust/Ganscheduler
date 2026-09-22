@@ -9,7 +9,7 @@ window.doVisualExcelExport = async function() {
     return;
   }
 
-  const mp = document.getElementById('monthPicker');
+  const mp = document.getElementById('exp-from-m');
   if (!mp || !mp.value) { window.spAlert('אנא בחר חודש'); return; }
   const fromM = mp.value;
   const [year, month] = fromM.split('-').map(Number);
