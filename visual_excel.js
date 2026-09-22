@@ -303,12 +303,11 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr auto 1fr; margin-top: auto; padding-top: 10px; border-top: 2px solid #e2e8f0; align-items: center;">
-        <div style="font-size: 14px; font-weight: 700; color: #334155; text-align: right;">
+      <div style="margin-top: auto; padding-top: 10px; border-top: 2px solid #e2e8f0;">
+        <div style="font-size: 15px; font-weight: 700; color: #334155; text-align: right; line-height: 1.2;">
           ${mgrStr ? `👩‍💼 רכז/ת: ${_esc(mgrStr)}` : ''}
         </div>
-        <div class="vp-footer" style="margin: 0; padding: 0; border: none;">* שימו לב: ייתכנו שינויים בתוכנית החוגים</div>
-        <div></div>
+        <div class="vp-footer" style="margin: 4px 0 0 0; padding: 0; border: none;">* שימו לב: ייתכנו שינויים בתוכנית החוגים</div>
       </div>
     </div>`;
 }
