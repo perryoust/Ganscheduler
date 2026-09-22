@@ -146,9 +146,9 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
   }
 
   // Card colors
-  const CARD_COLORS = ['#3b82f6', '#059669'];
+  const CARD_COLORS = ['#1d4ed8', '#047857']; // Darker blue and green for B&W contrast
   const CARD_BG = ['#eff6ff', '#ecfdf5'];
-  const CARD_BORDER = ['#bfdbfe', '#a7f3d0'];
+  const CARD_BORDER = ['#1e3a8a', '#064e3b'];
 
   // Build cards HTML
   let cardsHtml = '';
@@ -250,8 +250,6 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       <!-- Garden Name Bar -->
       <div class="vp-garden-bar">
         <div class="vp-garden-name">🏠 ${_esc(g.name || 'גן')}</div>
-        <div class="vp-garden-sub">תוכנית ההעשרה ופעילויות צהרון חודשית</div>
-        <div class="vp-age-badge">גילאי ${_esc(ageLabel)}</div>
       </div>
 
       ${mgrStr ? `<div class="vp-mgr-line">👩‍💼 רכז/ת: ${_esc(mgrStr)}</div>` : ''}
@@ -362,16 +360,18 @@ function _getStyles() {
     }
     .vp-header-sub { font-size: 14px; font-weight:600; color: #44403c; margin-top: 2px; }
     .vp-month-badge {
-      background: rgba(255,255,255,0.5);
-      padding: 6px 14px;
+      background: rgba(255,255,255,0.7);
+      padding: 6px 16px;
       border-radius: 20px;
-      font-size: 13px;
-      font-weight: 500;
+      font-size: 16px;
+      font-weight: 700;
+      color: #000;
+      border: 1px solid rgba(0,0,0,0.1);
     }
 
     /* Garden Bar */
     .vp-garden-bar {
-      background: linear-gradient(135deg, #059669, #10b981);
+      background: linear-gradient(135deg, #047857, #059669);
       color: white;
       padding: 12px 20px;
       border-radius: 12px;
@@ -380,30 +380,24 @@ function _getStyles() {
       gap: 16px;
       margin-bottom: 8px;
       position: relative;
+      border: 1px solid #065f46;
     }
-    .vp-garden-name { font-size: 20px; font-weight: 700; }
-    .vp-garden-sub { font-size: 12px; opacity: 0.9; flex: 1; }
-    .vp-age-badge {
-      background: rgba(255,255,255,0.25);
-      padding: 4px 14px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-    }
+    .vp-garden-name { font-size: 22px; font-weight: 800; }
 
     .vp-mgr-line {
       text-align: left;
-      font-size: 12px;
-      color: #64748b;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
       margin-bottom: 8px;
       padding: 0 4px;
     }
 
     /* Section Title */
     .vp-section-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: #1e293b;
+      font-size: 18px;
+      font-weight: 800;
+      color: #000;
       margin: 8px 0 6px;
       text-align: right;
     }
@@ -411,37 +405,38 @@ function _getStyles() {
     /* Activity Cards */
     .vp-cards-grid {
       display: flex;
-      gap: 12px;
-      margin-bottom: 10px;
+      gap: 16px;
+      margin-bottom: 12px;
     }
     .vp-activity-card {
       flex: 1;
-      border: 1px solid #e2e8f0;
-      border-right: 5px solid #3b82f6;
-      border-radius: 10px;
-      padding: 10px 14px;
+      border: 2px solid #475569;
+      border-right: 6px solid #3b82f6;
+      border-radius: 12px;
+      padding: 12px 16px;
       position: relative;
     }
     .vp-card-badge {
       position: absolute;
-      top: -1px;
-      left: 10px;
-      padding: 2px 10px;
+      top: -2px;
+      left: 12px;
+      padding: 3px 12px;
       border-radius: 0 0 8px 8px;
       color: white;
-      font-size: 10px;
-      font-weight: 600;
+      font-size: 11px;
+      font-weight: 700;
     }
     .vp-activity-card h3 {
       margin: 4px 0 6px;
-      font-size: 14px;
-      font-weight: 700;
-      color: #1e293b;
+      font-size: 18px;
+      font-weight: 800;
+      color: #000;
     }
     .vp-activity-card p {
       margin: 2px 0;
-      font-size: 11px;
-      color: #64748b;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
     }
 
     /* Calendar */
@@ -455,32 +450,34 @@ function _getStyles() {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
     .vp-calendar-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #1e293b;
+      font-size: 16px;
+      font-weight: 800;
+      color: #000;
     }
     .vp-legend {
       display: flex;
-      gap: 12px;
-      font-size: 11px;
-      color: #64748b;
+      gap: 16px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #334155;
     }
-    .vp-legend-item { display: flex; align-items: center; gap: 4px; }
+    .vp-legend-item { display: flex; align-items: center; gap: 6px; }
     .vp-legend-dot {
-      width: 10px;
-      height: 10px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       display: inline-block;
+      border: 1px solid #000;
     }
 
     .vp-calendar-container {
       flex: 1;
       display: flex;
       flex-direction: column;
-      border: 1px solid #e2e8f0;
+      border: 2px solid #475569;
       border-radius: 12px;
       overflow: hidden;
     }
@@ -489,57 +486,62 @@ function _getStyles() {
       grid-template-columns: repeat(5, 1fr);
       background: #f1f5f9;
       text-align: center;
-      font-weight: 700;
-      font-size: 12px;
-      color: #334155;
+      font-weight: 800;
+      font-size: 14px;
+      color: #000;
       padding: 8px 0;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 2px solid #475569;
     }
     .vp-calendar-body {
       flex: 1;
       display: flex;
       flex-direction: column;
-      background: #e2e8f0;
+      background: #64748b; /* acts as grid lines */
     }
     .vp-calendar-row {
       flex: 1;
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 1px;
+      gap: 2px;
     }
     .vp-calendar-row + .vp-calendar-row {
-      border-top: 1px solid #e2e8f0;
+      border-top: 2px solid #64748b;
     }
     .vp-day-cell {
       background: #ffffff;
-      padding: 6px;
+      padding: 8px;
       display: flex;
       flex-direction: column;
     }
     .vp-day-empty { background: #f8fafc; }
-    .vp-day-holiday { background: #fffbeb; }
+    .vp-day-holiday { background: #fef9c3; }
     .vp-day-number {
-      font-size: 13px;
-      font-weight: 700;
-      color: #94a3b8;
-      margin-bottom: 4px;
+      font-size: 16px;
+      font-weight: 800;
+      color: #000;
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid #e2e8f0;
+      text-align: left;
     }
 
     /* Event Pills */
     .vp-event-pill {
-      padding: 3px 6px;
-      border-radius: 6px;
-      font-size: 10px;
+      padding: 4px 6px;
+      border-radius: 8px;
+      font-size: 12px;
       line-height: 1.3;
       text-align: center;
-      margin-top: 2px;
-      font-weight: 600;
+      margin-top: 4px;
+      font-weight: 800;
+      color: #0f172a !important; /* Force dark text for B&W */
+      border-width: 2px !important;
     }
     .vp-event-holiday {
       background: #fef3c7 !important;
-      color: #92400e !important;
-      border: 1px solid #fcd34d !important;
-      font-weight: 500;
+      color: #000 !important;
+      border: 2px solid #d97706 !important;
+      font-weight: 800;
     }
 
     /* Footer */
