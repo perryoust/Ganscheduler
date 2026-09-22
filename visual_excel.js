@@ -543,6 +543,7 @@ function _getStyles() {
       padding: 8px;
       display: flex;
       flex-direction: column;
+      min-width: 0; /* Prevents grid blowout from long text */
     }
     .vp-day-empty { background: #f8fafc; }
     .vp-day-holiday { background: #fef9c3; }
@@ -567,6 +568,9 @@ function _getStyles() {
       font-weight: 800;
       color: #0f172a !important; /* Force dark text for B&W */
       border-width: 2px !important;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
     }
     .vp-event-holiday {
       background: #fef3c7 !important;
