@@ -451,7 +451,7 @@ function _getStyles(month) {
       transform: translate(-50%, -50%);
       font-size: 380px;
       opacity: 0.12;
-      filter: grayscale(100%) opacity(12%);
+      filter: grayscale(100%);
       pointer-events: none;
       z-index: 1;
       -webkit-print-color-adjust: exact;
@@ -698,8 +698,8 @@ function _getStyles(month) {
         print-color-adjust: exact !important;
       }
       .vp-page::before {
-        opacity: 0.25 !important;
-        filter: grayscale(100%) opacity(25%) !important;
+        opacity: 0.15 !important;
+        filter: grayscale(100%) !important;
       }
       /* Print B&W Overrides */
       .vp-header { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; }
@@ -715,14 +715,15 @@ function _getStyles(month) {
       .vp-legend { color: #000 !important; font-weight: 800 !important; }
       
       .vp-calendar-container { border: 2px solid #000 !important; border-radius: 0 !important; }
-      .vp-calendar-row + .vp-calendar-row { border-color: #000 !important; }
       .vp-days-header { background: #fff !important; color: #000 !important; border-bottom: 2px solid #000 !important; border-top: none !important; border-left: none !important; border-right: none !important; }
-      .vp-calendar-body { 
-        background: #000 !important; 
-        -webkit-print-color-adjust: exact !important; 
-        print-color-adjust: exact !important; 
-        border-bottom: 2px solid #000 !important;
-      } /* dark grid lines */
+      .vp-days-header > div { border-left: 2px solid #000 !important; }
+      .vp-days-header > div:last-child { border-left: none !important; }
+      
+      .vp-calendar-body { background: transparent !important; }
+      .vp-calendar-row { gap: 0 !important; border-bottom: 2px solid #000 !important; }
+      .vp-calendar-row:last-child { border-bottom: none !important; }
+      .vp-day-cell { border-left: 2px solid #000 !important; }
+      .vp-day-cell:last-child { border-left: none !important; }
       
       .vp-day-empty { background: #f8fafc !important; }
       .vp-day-holiday { background: #f1f5f9 !important; }
