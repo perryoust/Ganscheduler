@@ -363,6 +363,7 @@ async function _exportPDF(htmlContent, filename, month) {
 
   const baseUrl = window.location.href.split('?')[0].replace(/[^/]*$/, '');
   
+  const styles = _getStyles(month);
   printWindow.document.write(`<!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head>
@@ -370,7 +371,7 @@ async function _exportPDF(htmlContent, filename, month) {
   <base href="${baseUrl}">
   <title>${filename}</title>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  ${_getStyles(month)}
+  ${styles.css}
   <style>
     @media print {
       body { margin: 0; padding: 0; background: #fff; }
@@ -402,25 +403,14 @@ async function _exportPDF(htmlContent, filename, month) {
 </head>
 <body>
   <button class="vp-print-btn vp-no-print" onclick="window.print()">🖨️ הדפס / שמור כ-PDF</button>
-  ${htmlContent}
+  ${htmlContent.replace(/<div class="vp-page">/g, `<div class="vp-page"><div class="vp-watermark">${styles.watermarkSVG}<\/div>`)}
 </body>
 </html>`);
   printWindow.document.close();
 }
 
 function _getStyles(month) {
-  // SVG watermarks per season - clear, with depth, grayscale-friendly
-  const svgWatermarks = {
-    // Winter: geometric snowflake
-    winter: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><g stroke='%23000' stroke-width='6' stroke-linecap='round' fill='none'><line x1='100' y1='10' x2='100' y2='190'/><line x1='10' y1='100' x2='190' y2='100'/><line x1='30' y1='30' x2='170' y2='170'/><line x1='170' y1='30' x2='30' y2='170'/><line x1='100' y1='30' x2='80' y2='10'/><line x1='100' y1='30' x2='120' y2='10'/><line x1='100' y1='170' x2='80' y2='190'/><line x1='100' y1='170' x2='120' y2='190'/><line x1='30' y1='100' x2='10' y2='80'/><line x1='30' y1='100' x2='10' y2='120'/><line x1='170' y1='100' x2='190' y2='80'/><line x1='170' y1='100' x2='190' y2='120'/><circle cx='100' cy='100' r='12' stroke-width='5'/></g></svg>`,
-    // Spring: flower with petals
-    spring: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><g fill='none' stroke='%23000' stroke-width='4'><ellipse cx='100' cy='55' rx='18' ry='38'/><ellipse cx='100' cy='145' rx='18' ry='38'/><ellipse cx='55' cy='100' rx='38' ry='18'/><ellipse cx='145' cy='100' rx='38' ry='18'/><ellipse cx='67' cy='67' rx='18' ry='38' transform='rotate(45 67 67)'/><ellipse cx='133' cy='133' rx='18' ry='38' transform='rotate(45 133 133)'/><ellipse cx='133' cy='67' rx='18' ry='38' transform='rotate(-45 133 67)'/><ellipse cx='67' cy='133' rx='18' ry='38' transform='rotate(-45 67 133)'/><circle cx='100' cy='100' r='22' stroke-width='5'/></g></svg>`,
-    // Summer: sun with rays
-    summer: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><g stroke='%23000' stroke-width='5' stroke-linecap='round' fill='none'><circle cx='100' cy='100' r='38'/><line x1='100' y1='5' x2='100' y2='25'/><line x1='100' y1='175' x2='100' y2='195'/><line x1='5' y1='100' x2='25' y2='100'/><line x1='175' y1='100' x2='195' y2='100'/><line x1='30' y1='30' x2='44' y2='44'/><line x1='156' y1='156' x2='170' y2='170'/><line x1='170' y1='30' x2='156' y2='44'/><line x1='44' y1='156' x2='30' y2='170'/><line x1='100' y1='5' x2='88' y2='15'/><line x1='100' y1='5' x2='112' y2='15'/></g></svg>`,
-    // Autumn: maple leaf
-    autumn: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><path d='M100 10 C90 30 70 25 65 45 C55 42 45 50 50 62 C38 60 30 70 40 80 C25 82 25 100 40 98 C30 112 40 128 55 120 C52 135 65 145 75 135 C80 155 90 160 100 175 C110 160 120 155 125 135 C135 145 148 135 145 120 C160 128 170 112 160 98 C175 100 175 82 160 80 C170 70 162 60 150 62 C155 50 145 42 135 45 C130 25 110 30 100 10Z M100 175 L100 185' stroke='%23000' stroke-width='4' fill='none' stroke-linejoin='round'/></svg>`
-  };
-
+  // Rich seasonal SVG watermarks - injected inline for reliable print rendering
   const seasonMap = {
     1: 'winter', 2: 'winter', 12: 'winter',
     3: 'spring', 4: 'spring', 5: 'spring',
@@ -428,9 +418,109 @@ function _getStyles(month) {
     9: 'autumn', 10: 'autumn', 11: 'autumn'
   };
   const season = seasonMap[month] || 'summer';
-  const svgWm = svgWatermarks[season];
 
-  return `<style>
+  // Each SVG is designed with fills and strokes - grayscale-compatible
+  const watermarkSVGs = {
+    winter: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+      <!-- Snowflake -->
+      <g transform="translate(150,150)" stroke="#1e3a5f" stroke-linecap="round" fill="none">
+        <line x1="0" y1="-130" x2="0" y2="130" stroke-width="10"/>
+        <line x1="-130" y1="0" x2="130" y2="0" stroke-width="10"/>
+        <line x1="-92" y1="-92" x2="92" y2="92" stroke-width="10"/>
+        <line x1="92" y1="-92" x2="-92" y2="92" stroke-width="10"/>
+        <line x1="-30" y1="-110" x2="0" y2="-130"/><line x1="30" y1="-110" x2="0" y2="-130"/>
+        <line x1="-30" y1="110" x2="0" y2="130"/><line x1="30" y1="110" x2="0" y2="130"/>
+        <line x1="-110" y1="-30" x2="-130" y2="0"/><line x1="-110" y1="30" x2="-130" y2="0"/>
+        <line x1="110" y1="-30" x2="130" y2="0"/><line x1="110" y1="30" x2="130" y2="0"/>
+        <line x1="-65" y1="-112" x2="-78" y2="-92"/><line x1="-65" y1="-72" x2="-78" y2="-92"/>
+        <line x1="65" y1="-112" x2="78" y2="-92"/><line x1="65" y1="-72" x2="78" y2="-92"/>
+        <circle cx="0" cy="0" r="20" stroke-width="8" fill="#d6eaf8"/>
+        <circle cx="0" cy="-130" r="8" fill="#1e3a5f"/>
+        <circle cx="0" cy="130" r="8" fill="#1e3a5f"/>
+        <circle cx="-130" cy="0" r="8" fill="#1e3a5f"/>
+        <circle cx="130" cy="0" r="8" fill="#1e3a5f"/>
+      </g>
+    </svg>`,
+
+    spring: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+      <!-- Large bloom flower -->
+      <g transform="translate(150,150)">
+        <ellipse cx="0" cy="-65" rx="22" ry="55" fill="#f9a8d4" stroke="#be185d" stroke-width="3"/>
+        <ellipse cx="0" cy="-65" rx="22" ry="55" fill="#f9a8d4" stroke="#be185d" stroke-width="3" transform="rotate(45)"/>
+        <ellipse cx="0" cy="-65" rx="22" ry="55" fill="#fde68a" stroke="#d97706" stroke-width="3" transform="rotate(90)"/>
+        <ellipse cx="0" cy="-65" rx="22" ry="55" fill="#fde68a" stroke="#d97706" stroke-width="3" transform="rotate(135)"/>
+        <ellipse cx="0" cy="-65" rx="22" ry="55" fill="#f9a8d4" stroke="#be185d" stroke-width="3" transform="rotate(180)"/>
+        <ellipse cx="0" cy="-65" rx="22" ry="55" fill="#f9a8d4" stroke="#be185d" stroke-width="3" transform="rotate(225)"/>
+        <ellipse cx="0" cy="-65" rx="22" ry="55" fill="#fde68a" stroke="#d97706" stroke-width="3" transform="rotate(270)"/>
+        <ellipse cx="0" cy="-65" rx="22" ry="55" fill="#fde68a" stroke="#d97706" stroke-width="3" transform="rotate(315)"/>
+        <circle cx="0" cy="0" r="30" fill="#fbbf24" stroke="#92400e" stroke-width="4"/>
+        <circle cx="0" cy="0" r="15" fill="#f59e0b" stroke="#78350f" stroke-width="2"/>
+        <!-- Stem -->
+        <line x1="0" y1="30" x2="0" y2="110" stroke="#15803d" stroke-width="8" stroke-linecap="round"/>
+        <!-- Leaves -->
+        <ellipse cx="-25" cy="75" rx="22" ry="10" fill="#16a34a" stroke="#15803d" stroke-width="2" transform="rotate(-30 -25 75)"/>
+        <ellipse cx="25" cy="90" rx="22" ry="10" fill="#16a34a" stroke="#15803d" stroke-width="2" transform="rotate(30 25 90)"/>
+      </g>
+    </svg>`,
+
+    summer: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+      <!-- Bright sun -->
+      <g transform="translate(150,150)">
+        <!-- Rays -->
+        <g stroke="#f59e0b" stroke-width="8" stroke-linecap="round">
+          <line x1="0" y1="-60" x2="0" y2="-120"/>
+          <line x1="0" y1="60" x2="0" y2="120"/>
+          <line x1="-60" y1="0" x2="-120" y2="0"/>
+          <line x1="60" y1="0" x2="120" y2="0"/>
+          <line x1="-42" y1="-42" x2="-85" y2="-85"/>
+          <line x1="42" y1="-42" x2="85" y2="-85"/>
+          <line x1="-42" y1="42" x2="-85" y2="85"/>
+          <line x1="42" y1="42" x2="85" y2="85"/>
+          <!-- Short rays between -->
+          <line x1="-25" y1="-55" x2="-45" y2="-100"/>
+          <line x1="25" y1="-55" x2="45" y2="-100"/>
+          <line x1="-55" y1="-25" x2="-100" y2="-45"/>
+          <line x1="-55" y1="25" x2="-100" y2="45"/>
+          <line x1="55" y1="-25" x2="100" y2="-45"/>
+          <line x1="55" y1="25" x2="100" y2="45"/>
+          <line x1="-25" y1="55" x2="-45" y2="100"/>
+          <line x1="25" y1="55" x2="45" y2="100"/>
+        </g>
+        <!-- Sun body -->
+        <circle cx="0" cy="0" r="55" fill="#fde68a" stroke="#f59e0b" stroke-width="6"/>
+        <circle cx="0" cy="0" r="42" fill="#fbbf24" stroke="#d97706" stroke-width="3"/>
+        <!-- Face -->
+        <circle cx="-16" cy="-10" r="6" fill="#92400e"/>
+        <circle cx="16" cy="-10" r="6" fill="#92400e"/>
+        <path d="M -18 12 Q 0 28 18 12" stroke="#92400e" stroke-width="4" fill="none" stroke-linecap="round"/>
+      </g>
+    </svg>`,
+
+    autumn: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+      <!-- Tree with autumn leaves -->
+      <!-- Trunk -->
+      <rect x="135" y="200" width="30" height="80" rx="6" fill="#78350f" stroke="#451a03" stroke-width="2"/>
+      <!-- Branches -->
+      <line x1="150" y1="220" x2="90" y2="160" stroke="#92400e" stroke-width="8" stroke-linecap="round"/>
+      <line x1="150" y1="220" x2="210" y2="165" stroke="#92400e" stroke-width="8" stroke-linecap="round"/>
+      <line x1="150" y1="200" x2="150" y2="130" stroke="#92400e" stroke-width="10" stroke-linecap="round"/>
+      <!-- Leaf clusters -->
+      <ellipse cx="150" cy="110" rx="55" ry="50" fill="#f97316" stroke="#ea580c" stroke-width="2" opacity="0.9"/>
+      <ellipse cx="95" cy="140" rx="45" ry="40" fill="#eab308" stroke="#ca8a04" stroke-width="2" opacity="0.9"/>
+      <ellipse cx="205" cy="145" rx="45" ry="38" fill="#dc2626" stroke="#b91c1c" stroke-width="2" opacity="0.9"/>
+      <ellipse cx="150" cy="120" rx="35" ry="30" fill="#fdba74" stroke="#f97316" stroke-width="2" opacity="0.7"/>
+      <!-- Falling leaves -->
+      <ellipse cx="55" cy="200" rx="12" ry="7" fill="#f97316" stroke="#ea580c" stroke-width="1.5" transform="rotate(-30 55 200)"/>
+      <ellipse cx="240" cy="185" rx="10" ry="6" fill="#eab308" stroke="#ca8a04" stroke-width="1.5" transform="rotate(20 240 185)"/>
+      <ellipse cx="70" cy="240" rx="9" ry="5" fill="#dc2626" stroke="#b91c1c" stroke-width="1.5" transform="rotate(-45 70 240)"/>
+      <ellipse cx="230" cy="240" rx="11" ry="6" fill="#f97316" stroke="#ea580c" stroke-width="1.5" transform="rotate(35 230 240)"/>
+    </svg>`
+  };
+
+  const watermarkSVG = watermarkSVGs[season];
+
+  return {
+    css: `<style>
     .vp-page {
       display: flex;
       flex-direction: column;
@@ -440,10 +530,6 @@ function _getStyles(month) {
       padding: 10mm 12mm;
       margin: 0 auto;
       background: #ffffff;
-      background-image: url("data:image/svg+xml,${svgWm}");
-      background-repeat: no-repeat;
-      background-position: center center;
-      background-size: 420px 420px;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
       font-family: 'Assistant', Arial, sans-serif;
@@ -452,6 +538,18 @@ function _getStyles(month) {
       color: #1e293b;
       position: relative;
     }
+    .vp-watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 380px;
+      height: 380px;
+      opacity: 0.10;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .vp-watermark svg { width: 100%; height: 100%; }
 
     /* Header */
     .vp-header {
@@ -737,5 +835,7 @@ function _getStyles(month) {
         border: 2px solid #000 !important; 
       }
     }
-  </style>`;
+  </style>`,
+    watermarkSVG: watermarkSVG
+  };
 }
