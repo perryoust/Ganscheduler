@@ -273,8 +273,6 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
         <div class="vp-garden-name">🏠 ${_esc(g.name || 'גן')} ${g.city ? '- ' + _esc(g.city) : ''}</div>
       </div>
 
-      ${mgrStr ? `<div class="vp-mgr-line">👩‍💼 רכז/ת: ${_esc(mgrStr)}</div>` : ''}
-
       <!-- Club Cards -->
       ${regularClubsList.length > 0 ? `
         <div class="vp-section-title">⭐ החוגים הקבועים שלנו החודש</div>
@@ -297,7 +295,13 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
         </div>
       </div>
 
-      <div class="vp-footer">* שימו לב: ייתכנו שינויים בתוכנית החוגים</div>
+      <div style="display: grid; grid-template-columns: 1fr auto 1fr; margin-top: auto; padding-top: 10px; border-top: 2px solid #e2e8f0; align-items: center;">
+        <div style="font-size: 14px; font-weight: 700; color: #334155; text-align: right;">
+          ${mgrStr ? `👩‍💼 רכז/ת: ${_esc(mgrStr)}` : ''}
+        </div>
+        <div class="vp-footer" style="margin: 0; padding: 0; border: none;">* שימו לב: ייתכנו שינויים בתוכנית החוגים</div>
+        <div></div>
+      </div>
     </div>`;
 }
 
