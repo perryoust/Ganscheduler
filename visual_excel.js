@@ -409,21 +409,26 @@ async function _exportPDF(htmlContent, filename, month) {
 }
 
 function _getStyles(month) {
-  const monthEmojis = {
-    1: '❄️', // January: Peak Winter
-    2: '🌱', // February: Tu Bishvat / Sprout
-    3: '🌸', // March: Spring starts
-    4: '🦋', // April: Spring
-    5: '🌻', // May: Late spring / Shavuot
-    6: '🍉', // June: Early summer
-    7: '☀️', // July: Peak summer
-    8: '🏖️', // August: Summer break
-    9: '🍎', // September: Rosh Hashanah / Autumn
-    10: '🍂', // October: Falling leaves
-    11: '☔', // November: First rains
-    12: '⛄'  // December: Winter
+  // SVG watermarks per season - clear, with depth, grayscale-friendly
+  const svgWatermarks = {
+    // Winter: geometric snowflake
+    winter: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><g stroke='%23000' stroke-width='6' stroke-linecap='round' fill='none'><line x1='100' y1='10' x2='100' y2='190'/><line x1='10' y1='100' x2='190' y2='100'/><line x1='30' y1='30' x2='170' y2='170'/><line x1='170' y1='30' x2='30' y2='170'/><line x1='100' y1='30' x2='80' y2='10'/><line x1='100' y1='30' x2='120' y2='10'/><line x1='100' y1='170' x2='80' y2='190'/><line x1='100' y1='170' x2='120' y2='190'/><line x1='30' y1='100' x2='10' y2='80'/><line x1='30' y1='100' x2='10' y2='120'/><line x1='170' y1='100' x2='190' y2='80'/><line x1='170' y1='100' x2='190' y2='120'/><circle cx='100' cy='100' r='12' stroke-width='5'/></g></svg>`,
+    // Spring: flower with petals
+    spring: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><g fill='none' stroke='%23000' stroke-width='4'><ellipse cx='100' cy='55' rx='18' ry='38'/><ellipse cx='100' cy='145' rx='18' ry='38'/><ellipse cx='55' cy='100' rx='38' ry='18'/><ellipse cx='145' cy='100' rx='38' ry='18'/><ellipse cx='67' cy='67' rx='18' ry='38' transform='rotate(45 67 67)'/><ellipse cx='133' cy='133' rx='18' ry='38' transform='rotate(45 133 133)'/><ellipse cx='133' cy='67' rx='18' ry='38' transform='rotate(-45 133 67)'/><ellipse cx='67' cy='133' rx='18' ry='38' transform='rotate(-45 67 133)'/><circle cx='100' cy='100' r='22' stroke-width='5'/></g></svg>`,
+    // Summer: sun with rays
+    summer: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><g stroke='%23000' stroke-width='5' stroke-linecap='round' fill='none'><circle cx='100' cy='100' r='38'/><line x1='100' y1='5' x2='100' y2='25'/><line x1='100' y1='175' x2='100' y2='195'/><line x1='5' y1='100' x2='25' y2='100'/><line x1='175' y1='100' x2='195' y2='100'/><line x1='30' y1='30' x2='44' y2='44'/><line x1='156' y1='156' x2='170' y2='170'/><line x1='170' y1='30' x2='156' y2='44'/><line x1='44' y1='156' x2='30' y2='170'/><line x1='100' y1='5' x2='88' y2='15'/><line x1='100' y1='5' x2='112' y2='15'/></g></svg>`,
+    // Autumn: maple leaf
+    autumn: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><path d='M100 10 C90 30 70 25 65 45 C55 42 45 50 50 62 C38 60 30 70 40 80 C25 82 25 100 40 98 C30 112 40 128 55 120 C52 135 65 145 75 135 C80 155 90 160 100 175 C110 160 120 155 125 135 C135 145 148 135 145 120 C160 128 170 112 160 98 C175 100 175 82 160 80 C170 70 162 60 150 62 C155 50 145 42 135 45 C130 25 110 30 100 10Z M100 175 L100 185' stroke='%23000' stroke-width='4' fill='none' stroke-linejoin='round'/></svg>`
   };
-  const seasonEmoji = monthEmojis[month] || '☀️';
+
+  const seasonMap = {
+    1: 'winter', 2: 'winter', 12: 'winter',
+    3: 'spring', 4: 'spring', 5: 'spring',
+    6: 'summer', 7: 'summer', 8: 'summer',
+    9: 'autumn', 10: 'autumn', 11: 'autumn'
+  };
+  const season = seasonMap[month] || 'summer';
+  const svgWm = svgWatermarks[season];
 
   return `<style>
     .vp-page {
@@ -435,27 +440,17 @@ function _getStyles(month) {
       padding: 10mm 12mm;
       margin: 0 auto;
       background: #ffffff;
+      background-image: url("data:image/svg+xml,${svgWm}");
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: 420px 420px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
       font-family: 'Assistant', Arial, sans-serif;
       direction: rtl;
       page-break-after: always;
       color: #1e293b;
       position: relative;
-    }
-    
-    
-    
-    .vp-page::before {
-      content: "${seasonEmoji}";
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 380px;
-      opacity: 0.12;
-      filter: grayscale(100%);
-      pointer-events: none;
-      z-index: 1;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
     }
 
     /* Header */
@@ -591,7 +586,7 @@ function _getStyles(month) {
       flex-direction: column;
       border: 2px solid #94a3b8;
       border-radius: 12px;
-      overflow: hidden;
+      overflow: visible;
     }
     .vp-days-header {
       display: grid;
@@ -697,9 +692,10 @@ function _getStyles(month) {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
-      .vp-page::before {
-        opacity: 0.15 !important;
-        filter: grayscale(100%) !important;
+      .vp-page {
+        background-image: var(--wm) !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
       /* Print B&W Overrides */
       .vp-header { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; }
