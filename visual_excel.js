@@ -223,16 +223,23 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       let cellContent = '';
       let cellClass = 'vp-day-cell';
 
-      if (isCamp) {
-        cellClass += ' vp-day-camp';
-      }
-
       let dayHeaderHtml = `<div class="vp-day-number">${dayNum}</div>`;
 
-      if (isHoliday) {
+      if (isCamp) {
+        cellClass += ' vp-day-camp';
+        dayHeaderHtml = `<div class="vp-day-number">${dayNum}/${month} <span class="vp-camp-text">- ${_esc(hol.name || hol.label)}</span></div>`;
+      } else if (isHoliday) {
         cellClass += ' vp-day-holiday';
         dayHeaderHtml = `<div class="vp-day-number">${dayNum}/${month} <span class="vp-holiday-text">- ${_esc(hol.name || hol.label)}</span></div>`;
-      } else if (dayEvs.length > 0) {
+        let insideText = 'אין פעילות';
+        const hName = hol.name || hol.label || '';
+        if (hName.includes('שבתון') || hName.includes('בחירות')) {
+           insideText = hName;
+        }
+        cellContent = `<div class="vp-event-pill vp-event-holiday">${_esc(insideText)}</div>`;
+      }
+
+      if (dayEvs.length > 0 && !isHoliday) {
         dayEvs.forEach(ev => {
           let actName = ev.act;
           if (!actName && typeof window.supAct === 'function') actName = window.supAct(ev.a);
@@ -628,6 +635,9 @@ function _getStyles(month) {
     .vp-holiday-text {
       color: #b45309;
     }
+    .vp-camp-text {
+      color: #0284c7;
+    }
 
     /* Footer */
     .vp-footer {
@@ -665,7 +675,7 @@ function _getStyles(month) {
       
       .vp-event-pill { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; }
       .vp-event-holiday { background: #e2e8f0 !important; color: #000 !important; border: 2px solid #000 !important; }
-      .vp-holiday-text { color: #000 !important; }
+      .vp-holiday-text, .vp-camp-text { color: #000 !important; }
       
       .vp-footer { color: #000 !important; }
     }
