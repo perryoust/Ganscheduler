@@ -518,7 +518,7 @@ function _getStyles() {
     }
     .vp-days-header {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       background: #f1f5f9;
       text-align: center;
       font-weight: 800;
@@ -536,7 +536,7 @@ function _getStyles() {
     .vp-calendar-row {
       flex: 1;
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 2px;
     }
     .vp-calendar-row + .vp-calendar-row {
