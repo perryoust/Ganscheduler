@@ -227,9 +227,11 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
         cellClass += ' vp-day-camp';
       }
 
+      let dayHeaderHtml = `<div class="vp-day-number">${dayNum}</div>`;
+
       if (isHoliday) {
         cellClass += ' vp-day-holiday';
-        cellContent = `<div class="vp-event-pill vp-event-holiday">${_esc(hol.name || hol.label)}</div>`;
+        dayHeaderHtml = `<div class="vp-day-number">${dayNum}/${month} <span class="vp-holiday-text">- ${_esc(hol.name || hol.label)}</span></div>`;
       } else if (dayEvs.length > 0) {
         dayEvs.forEach(ev => {
           let actName = ev.act;
@@ -270,7 +272,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
 
       calendarRows += `
         <div class="${cellClass}">
-          <div class="vp-day-number">${dayNum}</div>
+          ${dayHeaderHtml}
           ${cellContent}
         </div>`;
     });
@@ -623,6 +625,9 @@ function _getStyles(month) {
       border: 2px solid #000 !important;
       font-weight: 800;
     }
+    .vp-holiday-text {
+      color: #b45309;
+    }
 
     /* Footer */
     .vp-footer {
@@ -633,6 +638,36 @@ function _getStyles(month) {
       margin-top: 12px;
       padding-top: 10px;
       border-top: 2px solid #e2e8f0;
+    }
+
+    @media print {
+      /* Print B&W Overrides */
+      .vp-header { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; }
+      .vp-header-sub, .vp-month-badge { color: #000 !important; border: 2px solid #000 !important; background: #fff !important; }
+      .vp-garden-bar { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; }
+      .vp-garden-name, .vp-mgr-line { color: #000 !important; font-weight: 800 !important; }
+      
+      .vp-activity-card { border: 2px solid #000 !important; border-right: 6px solid #000 !important; background: #fff !important; }
+      .vp-card-badge { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; border-top: none !important; font-weight: 800 !important; }
+      .vp-activity-card h3, .vp-activity-card p { color: #000 !important; }
+      
+      .vp-legend-dot { background: #fff !important; border: 2px solid #000 !important; }
+      .vp-legend { color: #000 !important; font-weight: 800 !important; }
+      
+      .vp-calendar-container, .vp-days-header, .vp-calendar-row + .vp-calendar-row { border-color: #000 !important; }
+      .vp-days-header { background: #f1f5f9 !important; color: #000 !important; border-bottom: 2px solid #000 !important; }
+      .vp-calendar-body { background: #000 !important; } /* dark grid lines */
+      
+      .vp-day-empty { background: #f8fafc !important; }
+      .vp-day-holiday { background: #f1f5f9 !important; }
+      .vp-day-camp { background: #e2e8f0 !important; }
+      .vp-day-number { color: #000 !important; border-bottom: 2px solid #000 !important; }
+      
+      .vp-event-pill { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; }
+      .vp-event-holiday { background: #e2e8f0 !important; color: #000 !important; border: 2px solid #000 !important; }
+      .vp-holiday-text { color: #000 !important; }
+      
+      .vp-footer { color: #000 !important; }
     }
   </style>`;
 }
