@@ -312,6 +312,35 @@ function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthNam
       r += 2;
     });
 
+    const oneOffClubs = clubs.filter(c => !regularClubs.includes(c));
+    if (oneOffClubs.length > 0) {
+      ws.getRow(r).height = 8; r++; // Spacer
+      
+      ws.getRow(r).height = 20;
+      ws.mergeCells(`A${r}:E${r}`);
+      const oHeader = ws.getCell(`A${r}`);
+      oHeader.value = "פעילויות מיוחדות / קייטנות";
+      oHeader.font = FONT_TITLE;
+      oHeader.fill = FILL_DAY_HEAD;
+      oHeader.alignment = { horizontal: 'right', vertical: 'middle' };
+      r++;
+
+      oneOffClubs.forEach(c => {
+         ws.getRow(r).height = 18;
+         ws.mergeCells(`A${r}:E${r}`);
+         const oCell = ws.getCell(`A${r}`);
+         const datesStr = c.events.map(e => {
+            const dp = e.d.split('-');
+            return `${dp[2]}/${dp[1]}`;
+         }).join(', ');
+         
+         oCell.value = `• ${c.name} | תאריכים: ${datesStr} | שעה: ${c.timeStr}${showPhones && c.phone ? ' | טלפון: '+c.phone : ''}`;
+         oCell.font = FONT_REGULAR;
+         oCell.alignment = { horizontal: 'right', vertical: 'middle' };
+         r++;
+      });
+    }
+
     // Footer note
     ws.getRow(r).height = 8; r++; // Spacer
     ws.getRow(r).height = 20;
