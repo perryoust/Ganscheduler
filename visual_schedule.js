@@ -88,16 +88,22 @@ function generatePrintableHTML(gardens, allEvs, year, month, showPhones) {
     // Identify unique clubs/activities
     const clubsMap = new Map();
     gEvs.forEach(ev => {
-      // Don't create cards for holidays (assume they have specific terms or we can filter)
+      // Skip holidays if they somehow get into gEvs (they usually don't, but just in case)
       if (ev.desc && (ev.desc.includes('חופש') || ev.desc.includes('חג') || ev.desc.includes('מועד'))) return;
       
-      const clubName = ev.desc || 'פעילות';
+      let actName = ev.act;
+      if (!actName && typeof window.supAct === 'function') {
+        actName = window.supAct(ev.a);
+      }
+      if (!actName) actName = 'פעילות';
+
+      const clubName = actName;
       if (!clubsMap.has(clubName)) {
         clubsMap.set(clubName, {
           name: clubName,
           events: [],
           phone: '',
-          supplierId: ev.sup || 0
+          supplierId: ev.a || ''
         });
       }
       clubsMap.get(clubName).events.push(ev);
@@ -109,8 +115,10 @@ function generatePrintableHTML(gardens, allEvs, year, month, showPhones) {
     clubs.forEach((club, idx) => {
       club.theme = colorThemes[idx % colorThemes.length];
       // Try to find supplier phone
+      // Try to find supplier phone (ev.a usually has the id or name)
       if (club.supplierId && window.SUPPLIERS) {
-        const sup = window.SUPPLIERS.find(s => s.id === club.supplierId);
+        // Compare as string since sometimes it's numeric ID and sometimes name
+        const sup = window.SUPPLIERS.find(s => String(s.id) === String(club.supplierId) || s.name === club.supplierId);
         if (sup && sup.phone) club.phone = sup.phone;
       }
       
@@ -183,21 +191,28 @@ function generatePrintableHTML(gardens, allEvs, year, month, showPhones) {
           let cellContent = `<span class="day-num">${day}</span>`;
           let tdClass = '';
           
+          const hol = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(dateStr, g.city, typeof window.getGardenClass === 'function' ? window.getGardenClass(g) : g.cls) : null;
+          const isCamp = hol && (hol.type === 'camp' || hol.label === 'קייטנה' || hol.canSched);
+          const isHoliday = hol && !isCamp;
+
+          if (isHoliday) {
+            tdClass = 'td-holiday';
+            cellContent += `<span class="event-badge badge-holiday" title="${hol.name || hol.label}">${hol.name || hol.label}</span>`;
+          }
+          
           dayEvs.forEach(ev => {
-            const isHoliday = ev.desc && (ev.desc.includes('חופש') || ev.desc.includes('חג') || ev.desc.includes('מועד') || ev.desc.includes('בחירות'));
-            if (isHoliday) {
-              tdClass = 'td-holiday';
-              cellContent += `<span class="event-badge badge-holiday" title="${ev.desc}">${ev.desc}</span>`;
+            let actName = ev.act;
+            if (!actName && typeof window.supAct === 'function') actName = window.supAct(ev.a);
+            if (!actName) actName = 'פעילות';
+
+            const club = clubs.find(c => c.name === actName);
+            if (club && regularClubs.includes(club)) {
+              tdClass = club.theme.tdClass;
+              const shortLabel = club.name.includes('-') ? club.name.split('-')[1].trim() : club.name.split(' ')[0];
+              cellContent += `<span class="event-badge ${club.theme.badgeClass}" title="${club.name}">${shortLabel} (${ev.t || ''})</span>`;
             } else {
-              const club = clubs.find(c => c.name === ev.desc);
-              if (club) {
-                tdClass = club.theme.tdClass;
-                const shortLabel = club.name.includes('-') ? club.name.split('-')[1].trim() : club.name.split(' ')[0];
-                cellContent += `<span class="event-badge ${club.theme.badgeClass}" title="${club.name}">${shortLabel} (${ev.t || ''})</span>`;
-              } else {
-                // generic event
-                cellContent += `<span class="event-badge" style="background:#E2E8F0; color:#475569" title="${ev.desc}">${ev.desc}</span>`;
-              }
+              // one-off event or camp event
+              cellContent += `<span class="event-badge" style="background:#E2E8F0; color:#475569" title="${actName}">${actName} (${ev.t || ''})</span>`;
             }
           });
           
