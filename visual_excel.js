@@ -63,7 +63,8 @@ window.doVisualExcelExport = async function() {
         const gEvs = allEvs.filter(s => s.g === g.id);
         if (!gEvs.length) continue;
         const wb = new window.ExcelJS.Workbook();
-        _buildVisualSheet(wb, g.name.replace(/[*?:\[\]\/\\]/g,'').slice(0,31) || 'גן', [g], allEvs, year, month, monthName, showPhones);
+        const safeSheetName = (g.name || 'גן').replace(/[\\/*?:\[\]]/g, '').slice(0, 31).trim();
+        _buildVisualSheet(wb, safeSheetName, [g], allEvs, year, month, monthName, showPhones);
         const safeName = g.name.replace(/[^\u0590-\u05FF\w\-_.]/gu, '_');
         await _saveExcel(wb, `לוח_מעוצב_${safeName}_${fromM}.xlsx`);
         filesExported++;
@@ -77,12 +78,13 @@ window.doVisualExcelExport = async function() {
         const wb = new window.ExcelJS.Workbook();
         if (splitMode === 'city_single') {
           // All gardens in one sheet
-          _buildVisualSheet(wb, (city || 'כל הגנים').replace(/[*?:\[\]\/\\]/g,'').slice(0,31), cityGardens, allEvs, year, month, monthName, showPhones);
+          const safeSheetName = (city || 'כל הגנים').replace(/[\\/*?:\[\]]/g, '').slice(0, 31).trim();
+          _buildVisualSheet(wb, safeSheetName, cityGardens, allEvs, year, month, monthName, showPhones);
         } else {
           // One sheet per garden
           cityGardens.sort((a,b) => (a.name||'').localeCompare(b.name||'','he'));
           for (const g of cityGardens) {
-            const sheetName = (g.name || `גן${g.id}`).replace(/[*?:\[\]\/\\]/g,'').slice(0,31);
+            const sheetName = (g.name || `גן${g.id}`).replace(/[\\/*?:\[\]]/g, '').slice(0, 31).trim();
             _buildVisualSheet(wb, sheetName, [g], allEvs, year, month, monthName, showPhones);
           }
         }
@@ -108,7 +110,6 @@ function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthNam
     pageSetup: {
       paperSize: 9, // A4
       orientation: 'portrait',
-      fitToPage: true,
       fitToWidth: 1,
       fitToHeight: 1,
       margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4 }
@@ -227,12 +228,17 @@ function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthNam
       }
 
       for (let rx = r; rx <= r+2; rx++) {
-        [1,2,4,5].forEach(cx => {
-          const cCell = ws.getCell(rx, cx);
-          cCell.fill = FILL_CARD;
-          cCell.border = BOX_BORDER;
-          cCell.alignment = { horizontal: 'right', vertical: 'middle' };
-        });
+        const cCell1 = ws.getCell(`A${rx}`);
+        cCell1.fill = FILL_CARD;
+        cCell1.border = BOX_BORDER;
+        cCell1.alignment = { horizontal: 'right', vertical: 'middle' };
+        
+        if (regularClubs.length > 1) {
+          const cCell2 = ws.getCell(`D${rx}`);
+          cCell2.fill = FILL_CARD;
+          cCell2.border = BOX_BORDER;
+          cCell2.alignment = { horizontal: 'right', vertical: 'middle' };
+        }
       }
       r += 3;
     }
