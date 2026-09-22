@@ -153,7 +153,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
   // Garden metadata
   const ageLabel = typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g.age || '3-4');
   const mgr = typeof window.gardenManager === 'function' ? window.gardenManager(g.id) : null;
-  const mgrStr = mgr ? `${mgr.name}${mgr.phone ? ' · ' + mgr.phone : ''}` : '';
+  const mgrStr = mgr ? `${mgr.name}${showPhones && mgr.phone ? ' · ' + mgr.phone : ''}` : '';
 
   // Build calendar weeks (Sun-Thu only)
   const daysInMonth = new Date(year, month, 0).getDate();
