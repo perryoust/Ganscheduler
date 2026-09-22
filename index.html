@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 112.18</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 112.19</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="icon" type="image/x-icon" href="https://tome-k.co.il/wp-content/uploads/2023/10/favicon-150x150.png" />
@@ -21,12 +21,12 @@
   <link rel="icon" type="image/png" sizes="32x32" href="https://tome-k.co.il/wp-content/uploads/2023/10/favicon-150x150.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="https://tome-k.co.il/wp-content/uploads/2023/10/favicon-150x150.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=112.18" />
+  <link rel="stylesheet" href="styles.css?v=112.19" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '112.18';
+    window.APP_VERSION = '112.19';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -1163,7 +1163,7 @@
             <button class="btn bg" style="flex:1" onclick="doMonthlyExport()">🚀 ייצא Excel</button>
             <button class="btn bs" onclick="CM('export-m')">ביטול</button>
           </div>
-          <button class="btn bo" style="width:100%; justify-content:center; background:#f0f7ff; color:#1e40af; border:1px solid #bfdbfe; font-weight:bold" onclick="doVisualExport()">🎨 הפקת לוח מעוצב להדפסה / PDF</button>
+          <button class="btn bo" style="width:100%; justify-content:center; background:#f0f7ff; color:#1e40af; border:1px solid #bfdbfe; font-weight:bold" onclick="doVisualExcelExport()">🎨 הפקת לוח מעוצב באקסל (פוסטר)</button>
         </div>
       </div>
     </div>
@@ -3885,7 +3885,7 @@
     <script src="sched.js?v=112.18"></script>
     <script src="gardens.js?v=112.18"></script>
     <script src="export_v107.js?v=112.18"></script>
-    <script src="visual_schedule.js?v=112.18"></script>
+    <script src="visual_excel.js?v=112.19"></script>
     <script src="backup.js?v=112.18"></script>
     <script src="admin.js?v=112.15"></script>
     <script src="import_export.js?v=112.15"></script>
