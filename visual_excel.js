@@ -341,7 +341,9 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
         <div style="font-size: 15px; font-weight: 700; color: #334155; text-align: right; line-height: 1.2;">
           ${mgrStr ? `👩‍💼 רכז/ת: ${_esc(mgrStr)}` : ''}
         </div>
-        <div class="vp-footer" style="margin: 4px 0 0 0; padding: 0; border: none;">* שימו לב: ייתכנו שינויים בתוכנית החוגים</div>
+        <div style="text-align: center; margin-top: 12px;">
+          <div class="vp-footer">* שימו לב: ייתכנו שינויים בתוכנית החוגים</div>
+        </div>
       </div>
     </div>`;
 }
@@ -677,13 +679,14 @@ function _getStyles(month) {
 
     /* Footer */
     .vp-footer {
-      text-align: center;
-      font-size: 26px;
+      display: inline-block;
+      font-size: 22px;
       font-weight: 800;
-      color: #ef4444; /* prominent red */
-      margin-top: 16px;
-      padding-top: 14px;
-      border-top: 2px solid #e2e8f0;
+      color: #dc2626;
+      background: #fee2e2;
+      padding: 6px 24px;
+      border-radius: 9999px;
+      border: 2px solid #f87171;
     }
 
     @media print {
@@ -722,7 +725,11 @@ function _getStyles(month) {
       .vp-event-holiday { background: #e2e8f0 !important; color: #000 !important; border: 2px solid #000 !important; }
       .vp-holiday-text, .vp-camp-text { color: #000 !important; }
       
-      .vp-footer { color: #000 !important; }
+      .vp-footer { 
+        background: #f1f5f9 !important; 
+        color: #000 !important; 
+        border: 2px solid #000 !important; 
+      }
     }
   </style>`;
 }
