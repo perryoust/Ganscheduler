@@ -18,21 +18,32 @@ window.doVisualExcelExport = async function() {
   const toDate = `${year}-${String(month).padStart(2,'0')}-${String(new Date(year, month, 0).getDate()).padStart(2,'0')}`;
   
   // Filter Gardens based on current UI selection
-  let gList = [];
-  const cm = document.getElementById('city-multi');
-  const gm = document.getElementById('garden-multi');
-  if (!cm || !gm) return;
+  const modeNode = document.querySelector('input[name="exp-mode"]:checked');
+  if (!modeNode) return;
+  const mode = modeNode.value;
+  const cityFilter = document.getElementById('exp-city').value;
+  const mgrFilter = document.getElementById('exp-mgr').value;
+  const gardenFilter = parseInt(document.getElementById('exp-garden').value) || 0;
+
+  let gList = window.GARDENS.filter(g => g.active !== false);
   
-  const selC = Array.from(cm.selectedOptions).map(o=>o.value);
-  const selG = Array.from(gm.selectedOptions).map(o=>Number(o.value));
-  
-  if (selG.includes(0) && selC.includes('all')) {
-    gList = window.GARDENS.filter(g => g.active!==false);
-  } else if (selG.includes(0)) {
-    gList = window.GARDENS.filter(g => selC.includes(g.city) && g.active!==false);
-  } else {
-    gList = window.GARDENS.filter(g => selG.includes(g.id) && g.active!==false);
+  if (mode === 'city') {
+    if (cityFilter !== 'all') {
+      gList = gList.filter(g => g.city === cityFilter);
+    }
+  } else if (mode === 'manager') {
+    if (mgrFilter !== 'all') {
+      gList = gList.filter(g => {
+        const mgr = typeof window.gardenManager === 'function' ? window.gardenManager(g.id) : null;
+        return mgr && mgr.name === mgrFilter;
+      });
+    }
+  } else if (mode === 'garden') {
+    if (gardenFilter) {
+      gList = gList.filter(g => g.id === gardenFilter);
+    }
   }
+
   
   if (gList.length === 0) { window.spAlert("לא נבחרו גנים לייצוא"); return; }
   
