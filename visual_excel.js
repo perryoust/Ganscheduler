@@ -278,7 +278,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
         </div>
       </div>
 
-      <div class="vp-footer">* שימו לב: ייתכנו שינויים בתוכנית החוגים. הלוח מיועד להורים וילדי הצהרון.</div>
+      <div class="vp-footer">* שימו לב: ייתכנו שינויים בתוכנית החוגים</div>
     </div>`;
 }
 
@@ -545,11 +545,12 @@ function _getStyles() {
     /* Footer */
     .vp-footer {
       text-align: center;
-      font-size: 10px;
-      color: #94a3b8;
-      margin-top: 8px;
-      padding-top: 6px;
-      border-top: 1px solid #f1f5f9;
+      font-size: 14px;
+      font-weight: 700;
+      color: #ef4444; /* prominent red */
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid #e2e8f0;
     }
   </style>`;
 }
