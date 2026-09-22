@@ -111,15 +111,16 @@ function _cleanStr(str) {
 }
 
 function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthName, showPhones) {
-  const ws = wb.addWorksheet(sheetName, {
-    views: [{ rightToLeft: true, showGridLines: false }]
-  });
-  ws.pageSetup.paperSize = 9; // A4
-  ws.pageSetup.orientation = 'portrait';
-  ws.pageSetup.fitToPage = true;
-  ws.pageSetup.fitToWidth = 1;
-  ws.pageSetup.fitToHeight = 1;
-  ws.pageSetup.margins = { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4 };
+  const ws = wb.addWorksheet(sheetName);
+  ws.views = [{ rightToLeft: true, showGridLines: false }];
+  ws.pageSetup = {
+    paperSize: 9, // A4
+    orientation: 'portrait',
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 1,
+    margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4 }
+  };
 
   // 5 columns (Sun-Thu)
   for (let c=1; c<=5; c++) {
