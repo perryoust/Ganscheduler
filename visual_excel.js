@@ -410,24 +410,9 @@ async function _exportPDF(htmlContent, filename, month) {
 }
 
 function _getStyles(month) {
-  // Rich seasonal SVG watermarks - injected inline for reliable print rendering
-  const seasonMap = {
-    1: 'winter', 2: 'winter', 12: 'winter',
-    3: 'spring', 4: 'spring', 5: 'spring',
-    6: 'summer', 7: 'summer', 8: 'summer',
-    9: 'autumn', 10: 'autumn', 11: 'autumn'
-  };
-  const season = seasonMap[month] || 'summer';
-
-  // Clipart seasonal watermarks
-  const watermarkSVGs = {
-    winter: `<img src="img/bg_winter.jpg" style="width:100%; height:100%; object-fit:contain; mix-blend-mode: multiply;" />`,
-    spring: `<img src="img/bg_spring.jpg" style="width:100%; height:100%; object-fit:contain; mix-blend-mode: multiply;" />`,
-    summer: `<img src="img/bg_summer.jpg" style="width:100%; height:100%; object-fit:contain; mix-blend-mode: multiply;" />`,
-    autumn: `<img src="img/bg_autumn.jpg" style="width:100%; height:100%; object-fit:contain; mix-blend-mode: multiply;" />`
-  };
-
-  const watermarkSVG = watermarkSVGs[season];
+  // Clipart seasonal watermarks (1 for each month)
+  // Currently months 5-12 are placeholders until quota resets
+  const watermarkSVG = `<img src="img/bg_${month}.jpg" style="width:100%; height:100%; object-fit:contain; mix-blend-mode: multiply;" />`;
 
   return {
     css: `<style>
