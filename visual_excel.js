@@ -112,20 +112,16 @@ function _cleanStr(str) {
 
 function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthName, showPhones) {
   const ws = wb.addWorksheet(sheetName);
-  ws.views = [{ rightToLeft: true, showGridLines: false }];
+  ws.views = [{ rightToLeft: true, showGridLines: true }];
   ws.pageSetup = {
-    paperSize: 9, // A4
-    orientation: 'portrait',
-    fitToPage: true,
-    fitToWidth: 1,
-    fitToHeight: 1,
-    margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4 }
+    paperSize: 9, orientation: 'portrait',
+    fitToPage: true, fitToWidth: 1, fitToHeight: 0,
+    horizontalCentered: true,
+    margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.3, footer: 0.3 }
   };
-
-  // 5 columns (Sun-Thu)
-  for (let c=1; c<=5; c++) {
-    ws.getColumn(c).width = 20;
-  }
+  ws.columns = [
+    { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }
+  ];
 
   const FONT_HEADING = { name: 'Arial', size: 15, bold: true, color: { argb: 'FFFFFFFF' } };
   const FONT_SUB = { name: 'Arial', size: 10, color: { argb: 'FFE0E7FF' } };
