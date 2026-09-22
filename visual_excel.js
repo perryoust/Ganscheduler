@@ -1,14 +1,6 @@
-// visual_excel.js - מחולל אקסל מעוצב ללוח חוגים חודשי
+// visual_excel.js - מחולל PDF מעוצב ללוח חוגים חודשי (html2pdf)
 
 window.doVisualExcelExport = async function() {
-  if (typeof window.ExcelJS === 'undefined') {
-    try { await window.ensureExcelJSLoaded(); } catch(e) {}
-  }
-  if (typeof window.ExcelJS === 'undefined') {
-    window.spAlert("ספריית האקסל לא נטענה.");
-    return;
-  }
-
   const mp = document.getElementById('exp-from');
   if (!mp || !mp.value) { window.spAlert('אנא בחר חודש'); return; }
   const fromM = mp.value;
@@ -28,9 +20,7 @@ window.doVisualExcelExport = async function() {
   let gList = window.GARDENS.filter(g => g.active !== false);
   
   if (mode === 'city') {
-    if (cityFilter !== 'all') {
-      gList = gList.filter(g => g.city === cityFilter);
-    }
+    if (cityFilter !== 'all') gList = gList.filter(g => g.city === cityFilter);
   } else if (mode === 'manager') {
     if (mgrFilter !== 'all') {
       gList = gList.filter(g => {
@@ -39,347 +29,493 @@ window.doVisualExcelExport = async function() {
       });
     }
   } else if (mode === 'garden') {
-    if (gardenFilter) {
-      gList = gList.filter(g => g.id === gardenFilter);
-    }
+    if (gardenFilter) gList = gList.filter(g => g.id === gardenFilter);
   }
 
-  
   if (gList.length === 0) { window.spAlert("לא נבחרו גנים לייצוא"); return; }
   
   const allEvs = window.SCH.filter(s => s.d >= fromDate && s.d <= toDate);
   const showPhones = document.getElementById('exp-phones') ? document.getElementById('exp-phones').checked : true;
-  const splitMode = document.getElementById('exp-split').value; // 'city', 'city_single', 'garden'
+  const splitMode = document.getElementById('exp-split').value;
   
   const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
   const monthName = HEB_MONTHS[month - 1];
 
-  let filesExported = 0;
+  // Hebrew year
+  function hebYear(y, m) {
+    const base = y + 3760 + (m >= 8 ? 1 : 0);
+    let n = base % 1000, s = '';
+    const L = {400:'ת',300:'ש',200:'ר',100:'ק',90:'צ',80:'פ',70:'ע',60:'ס',50:'נ',40:'מ',30:'ל',20:'כ',10:'י',9:'ט',8:'ח',7:'ז',6:'ו',5:'ה',4:'ד',3:'ג',2:'ב',1:'א'};
+    for (const v of [400,300,200,100,90,80,70,60,50,40,30,20,10,9,8,7,6,5,4,3,2,1])
+      while(n>=v){s+=L[v];n-=v;}
+    return s.length===1 ? s+"'" : s.slice(0,-1)+'"'+s.slice(-1);
+  }
+  const hebYearStr = hebYear(year, month - 1);
 
-  // Build the Workbooks based on splitMode
+  // Sort gardens
+  gList.sort((a,b) => (a.city||'').localeCompare(b.city||'','he') || (a.name||'').localeCompare(b.name||'','he'));
+
   try {
     if (splitMode === 'garden') {
+      // One PDF per garden
+      let filesExported = 0;
       for (const g of gList) {
         const gEvs = allEvs.filter(s => s.g === g.id);
         if (!gEvs.length) continue;
-        const wb = new window.ExcelJS.Workbook();
-        const safeSheetName = (g.name || 'גן').replace(/[\\/*?:\[\]]/g, '').slice(0, 31).trim();
-        _buildVisualSheet(wb, safeSheetName, [g], allEvs, year, month, monthName, showPhones);
-        const safeName = g.name.replace(/[^\u0590-\u05FF\w\-_.]/gu, '_');
-        await _saveExcel(wb, `לוח_מעוצב_${safeName}_${fromM}.xlsx`);
+        const html = _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones);
+        await _exportPDF(html, `לוח_מעוצב_${g.name}_${fromM}.pdf`);
         filesExported++;
       }
+      if (filesExported > 0) window.showToast(`📊 ${filesExported} קבצי PDF מעוצבים נוצרו בהצלחה!`);
+      else window.spAlert('⚠️ לא נמצאו פעילויות בטווח התאריכים שנבחר.');
     } else {
+      // Group by city
       const byCity = gList.reduce((acc, g) => { (acc[g.city||''] = acc[g.city||'']||[]).push(g); return acc; }, {});
+      let filesExported = 0;
       for (const [city, gardens] of Object.entries(byCity)) {
         const cityGardens = gardens.filter(g => allEvs.some(s => s.g === g.id));
         if (!cityGardens.length) continue;
         
-        const wb = new window.ExcelJS.Workbook();
-        if (splitMode === 'city_single') {
-          // All gardens in one sheet
-          const safeSheetName = (city || 'כל הגנים').replace(/[\\/*?:\[\]]/g, '').slice(0, 31).trim();
-          _buildVisualSheet(wb, safeSheetName, cityGardens, allEvs, year, month, monthName, showPhones);
-        } else {
-          // One sheet per garden
-          cityGardens.sort((a,b) => (a.name||'').localeCompare(b.name||'','he'));
-          for (const g of cityGardens) {
-            const sheetName = (g.name || `גן${g.id}`).replace(/[\\/*?:\[\]]/g, '').slice(0, 31).trim();
-            _buildVisualSheet(wb, sheetName, [g], allEvs, year, month, monthName, showPhones);
-          }
+        let pagesHtml = '';
+        for (const g of cityGardens) {
+          const gEvs = allEvs.filter(s => s.g === g.id);
+          pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones);
         }
-        const safeCity = (city || 'כל_העיר').replace(/[^\u0590-\u05FF\w\-_.]/gu, '_');
-        await _saveExcel(wb, `לוח_מעוצב_${safeCity}_${fromM}.xlsx`);
+        await _exportPDF(pagesHtml, `לוח_מעוצב_${city||'כל_הגנים'}_${fromM}.pdf`);
         filesExported++;
       }
+      if (filesExported > 0) window.showToast(`📊 ${filesExported} קבצי PDF מעוצבים נוצרו בהצלחה!`);
+      else window.spAlert('⚠️ לא נמצאו פעילויות בטווח התאריכים שנבחר.');
     }
-    
     window.CM('export-m'); // close modal
-    if(filesExported > 0) window.showToast(`📊 ${filesExported} קבצי אקסל מעוצבים נוצרו בהצלחה!`);
-    else window.spAlert('⚠️ לא נמצאו פעילויות בטווח התאריכים שנבחר לגנים המבוקשים.');
-    
   } catch(e) {
-    console.error('Visual Excel error:', e);
-    window.spAlert('שגיאה ביצירת אקסל מעוצב: ' + e.message);
+    console.error('Visual PDF error:', e);
+    window.spAlert('שגיאה ביצירת PDF מעוצב: ' + e.message);
   }
 };
 
-function _cleanStr(str) {
-  if (!str) return '';
-  // Remove ASCII control characters that break XML
-  return String(str).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
-}
-
-function _buildVisualSheet(wb, sheetName, gardens, allEvs, year, month, monthName, showPhones) {
-  const ws = wb.addWorksheet(sheetName);
-  ws.views = [{ rightToLeft: true, showGridLines: true }];
-  ws.pageSetup = {
-    paperSize: 9, orientation: 'portrait',
-    fitToPage: true, fitToWidth: 1, fitToHeight: 0,
-    horizontalCentered: true,
-    margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.3, footer: 0.3 }
-  };
-  ws.columns = [
-    { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }
-  ];
-
-  const FONT_HEADING = { name: 'Arial', size: 15, bold: true, color: { argb: 'FFFFFFFF' } };
-  const FONT_SUB = { name: 'Arial', size: 10, color: { argb: 'FFE0E7FF' } };
-  const FONT_TITLE = { name: 'Arial', size: 11, bold: true, color: { argb: 'FF1E293B' } };
-  const FONT_REGULAR = { name: 'Arial', size: 9, color: { argb: 'FF334155' } };
-  const FONT_BOLD = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF0F172A' } };
-  const FONT_NOTE = { name: 'Arial', size: 8, italic: true, color: { argb: 'FF64748B' } };
-
-  const FILL_PRIMARY = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3B82F6' } };
-  const FILL_CARD = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0FDF4' } };
-  const FILL_EVENT = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } };
-  const FILL_VACATION = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } };
-  const FILL_DAY_HEAD = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
-  const FILL_EMPTY_DAY = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
-
-  const BORDER_THIN = { style: 'thin', color: { argb: 'FFCBD5E1' } };
-  const BOX_BORDER = { left: BORDER_THIN, right: BORDER_THIN, top: BORDER_THIN, bottom: BORDER_THIN };
-
-  let r = 1;
-
-  gardens.forEach((g, idx) => {
-    if (idx > 0) {
-      ws.addRow([]); // Spacer between gardens if stacked
-      ws.getRow(r).height = 40;
-      r++;
+function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones) {
+  // Compute clubs
+  const clubsMap = new Map();
+  gEvs.forEach(ev => {
+    if (ev.desc && (ev.desc.includes('חופש') || ev.desc.includes('חג') || ev.desc.includes('מועד'))) return;
+    let actName = ev.act;
+    if (!actName && typeof window.supAct === 'function') actName = window.supAct(ev.a);
+    if (!actName) actName = 'פעילות';
+    if (!clubsMap.has(actName)) {
+      clubsMap.set(actName, { name: actName, events: [], phone: '', supplierId: ev.a || '' });
     }
-
-    const gEvs = allEvs.filter(e => e.g === g.id);
-    const clubsMap = new Map();
-    
-    gEvs.forEach(ev => {
-      // skip holidays
-      if (ev.desc && (ev.desc.includes('חופש') || ev.desc.includes('חג') || ev.desc.includes('מועד'))) return;
-      
-      let actName = ev.act;
-      if (!actName && typeof window.supAct === 'function') actName = window.supAct(ev.a);
-      if (!actName) actName = 'פעילות';
-
-      if (!clubsMap.has(actName)) {
-        clubsMap.set(actName, { name: actName, events: [], phone: '', supplierId: ev.a || '' });
-      }
-      clubsMap.get(actName).events.push(ev);
-    });
-
-    const clubs = Array.from(clubsMap.values());
-    clubs.forEach(club => {
-      if (club.supplierId && window.SUPPLIERS) {
-        const sup = window.SUPPLIERS.find(s => String(s.id) === String(club.supplierId) || s.name === club.supplierId);
-        if (sup && sup.phone) club.phone = sup.phone;
-      }
-      if (club.events.length > 0) {
-        const firstEv = club.events[0];
-        const dObj = new Date(firstEv.d);
-        const daysHe = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
-        club.dayStr = 'יום ' + daysHe[dObj.getDay()];
-        club.timeStr = firstEv.t || '';
-      }
-    });
-
-    const regularClubs = clubs.filter(c => c.events.length >= 2).slice(0, 2); // Max 2 cards
-
-    // Row 1 & 2: Header
-    ws.getRow(r).height = 28;
-    ws.getRow(r+1).height = 20;
-
-    const cellH1 = ws.getCell(`A${r}`);
-    cellH1.value = _cleanStr(`Kids טומשין • לוח חוגים חודשי - ${g.name || ''}`);
-    cellH1.font = FONT_HEADING;
-    cellH1.fill = FILL_PRIMARY;
-    cellH1.alignment = { horizontal: 'center', vertical: 'middle' };
-
-    const cellH2 = ws.getCell(`A${r+1}`);
-    const ageLabel = typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g.age || '3-4');
-    const mgr = typeof window.gardenManager === 'function' ? window.gardenManager(g.id) : null;
-    const mgrStr = mgr ? `${mgr.name} ${mgr.phone||''}` : '';
-    
-    cellH2.value = _cleanStr(`חודש: ${monthName} ${year} | גילאים: ${ageLabel} | עיר: ${g.city || ''} ${mgrStr ? '| רכז/ת: '+mgrStr : ''}`);
-    cellH2.font = FONT_SUB;
-    cellH2.fill = FILL_PRIMARY;
-    cellH2.alignment = { horizontal: 'center', vertical: 'middle' };
-
-    ws.mergeCells(`A${r}:E${r}`);
-    ws.mergeCells(`A${r+1}:E${r+1}`);
-
-    r += 2;
-    ws.getRow(r).height = 8; // Spacer
-    r++;
-
-    // Row 4-6: Cards (only if there are regular clubs)
-    if (regularClubs.length > 0) {
-      ws.getRow(r).height = 22;
-      ws.getRow(r+1).height = 18;
-      ws.getRow(r+2).height = 18;
-
-      const c1 = regularClubs[0];
-      ws.getCell(`A${r}`).value = _cleanStr(` חוג 1: ${c1.name}`); ws.getCell(`A${r}`).font = FONT_TITLE;
-      ws.getCell(`A${r+1}`).value = _cleanStr(`${c1.dayStr} בשעה ${c1.timeStr}`); ws.getCell(`A${r+1}`).font = FONT_REGULAR;
-      ws.getCell(`A${r+2}`).value = showPhones ? _cleanStr(`מפעיל/טלפון: ${c1.phone}`) : ''; ws.getCell(`A${r+2}`).font = FONT_REGULAR;
-
-      if (regularClubs.length > 1) {
-        const c2 = regularClubs[1];
-        ws.getCell(`D${r}`).value = _cleanStr(` חוג 2: ${c2.name}`); ws.getCell(`D${r}`).font = FONT_TITLE;
-        ws.getCell(`D${r+1}`).value = _cleanStr(`${c2.dayStr} בשעה ${c2.timeStr}`); ws.getCell(`D${r+1}`).font = FONT_REGULAR;
-        ws.getCell(`D${r+2}`).value = showPhones ? _cleanStr(`מפעיל/טלפון: ${c2.phone}`) : ''; ws.getCell(`D${r+2}`).font = FONT_REGULAR;
-      }
-
-      for (let rx = r; rx <= r+2; rx++) {
-        const cCell1 = ws.getCell(`A${rx}`);
-        cCell1.fill = FILL_CARD;
-        cCell1.border = BOX_BORDER;
-        cCell1.alignment = { horizontal: 'right', vertical: 'middle' };
-        
-        if (regularClubs.length > 1) {
-          const cCell2 = ws.getCell(`D${rx}`);
-          cCell2.fill = FILL_CARD;
-          cCell2.border = BOX_BORDER;
-          cCell2.alignment = { horizontal: 'right', vertical: 'middle' };
-        }
-      }
-
-      ws.mergeCells(`A${r}:B${r}`); ws.mergeCells(`A${r+1}:B${r+1}`); ws.mergeCells(`A${r+2}:B${r+2}`);
-      if (regularClubs.length > 1) {
-        ws.mergeCells(`D${r}:E${r}`); ws.mergeCells(`D${r+1}:E${r+1}`); ws.mergeCells(`D${r+2}:E${r+2}`);
-      }
-
-      r += 3;
-    }
-    
-    ws.getRow(r).height = 8; // Spacer
-    r++;
-
-    // Calendar Header
-    ws.getRow(r).height = 24;
-    const daysLabels = ["יום ראשון", "יום שני", "יום שלישי", "יום רביעי", "יום חמישי"];
-    daysLabels.forEach((dl, i) => {
-      const cell = ws.getCell(r, i + 1);
-      cell.value = dl;
-      cell.font = FONT_BOLD;
-      cell.fill = FILL_DAY_HEAD;
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      cell.border = BOX_BORDER;
-    });
-    r++;
-
-    // Calendar Grid
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const weeks = [];
-    let curWeek = [null,null,null,null,null];
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dow = new Date(year, month - 1, d).getDay();
-      if (dow >= 0 && dow <= 4) {
-        curWeek[dow] = d;
-      }
-      if (dow === 4 || d === daysInMonth) {
-        if (curWeek.some(x => x !== null)) weeks.push([...curWeek]);
-        curWeek = [null,null,null,null,null];
-      }
-    }
-
-    weeks.forEach(week => {
-      ws.getRow(r).height = 20;
-      ws.getRow(r+1).height = 75;
-
-      week.forEach((dayNum, idx) => {
-        const c1 = ws.getCell(r, idx + 1);
-        const c2 = ws.getCell(r + 1, idx + 1);
-        c1.border = BOX_BORDER; c2.border = BOX_BORDER;
-
-        if (dayNum) {
-          c1.value = dayNum;
-          c1.font = FONT_BOLD;
-          c1.alignment = { horizontal: 'center', vertical: 'middle' };
-
-          const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
-          
-          const hol = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(dateStr, g.city, typeof window.getGardenClass === 'function' ? window.getGardenClass(g) : g.cls) : null;
-          const isCamp = hol && (hol.type === 'camp' || hol.label === 'קייטנה' || hol.canSched);
-          const isHoliday = hol && !isCamp;
-
-          const dayEvs = gEvs.filter(e => e.d === dateStr);
-          // Sort events by time
-          dayEvs.sort((a,b)=>(a.t||'').localeCompare(b.t||''));
-
-          if (isHoliday) {
-            c2.value = _cleanStr(hol.name || hol.label);
-            c2.fill = FILL_VACATION;
-            c2.font = FONT_REGULAR;
-            c2.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          } else if (dayEvs.length > 0) {
-            let cellText = [];
-            dayEvs.forEach(ev => {
-              let actName = ev.act;
-              if (!actName && typeof window.supAct === 'function') actName = window.supAct(ev.a);
-              if (!actName) actName = 'פעילות';
-
-              let isRegular = regularClubs.some(rc => rc.name === actName);
-              let extraInfo = '';
-              
-              if (!isRegular && showPhones && ev.a && window.SUPPLIERS) {
-                const sup = window.SUPPLIERS.find(s => String(s.id) === String(ev.a) || s.name === ev.a);
-                if (sup && sup.phone) extraInfo = `\n📞 ${sup.phone}`;
-              }
-
-              cellText.push(_cleanStr(`${ev.t||''} ${actName}${extraInfo}`));
-            });
-            c2.value = cellText.join('\n\n');
-            c2.fill = FILL_EVENT;
-            c2.font = FONT_BOLD;
-            c2.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          } else {
-            c2.value = "צהרון רגיל";
-            c2.fill = FILL_EMPTY_DAY;
-            c2.font = FONT_NOTE;
-            c2.alignment = { horizontal: 'center', vertical: 'middle' };
-          }
-        } else {
-          c1.fill = FILL_EMPTY_DAY;
-          c2.fill = FILL_EMPTY_DAY;
-        }
-      });
-      r += 2;
-    });
-
-    // Footer note
-    ws.getRow(r).height = 8; r++; // Spacer
-    ws.getRow(r).height = 20;
-    
-    const noteCell = ws.getCell(`A${r}`);
-    noteCell.value = _cleanStr("* שימו לב: ייתכנו שינויים בתוכנית החוגים. הלוח מיועד להורים וילדי הצהרון.");
-    noteCell.font = FONT_NOTE;
-    noteCell.alignment = { horizontal: 'center', vertical: 'middle' };
-
-    ws.mergeCells(`A${r}:E${r}`);
-    r++;
+    clubsMap.get(actName).events.push(ev);
   });
-}
 
-async function _saveExcel(workbook, filename) {
-  const buffer = await workbook.xlsx.writeBuffer();
+  const clubs = Array.from(clubsMap.values());
+  clubs.forEach(club => {
+    if (club.supplierId && window.SUPPLIERS) {
+      const sup = window.SUPPLIERS.find(s => String(s.id) === String(club.supplierId) || s.name === club.supplierId);
+      if (sup && sup.phone) club.phone = sup.phone;
+    }
+    if (club.events.length > 0) {
+      const firstEv = club.events[0];
+      const dObj = new Date(firstEv.d);
+      const daysHe = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+      club.dayStr = 'יום ' + daysHe[dObj.getDay()];
+      club.timeStr = firstEv.t || '';
+    }
+  });
 
-  let finalBlob;
-  try {
-    // Use _SafeJSZip (saved at page load before ExcelJS could overwrite window.JSZip)
-    const JZ = window._SafeJSZip;
-    if (!JZ) throw new Error('_SafeJSZip not available');
-    const zip = await JZ.loadAsync(buffer);
-    // Re-generate with STORE compression (DEFLATE corrupts binary parts of xlsx)
-    const patched = await zip.generateAsync({ type: 'arraybuffer', compression: 'STORE' });
-    finalBlob = new Blob([patched], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  } catch (e) {
-    console.warn('JSZip round-trip failed, using raw buffer:', e);
-    finalBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const regularClubs = clubs.filter(c => c.events.length >= 2).slice(0, 2);
+  
+  // Garden metadata
+  const ageLabel = typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g.age || '3-4');
+  const mgr = typeof window.gardenManager === 'function' ? window.gardenManager(g.id) : null;
+  const mgrStr = mgr ? `${mgr.name}${mgr.phone ? ' · ' + mgr.phone : ''}` : '';
+
+  // Build calendar weeks (Sun-Thu only)
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const weeks = [];
+  let curWeek = [null,null,null,null,null];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dow = new Date(year, month - 1, d).getDay();
+    if (dow >= 0 && dow <= 4) curWeek[dow] = d;
+    if (dow === 4 || d === daysInMonth) {
+      if (curWeek.some(x => x !== null)) weeks.push([...curWeek]);
+      curWeek = [null,null,null,null,null];
+    }
   }
 
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(finalBlob);
-  a.download = filename;
-  a.style.display = 'none';
-  document.body.appendChild(a); a.click();
-  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
+  // Card colors
+  const CARD_COLORS = ['#3b82f6', '#059669'];
+  const CARD_BG = ['#eff6ff', '#ecfdf5'];
+  const CARD_BORDER = ['#bfdbfe', '#a7f3d0'];
+
+  // Build cards HTML
+  let cardsHtml = '';
+  if (regularClubs.length > 0) {
+    cardsHtml = '<div class="vp-cards-grid">';
+    regularClubs.forEach((club, i) => {
+      const color = CARD_COLORS[i] || CARD_COLORS[0];
+      const bg = CARD_BG[i] || CARD_BG[0];
+      const border = CARD_BORDER[i] || CARD_BORDER[0];
+      cardsHtml += `
+        <div class="vp-activity-card" style="border-right-color:${color}; background:${bg}; border-color:${border}; border-right-color:${color};">
+          <div class="vp-card-badge" style="background:${color};">חוג צהרון</div>
+          <h3>${_esc(club.name)}</h3>
+          <p>📅 ${_esc(club.dayStr)} &nbsp; 🕐 ${_esc(club.timeStr)}</p>
+          ${showPhones && club.phone ? `<p>📞 מפעיל / פרטים: ${_esc(club.phone)}</p>` : ''}
+        </div>`;
+    });
+    cardsHtml += '</div>';
+  }
+
+  // Build legend
+  let legendHtml = '<div class="vp-legend">';
+  regularClubs.forEach((club, i) => {
+    const color = CARD_COLORS[i] || CARD_COLORS[0];
+    legendHtml += `<span class="vp-legend-item"><span class="vp-legend-dot" style="background:${color};"></span>${_esc(club.name)}</span>`;
+  });
+  legendHtml += '<span class="vp-legend-item"><span class="vp-legend-dot" style="background:#f59e0b;"></span>חג / אירוע</span>';
+  legendHtml += '</div>';
+
+  // Build calendar rows
+  let calendarRows = '';
+  weeks.forEach(week => {
+    calendarRows += '<div class="vp-calendar-row">';
+    week.forEach((dayNum, idx) => {
+      if (!dayNum) {
+        calendarRows += '<div class="vp-day-cell vp-day-empty"></div>';
+        return;
+      }
+      
+      const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+      const hol = typeof window.getHolidayInfo === 'function' 
+        ? window.getHolidayInfo(dateStr, g.city, typeof window.getGardenClass === 'function' ? window.getGardenClass(g) : g.cls) 
+        : null;
+      const isCamp = hol && (hol.type === 'camp' || hol.label === 'קייטנה' || hol.canSched);
+      const isHoliday = hol && !isCamp;
+
+      const dayEvs = gEvs.filter(e => e.d === dateStr).sort((a,b) => (a.t||'').localeCompare(b.t||''));
+
+      let cellContent = '';
+      let cellClass = 'vp-day-cell';
+
+      if (isHoliday) {
+        cellClass += ' vp-day-holiday';
+        cellContent = `<div class="vp-event-pill vp-event-holiday">${_esc(hol.name || hol.label)}</div>`;
+      } else if (dayEvs.length > 0) {
+        dayEvs.forEach(ev => {
+          let actName = ev.act;
+          if (!actName && typeof window.supAct === 'function') actName = window.supAct(ev.a);
+          if (!actName) actName = 'פעילות';
+
+          const clubIdx = regularClubs.findIndex(rc => rc.name === actName);
+          const isRegular = clubIdx >= 0;
+          const pillColor = isRegular ? CARD_COLORS[clubIdx] : '#6366f1';
+          const pillBg = isRegular ? CARD_BG[clubIdx] : '#eef2ff';
+
+          let pillText = `${ev.t ? '(' + ev.t + ')' : ''}<br>${_esc(actName)}`;
+          
+          if (!isRegular && showPhones && ev.a && window.SUPPLIERS) {
+            const sup = window.SUPPLIERS.find(s => String(s.id) === String(ev.a) || s.name === ev.a);
+            if (sup && sup.phone) pillText += `<br><small>📞 ${_esc(sup.phone)}</small>`;
+          }
+
+          cellContent += `<div class="vp-event-pill" style="background:${pillBg}; color:${pillColor}; border:1px solid ${pillColor}20;">${pillText}</div>`;
+        });
+      }
+
+      calendarRows += `
+        <div class="${cellClass}">
+          <div class="vp-day-number">${dayNum}</div>
+          ${cellContent}
+        </div>`;
+    });
+    calendarRows += '</div>';
+  });
+
+  // Assemble full page
+  return `
+    <div class="vp-page">
+      <!-- Header Banner -->
+      <div class="vp-header">
+        <div class="vp-header-right">
+          <div class="vp-logo-text">Kids טומשין</div>
+          <div class="vp-header-sub">רשת צהרונים וקייטנות ארצית · עיר: ${_esc(g.city || '')}</div>
+        </div>
+        <div class="vp-header-left">
+          <div class="vp-month-badge">📅 ${_esc(monthName)} ${year} · ${hebYearStr}</div>
+        </div>
+      </div>
+
+      <!-- Garden Name Bar -->
+      <div class="vp-garden-bar">
+        <div class="vp-garden-name">🏠 ${_esc(g.name || 'גן')}</div>
+        <div class="vp-garden-sub">תוכנית ההעשרה ופעילויות צהרון חודשית</div>
+        <div class="vp-age-badge">גילאי ${_esc(ageLabel)}</div>
+      </div>
+
+      ${mgrStr ? `<div class="vp-mgr-line">👩‍💼 רכז/ת: ${_esc(mgrStr)}</div>` : ''}
+
+      <!-- Club Cards -->
+      ${regularClubs.length > 0 ? `
+        <div class="vp-section-title">⭐ החוגים הקבועים שלנו החודש</div>
+        ${cardsHtml}
+      ` : ''}
+
+      <!-- Legend + Calendar -->
+      <div class="vp-calendar-section">
+        <div class="vp-calendar-header">
+          <div class="vp-calendar-title">📅 לוח מועדים חודשי (ימים א׳-ה׳)</div>
+          ${legendHtml}
+        </div>
+        <div class="vp-calendar-container">
+          <div class="vp-days-header">
+            <div>ראשון</div><div>שני</div><div>שלישי</div><div>רביעי</div><div>חמישי</div>
+          </div>
+          <div class="vp-calendar-body">
+            ${calendarRows}
+          </div>
+        </div>
+      </div>
+
+      <div class="vp-footer">* שימו לב: ייתכנו שינויים בתוכנית החוגים. הלוח מיועד להורים וילדי הצהרון.</div>
+    </div>`;
+}
+
+function _esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function _exportPDF(htmlContent, filename) {
+  // Create a hidden container
+  const container = document.createElement('div');
+  container.style.cssText = 'position:fixed; left:-9999px; top:0; z-index:-1;';
+  container.innerHTML = _getStyles() + htmlContent;
+  document.body.appendChild(container);
+
+  try {
+    const opt = {
+      margin: 0,
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['css', 'legacy'] }
+    };
+    await html2pdf().set(opt).from(container).save();
+  } finally {
+    document.body.removeChild(container);
+  }
+}
+
+function _getStyles() {
+  return `<style>
+    @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
+
+    .vp-page {
+      width: 210mm;
+      min-height: 290mm;
+      box-sizing: border-box;
+      padding: 10mm 12mm;
+      margin: 0 auto;
+      background: #ffffff;
+      font-family: 'Rubik', 'Assistant', Arial, sans-serif;
+      direction: rtl;
+      page-break-after: always;
+      color: #1e293b;
+    }
+
+    /* Header */
+    .vp-header {
+      background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+      color: #1e293b;
+      padding: 14px 20px;
+      border-radius: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .vp-logo-text { font-size: 24px; font-weight: 700; color: #0f172a; }
+    .vp-header-sub { font-size: 12px; color: #44403c; margin-top: 2px; }
+    .vp-month-badge {
+      background: rgba(255,255,255,0.5);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* Garden Bar */
+    .vp-garden-bar {
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 8px;
+      position: relative;
+    }
+    .vp-garden-name { font-size: 20px; font-weight: 700; }
+    .vp-garden-sub { font-size: 12px; opacity: 0.9; flex: 1; }
+    .vp-age-badge {
+      background: rgba(255,255,255,0.25);
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .vp-mgr-line {
+      text-align: left;
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 8px;
+      padding: 0 4px;
+    }
+
+    /* Section Title */
+    .vp-section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 8px 0 6px;
+      text-align: right;
+    }
+
+    /* Activity Cards */
+    .vp-cards-grid {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .vp-activity-card {
+      flex: 1;
+      border: 1px solid #e2e8f0;
+      border-right: 5px solid #3b82f6;
+      border-radius: 10px;
+      padding: 10px 14px;
+      position: relative;
+    }
+    .vp-card-badge {
+      position: absolute;
+      top: -1px;
+      left: 10px;
+      padding: 2px 10px;
+      border-radius: 0 0 8px 8px;
+      color: white;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .vp-activity-card h3 {
+      margin: 4px 0 6px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .vp-activity-card p {
+      margin: 2px 0;
+      font-size: 11px;
+      color: #64748b;
+    }
+
+    /* Calendar */
+    .vp-calendar-section { margin-top: 6px; }
+    .vp-calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .vp-calendar-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .vp-legend {
+      display: flex;
+      gap: 12px;
+      font-size: 11px;
+      color: #64748b;
+    }
+    .vp-legend-item { display: flex; align-items: center; gap: 4px; }
+    .vp-legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .vp-calendar-container {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .vp-days-header {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: #f1f5f9;
+      text-align: center;
+      font-weight: 700;
+      font-size: 12px;
+      color: #334155;
+      padding: 8px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .vp-calendar-body {
+      background: #e2e8f0;
+    }
+    .vp-calendar-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1px;
+    }
+    .vp-calendar-row + .vp-calendar-row {
+      border-top: 1px solid #e2e8f0;
+    }
+    .vp-day-cell {
+      background: #ffffff;
+      padding: 6px;
+      min-height: 68px;
+      display: flex;
+      flex-direction: column;
+    }
+    .vp-day-empty { background: #f8fafc; }
+    .vp-day-holiday { background: #fffbeb; }
+    .vp-day-number {
+      font-size: 13px;
+      font-weight: 700;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+
+    /* Event Pills */
+    .vp-event-pill {
+      padding: 3px 6px;
+      border-radius: 6px;
+      font-size: 10px;
+      line-height: 1.3;
+      text-align: center;
+      margin-top: 2px;
+      font-weight: 600;
+    }
+    .vp-event-holiday {
+      background: #fef3c7 !important;
+      color: #92400e !important;
+      border: 1px solid #fcd34d !important;
+      font-weight: 500;
+    }
+
+    /* Footer */
+    .vp-footer {
+      text-align: center;
+      font-size: 10px;
+      color: #94a3b8;
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px solid #f1f5f9;
+    }
+  </style>`;
 }
