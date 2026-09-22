@@ -471,10 +471,6 @@ function generatePrintableHTML(gardens, allEvs, year, month, showPhones) {
   if (newWin) {
     newWin.document.write(fullHtml);
     newWin.document.close();
-    // Delay print slightly to allow images and fonts to load
-    setTimeout(() => {
-      newWin.print();
-    }, 1000);
   } else {
     window.spAlert('פתיחת חלון נחסמה. אנא אפשר פופ-אפים לאתר זה.');
   }
