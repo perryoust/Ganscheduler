@@ -232,13 +232,12 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
     calendarRows += '</div>';
   });
 
-  // Assemble full page
   return `
     <div class="vp-page">
       <!-- Header Banner -->
       <div class="vp-header">
-        <div class="vp-header-right">
-          <div class="vp-logo-text">Kids טומשין</div>
+        <div class="vp-header-right" style="display:flex; align-items:center; gap:12px;">
+          <img src="logo_wide.png" style="height:32px;" alt="Kids טומשין">
           <div class="vp-header-sub">רשת צהרונים וקייטנות ארצית · עיר: ${_esc(g.city || '')}</div>
         </div>
         <div class="vp-header-left">
@@ -294,10 +293,13 @@ async function _exportPDF(htmlContent, filename) {
     return;
   }
 
+  const baseUrl = window.location.href.split('?')[0].replace(/[^/]*$/, '');
+  
   printWindow.document.write(`<!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head>
   <meta charset="UTF-8">
+  <base href="${baseUrl}">
   <title>${filename}</title>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
   ${_getStyles()}
@@ -331,8 +333,10 @@ async function _exportPDF(htmlContent, filename) {
 function _getStyles() {
   return `<style>
     .vp-page {
+      display: flex;
+      flex-direction: column;
       width: 794px;
-      min-height: 1100px;
+      height: 1122px; /* A4 height at 96dpi (297mm) */
       box-sizing: border-box;
       padding: 10mm 12mm;
       margin: 0 auto;
@@ -354,8 +358,7 @@ function _getStyles() {
       align-items: center;
       margin-bottom: 10px;
     }
-    .vp-logo-text { font-size: 24px; font-weight: 700; color: #0f172a; }
-    .vp-header-sub { font-size: 12px; color: #44403c; margin-top: 2px; }
+    .vp-header-sub { font-size: 14px; font-weight:600; color: #44403c; margin-top: 2px; }
     .vp-month-badge {
       background: rgba(255,255,255,0.5);
       padding: 6px 14px;
@@ -440,7 +443,12 @@ function _getStyles() {
     }
 
     /* Calendar */
-    .vp-calendar-section { margin-top: 6px; }
+    .vp-calendar-section { 
+      margin-top: 6px; 
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
     .vp-calendar-header {
       display: flex;
       justify-content: space-between;
@@ -467,6 +475,9 @@ function _getStyles() {
     }
 
     .vp-calendar-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
       border: 1px solid #e2e8f0;
       border-radius: 12px;
       overflow: hidden;
@@ -483,9 +494,13 @@ function _getStyles() {
       border-bottom: 1px solid #e2e8f0;
     }
     .vp-calendar-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
       background: #e2e8f0;
     }
     .vp-calendar-row {
+      flex: 1;
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       gap: 1px;
@@ -496,7 +511,6 @@ function _getStyles() {
     .vp-day-cell {
       background: #ffffff;
       padding: 6px;
-      min-height: 68px;
       display: flex;
       flex-direction: column;
     }
