@@ -396,10 +396,21 @@ async function _exportPDF(htmlContent, filename, month) {
 }
 
 function _getStyles(month) {
-  let seasonEmoji = '☀️'; // Summer by default (6, 7, 8)
-  if (month >= 9 && month <= 11) seasonEmoji = '🍂'; // Autumn
-  else if (month === 12 || month <= 2) seasonEmoji = '⛄'; // Winter
-  else if (month >= 3 && month <= 5) seasonEmoji = '🌸'; // Spring
+  const monthEmojis = {
+    1: '❄️', // January: Peak Winter
+    2: '🌱', // February: Tu Bishvat / Sprout
+    3: '🌸', // March: Spring starts
+    4: '🦋', // April: Spring
+    5: '🌻', // May: Late spring / Shavuot
+    6: '🍉', // June: Early summer
+    7: '☀️', // July: Peak summer
+    8: '🏖️', // August: Summer break
+    9: '🍎', // September: Rosh Hashanah / Autumn
+    10: '🍂', // October: Falling leaves
+    11: '☔', // November: First rains
+    12: '⛄'  // December: Winter
+  };
+  const seasonEmoji = monthEmojis[month] || '☀️';
 
   return `<style>
     .vp-page {
