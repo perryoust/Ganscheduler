@@ -284,7 +284,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       <!-- Legend + Calendar -->
       <div class="vp-calendar-section">
         <div class="vp-calendar-header">
-          <div class="vp-calendar-title">📅 לוח מועדים חודשי (ימים א׳-ה׳)</div>
+          <div class="vp-calendar-title">📅 ${_esc(monthName)} ${year} - לוח מועדים חודשי (ימים א׳-ה׳)</div>
           ${legendHtml}
         </div>
         <div class="vp-calendar-container">
