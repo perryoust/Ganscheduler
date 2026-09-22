@@ -194,9 +194,10 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
   // Build legend
   let legendHtml = '<div class="vp-legend">';
   regularClubsList.forEach((club, i) => {
-    legendHtml += `<span class="vp-legend-item"><span class="vp-legend-dot" style="background:#fff; border: 2px solid #000;"></span>${_esc(club.name)}</span>`;
+    const color = CARD_COLORS[i] || CARD_COLORS[0];
+    legendHtml += `<span class="vp-legend-item"><span class="vp-legend-dot" style="background:${color};"></span>${_esc(club.name)}</span>`;
   });
-  legendHtml += '<span class="vp-legend-item"><span class="vp-legend-dot" style="background:#e2e8f0; border: 2px solid #000;"></span>חג / קייטנה</span>';
+  legendHtml += '<span class="vp-legend-item"><span class="vp-legend-dot" style="background:#f59e0b;"></span>חג / קייטנה</span>';
   legendHtml += '</div>';
 
   // Build calendar rows
@@ -403,31 +404,30 @@ function _getStyles() {
 
     /* Header */
     .vp-header {
-      background: #ffffff;
-      color: #000;
+      background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+      color: #1e293b;
       padding: 14px 20px;
       border-radius: 14px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 10px;
-      border: 2px solid #000;
     }
-    .vp-header-sub { font-size: 14px; font-weight:800; color: #000; margin-top: 2px; }
+    .vp-header-sub { font-size: 14px; font-weight:600; color: #44403c; margin-top: 2px; }
     .vp-month-badge {
-      background: #fff;
+      background: rgba(255,255,255,0.7);
       padding: 6px 16px;
       border-radius: 20px;
       font-size: 16px;
-      font-weight: 800;
+      font-weight: 700;
       color: #000;
-      border: 2px solid #000;
+      border: 1px solid rgba(0,0,0,0.1);
     }
 
     /* Garden Bar */
     .vp-garden-bar {
-      background: #ffffff;
-      color: #000;
+      background: linear-gradient(135deg, #047857, #059669);
+      color: white;
       padding: 12px 20px;
       border-radius: 12px;
       display: flex;
@@ -435,15 +435,15 @@ function _getStyles() {
       gap: 16px;
       margin-bottom: 8px;
       position: relative;
-      border: 2px solid #000;
+      border: 1px solid #065f46;
     }
     .vp-garden-name { font-size: 22px; font-weight: 800; }
 
     .vp-mgr-line {
       text-align: left;
       font-size: 13px;
-      font-weight: 800;
-      color: #000;
+      font-weight: 600;
+      color: #334155;
       margin-bottom: 8px;
       padding: 0 4px;
     }
@@ -452,7 +452,7 @@ function _getStyles() {
     .vp-section-title {
       font-size: 18px;
       font-weight: 800;
-      color: #000;
+      color: #1e293b;
       margin: 8px 0 6px;
       text-align: right;
     }
@@ -465,9 +465,9 @@ function _getStyles() {
     }
     .vp-activity-card {
       flex: 1;
-      border: 2px solid #000 !important;
-      background: #fff !important;
-      border-right: 6px solid #000 !important;
+      border: 2px solid #475569;
+      background: #fff;
+      border-right: 6px solid #3b82f6;
       border-radius: 12px;
       padding: 12px 16px;
       position: relative;
@@ -478,18 +478,15 @@ function _getStyles() {
       left: 12px;
       padding: 3px 12px;
       border-radius: 0 0 8px 8px;
-      color: #000 !important;
-      background: #fff !important;
-      border: 2px solid #000;
-      border-top: none;
+      color: white;
       font-size: 11px;
-      font-weight: 800;
+      font-weight: 700;
     }
     .vp-activity-card h3 {
       margin: 4px 0 6px;
       font-size: 18px;
       font-weight: 800;
-      color: #000;
+      color: #1e293b;
     }
     .vp-activity-card p {
       margin: 2px 0;
@@ -514,7 +511,7 @@ function _getStyles() {
     .vp-calendar-title {
       font-size: 16px;
       font-weight: 800;
-      color: #000;
+      color: #1e293b;
     }
     .vp-legend {
       display: flex;
@@ -529,14 +526,13 @@ function _getStyles() {
       height: 12px;
       border-radius: 50%;
       display: inline-block;
-      border: 1px solid #000;
     }
 
     .vp-calendar-container {
       flex: 1;
       display: flex;
       flex-direction: column;
-      border: 2px solid #000;
+      border: 2px solid #94a3b8;
       border-radius: 12px;
       overflow: hidden;
     }
@@ -547,15 +543,15 @@ function _getStyles() {
       text-align: center;
       font-weight: 800;
       font-size: 14px;
-      color: #000;
+      color: #334155;
       padding: 8px 0;
-      border-bottom: 2px solid #000;
+      border-bottom: 2px solid #94a3b8;
     }
     .vp-calendar-body {
       flex: 1;
       display: flex;
       flex-direction: column;
-      background: #000; /* Acts as dark grid lines */
+      background: #e2e8f0; /* grid lines */
     }
     .vp-calendar-row {
       flex: 1;
@@ -564,25 +560,25 @@ function _getStyles() {
       gap: 2px;
     }
     .vp-calendar-row + .vp-calendar-row {
-      border-top: 2px solid #000;
+      border-top: 2px solid #e2e8f0;
     }
     .vp-day-cell {
       background: #ffffff;
       padding: 8px;
       display: flex;
       flex-direction: column;
-      min-width: 0; /* Prevents grid blowout from long text */
+      min-width: 0;
     }
     .vp-day-empty { background: #f8fafc; }
-    .vp-day-holiday { background: #f1f5f9; } /* Light gray for holiday */
-    .vp-day-camp { background: #e2e8f0; } /* Medium gray for camp */
+    .vp-day-holiday { background: #fef9c3; }
+    .vp-day-camp { background: #e0f2fe; }
     .vp-day-number {
       font-size: 16px;
       font-weight: 800;
       color: #000;
       margin-bottom: 6px;
       padding-bottom: 4px;
-      border-bottom: 2px solid #000; /* B&W optimized */
+      border-bottom: 2px solid #e2e8f0;
       text-align: left;
     }
 
@@ -595,10 +591,8 @@ function _getStyles() {
       text-align: center;
       margin-top: 4px;
       font-weight: 800;
-      color: #000 !important; /* Force black text for B&W */
-      background: #fff !important; /* Force white background for pills */
-      border-color: #000 !important;
-      border-width: 2px !important;
+      border-style: solid;
+      border-width: 2px;
       word-break: break-word;
       overflow-wrap: break-word;
       white-space: normal;
