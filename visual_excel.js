@@ -223,14 +223,26 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       let cellContent = '';
       let cellClass = 'vp-day-cell';
 
-      let dayHeaderHtml = `<div class="vp-day-number">${dayNum}</div>`;
+      let dayHeaderHtml = `
+        <div class="vp-day-header-row">
+          <span class="vp-day-event-text"></span>
+          <span class="vp-day-date" dir="ltr">${dayNum}/${month}</span>
+        </div>`;
 
       if (isCamp) {
         cellClass += ' vp-day-camp';
-        dayHeaderHtml = `<div class="vp-day-number">${dayNum}/${month} <span class="vp-camp-text">- ${_esc(hol.name || hol.label)}</span></div>`;
+        dayHeaderHtml = `
+          <div class="vp-day-header-row">
+            <span class="vp-day-event-text vp-camp-text">${_esc(hol.name || hol.label)}</span>
+            <span class="vp-day-date" dir="ltr">${dayNum}/${month}</span>
+          </div>`;
       } else if (isHoliday) {
         cellClass += ' vp-day-holiday';
-        dayHeaderHtml = `<div class="vp-day-number">${dayNum}/${month} <span class="vp-holiday-text">- ${_esc(hol.name || hol.label)}</span></div>`;
+        dayHeaderHtml = `
+          <div class="vp-day-header-row">
+            <span class="vp-day-event-text vp-holiday-text">${_esc(hol.name || hol.label)}</span>
+            <span class="vp-day-date" dir="ltr">${dayNum}/${month}</span>
+          </div>`;
         let insideText = 'אין פעילות';
         const hName = hol.name || hol.label || '';
         if (hName.includes('שבתון') || hName.includes('בחירות')) {
@@ -612,14 +624,27 @@ function _getStyles(month) {
     .vp-day-empty { background: #f8fafc; }
     .vp-day-holiday { background: #fef9c3; }
     .vp-day-camp { background: #e0f2fe; }
-    .vp-day-number {
-      font-size: 16px;
-      font-weight: 800;
-      color: #000;
+    .vp-day-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
       margin-bottom: 6px;
       padding-bottom: 4px;
       border-bottom: 2px solid #e2e8f0;
-      text-align: left;
+      color: #000;
+      font-weight: 800;
+      font-size: 16px;
+    }
+    .vp-day-date {
+      white-space: nowrap;
+      color: #000;
+    }
+    .vp-day-event-text {
+      flex: 1;
+      text-align: right;
+      padding-left: 8px;
+      line-height: 1.1;
+      font-size: 14px;
     }
 
     /* Event Pills */
@@ -682,7 +707,8 @@ function _getStyles(month) {
       .vp-day-empty { background: #f8fafc !important; }
       .vp-day-holiday { background: #f1f5f9 !important; }
       .vp-day-camp { background: #e2e8f0 !important; }
-      .vp-day-number { color: #000 !important; border-bottom: 2px solid #000 !important; }
+      .vp-day-header-row { color: #000 !important; border-bottom: 2px solid #000 !important; }
+      .vp-day-date, .vp-day-event-text { color: #000 !important; }
       
       .vp-event-pill { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; }
       .vp-event-holiday { background: #e2e8f0 !important; color: #000 !important; border: 2px solid #000 !important; }
