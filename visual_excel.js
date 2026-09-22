@@ -287,18 +287,22 @@ function _esc(str) {
 }
 
 async function _exportPDF(htmlContent, filename) {
-  // Create a hidden container
+  // Create a visible container (html2canvas requires elements to be on-screen)
   const container = document.createElement('div');
-  container.style.cssText = 'position:fixed; left:-9999px; top:0; z-index:-1;';
+  container.style.cssText = 'position:absolute; left:0; top:0; z-index:99999; background:white; overflow:auto;';
   container.innerHTML = _getStyles() + htmlContent;
   document.body.appendChild(container);
 
+  // Wait for CSS and fonts to render
+  await new Promise(r => setTimeout(r, 500));
+
   try {
+    const pages = container.querySelectorAll('.vp-page');
     const opt = {
       margin: 0,
       filename: filename,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
+      html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0, windowWidth: container.scrollWidth },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       pagebreak: { mode: ['css', 'legacy'] }
     };
@@ -310,16 +314,14 @@ async function _exportPDF(htmlContent, filename) {
 
 function _getStyles() {
   return `<style>
-    @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
-
     .vp-page {
-      width: 210mm;
-      min-height: 290mm;
+      width: 794px;
+      min-height: 1100px;
       box-sizing: border-box;
       padding: 10mm 12mm;
       margin: 0 auto;
       background: #ffffff;
-      font-family: 'Rubik', 'Assistant', Arial, sans-serif;
+      font-family: 'Assistant', Arial, sans-serif;
       direction: rtl;
       page-break-after: always;
       color: #1e293b;
