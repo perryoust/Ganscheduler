@@ -292,10 +292,9 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       <div class="vp-header">
         <div class="vp-header-right" style="display:flex; align-items:center; gap:12px;">
           <img src="logo_wide.png" style="height:80px;" alt="Kids טומשין">
-          <div class="vp-header-sub">רשת צהרונים וקייטנות ארצית</div>
         </div>
         <div class="vp-header-left">
-          <div class="vp-month-badge">📅 ${_esc(monthName)} ${year} · ${hebYearStr}</div>
+          <div class="vp-month-badge">📅 ${_esc(monthName)} ${year} - ${hebYearStr}</div>
         </div>
       </div>
 
@@ -462,6 +461,7 @@ function _getStyles(month) {
       font-weight: 700;
       color: #000;
       border: 1px solid rgba(0,0,0,0.1);
+      white-space: nowrap;
     }
 
     /* Garden Bar */
