@@ -287,29 +287,45 @@ function _esc(str) {
 }
 
 async function _exportPDF(htmlContent, filename) {
-  // Create a visible container (html2canvas requires elements to be on-screen)
-  const container = document.createElement('div');
-  container.style.cssText = 'position:absolute; left:0; top:0; z-index:99999; background:white; overflow:auto;';
-  container.innerHTML = _getStyles() + htmlContent;
-  document.body.appendChild(container);
-
-  // Wait for CSS and fonts to render
-  await new Promise(r => setTimeout(r, 500));
-
-  try {
-    const pages = container.querySelectorAll('.vp-page');
-    const opt = {
-      margin: 0,
-      filename: filename,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0, windowWidth: container.scrollWidth },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['css', 'legacy'] }
-    };
-    await html2pdf().set(opt).from(container).save();
-  } finally {
-    document.body.removeChild(container);
+  // Open print window with the rendered content
+  const printWindow = window.open('', '_blank', 'width=850,height=1100');
+  if (!printWindow) {
+    window.spAlert('אנא אפשר חלונות קופצים (popups) בדפדפן כדי לייצא PDF');
+    return;
   }
+
+  printWindow.document.write(`<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="UTF-8">
+  <title>${filename}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  ${_getStyles()}
+  <style>
+    @media print {
+      body { margin: 0; padding: 0; }
+      .vp-page { page-break-after: always; margin: 0; padding: 10mm 12mm; }
+      .vp-page:last-child { page-break-after: auto; }
+      .vp-no-print { display: none !important; }
+    }
+    @page { size: A4 portrait; margin: 0; }
+    body { margin: 0; padding: 0; background: #e5e7eb; }
+    .vp-print-btn {
+      position: fixed; top: 20px; left: 20px; z-index: 99999;
+      padding: 12px 28px; background: #3b82f6; color: white;
+      border: none; border-radius: 10px; font-size: 16px; font-weight: 700;
+      cursor: pointer; font-family: 'Assistant', Arial, sans-serif;
+      box-shadow: 0 4px 12px rgba(59,130,246,0.4);
+    }
+    .vp-print-btn:hover { background: #2563eb; }
+  </style>
+</head>
+<body>
+  <button class="vp-print-btn vp-no-print" onclick="window.print()">🖨️ הדפס / שמור כ-PDF</button>
+  ${htmlContent}
+</body>
+</html>`);
+  printWindow.document.close();
 }
 
 function _getStyles() {
