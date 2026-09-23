@@ -583,6 +583,10 @@ window.budgetApp = {
 
     if (window.showLoading) window.showLoading('מפיק דו"ח PDF...');
 
+    const prevScrollX = window.scrollX || window.pageXOffset || 0;
+    const prevScrollY = window.scrollY || window.pageYOffset || 0;
+    window.scrollTo(0, 0);
+
     const selectedIds = this.getSelectedExpenseIds(schoolName);
     const data = this.getSchoolData(schoolName);
     const expensesToExport = selectedIds ? data.expenses.filter(e => selectedIds.includes(e.id)) : data.expenses;
@@ -594,19 +598,42 @@ window.budgetApp = {
     const monthNames = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
     const monthName = monthNames[parseInt(month, 10) - 1] || month;
 
+    const rtlFix = (str) => {
+      if (!str) return '';
+      let escaped = String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      escaped = escaped.replace(/([\u0590-\u05FF])(מע"מ|מעמ|בע"מ|בעמ)/g, '$1 $2');
+      escaped = escaped.replace(/([\u0590-\u05FF]+['".,:;)(]+)(\s|$)/g, '$1&rlm;$2');
+      escaped = escaped.replace(/\n/g, ' <br> ');
+      const tokens = escaped.split(' ');
+      const fixedTokens = tokens.map(token => {
+        if (!token.includes('&') && !token.includes('<') && !token.includes('>')) {
+          if (/[a-zA-Z0-9]/.test(token) && /^[a-zA-Z0-9\-_.,:;/'"()]+$/.test(token)) {
+            return `<span style="display:inline-block;direction:ltr;">${token}</span>`;
+          }
+        }
+        return token;
+      });
+      return fixedTokens.join('___SPACE___')
+        .replace(/___SPACE___<br>___SPACE___/g, '<br>')
+        .replace(/___SPACE___/g, '<span style="display:inline-block; width:0.25em;"> </span>');
+    };
+
     let rowsHtml = '';
     if (expensesToExport.length === 0) {
-      rowsHtml = `<tr><td colspan="4" style="text-align:center; padding: 25px; color:#888; font-size:12pt;">אין הוצאות להצגה</td></tr>`;
+      rowsHtml = `<tr><td colspan="4" style="text-align:center; padding: 25px; color:#888; font-size:1.1em;">${rtlFix('אין הוצאות להצגה')}</td></tr>`;
     } else {
       expensesToExport.forEach(e => {
         const amtVal = Number(e.amt) || 0;
         const amtStr = amtVal.toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         rowsHtml += `
-          <tr style="border-bottom: 1px solid #e0e0e0;">
-            <td style="padding: 10px 14px; text-align: right; word-break: break-word; font-weight: 500;">${e.sup || '-'}</td>
-            <td style="padding: 10px 8px; text-align: center;" dir="ltr">${e.date || '-'}</td>
-            <td style="padding: 10px 8px; text-align: center;" dir="ltr">${e.inv || '-'}</td>
-            <td style="padding: 10px 14px; text-align: left; font-weight: bold;" dir="ltr">₪ ${amtStr}</td>
+          <tr>
+            <td style="text-align:right;">${rtlFix(e.sup || '-')}</td>
+            <td style="text-align:center;"><span dir="ltr">${e.date || '-'}</span></td>
+            <td style="text-align:center;"><span dir="ltr">${e.inv || '-'}</span></td>
+            <td style="text-align:center; font-weight:bold;"><span dir="ltr">&#8362; ${amtStr}</span></td>
           </tr>
         `;
       });
@@ -617,25 +644,26 @@ window.budgetApp = {
     if (coord.bankName || coord.account || coord.name || coord.accName || coord.branch) {
       const detailLines = [];
       const payerName = coord.name || coord.accName;
-      if (payerName) detailLines.push(`שולם ע"י - ${payerName}`);
+      if (payerName) detailLines.push(`${rtlFix('שולם ע"י:')}&rlm; ${rtlFix(payerName)}`);
       
       const accName = coord.accName || coord.name;
-      if (accName) detailLines.push(`שם חשבון - ${accName}`);
+      if (accName) detailLines.push(`${rtlFix('שם חשבון:')}&rlm; ${rtlFix(accName)}`);
       
       if (coord.bankName) {
-        detailLines.push(coord.bankName.startsWith('בנק') ? coord.bankName : `בנק ${coord.bankName}`);
+        const bName = coord.bankName.startsWith('בנק') ? coord.bankName : `בנק ${coord.bankName}`;
+        detailLines.push(rtlFix(bName));
       }
       
-      const bPart = coord.branch ? `סניף ${coord.branch}` : '';
-      const aPart = coord.account ? `חשבון ${coord.account}` : '';
+      const bPart = coord.branch ? `${rtlFix('סניף')} ${coord.branch}` : '';
+      const aPart = coord.account ? `${rtlFix('חשבון')} ${coord.account}` : '';
       if (bPart || aPart) {
         detailLines.push([bPart, aPart].filter(Boolean).join(' | '));
       }
       
       if (detailLines.length > 0) {
         footerHtml = `
-          <div style="margin-top: 35px; border-top: 1px dashed #bdbdbd; padding-top: 18px; text-align: center; color: #424242; font-size: 10.5pt; line-height: 1.7;">
-            <div style="font-weight: bold; color: #1a237e; font-size: 11pt; margin-bottom: 4px;">פרטי החזר / תשלום לרכז</div>
+          <div style="margin-top:25px; border-top:1px dashed #ccc; padding-top:14px; text-align:center; color:#555; font-size:0.9em; line-height:1.6;">
+            <div style="font-weight:bold; color:#1a237e; margin-bottom:5px;">${rtlFix('פרטי החזר / תשלום לרכז')}</div>
             ${detailLines.map(line => `<div>${line}</div>`).join('')}
           </div>
         `;
@@ -644,22 +672,22 @@ window.budgetApp = {
 
     const container = document.createElement('div');
     container.id = 'budget-pdf-export-container';
-    container.style.cssText = 'position:absolute; top:-99999px; left:-99999px; width:850px; background:#fff; direction:rtl; font-family:Assistant, Arial, sans-serif;';
+    container.style.cssText = 'position:absolute; top:-99999px; left:-99999px; width:850px; background:#fff; direction:rtl; font-family:Arial, sans-serif;';
     
     container.innerHTML = `
       <style>
-        .budget-pdf-page-container {
+        .budget-page-container {
           padding: 0;
           margin: 0;
           display: flex;
           flex-direction: column;
           align-items: center;
           direction: rtl;
-          font-family: 'Assistant', Arial, sans-serif;
+          font-family: Arial, sans-serif;
         }
-        .budget-pdf-page {
+        .budget-page {
           background: #fff;
-          padding: 40px 45px;
+          padding: 35px 40px;
           width: 794px;
           min-height: 1115px;
           height: auto;
@@ -669,76 +697,84 @@ window.budgetApp = {
           flex-direction: column;
           direction: rtl;
           color: #222;
+          font-family: Arial, sans-serif;
+          margin-bottom: 0;
+          box-shadow: none;
         }
-        .budget-pdf-table {
+        .budget-table {
           width: 100%;
           border-collapse: collapse;
-          direction: rtl;
-          table-layout: fixed;
           margin-top: 15px;
           margin-bottom: 20px;
+          font-size: 0.9em;
+          table-layout: fixed;
+          direction: rtl;
         }
-        .budget-pdf-table th {
-          background: #e8eaf6;
+        .budget-table th, .budget-table td {
+          border: 1px solid #ccc;
+          padding: 6px 8px;
+          text-align: right;
+          vertical-align: top;
+          word-break: break-word;
+          overflow-wrap: break-word;
+          white-space: pre-wrap;
+          line-height: 1.3;
+        }
+        .budget-table th {
+          background: #f5f5f5;
+          font-weight: bold;
           color: #1a237e;
-          font-weight: 700;
-          font-size: 12pt;
-          padding: 10px 8px;
-          border: 1px solid #c5cae9;
         }
-        .budget-pdf-table td {
-          border: 1px solid #e0e0e0;
-          padding: 9px 8px;
-          font-size: 11pt;
-          vertical-align: middle;
-        }
-        .budget-pdf-table tr:nth-child(even) td {
+        .budget-table tr:nth-child(even) td {
           background: #fafafa;
         }
-        .budget-pdf-total-box {
-          margin-top: 10px;
-          display: flex;
-          justify-content: flex-end;
-        }
       </style>
-      <div id="budget-pdf-render-target" class="budget-pdf-page-container">
-        <div class="budget-pdf-page">
-          <!-- Header with Logo and Title -->
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1a237e; padding-bottom: 15px; margin-bottom: 20px;">
-            <div style="text-align: right;">
-              <h1 style="margin: 0; font-size: 21pt; color: #1a237e; font-weight: 800;">דוח מעקב תקציב בית ספר</h1>
-              <div style="font-size: 15pt; color: #222; margin-top: 5px; font-weight: 700;">בית ספר: ${schoolName}</div>
-              <div style="font-size: 12pt; color: #555; margin-top: 3px;">חודש תקציב: ${monthName} ${year}</div>
+      <div id="budget-pdf-render-target" class="budget-page-container">
+        <div class="budget-page">
+          <!-- Header -->
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1a237e; padding-bottom:12px; margin-bottom:18px;">
+            <div>
+              <h2 style="margin:0 0 6px 0; color:#1a237e; font-size:1.6em;">${rtlFix('דוח מעקב תקציב חודשי')}</h2>
+              <div style="font-size:1.15em; font-weight:bold; margin-bottom:4px;">
+                <span style="color:#555;">${rtlFix('בית ספר:')}&rlm; </span>
+                <span>${rtlFix(schoolName)}</span>
+              </div>
+              <div style="font-size:0.95em; color:#666;">
+                <span style="font-weight:bold;">${rtlFix('חודש תקציב:')}&rlm; </span>
+                <span>${rtlFix(monthName + ' ' + year)}</span>
+              </div>
             </div>
-            <div style="text-align: left;">
-              <img src="לוגו לאורך - עושים חינוך אחרת (3000 x 750 פיקסל).png" style="max-height: 52px; width: auto; object-fit: contain;">
-            </div>
-          </div>
-
-          <!-- Budget Summary Badges -->
-          <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
-            <div style="background: #e8eaf6; border: 1px solid #c5cae9; border-radius: 8px; padding: 10px 18px; text-align: center; min-width: 140px;">
-              <div style="font-size: 10pt; color: #546e7a;">תקציב מוקצה</div>
-              <div style="font-size: 14pt; font-weight: 800; color: #1a237e;" dir="ltr">₪ ${Number(data.budget||0).toLocaleString('he-IL')}</div>
-            </div>
-            <div style="background: #fff3e0; border: 1px solid #ffe0b2; border-radius: 8px; padding: 10px 18px; text-align: center; min-width: 140px;">
-              <div style="font-size: 10pt; color: #e65100;">סה"כ הוצאות נבחרות</div>
-              <div style="font-size: 14pt; font-weight: 800; color: #d32f2f;" dir="ltr">₪ ${total.toLocaleString('he-IL', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-            </div>
-            <div style="background: ${rem >= 0 ? '#e8f5e9' : '#ffebee'}; border: 1px solid ${rem >= 0 ? '#c8e6c9' : '#ffcdd2'}; border-radius: 8px; padding: 10px 18px; text-align: center; min-width: 140px;">
-              <div style="font-size: 10pt; color: ${rem >= 0 ? '#2e7d32' : '#c62828'};">יתרה לניצול</div>
-              <div style="font-size: 14pt; font-weight: 800; color: ${rem >= 0 ? '#2e7d32' : '#c62828'};" dir="ltr">₪ ${rem.toLocaleString('he-IL', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+            <div style="text-align:left;">
+              <img src="לוגו לאורך - עושים חינוך אחרת (3000 x 750 פיקסל).png" style="max-height:55px; width:auto; object-fit:contain;">
             </div>
           </div>
 
-          <!-- Table of Expenses -->
-          <table class="budget-pdf-table" dir="rtl">
+          <!-- Badges -->
+          <div style="display:flex; justify-content:space-around; align-items:center; background:#f8f9fa; border:1px solid #e0e0e0; border-radius:8px; padding:12px 15px; margin-bottom:18px;">
+            <div style="text-align:center;">
+              <div style="font-size:0.85em; color:#555; margin-bottom:3px;">${rtlFix('תקציב מוקצה')}</div>
+              <div style="font-size:1.25em; font-weight:bold; color:#1a237e;"><span dir="ltr">&#8362; ${Number(data.budget||0).toLocaleString('he-IL')}</span></div>
+            </div>
+            <div style="border-right:1px solid #ddd; height:35px;"></div>
+            <div style="text-align:center;">
+              <div style="font-size:0.85em; color:#555; margin-bottom:3px;">${rtlFix('סה"כ הוצאות')}</div>
+              <div style="font-size:1.25em; font-weight:bold; color:#d32f2f;"><span dir="ltr">&#8362; ${total.toLocaleString('he-IL', {minimumFractionDigits:2, maximumFractionDigits:2})}</span></div>
+            </div>
+            <div style="border-right:1px solid #ddd; height:35px;"></div>
+            <div style="text-align:center;">
+              <div style="font-size:0.85em; color:#555; margin-bottom:3px;">${rtlFix('יתרה לניצול')}</div>
+              <div style="font-size:1.25em; font-weight:bold; color:${rem >= 0 ? '#2e7d32' : '#c62828'};"><span dir="ltr">&#8362; ${rem.toLocaleString('he-IL', {minimumFractionDigits:2, maximumFractionDigits:2})}</span></div>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <table class="budget-table" dir="rtl">
             <thead>
               <tr>
-                <th style="width: 40%; text-align: right;">ספק / תיאור</th>
-                <th style="width: 18%; text-align: center;">תאריך</th>
-                <th style="width: 20%; text-align: center;">מספר חשבונית</th>
-                <th style="width: 22%; text-align: left;">סכום (כולל מע"מ)</th>
+                <th style="width:40%; text-align:right;">${rtlFix('ספק / תיאור')}</th>
+                <th style="width:18%; text-align:center;">${rtlFix('תאריך')}</th>
+                <th style="width:20%; text-align:center;">${rtlFix('מספר חשבונית')}</th>
+                <th style="width:22%; text-align:center;">${rtlFix('סכום (כולל מע"מ)')}</th>
               </tr>
             </thead>
             <tbody>
@@ -746,20 +782,12 @@ window.budgetApp = {
             </tbody>
           </table>
 
-          <!-- Total Bottom Box -->
-          <div class="budget-pdf-total-box">
-            <div style="background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; padding: 10px 22px; font-size: 12.5pt; font-weight: 700; display: inline-flex; gap: 15px; align-items: center;">
-              <span>סה"כ לתשלום:</span>
-              <span dir="ltr" style="color: #1a237e;">₪ ${total.toLocaleString('he-IL', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-            </div>
-          </div>
-
-          <!-- Coordinator Details Footer -->
+          <!-- Coordinator footer -->
           ${footerHtml}
 
-          <!-- System Footer Note -->
-          <div style="margin-top: auto; padding-top: 25px; text-align: center; font-size: 9pt; color: #888;">
-            הופק באמצעות מערכת גנשדג'ולר &bull; תאריך הפקה: ${new Date().toLocaleDateString('he-IL')}
+          <!-- Footer bottom -->
+          <div style="margin-top:auto; padding-top:20px; text-align:center; font-size:0.8em; color:#888; border-top:1px solid #eee;">
+            ${rtlFix('הופק באמצעות מערכת גנשדג\'ולר')} &bull; ${new Date().toLocaleDateString('he-IL')}
           </div>
         </div>
       </div>
@@ -772,23 +800,17 @@ window.budgetApp = {
       margin:       0,
       filename:     cleanFilename,
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        scrollY: 0,
-        scrollX: 0,
-        windowWidth: 850
-      },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     const cleanup = () => {
       if (container.parentNode) container.parentNode.removeChild(container);
       if (window.hideLoading) window.hideLoading();
+      window.scrollTo(prevScrollX, prevScrollY);
     };
 
-    setTimeout(async () => {
+    setTimeout(() => {
       const target = document.getElementById('budget-pdf-render-target');
       if (!target) {
         cleanup();
@@ -796,15 +818,14 @@ window.budgetApp = {
         return;
       }
 
-      try {
-        await html2pdf().set(opt).from(target).save();
+      html2pdf().set(opt).from(target).save().then(() => {
         cleanup();
         if (window.showToast) window.showToast('✅ הקובץ הורד בהצלחה!', 3000);
-      } catch (err) {
+      }).catch(err => {
         console.error('PDF generation error:', err);
         cleanup();
         if (window.showToast) window.showToast('❌ שגיאה בהורדת הקובץ', 4000);
-      }
+      });
     }, 300);
   }
 };
