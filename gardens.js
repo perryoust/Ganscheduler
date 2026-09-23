@@ -100,24 +100,70 @@ function renderGardens(){
     setTimeout(window._fitScrollAreas,50);
 }
 
+function setupExPairUI(gids, singleGid) {
+  const wrap = document.getElementById('ex-inc-pair-wrap');
+  const cb = document.getElementById('ex-inc-pair');
+  const sel = document.getElementById('ex-single-gid-sel');
+  const lbl = document.getElementById('ex-inc-pair-lbl');
+  if (!wrap) return;
+
+  const validGids = (gids || []).map(Number).filter(Boolean);
+  if (validGids.length > 1) {
+    wrap.style.display = 'flex';
+    if (cb) cb.checked = true;
+
+    if (sel) {
+      sel.innerHTML = validGids.map(id => {
+        const gName = (typeof G === 'function' ? (G(id)||{}).name : '') || `גן ${id}`;
+        return `<option value="${id}" ${Number(id) === Number(singleGid) ? 'selected' : ''}>${gName}</option>`;
+      }).join('');
+      sel.style.display = 'none';
+    }
+
+    const curName = (typeof G === 'function' ? (G(singleGid)||{}).name : '') || '';
+    if (lbl) {
+      lbl.textContent = curName ? `כלול זוג / אשכול גנים (ביטול יציג רק את ${curName})` : 'כלול זוג / אשכול גנים';
+    }
+  } else {
+    wrap.style.display = 'none';
+    if (sel) sel.style.display = 'none';
+  }
+}
+window.setupExPairUI = setupExPairUI;
+
+window.toggleExPairInc = function() {
+  const cb = document.getElementById('ex-inc-pair');
+  const sel = document.getElementById('ex-single-gid-sel');
+  const lbl = document.getElementById('ex-inc-pair-lbl');
+  const isInc = cb ? cb.checked : true;
+  if (sel) {
+    sel.style.display = isInc ? 'none' : 'inline-block';
+    if (!isInc && sel.value) {
+      window._exSingleGid = Number(sel.value);
+    }
+  }
+  if (lbl) {
+    const curName = (typeof G === 'function' ? (G(window._exSingleGid)||{}).name : '') || '';
+    lbl.textContent = isInc 
+      ? (curName ? `כלול זוג / אשכול גנים (ביטול יציג רק את ${curName})` : 'כלול זוג / אשכול גנים')
+      : 'כלול זוג / אשכול גנים (מציג גן בודד):';
+  }
+  genExport();
+};
+
 async function openGmExport(){
   if (window.loadFromFirebase) {
     window.showToast('מסנכרן נתונים אחרונים מול השרת...', 3000);
     await window.loadFromFirebase(true);
   }
   if(!window.gmGid)return;
-  window._exSingleGid = window.gmGid;
+  window._exSingleGid = Number(window.gmGid);
   const pair = window.gardenPair(window.gmGid);
   const gids = (pair && pair.ids) ? pair.ids.map(Number) : [Number(window.gmGid)];
   window._exGids = gids;
 
-  // Setup inc-pair checkbox
-  const incPairWrap = document.getElementById('ex-inc-pair-wrap');
-  const incPairCb = document.getElementById('ex-inc-pair');
-  if (incPairWrap && incPairCb) {
-    incPairWrap.style.display = (gids.length > 1) ? 'flex' : 'none';
-    incPairCb.checked = true;
-  }
+  // Setup inc-pair UI
+  setupExPairUI(gids, window._exSingleGid);
 
   let ws = new Date(window.gmD); ws.setHours(0,0,0,0);
   if(ws.getDay()===5) ws.setDate(ws.getDate()+2);
@@ -1174,17 +1220,19 @@ function showCopyToast(msg){
 
 
 
-function _exportGardenWA(gids, ds, isM){
+function _exportGardenWA(gids, ds, isM, singleGid){
   _exGids = (Array.isArray(gids) ? gids : JSON.parse(gids)).map(Number);
   _exIsM = isM;
+  window._exSingleGid = singleGid ? Number(singleGid) : _exGids[0];
   if(ds) calD = s2d(ds);
   openExport();
 }
 
-function _exportPairWA(gids, isM){
+function _exportPairWA(gids, isM, singleGid){
   window._exEventIds = null;
   _exGids = (Array.isArray(gids)?gids:JSON.parse(gids)).map(Number);
   _exIsM = isM;
+  window._exSingleGid = singleGid ? Number(singleGid) : _exGids[0];
   openExport();
 }
 window._exportPairWA = _exportPairWA;
@@ -1218,9 +1266,14 @@ function openExportForEvents(eventIds) {
   const ctxEl = document.getElementById('ex-ctx');
   if (ctxEl) ctxEl.textContent = ctx;
   
-  window._exSingleGid = null;
-  const incPairWrap = document.getElementById('ex-inc-pair-wrap');
-  if (incPairWrap) incPairWrap.style.display = 'none';
+  if (gids.length > 1) {
+    if (!window._exSingleGid || !gids.includes(Number(window._exSingleGid))) {
+      window._exSingleGid = gids[0];
+    }
+  } else {
+    window._exSingleGid = (gids.length === 1) ? gids[0] : null;
+  }
+  setupExPairUI(gids, window._exSingleGid);
   const exm = document.getElementById('exm');
   if (exm) exm.classList.add('open');
   
@@ -1272,9 +1325,6 @@ function openCalPrint(){
 }
 function openExport(){
   window._exEventIds = null;
-  window._exSingleGid = null;
-  const incPairWrap = document.getElementById('ex-inc-pair-wrap');
-  if (incPairWrap) incPairWrap.style.display = 'none';
   let _ws = new Date(calD); _ws.setHours(0,0,0,0);
   if(_ws.getDay()===5) _ws.setDate(_ws.getDate()+2);
   else if(_ws.getDay()===6) _ws.setDate(_ws.getDate()+1);
@@ -1288,6 +1338,16 @@ function openExport(){
   
   const f=getCalF();
   const gids=_exGids||f.gids;
+
+  const numGids = gids ? gids.map(Number) : [];
+  if (numGids.length > 1) {
+    if (!window._exSingleGid || !numGids.includes(Number(window._exSingleGid))) {
+      window._exSingleGid = numGids[0];
+    }
+  } else {
+    window._exSingleGid = (numGids.length === 1) ? numGids[0] : null;
+  }
+  setupExPairUI(numGids, window._exSingleGid);
   
   // Dynamic Date Range expansion if exporting a single day that has a linked postponement
   if (!isWeek && gids && gids.length) {

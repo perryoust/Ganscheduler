@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 112.32</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 112.33</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="icon" type="image/x-icon" href="https://tome-k.co.il/wp-content/uploads/2023/10/favicon-150x150.png" />
@@ -21,12 +21,12 @@
   <link rel="icon" type="image/png" sizes="32x32" href="https://tome-k.co.il/wp-content/uploads/2023/10/favicon-150x150.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="https://tome-k.co.il/wp-content/uploads/2023/10/favicon-150x150.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=112.32" />
+  <link rel="stylesheet" href="styles.css?v=112.33" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '112.32';
+    window.APP_VERSION = '112.33';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -2212,10 +2212,13 @@
       <div id="ex-ctx"
         style="font-size:.77rem;color:#546e7a;margin-bottom:8px;background:#f5f7ff;border-radius:5px;padding:6px"></div>
       <div style="margin-bottom:12px; font-size: 0.82rem; font-weight: 600;">
-        <label id="ex-inc-pair-wrap" style="display:flex; align-items:center; gap:6px; cursor:pointer; margin-bottom: 6px;">
-          <input type="checkbox" id="ex-inc-pair" checked style="width:16px;height:16px;accent-color:#1565c0" onchange="genExport()">
-          כלול זוג / אשכול גנים (ביטול יציג רק את הגן הנבחר)
-        </label>
+        <div id="ex-inc-pair-wrap" style="display:flex; align-items:center; gap:8px; margin-bottom: 8px; flex-wrap:wrap;">
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin:0;">
+            <input type="checkbox" id="ex-inc-pair" checked style="width:16px;height:16px;accent-color:#1565c0" onchange="window.toggleExPairInc()">
+            <span id="ex-inc-pair-lbl">כלול זוג / אשכול גנים (ביטול יציג רק את הגן הנבחר)</span>
+          </label>
+          <select id="ex-single-gid-sel" style="display:none; padding:3px 8px; font-size:0.82rem; border-radius:5px; border:1px solid #90caf9; background:#fff; color:#1565c0; font-weight:700; cursor:pointer;" onchange="window._exSingleGid=Number(this.value); genExport();"></select>
+        </div>
         <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
           <input type="checkbox" id="ex-inc-coord" style="width:16px;height:16px;accent-color:#1565c0" onchange="genExport()">
           הוסף שם וטלפון רכז להודעה
@@ -3887,7 +3890,7 @@
     <script src="cal.js?v=112.18"></script>
     <script src="activity.js?v=112.18"></script>
     <script src="sched.js?v=112.18"></script>
-    <script src="gardens.js?v=112.32"></script>
+    <script src="gardens.js?v=112.33"></script>
     <script src="export_v107.js?v=112.18"></script>
     <script src="visual_excel.js?v=112.19"></script>
     <script src="backup.js?v=112.18"></script>
