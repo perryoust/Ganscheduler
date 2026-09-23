@@ -896,19 +896,25 @@ async function exportToExcel(data, filename, opts = {}) {
               // Suppliers should see: בוטל / לא התקיים + reason / התקיימה השלמה
               // Suppliers should NOT see: when/with whom makeup was scheduled, internal notes
 
-              // Did a makeup session actually take place for this event?
+              // Did a makeup session actually take place for THIS SAME supplier?
+              // If another supplier covered → still show לא התקיים for this supplier
               const makeupHappened = (() => {
                 if (!window.SCH) return false;
-                // Check via _compByMakeup link
+                const sameSupplier = (a) => typeof window.supBase === 'function'
+                  ? window.supBase(a) === window.supBase(s.a)
+                  : a === s.a;
+                // Check via _compByMakeup link — must also be same supplier
                 if (s._compByMakeup && s._compByMakeup !== 'false') {
                   const mk = window.SCH.find(x => String(x.id) === String(s._compByMakeup));
-                  if (mk && (mk.st === 'done' || mk.st === 'ok')) return true;
-                  if (mk && (mk.st === 'can' || mk.st === 'nohap')) return false;
+                  if (mk && sameSupplier(mk.a)) {
+                    if (mk.st === 'done' || mk.st === 'ok') return true;
+                    if (mk.st === 'can' || mk.st === 'nohap') return false;
+                  }
+                  // mk found but different supplier → fall through to show לא התקיים
                 }
-                // Check via _isMakeup + _makeupFrom link
+                // Check via _isMakeup + _makeupFrom link — same supplier only
                 const mkLinked = window.SCH.find(x =>
-                  x._isMakeup && x.g == s.g && x._makeupFrom === s.d &&
-                  (typeof window.supBase === 'function' ? window.supBase(x.a) === window.supBase(s.a) : x.a === s.a)
+                  x._isMakeup && x.g == s.g && x._makeupFrom === s.d && sameSupplier(x.a)
                 );
                 if (mkLinked) {
                   if (mkLinked.st === 'done' || mkLinked.st === 'ok') return true;
