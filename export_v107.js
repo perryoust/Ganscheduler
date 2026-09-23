@@ -908,7 +908,11 @@ async function exportToExcel(data, filename, opts = {}) {
                 }
               } else {
                 // If it's a completed event, check if it's a makeup class
-                const isThisMakeup = s._isMakeup || s._makeupFrom || (note.includes('השלמה') && !note.includes('השלמה נקבעה ל'));
+                // Is THIS event a makeup session?
+                // Prefer structural fields; only use note as last resort
+                const noteRaw = (s.nt || '');
+                const isThisMakeup = !!s._isMakeup || !!s._makeupFrom ||
+                  (/^השלמה/i.test(noteRaw) || /\bהשלמה מ/i.test(noteRaw) || /\bהשלמה על/i.test(noteRaw));
                 if (isThisMakeup) {
                   let origDateStr = null;
                   const sameSupplier = (a) => typeof window.supBase === 'function' ? window.supBase(a) === window.supBase(s.a) : a === s.a;
