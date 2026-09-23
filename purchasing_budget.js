@@ -672,7 +672,7 @@ window.budgetApp = {
 
     const container = document.createElement('div');
     container.id = 'budget-pdf-export-container';
-    container.style.cssText = 'position:fixed; top:0; left:100vw; width:850px; background:#fff; direction:rtl; font-family:Arial, sans-serif; z-index:-1;';
+    container.style.cssText = 'position:absolute; top:-99999px; left:-99999px; width:850px; background:#fff; direction:rtl; font-family:Arial, sans-serif;';
     
     container.innerHTML = `
       <style>
@@ -800,7 +800,7 @@ window.budgetApp = {
       margin:       0,
       filename:     cleanFilename,
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0, windowWidth: 850 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 

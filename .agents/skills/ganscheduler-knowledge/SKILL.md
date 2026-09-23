@@ -191,3 +191,27 @@ vatAmt = total - amt           // סכום מע"מ
 - מוסיפה סימון `&rlm;` לאחר סימני פיסוק בסוף מילה בעברית כדי למנוע מהם לקפוץ לתחילת השורה.
 
 כל מחרוזת טקסט דינמית המוזרקת ל-HTML המיועד ל-PDF **חייבת** לעבור דרך `rtlFix(text)`.
+
+### 10.3 תצורת קונטיינר והגדרות html2canvas חובה (מניעת חיתוך / עמודות חסרות)
+- **ארכיטקטורת קונטיינר (זהב)**:
+  ```javascript
+  const container = document.createElement('div');
+  container.style.cssText = 'position:absolute; top:-99999px; left:-99999px; width:850px; background:#fff; direction:rtl; font-family:Arial, sans-serif;';
+  ```
+- **איסור מוחלט**:
+  - **לעולם אין להשתמש ב-`position:fixed; left:100vw;`** או `top:0; left:100vw;`!
+  - **לעולם אין להגדיר `windowWidth: 850` או `scrollX: 0` ב-`html2canvas`**!
+  - שימוש ב-`left: 100vw` יחד עם `windowWidth: 850` מזיז את הקונטיינר פיזית מעבר לקצה המסך (למשל x=1920px), ובשילוב עם RTL של הדף, html2canvas חותך ומעלים 50%-60% מרוחב הטבלה משמאל (רק העמודה הימנית ביותר תופיע ב-PDF).
+- **הגדרות opt סטנדרטיות ותקינות**:
+  ```javascript
+  const opt = {
+    margin:       0,
+    filename:     cleanFilename,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true, logging: false },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  ```
+- **איפוס גלילה בעת צילום**:
+  לפני תחילת ההפקה שומרים את מיקום הגלילה הנוכחי ומאפסים `window.scrollTo(0, 0)`. בסיום ההפקה ב-`cleanup` מחזירים את הגלילה למקומה המקורי.
+
