@@ -106,8 +106,19 @@ async function openGmExport(){
     await window.loadFromFirebase(true);
   }
   if(!window.gmGid)return;
-  const gids=window.gardenPair(window.gmGid)?window.gardenPair(window.gmGid).ids:[window.gmGid];
-  window._exGids=gids;
+  window._exSingleGid = window.gmGid;
+  const pair = window.gardenPair(window.gmGid);
+  const gids = (pair && pair.ids) ? pair.ids.map(Number) : [Number(window.gmGid)];
+  window._exGids = gids;
+
+  // Setup inc-pair checkbox
+  const incPairWrap = document.getElementById('ex-inc-pair-wrap');
+  const incPairCb = document.getElementById('ex-inc-pair');
+  if (incPairWrap && incPairCb) {
+    incPairWrap.style.display = (gids.length > 1) ? 'flex' : 'none';
+    incPairCb.checked = true;
+  }
+
   let ws = new Date(window.gmD); ws.setHours(0,0,0,0);
   if(ws.getDay()===5) ws.setDate(ws.getDate()+2);
   else if(ws.getDay()===6) ws.setDate(ws.getDate()+1);
@@ -1207,6 +1218,9 @@ function openExportForEvents(eventIds) {
   const ctxEl = document.getElementById('ex-ctx');
   if (ctxEl) ctxEl.textContent = ctx;
   
+  window._exSingleGid = null;
+  const incPairWrap = document.getElementById('ex-inc-pair-wrap');
+  if (incPairWrap) incPairWrap.style.display = 'none';
   const exm = document.getElementById('exm');
   if (exm) exm.classList.add('open');
   
@@ -1258,6 +1272,9 @@ function openCalPrint(){
 }
 function openExport(){
   window._exEventIds = null;
+  window._exSingleGid = null;
+  const incPairWrap = document.getElementById('ex-inc-pair-wrap');
+  if (incPairWrap) incPairWrap.style.display = 'none';
   let _ws = new Date(calD); _ws.setHours(0,0,0,0);
   if(_ws.getDay()===5) _ws.setDate(_ws.getDate()+2);
   else if(_ws.getDay()===6) _ws.setDate(_ws.getDate()+1);
@@ -1357,7 +1374,29 @@ function genExport(){
   const fmt=document.getElementById('ex-fmt').value;
   const typeFlt=document.getElementById('ex-type-flt')?.value || 'all';
   if(!from){_spAlertDialog('בחר תאריך');return;}
-  const gids = (_exGids || f.gids) ? (_exGids || f.gids).map(Number) : null;
+  const incPair = !document.getElementById('ex-inc-pair') || document.getElementById('ex-inc-pair').checked;
+  const singleGid = window._exSingleGid ? Number(window._exSingleGid) : null;
+  let gids;
+  if (!incPair && singleGid) {
+    gids = [singleGid];
+  } else {
+    gids = (_exGids || (typeof f !== 'undefined' && f && f.gids)) ? (_exGids || f.gids).map(Number) : null;
+  }
+
+  // Update context label
+  const d1Str = typeof fD === 'function' ? fD(from) : from;
+  const d2Str = (from !== to) ? ' – ' + (typeof fD === 'function' ? fD(to) : to) : '';
+  let ctxTitle = '';
+  if (!incPair && singleGid) {
+    ctxTitle = (typeof G === 'function' ? (G(singleGid)||{}).name : '') || '';
+  } else if (gids && gids.length) {
+    ctxTitle = gids.map(id => (typeof G === 'function' ? (G(id)||{}).name : '') || '').filter(Boolean).join(' + ');
+  }
+  const ctxEl = document.getElementById('ex-ctx');
+  if (ctxEl && ctxTitle) {
+    ctxEl.textContent = `${ctxTitle} | ${d1Str}${d2Str}`;
+  }
+
   // DON'T clear _exGids here so manual re-generation works
   const isM_flag = _exIsM;
   
@@ -1657,19 +1696,22 @@ function genExport(){
         const cityEvs=byCity[c];
         const usedIds=new Set();
         
-        let groupList = window._listGroupMode === 'clusters' ? 
-                          (typeof getClusters==='function' ? getClusters(date, date).map(cl => ({...cl, ids: cl.gardenIds})) : []) : 
-                          pairs;
-                          
-        if (splitPairs) {
-           const uniqueGids = [...new Set(cityEvs.map(s=>s.g))];
-           groupList = uniqueGids.map(g => ({id: 'sg_'+g, ids: [g]}));
+        let groupList;
+        if (!incPair && singleGid) {
+          groupList = [{ id: 'sg_' + singleGid, ids: [singleGid] }];
+        } else if (splitPairs) {
+          const uniqueGids = [...new Set(cityEvs.map(s=>s.g))];
+          groupList = uniqueGids.map(g => ({id: 'sg_'+g, ids: [g]}));
+        } else {
+          groupList = window._listGroupMode === 'clusters' ? 
+                        (typeof getClusters==='function' ? getClusters(date, date).map(cl => ({...cl, ids: cl.gardenIds})) : []) : 
+                        pairs;
         }
 
         groupList.forEach(pair=>{
           const pairEvs=cityEvs.filter(s=>{
             if(!pair.ids || !pair.ids.includes(s.g)) return false;
-            if(!splitPairs && window._listGroupMode === 'clusters' && typeof window.gardenClusters === 'function') {
+            if(!splitPairs && incPair && window._listGroupMode === 'clusters' && typeof window.gardenClusters === 'function') {
                 const myCls = window.gardenClusters(s.g, date);
                 if(myCls && myCls.length > 0) return myCls[0].id === pair.id;
             }
@@ -1935,6 +1977,29 @@ function printExport(){
   w.document.close();
 }
 
+function shareExportWA(){
+  const t = document.getElementById('ex-prev')?.textContent;
+  if(!t || t.startsWith('לחץ')){
+    _spAlertDialog('יש ליצור תצוגה מקדימה תחילה');
+    return;
+  }
+  let phone = '';
+  if (window._exSingleGid) {
+    const g = window.G(window._exSingleGid) || {};
+    const gd = typeof window.getGardenData === 'function' ? window.getGardenData(window._exSingleGid) : g;
+    phone = gd.phone || g.phone || '';
+  }
+  let url = 'https://wa.me/';
+  if (phone) {
+    const clean = phone.replace(/\D/g, '');
+    const target = clean.startsWith('972') ? clean : '972' + clean.replace(/^0/, '');
+    url += target;
+  }
+  url += '?text=' + encodeURIComponent(t);
+  window.open(url, '_blank');
+}
+window.shareExportWA = shareExportWA;
+
 // [backup system unified — see createSnapshot/openBackup above]
 var _supExName=null;
 var _supExType = 'act'; // 'act' | 'inv'
@@ -1973,9 +2038,13 @@ window.renderGmRecurring = function(gid, el){
     return;
   }
 
-  const daysHe = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
-
-  let h = `<div style="font-weight:800;color:#1a237e;margin-bottom:12px">🔄 חוגים קבועים בצהרון (מכאן והלאה)</div>
+  let h = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+    <div style="font-weight:800;color:#1a237e;font-size:1rem">🔄 חוגים קבועים בצהרון (מכאן והלאה)</div>
+    <div style="display:flex;gap:6px">
+      <button class="btn bg bsm" onclick="event.stopPropagation(); window.exportAllRecurringWA(${gid}, false)" style="font-weight:700;display:inline-flex;align-items:center;gap:4px">📋 העתק מערכת שבועית</button>
+      <button class="btn bsm" style="background:#25d366;color:#fff;font-weight:700;border:none;padding:5px 10px;font-size:.78rem;cursor:pointer;display:inline-flex;align-items:center;gap:4px;border-radius:4px" onclick="event.stopPropagation(); window.exportAllRecurringWA(${gid}, true)">📱 שלח בוואטסאפ</button>
+    </div>
+  </div>
   <div style="display:grid;gap:10px">`;
   
   series.forEach(sr => {
@@ -2697,7 +2766,7 @@ window.exportRecurringWA = function(key, gid) {
   const daysHe = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
   const dayName = daysHe[sr.wd];
 
-  let text = `🗓️ *${window.fD(s.d)} - יום ${dayName}*\n`;
+  let text = `🗓️ *חוג קבוע - יום ${dayName}*\n`;
 
   const actLabel = sr.act || window.supAct(sr.a) || '';
   const supPhone = (typeof window.getSupPhone === 'function' ? window.getSupPhone(sr.a) : '') || (SUPBASE.find(sb => sb.name === sr.a) || {}).phone || '';
@@ -2759,4 +2828,78 @@ window.exportRecurringWA = function(key, gid) {
     if (typeof window.showToast === 'function') window.showToast('✅ ההודעה הועתקה ללוח!');
     else _spAlertDialog('✅ ההודעה הועתקה ללוח:\n\n' + text);
   });
+};
+
+window.exportAllRecurringWA = function(gid, sendDirect = false) {
+  const g = window.G(gid) || {};
+  const gd = typeof window.getGardenData === 'function' ? window.getGardenData(gid) : g;
+  const evs = window.SCH.filter(s => Number(s.g) === Number(gid) && s.d >= window.td() && s.st !== 'can');
+  
+  const seriesMap = {};
+  evs.forEach(s => {
+    if(s.st !== 'ok') return;
+    let wd = -1;
+    try { const p=s.d.split('-'); wd=new Date(p[0],parseInt(p[1])-1,p[2]).getDay(); } catch(e){}
+    if(wd === -1) return;
+    
+    const key = s._recId || `${s.a}_${s.act}_${wd}`;
+    if(!seriesMap[key]){
+      seriesMap[key] = {
+        key, a: s.a, act: s.act || (typeof window.supAct==='function'?window.supAct(s.a):''),
+        wd: wd, t: s.t, grp: s.grp
+      };
+    }
+  });
+
+  const series = Object.values(seriesMap).sort((a, b) => a.wd - b.wd || (a.t || '').localeCompare(b.t || ''));
+
+  if(!series.length){
+    _spAlertDialog('לא נמצאו חוגים קבועים עתידיים עבור צהרון זה.');
+    return;
+  }
+
+  const daysHe = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  let text = `🏫 *מערכת חוגים קבועה - ${gd.name || g.name}*\n`;
+  const addrParts = [g.city, gd.st || g.st].filter(Boolean);
+  if (addrParts.length) text += `📍 ${addrParts.join(', ')}\n`;
+  text += `\n`;
+
+  series.forEach(sr => {
+    const dayName = daysHe[sr.wd] || '';
+    const supPhone = (typeof window.getSupPhone === 'function' ? window.getSupPhone(sr.a) : '') || (window.SUPBASE?.find(sb => sb.name === sr.a) || {}).phone || '';
+    const supDisp = typeof window.supDisplayName === 'function' ? window.supDisplayName(window.supBase(sr.a)) : sr.a;
+    const actDisp = sr.act ? sr.act : supDisp;
+    const actStr = (actDisp && actDisp !== supDisp) ? `${actDisp} (${supDisp})` : supDisp;
+    const timeStr = sr.t ? ` · ⏰ ${window.fT(sr.t)}` : '';
+    const phoneStr = supPhone ? ` · 📞 ${supPhone}` : '';
+
+    text += `🗓️ *יום ${dayName}*${timeStr}\n`;
+    text += `   🎭 ${actStr}${phoneStr}\n\n`;
+  });
+
+  if (sendDirect) {
+    const phone = gd.phone || g.phone || '';
+    let url = 'https://wa.me/';
+    if (phone) {
+      const clean = phone.replace(/\D/g, '');
+      const target = clean.startsWith('972') ? clean : '972' + clean.replace(/^0/, '');
+      url += target;
+    }
+    url += '?text=' + encodeURIComponent(text.trim());
+    window.open(url, '_blank');
+  } else {
+    navigator.clipboard.writeText(text.trim()).then(() => {
+      if (typeof window.showToast === 'function') window.showToast('✅ מערכת החוגים הועתקה ללוח!');
+      else _spAlertDialog('✅ מערכת החוגים הועתקה ללוח:\n\n' + text.trim());
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text.trim();
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (typeof window.showToast === 'function') window.showToast('✅ מערכת החוגים הועתקה ללוח!');
+      else _spAlertDialog('✅ מערכת החוגים הועתקה ללוח:\n\n' + text.trim());
+    });
+  }
 };
