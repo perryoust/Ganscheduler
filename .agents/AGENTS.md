@@ -21,6 +21,17 @@ To minimize disruptive 'Allow Command' prompts for the user:
 2. Chain terminal commands logically if they must be run (e.g., 'git add . ; git commit -m ... ; git push' in a single run_command).
 3. NEVER run node -e for any file manipulation. The ONLY acceptable uses of run_command are: git operations, firebase deploy, and running actual build/test scripts.
 
+## PDF Generation Architecture (חוק ברזל להפקת PDF)
+In any PDF export module using `html2pdf.js` / `html2canvas` (`purchasing_orders.js`, `purchasing_budget.js`, etc.):
+1. **Container Styling**: MUST ALWAYS be:
+   `container.style.cssText = 'position:absolute; top:-99999px; left:-99999px; width:850px; background:#fff; direction:rtl; font-family:Arial, sans-serif;';`
+   - **STRICTLY FORBIDDEN**: NEVER use `position:fixed; left:100vw;` or `top:0; left:100vw;` (in RTL this moves elements past the viewport and slices off 60% of the page!).
+2. **html2canvas Options**: MUST ALWAYS be:
+   `html2canvas: { scale: 2, useCORS: true, logging: false }`
+   - **STRICTLY FORBIDDEN**: NEVER pass `windowWidth: 850` or `scrollX: 0` / `scrollY: 0` into html2canvas.
+3. **Scroll Reset**: Always save scroll position, call `window.scrollTo(0, 0)` before rendering, and restore scroll in `cleanup()`.
+4. **Bidi / Text Isolation**: All dynamic Hebrew/mixed text MUST pass through `rtlFix(text)` to avoid space swallowing and flipped punctuation.
+
 ## MCP & Tool Optimization
 1. **Primary MCP Server**: Use `firebase-mcp-server` for all Firebase backend, database, auth, and hosting interactions.
 2. **Excluded Services**: Do not attempt to use or invoke Cloud SQL, Compute Engine (GCE), BigQuery data-pipeline, or Jupyter notebook tools, as GanScheduler is a pure Vanilla JS/HTML web client with Firebase.
