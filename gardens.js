@@ -2040,9 +2040,8 @@ window.renderGmRecurring = function(gid, el){
 
   let h = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">
     <div style="font-weight:800;color:#1a237e;font-size:1rem">🔄 חוגים קבועים בצהרון (מכאן והלאה)</div>
-    <div style="display:flex;gap:6px">
-      <button class="btn bg bsm" onclick="event.stopPropagation(); window.exportAllRecurringWA(${gid}, false)" style="font-weight:700;display:inline-flex;align-items:center;gap:4px">📋 העתק מערכת שבועית</button>
-      <button class="btn bsm" style="background:#25d366;color:#fff;font-weight:700;border:none;padding:5px 10px;font-size:.78rem;cursor:pointer;display:inline-flex;align-items:center;gap:4px;border-radius:4px" onclick="event.stopPropagation(); window.exportAllRecurringWA(${gid}, true)">📱 שלח בוואטסאפ</button>
+    <div>
+      <button class="btn bg bsm" onclick="event.stopPropagation(); window.exportAllRecurringWA(${gid})" style="font-weight:700;display:inline-flex;align-items:center;gap:4px">📋 העתק מערכת שבועית</button>
     </div>
   </div>
   <div style="display:grid;gap:10px">`;
