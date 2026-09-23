@@ -242,6 +242,19 @@ function exportFullBackup(){
   a.href=url;a.download='גיבוי_מנהל_גנים_'+td()+'_'+timeStr+'.json';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
+
+function downloadSystemZip(){
+  if(window.showCopyToast) window.showCopyToast('📦 מוריד קובץ ZIP מלא של כל המערכת...');
+  else if(window.showToast) window.showToast('📦 מוריד קובץ ZIP מלא של כל המערכת...');
+  const a = document.createElement('a');
+  a.href = 'https://github.com/perryoust/Ganscheduler/archive/refs/heads/main.zip';
+  a.download = `Ganscheduler_System_v${window.APP_VERSION || ''}.zip`;
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+window.downloadSystemZip = downloadSystemZip;
 function goToCancelled(){
   ST('dash');
   setTimeout(()=>{
