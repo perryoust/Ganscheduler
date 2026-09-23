@@ -164,6 +164,14 @@ window.wtSetToday = function() {
   window.renderWorkerTasksAdmin();
 };
 
+window.wtSelectDate = function(val) {
+  if (val) {
+    window.wtCurrentDate = val;
+    window.wtSearchQuery = '';
+    window.renderWorkerTasksAdmin();
+  }
+};
+
 let _wtSearchTimer = null;
 window.wtDoSearch = function(val) {
   window.wtSearchQuery = (val || '').trim().toLowerCase();
@@ -273,6 +281,8 @@ window.renderWorkerTasksAdmin = function() {
     });
   }
 
+  const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
+  const isToday = (window.wtCurrentDate === today);
   const dayName = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(window.wtCurrentDate).getDay()];
   const dateDisp = "יום " + dayName + " " + (window.fD ? window.fD(window.wtCurrentDate) : window.wtCurrentDate);
 
@@ -298,12 +308,35 @@ window.renderWorkerTasksAdmin = function() {
 
       <!-- Calendar Navigation Bar -->
       <div style="background:#fff; border-radius:12px; padding:10px 15px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-        <button onclick="window.wtChangeDate(-1)" style="background:#f0f0f0; border:none; border-radius:50%; width:36px; height:36px; cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center;">&gt;</button>
-        <div style="display:flex; align-items:center; gap:15px;">
+        <button onclick="window.wtChangeDate(-1)" style="background:#f0f0f0; border:none; border-radius:50%; width:36px; height:36px; cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center;" title="יום קודם">&gt;</button>
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
           <h3 style="margin:0; font-size:1.2rem; color:#333;">📅 יומן משימות: <span style="color:#1565c0;">${dateDisp}</span></h3>
-          <button onclick="window.wtSetToday()" style="background:#e3f2fd; color:#1565c0; border:1px solid #bbdefb; border-radius:6px; padding:4px 10px; font-size:0.8rem; cursor:pointer; font-weight:bold;">היום</button>
+          
+          <!-- Interactive Date Picker Button -->
+          <div style="position:relative; display:inline-flex; align-items:center;">
+            <button type="button" 
+                    onclick="const inp=this.parentElement.querySelector('input[type=date]'); if(inp){ try{ if(inp.showPicker) inp.showPicker(); else inp.click(); }catch(e){ inp.click(); } }" 
+                    style="background:#e3f2fd; color:#1565c0; border:1px solid #bbdefb; border-radius:6px; padding:4px 10px; font-size:0.85rem; cursor:pointer; font-weight:bold; display:inline-flex; align-items:center; gap:5px; transition:all 0.2s;" 
+                    title="לחץ לבחירת תאריך מלוח שנה">
+              <span>${isToday ? 'היום' : (window.fD ? window.fD(window.wtCurrentDate) : window.wtCurrentDate)}</span>
+              <span style="font-size:0.85rem;">📅</span>
+            </button>
+            <input type="date" 
+                   value="${window.wtCurrentDate}" 
+                   onchange="window.wtSelectDate(this.value)" 
+                   style="position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; z-index:2;" 
+                   title="לחץ לבחירת תאריך מלוח שנה" />
+          </div>
+
+          ${!isToday ? `
+            <button onclick="window.wtSetToday()" 
+                    style="background:#fff3e0; color:#e65100; border:1px solid #ffe0b2; border-radius:6px; padding:4px 10px; font-size:0.8rem; cursor:pointer; font-weight:bold; display:inline-flex; align-items:center; gap:4px; transition:all 0.2s;" 
+                    title="חזור לתאריך של היום">
+              ↩️ חזור להיום
+            </button>
+          ` : ''}
         </div>
-        <button onclick="window.wtChangeDate(1)" style="background:#f0f0f0; border:none; border-radius:50%; width:36px; height:36px; cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center;">&lt;</button>
+        <button onclick="window.wtChangeDate(1)" style="background:#f0f0f0; border:none; border-radius:50%; width:36px; height:36px; cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center;" title="יום הבא">&lt;</button>
       </div>
 
       <!-- To Do List View -->
