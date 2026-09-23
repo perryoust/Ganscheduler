@@ -892,43 +892,68 @@ async function exportToExcel(data, filename, opts = {}) {
               totalGroups += grpCount;
               schoolStats[g.name].grp += grpCount;
 
-              // Clean up status label: show failure if not ok
-              let displayStatus = statusLabel;
-              if(!isOk) {
+              // ── SUPPLIER REPORT: DRY INFO ONLY ──
+              // Suppliers should see: בוטל / לא התקיים + reason / התקיימה השלמה
+              // Suppliers should NOT see: when/with whom makeup was scheduled, internal notes
+
+              // Did a makeup session actually take place for this event?
+              const makeupHappened = (() => {
+                if (!window.SCH) return false;
+                // Check via _compByMakeup link
+                if (s._compByMakeup && s._compByMakeup !== 'false') {
+                  const mk = window.SCH.find(x => String(x.id) === String(s._compByMakeup));
+                  if (mk && (mk.st === 'done' || mk.st === 'ok')) return true;
+                  if (mk && (mk.st === 'can' || mk.st === 'nohap')) return false;
+                }
+                // Check via _isMakeup + _makeupFrom link
+                const mkLinked = window.SCH.find(x =>
+                  x._isMakeup && x.g == s.g && x._makeupFrom === s.d &&
+                  (typeof window.supBase === 'function' ? window.supBase(x.a) === window.supBase(s.a) : x.a === s.a)
+                );
+                if (mkLinked) {
+                  if (mkLinked.st === 'done' || mkLinked.st === 'ok') return true;
+                  if (mkLinked.st === 'can' || mkLinked.st === 'nohap') return false;
+                  // Makeup date passed and not cancelled = happened
+                  const todayDs = typeof window.td === 'function' ? window.td() : new Date().toISOString().slice(0,10);
+                  return !!(mkLinked.d && mkLinked.d < todayDs);
+                }
+                return false;
+              })();
+
+              // Clean up status label: dry supplier-friendly status only
+              let displayStatus = '';
+              if (!isOk) {
                 const lower = note.toLowerCase();
                 const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
-                if(canWords.some(w => lower.includes(w)) || s.st === 'can') {
+                if (canWords.some(w => lower.includes(w)) || s.st === 'can') {
                   displayStatus = '❌ בוטל';
-                } else if (isMakeupScheduled) {
-                  // Makeup was scheduled for another date — show accordingly
-                  const matchDate = (s.nt || '').match(/השלמה נקבעה ל-([0-9./]+)/);
-                  const mkDate = matchDate ? matchDate[1] : '';
-                  displayStatus = mkDate ? `⚠️ לא התקיים (השלמה נקבעה ל-${mkDate})` : '⚠️ לא התקיים (השלמה נקבעה)';
+                } else if (makeupHappened) {
+                  displayStatus = '✔️ התקיימה השלמה';
                 } else {
-                  displayStatus = isPositive ? '⚠️ השלמה לא התקיימה' : '⚠️ לא התקיים';
+                  displayStatus = '⚠️ לא התקיים';
                 }
-              } else if (statusLabel === 'מתקיים' || s.st === 'ok' || s.st === 'done') {
-                 displayStatus = ''; 
               }
               
-              let formattedNote = typeof window.formatNoteWithTag === 'function' ? window.formatNoteWithTag(s) : (s.nt || '');
-              formattedNote = formattedNote.replace(/(✅|☑️)?\s*טופל:\s*טופל(\s*\|\s*)?/g, '').trim();
+              // ── SUPPLIER NOTE: keep only the reason, strip all internal scheduling info ──
+              let formattedNote = (s.nt || '');
+              // Remove internal status tags (✅ טופל, etc.)
+              formattedNote = formattedNote.replace(/(✅|☑️)?\s*טופל[:\s]*טופל(\s*\|\s*)?/gi, '').trim();
+              // Remove entire parts that contain makeup scheduling / internal info
+              const internalPhrases = [
+                /השלמה נקבעה ל-[^|]*/gi,
+                /השלמה עם[^|]*/gi,
+                /השלמה ב-?[0-9/.-]+[^|]*/gi,
+                /⚠️[^|]*/gi,
+                /\bהשלמה\b[^|]*/gi
+              ];
+              internalPhrases.forEach(rx => { formattedNote = formattedNote.replace(rx, ''); });
+              // Split by | and clean each part
+              const cleanParts = formattedNote.split('|')
+                .map(p => p.trim())
+                .filter(p => p.length > 0);
+              formattedNote = Array.from(new Set(cleanParts)).join(' | ');
+              // Final cleanup of stray leading/trailing pipes
               formattedNote = formattedNote.replace(/^\|\s*|\s*\|$/g, '').trim();
-              
-              // בדוחות ספקים (דוח שיבוצים ודוח סיכום פעילות): ספק לא צריך לדעת על איזה תאריך או ספק אחר הוא משלים
-              if (formattedNote) {
-                const parts = formattedNote.split('|').map(part => {
-                  let p = part.trim();
-                  if (/השלמה/i.test(p)) {
-                    if (/^השלמה/i.test(p)) {
-                      return 'השלמה';
-                    }
-                    p = p.replace(/(?:כ)?השלמה\s*(על|מיום|מ|עבור|במקום|ל|[-:—–])\s*[^|,)]*/gi, 'השלמה').trim();
-                  }
-                  return p;
-                }).filter(Boolean);
-                formattedNote = Array.from(new Set(parts)).join(' | ');
-              }
               
               const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
               const dayStr = 'יום ' + dayNames[new Date(s.d).getDay()];
