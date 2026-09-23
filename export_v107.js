@@ -896,38 +896,6 @@ async function exportToExcel(data, filename, opts = {}) {
               // Suppliers should see: בוטל / לא התקיים + reason / התקיימה השלמה
               // Suppliers should NOT see: when/with whom makeup was scheduled, internal notes
 
-              // Did a makeup session actually take place for THIS SAME supplier?
-              // Returns the formatted makeup date (DD/MM/YYYY) if happened, null otherwise.
-              // If another supplier covered → returns null → shows לא התקיים for this supplier
-              const makeupHappenedDate = (() => {
-                if (!window.SCH) return null;
-                const sameSupplier = (a) => typeof window.supBase === 'function'
-                  ? window.supBase(a) === window.supBase(s.a)
-                  : a === s.a;
-                const fmt = (isoDate) => window.fD ? window.fD(isoDate) : isoDate;
-                // Check via _compByMakeup link — must also be same supplier
-                if (s._compByMakeup && s._compByMakeup !== 'false') {
-                  const mk = window.SCH.find(x => String(x.id) === String(s._compByMakeup));
-                  if (mk && sameSupplier(mk.a)) {
-                    if (mk.st === 'done' || mk.st === 'ok') return fmt(mk.d);
-                    if (mk.st === 'can' || mk.st === 'nohap') return null;
-                  }
-                  // mk found but different supplier → fall through to show לא התקיים
-                }
-                // Check via _isMakeup + _makeupFrom link — same supplier only
-                const mkLinked = window.SCH.find(x =>
-                  x._isMakeup && x.g == s.g && x._makeupFrom === s.d && sameSupplier(x.a)
-                );
-                if (mkLinked) {
-                  if (mkLinked.st === 'done' || mkLinked.st === 'ok') return fmt(mkLinked.d);
-                  if (mkLinked.st === 'can' || mkLinked.st === 'nohap') return null;
-                  // Makeup date passed and not cancelled = happened
-                  const todayDs = typeof window.td === 'function' ? window.td() : new Date().toISOString().slice(0,10);
-                  if (mkLinked.d && mkLinked.d < todayDs) return fmt(mkLinked.d);
-                }
-                return null;
-              })();
-
               // Clean up status label: dry supplier-friendly status only
               let displayStatus = '';
               if (!isOk) {
@@ -935,10 +903,31 @@ async function exportToExcel(data, filename, opts = {}) {
                 const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
                 if (canWords.some(w => lower.includes(w)) || s.st === 'can') {
                   displayStatus = '❌ בוטל';
-                } else if (makeupHappenedDate) {
-                  displayStatus = `✔️ התקיימה השלמה ב-${makeupHappenedDate}`;
                 } else {
                   displayStatus = '⚠️ לא התקיים';
+                }
+              } else {
+                // If it's a completed event, check if it's a makeup class
+                const isThisMakeup = s._isMakeup || s._makeupFrom || (note.includes('השלמה') && !note.includes('השלמה נקבעה ל'));
+                if (isThisMakeup) {
+                  let origDateStr = null;
+                  const sameSupplier = (a) => typeof window.supBase === 'function' ? window.supBase(a) === window.supBase(s.a) : a === s.a;
+                  
+                  if (window.SCH) {
+                    let origEv = window.SCH.find(x => x._compByMakeup == s.id);
+                    if (!origEv && s._makeupFrom) {
+                      origEv = window.SCH.find(x => x.g == s.g && x.d === s._makeupFrom && (x.st === 'nohap' || x.st === 'can') && sameSupplier(x.a));
+                    }
+                    if (origEv && sameSupplier(origEv.a)) {
+                      origDateStr = window.fD ? window.fD(origEv.d) : origEv.d;
+                    }
+                  }
+                  
+                  if (origDateStr) {
+                    displayStatus = `✔️ השלמה מתאריך ${origDateStr}`;
+                  } else {
+                    displayStatus = '✔️ השלמה';
+                  }
                 }
               }
               
