@@ -172,6 +172,23 @@ window.wtSelectDate = function(val) {
   }
 };
 
+window.wtOpenDatePicker = function() {
+  const inp = document.getElementById('wt-admin-date-picker');
+  if (!inp) return;
+  try {
+    if (typeof inp.showPicker === 'function') {
+      inp.showPicker();
+      return;
+    }
+  } catch (e) {
+    console.warn('showPicker error:', e);
+  }
+  try {
+    inp.focus();
+    inp.click();
+  } catch (e) {}
+};
+
 let _wtSearchTimer = null;
 window.wtDoSearch = function(val) {
   window.wtSearchQuery = (val || '').trim().toLowerCase();
@@ -315,17 +332,20 @@ window.renderWorkerTasksAdmin = function() {
           <!-- Interactive Date Picker Button -->
           <div style="position:relative; display:inline-flex; align-items:center;">
             <button type="button" 
-                    onclick="const inp=this.parentElement.querySelector('input[type=date]'); if(inp){ try{ if(inp.showPicker) inp.showPicker(); else inp.click(); }catch(e){ inp.click(); } }" 
+                    id="wt-admin-date-btn"
+                    onclick="window.wtOpenDatePicker()" 
                     style="background:#e3f2fd; color:#1565c0; border:1px solid #bbdefb; border-radius:6px; padding:4px 10px; font-size:0.85rem; cursor:pointer; font-weight:bold; display:inline-flex; align-items:center; gap:5px; transition:all 0.2s;" 
                     title="לחץ לבחירת תאריך מלוח שנה">
               <span>${isToday ? 'היום' : (window.fD ? window.fD(window.wtCurrentDate) : window.wtCurrentDate)}</span>
               <span style="font-size:0.85rem;">📅</span>
             </button>
             <input type="date" 
+                   id="wt-admin-date-picker"
                    value="${window.wtCurrentDate}" 
                    onchange="window.wtSelectDate(this.value)" 
-                   style="position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; z-index:2;" 
-                   title="לחץ לבחירת תאריך מלוח שנה" />
+                   tabindex="-1"
+                   aria-hidden="true"
+                   style="position:absolute; left:0; bottom:0; width:30px; height:30px; opacity:0.01; pointer-events:none; border:none; padding:0; z-index:-1;" />
           </div>
 
           ${!isToday ? `
