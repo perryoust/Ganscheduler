@@ -410,8 +410,7 @@ async function _exportPDF(htmlContent, filename, month) {
 }
 
 function _getStyles(month) {
-  // Clipart seasonal watermarks (1 for each month)
-  // Currently months 5-12 are placeholders until quota resets
+  // Clipart seasonal watermarks (kids playing - 1 distinct image for each month)
   const watermarkSVG = `<img src="img/bg_${month}.jpg" style="width:100%; height:100%; object-fit:contain; mix-blend-mode: multiply;" />`;
 
   return {
