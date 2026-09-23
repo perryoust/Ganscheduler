@@ -865,7 +865,10 @@ async function exportToExcel(data, filename, opts = {}) {
               if(!schoolStats[g.name]) schoolStats[g.name] = { ok: 0, grp: 0 };
               
               // Report is faithful to site, but has safety overrides for notes
-              const isMakeup = note.includes('השלמה');
+              // "השלמה נקבעה ל-" means a makeup is SCHEDULED (pending) — NOT a makeup event itself
+              const isMakeupScheduled = note.includes('השלמה נקבעה ל');
+              // isMakeup = this event IS a makeup session (moved-from context), NOT just scheduling one
+              const isMakeup = !isMakeupScheduled && note.includes('השלמה');
               const isMovedFrom = note.includes('נדחה מ') || note.includes('הוזז מ') || note.includes('הזזה מ') || note.includes('הוקדם מ');
               const isMovedTo = note.includes('נדחה ל') || note.includes('הוזז ל') || note.includes('הזזה ל') || note.includes('הוקדם ל');
               const isPositive = isMakeup || isMovedFrom || ((note.includes('נדחה') || note.includes('הוקדם')) && !isMovedTo);
@@ -896,6 +899,11 @@ async function exportToExcel(data, filename, opts = {}) {
                 const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
                 if(canWords.some(w => lower.includes(w)) || s.st === 'can') {
                   displayStatus = '❌ בוטל';
+                } else if (isMakeupScheduled) {
+                  // Makeup was scheduled for another date — show accordingly
+                  const matchDate = (s.nt || '').match(/השלמה נקבעה ל-([0-9./]+)/);
+                  const mkDate = matchDate ? matchDate[1] : '';
+                  displayStatus = mkDate ? `⚠️ לא התקיים (השלמה נקבעה ל-${mkDate})` : '⚠️ לא התקיים (השלמה נקבעה)';
                 } else {
                   displayStatus = isPositive ? '⚠️ השלמה לא התקיימה' : '⚠️ לא התקיים';
                 }
