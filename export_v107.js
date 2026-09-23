@@ -897,18 +897,20 @@ async function exportToExcel(data, filename, opts = {}) {
               // Suppliers should NOT see: when/with whom makeup was scheduled, internal notes
 
               // Did a makeup session actually take place for THIS SAME supplier?
-              // If another supplier covered → still show לא התקיים for this supplier
-              const makeupHappened = (() => {
-                if (!window.SCH) return false;
+              // Returns the formatted makeup date (DD/MM/YYYY) if happened, null otherwise.
+              // If another supplier covered → returns null → shows לא התקיים for this supplier
+              const makeupHappenedDate = (() => {
+                if (!window.SCH) return null;
                 const sameSupplier = (a) => typeof window.supBase === 'function'
                   ? window.supBase(a) === window.supBase(s.a)
                   : a === s.a;
+                const fmt = (isoDate) => window.fD ? window.fD(isoDate) : isoDate;
                 // Check via _compByMakeup link — must also be same supplier
                 if (s._compByMakeup && s._compByMakeup !== 'false') {
                   const mk = window.SCH.find(x => String(x.id) === String(s._compByMakeup));
                   if (mk && sameSupplier(mk.a)) {
-                    if (mk.st === 'done' || mk.st === 'ok') return true;
-                    if (mk.st === 'can' || mk.st === 'nohap') return false;
+                    if (mk.st === 'done' || mk.st === 'ok') return fmt(mk.d);
+                    if (mk.st === 'can' || mk.st === 'nohap') return null;
                   }
                   // mk found but different supplier → fall through to show לא התקיים
                 }
@@ -917,13 +919,13 @@ async function exportToExcel(data, filename, opts = {}) {
                   x._isMakeup && x.g == s.g && x._makeupFrom === s.d && sameSupplier(x.a)
                 );
                 if (mkLinked) {
-                  if (mkLinked.st === 'done' || mkLinked.st === 'ok') return true;
-                  if (mkLinked.st === 'can' || mkLinked.st === 'nohap') return false;
+                  if (mkLinked.st === 'done' || mkLinked.st === 'ok') return fmt(mkLinked.d);
+                  if (mkLinked.st === 'can' || mkLinked.st === 'nohap') return null;
                   // Makeup date passed and not cancelled = happened
                   const todayDs = typeof window.td === 'function' ? window.td() : new Date().toISOString().slice(0,10);
-                  return !!(mkLinked.d && mkLinked.d < todayDs);
+                  if (mkLinked.d && mkLinked.d < todayDs) return fmt(mkLinked.d);
                 }
-                return false;
+                return null;
               })();
 
               // Clean up status label: dry supplier-friendly status only
@@ -933,8 +935,8 @@ async function exportToExcel(data, filename, opts = {}) {
                 const canWords = ['בוטל', 'מבוטל', 'מצב בטחוני', 'סגר', 'שביתה'];
                 if (canWords.some(w => lower.includes(w)) || s.st === 'can') {
                   displayStatus = '❌ בוטל';
-                } else if (makeupHappened) {
-                  displayStatus = '✔️ התקיימה השלמה';
+                } else if (makeupHappenedDate) {
+                  displayStatus = `✔️ התקיימה השלמה ב-${makeupHappenedDate}`;
                 } else {
                   displayStatus = '⚠️ לא התקיים';
                 }
