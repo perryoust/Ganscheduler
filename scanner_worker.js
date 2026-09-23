@@ -444,7 +444,153 @@ onmessage = function(e) {
       const isPettyCash = cleanFull.includes('קופה קטנה');
       const isGett = cleanFull.includes('גט') || cleanFull.includes('טאקסי') || cleanFull.includes('טקסי') || cleanFull.includes('gett') || cleanFull.includes('הסעות');
       
-      if (true) {
+      if (isPettyCash) {
+        if (targetYear === -1) {
+          const yearMatch = file.name.match(/\b(202\d)\b/) || decodedLink.match(/\b(202\d)\b/);
+          targetYear = yearMatch ? parseInt(yearMatch[1], 10) : (currentYear || new Date().getFullYear());
+        }
+
+        const pettyCashMatches = [];
+
+        for (const p of invPrep) {
+          const inv = p.inv;
+          const supKws = p.exData ? (p.exData.keywords || '') : '';
+          const isInvPettyCash = inv.orderNum === 'קופה קטנה' || 
+                                 inv.orderType === 'petty' || 
+                                 String(inv.notes || '').includes('קופה קטנה') || 
+                                 String(inv.txNum || '').includes('קופה קטנה') || 
+                                 String(inv.orderDesc || '').includes('קופה קטנה') || 
+                                 String(inv.supName || '').includes('קופה קטנה') || 
+                                 String(supKws).includes('קופה קטנה');
+          if (!isInvPettyCash) continue;
+
+          // 1. MUST MATCH THE PERSON / COORDINATOR (Strict isolation):
+          let isPersonMatch = false;
+          const cleanSup = p.cleanSup;
+
+          if (cleanSup && cleanSup.length >= 2) {
+            if (cleanFull.includes(cleanSup)) {
+              isPersonMatch = true;
+            } else {
+              const words = cleanSup.split(/\s+/).filter(w => w.length >= 2 && !['של','עם','על','את','אל','מן','זה','או','כי','אם','גן','צהרון','ביהס','בית','ספר'].includes(w));
+              if (words.length >= 2 && words.every(w => cleanFull.includes(w))) {
+                isPersonMatch = true;
+              } else if (words.length === 1 && words[0].length >= 3 && cleanFull.includes(words[0])) {
+                isPersonMatch = true;
+              }
+            }
+          }
+
+          // Check Aliases
+          if (!isPersonMatch) {
+            for (const ae of aliasEntries) {
+              if (ae.targetClean === cleanSup || ae.targetRaw === inv.supName || ae.targetRaw === p.baseName) {
+                if (cleanFull.includes(ae.aliasClean)) {
+                  isPersonMatch = true;
+                  break;
+                }
+              }
+            }
+          }
+
+          // In case inv.supName is generic "קופה קטנה", check notes / orderDesc
+          if (!isPersonMatch && (cleanSup === 'קופה קטנה' || !cleanSup || cleanSup === 'הוצאות קטנות')) {
+            const extraText = cleanSupText((inv.notes || '') + ' ' + (inv.orderDesc || ''));
+            const fileWords = cleanFull.split(/\s+/).filter(w => w.length >= 3 && !['קופה','קטנה','תקציב','חשבונית','הזמנה'].includes(w) && !hebMonths.includes(w));
+            if (fileWords.some(fw => extraText.includes(fw))) {
+              isPersonMatch = true;
+            }
+          }
+
+          // IF PERSON DOES NOT MATCH, SKIP! NEVER CROSS-CONTAMINATE!
+          if (!isPersonMatch) continue;
+
+          // 2. MUST MATCH MONTH & YEAR:
+          let invMonth = -1;
+          let invYear = -1;
+
+          // Priority 1: actMonth (e.g. '09' -> 8)
+          if (inv.actMonth) {
+            const mNum = parseInt(String(inv.actMonth).replace(/\D/g, ''), 10);
+            if (!isNaN(mNum) && mNum >= 1 && mNum <= 12) invMonth = mNum - 1;
+          }
+
+          // Priority 2: orderMonth (e.g. 'ספט-26', 'ספטמבר', '09')
+          if (invMonth === -1 && inv.orderMonth) {
+            const oStr = String(inv.orderMonth).trim();
+            const matchO = oStr.match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)/);
+            if (matchO) {
+              invMonth = hebMonths.indexOf(matchO[1]);
+            } else {
+              const mHebShort = {'ינו':0,'פבר':1,'מרץ':2,'אפר':3,'מאי':4,'יונ':5,'יול':6,'אוג':7,'ספט':8,'אוק':9,'נוב':10,'דצמ':11};
+              for (const [k, idx] of Object.entries(mHebShort)) {
+                if (oStr.includes(k)) { invMonth = idx; break; }
+              }
+              if (invMonth === -1) {
+                const mNum = parseInt(oStr.replace(/\D/g, ''), 10);
+                if (!isNaN(mNum) && mNum >= 1 && mNum <= 12) invMonth = mNum - 1;
+              }
+            }
+          }
+
+          // Priority 3: orderDesc (e.g. 'תקציב חודש ספטמבר 2026 - ...')
+          if (invMonth === -1 && inv.orderDesc) {
+            const matchD = String(inv.orderDesc).match(/(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)/);
+            if (matchD) invMonth = hebMonths.indexOf(matchD[1]);
+          }
+
+          // Priority 4: date / orderDate
+          const anyDate = inv.date || inv.orderDate || inv.txDate;
+          if (anyDate) {
+            const dStr = String(anyDate).trim();
+            let parsedDate = null;
+            if (dStr.includes('/')) {
+              const parts = dStr.split('/');
+              if (parts.length === 3) {
+                if (parts[2].length === 4) {
+                  parsedDate = new Date(`${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`);
+                  invYear = parseInt(parts[2], 10);
+                } else if (parts[0].length === 4) {
+                  parsedDate = new Date(`${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`);
+                  invYear = parseInt(parts[0], 10);
+                } else if (parts[2].length === 2) {
+                  invYear = 2000 + parseInt(parts[2], 10);
+                  parsedDate = new Date(`${invYear}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`);
+                }
+              }
+            } else if (dStr.includes('-')) {
+              parsedDate = new Date(dStr);
+              if (!isNaN(parsedDate.getFullYear())) invYear = parsedDate.getFullYear();
+            }
+            if (invMonth === -1 && parsedDate && !isNaN(parsedDate.getMonth())) {
+              invMonth = parsedDate.getMonth();
+            }
+          }
+
+          if (invYear === -1) {
+            const yMatch = String(inv.orderDesc || '').match(/\b(202\d)\b/) || 
+                           String(inv.orderMonth || '').match(/\b(202\d)\b/) ||
+                           String(inv.orderMonth || '').match(/\b2\d\b/);
+            if (yMatch) {
+              const yVal = parseInt(yMatch[0], 10);
+              invYear = yVal < 100 ? 2000 + yVal : yVal;
+            }
+          }
+
+          const monthMatches = (targetMonth === -1) || (invMonth !== -1 && invMonth === targetMonth);
+          const yearMatches = (targetYear === -1) || (invYear === -1) || (invYear === targetYear);
+
+          if (!monthMatches || !yearMatches) continue;
+
+          pettyCashMatches.push(inv);
+        }
+
+        if (pettyCashMatches.length > 0) {
+          bestInvoice = pettyCashMatches;
+          bestType = 'tax';
+          bestScore = 500;
+        }
+      } else {
         if (targetYear === -1) {
           const yearMatch = file.name.match(/\b(202\d)\b/) || decodedLink.match(/\b(202\d)\b/);
           targetYear = yearMatch ? parseInt(yearMatch[1]) : (currentYear || new Date().getFullYear());
@@ -453,8 +599,6 @@ onmessage = function(e) {
         for (const p of invPrep) {
           const inv = p.inv;
           const supKws = p.exData ? (p.exData.keywords || '') : '';
-          const isInvPettyCash = inv.orderNum === 'קופה קטנה' || inv.orderType === 'petty' || String(inv.notes||'').includes('קופה קטנה') || String(inv.txNum||'').includes('קופה קטנה') || String(inv.orderDesc||'').includes('קופה קטנה') || String(inv.supName||'').includes('קופה קטנה') || String(supKws).includes('קופה קטנה');
-          if (isPettyCash && !isInvPettyCash) continue;
           
           const isInvGett = String(inv.supName||'').toLowerCase().includes('gett') || String(inv.supName||'').includes('גט') || String(inv.supName||'').includes('טאקסי') || String(inv.supName||'').includes('טקסי') || String(inv.orderNum||'').includes('הסעות') || String(inv.notes||'').includes('גט') || String(inv.orderDesc||'').includes('גט') || String(inv.orderDesc||'').includes('הסעות');
           if (isGett && !isInvGett) continue;
@@ -488,7 +632,6 @@ onmessage = function(e) {
              }
           }
           
-          if (isPettyCash && supplierScore === 0) supplierScore = 20;
           if (isGett && isInvGett && supplierScore === 0) supplierScore = 35;
 
           if (supplierScore === 0) continue; 
@@ -549,20 +692,10 @@ onmessage = function(e) {
             const hasPath = !!(existing && existing.path);
             if (hasPath && !globalOverwrite) { if (existing.origin !== 'manual' && (existing.score === undefined || score > existing.score)) { score -= 5; } else { score -= 500; } } 
             
-            if (isPettyCash) {
-              if (score > 0) {
-                if (!bestInvoice) bestInvoice = [];
-                if (!Array.isArray(bestInvoice)) bestInvoice = [bestInvoice];
-                bestInvoice.push(inv);
-                bestType = type;
-                if (score > bestScore) bestScore = score;
-              }
-            } else {
-              if (score > bestScore) {
-                bestScore = score;
-                bestInvoice = inv;
-                bestType = type;
-              }
+            if (score > bestScore) {
+              bestScore = score;
+              bestInvoice = inv;
+              bestType = type;
             }
           }
         }

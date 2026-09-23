@@ -257,7 +257,7 @@ const filesFound = [];
 
   window.showToast?.('⏳ מעבד קבצים בסורק ברקע...', 60000);
   
-  const worker = new Worker('scanner_worker.js');
+  const worker = new Worker('scanner_worker.js?v=' + (window.APP_VERSION || Date.now()));
   
   worker.onmessage = async function(e) {
     if (e.data.type === 'progress') {
