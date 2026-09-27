@@ -616,61 +616,83 @@ reader.onload = async function(e) {
         const cleanDoc = (d) => String(d || '').replace(/\D/g, '').replace(/^0+/, '');
 
         const existingIdx = window.INVOICES.findIndex(inv => {
+          // If BOTH rows have a serial number (מס"ד), it is the ultimate row identifier in the accounting sheet!
+          if (item.serialNum && inv.serialNum) {
+            return String(item.serialNum).trim() === String(inv.serialNum).trim();
+          }
+
           const sameSup = cleanSupText(inv.supName) === cleanSupText(sName) || (window.supBase ? cleanSupText(window.supBase(inv.supName)) === cleanSupText(window.supBase(sName)) : false);
 
-          // 1. TOP PRIORITY: Match by Transaction Invoice Number (מס' חשבון עסקה) + Supplier Name!
-          if (sameSup && item.txNum && inv.txNum) {
-            const cleanItemTx = cleanDoc(item.txNum);
-            const cleanInvTx = cleanDoc(inv.txNum);
-            if (String(item.txNum).trim() === String(inv.txNum).trim() || (cleanItemTx.length >= 2 && cleanItemTx === cleanInvTx)) {
-              return true;
-            }
+          const cleanItemNum = cleanDoc(item.num);
+          const cleanInvNum  = cleanDoc(inv.num);
+          const hasItemNum   = cleanItemNum.length >= 2;
+          const hasInvNum    = cleanInvNum.length >= 2;
+
+          const cleanItemTx  = cleanDoc(item.txNum);
+          const cleanInvTx   = cleanDoc(inv.txNum);
+          const hasItemTx    = cleanItemTx.length >= 2;
+          const hasInvTx     = cleanInvTx.length >= 2;
+
+          // CONFLICT SAFETY: If both have tax invoice numbers and they differ, they CANNOT be the same record!
+          if (hasItemNum && hasInvNum && cleanItemNum !== cleanInvNum) {
+            return false;
           }
 
-          // 2. TOP PRIORITY: Match by Tax Invoice Number (מס' חשבונית מס / קבלה) + Supplier Name!
-          if (sameSup && item.num && inv.num) {
-            const cleanItemNum = cleanDoc(item.num);
-            const cleanInvNum = cleanDoc(inv.num);
-            if (String(item.num).trim() === String(inv.num).trim() || (cleanItemNum.length >= 2 && cleanItemNum === cleanInvNum)) {
-              return true;
-            }
+          // CONFLICT SAFETY: If both have transaction invoice numbers and they differ, they CANNOT be the same record!
+          if (hasItemTx && hasInvTx && cleanItemTx !== cleanInvTx) {
+            return false;
           }
 
-          // 3. Exact serialNum match (מס"ד)
-          if (item.serialNum && inv.serialNum && String(item.serialNum).trim() === String(inv.serialNum).trim()) {
+          // 1. Match by Transaction Invoice Number (מס' חשבון עסקה) + Supplier Name
+          if (sameSup && hasItemTx && hasInvTx && cleanItemTx === cleanInvTx) {
             return true;
           }
 
-          // 4. Unique order number — ONLY if it is a real numeric document number (>=4 digits).
-          // IMPORTANT: Textual order numbers like "חוגים" or "הסעות" are NOT unique — they are
-          // category labels shared by many different invoices. Never use them for deduplication.
-          if (sameSup && item.orderNum && inv.orderNum) {
-            const cleanItemOrder = cleanDoc(item.orderNum);
-            const cleanInvOrder = cleanDoc(inv.orderNum);
-            // Only match if both sides have 4+ digit numeric ID
-            if (cleanItemOrder.length >= 4 && cleanInvOrder.length >= 4 && cleanItemOrder === cleanInvOrder) {
-              return true;
-            }
+          // 2. Match by Tax Invoice Number (מס' חשבונית מס / קבלה) + Supplier Name
+          if (sameSup && hasItemNum && hasInvNum && cleanItemNum === cleanInvNum) {
+            return true;
           }
 
           if (!sameSup) return false;
 
-          // 5. Cross-match between Transaction Invoice and Tax Invoice numbers
-          if (item.txNum && inv.num && (String(item.txNum).trim() === String(inv.num).trim() || (cleanDoc(item.txNum).length >= 2 && cleanDoc(item.txNum) === cleanDoc(inv.num)))) {
+          // 3. Cross-match between Transaction Invoice and Tax Invoice numbers
+          if (hasItemTx && hasInvNum && cleanItemTx === cleanInvNum) {
             return true;
           }
-          if (item.num && inv.txNum && (String(item.num).trim() === String(inv.num).trim() || (cleanDoc(item.num).length >= 2 && cleanDoc(item.num) === cleanDoc(inv.txNum)))) {
+          if (hasItemNum && hasInvTx && cleanItemNum === cleanInvTx) {
             return true;
           }
 
-          // 6. Last-resort fallback: supplier + description + amount + month.
-          // All three conditions must match AND description must be non-empty.
-          // This prevents collapsing different invoices with the same supplier+month+amount.
+          // 4. Match by Purchase Order Number — ONLY if there are no conflicting line details!
+          // (Consolidated master POs share the same orderNum across multiple cities/lines)
+          if (item.orderNum && inv.orderNum) {
+            const cleanItemOrder = cleanDoc(item.orderNum);
+            const cleanInvOrder  = cleanDoc(inv.orderNum);
+            if (cleanItemOrder.length >= 4 && cleanInvOrder.length >= 4 && cleanItemOrder === cleanInvOrder) {
+              // Different cities under the same PO => distinct rows!
+              const cItem = item.locCity ? cleanSupText(item.locCity) : '';
+              const cInv  = inv.locCity  ? cleanSupText(inv.locCity)  : '';
+              if (cItem && cInv && cItem !== cInv) return false;
+
+              // Different amounts under the same PO => distinct rows!
+              const totItem = parseFloat(item.orderTotal || 0);
+              const totInv  = parseFloat(inv.orderTotal  || 0);
+              if (totItem > 0 && totInv > 0 && Math.abs(totItem - totInv) > 1.0) return false;
+
+              // Different distinct descriptions under the same PO => distinct rows!
+              const dItem = item.orderDesc ? cleanSupText(item.orderDesc) : '';
+              const dInv  = inv.orderDesc  ? cleanSupText(inv.orderDesc)  : '';
+              if (dItem && dInv && dItem !== dInv) return false;
+
+              return true;
+            }
+          }
+
+          // 5. Last-resort fallback: supplier + description + amount + month
           const sameMonth = (String(inv.orderMonth || '').trim() === oMonth) || (inv.actMonth && item.actMonth && inv.actMonth === item.actMonth) || (!oMonth && !inv.orderMonth);
           const sameDesc = oDesc !== '' && String(inv.orderDesc || '').trim() === oDesc;
           const sameTotal = parseFloat(inv.orderTotal || 0).toFixed(2) === oTotal;
 
-          // Only use amount+month as a match when the total is significant (>500) and description also matches
           if (sameTotal && parseFloat(oTotal) > 500 && sameMonth && sameDesc) return true;
           
           return false;
@@ -731,7 +753,7 @@ reader.onload = async function(e) {
             skipped++;
             continue; // Skip this row entirely
           } else if (action === 'keep') {
-            item.id = Date.now() + Math.floor(Math.random() * 10000);
+            item.id = item.serialNum ? String(item.serialNum) : String(Date.now() + Math.floor(Math.random() * 10000));
             window.INVOICES.push(item);
             added++;
           } else {
@@ -760,7 +782,7 @@ reader.onload = async function(e) {
           }
         } else {
           // Add new record
-          item.id = Date.now() + Math.floor(Math.random() * 10000);
+          item.id = item.serialNum ? String(item.serialNum) : String(Date.now() + Math.floor(Math.random() * 10000));
           window.INVOICES.push(item);
           added++;
         }

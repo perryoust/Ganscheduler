@@ -278,6 +278,8 @@ const filesFound = [];
             if (update.id && String(i.id) === String(update.id)) return true;
             // 2. Direct Serial Number match (מס"ד)
             if (update.serialNum && i.serialNum && String(i.serialNum).trim() === String(update.serialNum).trim()) return true;
+            // Conflict safety: different serial numbers cannot be the same record
+            if (update.serialNum && i.serialNum && String(i.serialNum).trim() !== String(update.serialNum).trim()) return false;
 
             const sameSupplier = !update.supName || cleanSup(i.supName) === cleanSup(update.supName);
             if (!sameSupplier) return false;
@@ -286,7 +288,12 @@ const filesFound = [];
             if (update.txNum && i.txNum && cleanDoc(i.txNum) === cleanDoc(update.txNum)) return true;
             // 4. Exact Tax Invoice Number (מס' חשבונית מס / קבלה)
             if (update.num && i.num && cleanDoc(i.num) === cleanDoc(update.num)) return true;
-            // 5. Numeric Order Number ONLY (4+ digits, never match generic labels like "חוגים" or "הסעות")
+
+            // Conflict safety: if doc numbers differ, do not fall back to orderNum
+            if (update.num && i.num && cleanDoc(i.num) !== cleanDoc(update.num)) return false;
+            if (update.txNum && i.txNum && cleanDoc(i.txNum) !== cleanDoc(update.txNum)) return false;
+
+            // 5. Numeric Order Number ONLY (4+ digits)
             if (update.orderNum && i.orderNum && cleanDoc(i.orderNum).length >= 4 && cleanDoc(i.orderNum) === cleanDoc(update.orderNum)) return true;
 
             return false;
