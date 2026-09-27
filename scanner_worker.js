@@ -13,6 +13,7 @@ onmessage = function(e) {
       .replace(/["'״׳`]/g, '')
       .replace(/\s*\(?\s*בע[\s.]*מ\s*\)?\s*/gi, ' ')
       .replace(/\s*\(?\s*ltd\.?\s*\)?\s*/gi, ' ')
+      .replace(/ניקיון|נקיון/g, 'ניקוי')
       .replace(/[-_.,()]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
@@ -331,6 +332,30 @@ onmessage = function(e) {
             const cleanDesc = cleanSupText(inv.orderDesc);
             const descWords = cleanDesc.split(/\s+/).filter(w => w.length >= 3 && !['של','עם','על','את','אל','מן','זה','או','כי','אם','גן','צהרון','ביהס','חופש','גדול','קייטנת'].includes(w));
             for (const word of descWords) {
+              if (cleanFull.includes(word)) {
+                supplierWordsMatched++;
+                supplierMatched = true;
+              }
+            }
+          }
+
+          // Match words from order classification / type (e.g. העשרה, תפעול, חומרי יצירה, חומרי ניקוי)
+          if (inv.orderType) {
+            const cleanType = cleanSupText(inv.orderType);
+            const typeWords = cleanType.split(/\s+/).filter(w => w.length >= 3 && !['של','עם','על','את','אל','מן','זה','או','כי','אם','גן','צהרון','ביהס','חופש','גדול','קייטנת'].includes(w));
+            for (const word of typeWords) {
+              if (cleanFull.includes(word)) {
+                supplierWordsMatched++;
+                supplierMatched = true;
+              }
+            }
+          }
+
+          // Match words from order assignment (e.g. צהרונים, גני ילדים)
+          if (inv.orderAssign) {
+            const cleanAssign = cleanSupText(inv.orderAssign);
+            const assignWords = cleanAssign.split(/\s+/).filter(w => w.length >= 3 && !['של','עם','על','את','אל','מן','זה','או','כי','אם','גן','צהרון','ביהס','חופש','גדול','קייטנת'].includes(w));
+            for (const word of assignWords) {
               if (cleanFull.includes(word)) {
                 supplierWordsMatched++;
                 supplierMatched = true;
@@ -706,14 +731,60 @@ onmessage = function(e) {
     let matchedInvoice = bestScore > -200 ? bestInvoice : null;
     let matchedType = bestScore > -200 ? bestType : null;
 
+    // Check if this is an umbrella / consolidated purchase order
+    let isMasterOrder = false;
+    if (matchedInvoice && !Array.isArray(matchedInvoice) && matchedType === 'order') {
+      const isTaxOrTxFile = file.name.includes('חשבונית') || file.name.includes('קבלה') || file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה') || file.name.toLowerCase().includes('tax') || file.name.toLowerCase().includes('tx');
+      
+      if (!isTaxOrTxFile && matchedInvoice.orderNum && cleanDocNum(matchedInvoice.orderNum).length >= 4) {
+        const targetCleanOrder = cleanDocNum(matchedInvoice.orderNum);
+        const targetCleanSup = cleanSupText(matchedInvoice.supName);
+        
+        // Find all sibling rows sharing the exact same order number & supplier
+        const orderSiblings = invoices.filter(inv => {
+          if (!inv || !inv.orderNum) return false;
+          if (cleanDocNum(inv.orderNum) !== targetCleanOrder) return false;
+          if (cleanSupText(inv.supName) !== targetCleanSup) return false;
+          return true;
+        });
+
+        if (orderSiblings.length > 1) {
+          // Check if file specifies a specific city that belongs to only a subset
+          const citiesInFile = orderSiblings
+            .map(inv => inv.locCity ? cleanSupText(inv.locCity) : '')
+            .filter(c => c && c.length >= 3 && cleanFull.includes(c));
+
+          if (citiesInFile.length > 0) {
+            // File specifies a specific city: only link rows belonging to that city
+            const filteredByCity = orderSiblings.filter(inv => {
+              const c = inv.locCity ? cleanSupText(inv.locCity) : '';
+              return c && cleanFull.includes(c);
+            });
+            if (filteredByCity.length > 0) {
+              matchedInvoice = filteredByCity;
+              isMasterOrder = true;
+            }
+          } else {
+            // No specific city in file: this is a master PO for all sibling lines!
+            matchedInvoice = orderSiblings;
+            isMasterOrder = true;
+          }
+        }
+      }
+    }
+
     if (matchedInvoice) {
       if (Array.isArray(matchedInvoice)) {
          let linkedLines = 0;
          matchedInvoice.forEach(inv => {
            const typesToLink = [];
-           if (inv.num) typesToLink.push('tax');
-           if (inv.txNum) typesToLink.push('tx');
-           if (inv.orderNum || typesToLink.length === 0) typesToLink.push('order');
+           if (isMasterOrder) {
+             typesToLink.push('order');
+           } else {
+             if (inv.num) typesToLink.push('tax');
+             if (inv.txNum) typesToLink.push('tx');
+             if (inv.orderNum || typesToLink.length === 0) typesToLink.push('order');
+           }
 
            typesToLink.forEach(t => {
              if (!inv['file_' + t] || globalOverwrite || (inv['file_' + t].score !== undefined && bestScore > inv['file_' + t].score)) {
@@ -734,10 +805,13 @@ onmessage = function(e) {
            });
            if (typesToLink.length > 0) matchCount++;
          });
+         const baseDesc = isMasterOrder 
+           ? `${matchedInvoice[0].supName} - הזמנה מרכזת (${matchedInvoice.length} שורות)`
+           : `קופה קטנה (${matchedInvoice.length} שורות)`;
          if (linkedLines > 0) {
-           resultsData.push([file.name, `קופה קטנה (${matchedInvoice.length} שורות)`, bestScore, 'שויך']);
+           resultsData.push([file.name, baseDesc, bestScore, 'שויך']);
          } else {
-           resultsData.push([file.name, `קופה קטנה`, bestScore, 'דלג (קישור קיים)']);
+           resultsData.push([file.name, baseDesc, bestScore, 'דלג (קישור קיים)']);
            skippedCount++;
          }
       } else {
