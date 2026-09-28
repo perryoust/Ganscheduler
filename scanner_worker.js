@@ -114,6 +114,29 @@ onmessage = function(e) {
     targetRaw: target
   }));
 
+  const isExistFileSupplierMismatch = (existFileName, invoiceSupName) => {
+    if (!existFileName || !invoiceSupName) return false;
+    const cleanF = cleanSupText(existFileName);
+    const cleanS = cleanSupText(invoiceSupName);
+    if (!cleanS || cleanS.length < 2) return false;
+
+    // If direct inclusion
+    if (cleanF.includes(cleanS)) return false;
+
+    // Check individual significant supplier words (3+ chars)
+    const supWords = cleanS.split(/\s+/).filter(w => w.length >= 3 && !['של','עם','על','את','אל','מן','זה','או','כי','אם','גן','צהרון','ביהס','חופש','גדול'].includes(w));
+    if (supWords.length >= 1 && supWords.some(w => cleanF.includes(w))) return false;
+
+    // Check known aliases
+    for (const ae of aliasEntries) {
+      if ((ae.targetClean === cleanS || ae.targetRaw === invoiceSupName) && cleanF.includes(ae.aliasClean)) {
+        return false;
+      }
+    }
+
+    return true; // None of the invoice supplier's words or aliases appear in the existing file name
+  };
+
   // ═══════════════════════════════════════════════════════════════
   // PHASE 1: MAIN FILE LOOP — now uses O(1) lookups from indexes
   // ═══════════════════════════════════════════════════════════════
@@ -430,7 +453,9 @@ onmessage = function(e) {
         // Treat null, undefined, or objects without .path as "no file"
         const hasPath = !!(existing && existing.path);
         
-        if (hasPath && !globalOverwrite) { 
+        const existIsMismatchedSup = hasPath && isExistFileSupplierMismatch(existing.name, inv.supName);
+
+        if (hasPath && !globalOverwrite && !existIsMismatchedSup) { 
             if (existing.path === file.link) {
                 // Exact same file: reaffirm match
                 score += 10;
@@ -787,7 +812,10 @@ onmessage = function(e) {
            }
 
            typesToLink.forEach(t => {
-             if (!inv['file_' + t] || globalOverwrite || (inv['file_' + t].score !== undefined && bestScore > inv['file_' + t].score)) {
+             const existF = inv['file_' + t];
+             const existHasP = !!(existF && existF.path);
+             const existMismatch = existHasP && isExistFileSupplierMismatch(existF.name, inv.supName);
+             if (!existHasP || globalOverwrite || existMismatch || (existF.score !== undefined && bestScore > existF.score)) {
                 matchedInvoicesToUpdate.push({
                     id: inv.id,
                     serialNum: inv.serialNum,
@@ -821,7 +849,8 @@ onmessage = function(e) {
         } else {
            const existFile = matchedInvoice['file_' + matchedType];
            const existHasPath = !!(existFile && existFile.path);
-           if (!existHasPath || globalOverwrite || (existFile && existFile.score !== undefined && bestScore > existFile.score)) {
+           const existIsMismatchedSup = existHasPath && isExistFileSupplierMismatch(existFile.name, matchedInvoice.supName);
+           if (!existHasPath || globalOverwrite || existIsMismatchedSup || (existFile && existFile.score !== undefined && bestScore > existFile.score)) {
               matchedInvoicesToUpdate.push({
                   id: matchedInvoice.id,
                   serialNum: matchedInvoice.serialNum,

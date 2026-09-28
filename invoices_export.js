@@ -764,10 +764,13 @@ reader.onload = async function(e) {
                 cleanItem[k] = item[k];
               }
             });
-            // Preserve file attachments if not present in new import
+            // Preserve file attachments if not present in new import, ONLY if supplier hasn't changed
+            const oldInv = window.INVOICES[existingIdx];
+            const isDifferentSup = cleanItem.supName && oldInv.supName && cleanSupText(cleanItem.supName) !== cleanSupText(oldInv.supName);
             ['file_order', 'file_tx', 'file_tax'].forEach(fKey => {
-              if (window.INVOICES[existingIdx][fKey] && !cleanItem[fKey]) {
-                cleanItem[fKey] = window.INVOICES[existingIdx][fKey];
+              if (oldInv[fKey] && !cleanItem[fKey]) {
+                if (isDifferentSup) return; // Do NOT copy over files from a different supplier!
+                cleanItem[fKey] = oldInv[fKey];
               }
             });
             // Preserve higher classified status
