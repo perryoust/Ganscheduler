@@ -107,6 +107,34 @@ onmessage = function(e) {
     if (p.cleanOrder && p.cleanOrder.length >= 5) addSuffixes(p.cleanOrder, 'order');
   });
 
+  // ── Collision sets: detect document numbers shared by multiple DIFFERENT suppliers ──
+  // When a txNum/num is shared by suppliers A and B, we must NOT assign a file
+  // clearly belonging to supplier A to supplier B just because they share the number.
+  const txNumCollisionSet = new Set();  // cleanDocNums that appear in >1 distinct supplier
+  const numCollisionSet   = new Set();
+  const txNumToSups = new Map();  // cleanTx -> Set of cleanSup
+  const numToSups   = new Map();  // cleanNum -> Set of cleanSup
+  const supToKeywords = new Map(); // cleanSup -> Set of keywords
+  
+  invPrep.forEach(p => {
+    if (p.cleanTx) {
+      if (!txNumToSups.has(p.cleanTx)) txNumToSups.set(p.cleanTx, new Set());
+      txNumToSups.get(p.cleanTx).add(p.cleanSup);
+    }
+    if (p.cleanNum) {
+      if (!numToSups.has(p.cleanNum)) numToSups.set(p.cleanNum, new Set());
+      numToSups.get(p.cleanNum).add(p.cleanSup);
+    }
+    if (p.keywords) {
+      if (!supToKeywords.has(p.cleanSup)) supToKeywords.set(p.cleanSup, new Set());
+      p.keywords.split(',').map(k => cleanSupText(k)).filter(Boolean).forEach(k => {
+        supToKeywords.get(p.cleanSup).add(k);
+      });
+    }
+  });
+  txNumToSups.forEach((sups, key) => { if (sups.size > 1) txNumCollisionSet.add(key); });
+  numToSups.forEach((sups, key) => { if (sups.size > 1) numCollisionSet.add(key); });
+
   // Pre-clean alias keys for supplier matching
   const aliasEntries = Object.entries(allAliases).map(([alias, target]) => ({
     aliasClean: cleanSupText(alias),
@@ -303,6 +331,58 @@ onmessage = function(e) {
                 contextBonus += 50;
             }
         }
+
+        // ── Collision Guard ──────────────────────────────────────────────────────
+        // When a document number is shared by multiple suppliers (collision),
+        // block this candidate ONLY if the file name EXPLICITLY names a DIFFERENT
+        // colliding supplier (or its alias). This prevents cross-supplier file
+        // assignment (e.g. "חנה בית הלחמי...7275" going to ריקי לייק which also
+        // has txNum=7275) while NOT blocking files that simply don't mention any
+        // supplier name at all (those are safe to assign via score).
+        const isCollisionNum =
+          (type === 'tx'  && txNumCollisionSet.has(cleanNumStr)) ||
+          (type === 'tax' && numCollisionSet.has(cleanNumStr));
+
+        if (isCollisionNum) {
+          // Get all other suppliers that share this document number
+          const rivalSups = type === 'tx'
+            ? [...(txNumToSups.get(cleanNumStr) || [])]
+            : [...(numToSups.get(cleanNumStr) || [])];
+
+          for (const rivalClean of rivalSups) {
+            if (rivalClean === p.cleanSup) continue; // skip self
+            // Does the file name contain a word from a rival supplier?
+            const rivalWords = rivalClean.split(/\s+/).filter(w => w.length >= 3);
+            const rivalInFile = rivalWords.some(w => cleanFull.includes(w));
+            // Also check if the file contains a rival's alias
+            let rivalAliasInFile = false;
+            for (const ae of aliasEntries) {
+              if (ae.targetClean === rivalClean && cleanFull.includes(ae.aliasClean)) {
+                rivalAliasInFile = true;
+                break;
+              }
+            }
+            // Also check if the file contains a rival's keywords
+            let rivalKeywordInFile = false;
+            const rivalKeywords = supToKeywords.get(rivalClean);
+            if (rivalKeywords) {
+              for (const kw of rivalKeywords) {
+                if (cleanFull.includes(kw)) {
+                  rivalKeywordInFile = true;
+                  break;
+                }
+              }
+            }
+
+            if (rivalInFile || rivalAliasInFile || rivalKeywordInFile) {
+              // File explicitly names a different supplier — skip this candidate
+              type = null;
+              break;
+            }
+          }
+          if (!type) continue;
+        }
+        // ────────────────────────────────────────────────────────────────────────
 
         let score = (cleanNumStr.length < 3) ? 10 : 50;
         score += contextBonus;
