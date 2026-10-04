@@ -122,10 +122,13 @@ window.normalizeInvoiceStatus = function(inv) {
   if (typeof inv === 'string') return rawSt;
 
   // 1. File Name Priorities: 'חשבונית מס' wins, followed by 'חשבון עסקה'
-  const fTax = String(inv.file_tax?.name || inv.file_tax?.path || '');
-  const fTx = String(inv.file_tx?.name || inv.file_tx?.path || '');
-  const fOrder = String(inv.file_order?.name || inv.file_order?.path || '');
-  const allFiles = fTax + ' ' + fTx + ' ' + fOrder;
+  const _fTxt = (f) => {
+    if (!f) return '';
+    let p = String(f.path || '');
+    try { p = decodeURIComponent(p); } catch (_) {}
+    return String(f.name || '') + ' ' + p.replace(/\+/g, ' ');
+  };
+  const allFiles = (_fTxt(inv.file_tax) + ' ' + _fTxt(inv.file_tx) + ' ' + _fTxt(inv.file_order)).replace(/[_\s]+/g, ' ');
 
   if (allFiles.includes('חשבונית מס')) {
     return 'tax_invoice';
