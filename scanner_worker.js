@@ -1,5 +1,21 @@
 onmessage = function(e) {
-  const { filesFound, invoices, supEx, globalOverwrite, spScannerAliases, currentYear } = e.data;
+  const { supEx, globalOverwrite, spScannerAliases, currentYear } = e.data;
+
+  // ── Legacy year guard: never scan/link 2022 (or earlier) ──
+  const MIN_YEAR = 2023;
+  const isLegacyInv = (inv) => {
+    const d = String(inv.orderDate || inv.txDate || inv.date || '');
+    const m = d.match(/(?:^|\D)(20\d{2})(?:\D|$)/);
+    return !!(m && parseInt(m[1], 10) < MIN_YEAR);
+  };
+  const isLegacyFile = (f) => {
+    let txt = String(f.name || '') + ' ' + String(f.link || '');
+    try { txt = String(f.name || '') + ' ' + decodeURIComponent(f.link || ''); } catch (_) {}
+    const years = (txt.match(/(?<!\d)20(1\d|2\d)(?!\d)/g) || []).map(Number);
+    return years.length > 0 && years.every(y => y < MIN_YEAR);
+  };
+  const invoices = (e.data.invoices || []).filter(inv => !isLegacyInv(inv));
+  const filesFound = (e.data.filesFound || []).filter(f => !isLegacyFile(f));
 
   let matchCount = 0;
   let skippedCount = 0;

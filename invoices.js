@@ -703,8 +703,17 @@ window.loadMoreInvoices = async function() {
   }
 };
 
+// ── Ignore legacy years (2022 and earlier) — not scanned, not displayed ──
+window.PURCH_MIN_YEAR = 2023;
+window.isLegacyInvoice = function(inv){
+  if(!inv) return false;
+  const d = String(inv.orderDate||inv.txDate||inv.date||'');
+  const m = d.match(/(?:^|\D)(20\d{2})(?:\D|$)/);
+  return !!(m && parseInt(m[1],10) < window.PURCH_MIN_YEAR);
+};
+
 function refreshPurchDash(){
-  const invs = INVOICES;
+  const invs = INVOICES.filter(i=>!window.isLegacyInvoice(i));
   const partialEl = document.getElementById('ps-partial-note');
   if (partialEl) {
     partialEl.style.display = window._invoicesPartialLoad ? 'block' : 'none';
