@@ -1518,12 +1518,20 @@ function renderNormalDay(evs,ds){
         cityCards[city].push({name:pair.name, html:ch});
       });
     });
+    const groupedSolos = {};
     allSoloEvs.forEach(s=>{
-      const g=window.G(s.g);
+      if(!groupedSolos[s.g]) groupedSolos[s.g] = [];
+      groupedSolos[s.g].push(s);
+    });
+
+    Object.keys(groupedSolos).forEach(gid=>{
+      const g=window.G(gid);
       const city=g.city||'אחר';
       const clr=window.CITY_COLORS(city);
       if(!cityCards[city]) cityCards[city]=[];
-      const ch = window.ui.renderStandardPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds,clr,context:'cal',isSolo:true});
+      const evsForGid = groupedSolos[gid];
+      evsForGid.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+      const ch = window.ui.renderStandardPairCard({id:'solo_'+gid, name:g.name, ids:[gid]}, evsForGid, {ds,clr,context:'cal',isSolo:true});
       cityCards[city].push({name:g.name, html:ch});
     });
 
@@ -1961,10 +1969,25 @@ function renderCalList(evs, mDate){
       const soloEvs=cityEvs
         .filter(s=>!pairedGids.has(s.g)&&!clusteredGidsC.has(s.g))
         .sort((a,b)=>window.compareActivities(a, b));
-      
+      const groupedSolos = {};
       soloEvs.forEach(s=>{
-        const g = window.G(s.g);
-        h += window.ui.renderStandardPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {
+        if(!groupedSolos[s.g]) groupedSolos[s.g] = [];
+        groupedSolos[s.g].push(s);
+      });
+
+      const sortedGids = Object.keys(groupedSolos).sort((a,b) => {
+        const ea = groupedSolos[a][0].t || '99:99';
+        const eb = groupedSolos[b][0].t || '99:99';
+        if (ea !== eb) return ea.localeCompare(eb);
+        const na = window.G(a)?.name || '';
+        const nb = window.G(b)?.name || '';
+        return na.localeCompare(nb, 'he', { numeric: true });
+      });
+
+      sortedGids.forEach(gid=>{
+        const g = window.G(gid);
+        const evsForGid = groupedSolos[gid];
+        h += window.ui.renderStandardPairCard({id:'solo_'+gid, name:g.name, ids:[gid]}, evsForGid, {
           ds: ds,
           clr: clr,
           context: 'cal',
