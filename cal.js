@@ -1074,9 +1074,21 @@ function renderMakeupsTop(ds, cityFilter='', clsFilter='', collapseAll=false){
       
     if(soloEvs.length){
       h+=`<div class="pairs-list-layout">`;
-      soloEvs.forEach(s=>{
-        const g=window.G(s.g);
-        h+=window.ui.renderStandardPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds,clr,context:'cal',isSolo:true});
+      const groupedSolos = {};
+      soloEvs.forEach(s => {
+        if(!groupedSolos[s.g]) groupedSolos[s.g] = [];
+        groupedSolos[s.g].push(s);
+      });
+      const sortedGids = Object.keys(groupedSolos).sort((a,b) => {
+        const ea = groupedSolos[a][0].t || '99:99';
+        const eb = groupedSolos[b][0].t || '99:99';
+        if (ea !== eb) return ea.localeCompare(eb);
+        return (window.G(a)?.name||'').localeCompare(window.G(b)?.name||'', 'he', { numeric: true });
+      });
+      sortedGids.forEach(gid=>{
+        const evsForGid = groupedSolos[gid];
+        evsForGid.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+        h+=window.ui.renderStandardPairCard({id:'solo_'+gid, name:window.G(gid).name, ids:[gid]}, evsForGid, {ds,clr,context:'cal',isSolo:true});
       });
       h+=`</div>`;
     }
@@ -1202,10 +1214,21 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
             });
             
           if(soloEvs.length){
-            html+=`<div class="pairs-list-layout">`;
+            const groupedSolos = {};
             soloEvs.forEach(s=>{
-              const g=window.G(s.g);
-              html+=window.ui.renderStandardPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {ds,clr,context:'cal',isSolo:true});
+              if(!groupedSolos[s.g]) groupedSolos[s.g] = [];
+              groupedSolos[s.g].push(s);
+            });
+            const sortedGids = Object.keys(groupedSolos).sort((a,b) => {
+              const ea = groupedSolos[a][0].t || '99:99';
+              const eb = groupedSolos[b][0].t || '99:99';
+              if (ea !== eb) return ea.localeCompare(eb);
+              return (window.G(a)?.name||'').localeCompare(window.G(b)?.name||'', 'he', { numeric: true });
+            });
+            sortedGids.forEach(gid=>{
+              const evsForGid = groupedSolos[gid];
+              evsForGid.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+              html+=window.ui.renderStandardPairCard({id:'solo_'+gid, name:window.G(gid).name, ids:[gid]}, evsForGid, {ds,clr,context:'cal',isSolo:true});
             });
             html+=`</div>`;
           }
@@ -1293,9 +1316,22 @@ function renderClusterDay(evs, ds, clusterName){
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:6px">`;
             
+            const groupedSorted = {};
             sorted.forEach(s => {
-              html += window.ui.renderStandardPairCard({id:'solo_'+s.id, name:window.G(s.g).name, ids:[s.g]}, [s], {
-                ds: s.d,
+              if(!groupedSorted[s.g]) groupedSorted[s.g] = [];
+              groupedSorted[s.g].push(s);
+            });
+            const sortedGids = Object.keys(groupedSorted).sort((a,b) => {
+              const ea = groupedSorted[a][0].t || '99:99';
+              const eb = groupedSorted[b][0].t || '99:99';
+              if (ea !== eb) return ea.localeCompare(eb);
+              return (window.G(a)?.name||'').localeCompare(window.G(b)?.name||'', 'he', { numeric: true });
+            });
+            sortedGids.forEach(gid => {
+              const evsForGid = groupedSorted[gid];
+              evsForGid.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+              html += window.ui.renderStandardPairCard({id:'solo_'+gid, name:window.G(gid).name, ids:[gid]}, evsForGid, {
+                ds: evsForGid[0].d,
                 clr: clrCity,
                 context: 'cal',
                 isSolo: true
@@ -1323,10 +1359,22 @@ function renderClusterDay(evs, ds, clusterName){
         </summary>
         <div class="city-accordion-content">`;
 
-      cityEvs.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s=>{
-        const g=window.G(s.g);
-        html += window.ui.renderStandardPairCard({id:'solo_'+s.id, name:g.name, ids:[s.g]}, [s], {
-          ds: s.d,
+      const groupedCityEvs = {};
+      cityEvs.forEach(s=>{
+        if(!groupedCityEvs[s.g]) groupedCityEvs[s.g] = [];
+        groupedCityEvs[s.g].push(s);
+      });
+      const sortedCityGids = Object.keys(groupedCityEvs).sort((a,b) => {
+        const ea = groupedCityEvs[a][0].t || '99:99';
+        const eb = groupedCityEvs[b][0].t || '99:99';
+        if (ea !== eb) return ea.localeCompare(eb);
+        return (window.G(a)?.name||'').localeCompare(window.G(b)?.name||'', 'he', { numeric: true });
+      });
+      sortedCityGids.forEach(gid => {
+        const evsForGid = groupedCityEvs[gid];
+        evsForGid.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+        html += window.ui.renderStandardPairCard({id:'solo_'+gid, name:window.G(gid).name, ids:[gid]}, evsForGid, {
+          ds: evsForGid[0].d,
           clr: clrCity,
           context: 'cal',
           isSolo: true
@@ -1407,9 +1455,22 @@ function renderClusterWeek(evs, weekStart, clusterName){
             </div>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px">`;
-          [...clEvs].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s=>{
-            html += window.ui.renderStandardPairCard({id:'solo_'+s.id, name:window.G(s.g).name, ids:[s.g]}, [s], {
-              ds: s.d,
+          const groupedClEvs = {};
+          [...clEvs].forEach(s=>{
+            if(!groupedClEvs[s.g]) groupedClEvs[s.g] = [];
+            groupedClEvs[s.g].push(s);
+          });
+          const sortedClGids = Object.keys(groupedClEvs).sort((a,b) => {
+            const ea = groupedClEvs[a][0].t || '99:99';
+            const eb = groupedClEvs[b][0].t || '99:99';
+            if (ea !== eb) return ea.localeCompare(eb);
+            return (window.G(a)?.name||'').localeCompare(window.G(b)?.name||'', 'he', { numeric: true });
+          });
+          sortedClGids.forEach(gid => {
+            const evsForGid = groupedClEvs[gid];
+            evsForGid.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+            html += window.ui.renderStandardPairCard({id:'solo_'+gid, name:window.G(gid).name, ids:[gid]}, evsForGid, {
+              ds: evsForGid[0].d,
               clr: clrCity,
               context: 'cal',
               isSolo: true
@@ -1422,10 +1483,23 @@ function renderClusterWeek(evs, weekStart, clusterName){
       html+=`</div>`;
     } else {
       html+=`<div style="background:#fff;padding:8px;display:flex;flex-wrap:wrap;gap:6px">`;
+      const groupedDayEvs = {};
       dayEvs.forEach(s=>{
-        html += window.ui.renderStandardPairCard({id:'solo_'+s.id, name:window.G(s.g).name, ids:[s.g]}, [s], {
-          ds: s.d,
-          clr: window.CITY_COLORS(window.G(s.g).city||''),
+        if(!groupedDayEvs[s.g]) groupedDayEvs[s.g] = [];
+        groupedDayEvs[s.g].push(s);
+      });
+      const sortedDayGids = Object.keys(groupedDayEvs).sort((a,b) => {
+        const ea = groupedDayEvs[a][0].t || '99:99';
+        const eb = groupedDayEvs[b][0].t || '99:99';
+        if (ea !== eb) return ea.localeCompare(eb);
+        return (window.G(a)?.name||'').localeCompare(window.G(b)?.name||'', 'he', { numeric: true });
+      });
+      sortedDayGids.forEach(gid => {
+        const evsForGid = groupedDayEvs[gid];
+        evsForGid.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+        html += window.ui.renderStandardPairCard({id:'solo_'+gid, name:window.G(gid).name, ids:[gid]}, evsForGid, {
+          ds: evsForGid[0].d,
+          clr: window.CITY_COLORS(window.G(gid).city||''),
           context: 'cal',
           isSolo: true
         });
@@ -2683,13 +2757,27 @@ function renderRangeListView(evs, fromDs, toDs){
         });
       }
 
+      const groupedSolos = {};
       cityEvs.filter(s => !firstUsedGids.has(Number(s.g)))
-        .sort((a,b) => window.compareActivities(a, b))
-        .forEach(s => { 
-          h += window.ui.renderStandardPairCard({id:'solo_'+s.id, name:window.G(s.g).name, ids:[s.g]}, [s], {
-            ds, clr, context: 'cal', isSolo: true
-          });
+        .forEach(s => {
+          if(!groupedSolos[s.g]) groupedSolos[s.g] = [];
+          groupedSolos[s.g].push(s);
         });
+        
+      const sortedGids = Object.keys(groupedSolos).sort((a,b) => {
+        const ea = groupedSolos[a][0].t || '99:99';
+        const eb = groupedSolos[b][0].t || '99:99';
+        if (ea !== eb) return ea.localeCompare(eb);
+        return (window.G(a)?.name||'').localeCompare(window.G(b)?.name||'', 'he', { numeric: true });
+      });
+
+      sortedGids.forEach(gid => {
+        const evsForGid = groupedSolos[gid];
+        evsForGid.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
+        h += window.ui.renderStandardPairCard({id:'solo_'+gid, name:window.G(gid).name, ids:[gid]}, evsForGid, {
+          ds, clr, context: 'cal', isSolo: true
+        });
+      });
 
       h += `</div></details>`;
     });
