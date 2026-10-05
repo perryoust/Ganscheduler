@@ -792,12 +792,15 @@ window.checkSnapshotsForPairs = function() {
     
     if (choice === '100') {
       _spAlertDialog('מוריד נתונים מהענן... המתן...');
-      fetch('recovered_data.json').then(r=>r.json()).then(d => {
+      fetch('recovered_data.json').then(r=>r.json()).then(async d => {
         let res = [];
         if(d.pairs && d.pairs.length) { window.pairs = d.pairs; res.push(d.pairs.length + ' זוגות'); }
         if(d.holidays && d.holidays.length) { window.holidays = d.holidays; res.push(d.holidays.length + ' חופשות'); }
         if(d.managers) { window.managers = d.managers; res.push(Object.keys(d.managers).length + ' רכזים'); }
-        window.save(true);
+        
+        // עלינו להמתין שהשמירה לענן תסתיים לפני הרענון!
+        if(typeof window.save === 'function') await window.save(true);
+        
         alert('שוחזר מהענן: ' + res.join(', ') + '. המערכת תתרענן כעת.');
         window.location.reload();
       }).catch(e => alert('שגיאה בשחזור ענן: ' + e.message));
