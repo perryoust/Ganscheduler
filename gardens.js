@@ -797,6 +797,7 @@ window.checkSnapshotsForPairs = function() {
         if(d.pairs && d.pairs.length) { window.pairs = d.pairs; res.push(d.pairs.length + ' זוגות'); }
         if(d.holidays && d.holidays.length) { window.holidays = d.holidays; res.push(d.holidays.length + ' חופשות'); }
         if(d.managers) { window.managers = d.managers; res.push(Object.keys(d.managers).length + ' רכזים'); }
+        if(d.clusters) { window.clusters = d.clusters; res.push(Object.keys(d.clusters).length + ' אשכולות'); }
         
         // עלינו להמתין שהשמירה לענן תסתיים לפני הרענון!
         if(typeof window.save === 'function') await window.save(true);
