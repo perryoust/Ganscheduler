@@ -999,10 +999,15 @@ function auditMergedSuppliers(){
 // ────────────────────────────────────────────────────────────────────────────
 // mergeSupplierCardData — מעביר בבטחה את כל פרטי כרטיס הספק מהספק הישן לספק הראשי
 // ────────────────────────────────────────────────────────────────────────────
-function mergeSupplierCardData(mainName, oldName) {
+function mergeSupplierCardData(mainName, oldName, visited = new Set()) {
   if (!mainName || !oldName || mainName === oldName) return;
-  const mainBase = window.supBase(mainName);
-  const oldBase = window.supBase(oldName);
+  const mainBase = window.supBase ? window.supBase(mainName) : mainName;
+  const oldBase = window.supBase ? window.supBase(oldName) : oldName;
+
+  const visitKey = `${mainName}<-${oldName}`;
+  if (visited.has(visitKey)) return;
+  visited.add(visitKey);
+
   if (!window.supEx) window.supEx = {};
   if (!window.supEx[mainBase]) window.supEx[mainBase] = {};
   if (!window.supEx[mainName]) window.supEx[mainName] = {};
@@ -1010,10 +1015,16 @@ function mergeSupplierCardData(mainName, oldName) {
   const mex = window.supEx[mainBase];
   const mexExact = window.supEx[mainName];
 
-  // Resolve old supplier metadata from all possible sources
-  const ex = window.supEx[oldName] || window.supEx[oldBase] || {};
-  const sOld = (window.SUPBASE || []).find(s => s.name === oldName || window.supBase(s.name) === oldBase) || {};
-  const cOld = ((window.supEx['__c'] || []).find(s => s.name === oldName || window.supBase(s.name) === oldBase)) || {};
+  // Resolve old supplier metadata: NEVER allow ex to be mex!
+  let ex = {};
+  if (oldName !== mainName && oldName !== mainBase && window.supEx[oldName]) {
+    ex = window.supEx[oldName];
+  } else if (oldBase !== mainBase && window.supEx[oldBase]) {
+    ex = window.supEx[oldBase];
+  }
+
+  const sOld = (window.SUPBASE || []).find(s => (s.name === oldName || (window.supBase && window.supBase(s.name) === oldBase)) && s.name !== mainName && (!window.supBase || window.supBase(s.name) !== mainBase)) || {};
+  const cOld = ((window.supEx['__c'] || []).find(s => (s.name === oldName || (window.supBase && window.supBase(s.name) === oldBase)) && s.name !== mainName && (!window.supBase || window.supBase(s.name) !== mainBase))) || {};
 
   // 1. Phone 1
   const oldPhone = ex.ph1 || cOld.phone || sOld.phone || '';
@@ -1076,17 +1087,17 @@ function mergeSupplierCardData(mainName, oldName) {
 
   // Update in __c if present
   if (window.supEx['__c']) {
-    const cMain = window.supEx['__c'].find(s => s.name === mainName || window.supBase(s.name) === mainBase);
+    const cMain = window.supEx['__c'].find(s => s.name === mainName || (window.supBase && window.supBase(s.name) === mainBase));
     if (cMain && (!cMain.phone || !String(cMain.phone).trim()) && mex.ph1) {
       cMain.phone = mex.ph1;
     }
   }
 
-  // Recursively inherit if old had its own _mergedFrom
-  if (Array.isArray(ex._mergedFrom)) {
+  // Recursively inherit if old had its own _mergedFrom, guarded against cycles & self-references
+  if (Array.isArray(ex._mergedFrom) && ex !== mex) {
     ex._mergedFrom.forEach(subOld => {
-      if (subOld && subOld !== mainName && subOld !== oldName) {
-        mergeSupplierCardData(mainName, subOld);
+      if (subOld && subOld !== mainName && subOld !== oldName && !visited.has(`${mainName}<-${subOld}`)) {
+        mergeSupplierCardData(mainName, subOld, visited);
       }
     });
   }
@@ -1191,7 +1202,7 @@ async function doMerge(){
   if(!window.supEx[mainBase]) window.supEx[mainBase]={};
   // Store which bases were merged in (for act lookups later)
   const prevMergedFrom = window.supEx[mainBase]._mergedFrom||[];
-  const newMergedBases = toMrg.map(o=>window.supBase(o)).filter(b=>b!==mainBase);
+  const newMergedBases = toMrg.flatMap(o => [o, window.supBase ? window.supBase(o) : o]).filter(b => b && b !== mainBase && b !== main);
   window.supEx[mainBase]._mergedFrom = [...new Set([...prevMergedFrom,...newMergedBases])];
   window._mergedAliasMap = null; window._mergedAliasMapFuzzy = null;
   window.supEx[mainBase].isAct = mergedIsAct;

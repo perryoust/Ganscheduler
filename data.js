@@ -242,9 +242,11 @@ function supBaseEx(base){
   const mergedFrom = ex._mergedFrom || (supEx[base] && supEx[base]._mergedFrom) || [];
   if (Array.isArray(mergedFrom)) {
     mergedFrom.forEach(m => {
-      const mex = supEx[m] || supEx[supBase(m)] || {};
-      const ms = SUPBASE.find(s => s.name === m || supBase(s.name) === supBase(m)) || {};
-      const mc = (supEx['__c'] || []).find(s => s.name === m || supBase(s.name) === supBase(m)) || {};
+      if (!m) return;
+      const mBase = window.supBase ? window.supBase(m) : m;
+      const mex = supEx[m] || (mBase !== base ? supEx[mBase] : null) || {};
+      const ms = (SUPBASE || []).find(s => (s.name === m || (window.supBase && window.supBase(s.name) === mBase)) && s.name !== base && (!window.supBase || window.supBase(s.name) !== base)) || {};
+      const mc = (supEx['__c'] || []).find(s => (s.name === m || (window.supBase && window.supBase(s.name) === mBase)) && s.name !== base && (!window.supBase || window.supBase(s.name) !== base)) || {};
       if (!ex.ph1 && (mex.ph1 || mc.phone || ms.phone)) ex.ph1 = mex.ph1 || mc.phone || ms.phone;
       if (!ex.ph2 && mex.ph2) ex.ph2 = mex.ph2;
       if (!ex.contact && (mex.contact || mc.contact)) ex.contact = mex.contact || mc.contact;
@@ -258,11 +260,13 @@ function supBaseEx(base){
   }
   return ex;
 }
+window.supBaseEx = supBaseEx;
 function supDisplayName(base){
   if(!base) return '';
   const ex=supEx&&supEx[base];
   return (ex&&ex.alias&&ex.alias.trim())?ex.alias.trim():base;
 }
+window.supDisplayName = supDisplayName;
 window.supNameLabel = function(name) {
   const base = supBase(name);
   return supDisplayName(base);
