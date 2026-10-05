@@ -3222,7 +3222,8 @@ function mobNavPurch(btn){
 
 // ─── Data backup / restore ────────────────────────────
 function exportData(){
-  const data=_safeLS.getItem('ganv5')||'{}';
+  const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpaz');
+  const data=_safeLS.getItem(yearKey)||_safeLS.getItem('ganv5')||'{}';
   const snaps=_safeLS.getItem('ganv5_snaps')||'[]';
   const todos=_safeLS.getItem('ganv5_todos')||'[]';
   const blob=new Blob([JSON.stringify({data:JSON.parse(data),snaps:JSON.parse(snaps),todos:JSON.parse(todos),ts:Date.now()},null,2)],{type:'application/json'});
