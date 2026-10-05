@@ -792,7 +792,7 @@ window.checkSnapshotsForPairs = function() {
     
     if (choice === '100') {
       _spAlertDialog('מוריד נתונים מהענן... המתן...');
-      fetch('recovered_data.json').then(r=>r.json()).then(async d => {
+      fetch('recovered_data.json?v=' + Date.now()).then(r=>r.json()).then(async d => {
         let res = [];
         if(d.pairs && d.pairs.length) { window.pairs = d.pairs; res.push(d.pairs.length + ' זוגות'); }
         if(d.holidays && d.holidays.length) { window.holidays = d.holidays; res.push(d.holidays.length + ' חופשות'); }
