@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="UTF-8">
+  <title>שחזור נתוני תשפ"ז</title>
+  <style>
+    body { font-family: Assistant, Arial; padding: 50px; text-align: center; }
+    button { padding: 20px; font-size: 24px; background: #1a237e; color: white; border: none; border-radius: 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>שחזור נתוני תשפ"ז (מגיבוי 23 בספטמבר)</h1>
+  <p>נמצאו 25 חופשות, 51 זוגות ו-13 רכזים.</p>
+  <button id="restoreBtn">לחץ כאן לשחזור המידע לפיירבייס</button>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDiUrCk_eOQ_bmAc1ZCXrSaelG-HpaTLfA",
+      authDomain: "ganmanage-free.firebaseapp.com",
+      databaseURL: "https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "ganmanage-free"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    document.getElementById('restoreBtn').addEventListener('click', async () => {
+      try {
+        if (!auth.currentUser) {
+           alert("אינך מחובר למערכת! התחבר תחילה מהעמוד הראשי ואז חזור לכאן.");
+           return;
+        }
+        
+        const res = await fetch('recovered_data.json');
+        const data = await res.json();
+        
+        await set(ref(db, 'data/tashpaz/holidays'), data.holidays);
+        await set(ref(db, 'data/tashpaz/pairs'), data.pairs);
+        await set(ref(db, 'data/tashpaz/managers'), data.managers);
+        
+        alert('המידע שוחזר בהצלחה! מועבר למערכת...');
+        window.location.href = '/';
+      } catch(e) {
+        alert('שגיאה בשחזור: ' + e.message);
+      }
+    });
+  </script>
+</body>
+</html>
