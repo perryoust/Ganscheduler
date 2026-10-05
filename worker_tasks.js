@@ -792,15 +792,15 @@ window.wtShiftTaskDate = function(id, days) {
   
   d.setDate(d.getDate() + days);
   task.date = d.toISOString().slice(0, 10);
+  window.renderWorkerTasksAdmin();
   
   if (window.saveWorkerTasksToFirebase) {
-    window.saveWorkerTasksToFirebase(true);
+    Promise.resolve(window.saveWorkerTasksToFirebase(true)).then(ok => {
+      if (ok !== false && window.spAlert) window.spAlert('המשימה הוזזה ל-' + window.fD(task.date));
+    });
   } else if (window.save) {
     window.save(true);
   }
-  
-  window.renderWorkerTasksAdmin();
-  if (window.spAlert) window.spAlert('המשימה הוזזה ל-' + window.fD(task.date));
 };
 
 window.wtMoveTaskDate = function(id) {
@@ -814,9 +814,12 @@ window.wtMoveTaskDate = function(id) {
       const nd = document.getElementById('wt-move-date').value;
       if (!nd) return false;
       task.date = nd;
-      if (window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else if (window.save) if(window.saveWorkerTasksToFirebase) window.saveWorkerTasksToFirebase(true); else window.save(true);
       window.renderWorkerTasksAdmin();
-      if (window.spAlert) window.spAlert('המשימה הועברה בהצלחה!');
+      if (window.saveWorkerTasksToFirebase) {
+        Promise.resolve(window.saveWorkerTasksToFirebase(true)).then(ok => {
+          if (ok !== false && window.spAlert) window.spAlert('המשימה הועברה בהצלחה!');
+        });
+      } else if (window.save) window.save(true);
       return true;
     });
   } else {
@@ -970,7 +973,12 @@ window.renderWorkerTasksMobile = function() {
   tomorrowDone.sort((a,b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
   const tomorrowAll = [...tomorrowPending, ...tomorrowDone];
 
-  const activeTab = (window.wtWorkerActiveTab === 'tomorrow') ? 'tomorrow' : 'today';
+  // Upcoming: pending tasks scheduled after tomorrow (so tasks moved further ahead don't "disappear")
+  const upcomingPending = validTasks
+    .filter(t => t.status === 'pending' && t.date && t.date > tomorrow)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const activeTab = ['tomorrow', 'upcoming'].includes(window.wtWorkerActiveTab) ? window.wtWorkerActiveTab : 'today';
 
   let html = '';
 
@@ -985,11 +993,14 @@ window.renderWorkerTasksMobile = function() {
 
     <!-- Day Filter Tabs: היום / מחר -->
     <div style="display:flex; gap:8px; margin-bottom:14px; background:rgba(0,0,0,0.2); padding:4px; border-radius:24px;">
-      <button onclick="window.wtSetWorkerTab('today')" style="flex:1; padding:8px 6px; border:none; border-radius:20px; font-weight:bold; font-size:0.95rem; cursor:pointer; background:${activeTab==='today'?'#fff':'transparent'}; color:${activeTab==='today'?'#1565c0':'#fff'}; box-shadow:${activeTab==='today'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s;">
+      <button onclick="window.wtSetWorkerTab('today')" style="flex:1; padding:8px 4px; border:none; border-radius:20px; font-weight:bold; font-size:0.88rem; cursor:pointer; background:${activeTab==='today'?'#fff':'transparent'}; color:${activeTab==='today'?'#1565c0':'#fff'}; box-shadow:${activeTab==='today'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s;">
         📅 היום (${todayPending.length})
       </button>
-      <button onclick="window.wtSetWorkerTab('tomorrow')" style="flex:1; padding:8px 6px; border:none; border-radius:20px; font-weight:bold; font-size:0.95rem; cursor:pointer; background:${activeTab==='tomorrow'?'#fff':'transparent'}; color:${activeTab==='tomorrow'?'#1565c0':'#fff'}; box-shadow:${activeTab==='tomorrow'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s;">
+      <button onclick="window.wtSetWorkerTab('tomorrow')" style="flex:1; padding:8px 4px; border:none; border-radius:20px; font-weight:bold; font-size:0.88rem; cursor:pointer; background:${activeTab==='tomorrow'?'#fff':'transparent'}; color:${activeTab==='tomorrow'?'#1565c0':'#fff'}; box-shadow:${activeTab==='tomorrow'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s;">
         🌅 מחר (${tomorrowPending.length})
+      </button>
+      <button onclick="window.wtSetWorkerTab('upcoming')" style="flex:1; padding:8px 4px; border:none; border-radius:20px; font-weight:bold; font-size:0.88rem; cursor:pointer; background:${activeTab==='upcoming'?'#fff':'transparent'}; color:${activeTab==='upcoming'?'#1565c0':'#fff'}; box-shadow:${activeTab==='upcoming'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s;">
+        📆 בהמשך (${upcomingPending.length})
       </button>
     </div>
   `;
@@ -1067,6 +1078,31 @@ window.renderWorkerTasksMobile = function() {
     } else {
       tomorrowAll.forEach(t => {
         html += renderCard(t, true);
+      });
+    }
+  } else if (activeTab === 'upcoming') {
+    html += `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin:8px 0 8px 0; padding:6px 12px; background:rgba(255,255,255,0.2); border-radius:8px; backdrop-filter:blur(5px); color:#fff;">
+        <div style="font-weight:bold; font-size:1.02rem;">📆 משימות מתוכננות בהמשך</div>
+        <span style="background:#6a1b9a; color:#fff; font-size:0.75rem; padding:2px 8px; border-radius:12px; font-weight:bold;">${upcomingPending.length} מתוכננות</span>
+      </div>
+    `;
+    if (upcomingPending.length === 0) {
+      html += `
+        <div style="text-align:center; padding:30px 20px; background:rgba(255,255,255,0.95); border-radius:12px; color:#555; margin-bottom:12px; font-size:0.95rem; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+          <div style="font-size:2rem; margin-bottom:6px;">🗓️</div>
+          <strong>אין משימות מתוכננות להמשך.</strong>
+        </div>
+      `;
+    } else {
+      let lastDate = '';
+      upcomingPending.forEach(t => {
+        if (t.date !== lastDate) {
+          lastDate = t.date;
+          const dn = dayNames[new Date(t.date).getDay()];
+          html += `<div style="color:#fff; font-weight:bold; font-size:0.92rem; margin:12px 4px 6px; text-shadow:0 1px 2px rgba(0,0,0,0.2);">יום ${dn} ${window.fD ? window.fD(t.date) : t.date}</div>`;
+        }
+        html += renderCard(t, false);
       });
     }
   }
@@ -1162,6 +1198,8 @@ window.ST = function(tab) {
 
     
     window.renderWorkerTasksAdmin();
+    // Pull fresh tasks from cloud when entering the tab (device may have been asleep)
+    if (window.refreshWorkerTasksFromCloud) window.refreshWorkerTasksFromCloud(true);
     return;
   }
   

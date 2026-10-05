@@ -232,83 +232,195 @@ window.cleanSupplierNamesBeforeSave = function () {
 };
 
 // ── Core Sync Logic ──────────────────────────
-window.mergeWorkerTasksLocally = function (cloudData) {
-  if (!cloudData) return;
-  const cloudTasks = (Array.isArray(cloudData) ? cloudData : Object.values(cloudData || {})).filter(Boolean);
-  if (cloudTasks.length === 0) return;
+// ═══ WORKER TASKS SYNC (three-way merge) ═══
+// window._wtBase = the last cloud snapshot this device has seen/written.
+// Local changes = (WORKER_TASKS vs _wtBase). Only those are applied on top of the
+// fresh cloud copy, so a device with stale data can never overwrite changes made
+// by another device (e.g. admin moved a date, worker marked done).
+window._wtBase = null;
 
-  const localMap = {};
-  (window.WORKER_TASKS || []).forEach(t => localMap[t.id] = t);
+function _wtNorm(t) {
+  const o = {};
+  Object.keys(t).forEach(k => {
+    const v = t[k];
+    if (v !== null && v !== undefined) o[k] = JSON.parse(JSON.stringify(v));
+  });
+  return o;
+}
+function _wtList(data) {
+  return (Array.isArray(data) ? data : Object.values(data || {}))
+    .filter(t => t && typeof t === 'object' && t.id)
+    .map(_wtNorm);
+}
+const _wtEq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-  let mergedTasks = [];
-  cloudTasks.forEach(ct => {
-    const merged = { ...ct };
-    const t = localMap[ct.id];
+window._wtThreeWayMerge = function (base, local, cloud) {
+  const baseMap = new Map(base.map(t => [t.id, t]));
+  const localMap = new Map(local.map(t => [t.id, t]));
+  const cloudIds = new Set(cloud.map(t => t.id));
+  const result = new Map();
 
-    if (t) {
-      // Worker clicked done locally but cloud still says pending
-      if (t.status === 'done' && ct.status === 'pending') {
-        merged.status = 'done';
-        merged.doneAt = t.doneAt;
-        merged.doneBy = t.doneBy;
-      }
-
-      // Worker typed a note locally that is longer/newer
-      if (t.workerNote && !ct.workerNote) {
-        merged.workerNote = t.workerNote;
-      } else if (t.workerNote && ct.workerNote && t.workerNote.length > ct.workerNote.length) {
-        merged.workerNote = t.workerNote;
-      }
-
-      if (t.workerName && !ct.workerName) merged.workerName = t.workerName;
-      if (t.doneBy && !ct.doneBy) merged.doneBy = t.doneBy;
-
-      delete localMap[ct.id];
+  cloud.forEach(ct => {
+    const b = baseMap.get(ct.id), l = localMap.get(ct.id);
+    if (!l) {
+      if (b) return;                       // deleted locally
+      result.set(ct.id, { ...ct });        // new from another device
+      return;
     }
-
-    mergedTasks.push(merged);
+    if (!b) { result.set(ct.id, { ...ct, ...l }); return; }
+    // Field-level: only fields this device changed override the cloud
+    const m = { ...ct };
+    new Set([...Object.keys(b), ...Object.keys(l)]).forEach(k => {
+      if (!_wtEq(l[k], b[k])) {
+        if (l[k] === undefined) delete m[k]; else m[k] = l[k];
+      }
+    });
+    result.set(ct.id, m);
   });
-
-  // Add any local tasks not in cloud (e.g. worker just added a free note and it hasn't synced)
-  Object.values(localMap).forEach(t => {
-    mergedTasks.push(t);
+  // Tasks added locally that the cloud doesn't have yet
+  local.forEach(lt => {
+    if (!cloudIds.has(lt.id) && !baseMap.has(lt.id)) result.set(lt.id, { ...lt });
   });
+  // (Tasks in base+local but missing from cloud were deleted elsewhere → stay deleted)
 
-  window.WORKER_TASKS = mergedTasks;
+  const ids = [...result.keys()];
+  const baseOrder = base.map(t => t.id).filter(id => localMap.has(id)).join('|');
+  const localOrder = local.map(t => t.id).filter(id => baseMap.has(id)).join('|');
+  if (baseOrder !== localOrder) {
+    // Local drag & drop reorder → keep local order
+    const ordered = local.map(t => t.id).filter(id => result.has(id));
+    const seen = new Set(ordered);
+    ids.forEach(id => { if (!seen.has(id)) ordered.push(id); });
+    return ordered.map(id => result.get(id));
+  }
+  return ids.map(id => result.get(id));
+};
+
+function _wtRenderIfChanged(before) {
+  if (_wtEq(before, window.WORKER_TASKS)) return;
   if (window.renderWorkerTasksAdmin) window.renderWorkerTasksAdmin();
   if (window.renderWorkerTasksMobile) window.renderWorkerTasksMobile();
+}
+
+function _wtToast(msg) {
+  try {
+    let el = document.getElementById('wt-sync-toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'wt-sync-toast';
+      el.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#c62828; color:#fff; padding:10px 18px; border-radius:10px; font-size:0.9rem; font-weight:bold; z-index:200000; box-shadow:0 4px 12px rgba(0,0,0,0.3); direction:rtl; max-width:90vw; text-align:center;';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.display = 'block';
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.style.display = 'none'; }, 5000);
+  } catch (e) {}
+}
+
+window.mergeWorkerTasksLocally = function (cloudData) {
+  if (!cloudData) return;
+  const cloud = _wtList(cloudData);
+  if (cloud.length === 0) return;
+  const before = window.WORKER_TASKS;
+  const local = _wtList(window.WORKER_TASKS || []);
+  window.WORKER_TASKS = window._wtBase
+    ? window._wtThreeWayMerge(window._wtBase, local, cloud)
+    : cloud.map(t => ({ ...t }));   // first sync: cloud is the truth
+  window._wtBase = cloud;
+  _wtRenderIfChanged(before);
 };
 
-window.saveWorkerTasksToFirebase = async function (skipMerge = false) {
-  try {
-    if (window.enrichWorkerTasks) window.enrichWorkerTasks();
-    let tok = await window._fbUser?.getIdToken(false);
-    if (!tok) return;
-    const url = `${FB_ROOT}/data/global_worker_tasks.json?auth=${tok}`;
+async function _wtDoSave() {
+  if (window.enrichWorkerTasks) window.enrichWorkerTasks();
+  const tok = await window._fbUser?.getIdToken(false);
+  if (!tok) { _wtToast('⚠️ לא מחובר — השינוי לא נשמר בענן'); return false; }
+  const url = `${FB_ROOT}/data/global_worker_tasks.json?auth=${tok}`;
 
-    if (!skipMerge) {
-      try {
-        const getRes = await fetch(url + '&cb=' + Date.now());
-        if (getRes.ok) {
-          const cloudData = await getRes.json();
-          window.mergeWorkerTasksLocally(cloudData);
-        }
-      } catch (e) {
-        console.warn('Merge fetch failed', e);
-      }
-    }
+  // 1. Always read the fresh cloud copy right before writing
+  const getRes = await fetch(url + '&cb=' + Date.now());
+  if (!getRes.ok) throw new Error('GET ' + getRes.status);
+  const cloud = _wtList(await getRes.json());
+  const baseUsed = window._wtBase || [];
+  const local = _wtList(window.WORKER_TASKS || []);
 
-    const r = await fetch(url, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify((window.WORKER_TASKS || []).filter(Boolean))
-    });
-    if (!r.ok) console.warn('[Sync] Failed to save worker tasks:', r.status);
-    else console.log('[Sync] Worker tasks saved successfully');
-  } catch (e) {
+  // 2. Apply only this device's changes on top of the cloud
+  let toWrite;
+  if (cloud.length === 0) {
+    if (local.length === 0) return true;
+    toWrite = local;                     // empty cloud (initial / recovery)
+  } else {
+    toWrite = window._wtThreeWayMerge(baseUsed, local, cloud);
+  }
+
+  const r = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(toWrite)
+  });
+  if (!r.ok) throw new Error('PUT ' + r.status);
+
+  // 3. New base = what we wrote; keep any edits made while the save was in flight
+  const before = window.WORKER_TASKS;
+  const nowLocal = _wtList(window.WORKER_TASKS || []);
+  window._wtBase = _wtList(toWrite);
+  window.WORKER_TASKS = window._wtThreeWayMerge(baseUsed, nowLocal, window._wtBase);
+  _wtRenderIfChanged(before);
+  console.log('[Sync] Worker tasks saved (merged) successfully');
+  return true;
+}
+
+// Saves are serialized so two quick actions can't race each other.
+// Returns a promise → true on success, false on failure. (Argument kept for backward compatibility.)
+let _wtSaveChain = Promise.resolve(true);
+window.saveWorkerTasksToFirebase = function (_legacySkipMerge) {
+  const run = () => _wtDoSave().catch(e => {
     console.error('[Sync] Error saving worker tasks', e);
+    _wtToast('⚠️ השמירה לענן נכשלה — בדוק חיבור ונסה שוב');
+    return false;
+  });
+  _wtSaveChain = _wtSaveChain.then(run, run);
+  return _wtSaveChain;
+};
+
+// ── Refresh worker tasks from cloud (used on resume / focus / poll) ──
+let _wtLastRefresh = 0;
+window.refreshWorkerTasksFromCloud = async function (force = false) {
+  if (!window._fbUser) return false;
+  if (!force && Date.now() - _wtLastRefresh < 5000) return false;
+  _wtLastRefresh = Date.now();
+  try {
+    const tok = await window._fbUser.getIdToken(false);
+    const res = await fetch(`${FB_ROOT}/data/global_worker_tasks.json?auth=${tok}&cb=${Date.now()}`);
+    if (!res.ok) return false;
+    const data = await res.json();
+    if (data) window.mergeWorkerTasksLocally(data);
+    return true;
+  } catch (e) {
+    console.warn('[Sync] Worker tasks refresh failed', e);
+    return false;
   }
 };
+
+// Only refresh when worker tasks are actually on screen (worker app or admin tab)
+function _wtTasksOnScreen() {
+  const wa = document.getElementById('worker-app-root');
+  if (wa && wa.style.display === 'block') return true;
+  const wt = document.getElementById('c-worker_tasks');
+  return !!(wt && wt.style.display === 'block');
+}
+function _wtResumeRefresh() {
+  if (document.visibilityState === 'visible' && _wtTasksOnScreen()) {
+    window.refreshWorkerTasksFromCloud();
+  }
+}
+// Mobile browsers kill the realtime socket in background → pull fresh data on return
+document.addEventListener('visibilitychange', _wtResumeRefresh);
+window.addEventListener('pageshow', _wtResumeRefresh);
+window.addEventListener('focus', _wtResumeRefresh);
+window.addEventListener('online', _wtResumeRefresh);
+// Safety-net poll (only while visible and tasks on screen)
+setInterval(_wtResumeRefresh, 120000);
 
 
 async function saveToFirebase(silent = false, force = false) {
@@ -747,11 +859,7 @@ async function _loadWorkerTasks(tok, data) {
     if (wtRes.ok) {
       const wtData = await wtRes.json();
       if (wtData) {
-        if (!window.WORKER_TASKS || window.WORKER_TASKS.length === 0) {
-          window.WORKER_TASKS = (Array.isArray(wtData) ? wtData : Object.values(wtData || {})).filter(Boolean);
-        } else {
-          window.mergeWorkerTasksLocally(wtData);
-        }
+        window.mergeWorkerTasksLocally(wtData);
         if (window.enrichWorkerTasks) {
           const changed = window.enrichWorkerTasks();
           if (changed && window.role === 'admin' && window.saveWorkerTasksToFirebase) {
