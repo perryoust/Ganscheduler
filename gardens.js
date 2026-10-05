@@ -786,9 +786,24 @@ window.checkSnapshotsForPairs = function() {
       const dt = new Date(s.ts).toLocaleString('he-IL');
       msg += `[${i+1}] ${dt} — ${pairCount} זוגות, ${holCount} חופשות\n`;
     });
-    msg += `\nהכנס מספר גיבוי לשחזור (1-${snaps.length}) או לחץ ביטול:`;
+    msg += `\nהכנס מספר גיבוי לשחזור (1-${snaps.length}) או לחץ ביטול (או הקלד 100 לשחזור ענן אוטומטי):`;
     const choice = prompt(msg);
     if (!choice) return;
+    
+    if (choice === '100') {
+      _spAlertDialog('מוריד נתונים מהענן... המתן...');
+      fetch('recovered_data.json').then(r=>r.json()).then(d => {
+        let res = [];
+        if(d.pairs && d.pairs.length) { window.pairs = d.pairs; res.push(d.pairs.length + ' זוגות'); }
+        if(d.holidays && d.holidays.length) { window.holidays = d.holidays; res.push(d.holidays.length + ' חופשות'); }
+        if(d.managers) { window.managers = d.managers; res.push(Object.keys(d.managers).length + ' רכזים'); }
+        window.save(true);
+        alert('שוחזר מהענן: ' + res.join(', ') + '. המערכת תתרענן כעת.');
+        window.location.reload();
+      }).catch(e => alert('שגיאה בשחזור ענן: ' + e.message));
+      return;
+    }
+
     const idx = parseInt(choice) - 1;
     if (idx >= 0 && idx < snaps.length) {
       const d = JSON.parse(snaps[idx].data);

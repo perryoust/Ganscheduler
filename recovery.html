@@ -29,9 +29,12 @@
     const auth = getAuth(app);
     const db = getDatabase(app);
 
+    let user = null;
+    onAuthStateChanged(auth, u => { user = u; });
+
     document.getElementById('restoreBtn').addEventListener('click', async () => {
       try {
-        if (!auth.currentUser) {
+        if (!user) {
            alert("אינך מחובר למערכת! התחבר תחילה מהעמוד הראשי ואז חזור לכאן.");
            return;
         }
