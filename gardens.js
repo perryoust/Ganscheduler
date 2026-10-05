@@ -796,13 +796,17 @@ window.checkSnapshotsForPairs = function() {
         let res = [];
         if(d.pairs && d.pairs.length) { window.pairs = d.pairs; res.push(d.pairs.length + ' זוגות'); }
         if(d.holidays && d.holidays.length) { window.holidays = d.holidays; res.push(d.holidays.length + ' חופשות'); }
-        if(d.managers) { window.managers = d.managers; res.push(Object.keys(d.managers).length + ' רכזים'); }
-        if(d.clusters) { window.clusters = d.clusters; res.push(Object.keys(d.clusters).length + ' אשכולות'); }
+        if(d.managers) { window.managers = Object.assign({}, window.managers || {}, d.managers); res.push(Object.keys(d.managers).length + ' רכזים'); }
+        if(d.clusters) { window.clusters = Object.assign({}, window.clusters || {}, d.clusters); res.push(Object.keys(d.clusters).length + ' אשכולות'); }
+        if(d.supEx) { window.supEx = Object.assign({}, window.supEx || {}, d.supEx); res.push('הרחבות גנים/ספקים'); }
+        if(d.pairBreaks) { window.pairBreaks = Object.assign({}, window.pairBreaks || {}, d.pairBreaks); res.push('הפסקות זוגות'); }
+        if(d.blockedDates) { window.blockedDates = Object.assign({}, window.blockedDates || {}, d.blockedDates); res.push('תאריכים חסומים'); }
+        if(d.gardenBlocks) { window.gardenBlocks = Object.assign({}, window.gardenBlocks || {}, d.gardenBlocks); res.push('חסימות גנים'); }
         
         // עלינו להמתין שהשמירה לענן תסתיים לפני הרענון!
         if(typeof window.save === 'function') await window.save(true);
         
-        alert('שוחזר מהענן: ' + res.join(', ') + '. המערכת תתרענן כעת.');
+        alert('שוחזר מהענן בהצלחה: ' + res.join(', ') + '. המערכת תתרענן כעת.');
         window.location.reload();
       }).catch(e => alert('שגיאה בשחזור ענן: ' + e.message));
       return;
