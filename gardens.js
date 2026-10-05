@@ -589,6 +589,223 @@ async function delPair(idx){
     _spAlertDialog('✅ הזוג נמחק. כל השיבוצים נשמרו לכל צהרון.');
   }
 }
+
+window.autoDetectPairsFromSched = async function() {
+  const activeGList = typeof AG === 'function' ? AG() : window.GARDENS;
+  const activeIds = new Set(activeGList.map(g => Number(g.id)));
+  const gardenMap = new Map(activeGList.map(g => [Number(g.id), g]));
+
+  // Find all active gardens that currently lack an active pair
+  const pairedGids = new Set((window.pairs || []).filter(p => {
+    if (!p || !p.ids || p.ids.length < 2) return false;
+    const activeInPair = p.ids.filter(id => activeIds.has(Number(id)));
+    return activeInPair.length >= 2;
+  }).flatMap(p => p.ids.map(Number)));
+
+  const soloGList = activeGList.filter(g => !pairedGids.has(Number(g.id)) && window.gcls(g) === 'גנים');
+
+  if (soloGList.length === 0) {
+    if (typeof _spAlertDialog === 'function') _spAlertDialog('✅ כל הצהרונים הפעילים כבר משויכים לזוגות!');
+    else alert('כל הצהרונים הפעילים כבר משויכים לזוגות!');
+    return;
+  }
+
+  const sch = window.SCH || [];
+  if (!sch.length) {
+    if (typeof _spAlertDialog === 'function') _spAlertDialog('לא נמצאו שיבוצים בלוח לצורך זיהוי אוטומטי.');
+    else alert('לא נמצאו שיבוצים בלוח לצורך זיהוי אוטומטי.');
+    return;
+  }
+
+  // Group activities by date and supplier: key = "YYYY-MM-DD|supplier"
+  const dateSupMap = new Map();
+  sch.forEach(s => {
+    if (s.st === 'can' || s.st === 'nohap') return;
+    const gid = Number(s.g);
+    if (!gardenMap.has(gid)) return;
+    const key = `${s.d}|${s.a}`;
+    if (!dateSupMap.has(key)) dateSupMap.set(key, []);
+    dateSupMap.get(key).push({ gid, t: s.t });
+  });
+
+  const soloSet = new Set(soloGList.map(g => Number(g.id)));
+  const pairScore = new Map(); // "id1_id2" -> count
+
+  dateSupMap.forEach(list => {
+    if (list.length < 2) return;
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        const id1 = Math.min(list[i].gid, list[j].gid);
+        const id2 = Math.max(list[i].gid, list[j].gid);
+        if (soloSet.has(id1) && soloSet.has(id2)) {
+          const g1 = gardenMap.get(id1);
+          const g2 = gardenMap.get(id2);
+          if (g1 && g2 && g1.city === g2.city) {
+            const key = `${id1}_${id2}`;
+            pairScore.set(key, (pairScore.get(key) || 0) + 1);
+          }
+        }
+      }
+    }
+  });
+
+  // Check triplets for solo gardens that share activities with an existing 2-garden pair
+  const tripletScore = new Map(); // "pairId_soloId" -> { pair, solo, count }
+  (window.pairs || []).forEach(p => {
+    if (!p || !p.ids || p.ids.length !== 2) return;
+    const pIds = p.ids.map(Number);
+    const pCity = gardenMap.get(pIds[0])?.city;
+    soloGList.filter(sg => sg.city === pCity).forEach(sg => {
+      let count = 0;
+      dateSupMap.forEach(list => {
+        const gidsInSlot = new Set(list.map(x => x.gid));
+        if (gidsInSlot.has(sg.id) && (gidsInSlot.has(pIds[0]) || gidsInSlot.has(pIds[1]))) {
+          count++;
+        }
+      });
+      if (count >= 2) {
+        tripletScore.set(`${p.id}_${sg.id}`, { pair: p, solo: sg, count });
+      }
+    });
+  });
+
+  const matchedSolo = new Set();
+  const foundPairs = [];
+  const sortedPairs = [...pairScore.entries()].sort((a, b) => b[1] - a[1]);
+  sortedPairs.forEach(([key, count]) => {
+    const [id1, id2] = key.split('_').map(Number);
+    if (!matchedSolo.has(id1) && !matchedSolo.has(id2) && count >= 2) {
+      matchedSolo.add(id1);
+      matchedSolo.add(id2);
+      const g1 = gardenMap.get(id1);
+      const g2 = gardenMap.get(id2);
+      foundPairs.push({
+        type: 'pair',
+        ids: [id1, id2],
+        name: `${g1.name} + ${g2.name}`,
+        city: g1.city,
+        count
+      });
+    }
+  });
+
+  const foundTriplets = [];
+  const sortedTriplets = [...tripletScore.values()].sort((a, b) => b.count - a.count);
+  sortedTriplets.forEach(({ pair, solo, count }) => {
+    if (!matchedSolo.has(solo.id)) {
+      matchedSolo.add(solo.id);
+      foundTriplets.push({
+        type: 'triplet',
+        pair,
+        solo,
+        newIds: [...pair.ids.map(Number), solo.id],
+        name: `${pair.name} + ${solo.name}`,
+        city: solo.city,
+        count
+      });
+    }
+  });
+
+  const totalFound = foundPairs.length + foundTriplets.length;
+  if (totalFound === 0) {
+    if (typeof _spAlertDialog === 'function') {
+      _spAlertDialog(`לא זוהו זוגות באופן מובהק מתוך השיבוצים עבור ${soloGList.length} הצהרונים הבודדים.\nבאפשרותך ללחוץ ➕ ליד כל צהרון בסרגל הצדדי לשיוך מהיר.`);
+    } else {
+      alert(`לא זוהו זוגות מתוך השיבוצים.`);
+    }
+    return;
+  }
+
+  let msg = `🪄 זוהו ${totalFound} שיוכים מתוך השיבוצים הקיימים:\n\n`;
+  foundPairs.forEach(p => {
+    msg += `📍 ${p.city}: ${p.name} (${p.count} פעילויות משותפות)\n`;
+  });
+  foundTriplets.forEach(t => {
+    msg += `📍 ${t.city} (שלישייה): ${t.name} (${t.count} פעילויות משותפות)\n`;
+  });
+  const rem = soloGList.length - matchedSolo.size;
+  if (rem > 0) {
+    msg += `\n(יישארו ${rem} צהרונים שתוכל לשייך ידנית לפי הצורך)\n`;
+  }
+  msg += `\nהאם להחיל ולשמור זוגות אלה בענן כעת?`;
+
+  const ok = await window.spConfirm(msg);
+  if (!ok) return;
+
+  foundPairs.forEach(p => {
+    const idSet = new Set(p.ids);
+    window.pairs = (window.pairs || []).filter(existing => {
+      const overlap = existing.ids.filter(id => idSet.has(Number(id)));
+      return overlap.length === 0;
+    });
+    window.pairs.push({
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      ids: p.ids,
+      name: p.name
+    });
+  });
+
+  foundTriplets.forEach(t => {
+    const pIdx = (window.pairs || []).findIndex(p => p.id === t.pair.id);
+    if (pIdx >= 0) {
+      window.pairs[pIdx] = {
+        ...window.pairs[pIdx],
+        ids: t.newIds,
+        name: t.name
+      };
+    }
+  });
+
+  await window.save(true);
+  if (typeof window.renderPairs === 'function') window.renderPairs();
+  if (typeof window.renderGardens === 'function') window.renderGardens();
+  if (typeof window.refresh === 'function') window.refresh();
+
+  if (typeof window.showToast === 'function') {
+    window.showToast(`✅ ${totalFound} שיוכים שוחזרו ונשמרו בהצלחה בענן!`);
+  } else {
+    _spAlertDialog(`✅ ${totalFound} שיוכים שוחזרו ונשמרו בהצלחה בענן!`);
+  }
+};
+
+window.checkSnapshotsForPairs = function() {
+  try {
+    const snaps = JSON.parse(localStorage.getItem('ganv5_snaps') || '[]');
+    if (!snaps.length) {
+      _spAlertDialog('לא נמצאו גיבויים מקומיים (Snapshots) בדפדפן זה.');
+      return;
+    }
+    let msg = `נמצאו ${snaps.length} גיבויים מקומיים שנשמרו בדפדפן:\n\n`;
+    snaps.forEach((s, i) => {
+      let pairCount = 0;
+      try {
+        const d = JSON.parse(s.data);
+        pairCount = (d.pairs || []).length;
+      } catch(e){}
+      const dt = new Date(s.ts).toLocaleString('he-IL');
+      msg += `[${i+1}] ${dt} — ${pairCount} זוגות (${s.label || 'אוטומטי'})\n`;
+    });
+    msg += `\nהכנס מספר גיבוי לשחזור (1-${snaps.length}) או לחץ ביטול:`;
+    const choice = prompt(msg);
+    if (!choice) return;
+    const idx = parseInt(choice) - 1;
+    if (idx >= 0 && idx < snaps.length) {
+      const d = JSON.parse(snaps[idx].data);
+      if (Array.isArray(d.pairs) && d.pairs.length > 0) {
+        window.pairs = d.pairs;
+        window.save(true);
+        if (typeof window.renderPairs === 'function') window.renderPairs();
+        if (typeof window.refresh === 'function') window.refresh();
+        _spAlertDialog(`✅ שוחזרו ${d.pairs.length} זוגות מתוך הגיבוי מ-${new Date(snaps[idx].ts).toLocaleString('he-IL')}!`);
+      } else {
+        _spAlertDialog('בגיבוי שנבחר אין רשימת זוגות שמורה.');
+      }
+    }
+  } catch(e) {
+    _spAlertDialog('שגיאה בקריאת גיבויים: ' + e.message);
+  }
+};
+
 function openAddPair(idx){
   window.editPairIdx = idx;
   const pair = idx !== null && idx !== undefined ? window.pairs[idx] : null;
