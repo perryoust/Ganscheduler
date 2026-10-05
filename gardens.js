@@ -347,20 +347,45 @@ function renderGM(){
   document.getElementById('gm-cal').innerHTML=h+'</tbody></table></div>';
 }
 function quickAddPartner(gid){
-  const idx=window.pairs.findIndex(p=>p.ids.includes(gid));
-  if(idx>=0){ window.openAddPair(idx); return; }
-  window.editPairIdx=null;
-  const g=window.G(gid);
-  (document.getElementById('apm-title')||{}).textContent ='➕ הוסף זוג — '+g.name;
-  document.getElementById('apm-name').value='';
-  document.getElementById('apm-city').value=g.city||'';
-  document.getElementById('apm-warn').style.display='none';
-  const gs=gByCF(g.city,'').sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  const g = window.G(gid);
+  if (!g) return;
+  const activeGList = typeof AG === 'function' ? AG() : window.GARDENS;
+  const activeIds = new Set(activeGList.map(x => Number(x.id)));
+  
+  const existingPairIdx = (window.pairs || []).findIndex(p => (p.ids || []).map(Number).includes(Number(gid)));
+  const existingPair = existingPairIdx >= 0 ? window.pairs[existingPairIdx] : null;
+  const activePartners = existingPair ? existingPair.ids.filter(id => Number(id) !== Number(gid) && activeIds.has(Number(id))) : [];
+  
+  if (existingPair && activePartners.length > 0) {
+    // If it already has an active partner, open in edit mode
+    window.openAddPair(existingPairIdx);
+    return;
+  }
+  
+  // Solo garden or had a broken/ghost partner: open fresh pairing modal for this garden!
+  window.editPairIdx = existingPairIdx >= 0 ? existingPairIdx : null;
+  (document.getElementById('apm-title')||{}).textContent = '➕ יצירת זוג — ' + g.name;
+  document.getElementById('apm-name').value = '';
+  document.getElementById('apm-warn').style.display = 'none';
+
+  const citySel = document.getElementById('apm-city');
+  if (citySel) {
+    const cities = typeof window.getCities === 'function' ? window.getCities() : [...new Set(activeGList.map(x=>x.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+    citySel.innerHTML = '<option value="">כל הערים</option>' + cities.map(c=>`<option value="${c}">${c}</option>`).join('');
+    citySel.value = g.city || '';
+  }
+
+  // Pre-filter gardens by the current garden's city
+  const cityGardens = activeGList.filter(x => !g.city || x.city === g.city).sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
   ['apm-g1','apm-g2','apm-g3'].forEach((id,i)=>{
-    const sel=document.getElementById(id);
-    sel.innerHTML=i===2?'<option value="">—</option>':'<option value="">בחר גן</option>';
-    gs.forEach(x=>sel.innerHTML+=`<option value='${x.id}'>${x.name}</option>`);
-    if(i===0) sel.value=gid;
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = i === 2 ? '<option value="">— (ללא צהרון 3)</option>' : '<option value="">בחר צהרון</option>';
+    cityGardens.forEach(x => {
+      sel.innerHTML += `<option value="${x.id}">${x.name}</option>`;
+    });
+    if (i === 0) sel.value = gid;
+    else sel.value = '';
   });
   document.getElementById('apm').classList.add('open');
 }
@@ -549,86 +574,142 @@ function _goToPairSched(idx){
 
 function exportPairNow(idx){_exGids=pairs[idx].ids;openExport();}
 async function delPair(idx){
-  const pair=window.pairs[idx];
+  const pair = window.pairs[idx];
   if(!pair) return;
-  if(!await window.spConfirm('למחוק את הזוג "'+pair.name+'"?\nהפעילויות ישארו אך הצהרונים לא יהיו מקושרים יותר.')) return;
-  window.pairs.splice(idx,1);
-  window.save();
+  const ok = await window.spConfirm(`האם למחוק את הזוג "${pair.name}"?\n\nשיבוצי החוגים הקיימים יישמרו כרגיל לכל צהרון בנפרד (שום שיבוץ לא יימחק).\nהצהרונים יופיעו כרגיל כעצמאיים בלוח.`);
+  if(!ok) return;
+  window.pairs.splice(idx, 1);
+  await window.save(true);
   if (typeof window.renderPairs === 'function') window.renderPairs();
   if (typeof window.renderGardens === 'function') window.renderGardens();
-  window.refresh();
-  _spAlertDialog('✅ הזוג נמחק');
+  if (typeof window.refresh === 'function') window.refresh();
+  if (typeof window.showToast === 'function') {
+    window.showToast(`✅ הזוג נמחק. כל השיבוצים נשמרו לכל צהרון.`);
+  } else {
+    _spAlertDialog('✅ הזוג נמחק. כל השיבוצים נשמרו לכל צהרון.');
+  }
 }
 function openAddPair(idx){
-  window.editPairIdx=idx;
-  const pair=idx!==null&&idx!==undefined?window.pairs[idx]:null;
-  (document.getElementById('apm-title')||{}).textContent =pair?'✏️ עריכת זוג':'➕ הוסף זוג/שלישיה';
-  document.getElementById('apm-name').value=pair?pair.name:'';
-  document.getElementById('apm-city').value='';
-  document.getElementById('apm-warn').style.display='none';
+  window.editPairIdx = idx;
+  const pair = idx !== null && idx !== undefined ? window.pairs[idx] : null;
+  (document.getElementById('apm-title')||{}).textContent = pair ? '✏️ עריכת זוג' : '➕ הוסף זוג/שלישיה';
+  document.getElementById('apm-name').value = pair ? pair.name : '';
+  document.getElementById('apm-warn').style.display = 'none';
+  
+  const activeGList = typeof AG === 'function' ? AG() : window.GARDENS;
+  const citySel = document.getElementById('apm-city');
+  const firstGCity = pair && pair.ids[0] ? window.G(pair.ids[0])?.city : '';
+  if (citySel) {
+    const cities = typeof window.getCities === 'function' ? window.getCities() : [...new Set(activeGList.map(x=>x.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+    citySel.innerHTML = '<option value="">כל הערים</option>' + cities.map(c=>`<option value="${c}">${c}</option>`).join('');
+    citySel.value = firstGCity || '';
+  }
+
+  const selectedCity = citySel ? citySel.value : '';
+  const filteredGardens = selectedCity ? activeGList.filter(x => x.city === selectedCity) : activeGList;
+  filteredGardens.sort((a,b) => (a.name||'').localeCompare(b.name||'', 'he'));
+
   ['apm-g1','apm-g2','apm-g3'].forEach((id,i)=>{
-    const sel=document.getElementById(id);
-    const availGardens = typeof AG === 'function' ? AG() : window.GARDENS;
-    availGardens.sort((a,b)=>a.name.localeCompare(b.name,'he')).forEach(g=>sel.innerHTML+=`<option value="${g.id}">${g.city} · ${g.name}</option>`);
-    if(pair&&pair.ids[i]) sel.value=pair.ids[i];
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = i === 2 ? '<option value="">— (ללא צהרון 3)</option>' : '<option value="">בחר צהרון</option>';
+    filteredGardens.forEach(g => {
+      sel.innerHTML += `<option value="${g.id}">${selectedCity ? g.name : (g.city + ' · ' + g.name)}</option>`;
+    });
+    if (pair && pair.ids[i]) {
+      sel.value = pair.ids[i];
+    } else {
+      sel.value = '';
+    }
   });
   document.getElementById('apm').classList.add('open');
 }
 function apmCity(){
-  const city=document.getElementById('apm-city').value;
-  const gs=window.gByCF(city,'').sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  const city = document.getElementById('apm-city')?.value || '';
+  const activeGList = typeof AG === 'function' ? AG() : window.GARDENS;
+  const filteredGardens = city ? activeGList.filter(x => x.city === city) : activeGList;
+  filteredGardens.sort((a,b) => (a.name||'').localeCompare(b.name||'', 'he'));
+
   ['apm-g1','apm-g2','apm-g3'].forEach((id,i)=>{
-    const sel=document.getElementById(id);
-    const cur=sel.value;
-    sel.innerHTML=i===2?'<option value="">—</option>':'<option value="">בחר גן</option>';
-    gs.forEach(g=>sel.innerHTML+=`<option value='${g.id}'>${city?g.name:g.city+' · '+g.name}</option>`);
-    if(cur) sel.value=cur;
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = i === 2 ? '<option value="">— (ללא צהרון 3)</option>' : '<option value="">בחר צהרון</option>';
+    filteredGardens.forEach(g => {
+      sel.innerHTML += `<option value="${g.id}">${city ? g.name : (g.city + ' · ' + g.name)}</option>`;
+    });
+    if (cur) sel.value = cur;
   });
 }
 async function savePairModal(){
-  const g1=parseInt(document.getElementById('apm-g1').value)||null;
-  const g2=parseInt(document.getElementById('apm-g2').value)||null;
-  const g3=parseInt(document.getElementById('apm-g3').value)||null;
-  if(!g1){_spAlertDialog('יש לבחור לפחות צהרון אחד');return;}
-  const ids=[g1,g2,g3].filter(Boolean);
-  const warnEl=document.getElementById('apm-warn');
-  const dupe=ids.map(gid=>{
-    const p=window.gardenPair(gid);
-    // Ignore temporary pairs in duplicate validation since they are hidden in the UI
-    if (p && (p.validFrom || p.validTo)) return null;
-    const isCurrentPair=window.editPairIdx!==null&&p&&p.id===window.pairs[window.editPairIdx]?.id;
-    return p&&!isCurrentPair?`${window.G(gid).name} כבר בזוג "${p.name}"`:null;
-  }).filter(Boolean);
-  if(dupe.length){
-    warnEl.style.display='block';
-    warnEl.textContent='⚠️ '+dupe.join(' | ');
-    if(!await window.spConfirm('צהרונים כבר בזוגות אחרים. בכל זאת להמשיך?')) return;
+  const g1 = parseInt(document.getElementById('apm-g1')?.value) || null;
+  const g2 = parseInt(document.getElementById('apm-g2')?.value) || null;
+  const g3 = parseInt(document.getElementById('apm-g3')?.value) || null;
+  if (!g1 || !g2) {
+    _spAlertDialog('יש לבחור לפחות 2 צהרונים ליצירת זוג');
+    return;
   }
-  const nm=document.getElementById('apm-name').value||ids.map(id=>window.G(id).name||'').join(' + ');
-  const isEdit=window.editPairIdx!==null&&window.editPairIdx!==undefined;
+  const ids = [g1, g2, g3].filter(Boolean).map(Number);
+  const warnEl = document.getElementById('apm-warn');
+  
+  const isEdit = window.editPairIdx !== null && window.editPairIdx !== undefined;
+  const currentPairId = isEdit && window.pairs[window.editPairIdx] ? window.pairs[window.editPairIdx].id : null;
+
+  const dupe = ids.map(gid => {
+    const p = window.gardenPair(gid);
+    if (!p) return null;
+    if (currentPairId && p.id === currentPairId) return null;
+    return `${window.G(gid)?.name || gid} כבר בזוג "${p.name}"`;
+  }).filter(Boolean);
+
+  if (dupe.length) {
+    if (warnEl) {
+      warnEl.style.display = 'block';
+      warnEl.textContent = '⚠️ ' + dupe.join(' | ');
+    }
+    const ok = await window.spConfirm(`⚠️ שים לב:\n${dupe.join('\n')}\n\nהאם להעביר לזוג החדש?`);
+    if (!ok) return;
+  }
+
+  let nm = (document.getElementById('apm-name')?.value || '').trim();
+  if (!nm) {
+    nm = ids.map(id => window.G(id)?.name || '').filter(Boolean).join(' + ');
+  }
+
   let targetPairId;
-  if(isEdit){
+  if (isEdit) {
     targetPairId = window.pairs[window.editPairIdx].id;
-    window.pairs[window.editPairIdx]={...window.pairs[window.editPairIdx],ids,name:nm};
+    window.pairs[window.editPairIdx] = { ...window.pairs[window.editPairIdx], ids, name: nm };
   } else {
     targetPairId = Date.now();
-    window.pairs.push({id:targetPairId,ids,name:nm});
+    window.pairs.push({ id: targetPairId, ids, name: nm });
   }
+
   // Cleanup duplicates from other pairs
+  const idSet = new Set(ids);
   window.pairs = window.pairs.map(p => {
     if (p.id === targetPairId) return p;
-    return { ...p, ids: p.ids.filter(id => !ids.map(Number).includes(Number(id))) };
+    return { ...p, ids: p.ids.filter(id => !idSet.has(Number(id))) };
   }).filter(p => p.ids.length >= 2);
+
   if (window.activeGardens) {
     ids.forEach(id => window.activeGardens.add(Number(id)));
   }
-  window.save(true);
+
+  // Await immediate save directly to Firebase!
+  await window.save(true);
+
   if (typeof window.renderPairs === 'function') window.renderPairs();
   if (typeof window.renderGardens === 'function') window.renderGardens();
   window.CM('apm');
-  window.refresh();
-  if(window.currentTab==='managers') window.renderManagers();
-  _spAlertDialog('✅ '+(isEdit?'הזוג עודכן':'הזוג נשמר')+': '+nm);
+  if (typeof window.refresh === 'function') window.refresh();
+  if (window.currentTab === 'managers' && typeof window.renderManagers === 'function') window.renderManagers();
+  
+  if (typeof window.showToast === 'function') {
+    window.showToast(`✅ ${isEdit ? 'הזוג עודכן' : 'הזוג נשמר'}: ${nm}`);
+  } else {
+    _spAlertDialog(`✅ ${isEdit ? 'הזוג עודכן' : 'הזוג נשמר'}: ${nm}`);
+  }
 }
 
 const HOL_TYPES={

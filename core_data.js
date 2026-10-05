@@ -701,13 +701,15 @@ let _needsAnotherUpload = false;
 async function triggerFirebaseUpload(silent) {
   if (_isUploadingToFirebase) {
     _needsAnotherUpload = true;
-    return;
+    return false;
   }
   _isUploadingToFirebase = true;
   _needsAnotherUpload = false;
+  let uploadRes = false;
   try {
-    if (typeof window.ghAutoSave === 'function') {
-      await window.ghAutoSave(silent);
+    const fn = (typeof window !== 'undefined' && window.ghAutoSave) || (typeof ghAutoSave === 'function' ? ghAutoSave : null);
+    if (typeof fn === 'function') {
+      uploadRes = await fn(silent);
     }
   } catch(e) {
     console.error('Firebase upload failed:', e);
@@ -717,6 +719,7 @@ async function triggerFirebaseUpload(silent) {
       triggerFirebaseUpload(silent);
     }
   }
+  return uploadRes;
 }
 
 async function save(immediate){
@@ -779,12 +782,17 @@ async function save(immediate){
     window['_mem_' + yearKey] = _json;
     
     let res = true;
-    if (typeof ghAutoSave === 'function') {
+    const autoSaveFn = (typeof window !== 'undefined' && window.ghAutoSave) || (typeof ghAutoSave === 'function' ? ghAutoSave : null);
+    if (typeof autoSaveFn === 'function') {
       if (_saveDebounceTimer) clearTimeout(_saveDebounceTimer);
-      // Wait 300ms to batch multiple rapid synchronous saves before hitting Firebase
-      _saveDebounceTimer = setTimeout(() => {
-        triggerFirebaseUpload(immediate === true);
-      }, 300);
+      if (immediate === true) {
+        res = await triggerFirebaseUpload(true);
+      } else {
+        // Wait 300ms to batch multiple rapid synchronous saves before hitting Firebase
+        _saveDebounceTimer = setTimeout(() => {
+          triggerFirebaseUpload(false);
+        }, 300);
+      }
     }
     
     save._cnt=(save._cnt||0)+1;
