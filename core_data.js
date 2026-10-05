@@ -227,6 +227,7 @@ function openSupCardFromPurch(name){
 
 
 function _applyYearData(o){
+  window._applyYearData = _applyYearData;
   if(!o || (!o.ch && o.useSraws !== false)){
     window.SCH = SRAWS.map(s=>({...s,st:'ok',nt:s.n||'',grp:1}));
   } else if(o.useSraws === false) {
@@ -381,6 +382,9 @@ function _applyYearData(o){
   }
   if (Array.isArray(o.activeGardens) && o.activeGardens.length > 0) {
     window.activeGardens = new Set(o.activeGardens.map(Number));
+    if (Array.isArray(window._GARDENS_EXTRA)) {
+      window._GARDENS_EXTRA.forEach(g => window.activeGardens.add(Number(g.id)));
+    }
   } else if (Array.isArray(window._GARDENS_ALL) && window._GARDENS_ALL.length > 0) {
     window.activeGardens = new Set(window._GARDENS_ALL.map(g => Number(g.id)));
   } else {
@@ -394,7 +398,7 @@ function _applyYearData(o){
   if (rawPairs !== null) {
     window.pairs = rawPairs.map(p => ({
       ...p,
-      ids: (p.ids || []).map(id => parseInt(id)).filter(id => G(id).id)
+      ids: (p.ids || []).map(id => parseInt(id)).filter(id => !isNaN(id) && id > 0)
     }));
     window.pairs = window.pairs.filter(p => p.ids.length >= 2);
   } else if (!window.CURRENT_YEAR || window.CURRENT_YEAR === 'tashpav') {
@@ -585,6 +589,7 @@ function _applyYearData(o){
     }
   }
 }
+window._applyYearData = _applyYearData;
 
 function load(){
   try{
@@ -631,15 +636,21 @@ function migrateGardenPhones(){
 }
 
 function migratePairsFromAuto(){
-  // Only run if localStorage has NO saved pairs yet (brand new user)
-  const st=_safeLS.getItem('ganv5');
+  // NEVER overwrite pairs if Firebase is active, or if window.pairs already exists, or if current year storage exists
+  if (window._fbUser || window._fbSyncReady) return;
+  if (Array.isArray(window.pairs) && window.pairs.length > 0) return;
+  const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpaz');
+  const st = _safeLS.getItem(yearKey) || _safeLS.getItem('ganv5');
   if(st){
     try{
       const o=JSON.parse(st);
-      if(Array.isArray(o.pairs)&&o.pairs.length>0) return; // already has saved pairs, don't override
+      if(Array.isArray(o.pairs)&&o.pairs.length>0) {
+        window.pairs = o.pairs;
+        return; // already has saved pairs, don't override
+      }
     }catch(e){}
   }
-  // No saved pairs — seed from AUTOPAIRS
+  // No saved pairs anywhere — seed from AUTOPAIRS only on clean offline install
   initPairs();
   save();
   console.log('Seeded pairs from AUTOPAIRS: '+pairs.length);
@@ -728,9 +739,13 @@ async function save(immediate){
     //   window.DataManager.applyAutoMakeupMatching();
     // }
     // Save ALL entries with ALL fields — works with or without SRAWS
-    // Persist year-specific garden list into supEx before saving
+    // Persist garden lists into supEx before saving
+    if (!window.supEx) window.supEx = {};
+    if (Array.isArray(window._GARDENS_EXTRA) && window._GARDENS_EXTRA.length > 0) {
+      window.supEx['__gardens_extra'] = window._GARDENS_EXTRA;
+    }
     if (Array.isArray(window._GARDENS_ALL) && window._GARDENS_ALL.length > 0) {
-      (window.supEx || {}).__gardens_all = window._GARDENS_ALL;
+      window.supEx['__gardens_all'] = window._GARDENS_ALL;
     }
     const data={
       ch:(window.SCH||[]).map(s=>({id:s.id,g:s.g,d:s.d,a:s.a,t:s.t,p:s.p,n:s.n,st:s.st,cr:s.cr,cn:s.cn,nt:s.nt,pd:s.pd,pt:s.pt,grp:s.grp,act:s.act||'',_isMakeup:s._isMakeup||false,_makeupFrom:s._makeupFrom||'',_compByMakeup:s._compByMakeup||'',_fromD:s._fromD||'',_postFrom:s._postFrom||''})),

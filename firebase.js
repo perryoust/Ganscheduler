@@ -434,6 +434,14 @@ async function saveToFirebase(silent = false, force = false) {
     window.cleanSupplierNamesBeforeSave();
 
     // ── Build split data payloads ──────────────────
+    if (Array.isArray(window._GARDENS_EXTRA) && window._GARDENS_EXTRA.length > 0) {
+      if (!window.supEx) window.supEx = {};
+      window.supEx['__gardens_extra'] = window._GARDENS_EXTRA;
+    }
+    if (Array.isArray(window._GARDENS_ALL) && window._GARDENS_ALL.length > 0) {
+      if (!window.supEx) window.supEx = {};
+      window.supEx['__gardens_all'] = window._GARDENS_ALL;
+    }
     const schedulesData = window.SCH || [];
     const suppliersData = window.supEx || {};
     const configData = {
@@ -669,17 +677,33 @@ async function loadFromFirebase(silent = false, force = false) {
         return true;
       }
 
-      // Load split data in parallel
+      // Load split data in parallel (including custom gardens for all users)
       console.log('[Sync] Loading split data (v4.0)...');
-      const [schRes, supRes, cfgRes] = await Promise.all([
+      const [schRes, supRes, cfgRes, cgRes] = await Promise.all([
         fetch(getFirebaseSchedulesUrl() + authQ + (authQ ? cb : '?cb=' + Date.now())),
         fetch(getFirebaseSuppliersUrl() + authQ + (authQ ? cb : '?cb=' + Date.now())),
-        fetch(getFirebaseConfigUrl() + authQ + (authQ ? cb : '?cb=' + Date.now()))
+        fetch(getFirebaseConfigUrl() + authQ + (authQ ? cb : '?cb=' + Date.now())),
+        fetch(FB_ROOT + '/data/custom_gardens.json' + authQ + (authQ ? cb : '?cb=' + Date.now()))
       ]);
 
       let cloudSchedules = schRes.ok ? await schRes.json() : null;
       let cloudSuppliers = supRes.ok ? await supRes.json() : null;
       let cloudConfig = cfgRes.ok ? await cfgRes.json() : null;
+      let cloudCustomGardens = cgRes.ok ? await cgRes.json() : null;
+
+      // Populate custom gardens for all users
+      if (Array.isArray(cloudCustomGardens) && cloudCustomGardens.length > 0) {
+        window._GARDENS_EXTRA = cloudCustomGardens;
+        if (!cloudSuppliers) cloudSuppliers = {};
+        cloudSuppliers['__gardens_extra'] = cloudCustomGardens;
+        if (Array.isArray(window._GARDENS_ALL)) {
+          cloudCustomGardens.forEach(g => {
+            if (!window._GARDENS_ALL.some(x => Number(x.id) === Number(g.id))) {
+              window._GARDENS_ALL.push(g);
+            }
+          });
+        }
+      }
 
       // Normalize arrays (Firebase converts sparse arrays to objects)
       if (cloudSchedules && !Array.isArray(cloudSchedules)) {

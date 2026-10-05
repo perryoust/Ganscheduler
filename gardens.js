@@ -366,12 +366,18 @@ async function pqmBreakPermanent(){
 function renderPairs(){
   const cityFilt = window.getEl('pairs-city')?.value || '';
   const activeIds = new Set((typeof AG === 'function' ? AG() : window.GARDENS).map(g => Number(g.id)));
+  if (Array.isArray(window._GARDENS_EXTRA)) {
+    window._GARDENS_EXTRA.forEach(g => activeIds.add(Number(g.id)));
+  }
+  if (Array.isArray(window._GARDENS_ALL)) {
+    window._GARDENS_ALL.forEach(g => activeIds.add(Number(g.id)));
+  }
   
   const f=window.pairs.filter(p=>{
     if(!p||!p.ids||p.ids.length<2) return false;
     
     // Only count active gardens in this pair
-    const activeInPair = p.ids.filter(id => activeIds.has(Number(id)));
+    const activeInPair = p.ids.filter(id => activeIds.has(Number(id)) || window.G(id)?.id);
     if(activeInPair.length < 2) return false;
     
     if(!cityFilt) return true;
@@ -558,7 +564,10 @@ async function savePairModal(){
     if (p.id === targetPairId) return p;
     return { ...p, ids: p.ids.filter(id => !ids.map(Number).includes(Number(id))) };
   }).filter(p => p.ids.length >= 2);
-  window.save();
+  if (window.activeGardens) {
+    ids.forEach(id => window.activeGardens.add(Number(id)));
+  }
+  window.save(true);
   if (typeof window.renderPairs === 'function') window.renderPairs();
   if (typeof window.renderGardens === 'function') window.renderGardens();
   window.CM('apm');
