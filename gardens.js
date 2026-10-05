@@ -777,13 +777,14 @@ window.checkSnapshotsForPairs = function() {
     }
     let msg = `נמצאו ${snaps.length} גיבויים מקומיים שנשמרו בדפדפן:\n\n`;
     snaps.forEach((s, i) => {
-      let pairCount = 0;
+      let pairCount = 0, holCount = 0;
       try {
         const d = JSON.parse(s.data);
         pairCount = (d.pairs || []).length;
+        holCount = (d.holidays || []).length;
       } catch(e){}
       const dt = new Date(s.ts).toLocaleString('he-IL');
-      msg += `[${i+1}] ${dt} — ${pairCount} זוגות (${s.label || 'אוטומטי'})\n`;
+      msg += `[${i+1}] ${dt} — ${pairCount} זוגות, ${holCount} חופשות\n`;
     });
     msg += `\nהכנס מספר גיבוי לשחזור (1-${snaps.length}) או לחץ ביטול:`;
     const choice = prompt(msg);
@@ -791,14 +792,27 @@ window.checkSnapshotsForPairs = function() {
     const idx = parseInt(choice) - 1;
     if (idx >= 0 && idx < snaps.length) {
       const d = JSON.parse(snaps[idx].data);
+      let restored = [];
       if (Array.isArray(d.pairs) && d.pairs.length > 0) {
         window.pairs = d.pairs;
+        restored.push(`${d.pairs.length} זוגות`);
+      }
+      if (Array.isArray(d.holidays) && d.holidays.length > 0) {
+        window.holidays = d.holidays;
+        restored.push(`${d.holidays.length} חופשות`);
+      }
+      if (d.managers && Object.keys(d.managers).length > 0) {
+        window.managers = d.managers;
+        restored.push(`${Object.keys(d.managers).length} רכזים/מנהלות`);
+      }
+      if (restored.length > 0) {
         window.save(true);
         if (typeof window.renderPairs === 'function') window.renderPairs();
+        if (typeof window.renderHolidays === 'function') window.renderHolidays();
         if (typeof window.refresh === 'function') window.refresh();
-        _spAlertDialog(`✅ שוחזרו ${d.pairs.length} זוגות מתוך הגיבוי מ-${new Date(snaps[idx].ts).toLocaleString('he-IL')}!`);
+        _spAlertDialog(`✅ שוחזרו בהצלחה:\n${restored.join('\n')}\n\nמתוך הגיבוי מ-${new Date(snaps[idx].ts).toLocaleString('he-IL')}!`);
       } else {
-        _spAlertDialog('בגיבוי שנבחר אין רשימת זוגות שמורה.');
+        _spAlertDialog('בגיבוי שנבחר אין נתונים זמינים לשחזור.');
       }
     }
   } catch(e) {
