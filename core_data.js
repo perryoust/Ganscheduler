@@ -601,7 +601,8 @@ function load(){
     let st = null;
     const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpaz');
     st = _safeLS.getItem(yearKey);
-    if(!st && (!window.CURRENT_YEAR || window.CURRENT_YEAR === 'tashpaz')) {
+    // הוסר: Fallback ל-ganv5 שהיה דורס את תשפ"ה עם נתוני תשפ"ד
+    if(!st && window.CURRENT_YEAR === 'tashpav') {
       st = _safeLS.getItem('ganv5');
     }
     if(!st && window._fbAppData) { _applyYearData(window._fbAppData); return; }
@@ -640,7 +641,8 @@ function migratePairsFromAuto(){
   if (window._fbUser || window._fbSyncReady) return;
   if (Array.isArray(window.pairs) && window.pairs.length > 0) return;
   const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpaz');
-  const st = _safeLS.getItem(yearKey) || _safeLS.getItem('ganv5');
+  let st = _safeLS.getItem(yearKey);
+  if (!st && window.CURRENT_YEAR === 'tashpav') st = _safeLS.getItem('ganv5');
   if(st){
     try{
       const o=JSON.parse(st);
