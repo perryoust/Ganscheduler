@@ -372,6 +372,7 @@ function _applyYearData(o){
   window._mergedAliasMap = null; window._mergedAliasMapFuzzy = null;
   window._supStats = null;
   if(window.supEx['__gardens_extra']) window._GARDENS_EXTRA = window.supEx['__gardens_extra'];
+  if(typeof window.backfillMergedSuppliersMetadata === 'function') window.backfillMergedSuppliersMetadata(false);
   // For new years: load the full garden list from the year's data
   if(Array.isArray(window.supEx['__gardens_all']) && window.supEx['__gardens_all'].length > 0) {
     window._GARDENS_ALL = window.supEx['__gardens_all'];

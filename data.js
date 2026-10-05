@@ -218,13 +218,44 @@ function supBaseCnt(base) { if(window.buildSupIndex && (!window._supStats || Obj
   return SCH.filter(s=>supBase(s.a)===base).length; 
 }
 function supBaseEx(base){
-  const ex=supEx[base]||{};
-  SUPBASE.filter(s=>supBase(s.name)===base).forEach(s=>{
-    const e=supEx[s.name]||{};
-    if(!ex.ph1&&e.ph1) ex.ph1=e.ph1;
-    if(!ex.ph2&&e.ph2) ex.ph2=e.ph2;
-    if(!ex.notes&&e.notes) ex.notes=e.notes;
+  if (!base) return {};
+  const ex = { ...(supEx[base] || {}) };
+  // Check exact SUPBASE entries
+  SUPBASE.filter(s => supBase(s.name) === base).forEach(s => {
+    const e = supEx[s.name] || {};
+    if (!ex.ph1 && (e.ph1 || s.phone)) ex.ph1 = e.ph1 || s.phone;
+    if (!ex.ph2 && e.ph2) ex.ph2 = e.ph2;
+    if (!ex.notes && e.notes) ex.notes = e.notes;
+    if (!ex.contact && e.contact) ex.contact = e.contact;
+    if (!ex.email && e.email) ex.email = e.email;
+    if (!ex.addr && e.addr) ex.addr = e.addr;
+    if (!ex.g1 && e.g1) ex.g1 = e.g1;
+    if (!ex.moeTax && e.moeTax) ex.moeTax = e.moeTax;
+    if (!ex.entityType && e.entityType) ex.entityType = e.entityType;
   });
+  // Check __c entries
+  (supEx['__c'] || []).filter(s => supBase(s.name) === base).forEach(s => {
+    if (!ex.ph1 && s.phone) ex.ph1 = s.phone;
+    if (!ex.contact && s.contact) ex.contact = s.contact;
+  });
+  // Check _mergedFrom for inherited fields from any merged suppliers
+  const mergedFrom = ex._mergedFrom || (supEx[base] && supEx[base]._mergedFrom) || [];
+  if (Array.isArray(mergedFrom)) {
+    mergedFrom.forEach(m => {
+      const mex = supEx[m] || supEx[supBase(m)] || {};
+      const ms = SUPBASE.find(s => s.name === m || supBase(s.name) === supBase(m)) || {};
+      const mc = (supEx['__c'] || []).find(s => s.name === m || supBase(s.name) === supBase(m)) || {};
+      if (!ex.ph1 && (mex.ph1 || mc.phone || ms.phone)) ex.ph1 = mex.ph1 || mc.phone || ms.phone;
+      if (!ex.ph2 && mex.ph2) ex.ph2 = mex.ph2;
+      if (!ex.contact && (mex.contact || mc.contact)) ex.contact = mex.contact || mc.contact;
+      if (!ex.email && (mex.email || mc.email)) ex.email = mex.email || mc.email;
+      if (!ex.addr && (mex.addr || mc.addr)) ex.addr = mex.addr || mc.addr;
+      if (!ex.g1 && (mex.g1 || mc.g1)) ex.g1 = mex.g1 || mc.g1;
+      if (!ex.moeTax && mex.moeTax) ex.moeTax = mex.moeTax;
+      if (!ex.entityType && (mex.entityType || mc.entityType)) ex.entityType = mex.entityType || mc.entityType;
+      if (!ex.notes && mex.notes) ex.notes = mex.notes;
+    });
+  }
   return ex;
 }
 function supDisplayName(base){

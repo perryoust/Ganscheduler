@@ -582,8 +582,20 @@ function renderSup(){
 function openSupModal(name){
   window.editingSup=name||null;
   (document.getElementById('sum-title')||{}).textContent =name?'✏️ עריכת ספק':'➕ הוסף ספק';
-  const s=name?window.SUPBASE.find(x=>x.name===name)||{}:{};
-  const ex=name?window.supEx[name]||{}:{};
+  const base = name ? window.supBase(name) : '';
+  const s = name ? (
+    (window.SUPBASE || []).find(x => x.name === name || window.supBase(x.name) === base) || 
+    ((window.supEx && window.supEx['__c']) || []).find(x => x.name === name || window.supBase(x.name) === base) || 
+    {}
+  ) : {};
+  const bEx = base ? (window.supBaseEx(base) || {}) : {};
+  const nEx = name ? (window.supEx && window.supEx[name] ? window.supEx[name] : {}) : {};
+  const ex = { ...bEx, ...nEx };
+  Object.keys(bEx).forEach(k => {
+    if (bEx[k] && (!ex[k] || (typeof ex[k] === 'string' && !ex[k].trim()))) {
+      ex[k] = bEx[k];
+    }
+  });
   const nameInput=document.getElementById('su-name');
   nameInput.value=name||'';
   nameInput.disabled=false; // always allow rename
@@ -721,11 +733,19 @@ async function saveSup(silent = false){
       isPurch: !!document.getElementById('su-is-purch')?.checked,
       entityType: entityVal
     };
-    if (!origName && !window.SUPBASE.find(s=>s.name===targetName)) {
+    const targetBase = window.supBase(targetName);
+    if (targetBase && targetBase !== targetName) {
+      window.supEx[targetBase] = { ...(window.supEx[targetBase]||{}), ...window.supEx[targetName] };
+    }
+    if (!origName && !window.SUPBASE.find(s=>s.name===targetName || window.supBase(s.name)===targetBase)) {
       if (!window.supEx['__c']) window.supEx['__c']=[];
-      if (!window.supEx['__c'].find(s=>s.name===targetName)) {
+      if (!window.supEx['__c'].find(s=>s.name===targetName || window.supBase(s.name)===targetBase)) {
         window.supEx['__c'].push({id:Date.now(), name:targetName, phone:window.supEx[targetName].ph1});
       }
+    }
+    if (window.supEx['__c']) {
+      const cItem = window.supEx['__c'].find(s => s.name === targetName || window.supBase(s.name) === targetBase);
+      if (cItem && window.supEx[targetName].ph1) cItem.phone = window.supEx[targetName].ph1;
     }
     window.save(true);
     try { if (typeof window.renderPurchSuppliers === 'function') window.renderPurchSuppliers(); } catch(e) {}
@@ -845,9 +865,17 @@ async function saveSup(silent = false){
     isPurch: !!document.getElementById('su-is-purch')?.checked,
     entityType: entityVal
   };
-  if(!origName&&!window.SUPBASE.find(s=>s.name===name)){
+  const baseName = window.supBase(name);
+  if (baseName && baseName !== name) {
+    window.supEx[baseName] = { ...(window.supEx[baseName]||{}), ...window.supEx[name] };
+  }
+  if(!origName&&!window.SUPBASE.find(s=>s.name===name || window.supBase(s.name)===baseName)){
     if(!window.supEx['__c']) window.supEx['__c']=[];
-    if(!window.supEx['__c'].find(s=>s.name===name)) window.supEx['__c'].push({id:Date.now(),name,phone:window.supEx[name].ph1});
+    if(!window.supEx['__c'].find(s=>s.name===name || window.supBase(s.name)===baseName)) window.supEx['__c'].push({id:Date.now(),name,phone:window.supEx[name].ph1});
+  }
+  if (window.supEx['__c']) {
+    const cItem = window.supEx['__c'].find(s => s.name === name || window.supBase(s.name) === baseName);
+    if (cItem && window.supEx[name].ph1) cItem.phone = window.supEx[name].ph1;
   }
   
   window.save(true);
@@ -968,6 +996,142 @@ function auditMergedSuppliers(){
   return report;
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// mergeSupplierCardData — מעביר בבטחה את כל פרטי כרטיס הספק מהספק הישן לספק הראשי
+// ────────────────────────────────────────────────────────────────────────────
+function mergeSupplierCardData(mainName, oldName) {
+  if (!mainName || !oldName || mainName === oldName) return;
+  const mainBase = window.supBase(mainName);
+  const oldBase = window.supBase(oldName);
+  if (!window.supEx) window.supEx = {};
+  if (!window.supEx[mainBase]) window.supEx[mainBase] = {};
+  if (!window.supEx[mainName]) window.supEx[mainName] = {};
+
+  const mex = window.supEx[mainBase];
+  const mexExact = window.supEx[mainName];
+
+  // Resolve old supplier metadata from all possible sources
+  const ex = window.supEx[oldName] || window.supEx[oldBase] || {};
+  const sOld = (window.SUPBASE || []).find(s => s.name === oldName || window.supBase(s.name) === oldBase) || {};
+  const cOld = ((window.supEx['__c'] || []).find(s => s.name === oldName || window.supBase(s.name) === oldBase)) || {};
+
+  // 1. Phone 1
+  const oldPhone = ex.ph1 || cOld.phone || sOld.phone || '';
+  if ((!mex.ph1 || !String(mex.ph1).trim()) && oldPhone) mex.ph1 = String(oldPhone).trim();
+
+  // 2. Phone 2
+  if ((!mex.ph2 || !String(mex.ph2).trim()) && ex.ph2) mex.ph2 = String(ex.ph2).trim();
+
+  // 3. Contact person
+  const oldContact = ex.contact || cOld.contact || '';
+  if ((!mex.contact || !String(mex.contact).trim()) && oldContact) mex.contact = String(oldContact).trim();
+
+  // 4. Email
+  const oldEmail = ex.email || cOld.email || '';
+  if ((!mex.email || !String(mex.email).trim()) && oldEmail) mex.email = String(oldEmail).trim();
+
+  // 5. Address
+  const oldAddr = ex.addr || cOld.addr || '';
+  if ((!mex.addr || !String(mex.addr).trim()) && oldAddr) mex.addr = String(oldAddr).trim();
+
+  // 6. Tax / ID (ח.פ. / עוסק מורשה)
+  const oldG1 = ex.g1 || cOld.g1 || '';
+  if ((!mex.g1 || !String(mex.g1).trim()) && oldG1) mex.g1 = String(oldG1).trim();
+
+  // 7. Gov ID 2
+  if ((!mex.g2 || !String(mex.g2).trim()) && ex.g2) mex.g2 = String(ex.g2).trim();
+
+  // 8. MOE Tax (ספק חינוך)
+  const oldMoe = ex.moeTax || cOld.moeTax || '';
+  if ((!mex.moeTax || !String(mex.moeTax).trim()) && oldMoe) mex.moeTax = String(oldMoe).trim();
+
+  // 9. Entity Type
+  const oldEntity = ex.entityType || cOld.entityType || '';
+  if ((!mex.entityType || !String(mex.entityType).trim()) && oldEntity) mex.entityType = String(oldEntity).trim();
+
+  // 10. Notes
+  if ((!mex.notes || !String(mex.notes).trim()) && ex.notes) {
+    mex.notes = String(ex.notes).trim();
+  } else if (ex.notes && mex.notes && !mex.notes.includes(String(ex.notes).trim())) {
+    mex.notes = (mex.notes.trim() + ' | ' + String(ex.notes).trim()).trim();
+  }
+
+  // 11. Alias
+  if ((!mex.alias || !String(mex.alias).trim()) && ex.alias) mex.alias = String(ex.alias).trim();
+
+  // 12. Keywords
+  let kws = new Set(mex.keywords ? mex.keywords.split(',').map(s=>s.trim()).filter(Boolean) : []);
+  if (ex.keywords) ex.keywords.split(',').forEach(k => kws.add(k.trim()));
+  if (oldBase && oldBase !== mainBase) kws.add(oldBase);
+  if (oldName && oldName !== mainName && oldName !== oldBase) kws.add(oldName);
+  mex.keywords = [...kws].filter(Boolean).join(', ');
+
+  // 13. Sched phone preference
+  if (!mex.schedPhone && ex.schedPhone) mex.schedPhone = ex.schedPhone;
+
+  // Sync to exact mainName if different
+  if (mainName !== mainBase) {
+    Object.assign(mexExact, mex);
+  }
+
+  // Update in __c if present
+  if (window.supEx['__c']) {
+    const cMain = window.supEx['__c'].find(s => s.name === mainName || window.supBase(s.name) === mainBase);
+    if (cMain && (!cMain.phone || !String(cMain.phone).trim()) && mex.ph1) {
+      cMain.phone = mex.ph1;
+    }
+  }
+
+  // Recursively inherit if old had its own _mergedFrom
+  if (Array.isArray(ex._mergedFrom)) {
+    ex._mergedFrom.forEach(subOld => {
+      if (subOld && subOld !== mainName && subOld !== oldName) {
+        mergeSupplierCardData(mainName, subOld);
+      }
+    });
+  }
+}
+window.mergeSupplierCardData = mergeSupplierCardData;
+
+// ────────────────────────────────────────────────────────────────────────────
+// backfillMergedSuppliersMetadata — השלמה אוטומטית של נתונים עבור כל הספקים הממוזגים
+// ────────────────────────────────────────────────────────────────────────────
+function backfillMergedSuppliersMetadata(doSave = true) {
+  if (typeof window.supEx === 'undefined' || !window.supEx) return false;
+  let didChange = false;
+
+  // 1. Process all suppliers with _mergedFrom
+  Object.keys(window.supEx).forEach(key => {
+    if (key === '__c' || key === '__merged_away' || key === '__gardens_extra') return;
+    const entry = window.supEx[key];
+    if (entry && Array.isArray(entry._mergedFrom) && entry._mergedFrom.length > 0) {
+      entry._mergedFrom.forEach(oldName => {
+        const before = JSON.stringify(entry);
+        mergeSupplierCardData(key, oldName);
+        if (JSON.stringify(entry) !== before) didChange = true;
+      });
+    }
+  });
+
+  // 2. Specific pairs verification
+  if (window.supEx["איקון שיווק ופרסום בע''מ"] && window.supEx["איקון פרסום ושיווק בע''מ"]) {
+    const before = JSON.stringify(window.supEx["איקון שיווק ופרסום בע''מ"]);
+    mergeSupplierCardData("איקון שיווק ופרסום בע''מ", "איקון פרסום ושיווק בע''מ");
+    if (JSON.stringify(window.supEx["איקון שיווק ופרסום בע''מ"]) !== before) didChange = true;
+  }
+  if (window.supEx["איילון שיווק"] && window.supEx["אילון שיווק"]) {
+    const before = JSON.stringify(window.supEx["איילון שיווק"]);
+    mergeSupplierCardData("איילון שיווק", "אילון שיווק");
+    if (JSON.stringify(window.supEx["איילון שיווק"]) !== before) didChange = true;
+  }
+
+  if (didChange && doSave && typeof window.save === 'function') {
+    window.save(true);
+  }
+  return didChange;
+}
+window.backfillMergedSuppliersMetadata = backfillMergedSuppliersMetadata;
+
 async function doMerge(){
   const mainIdx=document.getElementById('mrg-main').value;
   if(mainIdx===''){_spAlertDialog('בחר ספק ראשי');return;}
@@ -1012,33 +1176,10 @@ async function doMerge(){
       }
     });
 
+    // 3. Merge supEx metadata (card details)
+    mergeSupplierCardData(main, old);
 
-    // 3. Merge supEx metadata
-    const ex = window.supEx[old] || window.supEx[oldBase] || {};
-    if(!window.supEx[mainBase]) window.supEx[mainBase]={};
-    const mex = window.supEx[mainBase];
-    if(!mex.ph1 && ex.ph1) mex.ph1=ex.ph1;
-    if(!mex.ph2 && ex.ph2) mex.ph2=ex.ph2;
-    if(!mex.email && ex.email) mex.email=ex.email;
-    if(!mex.contact && ex.contact) mex.contact=ex.contact;
-    if(!mex.addr && ex.addr) mex.addr=ex.addr;
-    if(!mex.g1 && ex.g1) mex.g1=ex.g1;
-    if(!mex.moeTax && ex.moeTax) mex.moeTax=ex.moeTax;
-    if(!mex.entityType && ex.entityType) mex.entityType=ex.entityType;
-    if(!mex.notes && ex.notes) mex.notes=ex.notes;
-    
-    // Merge keywords and add the old base name as a keyword
-    let kws = new Set(mex.keywords ? mex.keywords.split(',').map(s=>s.trim()).filter(Boolean) : []);
-    if(ex.keywords) ex.keywords.split(',').forEach(k=>kws.add(k.trim()));
-    if(oldBase && oldBase !== mainBase) kws.add(oldBase);
-    mex.keywords = [...kws].filter(Boolean).join(', ');
-
-    // 4. Remove old from __c and supEx
-    delete window.supEx[old];
-    if(old !== oldBase) delete window.supEx[oldBase];
-    if(window.supEx['__c']) window.supEx['__c'] = window.supEx['__c'].filter(s=>window.supBase(s.name)!==oldBase);
-
-    // 5. Mark as merged-away (exact names only)
+    // 4. Mark as merged-away (exact names only)
     mergedAway.add(old);
     // Also add all SUPBASE entries for oldBase (except main itself)
     window.SUPBASE.forEach(s=>{
@@ -1059,21 +1200,23 @@ async function doMerge(){
   // Also store on exact main name if different from base
   if(main !== mainBase){
     if(!window.supEx[main]) window.supEx[main]={};
-    window.supEx[main].isAct = mergedIsAct;
-    window.supEx[main].isPurch = mergedIsPurch;
-    window.supEx[main].acts = window.supEx[mainBase].acts;
+    Object.assign(window.supEx[main], window.supEx[mainBase]);
   }
 
   // Ensure main is in __c if not in SUPBASE
   const inSupbase = window.SUPBASE.some(s=>window.supBase(s.name)===mainBase);
   if(!inSupbase){
     if(!window.supEx['__c']) window.supEx['__c']=[];
-    if(!window.supEx['__c'].find(s=>window.supBase(s.name)===mainBase)){
-      window.supEx['__c'].push({id:Date.now(),name:mainBase,phone:window.supEx[mainBase]?.ph1||''});
+    let cItem = window.supEx['__c'].find(s=>window.supBase(s.name)===mainBase);
+    if(!cItem){
+      cItem = {id:Date.now(),name:mainBase,phone:window.supEx[mainBase]?.ph1||''};
+      window.supEx['__c'].push(cItem);
+    } else if((!cItem.phone || !cItem.phone.trim()) && window.supEx[mainBase]?.ph1) {
+      cItem.phone = window.supEx[mainBase].ph1;
     }
   }
 
-  // Remove the __merged_away array push to NOT hide the suppliers
+  window.supEx['__merged_away'] = Array.from(mergedAway);
   window.save(true);
   window.CM('mrgm');
   window.refresh();
@@ -1177,6 +1320,10 @@ window.psupMultiMerge = async function() {
                if(window.supBase(s.a||'')===oldBase){ s.a=main; changedSch++; }
              });
            }
+
+           // Merge supplier card data from old to main
+           mergeSupplierCardData(main, old);
+
            mergedAway.add(oldBase);
            if(old!==oldBase) mergedAway.add(old);
          });
@@ -1188,9 +1335,7 @@ window.psupMultiMerge = async function() {
 
          if(main !== mainBase){
            if(!window.supEx[main]) window.supEx[main]={};
-           window.supEx[main].isAct = mergedIsAct;
-           window.supEx[main].isPurch = mergedIsPurch;
-           window.supEx[main].acts = window.supEx[mainBase].acts;
+           Object.assign(window.supEx[main], window.supEx[mainBase]);
          }
 
          const prevMerged = window.supEx[mainBase]._mergedFrom || [];
@@ -1201,11 +1346,16 @@ window.psupMultiMerge = async function() {
          const inSupbase = window.SUPBASE.some(s=>window.supBase(s.name)===mainBase);
          if(!inSupbase){
            if(!window.supEx['__c']) window.supEx['__c']=[];
-           if(!window.supEx['__c'].find(s=>window.supBase(s.name)===mainBase)){
-             window.supEx['__c'].push({id:Date.now(),name:mainBase,phone:window.supEx[mainBase]?.ph1||''});
+           let cItem = window.supEx['__c'].find(s=>window.supBase(s.name)===mainBase);
+           if(!cItem){
+             cItem = {id:Date.now(),name:mainBase,phone:window.supEx[mainBase]?.ph1||''};
+             window.supEx['__c'].push(cItem);
+           } else if((!cItem.phone || !cItem.phone.trim()) && window.supEx[mainBase]?.ph1) {
+             cItem.phone = window.supEx[mainBase].ph1;
            }
          }
 
+         window.supEx['__merged_away'] = Array.from(mergedAway);
          window._selectedPsups.clear();
          window.save(true);
          window.refresh();
@@ -1370,3 +1520,12 @@ document.addEventListener('click', e => {
     if(list) list.classList.remove('open');
   }
 });
+
+// Auto-run safe metadata backfill for already merged suppliers on load
+setTimeout(() => {
+  try {
+    if (typeof window.backfillMergedSuppliersMetadata === 'function') {
+      window.backfillMergedSuppliersMetadata(false);
+    }
+  } catch(e) {}
+}, 1500);

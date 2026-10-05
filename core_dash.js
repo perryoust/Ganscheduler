@@ -610,7 +610,7 @@ function openSupCard(name){
 function sucRefreshInfo(){
   const name=_sucName; // always base name e.g. "חוגות"
   const ex=supBaseEx(name);
-  const s=SUPBASE.find(x=>supBase(x.name)===name)||{};
+  const s=(window.SUPBASE||[]).find(x=>supBase(x.name)===name) || ((window.supEx && window.supEx['__c'])||[]).find(x=>supBase(x.name)===name) || {};
   const acts=getSupActs(name);
   const cnt=SCH.filter(sc=>supBase(sc.a)===name).length;
   const acts2=getSupActs(name);
