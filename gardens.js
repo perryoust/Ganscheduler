@@ -194,30 +194,85 @@ function openGM(gid){
   
   document.getElementById('gm-det').innerHTML=[addrHtml, ageHtml, coHtml, phoneHtml, clHtml].filter(Boolean).join(' | ');
   const pair=window.gardenPair(gid);
-  document.getElementById('gm-pair-current').innerHTML=pair?`<span class="bdg bg2">🔗 כרגע: ${pair.name}</span>`:'<span style="color:#999">לא משויך לזוג</span>';
-  document.getElementById('gm-del-pair-btn').style.display=pair?'inline-block':'none';
-  const allOther=(typeof AG === 'function' ? AG() : window.GARDENS).filter(x=>x.id!==gid).sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  const activeGList = typeof AG === 'function' ? AG() : window.GARDENS;
+  const activeIds = new Set(activeGList.map(x => Number(x.id)));
+
+  let pairNotice = '';
+  if (pair) {
+    const inactivePartners = (pair.ids || []).filter(id => Number(id) !== Number(gid) && !activeIds.has(Number(id)));
+    if (inactivePartners.length > 0) {
+      pairNotice = `<span class="bdg bg2" style="background:#fff3e0;color:#e65100;border:1px solid #ffb74d">🔗 כרגע: ${pair.name} (כולל צהרון משנה שעברה)</span>`;
+    } else {
+      pairNotice = `<span class="bdg bg2">🔗 כרגע: ${pair.name}</span>`;
+    }
+  } else {
+    pairNotice = '<span style="color:#999">לא משויך לזוג</span>';
+  }
+  document.getElementById('gm-pair-current').innerHTML = pairNotice;
+  document.getElementById('gm-del-pair-btn').style.display = pair ? 'inline-block' : 'none';
+
+  // Group dropdown by city: current garden city at the top, followed by other cities
+  const allOther = activeGList.filter(x => Number(x.id) !== Number(gid));
+  const sameCity = allOther.filter(x => x.city === g.city).sort((a,b) => (a.name||'').localeCompare(b.name||'', 'he'));
+  const otherCitiesMap = {};
+  allOther.filter(x => x.city !== g.city).forEach(x => {
+    const c = x.city || 'אחר';
+    if (!otherCitiesMap[c]) otherCitiesMap[c] = [];
+    otherCitiesMap[c].push(x);
+  });
+
+  let optsHtml = '<option value="">— (ללא)</option>';
+  if (sameCity.length > 0) {
+    optsHtml += `<optgroup label="📍 ${g.city || 'אותה עיר'} (אותה עיר)">`;
+    sameCity.forEach(x => {
+      optsHtml += `<option value="${x.id}">${x.name}</option>`;
+    });
+    optsHtml += '</optgroup>';
+  }
+
+  const sortedOtherCities = Object.keys(otherCitiesMap).sort((a,b) => a.localeCompare(b, 'he'));
+  sortedOtherCities.forEach(c => {
+    otherCitiesMap[c].sort((a,b) => (a.name||'').localeCompare(b.name||'', 'he'));
+    optsHtml += `<optgroup label="🏙️ ${c}">`;
+    otherCitiesMap[c].forEach(x => {
+      optsHtml += `<option value="${x.id}">${c} · ${x.name}</option>`;
+    });
+    optsHtml += '</optgroup>';
+  });
+
+  const partners = pair ? (pair.ids || []).filter(id => Number(id) !== Number(gid)) : [];
   ['gm-pg2','gm-pg3'].forEach((id,i)=>{
-    const sel=document.getElementById(id);
-    sel.innerHTML='<option value="">—</option>';
-    allOther.forEach(x=>sel.innerHTML+=`<option value="${x.id}">${x.city} · ${x.name}</option>`);
-    if(pair&&pair.ids[i+1]) sel.value=pair.ids[i+1];
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = optsHtml;
+    if (partners[i]) {
+      sel.value = partners[i];
+    } else {
+      sel.value = '';
+    }
   });
   renderGM();
   document.getElementById('gm').classList.add('open');
 }
 async function delPairFromGarden(){
-  const pair=window.gardenPair(window.gmGid);
+  const pair = window.gardenPair(window.gmGid);
   if(!pair) return;
-  if(!await window.spConfirm(`למחוק את הזוג "${pair.name}"?`)) return;
-  const idx=window.pairs.findIndex(p=>p.id===pair.id);
-  if(idx>=0) window.pairs.splice(idx,1);
-  window.save();
+  const ok = await window.spConfirm(`האם לפרק את הזוג "${pair.name}"?\n\nשיבוצי החוגים הקיימים יישמרו כרגיל לכל צהרון בנפרד (שום שיבוץ לא יימחק).\nהצהרונים יופיעו כרגיל כעצמאיים בלוח.`);
+  if(!ok) return;
+  const idx = (window.pairs || []).findIndex(p => p.id === pair.id);
+  if(idx >= 0) window.pairs.splice(idx, 1);
+  await window.save(true);
   if (typeof window.renderPairs === 'function') window.renderPairs();
   if (typeof window.renderGardens === 'function') window.renderGardens();
-  window.refresh();
+  if (typeof window.refresh === 'function') window.refresh();
   openGM(window.gmGid);
+  if (typeof window.showToast === 'function') {
+    window.showToast(`✅ הזוג פורק בהצלחה! השיבוצים נשמרו לכל צהרון.`);
+  } else if (typeof _spAlertDialog === 'function') {
+    _spAlertDialog(`✅ הזוג פורק בהצלחה! השיבוצים נשמרו לכל צהרון.`);
+  }
 }
+window.delPairFromGarden = delPairFromGarden;
 function setGmView(v){
   window.gmV=v;
   ['day','week','month','recur'].forEach(x=>{

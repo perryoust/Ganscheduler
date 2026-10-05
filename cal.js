@@ -808,13 +808,71 @@ function addPairFromSched(){
              parseInt(document.getElementById('s-g3')?.value)||null].filter(Boolean);
   addPair(ids);
 }
-function savePairFromGarden(){
-  const g2=parseInt(document.getElementById('gm-pg2')?.value)||null;
-  const g3=parseInt(document.getElementById('gm-pg3')?.value)||null;
-  if(!g2){_spAlertDialog('יש לבחור לפחות צהרון שני');return;}
-  addPair([window.gmGid,g2,g3].filter(Boolean));
-  window.openGM(window.gmGid);
+async function savePairFromGarden(){
+  const g1 = window.gmGid;
+  const g2 = parseInt(document.getElementById('gm-pg2')?.value) || null;
+  const g3 = parseInt(document.getElementById('gm-pg3')?.value) || null;
+  if (!g2) {
+    if (typeof _spAlertDialog === 'function') _spAlertDialog('יש לבחור לפחות צהרון שני ליצירת זוג');
+    else alert('יש לבחור לפחות צהרון שני ליצירת זוג');
+    return;
+  }
+  const gids = [g1, g2, g3].filter(Boolean).map(Number);
+  
+  // Check if g2 or g3 is already in ANOTHER pair (exclude current garden's existing pair)
+  const currentPair = window.gardenPair(g1);
+  const otherDupes = [];
+  [g2, g3].filter(Boolean).forEach(gid => {
+    const p = window.gardenPair(gid);
+    if (p && (!currentPair || p.id !== currentPair.id)) {
+      const gName = window.G(gid)?.name || `צהרון ${gid}`;
+      otherDupes.push(`"${gName}" כבר משויך לזוג "${p.name}"`);
+    }
+  });
+
+  if (otherDupes.length > 0) {
+    const ok = await window.spConfirm(`⚠️ שים לב:\n${otherDupes.join('\n')}\n\nהאם להעביר לזוג החדש?`);
+    if (!ok) return;
+  }
+
+  // Remove the current garden's old pair if one existed
+  if (currentPair) {
+    const oldIdx = (window.pairs || []).findIndex(p => p.id === currentPair.id);
+    if (oldIdx >= 0) window.pairs.splice(oldIdx, 1);
+  }
+
+  // Remove selected gids from any other pairs to avoid overlap
+  const gidSet = new Set(gids);
+  window.pairs = (window.pairs || []).map(p => {
+    return { ...p, ids: (p.ids || []).filter(id => !gidSet.has(Number(id))) };
+  }).filter(p => (p.ids || []).length >= 2);
+
+  // Auto-generate clean pair name
+  const pairName = gids.map(id => window.G(id)?.name || '').filter(Boolean).join(' + ');
+  const targetId = Date.now();
+  window.pairs.push({
+    id: targetId,
+    ids: gids,
+    name: pairName
+  });
+
+  // Save immediately to Firebase
+  await window.save(true);
+  
+  if (typeof window.renderPairs === 'function') window.renderPairs();
+  if (typeof window.renderGardens === 'function') window.renderGardens();
+  if (typeof window.refresh === 'function') window.refresh();
+  
+  if (typeof window.openGM === 'function') window.openGM(g1);
+  
+  if (typeof window.showToast === 'function') {
+    window.showToast(`✅ הזוג "${pairName}" נשמר בהצלחה!`);
+  } else if (typeof _spAlertDialog === 'function') {
+    _spAlertDialog(`✅ הזוג "${pairName}" נשמר בהצלחה!`);
+  }
 }
+window.savePairFromGarden = savePairFromGarden;
+
 async function checkDupePairAndSave(gids){
   const dupe=gids.map(gid=>{const p=window.gardenPair(gid);return p?`${window.G(gid).name} כבר בזוג "${p.name}"`:null}).filter(Boolean);
   if(dupe.length){if(!(await window.spConfirm(`⚠️ שים לב:\n${dupe.join('\n')}\n\nבכל זאת להמשיך?`))) return;}
@@ -828,7 +886,10 @@ async function checkDupePairAndSave(gids){
     if (p.id === targetId) return p;
     return { ...p, ids: p.ids.filter(id => !gids.map(Number).includes(Number(id))) };
   }).filter(p => p.ids.length >= 2);
-  window.save(); window.refresh();
+  await window.save(true);
+  if (typeof window.renderPairs === 'function') window.renderPairs();
+  if (typeof window.renderGardens === 'function') window.renderGardens();
+  window.refresh();
   _spAlertDialog(`✅ הזוג "${nm||name}" נשמר!`);
 }
 
