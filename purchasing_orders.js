@@ -2203,20 +2203,20 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
         </div>
         <div class="header" style="display:flex; justify-content:space-between; align-items:center;">
           <div>
-            <h3 style="margin-top:0; margin-bottom:5px; font-size:1.3em;">תעודת&nbsp;משלוח&nbsp;ציוד</h3>
-            <h4 style="margin-top:0; margin-bottom:5px;"><b style="color:#1a237e;">מספר&nbsp;תעודה:&nbsp;</b><span>${rtlFix(dlv.deliveryId)}</span></h4>
+            <h3 style="margin-top:0; margin-bottom:5px; font-size:1.3em;">${rtlFix('תעודת משלוח ציוד')}</h3>
+            <h4 style="margin-top:0; margin-bottom:5px;"><b style="color:#1a237e;">${rtlFix('מספר תעודה:')} </b><span>${rtlFix(dlv.deliveryId)}</span></h4>
           </div>
           <div style="text-align:center;">
-            <span style="display:inline-block; padding:4px 18px; border-radius:6px; font-size:1.35em; font-weight:900; letter-spacing:1px; ${copyType === 'מקור' ? 'background:#e8f5e9; color:#1b5e20; border:2px solid #2e7d32;' : 'background:#fff3e0; color:#e65100; border:2px solid #ef6c00;'}">${copyType}</span>
+            <span style="display:inline-block; padding:4px 18px; border-radius:6px; font-size:1.35em; font-weight:900; letter-spacing:1px; ${copyType === 'מקור' ? 'background:#e8f5e9; color:#1b5e20; border:2px solid #2e7d32;' : 'background:#fff3e0; color:#e65100; border:2px solid #ef6c00;'}">${rtlFix(copyType)}</span>
           </div>
           <div style="text-align: left;">
-            <p style="margin:0; font-size:1.05em;"><b style="color:#1a237e;">תאריך:&nbsp;</b><span>${new Date(dlv.ts).toLocaleDateString('he-IL')}</span></p>
+            <p style="margin:0; font-size:1.05em;"><b style="color:#1a237e;">${rtlFix('תאריך:')} </b><span>${rtlFix(new Date(dlv.ts).toLocaleDateString('he-IL'))}</span></p>
           </div>
         </div>
         <div style="margin-bottom: 15px; display:flex; justify-content:space-between; font-size:1.05em; background:#f9f9f9; padding:10px 14px; border-radius:6px; border:1.5px solid #444; gap:15px; word-spacing:2px;">
-          <div><b style="color:#1a237e;">יעד&nbsp;המשלוח:&nbsp;</b><span style="font-weight:600;">${rtlFix(dlv.destination)}</span></div>
-          ${dlv.deliveryDesc ? `<div><b style="color:#1a237e;">תיאור:&nbsp;</b><span style="font-weight:600;">${rtlFix(dlv.deliveryDesc)}</span></div>` : ''}
-          <div><b style="color:#1a237e;">שם&nbsp;הנהג/מוביל:&nbsp;</b><span style="font-weight:600;">${rtlFix(dlv.driver) || '_________________'}</span></div>
+          <div><b style="color:#1a237e;">${rtlFix('יעד המשלוח:')} </b><span style="font-weight:600;">${rtlFix(dlv.destination)}</span></div>
+          ${dlv.deliveryDesc ? `<div><b style="color:#1a237e;">${rtlFix('תיאור:')} </b><span style="font-weight:600;">${rtlFix(dlv.deliveryDesc)}</span></div>` : ''}
+          <div><b style="color:#1a237e;">${rtlFix('שם הנהג/מוביל:')} </b><span style="font-weight:600;">${rtlFix(dlv.driver) || '_________________'}</span></div>
         </div>
       `;
 
@@ -2226,9 +2226,9 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
           <table>
             <tr>
               <th style="width:35px; text-align:center;">#</th>
-              <th style="width:auto;">תיאור הציוד</th>
-              <th style="width:75px;">כמות</th>
-              <th style="width:200px;">הערות / ברקוד</th>
+              <th style="width:auto;">${rtlFix('תיאור הציוד')}</th>
+              <th style="width:75px;">${rtlFix('כמות')}</th>
+              <th style="width:200px;">${rtlFix('הערות / ברקוד')}</th>
             </tr>
             ${pageObj.items.map((item, idx) => {
               let prevItems = 0;
@@ -2249,14 +2249,14 @@ function openDeliveryPrintPreview(dlv, autoDownload = false) {
       let footerContentHtml = '';
       if (isLastPage) {
         footerContentHtml = `
-          ${dlv.notes ? `<div style="margin-top:20px"><b>הערות כלליות למשלוח:&rlm;</b><br>${rtlFix(dlv.notes).replace(/\n/g, '<br>')}</div>` : ''}
+          ${dlv.notes ? `<div style="margin-top:20px"><b>${rtlFix('הערות כלליות למשלוח:')}</b><br>${rtlFix(dlv.notes).replace(/\n/g, '<br>')}</div>` : ''}
           
           <div style="margin-top: 40px; display: flex; justify-content: flex-end; padding-left: 20px;">
             <div style="display: flex; flex-direction: column; gap: 40px; width: 240px;">
               <div style="border-top: 1px solid #000; text-align: center; padding-top: 5px; font-weight:bold;">
-                ${dlv.recipient ? `שם המקבל: ${rtlFix(dlv.recipient)}` : 'שם מלא של המקבל'}
+                ${rtlFix(dlv.recipient ? `שם המקבל: ${dlv.recipient}` : 'שם מלא של המקבל')}
               </div>
-              <div style="border-top: 1px solid #000; text-align: center; padding-top: 5px; font-weight:bold;">חתימת המקבל</div>
+              <div style="border-top: 1px solid #000; text-align: center; padding-top: 5px; font-weight:bold;">${rtlFix('חתימת המקבל')}</div>
             </div>
           </div>
         `;
