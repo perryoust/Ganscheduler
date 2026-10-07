@@ -1035,11 +1035,18 @@ var CITY_COLORS=window.CITY_COLORS;
 
 // ─── Shared Helper: Render global makeups for a day (ignores filters) ───
 // ─── Shared Helper: Makeups are now handled within regular grouping logic ───
+window.isGlobalMakeup = function(s) {
+  if (s.st === 'can' || s.st === 'nohap' || s.st === 'post') return true;
+  if (s._postFrom || s.pd || s._isMakeup || s._makeupFrom) return true;
+  if (s.nt && s.nt.includes('השלמה נקבעה ל-')) return false;
+  if (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) return true;
+  if (s.n && /השלמה|הוקדם מ/i.test(s.n)) return true;
+  return false;
+};
+
 function renderMakeupsTop(ds, cityFilter='', clsFilter='', collapseAll=false){
   const f={city:cityFilter, cls:clsFilter};
-  const evs = (typeof filterE === 'function' ? filterE(f, ds, ds) : []).filter(s => {
-    return !!(s.st === 'can' || s.st === 'nohap' || s.st === 'post' || s._postFrom || s.pd || s._isMakeup || s._makeupFrom || (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) || (s.n && /השלמה|הוקדם מ/i.test(s.n)));
-  });
+  const evs = (typeof filterE === 'function' ? filterE(f, ds, ds) : []).filter(s => window.isGlobalMakeup(s));
   if(!evs.length) return '';
 
   // Group by city
@@ -2003,16 +2010,7 @@ function renderCalList(evs, mDate){
     h += renderMakeupsTop(ds, f.city, f.cls, true);
 
     // Group by city → sort cities
-    const isMakeupActivity = s => {
-      if (s._isMakeup) return true;
-      if (s._makeupFrom && s._makeupFrom !== s.d) return true;
-      if (s.nt && s.nt.includes('השלמה נקבעה ל-')) return false;
-      if (s.nt && /השלמה על|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) return true;
-      if (s.n && /השלמה על|הוקדם מ/i.test(s.n)) return true;
-      if (s.nt && !s.nt.includes('השלמה נקבעה ל-') && /השלמה/i.test(s.nt)) return true;
-      return false;
-    };
-    const dayEvsNonM = dayEvs.filter(s => !isMakeupActivity(s));
+    const dayEvsNonM = dayEvs.filter(s => !window.isGlobalMakeup(s));
     const allCities=[...new Set(dayEvsNonM.map(s=>window.G(s.g).city||'אחר'))].sort((a,b)=>a.localeCompare(b,'he'));
 
     allCities.forEach(city=>{
@@ -2715,16 +2713,7 @@ function renderRangeListView(evs, fromDs, toDs){
     h += '<div style="padding:6px 8px">';
     h += renderMakeupsTop(ds, f.city, f.cls, true);
 
-    const isMakeupActivity = s => {
-      if (s._isMakeup) return true;
-      if (s._makeupFrom && s._makeupFrom !== s.d) return true;
-      if (s.nt && s.nt.includes('השלמה נקבעה ל-')) return false;
-      if (s.nt && /השלמה על|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) return true;
-      if (s.n && /השלמה על|הוקדם מ/i.test(s.n)) return true;
-      if (s.nt && !s.nt.includes('השלמה נקבעה ל-') && /השלמה/i.test(s.nt)) return true;
-      return false;
-    };
-    const dayEvsNonM = dayEvs.filter(s => !isMakeupActivity(s));
+    const dayEvsNonM = dayEvs.filter(s => !window.isGlobalMakeup(s));
     const _gmode = _listGroupMode === 'clusters' ? 'window.clusters' : 'window.pairs';
     const isSingleDay = (fromDs === toDs);
     
