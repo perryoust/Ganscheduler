@@ -3348,6 +3348,7 @@ async function mobileQuickSync(){
   }
   _fbUpdateStatus();
 }
+window.mobileQuickSync = mobileQuickSync;
 
 // ── Invoice status multi-select filter ────────────────────────
 const PI_ST_KEY = 'pi_status_filter';
