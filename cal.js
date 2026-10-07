@@ -1036,9 +1036,9 @@ var CITY_COLORS=window.CITY_COLORS;
 // ─── Shared Helper: Render global makeups for a day (ignores filters) ───
 // ─── Shared Helper: Makeups are now handled within regular grouping logic ───
 window.isGlobalMakeup = function(s) {
+  if (s.nt && s.nt.includes('השלמה נקבעה ל-')) return false;
   if (s.st === 'can' || s.st === 'nohap' || s.st === 'post') return true;
   if (s._postFrom || s.pd || s._isMakeup || s._makeupFrom) return true;
-  if (s.nt && s.nt.includes('השלמה נקבעה ל-')) return false;
   if (s.nt && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(s.nt)) return true;
   if (s.n && /השלמה|הוקדם מ/i.test(s.n)) return true;
   return false;

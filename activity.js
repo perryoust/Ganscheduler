@@ -634,6 +634,7 @@ window.spRowStatusChg = async function(id, st) {
       ev.cr = '';
       ev.cn = '';
       ev._compByMakeup = '';
+      ev.pd = '';
       if(ev.nt) {
         ev.nt = ev.nt.split(' | ').filter(part => 
           !part.includes('לא התקיים:') && 
@@ -658,6 +659,7 @@ window.spRowStatusChg = async function(id, st) {
           pev.cr = '';
           pev.cn = '';
           pev._compByMakeup = '';
+          pev.pd = '';
           if(pev.nt) {
             pev.nt = pev.nt.split(' | ').filter(part => 
               !part.includes('לא התקיים:') && 
