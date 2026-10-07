@@ -1532,7 +1532,7 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   font-size: .71rem;
   opacity: 0;
   transition: opacity .4s;
-  z-index: 9999;
+  z-index: 999999;
   pointer-events: none;
 }
 #backup-ind.show {

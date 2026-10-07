@@ -430,7 +430,7 @@ async function saveToFirebase(silent = false, force = false) {
   _fbUpdateStatus();
 
   const _bi = document.getElementById('backup-ind');
-  if (_bi && !silent) { _bi.textContent = '⏳ שומר...'; _bi.classList.add('show'); }
+  if (_bi) { _bi.textContent = '⏳ שומר...'; _bi.classList.add('show'); }
 
   try {
     // Sanitize supplier names before save to prevent PUT 400 Bad Request
@@ -581,11 +581,11 @@ async function saveToFirebase(silent = false, force = false) {
     _setSyncState(newSeq, Date.now(), null, false);
     console.log('[Sync] Saved v' + newSeq + ' (split: ' + schedulesData.length + ' schedules, ' + Object.keys(suppliersData).length + ' suppliers)');
 
-    if (_bi && !silent) {
+    if (_bi) {
       _bi.textContent = '✅ נשמר';
       _bi.classList.add('show');
       clearTimeout(_bi._to);
-      _bi._to = setTimeout(() => _bi.classList.remove('show'), 1500);
+      _bi._to = setTimeout(() => _bi.classList.remove('show'), 2000);
     }
 
     // Trigger daily backup automatically on first save of the day
@@ -598,7 +598,7 @@ async function saveToFirebase(silent = false, force = false) {
   } catch (e) {
     _setSyncState(null, null, e.message, false);
     console.error('[Sync] Save failed:', e.message);
-    if (_bi && !silent) {
+    if (_bi) {
       _bi.textContent = '❌ שגיאה בשמירה';
       _bi.style.background = 'rgba(198,40,40,0.9)';
       _bi.classList.add('show');
@@ -984,6 +984,15 @@ window.save = saveToFirebase;
 window.load = loadFromFirebase;
 window.saveToFirebase = saveToFirebase;
 window.loadFromFirebase = loadFromFirebase;
+window.showBackupInd = function(text = '✅ נשמר', duration = 2000) {
+  const _bi = document.getElementById('backup-ind');
+  if (_bi) {
+    _bi.textContent = text;
+    _bi.classList.add('show');
+    clearTimeout(_bi._to);
+    _bi._to = setTimeout(() => _bi.classList.remove('show'), duration);
+  }
+};
 window._fbStartPolling = _fbStartPolling;
 window._fbStopPolling = _fbStopPolling;
 window.getFirebaseDbUrl = getFirebaseDbUrl;
