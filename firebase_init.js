@@ -217,13 +217,13 @@ onAuthStateChanged(auth, async (user) => {
       if (authOverlay) authOverlay.style.display = 'none';
       // Data must load first, then activate
       if (typeof window._onAuthReady === 'function') window._onAuthReady();
-      // Poll until GARDENS and SCH are loaded, then activate coordinator app
+      // Poll until GARDENS, SCH and Firebase sync are loaded, then activate coordinator app
       let _coordPollCount = 0;
       const _coordPoll = setInterval(() => {
         _coordPollCount++;
         const gardensReady = window.GARDENS && window.GARDENS.length > 0;
-        const schReady = window.SCH !== undefined;
-        if (gardensReady && schReady || _coordPollCount >= 20) {
+        const fbReady = window._fbSyncReady;
+        if ((gardensReady && fbReady) || _coordPollCount >= 25) {
           clearInterval(_coordPoll);
           if (typeof window.activateCoordinatorApp === 'function') {
             window.activateCoordinatorApp();

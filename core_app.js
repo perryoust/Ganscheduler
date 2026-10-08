@@ -42,7 +42,9 @@ window.onload = function(){
     if (window.role !== 'worker') {
       restoreMissingHolidays();
       syncSupplierList();
-      migratePairsFromAuto();
+      if (!window.CURRENT_YEAR || window.CURRENT_YEAR === 'tashpav') {
+        migratePairsFromAuto();
+      }
       migrateSupActSplit();
       importContactsFromGardens();
       migrateGardenPhones();
@@ -120,6 +122,14 @@ window.onload = function(){
         try{ refreshPurchDash(); }catch(e){}
         try{ renderPurchSuppliers(); }catch(e){}
         try{ renderInvoices(); }catch(e){}
+
+        // Coordinator view re-render with fresh year data & pairs!
+        if (typeof window.renderCoordinatorView === 'function') {
+          try {
+            if (typeof _coordBuildGardenFilter === 'function') _coordBuildGardenFilter();
+            window.renderCoordinatorView();
+          } catch(ce) { console.warn('renderCoordinatorView error:', ce); }
+        }
 
         // Pre-load purchasing data in the background so it's ready when user switches to purch mode
         if (typeof window.loadPurchasingDataFromFirebase === 'function') {

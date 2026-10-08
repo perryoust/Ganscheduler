@@ -401,6 +401,17 @@ function _applyYearData(o){
       ids: (p.ids || []).map(id => parseInt(id)).filter(id => !isNaN(id) && id > 0)
     }));
     window.pairs = window.pairs.filter(p => p.ids.length >= 2);
+    // Heal localStorage cache for active non-legacy year if present
+    if (window.CURRENT_YEAR && window.CURRENT_YEAR !== 'tashpav') {
+      try {
+        const curSt = _safeLS.getItem('ganv5_y_' + window.CURRENT_YEAR);
+        if (curSt) {
+          const curParsed = JSON.parse(curSt);
+          curParsed.pairs = window.pairs;
+          _safeLS.setItem('ganv5_y_' + window.CURRENT_YEAR, JSON.stringify(curParsed));
+        }
+      } catch(e){}
+    }
   } else if (!window.CURRENT_YEAR || window.CURRENT_YEAR === 'tashpav') {
     initPairs();
   } else {
@@ -606,12 +617,46 @@ function load(){
       st = _safeLS.getItem('ganv5');
     }
     if(!st && window._fbAppData) { _applyYearData(window._fbAppData); return; }
-    if(st){ _applyYearData(JSON.parse(st)); }
-    else { initPairs();window.clusters = JSON.parse(JSON.stringify(INIT_CLUSTERS));activeGardens = null; }
+    if(st){
+      try {
+        const parsed = JSON.parse(st);
+        // Safety: If current year is NOT tashpav, prevent legacy AUTOPAIRS from localStorage!
+        if (window.CURRENT_YEAR && window.CURRENT_YEAR !== 'tashpav' && Array.isArray(parsed.pairs)) {
+          const isLegacyAutopairs = parsed.pairs.some(p => {
+            const ids = (p.ids || []).map(Number);
+            return (ids.includes(9) && ids.includes(21)) || (ids.includes(17) && ids.includes(79) && ids.includes(115));
+          });
+          if (isLegacyAutopairs) {
+            console.warn('[load] Detected legacy AUTOPAIRS in localStorage for ' + window.CURRENT_YEAR + '. Clearing stale pairs.');
+            parsed.pairs = null;
+          }
+        }
+        _applyYearData(parsed);
+      } catch(parseErr) {
+        _applyYearData({});
+      }
+    }
+    else {
+      if (!window.CURRENT_YEAR || window.CURRENT_YEAR === 'tashpav') {
+        initPairs();
+      } else {
+        window.pairs = [];
+      }
+      window.clusters = JSON.parse(JSON.stringify(INIT_CLUSTERS));
+      activeGardens = null;
+    }
   }catch(e){
     console.warn('load() error:', e);
     if(window._fbAppData){ try{ _applyYearData(window._fbAppData); }catch(e2){} }
-    else { initPairs();window.clusters = JSON.parse(JSON.stringify(INIT_CLUSTERS));activeGardens = null; }
+    else {
+      if (!window.CURRENT_YEAR || window.CURRENT_YEAR === 'tashpav') {
+        initPairs();
+      } else {
+        window.pairs = [];
+      }
+      window.clusters = JSON.parse(JSON.stringify(INIT_CLUSTERS));
+      activeGardens = null;
+    }
   }
 }
 // ── migratePairsFromAuto — seeds AUTOPAIRS only on first-ever load ──
@@ -637,6 +682,8 @@ function migrateGardenPhones(){
 }
 
 function migratePairsFromAuto(){
+  // Strictly Tashpav only: never seed AUTOPAIRS into tashpaz or other years!
+  if (window.CURRENT_YEAR && window.CURRENT_YEAR !== 'tashpav') return;
   // NEVER overwrite pairs if Firebase is active, or if window.pairs already exists, or if current year storage exists
   if (window._fbUser || window._fbSyncReady) return;
   if (Array.isArray(window.pairs) && window.pairs.length > 0) return;
@@ -658,6 +705,11 @@ function migratePairsFromAuto(){
   console.log('Seeded pairs from AUTOPAIRS: '+pairs.length);
 }
 function resetPairsFromAuto(){
+  if (window.CURRENT_YEAR && window.CURRENT_YEAR !== 'tashpav') {
+    if (typeof _spAlertDialog === 'function') _spAlertDialog('⚠️ לא ניתן לאפס זוגות מהקבוע המובנה בשנה זו. ניהול הזוגות מתבצע בענן עבור שנת ' + (window.CURRENT_YEAR || 'tashpaz'));
+    else alert('לא ניתן לאפס זוגות בשנה זו.');
+    return;
+  }
   if(!confirm('האם לרענן את הזוגות מהרשימה המובנית?\nזה ימחק עריכות ידניות שביצעת.')) return;
   initPairs();
   save();

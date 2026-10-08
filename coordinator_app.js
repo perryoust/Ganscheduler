@@ -236,9 +236,67 @@ window.activateCoordinatorApp = function() {
   if (nameEl) nameEl.textContent = window._fbUser?.displayName || (window._fbUser?.email||'').replace('@ganmanager.app','') || 'רכז';
 
   _coordBuildGardenFilter();
-  window.renderCoordinatorView();
+  if (typeof window._coordEnsureYearPairs === 'function') {
+    window._coordEnsureYearPairs().then(() => {
+      window.renderCoordinatorView();
+    });
+  } else {
+    window.renderCoordinatorView();
+  }
   // Retry once after potential late SCH load
-  setTimeout(() => window.renderCoordinatorView(), 1200);
+  setTimeout(() => {
+    if (typeof window._coordEnsureYearPairs === 'function') window._coordEnsureYearPairs();
+    window.renderCoordinatorView();
+  }, 1200);
+};
+
+// ─────────────────────────────────────────────────────────
+// ENSURE CURRENT YEAR PAIRS
+// ─────────────────────────────────────────────────────────
+window._coordEnsureYearPairs = async function() {
+  const curY = window.CURRENT_YEAR || 'tashpaz';
+  const isLegacyAutopairs = Array.isArray(window.pairs) && window.pairs.some(p => {
+    const ids = (p.ids || []).map(Number);
+    return (ids.includes(9) && ids.includes(21)) || (ids.includes(17) && ids.includes(79) && ids.includes(115));
+  });
+
+  const needsSync = !Array.isArray(window.pairs) || 
+                    window.pairs.length === 0 || 
+                    (curY !== 'tashpav' && isLegacyAutopairs);
+
+  if (needsSync) {
+    if (window._fbAppData && window._fbAppData.pairs) {
+      const raw = window._fbAppData.pairs;
+      const arr = Array.isArray(raw) ? raw : Object.values(raw);
+      window.pairs = arr.map(p => ({
+        ...p,
+        ids: (p.ids || []).map(id => parseInt(id)).filter(id => !isNaN(id) && id > 0)
+      })).filter(p => p.ids.length >= 2);
+      console.log('[_coordEnsureYearPairs] Synced ' + window.pairs.length + ' pairs from _fbAppData for ' + curY);
+    } else {
+      try {
+        let tok = await window._fbUser?.getIdToken(false);
+        const authQ = tok ? '?auth=' + tok : '';
+        const base = typeof FB_ROOT !== 'undefined' ? FB_ROOT : 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
+        const url = (curY === 'tashpav') ? `${base}/data/pairs.json${authQ}` : `${base}/years/${curY}/config/pairs.json${authQ}${authQ ? '&' : '?'}cb=${Date.now()}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const cloudP = await res.json();
+          if (cloudP) {
+            const arr = Array.isArray(cloudP) ? cloudP : Object.values(cloudP);
+            window.pairs = arr.map(p => ({
+              ...p,
+              ids: (p.ids || []).map(id => parseInt(id)).filter(id => !isNaN(id) && id > 0)
+            })).filter(p => p.ids.length >= 2);
+            console.log('[_coordEnsureYearPairs] Directly loaded ' + window.pairs.length + ' pairs from Firebase for ' + curY);
+            if (typeof window.renderCoordinatorView === 'function') window.renderCoordinatorView();
+          }
+        }
+      } catch(e) {
+        console.warn('[_coordEnsureYearPairs] Error fetching pairs:', e);
+      }
+    }
+  }
 };
 
 // ─────────────────────────────────────────────────────────
@@ -572,7 +630,22 @@ function _coordRenderByCity(evs, ds) {
     } else {
       let prs = (typeof window.getPairs === 'function') ? window.getPairs(ds, ds) : (window.pairs || []);
       if (!prs || !prs.length) prs = window.pairs || [];
-      groupSource = (prs || []).map(p => ({ id: p.id, name: p.name, ids: (p.ids || []).map(Number) }));
+      const curY = window.CURRENT_YEAR || 'tashpaz';
+      if (curY !== 'tashpav' && prs.some(p => (p.ids||[]).includes(9) && (p.ids||[]).includes(21))) {
+        if (window._fbAppData && window._fbAppData.pairs) {
+          const raw = window._fbAppData.pairs;
+          prs = (Array.isArray(raw) ? raw : Object.values(raw)).map(p => ({
+            ...p,
+            ids: (p.ids || []).map(id => parseInt(id)).filter(id => !isNaN(id) && id > 0)
+          })).filter(p => p.ids.length >= 2);
+          window.pairs = prs;
+        }
+      }
+      groupSource = (prs || []).map(p => ({
+        id: p.id,
+        name: p.name || (p.ids || []).map(id => (window.G(id)||{}).name || '').filter(Boolean).join(' + '),
+        ids: (p.ids || []).map(Number)
+      }));
     }
 
     groupSource.forEach(grp => {
@@ -639,7 +712,10 @@ function _coordRenderByCity(evs, ds) {
 window.coordRefreshData = function() {
   window._coordFilterBuilt = false;
   if (window.loadFromFirebase) {
-    window.loadFromFirebase(false, true).then(() => {
+    window.loadFromFirebase(false, true).then(async () => {
+      if (typeof window._coordEnsureYearPairs === 'function') {
+        await window._coordEnsureYearPairs();
+      }
       _coordBuildGardenFilter();
       window.renderCoordinatorView();
       _coordToast('✅ נתונים עודכנו');
