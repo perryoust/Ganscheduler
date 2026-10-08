@@ -1881,17 +1881,44 @@ window.getSupplierGardenActivityInfo = function(gid, supName) {
   if (!supName) return '';
   const cleanSup = (window.supBase ? window.supBase(supName) : supName).trim().toLowerCase();
   const numGid = Number(gid);
-  const evs = (window.SCH || []).filter(s => {
-    if (Number(s.g) !== numGid) return false;
-    if (s.st === 'can') return false;
-    const aBase = (window.supBase ? window.supBase(s.a) : s.a || '').trim().toLowerCase();
-    return aBase === cleanSup || (s.a && s.a.toLowerCase().includes(cleanSup));
-  });
+  
+  const fFrom = window._fFrom || '';
+  const fTo = window._fTo || '';
+
+  let evs = [];
+  if (typeof getGardenFixedSched === 'function') {
+      const fixedEvs = getGardenFixedSched(numGid, fFrom, fTo);
+      evs = fixedEvs.filter(s => {
+          const aBase = (window.supBase ? window.supBase(s.a) : s.a || '').trim().toLowerCase();
+          return aBase === cleanSup || (s.a && s.a.toLowerCase().includes(cleanSup));
+      });
+  }
+
+  if (!evs.length) {
+      const rawEvs = (window.SCH || []).filter(s => {
+        if (Number(s.g) !== numGid) return false;
+        if (s.st === 'can') return false;
+        if (fFrom && s.d < fFrom) return false;
+        if (fTo && s.d > fTo) return false;
+        const aBase = (window.supBase ? window.supBase(s.a) : s.a || '').trim().toLowerCase();
+        return aBase === cleanSup || (s.a && s.a.toLowerCase().includes(cleanSup));
+      });
+      
+      const byDow = {};
+      rawEvs.forEach(s => {
+          const dt = new Date(s.d);
+          if (isNaN(dt.getDay())) return;
+          const key = dt.getDay() + '|' + (s.t || '').slice(0,5);
+          if (!byDow[key] || s.d > byDow[key].d) byDow[key] = s;
+      });
+      evs = Object.values(byDow);
+  }
+
   if (!evs.length) return '';
 
   const HEB_DAYS = ['א\'','ב\'','ג\'','ד\'','ה\'','ו\'','שבת'];
   const descs = new Set();
-  evs.slice(0, 5).forEach(s => {
+  evs.forEach(s => {
     let dStr = '';
     if (s.d) {
       const dt = new Date(s.d);
@@ -2924,6 +2951,7 @@ function getGardenFixedSched(gardenId, fromDate, toDate){
     return (a.t||'').localeCompare(b.t||'');
   });
 }
+window.getGardenFixedSched = getGardenFixedSched;
 
 function renderGardensFixed(){
   const cityF=(document.getElementById('g-city')||{}).value||'';
