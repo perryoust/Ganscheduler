@@ -193,8 +193,12 @@ window.activateCoordinatorApp = function() {
     s.innerHTML = `
       body { margin:0; padding:0; background:#f0f4f8; }
       /* ── Hide ALL action buttons inside card area, KEEP the +/- collapse button ── */
-      #coord-activities-list button:not([onclick*="getElementById"]) { display:none !important; }
+      #coord-activities-list button:not([onclick*="getElementById"]):not([onclick*="togglePairCard"]):not(.pair-collapse-btn) { display:none !important; }
       #coord-activities-list .cal-pair-bar { display:none !important; }
+      #coord-activities-list .card-hdr-row { cursor: pointer !important; min-height: 40px !important; user-select: none; }
+      #coord-activities-list .pair-collapse-btn { display: inline-flex !important; }
+      #coord-activities-list .tw { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      #coord-activities-list table { min-width: 100%; border-collapse: collapse; }
       /* ── Garden filter checkboxes ── */
       .coord-g-cb-label { display:flex; align-items:center; gap:6px; color:#fff; font-size:0.78rem; padding:3px 0; cursor:pointer; }
       .coord-g-city-hdr { color:rgba(255,255,255,0.7); font-size:0.7rem; font-weight:800; margin-top:8px; margin-bottom:2px; text-transform:uppercase; }
@@ -441,8 +445,8 @@ function _coordHideActionButtons(container) {
   if (!container) return;
   container.querySelectorAll('button').forEach(btn => {
     const oc = btn.getAttribute('onclick') || '';
-    // Keep the collapse (+/-) button which uses document.getElementById
-    if (oc.includes('getElementById')) return;
+    // Keep the collapse (+/-) button which uses togglePairCard, getElementById, or has pair-collapse-btn class
+    if (oc.includes('togglePairCard') || oc.includes('getElementById') || btn.classList.contains('pair-collapse-btn')) return;
     // Hide all other action buttons
     btn.style.setProperty('display','none','important');
   });

@@ -259,7 +259,7 @@ window.ui = {
     const defaultClosed = !!opts.isCluster;
     const defaultIcon = defaultClosed ? '+' : '-';
     const defaultDisplay = defaultClosed ? 'none' : 'block';
-    const collapseBtn = `<button class="btn bo bsm" onclick="event.stopPropagation(); const t = document.getElementById('${toggleId}'); const icon = this.querySelector('span'); if(t.style.display==='none'){t.style.display='block';icon.textContent='-';}else{t.style.display='none';icon.textContent='+';}" style="font-size:1.1rem !important; height:24px !important; min-height:24px !important; width:24px !important; padding:0 !important; border:1px solid ${clr.solid} !important; background:#fff !important; color:${clr.solid} !important; font-weight:700 !important; border-radius:4px !important; display:inline-flex !important; align-items:center !important; justify-content:center !important;" title="פתח/סגור תצוגה"><span style="font-family:monospace;font-weight:bold;line-height:1;margin-top:-2px">${defaultIcon}</span></button>`;
+    const collapseBtn = `<button class="btn bo bsm pair-collapse-btn" onclick="window.togglePairCard('${toggleId}', this.closest('.card-hdr-row'), event)" style="font-size:1.1rem !important; height:28px !important; min-height:28px !important; width:28px !important; padding:0 !important; border:1px solid ${clr.solid} !important; background:#fff !important; color:${clr.solid} !important; font-weight:700 !important; border-radius:4px !important; display:inline-flex !important; align-items:center !important; justify-content:center !important; cursor:pointer;" title="פתח/סגור תצוגה"><span style="font-family:monospace;font-weight:bold;line-height:1;margin-top:-2px">${defaultIcon}</span></button>`;
     
     const weekBtn = `<button class="btn bo bsm" style="font-size:0.65rem !important; height:24px !important; min-height:24px !important; line-height:22px !important; padding:0 6px !important; border:1px solid #1e88e5 !important; background:#fff !important; color:#1e88e5 !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important;" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','week','${isSolo ? gids[0] : ''}')">📅 שבוע</button>`;
     const monthBtn = `<button class="btn bo bsm" style="font-size:0.65rem !important; height:24px !important; min-height:24px !important; line-height:22px !important; padding:0 6px !important; border:1px solid #1e88e5 !important; background:#fff !important; color:#1e88e5 !important; font-weight:700 !important; border-radius:4px !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:2px !important;" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','month','${isSolo ? gids[0] : ''}')">📅 חודש</button>`;
@@ -349,20 +349,20 @@ window.ui = {
 
     return `
     <div class="card standard-pair-card" style="border-top:3px solid ${clr.solid}; padding:0; border-radius:6px; overflow:hidden; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,0.03); border:1px solid #e2e8f0; border-top-width:3px; margin-bottom:6px !important">
-      <div class="flex-c gap-8" style="background:${clr.light}; border-bottom:1px solid #e2e8f0; padding:4px 8px !important; min-height:30px !important; align-items:center !important">
-          <div style="display:flex; align-items:center; gap:8px;">
+      <div class="flex-c gap-8 card-hdr-row" onclick="window.togglePairCard('${toggleId}', this, event)" style="background:${clr.light}; border-bottom:1px solid #e2e8f0; padding:6px 10px !important; min-height:36px !important; align-items:center !important; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">
+          <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
             ${!isSolo ? collapseBtn : ''}
-            <div style="width:24px; height:24px; border-radius:50%; background:${clr.solid}; color:#fff; display:flex; justify-content:center; align-items:center; font-size:0.8rem;">
+            <div style="width:24px; height:24px; border-radius:50%; background:${clr.solid}; color:#fff; display:flex; justify-content:center; align-items:center; font-size:0.8rem; flex-shrink:0;">
               <i class="fas ${opts.isCluster ? 'fa-layer-group' : 'fa-link'}"></i>
             </div>
-            <h3 style="margin:0; font-size:0.85rem; font-weight:700; color:${clr.solid};">${pair.name || ''}${clusterSuffix}</h3>
+            <h3 style="margin:0; font-size:0.85rem; font-weight:700; color:${clr.solid}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${pair.name || ''}${clusterSuffix}</h3>
           </div>
-        <div class="flex-c gap-6 mr-auto" style="align-items:center !important">
+        <div class="flex-c gap-6 mr-auto" style="align-items:center !important; flex-shrink:0;">
           ${editBtn} ${weekBtn} ${monthBtn} ${expBtn}
         </div>
       </div>
       <div id="${toggleId}" class="tw overflow-auto" style="display:${defaultDisplay}">
-        <table class="w-full" style="border-collapse:collapse; font-size:var(--fs-small)">
+        <table class="w-full" style="border-collapse:collapse; font-size:var(--fs-small); width:100%;">
           <thead>
           <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0; color:#64748b; font-weight:700; font-size:var(--fs-small)">
               ${context === 'dash' ? '<th style="width:35px; text-align:center; padding:10px"></th>' : ''}
@@ -383,6 +383,26 @@ window.ui = {
         </table>
       </div>
     </div>`;
+  }
+window.togglePairCard = function(toggleId, headerEl, evt) {
+  if (evt) {
+    const target = evt.target;
+    if (target) {
+      const tag = target.tagName ? target.tagName.toLowerCase() : '';
+      if (tag === 'button' || tag === 'a' || target.closest('button')) {
+        return; // Don't collapse if clicking inner action buttons
+      }
+    }
+    if (typeof evt.stopPropagation === 'function') evt.stopPropagation();
+  }
+  const t = document.getElementById(toggleId);
+  if (!t) return;
+  const isHidden = t.style.display === 'none' || getComputedStyle(t).display === 'none';
+  t.style.display = isHidden ? 'block' : 'none';
+  
+  const icon = headerEl ? headerEl.querySelector('.pair-collapse-btn span') : null;
+  if (icon) {
+    icon.textContent = isHidden ? '-' : '+';
   }
 };
 
