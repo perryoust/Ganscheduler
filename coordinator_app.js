@@ -137,14 +137,14 @@ window.initCoordinatorApp = function() {
         </div>
         <!-- View toggles -->
         <div style="display:flex;justify-content:center;gap:6px;padding-bottom:8px;flex-wrap:wrap">
-          <div style="display:flex;gap:3px;background:rgba(0,0,0,0.2);border-radius:8px;padding:3px">
-            <button class="coord-view-btn" data-v="day"   onclick="window.coordSetView('day',this)"   style="background:rgba(255,255,255,0.25);border:none;border-radius:6px;padding:5px 12px;color:#fff;cursor:pointer;font-size:0.78rem;font-weight:700">יומי</button>
-            <button class="coord-view-btn" data-v="week"  onclick="window.coordSetView('week',this)"  style="background:transparent;border:none;border-radius:6px;padding:5px 12px;color:rgba(255,255,255,0.6);cursor:pointer;font-size:0.78rem">שבועי</button>
-            <button class="coord-view-btn" data-v="month" onclick="window.coordSetView('month',this)" style="background:transparent;border:none;border-radius:6px;padding:5px 12px;color:rgba(255,255,255,0.6);cursor:pointer;font-size:0.78rem">חודשי</button>
+          <div style="display:flex;gap:4px;background:rgba(0,0,0,0.25);border-radius:8px;padding:4px">
+            <button class="coord-view-btn active" data-v="day"   onclick="window.coordSetView('day',this)"   style="background:rgba(255,255,255,0.35);border:none;border-radius:6px;padding:6px 14px;color:#fff;cursor:pointer;font-size:0.82rem;font-weight:800;min-height:36px;touch-action:manipulation;">יומי</button>
+            <button class="coord-view-btn" data-v="week"  onclick="window.coordSetView('week',this)"  style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.82rem;min-height:36px;touch-action:manipulation;">שבועי</button>
+            <button class="coord-view-btn" data-v="month" onclick="window.coordSetView('month',this)" style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.82rem;min-height:36px;touch-action:manipulation;">חודשי</button>
           </div>
-          <div style="display:flex;gap:3px;background:rgba(0,0,0,0.2);border-radius:8px;padding:3px">
-            <button class="coord-grp-btn" data-g="pairs"    onclick="window.coordSetGroup('pairs',this)"    style="background:rgba(255,255,255,0.25);border:none;border-radius:6px;padding:5px 12px;color:#fff;cursor:pointer;font-size:0.78rem;font-weight:700">👫 זוגות</button>
-            <button class="coord-grp-btn" data-g="clusters" onclick="window.coordSetGroup('clusters',this)" style="background:transparent;border:none;border-radius:6px;padding:5px 12px;color:rgba(255,255,255,0.6);cursor:pointer;font-size:0.78rem">🏘️ אשכולות</button>
+          <div style="display:flex;gap:4px;background:rgba(0,0,0,0.25);border-radius:8px;padding:4px">
+            <button class="coord-grp-btn active" data-g="pairs"    onclick="window.coordSetGroup('pairs',this)"    style="background:rgba(255,255,255,0.35);border:none;border-radius:6px;padding:6px 14px;color:#fff;cursor:pointer;font-size:0.82rem;font-weight:800;min-height:36px;touch-action:manipulation;">👫 זוגות</button>
+            <button class="coord-grp-btn" data-g="clusters" onclick="window.coordSetGroup('clusters',this)" style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.82rem;min-height:36px;touch-action:manipulation;">🏘️ אשכולות</button>
           </div>
         </div>
         <!-- Garden multi-select filter -->
@@ -289,26 +289,45 @@ window.coordClearFilter = function() {
 // VIEW / GROUP TOGGLES
 // ─────────────────────────────────────────────────────────
 window.coordSetView = function(v, btn) {
-  window._coordView = v;
-  document.querySelectorAll('.coord-view-btn').forEach(b => {
-    b.classList.remove('active');
-    b.style.background = 'transparent';
-    b.style.color = 'rgba(255,255,255,0.6)';
-    b.style.fontWeight = '';
-  });
-  if (btn) { btn.classList.add('active'); btn.style.background='rgba(255,255,255,0.25)'; btn.style.color='#fff'; btn.style.fontWeight='800'; }
-  window.renderCoordinatorView();
+  try {
+    window._coordView = v;
+    document.querySelectorAll('.coord-view-btn').forEach(b => {
+      const isThis = (btn && b === btn) || b.dataset.v === v;
+      if (isThis) {
+        b.classList.add('active');
+        b.style.background = 'rgba(255,255,255,0.35)';
+        b.style.color = '#ffffff';
+        b.style.fontWeight = '800';
+      } else {
+        b.classList.remove('active');
+        b.style.background = 'transparent';
+        b.style.color = 'rgba(255,255,255,0.65)';
+        b.style.fontWeight = '400';
+      }
+    });
+    window.renderCoordinatorView();
+  } catch(e) { console.error('coordSetView error:', e); }
 };
 
 window.coordSetGroup = function(g, btn) {
-  window._coordGroupMode = g;
-  document.querySelectorAll('.coord-grp-btn').forEach(b => {
-    b.classList.remove('active');
-    b.style.background = 'transparent';
-    b.style.color = 'rgba(255,255,255,0.6)';
-  });
-  if (btn) { btn.classList.add('active'); btn.style.background='rgba(255,255,255,0.25)'; btn.style.color='#fff'; }
-  window.renderCoordinatorView();
+  try {
+    window._coordGroupMode = g;
+    document.querySelectorAll('.coord-grp-btn').forEach(b => {
+      const isThis = (btn && b === btn) || b.dataset.g === g;
+      if (isThis) {
+        b.classList.add('active');
+        b.style.background = 'rgba(255,255,255,0.35)';
+        b.style.color = '#ffffff';
+        b.style.fontWeight = '800';
+      } else {
+        b.classList.remove('active');
+        b.style.background = 'transparent';
+        b.style.color = 'rgba(255,255,255,0.65)';
+        b.style.fontWeight = '400';
+      }
+    });
+    window.renderCoordinatorView();
+  } catch(e) { console.error('coordSetGroup error:', e); }
 };
 
 // ─────────────────────────────────────────────────────────
