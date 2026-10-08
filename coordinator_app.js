@@ -57,6 +57,23 @@ window.getCoordAllowedGardenIds = function() {
 // SCH SWAP — temporarily replace window.SCH with filtered subset
 // Ensures cal.js renderMakeupsTop etc. see only coordinator's events
 // ─────────────────────────────────────────────────────────
+function _normDs(dStr) {
+  if (!dStr) return '';
+  let str = String(dStr).trim();
+  if (str.includes('/')) {
+    const parts = str.split('/');
+    if (parts.length === 3) {
+      if (parts[0].length === 4) return `${parts[0]}-${String(parts[1]).padStart(2,'0')}-${String(parts[2]).padStart(2,'0')}`;
+      return `${parts[2]}-${String(parts[1]).padStart(2,'0')}-${String(parts[0]).padStart(2,'0')}`;
+    }
+  }
+  const parts = str.split('-');
+  if (parts.length === 3) {
+    return `${parts[0]}-${String(parts[1]).padStart(2,'0')}-${String(parts[2]).padStart(2,'0')}`;
+  }
+  return str;
+}
+
 function _withCoordSCH(fn) {
   const allowed    = window.getCoordAllowedGardenIds();
   const gidFilter  = _getCoordGidFilter(); // checked garden IDs (null = all allowed)
@@ -66,12 +83,8 @@ function _withCoordSCH(fn) {
     if (gidFilter && !gidFilter.has(gid)) return false;
     return true;
   }).map(s => {
-    // Normalize date format to YYYY-MM-DD (zero-padded)
-    if (s.d && s.d.length < 10) {
-      const parts = s.d.split('-');
-      if (parts.length === 3) {
-        s = { ...s, d: `${parts[0]}-${String(parts[1]).padStart(2,'0')}-${String(parts[2]).padStart(2,'0')}` };
-      }
+    if (s.d) {
+      s = { ...s, d: _normDs(s.d) };
     }
     return s;
   });
@@ -488,8 +501,17 @@ window.jumpToDay = function(ds) {
 };
 
 function _coordFallbackDay(evs, ds) {
-  const dayEvs = evs.filter(s => s.d === ds);
-  if (!dayEvs.length) return '<div style="text-align:center;padding:30px;color:#888">אין שיבוצים</div>';
+  const normTarget = _normDs(ds);
+  const dayEvs = evs.filter(s => _normDs(s.d) === normTarget);
+  if (!dayEvs.length) {
+    const d = _cs2d(ds);
+    const dStr = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+    return `<div style="background:#fff;border-radius:10px;padding:24px 16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:10px 0;">
+      <div style="font-size:1.8rem;margin-bottom:8px">📅</div>
+      <div style="font-weight:700;font-size:0.95rem;color:#1e293b;margin-bottom:6px">אין פעילויות רשומות בתאריך ${dStr} (${_DAYS_HE[d.getDay()]})</div>
+      <div style="font-size:0.8rem;color:#64748b">ניתן לעבור ליום אחר בעזרת החצים (▶ ◀) או לעבור לתצוגה <b>שבועית</b> / <b>חודשית</b> סביב תאריך זה.</div>
+    </div>`;
+  }
   return _coordRenderByCity(dayEvs, ds);
 }
 function _coordFallbackWeek(evs, cd) {
@@ -497,19 +519,28 @@ function _coordFallbackWeek(evs, cd) {
   for (let i=0; i<7; i++) {
     const d = new Date(cd); d.setDate(cd.getDate()-cd.getDay()+i);
     const ds = _cd2s(d);
-    const dayEvs = evs.filter(s=>s.d===ds);
+    const normTarget = _normDs(ds);
+    const dayEvs = evs.filter(s => _normDs(s.d) === normTarget);
     if (!dayEvs.length) continue;
-    h += `<div style="margin-bottom:14px"><div style="background:#1565c0;color:#fff;padding:7px 12px;border-radius:8px 8px 0 0;font-weight:800">${_DAYS_HE[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}</div>${_coordRenderByCity(dayEvs, ds)}</div>`;
+    h += `<div style="margin-bottom:14px"><div style="background:#1565c0;color:#fff;padding:7px 12px;border-radius:8px 8px 0 0;font-weight:800">📅 ${_DAYS_HE[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}</div>${_coordRenderByCity(dayEvs, ds)}</div>`;
   }
-  return h || '<div style="text-align:center;padding:30px;color:#888">אין שיבוצים בשבוע זה</div>';
+  return h || `<div style="background:#fff;border-radius:10px;padding:24px 16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:10px 0;">
+    <div style="font-size:1.8rem;margin-bottom:8px">📅</div>
+    <div style="font-weight:700;font-size:0.95rem;color:#1e293b;margin-bottom:6px">אין פעילויות בשבוע זה</div>
+    <div style="font-size:0.8rem;color:#64748b">ניתן להשתמש בחצים (▶ ◀) על מנת לעבור לשבועות אחרים.</div>
+  </div>`;
 }
 function _coordFallbackMonth(evs, cd) {
   const byDate = {};
-  evs.forEach(s => { const sd=s.d||''; if(!byDate[sd])byDate[sd]=[]; byDate[sd].push(s); });
+  evs.forEach(s => { const sd = _normDs(s.d); if(!byDate[sd]) byDate[sd]=[]; byDate[sd].push(s); });
   return Object.keys(byDate).sort().map(ds => {
     const d = _cs2d(ds);
-    return `<div style="margin-bottom:14px"><div style="background:#1a5276;color:#fff;padding:7px 12px;border-radius:8px 8px 0 0;font-weight:800">${_DAYS_HE[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}</div>${_coordRenderByCity(byDate[ds], ds)}</div>`;
-  }).join('') || '<div style="text-align:center;padding:30px;color:#888">אין שיבוצים</div>';
+    return `<div style="margin-bottom:14px"><div style="background:#1a5276;color:#fff;padding:7px 12px;border-radius:8px 8px 0 0;font-weight:800">📅 ${_DAYS_HE[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}</div>${_coordRenderByCity(byDate[ds], ds)}</div>`;
+  }).join('') || `<div style="background:#fff;border-radius:10px;padding:24px 16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:10px 0;">
+    <div style="font-size:1.8rem;margin-bottom:8px">📅</div>
+    <div style="font-weight:700;font-size:0.95rem;color:#1e293b;margin-bottom:6px">אין פעילויות בחודש זה</div>
+    <div style="font-size:0.8rem;color:#64748b">ניתן להשתמש בחצים (▶ ◀) על מנת לעבור לחודשים אחרים.</div>
+  </div>`;
 }
 function _coordRenderByCity(evs, ds) {
   const allGardens = [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
