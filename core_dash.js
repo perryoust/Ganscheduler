@@ -1907,13 +1907,22 @@ window.getSupplierGardenActivityInfo = function(gid, supName) {
       rawEvs.forEach(s => {
           const dt = new Date(s.d);
           if (isNaN(dt.getDay())) return;
-          const key = dt.getDay(); // Strict deduplication by Day of Week
+          const key = dt.getDay() + '|' + (s.t || '').slice(0,5); // Use Day+Time to group properly
           if (!byDow[key] || s.d > byDow[key].d) byDow[key] = s;
       });
       evs = Object.values(byDow);
   }
 
   if (!evs.length) return '';
+
+  // Filter out old/inactive schedules: only keep events whose latest date is close to the absolute latest date
+  let maxTime = 0;
+  evs.forEach(s => {
+      const t = new Date(s.d).getTime();
+      if (t > maxTime) maxTime = t;
+  });
+  // Keep if within ~60 days of the latest known event for this supplier/garden (handles legitimate multi-day)
+  evs = evs.filter(s => new Date(s.d).getTime() >= maxTime - (60 * 86400000));
 
   const HEB_DAYS = ['א\'','ב\'','ג\'','ד\'','ה\'','ו\'','שבת'];
   const descs = new Set();
