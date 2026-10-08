@@ -376,11 +376,14 @@ async function _exportPDF(htmlContent, filename, month) {
     @media print {
       body { margin: 0; padding: 0; background: #fff; }
       .vp-page { 
+        width: 100%;
+        height: 98vh;
         break-after: page; 
         page-break-after: always; 
         margin: 0; 
-        padding: 10mm 12mm; 
-        height: 100vh;
+        padding: 6mm 8mm; 
+        box-sizing: border-box;
+        overflow: hidden;
       }
       .vp-page:last-child { 
         break-after: auto; 
