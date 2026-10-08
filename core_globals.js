@@ -284,13 +284,27 @@ window.ui = {
         const g = window.G(gid);
         if(!g) return;
         const gblk = ds ? window.getGardenBlock(gid, ds) : null;
-        tableRows += `
-          <tr style="border-bottom:1px solid #f1f5f9; background:${gblk ? '#fff5f5' : '#fff'}; opacity:0.8; cursor:pointer" onclick="${ds ? `window.openGcellPopup(${gid},'${ds}',event)` : ''}">
-            <td style="padding:10px; font-weight:700; color:var(--c-primary)">🏫 ${g.name}</td>
-            <td colspan="7" style="padding:10px; font-size:0.7rem; color:${gblk ? '#c62828' : '#94a3b8'}">
-              ${gblk ? `${gblk.icon || '🚫'} ${gblk.reason}` : 'אין פעילות רשומה ביום זה'}
-            </td>
-          </tr>`;
+        if (window.isMobileMode()) {
+          tableRows += `
+            <div class="mob-act-card" style="background:${gblk ? '#fff5f5' : '#f8fafc'}; opacity:0.8; cursor:pointer" onclick="${ds ? `window.openGcellPopup(${gid},'${ds}',event)` : ''}">
+              <div class="mob-act-hdr" style="justify-content:space-between">
+                <span class="mob-act-garden" style="color:var(--c-primary);font-weight:700">🏫 ${g.name}</span>
+              </div>
+              <div class="mob-act-body">
+                <div style="grid-column: span 2; font-size:0.7rem; color:${gblk ? '#c62828' : '#94a3b8'}">
+                  ${gblk ? `${gblk.icon || '🚫'} ${gblk.reason}` : 'אין פעילות רשומה ביום זה'}
+                </div>
+              </div>
+            </div>`;
+        } else {
+          tableRows += `
+            <tr style="border-bottom:1px solid #f1f5f9; background:${gblk ? '#fff5f5' : '#fff'}; opacity:0.8; cursor:pointer" onclick="${ds ? `window.openGcellPopup(${gid},'${ds}',event)` : ''}">
+              <td style="padding:10px; font-weight:700; color:var(--c-primary)">🏫 ${g.name}</td>
+              <td colspan="7" style="padding:10px; font-size:0.7rem; color:${gblk ? '#c62828' : '#94a3b8'}">
+                ${gblk ? `${gblk.icon || '🚫'} ${gblk.reason}` : 'אין פעילות רשומה ביום זה'}
+              </td>
+            </tr>`;
+        }
       });
     } else {
       const cancellations = sortedEvs.filter(s => s.st === 'can' || s.st === 'nohap' || s.st === 'post');
@@ -387,13 +401,15 @@ window.ui = {
       </div>
     </div>`;
   }
+};
+
 window.togglePairCard = function(toggleId, headerEl, evt) {
   if (evt) {
     const target = evt.target;
     if (target) {
       const tag = target.tagName ? target.tagName.toLowerCase() : '';
-      if (tag === 'button' || tag === 'a' || target.closest('button')) {
-        return; // Don't collapse if clicking inner action buttons
+      if ((tag === 'button' || tag === 'a' || target.closest('button')) && !target.closest('.pair-collapse-btn')) {
+        return; // Don't collapse if clicking inner action buttons (but allow the collapse button itself)
       }
     }
     if (typeof evt.stopPropagation === 'function') evt.stopPropagation();
