@@ -1921,8 +1921,8 @@ window.getSupplierGardenActivityInfo = function(gid, supName) {
       const t = new Date(s.d).getTime();
       if (t > maxTime) maxTime = t;
   });
-  // Keep if within ~60 days of the latest known event for this supplier/garden (handles legitimate multi-day)
-  evs = evs.filter(s => new Date(s.d).getTime() >= maxTime - (60 * 86400000));
+  // Keep if within 14 days of the latest known event for this supplier/garden (handles legitimate multi-day but drops dead series)
+  evs = evs.filter(s => new Date(s.d).getTime() >= maxTime - (14 * 86400000));
 
   const HEB_DAYS = ['א\'','ב\'','ג\'','ד\'','ה\'','ו\'','שבת'];
   const descs = new Set();
