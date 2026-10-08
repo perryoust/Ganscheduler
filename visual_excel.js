@@ -218,7 +218,8 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       const isCamp = hol && (hol.type === 'camp' || hol.label === 'קייטנה' || hol.canSched);
       const isHoliday = hol && !isCamp;
 
-      const dayEvs = gEvs.filter(e => e.d === dateStr && (!e.st || e.st === 'ok')).sort((a,b) => (a.t||'').localeCompare(b.t||''));
+      const currentDow = new Date(dateStr).getDay();
+      const dayEvs = fixedSched.filter(fs => new Date(fs.d).getDay() === currentDow).sort((a,b) => (a.t||'').localeCompare(b.t||''));
 
       let cellContent = '';
       let cellClass = 'vp-day-cell';
