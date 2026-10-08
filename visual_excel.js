@@ -692,45 +692,6 @@ function _getStyles(month) {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
-      /* Print B&W Overrides */
-      .vp-header { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; }
-      .vp-header-sub, .vp-month-badge { color: #000 !important; border: 2px solid #000 !important; background: #fff !important; }
-      .vp-garden-bar { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; }
-      .vp-garden-name, .vp-mgr-line { color: #000 !important; font-weight: 800 !important; }
-      
-      .vp-activity-card { border: 2px solid #000 !important; border-right: 6px solid #000 !important; background: #fff !important; }
-      .vp-card-badge { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; border-top: none !important; font-weight: 800 !important; }
-      .vp-activity-card h3, .vp-activity-card p { color: #000 !important; }
-      
-      .vp-legend-dot { background: #fff !important; border: 2px solid #000 !important; }
-      .vp-legend { color: #000 !important; font-weight: 800 !important; }
-      
-      .vp-calendar-container { border: 2px solid #000 !important; border-radius: 0 !important; }
-      .vp-days-header { background: #fff !important; color: #000 !important; border-bottom: 2px solid #000 !important; border-top: none !important; border-left: none !important; border-right: none !important; }
-      .vp-days-header > div { border-left: 2px solid #000 !important; }
-      .vp-days-header > div:last-child { border-left: none !important; }
-      
-      .vp-calendar-body { background: transparent !important; }
-      .vp-calendar-row { gap: 0 !important; border-bottom: 2px solid #000 !important; }
-      .vp-calendar-row:last-child { border-bottom: none !important; }
-      .vp-day-cell { border-left: 2px solid #000 !important; }
-      .vp-day-cell:last-child { border-left: none !important; }
-      
-      .vp-day-empty { background: #f8fafc !important; }
-      .vp-day-holiday { background: #f1f5f9 !important; }
-      .vp-day-camp { background: #e2e8f0 !important; }
-      .vp-day-header-row { color: #000 !important; border-bottom: 2px solid #000 !important; }
-      .vp-day-date, .vp-day-event-text { color: #000 !important; }
-      
-      .vp-event-pill { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; }
-      .vp-event-holiday { background: #e2e8f0 !important; color: #000 !important; border: 2px solid #000 !important; }
-      .vp-holiday-text, .vp-camp-text { color: #000 !important; }
-      
-      .vp-footer { 
-        background: #f1f5f9 !important; 
-        color: #000 !important; 
-        border: 2px solid #000 !important; 
-      }
     }
   </style>`,
     watermarkSVG: watermarkSVG
