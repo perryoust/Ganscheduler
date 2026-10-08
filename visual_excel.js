@@ -15,7 +15,7 @@ window.doVisualExcelExport = async function() {
   const mode = modeNode.value;
   const cityFilter = document.getElementById('exp-city').value;
   const mgrFilter = document.getElementById('exp-mgr').value;
-  const gardenFilter = parseInt(document.getElementById('exp-garden').value) || 0;
+  const gardenFilters = Array.from(document.querySelectorAll('input[name="exp-garden-cb"]:checked')).map(cb => parseInt(cb.value));
   
   const allGardensSource = typeof AG === 'function' ? AG() : (typeof getAllGardens === 'function' ? getAllGardens() : window.GARDENS || []);
   
@@ -37,7 +37,7 @@ window.doVisualExcelExport = async function() {
       });
     }
   } else if (mode === 'garden') {
-    if (gardenFilter) gList = gList.filter(g => g.id === gardenFilter);
+    if (gardenFilters.length > 0) gList = gList.filter(g => gardenFilters.includes(Number(g.id)));
   }
 
   if (gList.length === 0) { window.spAlert("לא נבחרו גנים לייצוא"); return; }

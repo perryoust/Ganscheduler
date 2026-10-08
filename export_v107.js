@@ -12,13 +12,22 @@ function openMonthlyExport(){
   mgrSel.innerHTML='<option value="">-- כל הרכזים --</option>';
   Object.values(window.managers).forEach(mg=>{ const o=document.createElement('option');o.value=mg.id;o.textContent=mg.name;mgrSel.appendChild(o); });
   // Gardens
-  const ganSel=document.getElementById('exp-garden');
-  ganSel.innerHTML='<option value="">-- בחר צהרון --</option>';
-  const rawGans = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
-  const map = new Map();
-  rawGans.forEach(g => map.set(g.id, g));
-  const allGans = Array.from(map.values()).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
-  allGans.forEach(g=>{ const o=document.createElement('option');o.value=g.id;o.textContent=`${g.name} (${g.city})`;ganSel.appendChild(o); });
+  const ganListDiv=document.getElementById('exp-garden-list');
+  if (ganListDiv) {
+    ganListDiv.innerHTML='';
+    const rawGans = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+    const map = new Map();
+    rawGans.forEach(g => map.set(g.id, g));
+    const allGans = Array.from(map.values()).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
+    allGans.forEach(g=>{ 
+      const lbl = document.createElement('label');
+      lbl.style.display = 'block';
+      lbl.style.marginBottom = '6px';
+      lbl.style.cursor = 'pointer';
+      lbl.innerHTML = `<input type="checkbox" name="exp-garden-cb" value="${g.id}" style="margin-left:8px; width:16px; height:16px; vertical-align:middle;"> <span style="vertical-align:middle;">${g.name} (${g.city})</span>`;
+      ganListDiv.appendChild(lbl);
+    });
+  }
   document.getElementById('export-m').classList.add('open');
 }
 
@@ -45,7 +54,7 @@ async function doMonthlyExport(){
   const mode=document.querySelector('input[name="exp-mode"]:checked').value;
   const cityFilter=document.getElementById('exp-city').value;
   const mgrFilter=document.getElementById('exp-mgr').value;
-  const gardenFilter=parseInt(document.getElementById('exp-garden').value)||0;
+  const gardenFilters=Array.from(document.querySelectorAll('input[name="exp-garden-cb"]:checked')).map(cb=>parseInt(cb.value));
   const splitBy=document.getElementById('exp-split').value;
 
   const [fy,fm]=fromM.split('-').map(Number);
@@ -59,7 +68,7 @@ async function doMonthlyExport(){
   let gList = Array.from(gMap.values()).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
   if(mode==='city'&&cityFilter)   gList=gList.filter(g=>g.city===cityFilter);
   if(mode==='manager'&&mgrFilter){ const mgrObj=window.managers[mgrFilter]; if(mgrObj?.gardenIds) gList=gList.filter(g=>mgrObj.gardenIds.includes(g.id)); }
-  if(mode==='garden'){ if(!gardenFilter){ window.spAlert('יש לבחור צהרון מהרשימה'); return; } gList=gList.filter(g=>g.id===gardenFilter); }
+  if(mode==='garden'){ if(gardenFilters.length===0){ window.spAlert('יש לבחור צהרון מהרשימה'); return; } gList=gList.filter(g=>gardenFilters.includes(Number(g.id))); }
 
   // For single-garden mode: always export as one file
   const effectiveSplit = (mode==='garden') ? 'garden' : splitBy;

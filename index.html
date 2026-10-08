@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 112.80</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 112.81</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="icon" type="image/png" href="icon-192.png" />
@@ -21,12 +21,12 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=112.80" />
+  <link rel="stylesheet" href="styles.css?v=112.81" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '112.80';
+    window.APP_VERSION = '112.81';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -1131,10 +1131,10 @@
         </div>
 
         <div id="exp-garden-wrap" class="fg" style="margin-bottom:10px;display:none">
-          <label>🚀 בחר גן</label>
-          <select id="exp-garden" style="width:100%">
-            <option value="">-- בחר צהרון --</option>
-          </select>
+          <label>🚀 בחר גנים (ניתן לסמן מרובים)</label>
+          <div id="exp-garden-list" style="max-height: 150px; overflow-y: auto; border: 1px solid rgba(0,0,0,0.1); padding: 8px; border-radius: 6px; background: #fff; font-size: 14px;">
+            <!-- Checkboxes will be populated here -->
+          </div>
         </div>
 
         <div class="fg" style="margin-bottom:14px">
