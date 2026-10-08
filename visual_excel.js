@@ -71,7 +71,7 @@ window.doVisualExcelExport = async function() {
         const gEvs = allEvs.filter(s => s.g === g.id);
         if (!gEvs.length) continue;
         const html = _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones);
-        await _exportPDF(html, `לוח_מעוצב_${g.name}_${fromM}.pdf`, month);
+        await _exportPDF(html, `לוח חוגים - ${g.name} ${g.city||''} - ${monthName} ${year}.pdf`, month);
         filesExported++;
         // short delay to allow browser to handle multiple popups
         await new Promise(r => setTimeout(r, 800));
@@ -90,7 +90,7 @@ window.doVisualExcelExport = async function() {
           const gEvs = allEvs.filter(s => s.g === g.id);
           pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones);
         }
-        await _exportPDF(pagesHtml, `לוח_מעוצב_${city||'כל_הגנים'}_${fromM}.pdf`, month);
+        await _exportPDF(pagesHtml, `לוח חוגים - ${city||'כל הגנים'} - ${monthName} ${year}.pdf`, month);
         filesExported++;
       }
       if (filesExported > 0) window.showToast(`📊 ${filesExported} קבצי PDF מעוצבים נוצרו בהצלחה!`);
