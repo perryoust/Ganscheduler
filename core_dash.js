@@ -1882,8 +1882,12 @@ window.getSupplierGardenActivityInfo = function(gid, supName) {
   const cleanSup = (window.supBase ? window.supBase(supName) : supName).trim().toLowerCase();
   const numGid = Number(gid);
   
-  const fFrom = window._fFrom || '';
-  const fTo = window._fTo || '';
+  const now = new Date();
+  const defFrom = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+  const defTo = window.d2s ? window.d2s(new Date(now.getFullYear(), now.getMonth()+1, 0)) : `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-31`;
+
+  const fFrom = window._fFrom || defFrom;
+  const fTo = window._fTo || defTo;
 
   let evs = [];
   if (typeof getGardenFixedSched === 'function') {
