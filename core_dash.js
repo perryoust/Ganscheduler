@@ -1876,18 +1876,13 @@ window.isSupplierInGarden = function(gid, supName) {
 
   return false;
 };
-
 window.getSupplierGardenActivityInfo = function(gid, supName) {
   if (!supName) return '';
   const cleanSup = (window.supBase ? window.supBase(supName) : supName).trim().toLowerCase();
   const numGid = Number(gid);
   
-  const now = new Date();
-  const defFrom = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
-  const defTo = window.d2s ? window.d2s(new Date(now.getFullYear(), now.getMonth()+1, 0)) : `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-31`;
-
-  const fFrom = window._fFrom || defFrom;
-  const fTo = window._fTo || defTo;
+  const fFrom = window._fFrom || '';
+  const fTo = window._fTo || '';
 
   let evs = [];
   if (typeof getGardenFixedSched === 'function') {
@@ -1912,7 +1907,7 @@ window.getSupplierGardenActivityInfo = function(gid, supName) {
       rawEvs.forEach(s => {
           const dt = new Date(s.d);
           if (isNaN(dt.getDay())) return;
-          const key = dt.getDay() + '|' + (s.t || '').slice(0,5);
+          const key = dt.getDay(); // Strict deduplication by Day of Week
           if (!byDow[key] || s.d > byDow[key].d) byDow[key] = s;
       });
       evs = Object.values(byDow);
