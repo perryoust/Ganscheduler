@@ -256,7 +256,7 @@ window.ui = {
     // Header Buttons
     const toggleId = 'pair-toggle-' + Math.random().toString(36).substr(2, 9);
     const isCoord = window.role === 'coordinator';
-    const defaultClosed = !!opts.isCluster;
+    const defaultClosed = (opts.defaultOpen || isCoord) ? false : !!opts.isCluster;
     const defaultIcon = defaultClosed ? '+' : '-';
     const defaultDisplay = defaultClosed ? 'none' : 'block';
     const collapseBtn = `<button class="btn bo bsm pair-collapse-btn" onclick="window.togglePairCard('${toggleId}', this.closest('.card-hdr-row'), event)" style="font-size:1.1rem !important; height:28px !important; min-height:28px !important; width:28px !important; padding:0 !important; border:1px solid ${clr.solid} !important; background:#fff !important; color:${clr.solid} !important; font-weight:700 !important; border-radius:4px !important; display:inline-flex !important; align-items:center !important; justify-content:center !important; cursor:pointer;" title="פתח/סגור תצוגה"><span style="font-family:monospace;font-weight:bold;line-height:1;margin-top:-2px">${defaultIcon}</span></button>`;
@@ -330,11 +330,14 @@ window.ui = {
     }
 
     if (window.isMobileMode()) {
+      const modeIcon = opts.isCluster ? '🏘️' : (isSolo ? '🏡' : '👫');
+      const actCountBadge = `<span style="font-size:0.7rem; background:${clr.light}; color:${clr.solid}; padding:1px 6px; border-radius:10px; font-weight:700; margin-right:4px">${evs.length}</span>`;
       return `
-      <details class="mob-accordion" style="border-top: 4px solid ${clr.solid}">
-        <summary class="mob-summary" style="padding: 8px 10px">
-           <span class="icon" style="font-size:1.1rem; margin-left:4px">${isSolo ? '🏡' : '🔗'}</span>
-           <span class="title" style="font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; padding-left:8px">${pair.name}${clusterSuffixText}</span>
+      <details class="mob-accordion"${defaultClosed ? '' : ' open'} style="border-top: 4px solid ${clr.solid}; margin-bottom:8px">
+        <summary class="mob-summary" style="padding: 8px 10px; display:flex; align-items:center; cursor:pointer">
+           <span class="icon" style="font-size:1.1rem; margin-left:4px">${modeIcon}</span>
+           <span class="title" style="font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; padding-left:8px; font-weight:700; color:${clr.solid}">${pair.name}${clusterSuffixText}</span>
+           ${actCountBadge}
            <div style="display:flex; align-items:center; gap:4px; flex-shrink:0">
               <button class="btn bo bsm" style="font-size: 0.62rem !important; height: 22px !important; min-height: 22px !important; line-height: 20px !important; padding: 0 4px !important; border: 1px solid #1e88e5 !important; background: #fff !important; color: #1e88e5 !important; font-weight: 700 !important; border-radius: 4px !important; white-space: nowrap !important; margin: 0 !important; display: inline-flex !important; align-items: center !important; gap: 2px !important;" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','week','${isSolo ? gids[0] : ''}')">📅 שבוע</button>
               <button class="btn bo bsm" style="font-size: 0.62rem !important; height: 22px !important; min-height: 22px !important; line-height: 20px !important; padding: 0 4px !important; border: 1px solid #1e88e5 !important; background: #fff !important; color: #1e88e5 !important; font-weight: 700 !important; border-radius: 4px !important; white-space: nowrap !important; margin: 0 !important; display: inline-flex !important; align-items: center !important; gap: 2px !important;" onclick="event.stopPropagation(); window.calJump('${isSolo ? '' : pair.id}','month','${isSolo ? gids[0] : ''}')">📅 חודש</button>

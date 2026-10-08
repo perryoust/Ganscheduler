@@ -326,6 +326,11 @@ window.coordSetGroup = function(g, btn) {
         b.style.fontWeight = '400';
       }
     });
+    // If currently in month view, switch to day view so user immediately sees the grouped cards
+    if (window._coordView === 'month') {
+      window.coordSetView('day');
+      return;
+    }
     window.renderCoordinatorView();
   } catch(e) { console.error('coordSetGroup error:', e); }
 };
@@ -351,7 +356,7 @@ window.coordGoToday = function() {
 };
 
 // ─────────────────────────────────────────────────────────
-// MAIN RENDER — uses cal.js rendering functions
+// MAIN RENDER
 // ─────────────────────────────────────────────────────────
 window.renderCoordinatorView = function() {
   const container = document.getElementById('coord-activities-list');
@@ -382,14 +387,10 @@ window.renderCoordinatorView = function() {
       const sun = new Date(cd); sun.setDate(cd.getDate() - cd.getDay());
       if (sun.getDay()===5) sun.setDate(sun.getDate()+2);
       else if (sun.getDay()===6) sun.setDate(sun.getDate()+1);
-      const workDays = typeof window.getNextWorkDays === 'function' ? window.getNextWorkDays(sun, 5) : [];
-      if (workDays.length >= 2) {
-        const ws = typeof window.d2s==='function' ? window.d2s(workDays[0]) : _cd2s(workDays[0]);
-        const we = typeof window.d2s==='function' ? window.d2s(workDays[4]) : _cd2s(workDays[4]);
-        lbl.textContent = `${typeof window.fD==='function'?window.fD(ws):ws} – ${typeof window.fD==='function'?window.fD(we):we}`;
-      } else {
-        lbl.textContent = `שבוע ${cd.getDate()}/${cd.getMonth()+1}`;
-      }
+      const thur = new Date(sun); thur.setDate(sun.getDate()+4);
+      const ws = _cd2s(sun);
+      const we = _cd2s(thur);
+      lbl.textContent = `${typeof window.fD==='function'?window.fD(ws):ws} – ${typeof window.fD==='function'?window.fD(we):we}`;
     } else {
       lbl.textContent = `${_MONTHS_HE[cd.getMonth()]} ${cd.getFullYear()}`;
     }
@@ -402,32 +403,13 @@ window.renderCoordinatorView = function() {
   }
 
   let html = '';
-  let _dbgAllowed = new Set();
-  let _dbgEvs = [];
 
-  // ── Use cal.js render functions inside a SCH swap ──
   _withCoordSCH((coordEvs, allowed) => {
-    _dbgAllowed = allowed;
-    _dbgEvs = coordEvs;
-
     if (v === 'day') {
       const ds = _cd2s(cd);
-      if (window.calRenderRangeView) {
-        html = window.calRenderRangeView(coordEvs, ds, ds, {}, null);
-      } else {
-        html = _coordFallbackDay(coordEvs, ds);
-      }
-
+      html = _coordFallbackDay(coordEvs, ds);
     } else if (v === 'week') {
-      if (window.calRenderNormalWeek && typeof window.getNextWorkDays === 'function') {
-        let ws = new Date(cd); ws.setHours(0,0,0,0);
-        if (ws.getDay()===5) ws.setDate(ws.getDate()+2);
-        else if (ws.getDay()===6) ws.setDate(ws.getDate()+1);
-        html = window.calRenderNormalWeek(coordEvs, ws, { gids: Array.from(allowed) });
-      } else {
-        html = _coordFallbackWeek(coordEvs, cd);
-      }
-
+      html = _coordFallbackWeek(coordEvs, cd);
     } else {
       // Month
       if (window.calRenderMonth) {
@@ -443,31 +425,6 @@ window.renderCoordinatorView = function() {
 
   // Post-render: ensure action buttons are hidden (safety net in addition to CSS)
   _coordHideActionButtons(container);
-
-  // Auto-expand logic specifically for the coordinator based on group mode
-  if (v === 'week' || v === 'month') {
-    setTimeout(() => {
-      // Always open city blocks to see the pairs/clusters list
-      container.querySelectorAll('.city-header-row').forEach(tr => tr.click());
-      
-      // If we are NOT in clusters mode (e.g., pairs), also open the individual pair rows by default
-      if (window._listGroupMode !== 'clusters') {
-        container.querySelectorAll('[class*="pair-hdr-"]').forEach(tr => tr.click());
-      }
-    }, 50);
-  } else if (v === 'day') {
-    setTimeout(() => {
-      // If we ARE in clusters mode, close the cluster blocks by default in daily view
-      if (window._listGroupMode === 'clusters') {
-        container.querySelectorAll('.standard-pair-card button[title="פתח/סגור תצוגה"]').forEach(btn => {
-           const span = btn.querySelector('span');
-           if (span && span.textContent.trim() === '-') {
-             btn.click();
-           }
-        });
-      }
-    }, 50);
-  }
 };
 
 // ─────────────────────────────────────────────────────────
@@ -491,31 +448,18 @@ function _coordHideActionButtons(container) {
 // ─────────────────────────────────────────────────────────
 const _origJumpToDay = window.jumpToDay;
 window.jumpToDay = function(ds) {
-  // If we are in the coordinator dashboard, handle navigation internally
-  const coordDash = document.getElementById('coordinator-dashboard');
-  if (coordDash && coordDash.style.display !== 'none' && window.coordState) {
-    window.coordState.cd = _cs2d(ds);
-    window.coordState.v = 'day';
-    // Update view buttons visually
-    document.querySelectorAll('.coord-view-btn').forEach(b => {
-      if (b.dataset.v === 'day') {
-        b.style.background = '#1565c0';
-        b.style.color = '#fff';
-      } else {
-        b.style.background = '#e3f2fd';
-        b.style.color = '#1565c0';
-      }
-    });
-    window.renderCoordinatorView();
-  } else {
-    // Admin dashboard fallback
-    if (typeof _origJumpToDay === 'function') {
-      _origJumpToDay(ds);
-    } else if (typeof window.setCalView === 'function') {
-      window.calD = _cs2d(ds);
-      window.setCalView('day');
-      if (window.renderCal) window.renderCal();
-    }
+  const coordApp = document.getElementById('coordinator-app-root');
+  if (coordApp && coordApp.style.display !== 'none') {
+    window._coordCurrentDate = _cs2d(ds);
+    window.coordSetView('day');
+    return;
+  }
+  if (typeof _origJumpToDay === 'function') {
+    _origJumpToDay(ds);
+  } else if (typeof window.setCalView === 'function') {
+    window.calD = _cs2d(ds);
+    window.setCalView('day');
+    if (window.renderCal) window.renderCal();
   }
 };
 
@@ -533,22 +477,58 @@ function _coordFallbackDay(evs, ds) {
   }
   return _coordRenderByCity(dayEvs, ds);
 }
+
 function _coordFallbackWeek(evs, cd) {
-  let h = '';
-  for (let i=0; i<7; i++) {
-    const d = new Date(cd); d.setDate(cd.getDate()-cd.getDay()+i);
+  const sun = new Date(cd);
+  sun.setDate(cd.getDate() - cd.getDay());
+  if (sun.getDay() === 5) sun.setDate(sun.getDate() + 2);
+  else if (sun.getDay() === 6) sun.setDate(sun.getDate() + 1);
+
+  let hasAnyActivities = false;
+  let daysHtml = '';
+
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(sun);
+    d.setDate(sun.getDate() + i);
     const ds = _cd2s(d);
     const normTarget = _normDs(ds);
     const dayEvs = evs.filter(s => _normDs(s.d) === normTarget);
-    if (!dayEvs.length) continue;
-    h += `<div style="margin-bottom:14px"><div style="background:#1565c0;color:#fff;padding:7px 12px;border-radius:8px 8px 0 0;font-weight:800">📅 ${_DAYS_HE[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}</div>${_coordRenderByCity(dayEvs, ds)}</div>`;
+    const hol = window.getHolidayInfo ? window.getHolidayInfo(ds) : null;
+    const blk = window.getBlockedInfo ? window.getBlockedInfo(ds) : null;
+    
+    const dStr = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}`;
+    const dayHeader = `📅 ${_DAYS_HE[d.getDay()]} ${dStr}${hol ? ` 🎉 ${hol.name}` : ''}${blk ? ` 🚫 ${blk.reason}` : ''}`;
+    
+    if (dayEvs.length > 0) {
+      hasAnyActivities = true;
+      daysHtml += `<div style="margin-bottom:14px;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);border:1px solid #e2e8f0">
+        <div style="background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;padding:8px 14px;font-weight:700;font-size:0.88rem;display:flex;justify-content:space-between;align-items:center">
+          <span>${dayHeader}</span>
+          <span style="font-size:0.75rem;background:rgba(255,255,255,0.22);padding:2px 10px;border-radius:12px;font-weight:800">${dayEvs.length} פעילויות</span>
+        </div>
+        <div style="padding:10px 8px">${_coordRenderByCity(dayEvs, ds)}</div>
+      </div>`;
+    } else {
+      daysHtml += `<div style="margin-bottom:8px;background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,0.04);border:1px solid #f1f5f9">
+        <div style="background:#64748b;color:#fff;padding:5px 12px;font-weight:600;font-size:0.8rem;display:flex;justify-content:space-between;align-items:center">
+          <span>${dayHeader}</span>
+          <span style="font-size:0.7rem;opacity:0.85">אין פעילויות</span>
+        </div>
+      </div>`;
+    }
   }
-  return h || `<div style="background:#fff;border-radius:10px;padding:24px 16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:10px 0;">
-    <div style="font-size:1.8rem;margin-bottom:8px">📅</div>
-    <div style="font-weight:700;font-size:0.95rem;color:#1e293b;margin-bottom:6px">אין פעילויות בשבוע זה</div>
-    <div style="font-size:0.8rem;color:#64748b">ניתן להשתמש בחצים (▶ ◀) על מנת לעבור לשבועות אחרים.</div>
-  </div>`;
+
+  if (!hasAnyActivities) {
+    return `<div style="background:#fff;border-radius:10px;padding:24px 16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:10px 0;">
+      <div style="font-size:1.8rem;margin-bottom:8px">📅</div>
+      <div style="font-weight:700;font-size:0.95rem;color:#1e293b;margin-bottom:6px">אין פעילויות בשבוע זה</div>
+      <div style="font-size:0.8rem;color:#64748b">ניתן להשתמש בחצים (▶ ◀) על מנת לעבור לשבועות אחרים.</div>
+    </div>`;
+  }
+
+  return daysHtml;
 }
+
 function _coordFallbackMonth(evs, cd) {
   const byDate = {};
   evs.forEach(s => { const sd = _normDs(s.d); if(!byDate[sd]) byDate[sd]=[]; byDate[sd].push(s); });
@@ -561,6 +541,7 @@ function _coordFallbackMonth(evs, cd) {
     <div style="font-size:0.8rem;color:#64748b">ניתן להשתמש בחצים (▶ ◀) על מנת לעבור לחודשים אחרים.</div>
   </div>`;
 }
+
 function _coordRenderByCity(evs, ds) {
   const allGardens = [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
   const byCity = {};
@@ -571,40 +552,80 @@ function _coordRenderByCity(evs, ds) {
     if (!byCity[c]) byCity[c]=[];
     byCity[c].push(s);
   });
+
+  const isClusterMode = (window._coordGroupMode === 'clusters');
+
   return Object.keys(byCity).sort((a,b)=>a.localeCompare(b,'he')).map(city => {
-    const clr = window.CITY_COLORS ? window.CITY_COLORS(city) : {solid:'#1a237e',light:'#f5f7ff'};
+    const clr = window.CITY_COLORS ? window.CITY_COLORS(city) : {solid:'#1a237e',light:'#f5f7ff',border:'#e2e8f0'};
     const cityEvs = byCity[city];
     const pairedGids = new Set();
     const pairBlocks = [];
     
-    const isClusterMode = window._listGroupMode === 'clusters';
-    let groupSource = window.pairs || [];
+    let groupSource = [];
     if (isClusterMode) {
       if (typeof window.getClusters === 'function') {
-        groupSource = window.getClusters().map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
-      } else if (typeof getClusters === 'function') {
-        groupSource = getClusters().map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
+        const cls = window.getClusters(ds, ds);
+        groupSource = (cls && cls.length ? cls : window.getClusters()).map(c => ({ id: c.id, name: c.name, ids: (c.gardenIds || c.ids || []).map(Number) }));
       } else if (window.clusters) {
-        groupSource = Object.values(window.clusters).sort((a,b)=>a.name.localeCompare(b.name,'he', { numeric: true })).map(c => ({ id: c.id, name: c.name, ids: c.gardenIds || [] }));
+        groupSource = Object.values(window.clusters).map(c => ({ id: c.id, name: c.name, ids: (c.gardenIds || c.ids || []).map(Number) }));
       }
+    } else {
+      let prs = (typeof window.getPairs === 'function') ? window.getPairs(ds, ds) : (window.pairs || []);
+      if (!prs || !prs.length) prs = window.pairs || [];
+      groupSource = (prs || []).map(p => ({ id: p.id, name: p.name, ids: (p.ids || []).map(Number) }));
     }
 
-    groupSource.forEach(pair => {
-      if (!isClusterMode && window.isPairBroken && window.isPairBroken(pair.id, ds)) return;
-      const pe = cityEvs.filter(s=>pair.ids.map(Number).includes(Number(s.g)));
+    groupSource.forEach(grp => {
+      if (!isClusterMode && window.isPairBroken && window.isPairBroken(grp.id, ds)) return;
+      const pe = cityEvs.filter(s => grp.ids.includes(Number(s.g)));
       if (!pe.length) return;
-      pair.ids.forEach(id=>pairedGids.add(Number(id)));
-      pairBlocks.push({pair, pe});
+      grp.ids.forEach(id => pairedGids.add(Number(id)));
+      pairBlocks.push({ pair: grp, pe });
     });
     pairBlocks.sort((a,b) => (a.pair.name||'').localeCompare(b.pair.name||'', 'he', { numeric: true }));
-    
-    let html = `<details class="city-accordion" open><summary style="background:${clr.solid};color:#fff;padding:8px 12px;font-weight:800">📍 ${city} (${cityEvs.length})</summary><div style="padding:8px;background:#f8fafc">`;
+
+    const modeLabel = isClusterMode ? 'אשכולות' : 'זוגות';
+    let html = `<details class="city-accordion" open style="margin-bottom:12px">
+      <summary style="background:${clr.solid};color:#fff;padding:8px 12px;font-weight:800;border-radius:6px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        <span>📍 ${city} (${cityEvs.length} פעילויות)</span>
+        <span style="font-size:0.75rem;opacity:0.85">${pairBlocks.length} ${modeLabel}</span>
+      </summary>
+      <div style="padding:6px 0;background:transparent">`;
+
     if (window.ui && typeof window.ui.renderStandardPairCard === 'function') {
-      pairBlocks.forEach(({pair,pe}) => { html += window.ui.renderStandardPairCard(pair,pe,{ds,clr,context:'cal',isCluster:isClusterMode}); });
-      cityEvs.filter(s=>!pairedGids.has(Number(s.g))).forEach(s => {
-        const g = typeof window.G==='function'?window.G(s.g):null;
+      // 1. Grouped blocks (pairs or clusters)
+      pairBlocks.forEach(({ pair, pe }) => {
+        html += window.ui.renderStandardPairCard(pair, pe, {
+          ds,
+          clr,
+          context: 'cal',
+          isCluster: isClusterMode,
+          defaultOpen: true
+        });
+      });
+
+      // 2. Solo gardens (not in any pair or cluster)
+      const soloMap = {};
+      cityEvs.filter(s => !pairedGids.has(Number(s.g))).forEach(s => {
+        const gid = Number(s.g);
+        if (!soloMap[gid]) soloMap[gid] = [];
+        soloMap[gid].push(s);
+      });
+      Object.keys(soloMap).sort((a,b) => {
+        const na = (allGardens.find(x => Number(x.id) === Number(a))?.name || '');
+        const nb = (allGardens.find(x => Number(x.id) === Number(b))?.name || '');
+        return na.localeCompare(nb, 'he', { numeric: true });
+      }).forEach(gid => {
+        const g = allGardens.find(x => Number(x.id) === Number(gid));
         if (!g) return;
-        html += window.ui.renderStandardPairCard({id:'solo_'+s.id,name:g.name,ids:[Number(g.id)]},[s],{ds,clr,context:'cal',isSolo:true});
+        const gEvs = soloMap[gid];
+        html += window.ui.renderStandardPairCard({ id: 'solo_' + gid, name: g.name, ids: [Number(gid)] }, gEvs, {
+          ds,
+          clr,
+          context: 'cal',
+          isSolo: true,
+          defaultOpen: true
+        });
       });
     }
     html += '</div></details>';
