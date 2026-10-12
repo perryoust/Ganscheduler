@@ -130,15 +130,16 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
     
     let phone = '';
     let supName = '';
-    if (s.a && window.SUPBASE) {
-      const sup = window.SUPBASE.find(x => String(x.id) === String(s.a) || x.name === s.a || (typeof window.supBase === 'function' && window.supBase(x.name) === window.supBase(s.a)));
-      if (sup) {
-          if (sup.phone) phone = sup.phone;
-          if (sup.name) supName = sup.name;
-          
-          if (!phone && window.supBaseEx && window.supBaseEx(sup.name).ph1) {
-             phone = window.supBaseEx(sup.name).ph1;
-          }
+    if (s.a) {
+      if (typeof window.supDisplayName === 'function') {
+        supName = window.supDisplayName(s.a);
+      } else if (typeof window.supBase === 'function') {
+        supName = window.supBase(s.a);
+      } else {
+        supName = String(s.a);
+      }
+      if (typeof window.getSupPhone === 'function') {
+        phone = window.getSupPhone(s.a, s);
       }
     }
     
@@ -273,27 +274,24 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
           const pillColor = isRegular ? CARD_BORDER[clubIdx] : '#312e81';
           const pillBg = isRegular ? CARD_BG[clubIdx] : '#eef2ff';
 
-          let supName = '';
+          let cleanSupName = '';
           let supPhone = '';
-          if (ev.a && window.SUPBASE) {
-            const sup = window.SUPBASE.find(s => String(s.id) === String(ev.a) || s.name === ev.a || (typeof window.supBase === 'function' && window.supBase(s.name) === window.supBase(ev.a)));
-            if (sup) {
-                if (sup.name) supName = sup.name;
-                if (sup.phone) supPhone = sup.phone;
-                
-                if (!supPhone && window.supBaseEx && window.supBaseEx(sup.name).ph1) {
-                   supPhone = window.supBaseEx(sup.name).ph1;
-                }
+          if (ev.a) {
+            if (typeof window.supDisplayName === 'function') {
+              cleanSupName = window.supDisplayName(ev.a);
+            } else if (typeof window.supBase === 'function') {
+              cleanSupName = window.supBase(ev.a);
+            } else {
+              cleanSupName = String(ev.a);
             }
-          }
-          let cleanSupName = supName;
-          if (cleanSupName && typeof window.supBase === 'function') {
-              cleanSupName = window.supBase(cleanSupName);
+            if (typeof window.getSupPhone === 'function') {
+              supPhone = window.getSupPhone(ev.a, ev);
+            }
           }
           
           let pillText = `${ev.t ? '(' + ev.t + ') ' : ''}${cleanSupName && cleanSupName !== actName ? _esc(cleanSupName) + ' - ' : ''}${_esc(actName)}`;
           if (showPhones && supPhone) {
-              pillText += `<br><span style="font-size:10px; font-weight:700;">📞 ${_esc(supPhone)}</span>`;
+              pillText += `<br><span style="font-size:9.5px; font-weight:700;">📞 ${_esc(supPhone)}</span>`;
           }
 
           cellContent += `<div class="vp-event-pill" style="background:${pillBg}; color:${pillColor}; border:1px solid ${pillColor}20;">${pillText}</div>`;
@@ -314,7 +312,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       <!-- Header Banner -->
       <div class="vp-header">
         <div class="vp-header-right" style="display:flex; align-items:center; gap:12px;">
-          <img src="logo_wide.png" style="height:80px;" alt="Kids טומשין">
+          <img src="logo_wide.png" style="height:65px;" alt="Kids טומשין">
         </div>
         <div class="vp-header-left">
           <div class="vp-month-badge">📅 ${_esc(monthName)} ${year} - ${hebYearStr}</div>
@@ -339,6 +337,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
           ${legendHtml}
         </div>
         <div class="vp-calendar-container">
+          <div class="vp-watermark"><img src="img/bg_${month}.jpg" alt="" /></div>
           <div class="vp-days-header">
             <div>ראשון</div><div>שני</div><div>שלישי</div><div>רביעי</div><div>חמישי</div>
           </div>
@@ -348,11 +347,11 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
         </div>
       </div>
 
-      <div style="margin-top: auto; padding-top: 10px; border-top: 2px solid #e2e8f0;">
-        <div style="font-size: 15px; font-weight: 700; color: #334155; text-align: right; line-height: 1.2;">
+      <div style="margin-top: auto; padding-top: 4px; border-top: 2px solid #e2e8f0;">
+        <div style="font-size: 13.5px; font-weight: 700; color: #334155; text-align: right; line-height: 1.2;">
           ${mgrStr ? `👩‍💼 רכז/ת: ${_esc(mgrStr)}` : ''}
         </div>
-        <div style="text-align: center; margin-top: 12px;">
+        <div style="text-align: center; margin-top: 4px;">
           <div class="vp-footer">* שימו לב: ייתכנו שינויים בתוכנית החוגים</div>
         </div>
       </div>
@@ -385,20 +384,22 @@ async function _exportPDF(htmlContent, filename, month) {
   ${styles.css}
   <style>
     @media print {
-      body { margin: 0; padding: 0; background: #fff; }
+      @page { size: A4 portrait; margin: 0; }
+      html, body { margin: 0; padding: 0; background: #fff; }
       .vp-page { 
-        width: 100%;
-        height: 98vh;
-        break-after: page; 
-        page-break-after: always; 
-        margin: 0; 
-        padding: 6mm 8mm; 
-        box-sizing: border-box;
-        overflow: hidden;
+        width: 100% !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
+        break-after: page !important; 
+        page-break-after: always !important; 
+        margin: 0 !important; 
+        padding: 5mm 7mm !important; 
+        box-sizing: border-box !important;
+        overflow: hidden !important;
       }
       .vp-page:last-child { 
-        break-after: auto; 
-        page-break-after: auto; 
+        break-after: auto !important; 
+        page-break-after: auto !important; 
       }
       .vp-no-print { display: none !important; }
       .vp-footer { margin-top: auto; }
@@ -417,25 +418,22 @@ async function _exportPDF(htmlContent, filename, month) {
 </head>
 <body>
   <button class="vp-print-btn vp-no-print" onclick="window.print()">🖨️ הדפס / שמור כ-PDF</button>
-  ${htmlContent.replace(/<div class="vp-calendar-container">/g, `<div class="vp-calendar-container"><div class="vp-watermark">${styles.watermarkSVG}<\/div>`)}
+  ${htmlContent}
 </body>
 </html>`);
   printWindow.document.close();
 }
 
 function _getStyles(month) {
-  // Clipart seasonal watermarks (kids playing - 1 distinct image for each month)
-  const watermarkSVG = `<img src="img/bg_${month}.jpg" style="width:100%; height:100%; object-fit:contain; mix-blend-mode: multiply;" />`;
-
   return {
     css: `<style>
     .vp-page {
       display: flex;
       flex-direction: column;
       width: 794px;
-      height: 1122px; /* A4 height at 96dpi (297mm) */
+      height: 1120px; /* A4 height at 96dpi */
       box-sizing: border-box;
-      padding: 10mm 12mm;
+      padding: 7mm 10mm;
       margin: 0 auto;
       background: #ffffff;
       -webkit-print-color-adjust: exact;
@@ -443,6 +441,7 @@ function _getStyles(month) {
       font-family: 'Assistant', Arial, sans-serif;
       direction: rtl;
       page-break-after: always;
+      break-after: page;
       color: #1e293b;
       position: relative;
     }
@@ -451,15 +450,20 @@ function _getStyles(month) {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 450px;
-      height: 450px;
+      width: 440px;
+      height: 440px;
       max-width: 85%;
       max-height: 85%;
-      opacity: 0.18;
+      opacity: 0.16;
       pointer-events: none;
-      z-index: 2;
+      z-index: 1;
     }
-    .vp-watermark img { width: 100%; height: 100%; object-fit: contain; }
+    .vp-watermark img { 
+      width: 100%; 
+      height: 100%; 
+      object-fit: contain; 
+      display: block;
+    }
 
     /* Header */
     .vp-header {
@@ -473,23 +477,23 @@ function _getStyles(month) {
       border: 2px solid #c9a674;
       box-shadow: inset 0 1px 3px rgba(120, 80, 30, 0.12), 0 3px 10px rgba(130, 90, 40, 0.12);
       color: #3e2712;
-      padding: 12px 20px;
-      border-radius: 14px;
+      padding: 8px 16px;
+      border-radius: 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
     }
-    .vp-header-sub { font-size: 14px; font-weight:600; color: #44403c; margin-top: 2px; }
+    .vp-header-sub { font-size: 13px; font-weight:600; color: #44403c; margin-top: 2px; }
     .vp-month-badge {
       background: rgba(255, 255, 255, 0.94);
-      padding: 6px 18px;
-      border-radius: 20px;
-      font-size: 16px;
+      padding: 4px 14px;
+      border-radius: 16px;
+      font-size: 15px;
       font-weight: 800;
       color: #452a12;
       border: 1.5px solid #cbaf86;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.06);
       white-space: nowrap;
     }
 
@@ -497,102 +501,94 @@ function _getStyles(month) {
     .vp-garden-bar {
       background: linear-gradient(135deg, #047857, #059669);
       color: white;
-      padding: 12px 20px;
-      border-radius: 12px;
+      padding: 8px 16px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
-      gap: 16px;
-      margin-bottom: 8px;
+      gap: 12px;
+      margin-bottom: 6px;
       position: relative;
       border: 1px solid #065f46;
     }
-    .vp-garden-name { font-size: 22px; font-weight: 800; }
-
-    .vp-mgr-line {
-      text-align: left;
-      font-size: 13px;
-      font-weight: 600;
-      color: #334155;
-      margin-bottom: 8px;
-      padding: 0 4px;
-    }
+    .vp-garden-name { font-size: 19px; font-weight: 800; }
 
     /* Section Title */
     .vp-section-title {
-      font-size: 18px;
+      font-size: 15px;
       font-weight: 800;
       color: #1e293b;
-      margin: 8px 0 6px;
+      margin: 4px 0 4px;
       text-align: right;
     }
 
     /* Activity Cards */
     .vp-cards-grid {
       display: flex;
-      gap: 16px;
-      margin-bottom: 12px;
+      gap: 12px;
+      margin-bottom: 6px;
     }
     .vp-activity-card {
       flex: 1;
       border: 2px solid #475569;
       background: #fff;
       border-right: 6px solid #3b82f6;
-      border-radius: 12px;
-      padding: 12px 16px;
+      border-radius: 10px;
+      padding: 7px 12px;
       position: relative;
     }
     .vp-card-badge {
       position: absolute;
       top: -2px;
       left: 12px;
-      padding: 3px 12px;
-      border-radius: 0 0 8px 8px;
+      padding: 2px 10px;
+      border-radius: 0 0 6px 6px;
       color: white;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 700;
     }
     .vp-activity-card h3 {
-      margin: 4px 0 6px;
-      font-size: 18px;
+      margin: 2px 0 4px;
+      font-size: 15px;
       font-weight: 800;
       color: #1e293b;
     }
     .vp-activity-card p {
-      margin: 2px 0;
-      font-size: 13px;
+      margin: 1px 0;
+      font-size: 12px;
       font-weight: 600;
       color: #334155;
     }
 
     /* Calendar */
     .vp-calendar-section { 
-      margin-top: 6px; 
+      margin-top: 4px; 
       flex: 1;
       display: flex;
       flex-direction: column;
+      min-height: 0;
     }
     .vp-calendar-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
     .vp-calendar-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       color: #1e293b;
     }
     .vp-legend {
       display: flex;
-      gap: 16px;
-      font-size: 13px;
+      gap: 12px;
+      font-size: 12px;
       font-weight: 700;
       color: #334155;
     }
-    .vp-legend-item { display: flex; align-items: center; gap: 6px; }
+    .vp-legend-item { display: flex; align-items: center; gap: 5px; }
     .vp-legend-dot {
-      width: 12px;
-      height: 12px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
       display: inline-block;
     }
@@ -603,8 +599,9 @@ function _getStyles(month) {
       display: flex;
       flex-direction: column;
       border: 2px solid #94a3b8;
-      border-radius: 12px;
+      border-radius: 10px;
       overflow: hidden;
+      min-height: 0;
     }
     .vp-days-header {
       display: grid;
@@ -612,9 +609,9 @@ function _getStyles(month) {
       background: #f1f5f9;
       text-align: center;
       font-weight: 800;
-      font-size: 14px;
+      font-size: 13px;
       color: #334155;
-      padding: 8px 0;
+      padding: 4px 0;
       border-bottom: 2px solid #94a3b8;
     }
     .vp-calendar-body {
@@ -622,22 +619,25 @@ function _getStyles(month) {
       display: flex;
       flex-direction: column;
       background: #e2e8f0; /* grid lines */
+      min-height: 0;
     }
     .vp-calendar-row {
       flex: 1;
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 2px;
+      min-height: 0;
     }
     .vp-calendar-row + .vp-calendar-row {
       border-top: 2px solid #e2e8f0;
     }
     .vp-day-cell {
       background: #ffffff;
-      padding: 8px;
+      padding: 3px 5px;
       display: flex;
       flex-direction: column;
       min-width: 0;
+      overflow: hidden;
     }
     .vp-day-empty { background: #f8fafc; }
     .vp-day-holiday { background: #fef9c3; }
@@ -646,12 +646,12 @@ function _getStyles(month) {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 6px;
-      padding-bottom: 4px;
-      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 2px;
+      padding-bottom: 2px;
+      border-bottom: 1.5px solid #e2e8f0;
       color: #000;
       font-weight: 800;
-      font-size: 16px;
+      font-size: 14px;
     }
     .vp-day-date {
       white-space: nowrap;
@@ -660,22 +660,22 @@ function _getStyles(month) {
     .vp-day-event-text {
       flex: 1;
       text-align: right;
-      padding-left: 8px;
+      padding-left: 6px;
       line-height: 1.1;
-      font-size: 14px;
+      font-size: 13px;
     }
 
     /* Event Pills */
     .vp-event-pill {
-      padding: 4px 6px;
-      border-radius: 8px;
-      font-size: 12px;
-      line-height: 1.3;
+      padding: 2.5px 4px;
+      border-radius: 6px;
+      font-size: 11px;
+      line-height: 1.25;
       text-align: center;
-      margin-top: 4px;
+      margin-top: 2.5px;
       font-weight: 800;
       border-style: solid;
-      border-width: 2px;
+      border-width: 1.5px;
       word-break: break-word;
       overflow-wrap: break-word;
       white-space: normal;
@@ -683,7 +683,7 @@ function _getStyles(month) {
     .vp-event-holiday {
       background: #e2e8f0 !important; /* Light gray */
       color: #000 !important;
-      border: 2px solid #000 !important;
+      border: 1.5px solid #000 !important;
       font-weight: 800;
     }
     .vp-holiday-text {
@@ -696,13 +696,13 @@ function _getStyles(month) {
     /* Footer */
     .vp-footer {
       display: inline-block;
-      font-size: 22px;
+      font-size: 13px;
       font-weight: 800;
       color: #dc2626;
       background: #fee2e2;
-      padding: 6px 24px;
+      padding: 3px 20px;
       border-radius: 9999px;
-      border: 2px solid #f87171;
+      border: 1.5px solid #f87171;
     }
 
     @media print {
@@ -711,12 +711,10 @@ function _getStyles(month) {
         print-color-adjust: exact !important;
       }
       .vp-page {
-        background-image: var(--wm) !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
     }
-  </style>`,
-    watermarkSVG: watermarkSVG
+  </style>`
   };
 }
