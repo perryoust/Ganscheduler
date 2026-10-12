@@ -74,38 +74,29 @@ window.doVisualExcelExport = async function() {
   gList.sort((a,b) => (a.city||'').localeCompare(b.city||'','he') || (a.name||'').localeCompare(b.name||'','he'));
 
   try {
-    if (splitMode === 'garden') {
-      // One PDF per garden
-      let filesExported = 0;
-      for (const g of gList) {
-        const gEvs = allEvs.filter(s => s.g === g.id);
-        if (!gEvs.length) continue;
-        const html = _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones);
-        await _exportPDF(html, `לוח חוגים - ${g.name} ${g.city||''} - ${monthName} ${year}.pdf`, month);
-        filesExported++;
-        // short delay to allow browser to handle multiple popups
-        await new Promise(r => setTimeout(r, 800));
-      }
-      if (filesExported === 0) window.spAlert('לא נמצאו פעילויות לייצוא');
-    } else {
-      // Group by city
-      const byCity = gList.reduce((acc, g) => { (acc[g.city||''] = acc[g.city||'']||[]).push(g); return acc; }, {});
-      let filesExported = 0;
-      for (const [city, gardens] of Object.entries(byCity)) {
-        const cityGardens = gardens.filter(g => allEvs.some(s => s.g === g.id));
-        if (!cityGardens.length) continue;
-        
-        let pagesHtml = '';
-        for (const g of cityGardens) {
-          const gEvs = allEvs.filter(s => s.g === g.id);
-          pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones);
-        }
-        await _exportPDF(pagesHtml, `לוח חוגים - ${city||'כל הגנים'} - ${monthName} ${year}.pdf`, month);
-        filesExported++;
-      }
-      if (filesExported > 0) window.showToast(`📊 ${filesExported} קבצי PDF מעוצבים נוצרו בהצלחה!`);
-      else window.spAlert('⚠️ לא נמצאו פעילויות בטווח התאריכים שנבחר.');
+    let pagesHtml = '';
+    let count = 0;
+    for (const g of gList) {
+      const gEvs = allEvs.filter(s => s.g === g.id);
+      pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones);
+      count++;
     }
+    if (count === 0) {
+      window.spAlert('לא נמצאו מוסדות לייצוא');
+      return;
+    }
+    
+    let title = `לוחות חוגים מעוצבים - ${monthName} ${year}.pdf`;
+    if (gList.length === 1) {
+      title = `לוח חוגים - ${gList[0].name} ${gList[0].city || ''} - ${monthName} ${year}.pdf`;
+    } else if (mode === 'schools') {
+      title = `לוחות חוגים - כל בתי הספר - ${monthName} ${year}.pdf`;
+    } else if (mode === 'city' && cityFilter && cityFilter !== 'all') {
+      title = `לוחות חוגים - ${cityFilter} - ${monthName} ${year}.pdf`;
+    }
+
+    await _exportPDF(pagesHtml, title, month);
+    window.showToast(`📊 ${count} לוחות מעוצבים נפתחו בהצלחה!`);
     window.CM('export-m'); // close modal
   } catch(e) {
     console.error('Visual PDF error:', e);
