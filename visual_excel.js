@@ -451,9 +451,11 @@ function _getStyles(month) {
 
     /* Header */
     .vp-header {
-      background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
       color: #1e293b;
-      padding: 14px 20px;
+      padding: 12px 20px;
       border-radius: 14px;
       display: flex;
       justify-content: space-between;
@@ -462,13 +464,13 @@ function _getStyles(month) {
     }
     .vp-header-sub { font-size: 14px; font-weight:600; color: #44403c; margin-top: 2px; }
     .vp-month-badge {
-      background: rgba(255,255,255,0.7);
+      background: #f8fafc;
       padding: 6px 16px;
       border-radius: 20px;
       font-size: 16px;
       font-weight: 700;
-      color: #000;
-      border: 1px solid rgba(0,0,0,0.1);
+      color: #1e293b;
+      border: 1px solid #cbd5e1;
       white-space: nowrap;
     }
 
