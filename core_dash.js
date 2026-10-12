@@ -1915,14 +1915,22 @@ window.getSupplierGardenActivityInfo = function(gid, supName) {
 
   if (!evs.length) return '';
 
-  // Filter out old/inactive schedules: only keep events whose latest date is close to the absolute latest date
-  let maxTime = 0;
+  // We want EXACTLY ONE active schedule per supplier to eliminate duplicates.
+  // Group by Day+Time, find the absolute latest occurrence for each, and pick the one with the highest latest occurrence.
+  const byPattern = {};
   evs.forEach(s => {
-      const t = new Date(s.d).getTime();
-      if (t > maxTime) maxTime = t;
+      const dt = new Date(s.d);
+      if (isNaN(dt.getDay())) return;
+      const key = dt.getDay() + '|' + (s.t || '').slice(0,5);
+      if (!byPattern[key] || s.d > byPattern[key].d) byPattern[key] = s;
   });
-  // Keep if within 14 days of the latest known event for this supplier/garden (handles legitimate multi-day but drops dead series)
-  evs = evs.filter(s => new Date(s.d).getTime() >= maxTime - (14 * 86400000));
+  
+  const sortedPatterns = Object.values(byPattern).sort((a, b) => new Date(b.d) - new Date(a.d));
+  if (sortedPatterns.length > 0) {
+      evs = [sortedPatterns[0]]; // KEEP ONLY THE SINGLE MOST RECENT PATTERN
+  } else {
+      evs = [];
+  }
 
   const HEB_DAYS = ['א\'','ב\'','ג\'','ד\'','ה\'','ו\'','שבת'];
   const descs = new Set();
