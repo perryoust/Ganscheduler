@@ -33,11 +33,14 @@ function openMonthlyExport(){
       });
       cityFilterSel.value = '';
     }
+    const searchInput = document.getElementById('exp-garden-search');
+    if (searchInput) searchInput.value = '';
 
     allGans.forEach(g=>{ 
       const lbl = document.createElement('label');
       lbl.className = 'exp-garden-item';
       lbl.dataset.city = (g.city || '').trim();
+      lbl.dataset.name = (g.name || '').trim();
       lbl.style.display = 'block';
       lbl.style.marginBottom = '6px';
       lbl.style.cursor = 'pointer';
@@ -49,10 +52,20 @@ function openMonthlyExport(){
   document.getElementById('export-m').classList.add('open');
 }
 
-window.filterExportGardensByCity = function(selectedCity) {
+window.filterExportGardens = function() {
+  const city = (document.getElementById('exp-garden-city-filter')?.value || '').trim();
+  const query = (document.getElementById('exp-garden-search')?.value || '').trim().toLowerCase();
   const items = document.querySelectorAll('#exp-garden-list .exp-garden-item');
+
   items.forEach(item => {
-    if (!selectedCity || item.dataset.city === selectedCity) {
+    const itemCity = item.dataset.city || '';
+    const itemName = (item.dataset.name || '').toLowerCase();
+    const itemFullText = item.textContent.toLowerCase();
+
+    const matchesCity = !city || itemCity === city;
+    const matchesQuery = !query || itemName.includes(query) || itemFullText.includes(query);
+
+    if (matchesCity && matchesQuery) {
       item.style.display = 'block';
     } else {
       item.style.display = 'none';
@@ -60,6 +73,7 @@ window.filterExportGardensByCity = function(selectedCity) {
   });
   updateExportGardenCount();
 };
+window.filterExportGardensByCity = window.filterExportGardens;
 
 window.toggleSelectVisibleGardens = function(select) {
   const items = document.querySelectorAll('#exp-garden-list .exp-garden-item');
