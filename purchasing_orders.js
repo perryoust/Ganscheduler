@@ -2870,10 +2870,6 @@ window.downloadBulkPO = window.printBulkPO = function() {
       // Use the refactored openOrderPrintPreview to get just the HTML
       const orderHtml = openOrderPrintPreview(order, false, true);
       combinedPagesHtml += orderHtml;
-      // Add page break between orders, except after the last one
-      if (i < selectedIds.length - 1) {
-        combinedPagesHtml += '<div style="page-break-before: always; margin-top: 40px; border-top: 1px dashed #ccc; padding-top: 40px;" class="no-print"></div>';
-      }
     }
   }
 
@@ -2892,23 +2888,22 @@ window.downloadBulkPO = window.printBulkPO = function() {
         <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
         <style>
           body { font-family: 'Assistant', sans-serif; background: #e0e0e0; margin: 0; padding: 20px; }
-          .no-print { display: flex; justify-content: center; margin-bottom: 20px; }
-          .btn-print { background: #2e7d32; color: white; border: none; padding: 10px 20px; border-radius: 4px; font-family: 'Assistant', sans-serif; font-size: 16px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+          .no-print { display: flex; justify-content: center; margin-bottom: 20px; position: sticky; top: 10px; z-index: 1000; }
+          .btn-print { background: #2e7d32; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-family: 'Assistant', sans-serif; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
           .btn-print:hover { background: #1b5e20; }
           
-          .page-container { padding: 40px; display: flex; justify-content: center; flex-direction: column; align-items: center; }
+          .page-container { padding: 20px 0; display: flex; justify-content: center; flex-direction: column; align-items: center; }
           .page { 
             background: #fff; 
-            padding: 40px; 
+            padding: 30px 35px; 
             width: 794px; 
             min-height: 1115px;
-            height: auto;
             box-sizing: border-box; 
-            box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+            box-shadow: 0 0 10px rgba(0,0,0,0.15); 
             display: flex;
             flex-direction: column;
             position: relative;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
           }
           table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; table-layout: fixed; }
           th, td { border: 1.5px solid #000; padding: 5px 6px; text-align: right; vertical-align: top; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; line-height: 1.3; }
@@ -2928,9 +2923,26 @@ window.downloadBulkPO = window.printBulkPO = function() {
           @page { size: A4 portrait; margin: 0; }
           @media print {
             .no-print { display: none !important; }
-            body { background: #fff; padding: 0; margin: 0; }
-            .page-container { padding: 0; }
-            .page { box-shadow: none; padding: 0; width: 100%; min-height: 100%; margin-bottom: 0; }
+            html, body { background: #fff !important; padding: 0 !important; margin: 0 !important; }
+            .page-container { padding: 0 !important; margin: 0 !important; display: block !important; }
+            .page { 
+              box-shadow: none !important; 
+              padding: 22px 28px !important; 
+              width: 100% !important; 
+              height: 98vh !important; 
+              max-height: 98vh !important;
+              box-sizing: border-box !important; 
+              page-break-after: always !important; 
+              break-after: page !important; 
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+              margin: 0 !important; 
+              overflow: hidden !important;
+            }
+            .page:last-child { 
+              page-break-after: auto !important; 
+              break-after: auto !important; 
+            }
           }
         </style>
       </head>
