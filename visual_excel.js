@@ -451,10 +451,16 @@ function _getStyles(month) {
 
     /* Header */
     .vp-header {
-      background: #ffffff;
-      border: 1.5px solid #e2e8f0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-      color: #1e293b;
+      background-color: #edd9ba;
+      background-image: 
+        radial-gradient(rgba(180, 135, 82, 0.28) 1.5px, transparent 0),
+        radial-gradient(rgba(138, 97, 52, 0.22) 1px, transparent 0),
+        linear-gradient(135deg, #f8eedc 0%, #edd4af 50%, #e0c192 100%);
+      background-size: 14px 14px, 22px 22px, 100% 100%;
+      background-position: 0 0, 8px 11px, 0 0;
+      border: 2px solid #c9a674;
+      box-shadow: inset 0 1px 3px rgba(120, 80, 30, 0.12), 0 3px 10px rgba(130, 90, 40, 0.12);
+      color: #3e2712;
       padding: 12px 20px;
       border-radius: 14px;
       display: flex;
@@ -464,13 +470,14 @@ function _getStyles(month) {
     }
     .vp-header-sub { font-size: 14px; font-weight:600; color: #44403c; margin-top: 2px; }
     .vp-month-badge {
-      background: #f8fafc;
-      padding: 6px 16px;
+      background: rgba(255, 255, 255, 0.94);
+      padding: 6px 18px;
       border-radius: 20px;
       font-size: 16px;
-      font-weight: 700;
-      color: #1e293b;
-      border: 1px solid #cbd5e1;
+      font-weight: 800;
+      color: #452a12;
+      border: 1.5px solid #cbaf86;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
       white-space: nowrap;
     }
 
