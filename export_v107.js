@@ -13,23 +13,71 @@ function openMonthlyExport(){
   Object.values(window.managers).forEach(mg=>{ const o=document.createElement('option');o.value=mg.id;o.textContent=mg.name;mgrSel.appendChild(o); });
   // Gardens
   const ganListDiv=document.getElementById('exp-garden-list');
+  const cityFilterSel=document.getElementById('exp-garden-city-filter');
   if (ganListDiv) {
     ganListDiv.innerHTML='';
     const rawGans = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
     const map = new Map();
     rawGans.forEach(g => map.set(g.id, g));
     const allGans = Array.from(map.values()).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
+    
+    // Populate city filter dropdown
+    if (cityFilterSel) {
+      cityFilterSel.innerHTML = '<option value="">📍 כל הערים (הצג הכל)</option>';
+      const citiesSet = new Set(allGans.map(g => (g.city || '').trim()).filter(Boolean));
+      Array.from(citiesSet).sort((a,b)=>a.localeCompare(b,'he')).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = `📍 ${c}`;
+        cityFilterSel.appendChild(opt);
+      });
+      cityFilterSel.value = '';
+    }
+
     allGans.forEach(g=>{ 
       const lbl = document.createElement('label');
+      lbl.className = 'exp-garden-item';
+      lbl.dataset.city = (g.city || '').trim();
       lbl.style.display = 'block';
       lbl.style.marginBottom = '6px';
       lbl.style.cursor = 'pointer';
-      lbl.innerHTML = `<input type="checkbox" name="exp-garden-cb" value="${g.id}" style="margin-left:8px; width:16px; height:16px; vertical-align:middle;"> <span style="vertical-align:middle;">${g.name} (${g.city})</span>`;
+      lbl.innerHTML = `<input type="checkbox" name="exp-garden-cb" value="${g.id}" onchange="updateExportGardenCount()" style="margin-left:8px; width:16px; height:16px; vertical-align:middle;"> <span style="vertical-align:middle;">${g.name} (${g.city || 'ללא עיר'})</span>`;
       ganListDiv.appendChild(lbl);
     });
+    updateExportGardenCount();
   }
   document.getElementById('export-m').classList.add('open');
 }
+
+window.filterExportGardensByCity = function(selectedCity) {
+  const items = document.querySelectorAll('#exp-garden-list .exp-garden-item');
+  items.forEach(item => {
+    if (!selectedCity || item.dataset.city === selectedCity) {
+      item.style.display = 'block';
+    } else {
+      item.style.display = 'none';
+    }
+  });
+  updateExportGardenCount();
+};
+
+window.toggleSelectVisibleGardens = function(select) {
+  const items = document.querySelectorAll('#exp-garden-list .exp-garden-item');
+  items.forEach(item => {
+    if (item.style.display !== 'none') {
+      const cb = item.querySelector('input[type="checkbox"]');
+      if (cb) cb.checked = select;
+    }
+  });
+  updateExportGardenCount();
+};
+
+window.updateExportGardenCount = function() {
+  const countEl = document.getElementById('exp-garden-count');
+  if (!countEl) return;
+  const checkedCount = document.querySelectorAll('input[name="exp-garden-cb"]:checked').length;
+  countEl.innerText = checkedCount > 0 ? `(נבחרו: ${checkedCount})` : '';
+};
 
 function expModeChg(){
   const mode=document.querySelector('input[name="exp-mode"]:checked').value;
