@@ -40,6 +40,8 @@ window.doVisualExcelExport = async function() {
         });
       }
     }
+  } else if (mode === 'schools') {
+    gList = gList.filter(g => (typeof window.getGardenClass === 'function' ? window.getGardenClass(g) : (typeof gcls === 'function' ? gcls(g) : g.cls)) === 'ביה"ס');
   } else if (mode === 'garden') {
     if (gardenFilters.length === 0) {
       window.spAlert("לא נבחרו גנים / בתי ספר לייצוא");

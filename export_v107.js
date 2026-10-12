@@ -33,18 +33,24 @@ function openMonthlyExport(){
       });
       cityFilterSel.value = '';
     }
+    const typeFilterSel = document.getElementById('exp-garden-type-filter');
+    if (typeFilterSel) typeFilterSel.value = '';
+
     const searchInput = document.getElementById('exp-garden-search');
     if (searchInput) searchInput.value = '';
 
     allGans.forEach(g=>{ 
+      const cls = (typeof window.getGardenClass === 'function' ? window.getGardenClass(g) : (typeof gcls === 'function' ? gcls(g) : (g.cls || ''))).trim();
+      const isSch = cls === 'ביה"ס';
       const lbl = document.createElement('label');
       lbl.className = 'exp-garden-item';
       lbl.dataset.city = (g.city || '').trim();
       lbl.dataset.name = (g.name || '').trim();
+      lbl.dataset.cls = isSch ? 'sch' : 'gan';
       lbl.style.display = 'block';
       lbl.style.marginBottom = '6px';
       lbl.style.cursor = 'pointer';
-      lbl.innerHTML = `<input type="checkbox" name="exp-garden-cb" value="${g.id}" onchange="updateExportGardenCount()" style="margin-left:8px; width:16px; height:16px; vertical-align:middle;"> <span style="vertical-align:middle;">${g.name} (${g.city || 'ללא עיר'})</span>`;
+      lbl.innerHTML = `<input type="checkbox" name="exp-garden-cb" value="${g.id}" onchange="updateExportGardenCount()" style="margin-left:8px; width:16px; height:16px; vertical-align:middle;"> <span style="vertical-align:middle;">${isSch ? '🏫' : '🏡'} ${g.name} (${g.city || 'ללא עיר'})</span>`;
       ganListDiv.appendChild(lbl);
     });
     updateExportGardenCount();
@@ -54,18 +60,21 @@ function openMonthlyExport(){
 
 window.filterExportGardens = function() {
   const city = (document.getElementById('exp-garden-city-filter')?.value || '').trim();
+  const typeFilter = (document.getElementById('exp-garden-type-filter')?.value || '').trim();
   const query = (document.getElementById('exp-garden-search')?.value || '').trim().toLowerCase();
   const items = document.querySelectorAll('#exp-garden-list .exp-garden-item');
 
   items.forEach(item => {
     const itemCity = item.dataset.city || '';
+    const itemCls = item.dataset.cls || '';
     const itemName = (item.dataset.name || '').toLowerCase();
     const itemFullText = item.textContent.toLowerCase();
 
     const matchesCity = !city || itemCity === city;
+    const matchesType = !typeFilter || itemCls === typeFilter;
     const matchesQuery = !query || itemName.includes(query) || itemFullText.includes(query);
 
-    if (matchesCity && matchesQuery) {
+    if (matchesCity && matchesType && matchesQuery) {
       item.style.display = 'block';
     } else {
       item.style.display = 'none';
@@ -130,7 +139,8 @@ async function doMonthlyExport(){
   let gList = Array.from(gMap.values()).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
   if(mode==='city'&&cityFilter)   gList=gList.filter(g=>g.city===cityFilter);
   if(mode==='manager'&&mgrFilter){ const mgrObj=window.managers[mgrFilter]; if(mgrObj?.gardenIds) gList=gList.filter(g=>mgrObj.gardenIds.includes(g.id)); }
-  if(mode==='garden'){ if(gardenFilters.length===0){ window.spAlert('יש לבחור צהרון מהרשימה'); return; } gList=gList.filter(g=>gardenFilters.includes(Number(g.id))); }
+  if(mode==='schools'){ gList=gList.filter(g=>(typeof window.getGardenClass === 'function' ? window.getGardenClass(g) : (typeof gcls === 'function' ? gcls(g) : g.cls))==='ביה"ס'); }
+  if(mode==='garden'){ if(gardenFilters.length===0){ window.spAlert('יש לבחור צהרון / בית ספר מהרשימה'); return; } gList=gList.filter(g=>gardenFilters.includes(Number(g.id))); }
 
   // For single-garden mode: always export as one file
   const effectiveSplit = (mode==='garden') ? 'garden' : splitBy;
