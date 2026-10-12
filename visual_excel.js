@@ -415,7 +415,7 @@ async function _exportPDF(htmlContent, filename, month) {
 </head>
 <body>
   <button class="vp-print-btn vp-no-print" onclick="window.print()">🖨️ הדפס / שמור כ-PDF</button>
-  ${htmlContent.replace(/<div class="vp-page">/g, `<div class="vp-page"><div class="vp-watermark">${styles.watermarkSVG}<\/div>`)}
+  ${htmlContent.replace(/<div class="vp-calendar-container">/g, `<div class="vp-calendar-container"><div class="vp-watermark">${styles.watermarkSVG}<\/div>`)}
 </body>
 </html>`);
   printWindow.document.close();
@@ -451,9 +451,11 @@ function _getStyles(month) {
       transform: translate(-50%, -50%);
       width: 450px;
       height: 450px;
-      opacity: 0.15;
+      max-width: 85%;
+      max-height: 85%;
+      opacity: 0.18;
       pointer-events: none;
-      z-index: 0;
+      z-index: 2;
     }
     .vp-watermark img { width: 100%; height: 100%; object-fit: contain; }
 
@@ -594,12 +596,13 @@ function _getStyles(month) {
     }
 
     .vp-calendar-container {
+      position: relative;
       flex: 1;
       display: flex;
       flex-direction: column;
       border: 2px solid #94a3b8;
       border-radius: 12px;
-      overflow: visible;
+      overflow: hidden;
     }
     .vp-days-header {
       display: grid;
