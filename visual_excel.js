@@ -17,30 +17,38 @@ window.doVisualExcelExport = async function() {
   const mgrFilter = document.getElementById('exp-mgr').value;
   const gardenFilters = Array.from(document.querySelectorAll('input[name="exp-garden-cb"]:checked')).map(cb => parseInt(cb.value));
   
-  const allGardensSource = typeof AG === 'function' ? AG() : (typeof getAllGardens === 'function' ? getAllGardens() : window.GARDENS || []);
-  
-  let gList = allGardensSource.filter(g => {
-    if (!g || !g.id) return false;
-    if (g.active === false) return false;
-    const cls = typeof window.getGardenClass === 'function' ? window.getGardenClass(g) : (typeof gcls === 'function' ? gcls(g) : g.cls);
-    if (cls && cls !== 'גנים' && cls !== 'צהרונים') return false;
-    return true;
+  const rawList = typeof AG === 'function' ? AG() : (typeof getAllGardens === 'function' ? getAllGardens() : [...(window.GARDENS || []), ...(window._GARDENS_EXTRA || [])]);
+  const gMap = new Map();
+  (rawList || []).forEach(g => {
+    if (g && g.id != null && g.active !== false) {
+      gMap.set(Number(g.id), g);
+    }
   });
+  let gList = Array.from(gMap.values());
 
   if (mode === 'city') {
-    if (cityFilter !== 'all') gList = gList.filter(g => g.city === cityFilter);
+    if (cityFilter && cityFilter !== 'all') gList = gList.filter(g => g.city === cityFilter);
   } else if (mode === 'manager') {
-    if (mgrFilter !== 'all') {
-      gList = gList.filter(g => {
-        const mgr = typeof window.gardenManager === 'function' ? window.gardenManager(g.id) : null;
-        return mgr && mgr.name === mgrFilter;
-      });
+    if (mgrFilter && mgrFilter !== 'all') {
+      const mgrObj = window.managers && window.managers[mgrFilter];
+      if (mgrObj?.gardenIds) {
+        gList = gList.filter(g => mgrObj.gardenIds.includes(g.id));
+      } else {
+        gList = gList.filter(g => {
+          const mgr = typeof window.gardenManager === 'function' ? window.gardenManager(g.id) : null;
+          return mgr && (mgr.name === mgrFilter || mgr.id === mgrFilter);
+        });
+      }
     }
   } else if (mode === 'garden') {
-    if (gardenFilters.length > 0) gList = gList.filter(g => gardenFilters.includes(Number(g.id)));
+    if (gardenFilters.length === 0) {
+      window.spAlert("לא נבחרו גנים / בתי ספר לייצוא");
+      return;
+    }
+    gList = gList.filter(g => gardenFilters.includes(Number(g.id)));
   }
 
-  if (gList.length === 0) { window.spAlert("לא נבחרו גנים לייצוא"); return; }
+  if (gList.length === 0) { window.spAlert("לא נבחרו גנים / בתי ספר לייצוא"); return; }
   
   const allEvs = window.SCH.filter(s => s.d >= fromDate && s.d <= toDate && (!s.st || s.st === 'ok'));
   const showPhones = document.getElementById('exp-phones') ? document.getElementById('exp-phones').checked : true;
