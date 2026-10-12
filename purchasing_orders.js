@@ -329,7 +329,9 @@ function openNewOrder() {
                 <th style="width:80px">כמות</th>
                 <th style="width:110px" id="om-th-price">מחיר יחידה</th>
                 <th style="width:110px" id="om-th-total">סה"כ</th>
-                <th style="width:50px"></th>
+                <th style="width:50px; text-align:center;">
+                  <button type="button" class="btn bo bsm" onclick="omClearAllRows()" title="מחק את כל השורות" style="padding:2px 6px; font-size:12px; cursor:pointer; line-height:1;">🗑️</button>
+                </th>
               </tr>
             </thead>
             <tbody id="om-items-body" onpaste="handleTablePaste(event)">
@@ -446,6 +448,27 @@ window.omDuplicateItemRow = function(rowId) {
   const qty = parseFloat(tr.querySelector('.om-qty').value) || 1;
   const price = parseFloat(tr.querySelector('.om-price').value) || 0;
   omAddItemRow(desc, qty, price);
+};
+window.omClearAllRows = function() {
+  const tbody = document.getElementById('om-items-body');
+  if (!tbody) return;
+  const rows = tbody.querySelectorAll('tr');
+  if (rows.length === 0) return;
+
+  let hasData = false;
+  rows.forEach(r => {
+    const desc = r.querySelector('.om-desc')?.value?.trim();
+    const price = parseFloat(r.querySelector('.om-price')?.value) || 0;
+    if (desc || price > 0) hasData = true;
+  });
+
+  if (hasData) {
+    if (!confirm('האם אתה בטוח שברצונך למחוק את כל השורות בהזמנה זו?')) return;
+  }
+
+  tbody.innerHTML = '';
+  omAddItemRow();
+  omCalc();
 };
 
 function omAddItemRow(desc='', qty=1, price=0) {
@@ -2827,9 +2850,13 @@ window.updateBulkPOButton = function() {
   }
 };
 
-window.printBulkPO = function() {
+window.downloadBulkPO = window.printBulkPO = function() {
   const checkboxes = document.querySelectorAll('.bulk-po-checkbox:checked');
-  if (checkboxes.length === 0) return;
+  if (checkboxes.length === 0) {
+    if (typeof window.spAlert === 'function') window.spAlert('נא לסמן לפחות הזמנה אחת להורדה');
+    else alert('נא לסמן לפחות הזמנה אחת להורדה');
+    return;
+  }
 
   const selectedIds = Array.from(checkboxes).map(cb => cb.value);
   let combinedPagesHtml = '';
@@ -2838,7 +2865,7 @@ window.printBulkPO = function() {
   
   for (let i = 0; i < selectedIds.length; i++) {
     const id = selectedIds[i];
-    const order = orders.find(o => o.id === id);
+    const order = orders.find(o => String(o.id) === String(id));
     if (order) {
       // Use the refactored openOrderPrintPreview to get just the HTML
       const orderHtml = openOrderPrintPreview(order, false, true);
