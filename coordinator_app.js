@@ -97,10 +97,24 @@ function _normDs(dStr) {
 function _withCoordSCH(fn) {
   const allowed    = window.getCoordAllowedGardenIds();
   const gidFilter  = _getCoordGidFilter(); // checked garden IDs (null = all allowed)
+  const q          = (window._coordSearchQuery || '').trim().toLowerCase();
+  const allGardens = [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
+
   const filteredSCH = (window.SCH||[]).filter(s => {
     const gid = Number(s.g);
     if (!allowed.has(gid)) return false;
     if (gidFilter && !gidFilter.has(gid)) return false;
+    if (q) {
+      const g = allGardens.find(x => Number(x.id) === gid);
+      const gName = (g?.name || '').toLowerCase();
+      const gCity = (g?.city || '').toLowerCase();
+      const act = (s.act || '').toLowerCase();
+      const sup = (s.a || '').toLowerCase();
+      const supLbl = (typeof window.supNameLabel === 'function' ? window.supNameLabel(s.a) : (typeof window.supBase === 'function' ? window.supBase(s.a) : '')).toLowerCase();
+      const nt = (s.nt || '').toLowerCase();
+      const match = gName.includes(q) || gCity.includes(q) || act.includes(q) || sup.includes(q) || supLbl.includes(q) || nt.includes(q);
+      if (!match) return false;
+    }
     return true;
   }).map(s => {
     if (s.d) {
@@ -167,6 +181,16 @@ window.initCoordinatorApp = function() {
             <button class="coord-grp-btn" data-g="clusters" onclick="window.coordSetGroup('clusters',this)" style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.82rem;min-height:36px;touch-action:manipulation;">🏘️ אשכולות</button>
           </div>
         </div>
+        <!-- Live Instant Search Bar -->
+        <div style="padding-bottom:8px">
+          <div style="position:relative;display:flex;align-items:center">
+            <input type="text" id="coord-live-search" placeholder="🔍 חיפוש מהיר: שם גן, ספק, פעילות או עיר..." 
+              oninput="window.coordOnSearch(this.value)" 
+              style="width:100%;box-sizing:border-box;padding:8px 34px 8px 12px;border-radius:8px;border:none;background:#fff;color:#1e293b;font-size:0.85rem;box-shadow:0 1px 4px rgba(0,0,0,0.15);outline:none">
+            <button id="coord-search-clear" onclick="window.coordClearSearch()" 
+              style="position:absolute;left:8px;background:none;border:none;font-size:0.95rem;color:#78909c;cursor:pointer;display:none" title="נקה חיפוש">✕</button>
+          </div>
+        </div>
         <!-- Garden multi-select filter -->
         <div style="padding-bottom:10px">
           <details id="coord-garden-panel" style="background:rgba(255,255,255,0.1);border-radius:8px;border:1px solid rgba(255,255,255,0.2)">
@@ -181,6 +205,14 @@ window.initCoordinatorApp = function() {
               <button onclick="window.renderCoordinatorView(); document.getElementById('coord-garden-panel').removeAttribute('open');" style="flex:1;background:rgba(100,200,100,0.3);border:none;border-radius:6px;color:#fff;padding:5px;font-size:0.75rem;cursor:pointer;font-weight:700">הצג</button>
             </div>
           </details>
+        </div>
+      </div>
+      <!-- Control Subbar: Activity Counter & Accordion Collapse/Expand -->
+      <div id="coord-subbar" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px 4px;max-width:1200px;margin:0 auto">
+        <div id="coord-summary-count" style="font-size:0.82rem;font-weight:700;color:#334155"></div>
+        <div style="display:flex;gap:6px">
+          <button onclick="window.coordToggleAllCities(false)" style="font-size:0.75rem;background:#fff;border:1px solid #cbd5e1;border-radius:6px;padding:3px 9px;cursor:pointer;color:#334155;font-weight:600;display:inline-flex;align-items:center;gap:3px" title="כווץ את כל ערי האקורדיון">📁 כווץ הכל</button>
+          <button onclick="window.coordToggleAllCities(true)" style="font-size:0.75rem;background:#fff;border:1px solid #cbd5e1;border-radius:6px;padding:3px 9px;cursor:pointer;color:#334155;font-weight:600;display:inline-flex;align-items:center;gap:3px" title="פתח את כל ערי האקורדיון">📖 פתח הכל</button>
         </div>
       </div>
       <div id="coord-activities-list" style="padding:12px"></div>
@@ -377,6 +409,25 @@ window.coordSelectAll = function() {
 window.coordClearFilter = function() {
   document.querySelectorAll('.coord-g-cb').forEach(cb => cb.checked = false);
   window.coordUpdateGardenLabel();
+};
+
+// ── Live Search & Accordion Helpers ──
+window._coordSearchQuery = '';
+window.coordOnSearch = function(val) {
+  window._coordSearchQuery = (val || '').trim();
+  const clr = document.getElementById('coord-search-clear');
+  if (clr) clr.style.display = window._coordSearchQuery ? 'block' : 'none';
+  window.renderCoordinatorView();
+};
+window.coordClearSearch = function() {
+  const inp = document.getElementById('coord-live-search');
+  if (inp) inp.value = '';
+  window.coordOnSearch('');
+};
+window.coordToggleAllCities = function(open) {
+  document.querySelectorAll('.city-accordion').forEach(d => {
+    d.open = open;
+  });
 };
 
 // ─────────────────────────────────────────────────────────
@@ -648,6 +699,15 @@ function _coordRenderByCity(evs, ds) {
   });
 
   const isClusterMode = (window._coordGroupMode === 'clusters');
+
+  // Update summary count subbar
+  const countEl = document.getElementById('coord-summary-count');
+  if (countEl) {
+    const isSearch = !!window._coordSearchQuery;
+    countEl.textContent = isSearch 
+      ? `🔍 נמצאו ${evs.length} פעילויות עבור "${window._coordSearchQuery}"` 
+      : `סה"כ ${evs.length} פעילויות ב-${Object.keys(byCity).length} ערים`;
+  }
 
   return Object.keys(byCity).sort((a,b)=>a.localeCompare(b,'he')).map(city => {
     const clr = window.CITY_COLORS ? window.CITY_COLORS(city) : {solid:'#1a237e',light:'#f5f7ff',border:'#e2e8f0'};
