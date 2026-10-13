@@ -759,7 +759,11 @@ function _coordRenderByCity(evs, ds) {
     pairBlocks.sort((a,b) => (a.pair.name||'').localeCompare(b.pair.name||'', 'he', { numeric: true }));
 
     const modeLabel = isClusterMode ? 'אשכולות' : 'זוגות';
-    let html = `<details class="city-accordion" open style="margin-bottom:12px">
+    const isManagerRole = window.role === 'manager' || window.role === 'vp' || window.permAllCities;
+    const isSearching = !!(window._coordSearchQuery && window._coordSearchQuery.length > 0);
+    const shouldOpenCity = isSearching || !isManagerRole;
+
+    let html = `<details class="city-accordion" ${shouldOpenCity ? 'open' : ''} style="margin-bottom:12px">
       <summary style="background:${clr.solid};color:#fff;padding:8px 12px;font-weight:800;border-radius:6px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center">
         <span style="display:flex;align-items:center;gap:6px">
           <span class="city-chevron">▼</span>
@@ -777,7 +781,7 @@ function _coordRenderByCity(evs, ds) {
           clr,
           context: 'cal',
           isCluster: isClusterMode,
-          defaultOpen: true
+          defaultOpen: !isManagerRole || isSearching
         });
       });
 
@@ -801,7 +805,7 @@ function _coordRenderByCity(evs, ds) {
           clr,
           context: 'cal',
           isSolo: true,
-          defaultOpen: true
+          defaultOpen: !isManagerRole || isSearching
         });
       });
     }
