@@ -1764,6 +1764,7 @@ window.mgrLinkExistingUser = async function() {
       coordTimeScope: isMgrRole ? 'year' : 'month',
       coordClsScope: 'all',
       permCoord: true,
+      currentYear: window.CURRENT_YEAR || 'tashpaz',
       phone: m.phone || ''
     };
     await fetch(`${dbUrl}/${uid}.json${q}`, {
@@ -2057,6 +2058,7 @@ function saveMgr(){
       coordClsScope: 'all',
       managerId: id,
       permCoord: true,
+      currentYear: window.CURRENT_YEAR || 'tashpaz',
       phone: managers[id].phone || ''
     };
     const dbUrl = window.USERS_DB || 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/users';

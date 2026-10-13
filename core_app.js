@@ -20,10 +20,18 @@ window.onload = function(){
           let localMeta = localMetaStr ? JSON.parse(localMetaStr) : { currentYear: 'tashpaz', years: {} };
           localMeta.years = { ...localMeta.years, ...cloudMeta.years };
           const effectiveTargetYear = cloudMeta.currentYear || 'tashpaz';
-          const isNonAdmin = window.role === 'coordinator' || window.role === 'worker' || window.role === 'view';
+          const isNonAdmin = ['coordinator', 'manager', 'vp', 'worker', 'view'].includes(window.role);
           const hasUserCustomChoice = window._safeLS.getItem('_user_custom_year_selected');
 
-          if (!hasUserCustomChoice || isNonAdmin || !localMeta.currentYear || !localMeta.years[localMeta.currentYear]) {
+          if (isNonAdmin) {
+            // Field coordinators, VPs, managers, and workers MUST ALWAYS see ONLY the current active school year
+            try {
+              localStorage.removeItem('_user_custom_year_selected');
+              if (window._safeLS) window._safeLS.removeItem('_user_custom_year_selected');
+            } catch(e) {}
+            localMeta.currentYear = effectiveTargetYear;
+            window.CURRENT_YEAR = effectiveTargetYear;
+          } else if (!hasUserCustomChoice || !localMeta.currentYear || !localMeta.years[localMeta.currentYear]) {
             localMeta.currentYear = effectiveTargetYear;
             window.CURRENT_YEAR = effectiveTargetYear;
           }

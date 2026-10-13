@@ -292,6 +292,20 @@ window.activateCoordinatorApp = function() {
     document.head.appendChild(s);
   }
 
+  // Strict Active Year Lock: Ensure coordinators and VPs always operate exclusively in the active school year
+  try {
+    const metaStr = (window._safeLS && window._safeLS.getItem('ganv5_meta')) || localStorage.getItem('ganv5_meta');
+    if (metaStr) {
+      const meta = JSON.parse(metaStr);
+      if (meta.currentYear) {
+        window.CURRENT_YEAR = meta.currentYear;
+      }
+    }
+  } catch(e) {}
+  if (!window.CURRENT_YEAR || window.CURRENT_YEAR === 'tashpav') {
+    window.CURRENT_YEAR = 'tashpaz';
+  }
+
   const now = new Date();
   window._coordCurrentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -505,13 +519,72 @@ window.coordNav = function(dir) {
   if (v === 'day')   d.setDate(d.getDate() + dir);
   else if (v === 'week') d.setDate(d.getDate() + dir * 7);
   else                d.setMonth(d.getMonth() + dir);
+
+  // Active School Year Date Boundary Protection
+  // Prevents field coordinators and VPs from wandering into past school years
+  const curY = window.CURRENT_YEAR || 'tashpaz';
+  let yearStart = null;
+  let yearEnd = null;
+  try {
+    const metaStr = (window._safeLS && window._safeLS.getItem('ganv5_meta')) || localStorage.getItem('ganv5_meta');
+    if (metaStr) {
+      const meta = JSON.parse(metaStr);
+      const yInfo = meta.years && meta.years[curY];
+      if (yInfo) {
+        if (yInfo.start) yearStart = new Date(yInfo.start + 'T00:00:00');
+        if (yInfo.end)   yearEnd   = new Date(yInfo.end + 'T23:59:59');
+      }
+    }
+  } catch(e) {}
+
+  if (!yearStart) yearStart = new Date('2026-09-01T00:00:00');
+  if (!yearEnd)   yearEnd   = new Date('2027-08-31T23:59:59');
+
+  if (d < yearStart) {
+    if (typeof _coordToast === 'function') {
+      _coordToast('📅 שנת הלימודים הנוכחית מתחילה ב-' + (yearStart.toLocaleDateString('he-IL')));
+    }
+    window._coordCurrentDate = yearStart;
+    window.renderCoordinatorView();
+    return;
+  }
+  if (d > yearEnd) {
+    if (typeof _coordToast === 'function') {
+      _coordToast('📅 שנת הלימודים הנוכחית מסתיימת ב-' + (yearEnd.toLocaleDateString('he-IL')));
+    }
+    window._coordCurrentDate = yearEnd;
+    window.renderCoordinatorView();
+    return;
+  }
+
   window._coordCurrentDate = d;
   window.renderCoordinatorView();
 };
 
 window.coordGoToday = function() {
   const now = new Date();
-  window._coordCurrentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const curY = window.CURRENT_YEAR || 'tashpaz';
+  let yearStart = null;
+  let yearEnd = null;
+  try {
+    const metaStr = (window._safeLS && window._safeLS.getItem('ganv5_meta')) || localStorage.getItem('ganv5_meta');
+    if (metaStr) {
+      const meta = JSON.parse(metaStr);
+      const yInfo = meta.years && meta.years[curY];
+      if (yInfo) {
+        if (yInfo.start) yearStart = new Date(yInfo.start + 'T00:00:00');
+        if (yInfo.end)   yearEnd   = new Date(yInfo.end + 'T23:59:59');
+      }
+    }
+  } catch(e) {}
+  if (!yearStart) yearStart = new Date('2026-09-01T00:00:00');
+  if (!yearEnd)   yearEnd   = new Date('2027-08-31T23:59:59');
+
+  if (d < yearStart) window._coordCurrentDate = yearStart;
+  else if (d > yearEnd) window._coordCurrentDate = yearEnd;
+  else window._coordCurrentDate = d;
+
   window.renderCoordinatorView();
 };
 

@@ -159,6 +159,21 @@ onAuthStateChanged(auth, async (user) => {
               window.coordClsScope = profile.coordClsScope || 'all';
               window.permCoord = true;
               window.permAllCities = isManagerRole || (profile.coordCities || []).includes('ALL') || !!profile.allCities;
+
+              // Force active year & clear any custom year selections
+              const targetYear = profile.currentYear || 'tashpaz';
+              window.CURRENT_YEAR = targetYear;
+              try {
+                localStorage.removeItem('_user_custom_year_selected');
+                if (window._safeLS) window._safeLS.removeItem('_user_custom_year_selected');
+                const metaStr = window._safeLS ? window._safeLS.getItem('ganv5_meta') : localStorage.getItem('ganv5_meta');
+                if (metaStr) {
+                  const mObj = JSON.parse(metaStr);
+                  mObj.currentYear = targetYear;
+                  if (window._safeLS) window._safeLS.setItem('ganv5_meta', JSON.stringify(mObj));
+                  localStorage.setItem('ganv5_meta', JSON.stringify(mObj));
+                }
+              } catch(e) {}
             }
           } else if (user.email && user.email.startsWith('worker@')) {
             // Auto-detect worker from email — no profile exists yet
