@@ -38,8 +38,9 @@ window.onload = function(){
     // 1. Load local data immediately to show UI fast
     load();
 
-    // Skip all admin UI setup for strict workers - they have their own isolated mobile UI
-    if (window.role !== 'worker') {
+    // Skip all admin UI setup for isolated roles (workers, coordinators, managers, VPs)
+    const isIsolatedRole = ['coordinator', 'manager', 'vp', 'worker'].includes(window.role);
+    if (!isIsolatedRole) {
       restoreMissingHolidays();
       syncSupplierList();
       if (!window.CURRENT_YEAR || window.CURRENT_YEAR === 'tashpav') {
@@ -104,8 +105,8 @@ window.onload = function(){
 
       // Invoices are loaded by loadFromFirebase() (firebase.js L292-L314) — no separate fetch needed
 
-      // If Firebase load was successful, update the data and re-render (skip for workers - they have isolated UI)
-      if (fbOk && window.role !== 'worker') {
+      // If Firebase load was successful, update the data and re-render (skip for isolated roles)
+      if (fbOk && !isIsolatedRole) {
         load();
         syncSupplierList();
         initDrops();
@@ -123,17 +124,18 @@ window.onload = function(){
         try{ renderPurchSuppliers(); }catch(e){}
         try{ renderInvoices(); }catch(e){}
 
-        // Coordinator view re-render with fresh year data & pairs!
+        // Pre-load purchasing data in the background so it's ready when user switches to purch mode
+        if (typeof window.loadPurchasingDataFromFirebase === 'function') {
+          window.loadPurchasingDataFromFirebase().catch(e => console.warn('[Core] Background purchasing data pre-load failed:', e));
+        }
+      } else if (fbOk && (window.role === 'coordinator' || window.role === 'manager' || window.role === 'vp')) {
+        // Coordinator / Manager field view re-render with fresh year data & pairs!
+        load();
         if (typeof window.renderCoordinatorView === 'function') {
           try {
             if (typeof _coordBuildGardenFilter === 'function') _coordBuildGardenFilter();
             window.renderCoordinatorView();
           } catch(ce) { console.warn('renderCoordinatorView error:', ce); }
-        }
-
-        // Pre-load purchasing data in the background so it's ready when user switches to purch mode
-        if (typeof window.loadPurchasingDataFromFirebase === 'function') {
-          window.loadPurchasingDataFromFirebase().catch(e => console.warn('[Core] Background purchasing data pre-load failed:', e));
         }
       } else if (fbOk && window.role === 'worker') {
         // For workers: just re-render the mobile task list with fresh data

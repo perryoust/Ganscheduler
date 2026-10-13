@@ -763,10 +763,15 @@ window.doLogout = async function(skipConfirm = false){
       window._safeLS.removeItem('ganv5_cached_token');
       window._safeLS.removeItem('_user_custom_year_selected');
       window._safeLS.removeItem('ganv5_meta');
+      window._safeLS.removeItem('gan_app_mode');
+      window._safeLS.removeItem('gan_user_role');
     }
     try { localStorage.removeItem('ganv5_auth_user'); } catch(e){}
     try { localStorage.removeItem('_user_custom_year_selected'); } catch(e){}
+    try { localStorage.removeItem('gan_app_mode'); } catch(e){}
+    try { localStorage.removeItem('gan_user_role'); } catch(e){}
     try { sessionStorage.clear(); } catch(e){}
+    try { document.documentElement.classList.remove('isolated-mode'); } catch(e){}
 
     if(typeof window._fbSignOut === 'function') {
       await window._fbSignOut();

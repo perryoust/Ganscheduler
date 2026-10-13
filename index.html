@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 113.14</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 113.15</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="icon" type="image/png" href="icon-192.png" />
@@ -21,21 +21,56 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=113.14" />
+  <link rel="stylesheet" href="styles.css?v=113.15" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- Frame-0 Isolated Mode Guard: Prevents any visual flash of Admin UI for field coordinators and VPs -->
   <script>
-    window.APP_VERSION = '113.14';
+    (function() {
+      try {
+        var m = localStorage.getItem('gan_app_mode');
+        var r = localStorage.getItem('gan_user_role');
+        if (m === 'coordinator' || m === 'worker' || ['coordinator', 'manager', 'vp', 'worker'].indexOf(r) !== -1) {
+          document.documentElement.classList.add('isolated-mode');
+        }
+      } catch(e) {}
+    })();
+  </script>
+  <style>
+    /* Frame-0 rule: completely hide all admin UI when isolated mode is active */
+    html.isolated-mode body > *:not(#system-loading-overlay):not(#auth-overlay):not(#coordinator-app-root):not(#worker-tasks-mobile-app):not(#worker-app-root):not(script):not(style):not(link) {
+      display: none !important;
+      visibility: hidden !important;
+    }
+  </style>
+  <script>
+    window.APP_VERSION = '113.15';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
+        try {
+          var m = localStorage.getItem('gan_app_mode');
+          var r = localStorage.getItem('gan_user_role');
+          if (m === 'coordinator' || m === 'worker' || ['coordinator', 'manager', 'vp', 'worker'].indexOf(r) !== -1) {
+            return; // Coordinator and worker apps dismiss overlay themselves upon activation
+          }
+        } catch(e) {}
         var sysLoad = document.getElementById('system-loading-overlay');
         if (sysLoad && sysLoad.style.display !== 'none') {
           sysLoad.style.opacity = '0';
           setTimeout(function() { sysLoad.style.display = 'none'; }, 300);
         }
       }, 3500);
+
+      // Ultimate catastrophic fallback (12s) if network is completely stalled
+      setTimeout(function() {
+        var sysLoad = document.getElementById('system-loading-overlay');
+        if (sysLoad && sysLoad.style.display !== 'none') {
+          sysLoad.style.opacity = '0';
+          setTimeout(function() { sysLoad.style.display = 'none'; }, 300);
+        }
+      }, 12000);
 
       // Auto-resize PWA window on desktop if opened too small (Only once per session)
       if (window.matchMedia('(display-mode: standalone)').matches && !sessionStorage.getItem('pwaResized')) {
@@ -81,7 +116,7 @@
   <!-- 📊 MAIN HEADER — dashboard 📊 -->
   <div class="hdr">
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-      <h1 style="display:flex;align-items:center;margin:0;"><img src="logo_wide.png" style="height:30px;vertical-align:middle;" alt="גן סקג'ולר לוגו"><span id="app-version-label" onclick="window.openVersionVaultModal &amp;&amp; window.openVersionVaultModal()" style="font-size:.62rem;opacity:.85;font-weight:700;margin-right:8px;line-height:1;cursor:pointer;background:rgba(255,255,255,0.18);padding:2px 6px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);white-space:nowrap;" title="לחץ לפתיחת כספת גיבויי נתונים ושחזור">v113.12 📦</span></h1>
+      <h1 style="display:flex;align-items:center;margin:0;"><img src="logo_wide.png" style="height:30px;vertical-align:middle;" alt="גן סקג'ולר לוגו"><span id="app-version-label" onclick="window.openVersionVaultModal &amp;&amp; window.openVersionVaultModal()" style="font-size:.62rem;opacity:.85;font-weight:700;margin-right:8px;line-height:1;cursor:pointer;background:rgba(255,255,255,0.18);padding:2px 6px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);white-space:nowrap;" title="לחץ לפתיחת כספת גיבויי נתונים ושחזור">v113.15 📦</span></h1>
       <select id="year-selector" onchange="window.changeCurrentYear(this.value)" style="margin-right:8px; font-size:0.76rem; border-radius:4px; border:1px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.15); color:white; padding:2px 6px; outline:none; font-weight:600; cursor:pointer;" title="בחר שנת לימודים">
         <!-- options will be injected here, but we apply a global style in index.html to fix option text color -->
         <!-- populated by JS -->

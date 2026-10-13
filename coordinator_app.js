@@ -255,10 +255,10 @@ window._coordGroupMode   = 'pairs';
 // ACTIVATION
 // ─────────────────────────────────────────────────────────
 window.activateCoordinatorApp = function() {
-  // Remove non-coordinator DOM elements
+  // Remove non-coordinator DOM elements (preserve loading overlay until fade-out)
   Array.from(document.body.children).forEach(el => {
     const tag = el.tagName.toUpperCase();
-    if (tag !== 'SCRIPT' && tag !== 'STYLE' && tag !== 'LINK' && el.id !== 'coordinator-app-root') el.remove();
+    if (tag !== 'SCRIPT' && tag !== 'STYLE' && tag !== 'LINK' && el.id !== 'coordinator-app-root' && el.id !== 'system-loading-overlay') el.remove();
   });
 
   // Inject styles
@@ -897,6 +897,11 @@ window.coordRefreshData = function() {
 };
 
 window.coordLogout = function() {
+  try {
+    localStorage.removeItem('gan_app_mode');
+    localStorage.removeItem('gan_user_role');
+    document.documentElement.classList.remove('isolated-mode');
+  } catch(e) {}
   if (typeof window.doLogout === 'function') {
     window.doLogout(false);
   } else {

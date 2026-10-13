@@ -198,10 +198,16 @@ onAuthStateChanged(auth, async (user) => {
     // Strict Worker Isolation: If they ONLY have worker permissions, use the isolated mobile UI
     const isStrictWorker = permWorker && (!permAct || role === 'worker') && !permPurch && role !== 'admin';
     if (isStrictWorker) {
+      try {
+        localStorage.setItem('gan_app_mode', 'worker');
+        localStorage.setItem('gan_user_role', role);
+      } catch (e) {}
+      document.documentElement.classList.add('isolated-mode');
+
       const authOverlay = document.getElementById('auth-overlay');
       if (authOverlay) authOverlay.style.display = 'none';
 
-      // Load data first (like coordinator flow), then activate worker UI
+      // Load data first, then activate worker UI
       if (typeof window._onAuthReady === 'function') window._onAuthReady();
 
       // Poll until data is loaded, then activate worker app
@@ -217,34 +223,46 @@ onAuthStateChanged(auth, async (user) => {
           const sysLoad = document.getElementById('system-loading-overlay');
           if (sysLoad) { sysLoad.style.opacity = '0'; setTimeout(()=>sysLoad.style.display='none',300); }
         }
-      }, 300);
+      }, 150);
       return;
     }
 
     // Strict Coordinator or Manager/VP Isolation: read-only view of their assigned gardens or whole org
     const isStrictCoordinator = (role === 'coordinator' || role === 'manager' || role === 'vp') && (window.permCoord || profile?.allCities || role === 'manager' || role === 'vp') && !permPurch && role !== 'admin';
     if (isStrictCoordinator) {
+      try {
+        localStorage.setItem('gan_app_mode', 'coordinator');
+        localStorage.setItem('gan_user_role', role);
+      } catch (e) {}
+      document.documentElement.classList.add('isolated-mode');
+
       const authOverlay = document.getElementById('auth-overlay');
       if (authOverlay) authOverlay.style.display = 'none';
-      // Data must load first, then activate
+      // Data must load first, then activate (core_app.js now safely skips admin rendering)
       if (typeof window._onAuthReady === 'function') window._onAuthReady();
-      // Poll until GARDENS, SCH and Firebase sync are loaded, then activate coordinator app
+      // Poll until GARDENS and Firebase sync are loaded, then activate coordinator app
       let _coordPollCount = 0;
       const _coordPoll = setInterval(() => {
         _coordPollCount++;
         const gardensReady = window.GARDENS && window.GARDENS.length > 0;
         const fbReady = window._fbSyncReady;
-        if ((gardensReady && fbReady) || _coordPollCount >= 25) {
+        if ((gardensReady && fbReady) || _coordPollCount >= 20) {
           clearInterval(_coordPoll);
           if (typeof window.activateCoordinatorApp === 'function') {
             window.activateCoordinatorApp();
           }
           const sysLoad = document.getElementById('system-loading-overlay');
-          if (sysLoad) { sysLoad.style.opacity = '0'; setTimeout(()=>sysLoad.style.display='none',300); }
+          if (sysLoad) { sysLoad.style.opacity = '0'; setTimeout(()=>sysLoad.style.display='none',200); }
         }
-      }, 300);
+      }, 100);
       return;
     }
+
+    try {
+      localStorage.removeItem('gan_app_mode');
+      localStorage.setItem('gan_user_role', role);
+      document.documentElement.classList.remove('isolated-mode');
+    } catch (e) {}
 
     const authOverlay = document.getElementById('auth-overlay');
     if (authOverlay) authOverlay.style.display = 'none';
@@ -261,6 +279,11 @@ onAuthStateChanged(auth, async (user) => {
     window.permPurch = false;
     window.permAct = false;
     window.role = null;
+    try {
+      localStorage.removeItem('gan_app_mode');
+      localStorage.removeItem('gan_user_role');
+      document.documentElement.classList.remove('isolated-mode');
+    } catch (e) {}
     const authOverlay = document.getElementById('auth-overlay');
     if (authOverlay) authOverlay.style.display = 'flex';
     const sysLoad = document.getElementById('system-loading-overlay');
