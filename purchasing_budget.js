@@ -787,7 +787,7 @@ window.budgetApp = {
 
           <!-- Footer bottom -->
           <div style="margin-top:auto; padding-top:20px; text-align:center; font-size:0.8em; color:#888; border-top:1px solid #eee;">
-            ${rtlFix('הופק באמצעות מערכת גנשדג\'ולר')} &bull; ${new Date().toLocaleDateString('he-IL')}
+            ${rtlFix('הופק באמצעות מערכת טומשין ניהול ושיבוץ')} &bull; ${new Date().toLocaleDateString('he-IL')}
           </div>
         </div>
       </div>
