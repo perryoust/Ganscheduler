@@ -222,7 +222,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     // Strict Coordinator or Manager/VP Isolation: read-only view of their assigned gardens or whole org
-    const isStrictCoordinator = (role === 'coordinator' || role === 'manager' || role === 'vp') && (window.permCoord || profile?.allCities) && !permPurch && role !== 'admin';
+    const isStrictCoordinator = (role === 'coordinator' || role === 'manager' || role === 'vp') && (window.permCoord || profile?.allCities || role === 'manager' || role === 'vp') && !permPurch && role !== 'admin';
     if (isStrictCoordinator) {
       const authOverlay = document.getElementById('auth-overlay');
       if (authOverlay) authOverlay.style.display = 'none';

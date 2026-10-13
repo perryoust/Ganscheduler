@@ -1543,7 +1543,8 @@ function renderManagers(){
           ${supF ? `<span style="font-size:.72rem;background:rgba(255,255,255,.2);padding:2px 7px;border-radius:10px;color:#fff;margin-right:8px">🎭 מפעיל: ${supF}</span>` : ''}
           ${(m.hasAuth || m.linkedUid) ? `<span style="font-size:.72rem;background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:10px;margin-right:8px;font-weight:700">🔑 מחובר לאתר (${m.linkedUsername || 'פעיל'})</span>` : `<span style="font-size:.72rem;background:rgba(255,255,255,.15);color:rgba(255,255,255,.7);padding:2px 8px;border-radius:10px;margin-right:8px">🔒 ללא גישה לאתר</span>`}
         </div>
-        <div style="display:flex;gap:5px">
+        <div style="display:flex;gap:5px;flex-wrap:wrap">
+          <button onclick="window.previewMgrCoordinatorView('${m.id}')" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem" title="צפייה בממשק השטח כפי שרכז/סמנכ״ל זה רואה אותו באתר">👁️ ${isMgr ? 'תצוגת סמנכ"ל' : 'תצוגת שטח'}</button>
           <button onclick="openMgrModal('${m.id}')" style="background:rgba(255,255,255,.22);border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem">✏️ ערוך</button>
           <button onclick="exportMgrContact('${m.id}', '${supF ? supF.replace(/'/g, "\\'") : ''}')" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem">📋 הודעה</button>
           <button onclick="window.exportMgrExcel('${m.id}', '${supF ? supF.replace(/'/g, "\\'") : ''}')" style="background:#2e7d32;border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem;font-weight:700">📊 Excel</button>
@@ -2120,7 +2121,30 @@ async function deleteMgr(){
   showToast('🗑️ '+name+' נמחק והגישה לאתר בוטלה');
 }
 
-// ── Coordinator / Manager Export Logic ─────────────────────────
+// ── Coordinator / Manager Export & Preview Logic ───────────────
+window.previewMgrCoordinatorView = function(mgrId) {
+  const m = window.managers && window.managers[mgrId];
+  if (!m) return;
+  const isMgr = m.role === 'manager' || m.role === 'vp';
+  window.isAdminPreview = true;
+  window.role = isMgr ? 'manager' : 'coordinator';
+  window.coordManagerId = mgrId;
+  window.coordCities = isMgr ? ['ALL'] : (m.city ? [m.city] : []);
+  window.coordGardenIds = m.gardenIds || [];
+  window.permAllCities = isMgr;
+  window.permCoord = true;
+  if (typeof window.activateCoordinatorApp === 'function') {
+    window.activateCoordinatorApp();
+    const backBtn = document.getElementById('coord-back-admin-btn');
+    if (backBtn) backBtn.style.display = 'inline-flex';
+  }
+};
+
+window.closeCoordPreview = function() {
+  window.isAdminPreview = false;
+  location.reload();
+};
+
 window.getGardenPhoneInfo = function(g) {
   if (!g) return { gardenPhone: '', contactName: '' };
   const ex = (window.supEx && window.supEx['g_' + g.id]) || {};

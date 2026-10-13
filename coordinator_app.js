@@ -166,6 +166,8 @@ window.initCoordinatorApp = function() {
             <img src="logo_wide.png" style="height:26px; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3));" alt="Logo">
             <span id="coord-user-name" style="color:#fff;font-weight:700;font-size:0.95rem"></span>
           </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button id="coord-back-admin-btn" onclick="window.closeCoordPreview()" style="display:none;background:#f59e0b;border:none;border-radius:8px;color:#1e293b;padding:5px 11px;font-size:0.78rem;font-weight:800;cursor:pointer">🔙 חזור למערכת</button>
             <button onclick="window.coordRefreshData()" style="background:rgba(255,255,255,0.15);border:none;border-radius:8px;color:white;padding:5px 11px;font-size:0.78rem;cursor:pointer">🔄 רענן</button>
             <button onclick="window.coordLogout()" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;color:#fff;font-size:1.2rem;cursor:pointer;padding:4px 10px;display:inline-flex;align-items:center;justify-content:center" title="התנתק">🚪</button>
           </div>
