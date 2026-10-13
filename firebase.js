@@ -81,6 +81,9 @@ function _setSyncState(seq, ts, error = null, isLoad = false) {
   }
   _fbLastError = error;
   _fbUpdateStatus();
+  if (!isLoad && typeof window.checkVersionVaultSync === 'function') {
+    window.checkVersionVaultSync();
+  }
 }
 
 // ── Status UI ────────────────────────────────
@@ -1104,6 +1107,7 @@ window.showBackupInd = function(text = '✅ נשמר', duration = 2000) {
 };
 window._fbStartPolling = _fbStartPolling;
 window._fbStopPolling = _fbStopPolling;
+window._fbGetLocalSeq = () => _localSeq;
 window.getFirebaseDbUrl = getFirebaseDbUrl;
 window.getFirebaseRootUrl = getFirebaseRootUrl;
 
