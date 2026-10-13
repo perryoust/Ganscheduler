@@ -1538,6 +1538,7 @@ function renderManagers(){
           <span style="font-weight:800;color:#fff;font-size:.9rem">${roleLabel} ${m.name}</span>
           ${m.city ? `<span style="font-size:.72rem;color:rgba(255,255,255,.8);margin-right:10px">🏙️ ${m.city}</span>` : ''}
           ${supF ? `<span style="font-size:.72rem;background:rgba(255,255,255,.2);padding:2px 7px;border-radius:10px;color:#fff;margin-right:8px">🎭 מפעיל: ${supF}</span>` : ''}
+          ${(m.hasAuth || m.linkedUid) ? `<span style="font-size:.72rem;background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:10px;margin-right:8px;font-weight:700">🔑 מחובר לאתר (${m.linkedUsername || 'פעיל'})</span>` : `<span style="font-size:.72rem;background:rgba(255,255,255,.15);color:rgba(255,255,255,.7);padding:2px 8px;border-radius:10px;margin-right:8px">🔒 ללא גישה לאתר</span>`}
         </div>
         <div style="display:flex;gap:5px">
           <button onclick="openMgrModal('${m.id}')" style="background:rgba(255,255,255,.22);border:none;border-radius:6px;padding:3px 9px;cursor:pointer;color:#fff;font-size:.74rem">✏️ ערוך</button>
@@ -1584,6 +1585,349 @@ function renderManagers(){
   el.innerHTML = h;
 }
 
+// ── Managers / Users Unification & Authentication ──────────────
+let _mgrUsersCache = null;
+let _mgrUsersCacheTime = 0;
+
+window.mgrGetUsersList = async function(forceFresh = false) {
+  if (!forceFresh && _mgrUsersCache && (Date.now() - _mgrUsersCacheTime < 30000)) {
+    return _mgrUsersCache;
+  }
+  try {
+    const dbUrl = window.USERS_DB || 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/users';
+    const q = typeof window._authQ === 'function' ? await window._authQ() : '';
+    const res = await fetch(`${dbUrl}.json${q}`);
+    if (res.ok) {
+      _mgrUsersCache = (await res.json()) || {};
+      _mgrUsersCacheTime = Date.now();
+      return _mgrUsersCache;
+    }
+  } catch(e) {
+    console.warn('[Managers] Failed to fetch users list:', e);
+  }
+  return _mgrUsersCache || {};
+};
+
+window.mgrSwitchAuthTab = function(tab) {
+  const isLink = tab === 'link';
+  const tabLink = document.getElementById('mgr-auth-tab-link');
+  const tabCreate = document.getElementById('mgr-auth-tab-create');
+  const btnLink = document.getElementById('mgr-tab-link-btn');
+  const btnCreate = document.getElementById('mgr-tab-create-btn');
+  if (tabLink) tabLink.style.display = isLink ? 'block' : 'none';
+  if (tabCreate) tabCreate.style.display = isLink ? 'none' : 'block';
+  if (btnLink) {
+    btnLink.style.background = isLink ? '#fff' : 'transparent';
+    btnLink.style.color = isLink ? '#1e293b' : '#64748b';
+    btnLink.style.boxShadow = isLink ? '0 1px 3px rgba(0,0,0,.08)' : 'none';
+    btnLink.style.fontWeight = isLink ? '700' : '600';
+  }
+  if (btnCreate) {
+    btnCreate.style.background = isLink ? 'transparent' : '#fff';
+    btnCreate.style.color = isLink ? '#64748b' : '#1e293b';
+    btnCreate.style.boxShadow = isLink ? 'none' : '0 1px 3px rgba(0,0,0,.08)';
+    btnCreate.style.fontWeight = isLink ? '600' : '700';
+  }
+};
+
+window.mgrRefreshAuthUI = async function(m) {
+  const activeEl = document.getElementById('mgr-auth-active');
+  const unlinkedEl = document.getElementById('mgr-auth-unlinked');
+  if (!activeEl || !unlinkedEl) return;
+
+  const usersMap = await window.mgrGetUsersList();
+  
+  // Try to find if user is linked or exists in usersMap
+  let linkedUser = null;
+  if (m && m.linkedUid && usersMap[m.linkedUid]) {
+    linkedUser = usersMap[m.linkedUid];
+  } else if (m) {
+    // Fallback: check if any user has managerId === m.id or matching clean phone/name
+    const cleanPh = m.phone ? m.phone.replace(/\D/g, '') : '';
+    for (const [uid, u] of Object.entries(usersMap)) {
+      if (u.managerId === m.id) {
+        linkedUser = { ...u, uid };
+        m.linkedUid = uid;
+        m.linkedUsername = u.username || u.name;
+        m.hasAuth = true;
+        break;
+      }
+      if (cleanPh && u.phone && u.phone.replace(/\D/g, '') === cleanPh) {
+        linkedUser = { ...u, uid };
+        m.linkedUid = uid;
+        m.linkedUsername = u.username || u.name;
+        m.hasAuth = true;
+        break;
+      }
+    }
+  }
+
+  if (m && m.hasAuth && linkedUser) {
+    activeEl.style.display = 'block';
+    unlinkedEl.style.display = 'none';
+
+    const unameEl = document.getElementById('mgr-auth-uname');
+    const emailEl = document.getElementById('mgr-auth-email');
+    const roleBadgeEl = document.getElementById('mgr-auth-role-badge');
+    const isMgrRole = (m.role === 'manager' || m.role === 'vp' || linkedUser.role === 'manager');
+
+    if (unameEl) unameEl.textContent = linkedUser.username || linkedUser.name || 'משתמש מערכת';
+    if (emailEl) emailEl.textContent = linkedUser.email || ((linkedUser.username || '') + '@ganmanager.app');
+    if (roleBadgeEl) {
+      roleBadgeEl.textContent = isMgrRole ? '👔 סמנכ"ל / הנהלה' : '👀 רכז שטח';
+      roleBadgeEl.style.background = isMgrRole ? '#ede7f6' : '#bbf7d0';
+      roleBadgeEl.style.color = isMgrRole ? '#4a148c' : '#14532d';
+    }
+  } else {
+    activeEl.style.display = 'none';
+    unlinkedEl.style.display = 'block';
+
+    // Populate link select
+    const sel = document.getElementById('mgr-link-user-select');
+    if (sel) {
+      const roleLabel = { admin: '👑 מנהל', edit: '✏️ עריכה', view: '👁️ צפייה', coordinator: '👀 רכז שטח', manager: '👔 סמנכ"ל/הנהלה', vp: '👔 סמנכ"ל' };
+      const entries = Object.entries(usersMap).sort((a,b) => (a[1].name||a[1].username||'').localeCompare(b[1].name||b[1].username||'', 'he'));
+      
+      let opts = '<option value="">-- בחר משתמש מניהול המשתמשים לשיוך --</option>';
+      let autoMatchedUid = null;
+      const mNameLow = (m?.name || '').trim().toLowerCase();
+      const cleanPh = m?.phone ? m.phone.replace(/\D/g, '') : '';
+
+      entries.forEach(([uid, u]) => {
+        const uName = u.name || '';
+        const uUname = u.username || '';
+        const rLbl = roleLabel[u.role] || u.role || 'משתמש';
+        const isMatched = (mNameLow && (uName.toLowerCase().includes(mNameLow) || mNameLow.includes(uName.toLowerCase()) || uUname.toLowerCase().includes(mNameLow))) ||
+                          (cleanPh && u.phone && u.phone.replace(/\D/g, '') === cleanPh);
+        if (isMatched && !autoMatchedUid) autoMatchedUid = uid;
+        opts += `<option value="${uid}" ${isMatched ? 'selected' : ''}>👤 ${uUname} (${uName || 'ללא שם'}) — ${rLbl}</option>`;
+      });
+      sel.innerHTML = opts;
+    }
+
+    // Pre-fill creation inputs
+    const newUnameInput = document.getElementById('mgr-new-username');
+    const newPwdInput = document.getElementById('mgr-new-pwd');
+    if (newUnameInput) {
+      const cleanPh = m?.phone ? m.phone.replace(/\D/g, '') : '';
+      newUnameInput.value = cleanPh ? `coord_${cleanPh}` : `coord_${Date.now().toString().slice(-4)}`;
+    }
+    if (newPwdInput) {
+      const cleanPh = m?.phone ? m.phone.replace(/\D/g, '') : '';
+      newPwdInput.value = cleanPh ? cleanPh.slice(0, 6) : Math.floor(100000 + Math.random() * 900000).toString();
+    }
+    window.mgrSwitchAuthTab('link');
+  }
+};
+
+window.mgrLinkExistingUser = async function() {
+  if (!_editMgrId) return;
+  const sel = document.getElementById('mgr-link-user-select');
+  const uid = sel ? sel.value : null;
+  if (!uid) {
+    if (typeof _spAlertDialog === 'function') _spAlertDialog('יש לבחור משתמש מהרשימה לשיוך');
+    else alert('יש לבחור משתמש מהרשימה לשיוך');
+    return;
+  }
+  const usersMap = await window.mgrGetUsersList();
+  const u = usersMap[uid];
+  if (!u) return;
+
+  const m = managers[_editMgrId];
+  if (!m) return;
+
+  if (typeof window.spConfirm === 'function') {
+    if (!await window.spConfirm(`האם לשייך את הרכז/ת "${m.name}" לחשבון המשתמש "${u.username || u.name}"?\nהרשאות הגנים של המשתמש יסונכרנו אוטומטית עם הגנים שנבחרו.`)) return;
+  }
+
+  m.linkedUid = uid;
+  m.linkedUsername = u.username || u.name;
+  m.hasAuth = true;
+
+  // Immediately push update to RTDB /users/${uid}
+  try {
+    const dbUrl = window.USERS_DB || 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/users';
+    const q = typeof window._authQ === 'function' ? await window._authQ() : '';
+    const isMgrRole = m.role === 'manager' || m.role === 'vp';
+    const gardenIds = [...document.querySelectorAll('#mgr-gardens input:checked')].map(cb=>parseInt(cb.value));
+    const patchPayload = {
+      name: m.name,
+      role: isMgrRole ? 'manager' : 'coordinator',
+      managerId: _editMgrId,
+      coordGardenIds: gardenIds,
+      coordCities: isMgrRole ? ['ALL'] : (m.city ? [m.city] : []),
+      allCities: isMgrRole,
+      coordTimeScope: isMgrRole ? 'year' : 'month',
+      coordClsScope: 'all',
+      permCoord: true,
+      phone: m.phone || ''
+    };
+    await fetch(`${dbUrl}/${uid}.json${q}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patchPayload)
+    });
+    if (typeof save === 'function') await save(true);
+    _mgrUsersCache = null; // bust cache
+    showToast(`✅ שויך בהצלחה לחשבון "${u.username || u.name}" וההרשאות סונכרנו!`);
+    await window.mgrRefreshAuthUI(m);
+    renderManagers();
+  } catch(e) {
+    alert('שגיאה בשיוך משתמש: ' + e.message);
+  }
+};
+
+window.mgrCreateNewUserAction = async function() {
+  if (!_editMgrId) return;
+  const m = managers[_editMgrId];
+  if (!m) return;
+
+  const uname = (document.getElementById('mgr-new-username')?.value || '').trim().toLowerCase();
+  const pwd = (document.getElementById('mgr-new-pwd')?.value || '').trim();
+
+  if (!uname || !pwd) {
+    if (typeof _spAlertDialog === 'function') _spAlertDialog('יש להזין שם משתמש וסיסמה');
+    else alert('יש להזין שם משתמש וסיסמה');
+    return;
+  }
+  if (pwd.length < 6) {
+    if (typeof _spAlertDialog === 'function') _spAlertDialog('הסיסמה חייבת להכיל לפחות 6 תווים');
+    else alert('הסיסמה חייבת להכיל לפחות 6 תווים');
+    return;
+  }
+  if (!/^[a-z0-9_.-]+$/.test(uname)) {
+    if (typeof _spAlertDialog === 'function') _spAlertDialog('שם משתמש: אותיות לטיניות קטנות, ספרות וקו תחתון בלבד');
+    else alert('שם משתמש: אותיות לטיניות קטנות, ספרות וקו תחתון בלבד');
+    return;
+  }
+
+  if (typeof window.spConfirm === 'function') {
+    if (!await window.spConfirm(`האם ליצור חשבון משתמש חדש באתר עבור "${m.name}"?\nשם משתמש: ${uname}\nסיסמה: ${pwd}\n\nהרכז יוכל להתחבר לאתר ולראות את השיבוצים של הגנים שלו בלבד.`)) return;
+  }
+
+  try {
+    if (!window._fbCreateUser) throw new Error("פונקציית יצירת משתמש אינה זמינה כעת.");
+    const res = await window._fbCreateUser(uname, pwd);
+    const dbUrl = window.USERS_DB || 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/users';
+    const q = typeof window._authQ === 'function' ? await window._authQ() : '';
+    const isMgrRole = m.role === 'manager' || m.role === 'vp';
+    const gardenIds = [...document.querySelectorAll('#mgr-gardens input:checked')].map(cb=>parseInt(cb.value));
+
+    const userPayload = {
+      uid: res.uid,
+      username: uname,
+      name: m.name,
+      role: isMgrRole ? 'manager' : 'coordinator',
+      email: res.email,
+      permAct: true,
+      permPurch: false,
+      permWorker: false,
+      permCoord: true,
+      allCities: isMgrRole,
+      coordCities: isMgrRole ? ['ALL'] : (m.city ? [m.city] : []),
+      coordGardenIds: gardenIds,
+      coordTimeScope: isMgrRole ? 'year' : 'month',
+      coordClsScope: 'all',
+      managerId: _editMgrId,
+      currentYear: window.CURRENT_YEAR || 'tashpaz',
+      createdAt: Date.now(),
+      phone: m.phone || ''
+    };
+
+    await fetch(`${dbUrl}/${res.uid}.json${q}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userPayload)
+    });
+
+    m.linkedUid = res.uid;
+    m.linkedUsername = uname;
+    m.hasAuth = true;
+
+    if (typeof save === 'function') await save(true);
+    _mgrUsersCache = null;
+
+    if (typeof _spAlertDialog === 'function') {
+      _spAlertDialog(`✅ החשבון נוצר בהצלחה!\n\nשם משתמש: ${uname}\nסיסמה: ${pwd}\n\nפרטי החשבון והרשאות הגנים סונכרנו לאתר.`);
+    } else {
+      alert(`✅ החשבון נוצר בהצלחה!\nשם משתמש: ${uname}\nסיסמה: ${pwd}`);
+    }
+    await window.mgrRefreshAuthUI(m);
+    renderManagers();
+  } catch(e) {
+    if (e.message && e.message.includes('email-already-in-use')) {
+      alert('שם משתמש זה כבר תפוס במערכת. נא לבחור שם משתמש אחר.');
+    } else {
+      alert('שגיאה ביצירת חשבון: ' + e.message);
+    }
+  }
+};
+
+window.mgrUnlinkUser = async function() {
+  if (!_editMgrId) return;
+  const m = managers[_editMgrId];
+  if (!m || !m.linkedUid) return;
+
+  if (typeof window.spConfirm === 'function') {
+    if (!await window.spConfirm(`האם לנתק את השיוך של הרכז/ת "${m.name}" מחשבון "${m.linkedUsername || m.name}"?\nהחשבון יישאר במערכת אך לא יהיה מקושר לרכז זה.`)) return;
+  }
+
+  try {
+    const dbUrl = window.USERS_DB || 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/users';
+    const q = typeof window._authQ === 'function' ? await window._authQ() : '';
+    await fetch(`${dbUrl}/${m.linkedUid}/managerId.json${q}`, {
+      method: 'DELETE'
+    });
+    m.linkedUid = null;
+    m.linkedUsername = null;
+    m.hasAuth = false;
+    if (typeof save === 'function') await save(true);
+    showToast('✅ השיוך נותק בהצלחה');
+    await window.mgrRefreshAuthUI(m);
+    renderManagers();
+  } catch(e) {
+    alert('שגיאה בניתוק שיוך: ' + e.message);
+  }
+};
+
+window.mgrChangePassword = function() {
+  if (!_editMgrId) return;
+  const m = managers[_editMgrId];
+  if (!m || !m.linkedUid) return;
+  if (typeof window.changeUserPassword === 'function') {
+    window.changeUserPassword(m.linkedUid, m.linkedUsername || m.name);
+  }
+};
+
+window.mgrRevokeUser = async function() {
+  if (!_editMgrId) return;
+  const m = managers[_editMgrId];
+  if (!m || !m.linkedUid) return;
+
+  if (typeof window.spConfirm === 'function') {
+    if (!await window.spConfirm(`האם לבטל את הגישה לאתר עבור "${m.linkedUsername || m.name}"?\nפעולה זו תמחק את חשבון המשתמש ותבטל את גישתו לאתר לחלוטין.`)) return;
+  }
+
+  try {
+    if (typeof window.deleteUser === 'function') {
+      await window.deleteUser(m.linkedUid, m.linkedUsername || m.name);
+    } else {
+      const dbUrl = window.USERS_DB || 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/users';
+      const q = typeof window._authQ === 'function' ? await window._authQ() : '';
+      await fetch(`${dbUrl}/${m.linkedUid}.json${q}`, { method: 'DELETE' });
+    }
+    m.linkedUid = null;
+    m.linkedUsername = null;
+    m.hasAuth = false;
+    if (typeof save === 'function') await save(true);
+    showToast('✅ הגישה לאתר בוטלה בהצלחה');
+    await window.mgrRefreshAuthUI(m);
+    renderManagers();
+  } catch(e) {
+    alert('שגיאה בביטול גישה: ' + e.message);
+  }
+};
+
 function openMgrModal(id){
   _editMgrId=id;
   const m=id?managers[id]:null;
@@ -1607,87 +1951,18 @@ function openMgrModal(id){
   mgrFillGardens();
   document.getElementById('mgr-del-btn').style.display=id?'inline-flex':'none';
 
-  // Check auth status
-  const wrap = document.getElementById('mgr-auth-wrap');
-  const active = document.getElementById('mgr-auth-active');
-  const emailLabel = document.getElementById('mgr-auth-email');
-  if (wrap && active && emailLabel) {
-    if (!id || (m && m.role === 'manager')) {
-      wrap.style.display = 'none';
-      active.style.display = 'none';
-    } else {
-      // Check if we know their email or if they have a standard generated email
-      const cleanPhone = m && m.phone ? m.phone.replace(/\D/g, '') : '';
-      const email = `coord_${cleanPhone}@ganmanager.app`;
-      // For now, we just assume if they have a phone, we show the create button, 
-      // but without a full backend list we don't know if they are created unless we stored it.
-      // We will store it in m.hasAuth in the future.
-      if (m && m.hasAuth) {
-        wrap.style.display = 'none';
-        active.style.display = 'block';
-        emailLabel.textContent = email;
-      } else {
-        wrap.style.display = 'block';
-        active.style.display = 'none';
-      }
-    }
+  // Load and refresh unified auth UI
+  if (id) {
+    window.mgrRefreshAuthUI(m);
+  } else {
+    const act = document.getElementById('mgr-auth-active');
+    const unl = document.getElementById('mgr-auth-unlinked');
+    if (act) act.style.display = 'none';
+    if (unl) unl.style.display = 'none';
   }
 
   document.getElementById('mgrm').classList.add('open');
 }
-
-window.createCoordinatorUser = async function() {
-  if (!_editMgrId) return;
-  const mgr = managers[_editMgrId];
-  if (!mgr || !mgr.phone) {
-    alert('לרכז זה אין מספר טלפון מוגדר. נא להזין טלפון תחילה ולשמור.');
-    return;
-  }
-  const cleanPhone = mgr.phone.replace(/\D/g, '');
-  if (cleanPhone.length < 9) {
-    alert('מספר טלפון לא תקין. (יש לוודא שהוא מכיל 10 ספרות, למשל 0501234567)');
-    return;
-  }
-  const email = `coord_${cleanPhone}@ganmanager.app`;
-  const pwd = cleanPhone.substring(0, 6);
-  
-  if (!await window.spConfirm(`האם ליצור חשבון למערכת עבור הרכז?\nשם משתמש: ${email}\nסיסמה: ${pwd}\n\nלאחר היצירה, הרכז יוכל להיכנס למערכת ולראות רק את השיבוצים שלו.`)) return;
-  
-  try {
-    if (!window._fbCreateUser) throw new Error("פונקציית יצירת משתמש אינה זמינה כעת.");
-    const res = await window._fbCreateUser(email, pwd);
-    
-    // Write user role to Realtime DB
-    const token = await window._fbGetToken();
-    if (token) {
-      const payload = { role: 'coordinator', phone: cleanPhone, name: mgr.name, managerId: _editMgrId };
-      const dbUrl = window.getFirebaseRootUrl ? window.getFirebaseRootUrl() : 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
-      await fetch(`${dbUrl}/users/${res.uid}.json?auth=${token}`, {
-        method: 'PUT',
-        body: JSON.stringify(payload)
-      });
-    }
-    
-    mgr.hasAuth = true;
-    if(typeof save === 'function') await save(true);
-    
-    document.getElementById('mgr-auth-wrap').style.display = 'none';
-    document.getElementById('mgr-auth-active').style.display = 'block';
-    document.getElementById('mgr-auth-email').textContent = email;
-    alert('החשבון נוצר בהצלחה! שלח לרכז את קישור המערכת עם המייל והסיסמה האלו.');
-  } catch(e) {
-    if (e.message.includes('email-already-in-use')) {
-      alert('חשבון עבור רכז זה (עם מספר הטלפון הזה) כבר קיים במערכת.');
-      mgr.hasAuth = true;
-      if(typeof save === 'function') await save(true);
-      document.getElementById('mgr-auth-wrap').style.display = 'none';
-      document.getElementById('mgr-auth-active').style.display = 'block';
-      document.getElementById('mgr-auth-email').textContent = email;
-    } else {
-      alert('שגיאה ביצירת חשבון: ' + e.message);
-    }
-  }
-};
 
 function mgrFillGardens(){
   const m=_editMgrId?managers[_editMgrId]:null;
@@ -1732,6 +2007,7 @@ function saveMgr(){
   if(!name){_spAlertDialog('יש להזין שם');return;}
   const id=_editMgrId||('mgr_'+Date.now());
   const gardenIds=[...document.querySelectorAll('#mgr-gardens input:checked')].map(cb=>parseInt(cb.value));
+  const prevM = managers[id] || {};
   
   // Ensure that gardens assigned to this coordinator are removed from any other coordinators
   for (const gid of gardenIds) {
@@ -1750,8 +2026,42 @@ function saveMgr(){
     email:document.getElementById('mgr-email').value.trim(),
     notes:document.getElementById('mgr-notes').value.trim(),
     city:document.getElementById('mgr-city').value,
-    gardenIds
+    gardenIds,
+    hasAuth: !!prevM.hasAuth,
+    linkedUid: prevM.linkedUid || null,
+    linkedUsername: prevM.linkedUsername || null
   };
+
+  // Auto-sync permissions to linked user in Realtime DB
+  if (managers[id].linkedUid) {
+    const isMgrRole = managers[id].role === 'manager' || managers[id].role === 'vp';
+    const syncPayload = {
+      name: managers[id].name,
+      role: isMgrRole ? 'manager' : 'coordinator',
+      coordGardenIds: gardenIds,
+      coordCities: isMgrRole ? ['ALL'] : (managers[id].city ? [managers[id].city] : []),
+      allCities: isMgrRole,
+      coordTimeScope: isMgrRole ? 'year' : 'month',
+      coordClsScope: 'all',
+      managerId: id,
+      permCoord: true,
+      phone: managers[id].phone || ''
+    };
+    const dbUrl = window.USERS_DB || 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/users';
+    (async () => {
+      try {
+        const q = typeof window._authQ === 'function' ? await window._authQ() : '';
+        await fetch(`${dbUrl}/${managers[id].linkedUid}.json${q}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(syncPayload)
+        });
+      } catch(e) {
+        console.warn('[Managers] Auto-sync to linked user failed:', e);
+      }
+    })();
+  }
+
   save(); CM('mgrm'); refresh();
   // Refresh all views that show manager/coordinator data
   renderManagers();
@@ -1759,13 +2069,35 @@ function saveMgr(){
   renderGardens();
   if(typeof renderPairs === 'function') renderPairs();
   updCounts();
-  showToast('✅ '+name+' נשמר — הנתונים עודכנו בכל האפליקציה');
+  showToast('✅ '+name+' נשמר — הנתונים והרשאות האתר עודכנו בהצלחה');
 }
 
 async function deleteMgr(){
   const m=_editMgrId?managers[_editMgrId]:null;
   if(!m) return;
-  if(!await window.spConfirm(`למחוק את ${m.name}?`)) return;
+
+  if (m.linkedUid) {
+    const uLabel = m.linkedUsername || m.name;
+    const confirmDel = await window.spConfirm(`לרכז/ת "${m.name}" יש חשבון משתמש מקושר באתר ("${uLabel}").\n\nהאם למחוק את הרכז/ת ולבטל גם את גישתו לאתר?\n\n[אישור] = מחק רכז ובטל גישה לאתר\n[ביטול] = ביטול המחיקה לחלוטין`);
+    if (!confirmDel) return;
+    
+    // Revoke user access and delete user
+    try {
+      if (typeof window.deleteUser === 'function') {
+        await window.deleteUser(m.linkedUid, uLabel);
+      } else {
+        const dbUrl = window.USERS_DB || 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/users';
+        const q = typeof window._authQ === 'function' ? await window._authQ() : '';
+        await fetch(`${dbUrl}/${m.linkedUid}.json${q}`, { method: 'DELETE' });
+      }
+    } catch(e) {
+      console.warn('[Managers] Failed to revoke user on manager delete:', e);
+    }
+  } else {
+    if(!await window.spConfirm(`למחוק את ${m.name}?`)) return;
+  }
+
+  const name = m.name;
   delete managers[_editMgrId];
   save(); CM('mgrm'); refresh();
   // Refresh all views that show manager/coordinator data
@@ -1774,7 +2106,7 @@ async function deleteMgr(){
   renderGardens();
   if(typeof renderPairs === 'function') renderPairs();
   updCounts();
-  showToast('✅ '+name+' נשמר — הנתונים עודכנו בכל האפליקציה');
+  showToast('🗑️ '+name+' נמחק והגישה לאתר בוטלה');
 }
 
 // ── Coordinator / Manager Export Logic ─────────────────────────

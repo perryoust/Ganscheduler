@@ -70,6 +70,14 @@ window.getCoordAllowedGardenIds = function() {
 
   // Explicit garden-ID permissions
   (window.coordGardenIds||[]).forEach(id => allowed.add(Number(id)));
+
+  // Dynamic resolution from window.managers if linked to manager/coordinator record
+  if (window.coordManagerId && window.managers && window.managers[window.coordManagerId]) {
+    const mgrObj = window.managers[window.coordManagerId];
+    if (Array.isArray(mgrObj.gardenIds)) {
+      mgrObj.gardenIds.forEach(id => allowed.add(Number(id)));
+    }
+  }
   return allowed;
 };
 

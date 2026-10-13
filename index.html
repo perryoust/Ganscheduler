@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 113.11</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 113.12</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="icon" type="image/png" href="icon-192.png" />
@@ -21,12 +21,12 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=113.11" />
+  <link rel="stylesheet" href="styles.css?v=113.12" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '113.11';
+    window.APP_VERSION = '113.12';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -81,7 +81,7 @@
   <!-- 📊 MAIN HEADER — dashboard 📊 -->
   <div class="hdr">
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-      <h1 style="display:flex;align-items:center;margin:0;"><img src="logo_wide.png" style="height:30px;vertical-align:middle;" alt="גן סקג'ולר לוגו"><span id="app-version-label" onclick="window.openVersionVaultModal &amp;&amp; window.openVersionVaultModal()" style="font-size:.62rem;opacity:.85;font-weight:700;margin-right:8px;line-height:1;cursor:pointer;background:rgba(255,255,255,0.18);padding:2px 6px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);white-space:nowrap;" title="לחץ לפתיחת כספת גיבויי נתונים ושחזור">v113.07 📦</span></h1>
+      <h1 style="display:flex;align-items:center;margin:0;"><img src="logo_wide.png" style="height:30px;vertical-align:middle;" alt="גן סקג'ולר לוגו"><span id="app-version-label" onclick="window.openVersionVaultModal &amp;&amp; window.openVersionVaultModal()" style="font-size:.62rem;opacity:.85;font-weight:700;margin-right:8px;line-height:1;cursor:pointer;background:rgba(255,255,255,0.18);padding:2px 6px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);white-space:nowrap;" title="לחץ לפתיחת כספת גיבויי נתונים ושחזור">v113.12 📦</span></h1>
       <select id="year-selector" onchange="window.changeCurrentYear(this.value)" style="margin-right:8px; font-size:0.76rem; border-radius:4px; border:1px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.15); color:white; padding:2px 6px; outline:none; font-weight:600; cursor:pointer;" title="בחר שנת לימודים">
         <!-- options will be injected here, but we apply a global style in index.html to fix option text color -->
         <!-- populated by JS -->
@@ -1057,15 +1057,74 @@
           <div id="mgr-gardens-count" style="font-size:.71rem;color:#78909c;margin-top:4px;text-align:left"></div>
         </div>
 
-        <!-- Coordinator Auth Access -->
-        <div id="mgr-auth-wrap" style="margin-top:14px;padding:10px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;display:none">
-          <label style="font-weight:700;color:#166534;display:block;margin-bottom:4px;font-size:.82rem">🔑 גישת רכז למערכת</label>
-          <div style="font-size:.75rem;color:#15803d;margin-bottom:8px">רכז זה אינו מחובר למערכת. יצירת חשבון תאפשר לו לצפות בלוח השיבוצים של הגנים שלו בלבד.</div>
-          <button type="button" class="btn bsm" style="background:#22c55e;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:.74rem;font-weight:600;cursor:pointer" onclick="createCoordinatorUser()">➕ צור חשבון משתמש</button>
-        </div>
-        <div id="mgr-auth-active" style="margin-top:14px;padding:10px 12px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;display:none">
-          <label style="font-weight:700;color:#0369a1;display:block;margin-bottom:4px;font-size:.82rem">✅ גישת רכז פעילה</label>
-          <div style="font-size:.75rem;color:#0284c7">לרכז זה יש חשבון מערכת פעיל: <b id="mgr-auth-email"></b></div>
+        <!-- Coordinator / Manager Unified Auth & Account Sync -->
+        <div id="mgr-auth-section" style="margin-top:16px;border-top:1px dashed #cbd5e1;padding-top:12px">
+          <!-- State A: Active Linked User -->
+          <div id="mgr-auth-active" style="display:none;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;border-radius:10px;padding:12px 14px;box-shadow:0 2px 5px rgba(0,0,0,0.03)">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+              <div>
+                <div style="font-weight:800;color:#166534;font-size:.86rem;display:flex;align-items:center;gap:6px">
+                  <span>✅ גישת משתמש פעילה לאתר</span>
+                  <span id="mgr-auth-role-badge" style="font-size:.68rem;padding:2px 8px;border-radius:12px;background:#bbf7d0;color:#14532d;font-weight:700"></span>
+                </div>
+                <div style="font-size:.76rem;color:#15803d;margin-top:4px">
+                  מקושר לחשבון: <b id="mgr-auth-uname" style="direction:ltr;display:inline-block;font-family:monospace"></b> 
+                  (<span id="mgr-auth-email"></span>)
+                </div>
+                <div id="mgr-auth-sync-status" style="font-size:.72rem;color:#166534;margin-top:3px;opacity:0.9">
+                  🔄 הגנים מסונכרנים אוטומטית עם הרשאות המשתמש באתר
+                </div>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button type="button" class="btn bsm" onclick="mgrChangePassword()" style="background:#fff;color:#0369a1;border:1px solid #bae6fd;padding:4px 8px;border-radius:6px;font-size:.72rem;font-weight:600;cursor:pointer">🔑 שנה סיסמה</button>
+                <button type="button" class="btn bsm" onclick="mgrUnlinkUser()" style="background:#fff;color:#d97706;border:1px solid #fed7aa;padding:4px 8px;border-radius:6px;font-size:.72rem;font-weight:600;cursor:pointer">🔗 נתק שיוך</button>
+                <button type="button" class="btn bsm" onclick="mgrRevokeUser()" style="background:#fff;color:#dc2626;border:1px solid #fecaca;padding:4px 8px;border-radius:6px;font-size:.72rem;font-weight:600;cursor:pointer">⛔ בטל גישה</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- State B: No Linked User (Linking / Creation Tabs) -->
+          <div id="mgr-auth-unlinked" style="display:none;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px">
+            <div style="font-weight:800;color:#1e293b;font-size:.85rem;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+              <span>🔑 חיבור משתמש לאתר</span>
+              <span style="font-size:.7rem;color:#64748b;font-weight:normal">(מאפשר כניסה לאפליקציה וצפייה בשיבוצי הגנים)</span>
+            </div>
+
+            <!-- Tab switcher for Link vs Create -->
+            <div style="display:flex;gap:6px;margin-bottom:12px;background:#f1f5f9;padding:3px;border-radius:8px">
+              <button type="button" id="mgr-tab-link-btn" onclick="mgrSwitchAuthTab('link')" style="flex:1;border:none;background:#fff;color:#1e293b;font-weight:700;font-size:.76rem;padding:6px;border-radius:6px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.08)">🔗 שיוך לחשבון קיים</button>
+              <button type="button" id="mgr-tab-create-btn" onclick="mgrSwitchAuthTab('create')" style="flex:1;border:none;background:transparent;color:#64748b;font-weight:600;font-size:.76rem;padding:6px;border-radius:6px;cursor:pointer">➕ יצירת משתמש חדש</button>
+            </div>
+
+            <!-- View 1: Link to Existing User -->
+            <div id="mgr-auth-tab-link">
+              <div style="font-size:.74rem;color:#475569;margin-bottom:6px">בחר משתמש קיים מניהול המשתמשים לשיוך לרכז/מנהל זה:</div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <select id="mgr-link-user-select" style="flex:1;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;background:#fff">
+                  <option value="">טוען משתמשים...</option>
+                </select>
+                <button type="button" class="btn bsm" onclick="mgrLinkExistingUser()" style="background:#2563eb;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap">🔗 שייך עכשיו</button>
+              </div>
+            </div>
+
+            <!-- View 2: Create New User -->
+            <div id="mgr-auth-tab-create" style="display:none">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+                <div>
+                  <label style="font-size:.72rem;font-weight:700;color:#475569;display:block;margin-bottom:3px">שם משתמש באנגלית:</label>
+                  <input type="text" id="mgr-new-username" placeholder="e.g. elisheva או coord_050..." style="width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:.76rem;direction:ltr">
+                </div>
+                <div>
+                  <label style="font-size:.72rem;font-weight:700;color:#475569;display:block;margin-bottom:3px">סיסמה (לפחות 6 תווים):</label>
+                  <input type="text" id="mgr-new-pwd" placeholder="סיסמה ראשונית" style="width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:.76rem;direction:ltr">
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                <span id="mgr-create-hint" style="font-size:.71rem;color:#64748b">יווצר חשבון עם הרשאות מותאמות לגנים שנבחרו למעלה.</span>
+                <button type="button" class="btn bsm" onclick="mgrCreateNewUserAction()" style="background:#16a34a;color:#fff;border:none;padding:6px 16px;border-radius:6px;font-size:.76rem;font-weight:700;cursor:pointer">➕ צור חשבון ושייך</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Action Buttons Footer -->

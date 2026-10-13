@@ -184,6 +184,7 @@ async function forceDailyBackup(){
 // ══════════════════════════════════════════════════════
 const ADMIN_UID = 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03';
 const USERS_DB  = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/users';
+window.USERS_DB = USERS_DB;
 
 function _isAdmin(){
   const email = (window._fbUser?.email || '').toLowerCase().trim();
@@ -300,6 +301,8 @@ async function _authQ(){
   if(window._fbUser) try{ tok=await window._fbUser.getIdToken(false); }catch(e){}
   return tok ? '?auth='+tok : '';
 }
+window._authQ = _authQ;
+window.loadUsersList = loadUsersList;
 
 async function loadUsersList(){
   const el=document.getElementById('users-list');
@@ -619,10 +622,26 @@ async function deleteUser(uid, name){
     // 2. Delete from RTDB (immediately revokes all DB read/write access)
     const q=await _authQ();
     await fetch(`${USERS_DB}/${uid}.json${q}`,{method:'DELETE'});
+
+    // Unlink any coordinator attached to this user
+    if (window.managers) {
+      let mgrChanged = false;
+      Object.values(window.managers).forEach(m => {
+        if (m && m.linkedUid === uid) {
+          m.linkedUid = null;
+          m.linkedUsername = null;
+          m.hasAuth = false;
+          mgrChanged = true;
+        }
+      });
+      if (mgrChanged && typeof save === 'function') save(true);
+    }
+
     showToast(`✅ משתמש "${name}" נמחק לחלוטין`);
     await loadUsersList();
   } catch(e){ showToast('❌ שגיאה: '+e.message); }
 }
+window.deleteUser = deleteUser;
 
 // Also save admin profile on first load if not exists
 async function _ensureAdminProfile(){
@@ -809,6 +828,7 @@ async function changeUserPassword(uid, username){
     _spAlertDialog(`✅ הסיסמה של "${username}" עודכנה בהצלחה.\n\nסיסמה חדשה: ${newPass}`);
   } catch(e){ showToast('❌ שגיאה: '+e.message); }
 }
+window.changeUserPassword = changeUserPassword;
 async function fixData() {
   if (!confirm('🛠️ "סופר תיקון" נתונים:\n1. מחיקת מטמון מקומי.\n2. טעינה מחדש מהענן.\n3. איחוד כפילויות אגרסיבי.\n4. שמירה סופית לענן.\n\nלהמשיך?')) return;
   
