@@ -486,6 +486,17 @@ window.coordToggleAllCities = function(open) {
   document.querySelectorAll('.city-accordion').forEach(d => {
     d.open = open;
   });
+  document.querySelectorAll('#coord-activities-list .mob-accordion').forEach(d => {
+    d.open = open;
+  });
+  document.querySelectorAll('#coord-activities-list .standard-pair-card .card-hdr-row').forEach(hdr => {
+    const tableDiv = hdr.nextElementSibling;
+    if (tableDiv && tableDiv.id && tableDiv.id.startsWith('pair-toggle-')) {
+      tableDiv.style.display = open ? 'block' : 'none';
+      const btnIcon = hdr.querySelector('.pair-collapse-btn span');
+      if (btnIcon) btnIcon.textContent = open ? '-' : '+';
+    }
+  });
 };
 
 // ─────────────────────────────────────────────────────────
@@ -994,7 +1005,7 @@ function _coordRenderByCity(evs, ds) {
           clr,
           context: 'cal',
           isCluster: isClusterMode,
-          defaultOpen: !isManagerRole || isSearching
+          defaultOpen: isSearching
         });
       });
 
@@ -1018,7 +1029,7 @@ function _coordRenderByCity(evs, ds) {
           clr,
           context: 'cal',
           isSolo: true,
-          defaultOpen: !isManagerRole || isSearching
+          defaultOpen: isSearching
         });
       });
     }

@@ -257,7 +257,7 @@ window.ui = {
     // Header Buttons
     const toggleId = 'pair-toggle-' + Math.random().toString(36).substr(2, 9);
     const isCoord = window.role === 'coordinator' || window.role === 'manager' || window.role === 'vp' || !!window.isReadOnly;
-    const defaultClosed = (opts.defaultOpen || isCoord) ? false : !!opts.isCluster;
+    const defaultClosed = opts.defaultOpen ? false : (isCoord ? true : !!opts.isCluster);
     const defaultIcon = defaultClosed ? '+' : '-';
     const defaultDisplay = defaultClosed ? 'none' : 'block';
     const collapseBtn = `<button class="btn bo bsm pair-collapse-btn" onclick="window.togglePairCard('${toggleId}', this.closest('.card-hdr-row'), event)" style="font-size:1.1rem !important; height:28px !important; min-height:28px !important; width:28px !important; padding:0 !important; border:1px solid ${clr.solid} !important; background:#fff !important; color:${clr.solid} !important; font-weight:700 !important; border-radius:4px !important; display:inline-flex !important; align-items:center !important; justify-content:center !important; cursor:pointer;" title="פתח/סגור תצוגה"><span style="font-family:monospace;font-weight:bold;line-height:1;margin-top:-2px">${defaultIcon}</span></button>`;
