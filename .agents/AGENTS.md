@@ -45,3 +45,16 @@ The workspace implements an automated data checkpoint vault in `version_vault.js
    - Always retain AT LEAST 10 most recent versions.
    - NEVER prune or delete any version backup that is less than 10 days old, regardless of how many versions were deployed.
 5. **UI & Restore**: Accessible via clicking the version tag in the header (`app-version-label`) or calling `window.openVersionVaultModal()`. Provides one-click restore and full JSON downloads.
+
+## Manager & Field Roles Architecture (תפקידי שטח והנהלה)
+1. **Roles Hierarchy**:
+   - `admin` (👑 מנהל): Full system control, year settings, users, and data management.
+   - `edit` (✏️ עריכה): Standard editing permissions for activities and/or purchasing.
+   - `view` (👁️ צפייה בלבד): Full desktop UI in read-only mode (`isReadOnly = true`), saves blocked.
+   - `coordinator` (👀 רכז שטח): Isolated field view (`coordinator_app.js`) restricted to specified cities/gardens (`coordCities`, `coordGardenIds`).
+   - `manager` / `vp` (👔 סמנכ"ל / הנהלה): **All-Cities field view** (`coordinator_app.js`). Sees every garden, city, pair, and cluster across the whole organization without restriction, with full read-only safety (`window.isReadOnly = true`).
+2. **Read-Only Enforcement**:
+   - When `isReadOnly` is active (`coordinator`, `manager`, `vp`, `view`):
+     - `save()` in `core_data.js` immediately halts.
+     - Quick action buttons (ביטול, לא התקיים, הזזה, השלמה) are hidden.
+     - New schedule creation and edit popups are blocked.
