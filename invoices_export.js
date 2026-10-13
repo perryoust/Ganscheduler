@@ -616,9 +616,10 @@ reader.onload = async function(e) {
         const cleanDoc = (d) => String(d || '').replace(/\D/g, '').replace(/^0+/, '');
 
         const existingIdx = window.INVOICES.findIndex(inv => {
-          // If BOTH rows have a serial number (מס"ד), it is the ultimate row identifier in the accounting sheet!
-          if (item.serialNum && inv.serialNum) {
-            return String(item.serialNum).trim() === String(inv.serialNum).trim();
+          // If BOTH rows have the same serial number (מס"ד), it is a direct match!
+          // If serial numbers differ, do NOT exit with false — fall through to verify if document/order numbers match!
+          if (item.serialNum && inv.serialNum && String(item.serialNum).trim() === String(inv.serialNum).trim()) {
+            return true;
           }
 
           const sameSup = cleanSupText(inv.supName) === cleanSupText(sName) || (window.supBase ? cleanSupText(window.supBase(inv.supName)) === cleanSupText(window.supBase(sName)) : false);
@@ -779,6 +780,9 @@ reader.onload = async function(e) {
               if (cleanItem.status === 'order') {
                 cleanItem.status = existingSt;
               }
+            }
+            if (cleanItem.serialNum) {
+              cleanItem.id = String(cleanItem.serialNum);
             }
             window.INVOICES[existingIdx] = { ...window.INVOICES[existingIdx], ...cleanItem };
             updated++;

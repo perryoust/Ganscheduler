@@ -34,11 +34,32 @@ const FIREBASE_POLL_INTERVAL = 30000;
 let _localSeq = parseInt(window._safeLS.getItem('_fbSeq') || '0');
 let _lastSyncTs = 0;
 let _isLocked = false;
+let _pendingSave = false;
 let _syncTimer = null;
 let _fbSyncing = false;
 let _fbLastError = null;
 window._fbSyncReady = false;
 window._importInProgress = false; // Global flag: blocks polling during import
+
+// Payload cache for differential (delta) syncing
+window._lastSavedPayloads = window._lastSavedPayloads || {
+  schedules: null,
+  suppliers: null,
+  config: null,
+  customGardens: null,
+  invoices: null,
+  orders: null,
+  deliveries: null
+};
+
+window._setLastSavedPayload = function(key, data) {
+  if (!window._lastSavedPayloads) window._lastSavedPayloads = {};
+  try {
+    window._lastSavedPayloads[key] = (data !== null && data !== undefined) ? JSON.stringify(data) : null;
+  } catch(e) {
+    window._lastSavedPayloads[key] = null;
+  }
+};
 
 // ── State Update ─────────────────────────────
 function _setSyncState(seq, ts, error = null, isLoad = false) {
@@ -424,7 +445,10 @@ setInterval(_wtResumeRefresh, 120000);
 
 
 async function saveToFirebase(silent = false, force = false) {
-  if (_isLocked && !force) return false;
+  if (_isLocked && !force) {
+    _pendingSave = true;
+    return true; // Scheduled to run immediately after current save finishes
+  }
   _isLocked = true;
   _fbSyncing = true;
   _fbUpdateStatus();
@@ -466,6 +490,57 @@ async function saveToFirebase(silent = false, force = false) {
       todos: window.todo ? window.todo.items : [],
       schoolBudgets: window.schoolBudgets || {}
     };
+
+    // Serialized strings for delta comparison
+    const schStr = JSON.stringify(schedulesData);
+    const supStr = JSON.stringify(suppliersData);
+    const cfgStr = JSON.stringify(configData);
+    const cgStr = JSON.stringify(window._GARDENS_EXTRA || []);
+
+    const isDirtySch = force || (window._lastSavedPayloads.schedules !== schStr);
+    const isDirtySup = force || (window._lastSavedPayloads.suppliers !== supStr);
+    const isDirtyCfg = force || (window._lastSavedPayloads.config !== cfgStr);
+    const isDirtyCg  = force || (window._lastSavedPayloads.customGardens !== cgStr);
+
+    let invBodyData = null;
+    let invStr = null;
+    let isDirtyInv = false;
+    if (!window._invoicesPartialLoad && Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
+      if (window._invoicesKeyedMode) {
+        invBodyData = {};
+        window.INVOICES.forEach(inv => { if(inv && inv.id) invBodyData[inv.id] = inv; });
+      } else {
+        invBodyData = window.INVOICES;
+      }
+      invStr = JSON.stringify(invBodyData);
+      isDirtyInv = force || (window._lastSavedPayloads.invoices !== invStr);
+    }
+
+    let ordStr = null;
+    let isDirtyOrd = false;
+    if (Array.isArray(window.ORDERS)) {
+      ordStr = JSON.stringify(window.ORDERS);
+      isDirtyOrd = force || (window._lastSavedPayloads.orders !== ordStr);
+    }
+
+    let delStr = null;
+    let isDirtyDel = false;
+    if (Array.isArray(window.DELIVERIES)) {
+      delStr = JSON.stringify(window.DELIVERIES);
+      isDirtyDel = force || (window._lastSavedPayloads.deliveries !== delStr);
+    }
+
+    const anyDirty = isDirtySch || isDirtySup || isDirtyCfg || isDirtyCg || isDirtyInv || isDirtyOrd || isDirtyDel;
+    if (!anyDirty && !force) {
+      console.log('[Sync] All payloads identical to cloud. Skip network save.');
+      if (_bi) {
+        _bi.textContent = '✅ מעודכן';
+        _bi.classList.add('show');
+        clearTimeout(_bi._to);
+        _bi._to = setTimeout(() => _bi.classList.remove('show'), 1500);
+      }
+      return true;
+    }
 
     // Increment Sequence
     const newSeq = _localSeq + 1;
@@ -509,77 +584,97 @@ async function saveToFirebase(silent = false, force = false) {
       } catch (e) { console.warn('[Sync] Failed to verify sequence before save:', e); }
     }
 
-    // ── Save split paths in parallel ──────────────
-    const saves = [
-      fetch(getFirebaseSchedulesUrl() + authQ, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(schedulesData)
-      }),
-      fetch(getFirebaseSuppliersUrl() + authQ, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(suppliersData)
-      }),
-      fetch(getFirebaseConfigUrl() + authQ, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(configData)
-      }),
+    // ── Save only dirty split paths in parallel ──────────────
+    const saves = [];
+    if (isDirtySch) {
+      saves.push(
+        fetch(getFirebaseSchedulesUrl() + authQ, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: schStr
+        }).then(r => { if (r.ok) window._lastSavedPayloads.schedules = schStr; return r; })
+      );
+    }
+    if (isDirtySup) {
+      saves.push(
+        fetch(getFirebaseSuppliersUrl() + authQ, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: supStr
+        }).then(r => { if (r.ok) window._lastSavedPayloads.suppliers = supStr; return r; })
+      );
+    }
+    if (isDirtyCfg) {
+      saves.push(
+        fetch(getFirebaseConfigUrl() + authQ, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: cfgStr
+        }).then(r => { if (r.ok) window._lastSavedPayloads.config = cfgStr; return r; })
+      );
+    }
+    if (isDirtyCg && Array.isArray(window._GARDENS_EXTRA) && window._GARDENS_EXTRA.length > 0) {
+      saves.push(
+        fetch(FB_ROOT + '/data/custom_gardens.json' + authQ, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: cgStr
+        }).then(r => { if (r.ok) window._lastSavedPayloads.customGardens = cgStr; return r; })
+      );
+    }
+
+    // Always update meta so sequence advances
+    saves.push(
       fetch(getFirebaseMetaUrl() + authQ, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(metaData)
       })
-    ];
-    if (Array.isArray(window._GARDENS_EXTRA) && window._GARDENS_EXTRA.length > 0) {
-      saves.push(
-        fetch(FB_ROOT + '/data/custom_gardens.json' + authQ, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(window._GARDENS_EXTRA)
-        })
-      );
-    }
+    );
+
     const results = await Promise.all(saves);
     for (const r of results) {
       if (!r.ok) throw new Error('HTTP ' + r.status + ' on ' + r.url);
     }
 
-    // Save Invoices Separately (never overwrite if only partially loaded!)
-    if (!window._invoicesPartialLoad && Array.isArray(window.INVOICES) && window.INVOICES.length > 0) {
+    // Save Invoices Separately only if dirty
+    if (isDirtyInv && invBodyData) {
       const invUrl = getFirebaseInvoicesUrl() + authQ;
-      let bodyData = window.INVOICES;
-      if (window._invoicesKeyedMode) {
-        bodyData = {};
-        window.INVOICES.forEach(inv => { if(inv && inv.id) bodyData[inv.id] = inv; });
-      }
-      const invResp = await fetch(invUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bodyData) });
+      const invResp = await fetch(invUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: invStr });
       if (!invResp.ok) {
         console.error('[Sync] ❌ Invoices save FAILED:', invResp.status, invResp.statusText);
         window.showToast?.('⚠️ שגיאה בשמירת חשבוניות לענן! (' + invResp.status + ')');
       } else {
-        console.log('[Sync] Invoices saved:', window.INVOICES.length);
+        window._lastSavedPayloads.invoices = invStr;
+        console.log('[Sync] Invoices saved (delta):', window.INVOICES.length);
       }
     }
 
-    // Save Orders Separately
-    if (Array.isArray(window.ORDERS)) {
+    // Save Orders Separately only if dirty
+    if (isDirtyOrd && ordStr) {
       try {
         const ordUrl = getFirebaseOrdersUrl() + authQ;
-        const ordResp = await fetch(ordUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.ORDERS) });
-        if (!ordResp.ok) console.warn('[Sync] Orders save warning HTTP ' + ordResp.status);
-        else console.log('[Sync] Orders saved to Firebase:', window.ORDERS.length);
+        const ordResp = await fetch(ordUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: ordStr });
+        if (ordResp.ok) {
+          window._lastSavedPayloads.orders = ordStr;
+          console.log('[Sync] Orders saved (delta):', window.ORDERS.length);
+        } else {
+          console.warn('[Sync] Orders save warning HTTP ' + ordResp.status);
+        }
       } catch(ordErr) { console.warn('[Sync] Failed saving orders:', ordErr); }
     }
 
-    // Save Deliveries Separately
-    if (Array.isArray(window.DELIVERIES)) {
+    // Save Deliveries Separately only if dirty
+    if (isDirtyDel && delStr) {
       try {
         const delUrl = getFirebaseDeliveriesUrl() + authQ;
-        const delResp = await fetch(delUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.DELIVERIES) });
-        if (!delResp.ok) console.warn('[Sync] Deliveries save warning HTTP ' + delResp.status);
-        else console.log('[Sync] Deliveries saved to Firebase:', window.DELIVERIES.length);
+        const delResp = await fetch(delUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: delStr });
+        if (delResp.ok) {
+          window._lastSavedPayloads.deliveries = delStr;
+          console.log('[Sync] Deliveries saved (delta):', window.DELIVERIES.length);
+        } else {
+          console.warn('[Sync] Deliveries save warning HTTP ' + delResp.status);
+        }
       } catch(delErr) { console.warn('[Sync] Failed saving deliveries:', delErr); }
     }
 
     _setSyncState(newSeq, Date.now(), null, false);
-    console.log('[Sync] Saved v' + newSeq + ' (split: ' + schedulesData.length + ' schedules, ' + Object.keys(suppliersData).length + ' suppliers)');
+    console.log('[Sync] Saved v' + newSeq + ' (delta: sch=' + isDirtySch + ', sup=' + isDirtySup + ', cfg=' + isDirtyCfg + ', inv=' + isDirtyInv + ', ord=' + isDirtyOrd + ')');
 
     if (_bi) {
       _bi.textContent = '✅ נשמר';
@@ -610,6 +705,10 @@ async function saveToFirebase(silent = false, force = false) {
     _fbSyncing = false;
     _isLocked = false;
     _fbUpdateStatus();
+    if (_pendingSave) {
+      _pendingSave = false;
+      setTimeout(() => saveToFirebase(silent, false), 60);
+    }
   }
 }
 
@@ -757,6 +856,13 @@ async function loadFromFirebase(silent = false, force = false) {
       _setSyncState(cloudMeta.seq, Date.now(), null, true);
       if (cloudMeta.ts) window._fbLastSaveTs = cloudMeta.ts;
 
+      if (window._setLastSavedPayload) {
+        window._setLastSavedPayload('schedules', cloudSchedules || []);
+        window._setLastSavedPayload('suppliers', cloudSuppliers || {});
+        window._setLastSavedPayload('config', cloudConfig || {});
+        window._setLastSavedPayload('customGardens', cloudCustomGardens || []);
+      }
+
       console.log('[Sync] Loaded v' + cloudMeta.seq + ' (split: ' + (cloudSchedules?.length || 0) + ' schedules)');
 
     } else {
@@ -861,9 +967,12 @@ async function loadFromFirebase(silent = false, force = false) {
       if (typeof window.renderCoordinatorView === 'function') setTimeout(() => window.renderCoordinatorView(), 100);
     }
 
-    // Always fetch purchasing data in parallel with general sync
-    if (typeof window.loadPurchasingDataFromFirebase === 'function') {
-      window.loadPurchasingDataFromFirebase(force).catch(e => console.warn('[Sync] Purchasing data auto-load error:', e));
+    // Only fetch purchasing data during general sync if not yet loaded or user is active in purchasing tabs
+    const isPurchActive = (window._dashTab === 'purch' || window._dashTab === 'pinvoices' || window._dashTab === 'porders' || window._dashTab === 'pdeliveries' || window._dashTab === 'psup' || window._mode === 'purch');
+    if (!window._purchasingDataLoaded || isPurchActive) {
+      if (typeof window.loadPurchasingDataFromFirebase === 'function') {
+        window.loadPurchasingDataFromFirebase(force).catch(e => console.warn('[Sync] Purchasing data auto-load error:', e));
+      }
     }
 
     window._fbSyncReady = true;
@@ -1020,13 +1129,16 @@ window.saveOrdersToFirebase = async function() {
   const authQ = tok ? '?auth=' + tok : '';
   const ordUrl = getFirebaseOrdersUrl() + authQ;
   try {
+    const data = window.ORDERS || [];
+    const ordStr = JSON.stringify(data);
     const resp = await fetch(ordUrl, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(window.ORDERS || [])
+      body: ordStr
     });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    console.log('[Sync] Orders directly saved to Firebase:', (window.ORDERS || []).length);
+    if (window._setLastSavedPayload) window._setLastSavedPayload('orders', data);
+    console.log('[Sync] Orders directly saved to Firebase:', data.length);
     return true;
   } catch(e) {
     console.error('[Sync] Direct orders save failed:', e);
@@ -1043,13 +1155,16 @@ window.saveDeliveriesToFirebase = async function() {
   const authQ = tok ? '?auth=' + tok : '';
   const delUrl = getFirebaseDeliveriesUrl() + authQ;
   try {
+    const data = window.DELIVERIES || [];
+    const delStr = JSON.stringify(data);
     const resp = await fetch(delUrl, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(window.DELIVERIES || [])
+      body: delStr
     });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    console.log('[Sync] Deliveries directly saved to Firebase:', (window.DELIVERIES || []).length);
+    if (window._setLastSavedPayload) window._setLastSavedPayload('deliveries', data);
+    console.log('[Sync] Deliveries directly saved to Firebase:', data.length);
     return true;
   } catch(e) {
     console.error('[Sync] Direct deliveries save failed:', e);
@@ -1220,6 +1335,18 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
     // Only mark as loaded if at least one endpoint succeeded (network is working)
     if (anySuccess) {
       window._purchasingDataLoaded = true;
+      if (window._setLastSavedPayload) {
+        if (Array.isArray(window.INVOICES)) {
+          let invData = window.INVOICES;
+          if (window._invoicesKeyedMode) {
+            invData = {};
+            window.INVOICES.forEach(inv => { if (inv && inv.id) invData[inv.id] = inv; });
+          }
+          window._setLastSavedPayload('invoices', invData);
+        }
+        if (Array.isArray(window.ORDERS)) window._setLastSavedPayload('orders', window.ORDERS);
+        if (Array.isArray(window.DELIVERIES)) window._setLastSavedPayload('deliveries', window.DELIVERIES);
+      }
       console.log('[Purchasing] Data loaded successfully from root nodes');
       if (typeof window.renderPurchOrders === 'function') window.renderPurchOrders();
       if (typeof window.renderPurchDeliveries === 'function') window.renderPurchDeliveries();
