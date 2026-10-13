@@ -58,3 +58,10 @@ The workspace implements an automated data checkpoint vault in `version_vault.js
      - `save()` in `core_data.js` immediately halts.
      - Quick action buttons (ביטול, לא התקיים, הזזה, השלמה) are hidden.
      - New schedule creation and edit popups are blocked.
+3. **Managers & Users Unification & Auto-Sync (איחוד וסנכרון מנהלים ומשתמשים)**:
+   - Direct integration between `window.managers` (רכזים/מנהלים) and `/users` in Firebase RTDB.
+   - **Direct Creation**: Create user logins directly from `#mgrm` modal (`window.mgrCreateNewUserAction`), setting `managerId` and initial `coordGardenIds`.
+   - **Account Linking**: Connect existing users (e.g. `Elisheva` <=> `אלישבע`) via `#mgr-link-user-select` (`window.mgrLinkExistingUser`).
+   - **Live Two-Way Garden Sync**: When gardens are updated in `#mgrm` and saved, `saveMgr()` immediately PATCHes `/users/${linkedUid}` with updated `coordGardenIds`, `coordCities`, and role.
+   - **Dynamic Resolution**: `coordinator_app.js` resolves allowed gardens directly from `window.managers[window.coordManagerId].gardenIds` for zero-lag updates.
+   - **Access Revocation**: When deleting a coordinator in `deleteMgr()`, system prompts and revokes/deletes user access from `/users`.
