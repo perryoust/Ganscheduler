@@ -1460,16 +1460,16 @@ function saveGardenCard(){
 
   // update manager assignment
   const selMgrId = document.getElementById('gedit-mgr-sel')?.value;
-  // Remove this garden from all managers first
+  // Remove this garden from other field coordinators only (never strip from area managers/VPs!)
   Object.values(managers).forEach(m => {
-     if(m.gardenIds) {
+     if(m.role !== 'manager' && m.role !== 'vp' && m.gardenIds) {
        m.gardenIds = m.gardenIds.filter(id => id !== _geditGid);
      }
   });
   // Add to selected manager
   if(selMgrId && managers[selMgrId]) {
      if(!managers[selMgrId].gardenIds) managers[selMgrId].gardenIds = [];
-     managers[selMgrId].gardenIds.push(_geditGid);
+     if(!managers[selMgrId].gardenIds.includes(_geditGid)) managers[selMgrId].gardenIds.push(_geditGid);
   }
 
   save();
@@ -1484,6 +1484,9 @@ function saveGardenCard(){
 }
 
 function renderManagers(){
+  if (typeof window.repairCoordinatorGardens === 'function') {
+    window.repairCoordinatorGardens();
+  }
   const cityF = (window.getEl ? window.getEl('mgr-city-filt') : (document.getElementById('mgr-city-filt-desktop') || document.getElementById('mgr-city-filt-mobile') || document.getElementById('mgr-city-filt')))?.value || '';
   const roleF = (window.getEl ? window.getEl('mgr-role-filt') : (document.getElementById('mgr-role-filt-desktop') || document.getElementById('mgr-role-filt-mobile') || document.getElementById('mgr-role-filt')))?.value || '';
   const supF  = (window.getEl ? window.getEl('mgr-sup-filt')  : (document.getElementById('mgr-sup-filt-desktop') || document.getElementById('mgr-sup-filt-mobile') || document.getElementById('mgr-sup-filt')))?.value || '';
@@ -1929,6 +1932,9 @@ window.mgrRevokeUser = async function() {
 };
 
 function openMgrModal(id){
+  if (typeof window.repairCoordinatorGardens === 'function') {
+    window.repairCoordinatorGardens();
+  }
   _editMgrId=id;
   const m=id?managers[id]:null;
   (document.getElementById('mgrm-title')||{}).textContent =m?`✏️ עריכת ${m.name}`:'➕ הוסף מנהל/רכז';
@@ -2007,20 +2013,25 @@ function saveMgr(){
   if(!name){_spAlertDialog('יש להזין שם');return;}
   const id=_editMgrId||('mgr_'+Date.now());
   const gardenIds=[...document.querySelectorAll('#mgr-gardens input:checked')].map(cb=>parseInt(cb.value));
+  const role=document.getElementById('mgr-role').value;
+  const isExec = role === 'manager' || role === 'vp';
   const prevM = managers[id] || {};
   
-  // Ensure that gardens assigned to this coordinator are removed from any other coordinators
-  for (const gid of gardenIds) {
-    for (const otherId in managers) {
-      if (otherId !== id && managers[otherId].gardenIds) {
-        managers[otherId].gardenIds = managers[otherId].gardenIds.filter(existingGid => existingGid !== gid);
+  // Ensure that gardens assigned to this field coordinator are removed from other field coordinators.
+  // Area managers/VPs are executive supervisors and NEVER steal exclusive ownership from field coordinators!
+  if (!isExec) {
+    for (const gid of gardenIds) {
+      for (const otherId in managers) {
+        if (otherId !== id && managers[otherId].role !== 'manager' && managers[otherId].role !== 'vp' && managers[otherId].gardenIds) {
+          managers[otherId].gardenIds = managers[otherId].gardenIds.filter(existingGid => existingGid !== gid);
+        }
       }
     }
   }
 
   managers[id]={
     id,name,
-    role:document.getElementById('mgr-role').value,
+    role,
     phone:document.getElementById('mgr-phone').value.trim(),
     phone2:document.getElementById('mgr-phone2').value.trim(),
     email:document.getElementById('mgr-email').value.trim(),
@@ -2118,25 +2129,140 @@ window.getGardenPhoneInfo = function(g) {
   return { gardenPhone, contactName };
 };
 
+window.repairCoordinatorGardens = function(forceSave = false) {
+  if (!window.managers || typeof window.managers !== 'object') return false;
+  const allGs = typeof AG === 'function' ? AG() : (window.GARDENS || []);
+  if (!allGs.length) return false;
+
+  let changed = false;
+
+  Object.values(window.managers).forEach(m => {
+    if (!m || !m.id) return;
+    // We only auto-repair field coordinators; area managers keep their explicit or all-city assignments
+    if (m.role === 'manager' || m.role === 'vp') return;
+
+    const baseName = (m.name || '')
+      .replace(/^(רכז\/ת|רכזת|רכז|מנהל\/ת|מנהלת|מנהל|אחראי\/ת|אחראי)\s*/gi, '')
+      .replace(/^ביה"ס\s*/gi, '')
+      .trim().toLowerCase();
+    const cleanPhone = (m.phone || '').replace(/\D/g, '');
+
+    const currentGids = new Set((m.gardenIds || []).map(Number));
+    const matchedGids = [];
+
+    allGs.forEach(g => {
+      const gid = Number(g.id);
+      // Check if another field coordinator already has this garden explicitly
+      const hasOtherFieldCoord = Object.values(window.managers).some(other => 
+        other.id !== m.id &&
+        other.role !== 'manager' && other.role !== 'vp' &&
+        (other.gardenIds || []).map(Number).includes(gid)
+      );
+      if (hasOtherFieldCoord) return;
+
+      const ex = (window.supEx && window.supEx['g_' + gid]) || {};
+      const coRaw = (ex.co || g.co || '') + ' ' + (ex.coph || ex.phone || g.coph || g.phone || '');
+      if (!coRaw) return;
+
+      const coStr = coRaw.toLowerCase();
+      let isMatch = false;
+
+      // Match by phone (7+ digits)
+      if (cleanPhone && cleanPhone.length >= 7) {
+        const coDigits = coStr.replace(/\D/g, '');
+        if (coDigits.includes(cleanPhone) || (cleanPhone.length >= 8 && coDigits.endsWith(cleanPhone.slice(-7)))) isMatch = true;
+      }
+
+      // Match by base name (at least 2 letters)
+      if (!isMatch && baseName && baseName.length >= 2) {
+        if (coStr.includes(baseName)) isMatch = true;
+      }
+
+      if (isMatch) {
+        matchedGids.push(gid);
+      }
+    });
+
+    // Check if new gardens found
+    let mAdded = false;
+    matchedGids.forEach(gid => {
+      if (!currentGids.has(gid)) {
+        currentGids.add(gid);
+        changed = true;
+        mAdded = true;
+      }
+    });
+
+    if (mAdded) {
+      m.gardenIds = Array.from(currentGids);
+      console.log(`[repairCoordinatorGardens] Restored ${m.gardenIds.length} gardens to ${m.name}`);
+      
+      // Auto-sync permissions to linked user in Realtime DB if linked
+      if (m.linkedUid) {
+        const dbUrl = window.USERS_DB || 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/users';
+        (async () => {
+          try {
+            const q = typeof window._authQ === 'function' ? await window._authQ() : '';
+            await fetch(`${dbUrl}/${m.linkedUid}.json${q}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ coordGardenIds: m.gardenIds })
+            });
+          } catch(e) {
+            console.warn('[repairCoordinatorGardens] User patch failed:', e);
+          }
+        })();
+      }
+    }
+  });
+
+  if (changed || forceSave) {
+    if (typeof window.save === 'function' && !window.isReadOnly) {
+      window.save(true);
+    }
+  }
+  return changed;
+};
+
 window.getGardensForCoordinator = function(m) {
   if (!m) return [];
   const allGs = typeof AG === 'function' ? AG() : (window.GARDENS || []);
   const mGardenIds = new Set((m.gardenIds || []).map(Number));
   
-  const cleanName = (m.name || '').trim().toLowerCase();
+  // Clean name: strip prefixes like 'רכז/ת', 'רכזת', 'רכז', 'מנהלת', 'מנהל', 'אחראי/ת', 'אחראי', 'ביה"ס'
+  const baseName = (m.name || '')
+    .replace(/^(רכז\/ת|רכזת|רכז|מנהל\/ת|מנהלת|מנהל|אחראי\/ת|אחראי)\s*/gi, '')
+    .replace(/^ביה"ס\s*/gi, '')
+    .trim().toLowerCase();
   const cleanPhone = (m.phone || '').replace(/\D/g, '');
 
   return allGs.filter(g => {
+    // 1. Explicitly assigned to this manager/coordinator
     if (mGardenIds.has(Number(g.id))) return true;
-    const hasOtherMgr = Object.values(window.managers || {}).some(other => 
-      other.id !== m.id && (other.gardenIds || []).map(Number).includes(Number(g.id))
-    );
-    if (hasOtherMgr) return false;
 
-    if (g.co) {
-      const coStr = String(g.co).toLowerCase();
-      if (cleanName && coStr.includes(cleanName)) return true;
-      if (cleanPhone && cleanPhone.length >= 7 && coStr.replace(/\D/g, '').includes(cleanPhone)) return true;
+    // 2. Do not match if explicitly assigned to ANOTHER FIELD COORDINATOR
+    // Note: managers / vp (area managers) are executive overlays and do NOT block field coordinators!
+    const hasOtherFieldCoord = Object.values(window.managers || {}).some(other => 
+      other.id !== m.id &&
+      other.role !== 'manager' && other.role !== 'vp' &&
+      (other.gardenIds || []).map(Number).includes(Number(g.id))
+    );
+    if (hasOtherFieldCoord) return false;
+
+    // 3. Fallback matching via contact info in garden (g.co or supEx)
+    const ex = (window.supEx && window.supEx['g_' + g.id]) || {};
+    const coRaw = (ex.co || g.co || '') + ' ' + (ex.coph || ex.phone || g.coph || g.phone || '');
+    if (coRaw) {
+      const coStr = coRaw.toLowerCase();
+      // Match by phone number (7+ digits)
+      if (cleanPhone && cleanPhone.length >= 7) {
+        const coDigits = coStr.replace(/\D/g, '');
+        if (coDigits.includes(cleanPhone) || (cleanPhone.length >= 8 && coDigits.endsWith(cleanPhone.slice(-7)))) return true;
+      }
+      // Match by base name (e.g. 'ורדה', 'מיקה', 'בתאל', 'רותי', 'טאלה', 'הדר', 'שחר')
+      if (baseName && baseName.length >= 2 && coStr.includes(baseName)) {
+        return true;
+      }
     }
     return false;
   }).sort((a,b) => (a.city||'').localeCompare(b.city||'','he', { numeric: true }) || (a.name||'').localeCompare(b.name||'','he', { numeric: true }));
@@ -3178,7 +3304,9 @@ function refreshMgrDrops(){
 }
 
 function getGardenMgr(gid){
-  return Object.values(managers).find(m=>(m.gardenIds||[]).includes(gid))||null;
+  const numGid = Number(gid);
+  return Object.values(managers).find(m => m.role !== 'manager' && m.role !== 'vp' && (m.gardenIds||[]).map(Number).includes(numGid)) ||
+         Object.values(managers).find(m => (m.gardenIds||[]).map(Number).includes(numGid)) || null;
 }
 function setGardensTab(t){
   _gardensTab = t;

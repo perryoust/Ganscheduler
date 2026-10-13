@@ -111,7 +111,9 @@ function expModeChg(){
 
 // Helper: find manager assigned to a garden
 function gardenManager(gardenId){
-  return Object.values(window.managers).find(m=>(m.gardenIds||[]).includes(gardenId))||null;
+  const numId = Number(gardenId);
+  return Object.values(window.managers || {}).find(m => m.role !== 'manager' && m.role !== 'vp' && (m.gardenIds||[]).map(Number).includes(numId)) ||
+         Object.values(window.managers || {}).find(m => (m.gardenIds||[]).map(Number).includes(numId)) || null;
 }
 
 async function doMonthlyExport(){
@@ -294,8 +296,10 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename, single
     }
 
     function _appendGardenToSheet(ws, r, garden, allEvs, year, month, daysInMonth, HEB_DAYS, CLR, applyStyle, styleDataRow) {
+      const numGid = Number(garden.id);
       const mgr = typeof window.managers !== 'undefined'
-        ? Object.values(window.managers).find(m => (m.gardenIds||[]).includes(garden.id))
+        ? (Object.values(window.managers).find(m => m.role !== 'manager' && m.role !== 'vp' && (m.gardenIds||[]).map(Number).includes(numGid)) ||
+           Object.values(window.managers).find(m => (m.gardenIds||[]).map(Number).includes(numGid)))
         : null;
       const mgrText = mgr
         ? `שם הרכז: ${mgr.name}${mgr.phone ? ' · ' + mgr.phone : ''}`

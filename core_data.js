@@ -578,6 +578,10 @@ function _applyYearData(o){
   } else if (Object.keys(window.managers || {}).length === 0) {
     window.managers = o.managers || {};
   }
+  // Auto-heal coordinator garden associations if missing
+  if (typeof window.repairCoordinatorGardens === 'function') {
+    window.repairCoordinatorGardens();
+  }
   // else: keep existing window.managers (auto-imported from gardens)
   activeGardens = Array.isArray(o.activeGardens)?new Set(o.activeGardens):null;
   if(window.DataManager && window.DataManager.cleanupDuplicates) {

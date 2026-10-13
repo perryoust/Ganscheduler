@@ -172,10 +172,10 @@ window.initCoordinatorApp = function() {
         </div>
         <!-- Navigation -->
         <div style="display:flex;justify-content:center;align-items:center;gap:10px;padding-bottom:8px;color:#fff">
-          <button onclick="window.coordNav(-1)" style="background:rgba(255,255,255,0.18);border:none;border-radius:50%;width:34px;height:34px;color:#fff;font-size:1rem;cursor:pointer">▶</button>
-          <div id="coord-date-label" style="font-weight:800;font-size:1rem;min-width:200px;text-align:center"></div>
-          <button onclick="window.coordNav(1)" style="background:rgba(255,255,255,0.18);border:none;border-radius:50%;width:34px;height:34px;color:#fff;font-size:1rem;cursor:pointer">◀</button>
-          <button onclick="window.coordGoToday()" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;color:#fff;padding:5px 10px;font-size:0.75rem;cursor:pointer">היום</button>
+          <button id="coord-nav-prev" onclick="window.coordNav(-1)" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:0.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="אתמול / קודם">▶ <span id="coord-nav-prev-lbl">אתמול</span></button>
+          <div id="coord-date-label" style="font-weight:800;font-size:1rem;min-width:180px;text-align:center"></div>
+          <button id="coord-nav-next" onclick="window.coordNav(1)" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:0.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="מחר / הבא"><span id="coord-nav-next-lbl">מחר</span> ◀</button>
+          <button onclick="window.coordGoToday()" style="background:rgba(255,255,255,0.22);border:none;border-radius:8px;color:#fff;padding:5px 11px;font-size:0.75rem;cursor:pointer;font-weight:700">היום</button>
         </div>
         <!-- View toggles -->
         <div style="display:flex;justify-content:center;gap:6px;padding-bottom:8px;flex-wrap:wrap">
@@ -536,8 +536,24 @@ window.renderCoordinatorView = function() {
   const cd = window._coordCurrentDate;
   const v  = window._coordView || 'day';
 
-  // Update date label
+  // Update date label & nav button labels
   const lbl = document.getElementById('coord-date-label');
+  const prevLbl = document.getElementById('coord-nav-prev-lbl');
+  const nextLbl = document.getElementById('coord-nav-next-lbl');
+  if (prevLbl && nextLbl) {
+    if (v === 'day') {
+      const prevD = new Date(cd); prevD.setDate(cd.getDate() - 1);
+      const nextD = new Date(cd); nextD.setDate(cd.getDate() + 1);
+      prevLbl.textContent = `אתמול (${_DAYS_HE[prevD.getDay()]})`;
+      nextLbl.textContent = `מחר (${_DAYS_HE[nextD.getDay()]})`;
+    } else if (v === 'week') {
+      prevLbl.textContent = 'שבוע קודם';
+      nextLbl.textContent = 'שבוע הבא';
+    } else {
+      prevLbl.textContent = 'חודש קודם';
+      nextLbl.textContent = 'חודש הבא';
+    }
+  }
   if (lbl) {
     if (v === 'day') {
       lbl.textContent = `${_DAYS_HE[cd.getDay()]} ${cd.getDate()}/${cd.getMonth()+1}/${cd.getFullYear()}`;
@@ -592,8 +608,8 @@ function _coordHideActionButtons(container) {
   if (!container) return;
   container.querySelectorAll('button').forEach(btn => {
     const oc = btn.getAttribute('onclick') || '';
-    // Keep the collapse (+/-) button which uses togglePairCard, getElementById, or has pair-collapse-btn class
-    if (oc.includes('togglePairCard') || oc.includes('getElementById') || btn.classList.contains('pair-collapse-btn')) return;
+    // Keep collapse (+/-) button and navigation buttons
+    if (oc.includes('togglePairCard') || oc.includes('getElementById') || oc.includes('coordNav') || oc.includes('coordGoToday') || btn.classList.contains('pair-collapse-btn') || btn.classList.contains('coord-nav-btn')) return;
     // Hide all other action buttons
     btn.style.setProperty('display','none','important');
   });
@@ -622,18 +638,55 @@ window.jumpToDay = function(ds) {
 };
 
 function _coordFallbackDay(evs, ds) {
+  const cd = _cs2d(ds);
+  const prevD = new Date(cd); prevD.setDate(cd.getDate() - 1);
+  const nextD = new Date(cd); nextD.setDate(cd.getDate() + 1);
+  const prevDayHeb = _DAYS_HE[prevD.getDay()];
+  const nextDayHeb = _DAYS_HE[nextD.getDay()];
+  const curDayHeb = _DAYS_HE[cd.getDay()];
+  const curDateFormatted = `${cd.getDate().toString().padStart(2,'0')}/${(cd.getMonth()+1).toString().padStart(2,'0')}/${cd.getFullYear()}`;
+  
+  const now = new Date();
+  const isToday = cd.getFullYear() === now.getFullYear() && cd.getMonth() === now.getMonth() && cd.getDate() === now.getDate();
+
+  const dayNavBar = `
+    <div class="coord-day-nav-bar" style="background:#fff;border-radius:10px;padding:9px 14px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center;border:1px solid #cbd5e1;flex-wrap:wrap;gap:8px">
+      <button class="coord-nav-btn" onclick="window.coordNav(-1)" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:6px 14px;color:#1e293b;font-weight:700;font-size:0.83rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background 0.15s">
+        <span>▶</span>
+        <span>אתמול (${prevDayHeb})</span>
+      </button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-weight:800;font-size:0.95rem;color:#0f172a">📅 ${curDayHeb} ${curDateFormatted}</span>
+        ${isToday ? '<span style="background:#dcfce7;color:#15803d;font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:12px">היום</span>' : '<button class="coord-nav-btn" onclick="window.coordGoToday()" style="background:#e0f2fe;border:1px solid #bae6fd;border-radius:6px;padding:2px 7px;font-size:0.72rem;color:#0369a1;font-weight:700;cursor:pointer">חזור להיום</button>'}
+      </div>
+      <button class="coord-nav-btn" onclick="window.coordNav(1)" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:6px 14px;color:#1e293b;font-weight:700;font-size:0.83rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background 0.15s">
+        <span>מחר (${nextDayHeb})</span>
+        <span>◀</span>
+      </button>
+    </div>
+  `;
+
   const normTarget = _normDs(ds);
   const dayEvs = evs.filter(s => _normDs(s.d) === normTarget);
   if (!dayEvs.length) {
-    const d = _cs2d(ds);
-    const dStr = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
-    return `<div style="background:#fff;border-radius:10px;padding:24px 16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:10px 0;">
-      <div style="font-size:1.8rem;margin-bottom:8px">📅</div>
-      <div style="font-weight:700;font-size:0.95rem;color:#1e293b;margin-bottom:6px">אין פעילויות רשומות בתאריך ${dStr} (${_DAYS_HE[d.getDay()]})</div>
-      <div style="font-size:0.8rem;color:#64748b">ניתן לעבור ליום אחר בעזרת החצים (▶ ◀) או לעבור לתצוגה <b>שבועית</b> / <b>חודשית</b> סביב תאריך זה.</div>
+    return dayNavBar + `<div style="background:#fff;border-radius:10px;padding:28px 16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:10px 0;border:1px solid #e2e8f0">
+      <div style="font-size:2rem;margin-bottom:8px">📅</div>
+      <div style="font-weight:700;font-size:1rem;color:#1e293b;margin-bottom:6px">אין פעילויות רשומות בתאריך ${curDateFormatted} (${curDayHeb})</div>
+      <div style="font-size:0.82rem;color:#64748b;margin-bottom:16px">ניתן לעבור ליום אחר בעזרת כפתורי הניווט (אתמול / מחר) או לעבור לתצוגה שבועית / חודשית.</div>
+      <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">
+        <button class="coord-nav-btn" onclick="window.coordNav(-1)" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;border-radius:8px;padding:8px 16px;font-weight:700;font-size:0.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+          <span>▶</span>
+          <span>עבור לאתמול (${prevDayHeb})</span>
+        </button>
+        ${!isToday ? `<button class="coord-nav-btn" onclick="window.coordGoToday()" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:8px;padding:8px 16px;font-weight:700;font-size:0.85rem;cursor:pointer">📅 חזור להיום</button>` : ''}
+        <button class="coord-nav-btn" onclick="window.coordNav(1)" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;border-radius:8px;padding:8px 16px;font-weight:700;font-size:0.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+          <span>עבור למחר (${nextDayHeb})</span>
+          <span>◀</span>
+        </button>
+      </div>
     </div>`;
   }
-  return _coordRenderByCity(dayEvs, ds);
+  return dayNavBar + _coordRenderByCity(dayEvs, ds);
 }
 
 function _coordFallbackWeek(evs, cd) {

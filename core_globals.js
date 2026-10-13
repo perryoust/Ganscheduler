@@ -133,7 +133,8 @@ window.ui = {
     const tagMobile = tagText ? `<span style="background:#ffe082;color:#b71c1c;border-radius:4px;padding:1px 4px;font-size:0.65rem;font-weight:800;margin-left:4px;display:inline-block">${tagText}</span> ` : '';
     const tagDesktop = tagText ? `<b style="color:var(--c-warning)">[${tagText}]</b> ` : '';
 
-    const mgr = window.managers ? Object.values(window.managers).find(m => (m.gardenIds || []).includes(g.id)) : null;
+    const numGid = Number(g.id);
+    const mgr = window.managers ? (Object.values(window.managers).find(m => m.role !== 'manager' && m.role !== 'vp' && (m.gardenIds || []).map(Number).includes(numGid)) || Object.values(window.managers).find(m => (m.gardenIds || []).map(Number).includes(numGid))) : null;
     const coName = mgr ? mgr.name : g.co;
     const coDisplay = coName ? `
             <div style="grid-column: span 2; font-size:0.7rem; color:#64748b; font-weight:normal;">
