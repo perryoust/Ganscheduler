@@ -149,14 +149,16 @@ onAuthStateChanged(auth, async (user) => {
             permAct = profile.permAct !== false;
             permWorker = !!profile.permWorker || profile.role === 'worker';
             role = profile.role || 'view';
-            if (role === 'coordinator') {
+            const isManagerRole = role === 'manager' || role === 'vp';
+            if (role === 'coordinator' || isManagerRole) {
               window.coordPhone = profile.phone;
               window.coordManagerId = profile.managerId;
-              window.coordCities = profile.coordCities || [];
+              window.coordCities = isManagerRole ? ['ALL'] : (profile.coordCities || []);
               window.coordGardenIds = profile.coordGardenIds || [];
-              window.coordTimeScope = profile.coordTimeScope || 'month';
+              window.coordTimeScope = isManagerRole ? 'year' : (profile.coordTimeScope || 'month');
               window.coordClsScope = profile.coordClsScope || 'all';
-              window.permCoord = !!profile.permCoord;
+              window.permCoord = true;
+              window.permAllCities = isManagerRole || (profile.coordCities || []).includes('ALL') || !!profile.allCities;
             }
           } else if (user.email && user.email.startsWith('worker@')) {
             // Auto-detect worker from email — no profile exists yet
@@ -176,6 +178,12 @@ onAuthStateChanged(auth, async (user) => {
         } else if (user.email && user.email.startsWith('coord_')) {
           role = 'coordinator';
           permAct = true;
+        } else if (user.email && (user.email.startsWith('vp_') || user.email.startsWith('manager_') || user.email.startsWith('samankal'))) {
+          role = 'manager';
+          permAct = true;
+          window.permAllCities = true;
+          window.coordCities = ['ALL'];
+          window.permCoord = true;
         }
       }
     }
@@ -183,6 +191,9 @@ onAuthStateChanged(auth, async (user) => {
     window.permAct = permAct;
     window.permWorker = permWorker;
     window.role = role;
+    if (role === 'view' || role === 'coordinator' || role === 'manager' || role === 'vp') {
+      window.isReadOnly = true;
+    }
 
     // Strict Worker Isolation: If they ONLY have worker permissions, use the isolated mobile UI
     const isStrictWorker = permWorker && (!permAct || role === 'worker') && !permPurch && role !== 'admin';
@@ -210,8 +221,8 @@ onAuthStateChanged(auth, async (user) => {
       return;
     }
 
-    // Strict Coordinator Isolation: read-only view of their assigned gardens
-    const isStrictCoordinator = role === 'coordinator' && window.permCoord && !permPurch && role !== 'admin';
+    // Strict Coordinator or Manager/VP Isolation: read-only view of their assigned gardens or whole org
+    const isStrictCoordinator = (role === 'coordinator' || role === 'manager' || role === 'vp') && (window.permCoord || profile?.allCities) && !permPurch && role !== 'admin';
     if (isStrictCoordinator) {
       const authOverlay = document.getElementById('auth-overlay');
       if (authOverlay) authOverlay.style.display = 'none';

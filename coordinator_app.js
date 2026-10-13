@@ -28,6 +28,26 @@ window.getCoordAllowedGardenIds = function() {
   const gardens  = [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
   const clsScope = (window.coordClsScope||'all').trim();
 
+  // ── All Cities Mode for Manager / VP / Executive Roles ──
+  const isAllCities = window.role === 'manager' || window.role === 'vp' || window.permAllCities || (window.coordCities||[]).includes('ALL');
+  if (isAllCities) {
+    gardens.forEach(g => {
+      if (clsScope === 'all') {
+        allowed.add(Number(g.id));
+      } else {
+        let gClass = typeof window.gcls === 'function' ? window.gcls(g) : null;
+        if (!gClass) {
+          const cls = (g.cls||g.type||'').toLowerCase();
+          gClass = (cls.includes('ספר') || cls.includes('school') || cls.includes('bs')) ? 'ביה"ס' : 'גנים';
+        }
+        if (clsScope === 'גן'   && gClass === 'גנים')   allowed.add(Number(g.id));
+        else if ((clsScope === 'ביהס' || clsScope === 'ביה"ס') && gClass === 'ביה"ס') allowed.add(Number(g.id));
+        else if (clsScope !== 'גן' && clsScope !== 'ביהס' && clsScope !== 'ביה"ס') allowed.add(Number(g.id));
+      }
+    });
+    return allowed;
+  }
+
   (window.coordCities||[]).forEach(rawCity => {
     const city = (rawCity||'').trim();
     gardens.filter(g => (g.city||'').trim() === city).forEach(g => {
@@ -232,8 +252,20 @@ window.activateCoordinatorApp = function() {
   if (!app) return;
   app.style.display = 'block';
 
+  // Strict Read-Only Guard
+  window.isReadOnly = true;
+
+  const isManager = window.role === 'manager' || window.role === 'vp' || window.permAllCities;
   const nameEl = document.getElementById('coord-user-name');
-  if (nameEl) nameEl.textContent = window._fbUser?.displayName || (window._fbUser?.email||'').replace('@ganmanager.app','') || 'רכז';
+  if (nameEl) {
+    const roleIcon = isManager ? '👔 ' : '👤 ';
+    const defaultLabel = isManager ? 'סמנכ"ל / הנהלה' : 'רכז';
+    nameEl.textContent = roleIcon + (window._fbUser?.displayName || (window._fbUser?.email||'').replace('@ganmanager.app','') || defaultLabel);
+  }
+
+  const defaultGardenLabel = isManager ? 'כל הגנים והערים (הנהלה)' : 'כל הגנים/בתי הספר שלי';
+  const gSummaryLabel = document.getElementById('coord-garden-label');
+  if (gSummaryLabel) gSummaryLabel.textContent = defaultGardenLabel;
 
   _coordBuildGardenFilter();
   if (typeof window._coordEnsureYearPairs === 'function') {
@@ -325,7 +357,11 @@ window.coordUpdateGardenLabel = function() {
   const checked = document.querySelectorAll('.coord-g-cb:checked');
   const lbl = document.getElementById('coord-garden-label');
   if (!lbl) return;
-  if (!checked.length) { lbl.textContent = 'כל הגנים/בתי הספר שלי'; return; }
+  const isManager = window.role === 'manager' || window.role === 'vp' || window.permAllCities;
+  if (!checked.length) { 
+    lbl.textContent = isManager ? 'כל הגנים והערים (הנהלה)' : 'כל הגנים/בתי הספר שלי'; 
+    return; 
+  }
   const names = Array.from(checked).map(cb => {
     const allGardens = [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
     const g = allGardens.find(x => Number(x.id) === Number(cb.value));

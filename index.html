@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 113.07</title>
+  <title>גנשדג'ולר ניהול ושיבוץ | גרסה 113.08</title>
   <meta name="description" content="Ganscheduler - מערכת לניהול ושיבוץ צהרונים">
   <!-- CSS standard variables and design system -->
   <link rel="icon" type="image/png" href="icon-192.png" />
@@ -21,12 +21,12 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=113.07" />
+  <link rel="stylesheet" href="styles.css?v=113.08" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
-    window.APP_VERSION = '113.07';
+    window.APP_VERSION = '113.08';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -289,13 +289,15 @@
                   <hr style="margin:3px 0;border:none;border-top:1px solid #e8eaf6">
                   <b style="color:#546e7a;font-size:.72rem">רמת גישה:</b>
                   <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio"
-                      name="nu-access" value="view" checked> 👁️ צפייה בלבד</label>
+                      name="nu-access" value="view" checked onchange="document.getElementById('nu-coord-fields').style.display='none'"> 👁️ צפייה בלבד (ממשק ניהול)</label>
                   <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio"
-                      name="nu-access" value="edit"> ✏️ עריכה</label>
-                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio"
-                        name="nu-access" value="worker"> עובד שטח (משימות בלבד)</label>
-                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio"
-                        name="nu-access" value="coordinator" onchange="document.getElementById('nu-coord-fields').style.display=this.checked?'block':'none'"> 👀 רכז שטח (צפייה בחוגים)</label>
+                      name="nu-access" value="edit" onchange="document.getElementById('nu-coord-fields').style.display='none'"> ✏️ עריכה</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio"
+                      name="nu-access" value="manager" onchange="document.getElementById('nu-coord-fields').style.display='none'"> 👔 סמנכ"ל / הנהלה (תצוגת רכז לכלל הארגון)</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio"
+                      name="nu-access" value="worker" onchange="document.getElementById('nu-coord-fields').style.display='none'"> 👷 עובד שטח (משימות בלבד)</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio"
+                      name="nu-access" value="coordinator" onchange="document.getElementById('nu-coord-fields').style.display=this.checked?'block':'none'"> 👀 רכז שטח (מוגבל לעיר/גנים)</label>
                 </div>
               </div>
             </div>

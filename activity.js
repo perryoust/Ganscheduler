@@ -823,7 +823,7 @@ window.spRowTimeChg = function(id, val) {
 
 window.openSP = function(id) {
   if (window.isReadOnly) {
-    alert('משתמש זה מוגדר כמשתמש צפייה בלבד (רכז). אין אפשרות לבצע שינויים.');
+    alert('משתמש זה מוגדר לצפייה בלבד. אין אפשרות לבצע שינויים.');
     return;
   }
   window.selEv = id;

@@ -108,7 +108,7 @@ window.ui = {
    * Renders a standardized activity row for tables (8 columns).
    */
   renderActivityRow: function(s, opts = {}) {
-    const isCoord = window.role === 'coordinator';
+    const isCoord = window.role === 'coordinator' || window.role === 'manager' || window.role === 'vp' || !!window.isReadOnly;
     const g = window.G(s.g) || {};
     const supBase = s.st === 'unassigned' ? '—' : (window.supNameLabel ? window.supNameLabel(s.a) : window.supBase(s.a));
     const supAct = s.st === 'unassigned' ? '—' : (s.act || window.supAct(s.a) || '—');
@@ -255,7 +255,7 @@ window.ui = {
 
     // Header Buttons
     const toggleId = 'pair-toggle-' + Math.random().toString(36).substr(2, 9);
-    const isCoord = window.role === 'coordinator';
+    const isCoord = window.role === 'coordinator' || window.role === 'manager' || window.role === 'vp' || !!window.isReadOnly;
     const defaultClosed = (opts.defaultOpen || isCoord) ? false : !!opts.isCluster;
     const defaultIcon = defaultClosed ? '+' : '-';
     const defaultDisplay = defaultClosed ? 'none' : 'block';

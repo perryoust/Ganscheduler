@@ -779,6 +779,11 @@ async function triggerFirebaseUpload(silent) {
 async function save(immediate){
   if(false){ showToast('⚠️ מצב ארכיון — לא ניתן לשמור שינויים'); return; }
   
+  if (window.isReadOnly || window.role === 'view' || window.role === 'coordinator' || window.role === 'manager' || window.role === 'vp') {
+    console.warn('save: blocked (read-only mode)');
+    return false;
+  }
+  
   // CRITICAL: Block all saves (including localStorage) until the first Firebase load completes.
   // This prevents startup migrations from creating a "newer" local state that blocks the cloud load.
   if(!window._fbSyncReady && !immediate) {

@@ -2773,7 +2773,7 @@ function getClusterGlobalFieldsHtml() {
 
 window.openClusterBulkEdit = function(clId, ds) {
   if (window.isReadOnly) {
-    alert('משתמש זה מוגדר כמשתמש צפייה בלבד (רכז). אין אפשרות לבצע שינויים.');
+    alert('משתמש זה מוגדר לצפייה בלבד. אין אפשרות לבצע שינויים.');
     return;
   }
   console.log('openClusterBulkEdit called with:', clId, ds);

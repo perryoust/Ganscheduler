@@ -240,9 +240,11 @@ window._initUsersUI = function _initUsersUI(){
   const settingsAdminYear = document.getElementById('settings-admin-year');
   if(settingsAdminYear) settingsAdminYear.style.display = isAdm ? '' : 'none';
 
-  // Coordinator specific UI restrictions
-  if (window.role === 'coordinator') {
+  // Read-only roles UI restrictions
+  if (window.role === 'coordinator' || window.role === 'manager' || window.role === 'vp' || window.role === 'view') {
     window.isReadOnly = true;
+  }
+  if (window.role === 'coordinator') {
     const tabsAct = document.getElementById('tabs-act');
     if (tabsAct) {
       const tabs = tabsAct.querySelectorAll('.tab');
@@ -308,8 +310,8 @@ async function loadUsersList(){
     const r=await fetch(USERS_DB+'.json'+q);
     if(!r.ok){ el.innerHTML='<span style="color:#c62828">שגיאה '+r.status+'</span>'; return; }
     const users=await r.json()||{};
-    const roleLabel={admin:'👑 מנהל',edit:'✏️ עריכה',view:'👁️ צפייה'};
-    const roleBg={admin:'#fce4ec',edit:'#e8f5e9',view:'#e3f2fd'};
+    const roleLabel={admin:'👑 מנהל',edit:'✏️ עריכה',view:'👁️ צפייה',coordinator:'👀 רכז שטח',manager:'👔 סמנכ"ל / הנהלה',vp:'👔 סמנכ"ל / הנהלה'};
+    const roleBg={admin:'#fce4ec',edit:'#e8f5e9',view:'#e3f2fd',coordinator:'#e1f5fe',manager:'#ede7f6',vp:'#ede7f6'};
     const entries=Object.entries(users).sort((a,b)=>(a[1].name||'').localeCompare(b[1].name||'','he'));
     if(!entries.length){ el.innerHTML='<span style="color:#999;font-size:.78rem">אין משתמשים עדיין</span>'; return; }
     el.innerHTML=entries.map(([uid,u])=>`
@@ -318,7 +320,7 @@ async function loadUsersList(){
           <div>
             <span style="font-weight:700;font-size:.85rem">${u.name||u.username||'—'}</span>
             <span style="font-size:.72rem;color:#546e7a;margin-right:6px">${u.username||''}</span>
-            ${uid===ADMIN_UID?'<span style="font-size:.68rem;background:#fff3e0;color:#e65100;border-radius:8px;padding:1px 6px">אדמין</span>':''}
+            ${uid===ADMIN_UID?'<span style="font-size:.68rem;background:#fff3e0;color:#e65100;border-radius:8px;padding:1px 6px">אדמין</span>':(roleLabel[u.role]?`<span style="font-size:.68rem;background:${roleBg[u.role]||'#eee'};color:#333;border-radius:8px;padding:1px 6px">${roleLabel[u.role]}</span>`:'')}
           </div>
           ${uid!==ADMIN_UID?`<div style="display:flex;gap:4px"><button class="btn bo bsm" style="font-size:.68rem" onclick="changeUserPassword('${uid}','${u.username||u.name}')">🔑 סיסמה</button><button class="btn br bsm" style="font-size:.68rem" onclick="deleteUser('${uid}','${u.name||u.username}')">🗑️ מחק</button></div>`:''}
         </div>
@@ -338,10 +340,13 @@ async function loadUsersList(){
           <div>
             <div style="font-size:.68rem;color:#546e7a;margin-bottom:4px;font-weight:700">רמת גישה:</div>
             <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;margin-bottom:3px">
-              <input type="radio" name="role_${uid}" value="view" ${u.role==='view'?'checked':''} onchange="changeUserRole('${uid}','view')"> 👁️ צפייה בלבד
+              <input type="radio" name="role_${uid}" value="view" ${u.role==='view'?'checked':''} onchange="changeUserRole('${uid}','view')"> 👁️ צפייה בלבד (ממשק ניהול)
             </label>
             <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;margin-bottom:3px">
               <input type="radio" name="role_${uid}" value="edit" ${u.role==='edit'?'checked':''} onchange="changeUserRole('${uid}','edit')"> ✏️ עריכה
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;margin-bottom:3px">
+              <input type="radio" name="role_${uid}" value="manager" ${(u.role==='manager'||u.role==='vp')?'checked':''} onchange="changeUserRole('${uid}','manager')"> 👔 סמנכ"ל / הנהלה (תצוגת רכז לכלל הארגון)
             </label>
             <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer">
               <input type="radio" name="role_${uid}" value="coordinator" ${u.role==='coordinator'?'checked':''} onchange="changeUserRole('${uid}','coordinator')"> 👀 רכז שטח 
@@ -363,13 +368,17 @@ async function createNewUser(){
   const permWorker=document.getElementById('nu-perm-worker')?.checked||false;
   const role=document.querySelector('input[name="nu-access"]:checked')?.value||'view';
   
-  // Coordinator specific
+  // Coordinator / Manager specific
+  const isManager = role === 'manager' || role === 'vp';
   const isCoord = role === 'coordinator';
-  const permCoord = isCoord;
+  const permCoord = isCoord || isManager;
   let coordCities = [];
   let coordGardenIds = [];
-  let coordTimeScope = 'month';
-  if (isCoord) {
+  let coordTimeScope = isManager ? 'year' : 'month';
+  let allCities = isManager;
+  if (isManager) {
+    coordCities = ['ALL'];
+  } else if (isCoord) {
     coordCities = Array.from(document.querySelectorAll('#nu-coord-cities input:checked')).map(cb => cb.value);
     coordGardenIds = Array.from(document.querySelectorAll('#nu-coord-selected-gardens [data-gid]')).map(el => Number(el.dataset.gid));
     coordTimeScope = document.getElementById('nu-coord-timescope')?.value || 'month';
@@ -399,7 +408,7 @@ async function createNewUser(){
     const r=await fetch(`${USERS_DB}/${uid}.json${q}`,{
       method:'PUT',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({uid,username,name:displayName,role,email,permAct,permPurch,permWorker,permCoord,coordCities,coordGardenIds,coordTimeScope,currentYear:'tashpaz',createdAt:Date.now()})
+      body:JSON.stringify({uid,username,name:displayName,role,email,permAct,permPurch,permWorker,permCoord,allCities,coordCities,coordGardenIds,coordTimeScope,currentYear:'tashpaz',createdAt:Date.now()})
     });
     if(!r.ok) throw new Error('שמירה נכשלה: '+r.status);
 
@@ -418,10 +427,11 @@ async function createNewUser(){
 window.loadCoordCityCheckboxes = function(containerId = 'nu-coord-cities', selected = []) {
   const container = document.getElementById(containerId);
   if(!container) return;
+  const isAll = (selected||[]).includes('ALL');
   const cities = [...new Set((window.GARDENS||[]).map(g=>g.city||'אחר'))].sort();
   container.innerHTML = cities.map(c => `
     <label style="display:flex;align-items:center;gap:4px;font-size:0.8rem;padding:2px 6px;background:#f5f5f5;border-radius:4px;cursor:pointer">
-      <input type="checkbox" value="${c}" ${selected.includes(c) ? 'checked' : ''}> ${c}
+      <input type="checkbox" value="${c}" ${isAll || selected.includes(c) ? 'checked' : ''}> ${c}
     </label>
   `).join('');
 };
@@ -576,11 +586,19 @@ async function changeUserRole(uid, newRole){
   if(!_isAdmin()) return;
   try{
     const q=await _authQ();
-    await fetch(`${USERS_DB}/${uid}/role.json${q}`,{
-      method:'PUT', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(newRole)
+    const patchPayload = { role: newRole };
+    if (newRole === 'manager') {
+      patchPayload.permCoord = true;
+      patchPayload.allCities = true;
+      patchPayload.coordCities = ['ALL'];
+      patchPayload.coordTimeScope = 'year';
+    }
+    await fetch(`${USERS_DB}/${uid}.json${q}`,{
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(patchPayload)
     });
-    showToast('✅ תפקיד עודכן');
+    showToast('✅ תפקיד עודכן בהצלחה');
+    await loadUsersList();
   } catch(e){ showToast('❌ שגיאה: '+e.message); }
 }
 

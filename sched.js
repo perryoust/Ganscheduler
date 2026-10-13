@@ -46,7 +46,7 @@ function nsGChg(){
 
 function openNewSched(gid, opts={}){
   if (window.isReadOnly) {
-    alert('משתמש זה מוגדר כמשתמש צפייה בלבד (רכז). אין אפשרות לבצע שינויים.');
+    alert('משתמש זה מוגדר לצפייה בלבד. אין אפשרות לבצע שינויים.');
     return;
   }
   // opts: {date, tab, makeupFrom}
