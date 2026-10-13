@@ -1,6 +1,6 @@
-// visual_excel.js - מחולל PDF מעוצב ללוח חוגים חודשי (html2pdf)
+// visual_excel.js - מחולל לוח חוגים חודשי מעוצב (PDF ו-JPG)
 
-window.doVisualExcelExport = async function() {
+window.doVisualExcelExport = async function(format = 'pdf') {
   const mp = document.getElementById('exp-from');
   if (!mp || !mp.value) { window.spAlert('אנא בחר חודש'); return; }
   const fromM = mp.value;
@@ -95,8 +95,12 @@ window.doVisualExcelExport = async function() {
       title = `לוחות חוגים - ${cityFilter} - ${monthName} ${year}.pdf`;
     }
 
-    await _exportPDF(pagesHtml, title, month);
-    window.showToast(`📊 ${count} לוחות מעוצבים נפתחו בהצלחה!`);
+    if (format === 'jpg') {
+      await _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, showPhones);
+    } else {
+      await _exportPDF(pagesHtml, title, month);
+      window.showToast(`📊 ${count} לוחות מעוצבים נפתחו בהצלחה!`);
+    }
     window.CM('export-m'); // close modal
   } catch(e) {
     console.error('Visual PDF error:', e);
@@ -357,6 +361,164 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
 function _esc(str) {
   if (!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, showPhones) {
+  // Ensure html2canvas is ready
+  let h2c = window.html2canvas;
+  if (!h2c) {
+    if (window.html2pdf && typeof window.html2pdf === 'function') {
+      try { h2c = window.html2pdf().html2canvas; } catch (e) {}
+    }
+  }
+  if (!h2c) {
+    try {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        s.onload = () => { h2c = window.html2canvas; resolve(); };
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    } catch (e) {
+      window.spAlert('שגיאה בטעינת ספריית יצירת תמונות: ' + e.message);
+      return;
+    }
+  }
+
+  // Ensure JSZip is ready for multiple files
+  if (gList.length > 1 && !window.JSZip) {
+    try {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    } catch (e) { console.warn('Could not load JSZip:', e); }
+  }
+
+  // Progress overlay
+  let overlay = document.getElementById('jpg-export-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'jpg-export-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.75);backdrop-filter:blur(3px);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:Assistant,sans-serif;direction:rtl;';
+    overlay.innerHTML = `
+      <div style="background:#fff; color:#1e293b; padding:24px 32px; border-radius:14px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.3); max-width:420px; width:90%;">
+        <div style="font-size:2.5rem; margin-bottom:10px;">🖼️</div>
+        <div style="font-weight:800; font-size:1.15rem; color:#be185d; margin-bottom:6px;">מייצר תמונות JPG איכותיות (פוסטרים)</div>
+        <div id="jpg-export-status" style="font-size:0.88rem; color:#64748b;">מתחיל בעיבוד...</div>
+        <div style="margin-top:14px; width:100%; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden;">
+          <div id="jpg-export-bar" style="width:0%; height:100%; background:#be185d; transition:width 0.2s;"></div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display = 'flex';
+  const statusEl = document.getElementById('jpg-export-status');
+  const barEl = document.getElementById('jpg-export-bar');
+
+  // Adhere strictly to AGENTS.md PDF/canvas generation rules
+  const container = document.createElement('div');
+  container.style.cssText = 'position:absolute; top:-99999px; left:-99999px; width:850px; background:#fff; direction:rtl; font-family:Arial, sans-serif;';
+  document.body.appendChild(container);
+
+  const styles = _getStyles(month);
+  const images = [];
+
+  try {
+    for (let i = 0; i < gList.length; i++) {
+      const g = gList[i];
+      if (statusEl) statusEl.textContent = `מעבד: ${g.name || 'גן'} (${i + 1} מתוך ${gList.length})...`;
+      if (barEl) barEl.style.width = `${Math.round(((i + 1) / gList.length) * 100)}%`;
+
+      const gEvs = allEvs.filter(s => s.g === g.id);
+      const pageHtml = _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones);
+
+      container.innerHTML = styles.css + pageHtml;
+
+      // Small pause for layout
+      await new Promise(r => setTimeout(r, 60));
+
+      const pageEl = container.querySelector('.vp-page') || container;
+
+      // Reset scroll position as mandated by AGENTS.md
+      const prevScrollY = window.scrollY;
+      const prevScrollX = window.scrollX;
+      window.scrollTo(0, 0);
+
+      const canvas = await h2c(pageEl, {
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+
+      window.scrollTo(prevScrollX, prevScrollY);
+
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.95));
+
+      const safeGarden = String(g.name || 'גן').replace(/[/\\?%*:|"<>]/g, '_').trim();
+      const safeCity = String(g.city || '').replace(/[/\\?%*:|"<>]/g, '_').trim();
+      const fileName = `לוח חוגים - ${safeGarden} ${safeCity} - ${monthName} ${year}.jpg`.replace(/\s+/g, ' ');
+
+      images.push({ blob, fileName });
+    }
+
+    if (images.length === 1) {
+      const img = images[0];
+      const url = URL.createObjectURL(img.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = img.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      window.showToast?.(`✅ תמונת JPG הורדה בהצלחה: ${img.fileName}`);
+    } else if (images.length > 1) {
+      if (window.JSZip) {
+        if (statusEl) statusEl.textContent = 'אורז קובץ ZIP עם כל התמונות...';
+        const zip = new window.JSZip();
+        images.forEach(img => {
+          zip.file(img.fileName, img.blob);
+        });
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const zipUrl = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = zipUrl;
+        a.download = `לוחות חוגים מעוצבים JPG - ${monthName} ${year}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(zipUrl);
+        window.showToast?.(`✅ קובץ ZIP הורד בהצלחה עם ${images.length} תמונות JPG!`);
+      } else {
+        for (let i = 0; i < images.length; i++) {
+          const img = images[i];
+          const url = URL.createObjectURL(img.blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = img.fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          await new Promise(r => setTimeout(r, 350));
+        }
+        window.showToast?.(`✅ הורדו ${images.length} תמונות JPG!`);
+      }
+    }
+
+  } catch (err) {
+    console.error('[VisualExcel] Error exporting JPG:', err);
+    window.spAlert('שגיאה ביצירת קובץ JPG: ' + err.message);
+  } finally {
+    if (container.parentNode) container.parentNode.removeChild(container);
+    if (overlay) overlay.style.display = 'none';
+  }
 }
 
 async function _exportPDF(htmlContent, filename, month) {
