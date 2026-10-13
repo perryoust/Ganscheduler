@@ -1237,22 +1237,53 @@ window.wtGetStaffList = function() {
     return c;
   };
 
-  const addStaff = (name, rawRole, city = '', phone = '', priority = 1) => {
+  const addStaff = (name, rawRole, city = '', phone = '', priority = 1, mgrObj = null) => {
     if (!name || typeof name !== 'string') return;
     const cleanName = name.trim().replace(/^[\s👤👥\-_]+/, '');
     if (!cleanName || cleanName.length < 2) return;
     
-    const cleanCity = normalizeCity(city);
+    let cleanCity = normalizeCity(city);
     const cleanPhone = (phone || '').trim();
 
     let cleanRole = (rawRole || '').trim();
-    if (!cleanRole || cleanRole === 'coord') {
+
+    // Check if manager is associated with schools or specific institutions
+    const mgrData = mgrObj || (window.managers && typeof window.managers === 'object'
+      ? Object.values(window.managers).find(m => m && m.name && m.name.trim() === cleanName)
+      : null);
+
+    const allGardens = typeof AG === 'function' ? AG() : [...(window.GARDENS || []), ...(window._GARDENS_EXTRA || [])];
+    const assignedGardens = (mgrData && Array.isArray(mgrData.gardenIds))
+      ? mgrData.gardenIds.map(id => allGardens.find(g => Number(g.id) === Number(id))).filter(Boolean)
+      : [];
+
+    const assignedSchools = assignedGardens.filter(g => {
+      const c = (g.cls || '').trim();
+      const n = (g.name || '').trim();
+      return (typeof window.gcls === 'function' ? window.gcls(g) === 'ביה"ס' : false) ||
+             c.includes('בית') || c.includes('בי"ס') || c.includes('ביה"ס') || c.includes('ביהס') ||
+             n.includes('בית') || n.includes('בי"ס') || n.includes('ביה"ס') || n.includes('ביהס');
+    });
+
+    if (cleanName === 'הדר' || cleanName.includes('הדר')) {
+      cleanRole = 'רכז/ת ביה"ס נווה דליה ראש העין';
+      if (!cleanCity) cleanCity = 'ראש העין';
+    } else if (assignedSchools.length === 1) {
+      let schName = assignedSchools[0].name.trim();
+      if (!schName.includes('ביה"ס') && !schName.includes('בית ספר') && !schName.includes('בי"ס')) {
+        schName = 'ביה"ס ' + schName;
+      }
+      const citySuffix = cleanCity && !schName.includes(cleanCity) ? ' ' + cleanCity : '';
+      cleanRole = `רכז/ת ${schName}${citySuffix}`;
+    } else if (assignedSchools.length > 1) {
+      cleanRole = cleanCity ? `רכז/ת בתי ספר ${cleanCity}` : 'רכז/ת בתי ספר';
+    } else if (!cleanRole || cleanRole === 'coord') {
       cleanRole = cleanCity ? `רכז/ת ${cleanCity}` : 'רכז/ת';
     } else if (cleanRole === 'manager') {
       cleanRole = cleanCity ? `מנהל/ת אזור ${cleanCity}` : 'מנהל/ת אזור';
     }
 
-    // Format display string, e.g. "ריקי (מנהלת אזור גבעתיים)" or "אבי (רכז/ת פתח תקווה)"
+    // Format display string, e.g. "הדר (רכז/ת ביה"ס נווה דליה ראש העין)" or "ריקי (מנהלת אזור גבעתיים)"
     let display = cleanName;
     if (cleanRole) {
       if (cleanRole.includes(cleanName)) {
@@ -1300,7 +1331,7 @@ window.wtGetStaffList = function() {
   if (window.managers && typeof window.managers === 'object') {
     Object.values(window.managers).forEach(m => {
       if (m && m.name) {
-        addStaff(m.name, m.role, m.city || '', m.phone || '', 3);
+        addStaff(m.name, m.role, m.city || '', m.phone || '', 3, m);
       }
     });
   }

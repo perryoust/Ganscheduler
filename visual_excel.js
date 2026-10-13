@@ -340,7 +340,12 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
 
       <div style="margin-top: auto; padding-top: 4px; border-top: 2px solid #e2e8f0;">
         <div style="font-size: 13.5px; font-weight: 700; color: #334155; text-align: right; line-height: 1.2;">
-          ${mgrStr ? `👩‍💼 רכז/ת: ${_esc(mgrStr)}` : ''}
+          ${(() => {
+            if (!mgrStr) return '';
+            const isSchool = (typeof window.gcls === 'function' ? window.gcls(g) === 'ביה"ס' : false) || (g.name || '').includes('ביה"ס') || (g.cls || '').includes('ביה"ס');
+            const coordLabel = isSchool ? 'רכז/ת ביה"ס' : 'רכז/ת';
+            return `👩‍💼 ${coordLabel}: ${_esc(mgrStr)}`;
+          })()}
         </div>
         <div style="text-align: center; margin-top: 4px;">
           <div class="vp-footer">* שימו לב: ייתכנו שינויים בתוכנית החוגים</div>

@@ -1522,9 +1522,10 @@ function renderManagers(){
       gs = gs.filter(g => window.isSupplierInGarden(g.id, supF));
     }
     const isMgr = m.role === 'manager';
-    const roleClr = isMgr ? '#1a237e' : '#2e7d32';
-    const roleBg = isMgr ? '#e8eaf6' : '#e8f5e9';
-    const roleLabel = isMgr ? '🏛️ מנהל' : '👤 רכז';
+    const isSchoolCoord = (m.name && m.name.includes('הדר')) || gs.some(g => (typeof window.gcls === 'function' ? window.gcls(g) : g.cls) === 'ביה"ס');
+    const roleClr = isMgr ? '#1a237e' : (isSchoolCoord ? '#0277bd' : '#2e7d32');
+    const roleBg = isMgr ? '#e8eaf6' : (isSchoolCoord ? '#e1f5fe' : '#e8f5e9');
+    const roleLabel = isMgr ? '🏛️ מנהל' : (isSchoolCoord ? '👤 רכז/ת ביה"ס' : '👤 רכז');
 
     // Group gardens by city for display
     const gByCity = {};
@@ -1987,7 +1988,8 @@ function renderMgrExportText() {
   if (_exportMgrSup) {
     gs = gs.filter(g => window.isSupplierInGarden(g.id, _exportMgrSup));
   }
-  const roleLabel = m.role === 'manager' ? 'מנהל' : 'רכז';
+  const isSchoolCoord = (m.name && m.name.includes('הדר')) || gs.some(g => (typeof window.gcls === 'function' ? window.gcls(g) : g.cls) === 'ביה"ס');
+  const roleLabel = m.role === 'manager' ? 'מנהל' : (isSchoolCoord ? 'רכז/ת ביה"ס' : 'רכז');
   let txt = '';
   txt += `👤 ${roleLabel}: ${m.name}\n`;
   if(m.phone)  txt += `📞 טלפון: ${m.phone}\n`;
