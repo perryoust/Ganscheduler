@@ -3101,16 +3101,25 @@ window.quickSaveBatchGardenField = function(gid, field, val) {
     if (g) g.coph = cleanVal;
   } else if (field === 'mgr') {
     const selMgrId = cleanVal;
-    Object.values(window.managers || {}).forEach(m => {
-      if (m.gardenIds) {
-        m.gardenIds = m.gardenIds.filter(id => Number(id) !== Number(gid));
+    const targetMgr = (selMgrId && window.managers) ? window.managers[selMgrId] : null;
+    const isTargetAreaMgr = targetMgr && (targetMgr.role === 'manager' || targetMgr.role === 'vp');
+
+    if (!isTargetAreaMgr) {
+      // Remove from other field coordinators only (never strip from area managers/VPs!)
+      Object.values(window.managers || {}).forEach(m => {
+        if (m.role !== 'manager' && m.role !== 'vp' && m.gardenIds) {
+          m.gardenIds = m.gardenIds.filter(id => Number(id) !== Number(gid));
+        }
+      });
+    }
+
+    if (targetMgr) {
+      if (!targetMgr.gardenIds) targetMgr.gardenIds = [];
+      if (!targetMgr.gardenIds.map(Number).includes(Number(gid))) targetMgr.gardenIds.push(Number(gid));
+      if (!isTargetAreaMgr) {
+        ex.co = targetMgr.name;
+        if (g) g.co = targetMgr.name;
       }
-    });
-    if (selMgrId && window.managers && window.managers[selMgrId]) {
-      if (!window.managers[selMgrId].gardenIds) window.managers[selMgrId].gardenIds = [];
-      window.managers[selMgrId].gardenIds.push(Number(gid));
-      ex.co = window.managers[selMgrId].name;
-      if (g) g.co = window.managers[selMgrId].name;
     } else {
       ex.co = '';
       if (g) g.co = '';
@@ -3377,10 +3386,15 @@ function refreshMgrDrops(){
 }
 
 function getGardenMgr(gid){
+  if (typeof window.getGardenCoordinator === 'function') {
+    const ci = window.getGardenCoordinator(gid);
+    return ci ? (ci.mgr || { id: ci.id || '', name: ci.name, phone: ci.phone, role: ci.role }) : null;
+  }
   const numGid = Number(gid);
   return Object.values(managers).find(m => m.role !== 'manager' && m.role !== 'vp' && (m.gardenIds||[]).map(Number).includes(numGid)) ||
          Object.values(managers).find(m => (m.gardenIds||[]).map(Number).includes(numGid)) || null;
 }
+window.getGardenMgr = getGardenMgr;
 function setGardensTab(t){
   _gardensTab = t;
   document.querySelectorAll('[id^="g-tab-"]').forEach(btn => {

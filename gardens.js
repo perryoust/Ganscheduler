@@ -2123,15 +2123,11 @@ function genExport(){
   const incCoord = document.getElementById('ex-inc-coord') && document.getElementById('ex-inc-coord').checked;
   const getCoordStr = (gid) => {
     if (!incCoord) return '';
-    const gidStr = String(gid);
-    const mgr = Object.values(window.managers || {}).find(m => {
-        if (!m || !m.gardenIds) return false;
-        let arr = m.gardenIds;
-        if (typeof arr === 'string') arr = arr.split(',');
-        else if (!Array.isArray(arr)) arr = Object.values(arr);
-        return arr.some(g => String(g).trim() === gidStr);
-    });
-    if (mgr) return ` (רכז/ת: ${mgr.name} - ${mgr.phone||''} )`.trimEnd();
+    const ci = typeof window.getGardenCoordinator === 'function' ? window.getGardenCoordinator(gid) : null;
+    if (ci && ci.name) {
+      const p = (ci.phone || '').trim();
+      return ` (רכז/ת: ${ci.name}${p ? ' - ' + p : ''} )`.trimEnd();
+    }
     return '';
   };
 

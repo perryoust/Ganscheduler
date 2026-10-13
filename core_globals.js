@@ -134,8 +134,8 @@ window.ui = {
     const tagDesktop = tagText ? `<b style="color:var(--c-warning)">[${tagText}]</b> ` : '';
 
     const numGid = Number(g.id);
-    const mgr = window.managers ? (Object.values(window.managers).find(m => m.role !== 'manager' && m.role !== 'vp' && (m.gardenIds || []).map(Number).includes(numGid)) || Object.values(window.managers).find(m => (m.gardenIds || []).map(Number).includes(numGid))) : null;
-    const coName = mgr ? mgr.name : g.co;
+    const coordInfo = typeof window.getGardenCoordinator === 'function' ? window.getGardenCoordinator(numGid) : null;
+    const coName = coordInfo ? coordInfo.name : (g.co || '');
     const coDisplay = coName ? `
             <div style="grid-column: span 2; font-size:0.7rem; color:#64748b; font-weight:normal;">
               👤 רכז/ת: ${coName}

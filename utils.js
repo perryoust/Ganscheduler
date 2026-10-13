@@ -234,3 +234,125 @@ window.loadScriptAsync = function(url) {
     document.head.appendChild(script);
   });
 };
+
+/**
+ * Global Garden Coordinator Resolver
+ * Strict priority hierarchy:
+ * 1. Dedicated Field Coordinator in window.managers (role !== 'manager' && role !== 'vp') with garden in gardenIds
+ * 2. Garden's direct contact (g.co / supEx.co), matched against field coordinators or returned directly
+ * 3. Area Manager (role === 'manager' || role === 'vp') ONLY if no field coordinator or g.co exists
+ */
+window.getGardenCoordinator = function(gid) {
+  if (!gid) return null;
+  let numGid = typeof gid === 'object' && gid !== null ? Number(gid.id) : Number(gid);
+  if (isNaN(numGid)) return null;
+
+  const allGardens = (typeof window.getAllGardens === 'function' ? window.getAllGardens() : null) ||
+                     [...(window.GARDENS || []), ...(window._GARDENS_EXTRA || [])];
+  const g = (typeof window.G === 'function' ? window.G(numGid) : null) || allGardens.find(x => Number(x.id) === numGid);
+
+  const managersList = (window.managers && typeof window.managers === 'object') ? Object.values(window.managers) : [];
+
+  // Priority 1: Field coordinator in window.managers explicitly assigned to this garden
+  let fieldCoord = managersList.find(m => {
+    if (!m || !m.gardenIds || m.role === 'manager' || m.role === 'vp') return false;
+    let arr = m.gardenIds;
+    if (typeof arr === 'string') arr = arr.split(',');
+    else if (!Array.isArray(arr)) arr = Object.values(arr);
+    return arr.some(x => Number(x) === numGid || String(x).trim() === String(numGid));
+  });
+
+  if (fieldCoord) {
+    const p = (fieldCoord.phone || '').trim();
+    return {
+      id: fieldCoord.id,
+      name: (fieldCoord.name || '').trim(),
+      phone: p,
+      fullStr: (fieldCoord.name || '').trim() + (p ? ' - ' + p : ''),
+      mgr: fieldCoord,
+      role: fieldCoord.role || 'coord'
+    };
+  }
+
+  // Priority 2: Direct coordinator from garden record (g.co or supEx)
+  const ex = (window.supEx && window.supEx['g_' + numGid]) || {};
+  const coRaw = ((ex.co !== undefined ? ex.co : (g && g.co)) || '').trim();
+  const cophRaw = ((ex.coph !== undefined ? ex.coph : (g && (g.cp || g.coph))) || '').trim();
+
+  if (coRaw) {
+    let parsedName = coRaw;
+    let parsedPhone = cophRaw;
+    // Check if coRaw has format "Name – 05x-xxxxxxx" or "Name - 05x"
+    const dashMatch = coRaw.match(/^(.*?)\s*[\-–—]\s*(\d[\d\-\s]{6,}\d)\s*$/);
+    if (dashMatch) {
+      parsedName = dashMatch[1].trim();
+      if (!parsedPhone) parsedPhone = dashMatch[2].replace(/\s+/g, '').trim();
+    } else {
+      const phoneMatch = coRaw.match(/(\d[\d\-\s]{6,}\d)/);
+      if (phoneMatch) {
+        if (!parsedPhone) parsedPhone = phoneMatch[1].replace(/\s+/g, '').trim();
+        parsedName = coRaw.replace(phoneMatch[0], '').replace(/[\-–—]/g, '').trim();
+      }
+    }
+
+    // See if a field coordinator in window.managers matches this name or phone
+    const cleanPhone = parsedPhone.replace(/\D/g, '');
+    const cleanBaseName = parsedName
+      .replace(/^(רכז\/ת|רכזת|רכז|מנהל\/ת|מנהלת|מנהל|אחראי\/ת|אחראי)\s*/gi, '')
+      .trim().toLowerCase();
+
+    const matchedFieldMgr = managersList.find(m => {
+      if (!m || m.role === 'manager' || m.role === 'vp') return false;
+      const mPhone = (m.phone || '').replace(/\D/g, '');
+      if (cleanPhone && cleanPhone.length >= 7 && mPhone) {
+        if (mPhone === cleanPhone || mPhone.endsWith(cleanPhone.slice(-7)) || cleanPhone.endsWith(mPhone.slice(-7))) return true;
+      }
+      const mBaseName = (m.name || '')
+        .replace(/^(רכז\/ת|רכזת|רכז|מנהל\/ת|מנהלת|מנהל|אחראי\/ת|אחראי)\s*/gi, '')
+        .trim().toLowerCase();
+      if (cleanBaseName && cleanBaseName.length >= 2 && mBaseName) {
+        if (mBaseName === cleanBaseName || mBaseName.includes(cleanBaseName) || cleanBaseName.includes(mBaseName)) return true;
+      }
+      return false;
+    });
+
+    const finalName = matchedFieldMgr ? matchedFieldMgr.name : parsedName;
+    const finalPhone = matchedFieldMgr ? (matchedFieldMgr.phone || parsedPhone) : parsedPhone;
+    return {
+      id: matchedFieldMgr ? matchedFieldMgr.id : '',
+      name: finalName,
+      phone: finalPhone,
+      fullStr: finalName + (finalPhone ? ' - ' + finalPhone : ''),
+      mgr: matchedFieldMgr || null,
+      role: 'coord'
+    };
+  }
+
+  // Priority 3: Area Manager (role === 'manager' || role === 'vp') ONLY if no field coordinator or g.co exists
+  const areaMgr = managersList.find(m => {
+    if (!m || !m.gardenIds) return false;
+    let arr = m.gardenIds;
+    if (typeof arr === 'string') arr = arr.split(',');
+    else if (!Array.isArray(arr)) arr = Object.values(arr);
+    return arr.some(x => Number(x) === numGid || String(x).trim() === String(numGid));
+  });
+
+  if (areaMgr) {
+    const ap = (areaMgr.phone || '').trim();
+    return {
+      id: areaMgr.id,
+      name: (areaMgr.name || '').trim(),
+      phone: ap,
+      fullStr: (areaMgr.name || '').trim() + (ap ? ' - ' + ap : ''),
+      mgr: areaMgr,
+      role: areaMgr.role || 'manager'
+    };
+  }
+
+  return null;
+};
+
+window.getGardenMgr = function(gid) {
+  const ci = window.getGardenCoordinator(gid);
+  return ci ? (ci.mgr || { id: ci.id || '', name: ci.name, phone: ci.phone, role: ci.role }) : null;
+};

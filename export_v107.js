@@ -111,6 +111,10 @@ function expModeChg(){
 
 // Helper: find manager assigned to a garden
 function gardenManager(gardenId){
+  if (typeof window.getGardenCoordinator === 'function') {
+    const ci = window.getGardenCoordinator(gardenId);
+    return ci ? (ci.mgr || { id: ci.id || '', name: ci.name, phone: ci.phone, role: ci.role }) : null;
+  }
   const numId = Number(gardenId);
   return Object.values(window.managers || {}).find(m => m.role !== 'manager' && m.role !== 'vp' && (m.gardenIds||[]).map(Number).includes(numId)) ||
          Object.values(window.managers || {}).find(m => (m.gardenIds||[]).map(Number).includes(numId)) || null;
@@ -1656,14 +1660,15 @@ window.exportBulkAnnualSchedule = async function() {
 
   // Pre-calculate coordinator names (with phone) for each garden
   const mgrByGan = {};
-  if (window.managers) {
-    Object.values(window.managers).forEach(m => {
-      if (m.gardenIds) {
-        const mStr = m.name + (m.phone ? ' - ' + m.phone : '');
-        m.gardenIds.forEach(gid => mgrByGan[gid] = mStr);
-      }
-    });
-  }
+  const allGardensForExport = (typeof window.getAllGardens === 'function' ? window.getAllGardens() : null) ||
+                              [...(window.GARDENS || []), ...(window._GARDENS_EXTRA || [])];
+  allGardensForExport.forEach(g => {
+    const ci = typeof window.getGardenCoordinator === 'function' ? window.getGardenCoordinator(g.id) : null;
+    if (ci && ci.name) {
+      const p = (ci.phone || '').trim();
+      mgrByGan[g.id] = ci.name + (p ? ' - ' + p : '');
+    }
+  });
 
   // Removed static clusterByGan pre-calculation here to support temporary clusters per date
 
