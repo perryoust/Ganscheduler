@@ -35,3 +35,13 @@ In any PDF export module using `html2pdf.js` / `html2canvas` (`purchasing_orders
 ## MCP & Tool Optimization
 1. **Primary MCP Server**: Use `firebase-mcp-server` for all Firebase backend, database, auth, and hosting interactions.
 2. **Excluded Services**: Do not attempt to use or invoke Cloud SQL, Compute Engine (GCE), BigQuery data-pipeline, or Jupyter notebook tools, as GanScheduler is a pure Vanilla JS/HTML web client with Firebase.
+
+## Automated Version Data Vault (כספת גיבויי נתונים לפי גרסה)
+The workspace implements an automated data checkpoint vault in `version_vault.js`:
+1. **Scope**: Full living database snapshot (schedules, suppliers, config, custom gardens, invoices, orders, deliveries) saved to `/version_backups/data/v{VERSION_KEY}.json` and `/version_backups/meta/v{VERSION_KEY}.json` in Firebase RTDB.
+2. **Compression**: Uses `window.utils.compressData` (GZIP base64) to maintain 0 cost and stay under 1% of the free Firebase tier.
+3. **Execution**: Runs automatically once per version deployment (deferred by 4.5s on startup) and can also be triggered manually via `window.saveVersionBackup(true)`.
+4. **Retention Policy (חוק הברזל לשמירת גיבויים)**:
+   - Always retain AT LEAST 10 most recent versions.
+   - NEVER prune or delete any version backup that is less than 10 days old, regardless of how many versions were deployed.
+5. **UI & Restore**: Accessible via clicking the version tag in the header (`app-version-label`) or calling `window.openVersionVaultModal()`. Provides one-click restore and full JSON downloads.
