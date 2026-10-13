@@ -273,6 +273,11 @@ window.activateCoordinatorApp = function() {
       /* ── Cal styles override for coordinator dark bg header ── */
       #coordinator-app-root .dsh { border-radius:8px 8px 0 0; }
       #coordinator-app-root .dsec { border-radius:8px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.1); margin-bottom:12px; }
+      /* ── City accordion styling ── */
+      .city-accordion summary { user-select:none; transition:opacity 0.15s; }
+      .city-accordion summary:hover { opacity:0.92; }
+      .city-accordion summary .city-chevron { transition:transform 0.2s ease; display:inline-block; font-size:0.7rem; }
+      .city-accordion:not([open]) summary .city-chevron { transform:rotate(-90deg); }
     `;
     document.head.appendChild(s);
   }
@@ -756,8 +761,11 @@ function _coordRenderByCity(evs, ds) {
     const modeLabel = isClusterMode ? 'אשכולות' : 'זוגות';
     let html = `<details class="city-accordion" open style="margin-bottom:12px">
       <summary style="background:${clr.solid};color:#fff;padding:8px 12px;font-weight:800;border-radius:6px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center">
-        <span>📍 ${city} (${cityEvs.length} פעילויות)</span>
-        <span style="font-size:0.75rem;opacity:0.85">${pairBlocks.length} ${modeLabel}</span>
+        <span style="display:flex;align-items:center;gap:6px">
+          <span class="city-chevron">▼</span>
+          <span>📍 ${city} (${cityEvs.length} פעילויות)</span>
+        </span>
+        <span style="font-size:0.75rem;opacity:0.85;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:10px">${pairBlocks.length} ${modeLabel}</span>
       </summary>
       <div style="padding:6px 0;background:transparent">`;
 
