@@ -377,14 +377,14 @@ async function createNewUser(){
   const permCoord = isCoord || isManager;
   let coordCities = [];
   let coordGardenIds = [];
-  let coordTimeScope = isManager ? 'year' : 'month';
+  let coordTimeScope = 'year';
   let allCities = isManager;
   if (isManager) {
     coordCities = ['ALL'];
   } else if (isCoord) {
     coordCities = Array.from(document.querySelectorAll('#nu-coord-cities input:checked')).map(cb => cb.value);
     coordGardenIds = Array.from(document.querySelectorAll('#nu-coord-selected-gardens [data-gid]')).map(el => Number(el.dataset.gid));
-    coordTimeScope = document.getElementById('nu-coord-timescope')?.value || 'month';
+    coordTimeScope = document.getElementById('nu-coord-timescope')?.value || 'year';
   }
   const statusEl=document.getElementById('nu-status');
   const btn=document.getElementById('nu-create-btn');
@@ -408,10 +408,11 @@ async function createNewUser(){
 
     // Save user profile to RTDB
     const q=await _authQ();
+    const coordClsScope = isManager ? 'all' : 'גן';
     const r=await fetch(`${USERS_DB}/${uid}.json${q}`,{
       method:'PUT',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({uid,username,name:displayName,role,email,permAct,permPurch,permWorker,permCoord,allCities,coordCities,coordGardenIds,coordTimeScope,currentYear:'tashpaz',createdAt:Date.now()})
+      body:JSON.stringify({uid,username,name:displayName,role,email,permAct,permPurch,permWorker,permCoord,allCities,coordCities,coordGardenIds,coordTimeScope,coordClsScope,currentYear:'tashpaz',createdAt:Date.now()})
     });
     if(!r.ok) throw new Error('שמירה נכשלה: '+r.status);
 

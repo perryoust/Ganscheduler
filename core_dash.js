@@ -1754,6 +1754,22 @@ window.mgrLinkExistingUser = async function() {
     const q = typeof window._authQ === 'function' ? await window._authQ() : '';
     const isMgrRole = m.role === 'manager' || m.role === 'vp';
     const gardenIds = [...document.querySelectorAll('#mgr-gardens input:checked')].map(cb=>parseInt(cb.value));
+    const allGardensList = [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
+    const assignedObjs = gardenIds.map(gid => allGardensList.find(x => Number(x.id) === Number(gid))).filter(Boolean);
+    const hasSchools = assignedObjs.some(g => {
+      const cls = (g.cls || g.type || '').toLowerCase();
+      return cls.includes('ספר') || cls.includes('school') || cls.includes('bs');
+    });
+    const hasKindergartens = assignedObjs.some(g => {
+      const cls = (g.cls || g.type || '').toLowerCase();
+      return !cls.includes('ספר') && !cls.includes('school') && !cls.includes('bs');
+    });
+    let autoClsScope = 'גן';
+    if (isMgrRole) autoClsScope = 'all';
+    else if (hasSchools && hasKindergartens) autoClsScope = 'all';
+    else if (hasSchools && !hasKindergartens) autoClsScope = 'ביהס';
+    else autoClsScope = 'גן';
+
     const patchPayload = {
       name: m.name,
       role: isMgrRole ? 'manager' : 'coordinator',
@@ -1761,8 +1777,8 @@ window.mgrLinkExistingUser = async function() {
       coordGardenIds: gardenIds,
       coordCities: isMgrRole ? ['ALL'] : (m.city ? [m.city] : []),
       allCities: isMgrRole,
-      coordTimeScope: isMgrRole ? 'year' : 'month',
-      coordClsScope: 'all',
+      coordTimeScope: 'year',
+      coordClsScope: autoClsScope,
       permCoord: true,
       currentYear: window.CURRENT_YEAR || 'tashpaz',
       phone: m.phone || ''
@@ -1817,6 +1833,21 @@ window.mgrCreateNewUserAction = async function() {
     const q = typeof window._authQ === 'function' ? await window._authQ() : '';
     const isMgrRole = m.role === 'manager' || m.role === 'vp';
     const gardenIds = [...document.querySelectorAll('#mgr-gardens input:checked')].map(cb=>parseInt(cb.value));
+    const allGardensList = [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
+    const assignedObjs = gardenIds.map(gid => allGardensList.find(x => Number(x.id) === Number(gid))).filter(Boolean);
+    const hasSchools = assignedObjs.some(g => {
+      const cls = (g.cls || g.type || '').toLowerCase();
+      return cls.includes('ספר') || cls.includes('school') || cls.includes('bs');
+    });
+    const hasKindergartens = assignedObjs.some(g => {
+      const cls = (g.cls || g.type || '').toLowerCase();
+      return !cls.includes('ספר') && !cls.includes('school') && !cls.includes('bs');
+    });
+    let autoClsScope = 'גן';
+    if (isMgrRole) autoClsScope = 'all';
+    else if (hasSchools && hasKindergartens) autoClsScope = 'all';
+    else if (hasSchools && !hasKindergartens) autoClsScope = 'ביהס';
+    else autoClsScope = 'גן';
 
     const userPayload = {
       uid: res.uid,
@@ -1831,8 +1862,8 @@ window.mgrCreateNewUserAction = async function() {
       allCities: isMgrRole,
       coordCities: isMgrRole ? ['ALL'] : (m.city ? [m.city] : []),
       coordGardenIds: gardenIds,
-      coordTimeScope: isMgrRole ? 'year' : 'month',
-      coordClsScope: 'all',
+      coordTimeScope: 'year',
+      coordClsScope: autoClsScope,
       managerId: _editMgrId,
       currentYear: window.CURRENT_YEAR || 'tashpaz',
       createdAt: Date.now(),
@@ -2048,14 +2079,30 @@ function saveMgr(){
   // Auto-sync permissions to linked user in Realtime DB
   if (managers[id].linkedUid) {
     const isMgrRole = managers[id].role === 'manager' || managers[id].role === 'vp';
+    const allGardensList = [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
+    const assignedObjs = gardenIds.map(gid => allGardensList.find(x => Number(x.id) === Number(gid))).filter(Boolean);
+    const hasSchools = assignedObjs.some(g => {
+      const cls = (g.cls || g.type || '').toLowerCase();
+      return cls.includes('ספר') || cls.includes('school') || cls.includes('bs');
+    });
+    const hasKindergartens = assignedObjs.some(g => {
+      const cls = (g.cls || g.type || '').toLowerCase();
+      return !cls.includes('ספר') && !cls.includes('school') && !cls.includes('bs');
+    });
+    let autoClsScope = 'גן';
+    if (isMgrRole) autoClsScope = 'all';
+    else if (hasSchools && hasKindergartens) autoClsScope = 'all';
+    else if (hasSchools && !hasKindergartens) autoClsScope = 'ביהס';
+    else autoClsScope = 'גן';
+
     const syncPayload = {
       name: managers[id].name,
       role: isMgrRole ? 'manager' : 'coordinator',
       coordGardenIds: gardenIds,
       coordCities: isMgrRole ? ['ALL'] : (managers[id].city ? [managers[id].city] : []),
       allCities: isMgrRole,
-      coordTimeScope: isMgrRole ? 'year' : 'month',
-      coordClsScope: 'all',
+      coordTimeScope: 'year',
+      coordClsScope: autoClsScope,
       managerId: id,
       permCoord: true,
       currentYear: window.CURRENT_YEAR || 'tashpaz',

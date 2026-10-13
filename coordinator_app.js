@@ -48,16 +48,51 @@ window.getCoordAllowedGardenIds = function() {
     return allowed;
   }
 
+  // ── Field Coordinator: Strict Garden-Level Isolation ──
+  // A field coordinator MUST see ONLY their own assigned gardens!
+  const explicitGardenIds = new Set();
+  if (window.coordManagerId && window.managers && window.managers[window.coordManagerId]) {
+    const mgrObj = window.managers[window.coordManagerId];
+    if (Array.isArray(mgrObj.gardenIds) && mgrObj.gardenIds.length > 0) {
+      mgrObj.gardenIds.forEach(id => explicitGardenIds.add(Number(id)));
+    }
+  }
+  (window.coordGardenIds||[]).forEach(id => explicitGardenIds.add(Number(id)));
+
+  // If coordinator has explicitly assigned gardens, STRICTLY restrict them to those gardens only!
+  if (explicitGardenIds.size > 0) {
+    explicitGardenIds.forEach(id => {
+      const g = gardens.find(x => Number(x.id) === Number(id));
+      if (!g) {
+        allowed.add(id);
+        return;
+      }
+      if (clsScope === 'all') {
+        allowed.add(id);
+      } else {
+        let gClass = typeof window.gcls === 'function' ? window.gcls(g) : null;
+        if (!gClass) {
+          const cls = (g.cls||g.type||'').toLowerCase();
+          gClass = (cls.includes('ספר') || cls.includes('school') || cls.includes('bs')) ? 'ביה"ס' : 'גנים';
+        }
+        if (clsScope === 'גן'   && gClass === 'גנים')   allowed.add(id);
+        else if ((clsScope === 'ביהס' || clsScope === 'ביה"ס') && gClass === 'ביה"ס') allowed.add(id);
+        else if (clsScope !== 'גן' && clsScope !== 'ביהס' && clsScope !== 'ביה"ס') allowed.add(id);
+      }
+    });
+    return allowed;
+  }
+
+  // Fallback ONLY for coordinators with NO individual garden assignments at all:
   (window.coordCities||[]).forEach(rawCity => {
     const city = (rawCity||'').trim();
+    if (!city || city === 'ALL') return;
     gardens.filter(g => (g.city||'').trim() === city).forEach(g => {
       if (clsScope === 'all') {
         allowed.add(Number(g.id));
       } else {
-        // Try window.gcls first, fallback to cls field check
         let gClass = typeof window.gcls === 'function' ? window.gcls(g) : null;
         if (!gClass) {
-          // Fallback: look at cls/type fields
           const cls = (g.cls||g.type||'').toLowerCase();
           gClass = (cls.includes('ספר') || cls.includes('school') || cls.includes('bs')) ? 'ביה"ס' : 'גנים';
         }
@@ -68,16 +103,6 @@ window.getCoordAllowedGardenIds = function() {
     });
   });
 
-  // Explicit garden-ID permissions
-  (window.coordGardenIds||[]).forEach(id => allowed.add(Number(id)));
-
-  // Dynamic resolution from window.managers if linked to manager/coordinator record
-  if (window.coordManagerId && window.managers && window.managers[window.coordManagerId]) {
-    const mgrObj = window.managers[window.coordManagerId];
-    if (Array.isArray(mgrObj.gardenIds)) {
-      mgrObj.gardenIds.forEach(id => allowed.add(Number(id)));
-    }
-  }
   return allowed;
 };
 
@@ -173,9 +198,13 @@ window.initCoordinatorApp = function() {
           </div>
         </div>
         <!-- Navigation -->
-        <div style="display:flex;justify-content:center;align-items:center;gap:10px;padding-bottom:8px;color:#fff">
+        <div style="display:flex;justify-content:center;align-items:center;gap:6px;padding-bottom:8px;color:#fff;flex-wrap:wrap">
           <button id="coord-nav-prev" onclick="window.coordNav(-1)" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:0.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="אתמול / קודם">▶ <span id="coord-nav-prev-lbl">אתמול</span></button>
-          <div id="coord-date-label" style="font-weight:800;font-size:1rem;min-width:180px;text-align:center"></div>
+          <div style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,0,0,0.2);padding:3px 8px;border-radius:8px;position:relative">
+            <div id="coord-date-label" onclick="window.coordTriggerDatePicker()" style="font-weight:800;font-size:0.92rem;min-width:140px;text-align:center;cursor:pointer;user-select:none" title="לחץ לבחירת תאריך מהיומן"></div>
+            <input type="date" id="coord-hidden-datepicker" style="position:absolute;opacity:0;pointer-events:none;width:0;height:0" onchange="window.coordOnPickDate(this.value)">
+            <button onclick="window.coordTriggerDatePicker()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:0.95rem;padding:2px" title="בחר תאריך מהלוח">📆</button>
+          </div>
           <button id="coord-nav-next" onclick="window.coordNav(1)" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:0.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="מחר / הבא"><span id="coord-nav-next-lbl">מחר</span> ◀</button>
           <button onclick="window.coordGoToday()" style="background:rgba(255,255,255,0.22);border:none;border-radius:8px;color:#fff;padding:5px 11px;font-size:0.75rem;cursor:pointer;font-weight:700">היום</button>
         </div>
@@ -500,11 +529,6 @@ window.coordSetGroup = function(g, btn) {
         b.style.fontWeight = '400';
       }
     });
-    // If currently in month view, switch to day view so user immediately sees the grouped cards
-    if (window._coordView === 'month') {
-      window.coordSetView('day');
-      return;
-    }
     window.renderCoordinatorView();
   } catch(e) { console.error('coordSetGroup error:', e); }
 };
@@ -660,12 +684,8 @@ window.renderCoordinatorView = function() {
     } else if (v === 'week') {
       html = _coordFallbackWeek(coordEvs, cd);
     } else {
-      // Month
-      if (window.calRenderMonth) {
-        html = window.calRenderMonth(coordEvs, cd, {});
-      } else {
-        html = _coordFallbackMonth(coordEvs, cd);
-      }
+      // Month — dedicated coordinator mobile-first card list
+      html = _coordFallbackMonth(coordEvs, cd);
     }
   });
 
@@ -744,17 +764,40 @@ function _coordFallbackDay(evs, ds) {
   const normTarget = _normDs(ds);
   const dayEvs = evs.filter(s => _normDs(s.d) === normTarget);
   if (!dayEvs.length) {
+    const normDsList = Array.from(new Set(evs.map(s => _normDs(s.d)))).filter(Boolean).sort();
+    const prevActDs = normDsList.filter(d => d < normTarget).pop();
+    const nextActDs = normDsList.find(d => d > normTarget);
+    
+    let smartJumpHtml = '';
+    if (nextActDs || prevActDs) {
+      smartJumpHtml = '<div style="display:flex;justify-content:center;gap:10px;margin-top:14px;flex-wrap:wrap">';
+      if (prevActDs) {
+        const pd = _cs2d(prevActDs);
+        const pDayHeb = _DAYS_HE[pd.getDay()];
+        const pFormatted = `${pd.getDate().toString().padStart(2,'0')}/${(pd.getMonth()+1).toString().padStart(2,'0')}`;
+        smartJumpHtml += `<button class="coord-nav-btn" onclick="window.jumpToDay('${prevActDs}')" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;border-radius:8px;padding:8px 14px;font-weight:700;font-size:0.82rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><span>▶</span><span>פעילות קודמת: ${pDayHeb} ${pFormatted}</span></button>`;
+      }
+      if (nextActDs) {
+        const nd = _cs2d(nextActDs);
+        const nDayHeb = _DAYS_HE[nd.getDay()];
+        const nFormatted = `${nd.getDate().toString().padStart(2,'0')}/${(nd.getMonth()+1).toString().padStart(2,'0')}`;
+        smartJumpHtml += `<button class="coord-nav-btn" onclick="window.jumpToDay('${nextActDs}')" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:0.82rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(22,163,74,0.3)"><span>פעילות הבאה: ${nDayHeb} ${nFormatted}</span><span>◀</span></button>`;
+      }
+      smartJumpHtml += '</div>';
+    }
+
     return dayNavBar + `<div style="background:#fff;border-radius:10px;padding:28px 16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:10px 0;border:1px solid #e2e8f0">
       <div style="font-size:2rem;margin-bottom:8px">📅</div>
       <div style="font-weight:700;font-size:1rem;color:#1e293b;margin-bottom:6px">אין פעילויות רשומות בתאריך ${curDateFormatted} (${curDayHeb})</div>
-      <div style="font-size:0.82rem;color:#64748b;margin-bottom:16px">ניתן לעבור ליום אחר בעזרת כפתורי הניווט (אתמול / מחר) או לעבור לתצוגה שבועית / חודשית.</div>
-      <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">
-        <button class="coord-nav-btn" onclick="window.coordNav(-1)" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;border-radius:8px;padding:8px 16px;font-weight:700;font-size:0.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+      <div style="font-size:0.82rem;color:#64748b;margin-bottom:12px">ניתן לעבור ליום אחר בעזרת כפתורי הניווט (אתמול / מחר) או לקפוץ ליום הפעילות הבא.</div>
+      ${smartJumpHtml}
+      <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:12px">
+        <button class="coord-nav-btn" onclick="window.coordNav(-1)" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:8px;padding:6px 12px;font-weight:600;font-size:0.8rem;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
           <span>▶</span>
           <span>עבור לאתמול (${prevDayHeb})</span>
         </button>
-        ${!isToday ? `<button class="coord-nav-btn" onclick="window.coordGoToday()" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:8px;padding:8px 16px;font-weight:700;font-size:0.85rem;cursor:pointer">📅 חזור להיום</button>` : ''}
-        <button class="coord-nav-btn" onclick="window.coordNav(1)" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;border-radius:8px;padding:8px 16px;font-weight:700;font-size:0.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+        ${!isToday ? `<button class="coord-nav-btn" onclick="window.coordGoToday()" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:8px;padding:6px 12px;font-weight:600;font-size:0.8rem;cursor:pointer">📅 חזור להיום</button>` : ''}
+        <button class="coord-nav-btn" onclick="window.coordNav(1)" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:8px;padding:6px 12px;font-weight:600;font-size:0.8rem;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
           <span>עבור למחר (${nextDayHeb})</span>
           <span>◀</span>
         </button>
@@ -816,16 +859,50 @@ function _coordFallbackWeek(evs, cd) {
 }
 
 function _coordFallbackMonth(evs, cd) {
+  const curY = cd.getFullYear();
+  const curM = cd.getMonth(); // 0-11
+  const monthEvs = evs.filter(s => {
+    const sd = _normDs(s.d);
+    if (!sd) return false;
+    const d = _cs2d(sd);
+    return d.getFullYear() === curY && d.getMonth() === curM;
+  });
+
   const byDate = {};
-  evs.forEach(s => { const sd = _normDs(s.d); if(!byDate[sd]) byDate[sd]=[]; byDate[sd].push(s); });
-  return Object.keys(byDate).sort().map(ds => {
+  monthEvs.forEach(s => {
+    const sd = _normDs(s.d);
+    if (!byDate[sd]) byDate[sd] = [];
+    byDate[sd].push(s);
+  });
+
+  const sortedDates = Object.keys(byDate).sort();
+
+  if (!sortedDates.length) {
+    return `<div style="background:#fff;border-radius:10px;padding:28px 16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:10px 0;border:1px solid #e2e8f0">
+      <div style="font-size:2rem;margin-bottom:8px">📅</div>
+      <div style="font-weight:700;font-size:1rem;color:#1e293b;margin-bottom:6px">אין פעילויות בחודש ${_MONTHS_HE[curM]} ${curY}</div>
+      <div style="font-size:0.82rem;color:#64748b;margin-bottom:14px">ניתן להשתמש בחצים (חודש קודם / חודש הבא) על מנת לעבור לחודשים אחרים.</div>
+      <div style="display:flex;justify-content:center;gap:10px">
+        <button class="coord-nav-btn" onclick="window.coordNav(-1)" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:6px 14px;color:#334155;font-weight:700;font-size:0.82rem;cursor:pointer">▶ חודש קודם</button>
+        <button class="coord-nav-btn" onclick="window.coordGoToday()" style="background:#e0f2fe;border:1px solid #bae6fd;border-radius:8px;padding:6px 14px;color:#0369a1;font-weight:700;font-size:0.82rem;cursor:pointer">חזור להיום</button>
+        <button class="coord-nav-btn" onclick="window.coordNav(1)" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:6px 14px;color:#334155;font-weight:700;font-size:0.82rem;cursor:pointer">חודש הבא ◀</button>
+      </div>
+    </div>`;
+  }
+
+  return sortedDates.map(ds => {
     const d = _cs2d(ds);
-    return `<div style="margin-bottom:14px"><div style="background:#1a5276;color:#fff;padding:7px 12px;border-radius:8px 8px 0 0;font-weight:800">📅 ${_DAYS_HE[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}</div>${_coordRenderByCity(byDate[ds], ds)}</div>`;
-  }).join('') || `<div style="background:#fff;border-radius:10px;padding:24px 16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:10px 0;">
-    <div style="font-size:1.8rem;margin-bottom:8px">📅</div>
-    <div style="font-weight:700;font-size:0.95rem;color:#1e293b;margin-bottom:6px">אין פעילויות בחודש זה</div>
-    <div style="font-size:0.8rem;color:#64748b">ניתן להשתמש בחצים (▶ ◀) על מנת לעבור לחודשים אחרים.</div>
-  </div>`;
+    const dayHeb = _DAYS_HE[d.getDay()];
+    const dStr = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+    const dayEvs = byDate[ds];
+    return `<div style="margin-bottom:14px;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);border:1px solid #e2e8f0">
+      <div style="background:linear-gradient(135deg,#1a5276,#154360);color:#fff;padding:8px 14px;font-weight:700;font-size:0.88rem;display:flex;justify-content:space-between;align-items:center">
+        <span>📅 ${dayHeb} ${dStr}</span>
+        <span style="font-size:0.75rem;background:rgba(255,255,255,0.22);padding:2px 10px;border-radius:12px;font-weight:800">${dayEvs.length} פעילויות</span>
+      </div>
+      <div style="padding:10px 8px">${_coordRenderByCity(dayEvs, ds)}</div>
+    </div>`;
+  }).join('');
 }
 
 function _coordRenderByCity(evs, ds) {
@@ -991,6 +1068,25 @@ function _coordToast(msg) {
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2500);
 }
+
+// ── Date Picker Navigation ──
+window.coordTriggerDatePicker = function() {
+  const inp = document.getElementById('coord-hidden-datepicker');
+  if (!inp) return;
+  if (window._coordCurrentDate) {
+    inp.value = _cd2s(window._coordCurrentDate);
+  }
+  if (typeof inp.showPicker === 'function') {
+    try { inp.showPicker(); return; } catch(e) {}
+  }
+  inp.click();
+};
+
+window.coordOnPickDate = function(val) {
+  if (!val) return;
+  window._coordCurrentDate = _cs2d(val);
+  window.renderCoordinatorView();
+};
 
 // ─────────────────────────────────────────────────────────
 // BOOT
