@@ -192,7 +192,6 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
   const mgrStr = mgr ? `${mgr.name}${mgr.phone ? ' · ' + mgr.phone : ''}` : '';
 
   // Build calendar weeks (Sun-Thu only)
-  const daysInMonth = new Date(year, month, 0).getDate();
   const weeks = [];
   let curWeek = [null,null,null,null,null];
   for (let d = 1; d <= daysInMonth; d++) {
