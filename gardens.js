@@ -131,6 +131,28 @@ function setupExPairUI(gids, singleGid) {
 }
 window.setupExPairUI = setupExPairUI;
 
+window.setupExmFieldMode = function() {
+  const isFieldUser = !!(window.permCoord || ['coordinator', 'manager', 'vp'].includes(window.role) || document.body.classList.contains('coordinator-mode') || (document.getElementById('coordinator-app-container') && document.getElementById('coordinator-app-container').style.display !== 'none'));
+  const adminControls = document.getElementById('ex-admin-controls');
+  if (adminControls) {
+    adminControls.style.display = isFieldUser ? 'none' : '';
+  }
+  if (isFieldUser) {
+    const incFreeDaysCb = document.getElementById('ex-inc-free-days');
+    if (incFreeDaysCb) incFreeDaysCb.checked = true;
+    const incCoordCb = document.getElementById('ex-inc-coord');
+    if (incCoordCb) incCoordCb.checked = true;
+    const incPairCb = document.getElementById('ex-inc-pair');
+    if (incPairCb) incPairCb.checked = true;
+    const splitMsgCb = document.getElementById('ex-split-msg');
+    if (splitMsgCb) splitMsgCb.checked = false;
+    const typeFltEl = document.getElementById('ex-type-flt');
+    if (typeFltEl) typeFltEl.value = 'all';
+    const fmtEl = document.getElementById('ex-fmt');
+    if (fmtEl) fmtEl.value = 'full';
+  }
+};
+
 window.toggleExPairInc = function() {
   const cb = document.getElementById('ex-inc-pair');
   const sel = document.getElementById('ex-single-gid-sel');
@@ -175,6 +197,7 @@ async function openGmExport(){
   document.getElementById('ex-d1').value=fDs;
   document.getElementById('ex-d2').value=tDs;
   (document.getElementById('ex-ctx')||{}).textContent=G(gmGid).name+' | '+fD(fDs)+(fDs!==tDs?' – '+fD(tDs):'');
+  if(window.setupExmFieldMode) window.setupExmFieldMode();
   document.getElementById('exm').classList.add('open');
   setTimeout(()=>genExport(),80);
 }
@@ -1623,15 +1646,30 @@ function _exportGardenWA(gids, ds, isM, singleGid){
   _exGids = (Array.isArray(gids) ? gids : JSON.parse(gids)).map(Number);
   _exIsM = isM;
   window._exSingleGid = singleGid ? Number(singleGid) : _exGids[0];
-  if(ds) calD = s2d(ds);
+  if(ds) {
+    if (typeof s2d === 'function') calD = s2d(ds);
+    else if (typeof window.s2d === 'function') window.calD = window.s2d(ds);
+    else calD = new Date(ds);
+    window._exExplicitDate = ds;
+  } else {
+    window._exExplicitDate = null;
+  }
   openExport();
 }
 
-function _exportPairWA(gids, isM, singleGid){
+function _exportPairWA(gids, isM, singleGid, targetDate){
   window._exEventIds = null;
   _exGids = (Array.isArray(gids)?gids:JSON.parse(gids)).map(Number);
   _exIsM = isM;
   window._exSingleGid = singleGid ? Number(singleGid) : _exGids[0];
+  if (targetDate) {
+    if (typeof s2d === 'function') calD = s2d(targetDate);
+    else if (typeof window.s2d === 'function') window.calD = window.s2d(targetDate);
+    else calD = new Date(targetDate);
+    window._exExplicitDate = targetDate;
+  } else {
+    window._exExplicitDate = null;
+  }
   openExport();
 }
 window._exportPairWA = _exportPairWA;
@@ -1673,6 +1711,7 @@ function openExportForEvents(eventIds) {
     window._exSingleGid = (gids.length === 1) ? gids[0] : null;
   }
   setupExPairUI(gids, window._exSingleGid);
+  if(window.setupExmFieldMode) window.setupExmFieldMode();
   const exm = document.getElementById('exm');
   if (exm) exm.classList.add('open');
   
@@ -1729,11 +1768,15 @@ function openExport(){
   else if(_ws.getDay()===6) _ws.setDate(_ws.getDate()+1);
   const _days = window.getNextWorkDays(_ws, 5);
   const ws = _days[0], we = _days[4];
-  const isWeek=(calV==='week');
-  const todayStr=d2s(calD);
+  const isExplicitDate = !!window._exExplicitDate;
+  const isWeek = isExplicitDate ? false : (calV==='week');
+  const todayStr = window._exExplicitDate || d2s(calD);
   
   let d1Val = isWeek ? d2s(ws) : todayStr;
   let d2Val = isWeek ? d2s(we) : todayStr;
+  
+  // Clear explicit date flag after capturing it
+  window._exExplicitDate = null;
   
   const f=getCalF();
   const gids=_exGids||f.gids;
@@ -1749,7 +1792,7 @@ function openExport(){
   setupExPairUI(numGids, window._exSingleGid);
   
   // Dynamic Date Range expansion if exporting a single day that has a linked postponement
-  if (!isWeek && gids && gids.length) {
+  if (!isWeek && !isExplicitDate && gids && gids.length) {
     const listGids = gids.map(Number);
     let targetDate = '';
     
@@ -1822,11 +1865,83 @@ function openExport(){
   let ctx=isWeek?`${fD(d2s(ws))} – ${fD(d2s(we))}`:`תאריך: ${fD(d2s(calD))}`;
   if(gids&&gids.length) ctx+=` | גנים: ${gids.map(id=>G(id).name||'').join(' + ')}`;
   (document.getElementById('ex-ctx')||{}).textContent =ctx;
+
+  // Field / Coordinator View handling (רכז או סמנכ"ל / תצוגת שטח)
+  const isFieldUser = !!(window.permCoord || ['coordinator', 'manager', 'vp'].includes(window.role) || document.body.classList.contains('coordinator-mode') || (document.getElementById('coordinator-app-container') && document.getElementById('coordinator-app-container').style.display !== 'none'));
+  const adminControls = document.getElementById('ex-admin-controls');
+  if (adminControls) {
+    adminControls.style.display = isFieldUser ? 'none' : '';
+  }
+  if (isFieldUser) {
+    const incFreeDaysCb = document.getElementById('ex-inc-free-days');
+    if (incFreeDaysCb) incFreeDaysCb.checked = true;
+    const incCoordCb = document.getElementById('ex-inc-coord');
+    if (incCoordCb) incCoordCb.checked = true;
+    const incPairCb = document.getElementById('ex-inc-pair');
+    if (incPairCb) incPairCb.checked = true;
+    const splitMsgCb = document.getElementById('ex-split-msg');
+    if (splitMsgCb) splitMsgCb.checked = false;
+    const typeFltEl = document.getElementById('ex-type-flt');
+    if (typeFltEl) typeFltEl.value = 'all';
+    const fmtEl = document.getElementById('ex-fmt');
+    if (fmtEl) fmtEl.value = 'full';
+  }
+
   document.getElementById('exm').classList.add('open');
   // Auto-generate preview — pass gids snapshot so _exGids isn't cleared before use
   const _snapGids = _exGids;
   setTimeout(()=>{ _exGids=_snapGids; genExport(); }, 80);
 }
+
+window.getGardenFreeDays = function(gardenIds) {
+  if (!gardenIds) return '';
+  const gids = (Array.isArray(gardenIds) ? gardenIds : [gardenIds]).map(Number).filter(Boolean);
+  if (!gids.length) return '';
+
+  const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'];
+  const workDays = [0, 1, 2, 3, 4];
+  
+  // A weekday is considered a "fixed/recurring day" if any of the gardens
+  // has a regular recurring series (_recId) or at least 2 non-makeup occurrences on that weekday.
+  const busyDays = new Set();
+  
+  gids.forEach(gid => {
+    const dayCounts = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0};
+    const hasRecIdOnDay = {0: false, 1: false, 2: false, 3: false, 4: false};
+    
+    (window.SCH || []).forEach(s => {
+      if (Number(s.g) !== Number(gid)) return;
+      if (s.st === 'can') return;
+      
+      const noteText = (s.nt || '') + ' ' + (s.n || '') + ' ' + (s.a || '');
+      const isMakeupOrShift = s._isMakeup || s._makeupFrom || s._postFrom || 
+                              /השלמה|הוקדם|נדחה|הוזז|עבר/i.test(noteText);
+      if (isMakeupOrShift) return;
+      
+      let wd = -1;
+      try {
+        const parts = s.d.split('-');
+        wd = new Date(parts[0], parseInt(parts[1]) - 1, parts[2]).getDay();
+      } catch(e) {}
+      
+      if (wd >= 0 && wd <= 4) {
+        dayCounts[wd] = (dayCounts[wd] || 0) + 1;
+        if (s._recId) hasRecIdOnDay[wd] = true;
+      }
+    });
+    
+    workDays.forEach(wd => {
+      if (hasRecIdOnDay[wd] || dayCounts[wd] >= 2) {
+        busyDays.add(wd);
+      }
+    });
+  });
+
+  const freeDays = workDays.filter(wd => !busyDays.has(wd));
+  if (!freeDays.length) return '';
+
+  return freeDays.map(wd => dayNames[wd]).join(' | ');
+};
 function genExport(){
   const from=document.getElementById('ex-d1').value;
   const to=document.getElementById('ex-d2').value||from;
@@ -2121,6 +2236,7 @@ function genExport(){
   };
 
   const incCoord = document.getElementById('ex-inc-coord') && document.getElementById('ex-inc-coord').checked;
+  const incFreeDays = document.getElementById('ex-inc-free-days') && document.getElementById('ex-inc-free-days').checked;
   const getCoordStr = (gid) => {
     if (!incCoord) return '';
     const ci = typeof window.getGardenCoordinator === 'function' ? window.getGardenCoordinator(gid) : null;
@@ -2305,6 +2421,10 @@ function genExport(){
             if (isPairWithSameMgr && sharedMgrStr) {
                text+=`     👤 ${sharedMgrStr.replace(' (', '').replace(')', '')}\n`;
             }
+            if (incFreeDays) {
+              const freeDaysStr = window.getGardenFreeDays(group.map(s => s.g));
+              if (freeDaysStr) text += `\n*ימים פנויים להשלמה: ${freeDaysStr}*\n`;
+            }
             text+='\n';
           });
         });
@@ -2381,6 +2501,10 @@ const timeStr = s.t ? grpStr + fT(s.t) : '';
 text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
               });
             }
+            if (incFreeDays) {
+              const freeDaysStr = window.getGardenFreeDays(group.map(s => s.g));
+              if (freeDaysStr) text += `\n*ימים פנויים להשלמה: ${freeDaysStr}*\n`;
+            }
             text+='\n';
           });
         }
@@ -2400,6 +2524,10 @@ if (actualGrp && actualGrp !== '1' && actualGrp !== '0') {
 }
 const timeStr = s.t ? grpStr + fT(s.t) : '';
 text+=`${stIcon}${mTag}${s.gd.name}${statusTag} - ${s.a}${timeStr}${coordText}\n`;
+          if (incFreeDays) {
+            const freeDaysStr = window.getGardenFreeDays(s.g);
+            if (freeDaysStr) text += `*ימים פנויים להשלמה: ${freeDaysStr}*\n`;
+          }
         });
       }
     });
