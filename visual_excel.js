@@ -147,6 +147,14 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
     const dayStr = 'יום ' + (daysHe[dow] || 'ראשון');
     const timeStr = s.t ? s.t.slice(0,5) : '';
 
+    // If another club already exists for this day of the week, check if this candidate ended earlier
+    const sameDayClub = regularClubs.find(c => c.dayStr === dayStr);
+    if (sameDayClub) {
+      const thisMaxDate = (gEvs || []).filter(ev => (!ev.st || ev.st === 'ok') && (window.supBase ? window.supBase(ev.a) === window.supBase(s.a) : ev.a === s.a)).reduce((max, ev) => ev.d > max ? ev.d : max, s.d || '');
+      const existingMaxDate = (gEvs || []).filter(ev => (!ev.st || ev.st === 'ok') && (window.supBase ? window.supBase(ev.a) === window.supBase(sameDayClub.supplierId) : ev.a === sameDayClub.supplierId)).reduce((max, ev) => ev.d > max ? ev.d : max, '');
+      if (thisMaxDate < existingMaxDate) return;
+    }
+
     // Check duplicate by supplier + activity name OR by same activity on same day/time
     const isDup = regularClubs.some(c => 
       (c.supplierId && s.a && c.supplierId === s.a && (c.name === actName || !s.act)) ||
@@ -170,12 +178,50 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
     });
   }
 
-  // 1. Add from fixedSched
-  fixedSched.forEach(s => addClubToRegular(s));
+  // 1. Filter discontinued series from fixedSched that were replaced on the same day of the week
+  const activeFixedSched = fixedSched.filter(s => {
+    const dow = s.d ? new Date(s.d).getDay() : 0;
+    const sameDowClubs = fixedSched.filter(o => o !== s && o.d && new Date(o.d).getDay() === dow);
+    if (sameDowClubs.length > 0) {
+      // Check if another club on this day has later occurrences in the month
+      const hasLaterOnSameDay = sameDowClubs.some(o => o.d > s.d);
+
+      // Check if this club has any future occurrences in SCH after this month
+      const hasFutureAfterMonth = (window.SCH || []).some(ev => 
+        Number(ev.g) === Number(g.id) && 
+        ev.d > toDate && 
+        (!ev.st || ev.st === 'ok') &&
+        (s._recId ? ev._recId === s._recId : (window.supBase ? window.supBase(ev.a) === window.supBase(s.a) : ev.a === s.a))
+      );
+
+      // Check occurrences in this month
+      const monthOccurrences = (gEvs || []).filter(ev => 
+        (!ev.st || ev.st === 'ok') &&
+        (s._recId ? ev._recId === s._recId : (window.supBase ? window.supBase(ev.a) === window.supBase(s.a) : ev.a === s.a))
+      ).length;
+
+      // If another club on this day has later occurrences in the month, and this club does not continue into future months (or only occurred once), it was replaced!
+      if (hasLaterOnSameDay && (!hasFutureAfterMonth || monthOccurrences <= 1)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  // Sort Sunday to Thursday
+  activeFixedSched.sort((a, b) => {
+    const da = a.d ? new Date(a.d).getDay() : 0;
+    const db = b.d ? new Date(b.d).getDay() : 0;
+    if (da !== db) return da - db;
+    return (a.t || '').localeCompare(b.t || '');
+  });
+
+  // Add from activeFixedSched
+  activeFixedSched.forEach(s => addClubToRegular(s));
 
   // 2. Also inspect gEvs for any additional active clubs in this month (up to 3)
   if (regularClubs.length < 3 && Array.isArray(gEvs)) {
-    const validEvs = gEvs.filter(s => (!s.st || s.st === 'ok'));
+    const validEvs = gEvs.filter(s => (!s.st || s.st === 'ok')).sort((a, b) => (b.d || '').localeCompare(a.d || ''));
     validEvs.forEach(s => {
       if (regularClubs.length < 3) {
         addClubToRegular(s);
