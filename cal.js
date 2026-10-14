@@ -1812,6 +1812,9 @@ function renderNormalWeek(evs, ws, f){
           const bgCol = isM ? '#fff9c4' : imported ? '#f1f5f9' : '#fff';
           const borderCol = isM ? '#fbc02d' : '#e2e8f0';
           const stC = ev.st==='can'?'st-can':ev.st==='done'?'st-done':ev.st==='nohap'?'st-nohap':ev.st==='post'?'st-post':'';
+          const evBase = window.supBase ? window.supBase(ev.a) : ev.a;
+          const evEx = (window.supEx && (window.supEx[evBase] || window.supEx[ev.a])) || {};
+          const evFlex = ev.flexNote || (evEx.flexSched ? (evEx.flexNote || 'הימים והשעות עלולים להשתנות') : '');
           inner+=`<div class="pslot ${stC}" style="border-radius:6px; padding:6px 8px; margin:3px 0; font-size:var(--fs-xs);
             background:${bgCol}; border:1px solid ${borderCol}; border-right:3px solid ${clrObj.solid}; box-shadow:0 1px 2px rgba(0,0,0,0.03); cursor:pointer"
             onclick="event.stopPropagation();window.openSP('${ev.id}')">
@@ -1820,6 +1823,7 @@ function renderNormalWeek(evs, ws, f){
                 <div style="font-weight:800; color:var(--c-secondary); font-size:var(--fs-small); line-height:1.2">${ev.n || window.supBase(ev.a)}</div>
                 ${ev.act ? `<div style="color:var(--c-info); font-size:var(--fs-xs); margin-top:1px">${ev.act}</div>` : ''}
                 ${ev.t ? `<div style="font-size:var(--fs-xs); color:#64748b; margin-top:2px">⏰ ${window.fT(ev.t)}</div>` : ''}
+                ${evFlex ? `<div style="font-size:0.62rem; color:#0369a1; font-weight:700; margin-top:2px;" title="${(evFlex||'').replace(/"/g,'&quot;')}">🔄 ${evFlex}</div>` : ''}
                 ${isM ? `<div style="display:inline-block; background:#ffe082; color:#b71c1c; border-radius:4px; padding:1px 5px; font-size:0.6rem; font-weight:800; border:1px solid #ffca28; margin-top:3px">📅 השלמה</div>`:''}
               </div>
               <div style="display:flex; flex-direction:column; gap:3px; flex-shrink:0" onclick="event.stopPropagation()">
@@ -1938,7 +1942,12 @@ function renderPairWeek(evs,ws,gids){
       const uniqueDe = [];
       for (const k in supMap) uniqueDe.push(supMap[k]);
 
-      html+=`<td style="background:${pwBlk?'#fce4ec':cellBg};${pwBlk?'border:1.5px solid #e91e63;':''}" onclick="openGcellPopup(${gid},'${ds}',event)">${uniqueDe.length?uniqueDe.map(ev=>`<div style="border-radius:4px;padding:2px 6px;margin-bottom:2px;cursor:pointer;font-size:.7rem;background:${clr.light};border-right:2px solid ${clr.solid};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" onclick="event.stopPropagation();openSP('${ev.id}')"><div style="font-weight:700;color:#1a237e">${ev.a}</div>${ev.t?`<div style="font-size:.65rem;color:#546e7a">⏰ ${window.fT(ev.t)}</div>`:''}</div>`).join('')+(pwBlk?`<div style="font-size:.62rem;color:#c62828">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`:'')
+      html+=`<td style="background:${pwBlk?'#fce4ec':cellBg};${pwBlk?'border:1.5px solid #e91e63;':''}" onclick="openGcellPopup(${gid},'${ds}',event)">${uniqueDe.length?uniqueDe.map(ev=>{
+        const evBase = window.supBase ? window.supBase(ev.a) : ev.a;
+        const evEx = (window.supEx && (window.supEx[evBase] || window.supEx[ev.a])) || {};
+        const evFlex = ev.flexNote || (evEx.flexSched ? (evEx.flexNote || 'הימים והשעות עלולים להשתנות') : '');
+        return `<div style="border-radius:4px;padding:2px 6px;margin-bottom:2px;cursor:pointer;font-size:.7rem;background:${clr.light};border-right:2px solid ${clr.solid};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" onclick="event.stopPropagation();openSP('${ev.id}')"><div style="font-weight:700;color:#1a237e">${ev.a}</div>${ev.t?`<div style="font-size:.65rem;color:#546e7a">⏰ ${window.fT(ev.t)}</div>`:''}${evFlex?`<div style="font-size:.6rem;color:#0369a1;font-weight:700">🔄 ${evFlex}</div>`:''}</div>`;
+      }).join('')+(pwBlk?`<div style="font-size:.62rem;color:#c62828">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`:'')
         :pwBlk?`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`
         :'<span style="color:#ccc;font-size:.8rem;cursor:pointer">+</span>'}</td>`;
     });

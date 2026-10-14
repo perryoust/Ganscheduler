@@ -94,6 +94,7 @@ function openNewSched(gid, opts={}){
   if(ns_time) ns_time.value=opts.time||'';
   document.getElementById('ns-ph').value='';
   document.getElementById('ns-notes').value='';
+  if(document.getElementById('ns-flex-note')) document.getElementById('ns-flex-note').value='';
   document.getElementById('ns-grp').value='1';
   const choiceWrap = document.getElementById('ns-g2-choice-wrap');
   const partnerWrap = document.getElementById('ns-g2-partner-wrap');
@@ -730,6 +731,15 @@ function nsSupChg(){
     if(ex.alias){aliasHint.textContent=`🏷️ יוצג כ: "${ex.alias}"`;aliasWrap.style.display='block';}
     else{aliasHint.textContent='';aliasWrap.style.display='none';}
   }
+  // flexible schedule note pre-population
+  const flexNoteEl = document.getElementById('ns-flex-note');
+  if(flexNoteEl){
+    if(ex.flexSched){
+      flexNoteEl.value = ex.flexNote || 'הימים והשעות עלולים להשתנות';
+    } else {
+      flexNoteEl.value = '';
+    }
+  }
   const grpWrap = document.getElementById('ns-grp-wrap');
   if(grpWrap) grpWrap.style.display='none';
   if(!actSel) return;
@@ -785,6 +795,7 @@ async function saveNewSched(closeModal = true){
 
   const ph=document.getElementById('ns-ph')?.value || '';
   const notes=document.getElementById('ns-notes')?.value || '';
+  const flexNote=document.getElementById('ns-flex-note')?.value.trim() || '';
   const grp = parseInt(document.getElementById('ns-grp')?.value) || 1;
   let actType = document.getElementById('ns-act-type')?.value;
   if(actType === '__new__') { actType = document.getElementById('ns-act-type-new')?.value.trim(); }
@@ -836,6 +847,7 @@ async function saveNewSched(closeModal = true){
               pd: '',
               pt: '',
               grp: tgt.grp || grp || 1,
+              flexNote: flexNote,
               _recId: recurring_id + '_' + cur.getDay()
             };
             window.SCH.push(ev);
@@ -907,7 +919,8 @@ async function saveNewSched(closeModal = true){
           nt: notes,
           pd: '',
           pt: '',
-          grp: tgt.grp || grp || 1
+          grp: tgt.grp || grp || 1,
+          flexNote: flexNote
         };
         window.SCH.push(newSched);
       }

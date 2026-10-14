@@ -143,18 +143,23 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
         cleanSupName = window.supBase(cleanSupName);
     }
     
+    const baseA = window.supBase ? window.supBase(s.a) : s.a;
+    const sEx = (window.supEx && (window.supEx[baseA] || window.supEx[s.a])) || {};
+    const flexNote = s.flexNote || (sEx.flexSched ? (sEx.flexNote || 'הימים והשעות עלולים להשתנות') : '');
+
     regularClubs.push({
       name: actName,
       supName: cleanSupName !== actName ? cleanSupName : '',
       dayStr: 'יום ' + daysHe[dow],
       timeStr: s.t ? s.t.slice(0,5) : '',
       phone: phone,
-      supplierId: s.a || ''
+      supplierId: s.a || '',
+      flexNote: flexNote
     });
   });
 
-  // Limit to max 2 regular clubs for the UI cards
-  const regularClubsList = regularClubs.slice(0, 2);
+  // Limit to max 3 regular clubs for the UI cards
+  const regularClubsList = regularClubs.slice(0, 3);
   
   // Garden metadata
   const ageLabel = typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g.age || '3-4');
@@ -174,15 +179,15 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
     }
   }
 
-  // Card colors
-  const CARD_COLORS = ['#1d4ed8', '#047857']; // Darker blue and green for B&W contrast
-  const CARD_BG = ['#eff6ff', '#ecfdf5'];
-  const CARD_BORDER = ['#1e3a8a', '#064e3b'];
+  // Card colors (supports up to 3 cards)
+  const CARD_COLORS = ['#1d4ed8', '#047857', '#7c3aed']; // Darker blue, green and purple
+  const CARD_BG = ['#eff6ff', '#ecfdf5', '#f5f3ff'];
+  const CARD_BORDER = ['#1e3a8a', '#064e3b', '#5b21b6'];
 
   // Build cards HTML
   let cardsHtml = '';
   if (regularClubsList.length > 0) {
-    cardsHtml = '<div class="vp-cards-grid">';
+    cardsHtml = `<div class="vp-cards-grid ${regularClubsList.length === 3 ? 'three' : ''}">`;
     regularClubsList.forEach((club, i) => {
       const color = CARD_COLORS[i] || CARD_COLORS[0];
       const bg = CARD_BG[i] || CARD_BG[0];
@@ -192,6 +197,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
           <div class="vp-card-badge" style="background:${color};">חוג צהרון</div>
           <h3>${club.supName ? _esc(club.supName) + ' - ' : ''}${_esc(club.name)}</h3>
           <p>📅 ${_esc(club.dayStr)} &nbsp; 🕐 ${_esc(club.timeStr)}</p>
+          ${club.flexNote ? `<p style="font-weight:700; color:#0369a1; font-size:11px; margin-top:2px;">🔄 ${_esc(club.flexNote)}</p>` : ''}
           ${showPhones && club.phone ? `<p style="font-weight:700;">📞 ${_esc(club.phone)}</p>` : ''}
         </div>`;
     });
@@ -285,6 +291,12 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
           }
           
           let pillText = `${ev.t ? '(' + ev.t + ') ' : ''}${cleanSupName && cleanSupName !== actName ? _esc(cleanSupName) + ' - ' : ''}${_esc(actName)}`;
+          const evBase = window.supBase ? window.supBase(ev.a) : ev.a;
+          const evEx = (window.supEx && (window.supEx[evBase] || window.supEx[ev.a])) || {};
+          const evFlexNote = ev.flexNote || (evEx.flexSched ? (evEx.flexNote || 'הימים והשעות עלולים להשתנות') : '');
+          if (evFlexNote) {
+              pillText += `<br><span style="font-size:9px; font-weight:700; color:#0369a1;">🔄 ${_esc(evFlexNote)}</span>`;
+          }
           if (showPhones && supPhone) {
               pillText += `<br><span style="font-size:9.5px; font-weight:700;">📞 ${_esc(supPhone)}</span>`;
           }
@@ -684,6 +696,19 @@ function _getStyles(month) {
       display: flex;
       gap: 12px;
       margin-bottom: 6px;
+    }
+    .vp-cards-grid.three {
+      gap: 8px;
+    }
+    .vp-cards-grid.three .vp-activity-card {
+      padding: 6px 9px;
+    }
+    .vp-cards-grid.three .vp-activity-card h3 {
+      font-size: 13.5px;
+      margin: 1px 0 3px;
+    }
+    .vp-cards-grid.three .vp-activity-card p {
+      font-size: 11px;
     }
     .vp-activity-card {
       flex: 1;

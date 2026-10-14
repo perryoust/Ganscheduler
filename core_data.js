@@ -260,7 +260,8 @@ function _applyYearData(o){
       _compByMakeup: x._compByMakeup || '',
       _fromD: x._fromD || '',
       _postFrom: x._postFrom || '',
-      _isImported: x._isImported || false
+      _isImported: x._isImported || false,
+      flexNote: x.flexNote || ''
     }));
   } else {
     // ═══ LEGACY MODE: Merge SRAWS with cloud changes ═══
@@ -816,7 +817,7 @@ async function save(immediate){
       window.supEx['__gardens_all'] = window._GARDENS_ALL;
     }
     const data={
-      ch:(window.SCH||[]).map(s=>({id:s.id,g:s.g,d:s.d,a:s.a,t:s.t,p:s.p,n:s.n,st:s.st,cr:s.cr,cn:s.cn,nt:s.nt,pd:s.pd,pt:s.pt,grp:s.grp,act:s.act||'',_isMakeup:s._isMakeup||false,_makeupFrom:s._makeupFrom||'',_compByMakeup:s._compByMakeup||'',_fromD:s._fromD||'',_postFrom:s._postFrom||''})),
+      ch:(window.SCH||[]).map(s=>({id:s.id,g:s.g,d:s.d,a:s.a,t:s.t,p:s.p,n:s.n,st:s.st,cr:s.cr,cn:s.cn,nt:s.nt,pd:s.pd,pt:s.pt,grp:s.grp,act:s.act||'',_isMakeup:s._isMakeup||false,_makeupFrom:s._makeupFrom||'',_compByMakeup:s._compByMakeup||'',_fromD:s._fromD||'',_postFrom:s._postFrom||'',flexNote:s.flexNote||''})),
       pairs:window.pairs||[],
       supEx:window.supEx||{},
       clusters:window.clusters||{},

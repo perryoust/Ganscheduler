@@ -579,6 +579,12 @@ function renderSup(){
   document.getElementById('su-body').innerHTML=h||'<p style="color:#999">לא נמצאו</p>';
   setTimeout(window._fitScrollAreas,50);
 }
+window.suFlexChg = function() {
+  const chk = document.getElementById('su-flex-sched');
+  const wrap = document.getElementById('su-flex-note-wrap');
+  if (wrap) wrap.style.display = chk && chk.checked ? 'block' : 'none';
+};
+
 function openSupModal(name){
   window.editingSup=name||null;
   (document.getElementById('sum-title')||{}).textContent =name?'✏️ עריכת ספק':'➕ הוסף ספק';
@@ -629,6 +635,13 @@ function openSupModal(name){
   if(suEntityType) suEntityType.value = ex.entityType||'';
   const suEntityTop = document.getElementById('su-entity-type-top');
   if(suEntityTop) suEntityTop.value = ex.entityType||'';
+  // Flexible schedule note
+  const suFlexSched = document.getElementById('su-flex-sched');
+  const suFlexNote = document.getElementById('su-flex-note');
+  const suFlexWrap = document.getElementById('su-flex-note-wrap');
+  if (suFlexSched) suFlexSched.checked = !!ex.flexSched;
+  if (suFlexNote) suFlexNote.value = ex.flexNote || 'הימים והשעות עלולים להשתנות';
+  if (suFlexWrap) suFlexWrap.style.display = ex.flexSched ? 'block' : 'none';
   // Show/hide acts section
   const suActsWrap = document.getElementById('su-acts-wrap');
   if(suActsWrap) suActsWrap.style.display = defaultIsAct ? 'block' : 'none';
@@ -731,7 +744,9 @@ async function saveSup(silent = false){
       acts: existActs,
       isAct: !!document.getElementById('su-is-act')?.checked,
       isPurch: !!document.getElementById('su-is-purch')?.checked,
-      entityType: entityVal
+      entityType: entityVal,
+      flexSched: !!document.getElementById('su-flex-sched')?.checked,
+      flexNote: document.getElementById('su-flex-note')?.value.trim() || (document.getElementById('su-flex-sched')?.checked ? 'הימים והשעות עלולים להשתנות' : '')
     };
     const targetBase = window.supBase(targetName);
     if (targetBase && targetBase !== targetName) {
@@ -863,7 +878,9 @@ async function saveSup(silent = false){
     acts:existActs,
     isAct: !!document.getElementById('su-is-act')?.checked,
     isPurch: !!document.getElementById('su-is-purch')?.checked,
-    entityType: entityVal
+    entityType: entityVal,
+    flexSched: !!document.getElementById('su-flex-sched')?.checked,
+    flexNote: document.getElementById('su-flex-note')?.value.trim() || (document.getElementById('su-flex-sched')?.checked ? 'הימים והשעות עלולים להשתנות' : '')
   };
   const baseName = window.supBase(name);
   if (baseName && baseName !== name) {

@@ -794,6 +794,7 @@ window.spBatchSaveNt = function() {
   const ids = window.spGetSelectedIds();
   const nt = document.getElementById('sp-nt')?.value;
   const n = document.getElementById('sp-n')?.value;
+  const flexNote = document.getElementById('sp-flex-note')?.value;
   
   ids.forEach(id => {
     const ev = window.getSchById(id);
@@ -803,6 +804,12 @@ window.spBatchSaveNt = function() {
       ev.n = n;
       if(ev._recId && !ev._isMakeup && !ev._makeupFrom && !ev._postFrom) {
         window.SCH.forEach(x => { if(x._recId === ev._recId && x.d >= ev.d) x.n = n; });
+      }
+    }
+    if(flexNote !== undefined) {
+      ev.flexNote = flexNote.trim();
+      if(ev._recId && !ev._isMakeup && !ev._makeupFrom && !ev._postFrom) {
+        window.SCH.forEach(x => { if(x._recId === ev._recId && x.d >= ev.d) x.flexNote = flexNote.trim(); });
       }
     }
     // Still apply auto-status for the main notes field
@@ -998,6 +1005,10 @@ window.openSP = function(id) {
     <div style="background:#fff;border-radius:10px;padding:10px;border:1px solid #e0e0e0">
       <div style="font-size:.75rem;font-weight:700;color:#1a237e;margin-bottom:4px">📝 הערה קבועה (מעודכן קדימה)</div>
       <textarea id="sp-n" rows="2" style="width:100%;font-size:.8rem;border-radius:6px;border:1px solid #ccc;padding:6px;resize:none;font-family:inherit" placeholder="מעודכן לכל הפעילויות הבאות...">${s.n||''}</textarea>
+    </div>
+    <div style="grid-column:1/-1; background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:8px 10px;">
+      <div style="font-size:.75rem; font-weight:700; color:#0369a1; margin-bottom:4px">🔄 הערת גמישות מועדים (לפוסטר וללוח)</div>
+      <input type="text" id="sp-flex-note" style="width:100%; font-size:.8rem; border-radius:6px; border:1px solid #7dd3fc; padding:5px 8px;" placeholder="למשל: הימים והשעות עלולים להשתנות" value="${s.flexNote || ''}">
     </div>
     <div style="grid-column:1/-1">
       <button class="btn bp bsm" style="width:100%;padding:8px;font-weight:700;border-radius:6px" onclick="window.spBatchSaveNt()">💾 שמור הערות לגנים המסומנים ב-V בטבלה למעלה</button>
@@ -1989,7 +2000,7 @@ async function saveReplaceRecur(id) {
           const finalA = act ? (sup + ' - ' + act) : sup;
           window.SCH.push({
             id: eid, g: s.g, d: ds, a: finalA, act: act, t: time, st: 'ok', tp: newTp,
-            nt: '', _recId: newRecId + '_' + cur.getDay(), grp: pGrpVal
+            nt: '', _recId: newRecId + '_' + cur.getDay(), grp: pGrpVal, flexNote: s.flexNote || ''
           });
           // Add for partners if synced
           if (sync) {
@@ -2010,7 +2021,7 @@ async function saveReplaceRecur(id) {
                   const specGrpVal = specGrpInp ? (parseInt(specGrpInp.value, 10) || 1) : (newGrp || s.grp || 1);
                   window.SCH.push({
                     id: eid + (idx+1)*5000, g: pid, d: ds, a: finalA, act: act, t: specificPartnerTime, st: 'ok', tp: newTp,
-                    nt: '', _recId: newRecId + '_' + cur.getDay(), grp: specGrpVal
+                    nt: '', _recId: newRecId + '_' + cur.getDay(), grp: specGrpVal, flexNote: s.flexNote || ''
                   });
                 }
               });
