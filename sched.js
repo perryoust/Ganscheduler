@@ -753,6 +753,13 @@ function nsActTypeChg(){
   const newInp=document.getElementById('ns-act-type-new');
   if(newInp) newInp.style.display=v==='__new__'?'inline-block':'none';
 }
+window.nsEvTypeChg = function() {
+  const evTp = document.getElementById('ns-ev-type')?.value;
+  const flexNoteEl = document.getElementById('ns-flex-note');
+  if (evTp === 'חוג פנימי' && flexNoteEl && !flexNoteEl.value.trim()) {
+    flexNoteEl.value = 'הימים והשעות עלולים להשתנות';
+  }
+};
 async function saveNewSched(closeModal = true){
   const gid=parseInt(document.getElementById('ns-g')?.value)||null;
   const date=document.getElementById('ns-date')?.value;

@@ -154,7 +154,8 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       timeStr: s.t ? s.t.slice(0,5) : '',
       phone: phone,
       supplierId: s.a || '',
-      flexNote: flexNote
+      flexNote: flexNote,
+      tp: s.tp || ''
     });
   });
 
@@ -194,7 +195,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       const border = CARD_BORDER[i] || CARD_BORDER[0];
       cardsHtml += `
         <div class="vp-activity-card" style="border-right-color:${color}; background:${bg}; border-color:${border}; border-right-color:${color};">
-          <div class="vp-card-badge" style="background:${color};">חוג צהרון</div>
+          <div class="vp-card-badge" style="background:${color};">${club.tp === 'חוג פנימי' ? 'חוג פנימי' : 'חוג צהרון'}</div>
           <h3>${club.supName ? _esc(club.supName) + ' - ' : ''}${_esc(club.name)}</h3>
           <p>📅 ${_esc(club.dayStr)} &nbsp; 🕐 ${_esc(club.timeStr)}</p>
           ${club.flexNote ? `<p style="font-weight:700; color:#0369a1; font-size:11px; margin-top:2px;">ℹ️ ${_esc(club.flexNote)}</p>` : ''}

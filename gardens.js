@@ -2883,6 +2883,7 @@ function getClusterGlobalFieldsHtml() {
             <option value="חוג">חוג</option>
             <option value="חוג בוקר">חוג בוקר</option>
             <option value="חוג צהרון">חוג צהרון</option>
+            <option value="חוג פנימי">חוג פנימי</option>
             <option value="צהרון">צהרון</option>
             <option value="בוקר">בוקר</option>
             <option value="השלמה">השלמה</option>
@@ -3013,6 +3014,7 @@ window.openClusterBulkEdit = function(clId, ds) {
         <option value="חוג">חוג</option>
         <option value="חוג בוקר">חוג בוקר</option>
         <option value="חוג צהרון">חוג צהרון</option>
+        <option value="חוג פנימי">חוג פנימי</option>
         <option value="צהרון">צהרון</option>
         <option value="בוקר">בוקר</option>
         <option value="השלמה">השלמה</option>

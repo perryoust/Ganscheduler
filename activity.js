@@ -1067,6 +1067,7 @@ window.openSP = function(id) {
             <select id="rr-tp" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">
               <option value="חוג" ${!s.tp||s.tp==='חוג'?'selected':''}>חוג</option>
               <option value="חוג צהרון" ${s.tp==='חוג צהרון'?'selected':''}>חוג צהרון</option>
+              <option value="חוג פנימי" ${s.tp==='חוג פנימי'?'selected':''}>חוג פנימי</option>
               <option value="חוג בוקר" ${s.tp==='חוג בוקר'?'selected':''}>חוג בוקר</option>
               <option value="חופשה" ${s.tp==='חופשה'?'selected':''}>חופשה</option>
               <option value="קייטנה" ${s.tp==='קייטנה'?'selected':''}>קייטנה</option>
