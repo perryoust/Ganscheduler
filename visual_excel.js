@@ -197,7 +197,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
           <div class="vp-card-badge" style="background:${color};">חוג צהרון</div>
           <h3>${club.supName ? _esc(club.supName) + ' - ' : ''}${_esc(club.name)}</h3>
           <p>📅 ${_esc(club.dayStr)} &nbsp; 🕐 ${_esc(club.timeStr)}</p>
-          ${club.flexNote ? `<p style="font-weight:700; color:#0369a1; font-size:11px; margin-top:2px;">🔄 ${_esc(club.flexNote)}</p>` : ''}
+          ${club.flexNote ? `<p style="font-weight:700; color:#0369a1; font-size:11px; margin-top:2px;">ℹ️ ${_esc(club.flexNote)}</p>` : ''}
           ${showPhones && club.phone ? `<p style="font-weight:700;">📞 ${_esc(club.phone)}</p>` : ''}
         </div>`;
     });
@@ -295,7 +295,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
           const evEx = (window.supEx && (window.supEx[evBase] || window.supEx[ev.a])) || {};
           const evFlexNote = ev.flexNote || (evEx.flexSched ? (evEx.flexNote || 'הימים והשעות עלולים להשתנות') : '');
           if (evFlexNote) {
-              pillText += `<br><span style="font-size:9px; font-weight:700; color:#0369a1;">🔄 ${_esc(evFlexNote)}</span>`;
+              pillText += `<br><span style="font-size:9px; font-weight:700; color:#0369a1;">ℹ️ ${_esc(evFlexNote)}</span>`;
           }
           if (showPhones && supPhone) {
               pillText += `<br><span style="font-size:9.5px; font-weight:700;">📞 ${_esc(supPhone)}</span>`;

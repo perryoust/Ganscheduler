@@ -1007,7 +1007,7 @@ window.openSP = function(id) {
       <textarea id="sp-n" rows="2" style="width:100%;font-size:.8rem;border-radius:6px;border:1px solid #ccc;padding:6px;resize:none;font-family:inherit" placeholder="מעודכן לכל הפעילויות הבאות...">${s.n||''}</textarea>
     </div>
     <div style="grid-column:1/-1; background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:8px 10px;">
-      <div style="font-size:.75rem; font-weight:700; color:#0369a1; margin-bottom:4px">🔄 הערת גמישות מועדים (לפוסטר וללוח)</div>
+      <div style="font-size:.75rem; font-weight:700; color:#0369a1; margin-bottom:4px">ℹ️ הערת גמישות מועדים (לפוסטר וללוח)</div>
       <input type="text" id="sp-flex-note" style="width:100%; font-size:.8rem; border-radius:6px; border:1px solid #7dd3fc; padding:5px 8px;" placeholder="למשל: הימים והשעות עלולים להשתנות" value="${s.flexNote || ''}">
     </div>
     <div style="grid-column:1/-1">
