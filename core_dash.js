@@ -3756,8 +3756,8 @@ function openAddGardenModal(){
 function saveNewPlace(){
   const name=document.getElementById('ap-name').value.trim();
   const city=document.getElementById('ap-city').value;
-  if(!name||!city){_spAlertDialog('יש למלא שם ועיר');return;}
-  const newId=Math.max(...GARDENS.map(g=>g.id),0)+Date.now()%100000;
+  const allCurrentG = typeof AG === 'function' ? AG() : (window.GARDENS || []);
+  const newId = Math.max(...allCurrentG.map(g => Number(g.id) || 0), 0) + Date.now() % 100000;
   const newG={
     id:newId,
     name,

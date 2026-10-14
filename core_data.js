@@ -378,6 +378,7 @@ function _applyYearData(o){
   // For new years: load the full garden list from the year's data
   if(Array.isArray(window.supEx['__gardens_all']) && window.supEx['__gardens_all'].length > 0) {
     window._GARDENS_ALL = window.supEx['__gardens_all'];
+    window.GARDENS = window._GARDENS_ALL; // Shield: align window.GARDENS with active year's true gardens
   } else {
     window._GARDENS_ALL = null; // Fall back to GARDENS + _GARDENS_EXTRA
   }

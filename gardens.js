@@ -1672,7 +1672,7 @@ window.setupExmFieldMode = function() {
     const incFreeDaysCb = document.getElementById('ex-inc-free-days');
     if (incFreeDaysCb) incFreeDaysCb.checked = false;
     const incCoordCb = document.getElementById('ex-inc-coord');
-    if (incCoordCb) incCoordCb.checked = true;
+    if (incCoordCb) incCoordCb.checked = false;
     const incPairCb = document.getElementById('ex-inc-pair');
     if (incPairCb) incPairCb.checked = true;
     const splitMsgCb = document.getElementById('ex-split-msg');
@@ -2229,11 +2229,11 @@ function genExport(){
     return '';
   };
 
-  const incCoord = document.getElementById('ex-inc-coord') && document.getElementById('ex-inc-coord').checked;
   const isFieldUser = !!(window.permCoord || ['coordinator', 'manager', 'vp'].includes(window.role) || document.body.classList.contains('coordinator-mode') || (document.getElementById('coordinator-app-root') && document.getElementById('coordinator-app-root').style.display !== 'none') || (document.getElementById('coordinator-app-container') && document.getElementById('coordinator-app-container').style.display !== 'none'));
+  const incCoord = !isFieldUser && document.getElementById('ex-inc-coord') && document.getElementById('ex-inc-coord').checked;
   const incFreeDays = !isFieldUser && document.getElementById('ex-inc-free-days') && document.getElementById('ex-inc-free-days').checked;
   const getCoordStr = (gid) => {
-    if (!incCoord) return '';
+    if (!incCoord || isFieldUser) return '';
     const ci = typeof window.getGardenCoordinator === 'function' ? window.getGardenCoordinator(gid) : null;
     if (ci && ci.name) {
       const p = (ci.phone || '').trim();
@@ -2413,7 +2413,7 @@ function genExport(){
                 }
               });
             }
-            if (isPairWithSameMgr && sharedMgrStr) {
+            if (!isFieldUser && isPairWithSameMgr && sharedMgrStr) {
                text+=`     👤 ${sharedMgrStr.replace(' (', '').replace(')', '')}\n`;
             }
             if (incFreeDays) {

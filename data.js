@@ -351,10 +351,13 @@ var INIT_CLUSTERS = {};
 var _GARDENS_EXTRA = []; 
 
 function AG(){
-  // For new years, _GARDENS_ALL holds the full garden list from the year's data
+  // For active years, _GARDENS_ALL holds the full garden list from the year's data
+  if (Array.isArray(window._GARDENS_ALL) && window._GARDENS_ALL.length > 0) {
+    window.GARDENS = window._GARDENS_ALL;
+  }
   const raw = Array.isArray(window._GARDENS_ALL) && window._GARDENS_ALL.length > 0
     ? [...window._GARDENS_ALL]
-    : [...window.GARDENS,...(window._GARDENS_EXTRA||[])];
+    : [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
   
   // Deduplicate by ID
   const seen = new Set();

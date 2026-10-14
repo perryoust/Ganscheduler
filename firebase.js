@@ -810,17 +810,28 @@ async function loadFromFirebase(silent = false, force = false) {
       let cloudConfig = cfgRes.ok ? await cfgRes.json() : null;
       let cloudCustomGardens = cgRes.ok ? await cgRes.json() : null;
 
-      // Populate custom gardens for all users
+      // ── Step 2.1: Resolve active year gardens first ──
+      if (Array.isArray(cloudSuppliers?.['__gardens_all']) && cloudSuppliers['__gardens_all'].length > 0) {
+        window._GARDENS_ALL = cloudSuppliers['__gardens_all'];
+        window.GARDENS = window._GARDENS_ALL; // Shield: keep window.GARDENS aligned with active year
+      }
+
+      // Populate custom gardens for all users (filter out duplicates of existing base gardens)
       if (Array.isArray(cloudCustomGardens) && cloudCustomGardens.length > 0) {
-        window._GARDENS_EXTRA = cloudCustomGardens;
+        const baseGardens = Array.isArray(window._GARDENS_ALL) && window._GARDENS_ALL.length > 0 ? window._GARDENS_ALL : (window.GARDENS || []);
+        const baseIds = new Set(baseGardens.map(g => Number(g.id)));
+        const trulyExtra = cloudCustomGardens.filter(g => g && g.id != null && !baseIds.has(Number(g.id)));
+
+        window._GARDENS_EXTRA = trulyExtra;
         if (!cloudSuppliers) cloudSuppliers = {};
-        cloudSuppliers['__gardens_extra'] = cloudCustomGardens;
+        cloudSuppliers['__gardens_extra'] = trulyExtra;
         if (Array.isArray(window._GARDENS_ALL)) {
-          cloudCustomGardens.forEach(g => {
+          trulyExtra.forEach(g => {
             if (!window._GARDENS_ALL.some(x => Number(x.id) === Number(g.id))) {
               window._GARDENS_ALL.push(g);
             }
           });
+          window.GARDENS = window._GARDENS_ALL;
         }
       }
 
