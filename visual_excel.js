@@ -163,6 +163,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
 
   function addClubToRegular(s) {
     if (!s || isMakeupEv(s)) return;
+    const baseA = s.a ? (window.supBase ? window.supBase(s.a) : s.a) : '';
     let actName = s.act || (typeof window.supAct === 'function' ? window.supAct(s.a) : '');
     if (!actName) actName = 'פעילות';
 
