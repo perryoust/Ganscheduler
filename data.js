@@ -352,9 +352,21 @@ var _GARDENS_EXTRA = [];
 
 function AG(){
   // For new years, _GARDENS_ALL holds the full garden list from the year's data
-  const all = Array.isArray(window._GARDENS_ALL) && window._GARDENS_ALL.length > 0
+  const raw = Array.isArray(window._GARDENS_ALL) && window._GARDENS_ALL.length > 0
     ? [...window._GARDENS_ALL]
     : [...window.GARDENS,...(window._GARDENS_EXTRA||[])];
+  
+  // Deduplicate by ID
+  const seen = new Set();
+  const all = [];
+  raw.forEach(g => {
+    if (!g || g.id === undefined || g.id === null) return;
+    const gid = Number(g.id);
+    if (!seen.has(gid)) {
+      seen.add(gid);
+      all.push(g);
+    }
+  });
   
   // Normalize Petah Tikva globally and apply supEx overrides
   all.forEach(g => {

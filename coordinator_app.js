@@ -20,12 +20,27 @@ function _cs2d(s) {
 const _MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
 const _DAYS_HE   = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 
+function _coordGetAllGardens() {
+  const raw = typeof AG === 'function' ? AG() : (typeof getAllGardens === 'function' ? getAllGardens() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])]);
+  const seen = new Set();
+  const deduped = [];
+  (raw || []).forEach(g => {
+    if (!g || g.id === undefined || g.id === null) return;
+    const gid = Number(g.id);
+    if (!seen.has(gid)) {
+      seen.add(gid);
+      deduped.push(g);
+    }
+  });
+  return deduped;
+}
+
 // ─────────────────────────────────────────────────────────
 // ALLOWED GARDENS — uses window.gcls for proper type-filtering
 // ─────────────────────────────────────────────────────────
 window.getCoordAllowedGardenIds = function() {
   const allowed = new Set();
-  const gardens  = [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
+  const gardens  = _coordGetAllGardens();
   const clsScope = (window.coordClsScope||'all').trim();
 
   // ── All Cities Mode for Manager / VP / Executive Roles ──
@@ -131,7 +146,7 @@ function _withCoordSCH(fn) {
   const allowed    = window.getCoordAllowedGardenIds();
   const gidFilter  = _getCoordGidFilter(); // checked garden IDs (null = all allowed)
   const q          = (window._coordSearchQuery || '').trim().toLowerCase();
-  const allGardens = [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
+  const allGardens = _coordGetAllGardens();
 
   const filteredSCH = (window.SCH||[]).filter(s => {
     const gid = Number(s.g);
@@ -455,8 +470,16 @@ function _coordBuildGardenFilter() {
   const box = document.getElementById('coord-garden-checkboxes');
   if (!box) return;
   const allowed   = window.getCoordAllowedGardenIds();
-  const allGardens = [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
-  const myGardens  = allGardens.filter(g => allowed.has(Number(g.id)));
+  const allGardens = _coordGetAllGardens();
+  const seenIds   = new Set();
+  const myGardens = [];
+  allGardens.forEach(g => {
+    const gid = Number(g.id);
+    if (allowed.has(gid) && !seenIds.has(gid)) {
+      seenIds.add(gid);
+      myGardens.push(g);
+    }
+  });
   if (!myGardens.length) { box.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:0.75rem">אין גנים בהרשאות</div>'; return; }
   const byCity = {};
   myGardens.forEach(g => { const c = g.city||'אחר'; if(!byCity[c]) byCity[c]=[]; byCity[c].push(g); });
@@ -819,7 +842,7 @@ function _coordRenderExceptionsBox(evs, ds, isWeek = false) {
   if (!evs || !evs.length) return '';
   const allowed = typeof window.getCoordAllowedGardenIds === 'function' ? window.getCoordAllowedGardenIds() : null;
   const gidFilter = typeof _getCoordGidFilter === 'function' ? _getCoordGidFilter() : null;
-  const allGardens = [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
+  const allGardens = _coordGetAllGardens();
   const items = [];
   
   evs.forEach(s => {
@@ -1112,7 +1135,7 @@ function _coordFallbackMonth(evs, cd) {
 }
 
 function _coordRenderByCity(evs, ds) {
-  const allGardens = [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
+  const allGardens = _coordGetAllGardens();
   const byCity = {};
   evs.forEach(s => {
     const g = typeof window.G==='function' ? window.G(s.g) : allGardens.find(x=>Number(x.id)===Number(s.g));
