@@ -353,7 +353,10 @@ window.dashBatchAction = async function(action) {
       } else {
         delete s._compByMakeup;
       }
-      const nText = notePrefix + (note || (status === 'nohap' ? 'לא התקיים' : status === 'can' ? 'בוטל' : 'טופל'));
+      const isPast = s.d && s.d < (typeof window.td === 'function' ? window.td() : new Date().toISOString().split('T')[0]);
+      const nohapWording = isPast ? 'לא התקיים' : 'לא מתקיים';
+      const actualNotePrefix = action === 'nohap' ? `⚠️ ${nohapWording}: ` : notePrefix;
+      const nText = actualNotePrefix + (note || (status === 'nohap' ? nohapWording : status === 'can' ? 'בוטל' : 'טופל'));
       s.nt = s.nt ? s.nt + ' | ' + nText : nText;
       
       // Sync to partners
@@ -606,7 +609,9 @@ window.spRowStatusChg = async function(id, st) {
     const pGid = pair.ids.find(pid => Number(pid) !== Number(ev.g));
     const pG = window.G(pGid);
     const isM = !!ev._isMakeup;
-    const stText = st === 'nohap' ? (isM ? 'השלמה לא התקיימה' : 'לא התקיים') : (st === 'can' ? 'ביטול' : (st === 'post' ? 'דחייה' : st));
+    const today = typeof window.td === 'function' ? window.td() : new Date().toISOString().split('T')[0];
+    const isPast = ev.d && ev.d < today;
+    const stText = st === 'nohap' ? (isM ? (isPast ? 'השלמה לא התקיימה' : 'השלמה לא מתקיימת') : (isPast ? 'לא התקיים' : 'לא מתקיים')) : (st === 'can' ? 'ביטול' : (st === 'post' ? 'דחייה' : st));
     
     // Only ask confirm for simple statuses (done/ok). 
     // Exceptions (nohap/can/post) have their own modals with sync options.
@@ -3681,6 +3686,10 @@ window.openNohapQ = function(id){
   _nohapQId=id;
   const s=window.getSchById(id); if(!s) return;
   const g=window.G(s.g);
+  const today = typeof window.td === 'function' ? window.td() : new Date().toISOString().split('T')[0];
+  const isPast = s.d && s.d < today;
+  const modalH2 = document.querySelector('#nohapqm h2');
+  if (modalH2) modalH2.textContent = isPast ? '⚠️ לא התקיים' : '⚠️ לא מתקיים';
   const infoEl = document.getElementById('nohapq-info');
   if(infoEl) infoEl.innerHTML = `<b>${g.name}</b> מ-${g.city} | ${s.a}${s.act?' - '+s.act:''}<br>בתאריך ${window.fD(s.d)} ${s.t?'בשעה '+window.fT(s.t):''}`;
   const reasonEl = document.getElementById('nohapq-reason');
@@ -3745,7 +3754,11 @@ window.saveNohapQ = async function(){
     ev._compByMakeup = '';
     const isMText = (str) => str && /השלמה|במקום/i.test(str) && !str.includes('השלמה נקבעה ל-');
     const isM = !!(ev._isMakeup || ev._makeupFrom || isMText(ev.nt) || isMText(ev.n) || isMText(ev.a));
-    const notePrefix = isM ? '⚠️ השלמה לא התקיימה: ' : '⚠️ לא התקיים: ';
+    const today = typeof window.td === 'function' ? window.td() : new Date().toISOString().split('T')[0];
+    const isPast = ev.d && ev.d < today;
+    const term = isPast ? 'לא התקיימה' : 'לא מתקיימת';
+    const nohapWording = isPast ? 'לא התקיים' : 'לא מתקיים';
+    const notePrefix = isM ? `⚠️ השלמה ${term}: ` : `⚠️ ${nohapWording}: `;
     const noteAdd = notePrefix + fullReason;
     if (!(ev.nt||'').includes(noteAdd)) {
       ev.nt = ev.nt ? ev.nt + ' | ' + noteAdd : noteAdd;

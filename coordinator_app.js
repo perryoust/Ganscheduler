@@ -815,7 +815,9 @@ window.jumpToDay = function(ds) {
 // ─────────────────────────────────────────────────────────
 function _coordGetExceptionType(s) {
   if (s.st === 'nohap') {
-    return { type: 'nohap', label: 'לא התקיים', badgeBg: '#fee2e2', badgeBorder: '#ef4444', badgeColor: '#b91c1c', borderColor: '#ef4444', icon: '⚠️' };
+    const today = typeof window.td === 'function' ? window.td() : new Date().toISOString().split('T')[0];
+    const nohapLabel = (s.d && s.d < today) ? 'לא התקיים' : 'לא מתקיים';
+    return { type: 'nohap', label: nohapLabel, badgeBg: '#fee2e2', badgeBorder: '#ef4444', badgeColor: '#b91c1c', borderColor: '#ef4444', icon: '⚠️' };
   }
   if (s.st === 'can') {
     return { type: 'can', label: 'בוטל', badgeBg: '#fee2e2', badgeBorder: '#f87171', badgeColor: '#b91c1c', borderColor: '#ef4444', icon: '❌' };

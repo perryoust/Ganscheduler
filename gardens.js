@@ -1990,6 +1990,19 @@ function genExport(){
     return 'normal';
   };
 
+  const today = typeof window.td === 'function' ? window.td() : new Date().toISOString().split('T')[0];
+  const getNohapLabel = (dateStr) => {
+    if (!dateStr) return 'לא מתקיים';
+    let ds = String(dateStr).trim();
+    if (ds.includes('/')) {
+      const parts = ds.split('/');
+      if (parts.length === 3) {
+        ds = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+    }
+    return (ds < today) ? 'לא התקיים' : 'לא מתקיים';
+  };
+
   if (window._exEventIds && window._exEventIds.length) {
     const eventDates = window._exEventIds.map(id => (SCH.find(x => String(x.id) === String(id))||{}).d).filter(Boolean);
     const allInDateRange = eventDates.every(d => d >= from && d <= to);
@@ -2190,7 +2203,8 @@ function genExport(){
       headerTitle = refStr ? `*השלמה מ${refStr}${formattedTarget}*\n` : '*השלמה*\n';
     }
   } else if (isAllNohap) {
-    headerTitle = '*לא מתקיים*\n';
+    const dStr = rel[0]?.d || from;
+    headerTitle = `*${getNohapLabel(dStr)}*\n`;
   } else if (isAllCan) {
     headerTitle = '*בוטל*\n';
   }
@@ -2319,8 +2333,9 @@ function genExport(){
                skipInlineMTag = true;
                skipInlineNohap = true; // We don't need "לא התקיים" if we have a specific tag like "נדחה"
             } else if (allNohap && !isAllCan && !isAllNohap && !isAllPreponedOut) {
-               blockTitle = '*(לא התקיים)*\n';
-               skipInlineNohap = true;
+              const gDate = group[0]?.d || date;
+              blockTitle = `*(${getNohapLabel(gDate)})*\n`;
+              skipInlineNohap = true;
             }
             
             if (blockTitle) text += blockTitle;
@@ -2332,7 +2347,7 @@ function genExport(){
                 const mTag = skipInlineMTag ? '' : getRowTag(s);
                 const isNohapRow = isNohapFunc(s);
                 const stIcon = isNohapRow ? '❌ ' : '🏫 ';
-                const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
+                const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ` *(${getNohapLabel(s.d)})*` : '';
                 const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
                 const coordText = rawCoord ? `\n     ${rawCoord.trim()}` : '';
                 
@@ -2360,7 +2375,7 @@ function genExport(){
                     const isNohapRow = isNohapFunc(s);
                     const stIcon = isNohapRow ? '❌ ' : '🏫 ';
                     const addrStr = `📍 ${addr} · `;
-                    const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
+                    const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ` *(${getNohapLabel(s.d)})*` : '';
                     const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
                     const coordText = rawCoord ? `\n  ${rawCoord.trim()}` : '';
                     
@@ -2378,7 +2393,7 @@ function genExport(){
                       const mTag = skipInlineMTag ? '' : getRowTag(s);
                       const isNohapRow = isNohapFunc(s);
                       const stIcon = isNohapRow ? '❌ ' : '🏫 ';
-                      const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
+                      const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ` *(${getNohapLabel(s.d)})*` : '';
                       const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
                       const coordText = rawCoord ? `\n     ${rawCoord.trim()}` : '';
                       
@@ -2397,7 +2412,7 @@ function genExport(){
                     const mTag = skipInlineMTag ? '' : getRowTag(s);
                     const isNohapRow = isNohapFunc(s);
                     const stIcon = isNohapRow ? '❌ ' : '🏫 ';
-                    const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
+                    const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ` *(${getNohapLabel(s.d)})*` : '';
                     const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
                     const coordText = rawCoord ? `\n  ${rawCoord.trim()}` : '';
                     
@@ -2448,7 +2463,8 @@ function genExport(){
             let skipInlineMTag = false;
             
             if (allNohap && !isAllCan && !isAllNohap && !isAllPreponedOut) {
-              blockTitle = '*(לא התקיים)*\n';
+              const gDate = group[0]?.d || date;
+              blockTitle = `*(${getNohapLabel(gDate)})*\n`;
               skipInlineNohap = true;
             } else {
               const tags = group.map(s => getRowTag(s));
@@ -2467,7 +2483,7 @@ function genExport(){
                 const mTag = skipInlineMTag ? '' : getRowTag(s);
                 const isNohapRow = isNohapFunc(s);
                 const stIcon = isNohapRow ? '❌ ' : '🏫 ';
-                const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
+                const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ` *(${getNohapLabel(s.d)})*` : '';
                 const rawCoord = getCoordStr(s.g);
                 const coordText = rawCoord ? `\n     ${rawCoord.trim()}` : '';
                 let grpStr = ' · ⏰ ';
@@ -2484,7 +2500,7 @@ text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
                 const isNohapRow = isNohapFunc(s);
                 const stIcon = isNohapRow ? '❌ ' : '🏫 ';
                 const addr=s.gd.st?`📍 ${s.gd.st} · `:'';
-                const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
+                const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ` *(${getNohapLabel(s.d)})*` : '';
                 const rawCoord = getCoordStr(s.g);
                 const coordText = rawCoord ? `\n  ${rawCoord.trim()}` : '';
                 let grpStr = ' · ⏰ ';
@@ -2509,7 +2525,7 @@ text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${statusTag}${timeStr}${coordText}\n
           const mTag = getRowTag(s);
           const isNohapRow = s.st === 'can' || s.st === 'nohap';
           const stIcon = isNohapRow ? '❌ ' : '🏫 ';
-          const statusTag = (isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ' *(לא התקיים)*' : '';
+          const statusTag = (isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ` *(${getNohapLabel(s.d)})*` : '';
           const rawCoord = getCoordStr(s.g);
           const coordText = rawCoord ? `\n${rawCoord.trim()}` : '';
           let grpStr = ' · ⏰ ';
