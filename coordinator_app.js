@@ -213,29 +213,6 @@ window.initCoordinatorApp = function() {
             <button onclick="window.coordLogout()" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;color:#fff;font-size:1.2rem;cursor:pointer;padding:4px 10px;display:inline-flex;align-items:center;justify-content:center" title="התנתק">🚪</button>
           </div>
         </div>
-        <!-- Navigation -->
-        <div style="display:flex;justify-content:center;align-items:center;gap:6px;padding-bottom:8px;color:#fff;flex-wrap:wrap">
-          <button id="coord-nav-prev" onclick="window.coordNav(-1)" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:0.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="אתמול / קודם">▶ <span id="coord-nav-prev-lbl">אתמול</span></button>
-          <div style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,0,0,0.2);padding:3px 8px;border-radius:8px;position:relative">
-            <div id="coord-date-label" onclick="window.coordTriggerDatePicker()" style="font-weight:800;font-size:0.92rem;min-width:140px;text-align:center;cursor:pointer;user-select:none" title="לחץ לבחירת תאריך מהיומן"></div>
-            <input type="date" id="coord-hidden-datepicker" style="position:absolute;opacity:0;pointer-events:none;width:0;height:0" onchange="window.coordOnPickDate(this.value)">
-            <button onclick="window.coordTriggerDatePicker()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:0.95rem;padding:2px" title="בחר תאריך מהלוח">📆</button>
-          </div>
-          <button id="coord-nav-next" onclick="window.coordNav(1)" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:0.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="מחר / הבא"><span id="coord-nav-next-lbl">מחר</span> ◀</button>
-          <button onclick="window.coordGoToday()" style="background:rgba(255,255,255,0.22);border:none;border-radius:8px;color:#fff;padding:5px 11px;font-size:0.75rem;cursor:pointer;font-weight:700">היום</button>
-        </div>
-        <!-- View toggles -->
-        <div style="display:flex;justify-content:center;gap:6px;padding-bottom:8px;flex-wrap:wrap">
-          <div style="display:flex;gap:4px;background:rgba(0,0,0,0.25);border-radius:8px;padding:4px">
-            <button class="coord-view-btn active" data-v="day"   onclick="window.coordSetView('day',this)"   style="background:rgba(255,255,255,0.35);border:none;border-radius:6px;padding:6px 14px;color:#fff;cursor:pointer;font-size:0.82rem;font-weight:800;min-height:36px;touch-action:manipulation;">יומי</button>
-            <button class="coord-view-btn" data-v="week"  onclick="window.coordSetView('week',this)"  style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.82rem;min-height:36px;touch-action:manipulation;">שבועי</button>
-            <button class="coord-view-btn" data-v="month" onclick="window.coordSetView('month',this)" style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.82rem;min-height:36px;touch-action:manipulation;">חודשי</button>
-          </div>
-          <div style="display:flex;gap:4px;background:rgba(0,0,0,0.25);border-radius:8px;padding:4px">
-            <button class="coord-grp-btn active" data-g="pairs"    onclick="window.coordSetGroup('pairs',this)"    style="background:rgba(255,255,255,0.35);border:none;border-radius:6px;padding:6px 14px;color:#fff;cursor:pointer;font-size:0.82rem;font-weight:800;min-height:36px;touch-action:manipulation;">👫 זוגות</button>
-            <button class="coord-grp-btn" data-g="clusters" onclick="window.coordSetGroup('clusters',this)" style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.82rem;min-height:36px;touch-action:manipulation;">🏘️ אשכולות</button>
-          </div>
-        </div>
         <!-- Live Instant Search Bar -->
         <div style="padding-bottom:8px">
           <div style="position:relative;display:flex;align-items:center">
@@ -260,6 +237,29 @@ window.initCoordinatorApp = function() {
               <button onclick="window.renderCoordinatorView(); document.getElementById('coord-garden-panel').removeAttribute('open');" style="flex:1;background:rgba(100,200,100,0.3);border:none;border-radius:6px;color:#fff;padding:5px;font-size:0.75rem;cursor:pointer;font-weight:700">הצג</button>
             </div>
           </details>
+        </div>
+        <!-- Navigation -->
+        <div style="display:flex;justify-content:center;align-items:center;gap:6px;padding-bottom:8px;color:#fff;flex-wrap:wrap">
+          <button id="coord-nav-prev" onclick="window.coordNav(-1)" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:0.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="אתמול / קודם">▶ <span id="coord-nav-prev-lbl">אתמול</span></button>
+          <div style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,0,0,0.2);padding:3px 8px;border-radius:8px;position:relative">
+            <div id="coord-date-label" onclick="window.coordTriggerDatePicker()" style="font-weight:800;font-size:0.92rem;min-width:140px;text-align:center;cursor:pointer;user-select:none" title="לחץ לבחירת תאריך מהיומן"></div>
+            <input type="date" id="coord-hidden-datepicker" style="position:absolute;opacity:0;pointer-events:none;width:0;height:0" onchange="window.coordOnPickDate(this.value)">
+            <button onclick="window.coordTriggerDatePicker()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:0.95rem;padding:2px" title="בחר תאריך מהלוח">📆</button>
+          </div>
+          <button id="coord-nav-next" onclick="window.coordNav(1)" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:0.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="מחר / הבא"><span id="coord-nav-next-lbl">מחר</span> ◀</button>
+          <button onclick="window.coordGoToday()" style="background:rgba(255,255,255,0.22);border:none;border-radius:8px;color:#fff;padding:5px 11px;font-size:0.75rem;cursor:pointer;font-weight:700">היום</button>
+        </div>
+        <!-- View toggles -->
+        <div style="display:flex;justify-content:center;gap:6px;padding-bottom:10px;flex-wrap:wrap">
+          <div style="display:flex;gap:4px;background:rgba(0,0,0,0.25);border-radius:8px;padding:4px">
+            <button class="coord-view-btn active" data-v="day"   onclick="window.coordSetView('day',this)"   style="background:rgba(255,255,255,0.35);border:none;border-radius:6px;padding:6px 14px;color:#fff;cursor:pointer;font-size:0.82rem;font-weight:800;min-height:36px;touch-action:manipulation;">יומי</button>
+            <button class="coord-view-btn" data-v="week"  onclick="window.coordSetView('week',this)"  style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.82rem;min-height:36px;touch-action:manipulation;">שבועי</button>
+            <button class="coord-view-btn" data-v="month" onclick="window.coordSetView('month',this)" style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.82rem;min-height:36px;touch-action:manipulation;">חודשי</button>
+          </div>
+          <div style="display:flex;gap:4px;background:rgba(0,0,0,0.25);border-radius:8px;padding:4px">
+            <button class="coord-grp-btn active" data-g="pairs"    onclick="window.coordSetGroup('pairs',this)"    style="background:rgba(255,255,255,0.35);border:none;border-radius:6px;padding:6px 14px;color:#fff;cursor:pointer;font-size:0.82rem;font-weight:800;min-height:36px;touch-action:manipulation;">👫 זוגות</button>
+            <button class="coord-grp-btn" data-g="clusters" onclick="window.coordSetGroup('clusters',this)" style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.82rem;min-height:36px;touch-action:manipulation;">🏘️ אשכולות</button>
+          </div>
         </div>
       </div>
       <!-- Control Subbar: Activity Counter & Accordion Collapse/Expand -->
