@@ -3492,24 +3492,39 @@ function getGardenFixedSched(gardenId, fromDate, toDate){
   });
   // Strategy 1: use _recId groups (take latest occurrence per series)
   const byRecId = {};
-  gardenEvs.filter(s=>s._recId).forEach(s=>{
-    if(!byRecId[s._recId] || s.d > byRecId[s._recId].d) byRecId[s._recId]=s;
+  const nonRecEvs = [];
+  gardenEvs.forEach(s=>{
+    if(s._recId){
+      if(!byRecId[s._recId] || s.d > byRecId[s._recId].d) byRecId[s._recId]=s;
+    } else {
+      nonRecEvs.push(s);
+    }
   });
   const fromRecurring = Object.values(byRecId);
-  // Strategy 2: if no _recId, find entries that repeat same dow+supplier+time
-  const fromRepeat = [];
-  if(fromRecurring.length===0){
-    const slotCount = {};
-    gardenEvs.forEach(s=>{
-      const dow = new Date(s.d).getDay();
-      const key = `${dow}|${supBase(s.a)||s.a}|${(s.t||'').slice(0,5)}`;
-      if(!slotCount[key]) slotCount[key]={count:0, latest:s};
-      slotCount[key].count++;
-      if(s.d > slotCount[key].latest.d) slotCount[key].latest=s;
-    });
-    Object.values(slotCount).filter(v=>v.count>=2).forEach(v=>fromRepeat.push(v.latest));
-  }
-  const result = fromRecurring.length>0 ? fromRecurring : fromRepeat;
+  // Strategy 2: for non-recId events, find entries that repeat same dow+supplier+time
+  const slotCount = {};
+  nonRecEvs.forEach(s=>{
+    const dow = new Date(s.d).getDay();
+    const sup = (typeof window.supBase === 'function' ? window.supBase(s.a) : s.a) || s.a;
+    const key = `${dow}|${sup}|${(s.t||'').slice(0,5)}`;
+    if(!slotCount[key]) slotCount[key]={count:0, latest:s};
+    slotCount[key].count++;
+    if(s.d > slotCount[key].latest.d) slotCount[key].latest=s;
+  });
+  const fromRepeat = Object.values(slotCount).filter(v=>v.count>=2).map(v=>v.latest);
+
+  // Combine both: do not overwrite a recurring slot with an ad-hoc repeat
+  const recurringKeys = new Set(fromRecurring.map(s => {
+    const dow = new Date(s.d).getDay();
+    const sup = (typeof window.supBase === 'function' ? window.supBase(s.a) : s.a) || s.a;
+    return `${dow}|${sup}|${(s.t||'').slice(0,5)}`;
+  }));
+  const additionalRepeat = fromRepeat.filter(s => {
+    const dow = new Date(s.d).getDay();
+    const sup = (typeof window.supBase === 'function' ? window.supBase(s.a) : s.a) || s.a;
+    return !recurringKeys.has(`${dow}|${sup}|${(s.t||'').slice(0,5)}`);
+  });
+  const result = [...fromRecurring, ...additionalRepeat];
   return result.sort((a,b)=>{
     const da=new Date(a.d).getDay(), db=new Date(b.d).getDay();
     if(da!==db) return da-db;

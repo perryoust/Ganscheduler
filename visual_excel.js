@@ -77,7 +77,7 @@ window.doVisualExcelExport = async function(format = 'pdf') {
     let pagesHtml = '';
     let count = 0;
     for (const g of gList) {
-      const gEvs = allEvs.filter(s => s.g === g.id);
+      const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
       pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones);
       count++;
     }
@@ -109,20 +109,20 @@ window.doVisualExcelExport = async function(format = 'pdf') {
 };
 
 function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones) {
-  // Compute regular clubs using fixed schedule (from core_dash.js)
-  const fixedSched = typeof window.getGardenFixedSched === 'function' ? window.getGardenFixedSched(g.id) : [];
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const fromDate = `${year}-${String(month).padStart(2,'0')}-01`;
+  const toDate = `${year}-${String(month).padStart(2,'0')}-${String(daysInMonth).padStart(2,'0')}`;
+
+  // Compute regular clubs using fixed schedule (from core_dash.js) with month boundary
+  const fixedSched = typeof window.getGardenFixedSched === 'function' ? (window.getGardenFixedSched(g.id, fromDate, toDate) || []) : [];
   const regularClubs = [];
-  
-  fixedSched.forEach(s => {
+  const daysHe = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+
+  function addClubToRegular(s) {
+    if (!s) return;
     let actName = s.act || (typeof window.supAct === 'function' ? window.supAct(s.a) : '');
     if (!actName) actName = 'פעילות';
-    
-    // Prevent duplicates
-    if (regularClubs.some(c => c.name === actName)) return;
-    
-    const dow = new Date(s.d).getDay();
-    const daysHe = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
-    
+
     let phone = '';
     let supName = '';
     if (s.a) {
@@ -140,9 +140,20 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
     
     let cleanSupName = supName;
     if (cleanSupName && typeof window.supBase === 'function') {
-        cleanSupName = window.supBase(cleanSupName);
+      cleanSupName = window.supBase(cleanSupName);
     }
-    
+
+    const dow = s.d ? new Date(s.d).getDay() : 0;
+    const dayStr = 'יום ' + (daysHe[dow] || 'ראשון');
+    const timeStr = s.t ? s.t.slice(0,5) : '';
+
+    // Check duplicate by supplier + activity name OR by same activity on same day/time
+    const isDup = regularClubs.some(c => 
+      (c.supplierId && s.a && c.supplierId === s.a && (c.name === actName || !s.act)) ||
+      (c.name === actName && c.dayStr === dayStr && (!timeStr || c.timeStr === timeStr))
+    );
+    if (isDup) return;
+
     const baseA = window.supBase ? window.supBase(s.a) : s.a;
     const sEx = (window.supEx && (window.supEx[baseA] || window.supEx[s.a])) || {};
     const flexNote = s.flexNote || (sEx.flexSched ? (sEx.flexNote || 'הימים והשעות עלולים להשתנות') : '');
@@ -150,14 +161,27 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
     regularClubs.push({
       name: actName,
       supName: cleanSupName !== actName ? cleanSupName : '',
-      dayStr: 'יום ' + daysHe[dow],
-      timeStr: s.t ? s.t.slice(0,5) : '',
+      dayStr: dayStr,
+      timeStr: timeStr,
       phone: phone,
       supplierId: s.a || '',
       flexNote: flexNote,
       tp: s.tp || ''
     });
-  });
+  }
+
+  // 1. Add from fixedSched
+  fixedSched.forEach(s => addClubToRegular(s));
+
+  // 2. Also inspect gEvs for any additional active clubs in this month (up to 3)
+  if (regularClubs.length < 3 && Array.isArray(gEvs)) {
+    const validEvs = gEvs.filter(s => (!s.st || s.st === 'ok'));
+    validEvs.forEach(s => {
+      if (regularClubs.length < 3) {
+        addClubToRegular(s);
+      }
+    });
+  }
 
   // Limit to max 3 regular clubs for the UI cards
   const regularClubsList = regularClubs.slice(0, 3);
@@ -232,7 +256,17 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       const isHoliday = hol && !isCamp;
 
       const currentDow = new Date(dateStr).getDay();
-      const dayEvs = fixedSched.filter(fs => new Date(fs.d).getDay() === currentDow).sort((a,b) => (a.t||'').localeCompare(b.t||''));
+      
+      // Determine events for this day:
+      // Priority 1: Actual events scheduled for this specific date in gEvs
+      let dayEvs = [];
+      const actualEvs = (gEvs || []).filter(s => s.d === dateStr && (!s.st || s.st === 'ok'));
+      if (actualEvs.length > 0) {
+        dayEvs = actualEvs.sort((a,b) => (a.t||'').localeCompare(b.t||''));
+      } else if ((!gEvs || gEvs.length === 0) && fixedSched.length > 0) {
+        // Fallback ONLY when this month has no scheduled events at all: use recurring weekday template
+        dayEvs = fixedSched.filter(fs => new Date(fs.d).getDay() === currentDow).sort((a,b) => (a.t||'').localeCompare(b.t||''));
+      }
 
       let cellContent = '';
       let cellClass = 'vp-day-cell';
@@ -271,7 +305,10 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
           if (!actName && typeof window.supAct === 'function') actName = window.supAct(ev.a);
           if (!actName) actName = 'פעילות';
 
-          const clubIdx = regularClubsList.findIndex(rc => rc.name === actName);
+          const clubIdx = regularClubsList.findIndex(rc => 
+            (rc.supplierId && ev.a && rc.supplierId === ev.a) ||
+            (rc.name === actName)
+          );
           const isRegular = clubIdx >= 0;
           const pillColor = isRegular ? CARD_BORDER[clubIdx] : '#312e81';
           const pillBg = isRegular ? CARD_BG[clubIdx] : '#eef2ff';
@@ -448,7 +485,7 @@ async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, sho
       if (statusEl) statusEl.textContent = `מעבד: ${g.name || 'גן'} (${i + 1} מתוך ${gList.length})...`;
       if (barEl) barEl.style.width = `${Math.round(((i + 1) / gList.length) * 100)}%`;
 
-      const gEvs = allEvs.filter(s => s.g === g.id);
+      const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
       const pageHtml = _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones);
 
       container.innerHTML = styles.css + pageHtml;
