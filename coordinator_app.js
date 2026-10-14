@@ -327,6 +327,8 @@ window.activateCoordinatorApp = function() {
       #exm { z-index: 100050 !important; }
       #exm.open { z-index: 100050 !important; display: flex !important; }
       #toast-msg, #copy-toast { z-index: 100060 !important; }
+      .coord-exceptions-accordion summary::-webkit-details-marker { display:none !important; }
+      .coord-exceptions-accordion summary { list-style:none !important; }
       /* ── Garden filter checkboxes ── */
       .coord-g-cb-label { display:flex; align-items:center; gap:6px; color:#fff; font-size:0.78rem; padding:3px 0; cursor:pointer; }
       .coord-g-city-hdr { color:rgba(255,255,255,0.7); font-size:0.7rem; font-weight:800; margin-top:8px; margin-bottom:2px; text-transform:uppercase; }
@@ -784,6 +786,156 @@ window.jumpToDay = function(ds) {
   }
 };
 
+// ─────────────────────────────────────────────────────────
+// EXCEPTIONS & MAKEUPS BOX (קוביה של שינויים והשלמות)
+// ─────────────────────────────────────────────────────────
+function _coordGetExceptionType(s) {
+  if (s.st === 'nohap') {
+    return { type: 'nohap', label: 'לא התקיים', badgeBg: '#fee2e2', badgeBorder: '#ef4444', badgeColor: '#b91c1c', borderColor: '#ef4444', icon: '⚠️' };
+  }
+  if (s.st === 'can') {
+    return { type: 'can', label: 'בוטל', badgeBg: '#fee2e2', badgeBorder: '#f87171', badgeColor: '#b91c1c', borderColor: '#ef4444', icon: '❌' };
+  }
+  if (s.st === 'post' || s.pd) {
+    return { type: 'post', label: 'נדחה', badgeBg: '#fef3c7', badgeBorder: '#f59e0b', badgeColor: '#92400e', borderColor: '#f59e0b', icon: '🕒' };
+  }
+  if (s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)) || (s.n && /השלמה/i.test(s.n))) {
+    return { type: 'makeup', label: 'השלמה', badgeBg: '#dcfce7', badgeBorder: '#22c55e', badgeColor: '#15803d', borderColor: '#22c55e', icon: '🔄' };
+  }
+  if ((s.nt && /הוקדם/i.test(s.nt)) || (s.n && /הוקדם/i.test(s.n))) {
+    return { type: 'advance', label: 'הוקדם', badgeBg: '#e0f2fe', badgeBorder: '#0ea5e9', badgeColor: '#0369a1', borderColor: '#0ea5e9', icon: '⚡' };
+  }
+  if (s._postFrom || (s.nt && /הוזז|הועבר/i.test(s.nt))) {
+    return { type: 'shift', label: 'הוזז', badgeBg: '#f3e8ff', badgeBorder: '#a855f7', badgeColor: '#7e22ce', borderColor: '#a855f7', icon: '🔄' };
+  }
+  if (typeof window.isGlobalMakeup === 'function' && window.isGlobalMakeup(s)) {
+    return { type: 'makeup', label: 'שינוי/השלמה', badgeBg: '#fef3c7', badgeBorder: '#f59e0b', badgeColor: '#92400e', borderColor: '#f59e0b', icon: '🔄' };
+  }
+  return null;
+}
+
+function _coordRenderExceptionsBox(evs, ds, isWeek = false) {
+  if (!evs || !evs.length) return '';
+  const allowed = typeof window.getCoordAllowedGardenIds === 'function' ? window.getCoordAllowedGardenIds() : null;
+  const gidFilter = typeof _getCoordGidFilter === 'function' ? _getCoordGidFilter() : null;
+  const allGardens = [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
+  const items = [];
+  
+  evs.forEach(s => {
+    const gid = Number(s.g);
+    // Strict Garden-Level Isolation: ONLY coordinator's own assigned gardens
+    if (allowed && !allowed.has(gid)) return;
+    if (gidFilter && !gidFilter.has(gid)) return;
+    const info = _coordGetExceptionType(s);
+    if (!info) return;
+    const g = typeof window.G === 'function' ? window.G(gid) : allGardens.find(x => Number(x.id) === gid);
+    if (!g) return;
+    items.push({ s, g, info });
+  });
+
+  if (!items.length) {
+    if (isWeek) return '';
+    return `
+      <div class="coord-exceptions-box" style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px 16px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.15rem">✅</span>
+          <span style="font-weight:700; color:#166534; font-size:0.85rem">כל הפעילויות מתקיימות כסדרן</span>
+          <span style="font-size:0.75rem; color:#15803d; opacity:0.85">(אין שינויים, השלמות או ביטולים להיום)</span>
+        </div>
+      </div>
+    `;
+  }
+
+  const typeOrder = { nohap: 1, can: 2, post: 3, advance: 4, makeup: 5, shift: 6 };
+  items.sort((a,b) => {
+    const ordA = typeOrder[a.info.type] || 9;
+    const ordB = typeOrder[b.info.type] || 9;
+    if (ordA !== ordB) return ordA - ordB;
+    const dA = a.s.d || '';
+    const dB = b.s.d || '';
+    if (dA !== dB) return dA.localeCompare(dB);
+    const tA = a.s.t || '99:99';
+    const tB = b.s.t || '99:99';
+    if (tA !== tB) return tA.localeCompare(tB);
+    return (a.g.name||'').localeCompare(b.g.name||'', 'he');
+  });
+
+  const missedCount = items.filter(x => x.info.type === 'nohap' || x.info.type === 'can' || x.info.type === 'post').length;
+  const makeupsCount = items.filter(x => x.info.type === 'makeup' || x.info.type === 'advance' || x.info.type === 'shift').length;
+  const titleText = isWeek ? `שינויים והשלמות בשבוע זה (${items.length})` : `שינויים והשלמות להיום (${items.length})`;
+
+  let cardsHtml = '';
+  items.forEach(({ s, g, info }) => {
+    const supBase = typeof window.supBase === 'function' ? window.supBase(s.a) : (s.a || '');
+    const supAct = typeof window.supAct === 'function' ? window.supAct(s.a) : (s.act || '');
+    const phone = typeof window.getSupPhone === 'function' ? window.getSupPhone(supBase) : '';
+    const timeStr = typeof window.fT === 'function' ? window.fT(s.t) : (s.t || 'ללא שעה');
+    const noteText = (s.nt || s.n || '').trim();
+    const actDate = s.d || ds;
+    
+    let datePrefix = '';
+    if (isWeek && s.d) {
+      const itemD = _cs2d(s.d);
+      datePrefix = `📅 ${_DAYS_HE[itemD.getDay()]} ${itemD.getDate()}/${itemD.getMonth()+1} · `;
+    }
+
+    let postponeDetail = '';
+    if (s.pd) {
+      const pdFormatted = typeof window.fD === 'function' ? window.fD(s.pd) : s.pd;
+      postponeDetail = `נדחה לתאריך: ${pdFormatted}`;
+    } else if (s._postFrom) {
+      const pfFormatted = typeof window.fD === 'function' ? window.fD(s._postFrom) : s._postFrom;
+      postponeDetail = `נדחה מתאריך: ${pfFormatted}`;
+    }
+
+    cardsHtml += `
+      <div style="background:#fff; border:1px solid #e2e8f0; border-right:4px solid ${info.borderColor}; border-radius:8px; padding:10px 12px; margin-bottom:8px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="background:${info.badgeBg}; color:${info.badgeColor}; border:1px solid ${info.badgeBorder}; border-radius:6px; padding:2px 8px; font-weight:800; font-size:0.75rem;">
+              ${info.icon} ${info.label}
+            </span>
+            <span style="font-weight:800; font-size:0.88rem; color:#0f172a;">
+              🏫 ${g.name} ${g.city ? `<span style="font-weight:600; color:#64748b; font-size:0.78rem;">(${g.city})</span>` : ''}
+            </span>
+            <span style="font-size:0.78rem; font-weight:700; color:#475569;">
+              ${datePrefix}⏰ ${timeStr}
+            </span>
+          </div>
+          <div>
+            <button class="btn bg bsm coord-msg-btn" style="background:#25d366 !important; color:#fff !important; border:none !important; height:24px !important; line-height:24px !important; padding:0 8px !important; font-size:0.68rem !important; font-weight:700 !important; border-radius:4px !important; display:inline-flex !important; align-items:center !important; gap:2px !important; cursor:pointer;" onclick="event.stopPropagation(); window._exportPairWA([${s.g}], false, ${s.g}, '${actDate}')">📱 הודעה</button>
+          </div>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:12px; font-size:0.78rem; color:#334155; line-height:1.4;">
+          <div>👤 <b>ספק:</b> ${supBase} ${phone ? `<span style="color:#16a34a; font-weight:600; margin-right:4px;">(📞 ${phone})</span>` : ''}</div>
+          <div>🎨 <b>פעילות:</b> ${supAct}</div>
+          ${postponeDetail ? `<div style="color:#d97706; font-weight:700;">🕒 ${postponeDetail}</div>` : ''}
+        </div>
+        ${noteText ? `<div style="margin-top:6px; font-size:0.76rem; color:#b91c1c; background:#fff5f5; border:1px dashed #fca5a5; border-radius:6px; padding:4px 8px; font-weight:600;">📝 סיבה / הערה: ${noteText}</div>` : ''}
+      </div>
+    `;
+  });
+
+  return `
+    <details class="coord-exceptions-accordion" open style="background:#fff; border:1.5px solid #f87171; border-radius:10px; margin-bottom:14px; overflow:hidden; box-shadow:0 3px 10px rgba(239,68,68,0.08);">
+      <summary style="background:linear-gradient(135deg, #fef2f2, #fee2e2); padding:10px 14px; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #fecaca; user-select:none;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span style="font-size:1.15rem">⚠️</span>
+          <span style="font-weight:800; font-size:0.92rem; color:#991b1b;">${titleText}</span>
+          <div style="display:flex; gap:6px;">
+            ${missedCount ? `<span style="background:#fff; color:#b91c1c; border:1px solid #fca5a5; border-radius:12px; padding:2px 8px; font-size:0.72rem; font-weight:800">⚠️ ${missedCount} אי-קיום / ביטול</span>` : ''}
+            ${makeupsCount ? `<span style="background:#fff; color:#15803d; border:1px solid #86efac; border-radius:12px; padding:2px 8px; font-size:0.72rem; font-weight:800">🔄 ${makeupsCount} השלמות</span>` : ''}
+          </div>
+        </div>
+        <span style="font-size:0.72rem; color:#991b1b; font-weight:700;">▼ פתח/סגור</span>
+      </summary>
+      <div style="padding:10px 12px; background:#fafafa;">
+        ${cardsHtml}
+      </div>
+    </details>
+  `;
+}
+
 function _coordFallbackDay(evs, ds) {
   const cd = _cs2d(ds);
   const prevD = new Date(cd); prevD.setDate(cd.getDate() - 1);
@@ -856,7 +1008,7 @@ function _coordFallbackDay(evs, ds) {
       </div>
     </div>`;
   }
-  return dayNavBar + _coordRenderByCity(dayEvs, ds);
+  return dayNavBar + _coordRenderExceptionsBox(dayEvs, ds, false) + _coordRenderByCity(dayEvs, ds);
 }
 
 function _coordFallbackWeek(evs, cd) {
@@ -907,7 +1059,8 @@ function _coordFallbackWeek(evs, cd) {
     </div>`;
   }
 
-  return daysHtml;
+  const weekExceptionsBox = _coordRenderExceptionsBox(evs, '', true);
+  return weekExceptionsBox + daysHtml;
 }
 
 function _coordFallbackMonth(evs, cd) {
