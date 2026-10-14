@@ -326,6 +326,7 @@ window.activateCoordinatorApp = function() {
       /* ── Modal overlay stacking above coordinator view ── */
       #exm { z-index: 100050 !important; }
       #exm.open { z-index: 100050 !important; display: flex !important; }
+      #exm #ex-print-btn, #exm.coord-field-mode #ex-print-btn { display: none !important; }
       #toast-msg, #copy-toast { z-index: 100060 !important; }
       .coord-exceptions-accordion summary::-webkit-details-marker { display:none !important; }
       .coord-exceptions-accordion summary { list-style:none !important; }

@@ -1674,6 +1674,38 @@ function _exportPairWA(gids, isM, singleGid, targetDate){
 }
 window._exportPairWA = _exportPairWA;
 
+window.setupExmFieldMode = function() {
+  const isFieldUser = !!(window.permCoord || ['coordinator', 'manager', 'vp'].includes(window.role) || document.body.classList.contains('coordinator-mode') || (document.getElementById('coordinator-app-root') && document.getElementById('coordinator-app-root').style.display !== 'none') || (document.getElementById('coordinator-app-container') && document.getElementById('coordinator-app-container').style.display !== 'none'));
+  const adminControls = document.getElementById('ex-admin-controls');
+  if (adminControls) {
+    adminControls.style.display = isFieldUser ? 'none' : '';
+  }
+  const printBtn = document.getElementById('ex-print-btn');
+  if (printBtn) {
+    printBtn.style.setProperty('display', isFieldUser ? 'none' : '', 'important');
+  }
+  const exm = document.getElementById('exm');
+  if (exm) {
+    if (isFieldUser) exm.classList.add('coord-field-mode');
+    else exm.classList.remove('coord-field-mode');
+  }
+  if (isFieldUser) {
+    const incFreeDaysCb = document.getElementById('ex-inc-free-days');
+    if (incFreeDaysCb) incFreeDaysCb.checked = false;
+    const incCoordCb = document.getElementById('ex-inc-coord');
+    if (incCoordCb) incCoordCb.checked = true;
+    const incPairCb = document.getElementById('ex-inc-pair');
+    if (incPairCb) incPairCb.checked = true;
+    const splitMsgCb = document.getElementById('ex-split-msg');
+    if (splitMsgCb) splitMsgCb.checked = false;
+    const typeFltEl = document.getElementById('ex-type-flt');
+    if (typeFltEl) typeFltEl.value = 'all';
+    const fmtEl = document.getElementById('ex-fmt');
+    if (fmtEl) fmtEl.value = 'full';
+  }
+  return isFieldUser;
+};
+
 function openExportForEvents(eventIds) {
   if (!eventIds || eventIds.length === 0) return;
   const acts = eventIds.map(id => window.SCH.find(x => String(x.id) === String(id))).filter(Boolean);
@@ -1866,24 +1898,8 @@ function openExport(){
   if(gids&&gids.length) ctx+=` | גנים: ${gids.map(id=>G(id).name||'').join(' + ')}`;
   (document.getElementById('ex-ctx')||{}).textContent =ctx;
 
-  const isFieldUser = !!(window.permCoord || ['coordinator', 'manager', 'vp'].includes(window.role) || document.body.classList.contains('coordinator-mode') || (document.getElementById('coordinator-app-root') && document.getElementById('coordinator-app-root').style.display !== 'none') || (document.getElementById('coordinator-app-container') && document.getElementById('coordinator-app-container').style.display !== 'none'));
-  const adminControls = document.getElementById('ex-admin-controls');
-  if (adminControls) {
-    adminControls.style.display = isFieldUser ? 'none' : '';
-  }
-  if (isFieldUser) {
-    const incFreeDaysCb = document.getElementById('ex-inc-free-days');
-    if (incFreeDaysCb) incFreeDaysCb.checked = true;
-    const incCoordCb = document.getElementById('ex-inc-coord');
-    if (incCoordCb) incCoordCb.checked = true;
-    const incPairCb = document.getElementById('ex-inc-pair');
-    if (incPairCb) incPairCb.checked = true;
-    const splitMsgCb = document.getElementById('ex-split-msg');
-    if (splitMsgCb) splitMsgCb.checked = false;
-    const typeFltEl = document.getElementById('ex-type-flt');
-    if (typeFltEl) typeFltEl.value = 'all';
-    const fmtEl = document.getElementById('ex-fmt');
-    if (fmtEl) fmtEl.value = 'full';
+  if (typeof window.setupExmFieldMode === 'function') {
+    window.setupExmFieldMode();
   }
 
   document.getElementById('exm').classList.add('open');
@@ -2235,7 +2251,8 @@ function genExport(){
   };
 
   const incCoord = document.getElementById('ex-inc-coord') && document.getElementById('ex-inc-coord').checked;
-  const incFreeDays = document.getElementById('ex-inc-free-days') && document.getElementById('ex-inc-free-days').checked;
+  const isFieldUser = !!(window.permCoord || ['coordinator', 'manager', 'vp'].includes(window.role) || document.body.classList.contains('coordinator-mode') || (document.getElementById('coordinator-app-root') && document.getElementById('coordinator-app-root').style.display !== 'none') || (document.getElementById('coordinator-app-container') && document.getElementById('coordinator-app-container').style.display !== 'none'));
+  const incFreeDays = !isFieldUser && document.getElementById('ex-inc-free-days') && document.getElementById('ex-inc-free-days').checked;
   const getCoordStr = (gid) => {
     if (!incCoord) return '';
     const ci = typeof window.getGardenCoordinator === 'function' ? window.getGardenCoordinator(gid) : null;
