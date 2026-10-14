@@ -503,7 +503,7 @@ window.coordUpdateGardenLabel = function() {
     return; 
   }
   const names = Array.from(checked).map(cb => {
-    const allGardens = [...(window.GARDENS||[]),...(window._GARDENS_EXTRA||[])];
+    const allGardens = _coordGetAllGardens();
     const g = allGardens.find(x => Number(x.id) === Number(cb.value));
     return g?.name || cb.value;
   });
@@ -888,60 +888,68 @@ function _coordRenderExceptionsBox(evs, ds, isWeek = false) {
   const makeupsCount = items.filter(x => x.info.type === 'makeup' || x.info.type === 'advance' || x.info.type === 'shift').length;
   const titleText = isWeek ? `שינויים והשלמות בשבוע זה (${items.length})` : `שינויים והשלמות להיום (${items.length})`;
 
+  // Group exception activities into pairs (identical format to regular schedule)
+  const redClr = { solid: '#dc2626', light: '#fef2f2', border: '#fca5a5' };
   let cardsHtml = '';
-  items.forEach(({ s, g, info }) => {
-    const supBase = typeof window.supBase === 'function' ? window.supBase(s.a) : (s.a || '');
-    const supAct = typeof window.supAct === 'function' ? window.supAct(s.a) : (s.act || '');
-    const phone = typeof window.getSupPhone === 'function' ? window.getSupPhone(supBase) : '';
-    const timeStr = typeof window.fT === 'function' ? window.fT(s.t) : (s.t || 'ללא שעה');
-    const noteText = (s.nt || s.n || '').trim();
-    const actDate = s.d || ds;
-    
-    let datePrefix = '';
-    if (isWeek && s.d) {
-      const itemD = _cs2d(s.d);
-      datePrefix = `📅 ${_DAYS_HE[itemD.getDay()]} ${itemD.getDate()}/${itemD.getMonth()+1} · `;
-    }
 
-    let postponeDetail = '';
-    if (s.pd) {
-      const pdFormatted = typeof window.fD === 'function' ? window.fD(s.pd) : s.pd;
-      postponeDetail = `נדחה לתאריך: ${pdFormatted}`;
-    } else if (s._postFrom) {
-      const pfFormatted = typeof window.fD === 'function' ? window.fD(s._postFrom) : s._postFrom;
-      postponeDetail = `נדחה מתאריך: ${pfFormatted}`;
-    }
+  const prs = (typeof window.getPairs === 'function' ? window.getPairs(ds, ds) : null) || window.pairs || [];
+  const groupSource = (prs || []).map(p => ({
+    id: p.id,
+    name: p.name || (p.ids || []).map(id => (window.G(id)||{}).name || '').filter(Boolean).join(' + '),
+    ids: (p.ids || []).map(Number)
+  }));
 
-    cardsHtml += `
-      <div style="background:#fff; border:1px solid #e2e8f0; border-right:4px solid ${info.borderColor}; border-radius:8px; padding:10px 12px; margin-bottom:8px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
-          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <span style="background:${info.badgeBg}; color:${info.badgeColor}; border:1px solid ${info.badgeBorder}; border-radius:6px; padding:2px 8px; font-weight:800; font-size:0.75rem;">
-              ${info.icon} ${info.label}
-            </span>
-            <span style="font-weight:800; font-size:0.88rem; color:#0f172a;">
-              🏫 ${g.name} ${g.city ? `<span style="font-weight:600; color:#64748b; font-size:0.78rem;">(${g.city})</span>` : ''}
-            </span>
-            <span style="font-size:0.78rem; font-weight:700; color:#475569;">
-              ${datePrefix}⏰ ${timeStr}
-            </span>
-          </div>
-          <div>
-            <button class="btn bg bsm coord-msg-btn" style="background:#25d366 !important; color:#fff !important; border:none !important; height:24px !important; line-height:24px !important; padding:0 8px !important; font-size:0.68rem !important; font-weight:700 !important; border-radius:4px !important; display:inline-flex !important; align-items:center !important; gap:2px !important; cursor:pointer;" onclick="event.stopPropagation(); window._exportPairWA([${s.g}], false, ${s.g}, '${actDate}')">📱 הודעה</button>
-          </div>
-        </div>
-        <div style="display:flex; flex-wrap:wrap; gap:12px; font-size:0.78rem; color:#334155; line-height:1.4;">
-          <div>👤 <b>ספק:</b> ${supBase} ${phone ? `<span style="color:#16a34a; font-weight:600; margin-right:4px;">(📞 ${phone})</span>` : ''}</div>
-          <div>🎨 <b>פעילות:</b> ${supAct}</div>
-          ${postponeDetail ? `<div style="color:#d97706; font-weight:700;">🕒 ${postponeDetail}</div>` : ''}
-        </div>
-        ${noteText ? `<div style="margin-top:6px; font-size:0.76rem; color:#b91c1c; background:#fff5f5; border:1px dashed #fca5a5; border-radius:6px; padding:4px 8px; font-weight:600;">📝 סיבה / הערה: ${noteText}</div>` : ''}
-      </div>
-    `;
+  const pairedGids = new Set();
+  const pairBlocks = [];
+
+  groupSource.forEach(grp => {
+    const pe = items.map(x => x.s).filter(s => grp.ids.includes(Number(s.g)));
+    if (!pe.length) return;
+    grp.ids.forEach(id => pairedGids.add(Number(id)));
+    pairBlocks.push({ pair: grp, pe });
   });
+  pairBlocks.sort((a,b) => (a.pair.name||'').localeCompare(b.pair.name||'', 'he', { numeric: true }));
+
+  if (window.ui && typeof window.ui.renderStandardPairCard === 'function') {
+    // 1. Grouped pair cards in red
+    pairBlocks.forEach(({ pair, pe }) => {
+      const targetDate = ds || (pe[0] ? pe[0].d : '');
+      cardsHtml += `<div style="margin-bottom:8px">` + window.ui.renderStandardPairCard(pair, pe, {
+        ds: targetDate,
+        clr: redClr,
+        context: 'cal',
+        defaultOpen: true
+      }) + `</div>`;
+    });
+
+    // 2. Solo gardens (not in any pair)
+    const soloMap = {};
+    items.map(x => x.s).filter(s => !pairedGids.has(Number(s.g))).forEach(s => {
+      const gid = Number(s.g);
+      if (!soloMap[gid]) soloMap[gid] = [];
+      soloMap[gid].push(s);
+    });
+    Object.keys(soloMap).sort((a,b) => {
+      const na = (allGardens.find(x => Number(x.id) === Number(a))?.name || '');
+      const nb = (allGardens.find(x => Number(x.id) === Number(b))?.name || '');
+      return na.localeCompare(nb, 'he', { numeric: true });
+    }).forEach(gid => {
+      const g = allGardens.find(x => Number(x.id) === Number(gid));
+      if (!g) return;
+      const gEvs = soloMap[gid];
+      const targetDate = ds || (gEvs[0] ? gEvs[0].d : '');
+      cardsHtml += `<div style="margin-bottom:8px">` + window.ui.renderStandardPairCard({ id: 'solo_' + gid, name: g.name, ids: [Number(gid)] }, gEvs, {
+        ds: targetDate,
+        clr: redClr,
+        context: 'cal',
+        isSolo: true,
+        defaultOpen: true
+      }) + `</div>`;
+    });
+  }
 
   return `
-    <details class="coord-exceptions-accordion" open style="background:#fff; border:1.5px solid #f87171; border-radius:10px; margin-bottom:14px; overflow:hidden; box-shadow:0 3px 10px rgba(239,68,68,0.08);">
+    <details class="coord-exceptions-accordion" style="background:#fff; border:1.5px solid #f87171; border-radius:10px; margin-bottom:14px; overflow:hidden; box-shadow:0 3px 10px rgba(239,68,68,0.08);">
       <summary style="background:linear-gradient(135deg, #fef2f2, #fee2e2); padding:10px 14px; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #fecaca; user-select:none;">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <span style="font-size:1.15rem">⚠️</span>
