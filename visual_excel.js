@@ -113,13 +113,21 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
   const fromDate = `${year}-${String(month).padStart(2,'0')}-01`;
   const toDate = `${year}-${String(month).padStart(2,'0')}-${String(daysInMonth).padStart(2,'0')}`;
 
+  // Helper to detect makeup / rescheduled event
+  function isMakeupEv(s) {
+    if (!s) return false;
+    if (s._isMakeup || s._makeupFrom || s._postFrom) return true;
+    const isMText = (str) => str && /השלמה|הוקדם מ|נדחה מ|הוזז מ|עבר מ|עובר מ|הועבר מ/i.test(str) && !str.includes('השלמה נקבעה ל-');
+    return !!(isMText(s.nt) || isMText(s.n) || isMText(s.a));
+  }
+
   // Compute regular clubs using fixed schedule (from core_dash.js) with month boundary
   const fixedSched = typeof window.getGardenFixedSched === 'function' ? (window.getGardenFixedSched(g.id, fromDate, toDate) || []) : [];
   const regularClubs = [];
   const daysHe = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
 
   function addClubToRegular(s) {
-    if (!s) return;
+    if (!s || isMakeupEv(s)) return;
     let actName = s.act || (typeof window.supAct === 'function' ? window.supAct(s.a) : '');
     if (!actName) actName = 'פעילות';
 
@@ -146,23 +154,90 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
     const dow = s.d ? new Date(s.d).getDay() : 0;
     const dayStr = 'יום ' + (daysHe[dow] || 'ראשון');
     const timeStr = s.t ? s.t.slice(0,5) : '';
+    const baseA = window.supBase ? window.supBase(s.a) : s.a;
+
+    // Check occurrences in this month (excluding makeups)
+    const occsInMonth = (gEvs || []).filter(ev => 
+      (!ev.st || ev.st === 'ok') && 
+      !isMakeupEv(ev) &&
+      (window.supBase ? window.supBase(ev.a) === baseA : ev.a === s.a)
+    ).length;
+
+    // Check future occurrences after this month
+    const hasFutureAfterMonth = (window.SCH || []).some(ev => 
+      Number(ev.g) === Number(g.id) && 
+      ev.d > toDate && 
+      (!ev.st || ev.st === 'ok') &&
+      !isMakeupEv(ev) &&
+      (window.supBase ? window.supBase(ev.a) === baseA : ev.a === s.a)
+    );
+
+    // Filter out one-time activities that do not repeat and have no future schedule
+    const hasEventsInMonth = (gEvs || []).length > 0;
+    if (hasEventsInMonth) {
+      const isRegularFrequency = occsInMonth >= 2 || (occsInMonth >= 1 && hasFutureAfterMonth);
+      if (!isRegularFrequency) {
+        return;
+      }
+    }
+
+    // Check if regularClubs already has this supplier base - NEVER create duplicate cards for the same supplier
+    const existingIdx = regularClubs.findIndex(c => 
+      c.supplierId && baseA && (
+        (window.supBase ? window.supBase(c.supplierId) === baseA : c.supplierId === s.a) ||
+        (cleanSupName && c.supName && cleanSupName === c.supName)
+      )
+    );
+
+    if (existingIdx >= 0) {
+      const existingClub = regularClubs[existingIdx];
+      // Compare occurrences on s's day of week vs existing club's day of week to find dominant regular day
+      const thisDayCount = (gEvs || []).filter(ev => 
+        (!ev.st || ev.st === 'ok') && 
+        !isMakeupEv(ev) && 
+        (window.supBase ? window.supBase(ev.a) === baseA : ev.a === s.a) && 
+        new Date(ev.d).getDay() === dow
+      ).length;
+
+      const existingDow = daysHe.findIndex(dh => existingClub.dayStr === 'יום ' + dh);
+      const existingDayCount = (gEvs || []).filter(ev => 
+        (!ev.st || ev.st === 'ok') && 
+        !isMakeupEv(ev) && 
+        (window.supBase ? window.supBase(ev.a) === baseA : ev.a === s.a) && 
+        new Date(ev.d).getDay() === existingDow
+      ).length;
+
+      if (thisDayCount > existingDayCount) {
+        const sEx = (window.supEx && (window.supEx[baseA] || window.supEx[s.a])) || {};
+        const flexNote = s.flexNote || (sEx.flexSched ? (sEx.flexNote || 'הימים והשעות עלולים להשתנות') : '');
+        regularClubs[existingIdx] = {
+          name: actName,
+          supName: cleanSupName !== actName ? cleanSupName : '',
+          dayStr: dayStr,
+          timeStr: timeStr,
+          phone: phone,
+          supplierId: s.a || '',
+          flexNote: flexNote,
+          tp: s.tp || ''
+        };
+      }
+      return;
+    }
 
     // If another club already exists for this day of the week, check if this candidate ended earlier
     const sameDayClub = regularClubs.find(c => c.dayStr === dayStr);
     if (sameDayClub) {
-      const thisMaxDate = (gEvs || []).filter(ev => (!ev.st || ev.st === 'ok') && (window.supBase ? window.supBase(ev.a) === window.supBase(s.a) : ev.a === s.a)).reduce((max, ev) => ev.d > max ? ev.d : max, s.d || '');
+      const thisMaxDate = (gEvs || []).filter(ev => (!ev.st || ev.st === 'ok') && (window.supBase ? window.supBase(ev.a) === baseA : ev.a === s.a)).reduce((max, ev) => ev.d > max ? ev.d : max, s.d || '');
       const existingMaxDate = (gEvs || []).filter(ev => (!ev.st || ev.st === 'ok') && (window.supBase ? window.supBase(ev.a) === window.supBase(sameDayClub.supplierId) : ev.a === sameDayClub.supplierId)).reduce((max, ev) => ev.d > max ? ev.d : max, '');
       if (thisMaxDate < existingMaxDate) return;
     }
 
-    // Check duplicate by supplier + activity name OR by same activity on same day/time
+    // Check duplicate by activity name on same day/time
     const isDup = regularClubs.some(c => 
-      (c.supplierId && s.a && c.supplierId === s.a && (c.name === actName || !s.act)) ||
       (c.name === actName && c.dayStr === dayStr && (!timeStr || c.timeStr === timeStr))
     );
     if (isDup) return;
 
-    const baseA = window.supBase ? window.supBase(s.a) : s.a;
     const sEx = (window.supEx && (window.supEx[baseA] || window.supEx[s.a])) || {};
     const flexNote = s.flexNote || (sEx.flexSched ? (sEx.flexNote || 'הימים והשעות עלולים להשתנות') : '');
 
@@ -180,8 +255,10 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
 
   // 1. Filter discontinued series from fixedSched that were replaced on the same day of the week
   const activeFixedSched = fixedSched.filter(s => {
+    if (isMakeupEv(s)) return false;
+
     const dow = s.d ? new Date(s.d).getDay() : 0;
-    const sameDowClubs = fixedSched.filter(o => o !== s && o.d && new Date(o.d).getDay() === dow);
+    const sameDowClubs = fixedSched.filter(o => o !== s && !isMakeupEv(o) && o.d && new Date(o.d).getDay() === dow);
     if (sameDowClubs.length > 0) {
       // Check if another club on this day has later occurrences in the month
       const hasLaterOnSameDay = sameDowClubs.some(o => o.d > s.d);
@@ -191,12 +268,14 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
         Number(ev.g) === Number(g.id) && 
         ev.d > toDate && 
         (!ev.st || ev.st === 'ok') &&
+        !isMakeupEv(ev) &&
         (s._recId ? ev._recId === s._recId : (window.supBase ? window.supBase(ev.a) === window.supBase(s.a) : ev.a === s.a))
       );
 
       // Check occurrences in this month
       const monthOccurrences = (gEvs || []).filter(ev => 
         (!ev.st || ev.st === 'ok') &&
+        !isMakeupEv(ev) &&
         (s._recId ? ev._recId === s._recId : (window.supBase ? window.supBase(ev.a) === window.supBase(s.a) : ev.a === s.a))
       ).length;
 
@@ -221,7 +300,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
 
   // 2. Also inspect gEvs for any additional active clubs in this month (up to 3)
   if (regularClubs.length < 3 && Array.isArray(gEvs)) {
-    const validEvs = gEvs.filter(s => (!s.st || s.st === 'ok')).sort((a, b) => (b.d || '').localeCompare(a.d || ''));
+    const validEvs = gEvs.filter(s => (!s.st || s.st === 'ok') && !isMakeupEv(s)).sort((a, b) => (b.d || '').localeCompare(a.d || ''));
     validEvs.forEach(s => {
       if (regularClubs.length < 3) {
         addClubToRegular(s);
@@ -350,13 +429,33 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
           if (!actName && typeof window.supAct === 'function') actName = window.supAct(ev.a);
           if (!actName) actName = 'פעילות';
 
+          const evBase = window.supBase ? window.supBase(ev.a) : ev.a;
+          const isMakeup = isMakeupEv(ev);
+
           const clubIdx = regularClubsList.findIndex(rc => 
-            (rc.supplierId && ev.a && rc.supplierId === ev.a) ||
+            (rc.supplierId && ev.a && (rc.supplierId === ev.a || (window.supBase && window.supBase(rc.supplierId) === evBase))) ||
             (rc.name === actName)
           );
-          const isRegular = clubIdx >= 0;
-          const pillColor = isRegular ? CARD_BORDER[clubIdx] : '#312e81';
-          const pillBg = isRegular ? CARD_BG[clubIdx] : '#eef2ff';
+          const isRegular = !isMakeup && clubIdx >= 0;
+
+          // Check if one-time activity (not makeup, not in regular clubs, occurs <= 1 in month without future recurrence)
+          const totalOccsInMonth = (gEvs || []).filter(e => (!e.st || e.st === 'ok') && !isMakeupEv(e) && (window.supBase ? window.supBase(e.a) === evBase : e.a === ev.a)).length;
+          const hasFuture = (window.SCH || []).some(e => Number(e.g) === Number(g.id) && e.d > toDate && (!e.st || e.st === 'ok') && !isMakeupEv(e) && (window.supBase ? window.supBase(e.a) === evBase : e.a === ev.a));
+          const isOneTime = !isMakeup && !isRegular && totalOccsInMonth <= 1 && !hasFuture && !ev._recId;
+
+          let pillColor = isRegular ? CARD_BORDER[clubIdx] : '#312e81';
+          let pillBg = isRegular ? CARD_BG[clubIdx] : '#eef2ff';
+
+          let badgeHtml = '';
+          if (isMakeup) {
+            pillColor = '#92400e';
+            pillBg = '#fef3c7';
+            badgeHtml = `<div style="margin-bottom:2px;"><span style="background:#fffbeb; color:#b45309; border:1px solid #f59e0b; padding:1px 5px; border-radius:4px; font-size:9.5px; font-weight:800; display:inline-block;">🔄 השלמה</span></div>`;
+          } else if (isOneTime) {
+            pillColor = '#6b21a8';
+            pillBg = '#f5f3ff';
+            badgeHtml = `<div style="margin-bottom:2px;"><span style="background:#ede9fe; color:#6b21a8; border:1px solid #c084fc; padding:1px 5px; border-radius:4px; font-size:9.5px; font-weight:800; display:inline-block;">⭐ חד-פעמי</span></div>`;
+          }
 
           let cleanSupName = '';
           let supPhone = '';
@@ -373,8 +472,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
             }
           }
           
-          let pillText = `${ev.t ? '(' + ev.t + ') ' : ''}${cleanSupName && cleanSupName !== actName ? _esc(cleanSupName) + ' - ' : ''}${_esc(actName)}`;
-          const evBase = window.supBase ? window.supBase(ev.a) : ev.a;
+          let pillText = `${badgeHtml}${ev.t ? '(' + ev.t + ') ' : ''}${cleanSupName && cleanSupName !== actName ? _esc(cleanSupName) + ' - ' : ''}${_esc(actName)}`;
           const evEx = (window.supEx && (window.supEx[evBase] || window.supEx[ev.a])) || {};
           const evFlexNote = ev.flexNote || (evEx.flexSched ? (evEx.flexNote || 'הימים והשעות עלולים להשתנות') : '');
           if (evFlexNote) {
@@ -384,7 +482,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
               pillText += `<br><span style="font-size:9.5px; font-weight:700;">📞 ${_esc(supPhone)}</span>`;
           }
 
-          cellContent += `<div class="vp-event-pill" style="background:${pillBg}; color:${pillColor}; border:1px solid ${pillColor}20;">${pillText}</div>`;
+          cellContent += `<div class="vp-event-pill" style="background:${pillBg}; color:${pillColor}; border:1px solid ${pillColor}33;">${pillText}</div>`;
         });
       }
 
