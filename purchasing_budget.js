@@ -17,7 +17,7 @@ window.budgetApp = {
 
   getSchools() {
     const schools = new Set();
-    const gAll = window._GARDENS_ALL || window.GARDENS || [];
+    const gAll = typeof AG === 'function' ? AG() : (window._GARDENS_ALL || window.GARDENS || []);
     gAll.forEach(g => {
       if (g.cls === 'ביה"ס' && g.name) schools.add(g.name.trim());
     });

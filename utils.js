@@ -248,7 +248,7 @@ window.getGardenCoordinator = function(gid) {
   if (isNaN(numGid)) return null;
 
   const allGardens = (typeof window.getAllGardens === 'function' ? window.getAllGardens() : null) ||
-                     [...(window.GARDENS || []), ...(window._GARDENS_EXTRA || [])];
+                     (typeof AG === 'function' ? AG() : (window.GARDENS || []));
   const g = (typeof window.G === 'function' ? window.G(numGid) : null) || allGardens.find(x => Number(x.id) === numGid);
 
   const managersList = (window.managers && typeof window.managers === 'object') ? Object.values(window.managers) : [];
