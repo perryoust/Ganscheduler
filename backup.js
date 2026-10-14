@@ -239,26 +239,30 @@ function exportFullBackup(){
   const a=document.createElement('a');
   const now=new Date();
   const timeStr=now.getHours().toString().padStart(2,'0')+'-'+now.getMinutes().toString().padStart(2,'0');
-  a.href=url;a.download='גיבוי_מנהל_גנים_'+td()+'_'+timeStr+'.json';
+  const ver = window.APP_VERSION || '5.0';
+  a.href=url;a.download=`גיבוי_מנהל_גנים_v${ver}_${td()}_${timeStr}.json`;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
 function downloadSystemZip(){
-  if(window.showCopyToast) window.showCopyToast('📦 מוריד קובץ ZIP של הקוד וקובץ JSON של הנתונים...');
-  else if(window.showToast) window.showToast('📦 מוריד קובץ ZIP של הקוד וקובץ JSON של הנתונים...');
+  const ver = window.APP_VERSION || '5.0';
+  if(window.showCopyToast) window.showCopyToast(`📦 מוריד קוד מערכת (ZIP) וקובץ נתוני JSON לגרסה v${ver}...`);
+  else if(window.showToast) window.showToast(`📦 מוריד קוד מערכת (ZIP) וקובץ נתוני JSON לגרסה v${ver}...`);
   
   // Download the ZIP (Code)
   const a = document.createElement('a');
   a.href = 'https://github.com/perryoust/Ganscheduler/archive/refs/heads/main.zip';
-  a.download = `Ganscheduler_System_v${window.APP_VERSION || ''}.zip`;
+  a.download = `Ganscheduler_System_v${ver}.zip`;
   a.target = '_blank';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
 
-  // Also download the JSON Data automatically!
+  // Also download the JSON Data automatically with version tag!
   setTimeout(() => {
-    if (typeof window.exportData === 'function') {
+    if (typeof window.exportFullBackup === 'function') {
+      window.exportFullBackup();
+    } else if (typeof window.exportData === 'function') {
       window.exportData();
     }
   }, 1000);

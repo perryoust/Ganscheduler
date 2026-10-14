@@ -3838,14 +3838,15 @@ function mobNavPurch(btn){
 
 // ─── Data backup / restore ────────────────────────────
 function exportData(){
+  const ver = window.APP_VERSION || '5.0';
   const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpaz');
   const data=_safeLS.getItem(yearKey)||_safeLS.getItem('ganv5')||'{}';
   const snaps=_safeLS.getItem('ganv5_snaps')||'[]';
   const todos=_safeLS.getItem('ganv5_todos')||'[]';
-  const blob=new Blob([JSON.stringify({data:JSON.parse(data),snaps:JSON.parse(snaps),todos:JSON.parse(todos),ts:Date.now()},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({data:JSON.parse(data),snaps:JSON.parse(snaps),todos:JSON.parse(todos),ts:Date.now(),v:ver},null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download='kids_backup_'+new Date().toISOString().slice(0,10)+'.json';
+  a.download=`kids_backup_v${ver}_`+new Date().toISOString().slice(0,10)+'.json';
   a.click();
   URL.revokeObjectURL(a.href);
   showToast('✅ גיבוי הורד בהצלחה');
