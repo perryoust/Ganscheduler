@@ -3779,10 +3779,18 @@ function saveNewPlace(){
   // Link to selected manager if chosen
   const selMgrId = document.getElementById('ap-mgr-sel')?.value;
   if (selMgrId && window.managers && window.managers[selMgrId]) {
-    if (!window.managers[selMgrId].gardenIds) window.managers[selMgrId].gardenIds = [];
-    if (!window.managers[selMgrId].gardenIds.includes(newId)) {
-      window.managers[selMgrId].gardenIds.push(newId);
+    const sm = window.managers[selMgrId];
+    if (!sm.gardenIds) sm.gardenIds = [];
+    if (!sm.gardenIds.includes(newId)) {
+      sm.gardenIds.push(newId);
     }
+    if (!newG.co && sm.role !== 'manager' && sm.role !== 'vp') {
+      newG.co = sm.name || '';
+      if (!newG.coph) newG.coph = sm.phone || '';
+    }
+    if (!supEx['g_' + newId]) supEx['g_' + newId] = {};
+    if (newG.co) supEx['g_' + newId].co = newG.co;
+    if (newG.coph) supEx['g_' + newId].coph = newG.coph;
   }
 
   save();

@@ -240,9 +240,9 @@ window.loadScriptAsync = function(url) {
  * Strict priority hierarchy:
  * 1. Dedicated Field Coordinator in window.managers (role !== 'manager' && role !== 'vp') with garden in gardenIds
  * 2. Garden's direct contact (g.co / supEx.co), matched against field coordinators or returned directly
- * 3. Area Manager (role === 'manager' || role === 'vp') ONLY if no field coordinator or g.co exists
+ * 3. Area Manager (role === 'manager' || role === 'vp') ONLY if options?.allowAreaManager is explicitly true
  */
-window.getGardenCoordinator = function(gid) {
+window.getGardenCoordinator = function(gid, options) {
   if (!gid) return null;
   let numGid = typeof gid === 'object' && gid !== null ? Number(gid.id) : Number(gid);
   if (isNaN(numGid)) return null;
@@ -328,31 +328,33 @@ window.getGardenCoordinator = function(gid) {
     };
   }
 
-  // Priority 3: Area Manager (role === 'manager' || role === 'vp') ONLY if no field coordinator or g.co exists
-  const areaMgr = managersList.find(m => {
-    if (!m || !m.gardenIds) return false;
-    let arr = m.gardenIds;
-    if (typeof arr === 'string') arr = arr.split(',');
-    else if (!Array.isArray(arr)) arr = Object.values(arr);
-    return arr.some(x => Number(x) === numGid || String(x).trim() === String(numGid));
-  });
+  // Priority 3: Area Manager (role === 'manager' || role === 'vp') ONLY if explicitly allowed by caller
+  if (options && options.allowAreaManager) {
+    const areaMgr = managersList.find(m => {
+      if (!m || !m.gardenIds) return false;
+      let arr = m.gardenIds;
+      if (typeof arr === 'string') arr = arr.split(',');
+      else if (!Array.isArray(arr)) arr = Object.values(arr);
+      return arr.some(x => Number(x) === numGid || String(x).trim() === String(numGid));
+    });
 
-  if (areaMgr) {
-    const ap = (areaMgr.phone || '').trim();
-    return {
-      id: areaMgr.id,
-      name: (areaMgr.name || '').trim(),
-      phone: ap,
-      fullStr: (areaMgr.name || '').trim() + (ap ? ' - ' + ap : ''),
-      mgr: areaMgr,
-      role: areaMgr.role || 'manager'
-    };
+    if (areaMgr) {
+      const ap = (areaMgr.phone || '').trim();
+      return {
+        id: areaMgr.id,
+        name: (areaMgr.name || '').trim(),
+        phone: ap,
+        fullStr: (areaMgr.name || '').trim() + (ap ? ' - ' + ap : ''),
+        mgr: areaMgr,
+        role: areaMgr.role || 'manager'
+      };
+    }
   }
 
   return null;
 };
 
 window.getGardenMgr = function(gid) {
-  const ci = window.getGardenCoordinator(gid);
+  const ci = window.getGardenCoordinator(gid, { allowAreaManager: true });
   return ci ? (ci.mgr || { id: ci.id || '', name: ci.name, phone: ci.phone, role: ci.role }) : null;
 };

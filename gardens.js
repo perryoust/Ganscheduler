@@ -2249,7 +2249,7 @@ function genExport(){
   const getCoordStr = (gid) => {
     if (!incCoord || isFieldUser) return '';
     const ci = typeof window.getGardenCoordinator === 'function' ? window.getGardenCoordinator(gid) : null;
-    if (ci && ci.name) {
+    if (ci && ci.name && ci.role !== 'manager' && ci.role !== 'vp') {
       const p = (ci.phone || '').trim();
       return ` (רכז/ת: ${ci.name}${p ? ' - ' + p : ''} )`.trimEnd();
     }
