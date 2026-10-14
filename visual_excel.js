@@ -1030,7 +1030,7 @@ function _getStyles(month) {
       min-width: 0;
       overflow: hidden;
     }
-    .vp-day-empty { background: #f8fafc; }
+    .vp-day-empty { background-color: #f4ede2; }
     .vp-day-holiday { background: #fef9c3; }
     .vp-day-camp { background: #e0f2fe; }
     .vp-day-header-row {
