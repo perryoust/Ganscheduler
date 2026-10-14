@@ -53,7 +53,7 @@ window.doVisualExcelExport = async function(format = 'pdf') {
   if (gList.length === 0) { window.spAlert("לא נבחרו גנים / בתי ספר לייצוא"); return; }
   
   const allEvs = window.SCH.filter(s => s.d >= fromDate && s.d <= toDate && (!s.st || s.st === 'ok'));
-  const showPhones = document.getElementById('exp-phones') ? document.getElementById('exp-phones').checked : true;
+  const showPhones = document.getElementById('exp-phones') ? document.getElementById('exp-phones').checked : false;
   const splitMode = document.getElementById('exp-split').value;
   
   const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -144,6 +144,21 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       if (typeof window.getSupPhone === 'function') {
         phone = window.getSupPhone(s.a, s);
       }
+      if (!phone && s.p && String(s.p).trim()) {
+        phone = String(s.p).trim();
+      }
+      if (!phone && Array.isArray(gEvs)) {
+        const evWithPhone = gEvs.find(e => (!e.st || e.st === 'ok') && (window.supBase ? window.supBase(e.a) === baseA : e.a === s.a) && e.p && String(e.p).trim());
+        if (evWithPhone) phone = String(evWithPhone.p).trim();
+      }
+      if (!phone) {
+        const ex = (window.supEx && (window.supEx[baseA] || window.supEx[s.a])) || {};
+        phone = ex.ph1 || ex.ph2 || '';
+      }
+      if (!phone && Array.isArray(window.SUPBASE)) {
+        const sb = window.SUPBASE.find(x => x.name === s.a || (window.supBase && window.supBase(x.name) === baseA));
+        if (sb && sb.phone) phone = sb.phone;
+      }
     }
     
     let cleanSupName = supName;
@@ -154,7 +169,6 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
     const dow = s.d ? new Date(s.d).getDay() : 0;
     const dayStr = 'יום ' + (daysHe[dow] || 'ראשון');
     const timeStr = s.t ? s.t.slice(0,5) : '';
-    const baseA = window.supBase ? window.supBase(s.a) : s.a;
 
     // Check occurrences in this month (excluding makeups)
     const occsInMonth = (gEvs || []).filter(ev => 
@@ -215,11 +229,13 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
           supName: cleanSupName !== actName ? cleanSupName : '',
           dayStr: dayStr,
           timeStr: timeStr,
-          phone: phone,
+          phone: phone || regularClubs[existingIdx].phone || '',
           supplierId: s.a || '',
           flexNote: flexNote,
           tp: s.tp || ''
         };
+      } else if (!regularClubs[existingIdx].phone && phone) {
+        regularClubs[existingIdx].phone = phone;
       }
       return;
     }
@@ -347,7 +363,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
           <h3>${club.supName ? _esc(club.supName) + ' - ' : ''}${_esc(club.name)}</h3>
           <p>📅 ${_esc(club.dayStr)} &nbsp; 🕐 ${_esc(club.timeStr)}</p>
           ${club.flexNote ? `<p style="font-weight:700; color:#0369a1; font-size:11px; margin-top:2px;">ℹ️ ${_esc(club.flexNote)}</p>` : ''}
-          ${showPhones && club.phone ? `<p style="font-weight:700;">📞 ${_esc(club.phone)}</p>` : ''}
+          ${showPhones && club.phone ? `<p style="font-weight:700; color:#1e293b; margin-top:3px; font-size:11.5px;" dir="ltr"><span dir="rtl">📞 </span>${_esc(club.phone)}</p>` : ''}
         </div>`;
     });
     cardsHtml += '</div>';
@@ -470,6 +486,17 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
             if (typeof window.getSupPhone === 'function') {
               supPhone = window.getSupPhone(ev.a, ev);
             }
+            if (!supPhone && ev.p && String(ev.p).trim()) {
+              supPhone = String(ev.p).trim();
+            }
+            if (!supPhone) {
+              const ex = (window.supEx && (window.supEx[evBase] || window.supEx[ev.a])) || {};
+              supPhone = ex.ph1 || ex.ph2 || '';
+            }
+            if (!supPhone && Array.isArray(window.SUPBASE)) {
+              const sb = window.SUPBASE.find(x => x.name === ev.a || (window.supBase && window.supBase(x.name) === evBase));
+              if (sb && sb.phone) supPhone = sb.phone;
+            }
           }
           
           let pillText = `${badgeHtml}${ev.t ? '(' + ev.t + ') ' : ''}${cleanSupName && cleanSupName !== actName ? _esc(cleanSupName) + ' - ' : ''}${_esc(actName)}`;
@@ -479,7 +506,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
               pillText += `<br><span style="font-size:9px; font-weight:700; color:#0369a1;">ℹ️ ${_esc(evFlexNote)}</span>`;
           }
           if (showPhones && supPhone) {
-              pillText += `<br><span style="font-size:9.5px; font-weight:700;">📞 ${_esc(supPhone)}</span>`;
+              pillText += `<br><span style="font-size:9.5px; font-weight:700;" dir="ltr"><span dir="rtl">📞 </span>${_esc(supPhone)}</span>`;
           }
 
           cellContent += `<div class="vp-event-pill" style="background:${pillBg}; color:${pillColor}; border:1px solid ${pillColor}33;">${pillText}</div>`;

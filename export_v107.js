@@ -55,6 +55,8 @@ function openMonthlyExport(){
     });
     updateExportGardenCount();
   }
+  const expPhCb = document.getElementById('exp-phones');
+  if (expPhCb) expPhCb.checked = false;
   document.getElementById('export-m').classList.add('open');
 }
 
