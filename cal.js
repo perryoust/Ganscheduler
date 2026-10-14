@@ -403,11 +403,35 @@ window.calRefCity = function() {
 };
 
 window.calRefSup = function() {
-  const fromSch = (window.SCH || []).map(s => window.supBase ? window.supBase(s.a) : s.a);
-  const getSupFn = window.getAllSup || (typeof getAllSup === 'function' ? getAllSup : null);
-  const fromAllSup = (getSupFn ? getSupFn() : (window.SUPBASE || [])).map(s => window.supBase ? window.supBase(s.name) : s.name);
-  const sups = [...new Set([...fromSch, ...fromAllSup])].filter(Boolean);
+  // 1. All activity suppliers with scheduled events in the system
+  const fromSch = (window.SCH || []).map(s => window.supBase ? window.supBase(s.a) : s.a).filter(Boolean);
 
+  // 2. Official master activity suppliers (SUPBASE - includes אנגלית לחיים)
+  const fromSupbase = (window.SUPBASE || []).map(s => window.supBase ? window.supBase(s.name) : s.name).filter(Boolean);
+
+  // 3. Custom activity suppliers explicitly marked isAct === true
+  const customAct = ((window.supEx && window.supEx['__c']) || [])
+    .filter(s => {
+      const b = window.supBase ? window.supBase(s.name) : s.name;
+      const ex = (window.supEx && (window.supEx[s.name] || window.supEx[b])) || {};
+      return ex.isAct === true;
+    })
+    .map(s => window.supBase ? window.supBase(s.name) : s.name);
+
+  // Combine and deduplicate
+  const allCandidates = [...new Set([...fromSch, ...fromSupbase, ...customAct])].filter(Boolean);
+
+  // Filter out any supplier explicitly marked as non-activity (isAct === false)
+  const sups = allCandidates.filter(name => {
+    if (typeof window.supEx !== 'undefined' && window.supEx) {
+      const b = window.supBase ? window.supBase(name) : name;
+      const ex = window.supEx[name] || window.supEx[b] || {};
+      if (ex.isAct === false) return false;
+    }
+    return true;
+  });
+
+  // Sort alphabetically by Hebrew display label
   sups.sort((a, b) => {
     const labelA = window.supNameLabel ? window.supNameLabel(a) : a;
     const labelB = window.supNameLabel ? window.supNameLabel(b) : b;
