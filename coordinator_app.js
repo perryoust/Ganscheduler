@@ -192,6 +192,7 @@ window.initCoordinatorApp = function() {
             <span id="coord-user-name" style="color:#fff;font-weight:700;font-size:0.95rem"></span>
           </div>
           <div style="display:flex;align-items:center;gap:6px">
+            <button class="coord-msg-btn" onclick="window.coordExportCurrentView()" style="background:#25d366;border:none;border-radius:8px;color:#fff;padding:5px 12px;font-size:0.78rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="ייצוא כל פעילויות היום להודעה">📱 הודעה יומית</button>
             <button id="coord-back-admin-btn" onclick="window.closeCoordPreview()" style="display:none;background:#f59e0b;border:none;border-radius:8px;color:#1e293b;padding:5px 11px;font-size:0.78rem;font-weight:800;cursor:pointer">🔙 חזור למערכת</button>
             <button onclick="window.coordRefreshData()" style="background:rgba(255,255,255,0.15);border:none;border-radius:8px;color:white;padding:5px 11px;font-size:0.78rem;cursor:pointer">🔄 רענן</button>
             <button onclick="window.coordLogout()" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;color:#fff;font-size:1.2rem;cursor:pointer;padding:4px 10px;display:inline-flex;align-items:center;justify-content:center" title="התנתק">🚪</button>
@@ -281,13 +282,31 @@ window._coordView        = 'day';
 window._coordGroupMode   = 'pairs';
 
 // ─────────────────────────────────────────────────────────
-// ACTIVATION
+// ACTIVATION & EXPORT VIEW
 // ─────────────────────────────────────────────────────────
+window.coordExportCurrentView = function() {
+  const cd = window._coordCurrentDate || new Date();
+  const ds = _cd2s(cd);
+  let gids = [];
+  _withCoordSCH((coordEvs) => {
+    const dayEvs = coordEvs.filter(s => _normDs(s.d) === _normDs(ds));
+    gids = Array.from(new Set(dayEvs.map(s => Number(s.g)).filter(Boolean)));
+  });
+  if (!gids.length) {
+    if (typeof _coordToast === 'function') _coordToast('אין פעילויות לייצוא בתאריך זה');
+    else alert('אין פעילויות לייצוא בתאריך זה');
+    return;
+  }
+  if (typeof window._exportPairWA === 'function') {
+    window._exportPairWA(gids, false, null, ds);
+  }
+};
+
 window.activateCoordinatorApp = function() {
-  // Remove non-coordinator DOM elements (preserve loading overlay until fade-out)
+  // Remove non-coordinator DOM elements (preserve loading overlay until fade-out, AND modals like #exm / #toast-msg)
   Array.from(document.body.children).forEach(el => {
     const tag = el.tagName.toUpperCase();
-    if (tag !== 'SCRIPT' && tag !== 'STYLE' && tag !== 'LINK' && el.id !== 'coordinator-app-root' && el.id !== 'system-loading-overlay') el.remove();
+    if (tag !== 'SCRIPT' && tag !== 'STYLE' && tag !== 'LINK' && el.id !== 'coordinator-app-root' && el.id !== 'system-loading-overlay' && el.id !== 'exm' && el.id !== 'toast-msg' && el.id !== 'copy-toast') el.remove();
   });
 
   // Inject styles
@@ -296,13 +315,18 @@ window.activateCoordinatorApp = function() {
     s.id = 'coord-styles';
     s.innerHTML = `
       body { margin:0; padding:0; background:#f0f4f8; }
-      /* ── Hide ALL action buttons inside card area, KEEP the +/- collapse button ── */
-      #coord-activities-list button:not([onclick*="getElementById"]):not([onclick*="togglePairCard"]):not(.pair-collapse-btn) { display:none !important; }
+      /* ── Hide edit/shift/cancel action buttons inside card area, KEEP collapse (+/-) and message (הודעה) buttons ── */
+      #coord-activities-list button:not([onclick*="getElementById"]):not([onclick*="togglePairCard"]):not(.pair-collapse-btn):not(.coord-msg-btn):not([onclick*="_export"]):not([onclick*="openExport"]) { display:none !important; }
       #coord-activities-list .cal-pair-bar { display:none !important; }
       #coord-activities-list .card-hdr-row { cursor: pointer !important; min-height: 40px !important; user-select: none; }
       #coord-activities-list .pair-collapse-btn { display: inline-flex !important; }
+      #coord-activities-list .coord-msg-btn { display: inline-flex !important; }
       #coord-activities-list .tw { overflow-x: auto; -webkit-overflow-scrolling: touch; }
       #coord-activities-list table { min-width: 100%; border-collapse: collapse; }
+      /* ── Modal overlay stacking above coordinator view ── */
+      #exm { z-index: 100050 !important; }
+      #exm.open { z-index: 100050 !important; display: flex !important; }
+      #toast-msg, #copy-toast { z-index: 100060 !important; }
       /* ── Garden filter checkboxes ── */
       .coord-g-cb-label { display:flex; align-items:center; gap:6px; color:#fff; font-size:0.78rem; padding:3px 0; cursor:pointer; }
       .coord-g-city-hdr { color:rgba(255,255,255,0.7); font-size:0.7rem; font-weight:800; margin-top:8px; margin-bottom:2px; text-transform:uppercase; }
@@ -714,12 +738,29 @@ function _coordHideActionButtons(container) {
   if (!container) return;
   container.querySelectorAll('button').forEach(btn => {
     const oc = btn.getAttribute('onclick') || '';
-    // Keep collapse (+/-) button and navigation buttons
-    if (oc.includes('togglePairCard') || oc.includes('getElementById') || oc.includes('coordNav') || oc.includes('coordGoToday') || btn.classList.contains('pair-collapse-btn') || btn.classList.contains('coord-nav-btn')) return;
-    // Hide all other action buttons
+    const txt = (btn.textContent || '').trim();
+    // Keep collapse (+/-) button, navigation buttons, and message export buttons
+    if (
+      oc.includes('togglePairCard') || 
+      oc.includes('getElementById') || 
+      oc.includes('coordNav') || 
+      oc.includes('coordGoToday') || 
+      oc.includes('_export') || 
+      oc.includes('openExport') || 
+      txt.includes('הודעה') || 
+      btn.classList.contains('pair-collapse-btn') || 
+      btn.classList.contains('coord-nav-btn') || 
+      btn.classList.contains('coord-msg-btn')
+    ) {
+      if (btn.classList.contains('coord-msg-btn') || oc.includes('_export') || txt.includes('הודעה')) {
+        btn.style.setProperty('display', 'inline-flex', 'important');
+      }
+      return;
+    }
+    // Hide all other action buttons (edit, cancel, shift, delete, etc.)
     btn.style.setProperty('display','none','important');
   });
-  // Also hide WhatsApp/export/edit rows
+  // Also hide edit rows
   container.querySelectorAll('.cal-pair-bar').forEach(el => el.style.setProperty('display','none','important'));
 }
 

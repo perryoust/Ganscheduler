@@ -1866,8 +1866,7 @@ function openExport(){
   if(gids&&gids.length) ctx+=` | גנים: ${gids.map(id=>G(id).name||'').join(' + ')}`;
   (document.getElementById('ex-ctx')||{}).textContent =ctx;
 
-  // Field / Coordinator View handling (רכז או סמנכ"ל / תצוגת שטח)
-  const isFieldUser = !!(window.permCoord || ['coordinator', 'manager', 'vp'].includes(window.role) || document.body.classList.contains('coordinator-mode') || (document.getElementById('coordinator-app-container') && document.getElementById('coordinator-app-container').style.display !== 'none'));
+  const isFieldUser = !!(window.permCoord || ['coordinator', 'manager', 'vp'].includes(window.role) || document.body.classList.contains('coordinator-mode') || (document.getElementById('coordinator-app-root') && document.getElementById('coordinator-app-root').style.display !== 'none') || (document.getElementById('coordinator-app-container') && document.getElementById('coordinator-app-container').style.display !== 'none'));
   const adminControls = document.getElementById('ex-admin-controls');
   if (adminControls) {
     adminControls.style.display = isFieldUser ? 'none' : '';
