@@ -311,6 +311,7 @@ function getAllSup(){
     fullNames:[...m.fullNames]
   })).sort((a,b)=>a.name.localeCompare(b.name,'he'));
 }
+window.getAllSup = getAllSup;
 function getSupActs(name){
   if(!name) return[];
   const base=supBase(name);

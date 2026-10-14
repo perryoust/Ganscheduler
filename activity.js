@@ -2468,7 +2468,8 @@ function refresh(){
     }
     if(typeof window.renderClusters === 'function') window.renderClusters();
   }
-  
+
+  if (typeof window.calRefSup === 'function') window.calRefSup();
   // Also refresh SP modal if it is open to keep details in sync!
   const spm = document.getElementById('sp-m');
   if(spm && spm.classList.contains('open') && window.selEv) {

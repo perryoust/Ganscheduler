@@ -244,6 +244,7 @@ window.initCalMultiSelect = function(type, items, getLabelFn) {
   ['desktop', 'mobile'].forEach(plat => {
     const listEl = document.getElementById(`cal-${type}-multi-items-${plat}`);
     if(!listEl) return;
+    const prevChecked = new Set(Array.from(listEl.querySelectorAll(`.cal-${type}-multi-chk:checked`)).map(el => el.value));
     listEl.innerHTML = `
       <label class="custom-multi-item" style="font-weight:bold; border-bottom:1px solid #ccc; position:sticky; top:0; background:#fff; z-index:2;">
         <input type="checkbox" id="cal-${type}-multi-all-${plat}" onchange="window.toggleAllCalMulti('${type}', '${plat}')">
@@ -254,8 +255,9 @@ window.initCalMultiSelect = function(type, items, getLabelFn) {
       const val = typeof item === 'object' ? item.id : item;
       const safeVal = String(val).replace(/"/g, '&quot;');
       const lbl = getLabelFn(item);
+      const isChecked = prevChecked.has(String(val));
       listEl.innerHTML += `<label class="custom-multi-item cal-${type}-multi-real-item" title="${lbl}">
-        <input type="checkbox" value="${safeVal}" class="cal-${type}-multi-chk" onchange="window.calMultiChanged('${type}', '${plat}')">
+        <input type="checkbox" value="${safeVal}" ${isChecked ? 'checked' : ''} class="cal-${type}-multi-chk" onchange="window.calMultiChanged('${type}', '${plat}')">
         <span>${lbl}</span>
       </label>`;
     });
@@ -271,14 +273,24 @@ window.toggleCalMulti = function(type, plat) {
 window.filterCalMulti = function(type, plat) {
   const input = document.getElementById(`cal-${type}-multi-search-${plat}`);
   if(!input) return;
-  const filter = input.value.toLowerCase();
+  const filter = input.value.trim().toLowerCase();
   const list = document.getElementById(`cal-${type}-multi-items-${plat}`);
   if(!list) return;
   const items = list.querySelectorAll('.custom-multi-item');
   items.forEach(item => {
+    const isAllHeader = !!item.querySelector(`#cal-${type}-multi-all-${plat}`);
+    if(isAllHeader) {
+      item.style.display = '';
+      return;
+    }
     const text = item.textContent.trim().toLowerCase();
-    if(text.startsWith(filter) || text.includes(' ' + filter)) item.style.display = '';
-    else item.style.display = 'none';
+    const inputEl = item.querySelector('input');
+    const val = inputEl ? inputEl.value.toLowerCase() : '';
+    if(!filter || text.includes(filter) || val.includes(filter)) {
+      item.style.display = '';
+    } else {
+      item.style.display = 'none';
+    }
   });
 };
 
@@ -391,7 +403,17 @@ window.calRefCity = function() {
 };
 
 window.calRefSup = function() {
-  const sups = [...new Set((window.SCH||[]).map(s=>window.supBase(s.a)))].filter(Boolean).sort((a,b)=>a.localeCompare(b,'he'));
+  const fromSch = (window.SCH || []).map(s => window.supBase ? window.supBase(s.a) : s.a);
+  const getSupFn = window.getAllSup || (typeof getAllSup === 'function' ? getAllSup : null);
+  const fromAllSup = (getSupFn ? getSupFn() : (window.SUPBASE || [])).map(s => window.supBase ? window.supBase(s.name) : s.name);
+  const sups = [...new Set([...fromSch, ...fromAllSup])].filter(Boolean);
+
+  sups.sort((a, b) => {
+    const labelA = window.supNameLabel ? window.supNameLabel(a) : a;
+    const labelB = window.supNameLabel ? window.supNameLabel(b) : b;
+    return labelA.localeCompare(labelB, 'he', { sensitivity: 'base' });
+  });
+
   window.initCalMultiSelect('sup', sups, sup => window.supNameLabel ? window.supNameLabel(sup) : sup);
 };
 
