@@ -53,7 +53,9 @@ window.doVisualExcelExport = async function(format = 'pdf') {
   if (gList.length === 0) { window.spAlert("לא נבחרו גנים / בתי ספר לייצוא"); return; }
   
   const allEvs = window.SCH.filter(s => s.d >= fromDate && s.d <= toDate && (!s.st || s.st === 'ok'));
-  const showPhones = document.getElementById('exp-phones') ? document.getElementById('exp-phones').checked : false;
+  const preset = document.getElementById('exp-print-preset')?.value || 'color_only';
+  const showPhonesCb = document.getElementById('exp-phones');
+  const userWantsPhones = showPhonesCb ? showPhonesCb.checked : false;
   const splitMode = document.getElementById('exp-split').value;
   
   const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -74,32 +76,65 @@ window.doVisualExcelExport = async function(format = 'pdf') {
   gList.sort((a,b) => (a.city||'').localeCompare(b.city||'','he') || (a.name||'').localeCompare(b.name||'','he'));
 
   try {
-    let pagesHtml = '';
-    let count = 0;
-    for (const g of gList) {
-      const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
-      pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones);
-      count++;
-    }
-    if (count === 0) {
-      window.spAlert('לא נמצאו מוסדות לייצוא');
-      return;
-    }
-    
-    let title = `לוחות חוגים מעוצבים - ${monthName} ${year}.pdf`;
+    let titleBase = `לוחות חוגים מעוצבים`;
     if (gList.length === 1) {
-      title = `לוח חוגים - ${gList[0].name} ${gList[0].city || ''} - ${monthName} ${year}.pdf`;
+      titleBase = `לוח חוגים - ${gList[0].name} ${gList[0].city || ''}`;
     } else if (mode === 'schools') {
-      title = `לוחות חוגים - כל בתי הספר - ${monthName} ${year}.pdf`;
+      titleBase = `לוחות חוגים - כל בתי הספר`;
     } else if (mode === 'city' && cityFilter && cityFilter !== 'all') {
-      title = `לוחות חוגים - ${cityFilter} - ${monthName} ${year}.pdf`;
+      titleBase = `לוחות חוגים - ${cityFilter}`;
+    } else if (mode === 'manager' && mgrFilter && mgrFilter !== 'all') {
+      const mgrObj = window.managers && window.managers[mgrFilter];
+      const mgrName = mgrObj?.name || mgrFilter;
+      titleBase = `לוחות חוגים - רכז ${mgrName}`;
     }
 
     if (format === 'jpg') {
-      await _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, showPhones);
-    } else {
+      await _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, userWantsPhones, preset);
+      window.CM('export-m');
+      return;
+    }
+
+    if (preset === 'color_only') {
+      let pagesHtml = '';
+      for (const g of gList) {
+        const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
+        pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, userWantsPhones, false);
+      }
+      const title = `${titleBase} - צבעוני להורים - ${monthName} ${year}.pdf`;
       await _exportPDF(pagesHtml, title, month);
-      window.showToast(`📊 ${count} לוחות מעוצבים נפתחו בהצלחה!`);
+      window.showToast?.(`📊 ${gList.length} לוחות צבעוניים להורים נפתחו בהצלחה!`);
+    } else if (preset === 'bw_only') {
+      let pagesHtml = '';
+      for (const g of gList) {
+        const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
+        pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, userWantsPhones !== false, true);
+      }
+      const title = `${titleBase} - שחור לבן משרדי - ${monthName} ${year}.pdf`;
+      await _exportPDF(pagesHtml, title, month);
+      window.showToast?.(`📊 ${gList.length} לוחות משרדיים (ש/ל) נפתחו בהצלחה!`);
+    } else if (preset === 'both_interleaved') {
+      let pagesHtml = '';
+      for (const g of gList) {
+        const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
+        pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, false, false);
+        pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, true, true);
+      }
+      const title = `${titleBase} - ערכות כפולות (צבעוני + ש/ל) - ${monthName} ${year}.pdf`;
+      await _exportPDF(pagesHtml, title, month);
+      window.showToast?.(`📊 ${gList.length * 2} עמודים נפתחו (ערכה כפולה צבעוני + ש/ל לכל גן)!`);
+    } else if (preset === 'both_split') {
+      let colorHtml = '';
+      let bwHtml = '';
+      for (const g of gList) {
+        const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
+        colorHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, false, false);
+        bwHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, true, true);
+      }
+      await _exportPDF(colorHtml, `${titleBase} - צבעוני להורים - ${monthName} ${year}.pdf`, month);
+      await new Promise(r => setTimeout(r, 450));
+      await _exportPDF(bwHtml, `${titleBase} - שחור לבן משרדי - ${monthName} ${year}.pdf`, month);
+      window.showToast?.(`📊 2 קבצים נפתחו בהצלחה: קובץ צבעוני להורים + קובץ ש/ל משרדי!`);
     }
     window.CM('export-m'); // close modal
   } catch(e) {
@@ -108,7 +143,7 @@ window.doVisualExcelExport = async function(format = 'pdf') {
   }
 };
 
-function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones) {
+function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones, isBW = false) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const fromDate = `${year}-${String(month).padStart(2,'0')}-01`;
   const toDate = `${year}-${String(month).padStart(2,'0')}-${String(daysInMonth).padStart(2,'0')}`;
@@ -354,16 +389,16 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
   if (regularClubsList.length > 0) {
     cardsHtml = `<div class="vp-cards-grid ${regularClubsList.length === 3 ? 'three' : ''}">`;
     regularClubsList.forEach((club, i) => {
-      const color = CARD_COLORS[i] || CARD_COLORS[0];
-      const bg = CARD_BG[i] || CARD_BG[0];
-      const border = CARD_BORDER[i] || CARD_BORDER[0];
+      const color = isBW ? '#0f172a' : (CARD_COLORS[i] || CARD_COLORS[0]);
+      const bg = isBW ? '#ffffff' : (CARD_BG[i] || CARD_BG[0]);
+      const border = isBW ? '#0f172a' : (CARD_BORDER[i] || CARD_BORDER[0]);
       cardsHtml += `
         <div class="vp-activity-card" style="border-right-color:${color}; background:${bg}; border-color:${border}; border-right-color:${color};">
           <div class="vp-card-badge" style="background:${color};">${club.tp === 'חוג פנימי' ? 'חוג פנימי' : 'חוג צהרון'}</div>
           <h3>${club.supName ? _esc(club.supName) + ' - ' : ''}${_esc(club.name)}</h3>
           <p>📅 ${_esc(club.dayStr)} &nbsp; 🕐 ${_esc(club.timeStr)}</p>
-          ${club.flexNote ? `<p style="font-weight:700; color:#0369a1; font-size:11px; margin-top:2px;">ℹ️ ${_esc(club.flexNote)}</p>` : ''}
-          ${showPhones && club.phone ? `<p style="font-weight:700; color:#1e293b; margin-top:3px; font-size:11.5px;" dir="ltr"><span dir="rtl">📞 </span>${_esc(club.phone)}</p>` : ''}
+          ${club.flexNote ? `<p style="font-weight:700; color:${isBW ? '#334155' : '#0369a1'}; font-size:11px; margin-top:2px;">ℹ️ ${_esc(club.flexNote)}</p>` : ''}
+          ${showPhones && club.phone ? `<p style="font-weight:800; color:#0f172a; margin-top:3px; font-size:12px;" dir="ltr"><span dir="rtl">📞 </span>${_esc(club.phone)}</p>` : ''}
         </div>`;
     });
     cardsHtml += '</div>';
@@ -372,10 +407,10 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
   // Build legend
   let legendHtml = '<div class="vp-legend">';
   regularClubsList.forEach((club, i) => {
-    const color = CARD_COLORS[i] || CARD_COLORS[0];
+    const color = isBW ? '#0f172a' : (CARD_COLORS[i] || CARD_COLORS[0]);
     legendHtml += `<span class="vp-legend-item"><span class="vp-legend-dot" style="background:${color};"></span>${_esc(club.name)}</span>`;
   });
-  legendHtml += '<span class="vp-legend-item"><span class="vp-legend-dot" style="background:#f59e0b;"></span>חג / קייטנה</span>';
+  legendHtml += `<span class="vp-legend-item"><span class="vp-legend-dot" style="background:${isBW ? '#475569' : '#f59e0b'};"></span>חג / קייטנה</span>`;
   legendHtml += '</div>';
 
   // Build calendar rows
@@ -459,18 +494,18 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
           const hasFuture = (window.SCH || []).some(e => Number(e.g) === Number(g.id) && e.d > toDate && (!e.st || e.st === 'ok') && !isMakeupEv(e) && (window.supBase ? window.supBase(e.a) === evBase : e.a === ev.a));
           const isOneTime = !isMakeup && !isRegular && totalOccsInMonth <= 1 && !hasFuture && !ev._recId;
 
-          let pillColor = isRegular ? CARD_BORDER[clubIdx] : '#312e81';
-          let pillBg = isRegular ? CARD_BG[clubIdx] : '#eef2ff';
+          let pillColor = isRegular ? (isBW ? '#0f172a' : CARD_BORDER[clubIdx]) : (isBW ? '#334155' : '#312e81');
+          let pillBg = isRegular ? (isBW ? '#ffffff' : CARD_BG[clubIdx]) : (isBW ? '#f8fafc' : '#eef2ff');
 
           let badgeHtml = '';
           if (isMakeup) {
-            pillColor = '#92400e';
-            pillBg = '#fef3c7';
-            badgeHtml = `<div style="margin-bottom:2px;"><span style="background:#fffbeb; color:#b45309; border:1px solid #f59e0b; padding:1px 5px; border-radius:4px; font-size:9.5px; font-weight:800; display:inline-block;">🔄 השלמה</span></div>`;
+            pillColor = isBW ? '#0f172a' : '#92400e';
+            pillBg = isBW ? '#f8fafc' : '#fef3c7';
+            badgeHtml = `<div style="margin-bottom:2px;"><span style="background:${isBW ? '#f1f5f9' : '#fffbeb'}; color:${isBW ? '#000000' : '#b45309'}; border:1px ${isBW ? 'dashed #0f172a' : 'solid #f59e0b'}; padding:1px 5px; border-radius:4px; font-size:9.5px; font-weight:800; display:inline-block;">🔄 השלמה</span></div>`;
           } else if (isOneTime) {
-            pillColor = '#6b21a8';
-            pillBg = '#f5f3ff';
-            badgeHtml = `<div style="margin-bottom:2px;"><span style="background:#ede9fe; color:#6b21a8; border:1px solid #c084fc; padding:1px 5px; border-radius:4px; font-size:9.5px; font-weight:800; display:inline-block;">⭐ חד-פעמי</span></div>`;
+            pillColor = isBW ? '#0f172a' : '#6b21a8';
+            pillBg = isBW ? '#f8fafc' : '#f5f3ff';
+            badgeHtml = `<div style="margin-bottom:2px;"><span style="background:${isBW ? '#f1f5f9' : '#ede9fe'}; color:${isBW ? '#000000' : '#6b21a8'}; border:1px solid ${isBW ? '#475569' : '#c084fc'}; padding:1px 5px; border-radius:4px; font-size:9.5px; font-weight:800; display:inline-block;">⭐ חד-פעמי</span></div>`;
           }
 
           let cleanSupName = '';
@@ -523,14 +558,17 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
   });
 
   return `
-    <div class="vp-page">
+    <div class="vp-page ${isBW ? 'vp-bw' : ''}">
       <!-- Header Banner -->
       <div class="vp-header">
         <div class="vp-header-right" style="display:flex; align-items:center; gap:12px;">
           <img src="logo_wide.png" style="height:65px;" alt="Kids טומשין">
         </div>
-        <div class="vp-header-left">
+        <div class="vp-header-left" style="display:flex; flex-direction:column; align-items:flex-end; gap:3px;">
           <div class="vp-month-badge">📅 ${_esc(monthName)} ${year} - ${hebYearStr}</div>
+          <div style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:4px; ${isBW ? 'background:#0f172a; color:#ffffff;' : 'background:#047857; color:#ffffff;'}">
+            ${isBW ? '📋 עותק משרדי לצוות (כולל טלפונים)' : '🎨 עותק לוח מודעות להורים'}
+          </div>
         </div>
       </div>
 
@@ -583,7 +621,7 @@ function _esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, showPhones) {
+async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, showPhones, preset = 'color_only') {
   // Ensure html2canvas is ready
   let h2c = window.html2canvas;
   if (!h2c) {
@@ -650,41 +688,49 @@ async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, sho
   const images = [];
 
   try {
+    const isBoth = preset === 'both_interleaved' || preset === 'both_split';
+    const isBWOnly = preset === 'bw_only';
+
     for (let i = 0; i < gList.length; i++) {
       const g = gList[i];
       if (statusEl) statusEl.textContent = `מעבד: ${g.name || 'גן'} (${i + 1} מתוך ${gList.length})...`;
       if (barEl) barEl.style.width = `${Math.round(((i + 1) / gList.length) * 100)}%`;
 
       const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
-      const pageHtml = _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhones);
-
-      container.innerHTML = styles.css + pageHtml;
-
-      // Small pause for layout
-      await new Promise(r => setTimeout(r, 60));
-
-      const pageEl = container.querySelector('.vp-page') || container;
-
-      // Reset scroll position as mandated by AGENTS.md
-      const prevScrollY = window.scrollY;
-      const prevScrollX = window.scrollX;
-      window.scrollTo(0, 0);
-
-      const canvas = await h2c(pageEl, {
-        scale: 2,
-        useCORS: true,
-        logging: false
-      });
-
-      window.scrollTo(prevScrollX, prevScrollY);
-
-      const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.95));
-
       const safeGarden = String(g.name || 'גן').replace(/[/\\?%*:|"<>]/g, '_').trim();
       const safeCity = String(g.city || '').replace(/[/\\?%*:|"<>]/g, '_').trim();
-      const fileName = `לוח חוגים - ${safeGarden} ${safeCity} - ${monthName} ${year}.jpg`.replace(/\s+/g, ' ');
 
-      images.push({ blob, fileName });
+      const renderTasks = [];
+      if (isBoth) {
+        renderTasks.push({ isBW: false, phones: false, suffix: '_צבעוני_להורים' });
+        renderTasks.push({ isBW: true, phones: true, suffix: '_שחור_לבן_משרדי' });
+      } else if (isBWOnly) {
+        renderTasks.push({ isBW: true, phones: true, suffix: '_שחור_לבן_משרדי' });
+      } else {
+        renderTasks.push({ isBW: false, phones: showPhones, suffix: '' });
+      }
+
+      for (const t of renderTasks) {
+        const pageHtml = _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, t.phones, t.isBW);
+        container.innerHTML = styles.css + pageHtml;
+        await new Promise(r => setTimeout(r, 60));
+
+        const pageEl = container.querySelector('.vp-page') || container;
+        const prevScrollY = window.scrollY;
+        const prevScrollX = window.scrollX;
+        window.scrollTo(0, 0);
+
+        const canvas = await h2c(pageEl, {
+          scale: 2,
+          useCORS: true,
+          logging: false
+        });
+        window.scrollTo(prevScrollX, prevScrollY);
+
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.95));
+        const fileName = `לוח חוגים - ${safeGarden} ${safeCity}${t.suffix} - ${monthName} ${year}.jpg`.replace(/\s+/g, ' ');
+        images.push({ blob, fileName });
+      }
     }
 
     if (images.length === 1) {
@@ -1094,6 +1140,107 @@ function _getStyles(month) {
       padding: 3px 20px;
       border-radius: 9999px;
       border: 1.5px solid #f87171;
+    }
+
+    /* ========================================================
+       Ink-Saver / Black & White Office Mode (.vp-page.vp-bw)
+       Designed for crisp office printing, 0 toner waste, high contrast
+       ======================================================== */
+    .vp-page.vp-bw {
+      background: #ffffff !important;
+      color: #000000 !important;
+    }
+    .vp-page.vp-bw .vp-watermark {
+      display: none !important; /* Zero toner waste */
+    }
+    .vp-page.vp-bw .vp-header {
+      background: #ffffff !important;
+      background-image: none !important;
+      border: 2px solid #000000 !important;
+      box-shadow: none !important;
+      color: #000000 !important;
+    }
+    .vp-page.vp-bw .vp-month-badge {
+      background: #ffffff !important;
+      border: 1.5px solid #000000 !important;
+      color: #000000 !important;
+      box-shadow: none !important;
+    }
+    .vp-page.vp-bw .vp-garden-bar {
+      background: #18181b !important;
+      color: #ffffff !important;
+      border: 2px solid #000000 !important;
+      box-shadow: none !important;
+    }
+    .vp-page.vp-bw .vp-activity-card {
+      background: #ffffff !important;
+      border: 1.5px solid #000000 !important;
+      border-right: 6px solid #000000 !important;
+    }
+    .vp-page.vp-bw .vp-card-badge {
+      background: #000000 !important;
+      color: #ffffff !important;
+    }
+    .vp-page.vp-bw .vp-activity-card h3 {
+      color: #000000 !important;
+    }
+    .vp-page.vp-bw .vp-activity-card p {
+      color: #18181b !important;
+    }
+    .vp-page.vp-bw .vp-legend-dot {
+      background: #000000 !important;
+      border: 1px solid #000000 !important;
+    }
+    .vp-page.vp-bw .vp-calendar-container {
+      border: 2px solid #000000 !important;
+      background: #ffffff !important;
+    }
+    .vp-page.vp-bw .vp-days-header {
+      background: #f4f4f5 !important;
+      color: #000000 !important;
+      border-bottom: 2px solid #000000 !important;
+    }
+    .vp-page.vp-bw .vp-calendar-body {
+      background: #71717a !important; /* Strong dark grid lines */
+    }
+    .vp-page.vp-bw .vp-calendar-row + .vp-calendar-row {
+      border-top: 2px solid #71717a !important;
+    }
+    .vp-page.vp-bw .vp-day-cell {
+      background: #ffffff !important;
+    }
+    .vp-page.vp-bw .vp-day-empty {
+      background: #f4f4f5 !important;
+      background-image: repeating-linear-gradient(45deg, #f4f4f5, #f4f4f5 6px, #ffffff 6px, #ffffff 12px) !important;
+    }
+    .vp-page.vp-bw .vp-day-holiday {
+      background: #f4f4f5 !important;
+    }
+    .vp-page.vp-bw .vp-day-date {
+      color: #000000 !important;
+      font-weight: 800 !important;
+    }
+    .vp-page.vp-bw .vp-holiday-text,
+    .vp-page.vp-bw .vp-camp-text {
+      color: #000000 !important;
+      font-weight: 800 !important;
+    }
+    .vp-page.vp-bw .vp-event-pill {
+      background: #ffffff !important;
+      color: #000000 !important;
+      border: 1.5px solid #000000 !important;
+      font-weight: 700 !important;
+    }
+    .vp-page.vp-bw .vp-event-pill.vp-event-holiday {
+      background: #e4e4e7 !important;
+      color: #000000 !important;
+      border: 1.5px solid #000000 !important;
+      font-weight: 800 !important;
+    }
+    .vp-page.vp-bw .vp-footer {
+      background: #f4f4f5 !important;
+      border: 1.5px solid #71717a !important;
+      color: #18181b !important;
     }
 
     @media print {

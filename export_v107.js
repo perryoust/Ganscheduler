@@ -55,10 +55,33 @@ function openMonthlyExport(){
     });
     updateExportGardenCount();
   }
+  const presetSel = document.getElementById('exp-print-preset');
+  if (presetSel) presetSel.value = 'color_only';
   const expPhCb = document.getElementById('exp-phones');
   if (expPhCb) expPhCb.checked = false;
+  const hint = document.getElementById('preset-hint');
+  if (hint) hint.textContent = 'טלפונים כבויים (מותאם להורים)';
   document.getElementById('export-m').classList.add('open');
 }
+
+window.onVisualPresetChange = function(preset) {
+  const phCb = document.getElementById('exp-phones');
+  const hint = document.getElementById('preset-hint');
+  if (!phCb) return;
+  if (preset === 'color_only') {
+    phCb.checked = false;
+    if (hint) hint.textContent = 'טלפונים כבויים (מותאם להורים)';
+  } else if (preset === 'bw_only') {
+    phCb.checked = true;
+    if (hint) hint.textContent = 'טלפונים פועלים (מותאם לצוות)';
+  } else if (preset === 'both_interleaved') {
+    phCb.checked = true;
+    if (hint) hint.textContent = 'עותק 1 בלי טלפונים, עותק 2 עם טלפונים';
+  } else if (preset === 'both_split') {
+    phCb.checked = true;
+    if (hint) hint.textContent = 'קובץ צבע בלי טלפונים, קובץ ש/ל עם טלפונים';
+  }
+};
 
 window.filterExportGardens = function() {
   const city = (document.getElementById('exp-garden-city-filter')?.value || '').trim();
