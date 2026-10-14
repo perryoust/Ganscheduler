@@ -131,27 +131,6 @@ function setupExPairUI(gids, singleGid) {
 }
 window.setupExPairUI = setupExPairUI;
 
-window.setupExmFieldMode = function() {
-  const isFieldUser = !!(window.permCoord || ['coordinator', 'manager', 'vp'].includes(window.role) || document.body.classList.contains('coordinator-mode') || (document.getElementById('coordinator-app-container') && document.getElementById('coordinator-app-container').style.display !== 'none'));
-  const adminControls = document.getElementById('ex-admin-controls');
-  if (adminControls) {
-    adminControls.style.display = isFieldUser ? 'none' : '';
-  }
-  if (isFieldUser) {
-    const incFreeDaysCb = document.getElementById('ex-inc-free-days');
-    if (incFreeDaysCb) incFreeDaysCb.checked = true;
-    const incCoordCb = document.getElementById('ex-inc-coord');
-    if (incCoordCb) incCoordCb.checked = true;
-    const incPairCb = document.getElementById('ex-inc-pair');
-    if (incPairCb) incPairCb.checked = true;
-    const splitMsgCb = document.getElementById('ex-split-msg');
-    if (splitMsgCb) splitMsgCb.checked = false;
-    const typeFltEl = document.getElementById('ex-type-flt');
-    if (typeFltEl) typeFltEl.value = 'all';
-    const fmtEl = document.getElementById('ex-fmt');
-    if (fmtEl) fmtEl.value = 'full';
-  }
-};
 
 window.toggleExPairInc = function() {
   const cb = document.getElementById('ex-inc-pair');
