@@ -2303,9 +2303,9 @@ window.getGardensForCoordinator = function(m) {
     );
     if (hasOtherFieldCoord) return false;
 
-    // 3. Fallback matching via contact info in garden (g.co or supEx)
+    // 3. Fallback matching via manually entered coordinator info in supEx only
     const ex = (window.supEx && window.supEx['g_' + g.id]) || {};
-    const coRaw = (ex.co || g.co || '') + ' ' + (ex.coph || ex.phone || g.coph || g.phone || '');
+    const coRaw = (ex.co && ex._coManual ? ex.co : '') + ' ' + (ex.coordPhone || '');
     if (coRaw) {
       const coStr = coRaw.toLowerCase();
       // Match by phone number (7+ digits)

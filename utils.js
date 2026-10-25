@@ -266,9 +266,12 @@ window.getGardenCoordinator = function(gid, options) {
   });
 
   // Priority 1b: Field coordinator in window.managers assigned to this garden's city
+  // (ONLY if coordinator is designated for whole city without a restricted garden list)
   if (!fieldCoord && g && g.city) {
     fieldCoord = managersList.find(m => {
       if (!m || isInvalidMgr(m) || m.role === 'manager' || m.role === 'vp') return false;
+      const hasSpecificGardens = Array.isArray(m.gardenIds) && m.gardenIds.length > 0;
+      if (hasSpecificGardens) return false; // This coordinator is only for their designated gardens
       if (m.city && m.city === g.city) return true;
       if (Array.isArray(m.cities) && m.cities.includes(g.city)) return true;
       return false;
