@@ -55,7 +55,7 @@ window.onload = function(){
         migratePairsFromAuto();
       }
       migrateSupActSplit();
-      importContactsFromGardens();
+      // importContactsFromGardens() permanently disabled: do not resurrect 2024 legacy seed contacts
       migrateGardenPhones();
       initDrops();
       initHolDrops();

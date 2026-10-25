@@ -585,7 +585,37 @@ function _applyYearData(o){
   if (typeof window.repairCoordinatorGardens === 'function') {
     window.repairCoordinatorGardens();
   }
-  // else: keep existing window.managers (auto-imported from gardens)
+
+  // ── Auto-purge obsolete coordinator records (e.g., legacy "יוסי" / 050-6898983 / landline 035464969) ──
+  if (window.managers && typeof window.managers === 'object') {
+    let purgedMgr = false;
+    Object.keys(window.managers).forEach(mid => {
+      const m = window.managers[mid];
+      if (!m) return;
+      const name = (m.name || '').trim();
+      const phone = (m.phone || '').replace(/\D/g, '');
+      const isYossi = name === 'יוסי' || name.startsWith('יוסי ') || name.includes('יוסי –') || name.includes('יוסי -');
+      const isYossiPhone = phone.includes('0506898983') || phone.includes('035464969') || !phone;
+      if (isYossi && (isYossiPhone || !m.gardenIds || m.gardenIds.length === 0)) {
+        delete window.managers[mid];
+        purgedMgr = true;
+      }
+    });
+    // Also clean up any supEx where ex.co contains 'יוסי'
+    if (window.supEx && typeof window.supEx === 'object') {
+      Object.keys(window.supEx).forEach(k => {
+        const ex = window.supEx[k];
+        if (ex && ex.co && (ex.co.trim() === 'יוסי' || ex.co.includes('יוסי')) && (ex.coph === '035464969' || ex.coph === '050-6898983' || !ex._coManual)) {
+          delete ex.co;
+          delete ex.coph;
+          purgedMgr = true;
+        }
+      });
+    }
+    if (purgedMgr && !window.isReadOnly && typeof save === 'function') {
+      try { save(); } catch (e) {}
+    }
+  }
   activeGardens = Array.isArray(o.activeGardens)?new Set(o.activeGardens):null;
   if(window.DataManager && window.DataManager.cleanupDuplicates) {
     window.DataManager.cleanupDuplicates();

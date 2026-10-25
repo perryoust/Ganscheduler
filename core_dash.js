@@ -1314,30 +1314,10 @@ async function deleteBlock(){
 
 let _editMgrId=null;
 
-// ─── Auto-import contacts from garden co field ────────
+// ─── Auto-import contacts from garden co field (PERMANENTLY DISABLED) ────────
 function importContactsFromGardens(){
-  if(Object.keys(managers).length>0) return; // already have managers
-  const byContact={};
-  [...GARDENS,...(_GARDENS_EXTRA||[])].forEach(g=>{
-    if(!g.co) return;
-    // Parse "Name – 050-XXXXXXX" or "Name - 050-XXXXXXX" or just "Name"
-    const m=g.co.match(/^(.+?)\s*[–\-]\s*(\d[\d\-\s]+)$/);
-    const name=m?m[1].trim():g.co.trim();
-    const phone=m?m[2].trim():'';
-    const key=name.toLowerCase();
-    if(!byContact[key]) byContact[key]={name,phone,gardenIds:[],city:g.city};
-    byContact[key].gardenIds.push(g.id);
-    // If gardens span multiple cities, clear city
-    if(byContact[key].city!==g.city) byContact[key].city='';
-  });
-  Object.values(byContact).forEach(c=>{
-    const id='mgr_auto_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
-    managers[id]={id,name:c.name,phone:c.phone,role:'coord',city:c.city,gardenIds:c.gardenIds};
-  });
-  if(Object.keys(managers).length>0){
-    save();
-    console.log('Auto-imported '+Object.keys(managers).length+' contacts from gardens');
-  }
+  // Permanently disabled: legacy 2024 seed data must never resurrect deleted coordinators
+  return;
 }
 
 // ── Garden contact helpers ─────────────────────────────────────
@@ -2234,8 +2214,9 @@ window.repairCoordinatorGardens = function(forceSave = false) {
       if (hasOtherFieldCoord) return;
 
       const ex = (window.supEx && window.supEx['g_' + gid]) || {};
-      const coRaw = (ex.co || g.co || '') + ' ' + (ex.coph || ex.phone || g.coph || g.phone || '');
-      if (!coRaw) return;
+      // ONLY check explicitly manual coordinator info in supEx. NEVER match legacy g.co or kindergarten landlines (coph/phone)!
+      const coRaw = (ex.co && ex._coManual ? ex.co : '') + ' ' + (ex.coordPhone || '');
+      if (!coRaw.trim()) return;
 
       const coStr = coRaw.toLowerCase();
       let isMatch = false;
