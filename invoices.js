@@ -203,7 +203,8 @@ function renderMobileInvoiceCard(inv, opts = {}) {
 
     if(meta && meta.path){
       const name = (window._extractNameFromUrl ? window._extractNameFromUrl(meta.path) : '') || meta.name || 'פתח';
-      return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile('${inv.id || inv.serialNum}','${actualSec}')" title="${name}">📎 ${name} ↗</span>`;
+      const safeName = (name || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile('${inv.id || inv.serialNum}','${actualSec}')" title="${safeName}">📎 ${safeName} ↗</span>`;
     }
     // Only show "עדכן קישור" if no file exists for ANY of the related document types to prevent clutter
     const hasAnyFile = (inv.file_order && inv.file_order.path) || 
@@ -614,7 +615,8 @@ function renderInvoices(){
 
         if(meta && meta.path){
           const name = _extractNameFromUrl(meta.path)||meta.name||'פתח';
-          return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile('${inv.id || inv.serialNum}','${actualSec}')" title="${name}">📎 ${name} ↗</span>`;
+          const safeName = (name || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+          return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile('${inv.id || inv.serialNum}','${actualSec}')" title="${safeName}">📎 ${safeName} ↗</span>`;
         }
         const hasAnyFile = (inv.file_order && inv.file_order.path) || 
                            (inv.file_tx && inv.file_tx.path) || 
@@ -637,7 +639,7 @@ function renderInvoices(){
           ${hasOrder?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8eaf6;color:#1a237e;border-radius:4px;padding:1px 5px;font-weight:700">📋</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')">${inv.orderNum}</b>${inv.orderDate?'<span style="color:#999"> · '+fD(inv.orderDate)+'</span>':''} ${mkFileBtn('order',inv.orderNum)}</div>`:''}
           ${hasTx?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#e8eaf6;color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700">🧾</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')">${inv.txNum}</b>${inv.txDate?'<span style="color:#999"> · '+fD(inv.txDate)+'</span>':''} ${mkFileBtn('tx',inv.txNum)}</div>`:''}
           ${hasTax?`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:.65rem;background:#fff8e1;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700">📑</span> <b style="cursor:pointer;color:#1565c0;text-decoration:underline" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')">${inv.num}</b>${inv.date?'<span style="color:#999"> · '+fD(inv.date)+'</span>':''} ${mkFileBtn('tax',inv.num)}</div>`:''}
-          ${(!hasOrder && !hasTx && !hasTax) ? `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${((inv.file_order && inv.file_order.path) || (inv.file_tx && inv.file_tx.path) || (inv.file_tax && inv.file_tax.path)) ? (() => { const sec = inv.file_tax&&inv.file_tax.path?'tax':inv.file_tx&&inv.file_tx.path?'tx':'order'; const meta = inv['file_'+sec]; const name = _extractNameFromUrl(meta.path) || meta.name || 'קובץ מצורף'; return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile('${inv.id || inv.serialNum}','${sec}')" title="${name}">📎 ${name} ↗</span>`; })() : `<span style="display:inline-flex;align-items:center;gap:2px;background:#fff8e1;border:1px solid #ffe082;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')" title="עדכן קישור לקובץ">📎 עדכן קישור</span>`}</div>` : ''}
+          ${(!hasOrder && !hasTx && !hasTax) ? `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${((inv.file_order && inv.file_order.path) || (inv.file_tx && inv.file_tx.path) || (inv.file_tax && inv.file_tax.path)) ? (() => { const sec = inv.file_tax&&inv.file_tax.path?'tax':inv.file_tx&&inv.file_tx.path?'tx':'order'; const meta = inv['file_'+sec]; const name = _extractNameFromUrl(meta.path) || meta.name || 'קובץ מצורף'; const safeName = (name || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); return `<span style="display:inline-flex;align-items:center;gap:3px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile('${inv.id || inv.serialNum}','${sec}')" title="${safeName}">📎 ${safeName} ↗</span>`; })() : `<span style="display:inline-flex;align-items:center;gap:2px;background:#fff8e1;border:1px solid #ffe082;border-radius:4px;padding:1px 6px;font-size:.67rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice('${inv.id || inv.serialNum}')" title="עדכן קישור לקובץ">📎 עדכן קישור</span>`}</div>` : ''}
         </td>
         <td style="font-size:.75rem;color:#37474f;padding:8px">
           ${inv.orderDesc||''}
@@ -796,13 +798,15 @@ function refreshPurchDash(){
           const hasAnyFile = (i.file_order && i.file_order.path) || 
                              (i.file_tx && i.file_tx.path) || 
                              (i.file_tax && i.file_tax.path);
+          const safeId = String(i.id || i.serialNum || '').replace(/'/g, "\\'");
           let badge = '';
           if(showBadge){
             if(meta && meta.path){
               const name = _extractNameFromUrl(meta.path)||meta.name||'פתח';
-              badge = `<span style="display:inline-flex;align-items:center;gap:2px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:1px 5px;font-size:.63rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile(${i.id},'${actualSec}')" title="${name}">📎 ${name} ↗</span>`;
+              const safeName = (name || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+              badge = `<span style="display:inline-flex;align-items:center;gap:2px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:1px 5px;font-size:.63rem;color:#2e7d32;cursor:pointer;font-weight:600" onclick="event.stopPropagation();invOpenFile('${safeId}','${actualSec}')" title="${safeName}">📎 ${safeName} ↗</span>`;
             } else if(/\d/.test(docNum) && !hasAnyFile){
-              badge = `<span style="display:inline-flex;align-items:center;background:#fff8e1;border:1px solid #ffe082;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice(${i.id})">📎 עדכן קישור</span>`;
+              badge = `<span style="display:inline-flex;align-items:center;background:#fff8e1;border:1px solid #ffe082;border-radius:3px;padding:1px 5px;font-size:.63rem;color:#e65100;cursor:pointer" onclick="event.stopPropagation();openNewInvoice('${safeId}')">📎 עדכן קישור</span>`;
             }
           }
           return `<div style="display:flex;align-items:center;gap:4px;white-space:nowrap">${icon} ${docNum} ${badge}</div>`;
@@ -812,7 +816,8 @@ function refreshPurchDash(){
           mkDashDoc('🧾',i.txNum,'tx'),
           mkDashDoc('📑',i.num,'tax')
         ].filter(Boolean).join('');
-        return '<tr onclick="openNewInvoice('+i.id+')" class="inv-row-clickable" style="border-bottom:1px solid #f0f4f8">'+
+        const safeRowId = String(i.id || i.serialNum || '').replace(/'/g, "\\'");
+        return `<tr onclick="openNewInvoice('${safeRowId}')" class="inv-row-clickable" style="border-bottom:1px solid #f0f4f8">`+
           '<td style="padding:5px 8px;font-weight:700;color:#1a237e">'+i.supName+'<br><span style="font-weight:400;color:#888;font-size:.7rem">'+dateStr+'</span></td>'+
           '<td style="padding:5px 8px;font-size:.72rem">'+(docs||'—')+'</td>'+
           '<td style="padding:5px 8px;max-width:130px;font-size:.72rem;color:#444">'+(i.orderDesc||'').slice(0,35)+'</td>'+

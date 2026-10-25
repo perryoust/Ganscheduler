@@ -309,7 +309,17 @@ function navSearchInput(val){
       </div>`;
     el.addEventListener('mouseover',()=>el.style.background='#f5f7ff');
     el.addEventListener('mouseout', ()=>el.style.background='');
-    el.addEventListener('click', new Function(r.action));
+    el.addEventListener('click', ()=>{
+      try {
+        if(typeof r.action === 'function') {
+          r.action();
+        } else if(typeof r.action === 'string') {
+          (new Function(r.action))();
+        }
+      } catch(err) {
+        console.warn('navSearch action error:', err);
+      }
+    });
     res.appendChild(el);
   });
   res.style.display='block';
@@ -562,13 +572,13 @@ function renderSupDocs(){
       const docNum = inv.orderNum||inv.txNum||inv.num||'—';
       const amt = inv.orderAmt||inv.txAmt||inv.amt||0;
       const amtStr = amt ? `₪${withVat(amt,inv.vat||18).toLocaleString()}` : '—';
-      return `<tr style="border-bottom:1px solid #f0f0f0;cursor:pointer" onclick="CM('sucard-m');openNewInvoice(${inv.id})">
+      return `<tr style="border-bottom:1px solid #f0f0f0;cursor:pointer" onclick="CM('sucard-m');openNewInvoice('${inv.id || inv.serialNum}')">
         <td style="padding:5px 8px;white-space:nowrap">${d?fD(d):'—'}</td>
         <td style="padding:5px 8px;font-weight:700;color:#1565c0">${docNum}</td>
         <td style="padding:5px 8px;color:#546e7a;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${inv.orderDesc||''}</td>
         <td style="padding:5px 8px;font-weight:700;color:#2e7d32;white-space:nowrap">${amtStr}</td>
         <td style="padding:5px 8px;text-align:center">${fmtSt(inv.status)}</td>
-        <td style="padding:5px 8px" onclick="event.stopPropagation()"><button class="btn bo bsm" style="font-size:.65rem" onclick="CM('sucard-m');openNewInvoice(${inv.id})">✏️</button></td>
+        <td style="padding:5px 8px" onclick="event.stopPropagation()"><button class="btn bo bsm" style="font-size:.65rem" onclick="CM('sucard-m');openNewInvoice('${inv.id || inv.serialNum}')">✏️</button></td>
       </tr>`;
     }).join('')}
     </tbody></table>`;
@@ -926,7 +936,7 @@ function renderSupPurchDocsSection(name){
     const invVat = inv.vat||0;
     const amtStr = baseAmt ? `₪${(invVat>0?withVat(baseAmt,invVat):baseAmt).toLocaleString()}` : '—';
     const docNums = [inv.orderNum&&`📋 ${inv.orderNum}`, inv.txNum&&`🧾 ${inv.txNum}`, inv.num&&`📑 ${inv.num}`].filter(Boolean).join(' · ');
-    return `<tr style="border-bottom:1px solid #f0f0f0;cursor:pointer" onclick="CM('sucard-m');openNewInvoice(${inv.id})">
+    return `<tr style="border-bottom:1px solid #f0f0f0;cursor:pointer" onclick="CM('sucard-m');openNewInvoice('${inv.id || inv.serialNum}')">
       <td style="padding:5px 8px;font-size:.76rem">${dateStr?fD(dateStr):'—'}</td>
       <td style="padding:5px 8px;font-size:.72rem;color:#546e7a">${docNums||'—'}</td>
       <td style="padding:5px 8px;font-size:.75rem;color:#37474f">${inv.orderDesc||''}</td>
