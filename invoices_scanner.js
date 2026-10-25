@@ -320,7 +320,7 @@ const filesFound = [];
       
       // Call render results table and download summary Excel at the end
       if (typeof window._renderScannerResults === 'function') {
-        await window._renderScannerResults(resultsData, matchCount, skippedCount, filesFound.length);
+        await window._renderScannerResults(resultsData, matchCount, skippedCount, filesFound.length, e.data.nearMatchCount);
       }
       
       worker.terminate();
@@ -343,7 +343,7 @@ const filesFound = [];
   });
 };
 
-window._renderScannerResults = async function(resultsData, matchCount, skippedCount, totalFiles) {
+window._renderScannerResults = async function(resultsData, matchCount, skippedCount, totalFiles, nearMatchCount) {
   // ── Step 7: Export results Excel ──
   if (typeof window.XLSX === "undefined") {
      try { await window.loadScriptAsync('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'); } catch(e){}
@@ -352,7 +352,7 @@ window._renderScannerResults = async function(resultsData, matchCount, skippedCo
     try {
       const wb = window.XLSX.utils.book_new();
       const ws = window.XLSX.utils.aoa_to_sheet(resultsData);
-      ws['!cols'] = [{wch: 45}, {wch: 25}, {wch: 15}, {wch: 25}];
+      ws['!cols'] = [{wch: 45}, {wch: 35}, {wch: 15}, {wch: 25}];
       window.XLSX.utils.book_append_sheet(wb, ws, 'תוצאות סריקה');
       window.XLSX.writeFile(wb, 'תוצאות_סריקת_sharepoint.xlsx');
     } catch(err) {
@@ -360,13 +360,21 @@ window._renderScannerResults = async function(resultsData, matchCount, skippedCo
     }
   }
 
-  await _spAlertDialog(
-    `<b style="color:#1b5e20;font-size:1.1rem">✅ סריקה הסתיימה בהצלחה!</b>\n\n` +
+  let alertHtml = `<b style="color:#1b5e20;font-size:1.1rem">✅ סריקה הסתיימה בהצלחה!</b>\n\n` +
     (totalFiles !== undefined ? `📁 <b>נסרקו:</b> ${totalFiles} קבצים\n` : '') +
     `🔗 <b>שודכו / עודכנו:</b> ${matchCount} למסמכים\n` +
-    (skippedCount ? `⏭️ <b>דולגו</b> (קישור קיים ולא נדרס): ${skippedCount}\n` : '') +
-    `\n<span style="color:#1565c0">קובץ אקסל עם פירוט תוצאות הסריקה הורד למחשבך. כעת תוכל ללחוץ על סמל ה-📎 ליד כל מסמך כדי לפתוח אותו ישירות.</span>`
-  );
+    (skippedCount ? `⏭️ <b>דולגו</b> (קישור קיים ולא נדרס): ${skippedCount}\n` : '');
+
+  if (nearMatchCount && nearMatchCount > 0) {
+    alertHtml += `\n<div style="background:#fff3e0;border:1px solid #ffb74d;border-radius:8px;padding:8px 10px;color:#e65100;font-weight:700;margin:10px 0;text-align:right">` +
+      `⚠️ <b>שים לב:</b> ${nearMatchCount} קבצים שודכו ב<b>התאמה מקורבת</b> (טעות הקלדה קלה במספר המסמך).<br>` +
+      `<span style="font-weight:normal;font-size:0.8rem">מומלץ לעיין בקובץ האקסל שהורד כדי לוודא את נכונות השיוך.</span>` +
+      `</div>\n`;
+  }
+
+  alertHtml += `\n<span style="color:#1565c0">קובץ אקסל עם פירוט תוצאות הסריקה הורד למחשבך. כעת תוכל ללחוץ על סמל ה-📎 ליד כל מסמך כדי לפתוח אותו ישירות.</span>`;
+
+  await _spAlertDialog(alertHtml);
 };
 
 ;

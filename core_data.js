@@ -470,6 +470,57 @@ function _applyYearData(o){
     });
     window.INVOICES = Array.from(invMap.values()).concat(uniqueInvs);
 
+    // Reconcile phantom / orphan order rows (invoices without serialNum created by purchasing_orders)
+    // with their actual imported serial rows (matching orderNum and supplier, with VAT-tolerant amounts)
+    const cleanDoc = (d) => String(d || '').replace(/\D/g, '').replace(/^0+/, '');
+    const cleanSupText = (s) => String(s || '').toLowerCase().replace(/["'״׳`]/g, '').replace(/\s*\(?\s*בע[\s.]*מ\s*\)?\s*/gi, ' ').replace(/\s*\(?\s*ltd\.?\s*\)?\s*/gi, ' ').replace(/[-_.,()]/g, ' ').replace(/\s+/g, ' ').trim();
+    const isAmountsEquivalent = (a, b) => {
+      if (Math.abs(a - b) <= 1.0) return true;
+      for (const v of [18, 17]) {
+        if (Math.abs(a * (1 + v / 100) - b) <= 1.5) return true;
+        if (Math.abs(b * (1 + v / 100) - a) <= 1.5) return true;
+      }
+      return false;
+    };
+
+    const orphans = window.INVOICES.filter(i => (!i.serialNum || String(i.serialNum).trim() === '') && cleanDoc(i.orderNum).length >= 4);
+    if (orphans.length > 0) {
+      const mergedPhantomIds = new Set();
+      orphans.forEach(orp => {
+        const cleanOrder = cleanDoc(orp.orderNum);
+        const supClean = cleanSupText(orp.supName);
+        const orpTot = parseFloat(orp.orderTotal || orp.total || 0);
+
+        const candidates = window.INVOICES.filter(inv => {
+          if (!inv.serialNum || String(inv.serialNum).trim() === '') return false;
+          if (cleanDoc(inv.orderNum) !== cleanOrder) return false;
+          if (cleanSupText(inv.supName) !== supClean) return false;
+          return true;
+        });
+
+        if (candidates.length === 1) {
+          const target = candidates[0];
+          const targetTot = parseFloat(target.orderTotal || target.total || 0);
+          if (orpTot === 0 || targetTot === 0 || isAmountsEquivalent(orpTot, targetTot)) {
+            console.log(`[Reconcile] Merging orphan order [ID ${orp.id}] into [Serial ${target.serialNum}] (${target.supName})`);
+            ['file_order', 'file_tx', 'file_tax'].forEach(fk => {
+              if (orp[fk] && !target[fk]) target[fk] = orp[fk];
+            });
+            if (orp.status && orp.status !== 'order' && target.status === 'order') {
+              target.status = orp.status;
+            }
+            mergedPhantomIds.add(String(orp.id));
+            if (typeof window.deleteInvoiceFromFirebase === 'function') {
+              window.deleteInvoiceFromFirebase(orp.id);
+            }
+          }
+        }
+      });
+      if (mergedPhantomIds.size > 0) {
+        window.INVOICES = window.INVOICES.filter(inv => !mergedPhantomIds.has(String(inv.id)));
+      }
+    }
+
     // Auto-cancel invoices if "בוטל" is in the notes, date, or orderDesc
     window.INVOICES.forEach(inv => {
       if (inv.status !== 'cancelled') {

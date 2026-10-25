@@ -240,6 +240,30 @@ function generateDeliveryId() {
   return `DLV-${seq}${day}${month}${year}`;
 }
 
+window.isSupplierExempt = function(supName) {
+  if (!supName) return false;
+  const s = String(supName).trim();
+  const baseName = s.replace(/[.$#[\]/]/g, '');
+  const ex = (window.supEx && (window.supEx[s] || window.supEx[baseName])) || {};
+  const et = ex.entityType || '';
+  if (et === 'עוסק פטור' || et === 'עמותה') return true;
+  if (s.includes('אנגלית לחיים')) return true;
+  return false;
+};
+
+window.onOrderSupplierChange = function(supVal) {
+  const isExempt = window.isSupplierExempt(supVal);
+  const vatRateInput = document.getElementById('om-vat-rate');
+  if (vatRateInput) {
+    if (isExempt) {
+      vatRateInput.value = '0';
+    } else if (vatRateInput.value === '0') {
+      vatRateInput.value = String(window.VAT_RATE || 18);
+    }
+  }
+  if (typeof omCalc === 'function') omCalc();
+};
+
 function openNewOrder() {
   const newId = 'ord_' + Date.now();
   const orderId = generateOrderId();
@@ -292,7 +316,7 @@ function openNewOrder() {
         </div>
         <div style="flex:2; min-width:180px;">
           <label style="font-weight:600; color:#37474f;">לכבוד:</label>
-          <input type="text" id="om-supplier" list="om-sup-list" class="in-date" placeholder="בחר או הקלד..." style="width:100%; box-sizing:border-box">
+          <input type="text" id="om-supplier" list="om-sup-list" class="in-date" placeholder="בחר או הקלד..." style="width:100%; box-sizing:border-box" oninput="window.onOrderSupplierChange(this.value)" onchange="window.onOrderSupplierChange(this.value)">
           <datalist id="om-sup-list">${supOptions}</datalist>
         </div>
         <div style="flex:1; min-width:140px;">
@@ -649,7 +673,9 @@ async function saveOrder(id) {
   const kitsInput = document.getElementById('om-kits-count');
   const kitsCount = kitsInput ? (parseInt(kitsInput.value) || 1) : 1;
 
-  let vatRate = parseFloat(document.getElementById('om-vat-rate').value) || (window.VAT_RATE || 18);
+  let vatRate = parseFloat(document.getElementById('om-vat-rate').value);
+  if (isNaN(vatRate)) vatRate = (window.VAT_RATE || 18);
+  if (window.isSupplierExempt(supplier)) vatRate = 0;
   let grandTaxable = 0;
   let vat = 0;
   let total = 0;

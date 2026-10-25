@@ -615,13 +615,16 @@ reader.onload = async function(e) {
 
         const cleanDoc = (d) => String(d || '').replace(/\D/g, '').replace(/^0+/, '');
 
-        const existingIdx = window.INVOICES.findIndex(inv => {
-          // If BOTH rows have the same serial number (מס"ד), it is a direct match!
-          // If serial numbers differ, do NOT exit with false — fall through to verify if document/order numbers match!
-          if (item.serialNum && inv.serialNum && String(item.serialNum).trim() === String(inv.serialNum).trim()) {
-            return true;
+        const isAmountsEquivalent = (a, b) => {
+          if (Math.abs(a - b) <= 1.0) return true;
+          for (const v of [18, 17]) {
+            if (Math.abs(a * (1 + v / 100) - b) <= 1.5) return true;
+            if (Math.abs(b * (1 + v / 100) - a) <= 1.5) return true;
           }
+          return false;
+        };
 
+        const existingIdx = window.INVOICES.findIndex(inv => {
           const sameSup = cleanSupText(inv.supName) === cleanSupText(sName) || (window.supBase ? cleanSupText(window.supBase(inv.supName)) === cleanSupText(window.supBase(sName)) : false);
 
           const cleanItemNum = cleanDoc(item.num);
@@ -634,7 +637,7 @@ reader.onload = async function(e) {
           const hasItemTx    = cleanItemTx.length >= 2;
           const hasInvTx     = cleanInvTx.length >= 2;
 
-          // CONFLICT SAFETY: If both have tax invoice numbers and they differ, they CANNOT be the same record!
+          // CONFLICT SAFETY: If both have tax invoice numbers and they differ, they CANNOT be the same record, even if serialNum happens to match!
           if (hasItemNum && hasInvNum && cleanItemNum !== cleanInvNum) {
             return false;
           }
@@ -654,19 +657,17 @@ reader.onload = async function(e) {
             return true;
           }
 
-          if (!sameSup) return false;
-
           // 3. Cross-match between Transaction Invoice and Tax Invoice numbers
-          if (hasItemTx && hasInvNum && cleanItemTx === cleanInvNum) {
+          if (sameSup && hasItemTx && hasInvNum && cleanItemTx === cleanInvNum) {
             return true;
           }
-          if (hasItemNum && hasInvTx && cleanItemNum === cleanInvTx) {
+          if (sameSup && hasItemNum && hasInvTx && cleanItemNum === cleanInvTx) {
             return true;
           }
 
-          // 4. Match by Purchase Order Number — ONLY if there are no conflicting line details!
-          // (Consolidated master POs share the same orderNum across multiple cities/lines)
-          if (item.orderNum && inv.orderNum) {
+          // 4. Match by Purchase Order Number (with VAT-tolerant amount comparison)
+          // Essential for merging orders placed in the system with Excel rows!
+          if (sameSup && item.orderNum && inv.orderNum) {
             const cleanItemOrder = cleanDoc(item.orderNum);
             const cleanInvOrder  = cleanDoc(inv.orderNum);
             if (cleanItemOrder.length >= 4 && cleanInvOrder.length >= 4 && cleanItemOrder === cleanInvOrder) {
@@ -675,10 +676,10 @@ reader.onload = async function(e) {
               const cInv  = inv.locCity  ? cleanSupText(inv.locCity)  : '';
               if (cItem && cInv && cItem !== cInv) return false;
 
-              // Different amounts under the same PO => distinct rows!
+              // Compare amounts with VAT tolerance (e.g. net vs gross)
               const totItem = parseFloat(item.orderTotal || 0);
               const totInv  = parseFloat(inv.orderTotal  || 0);
-              if (totItem > 0 && totInv > 0 && Math.abs(totItem - totInv) > 1.0) return false;
+              if (totItem > 0 && totInv > 0 && !isAmountsEquivalent(totItem, totInv)) return false;
 
               // Different distinct descriptions under the same PO => distinct rows!
               const dItem = item.orderDesc ? cleanSupText(item.orderDesc) : '';
@@ -689,7 +690,14 @@ reader.onload = async function(e) {
             }
           }
 
-          // 5. Last-resort fallback: supplier + description + amount + month
+          // 5. Match by Serial Number (מס"ד) ONLY if neither has conflicting document numbers and supplier matches
+          if (sameSup && item.serialNum && inv.serialNum && String(item.serialNum).trim() === String(inv.serialNum).trim()) {
+            return true;
+          }
+
+          if (!sameSup) return false;
+
+          // 6. Last-resort fallback: supplier + description + amount + month
           const sameMonth = (String(inv.orderMonth || '').trim() === oMonth) || (inv.actMonth && item.actMonth && inv.actMonth === item.actMonth) || (!oMonth && !inv.orderMonth);
           const sameDesc = oDesc !== '' && String(inv.orderDesc || '').trim() === oDesc;
           const sameTotal = parseFloat(inv.orderTotal || 0).toFixed(2) === oTotal;
@@ -783,6 +791,9 @@ reader.onload = async function(e) {
             }
             if (cleanItem.serialNum) {
               cleanItem.id = String(cleanItem.serialNum);
+            }
+            if (oldInv && oldInv.id && String(oldInv.id) !== String(cleanItem.id || oldInv.id) && typeof window.deleteInvoiceFromFirebase === 'function') {
+              window.deleteInvoiceFromFirebase(oldInv.id);
             }
             window.INVOICES[existingIdx] = { ...window.INVOICES[existingIdx], ...cleanItem };
             updated++;

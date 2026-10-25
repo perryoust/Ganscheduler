@@ -19,6 +19,7 @@ onmessage = function(e) {
 
   let matchCount = 0;
   let skippedCount = 0;
+  let nearMatchCount = 0;
   const resultsData = [['שם קובץ', 'חשבונית שויכה', 'ציון התאמה', 'סטטוס שיוך']];
   const matchedInvoicesToUpdate = [];
 
@@ -41,6 +42,32 @@ onmessage = function(e) {
   };
 
   const isYear = (val) => { const num = parseInt(val, 10); return num >= 2020 && num <= 2035; };
+
+  const isLevenshteinDistanceOne = (s1, s2) => {
+    if (!s1 || !s2) return false;
+    if (Math.abs(s1.length - s2.length) > 1) return false;
+    let diff = 0;
+    let i = 0, j = 0;
+    while (i < s1.length && j < s2.length) {
+      if (s1[i] !== s2[j]) {
+        diff++;
+        if (diff > 1) return false;
+        if (s1.length > s2.length) {
+          i++;
+        } else if (s2.length > s1.length) {
+          j++;
+        } else {
+          i++;
+          j++;
+        }
+      } else {
+        i++;
+        j++;
+      }
+    }
+    if (i < s1.length || j < s2.length) diff++;
+    return diff === 1;
+  };
 
   const BUILTIN_ALIASES = {
     'חנה בית הלחמי': 'חוגות',
@@ -572,6 +599,96 @@ onmessage = function(e) {
       }
     }
 
+    // ── Near-match typo check (Levenshtein distance 1 on doc numbers >= 5) ──
+    let isNearMatch = false;
+    let nearMatchWarning = '';
+
+    if (bestScore < 0) {
+      for (const numObj of extractedNumbers) {
+        const cleanNumStr = numObj.clean;
+        if (!cleanNumStr || cleanNumStr.length < 5 || isYear(cleanNumStr)) continue;
+
+        for (const p of invPrep) {
+          const inv = p.inv;
+          // Must strictly match supplier words/aliases to prevent cross-supplier typos
+          let supMatched = false;
+          if (p.cleanSup && p.cleanSup.length >= 2 && cleanFull.includes(p.cleanSup)) {
+            supMatched = true;
+          } else if (p.cleanSup) {
+            const supWords = p.cleanSup.split(/\s+/).filter(w => w.length >= 3 && !['של','עם','על','את','אל','מן','זה','או','כי','אם','גן','צהרון'].includes(w));
+            if (supWords.length >= 1 && supWords.some(w => cleanFull.includes(w))) {
+              supMatched = true;
+            }
+          }
+          if (!supMatched) {
+            for (const ae of aliasEntries) {
+              if ((ae.targetClean === p.cleanSup || ae.targetRaw === inv.supName || ae.targetRaw === p.baseName) && cleanFull.includes(ae.aliasClean)) {
+                supMatched = true;
+                break;
+              }
+            }
+          }
+          if (!supMatched && p.keywords) {
+            const kwds = p.keywords.split(',').map(k => cleanSupText(k)).filter(Boolean);
+            if (kwds.some(k => cleanFull.includes(k))) {
+              supMatched = true;
+            }
+          }
+
+          if (!supMatched) continue;
+
+          let nearType = null;
+          let matchedTargetNum = '';
+
+          if (p.cleanNum && p.cleanNum.length >= 5 && isLevenshteinDistanceOne(cleanNumStr, p.cleanNum)) {
+            nearType = 'tax';
+            matchedTargetNum = p.cleanNum;
+          } else if (p.cleanTx && p.cleanTx.length >= 5 && isLevenshteinDistanceOne(cleanNumStr, p.cleanTx)) {
+            nearType = 'tx';
+            matchedTargetNum = p.cleanTx;
+          } else if (p.cleanOrder && p.cleanOrder.length >= 5 && isLevenshteinDistanceOne(cleanNumStr, p.cleanOrder)) {
+            nearType = 'order';
+            matchedTargetNum = p.cleanOrder;
+          }
+
+          if (!nearType) continue;
+
+          let nearScore = 450;
+          if (nearType === 'order') {
+            if (file.name.includes('חשבונית מס') || file.name.includes('קבלה') || file.name.toLowerCase().includes('tax')) {
+              nearType = 'tax';
+              nearScore += 50;
+            } else if (file.name.includes('חשבון עסקה') || file.name.includes('חשבונית עסקה') || file.name.toLowerCase().includes('tx')) {
+              nearType = 'tx';
+              nearScore += 50;
+            }
+          }
+
+          const existing = inv['file_' + nearType];
+          const hasPath = !!(existing && existing.path);
+          if (hasPath && !globalOverwrite) {
+            if (existing.path === file.link) {
+              nearScore += 10;
+            } else if (existing.origin === 'manual') {
+              nearScore -= 500;
+            } else if (existing.score !== undefined && nearScore <= existing.score) {
+              nearScore -= 100;
+            } else {
+              nearScore -= 5;
+            }
+          }
+
+          if (nearScore > bestScore) {
+            bestScore = nearScore;
+            bestInvoice = inv;
+            bestType = nearType;
+            isNearMatch = true;
+            nearMatchWarning = `⚠️ שויך בהתאמה מקורבת (קובץ: ${cleanNumStr} ⟷ חשבונית: ${matchedTargetNum})`;
+          }
+        }
+      }
+    }
+
     // ── Fallback: supplier+month fuzzy match (when no number matched) ──
     if (bestScore < 0) {
       let explicitMonthFound = false;
@@ -947,6 +1064,7 @@ onmessage = function(e) {
            const existHasPath = !!(existFile && existFile.path);
            const existIsMismatchedSup = existHasPath && isExistFileSupplierMismatch(existFile.name, matchedInvoice.supName);
            if (!existHasPath || globalOverwrite || existIsMismatchedSup || (existFile && existFile.score !== undefined && bestScore > existFile.score)) {
+              if (isNearMatch) nearMatchCount++;
               matchedInvoicesToUpdate.push({
                   id: matchedInvoice.id,
                   serialNum: matchedInvoice.serialNum,
@@ -957,9 +1075,13 @@ onmessage = function(e) {
                   type: matchedType,
                   path: file.link,
                   score: bestScore,
-                  filename: file.name
+                  filename: file.name,
+                  isNearMatch: isNearMatch,
+                  warning: nearMatchWarning
               });
-             resultsData.push([file.name, `${matchedInvoice.orderDesc || matchedInvoice.supName} (${matchedType})`, bestScore, 'שויך']);
+             const statusStr = isNearMatch ? 'שויך (התאמה מקורבת)' : 'שויך';
+             const descSuffix = isNearMatch ? ` (${matchedType}) - ${nearMatchWarning}` : ` (${matchedType})`;
+             resultsData.push([file.name, `${matchedInvoice.orderDesc || matchedInvoice.supName}${descSuffix}`, bestScore, statusStr]);
              matchCount++;
            } else {
              resultsData.push([file.name, `${matchedInvoice.orderDesc || matchedInvoice.supName}`, bestScore, 'דלג (קישור קיים/ציון נמוך יותר)']);
@@ -972,5 +1094,5 @@ onmessage = function(e) {
     }
   }
 
-  postMessage({ type: 'done', matchCount, skippedCount, resultsData, matchedInvoicesToUpdate });
+  postMessage({ type: 'done', matchCount, skippedCount, nearMatchCount, resultsData, matchedInvoicesToUpdate });
 };
