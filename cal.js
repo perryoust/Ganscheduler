@@ -1372,11 +1372,12 @@ function renderClusterDay(evs, ds, clusterName){
   const isAll = clusterName==='__all__';
   const clObjD=!isAll&&window.getClusters().find(cl=>cl.name===clusterName);
   const clGidsD=clObjD?(clObjD.gardenIds||[]):evs.map(s=>s.g).filter((v,i,a)=>a.indexOf(v)===i);
+  const safeClGidsD = (clGidsD || []).map(Number).filter(Boolean);
   html+=`<div style="background:#e8eaf6;border-radius:7px;padding:6px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;font-size:.78rem;font-weight:700;color:#1a237e">
     <span>🔢 ${isAll?'כל האשכולות':('אשכול: '+clusterName)} <span style="font-weight:400;color:#546e7a">${evs.length} פעילויות</span></span>
     <div style="display:flex;gap:6px">
       ${!isAll && clObjD ? `<button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${clObjD.id}','${ds}')" style="font-size:.68rem;padding:2px 8px">✏️ עריכה מרוכזת</button>` : ''}
-      <button class="btn bg bsm" onclick="event.stopPropagation();window._exportPairWA(${JSON.stringify(clGidsD)})" style="font-size:.68rem;padding:2px 8px">📋 הודעה</button>
+      <button class="btn bg bsm" onclick="event.stopPropagation();window._exportPairWA([${safeClGidsD.join(',')}])" style="font-size:.68rem;padding:2px 8px">📋 הודעה</button>
     </div>
   </div>`;
   const calCls = window.getEl ? (window.getEl('cal-cls')?.value || '') : (document.getElementById('cal-cls')?.value || '');
@@ -1419,13 +1420,14 @@ function renderClusterDay(evs, ds, clusterName){
           const sorted=[...clEvs].sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99'));
           const clObj = clName !== 'ללא אשכול' ? window.getClusters().find(c => c.name.trim() === clName.trim()) : null;
           const clGids = clEvs.map(s => s.g);
+          const safeClGids = (clGids || []).map(Number).filter(Boolean);
           
           html+=`<div style="margin-bottom:10px">
             <div style="padding:3px 10px;background:${clrCity.light};border-right:3px solid ${clrCity.solid};border-radius:4px;font-size:.74rem;font-weight:700;color:${clrCity.solid};margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
               <span>🔢 ${clName} — ${sorted.length} פעילויות</span>
               <div style="display:flex;gap:4px">
                 ${clObj ? `<button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${clObj.id}','${ds}')" style="font-size:.62rem;padding:1px 6px">✏️ עריכה</button>` : ''}
-                ${clGids.length ? `<button class="btn bg bsm" onclick="event.stopPropagation();window._exportPairWA(${JSON.stringify(clGids)})" style="font-size:.62rem;padding:1px 6px">📋 הודעה</button>` : ''}
+                ${safeClGids.length ? `<button class="btn bg bsm" onclick="event.stopPropagation();window._exportPairWA([${safeClGids.join(',')}])" style="font-size:.62rem;padding:1px 6px">📋 הודעה</button>` : ''}
               </div>
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:6px">`;
@@ -1507,7 +1509,8 @@ function renderClusterWeek(evs, weekStart, clusterName){
   const isAll=clusterName==='__all__';
   const clObj=!isAll&&getClusters().find(cl=>cl.name===clusterName);
   const clGids=clObj?(clObj.gardenIds||[]):evs.map(s=>s.g).filter((v,i,a)=>a.indexOf(v)===i);
-  const waBtn=`<button onclick="event.stopPropagation();_exportPairWA(${JSON.stringify(clGids)})" style="background:#25d366;border:none;border-radius:4px;color:#fff;font-size:.65rem;padding:2px 8px;cursor:pointer;margin-right:8px">📋 הודעה</button>`;
+  const safeClGids=(clGids||[]).map(Number).filter(Boolean);
+  const waBtn=`<button onclick="event.stopPropagation();_exportPairWA([${safeClGids.join(',')}])" style="background:#25d366;border:none;border-radius:4px;color:#fff;font-size:.65rem;padding:2px 8px;cursor:pointer;margin-right:8px">📋 הודעה</button>`;
   let html=`<div style="background:#e8eaf6;border-radius:7px;padding:5px 12px;margin-bottom:10px;font-size:.77rem;font-weight:700;color:#1a237e;display:flex;align-items:center;justify-content:space-between">
     <span>🔢 ${isAll?'כל האשכולות':('אשכול: '+clusterName)} — תצוגה שבועית (5 ימי עבודה)</span>
     ${waBtn}
@@ -1560,12 +1563,13 @@ function renderClusterWeek(evs, weekStart, clusterName){
         Object.entries(clusterMap).sort((a,b)=>a[0].localeCompare(b[0], 'he', { numeric: true })).forEach(([clName,clEvs])=>{
           const clObj = clName !== 'ללא אשכול' ? window.getClusters().find(c => c.name.trim() === clName.trim()) : null;
           const clGids = clEvs.map(s => s.g);
+          const safeClGids = (clGids || []).map(Number).filter(Boolean);
           
           html+=`<div style="font-size:.68rem;font-weight:700;color:${clrCity.solid};background:${clrCity.light};padding:2px 7px;border-radius:3px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center">
             <span>🔢 ${clName}</span>
             <div style="display:flex;gap:4px">
               ${clObj ? `<button class="btn bp bsm" onclick="event.stopPropagation();window.openClusterBulkEdit('${clObj.id}','${ds}')" style="font-size:.62rem;padding:1px 6px">✏️ עריכה</button>` : ''}
-              ${clGids.length ? `<button class="btn bg bsm" onclick="event.stopPropagation();window._exportPairWA(${JSON.stringify(clGids)})" style="font-size:.62rem;padding:1px 6px">📋 הודעה</button>` : ''}
+              ${safeClGids.length ? `<button class="btn bg bsm" onclick="event.stopPropagation();window._exportPairWA([${safeClGids.join(',')}])" style="font-size:.62rem;padding:1px 6px">📋 הודעה</button>` : ''}
             </div>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px">`;

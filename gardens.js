@@ -527,11 +527,12 @@ function renderPairs(){
       const idx=window.pairs.indexOf(p);
       const gs=p.ids.map(id=>window.G(id)).filter(x=>x.id);
       // Always 3 columns — empty cell if only 2 gardens
-      h+=`<div class="pair-row" style="border-right:3px solid ${clr.solid};margin-bottom:10px">
+          const safePids = ((p && p.ids) || []).map(Number).filter(Boolean);
+          h+=`<div class="pair-row" style="border-right:3px solid ${clr.solid};margin-bottom:10px">
         <div class="pair-row-label" style="background:${clr.solid};display:flex;justify-content:space-between;align-items:center">
           <span style="font-weight:800;font-size:.8rem">${p.name||gs.map(g=>g.name).join(' + ')}</span>
           <div style="display:flex;gap:4px">
-            <button class="btn bsm" style="background:rgba(255,255,255,.3);border:none;color:#fff;font-size:.7rem;padding:3px 9px;border-radius:4px;cursor:pointer;font-weight:700" onclick="_exportPairWA(${JSON.stringify(p.ids)})">📋 הודעה</button>
+            <button class="btn bsm" style="background:rgba(255,255,255,.3);border:none;color:#fff;font-size:.7rem;padding:3px 9px;border-radius:4px;cursor:pointer;font-weight:700" onclick="_exportPairWA([${safePids.join(',')}])">📋 הודעה</button>
             <button class="btn bsm" style="background:rgba(255,255,255,.22);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="openAddPair(${idx})">✏️ ערוך</button>
             <button class="btn bsm" style="background:rgba(255,255,255,.28);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="_goToPairSched(${idx})">📋 שיבוץ</button>
             <button class="btn bsm" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:.68rem;padding:2px 7px;border-radius:4px;cursor:pointer" onclick="delPair(${idx})">🗑️</button>
@@ -1638,9 +1639,23 @@ function _exportGardenWA(gids, ds, isM, singleGid){
 
 function _exportPairWA(gids, isM, singleGid, targetDate){
   window._exEventIds = null;
-  _exGids = (Array.isArray(gids)?gids:JSON.parse(gids)).map(Number);
+  if (Array.isArray(gids)) {
+    _exGids = gids.map(Number).filter(Boolean);
+  } else if (typeof gids === 'string') {
+    try {
+      _exGids = JSON.parse(gids);
+      if (!Array.isArray(_exGids)) _exGids = [_exGids];
+    } catch(e) {
+      _exGids = gids.replace(/[\[\]]/g, '').split(',').map(s=>s.trim()).filter(Boolean);
+    }
+    _exGids = _exGids.map(Number).filter(Boolean);
+  } else if (gids) {
+    _exGids = [Number(gids)].filter(Boolean);
+  } else {
+    _exGids = [];
+  }
   _exIsM = isM;
-  window._exSingleGid = singleGid ? Number(singleGid) : _exGids[0];
+  window._exSingleGid = singleGid ? Number(singleGid) : (_exGids && _exGids[0] ? _exGids[0] : null);
   if (targetDate) {
     if (typeof s2d === 'function') calD = s2d(targetDate);
     else if (typeof window.s2d === 'function') window.calD = window.s2d(targetDate);
@@ -1774,17 +1789,20 @@ function openCalPrint(){
 }
 function openExport(){
   window._exEventIds = null;
-  let _ws = new Date(calD); _ws.setHours(0,0,0,0);
+  const currD = window.calD || (typeof calD !== 'undefined' ? calD : new Date());
+  let _ws = new Date(currD); _ws.setHours(0,0,0,0);
   if(_ws.getDay()===5) _ws.setDate(_ws.getDate()+2);
   else if(_ws.getDay()===6) _ws.setDate(_ws.getDate()+1);
-  const _days = window.getNextWorkDays(_ws, 5);
-  const ws = _days[0], we = _days[4];
+  const _days = window.getNextWorkDays ? window.getNextWorkDays(_ws, 5) : [_ws];
+  const ws = _days[0], we = _days[4] || _days[_days.length - 1];
   const isExplicitDate = !!window._exExplicitDate;
-  const isWeek = isExplicitDate ? false : (calV==='week');
-  const todayStr = window._exExplicitDate || d2s(calD);
+  const calVVal = window.calV || (typeof calV !== 'undefined' ? calV : 'list');
+  const isWeek = isExplicitDate ? false : (calVVal === 'week');
+  const d2sFn = window.d2s || (typeof d2s === 'function' ? d2s : ((d) => d.toISOString().split('T')[0]));
+  const todayStr = window._exExplicitDate || d2sFn(currD);
   
-  let d1Val = isWeek ? d2s(ws) : todayStr;
-  let d2Val = isWeek ? d2s(we) : todayStr;
+  let d1Val = isWeek ? d2sFn(ws) : todayStr;
+  let d2Val = isWeek ? d2sFn(we) : todayStr;
   
   // Clear explicit date flag after capturing it
   window._exExplicitDate = null;
