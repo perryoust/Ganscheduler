@@ -46,6 +46,10 @@
       ".read": "auth != null && auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03'",
       ".write": "auth != null && auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03'"
     },
+    "version_backups": {
+      ".read": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).exists())",
+      ".write": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).child('permAct').val() === true)"
+    },
     "schedules": {
       ".read": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).exists())",
       ".write": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).child('permAct').val() === true)"
