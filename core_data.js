@@ -521,6 +521,69 @@ function _applyYearData(o){
       }
     }
 
+    // ── Cross-Supplier File Sanitizer & Relocator Pass ──
+    // Cleans up legacy pollutions caused by serialNum shifts where files from supplier A
+    // remained stuck on an invoice record that changed into supplier B.
+    const isSupplierMismatch = (fileName, supName) => {
+      if (!fileName || !supName) return false;
+      const cleanF = cleanSupText(fileName);
+      const cleanS = cleanSupText(supName);
+      if (!cleanS || cleanS.length < 2) return false;
+      if (cleanF.includes(cleanS)) return false;
+
+      const supWords = cleanS.split(/\s+/).filter(w => w.length >= 3 && !['של','עם','על','את','אל','מן','זה','או','כי','אם','גן','צהרון','ביהס','חופש','גדול'].includes(w));
+      if (supWords.length >= 1 && supWords.some(w => cleanF.includes(w))) return false;
+
+      const aliases = {
+        'חנה בית הלחמי': 'חוגות', 'בית הלחמי': 'חוגות',
+        'עדי קייטרינג': 'עדי מ קייטרינג בע"מ', 'עדי קייטרינג בע"מ': 'עדי מ קייטרינג בע"מ',
+        'עליזה קריבושי': 'לגדול בקצב ע"ר', 'עליזה קרבושי': 'לגדול בקצב ע"ר',
+        'מוראל אייזנברג': 'בלאק אנד וויט', 'פמלי סקול': 'פמיליסקול'
+      };
+      for (const [alias, target] of Object.entries(aliases)) {
+        if ((cleanSupText(target) === cleanS || cleanSupText(alias) === cleanS) && cleanF.includes(cleanSupText(alias))) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    let filesSanitizedCount = 0;
+    window.INVOICES.forEach(inv => {
+      ['file_order', 'file_tx', 'file_tax'].forEach(fk => {
+        const f = inv[fk];
+        if (f && f.name && isSupplierMismatch(f.name, inv.supName)) {
+          const nums = (f.name.match(/\d+/g) || []).map(cleanDoc).filter(n => n.length >= 4);
+          let relocated = false;
+
+          for (const num of nums) {
+            const candidate = window.INVOICES.find(cand => {
+              if (cand.id === inv.id) return false;
+              const candNums = [cleanDoc(cand.num), cleanDoc(cand.txNum), cleanDoc(cand.orderNum)];
+              if (!candNums.includes(num)) return false;
+              return !isSupplierMismatch(f.name, cand.supName);
+            });
+
+            if (candidate) {
+              if (!candidate[fk]) {
+                candidate[fk] = f;
+                console.log(`[Sanitizer] Relocated ${f.name} from [${inv.serialNum} - ${inv.supName}] to [${candidate.serialNum} - ${candidate.supName}]`);
+                relocated = true;
+                break;
+              }
+            }
+          }
+
+          delete inv[fk];
+          filesSanitizedCount++;
+        }
+      });
+    });
+
+    if (filesSanitizedCount > 0) {
+      console.log(`[Sanitizer] Cleaned up ${filesSanitizedCount} cross-supplier mismatched files.`);
+    }
+
     // Auto-cancel invoices if "בוטל" is in the notes, date, or orderDesc
     window.INVOICES.forEach(inv => {
       if (inv.status !== 'cancelled') {
