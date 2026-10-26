@@ -450,14 +450,23 @@ window.budgetApp = {
         expHtml = `<div style="font-size:0.8rem; color:#888; padding:8px 0;">אין הוצאות רשומות לחודש זה.</div>`;
       }
       const coordName = data.coordinator && (data.coordinator.name || data.coordinator.accName) ? (data.coordinator.name || data.coordinator.accName) : 'הגדר רכז/תשלום';
+      const c = data.coordinator || {};
+      let bankInfoTag = '';
+      if (c.bankName || c.account) {
+        const parts = [c.bankName, c.branch ? `סניף ${c.branch}` : '', c.account ? `ח-ן ${c.account}` : ''].filter(Boolean);
+        bankInfoTag = `<span style="font-size:0.75rem; color:#2e7d32; background:#e8f5e9; border:1px solid #c8e6c9; border-radius:10px; padding:2px 8px; font-weight:600;" title="פרטי חשבון בנק מוגדרים">🏦 ${parts.join(' | ')}</span>`;
+      } else if (coordName !== 'הגדר רכז/תשלום') {
+        bankInfoTag = `<span style="font-size:0.72rem; color:#d97706; background:#fef3c7; border:1px solid #fde68a; border-radius:10px; padding:2px 8px; font-weight:600;" title="לחץ על הרכז/ת להזנת פרטי בנק">⚠️ חסרים פרטי בנק</span>`;
+      }
       html += `
         <div class="card" style="margin-bottom:15px; border-right: 4px solid ${barColor}; padding:15px;">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <div style="font-weight:700; font-size:1.05rem; color:#1a237e; display:flex; align-items:center; gap:10px;">
+            <div style="font-weight:700; font-size:1.05rem; color:#1a237e; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
               <span>🏫 ${schoolName}</span>
               <button onclick="window.budgetApp.openCoordinatorModal('${escSchool}')" style="background:#e8eaf6; color:#1a237e; border:1px solid #c5cae9; border-radius:12px; padding:3px 10px; font-size:0.8rem; cursor:pointer; font-weight:600;">
                 👤 ${coordName}
               </button>
+              ${bankInfoTag}
             </div>
             
             <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
