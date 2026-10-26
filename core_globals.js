@@ -1,4 +1,4 @@
-window.APP_VERSION = window.APP_VERSION || '113.56';
+window.APP_VERSION = window.APP_VERSION || '113.57';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── Platform Detection ──
@@ -49,6 +49,65 @@ window.gardenBlocks = window.gardenBlocks || {};
 window.managers = window.managers || {};
 window.pairBreaks = window.pairBreaks || {};
 window.VAT_RATE = window.VAT_RATE || 18;
+window.schoolBudgets = window.schoolBudgets || {};
+
+// ══════════════════════════════════════════════════════════════════
+// 🛡️ MASTER DATA REGISTRY & INTEGRITY SHIELD
+// Unified single-source-of-truth snapshot for:
+// Save to Cloud, Full JSON Export, Version Vault, LocalStorage & Snapshots
+// ══════════════════════════════════════════════════════════════════
+window.getMasterDataSnapshot = function() {
+  return {
+    version: 4,
+    appVersion: window.APP_VERSION || '113.57',
+    exported: new Date().toISOString(),
+    currentYear: window.CURRENT_YEAR || 'tashpaz',
+    
+    // Core Activities & Schedules
+    ch: Array.isArray(window.SCH) ? window.SCH : [],
+    pairs: Array.isArray(window.pairs) ? window.pairs : [],
+    supEx: window.supEx || {},
+    clusters: window.clusters || {},
+    holidays: Array.isArray(window.holidays) ? window.holidays : [],
+    pairBreaks: window.pairBreaks || {},
+    managers: window.managers || {},
+    blockedDates: window.blockedDates || {},
+    gardenBlocks: window.gardenBlocks || {},
+    activeGardens: window.activeGardens ? [...window.activeGardens] : null,
+    customGardens: Array.isArray(window._GARDENS_EXTRA) ? window._GARDENS_EXTRA : [],
+    
+    // Purchasing & Logistics
+    invoices: Array.isArray(window.INVOICES) ? window.INVOICES : [],
+    orders: Array.isArray(window.ORDERS) ? window.ORDERS : [],
+    deliveries: Array.isArray(window.DELIVERIES) ? window.DELIVERIES : [],
+    schoolBudgets: window.schoolBudgets || {},
+    vatRate: window.VAT_RATE || 18,
+    purchNotes: window.PURCH_NOTES || null,
+    purchOrderers: window.PURCH_ORDERERS || null,
+    purchFooter: window.PURCH_FOOTER || null,
+    
+    // SharePoint & Aliases
+    spScannerAliases: window.spScannerAliases || {},
+    spScannerFolderLinks: window.spScannerFolderLinks || {},
+    
+    // Tasks & Todos
+    todos: window.todo ? window.todo.items : []
+  };
+};
+
+// 🛡️ ZERO-DATA SAFETY GUARD
+// Checks whether the in-memory data is sufficiently loaded to prevent accidental blank overwrites
+window.isDataSafeForExport = function() {
+  const schLen = Array.isArray(window.SCH) ? window.SCH.length : 0;
+  const invLen = Array.isArray(window.INVOICES) ? window.INVOICES.length : 0;
+  const supLen = Object.keys(window.supEx || {}).length;
+  // If completely empty in all primary datasets, it is NOT safe to overwrite or export blank
+  if (schLen === 0 && invLen === 0 && supLen === 0) {
+    return false;
+  }
+  return true;
+};
+
 
 // Local aliases - we must ensure these are updated when window variables are re-assigned
 // or better yet, use window variables directly in functions.

@@ -393,9 +393,20 @@ function _applyYearData(o){
   } else {
     window.activeGardens = null;
   }
-  window.spScannerAliases = o.spScannerAliases || {};
-  window.spScannerFolderLinks = o.spScannerFolderLinks || window.spScannerFolderLinks || {};
-  window.schoolBudgets = o.schoolBudgets || {};
+  if (o.schoolBudgets && Object.keys(o.schoolBudgets).length > 0) {
+    window.schoolBudgets = o.schoolBudgets;
+  } else {
+    try {
+      const localBudgets = JSON.parse(_safeLS.getItem('ganv5_school_budgets') || '{}');
+      if (localBudgets && Object.keys(localBudgets).length > 0) {
+        if (!window.schoolBudgets || Object.keys(window.schoolBudgets).length === 0) {
+          window.schoolBudgets = localBudgets;
+        }
+      } else if (!window.schoolBudgets) {
+        window.schoolBudgets = {};
+      }
+    } catch(e) { if (!window.schoolBudgets) window.schoolBudgets = {}; }
+  }
 
   const rawPairs = Array.isArray(o.pairs) ? o.pairs : (o.pairs && typeof o.pairs === 'object' ? Object.values(o.pairs) : null);
   if (rawPairs !== null) {
@@ -941,6 +952,10 @@ async function save(immediate){
     console.warn('save: blocked (Firebase not ready yet)');
     return false;
   }
+  if (typeof window.isDataSafeForExport === 'function' && !window.isDataSafeForExport() && !immediate) {
+    console.warn('[Safety Shield] Save BLOCKED: Primary data in memory is empty, preventing accidental blank overwrite.');
+    return false;
+  }
   
   window._isSaving = true;
   try{
@@ -981,10 +996,11 @@ async function save(immediate){
     const yearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpaz');
     _safeLS.setItem(yearKey, _json);
     
-    // Save invoices, orders and deliveries globally
+    // Save invoices, orders, deliveries and school budgets globally
     _safeLS.setItem('ganv5_invoices', JSON.stringify(window.INVOICES||[]));
     _safeLS.setItem('ganv5_orders', JSON.stringify(window.ORDERS||[]));
     _safeLS.setItem('ganv5_deliveries', JSON.stringify(window.DELIVERIES||[]));
+    _safeLS.setItem('ganv5_school_budgets', JSON.stringify(window.schoolBudgets||{}));
     _safeLS.setItem('ganv5_vat', JSON.stringify(window.VAT_RATE||18));
     
     if (!window.CURRENT_YEAR || window.CURRENT_YEAR === 'tashpav') {

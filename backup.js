@@ -2,13 +2,23 @@ function getSnapshots(){try{return JSON.parse(window._safeLS.getItem('ganv5_snap
 function saveSnapshots(snaps){try{window._safeLS.setItem('ganv5_snaps',JSON.stringify(snaps));}catch(e){}}
 function createSnapshot(label){
   const snaps=getSnapshots();
-  const data=window._safeLS.getItem('ganv5')||'{}';
-  const isAuto = (label==='שעתי'||label==='סגירה');
-  if (isAuto && data.length > 500000) {
-    console.log('[Backup] Skipping auto snapshot — data too large (' + Math.round(data.length/1024) + 'KB)');
+  if (typeof window.isDataSafeForExport === 'function' && !window.isDataSafeForExport()) {
+    console.warn('[Snapshot] Skipped blank snapshot — data not loaded yet.');
     return;
   }
-  snaps.unshift({ts:Date.now(),label:label||'ידני',size:data.length,data});
+  let dataStr = '';
+  if (typeof window.getMasterDataSnapshot === 'function') {
+    dataStr = JSON.stringify(window.getMasterDataSnapshot());
+  } else {
+    dataStr = window._safeLS.getItem('ganv5_y_' + (window.CURRENT_YEAR || 'tashpaz')) || window._safeLS.getItem('ganv5') || '{}';
+  }
+  if (!dataStr || dataStr === '{}' || dataStr.length < 10) return;
+  const isAuto = (label==='שעתי'||label==='סגירה');
+  if (isAuto && dataStr.length > 3000000) {
+    console.log('[Backup] Skipping auto snapshot — data too large (' + Math.round(dataStr.length/1024) + 'KB)');
+    return;
+  }
+  snaps.unshift({ts:Date.now(),label:label||'ידני',size:dataStr.length,data:dataStr});
   const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
   const filtered = snaps.filter(s => s.ts > sevenDaysAgo || s.label === 'ידני');
   if(filtered.length>MAX_SNAPSHOTS) filtered.length=MAX_SNAPSHOTS;
@@ -38,7 +48,17 @@ async function restoreSnapshot(i){
   const snaps=getSnapshots();const snap=snaps[i];if(!snap)return;
   if(!await window.spConfirm('לשחזר לגרסה מ-'+new Date(snap.ts).toLocaleString('he-IL')+'?\nהנתונים הנוכחיים יישמרו אוטומטית לפני שחזור.')) return;
   createSnapshot('לפני שחזור');
-  window._safeLS.setItem('ganv5',snap.data);
+  const currentYearKey = 'ganv5_y_' + (window.CURRENT_YEAR || 'tashpaz');
+  window._safeLS.setItem('ganv5', snap.data);
+  window._safeLS.setItem(currentYearKey, snap.data);
+  try {
+    const d = JSON.parse(snap.data);
+    if (Array.isArray(d.invoices)) window._safeLS.setItem('ganv5_invoices', JSON.stringify(d.invoices));
+    if (Array.isArray(d.orders)) window._safeLS.setItem('ganv5_orders', JSON.stringify(d.orders));
+    if (Array.isArray(d.deliveries)) window._safeLS.setItem('ganv5_deliveries', JSON.stringify(d.deliveries));
+    if (d.schoolBudgets) window._safeLS.setItem('ganv5_school_budgets', JSON.stringify(d.schoolBudgets));
+    if (Array.isArray(d.customGardens)) window._safeLS.setItem('custom_gardens', JSON.stringify(d.customGardens));
+  } catch(e){}
   window.showCopyToast('✅ שוחזר! טוען מחדש...');
   setTimeout(()=>location.reload(),1200);
 }
@@ -93,8 +113,14 @@ function importBackup(input){
         clusters:data.clusters||{},holidays:data.holidays||[],pairBreaks:data.pairBreaks||{},
         managers:data.managers||{},blockedDates:data.blockedDates||{},
         gardenBlocks:data.gardenBlocks||{},invoices:data.invoices||[],
+        orders:data.orders||[],deliveries:data.deliveries||[],
         schoolBudgets:data.schoolBudgets||{},
+        customGardens:data.customGardens||[],
         todos:data.todos||[]};
+      if (Array.isArray(data.orders)) window.ORDERS = data.orders;
+      if (Array.isArray(data.deliveries)) window.DELIVERIES = data.deliveries;
+      if (data.schoolBudgets) window.schoolBudgets = data.schoolBudgets;
+      if (Array.isArray(data.customGardens)) window._GARDENS_EXTRA = data.customGardens;
       const json=JSON.stringify(sd);
       window._safeLS.setItem('ganv5',json);
       if(sd.todos.length) window._safeLS.setItem('ganv5_todos', JSON.stringify(sd.todos));
@@ -223,18 +249,28 @@ function openInfoModal(){
   document.getElementById('infom').classList.add('open');
 }
 function exportFullBackup(){
-  // Use live in-memory data — most reliable source of truth
-  const data={
-    version:2,
-    exported:new Date().toISOString(),
-    ch:SCH.map(s=>{const o={id:s.id,g:s.g,d:s.d,a:s.a,t:s.t,st:s.st,grp:s.grp||1};if(s.p)o.p=s.p;if(s.n)o.n=s.n;if(s.cr)o.cr=s.cr;if(s.cn)o.cn=s.cn;if(s.nt)o.nt=s.nt;if(s.pd)o.pd=s.pd;if(s.pt)o.pt=s.pt;if(s.act)o.act=s.act;if(s._isMakeup)o._isMakeup=s._isMakeup;if(s._makeupFrom)o._makeupFrom=s._makeupFrom;if(s._compByMakeup)o._compByMakeup=s._compByMakeup;return o;}),
-    pairs,supEx,clusters,holidays,pairBreaks,
-    managers:typeof managers!=='undefined'?managers:{},
-    blockedDates:typeof blockedDates!=='undefined'?blockedDates:{},
-    gardenBlocks:typeof gardenBlocks!=='undefined'?gardenBlocks:{},
-    invoices:typeof INVOICES!=='undefined'?INVOICES:[],
-    schoolBudgets:window.schoolBudgets || {},
-    todos:window.todo ? window.todo.items : []
+  if (typeof window.isDataSafeForExport === 'function' && !window.isDataSafeForExport()) {
+    if (window.spAlert) window.spAlert('⚠️ נתוני המערכת עדיין בטעינה מהענן. נא להמתין מספר שניות לפני הורדת גיבוי.');
+    else alert('נתוני המערכת עדיין בטעינה מהענן.');
+    return;
+  }
+  const data = typeof window.getMasterDataSnapshot === 'function' ? window.getMasterDataSnapshot() : {
+    version: 4,
+    exported: new Date().toISOString(),
+    ch: window.SCH || [],
+    pairs: window.pairs || [],
+    supEx: window.supEx || {},
+    clusters: window.clusters || {},
+    holidays: window.holidays || [],
+    pairBreaks: window.pairBreaks || {},
+    managers: window.managers || {},
+    blockedDates: window.blockedDates || {},
+    gardenBlocks: window.gardenBlocks || {},
+    invoices: window.INVOICES || [],
+    orders: window.ORDERS || [],
+    deliveries: window.DELIVERIES || [],
+    schoolBudgets: window.schoolBudgets || {},
+    todos: window.todo ? window.todo.items : []
   };
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
@@ -242,7 +278,7 @@ function exportFullBackup(){
   const now=new Date();
   const timeStr=now.getHours().toString().padStart(2,'0')+'-'+now.getMinutes().toString().padStart(2,'0');
   const ver = window.APP_VERSION || '5.0';
-  a.href=url;a.download=`גיבוי_מנהל_גנים_v${ver}_${td()}_${timeStr}.json`;
+  a.href=url;a.download=`גיבוי_מלא_מערכת_טומשין_v${ver}_${td()}_${timeStr}.json`;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
