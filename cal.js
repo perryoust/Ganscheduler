@@ -2822,7 +2822,7 @@ function renderRangeListView(evs, fromDs, toDs){
           if(gardenActivities.has(gid)) {
             finalEvs.push(...gardenActivities.get(gid));
           } else {
-            finalEvs.push({ id: 'dummy_'+gid, g: gid, st: 'unassigned', d: ds, t: '', act: '' });
+            finalEvs.push({ id: 'dummy_'+gid+'_'+ds, g: gid, st: 'unassigned', d: ds, t: '', act: '' });
           }
         });
         const sorted = finalEvs.sort((a,b) => window.compareActivities(a, b));
@@ -2858,7 +2858,7 @@ function renderRangeListView(evs, fromDs, toDs){
             if(gardenActivities.has(gid)) {
               finalEvs.push(...gardenActivities.get(gid));
             } else {
-              finalEvs.push({ id: 'dummy_'+gid, g: gid, st: 'unassigned', d: ds, t: '', act: '' });
+              finalEvs.push({ id: 'dummy_'+gid+'_'+ds, g: gid, st: 'unassigned', d: ds, t: '', act: '' });
             }
           });
           const sorted = finalEvs.sort((a,b) => window.compareActivities(a, b));

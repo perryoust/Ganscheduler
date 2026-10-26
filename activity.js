@@ -839,8 +839,20 @@ window.openSP = function(id) {
     return;
   }
   window.selEv = id;
-  const s = window.getSchById(id);
-  if(!s) return;
+  let s = window.getSchById(id);
+  if (!s && String(id).startsWith('dummy_')) {
+    const parts = String(id).split('_');
+    const gid = Number(parts[1]);
+    const ds = parts.slice(2).join('_');
+    if (gid && typeof window.handleUnassignedRowClick === 'function') {
+      return window.handleUnassignedRowClick(gid, ds);
+    }
+  }
+  if (!s) {
+    console.warn('[openSP] Activity not found for ID:', id);
+    if (window.showToast) window.showToast('⚠️ לא נמצאה פעילות עבור מזהה זה');
+    return;
+  }
 
   const isClusterMode = window._listGroupMode === 'clusters' || window._dashTab === 'clusters';
   // We now use openSP for clusters directly, no redirect to openClusterBulkEdit
@@ -2477,6 +2489,11 @@ function refresh(){
   if(window.refreshAllDashTabs) window.refreshAllDashTabs();
   else if(window.renderDash) window.renderDash();
   
+  try {
+    if (window.DataManager && typeof window.DataManager.buildIndexes === 'function') {
+      window.DataManager.buildIndexes();
+    }
+  } catch(e) {}
   if(window.renderCal) window.renderCal();
   if(window.currentTab==='sched' && window.renderSched) window.renderSched();
   
@@ -2507,11 +2524,11 @@ async function saveAndRefresh(modalId, stayOpen = false, immediate = true){
   // Refresh the UI instantly for the user
   window.refresh();
   
-  const spEl = document.getElementById('sp');
+  const spEl = document.getElementById('sp-m') || document.getElementById('sp');
   const spIsOpen = spEl && spEl.classList.contains('open');
-  if (stayOpen && (modalId === 'sp' || modalId === 'sp-m') && window.selEv) {
+  if (stayOpen && (modalId === 'sp' || modalId === 'sp-m' || modalId === null) && window.selEv) {
     window.openSP(window.selEv);
-  } else if (spIsOpen && window.selEv && modalId !== 'sp' && modalId !== 'sp-m') {
+  } else if (spIsOpen && window.selEv) {
     window.openSP(window.selEv);
   }
 

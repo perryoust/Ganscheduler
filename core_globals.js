@@ -1,4 +1,4 @@
-window.APP_VERSION = window.APP_VERSION || '113.69';
+window.APP_VERSION = window.APP_VERSION || '113.70';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── Platform Detection ──
@@ -14,8 +14,16 @@ window.addEventListener('resize', () => {
 });
 // ── Data Lookup Helpers ──
 window.getSchById = function(id) {
-  if (!window._idxSchById) return (window.SCH||[]).find(x => String(x.id) === String(id));
-  return window._idxSchById.get(String(id));
+  if (!id) return null;
+  const sId = String(id);
+  let ev = window._idxSchById ? window._idxSchById.get(sId) : null;
+  if (!ev) {
+    ev = (window.SCH||[]).find(x => String(x.id) === sId);
+    if (ev && window._idxSchById) {
+      window._idxSchById.set(sId, ev);
+    }
+  }
+  return ev || null;
 };
 window.getSchByGardenDate = function(gid, date, excludeCanceled = false) {
   if (!window._idxSchByGardenDate) {
@@ -26,6 +34,39 @@ window.getSchByGardenDate = function(gid, date, excludeCanceled = false) {
   const key = String(gid) + '_' + date;
   const evs = window._idxSchByGardenDate.get(key) || [];
   return excludeCanceled ? evs.filter(s => s.st !== 'can') : evs;
+};
+
+// Click handler for unassigned partner/trio activities
+window.handleUnassignedRowClick = function(gid, ds, event) {
+  if (event && event.stopPropagation) event.stopPropagation();
+  const numGid = Number(gid);
+  const targetDate = ds || (window.td ? window.td() : new Date().toISOString().split('T')[0]);
+
+  // 1. Check if any partner in this garden's group (pair, cluster, trio) has an activity on targetDate
+  const group = window.getGardenGroup ? window.getGardenGroup(numGid, targetDate) : (window.gardenPair ? window.gardenPair(numGid, targetDate) : null);
+  let partnerAct = null;
+  if (group && Array.isArray(group.ids)) {
+    const partnerIds = group.ids.map(Number).filter(id => id !== numGid);
+    for (const pid of partnerIds) {
+      const pEvs = (window.SCH || []).filter(x => Number(x.g) === pid && x.d === targetDate && x.st !== 'can');
+      if (pEvs.length > 0) {
+        partnerAct = pEvs[0];
+        break;
+      }
+    }
+  }
+
+  // 2. If a partner has an activity on this date, open that activity modal so user can view/schedule the trio
+  if (partnerAct && typeof window.openSP === 'function') {
+    return window.openSP(partnerAct.id);
+  }
+
+  // 3. Fallback: if no partner has an activity, open cell popup or new schedule modal
+  if (typeof window.openGcellPopup === 'function' && event) {
+    return window.openGcellPopup(numGid, targetDate, event);
+  } else if (typeof window.openNewSched === 'function') {
+    return window.openNewSched(numGid, { date: targetDate });
+  }
 };
 
 // ── core.js — globals, data layer, utilities, init ──────────────
@@ -200,9 +241,14 @@ window.ui = {
               👤 רכז/ת: ${coName}
             </div>` : '';
 
+    const isUnassigned = s.st === 'unassigned' || String(s.id).startsWith('dummy_');
+    const rowClickAction = isUnassigned
+      ? `window.handleUnassignedRowClick(${s.g}, '${s.d}', event)`
+      : `window.openSP('${s.id}')`;
+
     if (window.isMobileMode()) {
       return `
-        <div class="mob-act-card ${stCls}" onclick="window.openSP('${s.id}')">
+        <div class="mob-act-card ${stCls}" onclick="${rowClickAction}">
           <div class="mob-act-hdr">
             <span class="mob-act-time">${timeStr}</span>
             <span class="mob-act-garden" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; display:block;">${g.name}${g.st ? ` <span style="font-size:0.75rem; color:#64748b; font-weight:400; margin-right:6px; display:inline-block">📍 ${g.st}</span>` : ''}</span>
@@ -228,7 +274,7 @@ window.ui = {
     }
 
     let rowHtml = `
-      <tr class="${stCls} border-b cursor-pointer" onclick="window.openSP('${s.id}')">`;
+      <tr class="${stCls} border-b cursor-pointer" onclick="${rowClickAction}">`;
 
     // 1. Checkbox Column (Dashboard only)
     if (opts.showCheckbox) {
