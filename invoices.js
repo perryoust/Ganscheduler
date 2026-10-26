@@ -111,6 +111,7 @@ function SPT(t){
     if (typeof window.renderPurchOrders === 'function') window.renderPurchOrders();
   }
   if(t==='pdeliveries' && typeof window.renderPurchDeliveries === 'function') window.renderPurchDeliveries();
+  if(t==='pbudget' && window.budgetApp && typeof window.budgetApp.init === 'function') window.budgetApp.init();
 }
 window.SPT = SPT;
 
