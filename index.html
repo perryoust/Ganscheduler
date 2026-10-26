@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>טומשין ניהול ושיבוץ | גרסה 113.67</title>
+  <title>טומשין ניהול ושיבוץ | גרסה 113.68</title>
   <meta name="description" content="טומשין ניהול ושיבוץ - מערכת לניהול ושיבוץ צהרונים">
   <!-- Open Graph / WhatsApp Preview Meta Tags -->
   <meta property="og:type" content="website">
@@ -27,7 +27,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=113.67" />
+  <link rel="stylesheet" href="styles.css?v=113.68" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -51,7 +51,7 @@
     }
   </style>
   <script>
-    window.APP_VERSION = '113.67';
+    window.APP_VERSION = '113.68';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -122,7 +122,7 @@
   <!-- 📊 MAIN HEADER — dashboard 📊 -->
   <div class="hdr">
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-      <h1 style="display:flex;align-items:center;margin:0;"><img src="logo_wide.png" style="height:30px;vertical-align:middle;" alt="טומשין ניהול ושיבוץ"><span id="app-version-label" onclick="window.openVersionVaultModal &amp;&amp; window.openVersionVaultModal()" style="font-size:.62rem;opacity:.85;font-weight:700;margin-right:8px;line-height:1;cursor:pointer;background:rgba(255,255,255,0.18);padding:2px 6px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);white-space:nowrap;" title="לחץ לפתיחת כספת גיבויי נתונים ושחזור">v113.65 📦</span></h1>
+      <h1 style="display:flex;align-items:center;margin:0;"><img src="logo_wide.png" style="height:30px;vertical-align:middle;" alt="טומשין ניהול ושיבוץ"><span id="app-version-label" onclick="window.openVersionVaultModal &amp;&amp; window.openVersionVaultModal()" style="font-size:.62rem;opacity:.85;font-weight:700;margin-right:8px;line-height:1;cursor:pointer;background:rgba(255,255,255,0.18);padding:2px 6px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);white-space:nowrap;" title="לחץ לפתיחת כספת גיבויי נתונים ושחזור">v113.68 📦</span></h1>
       <select id="year-selector" onchange="window.changeCurrentYear(this.value)" style="margin-right:8px; font-size:0.76rem; border-radius:4px; border:1px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.15); color:white; padding:2px 6px; outline:none; font-weight:600; cursor:pointer;" title="בחר שנת לימודים">
         <!-- options will be injected here, but we apply a global style in index.html to fix option text color -->
         <!-- populated by JS -->
@@ -1459,9 +1459,93 @@
         </div>
 
         <div style="display:flex;gap:7px;justify-content:flex-end;padding-top:10px;border-top:1px solid #e0e0e0; flex-wrap:wrap;">
-          <button class="btn bsm" style="background:#25d366;color:#fff;margin-right:auto;border:none;border-radius:4px;padding:6px 12px;font-size:0.8rem;cursor:pointer;" onclick="exportGardenWA()">📋 העתק פרטים</button>
+          <button type="button" class="btn bsm" style="background:#25d366;color:#fff;border:none;border-radius:4px;padding:6px 12px;font-size:0.8rem;cursor:pointer;" onclick="exportGardenWA()">📋 העתק פרטים</button>
+          <button type="button" class="btn bsm" style="background:#ffebee;color:#c62828;border:1px solid #ffcdd2;margin-right:auto;border-radius:4px;padding:6px 12px;font-size:0.8rem;cursor:pointer;font-weight:700" onclick="window.openCloseGardenModal(window._geditGid)">🔒 סגירת צהרון...</button>
           <button class="btn bp" onclick="saveGardenCard()">💾 שמור</button>
           <button class="btn bs" onclick="CM('gedit-m')">ביטול</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: סגירת והשבתת צהרון (סגירה אוטומטית + הגנה על היסטוריה) -->
+    <div id="close-garden-modal" class="modal">
+      <div class="mb" style="max-width:530px; border-top: 5px solid #d32f2f;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h2 style="margin:0; color:#b71c1c; font-size:1.25rem; display:flex; align-items:center; gap:6px;">
+            🔒 סגירת צהרון והשבתת פעילות
+          </h2>
+          <button onclick="CM('close-garden-modal')" class="close-btn">✕</button>
+        </div>
+
+        <!-- פרטי הגן הנוכחי -->
+        <div id="cg-garden-banner" style="background:#fff3e0; border:1px solid #ffe0b2; border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:0.85rem; line-height:1.6;">
+          <!-- מתמלא דינמית ע"י openCloseGardenModal -->
+        </div>
+
+        <!-- בחירת תאריך סגירה -->
+        <div class="fg" style="margin-bottom:14px;">
+          <label style="font-weight:700; color:#1e293b; display:block; margin-bottom:6px;">
+            📅 תאריך סגירת הגן (החל מתאריך זה הפעילויות יבוטלו):
+          </label>
+          <input type="date" id="cg-date" style="width:100%; font-size:1rem; padding:8px 10px; border:1.5px solid #cbd5e1; border-radius:6px;" onchange="window.previewCloseGardenActions()">
+        </div>
+
+        <!-- תצוגה מקדימה של שם הגן החדש -->
+        <div class="fg" style="margin-bottom:14px;">
+          <label style="font-weight:700; color:#1e293b; display:block; margin-bottom:4px;">
+            🏷️ שם הגן המעודכן שיישמר במערכת:
+          </label>
+          <input type="text" id="cg-new-name" style="width:100%; font-size:0.92rem; padding:7px 10px; border:1.5px solid #cbd5e1; border-radius:6px; font-weight:700; color:#b71c1c;">
+          <div style="font-size:0.75rem; color:#64748b; margin-top:3px;">תאריך הסגירה יתווסף אוטומטית לשם הגן כדי למנוע שיבוצים עתידיים בטעות.</div>
+        </div>
+
+        <!-- פירוט הפעולות שיבוצעו (צ'קבוקסים) -->
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-bottom:16px; font-size:0.83rem;">
+          <div style="font-weight:700; color:#334155; margin-bottom:8px;">פעולות אוטומטיות שיבוצעו:</div>
+          
+          <label style="display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; cursor:pointer;">
+            <input type="checkbox" id="cg-opt-del-future" checked style="margin-top:2px; width:16px; height:16px; accent-color:#d32f2f;">
+            <div>
+              <span style="font-weight:600; color:#b71c1c;">הסרת שיבוצים עתידיים</span>
+              <div id="cg-future-summary" style="font-size:0.75rem; color:#64748b;">סורק שיבוצים...</div>
+            </div>
+          </label>
+
+          <label style="display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; cursor:pointer;">
+            <input type="checkbox" id="cg-opt-remove-pair" checked style="margin-top:2px; width:16px; height:16px; accent-color:#d32f2f;">
+            <div>
+              <span style="font-weight:600; color:#1e293b;">הוצאה מזוג / שלישיית גנים</span>
+              <div id="cg-pair-summary" style="font-size:0.75rem; color:#64748b;">בודק שיוך לזוג...</div>
+            </div>
+          </label>
+
+          <label style="display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; cursor:pointer;">
+            <input type="checkbox" id="cg-opt-remove-cluster" checked style="margin-top:2px; width:16px; height:16px; accent-color:#d32f2f;">
+            <div>
+              <span style="font-weight:600; color:#1e293b;">הוצאה מאשכול הגנים</span>
+              <div id="cg-cluster-summary" style="font-size:0.75rem; color:#64748b;">בודק שיוך לאשכול...</div>
+            </div>
+          </label>
+
+          <label style="display:flex; align-items:flex-start; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="cg-opt-remove-coord" checked style="margin-top:2px; width:16px; height:16px; accent-color:#d32f2f;">
+            <div>
+              <span style="font-weight:600; color:#1e293b;">הסרה ממשימות השטח של רכז האזור</span>
+              <div id="cg-coord-summary" style="font-size:0.75rem; color:#64748b;">בודק רכז...</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- התראת ביטחון היסטוריה -->
+        <div style="background:#e8f5e9; border:1px solid #a5d6a7; border-radius:6px; padding:8px 12px; margin-bottom:16px; font-size:0.78rem; color:#1b5e20; display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.1rem;">🛡️</span>
+          <div><b>היסטוריית העבר מוגנת במלואה:</b> כל הפעילויות שהתקיימו עד תאריך הסגירה יישמרו לחלוטין בדוחות, ביומן ובחשבוניות.</div>
+        </div>
+
+        <!-- כפתורי פעולה -->
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button class="btn" style="background:#d32f2f; color:#fff; font-weight:700; border:none; padding:8px 16px; font-size:0.9rem;" onclick="window.executeCloseGarden()">🔒 אשר סגירת גן</button>
+          <button class="btn bs" onclick="CM('close-garden-modal')">ביטול</button>
         </div>
       </div>
     </div>
@@ -2315,7 +2399,10 @@
     <div class="mb" style="max-width:680px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <h2 id="gm-title" style="margin:0"></h2>
-        <button class="btn bp bsm" onclick="CM('gm');openGardenEdit(window.gmGid)" style="font-weight:700;display:inline-flex;align-items:center;gap:4px">✏️ ערוך פרטי צהרון</button>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="btn bsm" onclick="CM('gm');window.openCloseGardenModal(window.gmGid)" style="font-weight:700;display:inline-flex;align-items:center;gap:4px;background:#ffebee;color:#c62828;border:1px solid #ffcdd2" title="סגירת והשבתת צהרון">🔒 סגירת צהרון</button>
+          <button class="btn bp bsm" onclick="CM('gm');openGardenEdit(window.gmGid)" style="font-weight:700;display:inline-flex;align-items:center;gap:4px">✏️ ערוך פרטי צהרון</button>
+        </div>
       </div>
       <div id="gm-det" style="margin-bottom:9px;font-size:.8rem;color:#546e7a"></div>
       <!-- Set pair in garden modal -->
@@ -4078,14 +4165,14 @@
     <script src="cal.js?v=113.53"></script>
     <script src="activity.js?v=113.58"></script>
     <script src="sched.js?v=112.18"></script>
-    <script src="gardens.js?v=113.53"></script>
+    <script src="gardens.js?v=113.68"></script>
     <script src="export_v107.js?v=113.67"></script>
     <script src="visual_excel.js?v=113.67"></script>
     <script src="backup.js?v=113.57"></script>
     <script src="version_vault.js?v=113.57"></script>
     <script src="admin.js?v=112.15"></script>
     <script src="import_export.js?v=113.57"></script>
-    <script src="core_globals.js?v=113.67"></script>
+    <script src="core_globals.js?v=113.68"></script>
     <script src="core_data.js?v=113.57"></script>
     <script src="core_dash.js?v=113.52"></script>
     <script src="worker_tasks.js?v=113.61"></script>

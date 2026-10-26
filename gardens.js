@@ -3516,3 +3516,267 @@ window.exportAllRecurringWA = function(gid, sendDirect = false) {
     });
   }
 };
+
+// ══════════════════════════════════════════════════════════════════
+// 🔒 סגירת והשבתת צהרון (Automated Garden Deactivation & History Shield)
+// ══════════════════════════════════════════════════════════════════
+
+window.openCloseGardenModal = function(gid) {
+  const numGid = Number(gid || window._geditGid || window.gmGid);
+  if (!numGid) return;
+  window._closeGid = numGid;
+
+  // Close parent modals if open
+  if (typeof window.CM === 'function') {
+    window.CM('gedit-m');
+    window.CM('gm');
+  }
+
+  const g = typeof window.G === 'function' ? window.G(numGid) : {};
+  const curName = (g && g.name) ? g.name : `גן #${numGid}`;
+  const city = (g && g.city) ? g.city : 'ללא עיר';
+  const cls = (typeof window.gcls === 'function' && g) ? window.gcls(g) : (g.cls || 'גנים');
+
+  // Set default closing date to today
+  const todayStr = (typeof window.d2s === 'function') ? window.d2s(new Date()) : new Date().toISOString().split('T')[0];
+  const dateInput = document.getElementById('cg-date');
+  if (dateInput) {
+    const ex = window.supEx && window.supEx['g_' + numGid];
+    dateInput.value = (ex && ex.closedDate) ? ex.closedDate : (g.closedDate || todayStr);
+  }
+
+  // Populate Banner
+  const banner = document.getElementById('cg-garden-banner');
+  if (banner) {
+    banner.innerHTML = `
+      <div style="font-size:1.05rem; font-weight:800; color:#b71c1c; margin-bottom:4px;">
+        🏠 ${window.escapeHtml ? window.escapeHtml(curName) : curName}
+      </div>
+      <div style="display:flex; gap:12px; color:#546e7a; font-size:0.8rem; flex-wrap:wrap;">
+        <span>🏙️ <b>עיר:</b> ${city}</span>
+        <span>🏷️ <b>סוג:</b> ${cls}</span>
+        <span>🆔 <b>מזהה גן:</b> ${numGid}</span>
+      </div>
+    `;
+  }
+
+  // Run preview calculation
+  window.previewCloseGardenActions();
+
+  // Open modal
+  const modal = document.getElementById('close-garden-modal');
+  if (modal) modal.classList.add('open');
+};
+
+window.previewCloseGardenActions = function() {
+  const numGid = Number(window._closeGid);
+  if (!numGid) return;
+
+  const g = typeof window.G === 'function' ? window.G(numGid) : {};
+  const curName = (g && g.name) ? g.name : `גן #${numGid}`;
+  const dateInput = document.getElementById('cg-date');
+  const closeDate = dateInput ? dateInput.value : '';
+
+  // Format Hebrew date (DD/MM/YYYY)
+  let dFmt = closeDate;
+  if (closeDate && closeDate.includes('-')) {
+    const parts = closeDate.split('-');
+    if (parts.length === 3) dFmt = `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+
+  // Generate clean name without prior closed tags
+  const cleanName = curName.replace(/\s*\((?:נסגר|לא פעיל|סגור)[^)]*\)/g, '').trim();
+  const suggestedName = closeDate ? `${cleanName} (נסגר ב-${dFmt})` : `${cleanName} (נסגר)`;
+  
+  const nameInput = document.getElementById('cg-new-name');
+  if (nameInput) {
+    nameInput.value = suggestedName;
+  }
+
+  // Calculate activities (past vs future)
+  const allEvs = (window.SCH || []).filter(s => Number(s.g) === numGid);
+  const futureEvs = closeDate ? allEvs.filter(s => s.d >= closeDate) : [];
+  const pastEvs = closeDate ? allEvs.filter(s => s.d < closeDate) : allEvs;
+
+  const futEl = document.getElementById('cg-future-summary');
+  if (futEl) {
+    if (futureEvs.length > 0) {
+      futEl.innerHTML = `<b style="color:#d32f2f;">${futureEvs.length} פעילויות עתידיות</b> מ-${dFmt} והלאה יוסרו מהמערכת. (<span style="color:#2e7d32; font-weight:700;">${pastEvs.length} פעילויות בעבר</span> יישמרו 100% בהיסטוריה).`;
+    } else {
+      futEl.innerHTML = `אין שיבוצים עתידיים מ-${dFmt} והלאה. (<span style="color:#2e7d32; font-weight:700;">${pastEvs.length} פעילויות בעבר</span> שמורות בהיסטוריה).`;
+    }
+  }
+
+  // Check pairs
+  const pairEl = document.getElementById('cg-pair-summary');
+  if (pairEl) {
+    const p = (typeof window.gardenPair === 'function') ? window.gardenPair(numGid) : null;
+    if (p && p.ids) {
+      const others = p.ids.filter(id => Number(id) !== numGid);
+      if (others.length === 1) {
+        const partnerName = (window.G && window.G(others[0])) ? (window.G(others[0]).name || others[0]) : others[0];
+        pairEl.innerHTML = `הגן יוסר מהזוג "<b>${p.name}</b>". השותף <b>${partnerName}</b> יישאר חופשי/פנוי לשיבוץ בזוג חדש.`;
+      } else if (others.length > 1) {
+        const otherNames = others.map(id => (window.G && window.G(id)) ? (window.G(id).name || id) : id).join(' + ');
+        pairEl.innerHTML = `הגן יוסר מהשלישייה "<b>${p.name}</b>". השותפים <b>${otherNames}</b> ימשיכו כזוג רגיל.`;
+      } else {
+        pairEl.innerHTML = `הזוג "<b>${p.name}</b>" יפורק.`;
+      }
+    } else {
+      pairEl.innerHTML = `הגן אינו משויך כרגע לזוג או שלישייה.`;
+    }
+  }
+
+  // Check clusters
+  const clEl = document.getElementById('cg-cluster-summary');
+  if (clEl) {
+    const cls = (typeof window.gardenClusters === 'function') ? window.gardenClusters(numGid) : [];
+    if (cls && cls.length > 0) {
+      clEl.innerHTML = `הגן יוסר מהאשכולות: <b>${cls.map(c => c.name).join(', ')}</b>.`;
+    } else {
+      clEl.innerHTML = `הגן אינו משויך לאשכול.`;
+    }
+  }
+
+  // Check coordinator
+  const coordEl = document.getElementById('cg-coord-summary');
+  if (coordEl) {
+    const mgr = (typeof window.getGardenMgr === 'function') ? window.getGardenMgr(numGid) : null;
+    if (mgr) {
+      coordEl.innerHTML = `הגן יוסר מרשימת משימות השטח של <b>${mgr.name}</b>.`;
+    } else {
+      coordEl.innerHTML = `הגן אינו משויך לרכז שטח.`;
+    }
+  }
+};
+
+window.executeCloseGarden = async function() {
+  const numGid = Number(window._closeGid);
+  if (!numGid) return;
+
+  const dateInput = document.getElementById('cg-date');
+  const closeDate = dateInput ? dateInput.value : '';
+  if (!closeDate) {
+    if (window.spAlert) window.spAlert('יש לבחור תאריך סגירה לגן.');
+    else alert('יש לבחור תאריך סגירה לגן.');
+    return;
+  }
+
+  const nameInput = document.getElementById('cg-new-name');
+  const newName = (nameInput ? nameInput.value.trim() : '') || `גן #${numGid} (נסגר)`;
+
+  let dFmt = closeDate;
+  if (closeDate.includes('-')) {
+    const parts = closeDate.split('-');
+    if (parts.length === 3) dFmt = `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+
+  const optDelFuture = document.getElementById('cg-opt-del-future')?.checked !== false;
+  const optRemovePair = document.getElementById('cg-opt-remove-pair')?.checked !== false;
+  const optRemoveCluster = document.getElementById('cg-opt-remove-cluster')?.checked !== false;
+  const optRemoveCoord = document.getElementById('cg-opt-remove-coord')?.checked !== false;
+
+  const confirmMsg = `⚠️ אישור סגירת גן:\n\nהאם אתה בטוח שברצונך לסגור את הגן החל מ-${dFmt}?\n\n• שם הגן יעודכן ל: "${newName}"\n` +
+    (optDelFuture ? `• כל השיבוצים העתידיים מתאריך ${dFmt} והלאה יבוטלו/יוסרו מהיומן\n` : '') +
+    (optRemovePair ? `• הגן יוצא מזוג/שלישיית הגנים שלו\n` : '') +
+    (optRemoveCluster ? `• הגן יוצא מהאשכול שלו\n` : '') +
+    `\n🔒 כל פעילויות העבר עד ${dFmt} יישמרו במלואן בבסיס הנתונים!`;
+
+  const ok = (typeof window.spConfirm === 'function') ? await window.spConfirm(confirmMsg) : confirm(confirmMsg);
+  if (!ok) return;
+
+  // 1. Update Name and mark as closed
+  if (!window.supEx['g_' + numGid]) window.supEx['g_' + numGid] = {};
+  window.supEx['g_' + numGid].name = newName;
+  window.supEx['g_' + numGid].closedDate = closeDate;
+  window.supEx['g_' + numGid].isClosed = true;
+
+  const gObj = typeof window.G === 'function' ? window.G(numGid) : null;
+  if (gObj) {
+    gObj.name = newName;
+    gObj.closedDate = closeDate;
+    gObj.isClosed = true;
+  }
+  if (Array.isArray(window._GARDENS_ALL)) {
+    const ga = window._GARDENS_ALL.find(x => Number(x.id) === numGid);
+    if (ga) { ga.name = newName; ga.closedDate = closeDate; ga.isClosed = true; }
+  }
+  if (Array.isArray(window._GARDENS_EXTRA)) {
+    const ge = window._GARDENS_EXTRA.find(x => Number(x.id) === numGid);
+    if (ge) { ge.name = newName; ge.closedDate = closeDate; ge.isClosed = true; }
+  }
+  if (Array.isArray(window.GARDENS)) {
+    const gb = window.GARDENS.find(x => Number(x.id) === numGid);
+    if (gb) { gb.name = newName; gb.closedDate = closeDate; gb.isClosed = true; }
+  }
+
+  // 2. Remove future scheduled activities (from closeDate onwards)
+  let removedCount = 0;
+  if (optDelFuture && Array.isArray(window.SCH)) {
+    const beforeLen = window.SCH.length;
+    window.SCH = window.SCH.filter(s => !(Number(s.g) === numGid && s.d >= closeDate));
+    removedCount = beforeLen - window.SCH.length;
+  }
+
+  // 3. Remove from pairs
+  if (optRemovePair && Array.isArray(window.pairs)) {
+    window.pairs = window.pairs.map(p => {
+      if (!(p.ids || []).map(Number).includes(numGid)) return p;
+      const remaining = p.ids.map(Number).filter(id => id !== numGid);
+      if (remaining.length < 2) return null; // dissolve pair
+      const remNames = remaining.map(id => (window.G && window.G(id)) ? (window.G(id).name || id) : id).join(' + ');
+      return {
+        ...p,
+        ids: remaining,
+        name: remNames
+      };
+    }).filter(Boolean);
+  }
+
+  // 4. Remove from clusters
+  if (optRemoveCluster && window.clusters) {
+    Object.values(window.clusters).forEach(cl => {
+      if ((cl.gardenIds || []).map(Number).includes(numGid)) {
+        cl.gardenIds = cl.gardenIds.filter(id => Number(id) !== numGid);
+      }
+    });
+  }
+
+  // 5. Remove from coordinator
+  if (optRemoveCoord && window.managers) {
+    Object.values(window.managers).forEach(m => {
+      if (m.role !== 'manager' && m.role !== 'vp' && m.gardenIds) {
+        m.gardenIds = m.gardenIds.filter(id => Number(id) !== numGid);
+      }
+    });
+  }
+
+  // 6. Direct save to Firebase Realtime Database
+  if (typeof window.save === 'function') {
+    await window.save(true);
+  }
+
+  // 7. Close modal and refresh UI
+  if (typeof window.CM === 'function') {
+    window.CM('close-garden-modal');
+  }
+  if (typeof window.refreshAppUI === 'function') {
+    window.refreshAppUI();
+  } else if (typeof window.refresh === 'function') {
+    window.refresh();
+  }
+  if (typeof window.renderGardens === 'function') window.renderGardens();
+  if (typeof window.renderCal === 'function') window.renderCal();
+
+  const successMsg = `🔒 הגן נסגר בהצלחה!\n• שם עודכן ל: "${newName}"\n` +
+    (removedCount > 0 ? `• הוסרו ${removedCount} שיבוצים עתידיים\n` : '') +
+    `• שוחרר מהזוג ומהאשכול\n• כל היסטוריית העבר נשמרה בבטחה.`;
+  
+  if (typeof window.showToast === 'function') {
+    window.showToast(`🔒 ${newName} נסגר בהצלחה! ההיסטוריה נשמרה.`);
+  } else if (typeof window.spAlert === 'function') {
+    window.spAlert(successMsg);
+  } else {
+    alert(successMsg);
+  }
+};
