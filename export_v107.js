@@ -168,7 +168,13 @@ async function doMonthlyExport(){
   const gMap = new Map();
   rawList.forEach(g => gMap.set(Number(g.id), g));
   let gList = Array.from(gMap.values()).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
-  if(mode==='city'&&cityFilter)   gList=gList.filter(g=>g.city===cityFilter);
+  if(mode==='city'){
+    if(cityFilter && cityFilter !== 'all') gList=gList.filter(g=>g.city===cityFilter);
+    const cType = document.querySelector('input[name="exp-city-type"]:checked')?.value || 'gan';
+    const isSchool = g => (typeof window.getGardenClass === 'function' ? window.getGardenClass(g) : (typeof gcls === 'function' ? gcls(g) : (g.cls || ''))) === 'ביה"ס' || /בית ספר|ביה"ס|בי"ס/i.test(g.name || '') || /בית ספר|ביה"ס|בי"ס/i.test(g.cls || '');
+    if (cType === 'gan') gList = gList.filter(g => !isSchool(g));
+    else if (cType === 'sch') gList = gList.filter(g => isSchool(g));
+  }
   if(mode==='manager'&&mgrFilter){ const mgrObj=window.managers[mgrFilter]; if(mgrObj?.gardenIds) gList=gList.filter(g=>mgrObj.gardenIds.includes(g.id)); }
   if(mode==='schools'){ gList=gList.filter(g=>(typeof window.getGardenClass === 'function' ? window.getGardenClass(g) : (typeof gcls === 'function' ? gcls(g) : g.cls))==='ביה"ס'); }
   if(mode==='garden'){ if(gardenFilters.length===0){ window.spAlert('יש לבחור צהרון / בית ספר מהרשימה'); return; } gList=gList.filter(g=>gardenFilters.includes(Number(g.id))); }

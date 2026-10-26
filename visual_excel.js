@@ -1,5 +1,48 @@
 // visual_excel.js - מחולל לוח חוגים חודשי מעוצב (PDF ו-JPG)
 
+function _isSchool(g) {
+  if (!g) return false;
+  const cls = (typeof window.getGardenClass === 'function' ? window.getGardenClass(g) : (typeof window.gcls === 'function' ? window.gcls(g) : (g.cls || ''))).trim();
+  if (cls === 'ביה"ס' || cls === 'בית ספר') return true;
+  const name = g.name || '';
+  if (/בית ספר|ביה"ס|בי"ס/i.test(name)) return true;
+  if (/בית ספר|ביה"ס|בי"ס/i.test(g.cls || '')) return true;
+  return false;
+}
+
+function _getSupplierAliasOrName(nameOrFullName) {
+  if (!nameOrFullName) return '';
+  const raw = String(nameOrFullName).trim();
+  const base = typeof window.supBase === 'function' ? window.supBase(raw) : raw;
+
+  // 1. Direct check in supEx by base or raw for explicit alias
+  const ex = (window.supEx && (window.supEx[base] || window.supEx[raw])) || {};
+  if (ex && ex.alias && ex.alias.trim()) {
+    return ex.alias.trim();
+  }
+
+  // 2. Check window.supDisplayName(base)
+  if (typeof window.supDisplayName === 'function') {
+    const disp = window.supDisplayName(base);
+    if (disp && disp.trim()) return disp.trim();
+  }
+
+  // 3. Check window.supDisplayName(raw)
+  if (typeof window.supDisplayName === 'function') {
+    const dispRaw = window.supDisplayName(raw);
+    if (dispRaw && dispRaw.trim()) return dispRaw.trim();
+  }
+
+  // 4. Check SUPBASE for an alias
+  if (Array.isArray(window.SUPBASE)) {
+    const sb = window.SUPBASE.find(x => x.name === raw || (window.supBase && window.supBase(x.name) === base));
+    if (sb && sb.alias && sb.alias.trim()) return sb.alias.trim();
+  }
+
+  // 5. Fallback to base or raw without corporate suffix
+  return base || raw;
+}
+
 window.doVisualExcelExport = async function(format = 'pdf') {
   const mp = document.getElementById('exp-from');
   if (!mp || !mp.value) { window.spAlert('אנא בחר חודש'); return; }
@@ -26,8 +69,19 @@ window.doVisualExcelExport = async function(format = 'pdf') {
   });
   let gList = Array.from(gMap.values());
 
+  const cityTypeNode = document.querySelector('input[name="exp-city-type"]:checked');
+  const cityType = cityTypeNode ? cityTypeNode.value : 'gan';
+  let isSplitCity = false;
+
   if (mode === 'city') {
     if (cityFilter && cityFilter !== 'all') gList = gList.filter(g => g.city === cityFilter);
+    if (cityType === 'gan') {
+      gList = gList.filter(g => !_isSchool(g));
+    } else if (cityType === 'sch') {
+      gList = gList.filter(g => _isSchool(g));
+    } else if (cityType === 'split') {
+      isSplitCity = true;
+    }
   } else if (mode === 'manager') {
     if (mgrFilter && mgrFilter !== 'all') {
       const mgrObj = window.managers && window.managers[mgrFilter];
@@ -41,7 +95,7 @@ window.doVisualExcelExport = async function(format = 'pdf') {
       }
     }
   } else if (mode === 'schools') {
-    gList = gList.filter(g => (typeof window.getGardenClass === 'function' ? window.getGardenClass(g) : (typeof gcls === 'function' ? gcls(g) : g.cls)) === 'ביה"ס');
+    gList = gList.filter(g => _isSchool(g));
   } else if (mode === 'garden') {
     if (gardenFilters.length === 0) {
       window.spAlert("לא נבחרו גנים / בתי ספר לייצוא");
@@ -50,13 +104,21 @@ window.doVisualExcelExport = async function(format = 'pdf') {
     gList = gList.filter(g => gardenFilters.includes(Number(g.id)));
   }
 
-  if (gList.length === 0) { window.spAlert("לא נבחרו גנים / בתי ספר לייצוא"); return; }
+  if (gList.length === 0) {
+    if (mode === 'city' && cityType === 'gan') {
+      window.spAlert("לא נמצאו גנים לייצוא עבור הבחירה הנוכחית");
+    } else if (mode === 'city' && cityType === 'sch') {
+      window.spAlert("לא נמצאו בתי ספר לייצוא עבור הבחירה הנוכחית");
+    } else {
+      window.spAlert("לא נבחרו גנים / בתי ספר לייצוא");
+    }
+    return;
+  }
   
   const allEvs = window.SCH.filter(s => s.d >= fromDate && s.d <= toDate && (!s.st || s.st === 'ok'));
   const preset = document.getElementById('exp-print-preset')?.value || 'color_only';
   const showPhonesCb = document.getElementById('exp-phones');
   const userWantsPhones = showPhonesCb ? showPhonesCb.checked : false;
-  const splitMode = document.getElementById('exp-split').value;
   
   const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
   const monthName = HEB_MONTHS[month - 1];
@@ -72,70 +134,104 @@ window.doVisualExcelExport = async function(format = 'pdf') {
   }
   const hebYearStr = hebYear(year, month - 1);
 
-  // Sort gardens
-  gList.sort((a,b) => (a.city||'').localeCompare(b.city||'','he') || (a.name||'').localeCompare(b.name||'','he'));
-
   try {
-    let titleBase = `לוחות חוגים מעוצבים`;
-    if (gList.length === 1) {
-      titleBase = `לוח חוגים - ${gList[0].name} ${gList[0].city || ''}`;
-    } else if (mode === 'schools') {
-      titleBase = `לוחות חוגים - כל בתי הספר`;
-    } else if (mode === 'city' && cityFilter && cityFilter !== 'all') {
-      titleBase = `לוחות חוגים - ${cityFilter}`;
-    } else if (mode === 'manager' && mgrFilter && mgrFilter !== 'all') {
-      const mgrObj = window.managers && window.managers[mgrFilter];
-      const mgrName = mgrObj?.name || mgrFilter;
-      titleBase = `לוחות חוגים - רכז ${mgrName}`;
+    async function _runSingleBatch(targetList, customSuffix = '') {
+      if (!targetList || targetList.length === 0) return;
+      targetList.sort((a,b) => (a.city||'').localeCompare(b.city||'','he') || (a.name||'').localeCompare(b.name||'','he'));
+
+      let titleBase = `לוחות חוגים מעוצבים`;
+      if (targetList.length === 1) {
+        titleBase = `לוח חוגים - ${targetList[0].name} ${targetList[0].city || ''}`;
+      } else if (mode === 'schools') {
+        titleBase = `לוחות חוגים - כל בתי הספר`;
+      } else if (mode === 'city' && cityFilter && cityFilter !== 'all') {
+        titleBase = `לוחות חוגים - ${cityFilter}${customSuffix}`;
+      } else if (mode === 'manager' && mgrFilter && mgrFilter !== 'all') {
+        const mgrObj = window.managers && window.managers[mgrFilter];
+        const mgrName = mgrObj?.name || mgrFilter;
+        titleBase = `לוחות חוגים - רכז ${mgrName}${customSuffix}`;
+      } else if (customSuffix) {
+        titleBase = `לוחות חוגים${customSuffix}`;
+      }
+
+      if (format === 'jpg') {
+        await _exportJPG(targetList, allEvs, year, month, monthName, hebYearStr, userWantsPhones, preset, customSuffix);
+        return;
+      }
+
+      if (preset === 'color_only') {
+        let pagesHtml = '';
+        for (const g of targetList) {
+          const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
+          pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, userWantsPhones, false);
+        }
+        const title = `${titleBase} - צבעוני להורים - ${monthName} ${year}.pdf`;
+        await _exportPDF(pagesHtml, title, month);
+        if (!isSplitCity) window.showToast?.(`📊 ${targetList.length} לוחות צבעוניים להורים נפתחו בהצלחה!`);
+      } else if (preset === 'bw_only') {
+        let pagesHtml = '';
+        for (const g of targetList) {
+          const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
+          pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, userWantsPhones !== false, true);
+        }
+        const title = `${titleBase} - שחור לבן משרדי - ${monthName} ${year}.pdf`;
+        await _exportPDF(pagesHtml, title, month);
+        if (!isSplitCity) window.showToast?.(`📊 ${targetList.length} לוחות משרדיים (ש/ל) נפתחו בהצלחה!`);
+      } else if (preset === 'both_interleaved') {
+        let pagesHtml = '';
+        for (const g of targetList) {
+          const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
+          pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, false, false);
+          pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, true, true);
+        }
+        const title = `${titleBase} - ערכות כפולות (צבעוני + ש/ל) - ${monthName} ${year}.pdf`;
+        await _exportPDF(pagesHtml, title, month);
+        if (!isSplitCity) window.showToast?.(`📊 ${targetList.length * 2} עמודים נפתחו (ערכה כפולה צבעוני + ש/ל לכל גן)!`);
+      } else if (preset === 'both_split') {
+        let colorHtml = '';
+        let bwHtml = '';
+        for (const g of targetList) {
+          const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
+          colorHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, false, false);
+          bwHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, true, true);
+        }
+        await _exportPDF(colorHtml, `${titleBase} - צבעוני להורים - ${monthName} ${year}.pdf`, month);
+        await new Promise(r => setTimeout(r, 450));
+        await _exportPDF(bwHtml, `${titleBase} - שחור לבן משרדי - ${monthName} ${year}.pdf`, month);
+        if (!isSplitCity) window.showToast?.(`📊 2 קבצים נפתחו בהצלחה: קובץ צבעוני להורים + קובץ ש/ל משרדי!`);
+      }
     }
 
-    if (format === 'jpg') {
-      await _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, userWantsPhones, preset);
-      window.CM('export-m');
-      return;
+    if (isSplitCity) {
+      const gansList = gList.filter(g => !_isSchool(g));
+      const schoolsList = gList.filter(g => _isSchool(g));
+
+      if (gansList.length === 0 && schoolsList.length === 0) {
+        window.spAlert("לא נמצאו מוסדות (גנים או בתי ספר) לייצוא בעיר זו");
+        return;
+      }
+
+      if (gansList.length > 0 && schoolsList.length > 0) {
+        await _runSingleBatch(gansList, ' - גנים');
+        await new Promise(r => setTimeout(r, 600));
+        await _runSingleBatch(schoolsList, ' - בתי ספר');
+        window.showToast?.(`📊 הופקו בהצלחה קבצים נפרדים לגנים (${gansList.length}) ולבתי ספר (${schoolsList.length})!`);
+      } else if (gansList.length > 0) {
+        await _runSingleBatch(gansList, ' - גנים');
+        window.showToast?.(`📊 הופק קובץ עבור גנים (${gansList.length}) - לא נמצאו בתי ספר בעיר זו.`);
+      } else {
+        await _runSingleBatch(schoolsList, ' - בתי ספר');
+        window.showToast?.(`📊 הופק קובץ עבור בתי ספר (${schoolsList.length}) - לא נמצאו גנים בעיר זו.`);
+      }
+    } else {
+      let suffix = '';
+      if (mode === 'city') {
+        if (cityType === 'gan') suffix = ' - גנים';
+        else if (cityType === 'sch') suffix = ' - בתי ספר';
+      }
+      await _runSingleBatch(gList, suffix);
     }
 
-    if (preset === 'color_only') {
-      let pagesHtml = '';
-      for (const g of gList) {
-        const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
-        pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, userWantsPhones, false);
-      }
-      const title = `${titleBase} - צבעוני להורים - ${monthName} ${year}.pdf`;
-      await _exportPDF(pagesHtml, title, month);
-      window.showToast?.(`📊 ${gList.length} לוחות צבעוניים להורים נפתחו בהצלחה!`);
-    } else if (preset === 'bw_only') {
-      let pagesHtml = '';
-      for (const g of gList) {
-        const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
-        pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, userWantsPhones !== false, true);
-      }
-      const title = `${titleBase} - שחור לבן משרדי - ${monthName} ${year}.pdf`;
-      await _exportPDF(pagesHtml, title, month);
-      window.showToast?.(`📊 ${gList.length} לוחות משרדיים (ש/ל) נפתחו בהצלחה!`);
-    } else if (preset === 'both_interleaved') {
-      let pagesHtml = '';
-      for (const g of gList) {
-        const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
-        pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, false, false);
-        pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, true, true);
-      }
-      const title = `${titleBase} - ערכות כפולות (צבעוני + ש/ל) - ${monthName} ${year}.pdf`;
-      await _exportPDF(pagesHtml, title, month);
-      window.showToast?.(`📊 ${gList.length * 2} עמודים נפתחו (ערכה כפולה צבעוני + ש/ל לכל גן)!`);
-    } else if (preset === 'both_split') {
-      let colorHtml = '';
-      let bwHtml = '';
-      for (const g of gList) {
-        const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
-        colorHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, false, false);
-        bwHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, true, true);
-      }
-      await _exportPDF(colorHtml, `${titleBase} - צבעוני להורים - ${monthName} ${year}.pdf`, month);
-      await new Promise(r => setTimeout(r, 450));
-      await _exportPDF(bwHtml, `${titleBase} - שחור לבן משרדי - ${monthName} ${year}.pdf`, month);
-      window.showToast?.(`📊 2 קבצים נפתחו בהצלחה: קובץ צבעוני להורים + קובץ ש/ל משרדי!`);
-    }
     window.CM('export-m'); // close modal
   } catch(e) {
     console.error('Visual PDF error:', e);
@@ -168,15 +264,9 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
     if (!actName) actName = 'פעילות';
 
     let phone = '';
-    let supName = '';
+    let cleanSupName = '';
     if (s.a) {
-      if (typeof window.supDisplayName === 'function') {
-        supName = window.supDisplayName(s.a);
-      } else if (typeof window.supBase === 'function') {
-        supName = window.supBase(s.a);
-      } else {
-        supName = String(s.a);
-      }
+      cleanSupName = _getSupplierAliasOrName(s.a);
       if (typeof window.getSupPhone === 'function') {
         phone = window.getSupPhone(s.a, s);
       }
@@ -195,11 +285,6 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
         const sb = window.SUPBASE.find(x => x.name === s.a || (window.supBase && window.supBase(x.name) === baseA));
         if (sb && sb.phone) phone = sb.phone;
       }
-    }
-    
-    let cleanSupName = supName;
-    if (cleanSupName && typeof window.supBase === 'function') {
-      cleanSupName = window.supBase(cleanSupName);
     }
 
     const dow = s.d ? new Date(s.d).getDay() : 0;
@@ -390,16 +475,16 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
   if (regularClubsList.length > 0) {
     cardsHtml = `<div class="vp-cards-grid ${regularClubsList.length === 3 ? 'three' : ''}">`;
     regularClubsList.forEach((club, i) => {
-      const color = isBW ? '#0f172a' : (CARD_COLORS[i] || CARD_COLORS[0]);
+      const color = isBW ? '#000000' : (CARD_COLORS[i] || CARD_COLORS[0]);
       const bg = isBW ? '#ffffff' : (CARD_BG[i] || CARD_BG[0]);
-      const border = isBW ? '#0f172a' : (CARD_BORDER[i] || CARD_BORDER[0]);
+      const border = isBW ? '#000000' : (CARD_BORDER[i] || CARD_BORDER[0]);
       cardsHtml += `
         <div class="vp-activity-card" style="border-right-color:${color}; background:${bg}; border-color:${border}; border-right-color:${color};">
           <div class="vp-card-badge" style="background:${color};">${club.tp === 'חוג פנימי' ? 'חוג פנימי' : 'חוג צהרון'}</div>
           <h3>${club.supName ? _esc(club.supName) + ' - ' : ''}${_esc(club.name)}</h3>
           <p>📅 ${_esc(club.dayStr)} &nbsp; 🕐 ${_esc(club.timeStr)}</p>
-          ${club.flexNote ? `<p style="font-weight:700; color:${isBW ? '#334155' : '#0369a1'}; font-size:11px; margin-top:2px;">ℹ️ ${_esc(club.flexNote)}</p>` : ''}
-          ${showPhones && club.phone ? `<p style="font-weight:800; color:#0f172a; margin-top:3px; font-size:12px;" dir="ltr"><span dir="rtl">📞 </span>${_esc(club.phone)}</p>` : ''}
+          ${club.flexNote ? `<p style="font-weight:700; color:${isBW ? '#000000' : '#0369a1'}; font-size:11px; margin-top:2px;">ℹ️ ${_esc(club.flexNote)}</p>` : ''}
+          ${showPhones && club.phone ? `<p style="font-weight:800; color:#000000; margin-top:3px; font-size:12px;" dir="ltr"><span dir="rtl">📞 </span>${_esc(club.phone)}</p>` : ''}
         </div>`;
     });
     cardsHtml += '</div>';
@@ -408,10 +493,10 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
   // Build legend
   let legendHtml = '<div class="vp-legend">';
   regularClubsList.forEach((club, i) => {
-    const color = isBW ? '#0f172a' : (CARD_COLORS[i] || CARD_COLORS[0]);
+    const color = isBW ? '#000000' : (CARD_COLORS[i] || CARD_COLORS[0]);
     legendHtml += `<span class="vp-legend-item"><span class="vp-legend-dot" style="background:${color};"></span>${_esc(club.name)}</span>`;
   });
-  legendHtml += `<span class="vp-legend-item"><span class="vp-legend-dot" style="background:${isBW ? '#475569' : '#f59e0b'};"></span>חג / קייטנה</span>`;
+  legendHtml += `<span class="vp-legend-item"><span class="vp-legend-dot" style="background:${isBW ? '#71717a' : '#f59e0b'}; border:1px solid ${isBW ? '#000000' : '#f59e0b'};"></span>חג / קייטנה</span>`;
   legendHtml += '</div>';
 
   // Build calendar rows
@@ -495,30 +580,24 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
           const hasFuture = (window.SCH || []).some(e => Number(e.g) === Number(g.id) && e.d > toDate && (!e.st || e.st === 'ok') && !isMakeupEv(e) && (window.supBase ? window.supBase(e.a) === evBase : e.a === ev.a));
           const isOneTime = !isMakeup && !isRegular && totalOccsInMonth <= 1 && !hasFuture && !ev._recId;
 
-          let pillColor = isRegular ? (isBW ? '#0f172a' : CARD_BORDER[clubIdx]) : (isBW ? '#334155' : '#312e81');
-          let pillBg = isRegular ? (isBW ? '#ffffff' : CARD_BG[clubIdx]) : (isBW ? '#f8fafc' : '#eef2ff');
+          let pillColor = isRegular ? (isBW ? '#000000' : (CARD_BORDER[clubIdx] || '#1e3a8a')) : (isBW ? '#000000' : '#312e81');
+          let pillBg = isRegular ? (isBW ? '#ffffff' : (CARD_BG[clubIdx] || '#eff6ff')) : (isBW ? '#f4f4f5' : '#eef2ff');
 
           let badgeHtml = '';
           if (isMakeup) {
-            pillColor = isBW ? '#0f172a' : '#92400e';
-            pillBg = isBW ? '#f8fafc' : '#fef3c7';
-            badgeHtml = `<div style="margin-bottom:2px;"><span style="background:${isBW ? '#f1f5f9' : '#fffbeb'}; color:${isBW ? '#000000' : '#b45309'}; border:1px ${isBW ? 'dashed #0f172a' : 'solid #f59e0b'}; padding:1px 5px; border-radius:4px; font-size:9.5px; font-weight:800; display:inline-block;">🔄 השלמה</span></div>`;
+            pillColor = isBW ? '#000000' : '#92400e';
+            pillBg = isBW ? '#f4f4f5' : '#fef3c7';
+            badgeHtml = `<div style="margin-bottom:2px;"><span style="background:${isBW ? '#ffffff' : '#fffbeb'}; color:#000000; border:1.5px dashed ${isBW ? '#000000' : '#f59e0b'}; padding:1px 5px; border-radius:4px; font-size:9.5px; font-weight:800; display:inline-block;">🔄 השלמה</span></div>`;
           } else if (isOneTime) {
-            pillColor = isBW ? '#0f172a' : '#6b21a8';
-            pillBg = isBW ? '#f8fafc' : '#f5f3ff';
-            badgeHtml = `<div style="margin-bottom:2px;"><span style="background:${isBW ? '#f1f5f9' : '#ede9fe'}; color:${isBW ? '#000000' : '#6b21a8'}; border:1px solid ${isBW ? '#475569' : '#c084fc'}; padding:1px 5px; border-radius:4px; font-size:9.5px; font-weight:800; display:inline-block;">⭐ חד-פעמי</span></div>`;
+            pillColor = isBW ? '#000000' : '#6b21a8';
+            pillBg = isBW ? '#f4f4f5' : '#f5f3ff';
+            badgeHtml = `<div style="margin-bottom:2px;"><span style="background:${isBW ? '#ffffff' : '#ede9fe'}; color:#000000; border:1.5px solid ${isBW ? '#000000' : '#c084fc'}; padding:1px 5px; border-radius:4px; font-size:9.5px; font-weight:800; display:inline-block;">⭐ חד-פעמי</span></div>`;
           }
 
           let cleanSupName = '';
           let supPhone = '';
           if (ev.a) {
-            if (typeof window.supDisplayName === 'function') {
-              cleanSupName = window.supDisplayName(ev.a);
-            } else if (typeof window.supBase === 'function') {
-              cleanSupName = window.supBase(ev.a);
-            } else {
-              cleanSupName = String(ev.a);
-            }
+            cleanSupName = _getSupplierAliasOrName(ev.a);
             if (typeof window.getSupPhone === 'function') {
               supPhone = window.getSupPhone(ev.a, ev);
             }
@@ -539,13 +618,13 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
           const evEx = (window.supEx && (window.supEx[evBase] || window.supEx[ev.a])) || {};
           const evFlexNote = ev.flexNote || (evEx.flexSched ? (evEx.flexNote || 'הימים והשעות עלולים להשתנות') : '');
           if (evFlexNote) {
-              pillText += `<br><span style="font-size:9px; font-weight:700; color:#0369a1;">ℹ️ ${_esc(evFlexNote)}</span>`;
+              pillText += `<br><span style="font-size:9px; font-weight:700; color:${isBW ? '#000000' : '#0369a1'};">ℹ️ ${_esc(evFlexNote)}</span>`;
           }
           if (showPhones && supPhone) {
-              pillText += `<br><span style="font-size:9.5px; font-weight:700;" dir="ltr"><span dir="rtl">📞 </span>${_esc(supPhone)}</span>`;
+              pillText += `<br><span style="font-size:9.5px; font-weight:700; color:#000000;" dir="ltr"><span dir="rtl">📞 </span>${_esc(supPhone)}</span>`;
           }
 
-          cellContent += `<div class="vp-event-pill" style="background:${pillBg}; color:${pillColor}; border:1px solid ${pillColor}33;">${pillText}</div>`;
+          cellContent += `<div class="vp-event-pill" style="background:${pillBg}; color:${pillColor}; border:1.5px solid ${isBW ? '#000000' : pillColor + '55'};">${pillText}</div>`;
         });
       }
 
@@ -563,11 +642,11 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       <!-- Header Banner -->
       <div class="vp-header">
         <div class="vp-header-right" style="display:flex; align-items:center; gap:12px;">
-          <img src="logo_wide.png" style="height:65px;" alt="Kids טומשין">
+          <img src="logo_wide.png" style="height:65px; ${isBW ? 'filter: grayscale(100%) contrast(140%) brightness(95%); -webkit-filter: grayscale(100%) contrast(140%) brightness(95%);' : ''}" alt="Kids טומשין">
         </div>
         <div class="vp-header-left" style="display:flex; flex-direction:column; align-items:flex-end; gap:3px;">
           <div class="vp-month-badge">📅 ${_esc(monthName)} ${year} - ${hebYearStr}</div>
-          <div style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:4px; ${isBW ? 'background:#0f172a; color:#ffffff;' : 'background:#047857; color:#ffffff;'}">
+          <div style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:4px; ${isBW ? 'background:#000000; color:#ffffff; border:1px solid #000000;' : 'background:#047857; color:#ffffff;'}">
             ${isBW ? '📋 עותק משרדי לצוות (כולל טלפונים)' : '🎨 עותק לוח מודעות להורים'}
           </div>
         </div>
@@ -601,11 +680,11 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
         </div>
       </div>
 
-      <div style="margin-top: auto; padding-top: 4px; border-top: 2px solid #e2e8f0;">
-        <div style="font-size: 13.5px; font-weight: 700; color: #334155; text-align: right; line-height: 1.2;">
+      <div style="margin-top: auto; padding-top: 4px; border-top: 2px solid ${isBW ? '#000000' : '#e2e8f0'};">
+        <div style="font-size: 13.5px; font-weight: 700; color: ${isBW ? '#000000' : '#334155'}; text-align: right; line-height: 1.2;">
           ${(() => {
             if (!mgrStr) return '';
-            const isSchool = (typeof window.gcls === 'function' ? window.gcls(g) === 'ביה"ס' : false) || (g.name || '').includes('ביה"ס') || (g.cls || '').includes('ביה"ס');
+            const isSchool = _isSchool(g);
             const coordLabel = isSchool ? 'רכז/ת ביה"ס' : 'רכז/ת';
             return `👩‍💼 ${coordLabel}: ${_esc(mgrStr)}`;
           })()}
@@ -622,7 +701,7 @@ function _esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, showPhones, preset = 'color_only') {
+async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, showPhones, preset = 'color_only', customSuffix = '') {
   // Ensure html2canvas is ready
   let h2c = window.html2canvas;
   if (!h2c) {
@@ -687,6 +766,7 @@ async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, sho
 
   const styles = _getStyles(month);
   const images = [];
+  const safeCustomSuffix = (customSuffix || '').replace(/[/\\?%*:|"<>]/g, '_').trim();
 
   try {
     const isBoth = preset === 'both_interleaved' || preset === 'both_split';
@@ -729,7 +809,7 @@ async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, sho
         window.scrollTo(prevScrollX, prevScrollY);
 
         const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.95));
-        const fileName = `לוח חוגים - ${safeGarden} ${safeCity}${t.suffix} - ${monthName} ${year}.jpg`.replace(/\s+/g, ' ');
+        const fileName = `לוח חוגים - ${safeGarden} ${safeCity}${safeCustomSuffix ? ' ' + safeCustomSuffix : ''}${t.suffix} - ${monthName} ${year}.jpg`.replace(/\s+/g, ' ');
         images.push({ blob, fileName });
       }
     }
@@ -756,7 +836,7 @@ async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, sho
         const zipUrl = URL.createObjectURL(zipBlob);
         const a = document.createElement('a');
         a.href = zipUrl;
-        a.download = `לוחות חוגים מעוצבים JPG - ${monthName} ${year}.zip`;
+        a.download = `לוחות חוגים מעוצבים JPG${safeCustomSuffix ? ' ' + safeCustomSuffix : ''} - ${monthName} ${year}.zip`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -1150,6 +1230,16 @@ function _getStyles(month) {
     .vp-page.vp-bw {
       background: #ffffff !important;
       color: #000000 !important;
+      -webkit-filter: grayscale(100%) !important;
+      filter: grayscale(100%) !important;
+    }
+    .vp-page.vp-bw * {
+      -webkit-filter: grayscale(100%) !important;
+      filter: grayscale(100%) !important;
+    }
+    .vp-page.vp-bw img {
+      -webkit-filter: grayscale(100%) contrast(140%) brightness(95%) !important;
+      filter: grayscale(100%) contrast(140%) brightness(95%) !important;
     }
     .vp-page.vp-bw .vp-watermark {
       display: none !important; /* Zero toner waste */
@@ -1168,7 +1258,7 @@ function _getStyles(month) {
       box-shadow: none !important;
     }
     .vp-page.vp-bw .vp-garden-bar {
-      background: #18181b !important;
+      background: #000000 !important;
       color: #ffffff !important;
       border: 2px solid #000000 !important;
       box-shadow: none !important;
@@ -1186,7 +1276,7 @@ function _getStyles(month) {
       color: #000000 !important;
     }
     .vp-page.vp-bw .vp-activity-card p {
-      color: #18181b !important;
+      color: #000000 !important;
     }
     .vp-page.vp-bw .vp-legend-dot {
       background: #000000 !important;
@@ -1214,8 +1304,13 @@ function _getStyles(month) {
       background: #f4f4f5 !important;
       background-image: repeating-linear-gradient(45deg, #f4f4f5, #f4f4f5 6px, #ffffff 6px, #ffffff 12px) !important;
     }
-    .vp-page.vp-bw .vp-day-holiday {
+    .vp-page.vp-bw .vp-day-holiday,
+    .vp-page.vp-bw .vp-day-camp {
       background: #f4f4f5 !important;
+    }
+    .vp-page.vp-bw .vp-day-header-row {
+      border-bottom: 1.5px solid #71717a !important;
+      color: #000000 !important;
     }
     .vp-page.vp-bw .vp-day-date {
       color: #000000 !important;
@@ -1240,8 +1335,8 @@ function _getStyles(month) {
     }
     .vp-page.vp-bw .vp-footer {
       background: #f4f4f5 !important;
-      border: 1.5px solid #71717a !important;
-      color: #18181b !important;
+      border: 1.5px solid #000000 !important;
+      color: #000000 !important;
     }
 
     @media print {
@@ -1252,6 +1347,11 @@ function _getStyles(month) {
       .vp-page {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+      }
+      .vp-page.vp-bw,
+      .vp-page.vp-bw * {
+        -webkit-filter: grayscale(100%) !important;
+        filter: grayscale(100%) !important;
       }
     }
   </style>`
