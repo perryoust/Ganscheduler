@@ -437,13 +437,31 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
 
   // 2. Also inspect gEvs for any additional active clubs in this month (up to 3)
   if (regularClubs.length < 3 && Array.isArray(gEvs)) {
-    const validEvs = gEvs.filter(s => (!s.st || s.st === 'ok') && !isMakeupEv(s)).sort((a, b) => (b.d || '').localeCompare(a.d || ''));
+    const validEvs = gEvs.filter(s => (!s.st || s.st === 'ok') && !isMakeupEv(s)).sort((a, b) => (a.d || '').localeCompare(b.d || ''));
     validEvs.forEach(s => {
       if (regularClubs.length < 3) {
         addClubToRegular(s);
       }
     });
   }
+
+  // Helper to get day index: Sunday=0 ('ראשון') ... Saturday=6 ('שבת')
+  const getDayIdx = (str) => {
+    if (!str) return 99;
+    for (let i = 0; i < daysHe.length; i++) {
+      if (str.includes(daysHe[i])) return i;
+    }
+    return 99;
+  };
+
+  // Sort regular clubs chronologically by day of week (Sunday -> Monday -> Tuesday -> Wednesday -> Thursday), then by time
+  // In RTL (direction: rtl), item 0 renders on the FAR RIGHT, so earlier days of the week appear on the right!
+  regularClubs.sort((a, b) => {
+    const da = getDayIdx(a.dayStr);
+    const db = getDayIdx(b.dayStr);
+    if (da !== db) return da - db;
+    return (a.timeStr || '').localeCompare(b.timeStr || '');
+  });
 
   // Limit to max 3 regular clubs for the UI cards
   const regularClubsList = regularClubs.slice(0, 3);
