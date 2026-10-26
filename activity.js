@@ -1934,7 +1934,7 @@ async function saveReplaceRecur(id) {
     if(!await window.spConfirm('⚠️ פעולה זו תמחוק את כל השיבוצים העתידיים של הסדרה הקיימת ותיצור חדשים.\nהאם אתה בטוח?')) return;
 
     // 1. Collect all series IDs to remove
-    const seriesIdsToRemove = new Set([s._recId]);
+    const seriesIdsToRemove = new Set([s._recId].filter(Boolean));
     const partnerGids = [];
     if (sync) {
       const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
@@ -1955,23 +1955,43 @@ async function saveReplaceRecur(id) {
 
     if (!partnerGids.length) return window._spAlertDialog('יש לסמן לפחות גן אחד אליו תוחל הפעילות');
 
-    // 2. Remove future occurrences from SCH
+    // Also collect any series IDs that partner gardens have for this supplier in the date range
+    const baseSup = window.supBase ? window.supBase(s.a) : s.a;
+    const baseNewSup = window.supBase ? window.supBase(sup) : sup;
+    const origWd = new Date(s.d).getDay();
+
+    partnerGids.forEach(pid => {
+      window.SCH.forEach(ev => {
+        if (Number(ev.g) === Number(pid) && ev.d >= from && ev.d <= to) {
+          const evWd = new Date(ev.d).getDay();
+          const evBaseSup = window.supBase ? window.supBase(ev.a) : ev.a;
+          if ((evWd === origWd || days.includes(evWd)) && (evBaseSup === baseSup || evBaseSup === baseNewSup)) {
+            if (ev._recId) seriesIdsToRemove.add(ev._recId);
+          }
+        }
+      });
+    });
+
+    // 2. Remove occurrences in date range from SCH
     if (!window.supEx) window.supEx = {};
     if (!window.supEx['__deleted_sraws_ids']) window.supEx['__deleted_sraws_ids'] = [];
 
     window.SCH = window.SCH.filter(ev => {
-      const isFuture = ev.d >= from;
+      const isInRange = ev.d >= from && ev.d <= to;
       const isTargetGarden = partnerGids.includes(Number(ev.g));
-      
-      const isSameDayOfWeek = new Date(ev.d).getDay() === new Date(s.d).getDay();
-      
-      // Even if they share the same _recId (legacy series), only delete the same day of the week
-      const isOldSeries = ev._recId && seriesIdsToRemove.has(ev._recId) && isSameDayOfWeek;
-      
-      // Extra safety for legacy events: also match by supplier if _recId is missing but it's clearly part of the same thing.
-      const isOldMatch = !ev._recId && isTargetGarden && window.supBase(ev.a) === window.supBase(s.a) && ev.d >= from && ev.st !== 'can' && isSameDayOfWeek;
-      
-      const shouldRemove = isFuture && (isOldSeries || isOldMatch);
+      if (!isInRange || !isTargetGarden) return true;
+
+      const evWd = new Date(ev.d).getDay();
+      const isDayMatch = (evWd === origWd) || days.includes(evWd);
+
+      // Even if they share the same _recId (legacy series), only delete the relevant days
+      const isOldSeries = ev._recId && seriesIdsToRemove.has(ev._recId) && isDayMatch;
+
+      // Match by supplier and target garden on relevant days regardless of _recId
+      const evBaseSup = window.supBase ? window.supBase(ev.a) : ev.a;
+      const isOldMatch = (evBaseSup === baseSup || evBaseSup === baseNewSup) && ev.st !== 'can' && isDayMatch;
+
+      const shouldRemove = isOldSeries || isOldMatch;
       if (shouldRemove) {
         const isSraws = !String(ev.id).startsWith('e_');
         if (isSraws && !window.supEx['__deleted_sraws_ids'].includes(ev.id)) {

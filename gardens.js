@@ -2714,6 +2714,7 @@ window.openBulkUpdateRecurring = function(key, gid) {
   const acts = window.getSupActs(srExample.a);
   let dObj=null; try{const p=srExample.d.split('-'); dObj=new Date(p[0],p[1]-1,p[2]);}catch(e){}
   const currWd = dObj ? dObj.getDay() : 0;
+  window._curBulkUpdateRec = { key: key, gid: Number(gid), oldSup: srExample.a, oldAct: srExample.act, oldWd: currWd };
   
   let h = `<div style="background:#fff;border-radius:10px;padding:15px;border:1.5px solid #d1d9e6;box-shadow:0 10px 20px rgba(0,0,0,0.05);position:relative">
     <button onclick="window.renderGmRecurring(${gid}, document.getElementById('gm-recur'))" style="position:absolute;top:10px;left:10px;background:none;border:none;font-size:1.2rem;cursor:pointer" title="חזור לרשימה">🔙</button>
@@ -2807,25 +2808,76 @@ window.doBulkUpdateRecurring = async function(key, gid){
   });
   if (!targets.length) return _spAlertDialog('יש לסמן לפחות גן אחד');
 
+  // Identify the original supplier, activity, and weekday of the series being updated
+  let oldSup = (window._curBulkUpdateRec && window._curBulkUpdateRec.key === key) ? window._curBulkUpdateRec.oldSup : null;
+  let oldAct = (window._curBulkUpdateRec && window._curBulkUpdateRec.key === key) ? window._curBulkUpdateRec.oldAct : null;
+  let oldWd = (window._curBulkUpdateRec && window._curBulkUpdateRec.key === key) ? window._curBulkUpdateRec.oldWd : -1;
+
+  if (!oldSup) {
+    const sr = (window.SCH || []).find(s => s._recId === key || (Number(s.g) === Number(gid) && s.d >= d1 && s.d <= d2));
+    if (sr) {
+      oldSup = sr.a;
+      oldAct = sr.act;
+      try { const p = sr.d.split('-'); oldWd = new Date(p[0], p[1]-1, p[2]).getDay(); } catch(e){}
+    }
+  }
+  if (!oldSup) oldSup = newSup;
+  if (oldWd === -1) oldWd = newWd;
+
+  const baseOldSup = window.supBase ? window.supBase(oldSup) : oldSup;
+  const baseNewSup = window.supBase ? window.supBase(newSup) : newSup;
+
+  // Collect all series IDs (_recId) to remove across ALL target gardens for this supplier and weekday
+  const seriesIdsToRemove = new Set();
+  if (key) seriesIdsToRemove.add(key);
+
+  const targetGids = new Set(targets.map(t => Number(t.g)));
+
+  (window.SCH || []).forEach(s => {
+    if (targetGids.has(Number(s.g)) && s.d >= d1 && s.d <= d2) {
+      let sWd = -1;
+      try { const p = s.d.split('-'); sWd = new Date(p[0], p[1]-1, p[2]).getDay(); } catch(e){}
+      const sBaseSup = window.supBase ? window.supBase(s.a) : s.a;
+      if ((sWd === oldWd || sWd === newWd) && (sBaseSup === baseOldSup || sBaseSup === baseNewSup)) {
+        if (s._recId) seriesIdsToRemove.add(s._recId);
+      }
+    }
+  });
+
   let cRemoved = 0;
   let cAdded = 0;
-  
+
+  if (!window.supEx) window.supEx = {};
+  if (!window.supEx['__deleted_sraws_ids']) window.supEx['__deleted_sraws_ids'] = [];
+
   const newRecoups = targets.map(() => 'rec_'+Date.now()+'_'+Math.random().toString(36).substr(2,5));
-  
+
   targets.forEach((tgt, tIdx) => {
      for(let i = window.SCH.length-1; i >= 0; i--){
        const s = window.SCH[i];
        if(Number(s.g) !== Number(tgt.g)) continue;
        if(s.d < d1 || s.d > d2) continue;
-       
+
        let sWd = -1;
        try{const p=s.d.split('-'); sWd=new Date(p[0],p[1]-1,p[2]).getDay();}catch(e){}
-       
+
        let match = false;
-       if(key === s._recId) match = true;
-       else if(key.endsWith(`_${sWd}`) && key.includes(s.a) && key.includes(s.act)) match = true;
-       
+       if(s._recId && seriesIdsToRemove.has(s._recId)) {
+         match = true;
+       } else if(key && key.endsWith(`_${sWd}`) && key.includes(s.a) && key.includes(s.act)) {
+         match = true;
+       } else {
+         const sBaseSup = window.supBase ? window.supBase(s.a) : s.a;
+         if((sWd === oldWd || sWd === newWd) && (sBaseSup === baseOldSup || sBaseSup === baseNewSup)) {
+           match = true;
+         }
+       }
+
        if(match) {
+         const isSraws = !String(s.id).startsWith('e_');
+         if(isSraws && !window.supEx['__deleted_sraws_ids'].includes(s.id)) {
+           window.supEx['__deleted_sraws_ids'].push(s.id);
+         }
          window.SCH.splice(i, 1);
          cRemoved++;
        }

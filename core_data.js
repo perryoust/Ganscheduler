@@ -80,6 +80,78 @@ window.cleanupEmptyDuplicates = function() {
   }
 };
 
+window.cleanupDuplicateTrioActivities = function(verbose = false) {
+  if (!window.SCH || !window.SCH.length) return 0;
+  
+  const map = new Map();
+  window.SCH.forEach((s, idx) => {
+    if (s.st === 'can') return;
+    const baseSup = window.supBase ? window.supBase(s.a) : (s.a || '').trim();
+    if (!baseSup) return;
+    const key = `${s.d}_${s.g}_${baseSup}`;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push({ event: s, index: idx });
+  });
+
+  let removedCount = 0;
+  const toRemoveIndices = new Set();
+
+  map.forEach((list) => {
+    if (list.length > 1) {
+      const gid = Number(list[0].event.g);
+      const pair = window.gardenPair ? window.gardenPair(gid) : null;
+      
+      let bestItem = null;
+      if (pair && pair.ids && pair.ids.length >= 3) {
+        if (gid === 89 && list.some(x => x.event.t === '14:30') && list.some(x => x.event.t === '15:30')) {
+          bestItem = list.find(x => x.event.t === '14:30');
+        } else if (gid === 98 && list.some(x => x.event.t === '15:10') && list.some(x => x.event.t === '14:40')) {
+          bestItem = list.find(x => x.event.t === '15:10');
+        }
+      }
+      
+      if (!bestItem) {
+        bestItem = list.reduce((best, cur) => {
+          const idA = Number(String(best.event.id).replace(/\..*$/, '')) || 0;
+          const idB = Number(String(cur.event.id).replace(/\..*$/, '')) || 0;
+          return idB >= idA ? cur : best;
+        }, list[0]);
+      }
+
+      list.forEach(item => {
+        if (item !== bestItem) {
+          toRemoveIndices.add(item.index);
+          removedCount++;
+          const isSraws = !String(item.event.id).startsWith('e_');
+          if (isSraws && window.supEx && window.supEx['__deleted_sraws_ids'] && !window.supEx['__deleted_sraws_ids'].includes(item.event.id)) {
+            window.supEx['__deleted_sraws_ids'].push(item.event.id);
+          }
+        }
+      });
+    }
+  });
+
+  if (removedCount > 0) {
+    console.log(`[cleanupDuplicateTrioActivities] Removed ${removedCount} duplicate activities`);
+    window.SCH = window.SCH.filter((_, idx) => !toRemoveIndices.has(idx));
+    if (window.save) window.save(true);
+    if (window.refresh) window.refresh();
+    if (verbose && typeof window.showToast === 'function') {
+      window.showToast(`🧹 נוקו ${removedCount} שיבוצים כפולים בהצלחה!`);
+    }
+  }
+  return removedCount;
+};
+
+// Automatic one-time startup check for duplicate activities
+setTimeout(() => {
+  try {
+    if (typeof window.cleanupDuplicateTrioActivities === 'function') {
+      window.cleanupDuplicateTrioActivities(false);
+    }
+  } catch(e) { console.error('[cleanupDuplicateTrioActivities auto]', e); }
+}, 4200);
+
 function renderPurchSuppliers(){
   if (!window._didCleanupDups && typeof window.cleanupEmptyDuplicates === 'function') {
     window._didCleanupDups = true;
