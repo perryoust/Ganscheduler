@@ -665,7 +665,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
         <div class="vp-header-left" style="display:flex; flex-direction:column; align-items:flex-end; gap:3px;">
           <div class="vp-month-badge">📅 ${_esc(monthName)} ${year} - ${hebYearStr}</div>
           <div style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:4px; ${isBW ? 'background:#000000; color:#ffffff; border:1px solid #000000;' : 'background:#047857; color:#ffffff;'}">
-            ${isBW ? '📋 עותק משרדי לצוות (כולל טלפונים)' : '🎨 עותק צבעוני'}
+            ${isBW ? '📋 עותק משרדי לצוות (כולל טלפונים)' : '🎨 צבעוני'}
           </div>
         </div>
       </div>
@@ -801,12 +801,12 @@ async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, sho
 
       const renderTasks = [];
       if (isBoth) {
-        renderTasks.push({ isBW: false, phones: false, suffix: '_צבעוני' });
-        renderTasks.push({ isBW: true, phones: true, suffix: '_שחור_לבן_משרדי' });
+        renderTasks.push({ isBW: false, phones: false, suffix: ' - צבעוני' });
+        renderTasks.push({ isBW: true, phones: true, suffix: ' - שחור לבן משרדי' });
       } else if (isBWOnly) {
-        renderTasks.push({ isBW: true, phones: true, suffix: '_שחור_לבן_משרדי' });
+        renderTasks.push({ isBW: true, phones: true, suffix: ' - שחור לבן משרדי' });
       } else {
-        renderTasks.push({ isBW: false, phones: showPhones, suffix: '' });
+        renderTasks.push({ isBW: false, phones: showPhones, suffix: ' - צבעוני' });
       }
 
       for (const t of renderTasks) {
@@ -854,7 +854,10 @@ async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, sho
         const zipUrl = URL.createObjectURL(zipBlob);
         const a = document.createElement('a');
         a.href = zipUrl;
-        a.download = `לוחות חוגים מעוצבים JPG${safeCustomSuffix ? ' ' + safeCustomSuffix : ''} - ${monthName} ${year}.zip`;
+        let zipPresetSuffix = ' - צבעוני';
+        if (isBoth) zipPresetSuffix = ' - ערכות כפולות (צבעוני + ש_ל)';
+        else if (isBWOnly) zipPresetSuffix = ' - שחור לבן משרדי';
+        a.download = `לוחות חוגים מעוצבים JPG${zipPresetSuffix}${safeCustomSuffix ? ' ' + safeCustomSuffix : ''} - ${monthName} ${year}.zip`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
