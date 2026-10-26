@@ -56,30 +56,39 @@ function openMonthlyExport(){
     updateExportGardenCount();
   }
   const presetSel = document.getElementById('exp-print-preset');
-  if (presetSel) presetSel.value = 'color_only';
-  const expPhCb = document.getElementById('exp-phones');
-  if (expPhCb) expPhCb.checked = false;
-  const hint = document.getElementById('preset-hint');
-  if (hint) hint.textContent = 'טלפונים כבויים (צבעוני)';
+  if (presetSel) {
+    presetSel.value = 'color_only';
+    if (typeof window.onVisualPresetChange === 'function') {
+      window.onVisualPresetChange('color_only');
+    }
+  }
   document.getElementById('export-m').classList.add('open');
 }
 
 window.onVisualPresetChange = function(preset) {
-  const phCb = document.getElementById('exp-phones');
+  const lblColor = document.getElementById('lbl-phone-color');
+  const lblBW = document.getElementById('lbl-phone-bw');
+  const cbColor = document.getElementById('exp-phone-color');
+  const cbBW = document.getElementById('exp-phone-bw');
   const hint = document.getElementById('preset-hint');
-  if (!phCb) return;
+
   if (preset === 'color_only') {
-    phCb.checked = false;
-    if (hint) hint.textContent = 'טלפונים כבויים (צבעוני)';
+    if (lblColor) lblColor.style.display = 'inline-flex';
+    if (lblBW) lblBW.style.display = 'none';
+    if (cbColor) cbColor.checked = false;
+    if (hint) hint.innerHTML = '💡 <b>עותק צבעוני:</b> טלפונים כבויים כברירת מחדל (סמן אם ברצונך להציגם).';
   } else if (preset === 'bw_only') {
-    phCb.checked = true;
-    if (hint) hint.textContent = 'טלפונים פועלים (מותאם לצוות)';
-  } else if (preset === 'both_interleaved') {
-    phCb.checked = true;
-    if (hint) hint.textContent = 'עותק 1 בלי טלפונים, עותק 2 עם טלפונים';
-  } else if (preset === 'both_split') {
-    phCb.checked = true;
-    if (hint) hint.textContent = 'קובץ צבע בלי טלפונים, קובץ ש/ל עם טלפונים';
+    if (lblColor) lblColor.style.display = 'none';
+    if (lblBW) lblBW.style.display = 'inline-flex';
+    if (cbBW) cbBW.checked = true;
+    if (hint) hint.innerHTML = '💡 <b>עותק ש/ל משרדי:</b> טלפונים פועלים כברירת מחדל לצוות (בטל סימון אם לא נדרש).';
+  } else {
+    // both_interleaved or both_split
+    if (lblColor) lblColor.style.display = 'inline-flex';
+    if (lblBW) lblBW.style.display = 'inline-flex';
+    if (cbColor) cbColor.checked = false;
+    if (cbBW) cbBW.checked = true;
+    if (hint) hint.innerHTML = '💡 <b>ערכה כפולה:</b> ברירת מחדל - טלפונים רק בש/ל. באפשרותך לסמן/לבטל טלפונים בכל עותק בנפרד!';
   }
 };
 

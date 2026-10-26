@@ -117,8 +117,8 @@ window.doVisualExcelExport = async function(format = 'pdf') {
   
   const allEvs = window.SCH.filter(s => s.d >= fromDate && s.d <= toDate && (!s.st || s.st === 'ok'));
   const preset = document.getElementById('exp-print-preset')?.value || 'color_only';
-  const showPhonesCb = document.getElementById('exp-phones');
-  const userWantsPhones = showPhonesCb ? showPhonesCb.checked : false;
+  const phoneColor = document.getElementById('exp-phone-color')?.checked || false;
+  const phoneBW = document.getElementById('exp-phone-bw') ? document.getElementById('exp-phone-bw').checked : true;
   
   const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
   const monthName = HEB_MONTHS[month - 1];
@@ -155,7 +155,7 @@ window.doVisualExcelExport = async function(format = 'pdf') {
       }
 
       if (format === 'jpg') {
-        await _exportJPG(targetList, allEvs, year, month, monthName, hebYearStr, userWantsPhones, preset, customSuffix);
+        await _exportJPG(targetList, allEvs, year, month, monthName, hebYearStr, phoneColor, phoneBW, preset, customSuffix);
         return;
       }
 
@@ -163,26 +163,28 @@ window.doVisualExcelExport = async function(format = 'pdf') {
         let pagesHtml = '';
         for (const g of targetList) {
           const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
-          pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, userWantsPhones, false);
+          pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, phoneColor, false);
         }
-        const title = `${titleBase} - צבעוני - ${monthName} ${year}.pdf`;
+        const phoneSuffix = phoneColor ? ' (עם טלפונים)' : '';
+        const title = `${titleBase} - צבעוני${phoneSuffix} - ${monthName} ${year}.pdf`;
         await _exportPDF(pagesHtml, title, month);
         if (!isSplitCity) window.showToast?.(`📊 ${targetList.length} לוחות צבעוניים נפתחו בהצלחה!`);
       } else if (preset === 'bw_only') {
         let pagesHtml = '';
         for (const g of targetList) {
           const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
-          pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, userWantsPhones !== false, true);
+          pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, phoneBW, true);
         }
-        const title = `${titleBase} - שחור לבן משרדי - ${monthName} ${year}.pdf`;
+        const phoneSuffix = !phoneBW ? ' (ללא טלפונים)' : '';
+        const title = `${titleBase} - שחור לבן משרדי${phoneSuffix} - ${monthName} ${year}.pdf`;
         await _exportPDF(pagesHtml, title, month);
         if (!isSplitCity) window.showToast?.(`📊 ${targetList.length} לוחות משרדיים (ש/ל) נפתחו בהצלחה!`);
       } else if (preset === 'both_interleaved') {
         let pagesHtml = '';
         for (const g of targetList) {
           const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
-          pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, false, false);
-          pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, true, true);
+          pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, phoneColor, false);
+          pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, phoneBW, true);
         }
         const title = `${titleBase} - ערכות כפולות (צבעוני + ש/ל) - ${monthName} ${year}.pdf`;
         await _exportPDF(pagesHtml, title, month);
@@ -192,12 +194,14 @@ window.doVisualExcelExport = async function(format = 'pdf') {
         let bwHtml = '';
         for (const g of targetList) {
           const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
-          colorHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, false, false);
-          bwHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, true, true);
+          colorHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, phoneColor, false);
+          bwHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, phoneBW, true);
         }
-        await _exportPDF(colorHtml, `${titleBase} - צבעוני - ${monthName} ${year}.pdf`, month);
+        const colorPhoneSuffix = phoneColor ? ' (עם טלפונים)' : '';
+        const bwPhoneSuffix = !phoneBW ? ' (ללא טלפונים)' : '';
+        await _exportPDF(colorHtml, `${titleBase} - צבעוני${colorPhoneSuffix} - ${monthName} ${year}.pdf`, month);
         await new Promise(r => setTimeout(r, 450));
-        await _exportPDF(bwHtml, `${titleBase} - שחור לבן משרדי - ${monthName} ${year}.pdf`, month);
+        await _exportPDF(bwHtml, `${titleBase} - שחור לבן משרדי${bwPhoneSuffix} - ${monthName} ${year}.pdf`, month);
         if (!isSplitCity) window.showToast?.(`📊 2 קבצים נפתחו בהצלחה: קובץ צבעוני + קובץ ש/ל משרדי!`);
       }
     }
@@ -665,7 +669,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
         <div class="vp-header-left" style="display:flex; flex-direction:column; align-items:flex-end; gap:3px;">
           <div class="vp-month-badge">📅 ${_esc(monthName)} ${year} - ${hebYearStr}</div>
           <div style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:4px; ${isBW ? 'background:#000000; color:#ffffff; border:1px solid #000000;' : 'background:#047857; color:#ffffff;'}">
-            ${isBW ? '📋 עותק משרדי לצוות (כולל טלפונים)' : '🎨 צבעוני'}
+            ${isBW ? (showPhones ? '📋 עותק משרדי לצוות (כולל טלפונים)' : '📄 עותק שחור-לבן משרדי') : (showPhones ? '🎨 צבעוני (כולל טלפונים)' : '🎨 צבעוני')}
           </div>
         </div>
       </div>
@@ -719,7 +723,7 @@ function _esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, showPhones, preset = 'color_only', customSuffix = '') {
+async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, phoneColor, phoneBW, preset = 'color_only', customSuffix = '') {
   // Ensure html2canvas is ready
   let h2c = window.html2canvas;
   if (!h2c) {
@@ -801,12 +805,16 @@ async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, sho
 
       const renderTasks = [];
       if (isBoth) {
-        renderTasks.push({ isBW: false, phones: false, suffix: ' - צבעוני' });
-        renderTasks.push({ isBW: true, phones: true, suffix: ' - שחור לבן משרדי' });
+        const colorSuffix = ' - צבעוני' + (phoneColor ? ' (עם טלפונים)' : '');
+        const bwSuffix = ' - שחור לבן משרדי' + (!phoneBW ? ' (ללא טלפונים)' : '');
+        renderTasks.push({ isBW: false, phones: phoneColor, suffix: colorSuffix });
+        renderTasks.push({ isBW: true, phones: phoneBW, suffix: bwSuffix });
       } else if (isBWOnly) {
-        renderTasks.push({ isBW: true, phones: true, suffix: ' - שחור לבן משרדי' });
+        const bwSuffix = ' - שחור לבן משרדי' + (!phoneBW ? ' (ללא טלפונים)' : '');
+        renderTasks.push({ isBW: true, phones: phoneBW, suffix: bwSuffix });
       } else {
-        renderTasks.push({ isBW: false, phones: showPhones, suffix: ' - צבעוני' });
+        const colorSuffix = ' - צבעוני' + (phoneColor ? ' (עם טלפונים)' : '');
+        renderTasks.push({ isBW: false, phones: phoneColor, suffix: colorSuffix });
       }
 
       for (const t of renderTasks) {
