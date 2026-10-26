@@ -926,10 +926,97 @@ window.activateWorkerApp = function() {
   }
 };
 
-window.wtWorkerActiveTab = window.wtWorkerActiveTab || 'today'; // 'today', 'tomorrow'
+window.wtWorkerActiveTab = window.wtWorkerActiveTab || 'today'; // 'today', 'tomorrow', 'history'
+window.wtWorkerHistoryDate = window.wtWorkerHistoryDate || null;
+
+window.wtDateOffset = function(baseDateStr, offsetDays) {
+  if (!baseDateStr) return '';
+  const parts = baseDateStr.split('-');
+  const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  d.setDate(d.getDate() + offsetDays);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+window.wtHebrewDayName = function(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  const days = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  return days[d.getDay()] || '';
+};
+
+window.wtWorkerPrevDay = function() {
+  const today = window.td ? window.td() : (function() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
+  const yesterday = window.wtDateOffset(today, -1);
+  let cur = window.wtWorkerHistoryDate || yesterday;
+  if (cur >= today) cur = yesterday;
+  window.wtWorkerHistoryDate = window.wtDateOffset(cur, -1);
+  window.wtWorkerActiveTab = 'history';
+  if (window.renderWorkerTasksMobile) window.renderWorkerTasksMobile();
+};
+
+window.wtWorkerNextDay = function() {
+  const today = window.td ? window.td() : (function() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
+  const yesterday = window.wtDateOffset(today, -1);
+  let cur = window.wtWorkerHistoryDate || yesterday;
+  const next = window.wtDateOffset(cur, 1);
+  if (next >= today) {
+    window.wtWorkerActiveTab = 'today';
+  } else {
+    window.wtWorkerHistoryDate = next;
+    window.wtWorkerActiveTab = 'history';
+  }
+  if (window.renderWorkerTasksMobile) window.renderWorkerTasksMobile();
+};
+
+window.wtSelectHistoryDate = function(dateStr) {
+  if (!dateStr) return;
+  const today = window.td ? window.td() : (function() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
+  if (dateStr >= today) {
+    window.wtWorkerActiveTab = 'today';
+  } else {
+    window.wtWorkerHistoryDate = dateStr;
+    window.wtWorkerActiveTab = 'history';
+  }
+  if (window.renderWorkerTasksMobile) window.renderWorkerTasksMobile();
+};
+
+window.wtOpenDatePicker = function() {
+  window.wtWorkerActiveTab = 'history';
+  const inp = document.getElementById('wt-history-date-picker-tab') || document.getElementById('wt-history-date-picker-sub');
+  if (inp) {
+    if (typeof inp.showPicker === 'function') {
+      try {
+        inp.showPicker();
+        return;
+      } catch(e) {}
+    }
+    inp.focus();
+    inp.click();
+  }
+};
 
 window.wtSetWorkerTab = function(tab) {
   window.wtWorkerActiveTab = tab;
+  if (tab === 'history' && !window.wtWorkerHistoryDate) {
+    const today = window.td ? window.td() : (function() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    })();
+    window.wtWorkerHistoryDate = window.wtDateOffset(today, -1);
+  }
   window.renderWorkerTasksMobile();
 };
 
@@ -937,16 +1024,23 @@ window.renderWorkerTasksMobile = function() {
   const container = document.getElementById('worker-tasks-mobile-list');
   if (!container) return;
   
-  // Calculate today and tomorrow dates
-  const today = window.td ? window.td() : new Date().toISOString().split('T')[0];
-  const dToday = new Date(today);
-  const dTomorrow = new Date(dToday);
-  dTomorrow.setDate(dTomorrow.getDate() + 1);
-  const tomorrow = dTomorrow.toISOString().split('T')[0];
+  // Calculate today, yesterday, and tomorrow dates
+  const today = window.td ? window.td() : (function() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
+  const yesterday = window.wtDateOffset(today, -1);
+  const tomorrow = window.wtDateOffset(today, 1);
+
+  if (!window.wtWorkerHistoryDate || window.wtWorkerHistoryDate >= today) {
+    window.wtWorkerHistoryDate = yesterday;
+  }
+  const historyDate = window.wtWorkerHistoryDate;
+  const historyDayName = window.wtHebrewDayName(historyDate);
+  const historyDisp = window.fD ? window.fD(historyDate) : historyDate;
   
-  const dayNames = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
-  const todayDayName = dayNames[new Date(today).getDay()];
-  const tomorrowDayName = dayNames[new Date(tomorrow).getDay()];
+  const todayDayName = window.wtHebrewDayName(today);
+  const tomorrowDayName = window.wtHebrewDayName(tomorrow);
   const todayDisp = window.fD ? window.fD(today) : today;
   const tomorrowDisp = window.fD ? window.fD(tomorrow) : tomorrow;
 
@@ -973,12 +1067,16 @@ window.renderWorkerTasksMobile = function() {
   tomorrowDone.sort((a,b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
   const tomorrowAll = [...tomorrowPending, ...tomorrowDone];
 
-  // History tasks: all completed tasks (sorted newest to oldest, strictly read-only)
-  const historyDone = validTasks.filter(t => t.status === 'done');
-  historyDone.sort((a,b) => {
-    const dateA = a.doneAt || a.date || '';
-    const dateB = b.doneAt || b.date || '';
-    return dateB.localeCompare(dateA);
+  // History tasks for the selected historyDate (strictly read-only)
+  const historyTasks = validTasks.filter(t => {
+    const sDate = t.date;
+    const dDate = t.doneAt ? t.doneAt.split(' ')[0] : null;
+    return sDate === historyDate || dDate === historyDate;
+  });
+  historyTasks.sort((a,b) => {
+    if (a.status === 'done' && b.status !== 'done') return -1;
+    if (a.status !== 'done' && b.status === 'done') return 1;
+    return (b.doneAt || b.date || '').localeCompare(a.doneAt || a.date || '');
   });
 
   const activeTab = window.wtWorkerActiveTab === 'tomorrow' ? 'tomorrow' : (window.wtWorkerActiveTab === 'history' ? 'history' : 'today');
@@ -994,15 +1092,29 @@ window.renderWorkerTasksMobile = function() {
       </div>
     </div>
 
-    <!-- Day Filter Tabs: הקודם / היום / מחר -->
-    <div style="display:flex; gap:6px; margin-bottom:14px; background:rgba(0,0,0,0.2); padding:4px; border-radius:24px;">
-      <button onclick="window.wtSetWorkerTab('history')" style="flex:1; padding:7px 4px; border:none; border-radius:20px; font-weight:bold; font-size:0.82rem; cursor:pointer; background:${activeTab==='history'?'#fff':'transparent'}; color:${activeTab==='history'?'#1565c0':'#fff'}; box-shadow:${activeTab==='history'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s; white-space:nowrap;" title="היסטוריית משימות שבוצעו (לצפייה בלבד)">
-        ⏮️ הקודם (${historyDone.length})
+    <!-- Day Filter Tabs: חץ אחורה / הקודם (לוח שנה) / היום / מחר -->
+    <div style="display:flex; gap:5px; margin-bottom:14px; background:rgba(0,0,0,0.2); padding:4px; border-radius:24px; align-items:center;">
+      
+      <!-- Arrow: 1 day back on every click -->
+      <button onclick="window.wtWorkerPrevDay()" style="width:34px; height:34px; padding:0; border:none; border-radius:50%; font-weight:bold; font-size:0.95rem; cursor:pointer; background:rgba(255,255,255,0.22); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.15);" title="יום אחד אחורה (כל לחיצה זזה יום אחורה)">
+        ◀
       </button>
-      <button onclick="window.wtSetWorkerTab('today')" style="flex:1; padding:7px 4px; border:none; border-radius:20px; font-weight:bold; font-size:0.82rem; cursor:pointer; background:${activeTab==='today'?'#fff':'transparent'}; color:${activeTab==='today'?'#1565c0':'#fff'}; box-shadow:${activeTab==='today'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s; white-space:nowrap;">
+
+      <!-- הקודם: Opens calendar / date picker -->
+      <div style="position:relative; flex:1; min-width:0;">
+        <button onclick="window.wtOpenDatePicker()" style="width:100%; padding:7px 2px; border:none; border-radius:20px; font-weight:bold; font-size:0.8rem; cursor:pointer; background:${activeTab==='history'?'#fff':'transparent'}; color:${activeTab==='history'?'#1565c0':'#fff'}; box-shadow:${activeTab==='history'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;" title="לחץ לפתיחת לוח שנה ובחירת תאריך">
+          📅 ${activeTab==='history' ? `קודם (${historyDisp})` : 'הקודם'}
+        </button>
+        <input type="date" id="wt-history-date-picker-tab" max="${yesterday}" value="${historyDate}" onchange="window.wtSelectHistoryDate(this.value)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;" title="פתח לוח שנה לבחירת תאריך" />
+      </div>
+
+      <!-- היום -->
+      <button onclick="window.wtSetWorkerTab('today')" style="flex:1; padding:7px 2px; border:none; border-radius:20px; font-weight:bold; font-size:0.8rem; cursor:pointer; background:${activeTab==='today'?'#fff':'transparent'}; color:${activeTab==='today'?'#1565c0':'#fff'}; box-shadow:${activeTab==='today'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s; white-space:nowrap;">
         📅 היום (${todayPending.length})
       </button>
-      <button onclick="window.wtSetWorkerTab('tomorrow')" style="flex:1; padding:7px 4px; border:none; border-radius:20px; font-weight:bold; font-size:0.82rem; cursor:pointer; background:${activeTab==='tomorrow'?'#fff':'transparent'}; color:${activeTab==='tomorrow'?'#1565c0':'#fff'}; box-shadow:${activeTab==='tomorrow'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s; white-space:nowrap;">
+
+      <!-- מחר -->
+      <button onclick="window.wtSetWorkerTab('tomorrow')" style="flex:1; padding:7px 2px; border:none; border-radius:20px; font-weight:bold; font-size:0.8rem; cursor:pointer; background:${activeTab==='tomorrow'?'#fff':'transparent'}; color:${activeTab==='tomorrow'?'#1565c0':'#fff'}; box-shadow:${activeTab==='tomorrow'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s; white-space:nowrap;">
         🌅 מחר (${tomorrowPending.length})
       </button>
     </div>
@@ -1046,6 +1158,7 @@ window.renderWorkerTasksMobile = function() {
 
   // Pure Read-Only Card for Worker History (No status toggle, no note editing)
   function renderHistoryCard(t) {
+    const isDone = t.status === 'done';
     const info = window.wtGetTaskGardenInfo ? window.wtGetTaskGardenInfo(t) : { gardenName: '', city: '', address: '', loc: '', phone: '' };
     const displayName = info.loc || (info.city && info.gardenName && info.city !== info.gardenName ? `${info.city} - ${info.gardenName}` : (info.gardenName || info.city || ''));
 
@@ -1054,17 +1167,17 @@ window.renderWorkerTasksMobile = function() {
     const dateDisp = doneDate ? (window.fD ? window.fD(doneDate) : doneDate) : '';
 
     return `
-      <div style="background:#fff; border-radius:10px; padding:12px; margin-bottom:10px; box-shadow:0 2px 5px rgba(0,0,0,0.06); border-right:4px solid #4caf50; opacity:0.95;">
+      <div style="background:#fff; border-radius:10px; padding:12px; margin-bottom:10px; box-shadow:0 2px 5px rgba(0,0,0,0.06); border-right:4px solid ${isDone ? '#4caf50' : '#ffa000'}; opacity:0.95;">
         <div style="display:flex; align-items:flex-start; gap:12px;">
-          <!-- Static Circle Checkmark (NO click, view only) -->
-          <div style="width:28px; height:28px; margin-top:2px; border:2px solid #4caf50; background:#e8f5e9; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#2e7d32; font-weight:bold; font-size:1.15rem; cursor:default;" title="בוצע (היסטוריה נעולה לעריכה)">
-            ✓
+          <!-- Static Circle (NO click, view only) -->
+          <div style="width:28px; height:28px; margin-top:2px; border:2px solid ${isDone ? '#4caf50' : '#ffa000'}; background:${isDone ? '#e8f5e9' : '#fff8e1'}; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:${isDone ? '#2e7d32' : '#f57c00'}; font-weight:bold; font-size:1.15rem; cursor:default;" title="${isDone ? 'בוצע (נעול לעריכה)' : 'לא בוצע בתאריך זה (נעול לעריכה)'}">
+            ${isDone ? '✓' : '—'}
           </div>
           
           <!-- Task Text -->
           <div style="flex:1; min-width:0;">
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:wrap;">
-              ${dateDisp ? `<span style="background:#e8f5e9; color:#2e7d32; font-size:0.72rem; padding:1px 7px; border-radius:4px; font-weight:bold;">📅 ${dateDisp}</span>` : ''}
+              ${dateDisp ? `<span style="background:${isDone ? '#e8f5e9' : '#fff3e0'}; color:${isDone ? '#2e7d32' : '#e65100'}; font-size:0.72rem; padding:1px 7px; border-radius:4px; font-weight:bold;">📅 ${dateDisp}</span>` : ''}
               <span style="background:#f1f5f9; color:#64748b; font-size:0.7rem; padding:1px 6px; border-radius:4px; font-weight:600;">🔒 צפייה בלבד</span>
             </div>
             
@@ -1073,9 +1186,15 @@ window.renderWorkerTasksMobile = function() {
               ${info.phone ? ` <a href="tel:${info.phone}" style="text-decoration:none; display:inline-flex; align-items:center; gap:2px; background:#fff3e0; color:#e65100; font-weight:700; font-size:0.7rem; padding:2px 7px; border-radius:10px; border:1px solid #ffe0b2; vertical-align:middle; margin-right:4px;" onclick="event.stopPropagation()">📞</a>` : ''}
             </div>
             
-            <div style="font-size:0.78rem; color:#16a34a; font-weight:600; margin-bottom:4px;">
-              ✓ בוצע ע"י ${t.doneBy || 'עובד'} ${dateDisp ? `ב-${dateDisp}` : ''} ${doneTime ? `(${doneTime})` : ''}
-            </div>
+            ${isDone ? `
+              <div style="font-size:0.78rem; color:#16a34a; font-weight:600; margin-bottom:4px;">
+                ✓ בוצע ע"י ${t.doneBy || 'עובד'} ${dateDisp ? `ב-${dateDisp}` : ''} ${doneTime ? `(${doneTime})` : ''}
+              </div>
+            ` : `
+              <div style="font-size:0.78rem; color:#e65100; font-weight:600; margin-bottom:4px;">
+                ⏳ לא בוצע בתאריך זה
+              </div>
+            `}
 
             <!-- Read-Only Note (if exists) -->
             ${t.workerNote ? `
@@ -1085,8 +1204,8 @@ window.renderWorkerTasksMobile = function() {
             ` : ''}
           </div>
           
-          <!-- Static Checkmark Icon -->
-          <div style="color:#a7f3d0; font-size:1.2rem; padding-top:2px; flex-shrink:0;">✓</div>
+          <!-- Static Icon -->
+          <div style="color:${isDone ? '#a7f3d0' : '#ffe0b2'}; font-size:1.2rem; padding-top:2px; flex-shrink:0;">${isDone ? '✓' : '⏳'}</div>
         </div>
       </div>
     `;
@@ -1095,23 +1214,60 @@ window.renderWorkerTasksMobile = function() {
   // Render content based on active tab: 'history', 'today' or 'tomorrow'
   if (activeTab === 'history') {
     html += `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin:8px 0 8px 0; padding:6px 12px; background:rgba(255,255,255,0.2); border-radius:8px; backdrop-filter:blur(5px); color:#fff;">
-        <div style="font-weight:bold; font-size:1.02rem;">📜 היסטוריית משימות שבוצעו</div>
-        <span style="background:#2e7d32; color:#fff; font-size:0.75rem; padding:2px 8px; border-radius:12px; font-weight:bold;">${historyDone.length} בוצעו</span>
+      <!-- History Date Navigator Bar -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin:8px 0; padding:8px 10px; background:rgba(255,255,255,0.22); border-radius:12px; backdrop-filter:blur(5px); color:#fff; gap:6px;">
+        <!-- Prev Day Arrow -->
+        <button onclick="window.wtWorkerPrevDay()" style="background:rgba(255,255,255,0.28); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:18px; padding:6px 12px; font-size:0.82rem; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:4px; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.15);" title="יום אחד אחורה (כל לחיצה זזה יום אחורה)">
+          ◀ יום קודם
+        </button>
+
+        <!-- Center: Date & Hebrew Day Name with Calendar Picker Trigger -->
+        <div style="position:relative; text-align:center; cursor:pointer; flex:1; min-width:0; padding:0 4px;" title="לחץ לפתיחת לוח שנה לבחירת תאריך">
+          <div style="font-weight:bold; font-size:0.92rem; text-decoration:underline; display:flex; align-items:center; gap:4px; justify-content:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            <span>📅</span>
+            <span>יום ${historyDayName}, ${historyDisp}</span>
+          </div>
+          <div style="font-size:0.7rem; opacity:0.92; font-weight:600;">(לחץ ללוח שנה 📆)</div>
+          <input type="date" id="wt-history-date-picker-sub" max="${yesterday}" value="${historyDate}" onchange="window.wtSelectHistoryDate(this.value)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;" title="פתח לוח שנה לבחירת תאריך" />
+        </div>
+
+        <!-- Next Day Arrow (or back to today) -->
+        ${historyDate < yesterday ? `
+          <button onclick="window.wtWorkerNextDay()" style="background:rgba(255,255,255,0.28); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:18px; padding:6px 12px; font-size:0.82rem; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:4px; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.15);" title="יום אחד קדימה">
+            יום הבא ▶
+          </button>
+        ` : `
+          <button onclick="window.wtSetWorkerTab('today')" style="background:rgba(255,255,255,0.28); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:18px; padding:6px 12px; font-size:0.82rem; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:4px; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.15);" title="חזרה להיום">
+            להיום 📅
+          </button>
+        `}
       </div>
-      <div style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); border-radius:8px; padding:6px 12px; margin-bottom:12px; font-size:0.78rem; color:#fff; display:flex; align-items:center; gap:6px;">
-        <span>🔒</span> <span>תצוגת היסטוריה לצפייה בלבד — המשימות בוצעו ונעולות לעריכה</span>
+
+      <!-- Lock Banner -->
+      <div style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); border-radius:8px; padding:6px 12px; margin-bottom:12px; font-size:0.78rem; color:#fff; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px;">
+        <span style="display:flex; align-items:center; gap:6px;">
+          <span>🔒</span> <span>תצוגת היסטוריה לצפייה בלבד (נעול לעריכה)</span>
+        </span>
+        <span style="background:${historyTasks.length > 0 ? '#2e7d32' : '#757575'}; color:#fff; font-size:0.72rem; padding:2px 8px; border-radius:10px; font-weight:bold;">
+          ${historyTasks.length} משימות
+        </span>
       </div>
     `;
-    if (historyDone.length === 0) {
+
+    if (historyTasks.length === 0) {
       html += `
         <div style="text-align:center; padding:30px 20px; background:rgba(255,255,255,0.95); border-radius:12px; color:#555; margin-bottom:12px; font-size:0.95rem; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
-          <div style="font-size:2rem; margin-bottom:6px;">📜</div>
-          <strong>אין משימות קודמות בהיסטוריה.</strong>
+          <div style="font-size:2rem; margin-bottom:6px;">📅</div>
+          <strong>אין משימות מתועדות בתאריך ${historyDisp} (יום ${historyDayName}).</strong>
+          <div style="margin-top:12px; display:flex; justify-content:center; gap:8px;">
+            <button onclick="window.wtWorkerPrevDay()" style="background:#1565c0; color:#fff; border:none; border-radius:18px; padding:6px 14px; font-size:0.82rem; cursor:pointer; font-weight:bold;">
+              ◀ עבור ליום קודם
+            </button>
+          </div>
         </div>
       `;
     } else {
-      historyDone.forEach(t => {
+      historyTasks.forEach(t => {
         html += renderHistoryCard(t);
       });
     }
