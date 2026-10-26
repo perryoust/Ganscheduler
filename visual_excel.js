@@ -1260,7 +1260,10 @@ function _getStyles(month) {
       filter: grayscale(100%) contrast(140%) brightness(95%) !important;
     }
     .vp-page.vp-bw .vp-watermark {
-      display: none !important; /* Zero toner waste */
+      display: block !important;
+      opacity: 0.14 !important;
+      -webkit-filter: grayscale(100%) !important;
+      filter: grayscale(100%) !important;
     }
     .vp-page.vp-bw .vp-header {
       background: #ffffff !important;
