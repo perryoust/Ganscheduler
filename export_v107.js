@@ -60,7 +60,7 @@ function openMonthlyExport(){
   const expPhCb = document.getElementById('exp-phones');
   if (expPhCb) expPhCb.checked = false;
   const hint = document.getElementById('preset-hint');
-  if (hint) hint.textContent = 'טלפונים כבויים (מותאם להורים)';
+  if (hint) hint.textContent = 'טלפונים כבויים (עותק צבעוני)';
   document.getElementById('export-m').classList.add('open');
 }
 
@@ -70,7 +70,7 @@ window.onVisualPresetChange = function(preset) {
   if (!phCb) return;
   if (preset === 'color_only') {
     phCb.checked = false;
-    if (hint) hint.textContent = 'טלפונים כבויים (מותאם להורים)';
+    if (hint) hint.textContent = 'טלפונים כבויים (עותק צבעוני)';
   } else if (preset === 'bw_only') {
     phCb.checked = true;
     if (hint) hint.textContent = 'טלפונים פועלים (מותאם לצוות)';

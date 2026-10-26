@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>טומשין ניהול ושיבוץ | גרסה 113.64</title>
+  <title>טומשין ניהול ושיבוץ | גרסה 113.65</title>
   <meta name="description" content="טומשין ניהול ושיבוץ - מערכת לניהול ושיבוץ צהרונים">
   <!-- Open Graph / WhatsApp Preview Meta Tags -->
   <meta property="og:type" content="website">
@@ -27,7 +27,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=113.64" />
+  <link rel="stylesheet" href="styles.css?v=113.65" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -51,7 +51,7 @@
     }
   </style>
   <script>
-    window.APP_VERSION = '113.64';
+    window.APP_VERSION = '113.65';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -122,7 +122,7 @@
   <!-- 📊 MAIN HEADER — dashboard 📊 -->
   <div class="hdr">
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-      <h1 style="display:flex;align-items:center;margin:0;"><img src="logo_wide.png" style="height:30px;vertical-align:middle;" alt="טומשין ניהול ושיבוץ"><span id="app-version-label" onclick="window.openVersionVaultModal &amp;&amp; window.openVersionVaultModal()" style="font-size:.62rem;opacity:.85;font-weight:700;margin-right:8px;line-height:1;cursor:pointer;background:rgba(255,255,255,0.18);padding:2px 6px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);white-space:nowrap;" title="לחץ לפתיחת כספת גיבויי נתונים ושחזור">v113.64 📦</span></h1>
+      <h1 style="display:flex;align-items:center;margin:0;"><img src="logo_wide.png" style="height:30px;vertical-align:middle;" alt="טומשין ניהול ושיבוץ"><span id="app-version-label" onclick="window.openVersionVaultModal &amp;&amp; window.openVersionVaultModal()" style="font-size:.62rem;opacity:.85;font-weight:700;margin-right:8px;line-height:1;cursor:pointer;background:rgba(255,255,255,0.18);padding:2px 6px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);white-space:nowrap;" title="לחץ לפתיחת כספת גיבויי נתונים ושחזור">v113.65 📦</span></h1>
       <select id="year-selector" onchange="window.changeCurrentYear(this.value)" style="margin-right:8px; font-size:0.76rem; border-radius:4px; border:1px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.15); color:white; padding:2px 6px; outline:none; font-weight:600; cursor:pointer;" title="בחר שנת לימודים">
         <!-- options will be injected here, but we apply a global style in index.html to fix option text color -->
         <!-- populated by JS -->
@@ -1293,7 +1293,7 @@
           <div style="margin-bottom:8px;">
             <label style="font-size:0.8rem; font-weight:700; color:#475569; display:block; margin-bottom:3px;">📋 סוג עותקים להפקה:</label>
             <select id="exp-print-preset" onchange="window.onVisualPresetChange &amp;&amp; window.onVisualPresetChange(this.value)" style="width:100%; padding:6px 8px; border-radius:6px; border:1px solid #cbd5e1; font-size:0.85rem; font-weight:600; background:#fff;">
-              <option value="color_only">🎨 עותק צבעוני להורים (ללא טלפונים) - ברירת מחדל</option>
+              <option value="color_only">🎨 עותק צבעוני (ללא טלפונים) - ברירת מחדל</option>
               <option value="bw_only">📄 עותק שחור-לבן משרדי (חסכוני בטונר, עם טלפונים)</option>
               <option value="both_interleaved">📦 ערכה כפולה לגן (דף צבעוני + דף ש/ל לכל גן ברצף)</option>
               <option value="both_split">📁 שני קבצי PDF נפרדים (קובץ צבעוני + קובץ ש/ל למדפסת לייזר)</option>
@@ -1304,7 +1304,7 @@
             <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer;color:#334155;">
               <input type="checkbox" id="exp-phones"> הצג מספרי טלפון של מפעילים
             </label>
-            <span id="preset-hint" style="font-size:0.75rem; color:#64748b;">טלפונים כבויים (מותאם להורים)</span>
+            <span id="preset-hint" style="font-size:0.75rem; color:#64748b;">טלפונים כבויים (עותק צבעוני)</span>
           </div>
         </div>
 
@@ -4071,13 +4071,13 @@
     <script src="activity.js?v=113.58"></script>
     <script src="sched.js?v=112.18"></script>
     <script src="gardens.js?v=113.53"></script>
-    <script src="export_v107.js?v=113.62"></script>
-    <script src="visual_excel.js?v=113.64"></script>
+    <script src="export_v107.js?v=113.65"></script>
+    <script src="visual_excel.js?v=113.65"></script>
     <script src="backup.js?v=113.57"></script>
     <script src="version_vault.js?v=113.57"></script>
     <script src="admin.js?v=112.15"></script>
     <script src="import_export.js?v=113.57"></script>
-    <script src="core_globals.js?v=113.64"></script>
+    <script src="core_globals.js?v=113.65"></script>
     <script src="core_data.js?v=113.57"></script>
     <script src="core_dash.js?v=113.52"></script>
     <script src="worker_tasks.js?v=113.61"></script>

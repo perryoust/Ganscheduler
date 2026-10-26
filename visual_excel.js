@@ -165,9 +165,9 @@ window.doVisualExcelExport = async function(format = 'pdf') {
           const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
           pagesHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, userWantsPhones, false);
         }
-        const title = `${titleBase} - צבעוני להורים - ${monthName} ${year}.pdf`;
+        const title = `${titleBase} - צבעוני - ${monthName} ${year}.pdf`;
         await _exportPDF(pagesHtml, title, month);
-        if (!isSplitCity) window.showToast?.(`📊 ${targetList.length} לוחות צבעוניים להורים נפתחו בהצלחה!`);
+        if (!isSplitCity) window.showToast?.(`📊 ${targetList.length} לוחות צבעוניים נפתחו בהצלחה!`);
       } else if (preset === 'bw_only') {
         let pagesHtml = '';
         for (const g of targetList) {
@@ -195,10 +195,10 @@ window.doVisualExcelExport = async function(format = 'pdf') {
           colorHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, false, false);
           bwHtml += _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, true, true);
         }
-        await _exportPDF(colorHtml, `${titleBase} - צבעוני להורים - ${monthName} ${year}.pdf`, month);
+        await _exportPDF(colorHtml, `${titleBase} - צבעוני - ${monthName} ${year}.pdf`, month);
         await new Promise(r => setTimeout(r, 450));
         await _exportPDF(bwHtml, `${titleBase} - שחור לבן משרדי - ${monthName} ${year}.pdf`, month);
-        if (!isSplitCity) window.showToast?.(`📊 2 קבצים נפתחו בהצלחה: קובץ צבעוני להורים + קובץ ש/ל משרדי!`);
+        if (!isSplitCity) window.showToast?.(`📊 2 קבצים נפתחו בהצלחה: קובץ צבעוני + קובץ ש/ל משרדי!`);
       }
     }
 
@@ -665,7 +665,7 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
         <div class="vp-header-left" style="display:flex; flex-direction:column; align-items:flex-end; gap:3px;">
           <div class="vp-month-badge">📅 ${_esc(monthName)} ${year} - ${hebYearStr}</div>
           <div style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:4px; ${isBW ? 'background:#000000; color:#ffffff; border:1px solid #000000;' : 'background:#047857; color:#ffffff;'}">
-            ${isBW ? '📋 עותק משרדי לצוות (כולל טלפונים)' : '🎨 עותק לוח מודעות להורים'}
+            ${isBW ? '📋 עותק משרדי לצוות (כולל טלפונים)' : '🎨 עותק צבעוני'}
           </div>
         </div>
       </div>
@@ -801,7 +801,7 @@ async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, sho
 
       const renderTasks = [];
       if (isBoth) {
-        renderTasks.push({ isBW: false, phones: false, suffix: '_צבעוני_להורים' });
+        renderTasks.push({ isBW: false, phones: false, suffix: '_צבעוני' });
         renderTasks.push({ isBW: true, phones: true, suffix: '_שחור_לבן_משרדי' });
       } else if (isBWOnly) {
         renderTasks.push({ isBW: true, phones: true, suffix: '_שחור_לבן_משרדי' });
