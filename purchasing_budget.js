@@ -37,7 +37,34 @@ window.budgetApp = {
     if (!window.schoolBudgets) window.schoolBudgets = {};
     if (!window.schoolBudgets[schoolName]) window.schoolBudgets[schoolName] = {};
     if (!window.schoolBudgets[schoolName][m]) {
-      window.schoolBudgets[schoolName][m] = { budget: 0, expenses: [] };
+      // Find coordinator details from any other existing month for this school
+      let inheritedCoord = null;
+      let inheritedBudget = 0;
+      const otherMonths = Object.keys(window.schoolBudgets[schoolName]);
+      for (const om of otherMonths) {
+        const d = window.schoolBudgets[schoolName][om];
+        if (d && d.coordinator && (d.coordinator.name || d.coordinator.accName || d.coordinator.bankName)) {
+          inheritedCoord = { ...d.coordinator };
+        }
+        if (d && d.budget && !inheritedBudget) {
+          inheritedBudget = d.budget;
+        }
+      }
+      window.schoolBudgets[schoolName][m] = {
+        budget: inheritedBudget || 0,
+        expenses: [],
+        ...(inheritedCoord ? { coordinator: inheritedCoord } : {})
+      };
+    } else if (!window.schoolBudgets[schoolName][m].coordinator) {
+      // If month exists but coordinator is missing, check other months
+      const otherMonths = Object.keys(window.schoolBudgets[schoolName]);
+      for (const om of otherMonths) {
+        const d = window.schoolBudgets[schoolName][om];
+        if (d && d.coordinator && (d.coordinator.name || d.coordinator.accName || d.coordinator.bankName)) {
+          window.schoolBudgets[schoolName][m].coordinator = { ...d.coordinator };
+          break;
+        }
+      }
     }
     // Ensure expenses is array
     if(!Array.isArray(window.schoolBudgets[schoolName][m].expenses)){
@@ -335,12 +362,10 @@ window.budgetApp = {
     const currentData = this.getSchoolData(schoolName);
     currentData.coordinator = coordData;
     
-    // Forward propagation: save to all subsequent months that already exist
+    // Two-way propagation: save to all other months that already exist for this school
     if (window.schoolBudgets && window.schoolBudgets[schoolName]) {
       Object.keys(window.schoolBudgets[schoolName]).forEach(monthStr => {
-        if (monthStr > this.currentMonth) {
-           window.schoolBudgets[schoolName][monthStr].coordinator = { ...coordData };
-        }
+        window.schoolBudgets[schoolName][monthStr].coordinator = { ...coordData };
       });
     }
     

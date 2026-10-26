@@ -388,6 +388,7 @@ window._processExcelFile = function(file) {
         blockedDates: window.blockedDates || {},
         gardenBlocks: window.gardenBlocks || {},
         invoices: window.INVOICES || [],
+        schoolBudgets: window.schoolBudgets || {},
         vatRate: window.VAT_RATE || 18,
         activeGardens: window.activeGardens ? [...window.activeGardens] : null,
         useSraws: false  // ← CRITICAL: tells _applyYearData to skip SRAWS on next load

@@ -128,6 +128,7 @@
           gardenBlocks: window.gardenBlocks || {},
           vatRate: window.VAT_RATE || 18,
           activeGardens: window.activeGardens ? [...window.activeGardens] : null,
+          schoolBudgets: window.schoolBudgets || {},
           todos: window.todo ? window.todo.items : []
         }
       };
@@ -315,6 +316,7 @@
         if (fullData.config.managers) window.managers = fullData.config.managers;
         if (fullData.config.blockedDates) window.blockedDates = fullData.config.blockedDates;
         if (fullData.config.gardenBlocks) window.gardenBlocks = fullData.config.gardenBlocks;
+        if (fullData.config.schoolBudgets) window.schoolBudgets = fullData.config.schoolBudgets;
       }
 
       // Save to Firebase (Force save so live state updates immediately)

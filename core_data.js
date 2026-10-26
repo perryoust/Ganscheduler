@@ -974,6 +974,7 @@ async function save(immediate){
       useSraws: typeof window.useSraws!=='undefined'?window.useSraws:true,
       spScannerAliases: window.spScannerAliases || {},
       spScannerFolderLinks: window.spScannerFolderLinks || {},
+      schoolBudgets: window.schoolBudgets || {},
       // NOTE: workerTasks saved separately via saveWorkerTasksToFirebase — not included here
     };
     const _json=JSON.stringify(data);

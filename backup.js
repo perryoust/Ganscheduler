@@ -93,6 +93,7 @@ function importBackup(input){
         clusters:data.clusters||{},holidays:data.holidays||[],pairBreaks:data.pairBreaks||{},
         managers:data.managers||{},blockedDates:data.blockedDates||{},
         gardenBlocks:data.gardenBlocks||{},invoices:data.invoices||[],
+        schoolBudgets:data.schoolBudgets||{},
         todos:data.todos||[]};
       const json=JSON.stringify(sd);
       window._safeLS.setItem('ganv5',json);
@@ -232,6 +233,7 @@ function exportFullBackup(){
     blockedDates:typeof blockedDates!=='undefined'?blockedDates:{},
     gardenBlocks:typeof gardenBlocks!=='undefined'?gardenBlocks:{},
     invoices:typeof INVOICES!=='undefined'?INVOICES:[],
+    schoolBudgets:window.schoolBudgets || {},
     todos:window.todo ? window.todo.items : []
   };
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
