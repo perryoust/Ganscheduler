@@ -1,4 +1,4 @@
-window.APP_VERSION = window.APP_VERSION || '113.57';
+window.APP_VERSION = window.APP_VERSION || '113.58';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── Platform Detection ──
@@ -59,7 +59,7 @@ window.schoolBudgets = window.schoolBudgets || {};
 window.getMasterDataSnapshot = function() {
   return {
     version: 4,
-    appVersion: window.APP_VERSION || '113.57',
+    appVersion: window.APP_VERSION || '113.58',
     exported: new Date().toISOString(),
     currentYear: window.CURRENT_YEAR || 'tashpaz',
     

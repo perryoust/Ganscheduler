@@ -1202,7 +1202,7 @@ window.openSP = function(id) {
       <span id="sp-acc-free-arrow" style="font-size:0.7rem;transition:0.3s;color:#2e7d32">▼</span>
     </div>
     <div id="sp-acc-free" style="display:none;padding:12px;background:#fff;border-top:1px solid #c8e6c9">
-      <div style="font-size:.72rem;color:#78909c;margin-bottom:8px;background:#f9f9f9;padding:4px 8px;border-radius:4px">תאריכים פנויים לשלושת השבועות הקרובים לצהרון זה:</div>
+      <div style="font-size:.72rem;color:#78909c;margin-bottom:8px;background:#f9f9f9;padding:4px 8px;border-radius:4px">תאריכים פנויים לשלושת השבועות הקרובים לצהרון זה (לחץ על תאריך לבחירתו להשלמה או עריכה):</div>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
         ${window.getSpFreeDaysHtml(s.g, s.d)}
       </div>
@@ -1211,13 +1211,13 @@ window.openSP = function(id) {
           const clusterArr = window.gardenClusters ? window.gardenClusters(s.g, s.d) : [];
           const spCluster = clusterArr.length ? clusterArr[0] : null;
           if (spCluster && spCluster.gardenIds) {
-            return '<div style="font-size:.72rem;color:#e65100;margin-top:12px;margin-bottom:8px;background:#fff9f0;padding:4px 8px;border-radius:4px;border:1px solid #ffe0b2;font-weight:700">תאריכים פנויים משותפים לכל האשכול (מידע בלבד):</div>' +
+            return '<div style="font-size:.72rem;color:#e65100;margin-top:12px;margin-bottom:8px;background:#fff9f0;padding:4px 8px;border-radius:4px;border:1px solid #ffe0b2;font-weight:700">תאריכים פנויים משותפים לכל האשכול (לחץ לבחירת תאריך):</div>' +
                    '<div style="display:flex;gap:5px;flex-wrap:wrap">' +
                    window.getPairSharedFreeDaysHtml(spCluster.gardenIds, '', s.d) +
                    '</div>';
           }
         }
-        return spPair ? '<div style="font-size:.72rem;color:#e65100;margin-top:12px;margin-bottom:8px;background:#fff9f0;padding:4px 8px;border-radius:4px;border:1px solid #ffe0b2;font-weight:700">תאריכים פנויים משותפים ל' + (spPair.ids.length > 2 ? 'אשכול' : 'זוג הגנים') + ' (מידע בלבד):</div>' +
+        return spPair ? '<div style="font-size:.72rem;color:#e65100;margin-top:12px;margin-bottom:8px;background:#fff9f0;padding:4px 8px;border-radius:4px;border:1px solid #ffe0b2;font-weight:700">תאריכים פנויים משותפים ל' + (spPair.ids.length > 2 ? 'אשכול' : 'זוג הגנים') + ' (לחץ לבחירת תאריך):</div>' +
                '<div style="display:flex;gap:5px;flex-wrap:wrap">' +
                window.getPairSharedFreeDaysHtml(spPair.ids, '', s.d) +
                '</div>' : '';
@@ -3320,19 +3320,23 @@ window.showFreeDaysForMakeup = function(containerId, gid, onSelect) {
     return true;
   }).map(x=>x.d));
   
-  const free = []; let d = new Date(); d.setHours(0,0,0,0);
+  const todayStr = (window.td && typeof window.td === 'function') ? window.td() : new Date().toISOString().split('T')[0];
+  const free = []; let d = (window.s2d && typeof window.s2d === 'function') ? window.s2d(todayStr) : new Date(todayStr); d.setHours(0,0,0,0);
   const isMakeup = true;
   
   for(let i=0; i<21; i++) {
     const dow = d.getDay();
     if(dow >= 0 && dow <= 4) {
-      const ds = window.d2s(d);
-      const hol = window.getHolidayInfo(ds, g.city, window.gcls(g));
-      const isToday = i === 0;
-      if(!busyDates.has(ds) && (!hol || isToday)) {
-        let label = DAY_HEB[dow] + ' ' + window.fD(ds);
-        if(hol) label += ` (${hol.name})`;
-        free.push({ds, lbl: label});
+      const ds = window.d2s ? window.d2s(d) : d.toISOString().split('T')[0];
+      if (ds >= todayStr) {
+        const hol = window.getHolidayInfo ? window.getHolidayInfo(ds, g.city, window.gcls(g)) : null;
+        const isToday = ds === todayStr;
+        if(!busyDates.has(ds) && (!hol || isToday)) {
+          let label = DAY_HEB[dow] + ' ' + (window.fD ? window.fD(ds) : ds);
+          if (isToday) label += ' (היום)';
+          if(hol) label += ` (${hol.name})`;
+          free.push({ds, lbl: label});
+        }
       }
     }
     d.setDate(d.getDate() + 1);
@@ -3816,29 +3820,83 @@ window.saveNohapQ = async function(){
   }, 100);
 };
 
+window.spSelectFreeDay = function(ds) {
+  let applied = false;
+  // 1. Makeup date in Step 7
+  const muDate = document.getElementById('sp-mu-date');
+  if (muDate) {
+    muDate.value = ds;
+    if (typeof window.spMuDateChg === 'function') window.spMuDateChg();
+    applied = true;
+  }
+  // 2. Manual edit date in Step 8
+  const editDate = document.getElementById('sp-edit-date');
+  if (editDate) {
+    editDate.value = ds;
+    applied = true;
+  }
+  // 3. Duplicate date in Step 9.8
+  const dupDate = document.getElementById('sp-dup-date');
+  if (dupDate) {
+    dupDate.value = ds;
+    applied = true;
+  }
+
+  // If makeup accordion exists and is closed, open it and scroll to it so the user sees the makeup date is set
+  const muAcc = document.getElementById('sp-acc-makeup');
+  const muWrap = document.getElementById('sp-acc-makeup-wrap');
+  if (muWrap && muWrap.style.display !== 'none' && muAcc && muAcc.style.display === 'none') {
+    if (typeof window.toggleSpAccordion === 'function') {
+      window.toggleSpAccordion('sp-acc-makeup', true);
+      setTimeout(() => {
+        if (muDate) muDate.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 150);
+    }
+  }
+
+  const formatted = (typeof window.fD === 'function') ? window.fD(ds) : ds;
+  if (typeof window.showCopyToast === 'function') {
+    window.showCopyToast('📅 נבחר תאריך: ' + formatted);
+  } else if (typeof window.showToast === 'function') {
+    window.showToast('📅 נבחר תאריך: ' + formatted);
+  }
+};
+
 window.getSpFreeDaysHtml = function(gid, refDate) {
   const DAY_HEB=['ראשון','שני','שלישי','רביעי','חמישי'];
   const g = window.G(gid);
   if(!g) return '';
 
-  const busyDates = new Set(window.SCH.filter(x => {
+  const busyDates = new Set((window.SCH || []).filter(x => {
     if(Number(x.g) !== Number(gid)) return false;
     if(x.st === 'can' || x.st === 'nohap' || x.st === 'post') return false;
     return true;
   }).map(x=>x.d));
   
-  const free = []; let d = new Date(refDate || window._calDate || window.td()); d.setHours(0,0,0,0);
+  const todayStr = (window.td && typeof window.td === 'function') ? window.td() : new Date().toISOString().split('T')[0];
+  let baseDateStr = todayStr;
+  if (refDate && refDate > todayStr) {
+    baseDateStr = refDate;
+  } else if (!refDate && window._calDate && window._calDate > todayStr) {
+    baseDateStr = window._calDate;
+  }
+  let d = (window.s2d && typeof window.s2d === 'function') ? window.s2d(baseDateStr) : new Date(baseDateStr);
+  d.setHours(0,0,0,0);
   
+  const free = [];
   for(let i=0; i<21; i++) {
     const dow = d.getDay();
     if(dow >= 0 && dow <= 4) {
-      const ds = window.d2s(d);
-      const hol = window.getHolidayInfo(ds, g.city, window.gcls(g));
-      const isToday = i === 0;
-      if(!busyDates.has(ds) && (!hol || isToday)) {
-        let label = DAY_HEB[dow] + ' ' + window.fD(ds);
-        if(hol) label += ` (${hol.name})`;
-        free.push({ds, lbl: label});
+      const ds = window.d2s ? window.d2s(d) : d.toISOString().split('T')[0];
+      if (ds >= todayStr) {
+        const hol = window.getHolidayInfo ? window.getHolidayInfo(ds, g.city, window.gcls(g)) : null;
+        const isToday = ds === todayStr;
+        if(!busyDates.has(ds) && (!hol || isToday)) {
+          let label = DAY_HEB[dow] + ' ' + (window.fD ? window.fD(ds) : ds);
+          if (isToday) label += ' (היום)';
+          if(hol) label += ` (${hol.name})`;
+          free.push({ds, lbl: label});
+        }
       }
     }
     d.setDate(d.getDate() + 1);
@@ -3847,7 +3905,7 @@ window.getSpFreeDaysHtml = function(gid, refDate) {
   if(!free.length) return '<span style="color:#777;font-size:0.75rem">לא נמצאו ימים פנויים ב-3 השבועות הקרובים</span>';
   
   return free.map(f => `
-    <span style="font-size:0.7rem;padding:4px 8px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;border-radius:4px;display:inline-block;margin:2px;font-weight:700;cursor:pointer;" onclick="const d=document.getElementById('sp-dup-date'); if(d){ d.value='${f.ds}'; d.scrollIntoView({behavior:'smooth', block:'center'}); setTimeout(()=>d.focus(), 300); }">
+    <span style="font-size:0.7rem;padding:4px 8px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;border-radius:4px;display:inline-block;margin:2px;font-weight:700;cursor:pointer;" onclick="window.spSelectFreeDay('${f.ds}')" title="לחץ לבחירת תאריך זה להשלמה / עריכה">
       ${f.lbl}
     </span>
   `).join('');
@@ -3890,7 +3948,7 @@ window.getPairSharedFreeDaysHtml = function(gids, nohapEvId = '', refDate) {
   
   const busyDates = new Set();
   gids.forEach(gid => {
-    window.SCH.forEach(x => {
+    (window.SCH || []).forEach(x => {
       if (Number(x.g) === Number(gid)) {
         if (x.st !== 'can' && x.st !== 'nohap' && x.st !== 'post') {
           busyDates.add(x.d);
@@ -3899,38 +3957,49 @@ window.getPairSharedFreeDaysHtml = function(gids, nohapEvId = '', refDate) {
     });
   });
 
-  const free = [];
-  let d = new Date(refDate || window._calDate || window.td());
+  const todayStr = (window.td && typeof window.td === 'function') ? window.td() : new Date().toISOString().split('T')[0];
+  let baseDateStr = todayStr;
+  if (refDate && refDate > todayStr) {
+    baseDateStr = refDate;
+  } else if (!refDate && window._calDate && window._calDate > todayStr) {
+    baseDateStr = window._calDate;
+  }
+  let d = (window.s2d && typeof window.s2d === 'function') ? window.s2d(baseDateStr) : new Date(baseDateStr);
   d.setHours(0, 0, 0, 0);
 
-  // Search up to 21 days, limit to 8 free days
-  for (let i = 0; i < 21 && free.length < 8; i++) {
+  const free = [];
+  // Search up to 21 days, allow up to 15 free days across upcoming 3 weeks
+  for (let i = 0; i < 21 && free.length < 15; i++) {
     const dow = d.getDay();
     if (dow >= 0 && dow <= 4) {
-      const ds = window.d2s(d);
-      const isToday = i === 0;
+      const ds = window.d2s ? window.d2s(d) : d.toISOString().split('T')[0];
+      if (ds >= todayStr) {
+        const isToday = ds === todayStr;
 
-      let hasHoliday = false;
-      for (const gid of gids) {
-        const g = window.G(gid);
-        if (g) {
-          const hol = window.getHolidayInfo(ds, g.city, window.gcls(g));
-          if (hol && !isToday) {
-            hasHoliday = true;
-            break;
+        let hasHoliday = false;
+        for (const gid of gids) {
+          const g = window.G(gid);
+          if (g) {
+            const hol = window.getHolidayInfo ? window.getHolidayInfo(ds, g.city, window.gcls(g)) : null;
+            if (hol && !isToday) {
+              hasHoliday = true;
+              break;
+            }
           }
         }
-      }
 
-      if (!busyDates.has(ds) && !hasHoliday) {
-        free.push({ ds, lbl: DAY_HEB[dow] + ' ' + window.fD(ds) });
+        if (!busyDates.has(ds) && !hasHoliday) {
+          let label = DAY_HEB[dow] + ' ' + (window.fD ? window.fD(ds) : ds);
+          if (isToday) label += ' (היום)';
+          free.push({ ds, lbl: label });
+        }
       }
     }
     d.setDate(d.getDate() + 1);
   }
 
   if (!free.length) {
-    return '<span style="color:#ef4444; font-size:0.68rem; font-weight:600;">אין ימים פנויים בשבועות הקרובים</span>';
+    return '<span style="color:#ef4444; font-size:0.68rem; font-weight:600;">אין ימים פנויים משותפים בשבועות הקרובים</span>';
   }
 
   return free.map(f => {
@@ -3946,7 +4015,9 @@ window.getPairSharedFreeDaysHtml = function(gids, nohapEvId = '', refDate) {
       `;
     } else {
       return `
-        <span style="font-size:0.68rem; padding:3px 9px; background:#f1fcf4; color:#1b5e20; border:1px solid #c8e6c9; border-radius:6px; font-weight:700; white-space:nowrap; display:inline-block; margin: 2px; line-height:1.2; cursor:pointer;" onclick="const d=document.getElementById('sp-dup-date'); if(d){ d.value='${f.ds}'; d.scrollIntoView({behavior:'smooth', block:'center'}); setTimeout(()=>d.focus(), 300); }">
+        <span style="font-size:0.68rem; padding:3px 9px; background:#f1fcf4; color:#1b5e20; border:1px solid #c8e6c9; border-radius:6px; font-weight:700; white-space:nowrap; display:inline-block; margin: 2px; line-height:1.2; cursor:pointer;" 
+              onclick="window.spSelectFreeDay('${f.ds}')"
+              title="לחץ לבחירת תאריך זה להשלמה / עריכה">
           ${f.lbl}
         </span>
       `;
