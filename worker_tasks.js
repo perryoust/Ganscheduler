@@ -993,18 +993,73 @@ window.wtSelectHistoryDate = function(dateStr) {
   if (window.renderWorkerTasksMobile) window.renderWorkerTasksMobile();
 };
 
-window.wtOpenDatePicker = function() {
-  window.wtWorkerActiveTab = 'history';
-  const inp = document.getElementById('wt-history-date-picker-tab') || document.getElementById('wt-history-date-picker-sub');
-  if (inp) {
-    if (typeof inp.showPicker === 'function') {
-      try {
-        inp.showPicker();
-        return;
-      } catch(e) {}
-    }
-    inp.focus();
-    inp.click();
+window.wtOpenCalendarModal = function() {
+  const existing = document.getElementById('wt-calendar-modal');
+  if (existing) existing.remove();
+
+  const today = window.td ? window.td() : (function() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
+  const yesterday = window.wtDateOffset(today, -1);
+  const dayBeforeYesterday = window.wtDateOffset(today, -2);
+  const initialDate = window.wtWorkerHistoryDate || yesterday;
+
+  const modal = document.createElement('div');
+  modal.id = 'wt-calendar-modal';
+  modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(3px); direction:rtl; font-family:inherit;';
+  modal.innerHTML = `
+    <div style="background:#fff; border-radius:16px; padding:22px 18px; max-width:320px; width:100%; box-shadow:0 12px 30px rgba(0,0,0,0.35); text-align:center;">
+      <div style="font-size:2rem; margin-bottom:4px;">📆</div>
+      <div style="font-weight:bold; font-size:1.15rem; color:#1565c0; margin-bottom:6px;">בחירת תאריך להיסטוריה</div>
+      <div style="font-size:0.82rem; color:#64748b; margin-bottom:16px;">בחר תאריך מהעבר לצפייה במשימות:</div>
+
+      <div style="margin-bottom:14px;">
+        <input type="date" id="wt-modal-date-input" max="${yesterday}" value="${initialDate}" 
+               style="width:100%; padding:10px 12px; font-size:1.1rem; font-weight:bold; color:#1e3a8a; border:2px solid #1565c0; border-radius:10px; box-sizing:border-box; outline:none; text-align:center; background:#f0f7ff; cursor:pointer;" />
+      </div>
+
+      <div style="display:flex; gap:8px; margin-bottom:18px;">
+        <button type="button" onclick="window.wtQuickPickDate('${yesterday}')" style="flex:1; background:#e3f2fd; border:1px solid #90caf9; color:#1565c0; border-radius:8px; padding:7px 4px; font-size:0.82rem; font-weight:bold; cursor:pointer;">אתמול</button>
+        <button type="button" onclick="window.wtQuickPickDate('${dayBeforeYesterday}')" style="flex:1; background:#e3f2fd; border:1px solid #90caf9; color:#1565c0; border-radius:8px; padding:7px 4px; font-size:0.82rem; font-weight:bold; cursor:pointer;">שלשום</button>
+      </div>
+
+      <div style="display:flex; gap:8px;">
+        <button type="button" onclick="window.wtConfirmModalDate()" style="flex:1; background:#1565c0; color:#fff; border:none; border-radius:10px; padding:11px; font-weight:bold; font-size:0.95rem; cursor:pointer; box-shadow:0 2px 5px rgba(21,101,192,0.3);">
+          ✓ הצג משימות
+        </button>
+        <button type="button" onclick="window.wtCloseCalendarModal()" style="background:#f1f5f9; color:#475569; border:none; border-radius:10px; padding:11px 16px; font-weight:bold; font-size:0.95rem; cursor:pointer;">
+          ביטול
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) window.wtCloseCalendarModal();
+  });
+};
+
+window.wtCloseCalendarModal = function() {
+  const m = document.getElementById('wt-calendar-modal');
+  if (m) m.remove();
+};
+
+window.wtQuickPickDate = function(dateStr) {
+  const inp = document.getElementById('wt-modal-date-input');
+  if (inp) inp.value = dateStr;
+  window.wtConfirmModalDate();
+};
+
+window.wtConfirmModalDate = function() {
+  const inp = document.getElementById('wt-modal-date-input');
+  const dateStr = inp ? inp.value : null;
+  window.wtCloseCalendarModal();
+  if (dateStr) {
+    window.wtSelectHistoryDate(dateStr);
+  } else {
+    window.wtSetWorkerTab('history');
   }
 };
 
@@ -1092,29 +1147,33 @@ window.renderWorkerTasksMobile = function() {
       </div>
     </div>
 
-    <!-- Day Filter Tabs: חץ אחורה / הקודם (לוח שנה) / היום / מחר -->
-    <div style="display:flex; gap:5px; margin-bottom:14px; background:rgba(0,0,0,0.2); padding:4px; border-radius:24px; align-items:center;">
+    <!-- Day Filter Tabs: חץ אחורה / הקודם (פותח לוח שנה) / חץ קדימה (בהיסטוריה) / היום / מחר -->
+    <div style="display:flex; gap:6px; margin-bottom:14px; background:rgba(0,0,0,0.2); padding:4px; border-radius:24px; align-items:center;">
       
       <!-- Arrow: 1 day back on every click -->
-      <button onclick="window.wtWorkerPrevDay()" style="width:34px; height:34px; padding:0; border:none; border-radius:50%; font-weight:bold; font-size:0.95rem; cursor:pointer; background:rgba(255,255,255,0.22); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.15);" title="יום אחד אחורה (כל לחיצה זזה יום אחורה)">
+      <button onclick="window.wtWorkerPrevDay()" style="width:34px; height:34px; padding:0; border:none; border-radius:50%; font-weight:bold; font-size:1rem; cursor:pointer; background:rgba(255,255,255,0.22); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.15);" title="יום אחד אחורה (כל לחיצה זזה יום אחורה)">
         ◀
       </button>
 
-      <!-- הקודם: Opens calendar / date picker -->
-      <div style="position:relative; flex:1; min-width:0;">
-        <button onclick="window.wtOpenDatePicker()" style="width:100%; padding:7px 2px; border:none; border-radius:20px; font-weight:bold; font-size:0.8rem; cursor:pointer; background:${activeTab==='history'?'#fff':'transparent'}; color:${activeTab==='history'?'#1565c0':'#fff'}; box-shadow:${activeTab==='history'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;" title="לחץ לפתיחת לוח שנה ובחירת תאריך">
-          📅 ${activeTab==='history' ? `קודם (${historyDisp})` : 'הקודם'}
+      <!-- הקודם button: Directly opens calendar modal -->
+      <button onclick="window.wtOpenCalendarModal()" style="flex:1; padding:7px 4px; border:none; border-radius:20px; font-weight:bold; font-size:0.82rem; cursor:pointer; background:${activeTab==='history'?'#fff':'transparent'}; color:${activeTab==='history'?'#1565c0':'#fff'}; box-shadow:${activeTab==='history'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;" title="פתח לוח שנה לבחירת תאריך">
+        📅 ${activeTab==='history' ? `קודם (${historyDisp})` : 'הקודם'}
+      </button>
+
+      <!-- Forward Arrow: shown when in history to step forward day by day -->
+      ${activeTab === 'history' ? `
+        <button onclick="window.wtWorkerNextDay()" style="width:34px; height:34px; padding:0; border:none; border-radius:50%; font-weight:bold; font-size:1rem; cursor:pointer; background:rgba(255,255,255,0.22); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.15);" title="יום אחד קדימה">
+          ▶
         </button>
-        <input type="date" id="wt-history-date-picker-tab" max="${yesterday}" value="${historyDate}" onchange="window.wtSelectHistoryDate(this.value)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;" title="פתח לוח שנה לבחירת תאריך" />
-      </div>
+      ` : ''}
 
       <!-- היום -->
-      <button onclick="window.wtSetWorkerTab('today')" style="flex:1; padding:7px 2px; border:none; border-radius:20px; font-weight:bold; font-size:0.8rem; cursor:pointer; background:${activeTab==='today'?'#fff':'transparent'}; color:${activeTab==='today'?'#1565c0':'#fff'}; box-shadow:${activeTab==='today'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s; white-space:nowrap;">
+      <button onclick="window.wtSetWorkerTab('today')" style="flex:1; padding:7px 4px; border:none; border-radius:20px; font-weight:bold; font-size:0.82rem; cursor:pointer; background:${activeTab==='today'?'#fff':'transparent'}; color:${activeTab==='today'?'#1565c0':'#fff'}; box-shadow:${activeTab==='today'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s; white-space:nowrap;">
         📅 היום (${todayPending.length})
       </button>
 
       <!-- מחר -->
-      <button onclick="window.wtSetWorkerTab('tomorrow')" style="flex:1; padding:7px 2px; border:none; border-radius:20px; font-weight:bold; font-size:0.8rem; cursor:pointer; background:${activeTab==='tomorrow'?'#fff':'transparent'}; color:${activeTab==='tomorrow'?'#1565c0':'#fff'}; box-shadow:${activeTab==='tomorrow'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s; white-space:nowrap;">
+      <button onclick="window.wtSetWorkerTab('tomorrow')" style="flex:1; padding:7px 4px; border:none; border-radius:20px; font-weight:bold; font-size:0.82rem; cursor:pointer; background:${activeTab==='tomorrow'?'#fff':'transparent'}; color:${activeTab==='tomorrow'?'#1565c0':'#fff'}; box-shadow:${activeTab==='tomorrow'?'0 2px 5px rgba(0,0,0,0.15)':'none'}; transition:all 0.2s; white-space:nowrap;">
         🌅 מחר (${tomorrowPending.length})
       </button>
     </div>
@@ -1214,43 +1273,18 @@ window.renderWorkerTasksMobile = function() {
   // Render content based on active tab: 'history', 'today' or 'tomorrow'
   if (activeTab === 'history') {
     html += `
-      <!-- History Date Navigator Bar -->
-      <div style="display:flex; justify-content:space-between; align-items:center; margin:8px 0; padding:8px 10px; background:rgba(255,255,255,0.22); border-radius:12px; backdrop-filter:blur(5px); color:#fff; gap:6px;">
-        <!-- Prev Day Arrow -->
-        <button onclick="window.wtWorkerPrevDay()" style="background:rgba(255,255,255,0.28); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:18px; padding:6px 12px; font-size:0.82rem; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:4px; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.15);" title="יום אחד אחורה (כל לחיצה זזה יום אחורה)">
-          ◀ יום קודם
-        </button>
-
-        <!-- Center: Date & Hebrew Day Name with Calendar Picker Trigger -->
-        <div style="position:relative; text-align:center; cursor:pointer; flex:1; min-width:0; padding:0 4px;" title="לחץ לפתיחת לוח שנה לבחירת תאריך">
-          <div style="font-weight:bold; font-size:0.92rem; text-decoration:underline; display:flex; align-items:center; gap:4px; justify-content:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-            <span>📅</span>
-            <span>יום ${historyDayName}, ${historyDisp}</span>
-          </div>
-          <div style="font-size:0.7rem; opacity:0.92; font-weight:600;">(לחץ ללוח שנה 📆)</div>
-          <input type="date" id="wt-history-date-picker-sub" max="${yesterday}" value="${historyDate}" onchange="window.wtSelectHistoryDate(this.value)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;" title="פתח לוח שנה לבחירת תאריך" />
+      <!-- Clean History Header (NO duplicate navigation) -->
+      <div style="background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.3); border-radius:10px; padding:8px 12px; margin-bottom:12px; color:#fff; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:1.1rem;">📜</span>
+          <span style="font-weight:bold; font-size:0.92rem;">משימות ליום ${historyDayName}, ${historyDisp}</span>
+          <span style="background:rgba(0,0,0,0.25); font-size:0.68rem; padding:2px 6px; border-radius:4px; font-weight:600;">🔒 צפייה בלבד</span>
         </div>
-
-        <!-- Next Day Arrow (or back to today) -->
-        ${historyDate < yesterday ? `
-          <button onclick="window.wtWorkerNextDay()" style="background:rgba(255,255,255,0.28); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:18px; padding:6px 12px; font-size:0.82rem; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:4px; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.15);" title="יום אחד קדימה">
-            יום הבא ▶
-          </button>
-        ` : `
-          <button onclick="window.wtSetWorkerTab('today')" style="background:rgba(255,255,255,0.28); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:18px; padding:6px 12px; font-size:0.82rem; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:4px; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.15);" title="חזרה להיום">
-            להיום 📅
-          </button>
-        `}
-      </div>
-
-      <!-- Lock Banner -->
-      <div style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); border-radius:8px; padding:6px 12px; margin-bottom:12px; font-size:0.78rem; color:#fff; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px;">
-        <span style="display:flex; align-items:center; gap:6px;">
-          <span>🔒</span> <span>תצוגת היסטוריה לצפייה בלבד (נעול לעריכה)</span>
-        </span>
-        <span style="background:${historyTasks.length > 0 ? '#2e7d32' : '#757575'}; color:#fff; font-size:0.72rem; padding:2px 8px; border-radius:10px; font-weight:bold;">
-          ${historyTasks.length} משימות
-        </span>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="background:${historyTasks.length > 0 ? '#2e7d32' : '#757575'}; color:#fff; font-size:0.75rem; padding:2px 8px; border-radius:10px; font-weight:bold;">
+            ${historyTasks.length} משימות
+          </span>
+        </div>
       </div>
     `;
 
