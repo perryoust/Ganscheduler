@@ -666,11 +666,8 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
         <div class="vp-header-right" style="display:flex; align-items:center; gap:12px;">
           <img src="logo_wide.png" style="height:65px; ${isBW ? 'filter: grayscale(100%) contrast(140%) brightness(95%); -webkit-filter: grayscale(100%) contrast(140%) brightness(95%);' : ''}" alt="Kids טומשין">
         </div>
-        <div class="vp-header-left" style="display:flex; flex-direction:column; align-items:flex-end; gap:3px;">
+        <div class="vp-header-left">
           <div class="vp-month-badge">📅 ${_esc(monthName)} ${year} - ${hebYearStr}</div>
-          <div style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:4px; ${isBW ? 'background:#000000; color:#ffffff; border:1px solid #000000;' : 'background:#047857; color:#ffffff;'}">
-            ${isBW ? (showPhones ? '📋 עותק משרדי לצוות (כולל טלפונים)' : '📄 עותק שחור-לבן משרדי') : (showPhones ? '🎨 צבעוני (כולל טלפונים)' : '🎨 צבעוני')}
-          </div>
         </div>
       </div>
 
