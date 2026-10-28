@@ -1,4 +1,4 @@
-window.APP_VERSION = '114.06';
+window.APP_VERSION = '114.07';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── Platform Detection ──

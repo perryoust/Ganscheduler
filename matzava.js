@@ -14,12 +14,36 @@
     schools: [],          // School classes & groups
     selectedCity: 'all',  // Active city filter
     searchQuery: '',      // Active search query
-    filterType: 'all',    // 'all' | 'sterile' | 'homemeal' | 'merged'
+    filterType: 'all',    // 'all' | 'sterile' | 'homemeal' | 'merged' | 'changed'
     subTab: 'gardens',    // 'gardens' | 'schools' | 'nutrition'
-    lastSync: null,
+    lastSync: null,       // Cloud sync timestamp (ISO string)
+    lastFileModified: null, // Computer file modification timestamp (ISO string)
+    filesMeta: {},        // { [fileName]: { name, modified, size } }
     isLoading: false,
     loadedYear: null
   };
+
+  // Helper for human-friendly dates (e.g. "היום ב-14:30", "אתמול ב-18:20", "28/10 ב-11:45")
+  function formatSyncDateTime(isoStr) {
+    if (!isoStr) return '';
+    try {
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return '';
+      const now = new Date();
+      const isToday = d.toDateString() === now.toDateString();
+      const timeStr = d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+      if (isToday) return `היום ב-${timeStr}`;
+
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      if (d.toDateString() === yesterday.toDateString()) return `אתמול ב-${timeStr}`;
+
+      const dateStr = d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
+      return `${dateStr} ב-${timeStr}`;
+    } catch (e) {
+      return '';
+    }
+  }
 
   function getSafeRole() {
     try {
@@ -166,6 +190,8 @@
           window.MATZAVA_STATE.nutritionOnly = Array.isArray(parsed.nutritionOnly) ? parsed.nutritionOnly : [];
           window.MATZAVA_STATE.schools = Array.isArray(parsed.schools) ? parsed.schools : [];
           window.MATZAVA_STATE.lastSync = parsed.lastSync || null;
+          window.MATZAVA_STATE.lastFileModified = parsed.lastFileModified || null;
+          window.MATZAVA_STATE.filesMeta = parsed.filesMeta || {};
           window.MATZAVA_STATE.loadedYear = y;
           normalizeRecordsKids10(window.MATZAVA_STATE.records);
         }
@@ -185,6 +211,8 @@
           window.MATZAVA_STATE.nutritionOnly = Array.isArray(data.nutritionOnly) ? data.nutritionOnly : Object.values(data.nutritionOnly || {});
           window.MATZAVA_STATE.schools = Array.isArray(data.schools) ? data.schools : Object.values(data.schools || {});
           window.MATZAVA_STATE.lastSync = data.lastSync || null;
+          window.MATZAVA_STATE.lastFileModified = data.lastFileModified || null;
+          window.MATZAVA_STATE.filesMeta = data.filesMeta || {};
           normalizeRecordsKids10(window.MATZAVA_STATE.records);
           // Mirror to LocalStorage
           try {
@@ -192,7 +220,9 @@
               records: window.MATZAVA_STATE.records,
               nutritionOnly: window.MATZAVA_STATE.nutritionOnly,
               schools: window.MATZAVA_STATE.schools,
-              lastSync: window.MATZAVA_STATE.lastSync
+              lastSync: window.MATZAVA_STATE.lastSync,
+              lastFileModified: window.MATZAVA_STATE.lastFileModified,
+              filesMeta: window.MATZAVA_STATE.filesMeta
             });
             if (window._safeLS) window._safeLS.setItem('gan_matzava_' + y, cacheStr);
             else localStorage.setItem('gan_matzava_' + y, cacheStr);
@@ -202,6 +232,8 @@
           window.MATZAVA_STATE.nutritionOnly = [];
           window.MATZAVA_STATE.schools = [];
           window.MATZAVA_STATE.lastSync = null;
+          window.MATZAVA_STATE.lastFileModified = null;
+          window.MATZAVA_STATE.filesMeta = {};
         }
         if (force && !silent && window.showToast) {
           window.showToast('✅ נתוני מצבה עודכנו מהענן בהצלחה');
@@ -340,6 +372,8 @@
       nutritionOnly: window.MATZAVA_STATE.nutritionOnly,
       schools: window.MATZAVA_STATE.schools,
       lastSync: new Date().toISOString(),
+      lastFileModified: window.MATZAVA_STATE.lastFileModified || null,
+      filesMeta: window.MATZAVA_STATE.filesMeta || {},
       updatedBy: (window._fbUser && (window._fbUser.displayName || window._fbUser.email)) || 'user'
     };
 
@@ -386,7 +420,9 @@
       records: window.MATZAVA_STATE.records || [],
       nutritionOnly: window.MATZAVA_STATE.nutritionOnly || [],
       schools: window.MATZAVA_STATE.schools || [],
-      lastSync: window.MATZAVA_STATE.lastSync || null
+      lastSync: window.MATZAVA_STATE.lastSync || null,
+      lastFileModified: window.MATZAVA_STATE.lastFileModified || null,
+      filesMeta: window.MATZAVA_STATE.filesMeta || {}
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
@@ -413,6 +449,8 @@
         window.MATZAVA_STATE.nutritionOnly = Array.isArray(data.nutritionOnly) ? data.nutritionOnly : [];
         window.MATZAVA_STATE.schools = Array.isArray(data.schools) ? data.schools : [];
         window.MATZAVA_STATE.lastSync = new Date().toISOString();
+        window.MATZAVA_STATE.lastFileModified = data.lastFileModified || null;
+        window.MATZAVA_STATE.filesMeta = data.filesMeta || {};
 
         await window.saveMatzavaToFirebase();
         window.renderMatzavaTab();
@@ -558,7 +596,7 @@
   }
 
   // Parse a single XLSX buffer using ExcelJS
-  window.parseMatzavaWorkbook = async function (arrayBuffer, fileName) {
+  window.parseMatzavaWorkbook = async function (arrayBuffer, fileName, fileModified) {
     if (typeof window.ensureExcelJSLoaded === 'function' && typeof window.ExcelJS === 'undefined') {
       try { await window.ensureExcelJSLoaded(); } catch (e) {}
     }
@@ -567,6 +605,7 @@
     }
 
     const cleanFn = (fileName || '').replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '').trim();
+    const fileModifiedIso = fileModified ? (typeof fileModified === 'number' ? new Date(fileModified).toISOString() : new Date(fileModified).toISOString()) : null;
     const wb = new window.ExcelJS.Workbook();
     await wb.xlsx.load(arrayBuffer);
 
@@ -682,12 +721,13 @@
             notes: sNotes,
             isSterile: sNotes.includes('סטרילי') || sNotes.includes('שומשום') || sNotes.includes('אלרג'),
             isHomeMeal: sNotes.includes('מהבית'),
-            sourceFile: cleanFn
+            sourceFile: cleanFn,
+            fileModified: fileModifiedIso
           });
         }
       }
 
-      return { records: [], nutritionOnly: [], schools };
+      return { records: [], nutritionOnly: [], schools, fileModified: fileModifiedIso };
     }
 
     // ───────────────────────────────────────────────────────────
@@ -844,7 +884,8 @@
           changedKids: hasChange,
           hasChange: hasChange,
           notes: notes,
-          sourceFile: cleanFn
+          sourceFile: cleanFn,
+          fileModified: fileModifiedIso
         });
         continue;
       }
@@ -938,6 +979,7 @@
           isSterile: isSterile,
           isHomeMeal: isHomeMeal,
           sourceFile: cleanFn,
+          fileModified: fileModifiedIso,
           updatedAt: new Date().toISOString()
         });
       } else {
@@ -1033,12 +1075,13 @@
           isSterile: isSterile,
           isHomeMeal: isHomeMeal,
           sourceFile: cleanFn,
+          fileModified: fileModifiedIso,
           updatedAt: new Date().toISOString()
         });
       }
     }
 
-    return { records, nutritionOnly, schools: [] };
+    return { records, nutritionOnly, schools: [], fileModified: fileModifiedIso };
   };
 
   // ───────────────────────────────────────────────────────────
@@ -1078,6 +1121,9 @@
     let successCount = 0;
     const failedFiles = [];
 
+    let maxFileMod = 0;
+    const filesMeta = {};
+
     for (let i = 0; i < scannedFiles.length; i++) {
       const entry = scannedFiles[i];
       const cleanName = entry.name.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '').trim();
@@ -1086,8 +1132,17 @@
       }
       try {
         const file = await entry.getFile();
+        const fileMod = file.lastModified || null;
+        if (fileMod && fileMod > maxFileMod) {
+          maxFileMod = fileMod;
+        }
+        filesMeta[cleanName] = {
+          name: cleanName,
+          modified: fileMod ? new Date(fileMod).toISOString() : null,
+          size: file.size
+        };
         const buf = await file.arrayBuffer();
-        const res = await window.parseMatzavaWorkbook(buf, entry.name);
+        const res = await window.parseMatzavaWorkbook(buf, entry.name, fileMod);
         allRecords = allRecords.concat(res.records || []);
         allNutrition = allNutrition.concat(res.nutritionOnly || []);
         allSchools = allSchools.concat(res.schools || []);
@@ -1134,6 +1189,11 @@
       schMap.set(key, s);
     });
     window.MATZAVA_STATE.schools = Array.from(schMap.values());
+
+    if (maxFileMod > 0) {
+      window.MATZAVA_STATE.lastFileModified = new Date(maxFileMod).toISOString();
+      window.MATZAVA_STATE.filesMeta = filesMeta;
+    }
 
     // Save to Firebase RTDB
     await window.saveMatzavaToFirebase();
@@ -1523,12 +1583,22 @@
   window.importSingleMatzavaFile = function (fileInput) {
     if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
     const file = fileInput.files[0];
+    const fileMod = file.lastModified || null;
     if (window.showToast) window.showToast('⏳ מייבא קובץ מצבה: ' + file.name + '...', 30000);
 
     const reader = new FileReader();
     reader.onload = async function (e) {
       try {
-        const res = await window.parseMatzavaWorkbook(e.target.result, file.name);
+        const res = await window.parseMatzavaWorkbook(e.target.result, file.name, fileMod);
+        if (fileMod) {
+          window.MATZAVA_STATE.lastFileModified = new Date(fileMod).toISOString();
+          if (!window.MATZAVA_STATE.filesMeta) window.MATZAVA_STATE.filesMeta = {};
+          window.MATZAVA_STATE.filesMeta[file.name] = {
+            name: file.name,
+            modified: new Date(fileMod).toISOString(),
+            size: file.size
+          };
+        }
 
         // Merge with existing state
         const recMap = new Map(window.MATZAVA_STATE.records.map(r => [(r.city || '') + '__' + (r.name || ''), r]));
@@ -2110,6 +2180,7 @@
       let cityMerged = 0;
       let citySterile = 0;
       let cityChanged = 0;
+      let cityFileMod = null;
 
       cityGardens.forEach(r => {
         const k10 = Number(r.kids10) || 0;
@@ -2120,6 +2191,7 @@
         if (r.isMerged) cityMerged++;
         if (r.isSterile) citySterile++;
         if (r.hasChange) cityChanged++;
+        if (!cityFileMod && r.fileModified) cityFileMod = r.fileModified;
       });
 
       return `
@@ -2131,7 +2203,7 @@
                 <span style="font-size:0.98rem; font-weight:800; color:#1a237e;">${cityName}</span>
                 <span style="font-size:0.68rem; background:#e0e7ff; color:#3730a3; padding:1px 6px; border-radius:8px; font-weight:700;">${cityGardens.length} צהרונים</span>
               </div>
-              <div style="display:flex; align-items:center; gap:6px; font-size:0.75rem;">
+              <div style="display:flex; align-items:center; gap:6px; font-size:0.75rem; flex-wrap:wrap;">
                 <span style="background:#e8eaf6; color:#1a237e; padding:2px 8px; border-radius:6px; font-weight:800;">
                   <b>${sumColTotal.toLocaleString()}</b> רשומים
                 </span>
@@ -2143,6 +2215,11 @@
                 ${citySterile > 0 ? `
                   <span style="background:#ef5350; color:#fff; padding:2px 6px; border-radius:6px; font-weight:800; font-size:0.7rem;">
                     🚨 ${citySterile}
+                  </span>
+                ` : ''}
+                ${cityFileMod ? `
+                  <span style="background:#f1f5f9; color:#475569; padding:2px 6px; border-radius:6px; font-size:0.68rem; font-weight:600; border:1px solid #cbd5e1;" title="קובץ המחשב עודכן ב-${new Date(cityFileMod).toLocaleString('he-IL')}">
+                    💻 ${formatSyncDateTime(cityFileMod)}
                   </span>
                 ` : ''}
               </div>
@@ -2195,6 +2272,8 @@
       let cityClasses = 0;
       let citySterile = 0;
       let cityChanged = 0;
+      let cityFileMod = null;
+
       schObjMap.forEach(classes => {
         classes.forEach(sc => {
           cityKids += (sc.kids || 0);
@@ -2202,6 +2281,7 @@
           cityClasses++;
           if (sc.isSterile) citySterile++;
           if (sc.hasChange) cityChanged++;
+          if (!cityFileMod && sc.fileModified) cityFileMod = sc.fileModified;
         });
       });
 
@@ -2210,18 +2290,23 @@
           
           <!-- Compact City Header -->
           <summary style="padding:10px 14px; background:#f4fbfb; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; user-select:none; border-bottom:1px solid #e0f2f1;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-1; margin-left:10px; flex-wrap:wrap; gap:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex:1; margin-left:10px; flex-wrap:wrap; gap:6px;">
               <div style="display:flex; align-items:center; gap:6px;">
                 <span style="font-size:1.15rem;">🏙️</span>
                 <span style="font-size:0.98rem; font-weight:800; color:#004d40;">${cityName}</span>
                 <span style="font-size:0.68rem; background:#e0f2f1; color:#004d40; padding:1px 6px; border-radius:8px; font-weight:700;">${schObjMap.size} מוסדות</span>
               </div>
-              <div style="display:flex; align-items:center; gap:6px; font-size:0.75rem;">
+              <div style="display:flex; align-items:center; gap:6px; font-size:0.75rem; flex-wrap:wrap;">
                 <span style="background:#e0f2f1; color:#004d40; padding:2px 8px; border-radius:6px; font-weight:700;">
                   <b>${cityKids}</b> רשומים (${cityMerged} באיחוד)
                 </span>
                 ${cityChanged > 0 ? `<span style="background:#fef08a; color:#854d0e; padding:2px 6px; border-radius:6px; font-weight:800; border:1px solid #facc15; font-size:0.7rem;">⚡ ${cityChanged} שינויים</span>` : ''}
                 ${citySterile > 0 ? `<span style="background:#ef5350; color:#fff; padding:2px 6px; border-radius:6px; font-weight:800; font-size:0.7rem;">🚨 ${citySterile}</span>` : ''}
+                ${cityFileMod ? `
+                  <span style="background:#f1f5f9; color:#475569; padding:2px 6px; border-radius:6px; font-size:0.68rem; font-weight:600; border:1px solid #cbd5e1;" title="קובץ המחשב עודכן ב-${new Date(cityFileMod).toLocaleString('he-IL')}">
+                    💻 ${formatSyncDateTime(cityFileMod)}
+                  </span>
+                ` : ''}
               </div>
             </div>
           </summary>
@@ -2321,9 +2406,12 @@
     const content = Array.from(cityMap.entries()).map(([cityName, list]) => {
       let cityMealsTotal = 0;
       let cityChanged = 0;
+      let cityFileMod = null;
+
       list.forEach(n => {
         cityMealsTotal += (n.kidsTotal || 0);
         if (n.hasChange) cityChanged++;
+        if (!cityFileMod && n.fileModified) cityFileMod = n.fileModified;
       });
 
       return `
@@ -2335,13 +2423,18 @@
                 <span style="font-size:0.98rem; font-weight:800; color:#e65100;">${cityName}</span>
                 <span style="font-size:0.68rem; background:#fff3e0; color:#e65100; padding:1px 6px; border-radius:8px; font-weight:700; border:1px solid #ffcc80;">${list.length} קבוצות</span>
               </div>
-              <div style="display:flex; align-items:center; gap:6px; font-size:0.75rem;">
+              <div style="display:flex; align-items:center; gap:6px; font-size:0.75rem; flex-wrap:wrap;">
                 <span style="background:#fff3e0; color:#bf360c; padding:2px 8px; border-radius:6px; font-weight:800; border:1px solid #ffcc80;">
                   <b>${cityMealsTotal.toLocaleString()}</b> מנות
                 </span>
                 ${cityChanged > 0 ? `
                   <span style="background:#fef08a; color:#854d0e; padding:2px 6px; border-radius:6px; font-weight:800; border:1px solid #facc15; font-size:0.7rem;">
                     ⚡ ${cityChanged} שינויים
+                  </span>
+                ` : ''}
+                ${cityFileMod ? `
+                  <span style="background:#fff3e0; color:#e65100; padding:2px 6px; border-radius:6px; font-size:0.68rem; font-weight:700; border:1px solid #ffcc80;" title="קובץ המחשב עודכן ב-${new Date(cityFileMod).toLocaleString('he-IL')}">
+                    💻 ${formatSyncDateTime(cityFileMod)}
                   </span>
                 ` : ''}
               </div>
@@ -2509,6 +2602,7 @@
       let cityMerged = 0;
       let citySterile = 0;
       let cityChanged = 0;
+      let cityFileMod = null;
 
       cityGardens.forEach(r => {
         const k10 = Number(r.kids10) || 0;
@@ -2519,6 +2613,7 @@
         if (r.isMerged) cityMerged++;
         if (r.isSterile) citySterile++;
         if (r.hasChange) cityChanged++;
+        if (!cityFileMod && r.fileModified) cityFileMod = r.fileModified;
       });
 
       return `
@@ -2535,6 +2630,11 @@
                 ${cityChanged > 0 ? `<span style="background:#fef08a; color:#854d0e; padding:3px 8px; border-radius:6px; font-weight:800; border:1px solid #facc15;">⚡ ${cityChanged} שינויים</span>` : ''}
                 ${cityMerged > 0 ? `<span style="background:#f3e5f5; color:#6a1b9a; padding:3px 8px; border-radius:6px; font-weight:700;">⚖️ ${cityMerged} איחודים</span>` : ''}
                 ${citySterile > 0 ? `<span style="background:#fee2e2; color:#b91c1c; padding:3px 8px; border-radius:6px; font-weight:800;">🚨 ${citySterile} אלרגיות</span>` : ''}
+                ${cityFileMod ? `
+                  <span style="background:#f1f5f9; color:#475569; padding:3px 8px; border-radius:6px; font-weight:600; font-size:0.75rem; border:1px solid #cbd5e1;" title="קובץ המקור עודכן במחשב ב-${new Date(cityFileMod).toLocaleString('he-IL')}">
+                    💻 קובץ עודכן: <b>${formatSyncDateTime(cityFileMod)}</b>
+                  </span>
+                ` : ''}
               </div>
             </div>
           </summary>
@@ -2614,6 +2714,8 @@
       let cityClasses = 0;
       let citySterile = 0;
       let cityChanged = 0;
+      let cityFileMod = null;
+
       schObjMap.forEach(classes => {
         classes.forEach(sc => {
           cityKids += (sc.kids || 0);
@@ -2621,6 +2723,7 @@
           cityClasses++;
           if (sc.isSterile) citySterile++;
           if (sc.hasChange) cityChanged++;
+          if (!cityFileMod && sc.fileModified) cityFileMod = sc.fileModified;
         });
       });
 
@@ -2652,6 +2755,11 @@
                 ${citySterile > 0 ? `
                   <span style="background:#fee2e2; color:#b91c1c; padding:3px 8px; border-radius:6px; font-weight:800;">
                     🚨 ${citySterile} אלרגיות
+                  </span>
+                ` : ''}
+                ${cityFileMod ? `
+                  <span style="background:#f1f5f9; color:#475569; padding:3px 8px; border-radius:6px; font-weight:600; font-size:0.75rem; border:1px solid #cbd5e1;" title="קובץ המקור עודכן במחשב ב-${new Date(cityFileMod).toLocaleString('he-IL')}">
+                    💻 קובץ עודכן: <b>${formatSyncDateTime(cityFileMod)}</b>
                   </span>
                 ` : ''}
               </div>
@@ -2810,9 +2918,12 @@
     const content = Array.from(cityMap.entries()).map(([cityName, list]) => {
       let cityMealsTotal = 0;
       let cityChanged = 0;
+      let cityFileMod = null;
+
       list.forEach(n => {
         cityMealsTotal += (n.kidsTotal || 0);
         if (n.hasChange) cityChanged++;
+        if (!cityFileMod && n.fileModified) cityFileMod = n.fileModified;
       });
 
       return `
@@ -2826,13 +2937,18 @@
                   ${list.length} קבוצות
                 </span>
               </div>
-              <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem;">
+              <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; flex-wrap:wrap;">
                 <span style="background:#fff3e0; color:#bf360c; padding:3px 10px; border-radius:6px; font-weight:800; border:1px solid #ffcc80;">
                   סה"כ בעיר: <b>${cityMealsTotal.toLocaleString()}</b> מנות
                 </span>
                 ${cityChanged > 0 ? `
                   <span style="background:#fef08a; color:#854d0e; padding:3px 10px; border-radius:6px; font-weight:800; border:1px solid #facc15;">
                     ⚡ ${cityChanged} שינויים
+                  </span>
+                ` : ''}
+                ${cityFileMod ? `
+                  <span style="background:#fff3e0; color:#e65100; padding:3px 10px; border-radius:6px; font-weight:700; border:1px solid #ffcc80;" title="קובץ המחשב עודכן ב-${new Date(cityFileMod).toLocaleString('he-IL')}">
+                    💻 קובץ עודכן: <b>${formatSyncDateTime(cityFileMod)}</b>
                   </span>
                 ` : ''}
               </div>
@@ -3045,6 +3161,45 @@
 
     const activeSubTabChangedCount = (s.subTab === 'schools' ? schChangedCount : (s.subTab === 'nutrition' ? nutChangedCount : changedCount));
 
+    // Determine active file modification date (scoped to selectedCity if filtered)
+    let activeFileMod = null;
+    let activeFileName = '';
+
+    if (s.selectedCity && s.selectedCity !== 'all') {
+      const cityRec = (s.records || []).find(r => isCityMatch(r.city, s.selectedCity) && r.fileModified) ||
+                      (s.schools || []).find(sc => isCityMatch(sc.city, s.selectedCity) && sc.fileModified) ||
+                      (s.nutritionOnly || []).find(n => isCityMatch(n.city, s.selectedCity) && n.fileModified);
+      if (cityRec && cityRec.fileModified) {
+        activeFileMod = cityRec.fileModified;
+        activeFileName = cityRec.sourceFile || '';
+      }
+    }
+
+    if (!activeFileMod) {
+      if (s.lastFileModified) {
+        activeFileMod = s.lastFileModified;
+      } else {
+        let maxTs = 0;
+        let matchedFn = '';
+        const checkRec = (r) => {
+          if (r && r.fileModified) {
+            const t = new Date(r.fileModified).getTime();
+            if (t > maxTs) {
+              maxTs = t;
+              matchedFn = r.sourceFile || '';
+            }
+          }
+        };
+        (s.records || []).forEach(checkRec);
+        (s.schools || []).forEach(checkRec);
+        (s.nutritionOnly || []).forEach(checkRec);
+        if (maxTs > 0) {
+          activeFileMod = new Date(maxTs).toISOString();
+          activeFileName = matchedFn;
+        }
+      }
+    }
+
     let html = `
       <div class="matzava-wrapper" style="direction:rtl; font-family:'Assistant',sans-serif; padding:${isMob ? '6px 4px 85px 4px' : '12px'}; max-width:1440px; margin:0 auto; box-sizing:border-box; overflow-x:hidden;">
         
@@ -3058,8 +3213,18 @@
                   מצבה — מספרי ילדים ואלרגיות
                   <span style="font-size:0.7rem; background:#e8eaf6; color:#283593; padding:1px 6px; border-radius:10px; font-weight:700;">${getYearKey()}</span>
                 </h2>
-                <div style="font-size:0.72rem; color:#666; margin-top:2px;">
-                  ${s.lastSync ? `סנכרון: ${new Date(s.lastSync).toLocaleDateString('he-IL')} ${new Date(s.lastSync).toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'})}` : 'טרם נסרקו קבצים'}
+                <div style="font-size:${isMob ? '0.68rem' : '0.72rem'}; color:#64748b; margin-top:2px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                  ${s.lastSync ? `
+                    <span style="display:inline-flex; align-items:center; gap:3px;">
+                      🔄 סונכרן לאתר: <b style="color:#1e293b;">${formatSyncDateTime(s.lastSync)}</b>
+                    </span>
+                    ${activeFileMod ? `
+                      <span style="color:#94a3b8; font-weight:700;">•</span>
+                      <span style="background:#f1f5f9; color:#334155; padding:1px 6px; border-radius:4px; border:1px solid #e2e8f0; display:inline-flex; align-items:center; gap:3px;" title="קובץ המחשב ${activeFileName ? `(${activeFileName})` : ''} נשמר ב-${new Date(activeFileMod).toLocaleString('he-IL')}">
+                        💻 קובץ במחשב עודכן: <b style="color:#0f172a;">${formatSyncDateTime(activeFileMod)}</b>
+                      </span>
+                    ` : ''}
+                  ` : 'טרם נסרקו קבצים'}
                 </div>
               </div>
             </div>
