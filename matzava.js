@@ -137,6 +137,64 @@
     }
   };
 
+  // Bulletproof cell text extractor for ExcelJS: handles RichText, formula results, hyperlinks,
+  // shared formulas, errors, and prevents "[object Object]" under all circumstances.
+  function extractCleanCellText(cell) {
+    if (!cell || cell.value === null || cell.value === undefined) return '';
+
+    function unwrap(val) {
+      if (val === null || val === undefined) return '';
+      if (typeof val === 'string') {
+        const s = val.trim();
+        return (s === '[object Object]') ? '' : s;
+      }
+      if (typeof val === 'number' || typeof val === 'boolean') return String(val).trim();
+      if (val instanceof Date) return val.toLocaleDateString('he-IL');
+
+      if (typeof val === 'object') {
+        // 1. Result of formula
+        if (val.result !== undefined && val.result !== null) {
+          const unwrappedResult = unwrap(val.result);
+          if (unwrappedResult && unwrappedResult !== '[object Object]') return unwrappedResult;
+        }
+        // 2. Text / Hyperlink text
+        if (val.text !== undefined && val.text !== null) {
+          const unwrappedText = unwrap(val.text);
+          if (unwrappedText && unwrappedText !== '[object Object]') return unwrappedText;
+        }
+        // 3. RichText array
+        if (Array.isArray(val.richText)) {
+          const rt = val.richText.map(t => (t && t.text) ? String(t.text) : '').join('').trim();
+          if (rt && rt !== '[object Object]') return rt;
+        }
+        // 4. Formula or sharedFormula fallback
+        if (val.formula || val.sharedFormula) {
+          try {
+            if (cell.text && typeof cell.text === 'string' && cell.text !== '[object Object]') {
+              return cell.text.trim();
+            }
+          } catch (e) {}
+          return '';
+        }
+        return '';
+      }
+
+      const s = String(val).trim();
+      return (s === '[object Object]') ? '' : s;
+    }
+
+    const res = unwrap(cell.value);
+    if (res && res !== '[object Object]') return res;
+
+    try {
+      if (cell.text && typeof cell.text === 'string' && cell.text !== '[object Object]') {
+        return cell.text.trim();
+      }
+    } catch (e) {}
+
+    return '';
+  }
+
   // Parse a single XLSX buffer using ExcelJS
   window.parseMatzavaWorkbook = async function (arrayBuffer, fileName) {
     if (typeof window.ensureExcelJSLoaded === 'function' && typeof window.ExcelJS === 'undefined') {
@@ -158,19 +216,7 @@
     ws.eachRow({ includeEmpty: false }, (row) => {
       const vals = [];
       row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-        let text = '';
-        if (cell.value !== null && cell.value !== undefined) {
-          if (typeof cell.value === 'object' && cell.value.result !== undefined) {
-            text = String(cell.value.result);
-          } else if (typeof cell.value === 'object' && cell.value.text !== undefined) {
-            text = String(cell.value.text);
-          } else if (typeof cell.value === 'object' && Array.isArray(cell.value.richText)) {
-            text = cell.value.richText.map(t => t.text || '').join('');
-          } else {
-            text = String(cell.value);
-          }
-        }
-        vals[colNumber - 1] = text.trim();
+        vals[colNumber - 1] = extractCleanCellText(cell);
       });
       rawRows.push(vals);
     });
@@ -291,8 +337,9 @@
     const headers = rawRows[headerIdx];
     headers.forEach((h, idx) => {
       if (!h) return;
-      if (h.includes('מס')) colMap.idx = idx;
-      else if (['שם הגן', 'שם הצהרון', 'שם גן', 'קבוצה'].some(k => h.includes(k))) colMap.name = idx;
+      if (h.includes('מס') && !h.includes('שם') && !h.includes('גן') && !h.includes('צהרון')) colMap.idx = idx;
+      else if (['שם הגן', 'שם הצהרון', 'שם גן'].some(k => h.includes(k))) colMap.name = idx;
+      else if (colMap.name === undefined && h.includes('קבוצה')) colMap.name = idx;
       else if (h.includes('כתובת') || h.includes('רחוב')) colMap.addr = idx;
       else if (h.includes('גיל')) colMap.age = idx;
       else if (h.includes('10 חודש')) colMap.kids10 = idx;
@@ -324,11 +371,11 @@
       // Handle Nutrition Only Mode
       if (isNutritionMode) {
         let nutName = colMap.name !== undefined ? (row[colMap.name] || '') : '';
-        if (!nutName) {
+        if (!nutName || nutName === '[object Object]' || nutName.includes('object Object')) {
           const matchNut = row.find(c => ['פטל', 'מורן', 'רותם', 'צבעוני', 'ארז', 'תדהר'].some(k => (c || '').includes(k)));
           if (matchNut) nutName = matchNut;
         }
-        if (nutName) {
+        if (nutName && nutName !== '[object Object]') {
           let count = 0;
           row.forEach(c => {
             const num = parseInt(c, 10);
@@ -352,18 +399,22 @@
       }
 
       // Kindergarten / After-School Garden
-      const gName = colMap.name !== undefined ? (row[colMap.name] || '') : '';
+      let gName = colMap.name !== undefined ? (row[colMap.name] || '') : '';
+      if (!gName || gName === '[object Object]' || gName.includes('object Object')) gName = '';
       if (!gName || gName.includes('סה"כ') || gName.includes('ממוצע')) continue;
 
-      const rowSeq = colMap.idx !== undefined ? (row[colMap.idx] || '') : '';
-      const gAddr = colMap.addr !== undefined ? (row[colMap.addr] || '') : '';
-      const gAge = colMap.age !== undefined ? (row[colMap.age] || '') : '';
-      const k10 = colMap.kids10 !== undefined ? (parseInt(row[colMap.kids10], 10) || 0) : 0;
-      const k11 = colMap.kids11 !== undefined ? (parseInt(row[colMap.kids11], 10) || 0) : 0;
-      const directKids = colMap.kids !== undefined ? (parseInt(row[colMap.kids], 10) || 0) : 0;
-      const rowTotal = colMap.total !== undefined ? (parseInt(row[colMap.total], 10) || 0) : 0;
-      const host = colMap.host !== undefined ? (row[colMap.host] || '') : '';
-      const notes = colMap.notes !== undefined ? (row[colMap.notes] || '') : '';
+      let rowSeq = colMap.idx !== undefined ? (row[colMap.idx] || '') : '';
+      let gAddr = colMap.addr !== undefined ? (row[colMap.addr] || '') : '';
+      let gAge = colMap.age !== undefined ? (row[colMap.age] || '') : '';
+      let k10 = colMap.kids10 !== undefined ? (parseInt(row[colMap.kids10], 10) || 0) : 0;
+      let k11 = colMap.kids11 !== undefined ? (parseInt(row[colMap.kids11], 10) || 0) : 0;
+      let directKids = colMap.kids !== undefined ? (parseInt(row[colMap.kids], 10) || 0) : 0;
+      let rowTotal = colMap.total !== undefined ? (parseInt(row[colMap.total], 10) || 0) : 0;
+      let host = colMap.host !== undefined ? (row[colMap.host] || '') : '';
+      let notes = colMap.notes !== undefined ? (row[colMap.notes] || '') : '';
+
+      if (host === '[object Object]' || host.includes('object Object')) host = '';
+      if (notes === '[object Object]' || notes.includes('object Object')) notes = '';
 
       rawGardenItems.push({
         rowNum: r,
@@ -424,18 +475,22 @@
         const isHomeMeal = g.notes.includes('מהבית');
         const matchedG = matchGarden(g.name, city);
 
+        const safeName = (g.name && g.name !== '[object Object]' && !String(g.name).includes('object Object'))
+          ? g.name
+          : (matchedG ? matchedG.name : (g.host && g.host !== '[object Object]' ? g.host : 'גן'));
+
         records.push({
-          id: 'mat_' + city + '_' + g.name.replace(/\s+/g, '_'),
+          id: 'mat_' + city + '_' + safeName.replace(/\s+/g, '_'),
           gardenId: matchedG ? matchedG.id : null,
           city: city,
-          name: g.name,
-          matchedName: matchedG ? matchedG.name : g.name,
+          name: safeName,
+          matchedName: matchedG ? matchedG.name : safeName,
           address: g.addr || (matchedG ? matchedG.st : ''),
           age: g.age || (matchedG ? matchedG.age : ''),
           kids10: g.k10,
           kids11: g.k11,
           kidsTotal: kids,
-          hostGarden: g.host || g.name,
+          hostGarden: (g.host && g.host !== '[object Object]' && !String(g.host).includes('object Object')) ? g.host : safeName,
           isMerged: false,
           subGardens: [],
           notes: g.notes,
@@ -446,16 +501,16 @@
         });
       } else {
         // Multi-garden Unified Class (איחוד גנים - מוצג כשורה אחת ברורה עם פירוט הגנים שבאיחוד)
-        let hostName = cluster.find(c => c.host && cluster.some(other => other.name.includes(c.host)))?.host || '';
-        if (!hostName) {
-          const foundHost = cluster.find(c => cluster.some(other => other.host && other.host.includes(c.name)));
+        let hostName = cluster.find(c => c.host && c.host !== '[object Object]' && !c.host.includes('object Object') && cluster.some(other => other.name && other.name.includes(c.host)))?.host || '';
+        if (!hostName || hostName === '[object Object]' || hostName.includes('object Object')) {
+          const foundHost = cluster.find(c => cluster.some(other => other.host && other.host !== '[object Object]' && other.host.includes(c.name)));
           if (foundHost) hostName = foundHost.name;
         }
-        if (!hostName) {
-          hostName = cluster[0].name;
+        if (!hostName || hostName === '[object Object]' || hostName.includes('object Object')) {
+          hostName = cluster.find(c => c.name && c.name !== '[object Object]')?.name || cluster[0].name;
         }
 
-        const hostItem = cluster.find(c => c.name.includes(hostName) || hostName.includes(c.name)) || cluster[0];
+        const hostItem = cluster.find(c => c.name && c.name !== '[object Object]' && (c.name.includes(hostName) || hostName.includes(c.name))) || cluster[0];
 
         let sum10 = 0;
         let sum11 = 0;
@@ -469,14 +524,15 @@
           sum10 += c.k10;
           sum11 += c.k11;
           sumKids += cKids;
+          const subSafeName = (c.name && c.name !== '[object Object]' && !String(c.name).includes('object Object')) ? c.name : 'גן';
           if (c.notes) {
-            combinedNotes.push(`[${c.name}]: ${c.notes}`);
+            combinedNotes.push(`[${subSafeName}]: ${c.notes}`);
             if (c.notes.includes('סטרילי') || c.notes.includes('אין להכניס') || c.notes.includes('שומשום') || c.notes.includes('אלרג')) isSterile = true;
             if (c.notes.includes('מהבית')) isHomeMeal = true;
           }
-          const matchedSub = matchGarden(c.name, city);
+          const matchedSub = matchGarden(subSafeName, city);
           return {
-            name: c.name,
+            name: subSafeName,
             role: (c.name === hostItem.name) ? 'מארח' : 'מתארח',
             gardenId: matchedSub ? matchedSub.id : null,
             kids10: c.k10,
@@ -491,20 +547,24 @@
         const explicitTotal = cluster.find(c => c.rowTotal > 0)?.rowTotal;
         const finalTotal = explicitTotal || sumKids;
 
-        const matchedG = matchGarden(hostItem.name, city);
+        const safeHostItemName = (hostItem.name && hostItem.name !== '[object Object]' && !String(hostItem.name).includes('object Object')) 
+          ? hostItem.name 
+          : (cluster.find(c => c.name && c.name !== '[object Object]')?.name || 'איחוד גנים');
+
+        const matchedG = matchGarden(safeHostItemName, city);
 
         records.push({
-          id: 'mat_' + city + '_' + hostItem.name.replace(/\s+/g, '_'),
+          id: 'mat_' + city + '_' + safeHostItemName.replace(/\s+/g, '_'),
           gardenId: matchedG ? matchedG.id : null,
           city: city,
-          name: hostItem.name,
-          matchedName: matchedG ? matchedG.name : hostItem.name,
+          name: safeHostItemName,
+          matchedName: matchedG ? matchedG.name : safeHostItemName,
           address: hostItem.addr || (matchedG ? matchedG.st : '') || cluster[0].addr,
           age: hostItem.age || (matchedG ? matchedG.age : '') || cluster[0].age,
           kids10: sum10,
           kids11: sum11,
           kidsTotal: finalTotal,
-          hostGarden: hostItem.name,
+          hostGarden: safeHostItemName,
           isMerged: true,
           subGardens: subGardens,
           notes: combinedNotes.join(' | '),
@@ -778,13 +838,21 @@
       total11 += (r.kids11 || 0);
       totalKids += (r.kidsTotal || 0);
 
-      let nameDisplay = r.name;
+      const cleanBaseName = (r.name && r.name !== '[object Object]' && !String(r.name).includes('object Object'))
+        ? r.name
+        : (r.matchedName || r.hostGarden || 'צהרון');
+      let nameDisplay = cleanBaseName;
       let statusDisplay = 'עצמאי';
       if (r.isMerged && Array.isArray(r.subGardens) && r.subGardens.length > 0) {
         statusDisplay = `מאוחד (${r.subGardens.length} גנים) ⚖️`;
-        const breakdown = r.subGardens.map(s => `${s.role === 'מארח' ? '[מארח] ' : '[מתארח] '}${s.name}: ${s.kidsTotal}`).join(' | ');
-        nameDisplay = `${r.name}\n(${breakdown})`;
+        const breakdown = r.subGardens.map(s => {
+          const sName = (s.name && s.name !== '[object Object]' && !String(s.name).includes('object Object')) ? s.name : 'גן';
+          return `${s.role === 'מארח' ? '[מארח] ' : '[מתארח] '}${sName}: ${s.kidsTotal}`;
+        }).join(' | ');
+        nameDisplay = `${cleanBaseName}\n(${breakdown})`;
       }
+
+      const cleanHost = (r.hostGarden && r.hostGarden !== '[object Object]' && !String(r.hostGarden).includes('object Object')) ? r.hostGarden : cleanBaseName;
 
       const row = ws.addRow({
         city: r.city,
@@ -794,7 +862,7 @@
         kids10: r.kids10 || '',
         kids11: r.kids11 || '',
         kidsTotal: r.kidsTotal || 0,
-        hostGarden: r.isMerged ? `🏠 ${r.hostGarden} (מארח)` : (r.hostGarden || r.name),
+        hostGarden: r.isMerged ? `🏠 ${cleanHost} (מארח)` : cleanHost,
         mergedStatus: statusDisplay,
         notes: r.notes || ''
       });
@@ -1082,6 +1150,13 @@
                   const bg = idx % 2 === 0 ? '#fff' : '#fcfcfc';
                   const isSterileBg = r.isSterile ? 'background:#fff5f5;' : '';
                   const rowBorder = r.isMerged ? 'border-right:4px solid #8e24aa;' : '';
+                  const safeRowName = (r.name && r.name !== '[object Object]' && !String(r.name).includes('object Object')) 
+                    ? r.name 
+                    : (r.matchedName || r.hostGarden || 'צהרון');
+                  const safeHostGarden = (r.hostGarden && r.hostGarden !== '[object Object]' && !String(r.hostGarden).includes('object Object')) 
+                    ? r.hostGarden 
+                    : safeRowName;
+
                   return `
                     <tr style="${isSterileBg || `background:${bg};`} ${rowBorder} border-bottom:1px solid #eee; transition:background 0.15s;" onmouseover="this.style.background='#f0f4c3'" onmouseout="this.style.background='${r.isSterile ? '#fff5f5' : bg}'">
                       <td style="padding:10px 12px; font-weight:700; color:#37474f; vertical-align:top;">
@@ -1089,7 +1164,7 @@
                       </td>
                       <td style="padding:10px 12px; font-weight:700; color:#1a237e; vertical-align:top;">
                         <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                          <span style="font-size:0.92rem; font-weight:800; color:#1a237e;">${r.name}</span>
+                          <span style="font-size:0.92rem; font-weight:800; color:#1a237e;">${safeRowName}</span>
                           ${r.isMerged ? `
                             <span style="background:#f3e5f5; color:#6a1b9a; border:1px solid #ce93d8; font-size:0.7rem; padding:1px 6px; border-radius:12px; font-weight:800; display:inline-flex; align-items:center; gap:3px;">
                               ⚖️ איחוד (${(r.subGardens || []).length} גנים)
@@ -1104,17 +1179,20 @@
                               <span>פירוט גנים שבתוך האיחוד:</span>
                               <span>סה"כ: <b>${r.kidsTotal}</b></span>
                             </div>
-                            ${r.subGardens.map(sub => `
-                              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:2px 0; border-bottom:1px dotted #f3e5f5;">
-                                <span style="${sub.role === 'מארח' ? 'font-weight:700; color:#4a148c;' : 'color:#581c87;'}">
-                                  ${sub.role === 'מארח' ? '🏠' : '↳'} ${sub.name}
-                                  <span style="font-size:0.68rem; padding:1px 4px; border-radius:3px; background:${sub.role === 'מארח' ? '#f3e5f5' : '#ede7f6'}; color:${sub.role === 'מארח' ? '#6a1b9a' : '#7e57c2'}; font-weight:700;">${sub.role}</span>
-                                </span>
-                                <span style="font-weight:700; background:#fff; padding:1px 6px; border-radius:4px; border:1px solid #d8b4fe; color:#1a237e; font-size:0.72rem;">
-                                  ${sub.kidsTotal} ${sub.kids10 || sub.kids11 ? `<span style="font-size:0.65rem; color:#666;">(${sub.kids10}ח' + ${sub.kids11}ח')</span>` : 'ילדים'}
-                                </span>
-                              </div>
-                            `).join('')}
+                            ${r.subGardens.map(sub => {
+                              const safeSubName = (sub.name && sub.name !== '[object Object]' && !String(sub.name).includes('object Object')) ? sub.name : 'גן';
+                              return `
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:2px 0; border-bottom:1px dotted #f3e5f5;">
+                                  <span style="${sub.role === 'מארח' ? 'font-weight:700; color:#4a148c;' : 'color:#581c87;'}">
+                                    ${sub.role === 'מארח' ? '🏠' : '↳'} ${safeSubName}
+                                    <span style="font-size:0.68rem; padding:1px 4px; border-radius:3px; background:${sub.role === 'מארח' ? '#f3e5f5' : '#ede7f6'}; color:${sub.role === 'מארח' ? '#6a1b9a' : '#7e57c2'}; font-weight:700;">${sub.role}</span>
+                                  </span>
+                                  <span style="font-weight:700; background:#fff; padding:1px 6px; border-radius:4px; border:1px solid #d8b4fe; color:#1a237e; font-size:0.72rem;">
+                                    ${sub.kidsTotal} ${sub.kids10 || sub.kids11 ? `<span style="font-size:0.65rem; color:#666;">(${sub.kids10}ח' + ${sub.kids11}ח')</span>` : 'ילדים'}
+                                  </span>
+                                </div>
+                              `;
+                            }).join('')}
                           </div>
                         ` : ''}
                       </td>
@@ -1130,9 +1208,9 @@
                       <td style="padding:10px 12px; vertical-align:top;">
                         ${r.isMerged ? `
                           <span style="background:#f3e5f5; color:#6a1b9a; padding:4px 8px; border-radius:6px; font-size:0.76rem; font-weight:700; display:inline-flex; align-items:center; gap:4px; border:1px solid #ce93d8;">
-                            <span>🏠 ${r.hostGarden} (מארח)</span>
+                            <span>🏠 ${safeHostGarden} (מארח)</span>
                           </span>
-                        ` : `<span style="color:#777; font-size:0.8rem;">${r.hostGarden || r.name}</span>`}
+                        ` : `<span style="color:#777; font-size:0.8rem;">${safeHostGarden}</span>`}
                       </td>
                       <td style="padding:10px 12px; vertical-align:top;">
                         ${r.isSterile ? `
