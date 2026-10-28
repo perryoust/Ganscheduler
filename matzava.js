@@ -1496,7 +1496,7 @@
           statusDisplay = `מאוחד (${r.subGardens.length} גנים) ⚖️`;
           const breakdown = r.subGardens.map(s => {
             const sName = (s.name && s.name !== '[object Object]' && !String(s.name).includes('object Object')) ? s.name : 'גן';
-            return `${s.role === 'מארח' ? '[מארח] ' : '[מתארח] '}${sName}: ${s.kidsTotal}`;
+            return `${s.role === 'מארח' ? '' : '↳ '}${sName}: ${s.kidsTotal}`;
           }).join(' | ');
           nameDisplay = `${cleanBaseName}\n(${breakdown})`;
         }
@@ -1511,7 +1511,7 @@
           kids10: r.kids10 || '',
           kids11: r.kids11 || '',
           kidsTotal: r.kidsTotal || 0,
-          hostGarden: r.isMerged ? `🏠 ${cleanHost} (מארח)` : cleanHost,
+          hostGarden: r.isMerged ? `🏠 ${cleanHost}` : cleanHost,
           mergedStatus: statusDisplay,
           notes: r.notes || ''
         });
@@ -1853,10 +1853,9 @@
                 </div>
               </div>
 
-              <!-- Address & Host Info -->
+              <!-- Address & Kids Info -->
               <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:0.75rem; color:#64748b; margin-top:5px; line-height:1.3;">
                 ${r.address ? `<span>📍 ${r.address}</span>` : ''}
-                ${safeHostGarden && safeHostGarden !== safeRowName ? `<span style="color:#6a1b9a; font-weight:700;">🏠 ${safeHostGarden}</span>` : ''}
                 ${r.kids10 || r.kids11 ? `<span style="color:#475569; font-weight:600;">(10ח': ${r.kids10 || 0}${r.kids11 ? ` | 11ח': ${r.kids11}` : ''})</span>` : ''}
               </div>
 
@@ -2103,7 +2102,6 @@
                               <div style="font-size:0.78rem; color:#6a1b9a; line-height:1.4; display:flex; align-items:center; gap:6px;">
                                 <span style="font-size:0.75rem; opacity:0.8;">${isHost ? '🏠' : '↳'}</span>
                                 <span style="font-weight:${isHost ? '700' : '600'}; color:#4a148c;">${safeSubName}</span>
-                                <span style="font-size:0.72rem; color:#7e57c2;">(${sub.role || (isHost ? 'מארח' : 'מתארח')})</span>
                                 <span style="font-weight:700; color:#6a1b9a; margin-right:auto;">${sub.kidsTotal} ילדים</span>
                               </div>
                             `;
@@ -2125,7 +2123,6 @@
                         <div style="color:#6a1b9a; font-size:0.82rem; font-weight:700; display:inline-flex; align-items:center; gap:4px;">
                           <span>🏠</span>
                           <span>${safeHostGarden}</span>
-                          <span style="font-size:0.72rem; font-weight:normal; color:#8e24aa;">(מארח)</span>
                         </div>
                       ` : `<span style="color:#777; font-size:0.8rem;">${safeHostGarden}</span>`}
                     </td>
