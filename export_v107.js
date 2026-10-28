@@ -8,9 +8,39 @@ function openMonthlyExport(){
   citySel.innerHTML='<option value="">-- כל הערים --</option>';
   window.cities().forEach(c=>{ const o=document.createElement('option');o.value=c;o.textContent=c;citySel.appendChild(o); });
   // Managers
-  const mgrSel=document.getElementById('exp-mgr');
-  mgrSel.innerHTML='<option value="">-- כל הרכזים --</option>';
-  Object.values(window.managers).forEach(mg=>{ const o=document.createElement('option');o.value=mg.id;o.textContent=mg.name;mgrSel.appendChild(o); });
+  const mgrListDiv = document.getElementById('exp-mgr-list');
+  const mgrSearchInput = document.getElementById('exp-mgr-search');
+  if (mgrSearchInput) mgrSearchInput.value = '';
+  if (mgrListDiv) {
+    mgrListDiv.innerHTML = '';
+    const rawGans = typeof AG === 'function' ? AG() : [...(window.GARDENS||[]), ...(window._GARDENS_EXTRA||[])];
+    const map = new Map();
+    rawGans.forEach(g => map.set(g.id, g));
+    const allGans = Array.from(map.values());
+
+    const isInvalidMgr = (m) => !m || !m.name || m.name.trim() === 'יוסי' || m.phone === '050-6898983' || m.phone === '035464969';
+    const mgrs = Object.values(window.managers || {})
+      .filter(m => m && m.name && !isInvalidMgr(m))
+      .sort((a,b) => (a.name||'').localeCompare(b.name||'', 'he'));
+
+    mgrs.forEach(mg => {
+      const gans = getGardensForManager(mg.id, allGans);
+      const lbl = document.createElement('label');
+      lbl.className = 'exp-mgr-item';
+      lbl.dataset.name = (mg.name || '').trim().toLowerCase();
+      lbl.style.display = 'block';
+      lbl.style.marginBottom = '6px';
+      lbl.style.cursor = 'pointer';
+      lbl.innerHTML = `<input type="checkbox" name="exp-mgr-cb" value="${mg.id}" onchange="updateExportManagerCount()" style="margin-left:8px; width:16px; height:16px; vertical-align:middle;"> <span style="vertical-align:middle; font-weight:600; color:#1e293b;">👩‍💼 ${mg.name}</span> <span style="font-size:0.75rem; color:#64748b; font-weight:normal;">(${gans.length} גנים)</span>`;
+      mgrListDiv.appendChild(lbl);
+    });
+    updateExportManagerCount();
+  }
+  const mgrSel = document.getElementById('exp-mgr');
+  if (mgrSel) {
+    mgrSel.innerHTML = '<option value="">-- כל הרכזים --</option>';
+    Object.values(window.managers || {}).forEach(mg => { const o = document.createElement('option'); o.value = mg.id; o.textContent = mg.name; mgrSel.appendChild(o); });
+  }
   // Gardens
   const ganListDiv=document.getElementById('exp-garden-list');
   const cityFilterSel=document.getElementById('exp-garden-city-filter');
@@ -136,6 +166,64 @@ window.updateExportGardenCount = function() {
   countEl.innerText = checkedCount > 0 ? `(נבחרו: ${checkedCount})` : '';
 };
 
+window.filterExportManagers = function() {
+  const query = (document.getElementById('exp-mgr-search')?.value || '').trim().toLowerCase();
+  const items = document.querySelectorAll('#exp-mgr-list .exp-mgr-item');
+  items.forEach(item => {
+    const name = item.dataset.name || '';
+    const text = item.textContent.toLowerCase();
+    if (!query || name.includes(query) || text.includes(query)) {
+      item.style.display = 'block';
+    } else {
+      item.style.display = 'none';
+    }
+  });
+  updateExportManagerCount();
+};
+
+window.toggleSelectVisibleManagers = function(select) {
+  const items = document.querySelectorAll('#exp-mgr-list .exp-mgr-item');
+  items.forEach(item => {
+    if (item.style.display !== 'none') {
+      const cb = item.querySelector('input[type="checkbox"]');
+      if (cb) cb.checked = select;
+    }
+  });
+  updateExportManagerCount();
+};
+
+window.updateExportManagerCount = function() {
+  const countEl = document.getElementById('exp-mgr-count');
+  if (!countEl) return;
+  const checkedCount = document.querySelectorAll('input[name="exp-mgr-cb"]:checked').length;
+  countEl.innerText = checkedCount > 0 ? `(נבחרו: ${checkedCount})` : '';
+};
+
+function getGardensForManager(mgrId, allGardensList) {
+  const mg = window.managers && window.managers[mgrId];
+  if (!mg) return [];
+  const mgName = (mg.name || '').trim();
+  let mgGids = mg.gardenIds || [];
+  if (typeof mgGids === 'string') mgGids = mgGids.split(',');
+  else if (!Array.isArray(mgGids)) mgGids = Object.values(mgGids);
+  const mgGardenIds = new Set(mgGids.map(Number));
+
+  return (allGardensList || []).filter(g => {
+    if (!g || g.active === false) return false;
+    const gid = Number(g.id);
+    if (mgGardenIds.has(gid)) return true;
+    if (typeof window.getGardenCoordinator === 'function') {
+      const ci = window.getGardenCoordinator(gid);
+      if (ci && (ci.id === mgrId || (ci.name && ci.name.trim() === mgName))) return true;
+    }
+    const gm = gardenManager(gid);
+    if (gm && (gm.id === mgrId || (gm.name && gm.name.trim() === mgName))) return true;
+    if (g.co && g.co.trim() === mgName) return true;
+    return false;
+  });
+}
+window.getGardensForManager = getGardensForManager;
+
 function expModeChg(){
   const mode=document.querySelector('input[name="exp-mode"]:checked').value;
   document.getElementById('exp-city-wrap').style.display=mode==='city'?'block':'none';
@@ -164,7 +252,10 @@ async function doMonthlyExport(){
   if(!fromM||!toM){window.spAlert('יש לבחור תקופה');return;}
   const mode=document.querySelector('input[name="exp-mode"]:checked').value;
   const cityFilter=document.getElementById('exp-city').value;
-  const mgrFilter=document.getElementById('exp-mgr').value;
+  const mgrFilter=document.getElementById('exp-mgr')?.value;
+  const selectedMgrCbs = Array.from(document.querySelectorAll('input[name="exp-mgr-cb"]:checked'));
+  const selectedMgrIds = selectedMgrCbs.map(cb=>cb.value);
+  const mgrSplit = document.querySelector('input[name="exp-mgr-split"]:checked')?.value || 'split';
   const gardenFilters=Array.from(document.querySelectorAll('input[name="exp-garden-cb"]:checked')).map(cb=>parseInt(cb.value));
   const splitBy=document.getElementById('exp-split').value;
 
@@ -184,7 +275,44 @@ async function doMonthlyExport(){
     if (cType === 'gan') gList = gList.filter(g => !isSchool(g));
     else if (cType === 'sch') gList = gList.filter(g => isSchool(g));
   }
-  if(mode==='manager'&&mgrFilter){ const mgrObj=window.managers[mgrFilter]; if(mgrObj?.gardenIds) gList=gList.filter(g=>mgrObj.gardenIds.includes(g.id)); }
+  if(mode==='manager'){
+    if(selectedMgrIds.length === 0){
+      window.spAlert('יש לבחור לפחות רכז/ת אחת מהרשימה');
+      return;
+    }
+    if (mgrSplit === 'split') {
+      let filesExported = 0;
+      for (const mgrId of selectedMgrIds) {
+        const mgrObj = window.managers && window.managers[mgrId];
+        const mgrName = (mgrObj?.name || 'רכז').trim();
+        const mgrGardens = getGardensForManager(mgrId, gList);
+        const mgrGardensWithEvs = mgrGardens.filter(g => evs.some(s => s.g === g.id));
+        if (!mgrGardensWithEvs.length) {
+          window.showToast?.(`אין פעילויות לגנים של ${mgrName} בתקופה זו`);
+          continue;
+        }
+        const wb = { sheets: [], city: `רכז_${mgrName}` };
+        const sortedGardens = [...mgrGardensWithEvs].sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
+        sortedGardens.forEach(g => {
+          const gEvs = evs.filter(s => s.g === g.id);
+          wb.sheets.push({ garden: g, evs: gEvs });
+        });
+        await downloadWB(wb, `לוח_חוגים_רכז_${mgrName}_${fromM}.xlsx`, fromM);
+        filesExported++;
+        await new Promise(r => setTimeout(r, 400));
+      }
+      window.CM('export-m');
+      if (filesExported > 0) window.showToast(`📊 ${filesExported} קבצי Excel לרכזים נוצרו בהצלחה!`);
+      else window.spAlert('⚠️ לא נמצאו פעילויות לרכזים שנבחרו בטווח התאריכים.');
+      return;
+    } else {
+      const allowedGardenIds = new Set();
+      selectedMgrIds.forEach(mgrId => {
+        getGardensForManager(mgrId, gList).forEach(g => allowedGardenIds.add(Number(g.id)));
+      });
+      gList = gList.filter(g => allowedGardenIds.has(Number(g.id)));
+    }
+  }
   if(mode==='schools'){ gList=gList.filter(g=>(typeof window.getGardenClass === 'function' ? window.getGardenClass(g) : (typeof gcls === 'function' ? gcls(g) : g.cls))==='ביה"ס'); }
   if(mode==='garden'){ if(gardenFilters.length===0){ window.spAlert('יש לבחור צהרון / בית ספר מהרשימה'); return; } gList=gList.filter(g=>gardenFilters.includes(Number(g.id))); }
 

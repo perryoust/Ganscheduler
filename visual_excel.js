@@ -56,8 +56,10 @@ window.doVisualExcelExport = async function(format = 'pdf') {
   const modeNode = document.querySelector('input[name="exp-mode"]:checked');
   if (!modeNode) return;
   const mode = modeNode.value;
-  const cityFilter = document.getElementById('exp-city').value;
-  const mgrFilter = document.getElementById('exp-mgr').value;
+  const cityFilter = document.getElementById('exp-city')?.value || '';
+  const mgrFilter = document.getElementById('exp-mgr')?.value || '';
+  const selectedMgrIds = Array.from(document.querySelectorAll('input[name="exp-mgr-cb"]:checked')).map(cb => cb.value);
+  const mgrSplit = document.querySelector('input[name="exp-mgr-split"]:checked')?.value || 'split';
   const gardenFilters = Array.from(document.querySelectorAll('input[name="exp-garden-cb"]:checked')).map(cb => parseInt(cb.value));
   
   const rawList = typeof AG === 'function' ? AG() : (typeof getAllGardens === 'function' ? getAllGardens() : [...(window.GARDENS || []), ...(window._GARDENS_EXTRA || [])]);
@@ -83,17 +85,16 @@ window.doVisualExcelExport = async function(format = 'pdf') {
       isSplitCity = true;
     }
   } else if (mode === 'manager') {
-    if (mgrFilter && mgrFilter !== 'all') {
-      const mgrObj = window.managers && window.managers[mgrFilter];
-      if (mgrObj?.gardenIds) {
-        gList = gList.filter(g => mgrObj.gardenIds.includes(g.id));
-      } else {
-        gList = gList.filter(g => {
-          const mgr = typeof window.gardenManager === 'function' ? window.gardenManager(g.id) : null;
-          return mgr && (mgr.name === mgrFilter || mgr.id === mgrFilter);
-        });
-      }
+    if (selectedMgrIds.length === 0) {
+      window.spAlert("לא נבחרו רכזים לייצוא");
+      return;
     }
+    const allowedGardenIds = new Set();
+    selectedMgrIds.forEach(mgrId => {
+      const mgrGardens = (typeof window.getGardensForManager === 'function' ? window.getGardensForManager(mgrId, gList) : []);
+      mgrGardens.forEach(g => allowedGardenIds.add(Number(g.id)));
+    });
+    gList = gList.filter(g => allowedGardenIds.has(Number(g.id)));
   } else if (mode === 'schools') {
     gList = gList.filter(g => _isSchool(g));
   } else if (mode === 'garden') {
@@ -109,6 +110,8 @@ window.doVisualExcelExport = async function(format = 'pdf') {
       window.spAlert("לא נמצאו גנים לייצוא עבור הבחירה הנוכחית");
     } else if (mode === 'city' && cityType === 'sch') {
       window.spAlert("לא נמצאו בתי ספר לייצוא עבור הבחירה הנוכחית");
+    } else if (mode === 'manager') {
+      window.spAlert("לא נמצאו גנים משויכים עבור הרכזים שנבחרו");
     } else {
       window.spAlert("לא נבחרו גנים / בתי ספר לייצוא");
     }
@@ -146,10 +149,12 @@ window.doVisualExcelExport = async function(format = 'pdf') {
         titleBase = `לוחות חוגים - כל בתי הספר`;
       } else if (mode === 'city' && cityFilter && cityFilter !== 'all') {
         titleBase = `לוחות חוגים - ${cityFilter}${customSuffix}`;
-      } else if (mode === 'manager' && mgrFilter && mgrFilter !== 'all') {
-        const mgrObj = window.managers && window.managers[mgrFilter];
-        const mgrName = mgrObj?.name || mgrFilter;
-        titleBase = `לוחות חוגים - רכז ${mgrName}${customSuffix}`;
+      } else if (mode === 'manager') {
+        if (customSuffix) {
+          titleBase = `לוחות חוגים${customSuffix}`;
+        } else {
+          titleBase = `לוחות חוגים - רכזים`;
+        }
       } else if (customSuffix) {
         titleBase = `לוחות חוגים${customSuffix}`;
       }
@@ -227,11 +232,38 @@ window.doVisualExcelExport = async function(format = 'pdf') {
         await _runSingleBatch(schoolsList, ' - בתי ספר');
         window.showToast?.(`📊 הופק קובץ עבור בתי ספר (${schoolsList.length}) - לא נמצאו גנים בעיר זו.`);
       }
+    } else if (mode === 'manager' && mgrSplit === 'split') {
+      let batchesRun = 0;
+      for (const mgrId of selectedMgrIds) {
+        const mgrObj = window.managers && window.managers[mgrId];
+        const mgrName = (mgrObj?.name || 'רכז').trim();
+        const mgrGardens = (typeof window.getGardensForManager === 'function' ? window.getGardensForManager(mgrId, gList) : gList.filter(g => {
+          if (mgrObj?.gardenIds && mgrObj.gardenIds.map(Number).includes(Number(g.id))) return true;
+          const mg = typeof window.gardenManager === 'function' ? window.gardenManager(g.id) : null;
+          return mg && (mg.id === mgrId || mg.name === mgrName);
+        }));
+
+        if (!mgrGardens.length) continue;
+        await _runSingleBatch(mgrGardens, ` - רכז ${mgrName}`);
+        batchesRun++;
+        await new Promise(r => setTimeout(r, 650));
+      }
+      if (batchesRun === 0) {
+        window.spAlert("לא נמצאו גנים משויכים עבור הרכזים שנבחרו");
+      }
     } else {
       let suffix = '';
       if (mode === 'city') {
         if (cityType === 'gan') suffix = ' - גנים';
         else if (cityType === 'sch') suffix = ' - בתי ספר';
+      } else if (mode === 'manager') {
+        if (selectedMgrIds.length === 1) {
+          const singleMgrObj = window.managers && window.managers[selectedMgrIds[0]];
+          const singleName = (singleMgrObj?.name || 'רכז').trim();
+          suffix = ` - רכז ${singleName}`;
+        } else {
+          suffix = ' - רכזים נבחרים';
+        }
       }
       await _runSingleBatch(gList, suffix);
     }

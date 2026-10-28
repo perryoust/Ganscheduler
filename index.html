@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>טומשין ניהול ושיבוץ | גרסה 113.76</title>
+  <title>טומשין ניהול ושיבוץ | גרסה 113.77</title>
   <meta name="description" content="טומשין ניהול ושיבוץ - מערכת לניהול ושיבוץ צהרונים">
   <!-- Open Graph / WhatsApp Preview Meta Tags -->
   <meta property="og:type" content="website">
@@ -27,7 +27,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=113.76" />
+  <link rel="stylesheet" href="styles.css?v=113.77" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -51,7 +51,7 @@
     }
   </style>
   <script>
-    window.APP_VERSION = '113.76';
+    window.APP_VERSION = '113.77';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -87,8 +87,8 @@
       }
     });
   </script>
-  <script type="module" src="firebase_init.js?v=113.76"></script>
-  <script src="assets.js?v=113.76"></script>
+  <script type="module" src="firebase_init.js?v=113.77"></script>
+  <script src="assets.js?v=113.77"></script>
   <script>
     // Load JSZip separately to avoid conflicts if needed
     (function () {
@@ -1247,10 +1247,28 @@
         </div>
 
         <div id="exp-mgr-wrap" class="fg" style="margin-bottom:10px;display:none">
-          <label>🚀 רכז/ת</label>
-          <select id="exp-mgr" style="width:100%">
-            <option value="">-- כל הרכזים --</option>
-          </select>
+          <select id="exp-mgr" style="display:none"></select>
+          <label style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-weight:700;">🚀 בחר רכזים (ניתן לסמן מרובים)</span>
+            <span id="exp-mgr-count" style="font-size:0.75rem;color:#1e40af;font-weight:bold;"></span>
+          </label>
+          <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;flex-wrap:wrap;">
+            <button type="button" class="btn bsm bw" onclick="toggleSelectVisibleManagers(true)" style="padding:3px 8px;font-size:0.75rem;" title="סמן את כל הרכזים">סמן הכל</button>
+            <button type="button" class="btn bsm bw" onclick="toggleSelectVisibleManagers(false)" style="padding:3px 8px;font-size:0.75rem;" title="נקה סימון">נקה</button>
+            <input type="text" id="exp-mgr-search" placeholder="🔍 חפש רכז/ת..." oninput="filterExportManagers()" style="flex:1;min-width:120px;font-size:0.82rem;padding:4px 8px;border-radius:5px;border:1px solid #ccc;box-sizing:border-box;">
+          </div>
+          <div id="exp-mgr-list" style="max-height: 160px; overflow-y: auto; border: 1px solid rgba(0,0,0,0.1); padding: 8px; border-radius: 6px; background: #fff; font-size: 14px;">
+            <!-- Manager checkboxes populated dynamically -->
+          </div>
+          <div style="display:flex; gap:8px; margin-top:8px; align-items:center; flex-wrap:wrap; background:#f8fafc; padding:6px 10px; border-radius:6px; border:1px solid #e2e8f0;">
+            <span style="font-size:0.78rem; font-weight:800; color:#334155;">צורת הפקה לרכזים:</span>
+            <label style="display:flex; align-items:center; gap:4px; font-size:0.8rem; cursor:pointer; font-weight:700; color:#1e293b;">
+              <input type="radio" name="exp-mgr-split" value="split" checked> 📁 קובץ / הדפסה נפרדת לכל רכז/ת
+            </label>
+            <label style="display:flex; align-items:center; gap:4px; font-size:0.8rem; cursor:pointer; font-weight:600; color:#64748b;">
+              <input type="radio" name="exp-mgr-split" value="combined"> 📄 קובץ / הדפסה מרוכזת לכולם יחד
+            </label>
+          </div>
         </div>
 
         <div id="exp-garden-wrap" class="fg" style="margin-bottom:10px;display:none">
@@ -4163,35 +4181,35 @@
     </div>
 
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <script src="utils.js?v=113.76"></script>
-    <script src="data_manager.js?v=113.76"></script>
-    <script src="data.js?v=113.76"></script>
-    <script src="firebase.js?v=113.76"></script>
-    <script src="invoices.js?v=113.76"></script>
-    <script src="invoices_import.js?v=113.76"></script>
-    <script src="invoices_export.js?v=113.76"></script>
-    <script src="invoices_scanner.js?v=113.76"></script>
-    <script src="suppliers.js?v=113.76"></script>
-    <script src="cal.js?v=113.76"></script>
-    <script src="activity.js?v=113.76"></script>
-    <script src="sched.js?v=113.76"></script>
-    <script src="gardens.js?v=113.76"></script>
-    <script src="export_v107.js?v=113.76"></script>
-    <script src="visual_excel.js?v=113.76"></script>
-    <script src="backup.js?v=113.76"></script>
-    <script src="version_vault.js?v=113.76"></script>
-    <script src="admin.js?v=113.76"></script>
-    <script src="import_export.js?v=113.76"></script>
-    <script src="core_globals.js?v=113.76"></script>
-    <script src="core_data.js?v=113.76"></script>
-    <script src="core_dash.js?v=113.76"></script>
-    <script src="worker_tasks.js?v=113.76"></script>
-    <script src="coordinator_app.js?v=113.76"></script>
-    <script src="purchasing_orders.js?v=113.76"></script>
-    <script src="purchasing_budget.js?v=113.76"></script>
-    <script src="pdfmake_orders.js?v=113.76"></script>
-    <script src="core_app.js?v=113.76"></script>
-    <script src="todo.js?v=113.76"></script>
+    <script src="utils.js?v=113.77"></script>
+    <script src="data_manager.js?v=113.77"></script>
+    <script src="data.js?v=113.77"></script>
+    <script src="firebase.js?v=113.77"></script>
+    <script src="invoices.js?v=113.77"></script>
+    <script src="invoices_import.js?v=113.77"></script>
+    <script src="invoices_export.js?v=113.77"></script>
+    <script src="invoices_scanner.js?v=113.77"></script>
+    <script src="suppliers.js?v=113.77"></script>
+    <script src="cal.js?v=113.77"></script>
+    <script src="activity.js?v=113.77"></script>
+    <script src="sched.js?v=113.77"></script>
+    <script src="gardens.js?v=113.77"></script>
+    <script src="export_v107.js?v=113.77"></script>
+    <script src="visual_excel.js?v=113.77"></script>
+    <script src="backup.js?v=113.77"></script>
+    <script src="version_vault.js?v=113.77"></script>
+    <script src="admin.js?v=113.77"></script>
+    <script src="import_export.js?v=113.77"></script>
+    <script src="core_globals.js?v=113.77"></script>
+    <script src="core_data.js?v=113.77"></script>
+    <script src="core_dash.js?v=113.77"></script>
+    <script src="worker_tasks.js?v=113.77"></script>
+    <script src="coordinator_app.js?v=113.77"></script>
+    <script src="purchasing_orders.js?v=113.77"></script>
+    <script src="purchasing_budget.js?v=113.77"></script>
+    <script src="pdfmake_orders.js?v=113.77"></script>
+    <script src="core_app.js?v=113.77"></script>
+    <script src="todo.js?v=113.77"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
       console.log('Ganscheduler Architecture: v' + (window.APP_VERSION || '103.82') + ' Ready');
