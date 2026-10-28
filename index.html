@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>טומשין ניהול ושיבוץ | גרסה 113.72</title>
+  <title>טומשין ניהול ושיבוץ | גרסה 113.73</title>
   <meta name="description" content="טומשין ניהול ושיבוץ - מערכת לניהול ושיבוץ צהרונים">
   <!-- Open Graph / WhatsApp Preview Meta Tags -->
   <meta property="og:type" content="website">
@@ -27,7 +27,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=113.72" />
+  <link rel="stylesheet" href="styles.css?v=113.73" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -51,7 +51,7 @@
     }
   </style>
   <script>
-    window.APP_VERSION = '113.72';
+    window.APP_VERSION = '113.73';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -97,7 +97,7 @@
         jz.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
         document.head.appendChild(jz);
         if (!window.APP_VERSION) {
-        window.APP_VERSION = '113.72';
+        window.APP_VERSION = '113.73';
       }
       }
     })();
@@ -1458,10 +1458,11 @@
           <select id="gedit-mgr-sel" style="width:100%;padding:4px;border-radius:4px;border:1px solid #90caf9"></select>
         </div>
 
-        <div style="display:flex;gap:7px;justify-content:flex-end;padding-top:10px;border-top:1px solid #e0e0e0; flex-wrap:wrap;">
+        <div style="display:flex;gap:7px;justify-content:flex-end;padding-top:10px;border-top:1px solid #e0e0e0; flex-wrap:wrap; align-items:center;">
           <button type="button" class="btn bsm" style="background:#25d366;color:#fff;border:none;border-radius:4px;padding:6px 12px;font-size:0.8rem;cursor:pointer;" onclick="exportGardenWA()">📋 העתק פרטים</button>
           <button type="button" class="btn bsm" id="gedit-close-btn" style="background:#ffebee;color:#c62828;border:1px solid #ffcdd2;margin-right:auto;border-radius:4px;padding:6px 12px;font-size:0.8rem;cursor:pointer;font-weight:700" onclick="window.openCloseGardenModal(window._geditGid)">🔒 סגירת צהרון...</button>
           <button type="button" class="btn bsm" id="gedit-reopen-btn" style="display:none;background:#e8f5e9;color:#2e7d32;border:1.5px solid #a5d6a7;margin-right:auto;border-radius:4px;padding:6px 12px;font-size:0.8rem;cursor:pointer;font-weight:800" onclick="window.executeReopenGarden(window._geditGid)">🔓 פתח גן מחדש</button>
+          <button type="button" class="btn bsm" id="gedit-del-btn" style="background:#fff;color:#c62828;border:1.5px solid #ef5350;border-radius:4px;padding:6px 12px;font-size:0.8rem;cursor:pointer;font-weight:700" onclick="window.executePermanentDeleteGarden(window._geditGid)" title="מחיקה מוחלטת של הגן מהמערכת">🗑️ מחיקה מוחלטת...</button>
           <button class="btn bp" onclick="saveGardenCard()">💾 שמור</button>
           <button class="btn bs" onclick="CM('gedit-m')">ביטול</button>
         </div>
@@ -1538,9 +1539,14 @@
         </div>
 
         <!-- התראת ביטחון היסטוריה -->
-        <div style="background:#e8f5e9; border:1px solid #a5d6a7; border-radius:6px; padding:8px 12px; margin-bottom:16px; font-size:0.78rem; color:#1b5e20; display:flex; align-items:center; gap:8px;">
+        <div style="background:#e8f5e9; border:1px solid #a5d6a7; border-radius:6px; padding:8px 12px; margin-bottom:12px; font-size:0.78rem; color:#1b5e20; display:flex; align-items:center; gap:8px;">
           <span style="font-size:1.1rem;">🛡️</span>
           <div><b>היסטוריית העבר מוגנת במלואה:</b> כל הפעילויות שהתקיימו עד תאריך הסגירה יישמרו לחלוטין בדוחות, ביומן ובחשבוניות.</div>
+        </div>
+
+        <div style="text-align:center; margin-bottom:14px; font-size:0.78rem; color:#64748b; background:#fff8e1; border:1px solid #ffe082; border-radius:6px; padding:6px 10px;">
+          <span>גן שנפתח בטעות או בוטל לפני שהתחיל? </span>
+          <button type="button" style="background:none; border:none; color:#c62828; font-weight:800; cursor:pointer; text-decoration:underline; font-size:0.78rem;" onclick="window.executePermanentDeleteGarden(window._closeGid)">🗑️ לחץ כאן למחיקה מוחלטת מהמערכת</button>
         </div>
 
         <!-- כפתורי פעולה -->
@@ -2404,6 +2410,7 @@
         <div style="display:flex;align-items:center;gap:6px">
           <button class="btn bsm" id="gm-close-btn" onclick="CM('gm');window.openCloseGardenModal(window.gmGid)" style="font-weight:700;display:inline-flex;align-items:center;gap:4px;background:#ffebee;color:#c62828;border:1px solid #ffcdd2" title="סגירת והשבתת צהרון">🔒 סגירת צהרון</button>
           <button class="btn bsm" id="gm-reopen-btn" onclick="CM('gm');window.executeReopenGarden(window.gmGid)" style="display:none;font-weight:800;align-items:center;gap:4px;background:#e8f5e9;color:#2e7d32;border:1.5px solid #a5d6a7" title="פתיחה מחדש של הגן">🔓 פתח גן מחדש</button>
+          <button class="btn bsm" id="gm-del-btn" onclick="CM('gm');window.executePermanentDeleteGarden(window.gmGid)" style="font-weight:700;display:inline-flex;align-items:center;gap:4px;background:#fff;color:#c62828;border:1.5px solid #ef5350" title="מחיקה מוחלטת של הגן מהמערכת">🗑️ מחיקה מוחלטת</button>
           <button class="btn bp bsm" onclick="CM('gm');openGardenEdit(window.gmGid)" style="font-weight:700;display:inline-flex;align-items:center;gap:4px">✏️ ערוך פרטי צהרון</button>
         </div>
       </div>
@@ -4159,7 +4166,7 @@
     <script src="utils.js?v=113.49"></script>
     <script src="data_manager.js?v=112.15"></script>
     <script src="data.js?v=113.48"></script>
-    <script src="firebase.js?v=113.05"></script>
+    <script src="firebase.js?v=113.73"></script>
     <script src="invoices.js?v=113.55"></script>
     <script src="invoices_import.js?v=112.15"></script>
     <script src="invoices_export.js?v=113.50"></script>
@@ -4168,16 +4175,16 @@
     <script src="cal.js?v=113.70"></script>
     <script src="activity.js?v=113.70"></script>
     <script src="sched.js?v=112.18"></script>
-    <script src="gardens.js?v=113.72"></script>
+    <script src="gardens.js?v=113.73"></script>
     <script src="export_v107.js?v=113.67"></script>
     <script src="visual_excel.js?v=113.71"></script>
     <script src="backup.js?v=113.57"></script>
     <script src="version_vault.js?v=113.57"></script>
     <script src="admin.js?v=112.15"></script>
     <script src="import_export.js?v=113.57"></script>
-    <script src="core_globals.js?v=113.72"></script>
-    <script src="core_data.js?v=113.69"></script>
-    <script src="core_dash.js?v=113.72"></script>
+    <script src="core_globals.js?v=113.73"></script>
+    <script src="core_data.js?v=113.73"></script>
+    <script src="core_dash.js?v=113.73"></script>
     <script src="worker_tasks.js?v=113.61"></script>
     <script src="coordinator_app.js?v=113.24"></script>
     <script src="purchasing_orders.js?v=113.50"></script>

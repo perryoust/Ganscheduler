@@ -464,11 +464,11 @@ async function saveToFirebase(silent = false, force = false) {
     window.cleanSupplierNamesBeforeSave();
 
     // ── Build split data payloads ──────────────────
-    if (Array.isArray(window._GARDENS_EXTRA) && window._GARDENS_EXTRA.length > 0) {
+    if (Array.isArray(window._GARDENS_EXTRA)) {
       if (!window.supEx) window.supEx = {};
       window.supEx['__gardens_extra'] = window._GARDENS_EXTRA;
     }
-    if (Array.isArray(window._GARDENS_ALL) && window._GARDENS_ALL.length > 0) {
+    if (Array.isArray(window._GARDENS_ALL)) {
       if (!window.supEx) window.supEx = {};
       window.supEx['__gardens_all'] = window._GARDENS_ALL;
     }
@@ -613,7 +613,7 @@ async function saveToFirebase(silent = false, force = false) {
         }).then(r => { if (r.ok) window._lastSavedPayloads.config = cfgStr; return r; })
       );
     }
-    if (isDirtyCg && Array.isArray(window._GARDENS_EXTRA) && window._GARDENS_EXTRA.length > 0) {
+    if (isDirtyCg && Array.isArray(window._GARDENS_EXTRA)) {
       saves.push(
         fetch(FB_ROOT + '/data/custom_gardens.json' + authQ, {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },

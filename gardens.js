@@ -216,12 +216,14 @@ function openGM(gid){
   document.getElementById('gm-pair-current').innerHTML = pairNotice;
   document.getElementById('gm-del-pair-btn').style.display = pair ? 'inline-block' : 'none';
 
-  // Toggle close / reopen button
+  // Toggle close / reopen / delete button
   const isGmClosed = typeof window.isGardenClosed === 'function' ? window.isGardenClosed(gid) : false;
   const gmCloseBtn = document.getElementById('gm-close-btn');
   const gmReopenBtn = document.getElementById('gm-reopen-btn');
+  const gmDelBtn = document.getElementById('gm-del-btn');
   if (gmCloseBtn) gmCloseBtn.style.display = isGmClosed ? 'none' : 'inline-flex';
   if (gmReopenBtn) gmReopenBtn.style.display = isGmClosed ? 'inline-flex' : 'none';
+  if (gmDelBtn) gmDelBtn.style.display = window.isReadOnly ? 'none' : 'inline-flex';
 
   // Group dropdown by city: current garden city at the top, followed by other cities
   const allOther = activeGList.filter(x => Number(x.id) !== Number(gid));
@@ -3955,5 +3957,148 @@ window.executeReopenGarden = async function(gid) {
     window.spAlert(successMsg);
   } else {
     alert(successMsg);
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+// 🗑️ מחיקה מוחלטת של גן מהמערכת (Permanent Garden Deletion)
+// ══════════════════════════════════════════════════════════════════
+window.executePermanentDeleteGarden = async function(gid) {
+  const numGid = Number(gid || window._geditGid || window.gmGid || window._closeGid);
+  if (!numGid) return;
+
+  if (window.isReadOnly || window.role === 'view' || window.role === 'coordinator' || window.role === 'manager' || window.role === 'vp') {
+    if (typeof window.showToast === 'function') window.showToast('⚠️ פעולה חסומה במצב צפייה בלבד');
+    return;
+  }
+
+  const g = (typeof window.G === 'function' ? window.G(numGid) : null) || {};
+  const ex = (window.supEx && window.supEx['g_' + numGid]) || {};
+  const name = (ex && ex.name) || (g && g.name) || `גן #${numGid}`;
+
+  const todayStr = (typeof window.td === 'function') ? window.td() : new Date().toISOString().split('T')[0];
+  const allEvs = (window.SCH || []).filter(s => Number(s.g) === numGid);
+  const pastEvs = allEvs.filter(s => s.d < todayStr && s.st !== 'can');
+
+  let confirmMsg = '';
+  if (pastEvs.length > 0) {
+    confirmMsg = `🚨 אזהרה קריטית - קיימת היסטוריה לגן זה!\n\nלגן "${name}" קיימות ${pastEvs.length} פעילויות שהתקיימו בעבר ביומן!\n\nמחיקה מוחלטת תמחק את הגן לצמיתות מכל הדוחות, היומן והמערכת.\nאם הגן פעל בעבר ורק נסגר כעת, מומלץ להשתמש ב-'🔒 סגירת צהרון' במקום מחיקה מוחלטת כדי לשמור על היסטוריית הפעילויות.\n\nהאם אתה בטוח לחלוטין שברצונך למחוק את "${name}" לצמיתות ללא יכולת שחזור?`;
+  } else {
+    confirmMsg = `🗑️ אישור מחיקה מוחלטת של גן/בית ספר:\n\nהאם אתה בטוח שברצונך למחוק לצמיתות את "${name}" מהמערכת?\n\n• הגן יוסר לחלוטין מכל הרשימות, הסינונים והדוחות\n` +
+      (allEvs.length > 0 ? `• יימחקו ${allEvs.length} שיבוצים הקשורים לגן זה\n` : '') +
+      `• הגן יוסר מזוגות, שלישיות, אשכולות ושיוכי רכזים\n\nפעולה זו היא בלתי הפיכה. האם למחוק?`;
+  }
+
+  const ok = (typeof window.spConfirm === 'function') ? await window.spConfirm(confirmMsg) : confirm(confirmMsg);
+  if (!ok) return;
+
+  // 1. Remove from all garden collections
+  if (Array.isArray(window._GARDENS_EXTRA)) {
+    window._GARDENS_EXTRA = window._GARDENS_EXTRA.filter(x => Number(x.id) !== numGid);
+  }
+  if (window.supEx && Array.isArray(window.supEx['__gardens_extra'])) {
+    window.supEx['__gardens_extra'] = window.supEx['__gardens_extra'].filter(x => Number(x.id) !== numGid);
+  }
+  if (Array.isArray(window._GARDENS_ALL)) {
+    window._GARDENS_ALL = window._GARDENS_ALL.filter(x => Number(x.id) !== numGid);
+  }
+  if (window.supEx && Array.isArray(window.supEx['__gardens_all'])) {
+    window.supEx['__gardens_all'] = window.supEx['__gardens_all'].filter(x => Number(x.id) !== numGid);
+  }
+  if (Array.isArray(window.GARDENS)) {
+    window.GARDENS = window.GARDENS.filter(x => Number(x.id) !== numGid);
+  }
+
+  // 2. Remove from activeGardens set
+  if (window.activeGardens && typeof window.activeGardens.delete === 'function') {
+    window.activeGardens.delete(numGid);
+  }
+
+  // 3. Remove supEx entry
+  if (window.supEx) {
+    delete window.supEx['g_' + numGid];
+  }
+
+  // 4. Remove all activities for this garden from SCH
+  if (Array.isArray(window.SCH)) {
+    window.SCH = window.SCH.filter(s => Number(s.g) !== numGid);
+  }
+  if (window.DataManager && typeof window.DataManager.buildIndexes === 'function') {
+    window.DataManager.buildIndexes();
+  }
+
+  // 5. Remove from pairs / trios
+  if (Array.isArray(window.pairs)) {
+    window.pairs = window.pairs.map(p => {
+      if (!(p.ids || []).map(Number).includes(numGid)) return p;
+      const remaining = p.ids.map(Number).filter(id => id !== numGid);
+      if (remaining.length < 2) return null; // dissolve pair
+      const remNames = remaining.map(id => (window.G && window.G(id)) ? (window.G(id).name || id) : id).join(' + ');
+      return {
+        ...p,
+        ids: remaining,
+        name: remNames
+      };
+    }).filter(Boolean);
+  }
+
+  // 6. Remove from clusters
+  if (window.clusters) {
+    Object.values(window.clusters).forEach(cl => {
+      if ((cl.gardenIds || []).map(Number).includes(numGid)) {
+        cl.gardenIds = cl.gardenIds.filter(id => Number(id) !== numGid);
+      }
+    });
+  }
+
+  // 7. Remove from managers
+  if (window.managers) {
+    Object.values(window.managers).forEach(m => {
+      if (m.gardenIds && Array.isArray(m.gardenIds)) {
+        m.gardenIds = m.gardenIds.filter(id => Number(id) !== numGid);
+      }
+    });
+  }
+
+  // 8. Remove from garden blocks / budgets
+  if (window.gardenBlocks) delete window.gardenBlocks[numGid];
+  if (window.schoolBudgets) delete window.schoolBudgets[numGid];
+
+  // 9. Remove worker tasks if any
+  if (Array.isArray(window.workerTasks)) {
+    window.workerTasks = window.workerTasks.filter(t => Number(t.gardenId) !== numGid);
+    if (typeof window.saveWorkerTasksToFirebase === 'function') {
+      window.saveWorkerTasksToFirebase();
+    }
+  }
+
+  // 10. Direct save to Firebase RTDB & LocalStorage
+  if (typeof window.save === 'function') {
+    await window.save(true);
+  }
+
+  // 11. Close modals
+  if (typeof window.CM === 'function') {
+    window.CM('gedit-m');
+    window.CM('gm');
+    window.CM('close-garden-modal');
+  }
+
+  // 12. Refresh UI
+  if (typeof window.refreshAppUI === 'function') {
+    window.refreshAppUI();
+  } else if (typeof window.refresh === 'function') {
+    window.refresh();
+  }
+  if (typeof window.renderGardens === 'function') window.renderGardens();
+  if (typeof window.renderCal === 'function') window.renderCal();
+
+  const doneMsg = `🗑️ הגן "${name}" נמחק לחלוטין מהמערכת!`;
+  if (typeof window.showToast === 'function') {
+    window.showToast(doneMsg);
+  } else if (typeof window.spAlert === 'function') {
+    window.spAlert(doneMsg);
+  } else {
+    alert(doneMsg);
   }
 };

@@ -1041,10 +1041,10 @@ async function save(immediate){
     // Save ALL entries with ALL fields — works with or without SRAWS
     // Persist garden lists into supEx before saving
     if (!window.supEx) window.supEx = {};
-    if (Array.isArray(window._GARDENS_EXTRA) && window._GARDENS_EXTRA.length > 0) {
+    if (Array.isArray(window._GARDENS_EXTRA)) {
       window.supEx['__gardens_extra'] = window._GARDENS_EXTRA;
     }
-    if (Array.isArray(window._GARDENS_ALL) && window._GARDENS_ALL.length > 0) {
+    if (Array.isArray(window._GARDENS_ALL)) {
       window.supEx['__gardens_all'] = window._GARDENS_ALL;
     }
     const data={
