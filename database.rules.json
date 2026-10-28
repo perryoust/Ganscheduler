@@ -51,8 +51,8 @@
       ".write": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).child('permAct').val() === true)"
     },
     "matzava": {
-      ".read": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || (root.child('users').child(auth.uid).exists() && root.child('users').child(auth.uid).child('permMatzava').val() !== false))",
-      ".write": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).child('permAct').val() === true || root.child('users').child(auth.uid).child('permMatzava').val() === true || root.child('users').child(auth.uid).child('role').val() === 'manager' || root.child('users').child(auth.uid).child('role').val() === 'vp')"
+      ".read": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).exists())",
+      ".write": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'manager' || root.child('users').child(auth.uid).child('role').val() === 'vp' || root.child('users').child(auth.uid).child('permAct').val() === true || root.child('users').child(auth.uid).child('permMatzava').val() === true)"
     },
     "schedules": {
       ".read": "auth != null && (auth.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || root.child('users').child(auth.uid).exists())",

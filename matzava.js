@@ -22,8 +22,9 @@
   };
 
   function canEditMatzava() {
-    const role = window.userRole || window.role;
-    return role === 'admin' || role === 'manager' || role === 'vp' || (!window.isReadOnly);
+    const role = window.userRole || window.role || (window._safeLS ? window._safeLS.getItem('gan_user_role') : localStorage.getItem('gan_user_role'));
+    const isMgr = role === 'admin' || role === 'manager' || role === 'vp' || window.permAllCities || (window._safeLS ? window._safeLS.getItem('gan_user_role') : localStorage.getItem('gan_user_role')) === 'manager';
+    return isMgr || (window.permMatzava === true) || (!window.isReadOnly);
   }
 
   function getYearKey() {
@@ -69,8 +70,15 @@
     let tok = null;
     if (typeof window._fbGetToken === 'function') {
       try { tok = await window._fbGetToken(); } catch (e) { }
-    } else if (window._fbUser) {
+    }
+    if (!tok && window._cachedToken) {
+      tok = window._cachedToken;
+    }
+    if (!tok && window._fbUser) {
       try { tok = await window._fbUser.getIdToken(false); } catch (e) { }
+    }
+    if (!tok && window._fbUser) {
+      try { tok = await window._fbUser.getIdToken(true); } catch (e) { }
     }
     return tok ? '?auth=' + tok : '';
   }
@@ -126,10 +134,21 @@
           window.MATZAVA_STATE.schools = [];
           window.MATZAVA_STATE.lastSync = null;
         }
+        if (force && window.showToast) {
+          window.showToast('✅ נתוני מצב"ה עודכנו מהענן בהצלחה');
+        }
+      } else {
+        console.warn('[Matzava] Load returned status:', res.status);
+        if (force && window.showToast) {
+          window.showToast('⚠️ שגיאה בטעינת נתונים מהענן: ' + res.status);
+        }
       }
       window.MATZAVA_STATE.loadedYear = y;
     } catch (e) {
       console.warn('[Matzava] Load error:', e);
+      if (force && window.showToast) {
+        window.showToast('⚠️ שגיאת רשת בטעינת מצב"ה: ' + e.message);
+      }
     } finally {
       window.MATZAVA_STATE.isLoading = false;
     }
@@ -1145,21 +1164,26 @@
     const s = window.MATZAVA_STATE;
     let list = s.records || [];
 
-    // Coordinator view restriction by cities
-    if (window.userRole === 'coordinator' && Array.isArray(window.coordCities) && window.coordCities.length > 0) {
-      list = list.filter(r => window.coordCities.some(c => (r.city || '').includes(c) || c.includes(r.city || '')));
-    }
+    const curRole = window.userRole || window.role || (window._safeLS ? window._safeLS.getItem('gan_user_role') : localStorage.getItem('gan_user_role'));
+    const isManagerRole = curRole === 'admin' || curRole === 'manager' || curRole === 'vp' || window.permAllCities || (Array.isArray(window.coordCities) && window.coordCities.includes('ALL'));
 
-    // Coordinator view restriction by garden IDs (supports matching hosted sub-gardens)
-    if (window.userRole === 'coordinator' && Array.isArray(window.coordGardenIds) && window.coordGardenIds.length > 0) {
-      const gIds = window.coordGardenIds.map(String);
-      list = list.filter(r => {
-        if (r.gardenId && gIds.includes(String(r.gardenId))) return true;
-        if (Array.isArray(r.subGardens) && r.subGardens.length > 0) {
-          return r.subGardens.some(sub => sub.gardenId && gIds.includes(String(sub.gardenId)));
-        }
-        return false;
-      });
+    if (!isManagerRole && curRole === 'coordinator') {
+      // Coordinator view restriction by cities
+      if (Array.isArray(window.coordCities) && window.coordCities.length > 0 && !window.coordCities.includes('ALL')) {
+        list = list.filter(r => window.coordCities.some(c => (r.city || '').includes(c) || c.includes(r.city || '')));
+      }
+
+      // Coordinator view restriction by garden IDs (supports matching hosted sub-gardens)
+      if (Array.isArray(window.coordGardenIds) && window.coordGardenIds.length > 0) {
+        const gIds = window.coordGardenIds.map(String);
+        list = list.filter(r => {
+          if (r.gardenId && gIds.includes(String(r.gardenId))) return true;
+          if (Array.isArray(r.subGardens) && r.subGardens.length > 0) {
+            return r.subGardens.some(sub => sub.gardenId && gIds.includes(String(sub.gardenId)));
+          }
+          return false;
+        });
+      }
     }
 
     if (s.selectedCity && s.selectedCity !== 'all') {
@@ -1193,8 +1217,13 @@
     const s = window.MATZAVA_STATE;
     let list = s.schools || [];
 
-    if (window.userRole === 'coordinator' && Array.isArray(window.coordCities) && window.coordCities.length > 0) {
-      list = list.filter(sc => window.coordCities.some(c => (sc.city || '').includes(c) || c.includes(sc.city || '')));
+    const curRole = window.userRole || window.role || (window._safeLS ? window._safeLS.getItem('gan_user_role') : localStorage.getItem('gan_user_role'));
+    const isManagerRole = curRole === 'admin' || curRole === 'manager' || curRole === 'vp' || window.permAllCities || (Array.isArray(window.coordCities) && window.coordCities.includes('ALL'));
+
+    if (!isManagerRole && curRole === 'coordinator') {
+      if (Array.isArray(window.coordCities) && window.coordCities.length > 0 && !window.coordCities.includes('ALL')) {
+        list = list.filter(sc => window.coordCities.some(c => (sc.city || '').includes(c) || c.includes(sc.city || '')));
+      }
     }
 
     if (s.selectedCity && s.selectedCity !== 'all') {
@@ -1231,8 +1260,13 @@
 
     let list = s.nutritionOnly || [];
 
-    if (window.userRole === 'coordinator' && Array.isArray(window.coordCities) && window.coordCities.length > 0) {
-      list = list.filter(n => window.coordCities.some(c => (n.city || '').includes(c) || c.includes(n.city || '')));
+    const curRole = window.userRole || window.role || (window._safeLS ? window._safeLS.getItem('gan_user_role') : localStorage.getItem('gan_user_role'));
+    const isManagerRole = curRole === 'admin' || curRole === 'manager' || curRole === 'vp' || window.permAllCities || (Array.isArray(window.coordCities) && window.coordCities.includes('ALL'));
+
+    if (!isManagerRole && curRole === 'coordinator') {
+      if (Array.isArray(window.coordCities) && window.coordCities.length > 0 && !window.coordCities.includes('ALL')) {
+        list = list.filter(n => window.coordCities.some(c => (n.city || '').includes(c) || c.includes(n.city || '')));
+      }
     }
 
     list = list.filter(n => (n.city || '').trim() === s.selectedCity.trim());
@@ -1253,7 +1287,10 @@
 
   // Main UI Render Function
   window.renderMatzavaTab = async function (targetEl) {
-    const container = targetEl || document.getElementById('p-matzava');
+    const modalBody = document.getElementById('matzava-modal-body');
+    const isModalOpen = modalBody && (modalBody.offsetParent !== null || (document.getElementById('matzava-modal') && document.getElementById('matzava-modal').style.display !== 'none'));
+    const container = targetEl || (isModalOpen ? modalBody : null) || document.getElementById('p-matzava') || modalBody;
+    if (!container) return;
     if (!container) return;
 
     if (!window.MATZAVA_STATE.loadedYear) {
@@ -1791,14 +1828,15 @@
             <div style="font-weight:800; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
               <span>👶 מצב"ה — מספרי ילדים ואלרגיות בצהרונים</span>
             </div>
-            <button onclick="document.getElementById('matzava-modal').style.display='none'" style="background:rgba(255,255,255,0.15); border:none; color:#fff; font-size:1.1rem; border-radius:6px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer;" title="סגור">✕</button>
+            <button onclick="document.getElementById('matzava-modal').style.setProperty('display','none','important')" style="background:rgba(255,255,255,0.15); border:none; color:#fff; font-size:1.1rem; border-radius:6px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer;" title="סגור">✕</button>
           </div>
           <div id="matzava-modal-body" style="flex:1; overflow-y:auto; padding:8px;"></div>
         </div>
       `;
       document.body.appendChild(modal);
     }
-    modal.style.display = 'flex';
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.style.setProperty('visibility', 'visible', 'important');
     const body = document.getElementById('matzava-modal-body');
     await window.renderMatzavaTab(body);
   };
