@@ -64,3 +64,12 @@ The workspace implements an automated data checkpoint vault in `version_vault.js
    - **Live Two-Way Garden Sync**: When gardens are updated in `#mgrm` and saved, `saveMgr()` immediately PATCHes `/users/${linkedUid}` with updated `coordGardenIds`, `coordCities`, and role.
    - **Dynamic Resolution**: `coordinator_app.js` resolves allowed gardens directly from `window.managers[window.coordManagerId].gardenIds` for zero-lag updates.
    - **Access Revocation**: When deleting a coordinator in `deleteMgr()`, system prompts and revokes/deletes user access from `/users`.
+
+## Roadmap & Backlog (משימות פיתוח עתידיות)
+### 1. מצב"ה לקייטנות ובוקרונים (Camps & Morning Programs Matzava)
+- **מטרה**: בניית מודול/טאב ייעודי למצב"ת תלמידים בקייטנות ובבוקרונים.
+- **אפיון מבנה נתונים ודרישות**:
+  1. **מבנה 4 עמודות נרשמים**: שונה מצורת הצהרונים הרגילה – כולל 4 עמודות נתוני רישום ייחודיות.
+  2. **נוסחאות וחישובים לפי עיר**: לכל עיר נוסחאות חישוב שונות של סה"כ תלמידים, איחודים ומנות מזון.
+  3. **קליטת 2 קבצים לעיר**: תמיכה בסריקה ומיזוג של שני קבצים נפרדים לאותה רשות (לדוגמה: קובץ בוקר/בוקרון מול קובץ יום מלא/צהרון).
+  4. **ממשק תצוגה וסנכרון**: טאב/תת-טאב נפרד, כרטיסיות מובייל מותאמות, פילוח אלרגיות, וייצוא ייעודי לאקסל.
