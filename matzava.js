@@ -1806,62 +1806,190 @@
             </div>
           </div>
         ` : (s.subTab === 'schools' ? `
-          <!-- SCHOOLS TABLE -->
-          <div style="background:#fff; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid #b2ebf2; overflow:hidden;">
-            <div style="overflow-x:auto;">
-              <table style="width:100%; border-collapse:collapse; font-size:0.85rem; text-align:right;">
-                <thead>
-                  <tr style="background:#006064; color:#fff; height:42px;">
-                    <th style="padding:8px 12px; font-weight:700; width:90px;">עיר</th>
-                    <th style="padding:8px 12px; font-weight:700; min-width:140px;">בית ספר</th>
-                    <th style="padding:8px 12px; font-weight:700; min-width:120px;">קבוצה / כיתה</th>
-                    <th style="padding:8px 12px; font-weight:700; min-width:140px;">כתובת</th>
-                    <th style="padding:8px 12px; font-weight:700; text-align:center; width:85px;">רשומים</th>
-                    <th style="padding:8px 12px; font-weight:700; text-align:center; width:95px; background:#00838f;">איחוד לקב'</th>
-                    <th style="padding:8px 12px; font-weight:700; min-width:220px;">אלרגיות והערות</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${filteredSchools.length === 0 ? `
-                    <tr>
-                      <td colspan="7" style="text-align:center; padding:40px 20px; color:#999;">
-                        <div style="font-size:2rem; margin-bottom:8px;">🏫</div>
-                        <div style="font-weight:700; font-size:1rem; color:#555;">לא נמצאו קבוצות בתי ספר התואמות לחיפוש / סינון</div>
-                      </td>
-                    </tr>
-                  ` : filteredSchools.map((sc, idx) => {
-                    const bg = idx % 2 === 0 ? '#fff' : '#f9fbfb';
-                    const isSterileBg = sc.isSterile ? 'background:#fff5f5;' : '';
-                    return `
-                      <tr style="${isSterileBg || `background:${bg};`} border-bottom:1px solid #e0f2f1; transition:background 0.15s;" onmouseover="this.style.background='#e0f7fa'" onmouseout="this.style.background='${sc.isSterile ? '#fff5f5' : bg}'">
-                        <td style="padding:10px 12px; font-weight:700; color:#37474f;">
-                          <span style="background:#eceff1; padding:2px 6px; border-radius:4px; font-size:0.75rem;">${sc.city}</span>
-                        </td>
-                        <td style="padding:10px 12px; font-weight:800; color:#006064;">${sc.school || '-'}</td>
-                        <td style="padding:10px 12px; font-weight:700; color:#00838f;">
-                          <span style="background:#e0f7fa; padding:3px 8px; border-radius:6px; border:1px solid #b2ebf2;">${sc.groupName}</span>
-                        </td>
-                        <td style="padding:10px 12px; color:#555; font-size:0.8rem;">${sc.address || '-'}</td>
-                        <td style="padding:10px 12px; text-align:center; font-weight:800; color:#006064; font-size:0.95rem;">${sc.kids}</td>
-                        <td style="padding:10px 12px; text-align:center; font-weight:800; color:#00838f; font-size:0.95rem; background:rgba(0,131,143,0.06);">${sc.mergedKids || sc.kids}</td>
-                        <td style="padding:10px 12px;">
-                          ${sc.isSterile ? `
-                            <div style="background:#ffebee; color:#c62828; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; display:inline-block; border:1px solid #ffcdd2;">
-                              🚨 ${sc.notes}
-                            </div>
-                          ` : (sc.notes ? `
-                            <div style="color:#444; font-size:0.78rem;">
-                              ${sc.isHomeMeal ? '🟡 ' : ''}${sc.notes}
-                            </div>
-                          ` : '<span style="color:#bbb;">-</span>')}
-                        </td>
-                      </tr>
-                    `;
-                  }).join('')}
-                </tbody>
-              </table>
+          <!-- SCHOOLS VIEW (Grouped by City and School with Sub-totals) -->
+          ${filteredSchools.length === 0 ? `
+            <div style="background:#fff; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid #b2ebf2; padding:50px 20px; text-align:center;">
+              <div style="font-size:2.5rem; margin-bottom:8px;">🏫</div>
+              <div style="font-weight:700; font-size:1.1rem; color:#006064;">לא נמצאו קבוצות בתי ספר התואמות לחיפוש / סינון</div>
             </div>
-          </div>
+          ` : (() => {
+            // Group by city -> school
+            const cityMap = new Map();
+            filteredSchools.forEach(sc => {
+              const cName = (sc.city || 'כללי').trim();
+              if (!cityMap.has(cName)) cityMap.set(cName, new Map());
+              const sMap = cityMap.get(cName);
+              const schName = (sc.school || 'בית ספר').trim();
+              if (!sMap.has(schName)) sMap.set(schName, []);
+              sMap.get(schName).push(sc);
+            });
+
+            return Array.from(cityMap.entries()).map(([cityName, schObjMap]) => {
+              let cityKids = 0;
+              let cityMerged = 0;
+              let cityClasses = 0;
+              let citySterile = 0;
+              schObjMap.forEach(classes => {
+                classes.forEach(sc => {
+                  cityKids += (sc.kids || 0);
+                  cityMerged += (sc.mergedKids || sc.kids || 0);
+                  cityClasses++;
+                  if (sc.isSterile) citySterile++;
+                });
+              });
+
+              return `
+                <div style="margin-bottom:28px; background:#fff; border-radius:14px; box-shadow:0 4px 16px rgba(0,0,0,0.06); border:1px solid #cbd5e1; overflow:hidden;">
+                  
+                  <!-- CITY ACCENT HEADER -->
+                  <div style="background:linear-gradient(135deg, #004d40 0%, #00695c 60%, #00897b 100%); color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      <span style="font-size:1.5rem;">🏙️</span>
+                      <div>
+                        <div style="font-size:1.25rem; font-weight:800; display:flex; align-items:center; gap:8px;">
+                          ${cityName}
+                          <span style="font-size:0.75rem; background:rgba(255,255,255,0.22); padding:2px 10px; border-radius:12px; font-weight:700;">
+                            ${schObjMap.size} מוסדות חינוך
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- City Summary Badges -->
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                      <div style="background:rgba(0,0,0,0.25); padding:6px 14px; border-radius:8px; font-size:0.85rem; font-weight:700;">
+                        סה"כ בעיר: <b style="font-size:1.15rem; color:#80cbc4;">${cityKids.toLocaleString()}</b> רשומים
+                      </div>
+                      <div style="background:rgba(0,0,0,0.25); padding:6px 14px; border-radius:8px; font-size:0.85rem; font-weight:700;">
+                        באיחוד: <b style="font-size:1.15rem; color:#b2dfdb;">${cityMerged.toLocaleString()}</b>
+                      </div>
+                      <div style="background:rgba(255,255,255,0.18); padding:6px 12px; border-radius:8px; font-size:0.85rem; font-weight:700;">
+                        <b>${cityClasses}</b> כיתות / קבוצות
+                      </div>
+                      ${citySterile > 0 ? `
+                        <div style="background:#ef5350; color:#fff; padding:6px 12px; border-radius:8px; font-size:0.85rem; font-weight:800;">
+                          🚨 ${citySterile} התראות אלרגיה
+                        </div>
+                      ` : ''}
+                    </div>
+                  </div>
+
+                  <!-- SCHOOLS LIST WITHIN CITY -->
+                  <div style="padding:16px; display:flex; flex-direction:column; gap:18px; background:#f8fafc;">
+                    ${Array.from(schObjMap.entries()).map(([schoolName, classes]) => {
+                      let schKidsTotal = 0;
+                      let schMergedTotal = 0;
+                      let schSterile = 0;
+                      let schAddress = '';
+
+                      classes.forEach(c => {
+                        schKidsTotal += (c.kids || 0);
+                        schMergedTotal += (c.mergedKids || c.kids || 0);
+                        if (c.isSterile) schSterile++;
+                        if (!schAddress && c.address) schAddress = c.address;
+                      });
+
+                      return `
+                        <div style="background:#fff; border-radius:10px; border:1px solid #b2dfdb; box-shadow:0 2px 8px rgba(0,0,0,0.03); overflow:hidden;">
+                          
+                          <!-- School Card Header -->
+                          <div style="background:#e0f2f1; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-bottom:1px solid #b2dfdb;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                              <span style="font-size:1.3rem;">🏫</span>
+                              <div>
+                                <span style="font-size:1.05rem; font-weight:800; color:#004d40;">${schoolName}</span>
+                                ${schAddress ? `<span style="font-size:0.75rem; color:#546e7a; margin-right:8px; background:#fff; padding:2px 8px; border-radius:4px; border:1px solid #cfd8dc;">📍 ${schAddress}</span>` : ''}
+                              </div>
+                            </div>
+
+                            <!-- School Totals Pills -->
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                              <div style="background:#004d40; color:#fff; padding:4px 12px; border-radius:6px; font-size:0.82rem; font-weight:700;">
+                                סה"כ תלמידים: <b style="font-size:1.05rem; color:#80cbc4;">${schKidsTotal}</b>
+                              </div>
+                              <div style="background:#00695c; color:#fff; padding:4px 12px; border-radius:6px; font-size:0.82rem; font-weight:700;">
+                                באיחוד: <b style="font-size:1.05rem; color:#b2dfdb;">${schMergedTotal}</b>
+                              </div>
+                              <div style="background:#fff; color:#004d40; border:1px solid #80cbc4; padding:4px 10px; border-radius:6px; font-size:0.82rem; font-weight:700;">
+                                <b>${classes.length}</b> כיתות
+                              </div>
+                              ${schSterile > 0 ? `
+                                <div style="background:#ffebee; color:#c62828; border:1px solid #ffcdd2; padding:4px 10px; border-radius:6px; font-size:0.8rem; font-weight:800;">
+                                  🚨 ${schSterile} אלרגיות
+                                </div>
+                              ` : ''}
+                            </div>
+                          </div>
+
+                          <!-- School Classes Table -->
+                          <div style="overflow-x:auto;">
+                            <table style="width:100%; border-collapse:collapse; font-size:0.85rem; text-align:right;">
+                              <thead>
+                                <tr style="background:#f4fbfb; color:#37474f; height:34px; border-bottom:1px solid #e0f2f1; font-size:0.8rem;">
+                                  <th style="padding:6px 14px; font-weight:700; width:180px;">קבוצה / כיתה</th>
+                                  <th style="padding:6px 14px; font-weight:700; text-align:center; width:110px;">רשומים בצהרון</th>
+                                  <th style="padding:6px 14px; font-weight:700; text-align:center; width:120px; background:rgba(0,105,92,0.06);">איחוד לקבוצה</th>
+                                  <th style="padding:6px 14px; font-weight:700;">אלרגיות והערות</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                ${classes.map((sc, idx) => {
+                                  const rowBg = idx % 2 === 0 ? '#fff' : '#fafafa';
+                                  const sterileStyle = sc.isSterile ? 'background:#fff5f5;' : `background:${rowBg};`;
+                                  return `
+                                    <tr style="${sterileStyle} border-bottom:1px solid #eef2f6; transition:background 0.15s;" onmouseover="this.style.background='#e0f2f1'" onmouseout="this.style.background='${sc.isSterile ? '#fff5f5' : rowBg}'">
+                                      <td style="padding:8px 14px; font-weight:700; color:#004d40;">
+                                        <span style="background:#e0f2f1; color:#004d40; padding:3px 8px; border-radius:5px; border:1px solid #b2dfdb; font-size:0.82rem;">
+                                          ${sc.groupName}
+                                        </span>
+                                      </td>
+                                      <td style="padding:8px 14px; text-align:center; font-weight:800; font-size:0.95rem; color:#263238;">
+                                        ${sc.kids}
+                                      </td>
+                                      <td style="padding:8px 14px; text-align:center; font-weight:800; font-size:0.95rem; color:#00695c; background:rgba(0,105,92,0.04);">
+                                        ${sc.mergedKids || sc.kids}
+                                      </td>
+                                      <td style="padding:8px 14px;">
+                                        ${sc.isSterile ? `
+                                          <div style="background:#ffebee; color:#c62828; padding:3px 8px; border-radius:5px; font-size:0.75rem; font-weight:700; display:inline-block; border:1px solid #ffcdd2;">
+                                            🚨 ${sc.notes}
+                                          </div>
+                                        ` : (sc.notes ? `
+                                          <div style="color:#455a64; font-size:0.78rem;">
+                                            ${sc.isHomeMeal ? '🟡 ' : ''}${sc.notes}
+                                          </div>
+                                        ` : '<span style="color:#cfd8dc;">-</span>')}
+                                      </td>
+                                    </tr>
+                                  `;
+                                }).join('')}
+                              </tbody>
+                              <tfoot>
+                                <tr style="background:#f1f8f7; font-weight:800; border-top:2px solid #b2dfdb;">
+                                  <td style="padding:8px 14px; color:#004d40;">
+                                    סה"כ ${schoolName}:
+                                  </td>
+                                  <td style="padding:8px 14px; text-align:center; color:#004d40; font-size:1.05rem;">
+                                    ${schKidsTotal}
+                                  </td>
+                                  <td style="padding:8px 14px; text-align:center; color:#00695c; font-size:1.05rem; background:rgba(0,105,92,0.08);">
+                                    ${schMergedTotal}
+                                  </td>
+                                  <td style="padding:8px 14px; font-size:0.75rem; color:#546e7a;">
+                                    ${schSterile > 0 ? `⚠️ כולל ${schSterile} כיתות אלרגיה` : '✓ ללא התראות אלרגיה'}
+                                  </td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+              `;
+            }).join('');
+          })()}
         ` : `
           <!-- NUTRITION ONLY TABLE -->
           <div style="background:#fff; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid #ffe0b2; overflow:hidden;">
