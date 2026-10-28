@@ -1547,7 +1547,7 @@
               <!-- Address & Host Info -->
               <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:0.75rem; color:#64748b; margin-top:5px; line-height:1.3;">
                 ${r.address ? `<span>📍 ${r.address}</span>` : ''}
-                ${safeHostGarden && safeHostGarden !== safeRowName ? `<span style="color:#6a1b9a; font-weight:700;">🏠 מארח: ${safeHostGarden}</span>` : ''}
+                ${safeHostGarden && safeHostGarden !== safeRowName ? `<span style="color:#6a1b9a; font-weight:700;">🏠 ${safeHostGarden}</span>` : ''}
                 ${r.kids10 || r.kids11 ? `<span style="color:#475569; font-weight:600;">(10ח': ${r.kids10 || 0}${r.kids11 ? ` | 11ח': ${r.kids11}` : ''})</span>` : ''}
               </div>
 
@@ -1557,7 +1557,7 @@
                   <div style="font-size:0.68rem; font-weight:700; color:#6a1b9a;">פירוט גנים באיחוד:</div>
                   ${r.subGardens.map(sub => `
                     <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:#6a1b9a;">
-                      <span>${sub.role === 'מארח' ? '🏠' : '↳'} <b>${sub.name}</b> (${sub.role})</span>
+                      <span>${sub.role === 'מארח' ? '🏠' : '↳'} <b>${sub.name}</b></span>
                       <span style="font-weight:700; color:#4a148c;">${sub.kidsTotal} ילדים</span>
                     </div>
                   `).join('')}
