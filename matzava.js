@@ -1534,28 +1534,6 @@
                       onmouseover="this.style.background='#e0f7fa'" onmouseout="this.style.background='transparent'">
                       📊 ייצוא לאקסל מעוצב
                     </button>
-
-                    <div style="height:1px; background:#e2e8f0; margin:4px 0;"></div>
-
-                    <button onclick="window.toggleMatzavaAdminMenu(); window.exportMatzavaJSON();" 
-                      style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#6a1b9a; display:flex; align-items:center; gap:8px; cursor:pointer;" 
-                      onmouseover="this.style.background='#f3e5f5'" onmouseout="this.style.background='transparent'">
-                      💾 גיבוי JSON מלא
-                    </button>
-
-                    <label style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#4a148c; display:flex; align-items:center; gap:8px; cursor:pointer; box-sizing:border-box; margin:0;" 
-                      onmouseover="this.style.background='#ede7f6'" onmouseout="this.style.background='transparent'">
-                      📥 שחזור מגיבוי JSON
-                      <input type="file" accept=".json" style="display:none;" onchange="window.toggleMatzavaAdminMenu(); window.importMatzavaJSON(this);">
-                    </label>
-
-                    <div style="height:1px; background:#e2e8f0; margin:4px 0;"></div>
-
-                    <button onclick="window.toggleMatzavaAdminMenu(); window.openVersionVaultModal && window.openVersionVaultModal();" 
-                      style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#37474f; display:flex; align-items:center; gap:8px; cursor:pointer;" 
-                      onmouseover="this.style.background='#eceff1'" onmouseout="this.style.background='transparent'">
-                      📦 כספת גיבויים
-                    </button>
                   </div>
                 </div>
               ` : `
