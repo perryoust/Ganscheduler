@@ -21,9 +21,25 @@
     loadedYear: null
   };
 
+  function getSafeRole() {
+    try {
+      if (window.userRole) return window.userRole;
+      if (window.role) return window.role;
+      if (window._safeLS && typeof window._safeLS.getItem === 'function') {
+        const r = window._safeLS.getItem('gan_user_role');
+        if (r) return r;
+      }
+      if (typeof localStorage !== 'undefined') {
+        const r = localStorage.getItem('gan_user_role');
+        if (r) return r;
+      }
+    } catch (e) {}
+    return 'view';
+  }
+
   function canEditMatzava() {
-    const role = window.userRole || window.role || (window._safeLS ? window._safeLS.getItem('gan_user_role') : localStorage.getItem('gan_user_role'));
-    const isMgr = role === 'admin' || role === 'manager' || role === 'vp' || window.permAllCities || (window._safeLS ? window._safeLS.getItem('gan_user_role') : localStorage.getItem('gan_user_role')) === 'manager';
+    const role = getSafeRole();
+    const isMgr = role === 'admin' || role === 'manager' || role === 'vp' || window.permAllCities;
     return isMgr || (window.permMatzava === true) || (!window.isReadOnly);
   }
 
@@ -317,12 +333,12 @@
       throw new Error('ספריית ExcelJS לא נטענה');
     }
 
-    const cleanFn = (fileName || '').replace(/[\u200E\u200F\uFEFF]/g, '').trim();
+    const cleanFn = (fileName || '').replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '').trim();
     const wb = new window.ExcelJS.Workbook();
     await wb.xlsx.load(arrayBuffer);
 
-    // Prefer worksheet named "הזמנה"
-    let ws = wb.getWorksheet('הזמנה') || wb.worksheets[0];
+    // Prefer worksheet named "הזמנה", "בתי ספר", or first sheet
+    let ws = wb.getWorksheet('הזמנה') || wb.getWorksheet('בתי ספר') || wb.getWorksheet('בית ספר') || wb.worksheets[0];
     if (!ws) throw new Error('לא נמצא גיליון בקובץ ' + cleanFn);
 
     const rawRows = [];
@@ -338,8 +354,10 @@
 
     // Detect if this is a School file (by filename or sheet content)
     const fnLower = cleanFn.toLowerCase();
+    const sheetNameLower = (ws.name || '').toLowerCase();
     const firstFewRowsText = rawRows.slice(0, 3).map(r => (r || []).join(' ')).join(' ');
-    const isSchoolFile = fnLower.includes('בתי ספר') || fnLower.includes('בית ספר') || firstFewRowsText.includes('בתי ספר');
+    const isSchoolFile = fnLower.includes('בתי ספר') || fnLower.includes('בית ספר') || fnLower.includes('ביהס') || fnLower.includes('ביה"ס') ||
+                         sheetNameLower.includes('בתי ספר') || sheetNameLower.includes('בית ספר') || firstFewRowsText.includes('בתי ספר') || firstFewRowsText.includes('בי"ס');
 
     // ───────────────────────────────────────────────────────────
     // A. SCHOOLS PARSER (Multi-section smart parser)
@@ -385,7 +403,7 @@
             if (!val) continue;
             if (!secCity && ['פ"ת', 'פתח תקווה', 'נס ציונה', 'ראש העין', 'גבעתיים', 'באר יעקב'].some(c => val.includes(c))) {
               secCity = val;
-            } else if (!secSchool && (val.includes('בית ספר') || val.includes('בי"ס'))) {
+            } else if (!secSchool && (val.includes('בית ספר') || val.includes('בי"ס') || val.includes('ביהס') || val.includes('ביה"ס'))) {
               secSchool = val;
             } else if (!secAddr && (val.includes("רח'") || val.includes('רחוב') || val.includes('שד'))) {
               secAddr = val;
@@ -408,7 +426,7 @@
           const cleanCity = (secCity || 'בתי ספר').trim();
           const cleanSchool = (secSchool || 'בית ספר').trim();
           const cleanGroup = (groupName || 'קבוצה').trim();
-          const schId = 'sch_' + cleanCity.replace(/[\s"'/\\()]/g, '_') + '_' + cleanSchool.replace(/[\s"'/\\()]/g, '_') + '_' + cleanGroup.replace(/[\s"'/\\()]/g, '_');
+          const schId = 'sch_' + cleanCity.replace(/[\s"'/\\()]/g, '_') + '_' + cleanSchool.replace(/[\s"'/\\()]/g, '_') + '_' + cleanGroup.replace(/[\s"'/\\()]/g, '_') + '_' + (startRow + r);
 
           schools.push({
             id: schId,
@@ -779,16 +797,21 @@
 
     const scannedFiles = [];
     try {
-      for await (const entry of dirHandle.values()) {
-        const cleanName = entry.name.replace(/[\u200E\u200F\uFEFF]/g, '').trim();
-        if (entry.kind === 'file' && cleanName.endsWith('.xlsx')) {
-          if (cleanName.startsWith('~$')) {
-            // Excel temporary lock file, skip
-            continue;
+      async function scanDirectory(handle) {
+        for await (const entry of handle.values()) {
+          const cleanName = entry.name.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '').trim();
+          if (entry.kind === 'file' && cleanName.endsWith('.xlsx')) {
+            if (!cleanName.startsWith('~$')) {
+              scannedFiles.push(entry);
+            }
+          } else if (entry.kind === 'directory') {
+            try {
+              await scanDirectory(entry);
+            } catch (eDir) {}
           }
-          scannedFiles.push(entry);
         }
       }
+      await scanDirectory(dirHandle);
     } catch (e) {
       console.error(e);
       if (window.showToast) window.showToast('❌ שגיאה בסריקת התיקייה: ' + e.message);
@@ -808,7 +831,7 @@
 
     for (let i = 0; i < scannedFiles.length; i++) {
       const entry = scannedFiles[i];
-      const cleanName = entry.name.replace(/[\u200E\u200F\uFEFF]/g, '').trim();
+      const cleanName = entry.name.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '').trim();
       if (window.showToast) {
         window.showToast(`⏳ קורא (${i + 1}/${scannedFiles.length}): ${cleanName}`, 30000);
       }
@@ -857,7 +880,7 @@
 
     const schMap = new Map();
     allSchools.forEach(s => {
-      const key = (s.city || '') + '__' + (s.school || '') + '__' + (s.groupName || '');
+      const key = (s.city || '') + '__' + (s.school || '') + '__' + (s.groupName || '') + '__' + (s.kids || 0) + '__' + (s.mergedKids || 0) + '__' + (s.notes || '');
       schMap.set(key, s);
     });
     window.MATZAVA_STATE.schools = Array.from(schMap.values());
@@ -910,9 +933,20 @@
         res.nutritionOnly.forEach(n => nutMap.set((n.city || '') + '__' + (n.name || ''), n));
         window.MATZAVA_STATE.nutritionOnly = Array.from(nutMap.values());
 
-        const schMap = new Map(window.MATZAVA_STATE.schools.map(s => [(s.city || '') + '__' + (s.school || '') + '__' + (s.groupName || ''), s]));
-        res.schools.forEach(s => schMap.set((s.city || '') + '__' + (s.school || '') + '__' + (s.groupName || ''), s));
+        const schMap = new Map(window.MATZAVA_STATE.schools.map(s => [
+          (s.city || '') + '__' + (s.school || '') + '__' + (s.groupName || '') + '__' + (s.kids || 0) + '__' + (s.mergedKids || 0) + '__' + (s.notes || ''),
+          s
+        ]));
+        res.schools.forEach(s => {
+          const key = (s.city || '') + '__' + (s.school || '') + '__' + (s.groupName || '') + '__' + (s.kids || 0) + '__' + (s.mergedKids || 0) + '__' + (s.notes || '');
+          schMap.set(key, s);
+        });
         window.MATZAVA_STATE.schools = Array.from(schMap.values());
+
+        // Auto-switch to schools subTab if school file was imported
+        if (res.schools.length > 0 && res.records.length === 0) {
+          window.MATZAVA_STATE.subTab = 'schools';
+        }
 
         await window.saveMatzavaToFirebase();
         window.renderMatzavaTab();
@@ -1164,7 +1198,7 @@
     const s = window.MATZAVA_STATE;
     let list = s.records || [];
 
-    const curRole = window.userRole || window.role || (window._safeLS ? window._safeLS.getItem('gan_user_role') : localStorage.getItem('gan_user_role'));
+    const curRole = getSafeRole();
     const isManagerRole = curRole === 'admin' || curRole === 'manager' || curRole === 'vp' || window.permAllCities || (Array.isArray(window.coordCities) && window.coordCities.includes('ALL'));
 
     if (!isManagerRole && curRole === 'coordinator') {
@@ -1187,7 +1221,13 @@
     }
 
     if (s.selectedCity && s.selectedCity !== 'all') {
-      list = list.filter(r => (r.city || '').trim() === s.selectedCity.trim());
+      list = list.filter(r => {
+        const c1 = (r.city || '').trim();
+        const c2 = s.selectedCity.trim();
+        if (c1 === c2) return true;
+        if ((c1 === 'פ"ת' && c2.includes('פתח')) || (c1.includes('פתח') && c2 === 'פ"ת')) return true;
+        return false;
+      });
     }
 
     if (s.searchQuery) {
@@ -1217,7 +1257,7 @@
     const s = window.MATZAVA_STATE;
     let list = s.schools || [];
 
-    const curRole = window.userRole || window.role || (window._safeLS ? window._safeLS.getItem('gan_user_role') : localStorage.getItem('gan_user_role'));
+    const curRole = getSafeRole();
     const isManagerRole = curRole === 'admin' || curRole === 'manager' || curRole === 'vp' || window.permAllCities || (Array.isArray(window.coordCities) && window.coordCities.includes('ALL'));
 
     if (!isManagerRole && curRole === 'coordinator') {
@@ -1227,7 +1267,13 @@
     }
 
     if (s.selectedCity && s.selectedCity !== 'all') {
-      list = list.filter(sc => (sc.city || '').trim() === s.selectedCity.trim());
+      list = list.filter(sc => {
+        const c1 = (sc.city || '').trim();
+        const c2 = s.selectedCity.trim();
+        if (c1 === c2) return true;
+        if ((c1 === 'פ"ת' && c2.includes('פתח')) || (c1.includes('פתח') && c2 === 'פ"ת')) return true;
+        return false;
+      });
     }
 
     if (s.searchQuery) {
@@ -1260,7 +1306,7 @@
 
     let list = s.nutritionOnly || [];
 
-    const curRole = window.userRole || window.role || (window._safeLS ? window._safeLS.getItem('gan_user_role') : localStorage.getItem('gan_user_role'));
+    const curRole = getSafeRole();
     const isManagerRole = curRole === 'admin' || curRole === 'manager' || curRole === 'vp' || window.permAllCities || (Array.isArray(window.coordCities) && window.coordCities.includes('ALL'));
 
     if (!isManagerRole && curRole === 'coordinator') {
@@ -1269,7 +1315,13 @@
       }
     }
 
-    list = list.filter(n => (n.city || '').trim() === s.selectedCity.trim());
+    list = list.filter(n => {
+      const c1 = (n.city || '').trim();
+      const c2 = s.selectedCity.trim();
+      if (c1 === c2) return true;
+      if ((c1 === 'פ"ת' && c2.includes('פתח')) || (c1.includes('פתח') && c2 === 'פ"ת')) return true;
+      return false;
+    });
 
     if (s.searchQuery) {
       const q = s.searchQuery.toLowerCase().trim();
