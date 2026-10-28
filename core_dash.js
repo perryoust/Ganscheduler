@@ -349,7 +349,7 @@ function ST(t){
   });
   
   // Hide all act panels + admin panel + purch panels, show only active
-  const allPanels = [...TABS, 'admin', 'pdash', 'pinvoices', 'psup'];
+  const allPanels = [...TABS, 'admin', 'pdash', 'pinvoices', 'psup', 'matzava'];
   allPanels.forEach(x=>{
     const panelEl=document.getElementById('p-'+x);
     if(panelEl){
@@ -358,6 +358,9 @@ function ST(t){
       else panelEl.style.display='none';
     }
   });
+
+  const mMatzava = document.getElementById('modeBtn-matzava');
+  if(mMatzava && t!=='matzava') mMatzava.classList.remove('active');
 
   // purch panels are managed by switchMode, not ST
   if(t==='admin' || t==='worker_tasks'){

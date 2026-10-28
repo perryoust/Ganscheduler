@@ -49,6 +49,12 @@ async function switchMode(mode){
   
   const mPurch = document.getElementById('modeBtn-purch');
   if(mPurch) mPurch.classList.toggle('active', mode==='purch');
+
+  const mMatzava = document.getElementById('modeBtn-matzava');
+  if(mMatzava) mMatzava.classList.toggle('active', mode==='matzava');
+
+  const pMatzava = document.getElementById('p-matzava');
+  if(pMatzava) pMatzava.style.display = mode==='matzava' ? 'block' : 'none';
   // Mobile nav: show correct bar
   // Mobile nav — only manipulate on mobile screens (CSS handles desktop hide)
   const mnPurch = document.getElementById('mob-nav-purch');
@@ -67,6 +73,19 @@ async function switchMode(mode){
     // Force to 'cal' when switching to 'act' mode
     const _targetTab = 'cal';
     if(typeof window.ST === 'function') window.ST(_targetTab);
+  } else if(mode==='matzava') {
+    // Hide all purch panels
+    PURCH_TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el) el.style.display='none'; });
+    // Hide all act panels
+    if(Array.isArray(window.TABS)){
+      window.TABS.forEach(t=>{ const el=document.getElementById('p-'+t); if(el){ el.classList.remove('active'); el.style.display='none'; } });
+    }
+    const adminEl = document.getElementById('p-admin');
+    if(adminEl) adminEl.style.display = 'none';
+    const workerEl = document.getElementById('c-worker_tasks');
+    if(workerEl) workerEl.style.display = 'none';
+
+    if(typeof window.renderMatzavaTab === 'function') window.renderMatzavaTab();
   } else {
     // Hide all act panels (use both class removal and display:none to be safe)
     if(Array.isArray(window.TABS)){
