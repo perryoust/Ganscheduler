@@ -86,6 +86,9 @@ async function switchMode(mode){
     if(workerEl) workerEl.style.display = 'none';
 
     if(typeof window.renderMatzavaTab === 'function') window.renderMatzavaTab();
+    if(typeof window.triggerSilentMatzavaSync === 'function') {
+      window.triggerSilentMatzavaSync();
+    }
   } else {
     // Hide all act panels (use both class removal and display:none to be safe)
     if(Array.isArray(window.TABS)){

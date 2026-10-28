@@ -110,7 +110,7 @@
   }
 
   // Load data from Firebase Realtime Database (with instant LocalStorage fallback)
-  window.loadMatzavaFromFirebase = async function (force = false) {
+  window.loadMatzavaFromFirebase = async function (force = false, silent = false) {
     const y = getYearKey();
     if (!force && window.MATZAVA_STATE.loadedYear === y && (window.MATZAVA_STATE.records || []).length > 0 && (window.MATZAVA_STATE.schools || []).length > 0) {
       return;
@@ -161,23 +161,71 @@
           window.MATZAVA_STATE.schools = [];
           window.MATZAVA_STATE.lastSync = null;
         }
-        if (force && window.showToast) {
+        if (force && !silent && window.showToast) {
           window.showToast('✅ נתוני מצב"ה עודכנו מהענן בהצלחה');
         }
       } else {
         console.warn('[Matzava] Load returned status:', res.status);
-        if (force && window.showToast) {
+        if (force && !silent && window.showToast) {
           window.showToast('⚠️ שגיאה בטעינת נתונים מהענן: ' + res.status);
         }
       }
       window.MATZAVA_STATE.loadedYear = y;
     } catch (e) {
       console.warn('[Matzava] Load error:', e);
-      if (force && window.showToast) {
+      if (force && !silent && window.showToast) {
         window.showToast('⚠️ שגיאת רשת בטעינת מצב"ה: ' + e.message);
       }
     } finally {
       window.MATZAVA_STATE.isLoading = false;
+    }
+  };
+
+  // Automatic silent background cloud fetch on tab click (Stale-While-Revalidate)
+  window.triggerSilentMatzavaSync = async function () {
+    if (window.MATZAVA_STATE.isSilentSyncing) return;
+    
+    // Throttle: avoid spamming RTDB if called multiple times within 10 seconds
+    const now = Date.now();
+    if (window.MATZAVA_STATE._lastSilentSyncTime && (now - window.MATZAVA_STATE._lastSilentSyncTime < 10000)) {
+      return;
+    }
+    
+    window.MATZAVA_STATE.isSilentSyncing = true;
+    try {
+      // Force fetch fresh from RTDB silently (silent=true means 0 popups/toasts)
+      await window.loadMatzavaFromFirebase(true, true);
+      window.MATZAVA_STATE._lastSilentSyncTime = Date.now();
+
+      // If Matzava view is currently open (modal or main panel), re-render seamlessly
+      const modal = document.getElementById('matzava-modal');
+      const isModalOpen = modal && modal.style.display !== 'none';
+      const pMatzava = document.getElementById('p-matzava');
+      const isPanelVisible = pMatzava && pMatzava.style.display !== 'none';
+
+      if (isModalOpen || isPanelVisible) {
+        const searchInput = document.getElementById('matzava-search-input');
+        const wasSearchFocused = (document.activeElement === searchInput);
+        const selStart = searchInput ? searchInput.selectionStart : null;
+        const selEnd = searchInput ? searchInput.selectionEnd : null;
+
+        const target = isModalOpen ? document.getElementById('matzava-modal-body') : pMatzava;
+        await window.renderMatzavaTab(target);
+
+        if (wasSearchFocused) {
+          const newSearchInput = document.getElementById('matzava-search-input');
+          if (newSearchInput) {
+            newSearchInput.focus();
+            if (selStart !== null && selEnd !== null) {
+              newSearchInput.setSelectionRange(selStart, selEnd);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Matzava] Silent background sync error:', err);
+    } finally {
+      window.MATZAVA_STATE.isSilentSyncing = false;
     }
   };
 
@@ -1414,13 +1462,30 @@
     if (!container) return;
 
     if (!window.MATZAVA_STATE.loadedYear) {
+      const y = getYearKey();
+      try {
+        const localCached = window._safeLS ? window._safeLS.getItem('gan_matzava_' + y) : localStorage.getItem('gan_matzava_' + y);
+        if (localCached) {
+          const parsed = JSON.parse(localCached);
+          if (parsed && (parsed.records || parsed.schools)) {
+            window.MATZAVA_STATE.records = Array.isArray(parsed.records) ? parsed.records : [];
+            window.MATZAVA_STATE.nutritionOnly = Array.isArray(parsed.nutritionOnly) ? parsed.nutritionOnly : [];
+            window.MATZAVA_STATE.schools = Array.isArray(parsed.schools) ? parsed.schools : [];
+            window.MATZAVA_STATE.lastSync = parsed.lastSync || null;
+            window.MATZAVA_STATE.loadedYear = y;
+          }
+        }
+      } catch(e) {}
+    }
+
+    if (!window.MATZAVA_STATE.loadedYear) {
       container.innerHTML = `
         <div style="text-align:center; padding:60px 20px;">
           <div style="font-size:2rem; margin-bottom:12px;">⏳</div>
           <div style="font-size:1.1rem; color:#1a237e; font-weight:700;">טוען נתוני מצב"ה מהענן...</div>
         </div>
       `;
-      await window.loadMatzavaFromFirebase();
+      await window.loadMatzavaFromFirebase(false, true);
     }
 
     const s = window.MATZAVA_STATE;
@@ -1563,7 +1628,7 @@
 
             <!-- Free Text Search -->
             <div style="flex:1; min-width:200px; position:relative;">
-              <input type="text" placeholder="${s.subTab === 'schools' ? '🔍 חפש בית ספר, כיתה, הערת אלרגיה...' : (s.subTab === 'nutrition' ? '🔍 חפש קבוצה, כתובת, הזנה...' : '🔍 חפש גן, כתובת, הערת אלרגיה...')}" 
+              <input type="text" id="matzava-search-input" placeholder="${s.subTab === 'schools' ? '🔍 חפש בית ספר, כיתה, הערת אלרגיה...' : (s.subTab === 'nutrition' ? '🔍 חפש קבוצה, כתובת, הזנה...' : '🔍 חפש גן, כתובת, הערת אלרגיה...')}" 
                 value="${s.searchQuery || ''}" 
                 oninput="window.MATZAVA_STATE.searchQuery=this.value; window.renderMatzavaTab();" 
                 style="width:100%; padding:6px 12px; border-radius:6px; border:1px solid #ccc; font-size:0.85rem; outline:none; box-sizing:border-box;">
@@ -2059,6 +2124,9 @@
       if (p) p.style.display = 'block';
 
       window.renderMatzavaTab();
+      if (typeof window.triggerSilentMatzavaSync === 'function') {
+        window.triggerSilentMatzavaSync();
+      }
     }
   };
 
@@ -2086,18 +2154,42 @@
     modal.style.setProperty('visibility', 'visible', 'important');
     const body = document.getElementById('matzava-modal-body');
 
-    // Auto load fresh from cloud if no data loaded or schools missing
-    if (!window.MATZAVA_STATE.loadedYear || (window.MATZAVA_STATE.schools || []).length === 0) {
+    // 1. Instant synchronous cache check
+    if (!window.MATZAVA_STATE.loadedYear) {
+      try {
+        const y = getYearKey();
+        const localCached = window._safeLS ? window._safeLS.getItem('gan_matzava_' + y) : localStorage.getItem('gan_matzava_' + y);
+        if (localCached) {
+          const parsed = JSON.parse(localCached);
+          if (parsed && (parsed.records || parsed.schools)) {
+            window.MATZAVA_STATE.records = Array.isArray(parsed.records) ? parsed.records : [];
+            window.MATZAVA_STATE.nutritionOnly = Array.isArray(parsed.nutritionOnly) ? parsed.nutritionOnly : [];
+            window.MATZAVA_STATE.schools = Array.isArray(parsed.schools) ? parsed.schools : [];
+            window.MATZAVA_STATE.lastSync = parsed.lastSync || null;
+            window.MATZAVA_STATE.loadedYear = y;
+          }
+        }
+      } catch(e) {}
+    }
+
+    // Only if completely empty on first launch
+    if (!window.MATZAVA_STATE.loadedYear || (((window.MATZAVA_STATE.records || []).length === 0) && ((window.MATZAVA_STATE.schools || []).length === 0))) {
       body.innerHTML = `
         <div style="text-align:center; padding:60px 20px;">
           <div style="font-size:2rem; margin-bottom:12px;">⏳</div>
           <div style="font-size:1.1rem; color:#1a237e; font-weight:700;">טוען נתוני מצב"ה עדכניים מהענן...</div>
         </div>
       `;
-      await window.loadMatzavaFromFirebase(true);
+      await window.loadMatzavaFromFirebase(false, true);
     }
 
+    // Render immediately from cache (0ms waiting!)
     await window.renderMatzavaTab(body);
+
+    // Automatic silent background cloud fetch to guarantee freshest data!
+    if (typeof window.triggerSilentMatzavaSync === 'function') {
+      window.triggerSilentMatzavaSync();
+    }
   };
 
 })();
