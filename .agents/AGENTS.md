@@ -43,8 +43,7 @@ The workspace implements an automated data checkpoint vault in `version_vault.js
 3. **Execution**: Runs automatically once per version deployment (deferred by 4.5s on startup) and can also be triggered manually via `window.saveVersionBackup(true)`.
 4. **Retention Policy (חוק הברזל לשמירת גיבויים)**:
    - Always retain AT LEAST 10 most recent versions.
-   - NEVER prune or delete any version backup that is less than 10 days old, regardless of how many versions were deployed.
-5. **UI & Restore**: Accessible via clicking the version tag in the header (`app-version-label`) or calling `window.openVersionVaultModal()`. Provides one-click restore and full JSON downloads.
+5. **UI & Export (ארכיון בטוח לקריאה וייצוא בלבד)**: Accessible via clicking the version tag in the header (`app-version-label`) or calling `window.openVersionVaultModal()`. Provides one-click rich Excel export (`window.exportVersionBackupToExcel`) across all sheets (schedules, invoices, matzava, suppliers), JSON downloads, and protects live production data by strictly disabling destructive live overwrites.
 
 ## Manager & Field Roles Architecture (תפקידי שטח והנהלה)
 1. **Roles Hierarchy**:
