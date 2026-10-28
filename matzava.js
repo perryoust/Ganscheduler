@@ -87,6 +87,27 @@
     return null;
   }
 
+  // Normalizer: for cities/records without 10m/11m breakdown (e.g. באר יעקב, ראש העין),
+  // ensure the registered kids count is populated into the 10-months column (kids10)
+  function normalizeRecordsKids10(records) {
+    if (!Array.isArray(records)) return;
+    records.forEach(r => {
+      if (!r) return;
+      if (!r.kids10 && !r.kids11 && (r.kidsTotal > 0 || r.kids > 0)) {
+        r.kids10 = r.kidsTotal || r.kids || 0;
+        r.kids11 = 0;
+      }
+      if (Array.isArray(r.subGardens)) {
+        r.subGardens.forEach(sub => {
+          if (sub && !sub.kids10 && !sub.kids11 && sub.kidsTotal > 0) {
+            sub.kids10 = sub.kidsTotal;
+            sub.kids11 = 0;
+          }
+        });
+      }
+    });
+  }
+
   const RTDB_ROOT = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
 
   async function getMatzavaAuthHeader() {
@@ -127,6 +148,7 @@
           window.MATZAVA_STATE.schools = Array.isArray(parsed.schools) ? parsed.schools : [];
           window.MATZAVA_STATE.lastSync = parsed.lastSync || null;
           window.MATZAVA_STATE.loadedYear = y;
+          normalizeRecordsKids10(window.MATZAVA_STATE.records);
         }
       }
     } catch(e) {}
@@ -144,6 +166,7 @@
           window.MATZAVA_STATE.nutritionOnly = Array.isArray(data.nutritionOnly) ? data.nutritionOnly : Object.values(data.nutritionOnly || {});
           window.MATZAVA_STATE.schools = Array.isArray(data.schools) ? data.schools : Object.values(data.schools || {});
           window.MATZAVA_STATE.lastSync = data.lastSync || null;
+          normalizeRecordsKids10(window.MATZAVA_STATE.records);
           // Mirror to LocalStorage
           try {
             const cacheStr = JSON.stringify({
@@ -666,6 +689,13 @@
       let k11 = colMap.kids11 !== undefined ? (parseInt(row[colMap.kids11], 10) || 0) : 0;
       let directKids = colMap.kids !== undefined ? (parseInt(row[colMap.kids], 10) || 0) : 0;
       let rowTotal = colMap.total !== undefined ? (parseInt(row[colMap.total], 10) || 0) : 0;
+
+      // In cities where registration is not divided into 10 and 11 months (e.g. באר יעקב, ראש העין):
+      // Assign the registered count into the 10-months column (kids10)
+      if (colMap.kids10 === undefined && colMap.kids11 === undefined) {
+        k10 = directKids || rowTotal || 0;
+        k11 = 0;
+      }
       let host = colMap.host !== undefined ? (row[colMap.host] || '') : '';
       let notes = colMap.notes !== undefined ? (row[colMap.notes] || '') : '';
 
@@ -742,6 +772,8 @@
         // Standalone independent garden
         const g = cluster[0];
         const kids = (g.k10 || g.k11) ? (g.k10 + g.k11) : (g.directKids || g.rowTotal);
+        const finalKids10 = (g.k10 || g.k11) ? g.k10 : kids;
+        const finalKids11 = g.k11 || 0;
         const isSterile = g.notes.includes('סטרילי') || g.notes.includes('אין להכניס') || g.notes.includes('שומשום') || g.notes.includes('אלרג');
         const isHomeMeal = g.notes.includes('מהבית');
         const matchedG = matchGarden(g.name, city);
@@ -758,8 +790,8 @@
           matchedName: matchedG ? matchedG.name : safeName,
           address: g.addr || (matchedG ? matchedG.st : ''),
           age: g.age || (matchedG ? matchedG.age : ''),
-          kids10: g.k10,
-          kids11: g.k11,
+          kids10: finalKids10,
+          kids11: finalKids11,
           kidsTotal: kids,
           hostGarden: (g.host && g.host !== '[object Object]' && !String(g.host).includes('object Object')) ? g.host : safeName,
           isMerged: false,
@@ -791,9 +823,14 @@
         let isHomeMeal = false;
 
         const subGardens = cluster.map(c => {
-          const cKids = (c.k10 || c.k11) ? (c.k10 + c.k11) : (c.directKids || 0);
-          sum10 += c.k10;
-          sum11 += c.k11;
+          let c10 = c.k10;
+          let c11 = c.k11;
+          const cKids = (c10 || c11) ? (c10 + c11) : (c.directKids || 0);
+          if (!c10 && !c11 && cKids > 0) {
+            c10 = cKids;
+          }
+          sum10 += c10;
+          sum11 += c11;
           sumKids += cKids;
           const subSafeName = (c.name && c.name !== '[object Object]' && !String(c.name).includes('object Object')) ? c.name : 'גן';
           if (c.notes) {
@@ -806,8 +843,8 @@
             name: subSafeName,
             role: (c.name === hostItem.name) ? 'מארח' : 'מתארח',
             gardenId: matchedSub ? matchedSub.id : null,
-            kids10: c.k10,
-            kids11: c.k11,
+            kids10: c10,
+            kids11: c11,
             kidsTotal: cKids,
             address: c.addr,
             notes: c.notes
@@ -817,6 +854,12 @@
         // Use cluster explicit rowTotal (if present, e.g. 27 or 35) or the sum of kids
         const explicitTotal = cluster.find(c => c.rowTotal > 0)?.rowTotal;
         const finalTotal = explicitTotal || sumKids;
+
+        let cluster10 = sum10;
+        let cluster11 = sum11;
+        if (cluster11 === 0 && finalTotal > 0 && cluster10 < finalTotal) {
+          cluster10 = finalTotal;
+        }
 
         const safeHostItemName = (hostItem.name && hostItem.name !== '[object Object]' && !String(hostItem.name).includes('object Object')) 
           ? hostItem.name 
@@ -832,8 +875,8 @@
           matchedName: matchedG ? matchedG.name : safeHostItemName,
           address: hostItem.addr || (matchedG ? matchedG.st : '') || cluster[0].addr,
           age: hostItem.age || (matchedG ? matchedG.age : '') || cluster[0].age,
-          kids10: sum10,
-          kids11: sum11,
+          kids10: cluster10,
+          kids11: cluster11,
           kidsTotal: finalTotal,
           hostGarden: safeHostItemName,
           isMerged: true,
@@ -1312,6 +1355,7 @@
   // Filter logic for Kindergartens
   window.getFilteredMatzavaRecords = function () {
     const s = window.MATZAVA_STATE;
+    normalizeRecordsKids10(s.records);
     let list = s.records || [];
 
     const curRole = getSafeRole();
@@ -1504,7 +1548,7 @@
               <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:0.75rem; color:#64748b; margin-top:5px; line-height:1.3;">
                 ${r.address ? `<span>📍 ${r.address}</span>` : ''}
                 ${safeHostGarden && safeHostGarden !== safeRowName ? `<span style="color:#6a1b9a; font-weight:700;">🏠 מארח: ${safeHostGarden}</span>` : ''}
-                ${r.kids10 || r.kids11 ? `<span style="color:#475569; font-weight:600;">(10ח': ${r.kids10 || 0} | 11ח': ${r.kids11 || 0})</span>` : ''}
+                ${r.kids10 || r.kids11 ? `<span style="color:#475569; font-weight:600;">(10ח': ${r.kids10 || 0}${r.kids11 ? ` | 11ח': ${r.kids11}` : ''})</span>` : ''}
               </div>
 
               <!-- Merged Sub-gardens in Purple (if any) -->
