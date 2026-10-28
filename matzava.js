@@ -1872,11 +1872,12 @@
                 </div>
               </div>
 
-              <!-- Address & Kids Info -->
-              <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:0.75rem; color:#64748b; margin-top:5px; line-height:1.3;">
-                ${r.address ? `<span>📍 ${r.address}</span>` : ''}
-                ${r.kids10 || r.kids11 ? `<span style="color:#475569; font-weight:600;">(10ח': ${r.kids10 || 0}${r.kids11 ? ` | 11ח': ${r.kids11}` : ''})</span>` : ''}
-              </div>
+              <!-- Address -->
+              ${r.address ? `
+                <div style="font-size:0.75rem; color:#64748b; margin-top:5px; line-height:1.3;">
+                  <span>📍 ${r.address}</span>
+                </div>
+              ` : ''}
 
               <!-- Merged Sub-gardens in Purple (if any) -->
               ${r.isMerged && Array.isArray(r.subGardens) && r.subGardens.length > 0 ? `
@@ -2705,7 +2706,7 @@
             <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
               <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">סה"כ ילדים</div>
               <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#1a237e; font-weight:800; line-height:1.15;">${totalKids.toLocaleString()}</div>
-              <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${total10 || total11 ? `${total10.toLocaleString()} (10ח') + ${total11.toLocaleString()} (11ח')` : 'רשומים'}</div>
+              <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${!isMob && total10 > 0 && total11 > 0 ? `${total10.toLocaleString()} (10 ח') + ${total11.toLocaleString()} (11 ח')` : 'רשומים בצהרונים'}</div>
             </div>
 
             <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
