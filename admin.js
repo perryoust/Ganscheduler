@@ -224,8 +224,12 @@ window._initUsersUI = function _initUsersUI(){
   if(purchStatsGrp) purchStatsGrp.style.display = hasPurch ? 'contents' : 'none';
 
   // Matzava Mode Visibility
-  const matzavaModeBtn = document.getElementById('modeBtn-matzava');
-  if(matzavaModeBtn) matzavaModeBtn.style.display = (window.permMatzava !== false || isAdm) ? '' : 'none';
+  if (typeof window.applyMatzavaPermissionVisibility === 'function') {
+    window.applyMatzavaPermissionVisibility();
+  } else {
+    const matzavaModeBtn = document.getElementById('modeBtn-matzava');
+    if(matzavaModeBtn) matzavaModeBtn.style.display = (window.permMatzava !== false || isAdm) ? '' : 'none';
+  }
 
   // Danger Zone & Admin Settings - Super Admin / Admin only
   const isSuperAdmin = window._fbUser?.uid === ADMIN_UID || (window._fbUser?.email || '').toLowerCase().trim() === 'perry@ganmanager.app' || (window._fbUser?.displayName || '').toLowerCase().trim() === 'perry';
@@ -809,6 +813,12 @@ async function updateUserPerm(uid, perm, value){
       body:JSON.stringify(value)
     });
     showToast('✅ הרשאה עודכנה');
+    if (uid === window._fbUser?.uid && perm === 'permMatzava') {
+      window.permMatzava = value;
+      if (typeof window.applyMatzavaPermissionVisibility === 'function') {
+        window.applyMatzavaPermissionVisibility();
+      }
+    }
   } catch(e){ showToast('❌ שגיאה: '+e.message); }
 }
 

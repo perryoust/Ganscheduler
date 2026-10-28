@@ -2428,6 +2428,13 @@
 
   // Main UI Render Function
   window.renderMatzavaTab = async function (targetEl) {
+    if (window.permMatzava === false && window.role !== 'admin') {
+      const container = targetEl || document.getElementById('matzava-modal-body') || document.getElementById('p-matzava');
+      if (container) {
+        container.innerHTML = '<div style="padding:40px;text-align:center;color:#ef4444;font-size:1.1rem;font-weight:700">⛔ אין לך הרשאה לצפייה במצב"ה</div>';
+      }
+      return;
+    }
     const modalBody = document.getElementById('matzava-modal-body');
     const isModalOpen = modalBody && (modalBody.offsetParent !== null || (document.getElementById('matzava-modal') && document.getElementById('matzava-modal').style.display !== 'none'));
     const container = targetEl || (isModalOpen ? modalBody : null) || document.getElementById('p-matzava') || modalBody;
@@ -2780,6 +2787,10 @@
 
   // Switch mode to Matzava
   window.openMatzava = function () {
+    if (window.permMatzava === false && window.role !== 'admin') {
+      if (typeof window.showToast === 'function') window.showToast('אין לך הרשאה לצפייה במצב"ה', 'warn');
+      return;
+    }
     if (typeof window.switchMode === 'function') {
       window.switchMode('matzava');
     } else {
@@ -2807,6 +2818,10 @@
 
   // Open Matzava as a standalone modal (for Field Coordinators & Isolated App)
   window.openMatzavaModal = async function () {
+    if (window.permMatzava === false && window.role !== 'admin') {
+      if (typeof window.showToast === 'function') window.showToast('אין לך הרשאה לצפייה במצב"ה', 'warn');
+      return;
+    }
     const isMob = (typeof window.isMobileMode === 'function' ? window.isMobileMode() : (window.innerWidth <= 768));
     let modal = document.getElementById('matzava-modal');
     if (!modal) {
@@ -2890,5 +2905,10 @@
       }
     } catch(e) {}
   }, 3500);
+
+  // Synchronize visibility on startup
+  if (typeof window.applyMatzavaPermissionVisibility === 'function') {
+    window.applyMatzavaPermissionVisibility();
+  }
 })();
 

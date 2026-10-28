@@ -214,10 +214,15 @@ onAuthStateChanged(auth, async (user) => {
     if (role === 'view' || role === 'coordinator' || role === 'manager' || role === 'vp') {
       window.isReadOnly = true;
     }
+    if (typeof window.applyMatzavaPermissionVisibility === 'function') {
+      window.applyMatzavaPermissionVisibility();
+    }
 
     // Strict Worker Isolation: If they ONLY have worker permissions, use the isolated mobile UI
     const isStrictWorker = permWorker && (!permAct || role === 'worker') && !permPurch && role !== 'admin';
     if (isStrictWorker) {
+      window.permMatzava = false;
+      if (typeof window.applyMatzavaPermissionVisibility === 'function') window.applyMatzavaPermissionVisibility();
       try {
         localStorage.setItem('gan_app_mode', 'worker');
         localStorage.setItem('gan_user_role', role);
@@ -250,6 +255,7 @@ onAuthStateChanged(auth, async (user) => {
     // Strict Coordinator or Manager/VP Isolation: read-only view of their assigned gardens or whole org
     const isStrictCoordinator = (role === 'coordinator' || role === 'manager' || role === 'vp') && (window.permCoord || profile?.allCities || role === 'manager' || role === 'vp') && !permPurch && role !== 'admin';
     if (isStrictCoordinator) {
+      if (typeof window.applyMatzavaPermissionVisibility === 'function') window.applyMatzavaPermissionVisibility();
       try {
         localStorage.setItem('gan_app_mode', 'coordinator');
         localStorage.setItem('gan_user_role', role);
@@ -271,6 +277,7 @@ onAuthStateChanged(auth, async (user) => {
           if (typeof window.activateCoordinatorApp === 'function') {
             window.activateCoordinatorApp();
           }
+          if (typeof window.applyMatzavaPermissionVisibility === 'function') window.applyMatzavaPermissionVisibility();
           const sysLoad = document.getElementById('system-loading-overlay');
           if (sysLoad) { sysLoad.style.opacity = '0'; setTimeout(()=>sysLoad.style.display='none',200); }
         }
@@ -288,8 +295,7 @@ onAuthStateChanged(auth, async (user) => {
     if (authOverlay) authOverlay.style.display = 'none';
     const uname = document.getElementById('auth-user-name');
     if (uname) uname.textContent = '👤 ' + user.email.replace('@ganmanager.app', '');
-    const matzavaBtn = document.getElementById('modeBtn-matzava');
-    if (matzavaBtn) matzavaBtn.style.display = (window.permMatzava !== false || role === 'admin') ? '' : 'none';
+    if (typeof window.applyMatzavaPermissionVisibility === 'function') window.applyMatzavaPermissionVisibility();
     // Show admin UI immediately after login
     if (typeof window._initUsersUI === 'function') window._initUsersUI();
     if (typeof window._onAuthReady === 'function') window._onAuthReady();
@@ -300,8 +306,9 @@ onAuthStateChanged(auth, async (user) => {
     window._cachedToken = null;
     window.permPurch = false;
     window.permAct = false;
-    window.permMatzava = true;
+    window.permMatzava = false;
     window.role = null;
+    if (typeof window.applyMatzavaPermissionVisibility === 'function') window.applyMatzavaPermissionVisibility();
     try {
       localStorage.removeItem('gan_app_mode');
       localStorage.removeItem('gan_user_role');
@@ -313,3 +320,55 @@ onAuthStateChanged(auth, async (user) => {
     if (sysLoad) sysLoad.style.display = 'none';
   }
 });
+
+// Centralized permission enforcement for Matzava
+window.applyMatzavaPermissionVisibility = function() {
+  const isAdm = window.role === 'admin';
+  const hasPerm = isAdm || (window.permMatzava !== false);
+
+  const mBtn = document.getElementById('modeBtn-matzava');
+  if (mBtn) mBtn.style.setProperty('display', hasPerm ? '' : 'none', 'important');
+
+  const mobBtn = document.getElementById('mob-matzava-btn');
+  if (mobBtn) mobBtn.style.setProperty('display', hasPerm ? '' : 'none', 'important');
+
+  const coordBtn = document.getElementById('coord-matzava-btn');
+  if (coordBtn) coordBtn.style.setProperty('display', hasPerm ? '' : 'none', 'important');
+
+  if (!hasPerm) {
+    const pMatzava = document.getElementById('p-matzava');
+    if (pMatzava && pMatzava.style.display !== 'none') {
+      pMatzava.style.display = 'none';
+      if (typeof window.switchMode === 'function') window.switchMode('act');
+    }
+    const matzavaModal = document.getElementById('matzava-modal');
+    if (matzavaModal && matzavaModal.style.display !== 'none') {
+      matzavaModal.style.setProperty('display', 'none', 'important');
+    }
+  }
+};
+
+// Periodic & focus refresh for non-admin profiles so revoking permissions acts immediately
+window.refreshUserProfilePermissions = async function() {
+  if (!window._fbUser || window.role === 'admin') return;
+  try {
+    const q = window._cachedToken ? '?auth=' + window._cachedToken : '';
+    const res = await fetch(`https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/users/${window._fbUser.uid}.json${q}`);
+    if (res.ok) {
+      const prof = await res.json();
+      if (prof) {
+        window.permMatzava = prof.permMatzava !== false;
+        if (typeof window.applyMatzavaPermissionVisibility === 'function') {
+          window.applyMatzavaPermissionVisibility();
+        }
+      }
+    }
+  } catch(e) {}
+};
+
+window.addEventListener('focus', () => {
+  if (window._fbUser && window.role !== 'admin') window.refreshUserProfilePermissions();
+});
+setInterval(() => {
+  if (window._fbUser && window.role !== 'admin') window.refreshUserProfilePermissions();
+}, 25000);
