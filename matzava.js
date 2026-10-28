@@ -57,6 +57,18 @@
     return null;
   }
 
+  const RTDB_ROOT = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
+
+  async function getMatzavaAuthHeader() {
+    let tok = null;
+    if (typeof window._fbGetToken === 'function') {
+      try { tok = await window._fbGetToken(); } catch (e) { }
+    } else if (window._fbUser) {
+      try { tok = await window._fbUser.getIdToken(false); } catch (e) { }
+    }
+    return tok ? '?auth=' + tok : '';
+  }
+
   // Load data from Firebase Realtime Database
   window.loadMatzavaFromFirebase = async function (force = false) {
     const y = getYearKey();
@@ -66,8 +78,11 @@
 
     window.MATZAVA_STATE.isLoading = true;
     try {
-      if (typeof window.fbGet === 'function') {
-        const data = await window.fbGet(`/matzava/${y}`);
+      const authQ = await getMatzavaAuthHeader();
+      const url = `${RTDB_ROOT}/matzava/${y}.json${authQ}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
         if (data) {
           window.MATZAVA_STATE.records = Array.isArray(data.records) ? data.records : Object.values(data.records || {});
           window.MATZAVA_STATE.nutritionOnly = Array.isArray(data.nutritionOnly) ? data.nutritionOnly : Object.values(data.nutritionOnly || {});
@@ -104,11 +119,14 @@
     };
 
     try {
-      if (typeof window.fbSet === 'function') {
-        await window.fbSet(`/matzava/${y}`, payload);
-      } else if (typeof window.fbPatch === 'function') {
-        await window.fbPatch(`/matzava/${y}`, payload);
-      }
+      const authQ = await getMatzavaAuthHeader();
+      const url = `${RTDB_ROOT}/matzava/${y}.json${authQ}`;
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       window.MATZAVA_STATE.lastSync = payload.lastSync;
       if (window.showToast) window.showToast('✅ נתוני מצב"ה נשמרו בענן בהצלחה');
       return true;
@@ -121,26 +139,20 @@
 
   // Parse a single XLSX buffer using ExcelJS
   window.parseMatzavaWorkbook = async function (arrayBuffer, fileName) {
+    if (typeof window.ensureExcelJSLoaded === 'function' && typeof window.ExcelJS === 'undefined') {
+      try { await window.ensureExcelJSLoaded(); } catch (e) {}
+    }
     if (typeof window.ExcelJS === 'undefined') {
       throw new Error('ספריית ExcelJS לא נטענה');
     }
 
+    const cleanFn = (fileName || '').replace(/[\u200E\u200F\uFEFF]/g, '').trim();
     const wb = new window.ExcelJS.Workbook();
     await wb.xlsx.load(arrayBuffer);
 
     // Prefer worksheet named "הזמנה"
-    let ws = wb.getWorksheet('הזמנה');
-    if (!ws) ws = wb.worksheets[0];
-    if (!ws) throw new Error('לא נמצא גיליון בקובץ ' + fileName);
-
-    // Detect city from filename or header
-    let city = '';
-    const fn = fileName.toLowerCase();
-    if (fn.includes('גבעתיים')) city = 'גבעתיים';
-    else if (fn.includes('פתח תקוו') || fn.includes('פ"ת')) city = 'פ"ת';
-    else if (fn.includes('באר יעקב')) city = 'באר יעקב';
-    else if (fn.includes('ראש העין')) city = 'ראש העין';
-    else if (fn.includes('בתי ספר')) city = 'בתי ספר';
+    let ws = wb.getWorksheet('הזמנה') || wb.worksheets[0];
+    if (!ws) throw new Error('לא נמצא גיליון בקובץ ' + cleanFn);
 
     const rawRows = [];
     ws.eachRow({ includeEmpty: false }, (row) => {
@@ -152,6 +164,8 @@
             text = String(cell.value.result);
           } else if (typeof cell.value === 'object' && cell.value.text !== undefined) {
             text = String(cell.value.text);
+          } else if (typeof cell.value === 'object' && Array.isArray(cell.value.richText)) {
+            text = cell.value.richText.map(t => t.text || '').join('');
           } else {
             text = String(cell.value);
           }
@@ -163,7 +177,103 @@
 
     if (rawRows.length === 0) return { records: [], nutritionOnly: [], schools: [] };
 
-    // Find header row in first 7 rows
+    // Detect if this is a School file (by filename or sheet content)
+    const fnLower = cleanFn.toLowerCase();
+    const firstFewRowsText = rawRows.slice(0, 3).map(r => (r || []).join(' ')).join(' ');
+    const isSchoolFile = fnLower.includes('בתי ספר') || fnLower.includes('בית ספר') || firstFewRowsText.includes('בתי ספר');
+
+    // ───────────────────────────────────────────────────────────
+    // A. SCHOOLS PARSER (Multi-section smart parser)
+    // ───────────────────────────────────────────────────────────
+    if (isSchoolFile) {
+      const schools = [];
+      const sectionHeaderIndices = [];
+      for (let i = 0; i < rawRows.length; i++) {
+        const joined = (rawRows[i] || []).join(' ');
+        if (joined.includes('קבוצה') && (joined.includes('רשומים') || joined.includes('עיר'))) {
+          sectionHeaderIndices.push(i);
+        }
+      }
+
+      if (sectionHeaderIndices.length === 0) sectionHeaderIndices.push(0);
+
+      for (let sIdx = 0; sIdx < sectionHeaderIndices.length; sIdx++) {
+        const startRow = sectionHeaderIndices[sIdx];
+        const endRow = (sIdx + 1 < sectionHeaderIndices.length) ? sectionHeaderIndices[sIdx + 1] : rawRows.length;
+        const sectionRows = rawRows.slice(startRow, endRow);
+        const header = sectionRows[0] || [];
+
+        const colMap = { city: 0, addr: 1, name: 2, kids: 3, host: 4, notes: 6 };
+        header.forEach((h, idx) => {
+          if (!h) return;
+          if (['קבוצה', 'כיתה'].some(k => h.includes(k))) colMap.name = idx;
+          else if (h.includes('כתובת')) colMap.addr = idx;
+          else if (h.includes('עיר')) colMap.city = idx;
+          else if (h.includes('רשומים') && colMap.kids === undefined) colMap.kids = idx;
+          else if (h.includes('איחוד')) colMap.host = idx;
+          else if (['הערות', 'אלרגיות', 'רגישויות'].some(k => h.includes(k))) colMap.notes = idx;
+        });
+
+        // Scan Section metadata from Column A / B across section rows
+        let secCity = '';
+        let secSchool = '';
+        let secAddr = '';
+
+        for (const row of sectionRows) {
+          const colA = (row[0] || '').trim();
+          const colB = (row[1] || '').trim();
+          for (const val of [colA, colB]) {
+            if (!val) continue;
+            if (!secCity && ['פ"ת', 'פתח תקווה', 'נס ציונה', 'ראש העין', 'גבעתיים', 'באר יעקב'].some(c => val.includes(c))) {
+              secCity = val;
+            } else if (!secSchool && (val.includes('בית ספר') || val.includes('בי"ס'))) {
+              secSchool = val;
+            } else if (!secAddr && (val.includes("רח'") || val.includes('רחוב') || val.includes('שד'))) {
+              secAddr = val;
+            }
+          }
+        }
+
+        // Extract class / group rows
+        for (let r = 1; r < sectionRows.length; r++) {
+          const row = sectionRows[r];
+          if (!row || row.length === 0) continue;
+          const groupName = (row[colMap.name] || '').trim();
+          if (!groupName) continue;
+          if (['סה"כ', 'קבוצה', 'ממוצע', 'מס קב', 'בתי ספר'].some(k => groupName.includes(k))) continue;
+
+          const kCount = parseInt(row[colMap.kids] || row[3], 10) || 0;
+          const mCount = parseInt(row[colMap.host] || row[4], 10) || kCount;
+          const sNotes = (row[colMap.notes] || row[6] || '').trim();
+
+          schools.push({
+            id: 'sch_' + (secCity || 'all') + '_' + (secSchool || '').replace(/\s+/g, '_') + '_' + (groupName || '').replace(/\s+/g, '_') + '_' + (startRow + r),
+            city: secCity || 'בתי ספר',
+            school: secSchool || 'בית ספר',
+            address: secAddr || '',
+            groupName: groupName,
+            kids: kCount,
+            mergedKids: mCount,
+            notes: sNotes,
+            isSterile: sNotes.includes('סטרילי') || sNotes.includes('שומשום') || sNotes.includes('אלרג'),
+            isHomeMeal: sNotes.includes('מהבית'),
+            sourceFile: cleanFn
+          });
+        }
+      }
+
+      return { records: [], nutritionOnly: [], schools };
+    }
+
+    // ───────────────────────────────────────────────────────────
+    // B. KINDERGARTENS & NUTRITION ONLY PARSER
+    // ───────────────────────────────────────────────────────────
+    let city = '';
+    if (fnLower.includes('גבעתיים')) city = 'גבעתיים';
+    else if (fnLower.includes('פתח תקוו') || fnLower.includes('פ"ת')) city = 'פ"ת';
+    else if (fnLower.includes('באר יעקב')) city = 'באר יעקב';
+    else if (fnLower.includes('ראש העין')) city = 'ראש העין';
+
     let headerIdx = -1;
     const colMap = {};
     for (let i = 0; i < Math.min(rawRows.length, 7); i++) {
@@ -175,7 +285,7 @@
     }
 
     if (headerIdx === -1) {
-      throw new Error('לא זוהתה שורת כותרת מתאימה ב-' + fileName);
+      throw new Error('לא זוהתה שורת כותרת מתאימה ב-' + cleanFn);
     }
 
     const headers = rawRows[headerIdx];
@@ -195,7 +305,6 @@
 
     const records = [];
     const nutritionOnly = [];
-    const schools = [];
     let isNutritionMode = false;
 
     for (let r = headerIdx + 1; r < rawRows.length; r++) {
@@ -235,35 +344,9 @@
             address: nutAddr,
             kidsTotal: count,
             notes: nutNotes,
-            sourceFile: fileName
+            sourceFile: cleanFn
           });
         }
-        continue;
-      }
-
-      // Handle Schools vs Kindergartens
-      if (city === 'בתי ספר') {
-        const groupName = colMap.name !== undefined ? (row[colMap.name] || '') : '';
-        if (!groupName || groupName.includes('סה"כ')) continue;
-
-        const schoolCity = colMap.city !== undefined ? (row[colMap.city] || '') : (row[0] || '');
-        const schoolAddr = colMap.addr !== undefined ? (row[colMap.addr] || '') : (row[1] || '');
-        const kCount = parseInt(colMap.kids !== undefined ? row[colMap.kids] : row[3], 10) || 0;
-        const mCount = parseInt(colMap.host !== undefined ? row[colMap.host] : row[4], 10) || kCount;
-        const sNotes = colMap.notes !== undefined ? (row[colMap.notes] || '') : (row[6] || '');
-
-        schools.push({
-          id: 'sch_' + (schoolCity || 'all') + '_' + (groupName || '').replace(/\s+/g, '_') + '_' + r,
-          city: schoolCity || 'בתי ספר',
-          address: schoolAddr,
-          groupName: groupName,
-          kids: kCount,
-          mergedKids: mCount,
-          notes: sNotes,
-          isSterile: sNotes.includes('סטרילי') || sNotes.includes('שומשום') || sNotes.includes('אלרג'),
-          isHomeMeal: sNotes.includes('מהבית'),
-          sourceFile: fileName
-        });
         continue;
       }
 
@@ -308,12 +391,12 @@
         notes: notes,
         isSterile: isSterile,
         isHomeMeal: isHomeMeal,
-        sourceFile: fileName,
+        sourceFile: cleanFn,
         updatedAt: new Date().toISOString()
       });
     }
 
-    return { records, nutritionOnly, schools };
+    return { records, nutritionOnly, schools: [] };
   };
 
   // Auto-refresh via File System Access API
@@ -380,7 +463,12 @@
     const scannedFiles = [];
     try {
       for await (const entry of dirHandle.values()) {
-        if (entry.kind === 'file' && entry.name.endsWith('.xlsx') && !entry.name.startsWith('~$')) {
+        const cleanName = entry.name.replace(/[\u200E\u200F\uFEFF]/g, '').trim();
+        if (entry.kind === 'file' && cleanName.endsWith('.xlsx')) {
+          if (cleanName.startsWith('~$')) {
+            // Excel temporary lock file, skip
+            continue;
+          }
           scannedFiles.push(entry);
         }
       }
@@ -399,22 +487,29 @@
     let allNutrition = [];
     let allSchools = [];
     let successCount = 0;
+    const failedFiles = [];
 
     for (let i = 0; i < scannedFiles.length; i++) {
       const entry = scannedFiles[i];
+      const cleanName = entry.name.replace(/[\u200E\u200F\uFEFF]/g, '').trim();
       if (window.showToast) {
-        window.showToast(`⏳ קורא (${i + 1}/${scannedFiles.length}): ${entry.name}`, 30000);
+        window.showToast(`⏳ קורא (${i + 1}/${scannedFiles.length}): ${cleanName}`, 30000);
       }
       try {
         const file = await entry.getFile();
         const buf = await file.arrayBuffer();
         const res = await window.parseMatzavaWorkbook(buf, entry.name);
-        allRecords = allRecords.concat(res.records);
-        allNutrition = allNutrition.concat(res.nutritionOnly);
-        allSchools = allSchools.concat(res.schools);
+        allRecords = allRecords.concat(res.records || []);
+        allNutrition = allNutrition.concat(res.nutritionOnly || []);
+        allSchools = allSchools.concat(res.schools || []);
         successCount++;
       } catch (err) {
-        console.warn(`[Matzava] Failed parsing ${entry.name}:`, err);
+        console.error(`[Matzava] Failed parsing ${entry.name}:`, err);
+        let reason = err.message || 'שגיאה לא ידועה';
+        if (err.name === 'NotReadableError' || reason.includes('could not be read') || reason.includes('locked')) {
+          reason = 'הקובץ נעול (פתוח כעת ב-Excel במחשב)';
+        }
+        failedFiles.push(`${cleanName} (${reason})`);
       }
     }
 
@@ -435,7 +530,7 @@
 
     const schMap = new Map();
     allSchools.forEach(s => {
-      const key = (s.city || '') + '__' + (s.groupName || '') + '__' + (s.address || '');
+      const key = (s.city || '') + '__' + (s.school || '') + '__' + (s.groupName || '');
       schMap.set(key, s);
     });
     window.MATZAVA_STATE.schools = Array.from(schMap.values());
@@ -446,7 +541,11 @@
     // Re-render
     window.renderMatzavaTab();
 
-    const msg = `✅ רענון מצב"ה הושלם בהצלחה!\nנסרקו ${successCount} קבצים:\n• ${window.MATZAVA_STATE.records.length} צהרונים\n• ${window.MATZAVA_STATE.nutritionOnly.length} קבוצות הזנה בלבד\n• ${window.MATZAVA_STATE.schools.length} קבוצות בתי ספר`;
+    let msg = `✅ רענון מצב"ה הושלם!\nנסרקו בהצלחה ${successCount} מתוך ${scannedFiles.length} קבצים:\n• ${window.MATZAVA_STATE.records.length} צהרונים\n• ${window.MATZAVA_STATE.nutritionOnly.length} קבוצות הזנה בלבד\n• ${window.MATZAVA_STATE.schools.length} קבוצות בתי ספר`;
+    if (failedFiles.length > 0) {
+      msg += `\n\n⚠️ לא נקראו ${failedFiles.length} קבצים:\n• ${failedFiles.join('\n• ')}\n\n💡 אם הקובץ פתוח בתוכנת Excel במחשב, נא לסגור אותו וללחוץ שוב על "⚡ רענון אוטומטי".`;
+    }
+
     if (typeof window.spAlert === 'function') {
       window.spAlert(msg);
     } else {
@@ -474,15 +573,19 @@
         res.nutritionOnly.forEach(n => nutMap.set((n.city || '') + '__' + (n.name || ''), n));
         window.MATZAVA_STATE.nutritionOnly = Array.from(nutMap.values());
 
-        const schMap = new Map(window.MATZAVA_STATE.schools.map(s => [(s.city || '') + '__' + (s.groupName || '') + '__' + (s.address || ''), s]));
-        res.schools.forEach(s => schMap.set((s.city || '') + '__' + (s.groupName || '') + '__' + (s.address || ''), s));
+        const schMap = new Map(window.MATZAVA_STATE.schools.map(s => [(s.city || '') + '__' + (s.school || '') + '__' + (s.groupName || ''), s]));
+        res.schools.forEach(s => schMap.set((s.city || '') + '__' + (s.school || '') + '__' + (s.groupName || ''), s));
         window.MATZAVA_STATE.schools = Array.from(schMap.values());
 
         await window.saveMatzavaToFirebase();
         window.renderMatzavaTab();
 
         if (window.showToast) {
-          window.showToast(`✅ יובאו בהצלחה ${res.records.length} צהרונים מ-${file.name}`);
+          const parts = [];
+          if (res.records.length > 0) parts.push(`${res.records.length} צהרונים`);
+          if (res.nutritionOnly.length > 0) parts.push(`${res.nutritionOnly.length} הזנה בלבד`);
+          if (res.schools.length > 0) parts.push(`${res.schools.length} קבוצות בתי ספר`);
+          window.showToast(`✅ יובאו בהצלחה מ-${file.name}: ${parts.join(', ') || 'נתונים'}`);
         }
       } catch (err) {
         console.error(err);
@@ -785,16 +888,16 @@
             <div style="font-size:0.7rem; color:#888;">דורשים הקפדה מוחלטת</div>
           </div>
 
-          <div style="background:#fff; border-radius:10px; padding:12px 16px; border:1px solid #e0e0e0; box-shadow:0 1px 4px rgba(0,0,0,0.04); text-align:center;">
+          <div style="background:#fff; border-radius:10px; padding:12px 16px; border:1px solid #e0e0e0; box-shadow:0 1px 4px rgba(0,0,0,0.04); text-align:center; cursor:pointer;" onclick="const el=document.getElementById('mat-nut-body'); if(el) { el.style.display='block'; el.scrollIntoView({behavior:'smooth'}); }">
             <div style="font-size:0.75rem; color:#666; font-weight:700;">הזנה בלבד (תקשורת)</div>
             <div style="font-size:1.6rem; color:#e65100; font-weight:800; line-height:1.2;">${nutCount}</div>
-            <div style="font-size:0.7rem; color:#888;">הזמנת מזון בלבד</div>
+            <div style="font-size:0.7rem; color:#888;">הזמנת מזון בלבד ${nutCount > 0 ? '(לחץ להצגה)' : ''}</div>
           </div>
 
-          <div style="background:#fff; border-radius:10px; padding:12px 16px; border:1px solid #e0e0e0; box-shadow:0 1px 4px rgba(0,0,0,0.04); text-align:center;">
+          <div style="background:#fff; border-radius:10px; padding:12px 16px; border:1px solid #e0e0e0; box-shadow:0 1px 4px rgba(0,0,0,0.04); text-align:center; cursor:pointer;" onclick="const el=document.getElementById('mat-sch-body'); if(el) { el.style.display='block'; el.scrollIntoView({behavior:'smooth'}); }">
             <div style="font-size:0.75rem; color:#666; font-weight:700;">קבוצות בתי ספר</div>
             <div style="font-size:1.6rem; color:#00838f; font-weight:800; line-height:1.2;">${schCount}</div>
-            <div style="font-size:0.7rem; color:#888;">כיתות א'-ג'</div>
+            <div style="font-size:0.7rem; color:#888;">כיתות א'-ג' ${schCount > 0 ? '(לחץ להצגה)' : ''}</div>
           </div>
         </div>
 
@@ -923,8 +1026,9 @@
                 <thead>
                   <tr style="background:#b2ebf2; color:#006064;">
                     <th style="padding:6px 10px;">עיר</th>
+                    <th style="padding:6px 10px;">בית ספר</th>
                     <th style="padding:6px 10px;">קבוצה / כיתה</th>
-                    <th style="padding:6px 10px;">כתובת / מוסד</th>
+                    <th style="padding:6px 10px;">כתובת</th>
                     <th style="padding:6px 10px; text-align:center;">רשומים</th>
                     <th style="padding:6px 10px; text-align:center;">איחוד לקב'</th>
                     <th style="padding:6px 10px;">אלרגיות והערות</th>
@@ -934,8 +1038,9 @@
                   ${s.schools.map(sc => `
                     <tr style="border-bottom:1px solid #e0f7fa;">
                       <td style="padding:6px 10px; font-weight:bold;">${sc.city}</td>
+                      <td style="padding:6px 10px; font-weight:bold; color:#006064;">${sc.school || '-'}</td>
                       <td style="padding:6px 10px; font-weight:bold; color:#00838f;">${sc.groupName}</td>
-                      <td style="padding:6px 10px;">${sc.address}</td>
+                      <td style="padding:6px 10px;">${sc.address || '-'}</td>
                       <td style="padding:6px 10px; text-align:center; font-weight:bold;">${sc.kids}</td>
                       <td style="padding:6px 10px; text-align:center;">${sc.mergedKids || sc.kids}</td>
                       <td style="padding:6px 10px; color:${sc.isSterile ? '#c62828' : '#555'}; font-weight:${sc.isSterile ? 'bold' : 'normal'};">${sc.notes || '-'}</td>
