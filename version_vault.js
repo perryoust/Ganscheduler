@@ -118,6 +118,12 @@
         invoices: inv,
         orders: ord,
         deliveries: del,
+        matzava: window.MATZAVA_STATE ? {
+          records: Array.isArray(window.MATZAVA_STATE.records) ? window.MATZAVA_STATE.records : [],
+          nutritionOnly: Array.isArray(window.MATZAVA_STATE.nutritionOnly) ? window.MATZAVA_STATE.nutritionOnly : [],
+          schools: Array.isArray(window.MATZAVA_STATE.schools) ? window.MATZAVA_STATE.schools : [],
+          lastSync: window.MATZAVA_STATE.lastSync || null
+        } : null,
         config: {
           pairs: window.pairs || [],
           clusters: window.clusters || {},
@@ -144,7 +150,8 @@
           suppliers: Object.keys(sup).length,
           invoices: inv.length,
           orders: ord.length,
-          deliveries: del.length
+          deliveries: del.length,
+          matzava: ((window.MATZAVA_STATE?.records?.length || 0) + (window.MATZAVA_STATE?.schools?.length || 0) + (window.MATZAVA_STATE?.nutritionOnly?.length || 0))
         }
       };
 
@@ -319,6 +326,22 @@
         if (fullData.config.schoolBudgets) window.schoolBudgets = fullData.config.schoolBudgets;
       }
 
+      // Restore Matzava dataset if present in backup
+      if (fullData.matzava && window.MATZAVA_STATE) {
+        window.MATZAVA_STATE.records = fullData.matzava.records || [];
+        window.MATZAVA_STATE.nutritionOnly = fullData.matzava.nutritionOnly || [];
+        window.MATZAVA_STATE.schools = fullData.matzava.schools || [];
+        window.MATZAVA_STATE.lastSync = fullData.matzava.lastSync || null;
+        try {
+          const yKey = 'gan_matzava_' + (window.CURRENT_YEAR || 'tashpaz');
+          if (window._safeLS) window._safeLS.setItem(yKey, JSON.stringify(fullData.matzava));
+          else localStorage.setItem(yKey, JSON.stringify(fullData.matzava));
+        } catch(e){}
+        if (typeof window.saveMatzavaToFirebase === 'function') {
+          await window.saveMatzavaToFirebase();
+        }
+      }
+
       // Save to Firebase (Force save so live state updates immediately)
       if (window.saveToFirebase) await window.saveToFirebase(false, true);
       if (window.saveOrdersToFirebase) await window.saveOrdersToFirebase();
@@ -473,6 +496,7 @@
               <span>🛒 <b>${invCnt}</b> חשבוניות</span>
               <span>🏢 <b>${supCnt}</b> ספקים</span>
               ${c.orders ? `<span>📦 <b>${c.orders}</b> הזמנות</span>` : ''}
+              ${c.matzava ? `<span>👶 <b>${c.matzava}</b> מצב"ה</span>` : ''}
             </div>
           </div>
           <div style="display:flex; gap:6px;">

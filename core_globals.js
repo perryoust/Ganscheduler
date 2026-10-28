@@ -1,4 +1,4 @@
-window.APP_VERSION = '113.85';
+window.APP_VERSION = '113.86';
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── Platform Detection ──
@@ -131,6 +131,14 @@ window.getMasterDataSnapshot = function() {
     spScannerAliases: window.spScannerAliases || {},
     spScannerFolderLinks: window.spScannerFolderLinks || {},
     
+    // Matzava (Kindergartens, Schools, Nutrition)
+    matzava: window.MATZAVA_STATE ? {
+      records: Array.isArray(window.MATZAVA_STATE.records) ? window.MATZAVA_STATE.records : [],
+      nutritionOnly: Array.isArray(window.MATZAVA_STATE.nutritionOnly) ? window.MATZAVA_STATE.nutritionOnly : [],
+      schools: Array.isArray(window.MATZAVA_STATE.schools) ? window.MATZAVA_STATE.schools : [],
+      lastSync: window.MATZAVA_STATE.lastSync || null
+    } : null,
+
     // Tasks & Todos
     todos: window.todo ? window.todo.items : []
   };

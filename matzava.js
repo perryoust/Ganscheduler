@@ -75,12 +75,27 @@
     return tok ? '?auth=' + tok : '';
   }
 
-  // Load data from Firebase Realtime Database
+  // Load data from Firebase Realtime Database (with instant LocalStorage fallback)
   window.loadMatzavaFromFirebase = async function (force = false) {
     const y = getYearKey();
     if (!force && window.MATZAVA_STATE.loadedYear === y && window.MATZAVA_STATE.records.length > 0) {
       return;
     }
+
+    // 1. Instant LocalStorage Load (0ms startup resilience)
+    try {
+      const localCached = window._safeLS ? window._safeLS.getItem('gan_matzava_' + y) : localStorage.getItem('gan_matzava_' + y);
+      if (localCached && (!window.MATZAVA_STATE.records || window.MATZAVA_STATE.records.length === 0)) {
+        const parsed = JSON.parse(localCached);
+        if (parsed) {
+          window.MATZAVA_STATE.records = Array.isArray(parsed.records) ? parsed.records : [];
+          window.MATZAVA_STATE.nutritionOnly = Array.isArray(parsed.nutritionOnly) ? parsed.nutritionOnly : [];
+          window.MATZAVA_STATE.schools = Array.isArray(parsed.schools) ? parsed.schools : [];
+          window.MATZAVA_STATE.lastSync = parsed.lastSync || null;
+          window.MATZAVA_STATE.loadedYear = y;
+        }
+      }
+    } catch(e) {}
 
     window.MATZAVA_STATE.isLoading = true;
     try {
@@ -94,7 +109,18 @@
           window.MATZAVA_STATE.nutritionOnly = Array.isArray(data.nutritionOnly) ? data.nutritionOnly : Object.values(data.nutritionOnly || {});
           window.MATZAVA_STATE.schools = Array.isArray(data.schools) ? data.schools : Object.values(data.schools || {});
           window.MATZAVA_STATE.lastSync = data.lastSync || null;
-        } else {
+          // Mirror to LocalStorage
+          try {
+            const cacheStr = JSON.stringify({
+              records: window.MATZAVA_STATE.records,
+              nutritionOnly: window.MATZAVA_STATE.nutritionOnly,
+              schools: window.MATZAVA_STATE.schools,
+              lastSync: window.MATZAVA_STATE.lastSync
+            });
+            if (window._safeLS) window._safeLS.setItem('gan_matzava_' + y, cacheStr);
+            else localStorage.setItem('gan_matzava_' + y, cacheStr);
+          } catch(e) {}
+        } else if (!window.MATZAVA_STATE.records || window.MATZAVA_STATE.records.length === 0) {
           window.MATZAVA_STATE.records = [];
           window.MATZAVA_STATE.nutritionOnly = [];
           window.MATZAVA_STATE.schools = [];
@@ -109,7 +135,7 @@
     }
   };
 
-  // Save data to Firebase Realtime Database
+  // Save data to Firebase Realtime Database (with LocalStorage mirror and Version Vault trigger)
   window.saveMatzavaToFirebase = async function () {
     if (!canEditMatzava()) {
       if (window.showToast) window.showToast('⚠️ מצב צפייה בלבד - אין הרשאת שמירה', 3000);
@@ -124,6 +150,14 @@
       updatedBy: (window._fbUser && (window._fbUser.displayName || window._fbUser.email)) || 'user'
     };
 
+    // 1. LocalStorage Mirror Save
+    try {
+      const cacheStr = JSON.stringify(payload);
+      if (window._safeLS) window._safeLS.setItem('gan_matzava_' + y, cacheStr);
+      else localStorage.setItem('gan_matzava_' + y, cacheStr);
+    } catch(e) {}
+
+    // 2. Firebase RTDB Save
     try {
       const authQ = await getMatzavaAuthHeader();
       const url = `${RTDB_ROOT}/matzava/${y}.json${authQ}`;
@@ -134,13 +168,67 @@
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       window.MATZAVA_STATE.lastSync = payload.lastSync;
-      if (window.showToast) window.showToast('✅ נתוני מצב"ה נשמרו בענן בהצלחה');
+      if (window.showToast) window.showToast('✅ נתוני מצב"ה נשמרו בענן ובלוקאל בהצלחה');
+
+      // 3. Trigger Version Vault checkpoint check
+      if (typeof window.checkVersionVaultSync === 'function') {
+        window.checkVersionVaultSync();
+      }
       return true;
     } catch (e) {
       console.error('[Matzava] Save error:', e);
-      if (window.showToast) window.showToast('❌ שגיאה בשמירת מצב"ה: ' + e.message);
+      if (window.showToast) window.showToast('❌ שגיאה בשמירת מצב"ה בענן (הנתונים נשמרו מקומית בלבד): ' + e.message);
       return false;
     }
+  };
+
+  // Download isolated Matzava JSON
+  window.exportMatzavaJSON = function () {
+    const y = getYearKey();
+    const data = {
+      module: 'matzava',
+      appVersion: window.APP_VERSION,
+      year: y,
+      exportedAt: new Date().toISOString(),
+      records: window.MATZAVA_STATE.records || [],
+      nutritionOnly: window.MATZAVA_STATE.nutritionOnly || [],
+      schools: window.MATZAVA_STATE.schools || [],
+      lastSync: window.MATZAVA_STATE.lastSync || null
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `גיבוי_מצבה_${y}_${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    if (window.showToast) window.showToast('✅ קובץ JSON של מצב"ה הורד בהצלחה');
+  };
+
+  // Import isolated Matzava JSON
+  window.importMatzavaJSON = function (fileInput) {
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    reader.onload = async function (e) {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        const data = parsed.matzava || parsed;
+        if (!data || (!Array.isArray(data.records) && !Array.isArray(data.schools) && !Array.isArray(data.nutritionOnly))) {
+          throw new Error('הקובץ אינו מכיל מבנה נתוני מצב"ה תקין');
+        }
+        window.MATZAVA_STATE.records = Array.isArray(data.records) ? data.records : [];
+        window.MATZAVA_STATE.nutritionOnly = Array.isArray(data.nutritionOnly) ? data.nutritionOnly : [];
+        window.MATZAVA_STATE.schools = Array.isArray(data.schools) ? data.schools : [];
+        window.MATZAVA_STATE.lastSync = new Date().toISOString();
+
+        await window.saveMatzavaToFirebase();
+        window.renderMatzavaTab();
+        if (window.showToast) window.showToast('✅ גיבוי JSON של מצב"ה שוחזר ונשמר בהצלחה!');
+      } catch (err) {
+        alert('❌ שגיאה בייבוא JSON: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
   };
 
   // Bulletproof cell text extractor for ExcelJS: handles RichText, formula results, hyperlinks,
@@ -1270,6 +1358,25 @@
                 style="background:#00838f; color:#fff; border-radius:8px; font-weight:700; padding:8px 14px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:none;" 
                 title="ייצוא הדוח לאקסל מעוצב עם כל הטאבים">
                 📊 ייצוא לאקסל
+              </button>
+
+              <button class="btn" onclick="window.exportMatzavaJSON()" 
+                style="background:#6a1b9a; color:#fff; border-radius:8px; font-weight:700; padding:8px 12px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:none;" 
+                title="הורדת גיבוי JSON מלא של מצב''ה">
+                💾 גיבוי JSON
+              </button>
+
+              ${canEdit ? `
+                <label class="btn" style="background:#4a148c; color:#fff; border-radius:8px; font-weight:700; padding:8px 12px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:none; margin:0;" title="שחזור קובץ גיבוי JSON של מצב''ה">
+                  📥 שחזור JSON
+                  <input type="file" accept=".json" style="display:none;" onchange="window.importMatzavaJSON(this)">
+                </label>
+              ` : ''}
+
+              <button class="btn" onclick="window.openVersionVaultModal && window.openVersionVaultModal()" 
+                style="background:#37474f; color:#fff; border-radius:8px; font-weight:700; padding:8px 12px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:none;" 
+                title="פתיחת כספת גיבויי נתונים ושחזור לפי גרסאות">
+                📦 כספת גיבויים
               </button>
 
               <button class="btn" onclick="window.loadMatzavaFromFirebase(true).then(()=>window.renderMatzavaTab())" 

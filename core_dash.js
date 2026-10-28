@@ -3854,7 +3854,8 @@ function exportData(){
   const data=_safeLS.getItem(yearKey)||_safeLS.getItem('ganv5')||'{}';
   const snaps=_safeLS.getItem('ganv5_snaps')||'[]';
   const todos=_safeLS.getItem('ganv5_todos')||'[]';
-  const blob=new Blob([JSON.stringify({data:JSON.parse(data),snaps:JSON.parse(snaps),todos:JSON.parse(todos),ts:Date.now(),v:ver},null,2)],{type:'application/json'});
+  const matzavaStr = window.MATZAVA_STATE ? JSON.stringify(window.MATZAVA_STATE) : (_safeLS.getItem('gan_matzava_' + (window.CURRENT_YEAR || 'tashpaz')) || 'null');
+  const blob=new Blob([JSON.stringify({data:JSON.parse(data),matzava:JSON.parse(matzavaStr),snaps:JSON.parse(snaps),todos:JSON.parse(todos),ts:Date.now(),v:ver},null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download=`kids_backup_v${ver}_`+new Date().toISOString().slice(0,10)+'.json';
@@ -3875,6 +3876,9 @@ function importData(){
         if(!await window.spConfirm('⚠️ ייבוא יחליף את כל הנתונים הנוכחיים.\nהמשך?')) return;
         _safeLS.setItem('ganv5',JSON.stringify(data));
         if(parsed.snaps) _safeLS.setItem('ganv5_snaps',JSON.stringify(parsed.snaps));
+        if(parsed.matzava) {
+          _safeLS.setItem('gan_matzava_' + (window.CURRENT_YEAR || 'tashpaz'), JSON.stringify(parsed.matzava));
+        }
         showToast('✅ הנתונים יובאו. טוען מחדש...');
         setTimeout(()=>location.reload(),1200);
       }catch(err){_spAlertDialog('שגיאה בקובץ הגיבוי: '+err.message);}

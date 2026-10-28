@@ -58,6 +58,13 @@ async function restoreSnapshot(i){
     if (Array.isArray(d.deliveries)) window._safeLS.setItem('ganv5_deliveries', JSON.stringify(d.deliveries));
     if (d.schoolBudgets) window._safeLS.setItem('ganv5_school_budgets', JSON.stringify(d.schoolBudgets));
     if (Array.isArray(d.customGardens)) window._safeLS.setItem('custom_gardens', JSON.stringify(d.customGardens));
+    if (d.matzava && window.MATZAVA_STATE) {
+      window.MATZAVA_STATE.records = d.matzava.records || [];
+      window.MATZAVA_STATE.nutritionOnly = d.matzava.nutritionOnly || [];
+      window.MATZAVA_STATE.schools = d.matzava.schools || [];
+      window.MATZAVA_STATE.lastSync = d.matzava.lastSync || null;
+      window._safeLS.setItem('gan_matzava_' + (window.CURRENT_YEAR || 'tashpaz'), JSON.stringify(d.matzava));
+    }
   } catch(e){}
   window.showCopyToast('✅ שוחזר! טוען מחדש...');
   setTimeout(()=>location.reload(),1200);
@@ -121,6 +128,19 @@ function importBackup(input){
       if (Array.isArray(data.deliveries)) window.DELIVERIES = data.deliveries;
       if (data.schoolBudgets) window.schoolBudgets = data.schoolBudgets;
       if (Array.isArray(data.customGardens)) window._GARDENS_EXTRA = data.customGardens;
+      if (data.matzava && window.MATZAVA_STATE) {
+        window.MATZAVA_STATE.records = data.matzava.records || [];
+        window.MATZAVA_STATE.nutritionOnly = data.matzava.nutritionOnly || [];
+        window.MATZAVA_STATE.schools = data.matzava.schools || [];
+        window.MATZAVA_STATE.lastSync = data.matzava.lastSync || null;
+        try {
+          const yKey = 'gan_matzava_' + (window.CURRENT_YEAR || 'tashpaz');
+          window._safeLS.setItem(yKey, JSON.stringify(data.matzava));
+        } catch(e){}
+        if (typeof window.saveMatzavaToFirebase === 'function') {
+          window.saveMatzavaToFirebase();
+        }
+      }
       const json=JSON.stringify(sd);
       window._safeLS.setItem('ganv5',json);
       if(sd.todos.length) window._safeLS.setItem('ganv5_todos', JSON.stringify(sd.todos));
@@ -374,8 +394,8 @@ window.backupToGoogleDrive = async function(isSilent) {
   
   try {
     // Generate backup payload from live in-memory variables (same as exportFullBackup)
-    const backupObj = {
-      version: 2,
+    const backupObj = typeof window.getMasterDataSnapshot === 'function' ? window.getMasterDataSnapshot() : {
+      version: 4,
       exported: new Date().toISOString(),
       ch: typeof SCH !== 'undefined' ? SCH.map(s=>({id:s.id,g:s.g,d:s.d,a:s.a,t:s.t,p:s.p,n:s.n,st:s.st,cr:s.cr,cn:s.cn,nt:s.nt,pd:s.pd,pt:s.pt,grp:s.grp,act:s.act||''})) : [],
       pairs: typeof pairs !== 'undefined' ? pairs : [],
@@ -387,6 +407,14 @@ window.backupToGoogleDrive = async function(isSilent) {
       blockedDates: typeof blockedDates !== 'undefined' ? blockedDates : {},
       gardenBlocks: typeof gardenBlocks !== 'undefined' ? gardenBlocks : {},
       invoices: typeof INVOICES !== 'undefined' ? INVOICES : [],
+      orders: typeof ORDERS !== 'undefined' ? ORDERS : [],
+      deliveries: typeof DELIVERIES !== 'undefined' ? DELIVERIES : [],
+      matzava: window.MATZAVA_STATE ? {
+        records: window.MATZAVA_STATE.records || [],
+        nutritionOnly: window.MATZAVA_STATE.nutritionOnly || [],
+        schools: window.MATZAVA_STATE.schools || [],
+        lastSync: window.MATZAVA_STATE.lastSync || null
+      } : null,
       todos: window.todo ? window.todo.items : []
     };
     
