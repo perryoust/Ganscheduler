@@ -1749,22 +1749,16 @@
                           </div>
 
                           ${r.isMerged && Array.isArray(r.subGardens) && r.subGardens.length > 0 ? `
-                            <div style="margin-top:6px; background:#faf5ff; border:1px solid #d8b4fe; border-radius:8px; padding:6px 10px; font-size:0.75rem; font-weight:normal; box-shadow:0 1px 3px rgba(106,27,154,0.06); line-height:1.4;">
-                              <div style="font-weight:700; color:#6a1b9a; font-size:0.68rem; border-bottom:1px dashed #d8b4fe; padding-bottom:3px; margin-bottom:4px; display:flex; justify-content:space-between;">
-                                <span>פירוט גנים שבתוך האיחוד:</span>
-                                <span>סה"כ: <b>${r.kidsTotal}</b></span>
-                              </div>
+                            <div style="margin-top:5px; display:flex; flex-direction:column; gap:3px;">
                               ${r.subGardens.map(sub => {
                                 const safeSubName = (sub.name && sub.name !== '[object Object]' && !String(sub.name).includes('object Object')) ? sub.name : 'גן';
+                                const isHost = sub.role === 'מארח';
                                 return `
-                                  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:2px 0; border-bottom:1px dotted #f3e5f5;">
-                                    <span style="${sub.role === 'מארח' ? 'font-weight:700; color:#4a148c;' : 'color:#581c87;'}">
-                                      ${sub.role === 'מארח' ? '🏠' : '↳'} ${safeSubName}
-                                      <span style="font-size:0.68rem; padding:1px 4px; border-radius:3px; background:${sub.role === 'מארח' ? '#f3e5f5' : '#ede7f6'}; color:${sub.role === 'מארח' ? '#6a1b9a' : '#7e57c2'}; font-weight:700;">${sub.role}</span>
-                                    </span>
-                                    <span style="font-weight:700; background:#fff; padding:1px 6px; border-radius:4px; border:1px solid #d8b4fe; color:#1a237e; font-size:0.72rem;">
-                                      ${sub.kidsTotal} ${sub.kids10 || sub.kids11 ? `<span style="font-size:0.65rem; color:#666;">(${sub.kids10}ח' + ${sub.kids11}ח')</span>` : 'ילדים'}
-                                    </span>
+                                  <div style="font-size:0.78rem; color:#6a1b9a; line-height:1.4; display:flex; align-items:center; gap:6px;">
+                                    <span style="font-size:0.75rem; opacity:0.8;">${isHost ? '🏠' : '↳'}</span>
+                                    <span style="font-weight:${isHost ? '700' : '600'}; color:#4a148c;">${safeSubName}</span>
+                                    <span style="font-size:0.72rem; color:#7e57c2;">(${sub.role || (isHost ? 'מארח' : 'מתארח')})</span>
+                                    <span style="font-weight:700; color:#6a1b9a; margin-right:auto;">${sub.kidsTotal} ילדים</span>
                                   </div>
                                 `;
                               }).join('')}
@@ -1782,9 +1776,11 @@
                         </td>
                         <td style="padding:10px 12px; vertical-align:top;">
                           ${r.isMerged ? `
-                            <span style="background:#f3e5f5; color:#6a1b9a; padding:4px 8px; border-radius:6px; font-size:0.76rem; font-weight:700; display:inline-flex; align-items:center; gap:4px; border:1px solid #ce93d8;">
-                              <span>🏠 ${safeHostGarden} (מארח)</span>
-                            </span>
+                            <div style="color:#6a1b9a; font-size:0.82rem; font-weight:700; display:inline-flex; align-items:center; gap:4px;">
+                              <span>🏠</span>
+                              <span>${safeHostGarden}</span>
+                              <span style="font-size:0.72rem; font-weight:normal; color:#8e24aa;">(מארח)</span>
+                            </div>
                           ` : `<span style="color:#777; font-size:0.8rem;">${safeHostGarden}</span>`}
                         </td>
                         <td style="padding:10px 12px; vertical-align:top;">
