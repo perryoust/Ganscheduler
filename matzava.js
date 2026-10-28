@@ -37,10 +37,17 @@
     return 'view';
   }
 
-  function canEditMatzava() {
+  function isMatzavaAdmin() {
     const role = getSafeRole();
-    const isMgr = role === 'admin' || role === 'manager' || role === 'vp' || window.permAllCities;
-    return isMgr || (window.permMatzava === true) || (!window.isReadOnly);
+    const isAdminRole = (role === 'admin');
+    const isPerry = (window._fbUser && window._fbUser.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03') || 
+                    (window._fbUser && window._fbUser.email && window._fbUser.email.startsWith('perry@')) ||
+                    (window.username === 'perry');
+    return isAdminRole || isPerry;
+  }
+
+  function canEditMatzava() {
+    return isMatzavaAdmin();
   }
 
   function getYearKey() {
@@ -87,11 +94,14 @@
     if (typeof window._fbGetToken === 'function') {
       try { tok = await window._fbGetToken(); } catch (e) { }
     }
+    if (!tok && window._fbUser) {
+      try { tok = await window._fbUser.getIdToken(false); } catch (e) { }
+    }
     if (!tok && window._cachedToken) {
       tok = window._cachedToken;
     }
-    if (!tok && window._fbUser) {
-      try { tok = await window._fbUser.getIdToken(false); } catch (e) { }
+    if (!tok && window._fbAuth && window._fbAuth.currentUser) {
+      try { tok = await window._fbAuth.currentUser.getIdToken(true); } catch (e) { }
     }
     if (!tok && window._fbUser) {
       try { tok = await window._fbUser.getIdToken(true); } catch (e) { }
@@ -102,7 +112,7 @@
   // Load data from Firebase Realtime Database (with instant LocalStorage fallback)
   window.loadMatzavaFromFirebase = async function (force = false) {
     const y = getYearKey();
-    if (!force && window.MATZAVA_STATE.loadedYear === y && window.MATZAVA_STATE.records.length > 0) {
+    if (!force && window.MATZAVA_STATE.loadedYear === y && (window.MATZAVA_STATE.records || []).length > 0 && (window.MATZAVA_STATE.schools || []).length > 0) {
       return;
     }
 
@@ -124,7 +134,8 @@
     window.MATZAVA_STATE.isLoading = true;
     try {
       const authQ = await getMatzavaAuthHeader();
-      const url = `${RTDB_ROOT}/matzava/${y}.json${authQ}`;
+      const cb = (authQ ? '&' : '?') + 'cb=' + Date.now();
+      const url = `${RTDB_ROOT}/matzava/${y}.json${authQ}${cb}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -169,6 +180,63 @@
       window.MATZAVA_STATE.isLoading = false;
     }
   };
+
+  // Dedicated one-click refresh from cloud with active visual feedback for management and admin
+  window.refreshMatzavaFromCloud = async function (btnEl) {
+    let origHtml = '';
+    if (btnEl) {
+      origHtml = btnEl.innerHTML;
+      btnEl.disabled = true;
+      btnEl.innerHTML = '⏳ מרענן מהענן...';
+      btnEl.style.opacity = '0.75';
+    }
+    if (window.showToast) window.showToast('⏳ מרענן נתוני מצב"ה מהענן...', 3000);
+
+    try {
+      await window.loadMatzavaFromFirebase(true);
+
+      const modal = document.getElementById('matzava-modal');
+      const modalBody = document.getElementById('matzava-modal-body');
+      const isModalVisible = modal && modal.style.display !== 'none';
+      const targetContainer = (isModalVisible && modalBody) ? modalBody : (document.getElementById('p-matzava') || modalBody);
+
+      await window.renderMatzavaTab(targetContainer);
+
+      if (window.showToast) {
+        const total = (window.MATZAVA_STATE.records || []).length;
+        const sch = (window.MATZAVA_STATE.schools || []).length;
+        window.showToast(`✅ נתוני מצב"ה רועננו בהצלחה (${total} צהרונים, ${sch} קבוצות בתי ספר)`);
+      }
+    } catch (err) {
+      console.error('[Matzava] Refresh error:', err);
+      if (window.showToast) window.showToast('❌ שגיאה ברענון מהענן: ' + err.message);
+    } finally {
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.innerHTML = origHtml;
+        btnEl.style.opacity = '1';
+      }
+    }
+  };
+
+  window.toggleMatzavaAdminMenu = function (e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const dd = document.getElementById('matzava-admin-dropdown');
+    if (!dd) return;
+    const isShown = dd.style.display === 'block';
+    dd.style.display = isShown ? 'none' : 'block';
+  };
+
+  document.addEventListener('click', function (e) {
+    const wrap = document.getElementById('matzava-admin-tools-wrapper');
+    if (wrap && !wrap.contains(e.target)) {
+      const dd = document.getElementById('matzava-admin-dropdown');
+      if (dd) dd.style.display = 'none';
+    }
+  });
 
   // Save data to Firebase Realtime Database (with LocalStorage mirror and Version Vault trigger)
   window.saveMatzavaToFirebase = async function () {
@@ -1432,47 +1500,72 @@
             <!-- ACTION BUTTONS -->
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
               ${canEdit ? `
-                <button class="btn" onclick="window.autoRefreshMatzava()" 
-                  style="background:#2e7d32; color:#fff; border-radius:8px; font-weight:700; padding:8px 14px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:none; box-shadow:0 2px 6px rgba(46,125,50,0.3);" 
-                  title="סריקה אוטומטית של תיקיית המצב''ה במחשב">
-                  ⚡ רענון אוטומטי
+                <!-- ADMIN: QUICK REFRESH + COLLAPSIBLE TOOLS DROPDOWN -->
+                <button class="btn" onclick="window.refreshMatzavaFromCloud(this)" 
+                  style="background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; border-radius:8px; font-weight:700; padding:8px 14px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" 
+                  title="רענן תצוגה מהענן (סנכרון מיידי)">
+                  🔄 רענן מהענן
                 </button>
-                <label class="btn" style="background:#1565c0; color:#fff; border-radius:8px; font-weight:700; padding:8px 14px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:none; margin:0;" title="ייבוא ידני של קובץ אקסל בודד">
-                  📂 ייבוא קובץ
-                  <input type="file" accept=".xlsx" style="display:none;" onchange="window.importSingleMatzavaFile(this)">
-                </label>
-              ` : ''}
-              
-              <button class="btn" onclick="window.exportMatzavaToExcel()" 
-                style="background:#00838f; color:#fff; border-radius:8px; font-weight:700; padding:8px 14px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:none;" 
-                title="ייצוא הדוח לאקסל מעוצב עם כל הטאבים">
-                📊 ייצוא לאקסל
-              </button>
 
-              <button class="btn" onclick="window.exportMatzavaJSON()" 
-                style="background:#6a1b9a; color:#fff; border-radius:8px; font-weight:700; padding:8px 12px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:none;" 
-                title="הורדת גיבוי JSON מלא של מצב''ה">
-                💾 גיבוי JSON
-              </button>
+                <div style="position:relative; display:inline-block;" id="matzava-admin-tools-wrapper">
+                  <button class="btn" onclick="window.toggleMatzavaAdminMenu(event)" 
+                    style="background:#1a237e; color:#fff; border:none; border-radius:8px; font-weight:700; padding:8px 14px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-shadow:0 2px 8px rgba(26,35,126,0.25);"
+                    title="כלי ניהול מתקדמים">
+                    ⚙️ כלי ניהול וייבוא <span style="font-size:0.75rem;">▼</span>
+                  </button>
+                  <div id="matzava-admin-dropdown" style="display:none; position:absolute; left:0; top:calc(100% + 6px); background:#fff; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,0.18); border:1px solid #cbd5e1; min-width:230px; z-index:99999; padding:6px; direction:rtl; text-align:right;">
+                    
+                    <button onclick="window.toggleMatzavaAdminMenu(); window.autoRefreshMatzava();" 
+                      style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#2e7d32; display:flex; align-items:center; gap:8px; cursor:pointer;" 
+                      onmouseover="this.style.background='#e8f5e9'" onmouseout="this.style.background='transparent'">
+                      ⚡ רענון אוטומטי (מחשב)
+                    </button>
+                    
+                    <label style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#1565c0; display:flex; align-items:center; gap:8px; cursor:pointer; box-sizing:border-box; margin:0;" 
+                      onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background='transparent'">
+                      📂 ייבוא קובץ אקסל
+                      <input type="file" accept=".xlsx" style="display:none;" onchange="window.toggleMatzavaAdminMenu(); window.importSingleMatzavaFile(this);">
+                    </label>
 
-              ${canEdit ? `
-                <label class="btn" style="background:#4a148c; color:#fff; border-radius:8px; font-weight:700; padding:8px 12px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:none; margin:0;" title="שחזור קובץ גיבוי JSON של מצב''ה">
-                  📥 שחזור JSON
-                  <input type="file" accept=".json" style="display:none;" onchange="window.importMatzavaJSON(this)">
-                </label>
-              ` : ''}
+                    <div style="height:1px; background:#e2e8f0; margin:4px 0;"></div>
 
-              <button class="btn" onclick="window.openVersionVaultModal && window.openVersionVaultModal()" 
-                style="background:#37474f; color:#fff; border-radius:8px; font-weight:700; padding:8px 12px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:none;" 
-                title="פתיחת כספת גיבויי נתונים ושחזור לפי גרסאות">
-                📦 כספת גיבויים
-              </button>
+                    <button onclick="window.toggleMatzavaAdminMenu(); window.exportMatzavaToExcel();" 
+                      style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#00838f; display:flex; align-items:center; gap:8px; cursor:pointer;" 
+                      onmouseover="this.style.background='#e0f7fa'" onmouseout="this.style.background='transparent'">
+                      📊 ייצוא לאקסל מעוצב
+                    </button>
 
-              <button class="btn" onclick="window.loadMatzavaFromFirebase(true).then(()=>window.renderMatzavaTab())" 
-                style="background:#f5f5f5; color:#333; border:1px solid #ccc; border-radius:8px; padding:8px 12px; font-size:0.85rem; cursor:pointer;" 
-                title="רענן תצוגה מהענן (סנכרון מיידי עם נתוני הצוות)">
-                🔄 רענן מהענן
-              </button>
+                    <div style="height:1px; background:#e2e8f0; margin:4px 0;"></div>
+
+                    <button onclick="window.toggleMatzavaAdminMenu(); window.exportMatzavaJSON();" 
+                      style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#6a1b9a; display:flex; align-items:center; gap:8px; cursor:pointer;" 
+                      onmouseover="this.style.background='#f3e5f5'" onmouseout="this.style.background='transparent'">
+                      💾 גיבוי JSON מלא
+                    </button>
+
+                    <label style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#4a148c; display:flex; align-items:center; gap:8px; cursor:pointer; box-sizing:border-box; margin:0;" 
+                      onmouseover="this.style.background='#ede7f6'" onmouseout="this.style.background='transparent'">
+                      📥 שחזור מגיבוי JSON
+                      <input type="file" accept=".json" style="display:none;" onchange="window.toggleMatzavaAdminMenu(); window.importMatzavaJSON(this);">
+                    </label>
+
+                    <div style="height:1px; background:#e2e8f0; margin:4px 0;"></div>
+
+                    <button onclick="window.toggleMatzavaAdminMenu(); window.openVersionVaultModal && window.openVersionVaultModal();" 
+                      style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#37474f; display:flex; align-items:center; gap:8px; cursor:pointer;" 
+                      onmouseover="this.style.background='#eceff1'" onmouseout="this.style.background='transparent'">
+                      📦 כספת גיבויים
+                    </button>
+                  </div>
+                </div>
+              ` : `
+                <!-- FIELD & MANAGEMENT: ONLY REFRESH BUTTON -->
+                <button class="btn" onclick="window.refreshMatzavaFromCloud(this)" 
+                  style="background:linear-gradient(135deg, #1565c0, #0d47a1); color:#fff; border:none; border-radius:8px; font-weight:700; padding:8px 16px; font-size:0.85rem; display:inline-flex; align-items:center; gap:8px; cursor:pointer; box-shadow:0 2px 8px rgba(21,101,192,0.3); transition:all 0.2s;" 
+                  title="רענן תצוגה מיידית מהענן">
+                  🔄 רענן נתונים מהענן
+                </button>
+              `}
             </div>
           </div>
 
@@ -1878,7 +1971,7 @@
         <div style="background:#f8fafc; width:100%; max-width:1300px; height:92vh; border-radius:14px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,0.3); border:1px solid #cbd5e1;">
           <div style="padding:12px 18px; background:#1a237e; color:#fff; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
             <div style="font-weight:800; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
-              <span>👶 מצב"ה — מספרי ילדים ואלרגיות בצהרונים</span>
+              <span>👶 מצב"ה — מספרי ילדים ואלרגיות בצהרונים ובתי ספר</span>
             </div>
             <button onclick="document.getElementById('matzava-modal').style.setProperty('display','none','important')" style="background:rgba(255,255,255,0.15); border:none; color:#fff; font-size:1.1rem; border-radius:6px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer;" title="סגור">✕</button>
           </div>
@@ -1890,6 +1983,18 @@
     modal.style.setProperty('display', 'flex', 'important');
     modal.style.setProperty('visibility', 'visible', 'important');
     const body = document.getElementById('matzava-modal-body');
+
+    // Auto load fresh from cloud if no data loaded or schools missing
+    if (!window.MATZAVA_STATE.loadedYear || (window.MATZAVA_STATE.schools || []).length === 0) {
+      body.innerHTML = `
+        <div style="text-align:center; padding:60px 20px;">
+          <div style="font-size:2rem; margin-bottom:12px;">⏳</div>
+          <div style="font-size:1.1rem; color:#1a237e; font-weight:700;">טוען נתוני מצב"ה עדכניים מהענן...</div>
+        </div>
+      `;
+      await window.loadMatzavaFromFirebase(true);
+    }
+
     await window.renderMatzavaTab(body);
   };
 
