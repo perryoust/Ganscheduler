@@ -105,8 +105,9 @@ window.doVisualExcelExport = async function(format = 'pdf') {
     gList = gList.filter(g => gardenFilters.includes(Number(g.id)));
   }
 
-  // Filter out morning daycare gardens ("גן לימי בוקרונים") from bulk exports, UNLESS specifically selected in single-garden mode
-  if (mode !== 'garden') {
+  // Filter out morning daycare gardens ("גן לימי בוקרונים") from bulk exports, UNLESS specifically selected in single-garden mode or checkbox checked
+  const includeMorning = document.getElementById('exp-include-morning-daycare')?.checked || false;
+  if (mode !== 'garden' && !includeMorning) {
     gList = gList.filter(g => !(typeof window.isMorningDaycareGarden === 'function' && window.isMorningDaycareGarden(g.id)));
   }
 
@@ -145,10 +146,14 @@ window.doVisualExcelExport = async function(format = 'pdf') {
   try {
     async function _runSingleBatch(rawTargetList, customSuffix = '') {
       if (!rawTargetList || rawTargetList.length === 0) return;
-      // Filter out gardens that have NO activities in this month in bulk exports (skip empty calendars)
-      const targetList = (mode === 'garden') ? rawTargetList : rawTargetList.filter(g => 
-        allEvs.some(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id))
-      );
+      // Filter out gardens that have NO activities in this month in bulk exports (skip empty calendars),
+      // UNLESS single garden mode or includeMorning is checked for a morning daycare garden
+      const targetList = (mode === 'garden') ? rawTargetList : rawTargetList.filter(g => {
+        const hasEvs = allEvs.some(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
+        if (hasEvs) return true;
+        if (includeMorning && typeof window.isMorningDaycareGarden === 'function' && window.isMorningDaycareGarden(g.id)) return true;
+        return false;
+      });
       if (!targetList || targetList.length === 0) return;
       targetList.sort((a,b) => (a.city||'').localeCompare(b.city||'','he') || (a.name||'').localeCompare(b.name||'','he'));
 

@@ -94,6 +94,8 @@ function openMonthlyExport(){
       window.onVisualPresetChange('color_only');
     }
   }
+  const incMorningEl = document.getElementById('exp-include-morning-daycare');
+  if (incMorningEl) incMorningEl.checked = false;
   document.getElementById('export-m').classList.add('open');
 }
 
@@ -231,6 +233,8 @@ function expModeChg(){
   document.getElementById('exp-city-wrap').style.display=mode==='city'?'block':'none';
   document.getElementById('exp-mgr-wrap').style.display=mode==='manager'?'block':'none';
   document.getElementById('exp-garden-wrap').style.display=mode==='garden'?'block':'none';
+  const morningWrap = document.getElementById('exp-morning-wrap');
+  if (morningWrap) morningWrap.style.display = mode === 'garden' ? 'none' : 'block';
 }
 
 // Helper: find manager assigned to a garden
@@ -270,6 +274,13 @@ async function doMonthlyExport(){
   const gMap = new Map();
   rawList.forEach(g => gMap.set(Number(g.id), g));
   let gList = Array.from(gMap.values()).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
+  
+  // Filter out morning daycare gardens ("גן לימי בוקרונים") from bulk exports, unless explicitly included
+  const includeMorning = document.getElementById('exp-include-morning-daycare')?.checked || false;
+  if (mode !== 'garden' && !includeMorning) {
+    gList = gList.filter(g => !(typeof window.isMorningDaycareGarden === 'function' && window.isMorningDaycareGarden(g.id)));
+  }
+
   if(mode==='city'){
     if(cityFilter && cityFilter !== 'all') gList=gList.filter(g=>g.city===cityFilter);
     const cType = document.querySelector('input[name="exp-city-type"]:checked')?.value || 'gan';
@@ -288,7 +299,11 @@ async function doMonthlyExport(){
         const mgrObj = window.managers && window.managers[mgrId];
         const mgrName = (mgrObj?.name || 'רכז').trim();
         const mgrGardens = getGardensForManager(mgrId, gList);
-        const mgrGardensWithEvs = mgrGardens.filter(g => evs.some(s => s.g === g.id));
+        const mgrGardensWithEvs = mgrGardens.filter(g => {
+          if (evs.some(s => s.g === g.id)) return true;
+          if (includeMorning && typeof window.isMorningDaycareGarden === 'function' && window.isMorningDaycareGarden(g.id)) return true;
+          return false;
+        });
         if (!mgrGardensWithEvs.length) {
           window.showToast?.(`אין פעילויות לגנים של ${mgrName} בתקופה זו`);
           continue;
@@ -318,11 +333,6 @@ async function doMonthlyExport(){
   if(mode==='schools'){ gList=gList.filter(g=>(typeof window.getGardenClass === 'function' ? window.getGardenClass(g) : (typeof gcls === 'function' ? gcls(g) : g.cls))==='ביה"ס'); }
   if(mode==='garden'){ if(gardenFilters.length===0){ window.spAlert('יש לבחור צהרון / בית ספר מהרשימה'); return; } gList=gList.filter(g=>gardenFilters.includes(Number(g.id))); }
 
-  // Filter out morning daycare gardens ("גן לימי בוקרונים") from bulk exports
-  if (mode !== 'garden') {
-    gList = gList.filter(g => !(typeof window.isMorningDaycareGarden === 'function' && window.isMorningDaycareGarden(g.id)));
-  }
-
   // For single-garden mode: always export as one file
   const effectiveSplit = (mode==='garden') ? 'garden' : splitBy;
 
@@ -334,13 +344,20 @@ async function doMonthlyExport(){
   if(effectiveSplit==='garden'){
     gList.forEach(g=>{
       const gEvs=evs.filter(s=>s.g===g.id);
-      if(!gEvs.length){ if(mode==='garden') window.spAlert(`אין פעילויות לגן "${g.name}" בתקופה שנבחרה`); return; }
+      if(!gEvs.length && !(includeMorning && typeof window.isMorningDaycareGarden === 'function' && window.isMorningDaycareGarden(g.id))){
+        if(mode==='garden') window.spAlert(`אין פעילויות לגן "${g.name}" בתקופה שנבחרה`);
+        return;
+      }
       downloadWB(buildGardenWB(g, gEvs, fromDate, toDate), `לוח_חוגים_${g.name}_${fromM}.xlsx`, fromM);
       filesExported++;
     });
   } else {
     Object.entries(byCity).forEach(([city,gardens])=>{
-      const cityGardens=gardens.filter(g=>evs.some(s=>s.g===g.id));
+      const cityGardens=gardens.filter(g=> {
+        if (evs.some(s=>s.g===g.id)) return true;
+        if (includeMorning && typeof window.isMorningDaycareGarden === 'function' && window.isMorningDaycareGarden(g.id)) return true;
+        return false;
+      });
       if(!cityGardens.length) return;
       const singleSheet = (effectiveSplit === 'city_single');
       downloadWB(buildCityWB(city, cityGardens, evs, fromDate, toDate), `לוח_חוגים_${city}_${fromM}.xlsx`, fromM, singleSheet);
