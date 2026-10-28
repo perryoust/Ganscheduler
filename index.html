@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>טומשין ניהול ושיבוץ | גרסה 113.71</title>
+  <title>טומשין ניהול ושיבוץ | גרסה 113.72</title>
   <meta name="description" content="טומשין ניהול ושיבוץ - מערכת לניהול ושיבוץ צהרונים">
   <!-- Open Graph / WhatsApp Preview Meta Tags -->
   <meta property="og:type" content="website">
@@ -27,7 +27,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=113.71" />
+  <link rel="stylesheet" href="styles.css?v=113.72" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -51,7 +51,7 @@
     }
   </style>
   <script>
-    window.APP_VERSION = '113.68';
+    window.APP_VERSION = '113.72';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -97,7 +97,7 @@
         jz.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
         document.head.appendChild(jz);
         if (!window.APP_VERSION) {
-        window.APP_VERSION = '113.21';
+        window.APP_VERSION = '113.72';
       }
       }
     })();
@@ -1460,7 +1460,8 @@
 
         <div style="display:flex;gap:7px;justify-content:flex-end;padding-top:10px;border-top:1px solid #e0e0e0; flex-wrap:wrap;">
           <button type="button" class="btn bsm" style="background:#25d366;color:#fff;border:none;border-radius:4px;padding:6px 12px;font-size:0.8rem;cursor:pointer;" onclick="exportGardenWA()">📋 העתק פרטים</button>
-          <button type="button" class="btn bsm" style="background:#ffebee;color:#c62828;border:1px solid #ffcdd2;margin-right:auto;border-radius:4px;padding:6px 12px;font-size:0.8rem;cursor:pointer;font-weight:700" onclick="window.openCloseGardenModal(window._geditGid)">🔒 סגירת צהרון...</button>
+          <button type="button" class="btn bsm" id="gedit-close-btn" style="background:#ffebee;color:#c62828;border:1px solid #ffcdd2;margin-right:auto;border-radius:4px;padding:6px 12px;font-size:0.8rem;cursor:pointer;font-weight:700" onclick="window.openCloseGardenModal(window._geditGid)">🔒 סגירת צהרון...</button>
+          <button type="button" class="btn bsm" id="gedit-reopen-btn" style="display:none;background:#e8f5e9;color:#2e7d32;border:1.5px solid #a5d6a7;margin-right:auto;border-radius:4px;padding:6px 12px;font-size:0.8rem;cursor:pointer;font-weight:800" onclick="window.executeReopenGarden(window._geditGid)">🔓 פתח גן מחדש</button>
           <button class="btn bp" onclick="saveGardenCard()">💾 שמור</button>
           <button class="btn bs" onclick="CM('gedit-m')">ביטול</button>
         </div>
@@ -1543,7 +1544,8 @@
         </div>
 
         <!-- כפתורי פעולה -->
-        <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <div style="display:flex; gap:8px; justify-content:flex-end; align-items:center;">
+          <button type="button" class="btn" id="cg-reopen-btn" style="display:none; background:#2e7d32; color:#fff; font-weight:800; border:none; padding:8px 16px; font-size:0.9rem; margin-right:auto;" onclick="window.executeReopenGarden(window._closeGid)">🔓 בטל סגירה ופתח גן מחדש</button>
           <button class="btn" style="background:#d32f2f; color:#fff; font-weight:700; border:none; padding:8px 16px; font-size:0.9rem;" onclick="window.executeCloseGarden()">🔒 אשר סגירת גן</button>
           <button class="btn bs" onclick="CM('close-garden-modal')">ביטול</button>
         </div>
@@ -2400,7 +2402,8 @@
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <h2 id="gm-title" style="margin:0"></h2>
         <div style="display:flex;align-items:center;gap:6px">
-          <button class="btn bsm" onclick="CM('gm');window.openCloseGardenModal(window.gmGid)" style="font-weight:700;display:inline-flex;align-items:center;gap:4px;background:#ffebee;color:#c62828;border:1px solid #ffcdd2" title="סגירת והשבתת צהרון">🔒 סגירת צהרון</button>
+          <button class="btn bsm" id="gm-close-btn" onclick="CM('gm');window.openCloseGardenModal(window.gmGid)" style="font-weight:700;display:inline-flex;align-items:center;gap:4px;background:#ffebee;color:#c62828;border:1px solid #ffcdd2" title="סגירת והשבתת צהרון">🔒 סגירת צהרון</button>
+          <button class="btn bsm" id="gm-reopen-btn" onclick="CM('gm');window.executeReopenGarden(window.gmGid)" style="display:none;font-weight:800;align-items:center;gap:4px;background:#e8f5e9;color:#2e7d32;border:1.5px solid #a5d6a7" title="פתיחה מחדש של הגן">🔓 פתח גן מחדש</button>
           <button class="btn bp bsm" onclick="CM('gm');openGardenEdit(window.gmGid)" style="font-weight:700;display:inline-flex;align-items:center;gap:4px">✏️ ערוך פרטי צהרון</button>
         </div>
       </div>
@@ -4165,16 +4168,16 @@
     <script src="cal.js?v=113.70"></script>
     <script src="activity.js?v=113.70"></script>
     <script src="sched.js?v=112.18"></script>
-    <script src="gardens.js?v=113.69"></script>
+    <script src="gardens.js?v=113.72"></script>
     <script src="export_v107.js?v=113.67"></script>
     <script src="visual_excel.js?v=113.71"></script>
     <script src="backup.js?v=113.57"></script>
     <script src="version_vault.js?v=113.57"></script>
     <script src="admin.js?v=112.15"></script>
     <script src="import_export.js?v=113.57"></script>
-    <script src="core_globals.js?v=113.71"></script>
+    <script src="core_globals.js?v=113.72"></script>
     <script src="core_data.js?v=113.69"></script>
-    <script src="core_dash.js?v=113.52"></script>
+    <script src="core_dash.js?v=113.72"></script>
     <script src="worker_tasks.js?v=113.61"></script>
     <script src="coordinator_app.js?v=113.24"></script>
     <script src="purchasing_orders.js?v=113.50"></script>

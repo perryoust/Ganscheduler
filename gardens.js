@@ -60,10 +60,13 @@ function renderGardens(){
         const gd=window.getGardenData(g.id);
         const age=typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : '';
         const ageBadge=(age && age !== '***') ? `<span style="font-size:var(--fs-small);background:#e0f2f1;color:#00796b;padding:1px 6px;border-radius:4px;font-weight:700" title="גיל הגן">👶 ${age}</span>` : '';
+        const isClosed = typeof window.isGardenClosed === 'function' ? window.isGardenClosed(g.id) : false;
+        const closedBadge = isClosed ? `<span style="font-size:var(--fs-small);background:#ffebee;color:#c62828;border:1px solid #ffcdd2;padding:1px 6px;border-radius:4px;font-weight:800" title="גן סגור / לא פעיל">🔒 סגור</span>` : '';
         h+=`<div class="gc" onclick="window.openGM(${g.id})">
           <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;line-height:1.4">
             <span style="font-weight:800;color:var(--c-primary);font-size:var(--fs-card-title)">${gd.name||g.name}</span>
             ${ageBadge}
+            ${closedBadge}
             ${(gd.st||g.st)?`<span style="font-size:var(--fs-small);color:var(--c-text-light)" onclick="event.stopPropagation()">📍 <a href="${typeof window.getGardenMapsUrl==='function'?window.getGardenMapsUrl(gd.st||g.st, g.city):('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent((gd.st||g.st)+', '+(g.city||'')+', ישראל'))}" target="_blank" style="color:var(--c-secondary);text-decoration:underline" title="פתח בגוגל מפות">${gd.st||g.st}</a></span>`:''}
             ${gd.phone?`<span style="font-size:var(--fs-small);color:var(--c-success);font-weight:600">📞 ${gd.phone}</span>`:''}
             ${mgr?`<span style="font-size:var(--fs-small);color:var(--c-secondary)">${mgr.role==='manager'?'🏛️':'👤'} ${mgr.name}${mgr.phone?' · 📞 '+mgr.phone:''}</span>`:''}
@@ -212,6 +215,13 @@ function openGM(gid){
   }
   document.getElementById('gm-pair-current').innerHTML = pairNotice;
   document.getElementById('gm-del-pair-btn').style.display = pair ? 'inline-block' : 'none';
+
+  // Toggle close / reopen button
+  const isGmClosed = typeof window.isGardenClosed === 'function' ? window.isGardenClosed(gid) : false;
+  const gmCloseBtn = document.getElementById('gm-close-btn');
+  const gmReopenBtn = document.getElementById('gm-reopen-btn');
+  if (gmCloseBtn) gmCloseBtn.style.display = isGmClosed ? 'none' : 'inline-flex';
+  if (gmReopenBtn) gmReopenBtn.style.display = isGmClosed ? 'inline-flex' : 'none';
 
   // Group dropdown by city: current garden city at the top, followed by other cities
   const allOther = activeGList.filter(x => Number(x.id) !== Number(gid));
@@ -3573,6 +3583,18 @@ window.exportAllRecurringWA = function(gid, sendDirect = false) {
 // 🔒 סגירת והשבתת צהרון (Automated Garden Deactivation & History Shield)
 // ══════════════════════════════════════════════════════════════════
 
+window.isGardenClosed = function(gid) {
+  const numGid = Number(gid);
+  if (!numGid) return false;
+  const g = typeof window.G === 'function' ? window.G(numGid) : {};
+  const ex = (window.supEx && window.supEx['g_' + numGid]) || {};
+  if (ex.isClosed === true || (g && g.isClosed === true)) return true;
+  if (ex.closedDate || (g && g.closedDate)) return true;
+  const name = (ex && ex.name) || (g && g.name) || '';
+  if (/\((?:נסגר|לא פעיל|סגור)/.test(name)) return true;
+  return false;
+};
+
 window.openCloseGardenModal = function(gid) {
   const numGid = Number(gid || window._geditGid || window.gmGid);
   if (!numGid) return;
@@ -3597,6 +3619,18 @@ window.openCloseGardenModal = function(gid) {
     dateInput.value = (ex && ex.closedDate) ? ex.closedDate : (g.closedDate || todayStr);
   }
 
+  const isClosed = window.isGardenClosed(numGid);
+  const closedNotice = isClosed ? `
+    <div style="background:#fee2e2; border:1.5px solid #f87171; border-radius:6px; padding:7px 11px; margin-top:8px; font-weight:700; color:#991b1b; display:flex; align-items:center; gap:8px;">
+      <span style="font-size:1.1rem">⚠️</span>
+      <div>גן זה מוגדר כסגור במערכת. באפשרותך לעדכן את תאריך הסגירה, או ללחוץ על <b>'🔓 בטל סגירה ופתח גן מחדש'</b> כדי להחזירו לפעילות.</div>
+    </div>
+  ` : '';
+
+  // Toggle Reopen button in Close Modal
+  const cgReopenBtn = document.getElementById('cg-reopen-btn');
+  if (cgReopenBtn) cgReopenBtn.style.display = isClosed ? 'inline-block' : 'none';
+
   // Populate Banner
   const banner = document.getElementById('cg-garden-banner');
   if (banner) {
@@ -3609,6 +3643,7 @@ window.openCloseGardenModal = function(gid) {
         <span>🏷️ <b>סוג:</b> ${cls}</span>
         <span>🆔 <b>מזהה גן:</b> ${numGid}</span>
       </div>
+      ${closedNotice}
     `;
   }
 
@@ -3737,8 +3772,14 @@ window.executeCloseGarden = async function() {
   const ok = (typeof window.spConfirm === 'function') ? await window.spConfirm(confirmMsg) : confirm(confirmMsg);
   if (!ok) return;
 
-  // 1. Update Name and mark as closed
+  // 1. Update Name and mark as closed, storing original clean name for safe reopen
   if (!window.supEx['g_' + numGid]) window.supEx['g_' + numGid] = {};
+  const gCurrent = typeof window.G === 'function' ? window.G(numGid) : {};
+  const rawCurName = (window.supEx['g_' + numGid] && window.supEx['g_' + numGid].name) || (gCurrent && gCurrent.name) || '';
+  const cleanBaseName = rawCurName.replace(/\s*\((?:נסגר|לא פעיל|סגור)[^)]*\)/g, '').trim();
+  if (!window.supEx['g_' + numGid].originalName && cleanBaseName) {
+    window.supEx['g_' + numGid].originalName = cleanBaseName;
+  }
   window.supEx['g_' + numGid].name = newName;
   window.supEx['g_' + numGid].closedDate = closeDate;
   window.supEx['g_' + numGid].isClosed = true;
@@ -3826,6 +3867,90 @@ window.executeCloseGarden = async function() {
   
   if (typeof window.showToast === 'function') {
     window.showToast(`🔒 ${newName} נסגר בהצלחה! ההיסטוריה נשמרה.`);
+  } else if (typeof window.spAlert === 'function') {
+    window.spAlert(successMsg);
+  } else {
+    alert(successMsg);
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+// 🔓 פתיחה מחדש וביטול סגירת גן (Reopen Garden & Restore Active Status)
+// ══════════════════════════════════════════════════════════════════
+window.executeReopenGarden = async function(gid) {
+  const numGid = Number(gid || window._geditGid || window.gmGid || window._closeGid);
+  if (!numGid) return;
+
+  const g = (typeof window.G === 'function' ? window.G(numGid) : null) || {};
+  const ex = (window.supEx && window.supEx['g_' + numGid]) || {};
+  const rawName = (ex && ex.name) || (g && g.name) || `גן #${numGid}`;
+  
+  // Prefer saved originalName or strip closure tags
+  const cleanName = (ex && ex.originalName) 
+    ? ex.originalName.trim() 
+    : rawName.replace(/\s*\((?:נסגר|לא פעיל|סגור)[^)]*\)/g, '').trim();
+
+  const confirmMsg = `🔓 ביטול סגירת גן והחזרה לפעילות:\n\nהאם אתה בטוח שברצונך לפתוח מחדש את הגן?\n\n• שם הגן ישוחזר ל: "${cleanName}"\n• הגן יוחזר לרשימת הגנים הפעילים במערכת\n• סטטוס הסגירה יבוטל\n\n(תוכל לשבץ לו חוגים, זוגות ואשכולות כרגיל)`;
+
+  const ok = (typeof window.spConfirm === 'function') ? await window.spConfirm(confirmMsg) : confirm(confirmMsg);
+  if (!ok) return;
+
+  // 1. Reset supEx
+  if (!window.supEx['g_' + numGid]) window.supEx['g_' + numGid] = {};
+  window.supEx['g_' + numGid].name = cleanName;
+  window.supEx['g_' + numGid].isClosed = false;
+  delete window.supEx['g_' + numGid].closedDate;
+  delete window.supEx['g_' + numGid].originalName;
+
+  // 2. Reset g object and in-memory lists
+  const gObj = typeof window.G === 'function' ? window.G(numGid) : null;
+  if (gObj) {
+    gObj.name = cleanName;
+    gObj.isClosed = false;
+    delete gObj.closedDate;
+  }
+  if (Array.isArray(window._GARDENS_ALL)) {
+    const ga = window._GARDENS_ALL.find(x => Number(x.id) === numGid);
+    if (ga) { ga.name = cleanName; ga.isClosed = false; delete ga.closedDate; }
+  }
+  if (Array.isArray(window._GARDENS_EXTRA)) {
+    const ge = window._GARDENS_EXTRA.find(x => Number(x.id) === numGid);
+    if (ge) { ge.name = cleanName; ge.isClosed = false; delete ge.closedDate; }
+  }
+  if (Array.isArray(window.GARDENS)) {
+    const gb = window.GARDENS.find(x => Number(x.id) === numGid);
+    if (gb) { gb.name = cleanName; gb.isClosed = false; delete gb.closedDate; }
+  }
+
+  // 3. Re-add to activeGardens set if activeGardens exists
+  if (window.activeGardens && typeof window.activeGardens.add === 'function') {
+    window.activeGardens.add(numGid);
+  }
+
+  // 4. Save to Firebase RTDB
+  if (typeof window.save === 'function') {
+    await window.save(true);
+  }
+
+  // 5. Close modals
+  if (typeof window.CM === 'function') {
+    window.CM('close-garden-modal');
+    window.CM('gedit-m');
+    window.CM('gm');
+  }
+
+  // 6. Refresh UI
+  if (typeof window.refreshAppUI === 'function') {
+    window.refreshAppUI();
+  } else if (typeof window.refresh === 'function') {
+    window.refresh();
+  }
+  if (typeof window.renderGardens === 'function') window.renderGardens();
+  if (typeof window.renderCal === 'function') window.renderCal();
+
+  const successMsg = `🔓 הגן "${cleanName}" נפתח מחדש בהצלחה!\nהגן חזר לרשימת הגנים הפעילים.`;
+  if (typeof window.showToast === 'function') {
+    window.showToast(`🔓 "${cleanName}" נפתח מחדש בהצלחה!`);
   } else if (typeof window.spAlert === 'function') {
     window.spAlert(successMsg);
   } else {

@@ -1392,6 +1392,13 @@ function openGardenEdit(gid){
     mgrSel.innerHTML = opts;
   }
 
+  // Toggle close / reopen button
+  const isClosed = typeof window.isGardenClosed === 'function' ? window.isGardenClosed(gid) : false;
+  const closeBtn = document.getElementById('gedit-close-btn');
+  const reopenBtn = document.getElementById('gedit-reopen-btn');
+  if (closeBtn) closeBtn.style.display = isClosed ? 'none' : 'inline-block';
+  if (reopenBtn) reopenBtn.style.display = isClosed ? 'inline-block' : 'none';
+
   document.getElementById('gedit-m').classList.add('open');
 }
 window.exportGardenWA = function() {
