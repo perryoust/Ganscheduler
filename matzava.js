@@ -371,7 +371,8 @@
       if (!row || row.length === 0) continue;
       const joined = row.join(' ');
 
-      if (joined.includes('הזנה בלבד')) {
+      // Check for nutrition section header or explicit meal ordering row
+      if (joined.includes('הזנה בלבד') && !joined.includes('הזמנת מזון') && !joined.includes('פטל') && !joined.includes('מורן')) {
         isNutritionMode = true;
         continue;
       }
@@ -379,8 +380,10 @@
         continue;
       }
 
-      // Handle Nutrition Only Mode
-      if (isNutritionMode) {
+      const isNutRow = isNutritionMode || joined.includes('הזמנת מזון') || joined.includes('מזון בלבד') || joined.includes('הזנה בלבד');
+
+      // Handle Nutrition Only Mode (הזנה / תקשורת - מנות מזון בלבד, אינו נכלל בסה"כ ילדים)
+      if (isNutRow) {
         let nutName = colMap.name !== undefined ? (row[colMap.name] || '') : '';
         if (!nutName || nutName === '[object Object]' || nutName.includes('object Object')) {
           const matchNut = row.find(c => ['פטל', 'מורן', 'רותם', 'צבעוני', 'ארז', 'תדהר'].some(k => (c || '').includes(k)));
@@ -392,14 +395,15 @@
             const num = parseInt(c, 10);
             if (!isNaN(num) && num > 0 && num < 100) count = num;
           });
-          const nutNotes = row.find(c => (c || '').includes('הזמנת מזון') || (c || '').includes('צמחוני')) || '';
+          const nutNotes = row.find(c => (c || '').includes('הזמנת מזון') || (c || '').includes('מזון') || (c || '').includes('צמחוני')) || '';
           const nutAddr = colMap.addr !== undefined ? (row[colMap.addr] || '') : (row[1] || '');
+          const nutType = row.find(c => (c || '').includes('תקשורת') || (c || '').includes('חנ"מ') || (c || '').includes('חנמ')) || 'תקשורת / חנ"מ';
 
           nutritionOnly.push({
             id: 'nut_' + city + '_' + nutName.replace(/\s+/g, '_'),
             city: city,
             name: nutName,
-            groupType: 'תקשורת / חנ"מ',
+            groupType: nutType,
             address: nutAddr,
             kidsTotal: count,
             notes: nutNotes,
@@ -426,6 +430,21 @@
 
       if (host === '[object Object]' || host.includes('object Object')) host = '';
       if (notes === '[object Object]' || notes.includes('object Object')) notes = '';
+
+      // Defense: Ensure any food meal ordering or nutrition group never slips into regular kindergartens
+      if (notes.includes('הזמנת מזון') || notes.includes('מזון בלבד') || gName.includes('הזנה בלבד')) {
+        nutritionOnly.push({
+          id: 'nut_' + city + '_' + (gName || 'קבוצה').replace(/\s+/g, '_'),
+          city: city,
+          name: gName,
+          groupType: 'תקשורת / חנ"מ',
+          address: gAddr,
+          kidsTotal: (k10 + k11) || directKids || rowTotal,
+          notes: notes,
+          sourceFile: cleanFn
+        });
+        continue;
+      }
 
       rawGardenItems.push({
         rowNum: r,
@@ -742,7 +761,7 @@
     // Re-render
     window.renderMatzavaTab();
 
-    let msg = `✅ רענון מצב"ה הושלם!\nנסרקו בהצלחה ${successCount} מתוך ${scannedFiles.length} קבצים:\n• ${window.MATZAVA_STATE.records.length} צהרונים\n• ${window.MATZAVA_STATE.nutritionOnly.length} קבוצות הזנה בלבד\n• ${window.MATZAVA_STATE.schools.length} קבוצות בתי ספר`;
+    let msg = `✅ רענון מצב"ה הושלם!\nנסרקו בהצלחה ${successCount} מתוך ${scannedFiles.length} קבצים:\n• ${window.MATZAVA_STATE.records.length} צהרונים\n• ${window.MATZAVA_STATE.nutritionOnly.length} קבוצות הזנה בלבד (מוצגות בבחירת העיר שלהן)\n• ${window.MATZAVA_STATE.schools.length} קבוצות בתי ספר`;
     if (failedFiles.length > 0) {
       msg += `\n\n⚠️ לא נקראו ${failedFiles.length} קבצים:\n• ${failedFiles.join('\n• ')}\n\n💡 אם הקובץ פתוח בתוכנת Excel במחשב, נא לסגור אותו וללחוץ שוב על "⚡ רענון אוטומטי".`;
     }
@@ -971,8 +990,8 @@
       });
     }
 
-    // 3. Nutrition Worksheet
-    if (filteredNutrition.length > 0) {
+    // 3. Nutrition Worksheet (Scoped strictly to its specific city)
+    if (s.selectedCity !== 'all' && filteredNutrition.length > 0) {
       const wsNut = wb.addWorksheet('הזנה בלבד', {
         views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }]
       });
@@ -1114,18 +1133,21 @@
     return list;
   };
 
-  // Filter logic for Nutrition Only (הזנה בלבד)
+  // Filter logic for Nutrition Only (הזנה בלבד / תקשורת)
+  // RULE: גני הזנה ותקשורת מוצגים אך ורק בעיר שלהם, ולעולם לא בסינון 'כל הערים'
   window.getFilteredNutritionRecords = function () {
     const s = window.MATZAVA_STATE;
+    if (!s.selectedCity || s.selectedCity === 'all') {
+      return [];
+    }
+
     let list = s.nutritionOnly || [];
 
     if (window.userRole === 'coordinator' && Array.isArray(window.coordCities) && window.coordCities.length > 0) {
       list = list.filter(n => window.coordCities.some(c => (n.city || '').includes(c) || c.includes(n.city || '')));
     }
 
-    if (s.selectedCity && s.selectedCity !== 'all') {
-      list = list.filter(n => (n.city || '').trim() === s.selectedCity.trim());
-    }
+    list = list.filter(n => (n.city || '').trim() === s.selectedCity.trim());
 
     if (s.searchQuery) {
       const q = s.searchQuery.toLowerCase().trim();
@@ -1164,8 +1186,9 @@
     const filteredSchools = window.getFilteredSchoolsRecords();
     const filteredNutrition = window.getFilteredNutritionRecords();
 
-    // Scoped Nutrition Logic: if user selected a city with 0 nutrition records, hide tab & fallback
-    if (s.selectedCity !== 'all' && filteredNutrition.length === 0 && s.subTab === 'nutrition') {
+    // Scoped Nutrition Logic: nutrition/communication is strictly visible only for its specific city
+    const isNutritionVisible = (s.selectedCity !== 'all' && filteredNutrition.length > 0);
+    if (!isNutritionVisible && s.subTab === 'nutrition') {
       s.subTab = 'gardens';
     }
     if (!s.subTab) s.subTab = 'gardens';
@@ -1209,9 +1232,6 @@
     (s.schools || []).forEach(sc => { if (sc.city) citiesSet.add(sc.city.trim()); });
     (s.nutritionOnly || []).forEach(n => { if (n.city) citiesSet.add(n.city.trim()); });
     const availableCities = Array.from(citiesSet).filter(Boolean).sort();
-
-    // Check if Nutrition is visible for the current filter
-    const isNutritionVisible = (s.selectedCity === 'all' || filteredNutrition.length > 0);
 
     let html = `
       <div class="matzava-wrapper" style="direction:rtl; font-family:'Assistant',sans-serif; padding:12px; max-width:1440px; margin:0 auto;">
@@ -1394,7 +1414,7 @@
             <div style="background:#fff; border-radius:10px; padding:12px 16px; border:1px solid #ffe0b2; box-shadow:0 1px 4px rgba(0,0,0,0.04); text-align:center;">
               <div style="font-size:0.75rem; color:#666; font-weight:700;">סה"כ מנות מזון (הזנה בלבד)</div>
               <div style="font-size:1.6rem; color:#e65100; font-weight:800; line-height:1.2;">${nutTotalMeals.toLocaleString()}</div>
-              <div style="font-size:0.7rem; color:#888;">מנות מוזמנות</div>
+              <div style="font-size:0.7rem; color:#888;">מנות מוזמנות (אינו נכלל בסה"כ הילדים)</div>
             </div>
 
             <div style="background:#fff; border-radius:10px; padding:12px 16px; border:1px solid #ffe0b2; box-shadow:0 1px 4px rgba(0,0,0,0.04); text-align:center;">
