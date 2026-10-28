@@ -291,7 +291,8 @@
     const headers = rawRows[headerIdx];
     headers.forEach((h, idx) => {
       if (!h) return;
-      if (['שם הגן', 'שם הצהרון', 'שם גן', 'קבוצה'].some(k => h.includes(k))) colMap.name = idx;
+      if (h.includes('מס')) colMap.idx = idx;
+      else if (['שם הגן', 'שם הצהרון', 'שם גן', 'קבוצה'].some(k => h.includes(k))) colMap.name = idx;
       else if (h.includes('כתובת') || h.includes('רחוב')) colMap.addr = idx;
       else if (h.includes('גיל')) colMap.age = idx;
       else if (h.includes('10 חודש')) colMap.kids10 = idx;
@@ -303,7 +304,7 @@
       else if (h.includes('עיר')) colMap.city = idx;
     });
 
-    const records = [];
+    const rawGardenItems = [];
     const nutritionOnly = [];
     let isNutritionMode = false;
 
@@ -354,46 +355,165 @@
       const gName = colMap.name !== undefined ? (row[colMap.name] || '') : '';
       if (!gName || gName.includes('סה"כ') || gName.includes('ממוצע')) continue;
 
+      const rowSeq = colMap.idx !== undefined ? (row[colMap.idx] || '') : '';
       const gAddr = colMap.addr !== undefined ? (row[colMap.addr] || '') : '';
       const gAge = colMap.age !== undefined ? (row[colMap.age] || '') : '';
       const k10 = colMap.kids10 !== undefined ? (parseInt(row[colMap.kids10], 10) || 0) : 0;
       const k11 = colMap.kids11 !== undefined ? (parseInt(row[colMap.kids11], 10) || 0) : 0;
       const directKids = colMap.kids !== undefined ? (parseInt(row[colMap.kids], 10) || 0) : 0;
-
-      let tot = 0;
-      if (colMap.total !== undefined && row[colMap.total]) {
-        tot = parseInt(row[colMap.total], 10) || 0;
-      }
-      if (!tot) {
-        tot = (k10 || k11) ? (k10 + k11) : directKids;
-      }
-
+      const rowTotal = colMap.total !== undefined ? (parseInt(row[colMap.total], 10) || 0) : 0;
       const host = colMap.host !== undefined ? (row[colMap.host] || '') : '';
       const notes = colMap.notes !== undefined ? (row[colMap.notes] || '') : '';
-      const isSterile = notes.includes('סטרילי') || notes.includes('אין להכניס') || notes.includes('אלרג');
-      const isHomeMeal = notes.includes('מהבית');
 
-      const matchedG = matchGarden(gName, city);
-
-      records.push({
-        id: 'mat_' + city + '_' + gName.replace(/\s+/g, '_'),
-        gardenId: matchedG ? matchedG.id : null,
-        city: city,
+      rawGardenItems.push({
+        rowNum: r,
+        seq: rowSeq,
         name: gName,
-        matchedName: matchedG ? matchedG.name : gName,
-        address: gAddr || (matchedG ? matchedG.st : ''),
-        age: gAge || (matchedG ? matchedG.age : ''),
-        kids10: k10,
-        kids11: k11,
-        kidsTotal: tot,
-        hostGarden: host || gName,
-        isMerged: host && host.trim() !== gName.trim(),
-        notes: notes,
-        isSterile: isSterile,
-        isHomeMeal: isHomeMeal,
-        sourceFile: cleanFn,
-        updatedAt: new Date().toISOString()
+        addr: gAddr,
+        age: gAge,
+        k10: k10,
+        k11: k11,
+        directKids: directKids,
+        rowTotal: rowTotal,
+        host: host,
+        notes: notes
       });
+    }
+
+    // Cluster raw gardens into unified classes (איחוד גנים) or standalone classes
+    const records = [];
+    const processedIndices = new Set();
+
+    for (let i = 0; i < rawGardenItems.length; i++) {
+      if (processedIndices.has(i)) continue;
+      const item = rawGardenItems[i];
+
+      const cluster = [item];
+      processedIndices.add(i);
+
+      // Check matching seq (same index in column A, e.g. 1, 5, 24)
+      if (item.seq && /^\d+$/.test(item.seq)) {
+        for (let j = i + 1; j < rawGardenItems.length; j++) {
+          if (!processedIndices.has(j) && rawGardenItems[j].seq === item.seq) {
+            cluster.push(rawGardenItems[j]);
+            processedIndices.add(j);
+          }
+        }
+      }
+
+      // Check adjacent row when seq is blank but host references connect them
+      for (let j = i + 1; j < rawGardenItems.length; j++) {
+        if (processedIndices.has(j)) continue;
+        const other = rawGardenItems[j];
+        if (j === i + cluster.length) {
+          const hostMatch = (other.host && item.name && other.host.includes(item.name)) ||
+                            (item.host && other.name && item.host.includes(other.name)) ||
+                            (other.host && item.host && other.host === item.host && (other.host.includes('איחוד') || other.host.length > 2));
+          if (hostMatch) {
+            cluster.push(other);
+            processedIndices.add(j);
+          }
+        }
+      }
+
+      if (cluster.length === 1) {
+        // Standalone independent garden
+        const g = cluster[0];
+        const kids = (g.k10 || g.k11) ? (g.k10 + g.k11) : (g.directKids || g.rowTotal);
+        const isSterile = g.notes.includes('סטרילי') || g.notes.includes('אין להכניס') || g.notes.includes('שומשום') || g.notes.includes('אלרג');
+        const isHomeMeal = g.notes.includes('מהבית');
+        const matchedG = matchGarden(g.name, city);
+
+        records.push({
+          id: 'mat_' + city + '_' + g.name.replace(/\s+/g, '_'),
+          gardenId: matchedG ? matchedG.id : null,
+          city: city,
+          name: g.name,
+          matchedName: matchedG ? matchedG.name : g.name,
+          address: g.addr || (matchedG ? matchedG.st : ''),
+          age: g.age || (matchedG ? matchedG.age : ''),
+          kids10: g.k10,
+          kids11: g.k11,
+          kidsTotal: kids,
+          hostGarden: g.host || g.name,
+          isMerged: false,
+          subGardens: [],
+          notes: g.notes,
+          isSterile: isSterile,
+          isHomeMeal: isHomeMeal,
+          sourceFile: cleanFn,
+          updatedAt: new Date().toISOString()
+        });
+      } else {
+        // Multi-garden Unified Class (איחוד גנים - מוצג כשורה אחת ברורה עם פירוט הגנים שבאיחוד)
+        let hostName = cluster.find(c => c.host && cluster.some(other => other.name.includes(c.host)))?.host || '';
+        if (!hostName) {
+          const foundHost = cluster.find(c => cluster.some(other => other.host && other.host.includes(c.name)));
+          if (foundHost) hostName = foundHost.name;
+        }
+        if (!hostName) {
+          hostName = cluster[0].name;
+        }
+
+        const hostItem = cluster.find(c => c.name.includes(hostName) || hostName.includes(c.name)) || cluster[0];
+
+        let sum10 = 0;
+        let sum11 = 0;
+        let sumKids = 0;
+        const combinedNotes = [];
+        let isSterile = false;
+        let isHomeMeal = false;
+
+        const subGardens = cluster.map(c => {
+          const cKids = (c.k10 || c.k11) ? (c.k10 + c.k11) : (c.directKids || 0);
+          sum10 += c.k10;
+          sum11 += c.k11;
+          sumKids += cKids;
+          if (c.notes) {
+            combinedNotes.push(`[${c.name}]: ${c.notes}`);
+            if (c.notes.includes('סטרילי') || c.notes.includes('אין להכניס') || c.notes.includes('שומשום') || c.notes.includes('אלרג')) isSterile = true;
+            if (c.notes.includes('מהבית')) isHomeMeal = true;
+          }
+          const matchedSub = matchGarden(c.name, city);
+          return {
+            name: c.name,
+            role: (c.name === hostItem.name) ? 'מארח' : 'מתארח',
+            gardenId: matchedSub ? matchedSub.id : null,
+            kids10: c.k10,
+            kids11: c.k11,
+            kidsTotal: cKids,
+            address: c.addr,
+            notes: c.notes
+          };
+        });
+
+        // Use cluster explicit rowTotal (if present, e.g. 27 or 35) or the sum of kids
+        const explicitTotal = cluster.find(c => c.rowTotal > 0)?.rowTotal;
+        const finalTotal = explicitTotal || sumKids;
+
+        const matchedG = matchGarden(hostItem.name, city);
+
+        records.push({
+          id: 'mat_' + city + '_' + hostItem.name.replace(/\s+/g, '_'),
+          gardenId: matchedG ? matchedG.id : null,
+          city: city,
+          name: hostItem.name,
+          matchedName: matchedG ? matchedG.name : hostItem.name,
+          address: hostItem.addr || (matchedG ? matchedG.st : '') || cluster[0].addr,
+          age: hostItem.age || (matchedG ? matchedG.age : '') || cluster[0].age,
+          kids10: sum10,
+          kids11: sum11,
+          kidsTotal: finalTotal,
+          hostGarden: hostItem.name,
+          isMerged: true,
+          subGardens: subGardens,
+          notes: combinedNotes.join(' | '),
+          isSterile: isSterile,
+          isHomeMeal: isHomeMeal,
+          sourceFile: cleanFn,
+          updatedAt: new Date().toISOString()
+        });
+      }
     }
 
     return { records, nutritionOnly, schools: [] };
@@ -566,7 +686,17 @@
 
         // Merge with existing state
         const recMap = new Map(window.MATZAVA_STATE.records.map(r => [(r.city || '') + '__' + (r.name || ''), r]));
-        res.records.forEach(r => recMap.set((r.city || '') + '__' + (r.name || ''), r));
+        res.records.forEach(r => {
+          recMap.set((r.city || '') + '__' + (r.name || ''), r);
+          // If this record is a merged group, clean up any hosted sub-gardens so they do not remain as duplicate standalone rows
+          if (r.isMerged && Array.isArray(r.subGardens)) {
+            r.subGardens.forEach(sub => {
+              if (sub.name !== r.name) {
+                recMap.delete((r.city || '') + '__' + sub.name);
+              }
+            });
+          }
+        });
         window.MATZAVA_STATE.records = Array.from(recMap.values());
 
         const nutMap = new Map(window.MATZAVA_STATE.nutritionOnly.map(n => [(n.city || '') + '__' + (n.name || ''), n]));
@@ -648,16 +778,24 @@
       total11 += (r.kids11 || 0);
       totalKids += (r.kidsTotal || 0);
 
+      let nameDisplay = r.name;
+      let statusDisplay = 'עצמאי';
+      if (r.isMerged && Array.isArray(r.subGardens) && r.subGardens.length > 0) {
+        statusDisplay = `מאוחד (${r.subGardens.length} גנים) ⚖️`;
+        const breakdown = r.subGardens.map(s => `${s.role === 'מארח' ? '[מארח] ' : '[מתארח] '}${s.name}: ${s.kidsTotal}`).join(' | ');
+        nameDisplay = `${r.name}\n(${breakdown})`;
+      }
+
       const row = ws.addRow({
         city: r.city,
-        name: r.name,
+        name: nameDisplay,
         address: r.address || '',
         age: r.age || '',
         kids10: r.kids10 || '',
         kids11: r.kids11 || '',
         kidsTotal: r.kidsTotal || 0,
-        hostGarden: r.hostGarden || r.name,
-        mergedStatus: r.isMerged ? 'מאוחד ⚠️' : 'עצמאי',
+        hostGarden: r.isMerged ? `🏠 ${r.hostGarden} (מארח)` : (r.hostGarden || r.name),
+        mergedStatus: statusDisplay,
         notes: r.notes || ''
       });
 
@@ -699,9 +837,21 @@
     const s = window.MATZAVA_STATE;
     let list = s.records || [];
 
-    // Coordinator view restriction
+    // Coordinator view restriction by cities
     if (window.userRole === 'coordinator' && Array.isArray(window.coordCities) && window.coordCities.length > 0) {
       list = list.filter(r => window.coordCities.some(c => (r.city || '').includes(c) || c.includes(r.city || '')));
+    }
+
+    // Coordinator view restriction by garden IDs (supports matching hosted sub-gardens)
+    if (window.userRole === 'coordinator' && Array.isArray(window.coordGardenIds) && window.coordGardenIds.length > 0) {
+      const gIds = window.coordGardenIds.map(String);
+      list = list.filter(r => {
+        if (r.gardenId && gIds.includes(String(r.gardenId))) return true;
+        if (Array.isArray(r.subGardens) && r.subGardens.length > 0) {
+          return r.subGardens.some(sub => sub.gardenId && gIds.includes(String(sub.gardenId)));
+        }
+        return false;
+      });
     }
 
     if (s.selectedCity && s.selectedCity !== 'all') {
@@ -714,7 +864,8 @@
         (r.name && r.name.toLowerCase().includes(q)) ||
         (r.address && r.address.toLowerCase().includes(q)) ||
         (r.notes && r.notes.toLowerCase().includes(q)) ||
-        (r.hostGarden && r.hostGarden.toLowerCase().includes(q))
+        (r.hostGarden && r.hostGarden.toLowerCase().includes(q)) ||
+        (Array.isArray(r.subGardens) && r.subGardens.some(sub => sub.name && sub.name.toLowerCase().includes(q)))
       );
     }
 
@@ -930,38 +1081,66 @@
                 ` : records.map((r, idx) => {
                   const bg = idx % 2 === 0 ? '#fff' : '#fcfcfc';
                   const isSterileBg = r.isSterile ? 'background:#fff5f5;' : '';
+                  const rowBorder = r.isMerged ? 'border-right:4px solid #8e24aa;' : '';
                   return `
-                    <tr style="${isSterileBg || `background:${bg};`} border-bottom:1px solid #eee; transition:background 0.15s;" onmouseover="this.style.background='#f0f4c3'" onmouseout="this.style.background='${r.isSterile ? '#fff5f5' : bg}'">
-                      <td style="padding:8px 12px; font-weight:700; color:#37474f;">
+                    <tr style="${isSterileBg || `background:${bg};`} ${rowBorder} border-bottom:1px solid #eee; transition:background 0.15s;" onmouseover="this.style.background='#f0f4c3'" onmouseout="this.style.background='${r.isSterile ? '#fff5f5' : bg}'">
+                      <td style="padding:10px 12px; font-weight:700; color:#37474f; vertical-align:top;">
                         <span style="background:#eceff1; padding:2px 6px; border-radius:4px; font-size:0.75rem;">${r.city}</span>
                       </td>
-                      <td style="padding:8px 12px; font-weight:700; color:#1a237e;">
-                        ${r.name}
-                        ${r.gardenId ? `<span title="מקושר למאגר צהרונים קיים (#${r.gardenId})" style="cursor:help; font-size:0.7rem; color:#4caf50; margin-right:4px;">✓</span>` : ''}
+                      <td style="padding:10px 12px; font-weight:700; color:#1a237e; vertical-align:top;">
+                        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                          <span style="font-size:0.92rem; font-weight:800; color:#1a237e;">${r.name}</span>
+                          ${r.isMerged ? `
+                            <span style="background:#f3e5f5; color:#6a1b9a; border:1px solid #ce93d8; font-size:0.7rem; padding:1px 6px; border-radius:12px; font-weight:800; display:inline-flex; align-items:center; gap:3px;">
+                              ⚖️ איחוד (${(r.subGardens || []).length} גנים)
+                            </span>
+                          ` : ''}
+                          ${r.gardenId ? `<span title="מקושר למאגר צהרונים קיים (#${r.gardenId})" style="cursor:help; font-size:0.75rem; color:#4caf50;">✓</span>` : ''}
+                        </div>
+
+                        ${r.isMerged && Array.isArray(r.subGardens) && r.subGardens.length > 0 ? `
+                          <div style="margin-top:6px; background:#faf5ff; border:1px solid #d8b4fe; border-radius:8px; padding:6px 10px; font-size:0.75rem; font-weight:normal; box-shadow:0 1px 3px rgba(106,27,154,0.06); line-height:1.4;">
+                            <div style="font-weight:700; color:#6a1b9a; font-size:0.68rem; border-bottom:1px dashed #d8b4fe; padding-bottom:3px; margin-bottom:4px; display:flex; justify-content:space-between;">
+                              <span>פירוט גנים שבתוך האיחוד:</span>
+                              <span>סה"כ: <b>${r.kidsTotal}</b></span>
+                            </div>
+                            ${r.subGardens.map(sub => `
+                              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:2px 0; border-bottom:1px dotted #f3e5f5;">
+                                <span style="${sub.role === 'מארח' ? 'font-weight:700; color:#4a148c;' : 'color:#581c87;'}">
+                                  ${sub.role === 'מארח' ? '🏠' : '↳'} ${sub.name}
+                                  <span style="font-size:0.68rem; padding:1px 4px; border-radius:3px; background:${sub.role === 'מארח' ? '#f3e5f5' : '#ede7f6'}; color:${sub.role === 'מארח' ? '#6a1b9a' : '#7e57c2'}; font-weight:700;">${sub.role}</span>
+                                </span>
+                                <span style="font-weight:700; background:#fff; padding:1px 6px; border-radius:4px; border:1px solid #d8b4fe; color:#1a237e; font-size:0.72rem;">
+                                  ${sub.kidsTotal} ${sub.kids10 || sub.kids11 ? `<span style="font-size:0.65rem; color:#666;">(${sub.kids10}ח' + ${sub.kids11}ח')</span>` : 'ילדים'}
+                                </span>
+                              </div>
+                            `).join('')}
+                          </div>
+                        ` : ''}
                       </td>
-                      <td style="padding:8px 12px; color:#555; font-size:0.8rem;">${r.address || '-'}</td>
-                      <td style="padding:8px 12px; text-align:center;">
+                      <td style="padding:10px 12px; color:#555; font-size:0.8rem; vertical-align:top;">${r.address || '-'}</td>
+                      <td style="padding:10px 12px; text-align:center; vertical-align:top;">
                         <span style="background:#e3f2fd; color:#1565c0; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:bold;">${r.age || '-'}</span>
                       </td>
-                      <td style="padding:8px 12px; text-align:center; color:#555;">${r.kids10 || '-'}</td>
-                      <td style="padding:8px 12px; text-align:center; color:#555;">${r.kids11 || '-'}</td>
-                      <td style="padding:8px 12px; text-align:center; font-weight:800; font-size:0.95rem; color:#1a237e; background:rgba(40,53,147,0.06);">
+                      <td style="padding:10px 12px; text-align:center; color:#555; vertical-align:top;">${r.kids10 || '-'}</td>
+                      <td style="padding:10px 12px; text-align:center; color:#555; vertical-align:top;">${r.kids11 || '-'}</td>
+                      <td style="padding:10px 12px; text-align:center; font-weight:800; font-size:1.05rem; color:#1a237e; background:rgba(40,53,147,0.06); vertical-align:top;">
                         ${r.kidsTotal || 0}
                       </td>
-                      <td style="padding:8px 12px;">
+                      <td style="padding:10px 12px; vertical-align:top;">
                         ${r.isMerged ? `
-                          <span style="background:#f3e5f5; color:#6a1b9a; padding:3px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:4px;">
-                            <span>⚖️ ${r.hostGarden}</span>
+                          <span style="background:#f3e5f5; color:#6a1b9a; padding:4px 8px; border-radius:6px; font-size:0.76rem; font-weight:700; display:inline-flex; align-items:center; gap:4px; border:1px solid #ce93d8;">
+                            <span>🏠 ${r.hostGarden} (מארח)</span>
                           </span>
                         ` : `<span style="color:#777; font-size:0.8rem;">${r.hostGarden || r.name}</span>`}
                       </td>
-                      <td style="padding:8px 12px;">
+                      <td style="padding:10px 12px; vertical-align:top;">
                         ${r.isSterile ? `
-                          <div style="background:#ffebee; color:#c62828; padding:3px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; margin-bottom:2px; display:inline-block; border:1px solid #ffcdd2;">
+                          <div style="background:#ffebee; color:#c62828; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; margin-bottom:3px; display:inline-block; border:1px solid #ffcdd2; line-height:1.4;">
                             🚨 ${r.notes}
                           </div>
                         ` : (r.notes ? `
-                          <div style="color:#444; font-size:0.78rem;">
+                          <div style="color:#444; font-size:0.78rem; line-height:1.4;">
                             ${r.isHomeMeal ? '🟡 ' : ''}${r.notes}
                           </div>
                         ` : '<span style="color:#bbb;">-</span>')}
