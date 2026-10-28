@@ -482,6 +482,81 @@
     return '';
   }
 
+  // Bulletproof yellow color detector for Excel cells (supports ARGB, standard yellow, pastel, theme, indexed)
+  function isCellYellow(cell) {
+    if (!cell) return false;
+
+    function checkColor(colorObj) {
+      if (!colorObj) return false;
+
+      // 1. Classic Excel indexed colors (5 & 13 = Yellow, 43 = Light Yellow, 51 = Gold)
+      if (colorObj.indexed !== undefined) {
+        const idx = Number(colorObj.indexed);
+        if (idx === 5 || idx === 13 || idx === 43 || idx === 51) return true;
+      }
+
+      // 2. ARGB hex color detection
+      if (colorObj.argb) {
+        let raw = String(colorObj.argb).replace(/^#/, '').trim().toUpperCase();
+        let a = 255, r = 0, g = 0, b = 0;
+        if (raw.length === 8) {
+          a = parseInt(raw.slice(0, 2), 16);
+          r = parseInt(raw.slice(2, 4), 16);
+          g = parseInt(raw.slice(4, 6), 16);
+          b = parseInt(raw.slice(6, 8), 16);
+        } else if (raw.length === 6) {
+          r = parseInt(raw.slice(0, 2), 16);
+          g = parseInt(raw.slice(2, 4), 16);
+          b = parseInt(raw.slice(4, 6), 16);
+        } else if (raw.length === 3) {
+          r = parseInt(raw[0] + raw[0], 16);
+          g = parseInt(raw[1] + raw[1], 16);
+          b = parseInt(raw[2] + raw[2], 16);
+        } else {
+          return false;
+        }
+
+        // Must not be transparent
+        if (a < 50) return false;
+
+        // Yellow in RGB color space:
+        // High Red (>= 175) and High Green (>= 150)
+        // Red and Green are dominant over Blue (r - b >= 25 && g - b >= 20)
+        // Red and Green are reasonably close (Math.abs(r - g) <= 85) to avoid pure red or pure green
+        if (r >= 175 && g >= 150 && (r - b >= 25) && (g - b >= 20) && Math.abs(r - g) <= 85) {
+          return true;
+        }
+      }
+
+      // 3. Theme color fallback (Theme 7 = Accent 4 Gold/Yellow in standard Office theme, Theme 5 in some variants)
+      if (colorObj.theme !== undefined) {
+        const t = Number(colorObj.theme);
+        if (t === 7 || t === 5) return true;
+      }
+
+      return false;
+    }
+
+    const fill = cell.fill || (cell.style && cell.style.fill) || (cell.model && cell.model.style && cell.model.style.fill);
+    if (fill) {
+      if (checkColor(fill.fgColor)) return true;
+      if (checkColor(fill.bgColor)) return true;
+      if (Array.isArray(fill.stops)) {
+        for (const stop of fill.stops) {
+          if (checkColor(stop && stop.color)) return true;
+        }
+      }
+    }
+
+    // Also check font color if text itself was colored yellow
+    const font = cell.font || (cell.style && cell.style.font);
+    if (font && font.color && checkColor(font.color)) {
+      return true;
+    }
+
+    return false;
+  }
+
   // Parse a single XLSX buffer using ExcelJS
   window.parseMatzavaWorkbook = async function (arrayBuffer, fileName) {
     if (typeof window.ensureExcelJSLoaded === 'function' && typeof window.ExcelJS === 'undefined') {
@@ -500,12 +575,16 @@
     if (!ws) throw new Error('לא נמצא גיליון בקובץ ' + cleanFn);
 
     const rawRows = [];
+    const rawCells = [];
     ws.eachRow({ includeEmpty: false }, (row) => {
       const vals = [];
+      const cells = [];
       row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
         vals[colNumber - 1] = extractCleanCellText(cell);
+        cells[colNumber - 1] = cell;
       });
       rawRows.push(vals);
+      rawCells.push(cells);
     });
 
     if (rawRows.length === 0) return { records: [], nutritionOnly: [], schools: [] };
@@ -581,6 +660,10 @@
           const mCount = parseInt(row[colMap.host] || row[4], 10) || kCount;
           const sNotes = (row[colMap.notes] || row[6] || '').trim();
 
+          const rowCells = rawCells[startRow + r] || [];
+          const cellKids = (colMap.kids !== undefined) ? rowCells[colMap.kids] : rowCells[3];
+          const changedKids = isCellYellow(cellKids);
+
           const cleanCity = (secCity || 'בתי ספר').trim();
           const cleanSchool = (secSchool || 'בית ספר').trim();
           const cleanGroup = (groupName || 'קבוצה').trim();
@@ -594,6 +677,8 @@
             groupName: cleanGroup,
             kids: kCount,
             mergedKids: mCount,
+            changedKids: changedKids,
+            hasChange: changedKids,
             notes: sNotes,
             isSterile: sNotes.includes('סטרילי') || sNotes.includes('שומשום') || sNotes.includes('אלרג'),
             isHomeMeal: sNotes.includes('מהבית'),
@@ -682,6 +767,12 @@
           const nutAddr = colMap.addr !== undefined ? (row[colMap.addr] || '') : (row[1] || '');
           const nutType = row.find(c => (c || '').includes('תקשורת') || (c || '').includes('חנ"מ') || (c || '').includes('חנמ')) || 'תקשורת / חנ"מ';
 
+          const rowCells = rawCells[r] || [];
+          let nutChanged = false;
+          rowCells.forEach(cell => {
+            if (isCellYellow(cell)) nutChanged = true;
+          });
+
           nutritionOnly.push({
             id: 'nut_' + city + '_' + nutName.replace(/\s+/g, '_'),
             city: city,
@@ -689,6 +780,8 @@
             groupType: nutType,
             address: nutAddr,
             kidsTotal: count,
+            changedKids: nutChanged,
+            hasChange: nutChanged,
             notes: nutNotes,
             sourceFile: cleanFn
           });
@@ -721,6 +814,24 @@
       if (host === '[object Object]' || host.includes('object Object')) host = '';
       if (notes === '[object Object]' || notes.includes('object Object')) notes = '';
 
+      // Yellow cell highlight detection on 10/11 months / count cells
+      const rowCells = rawCells[r] || [];
+      const cell10 = (colMap.kids10 !== undefined) ? rowCells[colMap.kids10] : null;
+      const cell11 = (colMap.kids11 !== undefined) ? rowCells[colMap.kids11] : null;
+      const cellDirect = (colMap.kids !== undefined) ? rowCells[colMap.kids] : null;
+      const cellTotal = (colMap.total !== undefined) ? rowCells[colMap.total] : null;
+
+      let changed10 = isCellYellow(cell10);
+      let changed11 = isCellYellow(cell11);
+
+      if (colMap.kids10 === undefined && colMap.kids11 === undefined) {
+        if (isCellYellow(cellDirect) || isCellYellow(cellTotal)) {
+          changed10 = true;
+        }
+      }
+
+      const hasChange = !!(changed10 || changed11 || isCellYellow(cellTotal));
+
       // Defense: Ensure any food meal ordering or nutrition group never slips into regular kindergartens
       if (notes.includes('הזמנת מזון') || notes.includes('מזון בלבד') || gName.includes('הזנה בלבד')) {
         nutritionOnly.push({
@@ -730,6 +841,8 @@
           groupType: 'תקשורת / חנ"מ',
           address: gAddr,
           kidsTotal: (k10 + k11) || directKids || rowTotal,
+          changedKids: hasChange,
+          hasChange: hasChange,
           notes: notes,
           sourceFile: cleanFn
         });
@@ -747,7 +860,10 @@
         directKids: directKids,
         rowTotal: rowTotal,
         host: host,
-        notes: notes
+        notes: notes,
+        changed10: changed10,
+        changed11: changed11,
+        hasChange: hasChange
       });
     }
 
@@ -812,6 +928,9 @@
           kids10: finalKids10,
           kids11: finalKids11,
           kidsTotal: kids,
+          changed10: !!g.changed10,
+          changed11: !!g.changed11,
+          hasChange: !!g.hasChange,
           hostGarden: (g.host && g.host !== '[object Object]' && !String(g.host).includes('object Object')) ? g.host : safeName,
           isMerged: false,
           subGardens: [],
@@ -841,6 +960,10 @@
         let isSterile = false;
         let isHomeMeal = false;
 
+        const anyChanged10 = cluster.some(c => c.changed10);
+        const anyChanged11 = cluster.some(c => c.changed11);
+        const anyChange = cluster.some(c => c.hasChange);
+
         const subGardens = cluster.map(c => {
           let c10 = c.k10;
           let c11 = c.k11;
@@ -865,6 +988,9 @@
             kids10: c10,
             kids11: c11,
             kidsTotal: cKids,
+            changed10: !!c.changed10,
+            changed11: !!c.changed11,
+            hasChange: !!c.hasChange,
             address: c.addr,
             notes: c.notes
           };
@@ -897,6 +1023,9 @@
           kids10: cluster10,
           kids11: cluster11,
           kidsTotal: finalTotal,
+          changed10: anyChanged10,
+          changed11: anyChanged11,
+          hasChange: anyChange,
           hostGarden: safeHostItemName,
           isMerged: true,
           subGardens: subGardens,
@@ -1537,6 +1666,14 @@
 
         row.eachCell((cell, colNum) => {
           cell.alignment = { horizontal: (colNum >= 5 && colNum <= 7) ? 'center' : 'right', vertical: 'middle', readingOrder: 'rightToLeft' };
+          if (r.changed10 && colNum === 5) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+            cell.font = { color: { argb: 'FF854D0E' }, bold: true };
+          }
+          if (r.changed11 && colNum === 6) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+            cell.font = { color: { argb: 'FF854D0E' }, bold: true };
+          }
           if (r.isSterile && colNum === 10) {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEBEE' } };
             cell.font = { color: { argb: 'FFC62828' }, bold: true };
@@ -1598,6 +1735,10 @@
 
         row.eachCell((cell, colNum) => {
           cell.alignment = { horizontal: (colNum >= 5 && colNum <= 6) ? 'center' : 'right', vertical: 'middle', readingOrder: 'rightToLeft' };
+          if (s.hasChange && colNum === 5) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+            cell.font = { color: { argb: 'FF854D0E' }, bold: true };
+          }
           if (s.isSterile && colNum === 7) {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEBEE' } };
             cell.font = { color: { argb: 'FFC62828' }, bold: true };
@@ -1766,6 +1907,8 @@
       list = list.filter(r => r.isHomeMeal);
     } else if (s.filterType === 'merged') {
       list = list.filter(r => r.isMerged);
+    } else if (s.filterType === 'changed') {
+      list = list.filter(r => r.hasChange);
     }
 
     return list;
@@ -1801,6 +1944,8 @@
       list = list.filter(sc => sc.isSterile);
     } else if (s.filterType === 'homemeal') {
       list = list.filter(sc => sc.isHomeMeal);
+    } else if (s.filterType === 'changed') {
+      list = list.filter(sc => sc.hasChange);
     }
 
     return list;
@@ -1835,6 +1980,10 @@
       );
     }
 
+    if (s.filterType === 'changed') {
+      list = list.filter(n => n.hasChange);
+    }
+
     return list;
   };
 
@@ -1849,12 +1998,17 @@
       ? r.hostGarden 
       : safeRowName;
 
+    const cardBorderRight = r.hasChange
+      ? 'border-right:4px solid #eab308; background:#fffdf5;'
+      : (r.isMerged ? 'border-right:4px solid #8e24aa;' : (r.isSterile ? 'border-right:4px solid #ef4444;' : ''));
+
     return `
-      <div style="background:#fff; border-radius:10px; padding:10px 12px; border:1px solid #e2e8f0; box-shadow:0 1px 3px rgba(0,0,0,0.04); ${r.isMerged ? 'border-right:4px solid #8e24aa;' : (r.isSterile ? 'border-right:4px solid #ef4444;' : '')}">
+      <div style="background:#fff; border-radius:10px; padding:10px 12px; border:1px solid #e2e8f0; box-shadow:0 1px 3px rgba(0,0,0,0.04); ${cardBorderRight}">
         <!-- Top Row: Badges + Total Kids Pill -->
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
           <div style="flex:1; min-width:0;">
             <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-bottom:3px;">
+              ${r.hasChange ? `<span style="background:#fef08a; color:#854d0e; padding:1px 6px; border-radius:10px; font-size:0.68rem; font-weight:800; border:1px solid #facc15;">⚡ שונה באקסל</span>` : ''}
               ${r.age ? `<span style="background:#e3f2fd; color:#1565c0; padding:1px 6px; border-radius:4px; font-size:0.7rem; font-weight:700;">גיל ${r.age}</span>` : ''}
               ${r.isMerged ? `<span style="background:#f3e5f5; color:#6a1b9a; padding:1px 6px; border-radius:10px; font-size:0.68rem; font-weight:800;">⚖️ איחוד (${(r.subGardens || []).length})</span>` : ''}
               ${r.gardenId ? `<span title="קיים במאגר" style="font-size:0.72rem; color:#4caf50;">✓</span>` : ''}
@@ -1862,12 +2016,22 @@
             <div style="font-size:1rem; font-weight:800; color:#1a237e; word-break:break-word; line-height:1.25;">
               ${safeRowName}
             </div>
+            ${(r.changed10 || r.changed11) ? `
+              <div style="display:flex; gap:5px; margin-top:4px;">
+                ${r.changed10 ? `<span style="background:#fef08a; color:#854d0e; padding:1px 6px; border-radius:4px; font-size:0.68rem; font-weight:800; border:1px solid #facc15;">10ח': ${r.kids10} ⚡</span>` : ''}
+                ${r.changed11 ? `<span style="background:#fef08a; color:#854d0e; padding:1px 6px; border-radius:4px; font-size:0.68rem; font-weight:800; border:1px solid #facc15;">11ח': ${r.kids11} ⚡</span>` : ''}
+              </div>
+            ` : ''}
           </div>
 
           <!-- Total Kids Badge -->
-          <div style="background:${r.isMerged ? '#f3e5f5' : '#e8eaf6'}; border:1px solid ${r.isMerged ? '#ce93d8' : '#c5cae9'}; border-radius:8px; padding:4px 8px; text-align:center; min-width:50px; flex-shrink:0;">
-            <div style="font-size:1.2rem; font-weight:900; color:${r.isMerged ? '#6a1b9a' : '#1a237e'}; line-height:1;">${(Number(r.kids10) || 0) + (Number(r.kids11) || 0)}</div>
-            <div style="font-size:0.62rem; color:#555; font-weight:700;">ילדים</div>
+          <div style="background:${r.hasChange ? '#fef9c3' : (r.isMerged ? '#f3e5f5' : '#e8eaf6')}; border:1px solid ${r.hasChange ? '#facc15' : (r.isMerged ? '#ce93d8' : '#c5cae9')}; border-radius:8px; padding:4px 8px; text-align:center; min-width:50px; flex-shrink:0;">
+            <div style="font-size:1.2rem; font-weight:900; color:${r.hasChange ? '#854d0e' : (r.isMerged ? '#6a1b9a' : '#1a237e')}; line-height:1;">
+              ${(Number(r.kids10) || 0) + (Number(r.kids11) || 0)}
+            </div>
+            <div style="font-size:0.62rem; color:${r.hasChange ? '#a16207' : '#555'}; font-weight:700;">
+              ${r.hasChange ? 'ילדים ⚡' : 'ילדים'}
+            </div>
           </div>
         </div>
 
@@ -1885,7 +2049,9 @@
             ${r.subGardens.map(sub => `
               <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:#6a1b9a;">
                 <span>${sub.role === 'מארח' ? '🏠' : '↳'} <b>${sub.name}</b></span>
-                <span style="font-weight:700; color:#4a148c;">${sub.kidsTotal} ילדים</span>
+                <span style="font-weight:700; color:${sub.hasChange ? '#854d0e' : '#4a148c'}; ${sub.hasChange ? 'background:#fef08a; padding:0 4px; border-radius:3px; border:1px solid #facc15;' : ''}">
+                  ${sub.kidsTotal} ילדים ${sub.hasChange ? '⚡' : ''}
+                </span>
               </div>
             `).join('')}
           </div>
@@ -1925,7 +2091,7 @@
 
     const isSearching = !!(window.MATZAVA_STATE.searchQuery && window.MATZAVA_STATE.searchQuery.trim());
     const isSingleCitySelected = window.MATZAVA_STATE.selectedCity !== 'all';
-    const shouldOpen = isSearching || (isSingleCitySelected && cityMap.size === 1);
+    const shouldOpen = isSearching || (window.MATZAVA_STATE.filterType === 'changed') || (isSingleCitySelected && cityMap.size === 1);
 
     const toolbar = cityMap.size > 1 ? `
       <div style="display:flex; gap:8px; margin-bottom:10px; justify-content:flex-start; flex-wrap:wrap;">
@@ -1938,13 +2104,22 @@
 
     const content = sortedCities.map(cityName => {
       const cityGardens = cityMap.get(cityName);
-      let cityKidsTotal = 0;
+      let sumCol10 = 0;
+      let sumCol11 = 0;
+      let sumColTotal = 0;
       let cityMerged = 0;
       let citySterile = 0;
+      let cityChanged = 0;
+
       cityGardens.forEach(r => {
-        cityKidsTotal += ((Number(r.kids10) || 0) + (Number(r.kids11) || 0));
+        const k10 = Number(r.kids10) || 0;
+        const k11 = Number(r.kids11) || 0;
+        sumCol10 += k10;
+        sumCol11 += k11;
+        sumColTotal += (k10 + k11);
         if (r.isMerged) cityMerged++;
         if (r.isSterile) citySterile++;
+        if (r.hasChange) cityChanged++;
       });
 
       return `
@@ -1952,14 +2127,24 @@
           <summary style="padding:10px 14px; background:#f8fafc; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; user-select:none; border-bottom:1px solid #e2e8f0;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex:1; margin-left:10px; flex-wrap:wrap; gap:6px;">
               <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-size:1.1rem;">🏙️</span>
+                <span style="font-size:1.15rem;">🏙️</span>
                 <span style="font-size:0.98rem; font-weight:800; color:#1a237e;">${cityName}</span>
-                <span style="font-size:0.72rem; background:#e0e7ff; color:#3730a3; padding:1px 6px; border-radius:10px; font-weight:700;">${cityGardens.length} צהרונים</span>
+                <span style="font-size:0.68rem; background:#e0e7ff; color:#3730a3; padding:1px 6px; border-radius:8px; font-weight:700;">${cityGardens.length} צהרונים</span>
               </div>
               <div style="display:flex; align-items:center; gap:6px; font-size:0.75rem;">
-                <span style="background:#e8eaf6; color:#1a237e; padding:2px 8px; border-radius:6px; font-weight:800;"><b>${cityKidsTotal.toLocaleString()}</b> ילדים</span>
-                ${cityMerged > 0 ? `<span style="background:#f3e5f5; color:#6a1b9a; padding:2px 6px; border-radius:6px; font-weight:700;">⚖️ ${cityMerged}</span>` : ''}
-                ${citySterile > 0 ? `<span style="background:#fee2e2; color:#b91c1c; padding:2px 6px; border-radius:6px; font-weight:800;">🚨 ${citySterile}</span>` : ''}
+                <span style="background:#e8eaf6; color:#1a237e; padding:2px 8px; border-radius:6px; font-weight:800;">
+                  <b>${sumColTotal.toLocaleString()}</b> רשומים
+                </span>
+                ${cityChanged > 0 ? `
+                  <span style="background:#fef08a; color:#854d0e; padding:2px 6px; border-radius:6px; font-weight:800; border:1px solid #facc15; font-size:0.7rem;">
+                    ⚡ ${cityChanged} שינויים
+                  </span>
+                ` : ''}
+                ${citySterile > 0 ? `
+                  <span style="background:#ef5350; color:#fff; padding:2px 6px; border-radius:6px; font-weight:800; font-size:0.7rem;">
+                    🚨 ${citySterile}
+                  </span>
+                ` : ''}
               </div>
             </div>
           </summary>
@@ -1976,9 +2161,9 @@
   function renderSchoolsMobile(filteredSchools) {
     if (filteredSchools.length === 0) {
       return `
-        <div style="background:#fff; border-radius:10px; padding:30px 15px; text-align:center; color:#999; border:1px solid #b2ebf2;">
+        <div style="background:#fff; border-radius:10px; padding:30px 15px; text-align:center; color:#999; border:1px solid #b2dfdb;">
           <div style="font-size:2rem; margin-bottom:6px;">🏫</div>
-          <div style="font-weight:700; font-size:0.95rem; color:#006064;">לא נמצאו קבוצות בתי ספר התואמות לחיפוש / סינון</div>
+          <div style="font-weight:700; font-size:0.95rem; color:#555;">לא נמצאו קבוצות בתי ספר לעיר זו</div>
         </div>
       `;
     }
@@ -1995,7 +2180,7 @@
 
     const isSearching = !!(window.MATZAVA_STATE.searchQuery && window.MATZAVA_STATE.searchQuery.trim());
     const isSingleCitySelected = window.MATZAVA_STATE.selectedCity !== 'all';
-    const shouldOpen = isSearching || (isSingleCitySelected && cityMap.size === 1);
+    const shouldOpen = isSearching || (window.MATZAVA_STATE.filterType === 'changed') || (isSingleCitySelected && cityMap.size === 1);
 
     const toolbar = cityMap.size > 1 ? `
       <div style="display:flex; gap:8px; margin-bottom:10px; justify-content:flex-start; flex-wrap:wrap;">
@@ -2009,12 +2194,14 @@
       let cityMerged = 0;
       let cityClasses = 0;
       let citySterile = 0;
+      let cityChanged = 0;
       schObjMap.forEach(classes => {
         classes.forEach(sc => {
           cityKids += (sc.kids || 0);
           cityMerged += (sc.mergedKids || sc.kids || 0);
           cityClasses++;
           if (sc.isSterile) citySterile++;
+          if (sc.hasChange) cityChanged++;
         });
       });
 
@@ -2023,7 +2210,7 @@
           
           <!-- Compact City Header -->
           <summary style="padding:10px 14px; background:#f4fbfb; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; user-select:none; border-bottom:1px solid #e0f2f1;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex:1; margin-left:10px; flex-wrap:wrap; gap:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-1; margin-left:10px; flex-wrap:wrap; gap:6px;">
               <div style="display:flex; align-items:center; gap:6px;">
                 <span style="font-size:1.15rem;">🏙️</span>
                 <span style="font-size:0.98rem; font-weight:800; color:#004d40;">${cityName}</span>
@@ -2033,6 +2220,7 @@
                 <span style="background:#e0f2f1; color:#004d40; padding:2px 8px; border-radius:6px; font-weight:700;">
                   <b>${cityKids}</b> רשומים (${cityMerged} באיחוד)
                 </span>
+                ${cityChanged > 0 ? `<span style="background:#fef08a; color:#854d0e; padding:2px 6px; border-radius:6px; font-weight:800; border:1px solid #facc15; font-size:0.7rem;">⚡ ${cityChanged} שינויים</span>` : ''}
                 ${citySterile > 0 ? `<span style="background:#ef5350; color:#fff; padding:2px 6px; border-radius:6px; font-weight:800; font-size:0.7rem;">🚨 ${citySterile}</span>` : ''}
               </div>
             </div>
@@ -2071,13 +2259,14 @@
                   <!-- Classes List -->
                   <div style="display:flex; flex-direction:column; gap:3px;">
                     ${classes.map(sc => `
-                      <div style="display:flex; justify-content:space-between; align-items:center; padding:3px 6px; border-radius:4px; font-size:0.76rem; background:${sc.isSterile ? '#fff5f5' : '#f8fafc'};">
+                      <div style="display:flex; justify-content:space-between; align-items:center; padding:3px 6px; border-radius:4px; font-size:0.76rem; background:${sc.hasChange ? '#fef9c3' : (sc.isSterile ? '#fff5f5' : '#f8fafc')}; ${sc.hasChange ? 'border:1px solid #facc15;' : ''}">
                         <div style="display:flex; align-items:center; gap:5px; min-width:0; flex:1;">
                           <span style="font-weight:700; color:#004d40; background:#e0f2f1; padding:1px 5px; border-radius:4px; font-size:0.72rem;">${sc.groupName}</span>
+                          ${sc.hasChange ? '<span style="background:#fef08a; color:#854d0e; font-size:0.65rem; font-weight:800; padding:0 4px; border-radius:3px; border:1px solid #facc15;">⚡ שונה</span>' : ''}
                           ${sc.isSterile ? `<span style="color:#c62828; font-weight:700; font-size:0.68rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🚨 ${sc.notes}</span>` : (sc.notes ? `<span style="color:#64748b; font-size:0.68rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sc.notes}</span>` : '')}
                         </div>
-                        <div style="font-weight:700; color:#263238; font-size:0.8rem; margin-right:6px; white-space:nowrap;">
-                          <b>${sc.kids}</b> <span style="font-size:0.68rem; color:#00695c;">(${sc.mergedKids || sc.kids})</span>
+                        <div style="font-weight:700; color:${sc.hasChange ? '#854d0e' : '#263238'}; font-size:0.8rem; margin-right:6px; white-space:nowrap;">
+                          <b>${sc.kids}</b> ${sc.hasChange ? '⚡' : ''} <span style="font-size:0.68rem; color:#00695c;">(${sc.mergedKids || sc.kids})</span>
                         </div>
                       </div>
                     `).join('')}
@@ -2120,7 +2309,7 @@
 
     const isSearching = !!(window.MATZAVA_STATE.searchQuery && window.MATZAVA_STATE.searchQuery.trim());
     const isSingleCitySelected = window.MATZAVA_STATE.selectedCity !== 'all';
-    const shouldOpen = isSearching || (isSingleCitySelected && cityMap.size === 1);
+    const shouldOpen = isSearching || (window.MATZAVA_STATE.filterType === 'changed') || (isSingleCitySelected && cityMap.size === 1);
 
     const toolbar = cityMap.size > 1 ? `
       <div style="display:flex; gap:8px; margin-bottom:10px; justify-content:flex-start; flex-wrap:wrap;">
@@ -2131,7 +2320,11 @@
 
     const content = Array.from(cityMap.entries()).map(([cityName, list]) => {
       let cityMealsTotal = 0;
-      list.forEach(n => { cityMealsTotal += (n.kidsTotal || 0); });
+      let cityChanged = 0;
+      list.forEach(n => {
+        cityMealsTotal += (n.kidsTotal || 0);
+        if (n.hasChange) cityChanged++;
+      });
 
       return `
         <details class="city-accordion matzava-city-accordion" ${shouldOpen ? 'open' : ''} style="margin-bottom:10px; border:1px solid #ffe0b2; border-radius:10px; overflow:hidden; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
@@ -2146,22 +2339,28 @@
                 <span style="background:#fff3e0; color:#bf360c; padding:2px 8px; border-radius:6px; font-weight:800; border:1px solid #ffcc80;">
                   <b>${cityMealsTotal.toLocaleString()}</b> מנות
                 </span>
+                ${cityChanged > 0 ? `
+                  <span style="background:#fef08a; color:#854d0e; padding:2px 6px; border-radius:6px; font-weight:800; border:1px solid #facc15; font-size:0.7rem;">
+                    ⚡ ${cityChanged} שינויים
+                  </span>
+                ` : ''}
               </div>
             </div>
           </summary>
           <div class="city-accordion-content" style="padding:8px; display:flex; flex-direction:column; gap:8px; background:#f8fafc;">
             ${list.map(n => `
-              <div style="background:#fff; border-radius:10px; padding:10px 12px; border:1px solid #ffe0b2; box-shadow:0 1px 3px rgba(0,0,0,0.04); border-right:4px solid #e65100;">
+              <div style="background:#fff; border-radius:10px; padding:10px 12px; border:1px solid #ffe0b2; box-shadow:0 1px 3px rgba(0,0,0,0.04); border-right:4px solid ${n.hasChange ? '#eab308' : '#e65100'}; ${n.hasChange ? 'background:#fffdf5;' : ''}">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
                   <div>
                     <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
                       <span style="background:#fff3e0; color:#e65100; border:1px solid #ffcc80; padding:1px 6px; border-radius:4px; font-size:0.7rem; font-weight:700;">${n.groupType}</span>
+                      ${n.hasChange ? '<span style="background:#fef08a; color:#854d0e; font-size:0.68rem; font-weight:800; padding:1px 6px; border-radius:4px; border:1px solid #facc15;">⚡ שונה באקסל</span>' : ''}
                     </div>
                     <div style="font-size:0.95rem; font-weight:800; color:#e65100;">${n.name}</div>
                   </div>
-                  <div style="background:#fff3e0; border:1px solid #ffcc80; border-radius:8px; padding:4px 8px; text-align:center; min-width:50px; flex-shrink:0;">
-                    <div style="font-size:1.2rem; font-weight:900; color:#bf360c; line-height:1;">${n.kidsTotal}</div>
-                    <div style="font-size:0.62rem; color:#e65100; font-weight:700;">מנות</div>
+                  <div style="background:${n.hasChange ? '#fef08a' : '#fff3e0'}; border:1px solid ${n.hasChange ? '#facc15' : '#ffcc80'}; border-radius:8px; padding:4px 8px; text-align:center; min-width:50px; flex-shrink:0;">
+                    <div style="font-size:1.2rem; font-weight:900; color:${n.hasChange ? '#854d0e' : '#bf360c'}; line-height:1;">${n.kidsTotal} ${n.hasChange ? '⚡' : ''}</div>
+                    <div style="font-size:0.62rem; color:${n.hasChange ? '#854d0e' : '#e65100'}; font-weight:700;">מנות</div>
                   </div>
                 </div>
                 ${n.address ? `<div style="font-size:0.74rem; color:#64748b; margin-top:4px;">📍 ${n.address}</div>` : ''}
@@ -2180,7 +2379,9 @@
   function renderSingleGardenRowDesktop(r, idx) {
     const bg = idx % 2 === 0 ? '#fff' : '#fcfcfc';
     const isSterileBg = r.isSterile ? 'background:#fff5f5;' : '';
-    const rowBorder = r.isMerged ? 'border-right:4px solid #8e24aa;' : '';
+    const rowBorder = r.hasChange
+      ? 'border-right:4px solid #eab308; background:#fffdf5;'
+      : (r.isMerged ? 'border-right:4px solid #8e24aa;' : '');
     const safeRowName = (r.name && r.name !== '[object Object]' && !String(r.name).includes('object Object')) 
       ? r.name 
       : (r.matchedName || r.hostGarden || 'צהרון');
@@ -2189,10 +2390,15 @@
       : safeRowName;
 
     return `
-      <tr style="${isSterileBg || `background:${bg};`} ${rowBorder} border-bottom:1px solid #eee; transition:background 0.15s;" onmouseover="this.style.background='#f0f4c3'" onmouseout="this.style.background='${r.isSterile ? '#fff5f5' : bg}'">
+      <tr style="${isSterileBg || `background:${bg};`} ${rowBorder} border-bottom:1px solid #eee; transition:background 0.15s;" onmouseover="this.style.background='#f0f4c3'" onmouseout="this.style.background='${r.isSterile ? '#fff5f5' : (r.hasChange ? '#fffdf5' : bg)}'">
         <td style="padding:10px 12px; font-weight:700; color:#1a237e; vertical-align:top;">
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
             <span style="font-size:0.92rem; font-weight:800; color:#1a237e;">${safeRowName}</span>
+            ${r.hasChange ? `
+              <span style="background:#fef08a; color:#854d0e; font-size:0.7rem; padding:1px 6px; border-radius:10px; font-weight:800; display:inline-flex; align-items:center; gap:2px; border:1px solid #facc15;" title="סומן שינוי בצהוב בקובץ האקסל">
+                ⚡ עודכן
+              </span>
+            ` : ''}
             ${r.isMerged ? `
               <span style="background:#f3e5f5; color:#6a1b9a; border:1px solid #ce93d8; font-size:0.7rem; padding:1px 6px; border-radius:12px; font-weight:800; display:inline-flex; align-items:center; gap:3px;">
                 ⚖️ איחוד (${(r.subGardens || []).length} גנים)
@@ -2210,7 +2416,9 @@
                   <div style="font-size:0.78rem; color:#6a1b9a; line-height:1.4; display:flex; align-items:center; gap:6px;">
                     <span style="font-size:0.75rem; opacity:0.8;">${isHost ? '🏠' : '↳'}</span>
                     <span style="font-weight:${isHost ? '700' : '600'}; color:#4a148c;">${safeSubName}</span>
-                    <span style="font-weight:700; color:#6a1b9a; margin-right:auto;">${sub.kidsTotal} ילדים</span>
+                    <span style="font-weight:700; color:${sub.hasChange ? '#854d0e' : '#6a1b9a'}; margin-right:auto; ${sub.hasChange ? 'background:#fef08a; padding:1px 5px; border-radius:4px; border:1px solid #facc15;' : ''}">
+                      ${sub.kidsTotal} ילדים ${sub.hasChange ? '⚡' : ''}
+                    </span>
                   </div>
                 `;
               }).join('')}
@@ -2221,10 +2429,23 @@
         <td style="padding:10px 12px; text-align:center; vertical-align:top;">
           <span style="background:#e3f2fd; color:#1565c0; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:bold;">${r.age || '-'}</span>
         </td>
-        <td style="padding:10px 12px; text-align:center; color:#555; vertical-align:top;">${r.kids10 ? r.kids10 : '-'}</td>
-        <td style="padding:10px 12px; text-align:center; color:#555; vertical-align:top;">${r.kids11 ? r.kids11 : '-'}</td>
-        <td style="padding:10px 12px; text-align:center; font-weight:800; font-size:1.05rem; color:#1a237e; background:rgba(40,53,147,0.06); vertical-align:top;">
+        <!-- 10 Months Cell -->
+        <td style="padding:10px 12px; text-align:center; vertical-align:top; ${r.changed10 ? 'background:#fef08a !important; color:#854d0e !important; font-weight:800; border-radius:4px; box-shadow:inset 0 0 0 1px #eab308;' : 'color:#555;'}" 
+          title="${r.changed10 ? '⚡ שינוי במספר רשומים (סומן בצהוב באקסל)' : ''}">
+          ${r.kids10 ? r.kids10 : '-'}
+          ${r.changed10 ? '<span style="font-size:0.75rem; margin-right:2px;">⚡</span>' : ''}
+        </td>
+        <!-- 11 Months Cell -->
+        <td style="padding:10px 12px; text-align:center; vertical-align:top; ${r.changed11 ? 'background:#fef08a !important; color:#854d0e !important; font-weight:800; border-radius:4px; box-shadow:inset 0 0 0 1px #eab308;' : 'color:#555;'}" 
+          title="${r.changed11 ? '⚡ שינוי במספר רשומים (סומן בצהוב באקסל)' : ''}">
+          ${r.kids11 ? r.kids11 : '-'}
+          ${r.changed11 ? '<span style="font-size:0.75rem; margin-right:2px;">⚡</span>' : ''}
+        </td>
+        <!-- Total Kids Cell -->
+        <td style="padding:10px 12px; text-align:center; font-weight:800; font-size:1.05rem; vertical-align:top; ${r.hasChange ? 'background:#fef9c3 !important; color:#854d0e !important; box-shadow:inset 0 0 0 1px #facc15;' : 'color:#1a237e; background:rgba(40,53,147,0.06);'}"
+          title="${r.hasChange ? '⚡ בוצע שינוי במספר רשומים' : ''}">
           ${(Number(r.kids10) || 0) + (Number(r.kids11) || 0)}
+          ${r.hasChange ? '<span style="font-size:0.7rem; background:#fde047; color:#713f12; padding:1px 5px; border-radius:8px; display:inline-block; margin-right:3px; font-weight:800;">שינוי</span>' : ''}
         </td>
         <td style="padding:10px 12px; vertical-align:top;">
           ${r.isMerged ? `
@@ -2269,7 +2490,7 @@
 
     const isSearching = !!(window.MATZAVA_STATE.searchQuery && window.MATZAVA_STATE.searchQuery.trim());
     const isSingleCitySelected = window.MATZAVA_STATE.selectedCity !== 'all';
-    const shouldOpen = isSearching || (isSingleCitySelected && cityMap.size === 1);
+    const shouldOpen = isSearching || (window.MATZAVA_STATE.filterType === 'changed') || (isSingleCitySelected && cityMap.size === 1);
 
     const toolbar = cityMap.size > 1 ? `
       <div style="display:flex; gap:8px; margin-bottom:12px; justify-content:flex-start; flex-wrap:wrap;">
@@ -2287,6 +2508,7 @@
       let sumColTotal = 0;
       let cityMerged = 0;
       let citySterile = 0;
+      let cityChanged = 0;
 
       cityGardens.forEach(r => {
         const k10 = Number(r.kids10) || 0;
@@ -2296,6 +2518,7 @@
         sumColTotal += (k10 + k11);
         if (r.isMerged) cityMerged++;
         if (r.isSterile) citySterile++;
+        if (r.hasChange) cityChanged++;
       });
 
       return `
@@ -2309,6 +2532,7 @@
               </div>
               <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; flex-wrap:wrap;">
                 <span style="background:#e8eaf6; color:#1a237e; padding:3px 10px; border-radius:6px; font-weight:800;">סה"כ בעיר: <b>${sumColTotal.toLocaleString()}</b> ילדים</span>
+                ${cityChanged > 0 ? `<span style="background:#fef08a; color:#854d0e; padding:3px 8px; border-radius:6px; font-weight:800; border:1px solid #facc15;">⚡ ${cityChanged} שינויים</span>` : ''}
                 ${cityMerged > 0 ? `<span style="background:#f3e5f5; color:#6a1b9a; padding:3px 8px; border-radius:6px; font-weight:700;">⚖️ ${cityMerged} איחודים</span>` : ''}
                 ${citySterile > 0 ? `<span style="background:#fee2e2; color:#b91c1c; padding:3px 8px; border-radius:6px; font-weight:800;">🚨 ${citySterile} אלרגיות</span>` : ''}
               </div>
@@ -2375,7 +2599,7 @@
 
     const isSearching = !!(window.MATZAVA_STATE.searchQuery && window.MATZAVA_STATE.searchQuery.trim());
     const isSingleCitySelected = window.MATZAVA_STATE.selectedCity !== 'all';
-    const shouldOpen = isSearching || (isSingleCitySelected && cityMap.size === 1);
+    const shouldOpen = isSearching || (window.MATZAVA_STATE.filterType === 'changed') || (isSingleCitySelected && cityMap.size === 1);
 
     const toolbar = cityMap.size > 1 ? `
       <div style="display:flex; gap:8px; margin-bottom:12px; justify-content:flex-start; flex-wrap:wrap;">
@@ -2389,12 +2613,14 @@
       let cityMerged = 0;
       let cityClasses = 0;
       let citySterile = 0;
+      let cityChanged = 0;
       schObjMap.forEach(classes => {
         classes.forEach(sc => {
           cityKids += (sc.kids || 0);
           cityMerged += (sc.mergedKids || sc.kids || 0);
           cityClasses++;
           if (sc.isSterile) citySterile++;
+          if (sc.hasChange) cityChanged++;
         });
       });
 
@@ -2418,6 +2644,11 @@
                 <span style="background:#fff; color:#004d40; border:1px solid #b2dfdb; padding:3px 8px; border-radius:6px; font-weight:700;">
                   ${cityClasses} כיתות
                 </span>
+                ${cityChanged > 0 ? `
+                  <span style="background:#fef08a; color:#854d0e; padding:3px 8px; border-radius:6px; font-weight:800; border:1px solid #facc15;">
+                    ⚡ ${cityChanged} שינויים
+                  </span>
+                ` : ''}
                 ${citySterile > 0 ? `
                   <span style="background:#fee2e2; color:#b91c1c; padding:3px 8px; border-radius:6px; font-weight:800;">
                     🚨 ${citySterile} אלרגיות
@@ -2490,14 +2721,15 @@
                           const rowBg = idx % 2 === 0 ? '#fff' : '#fafafa';
                           const sterileStyle = sc.isSterile ? 'background:#fff5f5;' : `background:${rowBg};`;
                           return `
-                            <tr style="${sterileStyle} border-bottom:1px solid #eef2f6; transition:background 0.15s;" onmouseover="this.style.background='#e0f2f1'" onmouseout="this.style.background='${sc.isSterile ? '#fff5f5' : rowBg}'">
+                            <tr style="${sterileStyle} ${sc.hasChange ? 'border-right:4px solid #eab308; background:#fffdf5;' : ''} border-bottom:1px solid #eef2f6; transition:background 0.15s;" onmouseover="this.style.background='#e0f2f1'" onmouseout="this.style.background='${sc.isSterile ? '#fff5f5' : (sc.hasChange ? '#fffdf5' : rowBg)}'">
                               <td style="padding:8px 14px; font-weight:700; color:#004d40;">
                                 <span style="background:#e0f2f1; color:#004d40; padding:3px 8px; border-radius:5px; border:1px solid #b2dfdb; font-size:0.82rem;">
                                   ${sc.groupName}
                                 </span>
+                                ${sc.hasChange ? '<span style="background:#fef08a; color:#854d0e; font-size:0.7rem; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid #facc15; margin-right:4px;">⚡ שונה</span>' : ''}
                               </td>
-                              <td style="padding:8px 14px; text-align:center; font-weight:800; font-size:0.95rem; color:#263238;">
-                                ${sc.kids}
+                              <td style="padding:8px 14px; text-align:center; font-weight:800; font-size:0.95rem; color:${sc.hasChange ? '#854d0e' : '#263238'}; ${sc.hasChange ? 'background:#fef08a; border-left:2px solid #facc15; border-right:2px solid #facc15;' : ''}" title="${sc.hasChange ? 'כמות התלמידים שונתה באקסל (מסומנת בצהוב)' : ''}">
+                                ${sc.kids} ${sc.hasChange ? '<span style="font-size:0.8rem;">⚡</span>' : ''}
                               </td>
                               <td style="padding:8px 14px; text-align:center; font-weight:800; font-size:0.95rem; color:#00695c; background:rgba(0,105,92,0.04);">
                                 ${sc.mergedKids || sc.kids}
@@ -2566,7 +2798,7 @@
 
     const isSearching = !!(window.MATZAVA_STATE.searchQuery && window.MATZAVA_STATE.searchQuery.trim());
     const isSingleCitySelected = window.MATZAVA_STATE.selectedCity !== 'all';
-    const shouldOpen = isSearching || (isSingleCitySelected && cityMap.size === 1);
+    const shouldOpen = isSearching || (window.MATZAVA_STATE.filterType === 'changed') || (isSingleCitySelected && cityMap.size === 1);
 
     const toolbar = cityMap.size > 1 ? `
       <div style="display:flex; gap:8px; margin-bottom:12px; justify-content:flex-start; flex-wrap:wrap;">
@@ -2577,7 +2809,11 @@
 
     const content = Array.from(cityMap.entries()).map(([cityName, list]) => {
       let cityMealsTotal = 0;
-      list.forEach(n => { cityMealsTotal += (n.kidsTotal || 0); });
+      let cityChanged = 0;
+      list.forEach(n => {
+        cityMealsTotal += (n.kidsTotal || 0);
+        if (n.hasChange) cityChanged++;
+      });
 
       return `
         <details class="city-accordion matzava-city-accordion" ${shouldOpen ? 'open' : ''} style="margin-bottom:14px; border:1px solid #ffe0b2; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
@@ -2594,6 +2830,11 @@
                 <span style="background:#fff3e0; color:#bf360c; padding:3px 10px; border-radius:6px; font-weight:800; border:1px solid #ffcc80;">
                   סה"כ בעיר: <b>${cityMealsTotal.toLocaleString()}</b> מנות
                 </span>
+                ${cityChanged > 0 ? `
+                  <span style="background:#fef08a; color:#854d0e; padding:3px 10px; border-radius:6px; font-weight:800; border:1px solid #facc15;">
+                    ⚡ ${cityChanged} שינויים
+                  </span>
+                ` : ''}
               </div>
             </div>
           </summary>
@@ -2613,13 +2854,18 @@
                   ${list.map((n, idx) => {
                     const bg = idx % 2 === 0 ? '#fff' : '#fffbf7';
                     return `
-                      <tr style="background:${bg}; border-bottom:1px solid #ffe0b2; transition:background 0.15s;" onmouseover="this.style.background='#fff3e0'" onmouseout="this.style.background='${bg}'">
-                        <td style="padding:10px 12px; font-weight:800; color:#e65100;">${n.name}</td>
+                      <tr style="${n.hasChange ? 'border-right:4px solid #eab308; background:#fffdf5;' : `background:${bg};`} border-bottom:1px solid #ffe0b2; transition:background 0.15s;" onmouseover="this.style.background='#fff3e0'" onmouseout="this.style.background='${n.hasChange ? '#fffdf5' : bg}'">
+                        <td style="padding:10px 12px; font-weight:800; color:#e65100;">
+                          ${n.name}
+                          ${n.hasChange ? '<span style="background:#fef08a; color:#854d0e; font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px; border:1px solid #facc15; margin-right:4px;">⚡ שונה</span>' : ''}
+                        </td>
                         <td style="padding:10px 12px; color:#555;">
                           <span style="background:#fff3e0; color:#e65100; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700; border:1px solid #ffcc80;">${n.groupType}</span>
                         </td>
                         <td style="padding:10px 12px; color:#555; font-size:0.8rem;">${n.address || '-'}</td>
-                        <td style="padding:10px 12px; text-align:center; font-weight:800; font-size:1.05rem; color:#bf360c; background:rgba(230,81,0,0.06);">${n.kidsTotal}</td>
+                        <td style="padding:10px 12px; text-align:center; font-weight:800; font-size:1.05rem; color:${n.hasChange ? '#854d0e' : '#bf360c'}; ${n.hasChange ? 'background:#fef08a; border-left:2px solid #facc15; border-right:2px solid #facc15;' : 'background:rgba(230,81,0,0.06);'}" title="${n.hasChange ? 'כמות המנות שונתה באקסל (מסומנת בצהוב)' : ''}">
+                          ${n.kidsTotal} ${n.hasChange ? '⚡' : ''}
+                        </td>
                         <td style="padding:10px 12px; color:#555; font-size:0.8rem;">${n.notes || '-'}</td>
                       </tr>
                     `;
@@ -2769,6 +3015,36 @@
       nutTotalMeals += (n.kidsTotal || 0);
     });
 
+    // Compute changes count (for current city scope and allowed permissions)
+    let changedCount = 0;
+    (s.records || []).forEach(r => {
+      if (r.hasChange) {
+        if (s.selectedCity && s.selectedCity !== 'all' && !isCityMatch(r.city, s.selectedCity)) return;
+        if (allowedCities !== null && !allowedCities.some(ac => isCityMatch(r.city, ac))) return;
+        changedCount++;
+      }
+    });
+
+    let schChangedCount = 0;
+    (s.schools || []).forEach(sc => {
+      if (sc.hasChange) {
+        if (s.selectedCity && s.selectedCity !== 'all' && !isCityMatch(sc.city, s.selectedCity)) return;
+        if (allowedCities !== null && !allowedCities.some(ac => isCityMatch(sc.city, ac))) return;
+        schChangedCount++;
+      }
+    });
+
+    let nutChangedCount = 0;
+    (s.nutritionOnly || []).forEach(n => {
+      if (n.hasChange) {
+        if (s.selectedCity && s.selectedCity !== 'all' && !isCityMatch(n.city, s.selectedCity)) return;
+        if (allowedCities !== null && !allowedCities.some(ac => isCityMatch(n.city, ac))) return;
+        nutChangedCount++;
+      }
+    });
+
+    const activeSubTabChangedCount = (s.subTab === 'schools' ? schChangedCount : (s.subTab === 'nutrition' ? nutChangedCount : changedCount));
+
     let html = `
       <div class="matzava-wrapper" style="direction:rtl; font-family:'Assistant',sans-serif; padding:${isMob ? '6px 4px 85px 4px' : '12px'}; max-width:1440px; margin:0 auto; box-sizing:border-box; overflow-x:hidden;">
         
@@ -2907,6 +3183,12 @@
                 style="padding:4px 10px; border-radius:14px; border:none; font-size:0.75rem; font-weight:700; cursor:pointer; flex-shrink:0; background:${s.filterType==='all' ? '#1a237e; color:#fff;' : '#e8eaf6; color:#1a237e;'}">
                 הכל
               </button>
+              ${activeSubTabChangedCount > 0 || s.filterType === 'changed' ? `
+                <button onclick="window.MATZAVA_STATE.filterType='changed'; window.renderMatzavaTab();" 
+                  style="padding:4px 10px; border-radius:14px; border:1px solid #facc15; font-size:0.75rem; font-weight:800; cursor:pointer; flex-shrink:0; ${s.filterType==='changed' ? 'background:#854d0e; color:#fff;' : 'background:#fef08a; color:#854d0e;'}">
+                  ⚡ שינויים (${activeSubTabChangedCount})
+                </button>
+              ` : ''}
               <button onclick="window.MATZAVA_STATE.filterType='sterile'; window.renderMatzavaTab();" 
                 style="padding:4px 10px; border-radius:14px; border:none; font-size:0.75rem; font-weight:700; cursor:pointer; flex-shrink:0; background:${s.filterType==='sterile' ? '#c62828; color:#fff;' : '#ffebee; color:#c62828;'}">
                 🔴 סטרילי / אלרגיות (${s.subTab === 'schools' ? schSterileCount : sterileCount})
