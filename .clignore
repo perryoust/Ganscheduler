@@ -18,9 +18,17 @@ build/
 *.mov
 *.pdf
 
-# Project specific large files
+# Project specific large files and archives
+_archive/
+_backups/
+.firebase/
 GAN.xlsx
-backup.json
-payload.json
-sraws.json
 gan_import.xlsx
+*.xlsx
+*.txt
+*.diff
+*.json
+!manifest.json
+!package.json
+!firebase.json
+!database.rules.json
