@@ -113,6 +113,7 @@ onAuthStateChanged(auth, async (user) => {
     window.permWorker = true;
     window.permPurch = false;
     window.permAct = false;
+    window.permMatzava = false;
     const authOverlay = document.getElementById('auth-overlay');
     if (authOverlay) authOverlay.style.display = 'none';
     if (typeof window.activateWorkerApp === 'function') {
@@ -132,11 +133,13 @@ onAuthStateChanged(auth, async (user) => {
     let permPurch = false;
     let permAct = true;
     let permWorker = false;
+    let permMatzava = true;
     let role = 'view';
     if (user.uid === ADMIN_UID) {
       permPurch = true;
       permAct = true;
       permWorker = true;
+      permMatzava = true;
       role = 'admin';
     } else {
       try {
@@ -148,6 +151,7 @@ onAuthStateChanged(auth, async (user) => {
             permPurch = !!profile.permPurch;
             permAct = profile.permAct !== false;
             permWorker = !!profile.permWorker || profile.role === 'worker';
+            permMatzava = profile.permMatzava !== false;
             role = profile.role || 'view';
             const isManagerRole = role === 'manager' || role === 'vp';
             if (role === 'coordinator' || isManagerRole) {
@@ -205,6 +209,7 @@ onAuthStateChanged(auth, async (user) => {
     window.permPurch = permPurch;
     window.permAct = permAct;
     window.permWorker = permWorker;
+    window.permMatzava = permMatzava;
     window.role = role;
     if (role === 'view' || role === 'coordinator' || role === 'manager' || role === 'vp') {
       window.isReadOnly = true;
@@ -283,6 +288,8 @@ onAuthStateChanged(auth, async (user) => {
     if (authOverlay) authOverlay.style.display = 'none';
     const uname = document.getElementById('auth-user-name');
     if (uname) uname.textContent = '👤 ' + user.email.replace('@ganmanager.app', '');
+    const matzavaBtn = document.getElementById('modeBtn-matzava');
+    if (matzavaBtn) matzavaBtn.style.display = (window.permMatzava !== false || role === 'admin') ? '' : 'none';
     // Show admin UI immediately after login
     if (typeof window._initUsersUI === 'function') window._initUsersUI();
     if (typeof window._onAuthReady === 'function') window._onAuthReady();
@@ -293,6 +300,7 @@ onAuthStateChanged(auth, async (user) => {
     window._cachedToken = null;
     window.permPurch = false;
     window.permAct = false;
+    window.permMatzava = true;
     window.role = null;
     try {
       localStorage.removeItem('gan_app_mode');

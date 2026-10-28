@@ -223,6 +223,10 @@ window._initUsersUI = function _initUsersUI(){
   const purchStatsGrp = document.getElementById('hdr-purch-stats-group');
   if(purchStatsGrp) purchStatsGrp.style.display = hasPurch ? 'contents' : 'none';
 
+  // Matzava Mode Visibility
+  const matzavaModeBtn = document.getElementById('modeBtn-matzava');
+  if(matzavaModeBtn) matzavaModeBtn.style.display = (window.permMatzava !== false || isAdm) ? '' : 'none';
+
   // Danger Zone & Admin Settings - Super Admin / Admin only
   const isSuperAdmin = window._fbUser?.uid === ADMIN_UID || (window._fbUser?.email || '').toLowerCase().trim() === 'perry@ganmanager.app' || (window._fbUser?.displayName || '').toLowerCase().trim() === 'perry';
   
@@ -339,6 +343,9 @@ async function loadUsersList(){
             <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;margin-top:3px">
               <input type="checkbox" ${u.permWorker?'checked':''} onchange="updateUserPerm('${uid}','permWorker',this.checked)"> 👷 משימות שטח
             </label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;margin-top:3px">
+              <input type="checkbox" ${u.permMatzava!==false?'checked':''} onchange="updateUserPerm('${uid}','permMatzava',this.checked)"> 👶 מצב"ה
+            </label>
           </div>
           <div>
             <div style="font-size:.68rem;color:#546e7a;margin-bottom:4px;font-weight:700">רמת גישה:</div>
@@ -369,6 +376,7 @@ async function createNewUser(){
   const permAct=document.getElementById('nu-perm-act')?.checked!==false;
   const permPurch=document.getElementById('nu-perm-purch')?.checked||false;
   const permWorker=document.getElementById('nu-perm-worker')?.checked||false;
+  const permMatzava=document.getElementById('nu-perm-matzava')?.checked!==false;
   const role=document.querySelector('input[name="nu-access"]:checked')?.value||'view';
   
   // Coordinator / Manager specific
@@ -412,7 +420,7 @@ async function createNewUser(){
     const r=await fetch(`${USERS_DB}/${uid}.json${q}`,{
       method:'PUT',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({uid,username,name:displayName,role,email,permAct,permPurch,permWorker,permCoord,allCities,coordCities,coordGardenIds,coordTimeScope,coordClsScope,currentYear:'tashpaz',createdAt:Date.now()})
+      body:JSON.stringify({uid,username,name:displayName,role,email,permAct,permPurch,permWorker,permMatzava,permCoord,allCities,coordCities,coordGardenIds,coordTimeScope,coordClsScope,currentYear:'tashpaz',createdAt:Date.now()})
     });
     if(!r.ok) throw new Error('שמירה נכשלה: '+r.status);
 
