@@ -19,7 +19,7 @@ window.debouncedRenderPurchSuppliers = window.debounce ? window.debounce(() => {
 // ── Mode switcher ──────────────────────────────────────
 async function switchMode(mode){
   if (mode === 'matzava' && window.permMatzava === false && window.role !== 'admin') {
-    if (typeof window.showToast === 'function') window.showToast('אין לך הרשאה לצפייה במצב"ה', 'warn');
+    if (typeof window.showToast === 'function') window.showToast('אין לך הרשאה לצפייה במצבה', 'warn');
     return;
   }
   _appMode = mode;

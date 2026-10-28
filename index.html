@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>טומשין ניהול ושיבוץ | גרסה 114.03</title>
+  <title>טומשין ניהול ושיבוץ | גרסה 114.04</title>
   <meta name="description" content="טומשין ניהול ושיבוץ - מערכת לניהול ושיבוץ צהרונים">
   <!-- Open Graph / WhatsApp Preview Meta Tags -->
   <meta property="og:type" content="website">
@@ -27,7 +27,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=114.03" />
+  <link rel="stylesheet" href="styles.css?v=114.04" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -51,7 +51,7 @@
     }
   </style>
   <script>
-    window.APP_VERSION = '114.03';
+    window.APP_VERSION = '114.04';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -194,7 +194,7 @@
     <button class="mode-btn" id="modeBtn-purch" onclick="switchMode('purch')"
       title="מעבר למערכת ניהול רכש, הזמנות ספקים, חשבוניות ואישורי תשלום">🛒 ניהול רכש</button>
     <button class="mode-btn" id="modeBtn-matzava" onclick="switchMode('matzava')" style="display:none"
-      title="מצבת תלמידים, מספרי ילדים ואלרגיות בצהרונים">👶 מצב"ה</button>
+      title="מצבת תלמידים, מספרי ילדים ואלרגיות בצהרונים">👶 מצבה</button>
     <button class="mode-btn" id="modeBtn-worker" onclick="ST('worker_tasks')" title="ניהול משימות שטח">👷 משימות שטח</button>
     <button class="mode-btn" id="modeBtn-admin" onclick="ST('admin')" style="display:none;color:#ce93d8"
       title="ניהול הרשאות ומשתמשים במערכת (למנהלים בלבד)">👥 ניהול משתמשים</button>
@@ -252,7 +252,7 @@
       </button>
       <button id="mob-matzava-btn" class="mob-nav-btn" onclick="switchMode('matzava');mobNav(this)" data-tab="matzava"
         style="display:none;color:#1a237e;border-right:1px solid #e0e0e0">
-        <span class="mnb-ico">👶</span><span>מצב"ה</span>
+        <span class="mnb-ico">👶</span><span>מצבה</span>
       </button>
       <button id="mob-admin-btn" class="mob-nav-btn" onclick="ST('admin');mobNav(this)"
         style="display:none;color:#6a1b9a;border-right:1px solid #e0e0e0" data-tab="admin">
@@ -337,7 +337,7 @@
                   <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox"
                       id="nu-perm-purch"> 🛒 רכש</label>
                   <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox"
-                      id="nu-perm-matzava" checked> 👶 מצב"ה</label>
+                      id="nu-perm-matzava" checked> 👶 מצבה</label>
                   <hr style="margin:3px 0;border:none;border-top:1px solid #e8eaf6">
                   <b style="color:#546e7a;font-size:.72rem">רמת גישה:</b>
                   <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio"
@@ -4237,7 +4237,7 @@
     <script src="pdfmake_orders.js?v=113.95"></script>
     <script src="core_app.js?v=113.95"></script>
     <script src="todo.js?v=113.95"></script>
-    <script src="matzava.js?v=113.95"></script>
+    <script src="matzava.js?v=114.04"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
       console.log('Ganscheduler Architecture: v' + (window.APP_VERSION || '103.82') + ' Ready');

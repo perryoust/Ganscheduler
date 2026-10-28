@@ -420,7 +420,7 @@
       }
 
       // ─────────────────────────────────────────────────────────
-      // SHEET 3: מצב"ה צהרונים (Matzava Gardens)
+      // SHEET 3: מצבה צהרונים (Matzava Gardens)
       // ─────────────────────────────────────────────────────────
       const matzavaRecords = (fullData.matzava && Array.isArray(fullData.matzava.records)) ? fullData.matzava.records : [];
       if (matzavaRecords.length > 0) {
@@ -460,7 +460,7 @@
       }
 
       // ─────────────────────────────────────────────────────────
-      // SHEET 4: מצב"ה בתי ספר (Matzava Schools)
+      // SHEET 4: מצבה בתי ספר (Matzava Schools)
       // ─────────────────────────────────────────────────────────
       const matzavaSchools = (fullData.matzava && Array.isArray(fullData.matzava.schools)) ? fullData.matzava.schools : [];
       if (matzavaSchools.length > 0) {
@@ -684,7 +684,7 @@
               <span>🛒 <b>${invCnt}</b> חשבוניות</span>
               <span>🏢 <b>${supCnt}</b> ספקים</span>
               ${c.orders ? `<span>📦 <b>${c.orders}</b> הזמנות</span>` : ''}
-              ${c.matzava ? `<span>👶 <b>${c.matzava}</b> מצב"ה</span>` : ''}
+              ${c.matzava ? `<span>👶 <b>${c.matzava}</b> מצבה</span>` : ''}
             </div>
           </div>
           <div style="display:flex; gap:6px; align-items:center;">

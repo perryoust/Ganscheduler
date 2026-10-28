@@ -348,7 +348,7 @@ async function loadUsersList(){
               <input type="checkbox" ${u.permWorker?'checked':''} onchange="updateUserPerm('${uid}','permWorker',this.checked)"> 👷 משימות שטח
             </label>
             <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;margin-top:3px">
-              <input type="checkbox" ${u.permMatzava!==false?'checked':''} onchange="updateUserPerm('${uid}','permMatzava',this.checked)"> 👶 מצב"ה
+              <input type="checkbox" ${u.permMatzava!==false?'checked':''} onchange="updateUserPerm('${uid}','permMatzava',this.checked)"> 👶 מצבה
             </label>
           </div>
           <div>
