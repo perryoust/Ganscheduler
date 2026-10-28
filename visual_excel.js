@@ -105,6 +105,11 @@ window.doVisualExcelExport = async function(format = 'pdf') {
     gList = gList.filter(g => gardenFilters.includes(Number(g.id)));
   }
 
+  // Filter out morning daycare gardens ("גן לימי בוקרונים") from bulk exports, UNLESS specifically selected in single-garden mode
+  if (mode !== 'garden') {
+    gList = gList.filter(g => !(typeof window.isMorningDaycareGarden === 'function' && window.isMorningDaycareGarden(g.id)));
+  }
+
   if (gList.length === 0) {
     if (mode === 'city' && cityType === 'gan') {
       window.spAlert("לא נמצאו גנים לייצוא עבור הבחירה הנוכחית");
@@ -138,7 +143,12 @@ window.doVisualExcelExport = async function(format = 'pdf') {
   const hebYearStr = hebYear(year, month - 1);
 
   try {
-    async function _runSingleBatch(targetList, customSuffix = '') {
+    async function _runSingleBatch(rawTargetList, customSuffix = '') {
+      if (!rawTargetList || rawTargetList.length === 0) return;
+      // Filter out gardens that have NO activities in this month in bulk exports (skip empty calendars)
+      const targetList = (mode === 'garden') ? rawTargetList : rawTargetList.filter(g => 
+        allEvs.some(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id))
+      );
       if (!targetList || targetList.length === 0) return;
       targetList.sort((a,b) => (a.city||'').localeCompare(b.city||'','he') || (a.name||'').localeCompare(b.name||'','he'));
 
@@ -753,7 +763,15 @@ function _esc(str) {
 }
 
 async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, phoneColor, phoneBW, preset = 'color_only', customSuffix = '') {
-  // Ensure html2canvas is ready
+  const modeNode = document.querySelector('input[name="exp-mode"]:checked');
+  const isGardenMode = modeNode && modeNode.value === 'garden';
+  const targetList = isGardenMode ? gList : gList.filter(g => 
+    allEvs.some(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id))
+  );
+  if (!targetList || targetList.length === 0) {
+    window.spAlert('לא נמצאו פעילויות בגנים שנבחרו עבור חודש זה');
+    return;
+  }
   let h2c = window.html2canvas;
   if (!h2c) {
     if (window.html2pdf && typeof window.html2pdf === 'function') {
@@ -823,10 +841,10 @@ async function _exportJPG(gList, allEvs, year, month, monthName, hebYearStr, pho
     const isBoth = preset === 'both_interleaved' || preset === 'both_split';
     const isBWOnly = preset === 'bw_only';
 
-    for (let i = 0; i < gList.length; i++) {
-      const g = gList[i];
-      if (statusEl) statusEl.textContent = `מעבד: ${g.name || 'גן'} (${i + 1} מתוך ${gList.length})...`;
-      if (barEl) barEl.style.width = `${Math.round(((i + 1) / gList.length) * 100)}%`;
+    for (let i = 0; i < targetList.length; i++) {
+      const g = targetList[i];
+      if (statusEl) statusEl.textContent = `מעבד: ${g.name || 'גן'} (${i + 1} מתוך ${targetList.length})...`;
+      if (barEl) barEl.style.width = `${Math.round(((i + 1) / targetList.length) * 100)}%`;
 
       const gEvs = allEvs.filter(s => Number(s.g) === Number(g.id) || String(s.g) === String(g.id));
       const safeGarden = String(g.name || 'גן').replace(/[/\\?%*:|"<>]/g, '_').trim();

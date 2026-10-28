@@ -344,3 +344,19 @@ window.getGardenMgr = function(gid) {
   const ci = window.getGardenCoordinator(gid, { allowAreaManager: true });
   return ci ? (ci.mgr || { id: ci.id || '', name: ci.name, phone: ci.phone, role: ci.role }) : null;
 };
+
+window.isMorningDaycareGarden = function(gid) {
+  if (!gid) return false;
+  const numId = typeof gid === 'object' && gid !== null ? Number(gid.id) : Number(gid);
+  const ex = (window.supEx && window.supEx['g_' + numId]) || {};
+  if (ex.morningDaycare !== undefined) return !!ex.morningDaycare;
+  const allGardens = (typeof window.getAllGardens === 'function' ? window.getAllGardens() : null) ||
+                     (typeof AG === 'function' ? AG() : (window.GARDENS || []));
+  const g = allGardens.find(x => Number(x.id) === numId);
+  if (g && g.morningDaycare) return true;
+  // Automatic defaults for Petah Tikva special case gardens (חמניה 45, פקאן 90)
+  if (numId === 45 || numId === 90) return true;
+  if (g && (g.name === 'גן חמניה' || g.name === 'גן פקאן') && (g.city === 'פ"ת' || g.city === 'פתח תקווה')) return true;
+  return false;
+};
+

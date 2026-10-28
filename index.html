@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>טומשין ניהול ושיבוץ | גרסה 113.77</title>
+  <title>טומשין ניהול ושיבוץ | גרסה 113.78</title>
   <meta name="description" content="טומשין ניהול ושיבוץ - מערכת לניהול ושיבוץ צהרונים">
   <!-- Open Graph / WhatsApp Preview Meta Tags -->
   <meta property="og:type" content="website">
@@ -27,7 +27,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=113.77" />
+  <link rel="stylesheet" href="styles.css?v=113.78" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -51,7 +51,7 @@
     }
   </style>
   <script>
-    window.APP_VERSION = '113.77';
+    window.APP_VERSION = '113.78';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -87,8 +87,8 @@
       }
     });
   </script>
-  <script type="module" src="firebase_init.js?v=113.77"></script>
-  <script src="assets.js?v=113.77"></script>
+  <script type="module" src="firebase_init.js?v=113.78"></script>
+  <script src="assets.js?v=113.78"></script>
   <script>
     // Load JSZip separately to avoid conflicts if needed
     (function () {
@@ -1466,6 +1466,15 @@
           </div>
           <div class="fg" style="grid-column:1/-1"><label>🚀 הערות</label>
             <input type="text" id="gedit-notes" placeholder="הערות כלשהן..." style="width:100%">
+          </div>
+          <div class="fg" style="grid-column:1/-1; background:#fffbeb; border:1.5px solid #fde68a; padding:9px 12px; border-radius:7px;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0; font-weight:700; color:#92400e; font-size:0.85rem;">
+              <input type="checkbox" id="gedit-morning-daycare" style="width:17px; height:17px; cursor:pointer; accent-color:#f59e0b;">
+              <span>🌅 גן לימי בוקרונים (מוחרג מלוחות חוגים)</span>
+            </label>
+            <div style="font-size:0.72rem; color:#78350f; margin-top:3px; margin-right:25px; line-height:1.3;">
+              גן זה שמור במערכת לימי בוקרונים ולמקרים מיוחדים. לוחות חוגים שלו לא ייפלטו בייצוא ערים ורכזים.
+            </div>
           </div>
         </div>
 
@@ -4181,35 +4190,35 @@
     </div>
 
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <script src="utils.js?v=113.77"></script>
-    <script src="data_manager.js?v=113.77"></script>
-    <script src="data.js?v=113.77"></script>
-    <script src="firebase.js?v=113.77"></script>
-    <script src="invoices.js?v=113.77"></script>
-    <script src="invoices_import.js?v=113.77"></script>
-    <script src="invoices_export.js?v=113.77"></script>
-    <script src="invoices_scanner.js?v=113.77"></script>
-    <script src="suppliers.js?v=113.77"></script>
-    <script src="cal.js?v=113.77"></script>
-    <script src="activity.js?v=113.77"></script>
-    <script src="sched.js?v=113.77"></script>
-    <script src="gardens.js?v=113.77"></script>
-    <script src="export_v107.js?v=113.77"></script>
-    <script src="visual_excel.js?v=113.77"></script>
-    <script src="backup.js?v=113.77"></script>
-    <script src="version_vault.js?v=113.77"></script>
-    <script src="admin.js?v=113.77"></script>
-    <script src="import_export.js?v=113.77"></script>
-    <script src="core_globals.js?v=113.77"></script>
-    <script src="core_data.js?v=113.77"></script>
-    <script src="core_dash.js?v=113.77"></script>
-    <script src="worker_tasks.js?v=113.77"></script>
-    <script src="coordinator_app.js?v=113.77"></script>
-    <script src="purchasing_orders.js?v=113.77"></script>
-    <script src="purchasing_budget.js?v=113.77"></script>
-    <script src="pdfmake_orders.js?v=113.77"></script>
-    <script src="core_app.js?v=113.77"></script>
-    <script src="todo.js?v=113.77"></script>
+    <script src="utils.js?v=113.78"></script>
+    <script src="data_manager.js?v=113.78"></script>
+    <script src="data.js?v=113.78"></script>
+    <script src="firebase.js?v=113.78"></script>
+    <script src="invoices.js?v=113.78"></script>
+    <script src="invoices_import.js?v=113.78"></script>
+    <script src="invoices_export.js?v=113.78"></script>
+    <script src="invoices_scanner.js?v=113.78"></script>
+    <script src="suppliers.js?v=113.78"></script>
+    <script src="cal.js?v=113.78"></script>
+    <script src="activity.js?v=113.78"></script>
+    <script src="sched.js?v=113.78"></script>
+    <script src="gardens.js?v=113.78"></script>
+    <script src="export_v107.js?v=113.78"></script>
+    <script src="visual_excel.js?v=113.78"></script>
+    <script src="backup.js?v=113.78"></script>
+    <script src="version_vault.js?v=113.78"></script>
+    <script src="admin.js?v=113.78"></script>
+    <script src="import_export.js?v=113.78"></script>
+    <script src="core_globals.js?v=113.78"></script>
+    <script src="core_data.js?v=113.78"></script>
+    <script src="core_dash.js?v=113.78"></script>
+    <script src="worker_tasks.js?v=113.78"></script>
+    <script src="coordinator_app.js?v=113.78"></script>
+    <script src="purchasing_orders.js?v=113.78"></script>
+    <script src="purchasing_budget.js?v=113.78"></script>
+    <script src="pdfmake_orders.js?v=113.78"></script>
+    <script src="core_app.js?v=113.78"></script>
+    <script src="todo.js?v=113.78"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
       console.log('Ganscheduler Architecture: v' + (window.APP_VERSION || '103.82') + ' Ready');

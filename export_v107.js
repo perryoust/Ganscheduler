@@ -80,7 +80,9 @@ function openMonthlyExport(){
       lbl.style.display = 'block';
       lbl.style.marginBottom = '6px';
       lbl.style.cursor = 'pointer';
-      lbl.innerHTML = `<input type="checkbox" name="exp-garden-cb" value="${g.id}" onchange="updateExportGardenCount()" style="margin-left:8px; width:16px; height:16px; vertical-align:middle;"> <span style="vertical-align:middle;">${isSch ? '🏫' : '🏡'} ${g.name} (${g.city || 'ללא עיר'})</span>`;
+      const isMorning = typeof window.isMorningDaycareGarden === 'function' && window.isMorningDaycareGarden(g.id);
+      const morningStr = isMorning ? ' <span style="font-size:0.75rem; color:#b45309; font-weight:700;">(🌅 בוקרונים)</span>' : '';
+      lbl.innerHTML = `<input type="checkbox" name="exp-garden-cb" value="${g.id}" onchange="updateExportGardenCount()" style="margin-left:8px; width:16px; height:16px; vertical-align:middle;"> <span style="vertical-align:middle;">${isSch ? '🏫' : '🏡'} ${g.name} (${g.city || 'ללא עיר'})${morningStr}</span>`;
       ganListDiv.appendChild(lbl);
     });
     updateExportGardenCount();
@@ -315,6 +317,11 @@ async function doMonthlyExport(){
   }
   if(mode==='schools'){ gList=gList.filter(g=>(typeof window.getGardenClass === 'function' ? window.getGardenClass(g) : (typeof gcls === 'function' ? gcls(g) : g.cls))==='ביה"ס'); }
   if(mode==='garden'){ if(gardenFilters.length===0){ window.spAlert('יש לבחור צהרון / בית ספר מהרשימה'); return; } gList=gList.filter(g=>gardenFilters.includes(Number(g.id))); }
+
+  // Filter out morning daycare gardens ("גן לימי בוקרונים") from bulk exports
+  if (mode !== 'garden') {
+    gList = gList.filter(g => !(typeof window.isMorningDaycareGarden === 'function' && window.isMorningDaycareGarden(g.id)));
+  }
 
   // For single-garden mode: always export as one file
   const effectiveSplit = (mode==='garden') ? 'garden' : splitBy;

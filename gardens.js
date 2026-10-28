@@ -62,11 +62,14 @@ function renderGardens(){
         const ageBadge=(age && age !== '***') ? `<span style="font-size:var(--fs-small);background:#e0f2f1;color:#00796b;padding:1px 6px;border-radius:4px;font-weight:700" title="גיל הגן">👶 ${age}</span>` : '';
         const isClosed = typeof window.isGardenClosed === 'function' ? window.isGardenClosed(g.id) : false;
         const closedBadge = isClosed ? `<span style="font-size:var(--fs-small);background:#ffebee;color:#c62828;border:1px solid #ffcdd2;padding:1px 6px;border-radius:4px;font-weight:800" title="גן סגור / לא פעיל">🔒 סגור</span>` : '';
+        const isMorningDaycare = typeof window.isMorningDaycareGarden === 'function' && window.isMorningDaycareGarden(g.id);
+        const morningBadge = isMorningDaycare ? `<span style="font-size:var(--fs-small);background:#fffbeb;color:#b45309;border:1px solid #fde68a;padding:1px 6px;border-radius:4px;font-weight:700" title="גן לימי בוקרונים (מוחרג מלוחות חוגים)">🌅 בוקרונים</span>` : '';
         h+=`<div class="gc" onclick="window.openGM(${g.id})">
           <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;line-height:1.4">
             <span style="font-weight:800;color:var(--c-primary);font-size:var(--fs-card-title)">${gd.name||g.name}</span>
             ${ageBadge}
             ${closedBadge}
+            ${morningBadge}
             ${(gd.st||g.st)?`<span style="font-size:var(--fs-small);color:var(--c-text-light)" onclick="event.stopPropagation()">📍 <a href="${typeof window.getGardenMapsUrl==='function'?window.getGardenMapsUrl(gd.st||g.st, g.city):('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent((gd.st||g.st)+', '+(g.city||'')+', ישראל'))}" target="_blank" style="color:var(--c-secondary);text-decoration:underline" title="פתח בגוגל מפות">${gd.st||g.st}</a></span>`:''}
             ${gd.phone?`<span style="font-size:var(--fs-small);color:var(--c-success);font-weight:600">📞 ${gd.phone}</span>`:''}
             ${mgr?`<span style="font-size:var(--fs-small);color:var(--c-secondary)">${mgr.role==='manager'?'🏛️':'👤'} ${mgr.name}${mgr.phone?' · 📞 '+mgr.phone:''}</span>`:''}

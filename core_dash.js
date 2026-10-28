@@ -1382,6 +1382,10 @@ function openGardenEdit(gid){
   const ageEl = document.getElementById('gedit-age');
   if (ageEl) ageEl.value = (rawAge && rawAge !== '***') ? rawAge : '';
   document.getElementById('gedit-notes').value=ex.notes||g.notes||'';
+  const morningDaycareEl = document.getElementById('gedit-morning-daycare');
+  if (morningDaycareEl) {
+    morningDaycareEl.checked = typeof window.isMorningDaycareGarden === 'function' ? window.isMorningDaycareGarden(gid) : false;
+  }
 
   // Manager dropdown
   const mgrSel=document.getElementById('gedit-mgr-sel');
@@ -1456,6 +1460,10 @@ function saveGardenCard(){
   const ageEl = document.getElementById('gedit-age');
   if(ageEl) ex.age = ageEl.value.trim();
   ex.notes=document.getElementById('gedit-notes').value.trim();
+  const morningDaycareEl = document.getElementById('gedit-morning-daycare');
+  if (morningDaycareEl) {
+    ex.morningDaycare = !!morningDaycareEl.checked;
+  }
 
   // update manager assignment
   const selMgrId = document.getElementById('gedit-mgr-sel')?.value;
