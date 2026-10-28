@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>טומשין ניהול ושיבוץ | גרסה 113.75</title>
+  <title>טומשין ניהול ושיבוץ | גרסה 113.76</title>
   <meta name="description" content="טומשין ניהול ושיבוץ - מערכת לניהול ושיבוץ צהרונים">
   <!-- Open Graph / WhatsApp Preview Meta Tags -->
   <meta property="og:type" content="website">
@@ -27,7 +27,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=113.75" />
+  <link rel="stylesheet" href="styles.css?v=113.76" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -51,7 +51,7 @@
     }
   </style>
   <script>
-    window.APP_VERSION = '113.75';
+    window.APP_VERSION = '113.76';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -87,8 +87,8 @@
       }
     });
   </script>
-  <script type="module" src="firebase_init.js?v=109.46"></script>
-  <script src="assets.js?v=109.46"></script>
+  <script type="module" src="firebase_init.js?v=113.76"></script>
+  <script src="assets.js?v=113.76"></script>
   <script>
     // Load JSZip separately to avoid conflicts if needed
     (function () {
@@ -97,7 +97,7 @@
         jz.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
         document.head.appendChild(jz);
         if (!window.APP_VERSION) {
-        window.APP_VERSION = '113.75';
+        window.APP_VERSION = '113.76';
       }
       }
     })();
@@ -122,7 +122,7 @@
   <!-- 📊 MAIN HEADER — dashboard 📊 -->
   <div class="hdr">
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-      <h1 style="display:flex;align-items:center;margin:0;"><img src="logo_wide.png" style="height:30px;vertical-align:middle;" alt="טומשין ניהול ושיבוץ"><span id="app-version-label" onclick="window.openVersionVaultModal &amp;&amp; window.openVersionVaultModal()" style="font-size:.62rem;opacity:.85;font-weight:700;margin-right:8px;line-height:1;cursor:pointer;background:rgba(255,255,255,0.18);padding:2px 6px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);white-space:nowrap;" title="לחץ לפתיחת כספת גיבויי נתונים ושחזור">v113.68 📦</span></h1>
+      <h1 style="display:flex;align-items:center;margin:0;"><img src="logo_wide.png" style="height:30px;vertical-align:middle;" alt="טומשין ניהול ושיבוץ"><span id="app-version-label" onclick="window.openVersionVaultModal &amp;&amp; window.openVersionVaultModal()" style="font-size:.62rem;opacity:.85;font-weight:700;margin-right:8px;line-height:1;cursor:pointer;background:rgba(255,255,255,0.18);padding:2px 6px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);white-space:nowrap;" title="לחץ לפתיחת כספת גיבויי נתונים ושחזור">v113.76 📦</span></h1>
       <select id="year-selector" onchange="window.changeCurrentYear(this.value)" style="margin-right:8px; font-size:0.76rem; border-radius:4px; border:1px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.15); color:white; padding:2px 6px; outline:none; font-weight:600; cursor:pointer;" title="בחר שנת לימודים">
         <!-- options will be injected here, but we apply a global style in index.html to fix option text color -->
         <!-- populated by JS -->
@@ -4163,35 +4163,35 @@
     </div>
 
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <script src="utils.js?v=113.49"></script>
-    <script src="data_manager.js?v=112.15"></script>
-    <script src="data.js?v=113.48"></script>
-    <script src="firebase.js?v=113.73"></script>
-    <script src="invoices.js?v=113.55"></script>
-    <script src="invoices_import.js?v=112.15"></script>
-    <script src="invoices_export.js?v=113.50"></script>
-    <script src="invoices_scanner.js?v=113.50"></script>
-    <script src="suppliers.js?v=112.49"></script>
-    <script src="cal.js?v=113.70"></script>
-    <script src="activity.js?v=113.70"></script>
-    <script src="sched.js?v=112.18"></script>
-    <script src="gardens.js?v=113.73"></script>
-    <script src="export_v107.js?v=113.67"></script>
-    <script src="visual_excel.js?v=113.71"></script>
-    <script src="backup.js?v=113.57"></script>
-    <script src="version_vault.js?v=113.57"></script>
-    <script src="admin.js?v=112.15"></script>
-    <script src="import_export.js?v=113.57"></script>
-    <script src="core_globals.js?v=113.73"></script>
-    <script src="core_data.js?v=113.73"></script>
-    <script src="core_dash.js?v=113.73"></script>
-    <script src="worker_tasks.js?v=113.61"></script>
-    <script src="coordinator_app.js?v=113.24"></script>
-    <script src="purchasing_orders.js?v=113.50"></script>
-    <script src="purchasing_budget.js?v=113.56"></script>
-    <script src="pdfmake_orders.js?v=112.15"></script>
-    <script src="core_app.js?v=113.48"></script>
-    <script src="todo.js?v=112.15"></script>
+    <script src="utils.js?v=113.76"></script>
+    <script src="data_manager.js?v=113.76"></script>
+    <script src="data.js?v=113.76"></script>
+    <script src="firebase.js?v=113.76"></script>
+    <script src="invoices.js?v=113.76"></script>
+    <script src="invoices_import.js?v=113.76"></script>
+    <script src="invoices_export.js?v=113.76"></script>
+    <script src="invoices_scanner.js?v=113.76"></script>
+    <script src="suppliers.js?v=113.76"></script>
+    <script src="cal.js?v=113.76"></script>
+    <script src="activity.js?v=113.76"></script>
+    <script src="sched.js?v=113.76"></script>
+    <script src="gardens.js?v=113.76"></script>
+    <script src="export_v107.js?v=113.76"></script>
+    <script src="visual_excel.js?v=113.76"></script>
+    <script src="backup.js?v=113.76"></script>
+    <script src="version_vault.js?v=113.76"></script>
+    <script src="admin.js?v=113.76"></script>
+    <script src="import_export.js?v=113.76"></script>
+    <script src="core_globals.js?v=113.76"></script>
+    <script src="core_data.js?v=113.76"></script>
+    <script src="core_dash.js?v=113.76"></script>
+    <script src="worker_tasks.js?v=113.76"></script>
+    <script src="coordinator_app.js?v=113.76"></script>
+    <script src="purchasing_orders.js?v=113.76"></script>
+    <script src="purchasing_budget.js?v=113.76"></script>
+    <script src="pdfmake_orders.js?v=113.76"></script>
+    <script src="core_app.js?v=113.76"></script>
+    <script src="todo.js?v=113.76"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
       console.log('Ganscheduler Architecture: v' + (window.APP_VERSION || '103.82') + ' Ready');
