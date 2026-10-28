@@ -65,6 +65,17 @@ The workspace implements an automated data checkpoint vault in `version_vault.js
    - **Dynamic Resolution**: `coordinator_app.js` resolves allowed gardens directly from `window.managers[window.coordManagerId].gardenIds` for zero-lag updates.
    - **Access Revocation**: When deleting a coordinator in `deleteMgr()`, system prompts and revokes/deletes user access from `/users`.
 
+## Matzava Excel Changes Detection (זיהוי שינויים וצבע צהוב במצבה)
+1. **Yellow Cell Change Detection**:
+   - `isCellYellow(cell)` scans ExcelJS cell fill (fgColor, bgColor, indexed 5/13/43/51, themes 7/5, and RGB threshold).
+   - In 10-month and 11-month columns (as well as single-column total counts, schools classes, and nutrition groups), if a cell is filled with yellow, the record is flagged with `changed10`, `changed11`, and `hasChange: true`.
+2. **Visual Feedback**:
+   - **Desktop**: Highlighted in yellow (`#fef08a`) with `⚡` icons on the respective count cell, `⚡ עודכן` badge on the garden/school name, and gold border.
+   - **Mobile**: Distinct gold border (`border-right: 4px solid #eab308; background:#fffdf5;`), `⚡ שונה באקסל` tag, and `10ח': X ⚡` pill.
+   - **Filter Pill**: Category bar dynamically includes `⚡ שינויים (${changedCount})` enabling instant filtering of only modified records.
+3. **Revert Behavior**:
+   - When the yellow fill is removed in Excel ("No Fill") and the file is re-scanned or imported, the flags automatically clear (`false`) and the record returns to normal styling.
+
 ## Roadmap & Backlog (משימות פיתוח עתידיות)
 ### 1. מצב"ה לקייטנות ובוקרונים (Camps & Morning Programs Matzava)
 - **מטרה**: בניית מודול/טאב ייעודי למצב"ת תלמידים בקייטנות ובבוקרונים.
