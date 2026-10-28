@@ -893,93 +893,35 @@
     return { records, nutritionOnly, schools: [] };
   };
 
-  // Auto-refresh via File System Access API
-  window.autoRefreshMatzava = async function () {
-    if (!canEditMatzava()) {
-      if (window.showToast) window.showToast('⚠️ רק מנהל או הנהלה יכולים לבצע רענון מצב"ה', 3000);
-      return;
+  // ───────────────────────────────────────────────────────────
+  // FOLDER SCAN & REFRESH LOGIC (REUSABLE FOR LOCAL & REMOTE)
+  // ───────────────────────────────────────────────────────────
+  window.executeMatzavaFolderScan = async function (dirHandle, y, isRemote = false) {
+    if (!dirHandle) throw new Error('Missing directory handle');
+    if (window.showToast) {
+      window.showToast(isRemote ? '📱 מבצע סריקת קבצים לפי פקודה מהסלולרי...' : '⏳ סורק קבצי מצב"ה בתיקייה...', 60000);
     }
-
-    if (!window.showDirectoryPicker) {
-      if (typeof window.spAlert === 'function') {
-        window.spAlert('הדפדפן אינו תומך בגישה ישירה לתיקיות (File System Access API). אנא השתמש בדפדפן כרום או בייבוא קובץ בודד.');
-      } else {
-        alert('הדפדפן אינו תומך בגישה ישירה לתיקיות.');
-      }
-      return;
-    }
-
-    const y = getYearKey();
-    const handleKey = 'matzavaDirHandle_' + y;
-    let dirHandle = null;
-
-    if (typeof window._spIdbGet === 'function') {
-      try {
-        dirHandle = await window._spIdbGet(handleKey);
-      } catch (e) {}
-    }
-
-    // Check permissions or prompt
-    let needPrompt = !dirHandle;
-    if (dirHandle) {
-      try {
-        if ((await dirHandle.queryPermission({ mode: 'read' })) !== 'granted') {
-          if ((await dirHandle.requestPermission({ mode: 'read' })) !== 'granted') {
-            needPrompt = true;
-          }
-        }
-      } catch (e) {
-        needPrompt = true;
-      }
-    }
-
-    if (needPrompt) {
-      try {
-        if (window.showToast) window.showToast('📁 אנא בחר את תיקיית מצב"ה (' + y + ')...', 8000);
-        dirHandle = await window.showDirectoryPicker({
-          id: 'matzava_picker_' + y,
-          startIn: 'documents'
-        });
-        if (typeof window._spIdbSet === 'function') {
-          await window._spIdbSet(handleKey, dirHandle);
-        }
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          console.error(err);
-          if (window.showToast) window.showToast('❌ שגיאה בבחירת התיקייה: ' + err.message);
-        }
-        return;
-      }
-    }
-
-    if (window.showToast) window.showToast('⏳ סורק קבצי מצב"ה בתיקייה...', 60000);
 
     const scannedFiles = [];
-    try {
-      async function scanDirectory(handle) {
-        for await (const entry of handle.values()) {
-          const cleanName = entry.name.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '').trim();
-          if (entry.kind === 'file' && cleanName.endsWith('.xlsx')) {
-            if (!cleanName.startsWith('~$')) {
-              scannedFiles.push(entry);
-            }
-          } else if (entry.kind === 'directory') {
-            try {
-              await scanDirectory(entry);
-            } catch (eDir) {}
+    async function scanDirectory(handle) {
+      for await (const entry of handle.values()) {
+        const cleanName = entry.name.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '').trim();
+        if (entry.kind === 'file' && cleanName.endsWith('.xlsx')) {
+          if (!cleanName.startsWith('~$')) {
+            scannedFiles.push(entry);
           }
+        } else if (entry.kind === 'directory') {
+          try {
+            await scanDirectory(entry);
+          } catch (eDir) {}
         }
       }
-      await scanDirectory(dirHandle);
-    } catch (e) {
-      console.error(e);
-      if (window.showToast) window.showToast('❌ שגיאה בסריקת התיקייה: ' + e.message);
-      return;
     }
+    await scanDirectory(dirHandle);
 
     if (scannedFiles.length === 0) {
       if (window.showToast) window.showToast('⚠️ לא נמצאו קבצי Excel (.xlsx) בתיקייה הנבחרת');
-      return;
+      return { count: 0, totalFiles: 0, failedFiles: [] };
     }
 
     let allRecords = [];
@@ -1029,6 +971,7 @@
       }
     });
     window.MATZAVA_STATE.records = Array.from(recMap.values());
+    normalizeRecordsKids10(window.MATZAVA_STATE.records);
 
     const nutMap = new Map();
     allNutrition.forEach(n => {
@@ -1047,19 +990,385 @@
     // Save to Firebase RTDB
     await window.saveMatzavaToFirebase();
 
-    // Re-render
+    // Re-render local UI
     window.renderMatzavaTab();
 
-    let msg = `✅ רענון מצב"ה הושלם!\nנסרקו בהצלחה ${successCount} מתוך ${scannedFiles.length} קבצים:\n• ${window.MATZAVA_STATE.records.length} צהרונים\n• ${window.MATZAVA_STATE.nutritionOnly.length} קבוצות הזנה בלבד (מוצגות בבחירת העיר שלהן)\n• ${window.MATZAVA_STATE.schools.length} קבוצות בתי ספר`;
-    if (failedFiles.length > 0) {
-      msg += `\n\n⚠️ לא נקראו ${failedFiles.length} קבצים:\n• ${failedFiles.join('\n• ')}\n\n💡 אם הקובץ פתוח בתוכנת Excel במחשב, נא לסגור אותו וללחוץ שוב על "⚡ רענון אוטומטי".`;
+    return {
+      count: successCount,
+      totalFiles: scannedFiles.length,
+      failedFiles: failedFiles
+    };
+  };
+
+  // Auto-refresh via File System Access API
+  window.autoRefreshMatzava = async function () {
+    if (!canEditMatzava()) {
+      if (window.showToast) window.showToast('⚠️ רק מנהל או הנהלה יכולים לבצע רענון מצב"ה', 3000);
+      return;
     }
 
-    if (typeof window.spAlert === 'function') {
-      window.spAlert(msg);
-    } else {
-      alert(msg);
+    // If mobile or File System Access API is not available, automatically request refresh from PC!
+    if (!window.showDirectoryPicker) {
+      return window.requestMatzavaRefreshFromPC();
     }
+
+    const y = getYearKey();
+    const handleKey = 'matzavaDirHandle_' + y;
+    let dirHandle = null;
+
+    if (typeof window._spIdbGet === 'function') {
+      try {
+        dirHandle = await window._spIdbGet(handleKey);
+      } catch (e) {}
+    }
+
+    // Check permissions or prompt
+    let needPrompt = !dirHandle;
+    if (dirHandle) {
+      try {
+        if ((await dirHandle.queryPermission({ mode: 'read' })) !== 'granted') {
+          if ((await dirHandle.requestPermission({ mode: 'read' })) !== 'granted') {
+            needPrompt = true;
+          }
+        }
+      } catch (e) {
+        needPrompt = true;
+      }
+    }
+
+    if (needPrompt) {
+      try {
+        if (window.showToast) window.showToast('📁 אנא בחר את תיקיית מצב"ה (' + y + ')...', 8000);
+        dirHandle = await window.showDirectoryPicker({
+          id: 'matzava_picker_' + y,
+          startIn: 'documents'
+        });
+        if (typeof window._spIdbSet === 'function') {
+          await window._spIdbSet(handleKey, dirHandle);
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error(err);
+          if (window.showToast) window.showToast('❌ שגיאה בבחירת התיקייה: ' + err.message);
+        }
+        return;
+      }
+    }
+
+    try {
+      const res = await window.executeMatzavaFolderScan(dirHandle, y, false);
+      if (!res) return;
+
+      let msg = `✅ רענון מצב"ה הושלם!\nנסרקו בהצלחה ${res.count} מתוך ${res.totalFiles} קבצים:\n• ${window.MATZAVA_STATE.records.length} צהרונים\n• ${window.MATZAVA_STATE.nutritionOnly.length} קבוצות הזנה בלבד (מוצגות בבחירת העיר שלהן)\n• ${window.MATZAVA_STATE.schools.length} קבוצות בתי ספר`;
+      if (res.failedFiles && res.failedFiles.length > 0) {
+        msg += `\n\n⚠️ לא נקראו ${res.failedFiles.length} קבצים:\n• ${res.failedFiles.join('\n• ')}\n\n💡 אם הקובץ פתוח בתוכנת Excel במחשב, נא לסגור אותו וללחוץ שוב על "⚡ רענון אוטומטי".`;
+      }
+
+      if (typeof window.spAlert === 'function') {
+        window.spAlert(msg);
+      } else {
+        alert(msg);
+      }
+    } catch (e) {
+      console.error(e);
+      if (window.showToast) window.showToast('❌ שגיאה בסריקת התיקייה: ' + e.message);
+    }
+  };
+
+  // ───────────────────────────────────────────────────────────
+  // MOBILE-TO-PC REMOTE REFRESH COMMAND CHANNEL
+  // ───────────────────────────────────────────────────────────
+  let _remotePollTimer = null;
+
+  function renderRemoteSyncModal(cmdId) {
+    let modal = document.getElementById('matzava-remote-sync-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'matzava-remote-sync-modal';
+      document.body.appendChild(modal);
+    }
+    modal.style.cssText = 'position:fixed; inset:0; z-index:999999; background:rgba(15,23,42,0.7); display:flex; align-items:center; justify-content:center; padding:16px; direction:rtl; font-family:Assistant,sans-serif; backdrop-filter:blur(3px);';
+    modal.innerHTML = `
+      <div style="background:#fff; border-radius:16px; width:100%; max-width:380px; box-shadow:0 20px 40px rgba(0,0,0,0.3); overflow:hidden; border:1px solid #e2e8f0; text-align:center; padding:24px 20px;">
+        <div id="mrsm-icon" style="font-size:3rem; margin-bottom:10px; animation:pulse 1.5s infinite;">📡</div>
+        <h3 id="mrsm-title" style="margin:0 0 8px 0; color:#1a237e; font-size:1.15rem; font-weight:800;">בקשת רענון נשלחה למחשב</h3>
+        <p id="mrsm-desc" style="font-size:0.88rem; color:#475569; margin:0 0 18px 0; line-height:1.4;">
+          ממתין לתגובת אתר GanScheduler הפתוח במחשב המשרדי...
+        </p>
+        <div id="mrsm-progress" style="width:100%; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden; margin-bottom:18px;">
+          <div style="width:30%; height:100%; background:linear-gradient(90deg, #1a237e, #3949ab); border-radius:3px; animation:indeterminate 1.8s infinite ease-in-out;"></div>
+        </div>
+        <button id="mrsm-cancel-btn" onclick="window.closeRemoteSyncModal()" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:8px; padding:8px 20px; font-size:0.85rem; font-weight:700; cursor:pointer;">
+          ביטול
+        </button>
+      </div>
+      <style>
+        @keyframes indeterminate {
+          0% { margin-right: 0%; width: 20%; }
+          50% { margin-right: 40%; width: 50%; }
+          100% { margin-right: 80%; width: 20%; }
+        }
+      </style>
+    `;
+  }
+
+  window.closeRemoteSyncModal = function () {
+    if (_remotePollTimer) {
+      clearInterval(_remotePollTimer);
+      _remotePollTimer = null;
+    }
+    const modal = document.getElementById('matzava-remote-sync-modal');
+    if (modal) modal.remove();
+  };
+
+  function updateRemoteSyncModal(type, title, desc) {
+    const iconEl = document.getElementById('mrsm-icon');
+    const titleEl = document.getElementById('mrsm-title');
+    const descEl = document.getElementById('mrsm-desc');
+    const progEl = document.getElementById('mrsm-progress');
+    const cancelBtn = document.getElementById('mrsm-cancel-btn');
+    if (!titleEl) return;
+
+    if (type === 'processing') {
+      if (iconEl) iconEl.innerText = '🔄';
+      titleEl.innerText = title || 'המחשב סורק קבצים...';
+      if (descEl) descEl.innerText = desc || 'המחשב מעבד כעת את קבצי האקסל מהתיקייה המקומית.';
+    } else if (type === 'completed') {
+      if (iconEl) {
+        iconEl.innerText = '✅';
+        iconEl.style.animation = 'none';
+      }
+      titleEl.innerText = title || 'הרענון הושלם בהצלחה!';
+      titleEl.style.color = '#2e7d32';
+      if (descEl) descEl.innerText = desc || 'הנתונים החדשים נשמרו בענן ונטענים למסך כעת.';
+      if (progEl) progEl.style.display = 'none';
+      if (cancelBtn) cancelBtn.style.display = 'none';
+      setTimeout(() => {
+        window.closeRemoteSyncModal();
+        if (window.showToast) window.showToast('✅ מצב"ה עודכנה בהצלחה מהמחשב!');
+      }, 2000);
+    } else if (type === 'error') {
+      if (iconEl) {
+        iconEl.innerText = '⚠️';
+        iconEl.style.animation = 'none';
+      }
+      titleEl.innerText = title || 'לא התקבלה תגובה מהמחשב';
+      titleEl.style.color = '#c62828';
+      if (descEl) descEl.innerText = desc || 'וודא שהאתר פתוח בלשונית במחשב עם הרשאה לתיקיית המצב"ה.';
+      if (progEl) progEl.style.display = 'none';
+      if (cancelBtn) {
+        cancelBtn.innerText = 'סגור';
+        cancelBtn.style.background = '#1a237e';
+        cancelBtn.style.color = '#fff';
+      }
+    }
+  }
+
+  function pollRemoteSyncStatus(cmdId, y) {
+    if (_remotePollTimer) clearInterval(_remotePollTimer);
+    let attempts = 0;
+    const maxAttempts = 22; // ~44 seconds total
+
+    _remotePollTimer = setInterval(async () => {
+      attempts++;
+      if (attempts > maxAttempts) {
+        clearInterval(_remotePollTimer);
+        _remotePollTimer = null;
+        updateRemoteSyncModal('error', 'פסק זמן - המחשב לא הגיב', 'נא לוודא שאתר GanScheduler פתוח בלשונית פעילה במחשב המשרדי.');
+        return;
+      }
+
+      try {
+        const authQ = await getMatzavaAuthHeader();
+        const cb = (authQ ? '&' : '?') + 'cb=' + Date.now();
+        const url = `${RTDB_ROOT}/matzava/${y}/sync_command.json${authQ}${cb}`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const cmd = await res.json();
+        if (!cmd || cmd.id !== cmdId) return;
+
+        if (cmd.status === 'processing') {
+          updateRemoteSyncModal('processing', 'המחשב סורק קבצי Excel...', 'הסריקה מתבצעת כעת במחשב המשרדי.');
+        } else if (cmd.status === 'completed') {
+          clearInterval(_remotePollTimer);
+          _remotePollTimer = null;
+          updateRemoteSyncModal('completed', 'סריקת הקבצים הושלמה!', `נסרקו בהצלחה ${cmd.count || ''} קבצים והנתונים עלו לענן.`);
+          // Reload fresh data from Firebase and re-render!
+          await window.loadMatzavaFromFirebase(true, true);
+          window.renderMatzavaTab();
+        } else if (cmd.status === 'failed') {
+          clearInterval(_remotePollTimer);
+          _remotePollTimer = null;
+          updateRemoteSyncModal('error', 'הסריקה במחשב נכשלה', cmd.error || 'אירעה שגיאה בקריאת הקבצים במחשב.');
+        }
+      } catch (e) {}
+    }, 2000);
+  }
+
+  window.requestMatzavaRefreshFromPC = async function () {
+    if (!canEditMatzava()) {
+      if (window.showToast) window.showToast('⚠️ רק מנהל יכול לשלוח פקודת רענון למחשב', 3000);
+      return;
+    }
+    const y = getYearKey();
+    const cmdId = 'cmd_' + Date.now();
+    const cmd = {
+      id: cmdId,
+      action: 'refresh',
+      status: 'pending',
+      requestedAt: Date.now(),
+      requestedBy: (window._fbUser && (window._fbUser.displayName || window._fbUser.email)) || window.username || 'admin',
+      year: y
+    };
+
+    renderRemoteSyncModal(cmdId);
+
+    try {
+      const authQ = await getMatzavaAuthHeader();
+      const url = `${RTDB_ROOT}/matzava/${y}/sync_command.json${authQ}`;
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cmd)
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+    } catch (e) {
+      updateRemoteSyncModal('error', 'שגיאה בשליחת הפקודה', e.message);
+      return;
+    }
+
+    pollRemoteSyncStatus(cmdId, y);
+  };
+
+  // ───────────────────────────────────────────────────────────
+  // DESKTOP PC BACKGROUND LISTENER & EXECUTOR
+  // ───────────────────────────────────────────────────────────
+  let _lastHandledCmdId = null;
+  let _pcRemoteListenerTimer = null;
+
+  function showPcPermissionBanner(cmd, y) {
+    let el = document.getElementById('matzava-pc-sync-banner');
+    if (el) el.remove();
+
+    el = document.createElement('div');
+    el.id = 'matzava-pc-sync-banner';
+    el.style.cssText = 'position:fixed; top:24px; left:50%; transform:translateX(-50%); z-index:9999999; background:linear-gradient(135deg, #1a237e, #283593); color:#fff; padding:16px 24px; border-radius:14px; box-shadow:0 10px 35px rgba(0,0,0,0.35); direction:rtl; text-align:right; font-family:Assistant,sans-serif; display:flex; align-items:center; gap:16px; border:2px solid #5c6bc0; animation:slideDown 0.3s ease;';
+    el.innerHTML = `
+      <div style="font-size:2rem;">📱</div>
+      <div>
+        <div style="font-weight:800; font-size:1.05rem;">התקבלה בקשת רענון מצב"ה מהטלפון שלך!</div>
+        <div style="font-size:0.82rem; opacity:0.9; margin-top:2px;">לחץ כאן כדי לאשר קריאת קבצים מתיקיית המחשב והעלאה לענן:</div>
+      </div>
+      <button id="matzava-confirm-pc-btn" style="background:#4caf50; color:#fff; border:none; padding:10px 18px; border-radius:8px; font-weight:800; font-size:0.9rem; cursor:pointer; box-shadow:0 3px 8px rgba(76,175,80,0.3); white-space:nowrap;">
+        ⚡ אשר סריקה כעת
+      </button>
+      <button onclick="document.getElementById('matzava-pc-sync-banner').remove()" style="background:transparent; border:none; color:#fff; opacity:0.7; font-size:1.1rem; cursor:pointer; padding:4px;">✕</button>
+    `;
+    document.body.appendChild(el);
+
+    document.getElementById('matzava-confirm-pc-btn').onclick = async function () {
+      this.disabled = true;
+      this.innerText = '⏳ סורק...';
+      try {
+        await window.autoRefreshMatzava();
+        const authQ = await getMatzavaAuthHeader();
+        const url = `${RTDB_ROOT}/matzava/${y}/sync_command.json${authQ}`;
+        await fetch(url, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'completed', completedAt: Date.now() })
+        });
+        if (el) el.remove();
+      } catch (err) {
+        alert('שגיאה בסריקה: ' + err.message);
+      }
+    };
+  }
+
+  async function handleRemoteRefreshOnPC(cmd, y) {
+    console.log('[Matzava Remote PC] Received refresh command from mobile:', cmd);
+    const authQ = await getMatzavaAuthHeader();
+    const url = `${RTDB_ROOT}/matzava/${y}/sync_command.json${authQ}`;
+
+    try {
+      await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'processing', pickedUpAt: Date.now() })
+      });
+    } catch (e) {}
+
+    if (window.showToast) {
+      window.showToast('📱 התקבלה בקשת רענון מהסלולרי! מתחיל סריקה...', 5000);
+    }
+
+    const handleKey = 'matzavaDirHandle_' + y;
+    let dirHandle = null;
+    if (typeof window._spIdbGet === 'function') {
+      try { dirHandle = await window._spIdbGet(handleKey); } catch (e) {}
+    }
+
+    let isGranted = false;
+    if (dirHandle) {
+      try {
+        isGranted = (await dirHandle.queryPermission({ mode: 'read' })) === 'granted';
+      } catch (e) {}
+    }
+
+    if (dirHandle && isGranted) {
+      try {
+        const res = await window.executeMatzavaFolderScan(dirHandle, y, true);
+        await fetch(url, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'completed',
+            completedAt: Date.now(),
+            count: res.count || 0
+          })
+        });
+        if (window.showToast) {
+          window.showToast(`✅ רענון מהסלולרי הושלם בהצלחה (${res.count} קבצים)!`, 5000);
+        }
+      } catch (err) {
+        console.error('[Matzava Remote PC] Error executing scan:', err);
+        await fetch(url, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'failed', error: err.message })
+        });
+      }
+    } else {
+      showPcPermissionBanner(cmd, y);
+    }
+  }
+
+  window.initMatzavaRemoteListener = function () {
+    // Only desktop browsers with showDirectoryPicker support act as host scanners
+    if (typeof window === 'undefined' || !window.showDirectoryPicker) return;
+    if (_pcRemoteListenerTimer) return;
+
+    const checkCommand = async () => {
+      if (!canEditMatzava()) return;
+      const y = getYearKey();
+      try {
+        const authQ = await getMatzavaAuthHeader();
+        const cb = (authQ ? '&' : '?') + 'cb=' + Date.now();
+        const url = `${RTDB_ROOT}/matzava/${y}/sync_command.json${authQ}${cb}`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const cmd = await res.json();
+        if (!cmd || cmd.status !== 'pending' || !cmd.id) return;
+        if (cmd.id === _lastHandledCmdId) return;
+        if (Date.now() - cmd.requestedAt > 120000) return;
+
+        _lastHandledCmdId = cmd.id;
+        handleRemoteRefreshOnPC(cmd, y);
+      } catch (e) {}
+    };
+
+    _pcRemoteListenerTimer = setInterval(checkCommand, 5000);
+    window.addEventListener('focus', checkCommand);
   };
 
   // Single file manual import
@@ -2195,9 +2504,17 @@
                   🔄 רענן מהענן
                 </button>
 
+                ${isMob ? `
+                  <button class="btn" onclick="window.requestMatzavaRefreshFromPC()" 
+                    style="background:#1a237e; color:#fff; border:none; border-radius:8px; font-weight:700; padding:6px 10px; font-size:0.78rem; display:inline-flex; align-items:center; gap:4px; cursor:pointer; box-shadow:0 2px 6px rgba(26,35,126,0.25);" 
+                    title="שלח פקודת רענון למחשב המשרדי לסריקת קבצים חדשים">
+                    📡 רענן מהמחשב
+                  </button>
+                ` : ''}
+
                 <div style="position:relative; display:inline-block;" id="matzava-admin-tools-wrapper">
                   <button class="btn" onclick="window.toggleMatzavaAdminMenu(event)" 
-                    style="background:#1a237e; color:#fff; border:none; border-radius:8px; font-weight:700; padding:${isMob ? '6px 10px' : '8px 14px'}; font-size:${isMob ? '0.78rem' : '0.85rem'}; display:inline-flex; align-items:center; gap:4px; cursor:pointer; box-shadow:0 2px 6px rgba(26,35,126,0.25);"
+                    style="background:${isMob ? '#475569' : '#1a237e'}; color:#fff; border:none; border-radius:8px; font-weight:700; padding:${isMob ? '6px 10px' : '8px 14px'}; font-size:${isMob ? '0.78rem' : '0.85rem'}; display:inline-flex; align-items:center; gap:4px; cursor:pointer; box-shadow:0 2px 6px rgba(26,35,126,0.25);"
                     title="כלי ניהול מתקדמים">
                     ⚙️ כלים <span style="font-size:0.7rem;">▼</span>
                   </button>
@@ -2207,6 +2524,12 @@
                       style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#2e7d32; display:flex; align-items:center; gap:8px; cursor:pointer;" 
                       onmouseover="this.style.background='#e8f5e9'" onmouseout="this.style.background='transparent'">
                       ⚡ רענון אוטומטי (מחשב)
+                    </button>
+
+                    <button onclick="window.toggleMatzavaAdminMenu(); window.requestMatzavaRefreshFromPC();" 
+                      style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#1a237e; display:flex; align-items:center; gap:8px; cursor:pointer;" 
+                      onmouseover="this.style.background='#e8eaf6'" onmouseout="this.style.background='transparent'">
+                      📡 בקש רענון קבצים מהמחשב
                     </button>
                     
                     <label style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#1565c0; display:flex; align-items:center; gap:8px; cursor:pointer; box-sizing:border-box; margin:0;" 
@@ -2500,5 +2823,14 @@
       }, 250);
     }
   });
+
+  // Automatically initialize background remote command listener on PC host
+  setTimeout(() => {
+    try {
+      if (typeof window.initMatzavaRemoteListener === 'function') {
+        window.initMatzavaRemoteListener();
+      }
+    } catch(e) {}
+  }, 3500);
 })();
 
