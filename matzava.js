@@ -87,22 +87,41 @@
     return null;
   }
 
-  // Normalizer: for cities/records without 10m/11m breakdown (e.g. באר יעקב, ראש העין),
-  // ensure the registered kids count is populated into the 10-months column (kids10)
+  // Normalizer: ensures 10m/11m/total consistency across all records:
+  // 1) For cities without breakdown (באר יעקב, ראש העין), populate all kids to 10-months column (kids10).
+  // 2) Enforce strict mathematical consistency: kidsTotal is ALWAYS strictly (kids10 + kids11).
   function normalizeRecordsKids10(records) {
     if (!Array.isArray(records)) return;
     records.forEach(r => {
       if (!r) return;
-      if (!r.kids10 && !r.kids11 && (r.kidsTotal > 0 || r.kids > 0)) {
-        r.kids10 = r.kidsTotal || r.kids || 0;
+      const k10 = Number(r.kids10) || 0;
+      const k11 = Number(r.kids11) || 0;
+      let total = Number(r.kidsTotal) || Number(r.kids) || 0;
+
+      if (k10 === 0 && k11 === 0 && total > 0) {
+        r.kids10 = total;
         r.kids11 = 0;
+      } else {
+        r.kids10 = k10;
+        r.kids11 = k11;
       }
+
+      r.kidsTotal = (Number(r.kids10) || 0) + (Number(r.kids11) || 0);
+
       if (Array.isArray(r.subGardens)) {
         r.subGardens.forEach(sub => {
-          if (sub && !sub.kids10 && !sub.kids11 && sub.kidsTotal > 0) {
-            sub.kids10 = sub.kidsTotal;
+          if (!sub) return;
+          const sk10 = Number(sub.kids10) || 0;
+          const sk11 = Number(sub.kids11) || 0;
+          let subTot = Number(sub.kidsTotal) || 0;
+          if (sk10 === 0 && sk11 === 0 && subTot > 0) {
+            sub.kids10 = subTot;
             sub.kids11 = 0;
+          } else {
+            sub.kids10 = sk10;
+            sub.kids11 = sk11;
           }
+          sub.kidsTotal = (Number(sub.kids10) || 0) + (Number(sub.kids11) || 0);
         });
       }
     });
@@ -1848,7 +1867,7 @@
 
                 <!-- Total Kids Badge -->
                 <div style="background:${r.isMerged ? '#f3e5f5' : '#e8eaf6'}; border:1px solid ${r.isMerged ? '#ce93d8' : '#c5cae9'}; border-radius:8px; padding:4px 8px; text-align:center; min-width:50px; flex-shrink:0;">
-                  <div style="font-size:1.2rem; font-weight:900; color:${r.isMerged ? '#6a1b9a' : '#1a237e'}; line-height:1;">${r.kidsTotal || 0}</div>
+                  <div style="font-size:1.2rem; font-weight:900; color:${r.isMerged ? '#6a1b9a' : '#1a237e'}; line-height:1;">${(Number(r.kids10) || 0) + (Number(r.kids11) || 0)}</div>
                   <div style="font-size:0.62rem; color:#555; font-weight:700;">ילדים</div>
                 </div>
               </div>
@@ -2040,6 +2059,17 @@
 
   // Desktop Table Renderers
   function renderGardensDesktop(filteredGardens) {
+    let sumCol10 = 0;
+    let sumCol11 = 0;
+    let sumColTotal = 0;
+    filteredGardens.forEach(r => {
+      const k10 = Number(r.kids10) || 0;
+      const k11 = Number(r.kids11) || 0;
+      sumCol10 += k10;
+      sumCol11 += k11;
+      sumColTotal += (k10 + k11);
+    });
+
     return `
       <!-- KINDERGARTENS TABLE -->
       <div style="background:#fff; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid #e0e0e0; overflow:hidden;">
@@ -2113,10 +2143,10 @@
                     <td style="padding:10px 12px; text-align:center; vertical-align:top;">
                       <span style="background:#e3f2fd; color:#1565c0; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:bold;">${r.age || '-'}</span>
                     </td>
-                    <td style="padding:10px 12px; text-align:center; color:#555; vertical-align:top;">${r.kids10 || '-'}</td>
-                    <td style="padding:10px 12px; text-align:center; color:#555; vertical-align:top;">${r.kids11 || '-'}</td>
+                    <td style="padding:10px 12px; text-align:center; color:#555; vertical-align:top;">${r.kids10 ? r.kids10 : '-'}</td>
+                    <td style="padding:10px 12px; text-align:center; color:#555; vertical-align:top;">${r.kids11 ? r.kids11 : '-'}</td>
                     <td style="padding:10px 12px; text-align:center; font-weight:800; font-size:1.05rem; color:#1a237e; background:rgba(40,53,147,0.06); vertical-align:top;">
-                      ${r.kidsTotal || 0}
+                      ${(Number(r.kids10) || 0) + (Number(r.kids11) || 0)}
                     </td>
                     <td style="padding:10px 12px; vertical-align:top;">
                       ${r.isMerged ? `
@@ -2141,6 +2171,20 @@
                 `;
               }).join('')}
             </tbody>
+            ${filteredGardens.length > 0 ? `
+              <tfoot>
+                <tr style="background:#e8eaf6; font-weight:800; border-top:2px solid #1a237e; color:#1a237e; height:40px;">
+                  <td style="padding:10px 12px; font-weight:800;">סה"כ</td>
+                  <td style="padding:10px 12px; font-weight:800;" colspan="3">${filteredGardens.length} צהרונים</td>
+                  <td style="padding:10px 12px; text-align:center; font-size:0.95rem; font-weight:800;">${sumCol10.toLocaleString()}</td>
+                  <td style="padding:10px 12px; text-align:center; font-size:0.95rem; font-weight:800;">${sumCol11.toLocaleString()}</td>
+                  <td style="padding:10px 12px; text-align:center; font-size:1.15rem; font-weight:900; color:#1a237e; background:rgba(40,53,147,0.12);">
+                    ${sumColTotal.toLocaleString()}
+                  </td>
+                  <td style="padding:10px 12px;" colspan="2"></td>
+                </tr>
+              </tfoot>
+            ` : ''}
           </table>
         </div>
       </div>
@@ -2440,9 +2484,13 @@
     let homeMealCount = 0;
     let mergedCount = 0;
     filteredGardens.forEach(r => {
-      totalKids += (r.kidsTotal || 0);
-      total10 += (r.kids10 || 0);
-      total11 += (r.kids11 || 0);
+      const k10 = Number(r.kids10) || 0;
+      const k11 = Number(r.kids11) || 0;
+      const rowSum = k10 + k11;
+      r.kidsTotal = rowSum;
+      totalKids += rowSum;
+      total10 += k10;
+      total11 += k11;
       if (r.isSterile) sterileCount++;
       if (r.isHomeMeal) homeMealCount++;
       if (r.isMerged) mergedCount++;
@@ -2650,7 +2698,7 @@
             <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
               <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">סה"כ ילדים</div>
               <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#1a237e; font-weight:800; line-height:1.15;">${totalKids.toLocaleString()}</div>
-              <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${total10 ? `${total10} (10ח') + ${total11} (11ח')` : 'רשומים'}</div>
+              <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${total10 || total11 ? `${total10.toLocaleString()} (10ח') + ${total11.toLocaleString()} (11ח')` : 'רשומים'}</div>
             </div>
 
             <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
