@@ -121,6 +121,28 @@ window.getCoordAllowedGardenIds = function() {
   return allowed;
 };
 
+window.getCoordAllowedCities = function() {
+  const isAllCities = window.role === 'admin' || window.role === 'manager' || window.role === 'vp' || window.permAllCities || (window.coordCities||[]).includes('ALL');
+  if (isAllCities) return null;
+
+  const cities = new Set();
+  (window.coordCities||[]).forEach(c => {
+    if (c && c !== 'ALL') cities.add(c.trim());
+  });
+
+  const allowedGids = typeof window.getCoordAllowedGardenIds === 'function' ? window.getCoordAllowedGardenIds() : null;
+  const gardens = typeof AG === 'function' ? AG() : (window.GARDENS || []);
+  if (allowedGids && allowedGids.size > 0) {
+    gardens.forEach(g => {
+      if (allowedGids.has(Number(g.id)) && g.city) {
+        cities.add(g.city.trim());
+      }
+    });
+  }
+
+  return Array.from(cities);
+};
+
 // ─────────────────────────────────────────────────────────
 // SCH SWAP — temporarily replace window.SCH with filtered subset
 // Ensures cal.js renderMakeupsTop etc. see only coordinator's events

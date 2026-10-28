@@ -141,6 +141,8 @@ onAuthStateChanged(auth, async (user) => {
       permWorker = true;
       permMatzava = true;
       role = 'admin';
+      window.permAllCities = true;
+      window.coordCities = ['ALL'];
     } else {
       try {
         const q = window._cachedToken ? '?auth=' + window._cachedToken : '';
@@ -154,15 +156,19 @@ onAuthStateChanged(auth, async (user) => {
             permMatzava = profile.permMatzava !== false;
             role = profile.role || 'view';
             const isManagerRole = role === 'manager' || role === 'vp';
+
+            // Always bind cities & scope from profile for all users
+            window.userProfile = profile;
+            window.coordPhone = profile.phone;
+            window.coordManagerId = profile.managerId;
+            window.coordCities = isManagerRole ? ['ALL'] : (profile.coordCities || []);
+            window.coordGardenIds = profile.coordGardenIds || [];
+            window.coordTimeScope = isManagerRole ? 'year' : (profile.coordTimeScope || 'month');
+            window.coordClsScope = profile.coordClsScope || 'all';
+            window.permCoord = isManagerRole || role === 'coordinator' || !!profile.permCoord;
+            window.permAllCities = isManagerRole || (profile.coordCities || []).includes('ALL') || !!profile.allCities;
+
             if (role === 'coordinator' || isManagerRole) {
-              window.coordPhone = profile.phone;
-              window.coordManagerId = profile.managerId;
-              window.coordCities = isManagerRole ? ['ALL'] : (profile.coordCities || []);
-              window.coordGardenIds = profile.coordGardenIds || [];
-              window.coordTimeScope = isManagerRole ? 'year' : (profile.coordTimeScope || 'month');
-              window.coordClsScope = profile.coordClsScope || 'all';
-              window.permCoord = true;
-              window.permAllCities = isManagerRole || (profile.coordCities || []).includes('ALL') || !!profile.allCities;
 
               // Force active year & clear any custom year selections
               const targetYear = profile.currentYear || 'tashpaz';

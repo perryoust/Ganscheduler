@@ -1680,42 +1680,73 @@
     URL.revokeObjectURL(link.href);
   };
 
+  // Helper for resilient city matching (handles hyphens, quotes, abbreviations like פ"ת / פתח תקווה, prefixes)
+  function isCityMatch(c1, c2) {
+    if (!c1 || !c2) return false;
+    let s1 = String(c1).trim().replace(/[-–—"'\.]/g, ' ').replace(/\s+/g, ' ').toLowerCase();
+    let s2 = String(c2).trim().replace(/[-–—"'\.]/g, ' ').replace(/\s+/g, ' ').toLowerCase();
+    if (s1 === s2) return true;
+    
+    // Petah Tikva variations (פ"ת, פתח תקווה, פתח-תקוה)
+    const isPt1 = (s1 === 'פ ת' || s1.startsWith('פתח תקו') || s1 === 'פתח תקווה' || s1 === 'פתח תקוה');
+    const isPt2 = (s2 === 'פ ת' || s2.startsWith('פתח תקו') || s2 === 'פתח תקווה' || s2 === 'פתח תקוה');
+    if (isPt1 && isPt2) return true;
+    
+    // Clean prefixes like "מועצה מקומית באר יעקב" / "עיריית גבעתיים"
+    const cleanOrg = (s) => s.replace(/^(עיריית|עיר כולל|מועצה אזורית|מועצה מקומית|מועצת|עיר)\s+/, '').trim();
+    const cOrg1 = cleanOrg(s1);
+    const cOrg2 = cleanOrg(s2);
+    if (cOrg1 === cOrg2) return true;
+    if (cOrg1 && cOrg2 && (cOrg1 === s2 || cOrg2 === s1)) return true;
+
+    return false;
+  }
+
+  // Get allowed cities for current user. Returns null for unrestricted access (admin, manager, vp, permAllCities),
+  // or Array of allowed city names if restricted to specific cities/gardens.
+  function getUserAllowedCities() {
+    const curRole = getSafeRole();
+    const isManagerRole = curRole === 'admin' || curRole === 'manager' || curRole === 'vp' || window.permAllCities || (Array.isArray(window.coordCities) && window.coordCities.includes('ALL'));
+    if (isManagerRole) return null; // null = unrestricted nationwide access
+
+    if (typeof window.getCoordAllowedCities === 'function') {
+      const list = window.getCoordAllowedCities();
+      if (list === null) return null;
+      if (Array.isArray(list)) return list;
+    }
+
+    const cities = new Set();
+    (window.coordCities || []).forEach(c => {
+      if (c && c !== 'ALL') cities.add(c.trim());
+    });
+
+    if (Array.isArray(window.coordGardenIds) && window.coordGardenIds.length > 0) {
+      const gList = typeof window.AG === 'function' ? window.AG() : (window.GARDENS || []);
+      const gIdSet = new Set(window.coordGardenIds.map(Number));
+      gList.forEach(g => {
+        if (gIdSet.has(Number(g.id)) && g.city) {
+          cities.add(g.city.trim());
+        }
+      });
+    }
+
+    return Array.from(cities);
+  }
+
   // Filter logic for Kindergartens
   window.getFilteredMatzavaRecords = function () {
     const s = window.MATZAVA_STATE;
     normalizeRecordsKids10(s.records);
     let list = s.records || [];
 
-    const curRole = getSafeRole();
-    const isManagerRole = curRole === 'admin' || curRole === 'manager' || curRole === 'vp' || window.permAllCities || (Array.isArray(window.coordCities) && window.coordCities.includes('ALL'));
-
-    if (!isManagerRole && curRole === 'coordinator') {
-      // Coordinator view restriction by cities
-      if (Array.isArray(window.coordCities) && window.coordCities.length > 0 && !window.coordCities.includes('ALL')) {
-        list = list.filter(r => window.coordCities.some(c => (r.city || '').includes(c) || c.includes(r.city || '')));
-      }
-
-      // Coordinator view restriction by garden IDs (supports matching hosted sub-gardens)
-      if (Array.isArray(window.coordGardenIds) && window.coordGardenIds.length > 0) {
-        const gIds = window.coordGardenIds.map(String);
-        list = list.filter(r => {
-          if (r.gardenId && gIds.includes(String(r.gardenId))) return true;
-          if (Array.isArray(r.subGardens) && r.subGardens.length > 0) {
-            return r.subGardens.some(sub => sub.gardenId && gIds.includes(String(sub.gardenId)));
-          }
-          return false;
-        });
-      }
+    const allowedCities = getUserAllowedCities();
+    if (allowedCities !== null) {
+      if (allowedCities.length === 0) return [];
+      list = list.filter(r => allowedCities.some(ac => isCityMatch(r.city, ac)));
     }
 
     if (s.selectedCity && s.selectedCity !== 'all') {
-      list = list.filter(r => {
-        const c1 = (r.city || '').trim();
-        const c2 = s.selectedCity.trim();
-        if (c1 === c2) return true;
-        if ((c1 === 'פ"ת' && c2.includes('פתח')) || (c1.includes('פתח') && c2 === 'פ"ת')) return true;
-        return false;
-      });
+      list = list.filter(r => isCityMatch(r.city, s.selectedCity));
     }
 
     if (s.searchQuery) {
@@ -1745,23 +1776,14 @@
     const s = window.MATZAVA_STATE;
     let list = s.schools || [];
 
-    const curRole = getSafeRole();
-    const isManagerRole = curRole === 'admin' || curRole === 'manager' || curRole === 'vp' || window.permAllCities || (Array.isArray(window.coordCities) && window.coordCities.includes('ALL'));
-
-    if (!isManagerRole && curRole === 'coordinator') {
-      if (Array.isArray(window.coordCities) && window.coordCities.length > 0 && !window.coordCities.includes('ALL')) {
-        list = list.filter(sc => window.coordCities.some(c => (sc.city || '').includes(c) || c.includes(sc.city || '')));
-      }
+    const allowedCities = getUserAllowedCities();
+    if (allowedCities !== null) {
+      if (allowedCities.length === 0) return [];
+      list = list.filter(sc => allowedCities.some(ac => isCityMatch(sc.city, ac)));
     }
 
     if (s.selectedCity && s.selectedCity !== 'all') {
-      list = list.filter(sc => {
-        const c1 = (sc.city || '').trim();
-        const c2 = s.selectedCity.trim();
-        if (c1 === c2) return true;
-        if ((c1 === 'פ"ת' && c2.includes('פתח')) || (c1.includes('פתח') && c2 === 'פ"ת')) return true;
-        return false;
-      });
+      list = list.filter(sc => isCityMatch(sc.city, s.selectedCity));
     }
 
     if (s.searchQuery) {
@@ -1794,22 +1816,13 @@
 
     let list = s.nutritionOnly || [];
 
-    const curRole = getSafeRole();
-    const isManagerRole = curRole === 'admin' || curRole === 'manager' || curRole === 'vp' || window.permAllCities || (Array.isArray(window.coordCities) && window.coordCities.includes('ALL'));
-
-    if (!isManagerRole && curRole === 'coordinator') {
-      if (Array.isArray(window.coordCities) && window.coordCities.length > 0 && !window.coordCities.includes('ALL')) {
-        list = list.filter(n => window.coordCities.some(c => (n.city || '').includes(c) || c.includes(n.city || '')));
-      }
+    const allowedCities = getUserAllowedCities();
+    if (allowedCities !== null) {
+      if (allowedCities.length === 0) return [];
+      list = list.filter(n => allowedCities.some(ac => isCityMatch(n.city, ac)));
     }
 
-    list = list.filter(n => {
-      const c1 = (n.city || '').trim();
-      const c2 = s.selectedCity.trim();
-      if (c1 === c2) return true;
-      if ((c1 === 'פ"ת' && c2.includes('פתח')) || (c1.includes('פתח') && c2 === 'פ"ת')) return true;
-      return false;
-    });
+    list = list.filter(n => isCityMatch(n.city, s.selectedCity));
 
     if (s.searchQuery) {
       const q = s.searchQuery.toLowerCase().trim();
@@ -2667,6 +2680,46 @@
     const canEdit = canEditMatzava();
     const isMob = (typeof window.isMobileMode === 'function' ? window.isMobileMode() : (window.innerWidth <= 768));
 
+    // Available cities list from all 3 datasets filtered by user permissions
+    const allowedCities = getUserAllowedCities();
+    const citiesSet = new Set();
+    (s.records || []).forEach(r => { if (r.city) citiesSet.add(r.city.trim()); });
+    (s.schools || []).forEach(sc => { if (sc.city) citiesSet.add(sc.city.trim()); });
+    (s.nutritionOnly || []).forEach(n => { if (n.city) citiesSet.add(n.city.trim()); });
+    let availableCities = Array.from(citiesSet).filter(Boolean).sort();
+
+    if (allowedCities !== null) {
+      availableCities = availableCities.filter(c => allowedCities.some(ac => isCityMatch(c, ac)));
+      if (availableCities.length === 1) {
+        s.selectedCity = availableCities[0];
+      } else if (availableCities.length > 1) {
+        if (s.selectedCity !== 'all' && !availableCities.some(c => isCityMatch(c, s.selectedCity))) {
+          s.selectedCity = 'all';
+        }
+      }
+    }
+
+    // If restricted user has no matching cities or no cities assigned at all
+    if (allowedCities !== null && availableCities.length === 0) {
+      container.innerHTML = `
+        <div class="matzava-wrapper" style="direction:rtl; font-family:'Assistant',sans-serif; padding:${isMob ? '10px 8px' : '20px'}; max-width:800px; margin:40px auto; box-sizing:border-box;">
+          <div style="background:#fff; border-radius:12px; padding:35px 25px; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.08); border:1px solid #e2e8f0;">
+            <div style="font-size:3rem; margin-bottom:12px;">🔒</div>
+            <h3 style="margin:0 0 10px 0; color:#1a237e; font-size:1.3rem; font-weight:800;">אין ערים מורשות לצפייה במצבה</h3>
+            <p style="color:#64748b; font-size:0.95rem; line-height:1.6; margin:0 0 20px 0;">
+              חשבונך מוגדר ללא שיוך ערים פעילות במצבה.<br>
+              במידה והנך אמור/ה לצפות בנתוני עיר מסוימת, פנה/י למנהל המערכת לעדכון שיוך הערים והגנים.
+            </p>
+            <button class="btn" onclick="window.refreshMatzavaFromCloud(this)" 
+              style="background:#1a237e; color:#fff; border:none; border-radius:8px; font-weight:700; padding:9px 18px; font-size:0.9rem; cursor:pointer;">
+              🔄 בדוק סנכרון מחדש
+            </button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
     // Compute datasets
     const filteredGardens = window.getFilteredMatzavaRecords();
     const filteredSchools = window.getFilteredSchoolsRecords();
@@ -2715,13 +2768,6 @@
     filteredNutrition.forEach(n => {
       nutTotalMeals += (n.kidsTotal || 0);
     });
-
-    // Available cities list from all 3 datasets
-    const citiesSet = new Set();
-    (s.records || []).forEach(r => { if (r.city) citiesSet.add(r.city.trim()); });
-    (s.schools || []).forEach(sc => { if (sc.city) citiesSet.add(sc.city.trim()); });
-    (s.nutritionOnly || []).forEach(n => { if (n.city) citiesSet.add(n.city.trim()); });
-    const availableCities = Array.from(citiesSet).filter(Boolean).sort();
 
     let html = `
       <div class="matzava-wrapper" style="direction:rtl; font-family:'Assistant',sans-serif; padding:${isMob ? '6px 4px 85px 4px' : '12px'}; max-width:1440px; margin:0 auto; box-sizing:border-box; overflow-x:hidden;">
@@ -2826,10 +2872,21 @@
               <span style="font-size:0.8rem; font-weight:700; color:#1e293b;">עיר:</span>
               <select onchange="window.MATZAVA_STATE.selectedCity=this.value; window.renderMatzavaTab();" 
                 style="width:100%; padding:${isMob ? '5px 8px' : '6px 10px'}; border-radius:6px; border:1px solid #cbd5e1; background:#fff; font-weight:700; font-size:0.82rem; outline:none; cursor:pointer;">
-                <option value="all" ${s.selectedCity === 'all' ? 'selected' : ''}>🌍 כל הערים</option>
-                ${availableCities.map(c => `
-                  <option value="${c}" ${s.selectedCity === c ? 'selected' : ''}>${c}</option>
-                `).join('')}
+                ${allowedCities === null ? `
+                  <option value="all" ${s.selectedCity === 'all' ? 'selected' : ''}>🌍 כל הערים</option>
+                  ${availableCities.map(c => `
+                    <option value="${c}" ${s.selectedCity === c ? 'selected' : ''}>${c}</option>
+                  `).join('')}
+                ` : (availableCities.length > 1 ? `
+                  <option value="all" ${s.selectedCity === 'all' ? 'selected' : ''}>🌍 הערים שלי (${availableCities.length})</option>
+                  ${availableCities.map(c => `
+                    <option value="${c}" ${s.selectedCity === c ? 'selected' : ''}>${c}</option>
+                  `).join('')}
+                ` : `
+                  ${availableCities.map(c => `
+                    <option value="${c}" selected>${c}</option>
+                  `).join('')}
+                `)}
               </select>
             </div>
 
