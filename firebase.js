@@ -1377,6 +1377,11 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
 
 // One-time migration: convert /invoices from array to keyed object
 window._migrateInvoicesToKeyed = async function() {
+  // Guard: Never attempt database migration for read-only / field / non-purchasing users
+  const isMasterAdmin = (window._fbUser && window._fbUser.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03') || 
+                        (window.role === 'admin' && window.permPurch === true);
+  if (!isMasterAdmin) return;
+
   const tok = await window._fbUser?.getIdToken(false);
   if (!tok) return;
   const url = getFirebaseInvoicesUrl() + '?auth=' + tok + '&cb=' + Date.now();
@@ -1385,10 +1390,11 @@ window._migrateInvoicesToKeyed = async function() {
   const data = await r.json();
   if (!data) return;
   
-  // Check if already keyed (first key is NOT a number)
-  const keys = Object.keys(data);
-  if (keys.length > 0 && isNaN(keys[0])) {
+  // Check if already keyed (not an array)
+  if (!Array.isArray(data)) {
     console.log('[Migration] Invoices already keyed. Skipping.');
+    window._invoicesKeyedMode = true;
+    if (window._safeLS) window._safeLS.setItem('_invoicesKeyedMode', '1');
     return;
   }
   

@@ -95,6 +95,7 @@ var _srawsReady=(async function(){
   const el = document.getElementById('app-version');
   if (el) el.textContent = VERSION;
   try{
+    if (window.CURRENT_YEAR && window.CURRENT_YEAR !== 'tashpav') return;
     const r=await fetch('sraws.json');
     if(!r.ok){console.warn('sraws.json not found ('+r.status+')');return;}
     const data=await r.json();
