@@ -811,7 +811,7 @@
         const sectionRows = rawRows.slice(startRow, endRow);
         const header = sectionRows[0] || [];
 
-        const colMap = { city: 0, addr: 1, name: 2, kids: 3, host: 4, notes: 6 };
+        const colMap = { city: 0, addr: 1, name: 2, kids: 3, host: 4, total: 5, notes: 6 };
         header.forEach((h, idx) => {
           if (!h) return;
           if (['קבוצה', 'כיתה'].some(k => h.includes(k))) colMap.name = idx;
@@ -819,17 +819,28 @@
           else if (h.includes('עיר')) colMap.city = idx;
           else if (h.includes('רשומים') && colMap.kids === undefined) colMap.kids = idx;
           else if (h.includes('איחוד')) colMap.host = idx;
+          else if (['סה"כ', 'סהכ', 'סך הכל'].some(k => h.includes(k))) colMap.total = idx;
           else if (['הערות', 'אלרגיות', 'רגישויות'].some(k => h.includes(k))) colMap.notes = idx;
         });
 
-        // Scan Section metadata from Column A / B across section rows
+        // Scan Section metadata from Column A / B / C across section rows
         let secCity = '';
         let secSchool = '';
         let secAddr = '';
+        let explicitGroupsCount = 0;
+        let explicitTotalKids = 0;
 
         for (const row of sectionRows) {
           const colA = (row[0] || '').trim();
           const colB = (row[1] || '').trim();
+          const colC = (row[2] || '').trim();
+
+          // Check for 'מס קב' row
+          if (colA.includes('מס קב') || colB.includes('מס קב') || colC.includes('מס קב')) {
+            const num = parseInt(colB, 10) || parseInt(colA.replace(/\D/g, ''), 10) || parseInt(colC, 10) || 0;
+            if (num > 0) explicitGroupsCount = num;
+          }
+
           for (const val of [colA, colB]) {
             if (!val) continue;
             if (!secCity && ['פ"ת', 'פתח תקווה', 'נס ציונה', 'ראש העין', 'גבעתיים', 'באר יעקב'].some(c => val.includes(c))) {
@@ -840,7 +851,20 @@
               secAddr = val;
             }
           }
+
+          // Check for explicit total in column F / colMap.total
+          const totIdx = colMap.total !== undefined ? colMap.total : 5;
+          if (row[totIdx]) {
+            const tNum = parseInt(row[totIdx], 10);
+            if (tNum > 0 && tNum > explicitTotalKids) {
+              explicitTotalKids = tNum;
+            }
+          }
         }
+
+        const tempClassItems = [];
+        let sectionSumKids = 0;
+        let nonZeroClassesCount = 0;
 
         // Extract class / group rows
         for (let r = 1; r < sectionRows.length; r++) {
@@ -850,18 +874,81 @@
           if (!groupName) continue;
           if (['סה"כ', 'קבוצה', 'ממוצע', 'מס קב', 'בתי ספר'].some(k => groupName.includes(k))) continue;
 
-          const kCount = parseInt(row[colMap.kids] || row[3], 10) || 0;
-          const mCount = parseInt(row[colMap.host] || row[4], 10) || kCount;
+          const rawKids = colMap.kids !== undefined ? row[colMap.kids] : row[3];
+          const kCount = parseInt(rawKids, 10) || 0;
+
+          const rawMerged = (colMap.host !== undefined && row[colMap.host] !== undefined) ? row[colMap.host] : row[4];
+          const hasCustomMerge = Boolean(rawMerged && String(rawMerged).trim() !== '' && !String(rawMerged).includes('Formula') && !isNaN(parseInt(rawMerged, 10)));
+          const mCount = hasCustomMerge ? parseInt(rawMerged, 10) : 0;
+
           const sNotes = (row[colMap.notes] || row[6] || '').trim();
+
+          // Skip empty template placeholder rows
+          if (kCount === 0 && !hasCustomMerge && !sNotes && !groupName.includes('כיתה') && !groupName.includes('חט"צ')) {
+            continue;
+          }
+          if (kCount === 0 && !hasCustomMerge && !sNotes) {
+            continue;
+          }
+
+          if (kCount > 0) {
+            nonZeroClassesCount++;
+            sectionSumKids += kCount;
+          }
 
           const rowCells = rawCells[startRow + r] || [];
           const cellKids = (colMap.kids !== undefined) ? rowCells[colMap.kids] : rowCells[3];
-          const changedKids = isCellYellow(cellKids);
+          const cellHost = (colMap.host !== undefined) ? rowCells[colMap.host] : rowCells[4];
+          const changedKids = isCellYellow(cellKids) || isCellYellow(cellHost);
 
-          const cleanCity = (secCity || 'בתי ספר').trim();
-          const cleanSchool = (secSchool || 'בית ספר').trim();
-          const cleanGroup = (groupName || 'קבוצה').trim();
-          const schId = 'sch_' + cleanCity.replace(/[\s"'/\\()]/g, '_') + '_' + cleanSchool.replace(/[\s"'/\\()]/g, '_') + '_' + cleanGroup.replace(/[\s"'/\\()]/g, '_') + '_' + (startRow + r);
+          tempClassItems.push({
+            groupName,
+            kids: kCount,
+            mergedKids: mCount,
+            hasCustomMerge,
+            changedKids,
+            notes: sNotes,
+            rowOffset: startRow + r
+          });
+        }
+
+        const finalTotalKids = explicitTotalKids > 0 ? explicitTotalKids : sectionSumKids;
+        let finalGroupsCount = explicitGroupsCount;
+
+        if (!finalGroupsCount) {
+          const hasAnyMerge = tempClassItems.some(c => c.hasCustomMerge && c.mergedKids > 0);
+          if (!hasAnyMerge) {
+            // אם עמודת האיחוד לקב' ריקה מתייחסים לעמודת הרשומים לקבלת מספר הקבוצות
+            finalGroupsCount = nonZeroClassesCount || tempClassItems.length;
+          } else {
+            let calculatedGroups = 0;
+            let currentMergeTarget = 0;
+            let currentRunningSum = 0;
+            for (const item of tempClassItems) {
+              if (item.hasCustomMerge && item.mergedKids > 0) {
+                if (currentMergeTarget > 0 && item.mergedKids === currentMergeTarget && (currentRunningSum + item.kids <= currentMergeTarget)) {
+                  currentRunningSum += item.kids;
+                } else {
+                  calculatedGroups++;
+                  currentMergeTarget = item.mergedKids;
+                  currentRunningSum = item.kids;
+                }
+              } else {
+                calculatedGroups++;
+                currentMergeTarget = 0;
+                currentRunningSum = 0;
+              }
+            }
+            finalGroupsCount = calculatedGroups || nonZeroClassesCount || tempClassItems.length;
+          }
+        }
+
+        const cleanCity = (secCity || 'בתי ספר').trim();
+        const cleanSchool = (secSchool || 'בית ספר').trim();
+
+        tempClassItems.forEach(item => {
+          const cleanGroup = (item.groupName || 'קבוצה').trim();
+          const schId = 'sch_' + cleanCity.replace(/[\s"'/\\()]/g, '_') + '_' + cleanSchool.replace(/[\s"'/\\()]/g, '_') + '_' + cleanGroup.replace(/[\s"'/\\()]/g, '_') + '_' + item.rowOffset;
 
           schools.push({
             id: schId,
@@ -869,17 +956,20 @@
             school: cleanSchool,
             address: secAddr || '',
             groupName: cleanGroup,
-            kids: kCount,
-            mergedKids: mCount,
-            changedKids: changedKids,
-            hasChange: changedKids,
-            notes: sNotes,
-            isSterile: sNotes.includes('סטרילי') || sNotes.includes('שומשום') || sNotes.includes('אלרג'),
-            isHomeMeal: sNotes.includes('מהבית'),
+            kids: item.kids,
+            mergedKids: item.mergedKids,
+            hasCustomMerge: item.hasCustomMerge,
+            schoolTotalKids: finalTotalKids,
+            schoolGroupsCount: finalGroupsCount,
+            changedKids: item.changedKids,
+            hasChange: item.changedKids,
+            notes: item.notes,
+            isSterile: item.notes.includes('סטרילי') || item.notes.includes('שומשום') || item.notes.includes('אלרג'),
+            isHomeMeal: item.notes.includes('מהבית'),
             sourceFile: cleanFn,
             fileModified: fileModifiedIso
           });
-        }
+        });
       }
 
       return { records: [], nutritionOnly: [], schools, fileModified: fileModifiedIso };
@@ -2497,17 +2587,19 @@
 
     const content = Array.from(cityMap.entries()).map(([cityName, schObjMap]) => {
       let cityKids = 0;
-      let cityMerged = 0;
+      let cityGroups = 0;
       let cityClasses = 0;
       let citySterile = 0;
       let cityChanged = 0;
       let cityFileMod = null;
 
       schObjMap.forEach(classes => {
+        const sKids = (classes[0] && classes[0].schoolTotalKids) ? classes[0].schoolTotalKids : classes.reduce((sum, c) => sum + (c.kids || 0), 0);
+        const sGroups = (classes[0] && classes[0].schoolGroupsCount) ? classes[0].schoolGroupsCount : classes.length;
+        cityKids += sKids;
+        cityGroups += sGroups;
+        cityClasses += classes.length;
         classes.forEach(sc => {
-          cityKids += (sc.kids || 0);
-          cityMerged += (sc.mergedKids || sc.kids || 0);
-          cityClasses++;
           if (sc.isSterile) citySterile++;
           if (sc.hasChange) cityChanged++;
         });
@@ -2527,7 +2619,7 @@
               </div>
               <div style="display:flex; align-items:center; gap:6px; font-size:0.75rem; flex-wrap:wrap;">
                 <span style="background:#e0f2f1; color:#004d40; padding:2px 8px; border-radius:6px; font-weight:700;">
-                  <b>${cityKids}</b> רשומים (${cityMerged} באיחוד)
+                  <b>${cityKids}</b> תלמידים (${cityGroups} קבוצות, ${cityClasses} כיתות)
                 </span>
                 ${cityChanged > 0 ? `<span style="background:#fef08a; color:#854d0e; padding:2px 6px; border-radius:6px; font-weight:800; border:1px solid #facc15; font-size:0.7rem;">⚡ ${cityChanged} שינויים</span>` : ''}
                 ${citySterile > 0 ? `<span style="background:#ef5350; color:#fff; padding:2px 6px; border-radius:6px; font-weight:800; font-size:0.7rem;">🚨 ${citySterile}</span>` : ''}
@@ -2543,14 +2635,12 @@
           <!-- Schools List in City -->
           <div class="city-accordion-content" style="padding:8px; display:flex; flex-direction:column; gap:8px; background:#f8fafc;">
             ${Array.from(schObjMap.entries()).map(([schoolName, classes]) => {
-              let schKidsTotal = 0;
-              let schMergedTotal = 0;
+              const schKidsTotal = (classes[0] && classes[0].schoolTotalKids) ? classes[0].schoolTotalKids : classes.reduce((sum, c) => sum + (c.kids || 0), 0);
+              const schGroupsCount = (classes[0] && classes[0].schoolGroupsCount) ? classes[0].schoolGroupsCount : classes.length;
               let schSterile = 0;
               let schAddress = '';
 
               classes.forEach(c => {
-                schKidsTotal += (c.kids || 0);
-                schMergedTotal += (c.mergedKids || c.kids || 0);
                 if (c.isSterile) schSterile++;
                 if (!schAddress && c.address) schAddress = c.address;
               });
@@ -2566,7 +2656,7 @@
                     </div>
                     <div style="background:#004d40; color:#fff; border-radius:6px; padding:2px 8px; text-align:center; flex-shrink:0;">
                       <div style="font-size:0.95rem; font-weight:900; color:#80cbc4; line-height:1;">${schKidsTotal}</div>
-                      <div style="font-size:0.58rem; opacity:0.85;">(${schMergedTotal} באיחוד)</div>
+                      <div style="font-size:0.62rem; opacity:0.9; margin-top:2px;">${schGroupsCount} קבוצות</div>
                     </div>
                   </div>
 
@@ -2580,7 +2670,8 @@
                           ${sc.isSterile ? `<span style="color:#c62828; font-weight:700; font-size:0.68rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🚨 ${sc.notes}</span>` : (sc.notes ? `<span style="color:#64748b; font-size:0.68rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sc.notes}</span>` : '')}
                         </div>
                         <div style="font-weight:700; color:${sc.hasChange ? '#854d0e' : '#263238'}; font-size:0.8rem; margin-right:6px; white-space:nowrap;">
-                          <b>${sc.kids}</b> ${sc.hasChange ? '⚡' : ''} <span style="font-size:0.68rem; color:#00695c;">(${sc.mergedKids || sc.kids})</span>
+                          <b>${sc.kids}</b> רשומים ${sc.hasChange ? '⚡' : ''}
+                          ${sc.hasCustomMerge ? `<span style="font-size:0.7rem; color:#00695c; background:#e0f2f1; padding:1px 5px; border-radius:4px; font-weight:700; margin-right:3px;">(קבוצה: ${sc.mergedKids})</span>` : ''}
                         </div>
                       </div>
                     `).join('')}
@@ -2589,7 +2680,7 @@
                   <!-- School Footer Subtotal -->
                   <div style="margin-top:5px; padding-top:4px; border-top:1px dashed #b2dfdb; display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; font-weight:800; color:#004d40;">
                     <span>סה"כ ${schoolName}:</span>
-                    <span>${schKidsTotal} רשומים (${classes.length} כיתות) ${schSterile > 0 ? `<span style="color:#c62828;">(🚨 ${schSterile} אלרגיות)</span>` : ''}</span>
+                    <span><b>${schKidsTotal}</b> תלמידים (${schGroupsCount} קבוצות, ${classes.length} כיתות) ${schSterile > 0 ? `<span style="color:#c62828;">(🚨 ${schSterile} אלרגיות)</span>` : ''}</span>
                   </div>
 
                 </div>
@@ -2943,17 +3034,19 @@
 
     const content = Array.from(cityMap.entries()).map(([cityName, schObjMap]) => {
       let cityKids = 0;
-      let cityMerged = 0;
+      let cityGroups = 0;
       let cityClasses = 0;
       let citySterile = 0;
       let cityChanged = 0;
       let cityFileMod = null;
 
       schObjMap.forEach(classes => {
+        const sKids = (classes[0] && classes[0].schoolTotalKids) ? classes[0].schoolTotalKids : classes.reduce((sum, c) => sum + (c.kids || 0), 0);
+        const sGroups = (classes[0] && classes[0].schoolGroupsCount) ? classes[0].schoolGroupsCount : classes.length;
+        cityKids += sKids;
+        cityGroups += sGroups;
+        cityClasses += classes.length;
         classes.forEach(sc => {
-          cityKids += (sc.kids || 0);
-          cityMerged += (sc.mergedKids || sc.kids || 0);
-          cityClasses++;
           if (sc.isSterile) citySterile++;
           if (sc.hasChange) cityChanged++;
         });
@@ -2975,10 +3068,13 @@
               </div>
               <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; flex-wrap:wrap;">
                 <span style="background:#e0f2f1; color:#004d40; padding:3px 10px; border-radius:6px; font-weight:800;">
-                  סה"כ בעיר: <b style="font-size:0.95rem;">${cityKids.toLocaleString()}</b> רשומים (${cityMerged.toLocaleString()} באיחוד)
+                  סה"כ בעיר: <b style="font-size:0.95rem;">${cityKids.toLocaleString()}</b> תלמידים
                 </span>
                 <span style="background:#fff; color:#004d40; border:1px solid #b2dfdb; padding:3px 8px; border-radius:6px; font-weight:700;">
-                  ${cityClasses} כיתות
+                  ${cityGroups} קבוצות בצהרונים
+                </span>
+                <span style="background:#fff; color:#004d40; border:1px solid #b2dfdb; padding:3px 8px; border-radius:6px; font-weight:700;">
+                  ${cityClasses} כיתות משובצות
                 </span>
                 ${cityChanged > 0 ? `
                   <span style="background:#fef08a; color:#854d0e; padding:3px 8px; border-radius:6px; font-weight:800; border:1px solid #facc15;">
@@ -3002,14 +3098,12 @@
           <!-- SCHOOLS LIST WITHIN CITY -->
           <div class="city-accordion-content" style="padding:14px; display:flex; flex-direction:column; gap:14px; background:#f8fafc;">
             ${Array.from(schObjMap.entries()).map(([schoolName, classes]) => {
-              let schKidsTotal = 0;
-              let schMergedTotal = 0;
+              const schKidsTotal = (classes[0] && classes[0].schoolTotalKids) ? classes[0].schoolTotalKids : classes.reduce((sum, c) => sum + (c.kids || 0), 0);
+              const schGroupsCount = (classes[0] && classes[0].schoolGroupsCount) ? classes[0].schoolGroupsCount : classes.length;
               let schSterile = 0;
               let schAddress = '';
 
               classes.forEach(c => {
-                schKidsTotal += (c.kids || 0);
-                schMergedTotal += (c.mergedKids || c.kids || 0);
                 if (c.isSterile) schSterile++;
                 if (!schAddress && c.address) schAddress = c.address;
               });
@@ -3033,10 +3127,10 @@
                         סה"כ תלמידים: <b style="font-size:1.05rem; color:#80cbc4;">${schKidsTotal}</b>
                       </div>
                       <div style="background:#00695c; color:#fff; padding:4px 12px; border-radius:6px; font-size:0.82rem; font-weight:700;">
-                        באיחוד: <b style="font-size:1.05rem; color:#b2dfdb;">${schMergedTotal}</b>
+                        קבוצות בצהרון: <b style="font-size:1.05rem; color:#b2dfdb;">${schGroupsCount}</b>
                       </div>
                       <div style="background:#fff; color:#004d40; border:1px solid #80cbc4; padding:4px 10px; border-radius:6px; font-size:0.82rem; font-weight:700;">
-                        <b>${classes.length}</b> כיתות
+                        <b>${classes.length}</b> כיתות משובצות
                       </div>
                       ${schSterile > 0 ? `
                         <div style="background:#ffebee; color:#c62828; border:1px solid #ffcdd2; padding:4px 10px; border-radius:6px; font-size:0.8rem; font-weight:800;">
@@ -3052,8 +3146,8 @@
                       <thead>
                         <tr style="background:#f4fbfb; color:#37474f; height:34px; border-bottom:1px solid #e0f2f1; font-size:0.8rem;">
                           <th style="padding:6px 14px; font-weight:700; width:180px;">קבוצה / כיתה</th>
-                          <th style="padding:6px 14px; font-weight:700; text-align:center; width:110px;">רשומים בצהרון</th>
-                          <th style="padding:6px 14px; font-weight:700; text-align:center; width:120px; background:rgba(0,105,92,0.06);">איחוד לקבוצה</th>
+                          <th style="padding:6px 14px; font-weight:700; text-align:center; width:120px;">רשומים בצהרון</th>
+                          <th style="padding:6px 14px; font-weight:700; text-align:center; width:140px; background:rgba(0,105,92,0.06);">איחוד לקבוצה</th>
                           <th style="padding:6px 14px; font-weight:700;">אלרגיות והערות</th>
                         </tr>
                       </thead>
@@ -3073,7 +3167,7 @@
                                 ${sc.kids} ${sc.hasChange ? '<span style="font-size:0.8rem;">⚡</span>' : ''}
                               </td>
                               <td style="padding:8px 14px; text-align:center; font-weight:800; font-size:0.95rem; color:#00695c; background:rgba(0,105,92,0.04);">
-                                ${sc.mergedKids || sc.kids}
+                                ${sc.hasCustomMerge ? `<span style="font-weight:800; color:#00695c;">${sc.mergedKids}</span>` : '<span style="color:#94a3b8; font-size:0.85rem;">-</span>'}
                               </td>
                               <td style="padding:8px 14px;">
                                 ${sc.isSterile ? `
@@ -3098,11 +3192,11 @@
                           <td style="padding:8px 14px; text-align:center; color:#004d40; font-size:1.05rem;">
                             ${schKidsTotal}
                           </td>
-                          <td style="padding:8px 14px; text-align:center; color:#00695c; font-size:1.05rem; background:rgba(0,105,92,0.08);">
-                            ${schMergedTotal}
+                          <td style="padding:8px 14px; text-align:center;">
+                            <span style="background:#e0f2f1; color:#004d40; padding:3px 10px; border-radius:6px; font-size:0.85rem;">${schGroupsCount} קבוצות</span>
                           </td>
-                          <td style="padding:8px 14px; font-size:0.75rem; color:#546e7a;">
-                            ${schSterile > 0 ? `⚠️ כולל ${schSterile} כיתות אלרגיה` : '✓ ללא התראות אלרגיה'}
+                          <td style="padding:8px 14px; font-size:0.78rem; color:#546e7a;">
+                            ${classes.length} כיתות משובצות ${schSterile > 0 ? `• 🚨 ${schSterile} אלרגיות` : '• ללא התראות אלרגיה'}
                           </td>
                         </tr>
                       </tfoot>
@@ -3364,11 +3458,22 @@
     let schTotalKids = 0;
     let schSterileCount = 0;
     const schoolsSet = new Set();
+    const schGroupsBySchool = new Map();
+
     filteredSchools.forEach(sc => {
       schTotalKids += (sc.kids || 0);
       if (sc.isSterile) schSterileCount++;
-      if (sc.school) schoolsSet.add(sc.school);
+      if (sc.school) {
+        schoolsSet.add(sc.school);
+        if (!schGroupsBySchool.has(sc.school)) {
+          schGroupsBySchool.set(sc.school, sc.schoolGroupsCount || 0);
+        }
+      }
     });
+
+    let schTotalGroups = 0;
+    schGroupsBySchool.forEach(g => { schTotalGroups += g; });
+    if (schTotalGroups === 0) schTotalGroups = filteredSchools.length;
 
     // Compute Nutrition stats
     let nutTotalMeals = 0;
@@ -3712,9 +3817,9 @@
             </div>
 
             <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
-              <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">קבוצות / כיתות</div>
-              <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#00838f; font-weight:800; line-height:1.15;">${filteredSchools.length}</div>
-              <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">כיתות א'-ג'</div>
+              <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">קבוצות בצהרונים</div>
+              <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#00838f; font-weight:800; line-height:1.15;">${schTotalGroups}</div>
+              <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${filteredSchools.length} כיתות משובצות</div>
             </div>
 
             <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
