@@ -303,19 +303,52 @@
     }
   };
 
-  // Dedicated one-click refresh from cloud with active visual feedback for management and admin
+  // Dedicated one-click refresh: smart local scan if folder is available on PC, else cloud fetch
   window.refreshMatzavaFromCloud = async function (btnEl) {
     let origHtml = '';
     if (btnEl) {
       origHtml = btnEl.innerHTML;
       btnEl.disabled = true;
-      btnEl.innerHTML = '⏳ מרענן מהענן...';
+      btnEl.innerHTML = '⏳ מרענן...';
       btnEl.style.opacity = '0.75';
     }
-    if (window.showToast) window.showToast('⏳ מרענן נתוני מצבה מהענן...', 3000);
 
     try {
-      await window.loadMatzavaFromFirebase(true);
+      let scannedLocal = false;
+      const y = getYearKey();
+      const handleKey = 'matzavaDirHandle_' + y;
+
+      // Smart local scan: If on PC with File System Access and saved dirHandle, automatically scan folder!
+      if (canEditMatzava() && window.showDirectoryPicker && typeof window._spIdbGet === 'function') {
+        let dirHandle = null;
+        try {
+          dirHandle = await window._spIdbGet(handleKey);
+        } catch (e) {}
+
+        if (dirHandle) {
+          try {
+            let perm = await dirHandle.queryPermission({ mode: 'read' });
+            if (perm !== 'granted') {
+              perm = await dirHandle.requestPermission({ mode: 'read' });
+            }
+            if (perm === 'granted') {
+              if (btnEl) btnEl.innerHTML = '⚡ סורק קבצים במחשב...';
+              if (window.showToast) window.showToast('⚡ סורק ומעדכן קבצי מצבה מהמחשב...', 4000);
+              const scanRes = await window.executeMatzavaFolderScan(dirHandle, y, false);
+              if (scanRes && scanRes.count > 0) {
+                scannedLocal = true;
+              }
+            }
+          } catch (scanErr) {
+            console.warn('[Matzava] Local folder scan on refresh error:', scanErr);
+          }
+        }
+      }
+
+      if (!scannedLocal) {
+        if (window.showToast) window.showToast('⏳ מרענן נתוני מצבה מהענן...', 3000);
+        await window.loadMatzavaFromFirebase(true);
+      }
 
       const modal = document.getElementById('matzava-modal');
       const modalBody = document.getElementById('matzava-modal-body');
@@ -327,17 +360,134 @@
       if (window.showToast) {
         const total = (window.MATZAVA_STATE.records || []).length;
         const sch = (window.MATZAVA_STATE.schools || []).length;
-        window.showToast(`✅ נתוני מצבה רועננו בהצלחה (${total} צהרונים, ${sch} קבוצות בתי ספר)`);
+        if (scannedLocal) {
+          window.showToast(`✅ קבצי המחשב נסרקו ורועננו בהצלחה (${total} צהרונים, ${sch} בתי ספר)`);
+        } else {
+          window.showToast(`✅ נתוני מצבה רועננו בהצלחה (${total} צהרונים, ${sch} בתי ספר)`);
+        }
       }
     } catch (err) {
       console.error('[Matzava] Refresh error:', err);
-      if (window.showToast) window.showToast('❌ שגיאה ברענון מהענן: ' + err.message);
+      if (window.showToast) window.showToast('❌ שגיאה ברענון: ' + err.message);
     } finally {
       if (btnEl) {
         btnEl.disabled = false;
         btnEl.innerHTML = origHtml;
         btnEl.style.opacity = '1';
       }
+    }
+  };
+
+  // Dismiss single change highlight (mark as handled)
+  window.dismissMatzavaChange = async function (recId, cityName, e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (!canEditMatzava()) {
+      if (window.showToast) window.showToast('אין לך הרשאת עריכה להסרת סימונים', 3000);
+      return;
+    }
+
+    const s = window.MATZAVA_STATE;
+    let found = false;
+
+    (s.records || []).forEach(r => {
+      if ((r.id === recId || r.name === recId) && (!cityName || isCityMatch(r.city, cityName))) {
+        r.hasChange = false;
+        r.changed10 = false;
+        r.changed11 = false;
+        if (Array.isArray(r.subGardens)) {
+          r.subGardens.forEach(sub => {
+            sub.hasChange = false;
+            sub.changed10 = false;
+            sub.changed11 = false;
+          });
+        }
+        found = true;
+      }
+    });
+
+    (s.schools || []).forEach(sc => {
+      if ((sc.id === recId || sc.groupName === recId || sc.school === recId) && (!cityName || isCityMatch(sc.city, cityName))) {
+        sc.hasChange = false;
+        found = true;
+      }
+    });
+
+    (s.nutritionOnly || []).forEach(n => {
+      if ((n.id === recId || n.name === recId) && (!cityName || isCityMatch(n.city, cityName))) {
+        n.hasChange = false;
+        n.changedKids = false;
+        found = true;
+      }
+    });
+
+    if (found) {
+      await window.saveMatzavaToFirebase();
+      window.renderMatzavaTab();
+      if (window.showToast) window.showToast('✅ סימון השינוי הוסר בהצלחה (טופל)');
+    }
+  };
+
+  // Clear all change highlights across current city or all cities
+  window.clearMatzavaChanges = async function (cityName) {
+    if (!canEditMatzava()) {
+      if (window.showToast) window.showToast('אין לך הרשאת עריכה להסרת סימונים', 3000);
+      return;
+    }
+
+    const cityScope = cityName || (window.MATZAVA_STATE.selectedCity !== 'all' ? window.MATZAVA_STATE.selectedCity : null);
+    const scopeMsg = cityScope ? `בעיר ${cityScope}` : 'בכל הערים';
+
+    if (!confirm(`האם להסיר את כל סימוני השינויים הצהובים ${scopeMsg} ולסמן שהכל טופל?`)) {
+      return;
+    }
+
+    const s = window.MATZAVA_STATE;
+    let count = 0;
+
+    (s.records || []).forEach(r => {
+      if (!cityScope || isCityMatch(r.city, cityScope)) {
+        if (r.hasChange || r.changed10 || r.changed11) {
+          r.hasChange = false;
+          r.changed10 = false;
+          r.changed11 = false;
+          count++;
+        }
+        if (Array.isArray(r.subGardens)) {
+          r.subGardens.forEach(sub => {
+            sub.hasChange = false;
+            sub.changed10 = false;
+            sub.changed11 = false;
+          });
+        }
+      }
+    });
+
+    (s.schools || []).forEach(sc => {
+      if (!cityScope || isCityMatch(sc.city, cityScope)) {
+        if (sc.hasChange) {
+          sc.hasChange = false;
+          count++;
+        }
+      }
+    });
+
+    (s.nutritionOnly || []).forEach(n => {
+      if (!cityScope || isCityMatch(n.city, cityScope)) {
+        if (n.hasChange) {
+          n.hasChange = false;
+          n.changedKids = false;
+          count++;
+        }
+      }
+    });
+
+    await window.saveMatzavaToFirebase();
+    window.renderMatzavaTab();
+    if (window.showToast) {
+      window.showToast(`✅ הוסרו ${count} סימוני שינויים ${scopeMsg}`);
     }
   };
 
@@ -2078,7 +2228,7 @@
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
           <div style="flex:1; min-width:0;">
             <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-bottom:3px;">
-              ${r.hasChange ? `<span style="background:#fef08a; color:#854d0e; padding:1px 6px; border-radius:10px; font-size:0.68rem; font-weight:800; border:1px solid #facc15;">⚡ שונה באקסל</span>` : ''}
+              ${r.hasChange ? `<span style="background:#fef08a; color:#854d0e; padding:1px 6px; border-radius:10px; font-size:0.68rem; font-weight:800; border:1px solid #facc15; cursor:pointer;" onclick="window.dismissMatzavaChange('${r.id || r.name}', '${r.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">⚡ שונה באקסל ✕</span>` : ''}
               ${r.age ? `<span style="background:#e3f2fd; color:#1565c0; padding:1px 6px; border-radius:4px; font-size:0.7rem; font-weight:700;">גיל ${r.age}</span>` : ''}
               ${r.isMerged ? `<span style="background:#f3e5f5; color:#6a1b9a; padding:1px 6px; border-radius:10px; font-size:0.68rem; font-weight:800;">⚖️ איחוד (${(r.subGardens || []).length})</span>` : ''}
               ${r.gardenId ? `<span title="קיים במאגר" style="font-size:0.72rem; color:#4caf50;">✓</span>` : ''}
@@ -2347,7 +2497,7 @@
                       <div style="display:flex; justify-content:space-between; align-items:center; padding:3px 6px; border-radius:4px; font-size:0.76rem; background:${sc.hasChange ? '#fef9c3' : (sc.isSterile ? '#fff5f5' : '#f8fafc')}; ${sc.hasChange ? 'border:1px solid #facc15;' : ''}">
                         <div style="display:flex; align-items:center; gap:5px; min-width:0; flex:1;">
                           <span style="font-weight:700; color:#004d40; background:#e0f2f1; padding:1px 5px; border-radius:4px; font-size:0.72rem;">${sc.groupName}</span>
-                          ${sc.hasChange ? '<span style="background:#fef08a; color:#854d0e; font-size:0.65rem; font-weight:800; padding:0 4px; border-radius:3px; border:1px solid #facc15;">⚡ שונה</span>' : ''}
+                          ${sc.hasChange ? `<span style="background:#fef08a; color:#854d0e; font-size:0.65rem; font-weight:800; padding:0 4px; border-radius:3px; border:1px solid #facc15; cursor:pointer;" onclick="window.dismissMatzavaChange('${sc.id || sc.groupName}', '${sc.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">⚡ שונה ✕</span>` : ''}
                           ${sc.isSterile ? `<span style="color:#c62828; font-weight:700; font-size:0.68rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🚨 ${sc.notes}</span>` : (sc.notes ? `<span style="color:#64748b; font-size:0.68rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sc.notes}</span>` : '')}
                         </div>
                         <div style="font-weight:700; color:${sc.hasChange ? '#854d0e' : '#263238'}; font-size:0.8rem; margin-right:6px; white-space:nowrap;">
@@ -2447,7 +2597,7 @@
                   <div>
                     <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
                       <span style="background:#fff3e0; color:#e65100; border:1px solid #ffcc80; padding:1px 6px; border-radius:4px; font-size:0.7rem; font-weight:700;">${n.groupType}</span>
-                      ${n.hasChange ? '<span style="background:#fef08a; color:#854d0e; font-size:0.68rem; font-weight:800; padding:1px 6px; border-radius:4px; border:1px solid #facc15;">⚡ שונה באקסל</span>' : ''}
+                      ${n.hasChange ? `<span style="background:#fef08a; color:#854d0e; font-size:0.68rem; font-weight:800; padding:1px 6px; border-radius:4px; border:1px solid #facc15; cursor:pointer;" onclick="window.dismissMatzavaChange('${n.id || n.name}', '${n.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">⚡ שונה באקסל ✕</span>` : ''}
                     </div>
                     <div style="font-size:0.95rem; font-weight:800; color:#e65100;">${n.name}</div>
                   </div>
@@ -2488,8 +2638,8 @@
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
             <span style="font-size:0.92rem; font-weight:800; color:#1a237e;">${safeRowName}</span>
             ${r.hasChange ? `
-              <span style="background:#fef08a; color:#854d0e; font-size:0.7rem; padding:1px 6px; border-radius:10px; font-weight:800; display:inline-flex; align-items:center; gap:2px; border:1px solid #facc15;" title="סומן שינוי בצהוב בקובץ האקסל">
-                ⚡ עודכן
+              <span style="background:#fef08a; color:#854d0e; font-size:0.7rem; padding:1px 6px; border-radius:10px; font-weight:800; display:inline-flex; align-items:center; gap:2px; border:1px solid #facc15; cursor:pointer;" onclick="window.dismissMatzavaChange('${r.id || r.name}', '${r.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">
+                ⚡ עודכן <span style="font-size:0.65rem; opacity:0.7;">✕</span>
               </span>
             ` : ''}
             ${r.isMerged ? `
@@ -2834,7 +2984,7 @@
                                 <span style="background:#e0f2f1; color:#004d40; padding:3px 8px; border-radius:5px; border:1px solid #b2dfdb; font-size:0.82rem;">
                                   ${sc.groupName}
                                 </span>
-                                ${sc.hasChange ? '<span style="background:#fef08a; color:#854d0e; font-size:0.7rem; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid #facc15; margin-right:4px;">⚡ שונה</span>' : ''}
+                                ${sc.hasChange ? `<span style="background:#fef08a; color:#854d0e; font-size:0.7rem; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid #facc15; margin-right:4px; cursor:pointer;" onclick="window.dismissMatzavaChange('${sc.id || sc.groupName}', '${sc.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">⚡ שונה ✕</span>` : ''}
                               </td>
                               <td style="padding:8px 14px; text-align:center; font-weight:800; font-size:0.95rem; color:${sc.hasChange ? '#854d0e' : '#263238'}; ${sc.hasChange ? 'background:#fef08a; border-left:2px solid #facc15; border-right:2px solid #facc15;' : ''}" title="${sc.hasChange ? 'כמות התלמידים שונתה באקסל (מסומנת בצהוב)' : ''}">
                                 ${sc.kids} ${sc.hasChange ? '<span style="font-size:0.8rem;">⚡</span>' : ''}
@@ -2973,7 +3123,7 @@
                       <tr style="${n.hasChange ? 'border-right:4px solid #eab308; background:#fffdf5;' : `background:${bg};`} border-bottom:1px solid #ffe0b2; transition:background 0.15s;" onmouseover="this.style.background='#fff3e0'" onmouseout="this.style.background='${n.hasChange ? '#fffdf5' : bg}'">
                         <td style="padding:10px 12px; font-weight:800; color:#e65100;">
                           ${n.name}
-                          ${n.hasChange ? '<span style="background:#fef08a; color:#854d0e; font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px; border:1px solid #facc15; margin-right:4px;">⚡ שונה</span>' : ''}
+                          ${n.hasChange ? `<span style="background:#fef08a; color:#854d0e; font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px; border:1px solid #facc15; margin-right:4px; cursor:pointer;" onclick="window.dismissMatzavaChange('${n.id || n.name}', '${n.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">⚡ שונה ✕</span>` : ''}
                         </td>
                         <td style="padding:10px 12px; color:#555;">
                           <span style="background:#fff3e0; color:#e65100; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700; border:1px solid #ffcc80;">${n.groupType}</span>
@@ -3243,14 +3393,14 @@
 
                   <button class="btn" onclick="window.refreshMatzavaFromCloud(this)" 
                     style="background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; border-radius:8px; font-weight:700; padding:8px 14px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" 
-                    title="רענן תצוגה מהענן (סנכרון מיידי)">
-                    🔄 רענן מהענן
+                    title="רענון מהיר (מסנכרן אוטומטית מקבצי המחשב או מהענן)">
+                    🔄 רענן
                   </button>
                 ` : `
                   <!-- MOBILE ADMIN: SINGLE UNIFIED REFRESH BUTTON -->
                   <button class="btn" onclick="window.refreshMatzavaFromCloud(this)" 
                     style="background:linear-gradient(135deg, #1565c0, #0d47a1); color:#fff; border:none; border-radius:8px; font-weight:700; padding:6px 12px; font-size:0.8rem; display:inline-flex; align-items:center; gap:5px; cursor:pointer; box-shadow:0 2px 6px rgba(21,101,192,0.25);" 
-                    title="רענן נתוני מצבה מהענן">
+                    title="רענן נתוני מצבה (מסנכרן אוטומטית מקבצי המחשב או מהענן)">
                     🔄 רענן
                   </button>
                 `}
@@ -3278,6 +3428,14 @@
                       📂 ייבוא קובץ אקסל
                       <input type="file" accept=".xlsx" style="display:none;" onchange="window.toggleMatzavaAdminMenu(); window.importSingleMatzavaFile(this);">
                     </label>
+
+                    <div style="height:1px; background:#e2e8f0; margin:4px 0;"></div>
+
+                    <button onclick="window.toggleMatzavaAdminMenu(); window.clearMatzavaChanges();" 
+                      style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#854d0e; display:flex; align-items:center; gap:8px; cursor:pointer;" 
+                      onmouseover="this.style.background='#fef9c3'" onmouseout="this.style.background='transparent'">
+                      🧹 הסרת כל סימוני השינויים (טופל)
+                    </button>
 
                     <div style="height:1px; background:#e2e8f0; margin:4px 0;"></div>
 
@@ -3353,6 +3511,13 @@
                   style="padding:4px 10px; border-radius:14px; border:1px solid #facc15; font-size:0.75rem; font-weight:800; cursor:pointer; flex-shrink:0; ${s.filterType==='changed' ? 'background:#854d0e; color:#fff;' : 'background:#fef08a; color:#854d0e;'}">
                   ⚡ שינויים (${activeSubTabChangedCount})
                 </button>
+                ${(canEdit && activeSubTabChangedCount > 0) ? `
+                  <button onclick="window.clearMatzavaChanges()" 
+                    style="padding:4px 8px; border-radius:14px; border:1px solid #cbd5e1; font-size:0.72rem; font-weight:700; cursor:pointer; flex-shrink:0; background:#fff; color:#854d0e; display:inline-flex; align-items:center; gap:3px;" 
+                    title="הסרת כל צבעי השינויים (סימון כטופל)">
+                    🧹 הסר צבע
+                  </button>
+                ` : ''}
               ` : ''}
               <button onclick="window.MATZAVA_STATE.filterType='sterile'; window.renderMatzavaTab();" 
                 style="padding:4px 10px; border-radius:14px; border:none; font-size:0.75rem; font-weight:700; cursor:pointer; flex-shrink:0; background:${s.filterType==='sterile' ? '#c62828; color:#fff;' : '#ffebee; color:#c62828;'}">
