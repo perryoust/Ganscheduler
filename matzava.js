@@ -81,7 +81,7 @@
 
   function isMatzavaAdmin() {
     const role = getSafeRole();
-    const isAdminRole = (role === 'admin');
+    const isAdminRole = (role === 'admin' || role === 'manager' || role === 'vp' || window.permMatzava === true || window.permAct === true);
     const isPerry = (window._fbUser && window._fbUser.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03') || 
                     (window._fbUser && window._fbUser.email && window._fbUser.email.startsWith('perry@')) ||
                     (window.username === 'perry');
@@ -343,12 +343,28 @@
       const y = getYearKey();
       const handleKey = 'matzavaDirHandle_' + y;
 
-      // Smart local scan: If on PC with File System Access and saved dirHandle, automatically scan folder!
-      if (canEditMatzava() && window.showDirectoryPicker && typeof window._spIdbGet === 'function') {
+      // Smart local scan: If on PC with File System Access, automatically scan or prompt for folder!
+      if (canEditMatzava() && window.showDirectoryPicker) {
         let dirHandle = null;
-        try {
-          dirHandle = await window._spIdbGet(handleKey);
-        } catch (e) {}
+        if (typeof window._spIdbGet === 'function') {
+          try { dirHandle = await window._spIdbGet(handleKey); } catch (e) {}
+        }
+
+        // If no saved handle yet, prompt to pick the folder!
+        if (!dirHandle) {
+          try {
+            if (window.showToast) window.showToast('📁 אנא בחר את תיקיית מצבה במחשב (' + y + ')...', 6000);
+            dirHandle = await window.showDirectoryPicker({
+              id: 'matzava_picker_' + y,
+              startIn: 'documents'
+            });
+            if (typeof window._spIdbSet === 'function') {
+              await window._spIdbSet(handleKey, dirHandle);
+            }
+          } catch(pickErr) {
+            console.warn('[Matzava] Directory picker cancelled or error:', pickErr);
+          }
+        }
 
         if (dirHandle) {
           try {
@@ -357,8 +373,8 @@
               perm = await dirHandle.requestPermission({ mode: 'read' });
             }
             if (perm === 'granted') {
-              if (btnEl) btnEl.innerHTML = '⚡ סורק קבצים במחשב...';
-              if (window.showToast) window.showToast('⚡ סורק ומעדכן קבצי מצבה מהמחשב...', 4000);
+              if (btnEl) btnEl.innerHTML = '⚡ סורק קבצים ומעלה לענן...';
+              if (window.showToast) window.showToast('⚡ סורק קבצי מצבה מהמחשב ומעלה לענן...', 5000);
               const scanRes = await window.executeMatzavaFolderScan(dirHandle, y, false);
               if (scanRes && scanRes.count > 0) {
                 scannedLocal = true;
