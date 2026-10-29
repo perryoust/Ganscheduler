@@ -2512,6 +2512,7 @@
         if (r.hasChange) cityChanged++;
       });
       cityFileMod = getCityFileModified(cityName, cityGardens);
+      const cityAvg = cityGardens.length > 0 ? (Number.isInteger(sumColTotal / cityGardens.length) ? (sumColTotal / cityGardens.length).toString() : (sumColTotal / cityGardens.length).toFixed(1)) : '0';
 
       return `
         <details class="city-accordion matzava-city-accordion" ${shouldOpen ? 'open' : ''} style="margin-bottom:10px; border:1px solid #cbd5e1; border-radius:10px; overflow:hidden; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
@@ -2525,6 +2526,9 @@
               <div style="display:flex; align-items:center; gap:6px; font-size:0.75rem; flex-wrap:wrap;">
                 <span style="background:#e8eaf6; color:#1a237e; padding:2px 8px; border-radius:6px; font-weight:800;">
                   <b>${sumColTotal.toLocaleString()}</b> רשומים
+                </span>
+                <span style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; padding:2px 8px; border-radius:6px; font-weight:800;" title="ממוצע ילדים לצהרון בעיר">
+                  ממוצע: <b>${cityAvg}</b>
                 </span>
                 ${cityChanged > 0 ? `
                   <span style="background:#fef08a; color:#854d0e; padding:2px 6px; border-radius:6px; font-weight:800; border:1px solid #facc15; font-size:0.7rem;">
@@ -2605,6 +2609,7 @@
         });
       });
       cityFileMod = getCityFileModified(cityName, Array.from(schObjMap.values()).flat());
+      const citySchAvgPerGroup = cityGroups > 0 ? (Number.isInteger(cityKids / cityGroups) ? (cityKids / cityGroups).toString() : (cityKids / cityGroups).toFixed(1)) : '0';
 
       return `
         <details class="city-accordion matzava-city-accordion" ${shouldOpen ? 'open' : ''} style="margin-bottom:10px; border:1px solid #cbd5e1; border-radius:10px; overflow:hidden; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
@@ -2620,6 +2625,9 @@
               <div style="display:flex; align-items:center; gap:6px; font-size:0.75rem; flex-wrap:wrap;">
                 <span style="background:#e0f2f1; color:#004d40; padding:2px 8px; border-radius:6px; font-weight:700;">
                   <b>${cityKids}</b> תלמידים (${cityGroups} קבוצות, ${cityClasses} כיתות)
+                </span>
+                <span style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; padding:2px 8px; border-radius:6px; font-weight:800;" title="ממוצע תלמידים לקבוצה בעיר">
+                  ממוצע לקבוצה: <b>${citySchAvgPerGroup}</b>
                 </span>
                 ${cityChanged > 0 ? `<span style="background:#fef08a; color:#854d0e; padding:2px 6px; border-radius:6px; font-weight:800; border:1px solid #facc15; font-size:0.7rem;">⚡ ${cityChanged} שינויים</span>` : ''}
                 ${citySterile > 0 ? `<span style="background:#ef5350; color:#fff; padding:2px 6px; border-radius:6px; font-weight:800; font-size:0.7rem;">🚨 ${citySterile}</span>` : ''}
@@ -2637,6 +2645,7 @@
             ${Array.from(schObjMap.entries()).map(([schoolName, classes]) => {
               const schKidsTotal = (classes[0] && classes[0].schoolTotalKids) ? classes[0].schoolTotalKids : classes.reduce((sum, c) => sum + (c.kids || 0), 0);
               const schGroupsCount = (classes[0] && classes[0].schoolGroupsCount) ? classes[0].schoolGroupsCount : classes.length;
+              const schAvgPerGroup = schGroupsCount > 0 ? (Number.isInteger(schKidsTotal / schGroupsCount) ? (schKidsTotal / schGroupsCount).toString() : (schKidsTotal / schGroupsCount).toFixed(1)) : '0';
               let schSterile = 0;
               let schAddress = '';
 
@@ -2657,6 +2666,7 @@
                     <div style="background:#004d40; color:#fff; border-radius:6px; padding:2px 8px; text-align:center; flex-shrink:0;">
                       <div style="font-size:0.95rem; font-weight:900; color:#80cbc4; line-height:1;">${schKidsTotal}</div>
                       <div style="font-size:0.62rem; opacity:0.9; margin-top:2px;">${schGroupsCount} קבוצות</div>
+                      <div style="font-size:0.6rem; color:#a7f3d0; margin-top:1px; font-weight:700;">ממוצע: ${schAvgPerGroup}</div>
                     </div>
                   </div>
 
@@ -2680,7 +2690,7 @@
                   <!-- School Footer Subtotal -->
                   <div style="margin-top:5px; padding-top:4px; border-top:1px dashed #b2dfdb; display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; font-weight:800; color:#004d40;">
                     <span>סה"כ ${schoolName}:</span>
-                    <span><b>${schKidsTotal}</b> תלמידים (${schGroupsCount} קבוצות, ${classes.length} כיתות) ${schSterile > 0 ? `<span style="color:#c62828;">(🚨 ${schSterile} אלרגיות)</span>` : ''}</span>
+                    <span><b>${schKidsTotal}</b> תלמידים (${schGroupsCount} קבוצות, ממוצע: <b>${schAvgPerGroup}</b>) ${schSterile > 0 ? `<span style="color:#c62828;">(🚨 ${schSterile} אלרגיות)</span>` : ''}</span>
                   </div>
 
                 </div>
@@ -2939,6 +2949,7 @@
         if (r.hasChange) cityChanged++;
       });
       cityFileMod = getCityFileModified(cityName, cityGardens);
+      const cityAvg = cityGardens.length > 0 ? (Number.isInteger(sumColTotal / cityGardens.length) ? (sumColTotal / cityGardens.length).toString() : (sumColTotal / cityGardens.length).toFixed(1)) : '0';
 
       return `
         <details class="city-accordion matzava-city-accordion" ${shouldOpen ? 'open' : ''} style="margin-bottom:14px; border:1px solid #cbd5e1; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
@@ -2951,6 +2962,7 @@
               </div>
               <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; flex-wrap:wrap;">
                 <span style="background:#e8eaf6; color:#1a237e; padding:3px 10px; border-radius:6px; font-weight:800;">סה"כ בעיר: <b>${sumColTotal.toLocaleString()}</b> ילדים</span>
+                <span style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; padding:3px 10px; border-radius:6px; font-weight:800;" title="ממוצע תלמידים לצהרון בעיר (${sumColTotal} ילדים חלקי ${cityGardens.length} צהרונים)">ממוצע לצהרון: <b>${cityAvg}</b></span>
                 ${cityChanged > 0 ? `<span style="background:#fef08a; color:#854d0e; padding:3px 8px; border-radius:6px; font-weight:800; border:1px solid #facc15;">⚡ ${cityChanged} שינויים</span>` : ''}
                 ${cityMerged > 0 ? `<span style="background:#f3e5f5; color:#6a1b9a; padding:3px 8px; border-radius:6px; font-weight:700;">⚖️ ${cityMerged} איחודים</span>` : ''}
                 ${citySterile > 0 ? `<span style="background:#fee2e2; color:#b91c1c; padding:3px 8px; border-radius:6px; font-weight:800;">🚨 ${citySterile} אלרגיות</span>` : ''}
@@ -2988,7 +3000,7 @@
                     <td style="padding:8px 12px; text-align:center; font-size:1.1rem; font-weight:900; color:#1a237e; background:rgba(40,53,147,0.12);">
                       ${sumColTotal.toLocaleString()}
                     </td>
-                    <td style="padding:8px 12px;" colspan="2"></td>
+                    <td style="padding:8px 12px; font-weight:800; color:#1a237e;" colspan="2">ממוצע לצהרון: <b>${cityAvg}</b> ילדים</td>
                   </tr>
                 </tfoot>
               </table>
@@ -3052,6 +3064,7 @@
         });
       });
       cityFileMod = getCityFileModified(cityName, Array.from(schObjMap.values()).flat());
+      const citySchAvgPerGroup = cityGroups > 0 ? (Number.isInteger(cityKids / cityGroups) ? (cityKids / cityGroups).toString() : (cityKids / cityGroups).toFixed(1)) : '0';
 
       return `
         <details class="city-accordion matzava-city-accordion" ${shouldOpen ? 'open' : ''} style="margin-bottom:16px; border:1px solid #cbd5e1; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
@@ -3069,6 +3082,9 @@
               <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; flex-wrap:wrap;">
                 <span style="background:#e0f2f1; color:#004d40; padding:3px 10px; border-radius:6px; font-weight:800;">
                   סה"כ בעיר: <b style="font-size:0.95rem;">${cityKids.toLocaleString()}</b> תלמידים
+                </span>
+                <span style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; padding:3px 10px; border-radius:6px; font-weight:800;" title="ממוצע תלמידים לקבוצה בעיר (${cityKids} תלמידים חלקי ${cityGroups} קבוצות)">
+                  ממוצע לקבוצה: <b>${citySchAvgPerGroup}</b>
                 </span>
                 <span style="background:#fff; color:#004d40; border:1px solid #b2dfdb; padding:3px 8px; border-radius:6px; font-weight:700;">
                   ${cityGroups} קבוצות בצהרונים
@@ -3100,6 +3116,7 @@
             ${Array.from(schObjMap.entries()).map(([schoolName, classes]) => {
               const schKidsTotal = (classes[0] && classes[0].schoolTotalKids) ? classes[0].schoolTotalKids : classes.reduce((sum, c) => sum + (c.kids || 0), 0);
               const schGroupsCount = (classes[0] && classes[0].schoolGroupsCount) ? classes[0].schoolGroupsCount : classes.length;
+              const schAvgPerGroup = schGroupsCount > 0 ? (Number.isInteger(schKidsTotal / schGroupsCount) ? (schKidsTotal / schGroupsCount).toString() : (schKidsTotal / schGroupsCount).toFixed(1)) : '0';
               let schSterile = 0;
               let schAddress = '';
 
@@ -3128,6 +3145,9 @@
                       </div>
                       <div style="background:#00695c; color:#fff; padding:4px 12px; border-radius:6px; font-size:0.82rem; font-weight:700;">
                         קבוצות בצהרון: <b style="font-size:1.05rem; color:#b2dfdb;">${schGroupsCount}</b>
+                      </div>
+                      <div style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; padding:4px 12px; border-radius:6px; font-size:0.82rem; font-weight:700;" title="ממוצע תלמידים לקבוצה בבית הספר (${schKidsTotal} / ${schGroupsCount})">
+                        ממוצע לקבוצה: <b style="font-size:1.05rem; color:#15803d;">${schAvgPerGroup}</b>
                       </div>
                       <div style="background:#fff; color:#004d40; border:1px solid #80cbc4; padding:4px 10px; border-radius:6px; font-size:0.82rem; font-weight:700;">
                         <b>${classes.length}</b> כיתות משובצות
@@ -3193,7 +3213,7 @@
                             ${schKidsTotal}
                           </td>
                           <td style="padding:8px 14px; text-align:center;">
-                            <span style="background:#e0f2f1; color:#004d40; padding:3px 10px; border-radius:6px; font-size:0.85rem;">${schGroupsCount} קבוצות</span>
+                            <span style="background:#e0f2f1; color:#004d40; padding:3px 10px; border-radius:6px; font-size:0.85rem;">${schGroupsCount} קבוצות (ממוצע: <b>${schAvgPerGroup}</b>)</span>
                           </td>
                           <td style="padding:8px 14px; font-size:0.78rem; color:#546e7a;">
                             ${classes.length} כיתות משובצות ${schSterile > 0 ? `• 🚨 ${schSterile} אלרגיות` : '• ללא התראות אלרגיה'}
@@ -3396,7 +3416,7 @@
           <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
             <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">קבוצות בצהרונים</div>
             <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#00838f; font-weight:800; line-height:1.15;">${schTotalGroups}</div>
-            <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${filteredSchools.length} כיתות משובצות</div>
+            <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">ממוצע: <b>${(schTotalGroups > 0 ? (Number.isInteger(schTotalKids / schTotalGroups) ? (schTotalKids / schTotalGroups).toString() : (schTotalKids / schTotalGroups).toFixed(1)) : 0)}</b> לקבוצה</div>
           </div>
 
           <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
