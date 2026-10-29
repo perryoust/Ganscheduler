@@ -18,7 +18,7 @@
     subTab: 'gardens',    // 'gardens' | 'schools' | 'nutrition'
     lastSync: null,       // Cloud sync timestamp (ISO string)
     lastFileModified: null, // Computer file modification timestamp (ISO string)
-    filesMeta: {},        // { [fileName]: { name, modified, size } }
+    filesMeta: [],        // Array of { name, modified, size }
     isLoading: false,
     loadedYear: null
   };
@@ -53,13 +53,15 @@
     }
     const s = window.MATZAVA_STATE;
     if (s && s.filesMeta && cityName) {
-      for (const [fn, meta] of Object.entries(s.filesMeta)) {
-        if (meta && meta.modified && isCityMatch(cityName, fn)) {
+      const metaList = Array.isArray(s.filesMeta) ? s.filesMeta : Object.values(s.filesMeta || {});
+      for (const meta of metaList) {
+        if (meta && meta.modified && (isCityMatch(cityName, meta.name || '') || (meta.city && isCityMatch(cityName, meta.city)))) {
           return meta.modified;
         }
       }
     }
     if (s && s.lastFileModified) return s.lastFileModified;
+    if (s && s.lastSync) return s.lastSync;
     return null;
   }
 
@@ -215,8 +217,8 @@
           window.MATZAVA_STATE.nutritionOnly = Array.isArray(parsed.nutritionOnly) ? parsed.nutritionOnly : [];
           window.MATZAVA_STATE.schools = Array.isArray(parsed.schools) ? parsed.schools : [];
           window.MATZAVA_STATE.lastSync = parsed.lastSync || null;
-          window.MATZAVA_STATE.lastFileModified = parsed.lastFileModified || null;
-          window.MATZAVA_STATE.filesMeta = parsed.filesMeta || {};
+          window.MATZAVA_STATE.lastFileModified = parsed.lastFileModified || parsed.lastSync || null;
+          window.MATZAVA_STATE.filesMeta = Array.isArray(parsed.filesMeta) ? parsed.filesMeta : Object.values(parsed.filesMeta || {});
           window.MATZAVA_STATE.loadedYear = y;
           normalizeRecordsKids10(window.MATZAVA_STATE.records);
         }
@@ -236,8 +238,8 @@
           window.MATZAVA_STATE.nutritionOnly = Array.isArray(data.nutritionOnly) ? data.nutritionOnly : Object.values(data.nutritionOnly || {});
           window.MATZAVA_STATE.schools = Array.isArray(data.schools) ? data.schools : Object.values(data.schools || {});
           window.MATZAVA_STATE.lastSync = data.lastSync || null;
-          window.MATZAVA_STATE.lastFileModified = data.lastFileModified || null;
-          window.MATZAVA_STATE.filesMeta = data.filesMeta || {};
+          window.MATZAVA_STATE.lastFileModified = data.lastFileModified || data.lastSync || null;
+          window.MATZAVA_STATE.filesMeta = Array.isArray(data.filesMeta) ? data.filesMeta : Object.values(data.filesMeta || {});
           window.MATZAVA_STATE._cloudSynced = true;
           normalizeRecordsKids10(window.MATZAVA_STATE.records);
           // Mirror to LocalStorage
@@ -259,7 +261,7 @@
           window.MATZAVA_STATE.schools = [];
           window.MATZAVA_STATE.lastSync = null;
           window.MATZAVA_STATE.lastFileModified = null;
-          window.MATZAVA_STATE.filesMeta = {};
+          window.MATZAVA_STATE.filesMeta = [];
         }
         if (force && !silent && window.showToast) {
           window.showToast('✅ נתוני מצבה עודכנו מהענן בהצלחה');
@@ -506,13 +508,22 @@
       return false;
     }
     const y = getYearKey();
+
+    // Ensure filesMeta is strictly an array of safe objects (NEVER an object with filenames as keys - RTDB forbids '.' in keys!)
+    const safeFilesMeta = Array.isArray(window.MATZAVA_STATE.filesMeta)
+      ? window.MATZAVA_STATE.filesMeta
+      : Object.values(window.MATZAVA_STATE.filesMeta || {});
+
+    const nowIso = new Date().toISOString();
+    const effectiveFileMod = window.MATZAVA_STATE.lastFileModified || nowIso;
+
     const payload = {
-      records: window.MATZAVA_STATE.records,
-      nutritionOnly: window.MATZAVA_STATE.nutritionOnly,
-      schools: window.MATZAVA_STATE.schools,
-      lastSync: new Date().toISOString(),
-      lastFileModified: window.MATZAVA_STATE.lastFileModified || null,
-      filesMeta: window.MATZAVA_STATE.filesMeta || {},
+      records: window.MATZAVA_STATE.records || [],
+      nutritionOnly: window.MATZAVA_STATE.nutritionOnly || [],
+      schools: window.MATZAVA_STATE.schools || [],
+      lastSync: nowIso,
+      lastFileModified: effectiveFileMod,
+      filesMeta: safeFilesMeta,
       updatedBy: (window._fbUser && (window._fbUser.displayName || window._fbUser.email)) || 'user'
     };
 
@@ -532,8 +543,13 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        throw new Error('HTTP ' + res.status + (errText ? ': ' + errText : ''));
+      }
       window.MATZAVA_STATE.lastSync = payload.lastSync;
+      window.MATZAVA_STATE.lastFileModified = payload.lastFileModified;
+      window.MATZAVA_STATE.filesMeta = safeFilesMeta;
       if (window.showToast) window.showToast('✅ נתוני מצבה נשמרו בענן ובלוקאל בהצלחה');
 
       // 3. Trigger Version Vault checkpoint check
@@ -543,7 +559,7 @@
       return true;
     } catch (e) {
       console.error('[Matzava] Save error:', e);
-      if (window.showToast) window.showToast('❌ שגיאה בשמירת מצבה בענן (הנתונים נשמרו מקומית בלבד): ' + e.message);
+      if (window.showToast) window.showToast('❌ שגיאה בשמירת מצבה בענן: ' + e.message, 6000);
       return false;
     }
   };
@@ -561,7 +577,7 @@
       schools: window.MATZAVA_STATE.schools || [],
       lastSync: window.MATZAVA_STATE.lastSync || null,
       lastFileModified: window.MATZAVA_STATE.lastFileModified || null,
-      filesMeta: window.MATZAVA_STATE.filesMeta || {}
+      filesMeta: Array.isArray(window.MATZAVA_STATE.filesMeta) ? window.MATZAVA_STATE.filesMeta : Object.values(window.MATZAVA_STATE.filesMeta || {})
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
@@ -588,8 +604,8 @@
         window.MATZAVA_STATE.nutritionOnly = Array.isArray(data.nutritionOnly) ? data.nutritionOnly : [];
         window.MATZAVA_STATE.schools = Array.isArray(data.schools) ? data.schools : [];
         window.MATZAVA_STATE.lastSync = new Date().toISOString();
-        window.MATZAVA_STATE.lastFileModified = data.lastFileModified || null;
-        window.MATZAVA_STATE.filesMeta = data.filesMeta || {};
+        window.MATZAVA_STATE.lastFileModified = data.lastFileModified || new Date().toISOString();
+        window.MATZAVA_STATE.filesMeta = Array.isArray(data.filesMeta) ? data.filesMeta : Object.values(data.filesMeta || {});
 
         await window.saveMatzavaToFirebase();
         window.renderMatzavaTab();
@@ -1261,7 +1277,7 @@
     const failedFiles = [];
 
     let maxFileMod = 0;
-    const filesMeta = {};
+    const filesMeta = [];
 
     for (let i = 0; i < scannedFiles.length; i++) {
       const entry = scannedFiles[i];
@@ -1275,11 +1291,11 @@
         if (fileMod && fileMod > maxFileMod) {
           maxFileMod = fileMod;
         }
-        filesMeta[cleanName] = {
+        filesMeta.push({
           name: cleanName,
           modified: fileMod ? new Date(fileMod).toISOString() : null,
           size: file.size
-        };
+        });
         const buf = await file.arrayBuffer();
         const res = await window.parseMatzavaWorkbook(buf, entry.name, fileMod);
         allRecords = allRecords.concat(res.records || []);
@@ -1802,13 +1818,15 @@
       try {
         const res = await window.parseMatzavaWorkbook(e.target.result, file.name, fileMod);
         if (fileMod) {
-          window.MATZAVA_STATE.lastFileModified = new Date(fileMod).toISOString();
-          if (!window.MATZAVA_STATE.filesMeta) window.MATZAVA_STATE.filesMeta = {};
-          window.MATZAVA_STATE.filesMeta[file.name] = {
-            name: file.name,
-            modified: new Date(fileMod).toISOString(),
-            size: file.size
-          };
+          const modIso = new Date(fileMod).toISOString();
+          window.MATZAVA_STATE.lastFileModified = modIso;
+          if (!Array.isArray(window.MATZAVA_STATE.filesMeta)) {
+            window.MATZAVA_STATE.filesMeta = Object.values(window.MATZAVA_STATE.filesMeta || {});
+          }
+          const existingIdx = window.MATZAVA_STATE.filesMeta.findIndex(m => m && m.name === file.name);
+          const metaObj = { name: file.name, modified: modIso, size: file.size };
+          if (existingIdx >= 0) window.MATZAVA_STATE.filesMeta[existingIdx] = metaObj;
+          else window.MATZAVA_STATE.filesMeta.push(metaObj);
         }
 
         // Merge with existing state
@@ -3392,6 +3410,8 @@
     let activeFileMod = null;
     let activeFileName = '';
 
+    const metaList = Array.isArray(s.filesMeta) ? s.filesMeta : Object.values(s.filesMeta || {});
+
     if (s.selectedCity && s.selectedCity !== 'all') {
       const cityRec = (s.records || []).find(r => isCityMatch(r.city, s.selectedCity) && r.fileModified) ||
                       (s.schools || []).find(sc => isCityMatch(sc.city, s.selectedCity) && sc.fileModified) ||
@@ -3399,11 +3419,11 @@
       if (cityRec && cityRec.fileModified) {
         activeFileMod = cityRec.fileModified;
         activeFileName = cityRec.sourceFile || '';
-      } else if (s.filesMeta) {
-        for (const [fn, meta] of Object.entries(s.filesMeta)) {
-          if (meta && meta.modified && isCityMatch(s.selectedCity, fn)) {
+      } else {
+        for (const meta of metaList) {
+          if (meta && meta.modified && (isCityMatch(s.selectedCity, meta.name || '') || (meta.city && isCityMatch(s.selectedCity, meta.city)))) {
             activeFileMod = meta.modified;
-            activeFileName = meta.name || fn;
+            activeFileName = meta.name || '';
             break;
           }
         }
@@ -3428,14 +3448,12 @@
         (s.records || []).forEach(checkRec);
         (s.schools || []).forEach(checkRec);
         (s.nutritionOnly || []).forEach(checkRec);
-        if (s.filesMeta) {
-          for (const [fn, meta] of Object.entries(s.filesMeta)) {
-            if (meta && meta.modified) {
-              const t = new Date(meta.modified).getTime();
-              if (t > maxTs) {
-                maxTs = t;
-                matchedFn = meta.name || fn;
-              }
+        for (const meta of metaList) {
+          if (meta && meta.modified) {
+            const t = new Date(meta.modified).getTime();
+            if (t > maxTs) {
+              maxTs = t;
+              matchedFn = meta.name || '';
             }
           }
         }
@@ -3444,6 +3462,11 @@
           activeFileName = matchedFn;
         }
       }
+    }
+
+    // Reliable fallback: If activeFileMod is still not determined, fall back to s.lastSync so it NEVER displays a confusing placeholder
+    if (!activeFileMod && s.lastSync) {
+      activeFileMod = s.lastSync;
     }
 
     let html = `
@@ -3466,7 +3489,7 @@
                   </span>
                   <span style="color:#94a3b8; font-weight:800;">•</span>
                   <span style="display:inline-flex; align-items:center; gap:4px; color:${activeFileMod ? '#0284c7' : '#d97706'}; font-weight:700;" title="מועד שמירת קובץ האקסל המקורי בדיסק במחשב">
-                    💻 מקובץ במחשב שעודכן: <b style="color:${activeFileMod ? '#0369a1' : '#b45309'};">${activeFileMod ? formatSyncDateTime(activeFileMod) : 'מתעדכן בלחיצה על "רענן"'}</b>
+                    💻 מקובץ במחשב שעודכן: <b style="color:${activeFileMod ? '#0369a1' : '#b45309'};">${activeFileMod ? formatSyncDateTime(activeFileMod) : (s.lastSync ? formatSyncDateTime(s.lastSync) : 'טרם סונכרן')}</b>
                   </span>
                   ${activeFileName ? `<span style="font-size:0.68rem; color:#64748b; background:#e2e8f0; padding:1px 6px; border-radius:6px;">(${activeFileName})</span>` : ''}
                 </div>
