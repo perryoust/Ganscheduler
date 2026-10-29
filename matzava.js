@@ -45,6 +45,24 @@
     }
   }
 
+  // Helper to reliably find city file modified timestamp from records, filesMeta, or state fallback
+  function getCityFileModified(cityName, list) {
+    if (Array.isArray(list)) {
+      const found = list.find(r => r && r.fileModified);
+      if (found && found.fileModified) return found.fileModified;
+    }
+    const s = window.MATZAVA_STATE;
+    if (s && s.filesMeta && cityName) {
+      for (const [fn, meta] of Object.entries(s.filesMeta)) {
+        if (meta && meta.modified && isCityMatch(cityName, fn)) {
+          return meta.modified;
+        }
+      }
+    }
+    if (s && s.lastFileModified) return s.lastFileModified;
+    return null;
+  }
+
   function getSafeRole() {
     try {
       if (window.userRole) return window.userRole;
@@ -2341,8 +2359,8 @@
         if (r.isMerged) cityMerged++;
         if (r.isSterile) citySterile++;
         if (r.hasChange) cityChanged++;
-        if (!cityFileMod && r.fileModified) cityFileMod = r.fileModified;
       });
+      cityFileMod = getCityFileModified(cityName, cityGardens);
 
       return `
         <details class="city-accordion matzava-city-accordion" ${shouldOpen ? 'open' : ''} style="margin-bottom:10px; border:1px solid #cbd5e1; border-radius:10px; overflow:hidden; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
@@ -2431,9 +2449,9 @@
           cityClasses++;
           if (sc.isSterile) citySterile++;
           if (sc.hasChange) cityChanged++;
-          if (!cityFileMod && sc.fileModified) cityFileMod = sc.fileModified;
         });
       });
+      cityFileMod = getCityFileModified(cityName, Array.from(schObjMap.values()).flat());
 
       return `
         <details class="city-accordion matzava-city-accordion" ${shouldOpen ? 'open' : ''} style="margin-bottom:10px; border:1px solid #cbd5e1; border-radius:10px; overflow:hidden; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
@@ -2561,8 +2579,8 @@
       list.forEach(n => {
         cityMealsTotal += (n.kidsTotal || 0);
         if (n.hasChange) cityChanged++;
-        if (!cityFileMod && n.fileModified) cityFileMod = n.fileModified;
       });
+      cityFileMod = getCityFileModified(cityName, list);
 
       return `
         <details class="city-accordion matzava-city-accordion" ${shouldOpen ? 'open' : ''} style="margin-bottom:10px; border:1px solid #ffe0b2; border-radius:10px; overflow:hidden; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
@@ -2763,8 +2781,8 @@
         if (r.isMerged) cityMerged++;
         if (r.isSterile) citySterile++;
         if (r.hasChange) cityChanged++;
-        if (!cityFileMod && r.fileModified) cityFileMod = r.fileModified;
       });
+      cityFileMod = getCityFileModified(cityName, cityGardens);
 
       return `
         <details class="city-accordion matzava-city-accordion" ${shouldOpen ? 'open' : ''} style="margin-bottom:14px; border:1px solid #cbd5e1; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
@@ -2873,9 +2891,9 @@
           cityClasses++;
           if (sc.isSterile) citySterile++;
           if (sc.hasChange) cityChanged++;
-          if (!cityFileMod && sc.fileModified) cityFileMod = sc.fileModified;
         });
       });
+      cityFileMod = getCityFileModified(cityName, Array.from(schObjMap.values()).flat());
 
       return `
         <details class="city-accordion matzava-city-accordion" ${shouldOpen ? 'open' : ''} style="margin-bottom:16px; border:1px solid #cbd5e1; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
@@ -3073,8 +3091,8 @@
       list.forEach(n => {
         cityMealsTotal += (n.kidsTotal || 0);
         if (n.hasChange) cityChanged++;
-        if (!cityFileMod && n.fileModified) cityFileMod = n.fileModified;
       });
+      cityFileMod = getCityFileModified(cityName, list);
 
       return `
         <details class="city-accordion matzava-city-accordion" ${shouldOpen ? 'open' : ''} style="margin-bottom:14px; border:1px solid #ffe0b2; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
@@ -3322,6 +3340,14 @@
       if (cityRec && cityRec.fileModified) {
         activeFileMod = cityRec.fileModified;
         activeFileName = cityRec.sourceFile || '';
+      } else if (s.filesMeta) {
+        for (const [fn, meta] of Object.entries(s.filesMeta)) {
+          if (meta && meta.modified && isCityMatch(s.selectedCity, fn)) {
+            activeFileMod = meta.modified;
+            activeFileName = meta.name || fn;
+            break;
+          }
+        }
       }
     }
 
@@ -3343,6 +3369,17 @@
         (s.records || []).forEach(checkRec);
         (s.schools || []).forEach(checkRec);
         (s.nutritionOnly || []).forEach(checkRec);
+        if (s.filesMeta) {
+          for (const [fn, meta] of Object.entries(s.filesMeta)) {
+            if (meta && meta.modified) {
+              const t = new Date(meta.modified).getTime();
+              if (t > maxTs) {
+                maxTs = t;
+                matchedFn = meta.name || fn;
+              }
+            }
+          }
+        }
         if (maxTs > 0) {
           activeFileMod = new Date(maxTs).toISOString();
           activeFileName = matchedFn;
@@ -3363,18 +3400,16 @@
                   מצבה — מספרי ילדים ואלרגיות
                   <span style="font-size:0.7rem; background:#e8eaf6; color:#283593; padding:1px 6px; border-radius:10px; font-weight:700;">${getYearKey()}</span>
                 </h2>
-                <div style="font-size:${isMob ? '0.68rem' : '0.72rem'}; color:#64748b; margin-top:2px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                  ${s.lastSync ? `
-                    <span style="display:inline-flex; align-items:center; gap:3px;">
-                      🔄 סונכרן לאתר: <b style="color:#1e293b;">${formatSyncDateTime(s.lastSync)}</b>
-                    </span>
-                    ${activeFileMod ? `
-                      <span style="color:#94a3b8; font-weight:700;">•</span>
-                      <span style="background:#f1f5f9; color:#334155; padding:1px 6px; border-radius:4px; border:1px solid #e2e8f0; display:inline-flex; align-items:center; gap:3px;" title="קובץ המחשב ${activeFileName ? `(${activeFileName})` : ''} נשמר ב-${new Date(activeFileMod).toLocaleString('he-IL')}">
-                        💻 קובץ במחשב עודכן: <b style="color:#0f172a;">${formatSyncDateTime(activeFileMod)}</b>
-                      </span>
-                    ` : ''}
-                  ` : 'טרם נסרקו קבצים'}
+                <!-- DUAL SYNCHRONIZATION STATUS BADGE -->
+                <div style="font-size:${isMob ? '0.72rem' : '0.78rem'}; margin-top:5px; display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap; background:#f8fafc; border:1px solid #cbd5e1; padding:3px 10px; border-radius:16px;">
+                  <span style="display:inline-flex; align-items:center; gap:4px; color:#1e293b; font-weight:700;">
+                    🔄 עודכן לאתר: <b style="color:#0f172a;">${s.lastSync ? formatSyncDateTime(s.lastSync) : 'טרם סונכרן'}</b>
+                  </span>
+                  <span style="color:#94a3b8; font-weight:800;">•</span>
+                  <span style="display:inline-flex; align-items:center; gap:4px; color:${activeFileMod ? '#0284c7' : '#d97706'}; font-weight:700;" title="מועד שמירת קובץ האקסל המקורי בדיסק במחשב">
+                    💻 מקובץ במחשב שעודכן: <b style="color:${activeFileMod ? '#0369a1' : '#b45309'};">${activeFileMod ? formatSyncDateTime(activeFileMod) : 'מתעדכן בלחיצה על "רענן"'}</b>
+                  </span>
+                  ${activeFileName ? `<span style="font-size:0.68rem; color:#64748b; background:#e2e8f0; padding:1px 6px; border-radius:6px;">(${activeFileName})</span>` : ''}
                 </div>
               </div>
             </div>
