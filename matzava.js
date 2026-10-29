@@ -2652,9 +2652,9 @@
 
     return `
       <tr style="${isSterileBg || `background:${bg};`} ${rowBorder} border-bottom:1px solid #eee; transition:background 0.15s;" onmouseover="this.style.background='#f0f4c3'" onmouseout="this.style.background='${r.isSterile ? '#fff5f5' : (r.hasChange ? '#fffdf5' : bg)}'">
-        <td style="padding:10px 12px; font-weight:700; color:#1a237e; vertical-align:top;">
+        <td style="padding:10px 12px; vertical-align:top;">
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-            <span style="font-size:0.92rem; font-weight:800; color:#1a237e;">${safeRowName}</span>
+            <span style="font-size:0.85rem; font-weight:600; color:#475569;">${safeRowName}</span>
             ${r.hasChange ? `
               <span style="background:#fef08a; color:#854d0e; font-size:0.7rem; padding:1px 6px; border-radius:10px; font-weight:800; display:inline-flex; align-items:center; gap:2px; border:1px solid #facc15; cursor:pointer;" onclick="window.dismissMatzavaChange('${r.id || r.name}', '${r.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">
                 ⚡ עודכן <span style="font-size:0.65rem; opacity:0.7;">✕</span>
@@ -2710,11 +2710,15 @@
         </td>
         <td style="padding:10px 12px; vertical-align:top;">
           ${r.isMerged ? `
-            <div style="color:#6a1b9a; font-size:0.82rem; font-weight:700; display:inline-flex; align-items:center; gap:4px;">
+            <div style="color:#6a1b9a; font-size:0.95rem; font-weight:800; display:inline-flex; align-items:center; gap:4px;">
               <span>🏠</span>
               <span>${safeHostGarden}</span>
             </div>
-          ` : `<span style="color:#777; font-size:0.8rem;">${safeHostGarden}</span>`}
+          ` : `
+            <div style="color:#1a237e; font-size:0.95rem; font-weight:800; display:inline-flex; align-items:center; gap:4px;">
+              <span>${safeHostGarden}</span>
+            </div>
+          `}
         </td>
         <td style="padding:10px 12px; vertical-align:top;">
           ${r.isSterile ? `
