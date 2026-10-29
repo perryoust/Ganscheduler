@@ -222,78 +222,100 @@ window.initCoordinatorApp = function() {
     div.id = 'coordinator-app-root';
     div.style.cssText = 'display:none;position:fixed;inset:0;background:#f0f4f8;z-index:100000;overflow-y:auto;font-family:\'Segoe UI\',Tahoma,sans-serif;direction:rtl';
     div.innerHTML = `
-      <div id="coord-header" style="background:linear-gradient(135deg,#1a5276,#154360);padding:10px 16px 0;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.2)">
+      <div id="coord-header" style="background:linear-gradient(135deg,#1a5276,#154360);padding:10px 16px 0;padding-top:max(env(safe-area-inset-top,0px),10px);position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.2)">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding-bottom:8px">
           <div style="display:flex;align-items:center;gap:10px">
             <img src="logo_wide.png" style="height:26px; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3));" alt="Logo">
             <span id="coord-user-name" style="color:#fff;font-weight:700;font-size:0.95rem"></span>
           </div>
           <div style="display:flex;align-items:center;gap:6px">
-            <button class="coord-msg-btn" onclick="window.coordExportCurrentView()" style="background:#25d366;border:none;border-radius:8px;color:#fff;padding:5px 12px;font-size:0.78rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="ייצוא כל פעילויות היום להודעה">📱 הודעה יומית</button>
-            <button id="coord-matzava-btn" class="coord-msg-btn" onclick="if(window.openMatzavaModal)window.openMatzavaModal();" style="display:${(window.permMatzava !== false || window.role === 'admin') ? 'inline-flex' : 'none'};background:#4338ca;border:none;border-radius:8px;color:#fff;padding:5px 12px;font-size:0.78rem;font-weight:700;cursor:pointer;align-items:center;gap:4px" title="צפייה במצבת תלמידים ואלרגיות בצהרונים">👶 מצבה</button>
+            <button id="coord-export-btn" class="coord-msg-btn" onclick="window.coordExportCurrentView()" style="background:#25d366;border:none;border-radius:8px;color:#fff;padding:5px 12px;font-size:0.78rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="ייצוא כל פעילויות היום להודעה">📱 הודעה יומית</button>
+            <button id="coord-matzava-btn" style="display:none !important;"></button>
             <button id="coord-back-admin-btn" onclick="window.closeCoordPreview()" style="display:none;background:#f59e0b;border:none;border-radius:8px;color:#1e293b;padding:5px 11px;font-size:0.78rem;font-weight:800;cursor:pointer">🔙 חזור למערכת</button>
             <button onclick="window.coordRefreshData()" style="background:rgba(255,255,255,0.15);border:none;border-radius:8px;color:white;padding:5px 11px;font-size:0.78rem;cursor:pointer">🔄 רענן</button>
             <button onclick="window.coordLogout()" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;color:#fff;font-size:1.2rem;cursor:pointer;padding:4px 10px;display:inline-flex;align-items:center;justify-content:center" title="התנתק">🚪</button>
           </div>
         </div>
-        <!-- Live Instant Search Bar -->
-        <div style="padding-bottom:8px">
-          <div style="position:relative;display:flex;align-items:center">
-            <input type="text" id="coord-live-search" placeholder="🔍 חיפוש מהיר: שם גן, ספק, פעילות או עיר..." 
-              oninput="window.coordOnSearch(this.value)" 
-              style="width:100%;box-sizing:border-box;padding:8px 34px 8px 12px;border-radius:8px;border:none;background:#fff;color:#1e293b;font-size:0.85rem;box-shadow:0 1px 4px rgba(0,0,0,0.15);outline:none">
-            <button id="coord-search-clear" onclick="window.coordClearSearch()" 
-              style="position:absolute;left:8px;background:none;border:none;font-size:0.95rem;color:#78909c;cursor:pointer;display:none" title="נקה חיפוש">✕</button>
-          </div>
+
+        <!-- MAIN TABS: Activities vs Matzava -->
+        <div id="coord-main-tabs" style="display:flex;gap:8px;padding:2px 0 8px;border-bottom:1px solid rgba(255,255,255,0.15);margin-bottom:8px">
+          <button id="coord-main-tab-act" onclick="window.coordSwitchMainTab('activities')" style="flex:1;background:rgba(255,255,255,0.28);color:#fff;border:none;border-radius:8px;padding:7px 10px;font-size:0.86rem;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:all 0.15s">
+            <span>🎪 חוגים ופעילויות</span>
+          </button>
+          <button id="coord-main-tab-matzava" onclick="window.coordSwitchMainTab('matzava')" style="flex:1;background:transparent;color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:7px 10px;font-size:0.86rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s">
+            <span>👶 מצבה ואלרגיות</span>
+          </button>
         </div>
-        <!-- Garden multi-select filter -->
-        <div style="padding-bottom:10px">
-          <details id="coord-garden-panel" style="background:rgba(255,255,255,0.1);border-radius:8px;border:1px solid rgba(255,255,255,0.2)">
-            <summary id="coord-garden-summary" style="padding:6px 12px;color:#fff;font-size:0.82rem;font-weight:600;cursor:pointer;list-style:none;display:flex;justify-content:space-between">
-              <span id="coord-garden-label">כל הגנים/בתי הספר שלי</span>
-              <span style="opacity:0.7">▼ סנן</span>
-            </summary>
-            <div id="coord-garden-checkboxes" style="padding:10px;background:rgba(0,0,0,0.2);border-top:1px solid rgba(255,255,255,0.15);max-height:220px;overflow-y:auto"></div>
-            <div style="padding:8px 10px;display:flex;gap:8px;border-top:1px solid rgba(255,255,255,0.1)">
-              <button onclick="window.coordSelectAll()" style="flex:1;background:rgba(255,255,255,0.2);border:none;border-radius:6px;color:#fff;padding:5px;font-size:0.75rem;cursor:pointer">בחר הכל</button>
-              <button onclick="window.coordClearFilter()" style="flex:1;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:#fff;padding:5px;font-size:0.75rem;cursor:pointer">נקה</button>
-              <button onclick="window.renderCoordinatorView(); document.getElementById('coord-garden-panel').removeAttribute('open');" style="flex:1;background:rgba(100,200,100,0.3);border:none;border-radius:6px;color:#fff;padding:5px;font-size:0.75rem;cursor:pointer;font-weight:700">הצג</button>
+
+        <!-- Activities Filter & Navigation Controls -->
+        <div id="coord-act-header-controls">
+          <!-- Live Instant Search Bar -->
+          <div style="padding-bottom:8px">
+            <div style="position:relative;display:flex;align-items:center">
+              <input type="text" id="coord-live-search" placeholder="🔍 חיפוש מהיר: שם גן, ספק, פעילות או עיר..." 
+                oninput="window.coordOnSearch(this.value)" 
+                style="width:100%;box-sizing:border-box;padding:8px 34px 8px 12px;border-radius:8px;border:none;background:#fff;color:#1e293b;font-size:0.85rem;box-shadow:0 1px 4px rgba(0,0,0,0.15);outline:none">
+              <button id="coord-search-clear" onclick="window.coordClearSearch()" 
+                style="position:absolute;left:8px;background:none;border:none;font-size:0.95rem;color:#78909c;cursor:pointer;display:none" title="נקה חיפוש">✕</button>
             </div>
-          </details>
-        </div>
-        <!-- Navigation -->
-        <div style="display:flex;justify-content:center;align-items:center;gap:6px;padding-bottom:8px;color:#fff;flex-wrap:wrap">
-          <button id="coord-nav-prev" onclick="window.coordNav(-1)" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:0.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="אתמול / קודם">▶ <span id="coord-nav-prev-lbl">אתמול</span></button>
-          <div style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,0,0,0.2);padding:3px 8px;border-radius:8px;position:relative">
-            <div id="coord-date-label" onclick="window.coordTriggerDatePicker()" style="font-weight:800;font-size:0.92rem;min-width:140px;text-align:center;cursor:pointer;user-select:none" title="לחץ לבחירת תאריך מהיומן"></div>
-            <input type="date" id="coord-hidden-datepicker" style="position:absolute;opacity:0;pointer-events:none;width:0;height:0" onchange="window.coordOnPickDate(this.value)">
-            <button onclick="window.coordTriggerDatePicker()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:0.95rem;padding:2px" title="בחר תאריך מהלוח">📆</button>
           </div>
-          <button id="coord-nav-next" onclick="window.coordNav(1)" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:0.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="מחר / הבא"><span id="coord-nav-next-lbl">מחר</span> ◀</button>
-          <button onclick="window.coordGoToday()" style="background:rgba(255,255,255,0.22);border:none;border-radius:8px;color:#fff;padding:5px 11px;font-size:0.75rem;cursor:pointer;font-weight:700">היום</button>
-        </div>
-        <!-- View toggles -->
-        <div style="display:flex;justify-content:center;gap:6px;padding-bottom:10px;flex-wrap:wrap">
-          <div style="display:flex;gap:4px;background:rgba(0,0,0,0.25);border-radius:8px;padding:4px">
-            <button class="coord-view-btn active" data-v="day"   onclick="window.coordSetView('day',this)"   style="background:rgba(255,255,255,0.35);border:none;border-radius:6px;padding:6px 14px;color:#fff;cursor:pointer;font-size:0.82rem;font-weight:800;min-height:36px;touch-action:manipulation;">יומי</button>
-            <button class="coord-view-btn" data-v="week"  onclick="window.coordSetView('week',this)"  style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.82rem;min-height:36px;touch-action:manipulation;">שבועי</button>
-            <button class="coord-view-btn" data-v="month" onclick="window.coordSetView('month',this)" style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.82rem;min-height:36px;touch-action:manipulation;">חודשי</button>
+          <!-- Garden multi-select filter -->
+          <div style="padding-bottom:10px">
+            <details id="coord-garden-panel" style="background:rgba(255,255,255,0.1);border-radius:8px;border:1px solid rgba(255,255,255,0.2)">
+              <summary id="coord-garden-summary" style="padding:6px 12px;color:#fff;font-size:0.82rem;font-weight:600;cursor:pointer;list-style:none;display:flex;justify-content:space-between">
+                <span id="coord-garden-label">כל הגנים/בתי הספר שלי</span>
+                <span style="opacity:0.7">▼ סנן</span>
+              </summary>
+              <div id="coord-garden-checkboxes" style="padding:10px;background:rgba(0,0,0,0.2);border-top:1px solid rgba(255,255,255,0.15);max-height:220px;overflow-y:auto"></div>
+              <div style="padding:8px 10px;display:flex;gap:8px;border-top:1px solid rgba(255,255,255,0.1)">
+                <button onclick="window.coordSelectAll()" style="flex:1;background:rgba(255,255,255,0.2);border:none;border-radius:6px;color:#fff;padding:5px;font-size:0.75rem;cursor:pointer">בחר הכל</button>
+                <button onclick="window.coordClearFilter()" style="flex:1;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:#fff;padding:5px;font-size:0.75rem;cursor:pointer">נקה</button>
+                <button onclick="window.renderCoordinatorView(); document.getElementById('coord-garden-panel').removeAttribute('open');" style="flex:1;background:rgba(100,200,100,0.3);border:none;border-radius:6px;color:#fff;padding:5px;font-size:0.75rem;cursor:pointer;font-weight:700">הצג</button>
+              </div>
+            </details>
           </div>
-          <div style="display:flex;gap:4px;background:rgba(0,0,0,0.25);border-radius:8px;padding:4px">
-            <button class="coord-grp-btn active" data-g="pairs"    onclick="window.coordSetGroup('pairs',this)"    style="background:rgba(255,255,255,0.35);border:none;border-radius:6px;padding:6px 14px;color:#fff;cursor:pointer;font-size:0.82rem;font-weight:800;min-height:36px;touch-action:manipulation;">👫 זוגות</button>
-            <button class="coord-grp-btn" data-g="clusters" onclick="window.coordSetGroup('clusters',this)" style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.82rem;min-height:36px;touch-action:manipulation;">🏘️ אשכולות</button>
+          <!-- Navigation -->
+          <div style="display:flex;justify-content:center;align-items:center;gap:6px;padding-bottom:8px;color:#fff;flex-wrap:wrap">
+            <button id="coord-nav-prev" onclick="window.coordNav(-1)" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:0.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="אתמול / קודם">▶ <span id="coord-nav-prev-lbl">אתמול</span></button>
+            <div style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,0,0,0.2);padding:3px 8px;border-radius:8px;position:relative">
+              <div id="coord-date-label" onclick="window.coordTriggerDatePicker()" style="font-weight:800;font-size:0.92rem;min-width:140px;text-align:center;cursor:pointer;user-select:none" title="לחץ לבחירת תאריך מהיומן"></div>
+              <input type="date" id="coord-hidden-datepicker" style="position:absolute;opacity:0;pointer-events:none;width:0;height:0" onchange="window.coordOnPickDate(this.value)">
+              <button onclick="window.coordTriggerDatePicker()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:0.95rem;padding:2px" title="בחר תאריך מהלוח">📆</button>
+            </div>
+            <button id="coord-nav-next" onclick="window.coordNav(1)" style="background:rgba(255,255,255,0.18);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:0.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="מחר / הבא"><span id="coord-nav-next-lbl">מחר</span> ◀</button>
+            <button onclick="window.coordGoToday()" style="background:rgba(255,255,255,0.22);border:none;border-radius:8px;color:#fff;padding:5px 11px;font-size:0.75rem;cursor:pointer;font-weight:700">היום</button>
+          </div>
+          <!-- View toggles -->
+          <div style="display:flex;justify-content:center;gap:6px;padding-bottom:10px;flex-wrap:wrap">
+            <div style="display:flex;gap:4px;background:rgba(0,0,0,0.25);border-radius:8px;padding:4px">
+              <button class="coord-view-btn active" data-v="day"   onclick="window.coordSetView('day',this)"   style="background:rgba(255,255,255,0.35);border:none;border-radius:6px;padding:6px 14px;color:#fff;cursor:pointer;font-size:0.82rem;font-weight:800;min-height:36px;touch-action:manipulation;">יומי</button>
+              <button class="coord-view-btn" data-v="week"  onclick="window.coordSetView('week',this)"  style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.82rem;min-height:36px;touch-action:manipulation;">שבועי</button>
+              <button class="coord-view-btn" data-v="month" onclick="window.coordSetView('month',this)" style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.82rem;min-height:36px;touch-action:manipulation;">חודשי</button>
+            </div>
+            <div style="display:flex;gap:4px;background:rgba(0,0,0,0.25);border-radius:8px;padding:4px">
+              <button class="coord-grp-btn active" data-g="pairs"    onclick="window.coordSetGroup('pairs',this)"    style="background:rgba(255,255,255,0.35);border:none;border-radius:6px;padding:6px 14px;color:#fff;cursor:pointer;font-size:0.82rem;font-weight:800;min-height:36px;touch-action:manipulation;">👫 זוגות</button>
+              <button class="coord-grp-btn" data-g="clusters" onclick="window.coordSetGroup('clusters',this)" style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.82rem;min-height:36px;touch-action:manipulation;">🏘️ אשכולות</button>
+            </div>
           </div>
         </div>
       </div>
-      <!-- Control Subbar: Activity Counter & Accordion Collapse/Expand -->
-      <div id="coord-subbar" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px 4px;max-width:1200px;margin:0 auto">
-        <div id="coord-summary-count" style="font-size:0.82rem;font-weight:700;color:#334155"></div>
-        <div style="display:flex;gap:6px">
-          <button onclick="window.coordToggleAllCities(false)" style="font-size:0.75rem;background:#fff;border:1px solid #cbd5e1;border-radius:6px;padding:3px 9px;cursor:pointer;color:#334155;font-weight:600;display:inline-flex;align-items:center;gap:3px" title="כווץ את כל ערי האקורדיון">📁 כווץ הכל</button>
-          <button onclick="window.coordToggleAllCities(true)" style="font-size:0.75rem;background:#fff;border:1px solid #cbd5e1;border-radius:6px;padding:3px 9px;cursor:pointer;color:#334155;font-weight:600;display:inline-flex;align-items:center;gap:3px" title="פתח את כל ערי האקורדיון">📖 פתח הכל</button>
+
+      <!-- Activities View Container -->
+      <div id="coord-activities-view">
+        <!-- Control Subbar: Activity Counter & Accordion Collapse/Expand -->
+        <div id="coord-subbar" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px 4px;max-width:1200px;margin:0 auto">
+          <div id="coord-summary-count" style="font-size:0.82rem;font-weight:700;color:#334155"></div>
+          <div style="display:flex;gap:6px">
+            <button onclick="window.coordToggleAllCities(false)" style="font-size:0.75rem;background:#fff;border:1px solid #cbd5e1;border-radius:6px;padding:3px 9px;cursor:pointer;color:#334155;font-weight:600;display:inline-flex;align-items:center;gap:3px" title="כווץ את כל ערי האקורדיון">📁 כווץ הכל</button>
+            <button onclick="window.coordToggleAllCities(true)" style="font-size:0.75rem;background:#fff;border:1px solid #cbd5e1;border-radius:6px;padding:3px 9px;cursor:pointer;color:#334155;font-weight:600;display:inline-flex;align-items:center;gap:3px" title="פתח את כל ערי האקורדיון">📖 פתח הכל</button>
+          </div>
         </div>
+        <div id="coord-activities-list" style="padding:12px"></div>
       </div>
-      <div id="coord-activities-list" style="padding:12px"></div>
+
+      <!-- Matzava View Container (Direct in-page view, NO modal!) -->
+      <div id="coord-matzava-view" style="display:none;padding:6px 4px 30px;max-width:1440px;margin:0 auto;"></div>
+
       <div style="text-align:center; padding:20px; font-size:0.75rem; color:#90a4ae; opacity:0.9;">
         &copy; 2026 טומשין-עושים חינוך אחרת בע"מ(חל"צ). כל הזכויות שמורות.
       </div>
@@ -307,17 +329,100 @@ window.initCoordinatorApp = function() {
     if (_orig) try { _orig.apply(this, arguments); } catch(e) {}
     const root = document.getElementById('coordinator-app-root');
     if (root && root.style.display !== 'none') {
-      try { window.renderCoordinatorView(); } catch(e) {}
+      if (window._coordActiveMainTab === 'matzava') {
+        const matView = document.getElementById('coord-matzava-view');
+        if (matView && typeof window.renderMatzavaTab === 'function') {
+          try { window.renderMatzavaTab(matView); } catch(e) {}
+        }
+      } else {
+        try { window.renderCoordinatorView(); } catch(e) {}
+      }
     }
   };
 };
 
 // ─────────────────────────────────────────────────────────
-// STATE
+// STATE & MAIN TABS SWITCHING
 // ─────────────────────────────────────────────────────────
-window._coordCurrentDate = null;
-window._coordView        = 'day';
-window._coordGroupMode   = 'pairs';
+window._coordCurrentDate   = null;
+window._coordView          = 'day';
+window._coordGroupMode     = 'pairs';
+window._coordActiveMainTab = 'activities';
+
+window.coordSwitchMainTab = function(tab) {
+  if (tab === 'matzava') {
+    if (window.permMatzava === false && window.role !== 'admin' && window.role !== 'manager' && window.role !== 'vp') {
+      if (typeof _coordToast === 'function') _coordToast('אין הרשאה לצפייה במצבה');
+      return;
+    }
+    window._coordActiveMainTab = 'matzava';
+
+    const btnAct = document.getElementById('coord-main-tab-act');
+    const btnMat = document.getElementById('coord-main-tab-matzava');
+    if (btnAct) {
+      btnAct.style.background = 'transparent';
+      btnAct.style.color = 'rgba(255,255,255,0.7)';
+      btnAct.style.border = '1px solid rgba(255,255,255,0.2)';
+      btnAct.style.fontWeight = '700';
+      btnAct.style.boxShadow = 'none';
+    }
+    if (btnMat) {
+      btnMat.style.background = 'rgba(255,255,255,0.28)';
+      btnMat.style.color = '#fff';
+      btnMat.style.border = 'none';
+      btnMat.style.fontWeight = '800';
+      btnMat.style.boxShadow = '0 1px 4px rgba(0,0,0,0.25)';
+    }
+
+    const actControls = document.getElementById('coord-act-header-controls');
+    if (actControls) actControls.style.display = 'none';
+    const actView = document.getElementById('coord-activities-view');
+    if (actView) actView.style.display = 'none';
+    const expBtn = document.getElementById('coord-export-btn');
+    if (expBtn) expBtn.style.display = 'none';
+
+    const matView = document.getElementById('coord-matzava-view');
+    if (matView) {
+      matView.style.display = 'block';
+      if (typeof window.renderMatzavaTab === 'function') {
+        window.renderMatzavaTab(matView);
+      }
+    }
+  } else {
+    window._coordActiveMainTab = 'activities';
+
+    const btnAct = document.getElementById('coord-main-tab-act');
+    const btnMat = document.getElementById('coord-main-tab-matzava');
+    if (btnAct) {
+      btnAct.style.background = 'rgba(255,255,255,0.28)';
+      btnAct.style.color = '#fff';
+      btnAct.style.border = 'none';
+      btnAct.style.fontWeight = '800';
+      btnAct.style.boxShadow = '0 1px 4px rgba(0,0,0,0.25)';
+    }
+    if (btnMat) {
+      btnMat.style.background = 'transparent';
+      btnMat.style.color = 'rgba(255,255,255,0.7)';
+      btnMat.style.border = '1px solid rgba(255,255,255,0.2)';
+      btnMat.style.fontWeight = '700';
+      btnMat.style.boxShadow = 'none';
+    }
+
+    const matView = document.getElementById('coord-matzava-view');
+    if (matView) matView.style.display = 'none';
+
+    const actControls = document.getElementById('coord-act-header-controls');
+    if (actControls) actControls.style.display = 'block';
+    const actView = document.getElementById('coord-activities-view');
+    if (actView) actView.style.display = 'block';
+    const expBtn = document.getElementById('coord-export-btn');
+    if (expBtn) expBtn.style.display = 'inline-flex';
+
+    if (typeof window.renderCoordinatorView === 'function') {
+      window.renderCoordinatorView();
+    }
+  }
+};
 
 // ─────────────────────────────────────────────────────────
 // ACTIVATION & EXPORT VIEW
@@ -426,17 +531,26 @@ window.activateCoordinatorApp = function() {
   if (gSummaryLabel) gSummaryLabel.textContent = defaultGardenLabel;
 
   _coordBuildGardenFilter();
+  if (typeof window.coordSwitchMainTab === 'function') {
+    window.coordSwitchMainTab(window._coordActiveMainTab || 'activities');
+  }
   if (typeof window._coordEnsureYearPairs === 'function') {
     window._coordEnsureYearPairs().then(() => {
-      window.renderCoordinatorView();
+      if (window._coordActiveMainTab !== 'matzava') {
+        window.renderCoordinatorView();
+      }
     });
   } else {
-    window.renderCoordinatorView();
+    if (window._coordActiveMainTab !== 'matzava') {
+      window.renderCoordinatorView();
+    }
   }
   // Retry once after potential late SCH load
   setTimeout(() => {
     if (typeof window._coordEnsureYearPairs === 'function') window._coordEnsureYearPairs();
-    window.renderCoordinatorView();
+    if (window._coordActiveMainTab !== 'matzava') {
+      window.renderCoordinatorView();
+    }
   }, 1200);
 };
 
@@ -1299,6 +1413,16 @@ function _coordRenderByCity(evs, ds) {
 // REFRESH + LOGOUT
 // ─────────────────────────────────────────────────────────
 window.coordRefreshData = function() {
+  if (window._coordActiveMainTab === 'matzava') {
+    if (typeof window.smartMatzavaRefresh === 'function') {
+      window.smartMatzavaRefresh();
+    } else if (typeof window.refreshMatzavaFromCloud === 'function') {
+      window.refreshMatzavaFromCloud();
+    } else {
+      location.reload();
+    }
+    return;
+  }
   window._coordFilterBuilt = false;
   if (window.loadFromFirebase) {
     window.loadFromFirebase(false, true).then(async () => {

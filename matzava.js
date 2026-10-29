@@ -2288,6 +2288,11 @@
   // Filter logic for Kindergartens
   window.getFilteredMatzavaRecords = function () {
     const s = window.MATZAVA_STATE;
+    const clsScope = (window.coordClsScope || '').trim();
+    if ((clsScope === 'ביהס' || clsScope === 'ביה"ס') && window.role !== 'admin' && window.role !== 'manager' && window.role !== 'vp') {
+      return [];
+    }
+
     normalizeRecordsKids10(s.records);
     let list = s.records || [];
 
@@ -2328,6 +2333,11 @@
   // Filter logic for Schools
   window.getFilteredSchoolsRecords = function () {
     const s = window.MATZAVA_STATE;
+    const clsScope = (window.coordClsScope || '').trim();
+    if (clsScope === 'גן' && window.role !== 'admin' && window.role !== 'manager' && window.role !== 'vp') {
+      return [];
+    }
+
     let list = s.schools || [];
 
     const allowedCities = getUserAllowedCities();
@@ -3549,7 +3559,9 @@
     }
     const modalBody = document.getElementById('matzava-modal-body');
     const isModalOpen = modalBody && (modalBody.offsetParent !== null || (document.getElementById('matzava-modal') && document.getElementById('matzava-modal').style.display !== 'none'));
-    const container = targetEl || (isModalOpen ? modalBody : null) || document.getElementById('p-matzava') || modalBody;
+    const coordMatzavaView = document.getElementById('coord-matzava-view');
+    const isCoordOpen = coordMatzavaView && (coordMatzavaView.offsetParent !== null || coordMatzavaView.style.display !== 'none');
+    const container = targetEl || (isCoordOpen ? coordMatzavaView : (isModalOpen ? modalBody : null)) || document.getElementById('p-matzava') || modalBody;
     if (!container) return;
 
     if (!window.MATZAVA_STATE.loadedYear) {
@@ -3970,27 +3982,50 @@
         <!-- ─────────────────────────────────────────────────────────── -->
         <!-- SECONDARY SMART SUB-TABS BAR -->
         <!-- ─────────────────────────────────────────────────────────── -->
-        <div style="display:flex; align-items:center; gap:${isMob ? '4px' : '8px'}; margin-bottom:${isMob ? '10px' : '14px'}; border-bottom:2px solid #e2e8f0; padding-bottom:6px;">
-          <button onclick="window.MATZAVA_STATE.subTab='gardens'; window.renderMatzavaTab();" 
-            style="${isMob ? 'flex:1;' : ''} padding:${isMob ? '6px 8px' : '8px 16px'}; border-radius:8px; border:none; font-weight:800; font-size:${isMob ? '0.8rem' : '0.9rem'}; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:all 0.15s; ${s.subTab==='gardens' ? 'background:#1a237e; color:#fff; box-shadow:0 2px 6px rgba(26,35,126,0.3);' : 'background:#f1f5f9; color:#475569;'}">
-            <span>🏡 צהרוני גנים</span>
-            <span id="matzava-subtab-gardens-count" style="font-size:0.72rem; padding:1px 6px; border-radius:10px; font-weight:800; ${s.subTab==='gardens' ? 'background:rgba(255,255,255,0.25); color:#fff;' : 'background:#e2e8f0; color:#334155;'}">${filteredGardens.length}</span>
-          </button>
+        ${(() => {
+          const isGardensVisible = filteredGardens.length > 0;
+          const isSchoolsVisible = filteredSchools.length > 0;
+          const isNutritionVisible = (s.selectedCity !== 'all' && filteredNutrition.length > 0);
+          const visibleSubTabsCount = (isGardensVisible ? 1 : 0) + (isSchoolsVisible ? 1 : 0) + (isNutritionVisible ? 1 : 0);
 
-          <button onclick="window.MATZAVA_STATE.subTab='schools'; window.renderMatzavaTab();" 
-            style="${isMob ? 'flex:1;' : ''} padding:${isMob ? '6px 8px' : '8px 16px'}; border-radius:8px; border:none; font-weight:800; font-size:${isMob ? '0.8rem' : '0.9rem'}; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:all 0.15s; ${s.subTab==='schools' ? 'background:#006064; color:#fff; box-shadow:0 2px 6px rgba(0,96,100,0.3);' : 'background:#f1f5f9; color:#475569;'}">
-            <span>🏫 בתי ספר</span>
-            <span id="matzava-subtab-schools-count" style="font-size:0.72rem; padding:1px 6px; border-radius:10px; font-weight:800; ${s.subTab==='schools' ? 'background:rgba(255,255,255,0.25); color:#fff;' : 'background:#e2e8f0; color:#334155;'}">${filteredSchools.length}</span>
-          </button>
+          if (s.subTab === 'schools' && !isSchoolsVisible) {
+            s.subTab = isGardensVisible ? 'gardens' : (isNutritionVisible ? 'nutrition' : 'gardens');
+          } else if (s.subTab === 'gardens' && !isGardensVisible && isSchoolsVisible) {
+            s.subTab = 'schools';
+          } else if (s.subTab === 'nutrition' && !isNutritionVisible) {
+            s.subTab = isGardensVisible ? 'gardens' : (isSchoolsVisible ? 'schools' : 'gardens');
+          }
 
-          ${isNutritionVisible ? `
-            <button onclick="window.MATZAVA_STATE.subTab='nutrition'; window.renderMatzavaTab();" 
-              style="${isMob ? 'flex:1;' : ''} padding:${isMob ? '6px 8px' : '8px 16px'}; border-radius:8px; border:none; font-weight:800; font-size:${isMob ? '0.8rem' : '0.9rem'}; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:all 0.15s; ${s.subTab==='nutrition' ? 'background:#e65100; color:#fff; box-shadow:0 2px 6px rgba(230,81,0,0.3);' : 'background:#f1f5f9; color:#475569;'}">
-              <span>🥪 הזנה</span>
-              <span id="matzava-subtab-nutrition-count" style="font-size:0.72rem; padding:1px 6px; border-radius:10px; font-weight:800; ${s.subTab==='nutrition' ? 'background:rgba(255,255,255,0.25); color:#fff;' : 'background:#e2e8f0; color:#334155;'}">${filteredNutrition.length}</span>
-            </button>
-          ` : ''}
-        </div>
+          if (visibleSubTabsCount <= 1) return '';
+
+          return `
+            <div style="display:flex; align-items:center; gap:${isMob ? '4px' : '8px'}; margin-bottom:${isMob ? '10px' : '14px'}; border-bottom:2px solid #e2e8f0; padding-bottom:6px;">
+              ${isGardensVisible ? `
+                <button onclick="window.MATZAVA_STATE.subTab='gardens'; window.renderMatzavaTab();" 
+                  style="${isMob ? 'flex:1;' : ''} padding:${isMob ? '6px 8px' : '8px 16px'}; border-radius:8px; border:none; font-weight:800; font-size:${isMob ? '0.8rem' : '0.9rem'}; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:all 0.15s; ${s.subTab==='gardens' ? 'background:#1a237e; color:#fff; box-shadow:0 2px 6px rgba(26,35,126,0.3);' : 'background:#f1f5f9; color:#475569;'}">
+                  <span>🏡 צהרוני גנים</span>
+                  <span id="matzava-subtab-gardens-count" style="font-size:0.72rem; padding:1px 6px; border-radius:10px; font-weight:800; ${s.subTab==='gardens' ? 'background:rgba(255,255,255,0.25); color:#fff;' : 'background:#e2e8f0; color:#334155;'}">${filteredGardens.length}</span>
+                </button>
+              ` : ''}
+
+              ${isSchoolsVisible ? `
+                <button onclick="window.MATZAVA_STATE.subTab='schools'; window.renderMatzavaTab();" 
+                  style="${isMob ? 'flex:1;' : ''} padding:${isMob ? '6px 8px' : '8px 16px'}; border-radius:8px; border:none; font-weight:800; font-size:${isMob ? '0.8rem' : '0.9rem'}; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:all 0.15s; ${s.subTab==='schools' ? 'background:#006064; color:#fff; box-shadow:0 2px 6px rgba(0,96,100,0.3);' : 'background:#f1f5f9; color:#475569;'}">
+                  <span>🏫 בתי ספר</span>
+                  <span id="matzava-subtab-schools-count" style="font-size:0.72rem; padding:1px 6px; border-radius:10px; font-weight:800; ${s.subTab==='schools' ? 'background:rgba(255,255,255,0.25); color:#fff;' : 'background:#e2e8f0; color:#334155;'}">${filteredSchools.length}</span>
+                </button>
+              ` : ''}
+
+              ${isNutritionVisible ? `
+                <button onclick="window.MATZAVA_STATE.subTab='nutrition'; window.renderMatzavaTab();" 
+                  style="${isMob ? 'flex:1;' : ''} padding:${isMob ? '6px 8px' : '8px 16px'}; border-radius:8px; border:none; font-weight:800; font-size:${isMob ? '0.8rem' : '0.9rem'}; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:all 0.15s; ${s.subTab==='nutrition' ? 'background:#e65100; color:#fff; box-shadow:0 2px 6px rgba(230,81,0,0.3);' : 'background:#f1f5f9; color:#475569;'}">
+                  <span>🥪 הזנה</span>
+                  <span id="matzava-subtab-nutrition-count" style="font-size:0.72rem; padding:1px 6px; border-radius:10px; font-weight:800; ${s.subTab==='nutrition' ? 'background:rgba(255,255,255,0.25); color:#fff;' : 'background:#e2e8f0; color:#334155;'}">${filteredNutrition.length}</span>
+                </button>
+              ` : ''}
+            </div>
+          `;
+        })()}
 
         <!-- ─────────────────────────────────────────────────────────── -->
         <!-- DYNAMIC KPI CARDS (2x2 Grid on Mobile to eliminate dead space) -->
@@ -4070,6 +4105,14 @@
       if (typeof window.showToast === 'function') window.showToast('אין לך הרשאה לצפייה במצבה', 'warn');
       return;
     }
+
+    // Seamless Tab Switch for Coordinators & Management: No modal needed!
+    const coordRoot = document.getElementById('coordinator-app-root');
+    if (coordRoot && coordRoot.style.display !== 'none' && typeof window.coordSwitchMainTab === 'function') {
+      window.coordSwitchMainTab('matzava');
+      return;
+    }
+
     const isMob = (typeof window.isMobileMode === 'function' ? window.isMobileMode() : (window.innerWidth <= 768));
     let modal = document.getElementById('matzava-modal');
     if (!modal) {
@@ -4077,14 +4120,14 @@
       modal.id = 'matzava-modal';
       document.body.appendChild(modal);
     }
-    modal.style.cssText = `position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.7); z-index:9999999; display:flex; justify-content:center; align-items:center; padding:${isMob ? '0' : '12px'}; box-sizing:border-box; backdrop-filter:blur(3px);`;
+    modal.style.cssText = `position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.7); z-index:9999999; display:flex; justify-content:center; align-items:center; padding:${isMob ? '0' : '12px'}; padding-top:max(env(safe-area-inset-top, 0px), ${isMob ? '0px' : '12px'}); box-sizing:border-box; backdrop-filter:blur(3px);`;
     modal.innerHTML = `
       <div style="background:#f8fafc; width:100%; max-width:1300px; height:${isMob ? '100vh' : '92vh'}; border-radius:${isMob ? '0' : '14px'}; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,0.3); border:${isMob ? 'none' : '1px solid #cbd5e1'};">
-        <div style="padding:${isMob ? '10px 14px' : '12px 18px'}; background:#1a237e; color:#fff; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+        <div style="padding:${isMob ? '12px 14px' : '12px 18px'}; background:#1a237e; color:#fff; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
           <div style="font-weight:800; font-size:${isMob ? '0.95rem' : '1.1rem'}; display:flex; align-items:center; gap:8px;">
             <span>👶 מצבה — מספרי ילדים ואלרגיות</span>
           </div>
-          <button onclick="document.getElementById('matzava-modal').style.setProperty('display','none','important')" style="background:rgba(255,255,255,0.15); border:none; color:#fff; font-size:1.1rem; border-radius:6px; width:30px; height:30px; display:flex; align-items:center; justify-content:center; cursor:pointer;" title="סגור">✕</button>
+          <button onclick="document.getElementById('matzava-modal').style.setProperty('display','none','important')" style="background:rgba(255,255,255,0.25); border:none; color:#fff; font-size:1.3rem; font-weight:800; border-radius:8px; min-width:38px; min-height:38px; display:flex; align-items:center; justify-content:center; cursor:pointer;" title="סגור">✕</button>
         </div>
         <div id="matzava-modal-body" style="flex:1; overflow-y:auto; padding:${isMob ? '4px 6px' : '8px'}; -webkit-overflow-scrolling:touch;"></div>
       </div>

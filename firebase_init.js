@@ -341,7 +341,16 @@ window.applyMatzavaPermissionVisibility = function() {
   const coordBtn = document.getElementById('coord-matzava-btn');
   if (coordBtn) coordBtn.style.setProperty('display', hasPerm ? '' : 'none', 'important');
 
+  const coordMatTab = document.getElementById('coord-main-tab-matzava');
+  if (coordMatTab) coordMatTab.style.setProperty('display', hasPerm ? '' : 'none', 'important');
+
+  const coordMainTabs = document.getElementById('coord-main-tabs');
+  if (coordMainTabs) coordMainTabs.style.setProperty('display', hasPerm ? '' : 'none', 'important');
+
   if (!hasPerm) {
+    if (window._coordActiveMainTab === 'matzava' && typeof window.coordSwitchMainTab === 'function') {
+      window.coordSwitchMainTab('activities');
+    }
     const pMatzava = document.getElementById('p-matzava');
     if (pMatzava && pMatzava.style.display !== 'none') {
       pMatzava.style.display = 'none';
