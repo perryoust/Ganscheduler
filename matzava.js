@@ -1438,9 +1438,9 @@
     modal.innerHTML = `
       <div style="background:#fff; border-radius:16px; width:100%; max-width:380px; box-shadow:0 20px 40px rgba(0,0,0,0.3); overflow:hidden; border:1px solid #e2e8f0; text-align:center; padding:24px 20px;">
         <div id="mrsm-icon" style="font-size:3rem; margin-bottom:10px; animation:pulse 1.5s infinite;">📡</div>
-        <h3 id="mrsm-title" style="margin:0 0 8px 0; color:#1a237e; font-size:1.15rem; font-weight:800;">בקשת רענון נשלחה למחשב</h3>
+        <h3 id="mrsm-title" style="margin:0 0 8px 0; color:#1a237e; font-size:1.15rem; font-weight:800;">בודק זמינות מחשב משרדי...</h3>
         <p id="mrsm-desc" style="font-size:0.88rem; color:#475569; margin:0 0 18px 0; line-height:1.4;">
-          ממתין לתגובת אתר GanScheduler הפתוח במחשב המשרדי...
+          בודק אם המחשב המשרדי זמין לסריקה עדכנית, אחרת ירוענן ישירות מהענן.
         </p>
         <div id="mrsm-progress" style="width:100%; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden; margin-bottom:18px;">
           <div style="width:30%; height:100%; background:linear-gradient(90deg, #1a237e, #3949ab); border-radius:3px; animation:indeterminate 1.8s infinite ease-in-out;"></div>
@@ -1479,6 +1479,7 @@
     if (type === 'processing') {
       if (iconEl) iconEl.innerText = '🔄';
       titleEl.innerText = title || 'המחשב סורק קבצים...';
+      titleEl.style.color = '#1565c0';
       if (descEl) descEl.innerText = desc || 'המחשב מעבד כעת את קבצי האקסל מהתיקייה המקומית.';
     } else if (type === 'completed') {
       if (iconEl) {
@@ -1493,13 +1494,21 @@
       setTimeout(() => {
         window.closeRemoteSyncModal();
         if (window.showToast) window.showToast('✅ מצבה עודכנה בהצלחה מהמחשב!');
-      }, 2000);
+      }, 1500);
+    } else if (type === 'cloud_fallback') {
+      if (iconEl) {
+        iconEl.innerText = '☁️';
+        iconEl.style.animation = 'none';
+      }
+      titleEl.innerText = title || 'מרענן ישירות מהענן...';
+      titleEl.style.color = '#0284c7';
+      if (descEl) descEl.innerText = desc || 'המחשב המשרדי אינו זמין כעת, שואב נתונים עדכניים מ-Firebase.';
     } else if (type === 'error') {
       if (iconEl) {
         iconEl.innerText = '⚠️';
         iconEl.style.animation = 'none';
       }
-      titleEl.innerText = title || 'לא התקבלה תגובה מהמחשב';
+      titleEl.innerText = title || 'תקלה ברענון';
       titleEl.style.color = '#c62828';
       if (descEl) descEl.innerText = desc || 'וודא שהאתר פתוח בלשונית במחשב עם הרשאה לתיקיית המצבה.';
       if (progEl) progEl.style.display = 'none';
@@ -1511,58 +1520,106 @@
     }
   }
 
-  function pollRemoteSyncStatus(cmdId, y) {
+  async function triggerMatzavaReRender() {
+    try {
+      const modal = document.getElementById('matzava-modal');
+      const modalBody = document.getElementById('matzava-modal-body');
+      const isModalVisible = modal && modal.style.display !== 'none';
+      const targetContainer = (isModalVisible && modalBody) ? modalBody : (document.getElementById('p-matzava') || modalBody);
+      await window.renderMatzavaTab(targetContainer);
+    } catch (e) {
+      console.warn('Error during matzava re-render:', e);
+    }
+  }
+
+  async function executeCloudFallback(desc) {
+    if (_remotePollTimer) {
+      clearInterval(_remotePollTimer);
+      _remotePollTimer = null;
+    }
+    updateRemoteSyncModal('cloud_fallback', 'מרענן ישירות מהענן...', desc || 'המחשב המשרדי אינו זמין כעת. שואב נתונים עדכניים מהענן...');
+    try {
+      await window.loadMatzavaFromFirebase(true, true);
+      await triggerMatzavaReRender();
+      updateRemoteSyncModal('completed', 'הנתונים רועננו מהענן בהצלחה!', 'הנתונים העדכניים ביותר שנשמרו בענן מוצגים כעת.');
+    } catch (err) {
+      console.error('Cloud fallback failed:', err);
+      updateRemoteSyncModal('error', 'שגיאה ברענון מהענן', err.message || 'לא ניתן היה לקרוא נתונים מהענן.');
+    }
+  }
+
+  function pollSmartSyncStatus(cmdId, y) {
     if (_remotePollTimer) clearInterval(_remotePollTimer);
     let attempts = 0;
-    const maxAttempts = 22; // ~44 seconds total
+    // Office PC checks every 2.5s. If it's active, it picks up and flips to 'processing' within 4-5s.
+    // 4 attempts * 1.5s = 6 seconds timeout for response from PC.
+    const maxPendingAttempts = 4;
+    const maxTotalAttempts = 35; // If PC started processing, give it up to ~50s to finish Excel scan & upload
 
     _remotePollTimer = setInterval(async () => {
       attempts++;
-      if (attempts > maxAttempts) {
-        clearInterval(_remotePollTimer);
-        _remotePollTimer = null;
-        updateRemoteSyncModal('error', 'פסק זמן - המחשב לא הגיב', 'נא לוודא שאתר GanScheduler פתוח בלשונית פעילה במחשב המשרדי.');
-        return;
-      }
 
       try {
         const authQ = await getMatzavaAuthHeader();
         const cb = (authQ ? '&' : '?') + 'cb=' + Date.now();
         const url = `${RTDB_ROOT}/matzava/${y}/sync_command.json${authQ}${cb}`;
         const res = await fetch(url);
-        if (!res.ok) return;
+        if (!res.ok) {
+          if (attempts >= maxPendingAttempts) {
+            await executeCloudFallback('לא התקבל מענה מהמחשב — מרענן ישירות מנתוני הענן...');
+          }
+          return;
+        }
         const cmd = await res.json();
-        if (!cmd || cmd.id !== cmdId) return;
+        if (!cmd || cmd.id !== cmdId) {
+          if (attempts >= maxPendingAttempts) {
+            await executeCloudFallback('המחשב המשרדי אינו זמין כעת — מרענן ישירות מהענן...');
+          }
+          return;
+        }
 
         if (cmd.status === 'processing') {
-          updateRemoteSyncModal('processing', 'המחשב סורק קבצי Excel...', 'הסריקה מתבצעת כעת במחשב המשרדי.');
+          updateRemoteSyncModal('processing', 'המחשב סורק קבצי Excel...', 'הסריקה מתבצעת כעת במחשב המשרדי והנתונים יעלו לענן.');
+          if (attempts > maxTotalAttempts) {
+            await executeCloudFallback('סריקת המחשב מתעכבת — מרענן בינתיים מהענן...');
+          }
         } else if (cmd.status === 'completed') {
           clearInterval(_remotePollTimer);
           _remotePollTimer = null;
           updateRemoteSyncModal('completed', 'סריקת הקבצים הושלמה!', `נסרקו בהצלחה ${cmd.count || ''} קבצים והנתונים עלו לענן.`);
-          // Reload fresh data from Firebase and re-render!
           await window.loadMatzavaFromFirebase(true, true);
-          window.renderMatzavaTab();
+          await triggerMatzavaReRender();
         } else if (cmd.status === 'failed') {
-          clearInterval(_remotePollTimer);
-          _remotePollTimer = null;
-          updateRemoteSyncModal('error', 'הסריקה במחשב נכשלה', cmd.error || 'אירעה שגיאה בקריאת הקבצים במחשב.');
+          await executeCloudFallback(cmd.error ? `המחשב דיווח על תקלה: ${cmd.error} — מרענן מהענן...` : 'מרענן מנתוני הענן...');
+        } else if (cmd.status === 'pending' && attempts >= maxPendingAttempts) {
+          // PC is offline / not listening within 6s -> seamless fallback to cloud!
+          await executeCloudFallback('המחשב המשרדי אינו זמין כעת — מרענן ישירות מהענן...');
         }
-      } catch (e) {}
-    }, 2000);
+      } catch (e) {
+        if (attempts >= maxPendingAttempts) {
+          await executeCloudFallback('מרענן ישירות מנתוני הענן...');
+        }
+      }
+    }, 1500);
   }
 
-  window.requestMatzavaRefreshFromPC = async function () {
+  // Unified Smart Refresh: First tries PC scan, automatically falls back to Cloud refresh without user intervention
+  window.smartMatzavaRefresh = async function (btnEl) {
     const isMasterAdmin = (window.role === 'admin') || 
                           (window._fbUser && window._fbUser.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03') || 
                           (window._fbUser && window._fbUser.email && window._fbUser.email.startsWith('perry@')) ||
                           (window.username === 'perry');
-    const role = getSafeRole();
-    const canRequest = isMasterAdmin || role === 'admin' || role === 'manager' || role === 'vp';
-    if (!canRequest) {
-      if (window.showToast) window.showToast('⚠️ רק הנהלה ומנהלים יכולים לשלוח בקשת רענון למחשב', 3000);
-      return;
+    const isHostPC = isMasterAdmin && !!(window.showDirectoryPicker && window.indexedDB && window.innerWidth > 900);
+
+    // If on the physical Host PC where directory is linked, execute direct local scan & cloud upload:
+    if (isHostPC && window.autoRefreshMatzava) {
+      return window.autoRefreshMatzava();
     }
+
+    // Remote client (Mali, Management, VP, Mobile, Remote PC, Coordinator):
+    // 1. Try sending command to office PC
+    // 2. If PC responds within 6s, it runs the scan and uploads fresh data
+    // 3. If PC is offline or doesn't respond, system automatically falls back to Cloud data
     const y = getYearKey();
     const cmdId = 'cmd_' + Date.now();
     const cmd = {
@@ -1570,7 +1627,7 @@
       action: 'refresh',
       status: 'pending',
       requestedAt: Date.now(),
-      requestedBy: (window._fbUser && (window._fbUser.displayName || window._fbUser.email)) || window.username || 'admin',
+      requestedBy: (window._fbUser && (window._fbUser.displayName || window._fbUser.email)) || window.username || 'user',
       year: y
     };
 
@@ -1586,12 +1643,16 @@
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
     } catch (e) {
-      updateRemoteSyncModal('error', 'שגיאה בשליחת הפקודה', e.message);
+      console.warn('Could not post sync_command, falling back to cloud immediately:', e);
+      await executeCloudFallback('התחברות ישירה לענן...');
       return;
     }
 
-    pollRemoteSyncStatus(cmdId, y);
+    pollSmartSyncStatus(cmdId, y);
   };
+
+  // Backward compatibility alias
+  window.requestMatzavaRefreshFromPC = window.smartMatzavaRefresh;
 
   // ───────────────────────────────────────────────────────────
   // DESKTOP PC BACKGROUND LISTENER & EXECUTOR
@@ -1725,7 +1786,7 @@
       } catch (e) {}
     };
 
-    _pcRemoteListenerTimer = setInterval(checkCommand, 5000);
+    _pcRemoteListenerTimer = setInterval(checkCommand, 2500);
     window.addEventListener('focus', checkCommand);
   };
 
@@ -3461,16 +3522,10 @@
                 </div>
               ` : isManagement ? `
                 <!-- MANAGEMENT / MALI / VP (OR ADMIN ON MOBILE/REMOTE) -->
-                <button class="btn" onclick="window.refreshMatzavaFromCloud(this)" 
-                  style="background:linear-gradient(135deg, #1565c0, #0d47a1); color:#fff; border:none; border-radius:8px; font-weight:700; padding:${isMob ? '6px 12px' : '8px 16px'}; font-size:${isMob ? '0.8rem' : '0.85rem'}; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-shadow:0 2px 8px rgba(21,101,192,0.3);" 
-                  title="רענן נתוני מצבה ישירות מהענן">
-                  🔄 רענן מהענן
-                </button>
-
-                <button class="btn" onclick="window.requestMatzavaRefreshFromPC()" 
-                  style="background:linear-gradient(135deg, #4338ca, #3730a3); color:#fff; border:none; border-radius:8px; font-weight:700; padding:${isMob ? '6px 12px' : '8px 15px'}; font-size:${isMob ? '0.8rem' : '0.85rem'}; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-shadow:0 2px 8px rgba(67,56,202,0.25);" 
-                  title="שליחת בקשה למחשב הראשי לסרוק את קבצי האקסל מהדיסק ולהעלות לענן">
-                  📡 בקש סריקה מהמחשב
+                <button class="btn" onclick="window.smartMatzavaRefresh(this)" 
+                  style="background:linear-gradient(135deg, #1565c0, #0d47a1); color:#fff; border:none; border-radius:8px; font-weight:700; padding:${isMob ? '6px 14px' : '8px 18px'}; font-size:${isMob ? '0.8rem' : '0.85rem'}; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-shadow:0 2px 8px rgba(21,101,192,0.3);" 
+                  title="רענון חכם: סריקת קבצים אוטומטית מהמחשב או שליפה מיידית מהענן">
+                  🔄 רענן נתונים
                 </button>
 
                 ${!isMob ? `
@@ -3482,10 +3537,10 @@
                 ` : ''}
               ` : `
                 <!-- FIELD & VIEWERS (COORDINATORS) -->
-                <button class="btn" onclick="window.refreshMatzavaFromCloud(this)" 
-                  style="background:linear-gradient(135deg, #1565c0, #0d47a1); color:#fff; border:none; border-radius:8px; font-weight:700; padding:${isMob ? '6px 12px' : '8px 16px'}; font-size:${isMob ? '0.8rem' : '0.85rem'}; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-shadow:0 2px 8px rgba(21,101,192,0.3); transition:all 0.2s;" 
+                <button class="btn" onclick="window.smartMatzavaRefresh(this)" 
+                  style="background:linear-gradient(135deg, #1565c0, #0d47a1); color:#fff; border:none; border-radius:8px; font-weight:700; padding:${isMob ? '6px 14px' : '8px 16px'}; font-size:${isMob ? '0.8rem' : '0.85rem'}; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-shadow:0 2px 8px rgba(21,101,192,0.3); transition:all 0.2s;" 
                   title="רענן תצוגה מהענן">
-                  🔄 רענן
+                  🔄 רענן נתונים
                 </button>
                 ${!isMob ? `
                   <button class="btn" onclick="window.exportMatzavaToExcel()" 
