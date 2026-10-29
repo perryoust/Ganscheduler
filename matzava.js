@@ -2272,7 +2272,7 @@
               ${r.hasChange ? `<span style="background:#fef08a; color:#854d0e; padding:1px 6px; border-radius:10px; font-size:0.68rem; font-weight:800; border:1px solid #facc15; cursor:pointer;" onclick="window.dismissMatzavaChange('${r.id || r.name}', '${r.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">⚡ שונה באקסל ✕</span>` : ''}
               ${r.age ? `<span style="background:#e3f2fd; color:#1565c0; padding:1px 6px; border-radius:4px; font-size:0.7rem; font-weight:700;">גיל ${r.age}</span>` : ''}
               ${r.isMerged ? `<span style="background:#f3e5f5; color:#6a1b9a; padding:1px 6px; border-radius:10px; font-size:0.68rem; font-weight:800;">⚖️ איחוד (${(r.subGardens || []).length})</span>` : ''}
-              ${r.gardenId ? `<span title="קיים במאגר" style="font-size:0.72rem; color:#4caf50;">✓</span>` : ''}
+
             </div>
             <div style="font-size:1rem; font-weight:800; color:#1a237e; word-break:break-word; line-height:1.25;">
               ${safeRowName}
@@ -2688,7 +2688,7 @@
                 ⚖️ איחוד (${(r.subGardens || []).length} גנים)
               </span>
             ` : ''}
-            ${r.gardenId ? `<span title="מקושר למאגר צהרונים קיים (#${r.gardenId})" style="cursor:help; font-size:0.75rem; color:#4caf50;">✓</span>` : ''}
+
           </div>
 
           ${r.isMerged && Array.isArray(r.subGardens) && r.subGardens.length > 0 ? `
