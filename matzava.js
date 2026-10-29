@@ -1594,8 +1594,14 @@
   }
 
   window.requestMatzavaRefreshFromPC = async function () {
-    if (!canEditMatzava()) {
-      if (window.showToast) window.showToast('⚠️ רק מנהל יכול לשלוח פקודת רענון למחשב', 3000);
+    const isMasterAdmin = (window.role === 'admin') || 
+                          (window._fbUser && window._fbUser.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03') || 
+                          (window._fbUser && window._fbUser.email && window._fbUser.email.startsWith('perry@')) ||
+                          (window.username === 'perry');
+    const role = getSafeRole();
+    const canRequest = isMasterAdmin || role === 'admin' || role === 'manager' || role === 'vp';
+    if (!canRequest) {
+      if (window.showToast) window.showToast('⚠️ רק הנהלה ומנהלים יכולים לשלוח בקשת רענון למחשב', 3000);
       return;
     }
     const y = getYearKey();
@@ -1737,7 +1743,12 @@
     if (_pcRemoteListenerTimer) return;
 
     const checkCommand = async () => {
-      if (!canEditMatzava()) return;
+      // Host scanner MUST strictly be Master Admin (Perry) on his office PC with the Excel folder
+      const isMasterAdmin = (window.role === 'admin') || 
+                            (window._fbUser && window._fbUser.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03') || 
+                            (window._fbUser && window._fbUser.email && window._fbUser.email.startsWith('perry@')) ||
+                            (window.username === 'perry');
+      if (!isMasterAdmin) return;
       const y = getYearKey();
       try {
         const authQ = await getMatzavaAuthHeader();
@@ -3228,6 +3239,12 @@
     const s = window.MATZAVA_STATE;
     const canEdit = canEditMatzava();
     const isMob = (typeof window.isMobileMode === 'function' ? window.isMobileMode() : (window.innerWidth <= 768));
+    const isMasterAdmin = (window.role === 'admin') || 
+                          (window._fbUser && window._fbUser.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03') || 
+                          (window._fbUser && window._fbUser.email && window._fbUser.email.startsWith('perry@')) ||
+                          (window.username === 'perry');
+    const isHostPC = isMasterAdmin && !isMob && !!window.showDirectoryPicker;
+    const isManagement = isMasterAdmin || (getSafeRole() === 'admin' || getSafeRole() === 'manager' || getSafeRole() === 'vp');
 
     // Available cities list from all 3 datasets filtered by user permissions
     const allowedCities = getUserAllowedCities();
@@ -3435,48 +3452,28 @@
 
             <!-- ACTION BUTTONS -->
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-              ${canEdit ? `
-                <!-- ADMIN: DESKTOP VS MOBILE TAILORED CONTROLS -->
-                ${!isMob ? `
-                  <!-- DESKTOP ADMIN: DEDICATED PC FOLDER SCAN BUTTON + CLOUD REFRESH -->
-                  <button class="btn" onclick="window.autoRefreshMatzava()" 
-                    style="background:linear-gradient(135deg, #1b5e20, #2e7d32); color:#fff; border:none; border-radius:8px; font-weight:700; padding:8px 14px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-shadow:0 2px 6px rgba(46,125,50,0.25);" 
-                    title="סריקת תיקיית קבצי המצבה המקומית במחשב ועדכון הענן">
-                    ⚡ סריקת קבצים (מחשב)
-                  </button>
+              ${isHostPC ? `
+                <!-- ADMIN ON OFFICE PC (HOST WITH EXCEL FILES) -->
+                <button class="btn" onclick="window.autoRefreshMatzava()" 
+                  style="background:linear-gradient(135deg, #1b5e20, #2e7d32); color:#fff; border:none; border-radius:8px; font-weight:700; padding:8px 14px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-shadow:0 2px 6px rgba(46,125,50,0.25);" 
+                  title="סריקת תיקיית קבצי המצבה המקומית במחשב ועדכון הענן">
+                  ⚡ סריקת קבצים (מחשב)
+                </button>
 
-                  <button class="btn" onclick="window.refreshMatzavaFromCloud(this)" 
-                    style="background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; border-radius:8px; font-weight:700; padding:8px 14px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" 
-                    title="רענון מהיר (מסנכרן אוטומטית מקבצי המחשב או מהענן)">
-                    🔄 רענן
-                  </button>
-                ` : `
-                  <!-- MOBILE ADMIN: SINGLE UNIFIED REFRESH BUTTON -->
-                  <button class="btn" onclick="window.refreshMatzavaFromCloud(this)" 
-                    style="background:linear-gradient(135deg, #1565c0, #0d47a1); color:#fff; border:none; border-radius:8px; font-weight:700; padding:6px 12px; font-size:0.8rem; display:inline-flex; align-items:center; gap:5px; cursor:pointer; box-shadow:0 2px 6px rgba(21,101,192,0.25);" 
-                    title="רענן נתוני מצבה (מסנכרן אוטומטית מקבצי המחשב או מהענן)">
-                    🔄 רענן
-                  </button>
-                `}
+                <button class="btn" onclick="window.refreshMatzavaFromCloud(this)" 
+                  style="background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; border-radius:8px; font-weight:700; padding:8px 14px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" 
+                  title="רענון מהיר ישירות מהענן">
+                  🔄 רענן מהענן
+                </button>
 
                 <!-- ADMIN TOOLS DROPDOWN -->
                 <div style="position:relative; display:inline-block;" id="matzava-admin-tools-wrapper">
                   <button class="btn" onclick="window.toggleMatzavaAdminMenu(event)" 
-                    style="background:#475569; color:#fff; border:none; border-radius:8px; font-weight:700; padding:${isMob ? '6px 10px' : '8px 14px'}; font-size:${isMob ? '0.78rem' : '0.85rem'}; display:inline-flex; align-items:center; gap:4px; cursor:pointer; box-shadow:0 2px 6px rgba(71,85,105,0.25);"
+                    style="background:#475569; color:#fff; border:none; border-radius:8px; font-weight:700; padding:8px 14px; font-size:0.85rem; display:inline-flex; align-items:center; gap:4px; cursor:pointer; box-shadow:0 2px 6px rgba(71,85,105,0.25);"
                     title="כלי ניהול">
                     ⚙️ כלים <span style="font-size:0.7rem;">▼</span>
                   </button>
                   <div id="matzava-admin-dropdown" style="display:none; position:absolute; left:0; top:calc(100% + 6px); background:#fff; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,0.18); border:1px solid #cbd5e1; min-width:220px; z-index:99999; padding:6px; direction:rtl; text-align:right;">
-                    
-                    ${isMob ? `
-                      <button onclick="window.toggleMatzavaAdminMenu(); window.requestMatzavaRefreshFromPC();" 
-                        style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#1a237e; display:flex; align-items:center; gap:8px; cursor:pointer;" 
-                        onmouseover="this.style.background='#e8eaf6'" onmouseout="this.style.background='transparent'">
-                        📡 בקש סריקת קבצים מהמחשב
-                      </button>
-                      <div style="height:1px; background:#e2e8f0; margin:4px 0;"></div>
-                    ` : ''}
-
                     <label style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#1565c0; display:flex; align-items:center; gap:8px; cursor:pointer; box-sizing:border-box; margin:0;" 
                       onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background='transparent'">
                       📂 ייבוא קובץ אקסל
@@ -3500,11 +3497,32 @@
                     </button>
                   </div>
                 </div>
+              ` : isManagement ? `
+                <!-- MANAGEMENT / MALI / VP (OR ADMIN ON MOBILE/REMOTE) -->
+                <button class="btn" onclick="window.refreshMatzavaFromCloud(this)" 
+                  style="background:linear-gradient(135deg, #1565c0, #0d47a1); color:#fff; border:none; border-radius:8px; font-weight:700; padding:${isMob ? '6px 12px' : '8px 16px'}; font-size:${isMob ? '0.8rem' : '0.85rem'}; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-shadow:0 2px 8px rgba(21,101,192,0.3);" 
+                  title="רענן נתוני מצבה ישירות מהענן">
+                  🔄 רענן מהענן
+                </button>
+
+                <button class="btn" onclick="window.requestMatzavaRefreshFromPC()" 
+                  style="background:linear-gradient(135deg, #4338ca, #3730a3); color:#fff; border:none; border-radius:8px; font-weight:700; padding:${isMob ? '6px 12px' : '8px 15px'}; font-size:${isMob ? '0.8rem' : '0.85rem'}; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-shadow:0 2px 8px rgba(67,56,202,0.25);" 
+                  title="שליחת בקשה למחשב הראשי לסרוק את קבצי האקסל מהדיסק ולהעלות לענן">
+                  📡 בקש סריקה מהמחשב
+                </button>
+
+                ${!isMob ? `
+                  <button class="btn" onclick="window.exportMatzavaToExcel()" 
+                    style="background:#f1f5f9; color:#00838f; border:1px solid #cbd5e1; border-radius:8px; font-weight:700; padding:8px 14px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" 
+                    title="ייצוא לאקסל מעוצב">
+                    📊 ייצוא לאקסל
+                  </button>
+                ` : ''}
               ` : `
-                <!-- FIELD & MANAGEMENT (NON-ADMIN): ONLY REFRESH BUTTON (+ EXCEL ON DESKTOP) -->
+                <!-- FIELD & VIEWERS (COORDINATORS) -->
                 <button class="btn" onclick="window.refreshMatzavaFromCloud(this)" 
                   style="background:linear-gradient(135deg, #1565c0, #0d47a1); color:#fff; border:none; border-radius:8px; font-weight:700; padding:${isMob ? '6px 12px' : '8px 16px'}; font-size:${isMob ? '0.8rem' : '0.85rem'}; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-shadow:0 2px 8px rgba(21,101,192,0.3); transition:all 0.2s;" 
-                  title="רענן תצוגה מיידית מהענן">
+                  title="רענן תצוגה מהענן">
                   🔄 רענן
                 </button>
                 ${!isMob ? `
