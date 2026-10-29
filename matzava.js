@@ -173,6 +173,13 @@
 
   async function getMatzavaAuthHeader() {
     let tok = null;
+    // If auth is still resolving after a hard refresh, wait briefly (up to 1.5s)
+    if (!window._fbUser && !window._cachedToken && (!window._fbAuth || !window._fbAuth.currentUser)) {
+      for (let i = 0; i < 15; i++) {
+        if (window._fbUser || window._cachedToken || (window._fbAuth && window._fbAuth.currentUser)) break;
+        await new Promise(r => setTimeout(r, 100));
+      }
+    }
     if (typeof window._fbGetToken === 'function') {
       try { tok = await window._fbGetToken(); } catch (e) { }
     }
@@ -3194,7 +3201,10 @@
             window.MATZAVA_STATE.nutritionOnly = Array.isArray(parsed.nutritionOnly) ? parsed.nutritionOnly : [];
             window.MATZAVA_STATE.schools = Array.isArray(parsed.schools) ? parsed.schools : [];
             window.MATZAVA_STATE.lastSync = parsed.lastSync || null;
+            window.MATZAVA_STATE.lastFileModified = parsed.lastFileModified || null;
+            window.MATZAVA_STATE.filesMeta = parsed.filesMeta || {};
             window.MATZAVA_STATE.loadedYear = y;
+            normalizeRecordsKids10(window.MATZAVA_STATE.records);
           }
         }
       } catch(e) {}
@@ -3761,7 +3771,10 @@
             window.MATZAVA_STATE.nutritionOnly = Array.isArray(parsed.nutritionOnly) ? parsed.nutritionOnly : [];
             window.MATZAVA_STATE.schools = Array.isArray(parsed.schools) ? parsed.schools : [];
             window.MATZAVA_STATE.lastSync = parsed.lastSync || null;
+            window.MATZAVA_STATE.lastFileModified = parsed.lastFileModified || null;
+            window.MATZAVA_STATE.filesMeta = parsed.filesMeta || {};
             window.MATZAVA_STATE.loadedYear = y;
+            normalizeRecordsKids10(window.MATZAVA_STATE.records);
           }
         }
       } catch(e) {}
