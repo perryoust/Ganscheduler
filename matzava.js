@@ -3324,6 +3324,174 @@
     return toolbar + content;
   }
 
+  function renderMatzavaKpisHtml(filteredGardens, filteredSchools, filteredNutrition, isMob) {
+    const s = window.MATZAVA_STATE;
+    if (s.subTab === 'gardens') {
+      let totalKids = 0;
+      let sterileCount = 0;
+      let mergedCount = 0;
+      filteredGardens.forEach(r => {
+        totalKids += (r.kids10 || r.kids || 0);
+        if (r.isSterile) sterileCount++;
+        if (r.isMerged) mergedCount++;
+      });
+      const avgKids = filteredGardens.length > 0 ? (totalKids / filteredGardens.length).toFixed(1) : 0;
+
+      return `
+        <div style="display:grid; grid-template-columns:${isMob ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))'}; gap:${isMob ? '6px' : '12px'}; margin-bottom:${isMob ? '10px' : '16px'};">
+          <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
+            <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">סה"כ ילדים</div>
+            <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#1a237e; font-weight:800; line-height:1.15;">${totalKids.toLocaleString()}</div>
+            <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">רשומים בצהרונים</div>
+          </div>
+
+          <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
+            <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">צהרונים</div>
+            <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#2e7d32; font-weight:800; line-height:1.15;">${filteredGardens.length}</div>
+            <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">ממוצע: <b>${avgKids}</b> לצהרון</div>
+          </div>
+
+          <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
+            <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">סטרילי / אלרגיות</div>
+            <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#c62828; font-weight:800; line-height:1.15;">${sterileCount}</div>
+            <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">הקפדה מוחלטת</div>
+          </div>
+
+          <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
+            <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">איחודי גנים</div>
+            <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#6a1b9a; font-weight:800; line-height:1.15;">${mergedCount}</div>
+            <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">שורה מאוחדת</div>
+          </div>
+        </div>
+      `;
+    } else if (s.subTab === 'schools') {
+      let schTotalKids = 0;
+      let schSterileCount = 0;
+      const schoolsSet = new Set();
+      const schGroupsBySchool = new Map();
+
+      filteredSchools.forEach(sc => {
+        schTotalKids += (sc.kids || 0);
+        if (sc.isSterile) schSterileCount++;
+        if (sc.school) {
+          schoolsSet.add(sc.school);
+          if (!schGroupsBySchool.has(sc.school)) {
+            schGroupsBySchool.set(sc.school, sc.schoolGroupsCount || 0);
+          }
+        }
+      });
+
+      let schTotalGroups = 0;
+      schGroupsBySchool.forEach(g => { schTotalGroups += g; });
+      if (schTotalGroups === 0) schTotalGroups = filteredSchools.length;
+
+      return `
+        <div style="display:grid; grid-template-columns:${isMob ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))'}; gap:${isMob ? '6px' : '12px'}; margin-bottom:${isMob ? '10px' : '16px'};">
+          <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
+            <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">סה"כ תלמידים</div>
+            <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#006064; font-weight:800; line-height:1.15;">${schTotalKids.toLocaleString()}</div>
+            <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">רשומים בצהרונים</div>
+          </div>
+
+          <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
+            <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">קבוצות בצהרונים</div>
+            <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#00838f; font-weight:800; line-height:1.15;">${schTotalGroups}</div>
+            <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${filteredSchools.length} כיתות משובצות</div>
+          </div>
+
+          <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
+            <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">בתי ספר פעילים</div>
+            <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#0277bd; font-weight:800; line-height:1.15;">${schoolsSet.size}</div>
+            <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">מוסדות חינוך</div>
+          </div>
+
+          <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
+            <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">אלרגיות / סטרילי</div>
+            <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#c62828; font-weight:800; line-height:1.15;">${schSterileCount}</div>
+            <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">התראות אלרגיה</div>
+          </div>
+        </div>
+      `;
+    } else {
+      let nutTotalMeals = 0;
+      filteredNutrition.forEach(n => {
+        nutTotalMeals += (n.kidsTotal || 0);
+      });
+      return `
+        <div style="display:grid; grid-template-columns:${isMob ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(180px, 1fr))'}; gap:${isMob ? '6px' : '12px'}; margin-bottom:${isMob ? '10px' : '16px'};">
+          <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #ffe0b2; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
+            <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">סה"כ מנות מזון</div>
+            <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#e65100; font-weight:800; line-height:1.15;">${nutTotalMeals.toLocaleString()}</div>
+            <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">מנות מוזמנות</div>
+          </div>
+
+          <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #ffe0b2; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
+            <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">קבוצות תקשורת וחנ"מ</div>
+            <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#bf360c; font-weight:800; line-height:1.15;">${filteredNutrition.length}</div>
+            <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">הזנה בלבד</div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  let _matzavaSearchDebounce = null;
+  window.onMatzavaSearch = function (val) {
+    const q = val || '';
+    window.MATZAVA_STATE.searchQuery = q;
+    const clr = document.getElementById('matzava-search-clear');
+    if (clr) clr.style.display = q ? 'block' : 'none';
+
+    clearTimeout(_matzavaSearchDebounce);
+    _matzavaSearchDebounce = setTimeout(() => {
+      window.updateMatzavaFilteredView();
+    }, 100);
+  };
+
+  window.clearMatzavaSearch = function () {
+    const inp = document.getElementById('matzava-search-input');
+    if (inp) {
+      inp.value = '';
+      inp.focus();
+    }
+    window.onMatzavaSearch('');
+  };
+
+  window.updateMatzavaFilteredView = function () {
+    const kpiEl = document.getElementById('matzava-kpi-container');
+    const contentEl = document.getElementById('matzava-view-content');
+    if (!kpiEl || !contentEl) {
+      window.renderMatzavaTab();
+      return;
+    }
+
+    const s = window.MATZAVA_STATE;
+    const isMob = (typeof window.isMobileMode === 'function' ? window.isMobileMode() : (window.innerWidth <= 768));
+    const filteredGardens = window.getFilteredMatzavaRecords();
+    const filteredSchools = window.getFilteredSchoolsRecords();
+    const filteredNutrition = window.getFilteredNutritionRecords();
+
+    // Update tab badges
+    const gBadge = document.getElementById('matzava-subtab-gardens-count');
+    if (gBadge) gBadge.textContent = filteredGardens.length;
+    const sBadge = document.getElementById('matzava-subtab-schools-count');
+    if (sBadge) sBadge.textContent = filteredSchools.length;
+    const nBadge = document.getElementById('matzava-subtab-nutrition-count');
+    if (nBadge) nBadge.textContent = filteredNutrition.length;
+
+    // Render KPIs
+    kpiEl.innerHTML = renderMatzavaKpisHtml(filteredGardens, filteredSchools, filteredNutrition, isMob);
+
+    // Render View Content
+    if (s.subTab === 'gardens') {
+      contentEl.innerHTML = isMob ? renderGardensMobile(filteredGardens) : renderGardensDesktop(filteredGardens);
+    } else if (s.subTab === 'schools') {
+      contentEl.innerHTML = isMob ? renderSchoolsMobile(filteredSchools) : renderSchoolsDesktop(filteredSchools);
+    } else {
+      contentEl.innerHTML = isMob ? renderNutritionMobile(filteredNutrition) : renderNutritionDesktop(filteredNutrition);
+    }
+  };
+
   // Main UI Render Function
   window.renderMatzavaTab = async function (targetEl) {
     if (window.permMatzava === false && window.role !== 'admin') {
@@ -3710,11 +3878,9 @@
             <div style="flex:${isMob ? '1 1 100%' : '1'}; min-width:${isMob ? '100%' : '200px'}; position:relative;">
               <input type="text" id="matzava-search-input" placeholder="${s.subTab === 'schools' ? '🔍 חפש בית ספר, כיתה, אלרגיה...' : (s.subTab === 'nutrition' ? '🔍 חפש קבוצה, כתובת...' : '🔍 חפש גן, כתובת, אלרגיה...')}" 
                 value="${s.searchQuery || ''}" 
-                oninput="window.MATZAVA_STATE.searchQuery=this.value; window.renderMatzavaTab();" 
-                style="width:100%; padding:6px 12px; border-radius:6px; border:1px solid #ccc; font-size:0.82rem; outline:none; box-sizing:border-box;">
-              ${s.searchQuery ? `
-                <span onclick="window.MATZAVA_STATE.searchQuery=''; window.renderMatzavaTab();" style="position:absolute; left:8px; top:6px; cursor:pointer; color:#999; font-weight:bold;">✕</span>
-              ` : ''}
+                oninput="window.onMatzavaSearch(this.value);" 
+                style="width:100%; padding:6px 30px 6px 12px; border-radius:6px; border:1px solid #ccc; font-size:0.82rem; outline:none; box-sizing:border-box;">
+              <span id="matzava-search-clear" onclick="window.clearMatzavaSearch();" style="position:absolute; left:8px; top:6px; cursor:pointer; color:#999; font-weight:bold; display:${s.searchQuery ? 'block' : 'none'};">✕</span>
             </div>
 
             <!-- Category Pills (Horizontally scrollable on mobile to eliminate dead space!) -->
@@ -3761,20 +3927,20 @@
           <button onclick="window.MATZAVA_STATE.subTab='gardens'; window.renderMatzavaTab();" 
             style="${isMob ? 'flex:1;' : ''} padding:${isMob ? '6px 8px' : '8px 16px'}; border-radius:8px; border:none; font-weight:800; font-size:${isMob ? '0.8rem' : '0.9rem'}; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:all 0.15s; ${s.subTab==='gardens' ? 'background:#1a237e; color:#fff; box-shadow:0 2px 6px rgba(26,35,126,0.3);' : 'background:#f1f5f9; color:#475569;'}">
             <span>🏡 צהרוני גנים</span>
-            <span style="font-size:0.72rem; padding:1px 6px; border-radius:10px; font-weight:800; ${s.subTab==='gardens' ? 'background:rgba(255,255,255,0.25); color:#fff;' : 'background:#e2e8f0; color:#334155;'}">${filteredGardens.length}</span>
+            <span id="matzava-subtab-gardens-count" style="font-size:0.72rem; padding:1px 6px; border-radius:10px; font-weight:800; ${s.subTab==='gardens' ? 'background:rgba(255,255,255,0.25); color:#fff;' : 'background:#e2e8f0; color:#334155;'}">${filteredGardens.length}</span>
           </button>
 
           <button onclick="window.MATZAVA_STATE.subTab='schools'; window.renderMatzavaTab();" 
             style="${isMob ? 'flex:1;' : ''} padding:${isMob ? '6px 8px' : '8px 16px'}; border-radius:8px; border:none; font-weight:800; font-size:${isMob ? '0.8rem' : '0.9rem'}; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:all 0.15s; ${s.subTab==='schools' ? 'background:#006064; color:#fff; box-shadow:0 2px 6px rgba(0,96,100,0.3);' : 'background:#f1f5f9; color:#475569;'}">
             <span>🏫 בתי ספר</span>
-            <span style="font-size:0.72rem; padding:1px 6px; border-radius:10px; font-weight:800; ${s.subTab==='schools' ? 'background:rgba(255,255,255,0.25); color:#fff;' : 'background:#e2e8f0; color:#334155;'}">${filteredSchools.length}</span>
+            <span id="matzava-subtab-schools-count" style="font-size:0.72rem; padding:1px 6px; border-radius:10px; font-weight:800; ${s.subTab==='schools' ? 'background:rgba(255,255,255,0.25); color:#fff;' : 'background:#e2e8f0; color:#334155;'}">${filteredSchools.length}</span>
           </button>
 
           ${isNutritionVisible ? `
             <button onclick="window.MATZAVA_STATE.subTab='nutrition'; window.renderMatzavaTab();" 
               style="${isMob ? 'flex:1;' : ''} padding:${isMob ? '6px 8px' : '8px 16px'}; border-radius:8px; border:none; font-weight:800; font-size:${isMob ? '0.8rem' : '0.9rem'}; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:all 0.15s; ${s.subTab==='nutrition' ? 'background:#e65100; color:#fff; box-shadow:0 2px 6px rgba(230,81,0,0.3);' : 'background:#f1f5f9; color:#475569;'}">
               <span>🥪 הזנה</span>
-              <span style="font-size:0.72rem; padding:1px 6px; border-radius:10px; font-weight:800; ${s.subTab==='nutrition' ? 'background:rgba(255,255,255,0.25); color:#fff;' : 'background:#e2e8f0; color:#334155;'}">${filteredNutrition.length}</span>
+              <span id="matzava-subtab-nutrition-count" style="font-size:0.72rem; padding:1px 6px; border-radius:10px; font-weight:800; ${s.subTab==='nutrition' ? 'background:rgba(255,255,255,0.25); color:#fff;' : 'background:#e2e8f0; color:#334155;'}">${filteredNutrition.length}</span>
             </button>
           ` : ''}
         </div>
@@ -3782,89 +3948,42 @@
         <!-- ─────────────────────────────────────────────────────────── -->
         <!-- DYNAMIC KPI CARDS (2x2 Grid on Mobile to eliminate dead space) -->
         <!-- ─────────────────────────────────────────────────────────── -->
-        ${s.subTab === 'gardens' ? `
-          <div style="display:grid; grid-template-columns:${isMob ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))'}; gap:${isMob ? '6px' : '12px'}; margin-bottom:${isMob ? '10px' : '16px'};">
-            <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
-              <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">סה"כ ילדים</div>
-              <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#1a237e; font-weight:800; line-height:1.15;">${totalKids.toLocaleString()}</div>
-              <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">רשומים בצהרונים</div>
-            </div>
-
-            <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
-              <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">צהרונים</div>
-              <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#2e7d32; font-weight:800; line-height:1.15;">${filteredGardens.length}</div>
-              <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">ממוצע: <b>${avgKids}</b> לצהרון</div>
-            </div>
-
-            <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
-              <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">סטרילי / אלרגיות</div>
-              <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#c62828; font-weight:800; line-height:1.15;">${sterileCount}</div>
-              <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">הקפדה מוחלטת</div>
-            </div>
-
-            <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
-              <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">איחודי גנים</div>
-              <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#6a1b9a; font-weight:800; line-height:1.15;">${mergedCount}</div>
-              <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">שורה מאוחדת</div>
-            </div>
-          </div>
-        ` : (s.subTab === 'schools' ? `
-          <div style="display:grid; grid-template-columns:${isMob ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))'}; gap:${isMob ? '6px' : '12px'}; margin-bottom:${isMob ? '10px' : '16px'};">
-            <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
-              <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">סה"כ תלמידים</div>
-              <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#006064; font-weight:800; line-height:1.15;">${schTotalKids.toLocaleString()}</div>
-              <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">רשומים בצהרונים</div>
-            </div>
-
-            <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
-              <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">קבוצות בצהרונים</div>
-              <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#00838f; font-weight:800; line-height:1.15;">${schTotalGroups}</div>
-              <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${filteredSchools.length} כיתות משובצות</div>
-            </div>
-
-            <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
-              <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">בתי ספר פעילים</div>
-              <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#0277bd; font-weight:800; line-height:1.15;">${schoolsSet.size}</div>
-              <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">מוסדות חינוך</div>
-            </div>
-
-            <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
-              <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">אלרגיות / סטרילי</div>
-              <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#c62828; font-weight:800; line-height:1.15;">${schSterileCount}</div>
-              <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">התראות אלרגיה</div>
-            </div>
-          </div>
-        ` : `
-          <div style="display:grid; grid-template-columns:${isMob ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(180px, 1fr))'}; gap:${isMob ? '6px' : '12px'}; margin-bottom:${isMob ? '10px' : '16px'};">
-            <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #ffe0b2; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
-              <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">סה"כ מנות מזון</div>
-              <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#e65100; font-weight:800; line-height:1.15;">${nutTotalMeals.toLocaleString()}</div>
-              <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">מנות מוזמנות</div>
-            </div>
-
-            <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #ffe0b2; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
-              <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">קבוצות תקשורת וחנ"מ</div>
-              <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#bf360c; font-weight:800; line-height:1.15;">${filteredNutrition.length}</div>
-              <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">הזנה בלבד</div>
-            </div>
-          </div>
-        `)}
+        <div id="matzava-kpi-container">
+          ${renderMatzavaKpisHtml(filteredGardens, filteredSchools, filteredNutrition, isMob)}
+        </div>
 
         <!-- ─────────────────────────────────────────────────────────── -->
         <!-- VIEW CONTENT (Responsive: Mobile Cards vs Desktop Table) -->
         <!-- ─────────────────────────────────────────────────────────── -->
-        ${s.subTab === 'gardens' ? (
-          isMob ? renderGardensMobile(filteredGardens) : renderGardensDesktop(filteredGardens)
-        ) : (s.subTab === 'schools' ? (
-          isMob ? renderSchoolsMobile(filteredSchools) : renderSchoolsDesktop(filteredSchools)
-        ) : (
-          isMob ? renderNutritionMobile(filteredNutrition) : renderNutritionDesktop(filteredNutrition)
-        ))}
+        <div id="matzava-view-content">
+          ${s.subTab === 'gardens' ? (
+            isMob ? renderGardensMobile(filteredGardens) : renderGardensDesktop(filteredGardens)
+          ) : (s.subTab === 'schools' ? (
+            isMob ? renderSchoolsMobile(filteredSchools) : renderSchoolsDesktop(filteredSchools)
+          ) : (
+            isMob ? renderNutritionMobile(filteredNutrition) : renderNutritionDesktop(filteredNutrition)
+          ))}
+        </div>
 
       </div>
     `;
 
+    const searchInput = document.getElementById('matzava-search-input');
+    const wasSearchFocused = (document.activeElement === searchInput);
+    const selStart = searchInput ? searchInput.selectionStart : null;
+    const selEnd = searchInput ? searchInput.selectionEnd : null;
+
     container.innerHTML = html;
+
+    if (wasSearchFocused) {
+      const newInp = document.getElementById('matzava-search-input');
+      if (newInp) {
+        newInp.focus();
+        if (selStart !== null && selEnd !== null) {
+          try { newInp.setSelectionRange(selStart, selEnd); } catch(e) {}
+        }
+      }
+    }
   };
 
   // Switch mode to Matzava
@@ -3968,17 +4087,22 @@
     }
   };
 
-  // Window resize re-render to switch smoothly between mobile cards & desktop table
+  // Window resize re-render to switch smoothly between mobile cards & desktop table ONLY when layout mode changes
+  let _lastMatzavaIsMob = (typeof window.isMobileMode === 'function' ? window.isMobileMode() : (window.innerWidth <= 768));
   window.addEventListener('resize', () => {
-    const pMatzava = document.getElementById('p-matzava');
-    const isTabOpen = pMatzava && pMatzava.style.display !== 'none';
-    const modal = document.getElementById('matzava-modal');
-    const isModalOpen = modal && modal.style.display !== 'none';
-    if (isTabOpen || isModalOpen) {
-      clearTimeout(window._matzavaResizeTimer);
-      window._matzavaResizeTimer = setTimeout(() => {
-        window.renderMatzavaTab();
-      }, 250);
+    const curIsMob = (typeof window.isMobileMode === 'function' ? window.isMobileMode() : (window.innerWidth <= 768));
+    if (curIsMob !== _lastMatzavaIsMob) {
+      _lastMatzavaIsMob = curIsMob;
+      const pMatzava = document.getElementById('p-matzava');
+      const isTabOpen = pMatzava && pMatzava.style.display !== 'none';
+      const modal = document.getElementById('matzava-modal');
+      const isModalOpen = modal && modal.style.display !== 'none';
+      if (isTabOpen || isModalOpen) {
+        clearTimeout(window._matzavaResizeTimer);
+        window._matzavaResizeTimer = setTimeout(() => {
+          window.renderMatzavaTab();
+        }, 200);
+      }
     }
   });
 
