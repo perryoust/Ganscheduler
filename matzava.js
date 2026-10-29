@@ -786,9 +786,12 @@
     // Detect if this is a School file (by filename or sheet content)
     const fnLower = cleanFn.toLowerCase();
     const sheetNameLower = (ws.name || '').toLowerCase();
-    const firstFewRowsText = rawRows.slice(0, 3).map(r => (r || []).join(' ')).join(' ');
+    const firstFewRowsText = rawRows.slice(0, 8).map(r => (r || []).join(' ')).join(' ');
     const isSchoolFile = fnLower.includes('בתי ספר') || fnLower.includes('בית ספר') || fnLower.includes('ביהס') || fnLower.includes('ביה"ס') ||
-                         sheetNameLower.includes('בתי ספר') || sheetNameLower.includes('בית ספר') || firstFewRowsText.includes('בתי ספר') || firstFewRowsText.includes('בי"ס');
+                         sheetNameLower.includes('בתי ספר') || sheetNameLower.includes('בית ספר') ||
+                         firstFewRowsText.includes('בתי ספר') || firstFewRowsText.includes('בי"ס') ||
+                         firstFewRowsText.includes('איחוד לקב') || firstFewRowsText.includes('איחוד לקבוצה') ||
+                         firstFewRowsText.includes('כיתות משובצות') || firstFewRowsText.includes('רשומים בצהרון');
 
     // ───────────────────────────────────────────────────────────
     // A. SCHOOLS PARSER (Multi-section smart parser)
@@ -964,6 +967,7 @@
             changedKids: item.changedKids,
             hasChange: item.changedKids,
             notes: item.notes,
+            rowOffset: item.rowOffset,
             isSterile: item.notes.includes('סטרילי') || item.notes.includes('שומשום') || item.notes.includes('אלרג'),
             isHomeMeal: item.notes.includes('מהבית'),
             sourceFile: cleanFn,
@@ -1403,37 +1407,45 @@
     }
 
     // Deduplicate records by city + name
-    const recMap = new Map();
-    allRecords.forEach(r => {
-      const key = (r.city || '').trim() + '__' + (r.name || '').trim();
-      recMap.set(key, r);
-    });
-    // Purge hosted sub-gardens so they never appear as separate standalone rows
-    allRecords.forEach(r => {
-      if (r.isMerged && Array.isArray(r.subGardens)) {
-        r.subGardens.forEach(sub => {
-          if (sub.name && sub.name !== r.name) {
-            recMap.delete((r.city || '').trim() + '__' + (sub.name || '').trim());
-          }
-        });
-      }
-    });
-    window.MATZAVA_STATE.records = Array.from(recMap.values());
-    normalizeRecordsKids10(window.MATZAVA_STATE.records);
+    if (allRecords.length > 0) {
+      const recMap = new Map();
+      allRecords.forEach(r => {
+        const key = (r.city || '').trim() + '__' + (r.name || '').trim();
+        recMap.set(key, r);
+      });
+      // Purge hosted sub-gardens so they never appear as separate standalone rows
+      allRecords.forEach(r => {
+        if (r.isMerged && Array.isArray(r.subGardens)) {
+          r.subGardens.forEach(sub => {
+            if (sub.name && sub.name !== r.name) {
+              recMap.delete((r.city || '').trim() + '__' + (sub.name || '').trim());
+            }
+          });
+        }
+      });
+      window.MATZAVA_STATE.records = Array.from(recMap.values());
+      normalizeRecordsKids10(window.MATZAVA_STATE.records);
+    }
 
-    const nutMap = new Map();
-    allNutrition.forEach(n => {
-      const key = (n.city || '') + '__' + (n.name || '');
-      nutMap.set(key, n);
-    });
-    window.MATZAVA_STATE.nutritionOnly = Array.from(nutMap.values());
+    if (allNutrition.length > 0) {
+      const nutMap = new Map();
+      allNutrition.forEach(n => {
+        const key = (n.city || '') + '__' + (n.name || '');
+        nutMap.set(key, n);
+      });
+      window.MATZAVA_STATE.nutritionOnly = Array.from(nutMap.values());
+    }
 
-    const schMap = new Map();
-    allSchools.forEach(s => {
-      const key = (s.city || '') + '__' + (s.school || '') + '__' + (s.groupName || '') + '__' + (s.kids || 0) + '__' + (s.mergedKids || 0) + '__' + (s.notes || '');
-      schMap.set(key, s);
-    });
-    window.MATZAVA_STATE.schools = Array.from(schMap.values());
+    if (allSchools.length > 0) {
+      const schMap = new Map();
+      allSchools.forEach(s => {
+        const key = (s.city || '').trim() + '__' + (s.school || '').trim() + '__' + (s.groupName || '').trim() + '__' + (s.rowOffset !== undefined ? s.rowOffset : (s.id || ''));
+        schMap.set(key, s);
+      });
+      window.MATZAVA_STATE.schools = Array.from(schMap.values());
+    } else {
+      console.warn('⚠️ No school files were parsed in this scan. Preserving existing schools count:', (window.MATZAVA_STATE.schools || []).length);
+    }
 
     if (maxFileMod > 0) {
       window.MATZAVA_STATE.lastFileModified = new Date(maxFileMod).toISOString();
@@ -1449,7 +1461,8 @@
     return {
       count: successCount,
       totalFiles: scannedFiles.length,
-      failedFiles: failedFiles
+      failedFiles: failedFiles,
+      schoolsFound: allSchools.length
     };
   };
 
@@ -1513,6 +1526,9 @@
       if (!res) return;
 
       let msg = `✅ רענון מצבה הושלם!\nנסרקו בהצלחה ${res.count} מתוך ${res.totalFiles} קבצים:\n• ${window.MATZAVA_STATE.records.length} צהרונים\n• ${window.MATZAVA_STATE.nutritionOnly.length} קבוצות הזנה בלבד (מוצגות בבחירת העיר שלהן)\n• ${window.MATZAVA_STATE.schools.length} קבוצות בתי ספר`;
+      if (res.schoolsFound === 0 && window.MATZAVA_STATE.schools.length > 0) {
+        msg += ` (נשמרו מסריקה קודמת)`;
+      }
       if (res.failedFiles && res.failedFiles.length > 0) {
         msg += `\n\n⚠️ לא נקראו ${res.failedFiles.length} קבצים:\n• ${res.failedFiles.join('\n• ')}\n\n💡 אם הקובץ פתוח בתוכנת Excel במחשב, נא לסגור אותו וללחוץ שוב על "⚡ רענון אוטומטי".`;
       }
@@ -1938,13 +1954,10 @@
         res.nutritionOnly.forEach(n => nutMap.set((n.city || '') + '__' + (n.name || ''), n));
         window.MATZAVA_STATE.nutritionOnly = Array.from(nutMap.values());
 
-        const schMap = new Map(window.MATZAVA_STATE.schools.map(s => [
-          (s.city || '') + '__' + (s.school || '') + '__' + (s.groupName || '') + '__' + (s.kids || 0) + '__' + (s.mergedKids || 0) + '__' + (s.notes || ''),
-          s
-        ]));
+        const schKey = (s) => (s.city || '').trim() + '__' + (s.school || '').trim() + '__' + (s.groupName || '').trim() + '__' + (s.rowOffset !== undefined ? s.rowOffset : (s.id || ''));
+        const schMap = new Map((window.MATZAVA_STATE.schools || []).map(s => [schKey(s), s]));
         res.schools.forEach(s => {
-          const key = (s.city || '') + '__' + (s.school || '') + '__' + (s.groupName || '') + '__' + (s.kids || 0) + '__' + (s.mergedKids || 0) + '__' + (s.notes || '');
-          schMap.set(key, s);
+          schMap.set(schKey(s), s);
         });
         window.MATZAVA_STATE.schools = Array.from(schMap.values());
 
