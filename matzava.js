@@ -81,6 +81,15 @@
     return 'view';
   }
 
+  function isStrictAdmin() {
+    const role = getSafeRole();
+    const isPerry = (window._fbUser && window._fbUser.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03') || 
+                    (window._fbUser && window._fbUser.email && window._fbUser.email.startsWith('perry@')) ||
+                    (window.username === 'perry');
+    return (role === 'admin' || window.role === 'admin') || isPerry;
+  }
+  window.isStrictMatzavaAdmin = isStrictAdmin;
+
   function isMatzavaAdmin() {
     const role = getSafeRole();
     const isAdminRole = (role === 'admin' || role === 'manager' || role === 'vp' || window.permMatzava === true || window.permAct === true);
@@ -369,14 +378,14 @@
     }
   };
 
-  // Dismiss single change highlight (mark as handled)
+  // Dismiss single change highlight (mark as handled) - ADMIN ONLY
   window.dismissMatzavaChange = async function (recId, cityName, e) {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-    if (!canEditMatzava()) {
-      if (window.showToast) window.showToast('אין לך הרשאת עריכה להסרת סימונים', 3000);
+    if (!isStrictAdmin()) {
+      if (window.showToast) window.showToast('⚠️ רק מנהל מערכת (ADMIN) יכול להסיר סימוני שינויים', 3000);
       return;
     }
 
@@ -421,10 +430,10 @@
     }
   };
 
-  // Clear all change highlights across current city or all cities
+  // Clear all change highlights across current city or all cities - ADMIN ONLY
   window.clearMatzavaChanges = async function (cityName) {
-    if (!canEditMatzava()) {
-      if (window.showToast) window.showToast('אין לך הרשאת עריכה להסרת סימונים', 3000);
+    if (!isStrictAdmin()) {
+      if (window.showToast) window.showToast('⚠️ רק מנהל מערכת (ADMIN) יכול להסיר סימוני שינויים', 3000);
       return;
     }
 
@@ -2410,7 +2419,7 @@
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
           <div style="flex:1; min-width:0;">
             <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-bottom:3px;">
-              ${r.hasChange ? `<span style="background:#fef08a; color:#854d0e; padding:1px 6px; border-radius:10px; font-size:0.68rem; font-weight:800; border:1px solid #facc15; cursor:pointer;" onclick="window.dismissMatzavaChange('${r.id || r.name}', '${r.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">⚡ שונה באקסל ✕</span>` : ''}
+              ${r.hasChange ? (isStrictAdmin() ? `<span style="background:#fef08a; color:#854d0e; padding:1px 6px; border-radius:10px; font-size:0.68rem; font-weight:800; border:1px solid #facc15; cursor:pointer;" onclick="window.dismissMatzavaChange('${r.id || r.name}', '${r.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">⚡ שונה באקסל ✕</span>` : `<span style="background:#fef08a; color:#854d0e; padding:1px 6px; border-radius:10px; font-size:0.68rem; font-weight:800; border:1px solid #facc15;" title="שונה באקסל">⚡ שונה באקסל</span>`) : ''}
               ${r.age ? `<span style="background:#e3f2fd; color:#1565c0; padding:1px 6px; border-radius:4px; font-size:0.7rem; font-weight:700;">גיל ${r.age}</span>` : ''}
               ${r.isMerged ? `<span style="background:#f3e5f5; color:#6a1b9a; padding:1px 6px; border-radius:10px; font-size:0.68rem; font-weight:800;">⚖️ איחוד (${(r.subGardens || []).length})</span>` : ''}
 
@@ -2689,7 +2698,7 @@
                       <div style="display:flex; justify-content:space-between; align-items:center; padding:3px 6px; border-radius:4px; font-size:0.76rem; background:${sc.hasChange ? '#fef9c3' : (sc.isSterile ? '#fff5f5' : '#f8fafc')}; ${sc.hasChange ? 'border:1px solid #facc15;' : ''}">
                         <div style="display:flex; align-items:center; gap:5px; min-width:0; flex:1;">
                           <span style="font-weight:700; color:#004d40; background:#e0f2f1; padding:1px 5px; border-radius:4px; font-size:0.72rem;">${sc.groupName}</span>
-                          ${sc.hasChange ? `<span style="background:#fef08a; color:#854d0e; font-size:0.65rem; font-weight:800; padding:0 4px; border-radius:3px; border:1px solid #facc15; cursor:pointer;" onclick="window.dismissMatzavaChange('${sc.id || sc.groupName}', '${sc.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">⚡ שונה ✕</span>` : ''}
+                          ${sc.hasChange ? (isStrictAdmin() ? `<span style="background:#fef08a; color:#854d0e; font-size:0.65rem; font-weight:800; padding:0 4px; border-radius:3px; border:1px solid #facc15; cursor:pointer;" onclick="window.dismissMatzavaChange('${sc.id || sc.groupName}', '${sc.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">⚡ שונה ✕</span>` : `<span style="background:#fef08a; color:#854d0e; font-size:0.65rem; font-weight:800; padding:0 4px; border-radius:3px; border:1px solid #facc15;" title="שונה באקסל">⚡ שונה</span>`) : ''}
                           ${sc.isSterile ? `<span style="color:#c62828; font-weight:700; font-size:0.68rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🚨 ${sc.notes}</span>` : (sc.notes ? `<span style="color:#64748b; font-size:0.68rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sc.notes}</span>` : '')}
                         </div>
                         <div style="font-weight:700; color:${sc.hasChange ? '#854d0e' : '#263238'}; font-size:0.8rem; margin-right:6px; white-space:nowrap;">
@@ -2790,7 +2799,7 @@
                   <div>
                     <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
                       <span style="background:#fff3e0; color:#e65100; border:1px solid #ffcc80; padding:1px 6px; border-radius:4px; font-size:0.7rem; font-weight:700;">${n.groupType}</span>
-                      ${n.hasChange ? `<span style="background:#fef08a; color:#854d0e; font-size:0.68rem; font-weight:800; padding:1px 6px; border-radius:4px; border:1px solid #facc15; cursor:pointer;" onclick="window.dismissMatzavaChange('${n.id || n.name}', '${n.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">⚡ שונה באקסל ✕</span>` : ''}
+                      ${n.hasChange ? (isStrictAdmin() ? `<span style="background:#fef08a; color:#854d0e; font-size:0.68rem; font-weight:800; padding:1px 6px; border-radius:4px; border:1px solid #facc15; cursor:pointer;" onclick="window.dismissMatzavaChange('${n.id || n.name}', '${n.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">⚡ שונה באקסל ✕</span>` : `<span style="background:#fef08a; color:#854d0e; font-size:0.68rem; font-weight:800; padding:1px 6px; border-radius:4px; border:1px solid #facc15;" title="שונה באקסל">⚡ שונה באקסל</span>`) : ''}
                     </div>
                     <div style="font-size:0.95rem; font-weight:800; color:#e65100;">${n.name}</div>
                   </div>
@@ -2830,11 +2839,15 @@
         <td style="padding:10px 12px; vertical-align:top;">
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
             <span style="font-size:0.85rem; font-weight:600; color:#475569;">${safeRowName}</span>
-            ${r.hasChange ? `
+            ${r.hasChange ? (isStrictAdmin() ? `
               <span style="background:#fef08a; color:#854d0e; font-size:0.7rem; padding:1px 6px; border-radius:10px; font-weight:800; display:inline-flex; align-items:center; gap:2px; border:1px solid #facc15; cursor:pointer;" onclick="window.dismissMatzavaChange('${r.id || r.name}', '${r.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">
                 ⚡ עודכן <span style="font-size:0.65rem; opacity:0.7;">✕</span>
               </span>
-            ` : ''}
+            ` : `
+              <span style="background:#fef08a; color:#854d0e; font-size:0.7rem; padding:1px 6px; border-radius:10px; font-weight:800; display:inline-flex; align-items:center; gap:2px; border:1px solid #facc15;" title="עודכן באקסל">
+                ⚡ עודכן
+              </span>
+            `) : ''}
             ${r.isMerged ? `
               <span style="background:#f3e5f5; color:#6a1b9a; border:1px solid #ce93d8; font-size:0.7rem; padding:1px 6px; border-radius:12px; font-weight:800; display:inline-flex; align-items:center; gap:3px;">
                 ⚖️ איחוד (${(r.subGardens || []).length} גנים)
@@ -3194,7 +3207,7 @@
                                 <span style="background:#e0f2f1; color:#004d40; padding:3px 8px; border-radius:5px; border:1px solid #b2dfdb; font-size:0.82rem;">
                                   ${sc.groupName}
                                 </span>
-                                ${sc.hasChange ? `<span style="background:#fef08a; color:#854d0e; font-size:0.7rem; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid #facc15; margin-right:4px; cursor:pointer;" onclick="window.dismissMatzavaChange('${sc.id || sc.groupName}', '${sc.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">⚡ שונה ✕</span>` : ''}
+                                ${sc.hasChange ? (isStrictAdmin() ? `<span style="background:#fef08a; color:#854d0e; font-size:0.7rem; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid #facc15; margin-right:4px; cursor:pointer;" onclick="window.dismissMatzavaChange('${sc.id || sc.groupName}', '${sc.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">⚡ שונה ✕</span>` : `<span style="background:#fef08a; color:#854d0e; font-size:0.7rem; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid #facc15; margin-right:4px;" title="שונה באקסל">⚡ שונה</span>`) : ''}
                               </td>
                               <td style="padding:8px 14px; text-align:center; font-weight:800; font-size:0.95rem; color:${sc.hasChange ? '#854d0e' : '#263238'}; ${sc.hasChange ? 'background:#fef08a; border-left:2px solid #facc15; border-right:2px solid #facc15;' : ''}" title="${sc.hasChange ? 'כמות התלמידים שונתה באקסל (מסומנת בצהוב)' : ''}">
                                 ${sc.kids} ${sc.hasChange ? '<span style="font-size:0.8rem;">⚡</span>' : ''}
@@ -3333,7 +3346,7 @@
                       <tr style="${n.hasChange ? 'border-right:4px solid #eab308; background:#fffdf5;' : `background:${bg};`} border-bottom:1px solid #ffe0b2; transition:background 0.15s;" onmouseover="this.style.background='#fff3e0'" onmouseout="this.style.background='${n.hasChange ? '#fffdf5' : bg}'">
                         <td style="padding:10px 12px; font-weight:800; color:#e65100;">
                           ${n.name}
-                          ${n.hasChange ? `<span style="background:#fef08a; color:#854d0e; font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px; border:1px solid #facc15; margin-right:4px; cursor:pointer;" onclick="window.dismissMatzavaChange('${n.id || n.name}', '${n.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">⚡ שונה ✕</span>` : ''}
+                          ${n.hasChange ? (isStrictAdmin() ? `<span style="background:#fef08a; color:#854d0e; font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px; border:1px solid #facc15; margin-right:4px; cursor:pointer;" onclick="window.dismissMatzavaChange('${n.id || n.name}', '${n.city}', event)" title="לחץ להסרת סימון השינוי (סמן כטופל)">⚡ שונה ✕</span>` : `<span style="background:#fef08a; color:#854d0e; font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px; border:1px solid #facc15; margin-right:4px;" title="שונה באקסל">⚡ שונה</span>`) : ''}
                         </td>
                         <td style="padding:10px 12px; color:#555;">
                           <span style="background:#fff3e0; color:#e65100; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700; border:1px solid #ffcc80;">${n.groupType}</span>
@@ -3834,13 +3847,14 @@
 
                     <div style="height:1px; background:#e2e8f0; margin:4px 0;"></div>
 
+                    ${isStrictAdmin() ? `
                     <button onclick="window.toggleMatzavaAdminMenu(); window.clearMatzavaChanges();" 
                       style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#854d0e; display:flex; align-items:center; gap:8px; cursor:pointer;" 
                       onmouseover="this.style.background='#fef9c3'" onmouseout="this.style.background='transparent'">
                       🧹 הסרת כל סימוני השינויים (טופל)
                     </button>
-
                     <div style="height:1px; background:#e2e8f0; margin:4px 0;"></div>
+                    ` : ''}
 
                     <button onclick="window.toggleMatzavaAdminMenu(); window.exportMatzavaToExcel();" 
                       style="width:100%; text-align:right; background:transparent; border:none; padding:10px 12px; border-radius:6px; font-size:0.85rem; font-weight:700; color:#00838f; display:flex; align-items:center; gap:8px; cursor:pointer;" 
@@ -3927,7 +3941,7 @@
                   style="padding:4px 10px; border-radius:14px; border:1px solid #facc15; font-size:0.75rem; font-weight:800; cursor:pointer; flex-shrink:0; ${s.filterType==='changed' ? 'background:#854d0e; color:#fff;' : 'background:#fef08a; color:#854d0e;'}">
                   ⚡ שינויים (${activeSubTabChangedCount})
                 </button>
-                ${(canEdit && activeSubTabChangedCount > 0) ? `
+                ${(isStrictAdmin() && activeSubTabChangedCount > 0) ? `
                   <button onclick="window.clearMatzavaChanges()" 
                     style="padding:4px 8px; border-radius:14px; border:1px solid #cbd5e1; font-size:0.72rem; font-weight:700; cursor:pointer; flex-shrink:0; background:#fff; color:#854d0e; display:inline-flex; align-items:center; gap:3px;" 
                     title="הסרת כל צבעי השינויים (סימון כטופל)">
