@@ -1576,9 +1576,14 @@
         <div id="mrsm-progress" style="width:100%; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden; margin-bottom:18px;">
           <div style="width:30%; height:100%; background:linear-gradient(90deg, #1a237e, #3949ab); border-radius:3px; animation:indeterminate 1.8s infinite ease-in-out;"></div>
         </div>
-        <button id="mrsm-cancel-btn" onclick="window.closeRemoteSyncModal()" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:8px; padding:8px 20px; font-size:0.85rem; font-weight:700; cursor:pointer;">
-          ביטול
-        </button>
+        <div style="display:flex; justify-content:center; gap:8px;">
+          <button id="mrsm-direct-cloud-btn" onclick="window.triggerImmediateCloudFallback()" style="background:#1565c0; color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:0.85rem; font-weight:700; cursor:pointer;">
+            ☁️ רענן מהענן עכשיו
+          </button>
+          <button id="mrsm-cancel-btn" onclick="window.closeRemoteSyncModal()" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:8px; padding:8px 16px; font-size:0.85rem; font-weight:700; cursor:pointer;">
+            ביטול
+          </button>
+        </div>
       </div>
       <style>
         @keyframes indeterminate {
@@ -1589,6 +1594,10 @@
       </style>
     `;
   }
+
+  window.triggerImmediateCloudFallback = function () {
+    executeCloudFallback('מרענן ישירות מנתוני הענן...');
+  };
 
   window.closeRemoteSyncModal = function () {
     if (_remotePollTimer) {
@@ -1736,11 +1745,15 @@
 
   // Unified Smart Refresh: First tries PC scan, automatically falls back to Cloud refresh without user intervention
   window.smartMatzavaRefresh = async function (btnEl) {
+    const isMobileDevice = (typeof window.isMobileMode === 'function' && window.isMobileMode()) || 
+                           (window.innerWidth < 1024) ||
+                           /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
     const isMasterAdmin = (window.role === 'admin') || 
                           (window._fbUser && window._fbUser.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03') || 
                           (window._fbUser && window._fbUser.email && window._fbUser.email.startsWith('perry@')) ||
                           (window.username === 'perry');
-    const isHostPC = isMasterAdmin && !!(window.showDirectoryPicker && window.indexedDB && window.innerWidth > 900);
+    const isHostPC = isMasterAdmin && !isMobileDevice && !!(window.showDirectoryPicker && window.indexedDB);
 
     // If on the physical Host PC where directory is linked, execute direct local scan & cloud upload:
     if (isHostPC && window.autoRefreshMatzava) {
@@ -1751,6 +1764,9 @@
     // 1. Try sending command to office PC
     // 2. If PC responds within 6s, it runs the scan and uploads fresh data
     // 3. If PC is offline or doesn't respond, system automatically falls back to Cloud data
+    if (!window._matzavaDeviceId) {
+      window._matzavaDeviceId = 'dev_' + Math.random().toString(36).substring(2, 9);
+    }
     const y = getYearKey();
     const cmdId = 'cmd_' + Date.now();
     const cmd = {
@@ -1759,6 +1775,7 @@
       status: 'pending',
       requestedAt: Date.now(),
       requestedBy: (window._fbUser && (window._fbUser.displayName || window._fbUser.email)) || window.username || 'user',
+      deviceId: window._matzavaDeviceId,
       year: y
     };
 
@@ -1792,6 +1809,11 @@
   let _pcRemoteListenerTimer = null;
 
   function showPcPermissionBanner(cmd, y) {
+    const isMobileDevice = (typeof window.isMobileMode === 'function' && window.isMobileMode()) || 
+                           (window.innerWidth < 1024) ||
+                           /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobileDevice) return; // Mobile devices NEVER act as host PC and must not show this banner!
+
     let el = document.getElementById('matzava-pc-sync-banner');
     if (el) el.remove();
 
@@ -1889,8 +1911,16 @@
   }
 
   window.initMatzavaRemoteListener = function () {
-    // Only desktop browsers with showDirectoryPicker support act as host scanners
+    // Strictly Host PC only: Desktop browser, screen width >= 1024, NOT a mobile device, File System Access API
     if (typeof window === 'undefined' || !window.showDirectoryPicker) return;
+    const isMobileDevice = (typeof window.isMobileMode === 'function' && window.isMobileMode()) || 
+                           (window.innerWidth < 1024) ||
+                           /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobileDevice) {
+      const el = document.getElementById('matzava-pc-sync-banner');
+      if (el) el.remove();
+      return; // Mobile devices NEVER act as host PC scanner!
+    }
     if (_pcRemoteListenerTimer) return;
 
     const checkCommand = async () => {
@@ -1909,6 +1939,7 @@
         if (!res.ok) return;
         const cmd = await res.json();
         if (!cmd || cmd.status !== 'pending' || !cmd.id) return;
+        if (cmd.deviceId && cmd.deviceId === window._matzavaDeviceId) return; // Ignore own commands
         if (cmd.id === _lastHandledCmdId) return;
         if (Date.now() - cmd.requestedAt > 120000) return;
 
