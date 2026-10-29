@@ -238,6 +238,7 @@
           window.MATZAVA_STATE.lastSync = data.lastSync || null;
           window.MATZAVA_STATE.lastFileModified = data.lastFileModified || null;
           window.MATZAVA_STATE.filesMeta = data.filesMeta || {};
+          window.MATZAVA_STATE._cloudSynced = true;
           normalizeRecordsKids10(window.MATZAVA_STATE.records);
           // Mirror to LocalStorage
           try {
@@ -328,57 +329,19 @@
     }
   };
 
-  // Dedicated one-click refresh: smart local scan if folder is available on PC, else cloud fetch
+  // Dedicated one-click refresh: always fetches fresh data directly from Firebase cloud
   window.refreshMatzavaFromCloud = async function (btnEl) {
     let origHtml = '';
     if (btnEl) {
       origHtml = btnEl.innerHTML;
       btnEl.disabled = true;
-      btnEl.innerHTML = '⏳ מרענן...';
+      btnEl.innerHTML = '⏳ מרענן מהענן...';
       btnEl.style.opacity = '0.75';
     }
 
     try {
-      let scannedLocal = false;
-      const y = getYearKey();
-      const handleKey = 'matzavaDirHandle_' + y;
-
-      // Smart local scan: ONLY for Master Admin on PC who already selected & saved a local folder handle
-      const isMasterAdmin = (window.role === 'admin') || 
-                            (window._fbUser && window._fbUser.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03') || 
-                            (window._fbUser && window._fbUser.email && window._fbUser.email.startsWith('perry@')) ||
-                            (window.username === 'perry');
-
-      if (isMasterAdmin && window.showDirectoryPicker) {
-        let dirHandle = null;
-        if (typeof window._spIdbGet === 'function') {
-          try { dirHandle = await window._spIdbGet(handleKey); } catch (e) {}
-        }
-
-        if (dirHandle) {
-          try {
-            let perm = await dirHandle.queryPermission({ mode: 'read' });
-            if (perm !== 'granted') {
-              perm = await dirHandle.requestPermission({ mode: 'read' });
-            }
-            if (perm === 'granted') {
-              if (btnEl) btnEl.innerHTML = '⚡ סורק קבצים ומעלה לענן...';
-              if (window.showToast) window.showToast('⚡ סורק קבצי מצבה מהמחשב ומעלה לענן...', 5000);
-              const scanRes = await window.executeMatzavaFolderScan(dirHandle, y, false);
-              if (scanRes && scanRes.count > 0) {
-                scannedLocal = true;
-              }
-            }
-          } catch (scanErr) {
-            console.warn('[Matzava] Local folder scan on refresh error:', scanErr);
-          }
-        }
-      }
-
-      if (!scannedLocal) {
-        if (window.showToast) window.showToast('⏳ מרענן נתוני מצבה מהענן...', 3000);
-        await window.loadMatzavaFromFirebase(true);
-      }
+      if (window.showToast) window.showToast('⏳ מרענן נתוני מצבה מהענן...', 3000);
+      await window.loadMatzavaFromFirebase(true);
 
       const modal = document.getElementById('matzava-modal');
       const modalBody = document.getElementById('matzava-modal-body');
@@ -390,15 +353,11 @@
       if (window.showToast) {
         const total = (window.MATZAVA_STATE.records || []).length;
         const sch = (window.MATZAVA_STATE.schools || []).length;
-        if (scannedLocal) {
-          window.showToast(`✅ קבצי המחשב נסרקו ורועננו בהצלחה (${total} צהרונים, ${sch} בתי ספר)`);
-        } else {
-          window.showToast(`✅ נתוני מצבה רועננו בהצלחה (${total} צהרונים, ${sch} בתי ספר)`);
-        }
+        window.showToast(`✅ נתוני מצבה רועננו מהענן בהצלחה (${total} צהרונים, ${sch} בתי ספר)`);
       }
     } catch (err) {
       console.error('[Matzava] Refresh error:', err);
-      if (window.showToast) window.showToast('❌ שגיאה ברענון: ' + err.message);
+      if (window.showToast) window.showToast('❌ שגיאה ברענון מהענן: ' + err.message);
     } finally {
       if (btnEl) {
         btnEl.disabled = false;
@@ -3226,14 +3185,17 @@
       } catch(e) {}
     }
 
-    if (!window.MATZAVA_STATE.loadedYear) {
-      container.innerHTML = `
-        <div style="text-align:center; padding:60px 20px;">
-          <div style="font-size:2rem; margin-bottom:12px;">⏳</div>
-          <div style="font-size:1.1rem; color:#1a237e; font-weight:700;">טוען נתוני מצבה מהענן...</div>
-        </div>
-      `;
-      await window.loadMatzavaFromFirebase(false, true);
+    // Always ensure fresh cloud data if schools are missing or if not yet cloud-synced this session
+    if (!window.MATZAVA_STATE.loadedYear || (window.MATZAVA_STATE.schools || []).length === 0 || !window.MATZAVA_STATE._cloudSynced) {
+      if (!window.MATZAVA_STATE.loadedYear && (window.MATZAVA_STATE.records || []).length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center; padding:60px 20px;">
+            <div style="font-size:2rem; margin-bottom:12px;">⏳</div>
+            <div style="font-size:1.1rem; color:#1a237e; font-weight:700;">טוען נתוני מצבה מהענן...</div>
+          </div>
+        `;
+      }
+      await window.loadMatzavaFromFirebase((window.MATZAVA_STATE.schools || []).length === 0, true);
     }
 
     const s = window.MATZAVA_STATE;
@@ -3803,15 +3765,15 @@
       } catch(e) {}
     }
 
-    // Only if completely empty on first launch
-    if (!window.MATZAVA_STATE.loadedYear || (((window.MATZAVA_STATE.records || []).length === 0) && ((window.MATZAVA_STATE.schools || []).length === 0))) {
+    // Only if completely empty or missing schools on first launch
+    if (!window.MATZAVA_STATE.loadedYear || ((window.MATZAVA_STATE.records || []).length === 0) || ((window.MATZAVA_STATE.schools || []).length === 0) || !window.MATZAVA_STATE._cloudSynced) {
       body.innerHTML = `
         <div style="text-align:center; padding:60px 20px;">
           <div style="font-size:2rem; margin-bottom:12px;">⏳</div>
           <div style="font-size:1.1rem; color:#1a237e; font-weight:700;">טוען נתוני מצבה עדכניים מהענן...</div>
         </div>
       `;
-      await window.loadMatzavaFromFirebase(false, true);
+      await window.loadMatzavaFromFirebase((window.MATZAVA_STATE.schools || []).length === 0, true);
     }
 
     // Render immediately from cache (0ms waiting!)
