@@ -38,7 +38,10 @@ window._safeLS = {
       try{ sessionStorage.setItem(k,v); }catch(e){}
       try{ localStorage.setItem(k,v); }catch(e){}
     } else {
-      console.error('CRITICAL: Data NOT saved to disk (Storage Blocked). Changes will be lost on reload!');
+      if (!window._storageWarned) {
+        window._storageWarned = true;
+        console.warn('Storage Check: localStorage blocked by browser tracking prevention — using safe in-memory cache.');
+      }
     }
   },
   removeItem(k){

@@ -343,27 +343,16 @@
       const y = getYearKey();
       const handleKey = 'matzavaDirHandle_' + y;
 
-      // Smart local scan: If on PC with File System Access, automatically scan or prompt for folder!
-      if (canEditMatzava() && window.showDirectoryPicker) {
+      // Smart local scan: ONLY for Master Admin on PC who already selected & saved a local folder handle
+      const isMasterAdmin = (window.role === 'admin') || 
+                            (window._fbUser && window._fbUser.uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03') || 
+                            (window._fbUser && window._fbUser.email && window._fbUser.email.startsWith('perry@')) ||
+                            (window.username === 'perry');
+
+      if (isMasterAdmin && window.showDirectoryPicker) {
         let dirHandle = null;
         if (typeof window._spIdbGet === 'function') {
           try { dirHandle = await window._spIdbGet(handleKey); } catch (e) {}
-        }
-
-        // If no saved handle yet, prompt to pick the folder!
-        if (!dirHandle) {
-          try {
-            if (window.showToast) window.showToast('📁 אנא בחר את תיקיית מצבה במחשב (' + y + ')...', 6000);
-            dirHandle = await window.showDirectoryPicker({
-              id: 'matzava_picker_' + y,
-              startIn: 'documents'
-            });
-            if (typeof window._spIdbSet === 'function') {
-              await window._spIdbSet(handleKey, dirHandle);
-            }
-          } catch(pickErr) {
-            console.warn('[Matzava] Directory picker cancelled or error:', pickErr);
-          }
         }
 
         if (dirHandle) {

@@ -981,9 +981,10 @@ async function loadFromFirebase(silent = false, force = false) {
       if (typeof window.renderCoordinatorView === 'function') setTimeout(() => window.renderCoordinatorView(), 100);
     }
 
-    // Only fetch purchasing data during general sync if not yet loaded or user is active in purchasing tabs
-    const isPurchActive = (window._dashTab === 'purch' || window._dashTab === 'pinvoices' || window._dashTab === 'porders' || window._dashTab === 'pdeliveries' || window._dashTab === 'psup' || window._mode === 'purch');
-    if (!window._purchasingDataLoaded || isPurchActive) {
+    // Only fetch purchasing data during general sync if user has purchasing permissions AND (not yet loaded or active in purchasing tabs)
+    const canAccessPurch = (window.role === 'admin' || window.permPurch === true);
+    const isPurchActive = canAccessPurch && (window._dashTab === 'purch' || window._dashTab === 'pinvoices' || window._dashTab === 'porders' || window._dashTab === 'pdeliveries' || window._dashTab === 'psup' || window._mode === 'purch');
+    if (canAccessPurch && (!window._purchasingDataLoaded || isPurchActive)) {
       if (typeof window.loadPurchasingDataFromFirebase === 'function') {
         window.loadPurchasingDataFromFirebase(force).catch(e => console.warn('[Sync] Purchasing data auto-load error:', e));
       }
@@ -1189,6 +1190,10 @@ window.saveDeliveriesToFirebase = async function() {
 
 // --- Lazy Load Purchasing Data ---
 window.loadPurchasingDataFromFirebase = async function (forceReload) {
+  // Strict Permission Guard: Do not load purchasing data for users without purchasing permissions
+  const canAccessPurch = (window.role === 'admin' || window.permPurch === true);
+  if (!canAccessPurch) return;
+
   if (window._purchasingDataLoaded && !forceReload) return;
 
   let tok = null;
@@ -1307,7 +1312,7 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
         if (Array.isArray(localOrd) && localOrd.length > 0) {
           window.ORDERS = localOrd;
           console.log('[Purchasing] Restored orders from local storage, syncing to cloud:', window.ORDERS.length);
-          window.saveOrdersToFirebase?.();
+          if (canAccessPurch && window.role === 'admin') window.saveOrdersToFirebase?.();
         } else if (!Array.isArray(window.ORDERS)) {
           window.ORDERS = [];
         }
@@ -1315,7 +1320,7 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
       anySuccess = true;
       console.log('[Purchasing] Orders loaded:', (window.ORDERS || []).length);
     } else {
-      console.warn('[Purchasing] Failed to load orders — response not OK');
+      if (canAccessPurch) console.warn('[Purchasing] Failed to load orders — response not OK');
     }
 
     if (dr.ok) {
@@ -1339,7 +1344,7 @@ window.loadPurchasingDataFromFirebase = async function (forceReload) {
         const localDel = JSON.parse(window._safeLS?.getItem('ganv5_deliveries') || '[]');
         if (Array.isArray(localDel) && localDel.length > 0) {
           window.DELIVERIES = localDel;
-          window.saveDeliveriesToFirebase?.();
+          if (canAccessPurch && window.role === 'admin') window.saveDeliveriesToFirebase?.();
         } else if (!Array.isArray(window.DELIVERIES)) {
           window.DELIVERIES = [];
         }
