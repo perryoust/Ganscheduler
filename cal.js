@@ -1870,7 +1870,7 @@ function renderNormalWeek(evs, ws, f){
 
   html+=`<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;
     border-bottom:2px solid #9fa8da;border-left:1px solid #c5cae9;
-    position:sticky;top:0;z-index:3;font-size:.76rem">צהרון / זוג</th>`;
+    position:sticky;top:0;right:0;z-index:35;font-size:.76rem">צהרון / זוג</th>`;
 
   days.forEach((d,i)=>{
     const ds=window.d2s(d);
@@ -1882,7 +1882,7 @@ function renderNormalWeek(evs, ws, f){
     const bottomBorder=blkWk?'border-bottom:3px solid #e91e63':'border-bottom:2px solid #9fa8da';
     html+=`<th style="background:${bg};color:${col};padding:3px 4px;text-align:center;font-size:.76rem;min-width:132px;
       ${bottomBorder};border-left:1px solid ${isToday?'rgba(255,255,255,.3)':'#c5cae9'};
-      position:sticky;top:0;z-index:3;white-space:nowrap;line-height:1.3" onclick="window.jumpToDay('${ds}')">
+      position:sticky;top:0;z-index:30;white-space:nowrap;line-height:1.3" onclick="window.jumpToDay('${ds}')">
       <span style="font-weight:700">${window.dayN(ds)}</span> <span style="font-size:.64rem;font-weight:400">${window.fD(ds)}</span>
 
       <br><span style="font-size:.56rem;font-weight:400;opacity:.7">${window.toHebDate ? window.toHebDate(ds) : ''}</span>
@@ -1902,7 +1902,7 @@ function renderNormalWeek(evs, ws, f){
     const groupLabel = window._listGroupMode === 'clusters' ? 'אשכולות' : 'זוגות';
     html+=`<tr onclick="toggleTableCity('${cityId}')" style="cursor:pointer" class="city-header-row">
       <td colspan="6" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;
-        border-bottom:1px solid rgba(255,255,255,.2);position:sticky;right:0;z-index:9">
+        border-bottom:1px solid rgba(255,255,255,.2);position:sticky;right:0;z-index:10">
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <span>🏙️ ${city} <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} ${groupLabel} · ${byCity[city].solos.length} צהרונים בודדים</span></span>
           <span style="font-size:0.7rem; font-weight:400; opacity:0.8;">לחץ לכיווץ/הרחבה ↕️</span>
@@ -1975,7 +1975,7 @@ function renderNormalWeek(evs, ws, f){
 
       html+=`<tr class="${cityRowClass} pair-hdr-${cityId}" onclick="window.toggleTableCluster('${pIdStr}')" style="display:${cityDisplay};cursor:pointer">
         <td colspan="6" style="background:${clr.solid};color:#fff;padding:5px 12px;
-          font-size:.92rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2)">
+          font-size:.92rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2);position:sticky;right:0;z-index:10">
           <div style="display:flex;align-items:center;gap:8px">
             <span id="icon-${pIdStr}" style="width:18px;text-align:center;font-size:1.1rem;user-select:none">${clusterIcon}</span>
             <button onclick="event.stopPropagation();window._exportPairWA([${pairGidList}])"
@@ -1989,7 +1989,7 @@ function renderNormalWeek(evs, ws, f){
         const g=window.G(gid);
         html+=`<tr class="${cityRowClass} pair-row-${pIdStr} pair-child-${cityId}" style="display:${clusterChildDisplay};"><td style="background:#fafbff; font-size:var(--fs-small); padding:6px 10px; color:var(--c-primary); font-weight:700;
           border-right:3px solid ${clr.solid}; border-bottom:1px solid #dde1f0; border-left:1px solid #dde1f0;
-          position:sticky; right:0; z-index:1; white-space:nowrap; max-width:180px; overflow:hidden; text-overflow:ellipsis; line-height:1.2">
+          position:sticky; right:0; z-index:10; white-space:nowrap; max-width:180px; overflow:hidden; text-overflow:ellipsis; line-height:1.2">
           ${g.name}<br><span style="font-size:var(--fs-xs); color:#64748b; font-weight:400">${g.st ? '📍 ' + g.st : g.city}</span>
         </td>`;
         days.forEach(d=>{
@@ -2008,7 +2008,7 @@ function renderNormalWeek(evs, ws, f){
       const g=window.G(gid);
       html+=`<tr class="${cityRowClass}" style="display:${cityDisplay};"><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
         border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
-        position:sticky;right:0;z-index:1;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">
+        position:sticky;right:0;z-index:10;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">
         ${g.name}<br><span style="font-size:12px;color:#78909c;font-weight:400">${g.city}</span>
       </td>`;
       days.forEach(d=>{
