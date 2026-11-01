@@ -3458,18 +3458,36 @@
       let schTotalKids = 0;
       let schSterileCount = 0;
       const schoolsSet = new Set();
+      const schoolsKidsMap = new Map();
       const schGroupsBySchool = new Map();
 
       filteredSchools.forEach(sc => {
-        schTotalKids += (sc.kids || 0);
         if (sc.isSterile) schSterileCount++;
+        const sKey = (sc.city || '') + '___' + (sc.school || '');
         if (sc.school) {
-          schoolsSet.add(sc.school);
-          if (!schGroupsBySchool.has(sc.school)) {
-            schGroupsBySchool.set(sc.school, sc.schoolGroupsCount || 0);
+          schoolsSet.add(sKey);
+          if (!schoolsKidsMap.has(sKey)) {
+            schoolsKidsMap.set(sKey, sc.schoolTotalKids !== undefined ? Number(sc.schoolTotalKids) : 0);
+          }
+          if (!schGroupsBySchool.has(sKey)) {
+            schGroupsBySchool.set(sKey, sc.schoolGroupsCount || 0);
           }
         }
       });
+
+      // Sum total kids per unique school (respecting explicit school total, fallback to summing class kids)
+      if (schoolsKidsMap.size > 0) {
+        schoolsKidsMap.forEach((sTotal, sKey) => {
+          if (sTotal > 0) {
+            schTotalKids += sTotal;
+          } else {
+            const scClasses = filteredSchools.filter(sc => ((sc.city || '') + '___' + (sc.school || '')) === sKey);
+            schTotalKids += scClasses.reduce((sum, c) => sum + (Number(c.kids) || 0), 0);
+          }
+        });
+      } else {
+        filteredSchools.forEach(sc => { schTotalKids += (Number(sc.kids) || 0); });
+      }
 
       let schTotalGroups = 0;
       schGroupsBySchool.forEach(g => { schTotalGroups += g; });
@@ -3718,18 +3736,35 @@
     let schTotalKids = 0;
     let schSterileCount = 0;
     const schoolsSet = new Set();
+    const schoolsKidsMap = new Map();
     const schGroupsBySchool = new Map();
 
     filteredSchools.forEach(sc => {
-      schTotalKids += (sc.kids || 0);
       if (sc.isSterile) schSterileCount++;
+      const sKey = (sc.city || '') + '___' + (sc.school || '');
       if (sc.school) {
-        schoolsSet.add(sc.school);
-        if (!schGroupsBySchool.has(sc.school)) {
-          schGroupsBySchool.set(sc.school, sc.schoolGroupsCount || 0);
+        schoolsSet.add(sKey);
+        if (!schoolsKidsMap.has(sKey)) {
+          schoolsKidsMap.set(sKey, sc.schoolTotalKids !== undefined ? Number(sc.schoolTotalKids) : 0);
+        }
+        if (!schGroupsBySchool.has(sKey)) {
+          schGroupsBySchool.set(sKey, sc.schoolGroupsCount || 0);
         }
       }
     });
+
+    if (schoolsKidsMap.size > 0) {
+      schoolsKidsMap.forEach((sTotal, sKey) => {
+        if (sTotal > 0) {
+          schTotalKids += sTotal;
+        } else {
+          const scClasses = filteredSchools.filter(sc => ((sc.city || '') + '___' + (sc.school || '')) === sKey);
+          schTotalKids += scClasses.reduce((sum, c) => sum + (Number(c.kids) || 0), 0);
+        }
+      });
+    } else {
+      filteredSchools.forEach(sc => { schTotalKids += (Number(sc.kids) || 0); });
+    }
 
     let schTotalGroups = 0;
     schGroupsBySchool.forEach(g => { schTotalGroups += g; });
