@@ -11,6 +11,9 @@ function _isSchool(g) {
 }
 
 function _getSupplierAliasOrName(nameOrFullName) {
+  if (typeof window.supDisplayName === 'function') {
+    return window.supDisplayName(nameOrFullName);
+  }
   if (!nameOrFullName) return '';
   const raw = String(nameOrFullName).trim();
   const base = typeof window.supBase === 'function' ? window.supBase(raw) : raw;

@@ -236,6 +236,8 @@ function supBaseEx(base){
   // Check exact SUPBASE entries
   SUPBASE.filter(s => supBase(s.name) === base).forEach(s => {
     const e = supEx[s.name] || {};
+    if (!ex.alias && e.alias) ex.alias = e.alias;
+    if (!ex.alias && s.alias) ex.alias = s.alias;
     if (!ex.ph1 && (e.ph1 || s.phone)) ex.ph1 = e.ph1 || s.phone;
     if (!ex.ph2 && e.ph2) ex.ph2 = e.ph2;
     if (!ex.notes && e.notes) ex.notes = e.notes;
@@ -248,6 +250,7 @@ function supBaseEx(base){
   });
   // Check __c entries
   (supEx['__c'] || []).filter(s => supBase(s.name) === base).forEach(s => {
+    if (!ex.alias && s.alias) ex.alias = s.alias;
     if (!ex.ph1 && s.phone) ex.ph1 = s.phone;
     if (!ex.contact && s.contact) ex.contact = s.contact;
   });
@@ -260,6 +263,7 @@ function supBaseEx(base){
       const mex = supEx[m] || (mBase !== base ? supEx[mBase] : null) || {};
       const ms = (SUPBASE || []).find(s => (s.name === m || (window.supBase && window.supBase(s.name) === mBase)) && s.name !== base && (!window.supBase || window.supBase(s.name) !== base)) || {};
       const mc = (supEx['__c'] || []).find(s => (s.name === m || (window.supBase && window.supBase(s.name) === mBase)) && s.name !== base && (!window.supBase || window.supBase(s.name) !== base)) || {};
+      if (!ex.alias && (mex.alias || mc.alias || ms.alias)) ex.alias = mex.alias || mc.alias || ms.alias;
       if (!ex.ph1 && (mex.ph1 || mc.phone || ms.phone)) ex.ph1 = mex.ph1 || mc.phone || ms.phone;
       if (!ex.ph2 && mex.ph2) ex.ph2 = mex.ph2;
       if (!ex.contact && (mex.contact || mc.contact)) ex.contact = mex.contact || mc.contact;
@@ -274,18 +278,58 @@ function supBaseEx(base){
   return ex;
 }
 window.supBaseEx = supBaseEx;
-function supDisplayName(base){
-  if(!base) return '';
-  const ex=supEx&&supEx[base];
-  if(ex&&ex.alias&&ex.alias.trim()) return ex.alias.trim();
+
+function supDisplayName(nameOrBase){
+  if(!nameOrBase) return '';
+  const raw = String(nameOrBase).trim();
+  const base = typeof supBase === 'function' ? supBase(raw) : raw;
+
+  // 1. Direct check in supEx by raw or base
+  if (typeof supEx !== 'undefined' && supEx) {
+    if (supEx[raw] && supEx[raw].alias && supEx[raw].alias.trim()) return supEx[raw].alias.trim();
+    if (supEx[base] && supEx[base].alias && supEx[base].alias.trim()) return supEx[base].alias.trim();
+  }
+
+  // 2. Check supBaseEx (which bridges base, SUPBASE, __c and mergedFrom)
+  if (typeof supBaseEx === 'function') {
+    const bEx = supBaseEx(base) || {};
+    if (bEx.alias && bEx.alias.trim()) return bEx.alias.trim();
+    if (raw !== base) {
+      const rEx = supBaseEx(raw) || {};
+      if (rEx.alias && rEx.alias.trim()) return rEx.alias.trim();
+    }
+  }
+
+  // 3. Scan supEx for any entry whose key or base matches
+  if (typeof supEx !== 'undefined' && supEx) {
+    for (const k in supEx) {
+      if (k === '__c' || k === '__merged_away') continue;
+      const item = supEx[k];
+      if (item && item.alias && item.alias.trim()) {
+        if (k === raw || k === base || (typeof supBase === 'function' && (supBase(k) === base || supBase(k) === raw))) {
+          return item.alias.trim();
+        }
+      }
+    }
+  }
+
+  // 4. Check SUPBASE for an alias
+  if (typeof SUPBASE !== 'undefined' && Array.isArray(SUPBASE)) {
+    const sb = SUPBASE.find(x => {
+      const xBase = typeof supBase === 'function' ? supBase(x.name) : x.name;
+      return x.name === raw || x.name === base || xBase === base || xBase === raw;
+    });
+    if (sb && sb.alias && sb.alias.trim()) return sb.alias.trim();
+  }
+
   if(base === 'אנגלית לחיים' || /english4life/i.test(base)) return 'אנגלית לחיים (English4Life)';
-  return base;
+  return base || raw;
 }
 window.supDisplayName = supDisplayName;
 window.supNameLabel = function(name) {
-  const base = supBase(name);
-  return supDisplayName(base);
+  return supDisplayName(name);
 };
+window._getSupplierAliasOrName = supDisplayName;
 
 function getSupPhone(nameOrFullName, ev) {
   if (ev && ev.p && String(ev.p).trim()) return String(ev.p).trim();

@@ -1928,12 +1928,13 @@ function renderNormalWeek(evs, ws, f){
           const evBase = window.supBase ? window.supBase(ev.a) : ev.a;
           const evEx = (window.supEx && (window.supEx[evBase] || window.supEx[ev.a])) || {};
           const evFlex = ev.flexNote || (evEx.flexSched ? (evEx.flexNote || 'הימים והשעות עלולים להשתנות') : '');
+          const dispSup = (ev.a && window.supDisplayName) ? window.supDisplayName(ev.a) : (ev.n || evBase || '');
           inner+=`<div class="pslot ${stC}" style="border-radius:6px; padding:6px 8px; margin:3px 0; font-size:var(--fs-xs);
             background:${bgCol}; border:1px solid ${borderCol}; border-right:3px solid ${clrObj.solid}; box-shadow:0 1px 2px rgba(0,0,0,0.03); cursor:pointer"
             onclick="event.stopPropagation();window.openSP('${ev.id}')">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:4px">
               <div style="flex:1; min-width:0">
-                <div style="font-weight:800; color:var(--c-secondary); font-size:var(--fs-small); line-height:1.2">${ev.n || window.supBase(ev.a)}</div>
+                <div style="font-weight:800; color:var(--c-secondary); font-size:var(--fs-small); line-height:1.2">${dispSup}</div>
                 ${ev.act ? `<div style="color:var(--c-info); font-size:var(--fs-xs); margin-top:1px">${ev.act}</div>` : ''}
                 ${ev.t ? `<div style="font-size:var(--fs-xs); color:#64748b; margin-top:2px">⏰ ${window.fT(ev.t)}</div>` : ''}
                 ${evFlex ? `<div style="font-size:0.62rem; color:#0369a1; font-weight:700; margin-top:2px;" title="${(evFlex||'').replace(/"/g,'&quot;')}">ℹ️ ${evFlex}</div>` : ''}
@@ -2063,7 +2064,7 @@ function renderPairWeek(evs,ws,gids){
         const evBase = window.supBase ? window.supBase(ev.a) : ev.a;
         const evEx = (window.supEx && (window.supEx[evBase] || window.supEx[ev.a])) || {};
         const evFlex = ev.flexNote || (evEx.flexSched ? (evEx.flexNote || 'הימים והשעות עלולים להשתנות') : '');
-        return `<div style="border-radius:4px;padding:2px 6px;margin-bottom:2px;cursor:pointer;font-size:.7rem;background:${clr.light};border-right:2px solid ${clr.solid};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" onclick="event.stopPropagation();openSP('${ev.id}')"><div style="font-weight:700;color:#1a237e">${ev.a}</div>${ev.t?`<div style="font-size:.65rem;color:#546e7a">⏰ ${window.fT(ev.t)}</div>`:''}${evFlex?`<div style="font-size:.6rem;color:#0369a1;font-weight:700">ℹ️ ${evFlex}</div>`:''}</div>`;
+        return `<div style="border-radius:4px;padding:2px 6px;margin-bottom:2px;cursor:pointer;font-size:.7rem;background:${clr.light};border-right:2px solid ${clr.solid};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" onclick="event.stopPropagation();openSP('${ev.id}')"><div style="font-weight:700;color:#1a237e">${window.supDisplayName ? window.supDisplayName(ev.a) : ev.a}</div>${ev.t?`<div style="font-size:.65rem;color:#546e7a">⏰ ${window.fT(ev.t)}</div>`:''}${evFlex?`<div style="font-size:.6rem;color:#0369a1;font-weight:700">ℹ️ ${evFlex}</div>`:''}</div>`;
       }).join('')+(pwBlk?`<div style="font-size:.62rem;color:#c62828">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`:'')
         :pwBlk?`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`
         :'<span style="color:#ccc;font-size:.8rem;cursor:pointer">+</span>'}</td>`;
@@ -2537,7 +2538,7 @@ window.renderMonthTable = function(evs, mDate, f) {
 
           const fullActName = ev.act ? (ev.a + ' - ' + ev.act) : (ev.a || '');
           let phone = typeof window.getSupPhone === 'function' ? window.getSupPhone(ev.a, ev) : (ev.p || '');
-          const supName = window.supBase ? window.supBase(ev.a) : (ev.a || '');
+          const supName = window.supDisplayName ? window.supDisplayName(ev.a) : (window.supBase ? window.supBase(ev.a) : (ev.a || ''));
           if (!phone && window.supEx && window.supEx[supName] && window.supEx[supName].ph1) {
             phone = window.supEx[supName].ph1;
           }
@@ -2740,7 +2741,7 @@ function renderMonth(evs,mDate,f){
         // Detailed view
         cellContent = '<div style="margin-top:2px; display:flex; flex-direction:column; gap:1.5px;">';
         dayEvs.sort((a,b)=>(a.t||'99:99').localeCompare(b.t||'99:99')).forEach(s => {
-          const sup = s.n || window.supBase(s.a);
+          const sup = (s.a && window.supDisplayName) ? window.supDisplayName(s.a) : (s.n || (window.supBase ? window.supBase(s.a) : (s.a || '')));
           const act = s.act || (window.supAct ? window.supAct(s.a) : '') || '';
           
           let stColor = '#1565c0';

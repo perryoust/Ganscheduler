@@ -591,7 +591,7 @@ async function _downloadWBExcelJS(gardens, allEvs, year, month, filename, single
           else if (isCamp)                fill = CLR.ORANGE;
           else if (isHoliday)             fill = CLR.YELLOW;
 
-          const supName = ev ? ((typeof window.supBase==='function'?window.supBase(ev.a):ev.a)||ev.a||'') : '';
+          const supName = ev ? ((typeof window.supDisplayName==='function'?window.supDisplayName(ev.a):(typeof window.supBase==='function'?window.supBase(ev.a):ev.a))||ev.a||'') : '';
           let evTpLabel = ev ? (ev.tp||'חוג') : '';
           if (evTpLabel === 'חוג') {
             const rawCls = garden.cls || '';
@@ -906,7 +906,7 @@ function buildStyledSheet(gardens, allEvs, year, month) {
           sc(r+ei, 3, dayName,     null);
         }
         if (ev) {
-          const supName = window.supBase(ev.a) || ev.a || '';
+          const supName = (typeof window.supDisplayName==='function'?window.supDisplayName(ev.a):(typeof window.supBase==='function'?window.supBase(ev.a):ev.a)) || ev.a || '';
           let actType = ev.tp || 'חוג';
           if (actType === 'חוג') {
             const rawCls = garden.cls || '';
@@ -985,7 +985,7 @@ function buildSheetData(garden, evs) {
     const dayName = `יום\u00a0${HEB_DAYS[date.getDay()]}`;
     if (!dayEvs.length) { rows.push([null,null,ds,dayName,null,null,null,null,null]); return; }
     dayEvs.forEach((s,i) => {
-      const supName = window.supBase(s.a)||s.a;
+      const supName = (typeof window.supDisplayName==='function'?window.supDisplayName(s.a):(typeof window.supBase==='function'?window.supBase(s.a):s.a))||s.a;
       rows.push([i===0?garden.name:null, null, i===0?ds:null, i===0?dayName:null,
         s.act||(typeof window.supAct==='function'?window.supAct(s.a):'')||'חוג',
         supName, s.p||'', s.grp||1, s.t?s.t.slice(0,5):''
