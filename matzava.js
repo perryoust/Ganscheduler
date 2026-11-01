@@ -180,6 +180,160 @@
     });
   }
 
+  // ==MZ-STATS-START==
+  // ── מקור אמת יחיד לכל הסיכומים במצבה ──
+  // כל תצוגה (כרטיסים עליונים, כותרות ערים, כרטיסי בתי ספר, מובייל, ייצוא אקסל) חייבת לחשב דרך הפונקציות האלה.
+  // לקח מ-v114.28: החישוב היה משוכפל ב-5 מקומות, ואחד מהם שכח את ילדי 11 החודשים.
+  const MatzavaStats = (function () {
+    function num(v) { return Number(v) || 0; }
+
+    function formatAvg(total, count) {
+      if (!count) return '0';
+      const v = total / count;
+      return Number.isInteger(v) ? v.toString() : v.toFixed(1);
+    }
+
+    // ילדים בצהרון אחד = 10 חודשים + 11 חודשים (עם גיבוי ל-kidsTotal אם אין פירוק)
+    function gardenKids(r) {
+      if (!r) return 0;
+      const k10 = num(r.kids10);
+      const k11 = num(r.kids11);
+      return (k10 + k11) > 0 ? (k10 + k11) : (num(r.kidsTotal) || num(r.kids));
+    }
+
+    function gardens(list) {
+      const st = { count: 0, kids: 0, kids10: 0, kids11: 0, sterile: 0, merged: 0, homeMeal: 0, changed: 0, avg: '0' };
+      (list || []).forEach(r => {
+        if (!r) return;
+        st.count++;
+        st.kids10 += num(r.kids10);
+        st.kids11 += num(r.kids11);
+        st.kids += gardenKids(r);
+        if (r.isSterile) st.sterile++;
+        if (r.isMerged) st.merged++;
+        if (r.isHomeMeal) st.homeMeal++;
+        if (r.hasChange) st.changed++;
+      });
+      st.avg = formatAvg(st.kids, st.count);
+      return st;
+    }
+
+    function cityName(rec) { return ((rec && rec.city) || 'כללי').trim(); }
+    function schoolName(rec) { return ((rec && rec.school) || 'בית ספר').trim(); }
+
+    // סיכום בית ספר אחד מתוך רשימת הכיתות שלו
+    function schoolEntry(classes) {
+      const list = classes || [];
+      const first = list[0];
+      const classesSum = list.reduce((sum, c) => sum + num(c && c.kids), 0);
+      const kids = (first && num(first.schoolTotalKids) > 0) ? num(first.schoolTotalKids) : classesSum;
+      const groups = (first && num(first.schoolGroupsCount) > 0) ? num(first.schoolGroupsCount) : list.length;
+      let sterile = 0, changed = 0;
+      list.forEach(c => { if (c && c.isSterile) sterile++; if (c && c.hasChange) changed++; });
+      return { kids, classesSum, groups, classes: list.length, sterile, changed, avg: formatAvg(kids, groups) };
+    }
+
+    // קיבוץ כיתות לפי עיר ← בית ספר (אותו מפתח בדיוק בכל התצוגות)
+    function groupSchools(list) {
+      const cityMap = new Map();
+      (list || []).forEach(sc => {
+        if (!sc) return;
+        const c = cityName(sc);
+        if (!cityMap.has(c)) cityMap.set(c, new Map());
+        const sMap = cityMap.get(c);
+        const n = schoolName(sc);
+        if (!sMap.has(n)) sMap.set(n, []);
+        sMap.get(n).push(sc);
+      });
+      return cityMap;
+    }
+
+    // סיכום מאוחד של מפת בתי ספר (Map<schoolName, classes[]>) או של רשימת כיתות שטוחה
+    function schools(listOrMap) {
+      let schoolMaps;
+      if (listOrMap instanceof Map) {
+        schoolMaps = [listOrMap];
+      } else {
+        schoolMaps = Array.from(groupSchools(listOrMap).values());
+      }
+      const st = { kids: 0, classesSum: 0, groups: 0, classes: 0, schools: 0, sterile: 0, changed: 0, avg: '0' };
+      schoolMaps.forEach(sMap => {
+        sMap.forEach(classes => {
+          const e = schoolEntry(classes);
+          st.kids += e.kids;
+          st.classesSum += e.classesSum;
+          st.groups += e.groups;
+          st.classes += e.classes;
+          st.sterile += e.sterile;
+          st.changed += e.changed;
+          st.schools++;
+        });
+      });
+      st.avg = formatAvg(st.kids, st.groups);
+      return st;
+    }
+
+    // בדיקה עצמית: סכום הערים חייב להיות שווה לסיכום הכללי. אזהרה בקונסול אם לא.
+    function verify(gardenList, schoolList) {
+      const problems = [];
+      const gTotal = gardens(gardenList);
+      const byCity = new Map();
+      (gardenList || []).forEach(r => {
+        if (!r) return;
+        const c = cityName(r);
+        if (!byCity.has(c)) byCity.set(c, []);
+        byCity.get(c).push(r);
+      });
+      let gCitySum = 0, gCityCount = 0;
+      byCity.forEach(list => { const s = gardens(list); gCitySum += s.kids; gCityCount += s.count; });
+      if (gCitySum !== gTotal.kids || gCityCount !== gTotal.count) {
+        problems.push(`צהרונים: סכום ערים ${gCitySum} (${gCityCount}) ≠ סה"כ ${gTotal.kids} (${gTotal.count})`);
+      }
+
+      const sTotal = schools(schoolList);
+      let sCitySum = 0, sCityGroups = 0;
+      groupSchools(schoolList).forEach(sMap => { const s = schools(sMap); sCitySum += s.kids; sCityGroups += s.groups; });
+      if (sCitySum !== sTotal.kids || sCityGroups !== sTotal.groups) {
+        problems.push(`בתי ספר: סכום ערים ${sCitySum}/${sCityGroups} ≠ סה"כ ${sTotal.kids}/${sTotal.groups}`);
+      }
+
+      if (problems.length && typeof console !== 'undefined') {
+        console.warn('⚠️ Matzava consistency check failed:', problems);
+      }
+      return { ok: problems.length === 0, problems, gardens: gTotal, schools: sTotal };
+    }
+
+    // בדיקה מול מה שבאמת הוצג: כל כותרת עיר מדווחת את הסכום שהציגה, ובסוף משווים לכרטיס העליון
+    let rendered = null;
+    function beginRender() {
+      rendered = { gardens: { kids: 0, count: 0, cities: 0 }, schools: { kids: 0, groups: 0, cities: 0 } };
+    }
+    function reportCity(kind, st) {
+      if (!rendered || !rendered[kind] || !st) return;
+      const r = rendered[kind];
+      r.kids += num(st.kids);
+      r.cities++;
+      if (kind === 'gardens') r.count += num(st.count);
+      else r.groups += num(st.groups);
+    }
+    function checkRendered(kind, total) {
+      if (!rendered || !rendered[kind] || !total || rendered[kind].cities === 0) return true;
+      const r = rendered[kind];
+      const ok = kind === 'gardens'
+        ? (r.kids === num(total.kids) && r.count === num(total.count))
+        : (r.kids === num(total.kids) && r.groups === num(total.groups));
+      if (!ok && typeof console !== 'undefined') {
+        console.warn(`⚠️ Matzava (${kind}): סכום כותרות הערים שהוצגו לא תואם לכרטיס העליון`, { cities: r, top: total });
+      }
+      if (typeof window !== 'undefined') window._matzavaLastCheck = { kind, ok, cities: r, top: total, at: new Date().toISOString() };
+      return ok;
+    }
+
+    return { num, formatAvg, gardenKids, gardens, schoolEntry, groupSchools, schools, verify, beginRender, reportCity, checkRendered };
+  })();
+  if (typeof window !== 'undefined') window.MatzavaStats = MatzavaStats;
+  // ==MZ-STATS-END==
+
   const RTDB_ROOT = 'https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app';
 
   async function getMatzavaAuthHeader() {
@@ -2068,14 +2222,12 @@
         cell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rightToLeft' };
       });
 
-      let total10 = 0;
-      let total11 = 0;
-      let totalKids = 0;
+      const gExportStats = MatzavaStats.gardens(filteredGardens);
+      const total10 = gExportStats.kids10;
+      const total11 = gExportStats.kids11;
+      const totalKids = gExportStats.kids;
 
       filteredGardens.forEach((r) => {
-        total10 += (r.kids10 || 0);
-        total11 += (r.kids11 || 0);
-        totalKids += (r.kidsTotal || 0);
 
         const cleanBaseName = (r.name && r.name !== '[object Object]' && !String(r.name).includes('object Object'))
           ? r.name
@@ -2556,26 +2708,16 @@
 
     const content = sortedCities.map(cityName => {
       const cityGardens = cityMap.get(cityName);
-      let sumCol10 = 0;
-      let sumCol11 = 0;
-      let sumColTotal = 0;
-      let cityMerged = 0;
-      let citySterile = 0;
-      let cityChanged = 0;
-      let cityFileMod = null;
-
-      cityGardens.forEach(r => {
-        const k10 = Number(r.kids10) || 0;
-        const k11 = Number(r.kids11) || 0;
-        sumCol10 += k10;
-        sumCol11 += k11;
-        sumColTotal += (k10 + k11);
-        if (r.isMerged) cityMerged++;
-        if (r.isSterile) citySterile++;
-        if (r.hasChange) cityChanged++;
-      });
-      cityFileMod = getCityFileModified(cityName, cityGardens);
-      const cityAvg = cityGardens.length > 0 ? (Number.isInteger(sumColTotal / cityGardens.length) ? (sumColTotal / cityGardens.length).toString() : (sumColTotal / cityGardens.length).toFixed(1)) : '0';
+      const cityStats = MatzavaStats.gardens(cityGardens);
+      MatzavaStats.reportCity('gardens', cityStats);
+      const sumCol10 = cityStats.kids10;
+      const sumCol11 = cityStats.kids11;
+      const sumColTotal = cityStats.kids;
+      const cityMerged = cityStats.merged;
+      const citySterile = cityStats.sterile;
+      const cityChanged = cityStats.changed;
+      const cityFileMod = getCityFileModified(cityName, cityGardens);
+      const cityAvg = cityStats.avg;
 
       return `
         <details class="city-accordion matzava-city-accordion" ${shouldOpen ? 'open' : ''} style="margin-bottom:10px; border:1px solid #cbd5e1; border-radius:10px; overflow:hidden; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
@@ -2631,15 +2773,7 @@
       `;
     }
 
-    const cityMap = new Map();
-    filteredSchools.forEach(sc => {
-      const cName = (sc.city || 'כללי').trim();
-      if (!cityMap.has(cName)) cityMap.set(cName, new Map());
-      const sMap = cityMap.get(cName);
-      const schName = (sc.school || 'בית ספר').trim();
-      if (!sMap.has(schName)) sMap.set(schName, []);
-      sMap.get(schName).push(sc);
-    });
+    const cityMap = MatzavaStats.groupSchools(filteredSchools);
 
     const isSearching = !!(window.MATZAVA_STATE.searchQuery && window.MATZAVA_STATE.searchQuery.trim());
     const isSingleCitySelected = window.MATZAVA_STATE.selectedCity !== 'all';
@@ -2653,26 +2787,15 @@
     ` : '';
 
     const content = Array.from(cityMap.entries()).map(([cityName, schObjMap]) => {
-      let cityKids = 0;
-      let cityGroups = 0;
-      let cityClasses = 0;
-      let citySterile = 0;
-      let cityChanged = 0;
-      let cityFileMod = null;
-
-      schObjMap.forEach(classes => {
-        const sKids = (classes[0] && classes[0].schoolTotalKids) ? classes[0].schoolTotalKids : classes.reduce((sum, c) => sum + (c.kids || 0), 0);
-        const sGroups = (classes[0] && classes[0].schoolGroupsCount) ? classes[0].schoolGroupsCount : classes.length;
-        cityKids += sKids;
-        cityGroups += sGroups;
-        cityClasses += classes.length;
-        classes.forEach(sc => {
-          if (sc.isSterile) citySterile++;
-          if (sc.hasChange) cityChanged++;
-        });
-      });
-      cityFileMod = getCityFileModified(cityName, Array.from(schObjMap.values()).flat());
-      const citySchAvgPerGroup = cityGroups > 0 ? (Number.isInteger(cityKids / cityGroups) ? (cityKids / cityGroups).toString() : (cityKids / cityGroups).toFixed(1)) : '0';
+      const citySchStats = MatzavaStats.schools(schObjMap);
+      MatzavaStats.reportCity('schools', citySchStats);
+      const cityKids = citySchStats.kids;
+      const cityGroups = citySchStats.groups;
+      const cityClasses = citySchStats.classes;
+      const citySterile = citySchStats.sterile;
+      const cityChanged = citySchStats.changed;
+      const cityFileMod = getCityFileModified(cityName, Array.from(schObjMap.values()).flat());
+      const citySchAvgPerGroup = citySchStats.avg;
 
       return `
         <details class="city-accordion matzava-city-accordion" ${shouldOpen ? 'open' : ''} style="margin-bottom:10px; border:1px solid #cbd5e1; border-radius:10px; overflow:hidden; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
@@ -2706,14 +2829,13 @@
           <!-- Schools List in City -->
           <div class="city-accordion-content" style="padding:8px; display:flex; flex-direction:column; gap:8px; background:#f8fafc;">
             ${Array.from(schObjMap.entries()).map(([schoolName, classes]) => {
-              const schKidsTotal = (classes[0] && classes[0].schoolTotalKids) ? classes[0].schoolTotalKids : classes.reduce((sum, c) => sum + (c.kids || 0), 0);
-              const schGroupsCount = (classes[0] && classes[0].schoolGroupsCount) ? classes[0].schoolGroupsCount : classes.length;
-              const schAvgPerGroup = schGroupsCount > 0 ? (Number.isInteger(schKidsTotal / schGroupsCount) ? (schKidsTotal / schGroupsCount).toString() : (schKidsTotal / schGroupsCount).toFixed(1)) : '0';
-              let schSterile = 0;
+              const schEntry = MatzavaStats.schoolEntry(classes);
+              const schKidsTotal = schEntry.kids;
+              const schGroupsCount = schEntry.groups;
+              const schAvgPerGroup = schEntry.avg;
+              const schSterile = schEntry.sterile;
               let schAddress = '';
-
               classes.forEach(c => {
-                if (c.isSterile) schSterile++;
                 if (!schAddress && c.address) schAddress = c.address;
               });
 
@@ -2997,26 +3119,16 @@
 
     const content = sortedCities.map(cityName => {
       const cityGardens = cityMap.get(cityName);
-      let sumCol10 = 0;
-      let sumCol11 = 0;
-      let sumColTotal = 0;
-      let cityMerged = 0;
-      let citySterile = 0;
-      let cityChanged = 0;
-      let cityFileMod = null;
-
-      cityGardens.forEach(r => {
-        const k10 = Number(r.kids10) || 0;
-        const k11 = Number(r.kids11) || 0;
-        sumCol10 += k10;
-        sumCol11 += k11;
-        sumColTotal += (k10 + k11);
-        if (r.isMerged) cityMerged++;
-        if (r.isSterile) citySterile++;
-        if (r.hasChange) cityChanged++;
-      });
-      cityFileMod = getCityFileModified(cityName, cityGardens);
-      const cityAvg = cityGardens.length > 0 ? (Number.isInteger(sumColTotal / cityGardens.length) ? (sumColTotal / cityGardens.length).toString() : (sumColTotal / cityGardens.length).toFixed(1)) : '0';
+      const cityStats = MatzavaStats.gardens(cityGardens);
+      MatzavaStats.reportCity('gardens', cityStats);
+      const sumCol10 = cityStats.kids10;
+      const sumCol11 = cityStats.kids11;
+      const sumColTotal = cityStats.kids;
+      const cityMerged = cityStats.merged;
+      const citySterile = cityStats.sterile;
+      const cityChanged = cityStats.changed;
+      const cityFileMod = getCityFileModified(cityName, cityGardens);
+      const cityAvg = cityStats.avg;
 
       return `
         <details class="city-accordion matzava-city-accordion" ${shouldOpen ? 'open' : ''} style="margin-bottom:14px; border:1px solid #cbd5e1; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
@@ -3090,15 +3202,7 @@
       `;
     }
 
-    const cityMap = new Map();
-    filteredSchools.forEach(sc => {
-      const cName = (sc.city || 'כללי').trim();
-      if (!cityMap.has(cName)) cityMap.set(cName, new Map());
-      const sMap = cityMap.get(cName);
-      const schName = (sc.school || 'בית ספר').trim();
-      if (!sMap.has(schName)) sMap.set(schName, []);
-      sMap.get(schName).push(sc);
-    });
+    const cityMap = MatzavaStats.groupSchools(filteredSchools);
 
     const isSearching = !!(window.MATZAVA_STATE.searchQuery && window.MATZAVA_STATE.searchQuery.trim());
     const isSingleCitySelected = window.MATZAVA_STATE.selectedCity !== 'all';
@@ -3112,26 +3216,15 @@
     ` : '';
 
     const content = Array.from(cityMap.entries()).map(([cityName, schObjMap]) => {
-      let cityKids = 0;
-      let cityGroups = 0;
-      let cityClasses = 0;
-      let citySterile = 0;
-      let cityChanged = 0;
-      let cityFileMod = null;
-
-      schObjMap.forEach(classes => {
-        const sKids = (classes[0] && classes[0].schoolTotalKids) ? classes[0].schoolTotalKids : classes.reduce((sum, c) => sum + (c.kids || 0), 0);
-        const sGroups = (classes[0] && classes[0].schoolGroupsCount) ? classes[0].schoolGroupsCount : classes.length;
-        cityKids += sKids;
-        cityGroups += sGroups;
-        cityClasses += classes.length;
-        classes.forEach(sc => {
-          if (sc.isSterile) citySterile++;
-          if (sc.hasChange) cityChanged++;
-        });
-      });
-      cityFileMod = getCityFileModified(cityName, Array.from(schObjMap.values()).flat());
-      const citySchAvgPerGroup = cityGroups > 0 ? (Number.isInteger(cityKids / cityGroups) ? (cityKids / cityGroups).toString() : (cityKids / cityGroups).toFixed(1)) : '0';
+      const citySchStats = MatzavaStats.schools(schObjMap);
+      MatzavaStats.reportCity('schools', citySchStats);
+      const cityKids = citySchStats.kids;
+      const cityGroups = citySchStats.groups;
+      const cityClasses = citySchStats.classes;
+      const citySterile = citySchStats.sterile;
+      const cityChanged = citySchStats.changed;
+      const cityFileMod = getCityFileModified(cityName, Array.from(schObjMap.values()).flat());
+      const citySchAvgPerGroup = citySchStats.avg;
 
       return `
         <details class="city-accordion matzava-city-accordion" ${shouldOpen ? 'open' : ''} style="margin-bottom:16px; border:1px solid #cbd5e1; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
@@ -3181,14 +3274,13 @@
           <!-- SCHOOLS LIST WITHIN CITY -->
           <div class="city-accordion-content" style="padding:14px; display:flex; flex-direction:column; gap:14px; background:#f8fafc;">
             ${Array.from(schObjMap.entries()).map(([schoolName, classes]) => {
-              const schKidsTotal = (classes[0] && classes[0].schoolTotalKids) ? classes[0].schoolTotalKids : classes.reduce((sum, c) => sum + (c.kids || 0), 0);
-              const schGroupsCount = (classes[0] && classes[0].schoolGroupsCount) ? classes[0].schoolGroupsCount : classes.length;
-              const schAvgPerGroup = schGroupsCount > 0 ? (Number.isInteger(schKidsTotal / schGroupsCount) ? (schKidsTotal / schGroupsCount).toString() : (schKidsTotal / schGroupsCount).toFixed(1)) : '0';
-              let schSterile = 0;
+              const schEntry = MatzavaStats.schoolEntry(classes);
+              const schKidsTotal = schEntry.kids;
+              const schGroupsCount = schEntry.groups;
+              const schAvgPerGroup = schEntry.avg;
+              const schSterile = schEntry.sterile;
               let schAddress = '';
-
               classes.forEach(c => {
-                if (c.isSterile) schSterile++;
                 if (!schAddress && c.address) schAddress = c.address;
               });
 
@@ -3414,18 +3506,12 @@
   function renderMatzavaKpisHtml(filteredGardens, filteredSchools, filteredNutrition, isMob) {
     const s = window.MATZAVA_STATE;
     if (s.subTab === 'gardens') {
-      let totalKids = 0;
-      let sterileCount = 0;
-      let mergedCount = 0;
-      filteredGardens.forEach(r => {
-        const k10 = Number(r.kids10) || 0;
-        const k11 = Number(r.kids11) || 0;
-        const rowSum = (k10 + k11) > 0 ? (k10 + k11) : (Number(r.kidsTotal) || Number(r.kids) || 0);
-        totalKids += rowSum;
-        if (r.isSterile) sterileCount++;
-        if (r.isMerged) mergedCount++;
-      });
-      const avgKids = filteredGardens.length > 0 ? (Number.isInteger(totalKids / filteredGardens.length) ? (totalKids / filteredGardens.length).toString() : (totalKids / filteredGardens.length).toFixed(1)) : '0';
+      const gStats = MatzavaStats.gardens(filteredGardens);
+      MatzavaStats.checkRendered('gardens', gStats);
+      const totalKids = gStats.kids;
+      const sterileCount = gStats.sterile;
+      const mergedCount = gStats.merged;
+      const avgKids = gStats.avg;
 
       return `
         <div style="display:grid; grid-template-columns:${isMob ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))'}; gap:${isMob ? '6px' : '12px'}; margin-bottom:${isMob ? '10px' : '16px'};">
@@ -3455,43 +3541,13 @@
         </div>
       `;
     } else if (s.subTab === 'schools') {
-      let schTotalKids = 0;
-      let schSterileCount = 0;
-      const schoolsSet = new Set();
-      const schoolsKidsMap = new Map();
-      const schGroupsBySchool = new Map();
-
-      filteredSchools.forEach(sc => {
-        if (sc.isSterile) schSterileCount++;
-        const sKey = (sc.city || '') + '___' + (sc.school || '');
-        if (sc.school) {
-          schoolsSet.add(sKey);
-          if (!schoolsKidsMap.has(sKey)) {
-            schoolsKidsMap.set(sKey, sc.schoolTotalKids !== undefined ? Number(sc.schoolTotalKids) : 0);
-          }
-          if (!schGroupsBySchool.has(sKey)) {
-            schGroupsBySchool.set(sKey, sc.schoolGroupsCount || 0);
-          }
-        }
-      });
-
-      // Sum total kids per unique school (respecting explicit school total, fallback to summing class kids)
-      if (schoolsKidsMap.size > 0) {
-        schoolsKidsMap.forEach((sTotal, sKey) => {
-          if (sTotal > 0) {
-            schTotalKids += sTotal;
-          } else {
-            const scClasses = filteredSchools.filter(sc => ((sc.city || '') + '___' + (sc.school || '')) === sKey);
-            schTotalKids += scClasses.reduce((sum, c) => sum + (Number(c.kids) || 0), 0);
-          }
-        });
-      } else {
-        filteredSchools.forEach(sc => { schTotalKids += (Number(sc.kids) || 0); });
-      }
-
-      let schTotalGroups = 0;
-      schGroupsBySchool.forEach(g => { schTotalGroups += g; });
-      if (schTotalGroups === 0) schTotalGroups = filteredSchools.length;
+      const schStats = MatzavaStats.schools(filteredSchools);
+      MatzavaStats.checkRendered('schools', schStats);
+      const schTotalKids = schStats.kids;
+      const schTotalGroups = schStats.groups;
+      const schSchoolsCount = schStats.schools;
+      const schSterileCount = schStats.sterile;
+      const schAvgPerGroup = schStats.avg;
 
       return `
         <div style="display:grid; grid-template-columns:${isMob ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))'}; gap:${isMob ? '6px' : '12px'}; margin-bottom:${isMob ? '10px' : '16px'};">
@@ -3504,12 +3560,12 @@
           <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
             <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">קבוצות בצהרונים</div>
             <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#00838f; font-weight:800; line-height:1.15;">${schTotalGroups}</div>
-            <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">ממוצע: <b>${(schTotalGroups > 0 ? (Number.isInteger(schTotalKids / schTotalGroups) ? (schTotalKids / schTotalGroups).toString() : (schTotalKids / schTotalGroups).toFixed(1)) : 0)}</b> לקבוצה</div>
+            <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">ממוצע: <b>${schAvgPerGroup}</b> לקבוצה</div>
           </div>
 
           <div style="background:#fff; border-radius:${isMob ? '8px' : '10px'}; padding:${isMob ? '6px 8px' : '12px 16px'}; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-align:center;">
             <div style="font-size:${isMob ? '0.68rem' : '0.75rem'}; color:#666; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">בתי ספר פעילים</div>
-            <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#0277bd; font-weight:800; line-height:1.15;">${schoolsSet.size}</div>
+            <div style="font-size:${isMob ? '1.25rem' : '1.6rem'}; color:#0277bd; font-weight:800; line-height:1.15;">${schSchoolsCount}</div>
             <div style="font-size:${isMob ? '0.62rem' : '0.7rem'}; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">מוסדות חינוך</div>
           </div>
 
@@ -3711,64 +3767,24 @@
     }
     if (!s.subTab) s.subTab = 'gardens';
 
-    // Compute Gardens stats
-    let totalKids = 0;
-    let total10 = 0;
-    let total11 = 0;
-    let sterileCount = 0;
-    let homeMealCount = 0;
-    let mergedCount = 0;
-    filteredGardens.forEach(r => {
-      const k10 = Number(r.kids10) || 0;
-      const k11 = Number(r.kids11) || 0;
-      const rowSum = k10 + k11;
-      r.kidsTotal = rowSum;
-      totalKids += rowSum;
-      total10 += k10;
-      total11 += k11;
-      if (r.isSterile) sterileCount++;
-      if (r.isHomeMeal) homeMealCount++;
-      if (r.isMerged) mergedCount++;
-    });
-    const avgKids = filteredGardens.length > 0 ? (totalKids / filteredGardens.length).toFixed(1) : 0;
+    // Reset rendered totals collector for consistency self-check
+    MatzavaStats.beginRender();
 
-    // Compute Schools stats
-    let schTotalKids = 0;
-    let schSterileCount = 0;
-    const schoolsSet = new Set();
-    const schoolsKidsMap = new Map();
-    const schGroupsBySchool = new Map();
+    // Compute Gardens stats via single source of truth
+    const gStats = MatzavaStats.gardens(filteredGardens);
+    const totalKids = gStats.kids;
+    const total10 = gStats.kids10;
+    const total11 = gStats.kids11;
+    const sterileCount = gStats.sterile;
+    const homeMealCount = gStats.homeMeal;
+    const mergedCount = gStats.merged;
+    const avgKids = gStats.avg;
 
-    filteredSchools.forEach(sc => {
-      if (sc.isSterile) schSterileCount++;
-      const sKey = (sc.city || '') + '___' + (sc.school || '');
-      if (sc.school) {
-        schoolsSet.add(sKey);
-        if (!schoolsKidsMap.has(sKey)) {
-          schoolsKidsMap.set(sKey, sc.schoolTotalKids !== undefined ? Number(sc.schoolTotalKids) : 0);
-        }
-        if (!schGroupsBySchool.has(sKey)) {
-          schGroupsBySchool.set(sKey, sc.schoolGroupsCount || 0);
-        }
-      }
-    });
-
-    if (schoolsKidsMap.size > 0) {
-      schoolsKidsMap.forEach((sTotal, sKey) => {
-        if (sTotal > 0) {
-          schTotalKids += sTotal;
-        } else {
-          const scClasses = filteredSchools.filter(sc => ((sc.city || '') + '___' + (sc.school || '')) === sKey);
-          schTotalKids += scClasses.reduce((sum, c) => sum + (Number(c.kids) || 0), 0);
-        }
-      });
-    } else {
-      filteredSchools.forEach(sc => { schTotalKids += (Number(sc.kids) || 0); });
-    }
-
-    let schTotalGroups = 0;
-    schGroupsBySchool.forEach(g => { schTotalGroups += g; });
-    if (schTotalGroups === 0) schTotalGroups = filteredSchools.length;
+    // Compute Schools stats via single source of truth
+    const schStats = MatzavaStats.schools(filteredSchools);
+    const schTotalKids = schStats.kids;
+    const schSterileCount = schStats.sterile;
+    const schTotalGroups = schStats.groups;
 
     // Compute Nutrition stats
     let nutTotalMeals = 0;

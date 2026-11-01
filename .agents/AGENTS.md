@@ -76,6 +76,11 @@ The workspace implements an automated data checkpoint vault in `version_vault.js
 3. **Revert Behavior**:
    - When the yellow fill is removed in Excel ("No Fill") and the file is re-scanned or imported, the flags automatically clear (`false`) and the record returns to normal styling.
 
+## Matzava Calculations Single-Source-of-Truth (חוק ברזל: מקור אמת יחיד לחישובי מצבה)
+1. **No Duplicated Stat Loops**: ALL aggregations of kids, groups, averages, and sterile counts across Matzava (top cards desktop/mobile, city headers desktop/mobile, school cards, and Excel export) MUST be computed via `MatzavaStats` in `matzava.js` (`MatzavaStats.gardens`, `MatzavaStats.schools`, `MatzavaStats.schoolEntry`).
+2. **10+11 Months Rule**: Kindergarten total kids is ALWAYS `(kids10 + kids11)`. Never read `kids10` alone for a total.
+3. **Runtime Self-Check**: `MatzavaStats.checkRendered()` verifies on every render that the sum of displayed city header numbers matches the top summary card. If there is any discrepancy, a console warning is emitted immediately.
+
 ## Roadmap & Backlog (משימות פיתוח עתידיות)
 ### 1. מצב"ה לקייטנות ובוקרונים (Camps & Morning Programs Matzava)
 - **מטרה**: בניית מודול/טאב ייעודי למצב"ת תלמידים בקייטנות ובבוקרונים.
