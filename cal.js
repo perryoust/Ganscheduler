@@ -1913,7 +1913,9 @@ function renderNormalWeek(evs, ws, f){
     // Wrapper for rows of this city
     const cityRowClass = `city-row-${cityId}`;
 
-    function makeCell(gid, ds, de, blk, hol, clrObj){
+    function makeCell(gid, ds, de, blk, hol, clrObj, clusterId){
+      const schedCall = clusterId ? `window.openNewSched(null, {grpId:'cl_${clusterId}', date:'${ds}', focusGid:${gid}})` : `window.openNewSched(${gid}, {date:'${ds}'})`;
+      const schedTitle = clusterId ? 'שיבוץ לאשכול לתאריך זה' : 'שיבוץ לצהרון זה';
       const isToday=ds===tday;
       const cellBg=blk?'#fff5f5':isToday?'#f8faff':hol?hol.bg+'22':'#fff';
       const borderColor=isToday?'var(--c-primary)':'#e2e8f0';
@@ -1951,10 +1953,10 @@ function renderNormalWeek(evs, ws, f){
       } else if(blk){
         inner=`<div style="font-size:var(--fs-xs); color:var(--c-error); padding:6px; text-align:center; font-weight:700">${blk.icon||'🚫'} ${blk.reason}</div>`;
       } else if(hol){
-        const holAddBtn = window.isReadOnly ? '' : `<button type="button" title="שיבוץ לצהרון זה" onclick="event.stopPropagation(); window.openNewSched(${gid}, {date:'${ds}'})" style="display:inline-flex; align-items:center; justify-content:center; margin-top:3px; width:26px; height:22px; font-size:0.75rem; font-weight:700; color:#1565c0; background:rgba(255,255,255,0.9); border:1px dashed #93c5fd; border-radius:6px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='#dbeafe'; this.style.borderColor='#2563eb'" onmouseout="this.style.background='rgba(255,255,255,0.9)'; this.style.borderColor='#93c5fd'">➕</button>`;
+        const holAddBtn = window.isReadOnly ? '' : `<button type="button" title="${schedTitle}" onclick="event.stopPropagation(); ${schedCall}" style="display:inline-flex; align-items:center; justify-content:center; margin-top:3px; width:26px; height:22px; font-size:0.75rem; font-weight:700; color:#1565c0; background:rgba(255,255,255,0.9); border:1px dashed #93c5fd; border-radius:6px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='#dbeafe'; this.style.borderColor='#2563eb'" onmouseout="this.style.background='rgba(255,255,255,0.9)'; this.style.borderColor='#93c5fd'">➕</button>`;
         inner=`<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4px 2px; gap:2px"><div style="font-size:var(--fs-xs); color:${hol.color}; font-weight:700; text-align:center">${hol.emoji} ${hol.name}</div>${holAddBtn}</div>`;
       } else {
-        inner = window.isReadOnly ? `<div style="padding:8px 0;"></div>` : `<div style="color:#cbd5e1; font-size:1.2rem; font-weight:300; text-align:center; padding:8px 0; cursor:pointer">+</div>`;
+        inner = window.isReadOnly ? `<div style="padding:8px 0;"></div>` : `<div title="${schedTitle}" ${clusterId ? `onclick="event.stopPropagation(); ${schedCall}"` : ''} style="color:#cbd5e1; font-size:1.2rem; font-weight:300; text-align:center; padding:8px 0; cursor:pointer">+</div>`;
       }
       const jumpBtn = `<button onclick="event.stopPropagation(); window.calJump('','week','${gid}')" 
         style="position:absolute; top:4px; left:4px; background:white; border:1px solid #e2e8f0;
@@ -1983,7 +1985,7 @@ function renderNormalWeek(evs, ws, f){
             <button onclick="event.stopPropagation();window._exportPairWA([${pairGidList}])"
               style="background:rgba(255,255,255,.22);border:none;border-radius:5px;color:#fff;
                 font-size:.72rem;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">📋 הודעה</button>
-            ${!window.isReadOnly && pGids.length ? `<button onclick="event.stopPropagation();window.openNewSched(${pGids[0]}, {date:'${window.d2s(days[0])}', partnerGids:[${pairGidList}]})" style="background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.45);border-radius:5px;color:#fff;font-size:.72rem;font-weight:700;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">${isClusterMode ? '➕ שיבוץ לאשכול' : '➕ שיבוץ לזוג'}</button>` : ''}
+            ${!window.isReadOnly && pGids.length ? `<button onclick="event.stopPropagation();${isClusterMode ? `window.openNewSched(null, {grpId:'cl_${pair.id}', date:'${window.d2s(days[0])}'})` : `window.openNewSched(${pGids[0]}, {date:'${window.d2s(days[0])}', partnerGids:[${pairGidList}]})`}" style="background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.45);border-radius:5px;color:#fff;font-size:.72rem;font-weight:700;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">${isClusterMode ? '➕ שיבוץ לאשכול' : '➕ שיבוץ לזוג'}</button>` : ''}
             <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 ${pair.name}</span>
           </div>
         </td>
@@ -2000,7 +2002,7 @@ function renderNormalWeek(evs, ws, f){
           const hol=getHolidayInfo(ds,g.city,window.gcls(g));
           const gBlk=window.getGardenBlock(gid,ds);
           const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>window.compareActivities(a, b));
-          html+=makeCell(gid,ds,de,gBlk,hol,clr);
+          html+=makeCell(gid,ds,de,gBlk,hol,clr,isClusterMode?pair.id:null);
         });
         html+='</tr>';
       });

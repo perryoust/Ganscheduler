@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>טומשין ניהול ושיבוץ | גרסה 114.35</title>
+  <title>טומשין ניהול ושיבוץ | גרסה 114.36</title>
   <meta name="description" content="טומשין ניהול ושיבוץ - מערכת לניהול ושיבוץ צהרונים">
   <!-- Open Graph / WhatsApp Preview Meta Tags -->
   <meta property="og:type" content="website">
@@ -27,7 +27,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=114.35" />
+  <link rel="stylesheet" href="styles.css?v=114.36" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -51,7 +51,7 @@
     }
   </style>
   <script>
-    window.APP_VERSION = '114.35';
+    window.APP_VERSION = '114.36';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -87,8 +87,8 @@
       }
     });
   </script>
-  <script type="module" src="firebase_init.js?v=114.35"></script>
-  <script src="assets.js?v=114.35"></script>
+  <script type="module" src="firebase_init.js?v=114.36"></script>
+  <script src="assets.js?v=114.36"></script>
   <script>
     // Load JSZip separately to avoid conflicts if needed
     (function () {
@@ -2168,7 +2168,20 @@
   <!-- ===== MODALS ===== -->
   <!-- New Schedule -->
   <div id="nsm" class="modal">
-    <div class="modal-box" style="max-width:540px; padding: 0; overflow: hidden; border-radius: 12px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2); background: #fff; width: 94%;">
+    <style>
+      #nsm .modal-box > div:first-of-type { padding: 8px 16px !important; }
+      #nsm #nsm-title { font-size: 1.02rem !important; }
+      #nsm .fg label { font-size: 0.72rem !important; margin-bottom: 2px !important; }
+      #nsm input:not([type="checkbox"]), #nsm select, #nsm textarea { padding: 4px 8px !important; font-size: 0.78rem !important; min-height: 30px !important; }
+      #nsm #nsm-body-scroll > div:first-of-type { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; margin-bottom: 6px !important; }
+      #nsm #nsm-body-scroll > div:first-of-type > .fg { flex: 1 1 200px !important; }
+      #nsm #ns-primary-g-wrap, #nsm #ns-g2-choice-wrap { margin-bottom: 6px !important; }
+      #nsm #ns-tabs-wrap .tab { padding: 5px 8px !important; font-size: 0.76rem !important; }
+      #nsm #ns-common-grid { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; margin-top: 4px !important; }
+      #nsm #ns-common-grid > .fg:not(#ns-time-wrap):not(#ns-grp-wrap) { grid-column: auto !important; }
+      @media (max-width: 640px) { #nsm #ns-common-grid { grid-template-columns: 1fr !important; } }
+    </style>
+    <div class="modal-box" style="max-width:780px; padding: 0; overflow: hidden; border-radius: 12px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2); background: #fff; width: 95%;">
       <!-- Header -->
       <div style="background: linear-gradient(135deg, #1a237e, #283593); padding: 12px 20px; color: #fff; display:flex; justify-content: space-between; align-items: center;">
         <h2 id="nsm-title" style="margin:0; font-size: 1.15rem; font-weight: 800; color: #fff; border: none; padding: 0; display:flex; align-items: center; gap: 8px;">
@@ -2179,7 +2192,7 @@
       </div>
       
       <!-- Content Body -->
-      <div style="padding: 20px; max-height: 80vh; overflow-y: auto;">
+      <div id="nsm-body-scroll" style="padding: 10px 16px; max-height: 90vh; overflow-y: auto;">
 
       <!-- City & Preset Selection Row -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
@@ -2207,23 +2220,25 @@
 
 
       <!-- Schedule type tabs -->
-      <div class="tabs" id="ns-tabs-wrap" style="margin-bottom:15px; border-bottom:2px solid #e8eaf6; display:flex">
+      <div id="ns-tabs-date-row" style="display:flex;align-items:flex-end;gap:10px;margin-bottom:6px;flex-wrap:wrap">
+      <div class="tabs" id="ns-tabs-wrap" style="flex:1.4;min-width:240px;margin-bottom:0;border-bottom:2px solid #e8eaf6;display:flex">
         <div id="ns-tab-once" class="tab active" style="flex:1; text-align:center; justify-content:center" onclick="nsSetTab('once')">🚀 חד-פעמי</div>
         <div id="ns-tab-recur" class="tab" style="flex:1; text-align:center; justify-content:center" onclick="nsSetTab('recur')">🚀 קבוע (חוזר)</div>
         <div id="ns-tab-makeup" class="tab" style="flex:1; text-align:center; justify-content:center" onclick="nsSetTab('makeup')">🚀 השלמה</div>
       </div>
 
       <!-- Free days suggestion for Makeup -->
-      <div id="ns-free-wrap" style="display:none;margin-bottom:11px">
+      <div id="ns-free-wrap" style="display:none;flex-basis:100%;margin-bottom:4px">
         <div id="ns-free-days" style="display:flex;gap:5px;flex-wrap:wrap"></div>
       </div>
 
       <!-- ONE-TIME fields (Date only, time is in Row 2) -->
-      <div id="ns-once-wrap">
+      <div id="ns-once-wrap" style="flex:1;min-width:170px">
         <div class="fg"><label>תאריך *</label><input type="date" id="ns-date" style="width:100%" onchange="nsDateChg()">
         </div>
       </div>
 
+      </div>
       <!-- RECURRING fields -->
       <div id="ns-recur-wrap" style="display:none">
         <div style="background:#e8f5e9;border-radius:8px;padding:10px;margin-bottom:8px;border:1px solid #c8e6c9">
@@ -2266,7 +2281,7 @@
       </div>
 
       <!-- Common fields -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:8px">
+      <div id="ns-common-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:8px">
         <div class="fg" id="ns-time-wrap" style="grid-column:1/-1;display:none !important;">
           <label>שעת הפעילות</label>
           <input type="time" id="ns-time" style="width:100%" onchange="window.nsTimeChg ? window.nsTimeChg() : null">
@@ -2308,11 +2323,11 @@
         <div class="fg" style="grid-column:1/-1">
           <label style="display:flex;align-items:center;gap:5px">
             <span>ℹ️ הערת גמישות לפוסטר וללוח</span>
-            <span style="font-size:.7rem;color:#64748b;font-weight:normal">(מופיע בפוסטר החוגים וביומן - ניתן לעריכה או ריקון)</span>
+            <span style="font-size:.66rem;color:#64748b;font-weight:normal" title="מופיע בפוסטר החוגים וביומן - ניתן לעריכה או ריקון">(מופיע בפוסטר)</span>
           </label>
           <input type="text" id="ns-flex-note" style="width:100%" placeholder="הימים והשעות עלולים להשתנות">
         </div>
-        <div class="fg" style="grid-column:1/-1"><label>הערות</label><textarea id="ns-notes" rows="2"
+        <div class="fg" style="grid-column:1/-1"><label>הערות</label><textarea id="ns-notes" rows="1"
             style="width:100%"></textarea></div>
       </div>
 
@@ -4208,36 +4223,36 @@
     </div>
 
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <script src="utils.js?v=114.35"></script>
-    <script src="data_manager.js?v=114.35"></script>
-    <script src="data.js?v=114.35"></script>
-    <script src="firebase.js?v=114.35"></script>
-    <script src="invoices.js?v=114.35"></script>
-    <script src="invoices_import.js?v=114.35"></script>
-    <script src="invoices_export.js?v=114.35"></script>
-    <script src="invoices_scanner.js?v=114.35"></script>
-    <script src="suppliers.js?v=114.35"></script>
-    <script src="cal.js?v=114.35"></script>
-    <script src="activity.js?v=114.35"></script>
-    <script src="sched.js?v=114.35"></script>
-    <script src="gardens.js?v=114.35"></script>
-    <script src="export_v107.js?v=114.35"></script>
-    <script src="visual_excel.js?v=114.35"></script>
-    <script src="backup.js?v=114.35"></script>
-    <script src="version_vault.js?v=114.35"></script>
-    <script src="admin.js?v=114.35"></script>
-    <script src="import_export.js?v=114.35"></script>
-    <script src="core_globals.js?v=114.35"></script>
-    <script src="core_data.js?v=114.35"></script>
-    <script src="core_dash.js?v=114.35"></script>
-    <script src="worker_tasks.js?v=114.35"></script>
-    <script src="coordinator_app.js?v=114.35"></script>
-    <script src="purchasing_orders.js?v=114.35"></script>
-    <script src="purchasing_budget.js?v=114.35"></script>
-    <script src="pdfmake_orders.js?v=114.35"></script>
-    <script src="core_app.js?v=114.35"></script>
-    <script src="todo.js?v=114.35"></script>
-    <script src="matzava.js?v=114.35"></script>
+    <script src="utils.js?v=114.36"></script>
+    <script src="data_manager.js?v=114.36"></script>
+    <script src="data.js?v=114.36"></script>
+    <script src="firebase.js?v=114.36"></script>
+    <script src="invoices.js?v=114.36"></script>
+    <script src="invoices_import.js?v=114.36"></script>
+    <script src="invoices_export.js?v=114.36"></script>
+    <script src="invoices_scanner.js?v=114.36"></script>
+    <script src="suppliers.js?v=114.36"></script>
+    <script src="cal.js?v=114.36"></script>
+    <script src="activity.js?v=114.36"></script>
+    <script src="sched.js?v=114.36"></script>
+    <script src="gardens.js?v=114.36"></script>
+    <script src="export_v107.js?v=114.36"></script>
+    <script src="visual_excel.js?v=114.36"></script>
+    <script src="backup.js?v=114.36"></script>
+    <script src="version_vault.js?v=114.36"></script>
+    <script src="admin.js?v=114.36"></script>
+    <script src="import_export.js?v=114.36"></script>
+    <script src="core_globals.js?v=114.36"></script>
+    <script src="core_data.js?v=114.36"></script>
+    <script src="core_dash.js?v=114.36"></script>
+    <script src="worker_tasks.js?v=114.36"></script>
+    <script src="coordinator_app.js?v=114.36"></script>
+    <script src="purchasing_orders.js?v=114.36"></script>
+    <script src="purchasing_budget.js?v=114.36"></script>
+    <script src="pdfmake_orders.js?v=114.36"></script>
+    <script src="core_app.js?v=114.36"></script>
+    <script src="todo.js?v=114.36"></script>
+    <script src="matzava.js?v=114.36"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
       console.log('Ganscheduler Architecture: v' + (window.APP_VERSION || '103.82') + ' Ready');

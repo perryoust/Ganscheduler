@@ -53,6 +53,8 @@ function openNewSched(gid, opts={}){
   if (gid && typeof gid === 'object') { opts = gid; gid = opts.gid || null; }
   newSchedForGarden=gid||null;
   _nsmTab='once';
+  window._nsFocusGid = opts.focusGid ? Number(opts.focusGid) : (gid ? Number(gid) : null);
+  window.nsPresetPartnerIds = new Set();
   (document.getElementById('nsm-title')||{}).textContent='➕ שיבוץ חדש';
 
   // Reset all fields
@@ -159,12 +161,12 @@ function openNewSched(gid, opts={}){
   }
 
   // Populate Group/Cluster preset initially
-  window.nsUpdateGrpPreset(opts.date || window.d2s(new Date()));
+  window.nsUpdateGrpPreset(defaultStartDate);
   if (opts.grpId) {
     const grpSel = document.getElementById('ns-grp-preset');
     if (grpSel) {
       grpSel.value = opts.grpId;
-      setTimeout(() => window.nsLoadGrpPreset(), 50);
+      window.nsLoadGrpPreset();
     }
   }
 
@@ -343,7 +345,8 @@ function renderPartnerTable(){
         </div>`;
       const chkDisplay = `<input type="checkbox" id="ns-syn-chk-${pId}" class="ns-syn-chk" data-gid="${pId}" value="${pId}" style="width:18px;height:18px;accent-color:#1565c0;cursor:pointer" ${isChecked ? 'checked' : ''}>`;
 
-      const isCustom = window.nsCustomPartners && window.nsCustomPartners.has(Number(pId)) && Number(pId) !== Number(gid);
+      const isPresetActiveRow = !!(document.getElementById('ns-grp-preset')?.value);
+      const isCustom = window.nsCustomPartners && window.nsCustomPartners.has(Number(pId)) && Number(pId) !== Number(gid) && !isPresetActiveRow && !(window.nsPresetPartnerIds && window.nsPresetPartnerIds.has(Number(pId)));
       const removeBtn = isCustom 
         ? `<button type="button" onclick="window.nsRemoveCustomPartner(${pId})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-weight:bold;font-size:0.8rem;padding:0 4px;margin-right:6px;" title="הסר מסנכרון">✕</button>` 
         : '';
@@ -354,7 +357,7 @@ function renderPartnerTable(){
       rowsHtml += `
         <tr class="${stClass}">
           <td style="text-align:center">${chkDisplay}</td>
-          <td style="font-weight:800;color:#1a237e">${pG.name} ${customBadge}${removeBtn}</td>
+          <td style="font-weight:800;color:#1a237e;white-space:nowrap">${pG.name} ${customBadge}${removeBtn}</td>
           <td>${timeDisplay}</td>
           <td style="text-align:center">${grpDisplay}</td>
           <td style="font-weight:600">${sup}</td>
@@ -365,15 +368,20 @@ function renderPartnerTable(){
     });
   }
 
-  g2ChoiceContainer.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+  const isPresetActive = !!(document.getElementById('ns-grp-preset')?.value);
+  const focusGid = window._nsFocusGid || gid;
+  const _infoNoticeEl = document.getElementById('ns-pair-info-notice');
+  if (isPresetActive && _infoNoticeEl) _infoNoticeEl.style.display = 'none';
+  g2ChoiceContainer.innerHTML = `<style>#ns-g2-choice-container th{padding:4px 6px !important;} #ns-partners-table-body td{padding:3px 6px !important;}</style>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;margin-bottom:4px">
       <div style="font-size:0.75rem;font-weight:700;color:#546e7a">🔗 גנים שותפים לסנכרון (בחר לשיבוץ מקביל):</div>
       ${allIds.length > 1 ? `<div style="display:flex;gap:6px">
+        <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:#334155;font-weight:700;background:#f8fafc;border:1px solid #cbd5e1;border-radius:5px;padding:1px 6px">⏰ שעה אחידה: <input type="time" onchange="document.querySelectorAll('.ns-syn-time').forEach(el=>el.value=this.value);const mt=document.getElementById('ns-time');if(mt)mt.value=this.value;" style="border:none;background:transparent;font-size:0.68rem;padding:0;width:64px"></label>
         <button type="button" onclick="document.querySelectorAll('.ns-syn-chk').forEach(c=>c.checked=true)" style="font-size:0.68rem;padding:2px 8px;border-radius:5px;border:1px solid #93c5fd;background:#eff6ff;color:#1565c0;font-weight:700;cursor:pointer">✓ כל הקבוצה (${allIds.length})</button>
-        ${gid ? `<button type="button" onclick="document.querySelectorAll('.ns-syn-chk').forEach(c=>c.checked=(Number(c.value)===Number(${gid})))" style="font-size:0.68rem;padding:2px 8px;border-radius:5px;border:1px solid #cbd5e1;background:#f8fafc;color:#475569;font-weight:700;cursor:pointer">רק צהרון זה</button>` : ''}
+        ${focusGid ? `<button type="button" onclick="document.querySelectorAll('.ns-syn-chk').forEach(c=>c.checked=(Number(c.value)===Number(${focusGid})))" style="font-size:0.68rem;padding:2px 8px;border-radius:5px;border:1px solid #cbd5e1;background:#f8fafc;color:#475569;font-weight:700;cursor:pointer">רק ${(window.G(focusGid)||{}).name || 'צהרון זה'}</button>` : ''}
       </div>` : ''}
     </div>
-    <div class="tw" style="margin-bottom:10px; border-radius:8px; overflow:hidden; border:1px solid #e0e0e0">
+    <div class="tw" style="margin-bottom:6px; border-radius:8px; overflow:hidden; border:1px solid #e0e0e0">
       <table style="width:100%;font-size:0.72rem;border-collapse:collapse">
         <thead>
           <tr style="background:#f1f3f9">
@@ -391,7 +399,7 @@ function renderPartnerTable(){
           ${rowsHtml}
         </tbody>
       </table>
-      <div style="padding:8px; border-top:1px solid #e0e0e0; background:#fff">
+      <div style="padding:4px 8px; border-top:1px solid #e0e0e0; background:#f8fafc">
         <div style="font-size:0.7rem; color:#546e7a; margin-bottom:4px; font-weight:bold">➕ הוסף גנים/בתי ספר נוספים לסנכרון:</div>
         <div style="display:flex; flex-direction:column; gap:4px; position:relative;">
           <div onclick="document.getElementById('ns-custom-cb-wrap').style.display=document.getElementById('ns-custom-cb-wrap').style.display==='none'?'block':'none'" style="font-size:0.75rem; padding:4px; border:1px solid #ccc; border-radius:4px; background:#fff; cursor:pointer; display:flex; justify-content:space-between">
@@ -412,7 +420,7 @@ function renderPartnerTable(){
           </div>
         </div>
       </div>
-      <div style="padding:8px; border-top:1px solid #e0e0e0; background:#f9fbe7">
+      <div style="display:${isPresetActive ? 'none' : 'block'}; padding:6px 8px; border-top:1px solid #e0e0e0; background:#f9fbe7">
         <label style="font-size:0.75rem; color:#33691e; margin-bottom:4px; font-weight:bold; display:block">🔗 שמירת סנכרון זה לתצוגה מקובצת ביומן:</label>
         <select id="ns-save-group-type" onchange="document.getElementById('ns-save-group-name').style.display=this.value==='none'?'none':'block'" style="width:100%; font-size:0.75rem; padding:4px; border:1px solid #ccc; border-radius:4px">
           <option value="none">אל תשמור כקבוצה (סנכרון פעילות בלבד)</option>
@@ -597,10 +605,17 @@ window.nsLoadGrpPreset = function() {
   if (val) {
     if (primaryWrap) primaryWrap.style.display = 'none';
     if (cityWrap) cityWrap.style.display = 'none';
+    const _inf = document.getElementById('ns-pair-info-notice');
+    if (_inf) _inf.style.display = 'none';
+    const presetSel = document.getElementById('ns-grp-preset');
+    const optTxt = presetSel && presetSel.options[presetSel.selectedIndex] ? presetSel.options[presetSel.selectedIndex].textContent : '';
+    if (optTxt) (document.getElementById('nsm-title')||{}).textContent = (val.startsWith('cl_') ? '➕ שיבוץ לאשכול: ' : '➕ שיבוץ לזוג: ') + optTxt;
   } else {
     if (primaryWrap) primaryWrap.style.display = 'grid';
     if (cityWrap) cityWrap.style.display = 'block';
     window.nsCustomPartners = new Set();
+    window.nsPresetPartnerIds = new Set();
+    (document.getElementById('nsm-title')||{}).textContent = '➕ שיבוץ חדש';
     const gVal = document.getElementById('ns-g')?.value;
     if (gVal) window.nsCheckPair(gVal);
     else if (choiceWrap) choiceWrap.style.display = 'none';
@@ -636,6 +651,8 @@ window.nsLoadGrpPreset = function() {
          sel.value = mainGid;
        }
      }
+     gardenIds.sort((a,b)=>((window.G(a)||{}).name||'').localeCompare(((window.G(b)||{}).name||''),'he',{numeric:true}));
+     window.nsPresetPartnerIds = new Set(gardenIds);
      window.nsCustomPartners = new Set(gardenIds);
      renderPartnerTable();
      if (choiceWrap) choiceWrap.style.display = 'block';

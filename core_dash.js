@@ -1212,6 +1212,10 @@ function closeGcellPopup(){
 
 function gcellNewSched(){
   closeGcellPopup();
+  if (window._listGroupMode === 'clusters' && typeof window.getClusters === 'function') {
+    const cl = window.getClusters(_gcellDs, _gcellDs).find(c => (c.gardenIds || []).map(Number).includes(Number(_gcellGid)));
+    if (cl) { openNewSched(null, { grpId: 'cl_' + cl.id, date: _gcellDs, focusGid: _gcellGid }); return; }
+  }
   openNewSched(_gcellGid, {date:_gcellDs});
 }
 
