@@ -3418,11 +3418,14 @@
       let sterileCount = 0;
       let mergedCount = 0;
       filteredGardens.forEach(r => {
-        totalKids += (r.kids10 || r.kids || 0);
+        const k10 = Number(r.kids10) || 0;
+        const k11 = Number(r.kids11) || 0;
+        const rowSum = (k10 + k11) > 0 ? (k10 + k11) : (Number(r.kidsTotal) || Number(r.kids) || 0);
+        totalKids += rowSum;
         if (r.isSterile) sterileCount++;
         if (r.isMerged) mergedCount++;
       });
-      const avgKids = filteredGardens.length > 0 ? (totalKids / filteredGardens.length).toFixed(1) : 0;
+      const avgKids = filteredGardens.length > 0 ? (Number.isInteger(totalKids / filteredGardens.length) ? (totalKids / filteredGardens.length).toString() : (totalKids / filteredGardens.length).toFixed(1)) : '0';
 
       return `
         <div style="display:grid; grid-template-columns:${isMob ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))'}; gap:${isMob ? '6px' : '12px'}; margin-bottom:${isMob ? '10px' : '16px'};">
