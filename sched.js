@@ -50,12 +50,13 @@ function openNewSched(gid, opts={}){
     return;
   }
   // opts: {date, tab, makeupFrom}
+  if (gid && typeof gid === 'object') { opts = gid; gid = opts.gid || null; }
   newSchedForGarden=gid||null;
   _nsmTab='once';
   (document.getElementById('nsm-title')||{}).textContent='➕ שיבוץ חדש';
 
   // Reset all fields
-  window.nsCustomPartners = new Set();
+  window.nsCustomPartners = new Set(Array.isArray(opts.partnerGids) ? opts.partnerGids.map(Number).filter(Boolean) : []);
 
   // Smart date defaults based on active academic year/period
   const today = window.td();
@@ -100,6 +101,14 @@ function openNewSched(gid, opts={}){
   const partnerWrap = document.getElementById('ns-g2-partner-wrap');
   if(choiceWrap) choiceWrap.style.display='none';
   if(partnerWrap) partnerWrap.style.display='none';
+  const choiceCont = document.getElementById('ns-g2-choice-container');
+  if (choiceCont) choiceCont.innerHTML = '';
+  const grpPresetEl = document.getElementById('ns-grp-preset');
+  if (grpPresetEl) grpPresetEl.value = '';
+  const primaryWrapEl = document.getElementById('ns-primary-g-wrap');
+  if (primaryWrapEl) primaryWrapEl.style.display = 'grid';
+  const cityWrapEl = document.getElementById('ns-city-wrap');
+  if (cityWrapEl) cityWrapEl.style.display = 'block';
   
   const ns_sup=document.getElementById('ns-sup');
   if(ns_sup) ns_sup.value=opts.sup||'';
@@ -202,6 +211,14 @@ function nsRefG(){
     const partnerWrap = document.getElementById('ns-g2-partner-wrap');
     if(choiceWrap) choiceWrap.style.display='none';
     if(partnerWrap) partnerWrap.style.display='none';
+  const choiceCont = document.getElementById('ns-g2-choice-container');
+  if (choiceCont) choiceCont.innerHTML = '';
+  const grpPresetEl = document.getElementById('ns-grp-preset');
+  if (grpPresetEl) grpPresetEl.value = '';
+  const primaryWrapEl = document.getElementById('ns-primary-g-wrap');
+  if (primaryWrapEl) primaryWrapEl.style.display = 'grid';
+  const cityWrapEl = document.getElementById('ns-city-wrap');
+  if (cityWrapEl) cityWrapEl.style.display = 'block';
     const grpWrap = document.getElementById('ns-grp-wrap');
     if(grpWrap) grpWrap.style.display='none';
   }
@@ -349,7 +366,13 @@ function renderPartnerTable(){
   }
 
   g2ChoiceContainer.innerHTML = `
-    <div style="font-size:0.75rem;font-weight:700;color:#546e7a;margin-bottom:8px">🔗 גנים שותפים לסנכרון (בחר לשיבוץ מקביל):</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <div style="font-size:0.75rem;font-weight:700;color:#546e7a">🔗 גנים שותפים לסנכרון (בחר לשיבוץ מקביל):</div>
+      ${allIds.length > 1 ? `<div style="display:flex;gap:6px">
+        <button type="button" onclick="document.querySelectorAll('.ns-syn-chk').forEach(c=>c.checked=true)" style="font-size:0.68rem;padding:2px 8px;border-radius:5px;border:1px solid #93c5fd;background:#eff6ff;color:#1565c0;font-weight:700;cursor:pointer">✓ כל הקבוצה (${allIds.length})</button>
+        ${gid ? `<button type="button" onclick="document.querySelectorAll('.ns-syn-chk').forEach(c=>c.checked=(Number(c.value)===Number(${gid})))" style="font-size:0.68rem;padding:2px 8px;border-radius:5px;border:1px solid #cbd5e1;background:#f8fafc;color:#475569;font-weight:700;cursor:pointer">רק צהרון זה</button>` : ''}
+      </div>` : ''}
+    </div>
     <div class="tw" style="margin-bottom:10px; border-radius:8px; overflow:hidden; border:1px solid #e0e0e0">
       <table style="width:100%;font-size:0.72rem;border-collapse:collapse">
         <thead>

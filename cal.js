@@ -1946,13 +1946,15 @@ function renderNormalWeek(evs, ws, f){
             </div>
           </div>`;
         });
+        if(hol) inner=`<div style="font-size:0.65rem; color:${hol.color}; font-weight:700; text-align:center; margin-bottom:2px; opacity:0.9">${hol.emoji} ${hol.name}</div>` + inner;
         if(blk) inner+=`<div style="font-size:var(--fs-xs); color:var(--c-error); padding:4px; font-weight:700">${blk.icon||'🚫'} ${blk.reason}</div>`;
       } else if(blk){
         inner=`<div style="font-size:var(--fs-xs); color:var(--c-error); padding:6px; text-align:center; font-weight:700">${blk.icon||'🚫'} ${blk.reason}</div>`;
       } else if(hol){
-        inner=`<div style="font-size:var(--fs-xs); color:${hol.color}; font-weight:700; padding:4px; text-align:center">${hol.emoji} ${hol.name}</div>`;
+        const holAddBtn = window.isReadOnly ? '' : `<button type="button" onclick="event.stopPropagation(); window.openNewSched(${gid}, {date:'${ds}'})" style="display:inline-flex; align-items:center; justify-content:center; gap:3px; margin-top:4px; padding:3px 8px; font-size:0.68rem; font-weight:700; color:#1565c0; background:rgba(255,255,255,0.9); border:1px dashed #93c5fd; border-radius:6px; cursor:pointer; transition:all 0.15s; white-space:nowrap;" onmouseover="this.style.background='#dbeafe'; this.style.borderColor='#2563eb'" onmouseout="this.style.background='rgba(255,255,255,0.9)'; this.style.borderColor='#93c5fd'">➕ שיבוץ לצהרון זה</button>`;
+        inner=`<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4px 2px; gap:2px"><div style="font-size:var(--fs-xs); color:${hol.color}; font-weight:700; text-align:center">${hol.emoji} ${hol.name}</div>${holAddBtn}</div>`;
       } else {
-        inner=`<div style="color:#cbd5e1; font-size:1.2rem; font-weight:300; text-align:center; padding:8px 0; cursor:pointer">+</div>`;
+        inner = window.isReadOnly ? `<div style="padding:8px 0;"></div>` : `<div style="color:#cbd5e1; font-size:1.2rem; font-weight:300; text-align:center; padding:8px 0; cursor:pointer">+</div>`;
       }
       const jumpBtn = `<button onclick="event.stopPropagation(); window.calJump('','week','${gid}')" 
         style="position:absolute; top:4px; left:4px; background:white; border:1px solid #e2e8f0;
@@ -1981,6 +1983,7 @@ function renderNormalWeek(evs, ws, f){
             <button onclick="event.stopPropagation();window._exportPairWA([${pairGidList}])"
               style="background:rgba(255,255,255,.22);border:none;border-radius:5px;color:#fff;
                 font-size:.72rem;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">📋 הודעה</button>
+            ${!window.isReadOnly && pGids.length ? `<button onclick="event.stopPropagation();window.openNewSched(${pGids[0]}, {date:'${window.d2s(days[0])}', partnerGids:[${pairGidList}]})" style="background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.45);border-radius:5px;color:#fff;font-size:.72rem;font-weight:700;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">${isClusterMode ? '➕ שיבוץ לאשכול' : '➕ שיבוץ לזוג'}</button>` : ''}
             <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 ${pair.name}</span>
           </div>
         </td>
@@ -2067,7 +2070,7 @@ function renderPairWeek(evs,ws,gids){
         return `<div style="border-radius:4px;padding:2px 6px;margin-bottom:2px;cursor:pointer;font-size:.7rem;background:${clr.light};border-right:2px solid ${clr.solid};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" onclick="event.stopPropagation();openSP('${ev.id}')"><div style="font-weight:700;color:#1a237e">${window.supDisplayName ? window.supDisplayName(ev.a) : ev.a}</div>${ev.t?`<div style="font-size:.65rem;color:#546e7a">⏰ ${window.fT(ev.t)}</div>`:''}${evFlex?`<div style="font-size:.6rem;color:#0369a1;font-weight:700">ℹ️ ${evFlex}</div>`:''}</div>`;
       }).join('')+(pwBlk?`<div style="font-size:.62rem;color:#c62828">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`:'')
         :pwBlk?`<div style="font-size:.68rem;color:#c62828;padding:4px;text-align:center">${pwBlk.icon||'🚫'} ${pwBlk.reason}</div>`
-        :'<span style="color:#ccc;font-size:.8rem;cursor:pointer">+</span>'}</td>`;
+        :cellHol?`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:3px 2px"><div style="font-size:.68rem;color:${cellHol.color};font-weight:700;text-align:center">${cellHol.emoji} ${cellHol.name}</div>${window.isReadOnly?'':`<button type="button" onclick="event.stopPropagation();window.openNewSched(${gid},{date:'${ds}'})" style="padding:2px 7px;font-size:.65rem;font-weight:700;color:#1565c0;background:rgba(255,255,255,0.9);border:1px dashed #93c5fd;border-radius:5px;cursor:pointer;white-space:nowrap">➕ שיבוץ לצהרון זה</button>`}</div>`:(window.isReadOnly?'':'<span style="color:#ccc;font-size:.8rem;cursor:pointer">+</span>')}</td>`;
     });
     html+='</tr>';
   });

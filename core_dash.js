@@ -1175,6 +1175,7 @@ function getBlockedInfo(ds){return blockedDates[ds]||null;}
 // ─── Monthly Excel Export ────────────────────────────────────
 function openGcellPopup(gid, ds, e){
   e.stopPropagation();
+  if (window.isReadOnly) return;
   _gcellGid=parseInt(gid);
   _gcellDs=ds;
   const g=G(_gcellGid);
@@ -1241,7 +1242,8 @@ function openBlockModal(mode, gid, ds){
   const cancelChk  = document.getElementById('block-m-cancel-chk');
   const cancelCnt  = document.getElementById('block-m-cancel-cnt');
   if(mode==='garden'){
-    _gcellGid=parseInt(gid); _gcellDs=ds;
+    if (window.isReadOnly) return;
+  _gcellGid=parseInt(gid); _gcellDs=ds;
     const g=G(_gcellGid);
     const key=`${_gcellGid}_${ds}`;
     const blk=gardenBlocks[key];
