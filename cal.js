@@ -941,7 +941,16 @@ async function checkDupePairAndSave(gids){
 
 function renderCal(){
   try {
-    if (!document.getElementById('cal-body')) return;
+    const calBody = document.getElementById('cal-body');
+    if (!calBody) return;
+
+    // Save scroll positions before re-rendering
+    const prevWindowScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+    const prevCalBodyScrollTop = calBody.scrollTop;
+
+    // Save open states of any <details> in calBody
+    const openDetailsSummaries = Array.from(calBody.querySelectorAll('details[open] > summary')).map(s => s.textContent.trim());
+
     const gids=getCalGids();
     const bar = window.getEl('cal-pair-bar');
     if (bar) {
@@ -1043,7 +1052,24 @@ function renderCal(){
         html += window.renderWorkerTasksForCal(ds);
       } catch(e) { console.error('Error rendering worker tasks', e); }
     }
-    document.getElementById('cal-body').innerHTML=html;
+    calBody.innerHTML=html;
+
+    // Restore any <details> that were open
+    if (openDetailsSummaries && openDetailsSummaries.length) {
+      calBody.querySelectorAll('details > summary').forEach(s => {
+        if (openDetailsSummaries.includes(s.textContent.trim())) {
+          s.parentElement.setAttribute('open', '');
+        }
+      });
+    }
+
+    // Restore scroll positions immediately and in next frame
+    if (prevCalBodyScrollTop) calBody.scrollTop = prevCalBodyScrollTop;
+    if (prevWindowScrollY) window.scrollTo(0, prevWindowScrollY);
+    requestAnimationFrame(() => {
+      if (calBody && prevCalBodyScrollTop) calBody.scrollTop = prevCalBodyScrollTop;
+      if (prevWindowScrollY) window.scrollTo(0, prevWindowScrollY);
+    });
   } catch (e) {
     console.error("renderCal error:", e);
     document.getElementById('cal-body').innerHTML = `<div style="padding:20px; color:#c62828; text-align:center;">שגיאה בטעינת לוח השנה: ${e.message}</div>`;
@@ -1760,7 +1786,42 @@ function renderPairDay(evs,gids){
     ${window.renderPairColsHTML ? window.renderPairColsHTML(evs,gids) : ''}</div>`;
 }
 
+// Calendar Accordion State Persistence (Cities and Clusters)
+window._calOpenCities = window._calOpenCities || new Set();
+window._calClusterState = window._calClusterState || {};
+
+function _loadCalState() {
+  try {
+    if (!window._calOpenCities || window._calOpenCities.size === 0) {
+      const savedCities = sessionStorage.getItem('cal_open_cities');
+      if (savedCities) {
+        window._calOpenCities = new Set(JSON.parse(savedCities));
+      }
+    }
+    if (!window._calClusterState || Object.keys(window._calClusterState).length === 0) {
+      const savedClusters = sessionStorage.getItem('cal_cluster_state');
+      if (savedClusters) {
+        window._calClusterState = JSON.parse(savedClusters);
+      }
+    }
+  } catch(e) {}
+}
+
+function _saveCalState() {
+  try {
+    if (window._calOpenCities) {
+      sessionStorage.setItem('cal_open_cities', JSON.stringify(Array.from(window._calOpenCities)));
+    }
+    if (window._calClusterState) {
+      sessionStorage.setItem('cal_cluster_state', JSON.stringify(window._calClusterState));
+    }
+  } catch(e) {}
+}
+window._loadCalState = _loadCalState;
+window._saveCalState = _saveCalState;
+
 function renderNormalWeek(evs, ws, f){
+  _loadCalState();
   const tday=window.td();
   const days=window.getNextWorkDays(ws, 5);
   const we = days[days.length - 1];
@@ -1836,6 +1897,8 @@ function renderNormalWeek(evs, ws, f){
 
     // City header row - added toggle function for weekly table
     const cityId = `city-${city.replace(/\s+/g,'-')}`;
+    const isCityOpen = window._calOpenCities.has(cityId) || (sortedCities.length === 1 && !window._calOpenCities.has('__closed_' + cityId));
+    const cityDisplay = isCityOpen ? 'table-row' : 'none';
     const groupLabel = window._listGroupMode === 'clusters' ? 'אשכולות' : 'זוגות';
     html+=`<tr onclick="toggleTableCity('${cityId}')" style="cursor:pointer" class="city-header-row">
       <td colspan="6" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;
@@ -1905,11 +1968,15 @@ function renderNormalWeek(evs, ws, f){
     byCity[city].pairs.forEach(({pair,gids:pGids})=>{
       const pairGidList = pGids.join(',');
       const pIdStr = `pair-${pair.id}`;
-      html+=`<tr class="${cityRowClass} pair-hdr-${cityId}" onclick="window.toggleTableCluster('${pIdStr}')" style="display:none;cursor:pointer">
+      const isClusterOpen = (window._calClusterState[pIdStr] !== 'closed');
+      const clusterChildDisplay = (isCityOpen && isClusterOpen) ? 'table-row' : 'none';
+      const clusterIcon = isClusterOpen ? '➖' : '➕';
+
+      html+=`<tr class="${cityRowClass} pair-hdr-${cityId}" onclick="window.toggleTableCluster('${pIdStr}')" style="display:${cityDisplay};cursor:pointer">
         <td colspan="6" style="background:${clr.solid};color:#fff;padding:5px 12px;
           font-size:.92rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2)">
           <div style="display:flex;align-items:center;gap:8px">
-            <span id="icon-${pIdStr}" style="width:18px;text-align:center;font-size:1.1rem;user-select:none">➖</span>
+            <span id="icon-${pIdStr}" style="width:18px;text-align:center;font-size:1.1rem;user-select:none">${clusterIcon}</span>
             <button onclick="event.stopPropagation();window._exportPairWA([${pairGidList}])"
               style="background:rgba(255,255,255,.22);border:none;border-radius:5px;color:#fff;
                 font-size:.72rem;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">📋 הודעה</button>
@@ -1919,7 +1986,7 @@ function renderNormalWeek(evs, ws, f){
       </tr>`;
       pGids.forEach(gid=>{
         const g=window.G(gid);
-        html+=`<tr class="${cityRowClass} pair-row-${pIdStr} pair-child-${cityId}" style="display:none;"><td style="background:#fafbff; font-size:var(--fs-small); padding:6px 10px; color:var(--c-primary); font-weight:700;
+        html+=`<tr class="${cityRowClass} pair-row-${pIdStr} pair-child-${cityId}" style="display:${clusterChildDisplay};"><td style="background:#fafbff; font-size:var(--fs-small); padding:6px 10px; color:var(--c-primary); font-weight:700;
           border-right:3px solid ${clr.solid}; border-bottom:1px solid #dde1f0; border-left:1px solid #dde1f0;
           position:sticky; right:0; z-index:1; white-space:nowrap; max-width:180px; overflow:hidden; text-overflow:ellipsis; line-height:1.2">
           ${g.name}<br><span style="font-size:var(--fs-xs); color:#64748b; font-weight:400">${g.st ? '📍 ' + g.st : g.city}</span>
@@ -1938,7 +2005,7 @@ function renderNormalWeek(evs, ws, f){
     // Solo GARDENS
     byCity[city].solos.forEach(gid=>{
       const g=window.G(gid);
-      html+=`<tr class="${cityRowClass}" style="display:none;"><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
+      html+=`<tr class="${cityRowClass}" style="display:${cityDisplay};"><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
         border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
         position:sticky;right:0;z-index:1;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">
         ${g.name}<br><span style="font-size:12px;color:#78909c;font-weight:400">${g.city}</span>
@@ -2952,33 +3019,63 @@ function jumpToPairMonthlySchedule(pairId, ds, soloGid){
 }
 window.jumpToPairMonthlySchedule = jumpToPairMonthlySchedule;
 window.toggleTableCluster = function(pIdStr) {
-  const isHidden = document.querySelector(`.pair-row-${pIdStr}`)?.style.display === 'none';
-  document.querySelectorAll(`.pair-row-${pIdStr}`).forEach(el => {
-    el.style.display = isHidden ? 'table-row' : 'none';
-  });
-  const icon = document.getElementById(`icon-${pIdStr}`);
-  if (icon) icon.textContent = isHidden ? '➖' : '➕';
+  if (typeof _loadCalState === 'function') _loadCalState();
+  const rows = document.querySelectorAll(`.pair-row-${pIdStr}`);
+  const isHidden = rows.length ? (rows[0].style.display === 'none') : (window._calClusterState && window._calClusterState[pIdStr] === 'closed');
+  
+  if (isHidden) {
+    rows.forEach(el => el.style.display = 'table-row');
+    if (!window._calClusterState) window._calClusterState = {};
+    window._calClusterState[pIdStr] = 'open';
+    const icon = document.getElementById(`icon-${pIdStr}`);
+    if (icon) icon.textContent = '➖';
+  } else {
+    rows.forEach(el => el.style.display = 'none');
+    if (!window._calClusterState) window._calClusterState = {};
+    window._calClusterState[pIdStr] = 'closed';
+    const icon = document.getElementById(`icon-${pIdStr}`);
+    if (icon) icon.textContent = '➕';
+  }
+  if (typeof _saveCalState === 'function') _saveCalState();
 };
 
 function toggleTableCity(cityId) {
-  const isCityHidden = document.querySelector(`.city-row-${cityId}`)?.style.display === 'none';
-  if (isCityHidden) {
+  if (typeof _loadCalState === 'function') _loadCalState();
+  const cityRows = document.querySelectorAll(`.city-row-${cityId}`);
+  if (!cityRows.length) return;
+
+  const isCityCurrentlyHidden = Array.from(cityRows).every(r => r.style.display === 'none');
+
+  if (isCityCurrentlyHidden) {
+    if (!window._calOpenCities) window._calOpenCities = new Set();
+    window._calOpenCities.add(cityId);
+    window._calOpenCities.delete('__closed_' + cityId);
+
+    // Show solo rows and cluster headers
     document.querySelectorAll(`.city-row-${cityId}:not(.pair-hdr-${cityId}):not(.pair-child-${cityId})`).forEach(r => r.style.display = 'table-row');
     document.querySelectorAll(`.pair-hdr-${cityId}`).forEach(r => r.style.display = 'table-row');
+    
+    // For each cluster in this city, restore its individual open/closed state
     document.querySelectorAll(`.pair-hdr-${cityId}`).forEach(h => {
        const onclickAttr = h.getAttribute('onclick') || '';
        const match = onclickAttr.match(/'(pair-[^']+)'/);
        if (match) {
          const pIdStr = match[1];
+         const isClusterOpen = (window._calClusterState[pIdStr] !== 'closed');
          const icon = document.getElementById(`icon-${pIdStr}`);
-         if (icon && icon.textContent === '➖') {
-            document.querySelectorAll(`.pair-row-${pIdStr}`).forEach(r => r.style.display = 'table-row');
-         }
+         if (icon) icon.textContent = isClusterOpen ? '➖' : '➕';
+         document.querySelectorAll(`.pair-row-${pIdStr}`).forEach(r => {
+           r.style.display = isClusterOpen ? 'table-row' : 'none';
+         });
        }
     });
   } else {
+    if (!window._calOpenCities) window._calOpenCities = new Set();
+    window._calOpenCities.delete(cityId);
+    window._calOpenCities.add('__closed_' + cityId);
     document.querySelectorAll(`.city-row-${cityId}`).forEach(r => r.style.display = 'none');
   }
+  if (typeof _saveCalState === 'function') _saveCalState();
 }
 window.toggleTableCity = toggleTableCity;
 

@@ -529,7 +529,7 @@ function renderPairs(){
 
   let h='';
   Object.keys(byCity).sort().forEach(city=>{
-    h+=`<details class="city-accordion">
+    h+=`<details class="city-accordion" data-city="${city}">
       <summary>
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
           <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${byCity[city].length} זוגות/שלישיות)</span>
@@ -573,12 +573,20 @@ function renderPairs(){
     });
     
     const pm = document.getElementById('pairs-main');
-    const openCities = pm ? Array.from(pm.querySelectorAll('details[open] summary')).map(s => s.textContent.trim()) : [];
+    const openCities = pm ? Array.from(pm.querySelectorAll('details.city-accordion[open]')).map(d => d.getAttribute('data-city') || d.querySelector('summary')?.textContent.trim()) : [];
+    const prevWindowY = window.scrollY;
+    const prevPmTop = pm ? pm.scrollTop : 0;
     if (pm) {
       pm.innerHTML = h;
-      pm.querySelectorAll('details summary').forEach(s => {
-        if (openCities.includes(s.textContent.trim())) s.parentElement.setAttribute('open', '');
+      pm.querySelectorAll('details.city-accordion').forEach(d => {
+        const cAttr = d.getAttribute('data-city');
+        const sumText = d.querySelector('summary')?.textContent.trim();
+        if ((cAttr && openCities.includes(cAttr)) || (sumText && openCities.includes(sumText))) {
+          d.setAttribute('open', '');
+        }
       });
+      if (prevPmTop) pm.scrollTop = prevPmTop;
+      if (prevWindowY) window.scrollTo(0, prevWindowY);
     }
   }
 
@@ -1401,7 +1409,7 @@ function renderClusters(){
   } else {
     // ═══ תצוגת כרטיסים (מקורית) ═══
     Object.keys(byCity).sort().forEach(city=>{
-      h+=`<details class="city-accordion">
+      h+=`<details class="city-accordion" data-city="${city}">
         <summary>
           <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
             <span style="font-weight:800; color:#2d3748;">🏙️ ${city}</span>
@@ -1461,12 +1469,20 @@ function renderClusters(){
   } // end else grid
 
   if(!h) h='<p style="color:#999">אין אשכולות עדיין.</p>';
-  const openCities = body ? Array.from(body.querySelectorAll('details[open] summary')).map(s => s.textContent.trim()) : [];
+  const openCities = body ? Array.from(body.querySelectorAll('details.city-accordion[open]')).map(d => d.getAttribute('data-city') || d.querySelector('summary')?.textContent.trim()) : [];
+  const prevWindowY = window.scrollY;
+  const prevBodyTop = body ? body.scrollTop : 0;
   if (body) {
     body.innerHTML=h;
-    body.querySelectorAll('details summary').forEach(s => {
-      if (openCities.includes(s.textContent.trim())) s.parentElement.setAttribute('open', '');
+    body.querySelectorAll('details.city-accordion').forEach(d => {
+      const cAttr = d.getAttribute('data-city');
+      const sumText = d.querySelector('summary')?.textContent.trim();
+      if ((cAttr && openCities.includes(cAttr)) || (sumText && openCities.includes(sumText))) {
+        d.setAttribute('open', '');
+      }
     });
+    if (prevBodyTop) body.scrollTop = prevBodyTop;
+    if (prevWindowY) window.scrollTo(0, prevWindowY);
   }
 }
 

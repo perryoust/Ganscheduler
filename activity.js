@@ -1326,6 +1326,26 @@ window.spAddActivityToPartner = function(targetGid) {
     act: s.act
   };
   window.SCH.push(newEv);
+  try {
+    const fg = window.G(s.g);
+    if(fg && fg.city) {
+      const cId = 'city-' + fg.city.replace(/\s+/g,'-');
+      if(!window._calOpenCities) window._calOpenCities = new Set();
+      window._calOpenCities.add(cId);
+      window._calOpenCities.delete('__closed_' + cId);
+    }
+    const clusterArr = window.gardenClusters ? window.gardenClusters(s.g, s.d) : [];
+    if(clusterArr.length && clusterArr[0]) {
+      if(!window._calClusterState) window._calClusterState = {};
+      window._calClusterState['pair-' + clusterArr[0].id] = 'open';
+    }
+    const pObj = window.gardenPair ? window.gardenPair(s.g) : null;
+    if(pObj) {
+      if(!window._calClusterState) window._calClusterState = {};
+      window._calClusterState['pair-' + pObj.id] = 'open';
+    }
+    if(typeof window._saveCalState === 'function') window._saveCalState();
+  } catch(e) {}
   window.saveAndRefresh(null, true).then(() => {
     window.openSP(s.id); // Refresh modal
     if(window.showToast) window.showToast('✅ הפעילות נוספה בהצלחה לגן');
@@ -1371,6 +1391,31 @@ window.spExecuteDuplicate = function() {
   });
   
   if(duplicated > 0) {
+    // Preserve city and cluster open state in calendar
+    try {
+      const firstOrig = window.SCH.find(x => x.id == sels[0]);
+      if(firstOrig) {
+        const fg = window.G(firstOrig.g);
+        if(fg && fg.city) {
+          const cId = 'city-' + fg.city.replace(/\s+/g,'-');
+          if(!window._calOpenCities) window._calOpenCities = new Set();
+          window._calOpenCities.add(cId);
+          window._calOpenCities.delete('__closed_' + cId);
+        }
+        const clusterArr = window.gardenClusters ? window.gardenClusters(firstOrig.g, firstOrig.d) : [];
+        if(clusterArr.length && clusterArr[0]) {
+          if(!window._calClusterState) window._calClusterState = {};
+          window._calClusterState['pair-' + clusterArr[0].id] = 'open';
+        }
+        const pObj = window.gardenPair ? window.gardenPair(firstOrig.g) : null;
+        if(pObj) {
+          if(!window._calClusterState) window._calClusterState = {};
+          window._calClusterState['pair-' + pObj.id] = 'open';
+        }
+        if(typeof window._saveCalState === 'function') window._saveCalState();
+      }
+    } catch(e) { console.error('Error preserving duplicate open state:', e); }
+
     if(window.saveAndRefresh) window.saveAndRefresh('sp');
     if(window.showToast) window.showToast('✅ הפעילות שוכפלה בהצלחה ל-' + window.fD(newDate));
     if(window.CM) window.CM('sp-m'); // close modal
