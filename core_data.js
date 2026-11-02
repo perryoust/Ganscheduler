@@ -1406,10 +1406,22 @@ function stClass(s){
 
 // ── Dynamic scroll containers ──────────────────────────────────
 function _fitScrollAreas(){
-  const BOTTOM_PAD = 16; // px from bottom of viewport
+  const BOTTOM_PAD = 12; // px from bottom of viewport
   document.querySelectorAll('.scroll-area').forEach(el=>{
     // Only adjust visible elements
     if(!el.offsetParent) return;
+    const tw = el.querySelector('.tw-sticky');
+    if(tw){
+      el.style.maxHeight = 'none';
+      el.style.overflow = 'visible';
+      const top = tw.getBoundingClientRect().top;
+      const available = window.innerHeight - top - BOTTOM_PAD;
+      if(available > 120){
+        tw.style.maxHeight = available + 'px';
+      }
+      return;
+    }
+    el.style.overflow = '';
     const top = el.getBoundingClientRect().top;
     const available = window.innerHeight - top - BOTTOM_PAD;
     if(available > 100){
@@ -1417,6 +1429,7 @@ function _fitScrollAreas(){
     }
   });
 }
+window._fitScrollAreas = _fitScrollAreas;
 
 // Run on load, resize, and tab switch
 window.addEventListener('resize', _fitScrollAreas);

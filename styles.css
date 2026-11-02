@@ -1562,6 +1562,10 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   display: none !important;
   margin: 0 !important;
 }
+.scroll-area:has(.tw-sticky) {
+  overflow: visible !important;
+  max-height: none !important;
+}
 @media (min-width: 769px) {
   .content {
     max-width: 1860px;

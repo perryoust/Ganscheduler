@@ -947,6 +947,9 @@ function renderCal(){
     // Save scroll positions before re-rendering
     const prevWindowScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
     const prevCalBodyScrollTop = calBody.scrollTop;
+    const prevTwSticky = calBody.querySelector('.tw-sticky');
+    const prevTwScrollTop = prevTwSticky ? prevTwSticky.scrollTop : 0;
+    const prevTwScrollLeft = prevTwSticky ? prevTwSticky.scrollLeft : 0;
 
     // Save open states of any <details> in calBody
     const openDetailsSummaries = Array.from(calBody.querySelectorAll('details[open] > summary')).map(s => s.textContent.trim());
@@ -1064,9 +1067,21 @@ function renderCal(){
     }
 
     // Restore scroll positions immediately and in next frame
+    if (typeof window._fitScrollAreas === 'function') window._fitScrollAreas();
+    const newTwSticky = calBody.querySelector('.tw-sticky');
+    if (newTwSticky && (prevTwScrollTop || prevTwScrollLeft)) {
+      newTwSticky.scrollTop = prevTwScrollTop;
+      newTwSticky.scrollLeft = prevTwScrollLeft;
+    }
     if (prevCalBodyScrollTop) calBody.scrollTop = prevCalBodyScrollTop;
     if (prevWindowScrollY) window.scrollTo(0, prevWindowScrollY);
     requestAnimationFrame(() => {
+      if (typeof window._fitScrollAreas === 'function') window._fitScrollAreas();
+      const twNow = calBody ? calBody.querySelector('.tw-sticky') : null;
+      if (twNow && (prevTwScrollTop || prevTwScrollLeft)) {
+        twNow.scrollTop = prevTwScrollTop;
+        twNow.scrollLeft = prevTwScrollLeft;
+      }
       if (calBody && prevCalBodyScrollTop) calBody.scrollTop = prevCalBodyScrollTop;
       if (prevWindowScrollY) window.scrollTo(0, prevWindowScrollY);
     });
