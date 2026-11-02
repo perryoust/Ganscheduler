@@ -2085,6 +2085,7 @@ function genExport(){
   const isAllPreponed = types.every(t => t === 'preponed');
   const isAllPostponed = types.every(t => t === 'postponed');
   const isAllPreponedOut = types.every(t => t === 'preponed_out');
+  const isAllPostponedOut = types.every(t => t === 'postponed_out');
   const isAllMakeup = types.every(t => t === 'makeup');
   const isAllNohap = rel.every(s => s.st === 'nohap');
   const isAllCan = rel.every(s => s.st === 'can');
@@ -2192,10 +2193,13 @@ function genExport(){
     }
   }
 
+  // Determine whether movement between backwardOriginalDate and forwardTargetDate is an advance or postponement
+  const isDateEarlier = backwardOriginalDate && forwardTargetDate && forwardTargetDate < backwardOriginalDate;
+
   if (isAllPreponed) {
     const targetStr = rel[0] && refStr ? getTargetDayStr(rel[0].d, rel[0]._postFrom || rel[0]._makeupFrom || rel[0].d) : '';
     headerTitle = refStr ? `*הקדמה מ${refStr}${targetStr ? ' ' + targetStr : ''}*\n` : '*הקדמה*\n';
-  } else if (isAllPostponed || (forwardTargetDate && backwardOriginalDate)) {
+  } else if (isAllPreponedOut || (isDateEarlier && (forwardTargetDate && backwardOriginalDate))) {
     let customRefStr = '';
     let customTargetStr = '';
     
@@ -2206,17 +2210,32 @@ function genExport(){
         const dNameOriginal = typeof window.dayN === 'function' ? window.dayN(backwardOriginalDate) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][oDateObj.getDay()];
         const dNameTarget = typeof window.dayN === 'function' ? window.dayN(forwardTargetDate) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][tDateObj.getDay()];
         
-        const currentCalDateStr = typeof d2s === 'function' ? d2s(calD) : (typeof window.d2s === 'function' ? window.d2s(window.calD) : new Date(calD).toISOString().split('T')[0]);
+        customRefStr = `יום ${dNameOriginal} ${oDateObj.getDate()}/${oDateObj.getMonth()+1}`;
+        customTargetStr = ` ליום ${dNameTarget} ${tDateObj.getDate()}/${tDateObj.getMonth()+1}`;
+      } catch(e) {}
+    } else if (rel[0] && refStr) {
+      try {
+        const oDateObj = typeof window.s2d === 'function' ? window.s2d(rel[0].d) : new Date(rel[0].d.split('-')[0], rel[0].d.split('-')[1]-1, rel[0].d.split('-')[2]);
+        const dNameOriginal = typeof window.dayN === 'function' ? window.dayN(rel[0].d) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][oDateObj.getDay()];
+        customRefStr = `יום ${dNameOriginal} ${oDateObj.getDate()}/${oDateObj.getMonth()+1}`;
+        customTargetStr = ` ל${refStr}`;
+      } catch(e) {}
+    }
+    
+    headerTitle = customRefStr ? `*הוקדם מ${customRefStr}${customTargetStr}*\n` : (refStr ? `*הוקדם ל${refStr}*\n` : '*הוקדם*\n');
+  } else if (isAllPostponed || isAllPostponedOut || (forwardTargetDate && backwardOriginalDate)) {
+    let customRefStr = '';
+    let customTargetStr = '';
+    
+    if (forwardTargetDate && backwardOriginalDate) {
+      try {
+        const oDateObj = typeof window.s2d === 'function' ? window.s2d(backwardOriginalDate) : new Date(backwardOriginalDate.split('-')[0], backwardOriginalDate.split('-')[1]-1, backwardOriginalDate.split('-')[2]);
+        const tDateObj = typeof window.s2d === 'function' ? window.s2d(forwardTargetDate) : new Date(forwardTargetDate.split('-')[0], forwardTargetDate.split('-')[1]-1, forwardTargetDate.split('-')[2]);
+        const dNameOriginal = typeof window.dayN === 'function' ? window.dayN(backwardOriginalDate) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][oDateObj.getDay()];
+        const dNameTarget = typeof window.dayN === 'function' ? window.dayN(forwardTargetDate) : ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][tDateObj.getDay()];
         
-        if (currentCalDateStr === backwardOriginalDate) {
-          // We are exporting from the ORIGINAL day -> Show target date + original date
-          customRefStr = `יום ${dNameOriginal} ${oDateObj.getDate()}/${oDateObj.getMonth()+1}`;
-          customTargetStr = ` ליום ${dNameTarget} ${tDateObj.getDate()}/${tDateObj.getMonth()+1}`;
-        } else {
-          // We are exporting from the TARGET day -> Show both original and target date
-          customRefStr = `יום ${dNameOriginal} ${oDateObj.getDate()}/${oDateObj.getMonth()+1}`;
-          customTargetStr = ` ליום ${dNameTarget} ${tDateObj.getDate()}/${tDateObj.getMonth()+1}`;
-        }
+        customRefStr = `יום ${dNameOriginal} ${oDateObj.getDate()}/${oDateObj.getMonth()+1}`;
+        customTargetStr = ` ליום ${dNameTarget} ${tDateObj.getDate()}/${tDateObj.getMonth()+1}`;
       } catch(e) {}
     }
     
