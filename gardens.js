@@ -1941,7 +1941,7 @@ function openExport(){
   setTimeout(()=>{ _exGids=_snapGids; genExport(); }, 80);
 }
 
-window.getGardenFreeDays = function(gardenIds) {
+window.getGardenFreeDays = function(gardenIds, targetDateStr) {
   if (!gardenIds) return '';
   const gids = (Array.isArray(gardenIds) ? gardenIds : [gardenIds]).map(Number).filter(Boolean);
   if (!gids.length) return '';
@@ -1949,40 +1949,90 @@ window.getGardenFreeDays = function(gardenIds) {
   const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'];
   const workDays = [0, 1, 2, 3, 4];
   
-  // A weekday is considered a "fixed/recurring day" if any of the gardens
-  // has a regular recurring series (_recId) or at least 2 non-makeup occurrences on that weekday.
+  // Resolve base date: use targetDateStr, or calendar date, or fallback to today
+  let baseDateStr = targetDateStr || '';
+  if (!baseDateStr) {
+    try {
+      const fromEl = document.getElementById('ex-d1');
+      if (fromEl && fromEl.value) baseDateStr = fromEl.value;
+    } catch(e) {}
+  }
+  if (!baseDateStr) {
+    try {
+      const cD = window.calD || (typeof calD !== 'undefined' ? calD : null);
+      if (cD) {
+        baseDateStr = typeof window.d2s === 'function' ? window.d2s(cD) : (typeof d2s === 'function' ? d2s(cD) : new Date(cD).toISOString().split('T')[0]);
+      }
+    } catch(e) {}
+  }
+  if (!baseDateStr) {
+    baseDateStr = typeof window.td === 'function' ? window.td() : new Date().toISOString().split('T')[0];
+  }
+
+  // Calculate start of the target week (Sunday)
+  let baseObj;
+  try {
+    const parts = baseDateStr.split('-');
+    baseObj = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  } catch(e) {
+    baseObj = new Date();
+  }
+  
+  // Start from Sunday of this week (or base date)
+  const sundayObj = new Date(baseObj);
+  sundayObj.setDate(baseObj.getDate() - baseObj.getDay());
+  sundayObj.setHours(0, 0, 0, 0);
+
+  // Look forward 14 days (current week + next week for future completion)
+  const forwardDaysLimit = 14;
   const busyDays = new Set();
   
-  gids.forEach(gid => {
-    const dayCounts = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0};
-    const hasRecIdOnDay = {0: false, 1: false, 2: false, 3: false, 4: false};
-    
-    (window.SCH || []).forEach(s => {
-      if (Number(s.g) !== Number(gid)) return;
-      if (s.st === 'can') return;
-      
-      const noteText = (s.nt || '') + ' ' + (s.n || '') + ' ' + (s.a || '');
-      const isMakeupOrShift = s._isMakeup || s._makeupFrom || s._postFrom || 
-                              /השלמה|הוקדם|נדחה|הוזז|עבר/i.test(noteText);
-      if (isMakeupOrShift) return;
-      
-      let wd = -1;
-      try {
-        const parts = s.d.split('-');
-        wd = new Date(parts[0], parseInt(parts[1]) - 1, parts[2]).getDay();
-      } catch(e) {}
-      
-      if (wd >= 0 && wd <= 4) {
-        dayCounts[wd] = (dayCounts[wd] || 0) + 1;
-        if (s._recId) hasRecIdOnDay[wd] = true;
-      }
-    });
-    
-    workDays.forEach(wd => {
-      if (hasRecIdOnDay[wd] || dayCounts[wd] >= 2) {
-        busyDays.add(wd);
-      }
-    });
+  // A weekday is considered busy if ALL forward weeks in the window have a scheduled active activity,
+  // or if a garden already has an active recurring series in that forward window.
+  // We collect occupied weekdays for the gardens within [sunday, sunday + 14 days].
+  const d2sHelper = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const winStart = d2sHelper(sundayObj);
+  const endObj = new Date(sundayObj);
+  endObj.setDate(sundayObj.getDate() + forwardDaysLimit);
+  const winEnd = d2sHelper(endObj);
+
+  // Collect future events in this forward 2-week window
+  const forwardEvents = (window.SCH || []).filter(s => {
+    if (!gids.includes(Number(s.g))) return false;
+    if (s.st === 'can' || s.st === 'nohap') return false; // Cancelled/non-happening days don't block
+    return s.d >= winStart && s.d <= winEnd;
+  });
+
+  // Count active events per weekday in the forward window
+  const weekdayCounts = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
+  forwardEvents.forEach(s => {
+    let wd = -1;
+    try {
+      const p = s.d.split('-');
+      wd = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10)).getDay();
+    } catch(e) {}
+    if (wd >= 0 && wd <= 4) {
+      weekdayCounts[wd] = (weekdayCounts[wd] || 0) + 1;
+    }
+  });
+
+  // A day is busy if in the current week (or across the forward window) there is an active activity
+  workDays.forEach(wd => {
+    // The current day itself of the cancelled activity is not a valid completion day
+    if (wd === baseObj.getDay()) {
+      busyDays.add(wd);
+      return;
+    }
+    // If there is an active activity on this weekday in the forward window, it is considered occupied
+    if (weekdayCounts[wd] > 0) {
+      busyDays.add(wd);
+    }
   });
 
   const freeDays = workDays.filter(wd => !busyDays.has(wd));
@@ -2542,7 +2592,7 @@ function genExport(){
                text+=`     👤 ${sharedMgrStr.replace(' (', '').replace(')', '')}\n`;
             }
             if (incFreeDays) {
-              const freeDaysStr = window.getGardenFreeDays(group.map(s => s.g));
+              const freeDaysStr = window.getGardenFreeDays(group.map(s => s.g), date);
               if (freeDaysStr) text += `\n*ימים פנויים להשלמה: ${freeDaysStr}*\n`;
             }
             text+='\n';
@@ -2623,7 +2673,7 @@ text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${statusTag}${timeStr}${coordText}\n
               });
             }
             if (incFreeDays) {
-              const freeDaysStr = window.getGardenFreeDays(group.map(s => s.g));
+              const freeDaysStr = window.getGardenFreeDays(group.map(s => s.g), date);
               if (freeDaysStr) text += `\n*ימים פנויים להשלמה: ${freeDaysStr}*\n`;
             }
             text+='\n';
@@ -2646,7 +2696,7 @@ if (actualGrp && actualGrp !== '1' && actualGrp !== '0') {
 const timeStr = s.t ? grpStr + fT(s.t) : '';
 text+=`${stIcon}${mTag}${s.gd.name}${statusTag} - ${s.a}${timeStr}${coordText}\n`;
           if (incFreeDays) {
-            const freeDaysStr = window.getGardenFreeDays(s.g);
+            const freeDaysStr = window.getGardenFreeDays(s.g, date);
             if (freeDaysStr) text += `*ימים פנויים להשלמה: ${freeDaysStr}*\n`;
           }
         });
