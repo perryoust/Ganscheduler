@@ -1949,19 +1949,19 @@ function renderNormalWeek(evs, ws, f){
           const evFlex = ev.flexNote || (evEx.flexSched ? (evEx.flexNote || 'הימים והשעות עלולים להשתנות') : '');
           const dispSup = (ev.a && window.supDisplayName) ? window.supDisplayName(ev.a) : (ev.n || evBase || '');
           const fullTip = [dispSup, ev.act, ev.t ? window.fT(ev.t) : ''].filter(Boolean).join(' · ').replace(/"/g,'&quot;');
-          inner+=`<div class="pslot wk-pslot ${stC}" title="${fullTip}" style="border-radius:6px; padding:3px 5px; margin:1px 0; font-size:var(--fs-xs);
+          inner+=`<div class="pslot wk-pslot ${stC}" title="${fullTip}" style="border-radius:6px; padding:3px 6px; margin:1px 0; font-size:var(--fs-xs);
             background:${bgCol}; border:1px solid ${borderCol}; border-right:3px solid ${clrObj.solid}; box-shadow:0 1px 2px rgba(0,0,0,0.03); cursor:pointer; overflow:hidden"
             onclick="event.stopPropagation();window.openSP('${ev.id}')">
-            <div class="wk-pslot-row" style="display:flex; align-items:center; justify-content:space-between; gap:4px; flex-wrap:wrap">
-              <div class="wk-pslot-info" style="display:flex; align-items:center; gap:5px; flex:1 1 92px; min-width:0; overflow:hidden">
-                ${ev.t ? `<div class="wk-pslot-time" style="font-size:0.7rem; color:#64748b; font-weight:600; white-space:nowrap; flex-shrink:0; line-height:1">⏰ ${window.fT(ev.t)}</div>` : ''}
-                <div style="flex:1; min-width:0; line-height:1.15; text-align:right; overflow:hidden">
-                  <div style="font-weight:800; color:var(--c-secondary); font-size:0.76rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${dispSup}${isM ? ` <span style="background:#ffe082; color:#b71c1c; border-radius:3px; padding:0 4px; font-size:0.55rem; font-weight:800; border:1px solid #ffca28">📅 השלמה</span>`:''}</div>
-                  ${ev.act ? `<div style="color:#64748b; font-size:0.68rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${ev.act}</div>` : ''}
+            <div class="wk-pslot-row" style="display:flex; flex-direction:column; gap:2px">
+              <div class="wk-pslot-top" style="display:flex; align-items:center; justify-content:space-between; gap:4px; width:100%">
+                <div class="wk-pslot-info" style="flex:1; min-width:0; line-height:1.15; text-align:right; overflow:hidden">
+                  <div style="font-weight:800; color:var(--c-secondary); font-size:0.77rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${dispSup}${isM ? ` <span style="background:#ffe082; color:#b71c1c; border-radius:3px; padding:0 4px; font-size:0.55rem; font-weight:800; border:1px solid #ffca28">📅 השלמה</span>`:''}</div>
+                  ${ev.act ? `<div style="color:#64748b; font-size:0.69rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${ev.act}</div>` : ''}
                   ${evFlex ? `<div style="font-size:0.58rem; color:#0369a1; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" title="${(evFlex||'').replace(/"/g,'&quot;')}">ℹ️ ${evFlex}</div>` : ''}
                 </div>
+                ${ev.t ? `<div class="wk-pslot-time" style="font-size:0.72rem; color:#64748b; font-weight:700; white-space:nowrap; flex-shrink:0; line-height:1; display:flex; align-items:center; gap:2px">${window.fT(ev.t)} <span style="font-size:0.75rem">⏰</span></div>` : ''}
               </div>
-              <div class="wk-qacts-wrap" style="display:flex; align-items:center; flex-shrink:0; margin-right:auto" onclick="event.stopPropagation()">
+              <div class="wk-qacts-wrap" style="display:flex; align-items:center; justify-content:center; width:100%; border-top:1px dashed rgba(226, 232, 240, 0.7); padding-top:2px; margin-top:1px" onclick="event.stopPropagation()">
                 ${window.ui.renderQuickActionBtns(ev)}
               </div>
             </div>
