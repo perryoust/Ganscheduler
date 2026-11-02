@@ -1904,7 +1904,7 @@ function renderNormalWeek(evs, ws, f){
       <td colspan="6" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;
         border-bottom:1px solid rgba(255,255,255,.2);position:sticky;right:0;z-index:10">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span>🏙️ ${city} <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} ${groupLabel} · ${byCity[city].solos.length} צהרונים בודדים</span></span>
+          <span style="display:inline-flex;align-items:center;gap:8px"><span id="icon-${cityId}" style="width:18px;text-align:center;font-size:1.1rem;user-select:none">${isCityOpen ? '➖' : '➕'}</span><span>🏙️ ${city} <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} ${groupLabel} · ${byCity[city].solos.length} צהרונים בודדים</span></span></span>
           <span style="font-size:0.7rem; font-weight:400; opacity:0.8;">לחץ לכיווץ/הרחבה ↕️</span>
         </div>
       </td>
@@ -3055,7 +3055,7 @@ function toggleTableCity(cityId) {
   if (isCityCurrentlyHidden) {
     if (!window._calOpenCities) window._calOpenCities = new Set();
     window._calOpenCities.add(cityId);
-    window._calOpenCities.delete('__closed_' + cityId);
+    window._calOpenCities.delete('__closed_' + cityId); const cIconOpen = document.getElementById('icon-' + cityId); if (cIconOpen) cIconOpen.textContent = '➖';
 
     // Show solo rows and cluster headers
     document.querySelectorAll(`.city-row-${cityId}:not(.pair-hdr-${cityId}):not(.pair-child-${cityId})`).forEach(r => r.style.display = 'table-row');
@@ -3079,7 +3079,7 @@ function toggleTableCity(cityId) {
     if (!window._calOpenCities) window._calOpenCities = new Set();
     window._calOpenCities.delete(cityId);
     window._calOpenCities.add('__closed_' + cityId);
-    document.querySelectorAll(`.city-row-${cityId}`).forEach(r => r.style.display = 'none');
+    document.querySelectorAll(`.city-row-${cityId}`).forEach(r => r.style.display = 'none'); const cIconClose = document.getElementById('icon-' + cityId); if (cIconClose) cIconClose.textContent = '➕';
   }
   if (typeof _saveCalState === 'function') _saveCalState();
 }
