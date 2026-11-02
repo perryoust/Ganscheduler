@@ -1301,7 +1301,7 @@ function renderRangeView(evs, fromDs, toDs, f, displayGids){
           const typeIcon = gClass === 'ביה"ס' ? '🏛️' : '🏫';
           const dateUsedIds = new Set();
 
-          html+=`<details class="city-accordion">
+          html+=`<details class="city-accordion" data-city="${city.replace(/"/g,'&quot;')}">
             <summary>
               <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
                 <span style="font-weight:800; color:#2d3748;">${typeIcon} ${city} - ${typeName} (${typeEvs.length})</span>
@@ -1428,7 +1428,7 @@ function renderClusterDay(evs, ds, clusterName){
           const typeName = gClass === 'ביה"ס' ? 'בתי ספר' : 'צהרוני גנים';
           const typeIcon = gClass === 'ביה"ס' ? '🏛️' : '🏫';
 
-          html+=`<details class="city-accordion">
+          html+=`<details class="city-accordion" data-city="${city.replace(/"/g,'&quot;')}">
             <summary>
               <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
                 <span style="font-weight:800; color:#2d3748;">${typeIcon} ${city} - ${typeName} (${typeEvs.length})</span>
@@ -1574,7 +1574,7 @@ function renderClusterWeek(evs, weekStart, clusterName){
         const cityEvs=dayEvs.filter(s=>(window.G(s.g).city||'אחר')===city);
         if(!cityEvs.length) return;
         const clrCity=window.CITY_COLORS(city);
-        html+=`<details class="city-accordion">
+        html+=`<details class="city-accordion" data-city="${city.replace(/"/g,'&quot;')}">
           <summary>
             <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
               <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cityEvs.length})</span>
@@ -1757,7 +1757,7 @@ function renderNormalDay(evs,ds){
       cityCards[city].sort((a,b)=>a.name.localeCompare(b.name, 'he', { numeric: true }));
       const cards = cityCards[city].map(c=>c.html);
       if(!cards || !cards.length) return;
-      html += `<details class="city-accordion">
+      html += `<details class="city-accordion" data-city="${city.replace(/"/g,'&quot;')}">
         <summary>
           <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
             <span style="font-weight:800; color:#2d3748;">🏙️ ${city} (${cards.length})</span>
@@ -1900,12 +1900,12 @@ function renderNormalWeek(evs, ws, f){
     const isCityOpen = window._calOpenCities.has(cityId) || (sortedCities.length === 1 && !window._calOpenCities.has('__closed_' + cityId));
     const cityDisplay = isCityOpen ? 'table-row' : 'none';
     const groupLabel = window._listGroupMode === 'clusters' ? 'אשכולות' : 'זוגות';
-    html+=`<tr onclick="toggleTableCity('${cityId}')" style="cursor:pointer" class="city-header-row">
+    html+=`<tr onclick="toggleTableCity('${cityId}')" data-city="${city.replace(/"/g,'&quot;')}" style="cursor:pointer" class="city-header-row">
       <td colspan="6" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;
         border-bottom:1px solid rgba(255,255,255,.2);position:sticky;right:0;z-index:10">
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <span>🏙️ ${city} <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} ${groupLabel} · ${byCity[city].solos.length} צהרונים בודדים</span></span>
-          <span style="font-size:0.7rem; font-weight:400; opacity:0.8;">לחץ לכיווץ/הרחבה ↕️</span>
+          <div style="display:flex;align-items:center;gap:10px;"><button type="button" onclick="event.stopPropagation();window.openGridExportModal({city:this.closest('tr').dataset.city})" style="background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.45);border-radius:5px;color:#fff;font-size:.72rem;font-weight:700;padding:2px 9px;cursor:pointer;white-space:nowrap;">▦ ייצוא גריד</button><span style="font-size:0.7rem; font-weight:400; opacity:0.8;">לחץ לכיווץ/הרחבה ↕️</span></div>
         </div>
       </td>
     </tr>`;
@@ -1985,6 +1985,7 @@ function renderNormalWeek(evs, ws, f){
             <button onclick="event.stopPropagation();window._exportPairWA([${pairGidList}])"
               style="background:rgba(255,255,255,.22);border:none;border-radius:5px;color:#fff;
                 font-size:.72rem;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">📋 הודעה</button>
+            <button type="button" data-city="${city.replace(/"/g,'&quot;')}" data-grpid="${String(pair.id).replace(/"/g,'&quot;')}" onclick="event.stopPropagation();window.openGridExportModal({city:this.dataset.city,clusterId:this.dataset.grpid,groupMode:window._listGroupMode})" style="background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.4);border-radius:5px;color:#fff;font-size:.72rem;font-weight:700;padding:3px 9px;cursor:pointer;white-space:nowrap;flex-shrink:0" title="ייצוא גריד לאשכול/זוג זה">▦ ייצוא</button>
             ${!window.isReadOnly && pGids.length ? `<button onclick="event.stopPropagation();${isClusterMode ? `window.openNewSched(null, {grpId:'cl_${pair.id}', date:'${window.d2s(days[0])}'})` : `window.openNewSched(${pGids[0]}, {date:'${window.d2s(days[0])}', partnerGids:[${pairGidList}]})`}" style="background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.45);border-radius:5px;color:#fff;font-size:.72rem;font-weight:700;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">${isClusterMode ? '➕ שיבוץ לאשכול' : '➕ שיבוץ לזוג'}</button>` : ''}
             <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 ${pair.name}</span>
           </div>
