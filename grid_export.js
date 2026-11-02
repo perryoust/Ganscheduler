@@ -484,10 +484,10 @@
         <!-- Footer Export Actions (Tab 1: Grid) -->
         <div id="gexp-footer-grid" style="background:#f8fafc; border-top:1px solid #e2e8f0; padding:11px 18px; display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; direction:rtl;">
           <div style="display:flex; flex-wrap:wrap; gap:8px; flex:1;">
-            <button type="button" class="btn bg" onclick="window.doGridExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:8px 14px; font-size:0.84rem;">📊 אקסל (Excel)</button>
-            <button type="button" class="btn bp" onclick="window.doGridExportPDF()" style="background:#1d4ed8; border-color:#1e40af; color:#fff; font-weight:800; padding:8px 14px; font-size:0.84rem;">🖨️ PDF / הדפסה</button>
-            <button type="button" class="btn bo" onclick="window.doGridExportImage('download')" style="background:#fdf2f8; border:1px solid #f472b6; color:#9d174d; font-weight:800; padding:8px 12px; font-size:0.82rem;">🖼️ תמונה (JPG)</button>
-            <button type="button" class="btn bo" onclick="window.doGridExportImage('copy')" style="background:#ecfdf5; border:1px solid #34d399; color:#065f46; font-weight:800; padding:8px 12px; font-size:0.82rem;" title="מעתיק את הטבלה כתמונה ללוח להדבקה ישירה ב-Ctrl+V בוואטסאפ">📋 העתק לוואטסאפ</button>
+            <button type="button" class="btn bg" data-tip="הורד קובץ אקסל מעוצב (RTL) של טבלת השיבוצים בטווח שנבחר" onclick="window.doGridExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:8px 14px; font-size:0.84rem;">📊 אקסל (Excel)</button>
+            <button type="button" class="btn bp" data-tip="פתח תצוגת הדפסה ושמירה ל-PDF מותאמת לרוחב עמוד A4" onclick="window.doGridExportPDF()" style="background:#1d4ed8; border-color:#1e40af; color:#fff; font-weight:800; padding:8px 14px; font-size:0.84rem;">🖨️ PDF / הדפסה</button>
+            <button type="button" class="btn bo" data-tip="הורד את טבלת השיבוצים כתמונת JPG (או קובץ ZIP למספר ערים)" onclick="window.doGridExportImage('download')" style="background:#fdf2f8; border:1px solid #f472b6; color:#9d174d; font-weight:800; padding:8px 12px; font-size:0.82rem;">🖼️ תמונה (JPG)</button>
+            <button type="button" class="btn bo" data-tip="העתק את הטבלה כתמונה ללוח להדבקה ישירה (Ctrl+V) בוואטסאפ" onclick="window.doGridExportImage('copy')" style="background:#ecfdf5; border:1px solid #34d399; color:#065f46; font-weight:800; padding:8px 12px; font-size:0.82rem;">📋 העתק לוואטסאפ</button>
           </div>
           <button type="button" class="btn bo" onclick="window.CM('grid-export-m')" style="padding:8px 14px; font-size:0.82rem;">סגור</button>
         </div>
@@ -495,11 +495,11 @@
         <!-- Footer Export Actions (Tab 2: Instructors) -->
         <div id="gexp-footer-instructors" style="display:none; background:#f8fafc; border-top:1px solid #e2e8f0; padding:11px 18px; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; direction:rtl;">
           <div style="display:flex; flex-wrap:wrap; gap:7px; flex:1;">
-            <button type="button" class="btn bg" onclick="window.doInstExportWhatsAppText()" style="background:#16a34a; border-color:#15803d; color:#fff; font-weight:800; padding:8px 13px; font-size:0.83rem;">💬 העתק הודעה לוואטסאפ</button>
-            <button type="button" class="btn bg" onclick="window.doInstExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:8px 13px; font-size:0.83rem;">📊 אקסל מדריכים ובקרה</button>
-            <button type="button" class="btn bp" onclick="window.doInstExportPDF()" style="background:#1d4ed8; border-color:#1e40af; color:#fff; font-weight:800; padding:8px 13px; font-size:0.83rem;">🖨️ PDF / הדפסה</button>
-            <button type="button" class="btn bo" onclick="window.doInstExportImage('download')" style="background:#fdf2f8; border:1px solid #f472b6; color:#9d174d; font-weight:800; padding:8px 11px; font-size:0.81rem;">🖼️ תמונה (JPG)</button>
-            <button type="button" class="btn bo" onclick="window.doInstExportImage('copy')" style="background:#ecfdf5; border:1px solid #34d399; color:#065f46; font-weight:800; padding:8px 11px; font-size:0.81rem;" title="מעתיק כרטיס היערכות מדריכים כתמונה ללוח (Ctrl+V בוואטסאפ)">📋 העתק תמונה לוואטסאפ</button>
+            <button type="button" class="btn bg" data-tip="העתק הודעת טקסט מוכנה לוואטסאפ עם כמות המדריכים ליום" onclick="window.doInstExportWhatsAppText()" style="background:#16a34a; border-color:#15803d; color:#fff; font-weight:800; padding:8px 13px; font-size:0.83rem;">💬 העתק הודעה לוואטסאפ</button>
+            <button type="button" class="btn bg" data-tip="הורד קובץ אקסל מלא (3 גיליונות: מדריכים לפי ערים, בקרת עומסים וחוסרים)" onclick="window.doInstExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:8px 13px; font-size:0.83rem;">📊 אקסל מדריכים ובקרה</button>
+            <button type="button" class="btn bp" data-tip="פתח דוח היערכות מדריכים להדפסה או שמירה כ-PDF" onclick="window.doInstExportPDF()" style="background:#1d4ed8; border-color:#1e40af; color:#fff; font-weight:800; padding:8px 13px; font-size:0.83rem;">🖨️ PDF / הדפסה</button>
+            <button type="button" class="btn bo" data-tip="הורד כרטיס תמונה מעוצב (JPG) של היערכות המדריכים" onclick="window.doInstExportImage('download')" style="background:#fdf2f8; border:1px solid #f472b6; color:#9d174d; font-weight:800; padding:8px 11px; font-size:0.81rem;">🖼️ תמונה (JPG)</button>
+            <button type="button" class="btn bo" data-tip="העתק כרטיס היערכות מדריכים כתמונה ללוח להדבקה ב-Ctrl+V בוואטסאפ" onclick="window.doInstExportImage('copy')" style="background:#ecfdf5; border:1px solid #34d399; color:#065f46; font-weight:800; padding:8px 11px; font-size:0.81rem;">📋 העתק תמונה לוואטסאפ</button>
           </div>
           <button type="button" class="btn bo" onclick="window.CM('grid-export-m')" style="padding:8px 14px; font-size:0.82rem;">סגור</button>
         </div>
@@ -507,14 +507,51 @@
         <!-- Footer Export Actions (Tab 3: Clusters & Gaps Control) -->
         <div id="gexp-footer-gaps" style="display:none; background:#f8fafc; border-top:1px solid #e2e8f0; padding:11px 18px; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; direction:rtl;">
           <div style="display:flex; flex-wrap:wrap; gap:8px; flex:1;">
-            <button type="button" class="btn bg" onclick="window.doInstExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:8px 14px; font-size:0.83rem;">📊 ייצוא דוח בקרה וחוסרים (Excel)</button>
+            <button type="button" class="btn bg" data-tip="הורד לאקסל את דוח הבקרה המלא כולל גנים ללא אשכול ופספוסי שיבוץ" onclick="window.doInstExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:8px 14px; font-size:0.83rem;">📊 ייצוא דוח בקרה וחוסרים (Excel)</button>
             <button type="button" class="btn bo" onclick="window.setGridExportTab('instructors')" style="background:#eef2ff; border:1px solid #a5b4fc; color:#1e3a8a; font-weight:800; padding:8px 13px; font-size:0.82rem;">🧑‍🏫 מעבר למדריכים לספקים</button>
           </div>
           <button type="button" class="btn bo" onclick="window.CM('grid-export-m')" style="padding:8px 14px; font-size:0.82rem;">סגור</button>
         </div>
       </div>
+      <!-- Instant Floating Tooltip (zero clipping, 0ms delay) -->
+      <div id="gexp-floating-tip" style="display:none; position:fixed; z-index:100090; pointer-events:none; background:#0f172a; color:#ffffff; padding:6px 11px; border-radius:7px; font-size:0.76rem; font-weight:700; line-height:1.35; max-width:265px; text-align:right; direction:rtl; box-shadow:0 8px 22px rgba(15,23,42,0.34); border:1px solid rgba(255,255,255,0.16);"></div>
     `;
     document.body.appendChild(modal);
+
+    // Bind instant floating tooltip delegation on modal
+    const tipEl = modal.querySelector('#gexp-floating-tip');
+    let activeTipTarget = null;
+    const hideTip = () => {
+      activeTipTarget = null;
+      if (tipEl) tipEl.style.display = 'none';
+    };
+    modal.addEventListener('mouseover', (e) => {
+      const target = e.target && e.target.closest ? e.target.closest('[data-tip]') : null;
+      if (!target || !tipEl) return;
+      const txt = target.getAttribute('data-tip');
+      if (!txt) return;
+      activeTipTarget = target;
+      tipEl.textContent = txt;
+      tipEl.style.display = 'block';
+      const r = target.getBoundingClientRect();
+      const tr = tipEl.getBoundingClientRect();
+      let left = r.left + (r.width / 2) - (tr.width / 2);
+      if (left < 10) left = 10;
+      if (left + tr.width > window.innerWidth - 10) left = window.innerWidth - tr.width - 10;
+      let top = r.top - tr.height - 8;
+      if (top < 10) top = r.bottom + 8;
+      tipEl.style.left = Math.round(left) + 'px';
+      tipEl.style.top = Math.round(top) + 'px';
+    });
+    modal.addEventListener('mouseout', (e) => {
+      if (!activeTipTarget) return;
+      if (!e.relatedTarget || !activeTipTarget.contains(e.relatedTarget)) {
+        hideTip();
+      }
+    });
+    modal.addEventListener('click', hideTip);
+    modal.addEventListener('scroll', hideTip, true);
+
     return modal;
   }
 
@@ -2558,15 +2595,15 @@
 
     const kpisHtml = `
       <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:9px;">
-        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:6px 8px; text-align:center; cursor:pointer;" onclick="document.getElementById('gexp-inst-status').value = document.getElementById('gexp-inst-status').value==='active'?'all':'active'; window.onInstFilterChange();">
+        <div data-tip="לחץ לסינון והצגת ספקים עם שיבוץ בלבד" style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:6px 8px; text-align:center; cursor:pointer;" onclick="document.getElementById('gexp-inst-status').value = document.getElementById('gexp-inst-status').value==='active'?'all':'active'; window.onInstFilterChange();">
           <div style="font-size:1.05rem; font-weight:800; color:#15803d;">${activeCount}</div>
           <div style="font-size:0.71rem; color:#166534; font-weight:700;">ספקים משובצים</div>
         </div>
-        <div style="background:${zeroCount > 0 ? '#fef2f2' : '#f8fafc'}; border:1px solid ${zeroCount > 0 ? '#fecaca' : '#e2e8f0'}; border-radius:8px; padding:6px 8px; text-align:center; cursor:pointer;" onclick="document.getElementById('gexp-inst-status').value = document.getElementById('gexp-inst-status').value==='zero'?'all':'zero'; window.onInstFilterChange();">
+        <div data-tip="לחץ לסינון ספקים שלא שובצו כלל בטווח התאריכים" style="background:${zeroCount > 0 ? '#fef2f2' : '#f8fafc'}; border:1px solid ${zeroCount > 0 ? '#fecaca' : '#e2e8f0'}; border-radius:8px; padding:6px 8px; text-align:center; cursor:pointer;" onclick="document.getElementById('gexp-inst-status').value = document.getElementById('gexp-inst-status').value==='zero'?'all':'zero'; window.onInstFilterChange();">
           <div style="font-size:1.05rem; font-weight:800; color:${zeroCount > 0 ? '#dc2626' : '#64748b'};">${zeroCount}</div>
           <div style="font-size:0.71rem; color:${zeroCount > 0 ? '#991b1b' : '#64748b'}; font-weight:700;">ללא שיבוץ כלל (0)</div>
         </div>
-        <div style="background:${highCount > 0 ? '#fff7ed' : '#f8fafc'}; border:1px solid ${highCount > 0 ? '#fed7aa' : '#e2e8f0'}; border-radius:8px; padding:6px 8px; text-align:center; cursor:pointer;" onclick="document.getElementById('gexp-inst-status').value = document.getElementById('gexp-inst-status').value==='high'?'all':'high'; window.onInstFilterChange();">
+        <div data-tip="לחץ לסינון ספקים עם שיא של 3 מדריכים ומעלה ביום אחד" style="background:${highCount > 0 ? '#fff7ed' : '#f8fafc'}; border:1px solid ${highCount > 0 ? '#fed7aa' : '#e2e8f0'}; border-radius:8px; padding:6px 8px; text-align:center; cursor:pointer;" onclick="document.getElementById('gexp-inst-status').value = document.getElementById('gexp-inst-status').value==='high'?'all':'high'; window.onInstFilterChange();">
           <div style="font-size:1.05rem; font-weight:800; color:${highCount > 0 ? '#ea580c' : '#64748b'};">${highCount}</div>
           <div style="font-size:0.71rem; color:${highCount > 0 ? '#9a3412' : '#64748b'}; font-weight:700;">עומס (3+ מדריכים ביום)</div>
         </div>
@@ -2599,9 +2636,9 @@
       const quickBtns = isZero
         ? ''
         : `<div style="display:flex; gap:4px; justify-content:center; flex-wrap:nowrap;">
-            <button type="button" onclick="window.selectInstSupplierByIdx(${idx})" title="הצג פירוט מלא לספק" style="background:#eef2ff; border:1px solid #c7d2fe; color:#1e3a8a; border-radius:5px; padding:3px 6px; font-size:0.72rem; font-weight:700; cursor:pointer;">👁️</button>
-            <button type="button" onclick="window.doInstQuickWA(${idx})" title="העתק הודעת וואטסאפ לספק זה" style="background:#dcfce7; border:1px solid #86efac; color:#166534; border-radius:5px; padding:3px 7px; font-size:0.72rem; font-weight:800; cursor:pointer;">💬</button>
-            <button type="button" onclick="window.doInstQuickImage(${idx})" title="העתק כרטיס תמונה לוואטסאפ לספק זה" style="background:#fdf2f8; border:1px solid #f9a8d4; color:#9d174d; border-radius:5px; padding:3px 7px; font-size:0.72rem; font-weight:800; cursor:pointer;">🖼️</button>
+            <button type="button" onclick="window.selectInstSupplierByIdx(${idx})" data-tip="הצג פירוט מלא של הספק לפי ערים, תאריכים וסה״כ יומי" aria-label="הצג פירוט מלא לספק" style="background:#eef2ff; border:1px solid #c7d2fe; color:#1e3a8a; border-radius:5px; padding:3px 6px; font-size:0.72rem; font-weight:700; cursor:pointer;">👁️</button>
+            <button type="button" onclick="window.doInstQuickWA(${idx})" data-tip="העתק הודעת וואטסאפ מוכנה עם כמות המדריכים ליום עבור ספק זה" aria-label="העתק הודעת וואטסאפ לספק" style="background:#dcfce7; border:1px solid #86efac; color:#166534; border-radius:5px; padding:3px 7px; font-size:0.72rem; font-weight:800; cursor:pointer;">💬</button>
+            <button type="button" onclick="window.doInstQuickImage(${idx})" data-tip="העתק כרטיס תמונה מעוצב של לו״ז המדריכים לספק זה (להדבקה ב-Ctrl+V בוואטסאפ)" aria-label="העתק כרטיס תמונה לוואטסאפ" style="background:#fdf2f8; border:1px solid #f9a8d4; color:#9d174d; border-radius:5px; padding:3px 7px; font-size:0.72rem; font-weight:800; cursor:pointer;">🖼️</button>
           </div>`;
 
       return `<tr style="background:${rowBg}; border-bottom:1px solid #e2e8f0;">
