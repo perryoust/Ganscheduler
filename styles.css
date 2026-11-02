@@ -1556,3 +1556,37 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 #backup-ind.show {
   opacity: 1;
 }
+
+/* ── Compact Horizontal Weekly Grid Cards & Dead-Space Cleanup (v114.42) ── */
+#cal-container:empty {
+  display: none !important;
+  margin: 0 !important;
+}
+@media (min-width: 769px) {
+  .content {
+    max-width: 1860px;
+    padding: 8px 12px;
+  }
+  #p-cal .tw-sticky {
+    max-height: calc(100vh - 175px);
+  }
+}
+.wk-grid-table {
+  table-layout: fixed;
+}
+.wk-grid-table .wk-qacts-wrap .qacts {
+  gap: 2px !important;
+  flex-wrap: nowrap !important;
+}
+.wk-grid-table .wk-qacts-wrap .qbtn {
+  width: 22px;
+  height: 22px;
+  font-size: 0.68rem;
+  border-radius: 5px;
+  border-color: #e2e8f0;
+}
+.wk-grid-table .wk-pslot:hover {
+  opacity: 1;
+  border-color: #93c5fd !important;
+  box-shadow: 0 2px 5px rgba(21, 101, 192, 0.08) !important;
+}

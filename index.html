@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>טומשין ניהול ושיבוץ | גרסה 114.41</title>
+  <title>טומשין ניהול ושיבוץ | גרסה 114.42</title>
   <meta name="description" content="טומשין ניהול ושיבוץ - מערכת לניהול ושיבוץ צהרונים">
   <!-- Open Graph / WhatsApp Preview Meta Tags -->
   <meta property="og:type" content="website">
@@ -27,7 +27,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=114.41" />
+  <link rel="stylesheet" href="styles.css?v=114.42" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -51,7 +51,7 @@
     }
   </style>
   <script>
-    window.APP_VERSION = '114.41';
+    window.APP_VERSION = '114.42';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -87,8 +87,8 @@
       }
     });
   </script>
-  <script type="module" src="firebase_init.js?v=114.41"></script>
-  <script src="assets.js?v=114.41"></script>
+  <script type="module" src="firebase_init.js?v=114.42"></script>
+  <script src="assets.js?v=114.42"></script>
   <script>
     // Load JSZip separately to avoid conflicts if needed
     (function () {
@@ -526,8 +526,8 @@
     <div id="p-cal" class="panel active">
       <div id="cal-container" class="cal-grid" style="margin-bottom:10px;"></div>
       <!-- 🖥️ DESKTOP CALENDAR TOOLS 🖥️ -->
-      <div id="cal-tools-desktop" class="card desktop-only" style="margin-bottom:10px">
-        <div class="row mb-4">
+      <div id="cal-tools-desktop" class="card desktop-only" style="margin-bottom:6px; padding:7px 12px">
+        <div class="row" style="gap:6px; align-items:flex-end">
            <div class="fg">
              <label>תאריך/ניווט</label>
              <div class="flex-c gap-2">
@@ -578,8 +578,25 @@
                <div id="cal-cl-multi-items-desktop" style="max-height:250px;overflow-y:auto;"></div>
              </div>
            </div>
-           <div class="flex-c" style="align-self: flex-end; margin-bottom: 2px;">
-             <button class="btn bo" onclick="if(window.clearCal)window.clearCal();if(window.renderCal)window.renderCal()" style="background:white; border:1px solid #1976d2; color:#1976d2;">🧹 נקה סינון</button>
+           <div class="flex-c" style="align-self: flex-end; margin-bottom: 1px;">
+             <button class="btn bo" onclick="if(window.clearCal)window.clearCal();if(window.renderCal)window.renderCal()" style="background:white; border:1px solid #1976d2; color:#1976d2; height:30px; padding:0 10px;">🧹 נקה סינון</button>
+           </div>
+           <div class="fg">
+             <label>תצוגה וקיבוץ</label>
+             <div class="flex-c" style="gap:6px">
+               <select id="cal-view-select-desktop" onchange="window.handleViewSelect(this.value)" style="padding:3px 10px; height:30px; border:1px solid #1976d2; border-radius:6px; background:#fff; color:#1976d2; font-weight:700; font-size:0.8rem; cursor:pointer; min-width:128px;">
+                 <option value="day-list">📅 יומי (רשימה)</option>
+                 <option value="day-grid">▦ יומי (גריד)</option>
+                 <option value="week-list">📆 שבועי (רשימה)</option>
+                 <option value="week-grid" selected>▦ שבועי (גריד)</option>
+                 <option value="month">🗓️ חודשי</option>
+                 <option value="month-table">🗓️ טבלה</option>
+               </select>
+               <div class="vbtns" style="height:30px; align-items:stretch;">
+                 <button id="vlb-group-pairs-desktop" class="vbtn active" style="padding:3px 9px; font-size:0.74rem;" onclick="setListGroupMode('pairs')">⚖️ זוגות</button>
+                 <button id="vlb-group-clusters-desktop" class="vbtn" style="padding:3px 9px; font-size:0.74rem;" onclick="setListGroupMode('clusters')">📦 אשכולות</button>
+               </div>
+             </div>
            </div>
            <div class="mr-auto flex-c gap-8" style="align-self: flex-end; margin-bottom: 2px;">
              <button class="btn bp" onclick="openNewSched()">➕ שיבוץ חדש</button>
@@ -598,20 +615,6 @@
                 </div>
               </div>
            </div>
-        </div>
-        <div class="flex-c" style="width:100%; flex-wrap:wrap; gap:8px; margin-bottom:8px">
-          <select id="cal-view-select-desktop" onchange="window.handleViewSelect(this.value)" style="padding:6px 12px; border:1px solid #1976d2; border-radius:6px; background:#fff; color:#1976d2; font-weight:700; font-size:0.85rem; cursor:pointer;">
-            <option value="day-list">📅 יומי (רשימה)</option>
-            <option value="day-grid">▦ יומי (גריד)</option>
-            <option value="week-list">📆 שבועי (רשימה)</option>
-            <option value="week-grid" selected>▦ שבועי (גריד)</option>
-            <option value="month">🗓️ חודשי</option>
-            <option value="month-table">🗓️ טבלה</option>
-          </select>
-          <div class="vbtns">
-            <button id="vlb-group-pairs-desktop" class="vbtn active" onclick="setListGroupMode('pairs')">⚖️ זוגות</button>
-            <button id="vlb-group-clusters-desktop" class="vbtn" onclick="setListGroupMode('clusters')">📦 אשכולות</button>
-          </div>
         </div>
        </div>
       <div class="desktop-only">
@@ -701,10 +704,10 @@
          </div>
       </div>
 
-      <div class="flex-c justify-between mb-2 gap-2" style="width:100%">
-         <button class="btn bg" onclick="navCal(-1)" style="padding:6px 12px; font-weight:800; font-size:1rem; border-radius:6px; border:1px solid #e2e8f0; height:38px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer">▶</button>
-         <div id="cal-title" class="card text-center font-bold text-primary" style="font-size:1.1rem; flex:1; margin:0; padding:8px 0; display:flex; align-items:center; justify-content:center; height:38px"></div>
-         <button class="btn bg" onclick="navCal(1)" style="padding:6px 12px; font-weight:800; font-size:1rem; border-radius:6px; border:1px solid #e2e8f0; height:38px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer">◀</button>
+      <div class="flex-c justify-between gap-2" style="width:100%; margin-bottom:5px">
+         <button class="btn bg" onclick="navCal(-1)" style="padding:2px 10px; font-weight:800; font-size:0.9rem; border-radius:6px; border:1px solid #e2e8f0; height:30px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer">▶</button>
+         <div id="cal-title" class="card text-center font-bold text-primary" style="font-size:0.96rem; flex:1; margin:0; padding:4px 0; display:flex; align-items:center; justify-content:center; height:30px"></div>
+         <button class="btn bg" onclick="navCal(1)" style="padding:2px 10px; font-weight:800; font-size:0.9rem; border-radius:6px; border:1px solid #e2e8f0; height:30px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer">◀</button>
       </div>
       <div id="cal-body" class="scroll-area"></div>
     </div>
@@ -4224,37 +4227,37 @@
     </div>
 
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <script src="utils.js?v=114.41"></script>
-    <script src="data_manager.js?v=114.41"></script>
-    <script src="data.js?v=114.41"></script>
-    <script src="firebase.js?v=114.41"></script>
-    <script src="invoices.js?v=114.41"></script>
-    <script src="invoices_import.js?v=114.41"></script>
-    <script src="invoices_export.js?v=114.41"></script>
-    <script src="invoices_scanner.js?v=114.41"></script>
-    <script src="suppliers.js?v=114.41"></script>
-    <script src="cal.js?v=114.41"></script>
-    <script src="activity.js?v=114.41"></script>
-    <script src="sched.js?v=114.41"></script>
-    <script src="gardens.js?v=114.41"></script>
-    <script src="export_v107.js?v=114.41"></script>
-    <script src="visual_excel.js?v=114.41"></script>
-    <script src="grid_export.js?v=114.41"></script>
-    <script src="backup.js?v=114.41"></script>
-    <script src="version_vault.js?v=114.41"></script>
-    <script src="admin.js?v=114.41"></script>
-    <script src="import_export.js?v=114.41"></script>
-    <script src="core_globals.js?v=114.41"></script>
-    <script src="core_data.js?v=114.41"></script>
-    <script src="core_dash.js?v=114.41"></script>
-    <script src="worker_tasks.js?v=114.41"></script>
-    <script src="coordinator_app.js?v=114.41"></script>
-    <script src="purchasing_orders.js?v=114.41"></script>
-    <script src="purchasing_budget.js?v=114.41"></script>
-    <script src="pdfmake_orders.js?v=114.41"></script>
-    <script src="core_app.js?v=114.41"></script>
-    <script src="todo.js?v=114.41"></script>
-    <script src="matzava.js?v=114.41"></script>
+    <script src="utils.js?v=114.42"></script>
+    <script src="data_manager.js?v=114.42"></script>
+    <script src="data.js?v=114.42"></script>
+    <script src="firebase.js?v=114.42"></script>
+    <script src="invoices.js?v=114.42"></script>
+    <script src="invoices_import.js?v=114.42"></script>
+    <script src="invoices_export.js?v=114.42"></script>
+    <script src="invoices_scanner.js?v=114.42"></script>
+    <script src="suppliers.js?v=114.42"></script>
+    <script src="cal.js?v=114.42"></script>
+    <script src="activity.js?v=114.42"></script>
+    <script src="sched.js?v=114.42"></script>
+    <script src="gardens.js?v=114.42"></script>
+    <script src="export_v107.js?v=114.42"></script>
+    <script src="visual_excel.js?v=114.42"></script>
+    <script src="grid_export.js?v=114.42"></script>
+    <script src="backup.js?v=114.42"></script>
+    <script src="version_vault.js?v=114.42"></script>
+    <script src="admin.js?v=114.42"></script>
+    <script src="import_export.js?v=114.42"></script>
+    <script src="core_globals.js?v=114.42"></script>
+    <script src="core_data.js?v=114.42"></script>
+    <script src="core_dash.js?v=114.42"></script>
+    <script src="worker_tasks.js?v=114.42"></script>
+    <script src="coordinator_app.js?v=114.42"></script>
+    <script src="purchasing_orders.js?v=114.42"></script>
+    <script src="purchasing_budget.js?v=114.42"></script>
+    <script src="pdfmake_orders.js?v=114.42"></script>
+    <script src="core_app.js?v=114.42"></script>
+    <script src="todo.js?v=114.42"></script>
+    <script src="matzava.js?v=114.42"></script>
     <script>
       var _dashTab = _dashTab || 'g'; // Master global state
       console.log('Ganscheduler Architecture: v' + (window.APP_VERSION || '103.82') + ' Ready');

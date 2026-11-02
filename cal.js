@@ -1865,27 +1865,29 @@ function renderNormalWeek(evs, ws, f){
     byCity[city].pairs.sort((a,b)=>a.pair.name.localeCompare(b.pair.name, 'he', { numeric: true }));
     byCity[city].solos.sort((a,b)=>(window.G(a).name||'').localeCompare(window.G(b).name||'','he'));
   });
+  const hdrHols = days.map(d => window.getHolidayInfo ? window.getHolidayInfo(window.d2s(d)) : null);
   let html = '<div class="tw-sticky">'
-          +'<table style="min-width:950px;width:100%"><thead><tr>';
+          +'<table class="wk-grid-table" style="min-width:1180px;width:100%"><thead><tr>';
 
-  html+=`<th style="min-width:140px;background:#e8eaf6;color:#283593;padding:6px 8px;
+  html+=`<th style="width:148px;min-width:136px;background:#e8eaf6;color:#283593;padding:4px 8px;
     border-bottom:2px solid #9fa8da;border-left:1px solid #c5cae9;
-    position:sticky;top:0;right:0;z-index:35;font-size:.76rem">צהרון / זוג</th>`;
+    position:sticky;top:0;right:0;z-index:35;font-size:.75rem">צהרון / זוג</th>`;
 
   days.forEach((d,i)=>{
     const ds=window.d2s(d);
-    const hol=window.getHolidayInfo ? window.getHolidayInfo(ds) : null;
+    const hol=hdrHols[i];
     const blkWk=window.getBlockedInfo ? window.getBlockedInfo(ds) : null;
     const isToday=ds===tday;
     const bg=isToday?'#1565c0':blkWk?'#fce4ec':hol?hol.bg:'#e8eaf6';
     const col=isToday?'#fff':blkWk?'#c62828':hol?hol.color:'#283593';
     const bottomBorder=blkWk?'border-bottom:3px solid #e91e63':'border-bottom:2px solid #9fa8da';
-    html+=`<th style="background:${bg};color:${col};padding:3px 4px;text-align:center;font-size:.76rem;min-width:132px;
+    const hebStr = window.toHebDate ? window.toHebDate(ds) : '';
+    const subParts = [hebStr, hol ? `<b>${hol.emoji} ${hol.name}</b>` : ''].filter(Boolean).join(' · ');
+    html+=`<th style="background:${bg};color:${col};padding:3px 6px;text-align:center;font-size:.75rem;min-width:205px;
       ${bottomBorder};border-left:1px solid ${isToday?'rgba(255,255,255,.3)':'#c5cae9'};
-      position:sticky;top:0;z-index:30;white-space:nowrap;line-height:1.3" onclick="window.jumpToDay('${ds}')">
-      <span style="font-weight:700">${window.dayN(ds)}</span> <span style="font-size:.64rem;font-weight:400">${window.fD(ds)}</span>
-
-      <br><span style="font-size:.56rem;font-weight:400;opacity:.7">${window.toHebDate ? window.toHebDate(ds) : ''}</span>
+      position:sticky;top:0;z-index:30;white-space:nowrap;line-height:1.2;cursor:pointer" onclick="window.jumpToDay('${ds}')">
+      <span style="font-weight:700">${window.dayN(ds)}</span> <span style="font-size:.65rem;font-weight:500">${window.fD(ds)}</span>
+      ${subParts ? `<div style="font-size:.58rem;font-weight:400;opacity:.85;overflow:hidden;text-overflow:ellipsis">${subParts}</div>` : ''}
       ${blkWk?`<span style="font-size:.58rem;cursor:pointer;display:block" onclick="event.stopPropagation();window.openBlockedDate('${ds}')">${blkWk.icon||'🚫'} ${blkWk.reason}</span>`:''}
     </th>`;
   });
@@ -1901,11 +1903,11 @@ function renderNormalWeek(evs, ws, f){
     const cityDisplay = isCityOpen ? 'table-row' : 'none';
     const groupLabel = window._listGroupMode === 'clusters' ? 'אשכולות' : 'זוגות';
     html+=`<tr onclick="toggleTableCity('${cityId}')" data-city="${city.replace(/"/g,'&quot;')}" style="cursor:pointer" class="city-header-row">
-      <td colspan="6" style="background:${clr.solid};color:#fff;padding:7px 12px;font-size:.9rem;font-weight:800;
+      <td colspan="6" style="background:${clr.solid};color:#fff;padding:4px 10px;font-size:.84rem;font-weight:800;
         border-bottom:1px solid rgba(255,255,255,.2);position:sticky;right:0;z-index:10">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span style="display:inline-flex;align-items:center;gap:8px"><span id="icon-${cityId}" style="width:18px;text-align:center;font-size:1.1rem;user-select:none">${isCityOpen ? '➖' : '➕'}</span><span>🏙️ ${city} <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} ${groupLabel} · ${byCity[city].solos.length} צהרונים בודדים</span></span></span>
-          <span style="font-size:0.7rem; font-weight:400; opacity:0.8;">לחץ לכיווץ/הרחבה ↕️</span>
+          <span style="display:inline-flex;align-items:center;gap:6px"><span id="icon-${cityId}" style="width:16px;text-align:center;font-size:1rem;user-select:none">${isCityOpen ? '➖' : '➕'}</span><span>🏙️ ${city} <span style="font-weight:400;font-size:.72rem;opacity:.85;margin-right:6px">${byCity[city].pairs.length} ${groupLabel} · ${byCity[city].solos.length} צהרונים בודדים</span></span></span>
+          <span style="font-size:0.68rem; font-weight:400; opacity:0.8;">לחץ לכיווץ/הרחבה ↕️</span>
         </div>
       </td>
     </tr>`;
@@ -1913,7 +1915,7 @@ function renderNormalWeek(evs, ws, f){
     // Wrapper for rows of this city
     const cityRowClass = `city-row-${cityId}`;
 
-    function makeCell(gid, ds, de, blk, hol, clrObj, clusterId){
+    function makeCell(gid, ds, de, blk, hol, clrObj, clusterId, hdrHol){
       const schedCall = clusterId ? `window.openNewSched(null, {grpId:'cl_${clusterId}', date:'${ds}', focusGid:${gid}})` : `window.openNewSched(${gid}, {date:'${ds}'})`;
       const schedTitle = clusterId ? 'שיבוץ לאשכול לתאריך זה' : 'שיבוץ לצהרון זה';
       const isToday=ds===tday;
@@ -1931,39 +1933,39 @@ function renderNormalWeek(evs, ws, f){
           const evEx = (window.supEx && (window.supEx[evBase] || window.supEx[ev.a])) || {};
           const evFlex = ev.flexNote || (evEx.flexSched ? (evEx.flexNote || 'הימים והשעות עלולים להשתנות') : '');
           const dispSup = (ev.a && window.supDisplayName) ? window.supDisplayName(ev.a) : (ev.n || evBase || '');
-          inner+=`<div class="pslot ${stC}" style="border-radius:6px; padding:6px 8px; margin:3px 0; font-size:var(--fs-xs);
+          const fullTip = [dispSup, ev.act, ev.t ? window.fT(ev.t) : ''].filter(Boolean).join(' · ').replace(/"/g,'&quot;');
+          inner+=`<div class="pslot wk-pslot ${stC}" title="${fullTip}" style="border-radius:6px; padding:3px 6px; margin:1px 0; font-size:var(--fs-xs);
             background:${bgCol}; border:1px solid ${borderCol}; border-right:3px solid ${clrObj.solid}; box-shadow:0 1px 2px rgba(0,0,0,0.03); cursor:pointer"
             onclick="event.stopPropagation();window.openSP('${ev.id}')">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:4px">
-              <div style="flex:1; min-width:0">
-                <div style="font-weight:800; color:var(--c-secondary); font-size:var(--fs-small); line-height:1.2">${dispSup}</div>
-                ${ev.act ? `<div style="color:var(--c-info); font-size:var(--fs-xs); margin-top:1px">${ev.act}</div>` : ''}
-                ${ev.t ? `<div style="font-size:var(--fs-xs); color:#64748b; margin-top:2px">⏰ ${window.fT(ev.t)}</div>` : ''}
-                ${evFlex ? `<div style="font-size:0.62rem; color:#0369a1; font-weight:700; margin-top:2px;" title="${(evFlex||'').replace(/"/g,'&quot;')}">ℹ️ ${evFlex}</div>` : ''}
-                ${isM ? `<div style="display:inline-block; background:#ffe082; color:#b71c1c; border-radius:4px; padding:1px 5px; font-size:0.6rem; font-weight:800; border:1px solid #ffca28; margin-top:3px">📅 השלמה</div>`:''}
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:6px">
+              ${ev.t ? `<div style="font-size:0.72rem; color:#64748b; font-weight:600; white-space:nowrap; flex-shrink:0; line-height:1">⏰ ${window.fT(ev.t)}</div>` : ''}
+              <div style="flex:1; min-width:0; line-height:1.15; text-align:right">
+                <div style="font-weight:800; color:var(--c-secondary); font-size:0.78rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${dispSup}${isM ? ` <span style="background:#ffe082; color:#b71c1c; border-radius:3px; padding:0 4px; font-size:0.56rem; font-weight:800; border:1px solid #ffca28">📅 השלמה</span>`:''}</div>
+                ${ev.act ? `<div style="color:#64748b; font-size:0.7rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${ev.act}</div>` : ''}
+                ${evFlex ? `<div style="font-size:0.58rem; color:#0369a1; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" title="${(evFlex||'').replace(/"/g,'&quot;')}">ℹ️ ${evFlex}</div>` : ''}
               </div>
-              <div style="display:flex; flex-direction:column; gap:3px; flex-shrink:0" onclick="event.stopPropagation()">
+              <div class="wk-qacts-wrap" style="display:flex; align-items:center; flex-shrink:0" onclick="event.stopPropagation()">
                 ${window.ui.renderQuickActionBtns(ev)}
               </div>
             </div>
           </div>`;
         });
-        if(hol) inner=`<div style="font-size:0.65rem; color:${hol.color}; font-weight:700; text-align:center; margin-bottom:2px; opacity:0.9">${hol.emoji} ${hol.name}</div>` + inner;
-        if(blk) inner+=`<div style="font-size:var(--fs-xs); color:var(--c-error); padding:4px; font-weight:700">${blk.icon||'🚫'} ${blk.reason}</div>`;
+        if(hol && (!hdrHol || hdrHol.name !== hol.name)) inner=`<div style="font-size:0.6rem; color:${hol.color}; font-weight:700; text-align:center; line-height:1.1; opacity:0.9">${hol.emoji} ${hol.name}</div>` + inner;
+        if(blk) inner+=`<div style="font-size:0.65rem; color:var(--c-error); padding:2px; font-weight:700; line-height:1.1">${blk.icon||'🚫'} ${blk.reason}</div>`;
       } else if(blk){
-        inner=`<div style="font-size:var(--fs-xs); color:var(--c-error); padding:6px; text-align:center; font-weight:700">${blk.icon||'🚫'} ${blk.reason}</div>`;
+        inner=`<div style="font-size:0.68rem; color:var(--c-error); padding:3px; text-align:center; font-weight:700; line-height:1.15">${blk.icon||'🚫'} ${blk.reason}</div>`;
       } else if(hol){
-        const holAddBtn = window.isReadOnly ? '' : `<button type="button" title="${schedTitle}" onclick="event.stopPropagation(); ${schedCall}" style="display:inline-flex; align-items:center; justify-content:center; margin-top:3px; width:26px; height:22px; font-size:0.75rem; font-weight:700; color:#1565c0; background:rgba(255,255,255,0.9); border:1px dashed #93c5fd; border-radius:6px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='#dbeafe'; this.style.borderColor='#2563eb'" onmouseout="this.style.background='rgba(255,255,255,0.9)'; this.style.borderColor='#93c5fd'">➕</button>`;
-        inner=`<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4px 2px; gap:2px"><div style="font-size:var(--fs-xs); color:${hol.color}; font-weight:700; text-align:center">${hol.emoji} ${hol.name}</div>${holAddBtn}</div>`;
+        const holAddBtn = window.isReadOnly ? '' : `<button type="button" title="${schedTitle}" onclick="event.stopPropagation(); ${schedCall}" style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:20px; font-size:0.68rem; font-weight:700; color:#1565c0; background:rgba(255,255,255,0.9); border:1px dashed #93c5fd; border-radius:5px; cursor:pointer; transition:all 0.15s; flex-shrink:0" onmouseover="this.style.background='#dbeafe'; this.style.borderColor='#2563eb'" onmouseout="this.style.background='rgba(255,255,255,0.9)'; this.style.borderColor='#93c5fd'">➕</button>`;
+        inner=`<div style="display:flex; align-items:center; justify-content:center; padding:1px 2px; gap:5px; line-height:1"><span style="font-size:0.66rem; color:${hol.color}; font-weight:600; opacity:0.85; white-space:nowrap">${hol.emoji} ${hol.name}</span>${holAddBtn}</div>`;
       } else {
-        inner = window.isReadOnly ? `<div style="padding:8px 0;"></div>` : `<div title="${schedTitle}" ${clusterId ? `onclick="event.stopPropagation(); ${schedCall}"` : ''} style="color:#cbd5e1; font-size:1.2rem; font-weight:300; text-align:center; padding:8px 0; cursor:pointer">+</div>`;
+        inner = window.isReadOnly ? `<div style="padding:2px 0;"></div>` : `<div title="${schedTitle}" ${clusterId ? `onclick="event.stopPropagation(); ${schedCall}"` : ''} style="color:#cbd5e1; font-size:1rem; font-weight:400; text-align:center; padding:2px 0; line-height:1; cursor:pointer">+</div>`;
       }
       const jumpBtn = `<button onclick="event.stopPropagation(); window.calJump('','week','${gid}')" 
-        style="position:absolute; top:4px; left:4px; background:white; border:1px solid #e2e8f0;
-        border-radius:4px; color:#64748b; font-size:10px; padding:2px 5px; cursor:pointer; opacity:0; transition:all 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.1)" class="cell-jump-btn">📅</button>`;
+        style="position:absolute; top:2px; left:2px; z-index:2; background:white; border:1px solid #e2e8f0;
+        border-radius:4px; color:#64748b; font-size:9px; padding:1px 4px; cursor:pointer; opacity:0; transition:all 0.15s; box-shadow:0 1px 2px rgba(0,0,0,0.08)" class="cell-jump-btn">📅</button>`;
 
       return `<td style="background:${cellBg}; position:relative; border-bottom:1px solid ${borderColor}; border-left:1px solid ${borderColor};
-        padding:5px; vertical-align:top; min-width:140px"
+        padding:2px 4px; vertical-align:middle; min-width:205px"
         onmouseover="this.querySelector('.cell-jump-btn').style.opacity=1"
         onmouseout="this.querySelector('.cell-jump-btn').style.opacity=0"
         onclick="window.openGcellPopup(${gid},'${ds}',event)">${jumpBtn}${inner}</td>`;
@@ -1978,31 +1980,31 @@ function renderNormalWeek(evs, ws, f){
       const clusterIcon = isClusterOpen ? '➖' : '➕';
 
       html+=`<tr class="${cityRowClass} pair-hdr-${cityId}" onclick="window.toggleTableCluster('${pIdStr}')" style="display:${cityDisplay};cursor:pointer">
-        <td colspan="6" style="background:${clr.solid};color:#fff;padding:5px 12px;
-          font-size:.92rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2);position:sticky;right:0;z-index:10">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span id="icon-${pIdStr}" style="width:18px;text-align:center;font-size:1.1rem;user-select:none">${clusterIcon}</span>
+        <td colspan="6" style="background:${clr.solid};color:#fff;padding:3px 10px;
+          font-size:.84rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2);position:sticky;right:0;z-index:10">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span id="icon-${pIdStr}" style="width:16px;text-align:center;font-size:1rem;user-select:none">${clusterIcon}</span>
             <button onclick="event.stopPropagation();window._exportPairWA([${pairGidList}])"
               style="background:rgba(255,255,255,.22);border:none;border-radius:5px;color:#fff;
-                font-size:.72rem;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">📋 הודעה</button>
-            ${!window.isReadOnly && pGids.length ? `<button onclick="event.stopPropagation();${isClusterMode ? `window.openNewSched(null, {grpId:'cl_${pair.id}', date:'${window.d2s(days[0])}'})` : `window.openNewSched(${pGids[0]}, {date:'${window.d2s(days[0])}', partnerGids:[${pairGidList}]})`}" style="background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.45);border-radius:5px;color:#fff;font-size:.72rem;font-weight:700;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">${isClusterMode ? '➕ שיבוץ לאשכול' : '➕ שיבוץ לזוג'}</button>` : ''}
+                font-size:.69rem;padding:2px 8px;cursor:pointer;white-space:nowrap;flex-shrink:0">📋 הודעה</button>
+            ${!window.isReadOnly && pGids.length ? `<button onclick="event.stopPropagation();${isClusterMode ? `window.openNewSched(null, {grpId:'cl_${pair.id}', date:'${window.d2s(days[0])}'})` : `window.openNewSched(${pGids[0]}, {date:'${window.d2s(days[0])}', partnerGids:[${pairGidList}]})`}" style="background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.45);border-radius:5px;color:#fff;font-size:.69rem;font-weight:700;padding:2px 8px;cursor:pointer;white-space:nowrap;flex-shrink:0">${isClusterMode ? '➕ שיבוץ לאשכול' : '➕ שיבוץ לזוג'}</button>` : ''}
             <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 ${pair.name}</span>
           </div>
         </td>
       </tr>`;
       pGids.forEach(gid=>{
         const g=window.G(gid);
-        html+=`<tr class="${cityRowClass} pair-row-${pIdStr} pair-child-${cityId}" style="display:${clusterChildDisplay};"><td style="background:#fafbff; font-size:var(--fs-small); padding:6px 10px; color:var(--c-primary); font-weight:700;
+        html+=`<tr class="${cityRowClass} pair-row-${pIdStr} pair-child-${cityId}" style="display:${clusterChildDisplay};"><td style="background:#fafbff; font-size:0.78rem; padding:3px 8px; color:var(--c-primary); font-weight:700;
           border-right:3px solid ${clr.solid}; border-bottom:1px solid #dde1f0; border-left:1px solid #dde1f0;
-          position:sticky; right:0; z-index:10; white-space:nowrap; max-width:180px; overflow:hidden; text-overflow:ellipsis; line-height:1.2">
-          ${g.name}<br><span style="font-size:var(--fs-xs); color:#64748b; font-weight:400">${g.st ? '📍 ' + g.st : g.city}</span>
+          position:sticky; right:0; z-index:10; white-space:nowrap; max-width:155px; overflow:hidden; text-overflow:ellipsis; line-height:1.15">
+          ${g.name}<br><span style="font-size:0.66rem; color:#64748b; font-weight:400">${g.st ? '📍 ' + g.st : g.city}</span>
         </td>`;
-        days.forEach(d=>{
+        days.forEach((d,di)=>{
           const ds=d2s(d);
           const hol=getHolidayInfo(ds,g.city,window.gcls(g));
           const gBlk=window.getGardenBlock(gid,ds);
           const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>window.compareActivities(a, b));
-          html+=makeCell(gid,ds,de,gBlk,hol,clr,isClusterMode?pair.id:null);
+          html+=makeCell(gid,ds,de,gBlk,hol,clr,isClusterMode?pair.id:null,hdrHols[di]);
         });
         html+='</tr>';
       });
@@ -2011,17 +2013,17 @@ function renderNormalWeek(evs, ws, f){
     // Solo GARDENS
     byCity[city].solos.forEach(gid=>{
       const g=window.G(gid);
-      html+=`<tr class="${cityRowClass}" style="display:${cityDisplay};"><td style="background:#fafbff;font-size:14px;padding:6px 10px;color:#333;font-weight:700;
+      html+=`<tr class="${cityRowClass}" style="display:${cityDisplay};"><td style="background:#fafbff;font-size:0.78rem;padding:3px 8px;color:#333;font-weight:700;
         border-right:3px solid ${clr.solid};border-bottom:1px solid #dde1f0;border-left:1px solid #dde1f0;
-        position:sticky;right:0;z-index:10;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">
-        ${g.name}<br><span style="font-size:12px;color:#78909c;font-weight:400">${g.city}</span>
+        position:sticky;right:0;z-index:10;white-space:nowrap;max-width:155px;overflow:hidden;text-overflow:ellipsis;line-height:1.15">
+        ${g.name}<br><span style="font-size:0.66rem;color:#64748b;font-weight:400">${g.st ? '📍 ' + g.st : g.city}</span>
       </td>`;
-      days.forEach(d=>{
+      days.forEach((d,di)=>{
         const ds=d2s(d);
         const hol=getHolidayInfo(ds,g.city,window.gcls(g));
         const soloBlk=window.getGardenBlock(gid,ds);
         const de=evs.filter(s=>s.g===gid&&s.d===ds).sort((a,b)=>window.compareActivities(a, b));
-        html+=makeCell(gid,ds,de,soloBlk,hol,clr);
+        html+=makeCell(gid,ds,de,soloBlk,hol,clr,null,hdrHols[di]);
       });
       html+='</tr>';
     });
