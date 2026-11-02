@@ -1557,7 +1557,7 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
   opacity: 1;
 }
 
-/* ── Compact Horizontal Weekly Grid Cards & Dead-Space Cleanup (v114.42) ── */
+/* ── Compact Horizontal Weekly Grid Cards & Dead-Space Cleanup (v114.44) ── */
 #cal-container:empty {
   display: none !important;
   margin: 0 !important;
@@ -1575,19 +1575,65 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
     max-height: calc(100vh - 175px);
   }
 }
+@media (max-width: 1380px) and (min-width: 769px) {
+  #cal-tools-desktop .custom-multi-select {
+    min-width: 112px !important;
+    font-size: 0.78rem !important;
+  }
+  #cal-tools-desktop #cal-dp-desktop {
+    width: 116px !important;
+  }
+}
 .wk-grid-table {
   table-layout: fixed;
+  width: 100%;
+}
+.wk-grid-table td,
+.wk-grid-table th {
+  overflow: hidden;
+}
+.wk-grid-table .wk-pslot {
+  container-type: inline-size;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
 }
 .wk-grid-table .wk-qacts-wrap .qacts {
   gap: 2px !important;
   flex-wrap: nowrap !important;
 }
 .wk-grid-table .wk-qacts-wrap .qbtn {
-  width: 22px;
-  height: 22px;
-  font-size: 0.68rem;
+  width: 21px;
+  height: 21px;
+  font-size: 0.66rem;
   border-radius: 5px;
   border-color: #e2e8f0;
+}
+@container (max-width: 225px) {
+  .wk-grid-table .wk-qacts-wrap .qacts {
+    gap: 1.5px !important;
+  }
+  .wk-grid-table .wk-qacts-wrap .qbtn {
+    width: 18px;
+    height: 18px;
+    font-size: 0.58rem;
+    border-radius: 4px;
+  }
+  .wk-grid-table .wk-pslot-time {
+    font-size: 0.64rem !important;
+  }
+}
+@container (max-width: 185px) {
+  .wk-grid-table .wk-pslot-info {
+    flex: 1 1 100% !important;
+  }
+  .wk-grid-table .wk-qacts-wrap {
+    width: 100%;
+    justify-content: flex-end;
+    padding-top: 2px;
+    margin-top: 1px;
+    border-top: 1px dashed rgba(226, 232, 240, 0.8);
+  }
 }
 .wk-grid-table .wk-pslot:hover {
   opacity: 1;

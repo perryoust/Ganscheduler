@@ -1882,11 +1882,11 @@ function renderNormalWeek(evs, ws, f){
   });
   const hdrHols = days.map(d => window.getHolidayInfo ? window.getHolidayInfo(window.d2s(d)) : null);
   let html = '<div class="tw-sticky">'
-          +'<table class="wk-grid-table" style="min-width:1180px;width:100%"><thead><tr>';
+          +'<table class="wk-grid-table" style="width:100%;min-width:680px"><thead><tr>';
 
-  html+=`<th style="width:148px;min-width:136px;background:#e8eaf6;color:#283593;padding:4px 8px;
+  html+=`<th style="width:12.5%;min-width:105px;max-width:148px;background:#e8eaf6;color:#283593;padding:4px 6px;
     border-bottom:2px solid #9fa8da;border-left:1px solid #c5cae9;
-    position:sticky;top:0;right:0;z-index:35;font-size:.75rem">צהרון / זוג</th>`;
+    position:sticky;top:0;right:0;z-index:35;font-size:.74rem">צהרון / זוג</th>`;
 
   days.forEach((d,i)=>{
     const ds=window.d2s(d);
@@ -1898,12 +1898,12 @@ function renderNormalWeek(evs, ws, f){
     const bottomBorder=blkWk?'border-bottom:3px solid #e91e63':'border-bottom:2px solid #9fa8da';
     const hebStr = window.toHebDate ? window.toHebDate(ds) : '';
     const subParts = [hebStr, hol ? `<b>${hol.emoji} ${hol.name}</b>` : ''].filter(Boolean).join(' · ');
-    html+=`<th style="background:${bg};color:${col};padding:3px 6px;text-align:center;font-size:.75rem;min-width:205px;
+    html+=`<th style="width:17.5%;min-width:0;background:${bg};color:${col};padding:3px 4px;text-align:center;font-size:.74rem;
       ${bottomBorder};border-left:1px solid ${isToday?'rgba(255,255,255,.3)':'#c5cae9'};
-      position:sticky;top:0;z-index:30;white-space:nowrap;line-height:1.2;cursor:pointer" onclick="window.jumpToDay('${ds}')">
-      <span style="font-weight:700">${window.dayN(ds)}</span> <span style="font-size:.65rem;font-weight:500">${window.fD(ds)}</span>
-      ${subParts ? `<div style="font-size:.58rem;font-weight:400;opacity:.85;overflow:hidden;text-overflow:ellipsis">${subParts}</div>` : ''}
-      ${blkWk?`<span style="font-size:.58rem;cursor:pointer;display:block" onclick="event.stopPropagation();window.openBlockedDate('${ds}')">${blkWk.icon||'🚫'} ${blkWk.reason}</span>`:''}
+      position:sticky;top:0;z-index:30;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;cursor:pointer" onclick="window.jumpToDay('${ds}')">
+      <span style="font-weight:700">${window.dayN(ds)}</span> <span style="font-size:.64rem;font-weight:500">${window.fD(ds)}</span>
+      ${subParts ? `<div style="font-size:.57rem;font-weight:400;opacity:.85;overflow:hidden;text-overflow:ellipsis">${subParts}</div>` : ''}
+      ${blkWk?`<span style="font-size:.57rem;cursor:pointer;display:block;overflow:hidden;text-overflow:ellipsis" onclick="event.stopPropagation();window.openBlockedDate('${ds}')">${blkWk.icon||'🚫'} ${blkWk.reason}</span>`:''}
     </th>`;
   });
 
@@ -1919,7 +1919,7 @@ function renderNormalWeek(evs, ws, f){
     const groupLabel = window._listGroupMode === 'clusters' ? 'אשכולות' : 'זוגות';
     html+=`<tr onclick="toggleTableCity('${cityId}')" data-city="${city.replace(/"/g,'&quot;')}" style="cursor:pointer" class="city-header-row">
       <td colspan="6" style="background:${clr.solid};color:#fff;padding:4px 10px;font-size:.84rem;font-weight:800;
-        border-bottom:1px solid rgba(255,255,255,.2);position:sticky;right:0;z-index:10">
+        border-bottom:1px solid rgba(255,255,255,.2)">
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <span style="display:inline-flex;align-items:center;gap:6px"><span id="icon-${cityId}" style="width:16px;text-align:center;font-size:1rem;user-select:none">${isCityOpen ? '➖' : '➕'}</span><span>🏙️ ${city} <span style="font-weight:400;font-size:.72rem;opacity:.85;margin-right:6px">${byCity[city].pairs.length} ${groupLabel} · ${byCity[city].solos.length} צהרונים בודדים</span></span></span>
           <span style="font-size:0.68rem; font-weight:400; opacity:0.8;">לחץ לכיווץ/הרחבה ↕️</span>
@@ -1949,17 +1949,19 @@ function renderNormalWeek(evs, ws, f){
           const evFlex = ev.flexNote || (evEx.flexSched ? (evEx.flexNote || 'הימים והשעות עלולים להשתנות') : '');
           const dispSup = (ev.a && window.supDisplayName) ? window.supDisplayName(ev.a) : (ev.n || evBase || '');
           const fullTip = [dispSup, ev.act, ev.t ? window.fT(ev.t) : ''].filter(Boolean).join(' · ').replace(/"/g,'&quot;');
-          inner+=`<div class="pslot wk-pslot ${stC}" title="${fullTip}" style="border-radius:6px; padding:3px 6px; margin:1px 0; font-size:var(--fs-xs);
-            background:${bgCol}; border:1px solid ${borderCol}; border-right:3px solid ${clrObj.solid}; box-shadow:0 1px 2px rgba(0,0,0,0.03); cursor:pointer"
+          inner+=`<div class="pslot wk-pslot ${stC}" title="${fullTip}" style="border-radius:6px; padding:3px 5px; margin:1px 0; font-size:var(--fs-xs);
+            background:${bgCol}; border:1px solid ${borderCol}; border-right:3px solid ${clrObj.solid}; box-shadow:0 1px 2px rgba(0,0,0,0.03); cursor:pointer; overflow:hidden"
             onclick="event.stopPropagation();window.openSP('${ev.id}')">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:6px">
-              ${ev.t ? `<div style="font-size:0.72rem; color:#64748b; font-weight:600; white-space:nowrap; flex-shrink:0; line-height:1">⏰ ${window.fT(ev.t)}</div>` : ''}
-              <div style="flex:1; min-width:0; line-height:1.15; text-align:right">
-                <div style="font-weight:800; color:var(--c-secondary); font-size:0.78rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${dispSup}${isM ? ` <span style="background:#ffe082; color:#b71c1c; border-radius:3px; padding:0 4px; font-size:0.56rem; font-weight:800; border:1px solid #ffca28">📅 השלמה</span>`:''}</div>
-                ${ev.act ? `<div style="color:#64748b; font-size:0.7rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${ev.act}</div>` : ''}
-                ${evFlex ? `<div style="font-size:0.58rem; color:#0369a1; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" title="${(evFlex||'').replace(/"/g,'&quot;')}">ℹ️ ${evFlex}</div>` : ''}
+            <div class="wk-pslot-row" style="display:flex; align-items:center; justify-content:space-between; gap:4px; flex-wrap:wrap">
+              <div class="wk-pslot-info" style="display:flex; align-items:center; gap:5px; flex:1 1 92px; min-width:0; overflow:hidden">
+                ${ev.t ? `<div class="wk-pslot-time" style="font-size:0.7rem; color:#64748b; font-weight:600; white-space:nowrap; flex-shrink:0; line-height:1">⏰ ${window.fT(ev.t)}</div>` : ''}
+                <div style="flex:1; min-width:0; line-height:1.15; text-align:right; overflow:hidden">
+                  <div style="font-weight:800; color:var(--c-secondary); font-size:0.76rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${dispSup}${isM ? ` <span style="background:#ffe082; color:#b71c1c; border-radius:3px; padding:0 4px; font-size:0.55rem; font-weight:800; border:1px solid #ffca28">📅 השלמה</span>`:''}</div>
+                  ${ev.act ? `<div style="color:#64748b; font-size:0.68rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${ev.act}</div>` : ''}
+                  ${evFlex ? `<div style="font-size:0.58rem; color:#0369a1; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" title="${(evFlex||'').replace(/"/g,'&quot;')}">ℹ️ ${evFlex}</div>` : ''}
+                </div>
               </div>
-              <div class="wk-qacts-wrap" style="display:flex; align-items:center; flex-shrink:0" onclick="event.stopPropagation()">
+              <div class="wk-qacts-wrap" style="display:flex; align-items:center; flex-shrink:0; margin-right:auto" onclick="event.stopPropagation()">
                 ${window.ui.renderQuickActionBtns(ev)}
               </div>
             </div>
@@ -1971,7 +1973,7 @@ function renderNormalWeek(evs, ws, f){
         inner=`<div style="font-size:0.68rem; color:var(--c-error); padding:3px; text-align:center; font-weight:700; line-height:1.15">${blk.icon||'🚫'} ${blk.reason}</div>`;
       } else if(hol){
         const holAddBtn = window.isReadOnly ? '' : `<button type="button" title="${schedTitle}" onclick="event.stopPropagation(); ${schedCall}" style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:20px; font-size:0.68rem; font-weight:700; color:#1565c0; background:rgba(255,255,255,0.9); border:1px dashed #93c5fd; border-radius:5px; cursor:pointer; transition:all 0.15s; flex-shrink:0" onmouseover="this.style.background='#dbeafe'; this.style.borderColor='#2563eb'" onmouseout="this.style.background='rgba(255,255,255,0.9)'; this.style.borderColor='#93c5fd'">➕</button>`;
-        inner=`<div style="display:flex; align-items:center; justify-content:center; padding:1px 2px; gap:5px; line-height:1"><span style="font-size:0.66rem; color:${hol.color}; font-weight:600; opacity:0.85; white-space:nowrap">${hol.emoji} ${hol.name}</span>${holAddBtn}</div>`;
+        inner=`<div style="display:flex; align-items:center; justify-content:center; flex-wrap:wrap; padding:1px 2px; gap:4px; line-height:1.1; overflow:hidden"><span style="font-size:0.64rem; color:${hol.color}; font-weight:600; opacity:0.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%">${hol.emoji} ${hol.name}</span>${holAddBtn}</div>`;
       } else {
         inner = window.isReadOnly ? `<div style="padding:2px 0;"></div>` : `<div title="${schedTitle}" ${clusterId ? `onclick="event.stopPropagation(); ${schedCall}"` : ''} style="color:#cbd5e1; font-size:1rem; font-weight:400; text-align:center; padding:2px 0; line-height:1; cursor:pointer">+</div>`;
       }
@@ -1980,7 +1982,7 @@ function renderNormalWeek(evs, ws, f){
         border-radius:4px; color:#64748b; font-size:9px; padding:1px 4px; cursor:pointer; opacity:0; transition:all 0.15s; box-shadow:0 1px 2px rgba(0,0,0,0.08)" class="cell-jump-btn">📅</button>`;
 
       return `<td style="background:${cellBg}; position:relative; border-bottom:1px solid ${borderColor}; border-left:1px solid ${borderColor};
-        padding:2px 4px; vertical-align:middle; min-width:205px"
+        padding:2px 3px; vertical-align:middle; min-width:0; overflow:hidden"
         onmouseover="this.querySelector('.cell-jump-btn').style.opacity=1"
         onmouseout="this.querySelector('.cell-jump-btn').style.opacity=0"
         onclick="window.openGcellPopup(${gid},'${ds}',event)">${jumpBtn}${inner}</td>`;
@@ -1996,7 +1998,7 @@ function renderNormalWeek(evs, ws, f){
 
       html+=`<tr class="${cityRowClass} pair-hdr-${cityId}" onclick="window.toggleTableCluster('${pIdStr}')" style="display:${cityDisplay};cursor:pointer">
         <td colspan="6" style="background:${clr.solid};color:#fff;padding:3px 10px;
-          font-size:.84rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2);position:sticky;right:0;z-index:10">
+          font-size:.84rem;font-weight:800;border-bottom:1px solid rgba(255,255,255,.2)">
           <div style="display:flex;align-items:center;gap:6px">
             <span id="icon-${pIdStr}" style="width:16px;text-align:center;font-size:1rem;user-select:none">${clusterIcon}</span>
             <button onclick="event.stopPropagation();window._exportPairWA([${pairGidList}])"
