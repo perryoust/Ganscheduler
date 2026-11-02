@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <title>טומשין ניהול ושיבוץ | גרסה 114.46</title>
+  <title>טומשין ניהול ושיבוץ | גרסה 114.47</title>
   <meta name="description" content="טומשין ניהול ושיבוץ - מערכת לניהול ושיבוץ צהרונים">
   <!-- Open Graph / WhatsApp Preview Meta Tags -->
   <meta property="og:type" content="website">
@@ -27,7 +27,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png" />
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=114.46" />
+  <link rel="stylesheet" href="styles.css?v=114.47" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -51,7 +51,7 @@
     }
   </style>
   <script>
-    window.APP_VERSION = '114.46';
+    window.APP_VERSION = '114.47';
     // Safety fallback: Never get stuck on loading screen if network or Auth takes time
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
@@ -2568,6 +2568,20 @@
         </div>
         <button id="ex-gen-preview-btn" class="btn bp bsm" onclick="genExport()" style="margin-bottom:8px">🚀 צור תצוגה מקדימה</button>
       </div>
+
+      <!-- Quick Category Tabs for Messages -->
+      <div id="ex-tabs-bar" style="display:flex; gap:6px; margin-bottom:10px; background:#f1f5f9; padding:4px; border-radius:8px; border:1px solid #e2e8f0;">
+        <button id="ex-tab-all" class="ex-tab-btn active" onclick="window.setExTypeTab('all')" style="flex:1; padding:6px 10px; font-size:0.83rem; font-weight:700; border-radius:6px; border:none; cursor:pointer; background:#1e40af; color:#fff; transition:all 0.15s ease;">
+          📑 הכל
+        </button>
+        <button id="ex-tab-missed" class="ex-tab-btn" onclick="window.setExTypeTab('missed')" style="flex:1; padding:6px 10px; font-size:0.83rem; font-weight:700; border-radius:6px; border:none; cursor:pointer; background:transparent; color:#64748b; transition:all 0.15s ease;">
+          ❌ רק לא התקיים / דחייה
+        </button>
+        <button id="ex-tab-makeup" class="ex-tab-btn" onclick="window.setExTypeTab('makeup')" style="flex:1; padding:6px 10px; font-size:0.83rem; font-weight:700; border-radius:6px; border:none; cursor:pointer; background:transparent; color:#64748b; transition:all 0.15s ease;">
+          🔄 רק השלמה / הקדמה
+        </button>
+      </div>
+
       <div id="ex-prev" class="exprev" style="margin-bottom:9px">לחץ "צור תצוגה מקדימה"</div>
       <div style="display:flex;gap:7px;justify-content:flex-end">
         <button id="ex-print-btn" class="btn" style="background:#546e7a;color:#fff" onclick="printExport()">🖨️ הדפסה</button>

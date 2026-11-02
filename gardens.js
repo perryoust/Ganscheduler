@@ -1926,6 +1926,11 @@ function openExport(){
   if(gids&&gids.length) ctx+=` | גנים: ${gids.map(id=>G(id).name||'').join(' + ')}`;
   (document.getElementById('ex-ctx')||{}).textContent =ctx;
 
+  // Reset tab selection to 'all' by default on modal open
+  const typeFltEl = document.getElementById('ex-type-flt');
+  if (typeFltEl) typeFltEl.value = 'all';
+  if (typeof window._syncExTabsUI === 'function') window._syncExTabsUI('all');
+
   if (typeof window.setupExmFieldMode === 'function') {
     window.setupExmFieldMode();
   }
@@ -1985,11 +1990,45 @@ window.getGardenFreeDays = function(gardenIds) {
 
   return freeDays.map(wd => dayNames[wd]).join(' | ');
 };
+
+window.setExTypeTab = function(type) {
+  const typeFltEl = document.getElementById('ex-type-flt');
+  if (typeFltEl) {
+    typeFltEl.value = type;
+  }
+  window._syncExTabsUI(type);
+  genExport();
+};
+
+window._syncExTabsUI = function(activeType) {
+  const tabs = [
+    { id: 'ex-tab-all', val: 'all', activeBg: '#1e40af', activeColor: '#fff', inactiveColor: '#64748b' },
+    { id: 'ex-tab-missed', val: 'missed', activeBg: '#dc2626', activeColor: '#fff', inactiveColor: '#64748b' },
+    { id: 'ex-tab-makeup', val: 'makeup', activeBg: '#059669', activeColor: '#fff', inactiveColor: '#64748b' }
+  ];
+  tabs.forEach(t => {
+    const btn = document.getElementById(t.id);
+    if (!btn) return;
+    if (t.val === activeType) {
+      btn.classList.add('active');
+      btn.style.background = t.activeBg;
+      btn.style.color = t.activeColor;
+      btn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+    } else {
+      btn.classList.remove('active');
+      btn.style.background = 'transparent';
+      btn.style.color = t.inactiveColor;
+      btn.style.boxShadow = 'none';
+    }
+  });
+};
+
 function genExport(){
   const from=document.getElementById('ex-d1').value;
   const to=document.getElementById('ex-d2').value||from;
   const fmt=document.getElementById('ex-fmt').value;
   const typeFlt=document.getElementById('ex-type-flt')?.value || 'all';
+  if(typeof window._syncExTabsUI === 'function') window._syncExTabsUI(typeFlt);
   if(!from){_spAlertDialog('בחר תאריך');return;}
   const incPair = !document.getElementById('ex-inc-pair') || document.getElementById('ex-inc-pair').checked;
   const singleGid = window._exSingleGid ? Number(window._exSingleGid) : null;
@@ -2326,12 +2365,15 @@ function genExport(){
 
   const splitPairs = document.getElementById('ex-split-msg') && document.getElementById('ex-split-msg').checked;
   const byDate={};rel.forEach(s=>{if(!byDate[s.d])byDate[s.d]=[];byDate[s.d].push(s);});
-  let text = headerTitle;
+  let text = '';
   const dates=Object.keys(byDate).sort();
   dates.forEach((date,di)=>{
     const dayIcon = '🗓️';
     const dateHeader = `${dayIcon} *${fD(date)} - יום ${dayN(date)}*\n`;
-    if (!splitPairs) text += dateHeader;
+    if (!splitPairs) {
+      if (headerTitle) text += headerTitle;
+      text += dateHeader;
+    }
     const byCity={};
     byDate[date].forEach(s=>{
       const g=G(s.g);const c=g.city||'';
